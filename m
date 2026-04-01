@@ -1,142 +1,108 @@
-Received: from mail.zytor.com (terminus.zytor.com [198.137.202.136])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-dy1-f201.google.com (mail-dy1-f201.google.com [74.125.82.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8CD2738A709;
-	Tue, 31 Mar 2026 20:44:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.136
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9EC5C2D0C9C
+	for <linux-arch@vger.kernel.org>; Wed,  1 Apr 2026 01:30:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.82.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774989871; cv=none; b=pUNSbjwY9zUN/TpZ3n+fDvzMeDhXN/7eocoL7sxyaDdsx3g52mBRilV6l+5efeiY2NhBiHMYev/XPnnqVhupsSTOvwQeFaMSV4OwOxchuK/Y1FOLh0KFznT3E8XRv59PylCRbU8Slv71+FilQLSf6Pdpi1shreUtuHN1JUwBoVU=
+	t=1775007023; cv=none; b=nzcUNocIRlEa5B+NC0Bx6PnHFpbchsWnq3Rk4rjnwQugyEcsAvuvPoMEw0NSpiXrPBl7tDBGtv+oqTG6GKY9GUGcx1GVKa31gVnBadGckvd3A1SWcsnMVlcBvR9wNlZglzBJBxRipDGr+FDFlPzfjKBu9Xtk65tBJMedEMkYOPI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774989871; c=relaxed/simple;
-	bh=y983+/rjkzf6M53UM1IDDXq0eYkSrQwapz5bFCkeWJU=;
-	h=Date:From:To:CC:Subject:In-Reply-To:References:Message-ID:
-	 MIME-Version:Content-Type; b=cKHjMwpXU87p0HFD3P6PNK6zdSbJqFM63CS4b03HocGkcsoaM2q3lg4/UnLyW2fWLAnW+oPduS5sbfZJYPB+WQ1unbuz54hItGlgxk+6LWmjijrnADrzphqt0NxIKGV2ejOvDjVE3LsuEvRJwCOrFcZHAeoXKoKpabxSiQAbWpM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com; spf=pass smtp.mailfrom=zytor.com; dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b=iEciUOTL; arc=none smtp.client-ip=198.137.202.136
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=zytor.com
+	s=arc-20240116; t=1775007023; c=relaxed/simple;
+	bh=31TfvCLwbknK8QU0XVOHI6FK0vdxmYqr/snmIVckegg=;
+	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
+	 To:Cc:Content-Type; b=suNWaRIBqJxo9hFpjTTekJBkce0hv/uWY6wN6+attLXZ1TnPqBKLT+vyvZeylSf+HmNfNoF1+z/6MLHvNre4kO6h3tsCfj1GN1ZFrJPMvQLGVX49+FKmbzhZbmkEfH7Uv869xyrP+fnQGSG3b0QWmReDRwZWqzjca67bjHLHtWk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--samitolvanen.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=jKEW9F1G; arc=none smtp.client-ip=74.125.82.201
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--samitolvanen.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b="iEciUOTL"
-Received: from ehlo.thunderbird.net (c-76-133-66-138.hsd1.ca.comcast.net [76.133.66.138])
-	(authenticated bits=0)
-	by mail.zytor.com (8.18.1/8.17.1) with ESMTPSA id 62VKh4FL755405
-	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NO);
-	Tue, 31 Mar 2026 13:43:05 -0700
-DKIM-Filter: OpenDKIM Filter v2.11.0 mail.zytor.com 62VKh4FL755405
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zytor.com;
-	s=2026032601; t=1774989786;
-	bh=V0/g33lgizl2oNCDPM0m5RDMcESYn9Y1acfjoIK2Gh0=;
-	h=Date:From:To:CC:Subject:In-Reply-To:References:From;
-	b=iEciUOTL4ETUqQQo6wr5ofRzrfEOfRyTMLcRqbW8kB7ua8qvmOLjTwd+MnFLUMMAj
-	 9Yj2BKa3F1A6M+1e/cPaQQmSZqFwWLAMJ6g1QPg453Wzu/dYiF7ZymiJLu2c+enFQ4
-	 1ByItX+dqt/V8rOF9S1y4fYF8Phwon9UVj2NvQsWA04KYdp97aWjdGNxPQYZMxZuZw
-	 WlKQzHIDXIw0an/WBiuaFXtxsLscM7vTrlvDFN8V14b/474JJUB8Wp9VgiK4GUmNIE
-	 an3dyDvlC3yhcqy3oC5rHfpCrX6HmhjdPoVEhyaeYpzVLuqLlSWCW7LG4EGaZFp87i
-	 qJdtolklv5Wgg==
-Date: Tue, 31 Mar 2026 13:42:57 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-To: Yann Droneaud <yann@droneaud.fr>, Jori Koolstra <jkoolstra@xs4all.nl>,
-        Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Christian Brauner <brauner@kernel.org>,
-        Jeff Layton <jlayton@kernel.org>, Chuck Lever <chuck.lever@oracle.com>,
-        Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Jan Kara <jack@suse.cz>, Alexander Aring <alex.aring@gmail.com>
-CC: Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>,
-        Andrey Albershteyn <aalbersh@redhat.com>, Jiri Olsa <jolsa@kernel.org>,
-        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        =?ISO-8859-1?Q?Thomas_Wei=DFschuh?= <thomas.weissschuh@linutronix.de>,
-        Namhyung Kim <namhyung@kernel.org>,
-        Arnaldo Carvalho de Melo <acme@redhat.com>,
-        Aleksa Sarai <cyphar@cyphar.com>, linux-kernel@vger.kernel.org,
-        linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        cmirabil@redhat.com, "Masami Hiramatsu (Google)" <mhiramat@kernel.org>
-Subject: Re: [RFC PATCH 1/2] vfs: syscalls: add mkdirat_fd()
-User-Agent: K-9 Mail for Android
-In-Reply-To: <df5a6fec-ca67-4196-9e7b-cd129c79578e@droneaud.fr>
-References: <20260331172011.3512876-1-jkoolstra@xs4all.nl> <20260331172011.3512876-2-jkoolstra@xs4all.nl> <df5a6fec-ca67-4196-9e7b-cd129c79578e@droneaud.fr>
-Message-ID: <6BF21DE6-F88D-4E59-91BE-568C67ABAE89@zytor.com>
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="jKEW9F1G"
+Received: by mail-dy1-f201.google.com with SMTP id 5a478bee46e88-2bdf75bc88fso5470652eec.0
+        for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2026 18:30:22 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1775007022; x=1775611822; darn=vger.kernel.org;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:from:to:cc:subject:date:message-id:reply-to;
+        bh=k1/BQLq9I+ernXavRvxZYNZROQSXYmepGs6Tk+w+QVg=;
+        b=jKEW9F1GtFDJu1oSrVQ4fBmh51vm0ej6HPOhm4jQHGM0AICgFsvYpC5w8JyATLvuKt
+         qgGnGu59RpjSsyH4RR9wt3fFvKp7V+i9dI8RJ6ckYyfCYtrJ/zDydvrhc8O/3kJ/jjSN
+         q0sJ3cCNpafYYrlmhGucxhDyn4CDKIgirsGlyfDsCHT6Rfdom+k/cHN3svkXwjCPfYXj
+         94HrWnd5CHpLT88AGgNxxb0ObQ7k533Y02V3hf/sPB/E8+zey7klT4NJVuva4Pkeqakc
+         cIudRDdfke5m7rVJDhxNjUxZngRaGbjfmYz1S1gdiRdk+uKztHrqcWONAKbMzGO8ZdJx
+         Sjzg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1775007022; x=1775611822;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=k1/BQLq9I+ernXavRvxZYNZROQSXYmepGs6Tk+w+QVg=;
+        b=WWW26JvNqvV+Q2g4CDD60DDLxF/4/aHNiz/GtOyBVQUticeDxgEwV4x1EBwE1eeP4J
+         4kvS17jR4DKvo0cxXPn084+dNgfUR1NmHFKpeImsn/UhPFk8Zs5jbdXO2QAJO14OLC6Z
+         9665EzBrxI5gUb+sGFyrIXin1/m2VhUG7cT6a4tHbj8E7S08fBGHJoMFxqfvqnGGpbFX
+         GgZaqAbwceamo5rYjzLOZ5Rk9UK8OQpTEAGtsW0FCK2WziWCpgom4Sh0yP8Dy0NTyvaK
+         JpeGJ7LwTPrieH5bng06q6FUra/cBgNZSDIYHKj+XPjqYadJGj+KlwPi4+tEcznqexm6
+         Bacw==
+X-Forwarded-Encrypted: i=1; AJvYcCXABcQG61avD+qkRSJ+b0NyAmkiDkQbTwC/4zWTcp6xNRkZ/de005z6EI7h0n3DNe2uZ8YWuD9ZbyUU@vger.kernel.org
+X-Gm-Message-State: AOJu0YxONmyoKvCjPR38iWtWsFnRsb4e9LgN8AnTObJ3GDEBKioV7Jx3
+	UfRi1ryuOXif8PWX1lr7WNrU8HfClmJyDZ1EFkI7vege/OWGcT51ZdjqB/R9h08AdHq3m9+SR45
+	5bENsczskd/r1gEQmDAR0utNrgjwUfw==
+X-Received: from dybmh41.prod.google.com ([2002:a05:7301:f29:b0:2c3:dfe3:6dbb])
+ (user=samitolvanen job=prod-delivery.src-stubby-dispatcher) by
+ 2002:a05:693c:2c8c:b0:2c6:2bac:8a8 with SMTP id 5a478bee46e88-2c9333b8061mr822830eec.30.1775007021499;
+ Tue, 31 Mar 2026 18:30:21 -0700 (PDT)
+Date: Wed, 01 Apr 2026 01:30:19 +0000
+In-Reply-To: <20260326-kflagstab-v5-0-fa0796fe88d9@google.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
- charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+References: <20260326-kflagstab-v5-0-fa0796fe88d9@google.com>
+X-Mailer: b4 0.14.3
+Message-ID: <177500701994.1603852.8130352881871388132.b4-ty@google.com>
+Subject: Re: [PATCH v5 0/7] scalable symbol flags with __kflagstab
+From: Sami Tolvanen <samitolvanen@google.com>
+To: Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
+	Daniel Gomez <da.gomez@kernel.org>, Aaron Tomlin <atomlin@atomlin.com>, Arnd Bergmann <arnd@arndb.de>, 
+	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Siddharth Nayyar <sidnayyar@google.com>
+Cc: linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, 
+	linux-doc@vger.kernel.org, maennich@google.com, gprocida@google.com
+Content-Type: text/plain; charset="utf-8"
 
-On March 31, 2026 1:25:03 PM PDT, Yann Droneaud <yann@droneaud=2Efr> wrote:
->Hi,
->
->Le 31/03/2026 =C3=A0 19:19, Jori Koolstra a =C3=A9crit=C2=A0:
->> Currently there is no way to race-freely create and open a directory=2E
->> For regular files we have open(O_CREAT) for creating a new file inode,
->> and returning a pinning fd to it=2E The lack of such functionality for
->> directories means that when populating a directory tree there's always
->> a race involved: the inodes first need to be created, and then opened
->> to adjust their permissions/ownership/labels/timestamps/acls/xattrs/=2E=
-=2E=2E,
->> but in the time window between the creation and the opening they might
->> be replaced by something else=2E
->>=20
->> Addressing this race without proper APIs is possible (by immediately
->> fstat()ing what was opened, to verify that it has the right inode type)=
-,
->> but difficult to get right=2E Hence, mkdirat_fd() that creates a direct=
-ory
->> and returns an O_DIRECTORY fd is useful=2E
->>=20
->> This feature idea (and description) is taken from the UAPI group:
->> https://github=2Ecom/uapi-group/kernel-features?tab=3Dreadme-ov-file#ra=
-ce-free-creation-and-opening-of-non-file-inodes
->>=20
->> Signed-off-by: Jori Koolstra <jkoolstra@xs4all=2Enl>
->> ---
->>   arch/x86/entry/syscalls/syscall_64=2Etbl |  1 +
->>   fs/internal=2Eh                          |  1 +
->>   fs/namei=2Ec                             | 26 +++++++++++++++++++++++=
-+--
->>   include/linux/fcntl=2Eh                  |  2 ++
->>   include/linux/syscalls=2Eh               |  2 ++
->>   include/uapi/asm-generic/fcntl=2Eh       |  3 +++
->>   include/uapi/asm-generic/unistd=2Eh      |  5 ++++-
->>   scripts/syscall=2Etbl                    |  1 +
->>   8 files changed, 38 insertions(+), 3 deletions(-)
->
->> diff --git a/include/linux/fcntl=2Eh b/include/linux/fcntl=2Eh
->> index a332e79b3207=2E=2Ed2f0fdb82847 100644
->> --- a/include/linux/fcntl=2Eh
->> +++ b/include/linux/fcntl=2Eh
->> @@ -25,6 +25,8 @@
->>   #define force_o_largefile() (!IS_ENABLED(CONFIG_ARCH_32BIT_OFF_T))
->>   #endif
->>   +#define VALID_MKDIRAT_FD_FLAGS	(MKDIRAT_FD_NEED_FD)
->> +
->
->I don't see support for O_CLOEXEC-ish flag, is the file descriptor in clo=
-se-on-exec mode by default ? If yes, it should be mentioned=2E
->
->
->> diff --git a/include/uapi/asm-generic/fcntl=2Eh b/include/uapi/asm-gene=
-ric/fcntl=2Eh
->> index 613475285643=2E=2E621458bf1fbf 100644
->> --- a/include/uapi/asm-generic/fcntl=2Eh
->> +++ b/include/uapi/asm-generic/fcntl=2Eh
->> @@ -95,6 +95,9 @@
->>   #define O_NDELAY	O_NONBLOCK
->>   #endif
->>   +/* Flags for mkdirat_fd */
->> +#define MKDIRAT_FD_NEED_FD	0x01
->> +
->
->
->Regards=2E
->
->
+On Thu, 26 Mar 2026 21:25:01 +0000, Siddharth Nayyar wrote:
+> This patch series implements a mechanism for scalable exported symbol
+> flags using a separate section called __kflagstab. The series introduces
+> __kflagstab support, removes *_gpl sections in favor of a GPL flag,
+> simplifies symbol resolution during module loading.
+> 
+> The __kflagstab contains an 8-bit bitset which can represent up to 8
+> boolean flags per symbol exported in the __ksymtab. The patch series
+> also uses this bitset to store GPL-only flag values for kernel symbols,
+> thereby eliminating the need for *_gpl sections for representing GPL
+> only symbols.
+> 
+> [...]
 
-And even if it is, POSIX already has O_CLOFORK and we should expect that t=
-hat will be needed, too=2E
+Applied to modules-next, thanks!
+
+[1/7] module: define ksym_flags enumeration to represent kernel symbol flags
+      commit: 10a4eb5882ba16164ece86d99486084f02f148bb
+[2/7] module: add kflagstab section to vmlinux and modules
+      commit: 9743311b4535dc76ce81f46303da0f69bfaa5fd6
+[3/7] module: populate kflagstab in modpost
+      commit: 16d0e04f546ffba78c74bbfeb57d93147bcaf2c5
+[4/7] module: use kflagstab instead of *_gpl sections
+      commit: 55fcb926b6d8b5cfb40873e4840a69961db1bb69
+[5/7] module: deprecate usage of *_gpl sections in module loader
+      commit: b4760ff2a5e4351c59d185967735f59c0b0bd7f6
+[6/7] module: remove *_gpl sections from vmlinux and modules
+      commit: f18540256b70c9e1f0e26e2c38f3d43a131926d9
+[7/7] documentation: remove references to *_gpl sections
+      commit: 3b1299f25b07ef83e020d049dfc62ced9c09450d
+
+Best regards,
+
+	Sami
+
+
