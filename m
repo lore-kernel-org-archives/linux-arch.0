@@ -1,80 +1,77 @@
-Received: from DM1PR04CU001.outbound.protection.outlook.com (mail-centralusazon11010001.outbound.protection.outlook.com [52.101.61.1])
+Received: from BL2PR02CU003.outbound.protection.outlook.com (mail-eastusazon11011050.outbound.protection.outlook.com [52.101.52.50])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8F565379ED2;
-	Thu,  2 Apr 2026 21:49:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.61.1
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2670B388379;
+	Thu,  2 Apr 2026 21:56:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.52.50
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775166593; cv=fail; b=sndgsPHyn3F1KnwQAayEbjo9Hd/6WHtaJCaXxU/IMXKSV5ZoZ6hlMHI4Hi2Xdhq3P6lTkg1cx5NE49vA9PcZ8JjJFSNgC+DzZmv2x7q+3WfFTSlPfRqioGk/Lmf3i70xLNDVsUZDQnTh3WxZ0cd17Tc5T1iQHhJbsEy4ElC4iro=
+	t=1775167000; cv=fail; b=JasMJsKTsYsTExFnBy+n8nLZXOVGwaVSRIwpxIUsEwj6qSuxGm8vYynwoIJDF2jDeBC50PnS30eLaM6FJIDRfNQAdQJrvAEscAG9qSXEVbJPmhBZzjLb4tnIVSrEPpXh7z7jIOorNq6ZusFfTdB/UfEAHms0e8zP68Q+jw84yQk=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775166593; c=relaxed/simple;
-	bh=j/SXI0Mcfgoj95BKSnpT7xUXpA7ZHJJWynsVgR9Vgsw=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=C1A6q8KA+N4UcREN8bPEYxMEvqcojGHQzgY0kReZmpSs+34635YCziIkFcKmrhXYILoqYsL/uOosCAKXuVVuAoY6Qak7XfKiiE+Zmp1lTGXJ85Q1SU40zrY03xkcNyNrE6x5/i6afeKqrmKXr+UToJyUyHiVsWpVAUhU538cD8c=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=Bf51jM64; arc=fail smtp.client-ip=52.101.61.1
+	s=arc-20240116; t=1775167000; c=relaxed/simple;
+	bh=jZrqV5edfhTY+fs99RpGMAwo/tF19A2AFT0TYf2Dwbo=;
+	h=Message-ID:Date:Subject:To:Cc:References:From:In-Reply-To:
+	 Content-Type:MIME-Version; b=CdrSIBVD8sZez84gzjRp6HNZ3T+rQmiH+oG6EDkZ+UrjxMVMoHu+aVoeJtf/xhrLt0+cYzIwQg3a4pR4IGUyPQI1qQotU5iI4kCFSxS0+cOFgxVC6SnFee1PmgVCpCDSVeVNtk104FgAVho+KQxOWZC5/PT/BKLBF0PqjmZsbyw=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=cBY3f05f; arc=fail smtp.client-ip=52.101.52.50
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="Bf51jM64"
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="cBY3f05f"
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=NCVkdKu7nB5xaBQbmn+l3Rcg/PuZZAocA11Mn0StyaCsEhbQqbYZ3Cvq39trQpiQAjHs2ChfRmq3HebTCgPJGXekGM2831raVn2gqh8eelG42YgFRF7NA3eu/dEEwjLVBdzjtg0VUFo00uKdfHJ2bdMETC3UPuM2wak2iYxvsnvgPvVBY/ya4RrJTwAipYjJE58kjImmqPkBPArhk9qderiCsiPyFUsjc6XK8bPqNFO1O+4bdR49FxdaUI3Mjo4uHh70CKj5iglcCbFz/HePhLoGYCwY2B/PV4J1PQcdDCr71g0E1PBIknlyeRKRabklClxRX3E+t5hqb7Mfo8uSag==
+ b=khBaGWTXkkuMLj22if97m28g0ZGll+tKydmSFXrlUooc1ZYKs+/ZPyfKX7qTU3cg9R/tXJqEEI1mymeyLbgIBwVArqjwJD0ivGAzB2LuyIGQI+uJWIOBjBHaT/km1+o2SQyp+49BV0ct64mSLnJMjVMbBDlbzC+TYtvP7hhYwalZeveLAHkhHOdTYdGc0Sws4l1Rjf4uQBPa6bZDF7KaaKv898QcUgPseZ0oVRllHqizz0fqAoP5xPBHK9yUSf0LERLK5Mp73kF95t5hP0BwHjydo3Pc68MqAztvTUavK0ENSViPiekSuvARXlLzV9coDx02/9aI6Topp3GpoJWEvA==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=ooAk5Yysy0lu//HLVVNmodnDqw7SNKXJYicM6Db2vSE=;
- b=AER4Ij+miNkaV+N8SqsfUJ92pmR0PKl1LRSgC1qTl+kkEGHed/V6PIp7NMi/aYqMXZ4PkNZOqfCb/GeTtTddWj9U6znRpzJpadog+ulP7cmntSPxp37OyNkjwN8VcBHyTlNWEvNdva4ZuxYLo/MRZwZOs5752CuUoG0mN4dopaxgHLP/vxNIJoanBJMfMfQ8W9PAGMkAJBYNsqDhCXrLXd3XI271O1phH1m54aCGN2jm/KbuSbQE3u6juMi+rUQyjyIEwX7OptdcH8GMH9vZ2CtQhtQwwYcvUwsdGZjjRuEmZFTB+KWwy0OVNxMC2gSWOTvGbZ/yNTHT1TyvmGtlVg==
+ bh=h38DhFmw/xnQr07Sa2I/+beUOgvDvJPrwhYwEjVAQpQ=;
+ b=B2YcUg0JAeu9XTu2Iat2cxO9iFQgYLOK81TWqTb18BxuJykH0/fHtG6ehrQ7X/V+40PUIIp8yv1YOXvwl/CbFtChTMBqWW3Jh4z1gORgSARWRa7GQUxfEZqmLl+BMhFBY+O0kRdjLY1cp2hpqGM5cg348HjnzXifka3VWBNoX3/hjxwgaUvscqKsKLx2rHTyPpjctti56qFWX9KKCvYXv0QtUFNTRT0obrNhxlydYXaBIi+4oM7ZMctTt6VngQVagyq1lZpk5YuzbM/phTopVD9ZdtTaQR5z11C2CmV1UE80l4GRH0O/5zUSq1sNWP4cJwO+xrCxfgupiqPy071b1Q==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
  dkim=pass header.d=nvidia.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
  s=selector2;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=ooAk5Yysy0lu//HLVVNmodnDqw7SNKXJYicM6Db2vSE=;
- b=Bf51jM64zpJeff/I/KxXUVXHbVJOKpqSxUi/rsd+VWSzYntPJ5ktGzHzDPMTFetXTev4EoA3ZcIrf4YK+641nhgiC+M48TdLkxncEQVC6wGT2dFpD11cCntcJLPVYvBRoPsSzWui8azG3n/FyblRcLkE3eBDgn3OqzfSbjcNZts7HtpM8PEDX1ExiSTxtfl4uRV02Do+oktNJbrOA2vVbzrsiXGIWshys9wuVNXWDBnR432tZJgy9spIEwaBA4pdiOlfGi9g0JI9BDHDBeuzRrD+YwO7MeunvXtk5KcSOzuGDkqDh2KCDGIxHkpkYTN+UsPmOq//Y/Ky0/YrHZtEzg==
+ bh=h38DhFmw/xnQr07Sa2I/+beUOgvDvJPrwhYwEjVAQpQ=;
+ b=cBY3f05fDOb3ARkTw8sUZdb1b0r/9sXuS1bU0c+zWSZOnq5mKjwG+GT32noO3eu/rgA/Z1zlFPRe6AsZ8hDTikDqO30WttQ1aYMbh8y3UaCEtOaoLQM2kPQIilpFThR9+OK3PWlsq9jXrymdB4M2uCj0DxvVdzVB1ZVEZrJUp2E4zE30NDw1O7/W8Kd9u6ESHOE4123Adk3zH/JOz3urWxcb7/6pA8X9rlwRfIJ59SjXAgTYkOY5xDnbIKE774Ka6Pg6fg9WYljaZrURWOu/aBuXyC8smYIrZoZ/14kqYrSyoJA551oRsGP7gFuY+t0Sx4j8FS96panG3jItoaVwqA==
 Authentication-Results: dkim=none (message not signed)
  header.d=none;dmarc=none action=none header.from=nvidia.com;
 Received: from DS0PR12MB6486.namprd12.prod.outlook.com (2603:10b6:8:c5::21) by
- SJ2PR12MB8806.namprd12.prod.outlook.com (2603:10b6:a03:4d0::8) with Microsoft
+ MW4PR12MB7030.namprd12.prod.outlook.com (2603:10b6:303:20a::8) with Microsoft
  SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.20.9769.17; Thu, 2 Apr 2026 21:49:47 +0000
+ 15.20.9769.17; Thu, 2 Apr 2026 21:56:28 +0000
 Received: from DS0PR12MB6486.namprd12.prod.outlook.com
  ([fe80::88a9:f314:c95f:8b33]) by DS0PR12MB6486.namprd12.prod.outlook.com
  ([fe80::88a9:f314:c95f:8b33%4]) with mapi id 15.20.9769.014; Thu, 2 Apr 2026
- 21:49:46 +0000
-Date: Thu, 2 Apr 2026 17:49:44 -0400
-From: Joel Fernandes <joelagnelf@nvidia.com>
+ 21:56:28 +0000
+Message-ID: <dc9c3448-d82f-4cec-97f9-7ea3387d8296@nvidia.com>
+Date: Thu, 2 Apr 2026 17:56:25 -0400
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 3/3] gpu: nova-core: fix wrong use of barriers in GSP code
 To: Gary Guo <gary@garyguo.net>, Miguel Ojeda <ojeda@kernel.org>,
-	Boqun Feng <boqun@kernel.org>,
-	=?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
-	Benno Lossin <lossin@kernel.org>,
-	Andreas Hindborg <a.hindborg@kernel.org>,
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
-	Danilo Krummrich <dakr@kernel.org>, Will Deacon <will@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Mark Rutland <mark.rutland@arm.com>
+ Boqun Feng <boqun@kernel.org>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?=
+ <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>,
+ Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>,
+ Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>,
+ Alexandre Courbot <acourbot@nvidia.com>, David Airlie <airlied@gmail.com>,
+ Simona Vetter <simona@ffwll.ch>
 Cc: Alan Stern <stern@rowland.harvard.edu>,
-	Andrea Parri <parri.andrea@gmail.com>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	David Howells <dhowells@redhat.com>,
-	Jade Alglave <j.alglave@ucl.ac.uk>,
-	Luc Maranget <luc.maranget@inria.fr>,
-	"Paul E. McKenney" <paulmck@kernel.org>,
-	Akira Yokosawa <akiyks@gmail.com>,
-	Daniel Lustig <dlustig@nvidia.com>, rust-for-linux@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	lkmm@lists.linux.dev, Alexandre Courbot <acourbot@nvidia.com>,
-	John Hubbard <jhubbard@nvidia.com>, Timur Tabi <ttabi@nvidia.com>,
-	Eliot Courtney <ecourtney@nvidia.com>,
-	Alistair Popple <apopple@nvidia.com>
-Subject: Re: [PATCH 2/3] rust: sync: generic memory barriers
-Message-ID: <620eaaf3-0569-4633-afd9-74ec18dccbf8@nvidia.com>
+ Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>,
+ David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>,
+ Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney"
+ <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>,
+ Daniel Lustig <dlustig@nvidia.com>, rust-for-linux@vger.kernel.org,
+ nouveau@lists.freedesktop.org, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, lkmm@lists.linux.dev,
+ dri-devel@lists.freedesktop.org
 References: <20260402152443.1059634-2-gary@kernel.org>
- <20260402152443.1059634-4-gary@kernel.org>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260402152443.1059634-4-gary@kernel.org>
-X-ClientProxiedBy: MN2PR01CA0045.prod.exchangelabs.com (2603:10b6:208:23f::14)
- To DS0PR12MB6486.namprd12.prod.outlook.com (2603:10b6:8:c5::21)
+ <20260402152443.1059634-5-gary@kernel.org>
+Content-Language: en-US
+From: Joel Fernandes <joelagnelf@nvidia.com>
+In-Reply-To: <20260402152443.1059634-5-gary@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-ClientProxiedBy: BL0PR1501CA0014.namprd15.prod.outlook.com
+ (2603:10b6:207:17::27) To DS0PR12MB6486.namprd12.prod.outlook.com
+ (2603:10b6:8:c5::21)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -82,156 +79,208 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: DS0PR12MB6486:EE_|SJ2PR12MB8806:EE_
-X-MS-Office365-Filtering-Correlation-Id: fee3bf7c-0852-4783-340e-08de9101c1b2
+X-MS-TrafficTypeDiagnostic: DS0PR12MB6486:EE_|MW4PR12MB7030:EE_
+X-MS-Office365-Filtering-Correlation-Id: 17ba13b9-7420-42e5-7ce0-08de9102b0e7
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|7416014|366016|376014|1800799024|921020|22082099003|18002099003|56012099003;
+	BCL:0;ARA:13230040|366016|7416014|376014|1800799024|921020|18002099003|56012099003|22082099003;
 X-Microsoft-Antispam-Message-Info:
-	2lHenOiIyjSsRSEkdcmZPeAM36ssevvDOLElxcLcR1kAQiwu2O7FXRYYdcq0MgFCZ+Gy4B0kNPOK8RjoemUWFsNLEggrmnuRBMkF/X2IrMJpDmsYt0QcZasvyGkm5/awsy2BEnemUwROI9HHYRiv8lI6Q4Z5hjhoFsFnPOfUWV9YVTIz06ysHRIlgfoyOBY5t6zp2acHCGBGXBww7ryHFhgzBN4zoemlhiUw2OeYC3JoPW/y9albHkw1atImyuuGUNeu1BcsLIWKWAqx1umwMDYcjz1KdUT+ZwN3YKZ0sSlWwCxs5L0zDn5us625CDD3pRr9Nzvz7Y6yYd3VNkOiuReiYhtt80jhWTvcnHNq9vcatmM3e5eJRPiDULEAc+3oe09zrb2rmBMdr2TtTEoxjivK4uAm++G841qrFuiowe2YnaTn1OsI1yBTcN2Yz86jS/gOXiiEPGDcxSlbAw0Fu2e+Sh+ziuCQJ+yjPURV2XRDmntHySUhFqWM8OjLotVApYSU31eA6SdHOxJKuOtQW/21htD2lqJhIjxpgMAuDjmLl8Sc1h7knrFG4ee0JYJP9dyjxjOHSq/AK72fDlzfAKOCQ4Xj3m5dvO3GMG/pgsp84RBkyRR0SDr9eBvzidVZ6qmNMCMWU0mgMyemeHUaGmAo3261UnkcO5KJxD+b5cvwmnhO+TX78IEWmkKX8pByR93OG3z1olZJKEHucK+DRHdkWyIayNqNLv64vycl6OYUYlqujArAAHXBYAuBNp4DZQB3LLAoY0kdvVzEhu9c2w==
+	Oq/BbGHD2NPH38YfQ+KZ89++J1fq1tGmfKY5XfcixHRXIbRJezp2yuUgrwaFjd4L4LWv6rhp6Hp7dFFuF2hyvX1l4OWV33Fa/NSL5r7gtpTQES/0l4pjxNgV7IpwbWMYVpD8lht76Z9LcJ+GvDKBq/3AgRHB+1/FqiZASgncVaiqwOvH9v89eY09UxqFSfx3okFtHd3nSNStegyakps9qygxexmk9sKtJJbvmL0fYos1S6yh/MsxAd68wpO4aEbQKi/OoKFviH7qwW+4ASH8BbzShv7DgYFuB/d0vH4oLi90FchKF4ak6vobc9v15fZSaKDi74oPm8nb9tlJprr2yx2JCL1KupW0JLytaGfWkQa36vu+X2ve8Ftsrn7nPmKpzGxUCteZhNEuz76+cFursNn7QyuOFIj5RlRtoQYe5+oRT+cf6pFBRj8YvxwCxG/W8lqE7Ap8UTr2TdVnI5MKfUstqcTrTo82UQjy+v8CF5dcf11kmLgP4HLBV8DgwAGUKLRTexNvuBhYW4OmjsqlPrZpHpsACHkJVkFkG9NhOGP+bzyZ0JT2TM+H54Zsr4yNGwPAny/I0dXS1LoOndNbt6k4ecXCbJ2jMqvHu8RNUqshAyGqrIoLqbdX1lpT0kqWE9ZCWx0UUN+VE4tVVk8az0FnhOOZaXJY4Ruv9b179B46auMybg1gkzC1VyF7QLmeKNhdaoeTkh7gmWsidKhSXh8qtGGxbGy2RfERSE4rCv2fznhdkt/Z7jtNtJwBMMD/T8Rd4Y/7+xouh/gTAW9AQw==
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:DS0PR12MB6486.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(7416014)(366016)(376014)(1800799024)(921020)(22082099003)(18002099003)(56012099003);DIR:OUT;SFP:1101;
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:DS0PR12MB6486.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(7416014)(376014)(1800799024)(921020)(18002099003)(56012099003)(22082099003);DIR:OUT;SFP:1101;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?aHJpOJ2XxcvP8z0ORSm0CED573Taq114XdkMrq4tWwrAKHKdsC3nF2o5kFqP?=
- =?us-ascii?Q?ZY+WhgeIygDfjk379zfXd0kemCaQPBiTASzYM9SvNQSHT2gX0M2iLwJK3IUh?=
- =?us-ascii?Q?qkBqRu2CTEA43XfmbMDbho1/EfCnSQ7IgCpC7Bq6JHWQ57PF9DkjUcLtgZ7v?=
- =?us-ascii?Q?PWYzD8KmXlO45rXs2UNIEMdojsJmDwicJ6hpp0yp+48rMRh0MSeeUCoxlkfp?=
- =?us-ascii?Q?Shwvs+AhCUZq+sCzDNSawuzNH3O38PVmXmu/6k+y/9evv6UeeqlxNMsbT2gV?=
- =?us-ascii?Q?zOTCrvRhGEe9yBaX4xsmU+W6uWccEpi0bI9D/urqN7Kvy++fl/oiybidSRd0?=
- =?us-ascii?Q?RD8ATY8/+LDhauvrzrDIUrSflhtSweZg+REkjo0CKDZhbzHr2IJ+bBklQ2k0?=
- =?us-ascii?Q?LaupdJY/X43bSYZu9rfwng5CEHU8bh4LyYQDmYHahhEZxTu74RyNndV49RXL?=
- =?us-ascii?Q?gOMPNWkTECIisdaM/4wNOuKfAcYkLOe1hyX4jxyI0TgKpnewLg502/MbGcrw?=
- =?us-ascii?Q?zCA1ijX8kUNmk8HeeqiMV+rMDg+NRFfe7/ZFsUhAizp7FvxcgARFV09KutfW?=
- =?us-ascii?Q?y1DTEBCOITxbNELu3MnbT7lKFjtpNNC2QZuiiXYq8GUcBmw10PACQl23XLMt?=
- =?us-ascii?Q?Lwo6TfH8gEiAggJ59M9yrhCe/RveiHwfmKNDc14EGegTbT3L43NfHEWYqWSk?=
- =?us-ascii?Q?HpuS7vp4KViuFGYIsrlvkSb75sx1RMNhEJrO2Had1tOIfN7T3Oo27eZIgWUj?=
- =?us-ascii?Q?Hgjz/3vehIvsoDTNW8nw8s6WnWKr3iVRL+WkGtBrAIZytLFJqzM66VB1oynm?=
- =?us-ascii?Q?Bs1BUGUIIjIbWShJqZgpQUqQTkIUvpTusKEtqjZ2je/GKd+fQ03qIlcwHfSs?=
- =?us-ascii?Q?DiTLzrVYrNQa6AsPMQKJDdtr7mzlVzoDAyDpHzwlK02Yyr/1PqpTqU9zYPpq?=
- =?us-ascii?Q?ZzPceFClOl4f0ChbJEC9kwQfsyvs90PVrk+MCdh42+QkVvHmZ0InH9twlPUI?=
- =?us-ascii?Q?zBV8GOxxWRHa7HOHZrgBWla/+8yLzABFl7HZl874KVNs73lj2NZ02QfzI/96?=
- =?us-ascii?Q?ZJe7jqhWZoqm8OiMkRc8GDJ/7GgsF21D1hKeAT0dsJ0rsEWx0f34NdiPs3Xo?=
- =?us-ascii?Q?O/Rpy1BLlfWpEJYYJsECJ30W90bwmUgANpOJj4HoSIKqwZGwWns73kpV2ibt?=
- =?us-ascii?Q?ACWl52pWOAWr83Au5Dq/I8xMg1i6D4/pmESDNusSFONVDircq6kELIVwA0py?=
- =?us-ascii?Q?CZcql7HjS5l7q0Z2n+epsIi4gF9IkhbWsRyVg4k01NvNn9nMyn7mtiGDEnHx?=
- =?us-ascii?Q?YW7TYCUWV8WQg7qQ4xIx7MNBhKQ9gom7DonXwIKmM0bE0opy2+h3q/CFPGAa?=
- =?us-ascii?Q?nR7YsVqK5/vNMIJww19UFbpNom6ZTcK/8n2+a7W28YaZRqqXyr7+pVy21S6A?=
- =?us-ascii?Q?D5i+V0YCB0c7epRkBEsuWbnf1aKI17CUHFCPlSjnKfXu7EcyJRVVI+bp/bR2?=
- =?us-ascii?Q?FyDRWB5I+Nnd47MVBxYoygE4f2LHOmg2PjfC03fouFjyestJckPGtkmADBz1?=
- =?us-ascii?Q?/btTjBgKJy+0rzmw46LW0WIQyemfIRr7YBUZfO77FBWQCIz4v3IBP6SH4EAz?=
- =?us-ascii?Q?t3VULjSveXVRZyEDaJ2obbB+WbWFj4eJqq1eaoobznp0/gplQJ5XW0ZRkzrp?=
- =?us-ascii?Q?/cP+rgKjAlkBWSmg8VEcECDCwEd2tP3klWDx5XUiMpQD30sYg3+xfOphO4RR?=
- =?us-ascii?Q?FU1TmZc4pg=3D=3D?=
+	=?utf-8?B?Y3hSZnRFV1k4OE53cUh5Q1hDOUtVRHE3WUFncHdvZkxpalVkVjNNbzlJdEU2?=
+ =?utf-8?B?SWVJd1NrT3BQWUVjblpBeXJ1dzNXUFU3ejJSSkJGSVVPY3VWdUthK3pNM2Ry?=
+ =?utf-8?B?NG55TlhCTXVkaXl5MHNFN01ZUndEdEVMVE5yaEMzSXFMeUs0MVFDSk1RUUNo?=
+ =?utf-8?B?WHh3eHRlcTJKc2hBM2lZSFRhcTVKUGVaLy9URWxtTFc5bUZSUmlVbmQyV0hF?=
+ =?utf-8?B?NFBLZ0EyWHlLcERTVFNreThudEVwMTFydHErYjZkdndVbkRqRFhNK0xZRGow?=
+ =?utf-8?B?Ykk2cE13LzZhZmN5RGJoY0FMMldvaWdtT3RCbDFwWEJCYldFc0pWUW8yckVS?=
+ =?utf-8?B?RFJaR2UxaU5qOC81VnZHMFBBNmJtZlhBUUUvbjN2Vlo1QnRjc1BCUVZPMEFY?=
+ =?utf-8?B?UlhmRUkrRXlUbEtIL1oyRHFuczg3cktucUlQV2t3WWlSUjBNcGJURTgxUkFW?=
+ =?utf-8?B?V0RwNkRwbjFtN00vWmFZTUVXU2hIRU9lN0FjOEpmMDBIMll4dVhoS3FMZjhR?=
+ =?utf-8?B?WWFNOHpVeENSaU45T3Q5a2x2UkFEeHoydnJ6cnF2cmdGdXMvYXc4dHJiUUxT?=
+ =?utf-8?B?N2hRenNmK3VObWdFSVgxN2RFaGVIUUt4MDlWMG1OdnRjaE1uTXkveUNFZVFT?=
+ =?utf-8?B?aUR2NitBeXNocFRtVjZPNWdpY0tNMG0yWjd4OUphWmNrdjVHVVJXVXhWY3dS?=
+ =?utf-8?B?cXJKMEEraFNLUituSzBCckFiMEdnT3lXTTRVOHBjc2lpQk5ydW9lSXQwUkI4?=
+ =?utf-8?B?WGNrQzNqZlRGcFdZYk1hQWpybS9qaW1BL011SkNJaHVhUWZvRXpWZjA4aS9q?=
+ =?utf-8?B?NnBFTnBKTzk4QWVuWjAvbkd4T3N1c3VETGh6RTZGNENmdG4ySWFCSm1NWDNn?=
+ =?utf-8?B?dzhSRFR4N0ExZENyWHJsbG1kV0FEVG1TMTZzbG55M2dCMk9nTjQvdm4wT2ti?=
+ =?utf-8?B?WlYvM3ZzOVYxL2J1NkRZSHE4cXZaR3R0WnQvcXBDU3phTjR0L0d0WFlFSjU0?=
+ =?utf-8?B?cE01NWY1RXIyL2RaSWNGa3BCSmJ3ZCtveE9mN0JkZUM2bjRwRnVpYm0xL0xB?=
+ =?utf-8?B?SC81VUZ0K3RvSkNRbmkvVy9nTE4wSStjQlFhYzdCQzRwMEozZTlTUm0rTVp3?=
+ =?utf-8?B?VUNWSjkvUkc3TFI4bWtjcDNUcDJ4b2syTmxpMnlaT3poanp1RUxPR0p0ZjJn?=
+ =?utf-8?B?L1JLLzV0YTcwYnliNTF6aXRBWmE5VHYwdVEwYjZpMWRmblRoZ3N4d0ZEOTFu?=
+ =?utf-8?B?TnFYdGFEREwwelNoQWJ1eDZrSlFGWmVzbkdVY0QzeTJyaEcwSnBpRG1jcElY?=
+ =?utf-8?B?WGNpRG9ocHZWWG9sNjBiQk4rRVg5ZFRHUGRtdjhXdUg5dURKR0hnMUM5Tld3?=
+ =?utf-8?B?d0ZGY2hPakFoZG9VdTFNSWhhcXFYUjluWDB5VEN6TXBtMHRzSjhoKzZoWDd1?=
+ =?utf-8?B?V3dybGE2SitXbXNXdDJMQXNiR3JrYnV6V2UwZUowN3Nhdk4vSWJ3MDhVZ1NH?=
+ =?utf-8?B?UlhiSlNEb0J5cXF3bC9VR1J3em5BQTU5aGNsR2FVSjd0bWhnT2Z0RUQwb0pF?=
+ =?utf-8?B?eDFxeTZBbzhpTzV1b1pNdXcwT29sWHdxQlNDSzI0VzJFeFYxMjRGcFJ2M2t1?=
+ =?utf-8?B?V2tpandxSDRYZGljYkg1NzZ5dmJKdkJoUjkrcmhaakd5V0JpYk5TTUFlZVJn?=
+ =?utf-8?B?N1BMT3drLzVlRGd4Wm1ldVlLRkwreEN4ckR6VHlGT1dKVGhzcWRIc3lZa3lK?=
+ =?utf-8?B?T3dkaFRyNlNrcUQyZ2xCREhsZ2lnMHhHK3ZvMnMvM0d1d0hwaktjU1FmVFln?=
+ =?utf-8?B?ZzJKUEtpUkpKOFZibW5wdXY3SlpyTjBtN1F0dmwvQVo3SVFDZjlKU21KYXh0?=
+ =?utf-8?B?RlUyRDRVZHY3K25tMTl4T3hWWTJybXN6b1lockFYTngxdXVMK0VlS1BNYm1T?=
+ =?utf-8?B?eEl0UGhRaU5aM2I1Rkx2QlpyUjRHTjBMbGtlb0JaTDgrSFpDL0lKSkhNNW1V?=
+ =?utf-8?B?YmVLOWpUMTB1QktveWExL2RxUktMc0JLL3F4SVZyNEg3d1pXZjEzMzBXd2RB?=
+ =?utf-8?B?dEFvQ0tqQVYwWkhsTGwrbVdJZWlRc0EvUWRna2NYcWxXaWdjcXh5RU5KN0lG?=
+ =?utf-8?B?emhnTUVodVVaY1oyUkIwaGgvaExEQWxOUUVLWHdnK0lSTW94MkZjZGp3WjR4?=
+ =?utf-8?B?ZjRBZVdaelA2YmRVa3FsTlJCcVFkeTk4OUhZMWpoa2xEeHdUWWEzbkNiM1VV?=
+ =?utf-8?B?SDBMSXRkTUlHN0Y4N0tiS29EdVdGRllISHlHSEJxMU9RZkl0TlNKUzVUcXhp?=
+ =?utf-8?B?YlRoR3pWWldsSEFFSWx6WHVKbjhoMWR2ZTZkOFdBRklsWVV5bk9jZz09?=
 X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: fee3bf7c-0852-4783-340e-08de9101c1b2
+X-MS-Exchange-CrossTenant-Network-Message-Id: 17ba13b9-7420-42e5-7ce0-08de9102b0e7
 X-MS-Exchange-CrossTenant-AuthSource: DS0PR12MB6486.namprd12.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 02 Apr 2026 21:49:46.5793
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 02 Apr 2026 21:56:27.8428
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: nSG9qU3ooWvjm9rwXS5oa+EG5aicRWIKIt0Z3a4YpIsiFSejsfGdgQYBLFykaW1r8LmyXXe5FkJPM6De+lwKgA==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: SJ2PR12MB8806
+X-MS-Exchange-CrossTenant-UserPrincipalName: V5x5kLjKu8bMpaLTL7kvog9r17X/BsfPZiLo7M5v98lOfDGqG0Ai82WN3cfU/tFjIyPwkixgu886sGjwlJgbiw==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MW4PR12MB7030
 
 Hi Gary,
 
 On 4/2/2026 11:24 AM, Gary Guo wrote:
 > From: Gary Guo <gary@garyguo.net>
->
-> Implement a generic interface for memory barriers (full system/DMA/SMP).
-> The interface uses a parameter to force user to specify their intent with
-> barriers.
->
-> It provides `Read`, `Write`, `Full` orderings which map to the existing
-> `rmb()`, `wmb()` and `mb()`, but also `Acquire` and `Release` which is
-> documented to have `LOAD->{LOAD,STORE}` ordering and `{LOAD,STORE}->WRITE`
-> ordering, although for now they're still mapped to a full `mb()`. But in
-> the future it could be mapped to a more efficient form depending on the
-> architecture. I included them as many users do not need the STORE->LOAD
-> ordering, and having them use `Acquire`/`Release` is more clear on their
-> intent in what reordering is to be prevented.
->
-> Generic is used here instead of providing individual standalone functions
-> to reduce code duplication. For example, the `Acquire` -> `Full` upgrade
-> here is uniformly implemented for all three types. The `CONFIG_SMP` check
-> in `smp_mb` is uniformly implemented for all SMP barriers. This could
-> extend to `virt_mb`'s if they're introduced in the future.
->
+> 
+> Currently, in the GSP->CPU messaging path, the current code misses a read
+> barrier before data read. The barrier after read is updated to a DMA
+> barrier (with release ordering desired), instead of the existing (Rust)
+> SeqCst SMP barrier; the location of barrier is also moved to the beginning
+> of function, because the barrier is needed to synchronizing between data
+> and ring-buffer pointer, the RMW operation does not internally need a
+> barrier (nor it has to be atomic, as CPU pointers are updated by CPU only).
+> 
+> In the CPU->GSP messaging path, the current code misses a write barrier
+> after data write and before updating the CPU write pointer. Barrier is not
+> needed before data write due to control dependency, this fact is documented
+> explicitly. This could be replaced with an acquire barrier if needed.
+> 
 > Signed-off-by: Gary Guo <gary@garyguo.net>
 > ---
->  rust/kernel/sync/atomic/ordering.rs |   2 +-
->  rust/kernel/sync/barrier.rs         | 194 ++++++++++++++++++++++++----
+>  drivers/gpu/nova-core/gsp/cmdq.rs | 19 +++++++++++++++++++
+>  drivers/gpu/nova-core/gsp/fw.rs   | 12 ------------
+>  2 files changed, 19 insertions(+), 12 deletions(-)
+> 
+> diff --git a/drivers/gpu/nova-core/gsp/cmdq.rs b/drivers/gpu/nova-core/gsp/cmdq.rs
+> index 2224896ccc89..7e4315b13984 100644
+> --- a/drivers/gpu/nova-core/gsp/cmdq.rs
+> +++ b/drivers/gpu/nova-core/gsp/cmdq.rs
+> @@ -19,6 +19,12 @@
+>      prelude::*,
+>      sync::{
+>          aref::ARef,
+> +        barrier::{
+> +            dma_mb,
+> +            Read,
+> +            Release,
+> +            Write, //
+> +        },
+>          Mutex, //
+>      },
+>      time::Delta,
+> @@ -258,6 +264,9 @@ fn new(dev: &device::Device<device::Bound>) -> Result<Self> {
+>          let tx = self.cpu_write_ptr() as usize;
+>          let rx = self.gsp_read_ptr() as usize;
+>  
+> +        // ORDERING: control dependency provides necessary LOAD->STORE ordering.
+> +        // `dma_mb(Acquire)` may be used here if we don't want to rely on control dependency.
 
-IMO this patch should be split up into different patches for CPU vs IO, and
-perhaps even more patches separating out different barrier types.
+Just checking, does control dependency on CPU side really apply to ordering for
+IO (what the device perceives?). IOW, the loads are stores might be ordered on
+the CPU side, but the device might be seeing these operations out of order. If
+that is the case, perhaps the control dependency comment is misleading.
 
->  2 files changed, 168 insertions(+), 28 deletions(-)
->
-> diff --git a/rust/kernel/sync/atomic/ordering.rs b/rust/kernel/sync/atomic/ordering.rs
-> index 3f103aa8db99..c4e732e7212f 100644
-> --- a/rust/kernel/sync/atomic/ordering.rs
-> +++ b/rust/kernel/sync/atomic/ordering.rs
-[...]> +// Currently kernel only support `rmb`, `wmb` and full `mb`.
-> +impl MemoryBarrier<Smp> for Read {
-> +    #[inline]
-> +    fn run() {
-> +        // SAFETY: `smp_rmb()` is safe to call.
-> +        unsafe { bindings::smp_rmb() };
-> +    }
-> +}
+
 > +
-> +impl MemoryBarrier<Smp> for Write {
-> +    #[inline]
-> +    fn run() {
->          // SAFETY: `smp_wmb()` is safe to call.
->          unsafe { bindings::smp_wmb() };
-> -    } else {
-> -        barrier();
+>          // SAFETY:
+>          // - We will only access the driver-owned part of the shared memory.
+>          // - Per the safety statement of the function, no concurrent access will be performed.
+> @@ -311,6 +320,9 @@ fn driver_write_area_size(&self) -> usize {
+>          let tx = self.gsp_write_ptr() as usize;
+>          let rx = self.cpu_read_ptr() as usize;
+>  
+> +        // ORDERING: Ensure data load is ordered after load of GSP write pointer.
+> +        dma_mb(Read);
+> +
+
+I suggest taking it on a case by case basis, and splitting the patch for each
+case, for easier review. There are many patterns AFAICS, load-store, store-store
+etc.
+
+I do acknowledge the issue you find here though. thanks,
+
+--
+Joel Fernandes
+
+
+
+>          // SAFETY:
+>          // - We will only access the driver-owned part of the shared memory.
+>          // - Per the safety statement of the function, no concurrent access will be performed.
+> @@ -408,6 +420,10 @@ fn cpu_read_ptr(&self) -> u32 {
+>  
+>      // Informs the GSP that it can send `elem_count` new pages into the message queue.
+>      fn advance_cpu_read_ptr(&mut self, elem_count: u32) {
+> +        // ORDERING: Ensure read pointer is properly ordered.
+> +        //
+> +        dma_mb(Release);
+> +
+>          super::fw::gsp_mem::advance_cpu_read_ptr(&self.0, elem_count)
+>      }
+>  
+> @@ -422,6 +438,9 @@ fn cpu_write_ptr(&self) -> u32 {
+>  
+>      // Informs the GSP that it can process `elem_count` new pages from the command queue.
+>      fn advance_cpu_write_ptr(&mut self, elem_count: u32) {
+> +        // ORDERING: Ensure all command data is visible before updateing ring buffer pointer.
+> +        dma_mb(Write);
+> +
+>          super::fw::gsp_mem::advance_cpu_write_ptr(&self.0, elem_count)
 >      }
 >  }
->
-> -/// A read-read memory barrier.
-> +impl MemoryBarrier<Smp> for Full {
-> +    #[inline]
-> +    fn run() {
-> +        // SAFETY: `smp_mb()` is safe to call.
-> +        unsafe { bindings::smp_mb() };
-> +    }
-> +}
-> +
-> +/// Memory barrier.
->  ///
-> -/// A barrier that prevents compiler and CPU from reordering memory read accesses across the
-> -/// barrier.
-> -#[inline(always)]
-> -pub fn smp_rmb() {
-> +/// A barrier that prevents compiler and CPU from reordering memory accesses across the barrier.
-> +///
-> +/// The specific forms of reordering can be specified using the parameter.
-> +/// - `mb(Read)` provides a read-read barrier.
-> +/// - `mb(Write)` provides a write-write barrier.
-> +/// - `mb(Full)` provides a full barrier.
-> +/// - `mb(Acquire)` prevents preceding read from being ordered against succeeding memory
-> +///    operations.
-> +/// - `mb(Release)` prevents preceding memory operations from being ordered against succeeding
-> +///    writes.
-
-I don't agree with this definition of Release. Release is always associated with
-a specific store, likewise acquire with a load. The definition above also
-doesn't make sense 'prevents preceding memory operations from being ordered
-against succeeding writes', that's not what Release semantics are. Release
-orders memory operations with a specific memory operation associated with
-Release. Same for Acquire.
-
-See also in Documentation/memory-barriers.txt, ACQUIRE and RELEASE are defined as being
-tied to specific memory operations.
-
-Or am I missing something subtle?
-
-thanks,
+> diff --git a/drivers/gpu/nova-core/gsp/fw.rs b/drivers/gpu/nova-core/gsp/fw.rs
+> index 0c8a74f0e8ac..62c2cf1b030c 100644
+> --- a/drivers/gpu/nova-core/gsp/fw.rs
+> +++ b/drivers/gpu/nova-core/gsp/fw.rs
+> @@ -42,11 +42,6 @@
+>  
+>  // TODO: Replace with `IoView` projections once available.
+>  pub(super) mod gsp_mem {
+> -    use core::sync::atomic::{
+> -        fence,
+> -        Ordering, //
+> -    };
+> -
+>      use kernel::{
+>          dma::Coherent,
+>          dma_read,
+> @@ -72,10 +67,6 @@ pub(in crate::gsp) fn cpu_read_ptr(qs: &Coherent<GspMem>) -> u32 {
+>  
+>      pub(in crate::gsp) fn advance_cpu_read_ptr(qs: &Coherent<GspMem>, count: u32) {
+>          let rptr = cpu_read_ptr(qs).wrapping_add(count) % MSGQ_NUM_PAGES;
+> -
+> -        // Ensure read pointer is properly ordered.
+> -        fence(Ordering::SeqCst);
+> -
+>          dma_write!(qs, .cpuq.rx.0.readPtr, rptr);
+>      }
+>  
+> @@ -87,9 +78,6 @@ pub(in crate::gsp) fn advance_cpu_write_ptr(qs: &Coherent<GspMem>, count: u32) {
+>          let wptr = cpu_write_ptr(qs).wrapping_add(count) % MSGQ_NUM_PAGES;
+>  
+>          dma_write!(qs, .cpuq.tx.0.writePtr, wptr);
+> -
+> -        // Ensure all command data is visible before triggering the GSP read.
+> -        fence(Ordering::SeqCst);
+>      }
+>  }
+>  
 
 -- 
 Joel Fernandes
+
