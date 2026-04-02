@@ -1,30 +1,31 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 63A7633ADA8;
-	Thu,  2 Apr 2026 15:25:24 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 95FB034403F;
+	Thu,  2 Apr 2026 15:25:29 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775143524; cv=none; b=ShJ+wDN3hdjShWGhNR0WB4IwcuNq9pJdEhjzc5PLLkoi5H6Y8SEZpTpxh4XnStKrwWzX2NkA0Ab0v3Z0FY9y1mZCfQLITY3/gAa6AGQrGZmI5enrENUaxEIpWGbuzXUtgBjBMX8obsEV/vbzAOTTmYBKpP+ZC0X2W9nrq4E+G24=
+	t=1775143529; cv=none; b=HEaGvNI8AYHWcxsoThjGESj56EqRATQkfWJdLxUC8gdOCL8i3aRru72CbFs7e6YH73xcAIWyZpZgKHPz9S8BqXIfFTm2Q88H/32N8Q7CSvGn2bYN4l+GWwKNuW4c1eEa9CjsYLB/mjo7XtZZoppfKmCjfrokx4ZH+LJbEVxY/MM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775143524; c=relaxed/simple;
-	bh=Ey4nyNf6TNVqze53+yKNKJ2dlvv9GCYYcOpq0LmDn30=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version:Content-Type; b=NnMihqjLlmqX6V29oWAMfttSPYip5wVUUKJVpZ4AHlgwjAlWvyX/jyCS6UiMM9H4EW8kSwCRcoYedC9cUqoiRKMmMX5aHg+jHfEV+8F/vHOnDmNbPmRWzoPNR73OlMEFAZgiXcv25nblE2Q0dijrg25FutUM+XMIj8f7hTMUHO8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=pMxM4Osg; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1775143529; c=relaxed/simple;
+	bh=xhCfedEVrgNyKr1DnCyfjrBfs37cxy3biI06+Ypg+4c=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=ZiSgnc6liY5cVbwaghi2rH2rt1x1o8lOvnkCKqohJRlSSyfN7afcbwXXBOQbbl0p8UpiXU/INbRHfpKs4kar+AJ5+9LgOPGl2m52Kf+1zDxy57b5pwkUzcTFeKFEQYVZF74X6Clp4qkr3xiNvEqhrhCFjIfbDXIpg/FFO4f6qzk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=u2szK5EQ; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="pMxM4Osg"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 865D8C116C6;
-	Thu,  2 Apr 2026 15:25:19 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="u2szK5EQ"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C79FAC2BCB2;
+	Thu,  2 Apr 2026 15:25:24 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1775143524;
-	bh=Ey4nyNf6TNVqze53+yKNKJ2dlvv9GCYYcOpq0LmDn30=;
-	h=From:To:Cc:Subject:Date:Reply-To:From;
-	b=pMxM4Osg9urNErpp6dnRx16CgD3UstWyzGLAxr6OjOZn/n1TBKieLAetm4T2l4F61
-	 n+5FSZ5ds0bpNvuI+UjQMKZ/sM9PwSa2JgwctbLl/QB2BKEe8wksXFwT/OC+ED4ezU
-	 ZG33dkTOuHNAEHxtZNo7mYil7fiXcQIOEo8unTzEITBZI7orftPJDX1j9QSFq4BaBK
-	 gzI+cQph9fXQ/QmeAHWw5hiVDoQktmZti4IzN9Y9Ghf2DrQdOmgTHFCTi3s1t/um5j
-	 v1nV78hTW3OpumeEWJXwfm1BD453yVank+Lr+9/ucPV4Vf/U5MAdA9RQnSjq77vDpr
-	 wq8MrGpf6K8Ww==
+	s=k20201202; t=1775143529;
+	bh=xhCfedEVrgNyKr1DnCyfjrBfs37cxy3biI06+Ypg+4c=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:Reply-To:From;
+	b=u2szK5EQABMsAPFYy8mBZDK+tw5TJ9Jb97ejNonPomb60WjK7cm9YdgvJ08GHfFx0
+	 WJNFVYVgQzVyu6qQWWw7oquCAMk+uyI9XJxzf9UyKcljCufusNJ2D6Ysv52Gnlbdcg
+	 pybdeQgMmvUF9v0hrJxuZmJ4my/jxRk0pjTdSAznVXqpIECdS+2xQZpouklOsMRJHd
+	 ZPPhDZAXwJuguR47XdvG6SIs/xpCiuAAfnqoo9hD6Lyl/UuEfI+qJGtvUsBm0y2ucL
+	 J9QjNwk97R3rhjDx9wzdDKlxuPXCeAaBoTEiwnQ1fSxGYt2t/Ya2GOeleX5e4Q6qP4
+	 Q/lXl/z2d9YFQ==
 From: Gary Guo <gary@kernel.org>
 To: Miguel Ojeda <ojeda@kernel.org>,
 	Boqun Feng <boqun@kernel.org>,
@@ -52,10 +53,12 @@ Cc: Alan Stern <stern@rowland.harvard.edu>,
 	linux-kernel@vger.kernel.org,
 	linux-arch@vger.kernel.org,
 	lkmm@lists.linux.dev
-Subject: [PATCH 0/3] rust: more memory barriers bindings
-Date: Thu,  2 Apr 2026 16:24:33 +0100
-Message-ID: <20260402152443.1059634-2-gary@kernel.org>
+Subject: [PATCH 1/3] rust: sync: add helpers for mb, dma_mb and friends
+Date: Thu,  2 Apr 2026 16:24:34 +0100
+Message-ID: <20260402152443.1059634-3-gary@kernel.org>
 X-Mailer: git-send-email 2.51.2
+In-Reply-To: <20260402152443.1059634-2-gary@kernel.org>
+References: <20260402152443.1059634-2-gary@kernel.org>
 Reply-To: Gary Guo <gary@garyguo.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -63,68 +66,58 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 From: Gary Guo <gary@garyguo.net>
 
-This expands the existing smp barriers to also mandatory barriers and
-DMA barriers.
+They supplement the existing smp_mb, smp_rmb and smp_wmb.
 
-The API looks like:
-`mb(Ordering)`/`smp_mb(Ordering)`/`dma_mb(Ordering)`, where `Ordering`
-is one of `Full`, `Read`, `Write` and also `Acquire`, `Release`.
+Signed-off-by: Gary Guo <gary@garyguo.net>
+---
+ rust/helpers/barrier.c | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
 
-The `Acquire` and `Release` barriers are mapped to `Full` barriers for
-now and they only serve the purpose of documenting what ordering is
-needed without codegen optimizations, but they could be improved
-later to produce better codegen compared to full barriers. More on them
-in the commit message of patch 2.
-
-A user of these introduced API is included in patch 3, which is a
-concurrency bug that exists in Nova code today due to missing barriers.
-
-To: Miguel Ojeda <ojeda@kernel.org>
-To: Boqun Feng <boqun@kernel.org>
-To: Danilo Krummrich <dakr@kernel.org>
-To: Alexandre Courbot <acourbot@nvidia.com>
-Cc: Björn Roy Baron <bjorn3_gh@protonmail.com>
-Cc: Benno Lossin <lossin@kernel.org>
-Cc: Andreas Hindborg <a.hindborg@kernel.org>
-Cc: Alice Ryhl <aliceryhl@google.com>
-Cc: Trevor Gross <tmgross@umich.edu>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Andrea Parri <parri.andrea@gmail.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-Cc: Luc Maranget <luc.maranget@inria.fr>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Akira Yokosawa <akiyks@gmail.com>
-Cc: Daniel Lustig <dlustig@nvidia.com>
-Cc: Joel Fernandes <joelagnelf@nvidia.com>
-Cc: rust-for-linux@vger.kernel.org
-Cc: nouveau@lists.freedesktop.org
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: lkmm@lists.linux.dev
-
-Gary Guo (3):
-  rust: sync: add helpers for mb, dma_mb and friends
-  rust: sync: generic memory barriers
-  gpu: nova-core: fix wrong use of barriers in GSP code
-
- drivers/gpu/nova-core/gsp/cmdq.rs   |  19 +++
- drivers/gpu/nova-core/gsp/fw.rs     |  12 --
- rust/helpers/barrier.c              |  30 +++++
- rust/kernel/sync/atomic/ordering.rs |   2 +-
- rust/kernel/sync/barrier.rs         | 194 ++++++++++++++++++++++++----
- 5 files changed, 217 insertions(+), 40 deletions(-)
-
-
-base-commit: 36ece9697e89016181e5ae87510e40fb31d86f2b
+diff --git a/rust/helpers/barrier.c b/rust/helpers/barrier.c
+index fed8853745c8..dbc7a3017c78 100644
+--- a/rust/helpers/barrier.c
++++ b/rust/helpers/barrier.c
+@@ -2,6 +2,36 @@
+ 
+ #include <asm/barrier.h>
+ 
++__rust_helper void rust_helper_mb(void)
++{
++	mb();
++}
++
++__rust_helper void rust_helper_rmb(void)
++{
++	rmb();
++}
++
++__rust_helper void rust_helper_wmb(void)
++{
++	wmb();
++}
++
++__rust_helper void rust_helper_dma_mb(void)
++{
++	dma_mb();
++}
++
++__rust_helper void rust_helper_dma_rmb(void)
++{
++	dma_rmb();
++}
++
++__rust_helper void rust_helper_dma_wmb(void)
++{
++	dma_wmb();
++}
++
+ __rust_helper void rust_helper_smp_mb(void)
+ {
+ 	smp_mb();
 -- 
 2.51.2
 
