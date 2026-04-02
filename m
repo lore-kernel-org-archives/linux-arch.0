@@ -1,157 +1,129 @@
-Received: from mout-p-102.mailbox.org (mout-p-102.mailbox.org [80.241.56.152])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 877FF213E7A;
-	Thu,  2 Apr 2026 02:52:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.241.56.152
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 76EDC279334;
+	Thu,  2 Apr 2026 04:01:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775098367; cv=none; b=TtIDZSHo6oI6+UL9/VJT1XHwAf06kYYuSsZ6SKP6X0H9oMOT7PlXiIVCpeT91ojawMFnSlRVMK4Ac6FjjsOEheshlwuMMjJKpwX+9T1i9CSdSzzE1tj+NC9JAMS72EE1Q7FZVrRMFroxrvbuk5RAalHgIzpL8xde4Ftp91RlIwM=
+	t=1775102498; cv=none; b=I9AYs/rNRUjm8G7SQGdfGyyYD8mKpCeJ/oX3Yo3Q3374smYPTYYksq12CbIPAN/19DMSabZw5ZcxcaBLZtQkqq/tdAkig5Y9t+07ZjLsJJ4HkvLmlUsutSphA7Knp2mbxYEMOeTFNa9b3uUq9+MsSCRLxEJMZlIyugy/uxB8Uzw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775098367; c=relaxed/simple;
-	bh=0s3Ltdb3st4RBI8X7GzRMeGijr+TMGvhGRqHHFtYADY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=rDhxgyKv5bIwp9XZlOABIRwZBcfdjccmnFJ3NbWTUBVi5QjPqU0daKosz2qsnlv+w5Eo5IOMw95y/0CQkfPwL4YsAM3VBWGvCc2unWNMHFhBYgOxgl6nl39xwI1OWJLd0SxaMNBBcno5gXpRCRTl2u/cpJ4VrLmbYTTysoQCP08=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com; spf=pass smtp.mailfrom=cyphar.com; dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b=e87DXpVA; arc=none smtp.client-ip=80.241.56.152
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=cyphar.com
+	s=arc-20240116; t=1775102498; c=relaxed/simple;
+	bh=tY3WvR4R/zrWI1MsWDPbn78x2fJshokN5D05V5yxYaM=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Kyq6IC5Meo7T4wB5s1PJidd54ECq/UK/hKgZzw0YdmV70xR6svfAlZrsRJUMbkrR4oIiXzn0DLFBSpcWOxp+icB3D68keIV5Xf9YDk7exngxGWG3Jm6cYn/dre5Ca+2rvgxNwVDRAsSMwtLtsbOE2/53iPbcqgHl2ZP3QKa5FEM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=eAnUARNl; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b="e87DXpVA"
-Received: from smtp102.mailbox.org (smtp102.mailbox.org [IPv6:2001:67c:2050:b231:465::102])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mout-p-102.mailbox.org (Postfix) with ESMTPS id 4fmRGw2qrYz9vVy;
-	Thu,  2 Apr 2026 04:52:40 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=cyphar.com; s=MBO0001;
-	t=1775098360;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=PI01UIN30SAwEOjcWCs+qKe0QnW9aOaFpOr0QZg4IbQ=;
-	b=e87DXpVA8fumafTy2ZJ4E9FwM6UVRu2C4sFnzIlhrIaWfjkqBUFxVQ552e3H+1apr2Hh1b
-	1+GeY8BaAQToBwK8+aFRYuzXIB0NzFFynuHuG5rfKhwy0xwciIRkKFKHtcM/ATFdVFsXGi
-	e/D+thWbkBZ5YSejLIiWl3CJyb+fWEHKZhYk/iANTu/LoLDaWqdJd6EVfuqNon87UrvPHI
-	HAZVaCgUkhqoDbwqOB+yDsuRvpThDpZX+IJY/sHnNWCcWHOgKcI0+nFN8Sd/rlZ0qsfprc
-	gAbrBmrW9Vputu5fQOImbhR1zEadhHNAkicDb5XW/DvHVbdgwI4yv441hSyM4A==
-Authentication-Results: outgoing_mbo_mout;
-	dkim=none;
-	spf=pass (outgoing_mbo_mout: domain of cyphar@cyphar.com designates 2001:67c:2050:b231:465::102 as permitted sender) smtp.mailfrom=cyphar@cyphar.com
-Date: Thu, 2 Apr 2026 13:52:15 +1100
-From: Aleksa Sarai <cyphar@cyphar.com>
-To: Mateusz Guzik <mjguzik@gmail.com>
-Cc: Jori Koolstra <jkoolstra@xs4all.nl>, Andy Lutomirski <luto@kernel.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Christian Brauner <brauner@kernel.org>, Jeff Layton <jlayton@kernel.org>, 
-	Chuck Lever <chuck.lever@oracle.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>, 
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Alexander Aring <alex.aring@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
-	Oleg Nesterov <oleg@redhat.com>, Andrey Albershteyn <aalbersh@redhat.com>, 
-	Jiri Olsa <jolsa@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Namhyung Kim <namhyung@kernel.org>, 
-	Arnaldo Carvalho de Melo <acme@redhat.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, 
-	cmirabil@redhat.com, "Masami Hiramatsu (Google)" <mhiramat@kernel.org>
-Subject: Re: [RFC PATCH 1/2] vfs: syscalls: add mkdirat_fd()
-Message-ID: <2026-04-02-aged-convex-snowbird-foxes-Ym20JZ@cyphar.com>
-References: <20260331172011.3512876-1-jkoolstra@xs4all.nl>
- <20260331172011.3512876-2-jkoolstra@xs4all.nl>
- <pbobkjhtuli53o3z34ajyxztaosmztwlygxfxhhjq5ajt47inc@ngtoge3ucdm5>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="eAnUARNl"
+Received: from [10.95.66.83] (unknown [167.220.238.19])
+	by linux.microsoft.com (Postfix) with ESMTPSA id A6ED220B710C;
+	Wed,  1 Apr 2026 21:01:24 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com A6ED220B710C
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1775102490;
+	bh=T6sBwsFb445Pp7249L79ufDRpJqZshHczUisxFI3JEo=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=eAnUARNlHoU7VXFylRE5DLFJrHd/bTFZfsva8Frd/0OaQNP+H5HBfDGUsKXcWK4j9
+	 DCORtz3WkyAFjVZSBnLcBSqP1locZaGVeOkTYl3BxmW0xAd4W4kkTI8UTh5/aLonrY
+	 7Rk51EmzcAbubl0WKZf4Ni57dSE1fX82drzW4uFo=
+Message-ID: <b093e70f-1ee2-4ba1-a934-581326a7abe8@linux.microsoft.com>
+Date: Thu, 2 Apr 2026 09:31:21 +0530
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="o3fvuy4phjbklnx7"
-Content-Disposition: inline
-In-Reply-To: <pbobkjhtuli53o3z34ajyxztaosmztwlygxfxhhjq5ajt47inc@ngtoge3ucdm5>
-X-Rspamd-Queue-Id: 4fmRGw2qrYz9vVy
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 00/11] Drivers: hv: Add ARM64 support in mshv_vtl
+To: Michael Kelley <mhklinux@outlook.com>,
+ "K . Y . Srinivasan" <kys@microsoft.com>,
+ Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu <wei.liu@kernel.org>,
+ Dexuan Cui <decui@microsoft.com>, Long Li <longli@microsoft.com>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
+ "x86@kernel.org" <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>,
+ Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <pjw@kernel.org>,
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Alexandre Ghiti <alex@ghiti.fr>
+Cc: Marc Zyngier <maz@kernel.org>, Timothy Hayes <timothy.hayes@arm.com>,
+ Lorenzo Pieralisi <lpieralisi@kernel.org>,
+ mrigendrachaubey <mrigendra.chaubey@gmail.com>,
+ "ssengar@linux.microsoft.com" <ssengar@linux.microsoft.com>,
+ "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+ "linux-arm-kernel@lists.infradead.org"
+ <linux-arm-kernel@lists.infradead.org>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+ "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>
+References: <20260316121241.910764-1-namjain@linux.microsoft.com>
+ <SN6PR02MB4157DFC7B7CE94500C89664BD441A@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <a8f856a0-49a8-4041-9036-4e9ade79532b@linux.microsoft.com>
+ <SN6PR02MB4157E4E088F39106979BE4EDD450A@SN6PR02MB4157.namprd02.prod.outlook.com>
+Content-Language: en-US
+From: Naman Jain <namjain@linux.microsoft.com>
+In-Reply-To: <SN6PR02MB4157E4E088F39106979BE4EDD450A@SN6PR02MB4157.namprd02.prod.outlook.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
 
---o3fvuy4phjbklnx7
-Content-Type: text/plain; protected-headers=v1; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-Subject: Re: [RFC PATCH 1/2] vfs: syscalls: add mkdirat_fd()
-MIME-Version: 1.0
 
-On 2026-04-01, Mateusz Guzik <mjguzik@gmail.com> wrote:
-> On Tue, Mar 31, 2026 at 07:19:58PM +0200, Jori Koolstra wrote:
-> > @@ -5286,7 +5290,25 @@ int filename_mkdirat(int dfd, struct filename *n=
-ame, umode_t mode)
-> >  		lookup_flags |=3D LOOKUP_REVAL;
-> >  		goto retry;
-> >  	}
-> > +
-> > +	if (!error && (flags & MKDIRAT_FD_NEED_FD)) {
-> > +		struct path new_path =3D { .mnt =3D path.mnt, .dentry =3D dentry };
-> > +		error =3D FD_ADD(0, dentry_open(&new_path, O_DIRECTORY, current_cred=
-()));
-> > +	}
-> > +	end_creating_path(&path, dentry);
-> >  	return error;
->=20
->=20
-> You can't do it like this. Should it turn out no fd can be allocated,
-> the entire thing is going to error out while keeping the newly created
-> directory behind. You need to allocate the fd first, then do the hard
-> work, and only then fd_install and or free the fd. The FD_ADD machinery
-> can probably still be used provided proper wrapping of the real new
-> mkdir.
->=20
-> It should be perfectly feasible to de facto wrap existing mkdir
-> functionality by this syscall.
->=20
-> On top of that similarly to what other people mentioned the new syscall
-> will definitely want to support O_CLOEXEC and probably other flags down
-> the line.
->=20
-> Trying to handle this in open() is a no-go. openat2 is rather
-> problematic.
+On 4/1/2026 10:24 PM, Michael Kelley wrote:
+> From: Naman Jain <namjain@linux.microsoft.com> Sent: Tuesday, March 17, 2026 9:23 PM
+>>
+>> On 3/18/2026 3:33 AM, Michael Kelley wrote:
+>>> From: Naman Jain <namjain@linux.microsoft.com> Sent: Monday, March 16, 2026 5:13 AM
+>>>>
+>>>> The series intends to add support for ARM64 to mshv_vtl driver.
+> 
+> No need to be tentative. :-)  Just write as:
+> 
+> "The series adds support for ARM64 to the mshv_vtl driver."
+> 
+>>>> For this, common Hyper-V code is refactored, necessary support is added,
+>>>> mshv_vtl_main.c is refactored and then finally support is added in
+>>>> Kconfig.
+>>>>
+>>>> Based on commit 1f318b96cc84 ("Linux 7.0-rc3")
+>>>
+>>> There's now an online LLM-based tool that is automatically reviewing
+>>> kernel patches. For this patch set, the results are here:
+>>>
+>>> https://sashiko.dev/#/patchset/20260316121241.910764-1-namjain%40linux.microsoft.com
+>>>
+>>> It has flagged several things that are worth checking, but I haven't
+>>> reviewed them to see if they are actually valid.
+>>>
+>>> FWIW, the announcement about sashiko.dev is here:
+>>>
+>>> https://lore.kernel.org/lkml/7ia4o6kmpj5s.fsf@castle.c.googlers.com/
+>>>
+>>> Michael
+>>
+>>
+>> Thanks for sharing Michael,
+>> I'll check it out and do the needful.
+>>
+> 
+> I've done a full review of this patch set and provided comments in the
+> individual patches. Some of my comments reference the Sashiko AI
+> comments, but there are still some Sashiko AI comments to consider
+> that I haven't referenced.
+> 
+> FWIW, the Sashiko AI comments are quite good -- it found some things
+> here that I missed on my own, and in my earlier reviews of the original VTL
+> code. :-(
+> 
+> Michael
 
-I'm interested in what makes you say that. It would be very nice to be able
-to do mkdir + RESOLVE_IN_ROOT and get an fd back all in one syscall. :D
 
-To be fair, build_open_how() will need some more magic to keep openat()
-working, and that won't be particularly pretty. If we went with
-O_CREAT|O_DIRECTORY we would need to be quite careful to make sure
-O_TMPFILE continues to work for both openat() and openat2()...
+Thank you so much Michael for reviewing these. I was also trying to 
+address review comments from Sashiko, and noticed some of them were 
+false positives in the sense that these were existing issues and not 
+introduced by arm64 changes. I thought of keeping them separate from the 
+scope of this series for future.
 
-> I tend to agree mkdirat_fd is not a good name for the syscall either,
-> but I don't have a suggestion I'm happy with. I think least bad name
-> would follow the existing stuff and be mkdirat2 or similar.
->=20
-> The routine would have to start with validating the passed O_ flags, for
-> now only allowing O_CLOEXEC and EINVAL-ing otherwise.
+I'll review your comments and address them.
 
-Please do not use O_* flags! O_CLOEXEC takes up 3 flag bits on different
-architectures which makes adding new flags a nightmare.
-
-I think this should take AT_* flags and (like most newer syscalls)
-O_CLOEXEC should be automatically set. Userspace can unset it with
-fnctl(F_SETFD) in the relatively rare case where they don't want
-O_CLOEXEC. Alternatively, we could just bite the bullet and make
-AT_NO_CLOEXEC a thing...
-
-But yes, new syscalls *absolutely* need to take some kind of flag
-argument. I'd hoped we finally learned our lesson on that one...
-
---=20
-Aleksa Sarai
-https://www.cyphar.com/
-
---o3fvuy4phjbklnx7
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iJEEABYKADkWIQS2TklVsp+j1GPyqQYol/rSt+lEbwUCac3Z3xsUgAAAAAAEAA5t
-YW51MiwyLjUrMS4xMiwyLDIACgkQKJf60rfpRG8N0gD/WJsvCCKORuiEQhk4zFP7
-tBYNwHeV6BT/7bD+Jb52nxkA+wSQXbre6aJO6Pc2aZ8UZ63KKnV5jrW7ZCjzd1rW
-q5wG
-=Sn0T
------END PGP SIGNATURE-----
-
---o3fvuy4phjbklnx7--
+Regards,
+Naman
