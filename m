@@ -1,402 +1,216 @@
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+Received: from DM5PR21CU001.outbound.protection.outlook.com (mail-centralusazon11011011.outbound.protection.outlook.com [52.101.62.11])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A006B244665;
-	Thu,  2 Apr 2026 07:02:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.177.32
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B7183BFE20;
+	Thu,  2 Apr 2026 11:23:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.62.11
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775113358; cv=fail; b=eN4QCdshor2EAoJl9xxfJazpiG/rMx9CJYQlkrF3dvXp+gVdjDtoYapuNbfRtkcKysI63M/2kDKqXI95VFWrcNGMSR2rN63vjdO9VflrfyTGZo38c5CV4ae6V5V30bQx7C/R+kwwrkVZvwYdR6W8mDC6pjOkK2fNQDghnpSXGW8=
+	t=1775129017; cv=fail; b=p5VN05UUwMregjNjPp7ZB7UctuEkEzbyqkggJb2msUVH7YEfrk18NesABjjdxefaTD3PyWdhFXgs9CJNpfRBYfj+C+MP9rpgNY0QG8dxmzj7Zi5HW01xxuYRDapiY1ab2DoIjG+9w3E19DWSPcrZJX1hQjnG9AsQRC2+LiNEOQ8=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775113358; c=relaxed/simple;
-	bh=7mymCDXreXtenHcG6ZaO4hTll64on3VOmCuHcUcnm/4=;
-	h=References:From:To:Cc:Subject:In-reply-to:Date:Message-ID:
-	 Content-Type:MIME-Version; b=klXs05XGjOjeLqB1ugQjIbEyH/lafNYTzd4GHwJRr/YsWF7AoQ6VI5p9vMmnqKw35bFhDsT5GDgXEhLxr1bmtxcQhdOF1+iYpuviXX639evtZytRktHLo9kDh5OQH/UQWvktHrE2hwVAP9jNLY6tITi51qtGS4ss24WNTG43pJA=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=ExaPv28B; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=gxlL+Xbq; arc=fail smtp.client-ip=205.220.177.32
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
+	s=arc-20240116; t=1775129017; c=relaxed/simple;
+	bh=zroB8N3jEcDqzTRhMLFPa5jISHOASGShEOzUWzNHCQY=;
+	h=From:To:CC:Subject:Date:Message-ID:MIME-Version:Content-Type; b=oTKXPc9YyPAWogyU4jfNAGzStzyAfVPmuHsXRulRu5R9lH7PzNl8NC9hy/ZaKWsAHzXsBr95j0IKojs1HSHPLzFgWWI3rB+8GNhYAGSK+5pgSyG5ik9bZuxtl6EFd80csHF/kYTSqNKM6AL/ujugpyVd4PLMgYhBKV6IkfMrQQk=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com; spf=fail smtp.mailfrom=amd.com; dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b=k484HZbg; arc=fail smtp.client-ip=52.101.62.11
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=amd.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="ExaPv28B";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="gxlL+Xbq"
-Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 6320TL7a897391;
-	Thu, 2 Apr 2026 07:01:40 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=corp-2025-04-25; bh=iYAl1fvFqOQ8GHN/37
-	KbIWRIR6B2/lwLHHZ+lUgrqew=; b=ExaPv28BouTW70SaXWt68/42LRHbZKGSAt
-	h1FONS6/fA11EXpbJ0ButJ1XSnL+tCqDXIRS/DYTE5tZcJ26izr8/0WwcBtKxHqb
-	6iYYYfQ0zlGuxfCgrmMw0keCw0qSe/LLzUJBk+o82bkGDLCZ/uTuNG2Sxk0lXdQC
-	Fahpq49iLbD5jKZYMIgIhbScJq4OyJAfSvh/NYacLik2Q6KlormUzSxeXfcJPk3c
-	XomhUBGFEQuTFk7I5uT1ZPoAjKJAo1wpEemBAV4KifdVGur4zzTZ7IypRohKTbvf
-	ONT/2dam8+C+ejcMIoVsbwbO/h3pNfCmObzgVPgSZd7AlYrAuW0w==
-Received: from phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta02.appoci.oracle.com [147.154.114.232])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 4d65daftcx-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 02 Apr 2026 07:01:39 +0000 (GMT)
-Received: from pps.filterd (phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-	by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 6326INZ1027511;
-	Thu, 2 Apr 2026 07:01:38 GMT
-Received: from bl2pr02cu003.outbound.protection.outlook.com (mail-eastusazon11011023.outbound.protection.outlook.com [52.101.52.23])
-	by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 4d65eccyhb-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 02 Apr 2026 07:01:38 +0000
+	dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b="k484HZbg"
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=xgRPSIZ7pDlvjGBYksFpIL6vExjHh1fJEOU4pu4OwtBb93sxNiITiZ+PG42rurq2UrWlFEpvb8NEhAu6Ac/lbtNs5yQOKtpEKRNdKgM1gYJuuWcw0sQbfjme95/Ls/pOzGWOj823ChOkCJkSeqEwJOfSrq5ooLH3OqyK4vU/EgmyQOeRzyLABgieUL3AZbkIzg4eJd/tfEWGM2ap8Nj9BpY7kzgiOp/YFYuSXmDJMKH3rmdLjjRnNTCgG30Pr7isie9VFTq6/EeAmK8vK2HJ4PSzUbh4Wrfm51GmD/3zCqw2y46Nd3ZjzL10tdou5lWhmJBgjRm2RLVjuxojsaNBjQ==
+ b=jy0/BLKaeVGGVMa4pWYnjQgnk4WqUkaZTLSA4K5hkHHR/K3LXZeOtkun1yytiL0flJTxL1SuEW6r2S7Nzi1LAczjRX67ibKhF8Yq22xdXTcuvYth43ZaExGIq2O6cp7GZ067RDvOGhu+pcCnD1ZcDgMwLYdfH95vAnvH1XCno7m6EYagGjXHwCSgZ0ZZThvpTJbjARNhViEEN+3QhslyO2VxPUd+n3wa6fzcsR9rsQ6uRcnKFEwSaGLQKbGViTrIrcfIP4kMWjGToy6D5tqvZYO32hHsJ5UGFd6uImy7chRdpjWZKw4WxGbYlsN78/Kz8da+3cqiZprU6n067f+W6g==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=iYAl1fvFqOQ8GHN/37KbIWRIR6B2/lwLHHZ+lUgrqew=;
- b=eJs1/hVlfq9MU6WQqXg9/LRQvvdl5FLvWYGpTp1J3dlo8fXxb4UFa1kFebuyj/6jRjFH/Lm3R4kJKZzv2Tj91Yk27n8w8ZH+H6P8asqT0lOIY9WUtOZhXrpBpa7pxM2EXiLNJvR+FSVmZ7r6TBijYTJyNmBCgLoyMFf/B76YTGABrBjsZEAWaGA1bCtdOSZOqX4HF5sthMY8jEDfJuRP0vMLV4VkIDhMN7LRZ4nSfLCELwkrrHHnSzEvZ9jMk9LT26Yg1AlWlIW+i9x95Vla3yeAJM/sWUVdLVg8+9Ndw7h1WgWCPp5Qgm4n38vRs/CXedfae6vp4O4O/Kez6YZObA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
+ bh=8kGfQUAhEJRNe0ovYyjuYorzzpS/c3tAAv7pRCbngVQ=;
+ b=mZJOPssPDfUUsbrfM0ZwN3E5yhxFKH0u9G+7xbnAGlc0S+VdwBQVfxkVlXitZ1inCnkt4wRUQ+DlIn/NCXvkzUGVCtoMjbvHgbYS1vlfwVnxcQdJHPzbCNB00GB7+/lrZXUMReG1tVe7EHmj1rM7vP5EKQEXboM0yzY90g4Sny9PKO1tJAb/kwjRX2n3dv9Jc+93ipQiXi7d+TZTRGxfPZmNkiYArSg0Ud/7/hyhGlp3FPZ7TF4DGaz9FD/MFlnhVzaHW6b7LkumbFRp5K5IPUC4RTkmbKaJCToAV6SVrbp7h/UT11k/KSv9qAmF9o7lauXfzk6hb57s+ohNgtWSQw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass (sender ip is
+ 165.204.84.17) smtp.rcpttodomain=kernel.org smtp.mailfrom=amd.com; dmarc=pass
+ (p=quarantine sp=quarantine pct=100) action=none header.from=amd.com;
+ dkim=none (message not signed); arc=none (0)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=iYAl1fvFqOQ8GHN/37KbIWRIR6B2/lwLHHZ+lUgrqew=;
- b=gxlL+XbqNsm1xv7reHEI9FKHaIqA7z5nGmdyjXf5FVDbspX8Lf2gtQH46sLelm1kXtQgc8m1mjYqcbnOWmvYftvB7qJRf3V8km27wvr+bd5Vp3gBhLFKkbCElswDzH+uL6mgehCP6xZGGucxRsejXis8NmIVqmrF3YXFmRa++zQ=
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com (2603:10b6:5:357::14)
- by CH3PR10MB6713.namprd10.prod.outlook.com (2603:10b6:610:143::20) with
+ bh=8kGfQUAhEJRNe0ovYyjuYorzzpS/c3tAAv7pRCbngVQ=;
+ b=k484HZbg89ugh89pJdMEgMvAKWD87seviZUTxQ2Lb0q2HRDGI8fWaMlZSzG/lTdCxWheLU0NV2/BiYleYEWx+W7N7y8mVOv55WLk0blXY31wnlPeZX2MOGxK1XAmuGOjzVEqGX3T5cMchcN0pu/avW6qoYoClRj0QZCenNPdd1k=
+Received: from SN7P220CA0024.NAMP220.PROD.OUTLOOK.COM (2603:10b6:806:123::29)
+ by SA0PR12MB4349.namprd12.prod.outlook.com (2603:10b6:806:98::21) with
  Microsoft SMTP Server (version=TLS1_2,
  cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9769.17; Thu, 2 Apr
- 2026 07:01:33 +0000
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574]) by CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574%6]) with mapi id 15.20.9723.022; Thu, 2 Apr 2026
- 07:01:33 +0000
-References: <20260316013651.3225328-1-ankur.a.arora@oracle.com>
-User-agent: mu4e 1.4.10; emacs 27.2
-From: Ankur Arora <ankur.a.arora@oracle.com>
-To: Ankur Arora <ankur.a.arora@oracle.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
-        bpf@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com,
-        will@kernel.org, peterz@infradead.org, akpm@linux-foundation.org,
-        mark.rutland@arm.com, harisokn@amazon.com, cl@gentwo.org,
-        ast@kernel.org, rafael@kernel.org, daniel.lezcano@linaro.org,
-        memxor@gmail.com, zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com,
-        rdunlap@infradead.org, david.laight.linux@gmail.com,
-        joao.m.martins@oracle.com, boris.ostrovsky@oracle.com,
-        konrad.wilk@oracle.com
-Subject: Re: [PATCH v10 00/12] barrier: Add
- smp_cond_load_{relaxed,acquire}_timeout()
-In-reply-to: <20260316013651.3225328-1-ankur.a.arora@oracle.com>
-Date: Thu, 02 Apr 2026 00:01:28 -0700
-Message-ID: <875x69rgl3.fsf@oracle.com>
-Content-Type: text/plain
-X-ClientProxiedBy: YT4PR01CA0142.CANPRD01.PROD.OUTLOOK.COM
- (2603:10b6:b01:d5::17) To CO6PR10MB5409.namprd10.prod.outlook.com
- (2603:10b6:5:357::14)
+ 2026 11:23:20 +0000
+Received: from SN1PEPF0002636C.namprd02.prod.outlook.com
+ (2603:10b6:806:123:cafe::38) by SN7P220CA0024.outlook.office365.com
+ (2603:10b6:806:123::29) with Microsoft SMTP Server (version=TLS1_3,
+ cipher=TLS_AES_256_GCM_SHA384) id 15.20.9769.18 via Frontend Transport; Thu,
+ 2 Apr 2026 11:23:20 +0000
+X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 165.204.84.17)
+ smtp.mailfrom=amd.com; dkim=none (message not signed)
+ header.d=none;dmarc=pass action=none header.from=amd.com;
+Received-SPF: Pass (protection.outlook.com: domain of amd.com designates
+ 165.204.84.17 as permitted sender) receiver=protection.outlook.com;
+ client-ip=165.204.84.17; helo=satlexmb07.amd.com; pr=C
+Received: from satlexmb07.amd.com (165.204.84.17) by
+ SN1PEPF0002636C.mail.protection.outlook.com (10.167.241.137) with Microsoft
+ SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.20.9769.17 via Frontend Transport; Thu, 2 Apr 2026 11:23:20 +0000
+Received: from BLRKPRNAYAK.amd.com (10.180.168.240) by satlexmb07.amd.com
+ (10.181.42.216) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.2562.17; Thu, 2 Apr
+ 2026 06:23:12 -0500
+From: K Prateek Nayak <kprateek.nayak@amd.com>
+To: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, "Peter
+ Zijlstra" <peterz@infradead.org>, Sebastian Andrzej Siewior
+	<bigeasy@linutronix.de>, Borislav Petkov <bp@alien8.de>, Dave Hansen
+	<dave.hansen@linux.intel.com>, <x86@kernel.org>, Catalin Marinas
+	<catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Paul Walmsley
+	<pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
+	<aou@eecs.berkeley.edu>, Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik
+	<gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, "Christian
+ Borntraeger" <borntraeger@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>,
+	"David Laight" <david.laight.linux@gmail.com>, Samuel Holland
+	<samuel.holland@sifive.com>
+CC: Darren Hart <dvhart@infradead.org>, Davidlohr Bueso <dave@stgolabs.net>,
+	=?UTF-8?q?Andr=C3=A9=20Almeida?= <andrealmeid@igalia.com>,
+	<linux-arch@vger.kernel.org>, <linux-kernel@vger.kernel.org>,
+	<linux-s390@vger.kernel.org>, <linux-riscv@lists.infradead.org>,
+	<linux-arm-kernel@lists.infradead.org>, K Prateek Nayak
+	<kprateek.nayak@amd.com>
+Subject: [PATCH v3 0/7] futex: Use runtime constants for futex_hash computation
+Date: Thu, 2 Apr 2026 11:22:43 +0000
+Message-ID: <20260402112250.2138-1-kprateek.nayak@amd.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-ClientProxiedBy: satlexmb08.amd.com (10.181.42.217) To satlexmb07.amd.com
+ (10.181.42.216)
+X-EOPAttributedMessage: 0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CO6PR10MB5409:EE_|CH3PR10MB6713:EE_
-X-MS-Office365-Filtering-Correlation-Id: 0285f331-79a3-49e3-5a0a-08de9085ab5a
+X-MS-TrafficTypeDiagnostic: SN1PEPF0002636C:EE_|SA0PR12MB4349:EE_
+X-MS-Office365-Filtering-Correlation-Id: e9c55a4a-adc0-4fa6-c940-08de90aa3ed2
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|366016|1800799024|7416014|376014|13003099007|22082099003|18002099003|56012099003;
+	BCL:0;ARA:13230040|376014|1800799024|7416014|82310400026|30052699003|36860700016|18002099003|56012099003|921020|13003099007;
 X-Microsoft-Antispam-Message-Info:
-	0Q9tu7vC29X5XTDtrf1hjCXqaY0ti+3YyMB89iFS7E/MHNYiFt5Klf5XmLdS/CJoyPC9hejlw9QpIQd0NnPDNw0/FK14yzQIfWTY/TCP1B84x5QQVnHStm8+WSByztIBsXxWmZv+tUboNn7UrbE0FOY9oF1H3fmK60+qxvuvQ/NWTrrNcj93LqYpvpMy3YLpCjhgQ/QGG0vWbsNNwVxf4jkwJNCMESjnPIAJUMKkeFg2B0whwB+wRYMUzwm4gJgpnA8YYtHF5U8Z6AK1VDhHfI9k1KnwBogc+UggTMdV1aTXPw7uTZWHxzzJCID+UrzmyDZaVpwJTBTkZHquuVbfdwIRxC/9vbEZVT2Y3TNpO/OsfHTJ/Qi6tMMx/BsRz7ZIaKNUykYVKWtwPgfyfQgX3qyZN25aMSb348PPQ8LDyiLjuRHGnR9zjyukASCpXGqUdwArlHeHhLmNCHMK7YJuSWMC9pJ2f0XcbdfNopKNBTzI5HV4MFgrJO67iHk+IajpenqTcvOio9nz9Tp9+reOF/O5rTzXcT5EJ9D3VyQhOy/nQdaX5SpRsYNQic08mFnD0QqgH2JPZhZe+21zcKUeJh1ybtVyW2ItXJlhXM/CB6m/E3llAPyqnIUupZ7H8orqpcQPTqJGLLeqNmF74/bbMFGb/HzwY0o8RHwUQHQ+Ru1NPov14z8G05bu89DrIo3US6rckm5V8cwyx70yATZxZMXvSF5SD77tZnf5q+ojNbfPTEtnsdILpyG3paDGIjRo
+	jk03w2/gVFcpDJ8ehu51yI9eMM4IrQpOlJMrfOj008TCI99ayFwH3UuGEkqrZZzlhbFRhkjvaW3cjY2QwTKiMws/jtRSbXlqHGhwjDHmFpM0u4MGU7DuPN2132IXkGiWibgkPfAPSfVXJseUURMY3fy8SQwauDf2QFswbqdAoyVvlkIFfHu8qELkWiN/qe+WKDIQWrcZ6i6IaHrL5MVCiDpeYkr3fFWugNtX7RpiuHPufrHmtxqn06bnAju7zpqHp0sLqH6sJFCJhhict/uCteOEfUOqVO3aLRZ84zzNw5T9p6Ifd5Q5nDSmKcM2NmxkQ3Fv0D6Ed04tT1G7pmYngOS7FZCgkrtwri83DiXnAD+wG3WPyL/MN96AFz7I+7lPYut+qxNFu7iXaVoWluTV58jjiiF6y/6Moue0CPJEEXr4cNr+yepUcB2QDz6+i8ekrqkw/Gktcri0laSTG2zGZIA/eNB9wsSsXk6z+/Kldy/G3JMltAJzV1Aag5UUzvpWoiY2sL1ZjfKa3juEpKW6lY6Ltu/eTQTVy/8fXKD+YGNdCP/la3QWgkLAat4SHd7b2krmUnlHgRVWLPA7q62ydtLDwrzdkRJ9iA4zTk5O3pEZU17JJBTMH7T428SNI5MU8wElljLZ+nLfo+thMxq0GBMZfrQeNctUaCpi7atj7xSGbAWDcSgIF6b8ljbGw/6C20LpAm1uKgKrWoR/DRvv7RlJ1VISaeOoKbanUHfVuwa9j62W1ulyl/cSimL+zhRmZy5atAgv17BsU3FWSfoO7N6GRjOq0/H9uRXbAJdBVIDvwgV7vQ4wOp7uPMusU6Re9Pmcj598TTAtW1mVwUyz9w==
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CO6PR10MB5409.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(1800799024)(7416014)(376014)(13003099007)(22082099003)(18002099003)(56012099003);DIR:OUT;SFP:1101;
+	CIP:165.204.84.17;CTRY:US;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:satlexmb07.amd.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(376014)(1800799024)(7416014)(82310400026)(30052699003)(36860700016)(18002099003)(56012099003)(921020)(13003099007);DIR:OUT;SFP:1101;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?pO68AoM7+8G2JeY14nqoLVSyCx7TLUuTMRXo/t2gjmJY+WOaJ+e3pbjI+Q1S?=
- =?us-ascii?Q?kWXjhd983I/4VJMGWnLakEN6Cm4iA0UMObPNyHT6Q4cqCDAOpEGYmq9JObKc?=
- =?us-ascii?Q?0yX9xL0fhri4rfmxEDhlq/j/Ux+bEPydfIFTAniAK5nIBY8J/pmU3kEa9XRb?=
- =?us-ascii?Q?V67a08nCK+VmUPj+45Wn704hOXPo40pzvjA6U6ihTjIGI575BA1gs+S+zZXw?=
- =?us-ascii?Q?R/RUJ+7Kfyyw5d1Ju/oCoY+fxKDwJpuEMXPY6d4ZZ94CLZBxPzMew3MDecUz?=
- =?us-ascii?Q?8lCWAi6V0w6Y3/Z+cH39NBXUZGB4fOkBN5L/4t9/gFMDTz+X+GrAMcEyCpaz?=
- =?us-ascii?Q?odTaaYhV6oSrX/3ZZRhoGv/fgG/5Qu+ULemtlE4Wg9Jirf2lIDxSa7PkYtof?=
- =?us-ascii?Q?6Cj8EzQE6cvuT1P0U8pFy6Ij++YTkCPh7STvwuzYDhdfXvgVPvOhqJhhwAEj?=
- =?us-ascii?Q?G2b0SYsiNmqSKbFZ8oVW5qeVar7gMN7oVIhdapoahnxCxmkW/uHp1ReVa5zW?=
- =?us-ascii?Q?iSft62NsuviKSe0+FhcB0y/P0H0Zhr8ByJQQqbNQpfTeOPlWaf6GrTpS497B?=
- =?us-ascii?Q?60eXPZR+Sbi8fgAFf/1OgYu1TX/OWfCIulMFORqP0MH/zSa5I7JFyn1eJGjh?=
- =?us-ascii?Q?TJwbw+NS7Z/FGNs3qgS2q/dSuCK7bPzUu5r1hrQljAYfpCVU7cw5HsI49lku?=
- =?us-ascii?Q?OMOyzHDHiOA0cmaCS9sY0nVArQeIApOlYCPSJikX7xqQSJNxCHjFqoJEcoep?=
- =?us-ascii?Q?NHX+ojlMPPTb1wu62hiMfkuad93m0GFqZfJyfuuQsMx/eX0K6RWi5WIEPfxy?=
- =?us-ascii?Q?W8zXyarEuexFe5o+Jevcsn6RJI4DABESva7j3xd9kgman8uJJ06BeLd9xQ1y?=
- =?us-ascii?Q?NRKlOoz2bs/284adA+GDG6WgQ8QYOHiuvc3FhafgVLAZ9No32/JCBmUAlkHm?=
- =?us-ascii?Q?KGT7Xhe3RH4bheMEhNwJxFPJr+EMP+naNsgoRSoMuLwjnKbXm9QaRlWzYNaP?=
- =?us-ascii?Q?WaYda+F4nNgCxojaNRhoTaPAs+W/0GOkvI6XBWmhWw5tV7iIhEQKy+tnuCn4?=
- =?us-ascii?Q?gxWZgJ+fS+PW5IUBZtpnf4PGre3nd79uhqsH9QolgitA739DqaUcTfQ34p1N?=
- =?us-ascii?Q?iVJ+vfp5e83pWxs7gyX7LerNXrYvBYqOnFfcXS+kkLpMEczilY0X19MvCHG5?=
- =?us-ascii?Q?XGPCEBmG+AqE0tfcMY7WNL2LrfSR2nTji6m3fF7eqC+KTRur/0pUmklvp8Z/?=
- =?us-ascii?Q?vo5oMpEkVgZRbd9GFzH7RANlK8TRoARiL4zbH2kgbR+lIrfEDAfFDuLdi6Gt?=
- =?us-ascii?Q?Xvft/IfEj9udns3kFlgz79OFwEuSfYQiePcOhp9dHzsHPC2nX3NHBREHxmIm?=
- =?us-ascii?Q?SkLZS5/JBE20tNRU47r8P3+Yq1wqWWS9Sxf3B/dm4C+TKmL3prix4RQp7SSs?=
- =?us-ascii?Q?EPvyVa1q/XoN7IFHTbxt1F0OqBzMFykx7b0DYbDJyZbIk//2yw9D9DPZF7WH?=
- =?us-ascii?Q?kKQe4KdB7Biz+I416adNz1QF/jfkGDWRoD10dGgCRLD7G1hajplp9rR2dLVP?=
- =?us-ascii?Q?CfHmJ/TP3KAjokOyW8Bne1VMGSqd6J2SHtqCW/A5xk9GysNZEKztOJcKmrmT?=
- =?us-ascii?Q?26zdwiZBa0spRNYe+CBkwS1fcpYvAGYE4JhOku2QvGD5UK5EPg8Ff6pwmsN/?=
- =?us-ascii?Q?SsHcX3vg+fZeyIDErwMallv1zScf8G531re+6dX9Y4ki+fokns/SUI9ajoLi?=
- =?us-ascii?Q?eGgG3m/lsyc/CZFqQxrg8VCSWJBvQnI=3D?=
-X-Exchange-RoutingPolicyChecked:
-	grp0+YkeKGCMOrFDwTpMBz4W0W8CHa2VLDvhVFTOr4o0pXMjRPcPQZbChcutQ28FxUTAAzOcAZBoOKIfYn70hhlr797oLinor12y3Ravx/MhNySGtE7zPzkpbEctvAmvaGsuF5l71CfZzPPPQBvnjQuX1FCwQ/VSoad0Gr7bUmFdaA1KSui1dIeVhdGQ+7dXlqf02yuZD8JbPX7+cTHY+tGdgTI6RolP7Z+aCNekGqanACVWTdKWaDy8xS3LE3hlHaI4xGYfgDdvi4gcq1uwujJ6nl45Cqbhl9eJ2y4zxJQxg6Kv8LFqUYQ44KXdnL5ijrXFCOlVvgBSfxCv7VztFQ==
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	YPRYMWBJNhOfjsRgjwjep1Jpv/BbgMQulzvEW0G1zwHwBuV1N7kTJbph+gYnc4mRsuh3m/8TIgDgAN6ssLAb8FCsod1ocQClIr9GBObTsOh2uQKSjD6WIjR/Go3MdyMgaLdiW4GxEiE9ihUBwqJymO0zc1p3D174U6p71T4jODZrIQgQ06DGFqzEO1WQ4X8ggYqXxPIquj20hQTyaEVw4nValTIiLVDe/jc2ibeXATJINg26OcOp4GAH/iq2UC/LfiOMtbehYJg/6fj0lR3YWIm1hCbVKi2223PPQNMu8Z8VGDenf+IK9TK9w/9yB7LYqQKQKxa72+nKt4Z9JDWMrf5b3HgQVNYASsdlhVJDztbB/wYHY7tQLvFzgyfNEl3Ml+au+D1lIy8Bx+ZTfu1+8uZXDnLQNFkqDrDqLoNBP1vVVddvMwRFctNwIQwKYnDYLXpReVIRgiHrb9d4P8kRbwOPn02c+/8UTPGAgN2MVNHifxo/abHybO3pbFPJlCnnCnshACILtyCbQbUeeUXCIn8T4NGCLdTCgmntmHWjqLRoOqZcPouYANijfk3vxCtI637qnMgDa1RXyeb/5CGIonpCzRMnPtubphEKOBxFA4c=
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 0285f331-79a3-49e3-5a0a-08de9085ab5a
-X-MS-Exchange-CrossTenant-AuthSource: CO6PR10MB5409.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 02 Apr 2026 07:01:33.2215
+	BR+M2tLWmg2u77rwTTSx4mLWmZ0TOW2hIiuYCzNIL6kf+mBrhxulV3evVph+CozCouIonq93PtQ+QyOuaJSimG30znEQ9ScS+TYUdOGYli1vJc76QZJtPWnwN5cYvNsxmzQkFNayi7XvcRJSD6StH77YwHgw8VSKBF10BnB60LhymjXwLIJpmrxiO+ZMVNgmI3qOOLuQV29inm61QFq7bEf/gc3W85gX4IAKCK7vu1B5bOhxKUlzwM9oEMGpJEg8/J++ZoLh4ITZLoJKf7R/p/CL4/xXmi6Og2z94Sl+nQfRKTbyI566RhO3BanojKPyUtv7Y7qR5O3B7awi1DVJITcyx6nttrSHj/E4XVth/ngLxogs1ffo8IMdP0ujcVM49h6jlfsALt2YIESUFtaBg+zUENGx0x5bZq+h8zVKiYU69uRhSqxPGD3ofzByjHmi
+X-OriginatorOrg: amd.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 02 Apr 2026 11:23:20.5376
  (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: wz4/RGPVdhv8Y4M2N5LCq1Sko0R5S3gvNwl1tnLXDR9eBxKe8TPGef3K0fm+2Rfyd9nQWwlX+p5iM6llleVd8BAeSm/Td5rdm0JkR6MWn3o=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH3PR10MB6713
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.51,FMLib:17.12.100.49
- definitions=2026-04-02_01,2026-04-01_02,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 mlxscore=0
- malwarescore=0 bulkscore=0 mlxlogscore=999 adultscore=0 spamscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2603050001 definitions=main-2604020060
-X-Authority-Analysis: v=2.4 cv=IPwPywvG c=1 sm=1 tr=0 ts=69ce1453 cx=c_pps
- a=OOZaFjgC48PWsiFpTAqLcw==:117 a=OOZaFjgC48PWsiFpTAqLcw==:17
- a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
- a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=xqWC_Br6kY4A:10 a=A5OVakUREuEA:10
- a=GoEa3M9JfhUA:10 a=VkNPw1HP01LnGYTKEx00:22 a=jiCTI4zE5U7BLdzWsZGv:22
- a=x4eqshVgHu-cdnggieHk:22 a=VwQbUJbxAAAA:8 a=yPCof4ZbAAAA:8 a=vggBfdFIAAAA:8
- a=7CQSdrXTAAAA:8 a=JfrnYn6hAAAA:8 a=KKAkSRfTAAAA:8 a=pGLkceISAAAA:8
- a=KPwNAUb5YfN-6pBwkm0A:9 a=a-qgeE7W1pNrGK8U0ZQC:22 a=1CNFftbPRP8L7MoqJWF3:22
- a=cvBusfyB2V15izCimMoJ:22
-X-Proofpoint-ORIG-GUID: cdIo-3ZcycYqeX-M2mp24vor2vusGf4f
-X-Proofpoint-GUID: cdIo-3ZcycYqeX-M2mp24vor2vusGf4f
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNDAyMDA2MCBTYWx0ZWRfX2V87hIR3nw8g
- XWyantuT5emXOIvduouWEgGhf0WoezYiaZlTUwCYAZ1XgAnT+CDl3C4djJ+NZzNa+0PGGe8yvJB
- 9eTfYtdyPP2Wns6U1Uiuk2L0F4i2N3alzR6+xBQQm8396mc/xeYk43CDYKPpBwghIGpMy8LhPQx
- eRAphAFKkqnvOw+XAQ+A8fzfm61XdyTEtOZXp6zF/FmSdNTbrnAiFCWlT8hINWwsgd66gGWx9LM
- mQcgtXOMd5ArS6kGaS0w28z4mdRLQUGXOdp8dbFDEgIPgU6M/5oKEMA3c9sgGHkgRdpcKU8xIdf
- S44OuRFQTpCeI4M9MeYnpfAk5OW79VbaQCFduGeqJaTHyGIosgEn21URWcFBey1sIGWwWPjcbnU
- 8exqgldUZGEEBX178ZqUzKTOw7rwAZovyQISJItlxsgkz/I++/IxJs9MINoqntuSKbAUXEhD/im
- KnqyZWSUa5DU2dyrwIg==
+X-MS-Exchange-CrossTenant-Network-Message-Id: e9c55a4a-adc0-4fa6-c940-08de90aa3ed2
+X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=3dd8961f-e488-4e60-8e11-a82d994e183d;Ip=[165.204.84.17];Helo=[satlexmb07.amd.com]
+X-MS-Exchange-CrossTenant-AuthSource:
+	SN1PEPF0002636C.namprd02.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SA0PR12MB4349
+
+tl;dr
+
+This series introduces runtime_const_mask_32() and uses runtime
+constants for __ro_after_init data in futex_hash() hot path. More
+information can be found on v2 [1].
+
+Comments that have *not* been addressed in this version
+=======================================================
+
+Samuel had an observation on v2 that __futex_mask is always of the form
+
+    ((1 << bits) - 1) /* Only lower bits set; bits > 1. */
+
+and ARM64 and RISC-V can use a single ubfx (ARM64), or slli+srli pattern
+(RISC-V) for the mask operation respectively but this had the main
+limitation of runtime_const_mask_32() only working with masks of such
+form and others would fail runtime_const_init() at boot.
+
+RISC-V does generated a "addi + slli" pattern with CONFIG_BASE_SMALL=y
+where the futex_hash_mask can be computed at compile time.
+
+The old scheme is retained for now since it is equivalent to the
+generated asm for !CONFIG_BASE_SMALL and can handle any arbitrary masks
+allowing for all future use cases.
+
+If there is enough interest, please let me know, and I can look into
+further optimization to runtime_const_mask_32() based on the current use
+case for __futex_hash.
+
+Testing
+=======
+
+Apart from x86, which was build and boot tested on baremetal, all the
+other architectures have been build and boot tested with cross-compile +
+QEMU with some light sanity testing on each.
+
+Patches are based on:
+
+  git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master
+
+at commit 1086b33a3f64 ("Merge branch into tip/master: 'x86/vdso'")
+(2026-04-02)
+
+Everyone has been Cc'd on the cover-letter and the futex bits for the
+context. Respective arch maintainers, reviewers, and whoever got lucky
+with get_maintainer.pl have been Cc'd on their respective arch specific
+changes. Futex maintainers and the lists will be receiving the whole
+series (sorry in advance!)
+
+---
+changelog rfc v2..v3:
+
+o Collected Ack from Heiko for s390 bits after folding in their
+  suggested changes (Thanks a ton!)
+
+o Reordered Patch 2 and Patch 3 to allow for runtime_const_init() at
+  late_initcall() first before introducing runtime_const_mask_32() on
+  ARM64. (David)
+
+o Moved the "&" operation outside the inline asm block on ARM64 and
+  RISC-V which allows the compiler to optimize it further if possible.
+  (David)
+
+o Dropped the RFC tag.
+
+v2: https://lore.kernel.org/lkml/20260316052401.18910-1-kprateek.nayak@amd.com/ [1]
+
+changelog rfc v1..rfc v2:
+
+o Use runtime constants to avoid the dereference overheads for
+  dynamically allocated futex_queues.
+
+o arch/ side plumbings for runtime_const_mask_32()
+
+v1: https://lore.kernel.org/all/20260128101358.20954-1-kprateek.nayak@amd.com/
+---
+K Prateek Nayak (4):
+  arm64/runtime-const: Use aarch64_insn_patch_text_nosync() for patching
+  arm64/runtime-const: Introduce runtime_const_mask_32()
+  riscv/runtime-const: Introduce runtime_const_mask_32()
+  s390/runtime-const: Introduce runtime_const_mask_32()
+
+Peter Zijlstra (3):
+  x86/runtime-const: Introduce runtime_const_mask_32()
+  asm-generic/runtime-const: Add dummy runtime_const_mask_32()
+  futex: Use runtime constants for __futex_hash() hot path
+
+ arch/arm64/include/asm/runtime-const.h | 32 ++++++++++++++------
+ arch/riscv/include/asm/runtime-const.h | 22 ++++++++++++++
+ arch/s390/include/asm/runtime-const.h  | 22 +++++++++++++-
+ arch/x86/include/asm/runtime-const.h   | 14 +++++++++
+ include/asm-generic/runtime-const.h    |  1 +
+ include/asm-generic/vmlinux.lds.h      |  5 ++-
+ kernel/futex/core.c                    | 42 ++++++++++++++------------
+ 7 files changed, 107 insertions(+), 31 deletions(-)
 
 
-Ankur Arora <ankur.a.arora@oracle.com> writes:
+base-commit: 1086b33a3f644c3bc37abefd699defc45accced1
+-- 
+2.34.1
 
-> Hi,
->
-> This series adds waited variants of the smp_cond_load() primitives:
-> smp_cond_load_relaxed_timeout(), and smp_cond_load_acquire_timeout().
->
-> With this version, the main remaining things are:
->
->   - Review by PeterZ of the new interface tif_need_resched_relaxed_wait()
->     (patch 11, "sched: add need-resched timed wait interface").
->
->   - Review of the BPF changes. This version simplifies the rqspinlock
->     changes by reusing the original error handling path
->     (patches 9, 10 "bpf/rqspinlock: switch check_timeout() to a clock
->     interface", "bpf/rqspinlock: Use smp_cond_load_acquire_timeout()").
->
->   - Review of WFET handling. (patch 4, "arm64: support WFET in
->     smp_cond_load_relaxed_timeout()").
-
-Received Acks/R-bys for the two above.
-
-Will send out an updated v11 which adds a testcase and a comment
-mentioning that smp_cond_load_*_timeout on MMIO addresses might
-break in interesting platform specific ways.
-
-Thanks
-Ankur
-
-> The new interfaces are meant for contexts where you want to wait on a
-> condition variable for a finite duration. This is easy enough to do with
-> a loop around cpu_relax(). There are, however, architectures (ex. arm64)
-> that allow waiting on a cacheline instead.
->
-> So, these interfaces handle a mixture of spin/wait with a
-> smp_cond_load() thrown in. The interfaces are:
->
->    smp_cond_load_relaxed_timeout(ptr, cond_expr, time_expr, timeout)
->    smp_cond_load_acquire_timeout(ptr, cond_expr, time_expr, timeout)
->
-> The parameters, time_expr, timeout determine when to bail out.
->
-> Also add tif_need_resched_relaxed_wait() which wraps the pattern used
-> in poll_idle() and abstracts out details of the interface and those
-> of the scheduler.
->
-> In addition add atomic_cond_read_*_timeout(), atomic64_cond_read_*_timeout(),
-> and atomic_long wrappers to the interfaces.
->
-> Finally update poll_idle() and resilient queued spinlocks to use them.
->
-> Changelog:
->   v9 [9]:
->    - s/@cond/@cond_expr/ (Randy Dunlap)
->    - Clarify that SMP_TIMEOUT_POLL_COUNT is only around memory
->      addresses. (David Laight)
->    - Add the missing config ARCH_HAS_CPU_RELAX in arch/arm64/Kconfig.
->      (Catalin Marinas).
->    - Switch to arch_counter_get_cntvct_stable() (via __delay_cycles())
->      in the cmpwait path instead of using arch_timer_read_counter().
->      (Catalin Marinas)
->
->   v8 [0]:
->    - Defer evaluation of @time_expr_ns to when we hit the slowpath.
->       (comment from Alexei Starovoitov).
->
->    - Mention that cpu_poll_relax() is better than raw CPU polling
->      only where ARCH_HAS_CPU_RELAX is defined.
->      - also define ARCH_HAS_CPU_RELAX for arm64.
->       (Came out of a discussion with Will Deacon.)
->
->    - Split out WFET and WFE handling. I was doing both of these
->      in a common handler.
->      (From Will Deacon and in an earlier revision by Catalin Marinas.)
->
->    - Add mentions of atomic_cond_read_{relaxed,acquire}(),
->      atomic_cond_read_{relaxed,acquire}_timeout() in
->      Documentation/atomic_t.txt.
->
->    - Use the BIT() macro to do the checking in tif_bitset_relaxed_wait().
->
->    - Cleanup unnecessary assignments, casts etc in poll_idle().
->      (From Rafael Wysocki.)
->
->    - Fixup warnings from kernel build robot
->
->
->   v7 [1]:
->    - change the interface to separately provide the timeout. This is
->      useful for supporting WFET and similar primitives which can do
->      timed waiting (suggested by Arnd Bergmann).
->
->    - Adapting rqspinlock code to this changed interface also
->      necessitated allowing time_expr to fail.
->    - rqspinlock changes to adapt to the new smp_cond_load_acquire_timeout().
->
->    - add WFET support (suggested by Arnd Bergmann).
->    - add support for atomic-long wrappers.
->    - add a new scheduler interface tif_need_resched_relaxed_wait() which
->      encapsulates the polling logic used by poll_idle().
->      - interface suggested by (Rafael J. Wysocki).
->
->
->   v6 [2]:
->    - fixup missing timeout parameters in atomic64_cond_read_*_timeout()
->    - remove a race between setting of TIF_NEED_RESCHED and the call to
->      smp_cond_load_relaxed_timeout(). This would mean that dev->poll_time_limit
->      would be set even if we hadn't spent any time waiting.
->      (The original check compared against local_clock(), which would have been
->      fine, but I was instead using a cheaper check against _TIF_NEED_RESCHED.)
->    (Both from meta-CI bot)
->
->
->   v5 [3]:
->    - use cpu_poll_relax() instead of cpu_relax().
->    - instead of defining an arm64 specific
->      smp_cond_load_relaxed_timeout(), just define the appropriate
->      cpu_poll_relax().
->    - re-read the target pointer when we exit due to the time-check.
->    - s/SMP_TIMEOUT_SPIN_COUNT/SMP_TIMEOUT_POLL_COUNT/
->    (Suggested by Will Deacon)
->
->    - add atomic_cond_read_*_timeout() and atomic64_cond_read_*_timeout()
->      interfaces.
->    - rqspinlock: use atomic_cond_read_acquire_timeout().
->    - cpuidle: use smp_cond_load_relaxed_tiemout() for polling.
->    (Suggested by Catalin Marinas)
->
->    - rqspinlock: define SMP_TIMEOUT_POLL_COUNT to be 16k for non arm64
->
->
->   v4 [4]:
->     - naming change 's/timewait/timeout/'
->     - resilient spinlocks: get rid of res_smp_cond_load_acquire_waiting()
->       and fixup use of RES_CHECK_TIMEOUT().
->     (Both suggested by Catalin Marinas)
->
->   v3 [5]:
->     - further interface simplifications (suggested by Catalin Marinas)
->
->   v2 [6]:
->     - simplified the interface (suggested by Catalin Marinas)
->        - get rid of wait_policy, and a multitude of constants
->        - adds a slack parameter
->       This helped remove a fair amount of duplicated code duplication and in
->       hindsight unnecessary constants.
->
->   v1 [7]:
->      - add wait_policy (coarse and fine)
->      - derive spin-count etc at runtime instead of using arbitrary
->        constants.
->
-> Haris Okanovic tested v4 of this series with poll_idle()/haltpoll patches. [8]
->
-> Comments appreciated!
->
-> Thanks
-> Ankur
->
->  [0] https://lore.kernel.org/lkml/20251215044919.460086-1-ankur.a.arora@oracle.com/
->  [1] https://lore.kernel.org/lkml/20251028053136.692462-1-ankur.a.arora@oracle.com/
->  [2] https://lore.kernel.org/lkml/20250911034655.3916002-1-ankur.a.arora@oracle.com/
->  [3] https://lore.kernel.org/lkml/20250911034655.3916002-1-ankur.a.arora@oracle.com/
->  [4] https://lore.kernel.org/lkml/20250829080735.3598416-1-ankur.a.arora@oracle.com/
->  [5] https://lore.kernel.org/lkml/20250627044805.945491-1-ankur.a.arora@oracle.com/
->  [6] https://lore.kernel.org/lkml/20250502085223.1316925-1-ankur.a.arora@oracle.com/
->  [7] https://lore.kernel.org/lkml/20250203214911.898276-1-ankur.a.arora@oracle.com/
->  [8] https://lore.kernel.org/lkml/2cecbf7fb23ee83a4ce027e1be3f46f97efd585c.camel@amazon.com/
->  [9] https://lore.kernel.org/lkml/20260209023153.2661784-1-ankur.a.arora@oracle.com/
->
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: "Rafael J. Wysocki" <rafael@kernel.org>
-> Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
-> Cc: Kumar Kartikeya Dwivedi <memxor@gmail.com>
-> Cc: Alexei Starovoitov <ast@kernel.org>
-> Cc: bpf@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linux-pm@vger.kernel.org
->
-> Ankur Arora (12):
->   asm-generic: barrier: Add smp_cond_load_relaxed_timeout()
->   arm64: barrier: Support smp_cond_load_relaxed_timeout()
->   arm64/delay: move some constants out to a separate header
->   arm64: support WFET in smp_cond_load_relaxed_timeout()
->   arm64: rqspinlock: Remove private copy of
->     smp_cond_load_acquire_timewait()
->   asm-generic: barrier: Add smp_cond_load_acquire_timeout()
->   atomic: Add atomic_cond_read_*_timeout()
->   locking/atomic: scripts: build atomic_long_cond_read_*_timeout()
->   bpf/rqspinlock: switch check_timeout() to a clock interface
->   bpf/rqspinlock: Use smp_cond_load_acquire_timeout()
->   sched: add need-resched timed wait interface
->   cpuidle/poll_state: Wait for need-resched via
->     tif_need_resched_relaxed_wait()
->
->  Documentation/atomic_t.txt           | 14 +++--
->  arch/arm64/Kconfig                   |  3 +
->  arch/arm64/include/asm/barrier.h     | 23 +++++++
->  arch/arm64/include/asm/cmpxchg.h     | 62 +++++++++++++++----
->  arch/arm64/include/asm/delay-const.h | 27 +++++++++
->  arch/arm64/include/asm/rqspinlock.h  | 85 --------------------------
->  arch/arm64/lib/delay.c               | 15 ++---
->  drivers/cpuidle/poll_state.c         | 21 +------
->  drivers/soc/qcom/rpmh-rsc.c          |  8 +--
->  include/asm-generic/barrier.h        | 90 ++++++++++++++++++++++++++++
->  include/linux/atomic.h               | 10 ++++
->  include/linux/atomic/atomic-long.h   | 18 +++---
->  include/linux/sched/idle.h           | 29 +++++++++
->  kernel/bpf/rqspinlock.c              | 77 +++++++++++++++---------
->  scripts/atomic/gen-atomic-long.sh    | 16 +++--
->  15 files changed, 320 insertions(+), 178 deletions(-)
->  create mode 100644 arch/arm64/include/asm/delay-const.h
-
-
---
-ankur
