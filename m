@@ -1,111 +1,157 @@
-Received: from canpmsgout05.his.huawei.com (canpmsgout05.his.huawei.com [113.46.200.220])
+Received: from mout-p-102.mailbox.org (mout-p-102.mailbox.org [80.241.56.152])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8980D22FF22;
-	Thu,  2 Apr 2026 01:41:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=113.46.200.220
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 877FF213E7A;
+	Thu,  2 Apr 2026 02:52:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.241.56.152
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775094085; cv=none; b=MrdCa+R++l+xJc7RHRG9N7q2jQJ6hVLBK+OaERZ1/2nVu3QuxcwKDtUhCbSehsKjMoX64rgHQqiO3LwA4Q3F3iVCAZya799q6cKOSR9dt+y7eEmhQ3ga/0LB6S4IvTIEZIIzJgdC2w0Z+XRBG1d958HTIwoXoa9FgiD4CpzaU2Q=
+	t=1775098367; cv=none; b=TtIDZSHo6oI6+UL9/VJT1XHwAf06kYYuSsZ6SKP6X0H9oMOT7PlXiIVCpeT91ojawMFnSlRVMK4Ac6FjjsOEheshlwuMMjJKpwX+9T1i9CSdSzzE1tj+NC9JAMS72EE1Q7FZVrRMFroxrvbuk5RAalHgIzpL8xde4Ftp91RlIwM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775094085; c=relaxed/simple;
-	bh=BzANNX+XCdxr/liDOmc+KLPcWYuqzJ1vlYE/EVAGvEg=;
-	h=Message-ID:Date:MIME-Version:Subject:To:CC:References:From:
-	 In-Reply-To:Content-Type; b=seNwNrc1bo1khzVpgUooi2FUJVapaySZ7IXNwgnVgXEXgMB8go/lM0pnrCGCo7sm3C0yR5jE440y4nrEdMNWlG4OY11c1TJCRmqitKrestaBMFcSTOZVQGDiF4wOCB3l43fFVaLmslArACgKtpidZvoeM84XmaGGdqqy5yFdi3Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=i0naMR9w; arc=none smtp.client-ip=113.46.200.220
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
+	s=arc-20240116; t=1775098367; c=relaxed/simple;
+	bh=0s3Ltdb3st4RBI8X7GzRMeGijr+TMGvhGRqHHFtYADY=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=rDhxgyKv5bIwp9XZlOABIRwZBcfdjccmnFJ3NbWTUBVi5QjPqU0daKosz2qsnlv+w5Eo5IOMw95y/0CQkfPwL4YsAM3VBWGvCc2unWNMHFhBYgOxgl6nl39xwI1OWJLd0SxaMNBBcno5gXpRCRTl2u/cpJ4VrLmbYTTysoQCP08=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com; spf=pass smtp.mailfrom=cyphar.com; dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b=e87DXpVA; arc=none smtp.client-ip=80.241.56.152
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=cyphar.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b="i0naMR9w"
-dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
-	c=relaxed/relaxed; q=dns/txt;
-	h=From;
-	bh=cLdczJYdweiDTR4k8RfWxcCkbFm9C4zs52yHWSQ3P04=;
-	b=i0naMR9w04jGCrCibz1QpTYUhPTuY7iux05gGMK9OFaMfxlmSa7ATYNv3hCbz5tRSIo6iRQcu
-	XVq9K1Etj+PvKfocDXdznvishGbYpJDXYsTaKic+8y9AKj0FIbaMo2KSJwzioj8ZvT/E3OzEr5d
-	1qXQG41oOqb5dstsqF+2Qws=
-Received: from mail.maildlp.com (unknown [172.19.162.197])
-	by canpmsgout05.his.huawei.com (SkyGuard) with ESMTPS id 4fmPY40Wncz12LJV;
-	Thu,  2 Apr 2026 09:34:48 +0800 (CST)
-Received: from dggpemf500011.china.huawei.com (unknown [7.185.36.131])
-	by mail.maildlp.com (Postfix) with ESMTPS id B11FC40569;
-	Thu,  2 Apr 2026 09:41:13 +0800 (CST)
-Received: from [10.67.109.254] (10.67.109.254) by
- dggpemf500011.china.huawei.com (7.185.36.131) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.2.1544.11; Thu, 2 Apr 2026 09:41:10 +0800
-Message-ID: <adf2b4a8-27d6-59ad-74f3-ea43e07fe84f@huawei.com>
-Date: Thu, 2 Apr 2026 09:41:01 +0800
+	dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b="e87DXpVA"
+Received: from smtp102.mailbox.org (smtp102.mailbox.org [IPv6:2001:67c:2050:b231:465::102])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mout-p-102.mailbox.org (Postfix) with ESMTPS id 4fmRGw2qrYz9vVy;
+	Thu,  2 Apr 2026 04:52:40 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=cyphar.com; s=MBO0001;
+	t=1775098360;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=PI01UIN30SAwEOjcWCs+qKe0QnW9aOaFpOr0QZg4IbQ=;
+	b=e87DXpVA8fumafTy2ZJ4E9FwM6UVRu2C4sFnzIlhrIaWfjkqBUFxVQ552e3H+1apr2Hh1b
+	1+GeY8BaAQToBwK8+aFRYuzXIB0NzFFynuHuG5rfKhwy0xwciIRkKFKHtcM/ATFdVFsXGi
+	e/D+thWbkBZ5YSejLIiWl3CJyb+fWEHKZhYk/iANTu/LoLDaWqdJd6EVfuqNon87UrvPHI
+	HAZVaCgUkhqoDbwqOB+yDsuRvpThDpZX+IJY/sHnNWCcWHOgKcI0+nFN8Sd/rlZ0qsfprc
+	gAbrBmrW9Vputu5fQOImbhR1zEadhHNAkicDb5XW/DvHVbdgwI4yv441hSyM4A==
+Authentication-Results: outgoing_mbo_mout;
+	dkim=none;
+	spf=pass (outgoing_mbo_mout: domain of cyphar@cyphar.com designates 2001:67c:2050:b231:465::102 as permitted sender) smtp.mailfrom=cyphar@cyphar.com
+Date: Thu, 2 Apr 2026 13:52:15 +1100
+From: Aleksa Sarai <cyphar@cyphar.com>
+To: Mateusz Guzik <mjguzik@gmail.com>
+Cc: Jori Koolstra <jkoolstra@xs4all.nl>, Andy Lutomirski <luto@kernel.org>, 
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Christian Brauner <brauner@kernel.org>, Jeff Layton <jlayton@kernel.org>, 
+	Chuck Lever <chuck.lever@oracle.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>, 
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
+	Alexander Aring <alex.aring@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
+	Oleg Nesterov <oleg@redhat.com>, Andrey Albershteyn <aalbersh@redhat.com>, 
+	Jiri Olsa <jolsa@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Namhyung Kim <namhyung@kernel.org>, 
+	Arnaldo Carvalho de Melo <acme@redhat.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, 
+	cmirabil@redhat.com, "Masami Hiramatsu (Google)" <mhiramat@kernel.org>
+Subject: Re: [RFC PATCH 1/2] vfs: syscalls: add mkdirat_fd()
+Message-ID: <2026-04-02-aged-convex-snowbird-foxes-Ym20JZ@cyphar.com>
+References: <20260331172011.3512876-1-jkoolstra@xs4all.nl>
+ <20260331172011.3512876-2-jkoolstra@xs4all.nl>
+ <pbobkjhtuli53o3z34ajyxztaosmztwlygxfxhhjq5ajt47inc@ngtoge3ucdm5>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
- Thunderbird/102.2.0
-Subject: Re: [PATCH v14 3/4] arm64: Use generic TIF bits for common thread
- flags
-Content-Language: en-US
-To: Catalin Marinas <catalin.marinas@arm.com>
-CC: <will@kernel.org>, <chenhuacai@kernel.org>, <kernel@xen0n.name>,
-	<hca@linux.ibm.com>, <gor@linux.ibm.com>, <agordeev@linux.ibm.com>,
-	<borntraeger@linux.ibm.com>, <svens@linux.ibm.com>, <oleg@redhat.com>,
-	<tglx@kernel.org>, <mingo@redhat.com>, <bp@alien8.de>,
-	<dave.hansen@linux.intel.com>, <hpa@zytor.com>, <arnd@arndb.de>,
-	<shuah@kernel.org>, <kevin.brodsky@arm.com>, <yeoreum.yun@arm.com>,
-	<anshuman.khandual@arm.com>, <thuth@redhat.com>, <ryan.roberts@arm.com>,
-	<mark.rutland@arm.com>, <song@kernel.org>, <ziyao@disroot.org>,
-	<linusw@kernel.org>, <schuster.simon@siemens-energy.com>,
-	<jremus@linux.ibm.com>, <akpm@linux-foundation.org>,
-	<mathieu.desnoyers@efficios.com>, <kmal@cock.li>, <dvyukov@google.com>,
-	<reddybalavignesh9979@gmail.com>, <x86@kernel.org>,
-	<linux-arm-kernel@lists.infradead.org>, <linux-kernel@vger.kernel.org>,
-	<loongarch@lists.linux.dev>, <linux-s390@vger.kernel.org>,
-	<linux-arch@vger.kernel.org>, <linux-kselftest@vger.kernel.org>
-References: <20260320104222.1381274-1-ruanjinjie@huawei.com>
- <20260320104222.1381274-4-ruanjinjie@huawei.com> <acz5mOrm6_E1UBwV@arm.com>
-From: Jinjie Ruan <ruanjinjie@huawei.com>
-In-Reply-To: <acz5mOrm6_E1UBwV@arm.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-X-ClientProxiedBy: kwepems100001.china.huawei.com (7.221.188.238) To
- dggpemf500011.china.huawei.com (7.185.36.131)
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="o3fvuy4phjbklnx7"
+Content-Disposition: inline
+In-Reply-To: <pbobkjhtuli53o3z34ajyxztaosmztwlygxfxhhjq5ajt47inc@ngtoge3ucdm5>
+X-Rspamd-Queue-Id: 4fmRGw2qrYz9vVy
 
 
+--o3fvuy4phjbklnx7
+Content-Type: text/plain; protected-headers=v1; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+Subject: Re: [RFC PATCH 1/2] vfs: syscalls: add mkdirat_fd()
+MIME-Version: 1.0
 
-On 2026/4/1 18:55, Catalin Marinas wrote:
-> On Fri, Mar 20, 2026 at 06:42:21PM +0800, Jinjie Ruan wrote:
->> Use the generic TIF bits defined in <asm-generic/thread_info_tif.h> for
->> standard thread flags (TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME,
->> TIF_RESTORE_SIGMASK, TIF_SINGLESTEP, etc.) instead of defining
->> them locally.
->>
->> Arm64-specific bits (TIF_FOREIGN_FPSTATE, TIF_MTE_ASYNC_FAULT, TIF_SVE,
->> TIF_SSBD, etc.) are renumbered to start at bit 16 to avoid conflicts.
->>
->> This enables RSEQ optimizations which require CONFIG_HAVE_GENERIC_TIF_BITS
->> combined with the generic entry infrastructure (already used by arm64).
->>
->> By the way, remove TIF_FREEZE because this flag became unused since
->> commit d88e4cb67197 ("freezer: remove now unused TIF_FREEZE").
->>
->> Cc: Thomas Gleixner <tglx@kernel.org>
->> Reviewed-by: Kevin Brodsky <kevin.brodsky@arm.com>
->> Reviewed-by: Linus Walleij <linusw@kernel.org>
->> Reviewed-by: Yeoreum Yun <yeoreum.yun@arm.com>
->> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
-> 
-> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-> 
-> Given that it's touching multiple trees, I guess it's a series for
-> Andrew?
+On 2026-04-01, Mateusz Guzik <mjguzik@gmail.com> wrote:
+> On Tue, Mar 31, 2026 at 07:19:58PM +0200, Jori Koolstra wrote:
+> > @@ -5286,7 +5290,25 @@ int filename_mkdirat(int dfd, struct filename *n=
+ame, umode_t mode)
+> >  		lookup_flags |=3D LOOKUP_REVAL;
+> >  		goto retry;
+> >  	}
+> > +
+> > +	if (!error && (flags & MKDIRAT_FD_NEED_FD)) {
+> > +		struct path new_path =3D { .mnt =3D path.mnt, .dentry =3D dentry };
+> > +		error =3D FD_ADD(0, dentry_open(&new_path, O_DIRECTORY, current_cred=
+()));
+> > +	}
+> > +	end_creating_path(&path, dentry);
+> >  	return error;
+>=20
+>=20
+> You can't do it like this. Should it turn out no fd can be allocated,
+> the entire thing is going to error out while keeping the newly created
+> directory behind. You need to allocate the fd first, then do the hard
+> work, and only then fd_install and or free the fd. The FD_ADD machinery
+> can probably still be used provided proper wrapping of the real new
+> mkdir.
+>=20
+> It should be perfectly feasible to de facto wrap existing mkdir
+> functionality by this syscall.
+>=20
+> On top of that similarly to what other people mentioned the new syscall
+> will definitely want to support O_CLOEXEC and probably other flags down
+> the line.
+>=20
+> Trying to handle this in open() is a no-go. openat2 is rather
+> problematic.
 
-Yes, this series touches x86, arm64, s390 and loongarch. It's best for
-Andrew to help merge this in the -mm tree.
+I'm interested in what makes you say that. It would be very nice to be able
+to do mkdir + RESOLVE_IN_ROOT and get an fd back all in one syscall. :D
 
-Moreover, the latter two arm64-related patches depend on patch serise
-"arm64:
-entry: Convert to Generic Entry" v14 being merged first, while the first
-two patches can be merged in advance.
+To be fair, build_open_how() will need some more magic to keep openat()
+working, and that won't be particularly pretty. If we went with
+O_CREAT|O_DIRECTORY we would need to be quite careful to make sure
+O_TMPFILE continues to work for both openat() and openat2()...
 
-> 
+> I tend to agree mkdirat_fd is not a good name for the syscall either,
+> but I don't have a suggestion I'm happy with. I think least bad name
+> would follow the existing stuff and be mkdirat2 or similar.
+>=20
+> The routine would have to start with validating the passed O_ flags, for
+> now only allowing O_CLOEXEC and EINVAL-ing otherwise.
+
+Please do not use O_* flags! O_CLOEXEC takes up 3 flag bits on different
+architectures which makes adding new flags a nightmare.
+
+I think this should take AT_* flags and (like most newer syscalls)
+O_CLOEXEC should be automatically set. Userspace can unset it with
+fnctl(F_SETFD) in the relatively rare case where they don't want
+O_CLOEXEC. Alternatively, we could just bite the bullet and make
+AT_NO_CLOEXEC a thing...
+
+But yes, new syscalls *absolutely* need to take some kind of flag
+argument. I'd hoped we finally learned our lesson on that one...
+
+--=20
+Aleksa Sarai
+https://www.cyphar.com/
+
+--o3fvuy4phjbklnx7
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iJEEABYKADkWIQS2TklVsp+j1GPyqQYol/rSt+lEbwUCac3Z3xsUgAAAAAAEAA5t
+YW51MiwyLjUrMS4xMiwyLDIACgkQKJf60rfpRG8N0gD/WJsvCCKORuiEQhk4zFP7
+tBYNwHeV6BT/7bD+Jb52nxkA+wSQXbre6aJO6Pc2aZ8UZ63KKnV5jrW7ZCjzd1rW
+q5wG
+=Sn0T
+-----END PGP SIGNATURE-----
+
+--o3fvuy4phjbklnx7--
