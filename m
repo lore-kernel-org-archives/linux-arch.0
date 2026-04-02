@@ -1,193 +1,105 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from sender4-of-o54.zoho.com (sender4-of-o54.zoho.com [136.143.188.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6A98C3C7DF9;
-	Thu,  2 Apr 2026 15:25:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775143541; cv=none; b=WPBAKooBdvCP7bEu2D9PCM68/+QRGQkFT0Sf/6qRr6ol8tO0Y398uTJiUUubMJVH4X59j5RM78+BTCzQLUjj/8RUHe1Yeaj1U5aleD+JdgeXA/wSG8gJCdu/PZdxmNMQVhLgMUh4enW4CFwGKtORWPqM8gRH7U6p7GqBANIT8+k=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775143541; c=relaxed/simple;
-	bh=H/ah7c8QblLITP8uZx6rQ0un/4q3xoSn//XPdWvMKg4=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=RAmmAZJi2DiAOUqq4yxqgpG7+BBYfavsyh/8L/2Rm0OwTqU9yj9fk5wfAkkTH1/H+GgsM5W5VdxnteiYdb6cgmhVqgCaBwPXfUCE2dx2mlFYm5MJwQi/xiUwZ5+7X+TAJ84N1vnDs0FsYdxkx0xte+u/1cb1+GSfyGer3DH0gQs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=WWFy+j0h; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BBE1B318146;
+	Thu,  2 Apr 2026 15:55:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.54
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1775145342; cv=pass; b=gWcpEKXBUiiiLoDKiuxSFhRpo5rqJgi0bQZ7h4CkbZvwJB4QPgS68YUI1BOJsIqClYYwvrnA3Il1N5ImKh019BTL+3Rag+xQNoVnrGmnPuBrtwearxsFaB0ZYGvZfB8mXVP/kRhm/jC53ER2ALT3UW3MmTS7OHkrFmeci75/nHw=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1775145342; c=relaxed/simple;
+	bh=5bbxHoX8QOcrOL454eBjrg3Sva4qyQ/yOU5CD2rEOKI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=YMie090I4Vcc6Req255MEXo6JwVB4VJxcEAwygXdqCN8yIYoQkHnYISDwq+6eS/lsTWWkqjaYtf4NzBS2b9ZPryZRN3I00K8b3APUXQOKhANRsD6/E/xSf5evFgROv2TPsj1RrIJhRZcDkE+ItJgjDifqpY0+zA9y7uE0i4TWPs=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com; spf=pass smtp.mailfrom=anirudhrb.com; dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b=wSQO14ka; arc=pass smtp.client-ip=136.143.188.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=anirudhrb.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="WWFy+j0h"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id F3369C116C6;
-	Thu,  2 Apr 2026 15:25:35 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1775143541;
-	bh=H/ah7c8QblLITP8uZx6rQ0un/4q3xoSn//XPdWvMKg4=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:Reply-To:From;
-	b=WWFy+j0hRa4F4bO2EyJSlQJHcjpjpFFyjoTGDTtQjbjJzxTkfZTuhsSiTyyWfX0O6
-	 g8vteUT5Rt/P+nSlO8IOZsb+5RgeXoASrPj02F/QUpNaVWyonQeoCTK9x4dhl1XXbs
-	 jfZ5iC7mVVQxOEJ7Oxyyam5pxByJzK8iKhMs07MX/0bItN4OcZZPImdZqt6HGC7kk6
-	 k1DslyAQTlkKWRLMW/s0H9WLkaxQtKFuZ2+GXcIanu5Y7IzXiD3HdRl/3lW8+iDFO8
-	 eYEYAdmUgrqDX7WspZto8eIeJbVIsour5bzkBTq/QAEZZOebr9ozUc6D3ldNaWNAzo
-	 GYbFhHKTSAcFw==
-From: Gary Guo <gary@kernel.org>
-To: Miguel Ojeda <ojeda@kernel.org>,
-	Boqun Feng <boqun@kernel.org>,
-	Gary Guo <gary@garyguo.net>,
-	=?UTF-8?q?Bj=C3=B6rn=20Roy=20Baron?= <bjorn3_gh@protonmail.com>,
-	Benno Lossin <lossin@kernel.org>,
-	Andreas Hindborg <a.hindborg@kernel.org>,
-	Alice Ryhl <aliceryhl@google.com>,
-	Trevor Gross <tmgross@umich.edu>,
-	Danilo Krummrich <dakr@kernel.org>,
-	Alexandre Courbot <acourbot@nvidia.com>,
-	David Airlie <airlied@gmail.com>,
-	Simona Vetter <simona@ffwll.ch>
-Cc: Alan Stern <stern@rowland.harvard.edu>,
-	Andrea Parri <parri.andrea@gmail.com>,
-	Will Deacon <will@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	David Howells <dhowells@redhat.com>,
-	Jade Alglave <j.alglave@ucl.ac.uk>,
-	Luc Maranget <luc.maranget@inria.fr>,
-	"Paul E. McKenney" <paulmck@kernel.org>,
-	Akira Yokosawa <akiyks@gmail.com>,
-	Daniel Lustig <dlustig@nvidia.com>,
-	Joel Fernandes <joelagnelf@nvidia.com>,
-	rust-for-linux@vger.kernel.org,
-	nouveau@lists.freedesktop.org,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	lkmm@lists.linux.dev,
-	dri-devel@lists.freedesktop.org
-Subject: [PATCH 3/3] gpu: nova-core: fix wrong use of barriers in GSP code
-Date: Thu,  2 Apr 2026 16:24:36 +0100
-Message-ID: <20260402152443.1059634-5-gary@kernel.org>
-X-Mailer: git-send-email 2.51.2
-In-Reply-To: <20260402152443.1059634-2-gary@kernel.org>
-References: <20260402152443.1059634-2-gary@kernel.org>
-Reply-To: Gary Guo <gary@garyguo.net>
+	dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b="wSQO14ka"
+ARC-Seal: i=1; a=rsa-sha256; t=1775145315; cv=none; 
+	d=zohomail.com; s=zohoarc; 
+	b=lPMEHcjJsXWPC4Yam95rUjIH0DinwxhcQ+ANI7RwMBwAfdAAUSeu9u3eCLD8/Y7VP5dEuoD2TXM6TYjGQGrzErl6hpai+XKfOeHUHRtMy7EnP+syOLWE76AqBiPHzj1YQVlnsu6DOllemz4A9SXigq1dt4q0S2cf4HekeqDwAaM=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
+	t=1775145315; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=kLM+yFounjeNAoH7A9dnDyeLUKswpiloxzozmzgSUzo=; 
+	b=akZ1Zh6vNDCwnWyGIi57UyrQzyOpzDRMEnh5sdFyOfdqyNqiHbpnDClYePeOdFWIF9dHDxOxyNR/8GFO2OPhg9aMXkr72vlW+perxOV4kj8VA399uQi6p24wsGeBNn0nVh4I4rNp23s2M7A0uClyo8eExerEJCsJ+nVARAThtTc=
+ARC-Authentication-Results: i=1; mx.zohomail.com;
+	dkim=pass  header.i=anirudhrb.com;
+	spf=pass  smtp.mailfrom=anirudh@anirudhrb.com;
+	dmarc=pass header.from=<anirudh@anirudhrb.com>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1775145315;
+	s=zoho; d=anirudhrb.com; i=anirudh@anirudhrb.com;
+	h=Date:Date:From:From:To:To:Cc:Cc:Subject:Subject:Message-ID:References:MIME-Version:Content-Type:In-Reply-To:Message-Id:Reply-To;
+	bh=kLM+yFounjeNAoH7A9dnDyeLUKswpiloxzozmzgSUzo=;
+	b=wSQO14kaqlJNDtVW2oiPbYX/5TwRN00qtdbcSV7rvswtpPrZH3zlWVpJL414KxSW
+	cd/OvTTVwwmNmXr1ppN7Rijv/hj/C/EoXdYvudw+NpyA29hEj/bM7WfO7w8lLbBykeL
+	o1Dr3x/srFoc2gfS/zUcqqp2RbQfMVSMlVM4UHug=
+Received: by mx.zohomail.com with SMTPS id 1775145312629275.6285733305667;
+	Thu, 2 Apr 2026 08:55:12 -0700 (PDT)
+Date: Thu, 2 Apr 2026 15:55:06 +0000
+From: Anirudh Rayabharam <anirudh@anirudhrb.com>
+To: Jork Loeser <jloeser@linux.microsoft.com>
+Cc: linux-hyperv@vger.kernel.org, x86@kernel.org,
+	"K . Y . Srinivasan" <kys@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Roman Kisel <romank@linux.microsoft.com>,
+	Michael Kelley <mhklinux@outlook.com>, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Subject: Re: [PATCH 1/6] Drivers: hv: vmbus: fix hyperv_cpuhp_online variable
+ shadowing
+Message-ID: <20260402-daft-vociferous-lobster-0ad0ee@anirudhrb>
+References: <20260327201920.2100427-1-jloeser@linux.microsoft.com>
+ <20260327201920.2100427-2-jloeser@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260327201920.2100427-2-jloeser@linux.microsoft.com>
+X-ZohoMailClient: External
 
-From: Gary Guo <gary@garyguo.net>
+On Fri, Mar 27, 2026 at 01:19:12PM -0700, Jork Loeser wrote:
+> vmbus_alloc_synic_and_connect() declares a local 'int
+> hyperv_cpuhp_online' that shadows the file-scope global of the same
+> name. The cpuhp state returned by cpuhp_setup_state() is stored in
+> the local, leaving the global at 0 (CPUHP_OFFLINE). When
+> hv_kexec_handler() or hv_machine_shutdown() later call
+> cpuhp_remove_state(hyperv_cpuhp_online) they pass 0, which hits the
+> BUG_ON in __cpuhp_remove_state_cpuslocked().
+> 
+> Remove the local declaration so the cpuhp state is stored in the
+> file-scope global where hv_kexec_handler() and hv_machine_shutdown()
+> expect it.
+> 
+> Fixes: 2647c96649ba ("Drivers: hv: Support establishing the confidential VMBus connection")
+> Signed-off-by: Jork Loeser <jloeser@linux.microsoft.com>
+> ---
+>  drivers/hv/vmbus_drv.c | 1 -
+>  1 file changed, 1 deletion(-)
+> 
+> diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
+> index 3e7a52918ce0..301273d61892 100644
+> --- a/drivers/hv/vmbus_drv.c
+> +++ b/drivers/hv/vmbus_drv.c
+> @@ -1430,7 +1430,6 @@ static int vmbus_alloc_synic_and_connect(void)
+>  {
+>  	int ret, cpu;
+>  	struct work_struct __percpu *works;
+> -	int hyperv_cpuhp_online;
+>  
+>  	ret = hv_synic_alloc();
+>  	if (ret < 0)
+> -- 
+> 2.43.0
+> 
 
-Currently, in the GSP->CPU messaging path, the current code misses a read
-barrier before data read. The barrier after read is updated to a DMA
-barrier (with release ordering desired), instead of the existing (Rust)
-SeqCst SMP barrier; the location of barrier is also moved to the beginning
-of function, because the barrier is needed to synchronizing between data
-and ring-buffer pointer, the RMW operation does not internally need a
-barrier (nor it has to be atomic, as CPU pointers are updated by CPU only).
-
-In the CPU->GSP messaging path, the current code misses a write barrier
-after data write and before updating the CPU write pointer. Barrier is not
-needed before data write due to control dependency, this fact is documented
-explicitly. This could be replaced with an acquire barrier if needed.
-
-Signed-off-by: Gary Guo <gary@garyguo.net>
----
- drivers/gpu/nova-core/gsp/cmdq.rs | 19 +++++++++++++++++++
- drivers/gpu/nova-core/gsp/fw.rs   | 12 ------------
- 2 files changed, 19 insertions(+), 12 deletions(-)
-
-diff --git a/drivers/gpu/nova-core/gsp/cmdq.rs b/drivers/gpu/nova-core/gsp/cmdq.rs
-index 2224896ccc89..7e4315b13984 100644
---- a/drivers/gpu/nova-core/gsp/cmdq.rs
-+++ b/drivers/gpu/nova-core/gsp/cmdq.rs
-@@ -19,6 +19,12 @@
-     prelude::*,
-     sync::{
-         aref::ARef,
-+        barrier::{
-+            dma_mb,
-+            Read,
-+            Release,
-+            Write, //
-+        },
-         Mutex, //
-     },
-     time::Delta,
-@@ -258,6 +264,9 @@ fn new(dev: &device::Device<device::Bound>) -> Result<Self> {
-         let tx = self.cpu_write_ptr() as usize;
-         let rx = self.gsp_read_ptr() as usize;
- 
-+        // ORDERING: control dependency provides necessary LOAD->STORE ordering.
-+        // `dma_mb(Acquire)` may be used here if we don't want to rely on control dependency.
-+
-         // SAFETY:
-         // - We will only access the driver-owned part of the shared memory.
-         // - Per the safety statement of the function, no concurrent access will be performed.
-@@ -311,6 +320,9 @@ fn driver_write_area_size(&self) -> usize {
-         let tx = self.gsp_write_ptr() as usize;
-         let rx = self.cpu_read_ptr() as usize;
- 
-+        // ORDERING: Ensure data load is ordered after load of GSP write pointer.
-+        dma_mb(Read);
-+
-         // SAFETY:
-         // - We will only access the driver-owned part of the shared memory.
-         // - Per the safety statement of the function, no concurrent access will be performed.
-@@ -408,6 +420,10 @@ fn cpu_read_ptr(&self) -> u32 {
- 
-     // Informs the GSP that it can send `elem_count` new pages into the message queue.
-     fn advance_cpu_read_ptr(&mut self, elem_count: u32) {
-+        // ORDERING: Ensure read pointer is properly ordered.
-+        //
-+        dma_mb(Release);
-+
-         super::fw::gsp_mem::advance_cpu_read_ptr(&self.0, elem_count)
-     }
- 
-@@ -422,6 +438,9 @@ fn cpu_write_ptr(&self) -> u32 {
- 
-     // Informs the GSP that it can process `elem_count` new pages from the command queue.
-     fn advance_cpu_write_ptr(&mut self, elem_count: u32) {
-+        // ORDERING: Ensure all command data is visible before updateing ring buffer pointer.
-+        dma_mb(Write);
-+
-         super::fw::gsp_mem::advance_cpu_write_ptr(&self.0, elem_count)
-     }
- }
-diff --git a/drivers/gpu/nova-core/gsp/fw.rs b/drivers/gpu/nova-core/gsp/fw.rs
-index 0c8a74f0e8ac..62c2cf1b030c 100644
---- a/drivers/gpu/nova-core/gsp/fw.rs
-+++ b/drivers/gpu/nova-core/gsp/fw.rs
-@@ -42,11 +42,6 @@
- 
- // TODO: Replace with `IoView` projections once available.
- pub(super) mod gsp_mem {
--    use core::sync::atomic::{
--        fence,
--        Ordering, //
--    };
--
-     use kernel::{
-         dma::Coherent,
-         dma_read,
-@@ -72,10 +67,6 @@ pub(in crate::gsp) fn cpu_read_ptr(qs: &Coherent<GspMem>) -> u32 {
- 
-     pub(in crate::gsp) fn advance_cpu_read_ptr(qs: &Coherent<GspMem>, count: u32) {
-         let rptr = cpu_read_ptr(qs).wrapping_add(count) % MSGQ_NUM_PAGES;
--
--        // Ensure read pointer is properly ordered.
--        fence(Ordering::SeqCst);
--
-         dma_write!(qs, .cpuq.rx.0.readPtr, rptr);
-     }
- 
-@@ -87,9 +78,6 @@ pub(in crate::gsp) fn advance_cpu_write_ptr(qs: &Coherent<GspMem>, count: u32) {
-         let wptr = cpu_write_ptr(qs).wrapping_add(count) % MSGQ_NUM_PAGES;
- 
-         dma_write!(qs, .cpuq.tx.0.writePtr, wptr);
--
--        // Ensure all command data is visible before triggering the GSP read.
--        fence(Ordering::SeqCst);
-     }
- }
- 
--- 
-2.51.2
+Reviewed-by: Anirudh Rayabharam (Microsoft) <anirudh@anirudhrb.com>
 
