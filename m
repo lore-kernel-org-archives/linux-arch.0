@@ -1,32 +1,32 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4BE2A3E4C8F;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4BEBB3E5593;
 	Thu,  2 Apr 2026 14:36:27 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775140589; cv=none; b=R9ConScDQmT6KlwRKO/wiuIHMupR2+zgwG164cHC/PLvxpIP+WsN2bP6i2MRoeIxRN0/DyLwORlC49Odykb6W70B11D2S4DWYjcSwO37xcpg72ePsacOFce4Ii1mNXgHtupFsYSVWyagfSTQ8l8EGeSxKZcPr6zXgu+xlSxpxpA=
+	t=1775140589; cv=none; b=uqD2onLePJK+LckkTkQ+HlFDfaiQb2OVZPSEEoowTZBpYHcBTL4yfV01bDNUtmadE8PAvnUgj5x5vttetf9xolZfRzPlc0WwP3IVDviIVqRfHg4llrvKkEpXolFeuVBd9pE4+PJ7ZFaRtl2Eg0aNJWur+1vozAn29LXDRBjoRDM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1775140589; c=relaxed/simple;
-	bh=xylhAipvxTB+ISF9S0d4UGLx0KBp/dBJ8DMqcdbkdWA=;
+	bh=y3aIGMOp1b9VTDfNribT+T7Mf+FjPMAH9yNwJsDKdYs=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=Dm+4qIHVLwdeTZlT8o13TNcEpY6q22JZUnHmOm8kv1m6NBAokQJZtldzzTmlC+tFjgGDana2Cuo4Rl+xl9CiESoEokYjISXevKhOx0SjNIKLZRTwC7kR3ZQnJH9lnKNe6xuYR/aYfNgy7iIJCvMerJ9XJqON6CjYHa+BmCd+1Ss=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=sn1Zy3Hd; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=PLDonjVCkW8chAalDVJK6ilBkQ4xojItoQOM1AK97NqWfoEWD1jxtIA/daSypUEZ1aIjI8P82HKVhJFzJcO03IN+368+fyYHGfgJza2R72WaC1nxaLKOgHCuaxMBvs2tHFGorevfS5QcuYlKGE9MXv6sEs5YJgRJFwPYsgCvzCs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=GfsUKvWj; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="sn1Zy3Hd"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="GfsUKvWj"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
 	s=mail; t=1775140579;
-	bh=xylhAipvxTB+ISF9S0d4UGLx0KBp/dBJ8DMqcdbkdWA=;
+	bh=y3aIGMOp1b9VTDfNribT+T7Mf+FjPMAH9yNwJsDKdYs=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=sn1Zy3HdCbG6i6SMsH9XPtOpoZHjoh5rBjZMaSWJ9tcmYMEhm0WFn6jJvbQoj3wKF
-	 bpSm9T0EcgUA5hETHbtTMwy5Na8YdSVQJS3F44r7dWyhqeCv1hmikvkuD5SAvn7fC1
-	 CPUqq6vuvEiK7jrkgU3Gk8dx0WXQvELJa0fkjFvI=
+	b=GfsUKvWjtPB92Wb+RCOBssOJOuwdasKXPvWjDnOaWryixXcre8JD+s5m1X7S0ktOf
+	 ZtjZT9+rVGTQBPTCYD/8U62GhCxooIpB61duMF9Raa33SPUt61gohAEbfddtoWNaUC
+	 oaPlpZbyg2ic6PMrPorzQJzioCZJ/hNr4yPOORgQ=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Thu, 02 Apr 2026 16:36:18 +0200
-Subject: [PATCH v3 1/3] checksyscalls: move path to reference table to a
- variable
+Date: Thu, 02 Apr 2026 16:36:20 +0200
+Subject: [PATCH v3 3/3] checksyscalls: move instance functionality into
+ generic code
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,7 +35,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20260402-kbuild-missing-syscalls-v3-1-6641be1de2db@weissschuh.net>
+Message-Id: <20260402-kbuild-missing-syscalls-v3-3-6641be1de2db@weissschuh.net>
 References: <20260402-kbuild-missing-syscalls-v3-0-6641be1de2db@weissschuh.net>
 In-Reply-To: <20260402-kbuild-missing-syscalls-v3-0-6641be1de2db@weissschuh.net>
 To: Arnd Bergmann <arnd@arndb.de>, 
@@ -45,45 +45,66 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
  linux-mips@vger.kernel.org, linux-kbuild@vger.kernel.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.15.1
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1775140579; l=965;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1775140579; l=2042;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=xylhAipvxTB+ISF9S0d4UGLx0KBp/dBJ8DMqcdbkdWA=;
- b=U4ufPy7yusmx3g9WrzVqK8kf1pG5gnWUnESSxWeykmI/g8PNL7Q86UkvIxgyrEmg1DxiYohOm
- IjJZlXVwtDJCLRPdZO9ODegzX3zkPHRMBz9jjBbX9DVZsI31DICf/pQ
+ bh=y3aIGMOp1b9VTDfNribT+T7Mf+FjPMAH9yNwJsDKdYs=;
+ b=025Nt1dUd01x2J1nlRjnU7Vbl4wsIVyJa6X4qkP1YA4c2di+2OdaEPCAm8+NiI5IG7XSE7Cbz
+ b9hbEko+VaqCz0eCauOoZLgQch8k5lUQXR6tLaC9PqItqwyxz0tr4iW
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-An upcoming patch will need to reuse this path.
+On MIPS the checksyscalls.sh script may be executed multiple times.
+Currently these multiple executions are executed on each build as kbuild
+see that the commands have changed each time.
 
-Move it into a reusable variable.
+Use a dedicated stamp file for each different invocation to avoid the
+spurious executions.
 
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 Reviewed-by: Nicolas Schier <nsc@kernel.org>
 ---
- scripts/checksyscalls.sh | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ Kbuild             | 4 ++--
+ arch/mips/Makefile | 6 ++----
+ 2 files changed, 4 insertions(+), 6 deletions(-)
 
-diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
-index 1e5d2eeb726d..9becaf8d7b78 100755
---- a/scripts/checksyscalls.sh
-+++ b/scripts/checksyscalls.sh
-@@ -10,6 +10,8 @@
- # checksyscalls.sh gcc gcc-options
- #
+diff --git a/Kbuild b/Kbuild
+index 515cc6a27477..a6a0192dea08 100644
+--- a/Kbuild
++++ b/Kbuild
+@@ -47,11 +47,11 @@ $(rq-offsets-file): kernel/sched/rq-offsets.s FORCE
  
-+reference_table="$(dirname $0)/../arch/x86/entry/syscalls/syscall_32.tbl"
-+
- ignore_list() {
- cat << EOF
- #include <asm/types.h>
-@@ -269,5 +271,5 @@ syscall_list() {
- 	done
- }
+ # Check for missing system calls
  
--(ignore_list && syscall_list $(dirname $0)/../arch/x86/entry/syscalls/syscall_32.tbl) | \
-+(ignore_list && syscall_list ${reference_table}) | \
- $* -Wno-error -Wno-unused-macros -E -x c - > /dev/null
+-missing-syscalls-file := .tmp_missing-syscalls
++missing-syscalls-file := .tmp_missing-syscalls$(missing_syscalls_instance)
+ 
+ targets += $(missing-syscalls-file)
+ 
+-quiet_cmd_syscalls = CALL    $<
++quiet_cmd_syscalls = CALL    $< $(addprefix for ,$(missing_syscalls_instance))
+       cmd_syscalls = DEPFILE=$(depfile) $(CONFIG_SHELL) $< $(CC) $(c_flags) $(missing_syscalls_flags); touch $@
+ 
+ $(missing-syscalls-file): scripts/checksyscalls.sh $(rq-offsets-file) FORCE
+diff --git a/arch/mips/Makefile b/arch/mips/Makefile
+index d9057e29bc62..6705fa5d9211 100644
+--- a/arch/mips/Makefile
++++ b/arch/mips/Makefile
+@@ -421,12 +421,10 @@ CLEAN_FILES += vmlinux.32 vmlinux.64
+ 
+ archprepare:
+ ifdef CONFIG_MIPS32_N32
+-	@$(kecho) '  Checking missing-syscalls for N32'
+-	$(Q)$(MAKE) $(build)=. missing-syscalls missing_syscalls_flags="-mabi=n32"
++	$(Q)$(MAKE) $(build)=. missing-syscalls missing_syscalls_instance="N32" missing_syscalls_flags="-mabi=n32"
+ endif
+ ifdef CONFIG_MIPS32_O32
+-	@$(kecho) '  Checking missing-syscalls for O32'
+-	$(Q)$(MAKE) $(build)=. missing-syscalls missing_syscalls_flags="-mabi=32"
++	$(Q)$(MAKE) $(build)=. missing-syscalls missing_syscalls_instance="O32" missing_syscalls_flags="-mabi=32"
+ endif
+ 
+ install:
 
 -- 
 2.53.0
