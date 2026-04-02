@@ -1,94 +1,98 @@
-Received: from sender4-of-o54.zoho.com (sender4-of-o54.zoho.com [136.143.188.54])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A19703C73F0;
-	Thu,  2 Apr 2026 16:14:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.54
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775146453; cv=pass; b=Im+bkxPVoL2l4oLxVN/S6Ix4yL2drgqg8RhdHAiIhcEg4qpjwbd3ZsN0wupymOiisiO41NIE240KUA/kY/5Hnz0LV3Zjwa80XhH2Rp1uZRNztm2upxnlJ1SPIRNEAKh2ocw3K012cwJzSfYDOIn73mvg9eXpzYYCmxVOFm2dNhU=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775146453; c=relaxed/simple;
-	bh=+LVIE+ybFa4zLGsO/0YkrbfRPBZrc2UUJ7Pf4VFm2No=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=BHIJWNCOpgyKCgWUrLh33cazldx8bbj153eIJkyQJ9hfg4DNVnuZf0hDTJRM2me0G2U6gzSShD7CXWPX8e+pknq4J60X02sR5ydgfblItL14RAD/DuoGaruvJLM066tqi7MDV0nb1j9s0zJlgjkrHf/hR45RwOmnfnIy5RVNWW0=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com; spf=pass smtp.mailfrom=anirudhrb.com; dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b=toc3ZszR; arc=pass smtp.client-ip=136.143.188.54
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=anirudhrb.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CFE542DCF57;
+	Thu,  2 Apr 2026 20:22:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1775161340; cv=none; b=pvBgU6UPYGpzURgh7o4AwkgD4g7YGLui3VwDLcd0hqRf2QPyn/amnaJMjeIGD1fCEtfm4UqBsQXVlR6wS322JS4LZJlwVJHzqcBQQ8EajAUmdU2s8By4fSRK4RV+P3UPR6TGu7UPbffjNG5ezxm1AWTh8CZJc2JVYngmHaB5Btw=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1775161340; c=relaxed/simple;
+	bh=FkTwDWhRayTXO0erNRUzxsgYR1DUvin/r1s0inw7c3Q=;
+	h=From:To:Cc:In-Reply-To:References:Subject:Message-Id:Date:
+	 MIME-Version:Content-Type; b=bLmP5L4OGD5HLyAjHqttJjySe86pnVLtBkmcudh7Z6lK1QoibmWvRpleogmXlxFs39TlE6w5puuqEiUkLWq1JTs8EWPym/o6ZkBEcn0YtXHHVcGIchKWPUFYun57frQE3TQmN7IJkFDjmMmCVpZFM22phjq+eQeKdHR//B9WLzA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=NbKXYSf6; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b="toc3ZszR"
-ARC-Seal: i=1; a=rsa-sha256; t=1775146426; cv=none; 
-	d=zohomail.com; s=zohoarc; 
-	b=UqfRFU9psVLHzUd1zOo3+vOE8ajkKxJnyUJ85aQmhMEX2Q2sMhT5kEuVRvoiq8HWloXvYNZ7xec4+8Ck7YGG9jYhIYO5JdokK9Gg9CpeBYFC7AAgDNcTwr+BEN4/KcisHNeqUwGxHiXFRYjSlNBmANS6+0McEUq60DOzI4T5DRU=
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
-	t=1775146426; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
-	bh=7bzxN2aa3DTPFleAq7UC5FJozWAXzQ1MujGvjN45imE=; 
-	b=ZxiNAAjgmyBIBPBjVsd11oEuB3AHQlMZixQC7MrShIc5FmuLIUVolhYyePApktRQsyuKLgD2XurpgSje8ikK+IKy93ZE6K82fZQcWrVuVD9trYH4gcTVhvondoKrq0xGEHMvxH1OTCPptblOX0ygZlzEMyi7lT+JQ1/7D+Wkvr0=
-ARC-Authentication-Results: i=1; mx.zohomail.com;
-	dkim=pass  header.i=anirudhrb.com;
-	spf=pass  smtp.mailfrom=anirudh@anirudhrb.com;
-	dmarc=pass header.from=<anirudh@anirudhrb.com>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1775146426;
-	s=zoho; d=anirudhrb.com; i=anirudh@anirudhrb.com;
-	h=Date:Date:From:From:To:To:Cc:Cc:Subject:Subject:Message-ID:References:MIME-Version:Content-Type:In-Reply-To:Message-Id:Reply-To;
-	bh=7bzxN2aa3DTPFleAq7UC5FJozWAXzQ1MujGvjN45imE=;
-	b=toc3ZszRhcmpIhqo79E7iCi6a4pkHWO0o1NbYI6pEHeesUs5kcTWSHT0MZ9GJSGE
-	KwQOhteCuGicLOTwIF2Ck8ahAjxbAuNHwGfCgs2rCR6k9sTim6jAmxQjBrMOy6NjqX3
-	4NHghhPRPwCPhZtmz58rjthEiWhCEk9HxxRgvxzo=
-Received: by mx.zohomail.com with SMTPS id 1775146422963135.15479658133734;
-	Thu, 2 Apr 2026 09:13:42 -0700 (PDT)
-Date: Thu, 2 Apr 2026 16:13:35 +0000
-From: Anirudh Rayabharam <anirudh@anirudhrb.com>
-To: Jork Loeser <jloeser@linux.microsoft.com>
-Cc: linux-hyperv@vger.kernel.org, x86@kernel.org,
-	"K . Y . Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
-	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Roman Kisel <romank@linux.microsoft.com>,
-	Michael Kelley <mhklinux@outlook.com>, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: Re: [PATCH 4/6] mshv: limit SynIC management to MSHV-owned resources
-Message-ID: <20260402-sturdy-chirpy-cat-78baeb@anirudhrb>
-References: <20260327201920.2100427-1-jloeser@linux.microsoft.com>
- <20260327201920.2100427-5-jloeser@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="NbKXYSf6"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 151F0C116C6;
+	Thu,  2 Apr 2026 20:22:19 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1775161340;
+	bh=FkTwDWhRayTXO0erNRUzxsgYR1DUvin/r1s0inw7c3Q=;
+	h=From:To:Cc:In-Reply-To:References:Subject:Date:From;
+	b=NbKXYSf60EXAiy9F0yCQdQZRdWWo+C1BuWK1c0YHZ7mO6gVYNHRBm6yGRC/+/V4ZM
+	 3PKvV+WpVWG9HyEAN7LWHHgMlxwN6Imnnxv6EY5eUeWK29eZsWyPMcxynlwYZT2ZZk
+	 oIGnOFbBXC/qzv3+P5EnJfHLixxWw8uGGfKeAxrcd7LhdhO2/kJQIiYGlX+fNKkQj/
+	 25dDxAqfwNo8IiEU70SZk37ceQlBhSvS8NzeqHDAzfWkd1EI1KFS4pe7e6qvdzy4/b
+	 PoQDQKo2Ti5qIvfyDAWE1hp69UimJAISHb5N3JpPYl91BD8hQ1OjKkRGdCh32UqCX9
+	 fFyFuhrj806mg==
+From: Nicolas Schier <nsc@kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, 
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
+ Nathan Chancellor <nathan@kernel.org>, 
+ =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ linux-mips@vger.kernel.org, linux-kbuild@vger.kernel.org
+In-Reply-To: <20260402-kbuild-missing-syscalls-v3-0-6641be1de2db@weissschuh.net>
+References: <20260402-kbuild-missing-syscalls-v3-0-6641be1de2db@weissschuh.net>
+Subject: Re: [PATCH v3 0/3] checksyscalls: only run when necessary
+Message-Id: <177516124052.3536083.11423413906699581332.b4-ty@b4>
+Date: Thu, 02 Apr 2026 22:20:40 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260327201920.2100427-5-jloeser@linux.microsoft.com>
-X-ZohoMailClient: External
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+X-Mailer: b4 0.16-dev-ad80c
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1132; i=nsc@kernel.org;
+ s=20250924; h=from:subject:message-id;
+ bh=FkTwDWhRayTXO0erNRUzxsgYR1DUvin/r1s0inw7c3Q=;
+ b=owEBbQKS/ZANAwAKAQdSCnAWJhJpAcsmYgBpzs+dnZQ/1i/sr2dvs159EDsN7oXPf/x92Uga2
+ DOwpgOWI+6JAjMEAAEKAB0WIQSHQTenhzckp4G+wsYHUgpwFiYSaQUCac7PnQAKCRAHUgpwFiYS
+ aZ6vD/wPsiuHFbX0hfK8qRZ6Nr/jdfshBn/AbH+RExFFCXOrCfGqS93bghGl7BzNBBMbOpl+4oQ
+ NQXJX9o3ysNqfeX/4zwSytghT9GtIPHVySj+eTKU1MYAjDQVfzxCDc5DYfgPWzoCsPMds593xVG
+ nUVmqdf4DZCGkvRw6uCp9vSoe3P5ui3PAtsbus+Zd0BMXXl4Re4j/dZ+oBIy1Yv7vw3VRTpBh9S
+ q3mlYt3UkQJctqXiAGBrGreUd9uIrpbgVZQPTSKrpecYqEIA5tAVs9KMnLhMsJbKH7bqa2bi8Mk
+ xB2no+EUFUBjxeqwugl4Irrg/bCouDYg/tJr5jpT8zUGqyYS6nRZvkvaV5gnd2SPXgeH8Fme9hP
+ PeVHyqFxtSwX+i2mERIx+Ae5ipBpolRFUiV7+kLAXVBNazgoYHUE+dpbofHO5DQ7lKrY+3L1kSR
+ wrNNvq/rJSzvw2IAGgnyEXun8C9d63LFOqPxsBw5qM3nVSLdqdzTzC9mY0hspVLrnLWmHMvfSnA
+ CY9GexbKmqKix4FCN+7G3bs/8kX/UjvURsuXt4B0/DYM2G7qWFQPWpMAR7aQyWP1diESCiHl3Jo
+ DXGpcaVsk96sJESYdyV2D3PHus99acBx1EzIpQKcyloKAsP50eH9VRE95aLgl+NAmC/6Kh9c/Ue
+ vmO6CQt8+1uXY3A==
+X-Developer-Key: i=nsc@kernel.org; a=openpgp;
+ fpr=18ED52DBE34F860EE9FBC82B7D97093255A0CE7F
 
-On Fri, Mar 27, 2026 at 01:19:15PM -0700, Jork Loeser wrote:
-> The SynIC is shared between VMBus and MSHV. VMBus owns the message
-> page (SIMP), event flags page (SIEFP), global enable (SCONTROL), and
-> SINT2. MSHV adds SINT0, SINT5, and the event ring page (SIRBP).
+On Thu, 02 Apr 2026 16:36:17 +0200, Thomas Weißschuh wrote:
+> checksyscalls: only run when necessary
 > 
-> Currently mshv_synic_init() redundantly enables SIMP, SIEFP, and
-> SCONTROL that VMBus already configured, and mshv_synic_cleanup()
-> disables all of them. This is wrong because MSHV can be torn down
-> while VMBus is still active. In particular, a kexec reboot notifier
-> tears down MSHV first. Disabling SCONTROL, SIMP, and SIEFP out from
-> under VMBus causes its later cleanup to write SynIC MSRs while SynIC
-> is disabled, which the hypervisor does not tolerate.
+> Currently checksyscalls.sh is unconditionally executed during each build.
+> Most of these executions are unnecessary.
 > 
-> Restrict MSHV to managing only the resources it owns:
-> - SINT0, SINT5: mask on cleanup, unmask on init
-> - SIRBP: enable/disable as before
-> - SIMP, SIEFP, SCONTROL: on L1VH leave entirely to VMBus (it
->   already enabled them); on root partition VMBus doesn't run, so
->   MSHV must enable/disable them
+> Only run checksyscalls.sh if one of its inputs have changed.
+> 
+> [...]
 
-Maybe it's time to extract all the synic management stuff to a separate
-file to act like synic "driver" which facilitates synic access to
-mutiple users i.e. mshv & vmbus.
+Applied to kbuild/linux.git (kbuild-next-unstable), thanks!
 
-Thanks,
-Anirudh.
+[1/3] checksyscalls: move path to reference table to a variable
+      https://git.kernel.org/kbuild/c/263246f2
+[2/3] checksyscalls: only run when necessary
+      https://git.kernel.org/kbuild/c/a414e4ba
+[3/3] checksyscalls: move instance functionality into generic code
+      https://git.kernel.org/kbuild/c/a46f42c3
+
+Please look out for regression or issue reports or other follow up
+comments, as they may result in the patch/series getting dropped,
+reverted or modified (e.g. trailers). Patches applied to the
+kbuild-next-unstable branch are accepted pending wider testing in
+linux-next and any post-commit review; they will generally be moved
+to the kbuild-next branch in about a week if no issues are found.
+
+Best regards,
+-- 
+Nicolas
+
 
