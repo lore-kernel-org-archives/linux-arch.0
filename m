@@ -1,108 +1,161 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.11])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BCBF037FF56;
-	Fri,  3 Apr 2026 08:45:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.11
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3D6D3909B8
+	for <linux-arch@vger.kernel.org>; Fri,  3 Apr 2026 09:42:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775205906; cv=none; b=lDQypz697sWb3MwwvcQPdhrUbBI6kIh8l0hVC0v/SIWA6Di4dFWREsUxEOqt1YynJn/rel6O7Bj+JEF+MC6YgKF9Hr2sjhheqHdNzUGRYjrTLnjic/FoB91ZjoxoYyMN8qYRMbsjpPQ/Kx3AqCk5tq9aaRePSO2Ty1Edck/MuUs=
+	t=1775209340; cv=none; b=gTidDqcCuBMsTIZNVDb2SxVukgYMXuIDE4/8r79TSH9lykMJPD1cur/rDMicmnvHizTFrQwhURLzByXn67QZ465BuBXM/+NVTm4J+WqZRG32saJiX8YLFVR7Y0aPQd/0OFg+/mvFvlslWgVatnaXsujNzvIXzabQz3A3KadHubA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775205906; c=relaxed/simple;
-	bh=Cj6aLvB2CBIox/OySwYL4iio2nwTbpFsHisndqvjKg0=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=AddPLal3ZFCU22SHIAwoHZgQSb56IK5f7ibe+Fxo2eZBgJC6YJJ2IZZKcroqkPeZT13OVx57pa54vFFTRz6/C49m0ms37JYX7VtDJFbshmS0QyzvdK3INgIl5dRf8krGZXQLceVwV1wTSe4OKnG+9X3s3VHVKy5omW/gQKhivYI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=jUMzUqMN; arc=none smtp.client-ip=192.198.163.11
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1775209340; c=relaxed/simple;
+	bh=GdA5Glxo6eWa4W/ST2bpPz/cVuoZBhUidEmnv04LsNo=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=TRlpUJ1U9o6BnR2ZqVpBS8d3Py1SzgKBwmyg0ZjrHQl1uCcaJw793vTD2gvKpD1jl+G9LDu8vfeJuPhuhkivhdenzc/a2nurJ0V743taOzGjapiMYqIwlCYmldf35ECqWCh/o00Sm+msteAX21tBrwrCUi7fI3iv4CjMZRoiqI0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=sr5PK5c3; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="jUMzUqMN"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1775205905; x=1806741905;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=Cj6aLvB2CBIox/OySwYL4iio2nwTbpFsHisndqvjKg0=;
-  b=jUMzUqMN5bHWE2/96TLSJ/4fAr4gDhL/dZyBUg+lRrHYORTLJHSsU3px
-   r86nVCXT8Mn117BEHEzb5i2lu3j/paKB/piqECD4hYoTq4KWHzYrm0Apn
-   oNhtrPIxBCYHYgn8aThnthXLtRos6EjO9ugNmuOLfQpNUccfWogXzD+V6
-   QgmE4X5292U2Y0SVC7Uv+2p/PouFMjgOW3AIaYO6KcTHKqeQNNqBIDLvu
-   dNWdHWO0wgAN/gFQBdSFKwODtORqnKT/nvZmj4F6EdCVRoxFXd6m/tj9u
-   eE+ct2EcKVpCMJ0D2OXm8NZz0rVtnd5+okUK8/N6z76CTsBkepRzXcA+C
-   Q==;
-X-CSE-ConnectionGUID: bBxephoWTayBDtC89XATyw==
-X-CSE-MsgGUID: yDpeXjk9QeWjDHjrOVt6xg==
-X-IronPort-AV: E=McAfee;i="6800,10657,11747"; a="86888926"
-X-IronPort-AV: E=Sophos;i="6.23,157,1770624000"; 
-   d="scan'208";a="86888926"
-Received: from orviesa010.jf.intel.com ([10.64.159.150])
-  by fmvoesa105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Apr 2026 01:45:01 -0700
-X-CSE-ConnectionGUID: TVu48rzWTI+Sb00PRs8tig==
-X-CSE-MsgGUID: v3SmVUDoQ8urF2agRGzWWg==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.23,157,1770624000"; 
-   d="scan'208";a="226368657"
-Received: from lkp-server01.sh.intel.com (HELO 064ad336901d) ([10.239.97.150])
-  by orviesa010.jf.intel.com with ESMTP; 03 Apr 2026 01:44:59 -0700
-Received: from kbuild by 064ad336901d with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1w8a9A-0000000015H-10YM;
-	Fri, 03 Apr 2026 08:44:56 +0000
-Date: Fri, 3 Apr 2026 16:44:16 +0800
-From: kernel test robot <lkp@intel.com>
-To: Mathura_Kumar <academic1mathura@gmail.com>, brauner@kernel.org
-Cc: oe-kbuild-all@lists.linux.dev, academic1mathura@gmail.com,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	viro@zeniv.linux.org.uk
-Subject: Re: [PATCH v1 1/4] IPC: Added New system call do_mq_timedreceive2()
- for non-destructive peek on posix mqueue
-Message-ID: <202604030741.FjjnwM09-lkp@intel.com>
-References: <20260315040827.156558-2-academic1mathura@gmail.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="sr5PK5c3"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4B35CC2BCB8
+	for <linux-arch@vger.kernel.org>; Fri,  3 Apr 2026 09:42:20 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1775209340;
+	bh=GdA5Glxo6eWa4W/ST2bpPz/cVuoZBhUidEmnv04LsNo=;
+	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+	b=sr5PK5c3V49Uy3VYwCD9vYigDLKR4gGc2AtzThKwNAfYfobhRzZIrB/5r8WmJwWkT
+	 P89Js6i/LZQeljSwc7IprHEtqzVFHul50y3lde1GlIS/U++wLo7KEi9z930RS9aHeF
+	 91xnhm2780BYhzNKVsATmZMERd5V6zrIFTMuI4ixwYaHjs8lOtHPCdC/6ijQ0osxUH
+	 B5iTnHwYG8Oye9w9N/ITXuANXU5zSiPn7gqaFQKBhAkjZyIS3xb+lIlmSYK5AMqhKC
+	 /RdWw6cCzD+axy4JLFVzNLJvJrCSED4ggnr7TK+IikoXn1xCxMEST8sO2hZXXUd5IX
+	 nP6hq6G84PujA==
+Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-482f454be5bso30231445e9.0
+        for <linux-arch@vger.kernel.org>; Fri, 03 Apr 2026 02:42:20 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AJvYcCXK/h9wiRDtfbi5NMhNIsxx/YrWA3RAEiQ7XFICF6TNERQcv78jSodzJ0xufhH7Hqswura0cfrw3MOS@vger.kernel.org
+X-Gm-Message-State: AOJu0YzC3Rk14p0pRlsc8tEWCRkX7ypxz0Jp87cZItkvPuO1PzkhRrB6
+	qWS0mBOprLb+1GtWCT83QNbbPdBMmLZIhgKi74OofXvRu3iJLiySN8hg6/DpKI/e8ATubaQGhnR
+	PGqaEXbevX54DWiBwBQonN4Hf1M/kO98=
+X-Received: by 2002:a05:600d:1:b0:485:50ac:b8cf with SMTP id
+ 5b1f17b1804b1-488993be280mr33529815e9.0.1775209338532; Fri, 03 Apr 2026
+ 02:42:18 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260315040827.156558-2-academic1mathura@gmail.com>
+References: <20260402112250.2138-1-kprateek.nayak@amd.com> <20260402112250.2138-5-kprateek.nayak@amd.com>
+In-Reply-To: <20260402112250.2138-5-kprateek.nayak@amd.com>
+From: Guo Ren <guoren@kernel.org>
+Date: Fri, 3 Apr 2026 17:42:06 +0800
+X-Gmail-Original-Message-ID: <CAJF2gTSDg7JWHGS5E_OQWibFRTrY5bUuoOntmVE-MCt+FawLZw@mail.gmail.com>
+X-Gm-Features: AQROBzAUeD-7TzkN4Yu-x7VvnBwCOKoW_8ACkDGIhwIZtFzQ_Q59qb4XpopnZvw
+Message-ID: <CAJF2gTSDg7JWHGS5E_OQWibFRTrY5bUuoOntmVE-MCt+FawLZw@mail.gmail.com>
+Subject: Re: [PATCH v3 4/7] riscv/runtime-const: Introduce runtime_const_mask_32()
+To: K Prateek Nayak <kprateek.nayak@amd.com>
+Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
+	Peter Zijlstra <peterz@infradead.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, 
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Samuel Holland <samuel.holland@sifive.com>, David Laight <david.laight.linux@gmail.com>, 
+	Darren Hart <dvhart@infradead.org>, Davidlohr Bueso <dave@stgolabs.net>, 
+	=?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>, 
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, 
+	linux-arm-kernel@lists.infradead.org, Alexandre Ghiti <alex@ghiti.fr>, 
+	Charlie Jenkins <charlie@rivosinc.com>, Charles Mirabile <cmirabil@redhat.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Hi Mathura_Kumar,
+On Thu, Apr 2, 2026 at 7:39=E2=80=AFPM K Prateek Nayak <kprateek.nayak@amd.=
+com> wrote:
+>
+> Futex hash computation requires a mask operation with read-only after
+> init data that will be converted to a runtime constant in the subsequent
+> commit.
+>
+> Introduce runtime_const_mask_32 to further optimize the mask operation
+> in the futex hash computation hot path. GCC generates a:
+>
+>   lui   a0, 0x12346       # upper; +0x800 then >>12 for correct rounding
+>   addi  a0, a0, 0x678     # lower 12 bits
+>   and   a1, a1, a0        # a1 =3D a1 & a0
+>
+> pattern to tackle arbitrary 32-bit masks and the same was also suggested
+> by Claude which is implemented here. The (__mask & val) operation is
+> intentionally placed outside of asm block to allow compilers to further
+> optimize it if possible.
+>
+> __runtime_fixup_ptr() already patches a "lui + addi" sequence which has
+> been reused to patch the same sequence for __runtime_fixup_mask().
+>
+> Assisted-by: Claude:claude-sonnet-4-5
+> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
+> ---
+> Changelog v2..v3:
+>
+> o Moved the "&" operation outside the inline asm block to allow for
+>   compilers to further optimize it if possible. (Based on David's
+>   comment on ARM64 bits).
+> ---
+>  arch/riscv/include/asm/runtime-const.h | 22 ++++++++++++++++++++++
+>  1 file changed, 22 insertions(+)
+>
+> diff --git a/arch/riscv/include/asm/runtime-const.h b/arch/riscv/include/=
+asm/runtime-const.h
+> index d766e2b9e6df..85efba8ecf12 100644
+> --- a/arch/riscv/include/asm/runtime-const.h
+> +++ b/arch/riscv/include/asm/runtime-const.h
+> @@ -153,6 +153,22 @@
+>         __ret;                                                  \
+>  })
+>
+> +#define runtime_const_mask_32(val, sym)                                \
+> +({                                                             \
+> +       u32 __mask;                                             \
+> +       asm_inline(".option push\n\t"                           \
+> +               ".option norvc\n\t"                             \
+> +               "1:\t"                                          \
+> +               "lui    %[__mask],0x89abd\n\t"                  \
+> +               "addi   %[__mask],%[__mask],-0x211\n\t"         \
+Ref include/uapi/linux/reboot.h:
+#define LINUX_REBOOT_CMD_CAD_ON 0x89ABCDEF
 
-kernel test robot noticed the following build errors:
+#define RUNTIME_MAGIC 0x89ABCDEF
 
-[auto build test ERROR on perf-tools-next/perf-tools-next]
-[also build test ERROR on tip/perf/core perf-tools/perf-tools linus/master v7.0-rc6 next-20260401]
-[cannot apply to acme/perf/core]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+"lui %[__mask], %%hi(RUNTIME_MAGIC)\n\t"
+"addi %[__mask], %[__mask], %%lo(RUNTIME_MAGIC)\n\t"
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Mathura_Kumar/IPC-Added-New-system-call-do_mq_timedreceive2-for-non-destructive-peek-on-posix-mqueue/20260315-143134
-base:   https://git.kernel.org/pub/scm/linux/kernel/git/perf/perf-tools-next.git perf-tools-next
-patch link:    https://lore.kernel.org/r/20260315040827.156558-2-academic1mathura%40gmail.com
-patch subject: [PATCH v1 1/4] IPC: Added New system call do_mq_timedreceive2() for non-destructive peek on posix mqueue
-config: arc-allmodconfig (https://download.01.org/0day-ci/archive/20260403/202604030741.FjjnwM09-lkp@intel.com/config)
-compiler: arc-linux-gcc (GCC) 15.2.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260403/202604030741.FjjnwM09-lkp@intel.com/reproduce)
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202604030741.FjjnwM09-lkp@intel.com/
+> +               ".option pop\n\t"                               \
+> +               ".pushsection runtime_mask_" #sym ",\"a\"\n\t"  \
+> +               ".long 1b - .\n\t"                              \
+> +               ".popsection"                                   \
+> +               : [__mask] "=3Dr" (__mask));                      \
+> +       (__mask & val);                                         \
+> +})
+> +
+>  #define runtime_const_init(type, sym) do {                     \
+>         extern s32 __start_runtime_##type##_##sym[];            \
+>         extern s32 __stop_runtime_##type##_##sym[];             \
+> @@ -256,6 +272,12 @@ static inline void __runtime_fixup_shift(void *where=
+, unsigned long val)
+>         mutex_unlock(&text_mutex);
+>  }
+>
+> +static inline void __runtime_fixup_mask(void *where, unsigned long val)
+> +{
+> +       __runtime_fixup_32(where, where + 4, val);
+> +       __runtime_fixup_caches(where, 2);
+> +}
+> +
+>  static inline void runtime_const_fixup(void (*fn)(void *, unsigned long)=
+,
+>                                        unsigned long val, s32 *start, s32=
+ *end)
+>  {
+> --
+> 2.34.1
+>
+>
 
-All errors (new ones prefixed by >>):
 
->> error: include/uapi/linux/mqueue.h: leak CONFIG_COMPAT to user-space
-   make[3]: *** [scripts/Makefile.headersinst:63: usr/include/linux/mqueue.h] Error 1
-   make[3]: Target '__headers' not remade because of errors.
-   make[2]: *** [Makefile:1431: headers] Error 2
-   make[2]: Target 'prepare' not remade because of errors.
-   make[1]: *** [Makefile:248: __sub-make] Error 2
-   make[1]: Target 'prepare' not remade because of errors.
-   make: *** [Makefile:248: __sub-make] Error 2
-   make: Target 'prepare' not remade because of errors.
-
--- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+--=20
+Best Regards
+ Guo Ren
