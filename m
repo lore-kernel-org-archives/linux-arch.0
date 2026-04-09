@@ -1,119 +1,210 @@
-Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.184])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 94236379973
-	for <linux-arch@vger.kernel.org>; Wed,  8 Apr 2026 21:44:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.184
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id BBD5237F75B;
+	Thu,  9 Apr 2026 07:42:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775684653; cv=none; b=hz8tUBPAVnbDLo67LtkV86w+gOmn5mIYupVN/qPscsxim0oxRR2EhmHAdZmPO3qShXGUth2Bk+NzNWYCZ+nlKvbHov+Lk4qOg9RYpijiobygoXyrwBDqUd23f8l/9bYEy6xB/y+CoI+djaisBJWYkrOaP6kLBKhzQ/6EcIn+AO4=
+	t=1775720571; cv=none; b=TsAs93D767QXCoaNj6S6RrSFQRAJo4n8uMOWpEKM0YuZvUFHcaHKRpXc3uwBMfLfGJ7KPIP0HVndY05WtlXbV7tzkg/1xviIzAsp6pNgX8Uh91vKnuyt66ZLru3TVjg3dX65cuLVWX0EZUv9FjHDiENblUu4z1wdl6fFOWqcBk0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775684653; c=relaxed/simple;
-	bh=rd3HDVI0C6RgIhv3O3KHgLWxlh7P24wXk9l3FDC4sO8=;
-	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
-	 MIME-Version:Content-Type; b=aOw9bZr3OZlsOPaqDgDnQDriHhLKdNj0RKKt+CvtJ+gZ53/6QCpJsRnCfjnnitwH0CIZ7gZTjKLmlixDv24lKWq7KEJjb9D2yM+vkwqnkO8F5EStl1sgAeZ3guCxPyfru4YzlKLW9+lEolAJ6n8p1bYx6ep+u+gyAKikj7+ogeM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=IDpvQV4B; arc=none smtp.client-ip=195.121.94.184
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
+	s=arc-20240116; t=1775720571; c=relaxed/simple;
+	bh=1WW7kSn9WxA8RcNQPxCAbLe2xCMWLXrH3wMCxgS7DNE=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=KGFa7gu8pGFuaVTl7wif5iSYWgRG3dyT/ZWQJIqsNLw6hIUxyVwAFRGJUaO7lH0hImmyBZ5I8zwES4A4+2a6wtuYOZrVrO0ZbjghBEFeDxlvBl10pOYSthTwo1W4h0/Ws4P8gmm7RLcjNFEEgfRRMFb7795I/fozJ21QjSydt0o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=d8GUs/B3; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="IDpvQV4B"
-X-KPN-MessageId: 0f640b08-3394-11f1-afda-005056994fde
-Received: from mta.kpnmail.nl (unknown [10.31.161.191])
-	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
-	id 0f640b08-3394-11f1-afda-005056994fde;
-	Wed, 08 Apr 2026 23:44:03 +0200 (CEST)
-Received: from mtaoutbound.kpnmail.nl (unknown [10.128.135.190])
-	by mta.kpnmail.nl (Halon) with ESMTP
-	id 0f61c3dc-3394-11f1-83d7-00505699891e;
-	Wed, 08 Apr 2026 23:44:03 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=xs4all.nl; s=xs4all01;
-	h=content-type:mime-version:subject:message-id:to:from:date;
-	bh=L6yY1vRidVgRuaU+kukO84bm0idAZPOfAApm1LSPy7g=;
-	b=IDpvQV4BDedHJKedJjJ/SR3enahmAYGy15ARnCFU5gYZdUu80iUvDZc/smmis8aJqZqoSG6TlZYUD
-	 VC5ZY5xbAzgHIOrzfdUaJ41+AP5XcnExMaLOiHEZdu0r27vvQlI7gi+mklDzIoIWUuCSVZyF8vR3gs
-	 AUpQJiAnkR052QTpQZ4p729tm4j86TLhj624sPGMQshsR0FJ9TwKT1zA+E9MB3vb9aAqTB6UMifOtk
-	 mnBWlFoD8seC1hidd89h0NASHNB9QgBDhkMgUgyaSZG61VIYRG3KzasV9QdrUrYacbf/866pXiKnXn
-	 fnQKxs1XxtSUj/EHzYeN/ksU7NiQ+CA==
-X-KPN-MID: 33|/UAggWUo9xsQ/7Ro5rHTE9aGV79mwhCmNSNSiCW0tmi9xuDLVtzXghyTg1uCXnA
- cF3fy5oGM+n31k+RLT2A4LtHOimUXCSdgUuUnODvH1NY=
-X-CMASSUN: 33|k4bWsyZRQIuoY3Wo5ZYj/E4TlOHekJIvZ+sitMXHs3GowORHNEvD/XZzum5Bi73
- cLmCATHi3FhPdjggEZNvxiQ==
-X-KPN-VerifiedSender: Yes
-Received: from cpxoxapps-mh03 (cpxoxapps-mh03.personalcloud.so.kpn.org [10.128.135.209])
-	by mtaoutbound.kpnmail.nl (Halon) with ESMTPSA
-	id 0f565b90-3394-11f1-b8d7-005056995d6c;
-	Wed, 08 Apr 2026 23:44:03 +0200 (CEST)
-Date: Wed, 8 Apr 2026 23:44:03 +0200 (CEST)
-From: Jori Koolstra <jkoolstra@xs4all.nl>
-To: Aleksa Sarai <cyphar@cyphar.com>, Mateusz Guzik <mjguzik@gmail.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Christian Brauner <brauner@kernel.org>,
-	Jeff Layton <jlayton@kernel.org>,
-	Chuck Lever <chuck.lever@oracle.com>, Arnd Bergmann <arnd@arndb.de>,
-	Shuah Khan <shuah@kernel.org>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	"H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>,
-	Alexander Aring <alex.aring@gmail.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Oleg Nesterov <oleg@redhat.com>,
-	Andrey Albershteyn <aalbersh@redhat.com>,
-	Jiri Olsa <jolsa@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	=?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>,
-	Namhyung Kim <namhyung@kernel.org>,
-	Arnaldo Carvalho de Melo <acme@redhat.com>,
-	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-	linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-kselftest@vger.kernel.org, cmirabil@redhat.com,
-	"Masami Hiramatsu (Google)" <mhiramat@kernel.org>
-Message-ID: <52244194.1650546.1775684643065@kpc.webmail.kpnmail.nl>
-In-Reply-To: <2026-04-02-aged-convex-snowbird-foxes-Ym20JZ@cyphar.com>
-References: <20260331172011.3512876-1-jkoolstra@xs4all.nl>
- <20260331172011.3512876-2-jkoolstra@xs4all.nl>
- <pbobkjhtuli53o3z34ajyxztaosmztwlygxfxhhjq5ajt47inc@ngtoge3ucdm5>
- <2026-04-02-aged-convex-snowbird-foxes-Ym20JZ@cyphar.com>
-Subject: Re: [RFC PATCH 1/2] vfs: syscalls: add mkdirat_fd()
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="d8GUs/B3"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 020763561;
+	Thu,  9 Apr 2026 00:42:40 -0700 (PDT)
+Received: from J2N7QTR9R3 (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id E2BFD3F632;
+	Thu,  9 Apr 2026 00:42:39 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1775720565; bh=1WW7kSn9WxA8RcNQPxCAbLe2xCMWLXrH3wMCxgS7DNE=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=d8GUs/B3jDW2frdZiV8QPiYbk9v18VZd7X15RxiS1RqB+79dOyj9M/gsATt3nMdbo
+	 sfUtUYCcV+gEJlbpIFOxTu0F6+OEFgVqJOQyRKt9wK39FJm3q0cUrfDwdmVVz7kTRT
+	 6fWMWLO4tHky73CtIu7mYttYuuLUx2FUb47JuCq0=
+Date: Thu, 9 Apr 2026 08:42:37 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+To: Jinjie Ruan <ruanjinjie@huawei.com>
+Cc: catalin.marinas@arm.com, will@kernel.org, chenhuacai@kernel.org,
+	kernel@xen0n.name, hca@linux.ibm.com, gor@linux.ibm.com,
+	agordeev@linux.ibm.com, borntraeger@linux.ibm.com,
+	svens@linux.ibm.com, oleg@redhat.com, tglx@kernel.org,
+	mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com,
+	hpa@zytor.com, arnd@arndb.de, shuah@kernel.org,
+	kevin.brodsky@arm.com, yeoreum.yun@arm.com,
+	anshuman.khandual@arm.com, thuth@redhat.com, ryan.roberts@arm.com,
+	song@kernel.org, ziyao@disroot.org, linusw@kernel.org,
+	schuster.simon@siemens-energy.com, jremus@linux.ibm.com,
+	akpm@linux-foundation.org, mathieu.desnoyers@efficios.com,
+	kmal@cock.li, dvyukov@google.com, reddybalavignesh9979@gmail.com,
+	x86@kernel.org, linux-arm-kernel@lists.infradead.org,
+	linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
+	linux-s390@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-kselftest@vger.kernel.org
+Subject: Re: [PATCH v14 2/4] asm-generic: Move TIF_SINGLESTEP to generic TIF
+ bits
+Message-ID: <addYbV3_9eFZg_b4@J2N7QTR9R3>
+References: <20260320104222.1381274-1-ruanjinjie@huawei.com>
+ <20260320104222.1381274-3-ruanjinjie@huawei.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-Priority: 3
-Importance: Normal
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260320104222.1381274-3-ruanjinjie@huawei.com>
 
+On Fri, Mar 20, 2026 at 06:42:20PM +0800, Jinjie Ruan wrote:
+> Currently, x86, ARM64, s390, and LoongArch all define and use
+> TIF_SINGLESTEP to track single-stepping state.
 
-> Op 02-04-2026 04:52 CEST schreef Aleksa Sarai <cyphar@cyphar.com>:
+Do the architectures actually use the flag in the same way?
+
+I'd expect that this is used subtly differently across those
+architectures, and so isn't necessarily generic.
+
+> Since this flag is shared across multiple major architectures and serves
+> a common purpose in the generic entry/exit paths, move TIF_SINGLESTEP
+> into the generic Thread Information Flags (TIF) infrastructure.
 > 
-> Please do not use O_* flags! O_CLOEXEC takes up 3 flag bits on different
-> architectures which makes adding new flags a nightmare.
+> This consolidation reduces architecture-specific boilerplate code and
+> ensures consistency for generic features that rely on single-step
+> state tracking.
+
+Is it necessary to make this generic in order to move to generic irq
+flags? I'd expect that generic code cannot make use of this due to the
+different semantics across architectures, as noted abobve.
+
+I think it's probably better to keep this architecture-specific for now,
+where architectures can clearly define how they're using this bit.
+
+Am I missing some reason why it's necessary to make this generic?
+
+Mark.
+
+> Cc: Thomas Gleixner <tglx@kernel.org>
+> Reviewed-by: Kevin Brodsky <kevin.brodsky@arm.com>
+> Reviewed-by: Linus Walleij <linusw@kernel.org>
+> Reviewed-by: Yeoreum Yun <yeoreum.yun@arm.com>
+> Acked-by: Heiko Carstens <hca@linux.ibm.com> # s390
+> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
+> ---
+>  arch/loongarch/include/asm/thread_info.h | 11 +++++------
+>  arch/s390/include/asm/thread_info.h      |  7 +++----
+>  arch/x86/include/asm/thread_info.h       |  6 ++----
+>  include/asm-generic/thread_info_tif.h    |  5 +++++
+>  4 files changed, 15 insertions(+), 14 deletions(-)
 > 
-> I think this should take AT_* flags and (like most newer syscalls)
-> O_CLOEXEC should be automatically set. Userspace can unset it with
-> fnctl(F_SETFD) in the relatively rare case where they don't want
-> O_CLOEXEC.
-
-And then do something like statx_lookup_flags() does to build the lookup
-flags from those AT flags? But there is also no AT_ROOT_CONTAINED (or whatever
-you would want to call the RESOLVE_IN_ROOT AT-equivalent) right now.
-
-> Alternatively, we could just bite the bullet and make
-> AT_NO_CLOEXEC a thing...
-
-What's the bullet to bite there?
-
-> 
-> But yes, new syscalls *absolutely* need to take some kind of flag
-> argument. I'd hoped we finally learned our lesson on that one...
-> 
+> diff --git a/arch/loongarch/include/asm/thread_info.h b/arch/loongarch/include/asm/thread_info.h
+> index 4d7117fcdc78..a2ec87f18e1d 100644
+> --- a/arch/loongarch/include/asm/thread_info.h
+> +++ b/arch/loongarch/include/asm/thread_info.h
+> @@ -70,6 +70,7 @@ register unsigned long current_stack_pointer __asm__("$sp");
+>   */
+>  #define HAVE_TIF_NEED_RESCHED_LAZY
+>  #define HAVE_TIF_RESTORE_SIGMASK
+> +#define HAVE_TIF_SINGLESTEP
+>  
+>  #include <asm-generic/thread_info_tif.h>
+>  
+> @@ -82,11 +83,10 @@ register unsigned long current_stack_pointer __asm__("$sp");
+>  #define TIF_32BIT_REGS		21	/* 32-bit general purpose registers */
+>  #define TIF_32BIT_ADDR		22	/* 32-bit address space */
+>  #define TIF_LOAD_WATCH		23	/* If set, load watch registers */
+> -#define TIF_SINGLESTEP		24	/* Single Step */
+> -#define TIF_LSX_CTX_LIVE	25	/* LSX context must be preserved */
+> -#define TIF_LASX_CTX_LIVE	26	/* LASX context must be preserved */
+> -#define TIF_USEDLBT		27	/* LBT was used by this task this quantum (SMP) */
+> -#define TIF_LBT_CTX_LIVE	28	/* LBT context must be preserved */
+> +#define TIF_LSX_CTX_LIVE	24	/* LSX context must be preserved */
+> +#define TIF_LASX_CTX_LIVE	25	/* LASX context must be preserved */
+> +#define TIF_USEDLBT		26	/* LBT was used by this task this quantum (SMP) */
+> +#define TIF_LBT_CTX_LIVE	27	/* LBT context must be preserved */
+>  
+>  #define _TIF_NOHZ		BIT(TIF_NOHZ)
+>  #define _TIF_USEDFPU		BIT(TIF_USEDFPU)
+> @@ -96,7 +96,6 @@ register unsigned long current_stack_pointer __asm__("$sp");
+>  #define _TIF_32BIT_REGS		BIT(TIF_32BIT_REGS)
+>  #define _TIF_32BIT_ADDR		BIT(TIF_32BIT_ADDR)
+>  #define _TIF_LOAD_WATCH		BIT(TIF_LOAD_WATCH)
+> -#define _TIF_SINGLESTEP		BIT(TIF_SINGLESTEP)
+>  #define _TIF_LSX_CTX_LIVE	BIT(TIF_LSX_CTX_LIVE)
+>  #define _TIF_LASX_CTX_LIVE	BIT(TIF_LASX_CTX_LIVE)
+>  #define _TIF_USEDLBT		BIT(TIF_USEDLBT)
+> diff --git a/arch/s390/include/asm/thread_info.h b/arch/s390/include/asm/thread_info.h
+> index 1bcd42614e41..95be5258a422 100644
+> --- a/arch/s390/include/asm/thread_info.h
+> +++ b/arch/s390/include/asm/thread_info.h
+> @@ -61,6 +61,7 @@ void arch_setup_new_exec(void);
+>   */
+>  #define HAVE_TIF_NEED_RESCHED_LAZY
+>  #define HAVE_TIF_RESTORE_SIGMASK
+> +#define HAVE_TIF_SINGLESTEP
+>  
+>  #include <asm-generic/thread_info_tif.h>
+>  
+> @@ -69,15 +70,13 @@ void arch_setup_new_exec(void);
+>  #define TIF_GUARDED_STORAGE	17	/* load guarded storage control block */
+>  #define TIF_ISOLATE_BP_GUEST	18	/* Run KVM guests with isolated BP */
+>  #define TIF_PER_TRAP		19	/* Need to handle PER trap on exit to usermode */
+> -#define TIF_SINGLESTEP		21	/* This task is single stepped */
+> -#define TIF_BLOCK_STEP		22	/* This task is block stepped */
+> -#define TIF_UPROBE_SINGLESTEP	23	/* This task is uprobe single stepped */
+> +#define TIF_BLOCK_STEP		20	/* This task is block stepped */
+> +#define TIF_UPROBE_SINGLESTEP	21	/* This task is uprobe single stepped */
+>  
+>  #define _TIF_ASCE_PRIMARY	BIT(TIF_ASCE_PRIMARY)
+>  #define _TIF_GUARDED_STORAGE	BIT(TIF_GUARDED_STORAGE)
+>  #define _TIF_ISOLATE_BP_GUEST	BIT(TIF_ISOLATE_BP_GUEST)
+>  #define _TIF_PER_TRAP		BIT(TIF_PER_TRAP)
+> -#define _TIF_SINGLESTEP	BIT(TIF_SINGLESTEP)
+>  #define _TIF_BLOCK_STEP		BIT(TIF_BLOCK_STEP)
+>  #define _TIF_UPROBE_SINGLESTEP	BIT(TIF_UPROBE_SINGLESTEP)
+>  
+> diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
+> index 0067684afb5b..f59072ba1473 100644
+> --- a/arch/x86/include/asm/thread_info.h
+> +++ b/arch/x86/include/asm/thread_info.h
+> @@ -98,9 +98,8 @@ struct thread_info {
+>  #define TIF_IO_BITMAP		22	/* uses I/O bitmap */
+>  #define TIF_SPEC_FORCE_UPDATE	23	/* Force speculation MSR update in context switch */
+>  #define TIF_FORCED_TF		24	/* true if TF in eflags artificially */
+> -#define TIF_SINGLESTEP		25	/* reenable singlestep on user return*/
+> -#define TIF_BLOCKSTEP		26	/* set when we want DEBUGCTLMSR_BTF */
+> -#define TIF_ADDR32		27	/* 32-bit address space on 64 bits */
+> +#define TIF_BLOCKSTEP		25	/* set when we want DEBUGCTLMSR_BTF */
+> +#define TIF_ADDR32		26	/* 32-bit address space on 64 bits */
+>  
+>  #define _TIF_SSBD		BIT(TIF_SSBD)
+>  #define _TIF_SPEC_IB		BIT(TIF_SPEC_IB)
+> @@ -112,7 +111,6 @@ struct thread_info {
+>  #define _TIF_SPEC_FORCE_UPDATE	BIT(TIF_SPEC_FORCE_UPDATE)
+>  #define _TIF_FORCED_TF		BIT(TIF_FORCED_TF)
+>  #define _TIF_BLOCKSTEP		BIT(TIF_BLOCKSTEP)
+> -#define _TIF_SINGLESTEP		BIT(TIF_SINGLESTEP)
+>  #define _TIF_ADDR32		BIT(TIF_ADDR32)
+>  
+>  /* flags to check in __switch_to() */
+> diff --git a/include/asm-generic/thread_info_tif.h b/include/asm-generic/thread_info_tif.h
+> index da1610a78f92..b277fe06aee3 100644
+> --- a/include/asm-generic/thread_info_tif.h
+> +++ b/include/asm-generic/thread_info_tif.h
+> @@ -48,4 +48,9 @@
+>  #define TIF_RSEQ		11	// Run RSEQ fast path
+>  #define _TIF_RSEQ		BIT(TIF_RSEQ)
+>  
+> +#ifdef HAVE_TIF_SINGLESTEP
+> +#define TIF_SINGLESTEP		12	/* reenable singlestep on user return*/
+> +#define _TIF_SINGLESTEP		BIT(TIF_SINGLESTEP)
+> +#endif
+> +
+>  #endif /* _ASM_GENERIC_THREAD_INFO_TIF_H_ */
 > -- 
-> Aleksa Sarai
-> https://www.cyphar.com/
-
-Thanks,
-Jori.
+> 2.34.1
+> 
