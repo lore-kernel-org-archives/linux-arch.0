@@ -1,56 +1,56 @@
 Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 91A733B47DA
-	for <linux-arch@vger.kernel.org>; Thu,  9 Apr 2026 09:47:51 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 34DF63B47FD
+	for <linux-arch@vger.kernel.org>; Thu,  9 Apr 2026 09:47:55 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775728073; cv=none; b=boWGnqkoai9ZOmqpMiE1MZyYHdRK1zpp5V6As40KqOKoZHrNYZo+TMXVTdmk83kPwf1WSJsj7jZBnveoZznE+bJj6EVKZ+pJsMeCbQl6vLFkbvv/sjy2ARxvAl0awo0KzZ0oWs6Rj+m2rvY2yuXwabNmtFLZ/Uzvsv0G2IUSDP4=
+	t=1775728077; cv=none; b=d8CVGjOPWaPm2hbZqZBq0PtPI5wKmrP1tf8d+QqgfAzslinuvHdlpk9bYuPc9rBbms2K1rR6YU4dO4xR9/yBLa6HAK2b6zmMWg9jjLGLiNlsyDBtHu+cWkZfowfKOvRzji0Ru1+vrzwtRo6Vz/OhzlgjJj8RwSo6QhiEMUx9Njs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775728073; c=relaxed/simple;
-	bh=hQoy3hrQw4ZqoKRfCBdJ68N5FccE8DjtsB2GpXH9Pdg=;
+	s=arc-20240116; t=1775728077; c=relaxed/simple;
+	bh=lUWl+lC3ZTWfbfqCkq6mjsraLHT8mZsonHU35/L8+oc=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=MVal4OIj6mXlqn3pZyNQwFKCgx5/kDCmqmlBryXaSP/gCxqEXl8BmX/ySUDLUDoJIoPyU9mGjIUJK9CPdIUpIvk08zTqZKk7NVK7TSWmTPH4nacKg3fMbL0ccL7xwXUy9p486q6jd3g+trcJofUYIGYFnfM3xXE3xdIvApcL51A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=b/IkbOWU; arc=none smtp.client-ip=170.10.129.124
+	 MIME-Version; b=mZZX3SoSkT7eS2aDu+9kKSbqaVbWDg6KrhPM4L7V3Od/1kmVDwTmBKIN2NOi3w67Yu6zDdIzQ9e34chlCpFTIV0XDCDPw1FCrIPIHPBvKDJCbi4lIBWO9ZWBUDNinlW4jEgx37Y2CIAfQtAbF4PqCAFyoVak6Qz8Koybqn2suSs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=dCHr6OIb; arc=none smtp.client-ip=170.10.129.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="b/IkbOWU"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="dCHr6OIb"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1775728070;
+	s=mimecast20190719; t=1775728074;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=3N/K58I04p+yZBbOynmRibdF0eSGlQqxQbfCTfRDvqw=;
-	b=b/IkbOWUkX0EdpyLYzNoLPo2E/HsatSYlo9IVQCycZ6tuXouGyXL7QPoDOWI9fSeNARlKO
-	mqnpVDWg2ofikNuIMJGB9no+j57g1d2kNdJZcVALj+vOTm6Oj8MoDo08HkdyoQbkiN7fcm
-	spUQ4IRhvqRkzTLXjtTJfA6Xo2Npfew=
-Received: from mx-prod-mc-03.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
+	bh=ql7/MeeYApvFYdz7A8mWP+9mGYFWCC0ombyyXlvAi20=;
+	b=dCHr6OIbbG0/QWBAY3V2pipRKzZKH/lY0s4UgC9TL7ApZSsxo8Gge7tU/qM80e2AxW7sLO
+	rxVpLMqF0x++SDY8p2b0M6qn7tRa3OR9TPTinGGpr5qTL9VhYq+ByrtpHTWJYS5Z8DgKqf
+	YKZAZ0XJ0uWhJjOVu+7imeBXaCekcBI=
+Received: from mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
  relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-283-TpMAH8jiPymxRqzphYD1cg-1; Thu,
- 09 Apr 2026 05:47:47 -0400
-X-MC-Unique: TpMAH8jiPymxRqzphYD1cg-1
-X-Mimecast-MFC-AGG-ID: TpMAH8jiPymxRqzphYD1cg_1775728066
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-595-pnPby-BDMneIUUCstvaPUg-1; Thu,
+ 09 Apr 2026 05:47:52 -0400
+X-MC-Unique: pnPby-BDMneIUUCstvaPUg-1
+X-Mimecast-MFC-AGG-ID: pnPby-BDMneIUUCstvaPUg_1775728071
 Received: from mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.4])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
 	(No client certificate requested)
-	by mx-prod-mc-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 5F0301956062;
-	Thu,  9 Apr 2026 09:47:46 +0000 (UTC)
+	by mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 9E30A180049F;
+	Thu,  9 Apr 2026 09:47:51 +0000 (UTC)
 Received: from thuth-p1g4.redhat.com (unknown [10.44.48.155])
-	by mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id AB48530001BE;
-	Thu,  9 Apr 2026 09:47:43 +0000 (UTC)
+	by mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id CF2F53000C1B;
+	Thu,  9 Apr 2026 09:47:49 +0000 (UTC)
 From: Thomas Huth <thuth@redhat.com>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org,
 	linux-kbuild@vger.kernel.org,
 	Thomas Huth <thuth@redhat.com>
-Subject: [PATCH v5 6/8] uapi: Replace __ASSEMBLY__ with __ASSEMBLER__ in uapi headers
-Date: Thu,  9 Apr 2026 11:47:06 +0200
-Message-ID: <20260409094708.1687376-7-thuth@redhat.com>
+Subject: [PATCH v5 8/8] treewide: Stop defining __ASSEMBLY__ for assembler files
+Date: Thu,  9 Apr 2026 11:47:08 +0200
+Message-ID: <20260409094708.1687376-9-thuth@redhat.com>
 In-Reply-To: <20260409094708.1687376-1-thuth@redhat.com>
 References: <20260409094708.1687376-1-thuth@redhat.com>
 Precedence: bulk
@@ -64,273 +64,265 @@ X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.4
 
 From: Thomas Huth <thuth@redhat.com>
 
-__ASSEMBLY__ is only defined by the Makefile of the kernel, so
-this is not really useful for uapi headers (unless the userspace
-Makefile defines it, too). Let's switch to __ASSEMBLER__ which
-gets set automatically by the compiler when compiling assembly
-code.
+All spots have been changed to __ASSEMBLER__ (i.e. the macro that
+gets defined by the compiler), so we don't have to manually define
+__ASSEMBLY__ now anymore.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
 Signed-off-by: Thomas Huth <thuth@redhat.com>
 ---
- Documentation/dev-tools/checkuapi.rst              | 2 +-
- include/uapi/asm-generic/int-l64.h                 | 4 ++--
- include/uapi/asm-generic/int-ll64.h                | 4 ++--
- include/uapi/asm-generic/signal-defs.h             | 2 +-
- include/uapi/asm-generic/signal.h                  | 4 ++--
- include/uapi/linux/a.out.h                         | 4 ++--
- include/uapi/linux/const.h                         | 4 ++--
- include/uapi/linux/edd.h                           | 4 ++--
- include/uapi/linux/hdlc/ioctl.h                    | 4 ++--
- include/uapi/linux/sched.h                         | 2 +-
- include/uapi/linux/types.h                         | 4 ++--
- tools/include/uapi/linux/const.h                   | 4 ++--
- tools/perf/trace/beauty/include/uapi/linux/sched.h | 2 +-
- 13 files changed, 22 insertions(+), 22 deletions(-)
+ Makefile                                         | 2 +-
+ arch/arm64/kernel/vdso32/Makefile                | 1 -
+ arch/loongarch/vdso/Makefile                     | 2 +-
+ arch/mips/boot/compressed/Makefile               | 2 +-
+ arch/mips/vdso/Makefile                          | 2 +-
+ arch/powerpc/boot/Makefile                       | 2 +-
+ arch/powerpc/platforms/cell/spufs/Makefile       | 2 +-
+ arch/s390/Makefile                               | 2 +-
+ arch/x86/boot/Makefile                           | 2 +-
+ arch/x86/boot/compressed/Makefile                | 2 +-
+ arch/x86/realmode/rm/Makefile                    | 2 +-
+ arch/xtensa/kernel/Makefile                      | 2 +-
+ drivers/firmware/efi/libstub/Makefile            | 2 +-
+ drivers/net/wan/Makefile                         | 2 +-
+ scripts/Makefile.build                           | 2 +-
+ scripts/gfp-translate                            | 2 +-
+ tools/testing/selftests/kvm/lib/riscv/handlers.S | 4 ----
+ tools/testing/selftests/vDSO/vgetrandom-chacha.S | 2 --
+ 18 files changed, 15 insertions(+), 22 deletions(-)
 
-diff --git a/Documentation/dev-tools/checkuapi.rst b/Documentation/dev-tools/checkuapi.rst
-index 9072f21b50b0c..3c9a3a58c24da 100644
---- a/Documentation/dev-tools/checkuapi.rst
-+++ b/Documentation/dev-tools/checkuapi.rst
-@@ -273,7 +273,7 @@ Consider this change::
-     -typedef unsigned __bitwise __poll_t;
-     +typedef unsigned short __bitwise __poll_t;
+diff --git a/Makefile b/Makefile
+index 4f54c56856386..b7cf60d7024dd 100644
+--- a/Makefile
++++ b/Makefile
+@@ -585,7 +585,7 @@ LINUXINCLUDE    := \
+ 		-I$(objtree)/include \
+ 		$(USERINCLUDE)
  
--     #endif /*  __ASSEMBLY__ */
-+     #endif /*  __ASSEMBLER__ */
-      #endif /* _UAPI_LINUX_TYPES_H */
-     EOF
+-KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
++KBUILD_AFLAGS   := -fno-PIE
  
-diff --git a/include/uapi/asm-generic/int-l64.h b/include/uapi/asm-generic/int-l64.h
-index ed8bcd99c34d7..f840806bbe7e9 100644
---- a/include/uapi/asm-generic/int-l64.h
-+++ b/include/uapi/asm-generic/int-l64.h
-@@ -11,7 +11,7 @@
+ KBUILD_CFLAGS :=
+ KBUILD_CFLAGS += -std=gnu11
+diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
+index 9d0efed91414c..6e6295f5983dc 100644
+--- a/arch/arm64/kernel/vdso32/Makefile
++++ b/arch/arm64/kernel/vdso32/Makefile
+@@ -82,7 +82,6 @@ VDSO_CFLAGS += -marm
+ endif
  
- #include <asm/bitsperlong.h>
+ VDSO_AFLAGS := $(VDSO_CAFLAGS)
+-VDSO_AFLAGS += -D__ASSEMBLY__
  
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- /*
-  * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-  * header files exported to user space
-@@ -29,7 +29,7 @@ typedef unsigned int __u32;
- typedef __signed__ long __s64;
- typedef unsigned long __u64;
+ # From arm vDSO Makefile
+ VDSO_LDFLAGS += -Bsymbolic --no-undefined -soname=linux-vdso.so.1
+diff --git a/arch/loongarch/vdso/Makefile b/arch/loongarch/vdso/Makefile
+index 294c16b9517fd..b3e37d3323cd2 100644
+--- a/arch/loongarch/vdso/Makefile
++++ b/arch/loongarch/vdso/Makefile
+@@ -29,7 +29,7 @@ cflags-vdso := $(ccflags-vdso) \
+ 	$(call cc-option, -fasynchronous-unwind-tables) \
+ 	$(call cc-option, -fno-stack-protector)
+ aflags-vdso := $(ccflags-vdso) \
+-	-D__ASSEMBLY__ -Wa,-gdwarf-2
++	-Wa,-gdwarf-2
  
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
+ ifneq ($(c-gettimeofday-y),)
+   CFLAGS_vgettimeofday.o += -include $(c-gettimeofday-y)
+diff --git a/arch/mips/boot/compressed/Makefile b/arch/mips/boot/compressed/Makefile
+index e0b8ec9a95162..41ec115d4795b 100644
+--- a/arch/mips/boot/compressed/Makefile
++++ b/arch/mips/boot/compressed/Makefile
+@@ -30,7 +30,7 @@ endif
+ KBUILD_CFLAGS := $(KBUILD_CFLAGS) -D__KERNEL__ -D__DISABLE_EXPORTS \
+ 	-DBOOT_HEAP_SIZE=$(BOOT_HEAP_SIZE) -D"VMLINUX_LOAD_ADDRESS_ULL=$(VMLINUX_LOAD_ADDRESS)ull"
  
+-KBUILD_AFLAGS := $(KBUILD_AFLAGS) -D__ASSEMBLY__ \
++KBUILD_AFLAGS := $(KBUILD_AFLAGS) \
+ 	-DBOOT_HEAP_SIZE=$(BOOT_HEAP_SIZE) \
+ 	-DKERNEL_ENTRY=$(VMLINUX_ENTRY_ADDRESS)
  
- #endif /* _UAPI_ASM_GENERIC_INT_L64_H */
-diff --git a/include/uapi/asm-generic/int-ll64.h b/include/uapi/asm-generic/int-ll64.h
-index 1ed06964257c3..4fc3e882bcff9 100644
---- a/include/uapi/asm-generic/int-ll64.h
-+++ b/include/uapi/asm-generic/int-ll64.h
-@@ -11,7 +11,7 @@
+diff --git a/arch/mips/vdso/Makefile b/arch/mips/vdso/Makefile
+index 69d4593f64fee..d6685a36c6b43 100644
+--- a/arch/mips/vdso/Makefile
++++ b/arch/mips/vdso/Makefile
+@@ -33,7 +33,7 @@ cflags-vdso := $(ccflags-vdso) \
+ 	-fno-stack-protector -fno-jump-tables -DDISABLE_BRANCH_PROFILING \
+ 	$(call cc-option, -fno-asynchronous-unwind-tables)
+ aflags-vdso := $(ccflags-vdso) \
+-	-D__ASSEMBLY__ -Wa,-gdwarf-2
++	-Wa,-gdwarf-2
  
- #include <asm/bitsperlong.h>
+ ifneq ($(c-gettimeofday-y),)
+ CFLAGS_vgettimeofday.o = -include $(c-gettimeofday-y)
+diff --git a/arch/powerpc/boot/Makefile b/arch/powerpc/boot/Makefile
+index f1a4761ebd44b..5a75d4fd468cb 100644
+--- a/arch/powerpc/boot/Makefile
++++ b/arch/powerpc/boot/Makefile
+@@ -80,7 +80,7 @@ BOOTCFLAGS	:= $(BOOTTARGETFLAGS) \
+ 		   $(call cc-option,-mno-spe) $(call cc-option,-mspe=no) \
+ 		   -fomit-frame-pointer -fno-builtin -fPIC
  
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- /*
-  * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-  * header files exported to user space
-@@ -34,7 +34,7 @@ typedef __signed__ long long __s64;
- typedef unsigned long long __u64;
- #endif
+-BOOTAFLAGS	:= $(BOOTTARGETFLAGS) -D__ASSEMBLY__
++BOOTAFLAGS	:= $(BOOTTARGETFLAGS)
  
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
+ BOOTARFLAGS	:= -crD
  
+diff --git a/arch/powerpc/platforms/cell/spufs/Makefile b/arch/powerpc/platforms/cell/spufs/Makefile
+index 52e4c80ec8d03..c13928aea20c6 100644
+--- a/arch/powerpc/platforms/cell/spufs/Makefile
++++ b/arch/powerpc/platforms/cell/spufs/Makefile
+@@ -16,7 +16,7 @@ SPU_AS		:= $(SPU_CROSS)gcc
+ SPU_LD		:= $(SPU_CROSS)ld
+ SPU_OBJCOPY	:= $(SPU_CROSS)objcopy
+ SPU_CFLAGS	:= -O2 -Wall -I$(srctree)/include -D__KERNEL__
+-SPU_AFLAGS	:= -c -D__ASSEMBLY__ -I$(srctree)/include -D__KERNEL__
++SPU_AFLAGS	:= -c -I$(srctree)/include -D__KERNEL__
+ SPU_LDFLAGS	:= -N -Ttext=0x0
  
- #endif /* _UAPI_ASM_GENERIC_INT_LL64_H */
-diff --git a/include/uapi/asm-generic/signal-defs.h b/include/uapi/asm-generic/signal-defs.h
-index 7572f2f46ee89..4073143fa3dae 100644
---- a/include/uapi/asm-generic/signal-defs.h
-+++ b/include/uapi/asm-generic/signal-defs.h
-@@ -78,7 +78,7 @@
- #define SIG_SETMASK        2	/* for setting the signal mask */
- #endif
+ $(obj)/switch.o: $(obj)/spu_save_dump.h $(obj)/spu_restore_dump.h
+diff --git a/arch/s390/Makefile b/arch/s390/Makefile
+index d78ad6885ca2a..4fef55ae6e903 100644
+--- a/arch/s390/Makefile
++++ b/arch/s390/Makefile
+@@ -18,7 +18,7 @@ KBUILD_CFLAGS	+= -fPIC
+ LDFLAGS_vmlinux	:= $(call ld-option,-no-pie)
+ extra_tools	:= relocs
+ aflags_dwarf	:= -Wa,-gdwarf-2
+-KBUILD_AFLAGS_DECOMPRESSOR := $(CLANG_FLAGS) -m64 -D__ASSEMBLY__
++KBUILD_AFLAGS_DECOMPRESSOR := $(CLANG_FLAGS) -m64
+ ifndef CONFIG_AS_IS_LLVM
+ KBUILD_AFLAGS_DECOMPRESSOR += $(if $(CONFIG_DEBUG_INFO),$(aflags_dwarf))
+ endif
+diff --git a/arch/x86/boot/Makefile b/arch/x86/boot/Makefile
+index 3f9fb3698d669..b343ef5ee9951 100644
+--- a/arch/x86/boot/Makefile
++++ b/arch/x86/boot/Makefile
+@@ -52,7 +52,7 @@ targets += cpustr.h
+ # ---------------------------------------------------------------------------
  
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- typedef void __signalfn_t(int);
- typedef __signalfn_t __user *__sighandler_t;
+ KBUILD_CFLAGS	:= $(REALMODE_CFLAGS) -D_SETUP
+-KBUILD_AFLAGS	:= $(KBUILD_CFLAGS) -D__ASSEMBLY__
++KBUILD_AFLAGS	:= $(KBUILD_CFLAGS)
+ KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
+ KBUILD_CFLAGS	+= $(CONFIG_CC_IMPLICIT_FALLTHROUGH)
  
-diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
-index 0eb69dc8e5722..6b089d4b2965b 100644
---- a/include/uapi/asm-generic/signal.h
-+++ b/include/uapi/asm-generic/signal.h
-@@ -57,7 +57,7 @@
- #define SIGSTKSZ	8192
- #endif
+diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
+index b8b2b7bea1d31..a0bf38874c2de 100644
+--- a/arch/x86/boot/compressed/Makefile
++++ b/arch/x86/boot/compressed/Makefile
+@@ -52,7 +52,7 @@ KBUILD_CFLAGS += -include $(srctree)/include/linux/hidden.h
+ # that the compiler finds it even with out-of-tree builds (make O=/some/path).
+ CFLAGS_sev-handle-vc.o += -I$(objtree)/arch/x86/lib/
  
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- typedef struct {
- 	unsigned long sig[_NSIG_WORDS];
- } sigset_t;
-@@ -88,6 +88,6 @@ typedef struct sigaltstack {
- 	__kernel_size_t ss_size;
- } stack_t;
+-KBUILD_AFLAGS  := $(KBUILD_CFLAGS) -D__ASSEMBLY__
++KBUILD_AFLAGS  := $(KBUILD_CFLAGS)
  
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
+ KBUILD_LDFLAGS := -m elf_$(UTS_MACHINE)
+ KBUILD_LDFLAGS += $(call ld-option,--no-ld-generated-unwind-info)
+diff --git a/arch/x86/realmode/rm/Makefile b/arch/x86/realmode/rm/Makefile
+index a0fb39abc5c86..20bbe1af05acd 100644
+--- a/arch/x86/realmode/rm/Makefile
++++ b/arch/x86/realmode/rm/Makefile
+@@ -65,5 +65,5 @@ $(obj)/realmode.relocs: $(obj)/realmode.elf FORCE
  
- #endif /* _UAPI__ASM_GENERIC_SIGNAL_H */
-diff --git a/include/uapi/linux/a.out.h b/include/uapi/linux/a.out.h
-index 5fafde3798e57..cbcc37674e64c 100644
---- a/include/uapi/linux/a.out.h
-+++ b/include/uapi/linux/a.out.h
-@@ -10,7 +10,7 @@
+ KBUILD_CFLAGS	:= $(REALMODE_CFLAGS) -D_SETUP -D_WAKEUP \
+ 		   -I$(srctree)/arch/x86/boot
+-KBUILD_AFLAGS	:= $(KBUILD_CFLAGS) -D__ASSEMBLY__
++KBUILD_AFLAGS	:= $(KBUILD_CFLAGS)
+ KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
+diff --git a/arch/xtensa/kernel/Makefile b/arch/xtensa/kernel/Makefile
+index d3ef0407401f6..ece4ae6dea97d 100644
+--- a/arch/xtensa/kernel/Makefile
++++ b/arch/xtensa/kernel/Makefile
+@@ -39,7 +39,7 @@ sed-y = -e ':a; s/\*(\([^)]*\)\.text\.unlikely/*(\1.literal.unlikely .{text}.unl
+ 	-e 's/\.{text}/.text/g'
  
- #endif /* __STRUCT_EXEC_OVERRIDE__ */
+ quiet_cmd__cpp_lds_S = LDS     $@
+-cmd__cpp_lds_S = $(CPP) $(cpp_flags) -P -C -Uxtensa -D__ASSEMBLY__ \
++cmd__cpp_lds_S = $(CPP) $(cpp_flags) -P -C -Uxtensa \
+ 		 -DLINKER_SCRIPT $< | sed $(sed-y) >$@
  
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
+ $(obj)/vmlinux.lds: $(src)/vmlinux.lds.S FORCE
+diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
+index e386ffd009b7e..33e83e39a7f48 100644
+--- a/drivers/firmware/efi/libstub/Makefile
++++ b/drivers/firmware/efi/libstub/Makefile
+@@ -62,7 +62,7 @@ KBUILD_CFLAGS := $(filter-out $(CC_FLAGS_LTO), $(KBUILD_CFLAGS))
+ # `-fdata-sections` flag from KBUILD_CFLAGS_KERNEL
+ KBUILD_CFLAGS_KERNEL := $(filter-out -fdata-sections, $(KBUILD_CFLAGS_KERNEL))
  
- /* these go in the N_MACHTYPE field */
- enum machine_type {
-@@ -247,5 +247,5 @@ struct relocation_info
- };
- #endif /* no N_RELOCATION_INFO_DECLARED.  */
+-KBUILD_AFLAGS			:= $(KBUILD_CFLAGS) -D__ASSEMBLY__
++KBUILD_AFLAGS			:= $(KBUILD_CFLAGS)
  
--#endif /*__ASSEMBLY__ */
-+#endif /*__ASSEMBLER__ */
- #endif /* _UAPI__A_OUT_GNU_H__ */
-diff --git a/include/uapi/linux/const.h b/include/uapi/linux/const.h
-index b8f629ef135f3..42c89884b6be1 100644
---- a/include/uapi/linux/const.h
-+++ b/include/uapi/linux/const.h
-@@ -13,7 +13,7 @@
-  * leave it unchanged in asm.
+ lib-y				:= efi-stub-helper.o gop.o secureboot.o tpm.o \
+ 				   file.o mem.o random.o randomalloc.o pci.o \
+diff --git a/drivers/net/wan/Makefile b/drivers/net/wan/Makefile
+index 00e9b7ee1e012..4233143534465 100644
+--- a/drivers/net/wan/Makefile
++++ b/drivers/net/wan/Makefile
+@@ -57,7 +57,7 @@ $(obj)/wanxlfw.bin: $(obj)/wanxlfw.o FORCE
+ 	$(call if_changed,m68kld_bin_o)
+ 
+ quiet_cmd_m68kas_o_S = M68KAS  $@
+-      cmd_m68kas_o_S = $(M68KCC) -D__ASSEMBLY__ -Wp,-MD,$(depfile) -I$(srctree)/include/uapi -c -o $@ $<
++      cmd_m68kas_o_S = $(M68KCC) -Wp,-MD,$(depfile) -I$(srctree)/include/uapi -c -o $@ $<
+ 
+ $(obj)/wanxlfw.o: $(src)/wanxlfw.S FORCE
+ 	$(call if_changed_dep,m68kas_o_S)
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 3652b85be5459..df26ed7905d08 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -441,7 +441,7 @@ targets += $(lib-y) $(always-y)
+ # ---------------------------------------------------------------------------
+ quiet_cmd_cpp_lds_S = LDS     $@
+       cmd_cpp_lds_S = $(CPP) $(cpp_flags) -P -U$(ARCH) \
+-	                     -D__ASSEMBLY__ -DLINKER_SCRIPT -o $@ $<
++	                     -DLINKER_SCRIPT -o $@ $<
+ 
+ $(obj)/%.lds: $(src)/%.lds.S FORCE
+ 	$(call if_changed_dep,cpp_lds_S)
+diff --git a/scripts/gfp-translate b/scripts/gfp-translate
+index 8385ae0d5af93..f6353795fdca3 100755
+--- a/scripts/gfp-translate
++++ b/scripts/gfp-translate
+@@ -73,7 +73,7 @@ echo Parsing: $GFPMASK
+ #include <stdio.h>
+ 
+ // Try to fool compiler.h into not including extra stuff
+-#define __ASSEMBLY__	1
++#define __ASSEMBLER__	1
+ 
+ #include <generated/autoconf.h>
+ #include <linux/gfp_types.h>
+diff --git a/tools/testing/selftests/kvm/lib/riscv/handlers.S b/tools/testing/selftests/kvm/lib/riscv/handlers.S
+index b787b982e922a..c8cc2d695f483 100644
+--- a/tools/testing/selftests/kvm/lib/riscv/handlers.S
++++ b/tools/testing/selftests/kvm/lib/riscv/handlers.S
+@@ -3,10 +3,6 @@
+  * Copyright (c) 2023 Intel Corporation
   */
  
--#ifdef __ASSEMBLY__
-+#ifdef __ASSEMBLER__
- #define _AC(X,Y)	X
- #define _AT(T,X)	X
- #else
-@@ -28,7 +28,7 @@
- #define _BITUL(x)	(_UL(1) << (x))
- #define _BITULL(x)	(_ULL(1) << (x))
- 
--#if !defined(__ASSEMBLY__)
-+#if !defined(__ASSEMBLER__)
- /*
-  * Missing asm support
-  *
-diff --git a/include/uapi/linux/edd.h b/include/uapi/linux/edd.h
-index 0fe3e02aec653..566f206964862 100644
---- a/include/uapi/linux/edd.h
-+++ b/include/uapi/linux/edd.h
-@@ -53,7 +53,7 @@
- #define EDD_MBR_SIG_NR_BUF 0x1ea  /* addr of number of MBR signtaures at EDD_MBR_SIG_BUF
- 				     in boot_params - treat this as 1 byte  */
- 
 -#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
+-#define __ASSEMBLY__
+-#endif
+-
+ #include <asm/csr.h>
  
- #define EDD_EXT_FIXED_DISK_ACCESS           (1 << 0)
- #define EDD_EXT_DEVICE_LOCKING_AND_EJECTING (1 << 1)
-@@ -187,6 +187,6 @@ struct edd {
- 	unsigned char edd_info_nr;
- };
- 
--#endif				/*!__ASSEMBLY__ */
-+#endif				/*!__ASSEMBLER__ */
- 
- #endif /* _UAPI_LINUX_EDD_H */
-diff --git a/include/uapi/linux/hdlc/ioctl.h b/include/uapi/linux/hdlc/ioctl.h
-index b06341acab5ec..0905383d72aa5 100644
---- a/include/uapi/linux/hdlc/ioctl.h
-+++ b/include/uapi/linux/hdlc/ioctl.h
-@@ -35,7 +35,7 @@
- #define LMI_CCITT		3 /* ITU-T Annex A */
- #define LMI_CISCO		4 /* The "original" LMI, aka Gang of Four */
- 
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- 
- typedef struct {
- 	unsigned int clock_rate; /* bits per second */
-@@ -90,5 +90,5 @@ typedef struct {
- 
- /* PPP doesn't need any info now - supply length = 0 to ioctl */
- 
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
- #endif /* __HDLC_IOCTL_H__ */
-diff --git a/include/uapi/linux/sched.h b/include/uapi/linux/sched.h
-index 359a14cc76a40..30f0c11959011 100644
---- a/include/uapi/linux/sched.h
-+++ b/include/uapi/linux/sched.h
-@@ -43,7 +43,7 @@
-  */
- #define CLONE_NEWTIME	0x00000080	/* New time namespace */
- 
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- /**
-  * struct clone_args - arguments for the clone3 syscall
-  * @flags:        Flags for the new process as listed above.
-diff --git a/include/uapi/linux/types.h b/include/uapi/linux/types.h
-index 48b933938877d..00743f894e7e3 100644
---- a/include/uapi/linux/types.h
-+++ b/include/uapi/linux/types.h
-@@ -4,7 +4,7 @@
- 
- #include <asm/types.h>
- 
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- #ifndef	__KERNEL__
- #ifndef __EXPORTED_HEADERS__
- #warning "Attempt to use kernel headers from user space, see https://kernelnewbies.org/KernelHeaders"
-@@ -59,5 +59,5 @@ typedef __u32 __bitwise __wsum;
- 
- typedef unsigned __bitwise __poll_t;
- 
--#endif /*  __ASSEMBLY__ */
-+#endif /*  __ASSEMBLER__ */
- #endif /* _UAPI_LINUX_TYPES_H */
-diff --git a/tools/include/uapi/linux/const.h b/tools/include/uapi/linux/const.h
-index b8f629ef135f3..42c89884b6be1 100644
---- a/tools/include/uapi/linux/const.h
-+++ b/tools/include/uapi/linux/const.h
-@@ -13,7 +13,7 @@
-  * leave it unchanged in asm.
+ .macro save_context
+diff --git a/tools/testing/selftests/vDSO/vgetrandom-chacha.S b/tools/testing/selftests/vDSO/vgetrandom-chacha.S
+index 16f985b089d45..42839c5cf5ec4 100644
+--- a/tools/testing/selftests/vDSO/vgetrandom-chacha.S
++++ b/tools/testing/selftests/vDSO/vgetrandom-chacha.S
+@@ -3,8 +3,6 @@
+  * Copyright (C) 2024 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
   */
  
--#ifdef __ASSEMBLY__
-+#ifdef __ASSEMBLER__
- #define _AC(X,Y)	X
- #define _AT(T,X)	X
- #else
-@@ -28,7 +28,7 @@
- #define _BITUL(x)	(_UL(1) << (x))
- #define _BITULL(x)	(_ULL(1) << (x))
- 
--#if !defined(__ASSEMBLY__)
-+#if !defined(__ASSEMBLER__)
- /*
-  * Missing asm support
-  *
-diff --git a/tools/perf/trace/beauty/include/uapi/linux/sched.h b/tools/perf/trace/beauty/include/uapi/linux/sched.h
-index 359a14cc76a40..30f0c11959011 100644
---- a/tools/perf/trace/beauty/include/uapi/linux/sched.h
-+++ b/tools/perf/trace/beauty/include/uapi/linux/sched.h
-@@ -43,7 +43,7 @@
-  */
- #define CLONE_NEWTIME	0x00000080	/* New time namespace */
- 
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- /**
-  * struct clone_args - arguments for the clone3 syscall
-  * @flags:        Flags for the new process as listed above.
+-#define __ASSEMBLY__
+-
+ #if defined(__aarch64__)
+ #include "../../../../arch/arm64/kernel/vdso/vgetrandom-chacha.S"
+ #elif defined(__loongarch__)
 -- 
 2.53.0
 
