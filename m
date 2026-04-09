@@ -1,210 +1,133 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id BBD5237F75B;
-	Thu,  9 Apr 2026 07:42:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6107037F01F
+	for <linux-arch@vger.kernel.org>; Thu,  9 Apr 2026 07:44:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775720571; cv=none; b=TsAs93D767QXCoaNj6S6RrSFQRAJo4n8uMOWpEKM0YuZvUFHcaHKRpXc3uwBMfLfGJ7KPIP0HVndY05WtlXbV7tzkg/1xviIzAsp6pNgX8Uh91vKnuyt66ZLru3TVjg3dX65cuLVWX0EZUv9FjHDiENblUu4z1wdl6fFOWqcBk0=
+	t=1775720669; cv=none; b=ggLKkDg2nJLyC20WFecjqXzy35/4A/UKXDME6t1e2w4fty6HFtLBMozjzZ+96VFeE6VnfIJkIJPpVXAu1IEk3b5j0ziVAc3Ul3TzqSloppiosQ+ZVdvvRNOK4wT8gEb2BSqCqtA0T5C9oorz+MOzvzjeHyCm+sSbhAhk9b4Jewg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775720571; c=relaxed/simple;
-	bh=1WW7kSn9WxA8RcNQPxCAbLe2xCMWLXrH3wMCxgS7DNE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=KGFa7gu8pGFuaVTl7wif5iSYWgRG3dyT/ZWQJIqsNLw6hIUxyVwAFRGJUaO7lH0hImmyBZ5I8zwES4A4+2a6wtuYOZrVrO0ZbjghBEFeDxlvBl10pOYSthTwo1W4h0/Ws4P8gmm7RLcjNFEEgfRRMFb7795I/fozJ21QjSydt0o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=d8GUs/B3; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1775720669; c=relaxed/simple;
+	bh=JHc0rpT0VXACQqLal9pb1BOk7zluaiOXSCKc5SYV09c=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=q6B8vEpWLchAGafScxVFHm0Tj3apUN3UNYDcZwHoe7oBNS0zmXalz6JB7y/VmoiwDLVvcrRzIHnFjrKDVlUfLYigXquxcNyMqZwT/f+SGNRLRy8V+vSwDjNZkA7bR2MGsvnuJ1LgzeArk4+jRvrUzTxXlI4QEJEE2P7e3pcYX2Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=SO+NcJvH; arc=none smtp.client-ip=209.85.128.42
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="d8GUs/B3"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 020763561;
-	Thu,  9 Apr 2026 00:42:40 -0700 (PDT)
-Received: from J2N7QTR9R3 (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id E2BFD3F632;
-	Thu,  9 Apr 2026 00:42:39 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1775720565; bh=1WW7kSn9WxA8RcNQPxCAbLe2xCMWLXrH3wMCxgS7DNE=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=d8GUs/B3jDW2frdZiV8QPiYbk9v18VZd7X15RxiS1RqB+79dOyj9M/gsATt3nMdbo
-	 sfUtUYCcV+gEJlbpIFOxTu0F6+OEFgVqJOQyRKt9wK39FJm3q0cUrfDwdmVVz7kTRT
-	 6fWMWLO4tHky73CtIu7mYttYuuLUx2FUb47JuCq0=
-Date: Thu, 9 Apr 2026 08:42:37 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-To: Jinjie Ruan <ruanjinjie@huawei.com>
-Cc: catalin.marinas@arm.com, will@kernel.org, chenhuacai@kernel.org,
-	kernel@xen0n.name, hca@linux.ibm.com, gor@linux.ibm.com,
-	agordeev@linux.ibm.com, borntraeger@linux.ibm.com,
-	svens@linux.ibm.com, oleg@redhat.com, tglx@kernel.org,
-	mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com,
-	hpa@zytor.com, arnd@arndb.de, shuah@kernel.org,
-	kevin.brodsky@arm.com, yeoreum.yun@arm.com,
-	anshuman.khandual@arm.com, thuth@redhat.com, ryan.roberts@arm.com,
-	song@kernel.org, ziyao@disroot.org, linusw@kernel.org,
-	schuster.simon@siemens-energy.com, jremus@linux.ibm.com,
-	akpm@linux-foundation.org, mathieu.desnoyers@efficios.com,
-	kmal@cock.li, dvyukov@google.com, reddybalavignesh9979@gmail.com,
-	x86@kernel.org, linux-arm-kernel@lists.infradead.org,
-	linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
-	linux-s390@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-kselftest@vger.kernel.org
-Subject: Re: [PATCH v14 2/4] asm-generic: Move TIF_SINGLESTEP to generic TIF
- bits
-Message-ID: <addYbV3_9eFZg_b4@J2N7QTR9R3>
-References: <20260320104222.1381274-1-ruanjinjie@huawei.com>
- <20260320104222.1381274-3-ruanjinjie@huawei.com>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="SO+NcJvH"
+Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-488ba6366a7so6542225e9.0
+        for <linux-arch@vger.kernel.org>; Thu, 09 Apr 2026 00:44:28 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1775720667; x=1776325467; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=5zM/QUh5nNxcZ3yr09S8to3CJRO3tIlUiWsJb2TzILo=;
+        b=SO+NcJvHFD/9qe5Egn3P6W48F9CZYzAPtrX4GdPVGj6g81/E7eZhu2lVIvZxQfA118
+         G5PONf+ut98XxNhHFDxd8IR/kHOMMgXsvkfBd/T/Pxy1MdGs5R5bz3l4+XjhJtGN16wq
+         bc5nQ0YyAldvDNkDM++3VlkHs3oEt3dxlCVePCwOBYBpe+8MUIXzoFWdXcQFpZkwLc/N
+         d8Lxf8uss1M+AkpgRWnHIdL+G8b6bNVN3MZninzXxN8cSoV6F6ISO1qrOB4a9EYiTJ0Z
+         IUczTDc2hIDx2Z86juPoCMQGvDV6hYARmUak2ZPTM2wj9tneB7YoO5LOd97QpepX52tp
+         1/eQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1775720667; x=1776325467;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=5zM/QUh5nNxcZ3yr09S8to3CJRO3tIlUiWsJb2TzILo=;
+        b=mwdoC78RAUrUoh0IWd0WM9QQ4Z3C8bPAgYDPrhCXlOpTw4xhsXDSytRra69d2Hr6Th
+         bvFMI9oAqv0YQ2aBQxmLMc4FaDhqX3bs+k1W+fR2DyqQtAb8PeUjkJo5lBbKEUgxh/Ik
+         xdwu454Y5lnqSixWQavFzJ36AvP+rduhdqhttuGGz9duuQS4WFuIF1ToQOnAGA0ZJlak
+         ngOr9oryUW1pPqnOn+GHC0Ye+5ouULI6meUcCpzwlJ0EOat86TY1dfaNeNVxwJGbUxCc
+         20TDR369wyA/QjvjqW20+5M0VcG010PGnK4hKtAg20llkjVbr+dtT0jyRE6CCFm7TQIa
+         oDuw==
+X-Forwarded-Encrypted: i=1; AJvYcCXQ/XgwKyDFSRqiZYweMQgbH7BaAIP0M/qY8InjagpvXvAEgTemZT5ziN6TiUccXS/MAhVMcVkoQVud@vger.kernel.org
+X-Gm-Message-State: AOJu0YwvVyEI7J62tmCnXJk32ulD7q27UFRn/RJWnUsbHFitE0aa6Osc
+	1TxgMoucsWVtbK2ZrWkfUPT+21MmCl7dQINQDE7MhBwzRBGw2nUsTXxh
+X-Gm-Gg: AeBDies1YaQmO2UY39U9LwMV4RjHwzf5ZW3zyjEXicgDSCckMwgOuQI0Hw3TQcr2fni
+	bTNu9gymDyNV3U1f9z6dfQ7/vDDUExC2NdVAlTNrzhu358tEr6DmBhFbo9nroEdTXFr7Qo6uz//
+	KWjEDH9eJxCvcXuIXy7yh+qb8AtW5L8OpYhJ1yegEvhfCc00WifZc7ztretmziCWIesRZAkMTnQ
+	/hZknftWScS8cUh36ZogdaOMhkTPZQeHKS6WRZ5t+1G+mlrIuEi0aytiHi5HdJA7tUyPOd/R+Xe
+	1SspU0IFLeUokc+8CQPBZ1AMdEW1qaOJMtTyWBw2WPNRNgFbepjfTpN5eVL7DoZQI/FPfzsN//O
+	qzR8Z9XC+kmCPfTByxcVEj9Zx4e8flCjuFi5sRkAPXNMFLzBRiVEpTCFWeflomc4s5c+5h+DdKa
+	ZG4XJSlaHrqhu+IiuWD1T2DCyQiH8/BGFN1VGjSZLpkSKX3IAgZo90hLrrLAZ4ux/I
+X-Received: by 2002:a05:600c:5292:b0:488:8c89:cfaa with SMTP id 5b1f17b1804b1-488996b021fmr370012665e9.3.1775720666526;
+        Thu, 09 Apr 2026 00:44:26 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-488cfa759bdsm33438345e9.12.2026.04.09.00.44.25
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 09 Apr 2026 00:44:26 -0700 (PDT)
+Date: Thu, 9 Apr 2026 08:44:24 +0100
+From: David Laight <david.laight.linux@gmail.com>
+To: Jori Koolstra <jkoolstra@xs4all.nl>
+Cc: Mateusz Guzik <mjguzik@gmail.com>, Andy Lutomirski <luto@kernel.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav
+ Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
+ x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner
+ <brauner@kernel.org>, Jeff Layton <jlayton@kernel.org>, Chuck Lever
+ <chuck.lever@oracle.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan
+ <shuah@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H.
+ Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, Alexander Aring
+ <alex.aring@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Oleg
+ Nesterov <oleg@redhat.com>, Andrey Albershteyn <aalbersh@redhat.com>, Jiri
+ Olsa <jolsa@kernel.org>, Mathieu Desnoyers
+ <mathieu.desnoyers@efficios.com>, Thomas =?UTF-8?B?V2Vpw59zY2h1aA==?=
+ <thomas.weissschuh@linutronix.de>, Namhyung Kim <namhyung@kernel.org>,
+ Arnaldo Carvalho de Melo <acme@redhat.com>, Aleksa Sarai
+ <cyphar@cyphar.com>, linux-kernel@vger.kernel.org,
+ linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org,
+ cmirabil@redhat.com, "Masami Hiramatsu (Google)" <mhiramat@kernel.org>
+Subject: Re: [RFC PATCH 1/2] vfs: syscalls: add mkdirat_fd()
+Message-ID: <20260409084424.6030eea2@pumpkin>
+In-Reply-To: <1333067272.1649333.1775682991132@kpc.webmail.kpnmail.nl>
+References: <20260331172011.3512876-1-jkoolstra@xs4all.nl>
+	<20260331172011.3512876-2-jkoolstra@xs4all.nl>
+	<pbobkjhtuli53o3z34ajyxztaosmztwlygxfxhhjq5ajt47inc@ngtoge3ucdm5>
+	<1632825771.784338.1775039101736@kpc.webmail.kpnmail.nl>
+	<CAGudoHE-zSfiL2aVf41UHOtMsE53gCqLpVoy-NxoB8HeXtdgEA@mail.gmail.com>
+	<1333067272.1649333.1775682991132@kpc.webmail.kpnmail.nl>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260320104222.1381274-3-ruanjinjie@huawei.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Fri, Mar 20, 2026 at 06:42:20PM +0800, Jinjie Ruan wrote:
-> Currently, x86, ARM64, s390, and LoongArch all define and use
-> TIF_SINGLESTEP to track single-stepping state.
+On Wed, 8 Apr 2026 23:16:31 +0200 (CEST)
+Jori Koolstra <jkoolstra@xs4all.nl> wrote:
 
-Do the architectures actually use the flag in the same way?
+> > Op 07-04-2026 11:00 CEST schreef Mateusz Guzik <mjguzik@gmail.com>:
+...
+> > I am not saying it's impossible. I am saying mkdir was always a
+> > separate codepath and in order to change that you would need to add a
+> > branchfest to open. I don't see any reason to go that route.
 
-I'd expect that this is used subtly differently across those
-architectures, and so isn't necessarily generic.
+The open code is complex enough that an extra branch won't matter. 
 
-> Since this flag is shared across multiple major architectures and serves
-> a common purpose in the generic entry/exit paths, move TIF_SINGLESTEP
-> into the generic Thread Information Flags (TIF) infrastructure.
+> That's a fair point. But there's also upsides like Aleksa has mentioned.
+> I'm not very opinionated on the matter, especially since I don't know why
+> those paths were ever separated.
+
+I doubt they were ever joined.
+mkdir() is more likely to have been separated from mknod() when the code
+to add the "." and ".." entries was moved into the kernel filesystem code.
+I'm not sure when that would have happened, mvdir() was done in userspace
+with the link() and unlink() system calls until (at least) the mid 1980s.
+It was probably the complexity of locking in SMP kernels that make both "."
+and ".." be 'canned' names rather than just references to another directory.
+(Yes, it used to be easy to make ".." refer to the 'wrong' place and get
+find to loop.)
+Of course, this all predates Linux.
+
+	David
+
 > 
-> This consolidation reduces architecture-specific boilerplate code and
-> ensures consistency for generic features that rely on single-step
-> state tracking.
-
-Is it necessary to make this generic in order to move to generic irq
-flags? I'd expect that generic code cannot make use of this due to the
-different semantics across architectures, as noted abobve.
-
-I think it's probably better to keep this architecture-specific for now,
-where architectures can clearly define how they're using this bit.
-
-Am I missing some reason why it's necessary to make this generic?
-
-Mark.
-
-> Cc: Thomas Gleixner <tglx@kernel.org>
-> Reviewed-by: Kevin Brodsky <kevin.brodsky@arm.com>
-> Reviewed-by: Linus Walleij <linusw@kernel.org>
-> Reviewed-by: Yeoreum Yun <yeoreum.yun@arm.com>
-> Acked-by: Heiko Carstens <hca@linux.ibm.com> # s390
-> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
-> ---
->  arch/loongarch/include/asm/thread_info.h | 11 +++++------
->  arch/s390/include/asm/thread_info.h      |  7 +++----
->  arch/x86/include/asm/thread_info.h       |  6 ++----
->  include/asm-generic/thread_info_tif.h    |  5 +++++
->  4 files changed, 15 insertions(+), 14 deletions(-)
+> Thanks,
+> Jori.
 > 
-> diff --git a/arch/loongarch/include/asm/thread_info.h b/arch/loongarch/include/asm/thread_info.h
-> index 4d7117fcdc78..a2ec87f18e1d 100644
-> --- a/arch/loongarch/include/asm/thread_info.h
-> +++ b/arch/loongarch/include/asm/thread_info.h
-> @@ -70,6 +70,7 @@ register unsigned long current_stack_pointer __asm__("$sp");
->   */
->  #define HAVE_TIF_NEED_RESCHED_LAZY
->  #define HAVE_TIF_RESTORE_SIGMASK
-> +#define HAVE_TIF_SINGLESTEP
->  
->  #include <asm-generic/thread_info_tif.h>
->  
-> @@ -82,11 +83,10 @@ register unsigned long current_stack_pointer __asm__("$sp");
->  #define TIF_32BIT_REGS		21	/* 32-bit general purpose registers */
->  #define TIF_32BIT_ADDR		22	/* 32-bit address space */
->  #define TIF_LOAD_WATCH		23	/* If set, load watch registers */
-> -#define TIF_SINGLESTEP		24	/* Single Step */
-> -#define TIF_LSX_CTX_LIVE	25	/* LSX context must be preserved */
-> -#define TIF_LASX_CTX_LIVE	26	/* LASX context must be preserved */
-> -#define TIF_USEDLBT		27	/* LBT was used by this task this quantum (SMP) */
-> -#define TIF_LBT_CTX_LIVE	28	/* LBT context must be preserved */
-> +#define TIF_LSX_CTX_LIVE	24	/* LSX context must be preserved */
-> +#define TIF_LASX_CTX_LIVE	25	/* LASX context must be preserved */
-> +#define TIF_USEDLBT		26	/* LBT was used by this task this quantum (SMP) */
-> +#define TIF_LBT_CTX_LIVE	27	/* LBT context must be preserved */
->  
->  #define _TIF_NOHZ		BIT(TIF_NOHZ)
->  #define _TIF_USEDFPU		BIT(TIF_USEDFPU)
-> @@ -96,7 +96,6 @@ register unsigned long current_stack_pointer __asm__("$sp");
->  #define _TIF_32BIT_REGS		BIT(TIF_32BIT_REGS)
->  #define _TIF_32BIT_ADDR		BIT(TIF_32BIT_ADDR)
->  #define _TIF_LOAD_WATCH		BIT(TIF_LOAD_WATCH)
-> -#define _TIF_SINGLESTEP		BIT(TIF_SINGLESTEP)
->  #define _TIF_LSX_CTX_LIVE	BIT(TIF_LSX_CTX_LIVE)
->  #define _TIF_LASX_CTX_LIVE	BIT(TIF_LASX_CTX_LIVE)
->  #define _TIF_USEDLBT		BIT(TIF_USEDLBT)
-> diff --git a/arch/s390/include/asm/thread_info.h b/arch/s390/include/asm/thread_info.h
-> index 1bcd42614e41..95be5258a422 100644
-> --- a/arch/s390/include/asm/thread_info.h
-> +++ b/arch/s390/include/asm/thread_info.h
-> @@ -61,6 +61,7 @@ void arch_setup_new_exec(void);
->   */
->  #define HAVE_TIF_NEED_RESCHED_LAZY
->  #define HAVE_TIF_RESTORE_SIGMASK
-> +#define HAVE_TIF_SINGLESTEP
->  
->  #include <asm-generic/thread_info_tif.h>
->  
-> @@ -69,15 +70,13 @@ void arch_setup_new_exec(void);
->  #define TIF_GUARDED_STORAGE	17	/* load guarded storage control block */
->  #define TIF_ISOLATE_BP_GUEST	18	/* Run KVM guests with isolated BP */
->  #define TIF_PER_TRAP		19	/* Need to handle PER trap on exit to usermode */
-> -#define TIF_SINGLESTEP		21	/* This task is single stepped */
-> -#define TIF_BLOCK_STEP		22	/* This task is block stepped */
-> -#define TIF_UPROBE_SINGLESTEP	23	/* This task is uprobe single stepped */
-> +#define TIF_BLOCK_STEP		20	/* This task is block stepped */
-> +#define TIF_UPROBE_SINGLESTEP	21	/* This task is uprobe single stepped */
->  
->  #define _TIF_ASCE_PRIMARY	BIT(TIF_ASCE_PRIMARY)
->  #define _TIF_GUARDED_STORAGE	BIT(TIF_GUARDED_STORAGE)
->  #define _TIF_ISOLATE_BP_GUEST	BIT(TIF_ISOLATE_BP_GUEST)
->  #define _TIF_PER_TRAP		BIT(TIF_PER_TRAP)
-> -#define _TIF_SINGLESTEP	BIT(TIF_SINGLESTEP)
->  #define _TIF_BLOCK_STEP		BIT(TIF_BLOCK_STEP)
->  #define _TIF_UPROBE_SINGLESTEP	BIT(TIF_UPROBE_SINGLESTEP)
->  
-> diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
-> index 0067684afb5b..f59072ba1473 100644
-> --- a/arch/x86/include/asm/thread_info.h
-> +++ b/arch/x86/include/asm/thread_info.h
-> @@ -98,9 +98,8 @@ struct thread_info {
->  #define TIF_IO_BITMAP		22	/* uses I/O bitmap */
->  #define TIF_SPEC_FORCE_UPDATE	23	/* Force speculation MSR update in context switch */
->  #define TIF_FORCED_TF		24	/* true if TF in eflags artificially */
-> -#define TIF_SINGLESTEP		25	/* reenable singlestep on user return*/
-> -#define TIF_BLOCKSTEP		26	/* set when we want DEBUGCTLMSR_BTF */
-> -#define TIF_ADDR32		27	/* 32-bit address space on 64 bits */
-> +#define TIF_BLOCKSTEP		25	/* set when we want DEBUGCTLMSR_BTF */
-> +#define TIF_ADDR32		26	/* 32-bit address space on 64 bits */
->  
->  #define _TIF_SSBD		BIT(TIF_SSBD)
->  #define _TIF_SPEC_IB		BIT(TIF_SPEC_IB)
-> @@ -112,7 +111,6 @@ struct thread_info {
->  #define _TIF_SPEC_FORCE_UPDATE	BIT(TIF_SPEC_FORCE_UPDATE)
->  #define _TIF_FORCED_TF		BIT(TIF_FORCED_TF)
->  #define _TIF_BLOCKSTEP		BIT(TIF_BLOCKSTEP)
-> -#define _TIF_SINGLESTEP		BIT(TIF_SINGLESTEP)
->  #define _TIF_ADDR32		BIT(TIF_ADDR32)
->  
->  /* flags to check in __switch_to() */
-> diff --git a/include/asm-generic/thread_info_tif.h b/include/asm-generic/thread_info_tif.h
-> index da1610a78f92..b277fe06aee3 100644
-> --- a/include/asm-generic/thread_info_tif.h
-> +++ b/include/asm-generic/thread_info_tif.h
-> @@ -48,4 +48,9 @@
->  #define TIF_RSEQ		11	// Run RSEQ fast path
->  #define _TIF_RSEQ		BIT(TIF_RSEQ)
->  
-> +#ifdef HAVE_TIF_SINGLESTEP
-> +#define TIF_SINGLESTEP		12	/* reenable singlestep on user return*/
-> +#define _TIF_SINGLESTEP		BIT(TIF_SINGLESTEP)
-> +#endif
-> +
->  #endif /* _ASM_GENERIC_THREAD_INFO_TIF_H_ */
-> -- 
-> 2.34.1
-> 
+
