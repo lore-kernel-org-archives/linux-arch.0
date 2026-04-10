@@ -1,98 +1,141 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id DAE9F2F7445;
-	Fri, 10 Apr 2026 09:37:54 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 92C2C3E3D9E;
+	Fri, 10 Apr 2026 18:10:29 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775813877; cv=none; b=Nu+Y14keDsKxndDL4Dkk6zqScUE6OQqQZR8TlKJH2aUFEJp5hqgUtSOw9G06kcyPGNnBT1W3JvAlNzz1d1EOaIs3qtGsv+FdCsa9aU22oRU6+SNUwbnWPBKTBeq2XzVVaonjGBQp3hygda+tDw0gfG88TeJYNxVbKbBBAVdqKbk=
+	t=1775844632; cv=none; b=C6iQpJDSEO8+wwFfZR3haThmJAsg44W9UqnyGMwDC6GWEyb05Uq2A/DzY+axEjrefbFfO29kGkc8NP1/JP2mja9op8G4DXyBl+EpAMwEsLOPvnPDR9QJcgwbFPj0C/ywOEcrk59NUB7r0/cfhtuWyRxkpkurofdWeHPv/ngjgnw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775813877; c=relaxed/simple;
-	bh=SmJwPkp0nb0Ve3Bz5iCXglHNYcVEz5wLti0b0rFKeWc=;
+	s=arc-20240116; t=1775844632; c=relaxed/simple;
+	bh=+Xbj23Mi6qAaExaiR0u97sstQzaeHen25NLGeWwaLoQ=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=jCfINdeZ27kxybHJkOoFVnJABA3kmFZ2i3sPK1NeC/i64o40FWUd9WygUeqdwNwuRsJVqpJsZ59P0VaNz6MImHP736yFkw3KezvUlHbnAIbmfjDNAD5csTl+CPthG7iq+mhg015FJdAO/p+Xiy04SGu868C9/N3ljU0tYXIWJ8Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=PUJ88Z+u; arc=none smtp.client-ip=217.140.110.172
+	 Content-Type:Content-Disposition:In-Reply-To; b=hZIld+DmdUzeFtOGH9o3CE8YRp1/Y/tw+XSYchkAkOctVYKfHlpOEBco3tEaF5zmRHJGE2psWHT/bPZoSykhYOpEHFFn3+Y4Cw/AbXrT8y4nGAf4/OOQ1FjX19csGMlC6Ql/ynPYbE7Ii6Lv9qGw4MfxJCOQKOlnZuxSNUSjohA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=nuw8MoyM; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="PUJ88Z+u"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="nuw8MoyM"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 425421D13;
-	Fri, 10 Apr 2026 02:37:48 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 06FC347E0;
+	Fri, 10 Apr 2026 11:10:23 -0700 (PDT)
 Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id A0DF23F632;
-	Fri, 10 Apr 2026 02:37:51 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 21F203F632;
+	Fri, 10 Apr 2026 11:10:25 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1775813873; bh=SmJwPkp0nb0Ve3Bz5iCXglHNYcVEz5wLti0b0rFKeWc=;
+	t=1775844628; bh=+Xbj23Mi6qAaExaiR0u97sstQzaeHen25NLGeWwaLoQ=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=PUJ88Z+upicQXln8DFiBGfr96f2uBf2ASbYsH8rM72E+kuoFdvMKH8bmio9mMf+wb
-	 j+mfu+vJDOcyJELgIoXve3XDH3vaB3z32C0emUTZgdFAbaHMq8yuRQbb8rDHnpvndX
-	 V6i42ghipdzWWaTAT1RnY+E1nPwJ++8YUgVHWHM4=
-Date: Fri, 10 Apr 2026 10:37:45 +0100
+	b=nuw8MoyM8SAW6vRkNF6p3aAK211yehk3V3tPN2NP5D36DfkVdOl+OZT5ogkGLDIQE
+	 USK4yLGGYX428oeGpi2j7Bh/lvd5jFP3A9ZKj1kIcfkWqjjfLFwpXmyrXZORrwBp4n
+	 Ax9kj27V5KCovEAIVO5YSw09ax1F9edXQrUs1OcA=
+Date: Fri, 10 Apr 2026 19:10:22 +0100
 From: Catalin Marinas <catalin.marinas@arm.com>
-To: K Prateek Nayak <kprateek.nayak@amd.com>
-Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+To: Muhammad Usama Anjum <usama.anjum@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>,
 	Peter Zijlstra <peterz@infradead.org>,
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	Will Deacon <will@kernel.org>,
-	David Laight <david.laight.linux@gmail.com>,
-	Darren Hart <dvhart@infradead.org>,
-	Davidlohr Bueso <dave@stgolabs.net>,
-	=?iso-8859-1?Q?Andr=E9?= Almeida <andrealmeid@igalia.com>,
+	Juri Lelli <juri.lelli@redhat.com>,
+	Vincent Guittot <vincent.guittot@linaro.org>,
+	Dietmar Eggemann <dietmar.eggemann@arm.com>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>,
+	Valentin Schneider <vschneid@redhat.com>,
+	Kees Cook <kees@kernel.org>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	David Hildenbrand <david@kernel.org>,
+	Lorenzo Stoakes <ljs@kernel.org>,
+	"Liam R. Howlett" <Liam.Howlett@oracle.com>,
+	Vlastimil Babka <vbabka@kernel.org>,
+	Mike Rapoport <rppt@kernel.org>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Michal Hocko <mhocko@suse.com>, Uladzislau Rezki <urezki@gmail.com>,
 	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org,
-	linux-arm-kernel@lists.infradead.org,
-	Jisheng Zhang <jszhang@kernel.org>
-Subject: Re: [PATCH v3 2/7] arm64/runtime-const: Use
- aarch64_insn_patch_text_nosync() for patching
-Message-ID: <adjE6WzFM7NogzlU@arm.com>
-References: <20260402112250.2138-1-kprateek.nayak@amd.com>
- <20260402112250.2138-3-kprateek.nayak@amd.com>
+	linux-mm@kvack.org, Andrey Konovalov <andreyknvl@gmail.com>,
+	Marco Elver <elver@google.com>,
+	Vincenzo Frascino <vincenzo.frascino@arm.com>,
+	Peter Collingbourne <pcc@google.com>, Will Deacon <will@kernel.org>,
+	Ryan.Roberts@arm.com, david.hildenbrand@arm.com
+Subject: Re: [PATCH v2 1/3] vmalloc: add __GFP_SKIP_KASAN support
+Message-ID: <adk9DjVvKDDAH2Pt@arm.com>
+References: <20260324132631.482520-1-usama.anjum@arm.com>
+ <20260324132631.482520-2-usama.anjum@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20260402112250.2138-3-kprateek.nayak@amd.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260324132631.482520-2-usama.anjum@arm.com>
 
-On Thu, Apr 02, 2026 at 11:22:45AM +0000, K Prateek Nayak wrote:
-> diff --git a/arch/arm64/include/asm/runtime-const.h b/arch/arm64/include/asm/runtime-const.h
-> index c3dbd3ae68f6..a3106f80912b 100644
-> --- a/arch/arm64/include/asm/runtime-const.h
-> +++ b/arch/arm64/include/asm/runtime-const.h
-> @@ -7,6 +7,7 @@
->  #endif
+On Tue, Mar 24, 2026 at 01:26:27PM +0000, Muhammad Usama Anjum wrote:
+> For allocations that will be accessed only with match-all pointers
+> (e.g., kernel stacks), setting tags is wasted work. If the caller
+> already set __GFP_SKIP_KASAN, don’t skip zeroing the pages and
+> don’t set KASAN_VMALLOC_PROT_NORMAL so kasan_unpoison_vmalloc()
+> returns early without tagging.
+> 
+> Before this patch, __GFP_SKIP_KASAN wasn't being used with vmalloc
+> APIs. So it wasn't being checked. Now its being checked and acted
+> upon. Other KASAN modes are unchanged because __GFP_SKIP_KASAN isn't
+> defined there.
+> 
+> This is a preparatory patch for optimizing kernel stack allocations.
+> 
+> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+> ---
+> Changes since v1:
+> - Simplify skip conditions based on the fact that __GFP_SKIP_KASAN
+>   is zero in non-hw-tags mode.
+> - Add __GFP_SKIP_KASAN to GFP_VMALLOC_SUPPORTED list of flags
+> ---
+>  mm/vmalloc.c | 11 ++++++++---
+>  1 file changed, 8 insertions(+), 3 deletions(-)
+> 
+> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+> index c607307c657a6..69ae205effb46 100644
+> --- a/mm/vmalloc.c
+> +++ b/mm/vmalloc.c
+> @@ -3939,7 +3939,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+>  				__GFP_NOFAIL | __GFP_ZERO |\
+>  				__GFP_NORETRY | __GFP_RETRY_MAYFAIL |\
+>  				GFP_NOFS | GFP_NOIO | GFP_KERNEL_ACCOUNT |\
+> -				GFP_USER | __GFP_NOLOCKDEP)
+> +				GFP_USER | __GFP_NOLOCKDEP | __GFP_SKIP_KASAN)
 >  
->  #include <asm/cacheflush.h>
-> +#include <asm/text-patching.h>
+>  static gfp_t vmalloc_fix_flags(gfp_t flags)
+>  {
+> @@ -3980,6 +3980,8 @@ static gfp_t vmalloc_fix_flags(gfp_t flags)
+>   *
+>   * %__GFP_NOWARN can be used to suppress failure messages.
+>   *
+> + * %__GFP_SKIP_KASAN can be used to skip poisoning
+> + *
+>   * Can not be called from interrupt nor NMI contexts.
+>   * Return: the address of the area or %NULL on failure
+>   */
+> @@ -4041,7 +4043,9 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
+>  	 * kasan_unpoison_vmalloc().
+>  	 */
+>  	if (pgprot_val(prot) == pgprot_val(PAGE_KERNEL)) {
+> -		if (kasan_hw_tags_enabled()) {
+> +		bool skip_kasan = gfp_mask & __GFP_SKIP_KASAN;
+> +
+> +		if (kasan_hw_tags_enabled() && !skip_kasan) {
+>  			/*
+>  			 * Modify protection bits to allow tagging.
+>  			 * This must be done before mapping.
+> @@ -4057,7 +4061,8 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
+>  		}
 >  
->  /* Sigh. You can still run arm64 in BE mode */
->  #include <asm/byteorder.h>
-> @@ -50,13 +51,7 @@ static inline void __runtime_fixup_16(__le32 *p, unsigned int val)
->  	u32 insn = le32_to_cpu(*p);
->  	insn &= 0xffe0001f;
->  	insn |= (val & 0xffff) << 5;
-> -	*p = cpu_to_le32(insn);
-> -}
-> -
-> -static inline void __runtime_fixup_caches(void *where, unsigned int insns)
-> -{
-> -	unsigned long va = (unsigned long)where;
-> -	caches_clean_inval_pou(va, va + 4*insns);
-> +	aarch64_insn_patch_text_nosync(p, insn);
->  }
+>  		/* Take note that the mapping is PAGE_KERNEL. */
+> -		kasan_flags |= KASAN_VMALLOC_PROT_NORMAL;
+> +		if (!skip_kasan)
+> +			kasan_flags |= KASAN_VMALLOC_PROT_NORMAL;
+>  	}
 
-Sashiko has some good points here:
-
-https://sashiko.dev/#/patchset/20260402112250.2138-1-kprateek.nayak@amd.com
-
-In short, aarch64_insn_patch_text_nosync() does not expect a linear map
-address but rather a kernel text one (or vmalloc/modules). The other
-valid point is on aliasing I-caches.
-
-I think dropping the lm_alias() and just use 'where' directly would do
-but I haven't tried.
+In the cover letter, you said that __GFP_SKIP_KASAN is only meant for
+KASAN_HW_TAGS. IIUC, here you skip passing KASAN_VMALLOC_PROT_NORMAL
+even for KASAN_SW_TAGS. The flag is used in mm/kasan/shadow.c.
 
 -- 
 Catalin
