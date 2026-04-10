@@ -1,76 +1,127 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pf1-f170.google.com (mail-pf1-f170.google.com [209.85.210.170])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40C9F3A168B
-	for <linux-arch@vger.kernel.org>; Fri, 10 Apr 2026 07:28:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775806092; cv=none; b=MPdM7ivk4c91DjeHf8QeXZDwahntq290b92L/C7v7YTSuFViONYe2Nb0CWj84qbr8yUeRfp/yXGzLIGmq05Hla6738+q0b8VH35wmw2kX/dxBYosEdrWCrnew8Jwmod4PTahRis5IYpVbP6c6CoxB2JA042OMdUlBu36tU04obY=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775806092; c=relaxed/simple;
-	bh=KG3SX1YChb1ct+6zF6NR9IEGP7iDFBUiJqLUoPURypA=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=lvpTiBp+LULisUZY/HGldi+bpEfspHHUO+Un0ts6Lfl6aUnAr5f7wPd8gcWE/vs6cy7DOBwkVy/gcv8wmViYAZZb0PZNs3FB5q5HEOSyb7qsJXFlqXxCXY2Z5GrdUQe/gjaXBaFpf/npM3pMRb6kgkgXrPJb/2OiG3LMFB/TcX4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=Erww+OFR; arc=none smtp.client-ip=170.10.133.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 32E4039E184
+	for <linux-arch@vger.kernel.org>; Fri, 10 Apr 2026 07:41:10 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.210.170
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1775806871; cv=pass; b=Gf1/4NPZgPG2959b014LBqx29ip9lbqEV9sAfcAXeKplr4lu1mGpSr8pnphuOD33GRTe2WE6rIqlQ5jP8X9S9Ipbz79dzj024qpGpwac1c1IdmUCmacn3t9B23z4EMS4qpQmbWiL0QOAu5iEnvskKbueCQQOT50KDX7sYf4h8N0=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1775806871; c=relaxed/simple;
+	bh=IDdcP5PunTf9H+4SJfKGmj4edsKHuDSLPd+6NKyAilM=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=kTRIz+ry7xmAD8iE9aZClhk0ItxoFQAA9DWvksy5Vh36lFkyQdFUindz9gRM3Nu0z4V+i6dj854iIMIrEEOJvl86N+pdqOuXTbfd4WuTGDFT1EDMaNby/GVMQkDNEw10D9C3jZW6kZNisHeHeqApFo2RqXPB0xm0wpeUQLxc+7M=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=GST7h6Cm; arc=pass smtp.client-ip=209.85.210.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="Erww+OFR"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1775806090;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=wAD6x7ZHet8MHOjXGQZEBEeNflFtc66dfEcX7Gn2HpI=;
-	b=Erww+OFRYV8yTl1imrZ0F/XO4uB8kdxE4B9K6myRmzduMAMnDEFls/3vqRSZdyfnTL1DNZ
-	Br17aomkePS3OmLnxoUp/HL8U4hSRez/l/OVSoe2//0G7OH4AZuk5vYrGSMeX568uq2Ezw
-	mrXJpFqRR9bFOhCrFljQ+Ed/Pp59YRE=
-Received: from mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-194-brPOQarDOye-zE5p7smMSA-1; Fri,
- 10 Apr 2026 03:28:05 -0400
-X-MC-Unique: brPOQarDOye-zE5p7smMSA-1
-X-Mimecast-MFC-AGG-ID: brPOQarDOye-zE5p7smMSA_1775806084
-Received: from mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.12])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id D85221800365;
-	Fri, 10 Apr 2026 07:28:03 +0000 (UTC)
-Received: from fweimer-oldenburg.csb.redhat.com (unknown [10.2.16.5])
-	by mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id BD45219560AB;
-	Fri, 10 Apr 2026 07:28:01 +0000 (UTC)
-From: Florian Weimer <fweimer@redhat.com>
-To: "H.J. Lu" <hjl.tools@gmail.com>
-Cc: GNU C Library <libc-alpha@sourceware.org>, Alexey Dobriyan
- <adobriyan@gmail.com>, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Subject: Re: Avoid reading /sys/kernel/mm/transparent_hugepage/?
-In-Reply-To: <CAMe9rOrk20jCXO_Bun4LK6M3fd_8HzEtAu94FW+-xSkwNiOt7w@mail.gmail.com>
-	(H. J. Lu's message of "Fri, 10 Apr 2026 13:50:35 +0800")
-References: <CAMe9rOrk20jCXO_Bun4LK6M3fd_8HzEtAu94FW+-xSkwNiOt7w@mail.gmail.com>
-Date: Fri, 10 Apr 2026 09:27:59 +0200
-Message-ID: <lhupl47e0lc.fsf@oldenburg.str.redhat.com>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="GST7h6Cm"
+Received: by mail-pf1-f170.google.com with SMTP id d2e1a72fcca58-82735a41920so658315b3a.2
+        for <linux-arch@vger.kernel.org>; Fri, 10 Apr 2026 00:41:10 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1775806869; cv=none;
+        d=google.com; s=arc-20240605;
+        b=THQbVVCYEFKftNs5urAop7dGYYjcNj/+fneMavI1eCBMKnWUHTG1OLmCd8ThDqB985
+         2LKlRg9zW2E/OoEwDLtzRFg36dX65Xp2mJfz2vmDnQk06FAcDCT7gGcoWQ7GivfaJLLe
+         V8SA2cmtDeOEmagzNnxu51HWDkazZHUfUEUWZdTUMU0g7TXilc1Mvzm4SZUUNKJQc3Jo
+         1pEjjau7vmw4BLExd09v9tQEf5ZCN187RppyA57SC8zRDlfiCAwog87Q24JkU3Af8Z9W
+         Kv8cZVACA0cYzbHkMQMINcAVJGFGtg2+Bk5GCV0wDWyuIWIoVQjTgaNFLbm93IjZFxgU
+         mFjA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=VyUDLe9op6fro+UTV2QPNy+ybN5BymQB+k0QJvZZ1Z0=;
+        fh=7/jZsCh0YQwMJ0A8CkES7YtC3w6PzDkXicmGKqUCQtc=;
+        b=VdvQE4LnvCnegSV0mKh6OUS+NSjjvx6T6TWBN28T1OEFH0hFiEXHbS26QKHPPgSZDe
+         A98vZG9QvXrmzFzG+peRYCqVKM2yXRanINvDzGh17P1NrhBM7lFy1rMes6xpV+kzPB8w
+         XVnolZzkXI/XWnYuOPDvO9YlpYdjAhuRu02L4yGIkdOoBVyvfDvTNv7ftS8oLM3hUj1u
+         WhRZAUOMyJvjf0pZ8YIiqHQw+zMh4p5zla1yuPEBe+6+XpH2VSC/RBdtQL6V+THp0cVB
+         aSQKkDeFhCFCzX72fGt+SRjaT9NH0fKaehbpPFQ6waNukcoUF9Eu1jn9yd5hOy+GIwEP
+         OYVQ==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1775806869; x=1776411669; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=VyUDLe9op6fro+UTV2QPNy+ybN5BymQB+k0QJvZZ1Z0=;
+        b=GST7h6CmGd9Vskhfb3E5VH7x2RypNzKRMUN6oKg+fzHYWKzGqteRGVxjd7POFM5ci9
+         Lzv8Sr4pNDKNZV68zUOM8T0S1+r6yKsqudBYM8I/KyV/PA+eF3wCdhbHl9vHNECCNteg
+         C0gjS/xM4TtW2stqphc9Ua2qBfDev5VuPTa4xH/TfwPQ8v0IigGcqhYcmKPCrd11UHfk
+         BQ2h2WOtm9L+LyubNPz5wxTRfDu1WIOVHQBwc/qgGu5nrnanm645vcFzLOGC7FM+BaR1
+         LdJYbwVcEBFpw0E4HzPCDEq8cxGeBl/e/ew7nt/oLfMeBzmtnAurwUcItp+bXbHG4qsM
+         NW3A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1775806869; x=1776411669;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=VyUDLe9op6fro+UTV2QPNy+ybN5BymQB+k0QJvZZ1Z0=;
+        b=EcpS5yE1TugorUCkomeU/jSD3EikhldnyXVH5r+a9zgwEhY4nuiBuAt+gi9EGDf6gp
+         ixiDnvdewrZFNSayH1F5h377iw5GvsItwf70roJ4p+10nboTdqrrU+mRLrAjqeYfrRXf
+         rV/qMMUrT891fNzMZFrPmNIt4LH9B2ou92LqWYy51+9gXdI3H5JlCShIwcVa/+P9iPfP
+         GU5i9cZlURRHdNQCEGehVVq20bqDajEXLh9CTJ0CrnISh43MLh+JwVYVvgK0bNNJHxH0
+         tCgGvMFXRyqWkNCqA/T+Zviml2pZ/fj2SaTlUUa2c3AXf2gJm5VpzVvKNLTKHB8Uk7jO
+         OdGQ==
+X-Forwarded-Encrypted: i=1; AJvYcCUViHqKQXfQdFIlWKOS9rGmk1N17k3QD3T8VsYmpHqKgDQuG1GpMWvQj19y7vwMls3zkEjYw/A0dKzK@vger.kernel.org
+X-Gm-Message-State: AOJu0YyuK/7qlaE3X0uZOPVICxjd59118fLFxFdh1yi28gFLgzSfD4Dd
+	dwI1Y+Sc98IXLHokEJuh2vTUO/224ZSGO567hAh6y1KBStiTyPKROvWGAYFcSUPRbV5Vvya+b2O
+	iXrvw9BSVJ8TTkgIXLN3RZWm+IWtIWbc=
+X-Gm-Gg: AeBDies4KCRsHfjMSV/qQ63xxSwnBBR9/Th6Lrp3fAuWnGn0fT4qxeeNOWNU99BKitx
+	S3qsl5n3NwFzNm5gIheT8P+G9I1g1jhPVG+lNi8kyoxnwbmvpiDE3cRd2cA1yXALcuAlJCoK0Qk
+	wfoOZnQgpquvQZTb2vXrvcR4CtMEAUB9veInTQbNy9HPnIkxVKDgAGeBm70/9i5OdWIJR+/Ax/+
+	gp7FE5xN9/NMmCsBe1kmyszMyEumTAnHV/EG4CCaSHE2Okn2yAF0XtY9dp3feI49kAlR4TdezdD
+	ke/6pCZx
+X-Received: by 2002:a05:6a00:4c1c:b0:82d:2a2:1b57 with SMTP id
+ d2e1a72fcca58-82f0c2de0d6mr2666948b3a.51.1775806869429; Fri, 10 Apr 2026
+ 00:41:09 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
-X-Scanned-By: MIMEDefang 3.0 on 10.30.177.12
+References: <CAMe9rOrk20jCXO_Bun4LK6M3fd_8HzEtAu94FW+-xSkwNiOt7w@mail.gmail.com>
+ <lhupl47e0lc.fsf@oldenburg.str.redhat.com>
+In-Reply-To: <lhupl47e0lc.fsf@oldenburg.str.redhat.com>
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Fri, 10 Apr 2026 15:40:30 +0800
+X-Gm-Features: AQROBzCc13uK7--1sLG2PO89IiJKd69sYH7-2kYxtSyBLGpYrIlbJBmZfwE8lE4
+Message-ID: <CAMe9rOpf2f8u4ng+nnaqEYB3bUvvVPu3mGv7bt=5xfzDHcMOFg@mail.gmail.com>
+Subject: Re: Avoid reading /sys/kernel/mm/transparent_hugepage/?
+To: Florian Weimer <fweimer@redhat.com>
+Cc: GNU C Library <libc-alpha@sourceware.org>, Alexey Dobriyan <adobriyan@gmail.com>, 
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-api@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-* H. J. Lu:
+On Fri, Apr 10, 2026 at 3:28=E2=80=AFPM Florian Weimer <fweimer@redhat.com>=
+ wrote:
+>
+> * H. J. Lu:
+>
+> > To enable THP segment load, ld.so opens and reads 2 files under
+> > /sys/kernel/mm/transparent_hugepage/.   This requires mounting
+> > /sys and is expensive.   Is it possible to put such info in vDSO?
+>
+> Alexey Dobriyan proposed adding AT_PAGE_SHIFT_LIST to the auxiliary
 
-> To enable THP segment load, ld.so opens and reads 2 files under
-> /sys/kernel/mm/transparent_hugepage/.   This requires mounting
-> /sys and is expensive.   Is it possible to put such info in vDSO?
+Does it cover
 
-Alexey Dobriyan proposed adding AT_PAGE_SHIFT_LIST to the auxiliary
-vector a while back, but I don't know the status of that.
+[hjl@gnu-tgl-3 linux]$ cat /sys/kernel/mm/transparent_hugepage/hpage_pmd_si=
+ze
+2097152
+[hjl@gnu-tgl-3 linux]$
 
-Thanks,
-Florian
+> vector a while back, but I don't know the status of that.
+>
 
+How can we get
+
+[hjl@gnu-tgl-3 linux]$ cat /sys/kernel/mm/transparent_hugepage/enabled
+always [madvise] never
+[hjl@gnu-tgl-3 linux]$
+
+--=20
+H.J.
