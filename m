@@ -1,115 +1,98 @@
-Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6996B2D877A
-	for <linux-arch@vger.kernel.org>; Fri, 10 Apr 2026 08:35:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id DAE9F2F7445;
+	Fri, 10 Apr 2026 09:37:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775810133; cv=none; b=ncOVZecqpv7/46luQJSjbqDRC4FoPHs198lz8niWYFXFazcJ+LPI/p7evqJFgTv2RyMXTbdSI7+a8fNf+rgJ158LHLMvJ6EmrgIv0JawUjH/P2/tcH4ch8PWK0XGSwv9dzNnaBmKPLjbEg+vxwQVffE+DzsCb0A/7s4BRlqXAMM=
+	t=1775813877; cv=none; b=Nu+Y14keDsKxndDL4Dkk6zqScUE6OQqQZR8TlKJH2aUFEJp5hqgUtSOw9G06kcyPGNnBT1W3JvAlNzz1d1EOaIs3qtGsv+FdCsa9aU22oRU6+SNUwbnWPBKTBeq2XzVVaonjGBQp3hygda+tDw0gfG88TeJYNxVbKbBBAVdqKbk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775810133; c=relaxed/simple;
-	bh=r3o7TyAvYn90Ww2v104Gl1JFBfu4uAg42L7TMid5ils=;
+	s=arc-20240116; t=1775813877; c=relaxed/simple;
+	bh=SmJwPkp0nb0Ve3Bz5iCXglHNYcVEz5wLti0b0rFKeWc=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=JrtBXeflwPIGjAeplIU8DHqUFvVukZULtoRBMFafvwARj3BAkAZxQR3i1RqMp/1pBGqsB1m8bKN2PJHGAf3xTPWUw5uSBKvUcjjZP19/+9OX9McBafiw3y2zfslAHmpcnx2f82dia4M8u6QLUuMceJqEmFPK82P46jrx91sGbsw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=NeBBSPat; arc=none smtp.client-ip=209.85.128.42
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=jCfINdeZ27kxybHJkOoFVnJABA3kmFZ2i3sPK1NeC/i64o40FWUd9WygUeqdwNwuRsJVqpJsZ59P0VaNz6MImHP736yFkw3KezvUlHbnAIbmfjDNAD5csTl+CPthG7iq+mhg015FJdAO/p+Xiy04SGu868C9/N3ljU0tYXIWJ8Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=PUJ88Z+u; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="NeBBSPat"
-Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-488ad135063so15715095e9.0
-        for <linux-arch@vger.kernel.org>; Fri, 10 Apr 2026 01:35:32 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1775810131; x=1776414931; darn=vger.kernel.org;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :mime-version:references:message-id:subject:cc:to:from:date:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=FDrRORXqwjO/w1YCwauGfrHI2K78vJz+M9V6gxkImmA=;
-        b=NeBBSPatXkARY4wJAhpBXUh5D9EsafolV5UnSA/aM3pviiKSYNoRjr6gLEboV+wLih
-         H8r+cO5jAp8I2vG00Ly2KDHQ2ZrRUwU/jM4N7RWUs6HN+n77p2qE7HUA8RSmt+IRyZUx
-         RmXWg33H2gmyHW8xv1gdI+aY3YvA3H2NT3Bej8ZP0eQemcLOjYylaNGDyJ6HwiFEBk0x
-         LOwLJbdXxk3VqlwoRoYcdBDiet14khYwEkVJLdJDaCdnxLrbL3ocalbByPiIaH/gpQwy
-         zkdb2Yfsjo84JC7jp6kD/AowiAb/ZOBf9iPPFFpwccvKmNEY19+EmsQpCZ8RQID/SRnw
-         FQBQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1775810131; x=1776414931;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :mime-version:references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=FDrRORXqwjO/w1YCwauGfrHI2K78vJz+M9V6gxkImmA=;
-        b=U1R4Q4tc+1ApV0LgmuQM2r7yvTVdxM0RDSNgdT3GXQC1JSIkEjs+p8EHZpwhYHI2yE
-         BxxVVlq6t9IXWhWOaSaXuNbTr99X+LxBXtXpfFsrDBy5dls2xNIFvT2ek7EDDc+6BFBD
-         BhdXZ81KPXAv0KWv5wQE32XoFtDxDG+wiFbc+BdgbaYbnD36PQqyENqQA31s5OTIlkhj
-         iOGbtf6TLBBiiMsCwfco7V6ZUxTOfq2d87IQE0yz/QjSkBCv6RWhIoONV8KTc6Bl+DfF
-         nXBYyWJvDLUTkY4mrq5uKIHIe6kMZPEWUxrc0U0/AboRG/npxvyCmicQEvXV5f3lQyyg
-         C+nw==
-X-Forwarded-Encrypted: i=1; AJvYcCVsFDwvemp3r53hsoK+RKgeYxmcLtQiMpKhfbN2T6CmAnhEUpwslGaI4X82NKTVDJMVzYMp8p3uSaFo@vger.kernel.org
-X-Gm-Message-State: AOJu0YzjgEugqSrTcaA9imqQ5tbuhG/xZcOiMccBEFpsQMqEhDgih6gG
-	V2j/oHUNkcCb4fMK3467tcGKpWAi+Al9fm+1jlRX9D/YuIeeZ9JGkvk=
-X-Gm-Gg: AeBDievySd7E4sM3cydyyQIlEnLNKsoDfvv53O2EsYV5dP/8HKBp5LVqVEEqGxW1hdu
-	kldlaqZcGIHw72lSeOsvLDM+d/LM4q4cMMMmh6Ko0lA47inr41dMOL1Xe9xU/8LdlltxZCa0Jqb
-	nhmRtBaBrKnhpmpONqfhxdEtbkFLnhxaeUPSk/RH62BypAk8fgDUnkzNZo596VBHkUfvdMqvTAE
-	NZmVvF6FDhnrqlM/dMfYUl23hQAKL7iZLUPqMy6FD6Qv1H8HP7Rgav0ZtjHS9lkplFZmiBfdD2L
-	vAyGrfhLUOtfHK0vVGjQp1lJGvZk9GZy1OYRmwJWfYTiyONB5RCGGlfbi9aTS1G77n9Cb9O2wq5
-	65Sw38CLgDyCcaQBv5U51ARCgJl6JzGRqX4XO1dtvt4VuwTdRVEEWu948pl9zyEi4qMaYPh3/a6
-	bEW05k8FJYL30TBaOytTCPyJSvR1282rbWLtJOArTFhVML84EEmdjd2hekl7kfNzrg3MVDGndvo
-	Fzagg==
-X-Received: by 2002:a05:600c:674f:b0:488:a82f:bb9b with SMTP id 5b1f17b1804b1-488d68cb47amr27836175e9.30.1775810130619;
-        Fri, 10 Apr 2026 01:35:30 -0700 (PDT)
-Received: from p183 (dynamic-vpdn-brest-46-53-134-188.brest.telecom.by. [46.53.134.188])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-488d5cf2e70sm27761365e9.0.2026.04.10.01.35.29
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 10 Apr 2026 01:35:30 -0700 (PDT)
-Date: Fri, 10 Apr 2026 11:37:23 +0300
-From: Alexey Dobriyan <adobriyan@gmail.com>
-To: "H.J. Lu" <hjl.tools@gmail.com>
-Cc: Florian Weimer <fweimer@redhat.com>,
-	GNU C Library <libc-alpha@sourceware.org>,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-api@vger.kernel.org
-Subject: Re: Avoid reading /sys/kernel/mm/transparent_hugepage/?
-Message-ID: <d095cc40-5217-4318-ae2e-40e5fe3be47a@p183>
-References: <CAMe9rOrk20jCXO_Bun4LK6M3fd_8HzEtAu94FW+-xSkwNiOt7w@mail.gmail.com>
- <lhupl47e0lc.fsf@oldenburg.str.redhat.com>
- <CAMe9rOpf2f8u4ng+nnaqEYB3bUvvVPu3mGv7bt=5xfzDHcMOFg@mail.gmail.com>
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="PUJ88Z+u"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 425421D13;
+	Fri, 10 Apr 2026 02:37:48 -0700 (PDT)
+Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id A0DF23F632;
+	Fri, 10 Apr 2026 02:37:51 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1775813873; bh=SmJwPkp0nb0Ve3Bz5iCXglHNYcVEz5wLti0b0rFKeWc=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=PUJ88Z+upicQXln8DFiBGfr96f2uBf2ASbYsH8rM72E+kuoFdvMKH8bmio9mMf+wb
+	 j+mfu+vJDOcyJELgIoXve3XDH3vaB3z32C0emUTZgdFAbaHMq8yuRQbb8rDHnpvndX
+	 V6i42ghipdzWWaTAT1RnY+E1nPwJ++8YUgVHWHM4=
+Date: Fri, 10 Apr 2026 10:37:45 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+To: K Prateek Nayak <kprateek.nayak@amd.com>
+Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	Will Deacon <will@kernel.org>,
+	David Laight <david.laight.linux@gmail.com>,
+	Darren Hart <dvhart@infradead.org>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	=?iso-8859-1?Q?Andr=E9?= Almeida <andrealmeid@igalia.com>,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org,
+	linux-arm-kernel@lists.infradead.org,
+	Jisheng Zhang <jszhang@kernel.org>
+Subject: Re: [PATCH v3 2/7] arm64/runtime-const: Use
+ aarch64_insn_patch_text_nosync() for patching
+Message-ID: <adjE6WzFM7NogzlU@arm.com>
+References: <20260402112250.2138-1-kprateek.nayak@amd.com>
+ <20260402112250.2138-3-kprateek.nayak@amd.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAMe9rOpf2f8u4ng+nnaqEYB3bUvvVPu3mGv7bt=5xfzDHcMOFg@mail.gmail.com>
+In-Reply-To: <20260402112250.2138-3-kprateek.nayak@amd.com>
 
-On Fri, Apr 10, 2026 at 03:40:30PM +0800, H.J. Lu wrote:
-> On Fri, Apr 10, 2026 at 3:28 PM Florian Weimer <fweimer@redhat.com> wrote:
-> >
-> > * H. J. Lu:
-> >
-> > > To enable THP segment load, ld.so opens and reads 2 files under
-> > > /sys/kernel/mm/transparent_hugepage/.   This requires mounting
-> > > /sys and is expensive.   Is it possible to put such info in vDSO?
-> >
-> > Alexey Dobriyan proposed adding AT_PAGE_SHIFT_LIST to the auxiliary
-> 
-> Does it cover
-> 
-> [hjl@gnu-tgl-3 linux]$ cat /sys/kernel/mm/transparent_hugepage/hpage_pmd_size
-> 2097152
-> [hjl@gnu-tgl-3 linux]$
-> 
-> > vector a while back, but I don't know the status of that.
+On Thu, Apr 02, 2026 at 11:22:45AM +0000, K Prateek Nayak wrote:
+> diff --git a/arch/arm64/include/asm/runtime-const.h b/arch/arm64/include/asm/runtime-const.h
+> index c3dbd3ae68f6..a3106f80912b 100644
+> --- a/arch/arm64/include/asm/runtime-const.h
+> +++ b/arch/arm64/include/asm/runtime-const.h
+> @@ -7,6 +7,7 @@
+>  #endif
+>  
+>  #include <asm/cacheflush.h>
+> +#include <asm/text-patching.h>
+>  
+>  /* Sigh. You can still run arm64 in BE mode */
+>  #include <asm/byteorder.h>
+> @@ -50,13 +51,7 @@ static inline void __runtime_fixup_16(__le32 *p, unsigned int val)
+>  	u32 insn = le32_to_cpu(*p);
+>  	insn &= 0xffe0001f;
+>  	insn |= (val & 0xffff) << 5;
+> -	*p = cpu_to_le32(insn);
+> -}
+> -
+> -static inline void __runtime_fixup_caches(void *where, unsigned int insns)
+> -{
+> -	unsigned long va = (unsigned long)where;
+> -	caches_clean_inval_pou(va, va + 4*insns);
+> +	aarch64_insn_patch_text_nosync(p, insn);
+>  }
 
-Status: nothing happened.
+Sashiko has some good points here:
 
-> How can we get
-> 
-> [hjl@gnu-tgl-3 linux]$ cat /sys/kernel/mm/transparent_hugepage/enabled
-> always [madvise] never
-> [hjl@gnu-tgl-3 linux]$
+https://sashiko.dev/#/patchset/20260402112250.2138-1-kprateek.nayak@amd.com
 
-This is not covered, see the link:
-https://lore.kernel.org/lkml/ecb049aa-bcac-45c7-bbb1-4612d094935a@p183/
+In short, aarch64_insn_patch_text_nosync() does not expect a linear map
+address but rather a kernel text one (or vmalloc/modules). The other
+valid point is on aliasing I-caches.
 
-PAGE_SHIFT_MASK should be folded into system call probably.
+I think dropping the lm_alias() and just use 'where' directly would do
+but I haven't tried.
+
+-- 
+Catalin
