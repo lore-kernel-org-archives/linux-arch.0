@@ -1,213 +1,116 @@
-Received: from SN4PR2101CU001.outbound.protection.outlook.com (mail-southcentralusazon11012043.outbound.protection.outlook.com [40.93.195.43])
+Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.170])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9CFF975809;
-	Sat, 11 Apr 2026 19:54:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.93.195.43
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775937296; cv=fail; b=sasVwnPr1RUqFIenXuDpoGqbRdipw0rp3oMhsoIDZs9uSK1JVC8kuEZxfQh5GRecttZTFwRSak9bVo3QYzrqZyqubV5hbQjTqjHVytsYxERA+MZqvY7mknhlRKXkNz8/kgKwjN0Y0UCaWpppgSsQJDWO8ppGg9qyhNrx2boTRkM=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775937296; c=relaxed/simple;
-	bh=AZr8Y7N13UyOIV2M2pUxaEQCUlrQuV2J9K4y8KXuIEA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:CC:References:From:
-	 In-Reply-To:Content-Type; b=oPKHB2SXlvvIa6UbImdooQdq5WTd1Kg+30iqYfud41HGHvF9ENx8YbW92mZnCFR4EtjwXOz1u5BCHarYE3BrYI99aj8UH0DDMfw/i2p3CBNcdtoNj9JG4TNBs4c1LOZXQYpMJlUF+pMAUnOz3DU6Cy+KJPeS4EA4r1W7hOGlen4=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com; spf=fail smtp.mailfrom=amd.com; dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b=J/OhpU+j; arc=fail smtp.client-ip=40.93.195.43
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=amd.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D74262E9757
+	for <linux-arch@vger.kernel.org>; Sun, 12 Apr 2026 13:55:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.170
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1776002159; cv=none; b=X6jOYIkMhU+mBjI6crroVr1VMQiPB8jCXdCbUgYv0Rx7+VWwLVhbF1NhH6b03m9BDc0gOypoLw1nH5ycMMT8tYXIoICEqlvWzHTc4pwkQ8ZWLwvt5Fj26ya8YaW9ffbUjfJZJ4IUO39ckG5LawDEhHAHpK7KLXThlNApU2PllXE=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1776002159; c=relaxed/simple;
+	bh=tl88h0UZA8OnkTP4gd1VP3tBY9jZtevwAXX21nfm4aI=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=CHtQOfiPbq3phip6v/2UkR2xyEzf1HH2xWr23EqIp2Ww+VIJ7JdcDUQPFn45hu5fN7OMU34A499Okdav6wcS+Bvdm7gf0PT68F9FLkJbgxyJkGOKy7deTSkQ0tqO9oWDUZhFwsIv6DXxvoZ/JA9x93LoePFHn7mhWdAZoKEnQlc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=lkdcleIB; arc=none smtp.client-ip=195.121.94.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b="J/OhpU+j"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=iVWPveU44VVv7YbPBl3zdoDCfxdJvYWqfwib/uU3CbrB/lbGA3ka+MEUYd7VmqcFhEmwuLSRZ1kBWHT2zR2thIcGW5Nh3zAVu6+26I3PRBHs1RZXqEGNH+dzeyb6VnFfC6LX8nXKKrITR86yuSm3Pxt8+cxNcCMprqmaJCvHvwzbN/KFnnKVGTqeFlkXuEq8UZaZZmFOYYGcvpXwnhQg6kDlRhPPLsv7m1rc91wW2Uf3rmNPfmcr9wm1oqNuzWf/XA68h3os3feGJrF4oaejwjgSvVS7mjPP+QuwIYV1eC990pVnBQldP6r3xE7bolDSJbnncdL9CDUWccTATe93+A==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=vNX2LeApEj4s5J5aXKcawswCbi4C1Db3gEN0t6QELng=;
- b=sZJ43lx1rJxzzwZVDM2yNKHgLszxUHEANCbF5A4Lgf3kyuDjg3SIxoYww32hYnJ04+HKJVnkfYnwYFeWdu97U6Aaml/tyosE/YOofcST/KBytOn9O5IsaH1X/Jd/GVRlKp0mHuhbBcuuVe4dZLNUUkSDGeJtGRh6MIBIqHLZQEW28LvApVnmDJDctERfgsLTBNVrHGpu5M3ciw9L7ACqAYBdRgkjEljcn8NFjQqB5FA5D3MdgZ0+x/FEjh6O4rnEOXt63wjGwOnrNg1srOgCw7a7GLTwlGVAVBFXxKyBH+O9S8cm+9+3WnhRF0kyBZZ0b4mGYtv8Gpal092cVOLfGA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass (sender ip is
- 165.204.84.17) smtp.rcpttodomain=arm.com smtp.mailfrom=amd.com; dmarc=pass
- (p=quarantine sp=quarantine pct=100) action=none header.from=amd.com;
- dkim=none (message not signed); arc=none (0)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=vNX2LeApEj4s5J5aXKcawswCbi4C1Db3gEN0t6QELng=;
- b=J/OhpU+jDn/xlbni285P1keskgIctQQhaRVMoIaCIeqhzNvwfB9Kt3v6pIXTaOaPyZNeV7NDpPF63BPPLNN87238fX59bUwVAH9+lCSGgDYva98bIsskGCPHFEcWoXXYIHrwn6nCuCp7cgAmNx0lW9nnSMVw1rLtdZ36iMtMqyg=
-Received: from BN9PR03CA0572.namprd03.prod.outlook.com (2603:10b6:408:10d::7)
- by IA0PR12MB7722.namprd12.prod.outlook.com (2603:10b6:208:432::7) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9769.44; Sat, 11 Apr
- 2026 19:54:51 +0000
-Received: from BN1PEPF0000468B.namprd05.prod.outlook.com
- (2603:10b6:408:10d:cafe::53) by BN9PR03CA0572.outlook.office365.com
- (2603:10b6:408:10d::7) with Microsoft SMTP Server (version=TLS1_3,
- cipher=TLS_AES_256_GCM_SHA384) id 15.20.9769.47 via Frontend Transport; Sat,
- 11 Apr 2026 19:54:51 +0000
-X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 165.204.84.17)
- smtp.mailfrom=amd.com; dkim=none (message not signed)
- header.d=none;dmarc=pass action=none header.from=amd.com;
-Received-SPF: Pass (protection.outlook.com: domain of amd.com designates
- 165.204.84.17 as permitted sender) receiver=protection.outlook.com;
- client-ip=165.204.84.17; helo=satlexmb07.amd.com; pr=C
-Received: from satlexmb07.amd.com (165.204.84.17) by
- BN1PEPF0000468B.mail.protection.outlook.com (10.167.243.136) with Microsoft
- SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.20.9769.17 via Frontend Transport; Sat, 11 Apr 2026 19:54:51 +0000
-Received: from satlexmb08.amd.com (10.181.42.217) by satlexmb07.amd.com
- (10.181.42.216) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.2562.17; Sat, 11 Apr
- 2026 14:54:50 -0500
-Received: from [172.31.178.191] (10.180.168.240) by satlexmb08.amd.com
- (10.181.42.217) with Microsoft SMTP Server id 15.2.2562.17 via Frontend
- Transport; Sat, 11 Apr 2026 14:54:46 -0500
-Message-ID: <c45ede13-f8d0-4b6a-b2ed-f06af4882ebc@amd.com>
-Date: Sun, 12 Apr 2026 01:24:45 +0530
+	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="lkdcleIB"
+X-KPN-MessageId: 2a307600-3677-11f1-8a9b-005056ab378f
+Received: from smtp.kpnmail.nl (unknown [10.31.155.39])
+	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
+	id 2a307600-3677-11f1-8a9b-005056ab378f;
+	Sun, 12 Apr 2026 15:54:46 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=xs4all.nl; s=xs4all01;
+	h=mime-version:message-id:date:subject:to:from;
+	bh=EHi8TLrImTXi57iAivUqNFaFSoUEH6II3C7aGD5935g=;
+	b=lkdcleIBhUh+qckOHYjJyC0DvVV2E0yjh7ajuDy2a0i044I6csVx2qr7qSt8wG9u1izb0zvQCdE2q
+	 r5YxKxWX1Pw2r//rUjwQB8hQT50RMMjr52anSlBL9hEunkRj8TqpbPdody1QCV/DVJtiNewcDB9HJ/
+	 G4KDOGhX/o2T5Q/qKgcqKNtq8UMa4/2LZ71JdUARWzx+icc6Ck9pJdKGRZvL2kCuwdrOAprpBRQFu8
+	 R/OGF4U1NYV1rv61oI/yvL30RO3DlgTc90Z32VHKMoSSoz1RQO7QC/rrDEDWx8Aa/DET5PIZJqcGPg
+	 YhL1hjR9hWZoLP9kHjTVSxULJ+oHqpA==
+X-KPN-MID: 33|6NbBVknz/hcGP6i3BtMVY7a3/gLx/cmp9SewgkP7x2GpQbq17g45rpYdq5lmO5P
+ nQGRM3k7Uw+iM0RUtkfUnDXhOPkfYa8wSPQGiPC+bVmY=
+X-KPN-VerifiedSender: Yes
+X-CMASSUN: 33|4QPKutfvJKL6ZbZdIySMJ5wDYY/4wTEZwnyOJQmVWpMHKGYWwYjdPS80ApcuvjF
+ ti3dkNbzMNzrSiPxnF2/LNg==
+Received: from daedalus.home (unknown [178.230.185.145])
+	by smtp.xs4all.nl (Halon) with ESMTPSA
+	id 271b930a-3677-11f1-8011-005056ab7447;
+	Sun, 12 Apr 2026 15:54:46 +0200 (CEST)
+From: Jori Koolstra <jkoolstra@xs4all.nl>
+To: Andy Lutomirski <luto@kernel.org>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>
+Cc: "H . Peter Anvin" <hpa@zytor.com>,
+	Jan Kara <jack@suse.cz>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Andrey Albershteyn <aalbersh@redhat.com>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Jori Koolstra <jkoolstra@xs4all.nl>,
+	Jiri Olsa <jolsa@kernel.org>,
+	=?UTF-8?q?Thomas=20Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	Jeff Layton <jlayton@kernel.org>,
+	Aleksa Sarai <cyphar@cyphar.com>,
+	cmirabil@redhat.com,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	linux-kernel@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-api@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Subject: [RFC PATCH v2 0/2] vfs: syscalls: add mkdirat2() that returns an O_DIRECTORY fd
+Date: Sun, 12 Apr 2026 15:54:32 +0200
+Message-ID: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
+X-Mailer: git-send-email 2.53.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 2/7] arm64/runtime-const: Use
- aarch64_insn_patch_text_nosync() for patching
-To: Catalin Marinas <catalin.marinas@arm.com>
-CC: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Peter
- Zijlstra <peterz@infradead.org>, Sebastian Andrzej Siewior
-	<bigeasy@linutronix.de>, Will Deacon <will@kernel.org>, David Laight
-	<david.laight.linux@gmail.com>, Darren Hart <dvhart@infradead.org>, Davidlohr
- Bueso <dave@stgolabs.net>, =?UTF-8?Q?Andr=C3=A9_Almeida?=
-	<andrealmeid@igalia.com>, <linux-arch@vger.kernel.org>,
-	<linux-kernel@vger.kernel.org>, <linux-s390@vger.kernel.org>,
-	<linux-riscv@lists.infradead.org>, <linux-arm-kernel@lists.infradead.org>,
-	Jisheng Zhang <jszhang@kernel.org>
-References: <20260402112250.2138-1-kprateek.nayak@amd.com>
- <20260402112250.2138-3-kprateek.nayak@amd.com> <adjE6WzFM7NogzlU@arm.com>
-Content-Language: en-US
-From: K Prateek Nayak <kprateek.nayak@amd.com>
-In-Reply-To: <adjE6WzFM7NogzlU@arm.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-X-EOPAttributedMessage: 0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: BN1PEPF0000468B:EE_|IA0PR12MB7722:EE_
-X-MS-Office365-Filtering-Correlation-Id: ff1b5bf3-a56e-4a81-61a8-08de98043183
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|1800799024|7416014|82310400026|376014|36860700016|13003099007|56012099003|22082099003|18002099003;
-X-Microsoft-Antispam-Message-Info:
-	U7ldQmJMXOfFzNsS5tZsCnecmPycVVOMmMQFvuXm0vbunvvCAaBO/qVJ9av4kEeeddL3A6Df6Tn3pRa+YacQgB8McBCHmDFLXe99IJ4qOQgYIjbzs398Sx07m3jWvjfiLN4Id8MWBVTM8jlkQynnJDnHIo+j3mO4jlF404INnmAsi2AJi3cs2wP9iB+94DEJifWAbCaYwfKH4EHyJtjf8SP1yyG6x7E02QQD4t4HyN6FtO8mHgmZdbEBz1WfoVBLCZ3qd2SmVyjoX+vsoh1BquncvLARwjX+t7q6DkJhvMswjThwaVyHfgImvcCrh5rdnFGkHXBVeAIquSAzVLhCvNUXQ8ZKyz6cntfTtVP467qkfmk1vmDgUJJXM5fC7Yh+UVqhq+lHW6oQ4qRlsXdl6ML2T/RNlCVVlM4G0rm5oE62nOSckiRpvYwk9jPW3E8lWzgYVBYIJlZXhUvPeI+y0gNv3CKPj/wolX+B2V3/RTakFOECxRXMEaYn6/IWSEPlErfE8YsKeu4hIurAskoiPZT0AF1e4IfBBb2NToiBxJw9eNilYBWjaMvFmAO3tL3rQV8/Rhi321glzsTsl1yyxMjqFhAiairptSp5VyDp7POM4eUCUk95jGFStyODAPHrJcwJQRAbtTJaRDBIBjLgvj+eij7REBn8pnlkBcDs+4VKAidL+f5O7Nc+0al2c6dr9mQY555Sfo59MJ+9s6xhug==
-X-Forefront-Antispam-Report:
-	CIP:165.204.84.17;CTRY:US;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:satlexmb07.amd.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(1800799024)(7416014)(82310400026)(376014)(36860700016)(13003099007)(56012099003)(22082099003)(18002099003);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	mGhjP1GQx8cFqG/km9cRq/PSCz3nzNKgvloTNlQwm/uq0pQ3+yZXOy5Ii9818eXsvRnlVNM2MiZKL8VBf5jtiwHnGafbRYkPUxgPm00g/qoT3ADFnVGbmJWpCqyQa1euNXNfrac5gZJn+MTcixyb+gZSxPDUHkz8wqL1YNmKQJIA6zLBAEhmFeGmB2+LQNU8kArMSgfRFwfglrcwc3hPqRPuz2cmL0OLueLeqUkoS1Sv7vdNDochSgSF2tyBdrfs55aJ/sKq7PcdCpRfVojJw+UH0pVs9ptRDvaNgyZIDRYbGGumT0TrSsCboZJShJLqvo0KG98mlGEiql4b+UE72Lk2yZfF9IGHQT8VP8Xe/A5EyVC5zkL+UDlEVU5dO6lqDWnzVGMQrjCM/mrveau/PpYR8aoExIjNkFswqBGEAMxPTNbFiYAOFwHlhmbHhHfb
-X-OriginatorOrg: amd.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 11 Apr 2026 19:54:51.0768
- (UTC)
-X-MS-Exchange-CrossTenant-Network-Message-Id: ff1b5bf3-a56e-4a81-61a8-08de98043183
-X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
-X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=3dd8961f-e488-4e60-8e11-a82d994e183d;Ip=[165.204.84.17];Helo=[satlexmb07.amd.com]
-X-MS-Exchange-CrossTenant-AuthSource:
-	BN1PEPF0000468B.namprd05.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Anonymous
-X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: IA0PR12MB7722
+Content-Transfer-Encoding: 8bit
 
-Hello Catalin,
+This series implements the mkdirat2() syscall that was suggested over
+at the UAPI group kernel feature page [1] with some tests.
 
-Thank you for taking a look at the series and pointing to the Shashiko
-review.
+Obviously, we probably also want to implement equivalent mknodeat2() and
+symlinkat2() syscalls, but their implementation can be done quite similar
+I believe.
 
-On 4/10/2026 3:07 PM, Catalin Marinas wrote:
->> -static inline void __runtime_fixup_caches(void *where, unsigned int insns)
->> -{
->> -     unsigned long va = (unsigned long)where;
->> -     caches_clean_inval_pou(va, va + 4*insns);
->> +     aarch64_insn_patch_text_nosync(p, insn);
->>  }
-> 
-> Sashiko has some good points here:
+This has been compiled and tested on x86 only.
 
-Ack! I did check the Sashiko review a few days after posting. I think
-I'll probably start replying to Shahsiko's inline review on future
-threads on LKML to keep the record like some folks are doing.
+[1]: https://github.com/uapi-group/kernel-features?tab=readme-ov-file#race-free-creation-and-opening-of-non-file-inodes
 
-> 
-> https://sashiko.dev/#/patchset/20260402112250.2138-1-kprateek.nayak@amd.com
-> 
-> In short, aarch64_insn_patch_text_nosync() does not expect a linear map
-> address but rather a kernel text one (or vmalloc/modules). The other
-> valid point is on aliasing I-caches.
-> 
-> I think dropping the lm_alias() and just use 'where' directly would do
-> but I haven't tried.
+v2:
+- Use AT_* flags.
+- Ensure an fd is allocated only if mkdir and open_dentry succeed.
+- The returned fd gets O_CLOEXEC by default.
+- Renamed syscall from mkdirat_fd() to mkdirat2().
 
-Ack! I completely missed that subtlety of passing "where" to
-caches_clean_inval_pou(). I'm still surprised that it didn't
-blow up in my testing.
+Jori Koolstra (2):
+  vfs: syscalls: add mkdirat2() that returns an O_DIRECTORY fd
+  selftest: add tests for mkdirat2()
 
-Anyhow, following diff, on top of the full series builds and
-tests fine and has been blessed by review-prompts:
-
-diff --git a/arch/arm64/include/asm/runtime-const.h b/arch/arm64/include/asm/runtime-const.h
-index 21f817eb5951..d3f0dfa7ced0 100644
---- a/arch/arm64/include/asm/runtime-const.h
-+++ b/arch/arm64/include/asm/runtime-const.h
-@@ -57,21 +57,21 @@
- } while (0)
- 
- /* 16-bit immediate for wide move (movz and movk) in bits 5..20 */
--static inline void __runtime_fixup_16(__le32 *p, unsigned int val)
-+static inline void __runtime_fixup_16(void *where, unsigned int val)
- {
-+	__le32 *p = lm_alias(where);
- 	u32 insn = le32_to_cpu(*p);
- 	insn &= 0xffe0001f;
- 	insn |= (val & 0xffff) << 5;
--	aarch64_insn_patch_text_nosync(p, insn);
-+	aarch64_insn_patch_text_nosync(where, insn);
- }
- 
- static inline void __runtime_fixup_ptr(void *where, unsigned long val)
- {
--	__le32 *p = lm_alias(where);
--	__runtime_fixup_16(p, val);
--	__runtime_fixup_16(p+1, val >> 16);
--	__runtime_fixup_16(p+2, val >> 32);
--	__runtime_fixup_16(p+3, val >> 48);
-+	__runtime_fixup_16(where, val);
-+	__runtime_fixup_16(where + 4, val >> 16);
-+	__runtime_fixup_16(where + 8, val >> 32);
-+	__runtime_fixup_16(where + 12, val >> 48);
- }
- 
- /* Immediate value is 6 bits starting at bit #16 */
-@@ -81,15 +81,14 @@ static inline void __runtime_fixup_shift(void *where, unsigned long val)
- 	u32 insn = le32_to_cpu(*p);
- 	insn &= 0xffc0ffff;
- 	insn |= (val & 63) << 16;
--	aarch64_insn_patch_text_nosync(p, insn);
-+	aarch64_insn_patch_text_nosync(where, insn);
- }
- 
- /* Immediate value is 6 bits starting at bit #16 */
- static inline void __runtime_fixup_mask(void *where, unsigned long val)
- {
--	__le32 *p = lm_alias(where);
--	__runtime_fixup_16(p, val);
--	__runtime_fixup_16(p+1, val >> 16);
-+	__runtime_fixup_16(where, val);
-+	__runtime_fixup_16(where + 4, val >> 16);
- }
- 
- static inline void runtime_const_fixup(void (*fn)(void *, unsigned long),
----
-
-I'll do some more sanity checks and address the rest of the comments
-before posting out v4 soon after the merge window. Thank you again
-for your feedback. Much appreciated.
+ arch/x86/entry/syscalls/syscall_64.tbl        |   1 +
+ fs/internal.h                                 |   2 +
+ fs/namei.c                                    |  44 +++++-
+ include/linux/syscalls.h                      |   2 +
+ include/uapi/asm-generic/unistd.h             |   5 +-
+ scripts/syscall.tbl                           |   1 +
+ tools/include/uapi/asm-generic/unistd.h       |   5 +-
+ .../testing/selftests/filesystems/.gitignore  |   1 +
+ tools/testing/selftests/filesystems/Makefile  |   4 +-
+ .../selftests/filesystems/mkdirat_fd_test.c   | 143 ++++++++++++++++++
+ 10 files changed, 200 insertions(+), 8 deletions(-)
+ create mode 100644 tools/testing/selftests/filesystems/mkdirat_fd_test.c
 
 -- 
-Thanks and Regards,
-Prateek
+2.53.0
 
