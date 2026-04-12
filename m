@@ -1,77 +1,54 @@
-Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.169])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 80D7F2F546D
-	for <linux-arch@vger.kernel.org>; Sun, 12 Apr 2026 13:56:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.169
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AE19930E0FD;
+	Sun, 12 Apr 2026 14:31:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776002171; cv=none; b=Vjd0Jv6D7AsebCy5sHOgac5v8brrk2WSMzOxF7CJromz/GaqCauQyJY/S2nNhSLKyEK3h7CNEwzwfTm85H3GodK6H7y/HG3qx9OjRtd+Qug1tkMncvZUfXgpS31YszIanfOpHCN7bq0ihNJMk8Sw6ileTeu1tQJfEK/vFfKc3lQ=
+	t=1776004298; cv=none; b=LBOYldM4ktKvbFz63QvHUnGIz8Vc2pkhieAjGsBEidMzIIEs2dCs2SOOKt9GTu5SvHUY9VUeoL3G9UPkXBgx6Z/AbLjxzGVIe0FbkOqs3of81v1ns3B6WdC9WZboQDFlV95B7KNluvscFhu3XHCm1zn57Oz/tehmRIBe+y9Vd28=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776002171; c=relaxed/simple;
-	bh=l637JqBP885E0vHJ0i8snxCumNNbzRwHwozNuNIKUn8=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=t6FrHs1t0C1G5UfWs/J/XeZpUGN+4xz8Lb7wFxaBxaLtsfquTSkmJip6/oHn2ElJJocomnyYBkKlCyiDI19nWmiTRBa+wrPr7N1032afB04f+bLZcRdZVbfsoJS7aQ1caaJe7zufr6LDoI9Y469Cq8GY3bmH/ou/+nqoPtku+Ng=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=iPB7TpxD; arc=none smtp.client-ip=195.121.94.169
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
+	s=arc-20240116; t=1776004298; c=relaxed/simple;
+	bh=SF5gRZTiQIKtAwMND3nOchDORDvcOkpMM3V6FGK1+co=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=kq6C8TVxfhgZT0xlQ/+MEaWTm088bD/A1v/ldqY9mDPiSb2hZud81xWYao317Rm9m9SxosyqbFYFRnwVv58vkQMMHuHcQGCPvA9cYqgXbSe0RlPheDJWTCzR8J0zYnQKaDUJft1JsDF+PCDbwH/6cAcY0MDy4M0P7eN0skIlYEQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=nzNF/iha; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="iPB7TpxD"
-X-KPN-MessageId: 327ba1b9-3677-11f1-b185-005056abad63
-Received: from smtp.kpnmail.nl (unknown [10.31.155.39])
-	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
-	id 327ba1b9-3677-11f1-b185-005056abad63;
-	Sun, 12 Apr 2026 15:55:00 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=xs4all.nl; s=xs4all01;
-	h=mime-version:message-id:date:subject:to:from;
-	bh=5gvFaaq6B7M0xCNBpS1nvaP3wWXLqpCrPac4g4LlB4k=;
-	b=iPB7TpxDhDFtkgPPnD2XEWlqzX0qJHACvYbMaoQuqU8aNSMVCRD6P0F59sslm8IhKl/BvX0jR0leh
-	 9YTdd9I5Ht8ChGu8SpSQ1GzdXGrgxORwHljAjB5ZkZbWZZuBxXN+AtWLtQmD1HHW2pvIYbfIvKgm4l
-	 YkBl3ScJSHnyrZtnolKKzHt75n7Yg2GZ7oiypyzkoGK8tUhI5Yoo0ETxQd0p/HN4LtlBQm2DliumLz
-	 yI8PcOWbQEqF5Wf8inK0bz4Tt5KnKIcX1j/vbiEsfUjkXblJOu0vA7/iOg3Ced8roYA7+4P6JG+2cg
-	 uKZdzrcS2BjKXchC0f0s0F//Um4DdZQ==
-X-KPN-MID: 33|dYE8HLHPTgvqykGVvdAKeg5uO9EyrKxQ/H3dddIYqJv7RBNoINcf5QfWuW6V5DJ
- MJanI0EXnnALDE0pSgHyrV9bMmcXJXGpCbYHvGVBmDfQ=
-X-KPN-VerifiedSender: Yes
-X-CMASSUN: 33|8AcZBqmKEp7Eizv1oLy8R1DxIkPqGUjGebq+ov2JfG4NcCWjgVjShv8CxJFvAN7
- 4evOnfLa3up9+sUuxS8iLog==
-Received: from daedalus.home (unknown [178.230.185.145])
-	by smtp.xs4all.nl (Halon) with ESMTPSA
-	id 320dac09-3677-11f1-8011-005056ab7447;
-	Sun, 12 Apr 2026 15:55:00 +0200 (CEST)
-From: Jori Koolstra <jkoolstra@xs4all.nl>
-To: Andy Lutomirski <luto@kernel.org>,
-	Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	x86@kernel.org,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Christian Brauner <brauner@kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>
-Cc: "H . Peter Anvin" <hpa@zytor.com>,
-	Jan Kara <jack@suse.cz>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Andrey Albershteyn <aalbersh@redhat.com>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Jori Koolstra <jkoolstra@xs4all.nl>,
-	Jiri Olsa <jolsa@kernel.org>,
-	=?UTF-8?q?Thomas=20Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	Jeff Layton <jlayton@kernel.org>,
-	Aleksa Sarai <cyphar@cyphar.com>,
-	cmirabil@redhat.com,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nzNF/iha"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6F9DFC19424;
+	Sun, 12 Apr 2026 14:31:33 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1776004298;
+	bh=SF5gRZTiQIKtAwMND3nOchDORDvcOkpMM3V6FGK1+co=;
+	h=From:To:Cc:Subject:Date:From;
+	b=nzNF/iha/Vbvzp81e8LDFFUr+2OWcZKJcO7MwA0L1kKuBCKKtloT+/tqqcPcVC7aT
+	 R0nsQ5ozsrevY8rlDBkchY7w+f1pBuv2HRHu8QD8DlbDai+gcjEApZwp1KIvaGJUTa
+	 253fTLraFQceDsu26MnA07HtvdsiPt/cmCEf+O6R+XcKrwt52M+pctP6IWr0kIf/IB
+	 ga/RkAhl/B/h3Jbfi3sRAN00pOL8Rxs9bJ4yL3uPhPIbRbrqNR7zvPr6LQdkOVE7qM
+	 6Sck+G7QetBdpjmaZ1z0b+jsBmIGD82+ZTutIJOtWQCpY6XztpPFXtyuLD7uWIl2vm
+	 Ze7Frgqi1fI+Q==
+From: guoren@kernel.org
+To: paul.walmsley@sifive.com,
+	palmer@dabbelt.com,
+	guoren@kernel.org,
+	alex@ghiti.fr,
+	leobras@redhat.com,
+	djordje.todorovic@htecgroup.com,
+	aleksa.paunovic@htecgroup.com,
+	arnd@arndb.de,
+	rabenda.cn@gmail.com
+Cc: linux-riscv@lists.infradead.org,
 	linux-kernel@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org,
-	linux-api@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: [RFC PATCH v2 2/2] selftest: add tests for mkdirat2()
-Date: Sun, 12 Apr 2026 15:54:34 +0200
-Message-ID: <20260412135434.3095416-3-jkoolstra@xs4all.nl>
-X-Mailer: git-send-email 2.53.0
-In-Reply-To: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
-References: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
+	linux-arch@vger.kernel.org,
+	Alexandre Ghiti <alexghiti@rivosinc.com>,
+	Han Gao <gaohan@iscas.ac.cn>,
+	Yao Zi <me@ziyao.cc>,
+	Chen Wang <unicorn_wang@outlook.com>,
+	Inochi Amaoto <inochiama@gmail.com>,
+	Xiaoguang Xing <xiaoguang.xing@sophgo.com>,
+	Paul Walmsley <pjw@kernel.org>
+Subject: [PATCH V4] riscv: errata: Add ERRATA_THEAD_WRITE_ONCE fixup
+Date: Sun, 12 Apr 2026 10:31:16 -0400
+Message-Id: <20260412143116.1445893-1-guoren@kernel.org>
+X-Mailer: git-send-email 2.40.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -80,207 +57,203 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Add some tests for the new mkdirat2() syscall to test compliance and
-to showcase its behaviour.
+From: "Guo Ren (Alibaba DAMO Academy)" <guoren@kernel.org>
 
-Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
+The early version of XuanTie C910 core has a store merge buffer
+delay problem. The store merge buffer could improve the store queue
+performance by merging multi-store requests, but when there are not
+continued store requests, the prior single store request would be
+waiting in the store queue for a long time. That would cause
+significant problems for communication between multi-cores. This
+problem was found on sg2042 & th1520 platforms with the qspinlock
+lock torture test.
+
+So appending a fence w.o could immediately flush the store merge
+buffer and let other cores see the write result.
+
+This will apply the WRITE_ONCE errata to handle the non-standard
+behavior via appending a fence w.o instruction for WRITE_ONCE().
+
+This problem is only observed on the sg2042 hardware platform by
+running the lock_torture test program for half an hour. The problem
+was not found in the user space application, because interrupt can
+break the livelock.
+
+Reviewed-by: Leonardo Bras <leobras@redhat.com>
+Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
+Tested-by: Han Gao <gaohan@iscas.ac.cn>
+Tested-by: Yao Zi <me@ziyao.cc>
+Cc: Chen Wang <unicorn_wang@outlook.com>
+Cc: Inochi Amaoto <inochiama@gmail.com>
+Cc: Xiaoguang Xing <xiaoguang.xing@sophgo.com>
+Cc: Paul Walmsley <pjw@kernel.org>
+Signed-off-by: Guo Ren (Alibaba DAMO Academy) <guoren@kernel.org>
 ---
- tools/include/uapi/asm-generic/unistd.h       |   5 +-
- .../testing/selftests/filesystems/.gitignore  |   1 +
- tools/testing/selftests/filesystems/Makefile  |   4 +-
- .../selftests/filesystems/mkdirat_fd_test.c   | 143 ++++++++++++++++++
- 4 files changed, 150 insertions(+), 3 deletions(-)
- create mode 100644 tools/testing/selftests/filesystems/mkdirat_fd_test.c
+Changelog
 
-diff --git a/tools/include/uapi/asm-generic/unistd.h b/tools/include/uapi/asm-generic/unistd.h
-index a627acc8fb5f..6efc21779b62 100644
---- a/tools/include/uapi/asm-generic/unistd.h
-+++ b/tools/include/uapi/asm-generic/unistd.h
-@@ -863,8 +863,11 @@ __SYSCALL(__NR_listns, sys_listns)
- #define __NR_rseq_slice_yield 471
- __SYSCALL(__NR_rseq_slice_yield, sys_rseq_slice_yield)
+v4:
+ - Add Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
+   (https://lore.kernel.org/linux-riscv/1cfdf6c1-a384-43ad-9588-284335d073f7@ghiti.fr/)
+ - Add Tested-by: Yao Zi <me@ziyao.cc>
+ - Rebase on v7.0-rc7
+
+v3:
+https://lore.kernel.org/linux-riscv/20260125063941.443777-1-guoren@kernel.org/
+ - Rebase on 6.19-rc6.
+ - Remove errata_list_vendors patch which has been merged.
+ - Add Tested-by tag.
+
+v2:
+https://lore.kernel.org/linux-riscv/20250713155321.2064856-1-guoren@kernel.org/
+ - Add new header file for errata_list_vendors.
+ - Rebase newest kernel version.
+
+v1:
+https://lore.kernel.org/all/20241214143039.4139398-1-guoren@kernel.org/
+---
+ arch/riscv/Kconfig.errata                    | 17 ++++++++++
+ arch/riscv/errata/thead/errata.c             | 20 ++++++++++++
+ arch/riscv/include/asm/errata_list_vendors.h |  3 +-
+ arch/riscv/include/asm/rwonce.h              | 34 ++++++++++++++++++++
+ include/asm-generic/rwonce.h                 |  2 ++
+ 5 files changed, 75 insertions(+), 1 deletion(-)
+ create mode 100644 arch/riscv/include/asm/rwonce.h
+
+diff --git a/arch/riscv/Kconfig.errata b/arch/riscv/Kconfig.errata
+index 3c945d086c7d..4d3f13522da6 100644
+--- a/arch/riscv/Kconfig.errata
++++ b/arch/riscv/Kconfig.errata
+@@ -154,4 +154,21 @@ config ERRATA_THEAD_GHOSTWRITE
  
-+#define __NR_mkdirat2 472
-+__SYSCALL(__NR_mkdirat2, sys_mkdirat2)
+ 	  If you don't know what to do here, say "Y".
+ 
++config ERRATA_THEAD_WRITE_ONCE
++	bool "Apply T-Head WRITE_ONCE errata"
++	depends on ERRATA_THEAD
++	default y
++	help
++	  The early version of T-Head C9xx cores of sg2042 & th1520 have a store
++	  merge buffer delay problem. The store merge buffer could improve the
++	  store queue performance by merging multi-store requests, but when there
++	  are no continued store requests, the prior single store request would be
++	  waiting in the store queue for a long time. That would cause signifi-
++	  cant problems for communication between multi-cores. Appending a
++	  fence w.o could immediately flush the store merge buffer and let other
++	  cores see the write result.
 +
- #undef __NR_syscalls
--#define __NR_syscalls 472
-+#define __NR_syscalls 473
++	  This will apply the WRITE_ONCE errata to handle the non-standard beh-
++	  avior via appending a fence w.o instruction for WRITE_ONCE().
++
+ endmenu # "CPU errata selection"
+diff --git a/arch/riscv/errata/thead/errata.c b/arch/riscv/errata/thead/errata.c
+index 0b942183f708..fbe46f2fa8fb 100644
+--- a/arch/riscv/errata/thead/errata.c
++++ b/arch/riscv/errata/thead/errata.c
+@@ -168,6 +168,23 @@ static bool errata_probe_ghostwrite(unsigned int stage,
+ 	return true;
+ }
  
- /*
-  * 32 bit systems traditionally used different
-diff --git a/tools/testing/selftests/filesystems/.gitignore b/tools/testing/selftests/filesystems/.gitignore
-index 64ac0dfa46b7..84e2175d171f 100644
---- a/tools/testing/selftests/filesystems/.gitignore
-+++ b/tools/testing/selftests/filesystems/.gitignore
-@@ -5,3 +5,4 @@ fclog
- file_stressor
- anon_inode_test
- kernfs_test
-+mkdirat_fd_test
-diff --git a/tools/testing/selftests/filesystems/Makefile b/tools/testing/selftests/filesystems/Makefile
-index 85427d7f19b9..7357769db57a 100644
---- a/tools/testing/selftests/filesystems/Makefile
-+++ b/tools/testing/selftests/filesystems/Makefile
-@@ -1,7 +1,7 @@
- # SPDX-License-Identifier: GPL-2.0
++static bool errata_probe_write_once(unsigned int stage,
++				    unsigned long arch_id, unsigned long impid)
++{
++	if (!IS_ENABLED(CONFIG_ERRATA_THEAD_WRITE_ONCE))
++		return false;
++
++	/* target-c9xx cores report arch_id and impid as 0 */
++	if (arch_id != 0 || impid != 0)
++		return false;
++
++	if (stage == RISCV_ALTERNATIVES_BOOT ||
++	    stage == RISCV_ALTERNATIVES_MODULE)
++		return true;
++
++	return false;
++}
++
+ static u32 thead_errata_probe(unsigned int stage,
+ 			      unsigned long archid, unsigned long impid)
+ {
+@@ -183,6 +200,9 @@ static u32 thead_errata_probe(unsigned int stage,
  
--CFLAGS += $(KHDR_INCLUDES)
--TEST_GEN_PROGS := devpts_pts file_stressor anon_inode_test kernfs_test fclog
-+CFLAGS += $(KHDR_INCLUDES) $(TOOLS_INCLUDES)
-+TEST_GEN_PROGS := devpts_pts file_stressor anon_inode_test kernfs_test fclog mkdirat_fd_test
- TEST_GEN_PROGS_EXTENDED := dnotify_test
+ 	errata_probe_ghostwrite(stage, archid, impid);
  
- include ../lib.mk
-diff --git a/tools/testing/selftests/filesystems/mkdirat_fd_test.c b/tools/testing/selftests/filesystems/mkdirat_fd_test.c
++	if (errata_probe_write_once(stage, archid, impid))
++		cpu_req_errata |= BIT(ERRATA_THEAD_WRITE_ONCE);
++
+ 	return cpu_req_errata;
+ }
+ 
+diff --git a/arch/riscv/include/asm/errata_list_vendors.h b/arch/riscv/include/asm/errata_list_vendors.h
+index ec7eba373437..8fd7c36307e2 100644
+--- a/arch/riscv/include/asm/errata_list_vendors.h
++++ b/arch/riscv/include/asm/errata_list_vendors.h
+@@ -18,7 +18,8 @@
+ #define	ERRATA_THEAD_MAE 0
+ #define	ERRATA_THEAD_PMU 1
+ #define	ERRATA_THEAD_GHOSTWRITE 2
+-#define	ERRATA_THEAD_NUMBER 3
++#define	ERRATA_THEAD_WRITE_ONCE 3
++#define	ERRATA_THEAD_NUMBER 4
+ #endif
+ 
+ #ifdef CONFIG_ERRATA_MIPS
+diff --git a/arch/riscv/include/asm/rwonce.h b/arch/riscv/include/asm/rwonce.h
 new file mode 100644
-index 000000000000..a02c0223d63b
+index 000000000000..081793d4d772
 --- /dev/null
-+++ b/tools/testing/selftests/filesystems/mkdirat_fd_test.c
-@@ -0,0 +1,143 @@
-+// SPDX-License-Identifier: GPL-2.0
++++ b/arch/riscv/include/asm/rwonce.h
+@@ -0,0 +1,34 @@
++/* SPDX-License-Identifier: GPL-2.0 */
 +
-+#include <errno.h>
-+#include <fcntl.h>
-+#include <limits.h>
-+#include <sys/stat.h>
++#ifndef __ASM_RWONCE_H
++#define __ASM_RWONCE_H
 +
-+#include <asm-generic/unistd.h>
++#include <linux/compiler_types.h>
++#include <asm/alternative-macros.h>
++#include <asm/vendorid_list.h>
++#include <asm/errata_list_vendors.h>
 +
-+#include "kselftest_harness.h"
++#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE)
 +
-+#ifndef VALID_MKDIRAT2_FLAGS
-+#define VALID_MKDIRAT2_FLAGS (AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT)
++#define write_once_fence()				\
++do {							\
++	asm volatile(ALTERNATIVE(			\
++		"nop",					\
++		"fence w, o",				\
++		THEAD_VENDOR_ID,			\
++		ERRATA_THEAD_WRITE_ONCE,		\
++		CONFIG_ERRATA_THEAD_WRITE_ONCE)		\
++		: : : "memory");			\
++} while (0)
++
++#define __WRITE_ONCE(x, val)				\
++do {							\
++	*(volatile typeof(x) *)&(x) = (val);		\
++	write_once_fence();				\
++} while (0)
++
++#endif /* defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE) */
++
++#include <asm-generic/rwonce.h>
++
++#endif	/* __ASM_RWONCE_H */
+diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.h
+index 52b969c7cef9..4e2d941f15a1 100644
+--- a/include/asm-generic/rwonce.h
++++ b/include/asm-generic/rwonce.h
+@@ -50,10 +50,12 @@
+ 	__READ_ONCE(x);							\
+ })
+ 
++#ifndef __WRITE_ONCE
+ #define __WRITE_ONCE(x, val)						\
+ do {									\
+ 	*(volatile typeof(x) *)&(x) = (val);				\
+ } while (0)
 +#endif
-+
-+#define mkdirat2_checked_flags(dfd, pathname, flags) ({		\
-+	struct stat __st;					\
-+	int __fd = sys_mkdirat2(dfd, pathname, S_IRWXU, flags);	\
-+	ASSERT_GE(__fd, 0);					\
-+	EXPECT_EQ(fstat(__fd, &__st), 0);			\
-+	EXPECT_TRUE(S_ISDIR(__st.st_mode));			\
-+	__fd;							\
-+})
-+
-+#define mkdirat2_checked(dfd, pathname) \
-+	mkdirat2_checked_flags(dfd, pathname, 0)
-+
-+
-+static inline int sys_mkdirat2(int dfd, const char *pathname, mode_t mode,
-+				 unsigned int flags)
-+{
-+	return syscall(__NR_mkdirat2, dfd, pathname, mode, flags);
-+}
-+
-+FIXTURE(mkdirat2) {
-+	char dirpath[PATH_MAX];
-+	int dfd;
-+};
-+
-+FIXTURE_SETUP(mkdirat2)
-+{
-+	snprintf(self->dirpath, sizeof(self->dirpath),
-+		 "/tmp/mkdirat2_test.%d", getpid());
-+	ASSERT_EQ(mkdir(self->dirpath, S_IRWXU), 0);
-+
-+	self->dfd = open(self->dirpath, O_DIRECTORY);
-+	ASSERT_GE(self->dfd, 0);
-+}
-+
-+FIXTURE_TEARDOWN(mkdirat2)
-+{
-+	close(self->dfd);
-+	rmdir(self->dirpath);
-+}
-+
-+/* Does mkdirat2 return a fd at all */
-+TEST_F(mkdirat2, returns_fd)
-+{
-+	int fd = mkdirat2_checked(self->dfd, "newdir");
-+	EXPECT_EQ(close(fd), 0)
-+	EXPECT_EQ(unlinkat(self->dfd, "newdir", AT_REMOVEDIR), 0);
-+}
-+
-+/* The fd must refer to the directory that was just created. */
-+TEST_F(mkdirat2, fd_is_created_dir)
-+{
-+	int fd;
-+	struct stat st_via_fd, st_via_path;
-+	char path[PATH_MAX];
-+
-+	fd = mkdirat2_checked(self->dfd, "checkdir");
-+
-+	ASSERT_EQ(fstat(fd, &st_via_fd), 0);
-+
-+	snprintf(path, sizeof(path), "%s/checkdir", self->dirpath);
-+	ASSERT_EQ(stat(path, &st_via_path), 0);
-+
-+	EXPECT_EQ(st_via_fd.st_ino, st_via_path.st_ino);
-+	EXPECT_EQ(st_via_fd.st_dev, st_via_path.st_dev);
-+
-+	EXPECT_EQ(close(fd), 0)
-+	EXPECT_EQ(rmdir(path), 0);
-+}
-+
-+
-+/* Missing parent component must fail with ENOENT. */
-+TEST_F(mkdirat2, enoent_missing_parent)
-+{
-+	EXPECT_EQ(sys_mkdirat2(self->dfd, "nonexistent/child", S_IRWXU, 0), -1);
-+	EXPECT_EQ(errno, ENOENT);
-+}
-+
-+/* An invalid dfd must fail with EBADF. */
-+TEST_F(mkdirat2, ebadf)
-+{
-+	EXPECT_EQ(sys_mkdirat2(-42, "badfdir", S_IRWXU, 0), -1);
-+	EXPECT_EQ(errno, EBADF);
-+}
-+
-+/* A dfd that points to a file (not a directory) must fail with ENOTDIR. */
-+TEST_F(mkdirat2, enotdir_dfd)
-+{
-+	int file_fd;
-+
-+	file_fd = openat(self->dfd, "file",
-+			 O_CREAT | O_WRONLY, S_IRWXU);
-+	ASSERT_GE(file_fd, 0);
-+
-+	EXPECT_EQ(sys_mkdirat2(file_fd, "subdir", S_IRWXU, 0), -1);
-+	EXPECT_EQ(errno, ENOTDIR);
-+
-+	EXPECT_EQ(close(file_fd), 0);
-+	EXPECT_EQ(unlinkat(self->dfd, "file", 0), 0);
-+}
-+
-+/*
-+ * The returned fd must be usable as a dfd for further *at() calls.
-+ */
-+TEST_F(mkdirat2, fd_usable_as_dfd)
-+{
-+	int parent_fd, child_fd;
-+
-+	parent_fd = mkdirat2_checked(self->dfd, "parent");
-+	child_fd = mkdirat2_checked(parent_fd, "child");
-+
-+	EXPECT_EQ(close(child_fd), 0);
-+	EXPECT_EQ(close(parent_fd), 0);
-+
-+	char path[PATH_MAX];
-+	snprintf(path, sizeof(path), "%s/parent/child", self->dirpath);
-+	EXPECT_EQ(rmdir(path), 0);
-+	snprintf(path, sizeof(path), "%s/parent", self->dirpath);
-+	EXPECT_EQ(rmdir(path), 0);
-+}
-+
-+/* Unknown flags must be rejected with EINVAL. */
-+TEST_F(mkdirat2, einval_unknown_flags)
-+{
-+	EXPECT_EQ(sys_mkdirat2(self->dfd, "flagsdir", S_IRWXU, ~VALID_MKDIRAT2_FLAGS ), -1);
-+	EXPECT_EQ(errno, EINVAL);
-+}
-+
-+TEST_HARNESS_MAIN
+ 
+ #define WRITE_ONCE(x, val)						\
+ do {									\
 -- 
-2.53.0
+2.40.1
 
