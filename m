@@ -1,310 +1,215 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id D2E4538E5F5;
-	Mon, 13 Apr 2026 21:29:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776115798; cv=none; b=fXFQdc5CgXmh5KRt01uU504fQCStFY4k0XI7+fpGtOfMX2KaV012YX3UHDl0HB2yl41kH/5wjjPQA0Mtes7N9ky/V3I4ZwFOykifNmBVgUHRnlE72vLfOjgsLAWXYVBerJLBer27ANKbtyWaPCyrCgJir8dv+sgb+d0gmaGWmJk=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776115798; c=relaxed/simple;
-	bh=VKOp/bfi3+3f18brPCuBnEcNoxQTgLAuXXJPSV89Ubo=;
-	h=Message-ID:Date:MIME-Version:Cc:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=MD10GnlLTB7Zt7j2/Fm3SaoSuvyFCBZXE0H3iQ4iC3WcAcvbAE/qUHwUB3dKMqN+QVJcxD4ar68+mFvG16iNFa3yxB2wRkHL8mBfepTh/6K0GE7GEogEjyCyCadFqAoAWVB59NmxRKPQ4uymlIZj7QX76Uwux76zQb6/wNDue/8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=JYA8/ElR; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Received: from SN4PR2101CU001.outbound.protection.outlook.com (mail-southcentralusazolkn19012012.outbound.protection.outlook.com [52.103.14.12])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 762E43E95BD;
+	Tue, 14 Apr 2026 15:34:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.103.14.12
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1776180895; cv=fail; b=GtLMdc8GQLQBrB1aHb7ozvmvtl3HMuWdqQYqp6VyBOkC614VyGJf+41nZJeJ9IjTtEp0x+hVi8A84lylx3N7Y/BYcLaK9yhRZY7XSMhZ8dg173XeZb2tbL/+6ZP5ImC60AD691gJOQANX8WDEkN8Ok4EMpqdld9pabb254srCJU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1776180895; c=relaxed/simple;
+	bh=3tB4b991+0ngkd6tGR/yUAp1V5N1zlqLnmoPuJHD488=;
+	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
+	 Content-Type:MIME-Version; b=o2yoVIhygxEwhocLa+ZzSIkpct3sZrM/Zcgh2b+7oqmwHL68x4r+rgaleXRu8bfOmMGn88PqURV10cn7OrXSHQqQuw8+b80ItW7E+/irYh6zNZtmqGFnMvOsV1MM+r5TM34OchC54GvXMlVGG17fu6gB5oNmu9WePWZQcvTB5sQ=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=LhXajarn; arc=fail smtp.client-ip=52.103.14.12
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="JYA8/ElR"
-Received: from [192.168.201.246] (unknown [4.194.122.170])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 99C9A20B6F01;
-	Mon, 13 Apr 2026 14:29:45 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 99C9A20B6F01
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1776115795;
-	bh=WMc5Evq2nNeBkoCjquQw4Ior+8HHJUhNd+LYcwZxoWc=;
-	h=Date:Cc:Subject:To:References:From:In-Reply-To:From;
-	b=JYA8/ElRe3Mz7Ys4dWNb0DhnwnT1AUcd/gJVlkwXSRhuXv0IiG9QH/u+DLaW1sPjf
-	 8g2E1wY2dQadIngcD9P2o2v7OMG083yhTb9vcx8E1zog7n6dcFLHmaIboehNZ8kfCw
-	 KObse8LT5taZMD66AuwW922H0QQik9ilkcbYojxs=
-Message-ID: <a05fa5b8-3b82-4c5f-8fff-fe10b3f71e87@linux.microsoft.com>
-Date: Mon, 13 Apr 2026 14:29:57 -0700
+	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="LhXajarn"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=ZJDyA+l5mT1EfFi6waipwpK2sqB2AZVzNQVJ70XRt7S3xjbON4+7qWfgwDi/08L8gPuDSxneQ8o83s+khqU4irYc93bOvLf/zXfwWcMp/Xfq5coa+igqd9TbyY0rF9qpJliorxIMC23qDET/ja5wQadYKPx3C3y5yV/0IgN8AZU/b1vK+/G31IKB0Jqit1WG1cYTnt0pdU+ZY5MFe/mkz2nUDOf9I5Gm3c7Bh9tQIWCgqaaIuNHJ9Gu8uKH9kLV8oQScTXWyIHbyfdViVQVB53aaRHYrBo9j2pKp4xgzNfZLLAiyPjRzb1sS69XDlHqcEjUeui4lgwmZBFmxvUkpxg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=3tB4b991+0ngkd6tGR/yUAp1V5N1zlqLnmoPuJHD488=;
+ b=gLhSRRjEqDclJdPVshussCtWeC7qsIpBmaTU3sYgV1giWyEj1JPG6MVZBCLkD1BMdbrR67+Tz+qyvOcQRJPiH29oONzF07vm5Lw1GwY95JnCAdjmZA0GvViOep4VgeucIkCjXnOoeSzQw/0nRXP2jcRt+zQqdc65dMP1zTxa1TW3K1gQ3Oi7xwi7NuyrC5EPmq1lQjskxD9gJLQMiRq2OPkDXZt7907w8vOoO3L4E3wHDeB4N+9bOmPuuUTkCH2BX1X84TzXUUJJqOr6VdDwoX6GdjrBsZ8UlVf98HP3ro19lxeeErkAOcHSjD9HJCgQgnHpITh7XMrqWhZO/6v+Ew==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
+ dkim=none; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
+ s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=3tB4b991+0ngkd6tGR/yUAp1V5N1zlqLnmoPuJHD488=;
+ b=LhXajarnWqnpzVjpL11EO88N5WqFZmK12rTuLny1mEWv52RJA23LFVnddQFFZUJ7Nc58WkVHPKt/AbpWavHpGD0RfQa6CMCaTP5sAeQPbi+WHTVypekkXA+BPPtBAy+bgxUiME092Vgf+sZTRbLS/aHLiVG8A9pUXQli/iXxNlAZoqhNEMh0BFyKLnxwZkpfJ8Rj43bWqK61enZrM5zzrlmSNRCSDncgWfMdu6PmGGnl1GhxQN1q3YQNA7cOdykxPLAR2mprf7pLFWJsoKLsXP+n5CbMC84A+ybmDQQpdsKTCsnqLQlzs6TuDzts8jHs3Uk/0e8ffcUkjrnXukkS1g==
+Received: from SN6PR02MB4157.namprd02.prod.outlook.com (2603:10b6:805:33::23)
+ by CH3PR02MB9987.namprd02.prod.outlook.com (2603:10b6:610:1a5::18) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9769.48; Tue, 14 Apr
+ 2026 15:34:52 +0000
+Received: from SN6PR02MB4157.namprd02.prod.outlook.com
+ ([fe80::900:1ccf:2b1e:52b6]) by SN6PR02MB4157.namprd02.prod.outlook.com
+ ([fe80::900:1ccf:2b1e:52b6%6]) with mapi id 15.20.9769.046; Tue, 14 Apr 2026
+ 15:34:52 +0000
+From: Michael Kelley <mhklinux@outlook.com>
+To: Naman Jain <namjain@linux.microsoft.com>, "K . Y . Srinivasan"
+	<kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu
+	<wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>, Long Li
+	<longli@microsoft.com>, Catalin Marinas <catalin.marinas@arm.com>, Will
+ Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
+	<mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
+	<dave.hansen@linux.intel.com>, "x86@kernel.org" <x86@kernel.org>, "H . Peter
+ Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Paul Walmsley
+	<pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
+	<aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>
+CC: Marc Zyngier <maz@kernel.org>, Timothy Hayes <timothy.hayes@arm.com>,
+	Lorenzo Pieralisi <lpieralisi@kernel.org>, mrigendrachaubey
+	<mrigendra.chaubey@gmail.com>, "ssengar@linux.microsoft.com"
+	<ssengar@linux.microsoft.com>, "linux-hyperv@vger.kernel.org"
+	<linux-hyperv@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org"
+	<linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org"
+	<linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org"
+	<linux-arch@vger.kernel.org>, "linux-riscv@lists.infradead.org"
+	<linux-riscv@lists.infradead.org>
+Subject: RE: [PATCH 06/11] Drivers: hv: Make sint vector architecture neutral
+ in MSHV_VTL
+Thread-Topic: [PATCH 06/11] Drivers: hv: Make sint vector architecture neutral
+ in MSHV_VTL
+Thread-Index: AQHctT5Uo06CdizxUEmOmS2tUYF/frXKhrvAgBKFcICAAEOtMIAAEU2AgAF80pA=
+Date: Tue, 14 Apr 2026 15:34:52 +0000
+Message-ID:
+ <SN6PR02MB4157331531DA55B2591ED8A0D4252@SN6PR02MB4157.namprd02.prod.outlook.com>
+References: <20260316121241.910764-1-namjain@linux.microsoft.com>
+ <20260316121241.910764-7-namjain@linux.microsoft.com>
+ <SN6PR02MB4157521DEF9EA2471B6F3359D450A@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <b5125f61-173f-45d0-a6dc-d795ba0f8693@linux.microsoft.com>
+ <SN6PR02MB4157DA00A31F0BA8585B9B69D4242@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <3264b2e6-f6fb-41b1-97da-22b5249c1839@linux.microsoft.com>
+In-Reply-To: <3264b2e6-f6fb-41b1-97da-22b5249c1839@linux.microsoft.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach:
+X-MS-TNEF-Correlator:
+x-ms-publictraffictype: Email
+x-ms-traffictypediagnostic: SN6PR02MB4157:EE_|CH3PR02MB9987:EE_
+x-ms-office365-filtering-correlation-id: 277ac8cd-da33-4b5d-74c1-08de9a3b5f04
+x-microsoft-antispam:
+ BCL:0;ARA:14566002|15080799012|8062599012|8060799015|13091999003|19110799012|461199028|31061999003|37011999003|51005399006|440099028|3412199025|26121999003|102099032|40105399003;
+x-microsoft-antispam-message-info:
+ =?utf-8?B?b0grRWlyN2liUUFXRm96UThoUEZXUU5FZlVHbGY3V3ZkR25sOFhydDdhUkk0?=
+ =?utf-8?B?cnl5WnNwelBrcmROaEY3UTNrWXBQaHFrR3pTRHVTTmR4aklnWm5qbHovbFJv?=
+ =?utf-8?B?WXpWQ0lGb3pCOUt0QzZ0cHA2bEdmRkNON0VranBKQzk1VytCWjluTlhWQ3kz?=
+ =?utf-8?B?ZTgzSG5iNzJQS1JYVEF4cHJCOU5IOHlEUCtpd0IrNHNoYzduYzFrdXZSWkNj?=
+ =?utf-8?B?c2lWdk94ditlSUFmMmVGS01ocWd2WWN2UVZLa3QyRUtSYnNoMXUzcFRjM2M3?=
+ =?utf-8?B?dWlldnlGWEk0ZDU3ZmhQbFJKTVdtNlBXcUUrai9FcjVVNVhrVnU4T2FpK1JU?=
+ =?utf-8?B?Z1BVcjVBREZhRzIzY3RBNHBpbzFVa3MwTXk4bFU5MktPV0hXdjlOOWVzQ1E5?=
+ =?utf-8?B?TGpTMGk2MXBLZkRJWUtPM1hMNUhGSHBNQTQwaUoxb2ZIMVJncU90NHBXT3hp?=
+ =?utf-8?B?cmV3T3AvbnJ3eXF5YjcrdmFocFZXUDRCMG4wSjJreGxYVXp2bHNxZ1BKckN3?=
+ =?utf-8?B?SFZFbkZxclVreG1VK05NeHo3UWtKZkxkUGRmTlZQcnFWNXVieGNVK3VGR05O?=
+ =?utf-8?B?Z1diVUJ3S3Rkdi91Vzdsd3M4WGZNWW44WVc5UExhaThHL0lCYkwvN3liRVNS?=
+ =?utf-8?B?VTA5TUxYSkJMY1BiS0FOWVpRR2xEbGtuTTlmSHZ3VEozaStYOEpMVUVyV2Vi?=
+ =?utf-8?B?bE92ZXRVM3VQc0NBaGw5SUc2WSs3SkxDNmlyemxJS2R0U2V4S3lndy8zazZM?=
+ =?utf-8?B?eldIb3g3Q1I0Yy8wbURibDJYSkdySFdSVHdKb0FjdkRrSmpxRWdUNStrOEFD?=
+ =?utf-8?B?TXA0SkpNU1FLbHQ0YTdCNXBwMmxDaWhqbXV4WlMzSHBKdE1MeGF3MW9XLzds?=
+ =?utf-8?B?OGpGSjRyMHFWTXBJVFNXUTB3ejVNQVlORlh2V3MxSVVJZnFsVWt5WWRMa3ZB?=
+ =?utf-8?B?Mm1wV1Jsd1o1ZXB0RjNHSm55U0ZQY1dCNnd3ek94VjYwUGVSaTd6c3BvREU0?=
+ =?utf-8?B?RFZUeGJwL1J0cERQNXdIRDg0dGhXdkRSZ1BkMUhoRnFXOXNTbUFGYmZoZlVI?=
+ =?utf-8?B?V1VNN0RSNUNDQklYTUptWnlQbkVJdTZndGQ0TTAweUR0cEx6QWNRMGxObUtu?=
+ =?utf-8?B?V2xKZUZQZnU2ZlVZWk9aNXlYSTBzais4emdNZ0YvMlo1V0hHNlo2Wmtia2tq?=
+ =?utf-8?B?K3FkWTgxNERmckZBRFlIcktmMXU1b1NyRmJuc0szcG5RN1BGbCtyb3dYZ2U0?=
+ =?utf-8?B?eExyUGc0SFdsdmNpL0tuclBIMHpDekVLVnAvTnpCTXpBRnFuWEsrand0YkpZ?=
+ =?utf-8?Q?PqshYcwiYOyRSgGUhm3STcwYFQx3gnwbAV?=
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0:
+ =?utf-8?B?cUhZT3NZY0Vvc1BWRVZ4bjh3dnZXa0c5UGhjNUZ2ZzZEOStzbHk1aDNWQzIr?=
+ =?utf-8?B?S29ERWVDVmlWNkJxRFBwKzdveEVTWVA5MmNlai9nZnFlcVh2K29tcVJqY3NV?=
+ =?utf-8?B?Y0ZnWlpOWG1nTlVSNHVQTUFjSUxIcDJkV2JHcVNjTlVYUDI3bUxtdGZQZkhl?=
+ =?utf-8?B?aUJjaVAwVHhNTkhHRFhjSDIyMWErQmp5dkRNMU9mWGl2TDhwOU5paTlCZmpp?=
+ =?utf-8?B?T0s2UXU3Mk4rb3ovS1NERk5hY0pwakkwZFNsbWlYbEVZVnlZNlpPbjJuVG51?=
+ =?utf-8?B?eUhpRGpRekpYUGNocm1WWE13LzV2dlRRMk1NK3padkRhbTBzZmVnS3EvVnJ3?=
+ =?utf-8?B?K0Voa1k2cVh4ZzBRK2Fzb21ENmh3eXRRWGxNRHhkWHNpUUhtRkN4SGU1c1Zu?=
+ =?utf-8?B?VW1Fd2tSektEcEUxWlRCVFpxNTNybFBKMFFZZm1IeXZBRVVCRlVSenUrUzRC?=
+ =?utf-8?B?TWxpalVyaVBBblNwOHpaZWdNbEpzQmZ6Mk15cDBWQVRaTzlmcnU0VDEydmp2?=
+ =?utf-8?B?a0FZQit3TkMvNlJ3S0VTdy8wRWc0NHViUHI5cU40Qy9zV3FjcDR4VVFwb2ZJ?=
+ =?utf-8?B?SVpNSlJhUC9DRW5zUStDeTFrL3dpeFAwN1VzS2IyOFd2ellYRHc1S1RlM3JW?=
+ =?utf-8?B?RitmS3VNNGpkU0JhUG9wcDVVczV1ZjVxUlVWa094aVJzQ0NBRThFWmp6Zkk3?=
+ =?utf-8?B?SVVYaEtTV05tMDZDUGkyT21qT21hdjRmbnJaRk9KclM5TWovZkVzVE5McWQ0?=
+ =?utf-8?B?M0pMb0Y2a0pENmkvTWt1WUp6Q25MdXF5N1hReTEwMms1VEh3NTdQYytqT2t3?=
+ =?utf-8?B?dm4vQXdzbmFPT1h0L1pnektHMUdBcUNIWnBBaU5wTVlRVUFKNzJ1OFV3bXVN?=
+ =?utf-8?B?MmdjSTYwZzZNQ3J4WHJXK0VaMGdZa21idmlyc2FvaC81SndpTW5ZVTVycXNa?=
+ =?utf-8?B?am90Z0V6blQ4a2tiU1pJSFFJM08wcGZSSFpTb0pmcUdaUWNockdzejNvUEta?=
+ =?utf-8?B?WkprekpCcllRZFJMQXV5K3QzVkdCa0xXeWIrT3czRXhEVWNtL0dkMzdqdHV0?=
+ =?utf-8?B?WFZ2S3ZNRllYa01VRWVtODFCaGI5UUFuSWpqcmltNjdrc2UxNnRwYy9HaXNo?=
+ =?utf-8?B?clhvcXJNUHRjQnRrTy9QTm5XRUh3ajV3cHJUaTlvRUlXYy9sQ1FlUFJZOC9h?=
+ =?utf-8?B?RmZTWVo3dGZONFFWd1dyMlB6a3FOL0FHa0RQeHhXY25vQUZnM2VFT09GOEk0?=
+ =?utf-8?B?NVJWOGxXQ28rM2JQd3Z5ajJUMDR1NjN6MERQbDA0WVQ0dSt3eWJ2emNNUTBR?=
+ =?utf-8?B?RnhNYkozeXc0R3N1TGJjNERXUWZuYVc2L2FmLzF0bXAxQ3lPTld1LzNhWjZj?=
+ =?utf-8?B?dDhDSWNjaDkxV0tkNWNYdVVkL1J1MzFDR0srTFJHMGpjeFN5eVQ1RU11UWhu?=
+ =?utf-8?B?OHRUcnZnQktmZ3llSjIxZkI0Si9wR1V5RWRHbkNsTmxtdVJ5THFpTUJ5VUc2?=
+ =?utf-8?B?TVVLT3F5OUZkd0EzV1l5Y2h0M04wVjhINkJ6OXdTcG5jUEJqZjJ2ODIvUVhI?=
+ =?utf-8?B?QjdVU08zRjIyZ2NNRGoyTDdzNFNnREUveitXc2pZK3g1aUZNemNhTG1Gb3dV?=
+ =?utf-8?B?QXYra2RLcjdIZFF6K0tZeVlrSlE3V3FJcnRYL2k0Q1ZCY1dJL0NVWFlvV0dN?=
+ =?utf-8?B?bEVHL004Y2NjOFNhM01WeWxBb1Z5MFJPRnZYZWg5ekg1MkdoZ0pQWTd0cXRQ?=
+ =?utf-8?B?SXFHUFVFVkM5OVUzN2Yyai9haWRaSWh5eVI4RkdZWVV4UGhud3BBL3BiMWZj?=
+ =?utf-8?Q?BVMuBarF/QDNwal17/FDacvjgtVtwUWaSR1bI=3D?=
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Cc: easwar.hariharan@linux.microsoft.com,
- Yu Zhang <zhangyu1@linux.microsoft.com>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
- "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
- "iommu@lists.linux.dev" <iommu@lists.linux.dev>,
- "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>,
- "kys@microsoft.com" <kys@microsoft.com>,
- "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
- "wei.liu@kernel.org" <wei.liu@kernel.org>,
- "decui@microsoft.com" <decui@microsoft.com>,
- "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
- "kwilczynski@kernel.org" <kwilczynski@kernel.org>,
- "mani@kernel.org" <mani@kernel.org>, "robh@kernel.org" <robh@kernel.org>,
- "bhelgaas@google.com" <bhelgaas@google.com>, "arnd@arndb.de"
- <arnd@arndb.de>, "joro@8bytes.org" <joro@8bytes.org>,
- "will@kernel.org" <will@kernel.org>,
- "robin.murphy@arm.com" <robin.murphy@arm.com>,
- "jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>,
- "nunodasneves@linux.microsoft.com" <nunodasneves@linux.microsoft.com>,
- "mrathor@linux.microsoft.com" <mrathor@linux.microsoft.com>,
- "peterz@infradead.org" <peterz@infradead.org>,
- "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Subject: Re: [RFC v1 1/5] PCI: hv: Create and export hv_build_logical_dev_id()
-To: Michael Kelley <mhklinux@outlook.com>
-References: <20251209051128.76913-1-zhangyu1@linux.microsoft.com>
- <20251209051128.76913-2-zhangyu1@linux.microsoft.com>
- <SN6PR02MB41570FC0D7EA1364FB48CD1ED485A@SN6PR02MB4157.namprd02.prod.outlook.com>
- <162c901f-69a7-420a-9148-a469d5a8ca4f@linux.microsoft.com>
- <SN6PR02MB4157098A14BE63FCA8C0A70ED480A@SN6PR02MB4157.namprd02.prod.outlook.com>
- <2dabc1b8-0cf0-4fc8-9cd4-cce60adfc05e@linux.microsoft.com>
- <SN6PR02MB4157DC555A9EC7A73E2CB8CBD4582@SN6PR02MB4157.namprd02.prod.outlook.com>
-From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-Content-Language: en-US
-In-Reply-To: <SN6PR02MB4157DC555A9EC7A73E2CB8CBD4582@SN6PR02MB4157.namprd02.prod.outlook.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+X-OriginatorOrg: outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: SN6PR02MB4157.namprd02.prod.outlook.com
+X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-CrossTenant-Network-Message-Id: 277ac8cd-da33-4b5d-74c1-08de9a3b5f04
+X-MS-Exchange-CrossTenant-originalarrivaltime: 14 Apr 2026 15:34:52.0967
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
+X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH3PR02MB9987
 
-On 4/9/2026 12:01 PM, Michael Kelley wrote:
-> From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com> Sent: Wednesday, April 8, 2026 1:21 PM
->>
->> On 1/11/2026 9:36 AM, Michael Kelley wrote:
->>> From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com> Sent: Friday, January 9, 2026 10:41 AM
->>>>
->>>> On 1/8/2026 10:46 AM, Michael Kelley wrote:
->>>>> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Monday, December 8, 2025 9:11 PM
->>>>>>
->>>>>> From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
->>>>>>
->>>>>> Hyper-V uses a logical device ID to identify a PCI endpoint device for
->>>>>> child partitions. This ID will also be required for future hypercalls
->>>>>> used by the Hyper-V IOMMU driver.
->>>>>>
->>>>>> Refactor the logic for building this logical device ID into a standalone
->>>>>> helper function and export the interface for wider use.
->>>>>>
->>>>>> Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
->>>>>> Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
->>>>>> ---
->>>>>>  drivers/pci/controller/pci-hyperv.c | 28 ++++++++++++++++++++--------
->>>>>>  include/asm-generic/mshyperv.h      |  2 ++
->>>>>>  2 files changed, 22 insertions(+), 8 deletions(-)
->>>>>>
->>>>>> diff --git a/drivers/pci/controller/pci-hyperv.c b/drivers/pci/controller/pci-hyperv.c
->>>>>> index 146b43981b27..4b82e06b5d93 100644
->>>>>> --- a/drivers/pci/controller/pci-hyperv.c
->>>>>> +++ b/drivers/pci/controller/pci-hyperv.c
->>>>>> @@ -598,15 +598,31 @@ static unsigned int hv_msi_get_int_vector(struct irq_data *data)
->>>>>>
->>>>>>  #define hv_msi_prepare		pci_msi_prepare
->>>>>>
->>>>>> +/**
->>>>>> + * Build a "Device Logical ID" out of this PCI bus's instance GUID and the
->>>>>> + * function number of the device.
->>>>>> + */
->>>>>> +u64 hv_build_logical_dev_id(struct pci_dev *pdev)
->>>>>> +{
->>>>>> +	struct pci_bus *pbus = pdev->bus;
->>>>>> +	struct hv_pcibus_device *hbus = container_of(pbus->sysdata,
->>>>>> +						struct hv_pcibus_device, sysdata);
->>>>>> +
->>>>>> +	return (u64)((hbus->hdev->dev_instance.b[5] << 24) |
->>>>>> +		     (hbus->hdev->dev_instance.b[4] << 16) |
->>>>>> +		     (hbus->hdev->dev_instance.b[7] << 8)  |
->>>>>> +		     (hbus->hdev->dev_instance.b[6] & 0xf8) |
->>>>>> +		     PCI_FUNC(pdev->devfn));
->>>>>> +}
->>>>>> +EXPORT_SYMBOL_GPL(hv_build_logical_dev_id);
->>>>>
->>>>> This change is fine for hv_irq_retarget_interrupt(), it doesn't help for the
->>>>> new IOMMU driver because pci-hyperv.c can (and often is) built as a module.
->>>>> The new Hyper-V IOMMU driver in this patch series is built-in, and so it can't
->>>>> use this symbol in that case -- you'll get a link error on vmlinux when building
->>>>> the kernel. Requiring pci-hyperv.c to *not* be built as a module would also
->>>>> require that the VMBus driver not be built as a module, so I don't think that's
->>>>> the right solution.
->>>>>
->>>>> This is a messy problem. The new IOMMU driver needs to start with a generic
->>>>> "struct device" for the PCI device, and somehow find the corresponding VMBus
->>>>> PCI pass-thru device from which it can get the VMBus instance ID. I'm thinking
->>>>> about ways to do this that don't depend on code and data structures that are
->>>>> private to the pci-hyperv.c driver, and will follow-up if I have a good suggestion.
->>>>
->>>> Thank you, Michael. FWIW, I did try to pull out the device ID components out of
->>>> pci-hyperv into include/linux/hyperv.h and/or a new include/linux/pci-hyperv.h
->>>> but it was just too messy as you say.
->>>
->>> Yes, the current approach for getting the device ID wanders through struct
->>> hv_pcibus_device (which is private to the pci-hyperv driver), and through
->>> struct hv_device (which is a VMBus data structure). That makes the linkage
->>> between the PV IOMMU driver and the pci-hyperv and VMBus drivers rather
->>> substantial, which is not good.
->>
->> Hi Michael,
->>
->> I missed this, or made a mental note to follow up but forgot. Either way, Yu reminded
->> me about this email chain and I started looking at it this week.
->>
->>>
->>> But here's an idea for an alternate approach. The PV IOMMU driver doesn't
->>> have to generate the logical device ID on-the-fly by going to the dev_instance
->>> field of struct hv_device. Instead, the pci-hyperv driver can generate the logical
->>> device ID in hv_pci_probe(), and put it somewhere that's easy for the IOMMU
->>> driver to access. The logical device ID doesn't change while Linux is running, so
->>> stashing another copy somewhere isn't a problem.
->>
->> In my exploration and consulting with Dexuan, I realized that one of the components of
->> the logical device ID, the PCI function number is set only in pci_scan_device(), well into
->> pci_scan_root_bus_bridge() that you call out as the point by which the communication
->> must have occurred.
->>
->> But then, Dexuan also pointed me to hv_pci_assign_slots() with its call to wslot_to_devfn() and I'm
->> honestly confused how these two interact. With the current approach, it looks like whatever
->> devfn pci_scan_device() set is the correct function number to use for the logical device
->> ID, in which case, the best I can do with your suggested approach below is to inform the
->> pvIOMMU driver of the GUID, rather than the logical device ID itself.
->>
->> Perhaps with your history, you can clarify the interaction, and/or share your thoughts
->> on the above?
-> 
-> During hv_pci_probe(), hv_pci_query_relations() is called to ask the Hyper-V
-> host about what PCI devices are present. hv_pci_query_relations() sends a
-> PCI_QUERY_BUS_RELATIONS message to the host, and the host send back a
-> PCI_BUS_RELATIONS or PCI_BUS_RELATIONS2 message. The response message
-> is handled in hv_pci_onchannelcallback(), which calls hv_pci_devices_present()
-> or hv_pci_devices_present2().  The latter two functions both call
-> hv_pci_start_relations_work() to add a request to a workqueue that runs
-> pci_devices_present_work().  Finally, pci_devices_present_work() calls
-> pc_scan_child_bus(), followed by hv_pci_assign_slots().
-> 
-> In hv_pci_assign_slots, you can see that the PCI_BUS_RELATIONS[2]
-> info from the Hyper-V host contains a function number encoded in the
-> win_slot field. So the Hyper-V host *does* tell the guest the function number.
-> However, the generic Linux PCI subsystem doesn't use this function number.
-> It still scans the PCI device, trying successive function numbers to see which
-> ones work. The scan should find the same function number that the Hyper-V
-> host originally reported.
-> 
-> As you noted, there's a sequencing problem in waiting for
-> pci_scan_single_device() to find the function number. In the hv_pci_probe()
-> path, after hv_pci_query_relations() runs and before create_root_hv_pci_bus()
-> is called, it seems feasible to use the function number provided by the
-> Hyper-V host to construct the logical device ID. That should work. But there's
-> another path, in that the Hyper-V host can generate a PCI_BUS_RELATIONS[2]
-> message without a request from Linux when something on the host side changes
-> the PCI device setup. There's a code path where pci_devices_present_work()
-> finds the state is "hv_pcibus_installed", and directly calls pci_scan_child_bus().
-> This path would presumably also need to construct (or re-construct) the
-> logical device ID using the information from the Hyper-V host before calling
-> pci_scan_child_bus(). I'm vague on the scenario for this latter case, but the
-> code is obviously there to handle it.
-> 
-> The other approach is as you suggest. The Hyper-V PCI driver can tell
-> the IOMMU driver the almost complete logical device ID, using just the
-> GUID bits. Then the IOMMU driver can then construct the full logical
-> device ID by adding the function number from the struct pci_dev. I don't
-> see a problem with this approach -- other IOMMU drivers are referencing
-> the struct pci_dev, and pulling out the function number doesn't seem like
-> a violation of layering.
-> 
-
-Thanks for that explanation, that makes sense. I didn't see any serialization
-that would ensure that the VMBus path to communicate the child devices on the bus
-would complete before pci_scan_device() finds and finalizes the pci_dev. I think it's
-safest to take the approach to communicate the GUID, and find the function number from
-the pci_dev. This does mean that there will be an essentially identical copy of
-hv_build_logical_dev_id() in the IOMMU code, but a comment can explain that.
-
->>
->>>
->>> So have the Hyper-V PV IOMMU driver provide an EXPORTed function to accept
->>> a PCI domain ID and the related logical device ID. The PV IOMMU driver is
->>> responsible for storing this data in a form that it can later search. hv_pci_probe()
->>> calls this new function when it instantiates a new PCI pass-thru device. Then when
->>> the IOMMU driver needs to attach a new device, it can get the PCI domain ID
->>> from the struct pci_dev (or struct pci_bus), search for the related logical device
->>> ID in its own data structure, and use it. The pci-hyperv driver has a dependency
->>> on the IOMMU driver, but that's a dependency in the desired direction. The
->>> PCI domain ID and logical device ID are just integers, so no data structures are
->>> shared.
->>
->> In a previous reply on this thread, you raised the uniqueness issue of bytes 4 and 5
->> of the GUID being used to create the domain number. I thought this approach could
->> help with that too, but as I coded it up, I realized that using the domain number
->> (not guaranteed to be unique) to search for the bus instance GUID (guaranteed to be unique)
->> is the wrong way around. It is unfortunately the only available key in the pci_dev
->> handed to the pvIOMMU driver in this approach though...
->>
->> Do you think that's a fatal flaw?
-> 
-> There are two uniqueness problems, which I didn't fully separate conceptually
-> until writing this. One problem is constructing a PCI domain ID that Linux can use
-> to identify the virtual PCI bus that the Hyper-V PCI driver creates for each vPCI
-> device. The Hyper-V virtual PCI driver uses GUID bytes 4 and 5, and recognizes
-> that they might not be unique. So there's code in hv_pci_probe() to pick another
-> number if there's a duplicate. Hyper-V doesn't really care how Linux picks the
-> domain ID for the virtual PCI bus as it's purely a Linux construct.
-
-This part matters for the IOMMU driver as it is the key we will use to search the data
-structure to find the right GUID to construct the logical dev ID that Hyper-V recognizes.
-
-> 
-> The second problem is the logical device ID that Hyper-V interprets to
-> identify a vPCI device in hypercalls such a HVCALL_RETARGET_INTERRUPT
-> and the new pvIOMMU related hypercalls. This logical device ID uses
-> GUID bytes 4 thru 7 (minus 1 bit).  I don’t think Linux uses the
-> logical device ID for anything. Since only Hyper-V interprets it, Hyper-V
-> must somehow be ensuring uniqueness of bytes 4 thru 7 (minus 1 bit).
-> That's something to confirm with the Hyper-V team. If they are just hoping
-> for the best, I don't know how Linux can solve the problem.
-
-I checked with the Hyper-V vPCI team on this aspect and the only guarantee that
-they provide is that, at any given time, there will only be 1 device with a given
-logical ID attached to a VM. Once a device has been removed, everything about it is
-forgotten from the Hyper-V stack's perspective, and nothing in the Hyper-V stack would
-prevent a scenario where, for example, a data movement accelerator is attached with
-logical ID X, then revoked, and let's say a NIC is attached with the same logical ID X.
-
-Also, FWIW, they also stated that the GUID is not unique and cannot be guaranteed to be
-unique because it's the GUID for the bus, not the individual devices.
-
-> My original comment about uniqueness somewhat conflated the two problems,
-> and that's misleading. The use of the logical device ID has been around for years
-> in hv_irq_retarget_interrupt(). Extending its use to the new pvIOMMU
-> hypercalls doesn't make things any worse. But I'm still curious about
-> what the Hyper-V team says about the uniqueness of bytes 4 thru 7.
-> 
-> Michael
-> c
->>
->>>
->>> Note that the pci-hyperv must inform the PV IOMMU driver of the logical
->>> device ID *before* create_root_hv_pci_bus() calls pci_scan_root_bus_bridge().
->>> The latter function eventually invokes hv_iommu_attach_dev(), which will
->>> need the logical device ID. See example stack trace. [1]
->>>
->>> I don't think the pci-hyperv driver even needs to tell the IOMMU driver to
->>> remove the information if a PCI pass-thru device is unbound or removed, as
->>> the logical device ID will be the same if the device ever comes back. At worst,
->>> the IOMMU driver can simply replace an existing logical device ID if a new one
->>> is provided for the same PCI domain ID.
->>
->> As above, replacing a unique GUID when a result is found for a non-unique
->> key value may be prone to failure if it happens that the device that came "back"
->> is not in fact the same device (or class of device) that went away and just happens
->> to, either due to bytes 4 and 5 being identical, or due to collision in the
->> pci_domain_nr_dynamic_ida, have the same domain number.
-
-Given the vPCI team's statements (above), I think we will need to handle unbind or
-removal and ensure the pvIOMMU drivers data structure is invalidated when either happens.
-
-<snip>
-
-Thanks,
-Easwar (he/him)
+RnJvbTogTmFtYW4gSmFpbiA8bmFtamFpbkBsaW51eC5taWNyb3NvZnQuY29tPiBTZW50OiBNb25k
+YXksIEFwcmlsIDEzLCAyMDI2IDk6NTIgQU0NCj4gPj4+DQo+ID4+PiBTYXNoaWtvIEFJIHJhaXNl
+ZCBhbiBpbnRlcmVzdGluZyBxdWVzdGlvbiBhYm91dCB0aGUgc3RhcnR1cCB0aW1pbmcgLS0NCj4g
+Pj4+IHdoZXRoZXIgdGhlIHZtYnVzX3BsYXRmb3JtX2RyaXZlcl9wcm9iZSgpIGlzIGd1YXJhbnRl
+ZWQgdG8gaGF2ZQ0KPiA+Pj4gc2V0IHZtYnVzX2ludGVycnVwdCBiZWZvcmUgdGhlIFZUTCBmdW5j
+dGlvbnMgYmVsb3cgcnVuIGFuZCB1c2UgaXQuDQo+ID4+PiBXaGF0IGNhdXNlcyB0aGUgbXNodl92
+dGwua28gbW9kdWxlIHRvIGJlIGxvYWRlZCwgYW5kIGhlbmNlIHJ1bg0KPiA+Pj4gbXNodl92dGxf
+aW5pdCgpPw0KPiA+Pg0KPiA+PiBUaGVyZSBpcyBubyByYWNlIGNvbmRpdGlvbiBoZXJlLiBUaGUg
+aW5pdCBvcmRlcmluZyBndWFyYW50ZWVzIHRoYXQNCj4gPj4gdm1idXNfaW50ZXJydXB0IGlzIGFs
+d2F5cyBzZXQgYmVmb3JlIG1zaHZfdnRsX3N5bmljX2VuYWJsZV9yZWdzKCkNCj4gPj4gcmVhZHMg
+aXQuDQo+ID4+DQo+ID4+IFRoZSBjYWxsIGNoYWluIGZvciBzZXR0aW5nIHZtYnVzX2ludGVycnVw
+dDoNCj4gPj4NCj4gPj4gICAgIHN1YnN5c19pbml0Y2FsbChodl9hY3BpX2luaXQpICAgICAgICAg
+ICAgICAgICAgICAgICAgICBbbGV2ZWwgNF0NCj4gPj4gICAgICAgLT4gcGxhdGZvcm1fZHJpdmVy
+X3JlZ2lzdGVyKCZ2bWJ1c19wbGF0Zm9ybV9kcml2ZXIpIGFuZCBzbyBvbi4NCj4gPj4NCj4gPj4N
+Cj4gPj4gVGhlIGNhbGwgY2hhaW4gZm9yIHJlYWRpbmcgdm1idXNfaW50ZXJydXB0Og0KPiA+Pg0K
+PiA+PiAgICAgbW9kdWxlX2luaXQobXNodl92dGxfaW5pdCkgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgIFtsZXZlbCA2XQ0KPiA+PiAgICAgICAtPiBodl92dGxfc2V0dXBfc3luaWMoKQ0KPiA+
+PiAgICAgICAgIC0+IGNwdWhwX3NldHVwX3N0YXRlKENQVUhQX0FQX09OTElORV9EWU4sIC4uLiwg
+bXNodl92dGxfYWxsb2NfY29udGV4dCwgLi4uKQ0KPiA+PiAgICAgICAgICAgLT4gbXNodl92dGxf
+YWxsb2NfY29udGV4dCgpDQo+ID4+ICAgICAgICAgICAgIC0+IG1zaHZfdnRsX3N5bmljX2VuYWJs
+ZV9yZWdzKCkNCj4gPj4gICAgICAgICAgICAgICAtPiBzaW50LnZlY3RvciA9IHZtYnVzX2ludGVy
+cnVwdA0KPiA+Pg0KPiA+PiBkb19pbml0Y2FsbHMoKSBwcm9jZXNzZXMgc2VjdGlvbnMgaW4gb3Jk
+ZXIgMCB0aHJvdWdoIDcsIHNvDQo+ID4+IGh2X2FjcGlfaW5pdCgpIChsZXZlbCA0KSBpcyBndWFy
+YW50ZWVkIHRvIGNvbXBsZXRlIGJlZm9yZQ0KPiA+PiBtc2h2X3Z0bF9pbml0KCkgKGxldmVsIDYp
+IHJ1bnMuDQo+ID4+DQo+ID4NCj4gPiBJIHRoaW5rIHRoZSBzaXR1YXRpb24gaXMgbW9yZSBjb21w
+bGV4IHRoYW4gd2hhdCB5b3UgZGVzY3JpYmUsIGRlcGVuZGluZw0KPiA+IG9uIHdoZXRoZXIgdGhl
+IFZNQnVzIGRyaXZlciBhbmQvb3IgTVNIVl9WVEwgYXJlIGJ1aWx0IGFzIG1vZHVsZXMgdnMuDQo+
+ID4gYmVpbmcgYnVpbHQtaW4gdG8gdGhlIGtlcm5lbCBpbWFnZS4gSW4gaW5jbHVkZS9saW51eC9t
+b2R1bGUuaCwgc2VlIHRoZQ0KPiA+IGNvbW1lbnQgZm9yIG1vZHVsZV9pbml0KCkgYW5kIGhvdyBz
+dWJzeXNfaW5pdGNhbGwoKSBpcyBtYXBwZWQNCj4gPiB0byBtb2R1bGVfaW5pdCgpIHdoZW4gYnVp
+bHQgYXMgYSBtb2R1bGUuDQo+ID4NCj4gPiBJZiBib3RoIGFyZSBidWlsdC1pbiwgdGhlbiB3aGF0
+IHlvdSBkZXNjcmliZSBpcyBjb3JyZWN0LiBCdXQgaWYgZWl0aGVyIG9yDQo+ID4gYm90aCBhcmUg
+bW9kdWxlcywgdGhlbiB0aGUgcmVzcGVjdGl2ZSBpbml0IGZ1bmN0aW9ucyAoaHZfYWNwaV9pbml0
+DQo+ID4gYW5kIG1zaHZfdnRsX2luaXQpIGdldCBjYWxsZWQgYXQgdGhlIHRpbWUgdGhlIG1vZHVs
+ZSBpcyBsb2FkZWQsIGFuZA0KPiA+IG5vdCBieSBkb19pbml0Y2FsbHMoKS4gSSB0aGluayBodl92
+bWJ1cy5rbyBnZXRzIGxvYWRlZCB3aGVuIGFuIGF0dGVtcHQNCj4gPiBpcyBmaXJzdCBtYWRlIHRv
+IGFjY2VzcyBhIGRpc2ssIGJ1dCBJIHdvdWxkIG5lZWQgdG8gbG9vayBtb3JlIGNsb3NlbHkgdG8N
+Cj4gPiBiZSBzdXJlLiBJIGRvbid0IGhhdmUgYW55IHVuZGVyc3RhbmRpbmcgb2Ygd2hhdCBjYXVz
+ZXMgbXNodl92dGwua28NCj4gPiB0byBiZSBsb2FkZWQuIEFuZCB3aGF0IGlzIHRoZSBvcmRlcmlu
+ZyBpZiBNU0hWX1ZUTCBpcyBidWlsdC1pbiB3aGlsZQ0KPiA+IFZNQnVzIGlzIGJ1aWx0IGFzIGEg
+bW9kdWxlLCBvciB2aWNlIHZlcnNhPw0KPiA+DQo+ID4gTWljaGFlbA0KPiA+DQo+IA0KPiBCYXNl
+ZCBvbiB0aGlzLCBJIHN0aWxsIGZlZWwgdGhhdCB0aGlzIHJhY2UgaXMgbm90IHBvc3NpYmxlLg0K
+PiANCj4gaHZfdm1idXMgICBtc2h2X3Z0bA0KPiAgICAgeSAgICAgICAgICB5ICAtPiBkaWZmZXJl
+bnQgaW5pdGNhbGwgbGV2ZWxzLCBubyBpc3N1ZXMNCj4gICAgIHkgICAgICAgICAgbSAgLT4gdXNl
+IHdpdGhvdXQgaW5pdGlhbGl6YXRpb24gaXMgbm90IHBvc3NpYmxlDQo+ICAgICBtICAgICAgICAg
+IHkgIC0+IGNvbmZpZyBkZXBlbmRlbmNpZXMgdGFrZSBjYXJlIG9mIHRoaXMsIGFuZCBtc2h2X3Z0
+bA0KPiBpcyBmb3JjZWQgdG8gY29tcGlsZSBhcyBhIG1vZHVsZSBpbiB0aGlzIGNhc2UuDQo+ICAg
+ICBtICAgICAgICAgIG0gIC0+IGNvbmZpZyBhbmQgc3ltYm9sIGRlcGVuZGVuY2llcyBzaG91bGQg
+dGFrZSBjYXJlIG9mDQo+IGl0LiBtc2h2X3Z0bCBoYXMgc3ltYm9sIGFuZCBjb25maWcgZGVwZW5k
+ZW5jaWVzIG9uIGh2X3ZtYnVzLCBhbmQgaXQNCj4gd29uJ3QgYWxsb3cgbG9hZGluZyBtc2h2X3Z0
+bCBpZiBodl92bWJ1cyBtb2R1bGUgaXMgbm90IGxvYWRlZC4NCj4gDQo+IFJlbGV2YW50IGNvZGUg
+aGVyZToga2VybmVsL21vZHVsZS9tYWluLmMNCj4gDQoNCk1ha2VzIHNlbnNlLiAgSSdtIGNvbnZp
+bmNlZCEgIDotKQ0KDQpNaWNoYWVsDQo=
