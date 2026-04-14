@@ -1,202 +1,284 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 6A9B71A01BE;
-	Tue, 14 Apr 2026 19:44:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3B9B26F293;
+	Tue, 14 Apr 2026 23:09:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776195843; cv=none; b=V8c397LHOE2ZNbWglrJz3zFkaY+BXoP9bOjQW3gRAaxIgZJCNd8jhobNv98acIKN2Xvxf89f/7vJB8++qUBEHopiHsfzJOfiaHXcLxU4BsO62HQdP7S9X6mGiUYu4mz7/umfwgzOiN2/LNTXvZnqh+AFq4W7w7fVLjsEADRfaec=
+	t=1776208170; cv=none; b=qvPa0Dmd2Aosq44PtFhYfkhmeKDB1i7pL+qKmOurkMu88ThrBipmh+XHmfpAFnld662UsH36aamgzktyApczJAG0VGnBX31uRmvtGkTsMDXRYZZG99PWSc0o+xSRM+n7dTicQIkbG8eIXCNDVgb1L15Cwjne41DYIOnDgBiHDxs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776195843; c=relaxed/simple;
-	bh=8uUybN5gPpkOejRZ6N/OcR8at46nXE+VEYeby7KptWE=;
-	h=Message-ID:Date:MIME-Version:Cc:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=lZY6+KBfi3+9aTUajKYRnIVfuSo+3UK65ARiRdwZXNkYPNA7uIJs2B11gwc/h9WnBwmbGnMGLj210BNVS0aDFRUBHgMhSNCgJ499JgwDhzwSJerpclnpl2gdDJMERTbyT9DnxTEDNb5EqtTbHonlX4lIEL0tyhVLwVjli4+UWlw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=PrLOGibe; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1776208170; c=relaxed/simple;
+	bh=m0W/Ernt03ORrUvvuWlaV+yJl5KaCu8uMNwKRgnc1JU=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=OdqAxGJ/15T2adqQiMymz/Kn0o4o174jffktMJw8yi3qRMCdlKfIS3xglpz1ve9MJfL0W4tx590wsa2fj/wAm7kraLeJbiQPP1+zRUd8szWA/UcpjKAI2HWtMhGYdwo2Dwsf4MKqmeiOJ+BIimk9o3yG4tVhX/Xj19YYbxd2KTY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=qBelCepT; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="PrLOGibe"
-Received: from [192.168.201.246] (unknown [4.194.122.162])
-	by linux.microsoft.com (Postfix) with ESMTPSA id AA20220B7128;
-	Tue, 14 Apr 2026 12:43:52 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com AA20220B7128
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1776195842;
-	bh=2sCL/WvVpitYcQBQMCxOqwbqrjUxJqtzArQ8i2O5xXY=;
-	h=Date:Cc:Subject:To:References:From:In-Reply-To:From;
-	b=PrLOGibedMeSwMPv2HpQ8y+V/nZM+s6uNg1WXCtIzzOv10gyHiIY6LpDKf+6cH0Cn
-	 9/NeH8gRxsneTMEubxcKCndOC3iwAcYDiwbBuvgIJMpXXwOrq/YA1QrybZ3tn8k+Yd
-	 +VsbIQ1uOutVAQNpPOISr9NG/Z6DK4GA5Tc3DU5U=
-Message-ID: <c1c86f2d-3535-45bb-86dd-90c3b05c16fb@linux.microsoft.com>
-Date: Tue, 14 Apr 2026 12:43:48 -0700
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="qBelCepT"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6918DC19425;
+	Tue, 14 Apr 2026 23:09:30 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1776208170;
+	bh=m0W/Ernt03ORrUvvuWlaV+yJl5KaCu8uMNwKRgnc1JU=;
+	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
+	b=qBelCepTc9lFdVUgh+o5h1aXWx6734PGrt1TsMYUW8hNHRDFGGvbQBnbL7dkpco6k
+	 FOWMq2sxkQ//wmRKXPFKM2vXXv6BS3Sv3GEPKQgc9sNlUbSKK0Z3Ea5TZwC/uq1yAx
+	 XmarXC3/Ng/MOmZpZtC2AlgJFzmvc9Ns3XgKRXeNVliCghDA1lZzITubKE4U5WMow4
+	 aLNVnwqvUSMw7gjHi2mEqYtiDu3lfqxpFZHxsZI966VlBMLNFolgMJDx3pPmVkSeKs
+	 jkTzJ9lwTV80UFCo9VCmOvVlg94JahYcn8tZKQTzVofGTAOdvXmkjGvWtz5BmsTKPW
+	 7sluvHMU/cwXg==
+Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
+	id 0224ECE13BF; Tue, 14 Apr 2026 16:09:29 -0700 (PDT)
+Date: Tue, 14 Apr 2026 16:09:29 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+To: Dmitry Ilvokhin <d@ilvokhin.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>,
+	Will Deacon <will@kernel.org>, Boqun Feng <boqun@kernel.org>,
+	Waiman Long <longman@redhat.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Juergen Gross <jgross@suse.com>,
+	Ajay Kaher <ajay.kaher@broadcom.com>,
+	Alexey Makhalov <alexey.makhalov@broadcom.com>,
+	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
+	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+	Christoph Lameter <cl@gentwo.org>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
+	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
+	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
+	kernel-team@meta.com
+Subject: Re: [PATCH v4 3/5] locking: Add contended_release tracepoint to
+ sleepable locks
+Message-ID: <2d2a6584-2b75-44e9-953e-e6244ff2abc9@paulmck-laptop>
+Reply-To: paulmck@kernel.org
+References: <cover.1774536681.git.d@ilvokhin.com>
+ <d2e5763278812499335b22a013aafb4979e3324b.1774536681.git.d@ilvokhin.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Cc: easwar.hariharan@linux.microsoft.com,
- Yu Zhang <zhangyu1@linux.microsoft.com>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
- "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
- "iommu@lists.linux.dev" <iommu@lists.linux.dev>,
- "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>,
- "kys@microsoft.com" <kys@microsoft.com>,
- "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
- "wei.liu@kernel.org" <wei.liu@kernel.org>,
- "decui@microsoft.com" <decui@microsoft.com>,
- "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
- "kwilczynski@kernel.org" <kwilczynski@kernel.org>,
- "mani@kernel.org" <mani@kernel.org>, "robh@kernel.org" <robh@kernel.org>,
- "bhelgaas@google.com" <bhelgaas@google.com>, "arnd@arndb.de"
- <arnd@arndb.de>, "joro@8bytes.org" <joro@8bytes.org>,
- "will@kernel.org" <will@kernel.org>,
- "robin.murphy@arm.com" <robin.murphy@arm.com>,
- "jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>,
- "nunodasneves@linux.microsoft.com" <nunodasneves@linux.microsoft.com>,
- "mrathor@linux.microsoft.com" <mrathor@linux.microsoft.com>,
- "peterz@infradead.org" <peterz@infradead.org>,
- "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Subject: Re: [RFC v1 1/5] PCI: hv: Create and export hv_build_logical_dev_id()
-To: Michael Kelley <mhklinux@outlook.com>
-References: <20251209051128.76913-1-zhangyu1@linux.microsoft.com>
- <20251209051128.76913-2-zhangyu1@linux.microsoft.com>
- <SN6PR02MB41570FC0D7EA1364FB48CD1ED485A@SN6PR02MB4157.namprd02.prod.outlook.com>
- <162c901f-69a7-420a-9148-a469d5a8ca4f@linux.microsoft.com>
- <SN6PR02MB4157098A14BE63FCA8C0A70ED480A@SN6PR02MB4157.namprd02.prod.outlook.com>
- <2dabc1b8-0cf0-4fc8-9cd4-cce60adfc05e@linux.microsoft.com>
- <SN6PR02MB4157DC555A9EC7A73E2CB8CBD4582@SN6PR02MB4157.namprd02.prod.outlook.com>
- <a05fa5b8-3b82-4c5f-8fff-fe10b3f71e87@linux.microsoft.com>
- <SN6PR02MB4157BA7B07D328969EEBF2ADD4252@SN6PR02MB4157.namprd02.prod.outlook.com>
- <e7b3d040-b504-4665-a3ff-8d20261400ca@linux.microsoft.com>
- <SN6PR02MB415741EA3C27630199BCEAA3D4252@SN6PR02MB4157.namprd02.prod.outlook.com>
-From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-Content-Language: en-US
-In-Reply-To: <SN6PR02MB415741EA3C27630199BCEAA3D4252@SN6PR02MB4157.namprd02.prod.outlook.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <d2e5763278812499335b22a013aafb4979e3324b.1774536681.git.d@ilvokhin.com>
 
-On 4/14/2026 11:06 AM, Michael Kelley wrote:
-> From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com> Sent: Tuesday, April 14, 2026 10:42 AM
->>
+On Thu, Mar 26, 2026 at 03:10:02PM +0000, Dmitry Ilvokhin wrote:
+> Add the contended_release trace event. This tracepoint fires on the
+> holder side when a contended lock is released, complementing the
+> existing contention_begin/contention_end tracepoints which fire on the
+> waiter side.
 > 
-> [snip]
+> This enables correlating lock hold time under contention with waiter
+> events by lock address.
+> 
+> Add trace_contended_release() calls to the slowpath unlock paths of
+> sleepable locks: mutex, rtmutex, semaphore, rwsem, percpu-rwsem, and
+> RT-specific rwbase locks.
+> 
+> Where possible, trace_contended_release() fires before the lock is
+> released and before the waiter is woken. For some lock types, the
+> tracepoint fires after the release but before the wake. Making the
+> placement consistent across all lock types is not worth the added
+> complexity.
+> 
+> For reader/writer locks, the tracepoint fires for every reader releasing
+> while a writer is waiting, not only for the last reader.
+> 
+> Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
+
+Looks plausible:
+
+Acked-by: Paul E. McKenney <paulmck@kernel.org>
+
+> ---
+>  include/trace/events/lock.h   | 17 +++++++++++++++++
+>  kernel/locking/mutex.c        |  4 ++++
+>  kernel/locking/percpu-rwsem.c | 11 +++++++++++
+>  kernel/locking/rtmutex.c      |  1 +
+>  kernel/locking/rwbase_rt.c    |  6 ++++++
+>  kernel/locking/rwsem.c        | 10 ++++++++--
+>  kernel/locking/semaphore.c    |  4 ++++
+>  7 files changed, 51 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/trace/events/lock.h b/include/trace/events/lock.h
+> index da978f2afb45..1ded869cd619 100644
+> --- a/include/trace/events/lock.h
+> +++ b/include/trace/events/lock.h
+> @@ -137,6 +137,23 @@ TRACE_EVENT(contention_end,
+>  	TP_printk("%p (ret=%d)", __entry->lock_addr, __entry->ret)
+>  );
 >  
->>>> Thanks for that explanation, that makes sense. I didn't see any serialization
->>>> that would ensure that the VMBus path to communicate the child devices on the bus
->>>> would complete before pci_scan_device() finds and finalizes the pci_dev. I think it's
->>>
->>> FWIW, hv_pci_query_relations() should be ensuring that the communication
->>> has completed before it returns. It does a wait_for_reponse(), which ensures
->>> that the Hyper-V host has sent the PCI_BUS_RELATIONS[2] response. However,
->>> that message spins off work to the hbus->wq workqueue, so
->>> hv_pci_query_relations() has a flush_workqueue() so ensure everything that
->>> was queued has completed.
->>
->> Hm, I read the comment for the flush_workqueue() as addressing the "PCI_BUS_RELATIONS[2]
->> message arrived before we sent the QUERY_BUS_RELATIONS message" race case, not as an
->> "all child devices have definitely been received and processed in response to our
->> QUERY_BUS_RELATIONS message". Also, knowing very little about the VMBus contract, I
->> discounted the 100 ms timeout in wait_for_response() as a serialization guarantee.
+> +TRACE_EVENT(contended_release,
+> +
+> +	TP_PROTO(void *lock),
+> +
+> +	TP_ARGS(lock),
+> +
+> +	TP_STRUCT__entry(
+> +		__field(void *, lock_addr)
+> +	),
+> +
+> +	TP_fast_assign(
+> +		__entry->lock_addr = lock;
+> +	),
+> +
+> +	TP_printk("%p", __entry->lock_addr)
+> +);
+> +
+>  #endif /* _TRACE_LOCK_H */
+>  
+>  /* This part must be outside protection */
+> diff --git a/kernel/locking/mutex.c b/kernel/locking/mutex.c
+> index 427187ff02db..6c2c9312eb8f 100644
+> --- a/kernel/locking/mutex.c
+> +++ b/kernel/locking/mutex.c
+> @@ -997,6 +997,9 @@ static noinline void __sched __mutex_unlock_slowpath(struct mutex *lock, unsigne
+>  		wake_q_add(&wake_q, next);
+>  	}
+>  
+> +	if (trace_contended_release_enabled() && waiter)
+> +		trace_contended_release(lock);
+> +
+>  	if (owner & MUTEX_FLAG_HANDOFF)
+>  		__mutex_handoff(lock, next);
+>  
+> @@ -1194,6 +1197,7 @@ EXPORT_SYMBOL(ww_mutex_lock_interruptible);
+>  
+>  EXPORT_TRACEPOINT_SYMBOL_GPL(contention_begin);
+>  EXPORT_TRACEPOINT_SYMBOL_GPL(contention_end);
+> +EXPORT_TRACEPOINT_SYMBOL_GPL(contended_release);
+>  
+>  /**
+>   * atomic_dec_and_mutex_lock - return holding mutex if we dec to 0
+> diff --git a/kernel/locking/percpu-rwsem.c b/kernel/locking/percpu-rwsem.c
+> index f3ee7a0d6047..46b5903989b8 100644
+> --- a/kernel/locking/percpu-rwsem.c
+> +++ b/kernel/locking/percpu-rwsem.c
+> @@ -263,6 +263,9 @@ void percpu_up_write(struct percpu_rw_semaphore *sem)
+>  {
+>  	rwsem_release(&sem->dep_map, _RET_IP_);
+>  
+> +	if (trace_contended_release_enabled() && wq_has_sleeper(&sem->waiters))
+> +		trace_contended_release(sem);
+> +
+>  	/*
+>  	 * Signal the writer is done, no fast path yet.
+>  	 *
+> @@ -292,6 +295,14 @@ EXPORT_SYMBOL_GPL(percpu_up_write);
+>  void __percpu_up_read(struct percpu_rw_semaphore *sem)
+>  {
+>  	lockdep_assert_preemption_disabled();
+> +	/*
+> +	 * After percpu_up_write() completes, rcu_sync_is_idle() can still
+> +	 * return false during the grace period, forcing readers into this
+> +	 * slowpath. Only trace when a writer is actually waiting for
+> +	 * readers to drain.
+> +	 */
+> +	if (trace_contended_release_enabled() && rcuwait_active(&sem->writer))
+> +		trace_contended_release(sem);
+>  	/*
+>  	 * slowpath; reader will only ever wake a single blocked
+>  	 * writer.
+> diff --git a/kernel/locking/rtmutex.c b/kernel/locking/rtmutex.c
+> index ccaba6148b61..3db8a840b4e8 100644
+> --- a/kernel/locking/rtmutex.c
+> +++ b/kernel/locking/rtmutex.c
+> @@ -1466,6 +1466,7 @@ static void __sched rt_mutex_slowunlock(struct rt_mutex_base *lock)
+>  		raw_spin_lock_irqsave(&lock->wait_lock, flags);
+>  	}
+>  
+> +	trace_contended_release(lock);
+>  	/*
+>  	 * The wakeup next waiter path does not suffer from the above
+>  	 * race. See the comments there.
+> diff --git a/kernel/locking/rwbase_rt.c b/kernel/locking/rwbase_rt.c
+> index 82e078c0665a..74da5601018f 100644
+> --- a/kernel/locking/rwbase_rt.c
+> +++ b/kernel/locking/rwbase_rt.c
+> @@ -174,6 +174,8 @@ static void __sched __rwbase_read_unlock(struct rwbase_rt *rwb,
+>  static __always_inline void rwbase_read_unlock(struct rwbase_rt *rwb,
+>  					       unsigned int state)
+>  {
+> +	if (trace_contended_release_enabled() && rt_mutex_owner(&rwb->rtmutex))
+> +		trace_contended_release(rwb);
+>  	/*
+>  	 * rwb->readers can only hit 0 when a writer is waiting for the
+>  	 * active readers to leave the critical section.
+> @@ -205,6 +207,8 @@ static inline void rwbase_write_unlock(struct rwbase_rt *rwb)
+>  	unsigned long flags;
+>  
+>  	raw_spin_lock_irqsave(&rtm->wait_lock, flags);
+> +	if (trace_contended_release_enabled() && rt_mutex_has_waiters(rtm))
+> +		trace_contended_release(rwb);
+>  	__rwbase_write_unlock(rwb, WRITER_BIAS, flags);
+>  }
+>  
+> @@ -214,6 +218,8 @@ static inline void rwbase_write_downgrade(struct rwbase_rt *rwb)
+>  	unsigned long flags;
+>  
+>  	raw_spin_lock_irqsave(&rtm->wait_lock, flags);
+> +	if (trace_contended_release_enabled() && rt_mutex_has_waiters(rtm))
+> +		trace_contended_release(rwb);
+>  	/* Release it and account current as reader */
+>  	__rwbase_write_unlock(rwb, WRITER_BIAS - 1, flags);
+>  }
+> diff --git a/kernel/locking/rwsem.c b/kernel/locking/rwsem.c
+> index bf647097369c..602d5fd3c91a 100644
+> --- a/kernel/locking/rwsem.c
+> +++ b/kernel/locking/rwsem.c
+> @@ -1387,6 +1387,8 @@ static inline void __up_read(struct rw_semaphore *sem)
+>  	rwsem_clear_reader_owned(sem);
+>  	tmp = atomic_long_add_return_release(-RWSEM_READER_BIAS, &sem->count);
+>  	DEBUG_RWSEMS_WARN_ON(tmp < 0, sem);
+> +	if (trace_contended_release_enabled() && (tmp & RWSEM_FLAG_WAITERS))
+> +		trace_contended_release(sem);
+>  	if (unlikely((tmp & (RWSEM_LOCK_MASK|RWSEM_FLAG_WAITERS)) ==
+>  		      RWSEM_FLAG_WAITERS)) {
+>  		clear_nonspinnable(sem);
+> @@ -1413,8 +1415,10 @@ static inline void __up_write(struct rw_semaphore *sem)
+>  	preempt_disable();
+>  	rwsem_clear_owner(sem);
+>  	tmp = atomic_long_fetch_add_release(-RWSEM_WRITER_LOCKED, &sem->count);
+> -	if (unlikely(tmp & RWSEM_FLAG_WAITERS))
+> +	if (unlikely(tmp & RWSEM_FLAG_WAITERS)) {
+> +		trace_contended_release(sem);
+>  		rwsem_wake(sem);
+> +	}
+>  	preempt_enable();
+>  }
+>  
+> @@ -1437,8 +1441,10 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
+>  	tmp = atomic_long_fetch_add_release(
+>  		-RWSEM_WRITER_LOCKED+RWSEM_READER_BIAS, &sem->count);
+>  	rwsem_set_reader_owned(sem);
+> -	if (tmp & RWSEM_FLAG_WAITERS)
+> +	if (tmp & RWSEM_FLAG_WAITERS) {
+> +		trace_contended_release(sem);
+>  		rwsem_downgrade_wake(sem);
+> +	}
+>  	preempt_enable();
+>  }
+>  
+> diff --git a/kernel/locking/semaphore.c b/kernel/locking/semaphore.c
+> index 74d41433ba13..35ac3498dca5 100644
+> --- a/kernel/locking/semaphore.c
+> +++ b/kernel/locking/semaphore.c
+> @@ -230,6 +230,10 @@ void __sched up(struct semaphore *sem)
+>  		sem->count++;
+>  	else
+>  		__up(sem, &wake_q);
+> +
+> +	if (trace_contended_release_enabled() && !wake_q_empty(&wake_q))
+> +		trace_contended_release(sem);
+> +
+>  	raw_spin_unlock_irqrestore(&sem->lock, flags);
+>  	if (!wake_q_empty(&wake_q))
+>  		wake_up_q(&wake_q);
+> -- 
+> 2.52.0
 > 
-> Yeah, that timeout is so that the code can wake up every 100 ms to check
-> if the device has been rescinded (i.e., removed). If the device isn't
-> rescinded, wait_for_response() waits forever until a response comes in.
-
-I don't know how I missed that. :(
-
->>
->> Chalk it up to previous experience dealing with hardware that's *supposed* to be
->> spec-compliant and complete initialization within specified timings. :)
->>
->> I see now that the flush is sufficient though.
->>
->>>
->>> Thinking more about the "hv_pcibus_installed" case, if that path is ever
->>> triggered, I don't think anything needs to be done with the logical device ID.
->>> The vPCI device has already been fully initialized on the Linux side, and it's
->>> logical device ID would not change.
->>>
->>> So I think you could construct the full logical device ID once
->>> hv_pci_query_relations() returns to hv_pci_probe().
->>
->> Let me think about this more and decide between the logical ID and full bus GUID
->> options.
->>
->>>
->>>> safest to take the approach to communicate the GUID, and find the function number from
->>>> the pci_dev. This does mean that there will be an essentially identical copy of
->>>> hv_build_logical_dev_id() in the IOMMU code, but a comment can explain that.
->>>
->>> With this alternative approach, is there a need to communicate the full
->>> GUID to the pvIOMMU drvier? Couldn't you just communicate bytes 4 thru
->>> 7, which would be logical device ID minus the function number?
->>
->> Yes, we could just communicate bytes 4 through 7 but the pvIOMMU version of the build logical
->> ID function would diverge from the pci-hyperv version. I figured if we say (in a comment)
->> that this is the same ID as generated in pci-hyperv, it's better for future readers to see it
->> to be clearly identical at first glance.
->>
->> It's also possible to change the pci-hyperv function to only take bytes 4 through 7 instead of the
->> full GUID, but I rather think we don't need that impedance mismatch of bytes 4 through 7 of the
->> GUID becoming bytes 0 through 3 of a u32.
->>
->>>
-
-<snip>
-
->>
->>>>>>>
->>>>>>> I don't think the pci-hyperv driver even needs to tell the IOMMU driver to
->>>>>>> remove the information if a PCI pass-thru device is unbound or removed, as
->>>>>>> the logical device ID will be the same if the device ever comes back. At worst,
->>>>>>> the IOMMU driver can simply replace an existing logical device ID if a new one
->>>>>>> is provided for the same PCI domain ID.
->>>>>>
->>>>>> As above, replacing a unique GUID when a result is found for a non-unique
->>>>>> key value may be prone to failure if it happens that the device that came "back"
->>>>>> is not in fact the same device (or class of device) that went away and just happens
->>>>>> to, either due to bytes 4 and 5 being identical, or due to collision in the
->>>>>> pci_domain_nr_dynamic_ida, have the same domain number.
->>>>
->>>> Given the vPCI team's statements (above), I think we will need to handle unbind or
->>>> removal and ensure the pvIOMMU drivers data structure is invalidated when either
->>>> happens.
->>>
->>> The generic PCI code should handle detaching from the pvIOMMU. So I'm assuming
->>> your statement is specifically about the mapping from domain ID to logical device ID.
->>
->> Yes, apologies for the vagueness (again).
->>
->>> I still think removing it may be unnecessary since adding a mapping for a new vPCI
->>> device with the same domain ID but different logical device ID could just overwrite
->>> any existing mapping. And leaving a dead mapping in the pvIOMMU data structures
->>> doesn’t actually hurt anything. On the other hand, removing/invalidating it is
->>> certainly more tidy and might prevent some confusion down the road.
->>>
->>
->> Yes, if the data structure maps domain -> logical ID, we can do the overwrite as you say.
->> With my approach of informing the pvIOMMU driver of the entire (bus) GUID, we would want
->> to be careful that we don't assume the 1:1 bus<->device case and overwrite an existing
->> device entry with a new device that's on the same bus.
-> 
-> Yes, that's a valid point.  I was assuming that the pvIOMMU would use the
-> domain ID at the lookup key, since the domain ID is directly available from the
-> struct pci_dev that is an input parameter to the IOMMU functions. But in the
-> not 1:1 case, that domain ID might refer to a bus with multiple functions. The
-> logical device IDs for those devices will be the same except for the low order
-> 3 bits that encode with the function number. So maybe the domain ID maps
-> to a partial logical device ID, and the pvIOMMU driver must always add in the
-> function number so the not 1:1 case works.
-
-Agreed.
-
-> 
-> Would the pvIOMMU driver do anything with the full GUID, except extract
-> bytes 4 through 7? There's no way I see to use the full GUID as the lookup
-> key.
-> 
-
-No, the hypercalls only use the logical ID, so the rest of the GUID is unused.
-
-Thanks,
-Easwar (he/him)
