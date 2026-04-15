@@ -1,120 +1,76 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from canpmsgout07.his.huawei.com (canpmsgout07.his.huawei.com [113.46.200.222])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A0282346ACE;
-	Wed, 15 Apr 2026 05:54:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 25E5223372C;
+	Wed, 15 Apr 2026 09:34:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=113.46.200.222
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776232466; cv=none; b=nUkwfKvy6HhM1Hu2zHsTsjz8ZBzVUTkfRaYnxiAGl1a+zdeHXDEnPFkGg1mRoDDAlnQeNKZfnmyAX7hAa8uYXz3Uy7lX1FnTCNCgr9hwMQLWqILanqiH2SW2BizT3jYDGnZYyMQtm3nAlBUtUPgFUmHLb6CBpQFFFqB3OFA0wWk=
+	t=1776245699; cv=none; b=aOMQby5DhGtqPb3z1ZDC+6jmHby140JTlXr/MjF9aWQSwTOx2+H6TKHHec3n5cHBumEaJgL3C/3+ompjINLyisbriT3YJDtmQ24PZO9PnedlBYlhdo3i/yVKNbO3nSlWv5NlZhi4Vg6ZWxhIxryjXozS8mzx0FpXwXIDARMOEO4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776232466; c=relaxed/simple;
-	bh=krkPgIDXxYfHWT+4LVdBGwvnMdjxV2cofvgk8BCq050=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=tKyCawQoifOGfOGzw4d6zNgC4Bt9+PGEnVhqJC4IeP3fv7pAs/XVwPMVN/7ACOZD+Zh0SPaBsrD+cC6xiyM7L40vpQvWkuyohodUBisian7ROfWxfKexv40WbYATt/QPYOnHCl+gmf5oivJcUeBCmtEElW2ZuYUgNpZwwHT8GAw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=nly8mcQl; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1776245699; c=relaxed/simple;
+	bh=HGb6eYQnH7HckRUAFofykFX5yLZUaS1+gjCDO4Dmt4E=;
+	h=From:To:CC:Subject:Date:Message-ID:MIME-Version:Content-Type; b=A+9Xdcy4oHNqzFkmQk2VkyilmBQDno2i7ANkfAkdT6k50Ycb1QDNi54jywo2NYG1riBiMXTmE83P3FSKzKcfSb369gBYFsAVW+RCEP8WeYwV0WgFfCBkJD33GaTO/Cw6r9MYb2N/GbIx041Wtd4Xtgxdq0MQAEXeBoT7ilUGR2k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=fL6P+7av; arc=none smtp.client-ip=113.46.200.222
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nly8mcQl"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 00A63C19424;
-	Wed, 15 Apr 2026 05:54:25 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1776232466;
-	bh=krkPgIDXxYfHWT+4LVdBGwvnMdjxV2cofvgk8BCq050=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=nly8mcQlRKWi2EcTLtt7DynZUapEeyuFwPOrBoAj6ULbeiZ+3t84O+YWoUphRP6Kp
-	 fVC/ecS2iAT7522uu5P8sx2nOY90XW0Eokn/1PXaDcwjQQOV11yx8kGrUPzEZ8J6DK
-	 Dn5UiSMb4ZdxKrkgRNRLR4HasVBkUCIdEnCUuD0oBficNVhKo69KEHFCGD5EYJXoRY
-	 M0befqPK/TqUhTr+9yajT0n9fSU7vJr0VIq86uO0dqeiXvBp6JBHeIoyBpW+Yr9eCd
-	 /PWqvBKXXzIigAMnQ+C9SQmwV2M4NPLs+PBjtvDw6eoVsdjY4uTcsYLie3Gu1KbAip
-	 6f1P4Xb7vgS0A==
-Date: Wed, 15 Apr 2026 05:54:24 +0000
-From: Wei Liu <wei.liu@kernel.org>
-To: Anirudh Rayabharam <anirudh@anirudhrb.com>
-Cc: Jork Loeser <jloeser@linux.microsoft.com>, linux-hyperv@vger.kernel.org,
-	x86@kernel.org, "K . Y . Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
-	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Michael Kelley <mhklinux@outlook.com>, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: Re: [PATCH v2 4/6] mshv: limit SynIC management to MSHV-owned
- resources
-Message-ID: <20260415055424.GA3381607@liuwe-devbox-debian-v2.local>
-References: <20260403190613.47026-1-jloeser@linux.microsoft.com>
- <20260403190613.47026-5-jloeser@linux.microsoft.com>
- <20260406-ninja-civet-of-tornado-67ff54@anirudhrb>
- <134ce833-544-24eb-883-b190a888b31c@linux.microsoft.com>
- <20260414-successful-loyal-magpie-9b7faf@anirudhrb>
+	dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b="fL6P+7av"
+dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
+	c=relaxed/relaxed; q=dns/txt;
+	h=From;
+	bh=YQ0HES9M608BC3CtTS0uLReOlu+ttpsb3HMn3ebyh0g=;
+	b=fL6P+7avLF9Gwlf76dJA0YWKk8yY3fXXLnJaFWRPaQCWD74J7xF7JJxu0ZzT+3pHEG0lZxZx9
+	+k7BiB4EO5QUk8v7twbew8WykqNIYnJ+q6vyyJYZOy5ZPgU/XwGITuwAiVmcbO8SL6w3Wtfyz23
+	ZF4byK4pfmq6gBtfalGXt/I=
+Received: from mail.maildlp.com (unknown [172.19.162.92])
+	by canpmsgout07.his.huawei.com (SkyGuard) with ESMTPS id 4fwbRl5lsSzLlSv;
+	Wed, 15 Apr 2026 17:28:35 +0800 (CST)
+Received: from dggpemf500011.china.huawei.com (unknown [7.185.36.131])
+	by mail.maildlp.com (Postfix) with ESMTPS id 6387740565;
+	Wed, 15 Apr 2026 17:34:53 +0800 (CST)
+Received: from huawei.com (10.90.53.73) by dggpemf500011.china.huawei.com
+ (7.185.36.131) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.1544.11; Wed, 15 Apr
+ 2026 17:34:52 +0800
+From: Jinjie Ruan <ruanjinjie@huawei.com>
+To: <pjw@kernel.org>, <palmer@dabbelt.com>, <aou@eecs.berkeley.edu>,
+	<alex@ghiti.fr>, <yury.norov@gmail.com>, <linux@rasmusvillemoes.dk>,
+	<arnd@arndb.de>, <cp0613@linux.alibaba.com>,
+	<linux-riscv@lists.infradead.org>, <linux-kernel@vger.kernel.org>,
+	<linux-arch@vger.kernel.org>
+CC: <ruanjinjie@huawei.com>
+Subject: [PATCH v2 0/2] arch/riscv: Add bitrev.h file to support rev8 and brev8
+Date: Wed, 15 Apr 2026 17:38:25 +0800
+Message-ID: <20260415093827.2776328-1-ruanjinjie@huawei.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260414-successful-loyal-magpie-9b7faf@anirudhrb>
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-ClientProxiedBy: kwepems100001.china.huawei.com (7.221.188.238) To
+ dggpemf500011.china.huawei.com (7.185.36.131)
 
-On Tue, Apr 14, 2026 at 03:49:53PM +0000, Anirudh Rayabharam wrote:
-> On Tue, Apr 07, 2026 at 02:27:52PM -0700, Jork Loeser wrote:
-> > On Mon, 6 Apr 2026, Anirudh Rayabharam wrote:
-> > 
-> > > On Fri, Apr 03, 2026 at 12:06:10PM -0700, Jork Loeser wrote:
-> > > > The SynIC is shared between VMBus and MSHV. VMBus owns the message
-> > > > page (SIMP), event flags page (SIEFP), global enable (SCONTROL),
-> > > > and SINT2. MSHV adds SINT0, SINT5, and the event ring page (SIRBP).
-> > > > 
-> > > > Currently mshv_synic_init() redundantly enables SIMP, SIEFP, and
-> > > 
-> > > The redundant enable is probably a no-op from the hypervisor side so it
-> > > probably doesn't hurt us. The main problem is with the tear down.
-> > 
-> > It's an MSR intercept. If we can replace this by an "if()" we shave a few
-> > cycles.
-> > 
-> > > An alternative approach could be: check if SIMP/SIEFP/SCONTROL is
-> > > already enabled. If so, don't enable it again. If not enabled, enable it
-> > > and keep track of what all stuf we have enabled. Then disable all of
-> > > them during cleanup. This approach makes less assumptions about the
-> > > behavior of the VMBUS driver and what stuff it does or doesn't use.
-> > 
-> > It would, yes. Then again, we drag yet more state and make debugging more
-> > complicated / less clear to reason what happens dynamically. I had been
-> > debating this briefly myself, and ultimately decided against it for that
-> > very reason.
-> 
-> Ultimately, both approaches are fragile in their own ways because the
-> contract that "VMBus owns SIMP, SIEFP, SCONTROL, SINT2 and MSHV owns
-> SIRBP and SINT0 and SINT5" are not enforced anywhere in code and are
-> just assumptions that everyone will play nice. To do that, we'll need to
-> refactor the code such that there is a common component that sort of
-> facilitates access to SynIC for both VMBus and MSHV.
-> 
-> I would say that checking the state dynamically and then deciding
-> whether or not to enable SIMP/SIEFP/SCONTROL would be less fragile
-> because we make lesser assumptions about what VMBus does or doesn't do.
-> 
+Add bitrev.h file to support rev8 and brev8 for riscv.
 
-I think it is important to keep the changes as small as possible for
-ease of backporting.
+Changes in v2:
+- Define generic __bitrev8/16/32 for reuse in riscv.
 
-> Also, do you know of any cases where the VMBus stuff can get initialized
-> after MSHV? Maybe if VMBus is a module (if that is even possible)? That
-> would really mess up our logic here.
-> 
+Jinjie Ruan (2):
+  bitops: Define generic __bitrev8/16/32 for reuse
+  arch/riscv: Add bitrev.h file to support rev8 and brev8
 
-It is possible to configure Vmbus as a module today. We should think of
-a way to resolve what you say. Designing a new component is one way. The
-other way is to find a working build configuration and enforce it via
-Kconfig.
+ arch/riscv/Kconfig                    |  1 +
+ arch/riscv/include/asm/bitrev.h       | 41 +++++++++++++++++++++++++++
+ include/asm-generic/bitops/__bitrev.h | 22 ++++++++++++++
+ include/linux/bitrev.h                | 20 +++----------
+ 4 files changed, 68 insertions(+), 16 deletions(-)
+ create mode 100644 arch/riscv/include/asm/bitrev.h
+ create mode 100644 include/asm-generic/bitops/__bitrev.h
 
-Wei
+-- 
+2.34.1
 
-> Thanks,
-> Anirudh.
-> 
-> > 
-> > Best,
-> > Jork
