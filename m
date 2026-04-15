@@ -1,62 +1,52 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B8981358367;
-	Tue, 14 Apr 2026 23:20:27 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A0282346ACE;
+	Wed, 15 Apr 2026 05:54:26 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776208827; cv=none; b=HdseBldzfA1IG8a9EQ49w+0rkIgoynosSYjcb4j0+HI1Yt4600Amv26MG3JJ2NJRwfNpL+dKjOc85/F0b879wUSXI8+kqZRRZSarvcjIHt/XxUK97u1b7blXiXdht+y0CJjfNoyyLWqQVgKOjbFho1+vQS/glm2JooTBfrOwFBs=
+	t=1776232466; cv=none; b=nUkwfKvy6HhM1Hu2zHsTsjz8ZBzVUTkfRaYnxiAGl1a+zdeHXDEnPFkGg1mRoDDAlnQeNKZfnmyAX7hAa8uYXz3Uy7lX1FnTCNCgr9hwMQLWqILanqiH2SW2BizT3jYDGnZYyMQtm3nAlBUtUPgFUmHLb6CBpQFFFqB3OFA0wWk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776208827; c=relaxed/simple;
-	bh=hKC8Rq5NfJNZWW7OdEl3J1osacHazL7oouQZKOMFRnM=;
+	s=arc-20240116; t=1776232466; c=relaxed/simple;
+	bh=krkPgIDXxYfHWT+4LVdBGwvnMdjxV2cofvgk8BCq050=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=dyPjUpMWTCdbJwaGnPUbSe4KakhS+nutxw5gxhrGBY17XKdgq1G5Ksc7dKDPcBOP4DFdfJM7QaX4cxmzXIzkoNMTTZUcDbiZ+4bjXM4c+Wyf7xyxV7mALNBhByQQXGut3kbh6qszEFJSFIGL2u6Bttupkp+jtuQP3cWju7j6SCY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Dr1H9aPW; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type:Content-Disposition:In-Reply-To; b=tKyCawQoifOGfOGzw4d6zNgC4Bt9+PGEnVhqJC4IeP3fv7pAs/XVwPMVN/7ACOZD+Zh0SPaBsrD+cC6xiyM7L40vpQvWkuyohodUBisian7ROfWxfKexv40WbYATt/QPYOnHCl+gmf5oivJcUeBCmtEElW2ZuYUgNpZwwHT8GAw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=nly8mcQl; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Dr1H9aPW"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 43A8AC19425;
-	Tue, 14 Apr 2026 23:20:27 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nly8mcQl"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 00A63C19424;
+	Wed, 15 Apr 2026 05:54:25 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1776208827;
-	bh=hKC8Rq5NfJNZWW7OdEl3J1osacHazL7oouQZKOMFRnM=;
-	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
-	b=Dr1H9aPWj8lP+ZM1jtp+jHMcbG37rN6rK6GTAbADb7vRIrIUZcg/cFXZIMoDEgMuB
-	 22O5uanPHclLc5ci5ycIRepqK4T1IUjYD110E4S88wp19FND3ZEcXDKNPJALRjNX3f
-	 ZU3oQMGHqaRnymhESqVuhgS1xd6nbP5RxFf25yRDyPhd193/F7LUp2q2g3C8OVzJuD
-	 T87eAtW28GXdVtUnzm4++bOL/fk/kz+ccBGv5sncSZzIQpW0xxffWjD6Z3eM5F3YkJ
-	 nk73mP07aE+kCNZP11DJnXLomg87Yd3/ZPa5ouxuAimKxZaz434j/8wRZGu4equQnR
-	 spGbw0Uru4ykA==
-Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id C71C8CE13BF; Tue, 14 Apr 2026 16:20:26 -0700 (PDT)
-Date: Tue, 14 Apr 2026 16:20:26 -0700
-From: "Paul E. McKenney" <paulmck@kernel.org>
-To: Dmitry Ilvokhin <d@ilvokhin.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>,
-	Will Deacon <will@kernel.org>, Boqun Feng <boqun@kernel.org>,
-	Waiman Long <longman@redhat.com>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Juergen Gross <jgross@suse.com>,
-	Ajay Kaher <ajay.kaher@broadcom.com>,
-	Alexey Makhalov <alexey.makhalov@broadcom.com>,
-	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
-	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
-	Christoph Lameter <cl@gentwo.org>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
-	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
-	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
-	kernel-team@meta.com
-Subject: Re: [PATCH v4 5/5] locking: Add contended_release tracepoint to
- spinning locks
-Message-ID: <8d98d9f4-ccab-4864-b406-d3eb684cab45@paulmck-laptop>
-Reply-To: paulmck@kernel.org
-References: <cover.1774536681.git.d@ilvokhin.com>
- <81eb8e0cd90b31e761e12721dbacb967281f840f.1774536681.git.d@ilvokhin.com>
+	s=k20201202; t=1776232466;
+	bh=krkPgIDXxYfHWT+4LVdBGwvnMdjxV2cofvgk8BCq050=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=nly8mcQlRKWi2EcTLtt7DynZUapEeyuFwPOrBoAj6ULbeiZ+3t84O+YWoUphRP6Kp
+	 fVC/ecS2iAT7522uu5P8sx2nOY90XW0Eokn/1PXaDcwjQQOV11yx8kGrUPzEZ8J6DK
+	 Dn5UiSMb4ZdxKrkgRNRLR4HasVBkUCIdEnCUuD0oBficNVhKo69KEHFCGD5EYJXoRY
+	 M0befqPK/TqUhTr+9yajT0n9fSU7vJr0VIq86uO0dqeiXvBp6JBHeIoyBpW+Yr9eCd
+	 /PWqvBKXXzIigAMnQ+C9SQmwV2M4NPLs+PBjtvDw6eoVsdjY4uTcsYLie3Gu1KbAip
+	 6f1P4Xb7vgS0A==
+Date: Wed, 15 Apr 2026 05:54:24 +0000
+From: Wei Liu <wei.liu@kernel.org>
+To: Anirudh Rayabharam <anirudh@anirudhrb.com>
+Cc: Jork Loeser <jloeser@linux.microsoft.com>, linux-hyperv@vger.kernel.org,
+	x86@kernel.org, "K . Y . Srinivasan" <kys@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Michael Kelley <mhklinux@outlook.com>, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Subject: Re: [PATCH v2 4/6] mshv: limit SynIC management to MSHV-owned
+ resources
+Message-ID: <20260415055424.GA3381607@liuwe-devbox-debian-v2.local>
+References: <20260403190613.47026-1-jloeser@linux.microsoft.com>
+ <20260403190613.47026-5-jloeser@linux.microsoft.com>
+ <20260406-ninja-civet-of-tornado-67ff54@anirudhrb>
+ <134ce833-544-24eb-883-b190a888b31c@linux.microsoft.com>
+ <20260414-successful-loyal-magpie-9b7faf@anirudhrb>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -65,235 +55,66 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <81eb8e0cd90b31e761e12721dbacb967281f840f.1774536681.git.d@ilvokhin.com>
+In-Reply-To: <20260414-successful-loyal-magpie-9b7faf@anirudhrb>
 
-On Thu, Mar 26, 2026 at 03:10:04PM +0000, Dmitry Ilvokhin wrote:
-> Extend the contended_release tracepoint to queued spinlocks and queued
-> rwlocks.
+On Tue, Apr 14, 2026 at 03:49:53PM +0000, Anirudh Rayabharam wrote:
+> On Tue, Apr 07, 2026 at 02:27:52PM -0700, Jork Loeser wrote:
+> > On Mon, 6 Apr 2026, Anirudh Rayabharam wrote:
+> > 
+> > > On Fri, Apr 03, 2026 at 12:06:10PM -0700, Jork Loeser wrote:
+> > > > The SynIC is shared between VMBus and MSHV. VMBus owns the message
+> > > > page (SIMP), event flags page (SIEFP), global enable (SCONTROL),
+> > > > and SINT2. MSHV adds SINT0, SINT5, and the event ring page (SIRBP).
+> > > > 
+> > > > Currently mshv_synic_init() redundantly enables SIMP, SIEFP, and
+> > > 
+> > > The redundant enable is probably a no-op from the hypervisor side so it
+> > > probably doesn't hurt us. The main problem is with the tear down.
+> > 
+> > It's an MSR intercept. If we can replace this by an "if()" we shave a few
+> > cycles.
+> > 
+> > > An alternative approach could be: check if SIMP/SIEFP/SCONTROL is
+> > > already enabled. If so, don't enable it again. If not enabled, enable it
+> > > and keep track of what all stuf we have enabled. Then disable all of
+> > > them during cleanup. This approach makes less assumptions about the
+> > > behavior of the VMBUS driver and what stuff it does or doesn't use.
+> > 
+> > It would, yes. Then again, we drag yet more state and make debugging more
+> > complicated / less clear to reason what happens dynamically. I had been
+> > debating this briefly myself, and ultimately decided against it for that
+> > very reason.
 > 
-> Use the arch-overridable queued_spin_release(), introduced in the
-> previous commit, to ensure the tracepoint works correctly across all
-> architectures, including those with custom unlock implementations (e.g.
-> x86 paravirt).
+> Ultimately, both approaches are fragile in their own ways because the
+> contract that "VMBus owns SIMP, SIEFP, SCONTROL, SINT2 and MSHV owns
+> SIRBP and SINT0 and SINT5" are not enforced anywhere in code and are
+> just assumptions that everyone will play nice. To do that, we'll need to
+> refactor the code such that there is a common component that sort of
+> facilitates access to SynIC for both VMBus and MSHV.
 > 
-> When the tracepoint is disabled, the only addition to the hot path is a
-> single NOP instruction (the static branch). When enabled, the contention
-> check, trace call, and unlock are combined in an out-of-line function to
-> minimize hot path impact, avoiding the compiler needing to preserve the
-> lock pointer in a callee-saved register across the trace call.
+> I would say that checking the state dynamically and then deciding
+> whether or not to enable SIMP/SIEFP/SCONTROL would be less fragile
+> because we make lesser assumptions about what VMBus does or doesn't do.
 > 
-> Binary size impact (x86_64, defconfig):
->   uninlined unlock (common case): +983 bytes  (+0.00%)
->   inlined unlock (worst case):    +58165 bytes (+0.24%)
+
+I think it is important to keep the changes as small as possible for
+ease of backporting.
+
+> Also, do you know of any cases where the VMBus stuff can get initialized
+> after MSHV? Maybe if VMBus is a module (if that is even possible)? That
+> would really mess up our logic here.
 > 
-> The inlined unlock case could not be achieved through Kconfig options on
-> x86_64 as PREEMPT_BUILD unconditionally selects UNINLINE_SPIN_UNLOCK on
-> x86_64. The UNINLINE_SPIN_UNLOCK guards were manually inverted to force
-> inline the unlock path and estimate the worst case binary size increase.
+
+It is possible to configure Vmbus as a module today. We should think of
+a way to resolve what you say. Designing a new component is one way. The
+other way is to find a working build configuration and enforce it via
+Kconfig.
+
+Wei
+
+> Thanks,
+> Anirudh.
 > 
-> Architectures with fully custom qspinlock implementations (e.g.
-> PowerPC) are not covered by this change.
-> 
-> Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
-> ---
->  include/asm-generic/qrwlock.h   | 48 +++++++++++++++++++++++++++------
->  include/asm-generic/qspinlock.h | 18 +++++++++++++
->  kernel/locking/qrwlock.c        | 16 +++++++++++
->  kernel/locking/qspinlock.c      |  8 ++++++
->  4 files changed, 82 insertions(+), 8 deletions(-)
-> 
-> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-> index 75b8f4601b28..e24dc537fd66 100644
-> --- a/include/asm-generic/qrwlock.h
-> +++ b/include/asm-generic/qrwlock.h
-> @@ -14,6 +14,7 @@
->  #define __ASM_GENERIC_QRWLOCK_H
->  
->  #include <linux/atomic.h>
-> +#include <linux/tracepoint-defs.h>
->  #include <asm/barrier.h>
->  #include <asm/processor.h>
->  
-> @@ -35,6 +36,10 @@
->   */
->  extern void queued_read_lock_slowpath(struct qrwlock *lock);
->  extern void queued_write_lock_slowpath(struct qrwlock *lock);
-> +extern void queued_read_unlock_traced(struct qrwlock *lock);
-> +extern void queued_write_unlock_traced(struct qrwlock *lock);
-> +
-> +DECLARE_TRACEPOINT(contended_release);
->  
->  /**
->   * queued_read_trylock - try to acquire read lock of a queued rwlock
-> @@ -102,10 +107,16 @@ static inline void queued_write_lock(struct qrwlock *lock)
->  }
->  
->  /**
-> - * queued_read_unlock - release read lock of a queued rwlock
-> + * queued_rwlock_is_contended - check if the lock is contended
->   * @lock : Pointer to queued rwlock structure
-> + * Return: 1 if lock contended, 0 otherwise
->   */
-> -static inline void queued_read_unlock(struct qrwlock *lock)
-> +static inline int queued_rwlock_is_contended(struct qrwlock *lock)
-> +{
-> +	return arch_spin_is_locked(&lock->wait_lock);
-> +}
-> +
-> +static __always_inline void __queued_read_unlock(struct qrwlock *lock)
->  {
->  	/*
->  	 * Atomically decrement the reader count
-> @@ -114,22 +125,43 @@ static inline void queued_read_unlock(struct qrwlock *lock)
->  }
->  
->  /**
-> - * queued_write_unlock - release write lock of a queued rwlock
-> + * queued_read_unlock - release read lock of a queued rwlock
->   * @lock : Pointer to queued rwlock structure
->   */
-> -static inline void queued_write_unlock(struct qrwlock *lock)
-> +static inline void queued_read_unlock(struct qrwlock *lock)
-> +{
-> +	/*
-> +	 * Trace and unlock are combined in the traced unlock variant so
-> +	 * the compiler does not need to preserve the lock pointer across
-> +	 * the function call, avoiding callee-saved register save/restore
-> +	 * on the hot path.
-> +	 */
-> +	if (tracepoint_enabled(contended_release)) {
-> +		queued_read_unlock_traced(lock);
-> +		return;
-> +	}
-> +
-> +	__queued_read_unlock(lock);
-> +}
-
-Shouldn't this refactoring be its own separate patch, similar to 4/5?
-
-That would probably clean up this diff a bit.
-
-> +
-> +static __always_inline void __queued_write_unlock(struct qrwlock *lock)
->  {
->  	smp_store_release(&lock->wlocked, 0);
->  }
->  
->  /**
-> - * queued_rwlock_is_contended - check if the lock is contended
-> + * queued_write_unlock - release write lock of a queued rwlock
->   * @lock : Pointer to queued rwlock structure
-> - * Return: 1 if lock contended, 0 otherwise
->   */
-> -static inline int queued_rwlock_is_contended(struct qrwlock *lock)
-> +static inline void queued_write_unlock(struct qrwlock *lock)
->  {
-> -	return arch_spin_is_locked(&lock->wait_lock);
-> +	/* See comment in queued_read_unlock(). */
-> +	if (tracepoint_enabled(contended_release)) {
-> +		queued_write_unlock_traced(lock);
-> +		return;
-> +	}
-> +
-> +	__queued_write_unlock(lock);
-
-And the same here, so one patch for interposing __queued_read_unlock()
-and another for interposing __queued_write_unlock().
-
->  }
->  
->  /*
-> diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-> index df76f34645a0..915a4c2777f6 100644
-> --- a/include/asm-generic/qspinlock.h
-> +++ b/include/asm-generic/qspinlock.h
-> @@ -41,6 +41,7 @@
->  
->  #include <asm-generic/qspinlock_types.h>
->  #include <linux/atomic.h>
-> +#include <linux/tracepoint-defs.h>
->  
->  #ifndef queued_spin_is_locked
->  /**
-> @@ -129,12 +130,29 @@ static __always_inline void queued_spin_release(struct qspinlock *lock)
->  }
->  #endif
->  
-> +DECLARE_TRACEPOINT(contended_release);
-> +
-> +extern void queued_spin_release_traced(struct qspinlock *lock);
-> +
->  /**
->   * queued_spin_unlock - unlock a queued spinlock
->   * @lock : Pointer to queued spinlock structure
-> + *
-> + * Generic tracing wrapper around the arch-overridable
-> + * queued_spin_release().
->   */
->  static __always_inline void queued_spin_unlock(struct qspinlock *lock)
->  {
-> +	/*
-> +	 * Trace and release are combined in queued_spin_release_traced() so
-> +	 * the compiler does not need to preserve the lock pointer across the
-> +	 * function call, avoiding callee-saved register save/restore on the
-> +	 * hot path.
-> +	 */
-> +	if (tracepoint_enabled(contended_release)) {
-> +		queued_spin_release_traced(lock);
-> +		return;
-> +	}
->  	queued_spin_release(lock);
->  }
->  
-> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-> index d2ef312a8611..5f7a0fc2b27a 100644
-> --- a/kernel/locking/qrwlock.c
-> +++ b/kernel/locking/qrwlock.c
-
-And is it possible to have one patch for qspinlock and another for qrwlock?
-It *looks* like it should be.
-
-							Thanx, Paul
-
-> @@ -90,3 +90,19 @@ void __lockfunc queued_write_lock_slowpath(struct qrwlock *lock)
->  	trace_contention_end(lock, 0);
->  }
->  EXPORT_SYMBOL(queued_write_lock_slowpath);
-> +
-> +void __lockfunc queued_read_unlock_traced(struct qrwlock *lock)
-> +{
-> +	if (queued_rwlock_is_contended(lock))
-> +		trace_contended_release(lock);
-> +	__queued_read_unlock(lock);
-> +}
-> +EXPORT_SYMBOL(queued_read_unlock_traced);
-> +
-> +void __lockfunc queued_write_unlock_traced(struct qrwlock *lock)
-> +{
-> +	if (queued_rwlock_is_contended(lock))
-> +		trace_contended_release(lock);
-> +	__queued_write_unlock(lock);
-> +}
-> +EXPORT_SYMBOL(queued_write_unlock_traced);
-> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-> index af8d122bb649..c72610980ec7 100644
-> --- a/kernel/locking/qspinlock.c
-> +++ b/kernel/locking/qspinlock.c
-> @@ -104,6 +104,14 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
->  #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
->  #endif
->  
-> +void __lockfunc queued_spin_release_traced(struct qspinlock *lock)
-> +{
-> +	if (queued_spin_is_contended(lock))
-> +		trace_contended_release(lock);
-> +	queued_spin_release(lock);
-> +}
-> +EXPORT_SYMBOL(queued_spin_release_traced);
-> +
->  #endif /* _GEN_PV_LOCK_SLOWPATH */
->  
->  /**
-> -- 
-> 2.52.0
-> 
+> > 
+> > Best,
+> > Jork
