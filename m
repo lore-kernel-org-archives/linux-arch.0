@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 238D238F938;
-	Thu, 16 Apr 2026 08:55:51 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4B4A629ACD7;
+	Thu, 16 Apr 2026 09:04:00 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776329752; cv=none; b=QRmQZ5jXPkaGPtOMB6buz7zGITImfoLZxe1G9hdcxIfwwXyWDn43NxV123r8rCtR8aEReXbZTfwhpyH0x1F+H9hAJrchrhHQe1XdMweQw/NbGe7aOqUUHbI9V+aK6r4F/jzMD9jvB9CU4qpYGI5NKuwcx0SyzvtJDyEbRlyuuq4=
+	t=1776330240; cv=none; b=eTXVYuwVfrtt/8WrIBa/tRUJRI8wmMlWepRyVn/wWl3vDn6agAS0bgIx0OtDT7lvZutUpxtLl+WO0M0PK8XH1D5QeU/bTBTkwpcA05w94WD0eCKQfW3MRWA+VXssQsxZ6Nw+DP4q2Wo6lHlotl9+c9mYCq6MvHgiNyt7h+HSrA0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776329752; c=relaxed/simple;
-	bh=GSP0xdpLtfh+ShVRtbdWDherB8PF5rGv+/SkLctS+dw=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=bgi8F+IIeJ67VCajIlr5kWS+UyFOCN/KwZHP6YuQI14pV6pchRdTasExIxWODFPmapHLBtzIUHLTx7wBjQhhDb+5XCoGiJuKGVrWLVJp+PSCgYSggeQvkeR1PAQKoyHOXesMFyCNgx4+g9loiP34rtq6nbSvP5Cx3C7sVybSjD4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=M/EWIteG; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1776330240; c=relaxed/simple;
+	bh=+NW/hoYJakiYKrdIWB886RGoTFd6AjYRobF/ZlT3V+Q=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=bJI+jsZQsRrnhlcvMrrMChc6avhfoNZ0iGdUwsPvCAxc7KmEOC7R8O131aBjYZBwo9WmCtkNV5w5uHJJBgjIEE4Bz2jRMZs0rsqHlmYqvV15/xYjTUFIBRbSy1j7ddhieAY64jqmFfHKvhHDxgkv/Gq2sKOkWUc9CWA0GgGfCno=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=S61q3Dom; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="M/EWIteG"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CDE49C2BCAF;
-	Thu, 16 Apr 2026 08:55:42 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="S61q3Dom"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4DFF2C2BCAF;
+	Thu, 16 Apr 2026 09:03:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1776329751;
-	bh=GSP0xdpLtfh+ShVRtbdWDherB8PF5rGv+/SkLctS+dw=;
-	h=Date:Subject:To:References:From:In-Reply-To:From;
-	b=M/EWIteGqXP5eb7n5mzxBJhl/Ai0b73YCo5rfNnCY03nyTfrxuAeTUTM5pBSEVsT7
-	 CfcufnXOlw2FSLEY9VgiuIPW6Y99MEM86HFy70QPFYCSq4CV9qAInEmAGf+Gf2cd3R
-	 MgJ1NNoiESY7ko1uVxE615YSbTykElKNz4Zz1bN22Ur7DuR80nKcUu2C3/5987JYfm
-	 dHABSGAxTzsPURXVZJ/88oe1N3Mnv28uJzBQwBQrzKwFc8MRsNymvEgFE7EVBN6Ih4
-	 lE84TpbkaP1EPcM9H+aWSN8C+pAKXPkCwqh40Z1DN7a/azpIBJXr1hVMXUzkDXOeq2
-	 ossBLrJ7WQBJg==
-Message-ID: <aa69f39a-4800-45fa-a0a5-002152f74b1a@kernel.org>
-Date: Thu, 16 Apr 2026 10:55:38 +0200
+	s=k20201202; t=1776330239;
+	bh=+NW/hoYJakiYKrdIWB886RGoTFd6AjYRobF/ZlT3V+Q=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=S61q3DomMTBSegKBAfkWX841vogBSQ2csr9NBAWLZlxrxS27oHm4+s7vtALk/YtQJ
+	 x0sNbDQy/NrV2UP1f6uMMRy6hCxohcyLDU1ZNG4Tzhs/jyr78OU8fWNs3O0B1m9179
+	 aioU/65pLld1Ivx0Lrpfp/UhvmT7VwxKjFFwhKgQTfv6fOVbEEFOkIB5wFVhXI7XpJ
+	 UDRD2XEtEDlHPTb00EI1ivDqjRgLF4gGBAG8j3MIDORLcavi1gZ+sXhgb5nWJcZrBa
+	 QSw3dvK3vdIdvkPFiLevFozGZuhLd5b2pcWiX/AUhrMb+AWO90euPit4+LBB3mjghI
+	 Kdk+HoL7o1WGA==
+Message-ID: <aa7c5a29-c8f7-48aa-b0a0-ed147d29fde4@kernel.org>
+Date: Thu, 16 Apr 2026 11:03:46 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,10 +35,11 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 3/3] mm: skip KASAN tagging for page-allocated page
- tables
-To: Muhammad Usama Anjum <usama.anjum@arm.com>, Arnd Bergmann
- <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>,
+Subject: Re: [PATCH v2 2/3] kasan: skip HW tagging for all kernel thread
+ stacks
+To: Catalin Marinas <catalin.marinas@arm.com>,
+ Muhammad Usama Anjum <usama.anjum@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>,
  Peter Zijlstra <peterz@infradead.org>, Juri Lelli <juri.lelli@redhat.com>,
  Vincent Guittot <vincent.guittot@linaro.org>,
  Dietmar Eggemann <dietmar.eggemann@arm.com>,
@@ -53,10 +54,11 @@ To: Muhammad Usama Anjum <usama.anjum@arm.com>, Arnd Bergmann
  linux-mm@kvack.org, Andrey Konovalov <andreyknvl@gmail.com>,
  Marco Elver <elver@google.com>, Vincenzo Frascino
  <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Ryan.Roberts@arm.com, david.hildenbrand@arm.com
+ Will Deacon <will@kernel.org>, Ryan.Roberts@arm.com,
+ david.hildenbrand@arm.com
 References: <20260324132631.482520-1-usama.anjum@arm.com>
- <20260324132631.482520-4-usama.anjum@arm.com>
+ <20260324132631.482520-3-usama.anjum@arm.com> <adlCN9sUcQdWbf_i@arm.com>
+ <adlDSiuBeSduK0mj@arm.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -103,41 +105,27 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20260324132631.482520-4-usama.anjum@arm.com>
+In-Reply-To: <adlDSiuBeSduK0mj@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 3/24/26 14:26, Muhammad Usama Anjum wrote:
-> Page tables are always accessed via the linear mapping with a match-all
-> tag, so HW-tag KASAN never checks them. For page-allocated tables (PTEs
-> and PGDs etc), avoid the tag setup and poisoning overhead by using
-> __GFP_SKIP_KASAN. SLUB-backed page tables are unchanged for now. (They
-> aren't widely used and require more SLUB related skip logic. Leave it
-> later.)
+On 4/10/26 20:36, Catalin Marinas wrote:
+> On Fri, Apr 10, 2026 at 07:32:23PM +0100, Catalin Marinas wrote:
+>> What the original approach might help with is use-after-realloc in case
+>> we had a tagged pointer in a past life of a page and it still works now.
+>> Oh well, that's I guess for other types of hardening to address like
+>> delayed reallocation.
 > 
-> Reviewed-by: Ryan Roberts <ryan.roberts@arm.com>
-> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
-> ---
-> Changes since v1:
-> - Update description to mention SLUB-backed page tables are unchanged
-> ---
->  include/asm-generic/pgalloc.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/include/asm-generic/pgalloc.h b/include/asm-generic/pgalloc.h
-> index 57137d3ac1592..051aa1331051c 100644
-> --- a/include/asm-generic/pgalloc.h
-> +++ b/include/asm-generic/pgalloc.h
-> @@ -4,7 +4,7 @@
->  
->  #ifdef CONFIG_MMU
->  
-> -#define GFP_PGTABLE_KERNEL	(GFP_KERNEL | __GFP_ZERO)
-> +#define GFP_PGTABLE_KERNEL	(GFP_KERNEL | __GFP_ZERO | __GFP_SKIP_KASAN)
->  #define GFP_PGTABLE_USER	(GFP_PGTABLE_KERNEL | __GFP_ACCOUNT)
+> Another thought (for a separate series) - we could try to map the stack
+> as Untagged (unless stack tagging is enabled; needs compiler
+> instrumentation) and enable canonical tag checking (newer addition to
+> MTE). This way, any stray tagged pointer won't work on the stack since
+> it needs a 0xf tag (canonical).
 
-Acked-by: David Hildenbrand (Arm) <david@kernel.org>
+Do you mean mapping it as Untagged in the vmap for CONFIG_VMAP_STACK or
+also as Untagged in the directmap?
 
+The latter brings in the set of problems with direct map fragmentation.
 -- 
 Cheers,
 
