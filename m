@@ -1,202 +1,317 @@
-Received: from SA9PR02CU001.outbound.protection.outlook.com (mail-southcentralusazon11013015.outbound.protection.outlook.com [40.93.196.15])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-dy1-f171.google.com (mail-dy1-f171.google.com [74.125.82.171])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C17D9372690;
-	Wed, 15 Apr 2026 18:30:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.93.196.15
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 89A2725A33F
+	for <linux-arch@vger.kernel.org>; Thu, 16 Apr 2026 03:30:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.82.171
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776277815; cv=fail; b=iU2YOwrsAb+7IYNSYYymV05+/ideupTXsA0xyCDjRneGyeYgzMqZKuThplR4Ds2qJ00rUolXZ1BLgRKUS7i2ZyXnJ6AkwlraRMcOF8UA/EynmDn3dAVzmWY7ngrdSAmisS5qvgJTpo166ypeYk/gsOnao2TL8cF0iHouZUa0Mts=
+	t=1776310236; cv=pass; b=KRmDBuvUPY4vsDwrdSFen6nbciN4b1V+16h2AeiCk5EwCh5cx7yN8X5YE0SEfWwhQV62TrnjEPFlnpXnWjVG7L7vgyqkE1n39SqJ5TFdWm9wgOLTG/ASGZ4rCKfaEK5wk/oAPA/5AA0QASwTV9BozMuEGdcp8LW1tikLn7hNUTU=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776277815; c=relaxed/simple;
-	bh=IhnbmyRJOoZLgpEm5aPu4Oivi9Zsm+r/3jsdpzQFhOE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=YKGoz8sbxkAoYoAPAiPHN8L6Ujkx8CorzV4ymmBm4GgGnAnu4cojeCGGol9c43KlW5QgF+YgCFmkBbuWGJxhepp5EmuPkrnFJ4ITjCv1kmKeUUpZoyA4ZLgsz2qNg3O4ykmUXKcXSHOl2yQb36M8yq7R8PEqK2fQoFH6WyVZi7c=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=rscyBUa8; arc=fail smtp.client-ip=40.93.196.15
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+	s=arc-20240116; t=1776310236; c=relaxed/simple;
+	bh=iTtON7C1saxGO1WpU3i+FepkxQvrPytkI30BQs9EQlY=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=AhsGC14G9b3M/FgMqpCT1AYWWRSIA77kuNR790IZGLUMyxlf5apBJDsIvEMCzxTTgXXEbv4qv3qjUhLGhS8zFtVDVrJLha9RIgDu7WpW6WOGnjzlB0dff579LlQPIK05lyHVsrSPR0twPt5Y9ULW4MRHyhPepzT9deZ39bunIH8=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=q1VlrlmC; arc=pass smtp.client-ip=74.125.82.171
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="rscyBUa8"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=NAP55ZlkaXVfS/rfFIrWkMgtXLsfw9FmAwDgzTBgM1D/Goge3Ygbq6Xf+E2OBo9Y7rfHgtd4oo9wpd2yC7da01X//tlCy8JgPxsePIFkr7z0WSLV/Dh7PxMJFENbT16Ggglui/SiJ2uguXBfbQ9ojsSzPs+NbXbsBDQU1rqjhJsKEuMz1F2fXakdaFsc0HUGLI6m9uEq5W5DHZTOgBWclSUS+mqsiYmjRrx8MWz6recnQWMdBNqFh5NY9iWV4Eq8wRzT2qCyyN8myr/UgdyoHRflNeQBzAgz26KEDcmOjMEQ5ezFIG43RG7E2pCgNF7FaJ4VODLGL1S3Owp00yTlSA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=UvuRmm20V5jNhkenVXifmipWQABsWCdq5vPxEe8422w=;
- b=K2nx3/fEL8lSlBg50cRGqmgSYGypbIg3S+HW9RZ2c4nU9L/R5+09G2T4b5FloFsODp1ZVIcfK2R1vyv6f59DeJcLTUM2Ea0HmW7e7VBjrKWt0y/azHXyYVYsj5eh7aZbD0PJhWYsTgnq8T1QvXBF3odSE4aI+SUmILq6qbfQJOlf3WLafygnAsbvEKipoCKghGvCIV2dmW7MpmxoWxdnzuW8mXQaIwYpCTOenspUtb3AN0B/+mBFqck72xR/YNvT0pU+ew0RsU/zGoQhiACKU4G0FWs177fQ0rgPpoQ3fyYK8BDqw/luWn2hCsBg/Zmvh65Mj5pE0oMu6rOA/QaGPg==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
- dkim=pass header.d=nvidia.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=UvuRmm20V5jNhkenVXifmipWQABsWCdq5vPxEe8422w=;
- b=rscyBUa8JsbiXL69ALkRHnH/9VLDan9j/03c2r4GWzmP+TDEWIr2Bvh++ch5ONIfylSegL4ITyQVDznw+kc+emCPK/NptzZX+CR+Qsds9o6NUCMX/pxOvslReoCs8F31nhrAQ/N3mQgUiq6akSb+QGp+qgp+WSHll0fxd5Zszjqncc/PHl+8NL3otyuRy4NSfWTdGvgel132UEfQSwa+QHxQuoHjEjoUV4FwSx8uemcaJr23kZYS8C6+wdCEq0mBkfXWfS009S8bctotctCaFIwV7hADoGH2y+3fB1XHkDtI99v3Jkp/C3/TttGO2aPDwmt2uuZrBO9oCGTx8MwvEg==
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=nvidia.com;
-Received: from CY8PR12MB8300.namprd12.prod.outlook.com (2603:10b6:930:7d::16)
- by PH7PR12MB7332.namprd12.prod.outlook.com (2603:10b6:510:20f::9) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9818.20; Wed, 15 Apr
- 2026 18:30:07 +0000
-Received: from CY8PR12MB8300.namprd12.prod.outlook.com
- ([fe80::ce75:8187:3ac3:c5de]) by CY8PR12MB8300.namprd12.prod.outlook.com
- ([fe80::ce75:8187:3ac3:c5de%3]) with mapi id 15.20.9769.046; Wed, 15 Apr 2026
- 18:30:07 +0000
-Date: Wed, 15 Apr 2026 14:30:04 -0400
-From: Yury Norov <ynorov@nvidia.com>
-To: Jinjie Ruan <ruanjinjie@huawei.com>
-Cc: pjw@kernel.org, palmer@dabbelt.com, aou@eecs.berkeley.edu,
-	alex@ghiti.fr, yury.norov@gmail.com, linux@rasmusvillemoes.dk,
-	arnd@arndb.de, cp0613@linux.alibaba.com,
-	linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: Re: [PATCH v2 1/2] bitops: Define generic __bitrev8/16/32 for reuse
-Message-ID: <ad_ZLNslqjpYRJvW@yury>
-References: <20260415093827.2776328-1-ruanjinjie@huawei.com>
- <20260415093827.2776328-2-ruanjinjie@huawei.com>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260415093827.2776328-2-ruanjinjie@huawei.com>
-X-ClientProxiedBy: BN9PR03CA0466.namprd03.prod.outlook.com
- (2603:10b6:408:139::21) To CY8PR12MB8300.namprd12.prod.outlook.com
- (2603:10b6:930:7d::16)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="q1VlrlmC"
+Received: by mail-dy1-f171.google.com with SMTP id 5a478bee46e88-2d52c7f92b1so6712177eec.0
+        for <linux-arch@vger.kernel.org>; Wed, 15 Apr 2026 20:30:35 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1776310235; cv=none;
+        d=google.com; s=arc-20240605;
+        b=DP0MhdQMTHQX8a13stIF0FY8T64YmNllEeqw7UaD/NsI+xmT0SosMRe0CUiMqEbHaP
+         uzG6kUBUeNwpS5WnRW0472VFqQC8MYLa0OvcSHeZAIf825lOeHtV3Q7UnM6kMcKgjRHW
+         LBbBTKsBfBGHVrssnMjfD4RAtO/+Si7XMSZNs2fKOp7u0LzKl/23ZhEP1CKL6AD1t3S2
+         v/tBHjX/8CC5uwi/sBasdMiSjITvcFGYlFW5pWm21/107uQpDh0WdwqDpNqZBq154Wzf
+         aRDPPw9tVEfY90z4IPz97UP2J5UkV6J3PLvYVbY7CsPRHLgzkCpZ1qXJ+vdyEUcTl4ip
+         A2lA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=dpn4wedExfmNW/xYliv7dotiSXfXw7rsw6+UTSkfq+I=;
+        fh=XxehISYQToWChfZlO6DBUGe02QkyLg7hqBBo+9S/Nq8=;
+        b=H+I8TSY+5p+SkO++OvYVYJGRF/d6QB5iGE+lbPi+h6xC1V6EPtagUbajFWsmtC2n7h
+         15sAcFCb6ytpaUS2pPDjcUkcZ/sFW0ChTFrfluP1V5R9Ry+Nkkptso4+AEDaiJc68c0c
+         7gWCUIrkB3lr+XJ0sThiBNiuyzoRE86amwMaHaPmX/H2o8ocyQHax18Urk7MJUcMOl1T
+         4mqL2zajkcptMswIF+Wweu01PWoQNFnXTb3frZqeGylZEZ9wAEw7Qg+VzGPa54z9jYtD
+         2iTv1q1RFK+bBQ+zOm50O476Qy9/hX2FIlmmRQTxJ63FrQfM0h73BpwVNJQbUthf5y7Z
+         9zRw==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1776310235; x=1776915035; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=dpn4wedExfmNW/xYliv7dotiSXfXw7rsw6+UTSkfq+I=;
+        b=q1VlrlmCFrtVHE5hetzAOsBCWcGxb/CFhXHSSopeF/IlxAPo0DUBJ/C6gbvOrvJiYw
+         cdceN5UReXjnL6InkeQtNyS50HI4ppuCooMyssWxnvX0g9UmryDd+Gyqq4X316cT7Xq8
+         c+2Cn4IvuJrzVNY6pRkBZr9cXPscrF3I20+ssiCoyF2uvtU1JjnxT8DNPMsmMUpjIST+
+         xqx4fbZU7R/wLJ6v9EW0ctWCZWKaKhltfVFfVB7WZZ3aKoJ3qHrPRHkCMZ7kDt5+SRYR
+         7IUSa6kyHZCFaqwvvSrtCw9WaQryviOrSLkTsnzqesOFhS1yQ04NIG2hhbuwYPWvcjiQ
+         pw+w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1776310235; x=1776915035;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=dpn4wedExfmNW/xYliv7dotiSXfXw7rsw6+UTSkfq+I=;
+        b=UpqlCbvxFnc6kZDu8iDH+FipRMcVE1UC5+L0FtXKtEI25gkLs6D/qZxlSfhl1PLyiz
+         w25/g6fIwDpQAnwDAfjmoTk23E6lRkcZz3VYw72LcxALemNbE+ZHKG9a7vcOXjb7xN+3
+         4zCWPKIxgKd/S5/Y/9ZQPUAydwHx0yWtQWA11o1hDSwYA5LHOP+UDna7YC7989bEDTAO
+         WC8IHFmNEj4ZTOH+4de8uGyekxanzAAeAHxCMp6dDEKOrZoRfsKenVHzoBIfg4N2K7qc
+         EVTUPxiUg4axV28a+d+ToGP+583dDJz82oxmtsG1RLnVN4fvGsD4G4KJSdKW7LPRs287
+         7lNA==
+X-Forwarded-Encrypted: i=1; AFNElJ9Lmq8itCmopsT89Oj9k2Iz/euGRJzAoIyia9+aK602zSmTxj2RTIjsVK6AJjsr8rHoz9mEGnEnKDNg@vger.kernel.org
+X-Gm-Message-State: AOJu0YypYEq4ZGlXdVxQ2MMiXrIwhZw0xXhMgMbFkAeLCmsZuMOzGOH/
+	mZyMqDCzLaQY6v/pKqaXl6JfZ7mI7lCznWilc6NAZ5sYsAdTv0HawcepQZFQz2/zVAPH97zuv05
+	jdns7IS/GV/HQO2bmqjBkx9mpcNnjlzQ=
+X-Gm-Gg: AeBDiesmAeA0ww04OtyYG/rWAql1N8gdYXBfBDSjhvDLlULwo4Rgk0q1gWLwHQud2VE
+	wLglHbk12RV0vgQ8VolIHlIe9OjcLMFjr9IIOxxioLl7XOO5AG/VxsqK3k//njSDxGF5QUI5qDZ
+	sEdhXQeOQlXw4NkmRsCOSPuz8kg8x+T6tR7pqrdobSoMVS25BMRIkuJApU0ioO/CvdazvtyDcei
+	k6f/f7VoPsqon4xAHrxLFul85oAquD36dUcBSY1X5Fzwsosz6RyxTyAKPguA5Y9xMKhT8g5jQTv
+	ndgZJCs=
+X-Received: by 2002:a05:7300:e2cc:b0:2c1:7793:7bbb with SMTP id
+ 5a478bee46e88-2d5898a59fdmr13887470eec.27.1776310234537; Wed, 15 Apr 2026
+ 20:30:34 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CY8PR12MB8300:EE_|PH7PR12MB7332:EE_
-X-MS-Office365-Filtering-Correlation-Id: 7b9d6fdc-f3e2-41db-782d-08de9b1d051e
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|1800799024|376014|7416014|10070799003|366016|22082099003|18002099003|56012099003;
-X-Microsoft-Antispam-Message-Info:
-	PO82sfWyKags7px1yuz/ZApKj62nuyxeNrbwZSnU1JVzwEcPK7sX4rUIpxPIQpiP77uujn3bpl0gLRE+XaJzFjkEcJOW1jCV0fqZnOzKXmuitqGwMU/2g4jph5lQMR3yXcPJvpXsuCO/+KX0erK8OyFGBnEHPQgxKBQUeb92gfZActMqU6pTt6F/t8+2DCOyRSxc5uSqXuZL+qm8X7/qOJfIhww4QZsrRz7Au7QHABd4Qe6TtZjaFFNvoNVicZcsBkQNfY+Xx95X4nCou1TXBIhciW+oaiICm8pmyMokofPPQTW0AxTrakMe8O5xB0GACnxItSqwi9QSWzW6ATAzgKlG9AHQqH71s6bC72t75VFDkN+XEJHLkPKWefsH0L0o9XI3Z1qknM8yE+dZ+Tj6vYOpFpxhtBWN91qmb+AVRmlChVBp4DGCj/gzfCzqtaArsSkNzp78BDPCe3j/PABr+4IUsUrZlDk7SjyMKG9OmG/eKwdYJzLMBdEE5k4pJPJErVdFca3hm+kcH4QViJmnL79uint1v9R6ngFzZF4+VvrTIDVJVi79IXydVc8bXQumQXaK0g0uHy8Pgzf8zlyhPz6cuu/cu1YEwmdggD5UYFTflTLiTBZNw3pYrLnz0I/lXOhPK2ojEQ1tlAWAQsPpDRgcdPE1ReBhZHWtm4omkhIojsOVF4ZBS8DQAWv4iFTWPjD9CkA4M52p4FFN6ynZmm0uI55eduEtHEbCVpADkFE=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CY8PR12MB8300.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(376014)(7416014)(10070799003)(366016)(22082099003)(18002099003)(56012099003);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?ybPDHxp5fHharUs3YbSv5b4ZpgBXA32I/bSieylLjD1Qr3K5VDheKsgkYfr6?=
- =?us-ascii?Q?EZNFKASKQQJUNZh6aTDFHXUI+8Dd6Z0FuMmnJKJ7wj4wBSCoAxjD3coBvFEF?=
- =?us-ascii?Q?NDTpmNoR2hnwqx+4HAK9lRzcyXZxSVtDx1SOFPC24G2GaqqkFwmrSt3tt5OE?=
- =?us-ascii?Q?5HjU2kdLcEVdAFk7Jo/GGi1yT5BVag7DdGm8Fl5HpcDXK1+zLw1JiyCPPEbS?=
- =?us-ascii?Q?vlL0GbSBy4xKE5M5i9FC8m105nX0gviStb4LMvoJkAKThGVoHIy7JCv4Z+WV?=
- =?us-ascii?Q?CdrqImgRPhhMQdpuTqFRV40Y3ND58noOc0MEmAuattfzh5nbAZIaxSQ/U8Ds?=
- =?us-ascii?Q?jMDNq4PtLr7nocalJ8AgEnKlo1GB8tJjv3FGw2FdVabbyDe2iz0w3JY0b/Hp?=
- =?us-ascii?Q?TJiPGvd/WcrGkMAJGTFsG5v7Tmj361zf/okDYFq5z8UacvKLTHJs+oQpMZ34?=
- =?us-ascii?Q?gAJRv3IPRQgIKv9NBlB4nq2edjeNKiT2TgBwAUfyDqdcuFzHRwheA8jyx3RN?=
- =?us-ascii?Q?moppGsHHSBbG3Ba80poHGnJ696KxNPTfbM3PugRD/+/V/H7lpr1sreMEfiaV?=
- =?us-ascii?Q?CF/YAKxK4WWV+WDk/RO6PBb7ruTteCQ85PGl+dMzBmBx/9EuSIDg5gu+pKCN?=
- =?us-ascii?Q?x3SGIYy1sJl/18qLHjd4pqn/X0b5N8kLtGvZHPl3nEoQ+NiOtrRMRGep0wt0?=
- =?us-ascii?Q?KAFsjNwyW8rgMa6eox+HOFkavoz90L7HoheTdazwSXf4C8BFhlQO8UH337eU?=
- =?us-ascii?Q?CJGdMnMuQk97ndxBpdFDAmmBYTpz7vl8RyyB+bAY3mjteOjCb0j6jgrkT8ys?=
- =?us-ascii?Q?g9Lp/f0Yh28qZPdf9VVkHQdqXMtfcqhVmGBW4DjwwAU3bjP8ru04ncZSSOkB?=
- =?us-ascii?Q?QgA/JwWRyxSdDtn/S0UDspaq9Y6sxxhbMoO9AuqaqFFWeLZ3H4f/pYNhCMeE?=
- =?us-ascii?Q?Ox+0y3lgJ0Ma7TO6TrKosyEQ0lSMbviaAD4tjlXjVMhoXHuUI0q3dHmv5S65?=
- =?us-ascii?Q?8fIgw8Ld1YRES8xzLM1aVOdv/EaRW0NtkKcNDlZA9S2QH/nk2nRL0VSVkP9O?=
- =?us-ascii?Q?LPg8+2ZW7l/tpynQPnEECn+mBBk/8YQhHEiew/cJJGhMddwQvgykeRse8KIF?=
- =?us-ascii?Q?33YrM0MbF/jIALJaBBawxIHy1Zbo2bOxbdhk7ehtjCBgP0P0hjsg0eZonTPE?=
- =?us-ascii?Q?uhTap4HHMPGjOoj8furJ/LnqWiYNCBmADtC7cfc+S9Oraf1ySKeEnmU8ekgM?=
- =?us-ascii?Q?rUNxglZTa9T+UpB++Zej7A6AvOHUfh8giggdfxD1AnbtTDntk8dhREoeEmoy?=
- =?us-ascii?Q?XLHUTzSjVrsaabhfaQy4LveIpaEh2+dk+uNffHNJX+d1LCZK09cfnipOQIAV?=
- =?us-ascii?Q?PiEb24UXN15dqK2LJ3z/JKQI4vDtMVfktR2vpoqINshgrtWQti9I3jpG/mgx?=
- =?us-ascii?Q?dvv4RIu2yBh6kTUdLPgSc3quet2tObvWVn+YkgnHwvEiV5XrdR2bveEddwRR?=
- =?us-ascii?Q?8+z17nETCLx3folpCTtqKwUVcmSKiWHFmcY3QgMTL3iWR7feY5A2FtoZ2bIN?=
- =?us-ascii?Q?t1taXYmWKfN3A4Ejw6bWOqOVhu8Kqf6ggCPccE8TPGg8P0bRkP1hoEFCIxpX?=
- =?us-ascii?Q?KxXveLYOWgiTNqz5Sihu3Z2VOGVLGK/5G8CsM/IN9mhwTuBCmCmEMJish4bB?=
- =?us-ascii?Q?YbssmCzcU4T+/7hupVdHNVLziFGLTlp+Sv7Dn8OBQSyEcKw9VBYs2c9vinHX?=
- =?us-ascii?Q?jfKyVhmbsYFLEMehCQvUyOnm1qIKwmDjn1NLnV6Y0VZBVW8tEiLP?=
-X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 7b9d6fdc-f3e2-41db-782d-08de9b1d051e
-X-MS-Exchange-CrossTenant-AuthSource: CY8PR12MB8300.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 15 Apr 2026 18:30:07.7473
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: IzNAPRd6MR2Z2H6bGtvvpTmpeO+2ggHJEgbel5DSvUhgXA0v189lPIDGOWTqdyz1jwbj58vbtGlT+9VSvlZHOg==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: PH7PR12MB7332
+References: <20251209051128.76913-1-zhangyu1@linux.microsoft.com> <20251209051128.76913-4-zhangyu1@linux.microsoft.com>
+In-Reply-To: <20251209051128.76913-4-zhangyu1@linux.microsoft.com>
+From: Tianyu Lan <ltykernel@gmail.com>
+Date: Thu, 16 Apr 2026 11:30:18 +0800
+X-Gm-Features: AQROBzAshGAwo61mQxzSw05B4fc-T0M_3Sz-I4zsvryqbMNOOaLRwnMtQN-AzBI
+Message-ID: <CAMvTesDbCYPLowZ=RS4ZOwbY_hNixhop6t1ADjDQjJ8kWjwe3A@mail.gmail.com>
+Subject: Re: [RFC v1 3/5] hyperv: Introduce new hypercall interfaces used by
+ Hyper-V guest IOMMU
+To: Yu Zhang <zhangyu1@linux.microsoft.com>
+Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, 
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org, kys@microsoft.com, 
+	haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com, 
+	lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org, 
+	robh@kernel.org, bhelgaas@google.com, arnd@arndb.de, joro@8bytes.org, 
+	will@kernel.org, robin.murphy@arm.com, easwar.hariharan@linux.microsoft.com, 
+	jacob.pan@linux.microsoft.com, nunodasneves@linux.microsoft.com, 
+	mrathor@linux.microsoft.com, mhklinux@outlook.com, peterz@infradead.org, 
+	linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, Apr 15, 2026 at 05:38:26PM +0800, Jinjie Ruan wrote:
-> Define generic __bitrev8/16/32 using the implementation
-> in <linux/bitrev.h>, so they can be reused in <asm/bitrev.h>,
-> such as RISCV.
-> 
-> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
-
-Reviewed-by: Yury Norov <ynorov@nvidia.com>
-
-I'll take it in -next for testing. That would help to catch some
-probable warnings discussed in the #2.
-
+On Tue, Dec 9, 2025 at 1:13=E2=80=AFPM Yu Zhang <zhangyu1@linux.microsoft.c=
+om> wrote:
+>
+> From: Wei Liu <wei.liu@kernel.org>
+>
+> Hyper-V guest IOMMU is a para-virtualized IOMMU based on hypercalls.
+> Introduce the hypercalls used by the child partition to interact with
+> this facility.
+>
+> These hypercalls fall into below categories:
+> - Detection and capability: HVCALL_GET_IOMMU_CAPABILITIES is used to
+>   detect the existence and capabilities of the guest IOMMU.
+>
+> - Device management: HVCALL_GET_LOGICAL_DEVICE_PROPERTY is used to
+>   check whether an endpoint device is managed by the guest IOMMU.
+>
+> - Domain management: A set of hypercalls is provided to handle the
+>   creation, configuration, and deletion of guest domains, as well as
+>   the attachment/detachment of endpoint devices to/from those domains.
+>
+> - IOTLB flushing: HVCALL_FLUSH_DEVICE_DOMAIN is used to ask Hyper-V
+>   for a domain-selective IOTLB flush(which in its handler may flush
+>   the device TLB as well). Page-selective IOTLB flushes will be offered
+>   by new hypercalls in future patches.
+>
+> Signed-off-by: Wei Liu <wei.liu@kernel.org>
+> Co-developed-by: Jacob Pan <jacob.pan@linux.microsoft.com>
+> Signed-off-by: Jacob Pan <jacob.pan@linux.microsoft.com>
+> Co-developed-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+> Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+> Co-developed-by: Yu Zhang <zhangyu1@linux.microsoft.com>
+> Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
 > ---
->  include/asm-generic/bitops/__bitrev.h | 22 ++++++++++++++++++++++
->  include/linux/bitrev.h                | 20 ++++----------------
->  2 files changed, 26 insertions(+), 16 deletions(-)
->  create mode 100644 include/asm-generic/bitops/__bitrev.h
-> 
-> diff --git a/include/asm-generic/bitops/__bitrev.h b/include/asm-generic/bitops/__bitrev.h
-> new file mode 100644
-> index 000000000000..1b8c0f464d26
-> --- /dev/null
-> +++ b/include/asm-generic/bitops/__bitrev.h
-> @@ -0,0 +1,22 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +#ifndef _ASM_GENERIC_BITOPS___BITREV_H_
-> +#define _ASM_GENERIC_BITOPS___BITREV_H_
+>  include/hyperv/hvgdk_mini.h |   8 +++
+>  include/hyperv/hvhdk_mini.h | 123 ++++++++++++++++++++++++++++++++++++
+>  2 files changed, 131 insertions(+)
+>
+> diff --git a/include/hyperv/hvgdk_mini.h b/include/hyperv/hvgdk_mini.h
+> index 77abddfc750e..e5b302bbfe14 100644
+> --- a/include/hyperv/hvgdk_mini.h
+> +++ b/include/hyperv/hvgdk_mini.h
+> @@ -478,10 +478,16 @@ union hv_vp_assist_msr_contents {  /* HV_REGISTER_V=
+P_ASSIST_PAGE */
+>  #define HVCALL_GET_VP_INDEX_FROM_APIC_ID                       0x009a
+>  #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE      0x00af
+>  #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_LIST       0x00b0
+> +#define HVCALL_CREATE_DEVICE_DOMAIN                    0x00b1
+> +#define HVCALL_ATTACH_DEVICE_DOMAIN                    0x00b2
+>  #define HVCALL_SIGNAL_EVENT_DIRECT                     0x00c0
+>  #define HVCALL_POST_MESSAGE_DIRECT                     0x00c1
+>  #define HVCALL_DISPATCH_VP                             0x00c2
+> +#define HVCALL_DETACH_DEVICE_DOMAIN                    0x00c4
+> +#define HVCALL_DELETE_DEVICE_DOMAIN                    0x00c5
+>  #define HVCALL_GET_GPA_PAGES_ACCESS_STATES             0x00c9
+> +#define HVCALL_CONFIGURE_DEVICE_DOMAIN                 0x00ce
+> +#define HVCALL_FLUSH_DEVICE_DOMAIN                     0x00d0
+>  #define HVCALL_ACQUIRE_SPARSE_SPA_PAGE_HOST_ACCESS     0x00d7
+>  #define HVCALL_RELEASE_SPARSE_SPA_PAGE_HOST_ACCESS     0x00d8
+>  #define HVCALL_MODIFY_SPARSE_GPA_PAGE_HOST_VISIBILITY  0x00db
+> @@ -492,6 +498,8 @@ union hv_vp_assist_msr_contents {    /* HV_REGISTER_V=
+P_ASSIST_PAGE */
+>  #define HVCALL_GET_VP_CPUID_VALUES                     0x00f4
+>  #define HVCALL_MMIO_READ                               0x0106
+>  #define HVCALL_MMIO_WRITE                              0x0107
+> +#define HVCALL_GET_IOMMU_CAPABILITIES                  0x0125
+> +#define HVCALL_GET_LOGICAL_DEVICE_PROPERTY             0x0127
+>
+>  /* HV_HYPERCALL_INPUT */
+>  #define HV_HYPERCALL_RESULT_MASK       GENMASK_ULL(15, 0)
+> diff --git a/include/hyperv/hvhdk_mini.h b/include/hyperv/hvhdk_mini.h
+> index 858f6a3925b3..ba6b91746b13 100644
+> --- a/include/hyperv/hvhdk_mini.h
+> +++ b/include/hyperv/hvhdk_mini.h
+> @@ -400,4 +400,127 @@ union hv_device_id {              /* HV_DEVICE_ID *=
+/
+>         } acpi;
+>  } __packed;
+>
+> +/* Device domain types */
+> +#define HV_DEVICE_DOMAIN_TYPE_S1       1 /* Stage 1 domain */
 > +
-> +#include <asm/types.h>
+> +/* ID for default domain and NULL domain */
+> +#define HV_DEVICE_DOMAIN_ID_DEFAULT 0
+> +#define HV_DEVICE_DOMAIN_ID_NULL    0xFFFFFFFFULL
 > +
-> +extern u8 const byte_rev_table[256];
-> +static __always_inline __attribute_const__ u8 generic___bitrev8(u8 byte)
-> +{
-> +	return byte_rev_table[byte];
-> +}
+> +union hv_device_domain_id {
+> +       u64 as_uint64;
+> +       struct {
+> +               u32 type: 4;
+> +               u32 reserved: 28;
+> +               u32 id;
+> +       } __packed;
+> +};
 > +
-> +static __always_inline __attribute_const__ u16 generic___bitrev16(u16 x)
-> +{
-> +	return (generic___bitrev8(x & 0xff) << 8) | generic___bitrev8(x >> 8);
-> +}
+> +struct hv_input_device_domain {
+> +       u64 partition_id;
+> +       union hv_input_vtl owner_vtl;
+> +       u8 padding[7];
+> +       union hv_device_domain_id domain_id;
+> +} __packed;
 > +
-> +static __always_inline __attribute_const__ u32 generic___bitrev32(u32 x)
-> +{
-> +	return (generic___bitrev16(x & 0xffff) << 16) | generic___bitrev16(x >> 16);
-> +}
-> +#endif /* _ASM_GENERIC_BITOPS___BITREV_H_ */
-> diff --git a/include/linux/bitrev.h b/include/linux/bitrev.h
-> index d35b8ec1c485..11620a70e776 100644
-> --- a/include/linux/bitrev.h
-> +++ b/include/linux/bitrev.h
-> @@ -12,22 +12,10 @@
->  #define __bitrev8 __arch_bitrev8
->  
->  #else
-> -extern u8 const byte_rev_table[256];
-> -static inline u8 __bitrev8(u8 byte)
-> -{
-> -	return byte_rev_table[byte];
-> -}
-> -
-> -static inline u16 __bitrev16(u16 x)
-> -{
-> -	return (__bitrev8(x & 0xff) << 8) | __bitrev8(x >> 8);
-> -}
-> -
-> -static inline u32 __bitrev32(u32 x)
-> -{
-> -	return (__bitrev16(x & 0xffff) << 16) | __bitrev16(x >> 16);
-> -}
-> -
-> +#include <asm-generic/bitops/__bitrev.h>
-> +#define __bitrev32 generic___bitrev32
-> +#define __bitrev16 generic___bitrev16
-> +#define __bitrev8 generic___bitrev8
->  #endif /* CONFIG_HAVE_ARCH_BITREVERSE */
->  
->  #define __bitrev8x4(x)	(__bitrev32(swab32(x)))
-> -- 
-> 2.34.1
+> +union hv_create_device_domain_flags {
+> +       u32 as_uint32;
+> +       struct {
+> +               u32 forward_progress_required: 1;
+> +               u32 inherit_owning_vtl: 1;
+> +               u32 reserved: 30;
+> +       } __packed;
+> +};
+> +
+> +struct hv_input_create_device_domain {
+> +       struct hv_input_device_domain device_domain;
+> +       union hv_create_device_domain_flags create_device_domain_flags;
+> +} __packed;
+> +
+> +struct hv_input_delete_device_domain {
+> +       struct hv_input_device_domain device_domain;
+> +} __packed;
+> +
+> +struct hv_input_attach_device_domain {
+> +       struct hv_input_device_domain device_domain;
+> +       union hv_device_id device_id;
+> +} __packed;
+> +
+> +struct hv_input_detach_device_domain {
+> +       u64 partition_id;
+> +       union hv_device_id device_id;
+> +} __packed;
+> +
+> +struct hv_device_domain_settings {
+> +       struct {
+> +               /*
+> +                * Enable translations. If not enabled, all transaction b=
+ypass
+> +                * S1 translations.
+> +                */
+> +               u64 translation_enabled: 1;
+> +               u64 blocked: 1;
+> +               /*
+> +                * First stage address translation paging mode:
+> +                * 0: 4-level paging (default)
+> +                * 1: 5-level paging
+> +                */
+> +               u64 first_stage_paging_mode: 1;
+> +               u64 reserved: 61;
+> +       } flags;
+> +
+> +       /* Address of translation table */
+> +       u64 page_table_root;
+> +} __packed;
+> +
+> +struct hv_input_configure_device_domain {
+> +       struct hv_input_device_domain device_domain;
+> +       struct hv_device_domain_settings settings;
+> +} __packed;
+> +
+> +struct hv_input_get_iommu_capabilities {
+> +       u64 partition_id;
+> +       u64 reserved;
+> +} __packed;
+> +
+> +struct hv_output_get_iommu_capabilities {
+> +       u32 size;
+> +       u16 reserved;
+> +       u8  max_iova_width;
+> +       u8  max_pasid_width;
+> +
+> +#define HV_IOMMU_CAP_PRESENT (1ULL << 0)
+> +#define HV_IOMMU_CAP_S2 (1ULL << 1)
+> +#define HV_IOMMU_CAP_S1 (1ULL << 2)
+> +#define HV_IOMMU_CAP_S1_5LVL (1ULL << 3)
+> +#define HV_IOMMU_CAP_PASID (1ULL << 4)
+> +#define HV_IOMMU_CAP_ATS (1ULL << 5)
+> +#define HV_IOMMU_CAP_PRI (1ULL << 6)
+> +
+> +       u64 iommu_cap;
+> +       u64 pgsize_bitmap;
+> +} __packed;
+> +
+> +enum hv_logical_device_property_code {
+> +       HV_LOGICAL_DEVICE_PROPERTY_PVIOMMU =3D 10,
+> +};
+> +
+> +struct hv_input_get_logical_device_property {
+> +       u64 partition_id;
+> +       u64 logical_device_id;
+> +       enum hv_logical_device_property_code code;
+> +       u32 reserved;
+> +} __packed;
+> +
+> +struct hv_output_get_logical_device_property {
+> +#define HV_DEVICE_IOMMU_ENABLED (1ULL << 0)
+> +       u64 device_iommu;
+> +       u64 reserved;
+> +} __packed;
+> +
+> +struct hv_input_flush_device_domain {
+> +       struct hv_input_device_domain device_domain;
+> +       u32 flags;
+> +       u32 reserved;
+> +} __packed;
+> +
+>  #endif /* _HV_HVHDK_MINI_H */
+> --
+> 2.49.0
+>
+>
+
+No code uses these definitions in this patch and it's better to merge
+with Patch 5?
+--=20
+Thanks
+Tianyu Lan
