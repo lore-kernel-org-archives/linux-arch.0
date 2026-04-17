@@ -1,41 +1,41 @@
 Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9733A3368A6;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 972B1256C8B;
 	Fri, 17 Apr 2026 14:57:28 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776437851; cv=none; b=DZo80YPSKDXr47HR/JO+JafChg1aayR8592+THtg1zD/u0pvoQtSBTpbHjJEGQ6XWWplkxDbJXVKcE8gOCDd0mDDNS4FgWtKc3DdzG6K0sBTx8rC3S+csJAlHErMQdSyeJh4YyDu5Gs9C0KXrYI9rPG2IVN4UvAeg6wrNzcB2N8=
+	t=1776437852; cv=none; b=oxDcZmDi2yFtxanMztxeBhEFzWJ5B3jw0+wZC2An3ithVCe3LVzQ5XvcF6xNh2lLBT2R2qJdn0KdN6yxNH+z7yMAIrsLvQZT4a9NSJpKOp8VNHtlgCcP3Yn9baQPzkao1XMKXQ5VG1mJypwibQ9HX5kVbDGQcLjzDq3TRnAVP7A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776437851; c=relaxed/simple;
-	bh=jsAzWLoW5A9gy7gwNB1UMVs3pSFpHLbkB09VYZuiPjs=;
-	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=a522W5WQyM85MqR5EjNAnPknUAl3+GCkHGu/4zzt5RwZ6PX7fqNb6JbFm9EVkTOL0qRkKUnilwhMP2R44aXvjucl97deUs9hJQrDTjB+JmBoT7jJyhslrBkRCtlN9NIJW5tNqBulxDUSBZ68PnCvvtNTYpizdFqeWgsbvv5aVU0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=ryvCXGls; arc=none smtp.client-ip=213.97.179.56
+	s=arc-20240116; t=1776437852; c=relaxed/simple;
+	bh=QLeK3C0ZGjE1cKjaWsVgBYa5OpEyXxdIShuf9G/PzS0=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=l3Z81ubkMIA90lkUW2l+7/zLk1qE7s8iSzq9gqoblYEw43CPdd1l5ABhg7Ye8Z26MtF/HKCj/e19aZjQZLbP3MZ7by+2adqxOcrDjRVCwVRIbQiE9Pk0bv3tfzi5cKc6aN89Md2LUnklub3UhOLFIKPmBmzBqc79xGbINzifJ/4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=mzMy48QV; arc=none smtp.client-ip=213.97.179.56
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="ryvCXGls"
+	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="mzMy48QV"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
-	s=20170329; h=Cc:To:Content-Transfer-Encoding:Content-Type:MIME-Version:
-	Message-Id:Date:Subject:From:Sender:Reply-To:Content-ID:Content-Description:
-	Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:
-	In-Reply-To:References:List-Id:List-Help:List-Unsubscribe:List-Subscribe:
-	List-Post:List-Owner:List-Archive;
-	bh=eBnlodbgD2+srihBW/Gyq0JDZAw64eMwbq/amYZTn8o=; b=ryvCXGlsF/3phJW/7eqeI6L7fE
-	tjHvq5ZjAcxAEPdMuz/zV0z2JHculoZgwX5wGouohbBwQYksHUPAlqgPP9MmEXdr9Q8GzIJYy2aIz
-	jUUlinPhq4T3i9KoZK/FfUngf3Jmhw2d8ma4txl5LKmh2L+zUMbLeYZbZbfdXvEZQH6Lm1bN7/7Og
-	hcf+zn7wy9ZZPLemMy4VITErMJLbqCNK2jLKykRg+IgiMvJS4erVD6D4dBO981HcKf3GFczRHEpVx
-	I/R8cUSM5O6eFmm9q50pjBX42xBwEbTHbAW6wuiKxbaxbzvlX8rnXvarCsqjr6U0zisCAyCPyvQVn
-	cqMPTJMw==;
+	s=20170329; h=Cc:To:In-Reply-To:References:Message-Id:
+	Content-Transfer-Encoding:Content-Type:MIME-Version:Subject:Date:From:Sender:
+	Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender
+	:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:
+	List-Subscribe:List-Post:List-Owner:List-Archive;
+	bh=27eU/J0Zc/hAfFBGC44jb/O35+RxI2J909Uggxl8/vg=; b=mzMy48QVGDIVFYGyu7BE9uQKxQ
+	hXAx6ka7Jy+yD96rfP+cZqCaE6kQPSa+DdZJP6Q3MQpkwIJOuqSSNb6LAAaxXZAHCPdebEcpzngvf
+	uZrdvuSOUB6llYq77QwXOSu4zylE2OS9OMkB7C7U6kxCLHp5uAD0koERRvZG0XQTxE03cBIs6lXH9
+	pMfYyEGkCsZDA9IbHXB2Z3kanJOwM2J4/sA1i+IMs0WF7p1GZMZizstGD1PFXrXFACYjsNqmKM4so
+	L7VxytNBzUI4mUP+ktR7XZnYYeYXbpnVlffTFuRxZbV9W9kO5dkWyFKIbXVJ0lK4T3l11czz4ALlQ
+	dIAyuxaw==;
 Received: from [187.57.76.127] (helo=[192.168.15.100])
 	by fanzine2.igalia.com with esmtpsa 
 	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_256_GCM:256) (Exim)
-	id 1wDkcs-00HVwL-Qs; Fri, 17 Apr 2026 16:56:59 +0200
+	id 1wDkcy-00HVwL-Ec; Fri, 17 Apr 2026 16:57:04 +0200
 From: =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
-Subject: [PATCH RFC 0/2] arm64: vdso: Implement
- __vdso_futex_robust_try_unlock()
-Date: Fri, 17 Apr 2026 11:56:09 -0300
-Message-Id: <20260417-tonyk-robust_arm-v1-0-03aa64e2ff1a@igalia.com>
+Date: Fri, 17 Apr 2026 11:56:10 -0300
+Subject: [PATCH RFC 1/2] arm64: vdso: Prepare for robust futex unlock
+ support
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -44,10 +44,9 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-X-B4-Tracking: v=1; b=H4sIAAAAAAAC/6tWKk4tykwtVrJSqFYqSi3LLM7MzwNyDHUUlJIzE
- vPSU3UzU4B8JSMDIzMDE0Mz3ZL8vMps3aL8pNLikvjEolxdU5O0NHPzFKNkk1QTJaC2gqLUtMw
- KsJHRSkFuzkqxEMHi0qSs1OQSkGFKtbUA9nUFPXkAAAA=
-X-Change-ID: 20260416-tonyk-robust_arm-54ff77d2c4e4
+Message-Id: <20260417-tonyk-robust_arm-v1-1-03aa64e2ff1a@igalia.com>
+References: <20260417-tonyk-robust_arm-v1-0-03aa64e2ff1a@igalia.com>
+In-Reply-To: <20260417-tonyk-robust_arm-v1-0-03aa64e2ff1a@igalia.com>
 To: Catalin Marinas <catalin.marinas@arm.com>, 
  Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
  Mark Rutland <mark.rutland@arm.com>, 
@@ -66,49 +65,96 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
 X-Mailer: b4 0.15.1
 
-Hi folks,
+There will be a VDSO function to unlock non-contended robust futexes in
+user space. The unlock sequence is racy vs. clearing the list_pending_op
+pointer in the task's robust list head. To plug this race the kernel needs
+to know the critical section window so it can clear the pointer when the
+task is interrupted within that race window. The window is determined by
+labels in the inline assembly.
 
-This is my take on implementing the new vDSO for unlocking a robust futex in
-arm64. If you don't know what's that, Thomas wrote a good summary,
-including the motivation for this work and the x86 implementation:
-
-   https://lore.kernel.org/lkml/878qb89g7b.ffs@tglx/
-
-There are some loose ends in my patchset so I'm sending as a RFC to ask
-some questions:
-
- - I haven't managed to expose the assembly labels correctly, the linker can't
- find it and the compilation fails, more info in patch 1/2
- - If the process is interrupted between the labels, we need to check the
- conditional flags and clear the op_pending address from the register. Using
- objdump I see that op_pending addr is being stored at x2, but I suspect that
- this isn't stable, so I need to figure out how to make sure that the address
- will always be stored in the same register.
- - So far I have implemented only the LL/SC version to make review easier, but I
- can do the LSE version as well.
-
-This patchset works fine with the tests proposed at
-https://lore.kernel.org/lkml/20260330120118.012924430@kernel.org/ (but of course
-without the labels the complete mechanism doesn't work properly).
-
+Signed-off-by: André Almeida <andrealmeid@igalia.com>
 ---
-André Almeida (2):
-      arm64: vdso: Prepare for robust futex unlock support
-      arm64: vdso: Implement __vdso_futex_robust_try_unlock()
+RFC: Those symbols can't be found by the linker after patch 2/2, it fails with:
 
- arch/arm64/Kconfig                                 |  1 +
- arch/arm64/include/asm/futex_robust.h              | 35 +++++++++++++
- arch/arm64/include/asm/vdso.h                      |  4 ++
- arch/arm64/kernel/vdso.c                           | 29 +++++++++++
- arch/arm64/kernel/vdso/Makefile                    |  9 +++-
- arch/arm64/kernel/vdso/vdso.lds.S                  |  4 ++
- .../kernel/vdso/vfutex_robust_list_try_unlock.c    | 59 ++++++++++++++++++++++
- 7 files changed, 140 insertions(+), 1 deletion(-)
+ld: arch/arm64/kernel/vdso.o: in function `vdso_futex_robust_unlock_update_ips':
+arch/arm64/kernel/vdso.c:72:(.text+0x200): undefined reference to `__futex_list64_try_unlock_cs_success'
+ld: arch/arm64/kernel/vdso.o: relocation R_AARCH64_ADR_PREL_PG_HI21 against symbol `__futex_list64_try_unlock_cs_success' which may bind externally can not be used when making a shared object; recompile with -fPIC
+arch/arm64/kernel/vdso.c:72:(.text+0x200): dangerous relocation: unsupported relocation
 ---
-base-commit: 0e8896e9899b607bb168c1cce340596b8c2e3e2b
-change-id: 20260416-tonyk-robust_arm-54ff77d2c4e4
+ arch/arm64/include/asm/vdso.h |  4 ++++
+ arch/arm64/kernel/vdso.c      | 29 +++++++++++++++++++++++++++++
+ 2 files changed, 33 insertions(+)
 
-Best regards,
---  
-André Almeida <andrealmeid@igalia.com>
+diff --git a/arch/arm64/include/asm/vdso.h b/arch/arm64/include/asm/vdso.h
+index 232b46969088..182fde1df3dd 100644
+--- a/arch/arm64/include/asm/vdso.h
++++ b/arch/arm64/include/asm/vdso.h
+@@ -18,6 +18,10 @@
+ 
+ extern char vdso_start[], vdso_end[];
+ extern char vdso32_start[], vdso32_end[];
++extern char __futex_list64_try_unlock_cs_success[], __futex_list64_try_unlock_cs_end[];
++#ifdef CONFIG_COMPAT
++extern char __futex_list32_try_unlock_cs_success[], __futex_list32_try_unlock_cs_end[];
++#endif
+ 
+ #endif /* !__ASSEMBLER__ */
+ 
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 592dd8668de4..42a82e73a774 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -11,6 +11,7 @@
+ #include <linux/clocksource.h>
+ #include <linux/elf.h>
+ #include <linux/err.h>
++#include <linux/futex.h>
+ #include <linux/errno.h>
+ #include <linux/gfp.h>
+ #include <linux/kernel.h>
+@@ -57,6 +58,32 @@ static struct vdso_abi_info vdso_info[] __ro_after_init = {
+ #endif /* CONFIG_COMPAT_VDSO */
+ };
+ 
++#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
++static void vdso_futex_robust_unlock_update_ips(enum vdso_abi abi, struct mm_struct *mm)
++{
++	unsigned long vdso = (unsigned long) mm->context.vdso;
++	struct futex_mm_data *fd = &mm->futex;
++
++	/*
++	 * RFC: won't compile due to undefined reference to `__futex_list64_try_unlock_cs_...`
++
++	if (abi == VDSO_ABI_AA64) {
++		futex_set_vdso_cs_range(fd, 0, vdso, (uintptr_t) __futex_list64_try_unlock_cs_success,
++					(uintptr_t) __futex_list64_try_unlock_cs_end, false);
++	}
++
++#ifdef CONFIG_COMPAT
++	if (abi == VDSO_ABI_AA32) {
++		futex_set_vdso_cs_range(fd, 1, vdso, (uintptr_t) __futex_list32_try_unlock_cs_success,
++					(uintptr_t) __futex_list32_try_unlock_cs_end, true);
++	}
++#endif
++	*/
++}
++#else
++static inline void vdso_futex_robust_unlock_update_ips(enum vdso_abi abi, struct mm_struct *mm) { }
++#endif /* CONFIG_FUTEX_ROBUST_UNLOCK */
++
+ static int vdso_mremap(const struct vm_special_mapping *sm,
+ 		struct vm_area_struct *new_vma)
+ {
+@@ -134,6 +161,8 @@ static int __setup_additional_pages(enum vdso_abi abi,
+ 	if (IS_ERR(ret))
+ 		goto up_fail;
+ 
++	vdso_futex_robust_unlock_update_ips(abi, mm);
++
+ 	return 0;
+ 
+ up_fail:
+
+-- 
+2.53.0
 
