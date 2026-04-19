@@ -1,238 +1,162 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id B1787175A97;
-	Sat, 18 Apr 2026 00:20:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.186])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C7D92330B0B
+	for <linux-arch@vger.kernel.org>; Sun, 19 Apr 2026 13:19:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.186
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776471661; cv=none; b=LrwcvbjKyTsmUGMkQHFhAYr2QM3BwVFTQmjbQq2IOtQboFRyJ+EZRBQEeOypHXDICSnMXDxNi4dEqrmjNPVCXT6yrPtkRp/d2UYpXjkVy62br+S38gvPwAsB0TpGcV1pu8myfXmJoaN9JLLXRYVIp6KDXlVR/RcBYd00Bff/NB4=
+	t=1776604771; cv=none; b=t9kKWUggBGcTSOmFDQrSgN1i0qjU9JNYbVpzzPtUwoOR9ipFV4kfLz7EE72woa3Ty3KrprSm+Xp1JIfLlShZqAwCzD4ezLssg0hRVfRYVq76gLP0aAHzPJ9dSQZMBFt0Ktmz8i8JTddrNySD+8LkqQj2GR7NtPzPyrjnLhPukOQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776471661; c=relaxed/simple;
-	bh=54HzNelDzBSSQvthwgLiprleLLldcu1fhR4OCJOh4bc=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=dd5sZJnLxfyw1Ny1Dz8wqh0vUmbJ1p61LOeM8ckL2+xttnat+kZOwBzAMX+wS12RY4NgjE5yUv0enqVUzQdJnmiB/TWM1DyDFfxhNXn4fVBz3uOwMnkAGgeuJU3PKDwAEEFwfOtU3OG7OfytdsuFSoPas/wblHkSTnG3GcRtsFo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=dYT9ZNDu; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1776604771; c=relaxed/simple;
+	bh=piegtrwAfQlcJ1gJnKFobGmCxa1L/mtr52ScpX88psE=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=IeTtjDObN/qVdt2jsZFYZiMOSTJhTCnfQuvwCBj87KS8wtWzKW54YRAF+sDyA1toPrW/jjxJ9kITmBv4TygxeiUzdmWPEmApVND0CgEvPclvczFJqGcvoNsztQNHf1p7jDc1niS2woc6A4L+/YCJE3B1d/qdB8GVkhyhv6q0Iyg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=jf4IpW7D; arc=none smtp.client-ip=195.121.94.186
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="dYT9ZNDu"
-Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 3B96520B7128;
-	Fri, 17 Apr 2026 17:20:58 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 3B96520B7128
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1776471659;
-	bh=GVHuT39vJFq3z9p9Y8P4lQnO5Ygvg1D3+qSvKG01gbY=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=dYT9ZNDuycE39Rmok1I6PkVn+1fRDnnVG7AQULHoh8ka9lRpuZZfVcN3GE476KHCm
-	 7q9IKowPidbuXTYdIZorG3mFjFlT9roQFkhQcwZt5HmGQogAfGL0LjONAQykbCKjkF
-	 8HrR1mr46rqVdmR18Z3suICKceYTvClPyPCcdPKY=
-Message-ID: <ffe33ce4-0a1b-44af-9e17-7f641fef9339@linux.microsoft.com>
-Date: Fri, 17 Apr 2026 17:20:57 -0700
+	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="jf4IpW7D"
+X-KPN-MessageId: 3b35c853-3bf2-11f1-89e1-00505699b430
+Received: from smtp.kpnmail.nl (unknown [10.31.155.6])
+	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
+	id 3b35c853-3bf2-11f1-89e1-00505699b430;
+	Sun, 19 Apr 2026 15:18:18 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=xs4all.nl; s=xs4all01;
+	h=mime-version:message-id:date:subject:to:from;
+	bh=OT/GmjwXVW710Q03NOsNHKFOk0z6sXD8EMuD3Rgu+mE=;
+	b=jf4IpW7Dq6M7kiS3Jltqt5KsCq3G02WqGhkJe01vsCMqMcdUt1rd3ybjrj3bmS1q8KN7NtS03oeo7
+	 rvwKLKlLhpSdla08xa0vI96pyOtQQ3+LoqM7z2mRV7rrclbCM+sPy6UOBh8k10nlBALywQa37Hx91B
+	 DbmbILwxr7vV7Fd459R36EWoUDuzA6BKNXAoDejmp5Zny+I8vKd/n/OVT759GHMk1qs8lVWvzsUqVP
+	 fqcZbC2k+ovNt/tduw2OhOmcf57slU4fQJ/UTZu5W1CNELfs3ANLpldaJ5hlaspiSm7xcoCTKqusFj
+	 En/l8mgOwXF+WgyM356YhKmlA3qrGaw==
+X-KPN-MID: 33|KECJPZpwAPBwREkfSmhmhI4z6SLDCh66BenYizqxZuiZd4BLt5dsS3AXsr+yh82
+ QVXBAxC6zLsY6WHQRh6ISD4RInYfCFVnNNeo+RTc5xxM=
+X-KPN-VerifiedSender: Yes
+X-CMASSUN: 33|+bl3p0rh67ASnUGE2BSIbL7nI4HOQCYDvl6xyRmsRW4iCQLXQVL1SYM9E19QXw9
+ j8gDyKxz0Hbp1dcUpCjkH9A==
+Received: from daedalus.home (unknown [178.227.25.188])
+	by smtp.xs4all.nl (Halon) with ESMTPSA
+	id 361c9105-3bf2-11f1-bffa-00505699772e;
+	Sun, 19 Apr 2026 15:18:18 +0200 (CEST)
+From: Jori Koolstra <jkoolstra@xs4all.nl>
+To: Aleksa Sarai <cyphar@cyphar.com>,
+	cmirabil@redhat.com,
+	Jeff Layton <jlayton@kernel.org>,
+	Chuck Lever <chuck.lever@oracle.com>,
+	Alexander Aring <alex.aring@gmail.com>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>,
+	Jan Kara <jack@suse.cz>,
+	Arnd Bergmann <arnd@arndb.de>
+Cc: Jori Koolstra <jkoolstra@xs4all.nl>,
+	linux-fsdevel@vger.kernel.org (open list:FILE LOCKING (flock() and fcntl()/lockf())),
+	linux-kernel@vger.kernel.org (open list),
+	linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
+Subject: [PATCH v4 1/2] vfs: add O_EMPTYPATH to openat(2)/openat2(2)
+Date: Sun, 19 Apr 2026 15:17:49 +0200
+Message-ID: <20260419131800.486788-1-jkoolstra@xs4all.nl>
+X-Mailer: git-send-email 2.53.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH v0 07/15] mshv: Add ioctl support for MSHV-VFIO bridge
- device
-Content-Language: en-US
-To: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev,
- linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, kys@microsoft.com,
- haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com,
- longli@microsoft.com, catalin.marinas@arm.com, will@kernel.org,
- tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
- dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
- lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
- robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
- nunodasneves@linux.microsoft.com, mhklinux@outlook.com,
- romank@linux.microsoft.com
-References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
- <20260120064230.3602565-8-mrathor@linux.microsoft.com>
- <aW-pw7GlQdFv-lf5@skinsburskii.localdomain>
-From: Mukesh R <mrathor@linux.microsoft.com>
-In-Reply-To: <aW-pw7GlQdFv-lf5@skinsburskii.localdomain>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 1/20/26 08:13, Stanislav Kinsburskii wrote:
-> On Mon, Jan 19, 2026 at 10:42:22PM -0800, Mukesh R wrote:
->> From: Mukesh Rathor <mrathor@linux.microsoft.com>
->>
->> Add ioctl support for creating MSHV devices for a paritition. At
->> present only VFIO device types are supported, but more could be
->> added. At a high level, a partition ioctl to create device verifies
->> it is of type VFIO and does some setup for bridge code in mshv_vfio.c.
->> Adapted from KVM device ioctls.
->>
->> Credits: Original author: Wei Liu <wei.liu@kernel.org>
->> NB: Slightly modified from the original version.
->>
->> Signed-off-by: Mukesh Rathor <mrathor@linux.microsoft.com>
->> ---
->>   drivers/hv/mshv_root_main.c | 126 ++++++++++++++++++++++++++++++++++++
->>   1 file changed, 126 insertions(+)
->>
->> diff --git a/drivers/hv/mshv_root_main.c b/drivers/hv/mshv_root_main.c
->> index 83c7bad269a0..27313419828d 100644
->> --- a/drivers/hv/mshv_root_main.c
->> +++ b/drivers/hv/mshv_root_main.c
->> @@ -1551,6 +1551,129 @@ mshv_partition_ioctl_initialize(struct mshv_partition *partition)
->>   	return ret;
->>   }
->>   
->> +static long mshv_device_attr_ioctl(struct mshv_device *mshv_dev, int cmd,
->> +				   ulong uarg)
->> +{
->> +	struct mshv_device_attr attr;
->> +	const struct mshv_device_ops *devops = mshv_dev->device_ops;
->> +
->> +	if (copy_from_user(&attr, (void __user *)uarg, sizeof(attr)))
->> +		return -EFAULT;
->> +
->> +	switch (cmd) {
->> +	case MSHV_SET_DEVICE_ATTR:
->> +		if (devops->device_set_attr)
->> +			return devops->device_set_attr(mshv_dev, &attr);
->> +		break;
->> +	case MSHV_HAS_DEVICE_ATTR:
->> +		if (devops->device_has_attr)
->> +			return devops->device_has_attr(mshv_dev, &attr);
->> +		break;
->> +	}
->> +
->> +	return -EPERM;
->> +}
->> +
->> +static long mshv_device_fop_ioctl(struct file *filp, unsigned int cmd,
->> +				  ulong uarg)
->> +{
->> +	struct mshv_device *mshv_dev = filp->private_data;
->> +
->> +	switch (cmd) {
->> +	case MSHV_SET_DEVICE_ATTR:
->> +	case MSHV_HAS_DEVICE_ATTR:
->> +		return mshv_device_attr_ioctl(mshv_dev, cmd, uarg);
->> +	}
->> +
->> +	return -ENOTTY;
->> +}
->> +
->> +static int mshv_device_fop_release(struct inode *inode, struct file *filp)
->> +{
->> +	struct mshv_device *mshv_dev = filp->private_data;
->> +	struct mshv_partition *partition = mshv_dev->device_pt;
->> +
->> +	if (mshv_dev->device_ops->device_release) {
->> +		mutex_lock(&partition->pt_mutex);
->> +		hlist_del(&mshv_dev->device_ptnode);
->> +		mshv_dev->device_ops->device_release(mshv_dev);
->> +		mutex_unlock(&partition->pt_mutex);
->> +	}
->> +
->> +	mshv_partition_put(partition);
->> +	return 0;
->> +}
->> +
->> +static const struct file_operations mshv_device_fops = {
->> +	.owner = THIS_MODULE,
->> +	.unlocked_ioctl = mshv_device_fop_ioctl,
->> +	.release = mshv_device_fop_release,
->> +};
->> +
->> +long mshv_partition_ioctl_create_device(struct mshv_partition *partition,
->> +					void __user *uarg)
->> +{
->> +	long rc;
->> +	struct mshv_create_device devargk;
->> +	struct mshv_device *mshv_dev;
->> +	const struct mshv_device_ops *vfio_ops;
->> +	int type;
->> +
->> +	if (copy_from_user(&devargk, uarg, sizeof(devargk))) {
->> +		rc = -EFAULT;
->> +		goto out;
->> +	}
->> +
->> +	/* At present, only VFIO is supported */
->> +	if (devargk.type != MSHV_DEV_TYPE_VFIO) {
->> +		rc = -ENODEV;
->> +		goto out;
->> +	}
->> +
->> +	if (devargk.flags & MSHV_CREATE_DEVICE_TEST) {
->> +		rc = 0;
->> +		goto out;
->> +	}
->> +
->> +	mshv_dev = kzalloc(sizeof(*mshv_dev), GFP_KERNEL_ACCOUNT);
->> +	if (mshv_dev == NULL) {
->> +		rc = -ENOMEM;
->> +		goto out;
->> +	}
->> +
->> +	vfio_ops = &mshv_vfio_device_ops;
->> +	mshv_dev->device_ops = vfio_ops;
->> +	mshv_dev->device_pt = partition;
->> +
->> +	rc = vfio_ops->device_create(mshv_dev, type);
->> +	if (rc < 0) {
->> +		kfree(mshv_dev);
->> +		goto out;
->> +	}
->> +
->> +	hlist_add_head(&mshv_dev->device_ptnode, &partition->pt_devices);
->> +
->> +	mshv_partition_get(partition);
->> +	rc = anon_inode_getfd(vfio_ops->device_name, &mshv_device_fops,
->> +			      mshv_dev, O_RDWR | O_CLOEXEC);
->> +	if (rc < 0) {
->> +		mshv_partition_put(partition);
->> +		hlist_del(&mshv_dev->device_ptnode);
->> +		vfio_ops->device_release(mshv_dev);
->> +		goto out;
->> +	}
->> +
->> +	devargk.fd = rc;
->> +	rc = 0;
->> +
->> +	if (copy_to_user(uarg, &devargk, sizeof(devargk))) {
-> 
-> Shouldn't the partition be put here?
+To get an operable version of an O_PATH file descriptor, it is possible
+to use openat(fd, ".", O_DIRECTORY) for directories, but other files
+currently require going through open("/proc/<pid>/fd/<nr>"), which
+depends on a functioning procfs.
 
-No. anon_inode_getfd was successful and so it installed the fd already..
-As a result the cleanup will happen in the file op release.
+This patch adds the O_EMPTYPATH flag to openat(2)/openat2(2). If passed,
+LOOKUP_EMPTY is set at path resolution time.
 
-Thanks,
--Mukesh
+Note: This implies that you cannot rely anymore on disabling procfs from
+being mounted (e.g. inside a container without procfs mounted and with
+CAP_SYS_ADMIN dropped) to prevent O_PATH fds from being re-opened
+read-write.
 
-> Thanks,
-> Stanislav
-> 
->> +		rc = -EFAULT;
->> +		goto out;
->> +	}
->> +out:
->> +	return rc;
->> +}
->> +
->>   static long
->>   mshv_partition_ioctl(struct file *filp, unsigned int ioctl, unsigned long arg)
->>   {
->> @@ -1587,6 +1710,9 @@ mshv_partition_ioctl(struct file *filp, unsigned int ioctl, unsigned long arg)
->>   	case MSHV_ROOT_HVCALL:
->>   		ret = mshv_ioctl_passthru_hvcall(partition, true, uarg);
->>   		break;
->> +	case MSHV_CREATE_DEVICE:
->> +		ret = mshv_partition_ioctl_create_device(partition, uarg);
->> +		break;
->>   	default:
->>   		ret = -ENOTTY;
->>   	}
->> -- 
->> 2.51.2.vfs.0.1
->>
+Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
+---
+ fs/fcntl.c                       | 2 +-
+ fs/open.c                        | 6 ++++--
+ include/linux/fcntl.h            | 2 +-
+ include/uapi/asm-generic/fcntl.h | 4 ++++
+ 4 files changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index beab8080badf..7d2165855a9c 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -1169,7 +1169,7 @@ static int __init fcntl_init(void)
+ 	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
+ 	 * is defined as O_NONBLOCK on some platforms and not on others.
+ 	 */
+-	BUILD_BUG_ON(20 - 1 /* for O_RDONLY being 0 */ !=
++	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
+ 		HWEIGHT32(
+ 			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
+ 			__FMODE_EXEC));
+diff --git a/fs/open.c b/fs/open.c
+index 681d405bc61e..9e0164a8c1fb 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -1158,7 +1158,7 @@ struct file *kernel_file_open(const struct path *path, int flags,
+ EXPORT_SYMBOL_GPL(kernel_file_open);
+ 
+ #define WILL_CREATE(flags)	(flags & (O_CREAT | __O_TMPFILE))
+-#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC)
++#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC | O_EMPTYPATH)
+ 
+ inline struct open_how build_open_how(int flags, umode_t mode)
+ {
+@@ -1279,6 +1279,8 @@ inline int build_open_flags(const struct open_how *how, struct open_flags *op)
+ 		lookup_flags |= LOOKUP_DIRECTORY;
+ 	if (!(flags & O_NOFOLLOW))
+ 		lookup_flags |= LOOKUP_FOLLOW;
++	if (flags & O_EMPTYPATH)
++		lookup_flags |= LOOKUP_EMPTY;
+ 
+ 	if (how->resolve & RESOLVE_NO_XDEV)
+ 		lookup_flags |= LOOKUP_NO_XDEV;
+@@ -1360,7 +1362,7 @@ static int do_sys_openat2(int dfd, const char __user *filename,
+ 	if (unlikely(err))
+ 		return err;
+ 
+-	CLASS(filename, name)(filename);
++	CLASS(filename_flags, name)(filename, op.lookup_flags);
+ 	return FD_ADD(how->flags, do_file_open(dfd, name, &op));
+ }
+ 
+diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+index a332e79b3207..c65c5c73d362 100644
+--- a/include/linux/fcntl.h
++++ b/include/linux/fcntl.h
+@@ -10,7 +10,7 @@
+ 	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC | \
+ 	 O_APPEND | O_NDELAY | O_NONBLOCK | __O_SYNC | O_DSYNC | \
+ 	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
+-	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
++	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_EMPTYPATH)
+ 
+ /* List of all valid flags for the how->resolve argument: */
+ #define VALID_RESOLVE_FLAGS \
+diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+index 613475285643..db144851f57b 100644
+--- a/include/uapi/asm-generic/fcntl.h
++++ b/include/uapi/asm-generic/fcntl.h
+@@ -88,6 +88,10 @@
+ #define __O_TMPFILE	020000000
+ #endif
+ 
++#ifndef O_EMPTYPATH
++#define O_EMPTYPATH	040000000	/* allow empty path */
++#endif
++
+ /* a horrid kludge trying to make sure that this will fail on old kernels */
+ #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+ 
+-- 
+2.53.0
 
