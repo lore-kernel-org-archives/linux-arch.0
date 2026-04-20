@@ -1,66 +1,71 @@
-Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.168])
+Received: from out-174.mta1.migadu.com (out-174.mta1.migadu.com [95.215.58.174])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 86ED3378D84
-	for <linux-arch@vger.kernel.org>; Sun, 19 Apr 2026 13:23:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.168
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6464237F739
+	for <linux-arch@vger.kernel.org>; Mon, 20 Apr 2026 03:09:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.174
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776604999; cv=none; b=TMgJBaAi6QjZ2/VSZ1gAuLjmM7fXeh926i98hv/g/ctraQM7ZB3UE0WKKLP8txtEFxrpxpR6jsE/1Rg/ds5JN1ZssLl8oeU6ZYMtmGRbpKy5V2CRS1j6yNput3CWPoV1U93f+FKl2OTuSdL+GhmE+eTa/PNHOKqsUO5LkLhzQ8Q=
+	t=1776654573; cv=none; b=ZaVsI9Bco8Labk2NmcqUmSE8O3nKd91dMofGp9P+MytwR4tyCf1fKkUk7XunB2Zs+H3azyfFl9Sx/23muBYFxvrdAJwDvB5B8Qo9NQoBfJgpxZNNTJy+o5tKt2bnxweMxF+e8KEd6HOsxkVzOkF5KC8nlL0dlOejJMxJz3uxYfc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776604999; c=relaxed/simple;
-	bh=kk/pWjEu1FPRZGl74ySaQWrHQGs8YGaWyKcN35dQXag=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=LKvSG+OGm8XZzEHaoALb+0t2igMdWWacwbsROuybB/Ann2uYGuF/QkAXvaPkru8nd6K2scU14j9R+JR1mt6khvhgjsk34oGR8qIsbdPy6r0ocaxn1umnq+FM+a5t1koejJCx91zwweGmtP2+r/ZrJXSKgDkL1+0d70tdQ7AjBWU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=VpBzn8Jl; arc=none smtp.client-ip=195.121.94.168
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
+	s=arc-20240116; t=1776654573; c=relaxed/simple;
+	bh=QjlU+K6TNzgSBz5mH1uCX+aRYlnMWSQWE4Jap3gw1xc=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=hqB0ht0EtbdBBP2+VqNOfqdGZMGbb31mHMBBNQCfydLK9IBw0xzMadyz4LRWutgPPveNF1p9n8r5MyVcOCvbBEVbZy7mpMFcN4yWdudsZiGedl9kdb03X23ZfGA15sUOoQZb3pZYWRUP/MChQj2YUcW7etoKM74MRA15CCO8Qls=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=Mx7mParP; arc=none smtp.client-ip=95.215.58.174
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="VpBzn8Jl"
-X-KPN-MessageId: c3b6a62d-3bf2-11f1-92a9-005056aba152
-Received: from smtp.kpnmail.nl (unknown [10.31.155.39])
-	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
-	id c3b6a62d-3bf2-11f1-92a9-005056aba152;
-	Sun, 19 Apr 2026 15:22:07 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=xs4all.nl; s=xs4all01;
-	h=mime-version:message-id:date:subject:to:from;
-	bh=S4JIMBWVyeDfEi8dxlJjEffwFK6Rn0yu/34Q5pFwrXc=;
-	b=VpBzn8JlDroIFR7gca8n98TLucjDnmm6fQ6BEYt0sI3t8onT5Ij1auoEFwNkGJWhF6V9A//vo8/Se
-	 OzI74LLnmmK9jAtHExD2f1gZQFw9vuukSZx0eX1Urd1UNZQY21iyPCu2SIoHVgpp3ZDm0+XBb+cn/Q
-	 oSUTlVlyS/drcnmm82gLb3rdcX5AIXIY3nBBiKtcA2VbVpTX3ehJIDFYhFHeYXkLnZ9f2yb55RHFP2
-	 lrzkJoI2KbrwNkioqlT1/xddJ/28MxG5v2QgeKM3WNvIHi/mDfXWuYBvqdNBGZCReNBfeKF+rmhc29
-	 Mb43ddcyQxCMZ2XDCwQgBGenET94gJQ==
-X-KPN-MID: 33|gNKem4IwOoz5XhXBXnCIBbZOTjwbXn1VIYefPcnTGdreC9/VLmOKOsmhwKorchz
- QZvH3w/qncZKdrv4QVZyqcU+Xxq6GPVAfhJdBk06GHYc=
-X-KPN-VerifiedSender: Yes
-X-CMASSUN: 33|EXSiaji+dWNqQVBuIvUO78BDWYPfpmWJT2l8f5Ytnr77ETuspE+OrjpcAAtNxcQ
- lC78qYIF+MxJBalzRkTCPIg==
-Received: from daedalus.home (unknown [178.227.25.188])
-	by smtp.xs4all.nl (Halon) with ESMTPSA
-	id c0c97afc-3bf2-11f1-8011-005056ab7447;
-	Sun, 19 Apr 2026 15:22:07 +0200 (CEST)
-From: Jori Koolstra <jkoolstra@xs4all.nl>
-To: Aleksa Sarai <cyphar@cyphar.com>,
-	cmirabil@redhat.com,
-	Jeff Layton <jlayton@kernel.org>,
-	Chuck Lever <chuck.lever@oracle.com>,
-	Alexander Aring <alex.aring@gmail.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Christian Brauner <brauner@kernel.org>,
-	Jan Kara <jack@suse.cz>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Shuah Khan <shuah@kernel.org>
-Cc: Jori Koolstra <jkoolstra@xs4all.nl>,
-	Bala-Vignesh-Reddy <reddybalavignesh9979@gmail.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Wei Yang <richard.weiyang@gmail.com>,
-	linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="Mx7mParP"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1776654558;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=AKl1g17ICBm+Yhc31h7NqqZRHOYKzoDOhKe2BAK4Ft4=;
+	b=Mx7mParPLpVFgaIsnwObBrva2C+5otUR/xdKuDFQn7DRs58EXi/S2SYJmUo/FlL/NI4bMz
+	LVozt4FY9JRCCCV8dw4pPwmOiNy/p+R2L2M9aY7tIFFaB2w3gJK1ABztD7ngmnjP4QsJSy
+	5icta9wZ9AzxQ8BVz01S6WNDN9u5CcE=
+From: Lance Yang <lance.yang@linux.dev>
+To: akpm@linux-foundation.org
+Cc: peterz@infradead.org,
+	david@kernel.org,
+	dave.hansen@intel.com,
+	dave.hansen@linux.intel.com,
+	ypodemsk@redhat.com,
+	hughd@google.com,
+	will@kernel.org,
+	aneesh.kumar@kernel.org,
+	npiggin@gmail.com,
+	tglx@linutronix.de,
+	mingo@redhat.com,
+	bp@alien8.de,
+	x86@kernel.org,
+	hpa@zytor.com,
+	arnd@arndb.de,
+	ljs@kernel.org,
+	ziy@nvidia.com,
+	baolin.wang@linux.alibaba.com,
+	Liam.Howlett@oracle.com,
+	npache@redhat.com,
+	ryan.roberts@arm.com,
+	dev.jain@arm.com,
+	baohua@kernel.org,
+	shy828301@gmail.com,
+	riel@surriel.com,
+	jannh@google.com,
+	jgross@suse.com,
+	seanjc@google.com,
+	pbonzini@redhat.com,
+	boris.ostrovsky@oracle.com,
+	virtualization@lists.linux.dev,
+	kvm@vger.kernel.org,
 	linux-arch@vger.kernel.org,
-	linux-kselftest@vger.kernel.org
-Subject: [PATCH v4 2/2] selftest: add tests for O_EMPTYPATH
-Date: Sun, 19 Apr 2026 15:21:43 +0200
-Message-ID: <20260419132202.487612-1-jkoolstra@xs4all.nl>
-X-Mailer: git-send-email 2.53.0
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	ioworker0@gmail.com
+Subject: [PATCH 7.2 v9 0/2] skip redundant sync IPIs when TLB flush sent them
+Date: Mon, 20 Apr 2026 11:08:49 +0800
+Message-ID: <20260420030851.6735-1-lance.yang@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -68,212 +73,131 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-Add tests for the new O_EMPTYPATH flag of openat(2)/openat2(2).
+Hi all,
 
-Also, the current openat2 tests include a helper header file that
-defines the necessary structs and constants to use openat2(2), such as
-struct open_how. This may result in conflicting definitions when the
-system header openat2.h is present as well.
+When page table operations require synchronization with software/lockless
+walkers, they call tlb_remove_table_sync_{one,rcu}() after flushing the
+TLB (tlb->freed_tables or tlb->unshared_tables).
 
-So add openat2.h generated by 'make headers' to the uapi header
-files in ./tools/include and remove the helper file definitions of
-the current openat2 selftests.
+On architectures where the TLB flush already sends IPIs to all target CPUs,
+the subsequent sync IPI broadcast is redundant. This is not only costly on
+large systems where it disrupts all CPUs even for single-process page table
+operations, but has also been reported to hurt RT workloads[1].
 
-Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
----
- tools/include/uapi/linux/openat2.h            | 43 +++++++++++++++
- tools/testing/selftests/openat2/Makefile      |  4 +-
- .../selftests/openat2/emptypath_test.c        | 55 +++++++++++++++++++
- tools/testing/selftests/openat2/helpers.h     | 40 +-------------
- 4 files changed, 103 insertions(+), 39 deletions(-)
- create mode 100644 tools/include/uapi/linux/openat2.h
- create mode 100644 tools/testing/selftests/openat2/emptypath_test.c
+This series introduces tlb_table_flush_implies_ipi_broadcast() to check if
+the prior TLB flush already provided the necessary synchronization. When
+true, the sync calls can early-return.
 
-diff --git a/tools/include/uapi/linux/openat2.h b/tools/include/uapi/linux/openat2.h
-new file mode 100644
-index 000000000000..4759c471676c
---- /dev/null
-+++ b/tools/include/uapi/linux/openat2.h
-@@ -0,0 +1,43 @@
-+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+#ifndef _LINUX_OPENAT2_H
-+#define _LINUX_OPENAT2_H
-+
-+#include <linux/types.h>
-+
-+/*
-+ * Arguments for how openat2(2) should open the target path. If only @flags and
-+ * @mode are non-zero, then openat2(2) operates very similarly to openat(2).
-+ *
-+ * However, unlike openat(2), unknown or invalid bits in @flags result in
-+ * -EINVAL rather than being silently ignored. @mode must be zero unless one of
-+ * {O_CREAT, O_TMPFILE} are set.
-+ *
-+ * @flags: O_* flags.
-+ * @mode: O_CREAT/O_TMPFILE file mode.
-+ * @resolve: RESOLVE_* flags.
-+ */
-+struct open_how {
-+	__u64 flags;
-+	__u64 mode;
-+	__u64 resolve;
-+};
-+
-+/* how->resolve flags for openat2(2). */
-+#define RESOLVE_NO_XDEV		0x01 /* Block mount-point crossings
-+					(includes bind-mounts). */
-+#define RESOLVE_NO_MAGICLINKS	0x02 /* Block traversal through procfs-style
-+					"magic-links". */
-+#define RESOLVE_NO_SYMLINKS	0x04 /* Block traversal through all symlinks
-+					(implies OEXT_NO_MAGICLINKS) */
-+#define RESOLVE_BENEATH		0x08 /* Block "lexical" trickery like
-+					"..", symlinks, and absolute
-+					paths which escape the dirfd. */
-+#define RESOLVE_IN_ROOT		0x10 /* Make all jumps to "/" and ".."
-+					be scoped inside the dirfd
-+					(similar to chroot(2)). */
-+#define RESOLVE_CACHED		0x20 /* Only complete if resolution can be
-+					completed through cached lookup. May
-+					return -EAGAIN if that's not
-+					possible. */
-+
-+#endif /* _LINUX_OPENAT2_H */
-diff --git a/tools/testing/selftests/openat2/Makefile b/tools/testing/selftests/openat2/Makefile
-index 185dc76ebb5f..db004a527634 100644
---- a/tools/testing/selftests/openat2/Makefile
-+++ b/tools/testing/selftests/openat2/Makefile
-@@ -1,7 +1,7 @@
- # SPDX-License-Identifier: GPL-2.0-or-later
- 
--CFLAGS += -Wall -O2 -g -fsanitize=address -fsanitize=undefined
--TEST_GEN_PROGS := openat2_test resolve_test rename_attack_test
-+CFLAGS += -Wall -O2 -g -fsanitize=address -fsanitize=undefined $(TOOLS_INCLUDES)
-+TEST_GEN_PROGS := openat2_test resolve_test rename_attack_test emptypath_test
- 
- # gcc requires -static-libasan in order to ensure that Address Sanitizer's
- # library is the first one loaded. However, clang already statically links the
-diff --git a/tools/testing/selftests/openat2/emptypath_test.c b/tools/testing/selftests/openat2/emptypath_test.c
-new file mode 100644
-index 000000000000..3d861ecd0c05
---- /dev/null
-+++ b/tools/testing/selftests/openat2/emptypath_test.c
-@@ -0,0 +1,55 @@
-+// SPDX-License-Identifier: GPL-2.0-or-later
-+
-+#define __SANE_USERSPACE_TYPES__
-+#include <fcntl.h>
-+#include <unistd.h>
-+#include <errno.h>
-+
-+#include "kselftest.h"
-+
-+#ifndef O_EMPTYPATH
-+#define O_EMPTYPATH	040000000
-+#endif
-+
-+int main(void)
-+{
-+	int opath_fd, reopen_fd;
-+	const char *path = "/tmp/emptypath_test";
-+
-+	ksft_print_header();
-+	ksft_set_plan(2);
-+
-+	opath_fd = open(path, O_CREAT | O_WRONLY, S_IRWXU);
-+	if (opath_fd < 0)
-+		ksft_exit_fail_msg("create %s: %m\n", path);
-+	close(opath_fd);
-+
-+	opath_fd = open(path, O_PATH);
-+	if (opath_fd < 0)
-+		ksft_exit_fail_msg("open %s O_PATH: %m\n", path);
-+
-+	reopen_fd = openat(opath_fd, "", O_RDONLY);
-+	if (reopen_fd < 0 && errno == ENOENT)
-+		ksft_test_result_pass("empty path without O_EMPTYPATH returns ENOENT\n");
-+	else if (reopen_fd >= 0) {
-+		ksft_test_result_fail("empty path without O_EMPTYPATH unexpectedly succeeded\n");
-+		close(reopen_fd);
-+	} else {
-+		ksft_test_result_fail("empty path without O_EMPTYPATH: expected ENOENT, got %m\n");
-+	}
-+
-+	reopen_fd = openat(opath_fd, "", O_RDONLY | O_EMPTYPATH);
-+
-+	if (reopen_fd < 0 && errno == EINVAL)
-+		ksft_exit_skip("O_EMPTYPATH not supported\n");
-+
-+	if (reopen_fd >= 0) {
-+		ksft_test_result_pass("O_EMPTYPATH reopens O_PATH fd\n");
-+		close(reopen_fd);
-+	} else {
-+		ksft_test_result_fail("O_EMPTYPATH failed: %m\n");
-+	}
-+
-+	unlink(path);
-+	ksft_finished();
-+}
-diff --git a/tools/testing/selftests/openat2/helpers.h b/tools/testing/selftests/openat2/helpers.h
-index 510e60602511..0f600df91d2a 100644
---- a/tools/testing/selftests/openat2/helpers.h
-+++ b/tools/testing/selftests/openat2/helpers.h
-@@ -14,6 +14,9 @@
- #include <linux/types.h>
- #include "kselftest.h"
- 
-+#define OPEN_HOW_SIZE_VER0	24
-+#define OPEN_HOW_SIZE_LATEST	OPEN_HOW_SIZE_VER0
-+
- #define ARRAY_LEN(X) (sizeof (X) / sizeof (*(X)))
- #define BUILD_BUG_ON(e) ((void)(sizeof(struct { int:(-!!(e)); })))
- 
-@@ -24,45 +27,8 @@
- #define SYS_openat2 __NR_openat2
- #endif /* SYS_openat2 */
- 
--/*
-- * Arguments for how openat2(2) should open the target path. If @resolve is
-- * zero, then openat2(2) operates very similarly to openat(2).
-- *
-- * However, unlike openat(2), unknown bits in @flags result in -EINVAL rather
-- * than being silently ignored. @mode must be zero unless one of {O_CREAT,
-- * O_TMPFILE} are set.
-- *
-- * @flags: O_* flags.
-- * @mode: O_CREAT/O_TMPFILE file mode.
-- * @resolve: RESOLVE_* flags.
-- */
--struct open_how {
--	__u64 flags;
--	__u64 mode;
--	__u64 resolve;
--};
--
--#define OPEN_HOW_SIZE_VER0	24 /* sizeof first published struct */
--#define OPEN_HOW_SIZE_LATEST	OPEN_HOW_SIZE_VER0
--
- bool needs_openat2(const struct open_how *how);
- 
--#ifndef RESOLVE_IN_ROOT
--/* how->resolve flags for openat2(2). */
--#define RESOLVE_NO_XDEV		0x01 /* Block mount-point crossings
--					(includes bind-mounts). */
--#define RESOLVE_NO_MAGICLINKS	0x02 /* Block traversal through procfs-style
--					"magic-links". */
--#define RESOLVE_NO_SYMLINKS	0x04 /* Block traversal through all symlinks
--					(implies OEXT_NO_MAGICLINKS) */
--#define RESOLVE_BENEATH		0x08 /* Block "lexical" trickery like
--					"..", symlinks, and absolute
--					paths which escape the dirfd. */
--#define RESOLVE_IN_ROOT		0x10 /* Make all jumps to "/" and ".."
--					be scoped inside the dirfd
--					(similar to chroot(2)). */
--#endif /* RESOLVE_IN_ROOT */
--
- #define E_func(func, ...)						      \
- 	do {								      \
- 		errno = 0;						      \
+A few cases rely on this synchronization:
+
+1) hugetlb PMD unshare[2]: The problem is not the freeing but the reuse
+   of the PMD table for other purposes in the last remaining user after
+   unsharing.
+
+2) khugepaged collapse[3]: Ensure no concurrent GUP-fast before collapsing
+   and (possibly) freeing the page table / re-depositing it.
+
+Two-step plan as David suggested[4]:
+
+Step 1 (this series): Skip redundant sync when we're 100% certain the TLB
+flush sent IPIs. INVLPGB is excluded because when supported, we cannot
+guarantee IPIs were sent, keeping it clean and simple.
+
+Step 2 (future work): Send targeted IPIs only to CPUs actually doing
+software/lockless page table walks, benefiting all architectures.
+
+Regarding Step 2, it obviously only applies to setups where Step 1 does not
+apply: like x86 with INVLPGB or arm64. Step 2 work is ongoing; early
+attempts showed ~3% GUP-fast overhead. Reducing the overhead requires more
+work and tuning; it will be submitted separately once ready.
+
+On a 64-core Intel x86 server, the CAL interrupt count in
+/proc/interrupts dropped from 646,316 to 785 when collapsing a 20 GiB
+range with this series applied.
+
+David Hildenbrand did the initial implementation. I built on his work and
+relied on off-list discussions to push it further - thanks a lot David!
+
+[1] https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+[2] https://lore.kernel.org/linux-mm/6a364356-5fea-4a6c-b959-ba3b22ce9c88@kernel.org/
+[3] https://lore.kernel.org/linux-mm/2cb4503d-3a3f-4f6c-8038-7b3d1c74b3c2@kernel.org/
+[4] https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
+
+v8 -> v9:
+- Rebase on mm-new; re-tested, no code changes.
+- https://lore.kernel.org/linux-mm/20260324085238.44477-1-lance.yang@linux.dev/
+
+v7 -> v8:
+- Pick up Acked-by tags from David, thanks!
+- Add CAL interrupt numbers to the cover letter (per Andrew, thanks!)
+- Rewrite the [2/2] changelog and reword the comment (per David, thanks!)
+- https://lore.kernel.org/linux-mm/20260309020711.20831-1-lance.yang@linux.dev/
+
+v6 -> v7:
+- Simplify init logic and eliminate duplicated X86_FEATURE_INVLPGB checks
+  (per Dave, thanks!)
+- Remove flush_tlb_multi_implies_ipi_broadcast property because no PV
+  backend sets it today.
+- https://lore.kernel.org/linux-mm/20260304021046.18550-1-lance.yang@linux.dev/
+
+v5 -> v6:
+- Use static_branch to eliminate the branch overhead (per Peter, thanks!)
+- https://lore.kernel.org/linux-mm/20260302063048.9479-1-lance.yang@linux.dev/
+
+v4 -> v5:
+- Drop per-CPU tracking (active_lockless_pt_walk_mm) from this series;
+  defer to Step 2 as it adds ~3% GUP-fast overhead
+- Keep pv_ops property false for PV backends like KVM: preempted vCPUs
+  cannot be assumed safe (per Sean, thanks!)
+  https://lore.kernel.org/linux-mm/aaCP95l-m8ISXF78@google.com/
+- https://lore.kernel.org/linux-mm/20260202074557.16544-1-lance.yang@linux.dev/ 
+
+v3 -> v4:
+- Rework based on David's two-step direction and per-CPU idea:
+  1) Targeted IPIs: per-CPU variable when entering/leaving lockless page
+     table walk; tlb_remove_table_sync_mm() IPIs only those CPUs.
+  2) On x86, pv_mmu_ops property set at init to skip the extra sync when
+     flush_tlb_multi() already sends IPIs.
+  https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
+- https://lore.kernel.org/linux-mm/20260106120303.38124-1-lance.yang@linux.dev/
+
+v2 -> v3:
+- Complete rewrite: use dynamic IPI tracking instead of static checks
+  (per Dave Hansen, thanks!)
+- Track IPIs via mmu_gather: native_flush_tlb_multi() sets flag when
+  actually sending IPIs
+- Motivation for skipping redundant IPIs explained by David:
+  https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+- https://lore.kernel.org/linux-mm/20251229145245.85452-1-lance.yang@linux.dev/
+
+v1 -> v2:
+- Fix cover letter encoding to resolve send-email issues. Apologies for
+  any email flood caused by the failed send attempts :(
+
+RFC -> v1:
+- Use a callback function in pv_mmu_ops instead of comparing function
+  pointers (per David)
+- Embed the check directly in tlb_remove_table_sync_one() instead of
+  requiring every caller to check explicitly (per David)
+- Move tlb_table_flush_implies_ipi_broadcast() outside of
+  CONFIG_MMU_GATHER_RCU_TABLE_FREE to fix build error on architectures
+  that don't enable this config.
+  https://lore.kernel.org/oe-kbuild-all/202512142156.cShiu6PU-lkp@intel.com/
+- https://lore.kernel.org/linux-mm/20251213080038.10917-1-lance.yang@linux.dev/
+
+Lance Yang (2):
+  mm/mmu_gather: prepare to skip redundant sync IPIs
+  x86/tlb: skip redundant sync IPIs for native TLB flush
+
+ arch/x86/include/asm/tlb.h      | 18 +++++++++++++++++-
+ arch/x86/include/asm/tlbflush.h |  2 ++
+ arch/x86/kernel/smpboot.c       |  1 +
+ arch/x86/mm/tlb.c               | 15 +++++++++++++++
+ include/asm-generic/tlb.h       | 17 +++++++++++++++++
+ mm/mmu_gather.c                 | 15 +++++++++++++++
+ 6 files changed, 67 insertions(+), 1 deletion(-)
+
 -- 
-2.53.0
-
+2.49.0
