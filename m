@@ -1,175 +1,136 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.17])
+Received: from canpmsgout10.his.huawei.com (canpmsgout10.his.huawei.com [113.46.200.225])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BC98E38838F;
-	Tue, 21 Apr 2026 11:50:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.17
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 834F83D667C;
+	Tue, 21 Apr 2026 13:04:10 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=113.46.200.225
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776772220; cv=none; b=PeuO0HSSKFoE9VBko75capp2D1aTPVo+UmzwjdOmorQNVby5prZ41zQV0u3PGufPTlPs4oXT+Dyu93jSy6jotP6vw0x4xWTdThNSWuCSbGVyaQJ1f4KIeHjYIF2Yd+otgM6UXa6OUw2zI0AfDXQGdCf21BoqV3JDeYtdLmEWymY=
+	t=1776776655; cv=none; b=ntBRrih/HJ4j2AM1q5U4Io3IQHHiOZsH3yiiv7sVb0nFBVdxGZGOE9iwhJUO6GO+DrFP5uxcR0Qt0VadplTynNUAuzTATspR9S1rXiKx49wQam2SK8yxtMKwdsVLYi3KZm8gkKWQvTeW4+D7BC09y7aL3uA0ZA9hu4aZ68y0Y84=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776772220; c=relaxed/simple;
-	bh=7EgXSX2kbNsQTGNgx4ImlKGpezUOlRUpgOi4icXx1j8=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=P1jbg7dJIwfJBLVqbQ6ejb9A8JbTrev/O4g78tTX/8JAeUIxrZUZ3XTMd8JiI/pRSXGAdMFNjiWgIoI+FeyoL17Xvnt7jdjJbahu60x5xESLeUHZ6dEj2uKrhqBn/KNBw9RytRgkoOd2RDrmAmZ4/3UVksauPyauPpm9c2FokMg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=IBbbt8HT; arc=none smtp.client-ip=192.198.163.17
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1776776655; c=relaxed/simple;
+	bh=RRwAlN6IpmxPkOxgImIXnsn9WxAITqIcBSOxnOP0Inw=;
+	h=From:To:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=cY/1A/l1lb7uhqil8YdPEwDMLFMQFLiVx54ZCFqtlgiTlUzSLSbvj8RxGYi/5QgrdP/lSSbDEUuiFgJM0wyUmAhukepv5PoO1F7QA45bFF6AsG/4vG+XxFqPG0POuY75+LrUPZXrrgMFW6UxkVFKshwDfn2uB2EquyZ39QS95Kk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=q/yQRJi9; arc=none smtp.client-ip=113.46.200.225
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="IBbbt8HT"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1776772217; x=1808308217;
-  h=from:to:cc:subject:in-reply-to:references:date:
-   message-id:mime-version:content-transfer-encoding;
-  bh=7EgXSX2kbNsQTGNgx4ImlKGpezUOlRUpgOi4icXx1j8=;
-  b=IBbbt8HTY2xEZ3fE7cOPNHqSc/SjlQhkIOIX7RkE1ykOfuL/0tctQpCT
-   aa+0YBGW/Zo3/xhtYemHNl6O4ysHoaBzFyGsVw+03qS9uwhQciaArk30j
-   6wsvtzt6qvq+TC70hd0fiovzGcdQ/dUmoFimgp71loM0HIweWd6Xe87zm
-   4KklEABkNzFCuWg0N/mvxZQaotvPb0KkbA5unb7O6x+bCPUgv71BW+mJ2
-   Qsu8a4aOGHUITwUR31yvv0W8YkMEA8akZcHMxqlmSDQ6gf37ANjtF7dD6
-   yN7Po0Q2t6wPZuZzeQ/aN4dWc19+W1fo9LXE1dj9hfdLZ2qUT3OtpkZg2
-   g==;
-X-CSE-ConnectionGUID: hHpzJggGSWej78kzOIV71g==
-X-CSE-MsgGUID: RG6lFl7BSeKD7RlJdxM0fQ==
-X-IronPort-AV: E=McAfee;i="6800,10657,11762"; a="77577797"
-X-IronPort-AV: E=Sophos;i="6.23,191,1770624000"; 
-   d="scan'208";a="77577797"
-Received: from orviesa009.jf.intel.com ([10.64.159.149])
-  by fmvoesa111.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 21 Apr 2026 04:50:16 -0700
-X-CSE-ConnectionGUID: B3auslJVR6GKADUigwj8Wg==
-X-CSE-MsgGUID: yUjIc98WRBiNmeMG9f/VHQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.23,191,1770624000"; 
-   d="scan'208";a="231891388"
-Received: from vpanait-mobl.ger.corp.intel.com (HELO localhost) ([10.245.245.38])
-  by orviesa009-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 21 Apr 2026 04:50:08 -0700
-From: Jani Nikula <jani.nikula@intel.com>
-To: Albert Esteve <aesteve@redhat.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Brendan Higgins
- <brendan.higgins@linux.dev>, David Gow <david@davidgow.net>, Rae Moar
- <raemoar63@gmail.com>, Maarten Lankhorst
- <maarten.lankhorst@linux.intel.com>, Maxime Ripard <mripard@kernel.org>,
- Thomas Zimmermann <tzimmermann@suse.de>, David Airlie <airlied@gmail.com>,
- Simona Vetter <simona@ffwll.ch>, Jonathan Corbet <corbet@lwn.net>, Shuah
- Khan <skhan@linuxfoundation.org>, Andrew Morton
- <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org,
- kunit-dev@googlegroups.com, dri-devel@lists.freedesktop.org,
- workflows@vger.kernel.org, linux-doc@vger.kernel.org, Guenter Roeck
- <linux@roeck-us.net>, Linux Kernel Functional Testing <lkft@linaro.org>,
- Dan Carpenter <dan.carpenter@linaro.org>, =?utf-8?Q?Ma=C3=ADra?= Canal
- <mcanal@igalia.com>,
- Alessandro Carminati <acarmina@redhat.com>, Simona Vetter
- <simona.vetter@ffwll.ch>
-Subject: Re: [PATCH v7 4/5] drm: Suppress intentional warning backtraces in
- scaling unit tests
-In-Reply-To: <CADSE00JJq6fsYbkFN5hBD=-ZWsFG9p4_C55fp3MupMJQj0QCUQ@mail.gmail.com>
-Organization: Intel Finland Oy - BIC 0357606-4 - c/o Alberga Business Park,
- 6 krs Bertel Jungin Aukio 5, 02600 Espoo, Finland
-References: <20260420-kunit_add_support-v7-0-e8bc6e0f70de@redhat.com>
- <20260420-kunit_add_support-v7-4-e8bc6e0f70de@redhat.com>
- <20260420144702.GM3102624@noisy.programming.kicks-ass.net>
- <CADSE00JJq6fsYbkFN5hBD=-ZWsFG9p4_C55fp3MupMJQj0QCUQ@mail.gmail.com>
-Date: Tue, 21 Apr 2026 14:50:05 +0300
-Message-ID: <8a9c125c08206296d698c79c3d3dd6aea36a7e3b@intel.com>
+	dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b="q/yQRJi9"
+dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
+	c=relaxed/relaxed; q=dns/txt;
+	h=From;
+	bh=sP1CI1tiE4B2LkT6grmHSXCoIHlmRgNWy3C/pf6exgs=;
+	b=q/yQRJi94rwlOdzpdMSa8Gpx0gZRBFAM5eRJUXpa4A98HIzpdFzrk/POC+DJleoVsjJL9PGTJ
+	AY1ocQ5p3c1SYtN3MKERP46scvmIsPjfP48jn22TdfBELKdM7gmESGmA9xVYwMRgC8zpbLKOpFk
+	Lk2BZyiDPdKlYPtLzT3Y8eU=
+Received: from mail.maildlp.com (unknown [172.19.162.92])
+	by canpmsgout10.his.huawei.com (SkyGuard) with ESMTPS id 4g0MpM1CzVz1K99C;
+	Tue, 21 Apr 2026 20:57:47 +0800 (CST)
+Received: from dggpemf500011.china.huawei.com (unknown [7.185.36.131])
+	by mail.maildlp.com (Postfix) with ESMTPS id 0ABA440562;
+	Tue, 21 Apr 2026 21:04:07 +0800 (CST)
+Received: from huawei.com (10.90.53.73) by dggpemf500011.china.huawei.com
+ (7.185.36.131) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.1544.11; Tue, 21 Apr
+ 2026 21:04:05 +0800
+From: Jinjie Ruan <ruanjinjie@huawei.com>
+To: <pjw@kernel.org>, <palmer@dabbelt.com>, <aou@eecs.berkeley.edu>,
+	<alex@ghiti.fr>, <yury.norov@gmail.com>, <linux@rasmusvillemoes.dk>,
+	<arnd@arndb.de>, <akpm@linux-foundation.org>, <ruanjinjie@huawei.com>,
+	<linux-riscv@lists.infradead.org>, <linux-kernel@vger.kernel.org>,
+	<linux-arch@vger.kernel.org>, <david.laight.linux@gmail.com>,
+	<nathan@kernel.org>, <cp0613@linux.alibaba.com>
+Subject: [PATCH v5 2/3] bitops: Define generic __bitrev8/16/32 for reuse
+Date: Tue, 21 Apr 2026 21:07:51 +0800
+Message-ID: <20260421130752.607500-3-ruanjinjie@huawei.com>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20260421130752.607500-1-ruanjinjie@huawei.com>
+References: <20260421130752.607500-1-ruanjinjie@huawei.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-ClientProxiedBy: kwepems500002.china.huawei.com (7.221.188.17) To
+ dggpemf500011.china.huawei.com (7.185.36.131)
 
-On Tue, 21 Apr 2026, Albert Esteve <aesteve@redhat.com> wrote:
-> On Mon, Apr 20, 2026 at 4:47=E2=80=AFPM Peter Zijlstra <peterz@infradead.=
-org> wrote:
->>
->> On Mon, Apr 20, 2026 at 02:28:06PM +0200, Albert Esteve wrote:
->> > From: Guenter Roeck <linux@roeck-us.net>
->> >
->> > The drm_test_rect_calc_hscale and drm_test_rect_calc_vscale unit tests
->> > intentionally trigger warning backtraces by providing bad parameters to
->> > the tested functions. What is tested is the return value, not the exis=
-tence
->> > of a warning backtrace. Suppress the backtraces to avoid clogging the
->> > kernel log and distraction from real problems.
->> >
->> > Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
->> > Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
->> > Acked-by: Ma=C3=ADra Canal <mcanal@igalia.com>
->> > Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
->> > Cc: David Airlie <airlied@gmail.com>
->> > Cc: Daniel Vetter <daniel@ffwll.ch>
->> > Signed-off-by: Guenter Roeck <linux@roeck-us.net>
->> > Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
->> > Signed-off-by: Albert Esteve <aesteve@redhat.com>
->> > ---
->> >  drivers/gpu/drm/tests/drm_rect_test.c | 14 ++++++++++++++
->> >  1 file changed, 14 insertions(+)
->> >
->> > diff --git a/drivers/gpu/drm/tests/drm_rect_test.c b/drivers/gpu/drm/t=
-ests/drm_rect_test.c
->> > index 17e1f34b76101..1dd7d819165e7 100644
->> > --- a/drivers/gpu/drm/tests/drm_rect_test.c
->> > +++ b/drivers/gpu/drm/tests/drm_rect_test.c
->> > @@ -409,8 +409,15 @@ static void drm_test_rect_calc_hscale(struct kuni=
-t *test)
->> >       const struct drm_rect_scale_case *params =3D test->param_value;
->> >       int scaling_factor;
->> >
->> > +     /*
->> > +      * drm_rect_calc_hscale() generates a warning backtrace whenever=
- bad
->> > +      * parameters are passed to it. This affects all unit tests with=
- an
->> > +      * error code in expected_scaling_factor.
->> > +      */
->> > +     KUNIT_START_SUPPRESSED_WARNING(test);
->> >       scaling_factor =3D drm_rect_calc_hscale(&params->src, &params->d=
-st,
->> >                                             params->min_range, params-=
->max_range);
->> > +     KUNIT_END_SUPPRESSED_WARNING(test);
->>
->> Would not something like:
->>
->>         scoped_kunit_suppress() {
->>                 scaling_factor =3D drm_rect_calc_hscale(&params->src, &p=
-arams->dst,
->>                                                       params->min_range,=
- params->max_range);
->>         }
->>
->> be better?
->
-> Since KUnit already has a few macros in its API it didn't occur to me.
-> Good idea, I like it. And I guess the scope approach matches well with
-> your __cleanup comment in the first patch. If no one opposes, I will
-> work toward that pattern for the next version.
+Define generic __bitrev8/16/32 using the implementation
+in <linux/bitrev.h>, so they can be reused in <asm/bitrev.h>,
+such as RISCV.
 
-There's a catch with kunit and __cleanup and thus (scoped) guards. Kunit
-runs in ktreads, asserts lead to kthread_exit() and the __cleanup won't
-be called.
+Reviewed-by: Yury Norov <ynorov@nvidia.com>
+Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
+---
+ include/asm-generic/bitops/__bitrev.h | 25 +++++++++++++++++++++++++
+ include/linux/bitrev.h                | 20 ++++----------------
+ 2 files changed, 29 insertions(+), 16 deletions(-)
+ create mode 100644 include/asm-generic/bitops/__bitrev.h
 
-Warning suppression being part of kunit infrastructure, asserts can and
-should end the suppression too. But setting the example (scoped) guards
-are safe in kunit tests in general feels like a trap waiting to happen.
+diff --git a/include/asm-generic/bitops/__bitrev.h b/include/asm-generic/bitops/__bitrev.h
+new file mode 100644
+index 000000000000..f06af929678d
+--- /dev/null
++++ b/include/asm-generic/bitops/__bitrev.h
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_GENERIC_BITOPS___BITREV_H_
++#define _ASM_GENERIC_BITOPS___BITREV_H_
++
++#ifdef CONFIG_GENERIC_BITREVERSE
++#include <asm/types.h>
++
++extern u8 const byte_rev_table[256];
++static __always_inline __attribute_const__ u8 generic___bitrev8(u8 byte)
++{
++	return byte_rev_table[byte];
++}
++
++static __always_inline __attribute_const__ u16 generic___bitrev16(u16 x)
++{
++	return (generic___bitrev8(x & 0xff) << 8) | generic___bitrev8(x >> 8);
++}
++
++static __always_inline __attribute_const__ u32 generic___bitrev32(u32 x)
++{
++	return (generic___bitrev16(x & 0xffff) << 16) | generic___bitrev16(x >> 16);
++}
++#endif /* CONFIG_GENERIC_BITREVERSE */
++
++#endif /* _ASM_GENERIC_BITOPS___BITREV_H_ */
+diff --git a/include/linux/bitrev.h b/include/linux/bitrev.h
+index d35b8ec1c485..11620a70e776 100644
+--- a/include/linux/bitrev.h
++++ b/include/linux/bitrev.h
+@@ -12,22 +12,10 @@
+ #define __bitrev8 __arch_bitrev8
+ 
+ #else
+-extern u8 const byte_rev_table[256];
+-static inline u8 __bitrev8(u8 byte)
+-{
+-	return byte_rev_table[byte];
+-}
+-
+-static inline u16 __bitrev16(u16 x)
+-{
+-	return (__bitrev8(x & 0xff) << 8) | __bitrev8(x >> 8);
+-}
+-
+-static inline u32 __bitrev32(u32 x)
+-{
+-	return (__bitrev16(x & 0xffff) << 16) | __bitrev16(x >> 16);
+-}
+-
++#include <asm-generic/bitops/__bitrev.h>
++#define __bitrev32 generic___bitrev32
++#define __bitrev16 generic___bitrev16
++#define __bitrev8 generic___bitrev8
+ #endif /* CONFIG_HAVE_ARCH_BITREVERSE */
+ 
+ #define __bitrev8x4(x)	(__bitrev32(swab32(x)))
+-- 
+2.34.1
 
-
-BR,
-Jani.
-
-
->
->>
->> Also, how can you stand all this screaming in the code?
->>
->
-> Again, KUnit already contains many macros, so this use didn't register
-> as such. Now I will not be able to unsee it.
->
->
-
---=20
-Jani Nikula, Intel
