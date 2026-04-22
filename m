@@ -1,55 +1,64 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DC1211A6828;
-	Tue, 21 Apr 2026 14:33:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1611E3806D9;
+	Wed, 22 Apr 2026 02:33:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776781980; cv=none; b=N+KMOoS14XrALwRj+0ek6b5ZQK+rAQhScjz3EQU0HX/2LunS9G72cTWqnzCLTa+gcfES/EmfV25gu1a7Gvm9ao3F8P14YxCVOkEx8h62g9GPW/xQPVbmngjrslEcuDuT96ElaB2VQnmRuVBlpFZT0cQVacHwF5vhvZmsEOFGivY=
+	t=1776825220; cv=none; b=DGZkrvtIaGmjlszn2lj7/2Lu1Tdy9YqvUSynddtmQG+OeAABssPDya2OrSizXRnAupLBoY1kv/T5bBSZ2CwciEfENk0sP/Jjp7GkMOb4OUtRc9SQKw/2oVO7CISDnFUFuqXHdK8O8u/YmaTQs90wV20tcV05AbVUoP/q3Q50p8w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776781980; c=relaxed/simple;
-	bh=q+/OSwNFmzUerRAiQV6WWVBVlt7S/h6k3KfMcobnMnY=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=abvB8wd1ZTUjHGt2TtZ8j0eumXIZQpsyTrUT8sutzSDm2mWPDFwBHfV9sSI6fiHUJGak6C43RVAtfgL2DkbA3CDjgjTuXIThWODNf3Yt4WsNtNO2+adbZ4fmP3kM49FameEB7stmkeJOJMWZgzh404yModMbuIJlFWtJYI954zk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=us9GcUqi; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1776825220; c=relaxed/simple;
+	bh=GmhkLwfa6h6rSszM+OfJhO9L6pKs23/XT/lrbTGZNX8=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=suHVzafvR38GbiJzykcBt+vLW/QJifciO2fdeAFN+Jg/D6mKPKeQncb8vRZqV2/hRkpfsarvbE1Rwa5PqPMk2eXSA+N9lt8gpxK+qzgzKBxbPqPW+HbBNuSLYFcf5rYoumBiHA61rq4S+8a5KAiG9bwKGkGJxqXRrhUwFt8+Uaw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=lUQ+NBFU; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="us9GcUqi"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A8F22C2BCB0;
-	Tue, 21 Apr 2026 14:32:55 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1776781980;
-	bh=q+/OSwNFmzUerRAiQV6WWVBVlt7S/h6k3KfMcobnMnY=;
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="lUQ+NBFU"
+Received: from mrdev.corp.microsoft.com (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
+	by linux.microsoft.com (Postfix) with ESMTPSA id AB52020B6F01;
+	Tue, 21 Apr 2026 19:33:28 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com AB52020B6F01
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1776825209;
+	bh=O+mpjpLBLfXxNngTSPHR4JXlp5P2eN9Wrs/JOmLiTYs=;
 	h=From:To:Cc:Subject:Date:From;
-	b=us9GcUqiGIax1QEAar9SHbhfPAR/IYayiHUwzBiTI8FaaNkxq0vzFhL7DkJrwFR5D
-	 VSA7l9OQfncs5P5nv63F0AecP2feLlsGlEqSIji9eUBqbVH4xyWJFrzj+IQBEOfwrp
-	 ncyKtXpnQSP/sn+a0KqzxUWhPSOJC5xPJAJS0jjwzFzX9v1/I/jX94HQ20zqGJOKbS
-	 6xZgIXggRcqrmRsgkQwZPUHSzEEPl53JpAbG1TDqjGDrdCoZ6YgIa7A+z+XcF6syQ4
-	 7Cc1oiSHGbLExNGSwMDw985px6pl2P/ZPZu2DSkWtNdnT42n7LXvyFkNTjGRXZiu9L
-	 MlXU8aFali59w==
-From: guoren@kernel.org
-To: Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>,
-	Alexandre Ghiti <alex@ghiti.fr>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Chen Wang <unicorn_wang@outlook.com>,
-	Inochi Amaoto <inochiama@gmail.com>,
-	Leonardo Bras <leobras@redhat.com>,
-	"Guo Ren (Alibaba DAMO Academy)" <guoren@kernel.org>,
-	Raj Vishwanathan4 <rvishwanathan@mips.com>,
-	Djordje Todorovic <djordje.todorovic@htecgroup.com>
-Cc: Alexandre Ghiti <alexghiti@rivosinc.com>,
-	Han Gao <gaohan@iscas.ac.cn>,
-	Yao Zi <me@ziyao.cc>,
-	Xiaoguang Xing <xiaoguang.xing@sophgo.com>,
-	Aleksandar Rikalo <arikalo@gmail.com>,
-	linux-riscv@lists.infradead.org,
+	b=lUQ+NBFUMYhMiCKp5hJ4csDmWh7uDXFoFxm83NvWZ/IwJ9a5RxenB0Yd0zUaoi1pw
+	 3yv9M2bPsfObV813+Lm1OuK3i4jcBXSJHx2cUn1pSWMy43jtuQH42gb29McJePj3lT
+	 Ej8Q0Cx2NZEoOqbrcfAhwc/jLbsHBVnf65GmjuN0=
+From: Mukesh R <mrathor@linux.microsoft.com>
+To: hpa@zytor.com,
+	robin.murphy@arm.com,
+	robh@kernel.org,
+	wei.liu@kernel.org,
+	mrathor@linux.microsoft.com,
+	mhklinux@outlook.com,
+	muislam@microsoft.com,
+	namjain@linux.microsoft.com,
+	magnuskulke@linux.microsoft.com,
+	anbelski@linux.microsoft.com,
 	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	sophgo@lists.linux.dev
-Subject: [PATCH V5] riscv: errata: Add ERRATA_THEAD_WRITE_ONCE fixup
-Date: Tue, 21 Apr 2026 10:31:40 -0400
-Message-Id: <20260421143154.1590156-1-guoren@kernel.org>
-X-Mailer: git-send-email 2.40.1
+	linux-hyperv@vger.kernel.org,
+	iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Cc: kys@microsoft.com,
+	haiyangz@microsoft.com,
+	decui@microsoft.com,
+	longli@microsoft.com,
+	tglx@kernel.org,
+	mingo@redhat.com,
+	bp@alien8.de,
+	dave.hansen@linux.intel.com,
+	x86@kernel.org,
+	joro@8bytes.org,
+	will@kernel.org,
+	lpieralisi@kernel.org,
+	kwilczynski@kernel.org,
+	bhelgaas@google.com,
+	arnd@arndb.de
+Subject: [PATCH V1 00/13] PCI passthru on Hyper-V (Part I)
+Date: Tue, 21 Apr 2026 19:32:26 -0700
+Message-ID: <20260422023239.1171963-1-mrathor@linux.microsoft.com>
+X-Mailer: git-send-email 2.51.2.vfs.0.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -58,210 +67,104 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-From: "Guo Ren (Alibaba DAMO Academy)" <guoren@kernel.org>
+Implement passthru of PCI devices to unprivileged virtual machines
+(VMs) when Linux is running as a privileged VM on Microsoft Hyper-V
+hypervisor. This support is made to fit within the workings of VFIO
+framework, and any VMM needing to use it must use the VFIO subsystem.
+This supports both full device passthru and SR-IOV based VFs.
 
-The early version of XuanTie C910 core has a store merge buffer
-delay problem. The store merge buffer could improve the store queue
-performance by merging multi-store requests, but when there are not
-continued store requests, the prior single store request would be
-waiting in the store queue for a long time. That would cause
-significant problems for communication between multi-cores. This
-problem was found on sg2042 & th1520 platforms with the qspinlock
-lock torture test.
+At a high level, the hypervisor supports traditional mapped iommu domains
+that use explicit map and unmap hypercalls for mapping and unmapping guest
+RAM into the iommu subsystem. Hyper-V also has a concept of direct attach
+devices whereby the iommu subsystem simply uses the guest HW page table
+(ept/npt/..). This series adds support for both, and both are made to
+work with the VFIO subsystem.
 
-So appending a fence w.o could immediately flush the store merge
-buffer and let other cores see the write result.
+While this Part I focuses on memory mappings, upcoming Part II
+will focus on irq bypass along with some minor irq remapping 
+updates.
 
-This will apply the WRITE_ONCE errata to handle the non-standard
-behavior via appending a fence w.o instruction for WRITE_ONCE().
+Based on: cd9f2e7d6e5b (origin/hyperv-next)
 
-This problem is only observed on the sg2042 hardware platform by
-running the lock_torture test program for half an hour. The problem
-was not found in the user space application, because interrupt can
-break the livelock.
+Testing:
+ o Most testing done on hyperv-next:e733a9e28180 using Cloud Hypervisor (51).
+ o Limited testing on : cd9f2e7d6e5b
+ o Tested with impending Part II irq patches.
+ o All tests involved PF passthru of devices using MSIx.
+ o Following combinations were tested:
+    - L1VH(1): test 1: Mellanox ConnectX-6 Lx passthru
+               test 2: NVIDIA Tesla Tesla T4 GPU.
+               test 3: Both of above simultaneous passthru
+    - Baremetal dom0/root: All of above.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
-Reviewed-by: Leonardo Bras <leobras@redhat.com>
-Reviewed-by: Inochi Amaoto <inochiama@gmail.com>
-Tested-by: Han Gao <gaohan@iscas.ac.cn>
-Tested-by: Yao Zi <me@ziyao.cc>
-Cc: Chen Wang <unicorn_wang@outlook.com>
-Cc: Xiaoguang Xing <xiaoguang.xing@sophgo.com>
-Cc: Paul Walmsley <pjw@kernel.org>
-Signed-off-by: Guo Ren (Alibaba DAMO Academy) <guoren@kernel.org>
----
-Changelog
+(1) L1VH: this is a semi privileged VM that runs on Windows root on
+          Hyper-V, and allows users to create more child VMs.
 
-v5:
- - Add Acked-by: Arnd Bergmann <arnd@arndb.de> for asm/generic
- - Add Reviewed-by: Inochi Amaoto <inochiama@gmail.com>
- - Rebase on v7.0
+Pending: This to establish a baseline for further enhancements.
+ o arm64 : some delta to make this work on arm64 (in progress).
+ o device sleep/wakeup.
+ o More stress testing 
+ o CH reports it could not unbind vfio group upon guest shutdown. Need 
+   to reboot for now.
+ o Qemu support (in progress).
 
-v4:
-https://lore.kernel.org/linux-riscv/20260412143116.1445893-1-guoren@kernel.org/
- - Add Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
-   (https://lore.kernel.org/linux-riscv/1cfdf6c1-a384-43ad-9588-284335d073f7@ghiti.fr/)
- - Add Tested-by: Yao Zi <me@ziyao.cc>
- - Rebase on v7.0-rc7
+Changes in V1:
+ o patch 1: Don't tie hyperv-irq.c to CONFIG_HYPERV_IOMMU.
+ o patch 4: Redesigned to address security vulnerability found by copilot 
+            with passing tgid as a parameter.  Also, do tgid setting right 
+            after setting pt_id.
+ o patch 5: Remove unused type parameter from mshv_device_ops.device_create
+ o patch 7: mshv_partition_ioctl_create_device cleanup on copy_to_user.
+ o patch 10: Add export of hv_build_devid_type_pci here to get rid of 
+             patch 11.
+ o patch 12: Move functions to build device ids from patch 11 here for
+             the benefit of arm64. Rename file to: hyperv-iommu-root.c.
+ o patch 13: removed to be made part of interrupt part II of this support.
+ o patch 14: get rid of fast path to reduce review noise.
+ o New (last) patch to pin ram regions if device passthru to a VM.
 
-v3:
-https://lore.kernel.org/linux-riscv/20260125063941.443777-1-guoren@kernel.org/
- - Rebase on 6.19-rc6.
- - Remove errata_list_vendors patch which has been merged.
- - Add Tested-by tag.
+Thanks,
+-Mukesh
 
-v2:
-https://lore.kernel.org/linux-riscv/20250713155321.2064856-1-guoren@kernel.org/
- - Add new header file for errata_list_vendors.
- - Rebase newest kernel version.
+Mukesh R (13):
+  iommu/hyperv: rename hyperv-iommu.c to hyperv-irq.c
+  x86/hyperv: cosmetic changes in irqdomain.c for readability
+  x86/hyperv: add insufficient memory support in irqdomain.c
+  mshv: Provide a way to get partition id if running in a VMM process
+  mshv: Declarations and definitions for VFIO-MSHV bridge device
+  mshv: Implement mshv bridge device for VFIO
+  mshv: Add ioctl support for MSHV-VFIO bridge device
+  PCI: hv: rename hv_compose_msi_msg to hv_vmbus_compose_msi_msg
+  mshv: Import data structs around device passthru from hyperv headers
+  PCI: hv: Build device id for a VMBus device, export PCI devid function
+  x86/hyperv: Implement hyperv virtual iommu
+  mshv: Populate mmio mappings for PCI passthru
+  mshv: pin all ram mem regions if partition has device passthru
 
-v1:
-https://lore.kernel.org/all/20241214143039.4139398-1-guoren@kernel.org/
----
- arch/riscv/Kconfig.errata                    | 17 ++++++++++
- arch/riscv/errata/thead/errata.c             | 20 ++++++++++++
- arch/riscv/include/asm/errata_list_vendors.h |  3 +-
- arch/riscv/include/asm/rwonce.h              | 34 ++++++++++++++++++++
- include/asm-generic/rwonce.h                 |  2 ++
- 5 files changed, 75 insertions(+), 1 deletion(-)
- create mode 100644 arch/riscv/include/asm/rwonce.h
+ MAINTAINERS                                   |   3 +-
+ arch/x86/hyperv/irqdomain.c                   | 229 +++--
+ arch/x86/include/asm/mshyperv.h               |   4 +
+ arch/x86/kernel/pci-dma.c                     |   2 +
+ drivers/hv/Makefile                           |   3 +-
+ drivers/hv/mshv_root.h                        |  26 +
+ drivers/hv/mshv_root_main.c                   | 256 ++++-
+ drivers/hv/mshv_vfio.c                        | 211 ++++
+ drivers/iommu/Kconfig                         |   5 +-
+ drivers/iommu/Makefile                        |   3 +-
+ drivers/iommu/hyperv-iommu-root.c             | 899 ++++++++++++++++++
+ .../iommu/{hyperv-iommu.c => hyperv-irq.c}    |   2 +-
+ drivers/iommu/irq_remapping.c                 |   2 +-
+ drivers/pci/controller/pci-hyperv.c           | 120 ++-
+ include/asm-generic/mshyperv.h                |  34 +
+ include/hyperv/hvgdk_mini.h                   |  11 +
+ include/hyperv/hvhdk_mini.h                   | 112 +++
+ include/linux/hyperv.h                        |   6 +
+ include/uapi/linux/mshv.h                     |  31 +
+ 19 files changed, 1790 insertions(+), 169 deletions(-)
+ create mode 100644 drivers/hv/mshv_vfio.c
+ create mode 100644 drivers/iommu/hyperv-iommu-root.c
+ rename drivers/iommu/{hyperv-iommu.c => hyperv-irq.c} (99%)
 
-diff --git a/arch/riscv/Kconfig.errata b/arch/riscv/Kconfig.errata
-index 3c945d086c7d..4d3f13522da6 100644
---- a/arch/riscv/Kconfig.errata
-+++ b/arch/riscv/Kconfig.errata
-@@ -154,4 +154,21 @@ config ERRATA_THEAD_GHOSTWRITE
- 
- 	  If you don't know what to do here, say "Y".
- 
-+config ERRATA_THEAD_WRITE_ONCE
-+	bool "Apply T-Head WRITE_ONCE errata"
-+	depends on ERRATA_THEAD
-+	default y
-+	help
-+	  The early version of T-Head C9xx cores of sg2042 & th1520 have a store
-+	  merge buffer delay problem. The store merge buffer could improve the
-+	  store queue performance by merging multi-store requests, but when there
-+	  are no continued store requests, the prior single store request would be
-+	  waiting in the store queue for a long time. That would cause signifi-
-+	  cant problems for communication between multi-cores. Appending a
-+	  fence w.o could immediately flush the store merge buffer and let other
-+	  cores see the write result.
-+
-+	  This will apply the WRITE_ONCE errata to handle the non-standard beh-
-+	  avior via appending a fence w.o instruction for WRITE_ONCE().
-+
- endmenu # "CPU errata selection"
-diff --git a/arch/riscv/errata/thead/errata.c b/arch/riscv/errata/thead/errata.c
-index 0b942183f708..fbe46f2fa8fb 100644
---- a/arch/riscv/errata/thead/errata.c
-+++ b/arch/riscv/errata/thead/errata.c
-@@ -168,6 +168,23 @@ static bool errata_probe_ghostwrite(unsigned int stage,
- 	return true;
- }
- 
-+static bool errata_probe_write_once(unsigned int stage,
-+				    unsigned long arch_id, unsigned long impid)
-+{
-+	if (!IS_ENABLED(CONFIG_ERRATA_THEAD_WRITE_ONCE))
-+		return false;
-+
-+	/* target-c9xx cores report arch_id and impid as 0 */
-+	if (arch_id != 0 || impid != 0)
-+		return false;
-+
-+	if (stage == RISCV_ALTERNATIVES_BOOT ||
-+	    stage == RISCV_ALTERNATIVES_MODULE)
-+		return true;
-+
-+	return false;
-+}
-+
- static u32 thead_errata_probe(unsigned int stage,
- 			      unsigned long archid, unsigned long impid)
- {
-@@ -183,6 +200,9 @@ static u32 thead_errata_probe(unsigned int stage,
- 
- 	errata_probe_ghostwrite(stage, archid, impid);
- 
-+	if (errata_probe_write_once(stage, archid, impid))
-+		cpu_req_errata |= BIT(ERRATA_THEAD_WRITE_ONCE);
-+
- 	return cpu_req_errata;
- }
- 
-diff --git a/arch/riscv/include/asm/errata_list_vendors.h b/arch/riscv/include/asm/errata_list_vendors.h
-index ec7eba373437..8fd7c36307e2 100644
---- a/arch/riscv/include/asm/errata_list_vendors.h
-+++ b/arch/riscv/include/asm/errata_list_vendors.h
-@@ -18,7 +18,8 @@
- #define	ERRATA_THEAD_MAE 0
- #define	ERRATA_THEAD_PMU 1
- #define	ERRATA_THEAD_GHOSTWRITE 2
--#define	ERRATA_THEAD_NUMBER 3
-+#define	ERRATA_THEAD_WRITE_ONCE 3
-+#define	ERRATA_THEAD_NUMBER 4
- #endif
- 
- #ifdef CONFIG_ERRATA_MIPS
-diff --git a/arch/riscv/include/asm/rwonce.h b/arch/riscv/include/asm/rwonce.h
-new file mode 100644
-index 000000000000..081793d4d772
---- /dev/null
-+++ b/arch/riscv/include/asm/rwonce.h
-@@ -0,0 +1,34 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef __ASM_RWONCE_H
-+#define __ASM_RWONCE_H
-+
-+#include <linux/compiler_types.h>
-+#include <asm/alternative-macros.h>
-+#include <asm/vendorid_list.h>
-+#include <asm/errata_list_vendors.h>
-+
-+#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE)
-+
-+#define write_once_fence()				\
-+do {							\
-+	asm volatile(ALTERNATIVE(			\
-+		"nop",					\
-+		"fence w, o",				\
-+		THEAD_VENDOR_ID,			\
-+		ERRATA_THEAD_WRITE_ONCE,		\
-+		CONFIG_ERRATA_THEAD_WRITE_ONCE)		\
-+		: : : "memory");			\
-+} while (0)
-+
-+#define __WRITE_ONCE(x, val)				\
-+do {							\
-+	*(volatile typeof(x) *)&(x) = (val);		\
-+	write_once_fence();				\
-+} while (0)
-+
-+#endif /* defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE) */
-+
-+#include <asm-generic/rwonce.h>
-+
-+#endif	/* __ASM_RWONCE_H */
-diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.h
-index 52b969c7cef9..4e2d941f15a1 100644
---- a/include/asm-generic/rwonce.h
-+++ b/include/asm-generic/rwonce.h
-@@ -50,10 +50,12 @@
- 	__READ_ONCE(x);							\
- })
- 
-+#ifndef __WRITE_ONCE
- #define __WRITE_ONCE(x, val)						\
- do {									\
- 	*(volatile typeof(x) *)&(x) = (val);				\
- } while (0)
-+#endif
- 
- #define WRITE_ONCE(x, val)						\
- do {									\
 -- 
-2.40.1
+2.51.2.vfs.0.1
 
