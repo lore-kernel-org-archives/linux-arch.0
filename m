@@ -1,33 +1,33 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id BC5E53EDAA5;
-	Wed, 22 Apr 2026 14:38:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E1CE6362136;
+	Wed, 22 Apr 2026 15:59:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776868736; cv=none; b=WyFvAs/TP1SlCmZaZ04/spmki0bHgjXCTOBjSaRd3AmzK0cqRFX19nSr5u5cHzv4KM8NIFf656BCJX8XIFmz+64AyPK/hawO4Vhu8whU/oSTLaWTBlQb5m9lhiY6OxOVSA5tdpkYolRGZ0b3HJP2mkF0R34nsMaT+1LcKSp6CII=
+	t=1776873577; cv=none; b=UbZD9fro8d1AUCYsXToYROxhZlibI1m9fjZqlP3/k9sTkASRQrM+HJEdmrf5FuGWRKfXyd68Od+GC3d++maE2gh0l2DP2WV08J6g11/vtpavNdeD+3uCGvc/P7N8GlS93Fwvl/AT0zpZ2lnMv+nz/JbT0lUoifu4eCwIADgAzlg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776868736; c=relaxed/simple;
-	bh=Xrgkm+0kXePlk4LD7snBzLT1KSb19JMomxWo9tugXj8=;
+	s=arc-20240116; t=1776873577; c=relaxed/simple;
+	bh=OpFRKXrxgQlrZERfkfExOUVodahlrbJOmwNQU1isD94=;
 	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=oEViHrAmThs1+mAFmBe5MzmRivTJU61BRAXNdaGUVdA4FTY6dzl6ufBcu7gl3zXicL4P87wHwpT7cwEicx1L7XFUdvVT4dPXHKb2muYeVN5i/Ska5dbyWsi6wTLmnV9dQ642mYvbfA23QNJlUDeuVrgyIftNKUNzuQiRXzJLRXw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=W08n2B3Y; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	 In-Reply-To:Content-Type; b=P69GfmKHsu/JtR3pEw+Bqm2iSfkD8hzcZJ++uaUknbDYfIKEBF4e54cH7CavCNMLunQIorew15W4ylgNF0I7PDjL2+EfHCPsA/+c2W1RPJa2WdfawhXJDdiML+LjUWNbXjTvjL5tTsss5TcT9xxmqN86hwNYsVUGDpBublG/Cvk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=KapIo0YA; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="W08n2B3Y"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 173DF1E8D;
-	Wed, 22 Apr 2026 07:38:48 -0700 (PDT)
-Received: from [10.57.89.34] (unknown [10.57.89.34])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 904E93FAA1;
-	Wed, 22 Apr 2026 07:38:49 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1776868733; bh=Xrgkm+0kXePlk4LD7snBzLT1KSb19JMomxWo9tugXj8=;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="KapIo0YA"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5D33EC19425;
+	Wed, 22 Apr 2026 15:59:28 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1776873576;
+	bh=OpFRKXrxgQlrZERfkfExOUVodahlrbJOmwNQU1isD94=;
 	h=Date:Subject:To:References:From:In-Reply-To:From;
-	b=W08n2B3YtUPquAxkxgpBOQgH5VzHwppyE3On+NLo3MUHthAWqV1lcdHjKIpPCJ3cA
-	 5vxvmBluQsszoElgXA6YnvTy4A7KCnVDa6fSUubOJDf1EFAQC0pRaNoEPHNH2tPE8s
-	 rGgnCwPEq+dJkBpjYw8jJEpsNkx3aEoyHfqhZJx4=
-Message-ID: <25c78859-f514-47ac-a3b9-7dcde101f72d@arm.com>
-Date: Wed, 22 Apr 2026 15:38:48 +0100
+	b=KapIo0YAcAMpnp2MKCde9yoK3xnYdqKi3lVt2oIAIt8JtUqshiYKIsYQFQypD7BQc
+	 2vogDF8mwvrdFUmzck9o6c5uynUdw3gVSN1iX9aTcOkWxI0JUenwlFbM2d8oU8TMru
+	 vqYfk8YMDliC380Jm/uA2LEhpSe7F+aBaRMbBcUGKj2VyA10LUEb08k+P5gRaEnMV/
+	 YDepZuQJJZYX5I9WRcfaoM1ZeBSjgsUYEmeev/BnBD1sdQb8rahx2vhgveeITBio3l
+	 RTW20Tq/3lim2Z3uruxmgZtIr/DiyDl3CReQlSaTvLG9fMP70q0J/vPtHg/b4tWZZA
+	 AAfboUjW5zH9w==
+Message-ID: <5903bf12-82fd-454b-925a-819e43c5cd28@kernel.org>
+Date: Wed, 22 Apr 2026 17:59:25 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -36,240 +36,100 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH v2 1/3] vmalloc: add __GFP_SKIP_KASAN support
-Content-Language: en-GB
-To: Dev Jain <dev.jain@arm.com>, Muhammad Usama Anjum <usama.anjum@arm.com>,
- Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>,
- Peter Zijlstra <peterz@infradead.org>, Juri Lelli <juri.lelli@redhat.com>,
+To: Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
+ Muhammad Usama Anjum <usama.anjum@arm.com>, Arnd Bergmann <arnd@arndb.de>,
+ Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>,
+ Juri Lelli <juri.lelli@redhat.com>,
  Vincent Guittot <vincent.guittot@linaro.org>,
  Dietmar Eggemann <dietmar.eggemann@arm.com>,
  Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>,
  Mel Gorman <mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>,
  Kees Cook <kees@kernel.org>, Andrew Morton <akpm@linux-foundation.org>,
- David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
- "Liam R. Howlett" <Liam.Howlett@oracle.com>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- Uladzislau Rezki <urezki@gmail.com>, linux-arch@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-mm@kvack.org,
- Andrey Konovalov <andreyknvl@gmail.com>, Marco Elver <elver@google.com>,
- Vincenzo Frascino <vincenzo.frascino@arm.com>,
- Peter Collingbourne <pcc@google.com>,
+ Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett"
+ <Liam.Howlett@oracle.com>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Uladzislau Rezki <urezki@gmail.com>,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org, Andrey Konovalov <andreyknvl@gmail.com>,
+ Marco Elver <elver@google.com>, Vincenzo Frascino
+ <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>,
  Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
  david.hildenbrand@arm.com
 References: <20260324132631.482520-1-usama.anjum@arm.com>
  <20260324132631.482520-2-usama.anjum@arm.com>
  <727df89e-2069-4a7d-b3c0-88f89cd3dcf8@arm.com>
  <e772bbfc-1f77-478e-b378-7947ca7a8b3f@arm.com>
-From: Ryan Roberts <ryan.roberts@arm.com>
-In-Reply-To: <e772bbfc-1f77-478e-b378-7947ca7a8b3f@arm.com>
+ <25c78859-f514-47ac-a3b9-7dcde101f72d@arm.com>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <25c78859-f514-47ac-a3b9-7dcde101f72d@arm.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 
-On 22/04/2026 15:23, Dev Jain wrote:
+>> I think we are doing patch 1 because of patch 2 - so in patch 2, perhaps
+>> instead of calling __vmalloc_node we can call __vmalloc_node_range_noprof and
+>> shift this "skip vmalloc unpoisoning" functionality into vmalloc flags instead?
 > 
+> This is exactly how Usama was doing it in v1. I suggested we should just reuse
+> the existing flag since it already provides the semantic we want and is less
+> confusing than introducing a new flag.
 > 
-> On 22/04/26 6:51 pm, Ryan Roberts wrote:
->> On 24/03/2026 13:26, Muhammad Usama Anjum wrote:
->>> For allocations that will be accessed only with match-all pointers
->>> (e.g., kernel stacks), setting tags is wasted work. If the caller
->>> already set __GFP_SKIP_KASAN, don’t skip zeroing the pages and
->>> don’t set KASAN_VMALLOC_PROT_NORMAL so kasan_unpoison_vmalloc()
->>> returns early without tagging.
->>>
->>> Before this patch, __GFP_SKIP_KASAN wasn't being used with vmalloc
->>> APIs. So it wasn't being checked. Now its being checked and acted
->>> upon. Other KASAN modes are unchanged because __GFP_SKIP_KASAN isn't
->>> defined there.
->>>
->>> This is a preparatory patch for optimizing kernel stack allocations.
->>>
->>> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
->>> ---
->>> Changes since v1:
->>> - Simplify skip conditions based on the fact that __GFP_SKIP_KASAN
->>>   is zero in non-hw-tags mode.
->>> - Add __GFP_SKIP_KASAN to GFP_VMALLOC_SUPPORTED list of flags
->>> ---
->>>  mm/vmalloc.c | 11 ++++++++---
->>>  1 file changed, 8 insertions(+), 3 deletions(-)
->>>
->>> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
->>> index c607307c657a6..69ae205effb46 100644
->>> --- a/mm/vmalloc.c
->>> +++ b/mm/vmalloc.c
->>> @@ -3939,7 +3939,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
->>>  				__GFP_NOFAIL | __GFP_ZERO |\
->>>  				__GFP_NORETRY | __GFP_RETRY_MAYFAIL |\
->>>  				GFP_NOFS | GFP_NOIO | GFP_KERNEL_ACCOUNT |\
->>> -				GFP_USER | __GFP_NOLOCKDEP)
->>> +				GFP_USER | __GFP_NOLOCKDEP | __GFP_SKIP_KASAN)
->>>  
->>>  static gfp_t vmalloc_fix_flags(gfp_t flags)
->>>  {
->>> @@ -3980,6 +3980,8 @@ static gfp_t vmalloc_fix_flags(gfp_t flags)
->>>   *
->>>   * %__GFP_NOWARN can be used to suppress failure messages.
->>>   *
->>> + * %__GFP_SKIP_KASAN can be used to skip poisoning
->>
->> You mean skip *un*poisoning, I think? But you would only want this to apply to
->> the actaul pages mapped by vmalloc. You wouldn't want to skip unpoisoning for
->> any allocated meta data; I think that is currently possible since the gfp_flags
->> that are passed into __vmalloc_node_range_noprof() are passed down to
->> __get_vm_area_node() unmdified. You probably want to explicitly ensure
->> __GFP_SKIP_KASAN is clear for that internal call?
->>
->>> + *
->>>   * Can not be called from interrupt nor NMI contexts.
->>>   * Return: the address of the area or %NULL on failure
->>>   */
->>> @@ -4041,7 +4043,9 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
->>>  	 * kasan_unpoison_vmalloc().
->>>  	 */
->>>  	if (pgprot_val(prot) == pgprot_val(PAGE_KERNEL)) {
->>> -		if (kasan_hw_tags_enabled()) {
->>> +		bool skip_kasan = gfp_mask & __GFP_SKIP_KASAN;
->>> +
->>> +		if (kasan_hw_tags_enabled() && !skip_kasan) {
->>>  			/*
->>>  			 * Modify protection bits to allow tagging.
->>>  			 * This must be done before mapping.
->>> @@ -4057,7 +4061,8 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
->>>  		}
->>>  
->>>  		/* Take note that the mapping is PAGE_KERNEL. */
->>> -		kasan_flags |= KASAN_VMALLOC_PROT_NORMAL;
->>> +		if (!skip_kasan)
->>> +			kasan_flags |= KASAN_VMALLOC_PROT_NORMAL;
->>
->> It's pretty ugly to use the absence of this flag to rely on
->> kasan_unpoison_vmalloc() not unpoisoning. Perhaps it is preferable to just not
->> call kasan_unpoison_vmalloc() for the skip_kasan case?
->>
->>>  	}
->>>  
->>>  	/* Allocate physical pages and map them into vmalloc space. */
->>
->> Perhaps something like this would work:
->>
->> ---8<---
->> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
->> index c31a8615a8328..c340db141df57 100644
->> --- a/mm/vmalloc.c
->> +++ b/mm/vmalloc.c
->> @@ -3979,6 +3979,8 @@ static gfp_t vmalloc_fix_flags(gfp_t flags)
->>   * under moderate memory pressure.
->>   *
->>   * %__GFP_NOWARN can be used to suppress failure messages.
->> +
->> + * %__GFP_SKIP_KASAN skip unpoisoning of mapped pages (when prot=PAGE_KERNEL).
->>   *
->>   * Can not be called from interrupt nor NMI contexts.
->>   * Return: the address of the area or %NULL on failure
->> @@ -3993,6 +3995,9 @@ void *__vmalloc_node_range_noprof(unsigned long size,
->> unsigned long align,
->>  	kasan_vmalloc_flags_t kasan_flags = KASAN_VMALLOC_NONE;
->>  	unsigned long original_align = align;
->>  	unsigned int shift = PAGE_SHIFT;
->> +	bool skip_kasan = gfp_mask & __GFP_SKIP_KASAN;
->> +
->> +	gfp_mask &= ~__GFP_SKIP_KASAN;
-> 
-> Okay so this is so that metadata allocation can keep using normal
-> page allocator side unpoisoning.
+> I know David is keen to do a wider rework and remove/rename/change the semantics
+> of __GFP_SKIP_KASAN, but I'm hoping that if we just continue to use the existing
+> flag and its semantics for vmalloc then there is no reason why this series can't
+> be merged independently of that wider rework.
 
-Yes.
+Independent of how the flag will be called, I think it will have the same
+semantics. How we'll implement that internally is a different question.
 
-> 
->>   	if (WARN_ON_ONCE(!size))
->>  		return NULL;
->> @@ -4041,7 +4046,7 @@ void *__vmalloc_node_range_noprof(unsigned long size,
->> unsigned long align,
->>  	 * kasan_unpoison_vmalloc().
->>  	 */
->>  	if (pgprot_val(prot) == pgprot_val(PAGE_KERNEL)) {
->> -		if (kasan_hw_tags_enabled()) {
->> +		if (kasan_hw_tags_enabled() && !skip_kasan) {
-> 
-> Why do we want to elide GFP_SKIP_ZERO (set below) in this case?
+So I agree that adding __GFP_SKIP_KASAN support here is the right approach for
+the time being.
 
-You mean why do we want to skip initializing the allocated memory to zero for
-the case where kasan HW_TAGS is enabled and we are not skipping kasan unpoisoning?
+-- 
+Cheers,
 
-Because setting tags at the same time as zeroing the memory is less expensive
-than doing them both as separate operations. So we tell page_alloc not to bother
-zeroing the memory and kasan_unpoison_vmalloc() does it at the same time as
-setting the tags instead. See kasan_unpoison() which ultimately calls
-mte_set_mem_tag_range().
-
-> 
->>  			/*
->>  			 * Modify protection bits to allow tagging.
->>  			 * This must be done before mapping.
->> @@ -4054,6 +4059,12 @@ void *__vmalloc_node_range_noprof(unsigned long size,
->> unsigned long align,
->>  			 * poisoned and zeroed by kasan_unpoison_vmalloc().
->>  			 */
->>  			gfp_mask |= __GFP_SKIP_KASAN | __GFP_SKIP_ZERO;
->> +		} else if (skip_kasan) {
->> +			/*
->> +			 * Skip page_alloc unpoisoning physical pages backing
->> +			 * VM_ALLOC mapping, as requested by caller.
->> +			 */
->> +			gfp_mask |= __GFP_SKIP_KASAN;
->>  		}
->>   		/* Take note that the mapping is PAGE_KERNEL. */
->> @@ -4078,7 +4089,8 @@ void *__vmalloc_node_range_noprof(unsigned long size,
->> unsigned long align,
->>  	    (gfp_mask & __GFP_SKIP_ZERO))
->>  		kasan_flags |= KASAN_VMALLOC_INIT;
->>  	/* KASAN_VMALLOC_PROT_NORMAL already set if required. */
->> -	area->addr = kasan_unpoison_vmalloc(area->addr, size, kasan_flags);
->> +	if (!skip_kasan)
->> +		area->addr = kasan_unpoison_vmalloc(area->addr, size, kasan_flags);
-> 
-> I really think we should do some decoupling here - GFP_SKIP_KASAN means,
-> "skip KASAN when going through page allocator". > Now we reuse this flag
-> to skip vmalloc unpoisoning.
-> 
-> Some code path using GFP_SKIP_KASAN (which is highly likely given that
-> GFP_HIGHUSER_MOVABLE has this) and also using vmalloc() will unintentionally
-> also skip vmalloc unpoisoning.
-
-If a caller wants to vmalloc() memory with GFP_HIGHUSER_MOVABLE (which seems
-HIGHLY suspect to me) then surely leaving the memory poisoned is *exactly* what
-they expect?
-
-> 
-> I think we are doing patch 1 because of patch 2 - so in patch 2, perhaps
-> instead of calling __vmalloc_node we can call __vmalloc_node_range_noprof and
-> shift this "skip vmalloc unpoisoning" functionality into vmalloc flags instead?
-
-This is exactly how Usama was doing it in v1. I suggested we should just reuse
-the existing flag since it already provides the semantic we want and is less
-confusing than introducing a new flag.
-
-I know David is keen to do a wider rework and remove/rename/change the semantics
-of __GFP_SKIP_KASAN, but I'm hoping that if we just continue to use the existing
-flag and its semantics for vmalloc then there is no reason why this series can't
-be merged independently of that wider rework.
-
-Thanks,
-Ryan
-
-
-> Perhaps this won't work for the nommu case (__vmalloc_node has two definitions),
-> just a line of thought.
-> 
-> 
->>   	/*
->>  	 * In this function, newly allocated vm_struct has VM_UNINITIALIZED
->>
->> ---8<---
->>
->> Thanks,
->> Ryan
->>
->>
-> 
-
+David
