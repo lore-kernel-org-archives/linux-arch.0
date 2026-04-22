@@ -1,30 +1,30 @@
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 59BA7382F28;
-	Wed, 22 Apr 2026 02:33:45 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 7F6F438737F;
+	Wed, 22 Apr 2026 02:33:52 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776825238; cv=none; b=CH3KS8gmXPPRB9m6XYJksBcEuggtP1YZ2G6ffjjyuPZPcPKCw3OFMUaGKK8EGJ5j2cFkjvRY/emPqGB21NOu+NQwXJ9o6osJJd0zNALps4m0t5in4isyKl2MSakb6OaddNQQFae0a9i9aDn2X0L8sLNvQTJ4C1+7zX3Y5Y8pqcg=
+	t=1776825244; cv=none; b=bdlkaatiBgs1X0SuKsjs6nJO4S3d5Ke7ky8iWs/PCR7y/im9AktI7ATXgKEPdgniGvgC07v0uXupIbzmdBSiR59TuPS0tFphwmcoM7x+xUpriw9QlW2z+MYbYl7dTcOaHHLdFvN3+p6EuZhBCXSuOFbIGw0toucFi3pJUDHsfEM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776825238; c=relaxed/simple;
-	bh=jYrebEGyLACqbZL/w3y9a7O0xWgw6FHchfvbYBMKEM0=;
+	s=arc-20240116; t=1776825244; c=relaxed/simple;
+	bh=3p+UYzYAVK6Oc1T3Ui1NuwCE4yM8MDdRlrXl61kkDDE=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=eRc/AUM1OY/zrRDaaTIkMHvLUV8piHXbpsJdlLiYBguWKJqxuG3TGFqsq1wxmq6GXDVY6FYCux3a7FXPS0fIrqo1YEfP/j/2Gj7QlIELF8mcooRiI3IzjVnhuPpUEyGzAtv5NEvfvoN7kJyJtUqFpGvaAoIkypaeJcVkVmQ90MU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=GgLzpdJZ; arc=none smtp.client-ip=13.77.154.182
+	 MIME-Version; b=OrNBcvrSWcmI5ejHh0qN+42OOBIdPjWI1BVOT5HvQR+5VS8I7dofSSW+5x9sdKB+UuLefOqeoGOOgIbxJxWZQGAu5GpAGIkElfBoMXaUME3AIRqAoMJ71eEBQjeRH2AvFDffjaMcacbdSR/RbcWsXEisVfxl3DMXANGR7SPqnT0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=Pc0TBr6d; arc=none smtp.client-ip=13.77.154.182
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="GgLzpdJZ"
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="Pc0TBr6d"
 Received: from mrdev.corp.microsoft.com (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 4F8A320B6F1F;
-	Tue, 21 Apr 2026 19:33:44 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 4F8A320B6F1F
+	by linux.microsoft.com (Postfix) with ESMTPSA id 7D62C20B6F01;
+	Tue, 21 Apr 2026 19:33:47 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 7D62C20B6F01
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1776825225;
-	bh=YnF+uI+QwqeYTK6oQpqBg7HAiFmqfGlkyQt6D84StzY=;
+	s=default; t=1776825228;
+	bh=o6ztznKN0i+oDxkVKgM3YRDnCNaOjwDWRVoXxAfAsww=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=GgLzpdJZ9nmTE/p4NZSlFoqA8wfROdvtb29VmC5gy4u/g+sAFKx15pHMNK0ZG8yfE
-	 ZZXvc8Tcv/AFHSLs7vfDcTEqxfvehzsr5Ba8763F99tj78RMpsTTOAbzlpVQ1i8sAI
-	 YdWhJVQ0mYd+YLMldvIq5xIVa5h4ubRqYaMgZAfk=
+	b=Pc0TBr6dRCkXuecEpzOQW9DZK1BlT8DoPhItNDPwLPiilJpMdJ46A+h4qz0zVtPMs
+	 m7eaU3/0fYsOx5Fo+aJzdGgMUH4F5VTXRLhFPExrpYpbyDUWJi3Wxr8+M1gkoHtj6O
+	 /TaNasCwXiWRoz8aGA8N8ODVTgf6l41putV/KTAA=
 From: Mukesh R <mrathor@linux.microsoft.com>
 To: hpa@zytor.com,
 	robin.murphy@arm.com,
@@ -56,9 +56,9 @@ Cc: kys@microsoft.com,
 	kwilczynski@kernel.org,
 	bhelgaas@google.com,
 	arnd@arndb.de
-Subject: [PATCH V1 06/13] mshv: Implement mshv bridge device for VFIO
-Date: Tue, 21 Apr 2026 19:32:32 -0700
-Message-ID: <20260422023239.1171963-7-mrathor@linux.microsoft.com>
+Subject: [PATCH V1 08/13] PCI: hv: rename hv_compose_msi_msg to hv_vmbus_compose_msi_msg
+Date: Tue, 21 Apr 2026 19:32:34 -0700
+Message-ID: <20260422023239.1171963-9-mrathor@linux.microsoft.com>
 X-Mailer: git-send-email 2.51.2.vfs.0.1
 In-Reply-To: <20260422023239.1171963-1-mrathor@linux.microsoft.com>
 References: <20260422023239.1171963-1-mrathor@linux.microsoft.com>
@@ -70,263 +70,231 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Add a new file to implement VFIO-MSHV bridge pseudo device. These
-functions are called in the VFIO framework, and credits to kvm/vfio.c
-as this file was adapted from it.
+Main change here is to rename hv_compose_msi_msg to
+hv_vmbus_compose_msi_msg as we introduce hv_compose_msi_msg in upcoming
+patches that builds MSI messages for both VMBus and non-VMBus cases. VMBus
+is not used on baremetal root partition for example. While at it, replace
+spaces with tabs and fix some formatting involving excessive line wraps.
 
-Co-developed-by: Wei Liu <wei.liu@kernel.org>
-Signed-off-by: Wei Liu <wei.liu@kernel.org>
+There is no functional change.
+
 Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
 ---
- drivers/hv/Makefile       |   3 +-
- drivers/hv/mshv_vfio.c    | 211 ++++++++++++++++++++++++++++++++++++++
- include/uapi/linux/mshv.h |   1 +
- 3 files changed, 214 insertions(+), 1 deletion(-)
- create mode 100644 drivers/hv/mshv_vfio.c
+ drivers/pci/controller/pci-hyperv.c | 95 +++++++++++++++--------------
+ 1 file changed, 48 insertions(+), 47 deletions(-)
 
-diff --git a/drivers/hv/Makefile b/drivers/hv/Makefile
-index 888a748cc7cb..9ab6fc254c38 100644
---- a/drivers/hv/Makefile
-+++ b/drivers/hv/Makefile
-@@ -14,7 +14,8 @@ hv_vmbus-y := vmbus_drv.o \
- hv_vmbus-$(CONFIG_HYPERV_TESTING)	+= hv_debugfs.o
- hv_utils-y := hv_util.o hv_kvp.o hv_snapshot.o hv_utils_transport.o
- mshv_root-y := mshv_root_main.o mshv_synic.o mshv_eventfd.o mshv_irq.o \
--	       mshv_root_hv_call.o mshv_portid_table.o mshv_regions.o
-+	       mshv_root_hv_call.o mshv_portid_table.o mshv_regions.o  \
-+               mshv_vfio.o
- mshv_root-$(CONFIG_DEBUG_FS) += mshv_debugfs.o
- mshv_root-$(CONFIG_TRACEPOINTS) += mshv_trace.o
- mshv_vtl-y := mshv_vtl_main.o
-diff --git a/drivers/hv/mshv_vfio.c b/drivers/hv/mshv_vfio.c
-new file mode 100644
-index 000000000000..00a97920e25b
---- /dev/null
-+++ b/drivers/hv/mshv_vfio.c
-@@ -0,0 +1,211 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * VFIO-MSHV bridge pseudo device
-+ *
-+ * Heavily inspired by the VFIO-KVM bridge pseudo device.
-+ */
-+#include <linux/errno.h>
-+#include <linux/file.h>
-+#include <linux/list.h>
-+#include <linux/module.h>
-+#include <linux/mutex.h>
-+#include <linux/slab.h>
-+#include <linux/vfio.h>
-+#include <asm/mshyperv.h>
-+
-+#include "mshv.h"
-+#include "mshv_root.h"
-+
-+struct mshv_vfio_file {
-+	struct list_head node;
-+	struct file *file;	/* list of struct mshv_vfio_file */
-+};
-+
-+struct mshv_vfio {
-+	struct list_head file_list;
-+	struct mutex lock;
-+};
-+
-+static bool mshv_vfio_file_is_valid(struct file *file)
-+{
-+	bool (*fn)(struct file *file);
-+	bool ret;
-+
-+	fn = symbol_get(vfio_file_is_valid);
-+	if (!fn)
-+		return false;
-+
-+	ret = fn(file);
-+
-+	symbol_put(vfio_file_is_valid);
-+
-+	return ret;
-+}
-+
-+static long mshv_vfio_file_add(struct mshv_device *mshvdev, unsigned int fd)
-+{
-+	struct mshv_vfio *mshv_vfio = mshvdev->device_private;
-+	struct mshv_vfio_file *mvf;
-+	struct file *filp;
-+	long ret = 0;
-+
-+	filp = fget(fd);
-+	if (!filp)
-+		return -EBADF;
-+
-+	/* Ensure the FD is a vfio FD. */
-+	if (!mshv_vfio_file_is_valid(filp)) {
-+		ret = -EINVAL;
-+		goto out_fput;
-+	}
-+
-+	mutex_lock(&mshv_vfio->lock);
-+
-+	list_for_each_entry(mvf, &mshv_vfio->file_list, node) {
-+		if (mvf->file == filp) {
-+			ret = -EEXIST;
-+			goto out_unlock;
-+		}
-+	}
-+
-+	mvf = kzalloc(sizeof(*mvf), GFP_KERNEL_ACCOUNT);
-+	if (!mvf) {
-+		ret = -ENOMEM;
-+		goto out_unlock;
-+	}
-+
-+	mvf->file = get_file(filp);
-+	list_add_tail(&mvf->node, &mshv_vfio->file_list);
-+
-+out_unlock:
-+	mutex_unlock(&mshv_vfio->lock);
-+out_fput:
-+	fput(filp);
-+	return ret;
-+}
-+
-+static long mshv_vfio_file_del(struct mshv_device *mshvdev, unsigned int fd)
-+{
-+	struct mshv_vfio *mshv_vfio = mshvdev->device_private;
-+	struct mshv_vfio_file *mvf;
-+	long ret;
-+
-+	CLASS(fd, f)(fd);
-+
-+	if (fd_empty(f))
-+		return -EBADF;
-+
-+	ret = -ENOENT;
-+	mutex_lock(&mshv_vfio->lock);
-+
-+	list_for_each_entry(mvf, &mshv_vfio->file_list, node) {
-+		if (mvf->file != fd_file(f))
-+			continue;
-+
-+		list_del(&mvf->node);
-+		fput(mvf->file);
-+		kfree(mvf);
-+		ret = 0;
-+		break;
-+	}
-+
-+	mutex_unlock(&mshv_vfio->lock);
-+	return ret;
-+}
-+
-+static long mshv_vfio_set_file(struct mshv_device *mshvdev, long attr,
-+			      void __user *arg)
-+{
-+	int32_t __user *argp = arg;
-+	int32_t fd;
-+
-+	switch (attr) {
-+	case MSHV_DEV_VFIO_FILE_ADD:
-+		if (get_user(fd, argp))
-+			return -EFAULT;
-+		return mshv_vfio_file_add(mshvdev, fd);
-+
-+	case MSHV_DEV_VFIO_FILE_DEL:
-+		if (get_user(fd, argp))
-+			return -EFAULT;
-+		return mshv_vfio_file_del(mshvdev, fd);
-+	}
-+
-+	return -ENXIO;
-+}
-+
-+static long mshv_vfio_set_attr(struct mshv_device *mshvdev,
-+			      struct mshv_device_attr *attr)
-+{
-+	switch (attr->group) {
-+	case MSHV_DEV_VFIO_FILE:
-+		return mshv_vfio_set_file(mshvdev, attr->attr,
-+					  u64_to_user_ptr(attr->addr));
-+	}
-+
-+	return -ENXIO;
-+}
-+
-+static long mshv_vfio_has_attr(struct mshv_device *mshvdev,
-+			      struct mshv_device_attr *attr)
-+{
-+	switch (attr->group) {
-+	case MSHV_DEV_VFIO_FILE:
-+		switch (attr->attr) {
-+		case MSHV_DEV_VFIO_FILE_ADD:
-+		case MSHV_DEV_VFIO_FILE_DEL:
-+			return 0;
-+		}
-+
-+		break;
-+	}
-+
-+	return -ENXIO;
-+}
-+
-+static long mshv_vfio_create_device(struct mshv_device *mshvdev)
-+{
-+	struct mshv_device *tmp;
-+	struct mshv_vfio *mshv_vfio;
-+
-+	/* Only one VFIO "device" per VM */
-+	hlist_for_each_entry(tmp, &mshvdev->device_pt->pt_devices,
-+			     device_ptnode)
-+		if (tmp->device_ops == &mshv_vfio_device_ops)
-+			return -EBUSY;
-+
-+	mshv_vfio = kzalloc(sizeof(*mshv_vfio), GFP_KERNEL_ACCOUNT);
-+	if (mshv_vfio == NULL)
-+		return -ENOMEM;
-+
-+	INIT_LIST_HEAD(&mshv_vfio->file_list);
-+	mutex_init(&mshv_vfio->lock);
-+
-+	mshvdev->device_private = mshv_vfio;
-+
-+	return 0;
-+}
-+
-+/* This is called from mshv_device_fop_release() */
-+static void mshv_vfio_release_device(struct mshv_device *mshvdev)
-+{
-+	struct mshv_vfio *mv = mshvdev->device_private;
-+	struct mshv_vfio_file *mvf, *tmp;
-+
-+	list_for_each_entry_safe(mvf, tmp, &mv->file_list, node) {
-+		fput(mvf->file);
-+		list_del(&mvf->node);
-+		kfree(mvf);
-+	}
-+
-+	kfree(mv);
-+	kfree(mshvdev);
-+}
-+
-+struct mshv_device_ops mshv_vfio_device_ops = {
-+	.device_name = "mshv-vfio",
-+	.device_create = mshv_vfio_create_device,
-+	.device_release = mshv_vfio_release_device,
-+	.device_set_attr = mshv_vfio_set_attr,
-+	.device_has_attr = mshv_vfio_has_attr,
-+};
-diff --git a/include/uapi/linux/mshv.h b/include/uapi/linux/mshv.h
-index 4373a8243951..6404e8a98237 100644
---- a/include/uapi/linux/mshv.h
-+++ b/include/uapi/linux/mshv.h
-@@ -254,6 +254,7 @@ struct mshv_root_hvcall {
- #define MSHV_GET_GPAP_ACCESS_BITMAP	_IOWR(MSHV_IOCTL, 0x06, struct mshv_gpap_access_bitmap)
- /* Generic hypercall */
- #define MSHV_ROOT_HVCALL		_IOWR(MSHV_IOCTL, 0x07, struct mshv_root_hvcall)
-+#define MSHV_CREATE_DEVICE             _IOWR(MSHV_IOCTL, 0x08, struct mshv_create_device)
+diff --git a/drivers/pci/controller/pci-hyperv.c b/drivers/pci/controller/pci-hyperv.c
+index cfc8fa403dad..ed6b399afc80 100644
+--- a/drivers/pci/controller/pci-hyperv.c
++++ b/drivers/pci/controller/pci-hyperv.c
+@@ -30,7 +30,7 @@
+  * function's configuration space is zero.
+  *
+  * The rest of this driver mostly maps PCI concepts onto underlying Hyper-V
+- * facilities.  For instance, the configuration space of a function exposed
++ * facilities.	For instance, the configuration space of a function exposed
+  * by Hyper-V is mapped into a single page of memory space, and the
+  * read and write handlers for config space must be aware of this mechanism.
+  * Similarly, device setup and teardown involves messages sent to and from
+@@ -109,33 +109,33 @@ enum pci_message_type {
+ 	/*
+ 	 * Version 1.1
+ 	 */
+-	PCI_MESSAGE_BASE                = 0x42490000,
+-	PCI_BUS_RELATIONS               = PCI_MESSAGE_BASE + 0,
+-	PCI_QUERY_BUS_RELATIONS         = PCI_MESSAGE_BASE + 1,
+-	PCI_POWER_STATE_CHANGE          = PCI_MESSAGE_BASE + 4,
++	PCI_MESSAGE_BASE		= 0x42490000,
++	PCI_BUS_RELATIONS		= PCI_MESSAGE_BASE + 0,
++	PCI_QUERY_BUS_RELATIONS		= PCI_MESSAGE_BASE + 1,
++	PCI_POWER_STATE_CHANGE		= PCI_MESSAGE_BASE + 4,
+ 	PCI_QUERY_RESOURCE_REQUIREMENTS = PCI_MESSAGE_BASE + 5,
+-	PCI_QUERY_RESOURCE_RESOURCES    = PCI_MESSAGE_BASE + 6,
+-	PCI_BUS_D0ENTRY                 = PCI_MESSAGE_BASE + 7,
+-	PCI_BUS_D0EXIT                  = PCI_MESSAGE_BASE + 8,
+-	PCI_READ_BLOCK                  = PCI_MESSAGE_BASE + 9,
+-	PCI_WRITE_BLOCK                 = PCI_MESSAGE_BASE + 0xA,
+-	PCI_EJECT                       = PCI_MESSAGE_BASE + 0xB,
+-	PCI_QUERY_STOP                  = PCI_MESSAGE_BASE + 0xC,
+-	PCI_REENABLE                    = PCI_MESSAGE_BASE + 0xD,
+-	PCI_QUERY_STOP_FAILED           = PCI_MESSAGE_BASE + 0xE,
+-	PCI_EJECTION_COMPLETE           = PCI_MESSAGE_BASE + 0xF,
+-	PCI_RESOURCES_ASSIGNED          = PCI_MESSAGE_BASE + 0x10,
+-	PCI_RESOURCES_RELEASED          = PCI_MESSAGE_BASE + 0x11,
+-	PCI_INVALIDATE_BLOCK            = PCI_MESSAGE_BASE + 0x12,
+-	PCI_QUERY_PROTOCOL_VERSION      = PCI_MESSAGE_BASE + 0x13,
+-	PCI_CREATE_INTERRUPT_MESSAGE    = PCI_MESSAGE_BASE + 0x14,
+-	PCI_DELETE_INTERRUPT_MESSAGE    = PCI_MESSAGE_BASE + 0x15,
++	PCI_QUERY_RESOURCE_RESOURCES	= PCI_MESSAGE_BASE + 6,
++	PCI_BUS_D0ENTRY			= PCI_MESSAGE_BASE + 7,
++	PCI_BUS_D0EXIT			= PCI_MESSAGE_BASE + 8,
++	PCI_READ_BLOCK			= PCI_MESSAGE_BASE + 9,
++	PCI_WRITE_BLOCK			= PCI_MESSAGE_BASE + 0xA,
++	PCI_EJECT			= PCI_MESSAGE_BASE + 0xB,
++	PCI_QUERY_STOP			= PCI_MESSAGE_BASE + 0xC,
++	PCI_REENABLE			= PCI_MESSAGE_BASE + 0xD,
++	PCI_QUERY_STOP_FAILED		= PCI_MESSAGE_BASE + 0xE,
++	PCI_EJECTION_COMPLETE		= PCI_MESSAGE_BASE + 0xF,
++	PCI_RESOURCES_ASSIGNED		= PCI_MESSAGE_BASE + 0x10,
++	PCI_RESOURCES_RELEASED		= PCI_MESSAGE_BASE + 0x11,
++	PCI_INVALIDATE_BLOCK		= PCI_MESSAGE_BASE + 0x12,
++	PCI_QUERY_PROTOCOL_VERSION	= PCI_MESSAGE_BASE + 0x13,
++	PCI_CREATE_INTERRUPT_MESSAGE	= PCI_MESSAGE_BASE + 0x14,
++	PCI_DELETE_INTERRUPT_MESSAGE	= PCI_MESSAGE_BASE + 0x15,
+ 	PCI_RESOURCES_ASSIGNED2		= PCI_MESSAGE_BASE + 0x16,
+ 	PCI_CREATE_INTERRUPT_MESSAGE2	= PCI_MESSAGE_BASE + 0x17,
+ 	PCI_DELETE_INTERRUPT_MESSAGE2	= PCI_MESSAGE_BASE + 0x18, /* unused */
+ 	PCI_BUS_RELATIONS2		= PCI_MESSAGE_BASE + 0x19,
+-	PCI_RESOURCES_ASSIGNED3         = PCI_MESSAGE_BASE + 0x1A,
+-	PCI_CREATE_INTERRUPT_MESSAGE3   = PCI_MESSAGE_BASE + 0x1B,
++	PCI_RESOURCES_ASSIGNED3		= PCI_MESSAGE_BASE + 0x1A,
++	PCI_CREATE_INTERRUPT_MESSAGE3	= PCI_MESSAGE_BASE + 0x1B,
+ 	PCI_MESSAGE_MAXIMUM
+ };
  
+@@ -1774,20 +1774,21 @@ static u32 hv_compose_msi_req_v1(
+  * via the HVCALL_RETARGET_INTERRUPT hypercall. But the choice of dummy vCPU is
+  * not irrelevant because Hyper-V chooses the physical CPU to handle the
+  * interrupts based on the vCPU specified in message sent to the vPCI VSP in
+- * hv_compose_msi_msg(). Hyper-V's choice of pCPU is not visible to the guest,
+- * but assigning too many vPCI device interrupts to the same pCPU can cause a
+- * performance bottleneck. So we spread out the dummy vCPUs to influence Hyper-V
+- * to spread out the pCPUs that it selects.
++ * hv_vmbus_compose_msi_msg(). Hyper-V's choice of pCPU is not visible to the
++ * guest, but assigning too many vPCI device interrupts to the same pCPU can
++ * cause a performance bottleneck. So we spread out the dummy vCPUs to influence
++ * Hyper-V to spread out the pCPUs that it selects.
+  *
+  * For the single-MSI and MSI-X cases, it's OK for hv_compose_msi_req_get_cpu()
+  * to always return the same dummy vCPU, because a second call to
+- * hv_compose_msi_msg() contains the "real" vCPU, causing Hyper-V to choose a
+- * new pCPU for the interrupt. But for the multi-MSI case, the second call to
+- * hv_compose_msi_msg() exits without sending a message to the vPCI VSP, so the
+- * original dummy vCPU is used. This dummy vCPU must be round-robin'ed so that
+- * the pCPUs are spread out. All interrupts for a multi-MSI device end up using
+- * the same pCPU, even though the vCPUs will be spread out by later calls
+- * to hv_irq_unmask(), but that is the best we can do now.
++ * hv_vmbus_compose_msi_msg() contains the "real" vCPU, causing Hyper-V to
++ * choose a new pCPU for the interrupt. But for the multi-MSI case, the second
++ * call to hv_vmbus_compose_msi_msg() exits without sending a message to the
++ * vPCI VSP, so the original dummy vCPU is used. This dummy vCPU must be
++ * round-robin'ed so that the pCPUs are spread out. All interrupts for a
++ * multi-MSI device end up using the same pCPU, even though the vCPUs will be
++ * spread out by later calls to hv_irq_unmask(), but that is the best we can do
++ * now.
+  *
+  * With Hyper-V in Nov 2022, the HVCALL_RETARGET_INTERRUPT hypercall does *not*
+  * cause Hyper-V to reselect the pCPU based on the specified vCPU. Such an
+@@ -1862,7 +1863,7 @@ static u32 hv_compose_msi_req_v3(
+ }
+ 
+ /**
+- * hv_compose_msi_msg() - Supplies a valid MSI address/data
++ * hv_vmbus_compose_msi_msg() - Supplies a valid MSI address/data
+  * @data:	Everything about this MSI
+  * @msg:	Buffer that is filled in by this function
+  *
+@@ -1872,7 +1873,7 @@ static u32 hv_compose_msi_req_v3(
+  * response supplies a data value and address to which that data
+  * should be written to trigger that interrupt.
+  */
+-static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
++static void hv_vmbus_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+ {
+ 	struct hv_pcibus_device *hbus;
+ 	struct vmbus_channel *channel;
+@@ -1954,7 +1955,7 @@ static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+ 			return;
+ 		}
+ 		/*
+-		 * The vector we select here is a dummy value.  The correct
++		 * The vector we select here is a dummy value.	The correct
+ 		 * value gets sent to the hypervisor in unmask().  This needs
+ 		 * to be aligned with the count, and also not zero.  Multi-msi
+ 		 * is powers of 2 up to 32, so 32 will always work here.
+@@ -2046,7 +2047,7 @@ static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+ 
+ 		/*
+ 		 * Make sure that the ring buffer data structure doesn't get
+-		 * freed while we dereference the ring buffer pointer.  Test
++		 * freed while we dereference the ring buffer pointer.	Test
+ 		 * for the channel's onchannel_callback being NULL within a
+ 		 * sched_lock critical section.  See also the inline comments
+ 		 * in vmbus_reset_channel_cb().
+@@ -2146,7 +2147,7 @@ static const struct msi_parent_ops hv_pcie_msi_parent_ops = {
+ /* HW Interrupt Chip Descriptor */
+ static struct irq_chip hv_msi_irq_chip = {
+ 	.name			= "Hyper-V PCIe MSI",
+-	.irq_compose_msi_msg	= hv_compose_msi_msg,
++	.irq_compose_msi_msg	= hv_vmbus_compose_msi_msg,
+ 	.irq_set_affinity	= irq_chip_set_affinity_parent,
+ 	.irq_ack		= irq_chip_ack_parent,
+ 	.irq_eoi		= irq_chip_eoi_parent,
+@@ -2158,8 +2159,8 @@ static int hv_pcie_domain_alloc(struct irq_domain *d, unsigned int virq, unsigne
+ 			       void *arg)
+ {
+ 	/*
+-	 * TODO: Allocating and populating struct tran_int_desc in hv_compose_msi_msg()
+-	 * should be moved here.
++	 * TODO: Allocating and populating struct tran_int_desc in
++	 *	 hv_vmbus_compose_msi_msg() should be moved here.
+ 	 */
+ 	int ret;
+ 
+@@ -2226,7 +2227,7 @@ static int hv_pcie_init_irq_domain(struct hv_pcibus_device *hbus)
+ /**
+  * get_bar_size() - Get the address space consumed by a BAR
+  * @bar_val:	Value that a BAR returned after -1 was written
+- *              to it.
++ *		to it.
+  *
+  * This function returns the size of the BAR, rounded up to 1
+  * page.  It has to be rounded up because the hypervisor's page
+@@ -2580,7 +2581,7 @@ static void q_resource_requirements(void *context, struct pci_response *resp,
+  * new_pcichild_device() - Create a new child device
+  * @hbus:	The internal struct tracking this root PCI bus.
+  * @desc:	The information supplied so far from the host
+- *              about the device.
++ *		about the device.
+  *
+  * This function creates the tracking structure for a new child
+  * device and kicks off the process of figuring out what it is.
+@@ -3105,7 +3106,7 @@ static void hv_pci_onchannelcallback(void *context)
+ 			 * sure that the packet pointer is still valid during the call:
+ 			 * here 'valid' means that there's a task still waiting for the
+ 			 * completion, and that the packet data is still on the waiting
+-			 * task's stack.  Cf. hv_compose_msi_msg().
++			 * task's stack.  Cf. hv_vmbus_compose_msi_msg().
+ 			 */
+ 			comp_packet->completion_func(comp_packet->compl_ctxt,
+ 						     response,
+@@ -3422,7 +3423,7 @@ static int hv_allocate_config_window(struct hv_pcibus_device *hbus)
+ 	 * vmbus_allocate_mmio() gets used for allocating both device endpoint
+ 	 * resource claims (those which cannot be overlapped) and the ranges
+ 	 * which are valid for the children of this bus, which are intended
+-	 * to be overlapped by those children.  Set the flag on this claim
++	 * to be overlapped by those children.	Set the flag on this claim
+ 	 * meaning that this region can't be overlapped.
+ 	 */
+ 
+@@ -4069,7 +4070,7 @@ static int hv_pci_restore_msi_msg(struct pci_dev *pdev, void *arg)
+ 		irq_data = irq_get_irq_data(entry->irq);
+ 		if (WARN_ON_ONCE(!irq_data))
+ 			return -EINVAL;
+-		hv_compose_msi_msg(irq_data, &entry->msg);
++		hv_vmbus_compose_msi_msg(irq_data, &entry->msg);
+ 	}
+ 	return 0;
+ }
+@@ -4077,7 +4078,7 @@ static int hv_pci_restore_msi_msg(struct pci_dev *pdev, void *arg)
  /*
-  ********************************
+  * Upon resume, pci_restore_msi_state() -> ... ->  __pci_write_msi_msg()
+  * directly writes the MSI/MSI-X registers via MMIO, but since Hyper-V
+- * doesn't trap and emulate the MMIO accesses, here hv_compose_msi_msg()
++ * doesn't trap and emulate the MMIO accesses, here hv_vmbus_compose_msi_msg()
+  * must be used to ask Hyper-V to re-create the IOMMU Interrupt Remapping
+  * Table entries.
+  */
 -- 
 2.51.2.vfs.0.1
 
