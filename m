@@ -1,99 +1,69 @@
-Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0523A30EF64;
-	Wed, 22 Apr 2026 12:47:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 39E303D0929;
+	Wed, 22 Apr 2026 12:53:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776862068; cv=none; b=JR2qoBZA1855t5uPkQyJdpYWgo/rGLLnONH/0COmzfywWG/yEKeufZNF6F0yAIE3TjhAIVQM2AOzx3MD3ffF62MFZVIm212YbbS/3GZGBlaV/vG4uDql8FD8CxgV01wChg0ptVMeYqKt9jwxMbGAVuvvA6Lif8KHJEfBF64Js84=
+	t=1776862410; cv=none; b=ONs+EQ8JCzeFoDO9BHyNP1c8W9yyvB0AHERovFBpSnjYSF2MmIM51/LcNLvdMhfe2HrWXU+fxTAwR6ruK7Vr4lzF2Ih4xySVdRV0yvUBBrbIEyOea3MaX/ICEuQb8+CiFoMNpWp2139SPDUwBJhzm/055m7Dh90jf748gFXt2bA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776862068; c=relaxed/simple;
-	bh=gaRMAIgmxg0Niu7cjJe1n82veQc1jJn+aOFtutMmM6E=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=J+cmDMlE1uGrdEyMdokIjZoLdRP/AOHOFRdAvbKQrR98wbdqYpiH+xJeUcrX2IPzcMV8N/c7eykb/TYNGxXY+OiG82tAg6Ha+iSy6zT+QzzqrgtExXegmDoqDvAf0AXxL0o4YfQugKnGnmXJUUl+VqepM5sXOi+3nunnfborqTA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=dFGUgWWs; arc=none smtp.client-ip=213.97.179.56
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
+	s=arc-20240116; t=1776862410; c=relaxed/simple;
+	bh=PNnDCzGsRm+eFMvCWAZgnBoDZdSimelEoS72QwaSIaI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=HmIzq16W/lX6ISbbp5iE/GdjbZ2gHyL1w4sWJCFUhK5TAe+8tmM6KJF3qkThfn5Iy+k1WkWCXaBZdNkrvccmK7mh9jwmwGj4Bve3Hp6SSYy2Vf7yi6EaDsOXqwt5hD/KZP0GT6+QCmhWlvd5qJlTxAM2Uee6l4upoeacz0g6Wos=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=UwEm58Xl; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="dFGUgWWs"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
-	s=20170329; h=Content-Transfer-Encoding:Content-Type:In-Reply-To:From:
-	References:Cc:To:Subject:MIME-Version:Date:Message-ID:Sender:Reply-To:
-	Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:
-	Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:
-	List-Subscribe:List-Post:List-Owner:List-Archive;
-	bh=TqICnSzUsZ2eNeZvIB9vJt0dWMzDi5INQgVyX7nVe9U=; b=dFGUgWWsHnroz4fxwHkrZwMjst
-	xON5JrGcqqqLYctXagzrbqJyKOxs0J7Zg64mOXTrcm4PsxAKPw71JeYsPd4nKQ0qlMRlVAJDsHIFA
-	rt2oRANIfnbaGuy/2EDZQifkSj+zFAyEAJpwOvORuZJ3tRJniSiDjoGn6th/GxC2k3ckeQmw9+0KJ
-	UyO1hbQaVHX1av/px0IkDaeNXAGhbUFMC3VdO2wT82mcXtF9UQvkDGM95joQPXAl0J4SqLkXoZhx4
-	OBfzHfbmPMD355sLjLJWjSAYL8dXS64ydT/ZCW1f0EosBWQ3rAvX8TCABd1TGnyIW0FrUUBr1T7ij
-	8eJGS5Xg==;
-Received: from [187.57.76.96] (helo=[192.168.15.100])
-	by fanzine2.igalia.com with esmtpsa 
-	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_128_GCM:128) (Exim)
-	id 1wFWyu-000GxY-Qg; Wed, 22 Apr 2026 14:47:04 +0200
-Message-ID: <32642d18-8c83-47ad-8456-1813084c4622@igalia.com>
-Date: Wed, 22 Apr 2026 09:46:53 -0300
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="UwEm58Xl"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1AC1EC2BCAF;
+	Wed, 22 Apr 2026 12:53:26 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1776862409;
+	bh=PNnDCzGsRm+eFMvCWAZgnBoDZdSimelEoS72QwaSIaI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=UwEm58XlP+PSxfHAM+HdlxiRw/Y67epyVMYqaKBJNdG4EM3+YLiEJa0IEdNZsrPe+
+	 V3m1fNzu27l3EdSz9N70T/AD7xaP7BPQCZ5gvA+Bof8azwhKaR2K7lP6koJMkDU9MH
+	 OJRsCfKjsv2ezYNN6NTZal/GROPgxw962Pi8NnNIPc9CX+YtOehtlPQOmh/ciPejhS
+	 TJdiwo0BthlmpHBUBU8eJaDITg0TkGdsUqUAadeEk/hpe0FXGbaJ5oWa9ASK9C8NRm
+	 Wz3gFgPz6HTag5MCTaZacP4FxgNkH+HKRrpB1xsEBqvUqHzPFwQsb8UnjB+IP13kN6
+	 fUL+uTqj7KV5A==
+Date: Wed, 22 Apr 2026 14:53:24 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: Jori Koolstra <jkoolstra@xs4all.nl>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, cmirabil@redhat.com, 
+	Jeff Layton <jlayton@kernel.org>, Chuck Lever <chuck.lever@oracle.com>, 
+	Alexander Aring <alex.aring@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Jan Kara <jack@suse.cz>, Arnd Bergmann <arnd@arndb.de>, 
+	"open list:FILE LOCKING (flock() and fcntl()/lockf())" <linux-fsdevel@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>, 
+	"open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Subject: Re: [PATCH v4 1/2] vfs: add O_EMPTYPATH to openat(2)/openat2(2)
+Message-ID: <20260422-zugegangen-schlucht-d8b4d629cd13@brauner>
+References: <20260419131800.486788-1-jkoolstra@xs4all.nl>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH RFC 1/2] arm64: vdso: Prepare for robust futex unlock
- support
-To: Florian Weimer <fweimer@redhat.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Thomas Gleixner <tglx@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
- Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
- Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
- Carlos O'Donell <carlos@redhat.com>, Peter Zijlstra <peterz@infradead.org>,
- Rich Felker <dalias@aerifal.cx>, Torvald Riegel <triegel@redhat.com>,
- Darren Hart <dvhart@infradead.org>, Ingo Molnar <mingo@kernel.org>,
- Davidlohr Bueso <dave@stgolabs.net>, Arnd Bergmann <arnd@arndb.de>,
- "Liam R . Howlett" <Liam.Howlett@oracle.com>, Uros Bizjak
- <ubizjak@gmail.com>, =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?=
- <linux@weissschuh.net>, linux-arm-kernel@lists.infradead.org,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
- kernel-dev@igalia.com
-References: <20260417-tonyk-robust_arm-v1-0-03aa64e2ff1a@igalia.com>
- <20260417-tonyk-robust_arm-v1-1-03aa64e2ff1a@igalia.com>
- <lhu1pgd8w0f.fsf@oldenburg.str.redhat.com>
-Content-Language: en-US
-From: =?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
-In-Reply-To: <lhu1pgd8w0f.fsf@oldenburg.str.redhat.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20260419131800.486788-1-jkoolstra@xs4all.nl>
 
-Hi Florian,
-
-Em 17/04/2026 12:08, Florian Weimer escreveu:
-> * André Almeida:
+On Sun, Apr 19, 2026 at 03:17:49PM +0200, Jori Koolstra wrote:
+> To get an operable version of an O_PATH file descriptor, it is possible
+> to use openat(fd, ".", O_DIRECTORY) for directories, but other files
+> currently require going through open("/proc/<pid>/fd/<nr>"), which
+> depends on a functioning procfs.
 > 
->> There will be a VDSO function to unlock non-contended robust futexes in
->> user space. The unlock sequence is racy vs. clearing the list_pending_op
->> pointer in the task's robust list head. To plug this race the kernel needs
->> to know the critical section window so it can clear the pointer when the
->> task is interrupted within that race window. The window is determined by
->> labels in the inline assembly.
->>
->> Signed-off-by: André Almeida <andrealmeid@igalia.com>
->> ---
->> RFC: Those symbols can't be found by the linker after patch 2/2, it fails with:
->>
->> ld: arch/arm64/kernel/vdso.o: in function `vdso_futex_robust_unlock_update_ips':
->> arch/arm64/kernel/vdso.c:72:(.text+0x200): undefined reference to `__futex_list64_try_unlock_cs_success'
->> ld: arch/arm64/kernel/vdso.o: relocation R_AARCH64_ADR_PREL_PG_HI21 against symbol `__futex_list64_try_unlock_cs_success' which may bind externally can not be used when making a shared object; recompile with -fPIC
->> arch/arm64/kernel/vdso.c:72:(.text+0x200): dangerous relocation: unsupported relocation
+> This patch adds the O_EMPTYPATH flag to openat(2)/openat2(2). If passed,
+> LOOKUP_EMPTY is set at path resolution time.
 > 
-> I think your GLOBLS definition adds a 64 suffix.  That shouldn't be
-> necessary on AArch64.  It's not reflected in the references, so you end
-> up with an undefined symbol error.
-> 
+> Note: This implies that you cannot rely anymore on disabling procfs from
+> being mounted (e.g. inside a container without procfs mounted and with
+> CAP_SYS_ADMIN dropped) to prevent O_PATH fds from being re-opened
+> read-write.
 
-Why aarch64 doesn't need the 64 suffix? objdump shows that the final 
-label name is __futex_list64_try_unlock_cs_success, which should match 
-what the linker is trying to find, AFAIC.
+That's the only thing that really always gave me pause about this.
 
-	André
+So I think we should try it anyway but I want to prepare you for the not
+so unlikely possibility that we will have to revert this because some
+userspace program relies on the legacy behavior.
