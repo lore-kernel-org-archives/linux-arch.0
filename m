@@ -1,60 +1,60 @@
 Received: from sphereful.davidgow.net (sphereful.davidgow.net [203.29.242.92])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 718D92E06E6;
-	Wed, 22 Apr 2026 12:22:45 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 726423A2559;
+	Wed, 22 Apr 2026 12:23:31 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=203.29.242.92
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776860567; cv=none; b=MFtvAD9FtFaxt12vPdI22pafSyUH/cOsFY1gjfPaJOFIhpT/HOkj53jDeQ82yc4OWIGRxOIqaXUlvlkAVZq07keXKwwGqBmlJ/qGSrLstkdrEJ/+nQHl3Jt8HvOsUu2VZ6/QCDOL+GamNf0Z/V1M/WR10pg2lP21uaWqOeYM7Bw=
+	t=1776860613; cv=none; b=F3fQZLpuiLSQJRAWwN4jpoVHJKhqhB9v82TCqUFqDjmb4NtCZSyu4XEu/y7pXxGDrd8nD2GjG/oRufZBLtrBWHeSGW6sONVH41H6e95UC75GGkExcKA4qH1nHcPzVX6xXLVc114wzwJ6ERGtLrP0DINJj/e5dWvu8Pz8Fy5Wfg4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776860567; c=relaxed/simple;
-	bh=hML0sRIU1AntIFM+ox4LLB4AF8Mi3yfxqyKl/z6vcDM=;
+	s=arc-20240116; t=1776860613; c=relaxed/simple;
+	bh=b+jdMLz/f1OCxDME3vP0n+Ytlo9Zm1RnVo7KNc+DlTI=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=ol+M8TkzfPYITgkMnj245yhnwbpS5l/tteV4AJJ0NgyVyjNdCe8nnSTFOAlv3ow6XLGZdbHWISgzlgXWPtcV4V5VXts1eyEXsUPjdmDpzKl7P/u6IDRwdQgNmooV9trg+P4cjdW4vB0A8tciQ/qyg3suPeMrEw0s8MPpmv3r9mo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=davidgow.net; spf=pass smtp.mailfrom=davidgow.net; dkim=pass (4096-bit key) header.d=davidgow.net header.i=@davidgow.net header.b=Gz+59c1q; dkim=pass (4096-bit key) header.d=davidgow.net header.i=@davidgow.net header.b=jNVyt8Ok; arc=none smtp.client-ip=203.29.242.92
+	 In-Reply-To:Content-Type; b=AFg1Zh0dVJqZ9kWVttraHR7tGrGiOPfx4hwT7Lz53sywjX12AQeuZfJPPCP2Eu4hWz9hIgkTVx+OeHsgYKdG2b+n5whTrzSTY2y21xHE0OuCUEXPjT05wxthvifxtL2cPlywfn0XYGYhigZkWK12rHFTPr1oZQr2uianBjnKtBY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=davidgow.net; spf=pass smtp.mailfrom=davidgow.net; dkim=pass (4096-bit key) header.d=davidgow.net header.i=@davidgow.net header.b=iddACaic; dkim=pass (4096-bit key) header.d=davidgow.net header.i=@davidgow.net header.b=UTgnOpLg; arc=none smtp.client-ip=203.29.242.92
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=davidgow.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=davidgow.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (4096-bit key) header.d=davidgow.net header.i=@davidgow.net header.b="Gz+59c1q";
-	dkim=pass (4096-bit key) header.d=davidgow.net header.i=@davidgow.net header.b="jNVyt8Ok"
+	dkim=pass (4096-bit key) header.d=davidgow.net header.i=@davidgow.net header.b="iddACaic";
+	dkim=pass (4096-bit key) header.d=davidgow.net header.i=@davidgow.net header.b="UTgnOpLg"
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=davidgow.net;
-	s=201606; t=1776860563;
-	bh=hML0sRIU1AntIFM+ox4LLB4AF8Mi3yfxqyKl/z6vcDM=;
+	s=201606; t=1776860609;
+	bh=b+jdMLz/f1OCxDME3vP0n+Ytlo9Zm1RnVo7KNc+DlTI=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=Gz+59c1qRsBX98+HtC5Kus+BymA8J5fOLNAqCIb3tA/e32kbtJE9g4yrDoRL3hr7x
-	 qQEgy13bLUql+EP7o5s50D9J86pcMJlrc7WBK3eT/y39PEo+cDiX7vEJAr/BjGEps8
-	 nqZaKrC+F5n16Ch3I9rfHABsRh7rp0v6yLG4Cawp/VDRyG9xMFQVhSt4A2u6QRjh6H
-	 qC2NycBq53KJutecdxUu37/LOIKbccVdwzGOZYSBalA5U2m7fJZGdWMr71PC1rW6Ne
-	 3Ukbq5RR8+EORs9m8S1ufJYnMpMi9ul/kVEP9MMFKi4m5MRMgTmvy3RD5fl9+DacVP
-	 H6yxkaYa8HCYe32Ovzvjb09Xs7qUgLVSpm1axRA2JzIN28IOEceHYxk7AryJ435fW3
-	 nLFE/uqkQW98J90r36GGq+4K2bT4zpcjvaUub789vHKdivXvu5vLSrdfBcoJjNXHCi
-	 EOCnks2YpD6l3sKL+xy5ejgVDH42uJhUKDdUDfqj9vYHsw4UKdIPXE0lB03WT2b/b9
-	 68M0b2lw1EIog3VteK7bB9RwTLttIn/tN6zAdz34c2FN25YryTyqwmDoQtqq1z/BML
-	 1fADMTVrUW+w20mxhwfmmxaH5YHD/VpAcEtGNM89BkieKbsAIdds1b09GaNIenCPFk
-	 aaINSrJ4ywOWZ/hg3Wah+XTY=
+	b=iddACaic5LMU0yf7iarpcuEgpyaXzXjNM1WA35gTg0uOtPsleP0IFel1YTbF5ePj2
+	 +4nT+FsxJ8cgGSEkdYxATk69FfhmSo1xaOfZO4GC+9rVvmjsCI9BB/Z5lOvZdZkRaL
+	 p6dEpcm4vpSuxsvbC4ALZcv6n7/YNHw19Gt6oqiwTFkEBD8LyHXu440XnSl/z/lia1
+	 rgGgTzLQO14Ljz00IGAGjIQvdBEhjci9E9kPVIZguZhZyEW6eeGNvuLQydkE9NJ07F
+	 NLdK+N3WqW8zim5QsGXAS/DYG1qDrapD/JSTrtK0ew/j8raQIRJXa85EJow7D5bgII
+	 7ruSRLbr9C6q7WUfo1I2NQXvN8+31CEFJNFVyx/JKRIXaTq8nXAoyhH6M53QEP9u2t
+	 Y/m561loc6xqyWMPhGCSiINVanplpMBtiyd7QdwBLBumJBqwxAJa9oV9cZqt4j6a+N
+	 +YROfqxKUsobFE3793Uwh1dzepNa+gxJfpH3h1HW0INh7bq6WsA/6FC2/BlqjqlShK
+	 tU74sWbxyEUiMOjbq0C2LbfcchUOVnxvMive21KdrPCBqQJw35H3RldOcYohBYXPDO
+	 xz3/BgDqsThaogj/NqQhi6KSiXXnZkLWbqzXohRgX9VKX0Sj9lzkHn4dgPtKZZN4tS
+	 Th4KO/owGoVeHwt+lYrDFxvo=
 Received: by sphereful.davidgow.net (Postfix, from userid 119)
-	id 9BF3D1E8D9C; Wed, 22 Apr 2026 20:22:43 +0800 (AWST)
+	id 8B0881E8D8B; Wed, 22 Apr 2026 20:23:29 +0800 (AWST)
 X-Spam-Level: 
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=davidgow.net;
-	s=201606; t=1776860407;
-	bh=hML0sRIU1AntIFM+ox4LLB4AF8Mi3yfxqyKl/z6vcDM=;
+	s=201606; t=1776860421;
+	bh=b+jdMLz/f1OCxDME3vP0n+Ytlo9Zm1RnVo7KNc+DlTI=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=jNVyt8OkdIBSpjXWabbTvUHKJ8p72aH5MAJK+/mU5sb3vXN0juUur374rRTNXZ7av
-	 xQM9NpPjNZrukN6k8exxIJGc6FFvD4VOkOkXZLENKo0TiKHw6xZ5T9j/PtpxsC7t9b
-	 FVIxvVSvzT4TobiKh6ds4SPYnjqofmZF1hmsu+C3IsrOJjjiQpUkHX4iHv3HWiJGP2
-	 m4wcMoneg2Dl3fdpYXJurB0K/zQlUXVt9fPIy34sdNbhU9MbIgwKYIka+sGg5VkhHn
-	 ZvubupvqFKunOpZAOuzNxiS+/fMuoMB9u+r+Klk4cuI3qk3iTH0CponNRofm6JI6ly
-	 mAVJXhfm9hBzq+qbW2yT8PIPe6INR5KFlD/j5d9rRq+1T2xGgYJV/ZlsysGs22tySs
-	 R++ctEYJhia4snlXgpv/AzbKQZiG5JTaQ04mWTYSLrUELMPb3jU5HCyH9rrkXqCaNo
-	 yQsXud4TnJACWuPYyPg0XAjwIvpBJr4n6x4PHHWbgqHgSDBkkFkJEC8oSrnwp5YtjO
-	 3Nplf7JhC0+uVvUJLHpVCa246BtB3YFWTiJ8H1lT6268A/dAbhHBY3rQdzTVuSI1qd
-	 9iIKr3PoHEqFJJ4XztoWbMGW4CcYMg+p9KHVvKL4qMp567pfWh0uPSl33fG6WVUz2D
-	 iiwY2AK0pUHn3OcTpbPZO/7U=
+	b=UTgnOpLgovcFqQ4HM6TnCdPdCX4lU52Z2jkOjv2W7HETijIRyCzB6BoC8r/EK6bfY
+	 mJ7NfuHEcDqnLvFSgMs1pdeyzJVGQV5kov6J/MgNsiI7b1HpHqg234/oQfO0uTf0Lb
+	 /5PFNtMklX/+fLZY5tne1c3TXUamwifgR2KWnbjjCCu118RVlVNvgbzxm5UgqNAfpo
+	 SGpxDNeABfxvwxRtbXRCnOxyv6YbuM8VZBGRA060eFIC/9/DNeem7O8ze1zbqd0ibS
+	 ywIBWABlVZWnWNc0b066lw1pqQfP04Vxp+8pfFT4xriUNtceMFG86XYgRMt7A1bpHy
+	 sn9Fe6pyQGSE+NNeNDdhuuy2byf78MzCytxyJVx0Sp+XYJjFpFxDSsIdKDyUD5Kia1
+	 c/n6FUXM6bwFsbCErfBKJTwSgtf3nIWy49hxNBxSlizXu5MtVUTvWigirXW3L6UQd3
+	 gKkBEwcwpSNXJYlHbohyKjyWOUr+YxncJ7jtbMd2KbopLO4orXUkgESGzN/pD7fTPE
+	 IatgVyeX+bFglXxao/qgsVhPOcDxXXqehEeSKAtwyOBhLSDTWVsDxX5ztsYBYts+pm
+	 Xj0toXWDqLkZSnP0ydze+uSbkHUT7EnaJZWOSp1loEPLaJ8oM5m36lUYvoAX1ihEqo
+	 u+E/jcn1K1CjEYqfkGYSGKJo=
 Received: from [IPV6:2001:8003:8810:ea00:ed87:ca88:5326:e11d] (unknown [IPv6:2001:8003:8810:ea00:ed87:ca88:5326:e11d])
-	by sphereful.davidgow.net (Postfix) with ESMTPSA id 3BD631E8D8A;
-	Wed, 22 Apr 2026 20:20:07 +0800 (AWST)
-Message-ID: <6209f24e-750d-4a7d-ad63-1695f5fd1caa@davidgow.net>
-Date: Wed, 22 Apr 2026 20:20:04 +0800
+	by sphereful.davidgow.net (Postfix) with ESMTPSA id 9DF711E8D8B;
+	Wed, 22 Apr 2026 20:20:21 +0800 (AWST)
+Message-ID: <3922addf-32d8-4548-9a43-0e9bd861a5c8@davidgow.net>
+Date: Wed, 22 Apr 2026 20:20:19 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -62,7 +62,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v7 3/5] kunit: Add backtrace suppression self-tests
+Subject: Re: [PATCH v7 4/5] drm: Suppress intentional warning backtraces in
+ scaling unit tests
 To: Albert Esteve <aesteve@redhat.com>, Arnd Bergmann <arnd@arndb.de>,
  Brendan Higgins <brendan.higgins@linux.dev>, Rae Moar <raemoar63@gmail.com>,
  Maarten Lankhorst <maarten.lankhorst@linux.intel.com>,
@@ -76,175 +77,85 @@ Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
  linux-doc@vger.kernel.org, peterz@infradead.org,
  Guenter Roeck <linux@roeck-us.net>,
  Linux Kernel Functional Testing <lkft@linaro.org>,
- Dan Carpenter <dan.carpenter@linaro.org>,
- Alessandro Carminati <acarmina@redhat.com>, Kees Cook <kees@kernel.org>
+ Dan Carpenter <dan.carpenter@linaro.org>, =?UTF-8?Q?Ma=C3=ADra_Canal?=
+ <mcanal@igalia.com>, Alessandro Carminati <acarmina@redhat.com>,
+ Simona Vetter <simona.vetter@ffwll.ch>
 References: <20260420-kunit_add_support-v7-0-e8bc6e0f70de@redhat.com>
- <20260420-kunit_add_support-v7-3-e8bc6e0f70de@redhat.com>
+ <20260420-kunit_add_support-v7-4-e8bc6e0f70de@redhat.com>
 Content-Language: fr
 From: David Gow <david@davidgow.net>
-In-Reply-To: <20260420-kunit_add_support-v7-3-e8bc6e0f70de@redhat.com>
+In-Reply-To: <20260420-kunit_add_support-v7-4-e8bc6e0f70de@redhat.com>
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 
 Le 20/04/2026 à 8:28 PM, Albert Esteve a écrit :
 > From: Guenter Roeck <linux@roeck-us.net>
 > 
-> Add unit tests to verify that warning backtrace suppression works,
-> covering WARN() and WARN_ON() with direct calls, indirect calls
-> through helper functions, and multiple warnings in a single window.
-> 
-> If backtrace suppression does _not_ work, the unit tests will likely
-> trigger unsuppressed backtraces, which should actually help to get
-> the affected architectures / platforms fixed.
+> The drm_test_rect_calc_hscale and drm_test_rect_calc_vscale unit tests
+> intentionally trigger warning backtraces by providing bad parameters to
+> the tested functions. What is tested is the return value, not the existence
+> of a warning backtrace. Suppress the backtraces to avoid clogging the
+> kernel log and distraction from real problems.
 > 
 > Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
 > Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
-> Reviewed-by: Kees Cook <keescook@chromium.org>
+> Acked-by: Maíra Canal <mcanal@igalia.com>
+> Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
+> Cc: David Airlie <airlied@gmail.com>
+> Cc: Daniel Vetter <daniel@ffwll.ch>
 > Signed-off-by: Guenter Roeck <linux@roeck-us.net>
 > Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
 > Signed-off-by: Albert Esteve <aesteve@redhat.com>
 > ---
 
-Thanks very much for including tests!
+Acked-by: David Gow <david@davidgow.net>
 
-Maybe it'd be nice to test that the suppression is disabled after 
-KUNIT_END_SUPPRESSED_WARNING(). Of course, then triggering an actual 
-stacktrace would be a pain, but maybe we could check that 
-__kunit_is_suppressed_warning() returns false? If you wanted to be 
-really fancy, you could test that it returns false on another kthread 
-even while the suppression is active, too, but I won't hold you to it. 
-Equally, you could try setting up a fake test context and ensuring the 
-cleanup is called correctly, but I think that's mostly covered by the 
-existing KUnit resource tests.
+Some of the suggestions in the thread around __cleanup() et al. sound 
+good to me, too. I suspect that it should work given the 
+kunit_add_action() / resource system use anyway, so even if an assertion 
+fires, things should be cleaned up properly.
 
-Otherwise, looking good. A couple of other minor suggestions below, 
-which may require some reworking of the __kunit_suppress scope, but all 
-optional suggestions.
+Cheers,
+-- David
 
-Reviewed-by: David Gow <david@davidgow.net>
-
->   lib/kunit/Makefile                     |  3 ++
->   lib/kunit/backtrace-suppression-test.c | 90 ++++++++++++++++++++++++++++++++++
->   2 files changed, 93 insertions(+)
+>   drivers/gpu/drm/tests/drm_rect_test.c | 14 ++++++++++++++
+>   1 file changed, 14 insertions(+)
 > 
-> diff --git a/lib/kunit/Makefile b/lib/kunit/Makefile
-> index fe177ff3ebdef..b2f2b8ada7b71 100644
-> --- a/lib/kunit/Makefile
-> +++ b/lib/kunit/Makefile
-> @@ -23,6 +23,9 @@ obj-$(if $(CONFIG_KUNIT),y) +=		hooks.o \
+> diff --git a/drivers/gpu/drm/tests/drm_rect_test.c b/drivers/gpu/drm/tests/drm_rect_test.c
+> index 17e1f34b76101..1dd7d819165e7 100644
+> --- a/drivers/gpu/drm/tests/drm_rect_test.c
+> +++ b/drivers/gpu/drm/tests/drm_rect_test.c
+> @@ -409,8 +409,15 @@ static void drm_test_rect_calc_hscale(struct kunit *test)
+>   	const struct drm_rect_scale_case *params = test->param_value;
+>   	int scaling_factor;
 >   
->   obj-$(CONFIG_KUNIT_TEST) +=		kunit-test.o
->   obj-$(CONFIG_KUNIT_TEST) +=		platform-test.o
-> +ifeq ($(CONFIG_KUNIT_SUPPRESS_BACKTRACE),y)
-> +obj-$(CONFIG_KUNIT_TEST) +=		backtrace-suppression-test.o
-> +endif
+> +	/*
+> +	 * drm_rect_calc_hscale() generates a warning backtrace whenever bad
+> +	 * parameters are passed to it. This affects all unit tests with an
+> +	 * error code in expected_scaling_factor.
+> +	 */
+> +	KUNIT_START_SUPPRESSED_WARNING(test);
+>   	scaling_factor = drm_rect_calc_hscale(&params->src, &params->dst,
+>   					      params->min_range, params->max_range);
+> +	KUNIT_END_SUPPRESSED_WARNING(test);
 >   
->   # string-stream-test compiles built-in only.
->   ifeq ($(CONFIG_KUNIT_TEST),y)
-> diff --git a/lib/kunit/backtrace-suppression-test.c b/lib/kunit/backtrace-suppression-test.c
-> new file mode 100644
-> index 0000000000000..2ba5dcb5fef35
-> --- /dev/null
-> +++ b/lib/kunit/backtrace-suppression-test.c
-> @@ -0,0 +1,90 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * KUnit test for suppressing warning tracebacks.
-> + *
-> + * Copyright (C) 2024, Guenter Roeck
-> + * Author: Guenter Roeck <linux@roeck-us.net>
-> + */
-> +
-> +#include <kunit/test.h>
-> +#include <linux/bug.h>
-> +
-> +static void backtrace_suppression_test_warn_direct(struct kunit *test)
-> +{
+>   	KUNIT_EXPECT_EQ(test, scaling_factor, params->expected_scaling_factor);
+>   }
+> @@ -420,8 +427,15 @@ static void drm_test_rect_calc_vscale(struct kunit *test)
+>   	const struct drm_rect_scale_case *params = test->param_value;
+>   	int scaling_factor;
+>   
+> +	/*
+> +	 * drm_rect_calc_vscale() generates a warning backtrace whenever bad
+> +	 * parameters are passed to it. This affects all unit tests with an
+> +	 * error code in expected_scaling_factor.
+> +	 */
 > +	KUNIT_START_SUPPRESSED_WARNING(test);
-> +	WARN(1, "This backtrace should be suppressed");
+>   	scaling_factor = drm_rect_calc_vscale(&params->src, &params->dst,
+>   					      params->min_range, params->max_range);
 > +	KUNIT_END_SUPPRESSED_WARNING(test);
-> +
-> +	KUNIT_EXPECT_EQ(test, KUNIT_SUPPRESSED_WARNING_COUNT(), 1);
-> +}
-> +
-> +static void trigger_backtrace_warn(void)
-> +{
-> +	WARN(1, "This backtrace should be suppressed");
-> +}
-> +
-> +static void backtrace_suppression_test_warn_indirect(struct kunit *test)
-> +{
-> +	KUNIT_START_SUPPRESSED_WARNING(test);
-> +	trigger_backtrace_warn();
-> +	KUNIT_END_SUPPRESSED_WARNING(test);
-> +
-> +	KUNIT_EXPECT_EQ(test, KUNIT_SUPPRESSED_WARNING_COUNT(), 1);
-> +}
-> +
-> +static void backtrace_suppression_test_warn_multi(struct kunit *test)
-> +{
-> +	KUNIT_START_SUPPRESSED_WARNING(test);
-> +	WARN(1, "This backtrace should be suppressed");
-> +	trigger_backtrace_warn();
-> +	KUNIT_END_SUPPRESSED_WARNING(test);
-> +
-> +	KUNIT_EXPECT_EQ(test, KUNIT_SUPPRESSED_WARNING_COUNT(), 2);
-
-Would it make sense to test KUNIT_SUPPRESSED_WARNING_COUNT() more 
-thoroughly here by checking that it's 0 before any warnings, and 
-checking that it's 1 in-between the two warnings?
-
-Of course, the first case doesn't work due to __kunit_suppress not being 
-defined, but if the implementation changes to support this, let's add it 
-to the test, too.
-
-> +}
-> +
-> +static void backtrace_suppression_test_warn_on_direct(struct kunit *test)
-> +{
-> +	if (!IS_ENABLED(CONFIG_DEBUG_BUGVERBOSE) && !IS_ENABLED(CONFIG_KALLSYMS))
-> +		kunit_skip(test, "requires CONFIG_DEBUG_BUGVERBOSE or CONFIG_KALLSYMS");
-> +
-> +	KUNIT_START_SUPPRESSED_WARNING(test);
-> +	WARN_ON(1);
-> +	KUNIT_END_SUPPRESSED_WARNING(test);
-> +
-> +	KUNIT_EXPECT_EQ(test, KUNIT_SUPPRESSED_WARNING_COUNT(), 1);
-> +}
-> +
-> +static void trigger_backtrace_warn_on(void)
-> +{
-> +	WARN_ON(1);
-> +}
-> +
-> +static void backtrace_suppression_test_warn_on_indirect(struct kunit *test)
-> +{
-> +	if (!IS_ENABLED(CONFIG_DEBUG_BUGVERBOSE))
-> +		kunit_skip(test, "requires CONFIG_DEBUG_BUGVERBOSE");
-> +
-> +	KUNIT_START_SUPPRESSED_WARNING(test);
-> +	trigger_backtrace_warn_on();
-> +	KUNIT_END_SUPPRESSED_WARNING(test);
-> +
-> +	KUNIT_EXPECT_EQ(test, KUNIT_SUPPRESSED_WARNING_COUNT(), 1);
-> +}
-> +
-> +static struct kunit_case backtrace_suppression_test_cases[] = {
-> +	KUNIT_CASE(backtrace_suppression_test_warn_direct),
-> +	KUNIT_CASE(backtrace_suppression_test_warn_indirect),
-> +	KUNIT_CASE(backtrace_suppression_test_warn_multi),
-> +	KUNIT_CASE(backtrace_suppression_test_warn_on_direct),
-> +	KUNIT_CASE(backtrace_suppression_test_warn_on_indirect),
-> +	{}
-> +};
-> +
-> +static struct kunit_suite backtrace_suppression_test_suite = {
-> +	.name = "backtrace-suppression-test",
-> +	.test_cases = backtrace_suppression_test_cases,
-> +};
-> +kunit_test_suites(&backtrace_suppression_test_suite);
-> +
-> +MODULE_LICENSE("GPL");
-> +MODULE_DESCRIPTION("KUnit test to verify warning backtrace suppression");
+>   
+>   	KUNIT_EXPECT_EQ(test, scaling_factor, params->expected_scaling_factor);
+>   }
 > 
 
