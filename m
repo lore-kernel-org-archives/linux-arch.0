@@ -1,43 +1,75 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 39E303D0929;
-	Wed, 22 Apr 2026 12:53:30 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F2533CE4BB
+	for <linux-arch@vger.kernel.org>; Wed, 22 Apr 2026 12:56:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776862410; cv=none; b=ONs+EQ8JCzeFoDO9BHyNP1c8W9yyvB0AHERovFBpSnjYSF2MmIM51/LcNLvdMhfe2HrWXU+fxTAwR6ruK7Vr4lzF2Ih4xySVdRV0yvUBBrbIEyOea3MaX/ICEuQb8+CiFoMNpWp2139SPDUwBJhzm/055m7Dh90jf748gFXt2bA=
+	t=1776862593; cv=none; b=tBGmUi0wVjl7ep3IrjKzD8uOPjH5v6IH5Pa2BC05xoKKyrkNhc6sXWc3vzDSNe0HoloMLfp7QXhr2bv5USBEvQSt74Fmc150Ukn4qUhR4XIRgO3NMyCQe7PmVs5gAdFXDWjquVqBFeEJzdDfEaR5zP1TadgJakXGxht+EXnjQcY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776862410; c=relaxed/simple;
-	bh=PNnDCzGsRm+eFMvCWAZgnBoDZdSimelEoS72QwaSIaI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=HmIzq16W/lX6ISbbp5iE/GdjbZ2gHyL1w4sWJCFUhK5TAe+8tmM6KJF3qkThfn5Iy+k1WkWCXaBZdNkrvccmK7mh9jwmwGj4Bve3Hp6SSYy2Vf7yi6EaDsOXqwt5hD/KZP0GT6+QCmhWlvd5qJlTxAM2Uee6l4upoeacz0g6Wos=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=UwEm58Xl; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1776862593; c=relaxed/simple;
+	bh=Am0j23VluZ7/eFy7vcUCEEwytqekVYfDvJyEuTjogTo=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=E6lP9/1o6wNxaQ8WIDxNRYUS9NHFYgjcUjuF9Npdf7Apy8PXajVzBnTL+sr6hXPRT1o5cJWGrEDv+152v0YdDjoEN6HX8sgHdu3j8MHKVLS/s7ja9V8gmB0r4IIHW/6Dvbe7MJOPBVxjNTHUk5+UeGttlYCqk5RVOkCKgBS3NXQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=Crt3wMwv; arc=none smtp.client-ip=170.10.129.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="UwEm58Xl"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1AC1EC2BCAF;
-	Wed, 22 Apr 2026 12:53:26 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1776862409;
-	bh=PNnDCzGsRm+eFMvCWAZgnBoDZdSimelEoS72QwaSIaI=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=UwEm58XlP+PSxfHAM+HdlxiRw/Y67epyVMYqaKBJNdG4EM3+YLiEJa0IEdNZsrPe+
-	 V3m1fNzu27l3EdSz9N70T/AD7xaP7BPQCZ5gvA+Bof8azwhKaR2K7lP6koJMkDU9MH
-	 OJRsCfKjsv2ezYNN6NTZal/GROPgxw962Pi8NnNIPc9CX+YtOehtlPQOmh/ciPejhS
-	 TJdiwo0BthlmpHBUBU8eJaDITg0TkGdsUqUAadeEk/hpe0FXGbaJ5oWa9ASK9C8NRm
-	 Wz3gFgPz6HTag5MCTaZacP4FxgNkH+HKRrpB1xsEBqvUqHzPFwQsb8UnjB+IP13kN6
-	 fUL+uTqj7KV5A==
-Date: Wed, 22 Apr 2026 14:53:24 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Jori Koolstra <jkoolstra@xs4all.nl>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, cmirabil@redhat.com, 
-	Jeff Layton <jlayton@kernel.org>, Chuck Lever <chuck.lever@oracle.com>, 
-	Alexander Aring <alex.aring@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Jan Kara <jack@suse.cz>, Arnd Bergmann <arnd@arndb.de>, 
-	"open list:FILE LOCKING (flock() and fcntl()/lockf())" <linux-fsdevel@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>, 
-	"open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
-Subject: Re: [PATCH v4 1/2] vfs: add O_EMPTYPATH to openat(2)/openat2(2)
-Message-ID: <20260422-zugegangen-schlucht-d8b4d629cd13@brauner>
-References: <20260419131800.486788-1-jkoolstra@xs4all.nl>
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="Crt3wMwv"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1776862591;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=hNFhUEFjcegFazcO19qyJn0DssXxDQXRu1KhsMPo2L8=;
+	b=Crt3wMwv+Lx9HOL5YyO4ItnhN9kITXvm2RxNUsDevbperrfqGzhYTlrlkL9GCI5RfUgnAF
+	0CsISvLoYJrpda6SvPKARY0E0GyjJFGsfcEC21HlIz9tdD4zglhaGK4qT6bpD2yP2+V3tf
+	Y1gFvPvg+Ny6EFZ44FIBMXxVjGUiS6E=
+Received: from mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-377-LID39KPIOuWodVAVWaZhTw-1; Wed,
+ 22 Apr 2026 08:56:24 -0400
+X-MC-Unique: LID39KPIOuWodVAVWaZhTw-1
+X-Mimecast-MFC-AGG-ID: LID39KPIOuWodVAVWaZhTw_1776862582
+Received: from mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.17])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id A38B319560AF;
+	Wed, 22 Apr 2026 12:56:20 +0000 (UTC)
+Received: from fweimer-oldenburg.csb.redhat.com (unknown [10.44.49.45])
+	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id B15961956095;
+	Wed, 22 Apr 2026 12:56:12 +0000 (UTC)
+From: Florian Weimer <fweimer@redhat.com>
+To: =?utf-8?Q?Andr=C3=A9?= Almeida <andrealmeid@igalia.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>,  Will Deacon
+ <will@kernel.org>,  Thomas Gleixner <tglx@kernel.org>,  Mark Rutland
+ <mark.rutland@arm.com>,  Mathieu Desnoyers
+ <mathieu.desnoyers@efficios.com>,  Sebastian Andrzej Siewior
+ <bigeasy@linutronix.de>,  Carlos O'Donell <carlos@redhat.com>,  Peter
+ Zijlstra <peterz@infradead.org>,  Rich Felker <dalias@aerifal.cx>,
+  Torvald Riegel <triegel@redhat.com>,  Darren Hart <dvhart@infradead.org>,
+  Ingo Molnar <mingo@kernel.org>,  Davidlohr Bueso <dave@stgolabs.net>,
+  Arnd Bergmann <arnd@arndb.de>,  "Liam R . Howlett"
+ <Liam.Howlett@oracle.com>,  Uros Bizjak <ubizjak@gmail.com>,  Thomas
+ =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>,
+  linux-arm-kernel@lists.infradead.org,
+  linux-kernel@vger.kernel.org,  linux-arch@vger.kernel.org,
+  kernel-dev@igalia.com
+Subject: Re: [PATCH RFC 1/2] arm64: vdso: Prepare for robust futex unlock
+ support
+In-Reply-To: <32642d18-8c83-47ad-8456-1813084c4622@igalia.com>
+ (=?utf-8?Q?=22Andr=C3=A9?=
+	Almeida"'s message of "Wed, 22 Apr 2026 09:46:53 -0300")
+References: <20260417-tonyk-robust_arm-v1-0-03aa64e2ff1a@igalia.com>
+	<20260417-tonyk-robust_arm-v1-1-03aa64e2ff1a@igalia.com>
+	<lhu1pgd8w0f.fsf@oldenburg.str.redhat.com>
+	<32642d18-8c83-47ad-8456-1813084c4622@igalia.com>
+Date: Wed, 22 Apr 2026 14:56:09 +0200
+Message-ID: <lhuv7djb1cm.fsf@oldenburg.str.redhat.com>
+User-Agent: Gnus/5.13 (Gnus v5.13)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -45,25 +77,48 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20260419131800.486788-1-jkoolstra@xs4all.nl>
+Content-Transfer-Encoding: quoted-printable
+X-Scanned-By: MIMEDefang 3.0 on 10.30.177.17
 
-On Sun, Apr 19, 2026 at 03:17:49PM +0200, Jori Koolstra wrote:
-> To get an operable version of an O_PATH file descriptor, it is possible
-> to use openat(fd, ".", O_DIRECTORY) for directories, but other files
-> currently require going through open("/proc/<pid>/fd/<nr>"), which
-> depends on a functioning procfs.
-> 
-> This patch adds the O_EMPTYPATH flag to openat(2)/openat2(2). If passed,
-> LOOKUP_EMPTY is set at path resolution time.
-> 
-> Note: This implies that you cannot rely anymore on disabling procfs from
-> being mounted (e.g. inside a container without procfs mounted and with
-> CAP_SYS_ADMIN dropped) to prevent O_PATH fds from being re-opened
-> read-write.
+* Andr=C3=A9 Almeida:
 
-That's the only thing that really always gave me pause about this.
+> Hi Florian,
+>
+> Em 17/04/2026 12:08, Florian Weimer escreveu:
+>> * Andr=C3=A9 Almeida:
+>>=20
+>>> There will be a VDSO function to unlock non-contended robust futexes in
+>>> user space. The unlock sequence is racy vs. clearing the list_pending_op
+>>> pointer in the task's robust list head. To plug this race the kernel ne=
+eds
+>>> to know the critical section window so it can clear the pointer when the
+>>> task is interrupted within that race window. The window is determined by
+>>> labels in the inline assembly.
+>>>
+>>> Signed-off-by: Andr=C3=A9 Almeida <andrealmeid@igalia.com>
+>>> ---
+>>> RFC: Those symbols can't be found by the linker after patch 2/2, it fai=
+ls with:
+>>>
+>>> ld: arch/arm64/kernel/vdso.o: in function `vdso_futex_robust_unlock_upd=
+ate_ips':
+>>> arch/arm64/kernel/vdso.c:72:(.text+0x200): undefined reference to `__fu=
+tex_list64_try_unlock_cs_success'
+>>> ld: arch/arm64/kernel/vdso.o: relocation R_AARCH64_ADR_PREL_PG_HI21 aga=
+inst symbol `__futex_list64_try_unlock_cs_success' which may bind externall=
+y can not be used when making a shared object; recompile with -fPIC
+>>> arch/arm64/kernel/vdso.c:72:(.text+0x200): dangerous relocation: unsupp=
+orted relocation
+>> I think your GLOBLS definition adds a 64 suffix.  That shouldn't be
+>> necessary on AArch64.  It's not reflected in the references, so you end
+>> up with an undefined symbol error.
+>>=20
+>
+> Why aarch64 doesn't need the 64 suffix? objdump shows that the final
+> label name is __futex_list64_try_unlock_cs_success, which should match
+> what the linker is trying to find, AFAIC.
 
-So I think we should try it anyway but I want to prepare you for the not
-so unlikely possibility that we will have to revert this because some
-userspace program relies on the legacy behavior.
+Sorry, I was confused about how this is expected to work.
+
+Florian
+
