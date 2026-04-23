@@ -1,225 +1,88 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 12F5F275AFB;
-	Thu, 23 Apr 2026 14:00:37 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CCDFA367F39;
+	Thu, 23 Apr 2026 17:16:32 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776952838; cv=none; b=B/bFiHklRIlY7s6+hNaB3uOjO382qvZJ5A170VhekDZcIcqHNLTMxY0Cgi2HQzOJAnfyKdnh2x1B9GjD4Ci+QD0zmL1rEYbR5RrivX8Z5bAUda/LA+bnir5YHyU0mKLVk6TSz5aItJv4VpjKN0WOOzm+8Cj0b31cDz46r6rVkUc=
+	t=1776964593; cv=none; b=UxWqqfE0Df8Oepb6cfJEZQVmkDPVQg73vDHmjXaTztaTR7GdhAIj/fbTP6LtSZPuqAoTX0SZSJv8ITdMlXPNnT6bsdz7OOj6KZ5WxGzwIjjVlk0xWnRkkeWo8Johps2/ts534WPYPpxU7X/6clQRzYLSWAZHQ4EvmnoqRtVED34=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776952838; c=relaxed/simple;
-	bh=mVrK0zXCEdJ6a40kh14ulfHCdH3uQpXGB2DGyceVQ9M=;
-	h=Date:Message-ID:From:To:Cc:Subject:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=qXSrJRhf/9aKl3v2Oh+9s5Y+7m44dk/3Vt+hZmJ3TNudbJ0dFa+0kKJnlNIeJ0xwIuRkNKr1Kw6TRe7SQ4AvGDvhSl7hhqENNlY4mZwnHmBPT8IB2RddyMZGR/exAFiNiTETouyAaZWNIrRm8RiP0tUD7bQTYCd06VlzPeSUL8I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Na8CI7bw; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1776964593; c=relaxed/simple;
+	bh=5p+VepR5wJHe4o7jIsVUYpLrJUgsXBIvYPh5Xah4Rf8=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=Fm1JdRXtPRJCxCW4PEv6/ehZqaaE1XoEhr6/Nk28c3+pidWMZvlM5qax4dXcyT1rdytEzWM3T9TePZ/iwUCmF7lt9gGcGpx/zv64rOGlU2Vs5MAAQ+u7YLX5G3y4OlmQdkVL6Ti9Zh7r2KteCnAsPL8U5YUYV+gUyz7zTShSgCo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=s+jiOEXl; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Na8CI7bw"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7C102C2BCB3;
-	Thu, 23 Apr 2026 14:00:37 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1776952837;
-	bh=mVrK0zXCEdJ6a40kh14ulfHCdH3uQpXGB2DGyceVQ9M=;
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="s+jiOEXl"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id A7B86C2BCAF;
+	Thu, 23 Apr 2026 17:16:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+	s=korg; t=1776964592;
+	bh=5p+VepR5wJHe4o7jIsVUYpLrJUgsXBIvYPh5Xah4Rf8=;
 	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=Na8CI7bwOFFciWF152SK6VpvgW/0uJ9C/ab85EokcYjuHus/X7p5kdg3sgcvfaoT8
-	 qHtp6cimBCaiagvbYXjw2BModFBlKGaR7PB9ARWc01gap3WEdVSBIm+os8k2xnkOPu
-	 xlBzNX8FRqwIEDKREsGsUViWZfjeYfjGIMrkbuvIEutscXEFDBVc4YlhdVFs9SfT8B
-	 WrL3lV26hSmkoRSlYMtK1MQpod6CFooqGC4+WUs8b+cH8X9CS2SdUqsOGlbKAd/AAs
-	 SM789kC1D0hTDtVBhRTd6CAMJHrAPGcFthq786V4/J2nP4PQLEQE+epCfoxx3mKPcr
-	 Vco1wbe+h2pvQ==
-Received: from sofa.misterjones.org ([185.219.108.64] helo=goblin-girl.misterjones.org)
-	by disco-boy.misterjones.org with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	(Exim 4.98.2)
-	(envelope-from <maz@kernel.org>)
-	id 1wFuba-0000000E4rW-3VD2;
-	Thu, 23 Apr 2026 14:00:34 +0000
-Date: Thu, 23 Apr 2026 15:00:34 +0100
-Message-ID: <864il122v1.wl-maz@kernel.org>
-From: Marc Zyngier <maz@kernel.org>
-To: Naman Jain <namjain@linux.microsoft.com>
-Cc: "K . Y . Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>,
-	Dexuan Cui <decui@microsoft.com>,
-	Long Li <longli@microsoft.com>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>,
-	Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	x86@kernel.org,
-	"H . Peter Anvin" <hpa@zytor.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>,
-	Alexandre Ghiti <alex@ghiti.fr>,
-	Michael Kelley <mhklinux@outlook.com>,
-	Timothy Hayes <timothy.hayes@arm.com>,
-	Lorenzo Pieralisi <lpieralisi@kernel.org>,
-	Sascha Bischoff <sascha.bischoff@arm.com>,
-	mrigendrachaubey <mrigendra.chaubey@gmail.com>,
-	linux-hyperv@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-riscv@lists.infradead.org,
-	vdso@mailbox.org,
-	ssengar@linux.microsoft.com
-Subject: Re: [PATCH v2 07/15] arm64: hyperv: Add support for mshv_vtl_return_call
-In-Reply-To: <20260423124206.2410879-8-namjain@linux.microsoft.com>
-References: <20260423124206.2410879-1-namjain@linux.microsoft.com>
-	<20260423124206.2410879-8-namjain@linux.microsoft.com>
-User-Agent: Wanderlust/2.15.9 (Almost Unreal) SEMI-EPG/1.14.7 (Harue)
- FLIM-LB/1.14.9 (=?UTF-8?B?R29qxY0=?=) APEL-LB/10.8 EasyPG/1.0.0 Emacs/30.1
- (aarch64-unknown-linux-gnu) MULE/6.0 (HANACHIRUSATO)
+	b=s+jiOEXlNsToZuAs+kLgiqYKx6+FScUlmctoYOMjAJAav55a1VGjrfI6KzW22oVsa
+	 P1wzE2ZqcEIHTYCW9pNyUYoXuuWVJv8JJWU20B9C2RtfMylsjDywAe0lNxy62ZKIAi
+	 G2IOPewWlzy+DdieHRfP5JTTHdlX7R7MBfcgJf/c=
+Date: Thu, 23 Apr 2026 10:16:31 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Ankur Arora <ankur.a.arora@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
+ bpf@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com,
+ will@kernel.org, peterz@infradead.org, mark.rutland@arm.com,
+ harisokn@amazon.com, cl@gentwo.org, ast@kernel.org, rafael@kernel.org,
+ daniel.lezcano@linaro.org, memxor@gmail.com, zhenglifeng1@huawei.com,
+ xueshuai@linux.alibaba.com, rdunlap@infradead.org,
+ david.laight.linux@gmail.com, joao.m.martins@oracle.com,
+ boris.ostrovsky@oracle.com, konrad.wilk@oracle.com, ashok.bhat@arm.com
+Subject: Re: [PATCH v11 00/14] barrier: Add
+ smp_cond_load_{relaxed,acquire}_timeout()
+Message-Id: <20260423101631.84f26592d629eee46fbde6f8@linux-foundation.org>
+In-Reply-To: <20260408122538.3610871-1-ankur.a.arora@oracle.com>
+References: <20260408122538.3610871-1-ankur.a.arora@oracle.com>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
+Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
-X-SA-Exim-Connect-IP: 185.219.108.64
-X-SA-Exim-Rcpt-To: namjain@linux.microsoft.com, kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com, longli@microsoft.com, catalin.marinas@arm.com, will@kernel.org, tglx@kernel.org, mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com, arnd@arndb.de, pjw@kernel.org, palmer@dabbelt.com, aou@eecs.berkeley.edu, alex@ghiti.fr, mhklinux@outlook.com, timothy.hayes@arm.com, lpieralisi@kernel.org, sascha.bischoff@arm.com, mrigendra.chaubey@gmail.com, linux-hyperv@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, vdso@mailbox.org, ssengar@linux.microsoft.com
-X-SA-Exim-Mail-From: maz@kernel.org
-X-SA-Exim-Scanned: No (on disco-boy.misterjones.org); SAEximRunCond expanded to false
+Content-Transfer-Encoding: 7bit
 
-On Thu, 23 Apr 2026 13:41:57 +0100,
-Naman Jain <namjain@linux.microsoft.com> wrote:
+On Wed,  8 Apr 2026 17:55:24 +0530 Ankur Arora <ankur.a.arora@oracle.com> wrote:
+
+> The core kernel often uses smp_cond_load_{relaxed,acquire}() to spin
+> on condition variables with architectural primitives used to avoid
+> hammering the relevant cachelines.
 > 
-> Add the arm64 variant of mshv_vtl_return_call() to support the MSHV_VTL
-> driver on arm64. This function enables the transition between Virtual
-> Trust Levels (VTLs) in MSHV_VTL when the kernel acts as a paravisor.
+> ...
 > 
-> Signed-off-by: Roman Kisel <romank@linux.microsoft.com>
-> Reviewed-by: Roman Kisel <vdso@mailbox.org>
-> Signed-off-by: Naman Jain <namjain@linux.microsoft.com>
-> ---
->  arch/arm64/hyperv/Makefile        |   1 +
->  arch/arm64/hyperv/hv_vtl.c        | 158 ++++++++++++++++++++++++++++++
->  arch/arm64/include/asm/mshyperv.h |  13 +++
->  arch/x86/include/asm/mshyperv.h   |   2 -
->  drivers/hv/mshv_vtl.h             |   3 +
->  include/asm-generic/mshyperv.h    |   2 +
->  6 files changed, 177 insertions(+), 2 deletions(-)
->  create mode 100644 arch/arm64/hyperv/hv_vtl.c
+> Accordingly add two interfaces (with their generic and arm64 specific
+> implementations):
 > 
-> diff --git a/arch/arm64/hyperv/Makefile b/arch/arm64/hyperv/Makefile
-> index 87c31c001da9..9701a837a6e1 100644
-> --- a/arch/arm64/hyperv/Makefile
-> +++ b/arch/arm64/hyperv/Makefile
-> @@ -1,2 +1,3 @@
->  # SPDX-License-Identifier: GPL-2.0
->  obj-y		:= hv_core.o mshyperv.o
-> +obj-$(CONFIG_HYPERV_VTL_MODE)	+= hv_vtl.o
-> diff --git a/arch/arm64/hyperv/hv_vtl.c b/arch/arm64/hyperv/hv_vtl.c
-> new file mode 100644
-> index 000000000000..59cbeb74e7b9
-> --- /dev/null
-> +++ b/arch/arm64/hyperv/hv_vtl.c
-> @@ -0,0 +1,158 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Copyright (C) 2026, Microsoft, Inc.
-> + *
-> + * Authors:
-> + *     Roman Kisel <romank@linux.microsoft.com>
-> + *     Naman Jain <namjain@linux.microsoft.com>
-> + */
-> +
-> +#include <asm/mshyperv.h>
-> +#include <asm/neon.h>
-> +#include <linux/export.h>
-> +
-> +void mshv_vtl_return_call(struct mshv_vtl_cpu_context *vtl0)
-> +{
-> +	struct user_fpsimd_state fpsimd_state;
-> +	u64 base_ptr = (u64)vtl0->x;
-> +
-> +	/*
-> +	 * Obtain the CPU FPSIMD registers for VTL context switch.
-> +	 * This saves the current task's FP/NEON state and allows us to
-> +	 * safely load VTL0's FP/NEON context for the hypercall.
-> +	 */
-> +	kernel_neon_begin(&fpsimd_state);
-> +
-> +	/*
-> +	 * VTL switch for ARM64 platform - managing VTL0's CPU context.
-> +	 * We explicitly use the stack to save the base pointer, and use x16
-> +	 * as our working register for accessing the context structure.
-> +	 *
-> +	 * Register Handling:
-> +	 * - X0-X17: Saved/restored (general-purpose, shared for VTL communication)
-> +	 * - X18: NOT touched - hypervisor-managed per-VTL (platform register)
-> +	 * - X19-X30: Saved/restored (part of VTL0's execution context)
-> +	 * - Q0-Q31: Saved/restored (128-bit NEON/floating-point registers, shared)
-> +	 * - SP: Not in structure, hypervisor-managed per-VTL
-> +	 *
-> +	 * X29 (FP) and X30 (LR) are in the structure and must be saved/restored
-> +	 * as part of VTL0's complete execution state.
-> +	 */
-> +	asm __volatile__ (
-> +		/* Save base pointer to stack explicitly, then load into x16 */
-> +		"str %0, [sp, #-16]!\n\t"     /* Push base pointer onto stack */
-> +		"mov x16, %0\n\t"             /* Load base pointer into x16 */
-> +		/* Volatile registers (Windows ARM64 ABI: x0-x17) */
-> +		"ldp x0, x1, [x16]\n\t"
-> +		"ldp x2, x3, [x16, #(2*8)]\n\t"
-> +		"ldp x4, x5, [x16, #(4*8)]\n\t"
-> +		"ldp x6, x7, [x16, #(6*8)]\n\t"
-> +		"ldp x8, x9, [x16, #(8*8)]\n\t"
-> +		"ldp x10, x11, [x16, #(10*8)]\n\t"
-> +		"ldp x12, x13, [x16, #(12*8)]\n\t"
-> +		"ldp x14, x15, [x16, #(14*8)]\n\t"
-> +		/* x16 will be loaded last, after saving base pointer */
-> +		"ldr x17, [x16, #(17*8)]\n\t"
-> +		/* x18 is hypervisor-managed per-VTL - DO NOT LOAD */
+>    smp_cond_load_relaxed_timeout(ptr, cond_expr, time_expr, timeout)
+>    smp_cond_load_acquire_timeout(ptr, cond_expr, time_expr, timeout)
+> 
+> Also add tif_need_resched_relaxed_wait() which wraps the polling
+> pattern and its scheduler specific details in poll_idle().
+> In addition add atomic_cond_read_*_timeout(),
 
-Wut? Does it mean the kernel is not free to use x18?
+Thanks, I'll add this to mm.git's mm-new branch today.
 
-> +		/* General-purpose registers: x19-x30 */
-> +		"ldp x19, x20, [x16, #(19*8)]\n\t"
-> +		"ldp x21, x22, [x16, #(21*8)]\n\t"
-> +		"ldp x23, x24, [x16, #(23*8)]\n\t"
-> +		"ldp x25, x26, [x16, #(25*8)]\n\t"
-> +		"ldp x27, x28, [x16, #(27*8)]\n\t"
-> +
-> +		/* Frame pointer and link register */
-> +		"ldp x29, x30, [x16, #(29*8)]\n\t"
-> +
-> +		/* Shared NEON/FP registers: Q0-Q31 (128-bit) */
-> +		"ldp q0, q1, [x16, #(32*8)]\n\t"
-> +		"ldp q2, q3, [x16, #(32*8 + 2*16)]\n\t"
-> +		"ldp q4, q5, [x16, #(32*8 + 4*16)]\n\t"
-> +		"ldp q6, q7, [x16, #(32*8 + 6*16)]\n\t"
-> +		"ldp q8, q9, [x16, #(32*8 + 8*16)]\n\t"
-> +		"ldp q10, q11, [x16, #(32*8 + 10*16)]\n\t"
-> +		"ldp q12, q13, [x16, #(32*8 + 12*16)]\n\t"
-> +		"ldp q14, q15, [x16, #(32*8 + 14*16)]\n\t"
-> +		"ldp q16, q17, [x16, #(32*8 + 16*16)]\n\t"
-> +		"ldp q18, q19, [x16, #(32*8 + 18*16)]\n\t"
-> +		"ldp q20, q21, [x16, #(32*8 + 20*16)]\n\t"
-> +		"ldp q22, q23, [x16, #(32*8 + 22*16)]\n\t"
-> +		"ldp q24, q25, [x16, #(32*8 + 24*16)]\n\t"
-> +		"ldp q26, q27, [x16, #(32*8 + 26*16)]\n\t"
-> +		"ldp q28, q29, [x16, #(32*8 + 28*16)]\n\t"
-> +		"ldp q30, q31, [x16, #(32*8 + 30*16)]\n\t"
-> +
-> +		/* Now load x16 itself */
-> +		"ldr x16, [x16, #(16*8)]\n\t"
-> +
-> +		/* Return to the lower VTL */
-> +		"hvc #3\n\t"
+This isn't am MM patchset, but mm-new isn't included in linux-next, and
+linux-next isn't presently open for 7.1 material.
 
-No. Absolutely not. If you need to do context switching, do it in the
-hypervisor. Entirely in the hypervisor. You don't even handle SVE, let
-alone SME. How is that going to work?
+After -rc1 I'll move the series into mm.git's mm-nonmm-unstable branch,
+where it will get linux-next exposure.
 
-And please use the SMCCC. Only that. Which mandates that the HVC
-immediate is 0, 0 or zero.
+I see that further review/comment has been requested - hopefully this
+will happen over the next couple of months, but please do continue to
+chase this down if you feel the need.
 
-	M.
+> Haris Okanovic also saw improvement in real workloads due to the
+> cpuidle changes: "observed 4-6% improvements in memcahed, cassandra,
+> mysql, and postgresql under certain loads. Other applications likely
+> benefit too." [12]
 
--- 
-Without deviation from the norm, progress is not possible.
+Those are significant improvements.   Three years :(
