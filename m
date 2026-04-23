@@ -1,66 +1,66 @@
-Received: from mail-oi1-f173.google.com (mail-oi1-f173.google.com [209.85.167.173])
+Received: from mail-oi1-f175.google.com (mail-oi1-f175.google.com [209.85.167.175])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0211D347BB5
-	for <linux-arch@vger.kernel.org>; Thu, 23 Apr 2026 20:54:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E3E36346E77
+	for <linux-arch@vger.kernel.org>; Thu, 23 Apr 2026 20:54:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776977656; cv=none; b=hfyYzt9JBBsOzsdvUSfO+97QdJ4RaaDpfTL7HB0FPnJERRWzGnl4woao4Q2i+dGWNCgLF+Az06yUuGrufeWySmUIUYyav4DjotOsP/IfCoauCA53CNk0GMzhXFk+DQpwRLcSW3rf3rJaDnMvr/X8iiUwh0IvcNc2aMO1y9R8C38=
+	t=1776977661; cv=none; b=MUK3GeK7G913dzjBK4xQywKJDzbeFB0WJCE4mqEKguoavhbxutVA8ZspIjGifhbWHmwKprHsxO+MelFKq7RwY5GhB6cVqDu3lGtKQsd/3J6qANgxPAmJ+YMXgbDm/82gi41VtUwroms6Kv8NURQbE5SNaPi7bJ+ozpj3krrpF88=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776977656; c=relaxed/simple;
-	bh=69R8ZEYuJ3XX3uaR1bDYpBHLyhieWCXWd/8ZwqL+bEM=;
+	s=arc-20240116; t=1776977661; c=relaxed/simple;
+	bh=dBPobWcjtsCPloRIZNIq7WrMQXPNqrRK7ZbNyYlUKjY=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=Y2kRP4IQEtszxUaDGDNBQOW2pjF4JPxr/pJbBPJyFBCNJhG3C/LEQ04C2qJcuLNbKgKBzV1GslU7zBVc83YHmIXy6Ug5wrhOvpY0tT3C0EQoSq2JgUemvusLjWm/oCtrGuqlFC3P/Jha8OeqBAqrLCZI4tHz3eEluvLCeIkWfc8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=hsf0DWeG; arc=none smtp.client-ip=209.85.167.173
+	 In-Reply-To:To:Cc; b=Hq/FoqSL0I+1yHFGt6cst2N17leSU7zHpI+kUEzY1tQI0CMwQcPVkrdau++pUUxEVSIXF2lKeFMtIuSIVgjn1FFWdlXuIGLKG1nzS3Xs+J+uVYukQ6rM/446d2A8PTwc//RQ2R0HFP48WKnDwjdsWP+q4Oxd7l9T3uxcXHTfWog=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Fg0UHOPU; arc=none smtp.client-ip=209.85.167.175
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="hsf0DWeG"
-Received: by mail-oi1-f173.google.com with SMTP id 5614622812f47-479d68a9062so2685779b6e.1
-        for <linux-arch@vger.kernel.org>; Thu, 23 Apr 2026 13:54:13 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Fg0UHOPU"
+Received: by mail-oi1-f175.google.com with SMTP id 5614622812f47-463a0e14abfso3604749b6e.2
+        for <linux-arch@vger.kernel.org>; Thu, 23 Apr 2026 13:54:18 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1776977653; x=1777582453; darn=vger.kernel.org;
+        d=gmail.com; s=20251104; t=1776977658; x=1777582458; darn=vger.kernel.org;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=smTQWx2Oo6n65DlNeq5F4cIF6aC/F9cGlPTeWDOeAjM=;
-        b=hsf0DWeGpsmDEUCAZQDTDlIgNDTqEbdh9Pvia3CbWhgG++vf62KDl/CowQSTdOidPy
-         wx1VXfVFWvmW+q1LI4yPyICbehwbWVylZixqqoJ0hvLZQFvC7/9w12wMF7iKxR8Azbca
-         IELqJ0nzZ+0UsjflRY6RyrL7jqj1C/Mcp2ifcHUUQ06xXuyW1hhH3ywIST6RCpUNFcu8
-         SEIzashdUE3Ld3+iO9rcjgaNhV8XzAs5s2cLRAXFBC6tBXsl3v0SdKyyAk2Oe8KDSiON
-         STsVWfspV6Ih/W6wwALxu04FJRw5A3RdRoqATy7BL4xkDcHFUAy442PU+gc/R037UNYR
-         rgPg==
+        bh=l1peIZB1cJ4wCWYePEqyi4U4OHQkEIk0zc+fw2Nxhlo=;
+        b=Fg0UHOPUqrNzgVTCaq6NLGlMykLum6UIqhj/kE8ZNtuUJTletZXBvfh51Yxu4oE32O
+         qwBzERZTtZh8DZiIAq82tI5f2MQw6I1hcXEl3hspjoLC1u5v+Oh7D/ibuPLseKk1skwW
+         2wCxSBitaaBS/xQM44NZjwZp9MyrEKYii4vpPEmebYvFJzahWZW6qdFnwr3wZB6L8UsQ
+         5GAIgSq0dt8tHdAKvECLBjeccCBMoR7LViMhLi7S/c12DkPWYpHmbEpKj0r2hQktth6W
+         xDd17MZuPJEnmg2oAEJZneNVMX0En3oUOekHayC0caKGV6cw06BNDS7eKnw0/OKHgwHf
+         WWig==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1776977653; x=1777582453;
+        d=1e100.net; s=20251104; t=1776977658; x=1777582458;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:x-gm-gg:x-gm-message-state:from:to
          :cc:subject:date:message-id:reply-to;
-        bh=smTQWx2Oo6n65DlNeq5F4cIF6aC/F9cGlPTeWDOeAjM=;
-        b=Yu6MPc5J06cptld8CHogOZs5pspbJG8orcNzUG2UQHwMK08ss8Y7V0qossf2LQdazf
-         +w+APMajyWC3QNN9jeiIjcVV34RllcCDsFxSVIWq8kmrqDp4ukBp7i8xJOfrsTZZzRBU
-         vY53TenaSbjD/yFb12anII4h5nFPx+5oh167cHKwMGcNgSgqTMYCqWB5CWLD73z8xYgT
-         e51XaA8QwjIWqMwI02+JD4DSHpVn0qi5Xc8ttFI2/Gw4+ate37C/ZDuiciVz2I0FfbHU
-         hazOmqZAAoETZjA/iA+pnshwpCSXCEr6rDuUc6KknJTBtQBIaK3jSg1y4dwq5i1cbwx9
-         wWyA==
-X-Gm-Message-State: AOJu0YyrFSPVC/3pU8ddP+0JZ8njfZHE1q+s8kBeG8NqtHBA7y81h/1x
-	5f+4kFnOsJo3tZX3CfcFmL8BDrXvBrJDXnig5uVfsjZRkNj9ej3ZueTQ
-X-Gm-Gg: AeBDiet4qO80lZPF3oWe8ZO55NpSd2GwHsd7UXITZ543lwpm2KJ0caepwqg6/otFAG8
-	gWrijCLYynkHTeCfFjadUg5ExK6SzSTywO0fJ5x5AlXPl70KNwuzeORWKtWEXiFgTV7hRbRxnFo
-	53ujAAqM2WptkCBThQFFm46WaGBoFuSS86JHzptxO08F6r+2ciQdeM2XXHgpW45+CeBCF79gGMR
-	Pqib6E44gvOP31DJ4ONthWLsansx4aCQ83s1yDPvH/D8P+PFpsCjjT5cc9cHGBl+0e2niuD79tF
-	52nFReeA0UOnIsd56XXB1n/4LOXD5RoDi1WHErlHipH9A7UD/U8HnC9SZLa/Am91myrUCMq8s70
-	Btdsnkggbci2HlnZW5kkZDczr4Kl4B8eICFNZw3c3AV/o/EOneusdP0vVjTDlqY7JEe34ZjE4ab
-	AgICFk8eHgo9tfVV/FDC3b/UBR9gF7tntA5FnX4xUREfjmWvDFvBIrYmbRACtUbQoO5BNWKGV1
-X-Received: by 2002:a05:6808:2006:10b0:479:ab0d:706d with SMTP id 5614622812f47-479ab0d8292mr9669402b6e.19.1776977652886;
-        Thu, 23 Apr 2026 13:54:12 -0700 (PDT)
+        bh=l1peIZB1cJ4wCWYePEqyi4U4OHQkEIk0zc+fw2Nxhlo=;
+        b=Npsd3Z9Hig0BDfVxrtjPEbo/Gd2EUiswPVndOSz3fOIdw4pLVPTRn/KlxJTplZDM+J
+         +d2BVXGffQn77vAAqJ2fl9uoZ/Ef3x0dnPLppLqKBumA7clsj2T8SHgj5nSAWgf1zVwV
+         5BgKhkhILRGlcHvoTAC/wYbMVtdM9ElsTPTh5KOG1QGBSGAFmMC3kW4tXEb0ec+vq/F2
+         pnEKHmld1WtRVp+VL8GT+mYq3AtWbBdM7k0GWww40ADHL1F9LZHQvNnnoyvDC3GH5Eij
+         HH3w7vtW/1XIwNDMHY4ATUMLd7XonhLEyCGh80QyeA+nvn8YPT+KmLFDlPAcGobohd0S
+         GW5g==
+X-Gm-Message-State: AOJu0YxKajaOWzIH+YSx+n68icACdX+CImyutQhTlw23bHll7qN5lxdI
+	2llMzzNukZBSYGhIqjwdw7C6yPgg4hYtQNpISvi51bM5F5VOsCFXieqE
+X-Gm-Gg: AeBDievTkMYQBSbTWu7Khrz8aHxjpbrgGB5eKNKS5IRnmXWzu72Y53tRtM7wkY0Ts/x
+	GbcA7GPaFvKNP5E/r3H0hwhuroue5A6n4OZ/ucdkzCHYXLN6//8nOuaFd2tIB9gapgltSxr+uVl
+	K62zn/Mp2JV4WZVJoxSbuYEwhcNxIQe7SwPZ3gUeQq1RHzh5PFAp3Ys/Ov8guia5lpTuGE4FPi/
+	Cjsf7amD6vDzbiCtuFcyCcMNM0EM7wTzJ5NCk10no0LHJV8nBC9oQx2xAlx9rjOwFWrGRspSbSm
+	LlVXMGWuOkigAC4I3Bsat2NpZrhqrWDDGbeBmEeyZaT3Qr3lGWPDAe4PbVnC70J7AGKpHk67oBJ
+	WW4uFGFLECYGo9P+9M/Jg4d8anBJVEEPUZBOVCLWc5K81RaSZ714mZhVgJvYf4R7rt3eIP79x5X
+	oSGgbGk7utB7VgV3GpqxZuJ+8pamCwzPgbBbQJrvziik0GgyXIEk5ZahelmSwi1Yh1ls51PD/5
+X-Received: by 2002:a05:6808:80b3:b0:479:d937:c4f4 with SMTP id 5614622812f47-479d937d218mr11467409b6e.19.1776977657796;
+        Thu, 23 Apr 2026 13:54:17 -0700 (PDT)
 Received: from [192.168.0.245] (c-98-38-17-99.hsd1.co.comcast.net. [98.38.17.99])
-        by smtp.googlemail.com with ESMTPSA id 5614622812f47-4799fead505sm14329744b6e.2.2026.04.23.13.54.08
+        by smtp.googlemail.com with ESMTPSA id 5614622812f47-4799fead505sm14329744b6e.2.2026.04.23.13.54.13
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 23 Apr 2026 13:54:12 -0700 (PDT)
+        Thu, 23 Apr 2026 13:54:17 -0700 (PDT)
 From: Jim Cromie <jim.cromie@gmail.com>
-Date: Thu, 23 Apr 2026 14:53:43 -0600
-Subject: [PATCH v14 02/92] vmlinux.lds.h: move BOUNDED_SECTION_* macros to
- reuse later
+Date: Thu, 23 Apr 2026 14:53:44 -0600
+Subject: [PATCH v14 03/92] dyndbg.lds.S: fix lost dyndbg sections in
+ modules
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -69,7 +69,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260423-submit-dyndbg-classmap-foundation-v14-2-2b809a8019d0@gmail.com>
+Message-Id: <20260423-submit-dyndbg-classmap-foundation-v14-3-2b809a8019d0@gmail.com>
 References: <20260423-submit-dyndbg-classmap-foundation-v14-0-2b809a8019d0@gmail.com>
 In-Reply-To: <20260423-submit-dyndbg-classmap-foundation-v14-0-2b809a8019d0@gmail.com>
 To: Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>, 
@@ -164,119 +164,127 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
  linux-stm32@st-md-mailman.stormreply.com, linux-renesas-soc@vger.kernel.org, 
  etnaviv@lists.freedesktop.org, Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1776977636; l=3825;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1776977636; l=3738;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=69R8ZEYuJ3XX3uaR1bDYpBHLyhieWCXWd/8ZwqL+bEM=;
- b=1RGrWBaCfa375YwomdXNmnBuK8DPasMGZMRXVFmSM5kqzTNvnvoK7RGv96IWfWsLl+f8VO+Oe
- DXnoOOHuOZ4A8HQQXvtEvtDkuAud4PS6djTnPaYlAYjqAqNr+vt0nX+
+ bh=dBPobWcjtsCPloRIZNIq7WrMQXPNqrRK7ZbNyYlUKjY=;
+ b=Mq2FY9AhjybUNh2r2+R0eLZQJzbkYdY8eG/KkpbUCrUKuD8lbuRInjAtfOok3gY1b6jjhzeKk
+ GFNhcQdx8P8CNk525EAsuvFZk9vQbFQyGNTNmtsMmoZIKphPxa+siA1
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 
-Move BOUNDED_SECTION_* macros to a new helper file:
-include/asm-generic/bounded_sections.lds.h
-and include it back into vmlinux.lds.h
+In an (unused) experimental variation of this series, I had trouble
+with __dyndbg* sections getting lost in drm drivers.  While it didn't
+happen in this series, it exposed a non-obvious weakness.  So fix it,
+by following the model demonstrated in codetag.lds.h.
 
-This allows its reuse later to fix a future problem with modules
-failing to keep dyndbg sections in some circumstances.
+Introduce include/asm-generic/dyndbg.lds.h, with 2 macros:
 
-NB: this ignores a checkpatch warning, because new file is covered by
-GENERIC INCLUDE/ASM HEADER FILES
+DYNDBG_SECTIONS() gets the 2 BOUNDED_SECTION_BY(__yndbg*) calls from
+vmlinux.lds.h DATA_DATA, which now includes the new file and calls the
+new macro.
+
+MOD_DYNDBG_SECTIONS also has the 2 BOUNDED_SECTION_BY calls, but wraps
+them with output section syntax to keep them as known and separate ELF
+sections in the module.ko.
+
+dyndbg.lds.h includes (reuses) bounded-section.lds.h
+
+scripts/module.lds.S: now calls MOD_DYNDBG_SECTIONS right before the
+CODETAG macro (consistent with their placements in vmlinux.lds.h), and
+also includes dyndbg.lds.h
+
+This isolates vmlinux.lds.h from further __dyndbg section additions.
 
 CC: Arnd Bergmann <arnd@arndb.de>
-CC: linux-arch@vger.kernel.org
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- include/asm-generic/bounded_sections.lds.h | 38 ++++++++++++++++++++++++++++++
- include/asm-generic/vmlinux.lds.h          | 32 +------------------------
- 2 files changed, 39 insertions(+), 31 deletions(-)
+ MAINTAINERS                       |  1 +
+ include/asm-generic/dyndbg.lds.h  | 19 +++++++++++++++++++
+ include/asm-generic/vmlinux.lds.h |  6 ++----
+ scripts/module.lds.S              |  2 ++
+ 4 files changed, 24 insertions(+), 4 deletions(-)
 
-diff --git a/include/asm-generic/bounded_sections.lds.h b/include/asm-generic/bounded_sections.lds.h
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 5fcb7b991776..5c75109d2ee3 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9069,6 +9069,7 @@ DYNAMIC DEBUG
+ M:	Jason Baron <jbaron@akamai.com>
+ M:	Jim Cromie <jim.cromie@gmail.com>
+ S:	Maintained
++F:	include/asm-generic/dyndbg.lds.h
+ F:	include/linux/dynamic_debug.h
+ F:	lib/dynamic_debug.c
+ F:	lib/test_dynamic_debug.c
+diff --git a/include/asm-generic/dyndbg.lds.h b/include/asm-generic/dyndbg.lds.h
 new file mode 100644
-index 000000000000..43e79603d4af
+index 000000000000..f95683aa16b6
 --- /dev/null
-+++ b/include/asm-generic/bounded_sections.lds.h
-@@ -0,0 +1,38 @@
-+/* SPDX-License-Identifier: GPL-2.0-or-later */
++++ b/include/asm-generic/dyndbg.lds.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __ASM_GENERIC_DYNDBG_LDS_H
++#define __ASM_GENERIC_DYNDBG_LDS_H
 +
-+#ifndef _ASM_GENERIC_BOUNDED_SECTIONS_H
-+#define _ASM_GENERIC_BOUNDED_SECTIONS_H
++#include <asm-generic/bounded_sections.lds.h>
++#define DYNDBG_SECTIONS()					\
++	. = ALIGN(8);						\
++	BOUNDED_SECTION_BY(__dyndbg, ___dyndbg)			\
++	BOUNDED_SECTION_BY(__dyndbg_classes, ___dyndbg_classes)
 +
-+#define BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
-+	. = ALIGN(8);							\
-+	_BEGIN_##_label_ = .;						\
-+	KEEP(*(_sec_))							\
-+	_END_##_label_ = .;
++#define MOD_DYNDBG_SECTIONS()                                           \
++	__dyndbg : {							\
++		BOUNDED_SECTION_BY(__dyndbg, ___dyndbg)			\
++	}								\
++	__dyndbg_classes : {						\
++		BOUNDED_SECTION_BY(__dyndbg_classes, ___dyndbg_classes)	\
++	}
 +
-+#define BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
-+	. = ALIGN(8);							\
-+	_label_##_BEGIN_ = .;						\
-+	KEEP(*(_sec_))							\
-+	_label_##_END_ = .;
-+
-+#define BOUNDED_SECTION_BY(_sec_, _label_)				\
-+	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
-+
-+#define BOUNDED_SECTION(_sec)	 BOUNDED_SECTION_BY(_sec, _sec)
-+
-+#define HEADERED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
-+	_HDR_##_label_	= .;						\
-+	KEEP(*(.gnu.linkonce.##_sec_))					\
-+	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)
-+
-+#define HEADERED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
-+	_label_##_HDR_ = .;						\
-+	KEEP(*(.gnu.linkonce.##_sec_))					\
-+	BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)
-+
-+#define HEADERED_SECTION_BY(_sec_, _label_)				\
-+	HEADERED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
-+
-+#define HEADERED_SECTION(_sec)	 HEADERED_SECTION_BY(_sec, _sec)
-+
-+#endif /* _ASM_GENERIC_BOUNDED_SECTIONS_H */
++#endif /* __ASM_GENERIC_DYNDBG_LDS_H */
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db38f52035f3..acb4aadd74da 100644
+index acb4aadd74da..9324066aab51 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
-@@ -211,37 +211,7 @@
- # endif
+@@ -340,6 +340,7 @@
+ /*
+  * .data section
+  */
++#include <asm-generic/dyndbg.lds.h>
+ #define DATA_DATA							\
+ 	*(.xiptext)							\
+ 	*(DATA_MAIN)							\
+@@ -353,10 +354,7 @@
+ 	*(.data..do_once)						\
+ 	STRUCT_ALIGN();							\
+ 	*(__tracepoints)						\
+-	/* implement dynamic printk debug */				\
+-	. = ALIGN(8);							\
+-	BOUNDED_SECTION_BY(__dyndbg_classes, ___dyndbg_classes)		\
+-	BOUNDED_SECTION_BY(__dyndbg, ___dyndbg)				\
++	DYNDBG_SECTIONS()						\
+ 	CODETAG_SECTIONS()						\
+ 	LIKELY_PROFILE()		       				\
+ 	BRANCH_PROFILE()						\
+diff --git a/scripts/module.lds.S b/scripts/module.lds.S
+index 2dc4c8c3e667..027c5c286ea0 100644
+--- a/scripts/module.lds.S
++++ b/scripts/module.lds.S
+@@ -10,6 +10,7 @@
  #endif
  
--#define BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
--	. = ALIGN(8);							\
--	_BEGIN_##_label_ = .;						\
--	KEEP(*(_sec_))							\
--	_END_##_label_ = .;
--
--#define BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
--	. = ALIGN(8);							\
--	_label_##_BEGIN_ = .;						\
--	KEEP(*(_sec_))							\
--	_label_##_END_ = .;
--
--#define BOUNDED_SECTION_BY(_sec_, _label_)				\
--	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
--
--#define BOUNDED_SECTION(_sec)	 BOUNDED_SECTION_BY(_sec, _sec)
--
--#define HEADERED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
--	_HDR_##_label_	= .;						\
--	KEEP(*(.gnu.linkonce.##_sec_))					\
--	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)
--
--#define HEADERED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
--	_label_##_HDR_ = .;						\
--	KEEP(*(.gnu.linkonce.##_sec_))					\
--	BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)
--
--#define HEADERED_SECTION_BY(_sec_, _label_)				\
--	HEADERED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
--
--#define HEADERED_SECTION(_sec)	 HEADERED_SECTION_BY(_sec, _sec)
-+#include <asm-generic/bounded_sections.lds.h>
+ #include <asm-generic/codetag.lds.h>
++#include <asm-generic/dyndbg.lds.h>
  
- #ifdef CONFIG_TRACE_BRANCH_PROFILING
- #define LIKELY_PROFILE()						\
+ SECTIONS {
+ 	/DISCARD/ : {
+@@ -59,6 +60,7 @@ SECTIONS {
+ 		*(.rodata..L*)
+ 	}
+ 
++	MOD_DYNDBG_SECTIONS()
+ 	MOD_SEPARATE_CODETAG_SECTIONS()
+ }
+ 
 
 -- 
 2.53.0
