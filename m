@@ -1,115 +1,103 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AD2CD3E5EDC
-	for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 18:50:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A889D3F786B;
+	Fri, 24 Apr 2026 18:54:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777056616; cv=none; b=Ya/vGRc0GSvDtlyHgHww3EwcSyOjRicpkz4UayLcEmIo+MqhmBf+wXXRUkzFz0P8njE6JRuKZ4EaA40TMBsPBrdPXKB8tAgk97fP1oU6c3iwl3MlSmdenxAI8IDl66wmxxICbXOkT97fWtsFmrgL87AfzaD/7t/KS9EN+NxP/sE=
+	t=1777056858; cv=none; b=kMGk+Icq6GmegRqhTPnTavB4jJlVhmifT5/JhoJkIgOzvXPA9eWHX0K06KvQi5u2WW0iLjIDtefbaEunW1oWN032K49DNaqpVsa2OYLjr29u9FL2AA08IeFREvS/GmxujXzXU8bX2WRGBzhUJU7aRjTLChcTy0ryrpf6x5kaEKY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777056616; c=relaxed/simple;
-	bh=w5kUoCAdRW22OY51cZNgSK5N7Gpb3BDGbpsiHoe6xEA=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=PFK028LMdnYG71KUygfhUrcVjqx8j82mUMd10H1rSdx3VjGaEJWvBWVeRF+yjpxRBNxLnZhcvdNLQHka7tTRq5ruG5+esuJ+wl0i4lyqsY/wvyu8ECnLBTxmpLKSaarZdD98LO5r8CDP6A/ULxZyKEb4fqHbzk767caKIKBlJEI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=pftDalM3; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1777056858; c=relaxed/simple;
+	bh=i8mKvi5RRHlXRBc27/YokHQPKHCot86zzY9OGCTvsD0=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=dupl3bqcafh9h1wDTU1n6UO0W4cHhnWawlu6JrCVkCaXR2k/qDv1YJPy0dTFNqY8DyHrXDCm82+wj0FTkenNA9zLsqcPrPyoF38zoPM42e3ZE0mFzcNPbEdNZZ9wLHg7TmKbGAZTt8U1FlkciPqnU27TOPmTtLI3qIEkZAZ+b+k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=jxiKcELy; arc=none smtp.client-ip=213.97.179.56
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="pftDalM3"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 56A22C19425
-	for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 18:50:16 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1777056616;
-	bh=w5kUoCAdRW22OY51cZNgSK5N7Gpb3BDGbpsiHoe6xEA=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-	b=pftDalM3kJ9DPPvgqPonQ8Vuac/lSzURnxnvhHdDJpTgHP0CDrIvO8ljHgA/fBiH6
-	 12m42BYH8ANEfIcVa+brAYwt+ei5bXS84bXwbuc/W+GfHRNCHqqQdHtVJ2gH7VqiqY
-	 izqXhaLsSXtSq5Tx50f+kHKWJ3HhvIVdUh+IUxp9TpZG2WLyZ8aL4P/629m+/Q+ErU
-	 ZglR5Y9QZOOWcmcHa+C0vr7X8x1aH6uNqjNmdHhayQcuQM68oXiN6BGhm4WJSczF2Y
-	 DRugXmwBSroybC7MpT+/CqOhNAY3G3BQ39fm9SOKNxB6PPd7TK94BwTN1DEcqA6LTb
-	 ymVgyyrngrjug==
-Received: by mail-ej1-f45.google.com with SMTP id a640c23a62f3a-b9c603ec2dfso1076365566b.1
-        for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 11:50:16 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AFNElJ+GwbE1nAq60be1Ob8X4jMVGW3i47XIY3q4EaIv+pmOXKuzQCUBobByjb+ZVdxvh6NUHSf2CxLRb2rM@vger.kernel.org
-X-Gm-Message-State: AOJu0YytymKULtxhLnRs5ihkMxTrUtiDg+6xq3VXQaVTOIszLDBS5aRw
-	OuM8SDplIX31vnF7t86z9w2l29vHiXoJo6xRfiY/i5f8wVMBX9LsURWyrdlW0hdLUGOMRUcywVl
-	C8ntaVbsMCdYbtYFQmiOmeMP42lTAsxI=
-X-Received: by 2002:a17:907:2d9e:b0:ba7:ade5:8605 with SMTP id
- a640c23a62f3a-ba7ade5873cmr1292114966b.6.1777056615011; Fri, 24 Apr 2026
- 11:50:15 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="jxiKcELy"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
+	s=20170329; h=Content-Transfer-Encoding:Content-Type:In-Reply-To:From:
+	References:Cc:To:Subject:MIME-Version:Date:Message-ID:Sender:Reply-To:
+	Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:
+	Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:
+	List-Subscribe:List-Post:List-Owner:List-Archive;
+	bh=vwajK7fE/xSxkYUMIjDnVxjmAHQBthF3xbKoitB/mqA=; b=jxiKcELyUOnwZdMhYogsS3eKzz
+	8ULx/9UH9pQeTcaFWe+TMv98to+FLm13JmjIQB2RCOf6nsYEkuhLclz11KvEilXxsH9+1syjDdv12
+	kLrur/lUVwx7sZO5j+jPP0k2sMKu4rodgSyyGKl29akb4VCc2O0yz2pEAfgWpkAaF1brQmons02Fp
+	LWuSF79Qp0dyFJ01vc0pqUONDdjBKKFZPRmuLyomrCNV/aNr9DvMuEBQ0MA/OazT2gkUUnsbyOi0l
+	Bm3YEMMXExEnnY9+S5rbdSiEdS0SuCTRUO2J23llRmM+AHazn0FxGufOMZp0S7sIAOyHkE5ayxCQf
+	X2sVCdAQ==;
+Received: from [187.57.76.96] (helo=[192.168.15.100])
+	by fanzine2.igalia.com with esmtpsa 
+	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_128_GCM:128) (Exim)
+	id 1wGLef-001iyP-V0; Fri, 24 Apr 2026 20:53:33 +0200
+Message-ID: <7c240ce3-dc27-42a1-a21d-d677d9822638@igalia.com>
+Date: Fri, 24 Apr 2026 15:53:21 -0300
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260424062528.71951-1-lance.yang@linux.dev> <20260424063024.ce42ee6a5546e4d9337dd007@linux-foundation.org>
- <aetw4aoABYj3keMh@plex> <20260424071533.d28ce90126f05e1c6fc1b740@linux-foundation.org>
- <80ab39c2-efb9-4a23-bd56-46d9bb4e41bb@kernel.org> <20260424073145.b990fe9b925da304508aad71@linux-foundation.org>
- <644e65dc-3d39-4137-b51f-51d953b67d50@kernel.org>
-In-Reply-To: <644e65dc-3d39-4137-b51f-51d953b67d50@kernel.org>
-From: Yosry Ahmed <yosry@kernel.org>
-Date: Fri, 24 Apr 2026 11:50:03 -0700
-X-Gmail-Original-Message-ID: <CAO9r8zN1pRfyC0Rh+UdW-Lsret=z3oveT3=gnZftX-Sr_ubyyQ@mail.gmail.com>
-X-Gm-Features: AQROBzAzgmye5h2hgq6OujP1bhxfaF6hprGZxVf_6cZmOYHaxIkk2WQtzQUABGE
-Message-ID: <CAO9r8zN1pRfyC0Rh+UdW-Lsret=z3oveT3=gnZftX-Sr_ubyyQ@mail.gmail.com>
-Subject: Re: [PATCH 7.2 v10 0/2] skip redundant sync IPIs when TLB flush sent them
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Pasha Tatashin <pasha.tatashin@soleen.com>, 
-	Lance Yang <lance.yang@linux.dev>, peterz@infradead.org, dave.hansen@intel.com, 
-	dave.hansen@linux.intel.com, ypodemsk@redhat.com, hughd@google.com, 
-	will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com, 
-	tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, 
-	hpa@zytor.com, arnd@arndb.de, ljs@kernel.org, ziy@nvidia.com, 
-	baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, npache@redhat.com, 
-	ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org, 
-	shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com, 
-	seanjc@google.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com, 
-	virtualization@lists.linux.dev, kvm@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
-	ioworker0@gmail.com, roman.gushchin@linux.dev
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH RFC 1/2] arm64: vdso: Prepare for robust futex unlock
+ support
+To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Thomas Gleixner <tglx@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
+ Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+ Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+ Carlos O'Donell <carlos@redhat.com>, Peter Zijlstra <peterz@infradead.org>,
+ Florian Weimer <fweimer@redhat.com>, Rich Felker <dalias@aerifal.cx>,
+ Torvald Riegel <triegel@redhat.com>, Darren Hart <dvhart@infradead.org>,
+ Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>,
+ Arnd Bergmann <arnd@arndb.de>, "Liam R . Howlett" <Liam.Howlett@oracle.com>,
+ Uros Bizjak <ubizjak@gmail.com>, linux-arm-kernel@lists.infradead.org,
+ linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ kernel-dev@igalia.com
+References: <20260417-tonyk-robust_arm-v1-0-03aa64e2ff1a@igalia.com>
+ <20260417-tonyk-robust_arm-v1-1-03aa64e2ff1a@igalia.com>
+ <e0ee43e3-725c-4b99-80b3-956d24beb1c7@t-8ch.de>
+ <1a06fee7-65ff-4828-85f1-e3ee1e82610f@t-8ch.de>
+Content-Language: en-US
+From: =?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
+In-Reply-To: <1a06fee7-65ff-4828-85f1-e3ee1e82610f@t-8ch.de>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 
-On Fri, Apr 24, 2026 at 11:36=E2=80=AFAM David Hildenbrand (Arm)
-<david@kernel.org> wrote:
->
-> On 4/24/26 16:31, Andrew Morton wrote:
-> > On Fri, 24 Apr 2026 16:20:55 +0200 "David Hildenbrand (Arm)" <david@ker=
-nel.org> wrote:
-> >
-> >> On 4/24/26 16:15, Andrew Morton wrote:
-> >>>
-> >>>
-> >>> Yep.  I'd be OK with an automatic reply-to-all.  Maybe some won't lik=
-e
-> >>> that.
-> >>>
-> >>> An alternative I've discussed with Roman is an automated
-> >>> reply-to-author with a cc to a dedicated list (we could use mm-commit=
-s
-> >>> for now).
-> >>>
-> >>> Preferences?
-> >>
-> >> Reply-to-author would likely be better as a first step.
-> >
-> > Why do you think so?
->
-> The most important part for me is that authors are aware of the reports.
->
-> Sending them as a mail forces people to publicly reply to the feedback, a=
-nd at
-> this point in time, I am not convinced that that is the right approach.
+Em 22/04/2026 10:17, Thomas Weißschuh escreveu:
+> On 2026-04-22 15:02:45+0200, Thomas Weißschuh wrote:
+>> On 2026-04-17 11:56:10-0300, André Almeida wrote:
+>>> There will be a VDSO function to unlock non-contended robust futexes in
+>>> user space. The unlock sequence is racy vs. clearing the list_pending_op
+>>> pointer in the task's robust list head. To plug this race the kernel needs
+>>> to know the critical section window so it can clear the pointer when the
+>>> task is interrupted within that race window. The window is determined by
+>>> labels in the inline assembly.
+>>>
+>>> Signed-off-by: André Almeida <andrealmeid@igalia.com>
+>>> ---
+>>> RFC: Those symbols can't be found by the linker after patch 2/2, it fails with:
+>>>
+>>> ld: arch/arm64/kernel/vdso.o: in function `vdso_futex_robust_unlock_update_ips':
+>>> arch/arm64/kernel/vdso.c:72:(.text+0x200): undefined reference to `__futex_list64_try_unlock_cs_success'
+>>> ld: arch/arm64/kernel/vdso.o: relocation R_AARCH64_ADR_PREL_PG_HI21 against symbol `__futex_list64_try_unlock_cs_success' which may bind externally can not be used when making a shared object; recompile with -fPIC
+>>> arch/arm64/kernel/vdso.c:72:(.text+0x200): dangerous relocation: unsupported relocation
+>>
+>> arch/arm64/kernel/vdso.o is a kernel object.
+>> __futex_list64_try_unlock_cs_success is a vDSO symbol.
+>> They live in wholly different objects, which are never linked together.
+>> Look at VDSO_SYMBOL() to get the offset of the vDSO symbol in kernel code.
+>>
+>> (...)
+> 
+> The diff below shows the idea. Compat code is not fixed, and I didn't
+> even try to run it. Also please use CONFIG_COMPAT_VDSO over plain
+> CONFIG_COMPAT.
+> 
 
-But I imagine it's useful for reviewers to see Sashiko's feedback as
-well (without having to go look on the website). It's possible that
-Sashiko is right but the author isn't convinced, so getting more eyes
-on the feedback would help. If Sashiko is wrong, it's still useful for
-more people to see it and point it out, instead of Sashiko privately
-misguiding the author, especially that reviewers are probably more
-likely to tell if Sashiko is right or wrong.
 
-I understand the fear of too much noise, but I think it's easy to
-ignore Sashiko if we want to. It's also a good exercise to spell out
-why Sashiko is wrong (e.g. improve changelogs/comments to document
-assumptions more obviously). We can always tune it down later if we
-think it's too much, right?
+VDSO_SYMBOL() did the tricky, I fixed this for the v2, thanks Thomas!
+
+	André
