@@ -1,164 +1,212 @@
-Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.185])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.11])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE1E73BF673
-	for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 11:48:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.185
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9A9DF3BAD85;
+	Fri, 24 Apr 2026 12:21:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.11
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777031285; cv=none; b=JkOFHxMe6VHLth5lsFX3N+G/jqj0AWa4ucjNuIyquZxxSEVgEzrEY0DszFXmLIwviptxFS06Cal54rmKJT7e2eacJ84EjI6Ag3MFg3kU9DexSKXent5DBffRbeTnGwo4Eg2pwqL7713S9TiDs+z8EG0QsYqakAVqt9Dv8Bya3Xo=
+	t=1777033283; cv=none; b=gE0EFuHKO8GjEEOc3suxEkh0iTvDH3G1wp5ImOfGg8InNE5Zsd85QKizI5ulWJsVjElMcWXQQx4v+Aiqh+ej+RtJoHzTRR/tMvSvvws3sTF1NdOLscPK1JqMFWigmnFhEK3tmy5uuJ8PWk3jinLHBXHdZViNDn28v4S1sQMX/x8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777031285; c=relaxed/simple;
-	bh=4r5RvhbLKnR/CgAsUMSEjQzzprHmmek/AmO6M+zAB60=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=dBb0ke4JY37Efpvs2unSYX36BYsEajakD6MHyKUcLZpl8e97j1/B6x0UUdrGHIYtTinZ7mawnIi1Yu7cSGXcDQ1WFPyBnl56u6C9AUKreWCaLrLt9CyBxBrWhp5uXLAYCxjK6gq5+iy6KMBG3R4TUVBmUsQ9Fh3fkmRidPThUQw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=stjuhjTC; arc=none smtp.client-ip=195.121.94.185
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
+	s=arc-20240116; t=1777033283; c=relaxed/simple;
+	bh=ae12Dx1GP1nt/ZBN0pu4+BdRD8YdZHY9YSVa9HGmjY4=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=cR1F4qzMazRe9+kwPvjT0CM2VYnJ15KtMkSWznQm+ZFnfiyq+DrNJRHfmp90QH5x1Vh0gLwUDhkJvr36GqZKwu/+PcXkl8a9ySbxr6cIt3si5jF+7j5hFIOGxOEEduVf4ebXec+h6XeQ3YmGJ8pMI8LTBFYhCjknZsyacfyZQCU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=lQAqpc02; arc=none smtp.client-ip=192.198.163.11
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="stjuhjTC"
-X-KPN-MessageId: 4aa257ec-3fd3-11f1-8ff3-005056999439
-Received: from smtp.kpnmail.nl (unknown [10.31.155.8])
-	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
-	id 4aa257ec-3fd3-11f1-8ff3-005056999439;
-	Fri, 24 Apr 2026 13:46:54 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=xs4all.nl; s=xs4all01;
-	h=mime-version:message-id:date:subject:to:from;
-	bh=ZrhMYcreG9Hj+7wH35gfOV2SV98uZrceH6hCeQICsGg=;
-	b=stjuhjTC1LvnAatFjI6P5/spawHckQyezjdZbo5tq3o4VPAhUgGmmgX6hVIy1ImeLnVdGgBOmQP2K
-	 Og4JWiOq8ovY6xCKUGGmtj1VL/rFAFiYGJGRctZCdz8sRH/iCB8sTlsDGEnyA81FY+/kSmPj9Hvr6n
-	 vBCou8fdy4aOPJcvcsmcRxDQACZXDGiVTuJpLh/5YAK1Z463siHKfHo2Wd+lvnlvTk+qlwtoi7ofHY
-	 vSVPfe4O08nsuEAxcUycpNb/Am7eQ9PKRJn+WSsclHBNs1PCFpdRFGllfTnawFFEm43gi2PjHDjItC
-	 TBZ4F0selLyuxoHUVE7pWAl27sxxeKg==
-X-KPN-MID: 33|FUnsPlT93BNBRRPIGjQuHsTveNGhZKo7Fw1aQ0rXGKxm9L+62p1aCM/VvQiDFCg
- 9nxwyXHXVWIH6GuP4d/iorEXLeIwxU0iC+TxggF4CJLk=
-X-KPN-VerifiedSender: Yes
-X-CMASSUN: 33|FpymY/PkmFhHzrLRaMdxRmirFll8b5SmaGQ+Z9Eomz5JSL4V3AgigkWq2uktUeK
- nJgcvjEyTD7qTwe4aLURuLQ==
-Received: from daedalus.home (unknown [178.227.109.146])
-	by smtp.xs4all.nl (Halon) with ESMTPSA
-	id 4a5d8641-3fd3-11f1-9c0b-00505699d6e5;
-	Fri, 24 Apr 2026 13:46:54 +0200 (CEST)
-From: Jori Koolstra <jkoolstra@xs4all.nl>
-To: Christian Brauner <brauner@kernel.org>,
-	Aleksa Sarai <cyphar@cyphar.com>,
-	Jeff Layton <jlayton@kernel.org>,
-	Chuck Lever <chuck.lever@oracle.com>,
-	Alexander Aring <alex.aring@gmail.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Jan Kara <jack@suse.cz>,
-	Arnd Bergmann <arnd@arndb.de>
-Cc: linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	Jori Koolstra <jkoolstra@xs4all.nl>,
-	linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [PATCH v5 1/2] vfs: add O_EMPTYPATH to openat(2)/openat2(2)
-Date: Fri, 24 Apr 2026 13:46:02 +0200
-Message-ID: <20260424114611.1678641-2-jkoolstra@xs4all.nl>
-X-Mailer: git-send-email 2.54.0
-In-Reply-To: <20260424114611.1678641-1-jkoolstra@xs4all.nl>
-References: <20260424114611.1678641-1-jkoolstra@xs4all.nl>
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="lQAqpc02"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1777033282; x=1808569282;
+  h=from:to:cc:subject:in-reply-to:references:date:
+   message-id:mime-version:content-transfer-encoding;
+  bh=ae12Dx1GP1nt/ZBN0pu4+BdRD8YdZHY9YSVa9HGmjY4=;
+  b=lQAqpc02441EAQxCACdF4jktlR77FjF6SgDUge3VR++e4htz3zw1lNya
+   7nSsO0nYTCdJ4JgC8A3+teRkeVJ4ywQwUejg85jBMtz33kBumujnLqBtF
+   RLPUh2vcQ0CEmKAeaZIFJZ7hj2YHTaBhtvSWTA/nn7I2ZF0bBf6q3oa/T
+   FwwNSGhujp7JHEhYYOZ7iEFotbFBcEsBMQTjtXsT8gmzrCy8bIJe0Paon
+   jz79vWKA4wIjxlqg0erHsqtVmE/8+14KG70O5RCCriZVQFnAQvEOt9HFh
+   I6AW6uY9DA0G8XNJeocC1CjhZcIz8x/QUoHBw75phhUx5sahvE2hBtvEo
+   g==;
+X-CSE-ConnectionGUID: 8cA+UwSOQ2GmzJ1fq/SsZg==
+X-CSE-MsgGUID: zFVPp0mPQjWfmD6cBjZVXg==
+X-IronPort-AV: E=McAfee;i="6800,10657,11765"; a="88622050"
+X-IronPort-AV: E=Sophos;i="6.23,196,1770624000"; 
+   d="scan'208";a="88622050"
+Received: from fmviesa009.fm.intel.com ([10.60.135.149])
+  by fmvoesa105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Apr 2026 05:21:20 -0700
+X-CSE-ConnectionGUID: Ddy2JyWkRiCTb6Lq3VNE8g==
+X-CSE-MsgGUID: yrtNyG9vRgKsTS8VOCKqyw==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.23,196,1770624000"; 
+   d="scan'208";a="226406679"
+Received: from smoticic-mobl1.ger.corp.intel.com (HELO localhost) ([10.245.245.89])
+  by fmviesa009-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Apr 2026 05:21:14 -0700
+From: Jani Nikula <jani.nikula@intel.com>
+To: Albert Esteve <aesteve@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>,
+ Brendan Higgins <brendan.higgins@linux.dev>, David Gow
+ <david@davidgow.net>, Rae Moar <raemoar63@gmail.com>, Maarten Lankhorst
+ <maarten.lankhorst@linux.intel.com>, Maxime Ripard <mripard@kernel.org>,
+ Thomas Zimmermann <tzimmermann@suse.de>, David Airlie <airlied@gmail.com>,
+ Simona Vetter <simona@ffwll.ch>, Jonathan Corbet <corbet@lwn.net>, Shuah
+ Khan <skhan@linuxfoundation.org>, Andrew Morton
+ <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org,
+ kunit-dev@googlegroups.com, dri-devel@lists.freedesktop.org,
+ workflows@vger.kernel.org, linux-doc@vger.kernel.org, Guenter Roeck
+ <linux@roeck-us.net>, Linux Kernel Functional Testing <lkft@linaro.org>,
+ Dan Carpenter <dan.carpenter@linaro.org>, =?utf-8?Q?Ma=C3=ADra?= Canal
+ <mcanal@igalia.com>,
+ Alessandro Carminati <acarmina@redhat.com>, Simona Vetter
+ <simona.vetter@ffwll.ch>
+Subject: Re: [PATCH v7 4/5] drm: Suppress intentional warning backtraces in
+ scaling unit tests
+In-Reply-To: <CADSE00+b-8moX5FkLjLs+wzyaW5dtJDMxvTT6Gu-QmDoDxJdVA@mail.gmail.com>
+Organization: Intel Finland Oy - BIC 0357606-4 - c/o Alberga Business Park,
+ 6 krs Bertel Jungin Aukio 5, 02600 Espoo, Finland
+References: <20260420-kunit_add_support-v7-0-e8bc6e0f70de@redhat.com>
+ <20260420-kunit_add_support-v7-4-e8bc6e0f70de@redhat.com>
+ <20260420144702.GM3102624@noisy.programming.kicks-ass.net>
+ <CADSE00JJq6fsYbkFN5hBD=-ZWsFG9p4_C55fp3MupMJQj0QCUQ@mail.gmail.com>
+ <8a9c125c08206296d698c79c3d3dd6aea36a7e3b@intel.com>
+ <CADSE00+b-8moX5FkLjLs+wzyaW5dtJDMxvTT6Gu-QmDoDxJdVA@mail.gmail.com>
+Date: Fri, 24 Apr 2026 15:21:11 +0300
+Message-ID: <4a64dbd6cff28950a7adbfe7d01ddfe93df34cb7@intel.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-To get an operable version of an O_PATH file descriptor, it is possible
-to use openat(fd, ".", O_DIRECTORY) for directories, but other files
-currently require going through open("/proc/<pid>/fd/<nr>"), which
-depends on a functioning procfs.
+On Fri, 24 Apr 2026, Albert Esteve <aesteve@redhat.com> wrote:
+> On Tue, Apr 21, 2026 at 1:51=E2=80=AFPM Jani Nikula <jani.nikula@intel.co=
+m> wrote:
+>>
+>> On Tue, 21 Apr 2026, Albert Esteve <aesteve@redhat.com> wrote:
+>> > On Mon, Apr 20, 2026 at 4:47=E2=80=AFPM Peter Zijlstra <peterz@infrade=
+ad.org> wrote:
+>> >>
+>> >> On Mon, Apr 20, 2026 at 02:28:06PM +0200, Albert Esteve wrote:
+>> >> > From: Guenter Roeck <linux@roeck-us.net>
+>> >> >
+>> >> > The drm_test_rect_calc_hscale and drm_test_rect_calc_vscale unit te=
+sts
+>> >> > intentionally trigger warning backtraces by providing bad parameter=
+s to
+>> >> > the tested functions. What is tested is the return value, not the e=
+xistence
+>> >> > of a warning backtrace. Suppress the backtraces to avoid clogging t=
+he
+>> >> > kernel log and distraction from real problems.
+>> >> >
+>> >> > Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
+>> >> > Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
+>> >> > Acked-by: Ma=C3=ADra Canal <mcanal@igalia.com>
+>> >> > Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
+>> >> > Cc: David Airlie <airlied@gmail.com>
+>> >> > Cc: Daniel Vetter <daniel@ffwll.ch>
+>> >> > Signed-off-by: Guenter Roeck <linux@roeck-us.net>
+>> >> > Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
+>> >> > Signed-off-by: Albert Esteve <aesteve@redhat.com>
+>> >> > ---
+>> >> >  drivers/gpu/drm/tests/drm_rect_test.c | 14 ++++++++++++++
+>> >> >  1 file changed, 14 insertions(+)
+>> >> >
+>> >> > diff --git a/drivers/gpu/drm/tests/drm_rect_test.c b/drivers/gpu/dr=
+m/tests/drm_rect_test.c
+>> >> > index 17e1f34b76101..1dd7d819165e7 100644
+>> >> > --- a/drivers/gpu/drm/tests/drm_rect_test.c
+>> >> > +++ b/drivers/gpu/drm/tests/drm_rect_test.c
+>> >> > @@ -409,8 +409,15 @@ static void drm_test_rect_calc_hscale(struct k=
+unit *test)
+>> >> >       const struct drm_rect_scale_case *params =3D test->param_valu=
+e;
+>> >> >       int scaling_factor;
+>> >> >
+>> >> > +     /*
+>> >> > +      * drm_rect_calc_hscale() generates a warning backtrace whene=
+ver bad
+>> >> > +      * parameters are passed to it. This affects all unit tests w=
+ith an
+>> >> > +      * error code in expected_scaling_factor.
+>> >> > +      */
+>> >> > +     KUNIT_START_SUPPRESSED_WARNING(test);
+>> >> >       scaling_factor =3D drm_rect_calc_hscale(&params->src, &params=
+->dst,
+>> >> >                                             params->min_range, para=
+ms->max_range);
+>> >> > +     KUNIT_END_SUPPRESSED_WARNING(test);
+>> >>
+>> >> Would not something like:
+>> >>
+>> >>         scoped_kunit_suppress() {
+>> >>                 scaling_factor =3D drm_rect_calc_hscale(&params->src,=
+ &params->dst,
+>> >>                                                       params->min_ran=
+ge, params->max_range);
+>> >>         }
+>> >>
+>> >> be better?
+>> >
+>> > Since KUnit already has a few macros in its API it didn't occur to me.
+>> > Good idea, I like it. And I guess the scope approach matches well with
+>> > your __cleanup comment in the first patch. If no one opposes, I will
+>> > work toward that pattern for the next version.
+>>
+>> There's a catch with kunit and __cleanup and thus (scoped) guards. Kunit
+>> runs in ktreads, asserts lead to kthread_exit() and the __cleanup won't
+>> be called.
+>
+> Hi Jani,
+>
+> Good point. In this specific case, the actual cleanup is handled by
+> kunit_add_action_or_reset(), so __cleanup not firing on assert is
+> harmless.
 
-This patch adds the O_EMPTYPATH flag to openat(2)/openat2(2). If passed,
-LOOKUP_EMPTY is set at path resolution time.
+Right.
 
-Note: This implies that you cannot rely anymore on disabling procfs from
-being mounted (e.g. inside a container without procfs mounted and with
-CAP_SYS_ADMIN dropped) to prevent O_PATH fds from being re-opened
-read-write.
+>
+>>
+>> Warning suppression being part of kunit infrastructure, asserts can and
+>> should end the suppression too. But setting the example (scoped) guards
+>> are safe in kunit tests in general feels like a trap waiting to happen.
+>>
+>
+> ... but I agree it sets a misleading precedent. I'll stick with the
+> explicit start/end API, then? Or maybe we can clearly document why the
+> scoped approach is safe in this case and use it.
 
-Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
----
- fs/fcntl.c                       | 2 +-
- fs/open.c                        | 6 ++++--
- include/linux/fcntl.h            | 2 +-
- include/uapi/asm-generic/fcntl.h | 4 ++++
- 4 files changed, 10 insertions(+), 4 deletions(-)
+I don't know what the right approach is, just wanted to make sure you're
+aware of this particular gotcha with guards and kunit.
 
-diff --git a/fs/fcntl.c b/fs/fcntl.c
-index beab8080badf..7d2165855a9c 100644
---- a/fs/fcntl.c
-+++ b/fs/fcntl.c
-@@ -1169,7 +1169,7 @@ static int __init fcntl_init(void)
- 	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
- 	 * is defined as O_NONBLOCK on some platforms and not on others.
- 	 */
--	BUILD_BUG_ON(20 - 1 /* for O_RDONLY being 0 */ !=
-+	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
- 		HWEIGHT32(
- 			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
- 			__FMODE_EXEC));
-diff --git a/fs/open.c b/fs/open.c
-index 681d405bc61e..9e0164a8c1fb 100644
---- a/fs/open.c
-+++ b/fs/open.c
-@@ -1158,7 +1158,7 @@ struct file *kernel_file_open(const struct path *path, int flags,
- EXPORT_SYMBOL_GPL(kernel_file_open);
- 
- #define WILL_CREATE(flags)	(flags & (O_CREAT | __O_TMPFILE))
--#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC)
-+#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC | O_EMPTYPATH)
- 
- inline struct open_how build_open_how(int flags, umode_t mode)
- {
-@@ -1279,6 +1279,8 @@ inline int build_open_flags(const struct open_how *how, struct open_flags *op)
- 		lookup_flags |= LOOKUP_DIRECTORY;
- 	if (!(flags & O_NOFOLLOW))
- 		lookup_flags |= LOOKUP_FOLLOW;
-+	if (flags & O_EMPTYPATH)
-+		lookup_flags |= LOOKUP_EMPTY;
- 
- 	if (how->resolve & RESOLVE_NO_XDEV)
- 		lookup_flags |= LOOKUP_NO_XDEV;
-@@ -1360,7 +1362,7 @@ static int do_sys_openat2(int dfd, const char __user *filename,
- 	if (unlikely(err))
- 		return err;
- 
--	CLASS(filename, name)(filename);
-+	CLASS(filename_flags, name)(filename, op.lookup_flags);
- 	return FD_ADD(how->flags, do_file_open(dfd, name, &op));
- }
- 
-diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
-index a332e79b3207..c65c5c73d362 100644
---- a/include/linux/fcntl.h
-+++ b/include/linux/fcntl.h
-@@ -10,7 +10,7 @@
- 	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC | \
- 	 O_APPEND | O_NDELAY | O_NONBLOCK | __O_SYNC | O_DSYNC | \
- 	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
--	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
-+	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_EMPTYPATH)
- 
- /* List of all valid flags for the how->resolve argument: */
- #define VALID_RESOLVE_FLAGS \
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index 613475285643..bfc68156b45a 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
-@@ -88,6 +88,10 @@
- #define __O_TMPFILE	020000000
- #endif
- 
-+#ifndef O_EMPTYPATH
-+#define O_EMPTYPATH	(1 << 26)	/* allow empty path */
-+#endif
-+
- /* a horrid kludge trying to make sure that this will fail on old kernels */
- #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
- 
--- 
-2.54.0
+BR,
+Jani.
 
+>
+>>
+>> BR,
+>> Jani.
+>>
+>>
+>> >
+>> >>
+>> >> Also, how can you stand all this screaming in the code?
+>> >>
+>> >
+>> > Again, KUnit already contains many macros, so this use didn't register
+>> > as such. Now I will not be able to unsee it.
+>> >
+>> >
+>>
+>> --
+>> Jani Nikula, Intel
+>>
+>
+
+--=20
+Jani Nikula, Intel
