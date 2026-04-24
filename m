@@ -1,175 +1,164 @@
-Received: from mail-ej1-f48.google.com (mail-ej1-f48.google.com [209.85.218.48])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.185])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7BC02363092
-	for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 10:09:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.48
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE1E73BF673
+	for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 11:48:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.185
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777025378; cv=none; b=ce16nh1e891h9eKdG9f/6LjRnpw/EtOld2Uyt7jVhk0Bv0ZdONmNsBrSPhwuoEN9ONDjfX0tu+uCJo+kHHQKErTCki/8r9Rb8QMq5H02/m1UbzVBygzMK840ywLU3YGOkcQM0xLfbPEqANpSMczZJn8Y7eTTr2dOI4tr0FpK9Nc=
+	t=1777031285; cv=none; b=JkOFHxMe6VHLth5lsFX3N+G/jqj0AWa4ucjNuIyquZxxSEVgEzrEY0DszFXmLIwviptxFS06Cal54rmKJT7e2eacJ84EjI6Ag3MFg3kU9DexSKXent5DBffRbeTnGwo4Eg2pwqL7713S9TiDs+z8EG0QsYqakAVqt9Dv8Bya3Xo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777025378; c=relaxed/simple;
-	bh=RnpfrNhB3ccXPzS/+ABSINI7IqvVsyrA7HPYJ6nIkKY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=DNX8RscRwZHbLMLy3yMkHQZT3Ey8SrXRMQb2Iro60TMLOhlkG1WXMu9NTarR5VfxGAzlwDVy7bWgD85gi8mbaE50VDCjekR3gFGzXoaNv+71OhNRLaeBKV80e8I5rfB546AKVmpIY/8Ajlwl4vAqHMnEiWGUVA3Tr/smmQLKMj8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=em4CyCcr; arc=none smtp.client-ip=209.85.218.48
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1777031285; c=relaxed/simple;
+	bh=4r5RvhbLKnR/CgAsUMSEjQzzprHmmek/AmO6M+zAB60=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=dBb0ke4JY37Efpvs2unSYX36BYsEajakD6MHyKUcLZpl8e97j1/B6x0UUdrGHIYtTinZ7mawnIi1Yu7cSGXcDQ1WFPyBnl56u6C9AUKreWCaLrLt9CyBxBrWhp5uXLAYCxjK6gq5+iy6KMBG3R4TUVBmUsQ9Fh3fkmRidPThUQw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=stjuhjTC; arc=none smtp.client-ip=195.121.94.185
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="em4CyCcr"
-Received: by mail-ej1-f48.google.com with SMTP id a640c23a62f3a-ba6838e76f2so732753666b.2
-        for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 03:09:35 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="stjuhjTC"
+X-KPN-MessageId: 4aa257ec-3fd3-11f1-8ff3-005056999439
+Received: from smtp.kpnmail.nl (unknown [10.31.155.8])
+	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
+	id 4aa257ec-3fd3-11f1-8ff3-005056999439;
+	Fri, 24 Apr 2026 13:46:54 +0200 (CEST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1777025374; x=1777630174; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=sNHGdIi7azttvOU0ihx56z2No45BL/OntYqLbzQGkko=;
-        b=em4CyCcrvXWZqUelsCcZXp7mVosMq3b/5qmbse4Mm3nVBQi9c0tyHcnSNxaIQdAyhD
-         dJrdQk58qQp9yb3VDIosnoUNRoBySsQ24LCe71YTU0BDdKOjqXTHlurx5HDjmz2BNZJs
-         lTNXDHuiyNPWTTIxi0iVkcVLJsBnsXgOC6gUWFITXjARgnYeYWTpmcn766s8q1GCYwoV
-         qLWrGckVo8i8NGESUgnAEQHAHTIWBLWxeik65XizG8KTE7g10xByw2Emcw+GZpnw/DWf
-         b+9JfCnHiKu8krbcJ5ko608uEIRAHtcn23aaoA3NgW4VlTzbbNY/az7Hp0cxG2moDBIm
-         cADw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1777025374; x=1777630174;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=sNHGdIi7azttvOU0ihx56z2No45BL/OntYqLbzQGkko=;
-        b=jjb9oVNNuSU+Go65jqlsPNNdi9TYfzdO3AYM4uC6j8yvc10DNVRM6iE9mZlDSzsXxv
-         k9bY05wDj21i0j3sE42uF+6RsBQflgnZ5HwARIK3Fz2Ut+iMDg9/Ak7qG9BBLgblRPbY
-         QHeieDESthcJi4zm9XlrvbLj41LYINnwWq4tUeGtkCidcBQxLFK/XUsQM5Ps9W+/v/Ql
-         BbU+nXyAFu5BfbAti3GObTjtOPvZ8EQAKPrCR3YzTCQ2AnRiGHb4fZmufH6p/XZYHrKK
-         Mfo3/gwwwpwbT45A7JKXBqTc9f67LnsnRgguVGGSBkeVGB50sjTbnZ0SnMBKVmlkjMS8
-         /FNA==
-X-Forwarded-Encrypted: i=1; AFNElJ+yyw8b7Z+GmprGSYSSJeQQVxTyALcqHjQ6eEgCILu2Vi1BwDjZqvc/F3wnV/nhr6y7nxCZLbqm4RwL@vger.kernel.org
-X-Gm-Message-State: AOJu0YzJmxwmXMol6VXd3khFTN6NJ/eEx5ooZiU243bszfmcCIbUeEy+
-	6XIs4rOeSH3BPAQi5kOlkO/Wy3JVM0/2p7GHN2BY1qRXF4OavmwkRkNB
-X-Gm-Gg: AeBDieuxsKymmSXQZtet8ynR5Vrau4JuzB/DNplxIaSor7NjgO1zdk9jcbGLO8n0dbP
-	qY6VxnuXxdk1xcV+JSaIVGf6QODhRk4DN8xoq9O3E+BB9ug4h66LT0rzevONR9RwwHbz3ameJNl
-	D7tk/cZklbwNnGkLxnTzI8gC9CypvzI2ZaX3YCnt8nNgLmOgW9g4uBSzIZ1PNMKAA2HBq2mHyF4
-	ml2wXceEWVt8FR/YjXdA8PGGEEx0eGc6r5is7eG4doGZSdU+4Tx5i7/rdT69p2cUEymT7XI9W/o
-	cuqXjq/VFO8elUtKbEluPQ+aE3MzgssAFYanPpuMgPpk0dnRiIiYTjlkDJOAbf3JmWM5+GfKUs/
-	/uLWqBb14K6ABG2xbXP2C0hVQz3xHOTfEqNSr8fC/8RLO0cezI+azVXtPOABucA2XYU33PeztMu
-	stbGOl1AAUxoRA80Xz4Bl7R/q1qF4KuEkvBsvpWTraZGC3BZTDf53AbgY1Ikzic4vGhr6Sz2GQx
-	bzGPfYEEA==
-X-Received: by 2002:a17:907:97d4:b0:bad:5231:d5c with SMTP id a640c23a62f3a-bad52310d9fmr173197566b.47.1777025373429;
-        Fri, 24 Apr 2026 03:09:33 -0700 (PDT)
-Received: from f (cst-prg-93-232.cust.vodafone.cz. [46.135.93.232])
-        by smtp.gmail.com with ESMTPSA id 4fb4d7f45d1cf-6771dfcf628sm1496915a12.24.2026.04.24.03.09.28
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 24 Apr 2026 03:09:32 -0700 (PDT)
-Date: Fri, 24 Apr 2026 12:09:18 +0200
-From: Mateusz Guzik <mjguzik@gmail.com>
-To: Jori Koolstra <jkoolstra@xs4all.nl>
-Cc: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Christian Brauner <brauner@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "H . Peter Anvin" <hpa@zytor.com>, 
-	Jan Kara <jack@suse.cz>, Peter Zijlstra <peterz@infradead.org>, 
-	Andrey Albershteyn <aalbersh@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, 
-	Jiri Olsa <jolsa@kernel.org>, 
-	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	Jeff Layton <jlayton@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, cmirabil@redhat.com, 
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
- O_DIRECTORY fd
-Message-ID: <5xexygc3rvvlir4smdfn7gndwjgbuijqfummwwumivsnosijux@ygqs3iqxmovh>
-References: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
- <20260412135434.3095416-2-jkoolstra@xs4all.nl>
+	d=xs4all.nl; s=xs4all01;
+	h=mime-version:message-id:date:subject:to:from;
+	bh=ZrhMYcreG9Hj+7wH35gfOV2SV98uZrceH6hCeQICsGg=;
+	b=stjuhjTC1LvnAatFjI6P5/spawHckQyezjdZbo5tq3o4VPAhUgGmmgX6hVIy1ImeLnVdGgBOmQP2K
+	 Og4JWiOq8ovY6xCKUGGmtj1VL/rFAFiYGJGRctZCdz8sRH/iCB8sTlsDGEnyA81FY+/kSmPj9Hvr6n
+	 vBCou8fdy4aOPJcvcsmcRxDQACZXDGiVTuJpLh/5YAK1Z463siHKfHo2Wd+lvnlvTk+qlwtoi7ofHY
+	 vSVPfe4O08nsuEAxcUycpNb/Am7eQ9PKRJn+WSsclHBNs1PCFpdRFGllfTnawFFEm43gi2PjHDjItC
+	 TBZ4F0selLyuxoHUVE7pWAl27sxxeKg==
+X-KPN-MID: 33|FUnsPlT93BNBRRPIGjQuHsTveNGhZKo7Fw1aQ0rXGKxm9L+62p1aCM/VvQiDFCg
+ 9nxwyXHXVWIH6GuP4d/iorEXLeIwxU0iC+TxggF4CJLk=
+X-KPN-VerifiedSender: Yes
+X-CMASSUN: 33|FpymY/PkmFhHzrLRaMdxRmirFll8b5SmaGQ+Z9Eomz5JSL4V3AgigkWq2uktUeK
+ nJgcvjEyTD7qTwe4aLURuLQ==
+Received: from daedalus.home (unknown [178.227.109.146])
+	by smtp.xs4all.nl (Halon) with ESMTPSA
+	id 4a5d8641-3fd3-11f1-9c0b-00505699d6e5;
+	Fri, 24 Apr 2026 13:46:54 +0200 (CEST)
+From: Jori Koolstra <jkoolstra@xs4all.nl>
+To: Christian Brauner <brauner@kernel.org>,
+	Aleksa Sarai <cyphar@cyphar.com>,
+	Jeff Layton <jlayton@kernel.org>,
+	Chuck Lever <chuck.lever@oracle.com>,
+	Alexander Aring <alex.aring@gmail.com>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Jan Kara <jack@suse.cz>,
+	Arnd Bergmann <arnd@arndb.de>
+Cc: linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	Jori Koolstra <jkoolstra@xs4all.nl>,
+	linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
+Subject: [PATCH v5 1/2] vfs: add O_EMPTYPATH to openat(2)/openat2(2)
+Date: Fri, 24 Apr 2026 13:46:02 +0200
+Message-ID: <20260424114611.1678641-2-jkoolstra@xs4all.nl>
+X-Mailer: git-send-email 2.54.0
+In-Reply-To: <20260424114611.1678641-1-jkoolstra@xs4all.nl>
+References: <20260424114611.1678641-1-jkoolstra@xs4all.nl>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20260412135434.3095416-2-jkoolstra@xs4all.nl>
+Content-Transfer-Encoding: 8bit
 
-On Sun, Apr 12, 2026 at 03:54:33PM +0200, Jori Koolstra wrote:
-> Currently there is no way to race-freely create and open a directory.
-> For regular files we have open(O_CREAT) for creating a new file inode,
-> and returning a pinning fd to it. The lack of such functionality for
-> directories means that when populating a directory tree there's always
-> a race involved: the inodes first need to be created, and then opened
-> to adjust their permissions/ownership/labels/timestamps/acls/xattrs/...,
-> but in the time window between the creation and the opening they might
-> be replaced by something else.
-> 
-> Addressing this race without proper APIs is possible (by immediately
-> fstat()ing what was opened, to verify that it has the right inode type),
-> but difficult to get right. Hence, mkdirat2() that creates a directory
-> and returns an O_DIRECTORY fd is useful.
-> 
-> This feature idea (and description) is taken from the UAPI group:
-> https://github.com/uapi-group/kernel-features?tab=readme-ov-file#race-free-creation-and-opening-of-non-file-inodes
-> 
-> @@ -5276,6 +5294,10 @@ int filename_mkdirat(int dfd, struct filename *name, umode_t mode)
->  		if (IS_ERR(dentry))
->  			error = PTR_ERR(dentry);
->  	}
-> +	if (open && !error && !is_delegated(&delegated_inode)) {
-> +		const struct path new_path = { .mnt = path.mnt, .dentry = dentry };
-> +		filp = dentry_open(&new_path, O_DIRECTORY, current_cred());
-> +	}
->  	end_creating_path(&path, dentry);
->  	if (is_delegated(&delegated_inode)) {
->  		error = break_deleg_wait(&delegated_inode);
-> 2.53.0
-> 
+To get an operable version of an O_PATH file descriptor, it is possible
+to use openat(fd, ".", O_DIRECTORY) for directories, but other files
+currently require going through open("/proc/<pid>/fd/<nr>"), which
+depends on a functioning procfs.
 
-Last time around I pointed out fd allocation being an issue.
+This patch adds the O_EMPTYPATH flag to openat(2)/openat2(2). If passed,
+LOOKUP_EMPTY is set at path resolution time.
 
-The general problem is introduction of a failure point after mkdir
-itself succeeds as there is no way to backpedal from it.
+Note: This implies that you cannot rely anymore on disabling procfs from
+being mounted (e.g. inside a container without procfs mounted and with
+CAP_SYS_ADMIN dropped) to prevent O_PATH fds from being re-opened
+read-write.
 
-With the patch as proposed this remains a factor -- dentry_open itself
-can fail due to inability to allocate a file obj, and even if that
-succeeds there are several ways for do_dentry_open to error out.
+Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
+---
+ fs/fcntl.c                       | 2 +-
+ fs/open.c                        | 6 ++++--
+ include/linux/fcntl.h            | 2 +-
+ include/uapi/asm-generic/fcntl.h | 4 ++++
+ 4 files changed, 10 insertions(+), 4 deletions(-)
 
-For the patch to be viable some rototoiling is needed to make it so that
-all the prep is done before issuing the mkdir. The only thing which can
-legally happen after is installatin of the file obj in the fd table.
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index beab8080badf..7d2165855a9c 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -1169,7 +1169,7 @@ static int __init fcntl_init(void)
+ 	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
+ 	 * is defined as O_NONBLOCK on some platforms and not on others.
+ 	 */
+-	BUILD_BUG_ON(20 - 1 /* for O_RDONLY being 0 */ !=
++	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
+ 		HWEIGHT32(
+ 			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
+ 			__FMODE_EXEC));
+diff --git a/fs/open.c b/fs/open.c
+index 681d405bc61e..9e0164a8c1fb 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -1158,7 +1158,7 @@ struct file *kernel_file_open(const struct path *path, int flags,
+ EXPORT_SYMBOL_GPL(kernel_file_open);
+ 
+ #define WILL_CREATE(flags)	(flags & (O_CREAT | __O_TMPFILE))
+-#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC)
++#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC | O_EMPTYPATH)
+ 
+ inline struct open_how build_open_how(int flags, umode_t mode)
+ {
+@@ -1279,6 +1279,8 @@ inline int build_open_flags(const struct open_how *how, struct open_flags *op)
+ 		lookup_flags |= LOOKUP_DIRECTORY;
+ 	if (!(flags & O_NOFOLLOW))
+ 		lookup_flags |= LOOKUP_FOLLOW;
++	if (flags & O_EMPTYPATH)
++		lookup_flags |= LOOKUP_EMPTY;
+ 
+ 	if (how->resolve & RESOLVE_NO_XDEV)
+ 		lookup_flags |= LOOKUP_NO_XDEV;
+@@ -1360,7 +1362,7 @@ static int do_sys_openat2(int dfd, const char __user *filename,
+ 	if (unlikely(err))
+ 		return err;
+ 
+-	CLASS(filename, name)(filename);
++	CLASS(filename_flags, name)(filename, op.lookup_flags);
+ 	return FD_ADD(how->flags, do_file_open(dfd, name, &op));
+ }
+ 
+diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+index a332e79b3207..c65c5c73d362 100644
+--- a/include/linux/fcntl.h
++++ b/include/linux/fcntl.h
+@@ -10,7 +10,7 @@
+ 	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC | \
+ 	 O_APPEND | O_NDELAY | O_NONBLOCK | __O_SYNC | O_DSYNC | \
+ 	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
+-	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
++	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_EMPTYPATH)
+ 
+ /* List of all valid flags for the how->resolve argument: */
+ #define VALID_RESOLVE_FLAGS \
+diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+index 613475285643..bfc68156b45a 100644
+--- a/include/uapi/asm-generic/fcntl.h
++++ b/include/uapi/asm-generic/fcntl.h
+@@ -88,6 +88,10 @@
+ #define __O_TMPFILE	020000000
+ #endif
+ 
++#ifndef O_EMPTYPATH
++#define O_EMPTYPATH	(1 << 26)	/* allow empty path */
++#endif
++
+ /* a horrid kludge trying to make sure that this will fail on old kernels */
+ #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+ 
+-- 
+2.54.0
 
-Now that I said it, the open handling is already buggy in that way.
-do_open has the following:
-
-	error = may_open(idmap, &nd->path, acc_mode, open_flag);
-	if (!error && !(file->f_mode & FMODE_OPENED))
-		error = vfs_open(&nd->path, file);
-	if (!error)
-		error = security_file_post_open(file, op->acc_mode);
-	if (!error && do_truncate)
-		error = handle_truncate(idmap, file);
-	if (unlikely(error > 0)) {                                                                                
-		WARN_ON(1);                                                                                       
-		error = -EINVAL;                                                                                  
-	}
-
-Suppose O_CREAT was passed.
-
-There is no attempt to recover from the LSM returning an error, in which
-case the file is left on the fs. The only LSM even using the hook is
-ima. Even if the user being able to create the file implies the LSM
-check will pass anyway, the inode itself is not locked so root can sneak
-in to chmod it and trigger a failure. Suppose that's not important.
-
-Things proceed to handle_truncate:
-	int error = get_write_access(inode);
-	if (error)
-		return error;
-
-	error = security_file_truncate(filp);
-	if (!error) {
-		error = do_truncate(idmap, path->dentry, 0,
-				    ATTR_MTIME|ATTR_CTIME|ATTR_OPEN,
-				    filp);
-	}
-
-I'm going to ignore the LSM situation and do_truncate failure modes in this one.
-
-AFAICS nothing prevents the same user from racing against file creation to
-execve it, which starts with exe_file_deny_write_access. Should the
-other thread win the race, get_write_access will fail and the WARN_ON
-splat will be generated. That is definitely a problem.
