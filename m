@@ -1,148 +1,121 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E798E36895D;
-	Fri, 24 Apr 2026 19:25:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8DD4636D9F5;
+	Fri, 24 Apr 2026 19:35:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777058705; cv=none; b=evzhTBr4pTEQ64RwgLPpfMw5upEsxeJo8t0Aae1PjXzLR87I8ea59BQoOJfXEAEri5U6FCktYTSo5MBvygt6PYjyZwIzeEhkJSqcG+fDBTScCfNlzloxH/poAkfcL9XvyoJMrBQmD10kz7ESL6ZlJUrf9+hlFx3dOVxf/246v6E=
+	t=1777059345; cv=none; b=T30t2TzkeElZfMf6m0LrdGLXrGGAeTSJTGQMt1Qyd+yXr9jpAUDMiDJRJYRfiLketptuA0cPVmwfSL5fP/KK3J/UUTxK3xzYIMKhmo4qYvtMwF3zC2quw6FoSatLI2yYer4bn0XTogm3XABobUMb/wwrJmYc8k4c3ZMLoXPLjBE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777058705; c=relaxed/simple;
-	bh=F7k6cjRg4CFixZ/0jQLerFH32svmezAB7nqzyIjg15E=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=HnAe0y5rvydps+hdFBr+2gFAD+EvKkeR1ykqGmKlyIOwccLVVkUHN8xDejFxPtnrdTbUAncpcJ5L5+PqT+2QiJK1nC+ym+JN3Thq2as1sbegmmDlvl7vhcG4BN/6Omb9lAX+z2KZl4cuLxJ5juUtFdeoiv00MIAYVmqmBl6qskQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=UGs3mmbp; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1777059345; c=relaxed/simple;
+	bh=qTBZ+eIMF2wJiZVzdNzeHLi3B8j+sp9MfsXdYYNqeys=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Adq0MlcmcToHI7ZChvOB/ExG2jYdNTB9eElSFuynAraxM7xWN6uCToEaTRHMUC5CvtivOChYmnKUzb6HSEo2dtndlYj/zd6RU/U9nEASKaTpSD/7Y62X2wWnx3xGD9dmI89hNElsPmTOp31O4lxmVVgSmozjPNtTLQzQJsjEkZQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=dLRk3Exc; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="UGs3mmbp"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9BEECC19425;
-	Fri, 24 Apr 2026 19:24:54 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1777058704;
-	bh=F7k6cjRg4CFixZ/0jQLerFH32svmezAB7nqzyIjg15E=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=UGs3mmbpDlum+/IWv9fKQBfKk6bexijAUEvP9+2METrUAY6R4ht8G8ral2o6X+bu9
-	 RdEBv/WyKHq8ADVxi3SqY+sF2pUl8uJfSjU1yduJppRz2f05hQhc2IIPMVJW1DAt1K
-	 avKVyZGckdxk+2JE6pmf1bJ1JwaPO/lTAzRB6Qpzo0J6FDEjnAZfw9cOPIFFQEsAxm
-	 c6++FEuBIF7TQVA3CkvFJpIiJgI5Y31NNq2xoqvqx4BrJKtX8Yw7mDr557s+QkGNsS
-	 UL6xfOwr4CTgzip0iDGp9QcZezu43w398SoAiKvMdYqbEiAKAe6rwasX7diGO1HdSd
-	 PHaNPs9DzImRg==
-Message-ID: <3cc55400-dc0c-4746-8a8e-5f8a84f360e4@kernel.org>
-Date: Fri, 24 Apr 2026 21:24:51 +0200
-Precedence: bulk
-X-Mailing-List: linux-arch@vger.kernel.org
-List-Id: <linux-arch.vger.kernel.org>
-List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
-List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="dLRk3Exc"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=XdkH1kke8xKNHhewDP/J3YySwRvCbjXWp0T4uztq+es=; b=dLRk3ExcR3bJdP3rx8RDX2VDn+
+	XXZVHvWmgCd7fo/OIGaJC63rzZiZIz2LpR47O5RLmEJzgdJs7Bo/5H1POeKA7czocmGPzuTyuI26v
+	6g3xKivFhtkRJJJnZb3SBZ3k0jTcevV+iuI+a66hVCa8UphNH/U2PpNiRSKWONOMvFurwnOcZR/F+
+	1KCteXs6F5aLAQZFcodjh5JGIh3uoaNNfiYci4x02r6w/pg+dBuMNZoewQyvAorQ+puyBEuFT33Fl
+	W9qQ8PjQEVS6lQ1ng7yqkVdECou37wa5YEtpbc9+ovZvy11plaEo3qbSSvg9nqqUxLm0tRfv+/SVt
+	b0IJTefQ==;
+Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
+	by casper.infradead.org with esmtpsa (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1wGMJG-0000000FhuN-2hyR;
+	Fri, 24 Apr 2026 19:35:30 +0000
+Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
+	id 47CCF301142; Fri, 24 Apr 2026 21:35:29 +0200 (CEST)
+Date: Fri, 24 Apr 2026 21:35:29 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+To: Zi Yan <ziy@nvidia.com>
+Cc: Yosry Ahmed <yosry@kernel.org>,
+	"David Hildenbrand (Arm)" <david@kernel.org>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Pasha Tatashin <pasha.tatashin@soleen.com>,
+	Lance Yang <lance.yang@linux.dev>, dave.hansen@intel.com,
+	dave.hansen@linux.intel.com, ypodemsk@redhat.com, hughd@google.com,
+	will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com,
+	tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org,
+	hpa@zytor.com, arnd@arndb.de, ljs@kernel.org,
+	baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com,
+	npache@redhat.com, ryan.roberts@arm.com, dev.jain@arm.com,
+	baohua@kernel.org, shy828301@gmail.com, riel@surriel.com,
+	jannh@google.com, jgross@suse.com, seanjc@google.com,
+	pbonzini@redhat.com, boris.ostrovsky@oracle.com,
+	virtualization@lists.linux.dev, kvm@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org, ioworker0@gmail.com,
+	roman.gushchin@linux.dev
 Subject: Re: [PATCH 7.2 v10 0/2] skip redundant sync IPIs when TLB flush sent
  them
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Yosry Ahmed <yosry@kernel.org>, Andrew Morton
- <akpm@linux-foundation.org>, Pasha Tatashin <pasha.tatashin@soleen.com>,
- Lance Yang <lance.yang@linux.dev>, dave.hansen@intel.com,
- dave.hansen@linux.intel.com, ypodemsk@redhat.com, hughd@google.com,
- will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com,
- tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org,
- hpa@zytor.com, arnd@arndb.de, ljs@kernel.org, ziy@nvidia.com,
- baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, npache@redhat.com,
- ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org,
- shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com,
- seanjc@google.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com,
- virtualization@lists.linux.dev, kvm@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, ioworker0@gmail.com, roman.gushchin@linux.dev
-References: <20260424062528.71951-1-lance.yang@linux.dev>
- <20260424063024.ce42ee6a5546e4d9337dd007@linux-foundation.org>
+Message-ID: <20260424193529.GA3853824@noisy.programming.kicks-ass.net>
+References: <20260424063024.ce42ee6a5546e4d9337dd007@linux-foundation.org>
  <aetw4aoABYj3keMh@plex>
  <20260424071533.d28ce90126f05e1c6fc1b740@linux-foundation.org>
  <80ab39c2-efb9-4a23-bd56-46d9bb4e41bb@kernel.org>
  <20260424073145.b990fe9b925da304508aad71@linux-foundation.org>
  <644e65dc-3d39-4137-b51f-51d953b67d50@kernel.org>
  <CAO9r8zN1pRfyC0Rh+UdW-Lsret=z3oveT3=gnZftX-Sr_ubyyQ@mail.gmail.com>
- <4e7699eb-e101-4a25-b585-79a777eb7cc2@kernel.org>
- <20260424191703.GB3783056@noisy.programming.kicks-ass.net>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- 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
- qIws/H2t
-In-Reply-To: <20260424191703.GB3783056@noisy.programming.kicks-ass.net>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+ <20260424190141.GA3783056@noisy.programming.kicks-ass.net>
+ <E375C69C-557E-44EB-9B3C-618C9F7BA9D8@nvidia.com>
+ <20260424192250.GC3783056@noisy.programming.kicks-ass.net>
+Precedence: bulk
+X-Mailing-List: linux-arch@vger.kernel.org
+List-Id: <linux-arch.vger.kernel.org>
+List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
+List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260424192250.GC3783056@noisy.programming.kicks-ass.net>
 
-On 4/24/26 21:17, Peter Zijlstra wrote:
-> On Fri, Apr 24, 2026 at 09:09:21PM +0200, David Hildenbrand (Arm) wrote:
+On Fri, Apr 24, 2026 at 09:22:51PM +0200, Peter Zijlstra wrote:
+
+>     mdir = mailbox.Maildir('~/Maildir/');
 > 
->> Forcing contributors to reply to everything. I don't like that, in particular
->> not as long as there is no way for contributors to run it early in private.
->>
->> In most cases, contributors just do the reasonable thing: incorporate the
->> feedback in a new version.
+>     for i, r in enumerate(reviews):
+>         inline = r.get('inline_review', '') or ''
+>         if not inline:
+>             continue
 > 
-> Yes, so I understand that you can run it locally, but then you get to
-> pay for the tokens (and sashiko burns tokens like dry grass). I also
-> understand why Google/LF doesn't open this up, its a money pit no doubt.
-
-Indeed.
-
+>         author_name = r.get('author_name', 'Sashiko Reviewer')
+>         author_email = r.get('author_email', 'noreply@sashiko.dev')
 > 
-> OTOH, I see this causing more reposts of series than we would have had
-> previously -- and we all love more versions of series.
-
-Fortunately, reposts are easy to review, at least for me, when tags are properly
-incorporated and the version diff properly describes the changes.
-
+>         msgid = msgids[r['patch_id']]
+>         subject = subjects[r['patch_id']]
 > 
-> I'm not sure I see a solution, other than to read less email -- its not
-> like I can even begin to read all email I get anyway.
+>         # Create the Email object
+>         msg = EmailMessage()
+>         msg['Subject'] = f"Re: {subject}"
+>         msg['From'] = f"{author_name} <{author_email}>"
+>         msg['To'] = "peterz@infradead.org"
+>         msg['Date'] = formatdate(localtime=True)
+> 
+>         # The critical threading headers
+>         msg['Message-ID'] = f"<review-{i}-{msgid}>"
+>         msg['References'] = f"<{msgid}>"
+>         msg['In-Reply-To'] = f"<{msgid}>"
+> 
+>         msg.set_content(inline)
+> 
+>         mdir.add(msg)
+> 
+>     mdir.flush()
 
-Sad but true.
+So Ideally I would have 'Reply-to' header set to the original sender and
+added 'Cc' like the original email. However, AFAICT the JSON does not
+contain this information, and while I could use the mdir object to find
+the original message in my Inbox, this is incredibly slow.
 
-I consider the last AI review before something gets merged the most important one.
+I have a TODO to use python-notmuch to do this, but haven't gotten
+around to doing this yet.
 
--- 
-Cheers,
-
-David
+With that 'fixed' I could actually reply to these messages and it would
+all 'just' work. For now I copy/paste when needed.
