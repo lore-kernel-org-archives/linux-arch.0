@@ -1,142 +1,143 @@
-Received: from pdx-out-007.esa.us-west-2.outbound.mail-perimeter.amazon.com (pdx-out-007.esa.us-west-2.outbound.mail-perimeter.amazon.com [52.34.181.151])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 551E83C3439;
-	Fri, 24 Apr 2026 14:16:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=52.34.181.151
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D532F3DC4AD;
+	Fri, 24 Apr 2026 14:21:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777040215; cv=none; b=JCDunvrpcUUNmuzWimxHkiD+7mYknHQl6qIBOiuWAaPmKeLDSYUFTIaTssE7OjRLHmP2wGd+E4aA8KEfR0c35xebkbxCTuYt7g4z7fDIeUa0zgSXKvgaU/tK0oyHffFr4zx/p6UiHKIfQ5WdcURU+GsAHlQUK+QebDrFcrNqn3E=
+	t=1777040467; cv=none; b=ehF33XTKNatKFGoHVoNKVEU3Xq4jAXe80E9Xh9FFVuxpNHZpcHXoWe1dx5vEtrVfD9A3lGA3b6PiYGUcLzNejC6u7YJp1hwdL5GZ08l6fVrc4scSFeYi0FD7kT2nDVMkzh9J6apD7lnfPaDYaNnt0AHrRH6odFi7NqrPHS5f868=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777040215; c=relaxed/simple;
-	bh=2AQqwQ/V3YeN+sSc5aDTpnwZegrT6zJu/UnKOSH329Y=;
-	h=Subject:From:To:CC:Date:Message-ID:References:In-Reply-To:
-	 Content-Type:MIME-Version; b=NirYHAIVs0QbPjJ7p9c3Ekwt31+b9yc92N6OdTZbNXaPO/V64L3yafRtfd33m4u68kx2Py6pTvVsoLpXLoq4ifdi/dxY+laOf2Czyk1oqULHozjl/PuaclO2AMVlVqU8ZKWXC2NkN0DdnY7IZIrdRM5M20jpbWBUMX7RK1ZzsK0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amazon.com; spf=pass smtp.mailfrom=amazon.com; dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b=OWLCs8/3; arc=none smtp.client-ip=52.34.181.151
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amazon.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=amazon.com
+	s=arc-20240116; t=1777040467; c=relaxed/simple;
+	bh=m1TLXBSapE9k/3U2BTj9Ixbf1K+29lmFaAWUNRfDm/Y=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=mGtr9H+inRwnKQKt1/4JraePy1zGUaM+dAdpUADTDM/rhklCtStM2/rGfR1odGaKOzUPBxHK0cUKiR0+QkA/z0SGU7lR3OJax+6d1FsEiJUXK9+3S/cGh/Tzb9tM4D2uIHdQqN11EAgjbsvA5BZ4yE1mMJdRJ/vQ/EVeQUMjnpI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=FcO/T2OJ; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b="OWLCs8/3"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-  d=amazon.com; i=@amazon.com; q=dns/txt; s=amazoncorp2;
-  t=1777040214; x=1808576214;
-  h=from:to:cc:date:message-id:references:in-reply-to:
-   content-id:content-transfer-encoding:mime-version:subject;
-  bh=2AQqwQ/V3YeN+sSc5aDTpnwZegrT6zJu/UnKOSH329Y=;
-  b=OWLCs8/3EVfbW6N1KGSQASR59wpLfV0hfSDTtt0cnI8u21+priIh04sf
-   wwYqNErGHCYmVApqW7F+kOGrunAaposYzScn6o+ybgN1FyT19HCtyLRCW
-   PhRBHM/AoUssiZYH2exuUHlW+TukkfGfqwebWdwZetHgXt+4mbDUjzgXB
-   UdB2eNsbbvhBC8+So4pXg7XLPoHXR9LMLbYmy4TewalSGpLQmrz8TeajR
-   ZaTAKW/jRIUOFpZF5CDHRp1WPDOJ849q+gKXmYhJSBHzYMLM4x1XpyjtG
-   OhUuTCdbvyO3QeeM1Sq1Ae1lH6Se0cvhUZBLm0ZqMhJJ8G+Xb6gPXyHDK
-   w==;
-X-CSE-ConnectionGUID: g2tXSHC9T4u1ZyPhFZy82A==
-X-CSE-MsgGUID: +M25bqO3QTW5soUIw61HcQ==
-X-IronPort-AV: E=Sophos;i="6.23,196,1770595200"; 
-   d="scan'208";a="18113629"
-Subject: Re: [PATCH v11 00/14] barrier: Add smp_cond_load_{relaxed, acquire}_timeout()
-Thread-Topic: [PATCH v11 00/14] barrier: Add smp_cond_load_{relaxed, acquire}_timeout()
-Received: from ip-10-5-12-219.us-west-2.compute.internal (HELO smtpout.naws.us-west-2.prod.farcaster.email.amazon.dev) ([10.5.12.219])
-  by internal-pdx-out-007.esa.us-west-2.outbound.mail-perimeter.amazon.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Apr 2026 14:16:53 +0000
-Received: from EX19MTAUWB001.ant.amazon.com [205.251.233.51:11239]
- by smtpin.naws.us-west-2.prod.farcaster.email.amazon.dev [10.0.41.10:2525] with esmtp (Farcaster)
- id fb967a1b-c42c-4869-b791-e23549861e76; Fri, 24 Apr 2026 14:16:53 +0000 (UTC)
-X-Farcaster-Flow-ID: fb967a1b-c42c-4869-b791-e23549861e76
-Received: from EX19D032UWA004.ant.amazon.com (10.13.139.56) by
- EX19MTAUWB001.ant.amazon.com (10.250.64.248) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA) id 15.2.2562.37;
- Fri, 24 Apr 2026 14:16:53 +0000
-Received: from EX19D032UWA003.ant.amazon.com (10.13.139.37) by
- EX19D032UWA004.ant.amazon.com (10.13.139.56) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA) id 15.2.2562.37;
- Fri, 24 Apr 2026 14:16:53 +0000
-Received: from EX19D032UWA003.ant.amazon.com ([fe80::8e94:8f60:9531:c497]) by
- EX19D032UWA003.ant.amazon.com ([fe80::8e94:8f60:9531:c497%5]) with mapi id
- 15.02.2562.037; Fri, 24 Apr 2026 14:16:52 +0000
-From: "Okanovic, Haris" <harisokn@amazon.com>
-To: "ankur.a.arora@oracle.com" <ankur.a.arora@oracle.com>,
-	"akpm@linux-foundation.org" <akpm@linux-foundation.org>
-CC: "joao.m.martins@oracle.com" <joao.m.martins@oracle.com>,
-	"xueshuai@linux.alibaba.com" <xueshuai@linux.alibaba.com>,
-	"david.laight.linux@gmail.com" <david.laight.linux@gmail.com>,
-	"boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>, "memxor@gmail.com"
-	<memxor@gmail.com>, "ashok.bhat@arm.com" <ashok.bhat@arm.com>,
-	"zhenglifeng1@huawei.com" <zhenglifeng1@huawei.com>, "konrad.wilk@oracle.com"
-	<konrad.wilk@oracle.com>, "cl@gentwo.org" <cl@gentwo.org>,
-	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-	"catalin.marinas@arm.com" <catalin.marinas@arm.com>, "ast@kernel.org"
-	<ast@kernel.org>, "rdunlap@infradead.org" <rdunlap@infradead.org>,
-	"daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>,
-	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de"
-	<arnd@arndb.de>, "will@kernel.org" <will@kernel.org>, "mark.rutland@arm.com"
-	<mark.rutland@arm.com>, "peterz@infradead.org" <peterz@infradead.org>,
-	"bpf@vger.kernel.org" <bpf@vger.kernel.org>,
-	"linux-arm-kernel@lists.infradead.org"
-	<linux-arm-kernel@lists.infradead.org>, "Okanovic, Haris"
-	<harisokn@amazon.com>, "rafael@kernel.org" <rafael@kernel.org>,
-	"linux-pm@vger.kernel.org" <linux-pm@vger.kernel.org>
-Thread-Index: AQHcx1Lc+RjIJDvKCE+BAEcv9rf8TbXs+zWAgAAlMoCAATrtgA==
-Date: Fri, 24 Apr 2026 14:16:52 +0000
-Message-ID: <7cd318985eebc0f068dcb77b07eab150d893b70d.camel@amazon.com>
-References: <20260408122538.3610871-1-ankur.a.arora@oracle.com>
-	 <20260423101631.84f26592d629eee46fbde6f8@linux-foundation.org>
-	 <87tst1fpb0.fsf@oracle.com>
-In-Reply-To: <87tst1fpb0.fsf@oracle.com>
-Accept-Language: en-US
-Content-Language: en-US
-X-MS-Has-Attach:
-X-MS-TNEF-Correlator:
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <948A79D88771E846BD3132ACF440F1C9@amazon.com>
-Content-Transfer-Encoding: base64
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="FcO/T2OJ"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 037BDC19425;
+	Fri, 24 Apr 2026 14:20:56 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1777040467;
+	bh=m1TLXBSapE9k/3U2BTj9Ixbf1K+29lmFaAWUNRfDm/Y=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=FcO/T2OJBiXLuu2jOYNIQQjpOEf6UNNJeCnFHM1G3rkXVxZipjDU2f9hG18XgZSR6
+	 nuvrFYyosEs07P/Rq5p1uyZxffKIx7Jx6DUl30rlgxqSa7ONJA+rAiYOXUUEt1y+fx
+	 T1D3wFcSPJccj056BZMc6nNLnm34u729tzvGgbXISBpwg57i2VwUrlim4w8/A93egS
+	 okGfpoNM6aK58HOLnHfYBdAX/JlfE9ZcjBMEny1KF2gZEZlJabPXMoASKc1XnvLObQ
+	 n0SUzJQPoDVypAvwajJaRAG2RPTR3Rnm/yjlVFWpBs32jM6WZzTmGBDVNGhBYotvo3
+	 6II/JCaXvWD7w==
+Message-ID: <80ab39c2-efb9-4a23-bd56-46d9bb4e41bb@kernel.org>
+Date: Fri, 24 Apr 2026 16:20:55 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 7.2 v10 0/2] skip redundant sync IPIs when TLB flush sent
+ them
+To: Andrew Morton <akpm@linux-foundation.org>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>
+Cc: Lance Yang <lance.yang@linux.dev>, peterz@infradead.org,
+ dave.hansen@intel.com, dave.hansen@linux.intel.com, ypodemsk@redhat.com,
+ hughd@google.com, will@kernel.org, aneesh.kumar@kernel.org,
+ npiggin@gmail.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
+ x86@kernel.org, hpa@zytor.com, arnd@arndb.de, ljs@kernel.org,
+ ziy@nvidia.com, baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com,
+ npache@redhat.com, ryan.roberts@arm.com, dev.jain@arm.com,
+ baohua@kernel.org, shy828301@gmail.com, riel@surriel.com, jannh@google.com,
+ jgross@suse.com, seanjc@google.com, pbonzini@redhat.com,
+ boris.ostrovsky@oracle.com, virtualization@lists.linux.dev,
+ kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, ioworker0@gmail.com, roman.gushchin@linux.dev
+References: <20260424062528.71951-1-lance.yang@linux.dev>
+ <20260424063024.ce42ee6a5546e4d9337dd007@linux-foundation.org>
+ <aetw4aoABYj3keMh@plex>
+ <20260424071533.d28ce90126f05e1c6fc1b740@linux-foundation.org>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <20260424071533.d28ce90126f05e1c6fc1b740@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-T24gVGh1LCAyMDI2LTA0LTIzIGF0IDEyOjI5IC0wNzAwLCBBbmt1ciBBcm9yYSB3cm90ZToNCj4g
-Q0FVVElPTjogVGhpcyBlbWFpbCBvcmlnaW5hdGVkIGZyb20gb3V0c2lkZSBvZiB0aGUgb3JnYW5p
-emF0aW9uLiBEbyBub3QgY2xpY2sgbGlua3Mgb3Igb3BlbiBhdHRhY2htZW50cyB1bmxlc3MgeW91
-IGNhbiBjb25maXJtIHRoZSBzZW5kZXIgYW5kIGtub3cgdGhlIGNvbnRlbnQgaXMgc2FmZS4NCj4g
-DQo+IA0KPiANCj4gQW5kcmV3IE1vcnRvbiA8YWtwbUBsaW51eC1mb3VuZGF0aW9uLm9yZz4gd3Jp
-dGVzOg0KPiANCj4gPiBPbiBXZWQsICA4IEFwciAyMDI2IDE3OjU1OjI0ICswNTMwIEFua3VyIEFy
-b3JhIDxhbmt1ci5hLmFyb3JhQG9yYWNsZS5jb20+IHdyb3RlOg0KPiA+IA0KPiA+ID4gVGhlIGNv
-cmUga2VybmVsIG9mdGVuIHVzZXMgc21wX2NvbmRfbG9hZF97cmVsYXhlZCxhY3F1aXJlfSgpIHRv
-IHNwaW4NCj4gPiA+IG9uIGNvbmRpdGlvbiB2YXJpYWJsZXMgd2l0aCBhcmNoaXRlY3R1cmFsIHBy
-aW1pdGl2ZXMgdXNlZCB0byBhdm9pZA0KPiA+ID4gaGFtbWVyaW5nIHRoZSByZWxldmFudCBjYWNo
-ZWxpbmVzLg0KPiA+ID4gDQo+ID4gPiAuLi4NCj4gPiA+IA0KPiA+ID4gQWNjb3JkaW5nbHkgYWRk
-IHR3byBpbnRlcmZhY2VzICh3aXRoIHRoZWlyIGdlbmVyaWMgYW5kIGFybTY0IHNwZWNpZmljDQo+
-ID4gPiBpbXBsZW1lbnRhdGlvbnMpOg0KPiA+ID4gDQo+ID4gPiAgICBzbXBfY29uZF9sb2FkX3Jl
-bGF4ZWRfdGltZW91dChwdHIsIGNvbmRfZXhwciwgdGltZV9leHByLCB0aW1lb3V0KQ0KPiA+ID4g
-ICAgc21wX2NvbmRfbG9hZF9hY3F1aXJlX3RpbWVvdXQocHRyLCBjb25kX2V4cHIsIHRpbWVfZXhw
-ciwgdGltZW91dCkNCj4gPiA+IA0KPiA+ID4gQWxzbyBhZGQgdGlmX25lZWRfcmVzY2hlZF9yZWxh
-eGVkX3dhaXQoKSB3aGljaCB3cmFwcyB0aGUgcG9sbGluZw0KPiA+ID4gcGF0dGVybiBhbmQgaXRz
-IHNjaGVkdWxlciBzcGVjaWZpYyBkZXRhaWxzIGluIHBvbGxfaWRsZSgpLg0KPiA+ID4gSW4gYWRk
-aXRpb24gYWRkIGF0b21pY19jb25kX3JlYWRfKl90aW1lb3V0KCksDQo+ID4gDQo+ID4gVGhhbmtz
-LCBJJ2xsIGFkZCB0aGlzIHRvIG1tLmdpdCdzIG1tLW5ldyBicmFuY2ggdG9kYXkuDQo+IA0KPiBH
-cmVhdC4gVGhhbmtzIQ0KPiANCj4gPiBUaGlzIGlzbid0IGFtIE1NIHBhdGNoc2V0LCBidXQgbW0t
-bmV3IGlzbid0IGluY2x1ZGVkIGluIGxpbnV4LW5leHQsIGFuZA0KPiA+IGxpbnV4LW5leHQgaXNu
-J3QgcHJlc2VudGx5IG9wZW4gZm9yIDcuMSBtYXRlcmlhbC4NCj4gPiANCj4gPiBBZnRlciAtcmMx
-IEknbGwgbW92ZSB0aGUgc2VyaWVzIGludG8gbW0uZ2l0J3MgbW0tbm9ubW0tdW5zdGFibGUgYnJh
-bmNoLA0KPiA+IHdoZXJlIGl0IHdpbGwgZ2V0IGxpbnV4LW5leHQgZXhwb3N1cmUuDQo+IA0KPiBB
-Y2sgdGhhdC4NCj4gDQo+ID4gSSBzZWUgdGhhdCBmdXJ0aGVyIHJldmlldy9jb21tZW50IGhhcyBi
-ZWVuIHJlcXVlc3RlZCAtIGhvcGVmdWxseSB0aGlzDQo+ID4gd2lsbCBoYXBwZW4gb3ZlciB0aGUg
-bmV4dCBjb3VwbGUgb2YgbW9udGhzLCBidXQgcGxlYXNlIGRvIGNvbnRpbnVlIHRvDQo+ID4gY2hh
-c2UgdGhpcyBkb3duIGlmIHlvdSBmZWVsIHRoZSBuZWVkLg0KPiANCj4gV2lsbCBkby4NCj4gDQo+
-ID4gPiBIYXJpcyBPa2Fub3ZpYyBhbHNvIHNhdyBpbXByb3ZlbWVudCBpbiByZWFsIHdvcmtsb2Fk
-cyBkdWUgdG8gdGhlDQo+ID4gPiBjcHVpZGxlIGNoYW5nZXM6ICJvYnNlcnZlZCA0LTYlIGltcHJv
-dmVtZW50cyBpbiBtZW1jYWhlZCwgY2Fzc2FuZHJhLA0KPiA+ID4gbXlzcWwsIGFuZCBwb3N0Z3Jl
-c3FsIHVuZGVyIGNlcnRhaW4gbG9hZHMuIE90aGVyIGFwcGxpY2F0aW9ucyBsaWtlbHkNCj4gPiA+
-IGJlbmVmaXQgdG9vLiIgWzEyXQ0KPiA+IA0KPiA+IFRob3NlIGFyZSBzaWduaWZpY2FudCBpbXBy
-b3ZlbWVudHMuICAgVGhyZWUgeWVhcnMgOigNCj4gDQo+IFBhcnQgb2YgdGhlIHJlYXNvbiB3YXMg
-dGhhdCB0aGUgYmFycmllciBpbnRlcmZhY2Ugd2FzIHBhcnQgb2YgYSBzZXJpZXMNCj4gZm9jdXNl
-ZCBvbiB2aXJ0dWFsaXphdGlvbiB2aWEgY3B1aWRsZS1oYWx0cG9sbC4gQXMgdGhhdCB3YXMgcmV2
-aWV3ZWQsDQo+IHRoZSB0YWxlIGNoYW5nZWQgaW4gdGhlIHRlbGxpbmcsIGFuZCBpdCBtYWRlIG1v
-cmUgc2Vuc2UgdG8gc2VwYXJhdGUNCj4gdGhlIHR3by4NCj4gDQo+IFdpbGwgc2VuZCBvdXQgdGhl
-IGNwdWlkbGUgY2hhbmdlcyBmb3IgcmV2aWV3IHdoaWNoIEhhcmlzIGlzIHJ1bm5pbmcNCj4gd2l0
-aC4NCg0KSXQgbmVlZHMgc29tZSBtaW5vciByZWZhY3RvcnMgZm9yIGxhdGVzdCBtYWludGFpbi4N
-Cg0KVGhpcyBpcyB3aGF0IEkgdGVzdGVkIGxhc3Qgd2VlazoNCmh0dHBzOi8vZ2l0aHViLmNvbS9o
-YXJpc29rYW5vdmljL2xpbnV4L3RyZWUvZGV2L2hhcmlzb2tuL2FybS1oYWx0cG9sbC0yMDI2LWFw
-cmlsLXRlc3QNCg0KPiANCj4gLS0NCj4gYW5rdXINCg0KUmVnYXJkcywNCkhhcmlzIE9rYW5vdmlj
-DQpBV1MgR3Jhdml0b24gU29mdHdhcmUNCg0K
+On 4/24/26 16:15, Andrew Morton wrote:
+> On Fri, 24 Apr 2026 13:37:04 +0000 Pasha Tatashin <pasha.tatashin@soleen.com> wrote:
+> 
+>> On 04-24 06:30, Andrew Morton wrote:
+>>>
+>>>
+>>> Sashiko questions:
+>>> 	https://sashiko.dev/#/patchset/20260424062528.71951-1-lance.yang@linux.dev
+>>>
+>>> (I never know if my Sashiko emails are welcome/useful.  Maybe Sashiko
+>>> said the same stuff about v9 and it's all wrong.  But better safe than
+>>> sorry!)
+>>
+>> These emails are helpful; but, I do not believe you should have to 
+>> manually follow up with a link to every new patch series.
+>>
+>> Perhaps  Sashiko could automatically send a summary email in response to 
+>> the cover letter, or provide a link once the reviews are complete. For 
+>> the kexec ML, we opted-in with Roman to receive automated emails from 
+>> sashiko.
+> 
+> Yep.  I'd be OK with an automatic reply-to-all.  Maybe some won't like
+> that.
+> 
+> An alternative I've discussed with Roman is an automated
+> reply-to-author with a cc to a dedicated list (we could use mm-commits
+> for now).
+> 
+> Preferences?
+
+Reply-to-author would likely be better as a first step.
+
+-- 
+Cheers,
+
+David
