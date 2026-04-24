@@ -1,341 +1,242 @@
-Received: from out-181.mta0.migadu.com (out-181.mta0.migadu.com [91.218.175.181])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 517A579DA
-	for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 06:26:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.181
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777011994; cv=none; b=l0qU67Drhr+5aJCHPVLwloEIOUW41Ct2dUrMCsCB2WGEoccIzcEuJ3T73aZzMvfqLBwFx0+vapJCVKmZQtK7E83eYaATqk3hwX/rYtMN+JX6IP+eQKb/oWRwUTz0yTd7lExoG+fdLbeulJw/ANGaxSPidzQFsuK3rUFckolChkA=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777011994; c=relaxed/simple;
-	bh=r3cX9/cKucEKI7jeSBF7ovZVeEBlaU54h0dr4Se14LI=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=CqnDxnpRrVyOYa0limsiUkDBiWaDkd6+gLaoYfLqMQ9Wi2snGe3UYYILsLItpRpejtyPhbYHjA1OaYcmUW3gp9f6mv/jX2+YE8q1+jDRYW5Y2EZM2WZAHhtdlOKnHYVJIYW8VHEqABMPQB1s0gP7aLvYOsZctj6DYSukOYNtWJQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=lXFN78sr; arc=none smtp.client-ip=91.218.175.181
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F0D0D35E923
+	for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 07:17:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=170.10.133.124
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1777015052; cv=pass; b=ONWQJLTE3YcTdbrPD9g5fruVv8pTvv0RbOakW6pQUsfhBsejXD4AP5ILSc8pA0H/4WkGHSeRbBV4+mNB+K+1RPmktmy4SKoD4zzxHV3iuEbn2ITMfo4GTnYo/Eec3POYyX7oBz3p+ij1EWCyody0LckPYwR4sZXvYtQDyTBBkm8=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1777015052; c=relaxed/simple;
+	bh=yClHRF8OjhIxck88Jx+vYcQmNKKejUFC6AKG1u3nJUk=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=LFAVwEoQtg1LfwqUEhEsHcU5PRDtfgyqqYSQg/Q046o02Oz5dtTuuxF8E9Od6o3G/SNj5Q/BCb+LqkQmthSPs8GCAsWWaTwmnbsyEnaktlw6sMzL+db805pE52RvYkUdPxjgVPcEOwrGbdqFBGKelWITHr4W1HzVY8Fe6Xp86No=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=amSw304y; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=RYGFxIrY; arc=pass smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="lXFN78sr"
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1777011989;
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="amSw304y";
+	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="RYGFxIrY"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1777015049;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=rTh+Yvx/G+4eA9lbJw6qEK4XyieG3LR31VvrGkRr96o=;
-	b=lXFN78sryZ4PB+yHSBlA0WPl5M4L4ogY1eH/biaBzsnxm7WNDoMkzHzGdk7QKgYfxNeOy0
-	5st7Qf4OgYppgPfZFHjFoqGEV8pmnNmBKnkB0JO8npFF6lWb+nYs/1TlvCaH5DfMx0R1aR
-	DISGE9gPZLPERc1OKnbM0iSsegCiaus=
-From: Lance Yang <lance.yang@linux.dev>
-To: akpm@linux-foundation.org
-Cc: peterz@infradead.org,
-	david@kernel.org,
-	dave.hansen@intel.com,
-	dave.hansen@linux.intel.com,
-	ypodemsk@redhat.com,
-	hughd@google.com,
-	will@kernel.org,
-	aneesh.kumar@kernel.org,
-	npiggin@gmail.com,
-	tglx@linutronix.de,
-	mingo@redhat.com,
-	bp@alien8.de,
-	x86@kernel.org,
-	hpa@zytor.com,
-	arnd@arndb.de,
-	ljs@kernel.org,
-	ziy@nvidia.com,
-	baolin.wang@linux.alibaba.com,
-	Liam.Howlett@oracle.com,
-	npache@redhat.com,
-	ryan.roberts@arm.com,
-	dev.jain@arm.com,
-	baohua@kernel.org,
-	shy828301@gmail.com,
-	riel@surriel.com,
-	jannh@google.com,
-	jgross@suse.com,
-	seanjc@google.com,
-	pbonzini@redhat.com,
-	boris.ostrovsky@oracle.com,
-	virtualization@lists.linux.dev,
-	kvm@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org,
-	ioworker0@gmail.com,
-	Lance Yang <lance.yang@linux.dev>
-Subject: [PATCH 7.2 v10 2/2] x86/tlb: skip redundant sync IPIs for native TLB flush
-Date: Fri, 24 Apr 2026 14:25:28 +0800
-Message-ID: <20260424062528.71951-3-lance.yang@linux.dev>
-In-Reply-To: <20260424062528.71951-1-lance.yang@linux.dev>
-References: <20260424062528.71951-1-lance.yang@linux.dev>
+	bh=ocRQwsGxmUd24plQscvID6P4Yrryzt44ghQQY2RzSsk=;
+	b=amSw304ygccY9CZo70L1UIvHGLU/otpKqcR6SW0AM/8TIg2EYwqMmn4higD7fspAmbCv3g
+	T36RVZxXoj0QuFHP3dgs4XYx+8IfxcdfyBMpMo28Ew8jgVGdJz5aBuiDpOAKMp0WpFpxb6
+	eBieLw7bogtqFlbCk+GfcxTEQkoTt9g=
+Received: from mail-yw1-f198.google.com (mail-yw1-f198.google.com
+ [209.85.128.198]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-614-yh71luQgMXO9xXeqf6iLcg-1; Fri, 24 Apr 2026 03:17:18 -0400
+X-MC-Unique: yh71luQgMXO9xXeqf6iLcg-1
+X-Mimecast-MFC-AGG-ID: yh71luQgMXO9xXeqf6iLcg_1777015038
+Received: by mail-yw1-f198.google.com with SMTP id 00721157ae682-7b6fea89dd7so93204357b3.1
+        for <linux-arch@vger.kernel.org>; Fri, 24 Apr 2026 00:17:18 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1777015038; cv=none;
+        d=google.com; s=arc-20240605;
+        b=bmPLbopusXUAPHva9+1jfAVSJjNQ49p0JhNEBX6sdfGrxKZdoQtOOqaiiPtC31ep96
+         7yETNAY9VNuWAWl5zLd6DcmYJRM4tzxEk92O1ZyYxpYMzEngpon+8qABMvEAc4+X6B9p
+         c/uRh2RB9vHH7qnOSQB5VV3wX0yG29soEL+VfDljrpEaCG/0B4LRAChOAaf8o4elLJRN
+         j7nv/fvH8X58fJZbpumUVLsejjZceIwJ+lybUk0zRirIG9MbB5PgFprfiY+AhzCW5o1+
+         oylshYq/lP+1/41vC97vMwvlc/4UA6IrgN06ZrmS++8CTguJ4l5FX9EegKSrrkvMMWiQ
+         D9MA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=ocRQwsGxmUd24plQscvID6P4Yrryzt44ghQQY2RzSsk=;
+        fh=xFo1nui+RnXbcoU/DNqnMT37VsExkMMkwtxPtRzf2Ug=;
+        b=Q9FmaqJ1RRNzi1Q81svKfBhomK17lYuiuhCSjxj0vybwhd7oWqsviSpuk3ZVpSshP0
+         UjMyHi+ahb1v95n2Kz7qsxDrVyrhjJCWtKhtQOMzNP+stnJIDu8tH/Ut+IOMubxdaCpz
+         xDXzYVr6o3jIjO9OuE5HYwNXb3xdVjqX6GcGsYhipAGqKynxoYeuquuvofk8Lr8HuSn9
+         gPvSU7Kfvx+H8qFbaa8VbWai4cWlgOCv2mrC0Rh3o8XZL3DHrJfVnbcnqJFJxyYS77E4
+         tB4hAMB68MrRtAqVMCGKwuhQAljsu81Kp8GnFKGb0f7/VLgtAKEkbW8aplDe08AUdWmS
+         jDEg==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=redhat.com; s=google; t=1777015038; x=1777619838; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=ocRQwsGxmUd24plQscvID6P4Yrryzt44ghQQY2RzSsk=;
+        b=RYGFxIrYmkdPH5H6sCnbRVAiE21g7fScoKvsLDZjrODthL/MNFbzmR0zDYAz4D0JEU
+         3VF8Ypl6Xua84ndVEP9DtGOKMuIDvDY+BgSIX7cB/ExtidMYVDyzplilORHQreGfdIoG
+         uprang6fhniPd7CGuEpa+tcq8zU42mmV7eQMpQZEaZM6yBkUBjb+svkh8Zlyu5XtjJiE
+         RXhVE+99TjOvYdQ5QTZgyUM8S2G/e4kVe6PPDB/ny0/QMLfjGC4CqGGqPNGbDR2hQsns
+         DQaBpYjDwFDqhp80jX4gI58zrf250ID6XU3o/mULjqqz3JZ8Cjn/3fXNBHDrW7wmyRvx
+         vv6w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1777015038; x=1777619838;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=ocRQwsGxmUd24plQscvID6P4Yrryzt44ghQQY2RzSsk=;
+        b=f6A1m0ivalhwnf1z7lb5xBKwxO7XuZdDg7JzzD9rNdybjS1Hx6S4QvpgnOCd/ycinX
+         njhpDHdftpKmoRjY6IDBUrgT4phiL03xAvkAmw006jIAKKoyN5S8t78pBoA2ua5wSP0F
+         meLInc04Xaj+dhiAARKJQf3zYRxruczBG8S3jOuSPy/G3gugCc17Fo+01Ts6cyQr8nxn
+         OvvqjKy2U7pyfnDAAYIdb2CpNiMXDr9LNZzolUph+AmxDqS48x63Nq3hBivEthK9t2+K
+         6ARZBY0lwSwGkzg7eMVa9oZEi3s0RSjTyvO9e0CHWZaIbYrGSzGAyw15sE2Mq7P13V4b
+         Mo5A==
+X-Forwarded-Encrypted: i=1; AFNElJ820A6WBvGnjV6EXx88yP6w9cij13RgaCo7hQ3KHuzlg3MQlzCs8/HAN5PwQEFgbaqQ+3tGLHjMfWyT@vger.kernel.org
+X-Gm-Message-State: AOJu0YzoCb2iperBgxIur68UUjlcYTcW93JUktWYKrZe+9/GKqee0ihY
+	WzLfCEZ1+40LmrcVliuWeK6D2lgUdBi/gcxC2isOOR2rjfRjoUtk0e+O7G+pD7ZB1NTfy18E6vp
+	rL/DdQnoL7RSjVcUxqEPHxZPtZWvQ/E3rZyHHqjFu5re4rWnQTd5Hb1pgxk9T6QAXr3G/DgIQGp
+	5nZdMbznwAv+8wad1WHEhqbZF/pfaEoARMNRE7Ig==
+X-Gm-Gg: AeBDieu2bUOD26jFZDlDlUrkadiFKuQqHoWZbBfyoiLPe8oCKsfMt+oinov+7gNpDVO
+	wPWL0UuJiGTfrzMhBJUqn6SHFycWJO1W+Hdmj1Blr05BW9ZAP5Dp6iPS8ovbNmjLd9iONsKRiuO
+	vaHqbkO2Y681NzwlGwxytU62vMsKYrOAY7KsGMp82hfSGmRJYX/f0cDXsWQMOdVAehpJ8cU/nN+
+	0KhGwpzQ8BGuz/p
+X-Received: by 2002:a05:690c:2701:b0:79b:cf31:9767 with SMTP id 00721157ae682-7b9ece638bbmr313691437b3.3.1777015037630;
+        Fri, 24 Apr 2026 00:17:17 -0700 (PDT)
+X-Received: by 2002:a05:690c:2701:b0:79b:cf31:9767 with SMTP id
+ 00721157ae682-7b9ece638bbmr313691117b3.3.1777015037197; Fri, 24 Apr 2026
+ 00:17:17 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Migadu-Flow: FLOW_OUT
+References: <20260420-kunit_add_support-v7-0-e8bc6e0f70de@redhat.com>
+ <20260420-kunit_add_support-v7-4-e8bc6e0f70de@redhat.com> <20260420144702.GM3102624@noisy.programming.kicks-ass.net>
+ <CADSE00JJq6fsYbkFN5hBD=-ZWsFG9p4_C55fp3MupMJQj0QCUQ@mail.gmail.com> <8a9c125c08206296d698c79c3d3dd6aea36a7e3b@intel.com>
+In-Reply-To: <8a9c125c08206296d698c79c3d3dd6aea36a7e3b@intel.com>
+From: Albert Esteve <aesteve@redhat.com>
+Date: Fri, 24 Apr 2026 09:17:05 +0200
+X-Gm-Features: AQROBzD6yZWbejVMF7ldH8G24-m4djSD1N4zfjIlQ_Qh0r0EH3w2r9AAFZGj5x0
+Message-ID: <CADSE00+b-8moX5FkLjLs+wzyaW5dtJDMxvTT6Gu-QmDoDxJdVA@mail.gmail.com>
+Subject: Re: [PATCH v7 4/5] drm: Suppress intentional warning backtraces in
+ scaling unit tests
+To: Jani Nikula <jani.nikula@intel.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, 
+	Brendan Higgins <brendan.higgins@linux.dev>, David Gow <david@davidgow.net>, 
+	Rae Moar <raemoar63@gmail.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+	Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+	David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, 
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
+	dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
+	linux-doc@vger.kernel.org, Guenter Roeck <linux@roeck-us.net>, 
+	Linux Kernel Functional Testing <lkft@linaro.org>, Dan Carpenter <dan.carpenter@linaro.org>, 
+	=?UTF-8?B?TWHDrXJhIENhbmFs?= <mcanal@igalia.com>, 
+	Alessandro Carminati <acarmina@redhat.com>, Simona Vetter <simona.vetter@ffwll.ch>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-From: Lance Yang <lance.yang@linux.dev>
+On Tue, Apr 21, 2026 at 1:51=E2=80=AFPM Jani Nikula <jani.nikula@intel.com>=
+ wrote:
+>
+> On Tue, 21 Apr 2026, Albert Esteve <aesteve@redhat.com> wrote:
+> > On Mon, Apr 20, 2026 at 4:47=E2=80=AFPM Peter Zijlstra <peterz@infradea=
+d.org> wrote:
+> >>
+> >> On Mon, Apr 20, 2026 at 02:28:06PM +0200, Albert Esteve wrote:
+> >> > From: Guenter Roeck <linux@roeck-us.net>
+> >> >
+> >> > The drm_test_rect_calc_hscale and drm_test_rect_calc_vscale unit tes=
+ts
+> >> > intentionally trigger warning backtraces by providing bad parameters=
+ to
+> >> > the tested functions. What is tested is the return value, not the ex=
+istence
+> >> > of a warning backtrace. Suppress the backtraces to avoid clogging th=
+e
+> >> > kernel log and distraction from real problems.
+> >> >
+> >> > Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
+> >> > Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
+> >> > Acked-by: Ma=C3=ADra Canal <mcanal@igalia.com>
+> >> > Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
+> >> > Cc: David Airlie <airlied@gmail.com>
+> >> > Cc: Daniel Vetter <daniel@ffwll.ch>
+> >> > Signed-off-by: Guenter Roeck <linux@roeck-us.net>
+> >> > Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
+> >> > Signed-off-by: Albert Esteve <aesteve@redhat.com>
+> >> > ---
+> >> >  drivers/gpu/drm/tests/drm_rect_test.c | 14 ++++++++++++++
+> >> >  1 file changed, 14 insertions(+)
+> >> >
+> >> > diff --git a/drivers/gpu/drm/tests/drm_rect_test.c b/drivers/gpu/drm=
+/tests/drm_rect_test.c
+> >> > index 17e1f34b76101..1dd7d819165e7 100644
+> >> > --- a/drivers/gpu/drm/tests/drm_rect_test.c
+> >> > +++ b/drivers/gpu/drm/tests/drm_rect_test.c
+> >> > @@ -409,8 +409,15 @@ static void drm_test_rect_calc_hscale(struct ku=
+nit *test)
+> >> >       const struct drm_rect_scale_case *params =3D test->param_value=
+;
+> >> >       int scaling_factor;
+> >> >
+> >> > +     /*
+> >> > +      * drm_rect_calc_hscale() generates a warning backtrace whenev=
+er bad
+> >> > +      * parameters are passed to it. This affects all unit tests wi=
+th an
+> >> > +      * error code in expected_scaling_factor.
+> >> > +      */
+> >> > +     KUNIT_START_SUPPRESSED_WARNING(test);
+> >> >       scaling_factor =3D drm_rect_calc_hscale(&params->src, &params-=
+>dst,
+> >> >                                             params->min_range, param=
+s->max_range);
+> >> > +     KUNIT_END_SUPPRESSED_WARNING(test);
+> >>
+> >> Would not something like:
+> >>
+> >>         scoped_kunit_suppress() {
+> >>                 scaling_factor =3D drm_rect_calc_hscale(&params->src, =
+&params->dst,
+> >>                                                       params->min_rang=
+e, params->max_range);
+> >>         }
+> >>
+> >> be better?
+> >
+> > Since KUnit already has a few macros in its API it didn't occur to me.
+> > Good idea, I like it. And I guess the scope approach matches well with
+> > your __cleanup comment in the first patch. If no one opposes, I will
+> > work toward that pattern for the next version.
+>
+> There's a catch with kunit and __cleanup and thus (scoped) guards. Kunit
+> runs in ktreads, asserts lead to kthread_exit() and the __cleanup won't
+> be called.
 
-Some page table operations need to synchronize with software/lockless
-walkers after a TLB flush by calling tlb_remove_table_sync_{one,rcu}().
-On x86, that extra synchronization is redundant when the preceding TLB
-flush already broadcast IPIs to all relevant CPUs.
+Hi Jani,
 
-native_pv_tlb_init() checks whether native_flush_tlb_multi() is in use.
-On CONFIG_PARAVIRT systems, it checks pv_ops; on non-PARAVIRT, native
-flush is always in use.
+Good point. In this specific case, the actual cleanup is handled by
+kunit_add_action_or_reset(), so __cleanup not firing on assert is
+harmless.
 
-It decides once at boot whether to enable the optimization: if using
-native TLB flush and INVLPGB is not supported, we know IPIs were sent
-and can skip the redundant sync. The decision is fixed via a static
-key as Peter suggested[1].
+>
+> Warning suppression being part of kunit infrastructure, asserts can and
+> should end the suppression too. But setting the example (scoped) guards
+> are safe in kunit tests in general feels like a trap waiting to happen.
+>
 
-PV backends (KVM, Xen, Hyper-V) typically have their own implementations
-and don't call native_flush_tlb_multi() directly, so they cannot be trusted
-to provide the IPI guarantees we need.
+... but I agree it sets a misleading precedent. I'll stick with the
+explicit start/end API, then? Or maybe we can clearly document why the
+scoped approach is safe in this case and use it.
 
-Also rename the x86 flush_tlb_info bit from freed_tables to wake_lazy_cpus,
-as Dave suggested[2], to match the behavior it controls: whether the remote
-flush may skip CPUs in lazy TLB mode. Both freed_tables and unshared_tables
-set it, because lazy-TLB CPUs must receive IPIs before page tables can be
-freed or reused. With that guarantee in place,
-tlb_table_flush_implies_ipi_broadcast() can safely skip the later sync IPI.
-
-Two-step plan as David suggested[3]:
-
-Step 1 (this patch): Skip redundant sync when we're 100% certain the TLB
-flush sent IPIs. INVLPGB is excluded because when supported, we cannot
-guarantee IPIs were sent, keeping it clean and simple.
-
-Step 2 (future work): Send targeted IPIs only to CPUs actually doing
-software/lockless page table walks, benefiting all architectures.
-
-Regarding Step 2, it obviously only applies to setups where Step 1 does
-not apply: like x86 with INVLPGB or arm64.
-
-[1] https://lore.kernel.org/linux-mm/20260302145652.GH1395266@noisy.programming.kicks-ass.net/
-[2] https://lore.kernel.org/linux-mm/f856051b-10c7-4d65-9dbe-6b1677af74bd@intel.com/
-[3] https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
-
-Suggested-by: Dave Hansen <dave.hansen@intel.com>
-Suggested-by: Peter Zijlstra <peterz@infradead.org>
-Suggested-by: David Hildenbrand (Arm) <david@kernel.org>
-Signed-off-by: Lance Yang <lance.yang@linux.dev>
----
- arch/x86/hyperv/mmu.c           |  4 ++--
- arch/x86/include/asm/tlb.h      | 19 +++++++++++++++-
- arch/x86/include/asm/tlbflush.h |  6 +++--
- arch/x86/kernel/smpboot.c       |  1 +
- arch/x86/mm/tlb.c               | 39 +++++++++++++++++++++++----------
- 5 files changed, 52 insertions(+), 17 deletions(-)
-
-diff --git a/arch/x86/hyperv/mmu.c b/arch/x86/hyperv/mmu.c
-index cfcb60468b01..2cf1eeaffd6f 100644
---- a/arch/x86/hyperv/mmu.c
-+++ b/arch/x86/hyperv/mmu.c
-@@ -63,7 +63,7 @@ static void hyperv_flush_tlb_multi(const struct cpumask *cpus,
- 	struct hv_tlb_flush *flush;
- 	u64 status;
- 	unsigned long flags;
--	bool do_lazy = !info->freed_tables;
-+	bool do_lazy = !info->wake_lazy_cpus;
- 
- 	trace_hyperv_mmu_flush_tlb_multi(cpus, info);
- 
-@@ -198,7 +198,7 @@ static u64 hyperv_flush_tlb_others_ex(const struct cpumask *cpus,
- 
- 	flush->hv_vp_set.format = HV_GENERIC_SET_SPARSE_4K;
- 	nr_bank = cpumask_to_vpset_skip(&flush->hv_vp_set, cpus,
--			info->freed_tables ? NULL : cpu_is_lazy);
-+			info->wake_lazy_cpus ? NULL : cpu_is_lazy);
- 	if (nr_bank < 0)
- 		return HV_STATUS_INVALID_PARAMETER;
- 
-diff --git a/arch/x86/include/asm/tlb.h b/arch/x86/include/asm/tlb.h
-index 866ea78ba156..fb256fd95f95 100644
---- a/arch/x86/include/asm/tlb.h
-+++ b/arch/x86/include/asm/tlb.h
-@@ -5,22 +5,39 @@
- #define tlb_flush tlb_flush
- static inline void tlb_flush(struct mmu_gather *tlb);
- 
-+#define tlb_table_flush_implies_ipi_broadcast tlb_table_flush_implies_ipi_broadcast
-+static inline bool tlb_table_flush_implies_ipi_broadcast(void);
-+
- #include <asm-generic/tlb.h>
- #include <linux/kernel.h>
- #include <vdso/bits.h>
- #include <vdso/page.h>
- 
-+DECLARE_STATIC_KEY_FALSE(tlb_ipi_broadcast_key);
-+
-+static inline bool tlb_table_flush_implies_ipi_broadcast(void)
-+{
-+	return static_branch_likely(&tlb_ipi_broadcast_key);
-+}
-+
- static inline void tlb_flush(struct mmu_gather *tlb)
- {
- 	unsigned long start = 0UL, end = TLB_FLUSH_ALL;
- 	unsigned int stride_shift = tlb_get_unmap_shift(tlb);
- 
-+	/*
-+	 * Both freed_tables and unshared_tables must wake lazy-TLB CPUs, so
-+	 * they receive IPIs before reusing or freeing page tables, allowing
-+	 * us to safely implement tlb_table_flush_implies_ipi_broadcast().
-+	 */
-+	bool wake_lazy_cpus = tlb->freed_tables || tlb->unshared_tables;
-+
- 	if (!tlb->fullmm && !tlb->need_flush_all) {
- 		start = tlb->start;
- 		end = tlb->end;
- 	}
- 
--	flush_tlb_mm_range(tlb->mm, start, end, stride_shift, tlb->freed_tables);
-+	flush_tlb_mm_range(tlb->mm, start, end, stride_shift, wake_lazy_cpus);
- }
- 
- static inline void invlpg(unsigned long addr)
-diff --git a/arch/x86/include/asm/tlbflush.h b/arch/x86/include/asm/tlbflush.h
-index 5a3cdc439e38..39b9454781c3 100644
---- a/arch/x86/include/asm/tlbflush.h
-+++ b/arch/x86/include/asm/tlbflush.h
-@@ -18,6 +18,8 @@
- 
- DECLARE_PER_CPU(u64, tlbstate_untag_mask);
- 
-+void __init native_pv_tlb_init(void);
-+
- void __flush_tlb_all(void);
- 
- #define TLB_FLUSH_ALL	-1UL
-@@ -225,7 +227,7 @@ struct flush_tlb_info {
- 	u64			new_tlb_gen;
- 	unsigned int		initiating_cpu;
- 	u8			stride_shift;
--	u8			freed_tables;
-+	u8			wake_lazy_cpus;
- 	u8			trim_cpumask;
- };
- 
-@@ -315,7 +317,7 @@ static inline bool mm_in_asid_transition(struct mm_struct *mm) { return false; }
- extern void flush_tlb_all(void);
- extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
- 				unsigned long end, unsigned int stride_shift,
--				bool freed_tables);
-+				bool wake_lazy_cpus);
- extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
- 
- static inline void flush_tlb_page(struct vm_area_struct *vma, unsigned long a)
-diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
-index 294a8ea60298..df776b645a9c 100644
---- a/arch/x86/kernel/smpboot.c
-+++ b/arch/x86/kernel/smpboot.c
-@@ -1256,6 +1256,7 @@ void __init native_smp_prepare_boot_cpu(void)
- 		switch_gdt_and_percpu_base(me);
- 
- 	native_pv_lock_init();
-+	native_pv_tlb_init();
- }
- 
- void __init native_smp_cpus_done(unsigned int max_cpus)
-diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
-index 621e09d049cb..3ce254a3982c 100644
---- a/arch/x86/mm/tlb.c
-+++ b/arch/x86/mm/tlb.c
-@@ -26,6 +26,8 @@
- 
- #include "mm_internal.h"
- 
-+DEFINE_STATIC_KEY_FALSE(tlb_ipi_broadcast_key);
-+
- #ifdef CONFIG_PARAVIRT
- # define STATIC_NOPV
- #else
-@@ -1360,16 +1362,16 @@ STATIC_NOPV void native_flush_tlb_multi(const struct cpumask *cpumask,
- 				(info->end - info->start) >> PAGE_SHIFT);
- 
- 	/*
--	 * If no page tables were freed, we can skip sending IPIs to
--	 * CPUs in lazy TLB mode. They will flush the CPU themselves
--	 * at the next context switch.
-+	 * If lazy-TLB CPUs do not need to be woken, we can skip sending
-+	 * IPIs to them. They will flush themselves at the next context
-+	 * switch.
- 	 *
--	 * However, if page tables are getting freed, we need to send the
--	 * IPI everywhere, to prevent CPUs in lazy TLB mode from tripping
--	 * up on the new contents of what used to be page tables, while
--	 * doing a speculative memory access.
-+	 * However, if page tables are getting freed or unshared, we need
-+	 * to send the IPI everywhere, to prevent CPUs in lazy TLB mode
-+	 * from tripping up on the new contents of what used to be page
-+	 * tables, while doing a speculative memory access.
- 	 */
--	if (info->freed_tables || mm_in_asid_transition(info->mm))
-+	if (info->wake_lazy_cpus || mm_in_asid_transition(info->mm))
- 		on_each_cpu_mask(cpumask, flush_tlb_func, (void *)info, true);
- 	else
- 		on_each_cpu_cond_mask(should_flush_tlb, flush_tlb_func,
-@@ -1402,7 +1404,7 @@ static DEFINE_PER_CPU(unsigned int, flush_tlb_info_idx);
- 
- static struct flush_tlb_info *get_flush_tlb_info(struct mm_struct *mm,
- 			unsigned long start, unsigned long end,
--			unsigned int stride_shift, bool freed_tables,
-+			unsigned int stride_shift, bool wake_lazy_cpus,
- 			u64 new_tlb_gen)
- {
- 	struct flush_tlb_info *info = this_cpu_ptr(&flush_tlb_info);
-@@ -1429,7 +1431,7 @@ static struct flush_tlb_info *get_flush_tlb_info(struct mm_struct *mm,
- 	info->end		= end;
- 	info->mm		= mm;
- 	info->stride_shift	= stride_shift;
--	info->freed_tables	= freed_tables;
-+	info->wake_lazy_cpus	= wake_lazy_cpus;
- 	info->new_tlb_gen	= new_tlb_gen;
- 	info->initiating_cpu	= smp_processor_id();
- 	info->trim_cpumask	= 0;
-@@ -1448,7 +1450,7 @@ static void put_flush_tlb_info(void)
- 
- void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
- 				unsigned long end, unsigned int stride_shift,
--				bool freed_tables)
-+				bool wake_lazy_cpus)
- {
- 	struct flush_tlb_info *info;
- 	int cpu = get_cpu();
-@@ -1457,7 +1459,7 @@ void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
- 	/* This is also a barrier that synchronizes with switch_mm(). */
- 	new_tlb_gen = inc_mm_tlb_gen(mm);
- 
--	info = get_flush_tlb_info(mm, start, end, stride_shift, freed_tables,
-+	info = get_flush_tlb_info(mm, start, end, stride_shift, wake_lazy_cpus,
- 				  new_tlb_gen);
- 
- 	/*
-@@ -1834,3 +1836,16 @@ static int __init create_tlb_single_page_flush_ceiling(void)
- 	return 0;
- }
- late_initcall(create_tlb_single_page_flush_ceiling);
-+
-+void __init native_pv_tlb_init(void)
-+{
-+#ifdef CONFIG_PARAVIRT
-+	if (pv_ops.mmu.flush_tlb_multi != native_flush_tlb_multi)
-+		return;
-+#endif
-+
-+	if (cpu_feature_enabled(X86_FEATURE_INVLPGB))
-+		return;
-+
-+	static_branch_enable(&tlb_ipi_broadcast_key);
-+}
--- 
-2.49.0
+>
+> BR,
+> Jani.
+>
+>
+> >
+> >>
+> >> Also, how can you stand all this screaming in the code?
+> >>
+> >
+> > Again, KUnit already contains many macros, so this use didn't register
+> > as such. Now I will not be able to unsee it.
+> >
+> >
+>
+> --
+> Jani Nikula, Intel
+>
 
