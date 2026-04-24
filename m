@@ -1,30 +1,31 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 68DAA1A3157;
-	Fri, 24 Apr 2026 13:02:15 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 249CF23370F;
+	Fri, 24 Apr 2026 13:02:23 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777035737; cv=none; b=l0U3DGlhXQV1d07rjIVYiofpOV8tg0P9Wu8iY7COqrkdp13nW/hXBLMzVkQUpszOo6w4AWvmEnN1TU6pgE103pHep09yBImStx9jRzxXR165SJC3nlWSRW3d7m6M0HxeoNLlxC8UFsVD4k/Wd1Tdd/w5db1Goowq+xOOAFzkTLE=
+	t=1777035745; cv=none; b=CgfPye0y/RsnJm90IoKRZRLc1jU238bbwVwLTfpXsaJIQf6p4jp8YP2TgIq+22K9PhtMvNacWjj1NE68voLNGwSK1UHVvUELN58zrD1HJG+1qPA/0Tnvd979IxehDvO+eqeG6cfwTplun8Bwz4Sr2+MfeW43179+g4/Z0EYRKRo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777035737; c=relaxed/simple;
-	bh=2GQQpZVfKf79CLkB3vuTV1KsPX0Zall+u2kivJ9bl90=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=HyW4hr9z/4MO25ihG3PRI2D+5LFry1dIVHD44krSl3/GcOC60FrXkc8BUJt9xwOqH/7PabxOprML3z7zTJDRK2VPF6yIK1drpXQ4rmdc4FwOlEFDMQqL93vzNYGVFdakN2Uw8pVuEtfmuM2Og2miSXk0KmwZ/SXIVlwHIoVHKzo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=E33j+Pmz; arc=none smtp.client-ip=217.140.110.172
+	s=arc-20240116; t=1777035745; c=relaxed/simple;
+	bh=orwvIT1NW1/FJElOASW5FpIR2+QTAU/sj9g+OTacCeU=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=Dg5ISx1Dit30KKUcSa+4ccS542iyhW79qHU+y2NHyn0lWABt+3mSB85b/Sub5R4bVwOyzZ+p+wZ5+6xtvjzqjZ2fD6X1TZ92q3OC+33/DG+s3LniiqTVC7LNp6UiQ3K9jAcZr7Lo5XK0dGP/vrN2MQmAkOwso1W75qIqNvAMuJU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=oXcu333O; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="E33j+Pmz"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="oXcu333O"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 48DAD1AED;
-	Fri, 24 Apr 2026 06:02:09 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id A0AC51BB0;
+	Fri, 24 Apr 2026 06:02:17 -0700 (PDT)
 Received: from a080796.blr.arm.com (a080796.arm.com [10.164.21.51])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 4A8963F641;
-	Fri, 24 Apr 2026 06:02:07 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 635893F641;
+	Fri, 24 Apr 2026 06:02:15 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1777035734; bh=2GQQpZVfKf79CLkB3vuTV1KsPX0Zall+u2kivJ9bl90=;
-	h=From:To:Cc:Subject:Date:From;
-	b=E33j+Pmz05YZfhkrDU022/rWSei1SFcH47C9oocH/5SUfc2ps0SefGiVvBrbaTqh3
-	 MUYngzyinhJekaRpLPWdPjLzMmnx46DUZwn7Kgs0ZQ/tjpQ9M4VX6iLpV5cG49IgBq
-	 BGlhWjbqUtqLJizsevU7JkEmCAPdkS88/toAcKy8=
+	t=1777035743; bh=orwvIT1NW1/FJElOASW5FpIR2+QTAU/sj9g+OTacCeU=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=oXcu333OFMWTxoUHUEhDo+F+TLgTg4GvdV8uewai7Ub+RJP3aATmvdyWvWhhrddZB
+	 RwB4GUMp22pbW1kwZhXb+J5H7oBH9dYRAUMRhI+opuD2XsAy9XB5aApUFokoYaCOIZ
+	 cKuo7XwGH+27sthd1aAJCDbRHkZXLpLfvWwvkryk=
 From: Dev Jain <dev.jain@arm.com>
 To: arnd@arndb.de,
 	kees@kernel.org,
@@ -52,68 +53,108 @@ Cc: dietmar.eggemann@arm.com,
 	linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org,
 	linux-mm@kvack.org,
+	Ryan Roberts <ryan.roberts@arm.com>,
 	Dev Jain <dev.jain@arm.com>
-Subject: [PATCH v3 0/3] kasan: hw_tags: Disable tagging for stack and page-tables
-Date: Fri, 24 Apr 2026 18:31:54 +0530
-Message-Id: <20260424130157.3163009-1-dev.jain@arm.com>
+Subject: [PATCH v3 1/3] vmalloc: add __GFP_SKIP_KASAN support
+Date: Fri, 24 Apr 2026 18:31:55 +0530
+Message-Id: <20260424130157.3163009-2-dev.jain@arm.com>
 X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20260424130157.3163009-1-dev.jain@arm.com>
+References: <20260424130157.3163009-1-dev.jain@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Stacks and page tables are always accessed with the match-all tag,
-so assigning a new random tag every time at allocation and setting
-invalid tag at deallocation time, just adds overhead without improving
-the detection.
+From: Muhammad Usama Anjum <usama.anjum@arm.com>
 
-With __GFP_SKIP_KASAN the page keeps its poison tag and KASAN_TAG_KERNEL
-(match-all tag) is stored in the page flags while keeping the poison tag
-in the hardware. The benefit of it is that 256 tag setting instruction
-per 4 kB page aren't needed at allocation and deallocation time.
+For allocations that will be accessed only with match-all pointers
+(e.g., kernel stacks), setting tags is wasted work. If the caller
+already set __GFP_SKIP_KASAN, skip tag setting of vmalloc pages.
 
-Thus match-all pointers still work, while non-match tags (other than
-poison tag) still fault.
+Before this patch, __GFP_SKIP_KASAN wasn't being used with vmalloc
+APIs. So it wasn't being checked. Now its being checked and acted
+upon. Other KASAN modes are unchanged because __GFP_SKIP_KASAN isn't
+defined there.
 
-__GFP_SKIP_KASAN only skips for KASAN_HW_TAGS mode, so coverage is
-unchanged.
+This is a preparatory patch for optimizing kernel stack allocations.
 
-Benchmark:
-The benchmark has two modes. In thread mode, the child process forks
-and creates N threads. In pgtable mode, the parent maps and faults a
-specified memory size and then forks repeatedly with children exiting
-immediately.
-
-Thread benchmark:
-2000 iterations, 2000 threads:	2.575 s → 2.229 s (~13.4% faster)
-
-The pgtable samples:
-- 2048 MB, 2000 iters		19.08 s → 17.62 s (~7.6% faster)
+Co-developed-by: Ryan Roberts <ryan.roberts@arm.com>
+Co-developed-by: Dev Jain <dev.jain@arm.com>
+Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
 ---
+ mm/vmalloc.c | 20 +++++++++++++++++---
+ 1 file changed, 17 insertions(+), 3 deletions(-)
 
-Changes since v2:
-- Directly skip kasan_unpoison_vmalloc() for GFP_SKIP_KASAN in patch 1
-
-Changes since v1:
-- Update description/title
-- Patch 1: Simplify skip conditions based on the fact that __GFP_SKIP_KASAN
-- Patch 2: Specify _GFP_SKIP_KASAN in THREADINFO_GFP and GFP_VMAP_STACK
-
-Muhammad Usama Anjum (3):
-  vmalloc: add __GFP_SKIP_KASAN support
-  kasan: skip HW tagging for all kernel thread stacks
-  mm: skip KASAN tagging for page-allocated page tables
-
- include/asm-generic/pgalloc.h |  2 +-
- include/linux/thread_info.h   |  2 +-
- kernel/fork.c                 |  5 +++--
- mm/vmalloc.c                  | 20 +++++++++++++++++---
- 4 files changed, 22 insertions(+), 7 deletions(-)
-
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index b31b208f6ecb3..c94fcb2725b6b 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -3939,7 +3939,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+ 				__GFP_NOFAIL | __GFP_ZERO |\
+ 				__GFP_NORETRY | __GFP_RETRY_MAYFAIL |\
+ 				GFP_NOFS | GFP_NOIO | GFP_KERNEL_ACCOUNT |\
+-				GFP_USER | __GFP_NOLOCKDEP)
++				GFP_USER | __GFP_NOLOCKDEP | __GFP_SKIP_KASAN)
+ 
+ static gfp_t vmalloc_fix_flags(gfp_t flags)
+ {
+@@ -3980,6 +3980,9 @@ static gfp_t vmalloc_fix_flags(gfp_t flags)
+  *
+  * %__GFP_NOWARN can be used to suppress failure messages.
+  *
++ * %__GFP_SKIP_KASAN can be used to skip unpoisoning of mapped pages
++ * (when prot=%PAGE_KERNEL).
++ *
+  * Can not be called from interrupt nor NMI contexts.
+  * Return: the address of the area or %NULL on failure
+  */
+@@ -3993,6 +3996,10 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
+ 	kasan_vmalloc_flags_t kasan_flags = KASAN_VMALLOC_NONE;
+ 	unsigned long original_align = align;
+ 	unsigned int shift = PAGE_SHIFT;
++	bool skip_vmalloc_kasan = gfp_mask & __GFP_SKIP_KASAN;
++
++	/* Don't skip metadata kasan unpoisoning */
++	gfp_mask &= ~__GFP_SKIP_KASAN;
+ 
+ 	if (WARN_ON_ONCE(!size))
+ 		return NULL;
+@@ -4041,7 +4048,7 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
+ 	 * kasan_unpoison_vmalloc().
+ 	 */
+ 	if (pgprot_val(prot) == pgprot_val(PAGE_KERNEL)) {
+-		if (kasan_hw_tags_enabled()) {
++		if (kasan_hw_tags_enabled() && !skip_vmalloc_kasan) {
+ 			/*
+ 			 * Modify protection bits to allow tagging.
+ 			 * This must be done before mapping.
+@@ -4054,6 +4061,12 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
+ 			 * poisoned and zeroed by kasan_unpoison_vmalloc().
+ 			 */
+ 			gfp_mask |= __GFP_SKIP_KASAN | __GFP_SKIP_ZERO;
++		} else if (skip_vmalloc_kasan) {
++			/*
++			 * Skip page_alloc unpoisoning physical pages backing
++			 * VM_ALLOC mapping, as requested by caller.
++			 */
++			gfp_mask |= __GFP_SKIP_KASAN;
+ 		}
+ 
+ 		/* Take note that the mapping is PAGE_KERNEL. */
+@@ -4078,7 +4091,8 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
+ 	    (gfp_mask & __GFP_SKIP_ZERO))
+ 		kasan_flags |= KASAN_VMALLOC_INIT;
+ 	/* KASAN_VMALLOC_PROT_NORMAL already set if required. */
+-	area->addr = kasan_unpoison_vmalloc(area->addr, size, kasan_flags);
++	if (!skip_vmalloc_kasan)
++		area->addr = kasan_unpoison_vmalloc(area->addr, size, kasan_flags);
+ 
+ 	/*
+ 	 * In this function, newly allocated vm_struct has VM_UNINITIALIZED
 -- 
 2.34.1
 
