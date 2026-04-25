@@ -1,60 +1,40 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 680F036604F;
-	Sat, 25 Apr 2026 11:36:07 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81ADE30C60D;
+	Sat, 25 Apr 2026 20:57:38 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777116967; cv=none; b=fEeer+5HPLtD2YAitvLNL3b91Yc2/Ro2K/3YD7tSqDzX58Bf5Yd0bdcMnhnUH8fZerTjqmYS38ORFf075Kp6L4xskwBfXGze1rzqLOpCau+Mkuc1uimjzlhciD3G7t0q/aEeCnVxuD/VNWgOMOrcgSiGZxOWMa9anAMV85b3FPg=
+	t=1777150658; cv=none; b=pLn+D4ZiUikr/NRIJZYpI0EzVwoFt9+6oCSafA0ELlTWEz10qsw7kxYUuHD5HH6ih9DcflMWf8fLpU8Ls+X5X26tWWwM06TaM6nqIei9A4QEoz/cIBvpv4LECsuarGFavym68hUATGKpuEC7amFxnlc0xicD2XxBNevgM7JcTFk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777116967; c=relaxed/simple;
-	bh=+hCqOamL0vTewGf5qbkEKRyELe5agUwAhP+vk48QZYA=;
+	s=arc-20240116; t=1777150658; c=relaxed/simple;
+	bh=IIHdJY9Mqcs/tTjfHhjwHqxSAUCuVo7pSdfX/KVRHjI=;
 	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=QqZ076lsIAhFnT0n38HC1QvQvBdQthjee5c72uhIRfraQUzn1gvHUJ1GZMkVQu5GJvGCNUJz3r9spaGo69nXwZ6AgrGyc/DnINe/jvaYN/9uLlP18L4CBsRIRJ4e7+Kgc1Uk0FfpfeuhZaY71Q0uL/ObTnsznN57rA3iIOvi3Qg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=VnDWnThi; arc=none smtp.client-ip=10.30.226.201
+	 Mime-Version:Content-Type; b=kmoxOz2xlhUXqUlLpFm5a5dPGKDdQBTbAph8hLH59g5B8sAIlX6o3AUaF4DL4pa3DzWz132xlRlE4mekWyQfkunri+ziP0bAy0T5+9T1O81nRETvVX90b+HYIr8L2WnCmf0qsz074YszkO97GMEjktptMVV9wM29l+bBZ+K/Ah0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=zBRZEPzv; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="VnDWnThi"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D2F8FC2BCB0;
-	Sat, 25 Apr 2026 11:36:05 +0000 (UTC)
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="zBRZEPzv"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E0124C2BCB0;
+	Sat, 25 Apr 2026 20:57:37 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
-	s=korg; t=1777116967;
-	bh=+hCqOamL0vTewGf5qbkEKRyELe5agUwAhP+vk48QZYA=;
+	s=korg; t=1777150658;
+	bh=IIHdJY9Mqcs/tTjfHhjwHqxSAUCuVo7pSdfX/KVRHjI=;
 	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=VnDWnThi7x8C/ChyqkphLKT4CN2qhjn4bgVZRT3thU06/8VKJp4TXxTLKdd3W+/gI
-	 lwBurUwV1KTJLClJZCp62a4VPQyRP74hQNi50rzs+q3ioi2wUC6M6N4Cy28yLlKsn/
-	 tf044FWTbVqbl6W02n8H+OfPCTeQdT3tULq6Wgbg=
-Date: Sat, 25 Apr 2026 04:36:05 -0700
+	b=zBRZEPzvGdko9Avx+qOZfKNY2QcphvXu/wOUa1w1j8RVwiJ5JqFaXIf8jeh2EqVls
+	 DWqPNAjUJubu0oer+FNNCS7LIqorqzTtAZ0ndu+tn7OhQUgXGkHPxYidgBRJZqaotp
+	 ptVof85rTIe235A5tmqkMtFFgdpDK7qdTgMPVMZg=
+Date: Sat, 25 Apr 2026 13:57:37 -0700
 From: Andrew Morton <akpm@linux-foundation.org>
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Yosry Ahmed <yosry@kernel.org>, Pasha Tatashin
- <pasha.tatashin@soleen.com>, Lance Yang <lance.yang@linux.dev>,
- peterz@infradead.org, dave.hansen@intel.com, dave.hansen@linux.intel.com,
- ypodemsk@redhat.com, hughd@google.com, will@kernel.org,
- aneesh.kumar@kernel.org, npiggin@gmail.com, tglx@linutronix.de,
- mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
- arnd@arndb.de, ljs@kernel.org, ziy@nvidia.com,
- baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, npache@redhat.com,
- ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org,
- shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com,
- seanjc@google.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com,
- virtualization@lists.linux.dev, kvm@vger.kernel.org,
+To: David Laight <david.laight.linux@gmail.com>
+Cc: Min-Hsun Chang <chmh0624@gmail.com>, arnd@arndb.de, msalter@redhat.com,
  linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, ioworker0@gmail.com, roman.gushchin@linux.dev
-Subject: Re: [PATCH 7.2 v10 0/2] skip redundant sync IPIs when TLB flush
- sent them
-Message-Id: <20260425043605.a3a1819fb219c649eab0f3a1@linux-foundation.org>
-In-Reply-To: <872e752d-c7fa-4a75-a963-4e2f42ce468b@kernel.org>
-References: <20260424062528.71951-1-lance.yang@linux.dev>
-	<20260424063024.ce42ee6a5546e4d9337dd007@linux-foundation.org>
-	<aetw4aoABYj3keMh@plex>
-	<20260424071533.d28ce90126f05e1c6fc1b740@linux-foundation.org>
-	<80ab39c2-efb9-4a23-bd56-46d9bb4e41bb@kernel.org>
-	<20260424073145.b990fe9b925da304508aad71@linux-foundation.org>
-	<644e65dc-3d39-4137-b51f-51d953b67d50@kernel.org>
-	<CAO9r8zN1pRfyC0Rh+UdW-Lsret=z3oveT3=gnZftX-Sr_ubyyQ@mail.gmail.com>
-	<4e7699eb-e101-4a25-b585-79a777eb7cc2@kernel.org>
-	<CAO9r8zO4eSiAK9U-ijzWJMK80XsK+LmFxGAG+nTo+tmK6aLfYA@mail.gmail.com>
-	<872e752d-c7fa-4a75-a963-4e2f42ce468b@kernel.org>
+ linux-kernel@vger.kernel.org
+Subject: Re: [PATCH] asm-generic: replace ________addr with
+ __UNIQUE_ID(addr)
+Message-Id: <20260425135737.e79c4b546d22b5ebfd96c0b5@linux-foundation.org>
+In-Reply-To: <20260322144032.7353997c@pumpkin>
+References: <20260307092119.20733-1-chmh0624@gmail.com>
+	<20260322144032.7353997c@pumpkin>
 X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -65,37 +45,136 @@ Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-On Sat, 25 Apr 2026 07:17:18 +0200 "David Hildenbrand (Arm)" <david@kernel.org> wrote:
+On Sun, 22 Mar 2026 14:40:32 +0000 David Laight <david.laight.linux@gmail.com> wrote:
 
-> > The usefulness of the mailing list posting is that it makes it easier
-> > to respond and discuss the review. Yes, what Zi did is great, but it
-> > would be nice if contributors/reviewers didn't need to manually quote
-> > Sashiko.
+> > -#define __set_fixmap_offset(idx, phys, flags)				\
+> > -({									\
+> > -	unsigned long ________addr;					\
+> > -	__set_fixmap(idx, phys, flags);					\
+> > -	________addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));	\
+> > -	________addr;							\
+> > +#define ___set_fixmap_offset(idx, phys, flags, uniq)            \
+> > +({                                                              \
+> > +	unsigned long uniq;                                         \
+> > +	__set_fixmap(idx, phys, flags);                             \
+> > +	uniq = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));       \
+> > +	uniq;                                                       \
 > 
-> I think the most important part is the contributor side. A private posting is
-> sufficient for that.
+> You don't need a variable to hold the result at all.
+> 
+> The real problem with this define is that both idx and phys are
+> expanded twice.
 
-Thinking through how is this going to work out.
-
-- contributor sends patchset
-
-- akpm looks at the Sashiko scan and thinks "huh, we might be seeing
-  a new version soon".
-
-- Now what?  Maybe contributor doesn't like AI, maybe contributor
-  thinks it was all nonsense.  But I don't know this!
-
-  So I send the email "I see that Sashiko said stuff - can we expect
-  a new version?".  Which is no improvement over what's happening now.
+The real problem with this define is that it's a define.  Why oh why do
+we keep doing this to ourselves?
 
 
-What I would like to have is some reasonably reliable and prompt means
-by which we all learn contributor's views on the Sashiko scan. 
+What's wrong with the below?
 
-One way to bring this about might be to set suitable reply-to headers
-in the Sashiko->contributor email, along with a few words asking
-contributor to let everyone know the status.
+/* Return a pointer with offset calculated */
+static inline unsigned long
+__set_fixmap_offset(enum fixed_addresses idx, phys_addr_t phys, pgprot_t flags)
+{
+	__set_fixmap(idx, phys, flags);
+	return fix_to_virt(idx) + (phys & (PAGE_SIZE - 1));
+}
 
-But whatever - let's not overthink this.  To start somewhere, let's
-send that private email, spend a few weeks evaluating then perhaps make
-adjustments.
+static inline unsigned long
+set_fixmap_offset(enum fixed_addresses idx, phys_addr_t phys)
+{
+	return __set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL);
+}
+
+/*
+ * Some hardware wants to get fixmapped without caching.
+ */
+static inline void
+set_fixmap_nocache(enum fixed_addresses idx, phys_addr_t phys)
+{
+	__set_fixmap(idx, phys, FIXMAP_PAGE_NOCACHE);
+}
+
+static inline void
+set_fixmap_offset_nocache(enum fixed_addresses idx, phys_addr_t phys)
+{
+	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NOCACHE);
+}
+
+
+I'll toss the below into mm.git, shall send it to Arnd if nothing blows
+up.
+
+
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: include/asm-generic/fixmap.h: reimplement nasty macros in C
+Date: Sat Apr 25 01:42:28 PM PDT 2026
+
+Min-Hsun Chang reports[1] "the macro __set_fixmap_offset() uses a
+hardcoded identifier ________addr, which can lead to variable name
+shadowing if a caller happens to use the same name in its scope."
+
+As is usual with macro messes, the answer is to reimplement everything in
+C.
+
+Reported-by: Min-Hsun Chang <chmh0624@gmail.com>
+Closes: https://lore.kernel.org/20260307092119.20733-1-chmh0624@gmail.com [1]
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Mark Salter <msalter@redhat.com>
+Cc: David Laight <david.laight.linux@gmail.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-generic/fixmap.h |   34 ++++++++++++++++++++-------------
+ 1 file changed, 21 insertions(+), 13 deletions(-)
+
+--- a/include/asm-generic/fixmap.h~a
++++ a/include/asm-generic/fixmap.h
+@@ -71,25 +71,33 @@ static inline unsigned long virt_to_fix(
+ #endif
+ 
+ /* Return a pointer with offset calculated */
+-#define __set_fixmap_offset(idx, phys, flags)				\
+-({									\
+-	unsigned long ________addr;					\
+-	__set_fixmap(idx, phys, flags);					\
+-	________addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));	\
+-	________addr;							\
+-})
++static inline unsigned long
++__set_fixmap_offset(enum fixed_addresses idx, phys_addr_t phys, pgprot_t flags)
++{
++	__set_fixmap(idx, phys, flags);
++	return fix_to_virt(idx) + (phys & (PAGE_SIZE - 1));
++}
+ 
+-#define set_fixmap_offset(idx, phys) \
+-	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL)
++static inline unsigned long
++set_fixmap_offset(enum fixed_addresses idx, phys_addr_t phys)
++{
++	return __set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL);
++}
+ 
+ /*
+  * Some hardware wants to get fixmapped without caching.
+  */
+-#define set_fixmap_nocache(idx, phys) \
+-	__set_fixmap(idx, phys, FIXMAP_PAGE_NOCACHE)
++static inline void
++set_fixmap_nocache(enum fixed_addresses idx, phys_addr_t phys)
++{
++	__set_fixmap(idx, phys, FIXMAP_PAGE_NOCACHE);
++}
+ 
+-#define set_fixmap_offset_nocache(idx, phys) \
+-	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NOCACHE)
++static inline void
++set_fixmap_offset_nocache(enum fixed_addresses idx, phys_addr_t phys)
++{
++	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NOCACHE);
++}
+ 
+ /*
+  * Some fixmaps are for IO
+_
+
