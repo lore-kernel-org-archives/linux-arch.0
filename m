@@ -1,87 +1,101 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id D63E9175A70;
-	Sat, 25 Apr 2026 09:14:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 680F036604F;
+	Sat, 25 Apr 2026 11:36:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777108484; cv=none; b=Umg/4gRWjuLvqtVvRHe9yn5r/Vcdc0mTezOY+Q615IyGjT7rGnBBTgMt30fD3o6dmIrbAd409Ch5wCL8kyIRXR4tVuzZyIdjKl4aPatqomVzgjWdpi8H3DW58/gaEvYtdK2ywW/KlHUCliEdFNMMCH4oieRYLr9ZvUFUZwKhfkw=
+	t=1777116967; cv=none; b=fEeer+5HPLtD2YAitvLNL3b91Yc2/Ro2K/3YD7tSqDzX58Bf5Yd0bdcMnhnUH8fZerTjqmYS38ORFf075Kp6L4xskwBfXGze1rzqLOpCau+Mkuc1uimjzlhciD3G7t0q/aEeCnVxuD/VNWgOMOrcgSiGZxOWMa9anAMV85b3FPg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777108484; c=relaxed/simple;
-	bh=ndwM1adU0Ywc49Htd35zTWEkTDTVzUK6JgCrM5wCvp4=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=JCLvDqtfVcZyIXo/21sL34C0WK2/cQMwVRvfuPVUd6GHjiiyMLljMTxTf2tiSKOT8TsxafEHXj+k1Gx5+Rbp0YwrfXOQbVPdi85eLFo/fYnY84wKagvBzt715SP4WCXBlY8AR7yFxrdMwxp+g43vQU2+Qa46DOQX4TX8Ru6iGF0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=hs/REWCj; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1777116967; c=relaxed/simple;
+	bh=+hCqOamL0vTewGf5qbkEKRyELe5agUwAhP+vk48QZYA=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=QqZ076lsIAhFnT0n38HC1QvQvBdQthjee5c72uhIRfraQUzn1gvHUJ1GZMkVQu5GJvGCNUJz3r9spaGo69nXwZ6AgrGyc/DnINe/jvaYN/9uLlP18L4CBsRIRJ4e7+Kgc1Uk0FfpfeuhZaY71Q0uL/ObTnsznN57rA3iIOvi3Qg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=VnDWnThi; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="hs/REWCj"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 2ECCE1762;
-	Sat, 25 Apr 2026 02:14:35 -0700 (PDT)
-Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 441373F62B;
-	Sat, 25 Apr 2026 02:14:37 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1777108480; bh=ndwM1adU0Ywc49Htd35zTWEkTDTVzUK6JgCrM5wCvp4=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=hs/REWCj1nJJbdFLaDzl5x3SlkAUdGEOeK2cS1VirrpLk0LadSf0nMMFYkELitCEb
-	 2cF/0fQYvMLiHmbRZwhac5JlGZi8yxE7lcFtAnbolD9wmjiSTUVPWoN8g0hFcOMXjP
-	 o5xr1kzh6WR2heWeC6UU0QJrGjqiD3QydgEZKLcM=
-Date: Sat, 25 Apr 2026 10:14:34 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-To: Dev Jain <dev.jain@arm.com>
-Cc: arnd@arndb.de, kees@kernel.org, mingo@redhat.com, peterz@infradead.org,
-	juri.lelli@redhat.com, vincent.guittot@linaro.org,
-	akpm@linux-foundation.org, david@kernel.org, urezki@gmail.com,
-	dietmar.eggemann@arm.com, rostedt@goodmis.org, bsegall@google.com,
-	mgorman@suse.de, vschneid@redhat.com, ljs@kernel.org,
-	Liam.Howlett@oracle.com, vbabka@kernel.org, rppt@kernel.org,
-	surenb@google.com, mhocko@suse.com, tglx@kernel.org,
-	usama.anjum@arm.com, mathieu.desnoyers@efficios.com,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-mm@kvack.org, Ryan Roberts <ryan.roberts@arm.com>
-Subject: Re: [PATCH v3 1/3] vmalloc: add __GFP_SKIP_KASAN support
-Message-ID: <aeyF-pEruWRMk5bS@arm.com>
-References: <20260424130157.3163009-1-dev.jain@arm.com>
- <20260424130157.3163009-2-dev.jain@arm.com>
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="VnDWnThi"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D2F8FC2BCB0;
+	Sat, 25 Apr 2026 11:36:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+	s=korg; t=1777116967;
+	bh=+hCqOamL0vTewGf5qbkEKRyELe5agUwAhP+vk48QZYA=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=VnDWnThi7x8C/ChyqkphLKT4CN2qhjn4bgVZRT3thU06/8VKJp4TXxTLKdd3W+/gI
+	 lwBurUwV1KTJLClJZCp62a4VPQyRP74hQNi50rzs+q3ioi2wUC6M6N4Cy28yLlKsn/
+	 tf044FWTbVqbl6W02n8H+OfPCTeQdT3tULq6Wgbg=
+Date: Sat, 25 Apr 2026 04:36:05 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: Yosry Ahmed <yosry@kernel.org>, Pasha Tatashin
+ <pasha.tatashin@soleen.com>, Lance Yang <lance.yang@linux.dev>,
+ peterz@infradead.org, dave.hansen@intel.com, dave.hansen@linux.intel.com,
+ ypodemsk@redhat.com, hughd@google.com, will@kernel.org,
+ aneesh.kumar@kernel.org, npiggin@gmail.com, tglx@linutronix.de,
+ mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
+ arnd@arndb.de, ljs@kernel.org, ziy@nvidia.com,
+ baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, npache@redhat.com,
+ ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org,
+ shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com,
+ seanjc@google.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com,
+ virtualization@lists.linux.dev, kvm@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, ioworker0@gmail.com, roman.gushchin@linux.dev
+Subject: Re: [PATCH 7.2 v10 0/2] skip redundant sync IPIs when TLB flush
+ sent them
+Message-Id: <20260425043605.a3a1819fb219c649eab0f3a1@linux-foundation.org>
+In-Reply-To: <872e752d-c7fa-4a75-a963-4e2f42ce468b@kernel.org>
+References: <20260424062528.71951-1-lance.yang@linux.dev>
+	<20260424063024.ce42ee6a5546e4d9337dd007@linux-foundation.org>
+	<aetw4aoABYj3keMh@plex>
+	<20260424071533.d28ce90126f05e1c6fc1b740@linux-foundation.org>
+	<80ab39c2-efb9-4a23-bd56-46d9bb4e41bb@kernel.org>
+	<20260424073145.b990fe9b925da304508aad71@linux-foundation.org>
+	<644e65dc-3d39-4137-b51f-51d953b67d50@kernel.org>
+	<CAO9r8zN1pRfyC0Rh+UdW-Lsret=z3oveT3=gnZftX-Sr_ubyyQ@mail.gmail.com>
+	<4e7699eb-e101-4a25-b585-79a777eb7cc2@kernel.org>
+	<CAO9r8zO4eSiAK9U-ijzWJMK80XsK+LmFxGAG+nTo+tmK6aLfYA@mail.gmail.com>
+	<872e752d-c7fa-4a75-a963-4e2f42ce468b@kernel.org>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260424130157.3163009-2-dev.jain@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Fri, Apr 24, 2026 at 06:31:55PM +0530, Dev Jain wrote:
-> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-> index b31b208f6ecb3..c94fcb2725b6b 100644
-> --- a/mm/vmalloc.c
-> +++ b/mm/vmalloc.c
-> @@ -3939,7 +3939,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
->  				__GFP_NOFAIL | __GFP_ZERO |\
->  				__GFP_NORETRY | __GFP_RETRY_MAYFAIL |\
->  				GFP_NOFS | GFP_NOIO | GFP_KERNEL_ACCOUNT |\
-> -				GFP_USER | __GFP_NOLOCKDEP)
-> +				GFP_USER | __GFP_NOLOCKDEP | __GFP_SKIP_KASAN)
->  
->  static gfp_t vmalloc_fix_flags(gfp_t flags)
->  {
-> @@ -3980,6 +3980,9 @@ static gfp_t vmalloc_fix_flags(gfp_t flags)
->   *
->   * %__GFP_NOWARN can be used to suppress failure messages.
->   *
-> + * %__GFP_SKIP_KASAN can be used to skip unpoisoning of mapped pages
-> + * (when prot=%PAGE_KERNEL).
+On Sat, 25 Apr 2026 07:17:18 +0200 "David Hildenbrand (Arm)" <david@kernel.org> wrote:
 
-I just realised, if we go with this flag for vmalloc(), there's also a
-comment in gfp_types.h implying that pages are unpoisoned by
-kasan_unpoison_vmalloc() instead. This is no longer the case with this
-patch.
+> > The usefulness of the mailing list posting is that it makes it easier
+> > to respond and discuss the review. Yes, what Zi did is great, but it
+> > would be nice if contributors/reviewers didn't need to manually quote
+> > Sashiko.
+> 
+> I think the most important part is the contributor side. A private posting is
+> sufficient for that.
 
-A VM_SKIP_KASAN flag may have been nicer but we already have
-THREADINFO_GFP and GFP_VMAP_STACK, so all those call sites would have to
-be moved to call the lower-level __vmalloc_node_range().
+Thinking through how is this going to work out.
 
--- 
-Catalin
+- contributor sends patchset
+
+- akpm looks at the Sashiko scan and thinks "huh, we might be seeing
+  a new version soon".
+
+- Now what?  Maybe contributor doesn't like AI, maybe contributor
+  thinks it was all nonsense.  But I don't know this!
+
+  So I send the email "I see that Sashiko said stuff - can we expect
+  a new version?".  Which is no improvement over what's happening now.
+
+
+What I would like to have is some reasonably reliable and prompt means
+by which we all learn contributor's views on the Sashiko scan. 
+
+One way to bring this about might be to set suitable reply-to headers
+in the Sashiko->contributor email, along with a few words asking
+contributor to let everyone know the status.
+
+But whatever - let's not overthink this.  To start somewhere, let's
+send that private email, spend a few weeks evaluating then perhaps make
+adjustments.
