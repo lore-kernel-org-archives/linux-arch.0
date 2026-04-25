@@ -1,40 +1,39 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C49CE1DD889;
-	Sat, 25 Apr 2026 00:58:33 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9C0FC1F16B;
+	Sat, 25 Apr 2026 01:12:34 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777078713; cv=none; b=S//rGmHIVztn91js6eN031tPjnts81kDWa4e98MnYwtKE8TS+6a3Y4aFtLUQzdTcua3bMehQsy63V6Q27Wf1s8/8nJySgu0qMMDQojehv0iaYE/4vwxd2LgLMmTaK4vID+g125ppJTZP9rejJk9doGm141TCuCLnSF8b76mQAWE=
+	t=1777079554; cv=none; b=Y7hyr1YUxOvEv7ZxZopnuMMko/sbop5Ejl+ygF/e8se7N+zpQwPvDEKRHTDa5hgnYKxmJGYkwAcXuP2qr1+XxfluAibUNaCJmgi+ShIMcVljc8hsCoFQOAR9n8WIzvVVoHAb74UB2fHO5goiDQk0KlLqb8vqtL0t3h39JtsaXiw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777078713; c=relaxed/simple;
-	bh=OXNxLHcbXvYstCd0hV40g2fHvy0QoEeo82TGhCpF1qc=;
+	s=arc-20240116; t=1777079554; c=relaxed/simple;
+	bh=kLGofZVDjG/mCzrm1LRRVMOEwwqZ3rDNeHAHTirfbaE=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=I0DCQo5xRTgMsLrQ1+GeOuJE5VLe1NHQJL+I6QelrqvulKmCUtNtWYRxHtavOcBlOmDvXyPvCDRIm2bvJ2KZ28zqB4U96DleDhG+SCn8px6UScHzDH8cxsUwXQD5JHzxsAwgUxsOVBAsPZ9jWflNXYjnOnytYi6KlFnOxyb6SW4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=r6lj8ZcI; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version:Content-Type; b=ATC/4v93D4Rj6bqs7ZAzVqD3Fsw3T18rWWNFahs2S55dO0IvYDNAIop5xJiDf0QuxaUp86HF0IaS1n0jk3FVn1XBlbNOHyY4Y6eCe+YLpX+x0svUbP/Oo4ZEqdpGu2s6ryMYxFgEYG4Oqt/yTmJbvq1+cfAYtzUOLbe2bVDaHSU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DrRUtSPb; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="r6lj8ZcI"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 09C2CC19425;
-	Sat, 25 Apr 2026 00:58:31 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DrRUtSPb"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9D479C2BCB2;
+	Sat, 25 Apr 2026 01:12:32 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1777078713;
-	bh=OXNxLHcbXvYstCd0hV40g2fHvy0QoEeo82TGhCpF1qc=;
+	s=k20201202; t=1777079554;
+	bh=kLGofZVDjG/mCzrm1LRRVMOEwwqZ3rDNeHAHTirfbaE=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=r6lj8ZcIssuYUzBmdUm2MTEcxm0OX5yYkORS/Teky3PLp5AKGzuJC2+02+AVURTJe
-	 4HC52cDmZgNUic/X2A2ZBPbi5YYFTNtZ+iltBZGhFNyjP99MuV5jbbdJfEtD0eiR1q
-	 ZogmJ+phFmniFFp+haYiOe0Kw+dnIWEvt8VvaJD8FaqCI3nHuF/Fm16U8dHeAHFTGc
-	 fG5CD/E4KXZT5RGkE1uat0Y7fWE3lNk2TkfpLnNlwIUVz8LRFwdBR3gh0fFBh6pvbx
-	 Ci0Zu2cVA1XvRKVCOCdN91qeB1Efixa2bjCPl8tR+qm0e46JOyXaKSMfVGX6DEhFt+
-	 eiHpqN7AzWeCg==
+	b=DrRUtSPbpCYF9NFEliEIjHHeYQcZ66l1VWvOXUU8wfQAq5VLZuRqmfsSGZbBfEVhr
+	 ElLh2ilGqlOTwJ2VXwXW4hqCPW3axHoWKImRIWkIApx0GIqQUbK3iuAoOvXKr4hurG
+	 LkxowpnzN/tZFyA0UmYmFy6Gym+yJC0tOuZHMJls2H+E95YRt3OS5O6b/wXgjkM+OV
+	 jY6rXzHRtx8T4iTgkd7MgWE3AmzuAqW034nBcXgAGsXq53YbpqtwXofjq0oM7/4FiO
+	 563qADLY2NVkI1knPbVwA1zM45NLL50cqB7IZeuZWN/uo1JdJaR3Pny7SZW9J2LXlo
+	 QKU/bwYk0cYag==
 From: SeongJae Park <sj@kernel.org>
 To: Yosry Ahmed <yosry@kernel.org>
 Cc: SeongJae Park <sj@kernel.org>,
-	Zi Yan <ziy@nvidia.com>,
-	Peter Zijlstra <peterz@infradead.org>,
 	"David Hildenbrand (Arm)" <david@kernel.org>,
 	Andrew Morton <akpm@linux-foundation.org>,
 	Pasha Tatashin <pasha.tatashin@soleen.com>,
 	Lance Yang <lance.yang@linux.dev>,
+	peterz@infradead.org,
 	dave.hansen@intel.com,
 	dave.hansen@linux.intel.com,
 	ypodemsk@redhat.com,
@@ -49,6 +48,7 @@ Cc: SeongJae Park <sj@kernel.org>,
 	hpa@zytor.com,
 	arnd@arndb.de,
 	ljs@kernel.org,
+	ziy@nvidia.com,
 	baolin.wang@linux.alibaba.com,
 	Liam.Howlett@oracle.com,
 	npache@redhat.com,
@@ -70,10 +70,10 @@ Cc: SeongJae Park <sj@kernel.org>,
 	ioworker0@gmail.com,
 	roman.gushchin@linux.dev
 Subject: Re: [PATCH 7.2 v10 0/2] skip redundant sync IPIs when TLB flush sent them
-Date: Fri, 24 Apr 2026 17:58:22 -0700
-Message-ID: <20260425005824.85689-1-sj@kernel.org>
+Date: Fri, 24 Apr 2026 18:12:22 -0700
+Message-ID: <20260425011223.85854-1-sj@kernel.org>
 X-Mailer: git-send-email 2.47.3
-In-Reply-To: <CAO9r8zOTFUSXc_iZ3i9iL3v9Fw+SOFoROj0vcO_1GwBxO9CVqA@mail.gmail.com>
+In-Reply-To: <CAO9r8zO4eSiAK9U-ijzWJMK80XsK+LmFxGAG+nTo+tmK6aLfYA@mail.gmail.com>
 References: 
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -84,49 +84,76 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-On Fri, 24 Apr 2026 12:15:30 -0700 Yosry Ahmed <yosry@kernel.org> wrote:
+On Fri, 24 Apr 2026 12:18:49 -0700 Yosry Ahmed <yosry@kernel.org> wrote:
 
-> On Fri, Apr 24, 2026 at 12:12 PM Zi Yan <ziy@nvidia.com> wrote:
+> On Fri, Apr 24, 2026 at 12:09 PM David Hildenbrand (Arm)
+> <david@kernel.org> wrote:
 > >
-> > On 24 Apr 2026, at 15:01, Peter Zijlstra wrote:
+> > On 4/24/26 20:50, Yosry Ahmed wrote:
+> > > On Fri, Apr 24, 2026 at 11:36 AM David Hildenbrand (Arm)
+> > > <david@kernel.org> wrote:
+> > >>
+> > >> On 4/24/26 16:31, Andrew Morton wrote:
+> > >>>
+> > >>>
+> > >>> Why do you think so?
+> > >>
+> > >> The most important part for me is that authors are aware of the reports.
+> > >>
+> > >> Sending them as a mail forces people to publicly reply to the feedback, and at
+> > >> this point in time, I am not convinced that that is the right approach.
+> > >
+> > > But I imagine it's useful for reviewers to see Sashiko's feedback as
+> > > well (without having to go look on the website).
 > >
-> > > On Fri, Apr 24, 2026 at 11:50:03AM -0700, Yosry Ahmed wrote:
-> > >
-> > >> But I imagine it's useful for reviewers to see Sashiko's feedback as
-> > >> well (without having to go look on the website).
-> > >
-> > > That's why I have a script; if I press 'S' in mutt on an 0/n email, said
-> > > script goes and does webrequest to sashiko and inserts the review
-> > > comments into my local maildir as properly threaded replies to the
-> > > series at hand.
-> > >
-> > > No looking at website needed.
+> > I read a lot of them, yes. Maintainers know how to find it.
 > >
-> > Do you mind sharing that script? It looks like a great work flow. Thanks.
+> > I even think maintainers should  briefly go over it before applying to spot if
+> > anything in there is still left unanswered. But that doesn't need a mailing list
+> > posting.
+> >
+> > I enjoy if contributors are aware of the reports and use that input in a
+> > reasonable, like Zi just did [1]. And if they are unsure, they usually ask to
+> > double-check.
+> >
+> > [1] https://lore.kernel.org/r/15191F7F-0D10-4907-B963-DA4EA0E36EB6@nvidia.com
+> >
+> > > It's possible that
+> > > Sashiko is right but the author isn't convinced, so getting more eyes
+> > > on the feedback would help.
+> >
+> > Forcing contributors to reply to everything. I don't like that, in particular
+> > not as long as there is no way for contributors to run it early in private.
+> >
+> > In most cases, contributors just do the reasonable thing: incorporate the
+> > feedback in a new version.
 > 
-> Yeah that sounds great :)
+> The usefulness of the mailing list posting is that it makes it easier
+> to respond and discuss the review. Yes, what Zi did is great, but it
+> would be nice if contributors/reviewers didn't need to manually quote
+> Sashiko.
 
-FWIW my workflow was also similar to PeterZ [1], except I use hkml's Sashiko
-integration.
+I agree.  I had to implement hkml-Sashiko integration [1] to avoid the manual
+works.  People could use such existign tools or develop their own.  But I can
+say Sashiko's direct mailing service has improved my dasy much more than the
+hkml feature.
 
-The hkml integration requires two key strokes to get the Sashiko review, so I
-think Peter's script is superior.  It provides a draft [2] for sharing full
-Sashiko review that I can further writeup my comment and directly send, though.
-It is helpful for asking the author their opinion about Sashiko's review, with
-a fine pointer to the question.
+> 
+> That being said, I understand the concerns and the pressure to respond
+> to everything as you mention below. Maybe at some point this will
+> become an easier decision to make as reviews become more refined.
 
-So I initially started opening web browser to check Sashiko review.  After that
-I used hkml to read the review on terminal and copy-pasted the output to ask
-question to authors with quote of Sashiko review.  Finally I was able to just
-forward Sashiko review together with my questions to authors.  Each step of the
-changes made my life much easier.
+I agree here, too.  Apparently [2] my tooling-motivated Sashiko reply
+forwarding didn't convince all.  My honest feeling was that it is not only
+unconvincing but might making someone slightly annoyed.
 
-DAMON is opted in to the Sashiko's mail reply service from the beginning, and
-recently Sashiko started the mail delivery.  Now I don't need to use the hkml
-integration, and I feel my life has been even much easier than before.
+I personally feel no problem at Sashiko review is publicly replied to my
+patches, but I understand my personality is not necessarily same to others.  If
+some change can make someone happy while also making someone sad, I'm up to
+reducing sadness.
 
-[1] https://github.com/sjp38/hackermail/blob/master/USAGE.md#sashikodev
-[2] https://github.com/sjp38/hackermail/blob/master/USAGE.md#forwarding-sashikodev-statuscomments-to-mailing-list
+[1] https://github.com/sjp38/hackermail/blob/master/USAGE.md#forwarding-sashikodev-statuscomments-to-mailing-list
+[2] https://lore.kernel.org/20260331045245.67438-1-sj@kernel.org/
 
 
 Thanks,
