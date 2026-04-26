@@ -1,29 +1,29 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5CE6B1552FD;
-	Sun, 26 Apr 2026 18:30:38 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 133123793A5;
+	Sun, 26 Apr 2026 19:04:17 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777228240; cv=none; b=UbrV1z2mUiFTro2/mmColnRWwD9ZggJTn9R8DEpwfQ4s92OUFCDfd1fWTYdlrW5OnAttO8Xj9qHO1R39bKvUz5eONhNdul/piFlbyk4zVVZj3pExRzcRZmtcPIMCuZ2rgYg/eVRvVJzUMltE/PCNDT5FxI+8auMpg4FR675qtys=
+	t=1777230260; cv=none; b=XzKpoCpcVzAwYm7uaXA7qldgPwG5ehdLbzh1N4kepw14LJ0G2ZiYgq8IsLPLb+agKRy2vV1B1/fmlPMV5L11l8o4GquanJclvVBNwLj7TUZFs1uSMaRKiArPc806uGlUe4AOutyW/JL5Un3RLTJNP3i6/hdj4SpIWeye1xpGK9I=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777228240; c=relaxed/simple;
-	bh=RX0vprigtwFDfvPHPQDQjGHFFSECwpJrLBtKIV9cU9Q=;
+	s=arc-20240116; t=1777230260; c=relaxed/simple;
+	bh=cL909OqLMd5VzANrjK7Nm/XEbexMuPAlas4Ce1GEC8o=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=EcT4f7zVvAu8c45IN26uRsmU+Ec3Qsznyp3mffufopz71zrxqLVlaia0+5OVSLncdhvT2nO5eZV44PmwJ5GRGBvRR3nyuFj7uAaRisbO9sfshOXcCnyjsSa+FAAGOUKFrgtIgXcv3optiq9cmBC9u37gv6Jk+XLuzt4ULygd86w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=rgZmiyWF; arc=none smtp.client-ip=159.69.126.157
+	 Content-Type:Content-Disposition:In-Reply-To; b=KPnd5bCLWqdPt9qoRzU0r3L7eCVZSGBsu1mM7JSMrCFz2brYNsU1U+5qqGhAHui2AGiLQHZriC9IWZTw+b5xwoRnIvv/YQCcadrL1rm4GT0gpFra24KqeYFZY6+72Z25KJagK2pUbvbVn/J7tVC93COJpYIHaG7nDDJZkRL3ZcE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=eHNUcbuC; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="rgZmiyWF"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="eHNUcbuC"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
-	s=mail; t=1777228236;
-	bh=RX0vprigtwFDfvPHPQDQjGHFFSECwpJrLBtKIV9cU9Q=;
+	s=mail; t=1777230255;
+	bh=cL909OqLMd5VzANrjK7Nm/XEbexMuPAlas4Ce1GEC8o=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=rgZmiyWFqk2UTABJRG965ZG1RFUQYVGrGeAOCXp/tvCy8mvsOalPMS51t0Zx3luh8
-	 AA+qi7rm4LSKejZiczUMyYWV0YeJKZhy5Vu6oHG+bP0Uiz0AyzruhGfDsMnxiE8gDm
-	 fxhhGweLrnR+r7svkMupRffCtPEUghvWJJDPN5wM=
-Date: Sun, 26 Apr 2026 20:30:35 +0200
+	b=eHNUcbuCZilNwpHrn0AE0Yn4krgyTNzjDGoxNuscpKIOVVWM0QoT0gEDctOpBwiAL
+	 TQLYYNLH702PIhm8Gg34eRi+IibwULREquFg0ov4wUBlBQjhV/nJ0u0s8tk0xvqXnG
+	 BtiWRxFFBVLirNHcKKcDMrlU74nOSVdnXrShtZ40=
+Date: Sun, 26 Apr 2026 21:04:14 +0200
 From: Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>
 To: =?utf-8?B?QW5kcsOp?= Almeida <andrealmeid@igalia.com>
 Cc: Catalin Marinas <catalin.marinas@arm.com>, 
@@ -37,11 +37,11 @@ Cc: Catalin Marinas <catalin.marinas@arm.com>,
 	"Liam R . Howlett" <Liam.Howlett@oracle.com>, Uros Bizjak <ubizjak@gmail.com>, 
 	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
 	kernel-dev@igalia.com
-Subject: Re: [PATCH RFC v2 2/2] arm64: vdso: Implement
- __vdso_futex_robust_try_unlock()
-Message-ID: <7ddc1c74-c504-44c6-8d51-d10d436c0db8@t-8ch.de>
+Subject: Re: [PATCH RFC v2 1/2] arm64: vdso: Prepare for robust futex unlock
+ support
+Message-ID: <c9e3f275-da35-4cdf-876f-b4ec4278a75d@t-8ch.de>
 References: <20260424-tonyk-robust_arm-v2-0-db4e46f752cf@igalia.com>
- <20260424-tonyk-robust_arm-v2-2-db4e46f752cf@igalia.com>
+ <20260424-tonyk-robust_arm-v2-1-db4e46f752cf@igalia.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -51,110 +51,39 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <20260424-tonyk-robust_arm-v2-2-db4e46f752cf@igalia.com>
+In-Reply-To: <20260424-tonyk-robust_arm-v2-1-db4e46f752cf@igalia.com>
 
-On 2026-04-24 15:56:01-0300, André Almeida wrote:
+One more thing, sorry for the spam.
+
+On 2026-04-24 15:56:00-0300, André Almeida wrote:
 (...)
 
-> Signed-off-by: André Almeida <andrealmeid@igalia.com>
-> ---
-> RFC:
->  - Should I duplicate the explanation found in the x86 commit or can I just
->  point to it?
->  - Only LL/SC for now but I can add LSE later if this looks good
->  - It the objdump I see that op_pending is store at x2. But how stable is this,
->  how can I write it in a way that's always x2?
-> ---
->  arch/arm64/Kconfig                                 |  1 +
->  arch/arm64/include/asm/futex_robust.h              | 35 +++++++++++++
->  arch/arm64/kernel/vdso/Makefile                    |  9 +++-
->  arch/arm64/kernel/vdso/vdso.lds.S                  |  4 ++
->  .../kernel/vdso/vfutex_robust_list_try_unlock.c    | 59 ++++++++++++++++++++++
->  5 files changed, 107 insertions(+), 1 deletion(-)
-
-What about the actual 32-bit vDSO in arch/arm64/kernel/vdso32/ ?
-
-(...)
-
-> diff --git a/arch/arm64/kernel/vdso/vfutex_robust_list_try_unlock.c b/arch/arm64/kernel/vdso/vfutex_robust_list_try_unlock.c
-> new file mode 100644
-> index 000000000000..e8a8fb22a2fa
-> --- /dev/null
-> +++ b/arch/arm64/kernel/vdso/vfutex_robust_list_try_unlock.c
-> @@ -0,0 +1,59 @@
-> +// SPDX-License-Identifier: GPL-2.0-or-later
-> +#include <vdso/futex.h>
-> +#include <linux/stringify.h>
-> +
-> +#define LABEL(name, sz) __stringify(__futex_list##sz##_try_unlock_cs_##name)
-
-We should have some defines for these symbols. While they are not
-userspace ABI, they will be used by the selftests.
-
-> +#define GLOBLS(sz) ".globl " LABEL(start, sz) ", " LABEL(success, sz) ", " LABEL(end, sz) "\n"
-> +
-> +__u32 __vdso_futex_robust_list64_try_unlock(__u32 *lock, __u32 tid, __u64 *pop)
+> +#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
+> +static void vdso_futex_robust_unlock_update_ips(enum vdso_abi abi, struct mm_struct *mm)
 > +{
-> +	__u32 val, result;
+> +	unsigned long vdso = (unsigned long) mm->context.vdso;
+> +	struct futex_mm_data *fd = &mm->futex;
+> +	uintptr_t success, end;
 > +
-> +	asm volatile (
-> +		GLOBLS(64)
-> +		"	prfm pstl1strm, %[lock]			\n"
-> +		LABEL(start, 64)":				\n"
-> +		"	ldxr %[val], %[lock]			\n"
-> +		"	cmp %[tid], %[val]			\n"
-> +		"	bne " LABEL(end, 64)"			\n"
-> +		"	stlxr %w[result], xzr, %[lock]		\n"
-> +		"	cbnz %w[result], " LABEL(start, 64)"	\n"
-> +		LABEL(success, 64)":				\n"
-> +		"	str xzr, %[pop]				\n"
-> +		LABEL(end, 64)":				\n"
+> +	if (abi == VDSO_ABI_AA64) {
+> +		success = (uintptr_t) VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_success);
+> +		end = (uintptr_t) VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_end);
 > +
-> +		: [val] "=&r" (val), [result] "=r" (result)
-> +		: [tid] "r" (tid), [lock] "Q" (*lock), [pop] "Q" (*pop)
-> +		: "memory"
-> +	);
-
-My clang 22.1.3 chokes on the assembly in this patch.
-
-> +
-> +	return val;
-> +}
+> +		futex_set_vdso_cs_range(fd, 0, vdso, success, end, false);
+> +	}
 > +
 > +#ifdef CONFIG_COMPAT_VDSO
+> +	if (abi == VDSO_ABI_AA32) {
+> +		success = (uintptr_t) VDSO_SYMBOL(vdso, futex_list32_try_unlock_cs_success);
+> +		end = (uintptr_t) VDSO_SYMBOL(vdso, futex_list32_try_unlock_cs_end);
 
-I am wondering about the CONFIG_COMPAT{,_VDSO} dependency here.
-As far as I know the list32 variant is meant to be used by code
-emulators which run 32-bit code on a 64-bit kernel, for example FEX.
-But these emulators don't actually seem to need CONFIG_COMPAT.
-So the dependency does not look correct.
-The space savings also should be irrelevant.
+The futex_list32_ symbols here are in the 64-bit vDSO. They are not
+applicable for VDSO_ABI_AA32 processes.
 
-The x86 series from Thomas does the same, maybe he will read this
-comment, otherwise I'll bring it up on his series, too.
-
-> +__u32 __vdso_futex_robust_list32_try_unlock(__u32 *lock, __u32 tid, __u32 *pop)
-> +{
-> +	__u32 val, result;
 > +
-> +	asm volatile (
-> +		GLOBLS(32)
-> +		"	prfm pstl1strm, %[lock]			\n"
-> +		LABEL(start, 32)":				\n"
-> +		"	ldxr %w[val], %[lock]			\n"
-> +		"	cmp %w[tid], %w[val]			\n"
-> +		"	bne " LABEL(end, 32)"			\n"
-> +		"	stlxr %w[result], wzr, %w[lock]		\n"
-> +		"	cbnz %w[result], " LABEL(start, 32)"	\n"
-> +		LABEL(success, 32)":				\n"
-> +		"	str wzr, %w[pop]			\n"
-> +		LABEL(end, 32)":				\n"
-> +
-> +		: [val] "=&r" (val), [result] "=r" (result)
-> +		: [tid] "r" (tid), [lock] "Q" (*lock), [pop] "Q" (*pop)
-> +		: "memory"
-> +	);
-> +
-> +	return val;
-> +}
+> +		futex_set_vdso_cs_range(fd, 1, vdso, success, end, true);
+> +	}
 > +#endif
+> +}
+
+(...)
