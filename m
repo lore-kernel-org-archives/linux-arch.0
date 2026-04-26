@@ -1,219 +1,134 @@
-Received: from mail-wr1-f53.google.com (mail-wr1-f53.google.com [209.85.221.53])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E341022A4E1
-	for <linux-arch@vger.kernel.org>; Sun, 26 Apr 2026 17:34:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.53
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 25F5C26AC3;
+	Sun, 26 Apr 2026 18:07:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777224865; cv=none; b=sFwqHWb46u46aVpP6T2lhNewfXzd/yCBeE5YadA5uC3zchK7gpI9rQMdY+kb/byLzbVYcVlJBW15AcgvBmiwiyUaG7FhrKeX7rFSpK1kLBz7B6sfjLxtoixkT/EmbpDtJQNVc6O4HSqNJ/wiYvZNJuVK3+BIWEijyjQqgfrk668=
+	t=1777226882; cv=none; b=gzvu6+CJFqNyaP8i3gdF7gRTrlmlrhxgApKLxEU4SlO3+HtAZWcC31zdugUm1W/ObwRsyufhBawGH5LPkR0rgWh4VhnJNd+mGZ2c24U/UMgp/8JLoo2QPqX4obqBaYu+5LfGEug7stTWSXtFUBF0omN8ld/4w8SbuIS4fc+vAnE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777224865; c=relaxed/simple;
-	bh=N0LKPEi7WB8bR3HgkSU/ioxwPoQBdIh0x2OI04p1Av4=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=JXcGlCUt5Kbm4mKtlkNLqb5OM0oo7ApAi+hHqr8HAOxYoheTr5ockdVTTmi3K+Oveo9MwO+R+jC5lXgf91vbmhfbrnevLnrDyW9MED6ocMAyluiei7VLdFiGYd8xUHKWFnK9AWMtA0qrCNe2VoLZE6AcVfxxvA9CIBeT/IV5gEk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=S69Hq9vR; arc=none smtp.client-ip=209.85.221.53
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1777226882; c=relaxed/simple;
+	bh=zc5aB7NvKWadhiFZbK5wv5oaFDwCfrp1MnjPGqyFYVc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=OXaVf0vDKfzmmmMNmLK0blN413mbFwblbv6dNjvQIeB5qkB1i82HNJPS8hFyc5d/rIvA+p9zFkv8TyA5BgE4tWdqGYTx+ea1E9FMkPW3qy4MwIdqzTOj5SNzduOS2yYyLkumP9TBRO0xr2zC7qND/W0t7EO9fmVxVkPF56a2L34=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=YcTJAX4D; arc=none smtp.client-ip=159.69.126.157
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="S69Hq9vR"
-Received: by mail-wr1-f53.google.com with SMTP id ffacd0b85a97d-43d7e23defbso5576276f8f.0
-        for <linux-arch@vger.kernel.org>; Sun, 26 Apr 2026 10:34:23 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1777224862; x=1777829662; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=QyGD/jXsZR2JkMBX6t9t85Fm770UU4EyuOCFTF+xktc=;
-        b=S69Hq9vRzF+t8LAKuHe1KdrUpTiQyt7IQ8pfVDiLzkIEnUeLfsbFMPLCWFAf2G5NJs
-         B71uwkbWt1gBQD9O68pzKDnRHwnwG6Cv5FAWLfhEXDQaQnRWX01/ZQrg9bJubzmIu01S
-         5udC5g5keozveHqB31rTE09JITLH+mImR57riomLJd9UM5+MZw0ZgiKlfLrOE0O9L2f9
-         wmVrNLIFd1jWtoHz6CLTaCT2v/7Zs+nYGaFyYtiF3oSivR0PPA2YKmXX1CLpOoMT92HN
-         b4M9d5wh73fupyG7gJdbF+Iqx89KUai3g6s4MfES2SOJTAjf5L82Oj3Ps2wLzuCIp9tb
-         ZBoQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1777224862; x=1777829662;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=QyGD/jXsZR2JkMBX6t9t85Fm770UU4EyuOCFTF+xktc=;
-        b=qhIV95b8KtVkCft4wiBJCxzDWHaRNjVFg2kHoHOwNPL47rOf0MknSyOp5Vj345ouob
-         GCcBFJs2sa/gbIyUDZNFCdKpxn5jXVmXrH0IDFVFXWCFaxO6WoeDE3vIoK/rBG8vuHf+
-         /RGueRzvE87JqyYAjQqS1hpJIHLoezIokm/yUZW6E+Osz4PcVhP944PWoa6VGPYNt4sY
-         /bgw+xaaAMAzS/bkBJ6WITAasAZX7oHlp/7RSTvEjozQVuVScf8KzyyTpSWsnd4FFbM8
-         mvTd3oWl50/a4jvikhNakSD1B99Vymo647hECDz037Yh8Y3plZTylkaVVg6+tr24RBng
-         iSNA==
-X-Forwarded-Encrypted: i=1; AFNElJ9wXByZI2uRjP8J1wI8q+XBy/MnTNaaq9sJIA0huU4+R43+nCr9Te5jp353aFHeVKRDGENQibeSxShf@vger.kernel.org
-X-Gm-Message-State: AOJu0YwWoWCoG6+kSTw5CDdaic2skC9qN2rjy1ROzFNvruAdHTSj8oXY
-	Z71Z9MYXDYBTXc5noFa5A8hv+L7Jd1Dk/ERKS0kgQB1uttzevbzU4/CV
-X-Gm-Gg: AeBDieu5YU0GqLHy/hicK80PfCrmLjoXn0WJ2GbxlOLsWUvUK1/2a118pLdd0V8Y/m8
-	rOd9KOo191ifUmYNXfiDoRrQ6SwyXKAV5uzWOeLdVsvFei0qutIXAEEvqmuEXYPzQA+jWb5Dx7d
-	7xRldL484H7SGc6NX3iFETRM57qPe0EjT7yz/t6al6Kuup/xWpbpl2G3DjIaCMtXP5kP3O/vr3L
-	pP9GuY7hSbSJL8oR8hovbpGaDY2LvnuianRBi3ZeOou96b7iyDOjLt2l6oKmcSr97BkZPsAMrlK
-	pj61Zdvxz3+CKl35eCVU3HFmtngXazPkkzhQtK2fLYRc3+LSpMT5uR3MLQHnhJ+K+J/hwqz+uo8
-	RjxJjqMvbqALRqRL5jS92ClArRpTXVIE+GUMGH7FrAa6PiFkQ5Dn5+E2496DpkgbjEJQUULCN4V
-	pY3pniix7++l+YbtZbRrkR9gIMp3qABB+MvqjIVHe+pV++vhtxE7AlZtb0SFO8Tjs1FURfS17UM
-	y4=
-X-Received: by 2002:a05:6000:186c:b0:43d:7946:badd with SMTP id ffacd0b85a97d-43fe3e0be7bmr61587116f8f.35.1777224862017;
-        Sun, 26 Apr 2026 10:34:22 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-4411c9f4f03sm44639379f8f.1.2026.04.26.10.34.21
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 26 Apr 2026 10:34:21 -0700 (PDT)
-Date: Sun, 26 Apr 2026 18:34:20 +0100
-From: David Laight <david.laight.linux@gmail.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Min-Hsun Chang <chmh0624@gmail.com>, arnd@arndb.de, msalter@redhat.com,
- linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] asm-generic: replace ________addr with
- __UNIQUE_ID(addr)
-Message-ID: <20260426183420.2216d187@pumpkin>
-In-Reply-To: <20260426040925.b25cb2a32680bfe884431abf@linux-foundation.org>
-References: <20260307092119.20733-1-chmh0624@gmail.com>
-	<20260322144032.7353997c@pumpkin>
-	<20260425135737.e79c4b546d22b5ebfd96c0b5@linux-foundation.org>
-	<20260425230134.5449498a@pumpkin>
-	<20260425151240.2a46e3a8640fde3902461d41@linux-foundation.org>
-	<20260426114938.4dff28c8@pumpkin>
-	<20260426040925.b25cb2a32680bfe884431abf@linux-foundation.org>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="YcTJAX4D"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
+	s=mail; t=1777226871;
+	bh=zc5aB7NvKWadhiFZbK5wv5oaFDwCfrp1MnjPGqyFYVc=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=YcTJAX4DGL57HRJLhNgUfb3LeKKyyQRppts6WZnVt1V5nhKTm4r55YbNo7GMOUg+/
+	 Inp6fVnTwhsyKzp1mJkqRVizOVcLrrVOmJ4zTug9QWPMrCp8t5AI/RTVZJQPc6ka12
+	 Bd79Q8E6pcx9xr1OVRLTK3APW0zdqHJuD/oLbJNE=
+Date: Sun, 26 Apr 2026 20:07:49 +0200
+From: Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>
+To: =?utf-8?B?QW5kcsOp?= Almeida <andrealmeid@igalia.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, 
+	Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
+	Mark Rutland <mark.rutland@arm.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Carlos O'Donell <carlos@redhat.com>, 
+	Peter Zijlstra <peterz@infradead.org>, Florian Weimer <fweimer@redhat.com>, 
+	Rich Felker <dalias@aerifal.cx>, Torvald Riegel <triegel@redhat.com>, 
+	Darren Hart <dvhart@infradead.org>, Ingo Molnar <mingo@kernel.org>, 
+	Davidlohr Bueso <dave@stgolabs.net>, Arnd Bergmann <arnd@arndb.de>, 
+	"Liam R . Howlett" <Liam.Howlett@oracle.com>, Uros Bizjak <ubizjak@gmail.com>, 
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	kernel-dev@igalia.com
+Subject: Re: [PATCH RFC v2 1/2] arm64: vdso: Prepare for robust futex unlock
+ support
+Message-ID: <f8e83a24-0b04-4c88-9f67-0879875be25c@t-8ch.de>
+References: <20260424-tonyk-robust_arm-v2-0-db4e46f752cf@igalia.com>
+ <20260424-tonyk-robust_arm-v2-1-db4e46f752cf@igalia.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260424-tonyk-robust_arm-v2-1-db4e46f752cf@igalia.com>
 
-On Sun, 26 Apr 2026 04:09:25 -0700
-Andrew Morton <akpm@linux-foundation.org> wrote:
+Hi André,
 
-> On Sun, 26 Apr 2026 11:49:38 +0100 David Laight <david.laight.linux@gmail.com> wrote:
+Some more comments, after doing an actual proper review.
+
+On 2026-04-24 15:56:00-0300, André Almeida wrote:
+> There will be a VDSO function to unlock non-contended robust futexes in
+> user space. The unlock sequence is racy vs. clearing the list_pending_op
+> pointer in the task's robust list head. To plug this race the kernel needs
+> to know the critical section window so it can clear the pointer when the
+> task is interrupted within that race window. The window is determined by
+> labels in the inline assembly.
 > 
-> > On Sat, 25 Apr 2026 15:12:40 -0700
-> > Andrew Morton <akpm@linux-foundation.org> wrote:
-> >   
-> > > On Sat, 25 Apr 2026 23:01:34 +0100 David Laight <david.laight.linux@gmail.com> wrote:
-> > >   
-> > > > > > The real problem with this define is that both idx and phys are
-> > > > > > expanded twice.      
-> > > > > 
-> > > > > The real problem with this define is that it's a define.  Why oh why do
-> > > > > we keep doing this to ourselves?    
-> > > > 
-> > > > Sometimes #defines generate better code because they are expanded earlier,
-> > > > and sometimes you want type-agnostic 'functions'.
-> > > > But neither is true here.
-> > > > 
-> > > > But I think I'd go for 'always_inline'.
-> > > > Sometimes the compilers make silly decisions.    
-> > > 
-> > > Gee, if `static inline' misbehaves then we have big problems!
-> > > 
-> > > What's special about the fixmap code anyway?  It's not exactly
-> > > fastpath.  Perhaps this stuff can simply be uninlined.  
-> > 
-> > Some of the inlines are trivial - just adding an extra parameter.
-> > But this set would be simpler if the last function
-> > (__native_set_fixmap() for x86) returned (address & ~PAGE_MASK)  
-> 
-> I don't understand this?
+> Signed-off-by: André Almeida <andrealmeid@igalia.com>
+> ---
+> Changes from v1:
+>  - Fixed linker not finding VDSO symbols
+> ---
+>  arch/arm64/kernel/vdso.c          | 30 ++++++++++++++++++++++++++++++
+>  arch/arm64/kernel/vdso/vdso.lds.S |  7 +++++++
+>  2 files changed, 37 insertions(+)
 
-I found the following:
+What is the reason for splitting the series into two patches?
+To me it looks like it should be one patch.
 
-#define set_fixmap_offset(idx, phys) \
-	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL)
+> diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+> index 592dd8668de4..f9c520a1c942 100644
+> --- a/arch/arm64/kernel/vdso.c
+> +++ b/arch/arm64/kernel/vdso.c
+> @@ -11,6 +11,7 @@
+>  #include <linux/clocksource.h>
+>  #include <linux/elf.h>
+>  #include <linux/err.h>
+> +#include <linux/futex.h>
+>  #include <linux/errno.h>
+>  #include <linux/gfp.h>
+>  #include <linux/kernel.h>
+> @@ -57,6 +58,33 @@ static struct vdso_abi_info vdso_info[] __ro_after_init = {
+>  #endif /* CONFIG_COMPAT_VDSO */
+>  };
+>  
+> +#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
+> +static void vdso_futex_robust_unlock_update_ips(enum vdso_abi abi, struct mm_struct *mm)
+> +{
+> +	unsigned long vdso = (unsigned long) mm->context.vdso;
+> +	struct futex_mm_data *fd = &mm->futex;
+> +	uintptr_t success, end;
+> +
+> +	if (abi == VDSO_ABI_AA64) {
+> +		success = (uintptr_t) VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_success);
+> +		end = (uintptr_t) VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_end);
+> +
+> +		futex_set_vdso_cs_range(fd, 0, vdso, success, end, false);
 
-#define __set_fixmap_offset(idx, phys, flags)				\
-({									\
-	unsigned long ________addr;					\
-	__set_fixmap(idx, phys, flags);					\
-	________addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));	\
-	________addr;							\
-})
+Both VDSO_SYMBOL() and futex_set_vdso_cs_range() add the vdso base
+address to the symbol offsets. The value stored in .start_ip will be
+wrong. The fact that futex_set_vdso_cs_range() does the addition looks
+like an artifact of it being written for x86 first. IMO its interface
+should be changed not to do the addition internally.
 
-static inline void __set_fixmap(enum fixed_addresses idx,
-				phys_addr_t phys, pgprot_t flags)
-{
-	native_set_fixmap(idx, phys, flags);
-}
+> +	}
+> +
+> +#ifdef CONFIG_COMPAT_VDSO
+> +	if (abi == VDSO_ABI_AA32) {
+> +		success = (uintptr_t) VDSO_SYMBOL(vdso, futex_list32_try_unlock_cs_success);
+> +		end = (uintptr_t) VDSO_SYMBOL(vdso, futex_list32_try_unlock_cs_end);
+> +
+> +		futex_set_vdso_cs_range(fd, 1, vdso, success, end, true);
+> +	}
+> +#endif
+> +}
+> +#else
+> +static inline void vdso_futex_robust_unlock_update_ips(enum vdso_abi abi, struct mm_struct *mm) { }
+> +#endif /* CONFIG_FUTEX_ROBUST_UNLOCK */
+> +
+>  static int vdso_mremap(const struct vm_special_mapping *sm,
+>  		struct vm_area_struct *new_vma)
+>  {
 
-void native_set_fixmap(unsigned /* enum fixed_addresses */ idx,
-		       phys_addr_t phys, pgprot_t flags)
-{
-	/* Sanitize 'prot' against any unsupported bits: */
-	pgprot_val(flags) &= __default_kernel_pte_mask;
-
-	__native_set_fixmap(idx, pfn_pte(phys >> PAGE_SHIFT, flags));
-}
-
-void __native_set_fixmap(enum fixed_addresses idx, pte_t pte)
-{
-	unsigned long address = __fix_to_virt(idx);
-
-#ifdef CONFIG_X86_64
-       /*
-	* Ensure that the static initial page tables are covering the
-	* fixmap completely.
-	*/
-	BUILD_BUG_ON(__end_of_permanent_fixed_addresses >
-		     (FIXMAP_PMD_NUM * PTRS_PER_PTE));
-#endif
-
-	if (idx >= __end_of_fixed_addresses) {
-		BUG();
-		return;
-	}
-	set_pte_vaddr(address, pte);
-	fixmaps_set++;
-}
-
-Doesn't seem to hard to arrange to return 'address + (phys & ~PAGE_SHIFT)'
-from __set_fixmap().
-(Other architectures will vary, but I suspect they are similar.)
-
-
-...  
-> > > We inline too much stuff.  
-> > 
-> > True - don't look at what strlcpy() can generate.
-> > The inline code should just get the constants from the compiler and
-> > then call the appropriate function.  
-> 
-> I can't actually find an in-kernel strlcpy()?
-
-That is because I meant strscpy() :-)
-
-In particular https://elixir.bootlin.com/linux/v7.0/source/include/linux/fortify-string.h#L275
-Particularly once it gets as far as calling strnlen().
-
-> 
-> > As does the compiler.
-> > pixpaper_panel_hw_init() repeatedly calls two static functions that
-> > contain sleeps. They all get inlined bloating the code size and
-> > exploding the stack when clang separately allocates all the buffers
-> > in the called functions.  
-> 
-> Poor thing.  I guess compiler developers are more focused on userspace
-> code and aren't especially concerned about kernel's particular
-> requirements.  And that's understandable - it's down to us to persuade
-> them to add options to permit us to tune the compiler behavior.
-
-That would be wrong for for userspace as well.
-Inlining and loop unrolling decisions don't seem to allow
-for the cost of reading code from memory into the I-cache.
-(Loop unrolling is so 1980s)
-
-My suspicion is that very few writes of user code ever look at
-the generated code.
-So the compiler developers go their own way optimising things
-that improve some benchmarks but make more normal programs
-run a bit slower.
-Of course, modern cpu are fast enough that it doesn't matter
-what is generated for most code.
-(end rant)
-
-	David
-
-
+(...)
