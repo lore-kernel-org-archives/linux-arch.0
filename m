@@ -1,72 +1,160 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0F47326AC3;
-	Sun, 26 Apr 2026 18:09:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5CE6B1552FD;
+	Sun, 26 Apr 2026 18:30:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777226974; cv=none; b=XElmFBKjS4xj9Q/R31YOnfRUbpzjmJQeibun0bbmO2PQV2pHiveS9e5pCE+mQW/8ITIeKlYLGasGSaQxoAAaFPRgWLAVOrLLFiFhjjzIWhQJkBzLFBTunEykFmDeakBbmYPjJpT6b3Ts3FoVtV91s6wBHsHtVL7HHOYGMWkq5sI=
+	t=1777228240; cv=none; b=UbrV1z2mUiFTro2/mmColnRWwD9ZggJTn9R8DEpwfQ4s92OUFCDfd1fWTYdlrW5OnAttO8Xj9qHO1R39bKvUz5eONhNdul/piFlbyk4zVVZj3pExRzcRZmtcPIMCuZ2rgYg/eVRvVJzUMltE/PCNDT5FxI+8auMpg4FR675qtys=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777226974; c=relaxed/simple;
-	bh=ZpzvuAjjvIqcno01hmVZJsBQLvD+qtDCobiUZNIrpSQ=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=KtWpm2rv/aKI+PNjiD0qgf0LKnIv0h4D8lUvkrw5+Q1zRggDmrPUAFz2pPBx1z0/2fa5fy+RM9pBeonTTbz0u5FMX5JL866f4uIcNrCoiz01q1Gmug4KZJwb/kblLT1dgpfoABtrWO4IFd4LFQqRL5++cAnvWwf2PB3qHRJyzX4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=Tn4vwNXp; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1777228240; c=relaxed/simple;
+	bh=RX0vprigtwFDfvPHPQDQjGHFFSECwpJrLBtKIV9cU9Q=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=EcT4f7zVvAu8c45IN26uRsmU+Ec3Qsznyp3mffufopz71zrxqLVlaia0+5OVSLncdhvT2nO5eZV44PmwJ5GRGBvRR3nyuFj7uAaRisbO9sfshOXcCnyjsSa+FAAGOUKFrgtIgXcv3optiq9cmBC9u37gv6Jk+XLuzt4ULygd86w=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=rgZmiyWF; arc=none smtp.client-ip=159.69.126.157
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="Tn4vwNXp"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7B166C2BCAF;
-	Sun, 26 Apr 2026 18:09:33 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
-	s=korg; t=1777226973;
-	bh=ZpzvuAjjvIqcno01hmVZJsBQLvD+qtDCobiUZNIrpSQ=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=Tn4vwNXpXD0czdD18/NTmJwunL37zosOs1UH00Ocy/KcnK6WpNia9rEGNrj6CVJ6W
-	 hsgZCqfvMkxKSCsmMvW3VZxR94qfHIq23TChYDruXUMgDp+bYVR/ns5NZRUd9PR51G
-	 y+3BTn1ZyXU+EKfrzHOH3BGHeFOHPE3Y4Mp/pBME=
-Date: Sun, 26 Apr 2026 11:09:32 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: Min-Hsun Chang <chmh0624@gmail.com>, arnd@arndb.de, msalter@redhat.com,
- linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] asm-generic: replace ________addr with
- __UNIQUE_ID(addr)
-Message-Id: <20260426110932.786047b4338843e0a91abaa9@linux-foundation.org>
-In-Reply-To: <20260426183420.2216d187@pumpkin>
-References: <20260307092119.20733-1-chmh0624@gmail.com>
-	<20260322144032.7353997c@pumpkin>
-	<20260425135737.e79c4b546d22b5ebfd96c0b5@linux-foundation.org>
-	<20260425230134.5449498a@pumpkin>
-	<20260425151240.2a46e3a8640fde3902461d41@linux-foundation.org>
-	<20260426114938.4dff28c8@pumpkin>
-	<20260426040925.b25cb2a32680bfe884431abf@linux-foundation.org>
-	<20260426183420.2216d187@pumpkin>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="rgZmiyWF"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
+	s=mail; t=1777228236;
+	bh=RX0vprigtwFDfvPHPQDQjGHFFSECwpJrLBtKIV9cU9Q=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=rgZmiyWFqk2UTABJRG965ZG1RFUQYVGrGeAOCXp/tvCy8mvsOalPMS51t0Zx3luh8
+	 AA+qi7rm4LSKejZiczUMyYWV0YeJKZhy5Vu6oHG+bP0Uiz0AyzruhGfDsMnxiE8gDm
+	 fxhhGweLrnR+r7svkMupRffCtPEUghvWJJDPN5wM=
+Date: Sun, 26 Apr 2026 20:30:35 +0200
+From: Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>
+To: =?utf-8?B?QW5kcsOp?= Almeida <andrealmeid@igalia.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, 
+	Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
+	Mark Rutland <mark.rutland@arm.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Carlos O'Donell <carlos@redhat.com>, 
+	Peter Zijlstra <peterz@infradead.org>, Florian Weimer <fweimer@redhat.com>, 
+	Rich Felker <dalias@aerifal.cx>, Torvald Riegel <triegel@redhat.com>, 
+	Darren Hart <dvhart@infradead.org>, Ingo Molnar <mingo@kernel.org>, 
+	Davidlohr Bueso <dave@stgolabs.net>, Arnd Bergmann <arnd@arndb.de>, 
+	"Liam R . Howlett" <Liam.Howlett@oracle.com>, Uros Bizjak <ubizjak@gmail.com>, 
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	kernel-dev@igalia.com
+Subject: Re: [PATCH RFC v2 2/2] arm64: vdso: Implement
+ __vdso_futex_robust_try_unlock()
+Message-ID: <7ddc1c74-c504-44c6-8d51-d10d436c0db8@t-8ch.de>
+References: <20260424-tonyk-robust_arm-v2-0-db4e46f752cf@igalia.com>
+ <20260424-tonyk-robust_arm-v2-2-db4e46f752cf@igalia.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260424-tonyk-robust_arm-v2-2-db4e46f752cf@igalia.com>
 
-On Sun, 26 Apr 2026 18:34:20 +0100 David Laight <david.laight.linux@gmail.com> wrote:
+On 2026-04-24 15:56:01-0300, André Almeida wrote:
+(...)
 
-> > > True - don't look at what strlcpy() can generate.
-> > > The inline code should just get the constants from the compiler and
-> > > then call the appropriate function.  
-> > 
-> > I can't actually find an in-kernel strlcpy()?
-> 
-> That is because I meant strscpy() :-)
-> 
-> In particular https://elixir.bootlin.com/linux/v7.0/source/include/linux/fortify-string.h#L275
-> Particularly once it gets as far as calling strnlen().
+> Signed-off-by: André Almeida <andrealmeid@igalia.com>
+> ---
+> RFC:
+>  - Should I duplicate the explanation found in the x86 commit or can I just
+>  point to it?
+>  - Only LL/SC for now but I can add LSE later if this looks good
+>  - It the objdump I see that op_pending is store at x2. But how stable is this,
+>  how can I write it in a way that's always x2?
+> ---
+>  arch/arm64/Kconfig                                 |  1 +
+>  arch/arm64/include/asm/futex_robust.h              | 35 +++++++++++++
+>  arch/arm64/kernel/vdso/Makefile                    |  9 +++-
+>  arch/arm64/kernel/vdso/vdso.lds.S                  |  4 ++
+>  .../kernel/vdso/vfutex_robust_list_try_unlock.c    | 59 ++++++++++++++++++++++
+>  5 files changed, 107 insertions(+), 1 deletion(-)
 
-Oh geeze, why did we do that.  This is the kernel - string functions
-aren't fastpath!  Someone please move all that gunk into lib/string.c!
+What about the actual 32-bit vDSO in arch/arm64/kernel/vdso32/ ?
 
-We'll still need some macro if we are to retain the (imo silly)
-omit-arg3-if-its-an-array trick.  
+(...)
 
+> diff --git a/arch/arm64/kernel/vdso/vfutex_robust_list_try_unlock.c b/arch/arm64/kernel/vdso/vfutex_robust_list_try_unlock.c
+> new file mode 100644
+> index 000000000000..e8a8fb22a2fa
+> --- /dev/null
+> +++ b/arch/arm64/kernel/vdso/vfutex_robust_list_try_unlock.c
+> @@ -0,0 +1,59 @@
+> +// SPDX-License-Identifier: GPL-2.0-or-later
+> +#include <vdso/futex.h>
+> +#include <linux/stringify.h>
+> +
+> +#define LABEL(name, sz) __stringify(__futex_list##sz##_try_unlock_cs_##name)
+
+We should have some defines for these symbols. While they are not
+userspace ABI, they will be used by the selftests.
+
+> +#define GLOBLS(sz) ".globl " LABEL(start, sz) ", " LABEL(success, sz) ", " LABEL(end, sz) "\n"
+> +
+> +__u32 __vdso_futex_robust_list64_try_unlock(__u32 *lock, __u32 tid, __u64 *pop)
+> +{
+> +	__u32 val, result;
+> +
+> +	asm volatile (
+> +		GLOBLS(64)
+> +		"	prfm pstl1strm, %[lock]			\n"
+> +		LABEL(start, 64)":				\n"
+> +		"	ldxr %[val], %[lock]			\n"
+> +		"	cmp %[tid], %[val]			\n"
+> +		"	bne " LABEL(end, 64)"			\n"
+> +		"	stlxr %w[result], xzr, %[lock]		\n"
+> +		"	cbnz %w[result], " LABEL(start, 64)"	\n"
+> +		LABEL(success, 64)":				\n"
+> +		"	str xzr, %[pop]				\n"
+> +		LABEL(end, 64)":				\n"
+> +
+> +		: [val] "=&r" (val), [result] "=r" (result)
+> +		: [tid] "r" (tid), [lock] "Q" (*lock), [pop] "Q" (*pop)
+> +		: "memory"
+> +	);
+
+My clang 22.1.3 chokes on the assembly in this patch.
+
+> +
+> +	return val;
+> +}
+> +
+> +#ifdef CONFIG_COMPAT_VDSO
+
+I am wondering about the CONFIG_COMPAT{,_VDSO} dependency here.
+As far as I know the list32 variant is meant to be used by code
+emulators which run 32-bit code on a 64-bit kernel, for example FEX.
+But these emulators don't actually seem to need CONFIG_COMPAT.
+So the dependency does not look correct.
+The space savings also should be irrelevant.
+
+The x86 series from Thomas does the same, maybe he will read this
+comment, otherwise I'll bring it up on his series, too.
+
+> +__u32 __vdso_futex_robust_list32_try_unlock(__u32 *lock, __u32 tid, __u32 *pop)
+> +{
+> +	__u32 val, result;
+> +
+> +	asm volatile (
+> +		GLOBLS(32)
+> +		"	prfm pstl1strm, %[lock]			\n"
+> +		LABEL(start, 32)":				\n"
+> +		"	ldxr %w[val], %[lock]			\n"
+> +		"	cmp %w[tid], %w[val]			\n"
+> +		"	bne " LABEL(end, 32)"			\n"
+> +		"	stlxr %w[result], wzr, %w[lock]		\n"
+> +		"	cbnz %w[result], " LABEL(start, 32)"	\n"
+> +		LABEL(success, 32)":				\n"
+> +		"	str wzr, %w[pop]			\n"
+> +		LABEL(end, 32)":				\n"
+> +
+> +		: [val] "=&r" (val), [result] "=r" (result)
+> +		: [tid] "r" (tid), [lock] "Q" (*lock), [pop] "Q" (*pop)
+> +		: "memory"
+> +	);
+> +
+> +	return val;
+> +}
+> +#endif
