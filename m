@@ -1,119 +1,161 @@
-Received: from mail-wm1-f53.google.com (mail-wm1-f53.google.com [209.85.128.53])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16EE42F2619
-	for <linux-arch@vger.kernel.org>; Sun, 26 Apr 2026 21:43:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.53
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 6284A2233A;
+	Mon, 27 Apr 2026 03:35:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777239818; cv=none; b=M/8YtjEDVNBeAL7958spqaw9sUthFxua1wKHfQFMeFUc5KUobCs89RsqUnv0RFOlSH8T7no2NwmEsIYQXD2p3/yT+eNlBvKj4bdoPpu1GH3VNuCSc1qK8YethTKHkICZCRK9wTa5GZSqrwgD0/1be4e6/hMccZQTrW7qePJPWvs=
+	t=1777260917; cv=none; b=LONYM79omzFRjzoP+vlx2FhbMxaWj50MU2dWKZ0ComHw62PKhSM17eBH8sIo7pTar03whaSr17T1inAJh2ozeMjSVAbYNf56j7JIrRen6nwRcZveM/aGpU93cYJXKXv/H7KlbvYyqBMaWbbMd3PSHlEvIW/YODIJoHjMla46JCI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777239818; c=relaxed/simple;
-	bh=LPWavIZ/gOJwBHcgiOClWB2JoXZPTl0uqt1pe5AXjT0=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=umDscvb8xgEhPOh3ODjCHmgcwkQanC4PffCDpmomk4JGHCyPKDhcsH7il8QHEQEAJqjmYHJIXLX6zbTkB348NPRPlifeaiKB4ksZ7COo18+D6QdbNATa4+oZfHm4cbbN91aErIEYesk2qkUMvG9q8Xx4YYtalhTSSFsVVn4zOIc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=LZiMGVpT; arc=none smtp.client-ip=209.85.128.53
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1777260917; c=relaxed/simple;
+	bh=dpoz9Br5gfXY9p/k+gIvqj33uh1nKLNMMWdZZ4iAm60=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=EKd6IMNHOJ13k1NXfRSxE6Lrf7hz1Yk1XMNu3nWJ36vjtvswP3Xjyjs4Xp8TnP0pA9bF2eTd4RV3JPszDyU220TUjjXxQEyAjnmSpk9/ZnfBK+qIZRKIKOijqZfkCf/M3F/7aqlNTqGl/p5dpxdZjlPyZcFAS6mT7qwRxxnyEFA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=RiX+CxxK; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="LZiMGVpT"
-Received: by mail-wm1-f53.google.com with SMTP id 5b1f17b1804b1-4852b81c73aso79491665e9.3
-        for <linux-arch@vger.kernel.org>; Sun, 26 Apr 2026 14:43:36 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1777239815; x=1777844615; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=FUdLgQOCVlyixTrdH7a4UDIcauv75NFTtaENVvxSOB0=;
-        b=LZiMGVpTTndH/DySeXr4HBvh2OA8adnCl8GxEEeTMFge29737Hvs0QkmVbgcySUgMJ
-         pni9QOW3dAgO/UZ7ZdlwXKpzFLaEdV8OVNIcSGysrnIBg009ivqykzihNZRqyLCSsJ+7
-         1t84g1+UeElc/FShffngKzDXeJY43pYbMN0DaxyfoKUyH80LQtqbvosp6q8pmfcssKmx
-         OTBcgZzxWBfn21q2Vte++KY6EegGmni97sjs0pQp+HyQu+L83IHp0iUPBhUNhFobAGjI
-         WRQeCp7TJU0pUR+bufv9CPU4fOtwkaZTgg5S1ffsEAtsMxgD/1BOQbnGnuPHynpekxvB
-         1NCg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1777239815; x=1777844615;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=FUdLgQOCVlyixTrdH7a4UDIcauv75NFTtaENVvxSOB0=;
-        b=abbcNMJ0w3gE7ulj6HS118x01F0UxaV/PIOLbJLq0/cAQ3/MWbhAUvp45H+iEjWr4a
-         /aKQePI93sJJb2lBO7TK2MmnwSaSQZJeA/jPJlEpbbHxQDcww+sVWWkqjFgoZA5DUAQx
-         kAlxYgvQ0KVUNWc7QEPo7ziw8fq6re0M9iWLPKCiE045mnUcnb153I5OFQDCwh6ifPvx
-         /VGJM6md53m1L3hQsAZJwPD5kLCPx6CtMkIhg5tw2N+ZFOZjJ51o15NCJukTxzp7lK33
-         HaqcdmlgIF3Er0Zbn0N31Uj96BfbcNbpJUdOjnRu8c3vnfUwywrHLALP74LsbZ1klGYu
-         eJVg==
-X-Forwarded-Encrypted: i=1; AFNElJ+IYYjyG4s1TBwSKQ8RQQe29++cmH9Sm24f+jQpfYOvk8H/ytRma414MyOq4RG0xZlUbu/zvIKw7pUv@vger.kernel.org
-X-Gm-Message-State: AOJu0YwWxHjr4ll0Myd3Mgck4pTKGZQ0KqK56OFINHUgLPLXjcewEfg9
-	kAtR4SLBXVRMADiFTzqQPB0OZQYNb9W5HOw0UlHe6xw2nGHIj7q8+D8c
-X-Gm-Gg: AeBDievvgHu40+IrNkdE/1ZxT3p1REnIZ6bZ8DfBao6NJhF+fPpb8v54z395cQtD28R
-	HXVKlOd134AaNXDd58ML+pS98QNfiF9OKTA1jldcW6A7ZcWmMXHbnsPs0+6j07XhdOt/37m+vWO
-	3ucPHYBxzZE8duAIogUA1UoCxDRJlwoigFlYpZ9mzaKlziqeNNUcU6exNw+LTXf2yYM+GfqkQ0g
-	YxFoZw+m9FD5zVWsdLpGHg5AMALqBmauOL8HrtbTL1aMTWMFZ3XsCcN0T0QfWTyXKldA2Stmn9f
-	yANunoB+jgwWkLJ0I9I5KB4mAKq2ZFCqcsIezDhpeePM98CSNqAFRNPgXXFzd+zddFgwzJA6G/t
-	3UQy4Z2MMvLQNqeUsN5YNjkeaCd8Uncm77ZmshxAxIEY6iFC+sRNHaz2/6p2CkCI7yVHfBXkajM
-	mLCGlJ4iJoFUc4UntmMNt1Ko1JPd4Voo6+oQdDiyh6KXwVi5NBROEm1AgCvXtIkKwmvGa8CtoOt
-	J0=
-X-Received: by 2002:a05:600c:c085:b0:488:c530:48a0 with SMTP id 5b1f17b1804b1-488fb784843mr454167245e9.24.1777239815396;
-        Sun, 26 Apr 2026 14:43:35 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-48a52583fe7sm423356605e9.13.2026.04.26.14.43.34
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 26 Apr 2026 14:43:35 -0700 (PDT)
-Date: Sun, 26 Apr 2026 22:43:33 +0100
-From: David Laight <david.laight.linux@gmail.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Min-Hsun Chang <chmh0624@gmail.com>, arnd@arndb.de, msalter@redhat.com,
- linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] asm-generic: replace ________addr with
- __UNIQUE_ID(addr)
-Message-ID: <20260426224333.5916c960@pumpkin>
-In-Reply-To: <20260426110932.786047b4338843e0a91abaa9@linux-foundation.org>
-References: <20260307092119.20733-1-chmh0624@gmail.com>
-	<20260322144032.7353997c@pumpkin>
-	<20260425135737.e79c4b546d22b5ebfd96c0b5@linux-foundation.org>
-	<20260425230134.5449498a@pumpkin>
-	<20260425151240.2a46e3a8640fde3902461d41@linux-foundation.org>
-	<20260426114938.4dff28c8@pumpkin>
-	<20260426040925.b25cb2a32680bfe884431abf@linux-foundation.org>
-	<20260426183420.2216d187@pumpkin>
-	<20260426110932.786047b4338843e0a91abaa9@linux-foundation.org>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="RiX+CxxK"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id B42651684;
+	Sun, 26 Apr 2026 20:35:08 -0700 (PDT)
+Received: from [10.164.148.37] (MacBook-Pro.blr.arm.com [10.164.148.37])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 77A683F763;
+	Sun, 26 Apr 2026 20:35:07 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1777260914; bh=dpoz9Br5gfXY9p/k+gIvqj33uh1nKLNMMWdZZ4iAm60=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=RiX+CxxKVDl7Rb4MNf49jz/6t05hRkytgOqO+xc2+t+f11crdaEumCECCXRTd43AY
+	 InZMBcZiQG5/XIcJ0kZTkNqYfxbik2UHF3kkTr13zeAtpwslDXRvplwYLq0o1Dg2My
+	 K2YzBzVjMSVn65AogUa5fm3mwX0rf4mgaQhjGojE=
+Message-ID: <91e38f4d-652a-486f-aeff-6b955b43c193@arm.com>
+Date: Mon, 27 Apr 2026 09:04:36 +0530
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3 1/3] vmalloc: add __GFP_SKIP_KASAN support
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: arnd@arndb.de, kees@kernel.org, mingo@redhat.com, peterz@infradead.org,
+ juri.lelli@redhat.com, vincent.guittot@linaro.org,
+ akpm@linux-foundation.org, david@kernel.org, urezki@gmail.com,
+ dietmar.eggemann@arm.com, rostedt@goodmis.org, bsegall@google.com,
+ mgorman@suse.de, vschneid@redhat.com, ljs@kernel.org,
+ Liam.Howlett@oracle.com, vbabka@kernel.org, rppt@kernel.org,
+ surenb@google.com, mhocko@suse.com, tglx@kernel.org, usama.anjum@arm.com,
+ mathieu.desnoyers@efficios.com, linux-arch@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+ Ryan Roberts <ryan.roberts@arm.com>
+References: <20260424130157.3163009-1-dev.jain@arm.com>
+ <20260424130157.3163009-2-dev.jain@arm.com> <aeu3LU2X2P-Ue9ut@arm.com>
+Content-Language: en-US
+From: Dev Jain <dev.jain@arm.com>
+In-Reply-To: <aeu3LU2X2P-Ue9ut@arm.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On Sun, 26 Apr 2026 11:09:32 -0700
-Andrew Morton <akpm@linux-foundation.org> wrote:
 
-> On Sun, 26 Apr 2026 18:34:20 +0100 David Laight <david.laight.linux@gmail.com> wrote:
+
+On 25/04/26 12:02 am, Catalin Marinas wrote:
+> On Fri, Apr 24, 2026 at 06:31:55PM +0530, Dev Jain wrote:
+>> From: Muhammad Usama Anjum <usama.anjum@arm.com>
+>>
+>> For allocations that will be accessed only with match-all pointers
+>> (e.g., kernel stacks), setting tags is wasted work. If the caller
+>> already set __GFP_SKIP_KASAN, skip tag setting of vmalloc pages.
+>>
+>> Before this patch, __GFP_SKIP_KASAN wasn't being used with vmalloc
+>> APIs. So it wasn't being checked. Now its being checked and acted
+>> upon. Other KASAN modes are unchanged because __GFP_SKIP_KASAN isn't
+>> defined there.
+>>
+>> This is a preparatory patch for optimizing kernel stack allocations.
+>>
+>> Co-developed-by: Ryan Roberts <ryan.roberts@arm.com>
+>> Co-developed-by: Dev Jain <dev.jain@arm.com>
+>> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
 > 
-> > > > True - don't look at what strlcpy() can generate.
-> > > > The inline code should just get the constants from the compiler and
-> > > > then call the appropriate function.    
-> > > 
-> > > I can't actually find an in-kernel strlcpy()?  
-> > 
-> > That is because I meant strscpy() :-)
-> > 
-> > In particular https://elixir.bootlin.com/linux/v7.0/source/include/linux/fortify-string.h#L275
-> > Particularly once it gets as far as calling strnlen().  
+> Co-developers need to sign off as well. See submitting-patches.rst. Same
+> comment about your SoB as on patch 3.
+
+oops I forgot, I'll do that.
 > 
-> Oh geeze, why did we do that.  This is the kernel - string functions
-> aren't fastpath!  Someone please move all that gunk into lib/string.c!
+>> ---
+>>  mm/vmalloc.c | 20 +++++++++++++++++---
+>>  1 file changed, 17 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+>> index b31b208f6ecb3..c94fcb2725b6b 100644
+>> --- a/mm/vmalloc.c
+>> +++ b/mm/vmalloc.c
+>> @@ -3939,7 +3939,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+>>  				__GFP_NOFAIL | __GFP_ZERO |\
+>>  				__GFP_NORETRY | __GFP_RETRY_MAYFAIL |\
+>>  				GFP_NOFS | GFP_NOIO | GFP_KERNEL_ACCOUNT |\
+>> -				GFP_USER | __GFP_NOLOCKDEP)
+>> +				GFP_USER | __GFP_NOLOCKDEP | __GFP_SKIP_KASAN)
+>>  
+>>  static gfp_t vmalloc_fix_flags(gfp_t flags)
+>>  {
+>> @@ -3980,6 +3980,9 @@ static gfp_t vmalloc_fix_flags(gfp_t flags)
+>>   *
+>>   * %__GFP_NOWARN can be used to suppress failure messages.
+>>   *
+>> + * %__GFP_SKIP_KASAN can be used to skip unpoisoning of mapped pages
+>> + * (when prot=%PAGE_KERNEL).
+>> + *
+>>   * Can not be called from interrupt nor NMI contexts.
+>>   * Return: the address of the area or %NULL on failure
+>>   */
+>> @@ -3993,6 +3996,10 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
+>>  	kasan_vmalloc_flags_t kasan_flags = KASAN_VMALLOC_NONE;
+>>  	unsigned long original_align = align;
+>>  	unsigned int shift = PAGE_SHIFT;
+>> +	bool skip_vmalloc_kasan = gfp_mask & __GFP_SKIP_KASAN;
+>> +
+>> +	/* Don't skip metadata kasan unpoisoning */
+>> +	gfp_mask &= ~__GFP_SKIP_KASAN;
+>>  
+>>  	if (WARN_ON_ONCE(!size))
+>>  		return NULL;
+>> @@ -4041,7 +4048,7 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
+>>  	 * kasan_unpoison_vmalloc().
+>>  	 */
+>>  	if (pgprot_val(prot) == pgprot_val(PAGE_KERNEL)) {
+>> -		if (kasan_hw_tags_enabled()) {
+>> +		if (kasan_hw_tags_enabled() && !skip_vmalloc_kasan) {
+>>  			/*
+>>  			 * Modify protection bits to allow tagging.
+>>  			 * This must be done before mapping.
+>> @@ -4054,6 +4061,12 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
+>>  			 * poisoned and zeroed by kasan_unpoison_vmalloc().
+>>  			 */
+>>  			gfp_mask |= __GFP_SKIP_KASAN | __GFP_SKIP_ZERO;
+>> +		} else if (skip_vmalloc_kasan) {
+>> +			/*
+>> +			 * Skip page_alloc unpoisoning physical pages backing
+>> +			 * VM_ALLOC mapping, as requested by caller.
+>> +			 */
+>> +			gfp_mask |= __GFP_SKIP_KASAN;
+>>  		}
+> 
+> This playing around with some of the GFP flags meant for metadata and
+> the actual page allocation gets confusing. You remove __GFP_SKIP_KASAN
+> early from gfp_mask, add it back here. You might as well just remove it
+> when calling __get_vm_area_node() and we won't have to figure out why
+> it's added back above.
 
-It might be worth selecting memcpy() for fixed length copies that fit.
-Especially since that can get inlined to something smaller than the call.
+Okay I'll do this.
+> 
+> The __GFP_SKIP_ZERO flag is meant for the page allocator and used in
+> this function later to actually tell kasan to initialise the memory (not
+> skip this). __GFP_SKIP_KASAN, OTOH, is used to actually tell both
+> vmalloc() and the underlying page allocator to avoid tagging. I wonder
+> whether it would be better to have a VM_SKIP_KASAN flag instead and
+> leave the GFP flags alone.
 
-> We'll still need some macro if we are to retain the (imo silly)
-> omit-arg3-if-its-an-array trick.  
+Lemme reply on the other reply
 
-Try: strscpy(tgt, src, len, spare_argument)
-I'm pretty sure it compiles fine.
+> 
 
-	David
