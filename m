@@ -1,301 +1,103 @@
-Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F3D87383C80
-	for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2026 21:29:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.52
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id D5BB62F7478;
+	Mon, 27 Apr 2026 21:39:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777325363; cv=none; b=jT49lmtxy/XBkW+N86fo3IXOJmUG0Y8ORdALmQxWXt038lA303Vipo8rq7vrn2fwA8vqARfqo6lh21mVkWR6vCRuxE98R/RyHujPbaBSJhbOJiMj4mmmvaRTA9FP8F1z2TsH2RWT+0whW8Z0Zd/fvO8wi85thwG9ehbuMbq0p+8=
+	t=1777325945; cv=none; b=r8EUrW0CxWlaScTb/Ab2tLX7gKe7+jVphyzsbItPNkexuOGDB46OGOxGhjJ37fbTpXV1iCgs/mwXyE8WfwCHZz4e/+5GEtNhoV+RG3qyZ5rnCJC/RDPr022qDf180R1pYDKKVIpsJ6DZGULc6vWoUEDyoQ2efb7jSeKKxotWEGU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777325363; c=relaxed/simple;
-	bh=c8Xs8XIDe+SZyyGBpFGQP0PqyLAvYREVB87ThsvQG6c=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=X/+YM6fuNMh+yWWVvfga10V2v/vFO6tx8qJjGCaD9m3nzMRTCqTu2GT9tg1Z06vBVDgOZ3Tv/NheQ1miS5MmvWcFkWOPTXIcOHnkVtcV5gNlbmFgMS/Pipdbn+WDeo7Ydvks4QbGMxKcJK9s4pKTiMPzreKWhUrtcEZvHrU+9os=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=pM4bEk+K; arc=none smtp.client-ip=209.85.128.52
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1777325945; c=relaxed/simple;
+	bh=0LWP6ceI3rzU+1ASAE0SUacXnQgdecy1kn+ZJsmqBEE=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Xu1Om7UVMqeLnN7Pj0ZnM+rg/GiD4mhj59/EDQcTIjQyXsgPdZKo0X5VvlE6S5lNkcTsyNg4+skRoRda6kbC5PUsmZwwMp48zqFqDZkB9fcd/l6x0XujorAh15xRPAMFN8doixV9xHqB88AzbKIBcMEPi7YxNWt9j4gtnOTz6HM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=Xa+wSnlP; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="pM4bEk+K"
-Received: by mail-wm1-f52.google.com with SMTP id 5b1f17b1804b1-488b0e1b870so182017325e9.2
-        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2026 14:29:19 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1777325358; x=1777930158; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=Ebg5+i/pOUuQx7xxuERTUppaj1qL6vIxTxgv86V/NC0=;
-        b=pM4bEk+KWuVJs1U70UMTYiYKMTMTofFbWReYwBWyqhmru6Y2DXeQu1JWql0TDyt+VP
-         KU6iTZ27w00J1ijxYV/Il69CxIz0aEodyojX5hvux8QzDCUptjfpO0GxqEopdd5J7LQe
-         xWtNPQshDR5+AecefO+G7XCDnANkqrKF5HDpjRP71LYSISipG8uBZw3Llvrz/plVREw8
-         7hx+6bhgCNzpupXctGieSqZ7959V9vurIkn5LhYgBA0CLbIQE+NEBCLE9iwlyuxnjMVK
-         9ppisP58FPLXgdtkUISOXdh0pbxdbVuAXmsLhiX5O1W4051+CXyd/ZZNlvvioVVvo0G7
-         77DA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1777325358; x=1777930158;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=Ebg5+i/pOUuQx7xxuERTUppaj1qL6vIxTxgv86V/NC0=;
-        b=VgQWlfOHM8bIW3iUHu34z7nDhbA5v2qOpgP6tK8LImLlXBA1vH2Ix2Kx4dXtVqbqqT
-         TbzWksmtVDrNLN9dasNpmfmuFcWoKI+XBzpA38uBcxDiik0aMMhThCkv7SHCKFgFps8u
-         fqKbLb+wEO3X0Ovb92RYKuW6uAepwlIVTR8TyCPlWWckasfC6ifEZ3TxFbsy79JhsN0D
-         ZkOVxbdayl5TFyHkn9r6a9/GP9rxZmEnLtgc1w0zBYSujvTa5M7WiUapKU8g2/+WD/W+
-         fzWi0857fOiRySwd39HOSbqJceJmWCsV04zS0SSpPAQ99b94TzTFUcWvvvE3fYxSBuY0
-         AmIQ==
-X-Forwarded-Encrypted: i=1; AFNElJ90O2NRdD0GNvZRTvaVuCIUkNfKTdfqiTkNN9LY1pRhAWygZdFyrYUPwTMjG1aQ1Sfcvh6tzRbDDGRE@vger.kernel.org
-X-Gm-Message-State: AOJu0YzLwKMWO0ZPJrCDrvkvtedjT0o1BTX87oIFRGo+pEFrWl3xdlhN
-	l1V0fUf0aYkCVTxG3rQ4ndfnYZiYTi9dDOyzmlT2FMc+wA/j/YVt8bms
-X-Gm-Gg: AeBDieuexe7jT4JmjYnejymCpc/Jpe8wpqXEgYMy5uPsXdMg95jKloXq8wPlDrwYNon
-	B3xNU0IwBDDHm4sruLoek/73yx342TaCagCufrs+vo0AoOcCl+EKKWbWI6uO9en8EeoNT6I4PkB
-	/s7/Jp4xmTTBoFQITEtFWiOruR+Ig98Qs8B0CcIPXYzbI3sva/JaFL0bt+PvmNGv/AvvJG8pj3i
-	YchFdF1tufB/IpXoCSdyy6v38KlQQn9bfVRYhpz6tEBBEiKqbsD2nIuqKqD55/hbaJ3SyT++iTE
-	dvempKtCEJ5RrO8CVyD1E3baHDg3pifhTLt2bPftwxNVqub+cAAmAezhowKidUEIoLi9RLQTKW0
-	fx/emZwfUOm2tYyYPaLrbbHPz4yU2C1lw4ThkXeiBrFM223rCHbG6Vh7jyDuAcDTPDV+HR7llCg
-	01ST72NoHdsfKPDgMG0rhlB9zPvmBDv63EQtBKEO/qYuKNSQnpZgJiM8wgZH3Z/D+vILsK4m4yd
-	WY6Ohsqq0E+sQ==
-X-Received: by 2002:a05:6000:3109:b0:43d:7d6f:f531 with SMTP id ffacd0b85a97d-44649ba1f4amr816127f8f.30.1777325358072;
-        Mon, 27 Apr 2026 14:29:18 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-4463d02f270sm1120515f8f.9.2026.04.27.14.29.16
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 27 Apr 2026 14:29:17 -0700 (PDT)
-Date: Mon, 27 Apr 2026 22:29:14 +0100
-From: David Laight <david.laight.linux@gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, Yury Norov
- <ynorov@nvidia.com>, Andrew Morton <akpm@linux-foundation.org>, Thomas
- Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org,
- linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org,
- linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org,
- linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
- sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
- dmaengine@vger.kernel.org, linux-efi@vger.kernel.org,
- linux-fsi@lists.ozlabs.org, amd-gfx@lists.freedesktop.org,
- dri-devel@lists.freedesktop.org, intel-gfx@lists.freedesktop.org,
- linux-wpan@vger.kernel.org, netdev@vger.kernel.org,
- linux-wireless@vger.kernel.org, linux-spi@vger.kernel.org,
- linux-media@vger.kernel.org, linux-staging@lists.linux.dev,
- linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
- xen-devel@lists.xenproject.org, linux-fsdevel@vger.kernel.org,
- ocfs2-devel@lists.linux.dev, bpf@vger.kernel.org,
- kasan-dev@googlegroups.com, linux-mm@kvack.org, linux-x25@vger.kernel.org,
- rust-for-linux@vger.kernel.org, linux-sound@vger.kernel.org,
- sound-open-firmware@alsa-project.org, linux-csky@vger.kernel.org,
- linux-hexagon@vger.kernel.org, loongarch@lists.linux.dev,
- linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org,
- linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org,
- linux-arch@vger.kernel.org
-Subject: Re: [RFC PATCH v1 5/9] uaccess: Switch to
- copy_{to/from}_user_partial() when relevant
-Message-ID: <20260427222914.1cb2dd3b@pumpkin>
-In-Reply-To: <CAHk-=whC1DZojwdMB1=sJWG2=dsCdfyU8N6tDE1qx50HRZ-WJQ@mail.gmail.com>
-References: <cover.1777306795.git.chleroy@kernel.org>
-	<289b424e243ba2c4139ea04009cf8b9c448a87ff.1777306795.git.chleroy@kernel.org>
-	<CAHk-=whC1DZojwdMB1=sJWG2=dsCdfyU8N6tDE1qx50HRZ-WJQ@mail.gmail.com>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="Xa+wSnlP"
+Received: by linux.microsoft.com (Postfix, from userid 1241)
+	id 2069520B716A; Mon, 27 Apr 2026 14:39:04 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 2069520B716A
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1777325944;
+	bh=cv5zNLs9Vb20grZX2o3UEW4A1I+5kcQkll/3aCad5fE=;
+	h=From:To:Cc:Subject:Date:From;
+	b=Xa+wSnlPl9TP74nOwkzlVAOiT1nMeuAGgsr+FFDu96YJA3Rgcb2lyijZ5RMcRt7Z7
+	 buekxTbN4UXyNcxippbKWZa5Jl7LN3yFinv8sAQHMPfsu9Y/sDXDFUHtTJpAjLy6yX
+	 leGF/jzpAvG38NjFMvdlwEEwVwbWCPb9D82QUEmc=
+From: Jork Loeser <jloeser@linux.microsoft.com>
+To: linux-hyperv@vger.kernel.org
+Cc: x86@kernel.org,
+	"K . Y . Srinivasan" <kys@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Wei Liu <wei.liu@kernel.org>,
+	Dexuan Cui <decui@microsoft.com>,
+	Long Li <longli@microsoft.com>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	"H . Peter Anvin" <hpa@zytor.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Michael Kelley <mhklinux@outlook.com>,
+	Anirudh Rayabharam <anirudh@anirudhrb.com>,
+	linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	Jork Loeser <jloeser@linux.microsoft.com>
+Subject: [PATCH v4 0/3] Hyper-V: kexec fixes for L1VH (mshv)
+Date: Mon, 27 Apr 2026 14:38:51 -0700
+Message-ID: <20260427213855.1675044-1-jloeser@linux.microsoft.com>
+X-Mailer: git-send-email 2.43.7
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On Mon, 27 Apr 2026 12:01:23 -0700
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+This series fixes kexec support when Linux runs as an L1 Virtual Host
+(L1VH) under Hyper-V, using the MSHV driver to manage child VMs.
 
-> On Mon, 27 Apr 2026 at 10:18, Christophe Leroy (CS GROUP)
-> <chleroy@kernel.org> wrote:
-> >
-> > In a subsequent patch, copy_{to/from}_user() will be modified to
-> > return -EFAULT when copy fails.  
-> 
-> Please don't do this.
-> 
-> This is a maintenance nightmare, and changes pretty much three decades
-> of semantics, and will cause *very* subtle backporting issues if
-> somebody happens to rely on the old / new behavior.
-> 
-> I understand the reasoning for the change, but I really don't think
-> the pain of creating yet another user copy interface is worth it.
-> 
-> We already have a lot of different versions of user copies for
-> different reasons, and while they all tend to have a good reason (and
-> some not-so-good, but historical reasons) for existing, this one
-> doesn't seem worth it.
-> 
-> The main - perhaps only - reason for this "partial" version is that
-> you want to do that "automatically inlined and optimized fixed-sized
-> case".
-> 
-> But here's the thing: I think you can already do that. Yes, it
-> requires some improvements to unsafe_copy_from_user(), but *that*
-> interface doesn't have three decades of history associated with it,
-> _and_ you're extending on that one anyway in this series.
-> 
-> "unsafe_copy_from_user()" is very odd, is meant only for small simple
-> copies that can be inlined and it's special-cased for 'objtool' anyway
-> (because objtool would have complained about an out-of-line call,
-> although it could have been special-cased other ways).
-> 
-> In other words: unsafe_copy_from_user() is *very* close to what you
-> want for that "Oh, I noticed that it's a small fixed-size copy, so I
-> want to special-case copy-from-user for that".
-> 
-> The _only_ issue with unsafe_copy_from_user() is that you can't see
-> that there were partial successes. But if *that* was fixed, then this
-> whole "create a new copy_from_user interface" issue would just go
-> away.
-> 
-> So please - let's just change unsafe_copy_from_user() to be usable for
-> the partial case.
-> 
-> And the thing is, all the existing unsafe_copy_from_user()
-> implementations already effectively *have* the "how much did I not
-> copy" internally, and they actually do extra work to hide it, ie they
-> have things like that
-> 
->         int _i;
-> 
-> that is "how many bytes have I copied" in the powerpc implementation,
-> or the x86 code does
-> 
->         size_t __ucu_len = (_len);
-> 
-> where that "ucu_len" is updated as you go along and is literally the
-> "how many bytes are left to copy" return value that is missing from
-> this interface.
-> 
-> So what I would suggest is
-> 
->  - introduce a new user accessor helper that is used for *both*
-> unsafe_copy_to/from_user() *and* the "inline small constant-sized
-> normal copy_to/from_user()" calls
-> 
->  - it's the same thing as the existing  unsafe_copy_to/from_user()
-> implementation, except it exposes how many bytes are left to be copied
-> to the exception label.
+1-2. SynIC cleanup: the MSHV driver manages its own SynIC resources
+     separately from vmbus. Add proper teardown of MSHV-owned SINTs
+     and SIRBP on kexec, scoped to only the resources MSHV owns.
+     Use hv_vmbus_exists() to decide at runtime whether VMBus owns
+     SIMP/SIEFP/SCONTROL (so MSHV must not touch them) or whether
+     MSHV must manage them itself (bare root partition without VMBus).
+     Also fix SIEFP and SIRBP address calculations to use
+     HV_HYP_PAGE_SHIFT instead of PAGE_SHIFT, which produces wrong
+     addresses on ARM64 with 64K pages.
 
-I think there is a slight difference in that the normal copy_to_user()
-will determine the exact offset of the error by retrying with byte copies.
+3.   Debugfs stats pages: unmap the VP statistics overlay pages before
+     kexec to avoid machine check exceptions when the new kernel
+     reuses those physical pages.
 
-There is also the issue of misaligned copies.
+Changes since v3:
+- Dropped patches 1-3 (vmbus variable shadowing, stimer cleanup,
+  LP/VP skip), now merged via hyperv-next.
+- Patch 1: fix SIEFP and SIRBP memremap()/virt_to_phys() to use
+  HV_HYP_PAGE_SHIFT/HV_HYP_PAGE_SIZE instead of PAGE_SHIFT/PAGE_SIZE.
 
-Then there is the 'bugbear' of hardened user copies.
-Chasing down the stack to find whether the kernel buffer crosses
-a stack frame is probably more expensive than the copy for the typically
-small copies that will use on-stack buffers.
+Changes since v2:
+- Rebased onto linux-next/master to adapt to the upstream SynIC
+  refactor (commit 5a674ef871fe, "mshv: refactor synic init and
+  cleanup").
 
-	David
+Changes since v1:
+- Patch 1: account for nested root partitions where VMBus is also
+  active (not just L1VH); use a vmbus_active local variable; allocate
+  SIRBP in L1VH allocation path for when the hypervisor doesn't
+  pre-provision the page.
 
-> 
-> IOW, it would look something like
-> 
->      #define unsafe_copy_to_user_outlen(_dst,_src,_len,label)...
-> 
-> which is exactly the same as the current unsafe_copy_to_user(),
-> *except* it changes "_len" as it does along.
-> 
-> And then you use that for both the "real" unsafe_copy_user and for the
-> "small constant values" case.
-> 
-> Just as an example, attached is a completely stupid rough draft of a
-> patch that does this for x86 and only for unsafe_copy_to_user().
-> 
-> And I made a very very hacky change to kernel/sys.c to see what the
-> code generation looks like.
-> 
-> This is what it results in on x86 with clang (with all the magic
-> .section data edited out):
-> 
->         ... edited out the code to generate the times
->         ... this is the actual user copy:
->         # HERE!
->         movabsq $81985529216486895, %rcx        # imm = 0x123456789ABCDEF
->         cmpq    %rcx, %rbx
->         cmovaq  %rcx, %rbx
->         stac
->         movq    %r13, (%rbx)                    # exception to .LBB45_8
->         movq    %r14, 8(%rbx)                   # exception to .LBB45_8
->         movq    %r15, 16(%rbx)                  # exception to .LBB45_8
->         movq    %rax, 24(%rbx)                  # exception to .LBB45_8
->         clac
-> .LBB45_6:
->         movq    jiffies(%rip), %rdi
->         callq   jiffies_64_to_clock_t
-> .LBB45_7:
->         addq    $16, %rsp
->         popq    %rbx
->         popq    %r12
->         popq    %r13
->         popq    %r14
->         popq    %r15
->         retq
-> .LBB45_8:
->         clac
->         movq    $-14, %rax
->         jmp     .LBB45_7
-> 
-> and notice how the compiler noticed that the 'outlen' isn't actually
-> used, and turned the exception label into just a "return -EFAULT" and
-> never actually generated any code for updating remaining lengths?
-> 
-> That actually looks pretty much optimal for a 32-byte user copy.
-> 
-> And it didn't involve changing the semantics at all.
-> 
-> Just to check, I changed that "times()" system call to return the
-> number of bytes uncopied instead (to emulate the "I actually want to
-> know what's left" case), and it generated this:
-> 
->         # HERE!
->         movabsq $81985529216486895, %rcx        # imm = 0x123456789ABCDEF
->         cmpq    %rcx, %rbx
->         cmovaq  %rcx, %rbx
->         stac
->         movl    $32, %ecx
->         movq    %r13, (%rbx)                    # exception to .LBB45_7
->         movl    $24, %ecx
->         movq    %r15, 8(%rbx)                   # exception to .LBB45_7
->         movl    $16, %ecx
->         movq    %r14, 16(%rbx)                  # exception to .LBB45_7
->         movl    $8, %ecx
->         movq    %rax, 24(%rbx)                  # exception to .LBB45_7
->         clac
->         xorl    %ecx, %ecx
-> .LBB45_8:
->         movq    %rcx, %rax
->         addq    $16, %rsp
->         popq    %rbx
->         popq    %r12
->         popq    %r13
->         popq    %r14
->         popq    %r15
->         retq
-> .LBB45_6:
->         movq    jiffies(%rip), %rdi
->         jmp     jiffies_64_to_clock_t           # TAILCALL
-> .LBB45_7:
->         clac
->         jmp     .LBB45_8
-> 
-> so it all seems to work - although obviously the above is *not* the normal case.
-> 
-> NOTE NOTE NOTE! The attached patch is entirely untested. I obviously
-> did some "test code generation" with it, but I only *looked* at the
-> result, and maybe it has some fundamental problem that I just didn't
-> notice. So treat this as a "how about this approach" patch, not as
-> anything more serious than that.
-> 
-> And the kerrnel/sys.c hack is very obviously just that: a complate
-> hack for testing.
-> 
-> A real patch would do that "for small constant-sized copies, turn
-> copy_to_user() automatically into "_small_copy_to_user()".
-> 
-> The attached is *not* a real patch. Treat it with the contempt it deserves.
-> 
->              Linus
+Jork Loeser (3):
+  mshv: limit SynIC management to MSHV-owned resources
+  mshv: clean up SynIC state on kexec for L1VH
+  mshv: unmap debugfs stats pages on kexec
+
+ drivers/hv/hv.c           |   3 +
+ drivers/hv/mshv_debugfs.c |   7 +-
+ drivers/hv/mshv_synic.c   | 154 +++++++++++++++++++++++++-------------
+ 3 files changed, 110 insertions(+), 54 deletions(-)
+
+-- 
+2.43.0
 
