@@ -1,308 +1,187 @@
-Received: from BL2PR02CU003.outbound.protection.outlook.com (mail-eastusazolkn19011008.outbound.protection.outlook.com [52.103.1.8])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EFCC431AAAA;
-	Mon, 27 Apr 2026 05:40:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.103.1.8
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777268457; cv=fail; b=M2nE4I9THzD4XjzrilHjA2XBzAOSXdSXoGoARTAgSOvh3gg4n9DllDORapYAvzuoq/Ioe6ERXUWjBf7X0ryKU93ZKv2jpMx7orJC+mj7YEaCT4y19xslWJyLqFKSWqy6QczdQj9m5Urtd39MgRVzIC7x4tMv16OPfbYRJvDSF/4=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777268457; c=relaxed/simple;
-	bh=hENXaIKAj7JUwz4/RSXRU1vyxsfWfcd2p4WIhfubHLY=;
-	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
-	 Content-Type:MIME-Version; b=D9Ua+57780SmH9dPnCB1Sow73/D/CJLhcfPn5BasW4gJ9LhGysW/K7oZ6G/vT/wYdKtsToeCnYdWiNiUQdhGQOHzyqp4SVKLoXKmrrRlnbXl9hdPkqBh1BAMRExtKZHwIeGxxYV+4kyIwNiamuHH/SYqivJa6G+nGlfH+L0jqYg=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=cuUIpWIH; arc=fail smtp.client-ip=52.103.1.8
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 219273A6F12;
+	Mon, 27 Apr 2026 08:54:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1777280044; cv=none; b=BaLNcAg79PAqRvEfXABccMQSF2WDCl1mwe0SS29LoNMmuv0y/rNy1BJ2X54U/2FcrTLsQrGOc0gIJXGjhar0VIWj+XHcD1VbgPZzFoRTxV5OoR1WVaDUsfkWo3c/6TDzwiA9R1isPegYR0MBQiaIgq786ERFFDnpQv1bvFsiT0M=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1777280044; c=relaxed/simple;
+	bh=PtRJvasZkHp+/95b/vL94bJzCcFOTEky3Sgd0xF9RXI=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=DvHZh7r/H2jbxeVhVyQOKruJ5rc+vPkkjzjCQSNaTPvEtAdx/5d3stnkIjRbw0Q5XwKYIV6Vl6+ywBNa2RIJKDR7u39Wnlci30zokNfzVSuRP1z+DensFDkJyGpQxgP2W27MgEVlJwcn0oPbftY0s5PWQGfCS4kjODCWrS5dJ2Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=eGvBru2d; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="cuUIpWIH"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=Veu21Ec1ksh5PnRMniiAjIjUfe5VNLwXgkA2mU2TCUS6cjkxNL7mjB/xgv6uv6pyYP7HVmNV6fT7/fSxkkILge8ykbvZsvKSzy9w5s2JCXV2H4FjeykIxFbJFfCoDbtAbNhzSDgdWRf43OnUvdzJ0esI4o63VBbBhfR34edqAal20MnZI3gJI90bfYI9iLVeMYWoKeY4B8wF0TwkKS8GabXdZFt/oIB7idirMKWn2PNfkRoLHBF5zcrNu98nzDf5kXNGLtqHSPnkh5iexbPT6V6DfArXbO36Lkj1+X2KhZEPLfinYWqAskZl7VyzAYPVHYKnldhvld6/lfuP8JJIzw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=lAWuHYP5PjwxCYpcv50N32lDLH65mOubH0uDSpPgD90=;
- b=WXjWqljH4jPGG8beCrN3rRGaN7ePs0zMB7vZaxHnPVE0w5fXwspXnlVS6YsYi5A8fUlhvWWk51zsaA6/96DqljDZaSIcVXeZBqvulhd3DoowpgLqDGI3Sydb4tNLd7Cdzplmel/Q/LTiJBCCnEKTTM6Z6NQSScERnS7bibbiFJsyCZsh8jWeAxj8Ip+EfoW6LkRqT8u1wTyBmp9cEkD/hmq4JYoOHuT4TD9Pm4ettk0728S/PO7eGmvNWFnuFHJEI3OeY5G1JcdsvxlvNDfFosZ6u/B7Kw2zun+1tCadDw/sOyZ9IPCAXx0dUy2bH1dX+P0n3rVzT8APIOlNk10i7g==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
- dkim=none; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
- s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=lAWuHYP5PjwxCYpcv50N32lDLH65mOubH0uDSpPgD90=;
- b=cuUIpWIHHYmiMLrRvj2nkCL8e8lS7Zu2+uynJWe/Xdvu/MK11kS+Lk9UPEaF9i4stTv2w1PoAA1GUFYyzAy/p4ZWaNTEFhtLQhOI/sliVpdmOkVt4+JusDU8BRRagjDQ8WsjIkfzBlxdVIphDN0jOBcWhpHgsOApsltCwU3l8wBuYBWjEOJE11kGad7+0N+lPat6UiSS6VRIDkBIRq4ROyMZgNeYsOidOKg0S4/Yns/TeUA+1FlosCCEVz7CMoV6NSvKrVZZndzxQ0qFNKtjb8BjN8dCLcNRofy/LRLs+fh/fDF+AIUfb7DDMTZUk4TvyhRSqMn2g+DAsERhmwbllQ==
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com (2603:10b6:805:33::23)
- by CO6PR02MB7809.namprd02.prod.outlook.com (2603:10b6:303:a2::22) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9846.26; Mon, 27 Apr
- 2026 05:40:52 +0000
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::900:1ccf:2b1e:52b6]) by SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::900:1ccf:2b1e:52b6%6]) with mapi id 15.20.9846.025; Mon, 27 Apr 2026
- 05:40:52 +0000
-From: Michael Kelley <mhklinux@outlook.com>
-To: Naman Jain <namjain@linux.microsoft.com>, "K . Y . Srinivasan"
-	<kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu
-	<wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>, Long Li
-	<longli@microsoft.com>, Catalin Marinas <catalin.marinas@arm.com>, Will
- Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
-	<mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
-	<dave.hansen@linux.intel.com>, "x86@kernel.org" <x86@kernel.org>, "H . Peter
- Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Paul Walmsley
-	<pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
-	<aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Michael Kelley
-	<mhklinux@outlook.com>
-CC: Marc Zyngier <maz@kernel.org>, Timothy Hayes <timothy.hayes@arm.com>,
-	Lorenzo Pieralisi <lpieralisi@kernel.org>, Sascha Bischoff
-	<sascha.bischoff@arm.com>, mrigendrachaubey <mrigendra.chaubey@gmail.com>,
-	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
-	"linux-arm-kernel@lists.infradead.org"
-	<linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org"
-	<linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org"
-	<linux-arch@vger.kernel.org>, "linux-riscv@lists.infradead.org"
-	<linux-riscv@lists.infradead.org>, "vdso@mailbox.org" <vdso@mailbox.org>,
-	"ssengar@linux.microsoft.com" <ssengar@linux.microsoft.com>
-Subject: RE: [PATCH v2 12/15] mshv_vtl: Move VSM code page offset logic to x86
- files
-Thread-Topic: [PATCH v2 12/15] mshv_vtl: Move VSM code page offset logic to
- x86 files
-Thread-Index: AQHc0x7dvoxTT1xj6U+jCn0YEoiRorXyapGw
-Date: Mon, 27 Apr 2026 05:40:52 +0000
-Message-ID:
- <SN6PR02MB4157E0525DDDD153888F5AFBD4362@SN6PR02MB4157.namprd02.prod.outlook.com>
-References: <20260423124206.2410879-1-namjain@linux.microsoft.com>
- <20260423124206.2410879-13-namjain@linux.microsoft.com>
-In-Reply-To: <20260423124206.2410879-13-namjain@linux.microsoft.com>
-Accept-Language: en-US
-Content-Language: en-US
-X-MS-Has-Attach:
-X-MS-TNEF-Correlator:
-x-ms-publictraffictype: Email
-x-ms-traffictypediagnostic: SN6PR02MB4157:EE_|CO6PR02MB7809:EE_
-x-ms-office365-filtering-correlation-id: f0cb2edb-9040-438f-696c-08dea41f8b42
-x-microsoft-antispam:
- BCL:0;ARA:14566002|2604032031799003|704163111799003|51005399006|55001999006|16051099003|37011999003|13091999003|19101099003|461199028|41001999006|31061999003|19110799012|15080799012|8062599012|8060799015|40105399003|440099028|3412199025|102099032|12091999003|1710799026;
-x-microsoft-antispam-message-info:
- =?us-ascii?Q?MvvVeg8fXOA63QZFLtb2auJdqql//zfHx5rk55KGa8Hc32fuZe1AzaZpJYP5?=
- =?us-ascii?Q?eJ+xEsLdTg8Varg+14aUGfCpYwV+NQKi7N1DNBepAq/XUkld138vL3/a3UDg?=
- =?us-ascii?Q?fCK03zC2IrqW5l+UIOzszsGIxOaDePtql2A0mNV8G8jZxuVbmdBPW5e9wI6P?=
- =?us-ascii?Q?j7y5UAno5y1mPFN4IyNghTbdXiXNqzUfSEK/3aXBFmqVVqJbHtHpPyOWjwQH?=
- =?us-ascii?Q?6bvMDXBvEQoZQ5RbYzLjM4GapXEWH+gG9AguJ30qBT6dmJCTXDBnVfWBdIo/?=
- =?us-ascii?Q?sT1DimPymh/mgWEOc4BuXJ3bsHZuK2SvyjRJMbPM4dbV4ELZyLTE+13daebv?=
- =?us-ascii?Q?nFIYtSG3D8vgIJiCZnyChsEWM7C37j2m268kDHh8CIj2EIU138Ohe656yBZv?=
- =?us-ascii?Q?pZaSlrSsLBHNlzN73/xifzROqlfBt1Of+CzzQfPrp3MItaK+B/UQCOE9MXKb?=
- =?us-ascii?Q?0K+oVJNJrWQJGC9KzvU0Yrq33uCZmPozPaUfmcGQqvGQPxl5JN4vDVSpy/Tq?=
- =?us-ascii?Q?Kvs9dbM084Yq1ocMEepCmDR9fweFqVO/nLqN+wQzft4FCw+mLHQXnpud+2J9?=
- =?us-ascii?Q?8UcuRVuC7XoXwsyM18YHOJxC33NJ6dqRuzYJhTbSASmVPtyWbB5hKz7NmaQR?=
- =?us-ascii?Q?pVhsyEtp81D6/x8k59dhAunwB3xA5LjZpFTU/8LPY+r9WnHcJnlRUL0VPkfN?=
- =?us-ascii?Q?9AwHV0eAUSUfAHZYt2Valut5CkznyL8A6TpxS/eeWSQN4jIHu2R3rTkoabmJ?=
- =?us-ascii?Q?JfMAQNGrVAqKZtUDRYS9oFSqULV+1JoW1s+qHtijfHa4+ZEVD8e4vXe97K7p?=
- =?us-ascii?Q?Dmz1eegU5hremRHTtteRtj2PKvOqmdhRucN1KEbS7ljxZ10QmQ7cpJp9p5D3?=
- =?us-ascii?Q?wHPH2uDmMZcJdgj69nUUh1fkk+ANRiUqB21djv49KWinAPQki3CWAbz4n/jh?=
- =?us-ascii?Q?zZSNmNs+umu8j+tue/tpF/3NRWqYDkvgToH0iqfuyQck/X7skd36OjtPMh6Q?=
- =?us-ascii?Q?RTVESkGDs2ccaVDlMJLoOCIam7FlxNpgdxLwnG/aZzDqLlDBwZmhrNhYsDzL?=
- =?us-ascii?Q?xYYHm588aXi1QlvSiL6c88OvgujFcKEjXOneENc5Cgt0u8jPA/jV6t9bOWwI?=
- =?us-ascii?Q?AS2tCrtHg0rASRS5IVZZG5Ajj0lCFj2y3grtbwibGTkJxz/RHCBardV1jzba?=
- =?us-ascii?Q?ECX7QtOEgYOO9RzhySh8556/GBRLz7xFF547Hahonoxvv3CNKNDuk/kFNrM?=
- =?us-ascii?Q?=3D?=
-x-ms-exchange-antispam-messagedata-chunkcount: 1
-x-ms-exchange-antispam-messagedata-0:
- =?us-ascii?Q?FSPrHNDWBeXk48Y5c1xCbr+s16Z5DhDdq7vHNvN4sTarryI7tPZzPzJxp3eQ?=
- =?us-ascii?Q?7Clnv/pNyoKzu75aQScUkhOr4ygmYikCLTV50grzV6rSN+d++6sQvMuJ1bCo?=
- =?us-ascii?Q?BL5bvvzYijE9MDlagnoS4+VT1VEB0yY9zZqZRApzU+3drZ9ELCu1s845vdux?=
- =?us-ascii?Q?oA67NNXvV79mfWweFt5XIs5tqUEbVQ6ErlDoxUuDcV0KLTmqwhaEDgANckuZ?=
- =?us-ascii?Q?b/MleIamJhEoSWbmIpVFYqeBBhn+EG+0+Ez+j78ZtStPMhIgXPPCC++RJOq+?=
- =?us-ascii?Q?xikua/Lzskd94mSEd5cupBRYudETIhn3KbPNTcieetwNLXHaXDfnbt+9cyIe?=
- =?us-ascii?Q?MYxOZFG1zXxuYxCtOkDHf8KSMGoAbtAx4kS71fCnAOhbUPQ+pDpNmPNn5vRL?=
- =?us-ascii?Q?6dV9JF/r5aXdbJauon/pUOIewaYmQjUKfR4VntgjucyO1QgdFMjwGoLwBUtl?=
- =?us-ascii?Q?bg/J9cs72eNGx0fcg5TSjFebzrnAaFkAABbxJcd85nyUMCl37UngkRAZxOSv?=
- =?us-ascii?Q?9n2YJjRlRrJtEt6OjG+gEkUTVKSFUAfcz/qvneXQwjO5nfwAwY4Dq2kMPGxR?=
- =?us-ascii?Q?a6um63f3xSYi7Y2x2yqDPl/8A7+VwX9THb3Q4abR55+0RnrITP5TXQYcNQjA?=
- =?us-ascii?Q?4WszQCa82JOiiEm0ydkUUQuEAR9frWZIWEKH0Y6g+/qtC/Foe7lBjD4MXvmz?=
- =?us-ascii?Q?hgeeyIxRDyI5a8aDqFB4cRZovttB1NYve1wAdMdP1Qf4rEQjaYUqmL5pFDv4?=
- =?us-ascii?Q?6GcNgLZB0+XU5wpYow6LcGVcA49LbD/bJtWdrfj/7XTUGKS2jnu8cZnwozyj?=
- =?us-ascii?Q?8bmrpzIQX+U0p/VLzbRGWrzB2OdAD5mKC4BaerpHTzEhUUt/YiEpYUVm2Zav?=
- =?us-ascii?Q?M+915+ajkO+VAkxKnfVmPxSznv9b9AuNO9nGsghPVhnyCwkCb5b7UcBvZXoG?=
- =?us-ascii?Q?5ZqIajoJz8W4mP72Jy+Xtjn7EhvKyX/JadLkbU5GXbOjhD5EMQ5HvFSuwJvr?=
- =?us-ascii?Q?EsFhlkLoWuVbUN6ePmrTPLFHqccQqy/qHZNaZvzQYBBsgq61eWWYQ9ktKgon?=
- =?us-ascii?Q?N+qXvSPhKov3g9vtmW5sgYuqeuyea9Z8WBA4e1QOxX6ts7E7c2YmxMMdh5Fz?=
- =?us-ascii?Q?yNiEhkMZXh2+ygsjNp/1BBvcOX5Hhw7ummGy1+fQCkm2ZNflDEaEgUC0OqgY?=
- =?us-ascii?Q?mrmsHkP1iKvCvhWFcpsL5Qo3aAz0MErHLdCylfSrGVmpsPY7WigWcb/CSJ/2?=
- =?us-ascii?Q?Yu0M/h6Fe9Q5yVigfK8rqSYOK2WZXmZZDwb7mfJXH+8aYif5md/PAAuHm/vH?=
- =?us-ascii?Q?sarzSjfJE9iGzwtGltQ7onbljckNSpNaOAEuBtxOBI/j/mGwL6WdDzya+uzY?=
- =?us-ascii?Q?BwxMi4Q=3D?=
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="eGvBru2d"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E2484C2BCB4;
+	Mon, 27 Apr 2026 08:53:52 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1777280043;
+	bh=PtRJvasZkHp+/95b/vL94bJzCcFOTEky3Sgd0xF9RXI=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=eGvBru2du1vkxSlCwhoF5+RD25f8/jipUj6nJW3i8PK5u+iKtE7HMW4CEIMfpJtrF
+	 t4vlM7yBSyANHHK9oRs+WpteFmnxx/pY4CiWv2DvIRdTy7NH8l6iqSU8uulGfHZpnu
+	 jHoCRsWLXcqMqU4MduvgenOdiT/Cz29l0WB7QwvIYnmuwerweo6WsOX1D/t6HScKtB
+	 xDrzEAavdqmEUyIYWUdKfkt4CbM+X/LhV88K1eNzOciCn6RzLjtRBAvgvz42689kfS
+	 bXHpum7jsoE+AHM0nJhJ6FT/Xi+ixk3KV8+2mqOOQcsIOlVaZm5DUUZjKYPPLK82t1
+	 TphzYQf1VbVDA==
+Message-ID: <9b02dc87-15e3-4f6b-af53-aeb1b3ef01e1@kernel.org>
+Date: Mon, 27 Apr 2026 10:53:49 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-OriginatorOrg: outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: SN6PR02MB4157.namprd02.prod.outlook.com
-X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-CrossTenant-Network-Message-Id: f0cb2edb-9040-438f-696c-08dea41f8b42
-X-MS-Exchange-CrossTenant-originalarrivaltime: 27 Apr 2026 05:40:52.0419
- (UTC)
-X-MS-Exchange-CrossTenant-fromentityheader: Hosted
-X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
-X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CO6PR02MB7809
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 7.2 v10 0/2] skip redundant sync IPIs when TLB flush sent
+ them
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Yosry Ahmed <yosry@kernel.org>, Pasha Tatashin
+ <pasha.tatashin@soleen.com>, Lance Yang <lance.yang@linux.dev>,
+ peterz@infradead.org, dave.hansen@intel.com, dave.hansen@linux.intel.com,
+ ypodemsk@redhat.com, hughd@google.com, will@kernel.org,
+ aneesh.kumar@kernel.org, npiggin@gmail.com, tglx@linutronix.de,
+ mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
+ arnd@arndb.de, ljs@kernel.org, ziy@nvidia.com,
+ baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, npache@redhat.com,
+ ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org,
+ shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com,
+ seanjc@google.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com,
+ virtualization@lists.linux.dev, kvm@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, ioworker0@gmail.com, roman.gushchin@linux.dev
+References: <20260424062528.71951-1-lance.yang@linux.dev>
+ <20260424063024.ce42ee6a5546e4d9337dd007@linux-foundation.org>
+ <aetw4aoABYj3keMh@plex>
+ <20260424071533.d28ce90126f05e1c6fc1b740@linux-foundation.org>
+ <80ab39c2-efb9-4a23-bd56-46d9bb4e41bb@kernel.org>
+ <20260424073145.b990fe9b925da304508aad71@linux-foundation.org>
+ <644e65dc-3d39-4137-b51f-51d953b67d50@kernel.org>
+ <CAO9r8zN1pRfyC0Rh+UdW-Lsret=z3oveT3=gnZftX-Sr_ubyyQ@mail.gmail.com>
+ <4e7699eb-e101-4a25-b585-79a777eb7cc2@kernel.org>
+ <CAO9r8zO4eSiAK9U-ijzWJMK80XsK+LmFxGAG+nTo+tmK6aLfYA@mail.gmail.com>
+ <872e752d-c7fa-4a75-a963-4e2f42ce468b@kernel.org>
+ <20260425043605.a3a1819fb219c649eab0f3a1@linux-foundation.org>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ xsFNBFXLn5EBEAC+zYvAFJxCBY9Tr1xZgcESmxVNI/0ffzE/ZQOiHJl6mGkmA1R7/uUpiCjJ
+ dBrn+lhhOYjjNefFQou6478faXE6o2AhmebqT4KiQoUQFV4R7y1KMEKoSyy8hQaK1umALTdL
+ QZLQMzNE74ap+GDK0wnacPQFpcG1AE9RMq3aeErY5tujekBS32jfC/7AnH7I0v1v1TbbK3Gp
+ XNeiN4QroO+5qaSr0ID2sz5jtBLRb15RMre27E1ImpaIv2Jw8NJgW0k/D1RyKCwaTsgRdwuK
+ Kx/Y91XuSBdz0uOyU/S8kM1+ag0wvsGlpBVxRR/xw/E8M7TEwuCZQArqqTCmkG6HGcXFT0V9
+ PXFNNgV5jXMQRwU0O/ztJIQqsE5LsUomE//bLwzj9IVsaQpKDqW6TAPjcdBDPLHvriq7kGjt
+ WhVhdl0qEYB8lkBEU7V2Yb+SYhmhpDrti9Fq1EsmhiHSkxJcGREoMK/63r9WLZYI3+4W2rAc
+ UucZa4OT27U5ZISjNg3Ev0rxU5UH2/pT4wJCfxwocmqaRr6UYmrtZmND89X0KigoFD/XSeVv
+ jwBRNjPAubK9/k5NoRrYqztM9W6sJqrH8+UWZ1Idd/DdmogJh0gNC0+N42Za9yBRURfIdKSb
+ B3JfpUqcWwE7vUaYrHG1nw54pLUoPG6sAA7Mehl3nd4pZUALHwARAQABzS5EYXZpZCBIaWxk
+ ZW5icmFuZCAoQ3VycmVudCkgPGRhdmlkQGtlcm5lbC5vcmc+wsGQBBMBCAA6AhsDBQkmWAik
+ AgsJBBUKCQgCFgICHgUCF4AWIQQb2cqtc1xMOkYN/MpN3hD3AP+DWgUCaYJt/AIZAQAKCRBN
+ 3hD3AP+DWriiD/9BLGEKG+N8L2AXhikJg6YmXom9ytRwPqDgpHpVg2xdhopoWdMRXjzOrIKD
+ g4LSnFaKneQD0hZhoArEeamG5tyo32xoRsPwkbpIzL0OKSZ8G6mVbFGpjmyDLQCAxteXCLXz
+ ZI0VbsuJKelYnKcXWOIndOrNRvE5eoOfTt2XfBnAapxMYY2IsV+qaUXlO63GgfIOg8RBaj7x
+ 3NxkI3rV0SHhI4GU9K6jCvGghxeS1QX6L/XI9mfAYaIwGy5B68kF26piAVYv/QZDEVIpo3t7
+ /fjSpxKT8plJH6rhhR0epy8dWRHk3qT5tk2P85twasdloWtkMZ7FsCJRKWscm1BLpsDn6EQ4
+ jeMHECiY9kGKKi8dQpv3FRyo2QApZ49NNDbwcR0ZndK0XFo15iH708H5Qja/8TuXCwnPWAcJ
+ DQoNIDFyaxe26Rx3ZwUkRALa3iPcVjE0//TrQ4KnFf+lMBSrS33xDDBfevW9+Dk6IISmDH1R
+ HFq2jpkN+FX/PE8eVhV68B2DsAPZ5rUwyCKUXPTJ/irrCCmAAb5Jpv11S7hUSpqtM/6oVESC
+ 3z/7CzrVtRODzLtNgV4r5EI+wAv/3PgJLlMwgJM90Fb3CB2IgbxhjvmB1WNdvXACVydx55V7
+ LPPKodSTF29rlnQAf9HLgCphuuSrrPn5VQDaYZl4N/7zc2wcWM7BTQRVy5+RARAA59fefSDR
+ 9nMGCb9LbMX+TFAoIQo/wgP5XPyzLYakO+94GrgfZjfhdaxPXMsl2+o8jhp/hlIzG56taNdt
+ VZtPp3ih1AgbR8rHgXw1xwOpuAd5lE1qNd54ndHuADO9a9A0vPimIes78Hi1/yy+ZEEvRkHk
+ /kDa6F3AtTc1m4rbbOk2fiKzzsE9YXweFjQvl9p+AMw6qd/iC4lUk9g0+FQXNdRs+o4o6Qvy
+ iOQJfGQ4UcBuOy1IrkJrd8qq5jet1fcM2j4QvsW8CLDWZS1L7kZ5gT5EycMKxUWb8LuRjxzZ
+ 3QY1aQH2kkzn6acigU3HLtgFyV1gBNV44ehjgvJpRY2cC8VhanTx0dZ9mj1YKIky5N+C0f21
+ zvntBqcxV0+3p8MrxRRcgEtDZNav+xAoT3G0W4SahAaUTWXpsZoOecwtxi74CyneQNPTDjNg
+ azHmvpdBVEfj7k3p4dmJp5i0U66Onmf6mMFpArvBRSMOKU9DlAzMi4IvhiNWjKVaIE2Se9BY
+ FdKVAJaZq85P2y20ZBd08ILnKcj7XKZkLU5FkoA0udEBvQ0f9QLNyyy3DZMCQWcwRuj1m73D
+ sq8DEFBdZ5eEkj1dCyx+t/ga6x2rHyc8Sl86oK1tvAkwBNsfKou3v+jP/l14a7DGBvrmlYjO
+ 59o3t6inu6H7pt7OL6u6BQj7DoMAEQEAAcLBfAQYAQgAJgIbDBYhBBvZyq1zXEw6Rg38yk3e
+ EPcA/4NaBQJonNqrBQkmWAihAAoJEE3eEPcA/4NaKtMQALAJ8PzprBEXbXcEXwDKQu+P/vts
+ IfUb1UNMfMV76BicGa5NCZnJNQASDP/+bFg6O3gx5NbhHHPeaWz/VxlOmYHokHodOvtL0WCC
+ 8A5PEP8tOk6029Z+J+xUcMrJClNVFpzVvOpb1lCbhjwAV465Hy+NUSbbUiRxdzNQtLtgZzOV
+ Zw7jxUCs4UUZLQTCuBpFgb15bBxYZ/BL9MbzxPxvfUQIPbnzQMcqtpUs21CMK2PdfCh5c4gS
+ sDci6D5/ZIBw94UQWmGpM/O1ilGXde2ZzzGYl64glmccD8e87OnEgKnH3FbnJnT4iJchtSvx
+ yJNi1+t0+qDti4m88+/9IuPqCKb6Stl+s2dnLtJNrjXBGJtsQG/sRpqsJz5x1/2nPJSRMsx9
+ 5YfqbdrJSOFXDzZ8/r82HgQEtUvlSXNaXCa95ez0UkOG7+bDm2b3s0XahBQeLVCH0mw3RAQg
+ r7xDAYKIrAwfHHmMTnBQDPJwVqxJjVNr7yBic4yfzVWGCGNE4DnOW0vcIeoyhy9vnIa3w1uZ
+ 3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
+ CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
+ qIws/H2t
+In-Reply-To: <20260425043605.a3a1819fb219c649eab0f3a1@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-From: Naman Jain <namjain@linux.microsoft.com> Sent: Thursday, April 23, 20=
-26 5:42 AM
->=20
-> The VSM code page offset register (HV_REGISTER_VSM_CODE_PAGE_OFFSETS)
-> is x86 specific, its value configures the static call used to return
-> to VTL0 via the hypercall page. Move the register read from the common
-> mshv_vtl_get_vsm_regs() into the x86 mshv_vtl_return_call_init(),
-> which is the sole consumer of the offset.
->=20
-> Change mshv_vtl_return_call_init() from taking a u64 parameter
-> to taking no arguments, and rename mshv_vtl_get_vsm_regs() to
-> mshv_vtl_get_vsm_cap_reg() since it now only fetches
-> HV_REGISTER_VSM_CAPABILITIES.
->=20
-> No functional change on x86. This prepares the common driver code for
-> ARM64 where VSM code page offsets do not apply.
->=20
-> Signed-off-by: Naman Jain <namjain@linux.microsoft.com>
-> ---
->  arch/x86/hyperv/hv_vtl.c        | 19 +++++++++++++++++--
->  arch/x86/include/asm/mshyperv.h |  4 ++--
->  drivers/hv/mshv_vtl_main.c      | 24 +++++++++++++-----------
->  3 files changed, 32 insertions(+), 15 deletions(-)
->=20
-> diff --git a/arch/x86/hyperv/hv_vtl.c b/arch/x86/hyperv/hv_vtl.c
-> index f3ffb6a7cb2d..7c10b34cf8a4 100644
-> --- a/arch/x86/hyperv/hv_vtl.c
-> +++ b/arch/x86/hyperv/hv_vtl.c
-> @@ -293,10 +293,25 @@ EXPORT_SYMBOL_GPL(hv_vtl_configure_reg_page);
->=20
->  DEFINE_STATIC_CALL_NULL(__mshv_vtl_return_hypercall, void (*)(void));
->=20
-> -void mshv_vtl_return_call_init(u64 vtl_return_offset)
-> +int mshv_vtl_return_call_init(void)
->  {
-> +	struct hv_register_assoc vsm_pg_offset_reg;
-> +	union hv_register_vsm_page_offsets offsets;
-> +	int ret;
-> +
-> +	vsm_pg_offset_reg.name =3D HV_REGISTER_VSM_CODE_PAGE_OFFSETS;
-> +
-> +	ret =3D hv_call_get_vp_registers(HV_VP_INDEX_SELF, HV_PARTITION_ID_SELF=
-,
-> +				       1, input_vtl_zero, &vsm_pg_offset_reg);
-> +	if (ret)
-> +		return ret;
-> +
-> +	offsets.as_uint64 =3D vsm_pg_offset_reg.value.reg64;
-> +
->  	static_call_update(__mshv_vtl_return_hypercall,
-> -			   (void *)((u8 *)hv_hypercall_pg + vtl_return_offset));
-> +			   (void *)((u8 *)hv_hypercall_pg + offsets.vtl_return_offset));
-> +
-> +	return 0;
->  }
->  EXPORT_SYMBOL(mshv_vtl_return_call_init);
->=20
-> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyp=
-erv.h
-> index b4d80c9a673a..b48f115c1292 100644
-> --- a/arch/x86/include/asm/mshyperv.h
-> +++ b/arch/x86/include/asm/mshyperv.h
-> @@ -286,14 +286,14 @@ struct mshv_vtl_cpu_context {
->  #ifdef CONFIG_HYPERV_VTL_MODE
->  void __init hv_vtl_init_platform(void);
->  int __init hv_vtl_early_init(void);
-> -void mshv_vtl_return_call_init(u64 vtl_return_offset);
-> +int mshv_vtl_return_call_init(void);
->  void mshv_vtl_return_hypercall(void);
->  void __mshv_vtl_return_call(struct mshv_vtl_cpu_context *vtl0);
->  int hv_vtl_get_set_reg(struct hv_register_assoc *regs, bool set, bool sh=
-ared);
->  #else
->  static inline void __init hv_vtl_init_platform(void) {}
->  static inline int __init hv_vtl_early_init(void) { return 0; }
-> -static inline void mshv_vtl_return_call_init(u64 vtl_return_offset) {}
-> +static inline int mshv_vtl_return_call_init(void) { return 0; }
->  static inline void mshv_vtl_return_hypercall(void) {}
->  static inline void __mshv_vtl_return_call(struct mshv_vtl_cpu_context *v=
-tl0) {}
->  #endif
-> diff --git a/drivers/hv/mshv_vtl_main.c b/drivers/hv/mshv_vtl_main.c
-> index 4c9ae65ad3e8..be498c9234fd 100644
-> --- a/drivers/hv/mshv_vtl_main.c
-> +++ b/drivers/hv/mshv_vtl_main.c
-> @@ -79,7 +79,6 @@ struct mshv_vtl {
->  };
->=20
->  static struct mutex mshv_vtl_poll_file_lock;
-> -static union hv_register_vsm_page_offsets mshv_vsm_page_offsets;
->  static union hv_register_vsm_capabilities mshv_vsm_capabilities;
->=20
->  static DEFINE_PER_CPU(struct mshv_vtl_poll_file, mshv_vtl_poll_file);
-> @@ -203,21 +202,19 @@ static void mshv_vtl_synic_enable_regs(unsigned int=
- cpu)
->  	/* VTL2 Host VSP SINT is (un)masked when the user mode requests that */
->  }
->=20
-> -static int mshv_vtl_get_vsm_regs(void)
-> +static int mshv_vtl_get_vsm_cap_reg(void)
->  {
-> -	struct hv_register_assoc registers[2];
-> -	int ret, count =3D 2;
-> +	struct hv_register_assoc vsm_capability_reg;
-> +	int ret;
->=20
-> -	registers[0].name =3D HV_REGISTER_VSM_CODE_PAGE_OFFSETS;
-> -	registers[1].name =3D HV_REGISTER_VSM_CAPABILITIES;
-> +	vsm_capability_reg.name =3D HV_REGISTER_VSM_CAPABILITIES;
->=20
->  	ret =3D hv_call_get_vp_registers(HV_VP_INDEX_SELF, HV_PARTITION_ID_SELF=
-,
-> -				       count, input_vtl_zero, registers);
-> +				       1, input_vtl_zero, &vsm_capability_reg);
->  	if (ret)
->  		return ret;
->=20
-> -	mshv_vsm_page_offsets.as_uint64 =3D registers[0].value.reg64;
-> -	mshv_vsm_capabilities.as_uint64 =3D registers[1].value.reg64;
-> +	mshv_vsm_capabilities.as_uint64 =3D vsm_capability_reg.value.reg64;
->=20
->  	return ret;
+On 4/25/26 13:36, Andrew Morton wrote:
+> On Sat, 25 Apr 2026 07:17:18 +0200 "David Hildenbrand (Arm)" <david@kernel.org> wrote:
+> 
+>>> The usefulness of the mailing list posting is that it makes it easier
+>>> to respond and discuss the review. Yes, what Zi did is great, but it
+>>> would be nice if contributors/reviewers didn't need to manually quote
+>>> Sashiko.
+>>
+>> I think the most important part is the contributor side. A private posting is
+>> sufficient for that.
+> 
+> Thinking through how is this going to work out.
+> 
+> - contributor sends patchset
+> 
+> - akpm looks at the Sashiko scan and thinks "huh, we might be seeing
+>   a new version soon".
+> 
+> - Now what?  Maybe contributor doesn't like AI, maybe contributor
+>   thinks it was all nonsense.  But I don't know this!
 
-Nit: This could be just "return 0".
+Right. In the common case, people will just read the output and process it in a
+reasonable way, like some people do today even without any notification.
 
->  }
-> @@ -1139,13 +1136,18 @@ static int __init mshv_vtl_init(void)
->  	tasklet_init(&msg_dpc, mshv_vtl_sint_on_msg_dpc, 0);
->  	init_waitqueue_head(&fd_wait_queue);
->=20
-> -	if (mshv_vtl_get_vsm_regs()) {
-> +	if (mshv_vtl_get_vsm_cap_reg()) {
->  		dev_emerg(dev, "Unable to get VSM capabilities !!\n");
+But there will be cases where people ignore it, I am sure.
 
-Why is this failure an emergency message, while the other failures
-here in mshv_vtl_init() are just error messages? When there's lack
-of consistency, I always wonder if there is a reason ..... :-)
+> 
+>   So I send the email "I see that Sashiko said stuff - can we expect
+>   a new version?".  Which is no improvement over what's happening now.
 
->  		ret =3D -ENODEV;
->  		goto free_dev;
->  	}
->=20
-> -	mshv_vtl_return_call_init(mshv_vsm_page_offsets.vtl_return_offset);
-> +	ret =3D mshv_vtl_return_call_init();
-> +	if (ret) {
-> +		dev_err(dev, "mshv_vtl_return_call_init failed: %d\n", ret);
-> +		goto free_dev;
-> +	}
-> +
->  	ret =3D hv_vtl_setup_synic();
->  	if (ret)
->  		goto free_dev;
-> --
-> 2.43.0
->=20
+That only happens in the scenarios where there is no further feedback from other
+reviewers and there won't be a new revision.
 
+That's why I am saying that the AI review on the last upstream posting before
+merging is the most important one from a maintainer perspective.
+
+I agree that when we are about to merge something and AI review was not
+addressed (no feedback from contributor), that it's a problem.
+
+> 
+> What I would like to have is some reasonably reliable and prompt means
+> by which we all learn contributor's views on the Sashiko scan. 
+
+Right. At the same time I don't want full AI review posted to the mailing list
+immediately to each and every revision of a patch set.
+
+
+As  first step, I would be fine with having AI review send a review status in
+case it went into a problem to everyone as reply to each patch set, just stating
+whether it failed to apply, or if something was found etc. Paired with a link
+like you would send.
+
+> 
+> One way to bring this about might be to set suitable reply-to headers
+> in the Sashiko->contributor email, along with a few words asking
+> contributor to let everyone know the status.
+
+Yes, that's an alternative if we were to send the full AI review to
+contributors. Which might make sense in addition to the AI review status (above).
+
+> 
+> But whatever - let's not overthink this.  To start somewhere, let's
+> send that private email, spend a few weeks evaluating then perhaps make
+> adjustments.
+
+Right, let's do this step by step.
+
+-- 
+Cheers,
+
+David
