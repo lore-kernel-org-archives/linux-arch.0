@@ -1,124 +1,354 @@
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 047F444D014;
-	Tue, 28 Apr 2026 17:37:29 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id F25A83A257F;
+	Tue, 28 Apr 2026 23:27:59 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777397851; cv=none; b=T0Zwz0di5SxBUyJtgUqe+AskFjVfQF57X2cIu+wrqsU0XWxEV0gEhyApMf5uZiOCtJ4TwTd7VmuwN219wW6L03UsKgj6y+896O4Y0MYrNcYWWUyjh2B7K4jRwhAAmJp+IgDG610r7KEPRO+bj9sGuuFrKXgMfmJogtF2OansTfo=
+	t=1777418882; cv=none; b=eD+4CDN/rnnKkyag3wx+L6LC1vQ9+XFQs0TzyBUCeJTP73hzTW9RniRZ4eVzSrQivRY6M4XZawgiH63wLbW9T9U/DUAQCra8P5lRUssGLMzms91nSsgkRwHZFkLAvjzwHvg8I98HbOFfhkMp4lw+OpjpZycAr1qkXFMwH/KHqBw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777397851; c=relaxed/simple;
-	bh=r2YM0wY1o2r6IwK1f66cqj7/D4ypxGsODLxRg+vuoSI=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=osVRbXsBHQaw7mbfIGoH92V5T3ud/daqPzVSeEG1SV55DfL0gPetfK/NQ1Ng0luO08FrdgeVb+BJvD2mdHNN3G0QyZ+wuJPHuroz01b4uWaG11f59nWjIZN87HszJ9zEkG7YLsYYL6YYA6RoiKaBk9Up16JWCBf3hWS1FVDecSQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=sTFMNTRY; arc=none smtp.client-ip=13.77.154.182
+	s=arc-20240116; t=1777418882; c=relaxed/simple;
+	bh=fGgQZC2sERJLrk2/nXp7gXzGvJME6YzZN2ymnD6iL6E=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=oGGp1O803GfaoDhBEQlMqFYtgcoJ6QjQuSnrEqi5MX/5M6NxG269TVm/+//U40kgWZTpxbKpm2fC39R5Vyx6nInD+P9cBumJAluAYt1Bo/b6Y9DRxTGlruxTgh3gvPaTqhwQw7PnVMzKOJw+dZBQY1u3++R2Vf2z6GLpf1ZNNh0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=qtQpI9sc; arc=none smtp.client-ip=13.77.154.182
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="sTFMNTRY"
-Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id F0E5D20B716C;
-	Tue, 28 Apr 2026 10:37:28 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com F0E5D20B716C
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="qtQpI9sc"
+Received: from skinsburskii.localdomain (unknown [20.236.10.129])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 00B6A20B716D;
+	Tue, 28 Apr 2026 16:27:58 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 00B6A20B716D
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1777397849;
-	bh=B5HeDN7LyTkUBtdQONLSYPM1kmKVQS+F0XuoHVbtdW0=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=sTFMNTRYJ4vvJk9Xxluf2YFxPMJotwiXeD1xZ6jjSEGQRXhkxcYFo3wi8E6gHUynF
-	 0M7/e4BfhuG3Ih6qIsIP+Dr4eATNy/mELngWee64KCfaIYpbdD8NUtTxZg2jy+O7to
-	 cYp7D23EcEfWDOrYW+Unn5QO0RJsy2e9ydxFaANA=
-Message-ID: <d73822c0-dd72-6b33-81ad-ebd154300b81@linux.microsoft.com>
-Date: Tue, 28 Apr 2026 10:37:27 -0700
+	s=default; t=1777418879;
+	bh=+AJMbTA4hHzjetlZw3P16jgwfQXDPJoISdnfUckSR+Y=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=qtQpI9sc6idtF+VaaXibeI9h/1B0YcUfdZoKLlmTRaCTAT+u0tiD0UwAsWtJuuQ5N
+	 DoybBoHZyjRneS0ujVMVXyfx89HpTe9YJ1oKLJoACeqRhS8dfct5OlXS8L67uOMx9d
+	 RoQOtthyJLcqCaisRHFjoJfOD/h+WLdFl5tj1o5E=
+Date: Tue, 28 Apr 2026 16:27:56 -0700
+From: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
+To: Jork Loeser <jloeser@linux.microsoft.com>
+Cc: linux-hyperv@vger.kernel.org, x86@kernel.org,
+	"K . Y . Srinivasan" <kys@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Michael Kelley <mhklinux@outlook.com>,
+	Anirudh Rayabharam <anirudh@anirudhrb.com>,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH v4 1/3] mshv: limit SynIC management to MSHV-owned
+ resources
+Message-ID: <afFCfMmEnqjfg9Pe@skinsburskii.localdomain>
+References: <20260427213855.1675044-1-jloeser@linux.microsoft.com>
+ <20260427213855.1675044-2-jloeser@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH V1 08/13] PCI: hv: rename hv_compose_msi_msg to
- hv_vmbus_compose_msi_msg
-Content-Language: en-US
-To: Bjorn Helgaas <helgaas@kernel.org>
-Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org, wei.liu@kernel.org,
- mhklinux@outlook.com, muislam@microsoft.com, namjain@linux.microsoft.com,
- magnuskulke@linux.microsoft.com, anbelski@linux.microsoft.com,
- linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
- iommu@lists.linux.dev, linux-pci@vger.kernel.org,
- linux-arch@vger.kernel.org, kys@microsoft.com, haiyangz@microsoft.com,
- decui@microsoft.com, longli@microsoft.com, tglx@kernel.org,
- mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
- joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
- kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de
-References: <20260428171451.GA233136@bhelgaas>
-From: Mukesh R <mrathor@linux.microsoft.com>
-In-Reply-To: <20260428171451.GA233136@bhelgaas>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260427213855.1675044-2-jloeser@linux.microsoft.com>
 
-On 4/28/26 10:14, Bjorn Helgaas wrote:
-> On Mon, Apr 27, 2026 at 07:22:12PM -0700, Mukesh R wrote:
->> On 4/27/26 09:31, Bjorn Helgaas wrote:
->>> On Tue, Apr 21, 2026 at 07:32:34PM -0700, Mukesh R wrote:
->>>> Main change here is to rename hv_compose_msi_msg to
->>>> hv_vmbus_compose_msi_msg as we introduce hv_compose_msi_msg in upcoming
->>>> patches that builds MSI messages for both VMBus and non-VMBus cases. VMBus
->>>> is not used on baremetal root partition for example. While at it, replace
->>>> spaces with tabs and fix some formatting involving excessive line wraps.
->>>
->>> Would be better to do the whitespace changes in their own patch,
->>> although several of them should just be dropped (see below).
+On Mon, Apr 27, 2026 at 02:38:52PM -0700, Jork Loeser wrote:
+> The SynIC is shared between VMBus and MSHV. VMBus owns the message
+> page (SIMP), event flags page (SIEFP), global enable (SCONTROL),
+> and SINT2. MSHV adds SINT0, SINT5, and the event ring page (SIRBP).
 > 
->>>> - * facilities.  For instance, the configuration space of a function exposed
->>>> + * facilities.	For instance, the configuration space of a function exposed
->>>
->>> Oops, this hunk made it worse.  Definitely don't want a tab there.
+> Currently mshv_synic_cpu_init() redundantly enables SIMP, SIEFP, and
+> SCONTROL that VMBus already configured, and mshv_synic_cpu_exit()
+> disables all of them. This is wrong because MSHV can be torn down
+> while VMBus is still active. In particular, a kexec reboot notifier
+> tears down MSHV first. Disabling SCONTROL, SIMP, and SIEFP out
+> from under VMBus causes its later cleanup to write SynIC MSRs while
+> SynIC is disabled, which the hypervisor does not tolerate.
 > 
->>>> -		 * The vector we select here is a dummy value.  The correct
->>>> +		 * The vector we select here is a dummy value.	The correct
->>>
->>> Another tab that should be a space.  Actually, you should just drop
->>> this hunk; the rest of the comment has two spaces after periods, so
->>> this should too.
->>
->> well, most of our files does global replace 8 spaces with tabs, so
->> everywhere comments are well indented. Since, checkpatch doesn't complain
->> about tabs on comment lines, may I assue it is not a strict requirement
->> and more a nit or personal preference?
+> Restrict MSHV to managing only the resources it owns:
+> - SINT0, SINT5: mask on cleanup, unmask on init
+> - SIRBP: enable/disable as before
+> - SIMP, SIEFP, SCONTROL: leave to VMBus when it is active (L1VH
+>   and nested root partition); on a non-nested root partition VMBus
+>   does not run, so MSHV must enable/disable them
 > 
-> I guess I didn't make it clear.  I'm not complaining about leading
-> tabs; I'm pointing out that the comments should not have embedded tabs
-> in the middle between a period and the first word of the next
-> sentence.
+> While here, fix the SIEFP and SIRBP memremap() and virt_to_phys()
+> calls to use HV_HYP_PAGE_SHIFT/HV_HYP_PAGE_SIZE instead of
+> PAGE_SHIFT/PAGE_SIZE. The hypervisor always uses 4K pages for SynIC
+> register GPAs regardless of the kernel page size, so using PAGE_SHIFT
+> produces wrong addresses on ARM64 with 64K pages.
+> 
+> Note that initialization order matters - VMBUS first, MSHV second,
+> and the reverse on de-init. Ideally, we would want a dedicated SYNIC
+> driver that replaces the cross-dependencies with a clear API and
+> dynamic tracking. Such refactor should go into its own dedicated
+> series, outside of this kexec fix series.
+> 
+> Signed-off-by: Jork Loeser <jloeser@linux.microsoft.com>
+> ---
+>  drivers/hv/hv.c         |   3 +
+>  drivers/hv/mshv_synic.c | 150 ++++++++++++++++++++++++++--------------
+>  2 files changed, 103 insertions(+), 50 deletions(-)
+> 
+> diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
+> index ae60fd542292..ef4b1b03395d 100644
+> --- a/drivers/hv/hv.c
+> +++ b/drivers/hv/hv.c
+> @@ -272,6 +272,9 @@ void hv_synic_free(void)
+>  /*
+>   * hv_hyp_synic_enable_regs - Initialize the Synthetic Interrupt Controller
+>   * with the hypervisor.
+> + *
+> + * Note: When MSHV is present, mshv_synic_cpu_init() intializes further
+> + * registers later.
+>   */
+>  void hv_hyp_synic_enable_regs(unsigned int cpu)
+>  {
+> diff --git a/drivers/hv/mshv_synic.c b/drivers/hv/mshv_synic.c
+> index e2288a726fec..2db3b0192eac 100644
+> --- a/drivers/hv/mshv_synic.c
+> +++ b/drivers/hv/mshv_synic.c
+> @@ -13,6 +13,7 @@
+>  #include <linux/interrupt.h>
+>  #include <linux/io.h>
+>  #include <linux/cpuhotplug.h>
+> +#include <linux/hyperv.h>
+>  #include <linux/reboot.h>
+>  #include <asm/mshyperv.h>
+>  #include <linux/acpi.h>
+> @@ -456,46 +457,75 @@ static int mshv_synic_cpu_init(unsigned int cpu)
+>  	union hv_synic_siefp siefp;
+>  	union hv_synic_sirbp sirbp;
+>  	union hv_synic_sint sint;
+> -	union hv_synic_scontrol sctrl;
+>  	struct hv_synic_pages *spages = this_cpu_ptr(synic_pages);
+>  	struct hv_message_page **msg_page = &spages->hyp_synic_message_page;
+>  	struct hv_synic_event_flags_page **event_flags_page =
+>  			&spages->synic_event_flags_page;
+>  	struct hv_synic_event_ring_page **event_ring_page =
+>  			&spages->synic_event_ring_page;
+> +	/*
+> +	 * VMBus owns SIMP/SIEFP/SCONTROL when it is active.
+> +	 * See hv_hyp_synic_enable_regs() for that initialization.
+> +	 */
+> +	bool vmbus_active = hv_vmbus_exists();
+>  
+> -	/* Setup the Synic's message page */
+> +	/*
+> +	 * Map the SYNIC message page. When VMBus is not active the
+> +	 * hypervisor pre-provisions the SIMP GPA but may not set
+> +	 * simp_enabled — enable it here.
+> +	 */
+>  	simp.as_uint64 = hv_get_non_nested_msr(HV_MSR_SIMP);
+> -	simp.simp_enabled = true;
+> +	if (!vmbus_active) {
+> +		simp.simp_enabled = true;
+> +		hv_set_non_nested_msr(HV_MSR_SIMP, simp.as_uint64);
+> +	}
+>  	*msg_page = memremap(simp.base_simp_gpa << HV_HYP_PAGE_SHIFT,
+>  			     HV_HYP_PAGE_SIZE,
+>  			     MEMREMAP_WB);
+>  
+>  	if (!(*msg_page))
+> -		return -EFAULT;
+> -
+> -	hv_set_non_nested_msr(HV_MSR_SIMP, simp.as_uint64);
+> +		goto cleanup_simp;
 
-Oh, my bad, sorry, i didnt' realize that. Thank you, will def get rid
-of them (most likely resulted from: vim %retab! command).
+It would be cleaner (and simpler to read), if there would be another
+goto label to only unset HV_MSR_SIMP instead of checking *msg_page for
+NULL again in the cleanup_simp label.
 
-Thanks,
--Mukesh
+This applies to all the goto labels in this function.
 
+Reviewed-by: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
 
-> Here's what it looks like with "git show | cat -T":
+>  
+> -	/* Setup the Synic's event flags page */
+> +	/*
+> +	 * Map the event flags page. Same as SIMP: enable when
+> +	 * VMBus is not active, already enabled by VMBus otherwise.
+> +	 */
+>  	siefp.as_uint64 = hv_get_non_nested_msr(HV_MSR_SIEFP);
+> -	siefp.siefp_enabled = true;
+> -	*event_flags_page = memremap(siefp.base_siefp_gpa << PAGE_SHIFT,
+> -				     PAGE_SIZE, MEMREMAP_WB);
+> +	if (!vmbus_active) {
+> +		siefp.siefp_enabled = true;
+> +		hv_set_non_nested_msr(HV_MSR_SIEFP, siefp.as_uint64);
+> +	}
+> +	*event_flags_page = memremap(siefp.base_siefp_gpa << HV_HYP_PAGE_SHIFT,
+> +				     HV_HYP_PAGE_SIZE, MEMREMAP_WB);
+>  
+>  	if (!(*event_flags_page))
+> -		goto cleanup;
+> -
+> -	hv_set_non_nested_msr(HV_MSR_SIEFP, siefp.as_uint64);
+> +		goto cleanup_siefp;
+>  
+>  	/* Setup the Synic's event ring page */
+>  	sirbp.as_uint64 = hv_get_non_nested_msr(HV_MSR_SIRBP);
+> -	sirbp.sirbp_enabled = true;
+> -	*event_ring_page = memremap(sirbp.base_sirbp_gpa << PAGE_SHIFT,
+> -				    PAGE_SIZE, MEMREMAP_WB);
+>  
+> -	if (!(*event_ring_page))
+> -		goto cleanup;
+> +	if (hv_root_partition()) {
+> +		*event_ring_page = memremap(sirbp.base_sirbp_gpa << HV_HYP_PAGE_SHIFT,
+> +					    HV_HYP_PAGE_SIZE, MEMREMAP_WB);
+>  
+> +		if (!(*event_ring_page))
+> +			goto cleanup_siefp;
+> +	} else {
+> +		/*
+> +		 * On L1VH the hypervisor does not provide a SIRBP page.
+> +		 * Allocate one and program its GPA into the MSR.
+> +		 */
+> +		*event_ring_page = (struct hv_synic_event_ring_page *)
+> +			get_zeroed_page(GFP_KERNEL);
+> +
+> +		if (!(*event_ring_page))
+> +			goto cleanup_siefp;
+> +
+> +		sirbp.base_sirbp_gpa = virt_to_phys(*event_ring_page)
+> +				>> HV_HYP_PAGE_SHIFT;
+> +	}
+> +
+> +	sirbp.sirbp_enabled = true;
+>  	hv_set_non_nested_msr(HV_MSR_SIRBP, sirbp.as_uint64);
+>  
+>  	if (mshv_sint_irq != -1)
+> @@ -518,28 +548,30 @@ static int mshv_synic_cpu_init(unsigned int cpu)
+>  	hv_set_non_nested_msr(HV_MSR_SINT0 + HV_SYNIC_DOORBELL_SINT_INDEX,
+>  			      sint.as_uint64);
+>  
+> -	/* Enable global synic bit */
+> -	sctrl.as_uint64 = hv_get_non_nested_msr(HV_MSR_SCONTROL);
+> -	sctrl.enable = 1;
+> -	hv_set_non_nested_msr(HV_MSR_SCONTROL, sctrl.as_uint64);
+> +	/* When VMBus is active it already enabled SCONTROL. */
+> +	if (!vmbus_active) {
+> +		union hv_synic_scontrol sctrl;
+> +
+> +		sctrl.as_uint64 = hv_get_non_nested_msr(HV_MSR_SCONTROL);
+> +		sctrl.enable = 1;
+> +		hv_set_non_nested_msr(HV_MSR_SCONTROL, sctrl.as_uint64);
+> +	}
+>  
+>  	return 0;
+>  
+> -cleanup:
+> -	if (*event_ring_page) {
+> -		sirbp.sirbp_enabled = false;
+> -		hv_set_non_nested_msr(HV_MSR_SIRBP, sirbp.as_uint64);
+> -		memunmap(*event_ring_page);
+> -	}
+> -	if (*event_flags_page) {
+> +cleanup_siefp:
+> +	if (*event_flags_page)
+> +		memunmap(*event_flags_page);
+> +	if (!vmbus_active) {
+>  		siefp.siefp_enabled = false;
+>  		hv_set_non_nested_msr(HV_MSR_SIEFP, siefp.as_uint64);
+> -		memunmap(*event_flags_page);
+>  	}
+> -	if (*msg_page) {
+> +cleanup_simp:
+> +	if (*msg_page)
+> +		memunmap(*msg_page);
+> +	if (!vmbus_active) {
+>  		simp.simp_enabled = false;
+>  		hv_set_non_nested_msr(HV_MSR_SIMP, simp.as_uint64);
+> -		memunmap(*msg_page);
+>  	}
+>  
+>  	return -EFAULT;
+> @@ -548,16 +580,15 @@ static int mshv_synic_cpu_init(unsigned int cpu)
+>  static int mshv_synic_cpu_exit(unsigned int cpu)
+>  {
+>  	union hv_synic_sint sint;
+> -	union hv_synic_simp simp;
+> -	union hv_synic_siefp siefp;
+>  	union hv_synic_sirbp sirbp;
+> -	union hv_synic_scontrol sctrl;
+>  	struct hv_synic_pages *spages = this_cpu_ptr(synic_pages);
+>  	struct hv_message_page **msg_page = &spages->hyp_synic_message_page;
+>  	struct hv_synic_event_flags_page **event_flags_page =
+>  		&spages->synic_event_flags_page;
+>  	struct hv_synic_event_ring_page **event_ring_page =
+>  		&spages->synic_event_ring_page;
+> +	/* VMBus owns SIMP/SIEFP/SCONTROL when it is active */
+> +	bool vmbus_active = hv_vmbus_exists();
+>  
+>  	/* Disable the interrupt */
+>  	sint.as_uint64 = hv_get_non_nested_msr(HV_MSR_SINT0 + HV_SYNIC_INTERCEPTION_SINT_INDEX);
+> @@ -574,28 +605,47 @@ static int mshv_synic_cpu_exit(unsigned int cpu)
+>  	if (mshv_sint_irq != -1)
+>  		disable_percpu_irq(mshv_sint_irq);
+>  
+> -	/* Disable Synic's event ring page */
+> +	/* Disable SYNIC event ring page owned by MSHV */
+>  	sirbp.as_uint64 = hv_get_non_nested_msr(HV_MSR_SIRBP);
+>  	sirbp.sirbp_enabled = false;
+> -	hv_set_non_nested_msr(HV_MSR_SIRBP, sirbp.as_uint64);
+> -	memunmap(*event_ring_page);
+>  
+> -	/* Disable Synic's event flags page */
+> -	siefp.as_uint64 = hv_get_non_nested_msr(HV_MSR_SIEFP);
+> -	siefp.siefp_enabled = false;
+> -	hv_set_non_nested_msr(HV_MSR_SIEFP, siefp.as_uint64);
+> +	if (hv_root_partition()) {
+> +		hv_set_non_nested_msr(HV_MSR_SIRBP, sirbp.as_uint64);
+> +		memunmap(*event_ring_page);
+> +	} else {
+> +		sirbp.base_sirbp_gpa = 0;
+> +		hv_set_non_nested_msr(HV_MSR_SIRBP, sirbp.as_uint64);
+> +		free_page((unsigned long)*event_ring_page);
+> +	}
+> +
+> +	/*
+> +	 * Release our mappings of the message and event flags pages.
+> +	 * When VMBus is not active, we enabled SIMP/SIEFP — disable
+> +	 * them. Otherwise VMBus owns the MSRs — leave them.
+> +	 */
+>  	memunmap(*event_flags_page);
+> +	if (!vmbus_active) {
+> +		union hv_synic_simp simp;
+> +		union hv_synic_siefp siefp;
+>  
+> -	/* Disable Synic's message page */
+> -	simp.as_uint64 = hv_get_non_nested_msr(HV_MSR_SIMP);
+> -	simp.simp_enabled = false;
+> -	hv_set_non_nested_msr(HV_MSR_SIMP, simp.as_uint64);
+> +		siefp.as_uint64 = hv_get_non_nested_msr(HV_MSR_SIEFP);
+> +		siefp.siefp_enabled = false;
+> +		hv_set_non_nested_msr(HV_MSR_SIEFP, siefp.as_uint64);
+> +
+> +		simp.as_uint64 = hv_get_non_nested_msr(HV_MSR_SIMP);
+> +		simp.simp_enabled = false;
+> +		hv_set_non_nested_msr(HV_MSR_SIMP, simp.as_uint64);
+> +	}
+>  	memunmap(*msg_page);
+>  
+> -	/* Disable global synic bit */
+> -	sctrl.as_uint64 = hv_get_non_nested_msr(HV_MSR_SCONTROL);
+> -	sctrl.enable = 0;
+> -	hv_set_non_nested_msr(HV_MSR_SCONTROL, sctrl.as_uint64);
+> +	/* When VMBus is active it owns SCONTROL — leave it. */
+> +	if (!vmbus_active) {
+> +		union hv_synic_scontrol sctrl;
+> +
+> +		sctrl.as_uint64 = hv_get_non_nested_msr(HV_MSR_SCONTROL);
+> +		sctrl.enable = 0;
+> +		hv_set_non_nested_msr(HV_MSR_SCONTROL, sctrl.as_uint64);
+> +	}
+>  
+>  	return 0;
+>  }
+> -- 
+> 2.43.0
 > 
->    - * facilities.  For instance, the configuration space of a function exposed
->    + * facilities.^IFor instance, the configuration space of a function exposed
->                   ^^
-> 
->    -^I^I * The vector we select here is a dummy value.  The correct
->    +^I^I * The vector we select here is a dummy value.^IThe correct
->                                                       ^^
-> 
->    -^I^I * freed while we dereference the ring buffer pointer.  Test
->    +^I^I * freed while we dereference the ring buffer pointer.^ITest
->                                                               ^^
-> 
->    -^I * to be overlapped by those children.  Set the flag on this claim
->    +^I * to be overlapped by those children.^ISet the flag on this claim
->                                             ^^
-> 
-> None of these hunks should be here.  Maybe some automation gone wrong?
-> 
-> In any case, every hunk of a patch that does "rename
-> hv_compose_msi_msg to hv_vmbus_compose_msi_msg" should contain those
-> names.  Any whitespace changes should be in their own patch so they
-> don't make it hard to review the rename.
-
