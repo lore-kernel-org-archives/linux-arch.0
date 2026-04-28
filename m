@@ -1,127 +1,134 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f52.google.com (mail-ed1-f52.google.com [209.85.208.52])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9CB0D3D9DDE;
-	Tue, 28 Apr 2026 08:55:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5DF013D75D1
+	for <linux-arch@vger.kernel.org>; Tue, 28 Apr 2026 09:32:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777366526; cv=none; b=OwYtnFC0XJLTPG7l/axj7+9E9GrP/oB0zML3isM9jHtypHhIZCoE7gJBL+dCaV/bvY/Gs0N3LZnNJrFb9dYCMn/DfONglqxl7Vml4EMzhjgiZ0L0QtFkCpRZ7at+GWjXzf33PPSQg/jMmL0Oc9FVDHI1yr5FiT26R4kvJMEbBOc=
+	t=1777368765; cv=none; b=LAmNCJ3LVu7bJy5oxvFzWlA6Jf0O7ulC2W+QujN7c5u423bqV13L2ZGkbrlL+ddAMl6Fumc3umgLLP9pJdAxVMvIiPAgFtWBMYLBFWu0r99KGUYia/3AgwCC54dGCBncemcW6jcs2Siq671pq3AZSlVAF4tUw8SbrSFgxO6PdW4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777366526; c=relaxed/simple;
-	bh=yNHjOgj0lHYbRohpDEFZC+8Hn3fGX3Sp9ArYLyuvzj4=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=NDRU+yfF+NBkwT+BCh3AMc9TuyUfGcfQzmLkmnANdg6cRzEUxwLsG66M+3X2RYd50fp+pTGmO6tvkpjpDs/ic2ibt3Lvfzxw39XquJS6sNt7vMrm79NV0C8aqnhT4wcDDzezkmp0Go5iARrwtAsRXb7LAs0zWdSGngi5307WYk0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=n7Q94D6b; arc=none smtp.client-ip=10.30.226.201
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="n7Q94D6b"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 74246C2BCB5;
-	Tue, 28 Apr 2026 08:55:20 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1777366526;
-	bh=yNHjOgj0lHYbRohpDEFZC+8Hn3fGX3Sp9ArYLyuvzj4=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=n7Q94D6bcmzAY7l3bw7ZxQq1YiLwkR9zbSrwN/XaH3a3+/rgFcPETePHwPfC/K3Nx
-	 ObDjANW77xQ5wVR0FiYdt27AIiOVVVBBM/g8AiQxUx3EERJUub+whwBRLdb8eaC0QX
-	 1CQfDvM1eEliP1Hu7wsBK+SsRmhzDNPKpLo0CHYT9Ei9zdDrVvLVXYG45P0VlLHVQE
-	 8HN5YqRi1cXOki0HS7C3pvLF7RIe1YmbKWGnJ7eSPLHwc+9+d/cwkxjiUEhYEAc3cj
-	 UXUwVR6KcbWc1DNiyZsE9veE6+n40xUvfGKusx6iPjwhA7xsNUVy2jWY23GVzSYWIi
-	 1Uxxb8PBY4FEA==
-Date: Tue, 28 Apr 2026 10:55:17 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Mateusz Guzik <mjguzik@gmail.com>
-Cc: Jori Koolstra <jkoolstra@xs4all.nl>, Andy Lutomirski <luto@kernel.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Arnd Bergmann <arnd@arndb.de>, "H . Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Peter Zijlstra <peterz@infradead.org>, Andrey Albershteyn <aalbersh@redhat.com>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Jiri Olsa <jolsa@kernel.org>, 
-	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	Jeff Layton <jlayton@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, cmirabil@redhat.com, 
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
- O_DIRECTORY fd
-Message-ID: <20260428-zoodirektor-latten-e412db97141d@brauner>
-References: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
- <20260412135434.3095416-2-jkoolstra@xs4all.nl>
- <5xexygc3rvvlir4smdfn7gndwjgbuijqfummwwumivsnosijux@ygqs3iqxmovh>
- <20260427-rudel-gipsabdruck-a7884db4ecea@brauner>
- <CAGudoHFLSHhDZoC6maLsn234dMQVnG4ZbpKXoVrueGujArNF-A@mail.gmail.com>
+	s=arc-20240116; t=1777368765; c=relaxed/simple;
+	bh=WZ0dv++aH+AeLwkvbNXxLqu7wJ3mA6GpS63WG1N27Uc=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=r2oMLWdnM7uPtM7vULheJU+2cB6M7mSbyFF/gShNQClV1fRpSuBx8kYDLSE6NE8P9ZRU7795kSWQPeABMYR9FEs3iy10svJF6bQ6SeBU+8URwxrWsiuv4wwbD+WEYdlaAKa7DR8b7RMxa/6H2QaTfzc4u6P+KegSLw1GA2IUbpc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=gmail.com; arc=none smtp.client-ip=209.85.208.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Received: by mail-ed1-f52.google.com with SMTP id 4fb4d7f45d1cf-678a526f374so7380478a12.0
+        for <linux-arch@vger.kernel.org>; Tue, 28 Apr 2026 02:32:44 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1777368763; x=1777973563;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=Al22kA6RCf7FSEzj29cZLSkjdM9EgXxihmBX7/SeSVI=;
+        b=LUyNdRkFDD8OdiR/TikEs2XTN7moFBPkoFic/ENqGk2u+prrLdSF6nNt1Ye95SlqnD
+         KA7kIhf6IhVcgWNfAtbDaeFKVDrQ8XzavGRqe6PScUTw+NlzpKpEeCCAGki6hjrQVglJ
+         zsntNQKT7O28BoDVu9iN//HZ2BTRseyOKRuqigHKvoPYB53CqwhdsRO7mIJdoUoAwmul
+         ZNdj4TNBl5HCy7IxeMR8VncEpV/AcUXycWa2nsapmLPbjSURWMXsx2J59ysbc+Roepg5
+         Htq4KoCyMg2jVPJjqrf0/Le8PRadNfJ0ieUioxFcA1OEHtJzgtdljCfQx8JeK5NEUlKr
+         mRjw==
+X-Forwarded-Encrypted: i=1; AFNElJ8jzg7mjfrxkrDflc1UowDvDsj+8EaHUuGN3jDfq32cRMxHWRrq+x8ot+WE/mYVvqInbsiYxIXJFRgU@vger.kernel.org
+X-Gm-Message-State: AOJu0YwpnML8RZZyN0SeLhphtjVkSzp17ngLgW4cytJl8Hjj/llz+uFU
+	w87WiaLSLMxJkvimXQebIqbu4+C+PcD4m+U/Udgjwvmnmxf3wVvzjFNeFRJIkY3rQiQ=
+X-Gm-Gg: AeBDiesqNc0sgeobw7+JhGjydIm7Kbz/0T1t2WQcMdfC4s4eMafBnepYyvLH2KemdBn
+	C6SQ39HoMb8gYeEW4VF8welu7xPYZVrGT2X1t9lFFbJ24T1CN22//foNUMOR2T2xa6OEjMEqKDg
+	CwuZfYIIAZoOBAfMxD0AtCaM/RJVc9l5EJ+AMBjawUBGJz8XnjA/rPXuaXpa2FK2QD3bCyXRJdB
+	qM0IK8QMs8g6YTM4C4Y30xhUcFIXdHjUTnSYoMkU0GGr+bIkDr//ioIcmpkbwr/CCbkM/G1MaJy
+	m6KdZaFsbqYgCqSyvDE26BrujmDeb8W6jMqIsl2LL+4wrWkfHihR2hxZk6yMv9nfvejhYYGcQ8w
+	pqDS+FxEp+aPhx7i/hGdYxbUD8Cipt7WwtMWsc1vXhncv0HHXpnNNHFPeMeEWkv5DbE+SDFHluN
+	paint/ltooOFZxPjolG/i7a9TVq0LOj4Qm4gHOBQcPIn8p36avNe1GXEfboyO/kLAdb1YzDPk=
+X-Received: by 2002:a17:906:5190:10b0:b9d:1673:9994 with SMTP id a640c23a62f3a-bb804c32e5emr104915966b.39.1777368762568;
+        Tue, 28 Apr 2026 02:32:42 -0700 (PDT)
+Received: from mail-ej1-f42.google.com (mail-ej1-f42.google.com. [209.85.218.42])
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-bb80853c8a1sm72925066b.5.2026.04.28.02.32.42
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 28 Apr 2026 02:32:42 -0700 (PDT)
+Received: by mail-ej1-f42.google.com with SMTP id a640c23a62f3a-bb3c4d8cc29so312255066b.1
+        for <linux-arch@vger.kernel.org>; Tue, 28 Apr 2026 02:32:42 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AFNElJ+/mooELXymNGJ7b0y3T3M/IJm+3mvaPqs36jyoCS2RlfzlLT/p1dBpE5F14x8zNE/MllQx5i+YxfG4@vger.kernel.org
+X-Received: by 2002:a05:6402:5056:b0:676:d8a1:7a04 with SMTP id
+ 4fb4d7f45d1cf-679bb09a4admr915149a12.23.1777368324094; Tue, 28 Apr 2026
+ 02:25:24 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAGudoHFLSHhDZoC6maLsn234dMQVnG4ZbpKXoVrueGujArNF-A@mail.gmail.com>
+References: <cover.1777306795.git.chleroy@kernel.org> <c73b90236f2810edd47c84edd2a8d8e8e0c816da.1777306795.git.chleroy@kernel.org>
+In-Reply-To: <c73b90236f2810edd47c84edd2a8d8e8e0c816da.1777306795.git.chleroy@kernel.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Tue, 28 Apr 2026 11:25:11 +0200
+X-Gmail-Original-Message-ID: <CAMuHMdUvTBWoDN_wUo2n8-gkoheJ+-rbwew53OvoAwo8G5n1qg@mail.gmail.com>
+X-Gm-Features: AVHnY4JEWBVPw4tSjHgbQTia8gZd2WGJ1sv6qLdKJbtvs4hms1blpvc35yb0VWw
+Message-ID: <CAMuHMdUvTBWoDN_wUo2n8-gkoheJ+-rbwew53OvoAwo8G5n1qg@mail.gmail.com>
+Subject: Re: [RFC PATCH v1 4/9] uaccess: Introduce copy_{to/from}_user_partial()
+To: "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>
+Cc: Yury Norov <ynorov@nvidia.com>, Andrew Morton <akpm@linux-foundation.org>, 
+	Linus Torvalds <torvalds@linux-foundation.org>, David Laight <david.laight.linux@gmail.com>, 
+	Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, 
+	linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, 
+	linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org, 
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, 
+	sparclinux@vger.kernel.org, linux-um@lists.infradead.org, 
+	dmaengine@vger.kernel.org, linux-efi@vger.kernel.org, 
+	linux-fsi@lists.ozlabs.org, amd-gfx@lists.freedesktop.org, 
+	dri-devel@lists.freedesktop.org, intel-gfx@lists.freedesktop.org, 
+	linux-wpan@vger.kernel.org, netdev@vger.kernel.org, 
+	linux-wireless@vger.kernel.org, linux-spi@vger.kernel.org, 
+	linux-media@vger.kernel.org, linux-staging@lists.linux.dev, 
+	linux-serial@vger.kernel.org, linux-usb@vger.kernel.org, 
+	xen-devel@lists.xenproject.org, linux-fsdevel@vger.kernel.org, 
+	ocfs2-devel@lists.linux.dev, bpf@vger.kernel.org, kasan-dev@googlegroups.com, 
+	linux-mm@kvack.org, linux-x25@vger.kernel.org, rust-for-linux@vger.kernel.org, 
+	linux-sound@vger.kernel.org, sound-open-firmware@alsa-project.org, 
+	linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, 
+	loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org, 
+	linux-openrisc@vger.kernel.org, linux-parisc@vger.kernel.org, 
+	linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 
-On Mon, Apr 27, 2026 at 06:30:42PM +0200, Mateusz Guzik wrote:
-> On Mon, Apr 27, 2026 at 5:14 PM Christian Brauner <brauner@kernel.org> wrote:
-> >
-> > > Things proceed to handle_truncate:
-> > >       int error = get_write_access(inode);
-> > >       if (error)
-> > >               return error;
-> > >
-> > >       error = security_file_truncate(filp);
-> > >       if (!error) {
-> > >               error = do_truncate(idmap, path->dentry, 0,
-> > >                                   ATTR_MTIME|ATTR_CTIME|ATTR_OPEN,
-> > >                                   filp);
-> > >       }
-> > >
-> > > I'm going to ignore the LSM situation and do_truncate failure modes in this one.
-> > >
-> > > AFAICS nothing prevents the same user from racing against file creation to
-> > > execve it, which starts with exe_file_deny_write_access. Should the
-> > > other thread win the race, get_write_access will fail and the WARN_ON
-> > > splat will be generated. That is definitely a problem.
-> >
-> > That can't happen:
-> >
-> > static inline int get_write_access(struct inode *inode)
-> > {
-> >         return atomic_inc_unless_negative(&inode->i_writecount) ? 0 : -ETXTBSY;
-> > }
-> >
-> > and the check is:
-> >
-> > error = handle_truncate(idmap, file);
-> > if (unlikely(error > 0)) {
-> >
-> > This was a catch all for broken LSM hook or ->open() instance.
-> >
-> 
-> So with this prog:
-> #include <fcntl.h>
-> 
-> int main(void)
-> {
->     open("test", O_TRUNC);
-> }
-> 
-> I verified writecount is 0 on entry to handle_truncate like so:
-> 
-> bpftrace -e 'kprobe:security_file_truncate { @[comm, (int64)((struct
-> file *)arg0)->f_path.dentry->d_inode->i_writecount.counter] = count();
-> }'
-> 
-> @[a.out, 1]: 1
-> 
-> i.e., get_write_access in handle_truncate transitioned the count 0 -> 1
-> 
-> but then what prevents the following race:
-> 
-> CPU0                    CPU1
-> open("test")            execve("test")
->   handle_truncate         do_open_execat
->                             exe_file_deny_write_access # should
-> succeed as count is 0?
->   get_write_access # should fail as the count is now -1?
+Hi Christophe,
 
-I'm not arguing that get_write_access() cannot fail. I'm arguing that it
-cannot hit that WARN_ON() as you said above because get_write_access()
-returns either 0 or -ETXTBUSY.
+Thanks for your patch!
+
+On Mon, 27 Apr 2026 at 19:18, Christophe Leroy (CS GROUP)
+<chleroy@kernel.org> wrote:
+> Today there are approximately 3000 calls for copy_to_user() and
+> 3000 calls to copy_from_user().
+>
+> The majority of callers of copy_{to/from}_user() don't care about the
+> return value, they only check whether it is 0 or not, and when it is
+> not 0 they handle it as a -EACCES.
+
+I think the "a" can be dropped.
+
+> In order to allow better optimisation of copy_{to/from}_user() when
+> the size of the copy is known at build time, create new fonctions
+
+functions
+
+> named copy_{to/from}_user_partial() to be used by the few callers
+> that are interested in partial copies and need to now how many
+
+know
+
+> bytes remain at the end of the copy.
+>
+> For the time being it is just the same as copy_{to/from}_user().
+>
+> Signed-off-by: Christophe Leroy (CS GROUP) <chleroy@kernel.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
