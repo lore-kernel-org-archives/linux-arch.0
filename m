@@ -1,123 +1,142 @@
-Received: from mout-p-103.mailbox.org (mout-p-103.mailbox.org [80.241.56.161])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B72F12BEFED;
-	Tue, 28 Apr 2026 01:15:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.241.56.161
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id A0DE32D879E;
+	Tue, 28 Apr 2026 02:22:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777338910; cv=none; b=VKDxaHLKe9AV0i2ZrbwcSV5a5XNKnYaT1NvBhicsIyyiBMM7zm5TAzEAoMPKMkztVSvo2VPESQRxYCRRKqPdheqACXDOjwWL19V/jsYq8WhbYiT2jHn5WREnohCemjFDMPaVDgJjaEwXr7/GOHGTZwvIr9n3cgVrvefYlJtKGng=
+	t=1777342936; cv=none; b=ia8zARyVfriQHva8g2So57C7l3XxGKZE97eG6gxtnEBArFefe6oOEDa3dgnqruGpZZ/rQqx+kXyIGZCsFnyLirykK9bQOM88gi2VSpGZ/UsMJBQJqi7D8kZAvqbQVIOcRLysIm1fYqHqQh74nnDT9acFcTuNNKMpl4TT9pkinOo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777338910; c=relaxed/simple;
-	bh=LzUB/ZD604itqaxy/8+N5zkZTGwBL7cXXLe2cPQxQFI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=e2mxJM8ux73u2MzhpH+evoF686LJH9G8CMYbrsw9Ph449fmPeR6XP+HTjPi1egJInJDZolNuYTytV+fv+cAyw8fy/RZzQwFDHFttZxxyzN9uUUkcxkUJnPg81gWrMrYN1/oJMrfs5+yuX1jYYCfi0QVwPQ76+w/eW8sri8pm7/M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com; spf=pass smtp.mailfrom=cyphar.com; dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b=oO6Zaq8U; arc=none smtp.client-ip=80.241.56.161
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=cyphar.com
+	s=arc-20240116; t=1777342936; c=relaxed/simple;
+	bh=ZGtX9WCr5zkWpmmvkEth6BMnjp67T1OH13wleeEhs5g=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=ktaPYkoSeI+kLnvxbpT9YlsWP6YCs/NRgxlVTM2PA48L+rLxqz9yS8MXXZsqygJ17+2bOXDVHbD7iXpc598R7VlTrHrnX7lq9v96Dvw6CJX2nfqqEcjgKEK8U5iDrW5Yzbt+B8Pz/zT9oo4wuuDCxpPDUW4Yd7ouy6ih9MrQOsY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=B39f6qoV; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b="oO6Zaq8U"
-Received: from smtp202.mailbox.org (smtp202.mailbox.org [10.196.197.202])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mout-p-103.mailbox.org (Postfix) with ESMTPS id 4g4MtH5QbTz9t5q;
-	Tue, 28 Apr 2026 03:15:03 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=cyphar.com; s=MBO0001;
-	t=1777338903;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=WGPMR8dNcHE5pPzgJKMfmwy/Nz6ESEu5+NAcbwXAYZ4=;
-	b=oO6Zaq8UGDP1hgu8xebfat/qL3xZPidqWDxAE70HKf54Kfe4sIqnrvr8odQHGH5FNayP4f
-	QwMW7v472RogSNwjwVdWTbIXJ/knsHvOT4OLLfZhW0ogs9thnWU2tbGWo8vDHl6We69y7l
-	bH6vRiK1y/s+flwXTUaq266iCS7gthRToROEpu65INbDjqNWP+F2ZKJ/vco9hKMjIEJqJx
-	MoJrYF7HXFG+sI+51+OAFpW1S54cd2seTLg4wNLqBrCfe/5osEYi7U93CRCIX/oKOhE/Rz
-	Dw9sozIhurcnmk5jhXfU068F/t546MGKstbweL/feIcIguixv2GIpvhObeXc4w==
-Date: Tue, 28 Apr 2026 11:14:47 +1000
-From: Aleksa Sarai <cyphar@cyphar.com>
-To: Christian Brauner <brauner@kernel.org>
-Cc: Jori Koolstra <jkoolstra@xs4all.nl>, Jeff Layton <jlayton@kernel.org>, 
-	Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Arnd Bergmann <arnd@arndb.de>, "H . Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Peter Zijlstra <peterz@infradead.org>, Andrey Albershteyn <aalbersh@redhat.com>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Jiri Olsa <jolsa@kernel.org>, 
-	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	cmirabil@redhat.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
-	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, 
-	linux-arch@vger.kernel.org
-Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
- O_DIRECTORY fd
-Message-ID: <2026-04-28-demur-blocky-boon-prizes-kUj5bz@cyphar.com>
-References: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
- <20260412135434.3095416-2-jkoolstra@xs4all.nl>
- <20260427-umlegen-aufbau-ee3a97f1528a@brauner>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="B39f6qoV"
+Received: from [100.75.0.48] (unknown [40.78.12.133])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 5812820B716A;
+	Mon, 27 Apr 2026 19:22:13 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 5812820B716A
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1777342934;
+	bh=+IGQoTFr6Qw+EwmeMJT0ONytj53r7yK9Br87bvqZ/PM=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=B39f6qoV/2v2M6uwjFfc4vZ8hZYZndrMmocQpsC+wZhzw87oZAWKOSHiV9+S+OxE7
+	 5//1yYEVSmRpELFbDSpBVNsqT+W/54o3nRUL73gjylrWf1JytwHomgAIgmyrhjQgU8
+	 5uyvosrDRXUyFUC7eALyiQiTiZO7LTbLKlxk9FDw=
+Message-ID: <43f41598-ee90-eb2f-1877-da6d1687322e@linux.microsoft.com>
+Date: Mon, 27 Apr 2026 19:22:12 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="owgh52ziss34ktt4"
-Content-Disposition: inline
-In-Reply-To: <20260427-umlegen-aufbau-ee3a97f1528a@brauner>
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH V1 08/13] PCI: hv: rename hv_compose_msi_msg to
+ hv_vmbus_compose_msi_msg
+Content-Language: en-US
+To: Bjorn Helgaas <helgaas@kernel.org>
+Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org, wei.liu@kernel.org,
+ mhklinux@outlook.com, muislam@microsoft.com, namjain@linux.microsoft.com,
+ magnuskulke@linux.microsoft.com, anbelski@linux.microsoft.com,
+ linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
+ iommu@lists.linux.dev, linux-pci@vger.kernel.org,
+ linux-arch@vger.kernel.org, kys@microsoft.com, haiyangz@microsoft.com,
+ decui@microsoft.com, longli@microsoft.com, tglx@kernel.org,
+ mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
+ joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
+ kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de
+References: <20260427163139.GA157548@bhelgaas>
+From: Mukesh R <mrathor@linux.microsoft.com>
+In-Reply-To: <20260427163139.GA157548@bhelgaas>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+
+On 4/27/26 09:31, Bjorn Helgaas wrote:
+> On Tue, Apr 21, 2026 at 07:32:34PM -0700, Mukesh R wrote:
+>> Main change here is to rename hv_compose_msi_msg to
+>> hv_vmbus_compose_msi_msg as we introduce hv_compose_msi_msg in upcoming
+>> patches that builds MSI messages for both VMBus and non-VMBus cases. VMBus
+>> is not used on baremetal root partition for example. While at it, replace
+>> spaces with tabs and fix some formatting involving excessive line wraps.
+> 
+> Would be better to do the whitespace changes in their own patch,
+> although several of them should just be dropped (see below).
+> 
+> Capitalize subject ("PCI: hv: Rename ...").
+> 
+> Add "()" after function names in subject and commit log.
+
+Ok, will do in next version.
+
+>> +++ b/drivers/pci/controller/pci-hyperv.c
+>> @@ -30,7 +30,7 @@
+>>    * function's configuration space is zero.
+>>    *
+>>    * The rest of this driver mostly maps PCI concepts onto underlying Hyper-V
+>> - * facilities.  For instance, the configuration space of a function exposed
+>> + * facilities.	For instance, the configuration space of a function exposed
+> 
+> Oops, this hunk made it worse.  Definitely don't want a tab there.
+> 
+>> @@ -1954,7 +1955,7 @@ static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+>>   			return;
+>>   		}
+>>   		/*
+>> -		 * The vector we select here is a dummy value.  The correct
+>> +		 * The vector we select here is a dummy value.	The correct
+> 
+> Another tab that should be a space.  Actually, you should just drop
+> this hunk; the rest of the comment has two spaces after periods, so
+> this should too.
+
+well, most of our files does global replace 8 spaces with tabs, so
+everywhere comments are well indented. Since, checkpatch doesn't complain
+about tabs on comment lines, may I assue it is not a strict requirement
+and more a nit or personal preference?
+
+Thanks,
+-Mukesh
 
 
---owgh52ziss34ktt4
-Content-Type: text/plain; protected-headers=v1; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
- O_DIRECTORY fd
-MIME-Version: 1.0
+>> @@ -2046,7 +2047,7 @@ static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+>>   
+>>   		/*
+>>   		 * Make sure that the ring buffer data structure doesn't get
+>> -		 * freed while we dereference the ring buffer pointer.  Test
+>> +		 * freed while we dereference the ring buffer pointer.	Test
+> 
+> Same here.  This makes it worse.
+> 
+>> @@ -2226,7 +2227,7 @@ static int hv_pcie_init_irq_domain(struct hv_pcibus_device *hbus)
+>>   /**
+>>    * get_bar_size() - Get the address space consumed by a BAR
+>>    * @bar_val:	Value that a BAR returned after -1 was written
+>> - *              to it.
+>> + *		to it.
+> 
+> Just put "to it" on the preceding line.  There's plenty of space
+> there.
+> 
+>> @@ -2580,7 +2581,7 @@ static void q_resource_requirements(void *context, struct pci_response *resp,
+>>    * new_pcichild_device() - Create a new child device
+>>    * @hbus:	The internal struct tracking this root PCI bus.
+>>    * @desc:	The information supplied so far from the host
+>> - *              about the device.
+>> + *		about the device.
+> 
+> Ditto.  If you want to change this, put "about the device" on the
+> preceding line.
+> 
+>> @@ -3422,7 +3423,7 @@ static int hv_allocate_config_window(struct hv_pcibus_device *hbus)
+>>   	 * vmbus_allocate_mmio() gets used for allocating both device endpoint
+>>   	 * resource claims (those which cannot be overlapped) and the ranges
+>>   	 * which are valid for the children of this bus, which are intended
+>> -	 * to be overlapped by those children.  Set the flag on this claim
+>> +	 * to be overlapped by those children.	Set the flag on this claim
+> 
+> Another hunk that should be dropped.
 
-On 2026-04-27, Christian Brauner <brauner@kernel.org> wrote:
-> On Sun, Apr 12, 2026 at 03:54:33PM +0200, Jori Koolstra wrote:
-> > +	if (open && !error && !is_delegated(&delegated_inode)) {
-> > +		const struct path new_path =3D { .mnt =3D path.mnt, .dentry =3D dent=
-ry };
-> > +		filp =3D dentry_open(&new_path, O_DIRECTORY, current_cred());
-> > +	}
->=20
-> So definitely a patchset worthing doing but this will be hairy. And
-> Mateusz is right. As written this doesn't work. The canonical pattern
-> how e.g., dentry_open() does it is to preallocate the file.
->=20
-> I do wonder though whether we shouldn't just make O_CREAT | O_DIRECTORY
-> work. I remember that I had a vague comment about this in [1] a few
-> years ago (cf. [1]). It might even be less hairy to get that one right
-> as all the thinking for O_CREAT is already there.
-
-That would be my preference, as it would also allow us to use RESOLVE_*
-flags nicely.
-
-> What was the rationale for mkdirat2() instead of threading this through
-> openat()/openat2() with O_CREAT?
-
-Mateusz said that he didn't like the idea of having more branches in
-the open() paths, I think that ship has long since sailed tbh.
-
-> And side-question: @Jeff, can nfs atomic open deal with O_CREAT |
-> O_DIRECTORY?
->=20
-> [1]: 43b450632676 ("open: return EINVAL for O_DIRECTORY | O_CREAT")
-
---=20
-Aleksa Sarai
-https://www.cyphar.com/
-
---owgh52ziss34ktt4
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iJEEABYKADkWIQS2TklVsp+j1GPyqQYol/rSt+lEbwUCafAKBxsUgAAAAAAEAA5t
-YW51MiwyLjUrMS4xMiwyLDIACgkQKJf60rfpRG+g4wEAmkPRdHEqyElIHqgSA6IY
-SJNzwTqfXfzPput10NF0VZ4BAJYj8f4QruB+vzgL8MYcgJH1Ah+uJB1qlpY8CdWw
-vFAM
-=X9pH
------END PGP SIGNATURE-----
-
---owgh52ziss34ktt4--
