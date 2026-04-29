@@ -1,60 +1,65 @@
-Received: from sender4-of-o54.zoho.com (sender4-of-o54.zoho.com [136.143.188.54])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 11A723E0C61;
-	Wed, 29 Apr 2026 10:36:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.54
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777459000; cv=pass; b=KhXQ624uEVyG28GZ/Gq57ZxY0MrJl8uXy2vOyGaqAE+8CleiL0FPLqa0KutH8ErRTtNwxa2m77tasYzbZxq9JO39rEa5NXdfyMRBT2IKHXpU9BgDmvm8YwSN6IEK9d+D/z+PGL/JTMfALIz4G4gfqVaFGkN/llWW1cbim+wFXsc=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777459000; c=relaxed/simple;
-	bh=wWsgI55T2IIdII2886fM0Y+D2bDD3d/AayrfFLAVrIA=;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CEA70302750;
+	Wed, 29 Apr 2026 11:26:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1777462002; cv=none; b=T4w88c8pfdui+uKTZ/A75N54vv5+ygt6XtOs+c3C834wo0jn3RKHbz8ymm034YMsyjybqeQRh4/Pkv4+hdKrXyhNd6+FeEmf1vc8g4TePtP2zeSpc7qPPwVv/agvMsclMeZvSkFsu2dIiPIE3NOV7HwPXDkT9IpDdJth3Fb3HrQ=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1777462002; c=relaxed/simple;
+	bh=HgV0q/+gZ9n2giWTxhUD6P3yQ6wEmY66ZwCWQHhgQ2g=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=FGeshlLDp8IVJqtr4HhHibLR3mcFVCeczL/nprExr2JSUDIkWe10FhEDyrCWLksOOtEpfsFKJz4oPXfT1V5WWmcR/Kt7N6Ie43xpPMMT8vV0PGac67JjsVrtTkF3xcRW3gDV2rX1ACH6PiRnZsw2J06EZdT6DMij8zI5BKdFM88=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com; spf=pass smtp.mailfrom=anirudhrb.com; dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b=T+MYPJcl; arc=pass smtp.client-ip=136.143.188.54
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=anirudhrb.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=kKGPImIqofHhHWkrh4obt4PWgAsqITzuUZVnGNDkfXyNLSZcsDoFgpxWWpSmbc5g0edrzTytstBlWuiMROxKCSnCuFDN5vsyWoqKkpkiSdJCcn9sghnNkWFaAx9gXkuVuHeVxtZuU4tcBqXoQ9JIGTcKIDXLTkfHvbQdDMgSy0U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ejvHWE1z; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b="T+MYPJcl"
-ARC-Seal: i=1; a=rsa-sha256; t=1777458968; cv=none; 
-	d=zohomail.com; s=zohoarc; 
-	b=S6Oi1Mhyn7HSEIlQZ9NQ+85YldW92YeyhctFkYS3PpffytOc/8sLu3tr29aehHvNJQTbdTuDI/ZnxBEDviRKULb/2Qh/5lSTlTuMf1sksWN4UcIBl4Jd4rxUkY1R+barhNRu2E8iK3KNTKZ/Z2pIZ4d5/OkvVPDRH+SpPMhxkr8=
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
-	t=1777458968; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
-	bh=Xj/9h++E416HVc3sW+ej95YsGS2ZgLD3ML/lfDNu5mw=; 
-	b=IILA7pZin3aP6X402//pPOBXAjLFHFCRk9h+dBon5zvUFOcQTyXVIGczlINRmxZuonqXPTHrBacbJKBhR4MYu9gomwBtDtRx8EHdonYr3HQoZ1ur28q8lxNm/rxiGXcYiQjGC1ZT0/rIsz9FdbyS4ma7VNunAzntCB00GZ/hfgw=
-ARC-Authentication-Results: i=1; mx.zohomail.com;
-	dkim=pass  header.i=anirudhrb.com;
-	spf=pass  smtp.mailfrom=anirudh@anirudhrb.com;
-	dmarc=pass header.from=<anirudh@anirudhrb.com>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1777458968;
-	s=zoho; d=anirudhrb.com; i=anirudh@anirudhrb.com;
-	h=Date:Date:From:From:To:To:Cc:Cc:Subject:Subject:Message-ID:References:MIME-Version:Content-Type:In-Reply-To:Message-Id:Reply-To;
-	bh=Xj/9h++E416HVc3sW+ej95YsGS2ZgLD3ML/lfDNu5mw=;
-	b=T+MYPJclCboEFY2K75ze4MtY94KGcSs0Ebeb670CPu5Y4If7R5RFZPfLHKoEcvLD
-	CUX0ZpNpYQmUi86E94MJeBknmbwTId0QoQEddCUXhC4abLVcq/+hMX2F9x3qxDloMm2
-	YBbUKZXfmYErqwF79jT1WoARSFDlyOPqEUzr7fOY=
-Received: by mx.zohomail.com with SMTPS id 1777458964961585.9652544116735;
-	Wed, 29 Apr 2026 03:36:04 -0700 (PDT)
-Date: Wed, 29 Apr 2026 10:35:54 +0000
-From: Anirudh Rayabharam <anirudh@anirudhrb.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
-	wei.liu@kernel.org, mhklinux@outlook.com, muislam@microsoft.com,
-	namjain@linux.microsoft.com, magnuskulke@linux.microsoft.com,
-	anbelski@linux.microsoft.com, linux-kernel@vger.kernel.org,
-	linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-	kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
-	longli@microsoft.com, tglx@kernel.org, mingo@redhat.com,
-	bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
-	joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
-	kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de
-Subject: Re: [PATCH V1 04/13] mshv: Provide a way to get partition id if
- running in a VMM process
-Message-ID: <20260429-pristine-unyielding-magpie-1ce6ee@anirudhrb>
-References: <20260422023239.1171963-1-mrathor@linux.microsoft.com>
- <20260422023239.1171963-5-mrathor@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ejvHWE1z"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 158D1C19425;
+	Wed, 29 Apr 2026 11:26:33 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1777462002;
+	bh=HgV0q/+gZ9n2giWTxhUD6P3yQ6wEmY66ZwCWQHhgQ2g=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=ejvHWE1zJ0tb1KwQu/gVCMj0KcNhlMqCOjLI4kQmWC01EPIO4HFDTFQg5PpNyMx2F
+	 7OMWgwbyfp16yd5ZKGLwfDDMuBlWK8CK9qcSIqUHZRxyhnWE4iAN+OK+xmr5WBtr4T
+	 BgqmCB7r/rsFvwFu/mT2z67QkDE/mDzOf7GDi68KHsQjYM3r7svy7TXqJDW5kWsfNa
+	 xYHmkznhflijvwvOUJkH6AcM42ZHWo8kZp7k26fwbFC82N/jHC8/F/rL8GlM8z6Ksh
+	 UMOZ5KVH94exo80oAIrmoHKOK/k/qke5mU8V2uOXUW3Mlxuf7JynBO/Edq8wMcfI5M
+	 twwrBSWDcoLLw==
+Date: Wed, 29 Apr 2026 12:26:30 +0100
+From: Will Deacon <will@kernel.org>
+To: "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>
+Cc: Yury Norov <ynorov@nvidia.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Linus Torvalds <torvalds@linux-foundation.org>,
+	David Laight <david.laight.linux@gmail.com>,
+	Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+	linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org,
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+	sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+	dmaengine@vger.kernel.org, linux-efi@vger.kernel.org,
+	linux-fsi@lists.ozlabs.org, amd-gfx@lists.freedesktop.org,
+	dri-devel@lists.freedesktop.org, intel-gfx@lists.freedesktop.org,
+	linux-wpan@vger.kernel.org, netdev@vger.kernel.org,
+	linux-wireless@vger.kernel.org, linux-spi@vger.kernel.org,
+	linux-media@vger.kernel.org, linux-staging@lists.linux.dev,
+	linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
+	xen-devel@lists.xenproject.org, linux-fsdevel@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev, bpf@vger.kernel.org,
+	kasan-dev@googlegroups.com, linux-mm@kvack.org,
+	linux-x25@vger.kernel.org, rust-for-linux@vger.kernel.org,
+	linux-sound@vger.kernel.org, sound-open-firmware@alsa-project.org,
+	linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
+	loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
+	linux-openrisc@vger.kernel.org, linux-parisc@vger.kernel.org,
+	linux-sh@vger.kernel.org, linux-arch@vger.kernel.org,
+	catalin.marinas@arm.com
+Subject: Re: [RFC PATCH v1 8/9] arm64: Add unsafe_copy_from_user()
+Message-ID: <afHq5vyNUJzxVwDV@willie-the-truck>
+References: <cover.1777306795.git.chleroy@kernel.org>
+ <5b09e58a84c9edcfe5724db5cd57e45d96a96bfa.1777306795.git.chleroy@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -63,23 +68,23 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260422023239.1171963-5-mrathor@linux.microsoft.com>
-X-ZohoMailClient: External
+In-Reply-To: <5b09e58a84c9edcfe5724db5cd57e45d96a96bfa.1777306795.git.chleroy@kernel.org>
 
-On Tue, Apr 21, 2026 at 07:32:30PM -0700, Mukesh R wrote:
-> Many PCI passthru related hypercalls require partition id of the target
-> guest. Guests are actually managed by MSHV driver and the partition id
-> is only maintained there. Add a field in the partition struct in MSHV
-> driver to save the tgid of the VMM process creating the partition,
-> and add a function there to retrieve partition id if current process
-> is a VMM process.
+[+Catalin]
+
+On Mon, Apr 27, 2026 at 07:13:49PM +0200, Christophe Leroy (CS GROUP) wrote:
+> At the time being, x86 and arm64 are missing unsafe_copy_from_user().
 > 
-> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+> Add it.
+> 
+> Signed-off-by: Christophe Leroy (CS GROUP) <chleroy@kernel.org>
 > ---
->  drivers/hv/mshv_root.h         |  1 +
->  drivers/hv/mshv_root_main.c    | 22 ++++++++++++++++++++++
->  include/asm-generic/mshyperv.h |  5 +++++
->  3 files changed, 28 insertions(+)
+>  arch/arm64/include/asm/uaccess.h | 29 ++++++++++++++++++++++++-----
+>  1 file changed, 24 insertions(+), 5 deletions(-)
 
-Reviewed-by: Anirudh Rayabharam (Microsoft) <anirudh@anirudhrb.com>
+Why?
 
+And please cc the arm64 maintainers on arm64 patches next time. You've
+managed to cc most of the world apart from us.
+
+Will
