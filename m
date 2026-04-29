@@ -1,44 +1,48 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C6CE0392807;
-	Wed, 29 Apr 2026 20:29:27 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8C97D37AA90;
+	Wed, 29 Apr 2026 22:57:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777494567; cv=none; b=AQxfG88O70g+lNJgjHCq4PBDJVh/8q79+QHn0n5acmalqdFdAPsw0YO3dMEUV5e7V4kN2Qm76ssRINhc8toN3DZj5lCfXY+qmvpIrO4FB+ds4Rr8FNN9bWuP3+68bmtAOfH41I2y2+MYjFDH0VtRleW+jRGz8g3Lu1RHAej3zTw=
+	t=1777503460; cv=none; b=fv1ruenH1Ahr7pqRRzOBUdVR5mY5xlRFhh/LGe+0kwfAGeVYLfEBMcUOVXd26VulbJls4jO5d2yF5DOGpmf+po3mIRFGcoEEGI0GEl6yRfucL78y6GHU937Xieg4r5tgi5Km+jFhy5heSj1rN/AR9GNC1nTxOggv7Uu1Dggcw7Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777494567; c=relaxed/simple;
-	bh=HH+KQvkzBNqRGxUjoFpvNFOMjZKpfO8LsdVYeYm3uOs=;
+	s=arc-20240116; t=1777503460; c=relaxed/simple;
+	bh=I+//j2q/h0XBW5QRBovEU4yDXrOR+VIyZTkGVCwIPiM=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=nQXJCoTsW2NgU99qihW3YCNeep9+TYPAO7OWc+3wGJUjADvfog/R2kHkW9JUuK9ZZRTh+evD53+WN22S2HltQH8kT1iMQ+f0f99Kjl/QnIXOgl6JHtK6sJPITLWqphdJZi01GpAv4U5g3Jc7g5Z+HOU1vySADiWfZqiF9Ic2Mio=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=G9lGsPgL; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type:Content-Disposition:In-Reply-To; b=NH2RS8BowV835MD+aLhPKC0K8iONOlFg5esXXU+CO6Nx89hMwwe/V1Yw4dK62ob2oOYkD7mCVdSZCNTLubi61aLCHDNIrozOdF/UvDSYtMmHvgiKq5m9pjGm8AxmknNNmXwWQUH76DvkYAo8Z8CthB2paXPJHLm/CHIGDSlTctA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=fdGz6Ecu; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="G9lGsPgL"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A652EC19425;
-	Wed, 29 Apr 2026 20:29:24 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="fdGz6Ecu"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id F0F03C2BCB3;
+	Wed, 29 Apr 2026 22:57:39 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1777494567;
-	bh=HH+KQvkzBNqRGxUjoFpvNFOMjZKpfO8LsdVYeYm3uOs=;
+	s=k20201202; t=1777503460;
+	bh=I+//j2q/h0XBW5QRBovEU4yDXrOR+VIyZTkGVCwIPiM=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=G9lGsPgLSrCXmU8d7mjNx7wf9uQT/2BqyvHTxM8svYyt0+Sdpahq3xIQrTXuOpAQm
-	 MjtsSt23NnFUOfCiUxFdMKs9qyTCDiicq85kS+uKugrdpzaGEEGPdot6VlvXi7VBHC
-	 ryoHkioB1F73N0Bz0YH81b+yq5l/QQuopEsvVuzZJsT5VopbPlgFo9WaDYv/wfW1w4
-	 gkfCoeLDB45K4cEmDmJ2+S1KljBMAw2EOREBSR3+0EB15/nEku3u1MSRZaD14wVTxO
-	 qjX0aq39gOMn5ZGBIpdp2mIFLEZaRJxC1V7i7L+a1pNtonkz0K79MjQhwpi7xUY6Bn
-	 vgB4tOd/rDt6g==
-Date: Wed, 29 Apr 2026 13:29:22 -0700
-From: Nathan Chancellor <nathan@kernel.org>
-To: Jinjie Ruan <ruanjinjie@huawei.com>
-Cc: pjw@kernel.org, palmer@dabbelt.com, aou@eecs.berkeley.edu,
-	alex@ghiti.fr, yury.norov@gmail.com, linux@rasmusvillemoes.dk,
-	arnd@arndb.de, akpm@linux-foundation.org,
-	linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org, david.laight.linux@gmail.com,
-	cp0613@linux.alibaba.com
-Subject: Re: [PATCH v5 2/3] bitops: Define generic __bitrev8/16/32 for reuse
-Message-ID: <20260429202922.GA3575295@ax162>
-References: <20260421130752.607500-1-ruanjinjie@huawei.com>
- <20260421130752.607500-3-ruanjinjie@huawei.com>
+	b=fdGz6Ecu5pkXdxy80SkH+oT00EAoa8E2tUR4kr+lu1t8VDXqWh5vCL2UPsouVvtLx
+	 iL7TO8BQRffd7hwhAT0Kiszd+MK8g2cgg1ZesX6xvmmBLy/KZjWkSnvIHoa4U8DDvq
+	 73kgHFitwTcKF0Y8SVdwPAL1IYKgUlSXwEewi44bpOpJFbBEYaRXCa57byIwrlO5YH
+	 GZdnbkXEY/KSSKk7YKKhym/HrPVkcNGkRLI7RBPjmfp1PYRSnq3w2mKPs40Zr3xTHS
+	 euOS9LaXGiYbIoho/3kxfh0hu2h8DeannDvH38j0Vbt4nLZf4uhhVQePkjQmRmM2hq
+	 A21UbA1Ehk6Xg==
+Date: Wed, 29 Apr 2026 22:57:38 +0000
+From: Wei Liu <wei.liu@kernel.org>
+To: Jork Loeser <jloeser@linux.microsoft.com>
+Cc: linux-hyperv@vger.kernel.org, x86@kernel.org,
+	"K . Y . Srinivasan" <kys@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Michael Kelley <mhklinux@outlook.com>,
+	Anirudh Rayabharam <anirudh@anirudhrb.com>,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH v4 0/3] Hyper-V: kexec fixes for L1VH (mshv)
+Message-ID: <20260429225738.GC2584450@liuwe-devbox-debian-v2.local>
+References: <20260427213855.1675044-1-jloeser@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -47,122 +51,46 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260421130752.607500-3-ruanjinjie@huawei.com>
+In-Reply-To: <20260427213855.1675044-1-jloeser@linux.microsoft.com>
 
-Hi Jinjie,
-
-On Tue, Apr 21, 2026 at 09:07:51PM +0800, Jinjie Ruan wrote:
-> Define generic __bitrev8/16/32 using the implementation
-> in <linux/bitrev.h>, so they can be reused in <asm/bitrev.h>,
-> such as RISCV.
+On Mon, Apr 27, 2026 at 02:38:51PM -0700, Jork Loeser wrote:
+> This series fixes kexec support when Linux runs as an L1 Virtual Host
+> (L1VH) under Hyper-V, using the MSHV driver to manage child VMs.
 > 
-> Reviewed-by: Yury Norov <ynorov@nvidia.com>
-> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
-> ---
->  include/asm-generic/bitops/__bitrev.h | 25 +++++++++++++++++++++++++
->  include/linux/bitrev.h                | 20 ++++----------------
->  2 files changed, 29 insertions(+), 16 deletions(-)
->  create mode 100644 include/asm-generic/bitops/__bitrev.h
+> 1-2. SynIC cleanup: the MSHV driver manages its own SynIC resources
+>      separately from vmbus. Add proper teardown of MSHV-owned SINTs
+>      and SIRBP on kexec, scoped to only the resources MSHV owns.
+>      Use hv_vmbus_exists() to decide at runtime whether VMBus owns
+>      SIMP/SIEFP/SCONTROL (so MSHV must not touch them) or whether
+>      MSHV must manage them itself (bare root partition without VMBus).
+>      Also fix SIEFP and SIRBP address calculations to use
+>      HV_HYP_PAGE_SHIFT instead of PAGE_SHIFT, which produces wrong
+>      addresses on ARM64 with 64K pages.
 > 
-> diff --git a/include/asm-generic/bitops/__bitrev.h b/include/asm-generic/bitops/__bitrev.h
-> new file mode 100644
-> index 000000000000..f06af929678d
-> --- /dev/null
-> +++ b/include/asm-generic/bitops/__bitrev.h
-> @@ -0,0 +1,25 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +#ifndef _ASM_GENERIC_BITOPS___BITREV_H_
-> +#define _ASM_GENERIC_BITOPS___BITREV_H_
-> +
-> +#ifdef CONFIG_GENERIC_BITREVERSE
-
-The dependencies of this symbol seem insufficient, as I can trigger a
-build failure on next-20260429 like so:
-
-  $ make -skj"$(nproc)" ARCH=s390 CROSS_COMPILE=s390-linux- mrproper tinyconfig fs/select.o
-  In file included from include/linux/crc32.h:6,
-                   from include/linux/etherdevice.h:23,
-                   from include/linux/if_vlan.h:11,
-                   from include/linux/filter.h:21,
-                   from include/net/xdp.h:10,
-                   from include/net/busy_poll.h:19,
-                   from fs/select.c:33:
-  include/linux/etherdevice.h: In function 'eth_hw_addr_crc':
-  include/linux/bitrev.h:16:20: error: implicit declaration of function 'generic___bitrev32' [-Wimplicit-function-declaration]
-     16 | #define __bitrev32 generic___bitrev32
-        |                    ^~~~~~~~~~~~~~~~~~
-  include/linux/bitrev.h:67:9: note: in expansion of macro '__bitrev32'
-     67 |         __bitrev32(__x);                                \
-        |         ^~~~~~~~~~
-  include/linux/crc32.h:107:36: note: in expansion of macro 'bitrev32'
-    107 | #define ether_crc(length, data)    bitrev32(crc32_le(~0, data, length))
-        |                                    ^~~~~~~~
-  include/linux/etherdevice.h:292:16: note: in expansion of macro 'ether_crc'
-    292 |         return ether_crc(ETH_ALEN, ha->addr);
-        |                ^~~~~~~~~
-  make[5]: *** [scripts/Makefile.build:289: fs/select.o] Error 1
-  ...
-
-  $ scripts/config -s BITREVERSE
-  undef
-
-  $ rg BITREVERSE .config
-
-> +#include <asm/types.h>
-> +
-> +extern u8 const byte_rev_table[256];
-> +static __always_inline __attribute_const__ u8 generic___bitrev8(u8 byte)
-> +{
-> +	return byte_rev_table[byte];
-> +}
-> +
-> +static __always_inline __attribute_const__ u16 generic___bitrev16(u16 x)
-> +{
-> +	return (generic___bitrev8(x & 0xff) << 8) | generic___bitrev8(x >> 8);
-> +}
-> +
-> +static __always_inline __attribute_const__ u32 generic___bitrev32(u32 x)
-> +{
-> +	return (generic___bitrev16(x & 0xffff) << 16) | generic___bitrev16(x >> 16);
-> +}
-> +#endif /* CONFIG_GENERIC_BITREVERSE */
-> +
-> +#endif /* _ASM_GENERIC_BITOPS___BITREV_H_ */
-> diff --git a/include/linux/bitrev.h b/include/linux/bitrev.h
-> index d35b8ec1c485..11620a70e776 100644
-> --- a/include/linux/bitrev.h
-> +++ b/include/linux/bitrev.h
-> @@ -12,22 +12,10 @@
->  #define __bitrev8 __arch_bitrev8
->  
->  #else
-> -extern u8 const byte_rev_table[256];
-> -static inline u8 __bitrev8(u8 byte)
-> -{
-> -	return byte_rev_table[byte];
-> -}
-> -
-> -static inline u16 __bitrev16(u16 x)
-> -{
-> -	return (__bitrev8(x & 0xff) << 8) | __bitrev8(x >> 8);
-> -}
-> -
-> -static inline u32 __bitrev32(u32 x)
-> -{
-> -	return (__bitrev16(x & 0xffff) << 16) | __bitrev16(x >> 16);
-> -}
-> -
-> +#include <asm-generic/bitops/__bitrev.h>
-> +#define __bitrev32 generic___bitrev32
-> +#define __bitrev16 generic___bitrev16
-> +#define __bitrev8 generic___bitrev8
->  #endif /* CONFIG_HAVE_ARCH_BITREVERSE */
->  
->  #define __bitrev8x4(x)	(__bitrev32(swab32(x)))
-> -- 
-> 2.34.1
+> 3.   Debugfs stats pages: unmap the VP statistics overlay pages before
+>      kexec to avoid machine check exceptions when the new kernel
+>      reuses those physical pages.
 > 
+> Changes since v3:
+> - Dropped patches 1-3 (vmbus variable shadowing, stimer cleanup,
+>   LP/VP skip), now merged via hyperv-next.
+> - Patch 1: fix SIEFP and SIRBP memremap()/virt_to_phys() to use
+>   HV_HYP_PAGE_SHIFT/HV_HYP_PAGE_SIZE instead of PAGE_SHIFT/PAGE_SIZE.
+> 
+> Changes since v2:
+> - Rebased onto linux-next/master to adapt to the upstream SynIC
+>   refactor (commit 5a674ef871fe, "mshv: refactor synic init and
+>   cleanup").
+> 
+> Changes since v1:
+> - Patch 1: account for nested root partitions where VMBus is also
+>   active (not just L1VH); use a vmbus_active local variable; allocate
+>   SIRBP in L1VH allocation path for when the hypervisor doesn't
+>   pre-provision the page.
+> 
+> Jork Loeser (3):
+>   mshv: limit SynIC management to MSHV-owned resources
+>   mshv: clean up SynIC state on kexec for L1VH
+>   mshv: unmap debugfs stats pages on kexec
 
--- 
-Cheers,
-Nathan
+Applied to hyperv-fixes. Thanks.
