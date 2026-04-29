@@ -1,107 +1,161 @@
-Received: from sender4-of-o54.zoho.com (sender4-of-o54.zoho.com [136.143.188.54])
+Received: from out-173.mta1.migadu.com (out-173.mta1.migadu.com [95.215.58.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0668C395259;
-	Wed, 29 Apr 2026 10:10:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.54
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777457443; cv=pass; b=Nw8sWdZ4ZicOwGkrbfyzjUyFtkykw5YX54J6ebo+L5PDJlKAaB5m2p/t3aa1mjWnJUj2HQmwrjegCHBrUAoqGACWMQmY2QXWgTU921L5t/vsO7MgBS4lT/UdHa5sVa9LaNFU1C6nTSBhYuzjRwymDVNkNy4QDM23Ed6KKods2to=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777457443; c=relaxed/simple;
-	bh=lUjcB+iuaalN09wG72rTZUDelYzuJG9bOf/uGfkyGgs=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=nOwva1kUz3/X63surFdc1QUW/BtNdgFXHokDUaYOK5m0+GxrjirFf+AL6jnkd6tbo+G2UJ/jrhW7W1iV3m9QAD2QApRNzT0gVYd4gipoWmYD0xmlgwBedH2WbV+UAGow1eqs3LWnNUkXxEJr+CBN134bSeEu8uNA7FJLZPlpxH0=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com; spf=pass smtp.mailfrom=anirudhrb.com; dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b=OXBEE9Rf; arc=pass smtp.client-ip=136.143.188.54
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=anirudhrb.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BB5B2393DE8;
+	Wed, 29 Apr 2026 10:25:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.173
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1777458347; cv=none; b=qx81TDlDWNZjYGBbzLHARsUDL9KkKDX8D8K8DvIHfPxF4oNtstkFJQSF1OJ680+qTY+8lWKRnqDvtz59rqx9RRrik/0Pa8dqFUqUfwePkxSghlK9GeXOvbkEgz8TOwkezbFHvmE7Mm7ouYknMUOr5CuQ/beIg7Q2XVat+l80MuE=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1777458347; c=relaxed/simple;
+	bh=uKx2BLK4SWtORQ3Y1X9QU+u3JmhryAfpmr007sf8OrM=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=Okk7xSo1DqiJWQ4y5ORbmodxvUqt3z7zCtusOnpvcI6F+PKzYOfkQFTyBq3bN+8mArFQu4WO1DwLu+GdJknoq6ExMfWw+ey3SzI8ikmr2WKk5gRRAHG4shfZhm7eYpkB/Od0XNzPxS+ybyprXAmLoGJxmb/B8NXg7JdOVW6Hp/0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=syDuJ2eb; arc=none smtp.client-ip=95.215.58.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b="OXBEE9Rf"
-ARC-Seal: i=1; a=rsa-sha256; t=1777457412; cv=none; 
-	d=zohomail.com; s=zohoarc; 
-	b=mLXLA35hYoo5S8dEqxHmno7mxolKdl64mwISIQ13LC4wkiWXwS/tys3WAbs5+Cw2pVfKrtMqoicahhPlwFjhDqusnEqRjEXCp6GqzopY1Pg1/AN/bvmo0kOfdAzzbMUVNu0U8rVLMYwKnd9JWR//ao/6dq5JQp+iBhS2K2nnSq8=
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
-	t=1777457412; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
-	bh=J50RyZE4/s/NcIzQS4v6UG489kfgGr6Z+tintjb2Nmo=; 
-	b=cTdsM54z4aM9KSc2MylFiUdjGfxCldhmBPUl0eXXJyfPj+3iPR1NBfgoxKDind/sl4sW2sSvQWi+Kh2FRj1k/HiPqPMuwHCOgBO/gXr2Ojuxp9Zjuse7sS6zwH/C9MRF7rd29HnVnxLHeWTuLkBVeyrDSUc5Tk0ApoKFL9v+MKg=
-ARC-Authentication-Results: i=1; mx.zohomail.com;
-	dkim=pass  header.i=anirudhrb.com;
-	spf=pass  smtp.mailfrom=anirudh@anirudhrb.com;
-	dmarc=pass header.from=<anirudh@anirudhrb.com>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1777457412;
-	s=zoho; d=anirudhrb.com; i=anirudh@anirudhrb.com;
-	h=Date:Date:From:From:To:To:Cc:Cc:Subject:Subject:Message-ID:References:MIME-Version:Content-Type:In-Reply-To:Message-Id:Reply-To;
-	bh=J50RyZE4/s/NcIzQS4v6UG489kfgGr6Z+tintjb2Nmo=;
-	b=OXBEE9RfHegC02ZfBlmdcxQt1XMhtW2f6Snb8z0cF7B31DR5qwAU7YH4kZQSnsQj
-	RcwRkeRCfwW85lOZLrHNdPUXhewwZ3IOBIMLzwyPQUL0R/3EgKOWLJ18/3Kl9oZU3FU
-	srKP6+pr19UN/tHN8B0cZmEolzsALeX3kRc9hOoc=
-Received: by mx.zohomail.com with SMTPS id 1777457407634465.4010038760358;
-	Wed, 29 Apr 2026 03:10:07 -0700 (PDT)
-Date: Wed, 29 Apr 2026 10:10:00 +0000
-From: Anirudh Rayabharam <anirudh@anirudhrb.com>
-To: Jork Loeser <jloeser@linux.microsoft.com>
-Cc: linux-hyperv@vger.kernel.org, x86@kernel.org,
-	"K . Y . Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
-	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Michael Kelley <mhklinux@outlook.com>, linux-kernel@vger.kernel.org,
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="syDuJ2eb"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1777458333;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=0ubnPqyEuUH+bb9tWP9+TOUp+n6C5onOR58LCuBDEiw=;
+	b=syDuJ2ebh9z2sjffREH58o0aT6Ajjew8W5I8ReEUtvp2EQkdghmYv8iT9JcU1iX87oMIbX
+	D+xmbMoFNHgWVKDoL6XEe6kPFjJgAeA5FQrv1tK/6uUbSyjmFqItMdxDS/n3eJA5ihtrWC
+	pDy1LXDxeyfrSgRVjezaD0bM6Fa+Scc=
+From: Usama Arif <usama.arif@linux.dev>
+To: "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>
+Cc: Usama Arif <usama.arif@linux.dev>,
+	Yury Norov <ynorov@nvidia.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Linus Torvalds <torvalds@linux-foundation.org>,
+	David Laight <david.laight.linux@gmail.com>,
+	Thomas Gleixner <tglx@linutronix.de>,
+	linux-alpha@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-snps-arc@lists.infradead.org,
+	linux-arm-kernel@lists.infradead.org,
+	linux-mips@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org,
+	kvm@vger.kernel.org,
+	linux-riscv@lists.infradead.org,
+	linux-s390@vger.kernel.org,
+	sparclinux@vger.kernel.org,
+	linux-um@lists.infradead.org,
+	dmaengine@vger.kernel.org,
+	linux-efi@vger.kernel.org,
+	linux-fsi@lists.ozlabs.org,
+	amd-gfx@lists.freedesktop.org,
+	dri-devel@lists.freedesktop.org,
+	intel-gfx@lists.freedesktop.org,
+	linux-wpan@vger.kernel.org,
+	netdev@vger.kernel.org,
+	linux-wireless@vger.kernel.org,
+	linux-spi@vger.kernel.org,
+	linux-media@vger.kernel.org,
+	linux-staging@lists.linux.dev,
+	linux-serial@vger.kernel.org,
+	linux-usb@vger.kernel.org,
+	xen-devel@lists.xenproject.org,
+	linux-fsdevel@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	bpf@vger.kernel.org,
+	kasan-dev@googlegroups.com,
+	linux-mm@kvack.org,
+	linux-x25@vger.kernel.org,
+	rust-for-linux@vger.kernel.org,
+	linux-sound@vger.kernel.org,
+	sound-open-firmware@alsa-project.org,
+	linux-csky@vger.kernel.org,
+	linux-hexagon@vger.kernel.org,
+	loongarch@lists.linux.dev,
+	linux-m68k@lists.linux-m68k.org,
+	linux-openrisc@vger.kernel.org,
+	linux-parisc@vger.kernel.org,
+	linux-sh@vger.kernel.org,
 	linux-arch@vger.kernel.org
-Subject: Re: [PATCH v4 3/3] mshv: unmap debugfs stats pages on kexec
-Message-ID: <20260429-attentive-gleeful-cow-65e0ca@anirudhrb>
-References: <20260427213855.1675044-1-jloeser@linux.microsoft.com>
- <20260427213855.1675044-4-jloeser@linux.microsoft.com>
+Subject: Re: [RFC PATCH v1 7/9] x86: Add unsafe_copy_from_user()
+Date: Wed, 29 Apr 2026 03:25:19 -0700
+Message-ID: <20260429102520.1617327-1-usama.arif@linux.dev>
+In-Reply-To: <0ee46bb228d97163fbdc14f2a7c52b93d8bc34ce.1777306795.git.chleroy@kernel.org>
+References: 
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260427213855.1675044-4-jloeser@linux.microsoft.com>
-X-ZohoMailClient: External
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-On Mon, Apr 27, 2026 at 02:38:54PM -0700, Jork Loeser wrote:
-> On L1VH, debugfs stats pages are overlay pages: the kernel allocates
-> them and registers the GPAs with the hypervisor via
-> HVCALL_MAP_STATS_PAGE2. These overlay mappings persist in the
-> hypervisor across kexec. If the kexec'd kernel reuses those physical
-> pages, the hypervisor's overlay semantics cause a machine check
-> exception.
+On Mon, 27 Apr 2026 19:13:48 +0200 "Christophe Leroy (CS GROUP)" <chleroy@kernel.org> wrote:
+
+> At the time being, x86 and arm64 are missing unsafe_copy_from_user().
 > 
-> Fix this by calling mshv_debugfs_exit() from the reboot notifier,
-> which issues HVCALL_UNMAP_STATS_PAGE for each mapped stats page before
-> kexec. This releases the overlay bindings so the physical pages can be
-> safely reused. Guard mshv_debugfs_exit() against being called when
-> init failed.
+> Add it.
 > 
-> Signed-off-by: Jork Loeser <jloeser@linux.microsoft.com>
+> Signed-off-by: Christophe Leroy (CS GROUP) <chleroy@kernel.org>
 > ---
->  drivers/hv/mshv_debugfs.c | 7 ++++++-
->  drivers/hv/mshv_synic.c   | 1 +
->  2 files changed, 7 insertions(+), 1 deletion(-)
+>  arch/x86/include/asm/uaccess.h | 29 ++++++++++++++++++++++++-----
+>  1 file changed, 24 insertions(+), 5 deletions(-)
 > 
-> diff --git a/drivers/hv/mshv_debugfs.c b/drivers/hv/mshv_debugfs.c
-> index 418b6dc8f3c2..3c3e02237ae9 100644
-> --- a/drivers/hv/mshv_debugfs.c
-> +++ b/drivers/hv/mshv_debugfs.c
-> @@ -674,8 +674,10 @@ int __init mshv_debugfs_init(void)
+> diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
+> index 3a0dd3c2b233..10c458ffa399 100644
+> --- a/arch/x86/include/asm/uaccess.h
+> +++ b/arch/x86/include/asm/uaccess.h
+> @@ -598,7 +598,7 @@ _label:									\
+>   * We want the unsafe accessors to always be inlined and use
+>   * the error labels - thus the macro games.
+>   */
+> -#define unsafe_copy_loop(dst, src, len, type, label)				\
+> +#define unsafe_put_loop(dst, src, len, type, label)				\
+>  	while (len >= sizeof(type)) {						\
+>  		unsafe_put_user(*(type *)(src),(type __user *)(dst),label);	\
+>  		dst += sizeof(type);						\
+> @@ -611,10 +611,29 @@ do {									\
+>  	char __user *__ucu_dst = (_dst);				\
+>  	const char *__ucu_src = (_src);					\
+>  	size_t __ucu_len = (_len);					\
+> -	unsafe_copy_loop(__ucu_dst, __ucu_src, __ucu_len, u64, label);	\
+> -	unsafe_copy_loop(__ucu_dst, __ucu_src, __ucu_len, u32, label);	\
+> -	unsafe_copy_loop(__ucu_dst, __ucu_src, __ucu_len, u16, label);	\
+> -	unsafe_copy_loop(__ucu_dst, __ucu_src, __ucu_len, u8, label);	\
+> +	unsafe_put_loop(__ucu_dst, __ucu_src, __ucu_len, u64, label);	\
+> +	unsafe_put_loop(__ucu_dst, __ucu_src, __ucu_len, u32, label);	\
+> +	unsafe_put_loop(__ucu_dst, __ucu_src, __ucu_len, u16, label);	\
+> +	unsafe_put_loop(__ucu_dst, __ucu_src, __ucu_len, u8, label);	\
+> +} while (0)
+> +
+> +#define unsafe_get_loop(dst, src, len, type, label)				\
+> +	while (len >= sizeof(type)) {						\
+> +		unsafe_get_user(*(type __user *)(src),(type *)(dst),label);	\
+
+Hi,
+
+Just wanted to check if src and dst need to be swapped? Same for arm64 patch.
+
+> +		dst += sizeof(type);						\
+> +		src += sizeof(type);						\
+> +		len -= sizeof(type);						\
+> +	}
+> +
+> +#define unsafe_copy_from_user(_dst,_src,_len,label)			\
+> +do {									\
+> +	char *__ucu_dst = (_dst);					\
+> +	const char __user *__ucu_src = (_src);				\
+> +	size_t __ucu_len = (_len);					\
+> +	unsafe_get_loop(__ucu_dst, __ucu_src, __ucu_len, u64, label);	\
+> +	unsafe_get_loop(__ucu_dst, __ucu_src, __ucu_len, u32, label);	\
+> +	unsafe_get_loop(__ucu_dst, __ucu_src, __ucu_len, u16, label);	\
+> +	unsafe_get_loop(__ucu_dst, __ucu_src, __ucu_len, u8, label);	\
+>  } while (0)
 >  
->  	mshv_debugfs = debugfs_create_dir("mshv", NULL);
->  	if (IS_ERR(mshv_debugfs)) {
-> +		err = PTR_ERR(mshv_debugfs);
-> +		mshv_debugfs = NULL;
->  		pr_err("%s: failed to create debugfs directory\n", __func__);
-
-Might as well print err here.
-
-Nevertheless:
-
-Reviewed-by: Anirudh Rayabharam (Microsoft) <anirudh@anirudhrb.com>
-
-Thanks,
-Anirudh.
-
+>  #ifdef CONFIG_CC_HAS_ASM_GOTO_OUTPUT
+> -- 
+> 2.49.0
+> 
+> 
