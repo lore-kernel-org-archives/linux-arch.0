@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D7F6872622;
-	Fri,  1 May 2026 07:07:59 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 544962DE6F1;
+	Fri,  1 May 2026 07:11:54 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777619279; cv=none; b=FlqAIz9t1DhkfZ7n9JF6nwgST6I3gdxgPZJS3Io4Ea3gopysvmY3MONm7nc0hPduAFs3zfIOJlq32JEnWJGGaUtYS4n1+Djh0i8ir9/Fo1RXbZ4tniYuEsGftW3E6OlklxQVMcLBXa0cT0KoF4iR2RLQkmE/LBBdiCT3RxQdF84=
+	t=1777619514; cv=none; b=dyFpCmBslhUE9/XVFToli+0+Pn4ZKhp1SozqcykQIA55+WiQlNMitarfVMg5e+uAaU+smctNMnMDeXiMd1BOSO8QKymGf3Ys65zma6BwrgxvfUZqm4jEjUsb4Y1QshkgOGrG51M8GDv5TLORV5kdfTp8JPWiqj5r4MII7uzevHU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777619279; c=relaxed/simple;
-	bh=epgThRWo7zS+qWmwPbDJ5PG4Q9G1rxWn4n0y5BifbUg=;
+	s=arc-20240116; t=1777619514; c=relaxed/simple;
+	bh=Mnyka+LmWryEnh2whF2S1osy42xEfJKWwrmFFfejmlU=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=SqRG6//3IohWNJSXOPtyy5xAY2ClJzDHIh1EN/KAK5a/kNGU4uhDTECii4KCgfFxpY02YQCRIkmkPjGzIGKgbtHFwTzRluEkbtPeYBXSxN0Gm3SDFZi5KNJtbCTdFF9RzFBnF67gnF1F7vUSLhF7s/FMogevVRk6JMjOP9kYdxk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ORtiKrhy; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:Content-Type; b=G9EanWrI+fAyXvCvpARb6qGV1rA8fIgzsUmhdt30Fy1X5IhSIHvKKlmjGwuaB2KTTmDFfKYnKr7SeZj/uSyVXRi6lGFWC540x04d//ovBJnUiRMAYsZ4Aye8oFPjNpTXsnBmj4La1FhaXwLNdBSFJXmzGd0ui+ENVmL0P0g33qY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=azGSeyiG; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ORtiKrhy"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 02066C2BCB7;
-	Fri,  1 May 2026 07:07:50 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="azGSeyiG"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 834D2C2BCB7;
+	Fri,  1 May 2026 07:11:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1777619279;
-	bh=epgThRWo7zS+qWmwPbDJ5PG4Q9G1rxWn4n0y5BifbUg=;
+	s=k20201202; t=1777619514;
+	bh=Mnyka+LmWryEnh2whF2S1osy42xEfJKWwrmFFfejmlU=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=ORtiKrhy9dQ7aJ6eNDoOyGh/r29yIWz8o4UuwJqiwXIdGOvGO+6U72J2GUMD3ec91
-	 V6m7B/tDiTW7v12gJFf0MTXVDSU8OJS21pstXmrIdFDVjKM4YNqok2BKnca0UdC83f
-	 XrNglRxq8nVD3uDqHnAbM2zhIn6ta+qnoBVuQCiQalWSTU7E9Gw3Bo2VGk0jaqmanQ
-	 XgXYmdx+/lIXs3TA8PzHjKr0NlLNkV0P29tkqgdaSmYmdoAec/BRZhj3f5RDfTBluZ
-	 JZcoI5Eg71bzQjkmZ2TO90k8tgsG4S+bYf1VtvkhfwPQKfq3jriHCIVrrZRKyk9EPv
-	 ogGVMMcEAP2gQ==
-Message-ID: <b5379cd3-f7bf-47f9-8a60-c7300b4415a2@kernel.org>
-Date: Fri, 1 May 2026 09:07:49 +0200
+	b=azGSeyiGR0th/MiL92R1fm4aqYEOeltUOOPcLpzkr12sxUmAhbkfv8XKlCFUXbJ2O
+	 Hb1LzXjDlmK+SbsmoIlYdJRr/jTVucXxvIu+Dj9AVPXWf+zy4OsN8xjx0TeUhuDsqM
+	 GYVTAChod8jlqJJh0oVd3HELRDth88uYNV0QwZbhTrl6xyCCaDN5oPkLboeAtlS28U
+	 /jsb1lnuFPXftBhUTyskUyJt6Zk55Um4OyhEvfwpIaiVN3HMLKV1Ld2e1/76Eb1KZc
+	 3Cu/SAWR9oqYcIc9CdwgkF3bAx9t1orvCKipK5ND7S5eYHoAG2/dL6ONGO4jsfx8px
+	 KrlKa7Px+wlfQ==
+Message-ID: <c580340a-48c3-4cfa-92bd-593a95d0090f@kernel.org>
+Date: Fri, 1 May 2026 09:11:42 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,8 +35,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 0/5] mm: Support selecting doing direct COW for anonymous
- pmd entry
+Subject: Re: [PATCH 5/5] mm: support choosing to do THP COW for anonymous pmd
+ entry.
 To: Luka Bai <lukafocus@icloud.com>, linux-mm@kvack.org
 Cc: Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>,
  Andrew Morton <akpm@linux-foundation.org>, Lorenzo Stoakes <ljs@kernel.org>,
@@ -51,6 +51,7 @@ Cc: Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>,
  linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
  Luka Bai <lukabai@tencent.com>
 References: <20260501-thp_cow-v1-0-005377483738@tencent.com>
+ <20260501-thp_cow-v1-5-005377483738@tencent.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -97,86 +98,23 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20260501-thp_cow-v1-0-005377483738@tencent.com>
+In-Reply-To: <20260501-thp_cow-v1-5-005377483738@tencent.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 5/1/26 07:55, Luka Bai wrote:
 
-Hi,
+> -	/*
+> -	 * See do_wp_page(): we can only reuse the folio exclusively if
+> -	 * there are no additional references. Note that we always drain
+> -	 * the LRU cache immediately after adding a THP.
+> -	 */
+> -	if (folio_ref_count(folio) >
+> -			1 + folio_test_swapcache(folio) * folio_nr_pages(folio))
+> -		goto unlock_fallback;
+>  	if (folio_test_swapcache(folio))
 
-> Copy on write support for anonymous pmd level THP is simple right now:
-> firstly we'll check whether the folio can be exclusively used by the
-> faulting process, if we can (when the ref of the folio is only 1 after
-> trying to free swapcache or the page flag AnonExclusive is setup) we'll
-> directly use it with few further handling. If we cannot, then we'll
-> split the pmd into 512 4K ptes, and do copy on write only for the
-> specific 4K page that we faulted on.
-> 
-> This logic is truly memory efficient since for most workloads we don't
-> want to allocate 2M new memory simply on a small write. However, it also
-> makes the original 2M page for the process suddenly splitted on a
-> write which will generate some performance thrashing. For example, if
-> process A and process B share an anonymous 2M pmd, if process B chooses
-> to do a writing, then its page table mapping will be changed from 1
-> pmd entry into 512 4K pte entries at once, so the tlb benifit will
-> suddenly just "vanish" for process B, which sometimes may cause a
-> observable performance degeneration. After that, we can only wait for
-> khugepaged to do the collapse for this area and merge the pmd back, which
-> is not easy to happen.
-
-You probably know that, historically, we did exactly what you describe in this
-patch set. It was rather bad regarding memory waste and COW latency, so we
-switched to the current model.
-
-Note that there was a recent related discussion for executable, which was rejected:
-
-https://lore.kernel.org/r/20251226100337.4171191-1-zhangqilong3@huawei.com
-
-> 
-> In addition to the problem above, this logic can also generate some
-> deficiency for THP itself. Currently THP is just a "best-effort" choice
-> with no "certainty". THP is easily splitted into multiple small pages
-> on common calling path like reclaiming, COW. A transparent splitting
-> can cause throughput fluctuation for some workloads. For these workloads,
-> we may want to give THP some "certainty" just like hugetlbfs,
-
-There are no such guarantees, though. And We wouldn't want to commit to any such
-guarantees today. For example, simple page migration can split the folio.
-Allocation failures will fallback to small pages etc.
-
-If you need guarantees, use hugetlb for now.
-
-> The effect
-> we want is: after some customized setup, if only the system has usable
-> folio, and the virtual memory alignment permits (or we setup to), we can
-> make sure we always use THP for it, the system will never split it except
-> the user wants to do so.
-> 
-> This patchset is about both two things above, firstly we add pmd level
-> THP COW support by revising the code in do_huge_pmd_wp_page, we added
-> switch for it because different workloads may need different resources,
-
-The switch is bad, and we won't accept any toggle like that. A system-wide
-setting does not make sense for such behavior.
-
-A per-VMA flag? Maybe, but I expect pushback as well, as it is way too specific.
-So we'd have to find some concept that abstracts these semantics. But I expect
-pushback as well.
-
-We messed up enough with toggles in THP space, unfortunately.
-
-Also, anything that only works for PMD-sized THPs is a warning sign in 2026 :)
-
-You don't really raise any concrete use cases or performance numbers for these
-use cases. Some details about applications that use fork() and rely on such
-behavior would be helpful.
-
-Note that an application that does fork() could use MADV_COLLAPSE after fork()
-to make sure that it immediately gets THPs back.
-
-There is also the option to just use MADV_DONTFORK to not even share ranges with
-a child process in the first place, avoiding page copies entirely.
+I don't see why you would want to remove this check, really. Instead of
+"fallback", you might want to try copying the PMD.
 
 -- 
 Cheers,
