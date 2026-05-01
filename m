@@ -1,81 +1,103 @@
-Received: from mail.ilvokhin.com (mail.ilvokhin.com [178.62.254.231])
+Received: from outbound.st.icloud.com (p-east2-cluster1-host12-snip4-10.eps.apple.com [57.103.76.63])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0BB7F191F94;
-	Fri,  1 May 2026 13:32:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.62.254.231
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4E8393CD8CD
+	for <linux-arch@vger.kernel.org>; Fri,  1 May 2026 15:01:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=57.103.76.63
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777642377; cv=none; b=fPVehykvpQ0rOL+U6il1S+IU7UbRzRfHmgyKXXTTBUU8ZnkxPXP82PmEWPiu51X5khr9gWoloQ3Cz2f3uBw2FTBCcxsB2LfHGnhXby7G1O3/nMFIdc1KYpo0DJ5ggp60064TfJEW1T6IMP67MM7O4vunnX2D3i3bFvo/aTEQP9Y=
+	t=1777647689; cv=none; b=M3eE76U2IWlQlJ9U11XuTR437lFEJwSBRWjJ+1WOhHDCAgxZJabULBG326U2IHaEIVgsIcOMUVimV6LeMsMMLlGAsHBT8q+lkjn3yX+zQCMF1nsm2e3bHBbkTjcR0kPlSY6lpbPOqZmUVI2YC8KTLxvnzgOEB5AIk5WqILbUlK8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777642377; c=relaxed/simple;
-	bh=AqyZXLeYzsJx+rZc7e1F5Sgu3BjZdoUpHMsJoKlvEcI=;
+	s=arc-20240116; t=1777647689; c=relaxed/simple;
+	bh=rIlMn8/Rxj7iD6WRx2pdfycUNkmkiai8j7XEAMOPmL4=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=ZXfQFYjsBE7XZPVDCKILODpVPcgk1lOByqcXuqQat0yVnxS2zJ6GONer+jnmDFVChcMedml91e++Z7exXwGts5OXar5VaDa5MVIS3cbepNFkKr8pMaWlOGKGGGHHL0+k57HiTenX+oVgEY4o0yUKYdNfvFKGHXPtBPkWwcSQbAo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=jTKGB8Ia; arc=none smtp.client-ip=178.62.254.231
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ilvokhin.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=KkhabDkX6/QvP1UW89pvUy2L64A6+lgFG5DkdmhfCsKsgwlIsk2EJ0r54ngApyx67HIrCt/GVTJ3NIdpu4jGkXBebcqz1HAgjRdro6QsyrPzKXYjdNxyNOKMtrQwOS0HoVEwt1KOKN0c6zwje9Nv6LAt8XE6fQ8TYyuFTiwPm9U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=icloud.com; spf=pass smtp.mailfrom=icloud.com; dkim=pass (2048-bit key) header.d=icloud.com header.i=@icloud.com header.b=fhfPhsOM; arc=none smtp.client-ip=57.103.76.63
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=icloud.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=icloud.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="jTKGB8Ia"
-Received: from shell.ilvokhin.com (shell.ilvokhin.com [138.68.190.75])
-	(Authenticated sender: d@ilvokhin.com)
-	by mail.ilvokhin.com (Postfix) with ESMTPSA id ABB84C7B79;
-	Fri, 01 May 2026 13:32:47 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ilvokhin.com;
-	s=mail; t=1777642368;
-	bh=IszU0JG/WWa2O3f5MsRNZrb+ulmlJxnxUGQwsmnwYmU=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=jTKGB8Ia7D3+Zec5q4aruW2aznDUx+x2QbIxrQuVAh+HqJGpjaqhURhOBdhrZQbag
-	 IWI5DhN3gDaOvxMrnc27MCpjJCByfrwPcadWoUrn575D9wcu8ZvKMjWZVZYlBfomtK
-	 3l6KDosr8VPVi27Gi5jVQsMZxMlTisX765e0Z9hk=
-Date: Fri, 1 May 2026 13:32:44 +0000
-From: Dmitry Ilvokhin <d@ilvokhin.com>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>,
-	Will Deacon <will@kernel.org>, Boqun Feng <boqun@kernel.org>,
-	Waiman Long <longman@redhat.com>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Juergen Gross <jgross@suse.com>,
-	Ajay Kaher <ajay.kaher@broadcom.com>,
-	Alexey Makhalov <alexey.makhalov@broadcom.com>,
-	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
-	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
-	Christoph Lameter <cl@gentwo.org>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
-	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
-	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
-	kernel-team@meta.com, "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v5 0/7] locking: contended_release tracepoint
- instrumentation
-Message-ID: <afSrfOyn90vGC6ER@shell.ilvokhin.com>
-References: <cover.1776350944.git.d@ilvokhin.com>
+	dkim=pass (2048-bit key) header.d=icloud.com header.i=@icloud.com header.b="fhfPhsOM"
+Received: from outbound.st.icloud.com (unknown [127.0.0.2])
+	by p00-icloudmta-asmtp-us-east-1a-100-percent-6 (Postfix) with ESMTPS id 9803D18002F9;
+	Fri, 01 May 2026 15:01:26 +0000 (UTC)
+X-ICL-Out-Info: HUtFAUMEWwJACUgBTUQeDx5WFlZNRAJCTQhAA0MFWgFeAUEdXwFLVxQEFEYGVg1dE0wLcwRUB10FXVZQAlpLVBQEFEYGVg1dE0wLcwRUB10FXVZQAlpLQBMESgZNXw5eHwQXRhlVBEceXVZAGRkCURxWDVdDVARfUEkMQVBsWgBHF0gdXRlZb1BdHA4EVAddBV1WUAJaS18ZXUUPDFE/cyFjFgoABl0HKQ1JQy17Pnkxezl6QHooA04ZDEodUlZbE1UXRgk=
+Dkim-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=icloud.com; s=1a1hai; t=1777647687; x=1780239687; bh=Nlmz68aV/PBSCqBcK2jC8RwR5m/cZwD40n4u1XMmqfk=; h=Date:From:To:Subject:Message-ID:MIME-Version:Content-Type:x-icloud-hme; b=fhfPhsOMnm5AiPYlmMHq0kQXrghFmhwPK0qhVAbsmF+mGAZDykiYSiekQbqYbqk3rcPk5SKT1dqGwSuLAbToa09580tuj9xGKw1/JqTJqKWubNcncQ4zvOiV6FJuEu3nuswcadLflNkJH5pcxoOg2NNLpZLknMAF1U7jKJdbkoyOXcUaMjoLxejbmlpnabTGQsGJZGDUV95MTAUkUm2q1ma1pXROD9kJoOvBdTSMXvj2MSTVWcFte29Sf1RuFhu9xgsrP4yj052d8VlP++KqFF8EZNJBj05QA8EsNaTuYLJj3atwT+BStKHJ0JvE2kUDCVffmDAdaFvL33aHAcDcbw==
+Received: from localhost (unknown [17.42.251.67])
+	by p00-icloudmta-asmtp-us-east-1a-100-percent-6 (Postfix) with ESMTPSA id 5CDD21800299;
+	Fri, 01 May 2026 15:01:25 +0000 (UTC)
+Date: Fri, 1 May 2026 23:01:21 +0800
+From: Luka Bai <lukafocus@icloud.com>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: linux-mm@kvack.org, Jonathan Corbet <corbet@lwn.net>,
+	Shuah Khan <skhan@linuxfoundation.org>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Lorenzo Stoakes <ljs@kernel.org>, Zi Yan <ziy@nvidia.com>,
+	Baolin Wang <baolin.wang@linux.alibaba.com>,
+	"Liam R. Howlett" <liam@infradead.org>,
+	Nico Pache <npache@redhat.com>, Ryan Roberts <ryan.roberts@arm.com>,
+	Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
+	Lance Yang <lance.yang@linux.dev>,
+	Vlastimil Babka <vbabka@kernel.org>,
+	Mike Rapoport <rppt@kernel.org>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Michal Hocko <mhocko@suse.com>, Jann Horn <jannh@google.com>,
+	Arnd Bergmann <arnd@arndb.de>, Kairui Song <kasong@tencent.com>,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-doc@vger.kernel.org, Luka Bai <lukabai@tencent.com>
+Subject: Re: [PATCH 5/5] mm: support choosing to do THP COW for anonymous pmd
+ entry.
+Message-ID: <afTAQZn9m165Y41p@LUKABAI-MC1>
+References: <20260501-thp_cow-v1-0-005377483738@tencent.com>
+ <20260501-thp_cow-v1-5-005377483738@tencent.com>
+ <c580340a-48c3-4cfa-92bd-593a95d0090f@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <cover.1776350944.git.d@ilvokhin.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <c580340a-48c3-4cfa-92bd-593a95d0090f@kernel.org>
+X-Authority-Info-Out: v=2.4 cv=UfxciaSN c=1 sm=1 tr=0 ts=69f4c047
+ cx=c_apl:c_pps:t_out a=YrL12D//S6tul8v/L+6tKg==:117
+ a=YrL12D//S6tul8v/L+6tKg==:17 a=IkcTkHD0fZMA:10 a=NGcC8JguVDcA:10
+ a=x7bEGLp0ZPQA:10 a=UaoJkeuwEpQA:10 a=VkNPw1HP01LnGYTKEx00:22
+ a=292iOHRO3ARvOjuV3UUA:9 a=3ZKOabzyN94A:10 a=QEXdDO2ut3YA:10
+ a=zgiPjhLxNE0A:10 a=zZCYzV9kfG8A:10
+X-Proofpoint-ORIG-GUID: sr5x0X2KYkUyqD5j_4TciEAxaooc4_F8
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNTAxMDE0NiBTYWx0ZWRfX+WW7lkscOdYB
+ JRF6gAgqna3aLhnH6+mV5AiOZKSeyayBJCl3a1roR/0V0//vba5klvw6uiNf/Zfw+tpdBUrxw8e
+ 3je6nzqNWImfzT8RF7UdRauzSloLIvHHaCaQUpGLwdXdvcnMjO9eO5xf48beeDUMD21/d6fJtap
+ xY2nIR/01GsVU+nE7OhRQqxDNxl/1YbLeUi1to2hN6Wz4WhndQmO4Z4ipHgstQ2C5RJqrr4fpjs
+ RDemQ+/vQxc/0MMWggebofrCF7EKSw9B/OdtJKZaiSDM7BMS/AMNsJ3//K9+h6aQR5oEmp5n2el
+ 0Ck9gGal0ANQzbT2cfIWvXIx37hxs+N5lOsFqM5h8u0X1PL+CSDIS4g21rGgkI=
+X-Proofpoint-GUID: sr5x0X2KYkUyqD5j_4TciEAxaooc4_F8
 
-I plan to rebase this series on top of Linus' tree to pick up Vineeth's
-patch [1], and send an updated version next week.
+在 Fri, May 01, 2026 at 09:11:42AM +0200，David Hildenbrand (Arm) 写道：
+> 
+> > -	/*
+> > -	 * See do_wp_page(): we can only reuse the folio exclusively if
+> > -	 * there are no additional references. Note that we always drain
+> > -	 * the LRU cache immediately after adding a THP.
+> > -	 */
+> > -	if (folio_ref_count(folio) >
+> > -			1 + folio_test_swapcache(folio) * folio_nr_pages(folio))
+> > -		goto unlock_fallback;
+> >  	if (folio_test_swapcache(folio))
+> 
+> I don't see why you would want to remove this check, really. Instead of
+> "fallback", you might want to try copying the PMD.
+> 
+> -- 
+> Cheers,
+> 
+> David
 
-In the meantime, I would appreciate feedback, especially on: 
+Sorry I didn't notice this thread earlier. That is a great suggestion! I can keep
+this branch and do the folio copying instead of fallback, that actually helps
+to avoid the extra checking about swapcache when the refs is definitely not
+suitable for exclusive use. Thanks! :)
 
-- tracepoint semantics across different lock types
-- overhead concerns in hot paths (e.g. qspinlock)
-
-As a follow-up, I am also working on an RFC to extend perf lock
-contention to make use of the contended_release tracepoint, so feedback
-in that context would also be helpful.
-
-Feedback from locking and tracing maintainers would be particularly
-appreciated before respinning.
-
-[1]: https://lore.kernel.org/all/20260323160052.17528-1-vineeth@bitbyteword.org/
+Best,
+Luka
