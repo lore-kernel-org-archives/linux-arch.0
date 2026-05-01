@@ -1,33 +1,32 @@
-Received: from outbound.ms.icloud.com (ms-2002f-snip4-11.eps.apple.com [57.103.74.63])
+Received: from outbound.ms.icloud.com (ms-2002i-snip4-11.eps.apple.com [57.103.74.13])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 66E40344044
-	for <linux-arch@vger.kernel.org>; Fri,  1 May 2026 05:56:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=57.103.74.63
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B084D344044
+	for <linux-arch@vger.kernel.org>; Fri,  1 May 2026 05:56:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=57.103.74.13
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777614961; cv=none; b=crFlJtHCcE/YsdMFbN6tYkZypuHnzyg3RJ9DX6IHuIJJn1VfoFv2OFuJXvJh9QKig3NCP2cwQtEka2yQK56xcRlND9U6LiBERMFwEyZqEs5I6FjhDRN2cUhZVMKyKWm7unR8veNH2tjNwUn2Zr93Z5kAw5ZQpRiY3In8TP+PidQ=
+	t=1777614968; cv=none; b=qKlmv4HP85eAvjufD86+QcEHv6uFuHxTw5W6nRRh3I4uxWtnydbLtg+OpIuMqsLhmXWvSRVtNGeG8pb0bHn3Q1zmB22HPIxho2f/+RTcaiBiFd4nxlsLWg/SBCGPFQOesmaotAm1PhQJ7WrAJ5PeqxCbyG9yNThY/amKiU7tTsU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777614961; c=relaxed/simple;
-	bh=8F5OWchx6oWjQdaQhYvrUYZ5NQU/mG7ZNaYkB8ZziY0=;
-	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=K97R6yHxNXzCubVojq6rLRsrDg421urEfWo+DKGbD5RYjxCinjrLAhQUm6eYNvce0Q8s0yuCHfZTRGRhyXy+xCgO5ECXL1DEcdAw2EuOBNGWENl3YJzntWcNzbZ9f7oiuP+xj9/zZk0hmmcQD5SFe8snamSN7TSTp3+dAoTCeJo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=icloud.com; spf=pass smtp.mailfrom=icloud.com; dkim=pass (2048-bit key) header.d=icloud.com header.i=@icloud.com header.b=t5Hy/Ea7; arc=none smtp.client-ip=57.103.74.63
+	s=arc-20240116; t=1777614968; c=relaxed/simple;
+	bh=mSldpHJai9REeX+vx+yWlHrvE7oYWFwfDYJjROuxIwo=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=TxqSZFumy7K7frY9Zj5bL40lXoFqQHEmNgZ9OMb2XLvpstoYgUzKC/A0+XBzB/U9ePKNYQTDH2TCseWY2Ydlifj3xgcv+PHqcfvHL4ZQ3lfq4+VnMesd8BQaNHOgaS+j/h1MR/4zeRH5Am7W8eqF1puha/e3WxaAaGtb1pLHczs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=icloud.com; spf=pass smtp.mailfrom=icloud.com; dkim=pass (2048-bit key) header.d=icloud.com header.i=@icloud.com header.b=RL3aQBbh; arc=none smtp.client-ip=57.103.74.13
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=icloud.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=icloud.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=icloud.com header.i=@icloud.com header.b="t5Hy/Ea7"
+	dkim=pass (2048-bit key) header.d=icloud.com header.i=@icloud.com header.b="RL3aQBbh"
 Received: from outbound.ms.icloud.com (unknown [127.0.0.2])
-	by p00-icloudmta-asmtp-us-west-3a-60-percent-8 (Postfix) with ESMTPS id 9810B1800137;
-	Fri, 01 May 2026 05:55:56 +0000 (UTC)
-X-ICL-Out-Info: HUtFAUMEWwJACUgBTUQeDx5WFlZNRAJCTQhAA0MFWgFeAUEdXwFLVxQEFEYGVg1dE0wLcwRUB10FXVZQAlpLVBQEFEYGVg1dE0wLcwRUB10FXVZQAlpLQBMESgZNXw5eHwQXRhlVBEceXVZeHhkCURxWDVdDVARfUEkMQVBsWgBHF0gdXRlZb1BdHA4EVAddBV1WUAJaS18ZXUUPXwdZBEAMSAJAQwNCL1oXREBBWh9AFEgDWARcBUQBSwReDytGFVcbVgNDRVEfVEYTGU4bV01QG18CQg8=
-Dkim-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=icloud.com; s=1a1hai; t=1777614959; x=1780206959; bh=nCs6drGaFkCRJLaExPULFGqJ8DTdS4a2ok3PlUktjtQ=; h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:x-icloud-hme; b=t5Hy/Ea78rL5bj3jYZoSWFw6K619fKXVpfmODAHUgfMAj8AgYKkFYTOVZ9RBgPEbFXzlTJcme7dtZgkTw4M88T0T94vKuOUekoZKa8hTW1nhJWHAbYzTTGpUl0AyN4xTSQIgiPmaNZumwo0fna4ihm0yHAv2NUFA3Uh0KBdAL7Ec2a6mgqZeT8JzK2BIyFym96mLxk65SXvfQuQVcPodwm7GrmID4n9nzqevpz8oZpjIaskx6b3+dAthkaq+1r+lE9ppIVgzJDvt2Ei7fkn+D3Q7meNObR8IvmRHpWZE+xFjB/8W0t3GbjIVi0SYLr8e9njhGCENlQXjUmblooPBtg==
+	by p00-icloudmta-asmtp-us-west-3a-60-percent-8 (Postfix) with ESMTPS id 3D2811800135;
+	Fri, 01 May 2026 05:56:02 +0000 (UTC)
+X-ICL-Out-Info: HUtFAUMEWwJACUgBTUQeDx5WFlZNRAJCTQhAA0MFWgFeAUEdXwFLVxQEFEYGVg1dE0wLcwRUB10FXVZQAlpLVBQEFEYGVg1dE0wLcwRUB10FXVZQAlpLQBMESgZNXw5eHwQXRhlVBEceXVZeHhkCURxWDVdDVARfUEkMQVBsWgBHF0gdXRlZb1BdHA4EVAddBV1WUAJaS18ZXUUPXwdZBEAMSAJAQwNCL1oXREBBWh9BFEgDWARcBUQBSwReDytGFVcbVgNDRVEfVEYTGU4bV01QG18CQg8=
+Dkim-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=icloud.com; s=1a1hai; t=1777614966; x=1780206966; bh=IbSC559/qUR/nGvKKtd8DwOnbSEiDUOtMZLyC6A/T58=; h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:To:x-icloud-hme; b=RL3aQBbhZdMkY8FTaKdyZGveHZXnOv6ZLP26suA8fTGUYOk3urCFrdNIe0Tn5iES4B4VTwx1r1n94cM9XQmexmpy6rLqkhTVEn/0BVms3MFkCrFqmJe7FAa3Nfy/fs0WoSyNeghTmc1SLnSpgfiiA+EIReefMukb/BvRQRCUytyPRryOarMtJa7iD+h+hC2VQTt62wPo4K0FMQD2/AQityTg4VO4NmB4TmwvEJp+imhFmRtTHtbpKbw4uUvNN5pjUZCw6Z87LG33TzSfMFN/DlcCmM5HbErYW/m/gMRjVHEovSp5YkkkikaGB5a+EWZL8MtJkF2a7xQ/K3Aj1vX93A==
 Received: from [127.0.0.1] (unknown [17.57.154.37])
-	by p00-icloudmta-asmtp-us-west-3a-60-percent-8 (Postfix) with ESMTPSA id A23CF18000AC;
-	Fri, 01 May 2026 05:55:50 +0000 (UTC)
+	by p00-icloudmta-asmtp-us-west-3a-60-percent-8 (Postfix) with ESMTPSA id 6E12E1800130;
+	Fri, 01 May 2026 05:55:56 +0000 (UTC)
 From: Luka Bai <lukafocus@icloud.com>
-Subject: [PATCH 0/5] mm: Support selecting doing direct COW for anonymous
- pmd entry
-Date: Fri, 01 May 2026 13:55:41 +0800
-Message-Id: <20260501-thp_cow-v1-0-005377483738@tencent.com>
+Date: Fri, 01 May 2026 13:55:42 +0800
+Subject: [PATCH 1/5] mm: add basic madvise helpers and branch for THP setup
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -36,10 +35,9 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-X-B4-Tracking: v=1; b=H4sIAAAAAAAC/6tWKk4tykwtVrJSqFYqSi3LLM7MzwNyDHUUlJIzE
- vPSU3UzU4B8JSMDIzMDUwND3ZKMgvjk/HJdSxMLc+PUFGMDc0tjJaDqgqLUtMwKsEnRsRB+cWl
- SVmpyCUi7Um0tAMn0eRprAAAA
-X-Change-ID: 20260501-thp_cow-94873ed30793
+Message-Id: <20260501-thp_cow-v1-1-005377483738@tencent.com>
+References: <20260501-thp_cow-v1-0-005377483738@tencent.com>
+In-Reply-To: <20260501-thp_cow-v1-0-005377483738@tencent.com>
 To: linux-mm@kvack.org
 Cc: Jonathan Corbet <corbet@lwn.net>, 
  Shuah Khan <skhan@linuxfoundation.org>, 
@@ -56,110 +54,200 @@ Cc: Jonathan Corbet <corbet@lwn.net>,
  linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, 
  Luka Bai <lukabai@tencent.com>
 X-Mailer: b4 0.15.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1777614950; l=4495;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1777614950; l=6033;
  i=lukabai@tencent.com; s=20260501; h=from:subject:message-id;
- bh=8F5OWchx6oWjQdaQhYvrUYZ5NQU/mG7ZNaYkB8ZziY0=;
- b=Mnq7d1ebKNKd22Mi2Q4QzUgQPN/G4as2TdQObTxVVawo0sRb+In5CDW7lDVCkbmH0A4nKiSy6
- E4oR+nG1e8JAAKnv2gPZd0rLAGI2vUgMg2P4OePKmeODhjd/LA1OxO5
+ bh=qeYKGarfhCPQLyYwYSEdCT8XEQEucOGNFQFPA0gbSHc=;
+ b=vX/BzBp7mBvxyfV6EAf9h1WJBBeiBTb9N1fh3Z29aoa6VlsaOOSphrrjZUqA1Ru2SsrPkYhUK
+ BRGfhLLarZLBSghUt30uCias75yVmtIYgkRukCiZ9MsLeIWXIsKFzcA
 X-Developer-Key: i=lukabai@tencent.com; a=ed25519;
  pk=KeaVteSWd00GIAjFyWZnuFsKAKixjga1ZkLMcI66nPM=
-X-Authority-Info-Out: v=2.4 cv=AfC83nXG c=1 sm=1 tr=0 ts=69f4406f
+X-Authority-Info-Out: v=2.4 cv=YZywJgRf c=1 sm=1 tr=0 ts=69f44073
  cx=c_apl:c_pps:t_out a=qkKslKyYc0ctBTeLUVfTFg==:117 a=IkcTkHD0fZMA:10
  a=NGcC8JguVDcA:10 a=x7bEGLp0ZPQA:10 a=UaoJkeuwEpQA:10
- a=VkNPw1HP01LnGYTKEx00:22 a=GvQkQWPkAAAA:8 a=_OFjXo-hXSw0Td5hZWcA:9
+ a=VkNPw1HP01LnGYTKEx00:22 a=GvQkQWPkAAAA:8 a=WA886SfcoAClic5TCSgA:9
  a=QEXdDO2ut3YA:10
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNTAxMDA1NCBTYWx0ZWRfX4ZxyaoctKwi/
- n75OHVnLyjNtavyhdX71M2ZUJ7kT/GvlaXbZPJ8/2aFNuBNtEdIi9Y22/8Qc4ZRG7FZZQ2el6i0
- K5rrPW3a5EDXjjXPO4gIO6U0ihiM/6MmO2zZ3fFYj9i6JryTMVx+4k1M1ibrIlLU0SJBaxDM3jq
- YokJCa/LJEc/PoyGFxrCEHwRe0Q8GwVlPDgaMauiWGVuFzbAM56a34BZWPd91OeeXeUx3nSwvCt
- Xd+R/elFBbHpdFQ7DQXZs63iFzkzYtFPeiydEpv9DGKdYeXA1gxx9B1vKKhbbzU3/iwIIChL5oX
- zG+03xnZIreOfNXKt8vJWnIvHwZ3ItDgcYEk0kaAhyj02fna/4nvF1Vbgf9jHM=
-X-Proofpoint-ORIG-GUID: 95NSFYUkqOw5GeELm6bq1q4S-sdjRYZv
-X-Proofpoint-GUID: 95NSFYUkqOw5GeELm6bq1q4S-sdjRYZv
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNTAxMDA1MyBTYWx0ZWRfX3XzkaOJxZwyt
+ ZPI9TRSWqREvmUiF2QpMg0FtW4xDNgmIjP7bbw2W8mJKYpvI3V4pjS2ExPFtko5MfdxK2++bcaq
+ p8nF3yEOysfKP25GQaL/1m5SuZemGq6XoptcaRxHxp6DcKrydTtEfmlpKzDhWnH3EnJhOvt2qYY
+ RY7/hWluhGUafrxKhKyiB9ST2d9qGbwd+klWTFG+01cP7DFffrf2hS9dKAhdlwtwt+REFDgEun/
+ KI0wGGIri4J5rYDKGFQv2YPGNTVh1RXR9GilC8QA0bcQBc9ZBjpZgDmTcGYgD+lrVFg6bpvysYJ
+ uL6dhA7JgpM0/CUxzy54bqdUSPxP9T4CBAdmh72Lgm9pOb48mEbb9VvDs8tzIA=
+X-Proofpoint-ORIG-GUID: 0D-T28gQiBVQg_2gi_am4Sqyi3f_sm_4
+X-Proofpoint-GUID: 0D-T28gQiBVQg_2gi_am4Sqyi3f_sm_4
 
-Copy on write support for anonymous pmd level THP is simple right now:
-firstly we'll check whether the folio can be exclusively used by the
-faulting process, if we can (when the ref of the folio is only 1 after
-trying to free swapcache or the page flag AnonExclusive is setup) we'll
-directly use it with few further handling. If we cannot, then we'll
-split the pmd into 512 4K ptes, and do copy on write only for the
-specific 4K page that we faulted on.
+From: Luka Bai <lukabai@tencent.com>
 
-This logic is truly memory efficient since for most workloads we don't
-want to allocate 2M new memory simply on a small write. However, it also
-makes the original 2M page for the process suddenly splitted on a
-write which will generate some performance thrashing. For example, if
-process A and process B share an anonymous 2M pmd, if process B chooses
-to do a writing, then its page table mapping will be changed from 1
-pmd entry into 512 4K pte entries at once, so the tlb benifit will
-suddenly just "vanish" for process B, which sometimes may cause a
-observable performance degeneration. After that, we can only wait for
-khugepaged to do the collapse for this area and merge the pmd back, which
-is not easy to happen.
+Transparent huge page is now properly working with most of the mm
+framework, and well fused with the folio concept that can be
+reclaimed or allocated with a large order. However, its deed is not
+very "estimable". For example, a THP is easily split in many path like
+partially mapped, swap out or fork + COW(for child processes).
 
-In addition to the problem above, this logic can also generate some
-deficiency for THP itself. Currently THP is just a "best-effort" choice
-with no "certainty". THP is easily splitted into multiple small pages
-on common calling path like reclaiming, COW. A transparent splitting
-can cause throughput fluctuation for some workloads. For these workloads,
-we may want to give THP some "certainty" just like hugetlbfs, The effect
-we want is: after some customized setup, if only the system has usable
-folio, and the virtual memory alignment permits (or we setup to), we can
-make sure we always use THP for it, the system will never split it except
-the user wants to do so.
+In some cases, we may want it to have some concluded result. Since
+some workloads expect a relatively "stable" THP, while others may want
+to save memory more rather than the performance benifits.
 
-This patchset is about both two things above, firstly we add pmd level
-THP COW support by revising the code in do_huge_pmd_wp_page, we added
-switch for it because different workloads may need different resources,
-for which memory saving may matter more rather than the 2M tlb gain.
-The switch is very similar to the "enable" and "shmem_enable" in sysfs
-path of transparent_hugepage. THP COW is only enabled when THP itself
-is enabled globally or by madvise. And also, we add basic THP setup
-helpers and branch in madvise path and add the THP COW choice to it for a
-more fine-grained setup. Now the helpers only supports copy on write
-related, but in the future we may be able to add more types of THP
-configurations into it like swapping.
+This patch adds some basic helpers and branch in madvise path so that
+we can add madvise choices on THP to conduct what we do on different
+types of operations like COW or swap that may split THP, on the level
+of vma.
 
-Patch Details:
-========
-* Patch 1 adds the basic THP setup helpers and branch in madvise path.
-  Then we add THP COW parameter into it.
-* Patch 2 adds the THP COW sysfs interface, the logic is very similar
-  to enable and shmem_enable of THP.
-* Patch 3 adds the helpers that will be used in the actual COW path
-  to decide whether we choose to do pmd level THP COW.
-* Patch 4 reconstructs map_anon_folio_pmd_nopf and map_anon_folio_pmd_pf
-  to make it capable of doing mapping for copied new folio when the
-  fault flag has FLAG_FAULT_UNSHARE.
-* Patch 5 adds the actual support for pmd level THP COW, and uses all
-  the switches and helpers in the above 4 patches to do the strategy
-  control.
+We transfer the type of configuration using parameters of madvise,
+analyze it and save the result in vma->vm_flags for later use.
 
-Thanks for reading. Comments and suggestions are very welcome!
+Currently the only operation in the list is COW. It decides whether
+we want to use hugepages for the child process when it writes a spot
+on the shared anonymous pmd so that we can make sure the THP not
+being split after writing. This patch only adds the basic setup
+helpers, the real usage will be added in the later patches.
 
 Signed-off-by: Luka Bai <lukabai@tencent.com>
 ---
-Luka Bai (5):
-      mm: add basic madvise helpers and branch for THP setup
-      mm: add pmd level THP COW parameter in sysfs
-      mm: add pmd level THP COW judgement helpers
-      mm: enable map_anon_folio_pmd_nopf to handle unshare
-      mm: support choosing to do THP COW for anonymous pmd entry.
+ include/linux/huge_mm.h                |  6 ++++++
+ include/linux/mm.h                     | 19 +++++++++++++++++++
+ include/uapi/asm-generic/mman-common.h |  9 +++++++++
+ mm/madvise.c                           | 25 +++++++++++++++++++++++++
+ 4 files changed, 59 insertions(+)
 
- .../testing/sysfs-kernel-mm-transparent-hugepage   |   1 +
- Documentation/admin-guide/mm/transhuge.rst         |  27 +++
- include/linux/huge_mm.h                            |  45 ++++-
- include/linux/mm.h                                 |  19 ++
- include/uapi/asm-generic/mman-common.h             |   9 +
- mm/huge_memory.c                                   | 198 ++++++++++++++++++---
- mm/khugepaged.c                                    |   8 +-
- mm/madvise.c                                       |  25 +++
- 8 files changed, 308 insertions(+), 24 deletions(-)
----
-base-commit: 41cd9e3d23b8fd9e6c3c0311e9cb0304442c6141
-change-id: 20260501-thp_cow-94873ed30793
+diff --git a/include/linux/huge_mm.h b/include/linux/huge_mm.h
+index 48496f09909b..a0ce8c0b81f5 100644
+--- a/include/linux/huge_mm.h
++++ b/include/linux/huge_mm.h
+@@ -6,6 +6,7 @@
+ 
+ #include <linux/fs.h> /* only for vma_is_dax() */
+ #include <linux/kobject.h>
++#include <uapi/asm-generic/mman-common.h>
+ 
+ vm_fault_t do_huge_pmd_anonymous_page(struct vm_fault *vmf);
+ int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+@@ -363,6 +364,11 @@ static inline bool thp_disabled_by_hw(void)
+ 	return transparent_hugepage_flags & (1 << TRANSPARENT_HUGEPAGE_UNSUPPORTED);
+ }
+ 
++static inline bool madv_thp_cow(int behavior)
++{
++	return behavior & MADV_THP_COW;
++}
++
+ unsigned long thp_get_unmapped_area(struct file *filp, unsigned long addr,
+ 		unsigned long len, unsigned long pgoff, unsigned long flags);
+ unsigned long thp_get_unmapped_area_vmflags(struct file *filp, unsigned long addr,
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 1d76da6e0791..8a800819cfa2 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -391,6 +391,10 @@ enum {
+ #else
+ 	DECLARE_VMA_BIT_ALIAS(STACK, GROWSDOWN),
+ #endif
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++	DECLARE_VMA_BIT(THP_SETUP_1, 43),
++	DECLARE_VMA_BIT_ALIAS(THP_COW, THP_SETUP_1),
++#endif
+ };
+ #undef DECLARE_VMA_BIT
+ #undef DECLARE_VMA_BIT_ALIAS
+@@ -510,6 +514,9 @@ enum {
+ #define VM_DROPPABLE		VM_NONE
+ #define VMA_DROPPABLE		EMPTY_VMA_FLAGS
+ #endif
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#define VM_THP_COW	INIT_VM_FLAG(THP_COW)
++#endif
+ 
+ /* Bits set in the VMA until the stack is in its final location */
+ #define VM_STACK_INCOMPLETE_SETUP (VM_RAND_READ | VM_SEQ_READ | VM_STACK_EARLY)
+@@ -4128,6 +4135,18 @@ extern int do_munmap(struct mm_struct *, unsigned long, size_t,
+ 		     struct list_head *uf);
+ extern int do_madvise(struct mm_struct *mm, unsigned long start, size_t len_in, int behavior);
+ 
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static inline bool madv_thp_behavior(int behavior)
++{
++	return behavior >= MADV_THP_SETUP_BASE && behavior < MADV_THP_SETUP_END;
++}
++#else
++static inline bool madv_thp_behavior(int behavior)
++{
++	return false;
++}
++#endif
++
+ #ifdef CONFIG_MMU
+ extern int __mm_populate(unsigned long addr, unsigned long len,
+ 			 int ignore_errors);
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index ef1c27fa3c57..1617ed374503 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -82,6 +82,15 @@
+ #define MADV_GUARD_INSTALL 102		/* fatal signal on access to range */
+ #define MADV_GUARD_REMOVE 103		/* unguard range */
+ 
++/* for THP setup */
++#define MADV_THP_SETUP_BASE 256
++enum {
++	MADV_THP_COW_BIT,
++	MADV_THP_SETUP_MAX_BIT,
++};
++#define MADV_THP_COW        (MADV_THP_SETUP_BASE + (1 << MADV_THP_COW_BIT))
++#define MADV_THP_SETUP_END	(MADV_THP_SETUP_BASE + (1 << MADV_THP_SETUP_MAX_BIT))
++
+ /* compatibility flags */
+ #define MAP_FILE	0
+ 
+diff --git a/mm/madvise.c b/mm/madvise.c
+index 69708e953cf5..5dbfc89682d7 100644
+--- a/mm/madvise.c
++++ b/mm/madvise.c
+@@ -1331,6 +1331,25 @@ static bool can_madvise_modify(struct madvise_behavior *madv_behavior)
+ }
+ #endif
+ 
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static vm_flags_t madvise_thp_setup(struct madvise_behavior *madv_behavior)
++{
++	int thp_behavior = madv_behavior->behavior - MADV_THP_SETUP_BASE;
++	struct vm_area_struct *vma = madv_behavior->vma;
++	vm_flags_t new_flags = vma->vm_flags;
++
++	if (madv_thp_cow(thp_behavior))
++		new_flags |= VM_THP_COW;
++
++	return new_flags;
++}
++#else
++static vm_flags_t madvise_thp_setup(struct madvise_behavior *madv_behavior)
++{
++	return madv_behavior->vma->vm_flags;
++}
++#endif
++
+ /*
+  * Apply an madvise behavior to a region of a vma.  madvise_update_vma
+  * will handle splitting a vm area into separate areas, each area with its own
+@@ -1427,6 +1446,10 @@ static int madvise_vma_behavior(struct madvise_behavior *madv_behavior)
+ 		break;
+ 	}
+ 
++	/* Handle THP behaviors */
++	if (madv_thp_behavior(behavior))
++		new_flags = madvise_thp_setup(madv_behavior);
++
+ 	/* This is a write operation.*/
+ 	VM_WARN_ON_ONCE(madv_behavior->lock_mode != MADVISE_MMAP_WRITE_LOCK);
+ 
+@@ -1555,6 +1578,8 @@ madvise_behavior_valid(int behavior)
+ 		return true;
+ 
+ 	default:
++		if (madv_thp_behavior(behavior))
++			return true;
+ 		return false;
+ 	}
+ }
 
-Best regards,
---  
-Luka Bai <lukabai@tencent.com>
+-- 
+2.52.0
 
