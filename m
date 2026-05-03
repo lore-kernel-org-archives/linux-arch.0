@@ -1,328 +1,141 @@
-Received: from outbound.ms.icloud.com (p-west3-cluster5-host5-snip4-5.eps.apple.com [57.103.72.48])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ot1-f47.google.com (mail-ot1-f47.google.com [209.85.210.47])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA13B263F5E
-	for <linux-arch@vger.kernel.org>; Sat,  2 May 2026 05:06:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=57.103.72.48
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7621617D2
+	for <linux-arch@vger.kernel.org>; Sun,  3 May 2026 00:05:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777698389; cv=none; b=tYA6T90GReb9bmDGR2UEYgPm6K6MoQv7z6YoaJJelY6I29SjEUjZrSCyS7Fj9Lklt/rjA3OvCxawRBtB3wnllUzrGZquTyDZi6wmwAMyOOiOR/URHEbFnHKcpdW7nHcXI63dk99yAx9ngSI5TT3JIjg2F0SzIH0antCFnQ/Zu4Y=
+	t=1777766744; cv=none; b=ZdKddCtSgZnNPwQ8VkAPvkw92a9P2hKvJdW1rJk2i/A+CacQfzmZQiJxuYXReEssqT66OpHAm4Tw6409yB2oiG37gge08p3TZTTG128BTnrySdxDPxoQqcS83DelSJG7jtvv/d4WxxpC+yuGqzp3zhsd7kA7TZwp/DYbgGEqIno=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777698389; c=relaxed/simple;
-	bh=zFoEHfPR8cJmzJa7YGWhhXovDcPeM30LuVZl3ibSp08=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=h0yBcIhKuoy/GH9QAfEzYWnTVPmdgPRktXpuidK+8LVeojlq2//w+MbBVwU32pHnBDK4sXA9h7kUqz0pzJY9XHapP2FfcWiZ3IDTS7OnzL40bOp1eoC+fspJ9/Y96N5p1V32INzxV74HzjlSsAm4LerIisija6w37UwHp2nTMlI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=icloud.com; spf=pass smtp.mailfrom=icloud.com; dkim=pass (2048-bit key) header.d=icloud.com header.i=@icloud.com header.b=o5CVhdBY; arc=none smtp.client-ip=57.103.72.48
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=icloud.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=icloud.com
+	s=arc-20240116; t=1777766744; c=relaxed/simple;
+	bh=ZKEL+uQH1FOrD2/R13JXDbIEvC1fqmuy5poleA8Qdyg=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=DZVel3N74lAU5l0vZOiixD0sKtBQTs/ARN6eYVy0FrHXttvQOVzDqfOKBnaDgLT2UZMeuwLcKGfccBwqjFGBqwgHd7QuMQEDeenaE2f4litYn+SZ83J2C/bGszSVrJfNPhYZqgYgh1MLuOE64iHa5wuVGnaSmR8Mcr3jOUIxSgw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=R0hxYW0E; arc=none smtp.client-ip=209.85.210.47
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=icloud.com header.i=@icloud.com header.b="o5CVhdBY"
-Received: from outbound.ms.icloud.com (unknown [127.0.0.2])
-	by p00-icloudmta-asmtp-us-west-3a-100-percent-11 (Postfix) with ESMTPS id 679B7180010F;
-	Sat, 02 May 2026 05:06:24 +0000 (UTC)
-X-ICL-Out-Info: HUtFAUMEWwJACUgBTUQeDx5WFlZNRAJCTQhAA0MFWgFeAUEdXwFLVxQEFEYGVg1dE0wLcwRUB10FXVZQAlpLVBQEFEYGVg1dE0wLcwRUB10FXVZQAlpLQBMESgZNXw5eHwQXRhlVBEceXVZeHhkCURxWDVdDVARfUEkMQVBsWgBHF0gdXRlZb1BdHA4EVAddBV1WUAJaS18ZXUUPDFE8dSNKS0RaYTtRHWkUeC17Pnkxezl6QHooA04ZDEodUlZbE1UXRgk=
-Dkim-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=icloud.com; s=1a1hai; t=1777698387; x=1780290387; bh=eXyCcuhff3Muw13ytVc8r3c1ETz4ajbUvk27BTvdfbU=; h=Date:From:To:Subject:Message-ID:MIME-Version:Content-Type:x-icloud-hme; b=o5CVhdBYLnOmy4aGCa4HLeA6lPv3dpIsNnDXKhNwSvPNZSCo6FkqvYGG3kA4gUN/JYjtDR1kfqDaZ5o5TmRlnBjhKGQ7AsGSNNdeRudqS+gTU0CCHfLK6xirdrjSeoB8FBkOxPP2v19wbFHKFP9yo8Q8To63Iq6z3YrqaTfbn7P8cE0pn5vzRbdl+rTyKZ5J1H63+AVLS7PL+j8OxNfPgnB2sfKdzMh+if0tAZawGeZe9rASfMiClnv6hmoyK1HSuaM95VvVlRqUOx+rV4oX7hhLmEZjlKQR/7s+vH3ryo8bQJJh2IagAaOqtQhkffh2cycx49gi8PBlGb3b0KOrFQ==
-Received: from localhost (unknown [17.57.154.37])
-	by p00-icloudmta-asmtp-us-west-3a-100-percent-11 (Postfix) with ESMTPSA id 425EC18000BA;
-	Sat, 02 May 2026 05:06:23 +0000 (UTC)
-Date: Sat, 2 May 2026 13:06:18 +0800
-From: Luka Bai <lukafocus@icloud.com>
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: linux-mm@kvack.org, Jonathan Corbet <corbet@lwn.net>,
-	Shuah Khan <skhan@linuxfoundation.org>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Lorenzo Stoakes <ljs@kernel.org>, Zi Yan <ziy@nvidia.com>,
-	Baolin Wang <baolin.wang@linux.alibaba.com>,
-	"Liam R. Howlett" <liam@infradead.org>,
-	Nico Pache <npache@redhat.com>, Ryan Roberts <ryan.roberts@arm.com>,
-	Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
-	Lance Yang <lance.yang@linux.dev>,
-	Vlastimil Babka <vbabka@kernel.org>,
-	Mike Rapoport <rppt@kernel.org>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Michal Hocko <mhocko@suse.com>, Jann Horn <jannh@google.com>,
-	Arnd Bergmann <arnd@arndb.de>, Kairui Song <kasong@tencent.com>,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-doc@vger.kernel.org, Luka Bai <lukabai@tencent.com>
-Subject: Re: [PATCH 0/5] mm: Support selecting doing direct COW for anonymous
- pmd entry
-Message-ID: <afWGSs3w7VPcmPlK@LUKABAI-MC1>
-References: <20260501-thp_cow-v1-0-005377483738@tencent.com>
- <b5379cd3-f7bf-47f9-8a60-c7300b4415a2@kernel.org>
- <afTR48WxGnIpxK8a@LUKABAI-MC1>
- <785b6164-aa71-4fc4-a4f3-f4977b7db30e@kernel.org>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="R0hxYW0E"
+Received: by mail-ot1-f47.google.com with SMTP id 46e09a7af769-7d4c12ff3d5so3028439a34.2
+        for <linux-arch@vger.kernel.org>; Sat, 02 May 2026 17:05:43 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1777766742; x=1778371542; darn=vger.kernel.org;
+        h=cc:to:content-transfer-encoding:mime-version:message-id:date
+         :subject:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=GIRMx45vOgiLzrxuavXJ3Yf7PmCjpoz6wDAVtl8FDVk=;
+        b=R0hxYW0E7PvJh/0UwPdTDZlJhblCq7gJ/BXe8dYXCX1taeVxtYNmkIWcFrltOn/Zze
+         pC4EJVLZ5n8T1cvIVM0ffe+Ihvm/ULPkSfdk12mJfMA+gGCoCocNZwaTilUIZWOfJhil
+         e3ehV3f6/lAV3gqCpa3iGBh8OKOx4F55l1yV9K5VMYhPNqwOu+u6jtf1YujFwReoTGsN
+         eFnrzejiEt5nry7PQbGEv75phtvc0j14iQFihVRAp0bumeWVXDId3gMTtLQMyKNqc9As
+         ezUqIkf8fZpqyLnzdIBSEW0KFq9/N0aA/UuiGzchrs+waKjnboCYAp7+t1Oh5Q73HliX
+         HPBA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1777766742; x=1778371542;
+        h=cc:to:content-transfer-encoding:mime-version:message-id:date
+         :subject:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=GIRMx45vOgiLzrxuavXJ3Yf7PmCjpoz6wDAVtl8FDVk=;
+        b=Kiondv0Tt1JXfAZyBhqSJpGI9tZEx4UBunzVjCsX1dJ/ffZrRoqfks7dOQG0aON5ij
+         H7yhVc6Muw7cPisVlIZyCsWuAn+EEatjBKsIVnDEPz0IxzWthM0pZLQxN6uJp0S12Wv8
+         xFcaHmCTnYDPgrMY38j8nhiKQMnCLCIqmOMEln3U2M47fHmgCvTItab6SzEfYngFl5C/
+         ZTzKq5zUlKT0DfJAKHz/VtCCPULYHdKjgnZqzfQUDVSo5twGVjMN0/AYNI8pnEnoFQ6t
+         n68aGdbdkqbcObOrYAukkzO7OkNHy7ZyAIG6jnRc7xq4QASb6DUWTtPE9kERNUrWzhqr
+         gysA==
+X-Gm-Message-State: AOJu0YxJflGsSJXYuytwu8EBdfTIcl4T2KjloCsF9+ON2BoK6rTu3KqH
+	6/ZC+ccUSNfs4lXjHvlIMc9e2s18QPkbBnZTEQIWsKVcaHxg/6HR+gDN
+X-Gm-Gg: AeBDiettWoe4mchUmvLjEZIPuequWBsShZ/KGYIhuwvwYJGaZC+2Lks6YIBQl/oImRk
+	r3FMDYLgJFDM4NaisWLp5IKApgpRmkg2NUdvSrV5B/gYNTdZ/frAbvaVR8lG22woq6nuCXLZIKe
+	X+Ntw2d6IQYBIc/mtDXapFY0Bd6eujzxB/zPtXFhEzfVMZeoebi+IGbb6pjZJ5975kDcMnM02aY
+	VPyphhvsNDWlIRoAnrZnub/WDHBESHhV7dviYdaitvn396zztrpHh45tMMykzezvVAqslqw1TL5
+	Tm1tsLKoWd9RAlVepymAZiUDfbll+Pl/ZR3Fpd2jIxie4L9kxIGJBQQdxGKhFCDEucMEShbTDWy
+	r1uWaNdiA/qsso4gCSmnGhHvbPip8i3YyiyiYlCNESHaStmLsAegkOkERUDXoljhJQnfYvItZBQ
+	yjvSXdzBXjXf7FMV0z02aYJ4T6RWlNbBFRscZL40agbjTKN9qSCGc6byvDpJACN6n0e393FzG9
+X-Received: by 2002:a05:6830:6484:b0:7dc:cd0b:58bc with SMTP id 46e09a7af769-7dee1261e2emr2667101a34.7.1777766742471;
+        Sat, 02 May 2026 17:05:42 -0700 (PDT)
+Received: from [100.82.231.29] (c-98-38-17-99.hsd1.co.comcast.net. [98.38.17.99])
+        by smtp.googlemail.com with ESMTPSA id 46e09a7af769-7decae2b090sm5379676a34.24.2026.05.02.17.05.41
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 02 May 2026 17:05:42 -0700 (PDT)
+From: Jim Cromie <jim.cromie@gmail.com>
+Subject: [PATCH 0/5] PATCH 0/6] dyndbg: fix i386 alignment and KEEP module
+ sections
+Date: Sat, 02 May 2026 18:05:31 -0600
+Message-Id: <20260502-asm-generic-1-v1-0-1103ee0152df@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <785b6164-aa71-4fc4-a4f3-f4977b7db30e@kernel.org>
-X-Proofpoint-GUID: aLriYDqX6Wfr6DEL-NnEpDvapidL7Ddn
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNTAyMDA0NyBTYWx0ZWRfX7BA131RWYzYc
- lDIO3AIKEMBEDgkNbAgRbghgsMbxyPHzklMuZLvG+sY1KHn8ZFIJnRB26zEdG889m8NhzJGdPFj
- HUTJ8qaRBcIL6U1nnhD6XPDOZBHWGZwGsDl+MaZg2V5YSo2GhxehTM/SuHzlNB1A42IOdSj0mAJ
- HtX2eGwlO7NYK0sqI+fRbI/n70GpZFtzYrqirwqvGDZGZj3VuR2M0De2XMhDNPIaRjfqOw+77Wj
- w7U2Room2z2IljLjFJ2ln/PXo7PhrssWdf70pNKQc5C5W+/Kzs5hseJGNDKhamPjiYQqj+vmDJQ
- SiB+L0ieg1uFhLL73ivk87vg6gyxQ0YRZ4tKbvvb3yvS2p6NcJMwequwCSpqaQ=
-X-Authority-Info-Out: v=2.4 cv=FN0WBuos c=1 sm=1 tr=0 ts=69f58652
- cx=c_apl:c_pps:t_out a=qkKslKyYc0ctBTeLUVfTFg==:117 a=IkcTkHD0fZMA:10
- a=NGcC8JguVDcA:10 a=x7bEGLp0ZPQA:10 a=UaoJkeuwEpQA:10
- a=VkNPw1HP01LnGYTKEx00:22 a=VwQbUJbxAAAA:8 a=i0EeH86SAAAA:8 a=Ikd4Dj_1AAAA:8
- a=1XWaLZrsAAAA:8 a=Ycdc37sN3yXXCXtWWT0A:9 a=3ZKOabzyN94A:10 a=QEXdDO2ut3YA:10
-X-Proofpoint-ORIG-GUID: aLriYDqX6Wfr6DEL-NnEpDvapidL7Ddn
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/x3MQQqAIBBA0avErBvQMSO6SrQQnWwWWShEEN49a
+ fkX779QOAsXmLsXMt9S5EwtdN+B312KjBJaAykalVWErhwYOTXlUaMhPw3kjA1BQTNX5k2e/7e
+ stX7TyLOVXwAAAA==
+X-Change-ID: 20260502-asm-generic-1-32c842a35dd0
+To: Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>, 
+ Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
+ Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, 
+ Aaron Tomlin <atomlin@atomlin.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ linux-modules@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>, 
+ Louis Chauvet <louis.chauvet@bootlin.com>
+X-Mailer: b4 0.14.3
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1777766741; l=1850;
+ i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
+ bh=ZKEL+uQH1FOrD2/R13JXDbIEvC1fqmuy5poleA8Qdyg=;
+ b=0SzOGfTU03sQ5R9xI9yMhs/DNczLBjWrIIsjqxHplD8PVcZD8haEy5tc2wMV+ZofojocTNtsX
+ J+X5ddihN8HCiVN4bRkvrV2Yz3U7NrGITeQ/KmD6maKeu9oHya8DD61
+X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
+ pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 
-在 Fri, May 01, 2026 at 08:30:39PM +0200，David Hildenbrand (Arm) 写道：
+This series starts with a fix to a section misalignement on i386, and
+follows with cleanups and refactoring for reuse.
 
-Hi David,
+When CONFIG_DRM_USE_DYNAMIC_DEBUG=Y (currently marked BROKEN) and
+CONFIG_DRM=y, the __dyndbg_classes section gets a single
+struct/record.  On i386 this is 28-bytes, breaking the required
+ALIGN(8) on the following __dyndbg section.
 
-Thanks for replying again :). I've read your advices, and I agreed with your opinion,
-THP COW is premature now for the upstream, we can reconsider other approaches. :)
+This breaks dynamic_debug_init() with a NULL pointer dereference; the
+section traversal logic encounters padding bytes instead of a valid
+descriptor.
 
-> >>
-> >> Note that there was a recent related discussion for executable, which was rejected:
-> >>
-> >> https://lore.kernel.org/r/20251226100337.4171191-1-zhangqilong3@huawei.com
-> >>
-> > 
-> > Yes, I know this history, and I know that it will cost some memory or latency,
-> > That’s why I was wondering maybe I can add a switch to it to make it
-> > configurable :).
-> 
-> Switches for something like that is just not a good fit.
-> 
-> For example, for a short-lived child (e.g., fork+exec) it usually makes no sense
-> to cow a larger chunk of address space, when you know that it will exit
-> immediately either way and free up the memory.
-> 
+the series:
 
-Yeah, for most workloads, fork will be used with a exec call soon, which makes the
-COW for THP not so useful for these workloads.
+1. adds ALIGN(8) to the BOUNDED_SECTION_* macros
 
-> >>>
-> >>> In addition to the problem above, this logic can also generate some
-> >>> deficiency for THP itself. Currently THP is just a "best-effort" choice
-> >>> with no "certainty". THP is easily splitted into multiple small pages
-> >>> on common calling path like reclaiming, COW. A transparent splitting
-> >>> can cause throughput fluctuation for some workloads. For these workloads,
-> >>> we may want to give THP some "certainty" just like hugetlbfs,
-> >>
-> >> There are no such guarantees, though. And We wouldn't want to commit to any such
-> >> guarantees today. For example, simple page migration can split the folio.
-> >> Allocation failures will fallback to small pages etc.
-> >>
-> >> If you need guarantees, use hugetlb for now.
-> >>
-> > 
-> > The reason why I want to use THP over hugetlb is that I need reclamation for my
-> > workload :). There are many processes in my workload that need 2M
-> > aligned folios for better performance, and we want to reclaim them back automatically
-> > when the process doesn’t need the folios. 
-> 
-> Can you share some details how exactly that is supposed to work?
-> 
+2. refactors BOUNDED_SECTION_* macros for later reuse
 
-Sorry for that, it's basically just a bunch of processes in the environment with 2M sized
-folio as their backend, but we want the OS to reclaim them when it's possible. And we want to
-balance performance and memory saving, and don't split so often since it may cause fraction
-and may influence the future 2M folio allocation. :)
+3. adds dyndbg.lds.S to KEEP sections in modules
+   follows codetag.lds.h model
 
-> > But hugetlbfs cannot do passive reclamation
-> > from what I know (except doing active madvise by the processes themselves). And using
-> 
-> Right, you can only return hugetlb folios by doing MADV_DONTNEED or munmap().
-> 
-> > THP can easily split the hugepages. So that’s why I would like to add certainty for THP,
-> 
-> Repeat after me: there are no guarantees. There is no certainty :)
-> 
-> > and use THP for these processes as backend, because THP is very well integrated with
-> > the swap system and other filesystems. And from what I checked,
-> > it seems the most common case for splitting a THP is COW and swapping so I am trying
-> > to handle these two scenarios (But coincidentally, PMD swapping is committed in
-> > https://lore.kernel.org/all/D3F08F85-76E0-4C5A-ABA1-537C68E038B8@nvidia.com/
-> > a few days before, which is a great implementation :) ).
-> 
-> Right, but that really only changes how we map large folios, not how we allocate
-> them. There are no guarantees.
-> 
-> > 
-> >>> The effect
-> >>> we want is: after some customized setup, if only the system has usable
-> >>> folio, and the virtual memory alignment permits (or we setup to), we can
-> >>> make sure we always use THP for it, the system will never split it except
-> >>> the user wants to do so.
-> >>>
-> >>> This patchset is about both two things above, firstly we add pmd level
-> >>> THP COW support by revising the code in do_huge_pmd_wp_page, we added
-> >>> switch for it because different workloads may need different resources,
-> >>
-> >> The switch is bad, and we won't accept any toggle like that. A system-wide
-> >> setting does not make sense for such behavior.
-> >>
-> > 
-> > Oh, the reason why I added a switch globally is also because the scenario I mentioned
-> > above, I want those processes to always use PMD sized folios as backend to make sure
-> > performance. 
-> 
-> "Always" is wishful thinking in many scenarios I'm afraid.
+4. drops unused HEADERED_SECTION_* macros
 
-Yeah, I agree, so we also think that maybe we can do some other things to increase the
-possibility of allocating pmd sized folios. :) 
+5. removes redundant (after patch 1) ALIGN(8)s in vmlinux.lds.h
 
-> 
-> > COW is truly not that common like swap out/swap in, it just can happen
-> > sometimes, which I guess the reason may be about image duplication. Setting the system
-> > globally is more convenient for my situation :). I can go without this global switch
-> > if it's more reasonable.
-> > 
-> >> A per-VMA flag? Maybe, but I expect pushback as well, as it is way too specific.
-> >> So we'd have to find some concept that abstracts these semantics. But I expect
-> >> pushback as well.
-> >>
-> >> We messed up enough with toggles in THP space, unfortunately.
-> >>
-> >> Also, anything that only works for PMD-sized THPs is a warning sign in 2026 :)
-> >>
-> > 
-> > And for PMD-sized THPs, actually, I’m also considering adding more support for
-> > COW to mTHP if the upstream consider it useful. And also for pud sized THPs
-> > also. But I guess I have to firstly handle stage 1: PMD level COW now :).
-> > And also, since PMD sized folio is commonly used in my workload, I'm also wondering
-> > digging into pmd sized KSM in the future, in which I think pmd sized COW may
-> > be more useful then :).
-> 
-> I'm afraid I have to stop you right there: there has to be a pretty convincing
-> story to add any of that. In particular KSM with large folios (/me shivering).
-> 
-> But I already don't buy the COW story. Just configure khugepaged in a better way
-> or use MADV_COLLAPSE and you don't really need to modify the kernel at all in
-> 99.99% of the case. (khugepaged needs a lot of tuning work, it's currently not
-> the smartest implementation)
-> 
-> Maybe, we might give khugepaged better direction of what to try scanning next
-> (e.g., where we just COW'ed a THP). Not sure, there are plenty of things to explore.
-> 
+6. adds BOUNDED_SECTION_* _ALIGN variants,
+   usea them in ORC_UNWIND_TABLE
 
-I see, actually all the things here is about saving memory and keeping the 2M tlb
-benifit at the same time, including my KSM thought and THP COW. Giving khugepaged
-a better direction is also what we are considering in the next step :).
+Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+---
+Jim Cromie (5):
+      vmlinux.lds.h: refactor BOUNDED_SECTION_* macros into bounded_sections.lds.h
+      vmlinux.lds.h: drop unused HEADERED_SECTION* macros
+      vmlinux.lds.h: Fix ALIGN(8) omission causing NULL ptr on i386
+      vmlinux.lds.h: remove redundant ALIGN(8) directives
+      dyndbg.lds.S: fix lost dyndbg sections in modules
 
-> > 
-> >> You don't really raise any concrete use cases or performance numbers for these
-> >> use cases. Some details about applications that use fork() and rely on such
-> >> behavior would be helpful.
-> >>
-> > 
-> > Sorry for that, the concrete workload itself hasn't been finished yet. 
-> 
-> Okay, what I thought after seeing no workloads an no performance numbers :)
-> 
-> If you don't know the workload, how can you claim that the additional latency
-> and/or memory consumption is not a problem?
-> 
-
-Oh, our point here is that we don't want these 2M folios to be split, since that
-may cause some fraction and increases the difficulty a little for allocating a
-2M folio later as the time goes on. It may cause some additional latency and memory
-consumption, that's true, but the workload we are trying to do wants to make sure
-the 2M folios in the system first. And though the workload hasn't been finished, we
-analyzed what it will do, and we think for the most time, COWed 2M folio will be
-written in a range much bigger than 4K. So it will will cause more page faults if
-the fault size is 4K :). As we see, the time consuming of only one 2M sized page
-fault should be able to beat the multiple 4K sized page fault, since the copy
-can be merged together and there are not so many times of handling other than
-copy. We can see a performance improvement in the end to end copying test which
-includes many possible COW on 2M pages, though. The performance improvement is
-about 2 times. The improvement is not big as we imagine it should be. We'll dig
-into more details then. :)
-
-> Also: there is no guarantee that you will actually succeed in allocating a PMD
-> THP during a COW fault.
-> 
-
-Yes, so we are actually also considering some solutions to increase the success rate
-of allocating PMD sized THP like reserving, the idea comes from TAO of Yu Zhao in
-https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com/. But we may
-do the reserving using another approach like migratetype though since that may make
-it easier to dynamically change the reserving size. We also want to discuss it with
-the upstream about this if anyone has time :).
-
-> 
-> > Now it just
-> > can happen sometimes in my multi-2M-sized-processes workload test. But the user
-> > of our 2M sized folio schema is actually not necessarily myself but also can be the
-> > userspace developers. I cannot guarantee that fork will not be used in the
-> > performance test of their workload since that is a normal posix call. Maybe a little
-> > overthinking? :)
-> 
-> If your application cares about performance, you either shouldn't be using
-> fork(), or you should be using it very, very wisely (e.g., interaction with
-> multi-threading, MADV_DONTFORK, avoid touching memory in parent until child
-> completed).
-> 
-
-Agreed, we'll try that, thank you. :)
-
-> > I just think swap and COW are two main scenarios that may transparently split pmd sized
-> > folios, so maybe we can solve it and make THP both reclaimable and stable.
-> 
-> There is page migration, MADV_DONTNEED, munmap/mremap/madvise/mprotect in sub-2M
-> blocks, memory failure handling and probably a lot more. THP allocation might
-> fail. THP swapout+swapin might fail to allocate THPs.
-> 
-
-Yes, in my former consideration I just thought munmap/mremap/madvise/mprotect are actively
-called, so it should be easier to restrict them, like directly fail them when the user calls
-them in sub-2M blocks. Page migration is truly another scenorio we need to handle. But
-it's not that likely to happen if we configure it so since we have our
-CONFIG_ARCH_ENABLE_THP_MIGRATION setup, things like numa balancing, live migration, compaction
-can all be disabled though. Maybe there is something I missed here? :)
-
-> Tackling COW handling when you don't even know that it's a real problem seems
-> premature.
-> 
-
-Yeah, I guess THP COW can be replaced by other approaches. We just think maybe we can
-firstly add the THP COW, then the COW that may happen in fork, pmd swap in, and maybe other
-places can all benifit from it. But maybe it's still not the only way to solve the
-problem we meet right now.
-
-> > Maybe
-> > that can make THP more widely used in real deployed environment since the resource
-> > can become more controllable for the users :). That's why I was thinking maybe
-> > implementing it with setup switches is a reasonable solution?
-> 
-> No magical toggles.
-> 
-> > 
-> >> Note that an application that does fork() could use MADV_COLLAPSE after fork()
-> >> to make sure that it immediately gets THPs back.
-> >>
-> >> There is also the option to just use MADV_DONTFORK to not even share ranges with
-> >> a child process in the first place, avoiding page copies entirely.
-> >>
-> > 
-> > MADV_DONTFORK and MADV_COLLAPSE are nice and great options :), but the former one seems
-> > to be a little wasteful :). 
-> 
-> It's actually the right thing to do (tm) if you care about fork() performance
-> and know that your child will not actually need certain memory areas.
-> 
-> For example, in QEMU we use it to exclude all guest memory from fork(), heavily
-> improving fork() performance. [there are not a lot of fork() use cases left in
-> QEMU today, fortunately]
-> 
-
-Yeah, these two are nice in many situations, we'll consider using MADV_DONTFORK and
-MADV_COLLAPSE and other tools for our workload, thanks!
-
-> -- 
-> Cheers,
-> 
-> David
+ MAINTAINERS                                |  1 +
+ include/asm-generic/bounded_sections.lds.h | 32 +++++++++++++++++
+ include/asm-generic/dyndbg.lds.h           | 19 ++++++++++
+ include/asm-generic/vmlinux.lds.h          | 58 +++++-------------------------
+ scripts/module.lds.S                       |  2 ++
+ 5 files changed, 62 insertions(+), 50 deletions(-)
+---
+base-commit: 254f49634ee16a731174d2ae34bc50bd5f45e731
+change-id: 20260502-asm-generic-1-32c842a35dd0
 
 Best regards,
-Luka
+-- 
+Jim Cromie <jim.cromie@gmail.com>
+
