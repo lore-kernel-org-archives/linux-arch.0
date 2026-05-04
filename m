@@ -1,184 +1,271 @@
-Received: from mail-ot1-f69.google.com (mail-ot1-f69.google.com [209.85.210.69])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 036F5388368
-	for <linux-arch@vger.kernel.org>; Sun,  3 May 2026 07:03:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.69
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 80D56308F0A
+	for <linux-arch@vger.kernel.org>; Mon,  4 May 2026 07:41:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777791823; cv=none; b=t62nJZp6/ZP6h563RyijmEDNp2YuGBHt5+gd/z5eNl2SBdMsOJIbsgLTVyyyz6klZSYbSzF37X9bsWamltJtw6emX/w9VKf4kJKVNDE9Yra8+DWm2/PMOl8y5k/N8nI40NaZvkRikynXxFXYjDjmLP+YyhP0OdnpcT3HP7Ek31g=
+	t=1777880511; cv=none; b=i3PG58hftdS5ir2J4tD32rdCuYuWvF8Ot5hzdNHJRJUYa6/TuV0JW8ec4fRysCUeUMn1gtGKmwz5hVKgAzvU1v1o41jgpbfeEBy7lrkQgT3VrAiCcxCZOpkhskPzzEpzTdhtSIGHKTogZz4mLUjVoAJ3+Mp/GSGB8rGf+RzE9iQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777791823; c=relaxed/simple;
-	bh=wGxz3rbUssja1ypzxi5nCGlSsj833kzvtSZIyIrvo60=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:Cc:
-	 Content-Type; b=bTfMEAQborJec+HfZFE2IDACbYXdu4RXoOCIcrOkwpyv9K9Jq9QPEl0O3Iz4Y3art/ntV5X82Wf9bb6fpU5+W2RxgPN6JRHtnzBvgb/zBfwLrWY6T22wFagslcGaeEqneJk2VGZId3Or2qsHzeGrdSn7WdARNTX8xfXSNkfWY3s=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.210.69
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-ot1-f69.google.com with SMTP id 46e09a7af769-7de4be150b9so7340211a34.1
-        for <linux-arch@vger.kernel.org>; Sun, 03 May 2026 00:03:38 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1777791818; x=1778396618;
-        h=cc:to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=LXRy6ZrZDA96i+zqKJ7WK1XTFNL01WADp6Dn55Yxdvs=;
-        b=oyvBFkqCMTbncKEbbCGDCXm5ot/qfuCnL1NIht4KCffnh4GM1bOIbxjUzofaimErM/
-         HXnTVM20FwWbX3PMpg9sZUp/8AW8/9mq2ldfZ0+gCTxyD09wwZ7bRrT/wTXDuGfz9VBF
-         IvFnnnuVtPV19bK+OiLu0qKn94iPK5gIJzkYn3w6Rh09JlwVOk2Q29cUXZSVh8xlAB8r
-         oUBBq/AsBJXp6JVQc2nifBg2nlgEGMtB4lidgkGkXvMgbXIt8RgQEaT4AfeObtN0a7O+
-         YuuxyLuo2UOS0WEEHPA2MuT6Nzksh3sNRWuuNWz/beWqysnmDgR3vSxKj4PtJAb8+wqv
-         ChWw==
-X-Forwarded-Encrypted: i=1; AFNElJ+FBC/CfmXfpPsLqzQ31mzbMVKS0LGcNP8fp0TQTqeGE+QpLKhxMRKzuPe/RpP9kcJ+M4ZX/Pn9XHA/@vger.kernel.org
-X-Gm-Message-State: AOJu0Yzc2uRFhlmKjP4i7SDMfVTVM+RY8s7Road4fscqjcqflIbnS9XO
-	+NVPLzNsq1h5wDd0k82ejm0AjoUbWT4xCBzpy8fAD8LnkEOAaxFsoN7GHxRqAcQMLuw/ympYVey
-	whljT9u5wSpl+zGX2jgsiBMDFrsyut38j7MSWALVzch+V4HCz45yoTBg8jgU=
+	s=arc-20240116; t=1777880511; c=relaxed/simple;
+	bh=erQ03JI6SrYNARYzJm/2YyqhpgwzdnxG5DBrDpElEWU=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=YkIMcTikHtvRKR5RYTKN9PSIv8x8DaQyWE85gCXizEVeen+haRKUYX90q1xx5Vkuo7a2IjZP7+O/Lukla4xHoYlIDXI8ZhvGa98S0ApxOwYQPQ3M13ClQdNpy5w5eB4pcRY/XDzdLw4mzgYOiH6Mw+oOdpeMaF+oz6U7CeoOGBY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=KyDp2KC8; arc=none smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="KyDp2KC8"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1777880508;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=vf+HSG6lzyoZZtZMHsZSQKiJNNXRlnzisj4czBT4HTQ=;
+	b=KyDp2KC8MbJdl31ZrFcqML8e5D2DNCylZha08QoB925mc3HxTgen7E7PU4Yos++Bz9kadp
+	+O8iNia6t7wVbdHK8MMs9yQmaZj0r9ZMkhrVML/Tt7AFiKoZuPmn/GUu0VXZGT7Y7zRaXk
+	nWopUNs+2O3RHSOgzsFLp+go20QxeTA=
+Received: from mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-294-fWzwJPGLNlyG0PRMA6RgKQ-1; Mon,
+ 04 May 2026 03:41:45 -0400
+X-MC-Unique: fWzwJPGLNlyG0PRMA6RgKQ-1
+X-Mimecast-MFC-AGG-ID: fWzwJPGLNlyG0PRMA6RgKQ_1777880501
+Received: from mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.17])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 3163019560A2;
+	Mon,  4 May 2026 07:41:40 +0000 (UTC)
+Received: from [192.168.1.153] (headnet01.pony-001.prod.iad2.dc.redhat.com [10.2.32.101])
+	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 4661F196B09E;
+	Mon,  4 May 2026 07:41:30 +0000 (UTC)
+From: Albert Esteve <aesteve@redhat.com>
+Subject: [PATCH v8 0/4] kunit: Add support for suppressing warning
+ backtraces
+Date: Mon, 04 May 2026 09:41:24 +0200
+Message-Id: <20260504-kunit_add_support-v8-0-3e5957cdd235@redhat.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6820:1693:b0:694:9e10:fdce with SMTP id
- 006d021491bc7-696979cf651mr2447276eaf.4.1777791817968; Sun, 03 May 2026
- 00:03:37 -0700 (PDT)
-Date: Sun, 03 May 2026 00:03:37 -0700
-In-Reply-To: <20260501-thp_cow-v1-0-005377483738@tencent.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <69f6f349.050a0220.312cd3.002b.GAE@google.com>
-Subject: [syzbot ci] Re: mm: Support selecting doing direct COW for anonymous
- pmd entry
-From: syzbot ci <syzbot+ci680a261c60429f2e@syzkaller.appspotmail.com>
-To: akpm@linux-foundation.org, arnd@arndb.de, baohua@kernel.org, 
-	baolin.wang@linux.alibaba.com, corbet@lwn.net, david@kernel.org, 
-	dev.jain@arm.com, jannh@google.com, kasong@tencent.com, lance.yang@linux.dev, 
-	liam@infradead.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, linux-mm@kvack.org, ljs@kernel.org, 
-	lukabai@tencent.com, lukafocus@icloud.com, mhocko@suse.com, npache@redhat.com, 
-	rppt@kernel.org, ryan.roberts@arm.com, skhan@linuxfoundation.org, 
-	surenb@google.com, vbabka@kernel.org, ziy@nvidia.com
-Cc: syzbot@lists.linux.dev, syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/23OQWrDMBCF4asErasgjSvJzSr3CCXInlEtii0zU
+ kxL8N0jB0JayPIt3sd/FZk4UhaH3VUwLTHHNNXRvu1EP/jpi2TEugUosKrRIL8vUyxnj3jOl3l
+ OXCSExrTKdvoDUdTfzBTiz908fdYdOI2yDEz+IRllwOoGnDF7ba02Smrpe89jnPyRCQdf9n0aN
+ 22IuST+vQcudjMfLe5Fy2KlkogAnromkMG/2hazuCfxDuoV4SpBbddbUsEppH/Euq43F/Z98jQ
+ BAAA=
+X-Change-ID: 20260312-kunit_add_support-2f35806b19dd
+To: Arnd Bergmann <arnd@arndb.de>, 
+ Brendan Higgins <brendan.higgins@linux.dev>, David Gow <david@davidgow.net>, 
+ Rae Moar <raemoar63@gmail.com>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+ Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
+ Andrew Morton <akpm@linux-foundation.org>, Paul Walmsley <pjw@kernel.org>, 
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+ Alexandre Ghiti <alex@ghiti.fr>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+ linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
+ dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
+ linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
+ peterz@infradead.org, Alessandro Carminati <acarmina@redhat.com>, 
+ Guenter Roeck <linux@roeck-us.net>, Kees Cook <kees@kernel.org>, 
+ Albert Esteve <aesteve@redhat.com>, 
+ Linux Kernel Functional Testing <lkft@linaro.org>, 
+ Dan Carpenter <dan.carpenter@linaro.org>, 
+ =?utf-8?q?Ma=C3=ADra_Canal?= <mcanal@igalia.com>, 
+ Kees Cook <kees@kernel.org>, Simona Vetter <simona.vetter@ffwll.ch>, 
+ David Gow <david@davidgow.net>
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1777880489; l=8271;
+ i=aesteve@redhat.com; s=20260303; h=from:subject:message-id;
+ bh=erQ03JI6SrYNARYzJm/2YyqhpgwzdnxG5DBrDpElEWU=;
+ b=sRhx6zDxIpD2+MuE6WZxU4Js3eoJAjGupZqFb9sxdUwpsUl5/zr/vMWNqqMrR2uKILugzru4S
+ YgboAAiARnzBzA1KOoiHKSgz2t026tsMDNKbC89v/UVnVosPp8ozEtB
+X-Developer-Key: i=aesteve@redhat.com; a=ed25519;
+ pk=YSFz6sOHd2L45+Fr8DIvHTi6lSIjhLZ5T+rkxspJt1s=
+X-Scanned-By: MIMEDefang 3.0 on 10.30.177.17
 
-syzbot ci has tested the following series
+Some unit tests intentionally trigger warning backtraces by passing bad
+parameters to kernel API functions. Such unit tests typically check the
+return value from such calls, not the existence of the warning backtrace.
 
-[v1] mm: Support selecting doing direct COW for anonymous pmd entry
-https://lore.kernel.org/all/20260501-thp_cow-v1-0-005377483738@tencent.com
-* [PATCH 1/5] mm: add basic madvise helpers and branch for THP setup
-* [PATCH 2/5] mm: add pmd level THP COW parameter in sysfs
-* [PATCH 3/5] mm: add pmd level THP COW judgement helpers
-* [PATCH 4/5] mm: enable map_anon_folio_pmd_nopf to handle unshare
-* [PATCH 5/5] mm: support choosing to do THP COW for anonymous pmd entry.
+Such intentionally generated warning backtraces are neither desirable
+nor useful for a number of reasons:
+- They can result in overlooked real problems.
+- A warning that suddenly starts to show up in unit tests needs to be
+  investigated and has to be marked to be ignored, for example by
+  adjusting filter scripts. Such filters are ad hoc because there is
+  no real standard format for warnings. On top of that, such filter
+  scripts would require constant maintenance.
 
-and found the following issue:
-general protection fault in __page_table_check_pmds_set
+One option to address the problem would be to add messages such as
+"expected warning backtraces start/end here" to the kernel log.
+However, that would again require filter scripts, might result in
+missing real problematic warning backtraces triggered while the test
+is running, and the irrelevant backtrace(s) would still clog the
+kernel log.
 
-Full report is available here:
-https://ci.syzbot.org/series/37e78e03-c08b-4de1-9b07-a21c64f4f462
+Solve the problem by providing a means to suppress warning backtraces
+originating from the current kthread while executing test code.
+Since each KUnit test runs in its own kthread, this effectively scopes
+suppression to the test that enabled it, without requiring any
+architecture-specific code.
 
-***
+Overview:
+Patch#1 Introduces the suppression infrastructure integrated into
+        KUnit's hook mechanism.
+Patch#2 Adds selftests to validate the functionality.
+Patch#3 Demonstrates real-world usage in the DRM subsystem.
+Patch#4 Documents the new API and usage guidelines.
 
-general protection fault in __page_table_check_pmds_set
+Design Notes:
+Suppression is integrated into the existing KUnit hooks infrastructure,
+reusing the kunit_running static branch for zero overhead
+when no tests are running. The implementation lives entirely in the
+kunit module; only a static-inline wrapper and a function pointer
+slot are added to built-in code.
 
-tree:      mm-new
-URL:       https://kernel.googlesource.com/pub/scm/linux/kernel/git/akpm/mm.git
-base:      41cd9e3d23b8fd9e6c3c0311e9cb0304442c6141
-arch:      amd64
-compiler:  Debian clang version 21.1.8 (++20251221033036+2078da43e25a-1~exp1~20251221153213.50), Debian LLD 21.1.8
-config:    https://ci.syzbot.org/builds/fcdd679f-29e8-43db-8792-d4fd97c62d91/config
-syz repro: https://ci.syzbot.org/findings/87820d58-5d91-4c2e-b80b-5a75006e230d/syz_repro
+Suppression is checked at three points in the warning path:
+- In `warn_slowpath_fmt()` (kernel/panic.c), for architectures without
+  __WARN_FLAGS. The check runs before any output, fully suppressing
+  both message and backtrace.
+- In `__warn_printk()` (kernel/panic.c), for architectures that define
+  __WARN_FLAGS but not their own __WARN_printf (arm64, loongarch,
+  parisc, powerpc, riscv, sh). The check suppresses the warning message
+  text that is printed before the trap enters __report_bug().
+- In `__report_bug()` (lib/bug.c), for architectures that define
+  __WARN_FLAGS. The check runs before `__warn()` is called, suppressing
+  the backtrace and stack dump. 
 
-Oops: general protection fault, probably for non-canonical address 0xdffffc0000000000: 0000 [#1] SMP KASAN PTI
-KASAN: null-ptr-deref in range [0x0000000000000000-0x0000000000000007]
-CPU: 0 UID: 0 PID: 5807 Comm: syz.1.18 Not tainted syzkaller #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.2-debian-1.16.2-1 04/01/2014
-RIP: 0010:__page_table_check_pmds_set+0x1d4/0x340 mm/page_table_check.c:240
-Code: 00 00 4c 89 6c 24 08 4c 89 3c 24 4a 8d 2c fd f8 ff ff ff 31 db 49 bf 00 00 00 00 00 fc ff df 49 8d 3c 1e 48 89 f8 48 c1 e8 03 <42> 80 3c 38 00 74 05 e8 00 29 f4 ff 4d 8b 24 1e 45 89 e5 41 81 e5
-RSP: 0018:ffffc90003c46ee0 EFLAGS: 00010246
-RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
-RDX: ffff8881102a1d80 RSI: 0000000000000001 RDI: 0000000000000000
-RBP: 0000000000000000 R08: 0000000000000001 R09: 1ffff110242081d8
-R10: dffffc0000000000 R11: ffffed10242081d9 R12: dffffc0000000000
-R13: 0000000025c008e7 R14: 0000000000000000 R15: dffffc0000000000
-FS:  00007fbef78216c0(0000) GS:ffff88818dc91000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000001b32f63fff CR3: 000000002350a000 CR4: 00000000000006f0
-Call Trace:
- <TASK>
- page_table_check_pmds_set include/linux/page_table_check.h:92 [inline]
- set_pmd_at arch/x86/include/asm/pgtable.h:1209 [inline]
- map_anon_folio_pmd_nopf+0x452/0x480 mm/huge_memory.c:1449
- collapse_huge_page mm/khugepaged.c:1411 [inline]
- mthp_collapse mm/khugepaged.c:1530 [inline]
- collapse_scan_pmd mm/khugepaged.c:1773 [inline]
- collapse_single_pmd+0x4691/0x5540 mm/khugepaged.c:2786
- madvise_collapse+0x300/0x7a0 mm/khugepaged.c:3218
- madvise_vma_behavior+0x11b0/0x4210 mm/madvise.c:1383
- madvise_walk_vmas+0x573/0xae0 mm/madvise.c:1738
- madvise_do_behavior+0x386/0x540 mm/madvise.c:1954
- do_madvise+0x1fa/0x2e0 mm/madvise.c:2047
- __do_sys_madvise mm/madvise.c:2056 [inline]
- __se_sys_madvise mm/madvise.c:2054 [inline]
- __x64_sys_madvise+0xa6/0xc0 mm/madvise.c:2054
- do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0x15f/0xf80 arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7fbef699cdd9
-Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007fbef7821028 EFLAGS: 00000246 ORIG_RAX: 000000000000001c
-RAX: ffffffffffffffda RBX: 00007fbef6c15fa0 RCX: 00007fbef699cdd9
-RDX: 0000000000000019 RSI: 0000000000400000 RDI: 0000200000000000
-RBP: 00007fbef6a32d69 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007fbef6c16038 R14: 00007fbef6c15fa0 R15: 00007ffdddd640f8
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:__page_table_check_pmds_set+0x1d4/0x340 mm/page_table_check.c:240
-Code: 00 00 4c 89 6c 24 08 4c 89 3c 24 4a 8d 2c fd f8 ff ff ff 31 db 49 bf 00 00 00 00 00 fc ff df 49 8d 3c 1e 48 89 f8 48 c1 e8 03 <42> 80 3c 38 00 74 05 e8 00 29 f4 ff 4d 8b 24 1e 45 89 e5 41 81 e5
-RSP: 0018:ffffc90003c46ee0 EFLAGS: 00010246
-RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
-RDX: ffff8881102a1d80 RSI: 0000000000000001 RDI: 0000000000000000
-RBP: 0000000000000000 R08: 0000000000000001 R09: 1ffff110242081d8
-R10: dffffc0000000000 R11: ffffed10242081d9 R12: dffffc0000000000
-R13: 0000000025c008e7 R14: 0000000000000000 R15: dffffc0000000000
-FS:  00007fbef78216c0(0000) GS:ffff88818dc91000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000001b32f63fff CR3: 000000002350a000 CR4: 00000000000006f0
-----------------
-Code disassembly (best guess):
-   0:	00 00                	add    %al,(%rax)
-   2:	4c 89 6c 24 08       	mov    %r13,0x8(%rsp)
-   7:	4c 89 3c 24          	mov    %r15,(%rsp)
-   b:	4a 8d 2c fd f8 ff ff 	lea    -0x8(,%r15,8),%rbp
-  12:	ff
-  13:	31 db                	xor    %ebx,%ebx
-  15:	49 bf 00 00 00 00 00 	movabs $0xdffffc0000000000,%r15
-  1c:	fc ff df
-  1f:	49 8d 3c 1e          	lea    (%r14,%rbx,1),%rdi
-  23:	48 89 f8             	mov    %rdi,%rax
-  26:	48 c1 e8 03          	shr    $0x3,%rax
-* 2a:	42 80 3c 38 00       	cmpb   $0x0,(%rax,%r15,1) <-- trapping instruction
-  2f:	74 05                	je     0x36
-  31:	e8 00 29 f4 ff       	call   0xfff42936
-  36:	4d 8b 24 1e          	mov    (%r14,%rbx,1),%r12
-  3a:	45 89 e5             	mov    %r12d,%r13d
-  3d:	41                   	rex.B
-  3e:	81                   	.byte 0x81
-  3f:	e5                   	.byte 0xe5
+To avoid double-counting on architectures where both `__warn_printk()`
+and `__report_bug()` run for the same warning, the hook takes a bool
+parameter: true to increment the suppression counter, false to suppress
+without counting.
 
+The suppression state is dynamically allocated via kunit_kzalloc() and
+tied to the KUnit test lifecycle via `kunit_add_action()`, ensuring
+automatic cleanup at test exit. Writer-side access to the global
+suppression list is serialized with a spinlock; readers use RCU.
 
-***
+Three API forms are provided:
+- kunit_warning_suppress(test) { ... }: scoped blocks with automatic
+  cleanup. The suppression handle is not accessible outside the block,
+  so warning counts (if needed) must be checked inside. Multiple
+  suppression blocks are allowed.
+- KUNIT_START/END_SUPPRESSED_WARNING(test): manual macros for larger
+  blocks or post-suppression count checks. Limited to one pair per
+  scope.
+- kunit_start/end_suppress_warning(test): direct functions that return
+  an explicit handle. Use when the handle needs to be retained, or passed
+  across helpers. Multiple suppression blocks are allowed.
 
-If these findings have caused you to resend the series or submit a
-separate fix, please add the following tag to your commit message:
-  Tested-by: syzbot@syzkaller.appspotmail.com
+This series is based on the RFC patch and subsequent discussion at
+https://patchwork.kernel.org/project/linux-kselftest/patch/02546e59-1afe-4b08-ba81-d94f3b691c9a@moroto.mountain/
+and offers a more comprehensive solution of the problem discussed there.
+
+Changes since RFC:
+- Introduced CONFIG_KUNIT_SUPPRESS_BACKTRACE
+- Minor cleanups and bug fixes
+- Added support for all affected architectures
+- Added support for counting suppressed warnings
+- Added unit tests using those counters
+- Added patch to suppress warning backtraces in dev_addr_lists tests
+
+Changes since v1:
+- Rebased to v6.9-rc1
+- Added Tested-by:, Acked-by:, and Reviewed-by: tags
+  [I retained those tags since there have been no functional changes]
+- Introduced KUNIT_SUPPRESS_BACKTRACE configuration option, enabled by
+  default.
+
+Changes since v2:
+- Rebased to v6.9-rc2
+- Added comments to drm warning suppression explaining why it is needed.
+- Added patch to move conditional code in arch/sh/include/asm/bug.h
+  to avoid kerneldoc warning
+- Added architecture maintainers to Cc: for architecture specific patches
+- No functional changes
+
+Changes since v3:
+- Rebased to v6.14-rc6
+- Dropped net: "kunit: Suppress lock warning noise at end of dev_addr_lists tests"
+  since 3db3b62955cd6d73afde05a17d7e8e106695c3b9
+- Added __kunit_ and KUNIT_ prefixes.
+- Tested on interessed architectures.
+
+Changes since v4:
+- Rebased to v6.15-rc7
+- Dropped all code in __report_bug()
+- Moved all checks in WARN*() macros.
+- Dropped all architecture specific code.
+- Made __kunit_is_suppressed_warning nice to noinstr functions.
+
+Changes since v5:
+- Rebased to v7.0-rc3
+- Added RCU protection for the suppressed warnings list.
+- Added static key and branching optimization.
+- Removed custom `strcmp` implementation and reworked
+  __kunit_is_suppressed_warning() entrypoint function.
+
+Changes since v6:
+- Moved suppression checks from WARN*() macros to warn_slowpath_fmt()
+  and __report_bug().
+- Replaced stack-allocated suppression struct with kunit_kzalloc() heap
+  allocation tied to the KUnit test lifecycle.
+- Changed suppression strategy from function-name matching to task-scoped:
+  all warnings on the current task are suppressed between START and END,
+  rather than only warnings originating from a specific named function.
+- Simplified macro API: removed KUNIT_DECLARE_SUPPRESSED_WARNING(),
+  the START macro now takes (test) and handles allocation internally.
+- Removed static key and branching optiomization, as by the time it
+  was executed, callers are already in warn slowpaths.
+- Link to v6: https://lore.kernel.org/r/20260317-kunit_add_support-v6-0-dd22aeb3fe5d@redhat.com
+
+Changes since v7:
+- Integrated suppression into existing KUnit hooks infrastructure
+- Removed CONFIG_KUNIT_SUPPRESS_BACKTRACE
+- Added suppression check in __warn_printk()
+- Added spinlock for writer-side RCU protection
+- Replaced explicit rcu_read_lock/unlock with guard(rcu)()
+- Added scoped API (kunit_warning_suppress) using __cleanup attribute
+- Updated DRM patch to use scoped API
+- Expanded self-tests: incremental counting, cross-kthread isolation
+- Rewrote documentation covering all three API forms with examples
+- Link to v7: https://lore.kernel.org/r/20260420-kunit_add_support-v7-0-e8bc6e0f70de@redhat.com
+
+--
+2.34.1
 
 ---
-This report is generated by a bot. It may contain errors.
-syzbot ci engineers can be reached at syzkaller@googlegroups.com.
+Alessandro Carminati (1):
+      bug/kunit: Core support for suppressing warning backtraces
 
-To test a patch for this bug, please reply with `#syz test`
-(should be on a separate line).
+Guenter Roeck (3):
+      kunit: Add backtrace suppression self-tests
+      drm: Suppress intentional warning backtraces in scaling unit tests
+      kunit: Add documentation for warning backtrace suppression API
 
-The patch should be attached to the email.
-Note: arguments like custom git repos and branches are not supported.
+ Documentation/dev-tools/kunit/usage.rst |  63 ++++++++++-
+ drivers/gpu/drm/tests/drm_rect_test.c   |  23 +++-
+ include/kunit/test-bug.h                |  25 +++++
+ include/kunit/test.h                    | 138 ++++++++++++++++++++++++
+ kernel/panic.c                          |  15 ++-
+ lib/bug.c                               |  10 ++
+ lib/kunit/Makefile                      |   4 +-
+ lib/kunit/backtrace-suppression-test.c  | 184 ++++++++++++++++++++++++++++++++
+ lib/kunit/bug.c                         | 115 ++++++++++++++++++++
+ lib/kunit/hooks-impl.h                  |   2 +
+ 10 files changed, 571 insertions(+), 8 deletions(-)
+---
+base-commit: 80234b5ab240f52fa45d201e899e207b9265ef91
+change-id: 20260312-kunit_add_support-2f35806b19dd
+
+Best regards,
+-- 
+Albert Esteve <aesteve@redhat.com>
+
