@@ -1,187 +1,163 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from fout-a7-smtp.messagingengine.com (fout-a7-smtp.messagingengine.com [103.168.172.150])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 920B93081D6
-	for <linux-arch@vger.kernel.org>; Mon,  4 May 2026 07:42:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3813F3090D7;
+	Mon,  4 May 2026 08:03:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.150
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777880544; cv=none; b=fPls1+NaPQIVPhrMGrEE5XG/xmLbhh9DAkJKJm9HtEJm0uON2Xn2DawMxrP8PaG3fjw86UORSVNd9iPsxOFGww+V85TsxgSjVnvZRsWELH1Ub6Nr9Y2PWkLOqfWFdq4dSeiT3/AmUxIRamu1MfsjhdRS2D83L9FoRxEdbfsmUHA=
+	t=1777881815; cv=none; b=GRAEZrve5PKYcc7AcBQqCpLkG74N64ayGIqCf82EvEKh5zdXaAIpTQil5++CeiMkKpQZUMAmPgaLykn8nuxhawKiS3pjDs57XKVpqVcAi8T9GMcSTZcD7q7tmu7zVzKk54BKReCUXGm21YXnQByc22kGlyeFv73snmd35WGmZs4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777880544; c=relaxed/simple;
-	bh=A80E02qU1TS6z15q14xBiSQVueYwuoIuM7q+neSZq1s=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=S61Ip/FNaIwLpAfitW8u4L8YK1VhhjhQjZ5eW4fVxtxl5CBPHYM4yCQNGEfn7SDdh1KLAx5UFREZRPEGcJoxKMJ4ufQczOIEjTU6GI9KH1Ll+My4absteOFgjdJqINJfES2IEiIVafi9Yny9pyV5CdjpFObOwl8N1toh4M7jhUk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=gCfNOlSy; arc=none smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1777881815; c=relaxed/simple;
+	bh=85KGlEIKITdOlWoiiVxvYUZbQ1nS1XmOFsk2A93rDas=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=q9pB6kjPcvVB4KXX8hcMxDybmM7bKfwl7k60BEZ7cx20Uq2Q51BQaPbtsMj00nu+VCggrVZNfcIEkY5clD20sTVcZ3o6TM1J1DNi9rETgievdxkCOWdW9h63FsR572VWjNmMDWPAtk7D5Fy91gML4wZYmDcFkAqPuE42ehJL84E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=lKIQozwE; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=WjdGsF4l; arc=none smtp.client-ip=103.168.172.150
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="gCfNOlSy"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1777880542;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=17DG/jFD4UJY3jOr7jCFbgLNy+ifxGIJEYAAkiazHmo=;
-	b=gCfNOlSyoucdmz1drV046SNC+cNw4Ywj9sPVd2l2FysW12raWkio3yGyas99TtF7gDE34r
-	iQyalUZg9Tt89kZJQoO+ngE7q/X53u9lpogx4YSWlSz7SwKUnsa2M/w4M44gUrtYjVk+Wu
-	Rxrx3vNh6OmDkjYU5xMGMBZzKE+5x9k=
-Received: from mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-517-QAvuwnggOIKkmeYZGApe3g-1; Mon,
- 04 May 2026 03:42:16 -0400
-X-MC-Unique: QAvuwnggOIKkmeYZGApe3g-1
-X-Mimecast-MFC-AGG-ID: QAvuwnggOIKkmeYZGApe3g_1777880533
-Received: from mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.17])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 2A4AF19560A1;
-	Mon,  4 May 2026 07:42:12 +0000 (UTC)
-Received: from [192.168.1.153] (headnet01.pony-001.prod.iad2.dc.redhat.com [10.2.32.101])
-	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 1C9EA1953952;
-	Mon,  4 May 2026 07:42:04 +0000 (UTC)
-From: Albert Esteve <aesteve@redhat.com>
-Date: Mon, 04 May 2026 09:41:28 +0200
-Subject: [PATCH v8 4/4] kunit: Add documentation for warning backtrace
- suppression API
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="lKIQozwE";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="WjdGsF4l"
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailfout.phl.internal (Postfix) with ESMTP id 6C2D7EC011A;
+	Mon,  4 May 2026 04:03:32 -0400 (EDT)
+Received: from phl-imap-02 ([10.202.2.81])
+  by phl-compute-04.internal (MEProxy); Mon, 04 May 2026 04:03:32 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm2; t=1777881812;
+	 x=1777968212; bh=lRsobUL6Yqd5naNkEfLWDCbqmttFKUBjkDP0RSCMYno=; b=
+	lKIQozwEzFcnuVHJBHQ8r+b5oT97obr68Nf8luMuM3L6O5raCOhhUY7Gctoc1Tp8
+	629KHqe8wadhboVSnp1pfYRpNmc+pZFNyYU2mpbW7M44o6VsakgiDSDF58QBnZ/3
+	Dd9pzdJUeabis3j6EQvltT0CjZH22hQT5XhkNdF8dWHnvjTSZ5VfKpv8fFimENov
+	y2OBPInLOxFUOFKOPP23zqPiM6Xvy5WtUk1iqfX92udoVLSVv+/NSGC8fBHcdL34
+	kNewsRgHuStBFHX0paWLj+tG4PMjqZpZnThCSW9mR0nkKphUBaakjPL3G6X4XzOR
+	sxsvI2tnrlNp4u4Y/z/Uvw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1777881812; x=
+	1777968212; bh=lRsobUL6Yqd5naNkEfLWDCbqmttFKUBjkDP0RSCMYno=; b=W
+	jdGsF4ltkHFNmq4MXhLG7F9XwWgGquAASSnmd6Fq8+oajRxrbhR3fa1qAIKOUp6W
+	dz7xegS3ZIzYHyXjL/vCt6mOhMYDrDuAeDbXahTA2ce6HwaHuXFChrssQdGXTdxg
+	ASXkoguUZsTFwE5CuZfGLN4oZchI1xBKCYhv6yyMWLFHhoPk8GQ4LJ5j4JaAfNqg
+	z7I+qjcYP9OcdQESVckBq+8S86XCu0Awvx1iamWM3zqhSeIYTlj4VSN2gHrxbps0
+	1Ms2cGh4aVk79gTiXDdVzyKDoiA721QeovwvOxsqhSeNFyjNsk734G/FtEoFNW94
+	jEaf2B4dgR/JL3witKL4Q==
+X-ME-Sender: <xms:0lL4aR2L0rD3fWiyNVDOAkvHSrIlIVgK7WgBt5qGs_zUs8aj_oHPMw>
+    <xme:0lL4aS4d7LLhmWZPmmqNI-uWQTdk3frrl8Hg52cxJA3YYwV50unHO5OE1dJewfCJI
+    Ko-eGJUCsgRPHN7n1uj2hZUa5YYdBsN4955qUHj3NcpB41Loa17Uh0>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefhedrtddtgdelkeefudcutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpuffrtefokffrpgfnqfghnecuuegr
+    ihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmdenucfjug
+    hrpefoggffhffvvefkjghfufgtgfesthejredtredttdenucfhrhhomhepfdetrhhnugcu
+    uegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusgdruggvqeenucggtffrrghtthgvrh
+    hnpefhtdfhvddtfeehudekteeggffghfejgeegteefgffgvedugeduveelvdekhfdvieen
+    ucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpegrrhhnug
+    esrghrnhgusgdruggvpdhnsggprhgtphhtthhopedvhedpmhhouggvpehsmhhtphhouhht
+    pdhrtghpthhtohepphgrlhhmvghrsegurggssggvlhhtrdgtohhmpdhrtghpthhtohepug
+    grvhgvmhesuggrvhgvmhhlohhfthdrnhgvthdprhgtphhtthhopegrohhusegvvggtshdr
+    sggvrhhkvghlvgihrdgvughupdhrtghpthhtohepshgufhesfhhomhhitghhvghvrdhmvg
+    dprhgtphhtthhopegrlhgvgiesghhhihhtihdrfhhrpdhrtghpthhtohepjhhohhhnrdhf
+    rghsthgrsggvnhgusehgmhgrihhlrdgtohhmpdhrtghpthhtohephihurhihrdhnohhroh
+    hvsehgmhgrihhlrdgtohhmpdhrtghpthhtohepvgguuhhmrgiivghtsehgohhoghhlvgdr
+    tghomhdprhgtphhtthhopehruhgrnhhjihhnjhhivgeshhhurgifvghirdgtohhm
+X-ME-Proxy: <xmx:0lL4aRNeIpiqXc5fB1MHgBXrEJ9lZQQEpD-B8lPFp6wgoeLl-5ZA4Q>
+    <xmx:0lL4aT2fjft0esTMjzTU1zcrFbzA-_AFE7_VP8BpUHgzkmYgKHRnUg>
+    <xmx:0lL4admhcWGT28uCEY5xSJDz_pBSgWnQV3r2LytJJkg8HARZKaDyFg>
+    <xmx:0lL4aZ6Wh97kTjE3ydg7__JVwDupqwjhpu_1wCpVBBAEliM3JtcswQ>
+    <xmx:1FL4afDExJRXBh0UiKSRKS_WkzSEFtnYN1B_2siySxbqJTYh84FcyA8z>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id B4B35700069; Mon,  4 May 2026 04:03:30 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+X-ThreadId: AduvTQsiZ6dJ
+Date: Mon, 04 May 2026 10:03:10 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Yury Norov" <ynorov@nvidia.com>, "Paul Walmsley" <pjw@kernel.org>,
+ "Palmer Dabbelt" <palmer@dabbelt.com>, "Albert Ou" <aou@eecs.berkeley.edu>,
+ "Alexandre Ghiti" <alex@ghiti.fr>, "Yury Norov" <yury.norov@gmail.com>,
+ "Rasmus Villemoes" <linux@rasmusvillemoes.dk>,
+ "Andrew Lunn" <andrew+netdev@lunn.ch>,
+ "David S . Miller" <davem@davemloft.net>,
+ "Eric Dumazet" <edumazet@google.com>, "Jakub Kicinski" <kuba@kernel.org>,
+ "Paolo Abeni" <pabeni@redhat.com>,
+ "Andrew Morton" <akpm@linux-foundation.org>,
+ "Alexei Starovoitov" <ast@kernel.org>,
+ "Daniel Borkmann" <daniel@iogearbox.net>,
+ "Jesper Dangaard Brouer" <hawk@kernel.org>,
+ "John Fastabend" <john.fastabend@gmail.com>,
+ "Stanislav Fomichev" <sdf@fomichev.me>,
+ "Ruan Jinjie" <ruanjinjie@huawei.com>, linux-kernel@vger.kernel.org,
+ linux-riscv@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>,
+ Netdev <netdev@vger.kernel.org>, bpf@vger.kernel.org
+Cc: "Nathan Chancellor" <nathan@kernel.org>
+Message-Id: <ec4ed7f5-b1c8-49e4-b83d-e29c5414b9de@app.fastmail.com>
+In-Reply-To: <20260430211351.658193-2-ynorov@nvidia.com>
+References: <20260430211351.658193-1-ynorov@nvidia.com>
+ <20260430211351.658193-2-ynorov@nvidia.com>
+Subject: Re: [PATCH 1/6] lib: include crc32.h conditionally on CONFIG_CRC32
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260504-kunit_add_support-v8-4-3e5957cdd235@redhat.com>
-References: <20260504-kunit_add_support-v8-0-3e5957cdd235@redhat.com>
-In-Reply-To: <20260504-kunit_add_support-v8-0-3e5957cdd235@redhat.com>
-To: Arnd Bergmann <arnd@arndb.de>, 
- Brendan Higgins <brendan.higgins@linux.dev>, David Gow <david@davidgow.net>, 
- Rae Moar <raemoar63@gmail.com>, 
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
- Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
- David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
- Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
- Andrew Morton <akpm@linux-foundation.org>, Paul Walmsley <pjw@kernel.org>, 
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
- Alexandre Ghiti <alex@ghiti.fr>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
- dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
- linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
- peterz@infradead.org, Guenter Roeck <linux@roeck-us.net>, 
- Linux Kernel Functional Testing <lkft@linaro.org>, 
- Dan Carpenter <dan.carpenter@linaro.org>, 
- Alessandro Carminati <acarmina@redhat.com>, 
- Albert Esteve <aesteve@redhat.com>, Kees Cook <kees@kernel.org>, 
- David Gow <david@davidgow.net>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1777880489; l=3385;
- i=aesteve@redhat.com; s=20260303; h=from:subject:message-id;
- bh=2r+YaNLYekCHScvfkm3SGKZhcNXhOrPXur/abYPqMto=;
- b=pimAHn6mKykigLlO10+2vvAltRY7TPIdHOYgqeW98bdEc+ZK26YT7z1+cMMQAe9pp5J0fvRMB
- Egmh5d5sKOyC8rUTjiV0qZJLE2iKtU53WjTgAs/8LI4pkK+8kn5azN9
-X-Developer-Key: i=aesteve@redhat.com; a=ed25519;
- pk=YSFz6sOHd2L45+Fr8DIvHTi6lSIjhLZ5T+rkxspJt1s=
-X-Scanned-By: MIMEDefang 3.0 on 10.30.177.17
 
-From: Guenter Roeck <linux@roeck-us.net>
+On Thu, Apr 30, 2026, at 23:13, Yury Norov wrote:
+> Currently, bitreverse API is either declared based on
+> CONFIG_HAVE_ARCH_BITREVERSE, wired to arch implementation, or if the
+> arch has no bitreverse, based on generic implementation.
+>
+> So, regardless of CONFIG_BITREVERSE=n, the corresponding API is always
+> declared. If that happens, the functions become declared but not
+> implemented, which is an error.
 
-Document API functions for suppressing warning backtraces.
+I'm not following that description. Why is it an error to declare
+a funtion that is not implemented? Isn't that how optional interfaces
+tend to work in general?
 
-Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
-Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Guenter Roeck <linux@roeck-us.net>
-Reviewed-by: David Gow <davidgow@google.com>
-Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
-Reviewed-by: David Gow <david@davidgow.net>
-Signed-off-by: Albert Esteve <aesteve@redhat.com>
----
- Documentation/dev-tools/kunit/usage.rst | 63 ++++++++++++++++++++++++++++++++-
- 1 file changed, 62 insertions(+), 1 deletion(-)
+> The only header requiring the crc32 and bitreverse prototypes is
+> include/linux/etherdevice.h. Thus, protect inclusion of corresponding
+> headers in the etherdevice with CONFIG_CRC32, together with the only
+> function depending on it.
+...
+>  #include <linux/if_ether.h>
+>  #include <linux/netdevice.h>
+>  #include <linux/random.h>
+> +#ifdef CONFIG_CRC32
+>  #include <linux/crc32.h>
+> +#endif
+>  #include <linux/unaligned.h>
+>  #include <asm/bitsperlong.h>
 
-diff --git a/Documentation/dev-tools/kunit/usage.rst b/Documentation/dev-tools/kunit/usage.rst
-index ebd06f5ea4550..25724f7e72969 100644
---- a/Documentation/dev-tools/kunit/usage.rst
-+++ b/Documentation/dev-tools/kunit/usage.rst
-@@ -157,6 +157,67 @@ Alternatively, one can take full control over the error message by using
- 	if (some_setup_function())
- 		KUNIT_FAIL(test, "Failed to setup thing for testing");
- 
-+Suppressing warning backtraces
-+------------------------------
-+
-+Some unit tests trigger warning backtraces either intentionally or as a side
-+effect. Such backtraces are normally undesirable since they distract from
-+the actual test and may result in the impression that there is a problem.
-+
-+Backtraces can be suppressed with **task-scoped suppression**: while
-+suppression is active on the current task, the backtrace and stack dump from
-+``WARN*()``, ``WARN_ON*()``, and related macros on that task are suppressed.
-+Three API forms are available, in order of convenience.
-+
-+- Scoped suppression is the simplest form. Wrap the code that triggers
-+  warnings in a ``kunit_warning_suppress()`` block:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		kunit_warning_suppress(test) {
-+			trigger_backtrace();
-+			KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
-+		}
-+	}
-+
-+.. note::
-+   The warning count must be checked inside the block; the suppression handle
-+   is not accessible after the block exits.
-+
-+- Manual macros are useful when the suppressed region is large enough that
-+  extra indentation is undesirable, or when the warning count needs to be
-+  checked after suppression ends. ``KUNIT_START_SUPPRESSED_WARNING()`` must
-+  appear before ``KUNIT_END_SUPPRESSED_WARNING()`` in the same scope.
-+  Limited to one pair per scope.
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		KUNIT_START_SUPPRESSED_WARNING(test);
-+		trigger_backtrace();
-+		KUNIT_END_SUPPRESSED_WARNING(test);
-+
-+		KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
-+	}
-+
-+- Direct functions return an explicit handle pointer. Use them when the handle
-+  needs to be retained or passed across helper functions:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		struct kunit_suppressed_warning *w;
-+
-+		w = kunit_start_suppress_warning(test);
-+		trigger_backtrace();
-+		kunit_end_suppress_warning(test, w);
-+
-+		KUNIT_EXPECT_EQ(test, kunit_suppressed_warning_count(w), 1);
-+	}
- 
- Test Suites
- ~~~~~~~~~~~
-@@ -1211,4 +1272,4 @@ For example:
- 		dev_managed_string = devm_kstrdup(fake_device, "Hello, World!");
- 
- 		// Everything is cleaned up automatically when the test ends.
--	}
-\ No newline at end of file
-+	}
+Don't add #ifdef blocks around headers. If the header cannot
+be included without side-effects, change the linux/crc32.h
+file instead of its users.
 
--- 
-2.53.0
+It looks like the problem is the check for CONFIG_GENERIC_BITREVERSE
+in include/asm-generic/bitops/__bitrev.h, which ends up
+hinding the generic___bitrev32() helper without need.
 
+Simply removing the #ifdef there should avoid the build failure.
+
+> +#ifdef CONFIG_CRC32
+>  /**
+>   * eth_hw_addr_crc - Calculate CRC from netdev_hw_addr
+>   * @ha: pointer to hardware address
+> @@ -291,6 +294,7 @@ static inline u32 eth_hw_addr_crc(struct netdev_hw_addr *ha)
+>  {
+>  	return ether_crc(ETH_ALEN, ha->addr);
+>  }
+> +#endif
+
+I see there are only user users of this function, neither of
+them are performance critical. So the other options would
+be to either open-code this function in the two callers
+and remove it entirely, or move it into net/ethernet/eth.c.
+
+      Arnd
