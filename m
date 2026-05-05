@@ -1,31 +1,31 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D152E3F23A2;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D287A3F23AC;
 	Tue,  5 May 2026 09:05:36 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777971938; cv=none; b=ffvDxKeLPL2fmdZQX7+GG6W/CnZaUAwtL5LjlCqlkbpRIl7DL03AQYsajNmfcX3n5mZYm9I3GHPF4fmsbq9HNfcTlTjSowc1hhNKtVyNoNEGuK/EKPCm+ncw/wvY77euulvJ8IUdaYqbv2Gx0IZY+6PirJodVqqm0OW0N2p+ejY=
+	t=1777971938; cv=none; b=J6MqegxN8j8Rmhz6fKyHHufbfiKepKrlNEHcftpafD1uR7aCtwAnxE3BAk6SOWu1n9TAZ3OKkxuabgRRPUaqzpbDgOVVadv69PJ5Znvg/sUNixmqLawqO/qHo6K1w0o784RGja7Y1LbokFkoxmQ83W5b7i0YZ40kbK6E6c2HnwU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1777971938; c=relaxed/simple;
-	bh=XIA5YFBwc6Ej9VZmFF9JGp6ZBIHakQDs8PjcS5hpne4=;
+	bh=QGuEjahQSX5KIR3mv9uZyKkgUGxQh5zTTSgnqh/jiis=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=qnr9kF+Uc6uKI8CESSNsreVtad7VNfKspHv3gy13BPa0/LW78gtAGzIwMmHNlKiSF53Pnjn4sQ/yZH0PobsMbst/EzuEP9bOC1A+kV1aHltprgck40UwElqZ8bM7bvmQE35d39r+/N2NhvCBwclkF8zIkrqoJj6sLrDxaK0DvO4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=ONiJCd1X; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=W++OowcSZUHbL1lw8VJlgFOPCXjl2Mfpu9x7GKuvRORTaFqCnOywFDMm6n5G/+ViLFG9hzqzDMHcGvM3L5JIoDLSfL9uOp1qkBkEqdYUxeKT3ksRI9YKcqOIXnnRPJLvgANQR0U48rghIZQPGx7SA+0alhzJak5POIxzjS5zwAA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=g4Fknziw; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="ONiJCd1X"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="g4Fknziw"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
-	s=mail; t=1777971922;
-	bh=XIA5YFBwc6Ej9VZmFF9JGp6ZBIHakQDs8PjcS5hpne4=;
+	s=mail; t=1777971923;
+	bh=QGuEjahQSX5KIR3mv9uZyKkgUGxQh5zTTSgnqh/jiis=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=ONiJCd1Xjufi3qfX4PXYJk52Ans3Ce5JZoXSHJpZRM9GcvQ4b9Mv9AZkVK3SSkBDb
-	 uU34oNf0ltXz9UDGVNxNmTfz5eGAMR8ag9Kkbs+QXSzZwgehn2cJbjY0WL19iK1chP
-	 f9RRPhi1y40plE2CjJKV+XStQYmpjxANqKYPwWBQ=
+	b=g4Fknziwd96fLN+TTNQAV/fMHOhd/dIN0idNYLfwkjvob2sS26e2GZhdQjmJKGBg2
+	 1Wuj9kttFMh09utr0/SaRmtgS+EoGk8Ji0s7efvwWTViHA7Eic1XoFHkeNankvLZGH
+	 d2Dvf/IQdZzsPGC4AF+nGave4W25BM2Rl2cxHXow=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 05 May 2026 11:05:08 +0200
-Subject: [PATCH v5 04/14] module: Drop pointless debugging message
+Date: Tue, 05 May 2026 11:05:09 +0200
+Subject: [PATCH v5 05/14] module: Make mod_verify_sig() static
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -34,7 +34,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20260505-module-hashes-v5-4-e174a5a49fce@weissschuh.net>
+Message-Id: <20260505-module-hashes-v5-5-e174a5a49fce@weissschuh.net>
 References: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
 In-Reply-To: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
 To: Alexei Starovoitov <ast@kernel.org>, 
@@ -74,37 +74,50 @@ Cc: Martin KaFai Lau <martin.lau@linux.dev>, Song Liu <song@kernel.org>,
  debian-kernel@lists.debian.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.15.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1777971921; l=660;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1777971921; l=1372;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=XIA5YFBwc6Ej9VZmFF9JGp6ZBIHakQDs8PjcS5hpne4=;
- b=Ee+VM+f9ivEIue9ulRLTnR7A7RxGy6esDrOUiYWXgYjcohrPW0vgCLL+otaNguQ4yU33rNoC0
- E/xUSCAFfC8Dq68rIFE+RjjVdNuj1MSQsJK7czkKKBhaEAT8wIUs2W8
+ bh=QGuEjahQSX5KIR3mv9uZyKkgUGxQh5zTTSgnqh/jiis=;
+ b=YPbhooCs8Z4p5xzEA8Bou2VKPPahpzMZhKoMk8D4SPl0woEZ2hjUdTCq/NfLfVDVlfTISZ3Ax
+ 2PKz7Hagg7xC31UJ4xI2NezkX4xUOqNSMisfL91GfGeptv87RApuP5L
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-This is the only instance of pr_devel() in the whole module subsystem
-and essentially useless.
-
-Drop it.
+It is not used outside of signing.c.
 
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
+Reviewed-by: Aaron Tomlin <atomlin@atomlin.com>
+Reviewed-by: Nicolas Schier <nsc@kernel.org>
+Reviewed-by: Eric Biggers <ebiggers@kernel.org>
 ---
- kernel/module/signing.c | 2 --
- 1 file changed, 2 deletions(-)
+ kernel/module/internal.h | 1 -
+ kernel/module/signing.c  | 2 +-
+ 2 files changed, 1 insertion(+), 2 deletions(-)
 
+diff --git a/kernel/module/internal.h b/kernel/module/internal.h
+index 061161cc79d9..071999743341 100644
+--- a/kernel/module/internal.h
++++ b/kernel/module/internal.h
+@@ -117,7 +117,6 @@ struct module_use {
+ 	struct module *source, *target;
+ };
+ 
+-int mod_verify_sig(const void *mod, struct load_info *info);
+ int try_to_force_load(struct module *mod, const char *reason);
+ bool find_symbol(struct find_symbol_arg *fsa);
+ struct module *find_module_all(const char *name, size_t len, bool even_unformed);
 diff --git a/kernel/module/signing.c b/kernel/module/signing.c
-index 590ba29c85ab..4a5e4eef250d 100644
+index 4a5e4eef250d..69d4b1758540 100644
 --- a/kernel/module/signing.c
 +++ b/kernel/module/signing.c
-@@ -46,8 +46,6 @@ int mod_verify_sig(const void *mod, struct load_info *info)
+@@ -40,7 +40,7 @@ void set_module_sig_enforced(void)
+ /*
+  * Verify the signature on a module.
+  */
+-int mod_verify_sig(const void *mod, struct load_info *info)
++static int mod_verify_sig(const void *mod, struct load_info *info)
+ {
+ 	struct module_signature ms;
  	size_t sig_len, modlen = info->len;
- 	int ret;
- 
--	pr_devel("==>%s(,%zu)\n", __func__, modlen);
--
- 	if (modlen <= sizeof(ms))
- 		return -EBADMSG;
- 
 
 -- 
 2.54.0
