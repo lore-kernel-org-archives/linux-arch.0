@@ -1,80 +1,189 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id B73DE387364;
-	Tue,  5 May 2026 11:35:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mail.ilvokhin.com (mail.ilvokhin.com [178.62.254.231])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2834548B396;
+	Tue,  5 May 2026 17:10:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.62.254.231
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777980950; cv=none; b=gtxiHV3cl+ND5yeXuGEfDbdxfjFWE6XyTXxQRs937l91XVgAY9kDSLuQLE7iSyioriZY8Ao6RRwkHS+NPmD7W6KV7cwmxI/BSfztQy8ZmJKbuk1l9cIb3wejRZJNKyVECbQtnIL4iP4Gtu7yonZta+5WNO9p08cBqMiqE6cuIpQ=
+	t=1778001001; cv=none; b=K2zNYkoQPux8/cIDvU0q8r20cCbbkw2yKHdUvr2Nhf4yvbvBWoMM+QeeL7LkrJTIlGUdolkKLnlYIrt7eAoYi2TbHwgHpG9lgEryYcEbAOBgypO2uuCGYs9CYbiU7QwHM6oStvE4Sd9fw6xUduZm+LS/iXu3jfgSQapNJ2uosEk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777980950; c=relaxed/simple;
-	bh=at19uvxNcHMfcG+vd2NFqn/Rp/ZQnuYgva4Zq0bYUg4=;
-	h=Date:From:To:cc:Subject:In-Reply-To:Message-ID:References:
-	 MIME-Version:Content-Type; b=njdTLr//DcqIldHfpfp2dIVfC2lY0+JC7lXeJa+cEEwbGzZ08bbDUUHO8N6aETUZoofd51jejTIUx1kgpPm43Zl51O9QId5ltynhV+S+aJ1Y5XeZu8yzHxVF1rehVPBI5smxesswrrfXr1kwPyuHmSJTSphGNzCSjcLL9fLdgE8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=OYTAspS4; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1778001001; c=relaxed/simple;
+	bh=x0CWLc22TFu5JAq6s3I2itdt4QuzU2QIk2yqIyaZMIM=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=G5C5zFRqtkeyrskXC3964POpHxiHgbpclMgYIBa2X7y6s4caLezQECUL4AvS6D2Y5ZG03l4jFbwGLlu3t+bkKlP9Jm3UNeLKDyRLYimfgk00oavJQALxWKlESGQAJzyXQBEXSFH4wPf70gJpWXqg+RmkpTFTTtqCB2eUR9zbCYA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=OxH5iBec; arc=none smtp.client-ip=178.62.254.231
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ilvokhin.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="OYTAspS4"
-Received: by linux.microsoft.com (Postfix, from userid 1241)
-	id 2C94820B7168; Tue,  5 May 2026 04:35:46 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 2C94820B7168
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1777980946;
-	bh=I4klsKzTXH34c/6RkK2WQi9jxixheunHFgfWXjXIHIk=;
-	h=Date:From:To:cc:Subject:In-Reply-To:References:From;
-	b=OYTAspS4xGyg/MRyaMAAWFEcDxi2hRjko1QnVvfe/d7s6tdxoWlXkL9rBrBmk4XlA
-	 64i7Cnk2/Jo+G2c/nseUdPntKzM5IUpcU7NcYaSqjbPdaK8Fh+C+c2sHp8KhlxBFsf
-	 SP0OdePFhHmpi8kDIA59gm7AmoFoxmyxQIpmD3HQ=
-Received: from localhost (localhost [127.0.0.1])
-	by linux.microsoft.com (Postfix) with ESMTP id 2A8ED30705A3;
-	Tue,  5 May 2026 04:35:46 -0700 (PDT)
-Date: Tue, 5 May 2026 04:35:46 -0700 (PDT)
-From: Jork Loeser <jloeser@linux.microsoft.com>
-To: Michael Kelley <mhklinux@outlook.com>
-cc: "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, 
-    "x86@kernel.org" <x86@kernel.org>, 
-    "K . Y . Srinivasan" <kys@microsoft.com>, 
-    Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu <wei.liu@kernel.org>, 
-    Dexuan Cui <decui@microsoft.com>, Long Li <longli@microsoft.com>, 
-    Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
-    Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
-    "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, 
-    Anirudh Rayabharam <anirudh@anirudhrb.com>, 
-    "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
-    "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Subject: RE: [PATCH v4 1/3] mshv: limit SynIC management to MSHV-owned
- resources
-In-Reply-To: <SN6PR02MB4157280E305E11C5840B444DD4312@SN6PR02MB4157.namprd02.prod.outlook.com>
-Message-ID: <91faacb-d16-8540-4713-dad25bacf695@linux.microsoft.com>
-References: <20260427213855.1675044-1-jloeser@linux.microsoft.com> <20260427213855.1675044-2-jloeser@linux.microsoft.com> <SN6PR02MB4157280E305E11C5840B444DD4312@SN6PR02MB4157.namprd02.prod.outlook.com>
+	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="OxH5iBec"
+Received: from localhost.localdomain (shell.ilvokhin.com [138.68.190.75])
+	(Authenticated sender: d@ilvokhin.com)
+	by mail.ilvokhin.com (Postfix) with ESMTPSA id AA6A9CFFEE;
+	Tue, 05 May 2026 17:09:52 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ilvokhin.com;
+	s=mail; t=1778000993;
+	bh=JME30EqI9Oa5nd9X+jXdCtKM53zsahsE6SloH0sWIsQ=;
+	h=From:To:Cc:Subject:Date;
+	b=OxH5iBecNhNPv/fsyArIHSOs50UmZpgSC+Gr69EUqFDlcBykPD/TR+C3/purZaSyg
+	 DyeTgbtoe5JSD1gip7bC0O+QN9mZdGISQI/mqWYr4OJFxFTjF8TqbDTHeNRbpSi20k
+	 b7Gdk6ac14edfT+wR5kmclfbP2xsqCOdYlSD4dKQ=
+From: Dmitry Ilvokhin <d@ilvokhin.com>
+To: Peter Zijlstra <peterz@infradead.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Will Deacon <will@kernel.org>,
+	Boqun Feng <boqun@kernel.org>,
+	Waiman Long <longman@redhat.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Juergen Gross <jgross@suse.com>,
+	Ajay Kaher <ajay.kaher@broadcom.com>,
+	Alexey Makhalov <alexey.makhalov@broadcom.com>,
+	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Dennis Zhou <dennis@kernel.org>,
+	Tejun Heo <tj@kernel.org>,
+	Christoph Lameter <cl@gentwo.org>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: linux-kernel@vger.kernel.org,
+	linux-mips@vger.kernel.org,
+	virtualization@lists.linux.dev,
+	linux-arch@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-trace-kernel@vger.kernel.org,
+	kernel-team@meta.com,
+	Dmitry Ilvokhin <d@ilvokhin.com>
+Subject: [PATCH v6 0/7] locking: contended_release tracepoint instrumentation
+Date: Tue,  5 May 2026 17:09:29 +0000
+Message-ID: <cover.1777999826.git.d@ilvokhin.com>
+X-Mailer: git-send-email 2.54.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII; format=flowed
+Content-Transfer-Encoding: 8bit
 
-On Mon, 4 May 2026, Michael Kelley wrote:
+The existing contention_begin/contention_end tracepoints fire on the
+waiter side. The lock holder's identity and stack can be captured at
+contention_begin time (e.g. perf lock contention --lock-owner), but
+this reflects the holder's state when a waiter arrives, not when the
+lock is actually released.
 
-> From: Jork Loeser <jloeser@linux.microsoft.com> Sent: Monday, April 27, 2026 2:39 PM
->>
->> While here, fix the SIEFP and SIRBP memremap() and virt_to_phys()
->> calls to use HV_HYP_PAGE_SHIFT/HV_HYP_PAGE_SIZE instead of
->> PAGE_SHIFT/PAGE_SIZE. The hypervisor always uses 4K pages for SynIC
->> register GPAs regardless of the kernel page size, so using PAGE_SHIFT
->> produces wrong addresses on ARM64 with 64K pages.
->
-> I agree that this is a good change. But any kernel image built with
-> CONFIG_MSHV_ROOT set must use only 4KiB pages, as enforced
-> by the dependency in drivers/hv/Kconfig. The change makes the
-> code explicitly match the SynIC register layout, which is good,
-> but it doesn't actually fix a problem since root MSHV code can't
-> run on ARM64 with 64KiB pages. My only concern is that this
-> commit message should not imply that an ARM64/64KiB
-> configuration is possible for the root.
+This series adds a contended_release tracepoint that fires on the
+holder side when a lock with waiters is released. This provides:
 
-Agree for root. For L1VH, I think it theoretically could (likely with 
-other changes needing to happen elsewhere).
+- Hold time estimation: when the holder's own acquisition was
+  contended, its contention_end (acquisition) and contended_release
+  can be correlated to measure how long the lock was held under
+  contention.
 
-Best,
-Jork
+- The holder's stack at release time, which may differ from what perf lock
+  contention --lock-owner captures if the holder does significant work between
+  the waiter's arrival and the unlock.
+
+Note: for reader/writer locks, the tracepoint fires for every reader
+releasing while a writer is waiting, not only for the last reader.
+
+v5 -> v6:
+
+- Use trace_call__contended_release() instead of trace_contended_release(),
+  where appropriate to avoid a redundant static branch check when the caller
+  already guards with trace_contended_release_enabled().
+- Added acked-by from Paul.
+- Rebase on top of the fresh locking/core.
+
+v4 -> v5:
+
+- Split the combined spinning locks patch into separate qspinlock and
+  qrwlock patches (Paul E. McKenney).
+- Factor out __queued_read_unlock()/__queued_write_unlock() as a
+  separate preparatory commit, mirroring the queued_spin_release()
+  split (Paul E. McKenney).
+- Updated binary size numbers for qspinlock-only change.
+- Added Acked-by and Reviewed-by tags where appropriate.
+
+v3 -> v4:
+
+- Fix spurious events in __percpu_up_read(): guard with
+  rcuwait_active(&sem->writer) to avoid tracing during the RCU grace
+  period after a writer releases (Sashiko).
+- Fix possible use-after-free in semaphore up(): move
+  trace_contended_release() inside the sem->lock critical section
+  (Sashiko).
+- Fix build failure with CONFIG_PARAVIRT_SPINLOCKS=y: introduce
+  queued_spin_release() as the arch-overridable unlock primitive,
+  so queued_spin_unlock() can be a generic tracing wrapper. Convert
+  x86 (paravirt) and MIPS overrides (Sashiko).
+- Add EXPORT_TRACEPOINT_SYMBOL_GPL(contended_release) for module
+  support (Sashiko).
+- Split spinning locks patch: factor out queued_spin_release() as a
+  separate preparatory commit (Sashiko).
+- Make read unlock tracepoint behavior consistent across all
+  reader/writer lock types: fire for every reader releasing while
+  a writer is waiting (rwsem, rwbase_rt were previously last-reader
+  only).
+
+v2 -> v3:
+
+- Added new patch: extend contended_release tracepoint to queued spinlocks
+  and queued rwlocks (marked as RFC, requesting feedback). This is prompted by
+  Matthew Wilcox's suggestion to try to come up with generic instrumentation,
+  instead of instrumenting each "special" lock manually. See [1] for the
+  discussion.
+- Reworked tracepoint placement to fire before the lock is released and
+  before the waiter is woken where possible, for consistency with
+  spinning locks where there is no explicit wake (inspired by Usama Arif's
+  suggestion).
+- Remove unnecessary linux/sched.h include from trace/events/lock.h.
+
+RFC -> v2:
+
+- Add trace_contended_release_enabled() guard before waiter checks that
+  exist only for the tracepoint (Steven Rostedt).
+- Rename __percpu_up_read_slowpath() to __percpu_up_read() (Peter
+  Zijlstra).
+- Add extern for __percpu_up_read() (Peter Zijlstra).
+- Squashed tracepoint introduction and usage commits (Masami Hiramatsu).
+
+v5: https://lore.kernel.org/all/cover.1776350944.git.d@ilvokhin.com/
+v4: https://lore.kernel.org/all/cover.1774536681.git.d@ilvokhin.com/
+v3: https://lore.kernel.org/all/cover.1773858853.git.d@ilvokhin.com/
+v2: https://lore.kernel.org/all/cover.1773164180.git.d@ilvokhin.com/
+RFC: https://lore.kernel.org/all/cover.1772642407.git.d@ilvokhin.com/
+
+[1]: https://lore.kernel.org/all/aa7G1nD7Rd9F4eBH@casper.infradead.org/
+
+Dmitry Ilvokhin (7):
+  tracing/lock: Remove unnecessary linux/sched.h include
+  locking/percpu-rwsem: Extract __percpu_up_read()
+  locking: Add contended_release tracepoint to sleepable locks
+  locking: Factor out queued_spin_release()
+  locking: Add contended_release tracepoint to qspinlock
+  locking: Factor out __queued_read_unlock()/__queued_write_unlock()
+  locking: Add contended_release tracepoint to qrwlock
+
+ arch/mips/include/asm/spinlock.h         |  6 ++--
+ arch/x86/include/asm/paravirt-spinlock.h |  6 ++--
+ include/asm-generic/qrwlock.h            | 38 ++++++++++++++++++++++--
+ include/asm-generic/qspinlock.h          | 33 ++++++++++++++++++--
+ include/linux/percpu-rwsem.h             | 15 ++--------
+ include/trace/events/lock.h              | 18 ++++++++++-
+ kernel/locking/mutex.c                   |  4 +++
+ kernel/locking/percpu-rwsem.c            | 29 ++++++++++++++++++
+ kernel/locking/qrwlock.c                 | 16 ++++++++++
+ kernel/locking/qspinlock.c               |  8 +++++
+ kernel/locking/rtmutex.c                 |  1 +
+ kernel/locking/rwbase_rt.c               |  6 ++++
+ kernel/locking/rwsem.c                   | 10 +++++--
+ kernel/locking/semaphore.c               |  4 +++
+ 14 files changed, 167 insertions(+), 27 deletions(-)
+
+-- 
+2.52.0
+
