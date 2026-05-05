@@ -1,217 +1,80 @@
-Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 419D3347BD4;
-	Tue,  5 May 2026 09:10:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id B73DE387364;
+	Tue,  5 May 2026 11:35:48 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777972248; cv=none; b=lgC4MFwyo1FD1pfZM48nchWgLWz0DkX2jN4CAP5FjatgWztg3gZpGDnQjca9CgfWwfJ8kgU/Yk3CO+rppHklLgp0UMlfsbfR+CMwpg0XE3ikxzrrrUebLTmSEAJ6nFZGAR6ApW98eLKR0R3tKdLDGardjezfnsmi4INngOnICxk=
+	t=1777980950; cv=none; b=gtxiHV3cl+ND5yeXuGEfDbdxfjFWE6XyTXxQRs937l91XVgAY9kDSLuQLE7iSyioriZY8Ao6RRwkHS+NPmD7W6KV7cwmxI/BSfztQy8ZmJKbuk1l9cIb3wejRZJNKyVECbQtnIL4iP4Gtu7yonZta+5WNO9p08cBqMiqE6cuIpQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777972248; c=relaxed/simple;
-	bh=4sym237a3wzjHBQDzN72ZtH7iFNxSpm8gXdzQ0UrWmw=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=V9ZzR9uTZDuIZFiJde7o/jZXWdJRkXjk/nT8S/JesTzQYzpMvn3C6v6y1EZfgE+Ll7HZmNcgoZrdXhki2TKxcku4XLd0FZQJSbVB8e9fjp6DqwsWDECgHolNQJ7/pLPHcPDhICOFM4WJRVVMQWblt68JselEf8SXBLFAzFQJYec=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=Up2Yt+/i; arc=none smtp.client-ip=159.69.126.157
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
+	s=arc-20240116; t=1777980950; c=relaxed/simple;
+	bh=at19uvxNcHMfcG+vd2NFqn/Rp/ZQnuYgva4Zq0bYUg4=;
+	h=Date:From:To:cc:Subject:In-Reply-To:Message-ID:References:
+	 MIME-Version:Content-Type; b=njdTLr//DcqIldHfpfp2dIVfC2lY0+JC7lXeJa+cEEwbGzZ08bbDUUHO8N6aETUZoofd51jejTIUx1kgpPm43Zl51O9QId5ltynhV+S+aJ1Y5XeZu8yzHxVF1rehVPBI5smxesswrrfXr1kwPyuHmSJTSphGNzCSjcLL9fLdgE8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=OYTAspS4; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="Up2Yt+/i"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
-	s=mail; t=1777972242;
-	bh=4sym237a3wzjHBQDzN72ZtH7iFNxSpm8gXdzQ0UrWmw=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=Up2Yt+/iewqFT4CdTJtEHClfccc2bXaZkDpSUGByup4Vjop5SUh30Qw8cs4enAqE3
-	 ezzRxbNnLJYJrCGV+ryDaz+xSLJTy627+iEeBG9M2YPm1ZbEn/3tJi93kE1vSEhuZG
-	 GHsrlN1CEma0J6DFPiAPBGPBIuHEuzWSdyzkEtF0=
-From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 05 May 2026 11:05:17 +0200
-Subject: [PATCH v5 13/14] kbuild: move handling of module stripping to
- Makefile.lib
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="OYTAspS4"
+Received: by linux.microsoft.com (Postfix, from userid 1241)
+	id 2C94820B7168; Tue,  5 May 2026 04:35:46 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 2C94820B7168
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1777980946;
+	bh=I4klsKzTXH34c/6RkK2WQi9jxixheunHFgfWXjXIHIk=;
+	h=Date:From:To:cc:Subject:In-Reply-To:References:From;
+	b=OYTAspS4xGyg/MRyaMAAWFEcDxi2hRjko1QnVvfe/d7s6tdxoWlXkL9rBrBmk4XlA
+	 64i7Cnk2/Jo+G2c/nseUdPntKzM5IUpcU7NcYaSqjbPdaK8Fh+C+c2sHp8KhlxBFsf
+	 SP0OdePFhHmpi8kDIA59gm7AmoFoxmyxQIpmD3HQ=
+Received: from localhost (localhost [127.0.0.1])
+	by linux.microsoft.com (Postfix) with ESMTP id 2A8ED30705A3;
+	Tue,  5 May 2026 04:35:46 -0700 (PDT)
+Date: Tue, 5 May 2026 04:35:46 -0700 (PDT)
+From: Jork Loeser <jloeser@linux.microsoft.com>
+To: Michael Kelley <mhklinux@outlook.com>
+cc: "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, 
+    "x86@kernel.org" <x86@kernel.org>, 
+    "K . Y . Srinivasan" <kys@microsoft.com>, 
+    Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu <wei.liu@kernel.org>, 
+    Dexuan Cui <decui@microsoft.com>, Long Li <longli@microsoft.com>, 
+    Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
+    Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
+    "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, 
+    Anirudh Rayabharam <anirudh@anirudhrb.com>, 
+    "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
+    "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Subject: RE: [PATCH v4 1/3] mshv: limit SynIC management to MSHV-owned
+ resources
+In-Reply-To: <SN6PR02MB4157280E305E11C5840B444DD4312@SN6PR02MB4157.namprd02.prod.outlook.com>
+Message-ID: <91faacb-d16-8540-4713-dad25bacf695@linux.microsoft.com>
+References: <20260427213855.1675044-1-jloeser@linux.microsoft.com> <20260427213855.1675044-2-jloeser@linux.microsoft.com> <SN6PR02MB4157280E305E11C5840B444DD4312@SN6PR02MB4157.namprd02.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
-Message-Id: <20260505-module-hashes-v5-13-e174a5a49fce@weissschuh.net>
-References: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
-In-Reply-To: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
-To: Alexei Starovoitov <ast@kernel.org>, 
- Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>, 
- Eduard Zingerman <eddyz87@gmail.com>, 
- Kumar Kartikeya Dwivedi <memxor@gmail.com>, 
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
- Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>, 
- Petr Pavlu <petr.pavlu@suse.com>, Sami Tolvanen <samitolvanen@google.com>, 
- Daniel Gomez <da.gomez@samsung.com>, Paul Moore <paul@paul-moore.com>, 
- James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>, 
- Jonathan Corbet <corbet@lwn.net>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
- Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, 
- Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>, 
- Roberto Sassu <roberto.sassu@huawei.com>, 
- Dmitry Kasatkin <dmitry.kasatkin@gmail.com>, 
- Eric Snowberg <eric.snowberg@oracle.com>, 
- Nicolas Schier <nicolas.schier@linux.dev>, 
- Daniel Gomez <da.gomez@kernel.org>, Aaron Tomlin <atomlin@atomlin.com>, 
- "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, 
- Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>, 
- Xiu Jianfeng <xiujianfeng@huawei.com>, 
- Christophe Leroy <chleroy@kernel.org>
-Cc: Martin KaFai Lau <martin.lau@linux.dev>, Song Liu <song@kernel.org>, 
- Yonghong Song <yonghong.song@linux.dev>, Jiri Olsa <jolsa@kernel.org>, 
- bpf@vger.kernel.org, 
- =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>, 
- Arnout Engelen <arnout@bzzt.net>, Mattia Rizzolo <mattia@mapreri.org>, 
- kpcyrd <kpcyrd@archlinux.org>, Christian Heusel <christian@heusel.eu>, 
- =?utf-8?q?C=C3=A2ju_Mihai-Drosi?= <mcaju95@gmail.com>, 
- Eric Biggers <ebiggers@kernel.org>, 
- Sebastian Andrzej Siewior <bigeasy@linutronix.de>, 
- linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
- linux-arch@vger.kernel.org, linux-modules@vger.kernel.org, 
- linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org, 
- linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org, 
- debian-kernel@lists.debian.org, 
- =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-X-Mailer: b4 0.15.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1777971921; l=3531;
- i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=4sym237a3wzjHBQDzN72ZtH7iFNxSpm8gXdzQ0UrWmw=;
- b=yK767BHsapJV15dUfHNe8idRaS/QEQT7THkpmPRTFTWVR8JNmIEaIi786mZC/3G3QxzBTTSEr
- ElIP5qYLNiJD4Y2+AainUiunn1D7qpG9VUvSrTlTN7McIL/cM3ZvgES
-X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
- pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
+Content-Type: text/plain; charset=US-ASCII; format=flowed
 
-To allow CONFIG_MODULE_HASHES in combination with INSTALL_MOD_STRIP,
-this logc will also be used by Makefile.modfinal.
+On Mon, 4 May 2026, Michael Kelley wrote:
 
-Move it to a shared location to enable reuse.
+> From: Jork Loeser <jloeser@linux.microsoft.com> Sent: Monday, April 27, 2026 2:39 PM
+>>
+>> While here, fix the SIEFP and SIRBP memremap() and virt_to_phys()
+>> calls to use HV_HYP_PAGE_SHIFT/HV_HYP_PAGE_SIZE instead of
+>> PAGE_SHIFT/PAGE_SIZE. The hypervisor always uses 4K pages for SynIC
+>> register GPAs regardless of the kernel page size, so using PAGE_SHIFT
+>> produces wrong addresses on ARM64 with 64K pages.
+>
+> I agree that this is a good change. But any kernel image built with
+> CONFIG_MSHV_ROOT set must use only 4KiB pages, as enforced
+> by the dependency in drivers/hv/Kconfig. The change makes the
+> code explicitly match the SynIC register layout, which is good,
+> but it doesn't actually fix a problem since root MSHV code can't
+> run on ARM64 with 64KiB pages. My only concern is that this
+> commit message should not imply that an ARM64/64KiB
+> configuration is possible for the root.
 
-Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
----
- scripts/Makefile.lib     | 32 ++++++++++++++++++++++++++++++++
- scripts/Makefile.modinst | 37 +++++--------------------------------
- 2 files changed, 37 insertions(+), 32 deletions(-)
+Agree for root. For L1VH, I think it theoretically could (likely with 
+other changes needing to happen elsewhere).
 
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 0718e39cedda..bb713a1a11be 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -484,6 +484,38 @@ define sed-offsets
- 	s:->::; p;}'
- endef
- 
-+#
-+# Module Installation
-+#
-+quiet_cmd_install_mod = INSTALL $@
-+      cmd_install_mod = cp $< $@
-+
-+# Module Strip
-+# ---------------------------------------------------------------------------
-+#
-+# INSTALL_MOD_STRIP, if defined, will cause modules to be stripped after they
-+# are installed. If INSTALL_MOD_STRIP is '1', then the default option
-+# --strip-debug will be used. Otherwise, INSTALL_MOD_STRIP value will be used
-+# as the options to the strip command.
-+ifeq ($(INSTALL_MOD_STRIP),1)
-+mod-strip-option := --strip-debug
-+else
-+mod-strip-option := $(INSTALL_MOD_STRIP)
-+endif
-+
-+# Strip
-+ifdef INSTALL_MOD_STRIP
-+
-+quiet_cmd_strip_mod = STRIP   $@
-+      cmd_strip_mod = $(STRIP) $(mod-strip-option) $@
-+
-+else
-+
-+quiet_cmd_strip_mod =
-+      cmd_strip_mod = :
-+
-+endif
-+
- # Use filechk to avoid rebuilds when a header changes, but the resulting file
- # does not
- define filechk_offsets
-diff --git a/scripts/Makefile.modinst b/scripts/Makefile.modinst
-index 68708a039a62..b95f613e23c8 100644
---- a/scripts/Makefile.modinst
-+++ b/scripts/Makefile.modinst
-@@ -8,6 +8,7 @@ __modinst:
- 
- include $(objtree)/include/config/auto.conf
- include $(srctree)/scripts/Kbuild.include
-+include $(srctree)/scripts/Makefile.lib
- 
- install-y :=
- 
-@@ -36,7 +37,7 @@ install-y += $(addprefix $(MODLIB)/, modules.builtin modules.builtin.modinfo)
- install-$(CONFIG_BUILTIN_MODULE_RANGES) += $(MODLIB)/modules.builtin.ranges
- 
- $(addprefix $(MODLIB)/, modules.builtin modules.builtin.modinfo modules.builtin.ranges): $(MODLIB)/%: % FORCE
--	$(call cmd,install)
-+	$(call cmd,install_mod)
- 
- endif
- 
-@@ -65,40 +66,12 @@ install-$(CONFIG_MODULES) += $(modules)
- __modinst: $(install-y)
- 	@:
- 
--#
--# Installation
--#
--quiet_cmd_install = INSTALL $@
--      cmd_install = cp $< $@
--
--# Strip
--#
--# INSTALL_MOD_STRIP, if defined, will cause modules to be stripped after they
--# are installed. If INSTALL_MOD_STRIP is '1', then the default option
--# --strip-debug will be used. Otherwise, INSTALL_MOD_STRIP value will be used
--# as the options to the strip command.
--ifdef INSTALL_MOD_STRIP
--
- ifdef CONFIG_MODULE_HASHES
- ifeq ($(KBUILD_EXTMOD),)
-+ifdef INSTALL_MOD_STRIP
- $(error CONFIG_MODULE_HASHES and INSTALL_MOD_STRIP are mutually exclusive)
- endif
- endif
--
--ifeq ($(INSTALL_MOD_STRIP),1)
--strip-option := --strip-debug
--else
--strip-option := $(INSTALL_MOD_STRIP)
--endif
--
--quiet_cmd_strip = STRIP   $@
--      cmd_strip = $(STRIP) $(strip-option) $@
--
--else
--
--quiet_cmd_strip =
--      cmd_strip = :
--
- endif
- 
- #
-@@ -131,8 +104,8 @@ endif
- $(foreach dir, $(sort $(dir $(install-y))), $(shell mkdir -p $(dir)))
- 
- $(dst)/%.ko: %.ko FORCE
--	$(call cmd,install)
--	$(call cmd,strip)
-+	$(call cmd,install_mod)
-+	$(call cmd,strip_mod)
- 	$(call cmd,sign)
- 
- ifdef CONFIG_MODULES
-
--- 
-2.54.0
-
+Best,
+Jork
