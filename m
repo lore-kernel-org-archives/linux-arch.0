@@ -1,31 +1,32 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 06EB030E82C;
-	Tue,  5 May 2026 09:05:34 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 63FE43DDDB2;
+	Tue,  5 May 2026 09:05:33 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777971936; cv=none; b=KA9cefpWX/JmAWAUaUNoOyz5bpifuTjrEfyHZetNgAx6BNWwa7Hi/ZSMHTaAG14oKWdvyfEoyV+dLtzUdtYy/T4Xj/yV+rNSsp/MZmpRGUoRJjZQs40GF7je+s1N3jd9UoYkZp60e2UVnSq+Tvbb+2BWpox45Q/LbajhfGvX2Wg=
+	t=1777971936; cv=none; b=cLLmS9TgjHAy/vtpAh+sdwi4JylHK9k6n9ZYitTVIptAZE18JTn6Mey/t0jdAZtVi4S6ButsfVFsjbgkvwwUezmL8CDKxnuI5sIA7jH7xDCUDsZz96hUC+YjGrx9jerHG/z0HktUpLFD+vGKx3WcJ+Gr1tFWzVPs+0ZIPSJczUM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1777971936; c=relaxed/simple;
-	bh=urNb3wCpvLUEWBOX/KRz/AvKSgOExMhmzt3qzgx4rLs=;
+	bh=vw8mmyBT43HvPMolq0TpHePOUuR7RTOx6Ud0LgA5MD4=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=q94nE2CJMCykccrAWxQIaSLJmTVrK6HXH9gd99hSpRSlnd1R6DHQ0d1MxEfIJQQx2e/X3ccEKJ1TYTGI58Y8dV203NsvR234OdtMaatbi2bkjjL/yq1FqmkJfZSwpGy3SjSZbeplYzM+j4hG5FTGghdUaqnQA67YhGQuuSXtG6I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=KeHzGoIR; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=ZEEOA/RVuxyU2DbHy4qQ70vcyUUckTXwtEB82EGr2woyk2B9od7MK+3X/MzsZJV4Yt5/y0Gcl2IFayry5oERbQ+8Oa3a+uPMFrbm9US/K3UdfnuFnD1kKOQUzJnS8G73Ec+DyGdUokjeP10wvIwV2uvb6/EGn0nJwKxprwyf+PU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=l1HQpg72; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="KeHzGoIR"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="l1HQpg72"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
 	s=mail; t=1777971922;
-	bh=urNb3wCpvLUEWBOX/KRz/AvKSgOExMhmzt3qzgx4rLs=;
+	bh=vw8mmyBT43HvPMolq0TpHePOUuR7RTOx6Ud0LgA5MD4=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=KeHzGoIRklkebRwSn23SbznclRtjezjvd5d7dG6KMuDXtXD0JgHO4jI11/IEp/6TT
-	 tj1bQriT3fPSO7EMQEFkPRv7qxmuo5y+6DIKg5nGmOTkh47yk8cRSGSNjbO58uIARW
-	 aQQQ8rdk48+qNmbOyW6+LhDqdsqh1R62+FcknhqA=
+	b=l1HQpg727ayyAew6zE/8+4KeSD9/eY176fqNOl8FGSd4QoDzY74lG9Zoama5m7BhX
+	 5EtXnyLwL1UVaosAa/7pPCSfFDE1zsNRTeOdiXhXg+IHBcSwltBhO7xw0NiiW59OkQ
+	 lXncKpkeqmo/DBlCAVoem3iKRfqI7XoOEL7pTwyk=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 05 May 2026 11:05:07 +0200
-Subject: [PATCH v5 03/14] kbuild: rename the strip_relocs command
+Date: Tue, 05 May 2026 11:05:05 +0200
+Subject: [PATCH v5 01/14] kbuild: generate module BTF based on
+ vmlinux.unstripped
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -34,7 +35,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20260505-module-hashes-v5-3-e174a5a49fce@weissschuh.net>
+Message-Id: <20260505-module-hashes-v5-1-e174a5a49fce@weissschuh.net>
 References: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
 In-Reply-To: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
 To: Alexei Starovoitov <ast@kernel.org>, 
@@ -74,46 +75,59 @@ Cc: Martin KaFai Lau <martin.lau@linux.dev>, Song Liu <song@kernel.org>,
  debian-kernel@lists.debian.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.15.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1777971921; l=1526;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1777971921; l=2327;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=urNb3wCpvLUEWBOX/KRz/AvKSgOExMhmzt3qzgx4rLs=;
- b=zO4+a83ARZh91UdHs8c/zFFH5RWsYxSMyvtjjkwAZh87tyFNn/XXyYS4Ur+mm7rbCt/arjCT/
- XQJfLzxEaBjBWLAWIx91HgeLuKwV16KxbtUDUGkyZZG34V7Riun6CDM
+ bh=vw8mmyBT43HvPMolq0TpHePOUuR7RTOx6Ud0LgA5MD4=;
+ b=uljsY9SHiTroukbScuvpJIHxWmUOPKF1Li5N+qi4PForcgFzxPQa9CcWjxWCEGeyur3gDIlFc
+ Z0W8p94VZLqAoErAJy3AInjAguaLaf4rBiEebO3HJ/wS/1lChYp5oMo
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-This command is doing more than just stripping relocations.
-With the introduction of CONFIG_MODULE_HASHES it will do even more.
-
-Use a more generic name for the variable.
+The upcoming module hashes functionality will build the modules in
+between the generation of the BTF data and the final link of vmlinux.
+At this point vmlinux is not yet built and therefore can't be used for
+module BTF generation. vmlinux.unstripped however is usable and
+sufficient for BTF generation.
 
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
+Reviewed-by: Nicolas Schier <nsc@kernel.org>
 ---
- scripts/Makefile.vmlinux | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ scripts/Makefile.modfinal | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/scripts/Makefile.vmlinux b/scripts/Makefile.vmlinux
-index fcae1e432d9a..6cc661e5292b 100644
---- a/scripts/Makefile.vmlinux
-+++ b/scripts/Makefile.vmlinux
-@@ -91,13 +91,13 @@ remove-symbols := -w --strip-unneeded-symbol='__mod_device_table__*'
+diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
+index adcbcde16a07..b09040ccddd2 100644
+--- a/scripts/Makefile.modfinal
++++ b/scripts/Makefile.modfinal
+@@ -38,12 +38,14 @@ quiet_cmd_ld_ko_o = LD [M]  $@
+ 		$(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE)		\
+ 		-T $(objtree)/scripts/module.lds -o $@ $(filter %.o, $^)
  
- # To avoid warnings: "empty loadable segment detected at ..." from GNU objcopy,
- # it is necessary to remove the PT_LOAD flag from the segment.
--quiet_cmd_strip_relocs = OBJCOPY $@
--      cmd_strip_relocs = $(OBJCOPY) $(patsubst %,--set-section-flags %=noload,$(remove-section-y)) $< $@; \
--                         $(OBJCOPY) $(addprefix --remove-section=,$(remove-section-y)) $(remove-symbols) $@
-+quiet_cmd_objcopy_vmlinux = OBJCOPY $@
-+      cmd_objcopy_vmlinux = $(OBJCOPY) $(patsubst %,--set-section-flags %=noload,$(remove-section-y)) $< $@; \
-+                            $(OBJCOPY) $(addprefix --remove-section=,$(remove-section-y)) $(remove-symbols) $@
++btf-vmlinux := $(if $(KBUILD_EXTMOD),vmlinux,vmlinux.unstripped)
++
+ quiet_cmd_btf_ko = BTF [M] $@
+       cmd_btf_ko = 							\
+-	if [ ! -f $(objtree)/vmlinux ]; then				\
+-		printf "Skipping BTF generation for %s due to unavailability of vmlinux\n" $@ 1>&2; \
++	if [ ! -f $(objtree)/$(btf-vmlinux) ]; then				\
++		printf "Skipping BTF generation for %s due to unavailability of $(btf-vmlinux)\n" $@ 1>&2; \
+ 	else	\
+-		$(CONFIG_SHELL) $(srctree)/scripts/gen-btf.sh --btf_base $(objtree)/vmlinux $@; \
++		$(CONFIG_SHELL) $(srctree)/scripts/gen-btf.sh --btf_base $(objtree)/$(btf-vmlinux) $@; \
+ 	fi;
  
- targets += vmlinux
- vmlinux: vmlinux.unstripped FORCE
--	$(call if_changed,strip_relocs)
-+	$(call if_changed,objcopy_vmlinux)
+ # Same as newer-prereqs, but allows to exclude specified extra dependencies
+@@ -55,8 +57,8 @@ if_changed_except = $(if $(call newer_prereqs_except,$(2))$(cmd-check),      \
+ 	printf '%s\n' 'savedcmd_$@ := $(make-cmd)' > $(dot-target).cmd, @:)
  
- # modules.builtin.modinfo
- # ---------------------------------------------------------------------------
+ # Re-generate module BTFs if either module's .ko or vmlinux changed
+-%.ko: %.o %.mod.o .module-common.o $(objtree)/scripts/module.lds $(and $(CONFIG_DEBUG_INFO_BTF_MODULES),$(KBUILD_BUILTIN),$(objtree)/vmlinux) FORCE
+-	+$(call if_changed_except,ld_ko_o,$(objtree)/vmlinux)
++%.ko: %.o %.mod.o .module-common.o $(objtree)/scripts/module.lds $(and $(CONFIG_DEBUG_INFO_BTF_MODULES),$(KBUILD_BUILTIN),$(objtree)/$(btf-vmlinux)) FORCE
++	+$(call if_changed_except,ld_ko_o,$(objtree)/$(btf-vmlinux))
+ ifdef CONFIG_DEBUG_INFO_BTF_MODULES
+ 	+$(if $(newer-prereqs),$(call cmd,btf_ko))
+ endif
 
 -- 
 2.54.0
