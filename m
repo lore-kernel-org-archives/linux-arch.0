@@ -1,181 +1,190 @@
-Received: from flow-b7-smtp.messagingengine.com (flow-b7-smtp.messagingengine.com [202.12.124.142])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3A0C325A2BB;
-	Tue,  5 May 2026 06:34:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.142
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E86763C277C;
+	Tue,  5 May 2026 07:06:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777962852; cv=none; b=sDWyK/UWWkr89mhict/HiMesFfUaBRFxziCMjthhF5TgiPVZbN8im9oLsgRB3b4eIpN3S/ig+a5e/mWo0dc0EXOCAKvIAiK0jf3f+6RgGHPKfnU+34KBCqLl28JnplF6p6SAs7rohqC1yl3El3p3IrRcRyxuRsxRFR4PhuYg2x8=
+	t=1777964762; cv=none; b=S6DoIpdSPRRAHmziEnYQn7i4Vub0x84UlzDG0ba7nDHhMLIJ3Kno4OigDGs4lHXEHxDjVZOBgMJW7jp299n3MaohtVn8kQnKmRZqLMDSrKyRU/zyi+c3NosPx+yZ94w6XVZjZGy5DYpmkqOmyvj8ISUkIFNau2v4QnHF9gle8Ek=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777962852; c=relaxed/simple;
-	bh=8rTZRRKXctVdIweleOee7CPkZZL8SqlWUIGqOF+HSqU=;
-	h=MIME-Version:Date:From:To:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=e2CAdiyeznddZUU+CjZOfd2mYxvfCOhSrDlmgTqSK5+DnAkMsgNy0cab9RGclcqp4Nbcf9IotHcBWDQ7esLk/jY/fVDru/TA5z4VFxLblPzoTJCLPmoRdvIqgIi72u1nO+szoz0kZYsHQ8gkyWwdJ9Q34tIXnlbXF+sR8Xj0WxY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=u1R7aGqI; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=ajkXX1nP; arc=none smtp.client-ip=202.12.124.142
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1777964762; c=relaxed/simple;
+	bh=EoOnajH3k3ipR16wiV1QeGQhhkad3qHmN10Jioi2yvM=;
+	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
+	 Subject:From:To:Cc:Date; b=gHyCQOsRAIgTfBN+hSQ0zNkLUni531ijxWK7H3gdodB986zl8icc18umIHsNXnJWImy6OWNHzhXlLoOrEibYntyfX+RecMuaLODoBPVIMs7EiRWXYTXDXGXnUBm2lVO06tuYGAwS5KQs3vC+1rR/zwWyfcvqFRmy/8kD4kAFOdk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=E2MCGGEI; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="u1R7aGqI";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="ajkXX1nP"
-Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
-	by mailflow.stl.internal (Postfix) with ESMTP id B09DF130028C;
-	Tue,  5 May 2026 02:34:03 -0400 (EDT)
-Received: from phl-imap-02 ([10.202.2.81])
-  by phl-compute-04.internal (MEProxy); Tue, 05 May 2026 02:34:05 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:content-transfer-encoding:content-type:content-type:date:date
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm2; t=1777962843;
-	 x=1777970043; bh=mSzVT7Fb6Q1GJvMmXV4hAtUQgAfzR7myXYKHCqT7Zp4=; b=
-	u1R7aGqIUCFHM+/QbYGpsFVEKiZeLoCsSxD6etpr4TI1UhmqIl6UT+oFHi8hc05w
-	0Kh9aq4ttEtsryomzEJEv9kPB8Fftb1JtIP+uWtc9es/UdFJvjtmfZByxSRQdISj
-	hKwz24Zmre1KLPUOkI0Hn/wASeAoPUQh12qShGm7UZNKBBQ4FfTdc/jHMpYZui62
-	mzIdz6iBI/24IO3jpBXC55Edd6Px2sYtlBrDGRQblJjdavx2QnZCA9BgMQkeBB7u
-	l5yQ4GsAKfjqk0an+lys1CTVV83c9xbtX2TyR/r17pep5BV10h9nr1XzvPWxNOEw
-	sTQbBCVBg+MY6GIg4QycmQ==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:content-transfer-encoding:content-type
-	:content-type:date:date:feedback-id:feedback-id:from:from
-	:in-reply-to:in-reply-to:message-id:mime-version:references
-	:reply-to:subject:subject:to:to:x-me-proxy:x-me-sender
-	:x-me-sender:x-sasl-enc; s=fm3; t=1777962843; x=1777970043; bh=m
-	SzVT7Fb6Q1GJvMmXV4hAtUQgAfzR7myXYKHCqT7Zp4=; b=ajkXX1nP6snZdVKF3
-	j0gwvAj5S9cREUzuND2pMdCFhf3YMYp37T1kxU4Gsk48v/h7/ose5qJRMEIzdGgs
-	fe8yA5TFh4XHKm4b76NQUwZ48xElDEi9fmTKyKk4KYtJrSRjs+Vmc8yOGCPcY317
-	4ju7HH81ucPovlqXA79zHL+ulbK8niU69ZTg0Yxq1QCqk48a7+hgSkv7Inl2WBi9
-	vCclUolYb4Cc7GXKp7lbbXxwCu0c8xFvQl+TPgiEqPmp5bQAU+kLKBTvSvtXZMhF
-	bIz6HbPn4psmb/MbWw7iG7uOE5/SBBx/d19Wbh7PwW3mWspWrXXtMKqj2yg+Fwpa
-	roBXw==
-X-ME-Sender: <xms:WY_5aTmdaM4OKhG8xWdJ49xyodp-nrw4qj7CQ51RPQU42f9CPTX39A>
-    <xme:WY_5aRr75hktxD3-avGWlXJ-Zw0-igJgXhKy1Xing9OPwcM_Omr4mn_bAo1ux33Fz
-    SSGlHbI-bwj8TbyQ53wq3ZCUlq1_DIpB8GW-6iicUhEU7YsOm-mOKc>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefhedrtddtgddutddutdduucetufdoteggodetrf
-    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
-    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepofggfffhvffkjghfufgtgfesthejredtredttdenucfhrhhomhepfdetrhhnugcu
-    uegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusgdruggvqeenucggtffrrghtthgvrh
-    hnpefhkeeltdfffefhgffhteetheeuhffgteeghfdtueefudeuleetgfehtdejieffhfen
-    ucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpegrrhhnug
-    esrghrnhgusgdruggvpdhnsggprhgtphhtthhopeegjedpmhhouggvpehsmhhtphhouhht
-    pdhrtghpthhtoheptghuihihuhhnhhhuihessgihthgvuggrnhgtvgdrtghomhdprhgtph
-    htthhopegsvghnrdguohhokhhssegtohguvghthhhinhhkrdgtohdruhhkpdhrtghpthht
-    ohepphgrlhhmvghrsegurggssggvlhhtrdgtohhmpdhrtghpthhtoheprghouhesvggvtg
-    hsrdgsvghrkhgvlhgvhidrvgguuhdprhgtphhtthhopegtlhesghgvnhhtfihordhorhhg
-    pdhrtghpthhtoheprghlvgigsehghhhithhirdhfrhdprhgtphhtthhopegrnhguhigsnh
-    grtgesghhmrghilhdrtghomhdprhgtphhtthhopegvugguhiiikeejsehgmhgrihhlrdgt
-    ohhmpdhrtghpthhtohepmhgvmhigohhrsehgmhgrihhlrdgtohhm
-X-ME-Proxy: <xmx:WY_5aRP-G1AZF66xxJHwKdzzA4REx0aM98VL9jtjTc-7cNqSRC2JrQ>
-    <xmx:WY_5afupNhAomgYOUp9eRs5fIzdUV3vo78FkWK8Y5wILvs0fjAzaHQ>
-    <xmx:WY_5aY1hkGHq06h0lw9neBCLRVCRbvSxiX7tdKxyRk5szccY56SvQA>
-    <xmx:WY_5ae1sqHKpt2devCX1YzTH1h8JSb6XlF2sb-7RTsitxUPltD_8BA>
-    <xmx:W4_5aafHexNRNA4nUj3kE13hAfhlWJDQLkDJihm9sNYAgzDk-Kj8TeiD>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 10624700065; Tue,  5 May 2026 02:34:01 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="E2MCGGEI"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 73DA5C2BCB4;
+	Tue,  5 May 2026 07:05:57 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1777964761;
+	bh=EoOnajH3k3ipR16wiV1QeGQhhkad3qHmN10Jioi2yvM=;
+	h=In-Reply-To:References:Subject:From:To:Cc:Date:From;
+	b=E2MCGGEIDFooOgv05S3lPLcaurSM3pb0vwcE3gUnTHf09r8LC2oYE73Lijx+2fImm
+	 qCma23zXoLjPLmj1OZq8+iyvHq1+rEGEKH1kVpCXmzvoPsD+D4ywpyonZC2FiWoOfX
+	 t4pTkRls+/cXwYQzbJSXJjNlipDwn9LPWZy1oarhrKEscVSjRL6+wTh2AgRpkZsmWI
+	 vt/AU8VEnqfPpgFKDYxz0tfEOaJtmiKf0RIadXS3+gyc0Gg5E7I7gOTgcvWZRPdsdg
+	 wayysJ5JXN3gJLnFaMvQw65ObRwOCR8ffDoGrEj4wimMQeQzgR2YdvF5rle8TuUyN7
+	 Ef3DLRumfFjlg==
+Content-Type: multipart/mixed; boundary="===============2029874583554774468=="
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: A7c2EfDQgAZJ
-Date: Tue, 05 May 2026 08:33:04 +0200
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Yunhui Cui" <cuiyunhui@bytedance.com>, "Paul Walmsley" <pjw@kernel.org>,
- "Palmer Dabbelt" <palmer@dabbelt.com>,
- "Albert Ou" <aou@eecs.berkeley.edu>, "Alexandre Ghiti" <alex@ghiti.fr>,
- "Dennis Zhou" <dennis@kernel.org>, "Tejun Heo" <tj@kernel.org>,
- "Christoph Lameter (Ampere)" <cl@gentwo.org>,
- "Alexei Starovoitov" <ast@kernel.org>,
- "Daniel Borkmann" <daniel@iogearbox.net>,
- "Andrii Nakryiko" <andrii@kernel.org>,
- "Martin KaFai Lau" <martin.lau@linux.dev>,
- "Eduard Zingerman" <eddyz87@gmail.com>,
- "Kumar Kartikeya Dwivedi" <memxor@gmail.com>,
- "Song Liu" <song@kernel.org>, "Yonghong Song" <yonghong.song@linux.dev>,
- "Jiri Olsa" <jolsa@kernel.org>,
- =?UTF-8?Q?Bj=C3=B6rn_T=C3=B6pel?= <bjorn@kernel.org>, pulehui@huawei.com,
- puranjay@kernel.org, "Thomas Huth" <thuth@redhat.com>,
- "Andrew Jones" <ajones@ventanamicro.com>,
- "Ben Dooks" <ben.dooks@codethink.co.uk>,
- =?UTF-8?Q?Radim_Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@ventanamicro.com>,
- "Samuel Holland" <samuel.holland@sifive.com>,
- "Zong Li" <zong.li@sifive.com>,
- "Conor.Dooley" <conor.dooley@microchip.com>,
- "Thomas Gleixner" <tglx@kernel.org>, "Deepak Gupta" <debug@rivosinc.com>,
- seanwascoding@gmail.com, "Andy Chiu" <andybnac@gmail.com>,
- menglong8.dong@gmail.com, cyrilbur@tenstorrent.com,
- wangruikang@iscas.ac.cn, "Atish Patra" <atishp@rivosinc.com>,
- "Anup Patel" <apatel@ventanamicro.com>, linux-riscv@lists.infradead.org,
- linux-kernel@vger.kernel.org, linux-mm@kvack.org, bpf@vger.kernel.org,
- "Nathan Chancellor" <nathan@kernel.org>,
- "Nick Desaulniers" <nick.desaulniers+lkml@gmail.com>,
- "Bill Wendling" <morbo@google.com>,
- "Justin Stitt" <justinstitt@google.com>, qingfang.deng@siflower.com.cn,
- Linux-Arch <linux-arch@vger.kernel.org>, llvm@lists.linux.dev
-Message-Id: <3720c3a4-cc0d-4ba8-97ae-35def0189e2e@app.fastmail.com>
-In-Reply-To: <20260505062026.91724-2-cuiyunhui@bytedance.com>
-References: <20260505062026.91724-1-cuiyunhui@bytedance.com>
- <20260505062026.91724-2-cuiyunhui@bytedance.com>
-Subject: Re: [PATCH v4 1/3] riscv: io: avoid null-pointer arithmetic in PIO helpers
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Message-Id: <fd8cec766d7d282c6e45872dce0a5ed47d8e7889c86f60bd0bc0895ae368ab61@mail.kernel.org>
+In-Reply-To: <20260505062026.91724-3-cuiyunhui@bytedance.com>
+References: <20260505062026.91724-3-cuiyunhui@bytedance.com>
+Subject: Re: [PATCH v4 2/3] riscv: introduce percpu.h into include/asm
+From: bot+bpf-ci@kernel.org
+To: cuiyunhui@bytedance.com,pjw@kernel.org,palmer@dabbelt.com,aou@eecs.berkeley.edu,alex@ghiti.fr,dennis@kernel.org,tj@kernel.org,cl@gentwo.org,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,martin.lau@linux.dev,eddyz87@gmail.com,memxor@gmail.com,song@kernel.org,yonghong.song@linux.dev,jolsa@kernel.org,bjorn@kernel.org,pulehui@huawei.com,puranjay@kernel.org,thuth@redhat.com,ajones@ventanamicro.com,ben.dooks@codethink.co.uk,rkrcmar@ventanamicro.com,cuiyunhui@bytedance.com,samuel.holland@sifive.com,zong.li@sifive.com,conor.dooley@microchip.com,tglx@kernel.org,debug@rivosinc.com,seanwascoding@gmail.com,andybnac@gmail.com,menglong8.dong@gmail.com,cyrilbur@tenstorrent.com,wangruikang@iscas.ac.cn,atishp@rivosinc.com,apatel@ventanamicro.com,linux-riscv@lists.infradead.org,linux-kernel@vger.kernel.org,linux-mm@kvack.org,bpf@vger.kernel.org,arnd@arndb.de,nathan@kernel.org,nick.desaulniers+lkml@gmail.com,morbo@google.com,justinstitt@google.com,qingfang.deng@siflower.com.cn,linux-arch@vger.kernel.org,llvm@lists.linux.dev
+Cc: ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
+Date: Tue,  5 May 2026 07:05:57 +0000 (UTC)
 
-On Tue, May 5, 2026, at 08:20, Yunhui Cui wrote:
-> The RISC-V PIO helpers derive I/O addresses from PCI_IOBASE in ins*(),
-> outs*(), and ioport_map().
->
-> Under configurations where I/O port support is not available, these
-> expressions can still be formed during compilation and trigger
-> -Wnull-pointer-arithmetic warnings from clang.
+--===============2029874583554774468==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
 
-If a driver attempts to use ISA port operations in a configuration
-without CONFIG_HAS_IOPORT, there is a NULL pointer warning because
-this is actually a NULL pointer access that will crash the
-kernel if the driver is ever loaded. You should not attempt
-to shut up the useful warning here but instead make sure every
-such code has a proper 'depends on HAS_IOPORT' dependency.
+PiBkaWZmIC0tZ2l0IGEvYXJjaC9yaXNjdi9pbmNsdWRlL2FzbS9wZXJjcHUuaCBiL2FyY2gvcmlz
+Y3YvaW5jbHVkZS9hc20vcGVyY3B1LmgKPiBuZXcgZmlsZSBtb2RlIDEwMDY0NAo+IGluZGV4IDAw
+MDAwMDAwMDAwMC4uM2IyNmZlNDVlNzBmCj4gLS0tIC9kZXYvbnVsbAo+ICsrKyBiL2FyY2gvcmlz
+Y3YvaW5jbHVkZS9hc20vcGVyY3B1LmgKClsgLi4uIF0KCj4gQEAgLTAsMCArMSwyODAgQEAKClsg
+Li4uIF0KCj4gKyNpZmRlZiBDT05GSUdfNjRCSVQKPiArI2RlZmluZSBQRVJDUFVfT1AobmFtZSwg
+YW1vX2luc24pCQkJCQlcCj4gKwlfX1BFUkNQVV9BTU9fT1BfQ0FTRSgudywgbmFtZSwgMzIsIGFt
+b19pbnNuKQkJCVwKPiArCV9fUEVSQ1BVX0FNT19PUF9DQVNFKC5kLCBuYW1lLCA2NCwgYW1vX2lu
+c24pCj4gKyNlbHNlCj4gKyNkZWZpbmUgUEVSQ1BVX09QKG5hbWUsIGFtb19pbnNuKQkJCQkJXAo+
+ICsJX19QRVJDUFVfQU1PX09QX0NBU0UoLncsIG5hbWUsIDMyLCBhbW9faW5zbikKPiArI2VuZGlm
+Cj4gKwo+ICtQRVJDUFVfT1AoYWRkLCBhZGQpCj4gK1BFUkNQVV9PUChhbmRub3QsIGFuZCkKPiAr
+UEVSQ1BVX09QKG9yLCBvcikKClsgLi4uIF0KCj4gKyNkZWZpbmUgUEVSQ1BVXzhfMTZfT1AobmFt
+ZSwgYW1vX2luc24sIHN6LCBzZngsIHZhbF90eXBlLCBuZXdfdmFsX2V4cHIsIGFzbV9vcCkJCQlc
+Cj4gK3N0YXRpYyBpbmxpbmUgdm9pZCBfX3BlcmNwdV8jI25hbWUjI19hbW9fY2FzZV8jI3N6KHZv
+aWQgKnB0ciwgdW5zaWduZWQgbG9uZyB2YWwpCQlcCj4gK3sJCQkJCQkJCQkJCQlcCj4gKwlpZiAo
+SVNfRU5BQkxFRChDT05GSUdfUklTQ1ZfSVNBX1pBQkhBKSAmJgkJCQkJCVwKPiArCQlyaXNjdl9o
+YXNfZXh0ZW5zaW9uX3VubGlrZWx5KFJJU0NWX0lTQV9FWFRfWkFCSEEpKSB7CQkJCVwKPiArCQlh
+c20gdm9sYXRpbGUgKCJhbW8iICNhbW9faW5zbiAjc2Z4ICIgemVybywgJVt2YWxdLCAlW3B0cl0i
+CQkJXAo+ICsJCQk6IFtwdHJdICIrQSIoKih2YWxfdHlwZSAqKXB0cikJCQkJCQlcCj4gKwkJCTog
+W3ZhbF0gInIiKCh2YWxfdHlwZSkoKG5ld192YWxfZXhwcikgJiBQRVJDUFVfOF8xNl9HRVRfTUFT
+SyhzeikpKQlcCj4gKwkJCTogIm1lbW9yeSIpOwkJCQkJCQkJXAo+ICsJfSBlbHNlIHsJCQkJCQkJ
+CQkJXAo+ICsJCXUzMiAqcHRyMzIgPSBQRVJDUFVfOF8xNl9HRVRfUFRSMzIocHRyKTsJCQkJCVwK
+PiArCQljb25zdCB1bnNpZ25lZCBsb25nIHNoaWZ0ID0gUEVSQ1BVXzhfMTZfR0VUX1NISUZUKHB0
+cik7CQkJCVwKPiArCQljb25zdCB1MzIgbWFzayA9IFBFUkNQVV84XzE2X0dFVF9NQVNLKHN6KSA8
+PCBzaGlmdDsJCQkJXAo+ICsJCWNvbnN0IHZhbF90eXBlIHZhbF90cnVuYyA9ICh2YWxfdHlwZSko
+KG5ld192YWxfZXhwcikJCQkJXAo+ICsJCQkJCSAgICYgUEVSQ1BVXzhfMTZfR0VUX01BU0soc3op
+KTsJCQkJXAo+ICsJCXUzMiByZXR4LCByYzsJCQkJCQkJCQlcCj4gKwkJdmFsX3R5cGUgbmV3X3Zh
+bF90eXBlOwkJCQkJCQkJXAo+ICsJCQkJCQkJCQkJCQlcCj4gKwkJYXNtIHZvbGF0aWxlICgJCQkJ
+CQkJCQlcCj4gKwkJCSIwOiBsci53ICUwLCAlMlxuIgkJCQkJCQlcCj4gKwkJCSJhbmQgJTMsICUw
+LCAlNFxuIgkJCQkJCQlcCj4gKwkJCSJzcmwgJTMsICUzLCAlNVxuIgkJCQkJCQlcCj4gKwkJCSNh
+c21fb3AgIiAlMywgJTMsICU2XG4iCQkJCQkJCVwKPiArCQkJInNsbCAlMywgJTMsICU1XG4iCQkJ
+CQkJCVwKPiArCQkJImFuZCAlMSwgJTAsICU3XG4iCQkJCQkJCVwKPiArCQkJIm9yICUxLCAlMSwg
+JTNcbiIJCQkJCQkJXAo+ICsJCQkic2MudyAlMSwgJTEsICUyXG4iCQkJCQkJCVwKPiArCQkJImJu
+ZXogJTEsIDBiXG4iCQkJCQkJCQlcCj4gKwkJCTogIj0mciIocmV0eCksICI9JnIiKHJjKSwgIitB
+IigqcHRyMzIpLCAiPSZyIihuZXdfdmFsX3R5cGUpCQlcCj4gKwkJCTogInIiKG1hc2spLCAiciIo
+c2hpZnQpLCAiciIodmFsX3RydW5jKSwgInIiKH5tYXNrKQkJCVwKPiArCQkJOiAibWVtb3J5Iik7
+CQkJCQkJCQlcCj4gKwkJfQkJCQkJCQkJCQlcCj4gK30KCkNhbiB0aGUgOC8xNi1iaXQgTFIvU0Mg
+ZmFsbGJhY2sgZm9yIGFkZCBvcGVyYXRpb25zIGNvcnJ1cHQgYWRqYWNlbnQKcGVyY3B1IGRhdGE/
+CgpJbiB0aGUgbm9uLVpBQkhBIHBhdGggYWJvdmUsIGFmdGVyIGV4dHJhY3RpbmcgYW5kIHNoaWZ0
+aW5nIHRoZSBzdWJ3b3JkCihsaW5lcyAzLTQpLCB0aGUgY29kZSBwZXJmb3JtcyB0aGUgb3BlcmF0
+aW9uIChsaW5lIDUpIGFuZCBpbW1lZGlhdGVseQpzaGlmdHMgYmFjayAobGluZSA2KS4gRm9yIHRo
+ZSBhZGQgaW5zdGFudGlhdGlvbjoKCiAgICBzcmwgJTMsICUzLCAlNSAgICAgOyBuZXdfdmFsID4+
+PSBzaGlmdAogICAgYWRkICUzLCAlMywgJTYgICAgIDsgbmV3X3ZhbCArPSB2YWxfdHJ1bmMgKG1h
+eSBvdmVyZmxvdyA4LzE2IGJpdHMpCiAgICBzbGwgJTMsICUzLCAlNSAgICAgOyBuZXdfdmFsIDw8
+PSBzaGlmdAoKVGhlcmUncyBubyBtYXNraW5nIGJldHdlZW4gYWRkIGFuZCBzbGwsIHNvIGEgY2Fy
+cnktb3V0IGZyb20gdTggKGJpdCA4KQpvciB1MTYgKGJpdCAxNikgc3Vydml2ZXMgdGhlIHNoaWZ0
+LiBUaGUgcmVzdWx0IGlzIHRoZW4gT1JlZCBpbnRvIHRoZQpyZWFkLW1vZGlmeS13cml0ZSB3b3Jk
+OgoKICAgIGFuZCAlMSwgJTAsICU3ICAgICA7IHJjID0gcmV0eCAmIH5tYXNrICAoY2xlYXJzIHRh
+cmdldCBzdWJ3b3JkIG9ubHkpCiAgICBvciAgJTEsICUxLCAlMyAgICAgOyByYyB8PSBuZXdfdmFs
+ICAgICAob3ZlcmZsb3cgYml0IGVudGVycyBhZGphY2VudCBieXRlKQoKRXhhbXBsZTogYSB1OCBw
+ZXJjcHUgYXQgb2Zmc2V0IDAgaG9sZHMgMHg4MDsgY2FsbGluZyB0aGlzX2NwdV9hZGQoKQp3aXRo
+IDB4ODAgd3JhcHMgdGhlIHU4IHRvIDAgKGNvcnJlY3QpLCBidXQgdGhlIGNhcnJ5IGJpdCA4IGNv
+cnJ1cHRzIHRoZQphZGphY2VudCBieXRlIGF0IG9mZnNldCAxIGluIHRoZSBzYW1lIHUzMi4KClRo
+ZSBzaWJsaW5nIGFkZF9yZXR1cm4gaGVscGVyIChQRVJDUFVfOF8xNl9SRVRfT1ApIGluY2x1ZGVz
+IHRoZSBtaXNzaW5nCnRydW5jYXRpb24gd2l0aCAiYW5kICUxLCAlMSwgJTciIHVzaW5nIFBFUkNQ
+VV84XzE2X0dFVF9NQVNLKHN6KSBiZWZvcmUKdGhlIHNoaWZ0LWJhY2suIFdoeSBkb2Vzbid0IFBF
+UkNQVV84XzE2X09QIGRvIHRoZSBzYW1lPwoKPiArCj4gKyNkZWZpbmUgUEVSQ1BVX09QXzhfMTYo
+b3BfbmFtZSwgb3AsIGV4cHIsIGZpbmFsX29wKQkJCVwKPiArCVBFUkNQVV84XzE2X09QKG9wX25h
+bWUsIG9wLCA4LCAuYiwgdTgsIGV4cHIsIGZpbmFsX29wKTsJCVwKPiArCVBFUkNQVV84XzE2X09Q
+KG9wX25hbWUsIG9wLCAxNiwgLmgsIHUxNiwgZXhwciwgZmluYWxfb3ApCj4gKwo+ICtQRVJDUFVf
+T1BfOF8xNihhZGQsIGFkZCwgdmFsLCBhZGQpCj4gK1BFUkNQVV9PUF84XzE2KGFuZG5vdCwgYW5k
+LCB+KHZhbCksIGFuZCkKPiArUEVSQ1BVX09QXzhfMTYob3IsIG9yLCB2YWwsIG9yKQoKWyAuLi4g
+XQoKPiArI2RlZmluZSBQRVJDUFVfOF8xNl9SRVRfT1AobmFtZSwgYW1vX2luc24sIHN6LCBzZngs
+IHZhbF90eXBlLCBuZXdfdmFsX2V4cHIpCQkJXAo+ICtzdGF0aWMgaW5saW5lIHZhbF90eXBlIF9f
+cGVyY3B1XyMjbmFtZSMjX3JldHVybl9hbW9fY2FzZV8jI3N6KHZvaWQgKnB0ciwgdW5zaWduZWQg
+bG9uZyB2YWwpCVwKPiArewkJCQkJCQkJCQkJCVwKPiArCWlmIChJU19FTkFCTEVEKENPTkZJR19S
+SVNDVl9JU0FfWkFCSEEpICYmCQkJCQkJXAo+ICsJCXJpc2N2X2hhc19leHRlbnNpb25fdW5saWtl
+bHkoUklTQ1ZfSVNBX0VYVF9aQUJIQSkpIHsJCQkJXAo+ICsJCXJlZ2lzdGVyIHZhbF90eXBlIHJl
+dDsJCQkJCQkJCVwKPiArCQlhc20gdm9sYXRpbGUgKCJhbW8iICNhbW9faW5zbiAjc2Z4ICIgJVty
+ZXRdLCAlW3ZhbF0sICVbcHRyXSIJCQlcCj4gKwkJCTogW3B0cl0gIitBIigqKHZhbF90eXBlICop
+cHRyKSwgW3JldF0gIj1yIihyZXQpCQkJCVwKPiArCQkJOiBbdmFsXSAiciIoKHZhbF90eXBlKSgo
+bmV3X3ZhbF9leHByKSAmIFBFUkNQVV84XzE2X0dFVF9NQVNLKHN6KSkpCVwKPiArCQkJOiAibWVt
+b3J5Iik7CQkJCQkJCQlcCj4gKwkJcmV0dXJuIHJldCArICh2YWxfdHlwZSkoKG5ld192YWxfZXhw
+cikgJiBQRVJDUFVfOF8xNl9HRVRfTUFTSyhzeikpOwkJXAo+ICsJfSBlbHNlIHsJCQkJCQkJCQkJ
+XAo+ICsJCXUzMiAqcHRyMzIgPSBQRVJDUFVfOF8xNl9HRVRfUFRSMzIocHRyKTsJCQkJCVwKPiAr
+CQljb25zdCB1bnNpZ25lZCBsb25nIHNoaWZ0ID0gUEVSQ1BVXzhfMTZfR0VUX1NISUZUKHB0cik7
+CQkJCVwKPiArCQljb25zdCB1MzIgbWFzayA9IChQRVJDUFVfOF8xNl9HRVRfTUFTSyhzeikgPDwg
+c2hpZnQpOwkJCQlcCj4gKwkJY29uc3QgdTMyIGludl9tYXNrID0gfm1hc2s7CQkJCQkJCVwKPiAr
+CQljb25zdCB2YWxfdHlwZSB2YWxfdHJ1bmMgPSAodmFsX3R5cGUpKChuZXdfdmFsX2V4cHIpCQkJ
+CVwKPiArCQkJCQkgICAmIFBFUkNQVV84XzE2X0dFVF9NQVNLKHN6KSk7CQkJCVwKPiArCQl1MzIg
+b2xkLCBuZXcsIHRtcDsJCQkJCQkJCVwKPiArCQkJCQkJCQkJCQkJXAo+ICsJCWFzbSB2b2xhdGls
+ZSAoCQkJCQkJCQkJXAo+ICsJCQkiMDogbHIudyAlMCwgJTNcbiIJCQkJCQkJXAo+ICsJCQkiYW5k
+ICUxLCAlMCwgJTRcbiIJCQkJCQkJXAo+ICsJCQkic3JsICUxLCAlMSwgJTVcbiIJCQkJCQkJXAo+
+ICsJCQkiYWRkICUxLCAlMSwgJTZcbiIJCQkJCQkJXAo+ICsJCQkiYW5kICUxLCAlMSwgJTdcbiIJ
+CQkJCQkJXAo+ICsJCQkic2xsICUxLCAlMSwgJTVcbiIJCQkJCQkJXAo+ICsJCQkiYW5kICUyLCAl
+MCwgJThcbiIJCQkJCQkJXAo+ICsJCQkib3IgJTIsICUyLCAlMVxuIgkJCQkJCQlcCj4gKwkJCSJz
+Yy53ICUyLCAlMiwgJTNcbiIJCQkJCQkJXAo+ICsJCQkiYm5leiAlMiwgMGJcbiIJCQkJCQkJCVwK
+PiArCQkJOiAiPXIiKG9sZCksICI9ciIodG1wKSwgIj0mciIobmV3KSwgIitBIigqcHRyMzIpCQkJ
+XAo+ICsJCQk6ICJyIihtYXNrKSwgInIiKHNoaWZ0KSwgInIiKHZhbF90cnVuYyksICJyIihQRVJD
+UFVfOF8xNl9HRVRfTUFTSyhzeikpLCBcCj4gKwkJCSJyIihpbnZfbWFzaykJCQkJCQkJCVwKPiAr
+CQkJOiAibWVtb3J5Iik7CQkJCQkJCQlcCj4gKwkJcmV0dXJuICh2YWxfdHlwZSkodG1wID4+IHNo
+aWZ0KTsJCQkJCQlcCj4gKwl9CQkJCQkJCQkJCQlcCj4gK30KCkRvZXMgdGhlIExSL1NDIGZhbGxi
+YWNrIG5lZWQgZWFybHktY2xvYmJlciBxdWFsaWZpZXJzIG9uIHRoZSBvdXRwdXQKcmVnaXN0ZXJz
+PwoKVGhlIGlubGluZSBhc20gd3JpdGVzICJvbGQiIGFuZCAidG1wIiAodmlhIGxyLncgYW5kIGFu
+ZCkgYmVmb3JlIHJlYWRpbmcKYWxsIGlucHV0IHJlZ2lzdGVycyAoJTQuLiU4OiBtYXNrLCBzaGlm
+dCwgdmFsX3RydW5jLCBNQVNLKHN6KSwKaW52X21hc2spLiBUaGUgR0NDIGlubGluZS1hc20gY29u
+dHJhY3QgcmVxdWlyZXMgIj0mciIgKGVhcmx5LWNsb2JiZXIpCndoZW4gYW4gb3V0cHV0IGlzIHdy
+aXR0ZW4gYmVmb3JlIGFsbCBpbnB1dHMgYXJlIGNvbnN1bWVkLiBXaXRob3V0IGl0LAp0aGUgY29t
+cGlsZXIgbWF5IGFsbG9jYXRlIHRoZSBzYW1lIHBoeXNpY2FsIHJlZ2lzdGVyIGZvciAib2xkIiBv
+ciAidG1wIgphbmQgb25lIG9mIHRoZSBpbnB1dHMsIGNsb2JiZXJpbmcgdGhhdCBpbnB1dC4KClRo
+ZSBzaWJsaW5nIFBFUkNQVV84XzE2X09QIHVzZXMgIj0mciIocmV0eCksICI9JnIiKHJjKSwKIj0m
+ciIobmV3X3ZhbF90eXBlKS4gVGhlIGVxdWl2YWxlbnQgX19hcmNoX3hjaGdfbWFza2VkIGhlbHBl
+ciBpbgphcmNoL3Jpc2N2L2luY2x1ZGUvYXNtL2NtcHhjaGcuaCBhbHNvIHVzZXMgIj0mciIgZm9y
+IG91dHB1dHMgd3JpdHRlbgplYXJseS4KClNob3VsZCAib2xkIiBhbmQgInRtcCIgYmUgZGVjbGFy
+ZWQgIj0mciIgaW5zdGVhZCBvZiAiPXIiPwoKPiArCj4gK1BFUkNQVV84XzE2X1JFVF9PUChhZGQs
+IGFkZCwgOCwgLmIsIHU4LCB2YWwpCj4gK1BFUkNQVV84XzE2X1JFVF9PUChhZGQsIGFkZCwgMTYs
+IC5oLCB1MTYsIHZhbCkKClsgLi4uIF0KCj4gKyNkZWZpbmUgdGhpc19jcHVfYW5kXzEocGNwLCB2
+YWwpCV9wY3BfcHJvdGVjdChfX3BlcmNwdV9hbmRub3RfYW1vX2Nhc2VfOCwgcGNwLCB+KHZhbCkp
+Cj4gKyNkZWZpbmUgdGhpc19jcHVfYW5kXzIocGNwLCB2YWwpCV9wY3BfcHJvdGVjdChfX3BlcmNw
+dV9hbmRub3RfYW1vX2Nhc2VfMTYsIHBjcCwgfih2YWwpKQo+ICsjZGVmaW5lIHRoaXNfY3B1X2Fu
+ZF80KHBjcCwgdmFsKQlfcGNwX3Byb3RlY3QoX19wZXJjcHVfYW5kbm90X2Ftb19jYXNlXzMyLCBw
+Y3AsIH4odmFsKSkKPiArCj4gKyNpZmRlZiBDT05GSUdfNjRCSVQKPiArI2RlZmluZSB0aGlzX2Nw
+dV9hbmRfOChwY3AsIHZhbCkJX3BjcF9wcm90ZWN0KF9fcGVyY3B1X2FuZG5vdF9hbW9fY2FzZV82
+NCwgcGNwLCB+KHZhbCkpCj4gKyNlbmRpZgoKRG8gdGhpc19jcHVfYW5kXzQoKSBhbmQgdGhpc19j
+cHVfYW5kXzgoKSBjb21wdXRlIHRoZSB3cm9uZyByZXN1bHQ/CgpUaGUgbWFjcm9zIHBhc3Mgfih2
+YWwpIHRvIF9fcGVyY3B1X2FuZG5vdF9hbW9fY2FzZV8zMi82NCwgd2hpY2gKYXJlIGdlbmVyYXRl
+ZCBieSBQRVJDUFVfT1AoYW5kbm90LCBhbmQpLiBUaGF0IGV4cGFuZHMgdG8KX19QRVJDUFVfQU1P
+X09QX0NBU0UoLncvLmQsIGFuZG5vdCwgMzIvNjQsIGFuZCkg4oCUIHRoZSBhc20gYm9keSBpcwoi
+YW1vYW5kLncvZCB6ZXJvLCAlW3ZhbF0sICVbcHRyXSIsIHdoaWNoIHBlcmZvcm1zICpwdHIgJj0g
+dmFsIChwbGFpbgpBTkQpLgoKV2l0aCB0aGUgY2FsbGVyIHBhc3NpbmcgfnZhbCwgdGhlIGZpbmFs
+IG9wZXJhdGlvbiBiZWNvbWVzICpwdHIgJiB+dmFsLAp3aGljaCBpcyB0aGUgb3Bwb3NpdGUgb2Yg
+dGhlIGV4cGVjdGVkICpwdHIgJiB2YWwuIExvb2tpbmcgYXQgdGhlIGFybTY0CnBhdHRlcm4gKGFy
+Y2gvYXJtNjQvaW5jbHVkZS9hc20vcGVyY3B1LmgpLCBQRVJDUFVfT1AoYW5kbm90LCBiaWMsIGxk
+Y2xyKQp1c2VzIHRoZSBCSUMgaW5zdHJ1Y3Rpb24gdGhhdCBwcm92aWRlcyB0aGUgaW52ZXJzaW9u
+OiBiaWMgcGVyZm9ybXMKKnB0ciAmIH52YWwsIHNvIGNhbGxpbmcgd2l0aCB+dmFsIHlpZWxkcyAq
+cHRyICYgfih+dmFsKSA9ICpwdHIgJiB2YWwuClJJU0MtVidzIGFtb2FuZCBoYXMgbm8gZXF1aXZh
+bGVudCBpbnZlcnNpb24uCgpFeGFtcGxlOiBhIHUzMiBwZXJjcHUgaW5pdGlhbGl6ZWQgdG8gMHhG
+RkZGRkZGRiB3aXRoCnRoaXNfY3B1X2FuZCh2YXIsIDB4MSkgc2hvdWxkIHByb2R1Y2UgMHgxIGJ1
+dCB5aWVsZHMgMHhGRkZGRkZGRSBpbnN0ZWFkLgoKVGhlIDgvMTYtYml0IGhlbHBlcnMgaGFwcGVu
+IHRvIGJlIGNvcnJlY3QgYmVjYXVzZSBQRVJDUFVfT1BfOF8xNihhbmRub3QsCmFuZCwgfih2YWwp
+LCBhbmQpIGZlZWRzIG5ld192YWxfZXhwciA9IH4odmFsKSwgcHJvZHVjaW5nIGEgc2Vjb25kCmlu
+dmVyc2lvbiBpbiB0aGUgbWFjcm8gYm9keSB0aGF0IGNhbmNlbHMgb3V0LiBPbmx5IHRoZSAzMi82
+NC1iaXQgcGF0aHMKYXJlIGJyb2tlbi4KClNob3VsZCBQRVJDUFVfT1AoYW5kbm90LCBhbmQpIGJl
+IHJlcGxhY2VkIHdpdGggYSBnZW5lcmF0b3IgdGhhdCBkb2VzCmV4cGxpY2l0IGludmVyc2lvbiwg
+b3Igc2hvdWxkIHRoZSB0aGlzX2NwdV9hbmRfNC84IGNhbGxlcnMgcGFzcyB2YWwKd2l0aG91dCBu
+ZWdhdGlvbj8KClsgLi4uIF0KCgotLS0KQUkgcmV2aWV3ZWQgeW91ciBwYXRjaC4gUGxlYXNlIGZp
+eCB0aGUgYnVnIG9yIGVtYWlsIHJlcGx5IHdoeSBpdCdzIG5vdCBhIGJ1Zy4KU2VlOiBodHRwczov
+L2dpdGh1Yi5jb20va2VybmVsLXBhdGNoZXMvdm10ZXN0L2Jsb2IvbWFzdGVyL2NpL2NsYXVkZS9S
+RUFETUUubWQKCkNJIHJ1biBzdW1tYXJ5OiBodHRwczovL2dpdGh1Yi5jb20va2VybmVsLXBhdGNo
+ZXMvYnBmL2FjdGlvbnMvcnVucy8yNTM2MTc5MjUwNA==
 
-> 
-> +#ifdef CONFIG_HAS_IOPORT
->  __io_reads_ins(ins,  u8, b, __io_pbr(), __io_par(addr))
->  __io_reads_ins(ins, u16, w, __io_pbr(), __io_par(addr))
->  __io_reads_ins(ins, u32, l, __io_pbr(), __io_par(addr))
-> -#define insb(addr, buffer, count) __insb(PCI_IOBASE + (addr), buffer, count)
-> -#define insw(addr, buffer, count) __insw(PCI_IOBASE + (addr), buffer, count)
-> -#define insl(addr, buffer, count) __insl(PCI_IOBASE + (addr), buffer, count)
-> +#define insb(addr, buffer, count) __insb(PCI_IO_ADDR(addr), buffer, count)
-> +#define insw(addr, buffer, count) __insw(PCI_IO_ADDR(addr), buffer, count)
-> +#define insl(addr, buffer, count) __insl(PCI_IO_ADDR(addr), buffer, count)
-> +#endif
-
-Can you try to remove the custom accessors altogether and
-use the ones from asm-generic instead? These should already
-have the correct behavior all the time, in particular they
-already come with the correct #ifdef check that is apparently
-missing in the riscv version.
-
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index ca5a1ce6f0f89..d799e5ccc9437 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -1205,8 +1205,12 @@ static inline void __iomem 
-> *ioremap_np(phys_addr_t offset, size_t size)
->  #define ioport_map ioport_map
->  static inline void __iomem *ioport_map(unsigned long port, unsigned 
-> int nr)
->  {
-> +#ifdef CONFIG_HAS_IOPORT
->  	port &= IO_SPACE_LIMIT;
->  	return (port > MMIO_UPPER_LIMIT) ? NULL : PCI_IOBASE + port;
-> +#else
-> +	return NULL;
-> +#endif
->  }
-
-The function definition here is guarded by the #ifdef CONFIG_HAS_IOPORT_MAP
-check, which should already prevent it from being visible when
-CONFIG_HAS_IOPORT is disabled.
-
-     Arnd
+--===============2029874583554774468==--
