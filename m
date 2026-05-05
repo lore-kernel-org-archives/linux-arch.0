@@ -1,190 +1,218 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E86763C277C;
-	Tue,  5 May 2026 07:06:01 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7253B22083;
+	Tue,  5 May 2026 07:20:06 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777964762; cv=none; b=S6DoIpdSPRRAHmziEnYQn7i4Vub0x84UlzDG0ba7nDHhMLIJ3Kno4OigDGs4lHXEHxDjVZOBgMJW7jp299n3MaohtVn8kQnKmRZqLMDSrKyRU/zyi+c3NosPx+yZ94w6XVZjZGy5DYpmkqOmyvj8ISUkIFNau2v4QnHF9gle8Ek=
+	t=1777965606; cv=none; b=EK0CxMpNwM3aT1XQBBqDHeDD0DOW5VVkB/lD/wzmzWR+zgrlrewAdCeB7ftzcEv99Pawp4MHxWOvIjFxeEm+nrzX46VjhSm6Fu8oR5G1WBajTPvRCEMMiD9kApJw+R9M7MUZycrNOMufSyZr+ovmIh4tq/KOnPBSfogTvcZMaKU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777964762; c=relaxed/simple;
-	bh=EoOnajH3k3ipR16wiV1QeGQhhkad3qHmN10Jioi2yvM=;
+	s=arc-20240116; t=1777965606; c=relaxed/simple;
+	bh=zPPm8mihwsbz7WxUEStvO0kZKAy0ltxaxF1GHCofeUU=;
 	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
-	 Subject:From:To:Cc:Date; b=gHyCQOsRAIgTfBN+hSQ0zNkLUni531ijxWK7H3gdodB986zl8icc18umIHsNXnJWImy6OWNHzhXlLoOrEibYntyfX+RecMuaLODoBPVIMs7EiRWXYTXDXGXnUBm2lVO06tuYGAwS5KQs3vC+1rR/zwWyfcvqFRmy/8kD4kAFOdk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=E2MCGGEI; arc=none smtp.client-ip=10.30.226.201
+	 Subject:From:To:Cc:Date; b=plKJjnnbr2RMCVw8KeyHRx7UjbaUdAv7H1O9+lQk6Yl6ynp5ZFNwwgV/JnJ2sC8PzoiUMRIAuBZc7pZxrb7hOkpZhrGeFYkGFZ04v2M49sgYdMCDB6pQsotjC/RcojX3jNTF9RkF1Z1LGqAP0Y9GKFIAaOrMULBUvNd1LRyGFh8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=UbYVNIBE; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="E2MCGGEI"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 73DA5C2BCB4;
-	Tue,  5 May 2026 07:05:57 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="UbYVNIBE"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2729FC2BCC7;
+	Tue,  5 May 2026 07:20:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1777964761;
-	bh=EoOnajH3k3ipR16wiV1QeGQhhkad3qHmN10Jioi2yvM=;
+	s=k20201202; t=1777965606;
+	bh=zPPm8mihwsbz7WxUEStvO0kZKAy0ltxaxF1GHCofeUU=;
 	h=In-Reply-To:References:Subject:From:To:Cc:Date:From;
-	b=E2MCGGEIDFooOgv05S3lPLcaurSM3pb0vwcE3gUnTHf09r8LC2oYE73Lijx+2fImm
-	 qCma23zXoLjPLmj1OZq8+iyvHq1+rEGEKH1kVpCXmzvoPsD+D4ywpyonZC2FiWoOfX
-	 t4pTkRls+/cXwYQzbJSXJjNlipDwn9LPWZy1oarhrKEscVSjRL6+wTh2AgRpkZsmWI
-	 vt/AU8VEnqfPpgFKDYxz0tfEOaJtmiKf0RIadXS3+gyc0Gg5E7I7gOTgcvWZRPdsdg
-	 wayysJ5JXN3gJLnFaMvQw65ObRwOCR8ffDoGrEj4wimMQeQzgR2YdvF5rle8TuUyN7
-	 Ef3DLRumfFjlg==
-Content-Type: multipart/mixed; boundary="===============2029874583554774468=="
+	b=UbYVNIBE6sc+bLcG5VB3jRT5aaI9HX10eZMSHquInKwsLB1b7iyqM2vF0JzAmH7XT
+	 p9ZmK/bjngU/rJa9ABtJhkFZkKLASZcSPBilMRPyl6aImHjAdvgXbhih+1Kfnv4qEG
+	 aE+WBBN/n9sIpfYA9fMjYbJ1SJsuKjYK3uk9FYEuhqNaIDnQ0FsEHvZKqnYD8Jyydu
+	 Kw6bsO3IDVideB4GJYRelj8oHSCzcIuPB4SrSShubmInr2UJ0fEGwsdeCcoPpln4pE
+	 5RhFG+O05a9oLmidZHaBUg+kJ/KLk3U6ZqWyBz6MUYyyxrJA12Eu+c90PGnI6/HuYA
+	 hSTFxLlnnDF2g==
+Content-Type: multipart/mixed; boundary="===============4438461894692283644=="
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Message-Id: <fd8cec766d7d282c6e45872dce0a5ed47d8e7889c86f60bd0bc0895ae368ab61@mail.kernel.org>
-In-Reply-To: <20260505062026.91724-3-cuiyunhui@bytedance.com>
-References: <20260505062026.91724-3-cuiyunhui@bytedance.com>
-Subject: Re: [PATCH v4 2/3] riscv: introduce percpu.h into include/asm
+Message-Id: <c25e14be97cb01094d1590d1f89212cbf8b5e4f22ed85b6ab4b52853b7cf1450@mail.kernel.org>
+In-Reply-To: <20260505062026.91724-4-cuiyunhui@bytedance.com>
+References: <20260505062026.91724-4-cuiyunhui@bytedance.com>
+Subject: Re: [PATCH v4 3/3] riscv: store percpu offset into thread_info
 From: bot+bpf-ci@kernel.org
 To: cuiyunhui@bytedance.com,pjw@kernel.org,palmer@dabbelt.com,aou@eecs.berkeley.edu,alex@ghiti.fr,dennis@kernel.org,tj@kernel.org,cl@gentwo.org,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,martin.lau@linux.dev,eddyz87@gmail.com,memxor@gmail.com,song@kernel.org,yonghong.song@linux.dev,jolsa@kernel.org,bjorn@kernel.org,pulehui@huawei.com,puranjay@kernel.org,thuth@redhat.com,ajones@ventanamicro.com,ben.dooks@codethink.co.uk,rkrcmar@ventanamicro.com,cuiyunhui@bytedance.com,samuel.holland@sifive.com,zong.li@sifive.com,conor.dooley@microchip.com,tglx@kernel.org,debug@rivosinc.com,seanwascoding@gmail.com,andybnac@gmail.com,menglong8.dong@gmail.com,cyrilbur@tenstorrent.com,wangruikang@iscas.ac.cn,atishp@rivosinc.com,apatel@ventanamicro.com,linux-riscv@lists.infradead.org,linux-kernel@vger.kernel.org,linux-mm@kvack.org,bpf@vger.kernel.org,arnd@arndb.de,nathan@kernel.org,nick.desaulniers+lkml@gmail.com,morbo@google.com,justinstitt@google.com,qingfang.deng@siflower.com.cn,linux-arch@vger.kernel.org,llvm@lists.linux.dev
 Cc: ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
-Date: Tue,  5 May 2026 07:05:57 +0000 (UTC)
+Date: Tue,  5 May 2026 07:20:02 +0000 (UTC)
 
---===============2029874583554774468==
-Content-Type: text/plain; charset="utf-8"
+--===============4438461894692283644==
+Content-Type: text/plain; charset="us-ascii"
 MIME-Version: 1.0
-Content-Transfer-Encoding: base64
+Content-Transfer-Encoding: 7bit
 
-PiBkaWZmIC0tZ2l0IGEvYXJjaC9yaXNjdi9pbmNsdWRlL2FzbS9wZXJjcHUuaCBiL2FyY2gvcmlz
-Y3YvaW5jbHVkZS9hc20vcGVyY3B1LmgKPiBuZXcgZmlsZSBtb2RlIDEwMDY0NAo+IGluZGV4IDAw
-MDAwMDAwMDAwMC4uM2IyNmZlNDVlNzBmCj4gLS0tIC9kZXYvbnVsbAo+ICsrKyBiL2FyY2gvcmlz
-Y3YvaW5jbHVkZS9hc20vcGVyY3B1LmgKClsgLi4uIF0KCj4gQEAgLTAsMCArMSwyODAgQEAKClsg
-Li4uIF0KCj4gKyNpZmRlZiBDT05GSUdfNjRCSVQKPiArI2RlZmluZSBQRVJDUFVfT1AobmFtZSwg
-YW1vX2luc24pCQkJCQlcCj4gKwlfX1BFUkNQVV9BTU9fT1BfQ0FTRSgudywgbmFtZSwgMzIsIGFt
-b19pbnNuKQkJCVwKPiArCV9fUEVSQ1BVX0FNT19PUF9DQVNFKC5kLCBuYW1lLCA2NCwgYW1vX2lu
-c24pCj4gKyNlbHNlCj4gKyNkZWZpbmUgUEVSQ1BVX09QKG5hbWUsIGFtb19pbnNuKQkJCQkJXAo+
-ICsJX19QRVJDUFVfQU1PX09QX0NBU0UoLncsIG5hbWUsIDMyLCBhbW9faW5zbikKPiArI2VuZGlm
-Cj4gKwo+ICtQRVJDUFVfT1AoYWRkLCBhZGQpCj4gK1BFUkNQVV9PUChhbmRub3QsIGFuZCkKPiAr
-UEVSQ1BVX09QKG9yLCBvcikKClsgLi4uIF0KCj4gKyNkZWZpbmUgUEVSQ1BVXzhfMTZfT1AobmFt
-ZSwgYW1vX2luc24sIHN6LCBzZngsIHZhbF90eXBlLCBuZXdfdmFsX2V4cHIsIGFzbV9vcCkJCQlc
-Cj4gK3N0YXRpYyBpbmxpbmUgdm9pZCBfX3BlcmNwdV8jI25hbWUjI19hbW9fY2FzZV8jI3N6KHZv
-aWQgKnB0ciwgdW5zaWduZWQgbG9uZyB2YWwpCQlcCj4gK3sJCQkJCQkJCQkJCQlcCj4gKwlpZiAo
-SVNfRU5BQkxFRChDT05GSUdfUklTQ1ZfSVNBX1pBQkhBKSAmJgkJCQkJCVwKPiArCQlyaXNjdl9o
-YXNfZXh0ZW5zaW9uX3VubGlrZWx5KFJJU0NWX0lTQV9FWFRfWkFCSEEpKSB7CQkJCVwKPiArCQlh
-c20gdm9sYXRpbGUgKCJhbW8iICNhbW9faW5zbiAjc2Z4ICIgemVybywgJVt2YWxdLCAlW3B0cl0i
-CQkJXAo+ICsJCQk6IFtwdHJdICIrQSIoKih2YWxfdHlwZSAqKXB0cikJCQkJCQlcCj4gKwkJCTog
-W3ZhbF0gInIiKCh2YWxfdHlwZSkoKG5ld192YWxfZXhwcikgJiBQRVJDUFVfOF8xNl9HRVRfTUFT
-SyhzeikpKQlcCj4gKwkJCTogIm1lbW9yeSIpOwkJCQkJCQkJXAo+ICsJfSBlbHNlIHsJCQkJCQkJ
-CQkJXAo+ICsJCXUzMiAqcHRyMzIgPSBQRVJDUFVfOF8xNl9HRVRfUFRSMzIocHRyKTsJCQkJCVwK
-PiArCQljb25zdCB1bnNpZ25lZCBsb25nIHNoaWZ0ID0gUEVSQ1BVXzhfMTZfR0VUX1NISUZUKHB0
-cik7CQkJCVwKPiArCQljb25zdCB1MzIgbWFzayA9IFBFUkNQVV84XzE2X0dFVF9NQVNLKHN6KSA8
-PCBzaGlmdDsJCQkJXAo+ICsJCWNvbnN0IHZhbF90eXBlIHZhbF90cnVuYyA9ICh2YWxfdHlwZSko
-KG5ld192YWxfZXhwcikJCQkJXAo+ICsJCQkJCSAgICYgUEVSQ1BVXzhfMTZfR0VUX01BU0soc3op
-KTsJCQkJXAo+ICsJCXUzMiByZXR4LCByYzsJCQkJCQkJCQlcCj4gKwkJdmFsX3R5cGUgbmV3X3Zh
-bF90eXBlOwkJCQkJCQkJXAo+ICsJCQkJCQkJCQkJCQlcCj4gKwkJYXNtIHZvbGF0aWxlICgJCQkJ
-CQkJCQlcCj4gKwkJCSIwOiBsci53ICUwLCAlMlxuIgkJCQkJCQlcCj4gKwkJCSJhbmQgJTMsICUw
-LCAlNFxuIgkJCQkJCQlcCj4gKwkJCSJzcmwgJTMsICUzLCAlNVxuIgkJCQkJCQlcCj4gKwkJCSNh
-c21fb3AgIiAlMywgJTMsICU2XG4iCQkJCQkJCVwKPiArCQkJInNsbCAlMywgJTMsICU1XG4iCQkJ
-CQkJCVwKPiArCQkJImFuZCAlMSwgJTAsICU3XG4iCQkJCQkJCVwKPiArCQkJIm9yICUxLCAlMSwg
-JTNcbiIJCQkJCQkJXAo+ICsJCQkic2MudyAlMSwgJTEsICUyXG4iCQkJCQkJCVwKPiArCQkJImJu
-ZXogJTEsIDBiXG4iCQkJCQkJCQlcCj4gKwkJCTogIj0mciIocmV0eCksICI9JnIiKHJjKSwgIitB
-IigqcHRyMzIpLCAiPSZyIihuZXdfdmFsX3R5cGUpCQlcCj4gKwkJCTogInIiKG1hc2spLCAiciIo
-c2hpZnQpLCAiciIodmFsX3RydW5jKSwgInIiKH5tYXNrKQkJCVwKPiArCQkJOiAibWVtb3J5Iik7
-CQkJCQkJCQlcCj4gKwkJfQkJCQkJCQkJCQlcCj4gK30KCkNhbiB0aGUgOC8xNi1iaXQgTFIvU0Mg
-ZmFsbGJhY2sgZm9yIGFkZCBvcGVyYXRpb25zIGNvcnJ1cHQgYWRqYWNlbnQKcGVyY3B1IGRhdGE/
-CgpJbiB0aGUgbm9uLVpBQkhBIHBhdGggYWJvdmUsIGFmdGVyIGV4dHJhY3RpbmcgYW5kIHNoaWZ0
-aW5nIHRoZSBzdWJ3b3JkCihsaW5lcyAzLTQpLCB0aGUgY29kZSBwZXJmb3JtcyB0aGUgb3BlcmF0
-aW9uIChsaW5lIDUpIGFuZCBpbW1lZGlhdGVseQpzaGlmdHMgYmFjayAobGluZSA2KS4gRm9yIHRo
-ZSBhZGQgaW5zdGFudGlhdGlvbjoKCiAgICBzcmwgJTMsICUzLCAlNSAgICAgOyBuZXdfdmFsID4+
-PSBzaGlmdAogICAgYWRkICUzLCAlMywgJTYgICAgIDsgbmV3X3ZhbCArPSB2YWxfdHJ1bmMgKG1h
-eSBvdmVyZmxvdyA4LzE2IGJpdHMpCiAgICBzbGwgJTMsICUzLCAlNSAgICAgOyBuZXdfdmFsIDw8
-PSBzaGlmdAoKVGhlcmUncyBubyBtYXNraW5nIGJldHdlZW4gYWRkIGFuZCBzbGwsIHNvIGEgY2Fy
-cnktb3V0IGZyb20gdTggKGJpdCA4KQpvciB1MTYgKGJpdCAxNikgc3Vydml2ZXMgdGhlIHNoaWZ0
-LiBUaGUgcmVzdWx0IGlzIHRoZW4gT1JlZCBpbnRvIHRoZQpyZWFkLW1vZGlmeS13cml0ZSB3b3Jk
-OgoKICAgIGFuZCAlMSwgJTAsICU3ICAgICA7IHJjID0gcmV0eCAmIH5tYXNrICAoY2xlYXJzIHRh
-cmdldCBzdWJ3b3JkIG9ubHkpCiAgICBvciAgJTEsICUxLCAlMyAgICAgOyByYyB8PSBuZXdfdmFs
-ICAgICAob3ZlcmZsb3cgYml0IGVudGVycyBhZGphY2VudCBieXRlKQoKRXhhbXBsZTogYSB1OCBw
-ZXJjcHUgYXQgb2Zmc2V0IDAgaG9sZHMgMHg4MDsgY2FsbGluZyB0aGlzX2NwdV9hZGQoKQp3aXRo
-IDB4ODAgd3JhcHMgdGhlIHU4IHRvIDAgKGNvcnJlY3QpLCBidXQgdGhlIGNhcnJ5IGJpdCA4IGNv
-cnJ1cHRzIHRoZQphZGphY2VudCBieXRlIGF0IG9mZnNldCAxIGluIHRoZSBzYW1lIHUzMi4KClRo
-ZSBzaWJsaW5nIGFkZF9yZXR1cm4gaGVscGVyIChQRVJDUFVfOF8xNl9SRVRfT1ApIGluY2x1ZGVz
-IHRoZSBtaXNzaW5nCnRydW5jYXRpb24gd2l0aCAiYW5kICUxLCAlMSwgJTciIHVzaW5nIFBFUkNQ
-VV84XzE2X0dFVF9NQVNLKHN6KSBiZWZvcmUKdGhlIHNoaWZ0LWJhY2suIFdoeSBkb2Vzbid0IFBF
-UkNQVV84XzE2X09QIGRvIHRoZSBzYW1lPwoKPiArCj4gKyNkZWZpbmUgUEVSQ1BVX09QXzhfMTYo
-b3BfbmFtZSwgb3AsIGV4cHIsIGZpbmFsX29wKQkJCVwKPiArCVBFUkNQVV84XzE2X09QKG9wX25h
-bWUsIG9wLCA4LCAuYiwgdTgsIGV4cHIsIGZpbmFsX29wKTsJCVwKPiArCVBFUkNQVV84XzE2X09Q
-KG9wX25hbWUsIG9wLCAxNiwgLmgsIHUxNiwgZXhwciwgZmluYWxfb3ApCj4gKwo+ICtQRVJDUFVf
-T1BfOF8xNihhZGQsIGFkZCwgdmFsLCBhZGQpCj4gK1BFUkNQVV9PUF84XzE2KGFuZG5vdCwgYW5k
-LCB+KHZhbCksIGFuZCkKPiArUEVSQ1BVX09QXzhfMTYob3IsIG9yLCB2YWwsIG9yKQoKWyAuLi4g
-XQoKPiArI2RlZmluZSBQRVJDUFVfOF8xNl9SRVRfT1AobmFtZSwgYW1vX2luc24sIHN6LCBzZngs
-IHZhbF90eXBlLCBuZXdfdmFsX2V4cHIpCQkJXAo+ICtzdGF0aWMgaW5saW5lIHZhbF90eXBlIF9f
-cGVyY3B1XyMjbmFtZSMjX3JldHVybl9hbW9fY2FzZV8jI3N6KHZvaWQgKnB0ciwgdW5zaWduZWQg
-bG9uZyB2YWwpCVwKPiArewkJCQkJCQkJCQkJCVwKPiArCWlmIChJU19FTkFCTEVEKENPTkZJR19S
-SVNDVl9JU0FfWkFCSEEpICYmCQkJCQkJXAo+ICsJCXJpc2N2X2hhc19leHRlbnNpb25fdW5saWtl
-bHkoUklTQ1ZfSVNBX0VYVF9aQUJIQSkpIHsJCQkJXAo+ICsJCXJlZ2lzdGVyIHZhbF90eXBlIHJl
-dDsJCQkJCQkJCVwKPiArCQlhc20gdm9sYXRpbGUgKCJhbW8iICNhbW9faW5zbiAjc2Z4ICIgJVty
-ZXRdLCAlW3ZhbF0sICVbcHRyXSIJCQlcCj4gKwkJCTogW3B0cl0gIitBIigqKHZhbF90eXBlICop
-cHRyKSwgW3JldF0gIj1yIihyZXQpCQkJCVwKPiArCQkJOiBbdmFsXSAiciIoKHZhbF90eXBlKSgo
-bmV3X3ZhbF9leHByKSAmIFBFUkNQVV84XzE2X0dFVF9NQVNLKHN6KSkpCVwKPiArCQkJOiAibWVt
-b3J5Iik7CQkJCQkJCQlcCj4gKwkJcmV0dXJuIHJldCArICh2YWxfdHlwZSkoKG5ld192YWxfZXhw
-cikgJiBQRVJDUFVfOF8xNl9HRVRfTUFTSyhzeikpOwkJXAo+ICsJfSBlbHNlIHsJCQkJCQkJCQkJ
-XAo+ICsJCXUzMiAqcHRyMzIgPSBQRVJDUFVfOF8xNl9HRVRfUFRSMzIocHRyKTsJCQkJCVwKPiAr
-CQljb25zdCB1bnNpZ25lZCBsb25nIHNoaWZ0ID0gUEVSQ1BVXzhfMTZfR0VUX1NISUZUKHB0cik7
-CQkJCVwKPiArCQljb25zdCB1MzIgbWFzayA9IChQRVJDUFVfOF8xNl9HRVRfTUFTSyhzeikgPDwg
-c2hpZnQpOwkJCQlcCj4gKwkJY29uc3QgdTMyIGludl9tYXNrID0gfm1hc2s7CQkJCQkJCVwKPiAr
-CQljb25zdCB2YWxfdHlwZSB2YWxfdHJ1bmMgPSAodmFsX3R5cGUpKChuZXdfdmFsX2V4cHIpCQkJ
-CVwKPiArCQkJCQkgICAmIFBFUkNQVV84XzE2X0dFVF9NQVNLKHN6KSk7CQkJCVwKPiArCQl1MzIg
-b2xkLCBuZXcsIHRtcDsJCQkJCQkJCVwKPiArCQkJCQkJCQkJCQkJXAo+ICsJCWFzbSB2b2xhdGls
-ZSAoCQkJCQkJCQkJXAo+ICsJCQkiMDogbHIudyAlMCwgJTNcbiIJCQkJCQkJXAo+ICsJCQkiYW5k
-ICUxLCAlMCwgJTRcbiIJCQkJCQkJXAo+ICsJCQkic3JsICUxLCAlMSwgJTVcbiIJCQkJCQkJXAo+
-ICsJCQkiYWRkICUxLCAlMSwgJTZcbiIJCQkJCQkJXAo+ICsJCQkiYW5kICUxLCAlMSwgJTdcbiIJ
-CQkJCQkJXAo+ICsJCQkic2xsICUxLCAlMSwgJTVcbiIJCQkJCQkJXAo+ICsJCQkiYW5kICUyLCAl
-MCwgJThcbiIJCQkJCQkJXAo+ICsJCQkib3IgJTIsICUyLCAlMVxuIgkJCQkJCQlcCj4gKwkJCSJz
-Yy53ICUyLCAlMiwgJTNcbiIJCQkJCQkJXAo+ICsJCQkiYm5leiAlMiwgMGJcbiIJCQkJCQkJCVwK
-PiArCQkJOiAiPXIiKG9sZCksICI9ciIodG1wKSwgIj0mciIobmV3KSwgIitBIigqcHRyMzIpCQkJ
-XAo+ICsJCQk6ICJyIihtYXNrKSwgInIiKHNoaWZ0KSwgInIiKHZhbF90cnVuYyksICJyIihQRVJD
-UFVfOF8xNl9HRVRfTUFTSyhzeikpLCBcCj4gKwkJCSJyIihpbnZfbWFzaykJCQkJCQkJCVwKPiAr
-CQkJOiAibWVtb3J5Iik7CQkJCQkJCQlcCj4gKwkJcmV0dXJuICh2YWxfdHlwZSkodG1wID4+IHNo
-aWZ0KTsJCQkJCQlcCj4gKwl9CQkJCQkJCQkJCQlcCj4gK30KCkRvZXMgdGhlIExSL1NDIGZhbGxi
-YWNrIG5lZWQgZWFybHktY2xvYmJlciBxdWFsaWZpZXJzIG9uIHRoZSBvdXRwdXQKcmVnaXN0ZXJz
-PwoKVGhlIGlubGluZSBhc20gd3JpdGVzICJvbGQiIGFuZCAidG1wIiAodmlhIGxyLncgYW5kIGFu
-ZCkgYmVmb3JlIHJlYWRpbmcKYWxsIGlucHV0IHJlZ2lzdGVycyAoJTQuLiU4OiBtYXNrLCBzaGlm
-dCwgdmFsX3RydW5jLCBNQVNLKHN6KSwKaW52X21hc2spLiBUaGUgR0NDIGlubGluZS1hc20gY29u
-dHJhY3QgcmVxdWlyZXMgIj0mciIgKGVhcmx5LWNsb2JiZXIpCndoZW4gYW4gb3V0cHV0IGlzIHdy
-aXR0ZW4gYmVmb3JlIGFsbCBpbnB1dHMgYXJlIGNvbnN1bWVkLiBXaXRob3V0IGl0LAp0aGUgY29t
-cGlsZXIgbWF5IGFsbG9jYXRlIHRoZSBzYW1lIHBoeXNpY2FsIHJlZ2lzdGVyIGZvciAib2xkIiBv
-ciAidG1wIgphbmQgb25lIG9mIHRoZSBpbnB1dHMsIGNsb2JiZXJpbmcgdGhhdCBpbnB1dC4KClRo
-ZSBzaWJsaW5nIFBFUkNQVV84XzE2X09QIHVzZXMgIj0mciIocmV0eCksICI9JnIiKHJjKSwKIj0m
-ciIobmV3X3ZhbF90eXBlKS4gVGhlIGVxdWl2YWxlbnQgX19hcmNoX3hjaGdfbWFza2VkIGhlbHBl
-ciBpbgphcmNoL3Jpc2N2L2luY2x1ZGUvYXNtL2NtcHhjaGcuaCBhbHNvIHVzZXMgIj0mciIgZm9y
-IG91dHB1dHMgd3JpdHRlbgplYXJseS4KClNob3VsZCAib2xkIiBhbmQgInRtcCIgYmUgZGVjbGFy
-ZWQgIj0mciIgaW5zdGVhZCBvZiAiPXIiPwoKPiArCj4gK1BFUkNQVV84XzE2X1JFVF9PUChhZGQs
-IGFkZCwgOCwgLmIsIHU4LCB2YWwpCj4gK1BFUkNQVV84XzE2X1JFVF9PUChhZGQsIGFkZCwgMTYs
-IC5oLCB1MTYsIHZhbCkKClsgLi4uIF0KCj4gKyNkZWZpbmUgdGhpc19jcHVfYW5kXzEocGNwLCB2
-YWwpCV9wY3BfcHJvdGVjdChfX3BlcmNwdV9hbmRub3RfYW1vX2Nhc2VfOCwgcGNwLCB+KHZhbCkp
-Cj4gKyNkZWZpbmUgdGhpc19jcHVfYW5kXzIocGNwLCB2YWwpCV9wY3BfcHJvdGVjdChfX3BlcmNw
-dV9hbmRub3RfYW1vX2Nhc2VfMTYsIHBjcCwgfih2YWwpKQo+ICsjZGVmaW5lIHRoaXNfY3B1X2Fu
-ZF80KHBjcCwgdmFsKQlfcGNwX3Byb3RlY3QoX19wZXJjcHVfYW5kbm90X2Ftb19jYXNlXzMyLCBw
-Y3AsIH4odmFsKSkKPiArCj4gKyNpZmRlZiBDT05GSUdfNjRCSVQKPiArI2RlZmluZSB0aGlzX2Nw
-dV9hbmRfOChwY3AsIHZhbCkJX3BjcF9wcm90ZWN0KF9fcGVyY3B1X2FuZG5vdF9hbW9fY2FzZV82
-NCwgcGNwLCB+KHZhbCkpCj4gKyNlbmRpZgoKRG8gdGhpc19jcHVfYW5kXzQoKSBhbmQgdGhpc19j
-cHVfYW5kXzgoKSBjb21wdXRlIHRoZSB3cm9uZyByZXN1bHQ/CgpUaGUgbWFjcm9zIHBhc3Mgfih2
-YWwpIHRvIF9fcGVyY3B1X2FuZG5vdF9hbW9fY2FzZV8zMi82NCwgd2hpY2gKYXJlIGdlbmVyYXRl
-ZCBieSBQRVJDUFVfT1AoYW5kbm90LCBhbmQpLiBUaGF0IGV4cGFuZHMgdG8KX19QRVJDUFVfQU1P
-X09QX0NBU0UoLncvLmQsIGFuZG5vdCwgMzIvNjQsIGFuZCkg4oCUIHRoZSBhc20gYm9keSBpcwoi
-YW1vYW5kLncvZCB6ZXJvLCAlW3ZhbF0sICVbcHRyXSIsIHdoaWNoIHBlcmZvcm1zICpwdHIgJj0g
-dmFsIChwbGFpbgpBTkQpLgoKV2l0aCB0aGUgY2FsbGVyIHBhc3NpbmcgfnZhbCwgdGhlIGZpbmFs
-IG9wZXJhdGlvbiBiZWNvbWVzICpwdHIgJiB+dmFsLAp3aGljaCBpcyB0aGUgb3Bwb3NpdGUgb2Yg
-dGhlIGV4cGVjdGVkICpwdHIgJiB2YWwuIExvb2tpbmcgYXQgdGhlIGFybTY0CnBhdHRlcm4gKGFy
-Y2gvYXJtNjQvaW5jbHVkZS9hc20vcGVyY3B1LmgpLCBQRVJDUFVfT1AoYW5kbm90LCBiaWMsIGxk
-Y2xyKQp1c2VzIHRoZSBCSUMgaW5zdHJ1Y3Rpb24gdGhhdCBwcm92aWRlcyB0aGUgaW52ZXJzaW9u
-OiBiaWMgcGVyZm9ybXMKKnB0ciAmIH52YWwsIHNvIGNhbGxpbmcgd2l0aCB+dmFsIHlpZWxkcyAq
-cHRyICYgfih+dmFsKSA9ICpwdHIgJiB2YWwuClJJU0MtVidzIGFtb2FuZCBoYXMgbm8gZXF1aXZh
-bGVudCBpbnZlcnNpb24uCgpFeGFtcGxlOiBhIHUzMiBwZXJjcHUgaW5pdGlhbGl6ZWQgdG8gMHhG
-RkZGRkZGRiB3aXRoCnRoaXNfY3B1X2FuZCh2YXIsIDB4MSkgc2hvdWxkIHByb2R1Y2UgMHgxIGJ1
-dCB5aWVsZHMgMHhGRkZGRkZGRSBpbnN0ZWFkLgoKVGhlIDgvMTYtYml0IGhlbHBlcnMgaGFwcGVu
-IHRvIGJlIGNvcnJlY3QgYmVjYXVzZSBQRVJDUFVfT1BfOF8xNihhbmRub3QsCmFuZCwgfih2YWwp
-LCBhbmQpIGZlZWRzIG5ld192YWxfZXhwciA9IH4odmFsKSwgcHJvZHVjaW5nIGEgc2Vjb25kCmlu
-dmVyc2lvbiBpbiB0aGUgbWFjcm8gYm9keSB0aGF0IGNhbmNlbHMgb3V0LiBPbmx5IHRoZSAzMi82
-NC1iaXQgcGF0aHMKYXJlIGJyb2tlbi4KClNob3VsZCBQRVJDUFVfT1AoYW5kbm90LCBhbmQpIGJl
-IHJlcGxhY2VkIHdpdGggYSBnZW5lcmF0b3IgdGhhdCBkb2VzCmV4cGxpY2l0IGludmVyc2lvbiwg
-b3Igc2hvdWxkIHRoZSB0aGlzX2NwdV9hbmRfNC84IGNhbGxlcnMgcGFzcyB2YWwKd2l0aG91dCBu
-ZWdhdGlvbj8KClsgLi4uIF0KCgotLS0KQUkgcmV2aWV3ZWQgeW91ciBwYXRjaC4gUGxlYXNlIGZp
-eCB0aGUgYnVnIG9yIGVtYWlsIHJlcGx5IHdoeSBpdCdzIG5vdCBhIGJ1Zy4KU2VlOiBodHRwczov
-L2dpdGh1Yi5jb20va2VybmVsLXBhdGNoZXMvdm10ZXN0L2Jsb2IvbWFzdGVyL2NpL2NsYXVkZS9S
-RUFETUUubWQKCkNJIHJ1biBzdW1tYXJ5OiBodHRwczovL2dpdGh1Yi5jb20va2VybmVsLXBhdGNo
-ZXMvYnBmL2FjdGlvbnMvcnVucy8yNTM2MTc5MjUwNA==
+> diff --git a/arch/riscv/include/asm/asm.h b/arch/riscv/include/asm/asm.h
+> index e9e8ba83e632..137a49488325 100644
+> --- a/arch/riscv/include/asm/asm.h
+> +++ b/arch/riscv/include/asm/asm.h
+> @@ -91,11 +91,7 @@
+>
+>  #ifdef CONFIG_SMP
+>  .macro asm_per_cpu dst sym tmp
+> -	lw    \tmp, TASK_TI_CPU_NUM(tp)
+> -	slli  \tmp, \tmp, RISCV_LGPTR
+> -	la    \dst, __per_cpu_offset
+> -	add   \dst, \dst, \tmp
+> -	REG_L \tmp, 0(\dst)
+> +	REG_L \tmp, TASK_TI_PCPU_OFFSET(tp)
+>  	la    \dst, \sym
+>  	add   \dst, \dst, \tmp
+>  .endm
 
---===============2029874583554774468==--
+[ ... ]
+
+> diff --git a/arch/riscv/include/asm/percpu.h b/arch/riscv/include/asm/percpu.h
+> index 3b26fe45e70f..84612d672105 100644
+> --- a/arch/riscv/include/asm/percpu.h
+> +++ b/arch/riscv/include/asm/percpu.h
+> @@ -7,7 +7,9 @@
+>
+>  #include <asm/alternative-macros.h>
+>  #include <asm/cpufeature-macros.h>
+> +#include <asm/current.h>
+>  #include <asm/hwcap.h>
+> +#include <asm/thread_info.h>
+
+[ ... ]
+
+> @@ -275,6 +277,8 @@ _pcp_protect_return(__percpu_add_return_amo_case_64, pcp, val)
+>  })
+>  #endif
+>
+> +#define __my_cpu_offset (((struct thread_info *)current)->pcpu_offset)
+> +
+>  #include <asm-generic/percpu.h>
+
+[ ... ]
+
+> diff --git a/arch/riscv/include/asm/switch_to.h b/arch/riscv/include/asm/switch_to.h
+> index 0e71eb82f920..733b6cd306e4 100644
+> --- a/arch/riscv/include/asm/switch_to.h
+> +++ b/arch/riscv/include/asm/switch_to.h
+> @@ -88,6 +88,13 @@ static inline void __switch_to_envcfg(struct task_struct *next)
+>  			:: "r" (next->thread.envcfg) : "memory");
+>  }
+>
+> +static inline void __switch_to_pcpu_offset(struct task_struct *next)
+> +{
+> +#ifdef CONFIG_SMP
+> +	next->thread_info.pcpu_offset = __my_cpu_offset;
+> +#endif
+> +}
+> +
+
+[ ... ]
+
+> @@ -122,6 +129,7 @@ do {							\
+>  	if (switch_to_should_flush_icache(__next))	\
+>  		local_flush_icache_all();		\
+>  	__switch_to_envcfg(__next);			\
+> +	__switch_to_pcpu_offset(__next);		\
+>  	((last) = __switch_to(__prev, __next));		\
+>  } while (0)
+
+[ ... ]
+
+> diff --git a/arch/riscv/include/asm/thread_info.h b/arch/riscv/include/asm/thread_info.h
+> index 36918c9200c9..17996dc094fd 100644
+> --- a/arch/riscv/include/asm/thread_info.h
+> +++ b/arch/riscv/include/asm/thread_info.h
+> @@ -53,6 +53,7 @@
+>  struct thread_info {
+>  	unsigned long		flags;		/* low level flags */
+>  	int                     preempt_count;  /* 0=>preemptible, <0=>BUG */
+> +	int			cpu;
+>  	/*
+>  	 * These stack pointers are overwritten on every system call or
+>  	 * exception.  SP is also saved to the stack it can be recovered when
+> @@ -60,8 +61,8 @@ struct thread_info {
+>  	 */
+>  	long			kernel_sp;	/* Kernel stack pointer */
+>  	long			user_sp;	/* User stack pointer */
+> -	int			cpu;
+>  	unsigned long		syscall_work;	/* SYSCALL_WORK_ flags */
+> +	unsigned long		pcpu_offset;
+
+[ ... ]
+
+> diff --git a/arch/riscv/kernel/asm-offsets.c b/arch/riscv/kernel/asm-offsets.c
+> index af827448a609..fbf53b66b0e0 100644
+> --- a/arch/riscv/kernel/asm-offsets.c
+> +++ b/arch/riscv/kernel/asm-offsets.c
+> @@ -38,6 +38,7 @@ void asm_offsets(void)
+>  	OFFSET(TASK_THREAD_SUM, task_struct, thread.sum);
+>
+>  	OFFSET(TASK_TI_CPU, task_struct, thread_info.cpu);
+> +	OFFSET(TASK_TI_PCPU_OFFSET, task_struct, thread_info.pcpu_offset);
+>  	OFFSET(TASK_TI_PREEMPT_COUNT, task_struct, thread_info.preempt_count);
+
+[ ... ]
+
+> diff --git a/arch/riscv/kernel/smpboot.c b/arch/riscv/kernel/smpboot.c
+> index d85916a3660c..9e95c068b966 100644
+> --- a/arch/riscv/kernel/smpboot.c
+> +++ b/arch/riscv/kernel/smpboot.c
+> @@ -209,6 +209,11 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
+>  }
+>  #endif
+>
+> +void __init smp_prepare_boot_cpu(void)
+> +{
+> +	__my_cpu_offset = per_cpu_offset(smp_processor_id());
+> +}
+> +
+
+[ ... ]
+
+> @@ -234,6 +239,8 @@ asmlinkage __visible void smp_callin(void)
+>  	mmgrab(mm);
+>  	current->active_mm = mm;
+>
+> +	__my_cpu_offset = per_cpu_offset(smp_processor_id());
+> +
+
+[ ... ]
+
+> diff --git a/arch/riscv/net/bpf_jit_comp64.c b/arch/riscv/net/bpf_jit_comp64.c
+> index 2f1109dbf105..177c19216013 100644
+> --- a/arch/riscv/net/bpf_jit_comp64.c
+> +++ b/arch/riscv/net/bpf_jit_comp64.c
+> @@ -1395,15 +1395,8 @@ int bpf_jit_emit_insn(const struct bpf_insn *insn, struct rv_jit_context *ctx,
+>  			if (rd != rs)
+>  				emit_mv(rd, rs, ctx);
+>  #ifdef CONFIG_SMP
+> -			/* Load current CPU number in T1 */
+> -			emit_lw(RV_REG_T1, offsetof(struct thread_info, cpu),
+> +			emit_ld(RV_REG_T1, offsetof(struct thread_info, pcpu_offset),
+>  				RV_REG_TP, ctx);
+> -			/* Load address of __per_cpu_offset array in T2 */
+> -			emit_addr(RV_REG_T2, (u64)&__per_cpu_offset, extra_pass, ctx);
+> -			/* Get address of __per_cpu_offset[cpu] in T1 */
+> -			emit_sh3add(RV_REG_T1, RV_REG_T1, RV_REG_T2, ctx);
+> -			/* Load __per_cpu_offset[cpu] in T1 */
+> -			emit_ld(RV_REG_T1, 0, RV_REG_T1, ctx);
+>  			/* Add the offset to Rd */
+>  			emit_add(rd, rd, RV_REG_T1, ctx);
+>  #endif
+
+Note: A lore search found an unaddressed review comment from Arnd Bergmann on
+v4 of this patch series, dated Tue, 05 May 2026 08:33:04 +0200. The comment
+references arch/riscv/include/asm/io.h regarding null-pointer arithmetic in
+PIO helpers. However, that file is not modified in this commit. This may be
+feedback on a different patch in the series.
+
+Reference: https://lore.kernel.org/all/3720c3a4-cc0d-4ba8-97ae-35def0189e2e@app.fastmail.com/
+
+
+---
+AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
+See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
+
+CI run summary: https://github.com/kernel-patches/bpf/actions/runs/25361792504
+--===============4438461894692283644==--
