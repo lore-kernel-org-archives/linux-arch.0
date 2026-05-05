@@ -1,32 +1,32 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D17673F23AB;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ED22B3C4547;
 	Tue,  5 May 2026 09:05:36 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777971938; cv=none; b=lJymORWA76gYuoUWSBzZQvpwN+m6XfPxNPqX9fl/6pwHPCHiieuywTn7CrqkL6w5JlefTTVGBw8E5xAY/CmwIWAMVFfv+2ObULbyD0kVxjWaw0T1pu0kR53vGMwwL2n0MiMFr4nJLOIqJYYmArhQMkJR/M5LFaDNp2vqtfmWhLU=
+	t=1777971938; cv=none; b=mhZIemmH3ghI2cWk1Wj7a7T4Jo7H9uA6mCfyc8q3tgRnttUVFe1CNqlrMtMN2XCJ+HyjuUQqSB9aBYtru7RLBrbE3H/ePgUD3jteKHheEtEFfLisHABYq3gV7FiH3f1etlw4Nt/D2yCooTOBmZ0j6MeyIu9pY2ZdhnDnDy17Zws=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1777971938; c=relaxed/simple;
-	bh=1JdBqz41kTdRxXQtXD0WlucfGsBSnYlrVmslcdqa4/k=;
+	bh=6VJvYnOHZshtQlmEnWd/K1udWrIwe9dejx/5mZI/Wtg=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=hQrZ6OnsipCLAiUfffRi5xTokgobi+8TRhd3RffoTSbZqorPocTAqNjNi0L4yGRY62dA99uOuwVfqedrOaB22K4JL6MQTuN3VJyzR3T9ujcy4P32RNqW1C8xBvOFeFVfPFiZUZY3a6AdU0fr0UbbHxtkLpZ1IG+fenlp6kj1lzM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=hceqxvCT; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=dgnB2FLyEm1Bwoz3xRBeJ7ENapNcN4xuWixioZtfds2zkqMr/BL3YlKM7nKE+VWk8f8B/aFMpp/eKaPc+cxk35XkOxwd4JizWnZBtXMGiqUqMkQuonzwhg6BYBOpiD/hbjqcqSUE3WkNRdHQOhHZ5pCn79v8x1aVq6dfi/ISzdU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=owjODUEx; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="hceqxvCT"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="owjODUEx"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
-	s=mail; t=1777971922;
-	bh=1JdBqz41kTdRxXQtXD0WlucfGsBSnYlrVmslcdqa4/k=;
+	s=mail; t=1777971923;
+	bh=6VJvYnOHZshtQlmEnWd/K1udWrIwe9dejx/5mZI/Wtg=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=hceqxvCTo7KzWPy3qLEp6+Bf8ZLZsXvy9Zdi17IfdrJ0f7TtrU2P7gxEPnWLeumex
-	 YcmnSqR2uXoMuRhMxwSZ/jHMOlGhFAqnIGNWeOcXQN9fmNIASNprFED4nuw7rfhNxz
-	 xPFd59w5ZXs8KO9qdxlAksPv3su3ooAfWyNHfXFo=
+	b=owjODUExCCypec6TKWlnIwzT8DVnXMsfb+ZaEjU0MoKmKL+u/Hgk0XMLanRHlOS5p
+	 MNeyeJ7VYX8n6e4baZNE/ejhPU8IePBOA5zatZB7qfpcaHAbaVKcUT7fN5vxhMYVdb
+	 T5d4nFyczBMUPklVRaKpvkmaSNX/c9tzIRq1bRpM=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 05 May 2026 11:05:06 +0200
-Subject: [PATCH v5 02/14] lockdown: Make the relationship to MODULE_SIG a
- dependency
+Date: Tue, 05 May 2026 11:05:13 +0200
+Subject: [PATCH v5 09/14] module: Move signature type check out of
+ mod_check_sig()
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,7 +35,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20260505-module-hashes-v5-2-e174a5a49fce@weissschuh.net>
+Message-Id: <20260505-module-hashes-v5-9-e174a5a49fce@weissschuh.net>
 References: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
 In-Reply-To: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
 To: Alexei Starovoitov <ast@kernel.org>, 
@@ -75,39 +75,83 @@ Cc: Martin KaFai Lau <martin.lau@linux.dev>, Song Liu <song@kernel.org>,
  debian-kernel@lists.debian.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.15.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1777971921; l=908;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1777971921; l=2558;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=1JdBqz41kTdRxXQtXD0WlucfGsBSnYlrVmslcdqa4/k=;
- b=6atGlLLix4ALQ4Bm6XKscxGhFEfh5z+AYZle3axHq87vuO7rZdULGTT3XcROp3hep0FNMg2ml
- BENbqsRYpM3AKU121Q88x4JPeqLslbXSclc7rRA4Sctqz9h73F4bHRn
+ bh=6VJvYnOHZshtQlmEnWd/K1udWrIwe9dejx/5mZI/Wtg=;
+ b=CMdNpxTCGkVu3CYbUQ//Xh1Da5BfQXG6erPbBdP2NTFne3QRqh52DC/9CSjILoKbNrS8gBQHS
+ 8rcJfdzG3nTABuTlKzuzZV5cQk7a/PkWY+ZZAqFMl0YgtXmFbCISOTR
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-The new hash-based module integrity checking will also be able to
-satisfy the requirements of lockdown.
-Such an alternative is not representable with "select", so use
-"depends on" instead.
+Additional signature types are about to be added.
+As each caller of mod_check_sig() can have different support for these,
+move the type validation into the callers.
 
-Acked-by: Paul Moore <paul@paul-moore.com>
-Reviewed-by: Nicolas Schier <nsc@kernel.org>
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
 ---
- security/lockdown/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ kernel/module/auth.c                | 5 +++++
+ kernel/module_signature.c           | 8 +-------
+ security/integrity/ima/ima_modsig.c | 5 +++++
+ 3 files changed, 11 insertions(+), 7 deletions(-)
 
-diff --git a/security/lockdown/Kconfig b/security/lockdown/Kconfig
-index e84ddf484010..155959205b8e 100644
---- a/security/lockdown/Kconfig
-+++ b/security/lockdown/Kconfig
-@@ -1,7 +1,7 @@
- config SECURITY_LOCKDOWN_LSM
- 	bool "Basic module for enforcing kernel lockdown"
- 	depends on SECURITY
--	select MODULE_SIG if MODULES
-+	depends on !MODULES || MODULE_SIG
- 	help
- 	  Build support for an LSM that enforces a coarse kernel lockdown
- 	  behaviour.
+diff --git a/kernel/module/auth.c b/kernel/module/auth.c
+index 831a13eb0c9b..21e49eb4967c 100644
+--- a/kernel/module/auth.c
++++ b/kernel/module/auth.c
+@@ -48,6 +48,11 @@ static int mod_verify_sig(const void *mod, struct load_info *info)
+ 
+ 	memcpy(&ms, mod + (modlen - sizeof(ms)), sizeof(ms));
+ 
++	if (ms.id_type != MODULE_SIGNATURE_TYPE_PKCS7) {
++		pr_err("module: not signed with expected PKCS#7 message\n");
++		return -ENOPKG;
++	}
++
+ 	ret = mod_check_sig(&ms, modlen, "module");
+ 	if (ret)
+ 		return ret;
+diff --git a/kernel/module_signature.c b/kernel/module_signature.c
+index a0eee2fe4368..4d0476bcdb72 100644
+--- a/kernel/module_signature.c
++++ b/kernel/module_signature.c
+@@ -24,12 +24,6 @@ int mod_check_sig(const struct module_signature *ms, size_t file_len,
+ 	if (be32_to_cpu(ms->sig_len) >= file_len - sizeof(*ms))
+ 		return -EBADMSG;
+ 
+-	if (ms->id_type != MODULE_SIGNATURE_TYPE_PKCS7) {
+-		pr_err("%s: not signed with expected PKCS#7 message\n",
+-		       name);
+-		return -ENOPKG;
+-	}
+-
+ 	if (ms->algo != 0 ||
+ 	    ms->hash != 0 ||
+ 	    ms->signer_len != 0 ||
+@@ -37,7 +31,7 @@ int mod_check_sig(const struct module_signature *ms, size_t file_len,
+ 	    ms->__pad[0] != 0 ||
+ 	    ms->__pad[1] != 0 ||
+ 	    ms->__pad[2] != 0) {
+-		pr_err("%s: PKCS#7 signature info has unexpected non-zero params\n",
++		pr_err("%s: signature info has unexpected non-zero params\n",
+ 		       name);
+ 		return -EBADMSG;
+ 	}
+diff --git a/security/integrity/ima/ima_modsig.c b/security/integrity/ima/ima_modsig.c
+index 632c746fd81e..ebfcdd368a2a 100644
+--- a/security/integrity/ima/ima_modsig.c
++++ b/security/integrity/ima/ima_modsig.c
+@@ -57,6 +57,11 @@ int ima_read_modsig(enum ima_hooks func, const void *buf, loff_t buf_len,
+ 	buf_len -= marker_len;
+ 	sig = (const struct module_signature *)(p - sizeof(*sig));
+ 
++	if (sig->id_type != MODULE_SIGNATURE_TYPE_PKCS7) {
++		pr_err("%s: not signed with expected PKCS#7 message\n", func_tokens[func]);
++		return -ENOPKG;
++	}
++
+ 	rc = mod_check_sig(sig, buf_len, func_tokens[func]);
+ 	if (rc)
+ 		return rc;
 
 -- 
 2.54.0
