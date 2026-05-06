@@ -1,225 +1,237 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 4B0CC2FE074;
-	Wed,  6 May 2026 07:52:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778053944; cv=none; b=Qn9aB4OUzM8UXMt9B6R2Lav3LW6BMx2NFTPRXb4dF1OA+Je3XnNQTashhT6UCEHl1qYMUhCaL0qcy9cpI+QYAMy/kjlAdjT467qbRb4yjb9HxwE05QIO35ih+wrVPtRTDfPHzpLdFnSqri88HkyPLdHiKBrvsoKfoL3fQy7Lwuo=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778053944; c=relaxed/simple;
-	bh=6FFVqh/7MHmu6fMlze6Pr8sVj+Fc68+P/CMCl97GJHY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=VZ/hb3KYLWaOdo2AhWwsWrhfN5IAls3UAAYMSu6XzY+3s3egBuKlJcnaL8QtV3hN37l249HdWwZLjibBcZ2stwOxx/OoDIbq0I6VIz6eWINbTDzZlDQckU0qkKdEDSgV+5BzH+G0uObGOrceli8kTraSr1iSNts+TgXRZqhRYqw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=meaziBh2; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2DCDD3E1CF8
+	for <linux-arch@vger.kernel.org>; Wed,  6 May 2026 08:37:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=170.10.129.124
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778056675; cv=pass; b=rOAe66UBKa+8BO3csJveL+k6TLRvjwC+gKBLfVfrQnJ6JTL3GpzbYaQ+IOXUAGmUCk0jGAssp2FC38MtmM2u8x4w27Unw+UA80id9uBzJpgnVtzp0rvkZ1GMKy9300DGL6g2A3GgSAopsI1gZMwGcb28Bxd1NmeDyywg/MCrSdY=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778056675; c=relaxed/simple;
+	bh=BQ/L1Adqk6o4OdG6nxv5nzheitk/VkCmyj3eyJlGF/c=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=Gyf/DSY23mhJa6ia3mCFlxESBVCE6lk0ZaZeUx+p4xF5H3gFhFhzL2+tprURMZlE1EuN3V5ahBylK/oZ6jSHelOySE+/JLLEfmDnmkrxA/UX/N3TS1tqB9qTJqVpcdDHnHg0aBYy+hta+4Ds7qOucw4i9JE4RDcWHvIBRf2q0c0=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=OUCtbXAI; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=TD9P15l1; arc=pass smtp.client-ip=170.10.129.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="meaziBh2"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id EDC9816F8;
-	Wed,  6 May 2026 00:52:16 -0700 (PDT)
-Received: from J2N7QTR9R3 (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id E7F223F7B4;
-	Wed,  6 May 2026 00:52:16 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1778053942; bh=6FFVqh/7MHmu6fMlze6Pr8sVj+Fc68+P/CMCl97GJHY=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=meaziBh2Y9VBs+iy/L6rKp64Itbk/SuVY9x+LY628fB+3BjdMpShAfiz7kxaVUmK3
-	 ML5Shd4PkZizJdBxdiUxDSD16EtZOZgzSYKb2WqhuFmuhUGrne0s9eqpQddsN+hRNR
-	 s8bBXG8z4UPrCKTSgYHbdm5hCjsmKq0wzvAMc6Yo=
-Date: Wed, 6 May 2026 08:52:10 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-To: Naman Jain <namjain@linux.microsoft.com>
-Cc: Marc Zyngier <maz@kernel.org>, "K . Y . Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
-	Long Li <longli@microsoft.com>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Michael Kelley <mhklinux@outlook.com>,
-	Timothy Hayes <timothy.hayes@arm.com>,
-	Lorenzo Pieralisi <lpieralisi@kernel.org>,
-	Sascha Bischoff <sascha.bischoff@arm.com>,
-	mrigendrachaubey <mrigendra.chaubey@gmail.com>,
-	linux-hyperv@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-riscv@lists.infradead.org, vdso@mailbox.org,
-	ssengar@linux.microsoft.com
-Subject: Re: [PATCH v2 07/15] arm64: hyperv: Add support for
- mshv_vtl_return_call
-Message-ID: <afrzKl3ixCUUVL6C@J2N7QTR9R3>
-References: <20260423124206.2410879-1-namjain@linux.microsoft.com>
- <20260423124206.2410879-8-namjain@linux.microsoft.com>
- <aeolHwXHFH4AnX_n@J2N7QTR9R3.cambridge.arm.com>
- <f4059f5d-a82b-40c2-942e-3e24cefab94f@linux.microsoft.com>
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="OUCtbXAI";
+	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="TD9P15l1"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1778056672;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=IMA+C0TJi4LM3UTvwkCroeu4Tv8AgJe8bHK3v1p/l2E=;
+	b=OUCtbXAIom0lydhN+lO9z+XtYHlZR6wu9cdq5HmSfK7CnJmXsciTN8Z3v02qLumj4DI2id
+	OFfliZaXwRqboOidSL8DG8FSq3zIeVC+zGqsDIcr5AbjoaZn8D+b1L/0E0TUJhM4l78YbY
+	/rSWyMCExd/9MblSpzuuY17E1n7ino4=
+Received: from mail-yw1-f198.google.com (mail-yw1-f198.google.com
+ [209.85.128.198]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-31-7eB-1XtuM_aOGKjhbU1pdw-1; Wed, 06 May 2026 04:37:51 -0400
+X-MC-Unique: 7eB-1XtuM_aOGKjhbU1pdw-1
+X-Mimecast-MFC-AGG-ID: 7eB-1XtuM_aOGKjhbU1pdw_1778056670
+Received: by mail-yw1-f198.google.com with SMTP id 00721157ae682-7bddefed204so30984647b3.0
+        for <linux-arch@vger.kernel.org>; Wed, 06 May 2026 01:37:51 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1778056670; cv=none;
+        d=google.com; s=arc-20240605;
+        b=coekFeMkiCkJW//+jl1QZzgniEE+DuYqvfhvjGiBZ8nftNblYl4tGMhWbwme29u8y+
+         ViFqqeFqOvNh8wP+vdu0ycwEaXa3v8N+1CTF2y04wT3TJPezN89AS/WJ7WDjNMFsmf4+
+         3L9RM4vTnEiQ0msnkjqAx/jtR4iZXjz0PmG2JwJ9osg4AMOsT0cjo6272sJF/1clMZk0
+         l22VjYkYBOZoP0vveHYN+Ie4NF9snDvFeGuTIl4sHHw4iSsWjx/pXjjvSNvFhBNEQY4J
+         H32v9eC593gL4IDopPtY2nLeLJWx+Hz5SBQd2pNGsmrUqZs2vZh1vJjaB6rqc/Sw3Iwu
+         wbaA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=IMA+C0TJi4LM3UTvwkCroeu4Tv8AgJe8bHK3v1p/l2E=;
+        fh=gmUufC7cmvvva4YaoS7AoGmCya1oLWzX3FpbZa7d7ak=;
+        b=h2KRdi6Ie69hmIYVBZxibbdKc+1/0xv02RfykMo5nLrl3JWP75cR7g+yAXx/cNZGSc
+         DwQw7qlmeNUkrTtYsApdFwy4qRDGFLUDrJdv/toumv4l3NyLSLp58HWWMPCVF7GBk5HL
+         enOCQTEzo3tR2dDH22tsI7lXSaBPgmk7FUV/h2ABaCOdLnLZAdCvo5YCTSjx81OSuKVp
+         j5jsk88RjgS2GACrnq/VkOUB519j4hrCU/s8loafRqPgmVBHzsW7ucFFxv7yveWiNp1k
+         9DdAM19U4YUdTHYia/WvtnG8kbiL9iak9rksK3hLBPvsfpqH9NDV+zuolKQuf3KIXK1S
+         fwEg==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=redhat.com; s=google; t=1778056670; x=1778661470; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=IMA+C0TJi4LM3UTvwkCroeu4Tv8AgJe8bHK3v1p/l2E=;
+        b=TD9P15l1ROTyURydBJ4R92GsG2crGWwJkzYBvRLVACF97Sj+m07fa4Pl/NxCUZM32A
+         ov40m9JuAbs7Di15LYBMUkbnliutrgieUbhml1Hg7wT9UUunJ9Sv2FXpI8/kUjMVJmwd
+         H2lccH89lvr9s0lAvpwbf2bNr1xd7JHanh87sJkGHNxLggZ3PBy3ZqQAOFtH03wcyuBR
+         G38KItKk8HZx/AaJmO44lIz27gpLAIqRscjkIz/vxyhKdpnUWnosqovbs2A38vPjNYDY
+         d04jYGQIXc5zkpCbT38ugrPmoZZ/joGkjvKM+Sgg1Z9PdXJcdcmPtRPDF6Bz6SLMvoCL
+         l+6w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778056670; x=1778661470;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=IMA+C0TJi4LM3UTvwkCroeu4Tv8AgJe8bHK3v1p/l2E=;
+        b=JXXxjRM035fIQQqLgk139XJKw1esVd5CMOp29h4VpbXTooZnooZqPvpYwiIiZ4jiHf
+         kgg/Sa1KO2m0ryI0P0z2LuGUa0fPBUjg7kLTrpk87RSz0xG4oobufJomt7nD/kcZALoK
+         vjP2kkLUW7S/SD5XGjK6yjCXKE9uVP1oPwP6HjBrcRVbTRY4eLjqFxmUJJaX302elez9
+         DEPY82JV1xdB1br1IImJWMVNXoo7e6WZtoMTvO0wamA8g9XtCifylQ+8mkCkWaBmwlLt
+         KLG+H45eFtYQrrRGTFJeIZ+NDLfyuVq6PArLzwX4/llEezNu9s0w9Xe+d8si5cJH3OqC
+         FOuQ==
+X-Forwarded-Encrypted: i=1; AFNElJ8g5A86JA62TlsybEzVKuw/LzuEccoJBBu7fRdP2sRBPIwze8TUae35eoFnEFvuZoVqETUUcFVVA3YA@vger.kernel.org
+X-Gm-Message-State: AOJu0YyuHJfdIc3Ecv9PFL+2B1dflQwVUwhra7QderbYETthNHpphbl5
+	i1aco/Z0B0Xa/CdRpVGz6EmD0/Ai1TqsLpit9qaVuX9ah4p2sJh2cNz8VWo2WDaDK2WcLcUhssT
+	mRBDcBLE4OWPNq8oQeBML5L6gBY86bEyzdgQIbLf7387apTRQvYqirFo8AJEnb3GkUbpHMHwdhF
+	PbtZJaF8R6F6TXiVdfwYugO5EgNTb3d/Hs57X5Mw==
+X-Gm-Gg: AeBDieuhZaD5yD/DeN//Gg5TB6Dzn4noZ2VKibKQRwqpva7s4CtnwQ4CqHbpOwiDqjA
+	6c6bzSZycX5ztMmvX3HmFJgN/5+uanOme/295oJr/13U7oJaMmvvfzxCsM/lfBtqIA0AvOhQFD0
+	px2zniXclV7aGeYMFX4owGLMN17XdhElOD/4JCLtSCAiE9b/PLMm71Kf82fI19F9gRyVZnOfQag
+	p4bgXoEABg3QPyo
+X-Received: by 2002:a05:690c:60c3:b0:7bd:696d:5137 with SMTP id 00721157ae682-7bdf5eb872emr28069867b3.41.1778056670474;
+        Wed, 06 May 2026 01:37:50 -0700 (PDT)
+X-Received: by 2002:a05:690c:60c3:b0:7bd:696d:5137 with SMTP id
+ 00721157ae682-7bdf5eb872emr28069617b3.41.1778056670063; Wed, 06 May 2026
+ 01:37:50 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <f4059f5d-a82b-40c2-942e-3e24cefab94f@linux.microsoft.com>
+References: <20260504-kunit_add_support-v8-0-3e5957cdd235@redhat.com>
+ <20260504-kunit_add_support-v8-3-3e5957cdd235@redhat.com> <20260504-tentacled-free-lobster-38d8d9@houat>
+In-Reply-To: <20260504-tentacled-free-lobster-38d8d9@houat>
+From: Albert Esteve <aesteve@redhat.com>
+Date: Wed, 6 May 2026 10:37:39 +0200
+X-Gm-Features: AVHnY4LGPM5httthyZYEMeSVpsAZZGIetxyr0Irj5BEH6JEFnHV4PP6tgxL43VM
+Message-ID: <CADSE00+TPGWPjD7DGHy5f+=QzwUqYHc=X-G1sEER8=NS5VvV-Q@mail.gmail.com>
+Subject: Re: [PATCH v8 3/4] drm: Suppress intentional warning backtraces in
+ scaling unit tests
+To: Maxime Ripard <mripard@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brendan Higgins <brendan.higgins@linux.dev>, 
+	David Gow <david@davidgow.net>, Rae Moar <raemoar63@gmail.com>, 
+	Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Thomas Zimmermann <tzimmermann@suse.de>, 
+	David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, 
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Alexandre Ghiti <alex@ghiti.fr>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
+	dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
+	linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
+	peterz@infradead.org, Guenter Roeck <linux@roeck-us.net>, 
+	Linux Kernel Functional Testing <lkft@linaro.org>, Dan Carpenter <dan.carpenter@linaro.org>, 
+	=?UTF-8?B?TWHDrXJhIENhbmFs?= <mcanal@igalia.com>, 
+	Alessandro Carminati <acarmina@redhat.com>, Simona Vetter <simona.vetter@ffwll.ch>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, Apr 29, 2026 at 03:26:11PM +0530, Naman Jain wrote:
-> On 4/23/2026 7:26 PM, Mark Rutland wrote:
-> > On Thu, Apr 23, 2026 at 12:41:57PM +0000, Naman Jain wrote:
+On Mon, May 4, 2026 at 12:04=E2=80=AFPM Maxime Ripard <mripard@kernel.org> =
+wrote:
+>
+> Hi,
+>
+> On Mon, May 04, 2026 at 09:41:27AM +0200, Albert Esteve wrote:
+> > From: Guenter Roeck <linux@roeck-us.net>
+> >
+> > The drm_test_rect_calc_hscale and drm_test_rect_calc_vscale unit tests
+> > intentionally trigger warning backtraces by providing bad parameters to
+> > the tested functions. What is tested is the return value, not the exist=
+ence
+> > of a warning backtrace. Suppress the backtraces to avoid clogging the
+> > kernel log and distraction from real problems.
+> >
+> > Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
+> > Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
+> > Acked-by: Ma=C3=ADra Canal <mcanal@igalia.com>
+> > Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
+> > Cc: David Airlie <airlied@gmail.com>
+> > Cc: Daniel Vetter <daniel@ffwll.ch>
+> > Signed-off-by: Guenter Roeck <linux@roeck-us.net>
+> > Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
+> > Acked-by: David Gow <david@davidgow.net>
+> > Signed-off-by: Albert Esteve <aesteve@redhat.com>
+> > ---
+> >  drivers/gpu/drm/tests/drm_rect_test.c | 23 +++++++++++++++++++----
+> >  1 file changed, 19 insertions(+), 4 deletions(-)
+> >
+> > diff --git a/drivers/gpu/drm/tests/drm_rect_test.c b/drivers/gpu/drm/te=
+sts/drm_rect_test.c
+> > index 17e1f34b76101..818e16e80c8f9 100644
+> > --- a/drivers/gpu/drm/tests/drm_rect_test.c
+> > +++ b/drivers/gpu/drm/tests/drm_rect_test.c
+> > @@ -409,8 +409,16 @@ static void drm_test_rect_calc_hscale(struct kunit=
+ *test)
+> >       const struct drm_rect_scale_case *params =3D test->param_value;
+> >       int scaling_factor;
+> >
+> > -     scaling_factor =3D drm_rect_calc_hscale(&params->src, &params->ds=
+t,
+> > -                                           params->min_range, params->=
+max_range);
+> > +     /*
+> > +      * drm_rect_calc_hscale() generates a warning backtrace whenever =
+bad
+> > +      * parameters are passed to it. This affects all unit tests with =
+an
+> > +      * error code in expected_scaling_factor.
+> > +      */
+> > +     kunit_warning_suppress(test) {
+> > +             scaling_factor =3D drm_rect_calc_hscale(&params->src, &pa=
+rams->dst,
+> > +                                                   params->min_range,
+> > +                                                   params->max_range);
+> > +     }
+> >
+> >       KUNIT_EXPECT_EQ(test, scaling_factor, params->expected_scaling_fa=
+ctor);
+> >  }
+> > @@ -420,8 +428,15 @@ static void drm_test_rect_calc_vscale(struct kunit=
+ *test)
+> >       const struct drm_rect_scale_case *params =3D test->param_value;
+> >       int scaling_factor;
+> >
+> > -     scaling_factor =3D drm_rect_calc_vscale(&params->src, &params->ds=
+t,
+> > -                                           params->min_range, params->=
+max_range);
+> > +     /*
+> > +      * drm_rect_calc_vscale() generates a warning backtrace whenever =
+bad
+> > +      * parameters are passed to it. This affects all unit tests with =
+an
+> > +      * error code in expected_scaling_factor.
+> > +      */
+> > +     kunit_warning_suppress(test) {
+> > +             scaling_factor =3D drm_rect_calc_vscale(&params->src, &pa=
+rams->dst,
+> > +                                                   params->min_range, =
+params->max_range);
+> > +     }
+> >
+> >       KUNIT_EXPECT_EQ(test, scaling_factor, params->expected_scaling_fa=
+ctor);
+> >  }
+>
+> For both I think we should add KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT call=
+s, no?
 
-[ non-SMMC hypercall code omitted for brevity ]
+Hi Maxime,
 
-> > NAK to this.
-> > 
-> > * This is a non-SMCCC hypercall, which we have NAK'd in general in the
-> >    past for various reasons that I am not going to rehash here.
-> > 
-> > * It's not clear how this is going to be extended with necessary
-> >    architecture state in future (e.g. SVE, SME). This is not
-> >    future-proof, and I don't believe this is maintainable.
-> > 
-> > * This breaks general requirements for reliable stacktracing by
-> >    clobbering state (e.g. x29) that we depend upon being valid AT ALL
-> >    TIMES outside of entry code.
-> > 
-> > * IMO, if this needs to be saved/restored, that should happen in
-> >    whatever you are calling.
-> > 
-> > Mark.
-> 
-> Merging threads for addressing comments from Mark Rutland and Marc Zyngier
-> on this patch.
-> 
-> Thanks for reviewing the changes. Please allow me to briefly explain the use
-> case here and then address your comments.
-> 
-> Hyper-V's Virtual Trust Levels (VTLs) provide hardware-enforced isolation
-> within a single VM, analogous to ARM TrustZone. The kernel runs in VTL2
-> (higher privilege) as a "paravisor", a security monitor that handles
-> intercepts for the primary OS in VTL0 (lower privilege). The VTL switch
-> (mshv_vtl_return_call) is functionally equivalent to KVM's guest enter/exit.
+It may indeed add verification value by ensuring the call actually
+generates the expected warning.
 
-It's worth noting that for KVM, the KVM hyp code is *tightly* coupled
-with the host kernel (they are one single binary object), and the
-calling convention between the two is an implementation detail that can
-change at any time without any ABI concerns.
+The original patch did not include count checks on the version I
+inherited it from (i.e.,
+https://lore.kernel.org/all/20250526132755.166150-5-acarmina@redhat.com/),
+so I kept the same approach while adapting to the API changes. That
+said, the check is simple to add, so I could include it in the next
+version.
 
-While I appreciate this might be trying to do the same thing from a
-*functional* perspective, it's certainly different from a
-maintainability perspective, and can't be treated in the same way.
+BR,
+Albert
 
-> It saves VTL2 state, loads VTL0's GPRs other registers from a shared context
-> structure, issues hvc #3 to let VTL0 run, and on return saves VTL0's updated
-> state back.
-> 
-> Coming to the problems with the code, I have identified a few ways to
-> address them.
-> 
-> I can put the assembly code in a separate .S file with
-> SYM_FUNC_START/SYM_FUNC_END and marked as noinstr, to prevent ftrace/kprobes
-> from instrumenting between the GPR load and the hvc, which could have
-> corrupted VTL0 register state. This should solve x29 clobbering, stack
-> tracing problems.
+>
+> Maxime
 
-My point was that you must not clobber those registers.
-
-Looking at the TLFS document you linked below, it says:
-
-| Note: X29 (FP/frame pointer), X30 (LR/link register), and SP are private
-| per-VTL
-
-... so clobbering those doesn't seem to be necessary anyway. Clearly
-having an arbitrary calling convention is confusing for everyone.
-
-> I should use kernel_neon_begin()/kernel_neon_end() to save/restore the full
-> extended FP state of the current task in VTL2. VTL0's Q0-Q31 can be
-> loaded/saved separately via fpsimd_load_state()/fpsimd_save_state(). This
-> way, the assembly touches none of the SIMD registers. This is SVE/SME-safe
-> for VTL2's task state. VTL0 still only carries Q0-Q31 in the context struct,
-> and extending to SVE, SME is a future context struct change, which will need
-> Hyper-V arm64 ABI support.
-> This way, VTL2's callee-saved regs (x19-x28, x29, x30) are explicitly saved
-> to the stack frame at the top and restored at the bottom of assembly code.
-> The C caller (in hv_vtl.c) is a clean function call.
-
-That doesn't really address my concerns here.
-
-I do not think that Linux should have to save/restore anything here;
-that should be the job of the real hypervisor. The arbitrary separation
-of PE state into private and shared (with shred state being directly
-exposed to Linux) is a problem for maintainability and forward
-compatibility.
-
-Looking at the TLFS document you linked below, I see:
-
-| Note: SVE state (Z0-Z31, P0-P15, FFR) and SME state are VTL-private.
-| The lower 128-bit portion (Q registers) is shared, but the upper bits
-| of Z registers may be corrupted on VTL transitions. Software should
-| not rely on Z register contents being preserved across VTL switches.
-
-... which is certainly going to be a pain to manage.
-
-Note in particular "SME state" is not an architectural term. I don't
-know which state in particular that is intended to cover (e.g. ZA, ZT0,
-SVCR, all streaming mode state)?
-
-There's no mention of SVCR, so I don't know how this is going to
-interact with management of ZA state (ZA and ZT0, which are dependent
-upon SVCR.ZA) or streaming mode (dependent upon SVCR.SM). That state has
-been *incredibly* painful for us to manage generally. Regardless of the
-SMCCC concerns, that needs to be specified better.
-
-> Regarding Non-SMCCC "hvc #3" call, I have a limitation here owing to the ABI
-> that is defined by the Hyper-V hypervisor. Fixing this requires a
-> hypervisor-side change to support SMCCC-style dispatch for VTL return. Until
-> then, hvc #3 is the only working interface. Moreover there would be backward
-> compatibility issues with this new ABI interface, if at all it is added.
-
-To be clear, that's Microsoft's problem, not the Linux kernel
-community's problem. My NAK still stands.
-
-Multiple years ago now, we made it clear that we would not accept a
-non-SMCCC calling convention. Ignoring the substance of that feedback,
-and inventing a new calling convention after that point is a
-self-inflicted problem.
-
-[...]
-
-> Link to TLFS: https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/vsm#on-arm64-platforms-3
-
-For shared state, aside fomr GPRs and FPSIMD/SVE/SME state, that says:
-
-| * System Information Registers (read-only or non-security-critical):
-|   * System identification and feature registers
-|   * Cache and TLB type information
-
-It's *implied* that some of those registers might be writable, but as
-the specific set of registers is not described I cannot tell. Are there
-any writable system registers which are shared?
-
-I don't see how we can know which registers we might need to
-save/restore without that being explicitly documented.
-
-I also see:
-
-| Note: SPE (Statistical Profiling Extension) state is shared across VTLs,
-| except for PMBSR_EL1 which is VTL-private.
-
-If "SPE state" includes PMBPTR or PMBLIMITR (which is the obvious
-reading), this would be a security problem, as a lower-privileged VTL
-could clobber those and cause SPE to write to arbitrary memory
-immediately upon return to the higher-privileged VTL. Having PMBSR be
-private on its own isn't sufficient to prevent that (e.g. since the
-higher-privileged VTL could have its own active SPE profiling session).
-
-I'm not keen on requiring hyper-v specific hooks in the SPE driver to
-achieve that, and I'm also not keen on having hyper-v support code poke
-SPE registers behind the SPE driver's back.
-
-This does not give me confidence that any future PE state (e.g. things
-like TRBE) will be managed in a safe way either.
-
-Mark.
