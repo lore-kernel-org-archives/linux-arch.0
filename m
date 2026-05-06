@@ -1,194 +1,204 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 325DF1E7C18;
-	Wed,  6 May 2026 05:50:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2DEAC19E97B;
+	Wed,  6 May 2026 06:32:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778046633; cv=none; b=NS+zQDe8NwPgzUX6JCZHNAQvxE4UqUAJPXjx7tiVvoCg7+d/glodsc3DLF4hFzpktOvS5P9/otC+BxN1AqJJFeuNRbHX4AisemzvjCZsRA6xYyyK9zDlJEj/z7hF+jXQAMRWyEIHmEbS7taBaJKsxw42cCCAPsABgnEZ/d+Al/M=
+	t=1778049124; cv=none; b=GuNxvfM2ncWma9U/VjesfGbPdMybPwporLS6GbGSyK4B84eMbl/wmvE07YdqxrON/jHZumgkOFWESDcPVh9GHDKcfCoD4XsbxdnrkYSSPn4If+A7b/sextUpi5uOeQ0vuiI4AA+wRKZR/2pzNVX61BBu/aj+j6SGfSl/WUpf4VY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778046633; c=relaxed/simple;
-	bh=5YnJy4qtdvXc+9J5+SeAdmaC2q/uwlWHx0KLAQOvydA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=FChtVlDrF6q6qB4F5n1YzxmimMpYNrrXo32egcN3UoWf017S55N60eVpXvCFxXq4I9THWCdA5Mlxex8mAitKQJBqNFH4NcbAGqWS/Gue1pHVA1nZQAiwj960T0jS8U3WahKGPp5fmQ+j5mwOr7phPgT1tXOgxJCXMex1Q+o08+w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=pTIJ7GQk; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1778049124; c=relaxed/simple;
+	bh=SB5tDwl8GpNdeE6O/6YQk+V4Mr/UoFQkPrb3axoem68=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=G0W2TS22r5uBhOpsNXqhTddNTvC61Hcvn++iLnpGFZF9uow2+obmMWlu8j7CpuWUJAqYbA3FI0546+xFkI9O+UxA5RdxL4Jynx1ck2FReh1u8znKvbom4JLn/YyQrXh8eLy6oJPJbpMHO/mKsyJ14ACTKVljgSB/0Bjn3h/ImRM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=fF3bycpX; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="pTIJ7GQk"
-Received: from [10.95.65.64] (unknown [167.220.238.64])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 13CCF20B7165;
-	Tue,  5 May 2026 22:50:21 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 13CCF20B7165
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1778046628;
-	bh=QyNM8slwloHcgyPfCmyTDTiWPCaULRQDVrKg7eQmpRw=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=pTIJ7GQk9D6hXldWJKVX9dd14kousDi69JXWi3e3f50TycMcZbL4tmIIy42qBnJzY
-	 5jAFHEKcwRIHTJ00l4z2+4+dyEr8WIYxFTL6Mka7lXucOa2EB+G3QILghYR5i5XQvo
-	 EvpZDSKIPbRY9FmL0WEPyHmdgfUSeILDT7aOuQTE=
-Message-ID: <024aed8c-cd97-45f0-a653-489fc334a2b9@linux.microsoft.com>
-Date: Wed, 6 May 2026 11:20:19 +0530
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="fF3bycpX"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0C28CC2BCB8;
+	Wed,  6 May 2026 06:32:03 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1778049123;
+	bh=SB5tDwl8GpNdeE6O/6YQk+V4Mr/UoFQkPrb3axoem68=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=fF3bycpXWafr2E6qk4jaQsRplkyTXsst0PRy82bGKoHCkbGw5g55yRzCrynQZrzSc
+	 lYaMvU0ovlHM96IMGqQ8UiJlXcxZQgufTf8zhcbBL5SI9TdNCaBL2+KgSAAb+fSrMY
+	 BZIJCpMEMPwVlNs/BBLTqSaB7boxgxCYH3lLSyyy3+r/SybHOg11xhMNc4t52yxmjZ
+	 yDIfF8tEAWfK2HS5pjFirlhbQXRy2txnNcm4TTRiQUsbThXjrpkvmu4NeMjVm1tIxh
+	 RD3VVd4bWsnrwfkRUCOvP8hJS5VwyVAsHHRjNLyAbTLGCAnrQZuBqOyTTRKv2IbwxY
+	 2iwODr94mwEbg==
+Date: Tue, 5 May 2026 23:30:43 -0700
+From: Eric Biggers <ebiggers@kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Yury Norov <ynorov@nvidia.com>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Yury Norov <yury.norov@gmail.com>,
+	Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+	Andrew Lunn <andrew+netdev@lunn.ch>,
+	"David S . Miller" <davem@davemloft.net>,
+	Eric Dumazet <edumazet@google.com>,
+	Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Alexei Starovoitov <ast@kernel.org>,
+	Daniel Borkmann <daniel@iogearbox.net>,
+	Jesper Dangaard Brouer <hawk@kernel.org>,
+	John Fastabend <john.fastabend@gmail.com>,
+	Stanislav Fomichev <sdf@fomichev.me>,
+	Ruan Jinjie <ruanjinjie@huawei.com>, linux-kernel@vger.kernel.org,
+	linux-riscv@lists.infradead.org,
+	Linux-Arch <linux-arch@vger.kernel.org>,
+	Netdev <netdev@vger.kernel.org>, bpf@vger.kernel.org,
+	Nathan Chancellor <nathan@kernel.org>
+Subject: Re: [PATCH 1/6] lib: include crc32.h conditionally on CONFIG_CRC32
+Message-ID: <20260506063043.GB16204@sol>
+References: <20260430211351.658193-1-ynorov@nvidia.com>
+ <20260430211351.658193-2-ynorov@nvidia.com>
+ <ec4ed7f5-b1c8-49e4-b83d-e29c5414b9de@app.fastmail.com>
+ <afjNaToyptiMogV4@yury>
+ <9d45acd1-667b-4acf-9e2e-bcd79630d726@app.fastmail.com>
+ <afjmIK4mlCWeywuS@yury>
+ <abf4a586-b675-4e29-9570-fd3ed4158f58@app.fastmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 09/15] Drivers: hv: mshv_vtl: Move
- hv_vtl_configure_reg_page() to x86
-To: Michael Kelley <mhklinux@outlook.com>
-Cc: Marc Zyngier <maz@kernel.org>, Timothy Hayes <timothy.hayes@arm.com>,
- Lorenzo Pieralisi <lpieralisi@kernel.org>,
- Sascha Bischoff <sascha.bischoff@arm.com>,
- mrigendrachaubey <mrigendra.chaubey@gmail.com>,
- "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
- "linux-arm-kernel@lists.infradead.org"
- <linux-arm-kernel@lists.infradead.org>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
- "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
- "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>,
- "vdso@mailbox.org" <vdso@mailbox.org>,
- "ssengar@linux.microsoft.com" <ssengar@linux.microsoft.com>,
- Michael Kelley <mhklinux@outlook.com>, "K . Y . Srinivasan"
- <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>,
- Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
- Long Li <longli@microsoft.com>, Catalin Marinas <catalin.marinas@arm.com>,
- Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
- Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
- Dave Hansen <dave.hansen@linux.intel.com>, "x86@kernel.org"
- <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>,
- Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <pjw@kernel.org>,
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
- Alexandre Ghiti <alex@ghiti.fr>
-References: <20260423124206.2410879-1-namjain@linux.microsoft.com>
- <20260423124206.2410879-10-namjain@linux.microsoft.com>
- <SN6PR02MB4157467FDBC0203C67A67042D4362@SN6PR02MB4157.namprd02.prod.outlook.com>
- <567cf73b-6a48-4fc3-b312-9be6d71e2f22@linux.microsoft.com>
- <SN6PR02MB4157AD364DE0755DE070D286D4312@SN6PR02MB4157.namprd02.prod.outlook.com>
-Content-Language: en-US
-From: Naman Jain <namjain@linux.microsoft.com>
-In-Reply-To: <SN6PR02MB4157AD364DE0755DE070D286D4312@SN6PR02MB4157.namprd02.prod.outlook.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <abf4a586-b675-4e29-9570-fd3ed4158f58@app.fastmail.com>
 
-
-
-On 5/4/2026 9:36 PM, Michael Kelley wrote:
-> From: Naman Jain <namjain@linux.microsoft.com> Sent: Wednesday, April 29, 2026 2:58 AM
->>
->> On 4/27/2026 11:10 AM, Michael Kelley wrote:
->>> From: Naman Jain <namjain@linux.microsoft.com> Sent: Thursday, April 23, 2026 5:42 AM
->>>>
->>>> Move hv_vtl_configure_reg_page() from drivers/hv/mshv_vtl_main.c to
->>>> arch/x86/hyperv/hv_vtl.c. The register page overlay is an x86-specific
->>>> feature that uses HV_X64_REGISTER_REG_PAGE, so its configuration belongs
->>>> in architecture-specific code.
->>>>
->>>> Move struct mshv_vtl_per_cpu and union hv_synic_overlay_page_msr to
->>>> include/asm-generic/mshyperv.h so they are visible to both arch and
->>>> driver code.
->>>>
->>>> Change the return type from void to bool so the caller can determine
->>>> whether the register page was successfully configured and set
->>>> mshv_has_reg_page accordingly.
->>>>
->>>> Signed-off-by: Naman Jain <namjain@linux.microsoft.com>
->>>> ---
->>>>    arch/x86/hyperv/hv_vtl.c       | 32 ++++++++++++++++++++++
->>>>    drivers/hv/mshv_vtl_main.c     | 49 +++-------------------------------
->>>>    include/asm-generic/mshyperv.h | 17 ++++++++++++
->>>>    3 files changed, 53 insertions(+), 45 deletions(-)
->>>>
->>
->> <snip>
->>
->>>>    #if IS_ENABLED(CONFIG_HYPERV_VTL_MODE)
->>>> +/* SYNIC_OVERLAY_PAGE_MSR - internal, identical to hv_synic_simp */
->>>
->>> This comment pre-dates your patch, but I don't understand the point
->>> it is trying to make. The comment is factually true, but I don't know
->>> why calling that out is relevant. The REG_PAGE MSR seems to be
->>> conceptually separate and distinct from the SIMP MSR, so the fact
->>> that the layouts are the same is just a coincidence. Or is there some
->>> relationship between the two MSRs that I'm not aware of, and the
->>> comment is trying (and failing?) to point out?
->>
->> This was added as per suggestion from Nuno in my initial series for
->> MSHV_VTL. If the reference in "identical to" is misleading, I should
->> remove it.
->>
->> https://lore.kernel.org/all/68143eb0-e6a7-4579-bedb-4c2ec5aaef6b@linux.microsoft.com/
->>
->> Quoting:
->> """
->> it is a generic structure that
->> appears to be used for several overlay page MSRs (SIMP, SIEF, etc).
->>
->> But, the type doesn't appear in the hv*dk headers explicitly; it's just
->> used internally by the hypervisor.
->>
->> I think it should be renamed with a hv_ prefix to indicate it's part of
->> the hypervisor ABI, and a brief comment with the provenance:
->>
->> /* SYNIC_OVERLAY_PAGE_MSR - internal, identical to hv_synic_simp */
->> union hv_synic_overlay_page_msr {
->> 	/* <snip> */
->> };
+On Mon, May 04, 2026 at 09:05:30PM +0200, Arnd Bergmann wrote:
+> On Mon, May 4, 2026, at 20:32, Yury Norov wrote:
+> > On Mon, May 04, 2026 at 07:18:49PM +0200, Arnd Bergmann wrote:
+> >> On Mon, May 4, 2026, at 18:46, Yury Norov wrote:
+> >> > Never heard about such a thing like "optional interface". And git grep
+> >> > tends to second that...
+> >> 
+> >> I meant any library interface that can be turned on or off
+> >
+> > So? If I disable CRC32, can I use the either_crc()? In case of that
+> > networking header, the answer is yes. In some other piece of code
+> > the answer is no. Is that correct?
 > 
-> OK, so this union is not associated *only* with the REG_PAGE MSR
-> (though that MSR is the only current user). Instead, it is intended to
-> be a more generic description of MSRs that set up overlay pages. I
-> don't think I had previously noticed Nuno's comment on the topic.
+> Since it's a macro defiend in terms of both bitref32 and
+> crc32_le, you can only call it from dead code, such as an
+> inline function that is not itself used, or from inside of
+> a block that is protected with IS_ENABLED(CONFIG_CRC32) etc.
+>   
+> >> >> 
+> >> >> Don't add #ifdef blocks around headers. If the header cannot
+> >> >> be included without side-effects, change the linux/crc32.h
+> >> >> file instead of its users.
+> >> >
+> >> > linux/acpi.h does that like many othes. What exactly is wrong with
+> >> > protecting headers inclusion?
+> >> 
+> >> There is no "protecting" here, you just add complexity to the
+> >> build when headers are sometimes included indirectly and but
+> >> other times are not, depending on kernel configuration.
+> >
+> > Sorry, don't understand... I use the 'protecting' term with the meaning:
+> > the functionality that is explicitly disabled should be never used.
+> > Otherwise, what for we disable it?
 > 
-> Looking through hvgdk_mini.h and hvhdk.h, I see 6 definitions that
-> are exactly the same:
+> Arguably, both configuration symbols are at the point of not actually
+> saving enough object code size to actually be worth the Kconfig
+> dependencies.
 > 
-> * union hv_reference_tsc_msr
-> * union hv_x64_msr_hypercall_contents
-> * union hv_vp_assist_msr_contents
-> * union hv_synic_simp
-> * union hv_synic_siefp
-> * union hv_synic_sirbp
+> As long as we have CONFIG_CRC32 and CONFIG_BITREVERSE, the
+> point of having the Kconfig symbols is to let drivers request
+> the inclusion of the library helpers.
 > 
-> There's an argument to be made for removing these 6 unique definitions
-> and using union hv_synic_overlay_page_msr instead (though "synic"
-> would need to be removed from the name).  I would not object to such
-> an approach. It's a small extra layer of conceptual indirection, but saves
-> some lines of code for duplicative definitions. The alternative is to drop
-> the idea of a generic overlay page MSR layout, and replace union
-> hv_synic_overlay_page_msr with a definition that is specific to the
-> REG_PAGE MSR, like the other six above.
+> >> It's unlikely to cause problems for the crc32.h header, but
+> >> the acpi example definitely risks running into circular
+> >> inclusions when you end up with some other header that depending
+> >> on configuration ends up including linux/acpi.h while also
+> >> bring included indirectly from that one.
+> >> 
+> >> >> It looks like the problem is the check for CONFIG_GENERIC_BITREVERSE
+> >> >> in include/asm-generic/bitops/__bitrev.h, which ends up
+> >> >> hinding the generic___bitrev32() helper without need.
+> >> >> 
+> >> >> Simply removing the #ifdef there should avoid the build failure.
+> >> >
+> >> > OK, it seems like this is what I don't understand.
+> >> >
+> >> > We've got an optional feature, like CRC32, which is enabled by
+> >> > CONFIG_CRC32. The most conservative way is to declare everything
+> >> > CRC32-related in the corresponding header, and then protect the header
+> >> > with IS_ENABLED(CONFIG_CRC32).
+> >> >
+> >> > I understand that from practical perspective, we can declare some simple
+> >> > macros, like header size, unprotected. But what we've got now is a sort
+> >> > of mess: all CRC32-related functions are declared unprotected, and
+> >> > generic headers are good to use them. Compiler is happy while those
+> >> > functions are actually unused. Next, CRC32 depends on BITREVERSE, which
+> >> > is again unprotected, and it may optionally have an arch implementation.
+> >> >
+> >> > So if arch bitrev() is implemented, you can use part of bitreverse and
+> >> > crc32 APIs despite that they are explicitly disabled - just because they
+> >> > are implemented as macros in unprotected headers. And you cannot use some
+> >> > others - because they are implemented differently, as a real functions.
+> >> 
+> >> I think you trying to solve a non-problem here.
+> >
+> > This was reported by Nathan for tinyconfig. At least x86 and s390 are
+> > affected.
+> >
+> > https://lore.kernel.org/all/20260429202922.GA3575295@ax162/
+> >
+> > Is tinyconfig important?
 > 
-
-Hi Michael,
-
-While having a generic definition looks good to have here, I can see two 
-reasons for not going ahead with generic overlay page definition:
-1. All of the above definitions are present in Hyper-V headers and 
-generalizing them would deviate from the strategy of keeping the kernel 
-headers in line with Hyper-V headers.
-2. For any of these definitions, if the use-case requires using some of 
-these reserved bits, then it would be a problem. I can actually see that 
-happening in "hv_x64_msr_hypercall_contents" in the corresponding 
-variant in the Hyper-V header.
-
-> I could go either way. If we want to use a generic overlay page definition,
-> then that approach should be applied everywhere. With the current
-> state of your patch set, we're halfway in between -- the generic definition
-> is used one place, but duplicative specific MSR definitions are used other
-> places. That's probably the least desirable approach.
+> Nathan reported a build regression caused by a small mistake
+> in 596a9ea9015b ("bitops: Define generic __bitrev8/16/32 for reuse"),
+> which is of course needs to be fixed.
 > 
-> Michael
+> What I meant is that there is no reason to not use the obvious
+> fix and do
+> 
+> --- a/include/asm-generic/bitops/__bitrev.h
+> +++ b/include/asm-generic/bitops/__bitrev.h
+> @@ -2,7 +2,6 @@
+>  #ifndef _ASM_GENERIC_BITOPS___BITREV_H_
+>  #define _ASM_GENERIC_BITOPS___BITREV_H_
+>  
+> -#ifdef CONFIG_GENERIC_BITREVERSE
+>  #include <asm/types.h>
+>  
+>  extern u8 const byte_rev_table[256];
+> @@ -20,6 +19,5 @@ static __always_inline __attribute_const__ u32 generic___bitrev32(u32 x)
+>  {
+>         return (generic___bitrev16(x & 0xffff) << 16) | generic___bitrev16(x >> 16);
+>  }
+> -#endif /* CONFIG_GENERIC_BITREVERSE */
+>  
+>  #endif /* _ASM_GENERIC_BITOPS___BITREV_H_ */
+> 
+> > Right now half CRC32 is available if CONFIG_CRC32 is on, and half is
+> > not available. The bitreverse is the same. If HAVE_ARCH_BITREVERSE is
+> > enabled, one can use the API, bypassing the BITREVERSE. This doesn't
+> > sound right to me long-term.
+> >
+> > Whatever this ends up, let's figure out a consistent solution please?
+> 
+> I really don't think we need any sort of solution here, aside from
+> the trivial regression fix that returns it to the previous working
+> state.
 
+I agree with Arnd.  The standard practice in the kernel is for headers
+to be includeable even when the associated kconfig (if any) isn't
+enabled.  In such a case usually the inline functions, macros, and the
+declarations of out-of-line functions and global variables are still
+made available in the header.
 
-Now, coming back to the hv_synic_overlay_page_msr definition. While 
-Nuno's comment hinted at it being "generic", the same is not documented 
-in the name of this structure or its comments. So it should be safe to 
-assume that it is specific to synic_overlay_page_msr usage. But since it 
-is not part of Hyper-V header as such, we needed that comment:
-"/* SYNIC_OVERLAY_PAGE_MSR - internal, identical to hv_synic_simp */"
+The point of the kconfig symbol is just to build the file containing the
+definitions of out-of-line functions and global variables.
 
-Please let me know your thoughts on this.
+Yes, when those definitions are needed and calling code forgets to
+select that kconfig symbol, a build error results.  But it's "only" a
+build error; those get found and fixed relatively easily.  The
+alternative of hiding everything would mean a lot more #ifdefs in other
+code, which ends up being very messy.
 
-Regards,
-Naman
+- Eric
