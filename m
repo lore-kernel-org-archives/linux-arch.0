@@ -1,368 +1,225 @@
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 84A003A9D9A;
-	Wed,  6 May 2026 07:31:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.165.32
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778052705; cv=fail; b=MrB6iZZdDnJTBH4pgXdfdP8Scl5K3+kz74HZHSkRSNXUG4Z5jK4ctq/iC8Wbv0nVhfS8Wp4Bqxdtiolwha7syFkcED0ecnRMo4WI2FBJ8R4A3Gjr5+KHTpiIvmMDqU4xQon2uG0XOhV2Pn6H8d3kWHFM/1zfY0UYRyRnlbv3cDU=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778052705; c=relaxed/simple;
-	bh=sEQfIIyW/gimBe7Lbq4+yKG5CIr3Cq+mst0IRqPwfC4=;
-	h=References:From:To:Cc:Subject:In-reply-to:Date:Message-ID:
-	 Content-Type:MIME-Version; b=R4lFjlrUJwdMMKvW1yHj+/EoG/RmPVmwCqukwRYnR4AY1CdsElvEcWvvH+zGDUsXYZenE1UwsWblIQt5drlEwRC8mIjEGS1zG+/29ShzQkAP1e+xk1ectICZ+m9bRusRclWJFbwv1aqa/bx372gH8sQt8O+YyaYu9+W8MO3Syf4=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=gLJV/Q+N; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=ogQNO8kZ; arc=fail smtp.client-ip=205.220.165.32
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 4B0CC2FE074;
+	Wed,  6 May 2026 07:52:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778053944; cv=none; b=Qn9aB4OUzM8UXMt9B6R2Lav3LW6BMx2NFTPRXb4dF1OA+Je3XnNQTashhT6UCEHl1qYMUhCaL0qcy9cpI+QYAMy/kjlAdjT467qbRb4yjb9HxwE05QIO35ih+wrVPtRTDfPHzpLdFnSqri88HkyPLdHiKBrvsoKfoL3fQy7Lwuo=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778053944; c=relaxed/simple;
+	bh=6FFVqh/7MHmu6fMlze6Pr8sVj+Fc68+P/CMCl97GJHY=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=VZ/hb3KYLWaOdo2AhWwsWrhfN5IAls3UAAYMSu6XzY+3s3egBuKlJcnaL8QtV3hN37l249HdWwZLjibBcZ2stwOxx/OoDIbq0I6VIz6eWINbTDzZlDQckU0qkKdEDSgV+5BzH+G0uObGOrceli8kTraSr1iSNts+TgXRZqhRYqw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=meaziBh2; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="gLJV/Q+N";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="ogQNO8kZ"
-Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 645HGeKt3875344;
-	Wed, 6 May 2026 07:30:38 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=corp-2025-04-25; bh=EuOriAeP1p0PItdku8
-	vf2P5ApSdUuusCcGtQuIiVZ64=; b=gLJV/Q+NYQpIHQbCSbEdaioSoCKE4r6xny
-	Tffp/X+jjG7WybHrmmxBClRIOiOzKlHuMgbWY1uBLViFG4Alom9GGWRzKsCckfeF
-	zH6TeC5Hd5fls9hzUqFbeBMKrE11dK97GvHQjhhFcDHV0iFkbrx96Jbt23D7/+QC
-	hMphOIq1GeLbGXhwBOYpgDlzt3Uj8FtK01Gz9wiFc+KgY/pxWSMW8ZpLRjHALS1P
-	xZmgyD4Gcng3SH/dV5E6dcYoQPlGeZxTVsIl7wW0u2BPvJEdzcmXDpZq4ZNJnNOs
-	ly+ZBfLAORIsB6xb8YcDSpJnydQpVDm7mME1tqm4ikmOm7yh/f7g==
-Received: from phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta03.appoci.oracle.com [138.1.37.129])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 4dw9epxapc-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 06 May 2026 07:30:37 +0000 (GMT)
-Received: from pps.filterd (phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-	by phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.7/8.18.1.7) with ESMTP id 6467LPK6018657;
-	Wed, 6 May 2026 07:30:37 GMT
-Received: from bl2pr02cu003.outbound.protection.outlook.com (mail-eastusazon11011023.outbound.protection.outlook.com [52.101.52.23])
-	by phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 4dx576ru22-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 06 May 2026 07:30:36 +0000 (GMT)
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=fsH0zule0dQ3aBQnoB+aJxDfGLeIJoUqz9iTi1XjeDoTOiKaF/TfVmQsn2fqOstS3uul7Edh//WRG/uCTGvT7eXdvaEJgD6t38qNYEtwVakv+qyhKrcPBZMtq4JbCLgwe43RehTyfBuZTR/v/wYGXW+aB945JQc8lOxTiV7P9MAyrvLT0CWXSoGFMCpO1bde+ugNUBB3aoNwkUDUyJMGVkxPDzLEbCmljBFmodaQmqjwNddA0wNEoQehCR3TN9Wd2oEoWC10ao4g2tZuoRh9ASYW1Dt3eMA2P1e1SpKg3WccBCWMQtMPaU6ItAmtQ900DUoVETQjHI9tHWO84GP0og==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=EuOriAeP1p0PItdku8vf2P5ApSdUuusCcGtQuIiVZ64=;
- b=ROvf+l1SnFp9UMkzgxVxCe4tDG+7O0YOWVvoIMWdjmz9o43h1KqBBvmMHLwO+Zn3I/8iM4s9V5QbZs1mYMpkX6yos0ocHLZAeUtJczFU6ItmQcw5t869o3pJUuX1Il33uOcsJ+5wtNaeERxooAYar9CD4rQh8RfI4oGS2UYCrYXNPcyimN1R8Cshoq/glegDjw8XgyWbIlnhPBqhSLDnkJ7juOGqu3Ht+2TchCYMf7m0NUglAnaK9Enu8R0nfXyc1BfBY7ItAKatQlhTQzgzlDzCnImPDNKmjw7bmuPPBJn5KtZVNeOfTJ9elLWMHtaAQTL8EUrV+gznfZQ67R7ilA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=EuOriAeP1p0PItdku8vf2P5ApSdUuusCcGtQuIiVZ64=;
- b=ogQNO8kZxC3bsHV3m7QDb79hw111PuGwGdvjRqo85C2owsyMGQzssLw41Rqm0qwe6qPVckaoDWkHR7G4+BfOM6q8Gg3Pft2AWwfp2cZGCQKUQeiBeInYcGI6uClaAOSrNeQY0U+kcRHRuGXIbCICY/n0rmPHVnhZrRnC3MkinfE=
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com (2603:10b6:5:357::14)
- by BY5PR10MB4307.namprd10.prod.outlook.com (2603:10b6:a03:212::18) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9870.27; Wed, 6 May
- 2026 07:30:31 +0000
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574]) by CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574%6]) with mapi id 15.20.9891.008; Wed, 6 May 2026
- 07:30:31 +0000
-References: <20260408122538.3610871-1-ankur.a.arora@oracle.com>
- <20260408122538.3610871-2-ankur.a.arora@oracle.com>
-User-agent: mu4e 1.4.10; emacs 27.2
-From: Ankur Arora <ankur.a.arora@oracle.com>
-To: Ankur Arora <ankur.a.arora@oracle.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
-        bpf@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com,
-        will@kernel.org, peterz@infradead.org, akpm@linux-foundation.org,
-        mark.rutland@arm.com, harisokn@amazon.com, cl@gentwo.org,
-        ast@kernel.org, rafael@kernel.org, daniel.lezcano@linaro.org,
-        memxor@gmail.com, zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com,
-        rdunlap@infradead.org, david.laight.linux@gmail.com,
-        joao.m.martins@oracle.com, boris.ostrovsky@oracle.com,
-        konrad.wilk@oracle.com, ashok.bhat@arm.com
-Subject: Re: [PATCH v11 01/14] asm-generic: barrier: Add
- smp_cond_load_relaxed_timeout()
-In-reply-to: <20260408122538.3610871-2-ankur.a.arora@oracle.com>
-Date: Wed, 06 May 2026 00:30:29 -0700
-Message-ID: <874iklm1uy.fsf@oracle.com>
-Content-Type: text/plain
-X-ClientProxiedBy: MW4PR04CA0257.namprd04.prod.outlook.com
- (2603:10b6:303:88::22) To CO6PR10MB5409.namprd10.prod.outlook.com
- (2603:10b6:5:357::14)
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="meaziBh2"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id EDC9816F8;
+	Wed,  6 May 2026 00:52:16 -0700 (PDT)
+Received: from J2N7QTR9R3 (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id E7F223F7B4;
+	Wed,  6 May 2026 00:52:16 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1778053942; bh=6FFVqh/7MHmu6fMlze6Pr8sVj+Fc68+P/CMCl97GJHY=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=meaziBh2Y9VBs+iy/L6rKp64Itbk/SuVY9x+LY628fB+3BjdMpShAfiz7kxaVUmK3
+	 ML5Shd4PkZizJdBxdiUxDSD16EtZOZgzSYKb2WqhuFmuhUGrne0s9eqpQddsN+hRNR
+	 s8bBXG8z4UPrCKTSgYHbdm5hCjsmKq0wzvAMc6Yo=
+Date: Wed, 6 May 2026 08:52:10 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+To: Naman Jain <namjain@linux.microsoft.com>
+Cc: Marc Zyngier <maz@kernel.org>, "K . Y . Srinivasan" <kys@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+	Long Li <longli@microsoft.com>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Michael Kelley <mhklinux@outlook.com>,
+	Timothy Hayes <timothy.hayes@arm.com>,
+	Lorenzo Pieralisi <lpieralisi@kernel.org>,
+	Sascha Bischoff <sascha.bischoff@arm.com>,
+	mrigendrachaubey <mrigendra.chaubey@gmail.com>,
+	linux-hyperv@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-riscv@lists.infradead.org, vdso@mailbox.org,
+	ssengar@linux.microsoft.com
+Subject: Re: [PATCH v2 07/15] arm64: hyperv: Add support for
+ mshv_vtl_return_call
+Message-ID: <afrzKl3ixCUUVL6C@J2N7QTR9R3>
+References: <20260423124206.2410879-1-namjain@linux.microsoft.com>
+ <20260423124206.2410879-8-namjain@linux.microsoft.com>
+ <aeolHwXHFH4AnX_n@J2N7QTR9R3.cambridge.arm.com>
+ <f4059f5d-a82b-40c2-942e-3e24cefab94f@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CO6PR10MB5409:EE_|BY5PR10MB4307:EE_
-X-MS-Office365-Filtering-Correlation-Id: 914042f9-43f9-41f1-6a83-08deab415a53
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|376014|1800799024|7416014|366016|56012099003|18002099003|22082099003;
-X-Microsoft-Antispam-Message-Info:
-	zoX1YSA/S5NZ/T44zi8OXbUM75yTzf+Bkp03amfUW6UIXKobS4EMtjLw0cFKsBuz76zSyzRWJZCkOUAGZ8EEWUyuHNlnoAV5kqlPP3cW/Z9Rn2chccUV5V3sICcgd9FuoI6CsXqHTVJ+x6E06kySe2yO8sTsG39ynfqv4ZdgYBHA+/pbMdRFOSeB6FlcozoYB0FkQEuC9r2NqzE7Ii6MsbQD66UulPMN+E0tBTH2fyejOzg9X/tQ+icaE6vSgE4pe9h4Ab0mt9qsj61LizHnAQ/aExIS/LEH/QLYS0dgHITZKmehDEvH9N/5ShfxVWf+t4KYJIwApieESc/uK/YHxfO6WGsQqZUl16uwwSONglXICgP3ENydNIc3UCexPEeEX1aOpWuOwYPaH9cRNNCSq6P/yw9hXjU8qC+MvMmBbpIv2hVhesEYWf9A7rz2lrZ5LkzplUWAgPUcBbdDZbl/LBzc4dFW7Av+7D4Nu/oftJG7ZrIZqKNpYRWn7+gLYbsDTMYKvf3S3Lvb4BwAc5PKKddld0vQSmUYuMvOlsZnNNNiygw26FLqJihLB7OdISjSdOFWVwE9R/xGEOI/PcOam/rT3VMwiZxFojP1ocLZqRBETt8yLpURipMlUTSrFsFDfRT/BQgykO0qwOL9CDtlNsa0SZsZSLE4zfeIO72XGuskOFLhGLUYukPy95MAm00a
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CO6PR10MB5409.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(376014)(1800799024)(7416014)(366016)(56012099003)(18002099003)(22082099003);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?YXKfyt9zS7DtKZTKkcz8/ZXI29TOkW//B1ZeoAMdTwPEaOV5y3UfE0Zrqi5b?=
- =?us-ascii?Q?p3JzE1w1nJfulXFMv5POEnny9yZXwSCUqEhpoK5gMu2Geu3v4TUe6Brh9YtC?=
- =?us-ascii?Q?2AF3XQRFr5Ph/erBWRBYzGhSjiZrKFyZwRbgPMpanj2t6FaDgfjDk5zPEaYp?=
- =?us-ascii?Q?0lER9gIATxlXrmgehKmdjwuhwsB8sTQKUEgzBXMDY4+Im2C7RoM55vvWAZtp?=
- =?us-ascii?Q?XJEdVdFkEaFUfMoGhUJTM+rs+8uVEcW+wDqYcQDmG7pvwBhZloH0Zj7Y5uOS?=
- =?us-ascii?Q?ehjFC3J3RDSbSYAnXUgLbc3FVx51Ib8BDuUnzCdPhE6ZCY3iXEdalHkevJod?=
- =?us-ascii?Q?W2dZ+Sv7DHFoFkYVsL0ymkFKxqFSoDIhidHlv7scWadsSVPeyUH1uRaLWjbl?=
- =?us-ascii?Q?77JxfPWbSy3wNRnkLtcRM6upN6IjQMaMAqfFXj7ChGB0+lLn6LkwWmgyug7Y?=
- =?us-ascii?Q?Ps8LRo+EQHwCROk6JM1Gd1E+wgmlYUKQL+L5IJKwSS276jtxCXI1gTer3bNw?=
- =?us-ascii?Q?KtNLDaS3tTBJh1Veq9GrT3zwkUF5YwuLYUB23F/bqu5GvaSyckJqgG2oW7G0?=
- =?us-ascii?Q?P66GufRTf9mxm31QIicSVOl46IRAH/48VU7Cee/lveVlxnt8jTcKdHosJFYe?=
- =?us-ascii?Q?JHzCpXtFy8vh0KK99kaB5RU+F7hJSrOAEKuGqG40s8d0BS6PwQefIPq99Yns?=
- =?us-ascii?Q?/C6nRvwkLHwjXUENoparHnPyLtf8/luBNYm4FcsGFxq3UKDEGIL5y4P+I3vo?=
- =?us-ascii?Q?PYXUe8NOWVgz8SUQDSIqJQrs6Ky09/lyDTF01xqrs91YUwMJsd51wnUWCV7c?=
- =?us-ascii?Q?0VLeoe0ym3OI/wZrwUw5rlrn3/gutvLgsIUHGLPYzKm55GhUxUW+a4EowPPb?=
- =?us-ascii?Q?N3Mm3OeyuGVsTkHhhRV9UsJDD4ZCHqJLWj2ubgY167we+CSin/IFyig0ihB+?=
- =?us-ascii?Q?jUfXNJyfVVD3tUPJyoyLgT8DscoLx0EacGzonVOQQBve+j28Yiy/1rWQJa4D?=
- =?us-ascii?Q?03RxZNFFZtm56cs5VdqieacGrycpKyUicIPQz8LHgbgENA0h+jAUU90WRVPL?=
- =?us-ascii?Q?TitzSfU0pCtIPV/IHCTbggG3LzlJ/tvPcOULvd6bWrdldTg6wb5UsSaRcBC0?=
- =?us-ascii?Q?vhxtygO0R746IE1xhX22oPIZL/XZ6KwPlFMAq12wY/2l7SicBN+5zDJ4pkt4?=
- =?us-ascii?Q?5wWojf4J7pWHoKaGtXBrBA5bnygXdv98tPuu4DNcWKjxiGwOLz/X/ZWFVpWe?=
- =?us-ascii?Q?a/TQSp0Y1l34CBPce0gnDfrCxbO7c3D+RtMs4/db7j0C2xAv5qUNlpvMznhq?=
- =?us-ascii?Q?OvJzkQNNKV0CYzd/rG0ErYhbjMECKTUVH+e4isA7jl9v9RhR0HybmdCdgSGF?=
- =?us-ascii?Q?DPvdW3cb1Z4s8gisGjnIsOO13hlTxtsk6f9DSm2WhK2g653Hud/gD+YDHV52?=
- =?us-ascii?Q?SY7rkDgAy2FqV/Lv1qKHorTha0EyxM9jA/PPg4eKCr0+c4HDOOQDpUizHEOF?=
- =?us-ascii?Q?FR8loUPsDNFtL2jgGb1r+Uu1JlX8Sh2RnwKd3ZDIm6N6PjjNq6OTK9R02c76?=
- =?us-ascii?Q?S9d+7qbySEQxnSe402Qqxz9V1g2EFp/LQ4mJKx08pKmpEnedYuqRxM88QQcC?=
- =?us-ascii?Q?hzeb+JNlOp61pN43aQ+V/vU+8DUc2y0NTNgNt0Q/AQQZgtCLFbiH5xySKm8G?=
- =?us-ascii?Q?SZk4bh9fYQBeILn4NiXkh3+2HPFyacNVhlC7UbSY2YsRuxGMUgUQ5+phlgIS?=
- =?us-ascii?Q?dIrLMXcrq1kvB+3RObeM4nvULBUE7Ds=3D?=
-X-Exchange-RoutingPolicyChecked:
-	j5dQInvdi6RJf50v0nRF1IiRfSTEt/MYT9w9CDw0iWc200ognyl48tUmKrLnPQbZymWKsSHruywRSgvaqu+gyowaTNqiUjlEFu+2MTS5CwE+9YF1X2s1XGjur3XWCZByBGy086kcq2bRwVrbi0O2oStCFDmeqJlzyazNdX5G5emSPH+2+Eb8MUBH9EWH+xTXyRpO67K+t4400LORqjmw3YtrGwsagFSpWzoZ1G76tIp/4loCBzQPFuCnjPwlJ5EPkYJ9SWzG6A9UxO0MSOq3Q1zSEwFenqix073r7O4+73kyQg1n/NjM5Q9pP/s1E5O1Z1VyGmttfbFn7ITEp011JA==
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	ARGMWCQOXkaNVp65tS/bdvj8y5sDAGbh1tGXt2TaAhTdojNjiDuARvXw/PVfu+zlT/Izu7SApkZ18rnfOzTCKb62ddTiWj/S4h8N15vIbeUDBRXyqUmQV0uDH/9zBrezelNPmRmbGXh5EhY+mTVBRkK1Q7WsHIqjDwfpiYzHNohoF+oH0E+iyQIK9ARuZrnDaHyD9tpHiX5H0h8MkDmmAr8UJxb9T0SO89TzAjFDG5Is6Nq3fJmBDc1HpOcCQV7wrX1rg8QGNStIMbYpFvPRBqSY83Z01wksoWpvorvJnaTJ526p+cGmyQhz8Q6JMEp+LT2VJ4F3R03bEp0bnvd073pIIV0BYIVnquXq5ld2fjQbx7ksJ438gpjtCdlUfXWGaBTO0DWgIV8C4zcxItN/2Ej6iQi76Tls8jU72LWzdZKGLqnwQB+uxBJhW5y4sFoBj5HgazoDtzmr7heKkIIvwF1KlF01VUDiFaWiVi7RAgOsu0mLOc7+d/HDTxbSt75JaEeCqzOrEv5ZBNIFesLSacSdt+FkmdOniODa4EVAU1xEdivMAqi5YhyeDHBd0GpayV+T/AxJN2q476l0MXktiUER3oB/H7VoBCahSZx7JNM=
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 914042f9-43f9-41f1-6a83-08deab415a53
-X-MS-Exchange-CrossTenant-AuthSource: CO6PR10MB5409.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 06 May 2026 07:30:31.3237
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: w1SGWgZebjLbIWfTH7YwkKi2zFIgbhOHPZoKggpSmd2iXFw32ux+M4KIaQYdN9LpZP8pyLQGNg8qba4D3Kqy3TTZiuupMGxfb8IQs7OY9aE=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: BY5PR10MB4307
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.51,FMLib:17.12.100.49
- definitions=2026-05-05_02,2026-04-30_02,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0
- suspectscore=0 adultscore=0 mlxlogscore=999 mlxscore=0 phishscore=0
- spamscore=0 malwarescore=0 lowpriorityscore=0 classifier=spam adjust=0
- reason=mlx scancount=1 engine=8.19.0-2604200000 definitions=main-2605060071
-X-Proofpoint-ORIG-GUID: QHvQLj0Xq-b9D51zg58MRu2OFUREDtGx
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNTA2MDA3MSBTYWx0ZWRfXzR/+YBNPq9f2
- GIN8i9fPtwzbRRdXt7wIlMKfSTWPJvZnW8WR0gQG645pVUVEsXOy3vJ78IAe0Ln+P9jP8Un6YkE
- sCrbDpKlFn2LQUfFoYb5M12xSI5Tyr00Wp6vuheXaIas0qwUX3DpiLjZJfinsT7n7mOZmJ9kuF7
- S2fmnI0pZ4jqGWg5e9IpFEk0vQB7oyzZ8fOmeRhzCcXdmUAzTCbTGx09vfxp3x8ebL39YNpbtmg
- 0VL2CSWvNlqs9q+UPUX4oOddV3Jq7uOCunnq8yWFg560/Q/tDlfHEmMtfi+CboKOPIZC9iICU+V
- GPztpj7i3h33Oqm7GhTZccLeZ3pp235Q0El+kHGetuBLplsx8ai8NVSj7Ai8Kxn4MkhqgIx8FiI
- uywgh3x3Y1f1GDT11CXQ1th84ZzpWhG7ix8+B/0fXO2rN8IALwLD7zt6bk0SEOl8t24+DvnYGU9
- CCkZogbwK/mJdq2dSJQ==
-X-Authority-Analysis: v=2.4 cv=YKKvDxGx c=1 sm=1 tr=0 ts=69faee1d b=1 cx=c_pps
- a=WeWmnZmh0fydH62SvGsd2A==:117 a=WeWmnZmh0fydH62SvGsd2A==:17
- a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
- a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=xqWC_Br6kY4A:10 a=NGcC8JguVDcA:10
- a=GoEa3M9JfhUA:10 a=VkNPw1HP01LnGYTKEx00:22 a=jiCTI4zE5U7BLdzWsZGv:22
- a=EIcjfB9IiI4px24ztqRk:22 a=yPCof4ZbAAAA:8 a=VwQbUJbxAAAA:8 a=7CQSdrXTAAAA:8
- a=JfrnYn6hAAAA:8 a=BBXGc6A9iwDNzdzZ20gA:9 a=a-qgeE7W1pNrGK8U0ZQC:22
- a=1CNFftbPRP8L7MoqJWF3:22
-X-Proofpoint-GUID: QHvQLj0Xq-b9D51zg58MRu2OFUREDtGx
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <f4059f5d-a82b-40c2-942e-3e24cefab94f@linux.microsoft.com>
 
+On Wed, Apr 29, 2026 at 03:26:11PM +0530, Naman Jain wrote:
+> On 4/23/2026 7:26 PM, Mark Rutland wrote:
+> > On Thu, Apr 23, 2026 at 12:41:57PM +0000, Naman Jain wrote:
 
-Ankur Arora <ankur.a.arora@oracle.com> writes:
+[ non-SMMC hypercall code omitted for brevity ]
 
-> Add smp_cond_load_relaxed_timeout(), which extends
-> smp_cond_load_relaxed() to allow waiting for a duration.
->
-> We loop around waiting for the condition variable to change while
-> peridically doing a time-check. The loop uses cpu_poll_relax() to slow
-> down the busy-wait, which, unless overridden by the architecture
-> code, amounts to a cpu_relax().
->
-> Note that there are two ways for the time-check to fail: the timeout
-> case or, @time_expr_ns returning an invalid value (negative or zero).
-> The second failure mode allows for clocks attached to the clock-domain
-> of @cond_expr --  which might cease to operate meaningfully once some
-> state internal to @cond_expr has changed -- to fail.
->
-> Evaluation of @time_expr_ns: in the fastpath we want to keep the
-> performance close to smp_cond_load_relaxed(). So defer evaluation
-> of the potentially costly @time_expr_ns to the slowpath.
->
-> This also means that there will always be some hardware dependent
-> duration that has passed in cpu_poll_relax() iterations at the time
-> of first evaluation. Additionally cpu_poll_relax() is not guaranteed
-> to return at timeout boundary. In sum, expect timeout overshoot when
-> we exit due to expiration of the timeout.
->
-> The number of spin iterations before time-check, SMP_TIMEOUT_POLL_COUNT
-> is chosen to be 200 by default. With a cpu_poll_relax() iteration
-> taking ~20-30 cycles (measured on a variety of x86 platforms), we
-> expect a time-check every ~4000-6000 cycles.
->
-> The outer limit of the overshoot is double that when working with the
-> parameters above. This might be higher or lower depending on the
-> implementation of cpu_poll_relax() across architectures.
->
-> Lastly, config option ARCH_HAS_CPU_RELAX indicates availability of a
-> cpu_poll_relax() that is cheaper than polling. This might be relevant
-> for cases with a long timeout.
->
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: linux-arch@vger.kernel.org
-> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
-> ---
-> Notes:
->    - add a comment mentioning that smp_cond_load_relaxed_timeout() might
->      be using architectural primitives that don't support MMIO.
->      (David Laight, Catalin Marinas)
->
->  include/asm-generic/barrier.h | 69 +++++++++++++++++++++++++++++++++++
->  1 file changed, 69 insertions(+)
->
-> diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-> index d4f581c1e21d..e5a6a1c04649 100644
-> --- a/include/asm-generic/barrier.h
-> +++ b/include/asm-generic/barrier.h
-> @@ -273,6 +273,75 @@ do {									\
->  })
->  #endif
->
-> +/*
-> + * Number of times we iterate in the loop before doing the time check.
-> + * Note that the iteration count assumes that the loop condition is
-> + * relatively cheap.
-> + */
-> +#ifndef SMP_TIMEOUT_POLL_COUNT
-> +#define SMP_TIMEOUT_POLL_COUNT		200
-> +#endif
-> +
-> +/*
-> + * Platforms with ARCH_HAS_CPU_RELAX have a cpu_poll_relax() implementation
-> + * that is expected to be cheaper (lower power) than pure polling.
-> + */
-> +#ifndef cpu_poll_relax
-> +#define cpu_poll_relax(ptr, val, timeout_ns)	cpu_relax()
-> +#endif
-> +
-> +/**
-> + * smp_cond_load_relaxed_timeout() - (Spin) wait for cond with no ordering
-> + * guarantees until a timeout expires.
-> + * @ptr: pointer to the variable to wait on.
-> + * @cond_expr: boolean expression to wait for.
-> + * @time_expr_ns: expression that evaluates to monotonic time (in ns) or,
-> + *  on failure, returns a negative value.
-> + * @timeout_ns: timeout value in ns
-> + * Both of the above are assumed to be compatible with s64; the signed
-> + * value is used to handle the failure case in @time_expr_ns.
-> + *
-> + * Equivalent to using READ_ONCE() on the condition variable.
-> + *
-> + * Callers that expect to wait for prolonged durations might want
-> + * to take into account the availability of ARCH_HAS_CPU_RELAX.
-> + *
-> + * Note that @ptr is expected to point to a memory address. Using this
-> + * interface with MMIO will be slower (since SMP_TIMEOUT_POLL_COUNT is
-> + * tuned for memory) and might also break in interesting architecture
-> + * dependent ways.
-> + */
-> +#ifndef smp_cond_load_relaxed_timeout
-> +#define smp_cond_load_relaxed_timeout(ptr, cond_expr,			\
-> +				      time_expr_ns, timeout_ns)		\
-> +({									\
-> +	typeof(ptr) __PTR = (ptr);					\
-> +	__unqual_scalar_typeof(*ptr) VAL;				\
-> +	u32 __n = 0, __spin = SMP_TIMEOUT_POLL_COUNT;			\
-> +	s64 __timeout = (s64)timeout_ns;				\
-> +	s64 __time_now, __time_end = 0;					\
-> +									\
-> +	for (;;) {							\
-> +		VAL = READ_ONCE(*__PTR);				\
-> +		if (cond_expr)						\
-> +			break;						\
-> +		cpu_poll_relax(__PTR, VAL, (u64)__timeout);		\
-> +		if (++__n < __spin)					\
-> +			continue;					\
-> +		__time_now = (s64)(time_expr_ns);			\
-> +		if (unlikely(__time_end == 0))				\
-> +			__time_end = __time_now + __timeout;		\
-> +		__timeout = __time_end - __time_now;			\
-> +		if (__time_now <= 0 || __timeout <= 0) {		\
-> +			VAL = READ_ONCE(*__PTR);			\
-> +			break;						\
-> +		}							\
-> +		__n = 0;						\
-> +	}								\
-> +	(typeof(*ptr))VAL;						\
-> +})
-> +#endif
-> +
+> > NAK to this.
+> > 
+> > * This is a non-SMCCC hypercall, which we have NAK'd in general in the
+> >    past for various reasons that I am not going to rehash here.
+> > 
+> > * It's not clear how this is going to be extended with necessary
+> >    architecture state in future (e.g. SVE, SME). This is not
+> >    future-proof, and I don't believe this is maintainable.
+> > 
+> > * This breaks general requirements for reliable stacktracing by
+> >    clobbering state (e.g. x29) that we depend upon being valid AT ALL
+> >    TIMES outside of entry code.
+> > 
+> > * IMO, if this needs to be saved/restored, that should happen in
+> >    whatever you are calling.
+> > 
+> > Mark.
+> 
+> Merging threads for addressing comments from Mark Rutland and Marc Zyngier
+> on this patch.
+> 
+> Thanks for reviewing the changes. Please allow me to briefly explain the use
+> case here and then address your comments.
+> 
+> Hyper-V's Virtual Trust Levels (VTLs) provide hardware-enforced isolation
+> within a single VM, analogous to ARM TrustZone. The kernel runs in VTL2
+> (higher privilege) as a "paravisor", a security monitor that handles
+> intercepts for the primary OS in VTL0 (lower privilege). The VTL switch
+> (mshv_vtl_return_call) is functionally equivalent to KVM's guest enter/exit.
 
-A cluster of issues that got flagged by sashiko was around timeout_ns
-being specified as s64 and a bunch of potential edge cases around
-that.
+It's worth noting that for KVM, the KVM hyp code is *tightly* coupled
+with the host kernel (they are one single binary object), and the
+calling convention between the two is an implementation detail that can
+change at any time without any ABI concerns.
 
-These were mostly caused by an implicit assumption in the code that
-the timeout specified by the caller is generally reasonable. So, way
-below S64_MAX, not 0 etc.
+While I appreciate this might be trying to do the same thing from a
+*functional* perspective, it's certainly different from a
+maintainability perspective, and can't be treated in the same way.
 
-I think this is worth cleaning up a bit. The change is mostly around
-introducing a u32 __itertime and explicitly computing the waiting time.
-And adding a check to ensure that we start with a valid value.
+> It saves VTL2 state, loads VTL0's GPRs other registers from a shared context
+> structure, issues hvc #3 to let VTL0 run, and on return saves VTL0's updated
+> state back.
+> 
+> Coming to the problems with the code, I have identified a few ways to
+> address them.
+> 
+> I can put the assembly code in a separate .S file with
+> SYM_FUNC_START/SYM_FUNC_END and marked as noinstr, to prevent ftrace/kprobes
+> from instrumenting between the GPR load and the hvc, which could have
+> corrupted VTL0 register state. This should solve x29 clobbering, stack
+> tracing problems.
 
-This does make the implementation a little more involved. So just wanted
-to see if people have any opinions on this?
+My point was that you must not clobber those registers.
 
-+#ifndef smp_cond_load_relaxed_timeout
-+#define smp_cond_load_relaxed_timeout(ptr, cond_expr,          \
-+                                     time_expr_ns, timeout_ns) \
-+({                                                             \
-+       typeof(ptr) __PTR = (ptr);                              \
-+       __unqual_scalar_typeof(*(ptr)) VAL;                     \
-+       u32 __count = 0, __spin = SMP_TIMEOUT_POLL_COUNT;       \
-+       s64 __timeout = (s64)(timeout_ns);                      \
-+       s64 __time_now, __time_end = 0;                         \
-+       u32 __maybe_unused __itertime;                          \
-+                                                               \
-+       for (__itertime = NSEC_PER_USEC;                        \
-+               VAL = READ_ONCE(*__PTR), __timeout > 0; ) {     \
-+               if (cond_expr)                                  \
-+                       break;                                  \
-+               cpu_poll_relax(__PTR, VAL, __itertime);         \
-+               if (++__count < __spin)                         \
-+                       continue;                               \
-+               __time_now = (s64)(time_expr_ns);               \
-+               if (unlikely(__time_end == 0))                  \
-+                       __time_end = __time_now + __timeout;    \
-+               __timeout = __time_end - __time_now;            \
-+               if (__time_now <= 0 || __timeout <= 0) {        \
-+                       VAL = READ_ONCE(*__PTR);                \
-+                       break;                                  \
-+               }                                               \
-+               __itertime = __timeout % NSEC_PER_MSEC +        \
-+                               NSEC_PER_USEC;                  \
-+               __count = 0;                                    \
-+       }                                                       \
-+       (typeof(*(ptr)))VAL;                                    \
-+})
-+#endif
+Looking at the TLFS document you linked below, it says:
 
-Thanks
+| Note: X29 (FP/frame pointer), X30 (LR/link register), and SP are private
+| per-VTL
 
---
-ankur
+... so clobbering those doesn't seem to be necessary anyway. Clearly
+having an arbitrary calling convention is confusing for everyone.
+
+> I should use kernel_neon_begin()/kernel_neon_end() to save/restore the full
+> extended FP state of the current task in VTL2. VTL0's Q0-Q31 can be
+> loaded/saved separately via fpsimd_load_state()/fpsimd_save_state(). This
+> way, the assembly touches none of the SIMD registers. This is SVE/SME-safe
+> for VTL2's task state. VTL0 still only carries Q0-Q31 in the context struct,
+> and extending to SVE, SME is a future context struct change, which will need
+> Hyper-V arm64 ABI support.
+> This way, VTL2's callee-saved regs (x19-x28, x29, x30) are explicitly saved
+> to the stack frame at the top and restored at the bottom of assembly code.
+> The C caller (in hv_vtl.c) is a clean function call.
+
+That doesn't really address my concerns here.
+
+I do not think that Linux should have to save/restore anything here;
+that should be the job of the real hypervisor. The arbitrary separation
+of PE state into private and shared (with shred state being directly
+exposed to Linux) is a problem for maintainability and forward
+compatibility.
+
+Looking at the TLFS document you linked below, I see:
+
+| Note: SVE state (Z0-Z31, P0-P15, FFR) and SME state are VTL-private.
+| The lower 128-bit portion (Q registers) is shared, but the upper bits
+| of Z registers may be corrupted on VTL transitions. Software should
+| not rely on Z register contents being preserved across VTL switches.
+
+... which is certainly going to be a pain to manage.
+
+Note in particular "SME state" is not an architectural term. I don't
+know which state in particular that is intended to cover (e.g. ZA, ZT0,
+SVCR, all streaming mode state)?
+
+There's no mention of SVCR, so I don't know how this is going to
+interact with management of ZA state (ZA and ZT0, which are dependent
+upon SVCR.ZA) or streaming mode (dependent upon SVCR.SM). That state has
+been *incredibly* painful for us to manage generally. Regardless of the
+SMCCC concerns, that needs to be specified better.
+
+> Regarding Non-SMCCC "hvc #3" call, I have a limitation here owing to the ABI
+> that is defined by the Hyper-V hypervisor. Fixing this requires a
+> hypervisor-side change to support SMCCC-style dispatch for VTL return. Until
+> then, hvc #3 is the only working interface. Moreover there would be backward
+> compatibility issues with this new ABI interface, if at all it is added.
+
+To be clear, that's Microsoft's problem, not the Linux kernel
+community's problem. My NAK still stands.
+
+Multiple years ago now, we made it clear that we would not accept a
+non-SMCCC calling convention. Ignoring the substance of that feedback,
+and inventing a new calling convention after that point is a
+self-inflicted problem.
+
+[...]
+
+> Link to TLFS: https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/vsm#on-arm64-platforms-3
+
+For shared state, aside fomr GPRs and FPSIMD/SVE/SME state, that says:
+
+| * System Information Registers (read-only or non-security-critical):
+|   * System identification and feature registers
+|   * Cache and TLB type information
+
+It's *implied* that some of those registers might be writable, but as
+the specific set of registers is not described I cannot tell. Are there
+any writable system registers which are shared?
+
+I don't see how we can know which registers we might need to
+save/restore without that being explicitly documented.
+
+I also see:
+
+| Note: SPE (Statistical Profiling Extension) state is shared across VTLs,
+| except for PMBSR_EL1 which is VTL-private.
+
+If "SPE state" includes PMBPTR or PMBLIMITR (which is the obvious
+reading), this would be a security problem, as a lower-privileged VTL
+could clobber those and cause SPE to write to arbitrary memory
+immediately upon return to the higher-privileged VTL. Having PMBSR be
+private on its own isn't sufficient to prevent that (e.g. since the
+higher-privileged VTL could have its own active SPE profiling session).
+
+I'm not keen on requiring hyper-v specific hooks in the SPE driver to
+achieve that, and I'm also not keen on having hyper-v support code poke
+SPE registers behind the SPE driver's back.
+
+This does not give me confidence that any future PE state (e.g. things
+like TRBE) will be managed in a safe way either.
+
+Mark.
