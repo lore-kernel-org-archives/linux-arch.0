@@ -1,1140 +1,731 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id EEB0236894D;
-	Wed,  6 May 2026 10:07:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778062032; cv=none; b=EECeqrNnqJnSkKNzuFsmwqJoNuDSERucGvlWWsWGMsuSR+FxszjbHG55qVDHzp4SmYjXLwY7gfRJCKGuK6hvwIOuuwUDjqFASaI8xnxPrPuzAyqgyzL9IE8yyIJaHt74MFfWEvTs/yl0sNSQ7uFVdKAVtr7d9U2mFNkiOFg8J1w=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778062032; c=relaxed/simple;
-	bh=GjyNnSYV7QlncTsz/3X5/AZIE3DByhzu97qiHgZxMYQ=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=h/+ovyikueYT0lESMaplqLkuLWb+E7d3G7qiRZKAOdAZyyWvkDWqcuW4smIUbV+vTbuNERiu/OtXXYt+mU852rqxrCDnpknJrweH7u/+hucetT3GPyS4L0OAuOA8HLiQ6nkl8RcmRWQ4ShXs46oIknVdR4uWj7nFdNcto55oRdk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=Vo9KyTg6; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1D0B13F23CF
+	for <linux-arch@vger.kernel.org>; Wed,  6 May 2026 10:11:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=170.10.133.124
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778062300; cv=pass; b=Fu0nRE/Ti2PNdYiqZ20F8GsGJNY9CMjSTj1DpDWmTt3Hu/K/zaQCMbs/UPrHVZ14Q3KYLRTQe/OGHpAgc/hSDuhWjxayf4T6veZwGr0OS9qG5XIljxoT/pFwq3p5OMtcIiRIprV/OxdSwot9jpZOGjDzUR1FvlcdiBZhXi6i+SU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778062300; c=relaxed/simple;
+	bh=a/5XJxr1ODPYKyZVulCiykJHcCyto7lGgNQMSw4UiVs=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=LRAyI17FfxJ3EUFJc35d+RvWmOMXVdt9pKaBXNIbkoRpzGTSBKkO2pPj/j8gjqX0kkBSDpVzLc7Vai54Se5BKKc+WjZqCCAEIsxSkWcQxSRL2GoNGEdFBEmmu6ANOR6qnUhSUVKpDgLOnFU0ZOR3D+wwmnFbdiRCcG1SLZ6eIdM=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=J/of8IAg; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=f164vPwp; arc=pass smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="Vo9KyTg6"
-Received: by linux.microsoft.com (Postfix, from userid 1099)
-	id 7660420B7165; Wed,  6 May 2026 03:07:01 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 7660420B7165
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1778062021;
-	bh=CjI+S3wh4a3KmWnmtA93xga6RRot1xv6fX/MZK0AlLE=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=Vo9KyTg6mDUuIhua6djJ6w11nxB3bsMIEsyr7/8ejvzNZCw1N3rSRRic1GP4Au5YY
-	 VA4BPL7qDD3fIkkyxzuNQAUJnJSOtEce/jJ8Jlf3bgS3eKgZZRwNfNM8o1ZZkpoHaP
-	 UGG37T6Uz/1puQ4zY4YQrwcSdWwihRe1rbEjKEuI=
-Date: Wed, 6 May 2026 03:07:01 -0700
-From: Souradeep Chakrabarti <schakrabarti@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
-	wei.liu@kernel.org, mhklinux@outlook.com, muislam@microsoft.com,
-	namjain@linux.microsoft.com, magnuskulke@linux.microsoft.com,
-	anbelski@linux.microsoft.com, linux-kernel@vger.kernel.org,
-	linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-	kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
-	longli@microsoft.com, tglx@kernel.org, mingo@redhat.com,
-	bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
-	joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
-	kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de
-Subject: Re: [PATCH V2 09/11] x86/hyperv: Implement hyperv virtual IOMMU
-Message-ID: <afsSxVAlDvtpZ63q@linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net>
-References: <20260501004157.3108202-1-mrathor@linux.microsoft.com>
- <20260501004157.3108202-10-mrathor@linux.microsoft.com>
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="J/of8IAg";
+	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="f164vPwp"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1778062297;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=MsOvavuz84uExD4iLxYbhKIOMoMGoa/ix3DcjgpaQNQ=;
+	b=J/of8IAgq+vqQcqq8dJe4q0/nOOZmGEE1T3b3vxbvTSGaOU4Sll95Trez7cpxbrLVDgaMw
+	hIU1bOvxq7XVMV0k0swQNMgG0u9lvLkM+KbkQC9jVX+pCD3l2M/9ejYkRs73pQ8x8AZcRm
+	5JLP2Ug+kNg9S0ZpPvteCD0z2TlKW84=
+Received: from mail-yx1-f69.google.com (mail-yx1-f69.google.com
+ [74.125.224.69]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-84-22qXxX_YOue-C_dweJ40Rg-1; Wed, 06 May 2026 06:11:34 -0400
+X-MC-Unique: 22qXxX_YOue-C_dweJ40Rg-1
+X-Mimecast-MFC-AGG-ID: 22qXxX_YOue-C_dweJ40Rg_1778062293
+Received: by mail-yx1-f69.google.com with SMTP id 956f58d0204a3-65c67faba33so4353694d50.3
+        for <linux-arch@vger.kernel.org>; Wed, 06 May 2026 03:11:34 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1778062293; cv=none;
+        d=google.com; s=arc-20240605;
+        b=UWdW3kPeGK2nDYuBwZzaUXYDahQSXP/juRTOKHflrmQLEaLQxdfq17Sfp/Z/U5Tt9D
+         6tDWMptHSwPJf8vx+W0oR0EuQrHsuspEYaaFfw3niDHcTlDuxpQVUf6b8ABZyDNKkTuS
+         Xa4PW0EHpEQ6w45KaTHIxo/phkRfiJ3dLseqW44+vdgPkysXkzZus+XFUyys0kiQrEzY
+         iHa6ZTidY5hCNtc5+JyV07PABdMx8HMAcqsZ/EFMMZyh09XOB6HlANdvCBnqoLlZpWqy
+         ItunQbksAQGYkcA8MCR5w5A3MfB/kc0K++5uh80zV9IWhUEPe9Yilgy5zDAsSV5wcMvk
+         yOKQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=MsOvavuz84uExD4iLxYbhKIOMoMGoa/ix3DcjgpaQNQ=;
+        fh=QLiDg/64D9MklsQdMdh++B0RlmnGyIbCHQ5FRwyhHE8=;
+        b=k7gKruZOAeSXkphY5Rcuyvck8cPTSjc6eyXW1rDy6fCcc5XmP2kvhufCVXmzyjf0sI
+         0egzZOzc2wNkbZjgyBKg7BbfJuxxY81DmNDvo8OBBErrpQyQ4TLYaarTAinqOQJUzxDc
+         qCl/qKFmYTwQq9+BPsst8Y2U8MQY28fEPG3kSGrVvFMil5Pfypc8ty/5eG1b5vGh1Gj6
+         7L1P2weYrRCW7evNgd75pV+rNMJgwVLsS33IJPHZ9vcckm+IzXVCdXrE0G0noJlYPFVg
+         a8lo0QHhRUYOXr2j/59r5j8FYVh+H/00Vetq9s+Bk4LICvZf+UNzBo2J/SI6XHQUHZQG
+         DuJA==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=redhat.com; s=google; t=1778062293; x=1778667093; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=MsOvavuz84uExD4iLxYbhKIOMoMGoa/ix3DcjgpaQNQ=;
+        b=f164vPwpkzZVFbygOz2Y0PJQN3OkKbxvjqz9Ol00Cumt1eTh7QC7Wms9r8wTewBOI1
+         SjmWWYa0eoF7U1LdTHGr3AjTS1qR3GBXxtmMEGBqp2ImnhAhbzNcaGJg5f90WDzFuWXP
+         RdV1js2a+zBL39bCj1xlNcHw/2vR1+zo/Lo3VEKSvf8+EY7rZ0QrLXNMe4qyHXlMskr7
+         8YCYr5jT6TaKKhSRqf9STdTiwQxZV2YuxSSTkzMblYt0Re/Em5/baWWOrHC8vaM9perh
+         y6sjLKptesOLQKni8quFce+pnktmS67EObObcsfSjbZX2Eagz0fifM7LbwTGgkYOv7xW
+         XIsQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778062293; x=1778667093;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=MsOvavuz84uExD4iLxYbhKIOMoMGoa/ix3DcjgpaQNQ=;
+        b=NVNvc8kvXAAU8R1+Ql3HH/zp8aqOITkjvm4VK1SWrytjx011AWNzS/WZgeMPRuNdl0
+         YZFxnelstbV+4NigizQi+58Kvmr82p7/mzA+/rr9M2tAdScBG1cbd915WN6CwNNRO5Ub
+         JaXNKr24LXc1Ic4gqmmLyovxlEFLx9Tq+uefykTcgkJ4/C2t1Slpl9bOVB5zzR7p/lyp
+         tOEbgXKC6Yd8dcHowVqD8sb3zfp8CbG48y1arJvJgsQD2/HC0fykHLf6sMLJx2jH+3bh
+         9qGoQOkEcaPyKL8DJ5tuqW10iu3x3uHt3LL9nfEbSHrYeDNDqzJNsNUAgQBKv2Hc3XEI
+         7vgQ==
+X-Forwarded-Encrypted: i=1; AFNElJ9UX8QCbGDGhmL6NiRyn1KdePVQvbylEiHXlxEnY74lgzHrtPXt1Ly6wNktRboaxsfYJpbt698gftGp@vger.kernel.org
+X-Gm-Message-State: AOJu0Yx7agjHqWG3HD1fk+EC5FFDnn6jtrJwYSAXIBUqGzlQVhl9xLmg
+	Mj5sAsIAR2QqcQRh0s3Rilx1D8erAoZxD46HwJFKBdwP1Vq6Ddblq/NdHmZJ2Rc8dTxNoaBGQUP
+	rER/5EgLNFZ6Pt2xA8h//uwl0h4jUdVTaIw6tXlg+V1+ONSZYnF5pTewsu5Mp1Nw3MCRxYR8YXE
+	ozGYZPMg7ZMW057oCFDgZqxAo8CsC/0YhnRxpAlw==
+X-Gm-Gg: AeBDieuMRg82m17KLAgmripvGYhwblyOr02NLkdmp5kBLs59ThRHYLEOL3s3bp5SkA3
+	mMuCyMo0N7xUx9IoZqBj5ZRNBCP6WLzPoWmIF/MNZgDQCTPEgj4EA8eJVlHXEHGNW1TlB/3cewW
+	CKksMvlSyWO8+LcvjJhpOTxQc/tYjFh11y8PCp+QVqOD2GUWoTcGhudJcsFFveaffB0emv4toyQ
+	wZLsykvjKS52XDy
+X-Received: by 2002:a05:690e:1481:b0:650:17fe:1a9c with SMTP id 956f58d0204a3-65c799b2a80mr3072211d50.33.1778062293279;
+        Wed, 06 May 2026 03:11:33 -0700 (PDT)
+X-Received: by 2002:a05:690e:1481:b0:650:17fe:1a9c with SMTP id
+ 956f58d0204a3-65c799b2a80mr3072180d50.33.1778062292622; Wed, 06 May 2026
+ 03:11:32 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260501004157.3108202-10-mrathor@linux.microsoft.com>
+References: <20260504-kunit_add_support-v8-0-3e5957cdd235@redhat.com>
+ <20260504-kunit_add_support-v8-1-3e5957cdd235@redhat.com> <c5c28f16-3940-4960-84e6-33f5479a5450@davidgow.net>
+In-Reply-To: <c5c28f16-3940-4960-84e6-33f5479a5450@davidgow.net>
+From: Albert Esteve <aesteve@redhat.com>
+Date: Wed, 6 May 2026 12:11:21 +0200
+X-Gm-Features: AVHnY4Imsl4W_J-H_4zB9-E8cFlW4-V2-ioi85GEvrQpNjDRg5Q8jH9CAHJamU0
+Message-ID: <CADSE00KLhyUpRD031-YveOv+o71jJ-NojX6VteSyF+SqxG0n4g@mail.gmail.com>
+Subject: Re: [PATCH v8 1/4] bug/kunit: Core support for suppressing warning backtraces
+To: David Gow <david@davidgow.net>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brendan Higgins <brendan.higgins@linux.dev>, 
+	Rae Moar <raemoar63@gmail.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+	Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+	David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, 
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Alexandre Ghiti <alex@ghiti.fr>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
+	dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
+	linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
+	peterz@infradead.org, Alessandro Carminati <acarmina@redhat.com>, 
+	Guenter Roeck <linux@roeck-us.net>, Kees Cook <kees@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Thu, Apr 30, 2026 at 05:41:55PM -0700, Mukesh R wrote:
-> Add a new file to implement management of device domains, mapping and
-> unmapping of IOMMU memory, and other iommu_ops to fit within the VFIO
-> framework for PCI passthru on Hyper-V running Linux as baremetal root
-> or L1VH root. This also implements direct attach mechanism (see below),
-> a special feature of Hyper-V for PCI passthru, and it is also made to
-> work within the VFIO framework.
-> 
-> At a high level, during boot the hypervisor creates a default identity
-> domain and attaches all devices to it. This nicely maps to Linux IOMMU
-> subsystem IOMMU_DOMAIN_IDENTITY domain. As a result, Linux does not
-> need to explicitly ask Hyper-V to attach devices and do maps/unmaps
-> during boot. As mentioned previously, Hyper-V supports two ways to do
-> PCI passthru:
-> 
->   1. Device Domain (aka Domain Attach): root must create a device domain
->      in the hypervisor, and do map/unmap hypercalls for mapping and
->      unmapping guest RAM for DMA. All hypervisor communications use
->      device ID of type PCI for identifying and referencing the device.
-> 
->   2. Direct Attach: the hypervisor will simply use the guest's HW
->      page table for mappings, thus the root need not map/unmap guest
->      memory for DMA. As such, direct attach passthru setup during guest
->      boot is extremely fast. A direct attached device must always be
->      referenced via logical device ID and not via the PCI device ID.
-> 
-> At present, L1VH root only supports direct attaches. Also direct attach is
-> default in non-L1VH cases because there are some significant performance
-> issues with domain attach implementations currently for guests with higher
-> RAM (say more than 8GB), and that unfortunately cannot be addressed in
-> the short term.
-> 
-> Co-developed-by: Wei Liu <wei.liu@kernel.org>
-> Signed-off-by: Wei Liu <wei.liu@kernel.org>
-> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
-> ---
->  MAINTAINERS                       |   1 +
->  arch/x86/kernel/pci-dma.c         |   2 +
->  drivers/iommu/Kconfig             |   5 +-
->  drivers/iommu/Makefile            |   1 +
->  drivers/iommu/hyperv-iommu-root.c | 908 ++++++++++++++++++++++++++++++
->  include/asm-generic/mshyperv.h    |  17 +
->  include/linux/hyperv.h            |   6 +
->  7 files changed, 937 insertions(+), 3 deletions(-)
->  create mode 100644 drivers/iommu/hyperv-iommu-root.c
-> 
-> diff --git a/MAINTAINERS b/MAINTAINERS
-> index f803a6a38fee..8ae040b89a56 100644
-> --- a/MAINTAINERS
-> +++ b/MAINTAINERS
-> @@ -11914,6 +11914,7 @@ F:	drivers/clocksource/hyperv_timer.c
->  F:	drivers/hid/hid-hyperv.c
->  F:	drivers/hv/
->  F:	drivers/input/serio/hyperv-keyboard.c
-> +F:	drivers/iommu/hyperv-iommu-root.c
->  F:	drivers/iommu/hyperv-irq.c
->  F:	drivers/net/ethernet/microsoft/
->  F:	drivers/net/hyperv/
-> diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
-> index 6267363e0189..cfeee6505e17 100644
-> --- a/arch/x86/kernel/pci-dma.c
-> +++ b/arch/x86/kernel/pci-dma.c
-> @@ -8,6 +8,7 @@
->  #include <linux/gfp.h>
->  #include <linux/pci.h>
->  #include <linux/amd-iommu.h>
-> +#include <linux/hyperv.h>
->  
->  #include <asm/proto.h>
->  #include <asm/dma.h>
-> @@ -105,6 +106,7 @@ void __init pci_iommu_alloc(void)
->  	gart_iommu_hole_init();
->  	amd_iommu_detect();
->  	detect_intel_iommu();
-> +	hv_iommu_detect();
->  	swiotlb_init(x86_swiotlb_enable, x86_swiotlb_flags);
->  }
->  
-> diff --git a/drivers/iommu/Kconfig b/drivers/iommu/Kconfig
-> index f86262b11416..7909cf4373a6 100644
-> --- a/drivers/iommu/Kconfig
-> +++ b/drivers/iommu/Kconfig
-> @@ -352,13 +352,12 @@ config MTK_IOMMU_V1
->  	  if unsure, say N here.
->  
->  config HYPERV_IOMMU
-> -	bool "Hyper-V IRQ Handling"
-> +	bool "Hyper-V IOMMU Unit"
->  	depends on HYPERV && X86
->  	select IOMMU_API
->  	default HYPERV
->  	help
-> -	  Stub IOMMU driver to handle IRQs to support Hyper-V Linux
-> -	  guest and root partitions.
-> +	  Hyper-V pseudo IOMMU unit.
->  
->  config VIRTIO_IOMMU
->  	tristate "Virtio IOMMU driver"
-> diff --git a/drivers/iommu/Makefile b/drivers/iommu/Makefile
-> index 335ea77cced6..296fbc6ca829 100644
-> --- a/drivers/iommu/Makefile
-> +++ b/drivers/iommu/Makefile
-> @@ -31,6 +31,7 @@ obj-$(CONFIG_EXYNOS_IOMMU) += exynos-iommu.o
->  obj-$(CONFIG_FSL_PAMU) += fsl_pamu.o fsl_pamu_domain.o
->  obj-$(CONFIG_S390_IOMMU) += s390-iommu.o
->  obj-$(CONFIG_HYPERV) += hyperv-irq.o
-> +obj-$(CONFIG_HYPERV_IOMMU) += hyperv-iommu-root.o
->  obj-$(CONFIG_VIRTIO_IOMMU) += virtio-iommu.o
->  obj-$(CONFIG_IOMMU_SVA) += iommu-sva.o
->  obj-$(CONFIG_IOMMU_IOPF) += io-pgfault.o
-> diff --git a/drivers/iommu/hyperv-iommu-root.c b/drivers/iommu/hyperv-iommu-root.c
-> new file mode 100644
-> index 000000000000..739bbf39dea2
-> --- /dev/null
-> +++ b/drivers/iommu/hyperv-iommu-root.c
-> @@ -0,0 +1,908 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Hyper-V root vIOMMU driver.
-> + * Copyright (C) 2026, Microsoft, Inc.
-> + */
-> +
-> +#include <linux/pci.h>
-> +#include <linux/dma-map-ops.h>
-> +#include <linux/interval_tree.h>
-> +#include <linux/hyperv.h>
-> +#include "dma-iommu.h"
-> +#include <asm/iommu.h>
-> +#include <asm/mshyperv.h>
-> +
-> +/* We will not claim these PCI devices, eg hypervisor needs it for debugger */
-> +static char *pci_devs_to_skip;
-> +static int __init hv_iommu_setup_skip(char *str)
-> +{
-> +	pci_devs_to_skip = str;
-> +
-> +	return 0;
-> +}
-> +/* hv_iommu_skip=(SSSS:BB:DD.F)(SSSS:BB:DD.F) */
-> +__setup("hv_iommu_skip=", hv_iommu_setup_skip);
-> +
-> +bool hv_no_attdev;	 /* disable direct device attach for passthru */
-> +EXPORT_SYMBOL_GPL(hv_no_attdev);
-> +static int __init setup_hv_no_attdev(char *str)
-> +{
-> +	hv_no_attdev = true;
-> +	return 0;
-> +}
-> +__setup("hv_no_attdev", setup_hv_no_attdev);
-> +
-> +/* Iommu device that we export to the world. HyperV supports max of one */
-> +static struct iommu_device hv_virt_iommu;
-> +
-> +struct hv_domain {
-> +	struct iommu_domain iommu_dom;
-> +	u32 domid_num;			      /* as opposed to domain_id.type */
-> +	bool attached_dom;		      /* is this direct attached dom? */
-> +	u64 partid;			      /* partition id */
-> +	spinlock_t mappings_lock;	      /* protects mappings_tree */
-> +	struct rb_root_cached mappings_tree;  /* iova to pa lookup tree */
-> +};
-> +
-> +#define to_hv_domain(d) container_of(d, struct hv_domain, iommu_dom)
-> +
-> +struct hv_iommu_mapping {
-> +	phys_addr_t paddr;
-> +	struct interval_tree_node iova;
-> +	u32 flags;
-> +};
-> +
-> +/*
-> + * By default, during boot the hypervisor creates one Stage 2 (S2) default
-> + * domain. Stage 2 means that the page table is controlled by the hypervisor.
-> + *   S2 default: access to entire root partition memory. This for us easily
-> + *		 maps to IOMMU_DOMAIN_IDENTITY in the iommu subsystem, and
-> + *		 is called HV_DEVICE_DOMAIN_ID_S2_DEFAULT in the hypervisor.
-> + *
-> + * Device Management:
-> + *   There are two ways to manage device attaches to domains:
-> + *     1. Domain Attach: A device domain is created in the hypervisor, the
-> + *			 device is attached to this domain, and then memory
-> + *			 ranges are mapped in the map callbacks.
-> + *     2. Direct Attach: No need to create a domain in the hypervisor for direct
-> + *			 attached devices. A hypercall is made to tell the
-> + *			 hypervisor to attach the device to a guest. There is
-> + *			 no need for explicit memory mappings because the
-> + *			 hypervisor will just use the guest HW page table.
-> + *
-> + * Since a direct attach is much faster, it is the default. This can be
-> + * changed via hv_no_attdev.
-> + *
-> + * L1VH: hypervisor only supports direct attach.
-> + */
-> +
-> +/*
-> + * Create dummy domains to correspond to hypervisor prebuilt default identity
-> + * and null domains (dummy because we do not make hypercalls to create them).
-> + */
-> +static struct hv_domain hv_def_identity_dom;
-> +static struct hv_domain hv_null_dom;
-> +
-> +static bool hv_special_domain(struct hv_domain *hvdom)
-> +{
-> +	return hvdom == &hv_def_identity_dom || hvdom == &hv_null_dom;
-> +}
-> +
-> +struct iommu_domain_geometry default_geometry = (struct iommu_domain_geometry) {
-> +	.aperture_start = 0,
-> +	.aperture_end = -1UL,
-> +	.force_aperture = true,
-> +};
-> +
-> +/*
-> + * Since the relevant hypercalls can only fit less than 512 PFNs in the pfn
-> + * array, report 1M max.
-> + */
-> +#define HV_IOMMU_PGSIZES (SZ_4K | SZ_1M)
-> +
-> +static u32 unique_id;	      /* unique numeric id of a new domain */
-> +
-> +static void hv_iommu_detach_dev(struct iommu_domain *immdom,
-> +				struct device *dev);
-> +static size_t hv_iommu_unmap_pages(struct iommu_domain *immdom, ulong iova,
-> +				   size_t pgsize, size_t pgcount,
-> +				   struct iommu_iotlb_gather *gather);
-> +
-> +/*
-> + * If the current thread is a VMM thread, return the partition id of the VM it
-> + * is managing, else return HV_PARTITION_ID_INVALID.
-> + */
-> +u64 hv_get_current_partid(void)
-> +{
-> +	u64 (*fn)(void);
-> +	u64 ptid;
-> +
-> +	fn = symbol_get(mshv_current_partid);
-> +	if (!fn)
-> +		return HV_PARTITION_ID_INVALID;
-> +
-> +	ptid = fn();
-> +	symbol_put(mshv_current_partid);
-> +
-> +	return ptid;
-> +}
-> +EXPORT_SYMBOL_GPL(hv_get_current_partid);
-> +
-> +/* If this is a VMM thread, then this domain is for a guest vm */
-> +static bool hv_curr_thread_is_vmm(void)
-> +{
-> +	return hv_get_current_partid() != HV_PARTITION_ID_INVALID;
-> +}
-> +
-> +/* As opposed to some host app like SPDK etc... */
-> +static bool hv_dom_owner_is_vmm(struct hv_domain *hvdom)
-> +{
-> +	return hvdom && hvdom->partid != HV_PARTITION_ID_INVALID;
-> +}
-> +
-> +static bool hv_iommu_capable(struct device *dev, enum iommu_cap cap)
-> +{
-> +	switch (cap) {
-> +	case IOMMU_CAP_CACHE_COHERENCY:
-> +		return true;
-> +	default:
-> +		return false;
-> +	}
-> +}
-> +
-> +/*
-> + * Check if given pci device is a direct attached device. Caller must have
-> + * verified pdev is a valid pci device.
-> + */
-> +bool hv_pcidev_is_attached_dev(struct pci_dev *pdev)
-> +{
-> +	struct iommu_domain *iommu_domain;
-> +	struct hv_domain *hvdom;
-> +	struct device *dev = &pdev->dev;
-> +
-> +	iommu_domain = iommu_get_domain_for_dev(dev);
-> +	if (iommu_domain) {
-> +		hvdom = to_hv_domain(iommu_domain);
-> +		return hvdom->attached_dom;
-> +	}
-> +
-> +	return false;
-> +}
-> +EXPORT_SYMBOL_GPL(hv_pcidev_is_attached_dev);
-> +
-> +bool hv_pcidev_is_pthru_dev(struct pci_dev *pdev)
-> +{
-> +	struct device *dev = &pdev->dev;
-> +	struct hv_domain *hvdom = dev_iommu_priv_get(dev);
-> +
-> +	if (hvdom && !hv_special_domain(hvdom))
-> +		return true;
-> +
-> +	return false;
-> +}
-> +EXPORT_SYMBOL_GPL(hv_pcidev_is_pthru_dev);
-> +
-> +/* Build device id for direct attached devices */
-> +static u64 hv_build_devid_type_logical(struct pci_dev *pdev)
-> +{
-> +	hv_pci_segment segment;
-> +	union hv_device_id hv_devid;
-> +	union hv_pci_bdf bdf = {.as_uint16 = 0};
-> +	u32 rid = PCI_DEVID(pdev->bus->number, pdev->devfn);
-> +
-> +	segment = pci_domain_nr(pdev->bus);
-> +	bdf.bus = PCI_BUS_NUM(rid);
-> +	bdf.device = PCI_SLOT(rid);
-> +	bdf.function = PCI_FUNC(rid);
-> +
-> +	hv_devid.as_uint64 = 0;
-> +	hv_devid.device_type = HV_DEVICE_TYPE_LOGICAL;
-> +	hv_devid.logical.id = (u64)segment << 16 | bdf.as_uint16;
-> +
-> +	return hv_devid.as_uint64;
-> +}
-> +
-> +u64 hv_build_devid_oftype(struct pci_dev *pdev, enum hv_device_type type)
-> +{
-> +	if (type == HV_DEVICE_TYPE_LOGICAL) {
-> +		if (hv_l1vh_partition())
-> +			return hv_pci_vmbus_device_id(pdev);
-> +		else
-> +			return hv_build_devid_type_logical(pdev);
-> +	} else if (type == HV_DEVICE_TYPE_PCI)
-> +#ifdef CONFIG_X86
-> +		return hv_build_devid_type_pci(pdev);
-> +#else
-> +		return 0;
-> +#endif
-> +	return 0;
-> +}
-> +EXPORT_SYMBOL_GPL(hv_build_devid_oftype);
-> +
-> +/* Create a new device domain in the hypervisor */
-> +static int hv_iommu_create_hyp_devdom(struct hv_domain *hvdom)
-> +{
-> +	u64 status;
-> +	struct hv_input_device_domain *ddp;
-> +	struct hv_input_create_device_domain *input;
-> +	unsigned long flags;
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	ddp = &input->device_domain;
-> +	ddp->partition_id = HV_PARTITION_ID_SELF;
-> +	ddp->domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
-> +	ddp->domain_id.id = hvdom->domid_num;
-> +
-> +	input->create_device_domain_flags.forward_progress_required = 1;
-> +	input->create_device_domain_flags.inherit_owning_vtl = 0;
-> +
-> +	status = hv_do_hypercall(HVCALL_CREATE_DEVICE_DOMAIN, input, NULL);
-> +
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
-> +{
-> +	struct hv_domain *hvdom;
-> +	int rc;
-> +
-> +	if (hv_l1vh_partition() && !hv_curr_thread_is_vmm()) {
-> +		pr_err("Hyper-V: l1vh iommu does not support host devices\n");
-> +		return NULL;
-> +	}
-> +
-> +	hvdom = kzalloc(sizeof(struct hv_domain), GFP_KERNEL);
-> +	if (hvdom == NULL)
-> +		return NULL;
-> +
-> +	spin_lock_init(&hvdom->mappings_lock);
-> +	hvdom->mappings_tree = RB_ROOT_CACHED;
-> +
-> +	/* Called under iommu group mutex, so single threaded */
-> +	if (++unique_id == HV_DEVICE_DOMAIN_ID_S2_DEFAULT)   /* ie, 0 */
-> +		goto out_err;
-> +
-> +	hvdom->domid_num = unique_id;
-> +	hvdom->partid = hv_get_current_partid();
-> +	hvdom->iommu_dom.geometry = default_geometry;
-> +	hvdom->iommu_dom.pgsize_bitmap = HV_IOMMU_PGSIZES;
-> +
-> +	/* For guests, by default we do direct attaches, so no domain in hyp */
-> +	if (hv_dom_owner_is_vmm(hvdom) && !hv_no_attdev)
-> +		hvdom->attached_dom = true;
-> +	else {
-> +		rc = hv_iommu_create_hyp_devdom(hvdom);
-> +		if (rc)
-> +			goto out_err;
-> +	}
-> +
-> +	return &hvdom->iommu_dom;
-> +
-> +out_err:
-> +	unique_id--;
-> +	kfree(hvdom);
-> +	return NULL;
-> +}
-> +
-> +static void hv_iommu_domain_free(struct iommu_domain *immdom)
-> +{
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +	unsigned long flags;
-> +	u64 status;
-> +	struct hv_input_delete_device_domain *input;
-> +
-> +	if (hv_special_domain(hvdom))
-> +		return;
-> +
-> +	if (!hv_dom_owner_is_vmm(hvdom) || hv_no_attdev) {
-> +		struct hv_input_device_domain *ddp;
-> +
-> +		local_irq_save(flags);
-> +		input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +		ddp = &input->device_domain;
-> +		memset(input, 0, sizeof(*input));
-> +
-> +		ddp->partition_id = HV_PARTITION_ID_SELF;
-> +		ddp->domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
-> +		ddp->domain_id.id = hvdom->domid_num;
-> +
-> +		status = hv_do_hypercall(HVCALL_DELETE_DEVICE_DOMAIN, input,
-> +					 NULL);
-> +		local_irq_restore(flags);
-> +
-> +		if (!hv_result_success(status))
-> +			hv_status_err(status, "\n");
-> +	}
-> +
-> +	kfree(hvdom);
-> +}
-> +
-> +/* Attach a device to a domain previously created in the hypervisor */
-> +static int hv_iommu_att_dev2dom(struct hv_domain *hvdom, struct pci_dev *pdev)
-> +{
-> +	unsigned long flags;
-> +	u64 status;
-> +	enum hv_device_type dev_type;
-> +	struct hv_input_attach_device_domain *input;
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
-> +	input->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
-> +	input->device_domain.domain_id.id = hvdom->domid_num;
-> +
-> +	/* NB: Upon guest shutdown, device is re-attached to the default domain
-> +	 *     without explicit detach.
-> +	 */
-> +	if (hv_l1vh_partition())
-> +		dev_type = HV_DEVICE_TYPE_LOGICAL;
-> +	else
-> +		dev_type = HV_DEVICE_TYPE_PCI;
-> +
-> +	input->device_id.as_uint64 = hv_build_devid_oftype(pdev, dev_type);
-> +
-> +	status = hv_do_hypercall(HVCALL_ATTACH_DEVICE_DOMAIN, input, NULL);
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +/* Caller must have validated that dev is a valid pci dev */
-> +static int hv_iommu_direct_attach_device(struct pci_dev *pdev, u64 ptid)
-> +{
-> +	struct hv_input_attach_device *input;
-> +	u64 status;
-> +	int rc;
-> +	unsigned long flags;
-> +	union hv_device_id host_devid;
-> +	enum hv_device_type dev_type;
-> +
-> +	if (ptid == HV_PARTITION_ID_INVALID) {
-> +		pr_err("Hyper-V: Invalid partition id in direct attach\n");
-> +		return -EINVAL;
-> +	}
-> +
-> +	if (hv_l1vh_partition())
-> +		dev_type = HV_DEVICE_TYPE_LOGICAL;
-> +	else
-> +		dev_type = HV_DEVICE_TYPE_PCI;
-> +
-> +	host_devid.as_uint64 = hv_build_devid_oftype(pdev, dev_type);
-> +
-> +	do {
-> +		local_irq_save(flags);
-> +		input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +		memset(input, 0, sizeof(*input));
-> +		input->partition_id = ptid;
-> +		input->device_id = host_devid;
-> +
-> +		/* Hypervisor associates logical_id with this device, and in
-> +		 * some hypercalls like retarget interrupts, logical_id must be
-> +		 * used instead of the BDF. It is a required parameter.
-> +		 */
-> +		input->attdev_flags.logical_id = 1;
-> +		input->logical_devid =
-> +			   hv_build_devid_oftype(pdev, HV_DEVICE_TYPE_LOGICAL);
-> +
-> +		status = hv_do_hypercall(HVCALL_ATTACH_DEVICE, input, NULL);
-> +		local_irq_restore(flags);
-> +
-> +		if (hv_result(status) == HV_STATUS_INSUFFICIENT_MEMORY) {
-> +			rc = hv_call_deposit_pages(NUMA_NO_NODE, ptid, 1);
-> +			if (rc)
-> +				break;
-> +		}
-> +	} while (hv_result(status) == HV_STATUS_INSUFFICIENT_MEMORY);
-This can become a infinite loop, if for some reason HV continue to fail 
-to attach device for some other reason than insufficient memory. We can 
-have a max retry count here.
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +/* Attach a device for passthru to guest VMs, host apps like SPDK, etc */
-> +static int hv_iommu_attach_dev(struct iommu_domain *immdom, struct device *dev,
-> +			       struct iommu_domain *old)
-> +{
-> +	struct pci_dev *pdev;
-> +	int rc;
-> +	struct hv_domain *hvdom_new = to_hv_domain(immdom);
-> +	struct hv_domain *hvdom_prev = dev_iommu_priv_get(dev);
-> +
-> +	/* Only allow PCI devices for now */
-> +	if (!dev_is_pci(dev))
-> +		return -EINVAL;
-> +
-> +	pdev = to_pci_dev(dev);
-> +
-> +	if (hv_l1vh_partition() && !hv_special_domain(hvdom_new) &&
-> +	    !hvdom_new->attached_dom)
-> +		return -EINVAL;
-> +
-> +	/* VFIO does not do explicit detach calls, hence check first if we need
-> +	 * to detach first. Also, in case of guest shutdown, it's the VMM
-> +	 * thread that attaches it back to the hv_def_identity_dom, and
-> +	 * hvdom_prev will not be null then. It is null during boot.
-> +	 */
-> +	if (hvdom_prev)
-> +		if (!hv_l1vh_partition() || !hv_special_domain(hvdom_prev))
-> +			hv_iommu_detach_dev(&hvdom_prev->iommu_dom, dev);
-> +
-> +	if (hv_l1vh_partition() && hv_special_domain(hvdom_new)) {
-> +		dev_iommu_priv_set(dev, hvdom_new);  /* sets "private" field */
-> +		return 0;
-> +	}
-> +
-> +	if (hvdom_new->attached_dom)
-> +		rc = hv_iommu_direct_attach_device(pdev, hvdom_new->partid);
-> +	else
-> +		rc = hv_iommu_att_dev2dom(hvdom_new, pdev);
-destructive detach before failable attach with no rollback.
-1. If hvdom_prev exists, issue HVCALL_DETACH_DEVICE_DOMAIN / 
-HVCALL_DETACH_DEVICE against the old hypervisor domain.
-2. Then issue the attach hypercall against the new domain 
-3. Only on success, update dev_iommu_priv.
+On Wed, May 6, 2026 at 11:40=E2=80=AFAM David Gow <david@davidgow.net> wrot=
+e:
+>
+> Le 04/05/2026 =C3=A0 3:41 PM, Albert Esteve a =C3=A9crit :
+> > From: Alessandro Carminati <acarmina@redhat.com>
+> >
+> > Some unit tests intentionally trigger warning backtraces by passing bad
+> > parameters to kernel API functions. Such unit tests typically check the
+> > return value from such calls, not the existence of the warning backtrac=
+e.
+> >
+> > Such intentionally generated warning backtraces are neither desirable
+> > nor useful for a number of reasons:
+> > - They can result in overlooked real problems.
+> > - A warning that suddenly starts to show up in unit tests needs to be
+> >    investigated and has to be marked to be ignored, for example by
+> >    adjusting filter scripts. Such filters are ad hoc because there is
+> >    no real standard format for warnings. On top of that, such filter
+> >    scripts would require constant maintenance.
+> >
+> > Solve the problem by providing a means to suppress warning backtraces
+> > originating from the current kthread while executing test code. Since
+> > each KUnit test runs in its own kthread, this effectively scopes
+> > suppression to the test that enabled it. Limit changes to generic code
+> > to the absolute minimum.
+> >
+> > Implementation details:
+> > Suppression is integrated into the existing KUnit hooks infrastructure
+> > in test-bug.h, reusing the kunit_running static branch for zero
+> > overhead when no tests are running.
+> >
+> > Suppression is checked at three points in the warning path:
+> > - In warn_slowpath_fmt(), the check runs before any output, fully
+> >    suppressing both message and backtrace. This covers architectures
+> >    without __WARN_FLAGS.
+> > - In __warn_printk(), the check suppresses the warning message text.
+> >    This covers architectures that define __WARN_FLAGS but not their own
+> >    __WARN_printf (arm64, loongarch, parisc, powerpc, riscv, sh), where
+> >    the message is printed before the trap enters __report_bug().
+> > - In __report_bug(), the check runs before __warn() is called,
+> >    suppressing the backtrace and stack dump.
+> >
+> > To avoid double-counting on architectures where both __warn_printk()
+> > and __report_bug() run for the same warning, kunit_is_suppressed_warnin=
+g()
+> > takes a bool parameter: true to increment the suppression counter
+> > (used in warn_slowpath_fmt and __report_bug), false to check only
+> > (used in __warn_printk).
+> >
+> > The suppression state is dynamically allocated via kunit_kzalloc() and
+> > tied to the KUnit test lifecycle via kunit_add_action(), ensuring
+> > automatic cleanup at test exit. Writer-side access to the global
+> > suppression list is serialized with a spinlock; readers use RCU.
+> >
+> > Three API forms are provided:
+> > - kunit_warning_suppress(test) { ... }: scoped, uses __cleanup for
+> >    automatic teardown on scope exit, kunit_add_action() as safety net
+> >    for abnormal exits (e.g. kthread_exit from failed assertions).
+> >    Suppression handle is only accessible inside the block.
+> > - KUNIT_START/END_SUPPRESSED_WARNING(test): manual macros for larger
+> >    blocks or when warning counts need to be checked after suppression
+> >    ends. Limited to one pair per scope.
+> > - kunit_start/end_suppress_warning(test): direct functions returning
+> >    an explicit handle, for retaining the handle within the test,
+> >    or for cross-function usage.
+> >
+> > Signed-off-by: Guenter Roeck <linux@roeck-us.net>
+> > Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
+> > Reviewed-by: Kees Cook <kees@kernel.org>
+> > Signed-off-by: Albert Esteve <aesteve@redhat.com>
+> > ---
+>
+> This looks pretty good to me, thanks.
+>
+> Reviewed-by: David Gow <david@davidgow.net>
+>
+> It's maybe slightly over-the-top to now have three different ways of
+> enabling warning suppression: I'd probably personally get rid of
+> KUNIT_START/END_SUPPRESSED_WARNING() if we had to lose one. But if
+> there's a real reason to prefer keeping all three, it's not actually a
+> problem to do so.
 
-If step 2 fails, the device is left hypervisor-detached while 
-dev_iommu_priv still points at the old domain, and the IOMMU core's 
-recovery does not help
-> +
-> +	if (rc == 0)
-> +		dev_iommu_priv_set(dev, hvdom_new);  /* sets "private" field */
-> +
-> +	return rc;
-> +}
-> +
-> +static void hv_iommu_det_dev_from_guest(struct pci_dev *pdev, u64 ptid)
-> +{
-> +	struct hv_input_detach_device *input;
-> +	u64 status, log_devid;
-> +	unsigned long flags;
-> +
-> +	log_devid = hv_build_devid_oftype(pdev, HV_DEVICE_TYPE_LOGICAL);
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->partition_id = ptid;
-> +	input->logical_devid = log_devid;
-> +	status = hv_do_hypercall(HVCALL_DETACH_DEVICE, input, NULL);
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +}
-> +
-> +static void hv_iommu_det_dev_from_dom(struct pci_dev *pdev)
-> +{
-> +	u64 status, devid;
-> +	unsigned long flags;
-> +	struct hv_input_detach_device_domain *input;
-> +
-> +	devid = hv_build_devid_oftype(pdev, HV_DEVICE_TYPE_PCI);
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->partition_id = HV_PARTITION_ID_SELF;
-> +	input->device_id.as_uint64 = devid;
-> +	status = hv_do_hypercall(HVCALL_DETACH_DEVICE_DOMAIN, input, NULL);
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +}
-> +
-> +static void hv_iommu_detach_dev(struct iommu_domain *immdom, struct device *dev)
-> +{
-> +	struct pci_dev *pdev;
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +
-> +	/* See the attach function, only PCI devices for now */
-> +	if (!dev_is_pci(dev))
-> +		return;
-> +
-> +	pdev = to_pci_dev(dev);
-> +
-> +	if (hvdom->attached_dom)
-> +		hv_iommu_det_dev_from_guest(pdev, hvdom->partid);
-> +
-> +		/* Do not reset attached_dom, hv_iommu_unmap_pages happens
-> +		 * next.
-> +		 */
-> +	else
-> +		hv_iommu_det_dev_from_dom(pdev);
-> +}
-> +
-> +static int hv_iommu_add_tree_mapping(struct hv_domain *hvdom,
-> +				     unsigned long iova, phys_addr_t paddr,
-> +				     size_t size, u32 flags)
-> +{
-> +	unsigned long irqflags;
-> +	struct hv_iommu_mapping *mapping;
-> +
-> +	mapping = kzalloc(sizeof(*mapping), GFP_ATOMIC);
-> +	if (!mapping)
-> +		return -ENOMEM;
-> +
-> +	mapping->paddr = paddr;
-> +	mapping->iova.start = iova;
-> +	mapping->iova.last = iova + size - 1;
-> +	mapping->flags = flags;
-> +
-> +	spin_lock_irqsave(&hvdom->mappings_lock, irqflags);
-> +	interval_tree_insert(&mapping->iova, &hvdom->mappings_tree);
-> +	spin_unlock_irqrestore(&hvdom->mappings_lock, irqflags);
-> +
-> +	return 0;
-> +}
-> +
-> +static size_t hv_iommu_del_tree_mappings(struct hv_domain *hvdom,
-> +					unsigned long iova, size_t size)
-> +{
-> +	unsigned long flags;
-> +	size_t unmapped = 0;
-> +	unsigned long last = iova + size - 1;
-> +	struct hv_iommu_mapping *mapping = NULL;
-> +	struct interval_tree_node *node, *next;
-> +
-> +	spin_lock_irqsave(&hvdom->mappings_lock, flags);
-> +	next = interval_tree_iter_first(&hvdom->mappings_tree, iova, last);
-> +	while (next) {
-> +		node = next;
-> +		mapping = container_of(node, struct hv_iommu_mapping, iova);
-> +		next = interval_tree_iter_next(node, iova, last);
-> +
-> +		/* Trying to split a mapping? Not supported for now. */
-> +		if (mapping->iova.start < iova)
-> +			break;
-> +
-> +		unmapped += mapping->iova.last - mapping->iova.start + 1;
-> +
-> +		interval_tree_remove(node, &hvdom->mappings_tree);
-> +		kfree(mapping);
-> +	}
-> +	spin_unlock_irqrestore(&hvdom->mappings_lock, flags);
-> +
-> +	return unmapped;
-> +}
-> +
-> +/* Return: must return exact status from the hypercall without changes */
-> +static u64 hv_iommu_map_pgs(struct hv_domain *hvdom,
-> +			    unsigned long iova, phys_addr_t paddr,
-> +			    unsigned long npages, u32 map_flags)
-> +{
-> +	u64 status;
-> +	int i;
-> +	struct hv_input_map_device_gpa_pages *input;
-> +	unsigned long flags, pfn;
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
-> +	input->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
-> +	input->device_domain.domain_id.id = hvdom->domid_num;
-> +	input->map_flags = map_flags;
-> +	input->target_device_va_base = iova;
-> +
-> +	pfn = paddr >> HV_HYP_PAGE_SHIFT;
-> +	for (i = 0; i < npages; i++, pfn++)
-> +		input->gpa_page_list[i] = pfn;
-No boundary check for npages here in gpa_page_list, as 512 PFNs in the 
-pfn array is the limit for the rep hypercall.
-> +
-> +	status = hv_do_rep_hypercall(HVCALL_MAP_DEVICE_GPA_PAGES, npages, 0,
-> +				     input, NULL);
-npages can get trucated here, as rep_count is u16.
-> +
-> +	local_irq_restore(flags);
-> +	return status;
-> +}
-> +
-> +/*
-> + * The core VFIO code loops over memory ranges calling this function with
-> + * the largest size from HV_IOMMU_PGSIZES. cond_resched() is in vfio_iommu_map.
-> + */
-> +static int hv_iommu_map_pages(struct iommu_domain *immdom, ulong iova,
-> +			      phys_addr_t paddr, size_t pgsize, size_t pgcount,
-> +			      int prot, gfp_t gfp, size_t *mapped)
-> +{
-> +	u32 map_flags;
-> +	int ret;
-> +	u64 status;
-> +	unsigned long npages, done = 0;
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +	size_t size = pgsize * pgcount;
-> +
-> +	map_flags = HV_MAP_GPA_READABLE;	/* required */
-> +	map_flags |= prot & IOMMU_WRITE ? HV_MAP_GPA_WRITABLE : 0;
-> +
-> +	ret = hv_iommu_add_tree_mapping(hvdom, iova, paddr, size, map_flags);
-> +	if (ret)
-> +		return ret;
-> +
-> +	if (hvdom->attached_dom) {
-> +		*mapped = size;
-> +		return 0;
-> +	}
-> +
-> +	npages = size >> HV_HYP_PAGE_SHIFT;
-> +	while (done < npages) {
-> +		ulong completed, remain = npages - done;
-> +
-> +		status = hv_iommu_map_pgs(hvdom, iova, paddr, remain,
-> +					  map_flags);
-> +
-> +		completed = hv_repcomp(status);
-> +		done = done + completed;
-> +		iova = iova + (completed << HV_HYP_PAGE_SHIFT);
-> +		paddr = paddr + (completed << HV_HYP_PAGE_SHIFT);
-> +
-> +		if (hv_result(status) == HV_STATUS_INSUFFICIENT_MEMORY) {
-> +			ret = hv_call_deposit_pages(NUMA_NO_NODE,
-> +						    hv_current_partition_id,
-> +						    256);
-> +			if (ret)
-> +				break;
-> +			continue;
-> +		}
-> +		if (!hv_result_success(status))
-> +			break;
-> +	}
-> +
-> +	if (!hv_result_success(status)) {
-> +		size_t done_size = done << HV_HYP_PAGE_SHIFT;
-> +
-> +		hv_status_err(status, "pgs:%lx/%lx iova:%lx\n",
-> +			      done, npages, iova);
-> +		/*
-> +		 * lookup tree has all mappings [0 - size-1]. Below unmap will
-> +		 * only remove from [0 - done], we need to remove second chunk
-> +		 * [done+1 - size-1].
-> +		 */
-> +		hv_iommu_del_tree_mappings(hvdom, iova, size - done_size);
-> +		hv_iommu_unmap_pages(immdom, iova - done_size, HV_HYP_PAGE_SIZE,
-> +				     done, NULL);
-> +		if (mapped)
-> +			*mapped = 0;
-> +	} else
-> +		if (mapped)
-> +			*mapped = size;
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +static size_t hv_iommu_unmap_pages(struct iommu_domain *immdom, ulong iova,
-> +				   size_t pgsize, size_t pgcount,
-> +				   struct iommu_iotlb_gather *gather)
-> +{
-> +	unsigned long flags, npages;
-> +	struct hv_input_unmap_device_gpa_pages *input;
-> +	u64 status;
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +	size_t unmapped, size = pgsize * pgcount;
-> +
-> +	unmapped = hv_iommu_del_tree_mappings(hvdom, iova, size);
-> +	if (unmapped < size)
-> +		pr_err("%s: could not delete all mappings (%lx:%lx/%lx)\n",
-> +		       __func__, iova, unmapped, size);
-> +
-> +	if (hvdom->attached_dom)
-> +		return size;
-> +
-> +	npages = size >> HV_HYP_PAGE_SHIFT;
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
-> +	input->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
-> +	input->device_domain.domain_id.id = hvdom->domid_num;
-> +	input->target_device_va_base = iova;
-> +
-> +	status = hv_do_rep_hypercall(HVCALL_UNMAP_DEVICE_GPA_PAGES, npages,
-> +				     0, input, NULL);
-npages can get truncated here.
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +
-> +	return unmapped;
-> +}
-> +
-> +static phys_addr_t hv_iommu_iova_to_phys(struct iommu_domain *immdom,
-> +					 dma_addr_t iova)
-> +{
-> +	unsigned long flags;
-> +	struct hv_iommu_mapping *mapping;
-> +	struct interval_tree_node *node;
-> +	u64 paddr = 0;
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +
-> +	spin_lock_irqsave(&hvdom->mappings_lock, flags);
-> +	node = interval_tree_iter_first(&hvdom->mappings_tree, iova, iova);
-> +	if (node) {
-> +		mapping = container_of(node, struct hv_iommu_mapping, iova);
-> +		paddr = mapping->paddr + (iova - mapping->iova.start);
-> +	}
-> +	spin_unlock_irqrestore(&hvdom->mappings_lock, flags);
-> +
-> +	return paddr;
-> +}
-> +
-> +/*
-> + * Currently, hypervisor does not provide list of devices it is using
-> + * dynamically. So use this to allow users to manually specify devices that
-> + * should be skipped. (eg. hypervisor debugger using some network device).
-> + */
-> +static struct iommu_device *hv_iommu_probe_device(struct device *dev)
-> +{
-> +	if (!dev_is_pci(dev))
-> +		return ERR_PTR(-ENODEV);
-> +
-> +	if (pci_devs_to_skip && *pci_devs_to_skip) {
-> +		int rc, pos = 0;
-> +		int parsed;
-> +		int segment, bus, slot, func;
-> +		struct pci_dev *pdev = to_pci_dev(dev);
-> +
-> +		do {
-> +			parsed = 0;
-> +
-> +			rc = sscanf(pci_devs_to_skip + pos, " (%x:%x:%x.%x) %n",
-> +				    &segment, &bus, &slot, &func, &parsed);
-> +			if (rc)
-> +				break;
-> +			if (parsed <= 0)
-> +				break;
-> +
-> +			if (pci_domain_nr(pdev->bus) == segment &&
-> +			    pdev->bus->number == bus &&
-> +			    PCI_SLOT(pdev->devfn) == slot &&
-> +			    PCI_FUNC(pdev->devfn) == func) {
-> +
-> +				dev_info(dev, "skipped by Hyper-V IOMMU\n");
-> +				return ERR_PTR(-ENODEV);
-> +			}
-> +			pos += parsed;
-> +
-> +		} while (pci_devs_to_skip[pos]);
-> +	}
-> +
-> +	/* Device will be explicitly attached to the default domain, so no need
-> +	 * to do dev_iommu_priv_set() here.
-> +	 */
-> +
-> +	return &hv_virt_iommu;
-> +}
-> +
-> +static void hv_iommu_probe_finalize(struct device *dev)
-> +{
-> +	struct iommu_domain *immdom = iommu_get_domain_for_dev(dev);
-> +
-> +	if (immdom && immdom->type == IOMMU_DOMAIN_DMA)
-> +		iommu_setup_dma_ops(dev, immdom);
-> +	else
-> +		set_dma_ops(dev, NULL);
-> +}
-> +
-> +static void hv_iommu_release_device(struct device *dev)
-> +{
-> +	struct hv_domain *hvdom = dev_iommu_priv_get(dev);
-> +
-> +	/* Need to detach device from device domain if necessary. */
-> +	if (hvdom)
-> +		hv_iommu_detach_dev(&hvdom->iommu_dom, dev);
-> +
-> +	dev_iommu_priv_set(dev, NULL);
-> +	set_dma_ops(dev, NULL);
-> +}
-> +
-> +static struct iommu_group *hv_iommu_device_group(struct device *dev)
-> +{
-> +	if (dev_is_pci(dev))
-> +		return pci_device_group(dev);
-> +	else
-> +		return generic_device_group(dev);
-> +}
-> +
-> +static int hv_iommu_def_domain_type(struct device *dev)
-> +{
-> +	/* The hypervisor always creates this by default during boot */
-> +	return IOMMU_DOMAIN_IDENTITY;
-> +}
-> +
-> +static struct iommu_ops hv_iommu_ops = {
-> +	.capable	    = hv_iommu_capable,
-> +	.domain_alloc_paging	= hv_iommu_domain_alloc_paging,
-> +	.probe_device	    = hv_iommu_probe_device,
-> +	.probe_finalize     = hv_iommu_probe_finalize,
-> +	.release_device     = hv_iommu_release_device,
-> +	.def_domain_type    = hv_iommu_def_domain_type,
-> +	.device_group	    = hv_iommu_device_group,
-> +	.default_domain_ops = &(const struct iommu_domain_ops) {
-> +		.attach_dev   = hv_iommu_attach_dev,
-> +		.map_pages    = hv_iommu_map_pages,
-> +		.unmap_pages  = hv_iommu_unmap_pages,
-> +		.iova_to_phys = hv_iommu_iova_to_phys,
-> +		.free	      = hv_iommu_domain_free,
-> +	},
-> +	.owner		    = THIS_MODULE,
-> +	.identity_domain = &hv_def_identity_dom.iommu_dom,
-> +	.blocked_domain  = &hv_null_dom.iommu_dom,
-> +};
-> +
-> +static const struct iommu_domain_ops hv_special_domain_ops = {
-> +	.attach_dev = hv_iommu_attach_dev,
-> +};
-> +
-> +static void __init hv_initialize_special_domains(void)
-> +{
-> +	hv_def_identity_dom.iommu_dom.type = IOMMU_DOMAIN_IDENTITY;
-> +	hv_def_identity_dom.iommu_dom.ops = &hv_special_domain_ops;
-> +	hv_def_identity_dom.iommu_dom.owner = &hv_iommu_ops;
-> +	hv_def_identity_dom.iommu_dom.geometry = default_geometry;
-> +	hv_def_identity_dom.domid_num = HV_DEVICE_DOMAIN_ID_S2_DEFAULT; /* 0 */
-> +
-> +	hv_null_dom.iommu_dom.type = IOMMU_DOMAIN_BLOCKED;
-> +	hv_null_dom.iommu_dom.ops = &hv_special_domain_ops;
-> +	hv_null_dom.iommu_dom.owner = &hv_iommu_ops;
-> +	hv_null_dom.iommu_dom.geometry = default_geometry;
-> +	hv_null_dom.domid_num = HV_DEVICE_DOMAIN_ID_S2_NULL;  /* INTMAX */
-> +}
-> +
-> +static int __init hv_iommu_init(void)
-> +{
-> +	int ret;
-> +	struct iommu_device *iommup = &hv_virt_iommu;
-> +
-> +	if (!hv_is_hyperv_initialized())
-> +		return -ENODEV;
-> +
-> +	ret = iommu_device_sysfs_add(iommup, NULL, NULL, "%s", "hyperv-iommu");
-> +	if (ret) {
-> +		pr_err("Hyper-V: iommu_device_sysfs_add failed: %d\n", ret);
-> +		return ret;
-> +	}
-> +
-> +	/* This must come before iommu_device_register because the latter calls
-> +	 * into the hooks.
-> +	 */
-> +	hv_initialize_special_domains();
-> +
-> +	ret = iommu_device_register(iommup, &hv_iommu_ops, NULL);
-> +	if (ret) {
-> +		pr_err("Hyper-V: iommu_device_register failed: %d\n", ret);
-> +		goto err_sysfs_remove;
-> +	}
-> +
-> +	pr_info("Hyper-V IOMMU initialized\n");
-> +
-> +	return 0;
-> +
-> +err_sysfs_remove:
-> +	iommu_device_sysfs_remove(iommup);
-> +	return ret;
-> +}
-> +
-> +void __init hv_iommu_detect(void)
-> +{
-> +	if (no_iommu || iommu_detected)
-> +		return;
-> +
-> +	/* For l1vh, always expose an iommu unit */
-> +	if (!hv_l1vh_partition())
-> +		if (!(ms_hyperv.misc_features & HV_DEVICE_DOMAIN_AVAILABLE))
-> +			return;
-> +
-> +	iommu_detected = 1;
-> +	x86_init.iommu.iommu_init = hv_iommu_init;
-> +
-> +	pci_request_acs();
-> +}
-> diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-> index a6878ab685e7..fca5ed68b5c2 100644
-> --- a/include/asm-generic/mshyperv.h
-> +++ b/include/asm-generic/mshyperv.h
-> @@ -337,6 +337,23 @@ static inline u64 hv_pci_vmbus_device_id(struct pci_dev *pdev)
->  { return 0; }
->  #endif /* IS_ENABLED(CONFIG_PCI_HYPERV) */
->  
-> +#if IS_ENABLED(CONFIG_HYPERV_IOMMU)
-> +u64 hv_get_current_partid(void);
-> +bool hv_pcidev_is_attached_dev(struct pci_dev *pdev);
-> +bool hv_pcidev_is_pthru_dev(struct pci_dev *pdev);
-> +u64 hv_build_devid_oftype(struct pci_dev *pdev, enum hv_device_type type);
-> +#else
-> +static inline bool hv_pcidev_is_attached_dev(struct pci_dev *pdev)
-> +{ return false; }
-> +static inline bool hv_pcidev_is_pthru_dev(struct pci_dev *pdev)
-> +{ return false; }
-> +static inline u64 hv_build_devid_oftype(struct pci_dev *pdev,
-> +					enum hv_device_type type)
-> +{ return 0; }
-> +static inline u64 hv_get_current_partid(void)
-> +{ return HV_PARTITION_ID_INVALID; }
-> +#endif /* IS_ENABLED(CONFIG_HYPERV_IOMMU) */
-> +
->  #if IS_ENABLED(CONFIG_MSHV_ROOT)
->  static inline bool hv_root_partition(void)
->  {
-> diff --git a/include/linux/hyperv.h b/include/linux/hyperv.h
-> index 5459e776ec17..6eee1cbf6f23 100644
-> --- a/include/linux/hyperv.h
-> +++ b/include/linux/hyperv.h
-> @@ -1769,4 +1769,10 @@ static inline unsigned long virt_to_hvpfn(void *addr)
->  #define HVPFN_DOWN(x)	((x) >> HV_HYP_PAGE_SHIFT)
->  #define page_to_hvpfn(page)	(page_to_pfn(page) * NR_HV_HYP_PAGES_IN_PAGE)
->  
-> +#ifdef CONFIG_HYPERV_IOMMU
-> +void __init hv_iommu_detect(void);
-> +#else
-> +static inline void hv_iommu_detect(void) { }
-> +#endif /* CONFIG_HYPERV_IOMMU */
-> +
->  #endif /* _HYPERV_H */
-> -- 
-> 2.51.2.vfs.0.1
-> 
+Thanks for the review!
+
+I think the three forms earn their keep: the scoped form is the go-to
+for most cases, but the macros avoid indentation without requiring
+users to manage a raw pointer. I initially removed the macros and
+added them back later. Direct calls to the functions will be less
+frequent, used only when you need the handle.
+
+That said, if it becomes a maintenance burden, the macros are the
+easiest to drop since they're thin wrappers. Let me know if you prefer
+them to be dropped, and I will send a v9 with that and the
+`KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT` additions to the drm test
+patch.
+
+BR,
+Albert.
+
+>
+> Regardless, this series is looking pretty ready to me. Let me know if
+> you're planning a v9, otherwise we'll take this when you're ready.
+>
+> Cheers,
+> -- David
+>
+> >   include/kunit/test-bug.h |  25 +++++++++
+> >   include/kunit/test.h     | 138 ++++++++++++++++++++++++++++++++++++++=
++++++++++
+> >   kernel/panic.c           |  15 +++++-
+> >   lib/bug.c                |  10 ++++
+> >   lib/kunit/Makefile       |   3 +-
+> >   lib/kunit/bug.c          | 115 ++++++++++++++++++++++++++++++++++++++=
++
+> >   lib/kunit/hooks-impl.h   |   2 +
+> >   7 files changed, 305 insertions(+), 3 deletions(-)
+> >
+> > diff --git a/include/kunit/test-bug.h b/include/kunit/test-bug.h
+> > index 47aa8f21ccce8..6237e48ceadfd 100644
+> > --- a/include/kunit/test-bug.h
+> > +++ b/include/kunit/test-bug.h
+> > @@ -23,6 +23,7 @@ DECLARE_STATIC_KEY_FALSE(kunit_running);
+> >   extern struct kunit_hooks_table {
+> >       __printf(3, 4) void (*fail_current_test)(const char*, int, const =
+char*, ...);
+> >       void *(*get_static_stub_address)(struct kunit *test, void *real_f=
+n_addr);
+> > +     bool (*is_suppressed_warning)(bool count);
+> >   } kunit_hooks;
+> >
+> >   /**
+> > @@ -60,9 +61,33 @@ static inline struct kunit *kunit_get_current_test(v=
+oid)
+> >               }                                                        =
+       \
+> >       } while (0)
+> >
+> > +/**
+> > + * kunit_is_suppressed_warning() - Check if warnings are being suppres=
+sed
+> > + *                                 by the current KUnit test.
+> > + * @count: if true, increment the suppression counter on match.
+> > + *
+> > + * Returns true if the current task has active warning suppression.
+> > + * Uses the kunit_running static branch for zero overhead when no test=
+s run.
+> > + *
+> > + * A single WARN*() may traverse multiple call sites in the warning pa=
+th
+> > + * (e.g., __warn_printk() and __report_bug()). Pass @count =3D true at=
+ the
+> > + * primary suppression point to count each warning exactly once, and
+> > + * @count =3D false at secondary points to suppress output without
+> > + * inflating the count.
+> > + */
+> > +static inline bool kunit_is_suppressed_warning(bool count)
+> > +{
+> > +     if (!static_branch_unlikely(&kunit_running))
+> > +             return false;
+> > +
+> > +     return kunit_hooks.is_suppressed_warning &&
+> > +            kunit_hooks.is_suppressed_warning(count);
+> > +}
+> > +
+> >   #else
+> >
+> >   static inline struct kunit *kunit_get_current_test(void) { return NUL=
+L; }
+> > +static inline bool kunit_is_suppressed_warning(bool count) { return fa=
+lse; }
+> >
+> >   #define kunit_fail_current_test(fmt, ...) do {} while (0)
+> >
+> > diff --git a/include/kunit/test.h b/include/kunit/test.h
+> > index 9cd1594ab697d..f278ec028019c 100644
+> > --- a/include/kunit/test.h
+> > +++ b/include/kunit/test.h
+> > @@ -1795,4 +1795,142 @@ do {                                           =
+                              \
+> >   // include resource.h themselves if they need it.
+> >   #include <kunit/resource.h>
+> >
+> > +/*
+> > + * Warning backtrace suppression API.
+> > + *
+> > + * Suppresses WARN*() backtraces on the current task while active. Thr=
+ee forms
+> > + * are provided, in order of convenience:
+> > + *
+> > + * - Scoped: kunit_warning_suppress(test) { ... }
+> > + *   Suppression is active for the duration of the block. On normal ex=
+it,
+> > + *   the for-loop increment deactivates suppression. On early exit (br=
+eak,
+> > + *   return, goto), the __cleanup attribute fires. On kthread_exit() (=
+e.g.,
+> > + *   a failed KUnit assertion), kunit_add_action() cleans up at test
+> > + *   teardown. The suppression handle is only accessible inside the bl=
+ock,
+> > + *   so warning counts must be checked before the block exits.
+> > + *
+> > + * - Manual macros: KUNIT_[START|END]_SUPPRESSED_WARNING(test)
+> > + *   Suppression spans an explicit range in the same scope. kunit_add_=
+action()
+> > + *   guarantees cleanup even if KUNIT_END_SUPPRESSED_WARNING() is not =
+reached.
+> > + *   Prefer this form when suppressing warnings across a large block w=
+here
+> > + *   extra indentation is undesirable, or when the warning count needs=
+ to be
+> > + *   checked after suppression ends. Limited to one pair per scope.
+> > + *
+> > + * - Direct: kunit_start_suppress_warning() / kunit_end_suppress_warni=
+ng()
+> > + *   The underlying functions, returning an explicit handle pointer. U=
+se
+> > + *   when the handle needs to be retained (e.g., for post-suppression
+> > + *   count checks) or passed across helper functions.
+> > + */
+> > +struct kunit_suppressed_warning;
+> > +
+> > +struct kunit_suppressed_warning *
+> > +kunit_start_suppress_warning(struct kunit *test);
+> > +void kunit_end_suppress_warning(struct kunit *test,
+> > +                             struct kunit_suppressed_warning *w);
+> > +int kunit_suppressed_warning_count(struct kunit_suppressed_warning *w)=
+;
+> > +void __kunit_suppress_auto_cleanup(struct kunit_suppressed_warning **w=
+p);
+> > +bool kunit_has_active_suppress_warning(void);
+> > +
+> > +/**
+> > + * kunit_warning_suppress() - Suppress WARN*() backtraces for the dura=
+tion
+> > + *                            of a block.
+> > + * @test: The test context object.
+> > + *
+> > + * Scoped form of the suppression API. Suppression starts when the blo=
+ck is
+> > + * entered and ends automatically when the block exits through any pat=
+h. See
+> > + * the section comment above for the cleanup guarantees on each exit p=
+ath.
+> > + * Fails the test if suppression is already active; nesting is not sup=
+ported.
+> > + *
+> > + * The warning count can be checked inside the block via
+> > + * KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(). The handle is not accessib=
+le
+> > + * after the block exits.
+> > + *
+> > + * Example::
+> > + *
+> > + *   kunit_warning_suppress(test) {
+> > + *       trigger_warning();
+> > + *       KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
+> > + *   }
+> > + */
+> > +#define kunit_warning_suppress(test)                                 \
+> > +     for (struct kunit_suppressed_warning *__kunit_suppress          \
+> > +          __cleanup(__kunit_suppress_auto_cleanup) =3D                =
+ \
+> > +          kunit_start_suppress_warning(test);                        \
+> > +          __kunit_suppress;                                          \
+> > +          kunit_end_suppress_warning(test, __kunit_suppress),        \
+> > +          __kunit_suppress =3D NULL)
+> > +
+> > +/**
+> > + * KUNIT_START_SUPPRESSED_WARNING() - Begin suppressing WARN*() backtr=
+aces.
+> > + * @test: The test context object.
+> > + *
+> > + * Manual form of the suppression API. Must be paired with
+> > + * KUNIT_END_SUPPRESSED_WARNING() in the same scope. See the section c=
+omment
+> > + * above for cleanup guarantees. Fails the test if suppression is alre=
+ady
+> > + * active; nesting is not supported. Limited to one pair per scope; us=
+e
+> > + * sequential kunit_warning_suppress() blocks or the direct function A=
+PI
+> > + * when more than one suppression region is needed.
+> > + *
+> > + * Example::
+> > + *
+> > + *   KUNIT_START_SUPPRESSED_WARNING(test);
+> > + *   trigger_code_that_should_warn_once();
+> > + *   KUNIT_END_SUPPRESSED_WARNING(test);
+> > + *   KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
+> > + */
+> > +#define KUNIT_START_SUPPRESSED_WARNING(test)                         \
+> > +     struct kunit_suppressed_warning *__kunit_suppress =3D            =
+ \
+> > +             kunit_start_suppress_warning(test)
+> > +
+> > +/**
+> > + * KUNIT_END_SUPPRESSED_WARNING() - End suppressing WARN*() backtraces=
+.
+> > + * @test: The test context object.
+> > + *
+> > + * Deactivates suppression started by KUNIT_START_SUPPRESSED_WARNING()=
+.
+> > + * The warning count remains readable via KUNIT_SUPPRESSED_WARNING_COU=
+NT()
+> > + * after this call.
+> > + */
+> > +#define KUNIT_END_SUPPRESSED_WARNING(test)                           \
+> > +     kunit_end_suppress_warning(test, __kunit_suppress)
+> > +
+> > +/**
+> > + * KUNIT_SUPPRESSED_WARNING_COUNT() - Returns the suppressed warning c=
+ount.
+> > + *
+> > + * Returns the number of WARN*() calls suppressed since the current
+> > + * suppression block started, or 0 if the handle is NULL. Usable insid=
+e a
+> > + * kunit_warning_suppress() block or after KUNIT_END_SUPPRESSED_WARNIN=
+G().
+> > + */
+> > +#define KUNIT_SUPPRESSED_WARNING_COUNT() \
+> > +     kunit_suppressed_warning_count(__kunit_suppress)
+> > +
+> > +/**
+> > + * KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT() - Sets an expectation that =
+the
+> > + *                                           suppressed warning count =
+equals
+> > + *                                           @expected.
+> > + * @test: The test context object.
+> > + * @expected: an expression that evaluates to the expected warning cou=
+nt.
+> > + *
+> > + * Sets an expectation that the number of suppressed WARN*() calls equ=
+als
+> > + * @expected. This is semantically equivalent to
+> > + * KUNIT_EXPECT_EQ(@test, KUNIT_SUPPRESSED_WARNING_COUNT(), @expected)=
+.
+> > + * See KUNIT_EXPECT_EQ() for more information.
+> > + */
+> > +#define KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, expected) \
+> > +     KUNIT_EXPECT_EQ(test, KUNIT_SUPPRESSED_WARNING_COUNT(), expected)
+> > +
+> > +/**
+> > + * KUNIT_ASSERT_SUPPRESSED_WARNING_COUNT() - Sets an assertion that th=
+e
+> > + *                                           suppressed warning count =
+equals
+> > + *                                           @expected.
+> > + * @test: The test context object.
+> > + * @expected: an expression that evaluates to the expected warning cou=
+nt.
+> > + *
+> > + * Sets an assertion that the number of suppressed WARN*() calls equal=
+s
+> > + * @expected. This is the same as KUNIT_EXPECT_SUPPRESSED_WARNING_COUN=
+T(),
+> > + * except it causes an assertion failure (see KUNIT_ASSERT_TRUE()) whe=
+n the
+> > + * assertion is not met.
+> > + */
+> > +#define KUNIT_ASSERT_SUPPRESSED_WARNING_COUNT(test, expected) \
+> > +     KUNIT_ASSERT_EQ(test, KUNIT_SUPPRESSED_WARNING_COUNT(), expected)
+> > +
+> >   #endif /* _KUNIT_TEST_H */
+> > diff --git a/kernel/panic.c b/kernel/panic.c
+> > index c78600212b6c1..697d8ca054bef 100644
+> > --- a/kernel/panic.c
+> > +++ b/kernel/panic.c
+> > @@ -39,6 +39,7 @@
+> >   #include <linux/sys_info.h>
+> >   #include <trace/events/error_report.h>
+> >   #include <asm/sections.h>
+> > +#include <kunit/test-bug.h>
+> >
+> >   #define PANIC_TIMER_STEP 100
+> >   #define PANIC_BLINK_SPD 18
+> > @@ -1080,9 +1081,14 @@ void __warn(const char *file, int line, void *ca=
+ller, unsigned taint,
+> >   void warn_slowpath_fmt(const char *file, int line, unsigned taint,
+> >                      const char *fmt, ...)
+> >   {
+> > -     bool rcu =3D warn_rcu_enter();
+> > +     bool rcu;
+> >       struct warn_args args;
+> >
+> > +     if (kunit_is_suppressed_warning(true))
+> > +             return;
+> > +
+> > +     rcu =3D warn_rcu_enter();
+> > +
+> >       pr_warn(CUT_HERE);
+> >
+> >       if (!fmt) {
+> > @@ -1102,9 +1108,14 @@ EXPORT_SYMBOL(warn_slowpath_fmt);
+> >   #else
+> >   void __warn_printk(const char *fmt, ...)
+> >   {
+> > -     bool rcu =3D warn_rcu_enter();
+> > +     bool rcu;
+> >       va_list args;
+> >
+> > +     if (kunit_is_suppressed_warning(false))
+> > +             return;
+> > +
+> > +     rcu =3D warn_rcu_enter();
+> > +
+> >       pr_warn(CUT_HERE);
+> >
+> >       va_start(args, fmt);
+> > diff --git a/lib/bug.c b/lib/bug.c
+> > index 623c467a8b76c..a5cebde554ed8 100644
+> > --- a/lib/bug.c
+> > +++ b/lib/bug.c
+> > @@ -48,6 +48,7 @@
+> >   #include <linux/rculist.h>
+> >   #include <linux/ftrace.h>
+> >   #include <linux/context_tracking.h>
+> > +#include <kunit/test-bug.h>
+> >
+> >   extern struct bug_entry __start___bug_table[], __stop___bug_table[];
+> >
+> > @@ -223,6 +224,15 @@ static enum bug_trap_type __report_bug(struct bug_=
+entry *bug, unsigned long buga
+> >       no_cut   =3D bug->flags & BUGFLAG_NO_CUT_HERE;
+> >       has_args =3D bug->flags & BUGFLAG_ARGS;
+> >
+> > +#ifdef CONFIG_KUNIT
+> > +     /*
+> > +      * Before the once logic so suppressed warnings do not consume
+> > +      * the single-fire budget of WARN_ON_ONCE().
+> > +      */
+> > +     if (warning && kunit_is_suppressed_warning(true))
+> > +             return BUG_TRAP_TYPE_WARN;
+> > +#endif
+> > +
+> >       if (warning && once) {
+> >               if (done)
+> >                       return BUG_TRAP_TYPE_WARN;
+> > diff --git a/lib/kunit/Makefile b/lib/kunit/Makefile
+> > index 656f1fa35abcc..4592f9d0aa8dd 100644
+> > --- a/lib/kunit/Makefile
+> > +++ b/lib/kunit/Makefile
+> > @@ -10,7 +10,8 @@ kunit-objs +=3D                               test.o =
+\
+> >                                       executor.o \
+> >                                       attributes.o \
+> >                                       device.o \
+> > -                                     platform.o
+> > +                                     platform.o \
+> > +                                     bug.o
+> >
+> >   ifeq ($(CONFIG_KUNIT_DEBUGFS),y)
+> >   kunit-objs +=3D                               debugfs.o
+> > diff --git a/lib/kunit/bug.c b/lib/kunit/bug.c
+> > new file mode 100644
+> > index 0000000000000..b0b6778d7399a
+> > --- /dev/null
+> > +++ b/lib/kunit/bug.c
+> > @@ -0,0 +1,115 @@
+> > +// SPDX-License-Identifier: GPL-2.0
+> > +/*
+> > + * KUnit helpers for backtrace suppression
+> > + *
+> > + * Copyright (C) 2025 Alessandro Carminati <acarmina@redhat.com>
+> > + * Copyright (C) 2024 Guenter Roeck <linux@roeck-us.net>
+> > + */
+> > +
+> > +#include <kunit/resource.h>
+> > +#include <linux/export.h>
+> > +#include <linux/rculist.h>
+> > +#include <linux/sched.h>
+> > +#include <linux/spinlock.h>
+> > +
+> > +#include "hooks-impl.h"
+> > +
+> > +struct kunit_suppressed_warning {
+> > +     struct list_head node;
+> > +     struct task_struct *task;
+> > +     struct kunit *test;
+> > +     int counter;
+> > +};
+> > +
+> > +static LIST_HEAD(suppressed_warnings);
+> > +static DEFINE_SPINLOCK(suppressed_warnings_lock);
+> > +
+> > +static void kunit_suppress_warning_remove(struct kunit_suppressed_warn=
+ing *w)
+> > +{
+> > +     unsigned long flags;
+> > +
+> > +     spin_lock_irqsave(&suppressed_warnings_lock, flags);
+> > +     list_del_rcu(&w->node);
+> > +     spin_unlock_irqrestore(&suppressed_warnings_lock, flags);
+> > +     synchronize_rcu(); /* Wait for readers to finish */
+> > +}
+> > +
+> > +KUNIT_DEFINE_ACTION_WRAPPER(kunit_suppress_warning_cleanup,
+> > +                         kunit_suppress_warning_remove,
+> > +                         struct kunit_suppressed_warning *);
+> > +
+> > +bool kunit_has_active_suppress_warning(void)
+> > +{
+> > +     return __kunit_is_suppressed_warning_impl(false);
+> > +}
+> > +EXPORT_SYMBOL_GPL(kunit_has_active_suppress_warning);
+> > +
+> > +struct kunit_suppressed_warning *
+> > +kunit_start_suppress_warning(struct kunit *test)
+> > +{
+> > +     struct kunit_suppressed_warning *w;
+> > +     unsigned long flags;
+> > +     int ret;
+> > +
+> > +     if (kunit_has_active_suppress_warning()) {
+> > +             KUNIT_FAIL(test, "Another suppression block is already ac=
+tive");
+> > +             return NULL;
+> > +     }
+> > +
+> > +     w =3D kunit_kzalloc(test, sizeof(*w), GFP_KERNEL);
+> > +     if (!w)
+> > +             return NULL;
+> > +
+> > +     w->task =3D current;
+> > +     w->test =3D test;
+> > +
+> > +     spin_lock_irqsave(&suppressed_warnings_lock, flags);
+> > +     list_add_rcu(&w->node, &suppressed_warnings);
+> > +     spin_unlock_irqrestore(&suppressed_warnings_lock, flags);
+> > +
+> > +     ret =3D kunit_add_action_or_reset(test,
+> > +                                     kunit_suppress_warning_cleanup, w=
+);
+> > +     if (ret)
+> > +             return NULL;
+> > +
+> > +     return w;
+> > +}
+> > +EXPORT_SYMBOL_GPL(kunit_start_suppress_warning);
+> > +
+> > +void kunit_end_suppress_warning(struct kunit *test,
+> > +                             struct kunit_suppressed_warning *w)
+> > +{
+> > +     if (!w)
+> > +             return;
+> > +     kunit_release_action(test, kunit_suppress_warning_cleanup, w);
+> > +}
+> > +EXPORT_SYMBOL_GPL(kunit_end_suppress_warning);
+> > +
+> > +void __kunit_suppress_auto_cleanup(struct kunit_suppressed_warning **w=
+p)
+> > +{
+> > +     if (*wp)
+> > +             kunit_end_suppress_warning((*wp)->test, *wp);
+> > +}
+> > +EXPORT_SYMBOL_GPL(__kunit_suppress_auto_cleanup);
+> > +
+> > +int kunit_suppressed_warning_count(struct kunit_suppressed_warning *w)
+> > +{
+> > +     return w ? w->counter : 0;
+> > +}
+> > +EXPORT_SYMBOL_GPL(kunit_suppressed_warning_count);
+> > +
+> > +bool __kunit_is_suppressed_warning_impl(bool count)
+> > +{
+> > +     struct kunit_suppressed_warning *w;
+> > +
+> > +     guard(rcu)();
+> > +     list_for_each_entry_rcu(w, &suppressed_warnings, node) {
+> > +             if (w->task =3D=3D current) {
+> > +                     if (count)
+> > +                             w->counter++;
+> > +                     return true;
+> > +             }
+> > +     }
+> > +
+> > +     return false;
+> > +}
+> > diff --git a/lib/kunit/hooks-impl.h b/lib/kunit/hooks-impl.h
+> > index 4e71b2d0143ba..d8720f2616925 100644
+> > --- a/lib/kunit/hooks-impl.h
+> > +++ b/lib/kunit/hooks-impl.h
+> > @@ -19,6 +19,7 @@ void __printf(3, 4) __kunit_fail_current_test_impl(co=
+nst char *file,
+> >                                                  int line,
+> >                                                  const char *fmt, ...);
+> >   void *__kunit_get_static_stub_address_impl(struct kunit *test, void *=
+real_fn_addr);
+> > +bool __kunit_is_suppressed_warning_impl(bool count);
+> >
+> >   /* Code to set all of the function pointers. */
+> >   static inline void kunit_install_hooks(void)
+> > @@ -26,6 +27,7 @@ static inline void kunit_install_hooks(void)
+> >       /* Install the KUnit hook functions. */
+> >       kunit_hooks.fail_current_test =3D __kunit_fail_current_test_impl;
+> >       kunit_hooks.get_static_stub_address =3D __kunit_get_static_stub_a=
+ddress_impl;
+> > +     kunit_hooks.is_suppressed_warning =3D __kunit_is_suppressed_warni=
+ng_impl;
+> >   }
+> >
+> >   #endif /* _KUNIT_HOOKS_IMPL_H */
+> >
+>
+
