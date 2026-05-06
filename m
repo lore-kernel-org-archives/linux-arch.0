@@ -1,47 +1,47 @@
 Received: from CH5PR02CU005.outbound.protection.outlook.com (mail-northcentralusazon11012061.outbound.protection.outlook.com [40.107.200.61])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F1F0F4C0439;
-	Wed,  6 May 2026 17:52:47 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 36A344C0436;
+	Wed,  6 May 2026 17:52:56 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.107.200.61
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778089975; cv=fail; b=I5b6X4uEYU2EM3shjvab4qGKIu0iH6W+5QlHcBU4w4ZSIWMRN2InUMGsytvwhZ3cyBqc9sOKvfLp4O8GQ0HDn0ucZRlj5ng4Y3tYxvBVSO7FKpHv+xnTeAfsxwpKdA2e02ztSyNXe70JeFwqRes6aAovZpFXm2JZI77e8Rs6akk=
+	t=1778089986; cv=fail; b=QBy47UdbT1dLZ+qUo9CBzNc/WJWGSdpSO26QiWCsMhtV+cWO0h+c7py3TVNfXwVQUOuzI3Xdi6zg6AMSs21B+PuudOKNkl6aeeExOeUvVQLNxpkVJm/HHnUHHheiwzul103Ea7x44c1riLOynZ+7Zh32el9eUSWFlyvpzkZqMig=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778089975; c=relaxed/simple;
-	bh=kwJNJIB1QUyH55Mz8uWSN0Ty/23Y4Tx2jl/fZKrsQX8=;
+	s=arc-20240116; t=1778089986; c=relaxed/simple;
+	bh=AATj6940SCF8ZKvvzOBQ2KmDAYvgigsLIp+pqkdy61c=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=kbqbVPEf4xRznaJPknyCqPvutfPwe9B4UKOZ0WA4JtI2Tt6YFR+pGgBjt/LUWzIVpI7st2xuJ7BH0AZW51cKZ4C0Cb995+i54eVZ/RnCo/e59SndMSTfgSscHaEm35hzxtGsYWrRB01b3YOLm/F6nQiUS1auI7JmXPdLV3ZO5tQ=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=Uj3xZwJA; arc=fail smtp.client-ip=40.107.200.61
+	 Content-Type:MIME-Version; b=t+/yDuj7ArcIviYDcTX0y93XYNAC0lT7xI+H6x1DcP7KomN6XXIIHLy9MbDsZM+xC1rfi0DlMZ4/Hls2JNTm06FbPTU8dL+JyhVqgOkEzLdN138LIMrPzL3uS7AEEIvHFCoVtqfqDJWdVwwIjLBJ9RiM2Fe/gcpjcmIbAm4fXGY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=rNoPKDaP; arc=fail smtp.client-ip=40.107.200.61
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="Uj3xZwJA"
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="rNoPKDaP"
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=QFM+nvAHiOBkDQ4Vr8WH7p6xbAlt3feiK/+myuqYFXkXO7f7F2ypfT0V7nPAEZXalGv0VImR10RzhIiPxsDDD4ObG2ZocowB7yBM1aywBuVhmFaU4yZL/Ec3zWrD0szVzFDvtiKkDXBXnS/L2YPk4TaNGPrrLJJARGrtcuNklTgXGEXSEEYH/kZNshB+fW/bfxfJl7B5tb8kz8e65RI0S9AvpurYU5FVsR/RHvXEp6LlxfLVIp0KPaqnAk9SKhny3zkckLT0yzs2g3bI9rzB9k0auYXB8460sLtPdtDl0+SE2DRNYZnXPqYntwPmO2ETS2qnBpF9lEVsM+kyEdixMQ==
+ b=SCfqHXlTmo4H8n5xOYZKdXsloNICp5kEo6KHvjuDm6G2rGzT76873o9aI0wXpT2XVxD+PWICY20b6dhg/fgQkff3EUuFZlMlL/LrqTSIIlmyToTEhm6hGgAiqj2BzvSGC69HLac9gElRD7o9z/eDl7/pUPgoKTr+wJq48SAdWXcTNJIHh83lWPQ5DICK4j5JwbmRdURQJ7mf4V0di5nm2COTUBE+ZGssniwSFT21ayr6vZ54ZIxW190YgVaE40JPMaQMhAyOqDJHfxssNbMEZZj5HGG91modBorTX+CS0CeSceQLz7iN48oAQKQKv6QD0TJLTBRtUXAdwJE7VisySg==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=PcERl9jq/ivV0VSW/OyjJ7uHKNtcch4Ge1C1PViFkDA=;
- b=lz9D7gS833f6SKgK2DOLS9hDGzs6DK+9W43Own+0DzSCuuWHawZMfYB2dRz+UyIUFhNPDglhi91ftNXBRTlHlr81QYACH7N10hxzkaFwB5z0ShKChX+O07sEI4MptMagmyi3HnwUudZSTaLre2ITakQ0WIonrA1Q/UIBooZ47q0/IOomr+ChIGDC6l0Y410Yvb6XcTBt7lh6wBfKzKmYqmg4F5ijFAhUvDvghx6LHktGQYs5xprdaLcxxaXsZ4gxwSBYWV1jOGHxEMbb8HBoBLpwR6fhA0hpyvJA1z1hjPJBNHuTgKIJiK979K9k4/SWR2tmjaY2AZX7NVe/9V+BXw==
+ bh=OwONzQ+mH11c/vIBQuSfhfQcKTu3+q6+C+MBNuhD0mU=;
+ b=HCBZZ0pg8w9NTTfxbkEY0uX1n/tm0uOe+215J/t10Y4jUdWiQzvMNTB3TMEy0PFYQ7vm2msdZTB2ayzJwv5hRRPxQiXfqcF3oTtThB9ocQ7tIBMoOZUDgsQEHbFOS+mr1vU0NRe/2MdnXrAaKf1HBfhfxxr+f4xsTeI36Fwq/0riZYSJg1PpE+uT2MeMhEIDLMfUf8BvQqooRQ40hbQSpnuUd9vzLW+hi/OHA5+F9nqW7sCIFaGAnYregPdqev+gw20wN4LiGPMgBJsbZsWlUdpd65HZxB6zwDylJp1v7ECSSXsCgDEbiafTFrZlrUjLVHLZ1okgdlPd8wbRaaAPyQ==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
  dkim=pass header.d=nvidia.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
  s=selector2;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=PcERl9jq/ivV0VSW/OyjJ7uHKNtcch4Ge1C1PViFkDA=;
- b=Uj3xZwJAl7hQZUzHjMIv9Kw2tvldbOxK+uq09dPUVrdtn+FrpTZi2trPl1sCMimGDY5PsMQGsNsl0NddDaWZEsMBj6DuuIWfQd+6l2o8Pgeiq23p7vvOZm1HZJAiJfGDFW5Rqi0GBUZUTAgybMJBymTp2RbYSjYF5jyKU3fXiOYjhX2bBISYiZ6CUDyHPismVxdsBN4JDsDEKJZ1Ja2M4kYenEwvPUWAeSD6ia5t9jFdyKc6I5V7OU1kuFDyqJz8FQXaxp1z9Y7GRdEt2SqCcxIVDRaNd7aszJDp8NlF7VR/16kPo15pb7r5KA3eD1BsVSvzQMbrOAQZH9c9IL50rg==
+ bh=OwONzQ+mH11c/vIBQuSfhfQcKTu3+q6+C+MBNuhD0mU=;
+ b=rNoPKDaPydyLhokcr0zMyNjUEJMceoi4LusUcqPzWr4+1lWmI4l8EuJ47krU0IIRxt98ngbwEsCRABavv69rdDrcMEBC6ga9HKm3ucDtTNO7QExt9UeC4c6ug3oDxSxEUbxCbvA4yM4QhPK2tjDiQRf80IjevqpJ1tIs7bEPo+r8sIF+nPvl6lDPeKFcmAGxSN/FzxePDTjgSExRSJ8MtvH89eI9+1rcL+CgSV1I3Pv8+NfaNrNZF9dLigeQgkiwyDMv/rGB6cc4weaAEbBrSWBzL1H46ITYouaUCFypUOJ9GbFRpHZaSILUaUEIi6I3sA4AIatUE5eKgiiR9dTLcw==
 Authentication-Results: dkim=none (message not signed)
  header.d=none;dmarc=none action=none header.from=nvidia.com;
 Received: from CY8PR12MB8300.namprd12.prod.outlook.com (2603:10b6:930:7d::16)
  by CH3PR12MB8188.namprd12.prod.outlook.com (2603:10b6:610:120::8) with
  Microsoft SMTP Server (version=TLS1_2,
  cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9891.15; Wed, 6 May
- 2026 17:52:19 +0000
+ 2026 17:52:23 +0000
 Received: from CY8PR12MB8300.namprd12.prod.outlook.com
  ([fe80::ce75:8187:3ac3:c5de]) by CY8PR12MB8300.namprd12.prod.outlook.com
  ([fe80::ce75:8187:3ac3:c5de%3]) with mapi id 15.20.9870.023; Wed, 6 May 2026
- 17:52:19 +0000
+ 17:52:22 +0000
 From: Yury Norov <ynorov@nvidia.com>
 To: Paul Walmsley <pjw@kernel.org>,
 	Palmer Dabbelt <palmer@dabbelt.com>,
@@ -68,17 +68,18 @@ To: Paul Walmsley <pjw@kernel.org>,
 	linux-arch@vger.kernel.org,
 	netdev@vger.kernel.org,
 	bpf@vger.kernel.org
-Cc: Yury Norov <ynorov@nvidia.com>
-Subject: [PATCH v2 3/5] bitops: Define generic___bitrev8/16/32 for reuse
-Date: Wed,  6 May 2026 13:52:04 -0400
-Message-ID: <20260506175207.110893-4-ynorov@nvidia.com>
+Cc: Yury Norov <ynorov@nvidia.com>,
+	David Laight <david.laight.linux@gmail.com>
+Subject: [PATCH v2 4/5] arch/riscv: Add bitrev.h file to support rev8 and brev8
+Date: Wed,  6 May 2026 13:52:05 -0400
+Message-ID: <20260506175207.110893-5-ynorov@nvidia.com>
 X-Mailer: git-send-email 2.51.0
 In-Reply-To: <20260506175207.110893-1-ynorov@nvidia.com>
 References: <20260506175207.110893-1-ynorov@nvidia.com>
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain
-X-ClientProxiedBy: BY1P220CA0009.NAMP220.PROD.OUTLOOK.COM
- (2603:10b6:a03:59d::7) To CY8PR12MB8300.namprd12.prod.outlook.com
+X-ClientProxiedBy: BYAPR03CA0013.namprd03.prod.outlook.com
+ (2603:10b6:a02:a8::26) To CY8PR12MB8300.namprd12.prod.outlook.com
  (2603:10b6:930:7d::16)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -88,134 +89,166 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
 X-MS-TrafficTypeDiagnostic: CY8PR12MB8300:EE_|CH3PR12MB8188:EE_
-X-MS-Office365-Filtering-Correlation-Id: 5341933c-9886-4429-e704-08deab98377b
+X-MS-Office365-Filtering-Correlation-Id: 44dcf105-ed83-418b-61f3-08deab9839bd
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|366016|10070799003|7416014|376014|1800799024|921020|18002099003|56012099003|22082099003;
+	BCL:0;ARA:13230040|366016|10070799003|7416014|376014|1800799024|921020|3023799003|18002099003|56012099003|22082099003;
 X-Microsoft-Antispam-Message-Info:
-	9y0XRjUfaxjaBP2gruqCBBAA9D7bCxCH7ufSkC5/HfbQA8XJpz5FFZ4yK4MVNvXzB6jzxrWyJ0VcpqoaJtrKnzyj2+cScoHuL+7FxLTPvHYFIsPES+aQj4umeTo1x3X/Hjlga+LE1ptXQ0TamFKuRsYM0K2LOqi1QEScWiBS9NuyPw7gScOvptvGg5JATvQhI82cn1wr3KdwfoqtFtK27NKD8pPoieBqGo4+vOJkmYC8BqFSOXMigOBpLjnS7E5i48/aZQNnHKF7WzyntD8E3FdCCgMhI8mIyjRvgQIg9iK166jOao28dZsBQybn33K3M3kp4GhpXlul2o1rPc1AbpYZT16ZQDuaz8SpsXSOu54y4G4Q6QUmmvluPqysZ/eMgt+4VWVHgeIGI4BIQQMLCplOPQ4SswmpET9sUHDFz7/jJ/x8aWX7rZ7CbF5DU/7qChajyLOCJWb1B4/jGG9Iw0aJbEmgG2Surm3GkXLg8qHrLD0RQ1OscGp2o7e9NYtLNgiw0WxAwgLVkkdnVg4LLo4t/sVAnoNlh2NZqijWD2zs3WDBk4zzt7OuzPOSvAVJBBa+abG9db1BObpoQ2EYkHfgWApgXtPkREwKhG+Ork5kyMEaTZasEJZQ7A79zswQCqmZZieD86T1SwoTeX7TARV83yBPx94yncA3VSQJmoq1QBvloT1t2/9jYV78mxHTu29NEdOpCP/UXItIwVpnXzC7EIIbI86jigXOhvW+THs=
+	T10VdUvdmr+h1/7fgW61A9XruUbuxNqvXMlM/DNMGX5zaq1cS+As++JMgjtI0eYrl4UvlWtdQwC05wlOGFPISsRrD03MRE/gC3g4pKee6eyfNQ/B/2xZUgMSpdGAWhSAlXQRL+vEI8PYx2lawv+PBr9LdU4c6HD+J/MRi+TBISH0YdciQrdMA6r7DpGuwqNPvyv0etyZ4piFz4m68oilIT2YX4M0nRj+e2bFAJUo7mbOMYdqROWzp3HqC5Eql/nUr9mrGtDQh89cpO08QElcbrDCi9t6JdGDY8BZPxfW9D+rbExHkdnz8jGkEUatTn5htfXT062xbxDhVhGW3uVgsT8FjgkXSNJgbqSbxW2zyq9s6C2z8e6/tPrPeQcNWxdwGuaa6XZUw1PvsvZqVkdyNCL6yZFN9bgZcozwM9wR7PBFcadINWCsVFS0W5yfN8qye7jgDik3UJ8vZJWfh/eycKrkmKyEeRIskCDr5l0VRQ21y6yfqWDOHGMJ7E8LbFLcX564xgKql+2LsxNPaY0YOtn+nvJyVCGtlx3sHFKucnfxhvnfWS4HuTUagdheBIWow4qNKhgrw0Kk0E/r00JHNRarGn05/z92eXM95Rmp1qF5hR9ItbQyhwUzfXJhfziDHdrsdf1PzuAOpa6X4nQyUa6p/12YvE4HTYKdX8m00B3ZCJDCHuGPBi35NbKd5K8M0YarZcNi11vvl1Iu2aq1hO378rBRbYtz1QsKs9oSCjv9Q6U7bIRSWv8RFaxeuAm4
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CY8PR12MB8300.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(10070799003)(7416014)(376014)(1800799024)(921020)(18002099003)(56012099003)(22082099003);DIR:OUT;SFP:1101;
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CY8PR12MB8300.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(10070799003)(7416014)(376014)(1800799024)(921020)(3023799003)(18002099003)(56012099003)(22082099003);DIR:OUT;SFP:1101;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?5gKur1M2xIqSwIjWyf/4T8iVB0ZbWXgOAZkb5jN8dDo36grzrzQiHNQPIpVR?=
- =?us-ascii?Q?9Avdo/id0lMweoHMZdcc1A5YBnaXZM5paZv5/TK6atbDaBLV2Ni695BJfeqO?=
- =?us-ascii?Q?UoiyBwh1GQ+j/OIX/HAK+7nDMo5cBjbZYwJecmLU5lyR4ZnJE1JYtSN1YJr+?=
- =?us-ascii?Q?CzaQ3QI8aIf2uhCt+tRQnfUM0gqt0jYWjBZzCENrZBzglwVzJg1DTyz1nnS9?=
- =?us-ascii?Q?q+FE0p8k/f1x8rXDxKE1ebdXER1QW7jsBWD13VAgNHBK2OZG3CFXtz2Dkw8P?=
- =?us-ascii?Q?dapfd48Tar+OdsohfpZkLJzRMND/lI0hUf7R6fKmxPr//BcA2HOA0v/cUSZz?=
- =?us-ascii?Q?ee3Kuf4PwckxXWZPIJmfkOkfGU1b81k25X3aCKuP5tNqFOj5JG6RQteUltmk?=
- =?us-ascii?Q?cSr/cYlgaOhdxC3SSknGOSrEcNHmZZXrrTcftK2MuGM+6qPVNa/KbhRmQA79?=
- =?us-ascii?Q?bN/15p0chcTyfZRh7ZGEmwfklLX/Ledce84vRr9T9qBZ8udeh8vezrp8n0Rf?=
- =?us-ascii?Q?Ag83ZVf0Z/yw0XLGzK7L1YPd5iEtCUB9B6UYNb2Kr/Y/0h5+1Kjo2AhnaOLC?=
- =?us-ascii?Q?ntbYW+lIrfKxTONpES8Y1O8zhpw6fzj0ZrrgnGpMcgpQ2r0k4tDQ9Ha4JuQj?=
- =?us-ascii?Q?dkSwqzEu8jSBUYvJQqg4XqpGG3xPDfmlNlmavsTlZlifaP4h+MMhxSKZWbJy?=
- =?us-ascii?Q?Hry0ESY/FSOOqfDpK2yDSKg+hMtCGInCphKHw+rYVfhAS/iS2KpWhkvyb89p?=
- =?us-ascii?Q?qOu0i7Jcz9zb6nsG61wgk8PdhlDbAFcQdf5Y7TrbWpAtj/hZUZl9bjr0xrtO?=
- =?us-ascii?Q?Sj8gi9Jf4asEHGczr8jxijxHrfX/KucmKLq8hymYwVsywE35e/bMLNJmWtlJ?=
- =?us-ascii?Q?cvNxARjMtCTnSXgDiqvxEI3lAIGneiBdntT3YmANxAC2CurIyJOgb9mFbgNM?=
- =?us-ascii?Q?X7h4GSwo/KU4I1x6/x/PVlbiKEJz+Ly2H0GJsx2zmqV9dSAe34JCWQARnfSk?=
- =?us-ascii?Q?ddMaUliwFhS9q6BfMVA17jsRxg6v2rUVBusxOeVtn7n5vS8fyM3sDrljHbgr?=
- =?us-ascii?Q?0XuovBWnv80QFTDFMK2pBoSIj1HxqRr7i38ia5j2Ws7wysAe/8+/AaTIyj7a?=
- =?us-ascii?Q?nDDYGsLuFjC3S/QpUrgO0HIR1cn4k7ehMaOt32dUuYgCoyXu1VjxXRHuL70q?=
- =?us-ascii?Q?2MphAu5xGt+2PSzo9ShIsmhCCT6WO5lqeZyIZuRuJb396w9VusUArLUo3YHH?=
- =?us-ascii?Q?ql1cw88+aQIaJOFOn+S4WXUVX6Xpm/BUoMBmVxnWxYJstcyg2RvCKYaPyN7V?=
- =?us-ascii?Q?EvzQ7+BOqrjLhf8RgioZumH/9FbzpYjZXdu20frPwQkR/Q4dWqM/XZJHtWFc?=
- =?us-ascii?Q?aNuRIPh71ypIdZgVZxcNRbX6BYsVekpx3Oxga1aycD0+YJvUYkqRqk0yWc3K?=
- =?us-ascii?Q?f8YuwPXVHubZSZxQfBiApvR6brR60BrOnbZpjsuQfb7hXDidXSZz+r+fwbnY?=
- =?us-ascii?Q?CWbcRSEhq6yA2+tLFgqde4m/t6tZiHjdT1fAQqJTZuUmO1t2fIK8IO1d1eWS?=
- =?us-ascii?Q?mf9pPEajyDuXvqGl79TcDgz1dL/pzKlpzeKYcLK0h3osygp3Skd/P3xT3V3V?=
- =?us-ascii?Q?kArw4r1PBqgPrIVQBknE6L7jdkPMiqEzlD0ZtnvCVPiS8BVev1vVEc6Pa9Dm?=
- =?us-ascii?Q?a+Xx6QFdSdYBI84ljO8HVUPPH5cg7amc0/kksHxaY1vOvrDfGz2JT7suHjTu?=
- =?us-ascii?Q?bd7Y4yPDLyHDio8Hb+CNs2sDwDwzhXphsKo7MSnX1Pt7tgkjCpKJ?=
+	=?us-ascii?Q?D4MNolgjjYwNUDCgVhc/0LPHrkoNIs5MAggp/FD60udTxlhWkim2EeY/N0fo?=
+ =?us-ascii?Q?VrMhp1KkGVJGKExdr8x21tKKixJG44wZnFJpslRmjYTCaqyjQj+bTlCCaKl/?=
+ =?us-ascii?Q?aaZtJLWY/5EqoJRUXBv4kHi1N79x1ysgEnBAWZuKeLKBa79q3F5JgoBwFQwS?=
+ =?us-ascii?Q?+QSCM1f88PqYqKdIYJwEmL2bE6aO+Asm/0kgcTVyMQaqjYVDH72eNV2W9vpk?=
+ =?us-ascii?Q?kh0uxxjJyDyhbaXHRIHrj6MhwdpKBL8Ttjdh9pl0ONiQ3ht34Aur6edTcZI1?=
+ =?us-ascii?Q?GlbRh4CYY6PbcTH+FIoXDY9eG88MmPSWjGWKrAsEV/cPTqdnZYeAZssA7fXZ?=
+ =?us-ascii?Q?IZX5r2a6YhC98bJ20cil2TW9QmxED/XEOCxhb92cUQAh3fW1CC4YmPeiypOA?=
+ =?us-ascii?Q?mnVwOG68Vx25d81t9OajWEhSKUUk0Q4tupvQN9wVHmNh8xNsebz0KsQ75UHE?=
+ =?us-ascii?Q?0N5diV/QWS+Agj9U4izREaLm7AZpkT5qc15A01LP5JySdLWW1/lTRZyrSdiu?=
+ =?us-ascii?Q?cIoKv/jcpKaEzU5aNpbkAmrtwfXZMQ+cuMjZDo2elbAIeh84vxgKiCGnOWRQ?=
+ =?us-ascii?Q?AsyQ4UD3y/9U7K9fhZ+2LGY0CXkTa81YlheWIOw7h+HJX37fQtLKmP54Tpsx?=
+ =?us-ascii?Q?S1QXEjy6Y7cn/QEQmxagM5qJdYOhs73Y12vNh7cctmsWLuf9G6KGMsrnyE0E?=
+ =?us-ascii?Q?XFKuHuabEHbEShH40K7IBBU1xF5MmO+I6Hmxdp3b+obmoatgX04zQ/DhQhom?=
+ =?us-ascii?Q?j5uvTihJW1VL65EnhIfaZB2nF2bJIHuW4ZxnUztZmVkHtGF+VRZPUkeHgYck?=
+ =?us-ascii?Q?JCxajhAZsbFb6ToQQN2y+4/wXCT0ZTd2Tvkb4RxXbgJKQouSEfJu9ng6sZ3E?=
+ =?us-ascii?Q?a+89aUU3icBQJIAaisCRagdAduPdnoYIKF+SoFQjhGHFgWqRz0Wac5JgoNp1?=
+ =?us-ascii?Q?6qX/Ze1XqxnDRoK7X1wgzIG3gkicFEllbp5GNLi02QvBaHm0ao4YtI5di02U?=
+ =?us-ascii?Q?FSky9w+hh1SpM5o2EEhGarwDJ1Muzdh73ACvhu99VgU5UQKSZKbnhD7iUPn/?=
+ =?us-ascii?Q?qmfyunfF4KDtKzldiDYsi3wuqOa6r1ss+bEuxa7Op8lM9IMpava+/Uxy66BX?=
+ =?us-ascii?Q?aXM1Ods4DIBlWdDFPgNRQvdDz7iPBl2IDcerqof9Y88CLAykncW34gumN8PI?=
+ =?us-ascii?Q?cLB8YHudLDhmxV+cA7BiDy8QZvBZh8dT4SXeo+7Ipt8p6CfTSIRUJ0E2KFnE?=
+ =?us-ascii?Q?XqCxFBST6W+CkhuEJgk6xPCUedAT82hEF7gWgIwYSa+NqabUTyQdVOZxJvFC?=
+ =?us-ascii?Q?j+afYZmuQOvM5szraPgutb3gK79HmSMA5zzvxu7ouTh0nsmkR3AVgej1vwnN?=
+ =?us-ascii?Q?/mKL+eFZrNqK5sqT5ZlZ/6wXVOSU9JKl8fo+VXXFlgPuUpIdlzFs9SOto0ZJ?=
+ =?us-ascii?Q?jOiAicDttX+BPZDy5/G9BFfs3wnOlk/0jyjppokJkV7ahWm+KJXyWx2jOXz6?=
+ =?us-ascii?Q?nQdpidFSuHDaf0GKlHxZSVOzbAF0WIS2dmswgo6fj1NIGY/KmoPWHP2SS3Yj?=
+ =?us-ascii?Q?tJe+Q5X3brDzyRf+y6RZ6TmNZ08oZrGIzYW0WYjY2Di1u4OXUYJn/W/Z9Zbc?=
+ =?us-ascii?Q?SyCUEQONZfZji7/9CWXFFL56gwQkzKVyeSAbNhuqXU88bSKsSCOj1vqQ94+s?=
+ =?us-ascii?Q?+X1d+sLKKqZe4/ucxD+vuTSABPMISMQtoH6P0O34DBxJ+Q9z0f/1G2xIugyV?=
+ =?us-ascii?Q?HXXNikXHFa1h1m4UOasL5m8KJXFtU4YbFgA+obddgVueAU7QC9F+?=
 X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 5341933c-9886-4429-e704-08deab98377b
+X-MS-Exchange-CrossTenant-Network-Message-Id: 44dcf105-ed83-418b-61f3-08deab9839bd
 X-MS-Exchange-CrossTenant-AuthSource: CY8PR12MB8300.namprd12.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 06 May 2026 17:52:18.9706
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 06 May 2026 17:52:22.6693
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: my2/8Ekb0jY1oWsI3fUqllkCzHtIIde2yQLIxdl6ToyppShm4blNa6HZm3oFbl/DlIEYviK74UFm3Jx+bUr+EA==
+X-MS-Exchange-CrossTenant-UserPrincipalName: /Pw/hAZT1GvTBU8W3kDDP5tN7JaS8sqzJxHJcK1gSCUG/3pjV0W6myLdtXYBVamXOypJWZt0eIGRT6cY0R4phQ==
 X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH3PR12MB8188
 
 From: Jinjie Ruan <ruanjinjie@huawei.com>
 
-Define generic___bitrev8/16/32 using the implementation in
-<linux/bitrev.h>, so they can be reused in <asm/bitrev.h>,
-such as RISCV.
+The RISC-V Bit-manipulation Extension for Cryptography (Zbkb) provides
+the 'brev8' instruction, which reverses the bits within each byte.
+Combined with the 'rev8' instruction (from Zbb or Zbkb), which reverses
+the byte order of a register, we can efficiently implement 16-bit,
+32-bit, and (on RV64) 64-bit bit reversal.
 
-Reviewed-by: Yury Norov <ynorov@nvidia.com>
+This is significantly faster than the default software table-lookup
+implementation in lib/bitrev.c, as it replaces memory accesses and
+multiple arithmetic operations with just two or three hardware
+instructions.
+
+Select HAVE_ARCH_BITREVERSE as well as GENERIC_BITREVERSE,
+and provide <asm/bitrev.h> to utilize these instructions when
+the Zbkb extension is available at runtime via the alternatives
+mechanism.
+
+[Yury: select the options conditionally on BITREVERSE]
+
+Link: https://docs.riscv.org/reference/isa/unpriv/b-st-ext.html
+Suggested-by: David Laight <david.laight.linux@gmail.com>
 Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
 Signed-off-by: Yury Norov <ynorov@nvidia.com>
 ---
- include/asm-generic/bitops/__bitrev.h | 23 +++++++++++++++++++++++
- include/linux/bitrev.h                | 20 ++++----------------
- 2 files changed, 27 insertions(+), 16 deletions(-)
- create mode 100644 include/asm-generic/bitops/__bitrev.h
+ arch/riscv/Kconfig              |  2 ++
+ arch/riscv/include/asm/bitrev.h | 51 +++++++++++++++++++++++++++++++++
+ 2 files changed, 53 insertions(+)
+ create mode 100644 arch/riscv/include/asm/bitrev.h
 
-diff --git a/include/asm-generic/bitops/__bitrev.h b/include/asm-generic/bitops/__bitrev.h
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index d235396c4514..a708583f785d 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -104,6 +104,7 @@ config RISCV
+ 	select FUNCTION_ALIGNMENT_8B if DYNAMIC_FTRACE_WITH_CALL_OPS
+ 	select GENERIC_ARCH_TOPOLOGY
+ 	select GENERIC_ATOMIC64 if !64BIT
++	select GENERIC_BITREVERSE if HAVE_ARCH_BITREVERSE
+ 	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
+ 	select GENERIC_CPU_DEVICES
+ 	select GENERIC_CPU_VULNERABILITIES
+@@ -128,6 +129,7 @@ config RISCV
+ 	select HAS_IOPORT if MMU
+ 	select HAVE_ALIGNED_STRUCT_PAGE
+ 	select HAVE_ARCH_AUDITSYSCALL
++	select HAVE_ARCH_BITREVERSE if RISCV_ISA_ZBKB && BITREVERSE
+ 	select HAVE_ARCH_HUGE_VMALLOC if HAVE_ARCH_HUGE_VMAP
+ 	select HAVE_ARCH_HUGE_VMAP if MMU && 64BIT
+ 	select HAVE_ARCH_JUMP_LABEL
+diff --git a/arch/riscv/include/asm/bitrev.h b/arch/riscv/include/asm/bitrev.h
 new file mode 100644
-index 000000000000..4addbde14050
+index 000000000000..4b9b8d34cc3b
 --- /dev/null
-+++ b/include/asm-generic/bitops/__bitrev.h
-@@ -0,0 +1,23 @@
++++ b/arch/riscv/include/asm/bitrev.h
+@@ -0,0 +1,51 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _ASM_GENERIC_BITOPS___BITREV_H_
-+#define _ASM_GENERIC_BITOPS___BITREV_H_
++#ifndef __ASM_BITREV_H
++#define __ASM_BITREV_H
 +
-+#include <asm/types.h>
-+
-+extern u8 const byte_rev_table[256];
-+static __always_inline __attribute_const__ u8 generic___bitrev8(u8 byte)
-+{
-+	return byte_rev_table[byte];
-+}
-+
-+static __always_inline __attribute_const__ u16 generic___bitrev16(u16 x)
-+{
-+	return (generic___bitrev8(x & 0xff) << 8) | generic___bitrev8(x >> 8);
-+}
-+
-+static __always_inline __attribute_const__ u32 generic___bitrev32(u32 x)
-+{
-+	return (generic___bitrev16(x & 0xffff) << 16) | generic___bitrev16(x >> 16);
-+}
-+
-+#endif /* _ASM_GENERIC_BITOPS___BITREV_H_ */
-diff --git a/include/linux/bitrev.h b/include/linux/bitrev.h
-index d35b8ec1c485..11620a70e776 100644
---- a/include/linux/bitrev.h
-+++ b/include/linux/bitrev.h
-@@ -12,22 +12,10 @@
- #define __bitrev8 __arch_bitrev8
- 
- #else
--extern u8 const byte_rev_table[256];
--static inline u8 __bitrev8(u8 byte)
--{
--	return byte_rev_table[byte];
--}
--
--static inline u16 __bitrev16(u16 x)
--{
--	return (__bitrev8(x & 0xff) << 8) | __bitrev8(x >> 8);
--}
--
--static inline u32 __bitrev32(u32 x)
--{
--	return (__bitrev16(x & 0xffff) << 16) | __bitrev16(x >> 16);
--}
--
++#include <linux/types.h>
++#include <asm/cpufeature-macros.h>
++#include <asm/hwcap.h>
 +#include <asm-generic/bitops/__bitrev.h>
-+#define __bitrev32 generic___bitrev32
-+#define __bitrev16 generic___bitrev16
-+#define __bitrev8 generic___bitrev8
- #endif /* CONFIG_HAVE_ARCH_BITREVERSE */
- 
- #define __bitrev8x4(x)	(__bitrev32(swab32(x)))
++
++static __always_inline __attribute_const__ u32 __arch_bitrev32(u32 x)
++{
++	unsigned long result;
++
++	if (!riscv_has_extension_likely(RISCV_ISA_EXT_ZBKB))
++		return generic___bitrev32(x);
++
++	asm volatile(
++		".option push\n"
++		".option arch,+zbkb\n"
++		"rev8 %0, %1\n"
++		"brev8 %0, %0\n"
++		".option pop"
++		: "=r" (result) : "r" ((long)x)
++	);
++
++	return result >> (__riscv_xlen - 32);
++}
++
++static __always_inline __attribute_const__ u16 __arch_bitrev16(u16 x)
++{
++	return __arch_bitrev32(x) >> 16;
++}
++
++static __always_inline __attribute_const__ u8 __arch_bitrev8(u8 x)
++{
++	unsigned long result;
++
++	if (!riscv_has_extension_likely(RISCV_ISA_EXT_ZBKB))
++		return generic___bitrev8(x);
++
++	asm volatile(
++		".option push\n"
++		".option arch,+zbkb\n"
++		"brev8 %0, %1\n"
++		".option pop"
++		: "=r" (result) : "r" ((long)x)
++	);
++
++	return result;
++}
++#endif
 -- 
 2.51.0
 
