@@ -1,237 +1,290 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2DCDD3E1CF8
-	for <linux-arch@vger.kernel.org>; Wed,  6 May 2026 08:37:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=170.10.129.124
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778056675; cv=pass; b=rOAe66UBKa+8BO3csJveL+k6TLRvjwC+gKBLfVfrQnJ6JTL3GpzbYaQ+IOXUAGmUCk0jGAssp2FC38MtmM2u8x4w27Unw+UA80id9uBzJpgnVtzp0rvkZ1GMKy9300DGL6g2A3GgSAopsI1gZMwGcb28Bxd1NmeDyywg/MCrSdY=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778056675; c=relaxed/simple;
-	bh=BQ/L1Adqk6o4OdG6nxv5nzheitk/VkCmyj3eyJlGF/c=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=Gyf/DSY23mhJa6ia3mCFlxESBVCE6lk0ZaZeUx+p4xF5H3gFhFhzL2+tprURMZlE1EuN3V5ahBylK/oZ6jSHelOySE+/JLLEfmDnmkrxA/UX/N3TS1tqB9qTJqVpcdDHnHg0aBYy+hta+4Ds7qOucw4i9JE4RDcWHvIBRf2q0c0=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=OUCtbXAI; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=TD9P15l1; arc=pass smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B07CB3EDAAD
+	for <linux-arch@vger.kernel.org>; Wed,  6 May 2026 08:58:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.46
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778057924; cv=none; b=iqMbuBg50AakEPoW6tkB+OTJWiJfRyvJ1ko01VQanKRMPYoiW7aMKGE7kRwUrFyHc5H4rzlGGhBwm85gWdazqe5N6XL6OtmWt+RF6ehtQN1WlspqekjdsBQzezmtj46FLEvzOCtmmCpiatKUwKbl41Pkprs0Xo7WPDBiDT6TI+Q=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778057924; c=relaxed/simple;
+	bh=eD+Yz7GzQtMbbGfGGTFutD9Fa1k6iUTPX/y/AAqXEfI=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=TajMZxTJU+PVih/CqaeP4DmOupAWNAXOMTTNKQ84TWEhBn/b/212UoO2qojl4qOVlu5JyVQMevwTDKzRjs+AQzRBDKaF8sFoLzPCdPz4dBcZp+/F+MHqwMTgC8PxsGYhh284ZhUOljY7o7FCZJgqjKTqUogPZXAUEUI4SL+mSSw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=N1R5A6j1; arc=none smtp.client-ip=209.85.128.46
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="OUCtbXAI";
-	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="TD9P15l1"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1778056672;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=IMA+C0TJi4LM3UTvwkCroeu4Tv8AgJe8bHK3v1p/l2E=;
-	b=OUCtbXAIom0lydhN+lO9z+XtYHlZR6wu9cdq5HmSfK7CnJmXsciTN8Z3v02qLumj4DI2id
-	OFfliZaXwRqboOidSL8DG8FSq3zIeVC+zGqsDIcr5AbjoaZn8D+b1L/0E0TUJhM4l78YbY
-	/rSWyMCExd/9MblSpzuuY17E1n7ino4=
-Received: from mail-yw1-f198.google.com (mail-yw1-f198.google.com
- [209.85.128.198]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-31-7eB-1XtuM_aOGKjhbU1pdw-1; Wed, 06 May 2026 04:37:51 -0400
-X-MC-Unique: 7eB-1XtuM_aOGKjhbU1pdw-1
-X-Mimecast-MFC-AGG-ID: 7eB-1XtuM_aOGKjhbU1pdw_1778056670
-Received: by mail-yw1-f198.google.com with SMTP id 00721157ae682-7bddefed204so30984647b3.0
-        for <linux-arch@vger.kernel.org>; Wed, 06 May 2026 01:37:51 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1778056670; cv=none;
-        d=google.com; s=arc-20240605;
-        b=coekFeMkiCkJW//+jl1QZzgniEE+DuYqvfhvjGiBZ8nftNblYl4tGMhWbwme29u8y+
-         ViFqqeFqOvNh8wP+vdu0ycwEaXa3v8N+1CTF2y04wT3TJPezN89AS/WJ7WDjNMFsmf4+
-         3L9RM4vTnEiQ0msnkjqAx/jtR4iZXjz0PmG2JwJ9osg4AMOsT0cjo6272sJF/1clMZk0
-         l22VjYkYBOZoP0vveHYN+Ie4NF9snDvFeGuTIl4sHHw4iSsWjx/pXjjvSNvFhBNEQY4J
-         H32v9eC593gL4IDopPtY2nLeLJWx+Hz5SBQd2pNGsmrUqZs2vZh1vJjaB6rqc/Sw3Iwu
-         wbaA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=IMA+C0TJi4LM3UTvwkCroeu4Tv8AgJe8bHK3v1p/l2E=;
-        fh=gmUufC7cmvvva4YaoS7AoGmCya1oLWzX3FpbZa7d7ak=;
-        b=h2KRdi6Ie69hmIYVBZxibbdKc+1/0xv02RfykMo5nLrl3JWP75cR7g+yAXx/cNZGSc
-         DwQw7qlmeNUkrTtYsApdFwy4qRDGFLUDrJdv/toumv4l3NyLSLp58HWWMPCVF7GBk5HL
-         enOCQTEzo3tR2dDH22tsI7lXSaBPgmk7FUV/h2ABaCOdLnLZAdCvo5YCTSjx81OSuKVp
-         j5jsk88RjgS2GACrnq/VkOUB519j4hrCU/s8loafRqPgmVBHzsW7ucFFxv7yveWiNp1k
-         9DdAM19U4YUdTHYia/WvtnG8kbiL9iak9rksK3hLBPvsfpqH9NDV+zuolKQuf3KIXK1S
-         fwEg==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="N1R5A6j1"
+Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-488b0046078so53695245e9.1
+        for <linux-arch@vger.kernel.org>; Wed, 06 May 2026 01:58:40 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=redhat.com; s=google; t=1778056670; x=1778661470; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
+        d=gmail.com; s=20251104; t=1778057918; x=1778662718; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=IMA+C0TJi4LM3UTvwkCroeu4Tv8AgJe8bHK3v1p/l2E=;
-        b=TD9P15l1ROTyURydBJ4R92GsG2crGWwJkzYBvRLVACF97Sj+m07fa4Pl/NxCUZM32A
-         ov40m9JuAbs7Di15LYBMUkbnliutrgieUbhml1Hg7wT9UUunJ9Sv2FXpI8/kUjMVJmwd
-         H2lccH89lvr9s0lAvpwbf2bNr1xd7JHanh87sJkGHNxLggZ3PBy3ZqQAOFtH03wcyuBR
-         G38KItKk8HZx/AaJmO44lIz27gpLAIqRscjkIz/vxyhKdpnUWnosqovbs2A38vPjNYDY
-         d04jYGQIXc5zkpCbT38ugrPmoZZ/joGkjvKM+Sgg1Z9PdXJcdcmPtRPDF6Bz6SLMvoCL
-         l+6w==
+        bh=EhzB8ETmB1Gn6S1MA51/Lwkn0HDnlQZbCh2CXttfCBk=;
+        b=N1R5A6j1KHqEnuDzehRV6x+CkZA0wfw4LWwjh5newBX0VQKGkpuvZGxFkaP0+33IyO
+         d1swmpE/ROmeIEi3Y3p2mkIVM9RF9j7Q17sqOdkKDMcRFL7MqScv6SszLF6K+IX0zcxG
+         WCCiawKpINnNY9phFqnNtxm6jikCx3IptBLI8ntluz1RRyzOvmezphYb2SbONwSj3dpz
+         fAkD5Xc3uTaz29UELJnjA+n3B53lpg+YhP+I3pHczprCvGkmb67tS+q1UAShLaWGDa5k
+         68sFn6Mt1/Jw7Kpj2ssU3xGhMCwysaDAF/ztDoEwzCUYadBxGZsN5NMRTYe5K4Og6+RU
+         5y3w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1778056670; x=1778661470;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+        d=1e100.net; s=20251104; t=1778057918; x=1778662718;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=IMA+C0TJi4LM3UTvwkCroeu4Tv8AgJe8bHK3v1p/l2E=;
-        b=JXXxjRM035fIQQqLgk139XJKw1esVd5CMOp29h4VpbXTooZnooZqPvpYwiIiZ4jiHf
-         kgg/Sa1KO2m0ryI0P0z2LuGUa0fPBUjg7kLTrpk87RSz0xG4oobufJomt7nD/kcZALoK
-         vjP2kkLUW7S/SD5XGjK6yjCXKE9uVP1oPwP6HjBrcRVbTRY4eLjqFxmUJJaX302elez9
-         DEPY82JV1xdB1br1IImJWMVNXoo7e6WZtoMTvO0wamA8g9XtCifylQ+8mkCkWaBmwlLt
-         KLG+H45eFtYQrrRGTFJeIZ+NDLfyuVq6PArLzwX4/llEezNu9s0w9Xe+d8si5cJH3OqC
-         FOuQ==
-X-Forwarded-Encrypted: i=1; AFNElJ8g5A86JA62TlsybEzVKuw/LzuEccoJBBu7fRdP2sRBPIwze8TUae35eoFnEFvuZoVqETUUcFVVA3YA@vger.kernel.org
-X-Gm-Message-State: AOJu0YyuHJfdIc3Ecv9PFL+2B1dflQwVUwhra7QderbYETthNHpphbl5
-	i1aco/Z0B0Xa/CdRpVGz6EmD0/Ai1TqsLpit9qaVuX9ah4p2sJh2cNz8VWo2WDaDK2WcLcUhssT
-	mRBDcBLE4OWPNq8oQeBML5L6gBY86bEyzdgQIbLf7387apTRQvYqirFo8AJEnb3GkUbpHMHwdhF
-	PbtZJaF8R6F6TXiVdfwYugO5EgNTb3d/Hs57X5Mw==
-X-Gm-Gg: AeBDieuhZaD5yD/DeN//Gg5TB6Dzn4noZ2VKibKQRwqpva7s4CtnwQ4CqHbpOwiDqjA
-	6c6bzSZycX5ztMmvX3HmFJgN/5+uanOme/295oJr/13U7oJaMmvvfzxCsM/lfBtqIA0AvOhQFD0
-	px2zniXclV7aGeYMFX4owGLMN17XdhElOD/4JCLtSCAiE9b/PLMm71Kf82fI19F9gRyVZnOfQag
-	p4bgXoEABg3QPyo
-X-Received: by 2002:a05:690c:60c3:b0:7bd:696d:5137 with SMTP id 00721157ae682-7bdf5eb872emr28069867b3.41.1778056670474;
-        Wed, 06 May 2026 01:37:50 -0700 (PDT)
-X-Received: by 2002:a05:690c:60c3:b0:7bd:696d:5137 with SMTP id
- 00721157ae682-7bdf5eb872emr28069617b3.41.1778056670063; Wed, 06 May 2026
- 01:37:50 -0700 (PDT)
+        bh=EhzB8ETmB1Gn6S1MA51/Lwkn0HDnlQZbCh2CXttfCBk=;
+        b=fSAGF0koE/ZBYU2zIzhFwBH1TzXWer7Gfa8rRpa0X+LhZV50x0Zyv8zJXp1waf6Hnq
+         YdjQ5vHbEeHlzk1HnbWUFJcHKW8EGhSjcBU5Ff32vgUz4se1J4e2nXeldNU55m+ckLDs
+         ocpg9K4dlKjKZbQVWAaG9vBWAIypdipVQwv1CSoDKGk1evZoVsYx75OwD6fziAT+1sN8
+         O9bn9Yd9G/HUOq78fhFwXBQjQeb931tL/6ZOM3P6r9WFYP82spyJg+tSAnGUXiYdy0nr
+         2aJYlVsegQau3rds1M6lXK/m9NtezOVBpB8/8w+uzxbjHXkku6fITEHRkla1A/yItMDh
+         j77A==
+X-Forwarded-Encrypted: i=1; AFNElJ85MbjkEiOH1elN7MlgOCg9hwX5Gn9QvDfa7C3fU07i2jeTeRo6jALLQ3gxs1PQxmfIt632om3ihmbY@vger.kernel.org
+X-Gm-Message-State: AOJu0YzzGuvmuYz7NLwFrOOBV88HEfePHvg9QUtnz3oPSN8FAHtbnBeC
+	IGfUY80js6qW8z5FQ5SE/JQJCbgrZmo4cyg6WW9iN0/CU96AOA0QYY8E
+X-Gm-Gg: AeBDiessCrH/zH2i5j9J2gkQ0jMfpuY2ClKSa8Tv36puf4HvWWET2YjGqxE1wJ04A9b
+	JzpY3W2zIjIxh7KjLszjW5s1/yc6GiomYW9wRAjXkBzJg/vtnfCwiksr9PMlT4vrO8+8rXzFyCz
+	p8UHZCfXGtGad2ptTeXa62v1Dprj1PDeg7uPlUe2fkHo8T8HiZ1PYWYlUUlqZ58mJKFw/exfkie
+	vOLxNITcPlQeoYDbzyOj85CsNtwBRwAtjRmOI8jMyfM0LqjC5YBd4LdSMj/9WDDrpl6qxRfLD1r
+	xYAEkIaESW5aH2YF+DSzB29NcULoibfwZSyBbHwgIM33RD8lERhNi81sXdZtvYnN1mjf+qi1xwN
+	U8uL6dAbLkC8iTttClbp+LvSu1XmDkq/oDUe9ovGWEKMG5uQzPCBlfhLgHFDFrSiu/HV5mKrSJL
+	25bDpwZE4WAYRLKxiRx31Fux1tacoNvOyRBK+syXRiTyYa0WqUvxbesVI9ESqwE+uLZZBt/cv2L
+	hA=
+X-Received: by 2002:a05:600d:6:b0:48a:8905:a500 with SMTP id 5b1f17b1804b1-48e51f1d04bmr31640885e9.12.1778057917950;
+        Wed, 06 May 2026 01:58:37 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-48e538a50d0sm55769975e9.5.2026.05.06.01.58.37
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 06 May 2026 01:58:37 -0700 (PDT)
+Date: Wed, 6 May 2026 09:58:36 +0100
+From: David Laight <david.laight.linux@gmail.com>
+To: Ankur Arora <ankur.a.arora@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
+ bpf@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com,
+ will@kernel.org, peterz@infradead.org, akpm@linux-foundation.org,
+ mark.rutland@arm.com, harisokn@amazon.com, cl@gentwo.org, ast@kernel.org,
+ rafael@kernel.org, daniel.lezcano@linaro.org, memxor@gmail.com,
+ zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com, rdunlap@infradead.org,
+ joao.m.martins@oracle.com, boris.ostrovsky@oracle.com,
+ konrad.wilk@oracle.com, ashok.bhat@arm.com
+Subject: Re: [PATCH v11 01/14] asm-generic: barrier: Add
+ smp_cond_load_relaxed_timeout()
+Message-ID: <20260506095836.216d9cc5@pumpkin>
+In-Reply-To: <874iklm1uy.fsf@oracle.com>
+References: <20260408122538.3610871-1-ankur.a.arora@oracle.com>
+	<20260408122538.3610871-2-ankur.a.arora@oracle.com>
+	<874iklm1uy.fsf@oracle.com>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260504-kunit_add_support-v8-0-3e5957cdd235@redhat.com>
- <20260504-kunit_add_support-v8-3-3e5957cdd235@redhat.com> <20260504-tentacled-free-lobster-38d8d9@houat>
-In-Reply-To: <20260504-tentacled-free-lobster-38d8d9@houat>
-From: Albert Esteve <aesteve@redhat.com>
-Date: Wed, 6 May 2026 10:37:39 +0200
-X-Gm-Features: AVHnY4LGPM5httthyZYEMeSVpsAZZGIetxyr0Irj5BEH6JEFnHV4PP6tgxL43VM
-Message-ID: <CADSE00+TPGWPjD7DGHy5f+=QzwUqYHc=X-G1sEER8=NS5VvV-Q@mail.gmail.com>
-Subject: Re: [PATCH v8 3/4] drm: Suppress intentional warning backtraces in
- scaling unit tests
-To: Maxime Ripard <mripard@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Brendan Higgins <brendan.higgins@linux.dev>, 
-	David Gow <david@davidgow.net>, Rae Moar <raemoar63@gmail.com>, 
-	Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Thomas Zimmermann <tzimmermann@suse.de>, 
-	David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, Jonathan Corbet <corbet@lwn.net>, 
-	Shuah Khan <skhan@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
-	Alexandre Ghiti <alex@ghiti.fr>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
-	dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
-	linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
-	peterz@infradead.org, Guenter Roeck <linux@roeck-us.net>, 
-	Linux Kernel Functional Testing <lkft@linaro.org>, Dan Carpenter <dan.carpenter@linaro.org>, 
-	=?UTF-8?B?TWHDrXJhIENhbmFs?= <mcanal@igalia.com>, 
-	Alessandro Carminati <acarmina@redhat.com>, Simona Vetter <simona.vetter@ffwll.ch>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Mon, May 4, 2026 at 12:04=E2=80=AFPM Maxime Ripard <mripard@kernel.org> =
-wrote:
->
-> Hi,
->
-> On Mon, May 04, 2026 at 09:41:27AM +0200, Albert Esteve wrote:
-> > From: Guenter Roeck <linux@roeck-us.net>
+On Wed, 06 May 2026 00:30:29 -0700
+Ankur Arora <ankur.a.arora@oracle.com> wrote:
+
+> Ankur Arora <ankur.a.arora@oracle.com> writes:
+> 
+> > Add smp_cond_load_relaxed_timeout(), which extends
+> > smp_cond_load_relaxed() to allow waiting for a duration.
 > >
-> > The drm_test_rect_calc_hscale and drm_test_rect_calc_vscale unit tests
-> > intentionally trigger warning backtraces by providing bad parameters to
-> > the tested functions. What is tested is the return value, not the exist=
-ence
-> > of a warning backtrace. Suppress the backtraces to avoid clogging the
-> > kernel log and distraction from real problems.
+> > We loop around waiting for the condition variable to change while
+> > peridically doing a time-check. The loop uses cpu_poll_relax() to slow
+> > down the busy-wait, which, unless overridden by the architecture
+> > code, amounts to a cpu_relax().
 > >
-> > Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
-> > Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
-> > Acked-by: Ma=C3=ADra Canal <mcanal@igalia.com>
-> > Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
-> > Cc: David Airlie <airlied@gmail.com>
-> > Cc: Daniel Vetter <daniel@ffwll.ch>
-> > Signed-off-by: Guenter Roeck <linux@roeck-us.net>
-> > Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
-> > Acked-by: David Gow <david@davidgow.net>
-> > Signed-off-by: Albert Esteve <aesteve@redhat.com>
+> > Note that there are two ways for the time-check to fail: the timeout
+> > case or, @time_expr_ns returning an invalid value (negative or zero).
+> > The second failure mode allows for clocks attached to the clock-domain
+> > of @cond_expr --  which might cease to operate meaningfully once some
+> > state internal to @cond_expr has changed -- to fail.
+> >
+> > Evaluation of @time_expr_ns: in the fastpath we want to keep the
+> > performance close to smp_cond_load_relaxed(). So defer evaluation
+> > of the potentially costly @time_expr_ns to the slowpath.
+> >
+> > This also means that there will always be some hardware dependent
+> > duration that has passed in cpu_poll_relax() iterations at the time
+> > of first evaluation. Additionally cpu_poll_relax() is not guaranteed
+> > to return at timeout boundary. In sum, expect timeout overshoot when
+> > we exit due to expiration of the timeout.
+> >
+> > The number of spin iterations before time-check, SMP_TIMEOUT_POLL_COUNT
+> > is chosen to be 200 by default. With a cpu_poll_relax() iteration
+> > taking ~20-30 cycles (measured on a variety of x86 platforms), we
+> > expect a time-check every ~4000-6000 cycles.
+> >
+> > The outer limit of the overshoot is double that when working with the
+> > parameters above. This might be higher or lower depending on the
+> > implementation of cpu_poll_relax() across architectures.
+> >
+> > Lastly, config option ARCH_HAS_CPU_RELAX indicates availability of a
+> > cpu_poll_relax() that is cheaper than polling. This might be relevant
+> > for cases with a long timeout.
+> >
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Will Deacon <will@kernel.org>
+> > Cc: Catalin Marinas <catalin.marinas@arm.com>
+> > Cc: Peter Zijlstra <peterz@infradead.org>
+> > Cc: linux-arch@vger.kernel.org
+> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> > Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
 > > ---
-> >  drivers/gpu/drm/tests/drm_rect_test.c | 23 +++++++++++++++++++----
-> >  1 file changed, 19 insertions(+), 4 deletions(-)
+> > Notes:
+> >    - add a comment mentioning that smp_cond_load_relaxed_timeout() might
+> >      be using architectural primitives that don't support MMIO.
+> >      (David Laight, Catalin Marinas)
 > >
-> > diff --git a/drivers/gpu/drm/tests/drm_rect_test.c b/drivers/gpu/drm/te=
-sts/drm_rect_test.c
-> > index 17e1f34b76101..818e16e80c8f9 100644
-> > --- a/drivers/gpu/drm/tests/drm_rect_test.c
-> > +++ b/drivers/gpu/drm/tests/drm_rect_test.c
-> > @@ -409,8 +409,16 @@ static void drm_test_rect_calc_hscale(struct kunit=
- *test)
-> >       const struct drm_rect_scale_case *params =3D test->param_value;
-> >       int scaling_factor;
+> >  include/asm-generic/barrier.h | 69 +++++++++++++++++++++++++++++++++++
+> >  1 file changed, 69 insertions(+)
 > >
-> > -     scaling_factor =3D drm_rect_calc_hscale(&params->src, &params->ds=
-t,
-> > -                                           params->min_range, params->=
-max_range);
-> > +     /*
-> > +      * drm_rect_calc_hscale() generates a warning backtrace whenever =
-bad
-> > +      * parameters are passed to it. This affects all unit tests with =
-an
-> > +      * error code in expected_scaling_factor.
-> > +      */
-> > +     kunit_warning_suppress(test) {
-> > +             scaling_factor =3D drm_rect_calc_hscale(&params->src, &pa=
-rams->dst,
-> > +                                                   params->min_range,
-> > +                                                   params->max_range);
-> > +     }
+> > diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+> > index d4f581c1e21d..e5a6a1c04649 100644
+> > --- a/include/asm-generic/barrier.h
+> > +++ b/include/asm-generic/barrier.h
+> > @@ -273,6 +273,75 @@ do {									\
+> >  })
+> >  #endif
 > >
-> >       KUNIT_EXPECT_EQ(test, scaling_factor, params->expected_scaling_fa=
-ctor);
-> >  }
-> > @@ -420,8 +428,15 @@ static void drm_test_rect_calc_vscale(struct kunit=
- *test)
-> >       const struct drm_rect_scale_case *params =3D test->param_value;
-> >       int scaling_factor;
-> >
-> > -     scaling_factor =3D drm_rect_calc_vscale(&params->src, &params->ds=
-t,
-> > -                                           params->min_range, params->=
-max_range);
-> > +     /*
-> > +      * drm_rect_calc_vscale() generates a warning backtrace whenever =
-bad
-> > +      * parameters are passed to it. This affects all unit tests with =
-an
-> > +      * error code in expected_scaling_factor.
-> > +      */
-> > +     kunit_warning_suppress(test) {
-> > +             scaling_factor =3D drm_rect_calc_vscale(&params->src, &pa=
-rams->dst,
-> > +                                                   params->min_range, =
-params->max_range);
-> > +     }
-> >
-> >       KUNIT_EXPECT_EQ(test, scaling_factor, params->expected_scaling_fa=
-ctor);
-> >  }
->
-> For both I think we should add KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT call=
-s, no?
+> > +/*
+> > + * Number of times we iterate in the loop before doing the time check.
+> > + * Note that the iteration count assumes that the loop condition is
+> > + * relatively cheap.
+> > + */
+> > +#ifndef SMP_TIMEOUT_POLL_COUNT
+> > +#define SMP_TIMEOUT_POLL_COUNT		200
+> > +#endif
+> > +
+> > +/*
+> > + * Platforms with ARCH_HAS_CPU_RELAX have a cpu_poll_relax() implementation
+> > + * that is expected to be cheaper (lower power) than pure polling.
+> > + */
+> > +#ifndef cpu_poll_relax
+> > +#define cpu_poll_relax(ptr, val, timeout_ns)	cpu_relax()
+> > +#endif
+> > +
+> > +/**
+> > + * smp_cond_load_relaxed_timeout() - (Spin) wait for cond with no ordering
+> > + * guarantees until a timeout expires.
+> > + * @ptr: pointer to the variable to wait on.
+> > + * @cond_expr: boolean expression to wait for.
+> > + * @time_expr_ns: expression that evaluates to monotonic time (in ns) or,
+> > + *  on failure, returns a negative value.
+> > + * @timeout_ns: timeout value in ns
+> > + * Both of the above are assumed to be compatible with s64; the signed
+> > + * value is used to handle the failure case in @time_expr_ns.
+> > + *
+> > + * Equivalent to using READ_ONCE() on the condition variable.
+> > + *
+> > + * Callers that expect to wait for prolonged durations might want
+> > + * to take into account the availability of ARCH_HAS_CPU_RELAX.
+> > + *
+> > + * Note that @ptr is expected to point to a memory address. Using this
+> > + * interface with MMIO will be slower (since SMP_TIMEOUT_POLL_COUNT is
+> > + * tuned for memory) and might also break in interesting architecture
+> > + * dependent ways.
+> > + */
+> > +#ifndef smp_cond_load_relaxed_timeout
+> > +#define smp_cond_load_relaxed_timeout(ptr, cond_expr,			\
+> > +				      time_expr_ns, timeout_ns)		\
+> > +({									\
+> > +	typeof(ptr) __PTR = (ptr);					\
+> > +	__unqual_scalar_typeof(*ptr) VAL;				\
+> > +	u32 __n = 0, __spin = SMP_TIMEOUT_POLL_COUNT;			\
+> > +	s64 __timeout = (s64)timeout_ns;				\
+> > +	s64 __time_now, __time_end = 0;					\
+> > +									\
+> > +	for (;;) {							\
+> > +		VAL = READ_ONCE(*__PTR);				\
+> > +		if (cond_expr)						\
+> > +			break;						\
+> > +		cpu_poll_relax(__PTR, VAL, (u64)__timeout);		\
+> > +		if (++__n < __spin)					\
+> > +			continue;					\
+> > +		__time_now = (s64)(time_expr_ns);			\
+> > +		if (unlikely(__time_end == 0))				\
+> > +			__time_end = __time_now + __timeout;		\
+> > +		__timeout = __time_end - __time_now;			\
+> > +		if (__time_now <= 0 || __timeout <= 0) {		\
+> > +			VAL = READ_ONCE(*__PTR);			\
+> > +			break;						\
+> > +		}							\
+> > +		__n = 0;						\
+> > +	}								\
+> > +	(typeof(*ptr))VAL;						\
+> > +})
+> > +#endif
+> > +  
+> 
+> A cluster of issues that got flagged by sashiko was around timeout_ns
+> being specified as s64 and a bunch of potential edge cases around
+> that.
+> 
+> These were mostly caused by an implicit assumption in the code that
+> the timeout specified by the caller is generally reasonable. So, way
+> below S64_MAX, not 0 etc.
 
-Hi Maxime,
+There are plenty of ways kernel code can break things.
+Provided this code doesn't itself overwrite anywhere (rather than
+just loop forever or return immediately etc) I'd be tempted to
+just document the valid range rather than slow everything down
+with the extra tests.
 
-It may indeed add verification value by ensuring the call actually
-generates the expected warning.
+	David
 
-The original patch did not include count checks on the version I
-inherited it from (i.e.,
-https://lore.kernel.org/all/20250526132755.166150-5-acarmina@redhat.com/),
-so I kept the same approach while adapting to the API changes. That
-said, the check is simple to add, so I could include it in the next
-version.
-
-BR,
-Albert
-
->
-> Maxime
+> 
+> I think this is worth cleaning up a bit. The change is mostly around
+> introducing a u32 __itertime and explicitly computing the waiting time.
+> And adding a check to ensure that we start with a valid value.
+> 
+> This does make the implementation a little more involved. So just wanted
+> to see if people have any opinions on this?
+> 
+> +#ifndef smp_cond_load_relaxed_timeout
+> +#define smp_cond_load_relaxed_timeout(ptr, cond_expr,          \
+> +                                     time_expr_ns, timeout_ns) \
+> +({                                                             \
+> +       typeof(ptr) __PTR = (ptr);                              \
+> +       __unqual_scalar_typeof(*(ptr)) VAL;                     \
+> +       u32 __count = 0, __spin = SMP_TIMEOUT_POLL_COUNT;       \
+> +       s64 __timeout = (s64)(timeout_ns);                      \
+> +       s64 __time_now, __time_end = 0;                         \
+> +       u32 __maybe_unused __itertime;                          \
+> +                                                               \
+> +       for (__itertime = NSEC_PER_USEC;                        \
+> +               VAL = READ_ONCE(*__PTR), __timeout > 0; ) {     \
+> +               if (cond_expr)                                  \
+> +                       break;                                  \
+> +               cpu_poll_relax(__PTR, VAL, __itertime);         \
+> +               if (++__count < __spin)                         \
+> +                       continue;                               \
+> +               __time_now = (s64)(time_expr_ns);               \
+> +               if (unlikely(__time_end == 0))                  \
+> +                       __time_end = __time_now + __timeout;    \
+> +               __timeout = __time_end - __time_now;            \
+> +               if (__time_now <= 0 || __timeout <= 0) {        \
+> +                       VAL = READ_ONCE(*__PTR);                \
+> +                       break;                                  \
+> +               }                                               \
+> +               __itertime = __timeout % NSEC_PER_MSEC +        \
+> +                               NSEC_PER_USEC;                  \
+> +               __count = 0;                                    \
+> +       }                                                       \
+> +       (typeof(*(ptr)))VAL;                                    \
+> +})
+> +#endif
+> 
+> Thanks
+> 
+> --
+> ankur
+> 
 
