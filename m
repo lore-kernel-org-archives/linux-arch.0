@@ -1,374 +1,319 @@
-Received: from mx0a-0031df01.pphosted.com (mx0a-0031df01.pphosted.com [205.220.168.131])
+Received: from MW6PR02CU001.outbound.protection.outlook.com (mail-westus2azolkn19012048.outbound.protection.outlook.com [52.103.10.48])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC6EA47DFBF
-	for <linux-arch@vger.kernel.org>; Wed,  6 May 2026 13:53:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.168.131
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778075593; cv=none; b=nwoX5iwwOOSMVUvOHlBTsWpZNpdJDSaDYilUH6ZhbSSyoiuE3QlMRFBAHKvtusU0o2EXvTzsLXaV1Jt/3CnFKF4r/sVWk1RHCt4w81DmKAcTwPIWL8zXi/On2EJGQbXK1inZtFHqtVxAPF15mOBx3QGJEEHtfTbJMrSTJXs61KA=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778075593; c=relaxed/simple;
-	bh=WPy43tWwGLD16tLk3adfAOx6qHTQUenXbMiXY+eWGp8=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=VA8QE0VG1CrNW/JIbbly/Rq7IJUELT8kUTPNGWR8LUz+2QvkNpfGRnHDC2krQbdZaE5GIJDq+YRu9lM8NXVcyOOPIX6D4sfqcsHT3UMH+2yL9HJaBb0Pq3celvCeRH9d9MrXobofXJJLsMLpbQ82XMZNclIqrja7bx0Id/MMpVE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com; spf=pass smtp.mailfrom=oss.qualcomm.com; dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b=NYMfmHK+; dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b=Tv2mk4kp; arc=none smtp.client-ip=205.220.168.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oss.qualcomm.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AF28C3EE1EA;
+	Wed,  6 May 2026 14:36:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.103.10.48
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778078196; cv=fail; b=KmxnPy2uunoOfjjK8rSy4/5W5edykUhD63MFLBwrna5pFARcPe9ZrgcsjLwUjb7I048E+FzOVV8dDFDqvumbepwBVKIeJS1byQQyDC3R5AtVEyHTjrRXMvTjhGVhUH8sCVpIhXwLUsnqsW+M96h3RwLLfYKk954jqHBzcWEqYiM=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778078196; c=relaxed/simple;
+	bh=b5sSFZeVuzJUD8G0V+4M1JrvM7styGoNIZFEep+vkL0=;
+	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
+	 Content-Type:MIME-Version; b=huJ2kw/fxaPVXcyDE4xoJYRJ0Nveotxihp9vtj5104aN26TzHGEXala/QkavLmmbvUBhu7uVTH8vtQzp/zyiW9xAjLBwtureHxh7kg/6KX3dUeddWS+VweQWpRaJYkWNjeNrAlMqiZV1O9Yn74RvbOGJxtcY3TB0djth29x7Nmw=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=J5LPq89A; arc=fail smtp.client-ip=52.103.10.48
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b="NYMfmHK+";
-	dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b="Tv2mk4kp"
-Received: from pps.filterd (m0279862.ppops.net [127.0.0.1])
-	by mx0a-0031df01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 646A4gnY3524218
-	for <linux-arch@vger.kernel.org>; Wed, 6 May 2026 13:53:09 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qualcomm.com; h=
-	cc:content-transfer-encoding:content-type:date:from:in-reply-to
-	:message-id:mime-version:references:subject:to; s=qcppdkim1; bh=
-	DRyMypCoE/AnYhKuT36BdRoiWJW6dKR5NkRP1R7YP0s=; b=NYMfmHK+k6TMcBEs
-	JB9N2sy1XkQHuUHVdI/THYFtE0WxtAX91a1dzCyQdKbwy+bxool0SLY5hhgphytW
-	nxvwQ16ReG/JsWYfAX6njU68onXbdP4fD6VcqEy07vxAA62Cnm4XWiyIndyQMYID
-	TimzxroM/7pbv/a/vg7IwSAcm2VZ7QXRBQDDgVAu8aEvfHst0G+s10R2hD7JC/iy
-	b1aqv6Ph3k2aBqoD5N3YwbGD4YjBlda3traTHT8YBJTOi8SuZPM1pcm7DOsVBEVA
-	Cd8gTuLnrhPnHaFDYxRIq8dnZQkELY5EUOJPqLVLpC+qqs9ZIAkJskptUeTgKbOI
-	FNs28A==
-Received: from mail-qt1-f198.google.com (mail-qt1-f198.google.com [209.85.160.198])
-	by mx0a-0031df01.pphosted.com (PPS) with ESMTPS id 4e03jwrrj0-1
-	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Wed, 06 May 2026 13:53:09 +0000 (GMT)
-Received: by mail-qt1-f198.google.com with SMTP id d75a77b69052e-50d84b5f73bso215171031cf.0
-        for <linux-arch@vger.kernel.org>; Wed, 06 May 2026 06:53:09 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=oss.qualcomm.com; s=google; t=1778075588; x=1778680388; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=DRyMypCoE/AnYhKuT36BdRoiWJW6dKR5NkRP1R7YP0s=;
-        b=Tv2mk4kpAklepknjbvj5owP+wTcRrSxOyiqzSzWeoc5WjmrMPLpT9MbOBeCUfVfp0p
-         CoczDAE8t2Jy0Q11/nFReHq2qP93mq5QCxfUzHr1h66EgarFkZMZHgQ3IQwge72xXB82
-         EE53+RB/6DynKA627k8fwTE0HPDUMBb/aWjjVJCD6PgzrF5XncUfxuy6WpVRSstrz6zc
-         KHkyLZGV4mXA3r28Gwf4Sy+eRuQGdMDHM8m2xz0vF5/0vujGbpmpZbiJieHwL0yCGJRG
-         6A+rkJUhLdvRgwI2UabiJ6jJRPJfylkNiUpv9n0AO0LpGMkr9y/z2AL+ObhYY9i9V4yk
-         ka1g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1778075588; x=1778680388;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=DRyMypCoE/AnYhKuT36BdRoiWJW6dKR5NkRP1R7YP0s=;
-        b=hgrMzsKVtiMpKCBYVKe1q3Yw+jztOWDs5/ik+dRnWIBLePs//cKf3UucrZEGW19Via
-         8j4ehG9OmFFUYqVj5ek+SS6zahPPen489wqrTRxXk9dEtO57XPtEa5H+MKcfcsI+46y1
-         3RII3EiCEeBWhnaB1mHMbPaqI370e3CZJWdc3Yt7I/0CWriWu3kF0gHASttiYSDBgjZ2
-         M4jCxrNHIaaxExxgHoSA57as2eRfHWg/d50w5pZ2aNnLkK5E7b4xlS2a9EkISw8qih1d
-         N+u9+lAByD510UaqNVbHms0UUhSoG+zj4P5gnJw/8zuiSG+8Hoihoji8k6/O/+xBa7ru
-         BDlA==
-X-Forwarded-Encrypted: i=1; AFNElJ96UzyY9ROGyDxsEdQgxMmXQnMbiuHVUQTozgcw1RU2ChiLEeT/cIOQ+WnHV4DRdBcPijvYt55BM2O7@vger.kernel.org
-X-Gm-Message-State: AOJu0YxCXiM1f09pU1QYYhglsx4eSWQNnRyq8GoCfpZnPxLXS4W3s1Om
-	/PNKKGqU8bGr3WpuGNOwD0PxSqn3jsx9HBoZWDVhNlDeLWmAx+Ti+qkqn9nVoc6pWYM7LSUNad0
-	kTzBrjwjqI6FcsOq97BjaX2sMtDyzwjbwzLEuwyMSmcm0puJ+40g+E5XzwybOKcQM
-X-Gm-Gg: AeBDietZaQP/RtISBwfoFF0XxtR7/haWqZ8XLNkbLkPzG8ELkBL3cFkFeP7L5PsmIJz
-	4Jdkg54V0SkSUaA9d/3Z8M3w0M9zqz3N8xfsRyQ8n9AF2exuDNQJfC15y8dj3BBCgBXOAGFH1hD
-	t38SPtYFPB4NgovVhsrrfW1EOWNvFcANQc94lATYBzpj4+RN6xF+5/mEDxGuvRLZ9k1Fkdu1Z3S
-	mZaFl3Kvm3+ppiZ3vy0BRBk0xttX6jVh7SF4YxqYgeBJOZYLcRtMitglXOmFBoqyc6tDsayL/Y/
-	UWF+H+MBxAgWIVD2CQu4nAcFhGT8sfQLb9lXHLB9WqV67ZtNB74npPg/U8mMqCbwFmHrdggsEIo
-	CUoJSfPJQoGQi8qQTv/1L+hLlvO194NzoHac8idVVl/uHIUmSyMnMCOMJ4mIR
-X-Received: by 2002:a05:622a:138b:b0:509:2b02:c1bd with SMTP id d75a77b69052e-51461c1e0f5mr52170611cf.12.1778075588251;
-        Wed, 06 May 2026 06:53:08 -0700 (PDT)
-X-Received: by 2002:a05:622a:138b:b0:509:2b02:c1bd with SMTP id d75a77b69052e-51461c1e0f5mr52170071cf.12.1778075587741;
-        Wed, 06 May 2026 06:53:07 -0700 (PDT)
-Received: from mai.box.freepro.com ([2a05:6e02:1041:c10:41ef:7b80:b3e8:2c1a])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-48e538a5486sm52091945e9.6.2026.05.06.06.53.06
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 06 May 2026 06:53:06 -0700 (PDT)
-From: Daniel Lezcano <daniel.lezcano@oss.qualcomm.com>
-To: daniel.lezcano@oss.qualcomm.com, gregkh@linuxfoundation.org,
-        tglx@kernel.org
-Cc: linux-kernel@vger.kernel.org, Hans de Goede <hansg@kernel.org>,
-        =?UTF-8?q?Ilpo=20J=C3=A4rvinen?= <ilpo.jarvinen@linux.intel.com>,
-        Bryan O'Donoghue <bryan.odonoghue@linaro.org>,
-        Rob Herring <robh@kernel.org>,
-        Daniel Lezcano <daniel.lezcano@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, John Stultz <jstultz@google.com>,
-        Stephen Boyd <sboyd@kernel.org>,
-        linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [RFC PATCH 1/1] clocksource/drivers/timer-probe: Create a platform_device before the framework is initialized
-Date: Wed,  6 May 2026 15:52:42 +0200
-Message-ID: <20260506135242.4191560-2-daniel.lezcano@oss.qualcomm.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20260506135242.4191560-1-daniel.lezcano@oss.qualcomm.com>
-References: <20260506135242.4191560-1-daniel.lezcano@oss.qualcomm.com>
+	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="J5LPq89A"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=ZV6NCSyPkWLDoDiyQvtx/gFo9hSccnDSY1IEWE+XZTEDjz5uYg9JusrX7wsy+144nmNxQ66EoqWqhQBgV2pEVH8HxeymcWrKWiMrY+B/nmb0KhNJBuFqEQ6sKcWLmvmb+SAo6aY0/LXMtuc2Fs21qTFnbv4nDtp1RArdZR7n//t1qavK9CODxq6U9eNlJb5BdRqnZqOt3zlaty+lfG+mSVNKOtgGcW+Hx9yMvQeaek7djSZzlHtrJzsJdCOyzT85tDkb14zlQ1lBxSiGFFxWNrRoDMcLDTWu9PiAfDP78qGXw+9cXIGViamLZibbP2uBX5YrW8O1yjSt9WqupLMhvg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=V1IRyPESnisKXlkxEFzWzSZt3/CaTy6k7s442lpEm0A=;
+ b=HuEaI6mzGvRJJS6APA5l7BPXM5Dqfa2wna8T0/AGFuOa0WzvJDTgecsVY2oRq5ul6WaO8et215SdXtyA8ynJd0V4GTABD7NToccj3QXaGHfZbsh06MdMV1rYVsuqqDBAQQyOhvMW6r9bTcAGe6+1vH1kiZaxQsN381PTFM9dlFlJRY3BdNR5FJ/kc+Y7xfHlyIg1DPsEYMma31iwM80NNfjoYZ8G2bsW4V0r/FwBO1naM1kKA+3eeFf7RbWR+RTe2f9Y5CQbWtlFlSunHJ2Lyw9jL7mUTUEKwlWpGGp17mQTPJh0z9pUNDb+7RxvROuic/dGIcXTfbcKRh0XUvMFYA==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
+ dkim=none; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
+ s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=V1IRyPESnisKXlkxEFzWzSZt3/CaTy6k7s442lpEm0A=;
+ b=J5LPq89AUtH5m8Ymhzt78Ez/MME5R6ubnZQMfaCcI6wUMAgyNLJa9fuXO1sojVf/7JHbYkfRHKOY2uJJADoloReVBz785jlsp2Dm3qIF64miM26ueBzv05ISpLx8JFTh6WriSbUA+FUP3p45RQpx6G1KMVIsA11ZvhRBOUtzydEHC1MFSKDXcQymCfX78Jo5W4NKkvR0AQtSQUkCpcBobQprYhP9YlzsG4mEtZTU5rXVBVaLUbksFFDlQqfcOVuyaEEmuEd/iirVqXwfJjvQYQgXyDze2S1Vm4ZpL5qRf20Flpz5fOkYC2OnSPVjbraDrKzEIBrFzwHJGLP64csY3A==
+Received: from SN6PR02MB4157.namprd02.prod.outlook.com (2603:10b6:805:33::23)
+ by DS0PR02MB8928.namprd02.prod.outlook.com (2603:10b6:8:c8::13) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9891.15; Wed, 6 May
+ 2026 14:36:31 +0000
+Received: from SN6PR02MB4157.namprd02.prod.outlook.com
+ ([fe80::900:1ccf:2b1e:52b6]) by SN6PR02MB4157.namprd02.prod.outlook.com
+ ([fe80::900:1ccf:2b1e:52b6%6]) with mapi id 15.20.9891.008; Wed, 6 May 2026
+ 14:36:31 +0000
+From: Michael Kelley <mhklinux@outlook.com>
+To: Naman Jain <namjain@linux.microsoft.com>, Michael Kelley
+	<mhklinux@outlook.com>
+CC: Marc Zyngier <maz@kernel.org>, Timothy Hayes <timothy.hayes@arm.com>,
+	Lorenzo Pieralisi <lpieralisi@kernel.org>, Sascha Bischoff
+	<sascha.bischoff@arm.com>, mrigendrachaubey <mrigendra.chaubey@gmail.com>,
+	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+	"linux-arm-kernel@lists.infradead.org"
+	<linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org"
+	<linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org"
+	<linux-arch@vger.kernel.org>, "linux-riscv@lists.infradead.org"
+	<linux-riscv@lists.infradead.org>, "vdso@mailbox.org" <vdso@mailbox.org>,
+	"ssengar@linux.microsoft.com" <ssengar@linux.microsoft.com>, Michael Kelley
+	<mhklinux@outlook.com>, "K . Y . Srinivasan" <kys@microsoft.com>, Haiyang
+ Zhang <haiyangz@microsoft.com>, Wei Liu <wei.liu@kernel.org>, Dexuan Cui
+	<decui@microsoft.com>, Long Li <longli@microsoft.com>, Catalin Marinas
+	<catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Thomas Gleixner
+	<tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
+	<bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "x86@kernel.org"
+	<x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann
+	<arnd@arndb.de>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt
+	<palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti
+	<alex@ghiti.fr>
+Subject: RE: [PATCH v2 09/15] Drivers: hv: mshv_vtl: Move
+ hv_vtl_configure_reg_page() to x86
+Thread-Topic: [PATCH v2 09/15] Drivers: hv: mshv_vtl: Move
+ hv_vtl_configure_reg_page() to x86
+Thread-Index: AQHc0x7PKig5dZReokG7sAarwbgXxbXyan2QgANsi4CACEKMcIACeJ+AgACS93A=
+Date: Wed, 6 May 2026 14:36:31 +0000
+Message-ID:
+ <SN6PR02MB4157D109AF4B5C62EF7F0E2CD43F2@SN6PR02MB4157.namprd02.prod.outlook.com>
+References: <20260423124206.2410879-1-namjain@linux.microsoft.com>
+ <20260423124206.2410879-10-namjain@linux.microsoft.com>
+ <SN6PR02MB4157467FDBC0203C67A67042D4362@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <567cf73b-6a48-4fc3-b312-9be6d71e2f22@linux.microsoft.com>
+ <SN6PR02MB4157AD364DE0755DE070D286D4312@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <024aed8c-cd97-45f0-a653-489fc334a2b9@linux.microsoft.com>
+In-Reply-To: <024aed8c-cd97-45f0-a653-489fc334a2b9@linux.microsoft.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach:
+X-MS-TNEF-Correlator:
+x-ms-publictraffictype: Email
+x-ms-traffictypediagnostic: SN6PR02MB4157:EE_|DS0PR02MB8928:EE_
+x-ms-office365-filtering-correlation-id: af6d726b-1294-4c27-d2ed-08deab7cdd84
+x-microsoft-antispam:
+ BCL:0;ARA:14566002|37011999003|15080799012|41001999006|19110799012|13091999003|51005399006|8060799015|8062599012|461199028|19101099003|55001999006|31061999003|10035399007|4302099013|440099028|3412199025|102099032|1602099012|40105399003|1710799026;
+x-microsoft-antispam-message-info:
+ =?us-ascii?Q?Rf8XXGl//YUGjJNFZUjXtvlG4XNEs/yDeKJlQ1gAc0LdMFYlbL206u+tC+Z4?=
+ =?us-ascii?Q?9RIMGzeuS6R62xUCns1b+FFumj+w6DNz+1bVmZWlzDYuTl9xIl1Qsl/xcDAk?=
+ =?us-ascii?Q?OBTt7eiTok+I1XdAz7U5R1ke5Bb8QlUsyIBxNPV5p/VG180M9mRvz2utssgp?=
+ =?us-ascii?Q?sezlBOyNH74pUBEgdnP+Zf+9SADbPlya4CwMD+vMdT26NXXrCLe7dTiJzsCt?=
+ =?us-ascii?Q?idjOv2/vf2q10LB9k891L0fSWQBRWqvogOcwZ7tzNRoO/4wzjTtiWS/VqqiC?=
+ =?us-ascii?Q?FY7l/+H1Gasa/2pczdjEiCvZamXEIbji3eldj8TTEudSJqjbTp1RSQw3gn0P?=
+ =?us-ascii?Q?pTJmfB2Q9i3+q0ifqOtp0z8l+RwtMH/TNU0CSwWF6u4EvZ27JX8kPRN9EVZw?=
+ =?us-ascii?Q?RHK77QM+Bnn0/SRkuP/4DNDxHBHduJNj1h+NUqWSgxrN+QXaNK97O99ahYku?=
+ =?us-ascii?Q?Dx9CBTq5+SDZxea567PTwhcVQ+bRTMba56JaLs7E+uWzjkid82z74ipEpooJ?=
+ =?us-ascii?Q?c8Ty1n0fmkBjbAaGBZCOMpBt0zTm/cauZGRUJ8+exXz5dCe+j2qayvP2aEjo?=
+ =?us-ascii?Q?8v4gJtjQA+aNDdmz6aXuRVmFjj8uUmkd8nEIb2sTPS6l8wqICWvADvgxXp6+?=
+ =?us-ascii?Q?eq5BhbkP7LDGF7Pedf0J+YqTRTpoXZRDLyLlWtaKbV9hDGmCjkis6s6Qbf2t?=
+ =?us-ascii?Q?vOpvkJZuVadTyoLpKMpBVPQjVTBhnP9Qi1swiOomNVoL5EEUUHb4OormN3V5?=
+ =?us-ascii?Q?tKl5IlRtJECJWEzk7Qhafxm3Mu6CrD91qwkIjPM1Lb7/+vwaHg26z8RWVDVI?=
+ =?us-ascii?Q?2BXLhQHyU4EDtbDchF7RB2y5xWujo7mLSakZaj+FvkNWU+UlSNqZLLNj+4on?=
+ =?us-ascii?Q?TdlTtWGiaN3kKic0iP7lNAEC47MiHKBjl1r3KnrJrkfAC7g0Ur5vOkb8auV3?=
+ =?us-ascii?Q?dcbWxU9Gb3syqnE4k8E3c1cpFaCtB7iNv2v0qoFy76DwKUi6laot5ao5snIX?=
+ =?us-ascii?Q?BKs1spcbGBvSUGEkTeuIm6BfHmsBkLpA2FCBv/Hx/HkNQY++byCqJsVcusQi?=
+ =?us-ascii?Q?8Ap0/r6GeA+br3tYoPBu2jqFCZLx3XCbeQwEJvt+sXK6egTv7M4kXx0bmb9u?=
+ =?us-ascii?Q?zQsMQ6px95KS?=
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0:
+ =?us-ascii?Q?KQmGg3qPblHshAbsAMrBXeVHejCnXhsDWPdX8bK2ecOzEZmpsrRra8bjf06e?=
+ =?us-ascii?Q?ktPc1MFxaR30pN1l8IrKeAeIoAFVFX2CIIbdI1x14ooWQWoeTgSf4+M25xMC?=
+ =?us-ascii?Q?UKyy+RrHidim03MBm3+12fSXGJ80j1FQCNkTpJwDua6r+CNsX4mjXtu2F1Ww?=
+ =?us-ascii?Q?/wVNA4i3m7z2qAuVXRol6hbJib//EKuw3rJwWuAa/wOfb32vCuqLm7FshZyS?=
+ =?us-ascii?Q?fJ8cmkR3qxAFzkb0XePA4LSqs0MOveX7gxXLPkY3boCH4Q+dP5N38GAXrJuP?=
+ =?us-ascii?Q?0JZgXzNNmJ9JzG8LCy7G25jTRjTNdL40RDGr9kxz5mIGkJcKIGqSi9uYQP0F?=
+ =?us-ascii?Q?rH0C3XHyziuahG4DiJLqSx/+43fVNalK0fV6VZS6bUR0z4J+vkdySaeqp+JC?=
+ =?us-ascii?Q?0X42zNQ9YYAq0jIcbouQobbc5UpEJdrZ2Rqcq8G+zwn29NeCnaOihGsm88+L?=
+ =?us-ascii?Q?Dkz9pxBM4GK7IaiJbW/2nb1BIkD44xmHVjNAsJGZAxHuK6AeOxMPQJf6ax+b?=
+ =?us-ascii?Q?UGaLyAzVp1uLRxo+lVrLC1+Zy4VMySTv0KVzEgQTN+pAzPDQu5JIuvXtWB3X?=
+ =?us-ascii?Q?bquevU4PVq0mlhVocK3bHgOgxkVPh2KRLq53QdqCniJiPwcHG/cgLwNXNCuW?=
+ =?us-ascii?Q?koLqP46KYfL68Vx8oxX4fnyiX3P11p3LoNeYwqN2g7izWCiQtouQra1nJ6rY?=
+ =?us-ascii?Q?Ut/KQTUjNVrB18323/4Pn20f9rQr+c4n2Cu5Aiq6lAfW6CTyGmH0M219Y3Uf?=
+ =?us-ascii?Q?7fH7vljryFAdZIBFbfwxolK1JCTXF5OhGdpkArOwuKqXTHWCcm7CAvt8y4tH?=
+ =?us-ascii?Q?kzMizC7zw82QUMYBMURiQJwvHnf9pUeo9Se6BrsjiOt3C0REpJxIcrqKhXC+?=
+ =?us-ascii?Q?+YmFmsGMBDrE5cy/q89n+DcrnPo+UqQTFVASUezwO/bPilgQodIOZOqvELL/?=
+ =?us-ascii?Q?LueOBWS6qQRr3/cg2NpdpofCPplfx/PFRYIF4kquwZNCr9omSEeUYWBvkZpy?=
+ =?us-ascii?Q?RYBtztdZZM4LoXvWGSqE9DwXMB1GHP7qpjB7364F8JcOwCsgHhBx0kkDtkRS?=
+ =?us-ascii?Q?l8aU4qG2qBslhIkc+v91Zk7ebUgz3AwELT4d7kkgr/JHnZXTNEZJpyRmbAR6?=
+ =?us-ascii?Q?DIXGmwbqc9K2iBCaWtojN8tDIvS64VYVxzqWa570SNoInjFHHRw+zzxaEMk2?=
+ =?us-ascii?Q?/v5snnfF8JmSAqZI/8DO4FknCrFmgk0sdlXPg0N1CLo9hq0em3tw5dwa8EI/?=
+ =?us-ascii?Q?lom2i01Kvxif0Dcvk8//ieUfAmceTB6rh9tjVf0UuglQ01Prqcz56HmR+lEq?=
+ =?us-ascii?Q?FALJWW6hgpwIs4gaZiTET1yAVVlCcTR7bnpjRrfc/WGEQxCEDXY2EJ5IEJMc?=
+ =?us-ascii?Q?uNVxCEQ=3D?=
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-X-Authority-Analysis: v=2.4 cv=J4CaKgnS c=1 sm=1 tr=0 ts=69fb47c5 cx=c_pps
- a=mPf7EqFMSY9/WdsSgAYMbA==:117 a=xqWC_Br6kY4A:10 a=IkcTkHD0fZMA:10
- a=NGcC8JguVDcA:10 a=s4-Qcg_JpJYA:10 a=VkNPw1HP01LnGYTKEx00:22
- a=u7WPNUs3qKkmUXheDGA7:22 a=_K5XuSEh1TEqbUxoQ0s3:22 a=EUspDBNiAAAA:8
- a=VwQbUJbxAAAA:8 a=QyXUC8HyAAAA:8 a=KKAkSRfTAAAA:8 a=ag1SF4gXAAAA:8
- a=1MyLDUlQoYkTeSRXZBgA:9 a=3ZKOabzyN94A:10 a=QEXdDO2ut3YA:10
- a=dawVfQjAaf238kedN5IG:22 a=cvBusfyB2V15izCimMoJ:22 a=Yupwre4RP9_Eg_Bd0iYG:22
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNTA2MDEzNiBTYWx0ZWRfXyAQR9uyiXVVH
- 2nXzfHYrKpCMlw2Suk+0E/BI/lpt57/ehh5v7QYzUvZlUAwvMHeJTQWVPG2Iw+B5ZdG0PkzkoKg
- lis1M2h0M9QMv4U7KW40DrRrlo2+W0vEYavkz9RM8LHnlj+6Zm8gzfvudtprSyC3JaXkGtDbsqe
- LbNowCxs+GtyufNzWSeH36LeWd7dUtIILyv64SH6b5XKFdfr03Y5c5k2ZkDMShUNVV/PTu/Pk5+
- m8ie6Dd8C4TYO6tMxXgLXcvAf4vxLMZqI22usPy8mqzFO6BEk4h4W0pLhzPE3gTEq7Pm7F1kL2o
- RCuhnllV6O2jIcaGKscsSkMPRFeDr9FEzNNp+abg1KMFAPVYxdO8/FTOi/Zk1GK8MHat7Oh5WO2
- ou2jDwKaBmULcrQoFA0AUw2XhRHeOzOFfQoYkmhZUs2Rk53w/47dAn8fsb4Zy5r6bhnMc3xU3rl
- K/T5Sw5tFq7q+qD6vWg==
-X-Proofpoint-GUID: zH5sWZpLahyZ1WqodW1SIXZrj4_HTvx0
-X-Proofpoint-ORIG-GUID: zH5sWZpLahyZ1WqodW1SIXZrj4_HTvx0
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.51,FMLib:17.12.100.49
- definitions=2026-05-05_03,2026-05-06_01,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- lowpriorityscore=0 clxscore=1011 malwarescore=0 impostorscore=0 adultscore=0
- phishscore=0 suspectscore=0 spamscore=0 bulkscore=0 priorityscore=1501
- classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
- reason=mlx scancount=1 engine=8.22.0-2604200000 definitions=main-2605060136
+X-OriginatorOrg: outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: SN6PR02MB4157.namprd02.prod.outlook.com
+X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-CrossTenant-Network-Message-Id: af6d726b-1294-4c27-d2ed-08deab7cdd84
+X-MS-Exchange-CrossTenant-originalarrivaltime: 06 May 2026 14:36:31.3823
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
+X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DS0PR02MB8928
 
-In the context of the time keeping and the timers, some platforms have
-timers which need to be initialized very early. It is the case of the
-ARM platform which do not have the architected timers.
+From: Naman Jain <namjain@linux.microsoft.com> Sent: Tuesday, May 5, 2026 1=
+0:50 PM
+>=20
+> On 5/4/2026 9:36 PM, Michael Kelley wrote:
+> > From: Naman Jain <namjain@linux.microsoft.com> Sent: Wednesday, April 2=
+9, 2026 2:58 AM
+> >>
+> >> On 4/27/2026 11:10 AM, Michael Kelley wrote:
+> >>> From: Naman Jain <namjain@linux.microsoft.com> Sent: Thursday, April =
+23, 2026 5:42 AM
+> >>>>
+> >>>> Move hv_vtl_configure_reg_page() from drivers/hv/mshv_vtl_main.c to
+> >>>> arch/x86/hyperv/hv_vtl.c. The register page overlay is an x86-specif=
+ic
+> >>>> feature that uses HV_X64_REGISTER_REG_PAGE, so its configuration bel=
+ongs
+> >>>> in architecture-specific code.
+> >>>>
+> >>>> Move struct mshv_vtl_per_cpu and union hv_synic_overlay_page_msr to
+> >>>> include/asm-generic/mshyperv.h so they are visible to both arch and
+> >>>> driver code.
+> >>>>
+> >>>> Change the return type from void to bool so the caller can determine
+> >>>> whether the register page was successfully configured and set
+> >>>> mshv_has_reg_page accordingly.
+> >>>>
+> >>>> Signed-off-by: Naman Jain <namjain@linux.microsoft.com>
+> >>>> ---
+> >>>>    arch/x86/hyperv/hv_vtl.c       | 32 ++++++++++++++++++++++
+> >>>>    drivers/hv/mshv_vtl_main.c     | 49 +++--------------------------=
+-----
+> >>>>    include/asm-generic/mshyperv.h | 17 ++++++++++++
+> >>>>    3 files changed, 53 insertions(+), 45 deletions(-)
+> >>>>
+> >>
+> >> <snip>
+> >>
+> >>>>    #if IS_ENABLED(CONFIG_HYPERV_VTL_MODE)
+> >>>> +/* SYNIC_OVERLAY_PAGE_MSR - internal, identical to hv_synic_simp */
+> >>>
+> >>> This comment pre-dates your patch, but I don't understand the point
+> >>> it is trying to make. The comment is factually true, but I don't know
+> >>> why calling that out is relevant. The REG_PAGE MSR seems to be
+> >>> conceptually separate and distinct from the SIMP MSR, so the fact
+> >>> that the layouts are the same is just a coincidence. Or is there some
+> >>> relationship between the two MSRs that I'm not aware of, and the
+> >>> comment is trying (and failing?) to point out?
+> >>
+> >> This was added as per suggestion from Nuno in my initial series for
+> >> MSHV_VTL. If the reference in "identical to" is misleading, I should
+> >> remove it.
+> >>
+> >> https://lore.kernel.org/all/68143eb0-e6a7-4579-bedb-4c2ec5aaef6b@linux=
+.microsoft.com/
+> >>
+> >> Quoting:
+> >> """
+> >> it is a generic structure that
+> >> appears to be used for several overlay page MSRs (SIMP, SIEF, etc).
+> >>
+> >> But, the type doesn't appear in the hv*dk headers explicitly; it's jus=
+t
+> >> used internally by the hypervisor.
+> >>
+> >> I think it should be renamed with a hv_ prefix to indicate it's part o=
+f
+> >> the hypervisor ABI, and a brief comment with the provenance:
+> >>
+> >> /* SYNIC_OVERLAY_PAGE_MSR - internal, identical to hv_synic_simp */
+> >> union hv_synic_overlay_page_msr {
+> >> 	/* <snip> */
+> >> };
+> >
+> > OK, so this union is not associated *only* with the REG_PAGE MSR
+> > (though that MSR is the only current user). Instead, it is intended to
+> > be a more generic description of MSRs that set up overlay pages. I
+> > don't think I had previously noticed Nuno's comment on the topic.
+> >
+> > Looking through hvgdk_mini.h and hvhdk.h, I see 6 definitions that
+> > are exactly the same:
+> >
+> > * union hv_reference_tsc_msr
+> > * union hv_x64_msr_hypercall_contents
+> > * union hv_vp_assist_msr_contents
+> > * union hv_synic_simp
+> > * union hv_synic_siefp
+> > * union hv_synic_sirbp
+> >
+> > There's an argument to be made for removing these 6 unique definitions
+> > and using union hv_synic_overlay_page_msr instead (though "synic"
+> > would need to be removed from the name).  I would not object to such
+> > an approach. It's a small extra layer of conceptual indirection, but sa=
+ves
+> > some lines of code for duplicative definitions. The alternative is to d=
+rop
+> > the idea of a generic overlay page MSR layout, and replace union
+> > hv_synic_overlay_page_msr with a definition that is specific to the
+> > REG_PAGE MSR, like the other six above.
+> >
+>=20
+> Hi Michael,
+>=20
+> While having a generic definition looks good to have here, I can see two
+> reasons for not going ahead with generic overlay page definition:
+> 1. All of the above definitions are present in Hyper-V headers and
+> generalizing them would deviate from the strategy of keeping the kernel
+> headers in line with Hyper-V headers.
+> 2. For any of these definitions, if the use-case requires using some of
+> these reserved bits, then it would be a problem. I can actually see that
+> happening in "hv_x64_msr_hypercall_contents" in the corresponding
+> variant in the Hyper-V header.
 
-The macro TIMER_OF_DECLARE adds an entry in the timer init functions
-array at compile time and the function timer_probe is called from the
-timer_init() function in kernel/time.c
+Your points are certainly valid, and I'm good with not going the
+generic route.
 
-This array contains a tuple with the init function and the compatible
-string.
+>=20
+> > I could go either way. If we want to use a generic overlay page definit=
+ion,
+> > then that approach should be applied everywhere. With the current
+> > state of your patch set, we're halfway in between -- the generic defini=
+tion
+> > is used one place, but duplicative specific MSR definitions are used ot=
+her
+> > places. That's probably the least desirable approach.
+> >
+> > Michael
+>=20
+>=20
+> Now, coming back to the hv_synic_overlay_page_msr definition. While
+> Nuno's comment hinted at it being "generic", the same is not documented
+> in the name of this structure or its comments. So it should be safe to
+> assume that it is specific to synic_overlay_page_msr usage. But since it
+> is not part of Hyper-V header as such, we needed that comment:
+> "/* SYNIC_OVERLAY_PAGE_MSR - internal, identical to hv_synic_simp */"
+>=20
 
-The init function has a device node pointer parameter.
+An "overlay page" is a generic concept in the Hyper-V world, and it is used
+in multiple places in the guest<->hypervisor interface. The old PDF version=
+ of
+the Hyper-V TLFS describes overlay pages in the section 5.2.1 entitled "GPA
+Overlay Pages". See [1]. Unfortunately, this material about overlay pages
+doesn't seem to have been carried over to the web page version of the TLFS.
 
-The timer_probe() function browses the of nodes and find the ones
-matching the compatible string given when using the TIMER_OF_DECLARE
-macro. It then calls the init function with the device node as a
-pointer.
+So in my thinking, the name "hv_synic_overlay_page_msr" is inherently
+a generic definition that could be applied to multiple MSRs that are used t=
+o
+specify overlay pages. Your patch is about a specific MSR,
+HV_X64_REGISTER_REG_PAGE, which happens to be used to define an
+overlay page. But if the decision is to *not* go the generic route, I
+would expect to see something like "union hv_x64_reg_page_msr"
+that is specific to the REG_PAGE MSR, and to have that type used in
+hv_vtl_configure_reg_page(). The definition of hv_x64_reg_page_msr
+would not have a comment referencing the SIMP or any other MSR
+because it would be a standalone definition that is specific to
+HV_X64_REGISTER_REG_PAGE. Then the pattern would be the same as
+the other six cases that I listed above.
 
-But there are some platforms where there are multiple timers like the
-ARM64 with the architected timers. Those are always initialized very
-early and the other timers can be initialized later.
+When not using the generic approach, hv_synic_overlay_page_msr
+really has no purpose, and could go away.
 
-For this reason we find timer drivers with the platform_driver
-version. Consequently their init functions are different, they
-have a platform_device pointer parameter and rely on the devm_
-function for rollbacking.
+Michael
 
-To summarize, we have:
- - TIMER_OF_DECLARE with init function prototype:
-   int (*init)(struct device_node *np);
-
- - module_platform_driver (and variant) with the probe function
-   prototype:
-   int (*init)(struct platform_device *pdev);
-
-The current situation with the timers is the following:
-
- - Two platforms can have the same timer hardware, hence the same
-   driver but one without alternate timers and the other with multiple
-   timers. For example, the Exynos platform has only the Exynos MCT on
-   ARM but has the architeched timers in addition on the ARM64.
-
- - The timer drivers can be modules now which was not the case until
-   recently. TIMER_OF_DECLARE do not allow the build as a module.
-
-It results in duplicate init functions (one with rollback and one with
-devm_) and different way to declare the driver (TIMER_OF_DECLARE and
-module_platform_driver).
-
-This proposed change is to unify the prototyping of the init functions
-to receive a platform_device pointer as parameter. Consequently, it
-will allow a smoother and nicer module conversion and a huge cleanup
-of the init functions by removing all the rollback code from all the
-timer drivers. It introduces a TIMER_PDEV_DECLARE() macro.
-
-The platform drivers registered through TIMER_PDEV_DECLARE() are not
-registered with the driver core. Instead, their probe function is
-invoked directly during early init, as the full driver model is not
-available at this stage.
-
-If the early initialization is needed, then the macro usage will
-result in a platform_device manually allocated and initialized with
-the needed information for the probe function. Otherwise the
-module_platform_driver can be used instead with the same probe
-function without the timer_probe() usage like any other devices using
-the driver model.
-
-This mirrors the existing TIMER_OF_DECLARE() behavior while allowing
-a unified probe interface and enabling the use of devm-managed
-resources in timer drivers.
-
-The plan is to have all timers to use TIMER_PDEV_DECLARE with all the
-init functions cleanups and then remove the TIMER_OF_DECLARE macro.
-
-Signed-off-by: Daniel Lezcano <daniel.lezcano@oss.qualcomm.com>
-Cc: Hans de Goede <hansg@kernel.org>
-Cc: Ilpo Järvinen <ilpo.jarvinen@linux.intel.com>
-Cc: Bryan O'Donoghue <bryan.odonoghue@linaro.org>
-Cc: Rob Herring <robh@kernel.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- drivers/clocksource/timer-probe.c | 63 ++++++++++++++++++++++++++++++-
- include/asm-generic/vmlinux.lds.h | 10 +++++
- include/linux/clocksource.h       | 21 +++++++++++
- 3 files changed, 93 insertions(+), 1 deletion(-)
-
-diff --git a/drivers/clocksource/timer-probe.c b/drivers/clocksource/timer-probe.c
-index b7860bc0db4b..f4705a78eee1 100644
---- a/drivers/clocksource/timer-probe.c
-+++ b/drivers/clocksource/timer-probe.c
-@@ -7,13 +7,14 @@
- #include <linux/init.h>
- #include <linux/of.h>
- #include <linux/clocksource.h>
-+#include <linux/platform_device.h>
- 
- extern struct of_device_id __timer_of_table[];
- 
- static const struct of_device_id __timer_of_table_sentinel
- 	__used __section("__timer_of_table_end");
- 
--void __init timer_probe(void)
-+static int __init timer_of_probe(void)
- {
- 	struct device_node *np;
- 	const struct of_device_id *match;
-@@ -38,6 +39,66 @@ void __init timer_probe(void)
- 		timers++;
- 	}
- 
-+	return timers;
-+}
-+
-+static int __init __timer_pdev_probe(struct platform_driver *drv)
-+{
-+	struct device_node *np;
-+	struct platform_device *pdev;
-+	const struct of_device_id *match;
-+	unsigned int timers = 0;
-+	int ret;
-+
-+	for_each_matching_node_and_match(np, drv->driver.of_match_table, &match) {
-+		if (!of_device_is_available(np))
-+			continue;
-+
-+		pdev = platform_device_alloc(of_node_full_name(np), -1);
-+		if (!pdev)
-+			continue;
-+
-+		ret = device_add_of_node(&pdev->dev, np);
-+		if (ret) {
-+			platform_device_put(pdev);
-+			continue;
-+		}
-+
-+		dev_set_name(&pdev->dev, pdev->name);
-+
-+		ret = drv->probe(pdev);
-+		if (!ret) {
-+			timers++;
-+			continue;
-+		}
-+
-+		if (ret != -EPROBE_DEFER)
-+			pr_err("Failed to initialize '%pOF': %d\n", np, ret);
-+
-+		device_remove_of_node(&pdev->dev);
-+
-+		platform_device_put(pdev);
-+	}
-+
-+	return timers;
-+}
-+
-+static int __init timer_pdev_probe(void)
-+{
-+	struct platform_driver **drv;
-+
-+	for_each_pdev_timer_table(drv)
-+		__timer_pdev_probe(*drv);
-+
-+	return 0;
-+}
-+
-+void __init timer_probe(void)
-+{
-+	unsigned timers = 0;
-+
-+	timers += timer_of_probe();
-+	timers += timer_pdev_probe();
- 	timers += acpi_probe_device_table(timer);
- 
- 	if (!timers)
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 60c8c22fd3e4..1efdac063560 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -359,6 +359,15 @@
- #define THERMAL_TABLE(name)
- #endif
- 
-+#ifdef CONFIG_TIMER_OF
-+#define TIMER_TABLE(name)						\
-+	. = ALIGN(8);							\
-+	BOUNDED_SECTION_POST_LABEL(__##name##_timer_table,		\
-+				   __##name##_timer_table,, _end)
-+#else
-+#define TIMER_TABLE(name)
-+#endif
-+
- #define KERNEL_DTB()							\
- 	STRUCT_ALIGN();							\
- 	__dtb_start = .;						\
-@@ -731,6 +740,7 @@
- 	ACPI_PROBE_TABLE(irqchip)					\
- 	ACPI_PROBE_TABLE(timer)						\
- 	THERMAL_TABLE(governor)						\
-+	TIMER_TABLE(pdev)						\
- 	EARLYCON_TABLE()						\
- 	LSM_TABLE()							\
- 	EARLY_LSM_TABLE()						\
-diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
-index 7c38190b10bf..b7595e589fd5 100644
---- a/include/linux/clocksource.h
-+++ b/include/linux/clocksource.h
-@@ -18,6 +18,7 @@
- #include <linux/init.h>
- #include <linux/of.h>
- #include <linux/clocksource_ids.h>
-+#include <linux/platform_device.h>
- #include <asm/div64.h>
- #include <asm/io.h>
- 
-@@ -295,6 +296,26 @@ extern void timer_probe(void);
- static inline void timer_probe(void) {}
- #endif
- 
-+extern struct platform_driver *__pdev_timer_table[];
-+extern struct platform_driver *__pdev_timer_table_end[];
-+
-+#define TIMER_PDEV_DECLARE(__name, __probe, __remove, __match)		\
-+	static struct platform_driver __pdev_timer_table_entry_##__name = { \
-+		.probe = __probe,					\
-+		.remove = __remove,					\
-+		.driver = {						\
-+			.name = #__name,				\
-+			.of_match_table = __match			\
-+		},							\
-+	};								\
-+	static struct platform_driver *___pdev_timer_table_entry_##__name \
-+	__used __section("__pdev_timer_table") = &__pdev_timer_table_entry_##__name
-+
-+#define for_each_pdev_timer_table(__pdev)     \
-+	for (__pdev = __pdev_timer_table;     \
-+	     __pdev < __pdev_timer_table_end; \
-+	     __pdev++)
-+
- #define TIMER_ACPI_DECLARE(name, table_id, fn)		\
- 	ACPI_DECLARE_PROBE_ENTRY(timer, name, table_id, 0, NULL, 0, fn)
- 
--- 
-2.43.0
-
+[1] https://github.com/MicrosoftDocs/Virtualization-Documentation/raw/live/=
+tlfs/Hypervisor%20Top%20Level%20Functional%20Specification%20v6.0b.pdf
