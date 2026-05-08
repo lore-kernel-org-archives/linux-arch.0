@@ -1,51 +1,64 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 681FA401A22
-	for <linux-arch@vger.kernel.org>; Fri,  8 May 2026 15:03:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F0F53D1CA8
+	for <linux-arch@vger.kernel.org>; Fri,  8 May 2026 16:12:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.46
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778252628; cv=none; b=W0U308d8hEdSqpD+J2JP8LIZeZlRE5/XiktV8AWr6354SzSG8sGeBbvqzLGGQ8t4sG0NKdtrbkOW0DQ6sF1cJ9QS9UwJ7BPxIaZVYLxQFZI6UoS7pv8Zc27Ji5C5b0f64K1LxeZwBvmLbBwm4HiTblsZydeKsQkem8vSlVrygto=
+	t=1778256776; cv=none; b=IA2OHi/0/ZFpp9duU5AGcP925dc289HS5bOUvu8FFwG6LxrTLaHivZsRcSaIF53MsPmZgfVmWOk3aNFhKCrXeKRE2qdOnKGL2WS6lewGUPSPVTtCD2O8JJ+zvdy6ssJs+5hs5pnbmvPef9jmTVo7lzgH3BZbrCGCNPh4JzeqDUA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778252628; c=relaxed/simple;
-	bh=95rnVbuPoEqYoOgOEmXgRRLmt/DgdbJJ5HiCjeQHGDU=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=uEyVupjTdhC006zdrwJaU3urkaqeCzMJ2ID8pl1xejHxImMkBQM8KujseDGtrUyCGKrqRzPG5x4dov8e9P7ZicZXRqWDqbNh5CJ0wzcMbtRlAQIU29L26KT0EJhMuF054GZdaHmtGZsZPLT52Hu7m/ena9RMmy/Z6oMHYOkaYMU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=DhX1tcTX; arc=none smtp.client-ip=170.10.133.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1778256776; c=relaxed/simple;
+	bh=UDRiTFNTGMxGNkj85pCGPItAs9ImXHnWYb2myZlsZfE=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:To:Cc; b=sMeBW+YoaGNJn4n+z08FuS077O+cnAll6M1tT1lN4rUgWF5/hjGMr7TBJjXN5kRGANVhOyR34vFuxIazJIYQwSC9Io/Zz0OMZsHZd5KWoR9jOmC+chFr+K9ldjWB8LTlILcDteoB6hM0yuDuae/9OARwn2M5yiyRh5PZyT9RlxQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=Gf79JQx8; arc=none smtp.client-ip=209.85.128.46
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="DhX1tcTX"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1778252625;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=mmxOVGUrnxS/H09zubyapT22aA5Jy+w6JF95xU/Ftgg=;
-	b=DhX1tcTX2soL2C97LHroz7jTdJXTzC2z6zsACNnFlvKjlg7lp/QTvmVGrInpDty8Rm2K25
-	+++K9YyXI6WQ3zGGEmMCa8viS+GememUEKiKw6duZ1YJPbyb1tTJ5Y2REHZtbrgR/LZMPB
-	T8BW4En969kg6z7jfDUEm0HHoOvzK4g=
-Received: from mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-170-iS7UFWwSOQ6ATgQIY2aB7w-1; Fri,
- 08 May 2026 11:03:39 -0400
-X-MC-Unique: iS7UFWwSOQ6ATgQIY2aB7w-1
-X-Mimecast-MFC-AGG-ID: iS7UFWwSOQ6ATgQIY2aB7w_1778252612
-Received: from mx-prod-int-06.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-06.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.93])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 412AD1955F56;
-	Fri,  8 May 2026 15:03:32 +0000 (UTC)
-Received: from [192.168.1.153] (headnet01.pony-001.prod.iad2.dc.redhat.com [10.2.32.101])
-	by mx-prod-int-06.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 1A3551800347;
-	Fri,  8 May 2026 15:03:24 +0000 (UTC)
-From: Albert Esteve <aesteve@redhat.com>
-Date: Fri, 08 May 2026 17:02:48 +0200
-Subject: [PATCH v9 4/4] kunit: Add documentation for warning backtrace
- suppression API
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="Gf79JQx8"
+Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-4891ca4ce02so116955e9.1
+        for <linux-arch@vger.kernel.org>; Fri, 08 May 2026 09:12:54 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1778256773; x=1778861573; darn=vger.kernel.org;
+        h=cc:to:message-id:content-transfer-encoding:mime-version:subject
+         :date:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=DV4wqH3QxYXnjFXdGhWXuxESZRvhEx+akEv7Iop0Gs4=;
+        b=Gf79JQx8FQlrjjr/Seg21mi2IV6exSEIH/lbG6080SSngtWK0d9GVJ4mpI1Hgp5x3m
+         MhWi3aHbjrjeDZFyM2llg7muaLs2xPUeyBFGu3BEgzzGZ9IPf6t2EQP/0QDKT++jE96i
+         Y6IL4Fk2AQfD5IhK+fWgOYUt0jeP0tCp7KWtHr+s3x9BOez+rEA3dLfcg6+wmYiDeYQB
+         jsLu55VigpBYzB81IOJzIrA8F1OIh5Dyf+aJwdxsO0ZKJt741YVd/CrkBnu9teqJ0Tsz
+         MGVR7hgxlDv+oBat/41B9Rl7WgIiag3avPEJttab3++vvz80tXThAS3OnTLg0gQun1Rx
+         nw4Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778256773; x=1778861573;
+        h=cc:to:message-id:content-transfer-encoding:mime-version:subject
+         :date:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=DV4wqH3QxYXnjFXdGhWXuxESZRvhEx+akEv7Iop0Gs4=;
+        b=JhK2AXI8EwS4/Jx0vm82nQwmTDlF6tFnx0dXnUejmFiqzVB9Czmb6pa32dxzFm6WpR
+         IdT97fgT8QTNlHIGRfGHQknGcvl5oVDzuhUOu4ONgG6pJf0PirzQ0T1jM5Iqywk+nt4u
+         bwI7uqlMmOqPgjDM6/SRNu7W6dBijeF2+RvJhBrsOdfk5WMNUcJQBE+hcdQq/v2zTwVT
+         pG3Bj0WiM5Cqm8iEPZXeJDOWxw6nB8fojX0lUmHd6smPnZehtAADIqiFhq2KH9EkJuks
+         aFPzLG6E1r+TlkXqDVmRpQrxJBKnc+8U6NX9yiV7Mrj7zyyz2BOFeHhQmr93sLcustrR
+         81qg==
+X-Forwarded-Encrypted: i=1; AFNElJ9scP6CLfJpHANJmtFPJlw3U9McvORTWYqfP9nSLboQGYdNkQUGnTIqlKgQ4MnAzOBPLbCsXpiEBk0y@vger.kernel.org
+X-Gm-Message-State: AOJu0YwfbBHcUSXYtCVRR+rd1DL3e3ORDAPUU3nswqXCeXxQPOsn4e4e
+	sqTwdBrcpjzfU5uDRg/+/lXrdk+miDcM7ChrP8JuBcNlbK5aSKqq52smej1qc83Smw==
+X-Gm-Gg: AeBDieuPX5sbe8WsudFuo1WAVu0i4miZRbZolw2SLW41mCd8GOvyojd3eSr2VixZB39
+	nykUy0PBp+zJm7TtJ1SmSeh1iWsUQth9z8fdT3NS+TD9Rc3BKwGMA6xLDTAWzvyWJfYB9M5UJza
+	biiL2yguNyBJn4Urzgdgrk8lP8BXK6cVsSgW7NK66WuJlcZtoklAyE6lvddY0Bx5tYhA5n16Ki9
+	deSuwDqInLjvy0kRrUbT6usUTgtuJX4Ci4GprUEMczf4UB0bdHt/u2pgoTzFAi/daW6pe3FGDuK
+	eB6gC2MDKsDphWapATkeghPN6ANejnkPrm7MSZBHvBqHOk6Lh4sYebt65JLHiPYQG1fdNNdRfve
+	omb8d2NNNbg76NmVbo5kywUy4E4xm6mg49fEsydexzR7E8FYHENGGGnTC2IOnkOEsd9B9IsQDOz
+	j/gXNJMFxM0Kj7GblglVSZvZ6pL+Kih0xdC3mil9QXWMHOFfH5N4r7/26H3ffa1g==
+X-Received: by 2002:a05:600c:a10e:b0:48e:68e5:589e with SMTP id 5b1f17b1804b1-48e68e55966mr597585e9.12.1778256772825;
+        Fri, 08 May 2026 09:12:52 -0700 (PDT)
+Received: from localhost ([2a00:79e0:288a:8:9f14:b8a4:32a8:9c95])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-48e6dd3fd0csm4395875e9.14.2026.05.08.09.12.50
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 08 May 2026 09:12:50 -0700 (PDT)
+From: Jann Horn <jannh@google.com>
+Date: Fri, 08 May 2026 18:12:42 +0200
+Subject: [PATCH] mm: make zeropage read-only
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -54,115 +67,104 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260508-kunit_add_support-v9-4-99df7aa880f6@redhat.com>
-References: <20260508-kunit_add_support-v9-0-99df7aa880f6@redhat.com>
-In-Reply-To: <20260508-kunit_add_support-v9-0-99df7aa880f6@redhat.com>
-To: Arnd Bergmann <arnd@arndb.de>, 
- Brendan Higgins <brendan.higgins@linux.dev>, David Gow <david@davidgow.net>, 
- Rae Moar <raemoar63@gmail.com>, 
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
- Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
- David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
- Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
- Andrew Morton <akpm@linux-foundation.org>, Paul Walmsley <pjw@kernel.org>, 
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
- Alexandre Ghiti <alex@ghiti.fr>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
- dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
- linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
- peterz@infradead.org, Guenter Roeck <linux@roeck-us.net>, 
- Linux Kernel Functional Testing <lkft@linaro.org>, 
- Alessandro Carminati <acarmina@redhat.com>, 
- Albert Esteve <aesteve@redhat.com>, Dan Carpenter <error27@gmail.com>, 
- Kees Cook <kees@kernel.org>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1778252571; l=2728;
- i=aesteve@redhat.com; s=20260303; h=from:subject:message-id;
- bh=YX7AMC4Z3qCvd9o2GGoQ6LMsoUJS/dulVvDsXv5Qzg4=;
- b=O8GAE+hb0obKMFu0966wbJ+cfY19Wpbym+fXH6s7bOO7dYWHfLHG5XXWIpqXGRKKa/TQnhg+q
- h6jrH8Z3iA1BMBe58q+Vr1SlKcH+06z/ZRxopUzfcImr+dmdwYcQvPe
-X-Developer-Key: i=aesteve@redhat.com; a=ed25519;
- pk=YSFz6sOHd2L45+Fr8DIvHTi6lSIjhLZ5T+rkxspJt1s=
-X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.93
+Message-Id: <20260508-ro-zeropage-v1-1-9808abc20b49@google.com>
+X-B4-Tracking: v=1; b=H4sIAHkL/mkC/x2MQQqAIBAAvxJ7TjBJsb4SHazW2ovKChGJf086D
+ sNMgYxMmGHuCjDelCmGBkPfwX65cKKgozEoqYzU0gqO4kWOyTVljd/sqCajHUIrEqOn578ta60
+ fe/V0R10AAAA=
+X-Change-ID: 20260508-ro-zeropage-86fb842965ae
+To: Mike Rapoport <rppt@kernel.org>, 
+ Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, 
+ linux-kernel@vger.kernel.org, linux-hardening@vger.kernel.org, 
+ Jann Horn <jannh@google.com>
+X-Mailer: b4 0.15-dev
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1778256766; l=3448;
+ i=jannh@google.com; s=20240730; h=from:subject:message-id;
+ bh=UDRiTFNTGMxGNkj85pCGPItAs9ImXHnWYb2myZlsZfE=;
+ b=6KqEx7t+ZT40aQbtMzUIvTH4xK3X3hxmWX3hc5lSdW7XA53LJ93tRfQmpK7GlNRW+7SUX/bw9
+ QzYV5++j9b0AY7W8PMPxo890xz3CkG2XIGkdQXdTDJo5LjzVhI9nffW
+X-Developer-Key: i=jannh@google.com; a=ed25519;
+ pk=AljNtGOzXeF6khBXDJVVvwSEkVDGnnZZYqfWhP1V+C8=
 
-From: Guenter Roeck <linux@roeck-us.net>
+Put the zeropage in the read-only data section - nothing should ever change
+its contents. Set up a new section .rodata..page_aligned to mirror the
+existing .data..page_aligned and .bss..page_aligned sections.
 
-Document API functions for suppressing warning backtraces.
+There have been several security bugs where the kernel grabs references to
+pages from some userspace-specified source, via GUP or splice, with
+read-only semantics; and then later on, the kernel loses track of the
+pages' read-only semantics and writes into them.
 
-Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
-Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Guenter Roeck <linux@roeck-us.net>
-Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
-Reviewed-by: David Gow <david@davidgow.net>
-Signed-off-by: Albert Esteve <aesteve@redhat.com>
+I have seen such bugs in out-of-tree GPU drivers before, and recently
+upstream Linux bugs of this shape have been discovered as well.
+
+One problem with these bugs is that fuzzers and such will have a hard time
+noticing them, because the kernel has no mechanism to directly detect that
+such a bug has occurred. It would be nice if we had debug infrastructure to
+keep track of whether file pages are supposed to be writable, or such; but
+for now, the easiest way to make these bugs detectable in at least some
+cases is to make sure that writing the 4K zeropage is mapped as read-only
+in the kernel, so that attempting to write into it immediately crashes
+(unless the write happens through a vmap mapping or such).
+
+This patch might increase the size of vmlinux by 4K since .rodata is stored
+in the ELF file while .bss is not; but the compressed kernel image size
+shouldn't change much, since it's compressed.
+
+I have tested that with this patch applied, calling
+`get_user_pages_fast(address, 1, 0, &page)` on a freshly-created anonymous
+VMA and writing into the page with
+`*(volatile char *)page_address(page) = 0` will cause an oops.
+
+Signed-off-by: Jann Horn <jannh@google.com>
 ---
- Documentation/dev-tools/kunit/usage.rst | 46 ++++++++++++++++++++++++++++++++-
- 1 file changed, 45 insertions(+), 1 deletion(-)
+ include/asm-generic/vmlinux.lds.h | 1 +
+ include/linux/linkage.h           | 1 +
+ mm/mm_init.c                      | 2 +-
+ 3 files changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/Documentation/dev-tools/kunit/usage.rst b/Documentation/dev-tools/kunit/usage.rst
-index ebd06f5ea4550..1c78dfff94e8a 100644
---- a/Documentation/dev-tools/kunit/usage.rst
-+++ b/Documentation/dev-tools/kunit/usage.rst
-@@ -157,6 +157,50 @@ Alternatively, one can take full control over the error message by using
- 	if (some_setup_function())
- 		KUNIT_FAIL(test, "Failed to setup thing for testing");
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 60c8c22fd3e4..e6e96bce506f 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -479,6 +479,7 @@
+ 	. = ALIGN((align));						\
+ 	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
+ 		__start_rodata = .;					\
++		*(.rodata..page_aligned)				\
+ 		*(.rodata) *(.rodata.*) *(.data.rel.ro*)		\
+ 		SCHED_DATA						\
+ 		RO_AFTER_INIT_DATA	/* Read only after init */	\
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index b11660b706c5..49997b292c01 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -38,6 +38,7 @@
  
-+Suppressing warning backtraces
-+------------------------------
-+
-+Some unit tests trigger warning backtraces either intentionally or as a side
-+effect. Such backtraces are normally undesirable since they distract from
-+the actual test and may result in the impression that there is a problem.
-+
-+Backtraces can be suppressed with **task-scoped suppression**: while
-+suppression is active on the current task, the backtrace and stack dump from
-+``WARN*()``, ``WARN_ON*()``, and related macros on that task are suppressed.
-+Two API forms are available.
-+
-+- Scoped suppression is the simplest form. Wrap the code that triggers
-+  warnings in a ``kunit_warning_suppress()`` block:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		kunit_warning_suppress(test) {
-+			trigger_backtrace();
-+			KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
-+		}
-+	}
-+
-+.. note::
-+   The warning count must be checked inside the block; the suppression handle
-+   is not accessible after the block exits.
-+
-+- Direct functions return an explicit handle pointer. Use them when the handle
-+  needs to be retained or passed across helper functions:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		struct kunit_suppressed_warning *w;
-+
-+		w = kunit_start_suppress_warning(test);
-+		trigger_backtrace();
-+		kunit_end_suppress_warning(test, w);
-+
-+		KUNIT_EXPECT_EQ(test, kunit_suppressed_warning_count(w), 1);
-+	}
+ #define __page_aligned_data	__section(".data..page_aligned") __aligned(PAGE_SIZE)
+ #define __page_aligned_bss	__section(".bss..page_aligned") __aligned(PAGE_SIZE)
++#define __page_aligned_rodata	__section(".rodata..page_aligned") __aligned(PAGE_SIZE)
  
- Test Suites
- ~~~~~~~~~~~
-@@ -1211,4 +1255,4 @@ For example:
- 		dev_managed_string = devm_kstrdup(fake_device, "Hello, World!");
+ /*
+  * For assembly routines.
+diff --git a/mm/mm_init.c b/mm/mm_init.c
+index f9f8e1af921c..67b260acc27e 100644
+--- a/mm/mm_init.c
++++ b/mm/mm_init.c
+@@ -57,7 +57,7 @@ unsigned long zero_page_pfn __ro_after_init;
+ EXPORT_SYMBOL(zero_page_pfn);
  
- 		// Everything is cleaned up automatically when the test ends.
--	}
-\ No newline at end of file
-+	}
+ #ifndef __HAVE_COLOR_ZERO_PAGE
+-uint8_t empty_zero_page[PAGE_SIZE] __page_aligned_bss;
++uint8_t empty_zero_page[PAGE_SIZE] __page_aligned_rodata;
+ EXPORT_SYMBOL(empty_zero_page);
+ 
+ struct page *__zero_page __ro_after_init;
 
--- 
-2.53.0
+---
+base-commit: 917719c412c48687d4a176965d1fa35320ec457c
+change-id: 20260508-ro-zeropage-86fb842965ae
+
+--  
+Jann Horn <jannh@google.com>
 
