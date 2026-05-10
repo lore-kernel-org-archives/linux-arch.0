@@ -1,340 +1,305 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from CWXP265CU009.outbound.protection.outlook.com (mail-ukwestazon11021073.outbound.protection.outlook.com [52.101.100.73])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EAC6A397682;
-	Sat,  9 May 2026 18:21:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778350919; cv=none; b=FzoG+NR6uJx4SG0E+AYhf/KzF94+RCgRO3n8Mf19yZHIZ2l6fDzU2tvixDH6u75HXld7dPHlW3ME2wTHFAXHT44myYIZPGxDMvnuC0Vh2bIeq/johqpvS9JHgFohJCNLN1TGQ8wGegkXwoKA7P3e5HP6Ix05XpST4cZDQ8z6zOU=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778350919; c=relaxed/simple;
-	bh=HG3wDCtpxPKc6vCCw5mcp+pHxj5nhx8B1xIc9NO7M4o=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=kkh9Y0UrtFeWmZA5oW8Y1Sllx2YCL1tcHn8sxZ9BM+3/cd8Yz+voZGssNZg1vJPbK9v1wdu/Lcs3o83WCPWU5gmD+0iGMcbE8D2vsOhs7HT0teNLimny7TN709eLYGozVSTfLmO6Ehl7tt497ZpTwd+vFUgUEiioP1WbcFPL3rs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=n20/xFK8; arc=none smtp.client-ip=10.30.226.201
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="n20/xFK8"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 23E0EC4AF09;
-	Sat,  9 May 2026 18:21:57 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1778350918;
-	bh=HG3wDCtpxPKc6vCCw5mcp+pHxj5nhx8B1xIc9NO7M4o=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=n20/xFK8b7sJ6P+B+656HDGZUN4r7BYXxOt+aIJKcoH9xFpwi/sk570l7LD+sj1Md
-	 Fx9+BGRve1ob8sdnYSLsWd4FHyHIGrE3NSYU2ZAQwtjERXnFoKrAnv62BjfugNWg/O
-	 1+EyRPYy+U6BcA/pHDmsz2eCMZ0aMPZwkwy1gENPmbIUHDDy1SbXF2kRGr2VP45fz5
-	 NpYDNsuC64M+wRz6TQmxm2dPf41CkbQVdi5+O544AO1ZiqnS6NF4S0E2MPzNtQ853M
-	 WDfo4anM9ACd83aBznBdYa5tcTcLDyRRBqrFP5Z2nPxfYd5x1d8iR5NWVy/L5u0arM
-	 rba2Kd7KeHWuQ==
-Received: from phl-compute-03.internal (phl-compute-03.internal [10.202.2.43])
-	by mailfauth.phl.internal (Postfix) with ESMTP id 24C60F40071;
-	Sat,  9 May 2026 14:21:56 -0400 (EDT)
-Received: from phl-frontend-03 ([10.202.2.162])
-  by phl-compute-03.internal (MEProxy); Sat, 09 May 2026 14:21:56 -0400
-X-ME-Sender: <xms:RHv_aUjpp3Wm6kP6wok634yKJgzzFplmWxAD4C4gIQbVfDHDhinG3w>
-    <xme:RHv_aS7DunLGF2xyq3kdWtkBYIdIsYw2CGZ6-VCz-II41_WAjzGX9JfyKUzzMmsVJ
-    rRrGN57rzNFIiyEwo_FJRmUPrcg8bqsfEFzgzQJTBQy5-h16UneXQ>
-X-ME-Received: <xmr:RHv_aeiOEBMR-Ti5mOZSHSrP827G-63KuYpP4vcVblZ7auaSnTDPM7UjPJlkKLH9pp4YHdsRUskGh96Pg1wj8y22URAUNLrB>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefhedrtddtgdduudefleegucetufdoteggodetrf
-    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
-    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepfffhvfevuffkfhggtggujgesthdtredttddtvdenucfhrhhomhepuehoqhhunhcu
-    hfgvnhhguceosghoqhhunheskhgvrhhnvghlrdhorhhgqeenucggtffrrghtthgvrhhnpe
-    elueehtefhtddtgfejvdejueehhfekteevueeuueekgeetieeggeehvdffhefhhfenucff
-    ohhmrghinhepkhgvrhhnvghlrdhorhhgnecuvehluhhsthgvrhfuihiivgeptdenucfrrg
-    hrrghmpehmrghilhhfrhhomhepsghoqhhunhdomhgvshhmthhprghuthhhphgvrhhsohhn
-    rghlihhthidqudeijedtleekgeejuddqudejjeekheehhedvqdgsohhquhhnpeepkhgvrh
-    hnvghlrdhorhhgsehfihigmhgvrdhnrghmvgdpnhgspghrtghpthhtohepheeipdhmohgu
-    vgepshhmthhpohhuthdprhgtphhtthhopehhtggrsehlihhnuhigrdhisghmrdgtohhmpd
-    hrtghpthhtohepphgvthgvrhiisehinhhfrhgruggvrggurdhorhhgpdhrtghpthhtohep
-    tggrthgrlhhinhdrmhgrrhhinhgrshesrghrmhdrtghomhdprhgtphhtthhopeifihhllh
-    eskhgvrhhnvghlrdhorhhgpdhrtghpthhtohepjhhonhgrshesshhouhhthhhpohhlvgdr
-    shgvpdhrtghpthhtohepshhtvghfrghnrdhkrhhishhtihgrnhhsshhonhesshgruhhnrg
-    hlrghhthhirdhfihdprhgtphhtthhopehshhhorhhnvgesghhmrghilhdrtghomhdprhgt
-    phhtthhopehgohhrsehlihhnuhigrdhisghmrdgtohhmpdhrtghpthhtoheprghgohhrug
-    gvvghvsehlihhnuhigrdhisghmrdgtohhm
-X-ME-Proxy: <xmx:RHv_aWYOpiXZAh3IhlGMby2FssSYApWBE03-HpIS9cQYn2m5ToaiUg>
-    <xmx:RHv_aSETG2Uw5mTLSLWYd_cLYcNVptHhgHdihGdv69MBquvJtWnixQ>
-    <xmx:RHv_aQ5gqJMhglZSnw81icBslts4XhQNh9tsjFG1FiqZSyRAo1248Q>
-    <xmx:RHv_aVJyR6MP2xBHvEaNRs9TSIzTpLz2kUoMlMe5dhC-clurVAF3Yw>
-    <xmx:RHv_aW813Ln_UeUPy2ftTOrxS71oQxZPd1M0jHnW1jSsNq90Y2vyuzRS>
-Feedback-ID: i8dbe485b:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Sat,
- 9 May 2026 14:21:55 -0400 (EDT)
-Date: Sat, 9 May 2026 11:21:54 -0700
-From: Boqun Feng <boqun@kernel.org>
-To: Heiko Carstens <hca@linux.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>,
-	Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
- Jonas Bonn <jonas@southpole.se>,
-	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-	Stafford Horne <shorne@gmail.com>,	Vasily Gorbik <gor@linux.ibm.com>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Christian Borntraeger <borntraeger@linux.ibm.com>,
-	Sven Schnelle <svens@linux.ibm.com>,	Thomas Gleixner <tglx@kernel.org>,
- Ingo Molnar <mingo@redhat.com>,	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Juri Lelli <juri.lelli@redhat.com>,
-	Vincent Guittot <vincent.guittot@linaro.org>,
-	Dietmar Eggemann <dietmar.eggemann@arm.com>,
-	Steven Rostedt <rostedt@goodmis.org>,	Ben Segall <bsegall@google.com>,
- Mel Gorman <mgorman@suse.de>,	Valentin Schneider <vschneid@redhat.com>,
-	K Prateek Nayak <kprateek.nayak@amd.com>,
-	Waiman Long <longman@redhat.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Miguel Ojeda <ojeda@kernel.org>, Gary Guo <gary@garyguo.net>,
-	=?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
-	Benno Lossin <lossin@kernel.org>,
-	Andreas Hindborg <a.hindborg@kernel.org>,
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
-	Danilo Krummrich <dakr@kernel.org>,	Jinjie Ruan <ruanjinjie@huawei.com>,
-	Ada Couprie Diaz <ada.coupriediaz@arm.com>,
-	Lyude Paul <lyude@redhat.com>, Sohil Mehta <sohil.mehta@intel.com>,
-	Pawan Gupta <pawan.kumar.gupta@linux.intel.com>,
-	"Xin Li (Intel)" <xin@zytor.com>,
-	Sean Christopherson <seanjc@google.com>,
-	Nikunj A Dadhania <nikunj@amd.com>,
-	Joel Fernandes <joelagnelf@nvidia.com>,
-	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-	Randy Dunlap <rdunlap@infradead.org>,	Yury Norov <ynorov@nvidia.com>,
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-	linux-openrisc@vger.kernel.org, linux-s390@vger.kernel.org,
-	linux-arch@vger.kernel.org, rust-for-linux@vger.kernel.org
-Subject: Re: [PATCH 00/11] Refcounted interrupt disable and SpinLockIrq for
- rust (Part 1)
-Message-ID: <af97QqnT5JaSVSOt@tardis.local>
-References: <20260508042111.24358-1-boqun@kernel.org>
- <20260509181249.16281C67-hca@linux.ibm.com>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DAECB31AABF;
+	Sun, 10 May 2026 06:13:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.100.73
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778393590; cv=fail; b=QB8TWmHkyaZsXeABtFajRShOzbsPXmm91o4pA5MYLoPl7LOW6nz01Gnh3WsFFuKfXGowPlzLmV61DO9xYQSuUteWkGstXtG0XWTnc9bitHHqg6g3ssaMRNBRYlKg0a2GRLSw1cMThpFU/bNWg26l6ESjXG689AE4YMMBXdIBygk=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778393590; c=relaxed/simple;
+	bh=iA/81VnbBfrGuzX/CKNMoJhXoOcxSpzqUOTjhdqTRCo=;
+	h=From:To:Cc:Subject:Date:Message-ID:Content-Type:MIME-Version; b=cdxdm2CsuhlLa2LsWg2mGu79AQ3JSNWc+r3ziGBkP4TRKNCE+7Y7rpijhRpnPyO90/0BsAVIpfVKl49mEbyu1VBeCa88ZIjVkPNC5TvnE+WNtf5l4nd5xOmObuFSpM1ihzK1mbYmyNfwHm0x5YZdRKZBNqemFhkZyvlYzc1Aa2s=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.100.73
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=Y03Ta4wVRZR6F6A90eqvbFflqQxApelArOvawvAjp43CIaoSzRy7+5GbR5234xWm8rCkSLNdgVkbF1V5J4CkLkqRT/n8KNvRcRNoaiUi5rLEa3iyfuVFl8Dq5eEaPT551Tm4QeK2K6yBj1wVXmBVzY/Izp9JoHcaGVEhSba2sgl3kzDRCCvoTHZ/IhfcUescQFLh37mxkjf/JExpibVPf07MDphQCusIxrza42EhTpQZPBnYtPGrC7H6Zz1krGpNCVhmVE0MCO/iysR8VH6c+cKZxbXm1ROSKNgIIJLYUsdsRV7txQqlG1fijNx+nKRfR7G6uM6nwSWNZPdAaNnZkA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=oKYBFa+BBawgmrxSx/HKXRSR6Ew0Lb+u7/h4OuEnVtQ=;
+ b=kTODsSqrDTbxcLfE0Cr1tX+nI64cqkfDCJd92CeMvcmbJ1m56R/oNPvln1/KBs77I1aX1ehB16R7CEP75Q5HmAV+GZ9pfNKIKvFmk6DH6VmNdwrGf1lrJTwmX2vxU+EzpAxBvq7tECL1A3FnLg3+qmpqOGET/X88KEKKMCEA9RVNrtos4of/kdTE3Aiqn911O7sHovEx2vTmBZcN5d+mF4dFoaYGybNWXJRtTU+XoN8f8STQBr+QQPehQo1HRE0gj1W4exMyBYEPyKrBmjvEMPkkXBaKSXGxlA6uomn4+ErBdcR8sxfwdpaO5Zzl/lKAS4nJJTN3+65AR7EVY35Fog==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
+ dkim=pass header.d=atomlin.com; arc=none
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=atomlin.com;
+Received: from CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:70::10)
+ by CWXP123MB3816.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:9a::14) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9891.22; Sun, 10 May
+ 2026 06:13:05 +0000
+Received: from CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM
+ ([fe80::de8e:2e4f:6c6:f3bf]) by CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM
+ ([fe80::de8e:2e4f:6c6:f3bf%2]) with mapi id 15.20.9846.025; Sun, 10 May 2026
+ 06:13:05 +0000
+From: Aaron Tomlin <atomlin@atomlin.com>
+To: arnd@arndb.de,
+	mcgrof@kernel.org,
+	petr.pavlu@suse.com,
+	da.gomez@kernel.org,
+	samitolvanen@google.com
+Cc: atomlin@atomlin.com,
+	neelx@suse.com,
+	sean@ashe.io,
+	chjohnst@mail.com,
+	steve@abita.co,
+	mproche@mail.com,
+	nick.lane@mail.com,
+	linux-arch@vger.kernel.org,
+	linux-modules@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH] init/main: Expose built-in initcalls and blacklist status via debugfs
+Date: Sun, 10 May 2026 02:13:01 -0400
+Message-ID: <20260510061301.41341-1-atomlin@atomlin.com>
+X-Mailer: git-send-email 2.51.0
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-ClientProxiedBy: BN9P222CA0006.NAMP222.PROD.OUTLOOK.COM
+ (2603:10b6:408:10c::11) To CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM
+ (2603:10a6:400:70::10)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260509181249.16281C67-hca@linux.ibm.com>
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CWLP123MB3523:EE_|CWXP123MB3816:EE_
+X-MS-Office365-Filtering-Correlation-Id: 826139f3-328c-4dde-8f56-08deae5b32cc
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|376014|7416014|1800799024|366016|3023799003|18002099003|56012099003;
+X-Microsoft-Antispam-Message-Info:
+	LiQONHvLhCA30PhYDt0GxR86Pn1HcpzhFr9K49wPvvfRViF+hQ3tOEa3BP3WmlSynYjZWP3Iwklcgiafhawv7zm9/hXqK/ZPjNUCamsDE2wylyCixiFKYgY7QrhwTFa4JblrIacpVLhFeteGf76+G9rIAsogDdbF1q6hbJ0iDFpzSGd71YBKFj9MLAGmEaeZEMr3rOTbi/VQvbpdoRLH97WcCSalmtPXAaNj06dLBFM3tOXtDVQJge9ATC1lJSB/w4KPPDmOC1T5VAb+jeBR3aIzr+7ROt4BYd6BGvgQGtUyJ3waOqQEDPubWKO+/yAi8dxQoxHmdZNjTn5fls1U6R1XNLVUuXfBeCdsPwrQkvcFOzzI6mibbtT+PiTXEkn0YfUFPIOYw15wdPjIPPvaYoyTh0AOlxUAOHaNvXCfMIe0O8lPQ2aGTeJgt7hLorAqxBwa8zT1jG67xiLz76+lV9q9nteGeXHVH4fUCbLh5Q89agb6gSg5RcPFV71SJL08xFNBmwziqvrxKrMmusJc598tFuL7y6MZ56bbshi8PJ+c/n+ZV/ULZwd2Yb3kFvKanHXcdKk3B7E2P+b0Y/cRu8VVnzBs1tf1QcTz3VfDspSwCR61ZNqf9hcSRBFLwK+xlwk1O4Y8oCBVhSsdKH8FdVeiQv3g7v3EjsWmPn1FX92O/4+YBScvYbqHSF7dYpEJ
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(376014)(7416014)(1800799024)(366016)(3023799003)(18002099003)(56012099003);DIR:OUT;SFP:1102;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?TDXP0+CieuLb4A5sFq7RVQvCaTixHm7aaKNIYmt2P113F+1grvnf1OLXUNgN?=
+ =?us-ascii?Q?bF8psS4D4H62/IuJ67zrpASof2eWszvpCUmlcioodBPeRvwqu1C2i9HOtJzL?=
+ =?us-ascii?Q?lLQZdL0vc0Hx1lQpC+JPqYK75VcI65PqOGIK8pLdjwQ3QhuVBHguYA4bq94D?=
+ =?us-ascii?Q?j0ZfYKEWwvxeNYGWXQN3Al9WqTBLEmLTnKyNe49dCEfxWHl1fqjfGT9Vbzm9?=
+ =?us-ascii?Q?9Y5Kj5FGjB+iu5pAHh5MNiTCUb5HTehfoceWXJu2suZJdN8vdgVOjhZ4bWMi?=
+ =?us-ascii?Q?NstMvdmNBmqYG077bpYSXc/k4rx1mbmq5roqqvEYwwsM5NIWxqzFiUBsEixM?=
+ =?us-ascii?Q?+oSahSWOb57RPbCmoCfCtT31hUVtI+Ov9L+T7I7WZSAqUxKSPZyITGzU0v2c?=
+ =?us-ascii?Q?ZxD833dZLFzmbHYtvUrzKHMDfnUIUcfq8aO7sFz9LUO9xHKgEKU94xa2+T//?=
+ =?us-ascii?Q?Q6OuOSAOSbrw6XuR4dAYxCQ26C5Dt2ZEokx3V81ZBpvBDJagDlFYceRO1lNN?=
+ =?us-ascii?Q?begRhAgQGZe0DH0M/SH11SfLZ3A7S0ONWT18n82ZcM5UxiNeM6Sv/rDExBhY?=
+ =?us-ascii?Q?ZJs7v+NwXWsMKirHjzPstCSsVG9vtTMlopgh9BWNxnK/Lrtpkf5Qg/Ubwcm+?=
+ =?us-ascii?Q?cy1K7O5ZGa5Vcc5M3PkjPTCWoL7E7phA0k8m+mwD+2FmTZ4zErXdTakWkja5?=
+ =?us-ascii?Q?RqRulFo36jwZ9SgGYix4JDP0g7cnbEROQO24U8IYucSHyEpCN19cIG34N4y4?=
+ =?us-ascii?Q?7SaNCLPq6+TAOEvXvmApyzZTbEnhMTmIHr257fWPq2Qf5EKKNiNLr+n7a9J0?=
+ =?us-ascii?Q?11e65nOKH7sQnrosT8XiFz2zlMTv/ZKDZ7MXsp7Z6TLqnuPRDDRmFKl9/cvZ?=
+ =?us-ascii?Q?yRNgNoNvJcSm+BeFsVkIa7J7HzumDjoaoZejDIK8wP3FJd3dj3R8jaM7msFA?=
+ =?us-ascii?Q?UXPEPDMCd+IcnKwf46S7rfnWswm0XMCfcybItcR2RRyZ97gRYElem3WnsBL9?=
+ =?us-ascii?Q?0Tzwdbvp01Xq9Mnq6+DWSAnbkX4erokYMUrdycz9bkhqm8mz+FAm6vX8E57I?=
+ =?us-ascii?Q?m43kW1kCo7WZva/80M7RvOtafx6tHbBQiWVuebd8XZqXAzIeY8OgI7z3eGYZ?=
+ =?us-ascii?Q?7qrv3Adb8zmbUJ+rWuuPOHPXafSi49uknr0tN4FqkCH/arWUtChJB2oJS7Ae?=
+ =?us-ascii?Q?rxHvFBNAISkzGM3+AlNirBpOtj9/xeGzcuMxI2zGu5T1P66CGAMeMDPdx84Q?=
+ =?us-ascii?Q?MmeYUiw/oFCwPOoEX4oRdqW9XuENMFWsla8WcR+GGjLyHiZb8nkjqP40bpn5?=
+ =?us-ascii?Q?Ylb0Bdq4LDQqnV/r6tbdeTR1ATreXzDDBYntuHu9qaf7RnjHEes5DHyEI2Lq?=
+ =?us-ascii?Q?60NC+HI25a5C52JBdENfMpuk2WfB5vOEulaZUh46S8ZCxTaXCB2ughKoFL4x?=
+ =?us-ascii?Q?2xyNG2PwkWj2K65ezgv9SIOm9cfGmXzEXo4mMeWmTqGl0JknfV0HG4M9PZYm?=
+ =?us-ascii?Q?rIBjjuv3h785Fi1uko2LCh3TW8B5S6ZSD3zxCVBaRiW8uIpoRH80JZIE9wz7?=
+ =?us-ascii?Q?W3GxyOW8gqr7aEfHEjtW5Yg8vREKQZQsBhXpuZNmxPGyBdyGqX8Aa5Y0cqXK?=
+ =?us-ascii?Q?oc73+mvWSsD5RwDxUAPpOVacmLH+/u/3VcHCrBFrx9SUgqGUOlyR7DQTr6Tg?=
+ =?us-ascii?Q?Y0bmlB3OWRUc1WbAQG6TkDuzcqsdRH/YfI2SoWqLIsq5qBhydSxzmR4MsM+u?=
+ =?us-ascii?Q?dklBZnYPpg=3D=3D?=
+X-OriginatorOrg: atomlin.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 826139f3-328c-4dde-8f56-08deae5b32cc
+X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 10 May 2026 06:13:05.2014
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: A1EEWqp39o7NDf3bH5nH5FkU/Da9SI8Vo4EH7cL2AYHSunhsK0ytdB1NK/jA7Ig2kSVumTv1RR7Y4qXxSTbCOw==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CWXP123MB3816
 
-On Sat, May 09, 2026 at 08:12:49PM +0200, Heiko Carstens wrote:
-> On Thu, May 07, 2026 at 09:21:00PM -0700, Boqun Feng wrote:
-> > Hi Peter,
-> > 
-> > This is a follow-up for Lyude's work [1]. Per your feedback at [2], I
-> > did some digging and turned out that ARM64 already kinda did this. The
-> > basic idea is based on:
-> > 
-> > 1) preempt_count() previously mask our NEED_RESCHED bit, so the
-> >    effective bits is 31bits
-> > 2) with a 64bit preempt count implementation (as in your PREEMPT_LONG
-> >    proposal), the effective bits that record "whether we CAN preempt or
-> >    not" still fit in 32bit (i.e. an int)
-> > 
-> > as a result, I don't think we need to change the existing
-> > preempt_count() API, but rather keep "32bit vs 64bit" as an
-> > implementation detail. This saves us the need to change the printk code
-> > for preempt_count().
-> > 
-> > For people who have reviewed the previous version, patch 8-11 are new,
-> > please take a look.
-> > 
-> > The patchset passed the build and booting tests and also a "perf record"
-> > test on x86 for NMI code path.
-> > 
-> > I would like to target this changes for 7.2 if possible.
-> > 
-> > [1]: https://lore.kernel.org/all/20260121223933.1568682-1-lyude@redhat.com/
-> > [2]: https://lore.kernel.org/all/20260204111234.GA3031506@noisy.programming.kicks-ass.net/
-> > 
-> > Regards,
-> > Boqun
-> > 
-> > Boqun Feng (8):
-> >   preempt: Introduce HARDIRQ_DISABLE_BITS
-> >   preempt: Introduce __preempt_count_{sub, add}_return()
-> >   irq & spin_lock: Add counted interrupt disabling/enabling
-> >   locking: Switch to _irq_{disable,enable}() variants in cleanup guards
-> >   sched: Remove the unused preempt_offset parameter of __cant_sleep()
-> >   sched: Avoid signed comparison of preempt_count() in __cant_migrate()
-> >   preempt: Introduce PREEMPT_COUNT_64BIT
-> >   arm64: sched/preempt: Enable PREEMPT_COUNT_64BIT
-> 
-> The below is the s390 conversion to PREEMPT_COUNT_64BIT (or whatever the
-> future name might be). I'd appreciate if you would add that to your series.
-> 
+At present, identifying the correct function name to supply to the
+"initcall_blacklist=" kernel command-line parameter requires manual
+inspection of the source code or kernel symbol tables. Furthermore,
+administrators lack a reliable runtime mechanism to verify whether a
+specified built-in module has been successfully blacklisted.
 
-Thanks a lot! Yeah, I will include it in the next version.
+To resolve this, introduce a new debugfs interface at
+/sys/kernel/debug/modules/builtin_initcalls. This file enumerates all
+built-in modules alongside their corresponding initialisation callbacks
+(e.g., those specified by module_init()) in a simple format:
+"module_name init_callback". If a built-in module has been actively
+blacklisted, the entry is explicitly appended with a " [blacklisted]"
+suffix.
 
-Regards,
-Boqun
+To achieve this without incurring runtime overhead, the
+___define_initcall macro is expanded to statically allocate a
+builtin_initcall_record structure (containing the module and function
+name strings) within a dedicated .rodata_builtin_initcall_records
+section.
 
-> From 827629e68ad67919f8c825d118863664badd227a Mon Sep 17 00:00:00 2001
-> From: Heiko Carstens <hca@linux.ibm.com>
-> Date: Sat, 9 May 2026 19:23:08 +0200
-> Subject: [PATCH] s390/preempt: Enable PREEMPT_COUNT_64BIT
-> 
-> Convert s390's preempt_count to 64 bit, and change
-> the preempt primitives accordingly.
-> 
-> Signed-off-by: Heiko Carstens <hca@linux.ibm.com>
-> ---
->  arch/s390/Kconfig               |  1 +
->  arch/s390/include/asm/lowcore.h | 13 +++++++----
->  arch/s390/include/asm/preempt.h | 41 +++++++++++++++------------------
->  3 files changed, 29 insertions(+), 26 deletions(-)
-> 
-> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-> index ecbcbb781e40..efa52667b5d4 100644
-> --- a/arch/s390/Kconfig
-> +++ b/arch/s390/Kconfig
-> @@ -276,6 +276,7 @@ config S390
->  	select PCI_MSI			if PCI
->  	select PCI_MSI_ARCH_FALLBACKS	if PCI_MSI
->  	select PCI_QUIRKS		if PCI
-> +	select PREEMPT_COUNT_64BIT
->  	select SPARSE_IRQ
->  	select SWIOTLB
->  	select SYSCTL_EXCEPTION_TRACE
-> diff --git a/arch/s390/include/asm/lowcore.h b/arch/s390/include/asm/lowcore.h
-> index 50ffe75adeb4..0974ab278169 100644
-> --- a/arch/s390/include/asm/lowcore.h
-> +++ b/arch/s390/include/asm/lowcore.h
-> @@ -160,10 +160,15 @@ struct lowcore {
->  	/* SMP info area */
->  	__u32	cpu_nr;				/* 0x03a0 */
->  	__u32	softirq_pending;		/* 0x03a4 */
-> -	__s32	preempt_count;			/* 0x03a8 */
-> -	__u32	spinlock_lockval;		/* 0x03ac */
-> -	__u32	spinlock_index;			/* 0x03b0 */
-> -	__u8	pad_0x03b4[0x03b8-0x03b4];	/* 0x03b4 */
-> +	union {
-> +		struct {
-> +			__u32	need_resched;	/* 0x03a8 */
-> +			__u32	count;		/* 0x03ac */
-> +		} preempt;
-> +		__u64	preempt_count;		/* 0x03a8 */
-> +	};
-> +	__u32	spinlock_lockval;		/* 0x03b0 */
-> +	__u32	spinlock_index;			/* 0x03b4 */
->  	__u64	percpu_offset;			/* 0x03b8 */
->  	__u8	pad_0x03c0[0x0400-0x03c0];	/* 0x03c0 */
->  
-> diff --git a/arch/s390/include/asm/preempt.h b/arch/s390/include/asm/preempt.h
-> index 0a25d4648b4c..1d5e4d7e9e1b 100644
-> --- a/arch/s390/include/asm/preempt.h
-> +++ b/arch/s390/include/asm/preempt.h
-> @@ -8,11 +8,8 @@
->  #include <asm/cmpxchg.h>
->  #include <asm/march.h>
->  
-> -/*
-> - * Use MSB so it is possible to read preempt_count with LLGT which
-> - * reads the least significant 31 bits with a single instruction.
-> - */
-> -#define PREEMPT_NEED_RESCHED	0x80000000
-> +/* Use MSB for PREEMPT_NEED_RESCHED mostly because it is available. */
-> +#define PREEMPT_NEED_RESCHED	0x8000000000000000UL
->  
->  /*
->   * We use the PREEMPT_NEED_RESCHED bit as an inverted NEED_RESCHED such
-> @@ -26,25 +23,25 @@
->   */
->  static __always_inline int preempt_count(void)
->  {
-> -	unsigned long lc_preempt, count;
-> +	unsigned long lc_preempt;
-> +	int count;
->  
-> -	BUILD_BUG_ON(sizeof_field(struct lowcore, preempt_count) != sizeof(int));
-> -	lc_preempt = offsetof(struct lowcore, preempt_count);
-> +	lc_preempt = offsetof(struct lowcore, preempt.count);
->  	/* READ_ONCE(get_lowcore()->preempt_count) & ~PREEMPT_NEED_RESCHED */
->  	asm_inline(
-> -		ALTERNATIVE("llgt	%[count],%[offzero](%%r0)\n",
-> -			    "llgt	%[count],%[offalt](%%r0)\n",
-> +		ALTERNATIVE("ly		%[count],%[offzero](%%r0)\n",
-> +			    "ly		%[count],%[offalt](%%r0)\n",
->  			    ALT_FEATURE(MFEATURE_LOWCORE))
->  		: [count] "=d" (count)
->  		: [offzero] "i" (lc_preempt),
->  		  [offalt] "i" (lc_preempt + LOWCORE_ALT_ADDRESS),
-> -		  "m" (((struct lowcore *)0)->preempt_count));
-> +		  "m" (((struct lowcore *)0)->preempt.count));
->  	return count;
->  }
->  
-> -static __always_inline void preempt_count_set(int pc)
-> +static __always_inline void preempt_count_set(unsigned long pc)
->  {
-> -	int old, new;
-> +	unsigned long old, new;
->  
->  	old = READ_ONCE(get_lowcore()->preempt_count);
->  	do {
-> @@ -63,12 +60,12 @@ static __always_inline void preempt_count_set(int pc)
->  
->  static __always_inline void set_preempt_need_resched(void)
->  {
-> -	__atomic_and(~PREEMPT_NEED_RESCHED, &get_lowcore()->preempt_count);
-> +	__atomic64_and(~PREEMPT_NEED_RESCHED, (long *)&get_lowcore()->preempt_count);
->  }
->  
->  static __always_inline void clear_preempt_need_resched(void)
->  {
-> -	__atomic_or(PREEMPT_NEED_RESCHED, &get_lowcore()->preempt_count);
-> +	__atomic64_or(PREEMPT_NEED_RESCHED, (long *)&get_lowcore()->preempt_count);
->  }
->  
->  static __always_inline bool test_preempt_need_resched(void)
-> @@ -88,8 +85,8 @@ static __always_inline void __preempt_count_add(int val)
->  
->  			lc_preempt = offsetof(struct lowcore, preempt_count);
->  			asm_inline(
-> -				ALTERNATIVE("asi	%[offzero](%%r0),%[val]\n",
-> -					    "asi	%[offalt](%%r0),%[val]\n",
-> +				ALTERNATIVE("agsi	%[offzero](%%r0),%[val]\n",
-> +					    "agsi	%[offalt](%%r0),%[val]\n",
->  					    ALT_FEATURE(MFEATURE_LOWCORE))
->  				: "+m" (((struct lowcore *)0)->preempt_count)
->  				: [offzero] "i" (lc_preempt), [val] "i" (val),
-> @@ -98,7 +95,7 @@ static __always_inline void __preempt_count_add(int val)
->  			return;
->  		}
->  	}
-> -	__atomic_add(val, &get_lowcore()->preempt_count);
-> +	__atomic64_add(val, (long *)&get_lowcore()->preempt_count);
->  }
->  
->  static __always_inline void __preempt_count_sub(int val)
-> @@ -119,15 +116,15 @@ static __always_inline bool __preempt_count_dec_and_test(void)
->  
->  	lc_preempt = offsetof(struct lowcore, preempt_count);
->  	asm_inline(
-> -		ALTERNATIVE("alsi	%[offzero](%%r0),%[val]\n",
-> -			    "alsi	%[offalt](%%r0),%[val]\n",
-> +		ALTERNATIVE("algsi	%[offzero](%%r0),%[val]\n",
-> +			    "algsi	%[offalt](%%r0),%[val]\n",
->  			    ALT_FEATURE(MFEATURE_LOWCORE))
->  		: "=@cc" (cc), "+m" (((struct lowcore *)0)->preempt_count)
->  		: [offzero] "i" (lc_preempt), [val] "i" (-1),
->  		[offalt] "i" (lc_preempt + LOWCORE_ALT_ADDRESS));
->  	return (cc == 0) || (cc == 2);
->  #else
-> -	return __atomic_add_const_and_test(-1, &get_lowcore()->preempt_count);
-> +	return __atomic64_add_const_and_test(-1, (long *)&get_lowcore()->preempt_count);
->  #endif
->  }
->  
-> @@ -141,7 +138,7 @@ static __always_inline bool should_resched(int preempt_offset)
->  
->  static __always_inline int __preempt_count_add_return(int val)
->  {
-> -	return val + __atomic_add(val, &get_lowcore()->preempt_count);
-> +	return val + __atomic64_add(val, (long *)&get_lowcore()->preempt_count);
->  }
->  
->  static __always_inline int __preempt_count_sub_return(int val)
-> -- 
-> 2.51.0
-> 
+This implementation incorporates several critical architectural safety
+measures:
+  - The custom section name deliberately begins with ".rodata" to ensure
+    KASLR (Kernel Address Space Layout Randomisation) relocation tools
+    process and update the string pointers correctly during boot.
+  - The structural alignment is explicitly forced to 8 bytes to prevent
+    the compiler from inserting silent padding that would misalign the
+    linker script boundaries.
+  - The blacklisted_initcalls list head is stripped of its
+    __initdata_or_module annotation, ensuring the list remains safely
+    accessible in memory when queried from user space after early boot.
+
+The creation of the debugfs file and the associated memory allocations
+are strictly guarded by CONFIG_DEBUG_FS and CONFIG_KALLSYMS, as the
+underlying initcall blacklisting mechanism is entirely dependent on
+kallsyms being present.
+
+Signed-off-by: Aaron Tomlin <atomlin@atomlin.com>
+---
+ include/asm-generic/vmlinux.lds.h |  4 +++
+ include/linux/init.h              | 21 ++++++++++++
+ init/main.c                       | 55 ++++++++++++++++++++++++++++++-
+ 3 files changed, 79 insertions(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 60c8c22fd3e4..d0fb971a8d5c 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -483,6 +483,10 @@
+ 		SCHED_DATA						\
+ 		RO_AFTER_INIT_DATA	/* Read only after init */	\
+ 		. = ALIGN(8);						\
++		__builtin_initcall_records_start = .;			\
++		KEEP(*(.rodata_builtin_initcall_records))		\
++		__builtin_initcall_records_end = .;			\
++		. = ALIGN(8);						\
+ 		BOUNDED_SECTION_BY(__tracepoints_ptrs, ___tracepoints_ptrs) \
+ 		*(__tracepoints_strings)/* Tracepoints: strings */	\
+ 	}								\
+diff --git a/include/linux/init.h b/include/linux/init.h
+index 40331923b9f4..d682fe0d6064 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -182,6 +182,16 @@ extern struct module __this_module;
+ 
+ #ifndef __ASSEMBLY__
+ 
++#if defined(CONFIG_DEBUG_FS) && defined(CONFIG_KALLSYMS)
++#ifndef KBUILD_MODNAME
++#define KBUILD_MODNAME "unknown"
++#endif
++struct builtin_initcall_record {
++	const char *modname;
++	const char *fnname;
++};
++#endif
++
+ /*
+  * initcalls are now grouped by functionality into separate
+  * subsections. Ordering inside the subsections is determined
+@@ -271,8 +281,19 @@ extern struct module __this_module;
+ 		__initcall_name(initcall, __iid, id),		\
+ 		__initcall_section(__sec, __iid))
+ 
++#if defined(CONFIG_DEBUG_FS) && defined(CONFIG_KALLSYMS)
++#define ___define_initcall(fn, id, __sec)					\
++	__unique_initcall(fn, id, __sec, __initcall_id(fn));			\
++	static const struct builtin_initcall_record				\
++	__initcall_name(builtin_initcall_rec, __initcall_id(fn), id)		\
++	__used __aligned(8) __section(".rodata_builtin_initcall_records") = {	\
++		.modname = KBUILD_MODNAME,					\
++		.fnname = #fn,							\
++	};
++#else
+ #define ___define_initcall(fn, id, __sec)			\
+ 	__unique_initcall(fn, id, __sec, __initcall_id(fn))
++#endif
+ 
+ #define __define_initcall(fn, id) ___define_initcall(fn, id, .initcall##id)
+ 
+diff --git a/init/main.c b/init/main.c
+index 96f93bb06c49..4cdf97306bf6 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -104,6 +104,8 @@
+ #include <linux/randomize_kstack.h>
+ #include <linux/pidfs.h>
+ #include <linux/ptdump.h>
++#include <linux/debugfs.h>
++#include <linux/seq_file.h>
+ #include <linux/time_namespace.h>
+ #include <linux/unaligned.h>
+ #include <linux/vdso_datastore.h>
+@@ -1251,7 +1253,7 @@ struct blacklist_entry {
+ 	char *buf;
+ };
+ 
+-static __initdata_or_module LIST_HEAD(blacklisted_initcalls);
++static LIST_HEAD(blacklisted_initcalls);
+ 
+ static int __init initcall_blacklist(char *str)
+ {
+@@ -1316,6 +1318,57 @@ static bool __init_or_module initcall_blacklisted(initcall_t fn)
+ #endif
+ __setup("initcall_blacklist=", initcall_blacklist);
+ 
++#if defined(CONFIG_DEBUG_FS) && defined(CONFIG_KALLSYMS)
++extern struct builtin_initcall_record __builtin_initcall_records_start[];
++extern struct builtin_initcall_record __builtin_initcall_records_end[];
++
++static int builtin_initcalls_show(struct seq_file *m, void *v)
++{
++	struct builtin_initcall_record *rec;
++	bool blacklisted;
++	struct blacklist_entry *entry;
++
++	for (rec = __builtin_initcall_records_start; rec < __builtin_initcall_records_end; rec++) {
++		blacklisted = false;
++		list_for_each_entry(entry, &blacklisted_initcalls, next) {
++			if (!strcmp(rec->fnname, entry->buf)) {
++				blacklisted = true;
++				break;
++			}
++		}
++		seq_printf(m, "%s %s%s\n",
++			   rec->modname,
++			   rec->fnname,
++			   blacklisted ? " [blacklisted]" : "");
++	}
++
++	return 0;
++}
++DEFINE_SHOW_ATTRIBUTE(builtin_initcalls);
++
++static int __init builtin_initcalls_debugfs_init(void)
++{
++	struct dentry *modules_dir;
++
++	/* Attempt to safely grab a reference to the existing directory */
++	modules_dir = debugfs_lookup("modules", NULL);
++
++	/* * Use modules_dir if found, otherwise dynamically create and use
++	 * the fallback directory without.
++	 */
++	debugfs_create_file("builtin_initcalls", 0444,
++			    modules_dir ?: debugfs_create_dir("modules", NULL),
++			    NULL, &builtin_initcalls_fops);
++
++	/* dput() safely ignores NULL if the lookup failed */
++	dput(modules_dir);
++
++	return 0;
++}
++late_initcall(builtin_initcalls_debugfs_init);
++#endif /* CONFIG_DEBUG_FS && CONFIG_KALLSYMS */
++
++
+ static __init_or_module void
+ trace_initcall_start_cb(void *data, initcall_t fn)
+ {
+-- 
+2.51.0
+
