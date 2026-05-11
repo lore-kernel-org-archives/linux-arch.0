@@ -1,237 +1,194 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1D7B242DFEA;
-	Mon, 11 May 2026 16:24:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mout-p-101.mailbox.org (mout-p-101.mailbox.org [80.241.56.151])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 84FFF472784;
+	Mon, 11 May 2026 18:29:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.241.56.151
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778516679; cv=none; b=SbXSi+sf9YhxfWO8VaQPs0YayLEUdMquPf+WX6Fp1m47dZwUJwiHYcC05rUDSgxiTWNDLJlqoQVCcJB38XLz6oVLfsPGWPD3o4a55L23S6GCL+lspnukBTdxDx4lq20mTKIZG4TsxJ2/y5v76ZInS2igTsSlqcFuiLcHQTqXDY8=
+	t=1778524200; cv=none; b=LGbHGyuxuRQXU0A4dnzohwQDWBmMYF3JUXiy/fjyPNH39qnk7OZrf5Wim8q6a02ZzTh8Fr34bC6KAjomODck198MGILf5GhQ8cwG3izKIOm97mCCjYtMgKmZgesYT0G4SY55zjM3JRMmJ9OPruSAAB5/gqD00N7Ka82uPgnNCYM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778516679; c=relaxed/simple;
-	bh=G80ldcDStJWyidKCH3MjV5K4lu3Wp/Q7JaaBMXNCWZI=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=NPwAF3qu2XdqU/d7dZ3fhgvZrgsqE8e2CpfS0G8ckT58kkQetRvYhs+OZD4YKPo5jMd4sLAfgNjvOebEJN/6/h/2LkBNSzddIS/MD2vdlnwRD5EmlczBk4zhOfa6LmlUu3iF18LjVjBxUH0gWew8nnzX9fKX52f0MpzSkjxHfOg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=rRaMCxER; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1778524200; c=relaxed/simple;
+	bh=mOnRIt5cw4cH/R7V3vuuDDccJ8YG6ocMhdme456Cuvg=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=RjJHYDP1zJGokUyhTwuvVdSk8vSBhZPNnvQG8GrCZ3YZadwSMYcMcwe0PomG5bRRHTsHwa3kR75UrIgzhMOa43p/5qBl2CWxt66Yf3aSUX69kP12POgphBmAPB3vzayWCjz1tkDlKCw7MW4YygxnmYKOkdnqjydPAO+ktjPJ3sk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com; spf=pass smtp.mailfrom=cyphar.com; dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b=OOCcbXm1; arc=none smtp.client-ip=80.241.56.151
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=cyphar.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="rRaMCxER"
-Received: from zhangyu-hyperv.mshome.net (unknown [167.220.233.27])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 7582120B7166;
-	Mon, 11 May 2026 09:24:31 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 7582120B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1778516675;
-	bh=HFzTSaQ70veIfvuNDaz8Hy1Vs/v2M6n0NU+oyEGbXT8=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=rRaMCxERGgqBHv0De4Z7eVTwbUpQznx8jHtzbE0N9WBswZhY3kjMDitss9lksuUba
-	 Ut0ciGpYy1kPhET2vuz7gBS1upW0sExBRaPfQ6q89e1kn0zCR/3Tug+vrPHzFTxTSK
-	 unVbiLewWGHRuzRu5T/eMAkBLO6YmKhfqOqBxVWk=
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: linux-kernel@vger.kernel.org,
-	linux-hyperv@vger.kernel.org,
-	iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Cc: wei.liu@kernel.org,
-	kys@microsoft.com,
-	haiyangz@microsoft.com,
-	decui@microsoft.com,
-	longli@microsoft.com,
-	joro@8bytes.org,
-	will@kernel.org,
-	robin.murphy@arm.com,
-	bhelgaas@google.com,
-	kwilczynski@kernel.org,
-	lpieralisi@kernel.org,
-	mani@kernel.org,
-	robh@kernel.org,
-	arnd@arndb.de,
-	jgg@ziepe.ca,
-	mhklinux@outlook.com,
-	jacob.pan@linux.microsoft.com,
-	tgopinath@linux.microsoft.com,
-	easwar.hariharan@linux.microsoft.com
-Subject: [PATCH v1 4/4] iommu/hyperv: Add page-selective IOTLB flush support
-Date: Tue, 12 May 2026 00:24:08 +0800
-Message-ID: <20260511162408.1180069-5-zhangyu1@linux.microsoft.com>
-X-Mailer: git-send-email 2.52.0
-In-Reply-To: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
-References: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b="OOCcbXm1"
+Received: from smtp1.mailbox.org (smtp1.mailbox.org [10.196.197.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mout-p-101.mailbox.org (Postfix) with ESMTPS id 4gDpDD33Pxz9tJC;
+	Mon, 11 May 2026 20:29:48 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=cyphar.com; s=MBO0001;
+	t=1778524188;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=TOM7dgV0LWr8FAq80PjCN0sPeuuxJ48ErXxXpU+rYJg=;
+	b=OOCcbXm1NPoSnniKZ+SU3coN0xN7AbJGjrIs7sXInnevGxgtaAlUbOrCb96KNCLW5/8NZK
+	W8GPbWtWVjCZDDfwN0T4WF4YhKMNHV0KrPgWnTrson6Cm+rf1qK9kt9naVY3ziUZrAc1eA
+	BkAG+ZsbUUJUtUNrhmArerwAS4vC4U3MbBu9ivtG46yu1ekIbqa6OsJ2FNrnv9ZdYe9qbk
+	b8nTyKmxZPgoL54aZU/6p6j3u9xZ0Ab63pFgIz9L5GPPxi/ysFr2mbJNBRZALgWuC9Ztqh
+	KQTgmq12KKAjx4X88KW04tHu0ZrKXSkLiktWEJBWCgEl1hOapvwsDutrgoi3kw==
+Date: Tue, 12 May 2026 04:29:32 +1000
+From: Aleksa Sarai <cyphar@cyphar.com>
+To: Jori Koolstra <jkoolstra@xs4all.nl>
+Cc: Christian Brauner <brauner@kernel.org>, 
+	Jeff Layton <jlayton@kernel.org>, Chuck Lever <chuck.lever@oracle.com>, 
+	Alexander Aring <alex.aring@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Jan Kara <jack@suse.cz>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, 
+	"open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Subject: Re: [PATCH v5 1/2] vfs: add O_EMPTYPATH to openat(2)/openat2(2)
+Message-ID: <2026-05-11-robotic-unseen-reversal-talisman-5w0bQM@cyphar.com>
+References: <20260424114611.1678641-1-jkoolstra@xs4all.nl>
+ <20260424114611.1678641-2-jkoolstra@xs4all.nl>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="eoc2fy2uc2uxjcgx"
+Content-Disposition: inline
+In-Reply-To: <20260424114611.1678641-2-jkoolstra@xs4all.nl>
 
-Add page-selective IOTLB flush using HVCALL_FLUSH_DEVICE_DOMAIN_LIST.
-This hypercall accepts a list of (page_number, page_mask_shift) entries,
-enabling finer-grained IOTLB invalidation compared to the domain-wide
-HVCALL_FLUSH_DEVICE_DOMAIN used by hv_iommu_flush_iotlb_all().
 
-hv_iommu_fill_iova_list() decomposes a contiguous IOVA range into a
-minimal set of aligned power-of-two regions that fit in a single
-hypercall input page. When the range exceeds the page capacity, the
-code falls back to a full domain flush automatically.
+--eoc2fy2uc2uxjcgx
+Content-Type: text/plain; protected-headers=v1; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+Subject: Re: [PATCH v5 1/2] vfs: add O_EMPTYPATH to openat(2)/openat2(2)
+MIME-Version: 1.0
 
-Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
-Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
----
- drivers/iommu/hyperv/iommu.c | 91 +++++++++++++++++++++++++++++++++++-
- include/hyperv/hvgdk_mini.h  |  1 +
- include/hyperv/hvhdk_mini.h  | 17 +++++++
- 3 files changed, 108 insertions(+), 1 deletion(-)
+On 2026-04-24, Jori Koolstra <jkoolstra@xs4all.nl> wrote:
+> To get an operable version of an O_PATH file descriptor, it is possible
+> to use openat(fd, ".", O_DIRECTORY) for directories, but other files
+> currently require going through open("/proc/<pid>/fd/<nr>"), which
+> depends on a functioning procfs.
+>=20
+> This patch adds the O_EMPTYPATH flag to openat(2)/openat2(2). If passed,
+> LOOKUP_EMPTY is set at path resolution time.
+>=20
+> Note: This implies that you cannot rely anymore on disabling procfs from
+> being mounted (e.g. inside a container without procfs mounted and with
+> CAP_SYS_ADMIN dropped) to prevent O_PATH fds from being re-opened
+> read-write.
+>=20
+> Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
 
-diff --git a/drivers/iommu/hyperv/iommu.c b/drivers/iommu/hyperv/iommu.c
-index e5fc625314b5..3bca362b7815 100644
---- a/drivers/iommu/hyperv/iommu.c
-+++ b/drivers/iommu/hyperv/iommu.c
-@@ -486,10 +486,98 @@ static void hv_iommu_flush_iotlb_all(struct iommu_domain *domain)
- 	hv_flush_device_domain(to_hv_iommu_domain(domain));
- }
- 
-+/* Max number of iova_list entries in a single hypercall input page. */
-+#define HV_IOMMU_MAX_FLUSH_VA_COUNT \
-+	((HV_HYP_PAGE_SIZE - sizeof(struct hv_input_flush_device_domain_list)) / \
-+	 sizeof(union hv_iommu_flush_va))
-+
-+/* Returned by hv_iommu_fill_iova_list() when the range exceeds the capacity */
-+#define HV_IOMMU_FLUSH_VA_OVERFLOW	U16_MAX
-+
-+static inline u16 hv_iommu_fill_iova_list(union hv_iommu_flush_va *iova_list,
-+					  unsigned long start,
-+					  unsigned long end)
-+{
-+	unsigned long start_pfn = start >> PAGE_SHIFT;
-+	unsigned long end_pfn = PAGE_ALIGN(end) >> PAGE_SHIFT;
-+	unsigned long nr_pages = end_pfn - start_pfn;
-+	u16 count = 0;
-+
-+	while (nr_pages > 0) {
-+		unsigned long flush_pages;
-+		int order;
-+		unsigned long pfn_align;
-+		unsigned long size_align;
-+
-+		if (count >= HV_IOMMU_MAX_FLUSH_VA_COUNT) {
-+			count = HV_IOMMU_FLUSH_VA_OVERFLOW;
-+			break;
-+		}
-+
-+		if (start_pfn)
-+			pfn_align = __ffs(start_pfn);
-+		else
-+			pfn_align = BITS_PER_LONG - 1;
-+
-+		size_align = __fls(nr_pages);
-+		order = min(pfn_align, size_align);
-+		iova_list[count].page_mask_shift = order;
-+		iova_list[count].page_number = start_pfn;
-+
-+		flush_pages = 1UL << order;
-+		start_pfn += flush_pages;
-+		nr_pages -= flush_pages;
-+		count++;
-+	}
-+
-+	return count;
-+}
-+
-+static void hv_flush_device_domain_list(struct hv_iommu_domain *hv_domain,
-+					struct iommu_iotlb_gather *iotlb_gather)
-+{
-+	u64 status;
-+	u16 count;
-+	unsigned long flags;
-+	struct hv_input_flush_device_domain_list *input;
-+
-+	local_irq_save(flags);
-+
-+	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-+	memset(input, 0, sizeof(*input));
-+
-+	input->device_domain = hv_domain->device_domain;
-+	input->flags |= HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT;
-+	count = hv_iommu_fill_iova_list(input->iova_list,
-+					iotlb_gather->start,
-+					iotlb_gather->end);
-+	if (count == HV_IOMMU_FLUSH_VA_OVERFLOW) {
-+		/*
-+		 * Range exceeds hypercall page capacity. Fall back to a full
-+		 * domain flush.
-+		 */
-+		struct hv_input_flush_device_domain *flush_all = (void *)input;
-+
-+		memset(flush_all, 0, sizeof(*flush_all));
-+		flush_all->device_domain = hv_domain->device_domain;
-+		status = hv_do_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN,
-+					flush_all, NULL);
-+	} else {
-+		status = hv_do_rep_hypercall(
-+				HVCALL_FLUSH_DEVICE_DOMAIN_LIST,
-+				count, 0, input, NULL);
-+	}
-+
-+	local_irq_restore(flags);
-+
-+	if (!hv_result_success(status))
-+		pr_err("HVCALL_FLUSH_DEVICE_DOMAIN_LIST failed, status %lld\n", status);
-+}
-+
- static void hv_iommu_iotlb_sync(struct iommu_domain *domain,
- 				struct iommu_iotlb_gather *iotlb_gather)
- {
--	hv_flush_device_domain(to_hv_iommu_domain(domain));
-+	hv_flush_device_domain_list(to_hv_iommu_domain(domain), iotlb_gather);
- 
- 	iommu_put_pages_list(&iotlb_gather->freelist);
- }
-@@ -543,6 +631,7 @@ static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
- 
- 	cfg.common.hw_max_vasz_lg2 = hv_iommu_device->max_iova_width;
- 	cfg.common.hw_max_oasz_lg2 = 52;
-+	cfg.common.features |= BIT(PT_FEAT_FLUSH_RANGE);
- 	cfg.top_level = (hv_iommu_device->max_iova_width > 48) ? 4 : 3;
- 
- 	ret = pt_iommu_x86_64_init(&hv_domain->pt_iommu_x86_64, &cfg, GFP_KERNEL);
-diff --git a/include/hyperv/hvgdk_mini.h b/include/hyperv/hvgdk_mini.h
-index 5bdbb44da112..eaaf87171478 100644
---- a/include/hyperv/hvgdk_mini.h
-+++ b/include/hyperv/hvgdk_mini.h
-@@ -496,6 +496,7 @@ union hv_vp_assist_msr_contents {	 /* HV_REGISTER_VP_ASSIST_PAGE */
- #define HVCALL_GET_GPA_PAGES_ACCESS_STATES		0x00c9
- #define HVCALL_CONFIGURE_DEVICE_DOMAIN			0x00ce
- #define HVCALL_FLUSH_DEVICE_DOMAIN			0x00d0
-+#define HVCALL_FLUSH_DEVICE_DOMAIN_LIST			0x00d1
- #define HVCALL_ACQUIRE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d7
- #define HVCALL_RELEASE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d8
- #define HVCALL_MODIFY_SPARSE_GPA_PAGE_HOST_VISIBILITY	0x00db
-diff --git a/include/hyperv/hvhdk_mini.h b/include/hyperv/hvhdk_mini.h
-index 493608e791b4..f51d5d9467f1 100644
---- a/include/hyperv/hvhdk_mini.h
-+++ b/include/hyperv/hvhdk_mini.h
-@@ -671,4 +671,21 @@ struct hv_input_flush_device_domain {
- 	u32 reserved;
- } __packed;
- 
-+union hv_iommu_flush_va {
-+	u64 iova;
-+	struct {
-+		u64 page_mask_shift : 12;
-+		u64 page_number : 52;
-+	};
-+} __packed;
-+
-+
-+struct hv_input_flush_device_domain_list {
-+	struct hv_input_device_domain device_domain;
-+#define HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT (1 << 0)
-+	u32 flags;
-+	u32 reserved;
-+	union hv_iommu_flush_va iova_list[];
-+} __packed;
-+
- #endif /* _HV_HVHDK_MINI_H */
--- 
-2.52.0
+Thanks!
 
+Reviewed-by: Aleksa Sarai <aleksa@amutable.com>
+
+> ---
+>  fs/fcntl.c                       | 2 +-
+>  fs/open.c                        | 6 ++++--
+>  include/linux/fcntl.h            | 2 +-
+>  include/uapi/asm-generic/fcntl.h | 4 ++++
+>  4 files changed, 10 insertions(+), 4 deletions(-)
+>=20
+> diff --git a/fs/fcntl.c b/fs/fcntl.c
+> index beab8080badf..7d2165855a9c 100644
+> --- a/fs/fcntl.c
+> +++ b/fs/fcntl.c
+> @@ -1169,7 +1169,7 @@ static int __init fcntl_init(void)
+>  	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
+>  	 * is defined as O_NONBLOCK on some platforms and not on others.
+>  	 */
+> -	BUILD_BUG_ON(20 - 1 /* for O_RDONLY being 0 */ !=3D
+> +	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=3D
+>  		HWEIGHT32(
+>  			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
+>  			__FMODE_EXEC));
+> diff --git a/fs/open.c b/fs/open.c
+> index 681d405bc61e..9e0164a8c1fb 100644
+> --- a/fs/open.c
+> +++ b/fs/open.c
+> @@ -1158,7 +1158,7 @@ struct file *kernel_file_open(const struct path *pa=
+th, int flags,
+>  EXPORT_SYMBOL_GPL(kernel_file_open);
+> =20
+>  #define WILL_CREATE(flags)	(flags & (O_CREAT | __O_TMPFILE))
+> -#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC)
+> +#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC | O=
+_EMPTYPATH)
+> =20
+>  inline struct open_how build_open_how(int flags, umode_t mode)
+>  {
+> @@ -1279,6 +1279,8 @@ inline int build_open_flags(const struct open_how *=
+how, struct open_flags *op)
+>  		lookup_flags |=3D LOOKUP_DIRECTORY;
+>  	if (!(flags & O_NOFOLLOW))
+>  		lookup_flags |=3D LOOKUP_FOLLOW;
+> +	if (flags & O_EMPTYPATH)
+> +		lookup_flags |=3D LOOKUP_EMPTY;
+> =20
+>  	if (how->resolve & RESOLVE_NO_XDEV)
+>  		lookup_flags |=3D LOOKUP_NO_XDEV;
+> @@ -1360,7 +1362,7 @@ static int do_sys_openat2(int dfd, const char __use=
+r *filename,
+>  	if (unlikely(err))
+>  		return err;
+> =20
+> -	CLASS(filename, name)(filename);
+> +	CLASS(filename_flags, name)(filename, op.lookup_flags);
+>  	return FD_ADD(how->flags, do_file_open(dfd, name, &op));
+>  }
+> =20
+> diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+> index a332e79b3207..c65c5c73d362 100644
+> --- a/include/linux/fcntl.h
+> +++ b/include/linux/fcntl.h
+> @@ -10,7 +10,7 @@
+>  	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC |=
+ \
+>  	 O_APPEND | O_NDELAY | O_NONBLOCK | __O_SYNC | O_DSYNC | \
+>  	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
+> -	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
+> +	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_EMPTYPATH)
+> =20
+>  /* List of all valid flags for the how->resolve argument: */
+>  #define VALID_RESOLVE_FLAGS \
+> diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/=
+fcntl.h
+> index 613475285643..bfc68156b45a 100644
+> --- a/include/uapi/asm-generic/fcntl.h
+> +++ b/include/uapi/asm-generic/fcntl.h
+> @@ -88,6 +88,10 @@
+>  #define __O_TMPFILE	020000000
+>  #endif
+> =20
+> +#ifndef O_EMPTYPATH
+> +#define O_EMPTYPATH	(1 << 26)	/* allow empty path */
+> +#endif
+> +
+>  /* a horrid kludge trying to make sure that this will fail on old kernel=
+s */
+>  #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+> =20
+> --=20
+> 2.54.0
+>=20
+
+--=20
+Aleksa Sarai
+https://www.cyphar.com/
+
+--eoc2fy2uc2uxjcgx
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iJEEABYKADkWIQS2TklVsp+j1GPyqQYol/rSt+lEbwUCagIgCBsUgAAAAAAEAA5t
+YW51MiwyLjUrMS4xMiwyLDIACgkQKJf60rfpRG8FIAD/RN5/VJyZB+aNtgs8bTC8
+wVFbPqqaFinpfNgQpu4CVoYBAPNFSLxNhiZbPud5qCUVIN4fzb+JemBJIxZh85nK
+QI0E
+=IBxS
+-----END PGP SIGNATURE-----
+
+--eoc2fy2uc2uxjcgx--
