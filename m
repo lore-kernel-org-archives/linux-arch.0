@@ -1,98 +1,76 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.7])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 674F232692B;
-	Sun, 10 May 2026 21:40:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.7
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 78A2C32B99F;
+	Mon, 11 May 2026 10:31:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778449253; cv=none; b=mKi3YWc7z78eZhLm+LQ9WEMclRwX1SuNsyhg92tU8UKokUKoVolQRbMN71achaudFHZqijgMUaMSkJE9bFMB12LkBh3Qd3r0LFlVvedFt4qr3OcfCspLHowYT8L99OjEJ6TjyY1S2MH7yRolK9YYmSdAA56Rbv+eTkAil153Czc=
+	t=1778495510; cv=none; b=K3wZEvcnt5AEPeFUXmOJAfj9sMM+nJvk5u/gTFKj+mJuEXHBcnHlACosKLLLdnaeBQwIm4+ZNzY8oKNDgph4sPsjLQUMkkv1ywUK3C3yoPgHb9LLlaFxzPOeQF3V2eziorKPowlHx2HYk6Zl3dG+dTUKjZr8gKiDA35tGU3xXpQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778449253; c=relaxed/simple;
-	bh=hXygK0G1nkNaf+vivvqESQJciIwrQ+dae5+fHbGeSio=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=u/UEI/js/L0Pf38O0lIsYWJibQq7IwsbtBxmYmayTSBkRF96ZPSMI8lK0E0N/l/GEkBI4yRByImowr7h8aNR162f90p+9gWSHy02g5bO0+wWCHbZoXPaW9zRvVLa5bk4LpC+QypYzz3KCRuW2HHkRL8USlahYUXEBvSml25UfGo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=IQSTQ/vT; arc=none smtp.client-ip=192.198.163.7
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1778495510; c=relaxed/simple;
+	bh=G8GKrRRo0B+kDp05yhuHUdnGS1UZ65YJ4Q5wBVwhVqc=;
+	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
+	 References:Date:Message-Id; b=aNh+FPSt/ZpWJejFlo0THYrcMP2ZT2c+92a0QBrLi97oqcsbiFJTtc58MnyO4mk1rio8HaQQ/64JVDqbH3ihhC5MGGAZIGOIhp6JmXEip2+br2AcNl2s1MeDsDp19itq1s//0Nr3myeD0+qw9VnAP2DWjFjRoC3PQQBeNQWC/BQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=bc/dSoX3; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="IQSTQ/vT"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1778449251; x=1809985251;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=hXygK0G1nkNaf+vivvqESQJciIwrQ+dae5+fHbGeSio=;
-  b=IQSTQ/vT6sXIAVlnePa/elToEHKfPYnyFHrf8hHtl23ErrKqFFKu25bm
-   GhiVuvZJNnCxDGGnhNSgPxuOUKiG4+4PwRD0kPidyjiB9xyN9uT7nPfKP
-   zdsTGZY1851f/g4+hU6E8GGlNFylpNul5VD1PCVP4qYPw26qCEMf1y7z+
-   tI0LNJPJINRh0PXZ+kRTCJkoJNX4oDZGQ6dow/zp8qONKT4Kx6iEObdnE
-   Im5xN3XJg9PW8rLo2FBMsUayssLF1WU6tY2yr7C8g/EotD53xA6Vm5KSx
-   nh68yI4TysMpg6WMifPFDLHjxIeOp59ohpLNIJSQFp0NDlzoGEx4PuVcE
-   Q==;
-X-CSE-ConnectionGUID: vV4SY7JWRF2NbrjtKfEKCg==
-X-CSE-MsgGUID: dWQEEr9XRkW9hBpCNXuAUA==
-X-IronPort-AV: E=McAfee;i="6800,10657,11782"; a="104797735"
-X-IronPort-AV: E=Sophos;i="6.23,228,1770624000"; 
-   d="scan'208";a="104797735"
-Received: from orviesa007.jf.intel.com ([10.64.159.147])
-  by fmvoesa101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 May 2026 14:40:50 -0700
-X-CSE-ConnectionGUID: JpwARR4wQqWWIRcLPmbppQ==
-X-CSE-MsgGUID: x5NVtusiQTqC0hpHwIzVig==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.23,228,1770624000"; 
-   d="scan'208";a="237511727"
-Received: from igk-lkp-server01.igk.intel.com (HELO bdf09bfdbd5f) ([10.211.93.152])
-  by orviesa007.jf.intel.com with ESMTP; 10 May 2026 14:40:48 -0700
-Received: from kbuild by bdf09bfdbd5f with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1wMBtG-000000007mz-20dT;
-	Sun, 10 May 2026 21:40:46 +0000
-Date: Sun, 10 May 2026 23:40:10 +0200
-From: kernel test robot <lkp@intel.com>
-To: Jann Horn <jannh@google.com>, Mike Rapoport <rppt@kernel.org>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Arnd Bergmann <arnd@arndb.de>
-Cc: oe-kbuild-all@lists.linux.dev,
-	Linux Memory Management List <linux-mm@kvack.org>,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-hardening@vger.kernel.org, Jann Horn <jannh@google.com>
-Subject: Re: [PATCH] mm: make zeropage read-only
-Message-ID: <202605102324.g5xWKUc3-lkp@intel.com>
-References: <20260508-ro-zeropage-v1-1-9808abc20b49@google.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="bc/dSoX3"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 37240C2BCB0;
+	Mon, 11 May 2026 10:31:47 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1778495510;
+	bh=G8GKrRRo0B+kDp05yhuHUdnGS1UZ65YJ4Q5wBVwhVqc=;
+	h=Subject:From:To:Cc:In-Reply-To:References:Date:From;
+	b=bc/dSoX3ITQBECMdV3az2T95pQw34yDk/Wx7Y9jrxLw8iVMCCrLMlvnl091KoKu6l
+	 H3Ru3ybmZ5uLjiWRM5kUAveEwjoA4T4OamNWzRS93oD9f7mNKxnT3v4c5UC8geOtet
+	 J8+FbpmU3zPuFdB2sdk/czzZn6cIaPRA6ajmFNfpzcTrMv2jqwONZeUI0IctjJKSWM
+	 1iSV7KZT4d7iYw4K1QN0SbrCvQ/rj/tt0X2woa3JNZ2qox08i4KBIPZHZd3cigOaT+
+	 lsjYvxfwLvkFgJk/FkyDmztiM1SxZiDAL90SwtQQACtk36knShnfiso9nGwDPitLNl
+	 Jv3FA5pvu5FiA==
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260508-ro-zeropage-v1-1-9808abc20b49@google.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH v5 1/2] vfs: add O_EMPTYPATH to openat(2)/openat2(2)
+From: Christian Brauner <brauner@kernel.org>
+To: Jori Koolstra <jkoolstra@xs4all.nl>
+Cc: Christian Brauner <brauner@kernel.org>, 
+ Aleksa Sarai <cyphar@cyphar.com>, Jeff Layton <jlayton@kernel.org>, 
+ Chuck Lever <chuck.lever@oracle.com>, 
+ Alexander Aring <alex.aring@gmail.com>, 
+ Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>, 
+ Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, 
+ linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <20260424114611.1678641-2-jkoolstra@xs4all.nl>
+References: <20260424114611.1678641-1-jkoolstra@xs4all.nl>
+ <20260424114611.1678641-2-jkoolstra@xs4all.nl>
+Date: Mon, 11 May 2026 12:31:39 +0200
+Message-Id: <177849549986.77176.16709911738228091841.b4-review@b4>
+X-Mailer: b4 0.16-dev-d5d98
+X-Developer-Signature: v=1; a=openpgp-sha256; l=576; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=G8GKrRRo0B+kDp05yhuHUdnGS1UZ65YJ4Q5wBVwhVqc=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQxbhDa/pF3b8w2ia1vLooFRntZhLLOVEr8cr6jTaZm7
+ v6qdao5HaUsDGJcDLJiiiwO7Sbhcst5KjYbZWrAzGFlAhnCwMUpABN5Ecbwh+Nunwmr9pNb5vce
+ lPeoSMW3+rktufu+gPO5m2gdl7i9H8M/HX1hgzcJyy/kqDN4tCqaRt22snFa8v9nL/fnydvXsam
+ wAQA=
+X-Developer-Key: i=brauner@kernel.org; a=openpgp;
+ fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-Hi Jann,
+On Fri, 24 Apr 2026 13:46:02 +0200, Jori Koolstra <jkoolstra@xs4all.nl> wrote:
+> To get an operable version of an O_PATH file descriptor, it is possible
+> to use openat(fd, ".", O_DIRECTORY) for directories, but other files
+> currently require going through open("/proc/<pid>/fd/<nr>"), which
+> depends on a functioning procfs.
+> 
+> This patch adds the O_EMPTYPATH flag to openat(2)/openat2(2). If passed,
+> LOOKUP_EMPTY is set at path resolution time.
+> 
+> [...]
 
-kernel test robot noticed the following build warnings:
+Reviewed-by: Christian Brauner <brauner@kernel.org>
 
-[auto build test WARNING on 917719c412c48687d4a176965d1fa35320ec457c]
-
-url:    https://github.com/intel-lab-lkp/linux/commits/Jann-Horn/mm-make-zeropage-read-only/20260510-200814
-base:   917719c412c48687d4a176965d1fa35320ec457c
-patch link:    https://lore.kernel.org/r/20260508-ro-zeropage-v1-1-9808abc20b49%40google.com
-patch subject: [PATCH] mm: make zeropage read-only
-config: x86_64-rhel-9.4 (https://download.01.org/0day-ci/archive/20260510/202605102324.g5xWKUc3-lkp@intel.com/config)
-compiler: gcc-14 (Debian 14.2.0-19) 14.2.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260510/202605102324.g5xWKUc3-lkp@intel.com/reproduce)
-
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202605102324.g5xWKUc3-lkp@intel.com/
-
-All warnings (new ones prefixed by >>):
-
-   /tmp/ccZJHv5S.s: Assembler messages:
->> /tmp/ccZJHv5S.s:14940: Warning: setting incorrect section attributes for .rodata..page_aligned
-
---
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+-- 
+Christian Brauner <brauner@kernel.org>
