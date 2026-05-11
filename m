@@ -1,135 +1,171 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CC372244665;
-	Mon, 11 May 2026 12:00:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id BA11D428462;
+	Mon, 11 May 2026 16:24:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778500853; cv=none; b=aYffw8ZR4uL1AvJKduzC7bHD4N6qC9MicxwqQnGlkTCdifq93XtwwjiT986Tk97EsU5XB48vvojPJZySXk0rmkDYkftMr7KeNeQtarbUUMPRbq+VJWolSIh02/yJgyKZlGMGH0cjQuCAsDHCCC4SPp1W+RAK1kFbbKHk+h7LlFQ=
+	t=1778516657; cv=none; b=Ys4EMr7YkAmTN0LSGJ4N5gWgmwh5loaM0XbnVroP+IuJjdUhivp5zFfJiTuPDiMoTApjfR0V7mj8i72GoLjILMlzpoQJE0RltB9cnSjLUM6Lh9yV/P4Wia71TTnhridJV+NQW+DCR7B/8O1rSLYCU13wzvk5lrq8ZCU/2mKa3fc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778500853; c=relaxed/simple;
-	bh=3ltXO6+gbYKtV0Usdp0V0TIVDklrgiK3bsK9XntO6Zc=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=R+3I+apUGLbOFFOvdhW48527xKMJNDAYALR//alEPB/CLOxY2qVcbFq4/fPDNobt5gSfcjqq3yysfHTabLDc8uNN/LWBNuQzgnnDODAA+GOhAoey4QweMW6Hbh1Jy6CZeZQlT610j/TXh+NUy2fEgBVjC3RCvzN8VrBGHeBoupg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=tyouepRy; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1778516657; c=relaxed/simple;
+	bh=A7DrKuKjFqBnsiYVQmkH3SPF4bmEh990rRhIOilh9r0=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=VWsUovGPapn9hnEwnDwrDCfnRdHu7BZ9UdaM/UxXH84XHJmzpqY0qMkfBli023VYQgXiD/wbFUPg0JFr57afLV0+DPJO6FcxKXGBE28jMvOVInRQJX1hUI5bqpk4uCO6kZnl3FldSET7+n1DMGw2LTzeH5hxhol8TMIo/crd0c0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=EBqZ3lvw; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="tyouepRy"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3437FC2BCB0;
-	Mon, 11 May 2026 12:00:38 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1778500853;
-	bh=3ltXO6+gbYKtV0Usdp0V0TIVDklrgiK3bsK9XntO6Zc=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=tyouepRyY8HBIVvAd0PpMtwm1T95c3wn+3rDWYuYhAlgKdCfyK/YT6SOSrppIcQyi
-	 l/1Oas2xv9LIlPZvZk6tzj6g6Und3idvH7qruSMQwBtZWke9K+EiRr5wC7glA95u39
-	 PEdgC06gDcljZaHoUK5yz7KHcAUsknmndSKBgLT6iuYx6KjoLKkO70/JT1wrejnNW7
-	 OQ/596rNlKiPsLm3RF0emnpAquDRoPNXlWd6NQS+LvzeE4oEHoRFbpUU+vMGId+ScS
-	 wO33z9MZn13e2xqhfsiGmV4Tj1gg2oyyQ2UqO/CwHzHrEJjGSgCnvOe93dNEnjVD2b
-	 IzN8YZgJb6gCg==
-Date: Mon, 11 May 2026 14:00:35 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Jori Koolstra <jkoolstra@xs4all.nl>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Arnd Bergmann <arnd@arndb.de>, "H . Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Peter Zijlstra <peterz@infradead.org>, Andrey Albershteyn <aalbersh@redhat.com>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Jiri Olsa <jolsa@kernel.org>, 
-	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	cmirabil@redhat.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
-	Jeff Layton <jlayton@kernel.org>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
- O_DIRECTORY fd
-Message-ID: <20260511-hochdekoriert-neoliberale-f7a2922bc57c@brauner>
-References: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
- <20260412135434.3095416-2-jkoolstra@xs4all.nl>
- <20260427-umlegen-aufbau-ee3a97f1528a@brauner>
- <1600596489.77018.1777916475931@kpc.webmail.kpnmail.nl>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="EBqZ3lvw"
+Received: from zhangyu-hyperv.mshome.net (unknown [167.220.233.27])
+	by linux.microsoft.com (Postfix) with ESMTPSA id C0A4D20B7166;
+	Mon, 11 May 2026 09:24:08 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com C0A4D20B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1778516653;
+	bh=73rJxfgCC5Iw4KlYZQwmxccecFIL/PKYVBRFOATZJGo=;
+	h=From:To:Cc:Subject:Date:From;
+	b=EBqZ3lvwbrU/InU7SQvNY6nh5ozELraKlQuDboLwVcf0azCgvdrTBRntSMUFI6Xa5
+	 U2mm/6w3jl1ZYDXdk4Bf594KZbXt6L43dLrP6rFpYy+n0HzvHh2PbWBuW5qV+JGVoc
+	 YCtDSiP9x4Gu9oh+H1eY8w0BNqBG3XMwVI+Y6Xew=
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org,
+	iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Cc: wei.liu@kernel.org,
+	kys@microsoft.com,
+	haiyangz@microsoft.com,
+	decui@microsoft.com,
+	longli@microsoft.com,
+	joro@8bytes.org,
+	will@kernel.org,
+	robin.murphy@arm.com,
+	bhelgaas@google.com,
+	kwilczynski@kernel.org,
+	lpieralisi@kernel.org,
+	mani@kernel.org,
+	robh@kernel.org,
+	arnd@arndb.de,
+	jgg@ziepe.ca,
+	mhklinux@outlook.com,
+	jacob.pan@linux.microsoft.com,
+	tgopinath@linux.microsoft.com,
+	easwar.hariharan@linux.microsoft.com
+Subject: [PATCH v1 0/4] Hyper-V: Add para-virtualized IOMMU support for Linux guests
+Date: Tue, 12 May 2026 00:24:04 +0800
+Message-ID: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
+X-Mailer: git-send-email 2.52.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <1600596489.77018.1777916475931@kpc.webmail.kpnmail.nl>
+Content-Transfer-Encoding: 8bit
 
-On Mon, May 04, 2026 at 07:41:15PM +0200, Jori Koolstra wrote:
-> 
-> > Op 27-04-2026 17:48 CEST schreef Christian Brauner <brauner@kernel.org>:
-> > 
-> > So definitely a patchset worthing doing but this will be hairy. And
-> > Mateusz is right. As written this doesn't work. The canonical pattern
-> > how e.g., dentry_open() does it is to preallocate the file.
-> > 
-> 
-> Is this because of Mateusz point that we should fail as soon as possible
-> to prevent any fs changes from taking effect?
-> 
-> But like Mateusz points out, this is not really happening for open() with
-> O_CREAT either. So is there any policy for what we do and do not tolerate?
-> (although I agree we should definitely preallocate the file; thanks for
-> pointing that pattern out).
+This patch series introduces a para-virtualized IOMMU driver for
+Linux guests running on Microsoft Hyper-V. The driver enables two
+primary use cases:
+  1) In-kernel DMA protection for devices assigned to the guest.
+  2) Device assignment to guest user space (e.g., via VFIO).
 
-Your version can fail in a lot more cases than O_CREAT because the file
-is allocated last which is just not acceptable.
+The driver implements the following core functionality:
+*   Hypercall-based Enumeration
+    Unlike traditional ACPI-based discovery (e.g., DMAR/IVRS),
+    this driver enumerates the Hyper-V IOMMU capabilities directly
+    via hypercalls. This approach allows the guest to discover
+    IOMMU presence and features without requiring specific virtual
+    firmware extensions or modifications.
 
-And a misbehaving LSM that ends up preventing opening a created file is
-really not our concern. The system can behave in all non-standard ways
-with mandatory access control.
+*   Domain Management
+    The driver manages IOMMU domains through a new set of Hyper-V
+    hypercall interfaces, handling domain allocation, attachment,
+    and detachment for endpoint devices.
 
-The other concern that was brought up in some version is truncate but I
-really don't understand what that is supposed to be about. O_TRUNC and
-O_CREAT raally don't get in the way of each other in the way people
-think they would.
+*   Nested Translation Support
+    This implementation leverages guest-managed stage-1 I/O page
+    tables nested with host stage-2 translations. It is built
+    upon the consolidated IOMMU page table framework (IOMMU_PT).
+    This design eliminates the need for emulating map operations.
+    Both Intel VT-d and AMD IOMMU platforms are supported.
 
-Just look at the FMODE_CREATED case. If that's raised on do_open() then
-O_TRUNC is ignored for very obvious reasons.
+*   IOTLB Invalidation
+    IOTLB invalidation requests are marshaled and issued to the
+    hypervisor through the same hypercall mechanism. Both domain-
+    selective and page-selective flushes are supported.
 
-The only reason where O_TRUNC with O_CREAT matters is if the file did
-already exist which also implies O_EXCL isn't raised. In that case this
-ends up as a regular truncate request and then it is possible to hit the
-handle_truncate() codepath. And there it really doesn't matter. A
-concurrent exec or truncate that prevents you from O_CREAT | O_TRUNC
-seems perfectly benign if you didn't actually create the file in the
-first place. The O_TRUNC would only be honored if we did end up creating
-the file. If someone else raised us in doing their own truncate or is
-attempting an exe then we should most certainly not get to truncate over
-them. Failing is the right thing to do here.
+Implementation Notes:
+*   Platform Support
+    The current implementation targets x86 platforms with Intel
+    VT-d and AMD IOMMU hardware.
 
-> 
-> > I do wonder though whether we shouldn't just make O_CREAT | O_DIRECTORY
-> > work. I remember that I had a vague comment about this in [1] a few
-> > years ago (cf. [1]). It might even be less hairy to get that one right
-> > as all the thinking for O_CREAT is already there.
-> > 
-> > What was the rationale for mkdirat2() instead of threading this through
-> > openat()/openat2() with O_CREAT?
-> > 
-> 
-> Because of Mateusz' objection, but I agree with Aleksa (and you in 2023)
-> that this is intuitive and you mentioned POSIX allows for it.
-> 
-> But a more general issue, that also applies to this mkdirat2 patch,
-> is Linus' objection in that same thread.[1] However, the use-case of
+*   MSI Region Handling
+    The hardware MSI region is hard-coded to the standard x86
+    interrupt range (0xfee00000 - 0xfeefffff). Future updates may
+    allow this configuration to be queried via hypercalls if new
+    hardware platforms are to be supported.
 
-mkdirat2() is objectively the worse api. It forces userspace to use a
-separate system call without any reason whatsoever. If you can to
-O_CREAT you should also be able to to O_DIRECTORY in the same system
-call. If we support O_DIRECTORY | O_CREAT we get all the lookup
-restriction niceties RESOLVE_* for free. Plus, it is supportable both in
-openat() and openat2() because I made that combo return an errno.
+*   Reserved Regions (RMRR)
+    There is currently no requirement to support assigned devices with
+    ACPI RMRR limitations. Consequently, this patch series does not
+    specify or query reserved memory regions.
 
-UAPI design often is a nasty mix of performance (context switches),
-separation of concerns and privileges, tastefulness, and compromises you
-never thought or wanted to make.
+Testing:
+This series has been validated with the following configurations:
+- Intel DSA devices assigned to the guest, tested with dmatest.
+- NVMe devices assigned to the guest on AMD platforms, tested
+  with fio.
+- dma_map_benchmark for DMA mapping performance evaluation.
 
-I think here it is pretty clear that O_DIRECTORY | O_CREAT is the right
-thing to do. Instead of restructuring a bunch of codepaths so it can be
-plumbed through to the filesystems we just reuse the existing codepaths
-that give us the right context for free.
+Changes since RFC v1 [1]:
+- Scoped platform support to x86 only (Intel VT-d and AMD IOMMU);
+  initialization now uses x86_init.iommu.iommu_init
+- Added page-selective IOTLB flush support (new Patch 4)
+- Disable device ATS in hv_iommu_release_device()
+- Addressed review comments from Michael Kelley:
+  - Reversed dependency: pvIOMMU exports registration API for
+    pci-hyperv to call, instead of pci-hyperv exporting
+    hv_build_logical_dev_id()
+  - Dropped separate output page allocation patch; hypercall input
+    and output now share the same per-CPU page
+  - Cleaned up Kconfig (removed PCI_HYPERV dependency, unnecessary
+    selects)
+  - Removed dev_list, per-domain spinlock, and syscore_ops
+  - Removed forward declarations by reordering functions
+  - Fixed typos, cleaned up Kconfig selects, improved pr_info
+    messages, etc.
 
-And during LSFMM the VFS maintains all agreed to proceed with
-O_DIRECTORY | O_CREAT.
+[1] https://lore.kernel.org/linux-hyperv/20251209051128.76913-1-zhangyu1@linux.microsoft.com/
+
+Easwar Hariharan (1):
+  iommu: Move Hyper-V IOMMU driver to its own subdirectory
+
+Wei Liu (1):
+  hyperv: Introduce new hypercall interfaces used by Hyper-V guest IOMMU
+
+Yu Zhang (2):
+  iommu/hyperv: Add para-virtualized IOMMU support for Hyper-V guest
+  iommu/hyperv: Add page-selective IOTLB flush support
+
+ MAINTAINERS                                   |   2 +-
+ arch/x86/hyperv/hv_init.c                     |   4 +
+ arch/x86/include/asm/mshyperv.h               |   4 +
+ drivers/iommu/Kconfig                         |  10 +-
+ drivers/iommu/Makefile                        |   2 +-
+ drivers/iommu/hyperv/Kconfig                  |  27 +
+ drivers/iommu/hyperv/Makefile                 |   3 +
+ drivers/iommu/hyperv/iommu.c                  | 794 ++++++++++++++++++
+ drivers/iommu/hyperv/iommu.h                  |  54 ++
+ .../irq_remapping.c}                          |   2 +-
+ drivers/pci/controller/pci-hyperv.c           |  19 +-
+ include/asm-generic/mshyperv.h                |  12 +
+ include/hyperv/hvgdk_mini.h                   |   9 +
+ include/hyperv/hvhdk_mini.h                   | 141 ++++
+ 14 files changed, 1070 insertions(+), 13 deletions(-)
+ create mode 100644 drivers/iommu/hyperv/Kconfig
+ create mode 100644 drivers/iommu/hyperv/Makefile
+ create mode 100644 drivers/iommu/hyperv/iommu.c
+ create mode 100644 drivers/iommu/hyperv/iommu.h
+ rename drivers/iommu/{hyperv-iommu.c => hyperv/irq_remapping.c} (99%)
+
+-- 
+2.52.0
+
