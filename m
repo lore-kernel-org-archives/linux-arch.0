@@ -1,76 +1,135 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 78A2C32B99F;
-	Mon, 11 May 2026 10:31:50 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CC372244665;
+	Mon, 11 May 2026 12:00:53 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778495510; cv=none; b=K3wZEvcnt5AEPeFUXmOJAfj9sMM+nJvk5u/gTFKj+mJuEXHBcnHlACosKLLLdnaeBQwIm4+ZNzY8oKNDgph4sPsjLQUMkkv1ywUK3C3yoPgHb9LLlaFxzPOeQF3V2eziorKPowlHx2HYk6Zl3dG+dTUKjZr8gKiDA35tGU3xXpQ=
+	t=1778500853; cv=none; b=aYffw8ZR4uL1AvJKduzC7bHD4N6qC9MicxwqQnGlkTCdifq93XtwwjiT986Tk97EsU5XB48vvojPJZySXk0rmkDYkftMr7KeNeQtarbUUMPRbq+VJWolSIh02/yJgyKZlGMGH0cjQuCAsDHCCC4SPp1W+RAK1kFbbKHk+h7LlFQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778495510; c=relaxed/simple;
-	bh=G8GKrRRo0B+kDp05yhuHUdnGS1UZ65YJ4Q5wBVwhVqc=;
-	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
-	 References:Date:Message-Id; b=aNh+FPSt/ZpWJejFlo0THYrcMP2ZT2c+92a0QBrLi97oqcsbiFJTtc58MnyO4mk1rio8HaQQ/64JVDqbH3ihhC5MGGAZIGOIhp6JmXEip2+br2AcNl2s1MeDsDp19itq1s//0Nr3myeD0+qw9VnAP2DWjFjRoC3PQQBeNQWC/BQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=bc/dSoX3; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1778500853; c=relaxed/simple;
+	bh=3ltXO6+gbYKtV0Usdp0V0TIVDklrgiK3bsK9XntO6Zc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=R+3I+apUGLbOFFOvdhW48527xKMJNDAYALR//alEPB/CLOxY2qVcbFq4/fPDNobt5gSfcjqq3yysfHTabLDc8uNN/LWBNuQzgnnDODAA+GOhAoey4QweMW6Hbh1Jy6CZeZQlT610j/TXh+NUy2fEgBVjC3RCvzN8VrBGHeBoupg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=tyouepRy; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="bc/dSoX3"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 37240C2BCB0;
-	Mon, 11 May 2026 10:31:47 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="tyouepRy"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3437FC2BCB0;
+	Mon, 11 May 2026 12:00:38 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1778495510;
-	bh=G8GKrRRo0B+kDp05yhuHUdnGS1UZ65YJ4Q5wBVwhVqc=;
-	h=Subject:From:To:Cc:In-Reply-To:References:Date:From;
-	b=bc/dSoX3ITQBECMdV3az2T95pQw34yDk/Wx7Y9jrxLw8iVMCCrLMlvnl091KoKu6l
-	 H3Ru3ybmZ5uLjiWRM5kUAveEwjoA4T4OamNWzRS93oD9f7mNKxnT3v4c5UC8geOtet
-	 J8+FbpmU3zPuFdB2sdk/czzZn6cIaPRA6ajmFNfpzcTrMv2jqwONZeUI0IctjJKSWM
-	 1iSV7KZT4d7iYw4K1QN0SbrCvQ/rj/tt0X2woa3JNZ2qox08i4KBIPZHZd3cigOaT+
-	 lsjYvxfwLvkFgJk/FkyDmztiM1SxZiDAL90SwtQQACtk36knShnfiso9nGwDPitLNl
-	 Jv3FA5pvu5FiA==
+	s=k20201202; t=1778500853;
+	bh=3ltXO6+gbYKtV0Usdp0V0TIVDklrgiK3bsK9XntO6Zc=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=tyouepRyY8HBIVvAd0PpMtwm1T95c3wn+3rDWYuYhAlgKdCfyK/YT6SOSrppIcQyi
+	 l/1Oas2xv9LIlPZvZk6tzj6g6Und3idvH7qruSMQwBtZWke9K+EiRr5wC7glA95u39
+	 PEdgC06gDcljZaHoUK5yz7KHcAUsknmndSKBgLT6iuYx6KjoLKkO70/JT1wrejnNW7
+	 OQ/596rNlKiPsLm3RF0emnpAquDRoPNXlWd6NQS+LvzeE4oEHoRFbpUU+vMGId+ScS
+	 wO33z9MZn13e2xqhfsiGmV4Tj1gg2oyyQ2UqO/CwHzHrEJjGSgCnvOe93dNEnjVD2b
+	 IzN8YZgJb6gCg==
+Date: Mon, 11 May 2026 14:00:35 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: Jori Koolstra <jkoolstra@xs4all.nl>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, 
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Arnd Bergmann <arnd@arndb.de>, "H . Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
+	Peter Zijlstra <peterz@infradead.org>, Andrey Albershteyn <aalbersh@redhat.com>, 
+	Masami Hiramatsu <mhiramat@kernel.org>, Jiri Olsa <jolsa@kernel.org>, 
+	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+	cmirabil@redhat.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
+	Jeff Layton <jlayton@kernel.org>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
+ O_DIRECTORY fd
+Message-ID: <20260511-hochdekoriert-neoliberale-f7a2922bc57c@brauner>
+References: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
+ <20260412135434.3095416-2-jkoolstra@xs4all.nl>
+ <20260427-umlegen-aufbau-ee3a97f1528a@brauner>
+ <1600596489.77018.1777916475931@kpc.webmail.kpnmail.nl>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v5 1/2] vfs: add O_EMPTYPATH to openat(2)/openat2(2)
-From: Christian Brauner <brauner@kernel.org>
-To: Jori Koolstra <jkoolstra@xs4all.nl>
-Cc: Christian Brauner <brauner@kernel.org>, 
- Aleksa Sarai <cyphar@cyphar.com>, Jeff Layton <jlayton@kernel.org>, 
- Chuck Lever <chuck.lever@oracle.com>, 
- Alexander Aring <alex.aring@gmail.com>, 
- Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>, 
- Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, 
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-In-Reply-To: <20260424114611.1678641-2-jkoolstra@xs4all.nl>
-References: <20260424114611.1678641-1-jkoolstra@xs4all.nl>
- <20260424114611.1678641-2-jkoolstra@xs4all.nl>
-Date: Mon, 11 May 2026 12:31:39 +0200
-Message-Id: <177849549986.77176.16709911738228091841.b4-review@b4>
-X-Mailer: b4 0.16-dev-d5d98
-X-Developer-Signature: v=1; a=openpgp-sha256; l=576; i=brauner@kernel.org;
- h=from:subject:message-id; bh=G8GKrRRo0B+kDp05yhuHUdnGS1UZ65YJ4Q5wBVwhVqc=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQxbhDa/pF3b8w2ia1vLooFRntZhLLOVEr8cr6jTaZm7
- v6qdao5HaUsDGJcDLJiiiwO7Sbhcst5KjYbZWrAzGFlAhnCwMUpABN5Ecbwh+Nunwmr9pNb5vce
- lPeoSMW3+rktufu+gPO5m2gdl7i9H8M/HX1hgzcJyy/kqDN4tCqaRt22snFa8v9nL/fnydvXsam
- wAQA=
-X-Developer-Key: i=brauner@kernel.org; a=openpgp;
- fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1600596489.77018.1777916475931@kpc.webmail.kpnmail.nl>
 
-On Fri, 24 Apr 2026 13:46:02 +0200, Jori Koolstra <jkoolstra@xs4all.nl> wrote:
-> To get an operable version of an O_PATH file descriptor, it is possible
-> to use openat(fd, ".", O_DIRECTORY) for directories, but other files
-> currently require going through open("/proc/<pid>/fd/<nr>"), which
-> depends on a functioning procfs.
+On Mon, May 04, 2026 at 07:41:15PM +0200, Jori Koolstra wrote:
 > 
-> This patch adds the O_EMPTYPATH flag to openat(2)/openat2(2). If passed,
-> LOOKUP_EMPTY is set at path resolution time.
+> > Op 27-04-2026 17:48 CEST schreef Christian Brauner <brauner@kernel.org>:
+> > 
+> > So definitely a patchset worthing doing but this will be hairy. And
+> > Mateusz is right. As written this doesn't work. The canonical pattern
+> > how e.g., dentry_open() does it is to preallocate the file.
+> > 
 > 
-> [...]
+> Is this because of Mateusz point that we should fail as soon as possible
+> to prevent any fs changes from taking effect?
+> 
+> But like Mateusz points out, this is not really happening for open() with
+> O_CREAT either. So is there any policy for what we do and do not tolerate?
+> (although I agree we should definitely preallocate the file; thanks for
+> pointing that pattern out).
 
-Reviewed-by: Christian Brauner <brauner@kernel.org>
+Your version can fail in a lot more cases than O_CREAT because the file
+is allocated last which is just not acceptable.
 
--- 
-Christian Brauner <brauner@kernel.org>
+And a misbehaving LSM that ends up preventing opening a created file is
+really not our concern. The system can behave in all non-standard ways
+with mandatory access control.
+
+The other concern that was brought up in some version is truncate but I
+really don't understand what that is supposed to be about. O_TRUNC and
+O_CREAT raally don't get in the way of each other in the way people
+think they would.
+
+Just look at the FMODE_CREATED case. If that's raised on do_open() then
+O_TRUNC is ignored for very obvious reasons.
+
+The only reason where O_TRUNC with O_CREAT matters is if the file did
+already exist which also implies O_EXCL isn't raised. In that case this
+ends up as a regular truncate request and then it is possible to hit the
+handle_truncate() codepath. And there it really doesn't matter. A
+concurrent exec or truncate that prevents you from O_CREAT | O_TRUNC
+seems perfectly benign if you didn't actually create the file in the
+first place. The O_TRUNC would only be honored if we did end up creating
+the file. If someone else raised us in doing their own truncate or is
+attempting an exe then we should most certainly not get to truncate over
+them. Failing is the right thing to do here.
+
+> 
+> > I do wonder though whether we shouldn't just make O_CREAT | O_DIRECTORY
+> > work. I remember that I had a vague comment about this in [1] a few
+> > years ago (cf. [1]). It might even be less hairy to get that one right
+> > as all the thinking for O_CREAT is already there.
+> > 
+> > What was the rationale for mkdirat2() instead of threading this through
+> > openat()/openat2() with O_CREAT?
+> > 
+> 
+> Because of Mateusz' objection, but I agree with Aleksa (and you in 2023)
+> that this is intuitive and you mentioned POSIX allows for it.
+> 
+> But a more general issue, that also applies to this mkdirat2 patch,
+> is Linus' objection in that same thread.[1] However, the use-case of
+
+mkdirat2() is objectively the worse api. It forces userspace to use a
+separate system call without any reason whatsoever. If you can to
+O_CREAT you should also be able to to O_DIRECTORY in the same system
+call. If we support O_DIRECTORY | O_CREAT we get all the lookup
+restriction niceties RESOLVE_* for free. Plus, it is supportable both in
+openat() and openat2() because I made that combo return an errno.
+
+UAPI design often is a nasty mix of performance (context switches),
+separation of concerns and privileges, tastefulness, and compromises you
+never thought or wanted to make.
+
+I think here it is pretty clear that O_DIRECTORY | O_CREAT is the right
+thing to do. Instead of restructuring a bunch of codepaths so it can be
+plumbed through to the filesystems we just reuse the existing codepaths
+that give us the right context for free.
+
+And during LSFMM the VFS maintains all agreed to proceed with
+O_DIRECTORY | O_CREAT.
