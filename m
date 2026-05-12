@@ -1,79 +1,137 @@
-Received: from frasgout.his.huawei.com (frasgout.his.huawei.com [185.176.79.56])
+Received: from relay.hostedemail.com (smtprelay0012.hostedemail.com [216.40.44.12])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6817D3CC7E3;
-	Tue, 12 May 2026 16:27:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.176.79.56
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1D8143C8C7F
+	for <linux-arch@vger.kernel.org>; Tue, 12 May 2026 16:28:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=216.40.44.12
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778603224; cv=none; b=ibQwdHFdCe9GWIPW5ajHxQHz98hbYTLVgGDJktg6Ba9FwFUfehmwbxwCkPjaouMz7oR3xtuB1/B969T7heZWxxiArihBYTXgIu1e9oTWpUpPTRcBV//l+e2IuFK071Ty+bLdi1hC06UuYRbxcpa0yktFq8eiMwoAazqJdZxZ2w8=
+	t=1778603305; cv=none; b=B+V9On6IDZ4eGeI1K4iZS2OGSBurTDDNe6AvGa7jQqgaBXI5WpM5czP8Ybm326CSQF6C5GDYV3Nko6w1m9JLwDo8QSs7rKPYH7k6OzHHCnHROi5LgPTT2A/o9TBv8cQybdTUergSKFA6ulQsPN8IB0ZrmwdSgdSmEwFXMju/8nc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778603224; c=relaxed/simple;
-	bh=uJvEMd3+CFQDgFue9mq8gmkIH461XMtPWMnIsYpJfSg=;
-	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=qzQoMIh1JdoJfSxKBkZiN+ShK6bXcKSJQ1MdqxDsBrQ2h1UILBBfwmHj3WsDPe4dsXDVutrvIKvGoJFYySWku9xSTKUEWKtX8cu4bDhH66aO4Od0I02e2g2OmpQSq62fHpj7Th4i3RWmziN/yBpvM3DJ7ExTRC/GKcTrZSvIAbw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=h-partners.com; spf=pass smtp.mailfrom=h-partners.com; arc=none smtp.client-ip=185.176.79.56
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=h-partners.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=h-partners.com
-Received: from mail.maildlp.com (unknown [172.18.224.107])
-	by frasgout.his.huawei.com (SkyGuard) with ESMTPS id 4gFMRx3mj1zHnGdH;
-	Wed, 13 May 2026 00:26:53 +0800 (CST)
-Received: from mscpeml500003.china.huawei.com (unknown [7.188.49.51])
-	by mail.maildlp.com (Postfix) with ESMTPS id A5D4E4058E;
-	Wed, 13 May 2026 00:27:01 +0800 (CST)
-Received: from localhost.localdomain (10.123.66.205) by
- mscpeml500003.china.huawei.com (7.188.49.51) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.2.1544.11; Tue, 12 May 2026 19:27:01 +0300
-From: Fedorov Nikita <fedorov.nikita@h-partners.com>
-To: <1234567weewee457@gmail.com>
-CC: <fedorov.nikita@h-partners.com>, <stepanov.anatoly@huawei.com>,
-	<linux-kernel@vger.kernel.org>, <linux-arm-kernel@lists.infradead.org>,
-	<linux-arch@vger.kernel.org>, <linux-mm@kvack.org>,
-	<virtualization@lists.linux.dev>
-Subject: [PATCH v3] locking/hqlock_core: restore missing call in contention detection logic
-Date: Wed, 13 May 2026 00:25:03 +0800
-Message-ID: <20260512162503.1843025-2-fedorov.nikita@h-partners.com>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20260512162503.1843025-1-fedorov.nikita@h-partners.com>
-References: <20260512144908.610907-1-1234567weewee457@gmail.com>
- <20260512162503.1843025-1-fedorov.nikita@h-partners.com>
+	s=arc-20240116; t=1778603305; c=relaxed/simple;
+	bh=umumbv8Xibwz5PNmq41/86fqZ+V9d7EWj8qghUf6648=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=ZwpxkOTEGTE2L0191Tco1EBsXkSJ3yrp8BWICeejghR2B01BKcKYGid4e+QTvq9DcozbCvg0SfP9bvZONto9O76YOBC3VqsYi6fgT2R4A6axSJmuw5gBoWGPibnvR80cRCnPj7eP5YtQhcAwZsto26FZaAaPl41pFDFqD3e526s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org; spf=pass smtp.mailfrom=goodmis.org; arc=none smtp.client-ip=216.40.44.12
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=goodmis.org
+Received: from omf15.hostedemail.com (lb01a-stub [10.200.18.249])
+	by unirelay10.hostedemail.com (Postfix) with ESMTP id 9A0B7C1F43;
+	Tue, 12 May 2026 16:28:17 +0000 (UTC)
+Received: from [HIDDEN] (Authenticated sender: rostedt@goodmis.org) by omf15.hostedemail.com (Postfix) with ESMTPA id 6520B22;
+	Tue, 12 May 2026 16:28:00 +0000 (UTC)
+Date: Tue, 12 May 2026 12:28:01 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+To: Boqun Feng <boqun@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Catalin Marinas
+ <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Jonas Bonn
+ <jonas@southpole.se>, Stefan Kristiansson
+ <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>,
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>, Christian Borntraeger
+ <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>, Thomas
+ Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
+ <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Juri Lelli
+ <juri.lelli@redhat.com>, Vincent Guittot <vincent.guittot@linaro.org>,
+ Dietmar Eggemann <dietmar.eggemann@arm.com>, Ben Segall
+ <bsegall@google.com>, Mel Gorman <mgorman@suse.de>, Valentin Schneider
+ <vschneid@redhat.com>, K Prateek Nayak <kprateek.nayak@amd.com>, Waiman
+ Long <longman@redhat.com>, Andrew Morton <akpm@linux-foundation.org>,
+ Miguel Ojeda <ojeda@kernel.org>, Gary Guo <gary@garyguo.net>,
+ =?UTF-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, Benno Lossin
+ <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl
+ <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, Danilo Krummrich
+ <dakr@kernel.org>, Jinjie Ruan <ruanjinjie@huawei.com>, Ada Couprie Diaz
+ <ada.coupriediaz@arm.com>, Lyude Paul <lyude@redhat.com>, Sohil Mehta
+ <sohil.mehta@intel.com>, Pawan Gupta <pawan.kumar.gupta@linux.intel.com>,
+ "Xin Li (Intel)" <xin@zytor.com>, Sean Christopherson <seanjc@google.com>,
+ Nikunj A Dadhania <nikunj@amd.com>, Joel Fernandes <joelagnelf@nvidia.com>,
+ Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Randy Dunlap
+ <rdunlap@infradead.org>, Yury Norov <ynorov@nvidia.com>, Sebastian Andrzej
+ Siewior <bigeasy@linutronix.de>, linux-arm-kernel@lists.infradead.org,
+ linux-kernel@vger.kernel.org, linux-openrisc@vger.kernel.org,
+ linux-s390@vger.kernel.org, linux-arch@vger.kernel.org,
+ rust-for-linux@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH 01/11] preempt: Introduce HARDIRQ_DISABLE_BITS
+Message-ID: <20260512122801.79884485@gandalf.local.home>
+In-Reply-To: <20260508042111.24358-2-boqun@kernel.org>
+References: <20260508042111.24358-1-boqun@kernel.org>
+	<20260508042111.24358-2-boqun@kernel.org>
+X-Mailer: Claws Mail 3.20.0git84 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-ClientProxiedBy: mscpeml500003.china.huawei.com (7.188.49.51) To
- mscpeml500003.china.huawei.com (7.188.49.51)
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+X-Rspamd-Server: rspamout07
+X-Rspamd-Queue-Id: 6520B22
+X-Stat-Signature: siy76ic6a7ndj93xh66ps7gdgrg9ceru
+X-Session-Marker: 726F737465647440676F6F646D69732E6F7267
+X-Session-ID: U2FsdGVkX18cv6OoxCsPoWj2y+4BLp9UBWsID8JUeTk=
+X-HE-Tag: 1778603280-691158
+X-HE-Meta: U2FsdGVkX1/WJk38SJasulkhnQXt2POZLq/n9mG8yUmGvlU1cvDkEMx/1czYXGKaI6jwDsOoayRYhKNLN7D2cm2gXXb9Aq6fcV286VwXJMoXfhQAmqWayZ7FO7uBMpfYALvr6k8q5+C844+pyxrkcPKZIHG0UpA8eND8aUR1qV3Zey5gF66bPEvznJjErU/ghNqkks7E4ZrOjqwGOH9cbQ2YNlzGdtNEvhRJ837KpC0/1+Q4KbRBDF2vVKDC+KJbm4exqmUM3UBL5/n5gFKfXFfLTyXf3fw+GOAkZIQOSpq6V1O4ZarEKK2ObeVgb1FRQ1UZkbZDX7SjsgNcLOyYctfAIXAueSYLbvzTw4FD5IEWC9GX+/qb8WbFhecsmI2yYMgy3reGMVP67RuIxP5gWaCJhml0VABFZd2u+I8/8lZtWEiFJo4DfgDHgzbvMJCuzBIPCan0onkB3frlIlWfipjO1DnWOQtS
 
-A call was accidentally dropped while splitting the hqspinlock patch series.
-It did not break the system functionality,
-but caused the lock to stay in QSPINLOCK mode.
+On Thu,  7 May 2026 21:21:01 -0700
+Boqun Feng <boqun@kernel.org> wrote:
 
-Restore the missing call.
+> From: Boqun Feng <boqun.feng@gmail.com>
+> 
+> In order to support preempt_disable()-like interrupt disabling, that is,
+> using part of preempt_count() to track interrupt disabling nested level,
+> change the preempt_count() layout to contain 8-bit HARDIRQ_DISABLE
+> count.
+> 
+> Note that HARDIRQ_BITS and NMI_BITS are reduced by 1 because of this,
+> and it changes the maximum of their (hardirq and nmi) nesting level.
+> 
+> Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+> Signed-off-by: Lyude Paul <lyude@redhat.com>
+> Signed-off-by: Boqun Feng <boqun@kernel.org>
+> Link: https://patch.msgid.link/20260121223933.1568682-2-lyude@redhat.com
+> ---
+>  include/linux/preempt.h | 16 +++++++++++-----
+>  1 file changed, 11 insertions(+), 5 deletions(-)
+> 
+> diff --git a/include/linux/preempt.h b/include/linux/preempt.h
+> index d964f965c8ff..f07e7f37f3ca 100644
+> --- a/include/linux/preempt.h
+> +++ b/include/linux/preempt.h
+> @@ -17,6 +17,7 @@
+>   *
+>   * - bits 0-7 are the preemption count (max preemption depth: 256)
+>   * - bits 8-15 are the softirq count (max # of softirqs: 256)
+> + * - bits 16-23 are the hardirq disable count (max # of hardirq disable: 256)
+>   *
+>   * The hardirq count could in theory be the same as the number of
+>   * interrupts in the system, but we run all interrupt handlers with
+> @@ -26,29 +27,34 @@
+>   *
+>   *         PREEMPT_MASK:	0x000000ff
+>   *         SOFTIRQ_MASK:	0x0000ff00
+> - *         HARDIRQ_MASK:	0x000f0000
+> - *             NMI_MASK:	0x00f00000
+> + * HARDIRQ_DISABLE_MASK:	0x00ff0000
+> + *         HARDIRQ_MASK:	0x07000000
+> + *             NMI_MASK:	0x38000000
 
-Sorry for missing this in the previous posting. I rechecked the whole path after fixing.
+I wonder if you should switch patch 1 and 2 and move the NMI bits out
+first. That way you avoid the side effect of this patch shrinking the NMI
+nest count from 15 to 7. It may not matter, but I hate when a patch
+introduces a side effect like this.
 
-Signed-off-by: Nikita Fedorov <fedorov.nikita@h-partners.com>
----
- kernel/locking/hqlock_core.h | 2 ++
- 1 file changed, 2 insertions(+)
+-- Steve
 
-diff --git a/kernel/locking/hqlock_core.h b/kernel/locking/hqlock_core.h
-index 74f92ac3d8ad..226a0bb9a667 100644
---- a/kernel/locking/hqlock_core.h
-+++ b/kernel/locking/hqlock_core.h
-@@ -580,6 +580,8 @@ static inline void hqlock_clear_tail_handoff(struct qspinlock *lock, u32 val,
- 
- 		hqlock_handoff(lock, node, next, tail, handoff_info);
- 	} else {
-+		update_counters_qspinlock(qnode);
-+
- 		if ((val & _Q_TAIL_MASK) == tail) {
- 			if (low_contention_try_clear_tail(lock, val, node))
- 				return;
--- 
-2.34.1
 
+>   * PREEMPT_NEED_RESCHED:	0x80000000
+>   */
+>  #define PREEMPT_BITS	8
+>  #define SOFTIRQ_BITS	8
+> -#define HARDIRQ_BITS	4
+> -#define NMI_BITS	4
+> +#define HARDIRQ_DISABLE_BITS	8
+> +#define HARDIRQ_BITS	3
+> +#define NMI_BITS	3
+>  
