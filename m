@@ -1,147 +1,129 @@
-Received: from relay.hostedemail.com (smtprelay0015.hostedemail.com [216.40.44.15])
+Received: from mout-p-101.mailbox.org (mout-p-101.mailbox.org [80.241.56.151])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DE2573CF966;
-	Tue, 12 May 2026 16:31:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=216.40.44.15
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B9F84385D95;
+	Tue, 12 May 2026 17:12:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.241.56.151
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778603475; cv=none; b=SB6+y4LIyhvc/4kqeuKL6izdHUXhWvuklrCqJgEgS+ykfVoBUKOv1UjBf2a51f+dgN10Uct/cU3zbB52/r45GhMKhiR0S+7N+tRCq+g5dnNyEuQAlVdsEd0Rw7aZU4v+pA+r8FVmd+pqibDjAu0432mgbYoIaxfuuZXyqJ2yOpM=
+	t=1778605950; cv=none; b=klZIxsguQyR369Q1UPpWqPAfeww/89ahNJN2YExQwK5wtjGlh1y4jSk6o5YlNPveJGxHUMKxXrYg/T3Er7vISnMPagj+sOkgdpP9Nld7Ua4NA1vjx7k7cxdGTPx0Kgo996wb+94GqxaivrZprWA6b8DZZTIzIFVl4oNFmVeNFuY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778603475; c=relaxed/simple;
-	bh=IMbW7exXtcrNMyBQoQ3lKIf11X87bEjhtS6Gp02LSlU=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=SL0K/gO+dIA2pwdAPf+GQKppxF90r7d8wzGsQjz131V1obOq0pW7VyN8l10hf7cg7izfknt7p/dFKcbdKMYDuU7Q+pmp3nml4KlnPdhslsTOGzvlMCtGDcznEB4tbiWh9nFhPm4KkfFW30n3ude9fno4Yain+4bLUr0W8tR6J2g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org; spf=pass smtp.mailfrom=goodmis.org; arc=none smtp.client-ip=216.40.44.15
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=goodmis.org
-Received: from omf15.hostedemail.com (lb01a-stub [10.200.18.249])
-	by unirelay07.hostedemail.com (Postfix) with ESMTP id 94B2C1605C8;
-	Tue, 12 May 2026 16:31:06 +0000 (UTC)
-Received: from [HIDDEN] (Authenticated sender: rostedt@goodmis.org) by omf15.hostedemail.com (Postfix) with ESMTPA id 2E92318;
-	Tue, 12 May 2026 16:30:48 +0000 (UTC)
-Date: Tue, 12 May 2026 12:30:48 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-To: Boqun Feng <boqun@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Catalin Marinas
- <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Jonas Bonn
- <jonas@southpole.se>, Stefan Kristiansson
- <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>,
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
- Alexander Gordeev <agordeev@linux.ibm.com>, Christian Borntraeger
- <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>, Thomas
- Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
- <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
- "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Juri Lelli
- <juri.lelli@redhat.com>, Vincent Guittot <vincent.guittot@linaro.org>,
- Dietmar Eggemann <dietmar.eggemann@arm.com>, Ben Segall
- <bsegall@google.com>, Mel Gorman <mgorman@suse.de>, Valentin Schneider
- <vschneid@redhat.com>, K Prateek Nayak <kprateek.nayak@amd.com>, Waiman
- Long <longman@redhat.com>, Andrew Morton <akpm@linux-foundation.org>,
- Miguel Ojeda <ojeda@kernel.org>, Gary Guo <gary@garyguo.net>,
- =?UTF-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, Benno Lossin
- <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl
- <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, Danilo Krummrich
- <dakr@kernel.org>, Jinjie Ruan <ruanjinjie@huawei.com>, Ada Couprie Diaz
- <ada.coupriediaz@arm.com>, Lyude Paul <lyude@redhat.com>, Sohil Mehta
- <sohil.mehta@intel.com>, Pawan Gupta <pawan.kumar.gupta@linux.intel.com>,
- "Xin Li (Intel)" <xin@zytor.com>, Sean Christopherson <seanjc@google.com>,
- Nikunj A Dadhania <nikunj@amd.com>, Joel Fernandes <joelagnelf@nvidia.com>,
- Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Randy Dunlap
- <rdunlap@infradead.org>, Yury Norov <ynorov@nvidia.com>, Sebastian Andrzej
- Siewior <bigeasy@linutronix.de>, linux-arm-kernel@lists.infradead.org,
- linux-kernel@vger.kernel.org, linux-openrisc@vger.kernel.org,
- linux-s390@vger.kernel.org, linux-arch@vger.kernel.org,
- rust-for-linux@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Joel
- Fernandes <joelaf@google.com>
-Subject: Re: [PATCH 02/11] preempt: Track NMI nesting to separate per-CPU
- counter
-Message-ID: <20260512123048.6666343f@gandalf.local.home>
-In-Reply-To: <20260508042111.24358-3-boqun@kernel.org>
-References: <20260508042111.24358-1-boqun@kernel.org>
-	<20260508042111.24358-3-boqun@kernel.org>
-X-Mailer: Claws Mail 3.20.0git84 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	s=arc-20240116; t=1778605950; c=relaxed/simple;
+	bh=DrzCVQdjnTp2ELH1Ym1g9HHLyYYLanMMjaFUKRSNOYs=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Z0U2+lG7iKdoMWG59Y2gpg/ziXTp7U+RspA+4PEsqhsxBcALf48+YuB/i6OA4WVpYdg92nh95xkFlfiHSvymE7oKlCbW2ozorE4ta3W2ePOSg6HMkBsIqCx/BplUeAxjq5Ax9v8EbF0unQ2ZmRiZ6qT6RNK+wSlQNgD8q6nfxdk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com; spf=pass smtp.mailfrom=cyphar.com; dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b=OG/o9MQw; arc=none smtp.client-ip=80.241.56.151
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=cyphar.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b="OG/o9MQw"
+Received: from smtp202.mailbox.org (smtp202.mailbox.org [IPv6:2001:67c:2050:b231:465::202])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mout-p-101.mailbox.org (Postfix) with ESMTPS id 4gFNSR3zM0z9v0b;
+	Tue, 12 May 2026 19:12:23 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=cyphar.com; s=MBO0001;
+	t=1778605943;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=DrzCVQdjnTp2ELH1Ym1g9HHLyYYLanMMjaFUKRSNOYs=;
+	b=OG/o9MQwFjX3mpiEce6/I1jZy1bDNA47aKOVmnxHiprbDM6lxXd4mcf1nwn8zp1tJ65+ik
+	8CGsc58KWB3o8Mkbm3qUauadCKK8CeQZEie1mPI8NPBhdP8HVz/Zh6ZhlYRyMuz6hi+IDM
+	8U1ZMOpS/tGaEFu8aa2kIw7vE9QDOAkD3QFxVSBE83Eb2PvJuOLooCHqIxWM4OfhTg11d5
+	x6T0QijQjfQiQhsoMR5ldlAH2bsjfmEHMgrEFO7757bnfUlexYOz32IZzykkgtQ+7ZGC87
+	mHZw2/U3sMcGiMhl9k+zAZ7Wc1p5MzmZnzhCuhRkzQh7pE8iN3PKJiBPfpedaQ==
+Authentication-Results: outgoing_mbo_mout;
+	dkim=none;
+	spf=pass (outgoing_mbo_mout: domain of cyphar@cyphar.com designates 2001:67c:2050:b231:465::202 as permitted sender) smtp.mailfrom=cyphar@cyphar.com
+Date: Wed, 13 May 2026 03:11:57 +1000
+From: Aleksa Sarai <cyphar@cyphar.com>
+To: Christian Brauner <brauner@kernel.org>
+Cc: Jori Koolstra <jkoolstra@xs4all.nl>, Andy Lutomirski <luto@kernel.org>, 
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Arnd Bergmann <arnd@arndb.de>, "H . Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
+	Peter Zijlstra <peterz@infradead.org>, Andrey Albershteyn <aalbersh@redhat.com>, 
+	Masami Hiramatsu <mhiramat@kernel.org>, Jiri Olsa <jolsa@kernel.org>, 
+	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+	cmirabil@redhat.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
+	Jeff Layton <jlayton@kernel.org>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
+ O_DIRECTORY fd
+Message-ID: <2026-05-12-aging-demur-content-penalty-txHKga@cyphar.com>
+References: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
+ <20260412135434.3095416-2-jkoolstra@xs4all.nl>
+ <20260427-umlegen-aufbau-ee3a97f1528a@brauner>
+ <1600596489.77018.1777916475931@kpc.webmail.kpnmail.nl>
+ <20260511-hochdekoriert-neoliberale-f7a2922bc57c@brauner>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-X-Stat-Signature: rxzg8jbfdtkk4aitrpcusrqxkwme1q84
-X-Rspamd-Server: rspamout02
-X-Rspamd-Queue-Id: 2E92318
-X-Session-Marker: 726F737465647440676F6F646D69732E6F7267
-X-Session-ID: U2FsdGVkX1/wsxhK3YvLhxUJYewPwd+JDlrDDxI7THU=
-X-HE-Tag: 1778603448-881851
-X-HE-Meta: U2FsdGVkX19IoNKjn8/2CFuwQduihhp8T9fcERCiZ9DMjEPnQs4CgfXWCNX1eLR6jbWJWlnvk67MmsoS1U7wa0d0G2bcz4PY/4q9PQk9b2m720qNMXGNi/FtZn9L5vWoSAAmhinHOBCskUHmgFY3OyYuytp7wXzFllSmnf3MkgmvUa/tjWXwsp4HEaxkfJJih156So8K+ajlb94mCRbbnuNyrK8iIruiIRG+ofpNwV3eRM1ME/t/H1HWyrAdtwKz7Vo1lRKqK6Qu2nWCMg5ZxZ7ewaP6pnwF1qpkZsU239HpFmLpTAfJEzP/6CyhQ3mXi3Fph5W7sa7YTzxooOLZm9GaTVwD1jnGZpkvzMrTlQCKZIq0bFqrFqbLVIBwqiGnX5lYMKEZ3jMtYlOJk6VsPauVMs6wrMPzR2cumlZVwIyKG1eZJOEtKVxiCiukJhJs3w2DD/JFvEYZ0ZMz+4Ik+JHpQmHJ8rMoLnRf19wR8ZBCAM1BFWJXJYWwZ0uhjX/GDV0JQfolp30=
-
-On Thu,  7 May 2026 21:21:02 -0700
-Boqun Feng <boqun@kernel.org> wrote:
-
-> From: Joel Fernandes <joelagnelf@nvidia.com>
-> 
-> Move NMI nesting tracking from the preempt_count bits to a separate per-CPU
-> counter (nmi_nesting). This is to free up the NMI bits in the preempt_count,
-> allowing those bits to be repurposed for other uses.  This also has the benefit
-> of tracking more than 16-levels deep if there is ever a need.
-> 
-> Reduce multiple bits in preempt_count for NMI tracking. Reduce NMI_BITS
-> from 3 to 1, using it only to detect if we're in an NMI.
-> 
-> Suggested-by: Boqun Feng <boqun.feng@gmail.com>
-> Signed-off-by: Joel Fernandes <joelaf@google.com>
-> Signed-off-by: Lyude Paul <lyude@redhat.com>
-> Signed-off-by: Boqun Feng <boqun@kernel.org>
-> Link: https://patch.msgid.link/20260121223933.1568682-3-lyude@redhat.com
-> ---
->  include/linux/hardirq.h | 16 ++++++++++++----
->  include/linux/preempt.h | 13 +++++++++----
->  kernel/softirq.c        |  2 ++
->  3 files changed, 23 insertions(+), 8 deletions(-)
-> 
-> diff --git a/include/linux/hardirq.h b/include/linux/hardirq.h
-> index d57cab4d4c06..cc06bda52c3e 100644
-> --- a/include/linux/hardirq.h
-> +++ b/include/linux/hardirq.h
-> @@ -10,6 +10,8 @@
->  #include <linux/vtime.h>
->  #include <asm/hardirq.h>
->  
-> +DECLARE_PER_CPU(unsigned int, nmi_nesting);
-> +
->  extern void synchronize_irq(unsigned int irq);
->  extern bool synchronize_hardirq(unsigned int irq);
->  
-> @@ -102,14 +104,16 @@ void irq_exit_rcu(void);
->   */
->  
->  /*
-> - * nmi_enter() can nest up to 15 times; see NMI_BITS.
-> + * nmi_enter() can nest - nesting is tracked in a per-CPU counter.
->   */
->  #define __nmi_enter()						\
->  	do {							\
->  		lockdep_off();					\
->  		arch_nmi_enter();				\
-> -		BUG_ON(in_nmi() == NMI_MASK);			\
-> -		__preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
-> +		BUG_ON(__this_cpu_read(nmi_nesting) == UINT_MAX);	\
-
-I think we should keep the max nesting fixed to 15. If this doesn't trigger
-until UINT_MAX, it may take a long time to see that, and there's no reason
-NMIs should nest more than 15 anyway.
-
-Just because the counter allows it, doesn't me the system should allow it.
-
--- Steve
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="lpi4vqgqbrhtuenl"
+Content-Disposition: inline
+In-Reply-To: <20260511-hochdekoriert-neoliberale-f7a2922bc57c@brauner>
+X-Rspamd-Queue-Id: 4gFNSR3zM0z9v0b
 
 
-> +		__this_cpu_inc(nmi_nesting);			\
-> +		__preempt_count_add(HARDIRQ_OFFSET);		\
-> +		preempt_count_set(preempt_count() | NMI_MASK);	\
->  	} while (0)
->  
->  #define nmi_enter()						\
-> @@ -124,8 +128,12 @@ void irq_exit_rcu(void);
->  
+--lpi4vqgqbrhtuenl
+Content-Type: text/plain; protected-headers=v1; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
+ O_DIRECTORY fd
+MIME-Version: 1.0
+
+On 2026-05-11, Christian Brauner <brauner@kernel.org> wrote:
+> On Mon, May 04, 2026 at 07:41:15PM +0200, Jori Koolstra wrote:
+> > Because of Mateusz' objection, but I agree with Aleksa (and you in 2023)
+> > that this is intuitive and you mentioned POSIX allows for it.
+> >=20
+> > But a more general issue, that also applies to this mkdirat2 patch,
+> > is Linus' objection in that same thread.[1] However, the use-case of
+>=20
+> mkdirat2() is objectively the worse api. It forces userspace to use a
+> separate system call without any reason whatsoever. If you can to
+> O_CREAT you should also be able to to O_DIRECTORY in the same system
+> call. If we support O_DIRECTORY | O_CREAT we get all the lookup
+> restriction niceties RESOLVE_* for free. Plus, it is supportable both in
+> openat() and openat2() because I made that combo return an errno.
+>=20
+> UAPI design often is a nasty mix of performance (context switches),
+> separation of concerns and privileges, tastefulness, and compromises you
+> never thought or wanted to make.
+>=20
+> I think here it is pretty clear that O_DIRECTORY | O_CREAT is the right
+> thing to do. Instead of restructuring a bunch of codepaths so it can be
+> plumbed through to the filesystems we just reuse the existing codepaths
+> that give us the right context for free.
+
+FWIW, I completely agree.
+
+> And during LSFMM the VFS maintains all agreed to proceed with
+> O_DIRECTORY | O_CREAT.
+
+(With the caveat that we do not copy the dangling symlink behaviour from
+O_CREAT, as there be dragons.)
+
+--=20
+Aleksa Sarai
+https://www.cyphar.com/
+
+--lpi4vqgqbrhtuenl
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iJEEABYKADkWIQS2TklVsp+j1GPyqQYol/rSt+lEbwUCagNfWhsUgAAAAAAEAA5t
+YW51MiwyLjUrMS4xMiwyLDIACgkQKJf60rfpRG8+UgEAxjjQD2Cr4f6EpoRHlCn/
+IfOXynIecmU2oJ10LBBHJhoBAN/e/n6yx3Ixzy/TA7i38m/5jyxjW+zUOLPKm21j
++9QC
+=rmyJ
+-----END PGP SIGNATURE-----
+
+--lpi4vqgqbrhtuenl--
