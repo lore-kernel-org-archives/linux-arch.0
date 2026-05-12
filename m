@@ -1,201 +1,185 @@
-Received: from CWXP265CU010.outbound.protection.outlook.com (mail-ukwestazon11022125.outbound.protection.outlook.com [52.101.101.125])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9170A3A3E99;
-	Mon, 11 May 2026 20:34:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.101.125
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778531654; cv=fail; b=sG7M2faD9ckeWnp8aJz2BgL1kJpxorZ9h4WOcCnbisaF6KknJMLz/z+dluJy/gaM6U4JiXSTnmMTX8V3SmyP9lpi45ViiIp6Aa+Ipyv66YplWyW0sBHi7dlBLAo2PmFKnLb/zQKeXXRrNSaJq5oUQ0W5yz1F4IJUIzU7eFNje1w=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778531654; c=relaxed/simple;
-	bh=bUcd6uBkeqPB00XkHzPs9/C7ipOIS41DM36UqEYyqnk=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=cTRD/1UJmW8+yjj00fHslR24PW37bPpQCBQ6z5kyLrCBpsxRho5IkeqakzSYAtL1MFwG1YmfQxynfkcOAkNuBbvK0XuEagdyum9uLdvsLlxYCevN9MVksixW/e1JQncUSK+Nlb2d94uMfYVWm5//Rq1/1XfNOnqXrREbBMEKhLA=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.101.125
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=eJulWN6ETiYQ4013up8oKXImJo+614wnCV1s2VVoNrU8U344DU+ZywRgyu9OP0o3LBhYl8moiXOnj0aHAIGBOVqSNdfQyK8/TjK8ynLQxOxwEbT77XYIhsT/z/Lk6jZ7cabT4jaL8+S9V+q7jcGdQWD5HroLzMwnDMBZie3eKQwhZy8QaMDq5E6RlPUzoRi+d8CrosBNY9WAxNup6MM4CShZGppcwP11p9tRhsFUxSYVNI6PUa7bXAOIJqYRv3cVKY9/pxbzUwdHfweeEOZCCHgpOQPHMS6Pfifqsf1IVycTKCU6bGxmRiXcgtgfGsO8i525IjhdMhiQ5GqSQE1wQg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=akOJjVszhkCDcj/JYnUqvHu7AQ6Ex0Ves+3e6U2A8G4=;
- b=LY1KeugTyHZ7detG4Qx16p6wRlbvofKT+lXWr69QqWbhPXAuO+GiZankq4e2vjFfgbyirfBaNdub+Y3xFIp4QEvW5mw3DmqRl06u7ac1Zl8IEfhDjiFT+vmhfWXcPrUIdLrcBkUdhu5QeFMRyPApDWDBkWbgmqrOQ94inJehIg2UjAKklZ6I77VVqb+j6BOlnP/mhkui76NkbNBMPl8tUUISrvT5p3/drIP/I36oK3y0S5/K4sE7I84xKLM2mxmiOAHa44DyUBq5NDcQLnHTZGfHiGvrwz2nIuS8MiGOIonyREi7Lp9o8/qhtNJSc0FcYRVvKfDDpRYezPx73kde7w==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
- dkim=pass header.d=atomlin.com; arc=none
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=atomlin.com;
-Received: from CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:70::10)
- by LO9P123MB7883.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:3e3::12) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9891.23; Mon, 11 May
- 2026 20:34:07 +0000
-Received: from CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM
- ([fe80::de8e:2e4f:6c6:f3bf]) by CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM
- ([fe80::de8e:2e4f:6c6:f3bf%2]) with mapi id 15.20.9846.025; Mon, 11 May 2026
- 20:34:07 +0000
-Date: Mon, 11 May 2026 16:34:04 -0400
-From: Aaron Tomlin <atomlin@atomlin.com>
-To: arnd@arndb.de, mcgrof@kernel.org, petr.pavlu@suse.com, 
-	da.gomez@kernel.org, samitolvanen@google.com, sashal@kernel.org, leitao@debian.org, 
-	akpm@linux-foundation.org
-Cc: neelx@suse.com, sean@ashe.io, chjohnst@mail.com, steve@abita.co, 
-	mproche@mail.com, nick.lane@mail.com, linux-arch@vger.kernel.org, 
-	linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] init/main: Expose built-in initcalls and blacklist
- status via debugfs
-Message-ID: <gkvmkpkhesd225sqdwoepjazhmqli7cqc5ut7czo3b453fd7aq@qer3g3oqhoou>
-References: <20260510061301.41341-1-atomlin@atomlin.com>
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="ya4r6ktjheu4erdu"
-Content-Disposition: inline
-In-Reply-To: <20260510061301.41341-1-atomlin@atomlin.com>
-X-ClientProxiedBy: BL1PR13CA0026.namprd13.prod.outlook.com
- (2603:10b6:208:256::31) To CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM
- (2603:10a6:400:70::10)
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id B10FA225788;
+	Tue, 12 May 2026 02:03:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778551397; cv=none; b=toxlVVVQ+nkEbF+cSxEfB8R2473BPkieCoO2GMC9UNRc4aHmdN8ehYK141NGRnLJpLxCnDr/JeptoHdVME5Bd49o5ViuScimsoOH/xUORAZ7P9Wwf4WdHahtax0FStxZigzpIKKnTeQm+C1hHQzFWMkTv7stsefqQvnJ3hdGNIM=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778551397; c=relaxed/simple;
+	bh=P4zsrTSdnvHC05c8ddf8tdvjXANfQhJaX1T01tZcq7U=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=DgESkY2dLILtoiXr42/qSXo+a5nRoCQE9sZhSK5AvwZm24TL3vHAmYWkAOxSPkrWdCzrieP6LcyZn6Rsbl3qPC924CtISnbT6z9qHxH6PSOQjXy+3tclgQfR8v8+Q8CF5t1bQCZsFd/+bz2qQaVpAVFyOSNb3+uhdrT4HjlHNDQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=h9h3+cuI; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="h9h3+cuI"
+Received: from mrdev.corp.microsoft.com (unknown [13.88.17.9])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 4760E20B7166;
+	Mon, 11 May 2026 19:03:10 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 4760E20B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1778551391;
+	bh=L1u+YaYFMS0e2RVPxsOKKP1VrrtsLT3TK/2Ux89jOAw=;
+	h=From:To:Cc:Subject:Date:From;
+	b=h9h3+cuIH/buTolIld4zsIRqiAELw1bH+Fq5nxzuR0zmanFfMLEBBxMx1/FUdVSQu
+	 8jMbzBgTlpurZXL8W+MBY1/8QsQ90osaoVdoF1B3qvTHgVr0ar5ie1FBXnaoQwqg0N
+	 zu/fsUD9IpZxH+XZCurrLn1g0YXZrnMeBcbR6ZKI=
+From: Mukesh R <mrathor@linux.microsoft.com>
+To: hpa@zytor.com,
+	robin.murphy@arm.com,
+	robh@kernel.org,
+	wei.liu@kernel.org,
+	mrathor@linux.microsoft.com,
+	mhklinux@outlook.com,
+	muislam@microsoft.com,
+	namjain@linux.microsoft.com,
+	magnuskulke@linux.microsoft.com,
+	anbelski@linux.microsoft.com,
+	linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org,
+	iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Cc: kys@microsoft.com,
+	haiyangz@microsoft.com,
+	decui@microsoft.com,
+	longli@microsoft.com,
+	tglx@kernel.org,
+	mingo@redhat.com,
+	bp@alien8.de,
+	dave.hansen@linux.intel.com,
+	x86@kernel.org,
+	joro@8bytes.org,
+	will@kernel.org,
+	lpieralisi@kernel.org,
+	kwilczynski@kernel.org,
+	bhelgaas@google.com,
+	arnd@arndb.de,
+	jacob.pan@linux.microsoft.com
+Subject: [PATCH V3 00/11] PCI passthru on Hyper-V (Part I)
+Date: Mon, 11 May 2026 19:02:48 -0700
+Message-ID: <20260512020259.1678627-1-mrathor@linux.microsoft.com>
+X-Mailer: git-send-email 2.51.2.vfs.0.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CWLP123MB3523:EE_|LO9P123MB7883:EE_
-X-MS-Office365-Filtering-Correlation-Id: 79eb42a6-e5f7-4ad0-4dd1-08deaf9ca677
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|1800799024|366016|7416014|376014|3023799003|56012099003|22082099003|18002099003;
-X-Microsoft-Antispam-Message-Info:
-	aNXfHMeLwKtV8Tfor868wbs/c6V4pjGgXrWak6yfRRZ+9W8zPFoMnAK/rxLzx/hgFA+A0YsKv6vGVgkMd6cD2ZwMqtaMMx8sPdNi53PpXE+zknQRo8AFlEHv0xfhVUJ4n+UGumqOcQFwl3qQhzvP+G3G3b8rRW8kBYU91ddq6OlaaeF8Rq5jbV8GfFxi9gSN0Jaf++eR+gdz6c3lDETF22q5oAarEtoyk1n8YjcMel1Sec+TC4lbgjuFIhDP1sm/bpy0N4BtKQDMzYxFpvBjka3x3JOGJry+3HBIWtCxRXP049ndm4DoYMB68qWj6TAbC3OUGpim/yJEQtTGsk7z5spv1LUfOn77my3FQziwjY1Kp/sWGdnXmvGLeegSGn0Yu198AisjqVh+D4N9kLxvJEdlr6JGuoOwUdAKu77FNvfpR8UhGOPuJ5JU4Psr8vp7HYXcf+ScNNUXsEgC08tst7g60GnX/VyXXMEgnf3wipM5okQClT/dvgexrgbOwpMRMaCSJsZ+P37U1QAvnyxRAMBAt5JVFP7kG7LYb1X6xxedLTup3LTZXYDhhzw/zoWqhhl7JrzZZLTHrNCNrimmCsIOMwSHfq2G9/O4jT5Pt1mo8uKuCu2eME3blHH3TaT7JSa7/f0nllZDtFWGjcgWi2hqe3vgTjpT2WZQPmFKyGkxbcySnJnQ3mIa56QXi/QY
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(366016)(7416014)(376014)(3023799003)(56012099003)(22082099003)(18002099003);DIR:OUT;SFP:1102;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?MFB2eEx6di9HY0greXIrZGtSc1dQTnZEMm5SRjFZZkJXeGRKVnBPa0d5aHBO?=
- =?utf-8?B?Q2YxREU1eSsvRCtmeXVtaFdBT2xBSFgwc05nRnV5cWNCak04Ynl5S1hsb2NF?=
- =?utf-8?B?Q2hKRTlYZHBWM0tqK09GT0daeGVXVnE5L2ZDUkRWbkdxclV0eGsxT2RXNlBM?=
- =?utf-8?B?cGkvS05sVjN3R0dqdU0xelFodVVkRWN1eWxSbHJFZ3E1MFJPNitvZnFSaWJC?=
- =?utf-8?B?YmFJODkxSk9vRmZ5bUo1WUlYMVR5eFFkbXM3NGFjTkd2Y3ZFQjA1Q2JJbVN5?=
- =?utf-8?B?YWVlYlh4bTFyNU5tVFA0dXV4TnpjN0QvMGVrZlp5THhWdFMxc05meDJvcXQx?=
- =?utf-8?B?KzN2alp2L1ppYUV2RGt3RHVuTENFWHhnbDNFZUo3Q1MxQXVEKzllQnlSbFVp?=
- =?utf-8?B?U2VtY1JnZUtpc2xzTS9tY0lBWmVHdXpNai96RFZGT1VyT3M4Vjk3Y2hhbFRS?=
- =?utf-8?B?QWVZZnF6Rk0ybm1oUmJ3ZW1kMlZRMFcwV0xDWEFCeEptYTZRUTAySFNEcG5P?=
- =?utf-8?B?bmZrUkpZSTZ6MXF2bzZZYlozSWZmWHJpSUlabVA3cjQ2djhuTzZKRnNWdlRw?=
- =?utf-8?B?MkhWK2h3cFFqM2l4R1RMbFVQVjhiRlV3RjJMallqMEpsaEZUSWpMa3FRQXl1?=
- =?utf-8?B?U0ZsaDFza1ZBN0htWGRxVU1GKzNEOGU2ZXY3eHNrdGt4ZDdFQVBoSXpXKzgx?=
- =?utf-8?B?bWJpYXhPVnp4dkFLY2pxRk50NWJkdk1UczE0TlFiY3BvNS9uU01lUXMrRE5Y?=
- =?utf-8?B?WW4yWEZ2U01nSXNqOUZCNW5DMkxvRjhFSTZjTkZjOWZKUTZpaUJ2Nlo1Q2ls?=
- =?utf-8?B?THF4TFpPZUlkTWRoMlBGWS8ybjlyUzlHbzVQQ1JuNGxEOW5yb0x1a0didjJE?=
- =?utf-8?B?ck9zMXJHclcrU0RtWWNtVURjSlFGVmkySGFYb3M3OFdwR3N1ZXdxZXFsRDBQ?=
- =?utf-8?B?YldrMFVNZ2dXWEJvaEduZ292eEZHaDMrU2pqMlpXcDRoSi81RzZoQXduT1A5?=
- =?utf-8?B?QUZZVzB3ZHhpYnV0VUlqZVlQelVrNjF1UWZBWmVFVjZ2VlVIQlpaUGcydGU3?=
- =?utf-8?B?TCs2aENIUjFiZEdrNTU2ZFF0UUczK3JjWGhBdWFHTlZSU2FLWVk1NEZ4K3Rk?=
- =?utf-8?B?S2ZNdm5iajg5a21rUFBzSXozK25PaDFZc2ZLL2NWSkczK25tK3pVSHRFeWZq?=
- =?utf-8?B?TFA0bWxja0E3MnRDSWI3OWZNMTFXc1IwKzhDY0xjYnVvbmxDTldLdEdiaU85?=
- =?utf-8?B?NDMxVVN4cE5telVDWjY1bnc0ZnNoSldCVndkVjlQakl1eHkwZFQxTitHb2hh?=
- =?utf-8?B?RUFqNHcvUS9CREh6cE16VVN5cEdXN1c1SUN1dExYWE1pQjNsRXVvU2RoRE0w?=
- =?utf-8?B?L1NUQ3MwREJxQ0VFL0dZUVRxdkdpbitWMlk5aTFsN1RiWVZ1VVNaNmQ1VzhG?=
- =?utf-8?B?bmxjSFJ6T2ptN3AzVkhGTmEzV29nZWVpTTQvRkErR3BnVkVxMnI5N2FxWjRI?=
- =?utf-8?B?bitrVmtmYXRSMkdwdlNzWkN6SzQvTWx3Qk1MUXIwLzJidUpEUDR3bGdZT3hT?=
- =?utf-8?B?d0Y1a3pCbkdYcDlsZWlrNHZKS21ldmdBMkN6b1N3ZDJKVll6WUNIblJQTTlY?=
- =?utf-8?B?d2daT1Nybnl3ZCs1TVg1WTV2dDkxMDBmTGxKVE1yU1dzRU5wbzNVVHppck5U?=
- =?utf-8?B?S0Z2RUlNUzkycUlnWWRxeEQ2NUJCL1BlTGlqZk1UR2ZYYkQyaEJ3eTVxd2s3?=
- =?utf-8?B?d21oUC9URHNaOFpVcVBkbmhmMmpXVEl0MFBneWRXVWdCMFFmSlJ1NVlIbUlW?=
- =?utf-8?B?UTZxa0Z4cFB2dlczQURKMTRMNFd6MkxiRzBucFk2ZmpBNGowQ1BGNERWVUxS?=
- =?utf-8?B?WkdmVkZQZHphMCt1eXV3VmducWgrU2JqVEM1R09BUWJ0cUwrTlNrZmxCaGd2?=
- =?utf-8?B?Z0wxNGVWUCtkNEVnVmxwemV6TGNMTkt2VmJPL0VpdVdrbVhKdWNEMWxYT2F5?=
- =?utf-8?B?cElTL2pYNDFvZTgyRDZ2WnE1ZDNHbGxuOXpySE5IUHpBa1M2d0JzdDY2WWF1?=
- =?utf-8?B?T3BmNVlDQU5GcCs2bUpRY2E4OUVZTU0va1FGQjY4eUpSVXpWcG9OaC9kVzFo?=
- =?utf-8?B?T3d2aUhsT2ZPZzluM2pwVmU3dFQwYXZZcDQ1NlBVN25IZWNud2UzcXRWSWZv?=
- =?utf-8?B?OG1ydXcxNDg4dlR5V1JESkJxVUNJb0c1R2UweGZtWmllelN3dVhWWUl1KzJx?=
- =?utf-8?B?SUZGdXJFRmMxNDhUZkRIYThWR3JXeThROXZRc20yY3RvMlBnRHBPWmJjUnBo?=
- =?utf-8?B?TnF1Mk9GemJKSHVkdUV4eC81VWZFU0N6ZzE1SUZaR0c1Z3ErUFVoUT09?=
-X-OriginatorOrg: atomlin.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 79eb42a6-e5f7-4ad0-4dd1-08deaf9ca677
-X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB3523.GBRP123.PROD.OUTLOOK.COM
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 11 May 2026 20:34:07.7074
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: vpmlMUtdiDL1fC075AtIwfwaCqup9UaozjnY9CNJU8DmXxcatuA+4lVBaFRXR6OwCyfHZBjoovKoHYz1fCHxjQ==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: LO9P123MB7883
+Content-Transfer-Encoding: 8bit
 
---ya4r6ktjheu4erdu
-Content-Type: text/plain; protected-headers=v1; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-Subject: Re: [PATCH] init/main: Expose built-in initcalls and blacklist
- status via debugfs
-MIME-Version: 1.0
+Implement passthru of PCI devices to unprivileged virtual machines
+(VMs) when Linux is running as a privileged VM on Microsoft Hyper-V
+hypervisor. This support is made to fit within the workings of VFIO
+framework, and any VMM needing to use it must use the VFIO subsystem.
+This supports both full device passthru and SR-IOV based VFs.
 
-On Sun, May 10, 2026 at 02:13:01AM -0400, Aaron Tomlin wrote:
-> At present, identifying the correct function name to supply to the
-> "initcall_blacklist=3D" kernel command-line parameter requires manual
-> inspection of the source code or kernel symbol tables. Furthermore,
-> administrators lack a reliable runtime mechanism to verify whether a
-> specified built-in module has been successfully blacklisted.
->=20
-> To resolve this, introduce a new debugfs interface at
-> /sys/kernel/debug/modules/builtin_initcalls. This file enumerates all
-> built-in modules alongside their corresponding initialisation callbacks
-> (e.g., those specified by module_init()) in a simple format:
-> "module_name init_callback". If a built-in module has been actively
-> blacklisted, the entry is explicitly appended with a " [blacklisted]"
-> suffix.
->=20
-> To achieve this without incurring runtime overhead, the
-> ___define_initcall macro is expanded to statically allocate a
-> builtin_initcall_record structure (containing the module and function
-> name strings) within a dedicated .rodata_builtin_initcall_records
-> section.
->=20
-> This implementation incorporates several critical architectural safety
-> measures:
->   - The custom section name deliberately begins with ".rodata" to ensure
->     KASLR (Kernel Address Space Layout Randomisation) relocation tools
->     process and update the string pointers correctly during boot.
->   - The structural alignment is explicitly forced to 8 bytes to prevent
->     the compiler from inserting silent padding that would misalign the
->     linker script boundaries.
->   - The blacklisted_initcalls list head is stripped of its
->     __initdata_or_module annotation, ensuring the list remains safely
->     accessible in memory when queried from user space after early boot.
+At a high level, the hypervisor supports traditional mapped iommu domains
+that use explicit map and unmap hypercalls for mapping and unmapping guest
+RAM into the iommu subsystem. Hyper-V also has a concept of direct attach
+devices whereby the iommu subsystem simply uses the guest HW page table
+(ept/npt/..). This series adds support for both, and both are made to
+work with the VFIO subsystem.
 
-Hi Sasha, Breno,
+While this Part I focuses on memory mappings, Part II focuses on irq 
+remapping and irq migrations.
 
-I thought this might be of interest to you for review, given your recent
-work and interest on the "killswitch" proposal [1].
+This series rebased to: 5170a82e8921 (origin/hyperv-next)
 
+Testing:
+ o Most testing done on hyperv-next:e733a9e28180 using Cloud Hypervisor (51).
+ o Limited testing on : 5170a82e8921
+ o Tested with impending Part II irq patches.
+ o All tests involved passthru of devices using MSIx.
+ o Following combinations were tested doing PF passthru:
+    - L1VH(1): test 1: Mellanox ConnectX-6 Lx passthru
+               test 2: NVIDIA Tesla Tesla T4 GPU.
+               test 3: Both of above simultaneous passthru
+    - Baremetal dom0/root: All of above.
+ o VF: Mellanox ConnectX-6 Lx passthru on baremetal dom0/root.
 
-[1]: https://lore.kernel.org/lkml/20260508195749.1885522-1-sashal@kernel.or=
-g/
+(1) L1VH: this is a semi privileged VM that runs on Windows root on
+          Hyper-V, and allows users to create more child VMs.
 
-Kind regards,
---=20
-Aaron Tomlin
+This series strives to establish a base line. Some pending work items:
+ o arm64 : some delta to make this work on arm64 (in progress).
+ o Qemu and OpenVMM support (in progress).
+ o Further VF testing on l1vh
+ o device sleep/wakeup.
+ o More stress testing with high end GPUs
 
---ya4r6ktjheu4erdu
-Content-Type: application/pgp-signature; name="signature.asc"
+Changes in V3:
+ o patch #8: fix compiler issues incase of !CONFIG_HYPERV. Also, do forward
+   declaration of struct pci_dev instead of including pci.h.
+ o patch #9: minor changes to comments. Pass hv_domain instead of 
+   iommu_domain to hv_iommu_detach_dev() since that's what it needs. Set
+   device private to null if attach fails. Clam down number of PFNs passed
+   to hv_iommu_map_pgs().
 
------BEGIN PGP SIGNATURE-----
+Changes in V2:
+ o rebase to 5170a82e8921
+ o minor fixes for arm64 build
+ o drop patch 03: "x86/hyperv: add insufficient memory support in irqdomain.c" 
+     as it that path is no longer used
+ o drop patch 08: "PCI: hv: rename hv_compose_msi_msg .. " and do it separately
+   outside this series.
+ o minor updates to commit messages
 
-iQIzBAEBCgAdFiEEeQaE6/qKljiNHm6b4t6WWBnMd9YFAmoCPTwACgkQ4t6WWBnM
-d9bEIA/9GZUgSibxIL1AapPHNSDH2McFG2tYAiTJo/c3lhaqdu5MeWq7My5yVEMZ
-n2PkD++9mbHKxYOHsP9IK7BpBbHi4DrW2gIeYFTcMsxIkFtc2uaxrI0zZAZA+p0E
-rDA+rhoGGIvBabM8D7RFgbP9zEZ5SIL5GOXfXPOC3RKcWakYKQ5dpomCwSfSSKkb
-DBd5QJmeqYibo2VjvlD+ZRFgkRjHZGX/mBYpO8p5O9WbgwiaNSphgsxSHkS0UVAG
-hHRqTtZLvU2a059cICWTYMjJcdAMPr0s4uhZdS2T2KanuJ2DmXq0qWfew8+PRO8H
-F9leUtCZyasyAm3JoeIJhhqpOkbn5MQLbu1ldVYYtNkxmQPJRFKSKGriutnA9DgQ
-oequjiWPSnzJ8Jm4GGek27+TA/cprlMa4PUefoGv6h9y1dNReIhVYSplZiNbWFyO
-jNvIO/19jJauDeU48DvUrexRRdTkASQS269Erbz26ETN+b77SrUBuoxPPBdI6WdZ
-RYjNgIfPuIRFTrNfRqJxKZfoLuH3hg5ZeBfEk6LIS+G8dJvktTnBbJK1AEie7qol
-lCCjhOdh6pBI5OW66yEygaMsA8aHv2Z9mlxKDZikGU4AgDM4qVAy20etlS1eeCIW
-P5Tj8uDRt/gYC6LFOfVOb+q6qIbODyKD/NApenskyysB3m1gnhk=
-=bxOW
------END PGP SIGNATURE-----
+Changes in V1:
+ o patch 1: Don't tie hyperv-irq.c to CONFIG_HYPERV_IOMMU.
+ o patch 4: Redesigned to address security vulnerability found by copilot 
+            with passing tgid as a parameter.  Also, do tgid setting right 
+            after setting pt_id.
+ o patch 5: Remove unused type parameter from mshv_device_ops.device_create
+ o patch 7: mshv_partition_ioctl_create_device cleanup on copy_to_user.
+ o patch 10: Add export of hv_build_devid_type_pci here to get rid of 
+             patch 11.
+ o patch 12: Move functions to build device ids from patch 11 here for
+             the benefit of arm64. Rename file to: hyperv-iommu-root.c.
+ o patch 13: removed to be made part of interrupt part II of this support.
+ o patch 14: get rid of fast path to reduce review noise.
+ o New (last) patch to pin ram regions if device passthru to a VM.
 
---ya4r6ktjheu4erdu--
+Thanks,
+-Mukesh
+
+Mukesh R (11):
+  iommu/hyperv: Rename hyperv-iommu.c to hyperv-irq.c
+  x86/hyperv: Cosmetic changes in irqdomain.c for readability
+  mshv: Provide a way to get partition ID if running in a VMM process
+  mshv: Declarations and definitions for VFIO-MSHV bridge device
+  mshv: Implement mshv bridge device for VFIO
+  mshv: Add ioctl support for MSHV-VFIO bridge device
+  mshv: Import data structs around device passthru from hyperv headers
+  PCI: hv: VMBus and PCI device IDs for PCI passthru
+  x86/hyperv: Implement Hyper-V virtual IOMMU
+  mshv: Populate mmio mappings for PCI passthru
+  mshv: Mark mem regions as non-movable upfront if device passthru
+
+ MAINTAINERS                                   |   3 +-
+ arch/x86/hyperv/irqdomain.c                   | 199 ++--
+ arch/x86/include/asm/mshyperv.h               |   6 +
+ arch/x86/kernel/pci-dma.c                     |   2 +
+ drivers/hv/Makefile                           |   3 +-
+ drivers/hv/mshv_root.h                        |  21 +
+ drivers/hv/mshv_root_main.c                   | 266 ++++-
+ drivers/hv/mshv_vfio.c                        | 211 ++++
+ drivers/iommu/Kconfig                         |   5 +-
+ drivers/iommu/Makefile                        |   3 +-
+ drivers/iommu/hyperv-iommu-root.c             | 918 ++++++++++++++++++
+ .../iommu/{hyperv-iommu.c => hyperv-irq.c}    |   6 +-
+ drivers/iommu/irq_remapping.c                 |   2 +-
+ drivers/pci/controller/pci-hyperv.c           |  24 +
+ include/asm-generic/mshyperv.h                |  33 +
+ include/hyperv/hvgdk_mini.h                   |  11 +
+ include/hyperv/hvhdk_mini.h                   | 112 +++
+ include/linux/hyperv.h                        |   6 +
+ include/uapi/linux/mshv.h                     |  31 +
+ 19 files changed, 1740 insertions(+), 122 deletions(-)
+ create mode 100644 drivers/hv/mshv_vfio.c
+ create mode 100644 drivers/iommu/hyperv-iommu-root.c
+ rename drivers/iommu/{hyperv-iommu.c => hyperv-irq.c} (99%)
+
+-- 
+2.51.2.vfs.0.1
+
