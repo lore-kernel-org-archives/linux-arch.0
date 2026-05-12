@@ -1,108 +1,148 @@
-Received: from out-188.mta0.migadu.com (out-188.mta0.migadu.com [91.218.175.188])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 86F13215075
-	for <linux-arch@vger.kernel.org>; Tue, 12 May 2026 02:31:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.188
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 2FDFE31B838;
+	Tue, 12 May 2026 04:59:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778553112; cv=none; b=ZNZFRmrp+yZ5qFgx0UiMOO8EGCoCHjZrVFYwhIhQxaUthAABy5/sSaHzSDgMhyK4K5l9xu7xCmPf7CMhnVv/9eEPPV41ipQV+7HXzaxCkPgXjXMZinI3YrVWAdYE76CJCDYqQIisjjfKLPLARlbDtKk2U8ZyWSc7VcVdk7LhnBs=
+	t=1778561946; cv=none; b=WVwEhq3XEYnzj7vQ4TOa5tBEz4KFEVP/t8PqWg2b5U7eTnD9J5Cap9ZdqcQBVXjvn0cCO1V2wJWSSF8msHvqlDMewRKO4VSvGY+SYm1hIViSlvWcSeK/1jxJ9icTaTs2a+T30mE7qU+/+iDaax5C2Y2az1qGQnNAPctMTIwJO7o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778553112; c=relaxed/simple;
-	bh=MVCYu/raX2Wy6xQBRE7INl6zUVRuRIDA2PgsiB5UX7A=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=caTAqImvU98jBzH15V+hTOsaqOXHRSw7/Rc6o1HFF6sytr+PTXo0Lr2lEXncA3f6spZcv+zYHrm2GDN5f8HtQlZkOdQj+/jZYLX68FyPWuUu9aSXm92+5aXogLSotHyea8WQJi4DPH+zGZHpUTYwpieQLjO7eDNG2V0lFGAh5mA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=GyUGK0YJ; arc=none smtp.client-ip=91.218.175.188
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	s=arc-20240116; t=1778561946; c=relaxed/simple;
+	bh=TvQkbCpBAwWmu/+s0/683PQaLuNtS6G4/9C8St/egB4=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=EraGqvQVrJkJgZ0tnnxmEzl9wbK/TQ6DpRbn923qDgOFq1L0vmqz1DHgWkNCTjkqs1a1Dj7/iw5Mgtsj56SBwa+M25chOjKuHj4e4lMKaTZP5P7jIhoYfJ2/3PDcET5SNjDeohXQjqV4cFds/7qk8RphkueQUQY4294NKp5tUqA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=CI1ArQZT; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="GyUGK0YJ"
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1778553098;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=nrtZb448NrHIsfPspS1Njut8kvZNG6sBP0VsaE/hSZE=;
-	b=GyUGK0YJHbec8/rg/NvHo0Q02EmZGAa7e94VCOrmhBd3dcKkUiij82TaEsuXGxxKpKFMRA
-	d/xdNjCaCZp140PimKqafnzuoApiErZ1aok+Bv9U569JWmTHGfzzRpf0kocVXbdOS0g+Ee
-	OBCOnaIbMvPdmGPjRu7MW0VTQ0cg73Y=
-From: Lance Yang <lance.yang@linux.dev>
-To: jannh@google.com
-Cc: rppt@kernel.org,
-	akpm@linux-foundation.org,
-	arnd@arndb.de,
-	linux-mm@kvack.org,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	linux-hardening@vger.kernel.org,
-	ardb@kernel.org,
-	sethjenkins@google.com,
-	Lance Yang <lance.yang@linux.dev>
-Subject: Re: [PATCH] mm: make zeropage read-only
-Date: Tue, 12 May 2026 10:31:29 +0800
-Message-Id: <20260512023129.44966-1-lance.yang@linux.dev>
-In-Reply-To: <CAG48ez2ed44M=-qsZO7gwcz5L2njdRdk54d47jEg48MhWTkaew@mail.gmail.com>
-References: <CAG48ez2ed44M=-qsZO7gwcz5L2njdRdk54d47jEg48MhWTkaew@mail.gmail.com>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="CI1ArQZT"
+Received: by linux.microsoft.com (Postfix, from userid 1099)
+	id DEA0C20B7166; Mon, 11 May 2026 21:59:01 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com DEA0C20B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1778561941;
+	bh=Ct2zox4LNaFQs4SrzFzo0qnDAt+wwOMkCjNjaObBP1w=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=CI1ArQZT/OgZjHmn5SqzOI3XEf+nL8o+BsRStOnwZlz8wxDQD4IR5dy7KhF3EJ/07
+	 CvPNuDOYl3oTa6fNTLp8vxKJqlp5IycfbM3mCaopVnC0m9AZb+ZmGyLfgWW/9ulLps
+	 1kWRQAVeDL7y+MELf57k41+iMf4N6Ld0Lj8hdXvQ=
+Date: Mon, 11 May 2026 21:59:01 -0700
+From: Souradeep Chakrabarti <schakrabarti@linux.microsoft.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
+	linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Subject: Re: [PATCH V1 1/3] mshv: Import declarations for irq remap and add
+ irqbypass support
+Message-ID: <agKzlfagq4Sh7ua3@linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net>
+References: <20260512021242.1679786-1-mrathor@linux.microsoft.com>
+ <20260512021242.1679786-2-mrathor@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-X-Migadu-Flow: FLOW_OUT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260512021242.1679786-2-mrathor@linux.microsoft.com>
 
-
-On Fri, May 08, 2026 at 06:26:32PM +0200, Jann Horn wrote:
->On Fri, May 8, 2026 at 6:12 PM Jann Horn <jannh@google.com> wrote:
->> Put the zeropage in the read-only data section - nothing should ever change
->> its contents. Set up a new section .rodata..page_aligned to mirror the
->> existing .data..page_aligned and .bss..page_aligned sections.
->>
->> There have been several security bugs where the kernel grabs references to
->> pages from some userspace-specified source, via GUP or splice, with
->> read-only semantics; and then later on, the kernel loses track of the
->> pages' read-only semantics and writes into them.
->>
->> I have seen such bugs in out-of-tree GPU drivers before, and recently
->> upstream Linux bugs of this shape have been discovered as well.
->>
->> One problem with these bugs is that fuzzers and such will have a hard time
->> noticing them, because the kernel has no mechanism to directly detect that
->> such a bug has occurred. It would be nice if we had debug infrastructure to
->> keep track of whether file pages are supposed to be writable, or such; but
->> for now, the easiest way to make these bugs detectable in at least some
->> cases is to make sure that writing the 4K zeropage is mapped as read-only
->> in the kernel, so that attempting to write into it immediately crashes
->> (unless the write happens through a vmap mapping or such).
->>
->> This patch might increase the size of vmlinux by 4K since .rodata is stored
->> in the ELF file while .bss is not; but the compressed kernel image size
->> shouldn't change much, since it's compressed.
->>
->> I have tested that with this patch applied, calling
->> `get_user_pages_fast(address, 1, 0, &page)` on a freshly-created anonymous
->> VMA and writing into the page with
->> `*(volatile char *)page_address(page) = 0` will cause an oops.
->>
->> Signed-off-by: Jann Horn <jannh@google.com>
->> ---
->>  include/asm-generic/vmlinux.lds.h | 1 +
->>  include/linux/linkage.h           | 1 +
->>  mm/mm_init.c                      | 2 +-
->>  3 files changed, 3 insertions(+), 1 deletion(-)
->
->Seth pointed out that this is more or less a duplicate of Ard's
-><https://lore.kernel.org/all/20260427153416.2103979-19-ardb+git@google.com/>.
->
->So this patch is redundant; sorry for the noise.
-
-Would it makes sense to apply a similar treatment to huge_zero_folio
-as well?
-
-with CONFIG_PERSISTENT_HUGE_ZERO_FOLIO=y, it is allocated at boot and
-never freed, so it should never be written after initialization either :)
-
-Cheers, Lance
+On Mon, May 11, 2026 at 07:12:40PM -0700, Mukesh R wrote:
+> For the irq map/remap hypercalls, copy relevant data structures from
+> hypervisor public headers into Linux equivalents. Also, update Kconfig and
+> mshv_irqfd for irqbypass. Please note, irqbypass is required for doing
+> passthru on MSHV. This because there is really no way of knowing the linux
+> irq in the mshv_irqfd_assign and mshv_irqfd_update paths without it. The
+> linux irq is setup upfront by VFIO before irqfd assign/update happens.
+> 
+Reviewed-by: Souradeep Chakrabarti <schakrabarti@linux.microsoft.com>
+> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+> ---
+>  drivers/hv/Kconfig          |  1 +
+>  drivers/hv/mshv_eventfd.h   |  3 +++
+>  include/hyperv/hvgdk_mini.h |  3 +++
+>  include/hyperv/hvhdk.h      | 17 +++++++++++++++++
+>  4 files changed, 24 insertions(+)
+> 
+> diff --git a/drivers/hv/Kconfig b/drivers/hv/Kconfig
+> index 7937ac0cbd0f..c831fe25ca2b 100644
+> --- a/drivers/hv/Kconfig
+> +++ b/drivers/hv/Kconfig
+> @@ -75,6 +75,7 @@ config MSHV_ROOT
+>  	# no particular order, making it impossible to reassemble larger pages
+>  	depends on PAGE_SIZE_4KB
+>  	select EVENTFD
+> +	select IRQ_BYPASS_MANAGER
+>  	select VIRT_XFER_TO_GUEST_WORK
+>  	select HMM_MIRROR
+>  	select MMU_NOTIFIER
+> diff --git a/drivers/hv/mshv_eventfd.h b/drivers/hv/mshv_eventfd.h
+> index 464c6b81ab33..ff4dd24b8ad4 100644
+> --- a/drivers/hv/mshv_eventfd.h
+> +++ b/drivers/hv/mshv_eventfd.h
+> @@ -9,6 +9,7 @@
+>  #define __LINUX_MSHV_EVENTFD_H
+>  
+>  #include <linux/poll.h>
+> +#include <linux/irqbypass.h>
+>  
+>  #include "mshv.h"
+>  #include "mshv_root.h"
+> @@ -37,6 +38,8 @@ struct mshv_irqfd {
+>  	struct mshv_irqfd_resampler	    *irqfd_resampler;
+>  	struct eventfd_ctx		    *irqfd_resamplefd;
+>  	struct hlist_node		     irqfd_resampler_hnode;
+> +	struct irq_bypass_consumer	     irqfd_bypass_cons;
+> +	struct irq_bypass_producer	    *irqfd_bypass_prod;
+>  };
+>  
+>  void mshv_eventfd_init(struct mshv_partition *partition);
+> diff --git a/include/hyperv/hvgdk_mini.h b/include/hyperv/hvgdk_mini.h
+> index da622fb06440..1ef480825705 100644
+> --- a/include/hyperv/hvgdk_mini.h
+> +++ b/include/hyperv/hvgdk_mini.h
+> @@ -59,6 +59,8 @@ struct hv_u128 {
+>  #define HV_PARTITION_ID_INVALID		((u64)0)
+>  #define HV_PARTITION_ID_SELF		((u64)-1)
+>  
+> +#define HV_MAX_VPS    256               /* HV_MAXIMUM_PROCESSORS */
+> +
+>  /* Hyper-V specific model specific registers (MSRs) */
+>  
+>  #if defined(CONFIG_X86)
+> @@ -508,6 +510,7 @@ union hv_vp_assist_msr_contents {	 /* HV_REGISTER_VP_ASSIST_PAGE */
+>  #define HVCALL_UNMAP_VP_STATE_PAGE			0x00e2
+>  #define HVCALL_GET_VP_STATE				0x00e3
+>  #define HVCALL_SET_VP_STATE				0x00e4
+> +#define HVCALL_GET_VPSET_FROM_MDA                       0x00e5
+>  #define HVCALL_GET_VP_CPUID_VALUES			0x00f4
+>  #define HVCALL_GET_PARTITION_PROPERTY_EX		0x0101
+>  #define HVCALL_MMIO_READ				0x0106
+> diff --git a/include/hyperv/hvhdk.h b/include/hyperv/hvhdk.h
+> index 5e83d3714966..d0a892347ab1 100644
+> --- a/include/hyperv/hvhdk.h
+> +++ b/include/hyperv/hvhdk.h
+> @@ -952,4 +952,21 @@ struct hv_input_modify_sparse_spa_page_host_access {
+>  #define HV_MODIFY_SPA_PAGE_HOST_ACCESS_LARGE_PAGE      0x4
+>  #define HV_MODIFY_SPA_PAGE_HOST_ACCESS_HUGE_PAGE       0x8
+>  
+> +#ifdef CONFIG_X86
+> +
+> +struct hv_input_get_vp_set_from_mda {   /* HV_OUTPUT_GET_VP_SET_FROM_MDA */
+> +	u64 target_partid;
+> +	u64 dest_address;
+> +	u8  input_vtl;
+> +	u8  destmode_logical;         /* true => mode is logical */
+> +	u16 reserved0;                /* mbz */
+> +	u32 reserved1;                /* mbz */
+> +} __packed;
+> +
+> +union hv_output_get_vp_set_from_mda {  /* HV_OUTPUT_GET_VP_SET_FROM_MDA */
+> +	struct hv_vpset target_vpset;
+> +	u64 bitset_buffer[HV_GENERIC_SET_QWORD_COUNT(HV_MAX_VPS)];
+> +} __packed;
+> +
+> +#endif /* CONFIG_X86 */
+>  #endif /* _HV_HVHDK_H */
+> -- 
+> 2.51.2.vfs.0.1
+> 
