@@ -1,129 +1,145 @@
-Received: from mout-p-101.mailbox.org (mout-p-101.mailbox.org [80.241.56.151])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f44.google.com (mail-ed1-f44.google.com [209.85.208.44])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B9F84385D95;
-	Tue, 12 May 2026 17:12:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.241.56.151
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778605950; cv=none; b=klZIxsguQyR369Q1UPpWqPAfeww/89ahNJN2YExQwK5wtjGlh1y4jSk6o5YlNPveJGxHUMKxXrYg/T3Er7vISnMPagj+sOkgdpP9Nld7Ua4NA1vjx7k7cxdGTPx0Kgo996wb+94GqxaivrZprWA6b8DZZTIzIFVl4oNFmVeNFuY=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778605950; c=relaxed/simple;
-	bh=DrzCVQdjnTp2ELH1Ym1g9HHLyYYLanMMjaFUKRSNOYs=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Z0U2+lG7iKdoMWG59Y2gpg/ziXTp7U+RspA+4PEsqhsxBcALf48+YuB/i6OA4WVpYdg92nh95xkFlfiHSvymE7oKlCbW2ozorE4ta3W2ePOSg6HMkBsIqCx/BplUeAxjq5Ax9v8EbF0unQ2ZmRiZ6qT6RNK+wSlQNgD8q6nfxdk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com; spf=pass smtp.mailfrom=cyphar.com; dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b=OG/o9MQw; arc=none smtp.client-ip=80.241.56.151
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=cyphar.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=cyphar.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4EA08385D81
+	for <linux-arch@vger.kernel.org>; Tue, 12 May 2026 17:14:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.44
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778606055; cv=pass; b=qwWiPHRa20tgaAB5aoa2NhRagk7wehBIoB0mCu145QWVcTgLWmOyLPgaP9pTi6trDd7AOGXsAZYZqZzkXtynqfQw4DnFcDzfxVKGT1JGtNpM2vE0dlVS8KUJUtQVCNqqQe1ckCXqOX2N+9s6rg+lefbx9FaAdWRpaWzBUUlSapk=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778606055; c=relaxed/simple;
+	bh=YO8UEa79yuXhPeuCXmMbzlsDI56cE8B63Go0mISNV9A=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=XWRAFoq2rXZlv434tqEKzaFX3J2R6pz3b7HeT4hP2yN7sC+hVL6UoX5Dy/2XSKh+8qMqkSK14t4HpkRCaf/s/GhFG5iXo0wrz4Z8IJX/JGHiEGuBxsnZw5wSoEUPY70BHubl3YItBjp8fLQuv2Jn6UKxZm+gkBp+BrRTa6+roBM=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=NGppsbak; arc=pass smtp.client-ip=209.85.208.44
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=cyphar.com header.i=@cyphar.com header.b="OG/o9MQw"
-Received: from smtp202.mailbox.org (smtp202.mailbox.org [IPv6:2001:67c:2050:b231:465::202])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mout-p-101.mailbox.org (Postfix) with ESMTPS id 4gFNSR3zM0z9v0b;
-	Tue, 12 May 2026 19:12:23 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=cyphar.com; s=MBO0001;
-	t=1778605943;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=DrzCVQdjnTp2ELH1Ym1g9HHLyYYLanMMjaFUKRSNOYs=;
-	b=OG/o9MQwFjX3mpiEce6/I1jZy1bDNA47aKOVmnxHiprbDM6lxXd4mcf1nwn8zp1tJ65+ik
-	8CGsc58KWB3o8Mkbm3qUauadCKK8CeQZEie1mPI8NPBhdP8HVz/Zh6ZhlYRyMuz6hi+IDM
-	8U1ZMOpS/tGaEFu8aa2kIw7vE9QDOAkD3QFxVSBE83Eb2PvJuOLooCHqIxWM4OfhTg11d5
-	x6T0QijQjfQiQhsoMR5ldlAH2bsjfmEHMgrEFO7757bnfUlexYOz32IZzykkgtQ+7ZGC87
-	mHZw2/U3sMcGiMhl9k+zAZ7Wc1p5MzmZnzhCuhRkzQh7pE8iN3PKJiBPfpedaQ==
-Authentication-Results: outgoing_mbo_mout;
-	dkim=none;
-	spf=pass (outgoing_mbo_mout: domain of cyphar@cyphar.com designates 2001:67c:2050:b231:465::202 as permitted sender) smtp.mailfrom=cyphar@cyphar.com
-Date: Wed, 13 May 2026 03:11:57 +1000
-From: Aleksa Sarai <cyphar@cyphar.com>
-To: Christian Brauner <brauner@kernel.org>
-Cc: Jori Koolstra <jkoolstra@xs4all.nl>, Andy Lutomirski <luto@kernel.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Arnd Bergmann <arnd@arndb.de>, "H . Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Peter Zijlstra <peterz@infradead.org>, Andrey Albershteyn <aalbersh@redhat.com>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Jiri Olsa <jolsa@kernel.org>, 
-	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	cmirabil@redhat.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
-	Jeff Layton <jlayton@kernel.org>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
- O_DIRECTORY fd
-Message-ID: <2026-05-12-aging-demur-content-penalty-txHKga@cyphar.com>
-References: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
- <20260412135434.3095416-2-jkoolstra@xs4all.nl>
- <20260427-umlegen-aufbau-ee3a97f1528a@brauner>
- <1600596489.77018.1777916475931@kpc.webmail.kpnmail.nl>
- <20260511-hochdekoriert-neoliberale-f7a2922bc57c@brauner>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="NGppsbak"
+Received: by mail-ed1-f44.google.com with SMTP id 4fb4d7f45d1cf-67c2d57a5ceso10211320a12.3
+        for <linux-arch@vger.kernel.org>; Tue, 12 May 2026 10:14:14 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1778606053; cv=none;
+        d=google.com; s=arc-20240605;
+        b=cajNCUMmEWymq+NVNeOPuUul9CUE5SaxnBsdmFWBHgRaCtZvCickAtbJE4M7DwOlyT
+         uyQ92qLGADOLFydURw+cZtzzF6K/1E8G8Pq/ealoSbhSIoyE1yiqxI8aHvkKoL3oa/i7
+         PIkuAGx363ksJ6e214WkB0pruobYtPmOrT2oQUFbx/d/1BLgkBnfAhmxY+gQinTgeKXC
+         OpTKQ2ftklzkrZK2/2jbruZCjBaybo3V2PV4XXwundhtQOx63v7qigzr5mp8LKsQNkIl
+         71If7SAp7OpzvCT2D2wfm/2y6TDZtVAq2AGQbKVobMqfNmCRN+gppx4ORxaHoyogU7fp
+         yr1g==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=YO8UEa79yuXhPeuCXmMbzlsDI56cE8B63Go0mISNV9A=;
+        fh=GUigVFqUpRNPUElKNbmDM9W/npNFURAz4KjPx7wnt5Y=;
+        b=LWTKeMVvKuaDZMzoYDvgcpqhRP+kpJE5a4ptbpOOZhQJnc/A9Me0PqyHljDTYuXd03
+         OhrgdnEpH9088UjGAWhDu8sz9gV/W5Am38sMmNhKQ5P46cKuH1bqdWuhGNzesLkKyJsK
+         JtNS8JrEf5GUtXanKS2fG8ObBqWq001VePM9VKOGp40sK2UoDVI6zSkIMtbOj5W9F8TC
+         UnEJtDzFgeHIRwihDhdRDTs6UZSqB/Aie2nPXhf+O6rBm6BcsYNpAzbfGF4g1gyGoBiN
+         tDkl170IkSIcZ6ORF7md8XHYxoGbeaBX8JAMqAnbnA4EfZYbLlm1cjd10uLPhPqYShht
+         bgMw==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1778606053; x=1779210853; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=YO8UEa79yuXhPeuCXmMbzlsDI56cE8B63Go0mISNV9A=;
+        b=NGppsbakCAtsYSpY/QXVRFgbGAAlbijcE6L0bXKeaTNkicJA5rSu42bolfzXt/LrwI
+         OAXgLd27HhZi1xTiDAD7TBTBcDMPFdu5FCjacxL95HajNWgdlEL+Ej1hHBp1cI1WOhmE
+         zFHIoN1K+Qq91X9oTTqUsuAs/gwExlhfZddSU4lTzPwC24LZrjHn2elyN/FxjpeLs8+L
+         2ne5S85mzFGPFdqVxe6/Q846l4gHd4VmwjGu+DRXHC4oNyAqxQ7klkva1TF55nU47lmj
+         w0qxK7Zh4PO4Pff/nXI/peg3R2GI6LG6M9FFdav30/UVNrV/JKbTEzs/O/xyfNACVlvV
+         H3Lw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778606053; x=1779210853;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=YO8UEa79yuXhPeuCXmMbzlsDI56cE8B63Go0mISNV9A=;
+        b=G7sRrDatGqTrONVJFoFwpLN+ASLOp8F+ecw5JSwht36f9TkNoWjYHGLeFHVQ91NISb
+         nmrLup4cszijFZMyCrU6dyptLafk/kYHCavSBVe2Eldy0eup8m4PVnkXER07HtmCn2lu
+         QTIxZ65LXzkAE3H1m2ilaDoNT7l6WWq9gsUyLvcJRspJUxdD2dVPh4myaPmATou8PfIx
+         9rQxy2OQIzVCtuVwOlDwKFSGpDIMp3YYqUWcyZ7rAnJ+PZhNB8HwX3mlG1ZZ58c3kshG
+         M33TCoYi2K+muEo86fG2xXqeWXmdUT2QPvDGkJn5eM5TeNfjV15Wd3bOiaOCB3DU3aCG
+         +N2A==
+X-Forwarded-Encrypted: i=1; AFNElJ9C1Xvmm1bbdwgdcoRnyhVIhWSbjQuQXwiCD0dQtTbAZwaXznAFIFmXgLyjPb5u3AAf1GPi7bIQG5rX@vger.kernel.org
+X-Gm-Message-State: AOJu0YxC/fe+hZ+JfbUej/W9sYYgY2yqTpRQWONECd1mq7sPwAumfdNy
+	kwyHxgG713TwKv3nrIoAwbXKezsrg42exLVYOG6D6KYM4y8EYGb/qjapQHhSbNsK1toqFgVQdWC
+	XbZzPB4VPSjTr6kIbhjY5jGiIwKBirhM=
+X-Gm-Gg: Acq92OE2TMlhCefKWJBGYqd1iZ5fZHpmlcdlRMk7JYqF8uP706SQDakuJMdGm4yIWlk
+	JyxfADqv5diA6dF8Z7f5e2Ltu0pHkQbCdbCHmcoV4bfp4CDo+crY4x9XoZ0vKxoheEv6xl/c0gK
+	tBgCg9bUBw4SmJV/ytFa8SJLrQjHm6vXHAC+EbJaTuzYzfOfHKkLfCRkN/aJHr52CMhHE9PZ/DB
+	oShN/TCifoVoE5+4UNshNHmHiA0I4vM1bZWHyP9PxPCn5hiPKxSuVz1piABoMBck+rKAwT/Owpf
+	kmI=
+X-Received: by 2002:a05:6402:3817:b0:679:4b89:d348 with SMTP id
+ 4fb4d7f45d1cf-67f714ed4a4mr7111570a12.24.1778606052319; Tue, 12 May 2026
+ 10:14:12 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="lpi4vqgqbrhtuenl"
-Content-Disposition: inline
-In-Reply-To: <20260511-hochdekoriert-neoliberale-f7a2922bc57c@brauner>
-X-Rspamd-Queue-Id: 4gFNSR3zM0z9v0b
-
-
---lpi4vqgqbrhtuenl
-Content-Type: text/plain; protected-headers=v1; charset=us-ascii
-Content-Disposition: inline
+References: <CAG48ez2ed44M=-qsZO7gwcz5L2njdRdk54d47jEg48MhWTkaew@mail.gmail.com>
+ <20260512023129.44966-1-lance.yang@linux.dev> <CAG48ez1xdO1wkqS+eAcnAV9QJ25=t1o0-Qz4qTZdg1Mo+en2QA@mail.gmail.com>
+In-Reply-To: <CAG48ez1xdO1wkqS+eAcnAV9QJ25=t1o0-Qz4qTZdg1Mo+en2QA@mail.gmail.com>
+From: Yang Shi <shy828301@gmail.com>
+Date: Tue, 12 May 2026 10:14:01 -0700
+X-Gm-Features: AVHnY4JPV4nvI-vVDAMS4jJQpRRQJB_SbZAL6xKOyji_fdKj1jAiWLxEmrrsjQc
+Message-ID: <CAHbLzkrXXe7r3n3jXgDKtwZhRqj=jDx9E6dLOULohnhBguvi9A@mail.gmail.com>
+Subject: Re: [PATCH] mm: make zeropage read-only
+To: Jann Horn <jannh@google.com>
+Cc: Lance Yang <lance.yang@linux.dev>, rppt@kernel.org, akpm@linux-foundation.org, 
+	arnd@arndb.de, linux-mm@kvack.org, linux-arch@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, linux-hardening@vger.kernel.org, 
+	ardb@kernel.org, sethjenkins@google.com
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
-Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
- O_DIRECTORY fd
-MIME-Version: 1.0
 
-On 2026-05-11, Christian Brauner <brauner@kernel.org> wrote:
-> On Mon, May 04, 2026 at 07:41:15PM +0200, Jori Koolstra wrote:
-> > Because of Mateusz' objection, but I agree with Aleksa (and you in 2023)
-> > that this is intuitive and you mentioned POSIX allows for it.
-> >=20
-> > But a more general issue, that also applies to this mkdirat2 patch,
-> > is Linus' objection in that same thread.[1] However, the use-case of
->=20
-> mkdirat2() is objectively the worse api. It forces userspace to use a
-> separate system call without any reason whatsoever. If you can to
-> O_CREAT you should also be able to to O_DIRECTORY in the same system
-> call. If we support O_DIRECTORY | O_CREAT we get all the lookup
-> restriction niceties RESOLVE_* for free. Plus, it is supportable both in
-> openat() and openat2() because I made that combo return an errno.
->=20
-> UAPI design often is a nasty mix of performance (context switches),
-> separation of concerns and privileges, tastefulness, and compromises you
-> never thought or wanted to make.
->=20
-> I think here it is pretty clear that O_DIRECTORY | O_CREAT is the right
-> thing to do. Instead of restructuring a bunch of codepaths so it can be
-> plumbed through to the filesystems we just reuse the existing codepaths
-> that give us the right context for free.
+On Tue, May 12, 2026 at 6:48=E2=80=AFAM Jann Horn <jannh@google.com> wrote:
+>
+> On Tue, May 12, 2026 at 4:31=E2=80=AFAM Lance Yang <lance.yang@linux.dev>=
+ wrote:
+> > Would it makes sense to apply a similar treatment to huge_zero_folio
+> > as well?
+> >
+> > with CONFIG_PERSISTENT_HUGE_ZERO_FOLIO=3Dy, it is allocated at boot and
+> > never freed, so it should never be written after initialization either =
+:)
+>
+> Oh, neat, I didn't realize that that feature exists.
+>
+> I guess there are two aspects of making the huge zero folio RO that
+> could be problematic:
+>
+> 1. If the huge zero folio comes from the page allocator, making it
+> read-only might require splitting a huge PUD, which could have
+> performance implications.
+> 2. I vaguely remember arm64 has rules about how PUD/PMD entries in the
+> linear mapping can't be split at runtime at all depending on hardware
+> capabilities, meaning the entire linear mapping may need to be mapped
+> without any huge PUD/PMD entries - IDK if thp_shrinker_init() runs
+> early enough to be excepted from that. See can_set_direct_map() and
+> force_pte_mapping() in arch/arm64/.
 
-FWIW, I completely agree.
+Yes. First of all, this relies rodata mode. If rodata=3Don (used to be
+called full), the linear mapping may be mapped by PUD/PMD if the
+hardware can support BBML2_NOABORT, otherwise it is mapped at PTE
+level all the time. But how huge zero folio is mapped in linear
+mapping should not matter, you just need to change the linear mapping
+permission to RO anyway.
 
-> And during LSFMM the VFS maintains all agreed to proceed with
-> O_DIRECTORY | O_CREAT.
+If the rodata mode is off or noalias (used to be called on), the
+linear mapping may be mapped by PUD/PMD, but basically changing linear
+mapping permission is not expected by kernel.
 
-(With the caveat that we do not copy the dangling symlink behaviour from
-O_CREAT, as there be dragons.)
+Thanks,
+Yang
 
---=20
-Aleksa Sarai
-https://www.cyphar.com/
-
---lpi4vqgqbrhtuenl
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iJEEABYKADkWIQS2TklVsp+j1GPyqQYol/rSt+lEbwUCagNfWhsUgAAAAAAEAA5t
-YW51MiwyLjUrMS4xMiwyLDIACgkQKJf60rfpRG8+UgEAxjjQD2Cr4f6EpoRHlCn/
-IfOXynIecmU2oJ10LBBHJhoBAN/e/n6yx3Ixzy/TA7i38m/5jyxjW+zUOLPKm21j
-+9QC
-=rmyJ
------END PGP SIGNATURE-----
-
---lpi4vqgqbrhtuenl--
+>
+> So making the huge zero folio RO in the linear map would probably
+> require adding a new config flag, connecting that to
+> ARCH_HAS_SET_DIRECT_MAP, and changing one or two places in arm64
+> memory management.
+>
