@@ -1,151 +1,146 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A5F434B8DFB
-	for <linux-arch@vger.kernel.org>; Tue, 12 May 2026 09:50:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id B4AC7395AD7;
+	Tue, 12 May 2026 10:26:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778579438; cv=none; b=LZK8fkvRk/dFZAkO9G/xced0hT5FWewK2Adblrbj56UhN5hkuIS9egXbMJ2jqM7UXjn4J/wx7t4vm2oAGI8xjWSQWfXtq2Np9CusecHTev6UN1s1JvJ0iaWp0zN8YS2Kml0IruAiESqZ8vz9xHpIZLcZGU8RxzXnZ+PQ0VQpOt0=
+	t=1778581576; cv=none; b=o0CFFvPjQAWCQSCvw0dq927zKUFdEfSQR6zhJBnHuEdRNLGwhECOJ3T2LXMTTyi0QtJbJjkzT6E30ygBNS5yfJfSxIsmiZ11fBf5xAdKgkeibonzW5T29O8juVzKlxonH5FNuMYYMrbt8+dlxqPCmdcdkKDb14b3LbPTVK6RuRI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778579438; c=relaxed/simple;
-	bh=iodQUQY7CnisbRWz7ZX1kdnUrHJlSwk4Axa8QKYq830=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=Uy2VUqZKm8UTXT513Dfcv5Ygz1flKPozBxk4LqqKZM80+vpjYEnHtsmIoT3OYbB0+6kb+0ChFzC0scTrPXRgpUEsWhWs/uDV6Cg6AMf7l7ENROt+tU2pmrNvQC4pVqIeSv/67U/vLY7xMfTQJcEC3gdh1fiHtKFvEfvpB7P24/c=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=XFOgFHvn; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1778581576; c=relaxed/simple;
+	bh=p2px6H+WTEk/NCl9roM9isjrVup2rBnxKf5K7cPz+1o=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=dSdgfipbHOeQFXS/KxHHH5fF/6kmBAIC73We9rB7KvpOQFlGxOdGTVD50r7O/nUCDYWQO35NjI2mWGqFj5Nu6+rwDK2Du//2Vnxn+pHj9Z10CCCx/oHK6vSKFo8pOgpTqoBEZOssFb2duMnyvvf/zTEDddqsadIhZ+6O+2iz4Cc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=bKog0cPf; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="XFOgFHvn"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 63D57C2BCB0;
-	Tue, 12 May 2026 09:50:37 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1778579438;
-	bh=iodQUQY7CnisbRWz7ZX1kdnUrHJlSwk4Axa8QKYq830=;
-	h=Date:From:To:Cc:In-Reply-To:References:Subject:From;
-	b=XFOgFHvn9mBF2xBvRAZWYN4FsdnnUCfPsyFwGq5E9zA90qIOCobVdiEX9IjRuOO7A
-	 a4koWchkllcAIttf8zp8nn4DNgAVrP9LdSX7c7Wd2O/Ip/XWfV7tEV0OA9U7Udc+UE
-	 fEBu5x2ef3P1zVecOZKVBZrnFtNm/j8jBWssv5lVpyaW+nKCdX9FnSHkuv+MOahJJE
-	 QNDdbgoh7OoscH495SUEFI0BJnaKehG0YhHRaOpuk7FVyVPOsRcJRVWd+JLcdYAR9J
-	 Mh1IFQ3qEmNBYLJIOPrHNmKAZ1ztNQxjTy4SJZikX6wyepAIsQBzQb9nb5w/at5zDd
-	 CFzv2hvfalSuw==
-Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
-	by mailfauth.phl.internal (Postfix) with ESMTP id 69211F4007E;
-	Tue, 12 May 2026 05:50:36 -0400 (EDT)
-Received: from phl-imap-14 ([10.202.2.87])
-  by phl-compute-01.internal (MEProxy); Tue, 12 May 2026 05:50:36 -0400
-X-ME-Sender: <xms:7PcCam9YJOHuCSkFlDq4ISbUnfEsy1OEjiwfu2I0G97RJXn0Y9Qj3Q>
-    <xme:7PcCahg10CcdO5ywOYNj_MoUADdtr56c-r9bHz7tueJKnmE7BlO5CNe34OWAHP6O0
-    K2ZP7MTmRqCKNmM6To0iTGAEXW_mzbRu-_Ppobim0hC3yvVCtlniA>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefhedrtddtgdduvddugeekucetufdoteggodetrf
-    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
-    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepofggfffhvfevkfgjfhfutgfgsehtjeertdertddtnecuhfhrohhmpedftehrugcu
-    uehivghshhgvuhhvvghlfdcuoegrrhgusgeskhgvrhhnvghlrdhorhhgqeenucggtffrrg
-    htthgvrhhnpeetgedvtddttdeuffegvdefgffgteeiueejuefhjefhvdekkeelkeduteej
-    tdetheenucffohhmrghinhepihhnfhhrrgguvggrugdrohhrghenucevlhhushhtvghruf
-    hiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpegrrhguodhmvghsmhhtphgruhht
-    hhhpvghrshhonhgrlhhithihqdduieejtdehtddtjeelqdeffedvudeigeduhedqrghrug
-    gspeepkhgvrhhnvghlrdhorhhgseifohhrkhhofhgrrhgurdgtohhmpdhnsggprhgtphht
-    thhopeegfedpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtohepsghpsegrlhhivghnke
-    druggvpdhrtghpthhtoheptggrthgrlhhinhdrmhgrrhhinhgrshesrghrmhdrtghomhdp
-    rhgtphhtthhopegrrhhnugesrghrnhgusgdruggvpdhrtghpthhtohepphgrlhhmvghrse
-    gurggssggvlhhtrdgtohhmpdhrtghpthhtoheprghouhesvggvtghsrdgsvghrkhgvlhgv
-    hidrvgguuhdprhgtphhtthhopehmphgvsegvlhhlvghrmhgrnhdrihgurdgruhdprhgtph
-    htthhopegtlhhmsehfsgdrtghomhdprhgtphhtthhopeihuhhkuhgrihesfhhnnhgrshdr
-    tghomhdprhgtphhtthhopegrlhgvgiesghhhihhtihdrfhhr
-X-ME-Proxy: <xmx:7PcCalktau1ceeO9LVmwrvdgtBQqFGLkbXstpSg8yybS685IYcHORw>
-    <xmx:7PcCasmugZGdftyVI7SsXjAnPbfXZESq-0jgJf5WHEk-4Op-5tihhg>
-    <xmx:7PcCakOBuua_a1L3B6_7D8BIKwPWLDsIB0zTRk7q4odJEd-XR7f0rg>
-    <xmx:7PcCamtx3Q0fvbGtW41fj2F_sqDaICjJw47CJSybFMv4EVU0bnkNFA>
-    <xmx:7PcCauA9QdM04AOLLlOCDA53c0jW-oZSzKQywL6_3ngSclabTlPoqQSc>
-Feedback-ID: ice86485a:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 38C50C4006F; Tue, 12 May 2026 05:50:36 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="bKog0cPf"
+Received: by linux.microsoft.com (Postfix, from userid 1099)
+	id 52D5C20B7166; Tue, 12 May 2026 03:26:12 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 52D5C20B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1778581572;
+	bh=A3fdTJavZcamyWjE/iWjcMnfv2Zd92fLhKuCUIKfZB0=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=bKog0cPfmxc/YHvPjQ/jWyN0newyW9ui6x3e20xbi6xQ+BpUdZy5Yh9z/eorOYtBm
+	 vLTg9j+Vp7KQj0497z94XKR8bMrJEixzBr+0+nW9N62QQ3QVFCuWEYnApYmsdbIOp4
+	 E15RVLhktN4Fw5j7ulpQ5bWYl5Z8lb4VxMgmwyGE=
+Date: Tue, 12 May 2026 03:26:12 -0700
+From: Souradeep Chakrabarti <schakrabarti@linux.microsoft.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
+	wei.liu@kernel.org, mhklinux@outlook.com, muislam@microsoft.com,
+	namjain@linux.microsoft.com, magnuskulke@linux.microsoft.com,
+	anbelski@linux.microsoft.com, linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
+	kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
+	longli@microsoft.com, tglx@kernel.org, mingo@redhat.com,
+	bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
+	joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
+	kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de,
+	jacob.pan@linux.microsoft.com
+Subject: Re: [PATCH V3 01/11] iommu/hyperv: Rename hyperv-iommu.c to
+ hyperv-irq.c
+Message-ID: <agMARN3DHTFPeHFH@linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net>
+References: <20260512020259.1678627-1-mrathor@linux.microsoft.com>
+ <20260512020259.1678627-2-mrathor@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Date: Tue, 12 May 2026 11:50:15 +0200
-From: "Ard Biesheuvel" <ardb@kernel.org>
-To: "Christoph Hellwig" <hch@lst.de>,
- "Andrew Morton" <akpm@linux-foundation.org>
-Cc: "Catalin Marinas" <catalin.marinas@arm.com>,
- "Will Deacon" <will@kernel.org>, "Huacai Chen" <chenhuacai@kernel.org>,
- "WANG Xuerui" <kernel@xen0n.name>,
- "Madhavan Srinivasan" <maddy@linux.ibm.com>,
- "Michael Ellerman" <mpe@ellerman.id.au>,
- "Nicholas Piggin" <npiggin@gmail.com>,
- "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
- "Paul Walmsley" <pjw@kernel.org>, "Palmer Dabbelt" <palmer@dabbelt.com>,
- "Albert Ou" <aou@eecs.berkeley.edu>, "Alexandre Ghiti" <alex@ghiti.fr>,
- "Heiko Carstens" <hca@linux.ibm.com>,
- "Vasily Gorbik" <gor@linux.ibm.com>,
- "Alexander Gordeev" <agordeev@linux.ibm.com>,
- "Christian Borntraeger" <borntraeger@linux.ibm.com>,
- "Sven Schnelle" <svens@linux.ibm.com>,
- "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
- "Borislav Petkov" <bp@alien8.de>,
- "Dave Hansen" <dave.hansen@linux.intel.com>, x86@kernel.org,
- "H . Peter Anvin" <hpa@zytor.com>,
- "Herbert Xu" <herbert@gondor.apana.org.au>,
- "Dan Williams" <dan.j.williams@intel.com>, "Chris Mason" <clm@fb.com>,
- "David Sterba" <dsterba@suse.com>, "Arnd Bergmann" <arnd@arndb.de>,
- "Song Liu" <song@kernel.org>, "Yu Kuai" <yukuai@fnnas.com>,
- "Li Nan" <linan122@huawei.com>, linux-kernel@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
- linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
- linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
- linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-raid@vger.kernel.org
-Message-Id: <d40e984f-7dec-425c-bf80-a255980c7457@app.fastmail.com>
-In-Reply-To: <20260512052230.2947683-1-hch@lst.de>
-References: <20260512052230.2947683-1-hch@lst.de>
-Subject: Re: cleanup the RAID6 P/Q library v2
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260512020259.1678627-2-mrathor@linux.microsoft.com>
 
-
-On Tue, 12 May 2026, at 07:20, Christoph Hellwig wrote:
-> Hi all,
->
-> this series cleans up the RAID6 P/Q library to match the recent updates
-> to the RAID 5 XOR library and other CRC/crypto libraries.  This includes
-> providing properly documented external interfaces, hiding the internals,
-> using static_call instead of indirect calls and turning the user space
-> test suite into an in-kernel kunit test which is also extended to
-> improve coverage.
->
-> Note that this changes registration so that non-priority algorithms are
-> not registered, which greatly helps with the benchmark time at boot time.
-> I'd like to encourage all architecture maintainers to see if they can
-> further optimized this by registering as few as possible algorithms when
-> there is a clear benefit in optimized or more unrolled implementations.
->
-> This series sits on top of the "cleanup the RAID5 XOR library v3" series.
->
-> A git tree is also available here:
->
->     git://git.infradead.org/users/hch/misc.git lib-raid6
->
-> Gitweb:
->
->     
-> https://git.infradead.org/?p=users/hch/misc.git;a=shortlog;h=refs/heads/lib-raid6
->
-> Changes since v1:
->  - fix arm64 objdir != srcdir builds
->  - call the kunit module raid6_kunit.ko from the beginning
->  - update MAINTAINERS
->  - don't require preemptible context and apply the same restrictions as
->    the merged version of the XOR API
->  - fix the arm64 default in Kconfig
->  - pick the last registered (and presumably most optimized) algorithm when
->    benchmarking is disabled
->  - port over the randomization fixes from the XOR series
->  - misc other kunit cleanups
->  - require at least 4 devices for RAID6 to skip broken special cases
->
-
-Tested-by: Ard Biesheuvel <ardb@kernel.org> # kunit only on arm64
-Acked-by: Ard Biesheuvel <ardb@kernel.org>
+On Mon, May 11, 2026 at 07:02:49PM -0700, Mukesh R wrote:
+> This file actually implements irq remapping, so rename to more appropriate
+> hyperv-irq.c. A new file to implement hyperv iommu will be introduced
+> later.  Also, it should not be tied to HYPERV_IOMMU, but to CONFIG_HYPERV
+> and IRQ_REMAP. The file already has #ifdef CONFIG_IRQ_REMAP.
+> 
+> Reviewed-by: Anirudh Rayabharam (Microsoft) <anirudh@anirudhrb.com>
+Reviewed-by: Souradeep Chakrabarti <schakrabarti@linux.microsoft.com>
+> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+> ---
+>  MAINTAINERS                                    | 2 +-
+>  drivers/iommu/Makefile                         | 2 +-
+>  drivers/iommu/{hyperv-iommu.c => hyperv-irq.c} | 6 +++---
+>  drivers/iommu/irq_remapping.c                  | 2 +-
+>  4 files changed, 6 insertions(+), 6 deletions(-)
+>  rename drivers/iommu/{hyperv-iommu.c => hyperv-irq.c} (99%)
+> 
+> diff --git a/MAINTAINERS b/MAINTAINERS
+> index d1cc0e12fe1f..f803a6a38fee 100644
+> --- a/MAINTAINERS
+> +++ b/MAINTAINERS
+> @@ -11914,7 +11914,7 @@ F:	drivers/clocksource/hyperv_timer.c
+>  F:	drivers/hid/hid-hyperv.c
+>  F:	drivers/hv/
+>  F:	drivers/input/serio/hyperv-keyboard.c
+> -F:	drivers/iommu/hyperv-iommu.c
+> +F:	drivers/iommu/hyperv-irq.c
+>  F:	drivers/net/ethernet/microsoft/
+>  F:	drivers/net/hyperv/
+>  F:	drivers/pci/controller/pci-hyperv-intf.c
+> diff --git a/drivers/iommu/Makefile b/drivers/iommu/Makefile
+> index 0275821f4ef9..335ea77cced6 100644
+> --- a/drivers/iommu/Makefile
+> +++ b/drivers/iommu/Makefile
+> @@ -30,7 +30,7 @@ obj-$(CONFIG_TEGRA_IOMMU_SMMU) += tegra-smmu.o
+>  obj-$(CONFIG_EXYNOS_IOMMU) += exynos-iommu.o
+>  obj-$(CONFIG_FSL_PAMU) += fsl_pamu.o fsl_pamu_domain.o
+>  obj-$(CONFIG_S390_IOMMU) += s390-iommu.o
+> -obj-$(CONFIG_HYPERV_IOMMU) += hyperv-iommu.o
+> +obj-$(CONFIG_HYPERV) += hyperv-irq.o
+>  obj-$(CONFIG_VIRTIO_IOMMU) += virtio-iommu.o
+>  obj-$(CONFIG_IOMMU_SVA) += iommu-sva.o
+>  obj-$(CONFIG_IOMMU_IOPF) += io-pgfault.o
+> diff --git a/drivers/iommu/hyperv-iommu.c b/drivers/iommu/hyperv-irq.c
+> similarity index 99%
+> rename from drivers/iommu/hyperv-iommu.c
+> rename to drivers/iommu/hyperv-irq.c
+> index 479103261ae6..d11076f906fb 100644
+> --- a/drivers/iommu/hyperv-iommu.c
+> +++ b/drivers/iommu/hyperv-irq.c
+> @@ -8,6 +8,8 @@
+>   * Author : Lan Tianyu <Tianyu.Lan@microsoft.com>
+>   */
+>  
+> +#ifdef CONFIG_IRQ_REMAP
+> +
+>  #include <linux/types.h>
+>  #include <linux/interrupt.h>
+>  #include <linux/irq.h>
+> @@ -24,8 +26,6 @@
+>  
+>  #include "irq_remapping.h"
+>  
+> -#ifdef CONFIG_IRQ_REMAP
+> -
+>  /*
+>   * According 82093AA IO-APIC spec , IO APIC has a 24-entry Interrupt
+>   * Redirection Table. Hyper-V exposes one single IO-APIC and so define
+> @@ -331,4 +331,4 @@ static const struct irq_domain_ops hyperv_root_ir_domain_ops = {
+>  	.free = hyperv_root_irq_remapping_free,
+>  };
+>  
+> -#endif
+> +#endif  /* CONFIG_IRQ_REMAP */
+> diff --git a/drivers/iommu/irq_remapping.c b/drivers/iommu/irq_remapping.c
+> index c2443659812a..41bf65e4ea88 100644
+> --- a/drivers/iommu/irq_remapping.c
+> +++ b/drivers/iommu/irq_remapping.c
+> @@ -108,7 +108,7 @@ int __init irq_remapping_prepare(void)
+>  	else if (IS_ENABLED(CONFIG_AMD_IOMMU) &&
+>  		 amd_iommu_irq_ops.prepare() == 0)
+>  		remap_ops = &amd_iommu_irq_ops;
+> -	else if (IS_ENABLED(CONFIG_HYPERV_IOMMU) &&
+> +	else if (IS_ENABLED(CONFIG_HYPERV) &&
+>  		 hyperv_irq_remap_ops.prepare() == 0)
+>  		remap_ops = &hyperv_irq_remap_ops;
+>  	else
+> -- 
+> 2.51.2.vfs.0.1
+> 
