@@ -1,148 +1,184 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 2FDFE31B838;
-	Tue, 12 May 2026 04:59:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 79DA52D12ED;
+	Tue, 12 May 2026 05:23:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.133
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778561946; cv=none; b=WVwEhq3XEYnzj7vQ4TOa5tBEz4KFEVP/t8PqWg2b5U7eTnD9J5Cap9ZdqcQBVXjvn0cCO1V2wJWSSF8msHvqlDMewRKO4VSvGY+SYm1hIViSlvWcSeK/1jxJ9icTaTs2a+T30mE7qU+/+iDaax5C2Y2az1qGQnNAPctMTIwJO7o=
+	t=1778563406; cv=none; b=ksIKtZfa0ZW3YL9IYplyMZM/2eWqAN5j4VZHCzYA1w++eyLeuTlMBXBgwI813MLu9Uzzp4S7MVqVq+KvKOVzi2d/Ziwo0ZD9h3kRGPiTx0rx/viSVXsXvwqEBdcnmrxQGSYMc+PNKLG+fDq5vPanxoYyHfGsQ9Ugv/i72ZCtHdE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778561946; c=relaxed/simple;
-	bh=TvQkbCpBAwWmu/+s0/683PQaLuNtS6G4/9C8St/egB4=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=EraGqvQVrJkJgZ0tnnxmEzl9wbK/TQ6DpRbn923qDgOFq1L0vmqz1DHgWkNCTjkqs1a1Dj7/iw5Mgtsj56SBwa+M25chOjKuHj4e4lMKaTZP5P7jIhoYfJ2/3PDcET5SNjDeohXQjqV4cFds/7qk8RphkueQUQY4294NKp5tUqA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=CI1ArQZT; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1778563406; c=relaxed/simple;
+	bh=qj0HhEGSi5uUOjhdkDpAEzZ/VYBnmPrjXqneop/fn4I=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=f3q5dVCKIpSVpJgarRM4uVKgNlfsa1DhKBFXbSjT0BADJLTeD+ZRH9ZKxa9hhpX+WcJyMy2BY0YO7Jk/zIcSEiD7uT6Z6PrYaEx6Vli2jb0B4p27pIyp9LoHqR46uqQYfTfwDEx7Gqud+/bPqfwUQb/AJA2I5plMwEOK/fCWD48=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=lst.de; spf=none smtp.mailfrom=bombadil.srs.infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=vtscn1Fk; arc=none smtp.client-ip=198.137.202.133
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=lst.de
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=bombadil.srs.infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="CI1ArQZT"
-Received: by linux.microsoft.com (Postfix, from userid 1099)
-	id DEA0C20B7166; Mon, 11 May 2026 21:59:01 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com DEA0C20B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1778561941;
-	bh=Ct2zox4LNaFQs4SrzFzo0qnDAt+wwOMkCjNjaObBP1w=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=CI1ArQZT/OgZjHmn5SqzOI3XEf+nL8o+BsRStOnwZlz8wxDQD4IR5dy7KhF3EJ/07
-	 CvPNuDOYl3oTa6fNTLp8vxKJqlp5IycfbM3mCaopVnC0m9AZb+ZmGyLfgWW/9ulLps
-	 1kWRQAVeDL7y+MELf57k41+iMf4N6Ld0Lj8hdXvQ=
-Date: Mon, 11 May 2026 21:59:01 -0700
-From: Souradeep Chakrabarti <schakrabarti@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
-	linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: Re: [PATCH V1 1/3] mshv: Import declarations for irq remap and add
- irqbypass support
-Message-ID: <agKzlfagq4Sh7ua3@linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net>
-References: <20260512021242.1679786-1-mrathor@linux.microsoft.com>
- <20260512021242.1679786-2-mrathor@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="vtscn1Fk"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+	MIME-Version:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
+	Content-ID:Content-Description:In-Reply-To:References;
+	bh=hWNuCSvOTgL+hl7LSeigsUSvduHQkUgOajdKryVpMzA=; b=vtscn1Fk3uE4T8sWoxzxlGROEJ
+	GCADN1TTiJPS4GrO9lcYTxNPoCYGR0Fg2YfYSZzEqBWFKq2hhv5PT4Hqz353ftsQAUkD0T8gLGlqd
+	z0A72chaGEeedY1Api/DTbf4rOEzT9+pcvs4aKeu12A42LLGhu1uQsL8R2tZhrUsXMUPt3yTgpzLv
+	u5trTMadFgEa6RMlzUE0dtLyIHiet5/ttZO0xqLdJdPFASjLmSebe8/gCPLk/MFMb4OvN8x2DZjzo
+	uyCvvRPg5vy8g7A8aHtdehArpsSMrcXlUxHEy9FmxQeib99y7ucocuZiPQW6XpLvCGzZ68OHTJZN0
+	5wEgmGCQ==;
+Received: from 2a02-8389-2341-5b80-decc-1a96-daaa-a2cc.cable.dynamic.v6.surfer.at ([2a02:8389:2341:5b80:decc:1a96:daaa:a2cc] helo=localhost)
+	by bombadil.infradead.org with esmtpsa (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wMfZo-0000000FaGb-2eLn;
+	Tue, 12 May 2026 05:22:41 +0000
+From: Christoph Hellwig <hch@lst.de>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>,
+	Ard Biesheuvel <ardb@kernel.org>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Alexandre Ghiti <alex@ghiti.fr>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Herbert Xu <herbert@gondor.apana.org.au>,
+	Dan Williams <dan.j.williams@intel.com>,
+	Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Song Liu <song@kernel.org>,
+	Yu Kuai <yukuai@fnnas.com>,
+	Li Nan <linan122@huawei.com>,
+	linux-kernel@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org,
+	loongarch@lists.linux.dev,
+	linuxppc-dev@lists.ozlabs.org,
+	linux-riscv@lists.infradead.org,
+	linux-s390@vger.kernel.org,
+	linux-crypto@vger.kernel.org,
+	linux-btrfs@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-raid@vger.kernel.org
+Subject: cleanup the RAID6 P/Q library v2
+Date: Tue, 12 May 2026 07:20:40 +0200
+Message-ID: <20260512052230.2947683-1-hch@lst.de>
+X-Mailer: git-send-email 2.53.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260512021242.1679786-2-mrathor@linux.microsoft.com>
+Content-Transfer-Encoding: 8bit
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by bombadil.infradead.org. See http://www.infradead.org/rpr.html
 
-On Mon, May 11, 2026 at 07:12:40PM -0700, Mukesh R wrote:
-> For the irq map/remap hypercalls, copy relevant data structures from
-> hypervisor public headers into Linux equivalents. Also, update Kconfig and
-> mshv_irqfd for irqbypass. Please note, irqbypass is required for doing
-> passthru on MSHV. This because there is really no way of knowing the linux
-> irq in the mshv_irqfd_assign and mshv_irqfd_update paths without it. The
-> linux irq is setup upfront by VFIO before irqfd assign/update happens.
-> 
-Reviewed-by: Souradeep Chakrabarti <schakrabarti@linux.microsoft.com>
-> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
-> ---
->  drivers/hv/Kconfig          |  1 +
->  drivers/hv/mshv_eventfd.h   |  3 +++
->  include/hyperv/hvgdk_mini.h |  3 +++
->  include/hyperv/hvhdk.h      | 17 +++++++++++++++++
->  4 files changed, 24 insertions(+)
-> 
-> diff --git a/drivers/hv/Kconfig b/drivers/hv/Kconfig
-> index 7937ac0cbd0f..c831fe25ca2b 100644
-> --- a/drivers/hv/Kconfig
-> +++ b/drivers/hv/Kconfig
-> @@ -75,6 +75,7 @@ config MSHV_ROOT
->  	# no particular order, making it impossible to reassemble larger pages
->  	depends on PAGE_SIZE_4KB
->  	select EVENTFD
-> +	select IRQ_BYPASS_MANAGER
->  	select VIRT_XFER_TO_GUEST_WORK
->  	select HMM_MIRROR
->  	select MMU_NOTIFIER
-> diff --git a/drivers/hv/mshv_eventfd.h b/drivers/hv/mshv_eventfd.h
-> index 464c6b81ab33..ff4dd24b8ad4 100644
-> --- a/drivers/hv/mshv_eventfd.h
-> +++ b/drivers/hv/mshv_eventfd.h
-> @@ -9,6 +9,7 @@
->  #define __LINUX_MSHV_EVENTFD_H
->  
->  #include <linux/poll.h>
-> +#include <linux/irqbypass.h>
->  
->  #include "mshv.h"
->  #include "mshv_root.h"
-> @@ -37,6 +38,8 @@ struct mshv_irqfd {
->  	struct mshv_irqfd_resampler	    *irqfd_resampler;
->  	struct eventfd_ctx		    *irqfd_resamplefd;
->  	struct hlist_node		     irqfd_resampler_hnode;
-> +	struct irq_bypass_consumer	     irqfd_bypass_cons;
-> +	struct irq_bypass_producer	    *irqfd_bypass_prod;
->  };
->  
->  void mshv_eventfd_init(struct mshv_partition *partition);
-> diff --git a/include/hyperv/hvgdk_mini.h b/include/hyperv/hvgdk_mini.h
-> index da622fb06440..1ef480825705 100644
-> --- a/include/hyperv/hvgdk_mini.h
-> +++ b/include/hyperv/hvgdk_mini.h
-> @@ -59,6 +59,8 @@ struct hv_u128 {
->  #define HV_PARTITION_ID_INVALID		((u64)0)
->  #define HV_PARTITION_ID_SELF		((u64)-1)
->  
-> +#define HV_MAX_VPS    256               /* HV_MAXIMUM_PROCESSORS */
-> +
->  /* Hyper-V specific model specific registers (MSRs) */
->  
->  #if defined(CONFIG_X86)
-> @@ -508,6 +510,7 @@ union hv_vp_assist_msr_contents {	 /* HV_REGISTER_VP_ASSIST_PAGE */
->  #define HVCALL_UNMAP_VP_STATE_PAGE			0x00e2
->  #define HVCALL_GET_VP_STATE				0x00e3
->  #define HVCALL_SET_VP_STATE				0x00e4
-> +#define HVCALL_GET_VPSET_FROM_MDA                       0x00e5
->  #define HVCALL_GET_VP_CPUID_VALUES			0x00f4
->  #define HVCALL_GET_PARTITION_PROPERTY_EX		0x0101
->  #define HVCALL_MMIO_READ				0x0106
-> diff --git a/include/hyperv/hvhdk.h b/include/hyperv/hvhdk.h
-> index 5e83d3714966..d0a892347ab1 100644
-> --- a/include/hyperv/hvhdk.h
-> +++ b/include/hyperv/hvhdk.h
-> @@ -952,4 +952,21 @@ struct hv_input_modify_sparse_spa_page_host_access {
->  #define HV_MODIFY_SPA_PAGE_HOST_ACCESS_LARGE_PAGE      0x4
->  #define HV_MODIFY_SPA_PAGE_HOST_ACCESS_HUGE_PAGE       0x8
->  
-> +#ifdef CONFIG_X86
-> +
-> +struct hv_input_get_vp_set_from_mda {   /* HV_OUTPUT_GET_VP_SET_FROM_MDA */
-> +	u64 target_partid;
-> +	u64 dest_address;
-> +	u8  input_vtl;
-> +	u8  destmode_logical;         /* true => mode is logical */
-> +	u16 reserved0;                /* mbz */
-> +	u32 reserved1;                /* mbz */
-> +} __packed;
-> +
-> +union hv_output_get_vp_set_from_mda {  /* HV_OUTPUT_GET_VP_SET_FROM_MDA */
-> +	struct hv_vpset target_vpset;
-> +	u64 bitset_buffer[HV_GENERIC_SET_QWORD_COUNT(HV_MAX_VPS)];
-> +} __packed;
-> +
-> +#endif /* CONFIG_X86 */
->  #endif /* _HV_HVHDK_H */
-> -- 
-> 2.51.2.vfs.0.1
-> 
+Hi all,
+
+this series cleans up the RAID6 P/Q library to match the recent updates
+to the RAID 5 XOR library and other CRC/crypto libraries.  This includes
+providing properly documented external interfaces, hiding the internals,
+using static_call instead of indirect calls and turning the user space
+test suite into an in-kernel kunit test which is also extended to
+improve coverage.
+
+Note that this changes registration so that non-priority algorithms are
+not registered, which greatly helps with the benchmark time at boot time.
+I'd like to encourage all architecture maintainers to see if they can
+further optimized this by registering as few as possible algorithms when
+there is a clear benefit in optimized or more unrolled implementations.
+
+This series sits on top of the "cleanup the RAID5 XOR library v3" series.
+
+A git tree is also available here:
+
+    git://git.infradead.org/users/hch/misc.git lib-raid6
+
+Gitweb:
+
+    https://git.infradead.org/?p=users/hch/misc.git;a=shortlog;h=refs/heads/lib-raid6
+
+Changes since v1:
+ - fix arm64 objdir != srcdir builds
+ - call the kunit module raid6_kunit.ko from the beginning
+ - update MAINTAINERS
+ - don't require preemptible context and apply the same restrictions as
+   the merged version of the XOR API
+ - fix the arm64 default in Kconfig
+ - pick the last registered (and presumably most optimized) algorithm when
+   benchmarking is disabled
+ - port over the randomization fixes from the XOR series
+ - misc other kunit cleanups
+ - require at least 4 devices for RAID6 to skip broken special cases
+
+Diffstat:
+ b/Documentation/crypto/async-tx-api.rst           |    4 
+ b/MAINTAINERS                                     |    2 
+ b/crypto/async_tx/async_pq.c                      |    9 
+ b/crypto/async_tx/async_raid6_recov.c             |    9 
+ b/drivers/dma/bcm-sba-raid.c                      |    1 
+ b/drivers/md/raid5.c                              |    4 
+ b/fs/btrfs/raid56.c                               |    8 
+ b/fs/btrfs/volumes.c                              |    2 
+ b/include/linux/raid/pq.h                         |  233 +------------
+ b/include/linux/raid/pq_tables.h                  |   19 +
+ b/lib/Kconfig                                     |   11 
+ b/lib/Makefile                                    |    1 
+ b/lib/raid/Kconfig                                |   33 +
+ b/lib/raid/Makefile                               |    2 
+ b/lib/raid/raid6/Makefile                         |  126 +++++++
+ b/lib/raid/raid6/algos.c                          |  383 ++++++++++++++++++++++
+ b/lib/raid/raid6/algos.h                          |   41 ++
+ b/lib/raid/raid6/arm/neon.c                       |   23 -
+ b/lib/raid/raid6/arm/neon.uc                      |    2 
+ b/lib/raid/raid6/arm/pq_arch.h                    |   24 +
+ b/lib/raid/raid6/arm/recov_neon.c                 |   27 -
+ b/lib/raid/raid6/arm/recov_neon_inner.c           |    2 
+ b/lib/raid/raid6/arm64/pq_arch.h                  |    1 
+ b/lib/raid/raid6/int.uc                           |   10 
+ b/lib/raid/raid6/loongarch/loongarch_simd.c       |   31 -
+ b/lib/raid/raid6/loongarch/pq_arch.h              |   23 +
+ b/lib/raid/raid6/loongarch/recov_loongarch_simd.c |   39 --
+ b/lib/raid/raid6/mktables.c                       |   28 -
+ b/lib/raid/raid6/powerpc/altivec.uc               |   32 -
+ b/lib/raid/raid6/powerpc/pq_arch.h                |   31 +
+ b/lib/raid/raid6/powerpc/vpermxor.uc              |   29 -
+ b/lib/raid/raid6/recov.c                          |   62 ---
+ b/lib/raid/raid6/riscv/pq_arch.h                  |   21 +
+ b/lib/raid/raid6/riscv/recov_rvv.c                |   14 
+ b/lib/raid/raid6/riscv/rvv.h                      |   26 -
+ b/lib/raid/raid6/s390/pq_arch.h                   |   15 
+ b/lib/raid/raid6/s390/recov_s390xc.c              |   14 
+ b/lib/raid/raid6/s390/s390vx.uc                   |   15 
+ b/lib/raid/raid6/tests/Makefile                   |    3 
+ b/lib/raid/raid6/tests/raid6_kunit.c              |  321 ++++++++++++++++++
+ b/lib/raid/raid6/x86/avx2.c                       |   47 --
+ b/lib/raid/raid6/x86/avx512.c                     |   57 +--
+ b/lib/raid/raid6/x86/mmx.c                        |   39 --
+ b/lib/raid/raid6/x86/pq_arch.h                    |   97 +++++
+ b/lib/raid/raid6/x86/recov_avx2.c                 |   22 -
+ b/lib/raid/raid6/x86/recov_avx512.c               |   26 -
+ b/lib/raid/raid6/x86/recov_ssse3.c                |   23 -
+ b/lib/raid/raid6/x86/sse1.c                       |   49 --
+ b/lib/raid/raid6/x86/sse2.c                       |   47 --
+ lib/raid6/Makefile                                |   83 ----
+ lib/raid6/algos.c                                 |  291 ----------------
+ lib/raid6/loongarch.h                             |   38 --
+ lib/raid6/test/.gitignore                         |    3 
+ lib/raid6/test/Makefile                           |  156 --------
+ lib/raid6/test/test.c                             |  152 --------
+ lib/raid6/x86.h                                   |   75 ----
+ 56 files changed, 1369 insertions(+), 1517 deletions(-)
