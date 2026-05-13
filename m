@@ -1,64 +1,77 @@
-Received: from desiato.infradead.org (desiato.infradead.org [90.155.92.199])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 584143B388D;
-	Wed, 13 May 2026 19:33:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.92.199
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 816813A8757
+	for <linux-arch@vger.kernel.org>; Wed, 13 May 2026 20:19:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778700837; cv=none; b=UvVGg4YleMsQW6pL4dET4PsP6i8fM/CI1FfuBAeqTnKjy31e2xHNaLYhMjOj20YWvmrZnIXukDGEIaCJQXVnsGEdXlUgJcMSCRInGX5+ZxoUAXywEXIWttCBU7k+sZLUDMJmjOo7YjhwwxVfPxWNp5WZrab0po0GijGkMfxCxoc=
+	t=1778703573; cv=none; b=eSXPFZ1T1JjQv5TWOi77Hs6yoHqyyZcmQvNJ5AH69IVDI62URMe9FDyt1tgFYj8XyrSjvC5r6ajFK4lGXz5+X+IF/ixDtb+ADUSeVIq4mkNV19rjtTzI8Ggi9G9xtx6wkSGlJwPW9mFSVL53Kak47Ws9TIpOhD6Yels1hzV+pc0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778700837; c=relaxed/simple;
-	bh=j1JEHlrTvGEOQFmJ5ZIsgKmd2Mcej2xwdRx5348KrEo=;
+	s=arc-20240116; t=1778703573; c=relaxed/simple;
+	bh=EDn4odiH74H3ifCfhNGOCtR8TgiezO1EVoWQXBXXRIY=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=hMQXr78OzPsVEu3LvIgDzE7LclPm5jshwguKCAUFzi7XjAF6fZxgWWjOckxqZCY+fSUYrEkKZPhHt8XX1PqiVb5AOwGFjEJ962bzoEVmqnRLh4UdNXCANTFrSVpwlx8gLQxU7ECA2CPYmKjX6juH7SgZ3YwGONmVX4SYrhSKL8M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=DwCb+dbP; arc=none smtp.client-ip=90.155.92.199
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="DwCb+dbP"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=/9TdtldHzNE7j+/4s+2YCCT8ngCUlQOuToREEg+F5TU=; b=DwCb+dbPa0wzuTk6GcWyENhx5N
-	DqOykNrfwT12kOMsNHgtU4BKoYUf8cjsi85xS/dtpDbadpxSCYQAbuC+QX3xutphPt1GY5mB25sTh
-	eXJTawxBtTdXWjZiR2hmIe1OBBVRgSrSHTcKs4g+ZM9OQwGLMprwlTcJr5ZPH1uCfT4frbg4jDW7U
-	fVeke0e/PchLRNhRRlj7JBA5+3hImMzyYRnyKocf/mXnz8EcuQJWrpJ8uhTfp5/z8iwA28wnPEg9s
-	qdu806EmYoORgx3aQEqSP5I+xYdfas6Bg+6U/Ss3VpYFrgy9CDhSrIzZYsVbxKVfhgIy0M+bURhDJ
-	aHqzhNmg==;
-Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
-	by desiato.infradead.org with esmtpsa (Exim 4.99.1 #2 (Red Hat Linux))
-	id 1wNFKx-00000001AlP-1Tj3;
-	Wed, 13 May 2026 19:33:43 +0000
-Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
-	id 23A0730063F; Wed, 13 May 2026 21:33:43 +0200 (CEST)
-Date: Wed, 13 May 2026 21:33:42 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-To: Dmitry Ilvokhin <d@ilvokhin.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
-	Boqun Feng <boqun@kernel.org>, Waiman Long <longman@redhat.com>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Juergen Gross <jgross@suse.com>,
-	Ajay Kaher <ajay.kaher@broadcom.com>,
-	Alexey Makhalov <alexey.makhalov@broadcom.com>,
-	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
-	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
+	 Content-Type:Content-Disposition:In-Reply-To; b=upM2Mzka5UA5fl6w7LJvwa8o8d/mJq66d2W414gUmYQ1SICeeP4zL/f2yLbTzfpH5EKygr4RF0B4LeLBqBbEfHEXeJCN3EmcHiMSEG8gHv9ydPqbNJYHisJrwpITFv6ibaabvw52XTwqSU2BVQw+k9nITithWhbHcRr4zZJa+e8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id ED6E36B0F3;
+	Wed, 13 May 2026 20:19:29 +0000 (UTC)
+Authentication-Results: smtp-out1.suse.de;
+	none
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id A5E0E593A9;
+	Wed, 13 May 2026 20:19:29 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id G7fLJ9HcBGpwcwAAD6G6ig
+	(envelope-from <dsterba@suse.cz>); Wed, 13 May 2026 20:19:29 +0000
+Date: Wed, 13 May 2026 22:19:28 +0200
+From: David Sterba <dsterba@suse.cz>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
 	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
-	Christoph Lameter <cl@gentwo.org>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
-	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
-	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
-	kernel-team@meta.com, "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v6 5/7] locking: Add contended_release tracepoint to
- qspinlock
-Message-ID: <20260513193342.GB2545104@noisy.programming.kicks-ass.net>
-References: <cover.1777999826.git.d@ilvokhin.com>
- <5d7ea75ffe74a785e6b234ada9f23c6373d4b4c1.1777999826.git.d@ilvokhin.com>
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Herbert Xu <herbert@gondor.apana.org.au>,
+	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+	Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
+	Li Nan <linan122@huawei.com>, linux-kernel@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
+	linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+	linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
+	linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-raid@vger.kernel.org
+Subject: Re: [PATCH 01/19] btrfs: require at least 4 devices for RAID 6
+Message-ID: <20260513201928.GO2558453@suse.cz>
+Reply-To: dsterba@suse.cz
+References: <20260512052230.2947683-1-hch@lst.de>
+ <20260512052230.2947683-2-hch@lst.de>
+ <20260512114231.GG2558453@suse.cz>
+ <20260513054742.GA1018@lst.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -67,42 +80,55 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <5d7ea75ffe74a785e6b234ada9f23c6373d4b4c1.1777999826.git.d@ilvokhin.com>
+In-Reply-To: <20260513054742.GA1018@lst.de>
+User-Agent: Mutt/1.5.23.1-rc1 (2014-03-12)
+X-Rspamd-Pre-Result: action=no action;
+	module=replies;
+	Message is reply to one we originated
+X-Spamd-Result: default: False [-4.00 / 50.00];
+	REPLY(-4.00)[]
+X-Rspamd-Queue-Id: ED6E36B0F3
+X-Spam-Score: -4.00
+X-Rspamd-Pre-Result: action=no action;
+	module=replies;
+	Message is reply to one we originated
+X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
+X-Rspamd-Action: no action
+X-Spam-Flag: NO
+X-Spam-Level: 
 
-On Tue, May 05, 2026 at 05:09:34PM +0000, Dmitry Ilvokhin wrote:
-> Use the arch-overridable queued_spin_release(), introduced in the
-> previous commit, to ensure the tracepoint works correctly across all
-> architectures, including those with custom unlock implementations (e.g.
-> x86 paravirt).
+On Wed, May 13, 2026 at 07:47:42AM +0200, Christoph Hellwig wrote:
+> On Tue, May 12, 2026 at 01:42:31PM +0200, David Sterba wrote:
+> > On Tue, May 12, 2026 at 07:20:41AM +0200, Christoph Hellwig wrote:
+> > > While the RAID6 algorithm could in theory support 3 devices by just
+> > > copying the data disk to the two parity disks, this version is not only
+> > > useless because it is a suboptimal version of 3-way mirroring, but also
+> > > broken with various crashes and incorrect parity generation in various
+> > > architecture-optimized implementations.  Disallow it similar to mdraid
+> > > which requires at least 4 devices for RAID 6.
+> > > 
+> > > Fixes: 53b381b3abeb ("Btrfs: RAID5 and RAID6")
+> > > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> > 
+> > This patch should have been sent separately as it has user visible
+> > impact and can potentially break some setups.
 > 
-> When the tracepoint is disabled, the only addition to the hot path is a
-> single NOP instruction (the static branch). When enabled, the contention
-> check, trace call, and unlock are combined in an out-of-line function to
-> minimize hot path impact, avoiding the compiler needing to preserve the
-> lock pointer in a callee-saved register across the trace call.
+> It _is_ sent out separate.
+
+It's public interface change of btrfs but in a patch series cleaning
+up some library code, I noticed it by accident.
+
+> > The degenerate modes of
+> > raid0, 5, or 6 are explicit as a possible middle step when converting
+> > profiles.  We can use a fallback implementation for this case if the
+> > accelerated implementations cannot do it.
 > 
-> Binary size impact (x86_64, defconfig):
->   uninlined unlock (common case): +680 bytes  (+0.00%)
->   inlined unlock (worst case):    +83659 bytes (+0.21%)
-> 
-> The inlined unlock case could not be achieved through Kconfig options on
-> x86_64 as PREEMPT_BUILD unconditionally selects UNINLINE_SPIN_UNLOCK on
-> x86_64. The UNINLINE_SPIN_UNLOCK guards were manually inverted to force
-> inline the unlock path and estimate the worst case binary size increase.
-> 
-> In practice, configurations with UNINLINE_SPIN_UNLOCK=n have already
-> opted against binary size optimization, so the inlined worst case is
-> unlikely to be a concern.
+> This is not about a degenerated mode.  For a degenerated RAID 6, parity
+> generation uses the RAID 5 XOR routines as the second parity will be
+> missing.  This is about generating two parities for a single data disk,
+> which must be explicitly selected.
 
-This is not quite accurate. You add the (5byte) NOP for the static
-branch, but then you also add another 5 bytes for the CALL and at least
-another 2 bytes (possibly 5) for a JMP back into the previous stream.
-That is 12-15 bytes added to what was a single MOV instruction.
-
-That is quite ludicrous.
-
-I disagree that UNINLINE_SPIN_UNLOCK=n opts against binary size. For x86
-the unlock is smaller than a function call.
-
-
-I really don't see how this is worth it.
+The calcuation is a different than what I'm concened about, changing
+minimum devices from 3 to 4 is a breaking change. If the library won't
+provide the xor/parity functions then we'll have to add a fallback for
+this special case.
