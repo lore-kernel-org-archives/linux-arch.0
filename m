@@ -1,168 +1,221 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3C6AE3921C8
-	for <linux-arch@vger.kernel.org>; Wed, 13 May 2026 07:31:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id C53D6478E28;
+	Wed, 13 May 2026 15:08:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778657516; cv=none; b=Z6S9C+lUOTAKHfGiylbu3W2uOHgD1nI7wcljAfx4RWrZwrYqwq2cruaPgyZc2qHZqBXfqsQBejAlZtiDlPYXj0bXoEj43PGEzgqyAkjdiUJ35xE43ZC1ZKLRt90REWO0keP/CDOyU4AUGZ6Emz+d8vLGzkjAyhi9C7Ke2xvXsQk=
+	t=1778684923; cv=none; b=rd4tE89OAz6QIWAbe+VqDwwP7GFShzAeF8oWP8Usp36EEtFq4pXVF9DGf5ux9lCr/w8t4iDlq1YcOwARhiEmlVsh581OviAtb0Hnc9bQuzoVgDoJBtVDFd1vfqtmfXLwdcybAUB+YUou1Uwf/Vj7h07UevLp4KqZ4mVMySRIgG4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778657516; c=relaxed/simple;
-	bh=95rnVbuPoEqYoOgOEmXgRRLmt/DgdbJJ5HiCjeQHGDU=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=u868BWrwOVM3U3uow6gKlCpxxYFPHyEvDNWvLcvJ5aCzNOy0kprHA2dS5H7zGGL4nifsjf5XM+7Wv4INBsGBM+o0QxjEn/pE3QbskPAxTgHqMWf/xr+98SM5bmj+osainUiXNeTznBnguvA2ri5CeAl7/wTIvna40p8gW2M+E+I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=PYwyyGyw; arc=none smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1778684923; c=relaxed/simple;
+	bh=FiaEJRKgT3alMu6+vgIHIeBgx4DggXjWyAHR8Mfq1BE=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Ao8SpDi3hjIrmHVxUhVWQFvSOTXAfR2u6hcsR9KpLgBlZChh8nwA5T28a3OS1JKU6mnpgRASVvz2tzdirK6F9hFisiqhyRMmyuVDgqww1GBtxr5afwVXuJo1HweIDKTCz6LzWrc7ztf1k+LlRkqxwmhJaphGhY6AUA/PmI42FKs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=f0qx6A50; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="PYwyyGyw"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1778657514;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=mmxOVGUrnxS/H09zubyapT22aA5Jy+w6JF95xU/Ftgg=;
-	b=PYwyyGywFBGZ1Jv1S2qDoKy6PwRLZptr1QQ9T4wgorXxLWoYuyHAXMgU1SyTOzyFh7avmQ
-	DsCYrLl4N9aCiYQN5bXHNKosaHXmHWYKaROi1khsoAr7CT2tFy634GaTy/u1N+J6E/8IsX
-	ygpEjRaQ4KYFmBOgMPYOkqsZ+FcGN3g=
-Received: from mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-131-M8ob-ZXROPOZrHCLAy5ceQ-1; Wed,
- 13 May 2026 03:31:47 -0400
-X-MC-Unique: M8ob-ZXROPOZrHCLAy5ceQ-1
-X-Mimecast-MFC-AGG-ID: M8ob-ZXROPOZrHCLAy5ceQ_1778657504
-Received: from mx-prod-int-06.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-06.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.93])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 3E827180047F;
-	Wed, 13 May 2026 07:31:44 +0000 (UTC)
-Received: from [192.168.1.153] (headnet01.pony-001.prod.iad2.dc.redhat.com [10.2.32.101])
-	by mx-prod-int-06.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 3FE1818004A3;
-	Wed, 13 May 2026 07:31:36 +0000 (UTC)
-From: Albert Esteve <aesteve@redhat.com>
-Date: Wed, 13 May 2026 09:30:54 +0200
-Subject: [PATCH v10 4/4] kunit: Add documentation for warning backtrace
- suppression API
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="f0qx6A50"
+Received: by linux.microsoft.com (Postfix, from userid 1099)
+	id BB35420B7166; Wed, 13 May 2026 08:08:37 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com BB35420B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1778684917;
+	bh=z+2HxtLiUqb6poVICNR3S36TfTkczaotCNxV/J7VYlw=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=f0qx6A50vmi6yn6g/U3CAPd4Gf9HwLVjCnbAB/BbMClxWVPo3OjzgJa58zCsVL1Cf
+	 yhzbJOLqGPD+WPhsyJHA3idPsXQhmHc41Kut8pd8vDpyA9KvZacd7i/O51SutNGaY3
+	 RbdfvVPWKEdkl8aFZSu7yl53qgJaxbAF4RIDKDuE=
+Date: Wed, 13 May 2026 08:08:37 -0700
+From: Souradeep Chakrabarti <schakrabarti@linux.microsoft.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
+	wei.liu@kernel.org, mhklinux@outlook.com, muislam@microsoft.com,
+	namjain@linux.microsoft.com, magnuskulke@linux.microsoft.com,
+	anbelski@linux.microsoft.com, linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
+	kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
+	longli@microsoft.com, tglx@kernel.org, mingo@redhat.com,
+	bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
+	joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
+	kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de,
+	jacob.pan@linux.microsoft.com
+Subject: Re: [PATCH V3 08/11] PCI: hv: VMBus and PCI device IDs for PCI
+ passthru
+Message-ID: <agST9ZRXNWhbUGMY@linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net>
+References: <20260512020259.1678627-1-mrathor@linux.microsoft.com>
+ <20260512020259.1678627-9-mrathor@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20260513-kunit_add_support-v10-4-e379d206c8cd@redhat.com>
-References: <20260513-kunit_add_support-v10-0-e379d206c8cd@redhat.com>
-In-Reply-To: <20260513-kunit_add_support-v10-0-e379d206c8cd@redhat.com>
-To: Arnd Bergmann <arnd@arndb.de>, 
- Brendan Higgins <brendan.higgins@linux.dev>, David Gow <david@davidgow.net>, 
- Rae Moar <raemoar63@gmail.com>, 
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
- Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
- David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
- Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
- Andrew Morton <akpm@linux-foundation.org>, Paul Walmsley <pjw@kernel.org>, 
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
- Alexandre Ghiti <alex@ghiti.fr>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
- dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
- linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
- peterz@infradead.org, Guenter Roeck <linux@roeck-us.net>, 
- Linux Kernel Functional Testing <lkft@linaro.org>, 
- Alessandro Carminati <acarmina@redhat.com>, 
- Albert Esteve <aesteve@redhat.com>, Dan Carpenter <error27@gmail.com>, 
- Kees Cook <kees@kernel.org>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1778657459; l=2728;
- i=aesteve@redhat.com; s=20260303; h=from:subject:message-id;
- bh=YX7AMC4Z3qCvd9o2GGoQ6LMsoUJS/dulVvDsXv5Qzg4=;
- b=Tn57dlpmAKPyg7EadtPF+8pvScnc6ZwMw7meNTlMqMCFlJZzy+pZI8DRncXP+P2iUjAiPDAsb
- jTdsNLlmNajD1NkYBoGSxviZ9mGmdnd11yBega+aY3NzzT34HItL/9a
-X-Developer-Key: i=aesteve@redhat.com; a=ed25519;
- pk=YSFz6sOHd2L45+Fr8DIvHTi6lSIjhLZ5T+rkxspJt1s=
-X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.93
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260512020259.1678627-9-mrathor@linux.microsoft.com>
 
-From: Guenter Roeck <linux@roeck-us.net>
-
-Document API functions for suppressing warning backtraces.
-
-Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
-Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Guenter Roeck <linux@roeck-us.net>
-Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
-Reviewed-by: David Gow <david@davidgow.net>
-Signed-off-by: Albert Esteve <aesteve@redhat.com>
----
- Documentation/dev-tools/kunit/usage.rst | 46 ++++++++++++++++++++++++++++++++-
- 1 file changed, 45 insertions(+), 1 deletion(-)
-
-diff --git a/Documentation/dev-tools/kunit/usage.rst b/Documentation/dev-tools/kunit/usage.rst
-index ebd06f5ea4550..1c78dfff94e8a 100644
---- a/Documentation/dev-tools/kunit/usage.rst
-+++ b/Documentation/dev-tools/kunit/usage.rst
-@@ -157,6 +157,50 @@ Alternatively, one can take full control over the error message by using
- 	if (some_setup_function())
- 		KUNIT_FAIL(test, "Failed to setup thing for testing");
- 
-+Suppressing warning backtraces
-+------------------------------
-+
-+Some unit tests trigger warning backtraces either intentionally or as a side
-+effect. Such backtraces are normally undesirable since they distract from
-+the actual test and may result in the impression that there is a problem.
-+
-+Backtraces can be suppressed with **task-scoped suppression**: while
-+suppression is active on the current task, the backtrace and stack dump from
-+``WARN*()``, ``WARN_ON*()``, and related macros on that task are suppressed.
-+Two API forms are available.
-+
-+- Scoped suppression is the simplest form. Wrap the code that triggers
-+  warnings in a ``kunit_warning_suppress()`` block:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		kunit_warning_suppress(test) {
-+			trigger_backtrace();
-+			KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
-+		}
-+	}
-+
-+.. note::
-+   The warning count must be checked inside the block; the suppression handle
-+   is not accessible after the block exits.
-+
-+- Direct functions return an explicit handle pointer. Use them when the handle
-+  needs to be retained or passed across helper functions:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		struct kunit_suppressed_warning *w;
-+
-+		w = kunit_start_suppress_warning(test);
-+		trigger_backtrace();
-+		kunit_end_suppress_warning(test, w);
-+
-+		KUNIT_EXPECT_EQ(test, kunit_suppressed_warning_count(w), 1);
-+	}
- 
- Test Suites
- ~~~~~~~~~~~
-@@ -1211,4 +1255,4 @@ For example:
- 		dev_managed_string = devm_kstrdup(fake_device, "Hello, World!");
- 
- 		// Everything is cleaned up automatically when the test ends.
--	}
-\ No newline at end of file
-+	}
-
--- 
-2.53.0
-
+On Mon, May 11, 2026 at 07:02:56PM -0700, Mukesh R wrote:
+> On Hyper-V, most hypercalls related to PCI passthru to map/unmap regions,
+> interrupts, etc need a device ID as a parameter. This device ID refers
+> to that specific device during the lifetime of passthru.
+> 
+> An L1VH VM only contains VMBus based devices. A device ID for a VMBus
+> device is slightly different in that it uses the hv_pcibus_device info
+> for building it to make sure it matches exactly what the hypervisor
+> expects. This VMBus based device ID is needed when attaching devices in
+> an L1VH based guest VM. Add a function to build and export it. Before
+> building it, a check is done to make sure the device is a valid VMBus
+> device.
+> 
+> In remaining cases, PCI device ID is used. So, also make PCI device ID
+> build function hv_build_devid_type_pci() public.
+>
+Reviewed-by: Souradeep Chakrabarti <schakrabarti@microsoft.com>
+> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+> ---
+>  arch/x86/hyperv/irqdomain.c         |  9 +++++----
+>  arch/x86/include/asm/mshyperv.h     |  6 ++++++
+>  drivers/pci/controller/pci-hyperv.c | 24 ++++++++++++++++++++++++
+>  include/asm-generic/mshyperv.h      | 11 +++++++++++
+>  4 files changed, 46 insertions(+), 4 deletions(-)
+> 
+> diff --git a/arch/x86/hyperv/irqdomain.c b/arch/x86/hyperv/irqdomain.c
+> index b3ad50a874dc..8780573a4332 100644
+> --- a/arch/x86/hyperv/irqdomain.c
+> +++ b/arch/x86/hyperv/irqdomain.c
+> @@ -112,7 +112,7 @@ static int get_rid_cb(struct pci_dev *pdev, u16 alias, void *data)
+>  	return 0;
+>  }
+>  
+> -static union hv_device_id hv_build_devid_type_pci(struct pci_dev *pdev)
+> +u64 hv_build_devid_type_pci(struct pci_dev *pdev)
+>  {
+>  	int pos;
+>  	union hv_device_id hv_devid;
+> @@ -172,8 +172,9 @@ static union hv_device_id hv_build_devid_type_pci(struct pci_dev *pdev)
+>  	}
+>  
+>  out:
+> -	return hv_devid;
+> +	return hv_devid.as_uint64;
+>  }
+> +EXPORT_SYMBOL_GPL(hv_build_devid_type_pci);
+>  
+>  /*
+>   * hv_map_msi_interrupt() - Map the MSI IRQ in the hypervisor.
+> @@ -196,7 +197,7 @@ int hv_map_msi_interrupt(struct irq_data *data,
+>  
+>  	msidesc = irq_data_get_msi_desc(data);
+>  	pdev = msi_desc_to_pci_dev(msidesc);
+> -	hv_devid = hv_build_devid_type_pci(pdev);
+> +	hv_devid.as_uint64 = hv_build_devid_type_pci(pdev);
+>  	cpu = cpumask_first(irq_data_get_effective_affinity_mask(data));
+>  
+>  	return hv_map_interrupt(hv_devid, false, cpu, cfg->vector,
+> @@ -271,7 +272,7 @@ static int hv_unmap_msi_interrupt(struct pci_dev *pdev,
+>  {
+>  	union hv_device_id hv_devid;
+>  
+> -	hv_devid = hv_build_devid_type_pci(pdev);
+> +	hv_devid.as_uint64 = hv_build_devid_type_pci(pdev);
+>  	return hv_unmap_interrupt(hv_devid.as_uint64, irq_entry);
+>  }
+>  
+> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+> index f64393e853ee..2ef34001f8d3 100644
+> --- a/arch/x86/include/asm/mshyperv.h
+> +++ b/arch/x86/include/asm/mshyperv.h
+> @@ -248,6 +248,12 @@ void hv_crash_asm_end(void);
+>  static inline void hv_root_crash_init(void) {}
+>  #endif  /* CONFIG_MSHV_ROOT && CONFIG_CRASH_DUMP */
+>  
+> +#if IS_ENABLED(CONFIG_HYPERV_IOMMU)
+> +u64 hv_build_devid_type_pci(struct pci_dev *pdev);
+> +#else
+> +static inline u64 hv_build_devid_type_pci(struct pci_dev *pdev) { return 0; }
+> +#endif /* IS_ENABLED(CONFIG_HYPERV_IOMMU) */
+> +
+>  #else /* CONFIG_HYPERV */
+>  static inline void hyperv_init(void) {}
+>  static inline void hyperv_setup_mmu_ops(void) {}
+> diff --git a/drivers/pci/controller/pci-hyperv.c b/drivers/pci/controller/pci-hyperv.c
+> index cfc8fa403dad..50d793ca8f31 100644
+> --- a/drivers/pci/controller/pci-hyperv.c
+> +++ b/drivers/pci/controller/pci-hyperv.c
+> @@ -573,6 +573,7 @@ struct hv_pci_compl {
+>  };
+>  
+>  static void hv_pci_onchannelcallback(void *context);
+> +static bool hv_vmbus_pci_device(struct pci_bus *pbus);
+>  
+>  #ifdef CONFIG_X86
+>  #define DELIVERY_MODE		APIC_DELIVERY_MODE_FIXED
+> @@ -1005,6 +1006,24 @@ static struct irq_domain *hv_pci_get_root_domain(void)
+>  static void hv_arch_irq_unmask(struct irq_data *data) { }
+>  #endif /* CONFIG_ARM64 */
+>  
+> +u64 hv_pci_vmbus_device_id(struct pci_dev *pdev)
+> +{
+> +	struct hv_pcibus_device *hbus;
+> +	struct pci_bus *pbus = pdev->bus;
+> +
+> +	if (!hv_vmbus_pci_device(pbus))
+> +		return 0;
+> +
+> +	hbus = container_of(pbus->sysdata, struct hv_pcibus_device, sysdata);
+> +
+> +	return	(hbus->hdev->dev_instance.b[5] << 24) |
+> +		(hbus->hdev->dev_instance.b[4] << 16) |
+> +		(hbus->hdev->dev_instance.b[7] << 8) |
+> +		(hbus->hdev->dev_instance.b[6] & 0xf8) |
+> +		PCI_FUNC(pdev->devfn);
+> +}
+> +EXPORT_SYMBOL_GPL(hv_pci_vmbus_device_id);
+> +
+>  /**
+>   * hv_pci_generic_compl() - Invoked for a completion packet
+>   * @context:		Set up by the sender of the packet.
+> @@ -1403,6 +1422,11 @@ static struct pci_ops hv_pcifront_ops = {
+>  	.write = hv_pcifront_write_config,
+>  };
+>  
+> +static bool hv_vmbus_pci_device(struct pci_bus *pbus)
+> +{
+> +	return pbus->ops == &hv_pcifront_ops;
+> +}
+> +
+>  /*
+>   * Paravirtual backchannel
+>   *
+> diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+> index e8cbc4e3f7ad..25ac7ca0fd8b 100644
+> --- a/include/asm-generic/mshyperv.h
+> +++ b/include/asm-generic/mshyperv.h
+> @@ -204,6 +204,9 @@ extern u64 (*hv_read_reference_counter)(void);
+>  /* Sentinel value for an uninitialized entry in hv_vp_index array */
+>  #define VP_INVAL	U32_MAX
+>  
+> +/* Forward declarations */
+> +struct pci_dev;
+> +
+>  int __init hv_common_init(void);
+>  void __init hv_get_partition_id(void);
+>  void __init hv_common_free(void);
+> @@ -316,6 +319,14 @@ void hv_para_set_synic_register(unsigned int reg, u64 val);
+>  void hyperv_cleanup(void);
+>  bool hv_query_ext_cap(u64 cap_query);
+>  void hv_setup_dma_ops(struct device *dev, bool coherent);
+> +
+> +#if IS_ENABLED(CONFIG_PCI_HYPERV)
+> +u64 hv_pci_vmbus_device_id(struct pci_dev *pdev);
+> +#else
+> +static inline u64 hv_pci_vmbus_device_id(struct pci_dev *pdev)
+> +{ return 0; }
+> +#endif /* IS_ENABLED(CONFIG_PCI_HYPERV) */
+> +
+>  #else /* CONFIG_HYPERV */
+>  static inline void hv_identify_partition_type(void) {}
+>  static inline bool hv_is_hyperv_initialized(void) { return false; }
+> -- 
+> 2.51.2.vfs.0.1
+> 
