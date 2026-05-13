@@ -1,167 +1,109 @@
-Received: from relay.hostedemail.com (smtprelay0013.hostedemail.com [216.40.44.13])
+Received: from mail.zytor.com (terminus.zytor.com [198.137.202.136])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8AA7481FCE;
-	Wed, 13 May 2026 15:43:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=216.40.44.13
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7FF5B44A724;
+	Wed, 13 May 2026 16:27:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.136
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778686993; cv=none; b=Nk1MW4Q18O+bWJeL81VGzBMKmZR79AwzZIfh+A953P4LCvIx1vr+85wzNy1pk/1nIdNlqSc1CEc31B2gT/MUeu8uToLADg7zMeKdfQyfED/wZevYmZQpLG2Ge6IRFZPzXG22Wek+7O0FRCUCsJckWnIgDEHHQ+gQSg/RZaxlNwQ=
+	t=1778689653; cv=none; b=NjSxIUAqFqfaLka9eAJfmV4qM3i2DpElGcXdG4aWpAiu/CAI112WiUDatUL3WKr8Fc8WjuIv4z3f1um27GLqLoUZufi0skKyuFprwsvHb7KcQ93Mk22bOucZfF9htoOQj1yrLP5bvDtsukxPBisIgcJqUJPHhsBCsabE+x2DFnE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778686993; c=relaxed/simple;
-	bh=gkRQjgXAOUtsQDsoJPrjl1J5lhzGoe8KMasfHcOGNSk=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=nCRUhdkyURqNFGwY1/4W2Y9jeM9G9B9dv5bnNftlOD84VMTEY5IIVYeLlzsaY55hLOXnY8qIWaUDnyTxF7jbUdOLMxej3QgMYSnk7uahNTWxs4NOFqaWxh0oSBX68qSVGYN9BVobVSEDEgvuMEba3ttVWLYWIJHRniNgkGRd4nk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org; spf=pass smtp.mailfrom=goodmis.org; arc=none smtp.client-ip=216.40.44.13
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=goodmis.org
-Received: from omf02.hostedemail.com (lb01a-stub [10.200.18.249])
-	by unirelay10.hostedemail.com (Postfix) with ESMTP id 49B49C0439;
-	Wed, 13 May 2026 15:43:08 +0000 (UTC)
-Received: from [HIDDEN] (Authenticated sender: rostedt@goodmis.org) by omf02.hostedemail.com (Postfix) with ESMTPA id AF64F8000F;
-	Wed, 13 May 2026 15:43:02 +0000 (UTC)
-Date: Wed, 13 May 2026 11:43:05 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-To: Dmitry Ilvokhin <d@ilvokhin.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>,
- Will Deacon <will@kernel.org>, Boqun Feng <boqun@kernel.org>, Waiman Long
- <longman@redhat.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
- Juergen Gross <jgross@suse.com>, Ajay Kaher <ajay.kaher@broadcom.com>,
- Alexey Makhalov <alexey.makhalov@broadcom.com>, Broadcom internal kernel
- review list <bcm-kernel-feedback-list@broadcom.com>, Thomas Gleixner
- <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>, Dave Hansen
- <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
- <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Dennis Zhou
- <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter
- <cl@gentwo.org>, Masami Hiramatsu <mhiramat@kernel.org>, Mathieu Desnoyers
- <mathieu.desnoyers@efficios.com>, linux-kernel@vger.kernel.org,
- linux-mips@vger.kernel.org, virtualization@lists.linux.dev,
- linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-trace-kernel@vger.kernel.org, kernel-team@meta.com
-Subject: Re: [PATCH v6 7/7] locking: Add contended_release tracepoint to
- qrwlock
-Message-ID: <20260513114305.21ffc98f@gandalf.local.home>
-In-Reply-To: <b67fda8e847fff72da05eff7f799019f8d17ce21.1777999826.git.d@ilvokhin.com>
-References: <cover.1777999826.git.d@ilvokhin.com>
-	<b67fda8e847fff72da05eff7f799019f8d17ce21.1777999826.git.d@ilvokhin.com>
-X-Mailer: Claws Mail 3.20.0git84 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	s=arc-20240116; t=1778689653; c=relaxed/simple;
+	bh=CDzF6zxpWm/EIG7IClV3NwFJ7pzNxzMC2HVtf6q6ESc=;
+	h=Date:From:To:CC:Subject:In-Reply-To:References:Message-ID:
+	 MIME-Version:Content-Type; b=CwVEUnQ+XZhcOIiU6+3cne3D42kLjnU08brxc+vpnxcgBFX5Fx3khnczAQkMlUr3sZfZAEgHnP7dAczgnnEf+6wU/MqW4Bs6hxmFNJivM3crGjo/WF5GRKpNcBoRNfFI3uxGEK8VOIQNQzhIh4LavpOKCDrvsz7YW89Lo7FquCc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com; spf=pass smtp.mailfrom=zytor.com; dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b=Ahhs2ZaN; arc=none smtp.client-ip=198.137.202.136
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=zytor.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b="Ahhs2ZaN"
+Received: from ehlo.thunderbird.net (c-76-133-66-138.hsd1.ca.comcast.net [76.133.66.138])
+	(authenticated bits=0)
+	by mail.zytor.com (8.18.1/8.17.1) with ESMTPSA id 64DGEn1a2905667
+	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NO);
+	Wed, 13 May 2026 09:14:50 -0700
+DKIM-Filter: OpenDKIM Filter v2.11.0 mail.zytor.com 64DGEn1a2905667
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zytor.com;
+	s=2026042601; t=1778688894;
+	bh=kzc3j2nHoRxQd9M0vkzx/uZg5Iwn8WIixU3RTEBg+i4=;
+	h=Date:From:To:CC:Subject:In-Reply-To:References:From;
+	b=Ahhs2ZaNxCuIyTcDd/to/S7gqU6ft6zabx6TakulFhnIjDt8bXMJ0LGzYVyEfrxzF
+	 EoSq1ir5sKEz+X8RiAhKD9hHd7SJ2OozMvt9/+9wrxu0pBvVJBlgjVq84smFg5PvWl
+	 ODAygtu3MetLOSzf39fcORVc45KgUJxXa0B3c1WcYV/TBfKv8I2j2JZj6Oo7LMLnaS
+	 F/w+6e9Kh9WjQd20++VspvTwbnc9Zogl0CKsAiiMu7QXkJbZu0hP9l3BvRBi3h/lIE
+	 60H32//SMm5Gsh1hto9j6ldrE4pFtBClA6C9ESo0hnzWXYJCYw3OlK+u43GeYa68K6
+	 OTz8RC1DMTHsw==
+Date: Wed, 13 May 2026 09:14:44 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
+To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>
+CC: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+        Ard Biesheuvel <ardb@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+        WANG Xuerui <kernel@xen0n.name>,
+        Madhavan Srinivasan <maddy@linux.ibm.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+        Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+        Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@linux.ibm.com>,
+        Sven Schnelle <svens@linux.ibm.com>, Thomas Gleixner <tglx@kernel.org>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+        Herbert Xu <herbert@gondor.apana.org.au>,
+        Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+        David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+        Song Liu <song@kernel.org>,
+        Yu Kuai <yukuai@alb-78bjiv52429oh8qptp.cn-shenzhen.alb.aliyuncs.com>,
+        Li Nan <linan122@huawei.com>, linux-kernel@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
+        linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+        linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
+        linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-raid@vger.kernel.org
+Subject: Re: [PATCH 01/19] btrfs: require at least 4 devices for RAID 6
+User-Agent: K-9 Mail for Android
+In-Reply-To: <20260512052230.2947683-2-hch@lst.de>
+References: <20260512052230.2947683-1-hch@lst.de> <20260512052230.2947683-2-hch@lst.de>
+Message-ID: <45B68AA3-36E2-4187-BD30-F4631C7F32C2@zytor.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-X-Rspamd-Queue-Id: AF64F8000F
-X-Rspamd-Server: rspamout06
-X-Stat-Signature: w86rrez7eqwjzfhgqoxgq67qhkb7x9up
-X-Session-Marker: 726F737465647440676F6F646D69732E6F7267
-X-Session-ID: U2FsdGVkX19Ry8RzWesZfFcKD7J3lfQK7el56ZbsoNM=
-X-HE-Tag: 1778686982-257566
-X-HE-Meta: U2FsdGVkX191OTt5Ksd6rUOT63By4bRHO3knmbxlImxeNwSRm6MiHtOjFX4vJPI7crm7BSyrSIbvYT2WqOIcyORlXBEY2Q745H1gRnZgzxFxnZc2Bi+ODYvQqGyzbt0gxBvY2ORVu7Y4GQ21a4wpv6/a90k23BYL7etn+PwAjOo5gxJiydIgCFloW6Mpqm0UrvbWwABEN81N7oFp14CVTY728nkwzhqSyPCqbUhdm6Gp7kGkEzhfOsmKyTBnoEo7WZmXFfbv5M1ZAKLN8diVSXcT2j7/QCb3HvSSmT0BmXISJ4AvPIW0Eh8Dhn0nmq6iowz0POq6263XgbEXZQ9JarrVBkMeNNzrxBaehT1mK01cf9rA6EvFjUu8THAnEVExi+n7p8EX5+Ja1SfaAhM8P576YgkfJW2f
+Content-Type: text/plain;
+ charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-On Tue,  5 May 2026 17:09:36 +0000
-Dmitry Ilvokhin <d@ilvokhin.com> wrote:
+On May 11, 2026 10:20:41 PM PDT, Christoph Hellwig <hch@lst=2Ede> wrote:
+>While the RAID6 algorithm could in theory support 3 devices by just
+>copying the data disk to the two parity disks, this version is not only
+>useless because it is a suboptimal version of 3-way mirroring, but also
+>broken with various crashes and incorrect parity generation in various
+>architecture-optimized implementations=2E  Disallow it similar to mdraid
+>which requires at least 4 devices for RAID 6=2E
+>
+>Fixes: 53b381b3abeb ("Btrfs: RAID5 and RAID6")
+>Signed-off-by: Christoph Hellwig <hch@lst=2Ede>
+>---
+> fs/btrfs/volumes=2Ec | 2 +-
+> 1 file changed, 1 insertion(+), 1 deletion(-)
+>
+>diff --git a/fs/btrfs/volumes=2Ec b/fs/btrfs/volumes=2Ec
+>index a88e68f90564=2E=2E0b54b97bdad8 100644
+>--- a/fs/btrfs/volumes=2Ec
+>+++ b/fs/btrfs/volumes=2Ec
+>@@ -159,7 +159,7 @@ const struct btrfs_raid_attr btrfs_raid_array[BTRFS_N=
+R_RAID_TYPES] =3D {
+> 		=2Esub_stripes	=3D 1,
+> 		=2Edev_stripes	=3D 1,
+> 		=2Edevs_max	=3D 0,
+>-		=2Edevs_min	=3D 3,
+>+		=2Edevs_min	=3D 4,
+> 		=2Etolerated_failures =3D 2,
+> 		=2Edevs_increment	=3D 1,
+> 		=2Encopies	=3D 1,
 
-> Extend the contended_release tracepoint to queued rwlocks, using the
-> same out-of-line traced unlock approach as queued spinlocks.
-> 
-> Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
-> ---
->  include/asm-generic/qrwlock.h | 22 ++++++++++++++++++++++
->  kernel/locking/qrwlock.c      | 16 ++++++++++++++++
->  2 files changed, 38 insertions(+)
-> 
-> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-> index 4b627bafba8b..274c19006125 100644
-> --- a/include/asm-generic/qrwlock.h
-> +++ b/include/asm-generic/qrwlock.h
-> @@ -14,6 +14,7 @@
->  #define __ASM_GENERIC_QRWLOCK_H
->  
->  #include <linux/atomic.h>
-> +#include <linux/tracepoint-defs.h>
->  #include <asm/barrier.h>
->  #include <asm/processor.h>
->  
-> @@ -35,6 +36,10 @@
->   */
->  extern void queued_read_lock_slowpath(struct qrwlock *lock);
->  extern void queued_write_lock_slowpath(struct qrwlock *lock);
-> +extern void queued_read_unlock_traced(struct qrwlock *lock);
-> +extern void queued_write_unlock_traced(struct qrwlock *lock);
-> +
-> +DECLARE_TRACEPOINT(contended_release);
->  
->  /**
->   * queued_read_trylock - try to acquire read lock of a queued rwlock
-> @@ -115,6 +120,17 @@ static __always_inline void __queued_read_unlock(struct qrwlock *lock)
->   */
->  static inline void queued_read_unlock(struct qrwlock *lock)
->  {
-> +	/*
-> +	 * Trace and unlock are combined in the traced unlock variant so
-> +	 * the compiler does not need to preserve the lock pointer across
-> +	 * the function call, avoiding callee-saved register save/restore
-> +	 * on the hot path.
-> +	 */
-> +	if (tracepoint_enabled(contended_release)) {
-> +		queued_read_unlock_traced(lock);
-
-Same issue here about duplicating the code.
-> +		return;
-> +	}
-> +
->  	__queued_read_unlock(lock);
->  }
->  
-> @@ -129,6 +145,12 @@ static __always_inline void __queued_write_unlock(struct qrwlock *lock)
->   */
->  static inline void queued_write_unlock(struct qrwlock *lock)
->  {
-> +	/* See comment in queued_read_unlock(). */
-> +	if (tracepoint_enabled(contended_release)) {
-> +		queued_write_unlock_traced(lock);
-
-And here.
-
-> +		return;
-> +	}
-> +
->  	__queued_write_unlock(lock);
->  }
->  
-> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-> index d2ef312a8611..5ae4b0372719 100644
-> --- a/kernel/locking/qrwlock.c
-> +++ b/kernel/locking/qrwlock.c
-> @@ -90,3 +90,19 @@ void __lockfunc queued_write_lock_slowpath(struct qrwlock *lock)
->  	trace_contention_end(lock, 0);
->  }
->  EXPORT_SYMBOL(queued_write_lock_slowpath);
-> +
-> +void __lockfunc queued_read_unlock_traced(struct qrwlock *lock)
-> +{
-> +	if (queued_rwlock_is_contended(lock))
-> +		trace_call__contended_release(lock);
-
-Just have this trace and not actually do any locking.
-
-
-> +	__queued_read_unlock(lock);
-> +}
-> +EXPORT_SYMBOL(queued_read_unlock_traced);
-> +
-> +void __lockfunc queued_write_unlock_traced(struct qrwlock *lock)
-> +{
-> +	if (queued_rwlock_is_contended(lock))
-> +		trace_call__contended_release(lock);
-
-Ditto.
-
--- Steve
-
-> +	__queued_write_unlock(lock);
-> +}
-> +EXPORT_SYMBOL(queued_write_unlock_traced);
-
+Yes, if anyone cares about < 4 disks for the RAID-6 case (or < 3 for the R=
+AID-4/5 case), just use the RAID-1 code=2E
