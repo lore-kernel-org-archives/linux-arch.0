@@ -1,25 +1,25 @@
-Received: from relay.hostedemail.com (smtprelay0012.hostedemail.com [216.40.44.12])
+Received: from relay.hostedemail.com (smtprelay0013.hostedemail.com [216.40.44.13])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 95F2E34E771;
-	Wed, 13 May 2026 15:41:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=216.40.44.12
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8AA7481FCE;
+	Wed, 13 May 2026 15:43:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=216.40.44.13
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778686905; cv=none; b=DcaXcQKyvnWjgMHvwT1M47ZStpuyORIX5q/LuFPzOLSONWfv+q2QbMDB0YqwjTW9TDoUB9V44+69U/OqUEzsUw+JOWXjIG+4A1AVn9epud5j61DQ7Nu1LCtCF/3GU9nPrrWFysmvFg7rzZ8pM7phY3WhLQF9rIP4K5awoLRx4zA=
+	t=1778686993; cv=none; b=Nk1MW4Q18O+bWJeL81VGzBMKmZR79AwzZIfh+A953P4LCvIx1vr+85wzNy1pk/1nIdNlqSc1CEc31B2gT/MUeu8uToLADg7zMeKdfQyfED/wZevYmZQpLG2Ge6IRFZPzXG22Wek+7O0FRCUCsJckWnIgDEHHQ+gQSg/RZaxlNwQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778686905; c=relaxed/simple;
-	bh=XgyUk2amhhM/9++JTHRB9BXzl8bURMsskfIxgq2wBEc=;
+	s=arc-20240116; t=1778686993; c=relaxed/simple;
+	bh=gkRQjgXAOUtsQDsoJPrjl1J5lhzGoe8KMasfHcOGNSk=;
 	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=WLfiGyxulQT3MUDhtXMd7NzW0ajKX3ddSumiU7eQNmrXcZFzd9fyq5CuDT2albTqjZB0U+nn0VCQ0kzSHIt8g10Wu0+/7YW1tIliZSvAwBY5e16+E4V+BPBQWFX2cb7bJmXzfLR3FLudb1cEc9vdVSO1UMnYwTG0QAHIzpB/joU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org; spf=pass smtp.mailfrom=goodmis.org; arc=none smtp.client-ip=216.40.44.12
+	 MIME-Version:Content-Type; b=nCRUhdkyURqNFGwY1/4W2Y9jeM9G9B9dv5bnNftlOD84VMTEY5IIVYeLlzsaY55hLOXnY8qIWaUDnyTxF7jbUdOLMxej3QgMYSnk7uahNTWxs4NOFqaWxh0oSBX68qSVGYN9BVobVSEDEgvuMEba3ttVWLYWIJHRniNgkGRd4nk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org; spf=pass smtp.mailfrom=goodmis.org; arc=none smtp.client-ip=216.40.44.13
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=goodmis.org
-Received: from omf14.hostedemail.com (lb01a-stub [10.200.18.249])
-	by unirelay03.hostedemail.com (Postfix) with ESMTP id CE937A0183;
-	Wed, 13 May 2026 15:41:39 +0000 (UTC)
-Received: from [HIDDEN] (Authenticated sender: rostedt@goodmis.org) by omf14.hostedemail.com (Postfix) with ESMTPA id 0FA8833;
-	Wed, 13 May 2026 15:41:33 +0000 (UTC)
-Date: Wed, 13 May 2026 11:41:37 -0400
+Received: from omf02.hostedemail.com (lb01a-stub [10.200.18.249])
+	by unirelay10.hostedemail.com (Postfix) with ESMTP id 49B49C0439;
+	Wed, 13 May 2026 15:43:08 +0000 (UTC)
+Received: from [HIDDEN] (Authenticated sender: rostedt@goodmis.org) by omf02.hostedemail.com (Postfix) with ESMTPA id AF64F8000F;
+	Wed, 13 May 2026 15:43:02 +0000 (UTC)
+Date: Wed, 13 May 2026 11:43:05 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
 To: Dmitry Ilvokhin <d@ilvokhin.com>
 Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>,
@@ -36,14 +36,13 @@ Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>,
  <mathieu.desnoyers@efficios.com>, linux-kernel@vger.kernel.org,
  linux-mips@vger.kernel.org, virtualization@lists.linux.dev,
  linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-trace-kernel@vger.kernel.org, kernel-team@meta.com, "Paul E.
- McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v6 6/7] locking: Factor out
- __queued_read_unlock()/__queued_write_unlock()
-Message-ID: <20260513114137.0a569a47@gandalf.local.home>
-In-Reply-To: <8e88613c73f0603c4440ba3a62eb604a5dddc57b.1777999826.git.d@ilvokhin.com>
+ linux-trace-kernel@vger.kernel.org, kernel-team@meta.com
+Subject: Re: [PATCH v6 7/7] locking: Add contended_release tracepoint to
+ qrwlock
+Message-ID: <20260513114305.21ffc98f@gandalf.local.home>
+In-Reply-To: <b67fda8e847fff72da05eff7f799019f8d17ce21.1777999826.git.d@ilvokhin.com>
 References: <cover.1777999826.git.d@ilvokhin.com>
-	<8e88613c73f0603c4440ba3a62eb604a5dddc57b.1777999826.git.d@ilvokhin.com>
+	<b67fda8e847fff72da05eff7f799019f8d17ce21.1777999826.git.d@ilvokhin.com>
 X-Mailer: Claws Mail 3.20.0git84 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -53,30 +52,116 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-X-Stat-Signature: n3nakct8t6r1yy3ofy5ra1qebnxg8gqw
-X-Rspamd-Server: rspamout04
-X-Rspamd-Queue-Id: 0FA8833
+X-Rspamd-Queue-Id: AF64F8000F
+X-Rspamd-Server: rspamout06
+X-Stat-Signature: w86rrez7eqwjzfhgqoxgq67qhkb7x9up
 X-Session-Marker: 726F737465647440676F6F646D69732E6F7267
-X-Session-ID: U2FsdGVkX194La6sVd8fLI5Dtndp8CiCROEVNoIrQNg=
-X-HE-Tag: 1778686893-373441
-X-HE-Meta: U2FsdGVkX19n47HJ3PRsL6Y1RvJxJXJLdtucZN5M7VjX/LIIs6A/59gCiliFB9zKBz9Ep6v66pHEUltY8UmeMOUl5LL++AIx0j9uhDBUPpAXSFMX7mK45AC7G4GiEJkqoGxYiMzfhIHlwxnmdlZUHWgLwcrWH9EwfXbx7/0TorRGtWFLrX4Quk3cbFnjhOO10cwuECQLqsaSIBJsPbaCYRSZuPHX+KlDfDXjlcVK2sBfP+7G55KdHtbdpABHw56YHDSJyQ1ObeE1yvbzMkJsT8TJlFdEm9IHGx0z20CELoNZwBTlDMB6AH87nswXkizkxx3mfdt+Azjt7huoKRykluWHevIQ+4LrAE6jZh5irGo6F+vGEm5llaCbJ5wnjrqEqdiIXyB1NdQ/TTvk/MOgsA==
+X-Session-ID: U2FsdGVkX19Ry8RzWesZfFcKD7J3lfQK7el56ZbsoNM=
+X-HE-Tag: 1778686982-257566
+X-HE-Meta: U2FsdGVkX191OTt5Ksd6rUOT63By4bRHO3knmbxlImxeNwSRm6MiHtOjFX4vJPI7crm7BSyrSIbvYT2WqOIcyORlXBEY2Q745H1gRnZgzxFxnZc2Bi+ODYvQqGyzbt0gxBvY2ORVu7Y4GQ21a4wpv6/a90k23BYL7etn+PwAjOo5gxJiydIgCFloW6Mpqm0UrvbWwABEN81N7oFp14CVTY728nkwzhqSyPCqbUhdm6Gp7kGkEzhfOsmKyTBnoEo7WZmXFfbv5M1ZAKLN8diVSXcT2j7/QCb3HvSSmT0BmXISJ4AvPIW0Eh8Dhn0nmq6iowz0POq6263XgbEXZQ9JarrVBkMeNNzrxBaehT1mK01cf9rA6EvFjUu8THAnEVExi+n7p8EX5+Ja1SfaAhM8P576YgkfJW2f
 
-On Tue,  5 May 2026 17:09:35 +0000
+On Tue,  5 May 2026 17:09:36 +0000
 Dmitry Ilvokhin <d@ilvokhin.com> wrote:
 
-> This is a preparatory refactoring for the next commit, which adds
+> Extend the contended_release tracepoint to queued rwlocks, using the
+> same out-of-line traced unlock approach as queued spinlocks.
+> 
+> Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
+> ---
+>  include/asm-generic/qrwlock.h | 22 ++++++++++++++++++++++
+>  kernel/locking/qrwlock.c      | 16 ++++++++++++++++
+>  2 files changed, 38 insertions(+)
+> 
+> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+> index 4b627bafba8b..274c19006125 100644
+> --- a/include/asm-generic/qrwlock.h
+> +++ b/include/asm-generic/qrwlock.h
+> @@ -14,6 +14,7 @@
+>  #define __ASM_GENERIC_QRWLOCK_H
+>  
+>  #include <linux/atomic.h>
+> +#include <linux/tracepoint-defs.h>
+>  #include <asm/barrier.h>
+>  #include <asm/processor.h>
+>  
+> @@ -35,6 +36,10 @@
+>   */
+>  extern void queued_read_lock_slowpath(struct qrwlock *lock);
+>  extern void queued_write_lock_slowpath(struct qrwlock *lock);
+> +extern void queued_read_unlock_traced(struct qrwlock *lock);
+> +extern void queued_write_unlock_traced(struct qrwlock *lock);
+> +
+> +DECLARE_TRACEPOINT(contended_release);
+>  
+>  /**
+>   * queued_read_trylock - try to acquire read lock of a queued rwlock
+> @@ -115,6 +120,17 @@ static __always_inline void __queued_read_unlock(struct qrwlock *lock)
+>   */
+>  static inline void queued_read_unlock(struct qrwlock *lock)
+>  {
+> +	/*
+> +	 * Trace and unlock are combined in the traced unlock variant so
+> +	 * the compiler does not need to preserve the lock pointer across
+> +	 * the function call, avoiding callee-saved register save/restore
+> +	 * on the hot path.
+> +	 */
+> +	if (tracepoint_enabled(contended_release)) {
+> +		queued_read_unlock_traced(lock);
 
-Same thing about using "next commit" in change logs.
+Same issue here about duplicating the code.
+> +		return;
+> +	}
+> +
+>  	__queued_read_unlock(lock);
+>  }
+>  
+> @@ -129,6 +145,12 @@ static __always_inline void __queued_write_unlock(struct qrwlock *lock)
+>   */
+>  static inline void queued_write_unlock(struct qrwlock *lock)
+>  {
+> +	/* See comment in queued_read_unlock(). */
+> +	if (tracepoint_enabled(contended_release)) {
+> +		queued_write_unlock_traced(lock);
+
+And here.
+
+> +		return;
+> +	}
+> +
+>  	__queued_write_unlock(lock);
+>  }
+>  
+> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+> index d2ef312a8611..5ae4b0372719 100644
+> --- a/kernel/locking/qrwlock.c
+> +++ b/kernel/locking/qrwlock.c
+> @@ -90,3 +90,19 @@ void __lockfunc queued_write_lock_slowpath(struct qrwlock *lock)
+>  	trace_contention_end(lock, 0);
+>  }
+>  EXPORT_SYMBOL(queued_write_lock_slowpath);
+> +
+> +void __lockfunc queued_read_unlock_traced(struct qrwlock *lock)
+> +{
+> +	if (queued_rwlock_is_contended(lock))
+> +		trace_call__contended_release(lock);
+
+Just have this trace and not actually do any locking.
+
+
+> +	__queued_read_unlock(lock);
+> +}
+> +EXPORT_SYMBOL(queued_read_unlock_traced);
+> +
+> +void __lockfunc queued_write_unlock_traced(struct qrwlock *lock)
+> +{
+> +	if (queued_rwlock_is_contended(lock))
+> +		trace_call__contended_release(lock);
+
+Ditto.
 
 -- Steve
 
-> contended_release tracepoint instrumentation and needs to call the
-> unlock from both traced and non-traced paths.
-> 
-> No functional change.
-> 
-> Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
-> Acked-by: Paul E. McKenney <paulmck@kernel.org>
-> ---
->  include/asm-generic/qrwlock.h | 20 +++++++++++++++-----
->  1 file changed, 15 insertions(+), 5 deletions(-)
+> +	__queued_write_unlock(lock);
+> +}
+> +EXPORT_SYMBOL(queued_write_unlock_traced);
+
