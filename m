@@ -1,134 +1,170 @@
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+Received: from mail-ed1-f42.google.com (mail-ed1-f42.google.com [209.85.208.42])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 816813A8757
-	for <linux-arch@vger.kernel.org>; Wed, 13 May 2026 20:19:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778703573; cv=none; b=eSXPFZ1T1JjQv5TWOi77Hs6yoHqyyZcmQvNJ5AH69IVDI62URMe9FDyt1tgFYj8XyrSjvC5r6ajFK4lGXz5+X+IF/ixDtb+ADUSeVIq4mkNV19rjtTzI8Ggi9G9xtx6wkSGlJwPW9mFSVL53Kak47Ws9TIpOhD6Yels1hzV+pc0=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778703573; c=relaxed/simple;
-	bh=EDn4odiH74H3ifCfhNGOCtR8TgiezO1EVoWQXBXXRIY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=upM2Mzka5UA5fl6w7LJvwa8o8d/mJq66d2W414gUmYQ1SICeeP4zL/f2yLbTzfpH5EKygr4RF0B4LeLBqBbEfHEXeJCN3EmcHiMSEG8gHv9ydPqbNJYHisJrwpITFv6ibaabvw52XTwqSU2BVQw+k9nITithWhbHcRr4zZJa+e8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; arc=none smtp.client-ip=195.135.223.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
-Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id ED6E36B0F3;
-	Wed, 13 May 2026 20:19:29 +0000 (UTC)
-Authentication-Results: smtp-out1.suse.de;
-	none
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id A5E0E593A9;
-	Wed, 13 May 2026 20:19:29 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id G7fLJ9HcBGpwcwAAD6G6ig
-	(envelope-from <dsterba@suse.cz>); Wed, 13 May 2026 20:19:29 +0000
-Date: Wed, 13 May 2026 22:19:28 +0200
-From: David Sterba <dsterba@suse.cz>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Michael Ellerman <mpe@ellerman.id.au>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Heiko Carstens <hca@linux.ibm.com>,
-	Vasily Gorbik <gor@linux.ibm.com>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Christian Borntraeger <borntraeger@linux.ibm.com>,
-	Sven Schnelle <svens@linux.ibm.com>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	Herbert Xu <herbert@gondor.apana.org.au>,
-	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
-	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
-	Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
-	Li Nan <linan122@huawei.com>, linux-kernel@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
-	linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
-	linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
-	linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-raid@vger.kernel.org
-Subject: Re: [PATCH 01/19] btrfs: require at least 4 devices for RAID 6
-Message-ID: <20260513201928.GO2558453@suse.cz>
-Reply-To: dsterba@suse.cz
-References: <20260512052230.2947683-1-hch@lst.de>
- <20260512052230.2947683-2-hch@lst.de>
- <20260512114231.GG2558453@suse.cz>
- <20260513054742.GA1018@lst.de>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5678E3655F5
+	for <linux-arch@vger.kernel.org>; Wed, 13 May 2026 23:10:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.42
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778713844; cv=pass; b=eVv0b7AQo3+59HlnW2DlL4ed3v40MgYSCAgQeaWNsMb33LcifM3ezC1C32xu880pRxkr8zobh9qH/IuAr3Lpd0Atq0IgDP/VZdsZkCgvoO53W5kRim+KvYD49AsQUR45ixeYcVtWpCeG6xkqzAUAhZUGhrGXSp7dL0MOvfK9ixU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778713844; c=relaxed/simple;
+	bh=fWmj7O1/4wld3D387Jz2Aj3uxUINmZx2w1RQME/BuHI=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=m+32k3MnBQTrnmYHgmkNFwj2PPsIxX9uoegiPIvOEDF41NXQ38CQAcBqSAWNEzM2mo1eriIjgmYJmhJGyjlNgrzHGYG85mHS1FlyezZJlPgnjeAV/C1qaLlNVBDW5VJJnV+aVSqO9stNYOWr6aW2PgPCG3XHjJKe/FzdD/mWKIk=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=sG+6nyqe; arc=pass smtp.client-ip=209.85.208.42
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="sG+6nyqe"
+Received: by mail-ed1-f42.google.com with SMTP id 4fb4d7f45d1cf-67b8d9c26bbso13356463a12.2
+        for <linux-arch@vger.kernel.org>; Wed, 13 May 2026 16:10:43 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1778713842; cv=none;
+        d=google.com; s=arc-20240605;
+        b=bmihQAKNiofKUgtsD3scO+32PKhILF/4RqVdDFBUBSFmZeFmFBkT3P8McZScu0eyXv
+         A5yUJj7KFa0lBr57gNPpGV7k4BqOkTzTDS+ELfK28Pr0aharW4xP2x7EZo8hMB66n17L
+         6aeuFora/mO4mgSvK/vMSrTuKmirfHg6eEKlgy8IcUhazY+PqGGLwAWcjU5u4EXySS3f
+         EdsN2VDxJbN/CeHKb1yhiAMEBAHzveqeecWWvG3Srj7vyu/a4W/H/YlEjCBphS0KlPsT
+         0xjaSvUcmCh9goH12nIvo4JwfU7XxDxL3UZaMW/00N/+oBUFspBeCQ16emXKI4vlwEUM
+         R9+A==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=fWmj7O1/4wld3D387Jz2Aj3uxUINmZx2w1RQME/BuHI=;
+        fh=x7f+7JBvraxTqnPyDh/ABDMXkk2h9bweChPmocIqfis=;
+        b=X5tmoULskceDdvI0RAg4GsC+YjREXzjqS8Q4ZsVHacG1oN4d6XPo6j+MJ1rduCu5oh
+         QHjokjaIlqixAOTzmHvdHOf8qkLlEddmBNUZIencO65icfTSIC/l2QXrs2cBzXy9VHXP
+         cWrPHhV/hXD5OOjSAXKw3wMBfOFAIvVWooERM2Iz/PFBnkwVKeKEoOn2OsA/WtgiaC1z
+         Lbtua9NEaEnPddquIhsfJ6kLWZJbE+nA8qmSg+Hz7IEeMLwJbM/rQnBNqEGEgo8LKpjZ
+         qQLNWxiri0gkvF1+Z38TjKQLOErJz+9MmsEo4N3pgcoIj3jecw8+E2+BnnWmlzwhxcH2
+         zxZg==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1778713842; x=1779318642; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=fWmj7O1/4wld3D387Jz2Aj3uxUINmZx2w1RQME/BuHI=;
+        b=sG+6nyqe9AqcKNszmQEXuS7Ow52nGH6vn2Bxbt4uW4NZEjJVI37JEGvIhYEaT4Oag4
+         1Ifm3YoYC4t7YpMJ3ILK1mTiJz7AzI7PpcHsBlKYloex8FA3FAskCrREZr57TTdO+tOu
+         r4osiL3jmzvq9tsw6sM/k0JsKFBNL8zkbguGVqkoL0KK9M4qjf1V22Y1aS74DfEd+2Ky
+         qxfuP8x0UFwTtvXV61ND4mySlW5k2l8HKS7pYGy+Sg9IKr1K1e6+5t7GLWs0eBSqbOxZ
+         UCUxoZPcj8EIlsUZNaECcwdS7H89coDkbon5vJpPrmzYdZ/BMAA67scdqfy7RwFKw5Di
+         X2GQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778713842; x=1779318642;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=fWmj7O1/4wld3D387Jz2Aj3uxUINmZx2w1RQME/BuHI=;
+        b=s8q8oiXN54Kzfv0DqNXoz1eiti1l9j1al1AHXW/oN/O/IWSgOruOC3ccdWm2IsWBeQ
+         7f2oPzb+3UziUh2jgwHYeQ3qZPnl2vd29IqjzxYbZX3ZR2vXGTHkowlsR2PMdGLdZhEO
+         7zuKgHYY1ZmPb6csLUoyDCZB01Fgw1NyWT2VK1VgRwYG1xtHvPeMZRFCKPRbhC+LsxLF
+         T5501gHzQ/jhOMDMUnYZGX/BDOkoKJMHzsZvrvNobiSzUdYSaZuBVZcuS1X+z/1G6MRA
+         rEVvm1gE+fi6bHUZUXkEFuYpkkVT0owF3NdJhboGiUISf3Ti4h7Qq+SGXiUQ4mIvwkZv
+         QFhQ==
+X-Forwarded-Encrypted: i=1; AFNElJ/i+NlzAaAzk+i9Iz3hnGjPvRWayvGQNnkul86VcHcUHTCM4zpNMO4g8303pHp3Yt844JddAHkZno8a@vger.kernel.org
+X-Gm-Message-State: AOJu0YyG3Ts1wMdhYyXVJwOoNoDwa9W8dJvKusZt1GUNg4ZXGNrrMj9R
+	fYyyr1qJv4WF/VrKrAnkKdpBFoHZr//PR6qr62ARzZ14cTCSTGxoqIAtrOImWAwCpfVYR5wlg8X
+	H00Am8L7wvQ7wYyikrI8OpaZoZ/1D32o=
+X-Gm-Gg: Acq92OHSpay5Gdh3pOe0IHEk7wL1R6Ijl5hEjmJy2h1pW17mqNqshr4JLvBvwdxiSEi
+	wRq6pdOsOorpjcpqV0CNxsYzLPZf1hY416n0Yb4QWUhrEfBgdMBJM4pyRgjPs2osy6tGAkqsxv9
+	cGDqrROEIO74wC0VmXzGAORNOlXrE01KxtHfG5TDOYTAetnimPmRfB2DL3J7bQgAd0wrsxepY6R
+	pNjsj6l5zbufHsaFRYvqb3KPESrqogNniU68vJoPrUBhGvvurRF8JD7UgTtmH8VLs2Z1EwsYzd3
+	3k3dwZ5rIlWHUweNSWAIHlBD9gZxKoc=
+X-Received: by 2002:a17:907:9704:b0:bce:267f:19cf with SMTP id
+ a640c23a62f3a-bd3dfd64271mr315423266b.12.1778713841538; Wed, 13 May 2026
+ 16:10:41 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260513054742.GA1018@lst.de>
-User-Agent: Mutt/1.5.23.1-rc1 (2014-03-12)
-X-Rspamd-Pre-Result: action=no action;
-	module=replies;
-	Message is reply to one we originated
-X-Spamd-Result: default: False [-4.00 / 50.00];
-	REPLY(-4.00)[]
-X-Rspamd-Queue-Id: ED6E36B0F3
-X-Spam-Score: -4.00
-X-Rspamd-Pre-Result: action=no action;
-	module=replies;
-	Message is reply to one we originated
-X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
-X-Rspamd-Action: no action
-X-Spam-Flag: NO
-X-Spam-Level: 
+References: <CAHbLzkrXXe7r3n3jXgDKtwZhRqj=jDx9E6dLOULohnhBguvi9A@mail.gmail.com>
+ <20260513021148.17588-1-lance.yang@linux.dev>
+In-Reply-To: <20260513021148.17588-1-lance.yang@linux.dev>
+From: Yang Shi <shy828301@gmail.com>
+Date: Wed, 13 May 2026 16:10:30 -0700
+X-Gm-Features: AVHnY4IN0dYyc8FrioEWxy6x33mBpShrHTtaMmtJuX5Tb81bKkEuJTZaPlb8x7g
+Message-ID: <CAHbLzkpBB2ia4pUG1khZy1w5G_sq6DD+9OnqjrJ6Yu0KxPAe=A@mail.gmail.com>
+Subject: Re: [PATCH] mm: make zeropage read-only
+To: Lance Yang <lance.yang@linux.dev>
+Cc: jannh@google.com, rppt@kernel.org, akpm@linux-foundation.org, 
+	arnd@arndb.de, linux-mm@kvack.org, linux-arch@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, linux-hardening@vger.kernel.org, 
+	ardb@kernel.org, sethjenkins@google.com
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, May 13, 2026 at 07:47:42AM +0200, Christoph Hellwig wrote:
-> On Tue, May 12, 2026 at 01:42:31PM +0200, David Sterba wrote:
-> > On Tue, May 12, 2026 at 07:20:41AM +0200, Christoph Hellwig wrote:
-> > > While the RAID6 algorithm could in theory support 3 devices by just
-> > > copying the data disk to the two parity disks, this version is not only
-> > > useless because it is a suboptimal version of 3-way mirroring, but also
-> > > broken with various crashes and incorrect parity generation in various
-> > > architecture-optimized implementations.  Disallow it similar to mdraid
-> > > which requires at least 4 devices for RAID 6.
-> > > 
-> > > Fixes: 53b381b3abeb ("Btrfs: RAID5 and RAID6")
-> > > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> > 
-> > This patch should have been sent separately as it has user visible
-> > impact and can potentially break some setups.
-> 
-> It _is_ sent out separate.
+On Tue, May 12, 2026 at 7:12=E2=80=AFPM Lance Yang <lance.yang@linux.dev> w=
+rote:
+>
+>
+> On Tue, May 12, 2026 at 10:14:01AM -0700, Yang Shi wrote:
+> >On Tue, May 12, 2026 at 6:48=E2=80=AFAM Jann Horn <jannh@google.com> wro=
+te:
+> >>
+> >> On Tue, May 12, 2026 at 4:31=E2=80=AFAM Lance Yang <lance.yang@linux.d=
+ev> wrote:
+> >> > Would it makes sense to apply a similar treatment to huge_zero_folio
+> >> > as well?
+> >> >
+> >> > with CONFIG_PERSISTENT_HUGE_ZERO_FOLIO=3Dy, it is allocated at boot =
+and
+> >> > never freed, so it should never be written after initialization eith=
+er :)
+> >>
+> >> Oh, neat, I didn't realize that that feature exists.
+> >>
+> >> I guess there are two aspects of making the huge zero folio RO that
+> >> could be problematic:
+> >>
+> >> 1. If the huge zero folio comes from the page allocator, making it
+> >> read-only might require splitting a huge PUD, which could have
+> >> performance implications.
+> >> 2. I vaguely remember arm64 has rules about how PUD/PMD entries in the
+> >> linear mapping can't be split at runtime at all depending on hardware
+> >> capabilities, meaning the entire linear mapping may need to be mapped
+> >> without any huge PUD/PMD entries - IDK if thp_shrinker_init() runs
+> >> early enough to be excepted from that. See can_set_direct_map() and
+> >> force_pte_mapping() in arch/arm64/.
+> >
+> >Yes. First of all, this relies rodata mode. If rodata=3Don (used to be
+> >called full), the linear mapping may be mapped by PUD/PMD if the
+> >hardware can support BBML2_NOABORT, otherwise it is mapped at PTE
+> >level all the time. But how huge zero folio is mapped in linear
+> >mapping should not matter, you just need to change the linear mapping
+> >permission to RO anyway.
+> >
+> >If the rodata mode is off or noalias (used to be called on), the
+> >linear mapping may be mapped by PUD/PMD, but basically changing linear
+> >mapping permission is not expected by kernel.
+>
+> Ah, right. So for huge_zero_folio the hard part is not just making the
+> backing memory read-only, but also whether we can change the linear
+> mapping permission for that range. That depends on the arm64 rodata mode
+> / direct-map setup.
 
-It's public interface change of btrfs but in a patch series cleaning
-up some library code, I noticed it by accident.
+An alternative is you can allocate huge zero folio in the early stage
+of boot before linear mapping is set up. Then when setting up linear
+mapping, you can just make that PMD RO. It should work regardless of
+rodata mode.
 
-> > The degenerate modes of
-> > raid0, 5, or 6 are explicit as a possible middle step when converting
-> > profiles.  We can use a fallback implementation for this case if the
-> > accelerated implementations cannot do it.
-> 
-> This is not about a degenerated mode.  For a degenerated RAID 6, parity
-> generation uses the RAID 5 XOR routines as the second parity will be
-> missing.  This is about generating two parities for a single data disk,
-> which must be explicitly selected.
+Thanks,
+Yang
 
-The calcuation is a different than what I'm concened about, changing
-minimum devices from 3 to 4 is a breaking change. If the library won't
-provide the xor/parity functions then we'll have to add a fallback for
-this special case.
+>
+> Thanks Jann and Yang for the explanations!
+> Lance
+>
+> >Thanks,
+> >Yang
+> >
+> >>
+> >> So making the huge zero folio RO in the linear map would probably
+> >> require adding a new config flag, connecting that to
+> >> ARCH_HAS_SET_DIRECT_MAP, and changing one or two places in arm64
+> >> memory management.
+> >>
+> >
