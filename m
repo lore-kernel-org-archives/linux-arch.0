@@ -1,166 +1,112 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 71FCA37C101;
-	Wed, 13 May 2026 01:31:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from out-174.mta0.migadu.com (out-174.mta0.migadu.com [91.218.175.174])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 888E735F185
+	for <linux-arch@vger.kernel.org>; Wed, 13 May 2026 02:12:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.174
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778635898; cv=none; b=bMsvXElgIt2QT9x4CZSDPe76Mx4rlOW+7nvAa+CSLQOFICYILrj7WewzE6+GHgfBX7ZQy6WW0I1Zx6CXYAyJHsH1S4CsvZYYrV0+RGO9ZT37G7f9ECdmUOrhYYci1GXJG13xX6fHOCmrYmWad34xB3OHM8fZsbka9Y0qgR6e5ig=
+	t=1778638332; cv=none; b=jAO/Bi/wDsvw5AijpYWpTXIB78QNpKCPfwqfC9cpcOiWqGTzOydEfitV/CfLl/AHcL0oVMpT5gY26rta2EnnWiOAT1guY7qkfGTn3GYsn8MfuU8p+ac+h6eTq+sGZe1t9biKkQBF9ZzxaNviIIlFQFkdsvPb9wrhuuZZBAPXAHQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778635898; c=relaxed/simple;
-	bh=H/di9LyEpiVEUN8fxJ5PF/SzJf2jvuHtmB37+wS3jvA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=pKuUx4oENw9+NEyucEauHdeHMB5i00L/H3IHxE8bKf7U9VSnOCOrkC9IxjytAgIh++gbT2XsWTbedtwBnTXu7qzu0c6Dv0Xk+myKjtflsSipaimKQn+7sjP1TOaCC/B3LqlQkQ8quRK89BjlS7STTX0SM3WMtI8rPy20CpiiMpU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=ZqYJyYOv; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1778638332; c=relaxed/simple;
+	bh=cdjJWSLheRQ+3GuD9xg1u/bkib2oHeCrXtM/HsiT9hA=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=IYC6E4xwq3yET6iRgz3ysRcXUfcxtH2vL5a1rW5TyMTtTYjjFonXJScXI712LZgUzM5zThlCHFDYYp4KnBLZmerhRJzOBmgFhn1+MuyZZ/SwOf0AN9z1ft1UiRtUaMi1fAOJIUXacNOgvYQsH0t2E+TEdrmI3V7qznoFGxnD49o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=FvqK/RE1; arc=none smtp.client-ip=91.218.175.174
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="ZqYJyYOv"
-Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id A4C2020B7166;
-	Tue, 12 May 2026 18:31:29 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com A4C2020B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1778635890;
-	bh=5q9rABfO0Gt/Q6Q3CrN73o4OycY5uJbilUt6FU0JSwI=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=ZqYJyYOvPj+UHa/jWI4PsDmDD5HCuVDNxuPcN1m3CAsdwhUsrIfpnnpQjzdM7z5Qy
-	 chKuGoqKEcjc+pQY40Wiii7Ze3QJhBv9q3Joe+LCwRcOwoU0pTvZwKHnbvfEqewRIe
-	 v9p/A0syWXxuKg6nZGqzUWN0H09hyXTolArvoUWs=
-Message-ID: <79f714df-c072-989a-c95d-989ea6b6f08b@linux.microsoft.com>
-Date: Tue, 12 May 2026 18:31:31 -0700
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="FvqK/RE1"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1778638329;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=cdjJWSLheRQ+3GuD9xg1u/bkib2oHeCrXtM/HsiT9hA=;
+	b=FvqK/RE1HsPP0f+Olp2dZTiI5rOPjZzpmfjMhV4TCxIgrlljmH7uX3cIBO75/yLdaj1TkK
+	fwZTR2ctao8DGHXSY/4uBJ9orQKkWJgVytD8f91uGBoXacu3/XNJWE62Bp8Gsz7UYuybaH
+	03SZrVpWg5okbuI8VjHVv+E+iz1cRzs=
+From: Lance Yang <lance.yang@linux.dev>
+To: shy828301@gmail.com,
+	jannh@google.com
+Cc: lance.yang@linux.dev,
+	rppt@kernel.org,
+	akpm@linux-foundation.org,
+	arnd@arndb.de,
+	linux-mm@kvack.org,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-hardening@vger.kernel.org,
+	ardb@kernel.org,
+	sethjenkins@google.com
+Subject: Re: [PATCH] mm: make zeropage read-only
+Date: Wed, 13 May 2026 10:11:48 +0800
+Message-Id: <20260513021148.17588-1-lance.yang@linux.dev>
+In-Reply-To: <CAHbLzkrXXe7r3n3jXgDKtwZhRqj=jDx9E6dLOULohnhBguvi9A@mail.gmail.com>
+References: <CAHbLzkrXXe7r3n3jXgDKtwZhRqj=jDx9E6dLOULohnhBguvi9A@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH V3 01/11] iommu/hyperv: Rename hyperv-iommu.c to
- hyperv-irq.c
-Content-Language: en-US
-To: Jacob Pan <jacob.pan@linux.microsoft.com>
-Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org, wei.liu@kernel.org,
- mhklinux@outlook.com, muislam@microsoft.com, namjain@linux.microsoft.com,
- magnuskulke@linux.microsoft.com, anbelski@linux.microsoft.com,
- linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
- iommu@lists.linux.dev, linux-pci@vger.kernel.org,
- linux-arch@vger.kernel.org, kys@microsoft.com, haiyangz@microsoft.com,
- decui@microsoft.com, longli@microsoft.com, tglx@kernel.org,
- mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
- joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
- kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de
-References: <20260512020259.1678627-1-mrathor@linux.microsoft.com>
- <20260512020259.1678627-2-mrathor@linux.microsoft.com>
- <20260512164623.0000273f@linux.microsoft.com>
-From: Mukesh R <mrathor@linux.microsoft.com>
-In-Reply-To: <20260512164623.0000273f@linux.microsoft.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-On 5/12/26 16:46, Jacob Pan wrote:
-> Hi Mukesh,
-> 
-> On Mon, 11 May 2026 19:02:49 -0700
-> Mukesh R <mrathor@linux.microsoft.com> wrote:
-> 
->> This file actually implements irq remapping, so rename to more
->> appropriate hyperv-irq.c. A new file to implement hyperv iommu will
->> be introduced later.  Also, it should not be tied to HYPERV_IOMMU,
->> but to CONFIG_HYPERV and IRQ_REMAP. The file already has #ifdef
->> CONFIG_IRQ_REMAP.
+
+On Tue, May 12, 2026 at 10:14:01AM -0700, Yang Shi wrote:
+>On Tue, May 12, 2026 at 6:48 AM Jann Horn <jannh@google.com> wrote:
 >>
->> Reviewed-by: Anirudh Rayabharam (Microsoft) <anirudh@anirudhrb.com>
->> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
->> ---
->>   MAINTAINERS                                    | 2 +-
->>   drivers/iommu/Makefile                         | 2 +-
->>   drivers/iommu/{hyperv-iommu.c => hyperv-irq.c} | 6 +++---
-> Given that we have multiple Hyper-V IOMMU-related files ? this renamed
-> hyperv-irq.c, the existing hyperv-iommu code, iommu-root (this
-> series) and the recently posted guest pvIOMMU driver ? should we create
-> a drivers/iommu/hyperv/ directory to consolidate them?
-
-This came up briefly during synup with arm64 devs whether to split
-the file into arch specific and common. We decided to wait till arm is
-working so we can tell how intrusive the #ifdefs are. We can decide as
-part of the arm port patches. I am ok also if you want to do it as part
-of the pv-iommu patches as follow up once this is merged.
-
-Thanks,
--Mukesh
-
->>   drivers/iommu/irq_remapping.c                  | 2 +-
->>   4 files changed, 6 insertions(+), 6 deletions(-)
->>   rename drivers/iommu/{hyperv-iommu.c => hyperv-irq.c} (99%)
+>> On Tue, May 12, 2026 at 4:31 AM Lance Yang <lance.yang@linux.dev> wrote:
+>> > Would it makes sense to apply a similar treatment to huge_zero_folio
+>> > as well?
+>> >
+>> > with CONFIG_PERSISTENT_HUGE_ZERO_FOLIO=y, it is allocated at boot and
+>> > never freed, so it should never be written after initialization either :)
 >>
->> diff --git a/MAINTAINERS b/MAINTAINERS
->> index d1cc0e12fe1f..f803a6a38fee 100644
->> --- a/MAINTAINERS
->> +++ b/MAINTAINERS
->> @@ -11914,7 +11914,7 @@ F:	drivers/clocksource/hyperv_timer.c
->>   F:	drivers/hid/hid-hyperv.c
->>   F:	drivers/hv/
->>   F:	drivers/input/serio/hyperv-keyboard.c
->> -F:	drivers/iommu/hyperv-iommu.c
->> +F:	drivers/iommu/hyperv-irq.c
->>   F:	drivers/net/ethernet/microsoft/
->>   F:	drivers/net/hyperv/
->>   F:	drivers/pci/controller/pci-hyperv-intf.c
->> diff --git a/drivers/iommu/Makefile b/drivers/iommu/Makefile
->> index 0275821f4ef9..335ea77cced6 100644
->> --- a/drivers/iommu/Makefile
->> +++ b/drivers/iommu/Makefile
->> @@ -30,7 +30,7 @@ obj-$(CONFIG_TEGRA_IOMMU_SMMU) += tegra-smmu.o
->>   obj-$(CONFIG_EXYNOS_IOMMU) += exynos-iommu.o
->>   obj-$(CONFIG_FSL_PAMU) += fsl_pamu.o fsl_pamu_domain.o
->>   obj-$(CONFIG_S390_IOMMU) += s390-iommu.o
->> -obj-$(CONFIG_HYPERV_IOMMU) += hyperv-iommu.o
->> +obj-$(CONFIG_HYPERV) += hyperv-irq.o
->>   obj-$(CONFIG_VIRTIO_IOMMU) += virtio-iommu.o
->>   obj-$(CONFIG_IOMMU_SVA) += iommu-sva.o
->>   obj-$(CONFIG_IOMMU_IOPF) += io-pgfault.o
->> diff --git a/drivers/iommu/hyperv-iommu.c b/drivers/iommu/hyperv-irq.c
->> similarity index 99%
->> rename from drivers/iommu/hyperv-iommu.c
->> rename to drivers/iommu/hyperv-irq.c
->> index 479103261ae6..d11076f906fb 100644
->> --- a/drivers/iommu/hyperv-iommu.c
->> +++ b/drivers/iommu/hyperv-irq.c
->> @@ -8,6 +8,8 @@
->>    * Author : Lan Tianyu <Tianyu.Lan@microsoft.com>
->>    */
->>   
->> +#ifdef CONFIG_IRQ_REMAP
->> +
->>   #include <linux/types.h>
->>   #include <linux/interrupt.h>
->>   #include <linux/irq.h>
->> @@ -24,8 +26,6 @@
->>   
->>   #include "irq_remapping.h"
->>   
->> -#ifdef CONFIG_IRQ_REMAP
->> -
->>   /*
->>    * According 82093AA IO-APIC spec , IO APIC has a 24-entry Interrupt
->>    * Redirection Table. Hyper-V exposes one single IO-APIC and so
->> define @@ -331,4 +331,4 @@ static const struct irq_domain_ops
->> hyperv_root_ir_domain_ops = { .free = hyperv_root_irq_remapping_free,
->>   };
->>   
->> -#endif
->> +#endif  /* CONFIG_IRQ_REMAP */
->> diff --git a/drivers/iommu/irq_remapping.c
->> b/drivers/iommu/irq_remapping.c index c2443659812a..41bf65e4ea88
->> 100644 --- a/drivers/iommu/irq_remapping.c
->> +++ b/drivers/iommu/irq_remapping.c
->> @@ -108,7 +108,7 @@ int __init irq_remapping_prepare(void)
->>   	else if (IS_ENABLED(CONFIG_AMD_IOMMU) &&
->>   		 amd_iommu_irq_ops.prepare() == 0)
->>   		remap_ops = &amd_iommu_irq_ops;
->> -	else if (IS_ENABLED(CONFIG_HYPERV_IOMMU) &&
->> +	else if (IS_ENABLED(CONFIG_HYPERV) &&
->>   		 hyperv_irq_remap_ops.prepare() == 0)
->>   		remap_ops = &hyperv_irq_remap_ops;
->>   	else
+>> Oh, neat, I didn't realize that that feature exists.
+>>
+>> I guess there are two aspects of making the huge zero folio RO that
+>> could be problematic:
+>>
+>> 1. If the huge zero folio comes from the page allocator, making it
+>> read-only might require splitting a huge PUD, which could have
+>> performance implications.
+>> 2. I vaguely remember arm64 has rules about how PUD/PMD entries in the
+>> linear mapping can't be split at runtime at all depending on hardware
+>> capabilities, meaning the entire linear mapping may need to be mapped
+>> without any huge PUD/PMD entries - IDK if thp_shrinker_init() runs
+>> early enough to be excepted from that. See can_set_direct_map() and
+>> force_pte_mapping() in arch/arm64/.
+>
+>Yes. First of all, this relies rodata mode. If rodata=on (used to be
+>called full), the linear mapping may be mapped by PUD/PMD if the
+>hardware can support BBML2_NOABORT, otherwise it is mapped at PTE
+>level all the time. But how huge zero folio is mapped in linear
+>mapping should not matter, you just need to change the linear mapping
+>permission to RO anyway.
+>
+>If the rodata mode is off or noalias (used to be called on), the
+>linear mapping may be mapped by PUD/PMD, but basically changing linear
+>mapping permission is not expected by kernel.
 
+Ah, right. So for huge_zero_folio the hard part is not just making the
+backing memory read-only, but also whether we can change the linear
+mapping permission for that range. That depends on the arm64 rodata mode
+/ direct-map setup.
+
+Thanks Jann and Yang for the explanations!
+Lance
+
+>Thanks,
+>Yang
+>
+>>
+>> So making the huge zero folio RO in the linear map would probably
+>> require adding a new config flag, connecting that to
+>> ARCH_HAS_SET_DIRECT_MAP, and changing one or two places in arm64
+>> memory management.
+>>
+>
