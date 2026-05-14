@@ -1,130 +1,136 @@
-Received: from out-189.mta1.migadu.com (out-189.mta1.migadu.com [95.215.58.189])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f48.google.com (mail-wm1-f48.google.com [209.85.128.48])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2747921771B
-	for <linux-arch@vger.kernel.org>; Thu, 14 May 2026 02:16:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.189
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EF8A23AB29B
+	for <linux-arch@vger.kernel.org>; Thu, 14 May 2026 06:46:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.48
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778725019; cv=none; b=VUhEMhFeCpQFpGr0aYQciZw/AFH6v1YgFYE0nHDM7+E1KpZpSKTGojFRUS/gz1VkAUkjGXX9S1edsCqz4wnY8l3R9LcI9whdj66Udrc4JeNoI+ONbvuvjp9mI1q4pwhQEQCDylrvaz6fy63HtCskOYk32Qfvd62q7h08ZIvzpIo=
+	t=1778741176; cv=none; b=X0uzKCxkBdLJBCloJFd1KH9Ry89X25PUjcXuxsZHgMv9Z38aArzWE7yds4qQXUEvSe0UJdBGMG7N50x6X/RMJHpps3CQA7yzghOQMR1mDLCChJAxcyrZe0+hERqEhyqxsK9usEc/8MXw3H38ElOlGlMEtbDA5y2JC79Zd8BwBwI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778725019; c=relaxed/simple;
-	bh=+/EqXFH8UBug4+vHiukxscxva32NTqpB0Kx21ItGbt0=;
+	s=arc-20240116; t=1778741176; c=relaxed/simple;
+	bh=9WoMlXctnJX7VI6xy3gmdkzNlfWMOnxsDI0zmen0z7A=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=LzAMGI9bKY+FssbNuLv5T2n0VHmWz9GuUfMosQk44asCJuGIHk7ZuFmNCeKgrjU6xqlgOULgZAClsDHu0ZIverGDo//nvedlH8gnOyRZTJqdvHerGbLO7rr6Fjm0XkaTjAt4hOdkpoPJ+JfVDw0+5OShsk+6TlTUmSITmPWyHCo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=NiSJMa8A; arc=none smtp.client-ip=95.215.58.189
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	 In-Reply-To:Content-Type; b=mjrTApII8CwLNT9IwJgA1ZRppLEBvNauaAfBv+u+P6MbgQKHEZ4W/4xWhAdgMtmH11mIsQgIyO1Om4XZHyiAKTJubXCkDYkDysLSLhEyHieaRqQGTvHkyTPQVHXRsq/gICUb2NMzncCU+zrJa4x/Wu6vfeV+KiNLBT8uQ/tfBY0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=IlZcLVwP; arc=none smtp.client-ip=209.85.128.48
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="NiSJMa8A"
-Message-ID: <5478f96d-277c-46c3-b437-1660706fd784@linux.dev>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1778725006;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=sfUkHUvFvN9MUTYLegQqMkS5z5gU7HMTPPWfFS0sDNs=;
-	b=NiSJMa8AZj6pYNg9iccdQZ5+vV7Wlf4xHw5EyItlN4Uzap+ockOpYSTg+rB5FQHFwKLE9q
-	37R8dEt5EQ20J8HrNgu4yVkzNtBvhOyEDYo7mqvXwh6ZTBJIzHPruVplA/f5Z1wtC8L2J1
-	PwbFzmSX20hM2/kLwuIJAb3c0sVQDBQ=
-Date: Thu, 14 May 2026 10:16:19 +0800
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="IlZcLVwP"
+Received: by mail-wm1-f48.google.com with SMTP id 5b1f17b1804b1-488af9fdaa7so42369745e9.1
+        for <linux-arch@vger.kernel.org>; Wed, 13 May 2026 23:46:13 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1778741172; x=1779345972; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=tLK4OFCAyAlL4axAHiV7SbqndCrWYl28zniYu6/O1QY=;
+        b=IlZcLVwPk0RiNQPzap2NYz2eb9006clL6A1sg0iLk2XXRnOt7IHvIJQItGnw0NdE5V
+         DYKejrcj/dmJVIbaS+HFJ+2Uz6v2/+IR1vFj0ThPr07+qGPUOWaNfBWUWgYOcqebVhol
+         66J3YZu2gMBaRUqgUZVYE5DyyqoFHGokpj2mfg86g6WdExVcqn+wx4RQT/8qKp6pLQ3y
+         JvkcSA9r3tV6PWKBHTxA7v/CySiLTEkbnfLbsVO5XON/5zjUcWm9KVhuGAUhsMHHtnnx
+         RlZE8ZWn6nHaOrunKBSAYGrFwJFPCE1mseqrBTTHMLWqslwbil0FAf+8M5Y4LLwXj8AO
+         z1QQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778741172; x=1779345972;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=tLK4OFCAyAlL4axAHiV7SbqndCrWYl28zniYu6/O1QY=;
+        b=k3PwTQ+SBJpT9eHJvi4AXp04lGsQM2PAPfJCNDFSoP5M9Vl8u5318NnjeZBjLMfld3
+         Y4hFZ1oy/ATmpZcr60CsVtSEbSwYaCHtbvoHFg84q2cfIlhZeW47ybcl8l4uL6kfGBU+
+         jgv9xMysEgbYRoBQp4iQKpmqKkNC3aDTqI0NWT+UK9DA8t+pD8yDuj6JjxbSpAOgGl1o
+         qCugTCN7CHzIfWNPmxM9DX5wa9IFGnZDdqVjy6uOqqO6Ml6IwyPo/BwlW8DwOo+4X5Ak
+         8be4E0otKs89uF7DCaLQ9boYxgNhgjha2i8qrrdQKwCyua/H61DQ/ogmcydw+e1lxzsC
+         2q1Q==
+X-Forwarded-Encrypted: i=1; AFNElJ+5WHJ9CQmRcMMH8PgP3Zdh1WEIBaoNZnsv2Sz0y5adnAkZbIIeEemqzf1y2nM66I0OqCMf84CtRjm5@vger.kernel.org
+X-Gm-Message-State: AOJu0YzRX4M4+Mi6Tz7teZre3pyYKIPkX0GCJEn+g2zPpn5GIr3a0ZwZ
+	zrikj4L7RYFa7WAX8TqPCZOI4Okkw3WATX/kS4RxRJ2yx5Vn6nodRw/hCA+Gg5v1wWk=
+X-Gm-Gg: Acq92OFvfbii52bmZ1/D2/T63ddS48J+nh/JnpSctVdoGXtG2k9Vz4NCtL0A7yvCm43
+	XSx17/u10tpAnYV1F/sTAI4VPGFYgNGpnMe/I5Kll/8mqnfkRYd/O984JyNDMJ+ErL09HS+bFek
+	Gkhux5r0wkUgSRAy6+iNLe+iKR2EJKWk6CihYkJtu0uT7Db3yZL/m/Rps57fXZuPBc3S8Oq4SoU
+	ps1qkZ+To7e59AcQt/eAhUd5OnLIRd9ocTag+itg9UnQaNpNHD1SMajEdJwhsYDRR2AVHj36Dn+
+	Z9mjr2cC+aX8CijP+VnbentzB0lnF+GkxPNAVAXxlVxkAIQmYEollJEeKKSJbJUvEtsjp0fwAHv
+	85LWbEEePnj1fLZXyqB0isRwv+2ffnVLLyyBPkz9k8sJ/u0zbAuxLZgdf4cn3RvwBo68I3z7HaH
+	MJfrKN8wVWrtTGYdvP1GrhYNNRCeT5loNQqjjc+Vky5/VT
+X-Received: by 2002:a05:600c:4ed1:b0:489:a4:e555 with SMTP id 5b1f17b1804b1-48fc9a41e96mr88986265e9.21.1778741172397;
+        Wed, 13 May 2026 23:46:12 -0700 (PDT)
+Received: from [192.168.42.79] (nat2.prg.suse.com. [195.250.132.146])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-45da15a6454sm4465330f8f.34.2026.05.13.23.46.11
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 13 May 2026 23:46:11 -0700 (PDT)
+Message-ID: <29fa0ff2-4477-4b42-824f-c99d862786ce@suse.com>
+Date: Thu, 14 May 2026 08:46:11 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH] mm: make zeropage read-only
-To: Yang Shi <shy828301@gmail.com>
-Cc: jannh@google.com, rppt@kernel.org, akpm@linux-foundation.org,
- arnd@arndb.de, linux-mm@kvack.org, linux-arch@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-hardening@vger.kernel.org,
- ardb@kernel.org, sethjenkins@google.com
-References: <CAHbLzkrXXe7r3n3jXgDKtwZhRqj=jDx9E6dLOULohnhBguvi9A@mail.gmail.com>
- <20260513021148.17588-1-lance.yang@linux.dev>
- <CAHbLzkpBB2ia4pUG1khZy1w5G_sq6DD+9OnqjrJ6Yu0KxPAe=A@mail.gmail.com>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 5/5] dyndbg.lds.S: fix lost dyndbg sections in modules
+To: Jim Cromie <jim.cromie@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>,
+ Luis Chamberlain <mcgrof@kernel.org>, Daniel Gomez <da.gomez@kernel.org>,
+ Sami Tolvanen <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-modules@vger.kernel.org
+References: <20260507-asm-generic-1-v2-0-47c52759d268@gmail.com>
+ <20260507-asm-generic-1-v2-5-47c52759d268@gmail.com>
 Content-Language: en-US
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-From: Lance Yang <lance.yang@linux.dev>
-In-Reply-To: <CAHbLzkpBB2ia4pUG1khZy1w5G_sq6DD+9OnqjrJ6Yu0KxPAe=A@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
-X-Migadu-Flow: FLOW_OUT
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260507-asm-generic-1-v2-5-47c52759d268@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-
-
-On 2026/5/14 07:10, Yang Shi wrote:
-> On Tue, May 12, 2026 at 7:12 PM Lance Yang <lance.yang@linux.dev> wrote:
->>
->>
->> On Tue, May 12, 2026 at 10:14:01AM -0700, Yang Shi wrote:
->>> On Tue, May 12, 2026 at 6:48 AM Jann Horn <jannh@google.com> wrote:
->>>>
->>>> On Tue, May 12, 2026 at 4:31 AM Lance Yang <lance.yang@linux.dev> wrote:
->>>>> Would it makes sense to apply a similar treatment to huge_zero_folio
->>>>> as well?
->>>>>
->>>>> with CONFIG_PERSISTENT_HUGE_ZERO_FOLIO=y, it is allocated at boot and
->>>>> never freed, so it should never be written after initialization either :)
->>>>
->>>> Oh, neat, I didn't realize that that feature exists.
->>>>
->>>> I guess there are two aspects of making the huge zero folio RO that
->>>> could be problematic:
->>>>
->>>> 1. If the huge zero folio comes from the page allocator, making it
->>>> read-only might require splitting a huge PUD, which could have
->>>> performance implications.
->>>> 2. I vaguely remember arm64 has rules about how PUD/PMD entries in the
->>>> linear mapping can't be split at runtime at all depending on hardware
->>>> capabilities, meaning the entire linear mapping may need to be mapped
->>>> without any huge PUD/PMD entries - IDK if thp_shrinker_init() runs
->>>> early enough to be excepted from that. See can_set_direct_map() and
->>>> force_pte_mapping() in arch/arm64/.
->>>
->>> Yes. First of all, this relies rodata mode. If rodata=on (used to be
->>> called full), the linear mapping may be mapped by PUD/PMD if the
->>> hardware can support BBML2_NOABORT, otherwise it is mapped at PTE
->>> level all the time. But how huge zero folio is mapped in linear
->>> mapping should not matter, you just need to change the linear mapping
->>> permission to RO anyway.
->>>
->>> If the rodata mode is off or noalias (used to be called on), the
->>> linear mapping may be mapped by PUD/PMD, but basically changing linear
->>> mapping permission is not expected by kernel.
->>
->> Ah, right. So for huge_zero_folio the hard part is not just making the
->> backing memory read-only, but also whether we can change the linear
->> mapping permission for that range. That depends on the arm64 rodata mode
->> / direct-map setup.
+On 5/7/26 10:40 PM, Jim Cromie wrote:
+> With CONFIG_DRM_USE_DYNAMIC_DEBUG=y, several build configs had
+> problems with __dyndbg* sections getting lost in drm drivers.  Fix
+> this by following the model demonstrated in codetag.lds.h.
 > 
-> An alternative is you can allocate huge zero folio in the early stage
-> of boot before linear mapping is set up. Then when setting up linear
-> mapping, you can just make that PMD RO. It should work regardless of
-> rodata mode.
-
-Cool. Good call. That would avoid changing the linear map permissions at
-runtime.
-
-Thanks for pointing that out! I'll take a look when I get a chance :)
-
-Cheers, Lance
-
-> Thanks,
-> Yang
+> Introduce include/asm-generic/dyndbg.lds.h, to bundle dynamic-debug's
+> multiple sections together, into 2 macros:
 > 
->>
->> Thanks Jann and Yang for the explanations!
->> Lance
->>
->>> Thanks,
->>> Yang
->>>
->>>>
->>>> So making the huge zero folio RO in the linear map would probably
->>>> require adding a new config flag, connecting that to
->>>> ARCH_HAS_SET_DIRECT_MAP, and changing one or two places in arm64
->>>> memory management.
->>>>
->>>
+> vmlinux.lds.h DATA_DATA: move the 2 BOUNDED_SECTION_BY(__dyndbg*)
+> calls into dyndbg.lds.h DYNDBG_SECTIONS(). vmlinux.lds.h now includes
+> the new file and calls the new macro.
+> 
+> MOD_DYNDBG_SECTIONS declares the 2 BOUNDED_SECTION_BY calls, but wraps
+> them with output section syntax to keep them as known and separate ELF
+> sections in the module.ko.  The KEEP fixes the lost section.
+> 
+> dyndbg.lds.h includes (reuses) bounded-section.lds.h
+> 
+> scripts/module.lds.S: now calls MOD_DYNDBG_SECTIONS right before the
+> CODETAG macro (consistent with their placements in vmlinux.lds.h), and
+> also includes dyndbg.lds.h
+> 
+> This isolates vmlinux.lds.h from further __dyndbg section additions.
+> 
+> CC: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+> ---
+> [...]
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index d9d2eb708355..54897d742c6c 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -332,6 +332,7 @@
+>  /*
+>   * .data section
+>   */
+> +#include <asm-generic/dyndbg.lds.h>
+>  #define DATA_DATA							\
+>  	*(.xiptext)							\
+>  	*(DATA_MAIN)	
 
+Nit: I suggest placing the dyndbg.lds.h include at the top of the file,
+as is usual, together with the codetag.lds.h include.
+
+Otherwise, this looks ok to me. Feel free to add:
+
+Reviewed-by: Petr Pavlu <petr.pavlu@suse.com>
+
+-- 
+Thanks,
+Petr
