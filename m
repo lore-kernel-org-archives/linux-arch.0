@@ -1,164 +1,122 @@
-Received: from mail.ilvokhin.com (mail.ilvokhin.com [178.62.254.231])
+Received: from relay.hostedemail.com (smtprelay0010.hostedemail.com [216.40.44.10])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08E0B413244;
-	Thu, 14 May 2026 14:13:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.62.254.231
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BCE1C327C08;
+	Thu, 14 May 2026 16:04:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=216.40.44.10
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778768026; cv=none; b=AJEsQnS5I3l1SZmBqh55RWxAPJFKrpEP5HcBLa/d56mtTss54OZmeG1Iq23GqJncL/4S2D6HlnXglxhhKiJKs4p5qEXIPQ5mhdqNh7anI+RKLjQW68dJXCFID1/OQmEg4ahOt1f0/tEJkFuEYPdyNop9XynL3XDq3sOhly5R1z8=
+	t=1778774642; cv=none; b=HpyfHM/WV2pqioQATQcRC+EM8EP2LF4z2KO+YSRhj7x8urQQuTb6HwDCueQs/rwwU72eQwvcGawgGruMjNPZ7IOnOjGo3hsWdFAfrwZTfdy5LaA+rhQxa2NPL4rTdh7j1d8R/hhPvDQtuX9v8HZbwRDmSqjjt6dzRcMyDCudj3E=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778768026; c=relaxed/simple;
-	bh=RZ497f2MkBSfcDNRv07WOD93tdragrIfUhY+O1zJISk=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=D6tOOjD0e4enRTbotUhrnYmkwPnrB/amwbsn0WNVYGs0B7xM5Cg3eoiAe7JWW0c64wWRxf2Mx90Wob0nF2VcpNb7on+c3xiqNhAF/3ops8VoG9rM9ab9eQDmhJjONv/7VfdobyTymRw+OgxwtnQiemgUKPBEavWsNrMegbYZnO8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=2LqHdCq5; arc=none smtp.client-ip=178.62.254.231
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ilvokhin.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="2LqHdCq5"
-Received: from shell.ilvokhin.com (shell.ilvokhin.com [138.68.190.75])
-	(Authenticated sender: d@ilvokhin.com)
-	by mail.ilvokhin.com (Postfix) with ESMTPSA id 92774D0572;
-	Thu, 14 May 2026 14:13:36 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ilvokhin.com;
-	s=mail; t=1778768016;
-	bh=CEtEQitvr5ZkBK9ei+U84T7UAt16YdxOYlqifuRSuCs=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=2LqHdCq5tSBQ3BZqU0GmdOcvGsRqUa4wcPdAHu8hjvMz6CYEy0/FcUOv3IiSY6ajb
-	 LJ3OiABsNiurRx+c2LFTGtfo/wrG5XGj49b8jVqXLWLHz8oq3JNDQsDBaYJg6nMv4k
-	 SnM09PPyXc4AO4h3CaPUrJA/LHwqYctv2hZXMW48=
-Date: Thu, 14 May 2026 14:13:35 +0000
-From: Dmitry Ilvokhin <d@ilvokhin.com>
-To: Steven Rostedt <rostedt@goodmis.org>
+	s=arc-20240116; t=1778774642; c=relaxed/simple;
+	bh=IfJ4JpyIX3bxpjESdnNrG0HyvHftYTP+uUETrEn8WJQ=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=EvyD88kmIpxiBbgtbWvZJg0GZizhAqVEwhGpY1LcbxZdvVijki509B/mW+o5kxxDLr6IXDYhkg1FLgHapAmsFst7PUmiC9uEtb0nOwW9FPSKU2vlED/ovk9Z1yHx0uHALJAejV9spyqyjI1SI536cBa5f5hFUvs/alL7RHtan1Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org; spf=pass smtp.mailfrom=goodmis.org; arc=none smtp.client-ip=216.40.44.10
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=goodmis.org
+Received: from omf19.hostedemail.com (lb01a-stub [10.200.18.249])
+	by unirelay02.hostedemail.com (Postfix) with ESMTP id 4F1EB12032B;
+	Thu, 14 May 2026 16:03:51 +0000 (UTC)
+Received: from [HIDDEN] (Authenticated sender: rostedt@goodmis.org) by omf19.hostedemail.com (Postfix) with ESMTPA id 3251B20028;
+	Thu, 14 May 2026 16:03:45 +0000 (UTC)
+Date: Thu, 14 May 2026 12:03:48 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+To: Dmitry Ilvokhin <d@ilvokhin.com>
 Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>,
-	Will Deacon <will@kernel.org>, Boqun Feng <boqun@kernel.org>,
-	Waiman Long <longman@redhat.com>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Juergen Gross <jgross@suse.com>,
-	Ajay Kaher <ajay.kaher@broadcom.com>,
-	Alexey Makhalov <alexey.makhalov@broadcom.com>,
-	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
-	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
-	Christoph Lameter <cl@gentwo.org>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
-	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
-	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
-	kernel-team@meta.com, "Paul E. McKenney" <paulmck@kernel.org>
+ Will Deacon <will@kernel.org>, Boqun Feng <boqun@kernel.org>, Waiman Long
+ <longman@redhat.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Juergen Gross <jgross@suse.com>, Ajay Kaher <ajay.kaher@broadcom.com>,
+ Alexey Makhalov <alexey.makhalov@broadcom.com>, Broadcom internal kernel
+ review list <bcm-kernel-feedback-list@broadcom.com>, Thomas Gleixner
+ <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>, Dave Hansen
+ <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
+ <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Dennis Zhou
+ <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter
+ <cl@gentwo.org>, Masami Hiramatsu <mhiramat@kernel.org>, Mathieu Desnoyers
+ <mathieu.desnoyers@efficios.com>, linux-kernel@vger.kernel.org,
+ linux-mips@vger.kernel.org, virtualization@lists.linux.dev,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ linux-trace-kernel@vger.kernel.org, kernel-team@meta.com, "Paul E.
+ McKenney" <paulmck@kernel.org>
 Subject: Re: [PATCH v6 5/7] locking: Add contended_release tracepoint to
  qspinlock
-Message-ID: <agXYjw3GM15WtC-H@shell.ilvokhin.com>
+Message-ID: <20260514120348.7a64facc@gandalf.local.home>
+In-Reply-To: <agXYjw3GM15WtC-H@shell.ilvokhin.com>
 References: <cover.1777999826.git.d@ilvokhin.com>
- <5d7ea75ffe74a785e6b234ada9f23c6373d4b4c1.1777999826.git.d@ilvokhin.com>
- <20260513114102.50f4ca68@gandalf.local.home>
+	<5d7ea75ffe74a785e6b234ada9f23c6373d4b4c1.1777999826.git.d@ilvokhin.com>
+	<20260513114102.50f4ca68@gandalf.local.home>
+	<agXYjw3GM15WtC-H@shell.ilvokhin.com>
+X-Mailer: Claws Mail 3.20.0git84 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260513114102.50f4ca68@gandalf.local.home>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+X-Rspamd-Server: rspamout05
+X-Rspamd-Queue-Id: 3251B20028
+X-Stat-Signature: yq6zq8w6pg8sf89tbku7px9pn6kjg7ib
+X-Session-Marker: 726F737465647440676F6F646D69732E6F7267
+X-Session-ID: U2FsdGVkX18+AovYNGIlALhyn+K5C/7gpJOZfNyJEu4=
+X-HE-Tag: 1778774625-341613
+X-HE-Meta: U2FsdGVkX19HQDyuK5W1sWFaIilY7bm7Gf/MZYHKwmEDTE3ZbhyKfVzPtSNaRvRwwLibMDr+clEajGn4IMslvXyWRSAtdRw7n20LqpU/ZL1JRwQy7RM1IZ8C/G8JiCKlU7NLZxt8T0jLkJLCLpPM7qJ+dpyaKbSRbUbJJ9wssRC6BHcQX6wyCcVcl8zzZF/OVyWwMsrTKquwAEsHp9WwFxub5w8dGBF9fpamxEC5Vrgn4VfpydBb94gT6qa9OETZ2G0tA+8SrtKJggxMx1uuZ2LNQUPr2vuo/NU83uN08IiVbeRQ5csVSw+NNSzK03CbEK4AKDmVTf9PZCF/6yk3hM3689icTTPJeoQXH95ipe2RYbbc23zucZ9uSvKuke71iwqS2WK43PR19rLABJH2Mw==
 
-On Wed, May 13, 2026 at 11:41:02AM -0400, Steven Rostedt wrote:
-> On Tue,  5 May 2026 17:09:34 +0000
-> Dmitry Ilvokhin <d@ilvokhin.com> wrote:
+On Thu, 14 May 2026 14:13:35 +0000
+Dmitry Ilvokhin <d@ilvokhin.com> wrote:
+
+> > > +void __lockfunc queued_spin_release_traced(struct qspinlock *lock)
+> > > +{
+> > > +	if (queued_spin_is_contended(lock))
+> > > +		trace_call__contended_release(lock);
+> > > +	queued_spin_release(lock);  
+> > 
+> > And then remove the duplicate call of "queued_spin_release()" here.  
 > 
-> > Use the arch-overridable queued_spin_release(), introduced in the
-> > previous commit, to ensure the tracepoint works correctly across all
+> This is the scenario the comment above the static branch describes.
+> Here's what it looks like in practice on x86_64 (defconfig, compiled
+> with GCC 11).
 > 
-> Remove the ", introduced in the previous commit," That's useless in git
-> change logs.
-
-Thanks for the suggestion, will do here and in other places.
-
-[...]
-
-> >  /**
-> >   * queued_spin_unlock - unlock a queued spinlock
-> >   * @lock : Pointer to queued spinlock structure
-> > + *
-> > + * Generic tracing wrapper around the arch-overridable
-> > + * queued_spin_release().
-> >   */
-> >  static __always_inline void queued_spin_unlock(struct qspinlock *lock)
-> >  {
-> > +	/*
-> > +	 * Trace and release are combined in queued_spin_release_traced() so
-> > +	 * the compiler does not need to preserve the lock pointer across the
-> > +	 * function call, avoiding callee-saved register save/restore on the
-> > +	 * hot path.
-> > +	 */
-> > +	if (tracepoint_enabled(contended_release)) {
-> > +		queued_spin_release_traced(lock);
-> > +		return;
+> Current design (trace + unlock combined, with return):
+>   
+>     endbr64
+>     xchg %ax,%ax                     ; NOP (static branch)
+>     movb $0x0,(%rdi)                 ; unlock
+>     decl %gs:__preempt_count
+>     je   preempt
+>     jmp  __x86_return_thunk
+>     call queued_spin_release_traced  ; cold
+>     jmp  preempt_handling            ; cold
+>     call __SCT__preempt_schedule
+>     jmp  __x86_return_thunk
 > 
-> Get rid of the "return;". What does it save you? It just makes it that you
-> need to duplicate the code. Even though it's a one liner, it can cause bugs
-> in the future if this changes. You could call the function:
+> With the trace-only function (no return, unlock after the call):
+>   
+>     endbr64
+>     push %rbx                        ; saves callee-saved rbx (!)
+>     mov  %rdi,%rbx                   ; preserve lock across call (!)
+>     xchg %ax,%ax                     ; NOP (static branch)
+>     movb $0x0,(%rbx)                 ; unlock
+>     decl %gs:__preempt_count
+>     je   preempt
+>     pop  %rbx                        ; callee-saved restore (!)
+>     jmp  __x86_return_thunk
+>     call queued_spin_release_traced  ; cold
+>     jmp  unlock                      ; cold
+>     call __SCT__preempt_schedule
+>     pop  %rbx
+>     jmp  __x86_return_thunk
 > 
->   do_trace_queued_spin_release_traced(lock);
-> 
-> 
-> > +	}
-> >  	queued_spin_release(lock);
-> >  }
-> >  
-> > diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-> > index af8d122bb649..649fdca69288 100644
-> > --- a/kernel/locking/qspinlock.c
-> > +++ b/kernel/locking/qspinlock.c
-> > @@ -104,6 +104,14 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
-> >  #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
-> >  #endif
-> >  
-> > +void __lockfunc queued_spin_release_traced(struct qspinlock *lock)
-> > +{
-> > +	if (queued_spin_is_contended(lock))
-> > +		trace_call__contended_release(lock);
-> > +	queued_spin_release(lock);
-> 
-> And then remove the duplicate call of "queued_spin_release()" here.
+> Three extra instructions marked by "!" on the hot path (push, mov, pop),
+> all wasted when the tracepoint is off. That's the main reason for
+> combining trace and unlock in the same out-of-line function.
 
-This is the scenario the comment above the static branch describes.
-Here's what it looks like in practice on x86_64 (defconfig, compiled
-with GCC 11).
+Ah, because the return makes it into two tail calls.
 
-Current design (trace + unlock combined, with return):
-  
-    endbr64
-    xchg %ax,%ax                     ; NOP (static branch)
-    movb $0x0,(%rdi)                 ; unlock
-    decl %gs:__preempt_count
-    je   preempt
-    jmp  __x86_return_thunk
-    call queued_spin_release_traced  ; cold
-    jmp  preempt_handling            ; cold
-    call __SCT__preempt_schedule
-    jmp  __x86_return_thunk
+I still don't like the duplication, perhaps add some more comments about
+needing to update the other location if anything changes here? And perhaps
+comment that this duplicate code helps the assembly.
 
-With the trace-only function (no return, unlock after the call):
-  
-    endbr64
-    push %rbx                        ; saves callee-saved rbx (!)
-    mov  %rdi,%rbx                   ; preserve lock across call (!)
-    xchg %ax,%ax                     ; NOP (static branch)
-    movb $0x0,(%rbx)                 ; unlock
-    decl %gs:__preempt_count
-    je   preempt
-    pop  %rbx                        ; callee-saved restore (!)
-    jmp  __x86_return_thunk
-    call queued_spin_release_traced  ; cold
-    jmp  unlock                      ; cold
-    call __SCT__preempt_schedule
-    pop  %rbx
-    jmp  __x86_return_thunk
+-- Steve
 
-Three extra instructions marked by "!" on the hot path (push, mov, pop),
-all wasted when the tracepoint is off. That's the main reason for
-combining trace and unlock in the same out-of-line function.
