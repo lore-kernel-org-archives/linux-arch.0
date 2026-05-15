@@ -1,133 +1,357 @@
-Received: from mail-qv1-f52.google.com (mail-qv1-f52.google.com [209.85.219.52])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from SA9PR02CU001.outbound.protection.outlook.com (mail-southcentralusazolkn19013041.outbound.protection.outlook.com [52.103.14.41])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1E734385539
-	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 22:35:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.219.52
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778884548; cv=none; b=O6JRLkxkY46+cpC+oeExCafB/WYcqSlxYsqvHhkr6cbaTgnwCbtWMYMPyc46Flod92dDldgwMSdxURFhwPu0bdh9IGECwL9zm7Grf8Hak/qPaB+fMgTYhnUAqA6tx0NdQd4ail9pX0Fg8KyURI2GifJqO+CyDxPI8Q1Tr9I6lik=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778884548; c=relaxed/simple;
-	bh=43M0QEo0eyyWPrbH4y4RCOZ7Hh/aYFkSTUf2UUibSrU=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=shJEuUtW+WxVIBkefbAd9EWKFhGwV19yJytp0E1uyYWjnceu9lZwnqp9GDAlh5N2VQTJjkA35l9TdAh38zzbqOmyZNZH02RsjZipt30Rqw2jq3auxXt1BnIejNKk3nlcEGGwiIRO8zgrl3udWxSPtq5oXUz/BqbqqxSsYCj7hwg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=XsX7GuAu; arc=none smtp.client-ip=209.85.219.52
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EDDA230F957;
+	Fri, 15 May 2026 23:33:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.103.14.41
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778888006; cv=fail; b=QkLUmDGbpX/Ko8ltyIJsKn0Qq7Tv1lbv482PA+OLGgZQW+CWSb+JxXW3z2ZgyWUQwsEFGCQOk32xNzBNnFs88baA75oIivxVqWGy/nxE71X5LcIPg6QvHj5ltuJpfMypzbRttn4RuiCidJRUCs5QoZbcRg3zkz7qSPuwPutTYow=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778888006; c=relaxed/simple;
+	bh=KA87gamoWf9eLcK0AQq8hCe9x1ew4SqquM1YdastrxA=;
+	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
+	 Content-Type:MIME-Version; b=uzde3o3sWckLgrW9kxAUtenG7ZgZ2aV7thNn8Oidjo+uh1YcwyesUJ5N9/oMxcKOlnwqao/zqob0fzLLb4aA8A/0FMjDOXVxTIEpZdMGRg3Q0e5HTzl6DQmCS++6NhCdh+eHeJpuNe9SmzmPw9AHO+klXz7DYAVB2/ofy2tH2B8=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=CzOMrBPp; arc=fail smtp.client-ip=52.103.14.41
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="XsX7GuAu"
-Received: by mail-qv1-f52.google.com with SMTP id 6a1803df08f44-8b7105dfb35so4902896d6.3
-        for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 15:35:46 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=ziepe.ca; s=google; t=1778884546; x=1779489346; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=TNcmCN882Y+/mpDinGleLsVSa4beLL8jNPnufICq5xU=;
-        b=XsX7GuAusaCW2LmT6u8ew3/AzUb4Xjxt9X3vjamS4IL1RmGAU3MR67ypmronfRfXyW
-         E9y5QRxboLE3xsIS0gaVfI4K3BugHkAT4V3ABCEecxlDiB8tZ2L6mCeSHIEyTMjh9DoB
-         BDhQJ8n1dGTTMDwbS8pH5Fga+FyizW0/5r4gbRmPlKm5rmI12FMQKJGg+6owsc2Dyr8i
-         7d79LfafVPeV9yJyPzmy73OCqQI70UuUFRGgRFYtCCmcandMKqZA7Svkot47DBtDpU1D
-         Z08l7bL2P5uO59hLhWP1kcSDSkmRqvWVnC7RLV3yeWeThxRbNW68z2gmfu4Bz4ER7HCg
-         Pr6w==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1778884546; x=1779489346;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=TNcmCN882Y+/mpDinGleLsVSa4beLL8jNPnufICq5xU=;
-        b=YbB8lSd36/0HfYd77RwfzxPH8LYh+ornGio3oq3YnFR/0I93YIUQpj4u3QhHDw8Q7E
-         kHDuC8LL4UIy+vhnLzaLDkLL/kjNwodx1zRDgYQVQhREBXky7IUXumx8wingqlW564kD
-         dGXaspux4P4mf95FOlqN5H7wNmRs/Iiv8JygA/gnXg25F+CuCD57Po0w0yXC3R3pfgEM
-         egft0cwt6h9eD3dlZv71yDfJMsCNMRkmnRXp3ekCjc+ltoFI48WkX1jPxgI++AcRpTPq
-         pDwanWjqsmg9s7vByXeXB5oTtwz03ys+yQ9EkQMNKMRX3oK+aeBDdj8qZ5J3T9IwkuDj
-         icNg==
-X-Forwarded-Encrypted: i=1; AFNElJ9wibctL0IsZQX32hm9/uEEHTYA4xIcOZwXM5JtwoFLLvvoY71sHCD6KrgViJqjtjQeFUgs7vLxS0CW@vger.kernel.org
-X-Gm-Message-State: AOJu0YyIIZYduDR3+E6467hU3sYJcmPjGnK5VMfD3dsLscEc/yGb04wg
-	6f2LHxkNJhIKmSXLVhMOb3DawYsquYuy99Yp31gI0Fgl0AUrMDMf42xkLfgaPQuMRgw=
-X-Gm-Gg: Acq92OEmQ3j/tKMyGPh3hRp0H6AxLN+PN5ZL4kKLUU+VAuHTKEzEOTKBbtLksIfVDPf
-	A+HCV04rN2xSyUme00CERiSk4YkPkPgRVavhRlWuHKrhefmhwECmLLowy0QNH1Y7o2z5CpNGixn
-	IbmzPCRz0XdyHOzNZkOaoONIxxLNtn/yoSF31nlAgUG0Lj8bzCjl7clIBY25wvmbeKnMDI5HRsh
-	VF0sRra/Pk1hGspKcARu/eA+CFx6l2IaXFHbrF8J0clSZdjpx6jkInZ8VRbSzMx6bb5l+RquOyh
-	GvZJzv/MaRBkFn/Gf5Z48y/NduWWfOJ+6N/1KA/MMW4RIBjf3uEqCI9SQiKVrwBKDtqLfPcpHXs
-	F3zvVjdrfU9VXdwMXM0Xm+TVDbFAF+LwgoOxQejgoMBZrq/w11c7Q8YDmn37VC6cLEXvjSrwGKR
-	lnefLRyAj13ziQA2YjOYWbSuBVsB7iETXlcYw2O/z7EgKbKf9wOAgURhg/obFE7E+g1qT4VJv5m
-	ZnPwxmqQwIVFcBi
-X-Received: by 2002:a05:620a:4406:b0:8ef:ed0b:c235 with SMTP id af79cd13be357-911d087dccamr952694285a.56.1778884546078;
-        Fri, 15 May 2026 15:35:46 -0700 (PDT)
-Received: from ziepe.ca (crbknf0213w-47-54-130-67.pppoe-dynamic.high-speed.nl.bellaliant.net. [47.54.130.67])
-        by smtp.gmail.com with ESMTPSA id af79cd13be357-910baa3c045sm682967285a.13.2026.05.15.15.35.45
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 15 May 2026 15:35:45 -0700 (PDT)
-Received: from jgg by wakko with local (Exim 4.97)
-	(envelope-from <jgg@ziepe.ca>)
-	id 1wO18D-00000008EMQ-0W2r;
-	Fri, 15 May 2026 19:35:45 -0300
-Date: Fri, 15 May 2026 19:35:45 -0300
-From: Jason Gunthorpe <jgg@ziepe.ca>
-To: Yu Zhang <zhangyu1@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org, wei.liu@kernel.org, kys@microsoft.com,
-	haiyangz@microsoft.com, decui@microsoft.com, longli@microsoft.com,
-	joro@8bytes.org, will@kernel.org, robin.murphy@arm.com,
-	bhelgaas@google.com, kwilczynski@kernel.org, lpieralisi@kernel.org,
-	mani@kernel.org, robh@kernel.org, arnd@arndb.de,
-	mhklinux@outlook.com, jacob.pan@linux.microsoft.com,
-	tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com
-Subject: Re: [PATCH v1 4/4] iommu/hyperv: Add page-selective IOTLB flush
+	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="CzOMrBPp"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=VrrxuyXGq+FGGzTaECTgzIMR9KHfsj4qw6ve+0ZycWrBZKIkjqiF5jsQpoGYXKwBEYwDVAZ2p5TqobBdO1MmR+Djd0wJ6bstpp5xuklw3HzYo1iwY3xKxjdebsXI5tUJScOyBqJdH7qA6Dyf778QMyVI5vDcg55u9Ym+B7zaUM58+u0VEguAxA9K7SkS5tbMIak0oKPS2Rzl88ezCt+9JU8ooNH1XNd1ao/r/87zKZS/3rdj724tHzGxiucilIH9CieHBu/Ehv3BRN5BURn6RfJooa3VpJywuueHsw0X7ADPttree8LdVJml+WNM9C3UKoIyKHOHIeDKGf1lQ6sdZw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=BR7RnEA8O080sx070m0KYA9CgcQ9bLGCrfRDZRuijF4=;
+ b=C5ado5bIiqyOPVLOO1qPmdzTeCmbJSffgaCz7V8HIRoOWKKmdS0yz53dTi/UpOeN4VvJZQhKkNZErrX3XBqWBemYHc4UWmCF7y6Yp4iqdIPBpKW3fAGdf4qKcvqNlwnbs6QA0tq4tpNaAXcHt7469gQSgQ31t8Fwg7/PVoagLRMy0cpklk8z22UPPTswllv9xXcbOL2nOF+oLlFVkfHjaALCvTBfol/lCGGeLWVTCXX9AlHiMbf9Koc3LGJbAOFRKT6qWSFbZno0HDpz9+/WLDQ8Wf016VROdK8dKvA49+WDZ/yRxcOYrh9B1pMn7TfLAHjyXyJSHgW4rRQvvWBOcQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
+ dkim=none; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
+ s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=BR7RnEA8O080sx070m0KYA9CgcQ9bLGCrfRDZRuijF4=;
+ b=CzOMrBPptKrbpwFX/kp/0ryyvFE+CthJ4wh/vFzock/JMq0ncP3Alfqe7wRO7zp9srQaUSOdHAoeEqckgMHlBmwLI942qXoK3NxZHpJz2GPqsgTre8SPo0z4+LqR6dxILK4ijsFdk927C/x2u1B07msfEe1K4LNFdPqZ8kaVzM44SqX8T51eN0AgVI+g1DEcJQ0JpOdp9SjwAij3nowJVBtKsieXY5DdY2mv6YN59mLY+IsAo0bDZL/IoIeMWBxawAoNTvEU+UjY9ga8io97vg6PwXglDPqwX9f/7UigQkU4EiobCuGrEF8Rpl8X59PGjxlwyLmX3kpAG89U3GwbLA==
+Received: from BN7PR02MB4148.namprd02.prod.outlook.com (2603:10b6:406:f6::17)
+ by LV0PR02MB11159.namprd02.prod.outlook.com (2603:10b6:408:330::8) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9891.23; Fri, 15 May
+ 2026 23:33:22 +0000
+Received: from BN7PR02MB4148.namprd02.prod.outlook.com
+ ([fe80::6007:d1a1:bcf9:58ef]) by BN7PR02MB4148.namprd02.prod.outlook.com
+ ([fe80::6007:d1a1:bcf9:58ef%6]) with mapi id 15.21.0025.016; Fri, 15 May 2026
+ 23:33:21 +0000
+From: Michael Kelley <mhklinux@outlook.com>
+To: Michael Kelley <mhklinux@outlook.com>, Yu Zhang
+	<zhangyu1@linux.microsoft.com>
+CC: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+	"iommu@lists.linux.dev" <iommu@lists.linux.dev>, "linux-pci@vger.kernel.org"
+	<linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org"
+	<linux-arch@vger.kernel.org>, "wei.liu@kernel.org" <wei.liu@kernel.org>,
+	"kys@microsoft.com" <kys@microsoft.com>, "haiyangz@microsoft.com"
+	<haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>,
+	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org"
+	<joro@8bytes.org>, "will@kernel.org" <will@kernel.org>,
+	"robin.murphy@arm.com" <robin.murphy@arm.com>, "bhelgaas@google.com"
+	<bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>,
+	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org"
+	<mani@kernel.org>, "robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de"
+	<arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>,
+	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>,
+	"tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>,
+	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>
+Subject: RE: [PATCH v1 4/4] iommu/hyperv: Add page-selective IOTLB flush
  support
-Message-ID: <20260515223545.GL7702@ziepe.ca>
+Thread-Topic: [PATCH v1 4/4] iommu/hyperv: Add page-selective IOTLB flush
+ support
+Thread-Index: AQHc4WKquRiuLrUu+ESNYKKX1F+8PLYN2DNAgAFzewCAABr1EIAAXPfQ
+Date: Fri, 15 May 2026 23:33:21 +0000
+Message-ID:
+ <BN7PR02MB4148D820AEBBBB9A1268D640D4042@BN7PR02MB4148.namprd02.prod.outlook.com>
 References: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
  <20260511162408.1180069-5-zhangyu1@linux.microsoft.com>
+ <SN6PR02MB41577D5EEC884EAE8AF5E14ED4072@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <7wil6tzqp74gdvhyjvpv47zhfernncs42wnfoueznneluz5zrp@pzr63lhy7s5f>
+ <SN6PR02MB4157F7758A127AA1E8096B6CD4042@SN6PR02MB4157.namprd02.prod.outlook.com>
+In-Reply-To:
+ <SN6PR02MB4157F7758A127AA1E8096B6CD4042@SN6PR02MB4157.namprd02.prod.outlook.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach:
+X-MS-TNEF-Correlator:
+x-ms-publictraffictype: Email
+x-ms-traffictypediagnostic: BN7PR02MB4148:EE_|LV0PR02MB11159:EE_
+x-ms-office365-filtering-correlation-id: 7cce64c3-73ab-4734-e8a6-08deb2da5a08
+x-microsoft-antispam:
+ BCL:0;ARA:14566002|12121999013|13091999003|41001999006|15080799012|19110799012|8062599012|8060799015|37011999003|55001999006|19101099003|31061999003|51005399006|440099028|3412199025|12091999003|102099032|40105399003|1710799026;
+x-microsoft-antispam-message-info:
+ =?us-ascii?Q?zhJ5HEdigO7ovfw1eK51UtOqzn5SMJbi0Tqar6ZdAgdC1NWRlRbCgI/kjd6U?=
+ =?us-ascii?Q?Srqj5MqIm4py6QUnPcn/6SsYW9ckmDVzYtwMWeYgIGT8TIjqk51y0MghvYD/?=
+ =?us-ascii?Q?YUYk05oF9fltJRkt5xY8JjxqyOuWu2mAR8zsLCpPm+dKWaWTcZXlIZ3AuH+7?=
+ =?us-ascii?Q?ySauRch/oXhs9Tzi3QnGrn6gIVaWselATsN3smsK+W7itjy/0/5VTQBfcRQn?=
+ =?us-ascii?Q?5+cQBYNhinwtu85+MFL4GoVKPuqQGG0mVHTu0LOX6afHqw4ddVVU528NJfcr?=
+ =?us-ascii?Q?H2MK8bHDlOKVKJosxRz+tGROGHyE7Nc6TH9lW3NyrVA8GktgNcJeNw2/1zN5?=
+ =?us-ascii?Q?V0jdzBKXfQBaJBkg2JYOZRZUztDXYAL/DbPFSWRttVI95wiOjULQeuhJ5GJ0?=
+ =?us-ascii?Q?q+TQ7qABzpkGk/63ahPCXQqBxqW3qTYP3we6kU8Ay5nq3Z12xhWSoqSV1yNe?=
+ =?us-ascii?Q?ckr2l0Y0od/BU1MkFX7MWPRHQUiC2I71UVo5ncSrbENZYbFMDvfOITDltzo9?=
+ =?us-ascii?Q?Qg6PM/yV6Idk1rv7tDW4OlTmmFoO3LRMwW6CsudzjOM1Hz7cXIZQWBG9LyCp?=
+ =?us-ascii?Q?cJl98BAGJQDeohPC6v/ZkurcYZ8ErU6RmlLdsL0X97Qcq07KgPMB3rXgPUvv?=
+ =?us-ascii?Q?F/dvJRi6HQ5iyFbaEvlmvKb3wBGuAIHjnEcM15Q8RI5uKELxdiD+Bt9VABm1?=
+ =?us-ascii?Q?Ajg/Bz/oR0bNIUiD2/oOWxtr8LOfzzUrvYdsAa3PnfErzPTB4pPsGNxX0FDt?=
+ =?us-ascii?Q?WTrzamjkc14cDnj1LU/xzZfAJ5okSu8B6f57UN3UeUdjQ0uvyywR9qd1x+7K?=
+ =?us-ascii?Q?ySxxoLFkZn9CDOtx/pUlSBgGFnaBIMgpGmAi2fJa/DBFrn71Jj6fvQCSa00V?=
+ =?us-ascii?Q?Xcewjyk2lnvsJ+5Ffh6U9PdYtQlIgZkYg+wobxH5xOlXBRGbZJygzrS8mySe?=
+ =?us-ascii?Q?KpNceLSfc2OJIidiU/3MUFV3vBcKCyVed+x2jNbyJ1dQtQuXV7a6DqqtZdJ5?=
+ =?us-ascii?Q?65h+8+6wSgMrUkUI0ESscbj3eSEOEdeWvmFcU55L5Y6RsWkmd/GGf9Nhq2dO?=
+ =?us-ascii?Q?vs4erIttziQJajhq8Imjb3yEGRmeMxTzzvJP5DHUEhVISzFFGomcgrdFxSm3?=
+ =?us-ascii?Q?osKXMm82ZLpjm12x9q0h8mFg+PUseJJbrV06CwVq97sAEW985GSDxuU=3D?=
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0:
+ =?us-ascii?Q?xzqP4nwkh5iL2YQOx6vgsJ8Ut1ImYVXWXho21pG90EjrBYwa3wrB53SMzmhv?=
+ =?us-ascii?Q?JsuS7AZbAuKlrOfNuSY9lNOAxqAg71auU5IhCYr/MssGk2NAX2pZHpO3ML+c?=
+ =?us-ascii?Q?lLe3b9DFcQeCeu9N8SYynR4eMxIjZ9CSMeZIoKy5Q1s/KjTwOtIWuFhf/MTw?=
+ =?us-ascii?Q?9I4rSvIdezCgmrcy2U2aQ86cnK2PpM5ENQ7cXTzHnXuxfgCrVJeg0IS2cl8K?=
+ =?us-ascii?Q?GjESYIcX7kdtkTw3/XlViK7TFJg6rS6933vsbta4GfcKcEFfafuG+ByNDdfA?=
+ =?us-ascii?Q?LtO9MZ854ZMZQFQK6wVeauAODRe+cmvldZ/tmEzCHAOqq3Z9ejr4QI3uAkcg?=
+ =?us-ascii?Q?5Q37uQeRyEsF5hHyQqmRSPjvcX5Z7MkipeQei62gByEZD5ENYPoQo0MAYeOR?=
+ =?us-ascii?Q?D3tUznpS2rg6TqWUgiVuCNNLLP98c/59X8UcCNtibmo60LZDpKqfK9UFG7Cx?=
+ =?us-ascii?Q?EfhJk8e2ZtHHfaCo2ebyzdpBuyqUsYywF1qMREAdWUSOEUjKR7VUm0APgGlM?=
+ =?us-ascii?Q?KyJ+Q7OIThyFyFR4rU3Sv8UDJJ+Mmk5lRKEZt2nKptVhC0o0M60cdfOm2zqQ?=
+ =?us-ascii?Q?1OZ1bonca3MKgyUS+Osp4K8KZhqejU3ZpRVwFc0ZfnMuoxfFby0WDHWhSVZU?=
+ =?us-ascii?Q?+CtXnLhgPMQQk+HCFVVxIYov8wHP6qYzjXeLH5IhX1ba1BJwTAwAMcBbo4Qd?=
+ =?us-ascii?Q?+RaoLKCWMJhT7vCiWPb3A4eNaocUacShZzTmzdFFlUODMLnZwRyFOChC8VrI?=
+ =?us-ascii?Q?repw1Vntn3E2KLhgk/Jb9IYiJRSverVGxn/iIXx64giRJ3oc4ky4WF+aAcnz?=
+ =?us-ascii?Q?iZeElsNr/cxDPSUHHjXcnFvKL17IH97p5gwUy20KB+gIR7M3exeVge/DEvz2?=
+ =?us-ascii?Q?UTu1BEBVjtFJfJFM3wnBCeZ7ZkfS4SwCADYgI+2NYZGPAXyc9xCM/gMAB88B?=
+ =?us-ascii?Q?df6lTN8BlcY0jFo0sP1xJTwvmGurthefiYcrRMgkFbBlfsc60PfGjJAHRkWV?=
+ =?us-ascii?Q?bBJ34nme36Dzjcm0giFYfMnRc418Elhyqr/ZBplUD1BuzleuEN8/QDIaSH/m?=
+ =?us-ascii?Q?Vj0GeRDTc9DghG42LAP1BC2F6XpyCFe0mY1D0eok/7Bj4Qj+bnB+9Hm27n48?=
+ =?us-ascii?Q?YvZVrRRFNjgsuueXtHWHoFkzW/WVD4Jvko8T+iVHXtBk2HTICeGj9mh+14bq?=
+ =?us-ascii?Q?ClC0Ctmj1SRcXmbmnxBAtjLZASjYEgyDManqB1f0G9hM7JCvOWS9iBeYdarm?=
+ =?us-ascii?Q?U2lEVQwao92jNFmrWBP1wRyiG6EdYB5emDyr0YHZoinILFt4qgExSYtXzfu/?=
+ =?us-ascii?Q?vXnDFsitXqFv2YpPVQtoMwMVY2Oa8EZ3ZuDYO3WUavVRZTMr9xyDA0PKy+mm?=
+ =?us-ascii?Q?w5O/JO8=3D?=
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260511162408.1180069-5-zhangyu1@linux.microsoft.com>
+X-OriginatorOrg: outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: BN7PR02MB4148.namprd02.prod.outlook.com
+X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-CrossTenant-Network-Message-Id: 7cce64c3-73ab-4734-e8a6-08deb2da5a08
+X-MS-Exchange-CrossTenant-originalarrivaltime: 15 May 2026 23:33:21.6220
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
+X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: LV0PR02MB11159
 
-On Tue, May 12, 2026 at 12:24:08AM +0800, Yu Zhang wrote:
-> +static inline u16 hv_iommu_fill_iova_list(union hv_iommu_flush_va *iova_list,
-> +					  unsigned long start,
-> +					  unsigned long end)
-> +{
-> +	unsigned long start_pfn = start >> PAGE_SHIFT;
-> +	unsigned long end_pfn = PAGE_ALIGN(end) >> PAGE_SHIFT;
-> +	unsigned long nr_pages = end_pfn - start_pfn;
-> +	u16 count = 0;
-> +
-> +	while (nr_pages > 0) {
-> +		unsigned long flush_pages;
-> +		int order;
-> +		unsigned long pfn_align;
-> +		unsigned long size_align;
-> +
-> +		if (count >= HV_IOMMU_MAX_FLUSH_VA_COUNT) {
-> +			count = HV_IOMMU_FLUSH_VA_OVERFLOW;
-> +			break;
-> +		}
-> +
-> +		if (start_pfn)
-> +			pfn_align = __ffs(start_pfn);
-> +		else
-> +			pfn_align = BITS_PER_LONG - 1;
-> +
-> +		size_align = __fls(nr_pages);
-> +		order = min(pfn_align, size_align);
-> +		iova_list[count].page_mask_shift = order;
-> +		iova_list[count].page_number = start_pfn;
-> +
-> +		flush_pages = 1UL << order;
-> +		start_pfn += flush_pages;
-> +		nr_pages -= flush_pages;
-> +		count++;
-> +	}
+From: Michael Kelley <mhklinux@outlook.com> Sent: Friday, May 15, 2026 11:0=
+0 AM
+>=20
+> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Friday, May 15, 2026 =
+9:24 AM
+> >
+> > On Thu, May 14, 2026 at 06:14:22PM +0000, Michael Kelley wrote:
+> > > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Monday, May 11, 2=
+026 9:24 AM
+> > > >
+>=20
+> [....]
+>=20
+> > > > +	unsigned long nr_pages =3D end_pfn - start_pfn;
+> > > > +	u16 count =3D 0;
+> > > > +
+> > > > +	while (nr_pages > 0) {
+> > > > +		unsigned long flush_pages;
+> > > > +		int order;
+> > > > +		unsigned long pfn_align;
+> > > > +		unsigned long size_align;
+> > > > +
+> > > > +		if (count >=3D HV_IOMMU_MAX_FLUSH_VA_COUNT) {
+> > > > +			count =3D HV_IOMMU_FLUSH_VA_OVERFLOW;
+> > > > +			break;
+> > > > +		}
+> > > > +
+> > > > +		if (start_pfn)
+> > > > +			pfn_align =3D __ffs(start_pfn);
+> > >
+> > > I don't understand why __ffs() is correct here. I would expect
+> > > __fls() so it is consistent with the calculation of size_align. But I
+> > > can only surmise how the hypercall works since there's no
+> > > documentation, so maybe my understanding of the hypercall is
+> > > wrong.   If __ffs really is correct, a comment explaining why
+> > > would help. :-)
+> > >
+> >
+> > The use of __ffs() is intentional. Each flush entry invalidates a
+> > naturally aligned 2^N page block, and the hypervisor requires the
+> > page_number to be aligned to 2^page_mask_shift.
+> >
+> > Here __ffs() and __fls() serve different purposes:
+> > - __ffs(start_pfn) is about the alignment constraint, e.g.,  how
+> > large a block can this address support?
+> > - __fls(nr_pages) is about  the size constraint, e.g., how large
+> > a block can the remaining range hold?
+> >
+> > Taking min() of both ensures each entry is both properly aligned
+> > and within bounds.
+> >
+> > Thanks for raising this - it definitely deserves a comment. I had to
+> > stare at it for a while myself to remember why. :)
+>=20
+> Hmmm. Something about this still nags at me. I'll run some
+> experiments to either convince myself that you are right, or to
+> come up with a counterexample.
 
-This seems like a really silly hypervisor interface. Why doesn't it
-just accept a normal range? Splitting it into power of two aligned
-ranges is very inefficient.
+I have resolved what was nagging at me. My understanding of how
+_ffs() and __fls() work was wrong. :-(  Your code is correct.
 
-Jason
+>=20
+> A related thought occurred to me. If each flush entry that is passed
+> to Hyper-V describes a naturally aligned 2^N page block, I don't
+> think the HV_IOMMU_MAX_FLUSH_VA_COUNT can ever
+> be reached. The number of entries is limited by the number of
+> bits in a PFN and the pages count, both of which are 64. And with
+> 52 bit physical addressing and 4KiB pages, the actual size of
+> a PFN and pages count is even smaller than 64.
+> HV_IOMMU_MAX_FLUSH_VA_COUNT is the number of 8 byte
+> union hv_iommu_flush_va entries that fit in a 4KiB page, so
+> it's ~500.
+>=20
+> My statement applies to a single flush range. If multiple flush
+> ranges were strung together in a single hypercall, a larger count
+> could be reached, but hv_flush_device_domain_list() only does
+> a single range. So I don't think the overflow case in
+> hv_flush_device_domain_list() can ever happen. But let me
+> do my experiments, and I will also look at this aspect to confirm
+> if it's right.
+
+My experiments also convince me that the overflow case can't
+happen as long as the hypercall is being populated with entries
+derived from a single range.
+
+Michael
+
+>=20
+> >
+> > > > +		else
+> > > > +			pfn_align =3D BITS_PER_LONG - 1;
+> > > > +
+> > > > +		size_align =3D __fls(nr_pages);
+> > > > +		order =3D min(pfn_align, size_align);
+> > > > +		iova_list[count].page_mask_shift =3D order;
+> > > > +		iova_list[count].page_number =3D start_pfn;
+> > > > +
+> > > > +		flush_pages =3D 1UL << order;
+> > > > +		start_pfn +=3D flush_pages;
+> > > > +		nr_pages -=3D flush_pages;
+> > > > +		count++;
+> > > > +	}
+> > > > +
+> > > > +	return count;
+> > > > +}
+> > > > +
+> > > > +static void hv_flush_device_domain_list(struct hv_iommu_domain *hv=
+_domain,
+> > > > +					struct iommu_iotlb_gather *iotlb_gather)
+> > > > +{
+> > > > +	u64 status;
+> > > > +	u16 count;
+> > > > +	unsigned long flags;
+> > > > +	struct hv_input_flush_device_domain_list *input;
+> > > > +
+> > > > +	local_irq_save(flags);
+> > > > +
+> > > > +	input =3D *this_cpu_ptr(hyperv_pcpu_input_arg);
+> > > > +	memset(input, 0, sizeof(*input));
+> > > > +
+> > > > +	input->device_domain =3D hv_domain->device_domain;
+> > > > +	input->flags |=3D HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT;
+> > >
+> > > I would suggest moving the memset() and setting the input fields down
+> > > under the "else" below so that they are parallel with the flush all c=
+ase.
+> > >
+> >
+> > I agree the structure should be more symmetric. Yet I guess the memset =
+and
+> > hv_iommu_fill_iova_list() need to stay before the branch since the fill
+> > writes directly into input->iova_list[]. :)
+>=20
+> Agreed.
+>=20
+> >
+> > > > +	count =3D hv_iommu_fill_iova_list(input->iova_list,
+> > > > +					iotlb_gather->start,
+> > > > +					iotlb_gather->end);
+> > > > +	if (count =3D=3D HV_IOMMU_FLUSH_VA_OVERFLOW) {
+> > > > +		/*
+> > > > +		 * Range exceeds hypercall page capacity. Fall back to a full
+> > > > +		 * domain flush.
+> > > > +		 */
+> > > > +		struct hv_input_flush_device_domain *flush_all =3D (void *)input=
+;
+> > > > +
+> > > > +		memset(flush_all, 0, sizeof(*flush_all));
+> > > > +		flush_all->device_domain =3D hv_domain->device_domain;
+> > > > +		status =3D hv_do_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN,
+> > > > +					flush_all, NULL);
+> > > > +	} else {
+> > > > +		status =3D hv_do_rep_hypercall(
+> > > > +				HVCALL_FLUSH_DEVICE_DOMAIN_LIST,
+> > > > +				count, 0, input, NULL);
+> > > > +	}
+> > > > +
+> > > > +	local_irq_restore(flags);
+> > > > +
+> > > > +	if (!hv_result_success(status))
+> > > > +		pr_err("HVCALL_FLUSH_DEVICE_DOMAIN_LIST failed, status %lld\n", =
+status);
+> > >
+> > > As Sashiko pointed out, a failure here can lead to all kinds of troub=
+le because
+> > > of leaving unflushed entries. Maybe a WARN() is more appropriate? Als=
+o, maybe
+> > > a failure in the list flush should try a flush all as a fallback, wit=
+h the WARN()
+> > > only if the flush all fails.
+> > >
+> >
+> > Good idea. How about we restructure this routine to sth. like this:
+> >
+> >
+> > 	memset(input, 0, sizeof(*input));
+> > 	count =3D hv_iommu_fill_iova_list(...);
+> >
+> > 	if (count !=3D HV_IOMMU_FLUSH_VA_OVERFLOW) {
+> > 		input->device_domain =3D ...;
+> > 		...
+> > 		status =3D hv_do_rep_hypercall(FLUSH_DEVICE_DOMAIN_LIST, ...);
+> > 		if (hv_result_success(status))
+> > 			goto out;
+> > 	}
+> >
+> > 	/* overflow or list flush failed: fallback to full domain flush */
+> > 	flush_all =3D (void *)input;
+> > 	memset(flush_all, 0, sizeof(*flush_all));
+> > 	flush_all->device_domain =3D ...;
+> > 	status =3D hv_do_hypercall(FLUSH_DEVICE_DOMAIN, ...);
+> > 	WARN(!hv_result_success(status), "IOTLB flush failed, status %lld\n", =
+status);
+> >
+> > 	out:
+> > 		local_irq_restore(flags);
+> >
+>=20
+> Yes, I think this works. But per my earlier comment, if I'm right that
+> the overflow case never occurs, it could be simplified further to just
+> do the list flush with the full flush as the error fallback. Then WARN
+> if the full flush fails.
+>=20
+> Michael
+
