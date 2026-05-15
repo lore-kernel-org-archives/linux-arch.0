@@ -1,177 +1,125 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id A416440B6D8;
-	Fri, 15 May 2026 16:53:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from libero.it (smtp-16.italiaonline.it [213.209.10.16])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 459394C040D
+	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 16:53:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.209.10.16
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778864023; cv=none; b=kzlTrSQyFpZvTJTpF0FUPso6tD03hdGR8hFwvRCFATaUdIvINxace3OctmYo9YrK/HltVpzqUfjPRdPjHlFcygArzagSJ9ukOVXomYHhXMMVcz6EVCAY79xkfm9g6/jK9hvPQZ4IFjcY0b1Gco9BmlZwm1aRSDq3ssquta+TK2Q=
+	t=1778864023; cv=none; b=Did2U3w6DgKOHchQsuVlpOAYXVG7v3bfbfB29f5ftajCJDX5Q0trg2mbAZfw0AMxb2oNLsFTeh/rGzZ3qEC32lmWZTccdEC2sqV05BGz+VPdNclgTweqfqtwrn5MJTLxQJI2MDXcwHkCllFZD0ZCRO2DRRTf9x3SqYo7eU+ySUA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1778864023; c=relaxed/simple;
-	bh=FUAK5LR5IKnJO/Pjj1cZSRuDcKlFqhKzREhXryMXh2c=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=bJtmVrLAIPnkd1le1vD2O8rO1aNLY0L8WJq96uTDwO1rmDl1/QO3ZlvEPABBZp6Xsxul2CQtOsGAKlieaIAUCj7FfRzmMdNAiClXJ+qgY9VURHindh5ch3rmvRhf3q+wQ75WTNXz5/zwyhgjdKPLxjDv0QXXuF3XY55k7h4uOwI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=ZCUv4yML; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	bh=Q5y5TpyR9Ncy4ttCUCRxgzAe0cmnTXVzfKh6vZzJhBs=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=qjjnjoGIK8k297zItN4vTLP4ERWGdsQIIKpPE+fFfomGH1I2IPwzqyQNc1FGzLDXUtg5hEUH44jPQNm/x+xfS/q8S3ywRvBESDpjPqPjuo1SelnI+wYcOngt8Y8n2auJSZEZOdZNZsTMTyohsOBKMucNY5KuUSuehvXhqmQfxoI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=inwind.it; spf=pass smtp.mailfrom=inwind.it; dkim=pass (2048-bit key) header.d=inwind.it header.i=@inwind.it header.b=m+g/qCp4; arc=none smtp.client-ip=213.209.10.16
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=inwind.it
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=inwind.it
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="ZCUv4yML"
-Received: from localhost (unknown [167.220.233.27])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 7A8B220B7166;
-	Fri, 15 May 2026 09:53:36 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 7A8B220B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1778864017;
-	bh=0wCqj4NGXn8pfRKJw/1od0w6f267keh7cL+SMyxz27Q=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=ZCUv4yML43bNq7iib+aBVME+fYpYQuDu/riMe/uXAjpfPRdAqQj6ZF4Q5fVyLh+Qf
-	 auC+0lDD4kcUiNYaOFReqOu7L3WcdSfGMqXLWUhjCUiph8YlARrz39aIZuY7jxdOKw
-	 z8u3s2LttgTwM3VPjupJCMrwcoEGhHCabLgES+NA=
-Date: Sat, 16 May 2026 00:53:38 +0800
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: Michael Kelley <mhklinux@outlook.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
-	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev" <iommu@lists.linux.dev>, 
-	"linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 
-	"wei.liu@kernel.org" <wei.liu@kernel.org>, "kys@microsoft.com" <kys@microsoft.com>, 
-	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>, 
-	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org" <joro@8bytes.org>, 
-	"will@kernel.org" <will@kernel.org>, "robin.murphy@arm.com" <robin.murphy@arm.com>, 
-	"bhelgaas@google.com" <bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>, 
-	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org" <mani@kernel.org>, 
-	"robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
-	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
-	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>, Mukesh R <mrathor@linux.microsoft.com>
-Subject: Re: [PATCH v1 3/4] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Message-ID: <fw2pruvjgo7yigtcxssf3xv27soibsj6hmw2ls5wj4rylfhdha@e63f32cwu2x5>
-References: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
- <20260511162408.1180069-4-zhangyu1@linux.microsoft.com>
- <SN6PR02MB4157FB81CC9B6347DCCC8C56D4072@SN6PR02MB4157.namprd02.prod.outlook.com>
- <qeyycsdnejwrqle4zwrvkjvkvrpjifeanwxjaa7i7y2ab7rnt2@b6gvugqayarg>
- <SN6PR02MB415734108A86BDFB66AEE4CED4042@SN6PR02MB4157.namprd02.prod.outlook.com>
+	dkim=pass (2048-bit key) header.d=inwind.it header.i=@inwind.it header.b="m+g/qCp4"
+Received: from [192.168.1.27] ([84.220.171.3])
+	by smtp-16.iol.local with ESMTPSA
+	id NvkWw93JTwuJmNvkWwUGk9; Fri, 15 May 2026 18:51:04 +0200
+x-libjamoibt: 1601
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=inwind.it; s=s2014;
+	t=1778863864; bh=9WdAPwKSp54bIXm01Oq6LbLaPfYtCmuqhvark2IMT2k=;
+	h=From;
+	b=m+g/qCp4tzbt0bfLHz2HXIh1xSUujGy9ADLjjh657vY4gNP4lbZYMwcDvTDqGmJHn
+	 guKy97+1kM74qxw7PyF+I/NFPIVb8cWlfUtHTVz4VHnD4oSGB3HweAfU7uZKlSx86x
+	 Vyk8KrD9zr0HMhRMr7f5y9sIjd4bHO5srzzWxOOO5kKtztzC545W0ulDGpkTzcPfcI
+	 DPxCb1vHX2wC8W5Sj1nVM4xgQ9uISn+3FrOWzYFTg6LAcHL3zl6P6sTT7UInpTlL5L
+	 zdnAK2M5Uwlx5YpksdXUvJQT7Ni0sawoxU1CvZY8rV+cXe1DIy1fUI/vZzSzY1teva
+	 BHCuKc3H/tYsg==
+X-CNFS-Analysis: v=2.4 cv=OKAXGyaB c=1 sm=1 tr=0 ts=6a074ef8 cx=a_exe
+ a=hciw9o01/L1eIHAASTHaSw==:117 a=hciw9o01/L1eIHAASTHaSw==:17
+ a=IkcTkHD0fZMA:10 a=5UzOym4Vq6aNC_X-wu4A:9 a=QEXdDO2ut3YA:10
+Message-ID: <ae5e68e5-06a8-45d1-a8a9-59c619d32db6@inwind.it>
+Date: Fri, 15 May 2026 18:50:56 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <SN6PR02MB415734108A86BDFB66AEE4CED4042@SN6PR02MB4157.namprd02.prod.outlook.com>
+User-Agent: Mozilla Thunderbird
+Reply-To: kreijack@inwind.it
+Subject: Re: [PATCH 01/19] btrfs: require at least 4 devices for RAID 6
+To: Christoph Hellwig <hch@lst.de>
+Cc: David Sterba <dsterba@suse.cz>, Andrew Morton
+ <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>,
+ Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
+ Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
+ Madhavan Srinivasan <maddy@linux.ibm.com>,
+ Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
+ "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+ Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>,
+ Christian Borntraeger <borntraeger@linux.ibm.com>,
+ Sven Schnelle <svens@linux.ibm.com>, Thomas Gleixner <tglx@kernel.org>,
+ Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+ Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, Herbert Xu <herbert@gondor.apana.org.au>,
+ Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+ David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+ Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
+ Li Nan <linan122@huawei.com>, linux-kernel@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
+ linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+ linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
+ linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-raid@vger.kernel.org
+References: <20260512052230.2947683-1-hch@lst.de>
+ <20260512052230.2947683-2-hch@lst.de> <20260512114231.GG2558453@suse.cz>
+ <20260513054742.GA1018@lst.de>
+ <0a8d1ff4-f5a2-49e9-aa45-d25dbe4ded40@libero.it>
+ <20260515043705.GA3855@lst.de>
+Content-Language: en-US
+From: Goffredo Baroncelli <kreijack@inwind.it>
+In-Reply-To: <20260515043705.GA3855@lst.de>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+X-CMAE-Envelope: MS4xfIRcSTt5STXgccljMnCIz2eHZSPUpoG6zdkAW/1BRn9L53xyO+P3wQrbMMLVbxJHW+N8sp0yzakc3MR2cCcFMo1dlAl8gvSc/SDOWCHxfinPvWCytcjr
+ E2ajSvp2CIF9Ys2QWNCM2YCTOuPJ18kbaVkxxmFRnVsIOb0ucyjN9KNL3BFkk7Ud+bru2koUwvlDAPKrMAw63A+BOuJVVDbieCPNq4YxJvtCma8dYpiqD09G
+ sCh5JNMMXuGgnTgfqUUJ+Qbzsqdtto0je5KdmrGMW40aotZ/+S/kJn4sCFnf5g1gapE4BKz75kSmw6JFXPdxmZFJdOFG7z5fdUrA1Dwsb6umoqal7VDvdbma
+ DiZm9XRnZCDhNNF+ZPkLQZb1TofZUdq6d7ug1o+src70lE6+LihoJsyM0ZbmxVgrTjewmbztqjnQJoYArZ4QqbywD5Sd3TiEGsl9lWWu5eyiQTebAIVRFeC8
+ nEqFAs21qZrxPF6Uq/SnJv8qagoxXJRfWwNn66R+K3YiI6mOSG16+ZHThNqvJU3/bHi683USl3wE7UhRu5VlqQEZ6WoE/qj+eUN839hKRWt7YLcOTrEGd/uO
+ +pqymzrMyy9izoH0Srz7Zk/PSTaid7BTCeO82xYw+Mzv4uwzhc/nYaOUlTLtPwW9T43BOc5MH2JAKYVnn9cO2AqtXKYykFg4x9FPEOR9cuMRTVbENtjdWpps
+ Bq5zTF+AXkoWW6W61ZuXitS+tT5vlt/ELS+pUxVBCkm5yUJSSkqICuZHNRnhM3gKHDVhh4Ns6Swhs8GpYekFjqnPHq7KrOecxDq4JL82hLJZf8uClKDfY/3Q
+ YHJVueku5+JW2Kx+xEEIQJUzojSwxWIVlFgz4S6a7t1jEw/PMDrQxkW28BP8BmfQ2L51hNvmCWAwFJZVe9DOoBKat2mMwYNyTMLCbQPOK8IepgFN3Xh5J9Yr
+ zsELdIh47mqn+n9m1dJHl8pdLI16lbpd7JPS+rkT+X/VBpGWYSg1SizlQW7Zd6jRhZj+jugRLz8FW+5F6xSEi/1ryCr9UJ8Hnp8FeykJKC0csQa4tsyRBeQ7
+ 4+oDZCBNS8xIrFMYdp9mzmc5IPnpusyfFrNplemnIr8YCvMYHgimmAuUw7B+Z604HGNs7Ovl7kfpP19u/d989Txfb5lqbJA0NcloGgH+Za5UVq2UnfUCc3RG
+ yQ6hJ/UHoxEGDfFw8Vjo0ZJLwPp9Fb5piSf6i8OG4nhtHPa9h6ifl2mQkomRIENZEoVPODly2pGPdGYQ8ofZVwl5dOxvxVdP8xHs/4FTnwWuYPn2oGuykHIe
+ tZhMm58QeEehltvUobNgm0ZVAba57PviaUzaSzgaYIj4G5+83y9jvcY6E9AO6TnOWTIFW7iK62Oq25b2ClXNlm0KYceNhHqEH6EZrPkegcRv+/fMsmtDrqXG
+ OY843VHWlpsPvVHxWqQzTl72N0dCPlXPWy8SLXM96jwzxecEP5uEeZQ5LKvFAEh2+TfNPdIksDMJ/PnhBFMdAGHk4SJJcNiBcsZTNHeSHvJlW/8TI23ooPzr
+ 23+SWyghG4+6P1hrYFbwUDsjIGhuuatpKNV34Vl6jEmPQg==
 
-On Fri, May 15, 2026 at 02:51:38PM +0000, Michael Kelley wrote:
-> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Friday, May 15, 2026 7:00 AM
-> > 
-> > On Thu, May 14, 2026 at 06:13:24PM +0000, Michael Kelley wrote:
-> > > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Monday, May 11, 2026 9:24 AM
-> > > >
-> > > > Add a para-virtualized IOMMU driver for Linux guests running on Hyper-V.
-> > > > This driver implements stage-1 IO translation within the guest OS.
-> > > > It integrates with the Linux IOMMU core, utilizing Hyper-V hypercalls
-> > > > for:
-> > > >  - Capability discovery
-> > > >  - Domain allocation, configuration, and deallocation
-> > > >  - Device attachment and detachment
-> > > >  - IOTLB invalidation
-> > > >
-> > > > The driver constructs x86-compatible stage-1 IO page tables in the
-> > > > guest memory using consolidated IO page table helpers. This allows
-> > > > the guest to manage stage-1 translations independently of vendor-
-> > > > specific drivers (like Intel VT-d or AMD IOMMU).
-> > > >
-> > > > Hyper-V consumes this stage-1 IO page table when a device domain is
-> > > > created and configured, and nests it with the host's stage-2 IO page
-> > > > tables, therefore eliminating the VM exits for guest IOMMU mapping
-> > > > operations. For unmapping operations, VM exits to perform the IOTLB
-> > > > flush are still unavoidable.
-> > > >
-> > > > Hyper-V identifies each PCI pass-thru device by a logical device ID
-> > > > in its hypercall interface. The vPCI driver (pci-hyperv) registers the
-> > > > per-bus portion of this ID with the pvIOMMU driver during bus probe.
-> > > > The pvIOMMU driver stores this mapping and combines it with the function
-> > > > number of the endpoint PCI device to form the complete ID for hypercalls.
-> > >
-> > > As you are probably aware, Mukesh's patch series to support PCI
-> > > pass-thru devices also needs to get the logical device ID. Maybe the
-> > > registration mechanism needs to move somewhere that can be shared
-> > > with his code.
-> > >
-> > 
-> > Thank you so much for the review, Michael!
-> > 
-> > Yes, I looked at Mukesh's series and noticed his hv_pci_vmbus_device_id()
-> > in pci-hyperv.c has the same dev_instance byte manipulation. We do need
-> > a common registration mechanism.
-> > 
-> > Any suggestion on where to put it? drivers/hv/hv_common.c seems like a
-> > natural place, but the register/lookup functions are currently only
-> > meaningful when CONFIG_HYPERV_PVIOMMU is set. If Mukesh's pass-thru
-> > code also needs them, we might need a new shared Kconfig option that
-> > both can select. Open to better ideas.
+On 15/05/2026 06.37, Christoph Hellwig wrote:
+> On Thu, May 14, 2026 at 09:51:59PM +0200, Goffredo Baroncelli wrote:
+>> I think that the David concern is : "what happens for an already
+>> existing btrfs raid6 3 disks filesystem when the user upgrade the kernel ?"
+>> (I am thinking when a new BG needs to be allocated)...
 > 
-> Unfortunately, I have not looked at Mukesh's series in detail yet, so
-> I don't have enough knowledge of the full situation to offer a good
-> recommendation.
+> Then it will cleanly fail to mount instead of constantly corrupting data
+> and memory with every write, yes.  Which clearly suggest that such
+> file systems don't exist in the wild.
 > 
-
-Sorry I forgot to Cc Mukesh in the previous reply. :(
-@Mukesh, any thoughts on sharing the logical device ID registration mechanism?
-
-> > 
-> > [...]
-> > 
-> > > > +static void hv_flush_device_domain(struct hv_iommu_domain *hv_domain)
-> > > > +{
-> > > > +	u64 status;
-> > > > +	unsigned long flags;
-> > > > +	struct hv_input_flush_device_domain *input;
-> > > > +
-> > > > +	local_irq_save(flags);
-> > > > +
-> > > > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> > > > +	memset(input, 0, sizeof(*input));
-> > > > +	input->device_domain = hv_domain->device_domain;
-> > >
-> > > The previous version of this patch had code to set several other fields in
-> > > the input. I wanted to confirm that not setting them in this version is
-> > > intentional. Were they not needed?
-> > >
-> > 
-> > Oh. The RFC v1 set partition_id, owner_vtl, domain_id.type, and domain_id.id
-> > individually. In this version, I just simplified it to a struct assignment.
-> > No functional change.
-> 
-> Of course! I should have looked more closely at the details before making
-> this comment. :-(
-> 
-> [...]
-> 
-> > >
-> > > Previous versions of this function did hv_iommu_detach_dev(). With that call
-> > > removed from here, hv_iommu_detach_dev() is only called when attaching a
-> > > domain to a device that already has a domain attached. Is it the case that
-> > > Hyper-V doesn't require the detach as a cleanup step?
-> > >
-> > 
-> > The IOMMU core attaches the device to release_domain (our blocking domain)
-> > before calling release_device(), so I believe the explicit detach in the RFC
-> > was redundant. I simply didn't realize that at the time.
-> > 
-> 
-> Got it. But after the IOMMU core attaches the device to the blocking
-> domain, there's the possibility that the vPCI device is rescinded by
-> Hyper-V and it goes away entirely. Or the device might be subjected
-> to an "unbind/bind" cycle in Linux. Does the detach need to be done
-> on the blocking domain in such cases? In this version of the patches, the
-> Hyper-V "attach" and "detach" hypercalls still end up unbalanced. That
-> seems a bit untidy at best, and I wonder if there are scenarios where
-> Hyper-V will complain about the lack of balance.
+> But if btrfs wants to keep supporting this I'll just add a _unsafe
+> version without the check in the core library.
 > 
 
-Thank you, Michael. May I ask what "the vPCI device is rescinded by
-Hyper-V and it goes away entirely" mean? 
+I am not arguing about this part. My point is that the change shouldn't have impacted the
+BTRFS interface versus the user (as patch 01/19 does), but instead the change should
+have modify the interface raid code <-> btrfs (e.g. doing a memcpy....), or at least the
+cover letter should warn that the raid6 code requires a number of disk >= 4, pointing
+to BTRFS as "client doing wrong things".
 
-I realized it's a bit untidy. But I want to understand this issue more 
-clearly first. :)
+At least, the message was received: don't relay to the raid6 code when the number of disk is
+less than 4.
 
-B.R.
-Yu
+BR
+GB
+
+-- 
+gpg @keyserver.linux.it: Goffredo Baroncelli <kreijackATinwind.it>
+Key fingerprint BBF5 1610 0B64 DAC6 5F7D  17B2 0EDA 9B37 8B82 E0B5
