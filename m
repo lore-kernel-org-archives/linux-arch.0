@@ -1,51 +1,64 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f49.google.com (mail-wr1-f49.google.com [209.85.221.49])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 084B741C30F
-	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 08:53:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 51FF0426D0B
+	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 08:58:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.49
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778835231; cv=none; b=lpsCyGnvN9mNj0QkCb8W+lYoOvnFrsju6QKS4cZVrZane01d5ZcxGe8HLoM4zvv/GcEehaGVJ2yNYCE6tumo1TaFpoI/x1jzHn6qjblM+o1QIOoGmWPXpv7uoCFBWZptJaxxHa3FlpZkrnoEQyVdTmTqIR4hHXGEWEvwQWoOi7E=
+	t=1778835507; cv=none; b=ORnC/Sm8BGmCAW72mE6M9vHbCliTkBtUBFcnCseC4CR6F1IXJ8vwVCTWpdpwdPGWhcV260xZGQ+wEkqvGHY60mJoY1iXpz5LWzLlKGHr4SeAKi+Wh8m7waEs58TW6RO/odyLvQJq8srPuts2BF/U/xLi8ZxNJEpPciA1HXnql5U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778835231; c=relaxed/simple;
-	bh=95rnVbuPoEqYoOgOEmXgRRLmt/DgdbJJ5HiCjeQHGDU=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=pTfG3+2PUoITl/rXc93Wh+/GiZLE9c7J9+uvjGLNOn6xayzz2h9jZJUGeAQ0BlhYWyJXD/Y97PzSGYWcHEfxCbP2kmkxq7FIstunkMt47qJpD9NoQgsu6FvO05Bt153cdLOognTh55cynA0bsd3dac5eKlBz7Aoaa9ito7npBqg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=ceAHAWqC; arc=none smtp.client-ip=170.10.133.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1778835507; c=relaxed/simple;
+	bh=DpvFIVIZ1tKrtWFxiFTVbPPLSCZ0en//NG1n+cRrz7w=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=RXmcDvV1ktt65GAuGDU55LHZDTVSQlWQhn6te8BOpa902IFkmqrhcAeMU7dHvaMmMqiEecauxhXL2a6c0cPDKmEIIUp/pTPTmH0wG9hnesrNTOvlbElOlAwq6OCX6TVrMFNWYuruDj1N7U/HniAl66vydCJOWJY0bVpxL/leQB0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=lu1TFt3j; arc=none smtp.client-ip=209.85.221.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="ceAHAWqC"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1778835229;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=mmxOVGUrnxS/H09zubyapT22aA5Jy+w6JF95xU/Ftgg=;
-	b=ceAHAWqCOpJ8+9la40EwiqFjm2LwOrmh229FVuLUBTtz3MiPsXmFPJHsDc9taLOGDxVzvW
-	JtClDP53FmM0AMGVYVk2UOwxTnXsuvg56/n4RE/+oyRUmqt4uUydqvGByPBN+AItJ9nnk2
-	cuHApyCEf0dKCcHQ82FTIUbOXGh2uT8=
-Received: from mx-prod-mc-03.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-484-XDqT1YrxOLCP5ZZge2o2rA-1; Fri,
- 15 May 2026 04:53:42 -0400
-X-MC-Unique: XDqT1YrxOLCP5ZZge2o2rA-1
-X-Mimecast-MFC-AGG-ID: XDqT1YrxOLCP5ZZge2o2rA_1778835219
-Received: from mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.17])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 4B1411956054;
-	Fri, 15 May 2026 08:53:38 +0000 (UTC)
-Received: from [192.168.1.153] (headnet01.pony-001.prod.iad2.dc.redhat.com [10.2.32.101])
-	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id DBD4D1955D85;
-	Fri, 15 May 2026 08:53:31 +0000 (UTC)
-From: Albert Esteve <aesteve@redhat.com>
-Date: Fri, 15 May 2026 10:52:53 +0200
-Subject: [PATCH v12 4/4] kunit: Add documentation for warning backtrace
- suppression API
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="lu1TFt3j"
+Received: by mail-wr1-f49.google.com with SMTP id ffacd0b85a97d-453903ee4adso7651575f8f.3
+        for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 01:58:26 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1778835505; x=1779440305; darn=vger.kernel.org;
+        h=cc:to:content-transfer-encoding:mime-version:message-id:date
+         :subject:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=S/wqiPCT0YPI0qW/S/HjDfZIvr2fAKk25WVI+QsyRLU=;
+        b=lu1TFt3jFJAr69OsE0Eswzb6yQhiw6jPt5rhSG5X9W/kklg09kZg51UlfWMXrNmxtH
+         Aw+t8dnmvpj1z6xqvdwbhuxLujH7q0zbdT6Da2bR+6CrSBczvnJ/M7VidrBq9BYsIeMt
+         zd4/mYLqqOBKl/Of1P7pTT9bEMG9LwtymPHejYPa9QF3vWqVk1Bd7HRdw+1w59kfu8XY
+         Pevii3A19PjU7KXF1DpHJnnffHk0XMODH5y9/xk6eQBrurYZpRd9bYYVq92owdKU7Or0
+         APqc39F0X586dpv5ymyHKtL76A0RwT4fPAZW9E0RTcvLVj5B5UxhF9dMD4I5idOgCmZw
+         U4ow==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778835505; x=1779440305;
+        h=cc:to:content-transfer-encoding:mime-version:message-id:date
+         :subject:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=S/wqiPCT0YPI0qW/S/HjDfZIvr2fAKk25WVI+QsyRLU=;
+        b=Iqb/owANsAJKqjzBit0D0P/Ag7HQzwsWELrqFBoLCLGl4aH/iK0NyAFMWa4nvPfgWa
+         lmvTOBUeOOSYJRQvQj1SFUk8v0A1oqp/WV7a9vNbCoM4ER/9ToKkgQ9ZLt1tDsjYXQRC
+         XnB0qDV+H128GuB3glcxP0tGhaY7LlhrqYb/IDkPLZVF6CdS2tatnAREDdebWA0nk907
+         2UUWYQhcqG5wj7Ka0Il0OcGMBu6NDdPJc0ZyajzIzRvrO31GKcmog8RmSLKEJQgysNkK
+         Q3i3eDrpf2SUeWNLUfbN9bYCayE4DGckIcJ864hLwLcbgGGilcZ3ettd6dxhpD23rVG9
+         ExJA==
+X-Gm-Message-State: AOJu0YyKDvKAS5urwjYBvO094qU1G1JMHZ6s/+K4ZzfLO6xyQ9ZWCy4R
+	DRZe8/FwmPCs6SW4TNpfDRhTAucXIU7MMruUsw6Gu/UZKd7kz4pf1uJ1iErc/yY0K7k=
+X-Gm-Gg: Acq92OHqMgavq24dhESPzjwfhN7xuvWGeju9fvd5zOTH02v0TX3mKkmPeLE2Gf4fJTV
+	wtRp7DqthEGWywClWCqCAv+5gGhfTXo7GyMvQwuqCM9L0+bkUpVOdQG6VnC5fXHi1nohhPuS83z
+	Pna5k3CyXVLEEO/pNedAsqWW0VThHaDuG5AW9kuqINspzj5s2XS4NvaW0/Woq1CbwjI1uTgViid
+	vVc8LpguSDeWQ81w1S0+1jW6yTG5Wx2Ty/CHqGfzY+vYJ0QkI4LJlO2lWltO23YirjHSaDEJgqn
+	oTdPsJVce55pEvyKcHq4ltRS6S+35r9oaUw1hGdJgl89yaJOmwnUJNQ6ouab5s3R2FOTYs6jdtk
+	0VSnNYA42I8wbCvC7HhXqJ9zxHQJSspcR2NgVh1iNqUE5OmkSTNPHJ6/stUi8l4iGnNM3x3rCZO
+	KIUsiiwJC1FJcp6Pyv2NKYGDZowrO6nyfw+WGGXVqVZh4=
+X-Received: by 2002:a05:6000:3108:b0:43d:773d:78ff with SMTP id ffacd0b85a97d-45e5c5874e3mr3808053f8f.27.1778835504446;
+        Fri, 15 May 2026 01:58:24 -0700 (PDT)
+Received: from [192.168.1.210] ([2a00:23c8:33b9:3b01:f7b1:b7a0:6254:c325])
+        by smtp.googlemail.com with ESMTPSA id ffacd0b85a97d-45d9e768c4fsm13142610f8f.8.2026.05.15.01.58.23
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 15 May 2026 01:58:23 -0700 (PDT)
+From: Jim Cromie <jim.cromie@gmail.com>
+Subject: [PATCH v3 0/5] dyndbg: fix i386 alignment and KEEP module sections
+Date: Fri, 15 May 2026 02:58:09 -0600
+Message-Id: <20260515-asm-generic-1-v3-0-680b273666d4@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -54,115 +67,99 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260515-kunit_add_support-v12-4-a216dc228be8@redhat.com>
-References: <20260515-kunit_add_support-v12-0-a216dc228be8@redhat.com>
-In-Reply-To: <20260515-kunit_add_support-v12-0-a216dc228be8@redhat.com>
-To: Arnd Bergmann <arnd@arndb.de>, 
- Brendan Higgins <brendan.higgins@linux.dev>, David Gow <david@davidgow.net>, 
- Rae Moar <raemoar63@gmail.com>, 
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
- Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
- David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
- Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
- Andrew Morton <akpm@linux-foundation.org>, Paul Walmsley <pjw@kernel.org>, 
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
- Alexandre Ghiti <alex@ghiti.fr>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
- dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
- linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
- peterz@infradead.org, Guenter Roeck <linux@roeck-us.net>, 
- Linux Kernel Functional Testing <lkft@linaro.org>, 
- Alessandro Carminati <acarmina@redhat.com>, 
- Albert Esteve <aesteve@redhat.com>, Dan Carpenter <error27@gmail.com>, 
- Kees Cook <kees@kernel.org>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1778835177; l=2728;
- i=aesteve@redhat.com; s=20260303; h=from:subject:message-id;
- bh=YX7AMC4Z3qCvd9o2GGoQ6LMsoUJS/dulVvDsXv5Qzg4=;
- b=uU8iZP3aKTG6p9f6uzLQ+7585Tt2YEgz1OTvweQ4CuLQ3H8MMENyxt9ulFNJQ1k4vJADogKw5
- Vq1oW3OIyVmDghCtrvC2+FcWQVlJ23+UX8uxtuiWX2rKMKaZvQTxK9J
-X-Developer-Key: i=aesteve@redhat.com; a=ed25519;
- pk=YSFz6sOHd2L45+Fr8DIvHTi6lSIjhLZ5T+rkxspJt1s=
-X-Scanned-By: MIMEDefang 3.0 on 10.30.177.17
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/3XMywqDMBCF4VeRWXdKMjFqu+p7lC5CMmqgXkhKa
+ BHfvdGVFLo8B75/gcjBc4RrsUDg5KOfxjzUqQDbm7Fj9C5vIEGV0ILQxAE7HrOyKFGRbUoySjs
+ nIJs5cOvfe+/+yLv38TWFz55Pcnv/lZJEgVIKxSykJtfeusH459lOA2ylREdd/2rKuqytplpfH
+ FXNUa/r+gXBfPbM6AAAAA==
+X-Change-ID: 20260502-asm-generic-1-32c842a35dd0
+To: Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>, 
+ Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
+ Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, 
+ Aaron Tomlin <atomlin@atomlin.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ linux-modules@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>, 
+ Louis Chauvet <louis.chauvet@bootlin.com>
+X-Mailer: b4 0.14.3
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1778835503; l=2729;
+ i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
+ bh=DpvFIVIZ1tKrtWFxiFTVbPPLSCZ0en//NG1n+cRrz7w=;
+ b=Ui9msCCEx+Ir7Hz8Ovx6hpfNqXShEbOJmFFaKRmm0uhdl3Bk9K/rqlNt/k2Xgk/B05Ip9zVII
+ I/hO7sAZ13BDeSwmmAbSfGeZG0juxaDfOoXlhPA71xQJ1zK/LFcw+af
+X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
+ pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 
-From: Guenter Roeck <linux@roeck-us.net>
+This series starts with a fix to a section misalignement on i386, and
+follows with cleanups and refactoring for reuse.
 
-Document API functions for suppressing warning backtraces.
+When CONFIG_DRM_USE_DYNAMIC_DEBUG=Y (currently marked BROKEN) and
+CONFIG_DRM=y, the __dyndbg_classes section gets a single
+struct/record.  On i386 this is 28-bytes, breaking the required
+ALIGN(8) on the following __dyndbg section.
 
-Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
-Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Guenter Roeck <linux@roeck-us.net>
-Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
-Reviewed-by: David Gow <david@davidgow.net>
-Signed-off-by: Albert Esteve <aesteve@redhat.com>
+This breaks dynamic_debug_init() with a NULL pointer dereference; the
+section traversal logic encounters padding bytes instead of a valid
+descriptor.
+
+the series:
+
+1. refactors BOUNDED_SECTION_* macros for later reuse
+   v2- adds note that macros are for vmlinux.lds.h only, not for modules.
+
+2. drops unused HEADERED_SECTION_* macros
+
+3. fixes ALIGN(8) omission causing NULL ptr on i386
+   adds,uses BOUNDED_SECTION _ALIGNED variants
+
+4. removes now redundant ALIGN(8)s in vmlinux.lds.h
+
+5. adds dyndbg.lds.S to KEEP sections in modules
+   follows codetag.lds.h model
+
+v3:
+
+move #includes to top of files,
+drop redundant ALIGN(8) in dydnbg.lds.S: DYNDBG_SECTIONS macro
+add Reviewed-by tag (thx Petr)
+
+v2:
+
+- avoids BOUNDED_SECTION in modules.  Since ELF sections have well
+  defined bounaries, _start & _end symbols are useless, and empty
+  sections are unhelpful, possibly confusing to tools.
+
+- sets 0 address to the sections, not just whatever current is.
+
+Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- Documentation/dev-tools/kunit/usage.rst | 46 ++++++++++++++++++++++++++++++++-
- 1 file changed, 45 insertions(+), 1 deletion(-)
+Changes in v3:
+- EDITME: describe what is new in this series revision.
+- EDITME: use bulletpoints and terse descriptions.
+- Link to v2: https://lore.kernel.org/r/20260507-asm-generic-1-v2-0-47c52759d268@gmail.com
 
-diff --git a/Documentation/dev-tools/kunit/usage.rst b/Documentation/dev-tools/kunit/usage.rst
-index ebd06f5ea4550..1c78dfff94e8a 100644
---- a/Documentation/dev-tools/kunit/usage.rst
-+++ b/Documentation/dev-tools/kunit/usage.rst
-@@ -157,6 +157,50 @@ Alternatively, one can take full control over the error message by using
- 	if (some_setup_function())
- 		KUNIT_FAIL(test, "Failed to setup thing for testing");
- 
-+Suppressing warning backtraces
-+------------------------------
-+
-+Some unit tests trigger warning backtraces either intentionally or as a side
-+effect. Such backtraces are normally undesirable since they distract from
-+the actual test and may result in the impression that there is a problem.
-+
-+Backtraces can be suppressed with **task-scoped suppression**: while
-+suppression is active on the current task, the backtrace and stack dump from
-+``WARN*()``, ``WARN_ON*()``, and related macros on that task are suppressed.
-+Two API forms are available.
-+
-+- Scoped suppression is the simplest form. Wrap the code that triggers
-+  warnings in a ``kunit_warning_suppress()`` block:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		kunit_warning_suppress(test) {
-+			trigger_backtrace();
-+			KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
-+		}
-+	}
-+
-+.. note::
-+   The warning count must be checked inside the block; the suppression handle
-+   is not accessible after the block exits.
-+
-+- Direct functions return an explicit handle pointer. Use them when the handle
-+  needs to be retained or passed across helper functions:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		struct kunit_suppressed_warning *w;
-+
-+		w = kunit_start_suppress_warning(test);
-+		trigger_backtrace();
-+		kunit_end_suppress_warning(test, w);
-+
-+		KUNIT_EXPECT_EQ(test, kunit_suppressed_warning_count(w), 1);
-+	}
- 
- Test Suites
- ~~~~~~~~~~~
-@@ -1211,4 +1255,4 @@ For example:
- 		dev_managed_string = devm_kstrdup(fake_device, "Hello, World!");
- 
- 		// Everything is cleaned up automatically when the test ends.
--	}
-\ No newline at end of file
-+	}
+Changes in v2:
+- EDITME: describe what is new in this series revision.
+- EDITME: use bulletpoints and terse descriptions.
+- Link to v1: https://lore.kernel.org/r/20260502-asm-generic-1-v1-0-1103ee0152df@gmail.com
 
+---
+Jim Cromie (5):
+      vmlinux.lds.h: refactor BOUNDED_SECTION_* macros into bounded_sections.lds.h
+      vmlinux.lds.h: drop unused HEADERED_SECTION* macros
+      vmlinux.lds.h: Fix ALIGN(8) omission causing NULL ptr on i386
+      vmlinux.lds.h: remove redundant ALIGN(8) directives
+      dyndbg.lds.S: fix lost dyndbg sections in modules
+
+ MAINTAINERS                                |  1 +
+ include/asm-generic/bounded_sections.lds.h | 32 ++++++++++++++++
+ include/asm-generic/dyndbg.lds.h           | 18 +++++++++
+ include/asm-generic/vmlinux.lds.h          | 59 ++++--------------------------
+ scripts/module.lds.S                       |  2 +
+ 5 files changed, 61 insertions(+), 51 deletions(-)
+---
+base-commit: 5d6919055dec134de3c40167a490f33c74c12581
+change-id: 20260502-asm-generic-1-32c842a35dd0
+
+Best regards,
 -- 
-2.53.0
+Jim Cromie <jim.cromie@gmail.com>
 
