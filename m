@@ -1,151 +1,159 @@
-Received: from va-2-115.ptr.blmpb.com (va-2-115.ptr.blmpb.com [209.127.231.115])
+Received: from va-1-114.ptr.blmpb.com (va-1-114.ptr.blmpb.com [209.127.230.114])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B0E973FAE07
-	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 08:21:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.115
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DC36237BE8E
+	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 08:21:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.114
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778833279; cv=none; b=E19/OAS2h3tCP+h26EK0vbp790W2eASmMTt5HSlQchZ0ShkwTcbzZtNenkvD1SHNBVGekdjwF/TF17y1yBH1PWiXJj2FjEQ4w+5lEvIIGdLFYJZ5sHw8MFNjEmvYS91io43pgjU9ghkUXXOUT56F2VKZa1NI5+Ff+znhL+95D0k=
+	t=1778833293; cv=none; b=MMWwLv1NetZolKOfkRNUUeqdnrqBSLkK4/A+jlcZead3HSDWkqteM/WVBUfb34Ue1ugfTEHFHJiY0JtPGYs6/LtlWsA15smTWeigrMhhAOfYYn2T0LT65vItJg4KpBV7ZE5xuuJtjLJgCMAGlg1kxMpistszRcBoWoB1K9OUq18=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778833279; c=relaxed/simple;
-	bh=6hQz6UAEbCA9+Fiy1NxKGqiEpxvmT6xTvGi9oCiJW+c=;
-	h=Content-Type:To:Cc:From:Date:Mime-Version:Message-Id:Subject; b=EW4FaB1rZOrVKOusgl8YbvNwfIdUW/7CHxNDHD1P8ZGlC6/f4qiDZq7PRwBiGHB2HS27+hE44xWOu7YY0dT9BjjaEwKr8yBXigrOnU6hwblq0/rldYQDPJ6kwYdafSn6eXrqbrpD8tttuhVQmadNdWuRbq8EI0vblU9bk4rstGE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=UtON5KvM; arc=none smtp.client-ip=209.127.231.115
+	s=arc-20240116; t=1778833293; c=relaxed/simple;
+	bh=VaEEj9mt4C7OaP2qTTmaeriUw8TC2vZBewDgfVYnEYM=;
+	h=To:From:Date:In-Reply-To:Content-Type:Subject:References:
+	 Message-Id:Cc:Mime-Version; b=JirRjtwhmnpUjQqtfwXeqtMuM9ZGZ/9UhcsMyVfKtlVyvjRmdldahu7KEvVBKP3XFwTIL1QFqT7KVK5jT4O/Z8xbhiaf7TfwWDBGJ8ryQlflzy4TY24Omzyk3cz/KIuFfZ3wzu5ZJISLDY/KmCPivgRCyjkPNAXQa9fQEA0lTJs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=Znklo0rk; arc=none smtp.client-ip=209.127.230.114
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="UtON5KvM"
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="Znklo0rk"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1778833266; h=from:subject:
+ s=2212171451; d=bytedance.com; t=1778833281; h=from:subject:
  mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
  mime-version:in-reply-to:message-id;
- bh=sDPgw3TE7pwHq9Vr5cZlrNhK9riXREs8CXWuvtHX3FE=;
- b=UtON5KvMYqi3JfKiKwNbkW21vv4HJkzV1TFrFVNjxEhTmIrT5uZEaCfpJWL/eMVEW/nm5r
- NBwHQ+tJ+nn/bVbYSyk7bFUqxGtLZlGMUHJhouzr5O/WMlrV2YoqAitUCu2z6q/8fI4JdA
- iWwmqGkjt5nwwhULH1Vd8Yv/n9Z1cWCYLOzOBhQNpaNvzk39ibdqB01TDB7L1kO2VOFcM7
- oO2xpmN5IfvrFulhH/+syUm9HWbXOG94G7Lat5EjtgpjzZJDoTV6HAvf/wzl+YTgg/l+ny
- vtdQ/YcxZa1JNQXkYKM0yFCEeHVNqX0ciQOdNpHmuxipx36zUbQi3jLoaWRvAQ==
-Content-Type: text/plain; charset=UTF-8
+ bh=Pn4tF8TLTowTahB1RqTQqb2NJ664ubG6BvZ5yr4OYEU=;
+ b=Znklo0rkP4IKckRsKDfhmMAydgK9R8Oap6EsM4b3azWMVFOejBmK0WwjMqBb4OsVV3N/DY
+ pmzSLsqXATJkuXgQUJ5Yrb2HeRbfCYVL82Hp64zuP0eOe4DMXiSCAgeAd5Eo0VijZ9yqzV
+ ckstGZj56zrU/zn4VilF+VwJs0exs44IlKtG1XydK7NzqXg05scReIcGA+dCJ+JjW7vWPA
+ DOYXWYqf7iRB+/r8zxGI0QWa4qExNGQ9h9lM1HRUzaZJG2XqqSDAH1MckCMhaTytabuFfL
+ +NIRg5NdJ84cf5c48eZGvEzjau4TIFLW449OBLYYX61iae4ZokdWAin3F7R95A==
 To: <tglx@kernel.org>, <mingo@redhat.com>, <bp@alien8.de>, 
 	<dave.hansen@linux.intel.com>, <arnd@arndb.de>, <rppt@kernel.org>, 
 	<akpm@linux-foundation.org>, <david@kernel.org>
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Date: Fri, 15 May 2026 16:20:42 +0800
+In-Reply-To: <20260515082045.63029-1-lizhe.67@bytedance.com>
+Content-Type: text/plain; charset=UTF-8
+Subject: [PATCH 1/4] mm: factor zone-device page init helpers out of __init_zone_device_page
+References: <20260515082045.63029-1-lizhe.67@bytedance.com>
+Message-Id: <20260515082045.63029-2-lizhe.67@bytedance.com>
+X-Mailer: git-send-email 2.45.2
+Content-Transfer-Encoding: 7bit
 Cc: <x86@kernel.org>, <linux-kernel@vger.kernel.org>, 
 	<linux-arch@vger.kernel.org>, <linux-mm@kvack.org>, 
 	<lizhe.67@bytedance.com>
-X-Lms-Return-Path: <lba+26a06d770+93604e+vger.kernel.org+lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Date: Fri, 15 May 2026 16:20:41 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
-Message-Id: <20260515082045.63029-1-lizhe.67@bytedance.com>
-Subject: [PATCH 0/4] mm: speed up ZONE_DEVICE memmap initialization
-Content-Transfer-Encoding: 7bit
+X-Lms-Return-Path: <lba+26a06d77f+7a447a+vger.kernel.org+lizhe.67@bytedance.com>
 X-Original-From: Li Zhe <lizhe.67@bytedance.com>
 
-memmap_init_zone_device() can spend a substantial amount of time
-initializing large ZONE_DEVICE ranges because it repeats nearly
-identical struct page setup for every PFN.
+__init_zone_device_page() currently mixes three different jobs: deciding
+the initial page refcount, initializing the generic ZONE_DEVICE state, and
+setting up pageblock metadata.
 
-This series reduces that overhead in four steps.
+Split the refcount policy into zone_device_page_init_refcount() and move
+the generic page initialization into generic_init_zone_device_page(). This
+keeps the slow path behavior unchanged, but makes the individual pieces
+reusable by later fast-path patches.
 
-The first patch factors the reusable pieces out of
-__init_zone_device_page() so later patches can share the same logic
-without changing the existing slow path.
+No functional change intended.
 
-The second patch adds a template-based fast path for zone-device head
-pages on 64-bit builds. Instead of rebuilding the same struct page state
-for every PFN, it prepares a reusable page template once and copies it
-to each destination page.
+Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+---
+ mm/mm_init.c | 62 ++++++++++++++++++++++++++++++++--------------------
+ 1 file changed, 38 insertions(+), 24 deletions(-)
 
-The third patch extends the same template-based approach to compound
-tails, so pfns_per_compound > 1 can also benefit from the fast path.
-
-The last patch introduces arch_optimize_store_u64() and
-arch_optimize_store_drain(), with a generic fallback and an x86-64
-MOVNTI/SFENCE implementation, and uses them in the template-copy hot
-path. It also refreshes the PFN-dependent fields in the reusable
-template before each copy, so the hot path remains a fixed-offset store
-sequence without post-copy normal stores to the destination page.
-
-The optimized path is intentionally limited to 64-bit builds for now.
-The current fast path copies struct page as a sequence of fixed-offset
-u64 stores and relies on the set of struct page layouts used by current
-64-bit configurations. Extending the same optimization to 32-bit builds
-would need a separate store layout scheme and its own validation, so
-this series keeps 32-bit on the existing slow path.
-
-The helper interface is also meant to leave room for other
-architecture-specific backends. This series only adds an x86-64
-implementation because that is the only platform I was able to measure.
-Other architectures, including arm64, may be able to add their own
-optimized backend in follow-up work. But I do not currently have arm64
-hardware available to validate that.
-
-To preserve observability, the optimized path is disabled when the
-page_ref_set tracepoint is enabled, because the template-copy path
-bypasses set_page_count() and would otherwise hide that trace event.
-
-Patch summary:
-  1. mm: factor zone-device page init helpers out of __init_zone_device_page
-  2. mm: add a template-based fast path for zone-device page init
-  3. mm: extend the template fast path to zone-device compound tails
-  4. mm: use arch store helpers in zone-device template copies
-
-Testing
-=======
-
-Tests were run in a VM on an Intel Ice Lake server.
-
-Two PMEM configurations were used:
-  - a 100 GB fsdax namespace configured with map=dev, which exercises
-    the nd_pmem rebind path (pfns_per_compound == 1)
-  - a 100 GB devdax namespace configured with align=2097152, which
-    exercises the dax_pmem rebind path (pfns_per_compound > 1)
-
-For each configuration, the corresponding driver was unbound and
-rebound 30 times. Memmap initialization latency was collected from the
-pr_debug() output of memmap_init_zone_device().
-
-The first bind is reported separately, and the average of subsequent
-rebinds is used as the steady-state result.
-
-Performance
-===========
-nd_pmem rebind, 100 GB fsdax namespace, map=dev
-  Base(v7.1-rc3):
-    First binding: 1486 ms
-    Average of subsequent rebinds: 273.52 ms
-  Full series:
-    First binding: 1272 ms
-    Average of subsequent rebinds: 104.59 ms
-
-dax_pmem rebind, 100 GB devdax namespace, align=2097152
-  Base(v7.1-rc3):
-    First binding: 1515 ms
-    Average of subsequent rebinds: 313.45 ms
-  Full series:
-    First binding: 1286 ms
-    Average of subsequent rebinds: 116.93 ms
-
-Li Zhe (4):
-  mm: factor zone-device page init helpers out of
-    __init_zone_device_page
-  mm: add a template-based fast path for zone-device page init
-  mm: extend the template fast path to zone-device compound tails
-  mm: use arch store helpers in zone-device template copies
-
- arch/x86/include/asm/struct_page_init.h |  28 +++
- include/asm-generic/Kbuild              |   1 +
- include/asm-generic/struct_page_init.h  |  17 ++
- mm/mm_init.c                            | 260 +++++++++++++++++++++---
- 4 files changed, 280 insertions(+), 26 deletions(-)
- create mode 100644 arch/x86/include/asm/struct_page_init.h
- create mode 100644 include/asm-generic/struct_page_init.h
-
+diff --git a/mm/mm_init.c b/mm/mm_init.c
+index f9f8e1af921c..5244acb96dbb 100644
+--- a/mm/mm_init.c
++++ b/mm/mm_init.c
+@@ -987,11 +987,36 @@ static void __init memmap_init(void)
+ }
+ 
+ #ifdef CONFIG_ZONE_DEVICE
+-static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
+-					  unsigned long zone_idx, int nid,
+-					  struct dev_pagemap *pgmap)
++static inline int zone_device_page_init_refcount(
++		const struct dev_pagemap *pgmap)
+ {
++	/*
++	 * ZONE_DEVICE pages other than MEMORY_TYPE_GENERIC are released
++	 * directly to the driver page allocator which will set the page count
++	 * to 1 when allocating the page.
++	 *
++	 * MEMORY_TYPE_GENERIC and MEMORY_TYPE_FS_DAX pages automatically have
++	 * their refcount reset to one whenever they are freed (ie. after
++	 * their refcount drops to 0).
++	 */
++	switch (pgmap->type) {
++	case MEMORY_DEVICE_FS_DAX:
++	case MEMORY_DEVICE_PRIVATE:
++	case MEMORY_DEVICE_COHERENT:
++	case MEMORY_DEVICE_PCI_P2PDMA:
++		return 0;
++	case MEMORY_DEVICE_GENERIC:
++		return 1;
++	default:
++		WARN_ONCE(1, "Unknown memory type!");
++		return 1;
++	}
++}
+ 
++static void __ref generic_init_zone_device_page(struct page *page,
++		unsigned long pfn, unsigned long zone_idx, int nid,
++		struct dev_pagemap *pgmap)
++{
+ 	__init_single_page(page, pfn, zone_idx, nid);
+ 
+ 	/*
+@@ -1011,6 +1036,16 @@ static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
+ 	page_folio(page)->pgmap = pgmap;
+ 	page->zone_device_data = NULL;
+ 
++	if (!zone_device_page_init_refcount(pgmap))
++		set_page_count(page, 0);
++}
++
++static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
++					  unsigned long zone_idx, int nid,
++					  struct dev_pagemap *pgmap)
++{
++	generic_init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
++
+ 	/*
+ 	 * Mark the block movable so that blocks are reserved for
+ 	 * movable at startup. This will force kernel allocations
+@@ -1025,27 +1060,6 @@ static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
+ 		init_pageblock_migratetype(page, MIGRATE_MOVABLE, false);
+ 		cond_resched();
+ 	}
+-
+-	/*
+-	 * ZONE_DEVICE pages other than MEMORY_TYPE_GENERIC are released
+-	 * directly to the driver page allocator which will set the page count
+-	 * to 1 when allocating the page.
+-	 *
+-	 * MEMORY_TYPE_GENERIC and MEMORY_TYPE_FS_DAX pages automatically have
+-	 * their refcount reset to one whenever they are freed (ie. after
+-	 * their refcount drops to 0).
+-	 */
+-	switch (pgmap->type) {
+-	case MEMORY_DEVICE_FS_DAX:
+-	case MEMORY_DEVICE_PRIVATE:
+-	case MEMORY_DEVICE_COHERENT:
+-	case MEMORY_DEVICE_PCI_P2PDMA:
+-		set_page_count(page, 0);
+-		break;
+-
+-	case MEMORY_DEVICE_GENERIC:
+-		break;
+-	}
+ }
+ 
+ /*
 -- 
 2.20.1
