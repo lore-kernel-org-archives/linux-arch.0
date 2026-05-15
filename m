@@ -1,168 +1,196 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 43B8D36495D
-	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 12:30:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 2A60038F95A;
+	Fri, 15 May 2026 12:38:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778848228; cv=none; b=J8LZ+SN4ifikucZo9EmCEMoGuZUa4dqy23oJch1gxV70tQHzNnPcKrJszyjcb1ddYB3nsqarvsXhcycv+xVC8Mm9sNC1Q1bDlvhxOnZOcp1TyN0cKrG2OGzDCr81GltDNA0S59jIm4dpliZGwFDrKScvQh8Nnw0hNQ6k6aQ1fNM=
+	t=1778848713; cv=none; b=CqYKsJ+kr954R9yCe7tD2wNW4y8M30Uq+NVOQ+Rh3he5HxGUKwqhdb0vw63htS8A3x2cUhEBxt8sbD2eckfzmdc9m54ItUm8FhMVrjIVOrnxIGsijaZCiNjY6q7+iyf0Q4A+2dhO8RkP+JzTrmlVSYw7ksp0dxfjsiKVsVwrXOA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778848228; c=relaxed/simple;
-	bh=95rnVbuPoEqYoOgOEmXgRRLmt/DgdbJJ5HiCjeQHGDU=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=f0uy2h2XrUyvzJZ5bjs9nTOD/V3Crknpq8z9X46rM5cm215vB05j6fL26908GI/lXrCmqIyT7+eCHcaxqvK5SFrRI/Rxhgw1rEKJC9oWxmRFcQAX78E1CyO/jqV3NqHfwuE5Xxym10+7Rq++QJ24n0sp95UVgKeJVJt7NF/fgU4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=B9iuksA7; arc=none smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1778848713; c=relaxed/simple;
+	bh=QkyGtymRwTBhyCo+ftYaceSh3xAwbb+WqGHKEO0jwkM=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=nZxjpuSDs27GTEpvKau1D773GslNvqWCGgPI1aYTZMl06zl8KvJdDk3cb46xFfOwAZmPFafdiUrpEnss89300CvmEejNsatSzz2/mo9MyvvYCCF2nNtraxUbYva+yxLGtIw0bdPxzCfA9NxuKjztWC5lWeRfxcjU/WpGVS7eeFU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=WS/Zdg8A; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="B9iuksA7"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1778848225;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=mmxOVGUrnxS/H09zubyapT22aA5Jy+w6JF95xU/Ftgg=;
-	b=B9iuksA7D9voPIoqHKEqcFm36pUoS0VdUimQ4A5n+NXUZezEutVi7xMqy4dM9Ur+jRpY2H
-	g4FVEBYRlgmLunTDpReChsdxTrFDjtyZcsDm6gIjFCahYORoF/EzH7ygOX4kaiDlUsbVfj
-	prNEjCLa5DGjpAp5oWEYiBb6TRJqXcc=
-Received: from mx-prod-mc-08.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-477-3Vv-EyRsPmip27TNJEM9QA-1; Fri,
- 15 May 2026 08:30:21 -0400
-X-MC-Unique: 3Vv-EyRsPmip27TNJEM9QA-1
-X-Mimecast-MFC-AGG-ID: 3Vv-EyRsPmip27TNJEM9QA_1778848217
-Received: from mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.17])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-08.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 276EA18002FC;
-	Fri, 15 May 2026 12:30:17 +0000 (UTC)
-Received: from [192.168.1.153] (headnet01.pony-001.prod.iad2.dc.redhat.com [10.2.32.101])
-	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 09B401956053;
-	Fri, 15 May 2026 12:30:09 +0000 (UTC)
-From: Albert Esteve <aesteve@redhat.com>
-Date: Fri, 15 May 2026 14:29:35 +0200
-Subject: [PATCH v13 4/4] kunit: Add documentation for warning backtrace
- suppression API
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="WS/Zdg8A"
+Received: from localhost (unknown [167.220.233.27])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 5F50920B7166;
+	Fri, 15 May 2026 05:38:27 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 5F50920B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1778848707;
+	bh=1OXr0xlN0CYrNFpGl0atHJ7aaaV0aDo3N3oIZvGVagY=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=WS/Zdg8AIi53513pxUnOp+s9InaN9MqXm8Ct+gGszuzww7WhyOeKAYEzmZFH5C4LC
+	 N4WtvrNmTKru+L4Wvy3/mrpRLUIzp7SXf695evqMQzpXzI0vKmUPA9CTnkBUTlDJm0
+	 b1d2IH7XXgyxFJYnqOG7QsvllXFywc14HtOV6AzY=
+Date: Fri, 15 May 2026 20:38:29 +0800
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: Jacob Pan <jacob.pan@linux.microsoft.com>
+Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, 
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, 
+	wei.liu@kernel.org, kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com, 
+	longli@microsoft.com, joro@8bytes.org, will@kernel.org, robin.murphy@arm.com, 
+	bhelgaas@google.com, kwilczynski@kernel.org, lpieralisi@kernel.org, mani@kernel.org, 
+	robh@kernel.org, arnd@arndb.de, jgg@ziepe.ca, mhklinux@outlook.com, 
+	tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com
+Subject: Re: [PATCH v1 3/4] iommu/hyperv: Add para-virtualized IOMMU support
+ for Hyper-V guest
+Message-ID: <af2mt3eqnadczs2u2psmsdevjhshsl3v6vamtnde2c44mjealc@3yon3hsi7idi>
+References: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
+ <20260511162408.1180069-4-zhangyu1@linux.microsoft.com>
+ <20260513113952.00005b20@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20260515-kunit_add_support-v13-4-18ee42f96e7b@redhat.com>
-References: <20260515-kunit_add_support-v13-0-18ee42f96e7b@redhat.com>
-In-Reply-To: <20260515-kunit_add_support-v13-0-18ee42f96e7b@redhat.com>
-To: Arnd Bergmann <arnd@arndb.de>, 
- Brendan Higgins <brendan.higgins@linux.dev>, David Gow <david@davidgow.net>, 
- Rae Moar <raemoar63@gmail.com>, 
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
- Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
- David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
- Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
- Andrew Morton <akpm@linux-foundation.org>, Paul Walmsley <pjw@kernel.org>, 
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
- Alexandre Ghiti <alex@ghiti.fr>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
- dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
- linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
- peterz@infradead.org, Guenter Roeck <linux@roeck-us.net>, 
- Linux Kernel Functional Testing <lkft@linaro.org>, 
- Alessandro Carminati <acarmina@redhat.com>, 
- Albert Esteve <aesteve@redhat.com>, Dan Carpenter <error27@gmail.com>, 
- Kees Cook <kees@kernel.org>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1778848177; l=2728;
- i=aesteve@redhat.com; s=20260303; h=from:subject:message-id;
- bh=YX7AMC4Z3qCvd9o2GGoQ6LMsoUJS/dulVvDsXv5Qzg4=;
- b=T/lO3tsthHpXkQtJqjkRl6FeIMwW3FihLvtB6rwG3WXQKPuvaApLNcK6qS/KJciDqiMrxuTrH
- dsR5X2uIaZ7C4ER7OAqHaQ6ky5bCHLmTstRZ1MCaXxbm7toeGhFe5C3
-X-Developer-Key: i=aesteve@redhat.com; a=ed25519;
- pk=YSFz6sOHd2L45+Fr8DIvHTi6lSIjhLZ5T+rkxspJt1s=
-X-Scanned-By: MIMEDefang 3.0 on 10.30.177.17
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260513113952.00005b20@linux.microsoft.com>
 
-From: Guenter Roeck <linux@roeck-us.net>
+[...]
+> > diff --git a/drivers/iommu/hyperv/Kconfig
+> > b/drivers/iommu/hyperv/Kconfig index 30f40d867036..9e658d5c9a77 100644
+> > --- a/drivers/iommu/hyperv/Kconfig
+> > +++ b/drivers/iommu/hyperv/Kconfig
+> > @@ -8,3 +8,20 @@ config HYPERV_IOMMU
+> >  	help
+> >  	  Stub IOMMU driver to handle IRQs to support Hyper-V Linux
+> >  	  guest and root partitions.
+> > +
+> > +if HYPERV_IOMMU
+> > +config HYPERV_PVIOMMU
+> > +	bool "Microsoft Hypervisor para-virtualized IOMMU support"
+> > +	depends on X86 && HYPERV
+> > +	select IOMMU_API
+> > +	select GENERIC_PT
+> > +	select IOMMU_PT
+> > +	select IOMMU_PT_X86_64
+> nit:
+> If HYPERV_PVIOMMU is enabled on a (hypothetical) platform with
+> GENERIC_ATOMIC64=y, the select would force-enable IOMMU_PT_X86_64 even
+> though its depends on is unsatisfied — leading to a build failure.
+> 
+> In practice this can't happen today because HYPERV_PVIOMMU already
+> depends on X86 && HYPERV, and x86 never sets GENERIC_ATOMIC64. But
+> adding the explicit guard is more defensive.
+> i.e.
+>        depends on !GENERIC_ATOMIC64    # for cmpxchg64 in IOMMU_PT
+> 
 
-Document API functions for suppressing warning backtraces.
+Good point. Will add "depends on !GENERIC_ATOMIC64".
 
-Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
-Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Guenter Roeck <linux@roeck-us.net>
-Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
-Reviewed-by: David Gow <david@davidgow.net>
-Signed-off-by: Albert Esteve <aesteve@redhat.com>
----
- Documentation/dev-tools/kunit/usage.rst | 46 ++++++++++++++++++++++++++++++++-
- 1 file changed, 45 insertions(+), 1 deletion(-)
+[...]
 
-diff --git a/Documentation/dev-tools/kunit/usage.rst b/Documentation/dev-tools/kunit/usage.rst
-index ebd06f5ea4550..1c78dfff94e8a 100644
---- a/Documentation/dev-tools/kunit/usage.rst
-+++ b/Documentation/dev-tools/kunit/usage.rst
-@@ -157,6 +157,50 @@ Alternatively, one can take full control over the error message by using
- 	if (some_setup_function())
- 		KUNIT_FAIL(test, "Failed to setup thing for testing");
- 
-+Suppressing warning backtraces
-+------------------------------
-+
-+Some unit tests trigger warning backtraces either intentionally or as a side
-+effect. Such backtraces are normally undesirable since they distract from
-+the actual test and may result in the impression that there is a problem.
-+
-+Backtraces can be suppressed with **task-scoped suppression**: while
-+suppression is active on the current task, the backtrace and stack dump from
-+``WARN*()``, ``WARN_ON*()``, and related macros on that task are suppressed.
-+Two API forms are available.
-+
-+- Scoped suppression is the simplest form. Wrap the code that triggers
-+  warnings in a ``kunit_warning_suppress()`` block:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		kunit_warning_suppress(test) {
-+			trigger_backtrace();
-+			KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
-+		}
-+	}
-+
-+.. note::
-+   The warning count must be checked inside the block; the suppression handle
-+   is not accessible after the block exits.
-+
-+- Direct functions return an explicit handle pointer. Use them when the handle
-+  needs to be retained or passed across helper functions:
-+
-+.. code-block:: c
-+
-+	static void some_test(struct kunit *test)
-+	{
-+		struct kunit_suppressed_warning *w;
-+
-+		w = kunit_start_suppress_warning(test);
-+		trigger_backtrace();
-+		kunit_end_suppress_warning(test, w);
-+
-+		KUNIT_EXPECT_EQ(test, kunit_suppressed_warning_count(w), 1);
-+	}
- 
- Test Suites
- ~~~~~~~~~~~
-@@ -1211,4 +1255,4 @@ For example:
- 		dev_managed_string = devm_kstrdup(fake_device, "Hello, World!");
- 
- 		// Everything is cleaned up automatically when the test ends.
--	}
-\ No newline at end of file
-+	}
+> > +
+> > +/*
+> > + * Look up the logical device ID for a vPCI device. Returns 0 on
+> > success
+> > + * with *logical_id filled in; -ENODEV if no entry registered for
+> > this
+> > + * device's vPCI bus.
+> > + */
+> > +static int hv_iommu_lookup_logical_dev_id(struct pci_dev *pdev, u64
+> > *logical_id) +{
+> > +	struct hv_pci_busdata *bus;
+> > +	int domain = pci_domain_nr(pdev->bus);
+> > +	int ret = -ENODEV;
+> > +
+> > +	spin_lock(&hv_iommu_pci_bus_lock);
+> this is called under local_irq_save, should use  raw_spinlock_t for RT
+> kernel?
+> 
 
--- 
-2.53.0
+Yes, this is problematic on PREEMPT_RT. Michael also suggested hoisting
+the lookup before the local_irq_save() section instead of using a raw
+spinlock, which I think is a great idea - all 3 call sites (detach_dev,
+attach_dev, get_logical_device_property) will be changed.
+
+> > +	list_for_each_entry(bus, &hv_iommu_pci_bus_list, list) {
+> > +		if (bus->pci_domain_nr == domain) {
+> > +			*logical_id =
+> > (u64)bus->logical_dev_id_prefix |
+> > +				      PCI_FUNC(pdev->devfn);
+> > +			ret = 0;
+> > +			break;
+> > +		}
+> > +	}
+> > +	spin_unlock(&hv_iommu_pci_bus_lock);
+> > +	return ret;
+> > +}
+> > +
+
+[...]
+
+> > +static void hv_iommu_release_device(struct device *dev)
+> > +{
+> > +	struct hv_iommu_endpoint *vdev = dev_iommu_priv_get(dev);
+> > +	struct pci_dev *pdev = to_pci_dev(dev);
+> > +
+> > +	if (pdev->ats_enabled)
+> > +		pci_disable_ats(pdev);
+> > +
+> > +	dev_iommu_priv_set(dev, NULL);
+> > +	set_dma_ops(dev, NULL);
+> I don't think this is necessary.
+> 
+
+Oh, yes. Thanks!
+
+> > +
+> > +	kfree(vdev);
+> > +}
+> > +
+> > +static struct iommu_group *hv_iommu_device_group(struct device *dev)
+> > +{
+> > +	if (dev_is_pci(dev))
+> > +		return pci_device_group(dev);
+> > +	else
+> > +		return generic_device_group(dev);
+> non pci device already rejected during attach, maybe we should warn
+> here?
+>         WARN_ON_ONCE(1);
+>         return generic_device_group(dev);
+> 
+
+Good idea. Will add WARN_ON_ONCE(1).
+
+> > +}
+> > +
+> > +static int hv_configure_device_domain(struct hv_iommu_domain
+> > *hv_domain, u32 domain_type) +{
+> > +	u64 status;
+> > +	unsigned long flags;
+> > +	struct pt_iommu_x86_64_hw_info pt_info;
+> > +	struct hv_input_configure_device_domain *input;
+> > +
+> > +	local_irq_save(flags);
+> > +
+> > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> > +	memset(input, 0, sizeof(*input));
+> > +	input->device_domain = hv_domain->device_domain;
+> > +	input->settings.flags.blocked = (domain_type ==
+> > IOMMU_DOMAIN_BLOCKED);
+> > +	input->settings.flags.translation_enabled = (domain_type !=
+> > IOMMU_DOMAIN_IDENTITY); +
+> Should this be:
+> input->settings.flags.translation_enabled =
+>      (domain_type & __IOMMU_DOMAIN_PAGING);
+> Otherwise, blocked domain will have translation enabled. Maybe add some
+> explanation of what HV expects.
+> 
+I do agree this is not intuitive, but current hypervisor implementation
+requires "blocked == 1" to be paired with "translation_enabled = 1",
+otherwise it returns HV_STATUS_INVALID_PARAMETER. But I can add some
+comment at least.
+
+Thanks for the thorough review, Jacob!
+
+B.R.
+Yu
+
 
