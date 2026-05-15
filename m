@@ -1,500 +1,411 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 27DF4481FBF;
-	Fri, 15 May 2026 13:59:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778853594; cv=none; b=Yg36O3IRj9bOLAMpGgc0SWdxETREez/IDqMwoE5SHpld3fNvLygmfs9mf1g/qJHv1EBsLgWDtoDWNY76kUbUSGmnPg8YuB3idKFd+8oaccyZQr7NA6U+PZlGQFuNT1QctDoBFIpgh4XozNmzrf2QGlzM/eygQdwTGo/d6xaLdso=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778853594; c=relaxed/simple;
-	bh=9rDbrWH7oI+P9+B0sgevRg+4GvHw9Scqucfl4kTVo6k=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=olrXg9XSDMqWZG3jqMP/Hp2Q/51JxKmZZELmQPBlGdfRtGxp3bn8jaNPyVDGAlFDvAUFf9m2VEYZV3Qe+pIjuNGjKvvFIUHNVeJk7w4EoQ6pOYafWtH++Ooe3ioZiEiG91A1XQSTR5OGRSS0WbWhXF8+O22Suy6PNiryPebPdww=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=RUlk2BUj; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0994146AF12
+	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 14:14:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=170.10.133.124
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1778854465; cv=pass; b=HuG4q8DS6MV1sdmPGPx9sLUyhmTrnPQJF9JdPtuDZMbazWwZd/0ysVcLynhaLcrDvGvytBTi0CHFZEJLcJ95jxgrZjiWvdMjJ0iAOnsZcIx/S63xZA63i/7nytFoS/cYfWqdlUPrmO/orJZRYVo5+RRC5Q8Twh+7Ia+iEehFLAc=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1778854465; c=relaxed/simple;
+	bh=FaxTYlTBleuGE3zOrA0kjtoeT54kzZ578UmRae1Nmsk=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=JFiipLSw72SqGGgj0oJrCcJQ1d+XPBI0NmbUbwqay9ShCl3j461RqGAbztrrukuRZ4YBum+rOYEH74HPxqrILP+8fyp7fqW3CYmZL9X4tO35lEH/u3570RRY201PCjBwYyx09B1ZqR5m6CyaBpVTriEr7dTlbMuGGx22EJOKYdY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=GZAJHNNu; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=WZoy1OYB; arc=pass smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="RUlk2BUj"
-Received: from localhost (unknown [167.220.233.27])
-	by linux.microsoft.com (Postfix) with ESMTPSA id DA1CE20B7167;
-	Fri, 15 May 2026 06:59:39 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com DA1CE20B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1778853580;
-	bh=u15DL1s7QBEMCZ16Cu+IWH6vivivK8AOVw81EtZOwgE=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=RUlk2BUjK6Nouh3n8f1vbfFriyXcIWjDcAo4UwRmHSij7wgRI9s8l8rBsi4BUquRm
-	 E6nrKj7n6SXIHHf51r5G616fCdQWalEVC1EsuBq66/wT4g6iHKN2UHfJ1mTCI1Z5PT
-	 1WxwJqBLeD25DbUOPEfOSBU8rDjNafakp7gNxEwU=
-Date: Fri, 15 May 2026 21:59:41 +0800
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: Michael Kelley <mhklinux@outlook.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
-	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev" <iommu@lists.linux.dev>, 
-	"linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 
-	"wei.liu@kernel.org" <wei.liu@kernel.org>, "kys@microsoft.com" <kys@microsoft.com>, 
-	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>, 
-	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org" <joro@8bytes.org>, 
-	"will@kernel.org" <will@kernel.org>, "robin.murphy@arm.com" <robin.murphy@arm.com>, 
-	"bhelgaas@google.com" <bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>, 
-	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org" <mani@kernel.org>, 
-	"robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
-	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
-	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>
-Subject: Re: [PATCH v1 3/4] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Message-ID: <qeyycsdnejwrqle4zwrvkjvkvrpjifeanwxjaa7i7y2ab7rnt2@b6gvugqayarg>
-References: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
- <20260511162408.1180069-4-zhangyu1@linux.microsoft.com>
- <SN6PR02MB4157FB81CC9B6347DCCC8C56D4072@SN6PR02MB4157.namprd02.prod.outlook.com>
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="GZAJHNNu";
+	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="WZoy1OYB"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1778854461;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=VObRtO05jubkBNdePEiKs8bkHI05Ids5T/0ogzpYITY=;
+	b=GZAJHNNumSnw6RrrGsk2+MklEnNnLUJ+e1IBnnuEMdQWvQR1hVklsyymqTRKAwb/IWkOOI
+	O7xsGA9XNh1LvOkVA74A2uVIorCHPymNIgFA+9dNwSWbfVaJ6qHZlqqiXpwShWsvc7Je1F
+	mWu9/Szrwt53oXf1ITTJMetU60hhbeU=
+Received: from mail-yx1-f71.google.com (mail-yx1-f71.google.com
+ [74.125.224.71]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-160-VwIUqhJyNH-eugiSjLz50A-1; Fri, 15 May 2026 10:14:20 -0400
+X-MC-Unique: VwIUqhJyNH-eugiSjLz50A-1
+X-Mimecast-MFC-AGG-ID: VwIUqhJyNH-eugiSjLz50A_1778854460
+Received: by mail-yx1-f71.google.com with SMTP id 956f58d0204a3-651bd07888eso22395624d50.2
+        for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 07:14:20 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1778854460; cv=none;
+        d=google.com; s=arc-20240605;
+        b=G+K0isIR959nvEo3dSkg8JyAVp8d+CazLqoZabRqvfe61bfCwsKeXjF83gZ0PVIi5b
+         0KcYUUDbK2KWmoUjG2fyntzGqr8bxYIUCwUieUKdV6sUj1t0bctWAAhGSzAZshk4PzDW
+         vVqevbDQgHD/j9Cin+sWutx/8Ddi4fHuGvJC2a9tQAC4lRPW7gcEbjG6moruzdpnQNO7
+         p6EE33Uic8P/frn6e3QJSoD0MvbHKui5Ox+nRehhR8JNcTuFkho3EmJkYqttH6A8Wla8
+         73mzLLLLPehg2Z01zNrZP/ONsXNt3WcQLmpkXfEQw6ueeSc5RqyMsptAM8+fyeDq1XQ1
+         mQRA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=VObRtO05jubkBNdePEiKs8bkHI05Ids5T/0ogzpYITY=;
+        fh=PrGmrPD7Yb9ZbrDpKtt9vANqN/74IsrI4yOPnR9mJEo=;
+        b=MARDKoipOXmX2HnhyPvMdxlyrAKOzfOlWOSF+0ABP9FPQHVks4ppvbj4yL48oQEBjd
+         a4YdQbD7Gj+WiwwGExYIMxTwHvTFrFUq7O2+PlQ1J3k2qP5mS5W3T4+beRYrgdOXPY6t
+         SEak90vPxTjCt4I5T4SrXDNp4XQp065dhVlKfcBWS1DedxkFmt1K99+yoYnGk1UheyUY
+         zQD7LJqpJf1gfSzVVKZinGQkJduNHtdSJAFgq+RLqSj1g4xbxepo5fEg8Hh545dn/9w2
+         ZaUwHfEdHZaIVFStAeP6UE9u2DgSBSs0yiQuS08h9wK0r0Puy4PlBqI8XBxSqg43P5ZG
+         zabA==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=redhat.com; s=google; t=1778854460; x=1779459260; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=VObRtO05jubkBNdePEiKs8bkHI05Ids5T/0ogzpYITY=;
+        b=WZoy1OYBYdppYYUte1dhqnqK7YGtlRhaSDcG59YyS5Xr2LfVf1a5Au33jKpgEEslGV
+         NFOjNOTFz2cTY0aYBH1KArvI5/0NKuIsBplDjePnNncbw54a9yJb0lD8W0Bp0pZ+juqm
+         UTraJko5hw1WZPj+nA3Ye5e8eQxDJKJKlAZ1+qBtXWJ6Og6n/F26wcOo2B2hidE2KdLL
+         TJvKil4x9GBgZ/aS+83+PMoDjVVWHaoqYp1SV5kVI24kNf5VyTPtgcyWdOoPXG0QTf6C
+         GFs2oUK3Yd5eeYntmuFWPo8mEQHHaQjsUmtgTohQP2CD+s8ajOItKQNnBqzKW2+FVDeV
+         0Z0A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778854460; x=1779459260;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=VObRtO05jubkBNdePEiKs8bkHI05Ids5T/0ogzpYITY=;
+        b=UiHVvrtFOA4NKUWppmvukVwaqC+gOgTPYU5AX8cPXC7geOHd54zfAjUVovT3PNrfDQ
+         9EwCOYfFfxov+185Zy96Xn6Ss/zP3CC8sbHKWonAylZ22jjFdMlnk+/0sD0QOZdPCCN8
+         5pdVECEMJm8sYMz04nag+hCm/AKlvf7GWht4Tc/UuLJ5cUrBgOuvUsPPB7rzzTpQcy8v
+         U+WK/SLxZG4oiwKocR/4U2fLHUAp6oEdZ+DND0f812rvt8Bk6hRzXxBdHjh/+JbY2qF3
+         ZShC8Y8AQORBZ/iCD8YVS0ZsLyfkMsyloX9c7pUpC31PdBRA+ehFCzAHt057yPqzaooG
+         mWEg==
+X-Forwarded-Encrypted: i=1; AFNElJ/r2GHVGK0knNBYzBk/i0ZJBk8vx5h7w4oQtXePgX8Zcl3nC3PC81j2ZrlZ1BVFDaJA3OZ7p/NAJ4GG@vger.kernel.org
+X-Gm-Message-State: AOJu0Yzo4uJ5MQbMFooM0ani2OIxreaYFLYZzNrjdCmC2yRGReYTB7W+
+	Wdf/QSRj13G8p+hr3ma3ElXzKEbmfNCwZRZN1nREsguQgmN7Ro/YLikJNgURi2MsFfX0nTQLxD2
+	KlUfBsDuaXYlBhiNGlddZfhXZ66oXgicuMGPWypDzXlXbOawvNwKE1VLVru+Enavgr4dJbW3gD0
+	2DYg8RW546Zlqj1n55K3AjtXhmYGpOrDqNB9+xfQ==
+X-Gm-Gg: Acq92OFAyZHsiouNPiufvHDXi6b+3inqolMzIimMJDC20RvQPr+Bsv++12BvsD1uuYJ
+	frOOPPC9ensWxTIg3uIDnHT8X15sG9K8CIBG2Ggm/XjjTvxBiZnqOA5mcGaFkVumYPJG00vc+Fw
+	bnf0d+mv6Q2HJF0KTaAO4uhZ5OVzWomtsXOAr+djc1c6FQpDEGrzfc64XpF0ZTwjFJ4mILnGAOI
+	HeJXw==
+X-Received: by 2002:a05:690c:4a08:b0:7ba:ef98:9712 with SMTP id 00721157ae682-7c959a9a3e0mr45636237b3.11.1778854459942;
+        Fri, 15 May 2026 07:14:19 -0700 (PDT)
+X-Received: by 2002:a05:690c:4a08:b0:7ba:ef98:9712 with SMTP id
+ 00721157ae682-7c959a9a3e0mr45635597b3.11.1778854459379; Fri, 15 May 2026
+ 07:14:19 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <SN6PR02MB4157FB81CC9B6347DCCC8C56D4072@SN6PR02MB4157.namprd02.prod.outlook.com>
+References: <20260515-kunit_add_support-v13-0-18ee42f96e7b@redhat.com> <20260515-kunit_add_support-v13-2-18ee42f96e7b@redhat.com>
+In-Reply-To: <20260515-kunit_add_support-v13-2-18ee42f96e7b@redhat.com>
+From: Albert Esteve <aesteve@redhat.com>
+Date: Fri, 15 May 2026 16:14:07 +0200
+X-Gm-Features: AVHnY4KpgDDXeYFVXYd1aCpKGaTXXGfKzXerArdIzcyo8M52liefZmNjWABG4yY
+Message-ID: <CADSE00LZD0+TMxkCgH5YEwjdPggx8X5ZrHEFx_ku0wBSjS_Oyw@mail.gmail.com>
+Subject: Re: [PATCH v13 2/4] kunit: Add backtrace suppression self-tests
+To: Arnd Bergmann <arnd@arndb.de>, Brendan Higgins <brendan.higgins@linux.dev>, 
+	David Gow <david@davidgow.net>, Rae Moar <raemoar63@gmail.com>, 
+	Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard <mripard@kernel.org>, 
+	Thomas Zimmermann <tzimmermann@suse.de>, David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
+	Andrew Morton <akpm@linux-foundation.org>, Paul Walmsley <pjw@kernel.org>, 
+	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Alexandre Ghiti <alex@ghiti.fr>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, 
+	dri-devel@lists.freedesktop.org, workflows@vger.kernel.org, 
+	linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
+	peterz@infradead.org, Guenter Roeck <linux@roeck-us.net>, 
+	Linux Kernel Functional Testing <lkft@linaro.org>, Alessandro Carminati <acarmina@redhat.com>, Dan Carpenter <error27@gmail.com>, 
+	Kees Cook <kees@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Thu, May 14, 2026 at 06:13:24PM +0000, Michael Kelley wrote:
-> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Monday, May 11, 2026 9:24 AM
-> > 
-> > Add a para-virtualized IOMMU driver for Linux guests running on Hyper-V.
-> > This driver implements stage-1 IO translation within the guest OS.
-> > It integrates with the Linux IOMMU core, utilizing Hyper-V hypercalls
-> > for:
-> >  - Capability discovery
-> >  - Domain allocation, configuration, and deallocation
-> >  - Device attachment and detachment
-> >  - IOTLB invalidation
-> > 
-> > The driver constructs x86-compatible stage-1 IO page tables in the
-> > guest memory using consolidated IO page table helpers. This allows
-> > the guest to manage stage-1 translations independently of vendor-
-> > specific drivers (like Intel VT-d or AMD IOMMU).
-> > 
-> > Hyper-V consumes this stage-1 IO page table when a device domain is
-> > created and configured, and nests it with the host's stage-2 IO page
-> > tables, therefore eliminating the VM exits for guest IOMMU mapping
-> > operations. For unmapping operations, VM exits to perform the IOTLB
-> > flush are still unavoidable.
-> > 
-> > Hyper-V identifies each PCI pass-thru device by a logical device ID
-> > in its hypercall interface. The vPCI driver (pci-hyperv) registers the
-> > per-bus portion of this ID with the pvIOMMU driver during bus probe.
-> > The pvIOMMU driver stores this mapping and combines it with the function
-> > number of the endpoint PCI device to form the complete ID for hypercalls.
-> 
-> As you are probably aware, Mukesh's patch series to support PCI
-> pass-thru devices also needs to get the logical device ID. Maybe the
-> registration mechanism needs to move somewhere that can be shared
-> with his code.
-> 
+On Fri, May 15, 2026 at 2:30=E2=80=AFPM Albert Esteve <aesteve@redhat.com> =
+wrote:
+>
+> From: Guenter Roeck <linux@roeck-us.net>
+>
+> Add unit tests to verify that warning backtrace suppression works.
+>
+> Tests cover both API forms:
+> - Scoped: kunit_warning_suppress() with in-block count verification
+>   and post-block inactivity check.
+> - Direct functions: kunit_start/end_suppress_warning() with
+>   sequential independent suppression blocks and per-block counts.
+>
+> Furthermore, tests verify incremental warning counting, that
+> kunit_has_active_suppress_warning() transitions correctly around
+> suppression boundaries, and that suppression active in the test
+> kthread does not leak to a separate kthread.
+>
+> If backtrace suppression does _not_ work, the unit tests will likely
+> trigger unsuppressed backtraces, which should actually help to get
+> the affected architectures / platforms fixed.
+>
 
-Thank you so much for the review, Michael!
+Another set of sashiko comments for this patch
+https://sashiko.dev/#/patchset/20260515-kunit_add_support-v13-0-18ee42f96e7=
+b%40redhat.com?part=3D2
+here:
 
-Yes, I looked at Mukesh's series and noticed his hv_pci_vmbus_device_id()
-in pci-hyperv.c has the same dev_instance byte manipulation. We do need
-a common registration mechanism.
+1. CPU spike from while (!kthread_should_stop()) schedule()
+Ha! I expected this one because I saw it in a previous review from the
+bot. schedule() from TASK_RUNNING yields the CPU; it does not
+spin-wait. The thread is rescheduled only when the scheduler gives it
+time, not in a tight loop. But the important thing is that the window
+where this loop actually runs is negligible: the parent calls
+kthread_stop() immediately after wait_for_completion() returns. Using
+set_current_state(TASK_INTERRUPTIBLE) would be slightly more
+CPU-friendly, but for a test that probably runs and exits in
+microseconds, it makes no practical difference. And it unnecessarily
+adds complexity.
 
-Any suggestion on where to put it? drivers/hv/hv_common.c seems like a
-natural place, but the register/lookup functions are currently only
-meaningful when CONFIG_HYPERV_PVIOMMU is set. If Mukesh's pass-thru
-code also needs them, we might need a new shared Kconfig option that
-both can select. Open to better ideas.
+2. Orphaned kthread on early abort
+This cannot happen in this test. The only KUNIT_ASSERT_* that could
+abort early is KUNIT_ASSERT_FALSE(test, IS_ERR(task)). If that
+assertion fails, it means kthread_run() itself returned an error,
+therefore, the kthread was never started and there is nothing to
+orphan. If kthread_run() succeeds, the assertion passes, and execution
+continues sequentially to kthread_stop(). No code path allows a live
+kthread to exist while bypassing kthread_stop().
 
-Adding Mukesh to the loop. :)
+> Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
+> Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
+> Reviewed-by: Kees Cook <keescook@chromium.org>
+> Signed-off-by: Guenter Roeck <linux@roeck-us.net>
+> Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
+> Reviewed-by: David Gow <david@davidgow.net>
+> Signed-off-by: Albert Esteve <aesteve@redhat.com>
+> ---
+>  lib/kunit/Makefile                     |   1 +
+>  lib/kunit/backtrace-suppression-test.c | 192 +++++++++++++++++++++++++++=
+++++++
+>  2 files changed, 193 insertions(+)
+>
+> diff --git a/lib/kunit/Makefile b/lib/kunit/Makefile
+> index 4592f9d0aa8dd..2e8a6b71a2ab0 100644
+> --- a/lib/kunit/Makefile
+> +++ b/lib/kunit/Makefile
+> @@ -22,6 +22,7 @@ obj-$(if $(CONFIG_KUNIT),y) +=3D                hooks.o
+>
+>  obj-$(CONFIG_KUNIT_TEST) +=3D            kunit-test.o
+>  obj-$(CONFIG_KUNIT_TEST) +=3D            platform-test.o
+> +obj-$(CONFIG_KUNIT_TEST) +=3D            backtrace-suppression-test.o
+>
+>  # string-stream-test compiles built-in only.
+>  ifeq ($(CONFIG_KUNIT_TEST),y)
+> diff --git a/lib/kunit/backtrace-suppression-test.c b/lib/kunit/backtrace=
+-suppression-test.c
+> new file mode 100644
+> index 0000000000000..59a038b2739f5
+> --- /dev/null
+> +++ b/lib/kunit/backtrace-suppression-test.c
+> @@ -0,0 +1,192 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +/*
+> + * KUnit test for suppressing warning tracebacks.
+> + *
+> + * Copyright (C) 2024, Guenter Roeck
+> + * Author: Guenter Roeck <linux@roeck-us.net>
+> + */
+> +
+> +#include <kunit/test.h>
+> +#include <linux/bug.h>
+> +#include <linux/completion.h>
+> +#include <linux/kthread.h>
+> +
+> +static void backtrace_suppression_test_warn_direct(struct kunit *test)
+> +{
+> +       if (!IS_ENABLED(CONFIG_BUG))
+> +               kunit_skip(test, "requires CONFIG_BUG");
+> +
+> +       kunit_warning_suppress(test) {
+> +               WARN(1, "This backtrace should be suppressed");
+> +               /*
+> +                * Count must be checked inside the scope; the handle
+> +                * is not accessible after the block exits.
+> +                */
+> +               KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
+> +       }
+> +       KUNIT_EXPECT_FALSE(test, kunit_has_active_suppress_warning());
+> +}
+> +
+> +static noinline void trigger_backtrace_warn(void)
+> +{
+> +       WARN(1, "This backtrace should be suppressed");
+> +}
+> +
+> +static void backtrace_suppression_test_warn_indirect(struct kunit *test)
+> +{
+> +       if (!IS_ENABLED(CONFIG_BUG))
+> +               kunit_skip(test, "requires CONFIG_BUG");
+> +
+> +       kunit_warning_suppress(test) {
+> +               trigger_backtrace_warn();
+> +               KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
+> +       }
+> +}
+> +
+> +static void backtrace_suppression_test_warn_multi(struct kunit *test)
+> +{
+> +       if (!IS_ENABLED(CONFIG_BUG))
+> +               kunit_skip(test, "requires CONFIG_BUG");
+> +
+> +       kunit_warning_suppress(test) {
+> +               WARN(1, "This backtrace should be suppressed");
+> +               trigger_backtrace_warn();
+> +               KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 2);
+> +       }
+> +}
+> +
+> +static void backtrace_suppression_test_warn_on_direct(struct kunit *test=
+)
+> +{
+> +       if (!IS_ENABLED(CONFIG_BUG))
+> +               kunit_skip(test, "requires CONFIG_BUG");
+> +
+> +       kunit_warning_suppress(test) {
+> +               WARN_ON(1);
+> +               KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
+> +       }
+> +}
+> +
+> +static noinline void trigger_backtrace_warn_on(void)
+> +{
+> +       WARN_ON(1);
+> +}
+> +
+> +static void backtrace_suppression_test_warn_on_indirect(struct kunit *te=
+st)
+> +{
+> +       if (!IS_ENABLED(CONFIG_BUG))
+> +               kunit_skip(test, "requires CONFIG_BUG");
+> +
+> +       kunit_warning_suppress(test) {
+> +               trigger_backtrace_warn_on();
+> +               KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
+> +       }
+> +}
+> +
+> +static void backtrace_suppression_test_count(struct kunit *test)
+> +{
+> +       if (!IS_ENABLED(CONFIG_BUG))
+> +               kunit_skip(test, "requires CONFIG_BUG");
+> +
+> +       kunit_warning_suppress(test) {
+> +               KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 0);
+> +
+> +               WARN(1, "suppressed");
+> +               KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
+> +
+> +               WARN(1, "suppressed again");
+> +               KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 2);
+> +       }
+> +}
+> +
+> +static void backtrace_suppression_test_active_state(struct kunit *test)
+> +{
+> +       KUNIT_EXPECT_FALSE(test, kunit_has_active_suppress_warning());
+> +
+> +       kunit_warning_suppress(test) {
+> +               KUNIT_EXPECT_TRUE(test, kunit_has_active_suppress_warning=
+());
+> +       }
+> +
+> +       KUNIT_EXPECT_FALSE(test, kunit_has_active_suppress_warning());
+> +
+> +       kunit_warning_suppress(test) {
+> +               KUNIT_EXPECT_TRUE(test, kunit_has_active_suppress_warning=
+());
+> +       }
+> +
+> +       KUNIT_EXPECT_FALSE(test, kunit_has_active_suppress_warning());
+> +}
+> +
+> +static void backtrace_suppression_test_multi_scope(struct kunit *test)
+> +{
+> +       struct kunit_suppressed_warning *sw1, *sw2;
+> +
+> +       if (!IS_ENABLED(CONFIG_BUG))
+> +               kunit_skip(test, "requires CONFIG_BUG");
+> +
+> +       sw1 =3D kunit_start_suppress_warning(test);
+> +       trigger_backtrace_warn_on();
+> +       WARN(1, "suppressed by sw1");
+> +       kunit_end_suppress_warning(test, sw1);
+> +
+> +       sw2 =3D kunit_start_suppress_warning(test);
+> +       WARN(1, "suppressed by sw2");
+> +       kunit_end_suppress_warning(test, sw2);
+> +
+> +       KUNIT_EXPECT_EQ(test, kunit_suppressed_warning_count(sw1), 2);
+> +       KUNIT_EXPECT_EQ(test, kunit_suppressed_warning_count(sw2), 1);
+> +}
+> +
+> +struct cross_kthread_data {
+> +       bool was_active;
+> +       struct completion done;
+> +};
+> +
+> +static int cross_kthread_fn(void *data)
+> +{
+> +       struct cross_kthread_data *d =3D data;
+> +
+> +       d->was_active =3D kunit_has_active_suppress_warning();
+> +       complete(&d->done);
+> +       while (!kthread_should_stop())
+> +               schedule();
+> +       return 0;
+> +}
+> +
+> +static void backtrace_suppression_test_cross_kthread(struct kunit *test)
+> +{
+> +       struct cross_kthread_data data;
+> +       struct task_struct *task;
+> +
+> +       data.was_active =3D false;
+> +       init_completion(&data.done);
+> +
+> +       kunit_warning_suppress(test) {
+> +               task =3D kthread_run(cross_kthread_fn, &data, "kunit-cros=
+s-test");
+> +               KUNIT_ASSERT_FALSE(test, IS_ERR(task));
+> +               wait_for_completion(&data.done);
+> +               kthread_stop(task);
+> +       }
+> +
+> +       KUNIT_EXPECT_FALSE(test, data.was_active);
+> +}
+> +
+> +static struct kunit_case backtrace_suppression_test_cases[] =3D {
+> +       KUNIT_CASE(backtrace_suppression_test_warn_direct),
+> +       KUNIT_CASE(backtrace_suppression_test_warn_indirect),
+> +       KUNIT_CASE(backtrace_suppression_test_warn_multi),
+> +       KUNIT_CASE(backtrace_suppression_test_warn_on_direct),
+> +       KUNIT_CASE(backtrace_suppression_test_warn_on_indirect),
+> +       KUNIT_CASE(backtrace_suppression_test_count),
+> +       KUNIT_CASE(backtrace_suppression_test_active_state),
+> +       KUNIT_CASE(backtrace_suppression_test_multi_scope),
+> +       KUNIT_CASE(backtrace_suppression_test_cross_kthread),
+> +       {}
+> +};
+> +
+> +static struct kunit_suite backtrace_suppression_test_suite =3D {
+> +       .name =3D "backtrace-suppression-test",
+> +       .test_cases =3D backtrace_suppression_test_cases,
+> +};
+> +kunit_test_suites(&backtrace_suppression_test_suite);
+> +
+> +MODULE_LICENSE("GPL");
+> +MODULE_DESCRIPTION("KUnit test to verify warning backtrace suppression")=
+;
+>
+> --
+> 2.53.0
+>
 
-> > 
-> > Co-developed-by: Wei Liu <wei.liu@kernel.org>
-> > Signed-off-by: Wei Liu <wei.liu@kernel.org>
-> > Co-developed-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-> > Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-> > Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
-> > ---
-> >  arch/x86/hyperv/hv_init.c           |   4 +
-> >  arch/x86/include/asm/mshyperv.h     |   4 +
-> >  drivers/iommu/hyperv/Kconfig        |  17 +
-> >  drivers/iommu/hyperv/Makefile       |   1 +
-> >  drivers/iommu/hyperv/iommu.c        | 705 ++++++++++++++++++++++++++++
-> >  drivers/iommu/hyperv/iommu.h        |  54 +++
-> >  drivers/pci/controller/pci-hyperv.c |  19 +-
-> >  include/asm-generic/mshyperv.h      |  12 +
-> >  8 files changed, 815 insertions(+), 1 deletion(-)
-> >  create mode 100644 drivers/iommu/hyperv/iommu.c
-> >  create mode 100644 drivers/iommu/hyperv/iommu.h
-> > 
-> > diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-> > index 323adc93f2dc..2c8ff8e06249 100644
-> > --- a/arch/x86/hyperv/hv_init.c
-> > +++ b/arch/x86/hyperv/hv_init.c
-> > @@ -578,6 +578,10 @@ void __init hyperv_init(void)
-> >  	old_setup_percpu_clockev = x86_init.timers.setup_percpu_clockev;
-> >  	x86_init.timers.setup_percpu_clockev = hv_stimer_setup_percpu_clockev;
-> > 
-> > +#ifdef CONFIG_HYPERV_PVIOMMU
-> > +	x86_init.iommu.iommu_init = hv_iommu_init;
-> > +#endif
-> > +
-> >  	hv_apic_init();
-> > 
-> >  	x86_init.pci.arch_init = hv_pci_init;
-> > diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-> > index f64393e853ee..20d947c2c758 100644
-> > --- a/arch/x86/include/asm/mshyperv.h
-> > +++ b/arch/x86/include/asm/mshyperv.h
-> > @@ -313,6 +313,10 @@ static inline void mshv_vtl_return_hypercall(void) {}
-> >  static inline void __mshv_vtl_return_call(struct mshv_vtl_cpu_context *vtl0) {}
-> >  #endif
-> > 
-> > +#ifdef CONFIG_HYPERV_PVIOMMU
-> > +int __init hv_iommu_init(void);
-> > +#endif
-> > +
-> >  #include <asm-generic/mshyperv.h>
-> > 
-> >  #endif
-> > diff --git a/drivers/iommu/hyperv/Kconfig b/drivers/iommu/hyperv/Kconfig
-> > index 30f40d867036..9e658d5c9a77 100644
-> > --- a/drivers/iommu/hyperv/Kconfig
-> > +++ b/drivers/iommu/hyperv/Kconfig
-> > @@ -8,3 +8,20 @@ config HYPERV_IOMMU
-> >  	help
-> >  	  Stub IOMMU driver to handle IRQs to support Hyper-V Linux
-> >  	  guest and root partitions.
-> > +
-> > +if HYPERV_IOMMU
-> > +config HYPERV_PVIOMMU
-> > +	bool "Microsoft Hypervisor para-virtualized IOMMU support"
-> > +	depends on X86 && HYPERV
-> 
-> What is the intent w.r.t. 32-bit builds? Using X86 instead of X86_64
-> allows it. I did a 32-bit build and didn't get any build failures, which is
-> good. But I can't run it to see if the pvIOMMU actually works in a
-> 32-bit build. I don't know how building X86_64 generic PT entries
-> would fare.
-> 
-
-Sorry, no intent to support 32-bit. I'll change to `depends on X86_64 && HYPERV`
-
-[...]
-
-> > +static void hv_flush_device_domain(struct hv_iommu_domain *hv_domain)
-> > +{
-> > +	u64 status;
-> > +	unsigned long flags;
-> > +	struct hv_input_flush_device_domain *input;
-> > +
-> > +	local_irq_save(flags);
-> > +
-> > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> > +	memset(input, 0, sizeof(*input));
-> > +	input->device_domain = hv_domain->device_domain;
-> 
-> The previous version of this patch had code to set several other fields in
-> the input. I wanted to confirm that not setting them in this version is
-> intentional. Were they not needed?
-> 
-
-Oh. The RFC v1 set partition_id, owner_vtl, domain_id.type, and domain_id.id
-individually. In this version, I just simplified it to a struct assignment.
-No functional change.
-
-> > +	status = hv_do_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN, input, NULL);
-> > +
-> > +	local_irq_restore(flags);
-> > +
-> > +	if (!hv_result_success(status))
-> > +		pr_err("HVCALL_FLUSH_DEVICE_DOMAIN failed, status %lld\n", status);
-> > +}
-> > +
-> > +static void hv_iommu_detach_dev(struct iommu_domain *domain, struct device *dev)
-> > +{
-> > +	u64 status;
-> > +	unsigned long flags;
-> > +	struct hv_input_detach_device_domain *input;
-> > +	struct pci_dev *pdev;
-> > +	struct hv_iommu_domain *hv_domain = to_hv_iommu_domain(domain);
-> > +	struct hv_iommu_endpoint *vdev = dev_iommu_priv_get(dev);
-> > +
-> > +	/* See the attach function, only PCI devices for now */
-> > +	if (!dev_is_pci(dev) || vdev->hv_domain != hv_domain)
-> > +		return;
-> 
-> Are these sanity checks necessary? The only caller is hv_iommu_attach_dev()
-> and it has already done the checks.
-
-You're right, they're redundant. 
-
-> > +
-> > +	pdev = to_pci_dev(dev);
-> > +
-> > +	dev_dbg(dev, "detaching from domain %d\n", hv_domain->device_domain.domain_id.id);
-> > +
-> > +	local_irq_save(flags);
-> > +
-> > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> > +	memset(input, 0, sizeof(*input));
-> > +	input->partition_id = HV_PARTITION_ID_SELF;
-> > +	if (hv_iommu_lookup_logical_dev_id(pdev, &input->device_id.as_uint64)) {
-> 
-> As Sashiko and Jacob Pan pointed out, doing the lookup while interrupts are disabled
-> is problematic. My suggestion would be to just do the lookup into a local variable
-> before disabling interrupts (rather than using a raw spin lock as Jacob suggested).
-> 
-> Same situation occurs in hv_iommu_attach_dev() and
-> hv_iommu_get_logical_device_property().
-> 
-
-Thanks! I would also prefer to look up before disabling interrupts.
-
-> > +		local_irq_restore(flags);
-> > +		dev_warn(&pdev->dev, "no IOMMU registration for vPCI bus on detach\n");
-> > +		return;
-> > +	}
-> > +	status = hv_do_hypercall(HVCALL_DETACH_DEVICE_DOMAIN, input, NULL);
-> > +
-> > +	local_irq_restore(flags);
-> > +
-> > +	if (!hv_result_success(status))
-> > +		pr_err("HVCALL_DETACH_DEVICE_DOMAIN failed, status %lld\n", status);
-> > +
-> > +	hv_flush_device_domain(hv_domain);
-> > +
-> > +	vdev->hv_domain = NULL;
-> > +}
-> > +
-
-[...]
-
-> > +static int hv_iommu_get_logical_device_property(struct device *dev,
-> > +					u32 code,
-> > +					struct hv_output_get_logical_device_property *property)
-> > +{
-> > +	u64 status, lid;
-> > +	unsigned long flags;
-> > +	int ret;
-> > +	struct hv_input_get_logical_device_property *input;
-> > +	struct hv_output_get_logical_device_property *output;
-> > +
-> > +	local_irq_save(flags);
-> > +
-> > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> > +	output = *this_cpu_ptr(hyperv_pcpu_input_arg) + sizeof(*input);
-> 
-> Nit: The other way to set output is:
-> 
-> 	output = input + 1;
-> 
-> I think this produces slightly better code because of not needing to
-> reference the per-cpu variable hyperv_pcpu_input_arg a 2nd time.
-> 
-> 
-
-Indeed! It's more elegant. :)
-
-> > +	memset(input, 0, sizeof(*input));
-> > +	input->partition_id = HV_PARTITION_ID_SELF;
-> > +	ret = hv_iommu_lookup_logical_dev_id(to_pci_dev(dev), &lid);
-> > +	if (ret) {
-> > +		local_irq_restore(flags);
-> > +		return ret;
-> > +	}
-> > +	input->logical_device_id = lid;
-> > +	input->code = code;
-> > +	status = hv_do_hypercall(HVCALL_GET_LOGICAL_DEVICE_PROPERTY, input, output);
-> > +	*property = *output;
-> > +
-> > +	local_irq_restore(flags);
-> > +
-> > +	if (!hv_result_success(status))
-> > +		pr_err("HVCALL_GET_LOGICAL_DEVICE_PROPERTY failed, status %lld\n", status);
-> > +
-> > +	return hv_result_to_errno(status);
-> > +}
-> > +
-
-[...]
-
-> > +static void hv_iommu_release_device(struct device *dev)
-> > +{
-> > +	struct hv_iommu_endpoint *vdev = dev_iommu_priv_get(dev);
-> > +	struct pci_dev *pdev = to_pci_dev(dev);
-> > +
-> > +	if (pdev->ats_enabled)
-> > +		pci_disable_ats(pdev);
-> > +
-> > +	dev_iommu_priv_set(dev, NULL);
-> > +	set_dma_ops(dev, NULL);
-> 
-> Previous versions of this function did hv_iommu_detach_dev(). With that call
-> removed from here, hv_iommu_detach_dev() is only called when attaching a
-> domain to a device that already has a domain attached. Is it the case that
-> Hyper-V doesn't require the detach as a cleanup step?
-> 
-
-The IOMMU core attaches the device to release_domain (our blocking domain)
-before calling release_device(), so I believe the explicit detach in the RFC
-was redundant. I simply didn't realize that at the time.
-
-Sorry I forgot to mention this in the changelog.
-
-[...]
-
-> > +static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
-> > +{
-> > +	int ret;
-> > +	struct hv_iommu_domain *hv_domain;
-> > +	struct pt_iommu_x86_64_cfg cfg = {};
-> > +
-> > +	hv_domain = kzalloc_obj(*hv_domain, GFP_KERNEL);
-> > +	if (!hv_domain)
-> > +		return ERR_PTR(-ENOMEM);
-> > +
-> > +	ret = hv_create_device_domain(hv_domain, HV_DEVICE_DOMAIN_TYPE_S1);
-> > +	if (ret) {
-> > +		kfree(hv_domain);
-> > +		return ERR_PTR(ret);
-> > +	}
-> > +
-> > +	hv_domain->domain.geometry = hv_iommu_device->geometry;
-> > +	hv_domain->pt_iommu.nid = dev_to_node(dev);
-> > +
-> > +	cfg.common.hw_max_vasz_lg2 = hv_iommu_device->max_iova_width;
-> > +	cfg.common.hw_max_oasz_lg2 = 52;
-> > +	cfg.top_level = (hv_iommu_device->max_iova_width > 48) ? 4 : 3;
-> > +
-> > +	ret = pt_iommu_x86_64_init(&hv_domain->pt_iommu_x86_64, &cfg, GFP_KERNEL);
-> > +	if (ret) {
-> > +		hv_delete_device_domain(hv_domain);
-> > +		kfree(hv_domain);
-> > +		return ERR_PTR(ret);
-> > +	}
-> > +
-> > +	/* Constrain to page sizes the hypervisor supports */
-> > +	hv_domain->domain.pgsize_bitmap &= hv_iommu_device->pgsize_bitmap;
-> > +
-> > +	hv_domain->domain.ops = &hv_iommu_paging_domain_ops;
-> > +
-> > +	ret = hv_configure_device_domain(hv_domain, __IOMMU_DOMAIN_PAGING);
-> > +	if (ret) {
-> > +		pt_iommu_deinit(&hv_domain->pt_iommu);
-> > +		hv_delete_device_domain(hv_domain);
-> > +		kfree(hv_domain);
-> > +		return ERR_PTR(ret);
-> > +	}
-> > +
-> > +	return &hv_domain->domain;
-> 
-> I think this function would be better if the error paths did "goto"
-> a cascading set of error labels. That's the typical pattern, and it's what you
-> use in hv_iommu_init(), for example.
-> 
-
-Good point. Will restructure to use goto-based error labels
-
-> > +}
-> > +
-> > +static struct iommu_ops hv_iommu_ops = {
-> > +	.capable		  = hv_iommu_capable,
-> > +	.domain_alloc_paging	  = hv_iommu_domain_alloc_paging,
-> > +	.probe_device		  = hv_iommu_probe_device,
-> > +	.release_device		  = hv_iommu_release_device,
-> > +	.device_group		  = hv_iommu_device_group,
-> > +	.get_resv_regions	  = hv_iommu_get_resv_regions,
-> > +	.owner			  = THIS_MODULE,
-> > +	.identity_domain	  = &hv_identity_domain.domain,
-> > +	.blocked_domain		  = &hv_blocking_domain.domain,
-> > +	.release_domain		  = &hv_blocking_domain.domain,
-> > +};
-> > +
-> > +static int hv_iommu_detect(struct hv_output_get_iommu_capabilities *hv_iommu_cap)
-> > +{
-> > +	u64 status;
-> > +	unsigned long flags;
-> > +	struct hv_input_get_iommu_capabilities *input;
-> > +	struct hv_output_get_iommu_capabilities *output;
-> > +
-> > +	local_irq_save(flags);
-> > +
-> > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> > +	output = *this_cpu_ptr(hyperv_pcpu_input_arg) + sizeof(*input);
-> 
-> Potentially use "output = input + 1" here as well.
-> 
-
-Yes. Thanks!
-
-[...]
-
-> > @@ -3857,13 +3858,25 @@ static int hv_pci_probe(struct hv_device *hdev,
-> > 
-> >  	hbus->state = hv_pcibus_probed;
-> > 
-> > -	ret = create_root_hv_pci_bus(hbus);
-> > +	/* Notify pvIOMMU before any device on the bus is scanned. */
-> > +	prefix = (hdev->dev_instance.b[5] << 24) |
-> > +		 (hdev->dev_instance.b[4] << 16) |
-> > +		 (hdev->dev_instance.b[7] <<  8) |
-> > +		 (hdev->dev_instance.b[6] & 0xf8);
-> 
-> This assembling of the logical device id prefix duplicates the
-> code in hv_irq_retarget_interrupt(). Could this code save the
-> prefix in struct hv_pcibus_device, and then have
-> hv_irq_retarget_interrupt() use it?  Then it would be clear
-> that HVCALL_RETARGET_INTERRUPT is using exactly the same
-> logical device id as the IOMMU hypercalls.
-> 
-
-Good point. I think we can do it. :)
-
-> > +
-> > +	ret = hv_iommu_register_pci_bus(dom, prefix);
-> >  	if (ret)
-> >  		goto free_windows;
-> > 
-> > +	ret = create_root_hv_pci_bus(hbus);
-> > +	if (ret)
-> > +		goto unregister_pviommu;
-> > +
-> >  	mutex_unlock(&hbus->state_lock);
-> >  	return 0;
-> > 
-> > +unregister_pviommu:
-> > +	hv_iommu_unregister_pci_bus(dom);
-> >  free_windows:
-> >  	hv_pci_free_bridge_windows(hbus);
-> >  exit_d0:
-> > @@ -3974,8 +3987,10 @@ static int hv_pci_bus_exit(struct hv_device *hdev, bool
-> > keep_devs)
-> >  static void hv_pci_remove(struct hv_device *hdev)
-> >  {
-> >  	struct hv_pcibus_device *hbus;
-> > +	int dom;
-> > 
-> >  	hbus = hv_get_drvdata(hdev);
-> > +	dom = hbus->bridge->domain_nr;
-> 
-> Nit: Setting "dom" here feels a little weird because the value is only needed
-> under the "if" statement. The value must be read before the root bus is
-> removed, but even so moving it under the "if" statement would make more
-> sense to me.
-> 
-
-Sure. Thanks!
-
-> >  	if (hbus->state == hv_pcibus_installed) {
-> >  		tasklet_disable(&hdev->channel->callback_event);
-> >  		hbus->state = hv_pcibus_removing;
-> > @@ -3994,6 +4009,8 @@ static void hv_pci_remove(struct hv_device *hdev)
-> >  		hv_pci_remove_slots(hbus);
-> >  		pci_remove_root_bus(hbus->bridge->bus);
-> >  		pci_unlock_rescan_remove();
-> > +
-> > +		hv_iommu_unregister_pci_bus(dom);
-> >  	}
-> > 
-> >  	hv_pci_bus_exit(hdev, false);
-
-B.R.
-Yu
