@@ -1,138 +1,104 @@
-Received: from mail-qt1-f178.google.com (mail-qt1-f178.google.com [209.85.160.178])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mail.zytor.com (terminus.zytor.com [198.137.202.136])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 865C830C167
-	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 18:23:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D576837B3F2;
+	Fri, 15 May 2026 20:44:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.136
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778869406; cv=none; b=glhIYoPDFGZGGT5aSC0duFzp/vD7VaM7kEdgAP21EnLQMmpAd1ZB/bprkvwgYZUD6KSXoXM4nUrKmS4/TnQc2Yy8gs6LGxDGAYUuouC/MEK3Ypve5H/bh+Hz5zgKgLchcE2GU7SARVH8otZJVNEkDhZo7nsHZ7bM6N5zypi0VNY=
+	t=1778877877; cv=none; b=GIse8AIZxvQ2dIvzBBOlXUhU1i9BP8SRDT7dYWRHv4LQNwaA2wjdygOzcRHe8xs16XFKaXfZNjgNu0pu5GYTo+bijWpQA2fMqBP1UkUceMOIQx6QCDTGcCNKIT/8eudJOJLxsyM8vEdFXi3tE2dIarGteO9Bo5iOebbNSEr36lM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778869406; c=relaxed/simple;
-	bh=gMaEvicj1lkTTKjknQzylRPd7tw3CbzIlWyBBZkqlhE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=uLvhb847Z7VWF22ZA8KBDo8/mWiP0gfJvxDEdfCqdsitXMDurLNtGcceslgAjlSGbC1FCNyU+/DNlDoFbpAToJU//HRWcu/NWguhXAOdW97Si/zeWzCxqlp2tvp3VK09ukwNWoDRDsSaFNh6fY2VvZpi3gs5R82b4RDfg3VbAjI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=k9ar4Jio; arc=none smtp.client-ip=209.85.160.178
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
+	s=arc-20240116; t=1778877877; c=relaxed/simple;
+	bh=E1+eWqDxv6j99dZMDhlO+NNDH9oYnsJmpH6o+qF/hR0=;
+	h=Date:From:To:CC:Subject:In-Reply-To:References:Message-ID:
+	 MIME-Version:Content-Type; b=eDo4fU69+2vwDwBTZ97muihXaLNI6OKn1n/sVAzdNxrrD6+3fsQcgFkaLbV3wMLPNjrTxRvy0QQG5gCJDjV72qY35hBbXU65eCsmMMyFnXRr3IQJIlv1aa92e17KhGWEi7wyG3XZ8GnXnGMCgSM4/ivpSoEc9POhwS/oyXc90Ro=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com; spf=pass smtp.mailfrom=zytor.com; dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b=HvwBqnLT; arc=none smtp.client-ip=198.137.202.136
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=zytor.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="k9ar4Jio"
-Received: by mail-qt1-f178.google.com with SMTP id d75a77b69052e-50fb4a7d704so1739771cf.1
-        for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 11:23:24 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=ziepe.ca; s=google; t=1778869403; x=1779474203; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=OQNJjeOCe7S+U51t5FVhB76I4sx7yhCYVtg8gepAxec=;
-        b=k9ar4JioCr7PMwm3IFL/V1gS4qbnNYXjESygqFknkEVOcMtvBp/ZLENxK/R++emVRS
-         Ezlr+J3zGCYZXg50ek9wta6Z6s/ldjH3ggZVY7lqfdXIrjCmccOJgblHHMKaVLVgVgCO
-         +pX6bFf2RIXeTU5g51Ph/PYUyTKt3Uq24hiX0kSTM2eZ6lwCTTv/GpRe+iJgEqNXqEhc
-         QPdVrO0M5CW162/CFbdXxDuzMAekPO2u6Yy1n27LXZLRm7NQxIRv8sfhQCmsg/xlRmW2
-         r05yl1IH8n17wu+9EyyqOEzId4pnPcvi9IXVSzivi9ikr+mLdfhVYupevfbB1XoGYyH6
-         Rzzg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1778869403; x=1779474203;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=OQNJjeOCe7S+U51t5FVhB76I4sx7yhCYVtg8gepAxec=;
-        b=PIx3oFSuP+EIcSg1uaNuSrG0M9G/Vc/qwizJk08MR1PqkWjOeN5lEBNmhrJcB7M3vq
-         d6gTt7anAWi+4ydUUVcvJAqUmvZ158f+edN55cwui2oyqO2xhds4FVpjL1U6a4roPSug
-         bx9jIyAbsFx3Qrwm8rZNamHfiTX+fI0ccA0jXLnKmUsrAmmtvZeHsjziPAOZKufrLa/O
-         1lVFAyvUsGZxWZuG6KgBFqEwm81MGUKZMTme7n/YeLuJw7jQuYsASrSeOY+lSBj2BtNH
-         ueY3Sfd1y4TKckbJ4EY2fCTyEqvbK18V3NaiI/xPIo/DEnB09k26EOj/IVg4fb3W2ocU
-         BmzA==
-X-Forwarded-Encrypted: i=1; AFNElJ9tBG+E6sGQG5dJjqLX9C9waD7B2wSB8jsBh+WRZNIq+IsZGXwxFcTOPlQo6eg2vZlz76IBILD2f+tq@vger.kernel.org
-X-Gm-Message-State: AOJu0Yys22JkIWN+QAjb0DVCsO8v/BUTR+l/0ibB9i5RM9iRxLh5kgX7
-	tNvwK6bfNqgOC063s+JdRGM9C3vaAcxxis4J8Xa8Vxdc1dWCrRuIEmhG7hn2rFNyyTQ=
-X-Gm-Gg: Acq92OFdJoAwL0PYnMZRSX5vlWFjrl2cjaAVRWk7ZC74G6HuJmWi/ZEzwmFci3OxSZq
-	cI8W8r+ljPbyUobvs9ws2ZXzxedPqP+mQ+FarQsUplISW9PXpKnjgP6aBHeLuRztUpWSj2rdeef
-	9F2s4fckdxTIE5ajPCLwXiep+GbZEBp9anPqqh5PVon9Oo5wnHHiuBupJR9TueQEStKXvvZ98F9
-	Fdcz1J0jv3kBlbbGQz5SRurOHHetXzsaS7OFOvTranmZ68hTLmpGKWWkplvLruLmy9HLbk/tUIM
-	2OUFI89GH7jQ8fTBdP6ceAOZDZcN9RQmDC9a5Jv56A7FURgPMhMbdLyS0ZiFNIr6ZS6qy8KTnqW
-	V/qY6eE9OaYm7o8+t7EnO5LVWbGZjZAgnOc8ApZ5WC7e7CNvrLLVrs1QtCHy1UpfQ+1rvyQC7ZI
-	j6mlHSeZIoGwjMflc8rCwKAweWY1H+fZsiHTLKxsN0/N4LX/x1ff5RtDqh8YS3tje4X3fM3Wpqt
-	l7OXA==
-X-Received: by 2002:ac8:5742:0:b0:509:2858:3c63 with SMTP id d75a77b69052e-5165a0703c1mr72758491cf.23.1778869403362;
-        Fri, 15 May 2026 11:23:23 -0700 (PDT)
-Received: from ziepe.ca (crbknf0213w-47-54-130-67.pppoe-dynamic.high-speed.nl.bellaliant.net. [47.54.130.67])
-        by smtp.gmail.com with ESMTPSA id d75a77b69052e-51645801211sm50772901cf.20.2026.05.15.11.23.22
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 15 May 2026 11:23:22 -0700 (PDT)
-Received: from jgg by wakko with local (Exim 4.97)
-	(envelope-from <jgg@ziepe.ca>)
-	id 1wNxBy-00000007tTG-1fso;
-	Fri, 15 May 2026 15:23:22 -0300
-Date: Fri, 15 May 2026 15:23:22 -0300
-From: Jason Gunthorpe <jgg@ziepe.ca>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
-	wei.liu@kernel.org, mhklinux@outlook.com, muislam@microsoft.com,
-	namjain@linux.microsoft.com, magnuskulke@linux.microsoft.com,
-	anbelski@linux.microsoft.com, linux-kernel@vger.kernel.org,
-	linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-	kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
-	longli@microsoft.com, tglx@kernel.org, mingo@redhat.com,
-	bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
-	joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
-	kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de,
-	jacob.pan@linux.microsoft.com
-Subject: Re: [PATCH V3 09/11] x86/hyperv: Implement Hyper-V virtual IOMMU
-Message-ID: <20260515182322.GI7702@ziepe.ca>
-References: <20260512020259.1678627-1-mrathor@linux.microsoft.com>
- <20260512020259.1678627-10-mrathor@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b="HvwBqnLT"
+Received: from ehlo.thunderbird.net (c-76-133-66-138.hsd1.ca.comcast.net [76.133.66.138])
+	(authenticated bits=0)
+	by mail.zytor.com (8.18.1/8.17.1) with ESMTPSA id 64FJxdt93762934
+	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NO);
+	Fri, 15 May 2026 12:59:40 -0700
+DKIM-Filter: OpenDKIM Filter v2.11.0 mail.zytor.com 64FJxdt93762934
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zytor.com;
+	s=2026042601; t=1778875185;
+	bh=yOPbK2OFF6IcrfoJraZaWua7RTa6T7n9+bq8VLS6qCY=;
+	h=Date:From:To:CC:Subject:In-Reply-To:References:From;
+	b=HvwBqnLT38+P8wOr09I0oo/MRbA0gltt1BvxpDB/CXoHAI/p9iMtZP4Acni9CBE8i
+	 UuQANyZJcLZO9XcaPLGm0i1Xg+soCjS4z5NjIoUETnDDa930DiHBVRAOT/MRlLb9jY
+	 QYrQ9QMS7lPYMHGvM8plKfNxe30Gl9az6f+vOCv0hNim3O4/Bdo2qSTnUxGO9V7Nx4
+	 F46aEk0Mx5DZE0TAlF3l22P0Yw61+alulS+V4O2YtDdYTlzt2T6qIuwD2KE0nXfR9T
+	 jNDuDCJ8yXY/CId0JmSkw1Ar6+GJQTs5O0RqwrWv5l7cMbOBEgdh93GvzIYQG1gbNB
+	 I9HJmsdG2PKng==
+Date: Fri, 15 May 2026 12:59:34 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
+To: Christoph Hellwig <hch@lst.de>, kreijack@inwind.it
+CC: David Sterba <dsterba@suse.cz>, Andrew Morton <akpm@linux-foundation.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
+        Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
+        Madhavan Srinivasan <maddy@linux.ibm.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+        Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+        Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@linux.ibm.com>,
+        Sven Schnelle <svens@linux.ibm.com>, Thomas Gleixner <tglx@kernel.org>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+        Herbert Xu <herbert@gondor.apana.org.au>,
+        Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+        David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+        Song Liu <song@kernel.org>,
+        Yu Kuai <yukuai@alb-78bjiv52429oh8qptp.cn-shenzhen.alb.aliyuncs.com>,
+        Li Nan <linan122@huawei.com>, linux-kernel@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
+        linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+        linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
+        linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-raid@vger.kernel.org
+Subject: Re: [PATCH 01/19] btrfs: require at least 4 devices for RAID 6
+User-Agent: K-9 Mail for Android
+In-Reply-To: <20260515043705.GA3855@lst.de>
+References: <20260512052230.2947683-1-hch@lst.de> <20260512052230.2947683-2-hch@lst.de> <20260512114231.GG2558453@suse.cz> <20260513054742.GA1018@lst.de> <0a8d1ff4-f5a2-49e9-aa45-d25dbe4ded40@libero.it> <20260515043705.GA3855@lst.de>
+Message-ID: <34C16854-1065-4542-8836-DDED58EC1844@zytor.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260512020259.1678627-10-mrathor@linux.microsoft.com>
+Content-Type: text/plain;
+ charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-On Mon, May 11, 2026 at 07:02:57PM -0700, Mukesh R wrote:
-> +static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
-> +{
-> +	struct hv_domain *hvdom;
-> +	int rc;
-> +
-> +	if (hv_l1vh_partition() && !hv_curr_thread_is_vmm()) {
-> +		pr_err("Hyper-V: l1vh iommu does not support host devices\n");
-> +		return NULL;
-> +	}
-> +
-> +	hvdom = kzalloc(sizeof(struct hv_domain), GFP_KERNEL);
-> +	if (hvdom == NULL)
-> +		return NULL;
-> +
-> +	spin_lock_init(&hvdom->mappings_lock);
-> +	hvdom->mappings_tree = RB_ROOT_CACHED;
-> +
-> +	/* Called under iommu group mutex, so single threaded */
-> +	if (++unique_id == HV_DEVICE_DOMAIN_ID_S2_NULL)   /* ie, UINTMAX */
-> +		goto out_err;
-> +
-> +	hvdom->domid_num = unique_id;
-> +	hvdom->partid = hv_get_current_partid();
-> +	hvdom->iommu_dom.geometry = default_geometry;
-> +	hvdom->iommu_dom.pgsize_bitmap = HV_IOMMU_PGSIZES;
-> +
-> +	/* For guests, by default we do direct attaches, so no domain in hyp */
-> +	if (hv_dom_owner_is_vmm(hvdom) && !hv_no_attdev)
-> +		hvdom->attached_dom = true;
+On May 14, 2026 9:37:05 PM PDT, Christoph Hellwig <hch@lst=2Ede> wrote:
+>On Thu, May 14, 2026 at 09:51:59PM +0200, Goffredo Baroncelli wrote:
+>> I think that the David concern is : "what happens for an already
+>> existing btrfs raid6 3 disks filesystem when the user upgrade the kerne=
+l ?"
+>> (I am thinking when a new BG needs to be allocated)=2E=2E=2E
+>
+>Then it will cleanly fail to mount instead of constantly corrupting data
+>and memory with every write, yes=2E  Which clearly suggest that such
+>file systems don't exist in the wild=2E
+>
+>But if btrfs wants to keep supporting this I'll just add a _unsafe
+>version without the check in the core library=2E
 
-What are you thinking sending something like this?!?!?
+I don't think this is a good idea=2E Error out; it is the btrfs maintainer=
+s' job to ensure user data isn't lost=2E=20
 
-The function is called *alloc domain PAGING*, it does not, and can not
-allocate weird "special" domains that are not PAGING domains. I just
-spent a long time removing all this kind of crazyness from drivers.
+The RAID-6 code has *never* supported only 3 units, and if it ever worked =
+for *any* of the implementations it was purely by accident=2E Speaking as t=
+he original author I should know; this was deliberate as in some cases the =
+degenerate case (3) would have required extra trays in the code to no user =
+benefit=2E=20
 
-There is alot of other things I don't like in this patch, but this is
-too much.
-
-You have to drop this "direct attach" idea from the first iteration,
-Linux can't do it without alot more work, you should start with the
-basic paging domain mode.
-
-Jason
+I would not be surprised if the kernel crashed or corrupted the page cache=
+ in that case=2E
