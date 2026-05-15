@@ -1,51 +1,51 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9FF33421EF1
-	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 08:53:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 084B741C30F
+	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 08:53:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778835223; cv=none; b=cRE+X0SrCbKJ9XmBUS1JXl/V5zFQvcHWDSHPAG2I5QKWy3YFP6WQXr8kVDOwav3m24wU+2aHYrg1F8wLjF+Q69w5nK6pyPz7JLQBWs5oiboTeUfgD3K86Z/sy5656viAaK0pJJxZ6NJS6KjHtDegaOrqqLb62u1RMFxQSQZrqtI=
+	t=1778835231; cv=none; b=lpsCyGnvN9mNj0QkCb8W+lYoOvnFrsju6QKS4cZVrZane01d5ZcxGe8HLoM4zvv/GcEehaGVJ2yNYCE6tumo1TaFpoI/x1jzHn6qjblM+o1QIOoGmWPXpv7uoCFBWZptJaxxHa3FlpZkrnoEQyVdTmTqIR4hHXGEWEvwQWoOi7E=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778835223; c=relaxed/simple;
-	bh=ONi7awMizuGRTA2HeQXx+Qo6YyDHROJic9zzskpdn4k=;
+	s=arc-20240116; t=1778835231; c=relaxed/simple;
+	bh=95rnVbuPoEqYoOgOEmXgRRLmt/DgdbJJ5HiCjeQHGDU=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=KhXzUhFXW7opyxVqhKJicw4g2z47a1S53Vk661Kh+WBF22dBjWvLZl4Yemotrkq8gt20oRBrnP7NOyWAEHIN2pJIN6mqPxBx6QaRubk7WPZTDR01sOhDmpzIZLXMYUy8HKDW5MjFrN8zkpQ+PwuwW64QT+v2Bb8d4/bGv5pXUD4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=XzPw77Sj; arc=none smtp.client-ip=170.10.129.124
+	 In-Reply-To:To:Cc; b=pTfG3+2PUoITl/rXc93Wh+/GiZLE9c7J9+uvjGLNOn6xayzz2h9jZJUGeAQ0BlhYWyJXD/Y97PzSGYWcHEfxCbP2kmkxq7FIstunkMt47qJpD9NoQgsu6FvO05Bt153cdLOognTh55cynA0bsd3dac5eKlBz7Aoaa9ito7npBqg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=ceAHAWqC; arc=none smtp.client-ip=170.10.133.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="XzPw77Sj"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="ceAHAWqC"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1778835220;
+	s=mimecast20190719; t=1778835229;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=FEBwBuDymXqtgfipLBoE9xL2mtSkar53Y4il/kQ0kJw=;
-	b=XzPw77SjUZXEAVxf7mSCXfOQyUTrU6w1UHL5rZviGMXllkSNavMgnnJY4CUG8D7r6bOYKs
-	eB8dsEVImD4oNdGv44A9XtpqeKFuMyxOCC+Ajc+qKa7/dSBycKFGSnBBTmVbRnnJHF1zUx
-	NSq6kCR6gcaFCIS6Uf3C6d/z1PWaw2w=
+	bh=mmxOVGUrnxS/H09zubyapT22aA5Jy+w6JF95xU/Ftgg=;
+	b=ceAHAWqCOpJ8+9la40EwiqFjm2LwOrmh229FVuLUBTtz3MiPsXmFPJHsDc9taLOGDxVzvW
+	JtClDP53FmM0AMGVYVk2UOwxTnXsuvg56/n4RE/+oyRUmqt4uUydqvGByPBN+AItJ9nnk2
+	cuHApyCEf0dKCcHQ82FTIUbOXGh2uT8=
 Received: from mx-prod-mc-03.mail-002.prod.us-west-2.aws.redhat.com
  (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
  relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-589-yccaBMpdOD2lRdAc7nJxKg-1; Fri,
- 15 May 2026 04:53:36 -0400
-X-MC-Unique: yccaBMpdOD2lRdAc7nJxKg-1
-X-Mimecast-MFC-AGG-ID: yccaBMpdOD2lRdAc7nJxKg_1778835212
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-484-XDqT1YrxOLCP5ZZge2o2rA-1; Fri,
+ 15 May 2026 04:53:42 -0400
+X-MC-Unique: XDqT1YrxOLCP5ZZge2o2rA-1
+X-Mimecast-MFC-AGG-ID: XDqT1YrxOLCP5ZZge2o2rA_1778835219
 Received: from mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.17])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
 	(No client certificate requested)
-	by mx-prod-mc-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 7EFAE1956059;
-	Fri, 15 May 2026 08:53:31 +0000 (UTC)
+	by mx-prod-mc-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 4B1411956054;
+	Fri, 15 May 2026 08:53:38 +0000 (UTC)
 Received: from [192.168.1.153] (headnet01.pony-001.prod.iad2.dc.redhat.com [10.2.32.101])
-	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 0F9211955F2D;
-	Fri, 15 May 2026 08:53:23 +0000 (UTC)
+	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id DBD4D1955D85;
+	Fri, 15 May 2026 08:53:31 +0000 (UTC)
 From: Albert Esteve <aesteve@redhat.com>
-Date: Fri, 15 May 2026 10:52:52 +0200
-Subject: [PATCH v12 3/4] drm: Suppress intentional warning backtraces in
- scaling unit tests
+Date: Fri, 15 May 2026 10:52:53 +0200
+Subject: [PATCH v12 4/4] kunit: Add documentation for warning backtrace
+ suppression API
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -53,8 +53,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
-Message-Id: <20260515-kunit_add_support-v12-3-a216dc228be8@redhat.com>
+Content-Transfer-Encoding: 7bit
+Message-Id: <20260515-kunit_add_support-v12-4-a216dc228be8@redhat.com>
 References: <20260515-kunit_add_support-v12-0-a216dc228be8@redhat.com>
 In-Reply-To: <20260515-kunit_add_support-v12-0-a216dc228be8@redhat.com>
 To: Arnd Bergmann <arnd@arndb.de>, 
@@ -73,109 +73,95 @@ Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
  linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org, 
  peterz@infradead.org, Guenter Roeck <linux@roeck-us.net>, 
  Linux Kernel Functional Testing <lkft@linaro.org>, 
- =?utf-8?q?Ma=C3=ADra_Canal?= <mcanal@igalia.com>, 
  Alessandro Carminati <acarmina@redhat.com>, 
  Albert Esteve <aesteve@redhat.com>, Dan Carpenter <error27@gmail.com>, 
- Simona Vetter <simona.vetter@ffwll.ch>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1778835177; l=3810;
+ Kees Cook <kees@kernel.org>
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1778835177; l=2728;
  i=aesteve@redhat.com; s=20260303; h=from:subject:message-id;
- bh=rPDAUA5/eI1GmSDx2demf6AeqBwHHnfPFpVSMTL5AHs=;
- b=KfqWD2f69QLKSMznxAMLAF92n+ue4Pd6GNwc9tLBDyhlbiTibxW457E5nqJA4lrqo/k8hBNAC
- OvCllLrsMcnAANumUCH95f/7D64+mNTK1Cag63rqhXrYLbJSqUSOEkS
+ bh=YX7AMC4Z3qCvd9o2GGoQ6LMsoUJS/dulVvDsXv5Qzg4=;
+ b=uU8iZP3aKTG6p9f6uzLQ+7585Tt2YEgz1OTvweQ4CuLQ3H8MMENyxt9ulFNJQ1k4vJADogKw5
+ Vq1oW3OIyVmDghCtrvC2+FcWQVlJ23+UX8uxtuiWX2rKMKaZvQTxK9J
 X-Developer-Key: i=aesteve@redhat.com; a=ed25519;
  pk=YSFz6sOHd2L45+Fr8DIvHTi6lSIjhLZ5T+rkxspJt1s=
 X-Scanned-By: MIMEDefang 3.0 on 10.30.177.17
 
 From: Guenter Roeck <linux@roeck-us.net>
 
-The drm_test_rect_calc_hscale and drm_test_rect_calc_vscale unit tests
-intentionally trigger warning backtraces by providing invalid parameters
-the tested functions. Suppress the backtraces to avoid clogging the
-kernel log and distracting from real problems.
-
-The suppression API also exposes a warning counter, which is used
-to assert that the expected warning was actually triggered. On
-CONFIG_BUG=n, WARN_ON() is a no-op and the counter stays zero;
-the expected count is adjusted accordingly, preserving the return
-value check on all configurations.
+Document API functions for suppressing warning backtraces.
 
 Tested-by: Linux Kernel Functional Testing <lkft@linaro.org>
 Acked-by: Dan Carpenter <dan.carpenter@linaro.org>
-Acked-by: Maíra Canal <mcanal@igalia.com>
-Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
-Cc: David Airlie <airlied@gmail.com>
-Cc: Daniel Vetter <daniel@ffwll.ch>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 Signed-off-by: Guenter Roeck <linux@roeck-us.net>
 Signed-off-by: Alessandro Carminati <acarmina@redhat.com>
-Acked-by: David Gow <david@davidgow.net>
+Reviewed-by: David Gow <david@davidgow.net>
 Signed-off-by: Albert Esteve <aesteve@redhat.com>
 ---
- drivers/gpu/drm/tests/drm_rect_test.c | 36 +++++++++++++++++++++++++++++------
- 1 file changed, 30 insertions(+), 6 deletions(-)
+ Documentation/dev-tools/kunit/usage.rst | 46 ++++++++++++++++++++++++++++++++-
+ 1 file changed, 45 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/gpu/drm/tests/drm_rect_test.c b/drivers/gpu/drm/tests/drm_rect_test.c
-index 17e1f34b76101..5aa8ec5fc4d64 100644
---- a/drivers/gpu/drm/tests/drm_rect_test.c
-+++ b/drivers/gpu/drm/tests/drm_rect_test.c
-@@ -10,6 +10,7 @@
- #include <drm/drm_rect.h>
- #include <drm/drm_mode.h>
+diff --git a/Documentation/dev-tools/kunit/usage.rst b/Documentation/dev-tools/kunit/usage.rst
+index ebd06f5ea4550..1c78dfff94e8a 100644
+--- a/Documentation/dev-tools/kunit/usage.rst
++++ b/Documentation/dev-tools/kunit/usage.rst
+@@ -157,6 +157,50 @@ Alternatively, one can take full control over the error message by using
+ 	if (some_setup_function())
+ 		KUNIT_FAIL(test, "Failed to setup thing for testing");
  
-+#include <linux/limits.h>
- #include <linux/string_helpers.h>
- #include <linux/errno.h>
- 
-@@ -407,10 +408,22 @@ KUNIT_ARRAY_PARAM(drm_rect_scale, drm_rect_scale_cases, drm_rect_scale_case_desc
- static void drm_test_rect_calc_hscale(struct kunit *test)
- {
- 	const struct drm_rect_scale_case *params = test->param_value;
--	int scaling_factor;
-+	/* With CONFIG_BUG=n, WARN_ON() is a no-op so no warning fires. */
-+	int expected_warnings = IS_ENABLED(CONFIG_BUG) ?
-+			(params->expected_scaling_factor == -EINVAL) : 0;
-+	int scaling_factor = INT_MIN;
- 
--	scaling_factor = drm_rect_calc_hscale(&params->src, &params->dst,
--					      params->min_range, params->max_range);
-+	/*
-+	 * drm_rect_calc_hscale() generates a warning backtrace whenever bad
-+	 * parameters are passed to it. This affects unit tests with -EINVAL
-+	 * error code in expected_scaling_factor.
-+	 */
-+	kunit_warning_suppress(test) {
-+		scaling_factor = drm_rect_calc_hscale(&params->src, &params->dst,
-+						      params->min_range,
-+						      params->max_range);
-+		KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, expected_warnings);
++Suppressing warning backtraces
++------------------------------
++
++Some unit tests trigger warning backtraces either intentionally or as a side
++effect. Such backtraces are normally undesirable since they distract from
++the actual test and may result in the impression that there is a problem.
++
++Backtraces can be suppressed with **task-scoped suppression**: while
++suppression is active on the current task, the backtrace and stack dump from
++``WARN*()``, ``WARN_ON*()``, and related macros on that task are suppressed.
++Two API forms are available.
++
++- Scoped suppression is the simplest form. Wrap the code that triggers
++  warnings in a ``kunit_warning_suppress()`` block:
++
++.. code-block:: c
++
++	static void some_test(struct kunit *test)
++	{
++		kunit_warning_suppress(test) {
++			trigger_backtrace();
++			KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, 1);
++		}
++	}
++
++.. note::
++   The warning count must be checked inside the block; the suppression handle
++   is not accessible after the block exits.
++
++- Direct functions return an explicit handle pointer. Use them when the handle
++  needs to be retained or passed across helper functions:
++
++.. code-block:: c
++
++	static void some_test(struct kunit *test)
++	{
++		struct kunit_suppressed_warning *w;
++
++		w = kunit_start_suppress_warning(test);
++		trigger_backtrace();
++		kunit_end_suppress_warning(test, w);
++
++		KUNIT_EXPECT_EQ(test, kunit_suppressed_warning_count(w), 1);
 +	}
  
- 	KUNIT_EXPECT_EQ(test, scaling_factor, params->expected_scaling_factor);
- }
-@@ -418,10 +431,21 @@ static void drm_test_rect_calc_hscale(struct kunit *test)
- static void drm_test_rect_calc_vscale(struct kunit *test)
- {
- 	const struct drm_rect_scale_case *params = test->param_value;
--	int scaling_factor;
-+	/* With CONFIG_BUG=n, WARN_ON() is a no-op so no warning fires. */
-+	int expected_warnings = IS_ENABLED(CONFIG_BUG) ?
-+			(params->expected_scaling_factor == -EINVAL) : 0;
-+	int scaling_factor = INT_MIN;
+ Test Suites
+ ~~~~~~~~~~~
+@@ -1211,4 +1255,4 @@ For example:
+ 		dev_managed_string = devm_kstrdup(fake_device, "Hello, World!");
  
--	scaling_factor = drm_rect_calc_vscale(&params->src, &params->dst,
--					      params->min_range, params->max_range);
-+	/*
-+	 * drm_rect_calc_vscale() generates a warning backtrace whenever bad
-+	 * parameters are passed to it. This affects unit tests with -EINVAL
-+	 * error code in expected_scaling_factor.
-+	 */
-+	kunit_warning_suppress(test) {
-+		scaling_factor = drm_rect_calc_vscale(&params->src, &params->dst,
-+						      params->min_range, params->max_range);
-+		KUNIT_EXPECT_SUPPRESSED_WARNING_COUNT(test, expected_warnings);
+ 		// Everything is cleaned up automatically when the test ends.
+-	}
+\ No newline at end of file
 +	}
- 
- 	KUNIT_EXPECT_EQ(test, scaling_factor, params->expected_scaling_factor);
- }
 
 -- 
 2.53.0
