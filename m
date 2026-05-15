@@ -1,133 +1,163 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f173.google.com (mail-pl1-f173.google.com [209.85.214.173])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 94C812D3A69;
-	Fri, 15 May 2026 13:49:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 796F8481AB4
+	for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 13:51:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778852964; cv=none; b=QgY5FEcCxNioqyE0M0s5ui+4m2Ml+GMnIPED7i1ro6lhcr+NXz9ufvmegXR9753k4AEjrivnSwFUKfbvaQoztPQCrWYDCPngPT49pt9g/LE78EeIh6GEMxaSL7hJdqh/19Q/20mj2lxAgIHVKpalOTkErxeaSKBURXSrJMnm51I=
+	t=1778853084; cv=none; b=Eyimi3CBYJbrMMl21db2gANbMW9qSfjOvug6NlOHPzTauFlTcgVM61Hk6fHxe6iufvg1Ba+88hJOWJCDpAGZtOzibmpdYjpUdwAcgTT5PXT11YbSbKnKyFAyjuB6GiEHavQUu0ywaqKRue7TPShazroo3/yYxSTGFUwATCIeb6E=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778852964; c=relaxed/simple;
-	bh=pb3y79JMZ+zLBzi+Ay6epkzmseeGxqZrGGdMhUWxek0=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=pmTA6K021DJm/ZPZOaNnTj57Wm+28PR3y23OggfhKyDyx5uLaZqCDEtEnbbTAckG3Bgs8PEzpH0W3Vhm0rtuJZNHBXdoqRUtDMQC7KAyMvS2BQW+SI2JEi9+T1xwG0eZmeY6amC13SJ93hdLfqt+v9es7N5w0MXLAhC7q/Bqh6Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=cdJQ8sq7; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1778853084; c=relaxed/simple;
+	bh=wgSQwV7y2dO+kRyJMQFpWLD3nIA4u4gcVsn2IUwSLFI=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=r9hrG3PZCTlIP5NQjFjkR1PczLckTe1xjIHWT33J6DN4JBkAyENT6rIthzUnM6Vw9noY52cygWHxh59IAQZcpV3tjGf3PbAfLQSWUUH9LPXDOqvIZmyS3JvmMSa7mruhbJlyYvF01VHDDJURszeQgNZF9ExOSZob7ZHUTQG4pBs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=roeck-us.net; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=QVYUWK7S; arc=none smtp.client-ip=209.85.214.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=roeck-us.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="cdJQ8sq7"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0CCD1C2BCB0;
-	Fri, 15 May 2026 13:49:17 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1778852964;
-	bh=pb3y79JMZ+zLBzi+Ay6epkzmseeGxqZrGGdMhUWxek0=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=cdJQ8sq787lsZtodQ0VynA8X+LgZLDs4wO321slIiPTss4PW2xhgZTImJCRhanM++
-	 4/UcHmSS7/06bT9aExQfbXMvYRk0vxeAU+V8E1lNKURgO8Z0RrNiqTH/3NQA+jRkAf
-	 v4pErRIrsQywq9JIjpV1RQR3HQ0JegYVAn3NrUEzPCyo3Fn8ktZa5HeII78BgpNExC
-	 zB8fp5frszRl2RO9rU8Fh7FUtfWjq0VjNNnwMpJlTWtY87RH5YpXc7gJpEpCBur2C3
-	 a/BtbG4u02GSygAzavAIedgIDlqHVW2OjdqYKN9AdkOPYofFJ2pxiWt+bouLCfmrtw
-	 YD9QGgxldmXDg==
-Date: Fri, 15 May 2026 15:49:15 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Jori Koolstra <jkoolstra@xs4all.nl>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Arnd Bergmann <arnd@arndb.de>, "H . Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Peter Zijlstra <peterz@infradead.org>, Andrey Albershteyn <aalbersh@redhat.com>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Jiri Olsa <jolsa@kernel.org>, 
-	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	cmirabil@redhat.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
-	Jeff Layton <jlayton@kernel.org>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [RFC PATCH v2 1/2] vfs: syscalls: add mkdirat2() that returns an
- O_DIRECTORY fd
-Message-ID: <20260515-gezeugt-noten-465fda1e9df9@brauner>
-References: <20260412135434.3095416-1-jkoolstra@xs4all.nl>
- <20260412135434.3095416-2-jkoolstra@xs4all.nl>
- <20260427-umlegen-aufbau-ee3a97f1528a@brauner>
- <1600596489.77018.1777916475931@kpc.webmail.kpnmail.nl>
- <20260511-hochdekoriert-neoliberale-f7a2922bc57c@brauner>
- <1805140959.1362290.1778842523425@kpc.webmail.kpnmail.nl>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="QVYUWK7S"
+Received: by mail-pl1-f173.google.com with SMTP id d9443c01a7336-2ba3e3c4f87so85815525ad.3
+        for <linux-arch@vger.kernel.org>; Fri, 15 May 2026 06:51:17 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1778853074; x=1779457874; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:autocrypt:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:sender:from:to:cc:subject:date:message-id:reply-to;
+        bh=O2F8t6ntdYK/5aPvjkHgghGF13JKRdZuJCFrw2MfPU0=;
+        b=QVYUWK7SMMlkVxmwQPeOVpqhZ8lgPBHC5ZPb94MEaSxyCOtesLmACUxkXqLOdjOEPP
+         GG8IrpTfgGNKeNzC+KiVoxbPeY2ca0qfjDw2q6n+gGsCVKIwenlOTvxss7rAh47Aeudc
+         HN7jIVFJKmxDareC3d/4lz9Ox5H25A0y0glbYZjvTVSkonue5AhLa23uq10XSdQU0i/o
+         w3t7s5FMJ+8YuAXO+Y74d4cQJJjkbm06UsP1zyQic77oB5k4dP9VN1H/2b64jwykwRAq
+         c4YzpoiQd87BX+QuzkJjREKbgKqbcHqOZ6JrjvowMMVNJvmadPHwt0BQaabQFfOev8Qc
+         RTEg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778853074; x=1779457874;
+        h=content-transfer-encoding:in-reply-to:autocrypt:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:sender:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=O2F8t6ntdYK/5aPvjkHgghGF13JKRdZuJCFrw2MfPU0=;
+        b=Or+FyE5hZeXWUN3QfG54XNxUWiBOxdsmEX54sL3Lfu/AIv5gAClMZTsjbkSjx3k825
+         oE344cIAG+skojteL+lLrDpF+XEvReZw0qyh4ExTTWUTcLHDD7BydMYpUsOITBX+Ebbq
+         WInkgey3MT7kqj803+Bvt1ocYUvfJEK+7ZToP+sKVzwthreNNYWO1DrzTIepx3NMEA9h
+         WZYZl9PT0cxA4l5NVDDsm6bOIfyoOsEs5BNY5Oxj+4MIMxnOivm7d8KQIFKmPSXITYor
+         aBleTtZ1wn3Dnm3qXKg4oDcNG5J3HupltDiA/ANUWJKvlF8dMKA2ymM5GSEanbPaBIBM
+         y+tg==
+X-Forwarded-Encrypted: i=1; AFNElJ+UG4BKHDzSmTzqrIscDqx8SJfRjSO7Bff6WPUKgSBdGDRZAuWC9Pd506tu98DvseTmdSLZpgllsmbh@vger.kernel.org
+X-Gm-Message-State: AOJu0Yz716H8AJ4k8w6fqCBvLuhyEVjZIx4DGfBP3fBR7sUj6DeRjSgZ
+	fvDTBFbsFMZ3JVBjKbI0MpxFNZDpdUjlDhYnyThpKHJ1VIk1Om0SSfUx
+X-Gm-Gg: Acq92OFnQ5K9xdiCoIKNDULJHkUcaQGbIXBMNR4qAkOW5+zWSa2LCUqsJB/c8h2HqPb
+	9F9qEN4lZRR6if9MJSTilqtPSvkgKHnI5j5uodgfBtVaBfG8zLvXmV/fkdpjjA5uATCF+SSRVwT
+	T2K1QPmtWyiWB0fjUGE63wk8t1ADli9LTZbwb/q6qbYTiRRO8aaL/hfCWowlFr8mxfoWIgphj49
+	FoQLn3Y2jp5L0EKhxxT3LB0dlDivCKrUiz6k+lWrWQks50SKI86MsfqkeUacC4XUhaR592aFK4c
+	w7mlMtIXx0vC8wdal3vWYCVaHlKIH/aD0M7ncAZTV43NgjQgLkE0ZwqIaoT4GcRJV6nyVIEovCj
+	bL6PTARWGiC3OPvy1V5zQKVKiPiGscDWMIV+Nt8qosuRpfRYcCd4YZA6xycO0NSUUBteoAaEs5A
+	WFq/+bJhukmeXp4/nugEfiVVcTg9qQr0JDfXBkA7+iL1Mqi100qYi0hGZjiZeuLdSOgGj/JOYs
+X-Received: by 2002:a17:903:44cd:b0:2bd:6732:6817 with SMTP id d9443c01a7336-2bd7e8d3578mr31205215ad.23.1778853074142;
+        Fri, 15 May 2026 06:51:14 -0700 (PDT)
+Received: from ?IPV6:2600:1700:e321:62f0:da43:aeff:fecc:bfd5? ([2600:1700:e321:62f0:da43:aeff:fecc:bfd5])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2bd5d0f94c6sm62848175ad.56.2026.05.15.06.51.12
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 15 May 2026 06:51:13 -0700 (PDT)
+Sender: Guenter Roeck <groeck7@gmail.com>
+Message-ID: <7bcead90-7d96-4101-bd13-dde2c5ded1aa@roeck-us.net>
+Date: Fri, 15 May 2026 06:51:11 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <1805140959.1362290.1778842523425@kpc.webmail.kpnmail.nl>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v13 0/4] kunit: Add support for suppressing warning
+ backtraces
+To: Albert Esteve <aesteve@redhat.com>, Arnd Bergmann <arnd@arndb.de>,
+ Brendan Higgins <brendan.higgins@linux.dev>, David Gow <david@davidgow.net>,
+ Rae Moar <raemoar63@gmail.com>,
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>,
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>,
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
+ Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>,
+ Andrew Morton <akpm@linux-foundation.org>, Paul Walmsley <pjw@kernel.org>,
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Alexandre Ghiti <alex@ghiti.fr>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com,
+ dri-devel@lists.freedesktop.org, workflows@vger.kernel.org,
+ linux-riscv@lists.infradead.org, linux-doc@vger.kernel.org,
+ peterz@infradead.org, Alessandro Carminati <acarmina@redhat.com>,
+ Kees Cook <kees@kernel.org>,
+ Linux Kernel Functional Testing <lkft@linaro.org>,
+ =?UTF-8?Q?Ma=C3=ADra_Canal?= <mcanal@igalia.com>,
+ Dan Carpenter <error27@gmail.com>, Simona Vetter <simona.vetter@ffwll.ch>
+References: <20260515-kunit_add_support-v13-0-18ee42f96e7b@redhat.com>
+Content-Language: en-US
+From: Guenter Roeck <linux@roeck-us.net>
+Autocrypt: addr=linux@roeck-us.net; keydata=
+ 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
+ np3900V20aS7eD9K8GTU0TGC1pyz6IVJwIE=
+In-Reply-To: <20260515-kunit_add_support-v13-0-18ee42f96e7b@redhat.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-On Fri, May 15, 2026 at 12:55:23PM +0200, Jori Koolstra wrote:
-> Sorry for the double email, this keyboard is so finicky, I really need to fix it.
+Hi Albert,
+
+On 5/15/26 05:29, Albert Esteve wrote:
+...
+
+> Guenter Roeck (3):
+>        kunit: Add backtrace suppression self-tests
+>        drm: Suppress intentional warning backtraces in scaling unit tests
+>        kunit: Add documentation for warning backtrace suppression API
 > 
-> > Op 11-05-2026 14:00 CEST schreef Christian Brauner <brauner@kernel.org>:
-> > 
-> > mkdirat2() is objectively the worse api. It forces userspace to use a
-> > separate system call without any reason whatsoever. If you can to
-> > O_CREAT you should also be able to to O_DIRECTORY in the same system
-> > call. If we support O_DIRECTORY | O_CREAT we get all the lookup
-> > restriction niceties RESOLVE_* for free. Plus, it is supportable both in
-> > openat() and openat2() because I made that combo return an errno.
-> 
-> I don't disagree. I know that some of the UAPI feature requests are not fully
-> flashed out, but at least it gives a basis to get the discussion going.
-> 
-> In fact I already have a O_DIRECTORY | O_CREAT patch that at least passes
-> the initial tests. However, I need to sit on it a little bit to think whether
-> I am not leaving something out. Also, I understand why vfs_create() wasn't used
-> in the O_CREAT path, for instance because you cannot just make use of may_create_dentry()
-> there. But now that we are going to string another path through lookup_open() it
-> would be great if we could reuse some of the logic from vfs_create() and vfs_mkdir().
-> 
-> Perhaps we could move may_create_dentry() out of the vfs_* calls and let the caller
-> take care of that. Then again, this is the pattern for all those calls. You could also
-> just accept some redundancies with may_o_create(), or have something like
-> static vfs_mkdir/create_common() functions.
-> 
-> There are also some minor things. If i_op->mkdir is missing this is an EPERM, but with
-> i_op->create it is EACCESS (and suggesting ENOSYS). Should this not be a consistent error
 
-ENOSYS is worse because it would indicate to userspace that the whole
-system call they're using isn't available. So we can't ever use that.
 
-This is probably just historical baggage. EACCES is especially wrong
-because userspace would expect that particular error code to stem from
-an LSM.
+How much of that is from me at this point ? Wouldn't it make sense to drop me
+as "author" of those patches ?
 
-In both cases the correct error code would be EOPNOTSUPP and we should
-aim to be very consistent in such cases and only reserve this for
-missing support for a specific functionality.
+I would not mind. I had the idea, but others like you are doing the hard work
+of pushing it through.
 
-I would be very surprised if userspace depended on EACCES being returned
-though. So I would say let's try and see whether we can correct this and
-return EOPNOTSUPP. The amount of filesystems that have no ->create
-should be dwarved by those that do.
+Thanks,
+Guenter
 
-> code? I also wonder whether there is a nicer way to handle error being returned from
-> vfs_mkdir et al. If I am reading
-> 
-> 	if (!error) {
-> 		dentry = vfs_mkdir(mnt_idmap(path.mnt), path.dentry->d_inode,
-> 				   dentry, mode, &delegated_inode);
-> 		if (IS_ERR(dentry))
-> 			error = PTR_ERR(dentry);
-> 	}
-> 	end_creating_path(&path, dentry);
-> 
-> it feels like there is a missing return inside the if (IS_ERR(dentry)) block, and I
-> have to go several function deep to see that end_creating_path correctly deals with
-> error values being passed instead of a dentry. Then again, probably not worth the
-> churn...
-
-Not without it being a major clarity win at least.
-
-> > UAPI design often is a nasty mix of performance (context switches),
-> > separation of concerns and privileges, tastefulness, and compromises you
-> > never thought or wanted to make.
-> > 
-> 
-> Yes, thanks for suggestion this back at FOSDEM. It is quite fun, and lots
-> to learn :)
-
-Thanks for working on this. It's helpful.
