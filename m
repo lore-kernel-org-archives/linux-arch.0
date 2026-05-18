@@ -1,72 +1,97 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E154231F9A1;
-	Mon, 18 May 2026 11:42:23 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D8C31441027;
+	Mon, 18 May 2026 12:50:34 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779104544; cv=none; b=HKWhavc3zw5IgW2szGSkEtONh4ciXePn6gtKD7QNpYbs2M6gE4wbFp5LT22Htw3rzUVItvE0KxvKRGFBt4D4ugD89s06i68Afg/HaHl92hGslgiNn4A+RkiLyGC6bNGo10rD5nrli+Ij5crUrEcwf1dR8IlvxgyjG42VJwM/RHw=
+	t=1779108634; cv=none; b=CqHbNBrCXuiWbjtjyS+fDKltXyETsnQdVQ8pdb1Jb+uKYR4cFiHkesZaMkFmfMzuCAca7/LxgvV5rwQTZ23OamW1rK6oSUkhzuHNKLmOzggxIh8GX+Z1qBWu1cftig5Ozsqmn5DDETME6/XR8lx1jKV+15qj/6EY0SFWV7T0DyQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779104544; c=relaxed/simple;
-	bh=5fVr8irT34fLgAlGFHPkcaFG+MtRNl5XhMDgmimc7fs=;
+	s=arc-20240116; t=1779108634; c=relaxed/simple;
+	bh=WPhw6qDiAGN2oBlqBBTsxK3ncCOIWcpD4zMUxAJ+iB8=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=dpzbw/E+1BMGj1CLVkRjamxcKiD/rw9o5YFToV9um+HfnVWfUuK4D3WLukFd+HdCpQmr8P50K0CoUFd0GDFEZ5hpsbVdIwdC1VZ2959xp4AXWdDF33+9HSh4q7x3E5bG6MbaMj7T0EfY1xxiH5Q13H9XdKDo5eem4MRCPwkEzO0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=XQ1/izm1; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type:Content-Disposition:In-Reply-To; b=ZnXKugSIU9wekNozN1RTZ/LHTkqDE+gtVVL5Yy4+GdKERL9QLXkZbG1bjl55gNSN/DQ9jYoixAGFoOOv4gLC3bp+Kqbot4OUcI1+Rabq8GxZ0i3ZBM/llKVyHSXo+hfBDEpGOUf4uFhhziVEdQRCJ2I7W5X+ldiVET275IgibKw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=XgXCLeDj; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="XQ1/izm1"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E891FC2BCB7;
-	Mon, 18 May 2026 11:42:19 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="XgXCLeDj"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 21682C2BCB8;
+	Mon, 18 May 2026 12:50:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1779104543;
-	bh=5fVr8irT34fLgAlGFHPkcaFG+MtRNl5XhMDgmimc7fs=;
+	s=k20201202; t=1779108634;
+	bh=WPhw6qDiAGN2oBlqBBTsxK3ncCOIWcpD4zMUxAJ+iB8=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=XQ1/izm1hgJXImuxiobG3wAHuX9JKjLpfaX1Z0WwRbF/7nXtNRnqjt96r7ECUy8rd
-	 c0wEUStWikSffbaAHDHTqBycKU5YrGxAVYmtpLrTH3CxwAODnXCod5+LRL0laWga5C
-	 yEV8CY8a+NZw7LRD+7J5lIgl9q2WT5F6d5LhuDVqN0mhFaKw3MJtG506J2otNOQ4v5
-	 RKaFFOq2fDY0NIp8I5+ovDtY92ZERuB3Y2hydIFgCUBMvVwLQFn3LHXSclTg7mRzge
-	 P2/jRcs1iYoyVLPf+ocX4VY8GtJZLZTOHxFykMKwhb447HXs0B1kjEv1jP6unL5js/
-	 meVWHu1uubNJw==
-Date: Mon, 18 May 2026 14:42:16 +0300
-From: Mike Rapoport <rppt@kernel.org>
-To: Li Zhe <lizhe.67@bytedance.com>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, bp@alien8.de,
-	dave.hansen@linux.intel.com, david@kernel.org,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-mm@kvack.org, mingo@redhat.com, tglx@kernel.org,
-	x86@kernel.org
-Subject: Re: [PATCH 2/4] mm: add a template-based fast path for zone-device
- page init
-Message-ID: <agr7GIZOjzr5HZMt@kernel.org>
-References: <agq29raPaAPlM8kV@kernel.org>
- <20260518095405.76367-1-lizhe.67@bytedance.com>
+	b=XgXCLeDjXm7KIH3AtGV+Uv1KWalHfmeIA9ngVbp+N3H9DnccUg8pi/AwCAugAqdWF
+	 0+5rXVuZ6NQ0TjAVG1PppbmsuH97UckJc0ugyJut5usQWzGvVvav9nvw0/MtLCjDhc
+	 AmF6W5BQa8cC+A2Se6bHEnRjtdOgDjE+GuGnuIN9kUpHiYLRWUmQt5bzTeranpwBgc
+	 ralLQE7FthKhP28IDYAGUmCoGKJZTMKogFeV2nQFtgR7n3f23Ux2VlhM3TFfAdntKH
+	 HrGL3+4CEUqyKhajj/c0HlKMj9AVjMuJ3dYSLxxtfj13kdrnfifp3RjFUxOCwmOygB
+	 Rtqb99WKcsKNg==
+Date: Mon, 18 May 2026 14:50:32 +0200
+From: Krzysztof Kozlowski <krzk@kernel.org>
+To: Ethan Nelson-Moore <enelsonmoore@gmail.com>
+Cc: linux-doc@vger.kernel.org, devicetree@vger.kernel.org, 
+	workflows@vger.kernel.org, linux-arch@vger.kernel.org, dmaengine@vger.kernel.org, 
+	linux-i2c@vger.kernel.org, linux-iio@vger.kernel.org, netdev@vger.kernel.org, 
+	linux-pci@vger.kernel.org, linux-pwm@vger.kernel.org, linux-hardening@vger.kernel.org, 
+	linux-kbuild@vger.kernel.org, linux-csky@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Rob Herring <robh@kernel.org>, 
+	Krzysztof Kozlowski <krzk+dt@kernel.org>, Conor Dooley <conor+dt@kernel.org>, 
+	Daniel Lezcano <daniel.lezcano@kernel.org>, Thomas Gleixner <tglx@kernel.org>, Alex Shi <alexs@kernel.org>, 
+	Yanteng Si <si.yanteng@linux.dev>, Dongliang Mu <dzm91@hust.edu.cn>, 
+	Hu Haowen <2023002089@link.tyut.edu.cn>, Dinh Nguyen <dinguyen@kernel.org>, Kees Cook <kees@kernel.org>, 
+	Oleg Nesterov <oleg@redhat.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, 
+	Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
+	Vinod Koul <vkoul@kernel.org>, Frank Li <Frank.Li@kernel.org>, 
+	Dave Penkler <dpenkler@gmail.com>, Andi Shyti <andi.shyti@kernel.org>, 
+	Jonathan Cameron <jic23@kernel.org>, David Lechner <dlechner@baylibre.com>, 
+	Nuno =?utf-8?B?U8Oh?= <nuno.sa@analog.com>, Andy Shevchenko <andy@kernel.org>, 
+	Andrew Lunn <andrew+netdev@lunn.ch>, "David S. Miller" <davem@davemloft.net>, 
+	Eric Dumazet <edumazet@google.com>, Jakub Kicinski <kuba@kernel.org>, 
+	Paolo Abeni <pabeni@redhat.com>, Lorenzo Pieralisi <lpieralisi@kernel.org>, 
+	Krzysztof =?utf-8?Q?Wilczy=C5=84ski?= <kwilczynski@kernel.org>
+Subject: Re: [PATCH] nios2: remove the architecture
+Message-ID: <20260518-vagabond-amigurumi-orangutan-6b1620@quoll>
+References: <20260518042833.272221-1-enelsonmoore@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20260518095405.76367-1-lizhe.67@bytedance.com>
+In-Reply-To: <20260518042833.272221-1-enelsonmoore@gmail.com>
 
-On Mon, May 18, 2026 at 05:54:05PM +0800, Li Zhe wrote:
-> On Mon, 18 May 2026 09:51:34 +0300, rppt@kernel.org wrote:
->
-> > > +#ifdef WANT_PAGE_VIRTUAL
-> > > +	if (!is_highmem_idx(ZONE_DEVICE))
-> > > +		set_page_address(page, __va(pfn << PAGE_SHIFT));
-> > 
-> > set_page_address() is a not when WANT_PAGE_VIRTUAL, you can drop the ifdef.
+On Sun, May 17, 2026 at 09:28:33PM -0700, Ethan Nelson-Moore wrote:
+> The Nios II architecture is a soft-core architecture developed by
+> Altera (since acquired by Intel) and intended to run on their FPGAs.
 > 
-> Upon checking the implementation, set_page_address() also has another
-> implementation for HASHED_PAGE_VIRTUAL
+> Licenses for the architecture have not been available for purchase
+> since 2024 [1], and support for it has been removed from GCC 15 [2],
+> Buildroot [3], and QEMU [4].
 > 
-> Following the style of __init_single_page(), we only want to call
-> set_page_address() under WANT_PAGE_VIRTUAL for ZONE_DEVICE initialization,
-> so would it be acceptable to keep the #ifdef guard here?
+> Given all of these factors, it is time to remove Nios II support from
+> the kernel. The maintainer stated in 2024 that they were planning to do
+> so soon [5], but this did not come to pass.
+> 
+> Remove Nios II support from the kernel and move the former maintainer
+> to CREDITS. Thank you, Dinh Nguyen, for maintaining Nios II support!
+> 
+> References:
+> [1] https://docs.altera.com/v/u/docs/781327/is-discontinuing-ip-ordering-codes-listed-in-pdn2312-for-nios-ii-ip
+> [2] https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=e876acab6cdd84bb2b32c98fc69fb0ba29c81153
+> [3] https://github.com/buildroot/buildroot/commit/6775ccc5a199d574ad70b5f79ec58cce97a07c6f
+> [4] https://github.com/qemu/qemu/commit/6c3014858c4c0024dd0560f08a6eda0f92f658d6
+> [5] https://sourceware.org/pipermail/newlib/2024/021083.html
+> 
+> Signed-off-by: Ethan Nelson-Moore <enelsonmoore@gmail.com>
+> ---
 
-Since there's no other option, keep the ifdef.
+Wearing DT hat:
 
--- 
-Sincerely yours,
-Mike.
+Acked-by: Krzysztof Kozlowski <krzysztof.kozlowski@oss.qualcomm.com>
+
+Best regards,
+Krzysztof
+
