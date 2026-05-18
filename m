@@ -1,109 +1,79 @@
-Received: from mail.zeus03.de (zeus03.de [194.117.254.33])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 21638396560
-	for <linux-arch@vger.kernel.org>; Mon, 18 May 2026 20:47:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=194.117.254.33
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 51053282F05;
+	Mon, 18 May 2026 21:12:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779137224; cv=none; b=j4QCOzyGhyOBjATd93TXhZHtHpLe4uAuDEO/FPg5FCCbKhVXTxmP1pGIofPNyU1nEtaQ62fZqUTf4MF6FV1m/tj77ipJWTQFAdTsekyjcgVwoh2931+g1JKK3PG36JhdLsw1imU7Al9/M4k4K6LKqa8HYIW+EeyluX6MzFHSC7E=
+	t=1779138728; cv=none; b=RH+ym6syVUqKb9canrniJnkpFvmrlxzIkVnezP2LuMp1sv7R9Z46MYtpbNUu8r2xjEe9OyMTlLSXWA98emyvheOkAbtaSO47PWWuuewP7MYxylHbvTMjagvMc7NPHkoRJkLjYfyZV9Fox2bahCTgtCNLDwkB+PL7fvheSD1tpf8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779137224; c=relaxed/simple;
-	bh=Ju0bBZL4gIhDXt1wxIRcD+B9cM8rwS33tQQtnjcKUwY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=hxeRG7k4hd+k+WJ6piM5mDyXEkmt5JDXpNozcldV85WFixnrMi2aOSL1TwMk8iYncijuop8jrMnhJm0k5ymfZ4vVOI91OjHZuCXjsI6vvE284163ixWC4ZNC1Ei40sbU0PxdD1888ksXR4ckKjJuiHIGlkWI2BaE5SgbXL7fTPQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sang-engineering.com; spf=pass smtp.mailfrom=sang-engineering.com; dkim=pass (2048-bit key) header.d=sang-engineering.com header.i=@sang-engineering.com header.b=hIDL4Pci; arc=none smtp.client-ip=194.117.254.33
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sang-engineering.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sang-engineering.com
+	s=arc-20240116; t=1779138728; c=relaxed/simple;
+	bh=6CbWyBWe6ek+skQD7ezBR5R72rf11+dnwrag4D/122Q=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=CYxZz31JVhti8KfklkAKi+EFIrJO+7YO9/K0HS1cQV4v5nbPB+GvXSwLHtwvjvPnjliapXLDFwtRiqg4lREmZ6EaPlsGaJqBFf8MejHDl+QMPR6cZHASqtMAhjwlF8a0o7CnGRZk8mbpntgJSc9cJCReqnhBvXYoovzRCd8LoOk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=dmdzNWjT; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=sang-engineering.com header.i=@sang-engineering.com header.b="hIDL4Pci"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	sang-engineering.com; h=date:from:to:cc:subject:message-id
-	:references:mime-version:content-type:in-reply-to; s=k1; bh=L52K
-	0rxWySw3mD5z7jnwvPV6H6bdzA5sgxRy/hQVyAI=; b=hIDL4Pci78/puo7y9yQi
-	i2QwANMnkO9c+JN2J1AuGPGc7VaJw5mv5oB/Zi5V2NpOtmNWm9XOO1R+IJNZFnZR
-	meEUR+IwLqIIqHU3FlF+jDqISV7XhoIBKJj5YhCwfcISYldprr8eaDDjBG3r5TZw
-	mxP8JHNcHv1dzvI+ZmsQ1fBQiFdtCyshmDbAh204tTJkZb0f6TFW0ExyfM/Kk91P
-	wss0BhGJm15JjnmFgKwqDs+m+p0q5M7k+F6MldfbQ6dnZbJ07U0epn56qjQWMMuA
-	laR67xnGRvGP5v3vFrD1q2AD1KEOA7i38hJabnRO/72MrxDt/qCiKctVFaQbZ1ji
-	mA==
-Received: (qmail 5619 invoked from network); 18 May 2026 22:46:55 +0200
-Received: by mail.zeus03.de with ESMTPSA (TLS_AES_256_GCM_SHA384 encrypted, authenticated); 18 May 2026 22:46:55 +0200
-X-UD-Smtp-Session: l3s3148p1@dIu7qR1SQNMujnuR
-Date: Mon, 18 May 2026 22:46:55 +0200
-From: Wolfram Sang <wsa+renesas@sang-engineering.com>
-To: Simon Schuster <schuster.simon@siemens-energy.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>,
-	Ethan Nelson-Moore <enelsonmoore@gmail.com>,
-	Dinh Nguyen <dinguyen@kernel.org>, linux-doc@vger.kernel.org,
-	devicetree@vger.kernel.org, workflows@vger.kernel.org,
-	Linux-Arch <linux-arch@vger.kernel.org>, dmaengine@vger.kernel.org,
-	linux-i2c@vger.kernel.org, linux-iio@vger.kernel.org,
-	Netdev <netdev@vger.kernel.org>, linux-pci@vger.kernel.org,
-	linux-pwm@vger.kernel.org, linux-hardening@vger.kernel.org,
-	linux-kbuild@vger.kernel.org,
-	"linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Shuah Khan <skhan@linuxfoundation.org>,
-	Rob Herring <robh@kernel.org>,
-	Krzysztof Kozlowski <krzk+dt@kernel.org>,
-	Conor Dooley <conor+dt@kernel.org>,
-	Daniel Lezcano <daniel.lezcano@kernel.org>,
-	Thomas Gleixner <tglx@kernel.org>, Alex Shi <alexs@kernel.org>,
-	Yanteng Si <si.yanteng@linux.dev>, Dongliang Mu <dzm91@hust.edu.cn>,
-	Hu Haowen <2023002089@link.tyut.edu.cn>,
-	Kees Cook <kees@kernel.org>, Oleg Nesterov <oleg@redhat.com>,
-	Will Deacon <will@kernel.org>,
-	"Aneesh Kumar K.V (Arm)" <aneesh.kumar@kernel.org>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Nicholas Piggin <npiggin@gmail.com>, Vinod Koul <vkoul@kernel.org>,
-	Frank Li <Frank.Li@kernel.org>, Dave Penkler <dpenkler@gmail.com>,
-	Andi Shyti <andi.shyti@kernel.org>,
-	Jonathan Cameron <jic23@kernel.org>,
-	David Lechner <dlechner@baylibre.com>,
-	Nuno =?utf-8?B?U8Oh?= <nuno.sa@analog.com>,
-	Andy Shevchenko <andy@kernel.org>,
-	Andrew Lunn <andrew+netdev@lunn.ch>,
-	"David S . Miller" <davem@davemloft.net>,
-	Eric Dumazet <edumazet@google.com>,
-	Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>,
-	Lorenzo Pieralisi <lpieralisi@kernel.org>,
-	Krzysztof WilczyDski <kwilczynski@kernel.org>,
-	Andreas Oetken <andreas.oetken@siemens-energy.com>
-Subject: Re: [PATCH] nios2: remove the architecture
-Message-ID: <agt6vy3WtjFy9sfU@shikoro>
-References: <20260518042833.272221-1-enelsonmoore@gmail.com>
- <d40b1e80-37fc-4c88-9d7f-dae6458efe6c@app.fastmail.com>
- <20260518105735.GW3126523@noisy.programming.kicks-ass.net>
- <20260518172444.zyd47mcagrcwu7wt@dev-vm-schuster>
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="dmdzNWjT"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5FC18C2BCB7;
+	Mon, 18 May 2026 21:12:06 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+	s=korg; t=1779138727;
+	bh=6CbWyBWe6ek+skQD7ezBR5R72rf11+dnwrag4D/122Q=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=dmdzNWjTjK3Cc3C2V+DkRdbwT+d12xy/ZdRJ5bQRPDa4Caa5RS6kZ9MZ1ALFQP/+U
+	 kc1KEx+sN56byuYGjJ5PbU1JGucdCZy76CwlbeuJ+r1GAPZ0VTw7F7ixRcBQbkK4OE
+	 ese4fN8XpUeBQ1LjLfsivknyFMJ0f8eUvHc2/mMw=
+Date: Mon, 18 May 2026 14:12:05 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon
+ <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Huacai Chen
+ <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, Madhavan
+ Srinivasan <maddy@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>,
+ Nicholas Piggin <npiggin@gmail.com>, "Christophe Leroy (CS GROUP)"
+ <chleroy@kernel.org>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt
+ <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti
+ <alex@ghiti.fr>, Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik
+ <gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, Christian
+ Borntraeger <borntraeger@linux.ibm.com>, Sven Schnelle
+ <svens@linux.ibm.com>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
+ <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
+ <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
+ <hpa@zytor.com>, Herbert Xu <herbert@gondor.apana.org.au>, Dan Williams
+ <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>, David Sterba
+ <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>, Song Liu
+ <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>, Li Nan
+ <linan122@huawei.com>, linux-kernel@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
+ linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+ linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
+ linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-raid@vger.kernel.org
+Subject: Re: cleanup the RAID6 P/Q library v3
+Message-Id: <20260518141205.c100f76eec5f58e78bbbf7af@linux-foundation.org>
+In-Reply-To: <20260518051804.462141-1-hch@lst.de>
+References: <20260518051804.462141-1-hch@lst.de>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260518172444.zyd47mcagrcwu7wt@dev-vm-schuster>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-Hi Simon,
+On Mon, 18 May 2026 07:17:43 +0200 Christoph Hellwig <hch@lst.de> wrote:
 
-> downstream. In other respects, we try to be good citizens and contribute
-> bugfixes as well as required cleanups (such as implementing clone3 [2]
-> and fixing its flag behaviour on 32-bit architectures) as they come up.
+> this series cleans up the RAID6 P/Q library to match the recent updates
+> to the RAID 5 XOR library and other CRC/crypto libraries.  This includes
+> providing properly documented external interfaces, hiding the internals,
+> using static_call instead of indirect calls and turning the user space
+> test suite into an in-kernel kunit test which is also extended to
+> improve coverage.
 
-Well, this is definitely 'good citizen'...
+Cool, I'll add this to mm.git's mm-nonmm-unstable branch for some
+linux-next testing.
 
-> If desired, we also would be happy to intensify our support regarding
-> reviews or testing to share the maintnance burden if it helps to keep
-> nios2 in mainline a bit longer.
-
-... but given this, you might want to get added in MAINTAINERS as
-reviewer (or even maintainer) for nios2? Besides that your efforts are
-already worth it in my book, it would also ensure you get CCed on
-patches like this. Then, you are not depending on people like Arnd
-putting you in the loop manually.
-
-Happy hacking,
-
-   Wolfram
-
+AI review found quite a lot to talk about:
+	https://sashiko.dev/#/patchset/20260518051804.462141-1-hch@lst.de
