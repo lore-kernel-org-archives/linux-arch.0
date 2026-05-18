@@ -1,129 +1,166 @@
-Received: from va-1-111.ptr.blmpb.com (va-1-111.ptr.blmpb.com [209.127.230.111])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from flow-b5-smtp.messagingengine.com (flow-b5-smtp.messagingengine.com [202.12.124.140])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5B5663E3170
-	for <linux-arch@vger.kernel.org>; Mon, 18 May 2026 09:12:14 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.111
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1514C3E3C59;
+	Mon, 18 May 2026 09:32:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779095538; cv=none; b=hM/4jGZITg5NoVdWP7fuhk+JjN83D6Br5+kFiZKZC1tSdpIdRfn6M/GkIHbKyYSykExGhbgeWb8pH6UBoLmUAWh8wcN1Le+pW3WBVxNyHbn5Igr9pJDGZCImcTeNeQd731Q/XFcHAKRyFovsgQN4km+w90tMgY/luexz5xlXHOQ=
+	t=1779096739; cv=none; b=n5K7EiX+3imEzbBoYIomkyKXWQB9iI9mwA9/BVXmLpiRp0KarTwUlvQQnONr0alMtZwkqzXDTHfUkQZqBV8M9jXVm99U3yxsiNon9McOjumG/HGVX3l2Sicqi+5tYXcmjvq7QHkk4TuYcaf7IaGq421OEZtTSR4GwsLPIADNZvw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779095538; c=relaxed/simple;
-	bh=lgQ7F/xeFPJ7y9dnDIX5KGG808+7k/qCC1kpIMcbH7o=;
-	h=Cc:From:Subject:Date:Message-Id:Mime-Version:To:In-Reply-To:
-	 References:Content-Type; b=BVOJuurtdY+r70B7TQ+E7EOIAZCoPCrsNIZjvQ1TjEJnPhfPCSy8UY2mYuc2Sb2iDLtoaxj1Pvy/QLgpFLcpRY2rf5v3+08BpgSRSJVsOvgTGKSGQWZPjPh9SOJ06cYokxqQpW+J+Bl6j9NvjTBlNARhg3Xm5PCBrHENwNtQXXc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=LYGusmmj; arc=none smtp.client-ip=209.127.230.111
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1779096739; c=relaxed/simple;
+	bh=ypzeTVt77Q2YbxNzeBXoLlB99i/DAfX/BMXiXdWvVGE=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=R8CjqA5q1PvxkAKfHKMWOoN1zXwm4hCiDyeNbCgWSlCaTEfAlBngES4jlmOwp7FUAjRyhxfrCwcMLSuo5GKWnaYec27h+FQ8/bfuE4bgvJwBeZ+V/uYaNLpkreranjZlOJ2UT6rXiGfSpBtyA26m/LXd02NZH2XIgHY+B+zz4K8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=Vt0ThH1r; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=d7Zrs/v1; arc=none smtp.client-ip=202.12.124.140
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="LYGusmmj"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1779095524; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=JWXNe2P5R0SlkTM/8T8R92El2t5JoKtgbEM8w2iwBC8=;
- b=LYGusmmjkEfWhVSAfT9kv1tNfy5iAMNEmB5goHpQwtsNtYQ5ad1j9f0YNZYMItBTNsSdoM
- rfceGc32aCdPrg9YC902Vk4E81vOpCwSRPYwbNufD3CYsnc2DIYrSAboMjuGXsMAP2IzTs
- CiD7YYWF6C0l7Y+TjxZ4sKpeQUpaJ3imQD/Y730IcQCgJDYEVqITZVe4PKm+jng3kRkpHr
- T8c6c0qs3tJDcIUV5d/Or+Ic5RCFdwuscBDHlyx9qPQ3giEDQ7yYymRo8X49ZHvF1RfXRf
- qckBbcU0U1u+eJ+Yrlt3f256Cw1iqkV1emP4dAdCfhQIUA7i6guE0bMkrFgfew==
-Cc: <akpm@linux-foundation.org>, <arnd@arndb.de>, <bp@alien8.de>, 
-	<dave.hansen@linux.intel.com>, <david@kernel.org>, 
-	<linux-arch@vger.kernel.org>, <linux-kernel@vger.kernel.org>, 
-	<linux-mm@kvack.org>, <lizhe.67@bytedance.com>, <mingo@redhat.com>, 
-	<tglx@kernel.org>, <x86@kernel.org>
-X-Lms-Return-Path: <lba+26a0ad7e2+fddd01+vger.kernel.org+lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Subject: Re: [PATCH 1/4] mm: factor zone-device page init helpers out of __init_zone_device_page
-Date: Mon, 18 May 2026 17:11:42 +0800
-Message-Id: <20260518091142.71965-1-lizhe.67@bytedance.com>
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="Vt0ThH1r";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="d7Zrs/v1"
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailflow.stl.internal (Postfix) with ESMTP id 91C52130011D;
+	Mon, 18 May 2026 05:32:14 -0400 (EDT)
+Received: from phl-imap-05 ([10.202.2.95])
+  by phl-compute-04.internal (MEProxy); Mon, 18 May 2026 05:32:16 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm2; t=1779096734;
+	 x=1779103934; bh=Q1EsgrhmOtBlhH6lTl5Uo51ZkO0kpI0RkBVnwq5QUz4=; b=
+	Vt0ThH1rLYcI1Ix28b0JP5KyKVSNK7tWRDDAnyloBA5/OwJqvN0ri23ATRKH/uyF
+	y8piX8XfSOJ2Bufr6N0+eUn5rg446FLnMUuwx7hDbKGF/j7vqGhTISTNEbVMBtD3
+	Er3HNGz+7bqwmkQZXphusyxP6gZ5RoN5+grgyIc2fAVd5zF9uz9rWHF2yR2iKE6c
+	j5CWOhjqbuvDbRqe9DRYBaSya//gp1ZPuFln02tSYpandTwCO8xeGVrBKM1uBGsV
+	9p2JckdJcHMQXLay3F89Y+/C/8zpBN5u1/pireYxLZJvV/0ez2Hvrz9lErx9PSRW
+	EsZ3YkVJzigHewFB4l4G1A==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1779096734; x=
+	1779103934; bh=Q1EsgrhmOtBlhH6lTl5Uo51ZkO0kpI0RkBVnwq5QUz4=; b=d
+	7Zrs/v1i2pD7/PQEYdz7BPzqLdbR898qrLSWf/HozUAsyPe+XrqlKiGdfOVHUinw
+	6Q0TqsEx4aDRD2knrLMZmE8pGW7wNnAsh4iVY1NGQyME8dm34CKZoUYySoSwGt3m
+	WO5a6SL/c0VjK4nrTWAgl+UOgREv8GocunpjwMzoH2o93J9K6JzFGz0Nv/ew5u7v
+	otDT3CesstoEPlNlDbtFawhwJUvW/W1HcemrhTjADJgyRVPcEmoEpY9owJYiw0so
+	hKSiM+D0KAtC7+FYC/VwBnzCVieL8gHr9uBPe1fZUpAoCDiIEatJShmPKAswwKNf
+	PdCn7RLUd8Xkv45idAYWQ==
+X-ME-Sender: <xms:m9wKaiS1nRXcm5q7ZK6FjXk-vPvsJCwaGlPICQR9d8H9UXzQ4G_8uA>
+    <xme:m9wKailMo_Vsg2pUTHY2LO2mRgZMiiYsetrfaJAgSSwVAluO1sPqyU7-v1LlFoahd
+    gD4YhMSwmAQLKH7qOY_UXwDIOVaw4Ju_GOiNEeGM_TfF_ltikUCbgY>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefhedrtddtgddufeekhedvucetufdoteggodetrf
+    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
+    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
+    gurhepofggfffhvfevkfgjfhfutgfgsehtjeertdertddtnecuhfhrohhmpedftehrnhgu
+    uceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrthhtvg
+    hrnhepgfetleektedtheehheegffdtgfejvddvveeigfehjedvkefguefffedvhfehkeeu
+    necuffhomhgrihhnpehsohhurhgtvgifrghrvgdrohhrghenucevlhhushhtvghrufhiii
+    gvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggvpdhn
+    sggprhgtphhtthhopeehtddpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtohepnhhunh
+    hordhsrgesrghnrghlohhgrdgtohhmpdhrtghpthhtohepughlvggthhhnvghrsegsrgih
+    lhhisghrvgdrtghomhdprhgtphhtthhopegurghvvghmsegurghvvghmlhhofhhtrdhnvg
+    htpdhrtghpthhtohepughpvghnkhhlvghrsehgmhgrihhlrdgtohhmpdhrtghpthhtohep
+    vghnvghlshhonhhmohhorhgvsehgmhgrihhlrdgtohhmpdhrtghpthhtohepnhhpihhggh
+    hinhesghhmrghilhdrtghomhdprhgtphhtthhopegvughumhgriigvthesghhoohhglhgv
+    rdgtohhmpdhrtghpthhtohepugiimheludeshhhushhtrdgvughurdgtnhdprhgtphhtth
+    hopehpvghtvghriiesihhnfhhrrgguvggrugdrohhrgh
+X-ME-Proxy: <xmx:m9wKaoXO8csU_OfH3IC96vXBm6hf3_s4i74Aa2ze3_cRkDErTRhnQA>
+    <xmx:m9wKavCYpT9XIqZZ3KxcyxUwagyNayqYTaDfbOM66aYrE-DDmC3CvQ>
+    <xmx:m9wKaqGfXgsGxAHGFR9PVXMFX8vv_m3SQ0OhOrBlqJJ6MAENfFzlyA>
+    <xmx:m9wKameOBxifjWiOCFYmJ24tKTUi0NpUiwxhzkeayVo8Iddh1ByhbA>
+    <xmx:ntwKarDXvcCscqze7RatHo9_OeoAzcLLCvtlqj7thJsDiA792-MymQA7>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id 5AE44182007E; Mon, 18 May 2026 05:32:11 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-To: <rppt@kernel.org>
+MIME-Version: 1.0
+X-ThreadId: AoFiOxpvQUXV
+Date: Mon, 18 May 2026 11:29:48 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Ethan Nelson-Moore" <enelsonmoore@gmail.com>, linux-doc@vger.kernel.org,
+ devicetree@vger.kernel.org, workflows@vger.kernel.org,
+ Linux-Arch <linux-arch@vger.kernel.org>, dmaengine@vger.kernel.org,
+ linux-i2c@vger.kernel.org, linux-iio@vger.kernel.org,
+ Netdev <netdev@vger.kernel.org>, linux-pci@vger.kernel.org,
+ linux-pwm@vger.kernel.org, linux-hardening@vger.kernel.org,
+ linux-kbuild@vger.kernel.org,
+ "linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>
+Cc: "Jonathan Corbet" <corbet@lwn.net>,
+ "Shuah Khan" <skhan@linuxfoundation.org>,
+ "Rob Herring" <robh@kernel.org>,
+ "Krzysztof Kozlowski" <krzk+dt@kernel.org>,
+ "Conor Dooley" <conor+dt@kernel.org>,
+ "Daniel Lezcano" <daniel.lezcano@kernel.org>,
+ "Thomas Gleixner" <tglx@kernel.org>, "Alex Shi" <alexs@kernel.org>,
+ "Yanteng Si" <si.yanteng@linux.dev>, "Dongliang Mu" <dzm91@hust.edu.cn>,
+ "Hu Haowen" <2023002089@link.tyut.edu.cn>,
+ "Dinh Nguyen" <dinguyen@kernel.org>, "Kees Cook" <kees@kernel.org>,
+ "Oleg Nesterov" <oleg@redhat.com>, "Will Deacon" <will@kernel.org>,
+ "Aneesh Kumar K.V (Arm)" <aneesh.kumar@kernel.org>,
+ "Andrew Morton" <akpm@linux-foundation.org>,
+ "Nicholas Piggin" <npiggin@gmail.com>,
+ "Peter Zijlstra" <peterz@infradead.org>, "Vinod Koul" <vkoul@kernel.org>,
+ "Frank Li" <Frank.Li@kernel.org>, "Dave Penkler" <dpenkler@gmail.com>,
+ "Andi Shyti" <andi.shyti@kernel.org>,
+ "Jonathan Cameron" <jic23@kernel.org>,
+ "David Lechner" <dlechner@baylibre.com>,
+ =?UTF-8?Q?Nuno_S=C3=A1?= <nuno.sa@analog.com>,
+ "Andy Shevchenko" <andy@kernel.org>,
+ "Andrew Lunn" <andrew+netdev@lunn.ch>,
+ "David S . Miller" <davem@davemloft.net>,
+ "Eric Dumazet" <edumazet@google.com>, "Jakub Kicinski" <kuba@kernel.org>,
+ "Paolo Abeni" <pabeni@redhat.com>,
+ "Lorenzo Pieralisi" <lpieralisi@kernel.org>,
+ =?UTF-8?Q?Krzysztof_Wilczy=C5=84ski?= <kwilczynski@kernel.org>,
+ "Simon Schuster" <schuster.simon@siemens-energy.com>,
+ "Andreas Oetken" <andreas.oetken@siemens-energy.com>
+Message-Id: <d40b1e80-37fc-4c88-9d7f-dae6458efe6c@app.fastmail.com>
+In-Reply-To: <20260518042833.272221-1-enelsonmoore@gmail.com>
+References: <20260518042833.272221-1-enelsonmoore@gmail.com>
+Subject: Re: [PATCH] nios2: remove the architecture
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-In-Reply-To: <agqyd5Kncrx5B_ex@kernel.org>
-References: <agqyd5Kncrx5B_ex@kernel.org>
-Content-Type: text/plain; charset=UTF-8
 
-On Mon, 18 May 2026 09:23:33 +0300, rppt@kernel.org wrote:
+On Mon, May 18, 2026, at 06:28, Ethan Nelson-Moore wrote:
+> The Nios II architecture is a soft-core architecture developed by
+> Altera (since acquired by Intel) and intended to run on their FPGAs.
+>
+> Licenses for the architecture have not been available for purchase
+> since 2024 [1], and support for it has been removed from GCC 15 [2],
+> Buildroot [3], and QEMU [4].
+>
+> Given all of these factors, it is time to remove Nios II support from
+> the kernel. The maintainer stated in 2024 that they were planning to do
+> so soon [5], but this did not come to pass.
+>
+> Remove Nios II support from the kernel and move the former maintainer
+> to CREDITS. Thank you, Dinh Nguyen, for maintaining Nios II support!
 
-> Hi,
-> 
-> On Fri, May 15, 2026 at 04:20:42PM +0800, Li Zhe wrote:
-> > __init_zone_device_page() currently mixes three different jobs: deciding
-> > the initial page refcount, initializing the generic ZONE_DEVICE state, and
-> > setting up pageblock metadata.
-> >
-> > Split the refcount policy into zone_device_page_init_refcount() and move
-> > the generic page initialization into generic_init_zone_device_page(). This
-> > keeps the slow path behavior unchanged, but makes the individual pieces
-> > reusable by later fast-path patches.
-> >
-> > No functional change intended.
-> >
-> > Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-> > ---
-> >  mm/mm_init.c | 62 ++++++++++++++++++++++++++++++++--------------------
-> >  1 file changed, 38 insertions(+), 24 deletions(-)
-> >
-> > diff --git a/mm/mm_init.c b/mm/mm_init.c
-> > index f9f8e1af921c..5244acb96dbb 100644
-> > --- a/mm/mm_init.c
-> > +++ b/mm/mm_init.c
-> > @@ -987,11 +987,36 @@ static void __init memmap_init(void)
-> >  }
-> >
-> >  #ifdef CONFIG_ZONE_DEVICE
-> > -static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
-> > -					  unsigned long zone_idx, int nid,
-> > -					  struct dev_pagemap *pgmap)
-> 
-> Since you are already changing __init_zone_device_page(), I'd suggest
-> renaming it to zone_device_page_init().
-> 
-> > +static inline int zone_device_page_init_refcount(
-> > +		const struct dev_pagemap *pgmap)
-> >  {
-> > +	/*
-> > +	 * ZONE_DEVICE pages other than MEMORY_TYPE_GENERIC are released
-> > +	 * directly to the driver page allocator which will set the page count
-> > +	 * to 1 when allocating the page.
-> > +	 *
-> > +	 * MEMORY_TYPE_GENERIC and MEMORY_TYPE_FS_DAX pages automatically have
-> > +	 * their refcount reset to one whenever they are freed (ie. after
-> > +	 * their refcount drops to 0).
-> > +	 */
-> > +	switch (pgmap->type) {
-> > +	case MEMORY_DEVICE_FS_DAX:
-> > +	case MEMORY_DEVICE_PRIVATE:
-> > +	case MEMORY_DEVICE_COHERENT:
-> > +	case MEMORY_DEVICE_PCI_P2PDMA:
-> > +		return 0;
-> > +	case MEMORY_DEVICE_GENERIC:
-> > +		return 1;
-> > +	default:
-> > +		WARN_ONCE(1, "Unknown memory type!");
-> > +		return 1;
-> > +	}
-> > +}
-> >
-> > +static void __ref generic_init_zone_device_page(struct page *page,
-> > +		unsigned long pfn, unsigned long zone_idx, int nid,
-> > +		struct dev_pagemap *pgmap)
-> > +{
-> 
-> Here also would be better to use zone_device_page_ prefix.
-> And I don't think "generic" adds clarity about what this function is doing.
-> 
-> Seeing that later patches rename it again to _slow variant, I'd suggest to
-> call it __zone_device_page_init() at keep this name going forward.
+Hi Ethan,
 
-Thanks, I will fix this in the v2 revision.
+We last discussed this a year ago when Simon Schuster mentioned[1]
+that Siemens Energy is still using NIOS-2 in production and would
+prefer to have this still included in Linux for at least another
+few years until the obligation for kernel updates ends.
 
-Thanks,
-Zhe
+My feeling is that the maintenance burden of keeping nios2 is
+relatively low. On the other hand, maintaining it out of tree
+as a patch set is also something that should not be all that
+hard if it does get removed.
+
+Simon mentioned that he expected others to also use nios2 with
+new kernels, but I have not heard from anyone else actually
+doing it.
+
+I've added Simon and Andreas to Cc here to let them comment
+more here.
+
+     Arnd
+
+[1] https://sourceware.org/pipermail/binutils/2025-March/140140.html
