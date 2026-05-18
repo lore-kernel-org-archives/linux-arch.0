@@ -1,211 +1,116 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E3EA83CB2E5;
-	Mon, 18 May 2026 06:51:41 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 136D93C5540;
+	Mon, 18 May 2026 06:56:00 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779087102; cv=none; b=mP1KesB+3QOgeNmpENvXwr61p73IKg2NVr7WPqzdlCwQLWsoGGrVSD4H0nz4gSkjRqm8ctQpziEKBh6xUOLrJx9rTcXcClSFNvkygB0/IJL3mFJ+6wUqnqb9eklYiLeb5FldZo+PakuV2EvWiPhuxQ5GWwPkvktTF2vTRLeAbQw=
+	t=1779087361; cv=none; b=ERjy8wBKImCuCGxshEPyi259aQUHjCGuGXsjSHOScrg4qwwhrgZ1Hd7UeaKbu+aaJZZwia1xuS//hCT653LVCFroaJ7htaguXxV2vcuVXO2U+uwxu7BlA+v86ywuFg1zcd22V46DPD2C61geR4Kw8TqEEtHCj5XmXXqE0vmbXoA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779087102; c=relaxed/simple;
-	bh=pEyIxFagBCELnPW4KcSVXAY+aeER7qyhiWWCCVSH+pU=;
+	s=arc-20240116; t=1779087361; c=relaxed/simple;
+	bh=o7dvWOoDxJoqk2pHywtA9JSXlbLLMaNNcTzFjnfj+Jk=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=FoptznOAle9eVkN2w1ocJzLhyA4iK7T1/83FGIv38FwKOdWhRxPvZi0YHBRDh7LbgH9QBjIH/3hcodKbx2f2E5eNysQP9yEe1LMjbyXEyMfTR2EUE7jz0wqrGJwnMeKNHZLZsRh/TxR+WhygGSbG9Lmme6UBBd7rsFnAP9L8NQk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=lPNld9Z4; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type:Content-Disposition:In-Reply-To; b=nzyr2yXrYaogmwid2AOD2OqYSFLcQEOiSc2YPcUkdSBYycIp6RgNJTva6uMujVnhV76pHkQ0S4Lv8i5G3HKhuVcBWC7MOPCm+q4KFk8wzIWTwp+ZRxJJJ1/YHBxuqx8CP2eGrVoZanWYpdVQ7LJGRCRlEbQx/rHyNGis6XWAsJU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=nBEAy425; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="lPNld9Z4"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B4920C2BCC6;
-	Mon, 18 May 2026 06:51:37 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nBEAy425"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E94F3C2BCB7;
+	Mon, 18 May 2026 06:55:59 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1779087101;
-	bh=pEyIxFagBCELnPW4KcSVXAY+aeER7qyhiWWCCVSH+pU=;
+	s=k20201202; t=1779087360;
+	bh=o7dvWOoDxJoqk2pHywtA9JSXlbLLMaNNcTzFjnfj+Jk=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=lPNld9Z4cds8IsWOlBIkgYc3kXkjFaWbcKQr0Wx6TagD433jfmdyGlBVqpyLsUsku
-	 dihDbwlYK6l9ooqn1o8aZQ9v+yJkf3/aDJq+PtctLIV8FMn2FD2xQtH54NtzPoQWt1
-	 B11vYboEF94jelyJtlq1Oa+VRZONFsrw2WxJIbOihxHu+02JY1UIoiK8rQsiQaSj8+
-	 +guQQZmhvz6AnQiwfG4uUaZsVEOBWkTTN28YDEeuKhBNwAhexOVC4ItbJHumUc75dQ
-	 iiS7PosOgjnVt3PxZo8dS+KuP0kVlEv31umpAxyR0wCHkm5OHkJCHiyRxOC7+ptOgE
-	 yGD1rU2xfIMEA==
-Date: Mon, 18 May 2026 09:51:34 +0300
-From: Mike Rapoport <rppt@kernel.org>
-To: Li Zhe <lizhe.67@bytedance.com>
-Cc: tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
-	dave.hansen@linux.intel.com, arnd@arndb.de,
-	akpm@linux-foundation.org, david@kernel.org, x86@kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-mm@kvack.org
-Subject: Re: [PATCH 2/4] mm: add a template-based fast path for zone-device
- page init
-Message-ID: <agq29raPaAPlM8kV@kernel.org>
-References: <20260515082045.63029-1-lizhe.67@bytedance.com>
- <20260515082045.63029-3-lizhe.67@bytedance.com>
+	b=nBEAy425sh60FdXG3PK9Hl5HHmR4JhLGLkssLELCmAl6bLVf2uoZT9DlFjrBdwUOr
+	 iPfrb/zNRGIbEw5MvkdWEHn8q9hpCzXM89p5Eh0zCbZWYKLA5OQFQDbLaGF4DiqNsx
+	 zJKMRlYVC5OMdTqQz0LhOSYUJpWk1ykdqIsnUjH9EeY5aVmMnsIak3HhyAh2Zwj230
+	 XNquFayYEnkmYsxqti+gH/xiwDlCZHDReM+yHYJXq7nqnJbiS2qeiIQytSvEmXNEAw
+	 41STb/iOBY3qwPcjq8FwSnfB1RrgHS3q3+J3DY9cymgBqa5YCBmuBqY6sLXjcMgzsR
+	 3JaQQwY6GZZ2A==
+Date: Mon, 18 May 2026 08:55:58 +0200
+From: Uwe =?utf-8?Q?Kleine-K=C3=B6nig?= <ukleinek@kernel.org>
+To: Ethan Nelson-Moore <enelsonmoore@gmail.com>
+Cc: linux-doc@vger.kernel.org, devicetree@vger.kernel.org, 
+	workflows@vger.kernel.org, linux-arch@vger.kernel.org, dmaengine@vger.kernel.org, 
+	linux-i2c@vger.kernel.org, linux-iio@vger.kernel.org, netdev@vger.kernel.org, 
+	linux-pci@vger.kernel.org, linux-pwm@vger.kernel.org, linux-hardening@vger.kernel.org, 
+	linux-kbuild@vger.kernel.org, linux-csky@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Rob Herring <robh@kernel.org>, 
+	Krzysztof Kozlowski <krzk+dt@kernel.org>, Conor Dooley <conor+dt@kernel.org>, 
+	Daniel Lezcano <daniel.lezcano@kernel.org>, Thomas Gleixner <tglx@kernel.org>, Alex Shi <alexs@kernel.org>, 
+	Yanteng Si <si.yanteng@linux.dev>, Dongliang Mu <dzm91@hust.edu.cn>, 
+	Hu Haowen <2023002089@link.tyut.edu.cn>, Dinh Nguyen <dinguyen@kernel.org>, Kees Cook <kees@kernel.org>, 
+	Oleg Nesterov <oleg@redhat.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, 
+	Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
+	Vinod Koul <vkoul@kernel.org>, Frank Li <Frank.Li@kernel.org>, 
+	Dave Penkler <dpenkler@gmail.com>, Andi Shyti <andi.shyti@kernel.org>, 
+	Jonathan Cameron <jic23@kernel.org>, David Lechner <dlechner@baylibre.com>, 
+	Nuno =?utf-8?B?U8Oh?= <nuno.sa@analog.com>, Andy Shevchenko <andy@kernel.org>, 
+	Andrew Lunn <andrew+netdev@lunn.ch>, "David S. Miller" <davem@davemloft.net>, 
+	Eric Dumazet <edumazet@google.com>, Jakub Kicinski <kuba@kernel.org>, 
+	Paolo Abeni <pabeni@redhat.com>, Lorenzo Pieralisi <lpieralisi@kernel.org>, 
+	Krzysztof =?utf-8?Q?Wilczy=C5=84ski?= <kwilczynski@kernel.org>
+Subject: Re: [PATCH] nios2: remove the architecture
+Message-ID: <agq3nMVq5x4SyBAV@monoceros>
+References: <20260518042833.272221-1-enelsonmoore@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="v3mrrmanqdjd4jn4"
 Content-Disposition: inline
-In-Reply-To: <20260515082045.63029-3-lizhe.67@bytedance.com>
+In-Reply-To: <20260518042833.272221-1-enelsonmoore@gmail.com>
 
-Hi,
 
-On Fri, May 15, 2026 at 04:20:43PM +0800, Li Zhe wrote:
-> On 64-bit builds, memmap_init_zone_device() spends most of its time
-> repeating the same struct page initialization for every PFN. Prepare a
-> template page through the existing slow path once, then copy that
-> template into each destination page and fix up the PFN-dependent state
-> afterwards.
-> 
-> Keep the optimized path disabled when the page_ref_set tracepoint is
-> active, because the template-copy path bypasses set_page_count() and
-> would otherwise hide the corresponding trace event.
-> 
-> Non-64-bit builds continue to use the existing slow path.
+--v3mrrmanqdjd4jn4
+Content-Type: text/plain; protected-headers=v1; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+Subject: Re: [PATCH] nios2: remove the architecture
+MIME-Version: 1.0
 
-ZONE_DEVICE depends on MEMORY_HOTPLUG and MEMORY_HOTPLUG is only supported
-for 64 bits, so there can't be 32-bit builds for ZONE_DEVICE functionality.
- 
-> Tested in a VM with a 100 GB fsdax namespace device configured with
-> map=dev on Intel Ice Lake server. This test exercises the nd_pmem rebind
-> path (pfns_per_compound == 1).
-> 
-> Test procedure:
-> Rebind the nd_pmem driver 30 times and collect the memmap initialization
-> time from the pr_debug() output of memmap_init_zone_device().
-> 
-> Base(v7.1-rc3):
->   First binding: 1486 ms
->   Average of subsequent rebinds: 273.52 ms
-> 
-> With this patch:
->   First binding: 1421 ms
->   Average of subsequent rebinds: 246.14 ms
-> 
-> This reduces the average rebind time from 273.52 ms to 246.14 ms, or
-> about 10%.
-> 
-> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-> ---
->  mm/mm_init.c | 103 +++++++++++++++++++++++++++++++++++++++++++++++----
->  1 file changed, 96 insertions(+), 7 deletions(-)
-> 
-> diff --git a/mm/mm_init.c b/mm/mm_init.c
-> index 5244acb96dbb..4c475c71a9d6 100644
-> --- a/mm/mm_init.c
-> +++ b/mm/mm_init.c
-> @@ -1013,7 +1013,7 @@ static inline int zone_device_page_init_refcount(
->  	}
->  }
->  
-> -static void __ref generic_init_zone_device_page(struct page *page,
-> +static void __ref generic_init_zone_device_page_slow(struct page *page,
->  		unsigned long pfn, unsigned long zone_idx, int nid,
->  		struct dev_pagemap *pgmap)
->  {
-> @@ -1040,12 +1040,9 @@ static void __ref generic_init_zone_device_page(struct page *page,
->  		set_page_count(page, 0);
->  }
->  
-> -static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
-> -					  unsigned long zone_idx, int nid,
-> -					  struct dev_pagemap *pgmap)
-> +static void __ref zone_device_page_init_pageblock(struct page *page,
-> +						  unsigned long pfn)
+Hello,
 
-Please move splitting _pageblock helper into the first patch, so that the
-first patch would contain all code movement.
+On Sun, May 17, 2026 at 09:28:33PM -0700, Ethan Nelson-Moore wrote:
+> diff --git a/drivers/pwm/Kconfig b/drivers/pwm/Kconfig
+> index 6f3147518376..d8145f369ec3 100644
+> --- a/drivers/pwm/Kconfig
+> +++ b/drivers/pwm/Kconfig
+> @@ -131,7 +131,7 @@ config PWM_ATMEL_TCB
+> =20
+>  config PWM_AXI_PWMGEN
+>  	tristate "Analog Devices AXI PWM generator"
+> -	depends on MICROBLAZE || NIOS2 || ARCH_ZYNQ || ARCH_ZYNQMP || ARCH_INTE=
+L_SOCFPGA || COMPILE_TEST
+> +	depends on MICROBLAZE || ARCH_ZYNQ || ARCH_ZYNQMP || ARCH_INTEL_SOCFPGA=
+ || COMPILE_TEST
+>  	select REGMAP_MMIO
+>  	help
+>  	  This enables support for the Analog Devices AXI PWM generator.
+> diff --git a/include/linux/seqlock.h b/include/linux/seqlock.h
+> index 5a40252b8334..edc8c96d91b6 100644
 
->  {
-> -	generic_init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
-> -
->  	/*
->  	 * Mark the block movable so that blocks are reserved for
->  	 * movable at startup. This will force kernel allocations
-> @@ -1062,6 +1059,88 @@ static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
->  	}
->  }
->  
-> +static inline void __init_zone_device_page(struct page *page, unsigned long pfn,
-> +					   unsigned long zone_idx, int nid,
-> +					   struct dev_pagemap *pgmap)
-> +{
-> +	generic_init_zone_device_page_slow(page, pfn, zone_idx, nid, pgmap);
-> +	zone_device_page_init_pageblock(page, pfn);
-> +}
-> +
-> +#if BITS_PER_LONG == 64
-> +static inline bool zone_device_page_init_optimization_enabled(void)
-> +{
-> +	/*
-> +	 * We use template pages and assign page->_refcount via memory copy.
-> +	 * This means the optimized path bypasses set_page_count(), so the
-> +	 * page_ref_set tracepoint cannot observe this initialization.
-> +	 * Skip the optimized path when the tracepoint is enabled.
-> +	 */
-> +	return !page_ref_tracepoint_active(page_ref_set);
-> +}
-> +
-> +static inline void struct_page_layout_check(void)
-> +{
-> +	BUILD_BUG_ON(sizeof(struct page) & (sizeof(u64) - 1));
+Acked-by: Uwe Kleine-K=F6nig <ukleinek@kernel.org> # for pwm
 
-Does it have to be a BUILD_BUG()? Can't we fallback to slow path if struct
-page has a weird size?
-Just do the check in zone_device_page_init_optimization_enabled().
+Best regards
+Uwe
 
-> +}
-> +
-> +static inline void init_template_page(struct page *template,
-> +				      unsigned long pfn,
-> +				      unsigned long zone_idx,
-> +				      int nid,
-> +				      struct dev_pagemap *pgmap)
+--v3mrrmanqdjd4jn4
+Content-Type: application/pgp-signature; name="signature.asc"
 
-The name should include zone_device to avoid confusion with regular pages.
-> +{
-> +	generic_init_zone_device_page_slow(template, pfn, zone_idx, nid, pgmap);
-> +}
-> +
-> +/*
-> + * Initialize parts that differ from the template
-> + */
-> +static inline void generic_init_zone_device_page_finish(struct page *page,
-> +							unsigned long pfn)
-> +{
-> +#ifdef SECTION_IN_PAGE_FLAGS
-> +	set_page_section(page, pfn_to_section_nr(pfn));
+-----BEGIN PGP SIGNATURE-----
 
-Can we add a stub for set_page_address() for !SECTION_IN_PAGE_FLAGS case
-and drop the #ifdef here and in set_page_links()?
+iQEzBAABCgAdFiEEP4GsaTp6HlmJrf7Tj4D7WH0S/k4FAmoKt+8ACgkQj4D7WH0S
+/k6D+wf/c3PPUzT+ilOfvLDq6xQ9mwqwWCSp0mpgj+sKStF3zLW22/Jxh8uQfgJz
+ZxNzeVpp3RcvofNMMm9NFY7fAJ1PB+bqLcKvHzxUCFe5c6VAocZOm+H+6jrnvcGM
+tKehUuFKbRlgdS1XjOXmRn9CuXP4HU7Jm0kFysqDtNt0Zl8gGYQgubZ2Z34XrBIu
+msmr1l3QT1BMbE7uRR5crgqH4HHvMpZqR0RehrX2/c1VY8HWEujhEkufhcMZMrvx
+Vmuf0f4bdeu4oIwwFMXmijr6ySoxRBKluXwjFOMUa8ZqhyhLFSr6lOhX8pXD+rOr
++brUNxnEjv3MpJArRnZswn7AfSGXWw==
+=83W7
+-----END PGP SIGNATURE-----
 
-> +#endif
-> +#ifdef WANT_PAGE_VIRTUAL
-> +	if (!is_highmem_idx(ZONE_DEVICE))
-> +		set_page_address(page, __va(pfn << PAGE_SHIFT));
-
-set_page_address() is a not when WANT_PAGE_VIRTUAL, you can drop the ifdef.
-
-> +#endif
-> +}
-> +
-> +static void init_zone_device_page_from_template(struct page *page,
-> +		unsigned long pfn, const struct page *template)
-
-zone_device_page_init_from_template() please.
-
-> +{
-> +	const u64 *src = (const u64 *)template;
-> +	u64 *dst = (u64 *)page;
-> +	unsigned int i;
-> +
-> +	for (i = 0; i < sizeof(struct page) / sizeof(u64); i++)
-> +		dst[i] = src[i];
-> +	generic_init_zone_device_page_finish(page, pfn);
-> +	zone_device_page_init_pageblock(page, pfn);
-> +}
-
--- 
-Sincerely yours,
-Mike.
+--v3mrrmanqdjd4jn4--
