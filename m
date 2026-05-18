@@ -1,206 +1,226 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 174252367D3;
-	Mon, 18 May 2026 09:38:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from va-1-112.ptr.blmpb.com (va-1-112.ptr.blmpb.com [209.127.230.112])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4E998322B7B
+	for <linux-arch@vger.kernel.org>; Mon, 18 May 2026 09:54:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779097108; cv=none; b=mU73DrJY9MbReOJziXmfHt9ULtuIHXikN1Bvm0PFIKZtX6Dviud6ylk2GBXVlAmkjdglAhFegIXlLjjDx8Z7vFLJ7fnNIUMSBgmWC+KCHFcyZ9X2QHoeNEEIfxdFPNVzGJfVhrSVjAuxyvDunhwqZP0gVCdqL6k3PFo8+xN4Z3M=
+	t=1779098073; cv=none; b=H0+d46Pf6dnHT1IRru169L/NiQeYH0/lfKUFdh1OXBlXXZx/YgN5AzOyjLU9+DMym92AE0Xb+i2TV7KC3qmLyNpuCfmh0fZ4b6RqgVAGqyRgB3tK9nYsbpq3FeIlxARZmJFU5XaAFPwEmcGGaeDoCnRUiRHlN5oga7fS9+q126k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779097108; c=relaxed/simple;
-	bh=4fPcah8dmnDnuK5ll3l6RFnFjqxv4SXmcFfh6J4rtLw=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=uaiS5FdQ5qBSUl2Iij+hE6YOLLw6GmpXIS+bwGP/6IDP0vnm0L6ETvXsElBlySBeoZq5QTID++NmxokMEwdf1EfS6mA08uu0eB5CZpv9jnzvEg7qflTxJyzr2/jZ9Dxq4yXK4Gc5FshCQjD0/D0IDStnidE3AJOZlLv1fEWVpXg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=j119BinO; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1779098073; c=relaxed/simple;
+	bh=NChihXEvG23alR8QhZshHpO1iaPcNDVZok/hIN6nsYY=;
+	h=References:Cc:From:Mime-Version:Subject:Date:In-Reply-To:
+	 Content-Type:To:Message-Id; b=tiB+8BIJudsXm954AswT24KYk61AAqEA1ihzkZMkzv2srJ8l5bRrVDQCSKqmUIUoUMGK3Xw3V+QdVPOVJU2Dbh0aBLME1ZN6av1GyJIAeERLA0hQT8I3BrGPhV46TTDyRU/xauWOxoOvIc+BIUsjuZ7f12S3P5yjXSp5QZR9Rss=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=XLPdiWCB; arc=none smtp.client-ip=209.127.230.112
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="j119BinO"
-Received: from localhost (unknown [167.220.233.27])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 4B45020B7166;
-	Mon, 18 May 2026 02:38:20 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 4B45020B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1779097100;
-	bh=s+YWJYVFWtMEG0xZrCUw5nCzzgDA6ShdPxjhNN8my48=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=j119BinOxvlRrzkE98QrVKF82TAePguMU9osCRhtQYYu7deolqSpUlplJGmHsNInM
-	 oglxeWgyHeWOSWShyvk/iKi3W6jR5X3+jJGJ3uS7S9Mg+kAMxj+5s3xUcvErjC9H6s
-	 9X2s+eLyYPvfbXm+dSPLyw9HsZCZMS5TPLxBO+78=
-Date: Mon, 18 May 2026 17:38:23 +0800
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: Michael Kelley <mhklinux@outlook.com>, 
-	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, 
-	"iommu@lists.linux.dev" <iommu@lists.linux.dev>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, 
-	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "wei.liu@kernel.org" <wei.liu@kernel.org>, 
-	"kys@microsoft.com" <kys@microsoft.com>, "haiyangz@microsoft.com" <haiyangz@microsoft.com>, 
-	"decui@microsoft.com" <decui@microsoft.com>, "longli@microsoft.com" <longli@microsoft.com>, 
-	"joro@8bytes.org" <joro@8bytes.org>, "will@kernel.org" <will@kernel.org>, 
-	"robin.murphy@arm.com" <robin.murphy@arm.com>, "bhelgaas@google.com" <bhelgaas@google.com>, 
-	"kwilczynski@kernel.org" <kwilczynski@kernel.org>, "lpieralisi@kernel.org" <lpieralisi@kernel.org>, 
-	"mani@kernel.org" <mani@kernel.org>, "robh@kernel.org" <robh@kernel.org>, 
-	"arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
-	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
-	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>
-Subject: Re: [PATCH v1 3/4] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Message-ID: <f74lbhq66bya4s44mhghc63wckctysvreuxfr6vkysvuj3nloh@axkuugfiati2>
-References: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
- <20260511162408.1180069-4-zhangyu1@linux.microsoft.com>
- <SN6PR02MB4157FB81CC9B6347DCCC8C56D4072@SN6PR02MB4157.namprd02.prod.outlook.com>
- <qeyycsdnejwrqle4zwrvkjvkvrpjifeanwxjaa7i7y2ab7rnt2@b6gvugqayarg>
- <SN6PR02MB415734108A86BDFB66AEE4CED4042@SN6PR02MB4157.namprd02.prod.outlook.com>
- <fw2pruvjgo7yigtcxssf3xv27soibsj6hmw2ls5wj4rylfhdha@e63f32cwu2x5>
- <53754e0b-2af8-edd2-dfc0-293fac002a52@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="XLPdiWCB"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ s=2212171451; d=bytedance.com; t=1779098066; h=from:subject:
+ mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
+ mime-version:in-reply-to:message-id;
+ bh=wgbr+2+9/hNiYiWVufx6FjCu45ByoByDRte7+gOCp9c=;
+ b=XLPdiWCBSTzzojXfvVfLm3V5EiuD8qZJ53pghpWj65OMMC8mHXkPwKn/uu1x3cmIBl2mNJ
+ sjGeOLzg99PizJFccmkHf3qw7iSZxFF9NQFxe2lbo6Db+3rwwz+F3q1LKbkF/geNlDTXhE
+ YQaDli+c5KUpF+UrEnOHdlCSPl+Z4MLLrMRrYbeGfQoXDDppegnZUD3lcLkivRUcGYspAJ
+ wx8U3GlBPxgO2iJHycv8NNLXLynnfqzIux9TecZ1yuZ2VsH4hUqLLAm4qYUGNLfySgy1Nl
+ 1pP8618TIv89cxTWIVs6VchP3cDGv8ZFL45KjJBjgTXII8IAL+qru5oA3UYSsA==
+References: <agq29raPaAPlM8kV@kernel.org>
+X-Lms-Return-Path: <lba+26a0ae1d0+6675ca+vger.kernel.org+lizhe.67@bytedance.com>
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+Cc: <akpm@linux-foundation.org>, <arnd@arndb.de>, <bp@alien8.de>, 
+	<dave.hansen@linux.intel.com>, <david@kernel.org>, 
+	<linux-arch@vger.kernel.org>, <linux-kernel@vger.kernel.org>, 
+	<linux-mm@kvack.org>, <lizhe.67@bytedance.com>, <mingo@redhat.com>, 
+	<tglx@kernel.org>, <x86@kernel.org>
+From: "Li Zhe" <lizhe.67@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <53754e0b-2af8-edd2-dfc0-293fac002a52@linux.microsoft.com>
+Mime-Version: 1.0
+Subject: Re: [PATCH 2/4] mm: add a template-based fast path for zone-device page init
+Date: Mon, 18 May 2026 17:54:05 +0800
+In-Reply-To: <agq29raPaAPlM8kV@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+To: <rppt@kernel.org>
+Message-Id: <20260518095405.76367-1-lizhe.67@bytedance.com>
+Content-Transfer-Encoding: 7bit
+X-Mailer: git-send-email 2.45.2
 
-On Fri, May 15, 2026 at 05:11:19PM -0700, Mukesh R wrote:
-> On 5/15/26 09:53, Yu Zhang wrote:
-> > On Fri, May 15, 2026 at 02:51:38PM +0000, Michael Kelley wrote:
-> > > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Friday, May 15, 2026 7:00 AM
-> > > > 
-> > > > On Thu, May 14, 2026 at 06:13:24PM +0000, Michael Kelley wrote:
-> > > > > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Monday, May 11, 2026 9:24 AM
-> > > > > > 
-> > > > > > Add a para-virtualized IOMMU driver for Linux guests running on Hyper-V.
-> > > > > > This driver implements stage-1 IO translation within the guest OS.
-> > > > > > It integrates with the Linux IOMMU core, utilizing Hyper-V hypercalls
-> > > > > > for:
-> > > > > >   - Capability discovery
-> > > > > >   - Domain allocation, configuration, and deallocation
-> > > > > >   - Device attachment and detachment
-> > > > > >   - IOTLB invalidation
-> > > > > > 
-> > > > > > The driver constructs x86-compatible stage-1 IO page tables in the
-> > > > > > guest memory using consolidated IO page table helpers. This allows
-> > > > > > the guest to manage stage-1 translations independently of vendor-
-> > > > > > specific drivers (like Intel VT-d or AMD IOMMU).
-> > > > > > 
-> > > > > > Hyper-V consumes this stage-1 IO page table when a device domain is
-> > > > > > created and configured, and nests it with the host's stage-2 IO page
-> > > > > > tables, therefore eliminating the VM exits for guest IOMMU mapping
-> > > > > > operations. For unmapping operations, VM exits to perform the IOTLB
-> > > > > > flush are still unavoidable.
-> > > > > > 
-> > > > > > Hyper-V identifies each PCI pass-thru device by a logical device ID
-> > > > > > in its hypercall interface. The vPCI driver (pci-hyperv) registers the
-> > > > > > per-bus portion of this ID with the pvIOMMU driver during bus probe.
-> > > > > > The pvIOMMU driver stores this mapping and combines it with the function
-> > > > > > number of the endpoint PCI device to form the complete ID for hypercalls.
-> > > > > 
-> > > > > As you are probably aware, Mukesh's patch series to support PCI
-> > > > > pass-thru devices also needs to get the logical device ID. Maybe the
-> > > > > registration mechanism needs to move somewhere that can be shared
-> > > > > with his code.
-> > > > > 
-> > > > 
-> > > > Thank you so much for the review, Michael!
-> > > > 
-> > > > Yes, I looked at Mukesh's series and noticed his hv_pci_vmbus_device_id()
-> > > > in pci-hyperv.c has the same dev_instance byte manipulation. We do need
-> > > > a common registration mechanism.
-> > > > 
-> > > > Any suggestion on where to put it? drivers/hv/hv_common.c seems like a
-> > > > natural place, but the register/lookup functions are currently only
-> > > > meaningful when CONFIG_HYPERV_PVIOMMU is set. If Mukesh's pass-thru
-> > > > code also needs them, we might need a new shared Kconfig option that
-> > > > both can select. Open to better ideas.
-> > > 
-> > > Unfortunately, I have not looked at Mukesh's series in detail yet, so
-> > > I don't have enough knowledge of the full situation to offer a good
-> > > recommendation.
-> > > 
-> > 
-> > Sorry I forgot to Cc Mukesh in the previous reply. :(
-> > @Mukesh, any thoughts on sharing the logical device ID registration mechanism?
+On Mon, 18 May 2026 09:51:34 +0300, rppt@kernel.org wrote:
+
+> Hi,
 > 
-> Yeah, I went round and round trying to find the best place. I almost
-> created virt/hyperv/hv_utils.c file. Maybe that is the best place?
-
-Thanks for thinking about this, Mukesh!
-
-I'm a bit hesitant about introducing virt/hyperv/. Currently virt/ 
-only hosts KVM's architecture-neutral hypervisor core. And it feels
-like the wrong layer for driver-level utility code. And drivers/hv/
-seems like a more natural fit?
-
-I'm also thinking about the config to gating these new interfaces(
-register/lookup etc.), I am using CONFIG_HYPERV_PVIOMMU, and I guess
-you may propably propose another one for the host side change(or just 
-CONFIG_MSHV_ROOT)?
-
-B.R.
-Yu
-
+> On Fri, May 15, 2026 at 04:20:43PM +0800, Li Zhe wrote:
+> > On 64-bit builds, memmap_init_zone_device() spends most of its time
+> > repeating the same struct page initialization for every PFN. Prepare a
+> > template page through the existing slow path once, then copy that
+> > template into each destination page and fix up the PFN-dependent state
+> > afterwards.
+> >
+> > Keep the optimized path disabled when the page_ref_set tracepoint is
+> > active, because the template-copy path bypasses set_page_count() and
+> > would otherwise hide the corresponding trace event.
+> >
+> > Non-64-bit builds continue to use the existing slow path.
 > 
-> Thanks,
-> -Mukesh
+> ZONE_DEVICE depends on MEMORY_HOTPLUG and MEMORY_HOTPLUG is only supported
+> for 64 bits, so there can't be 32-bit builds for ZONE_DEVICE functionality.
+
+Thanks for the clarification.
+Indeed ZONE_DEVICE depends on MEMORY_HOTPLUG which is 64-bit only. I
+will refine the description accordingly in v2.
+
+> > Tested in a VM with a 100 GB fsdax namespace device configured with
+> > map=dev on Intel Ice Lake server. This test exercises the nd_pmem rebind
+> > path (pfns_per_compound == 1).
+> >
+> > Test procedure:
+> > Rebind the nd_pmem driver 30 times and collect the memmap initialization
+> > time from the pr_debug() output of memmap_init_zone_device().
+> >
+> > Base(v7.1-rc3):
+> >   First binding: 1486 ms
+> >   Average of subsequent rebinds: 273.52 ms
+> >
+> > With this patch:
+> >   First binding: 1421 ms
+> >   Average of subsequent rebinds: 246.14 ms
+> >
+> > This reduces the average rebind time from 273.52 ms to 246.14 ms, or
+> > about 10%.
+> >
+> > Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+> > ---
+> >  mm/mm_init.c | 103 +++++++++++++++++++++++++++++++++++++++++++++++----
+> >  1 file changed, 96 insertions(+), 7 deletions(-)
+> >
+> > diff --git a/mm/mm_init.c b/mm/mm_init.c
+> > index 5244acb96dbb..4c475c71a9d6 100644
+> > --- a/mm/mm_init.c
+> > +++ b/mm/mm_init.c
+> > @@ -1013,7 +1013,7 @@ static inline int zone_device_page_init_refcount(
+> >  	}
+> >  }
+> >
+> > -static void __ref generic_init_zone_device_page(struct page *page,
+> > +static void __ref generic_init_zone_device_page_slow(struct page *page,
+> >  		unsigned long pfn, unsigned long zone_idx, int nid,
+> >  		struct dev_pagemap *pgmap)
+> >  {
+> > @@ -1040,12 +1040,9 @@ static void __ref generic_init_zone_device_page(struct page *page,
+> >  		set_page_count(page, 0);
+> >  }
+> >
+> > -static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
+> > -					  unsigned long zone_idx, int nid,
+> > -					  struct dev_pagemap *pgmap)
+> > +static void __ref zone_device_page_init_pageblock(struct page *page,
+> > +						  unsigned long pfn)
 > 
+> Please move splitting _pageblock helper into the first patch, so that the
+> first patch would contain all code movement.
+
+Thanks, I will move the _pageblock helper split into the first patch
+in v2.
+
+> >  {
+> > -	generic_init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
+> > -
+> >  	/*
+> >  	 * Mark the block movable so that blocks are reserved for
+> >  	 * movable at startup. This will force kernel allocations
+> > @@ -1062,6 +1059,88 @@ static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
+> >  	}
+> >  }
+> >
+> > +static inline void __init_zone_device_page(struct page *page, unsigned long pfn,
+> > +					   unsigned long zone_idx, int nid,
+> > +					   struct dev_pagemap *pgmap)
+> > +{
+> > +	generic_init_zone_device_page_slow(page, pfn, zone_idx, nid, pgmap);
+> > +	zone_device_page_init_pageblock(page, pfn);
+> > +}
+> > +
+> > +#if BITS_PER_LONG == 64
+> > +static inline bool zone_device_page_init_optimization_enabled(void)
+> > +{
+> > +	/*
+> > +	 * We use template pages and assign page->_refcount via memory copy.
+> > +	 * This means the optimized path bypasses set_page_count(), so the
+> > +	 * page_ref_set tracepoint cannot observe this initialization.
+> > +	 * Skip the optimized path when the tracepoint is enabled.
+> > +	 */
+> > +	return !page_ref_tracepoint_active(page_ref_set);
+> > +}
+> > +
+> > +static inline void struct_page_layout_check(void)
+> > +{
+> > +	BUILD_BUG_ON(sizeof(struct page) & (sizeof(u64) - 1));
 > 
-> > > > 
-> > > > [...]
-> > > > 
-> > > > > > +static void hv_flush_device_domain(struct hv_iommu_domain *hv_domain)
-> > > > > > +{
-> > > > > > +	u64 status;
-> > > > > > +	unsigned long flags;
-> > > > > > +	struct hv_input_flush_device_domain *input;
-> > > > > > +
-> > > > > > +	local_irq_save(flags);
-> > > > > > +
-> > > > > > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> > > > > > +	memset(input, 0, sizeof(*input));
-> > > > > > +	input->device_domain = hv_domain->device_domain;
-> > > > > 
-> > > > > The previous version of this patch had code to set several other fields in
-> > > > > the input. I wanted to confirm that not setting them in this version is
-> > > > > intentional. Were they not needed?
-> > > > > 
-> > > > 
-> > > > Oh. The RFC v1 set partition_id, owner_vtl, domain_id.type, and domain_id.id
-> > > > individually. In this version, I just simplified it to a struct assignment.
-> > > > No functional change.
-> > > 
-> > > Of course! I should have looked more closely at the details before making
-> > > this comment. :-(
-> > > 
-> > > [...]
-> > > 
-> > > > > 
-> > > > > Previous versions of this function did hv_iommu_detach_dev(). With that call
-> > > > > removed from here, hv_iommu_detach_dev() is only called when attaching a
-> > > > > domain to a device that already has a domain attached. Is it the case that
-> > > > > Hyper-V doesn't require the detach as a cleanup step?
-> > > > > 
-> > > > 
-> > > > The IOMMU core attaches the device to release_domain (our blocking domain)
-> > > > before calling release_device(), so I believe the explicit detach in the RFC
-> > > > was redundant. I simply didn't realize that at the time.
-> > > > 
-> > > 
-> > > Got it. But after the IOMMU core attaches the device to the blocking
-> > > domain, there's the possibility that the vPCI device is rescinded by
-> > > Hyper-V and it goes away entirely. Or the device might be subjected
-> > > to an "unbind/bind" cycle in Linux. Does the detach need to be done
-> > > on the blocking domain in such cases? In this version of the patches, the
-> > > Hyper-V "attach" and "detach" hypercalls still end up unbalanced. That
-> > > seems a bit untidy at best, and I wonder if there are scenarios where
-> > > Hyper-V will complain about the lack of balance.
-> > > 
-> > 
-> > Thank you, Michael. May I ask what "the vPCI device is rescinded by
-> > Hyper-V and it goes away entirely" mean?
-> > 
-> > I realized it's a bit untidy. But I want to understand this issue more
-> > clearly first. :)
-> > 
-> > B.R.
-> > Yu
+> Does it have to be a BUILD_BUG()? Can't we fallback to slow path if struct
+> page has a weird size?
+> Just do the check in zone_device_page_init_optimization_enabled().
+
+Thanks, I'll replace the BUILD_BUG_ON() with a runtime check and fall
+back to the slow path accordingly.
+
+> > +}
+> > +
+> > +static inline void init_template_page(struct page *template,
+> > +				      unsigned long pfn,
+> > +				      unsigned long zone_idx,
+> > +				      int nid,
+> > +				      struct dev_pagemap *pgmap)
 > 
+> The name should include zone_device to avoid confusion with regular pages.
+
+Thanks, I will rename it to include zone_device in v2.
+
+> > +{
+> > +	generic_init_zone_device_page_slow(template, pfn, zone_idx, nid, pgmap);
+> > +}
+> > +
+> > +/*
+> > + * Initialize parts that differ from the template
+> > + */
+> > +static inline void generic_init_zone_device_page_finish(struct page *page,
+> > +							unsigned long pfn)
+> > +{
+> > +#ifdef SECTION_IN_PAGE_FLAGS
+> > +	set_page_section(page, pfn_to_section_nr(pfn));
+> 
+> Can we add a stub for set_page_address() for !SECTION_IN_PAGE_FLAGS case
+> and drop the #ifdef here and in set_page_links()?
+
+Thanks, I will add the stub and remove the #ifdef in the next version.
+
+> > +#endif
+> > +#ifdef WANT_PAGE_VIRTUAL
+> > +	if (!is_highmem_idx(ZONE_DEVICE))
+> > +		set_page_address(page, __va(pfn << PAGE_SHIFT));
+> 
+> set_page_address() is a not when WANT_PAGE_VIRTUAL, you can drop the ifdef.
+
+Upon checking the implementation, set_page_address() also has another
+implementation for HASHED_PAGE_VIRTUAL
+
+Following the style of __init_single_page(), we only want to call
+set_page_address() under WANT_PAGE_VIRTUAL for ZONE_DEVICE initialization,
+so would it be acceptable to keep the #ifdef guard here?
+
+> > +#endif
+> > +}
+> > +
+> > +static void init_zone_device_page_from_template(struct page *page,
+> > +		unsigned long pfn, const struct page *template)
+> 
+> zone_device_page_init_from_template() please.
+
+Thanks, I will rename it to zone_device_page_init_from_template in v2.
+
+Thanks,
+Zhe
