@@ -1,32 +1,32 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CE6B63E0C62;
-	Mon, 18 May 2026 06:23:41 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8ABD73C6A39;
+	Mon, 18 May 2026 06:32:31 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779085421; cv=none; b=uVn23o7a//brHsNpJ7a8/klSLmFe/45g3LZTwx+A3YaHLCMgYpi8pEplrQ7C/2aEYxxKaJZIU9g8nqGu/JCvN89/u6Gr46/uN8VKn22wCAVLQAOW+RxWuaOviFPivjjjviv3I1RPZOVqNmnKnoYbnJ3j5ASGZrSYWEb1C7yiwM8=
+	t=1779085951; cv=none; b=DbVO4noaikJ/tv12SDNGjMPE0q8mCpwQNuqtQ8hH4WBbEs4QQct9jeInd1IPzcdyVpXeDu90GVPiIstccPT1kDtnGUs10zZTVMd8n80tctqobP5Njwmfpy48XzFhlf1Z4W+XQTmhBP6uWFP8t7wzYE6qkbClhglHGa8juDx2aas=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779085421; c=relaxed/simple;
-	bh=afZ+tMUxJ/YdqFH0mgRBOco1DIIvYJ7z7LVPpWe/EUg=;
+	s=arc-20240116; t=1779085951; c=relaxed/simple;
+	bh=rUV2HjQXZO7sfqTTk9IjtWhQHj2MdFmFFqNhZEMa2h0=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=JOrrILjJmIPJbMgTSsycoRPbUATv/w5OoQIMrPXXs+7EWUvqruOp2YjW6hRzPa7Q3OfoGjesKqe3GKHPoEfrn5rHvcoHroTaGzWbzWs/iTOWRFIfWMEdYwQPNWTS5RcrdQOAUnTUCZvVNywVGUPrIcEUhBpxeaVZUkFBpNozE74=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=tUEH/P1K; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type:Content-Disposition:In-Reply-To; b=bCFha0L148WR6Ef1THI3+AXhFJTAJ3us6CO1wa0r7HyzzDUcKljfZMCMJzqXaquBHlZn6qEDyjtzsYXPHDyX2EMhlHyCbE3FyifNVnUDdiomq2HXEmpK0tLysn72c6BRaPefJQhWvu2t34UySasXcjjthCQRqObrqTwzmPtYaRI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Og+6qPd6; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="tUEH/P1K"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3B5F9C2BCB7;
-	Mon, 18 May 2026 06:23:37 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Og+6qPd6"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D7030C2BCB7;
+	Mon, 18 May 2026 06:32:26 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1779085421;
-	bh=afZ+tMUxJ/YdqFH0mgRBOco1DIIvYJ7z7LVPpWe/EUg=;
+	s=k20201202; t=1779085950;
+	bh=rUV2HjQXZO7sfqTTk9IjtWhQHj2MdFmFFqNhZEMa2h0=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=tUEH/P1Kx3Q5Wt9ATuJMURyLg7WA6PZzOOyy+9io9nzld8PyN5oFZbFTTUz4qhd2H
-	 zbDpALV216Y3Qk++BSUGMrDDiMs/QhoLOA6PxeBZZ4MJ9Eta8Yw/axDP1eaEB0HtV7
-	 TQ8sqng3fzi+gkLGjRnCYYaTb1btjqKIx7SJhy+SWu4MLx7OtVTkuZ6l6jAaew9Ycf
-	 grs9erXpmzXoNucL6Pbgo08AG/QUjcv7D+2NNesQAV2Le492E4VvnzCm3vie5Ma25+
-	 Ewni5Hngd6wrOUzv0G+ZP4OUH8bfxOUpZBEVHDXQIq38UQpqsshbiB0qvxLz/9YXtg
-	 QATOLGhAlgijg==
-Date: Mon, 18 May 2026 09:23:33 +0300
+	b=Og+6qPd670cvWeHTzLyJZvKdtvjnhP1wBWakivhOrQry8c9Ks62iyoyAAXHqwUjzn
+	 4EFb7DXdv5GeOX5oQ4L0GoivdXT9BFOHh8KgITS4KT7APm3v90cdQappGioXkw4kAf
+	 2Z0HIBnjr9VXzA8h0prMHg39OnMSV9oatLPyJqdSLRkTw+mC4QOhSxyrrOHZY8A6yx
+	 CTQRFaZb/GL8VCzbbehWccEcuhFjnxhSQgxQZZm8m0geP/BeL0YM2B9GjPQcQCpNZT
+	 5rJoEjU1GKJfh4VlfDUkv/36pnHk/XF65ODt2ASBeLhv0ZIP2evK+Dz6UNysYtb1JK
+	 C4asp49Fg7k2w==
+Date: Mon, 18 May 2026 09:32:23 +0300
 From: Mike Rapoport <rppt@kernel.org>
 To: Li Zhe <lizhe.67@bytedance.com>
 Cc: tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
@@ -34,9 +34,11 @@ Cc: tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
 	akpm@linux-foundation.org, david@kernel.org, x86@kernel.org,
 	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
 	linux-mm@kvack.org
-Subject: Re: [PATCH 0/4] mm: speed up ZONE_DEVICE memmap initialization
-Message-ID: <agqwZaEtwXg4-O9z@kernel.org>
+Subject: Re: [PATCH 1/4] mm: factor zone-device page init helpers out of
+ __init_zone_device_page
+Message-ID: <agqyd5Kncrx5B_ex@kernel.org>
 References: <20260515082045.63029-1-lizhe.67@bytedance.com>
+ <20260515082045.63029-2-lizhe.67@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -45,76 +47,82 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260515082045.63029-1-lizhe.67@bytedance.com>
+In-Reply-To: <20260515082045.63029-2-lizhe.67@bytedance.com>
 
 Hi,
 
-On Fri, May 15, 2026 at 04:20:41PM +0800, Li Zhe wrote:
-> memmap_init_zone_device() can spend a substantial amount of time
-> initializing large ZONE_DEVICE ranges because it repeats nearly
-> identical struct page setup for every PFN.
+On Fri, May 15, 2026 at 04:20:42PM +0800, Li Zhe wrote:
+> __init_zone_device_page() currently mixes three different jobs: deciding
+> the initial page refcount, initializing the generic ZONE_DEVICE state, and
+> setting up pageblock metadata.
 > 
-> This series reduces that overhead in four steps.
->
-> Testing
-> =======
+> Split the refcount policy into zone_device_page_init_refcount() and move
+> the generic page initialization into generic_init_zone_device_page(). This
+> keeps the slow path behavior unchanged, but makes the individual pieces
+> reusable by later fast-path patches.
 > 
-> Tests were run in a VM on an Intel Ice Lake server.
+> No functional change intended.
 > 
-> Two PMEM configurations were used:
->   - a 100 GB fsdax namespace configured with map=dev, which exercises
->     the nd_pmem rebind path (pfns_per_compound == 1)
->   - a 100 GB devdax namespace configured with align=2097152, which
->     exercises the dax_pmem rebind path (pfns_per_compound > 1)
+> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+> ---
+>  mm/mm_init.c | 62 ++++++++++++++++++++++++++++++++--------------------
+>  1 file changed, 38 insertions(+), 24 deletions(-)
 > 
-> For each configuration, the corresponding driver was unbound and
-> rebound 30 times. Memmap initialization latency was collected from the
-> pr_debug() output of memmap_init_zone_device().
-> 
-> The first bind is reported separately, and the average of subsequent
-> rebinds is used as the steady-state result.
-> 
-> Performance
-> ===========
-> nd_pmem rebind, 100 GB fsdax namespace, map=dev
->   Base(v7.1-rc3):
->     First binding: 1486 ms
->     Average of subsequent rebinds: 273.52 ms
->   Full series:
->     First binding: 1272 ms
->     Average of subsequent rebinds: 104.59 ms
-> 
-> dax_pmem rebind, 100 GB devdax namespace, align=2097152
->   Base(v7.1-rc3):
->     First binding: 1515 ms
->     Average of subsequent rebinds: 313.45 ms
->   Full series:
->     First binding: 1286 ms
->     Average of subsequent rebinds: 116.93 ms
+> diff --git a/mm/mm_init.c b/mm/mm_init.c
+> index f9f8e1af921c..5244acb96dbb 100644
+> --- a/mm/mm_init.c
+> +++ b/mm/mm_init.c
+> @@ -987,11 +987,36 @@ static void __init memmap_init(void)
+>  }
+>  
+>  #ifdef CONFIG_ZONE_DEVICE
+> -static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
+> -					  unsigned long zone_idx, int nid,
+> -					  struct dev_pagemap *pgmap)
 
-This is really good improvement!
+Since you are already changing __init_zone_device_page(), I'd suggest
+renaming it to zone_device_page_init().
 
-It would be also interesting to see how the template approach would improve
-"normal" memory map initialization.
- 
-> Li Zhe (4):
->   mm: factor zone-device page init helpers out of
->     __init_zone_device_page
->   mm: add a template-based fast path for zone-device page init
->   mm: extend the template fast path to zone-device compound tails
->   mm: use arch store helpers in zone-device template copies
-> 
->  arch/x86/include/asm/struct_page_init.h |  28 +++
->  include/asm-generic/Kbuild              |   1 +
->  include/asm-generic/struct_page_init.h  |  17 ++
->  mm/mm_init.c                            | 260 +++++++++++++++++++++---
->  4 files changed, 280 insertions(+), 26 deletions(-)
->  create mode 100644 arch/x86/include/asm/struct_page_init.h
->  create mode 100644 include/asm-generic/struct_page_init.h
-> 
-> -- 
-> 2.20.1
-> 
+> +static inline int zone_device_page_init_refcount(
+> +		const struct dev_pagemap *pgmap)
+>  {
+> +	/*
+> +	 * ZONE_DEVICE pages other than MEMORY_TYPE_GENERIC are released
+> +	 * directly to the driver page allocator which will set the page count
+> +	 * to 1 when allocating the page.
+> +	 *
+> +	 * MEMORY_TYPE_GENERIC and MEMORY_TYPE_FS_DAX pages automatically have
+> +	 * their refcount reset to one whenever they are freed (ie. after
+> +	 * their refcount drops to 0).
+> +	 */
+> +	switch (pgmap->type) {
+> +	case MEMORY_DEVICE_FS_DAX:
+> +	case MEMORY_DEVICE_PRIVATE:
+> +	case MEMORY_DEVICE_COHERENT:
+> +	case MEMORY_DEVICE_PCI_P2PDMA:
+> +		return 0;
+> +	case MEMORY_DEVICE_GENERIC:
+> +		return 1;
+> +	default:
+> +		WARN_ONCE(1, "Unknown memory type!");
+> +		return 1;
+> +	}
+> +}
+>  
+> +static void __ref generic_init_zone_device_page(struct page *page,
+> +		unsigned long pfn, unsigned long zone_idx, int nid,
+> +		struct dev_pagemap *pgmap)
+> +{
+
+Here also would be better to use zone_device_page_ prefix. 
+And I don't think "generic" adds clarity about what this function is doing.
+
+Seeing that later patches rename it again to _slow variant, I'd suggest to
+call it __zone_device_page_init() at keep this name going forward.
+
+>  	__init_single_page(page, pfn, zone_idx, nid);
+>  
+>  	/*
 
 -- 
 Sincerely yours,
