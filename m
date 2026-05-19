@@ -1,142 +1,166 @@
-Received: from mail-pl1-f174.google.com (mail-pl1-f174.google.com [209.85.214.174])
+Received: from mail-qt1-f194.google.com (mail-qt1-f194.google.com [209.85.160.194])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C36BA32C92A
-	for <linux-arch@vger.kernel.org>; Mon, 18 May 2026 21:55:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.174
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779141352; cv=none; b=S8Tud37u6LrsQ8fGVJL0QvMy0yzFL5bh9ug7D+T7w/pt8jIY5ThyD9Y529KU0rmupdPUT2SxAIESCIDGVy5+LkXpZ6/iuZi1+v7OpnEe3ZS7/lijfnusbUMGuFrWsOT21ljet4xTBpmnOW/zKml7emS9Vh+PtncgqiQ/tN4DuOo=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779141352; c=relaxed/simple;
-	bh=WhaVFwVRm1Wf4thmzuA0e0qjOQLT9x+04R1dduxYWzY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=LPIUVyhvg4b/nFmMwm+ybax3d0ciGsRDD94O9xYhnTsm6ihuj4dYg4Q3Nsf8inAHPWoGhiPEikNpGKshpRs9x2v/SbqHMuhjkjRQfxxO53XFXkMJbN04OULEUuIJ2n3s+xTfvTeD7JospRXrnwoMU8L9jPSCxO40UEDlNyZCWfA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=IvoDbo4V; arc=none smtp.client-ip=209.85.214.174
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C11EB2F84F
+	for <linux-arch@vger.kernel.org>; Tue, 19 May 2026 00:14:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.194
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1779149651; cv=pass; b=KYpbdd/6wy74wSupRpbVf+gn2mYaBjVocGVnZS4ceb1ivCG+DLVYS7rTrwGp608lpjdEsEw6fWHtmUrX6n12tANCYh1dC2Uv6ygXGoH5LXXfbC3vMxdt0I/zE/aC9eEVfCERCseTqjSch94dgpaZZ1TFWfS4SnetktM9flOnLPI=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1779149651; c=relaxed/simple;
+	bh=LPwsRaL3/VhQKGJMHLIVfCwqYVCTUXR7opK9047JBWk=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=TO4rv0ZmDgwtf/X3u+bgNYl8NnGyi2bM9eJNazdUgYTQrcnEFKOd+KIAWYUwEYjO6/FdSd9IuVTOvjLDJEq1GWKM/xXRXrozF8oYTAl/DZ3knFp4X/C1XvCpT3UIrFLyhvmdplXqc22W7Di5rLQVReHwaHZ/ejSnvYhg6W8wGhQ=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=d59lwcl8; arc=pass smtp.client-ip=209.85.160.194
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="IvoDbo4V"
-Received: by mail-pl1-f174.google.com with SMTP id d9443c01a7336-2b46da8c48eso1505ad.1
-        for <linux-arch@vger.kernel.org>; Mon, 18 May 2026 14:55:50 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="d59lwcl8"
+Received: by mail-qt1-f194.google.com with SMTP id d75a77b69052e-5148cbdea08so25804181cf.2
+        for <linux-arch@vger.kernel.org>; Mon, 18 May 2026 17:14:09 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1779149649; cv=none;
+        d=google.com; s=arc-20240605;
+        b=cTpQugXtOvgbejEVoaB0Mtv5tdyp1U1cybCpTiL2mIEkX1jgsCtMdIITnTLkIFj3r2
+         XuPA6bsIbpUISjzUbV30P4Fp6MmNicrYsd+x8v0Nff+yIzJdz6uBiAQtC+otCrCOjB3l
+         DooIm5mrLrtnhk4UUkllNndC8FFXMNOT9rXRjFi6EufIlablcq8MrRANE9jjqQf98tac
+         zhBMIj6p9b6m1Pf8Ano33pBpbCWTHCgs4V0/TWxz3mHKQTtFr22ELYVh9xFtohGjMu90
+         EJWYUKt1o9Pxc2qQgESEYE6lhdcE6MfzcNDlnPrPhJv9z9oVi9jW3dqK5Zzx0hXpCuYO
+         xwYA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=LPwsRaL3/VhQKGJMHLIVfCwqYVCTUXR7opK9047JBWk=;
+        fh=A2MhY1NgmkEP2WzqOkCfkt4p/sC7OuC5sKG/gb4NVX8=;
+        b=MasPG/+oeZjDcG16BSU4k/BmDXrtWRPnEGox/1ZaK3ZxUIzJPS7U3Xqc+KtdCxwBbS
+         75/TCNdfBRq5jdE2f75R5g1Kdd+7ZHYZDEtEqu6M+jIqSaaWYmTmOZnZxDyqyoHFFBT1
+         zpgaI9C71INjrmzFpUa/iPdtT1yvIz/mNr9DiAMG4EQLem7ck7cm/ulb6mZjDmqBd5kx
+         qPfCsgsUFhbbM6HYuyx/ORHv5COtc5NGZr9d6t8mJzoOZBnFj6HWRkAWZNnIkItEbEig
+         m2e+eEH6RtHe2n5EQWYgHHTbCOX5hdheJkTILZcJSJ+IE1M02bJBWR3sulT3JOZcSJfn
+         fcEA==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1779141350; x=1779746150; darn=vger.kernel.org;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :mime-version:references:message-id:subject:cc:to:from:date:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=eATlafWR2CpUln9HSfV3CyzBd2Vyaqeh6UVZyYqlodE=;
-        b=IvoDbo4V1nj4Q9OWvBMcUPpA6eDFfBAFbu4ry1ujeKWH4fYBAFNjP7BApepEoXKgFW
-         echIH2GbEhb+kGhHlHfftLXlBnHDih1oHm9UtaSSK5CAFRUvXh1PCqOj+XI9wKqJnmv9
-         BdHZsxEJDc6k4l629t6bytiQfWInZt6CAKX455PJMRgqGvsL+3fHb7ubaoj1OjP5TMpJ
-         apWTAqJbeutKX9DtvRx+hRvKlId5JUFry4JYzoUpiHudyEvfAoPlfnA1GOb/KpKOehgq
-         VY2sjO/zadidGT8zNRrbzepfosggp1gNZrno+6RpVU2wOW8V9Y0N7qAHPHbOdQPTZ4W2
-         afYw==
+        d=gmail.com; s=20251104; t=1779149649; x=1779754449; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=LPwsRaL3/VhQKGJMHLIVfCwqYVCTUXR7opK9047JBWk=;
+        b=d59lwcl8NvuOHlMwJ/jtLfvIVKwSl887jI0zUq+n+MokZhIz5kSNG+Q7m83cRRj++o
+         7S3rzqts7N4yutIkInkFXV9kygWG7yxiMPc0JWryBnFhkU7pGX5375FZhqllLsu46QxD
+         yqRXefPbKqpNqDqlvNkmKy9NH53MH/MzNhs5i0t6EGN/qbHwnG3z9w6y+vTpWbbm4ui8
+         +Y/emkK8/ZzUeQNXSb3F20EcO2qGGKw0KLfo5yfAg9tQxjLb8ir1PQn5DJpL6n74Uv7I
+         Kzy/KgWqFZU9F5z3/y0h3xh8lwac6mtJi6nFuR/ealUBmYZWKM9xgcZKuPtDs3lS0PL6
+         E+cw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1779141350; x=1779746150;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :mime-version:references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=eATlafWR2CpUln9HSfV3CyzBd2Vyaqeh6UVZyYqlodE=;
-        b=Z2/ZNOAML2xLrir8b4+19nj8G7V+uFMBk2Tx2G4/Oiw12Up4v9eXsRngMFdk//92qR
-         5wdMsxyG1bpxB04REYYrg4e9mqyhaB8V6cfXLRI6EMgXkqCq7DcIHI+KoctfGGtKJRlc
-         TVEQsAuZ1aoKPYUcB4bnEopgHN0c2tptGnDKIHruOQkchfJYhDao1TuLsYO5jrK0/EJv
-         NhpalbJyGwKqddY6I+JZT5GPiUZWX+ho3h2cU9ZKfr71RYewYktBlYTabk5Yweoa/ODe
-         ie++at/v25+CsLiWb6XcPPVvmQlacrIbrwmM3vtTQARhoIce5yqsoM2m4a4GZJ37vPvW
-         KUZQ==
-X-Forwarded-Encrypted: i=1; AFNElJ/DCpH7KDxViL1Ewi70d2bJL156NjSdzik8kmq1EG2ttLOrlg0c2roNqqWou4AAlkXjwlwjE2dBGPZS@vger.kernel.org
-X-Gm-Message-State: AOJu0YwI4hOwx9iFT+zp01+FWTIEwzg8Eg1mMav8zBWe88/tyLe/7sZW
-	CfN5D9iP7Ggtn0YMy8+ZnvLQCr82JF1IDQF8PGVOgCoF3SCFgjE1fYu9Ss+nIFMdXQ==
-X-Gm-Gg: Acq92OHSm36RGLjaEuma5pRQzQAIHm/64YP4/nlnr3PZg0C7aHLRh0arTp/C3/9uSQc
-	mSY4q+9QZTmG+b1b0PUZgOeOy/h/X9+AAaCh/4JYH+w0dVS3aIC+BKCd6IXzFx2CvByzfmC6JBA
-	Kkwe2EZTemOzbAeyt/eUgyVU2OXg8COPeJ9NWYRNn+aR/ff85mBd/szbcvQ6e0Q0pVOe/W2uQcq
-	FDj4AeSTOB28HAj3VR9kIFpTxWMykhAvxF5kz8f4WO3VbUMaWicqLALHkcWaDQxhQAwk0murIGv
-	8EQlG2O+O/x+JQSYOYXtOEEwu6IuHODkubJx9PRo+5RX6IPnw/rA6BhytavWnUJEyeFB+7cbwDC
-	rjacwYcVXKyB2bSxlsii9h6g4eGOYkV+r4/Baq60IinuQG0bjbe+Y8ZgJZLsWVyqh1IAPxXo1t7
-	cpIKaxNFWGVxBySOENRgU5IRPeYYRUnFKU07GDTUenFU+Fnnw+cCv1mLIKJtbjUB43KfqeZbuq2
-	QbPMaeupkkiM312
-X-Received: by 2002:a17:902:d512:b0:2bc:dc0b:ab29 with SMTP id d9443c01a7336-2bdb0109472mr3880435ad.0.1779141349445;
-        Mon, 18 May 2026 14:55:49 -0700 (PDT)
-Received: from google.com (171.46.125.34.bc.googleusercontent.com. [34.125.46.171])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2bd5cfe498asm164380125ad.39.2026.05.18.14.55.47
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 18 May 2026 14:55:48 -0700 (PDT)
-Date: Mon, 18 May 2026 21:55:43 +0000
-From: Sami Tolvanen <samitolvanen@google.com>
-To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>
-Cc: Alexei Starovoitov <ast@kernel.org>,
-	Daniel Borkmann <daniel@iogearbox.net>,
-	Andrii Nakryiko <andrii@kernel.org>,
-	Eduard Zingerman <eddyz87@gmail.com>,
-	Kumar Kartikeya Dwivedi <memxor@gmail.com>,
-	Nathan Chancellor <nathan@kernel.org>,
-	Nicolas Schier <nsc@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Luis Chamberlain <mcgrof@kernel.org>,
-	Petr Pavlu <petr.pavlu@suse.com>,
-	Daniel Gomez <da.gomez@samsung.com>,
-	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
-	"Serge E. Hallyn" <serge@hallyn.com>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Michael Ellerman <mpe@ellerman.id.au>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
-	Roberto Sassu <roberto.sassu@huawei.com>,
-	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
-	Eric Snowberg <eric.snowberg@oracle.com>,
-	Nicolas Schier <nicolas.schier@linux.dev>,
-	Daniel Gomez <da.gomez@kernel.org>,
-	Aaron Tomlin <atomlin@atomlin.com>,
-	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
-	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
-	Xiu Jianfeng <xiujianfeng@huawei.com>,
-	Martin KaFai Lau <martin.lau@linux.dev>, Song Liu <song@kernel.org>,
-	Yonghong Song <yonghong.song@linux.dev>,
-	Jiri Olsa <jolsa@kernel.org>, bpf@vger.kernel.org,
-	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
-	Arnout Engelen <arnout@bzzt.net>,
-	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
-	Christian Heusel <christian@heusel.eu>,
-	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
-	Eric Biggers <ebiggers@kernel.org>,
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
-	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
-	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org,
-	debian-kernel@lists.debian.org
-Subject: Re: [PATCH v5 00/14] module: Introduce hash-based integrity checking
-Message-ID: <20260518215543.GA1878854@google.com>
-References: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
+        d=1e100.net; s=20251104; t=1779149649; x=1779754449;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=LPwsRaL3/VhQKGJMHLIVfCwqYVCTUXR7opK9047JBWk=;
+        b=YsLxXH0YxsgBOaX4b7OcEahEbbFvSDKZw4BHfwh+LNtS4VoGFoP22YPTi8wK6jggTj
+         9pDWia1lgS1RZg7QGLrzq53ST8N9k454pUhhXSMxbC1gtSrrFpM0JBwJmcMTHILE/QT4
+         uP5i/+XnMOLj6LCXyQvILheYw6gVAXQ7FzvJVTghFHKwwrNki228xXe8PmnHZeg31IZe
+         WFEqJBtMpxrgE2lO3EibwXUtjVJbTZqmmWS3ZWJm/ick9ZnPuSE+HQKl0Tq+d1xAgvum
+         NuDk0X1bIOky3vwexQyuaQ/yYKMVWjN+L8VxxAMqJ1yEYli2Qo2MMSyUhiEIksBhFJUV
+         6Iiw==
+X-Forwarded-Encrypted: i=1; AFNElJ8BvVKNHaOY2FaWHjDIz8vkaxZjeMVwdNicLUEnSZFTf3igmP/B8KTFyPP2ZrMT658CViOtC7iKr3zn@vger.kernel.org
+X-Gm-Message-State: AOJu0YzhHMa/JCLFoFf0fZRmF9OqhuaMlJl2lBNvggjKjRoiID+pOpAV
+	jtTllvAbXoiUab/03wB5xR84jtju1ZK2rHsVZnTepojFIscKzJvo8hMWwhPPxlGlyhs2f/Kl9Zx
+	cRoR7cUm6mF+VYzgKtZd3XkbJi0IuVa0=
+X-Gm-Gg: Acq92OGtQpx2a5KHAWXt9+1P7zE8R5uVlzBaBEFhHim2iOyEiAEmtZSqzFrsCgMGg6d
+	hc+pUaRDjs1xlZ/Qy4Io7T7k2ooC1WmVTgtZ7c1SLArrXmT+mcXsWjBy6uz/yhH/+H8VbOB+F0o
+	c8JsRUzo2mukO2xGaW7Iql+XY/wK/wSAqNQ2m23a1vZ9PtMXZa/RjLa1EukDqmM51ayRjCOS8FV
+	0//eSPXE2lsMxZInRFJEtPkCiNzyDw+FkzDbVkwPYtJxJpKHrZ7qxUv692y4J7FQs5Q9SL+vRsb
+	2FXqXmRFEBYohy97H8BB+/1xiueGxM+XnzlY5SsoAdWnmfBTpR0GmPJNOjQCOQSiCqFsu56cFiF
+	i52Q=
+X-Received: by 2002:a05:622a:d0e:b0:516:707a:cf8 with SMTP id
+ d75a77b69052e-516707a0e9amr149948671cf.44.1779149648695; Mon, 18 May 2026
+ 17:14:08 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
+References: <20260518042833.272221-1-enelsonmoore@gmail.com>
+ <d40b1e80-37fc-4c88-9d7f-dae6458efe6c@app.fastmail.com> <20260518105735.GW3126523@noisy.programming.kicks-ass.net>
+ <20260518172444.zyd47mcagrcwu7wt@dev-vm-schuster>
+In-Reply-To: <20260518172444.zyd47mcagrcwu7wt@dev-vm-schuster>
+From: Ethan Nelson-Moore <enelsonmoore@gmail.com>
+Date: Mon, 18 May 2026 17:13:58 -0700
+X-Gm-Features: AVHnY4ICd7H9-70Xucdx9uJAfA9u6BhUaXyRyteuNE6Jo8mNtePRuTvmeSFjqyQ
+Message-ID: <CADkSEUjhq6HSdg4ignzbuJiN5uXATsTdxFbRJ3BMxs5=WUWLDg@mail.gmail.com>
+Subject: Re: [PATCH] nios2: remove the architecture
+To: Simon Schuster <schuster.simon@siemens-energy.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, 
+	Dinh Nguyen <dinguyen@kernel.org>, linux-doc@vger.kernel.org, devicetree@vger.kernel.org, 
+	workflows@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, 
+	dmaengine@vger.kernel.org, linux-i2c@vger.kernel.org, 
+	linux-iio@vger.kernel.org, Netdev <netdev@vger.kernel.org>, 
+	linux-pci@vger.kernel.org, linux-pwm@vger.kernel.org, 
+	linux-hardening@vger.kernel.org, linux-kbuild@vger.kernel.org, 
+	"linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Rob Herring <robh@kernel.org>, 
+	Krzysztof Kozlowski <krzk+dt@kernel.org>, Conor Dooley <conor+dt@kernel.org>, 
+	Daniel Lezcano <daniel.lezcano@kernel.org>, Thomas Gleixner <tglx@kernel.org>, Alex Shi <alexs@kernel.org>, 
+	Yanteng Si <si.yanteng@linux.dev>, Dongliang Mu <dzm91@hust.edu.cn>, 
+	Hu Haowen <2023002089@link.tyut.edu.cn>, Kees Cook <kees@kernel.org>, 
+	Oleg Nesterov <oleg@redhat.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V (Arm)" <aneesh.kumar@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, 
+	Nicholas Piggin <npiggin@gmail.com>, Vinod Koul <vkoul@kernel.org>, Frank Li <Frank.Li@kernel.org>, 
+	Dave Penkler <dpenkler@gmail.com>, Andi Shyti <andi.shyti@kernel.org>, 
+	Jonathan Cameron <jic23@kernel.org>, David Lechner <dlechner@baylibre.com>, 
+	=?UTF-8?B?TnVubyBTw6E=?= <nuno.sa@analog.com>, 
+	Andy Shevchenko <andy@kernel.org>, Andrew Lunn <andrew+netdev@lunn.ch>, 
+	"David S . Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, 
+	Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, 
+	Lorenzo Pieralisi <lpieralisi@kernel.org>, Krzysztof WilczyDski <kwilczynski@kernel.org>, 
+	Andreas Oetken <andreas.oetken@siemens-energy.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Hi Thomas,
+Hi, Simon,
 
-On Tue, May 05, 2026 at 11:05:04AM +0200, Thomas Weißschuh wrote:
-> The current signature-based module integrity checking has some drawbacks
-> in combination with reproducible builds. Either the module signing key
-> is generated at build time, which makes the build unreproducible, or a
-> static signing key is used, which precludes rebuilds by third parties
-> and makes the whole build and packaging process much more complicated.
-> 
-> The goal is to reach bit-for-bit reproducibility. Excluding certain
-> parts of the build output from the reproducibility analysis would be
-> error-prone and force each downstream consumer to introduce new tooling.
-> 
-> Introduce a new mechanism to ensure only well-known modules are loaded
-> by embedding a merkle tree root of all modules built as part of the full
-> kernel build into vmlinux.
+Thank you for notifying us of your continued use of the Nios II architectur=
+e.
 
-I noticed Sashiko had a few concerns about the build changes. Would you
-mind taking a look to see if they're valid?
+On Mon, May 18, 2026 at 10:24=E2=80=AFAM Simon Schuster
+<schuster.simon@siemens-energy.com> wrote:
+> Unfortunately, as we are an infrastructure provider for civil energy
+> infrastructure, the refurbishment cycle is a bit slower than for
+> traditional consumer systems. This implies that the traditional LTS
+> support duration (max. Dec 2028 as of writing [1]) is rather short, and
+> we would be glad if we could keep the architecture in mainline for at
+> least 5 years and only then "decay" to LTS.
 
-https://sashiko.dev/#/patchset/20260505-module-hashes-v5-0-e174a5a49fce%40weissschuh.net
+Your reasoning makes complete sense. However, there is an alternative
+to maintaining the architecture in mainline.
 
-Sami
+The Civil Infrastructure Platform project maintains super-LTS kernels
+(and a set of base Debian packages) for 10 years. They are intended to
+be used for exactly these kinds of devices.
+See here: https://wiki.linuxfoundation.org/civilinfrastructureplatform/star=
+t#kernel_maintainership
+and here: https://cip-project.org/about/linux-kernel-core-packages
+
+CIP will maintain kernel 6.12 until 2035. Is this long enough for your
+lifecycle? What kernel are you currently using? If it's newer than
+6.12, we can easily wait until the next CIP SLTS release to remove
+Nios II support to avoid a downgrade.
+
+One important thing to note is that the default CIP kernel branches
+are not equivalent to standard LTS branches and include new hardware
+support, which has a higher likelihood of introducing regressions.
+However, the -st branches do not include these changes and follow the
+same patch acceptance rules as standard LTS, so they are likely a
+better fit for your use case.
+
+Also, CIP focuses on architectures used by CIP members - currently I
+think they are x86 (32 and 64-bit), ARM (32 and 64-bit) and RISC-V.
+Since Siemens is already a CIP member, you can simply ask them to add
+Nios II to the list, and you can assist them with testing and directly
+submit patches to them once the standard 6.12 LTS period ends.
+
+I hope this information helps you decide on the best course of action.
+
+Ethan
