@@ -1,166 +1,317 @@
-Received: from mail-qt1-f194.google.com (mail-qt1-f194.google.com [209.85.160.194])
+Received: from mail-dy1-f194.google.com (mail-dy1-f194.google.com [74.125.82.194])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C11EB2F84F
-	for <linux-arch@vger.kernel.org>; Tue, 19 May 2026 00:14:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.194
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779149651; cv=pass; b=KYpbdd/6wy74wSupRpbVf+gn2mYaBjVocGVnZS4ceb1ivCG+DLVYS7rTrwGp608lpjdEsEw6fWHtmUrX6n12tANCYh1dC2Uv6ygXGoH5LXXfbC3vMxdt0I/zE/aC9eEVfCERCseTqjSch94dgpaZZ1TFWfS4SnetktM9flOnLPI=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779149651; c=relaxed/simple;
-	bh=LPwsRaL3/VhQKGJMHLIVfCwqYVCTUXR7opK9047JBWk=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=TO4rv0ZmDgwtf/X3u+bgNYl8NnGyi2bM9eJNazdUgYTQrcnEFKOd+KIAWYUwEYjO6/FdSd9IuVTOvjLDJEq1GWKM/xXRXrozF8oYTAl/DZ3knFp4X/C1XvCpT3UIrFLyhvmdplXqc22W7Di5rLQVReHwaHZ/ejSnvYhg6W8wGhQ=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=d59lwcl8; arc=pass smtp.client-ip=209.85.160.194
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4484A54768
+	for <linux-arch@vger.kernel.org>; Tue, 19 May 2026 01:19:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.82.194
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1779153601; cv=none; b=qv/sC3fyYj8L9REDz+DMuPjjy2bNV52v/BgCMLUA92Dghs1P7zRTxqoHX5J2XUEC3Yjlp/OlDeav2stjThskbN7/9pokA1MxvZQJs3xxbGr/hn7ET49nPmwYjYHS+ZxxH5w5D2UwVzaL0wwj1OfUlidvhxJHObVe4E5TO1E+c6s=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1779153601; c=relaxed/simple;
+	bh=uC/YTHZQN/5OVj8zrqwkRVYTiYsHlJGxeqoHIVP2gds=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=os0mqWc+aZNC5+bPNivVy7O1TP1a0qW+NVdtxNfcBIuKNh3x2br5HZKPma8g2eJmmCZK/nDtNc7qgi47vfBAtmwbJskdM3hvSEOjzZGwUcL1RnS6F5jC9W4n09jyGSUba/o90p1fyIdeeJjguP7j9318cS4s904fFKeKc4elcm8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Gnq9KH6L; arc=none smtp.client-ip=74.125.82.194
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="d59lwcl8"
-Received: by mail-qt1-f194.google.com with SMTP id d75a77b69052e-5148cbdea08so25804181cf.2
-        for <linux-arch@vger.kernel.org>; Mon, 18 May 2026 17:14:09 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1779149649; cv=none;
-        d=google.com; s=arc-20240605;
-        b=cTpQugXtOvgbejEVoaB0Mtv5tdyp1U1cybCpTiL2mIEkX1jgsCtMdIITnTLkIFj3r2
-         XuPA6bsIbpUISjzUbV30P4Fp6MmNicrYsd+x8v0Nff+yIzJdz6uBiAQtC+otCrCOjB3l
-         DooIm5mrLrtnhk4UUkllNndC8FFXMNOT9rXRjFi6EufIlablcq8MrRANE9jjqQf98tac
-         zhBMIj6p9b6m1Pf8Ano33pBpbCWTHCgs4V0/TWxz3mHKQTtFr22ELYVh9xFtohGjMu90
-         EJWYUKt1o9Pxc2qQgESEYE6lhdcE6MfzcNDlnPrPhJv9z9oVi9jW3dqK5Zzx0hXpCuYO
-         xwYA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=LPwsRaL3/VhQKGJMHLIVfCwqYVCTUXR7opK9047JBWk=;
-        fh=A2MhY1NgmkEP2WzqOkCfkt4p/sC7OuC5sKG/gb4NVX8=;
-        b=MasPG/+oeZjDcG16BSU4k/BmDXrtWRPnEGox/1ZaK3ZxUIzJPS7U3Xqc+KtdCxwBbS
-         75/TCNdfBRq5jdE2f75R5g1Kdd+7ZHYZDEtEqu6M+jIqSaaWYmTmOZnZxDyqyoHFFBT1
-         zpgaI9C71INjrmzFpUa/iPdtT1yvIz/mNr9DiAMG4EQLem7ck7cm/ulb6mZjDmqBd5kx
-         qPfCsgsUFhbbM6HYuyx/ORHv5COtc5NGZr9d6t8mJzoOZBnFj6HWRkAWZNnIkItEbEig
-         m2e+eEH6RtHe2n5EQWYgHHTbCOX5hdheJkTILZcJSJ+IE1M02bJBWR3sulT3JOZcSJfn
-         fcEA==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Gnq9KH6L"
+Received: by mail-dy1-f194.google.com with SMTP id 5a478bee46e88-2bdcf5970cdso1885419eec.0
+        for <linux-arch@vger.kernel.org>; Mon, 18 May 2026 18:19:59 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1779149649; x=1779754449; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=LPwsRaL3/VhQKGJMHLIVfCwqYVCTUXR7opK9047JBWk=;
-        b=d59lwcl8NvuOHlMwJ/jtLfvIVKwSl887jI0zUq+n+MokZhIz5kSNG+Q7m83cRRj++o
-         7S3rzqts7N4yutIkInkFXV9kygWG7yxiMPc0JWryBnFhkU7pGX5375FZhqllLsu46QxD
-         yqRXefPbKqpNqDqlvNkmKy9NH53MH/MzNhs5i0t6EGN/qbHwnG3z9w6y+vTpWbbm4ui8
-         +Y/emkK8/ZzUeQNXSb3F20EcO2qGGKw0KLfo5yfAg9tQxjLb8ir1PQn5DJpL6n74Uv7I
-         Kzy/KgWqFZU9F5z3/y0h3xh8lwac6mtJi6nFuR/ealUBmYZWKM9xgcZKuPtDs3lS0PL6
-         E+cw==
+        d=gmail.com; s=20251104; t=1779153598; x=1779758398; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=61IH/1X9bdUpbndRHMPT6pWv81GYEfTAPjpqMU4gh2E=;
+        b=Gnq9KH6LWICcWk7JWuKm/yO7WrEL8YdF16tJOwwX6ldJtlzHzg3BPOJ5xEFqBZtB+Y
+         tRPoXh2UKPZykIPBQ1B2NCVcMrXZd4p2O71mHDrUTiQ+Mu9SheWOXy+e0EKwgA1J5sn+
+         kJLd+JOHTDf3Ubb8ibtuh5QOvXaRY74iKP49OIXMtqOTVTBJmIx97QXFq072WIaI7g9/
+         EqFGjQzC2UkprAahERIuFlfyxObO3ZWMcnoqPZl/kh6sFUXla246l8PpDSAmOSh/7Pc7
+         r98KsIGUv5IXvdjaAonGlfTxKVzsGZJB0DFMy0ttEpIU4Sly8j8QLk36NAPTHdOAAe2N
+         AkdQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1779149649; x=1779754449;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=LPwsRaL3/VhQKGJMHLIVfCwqYVCTUXR7opK9047JBWk=;
-        b=YsLxXH0YxsgBOaX4b7OcEahEbbFvSDKZw4BHfwh+LNtS4VoGFoP22YPTi8wK6jggTj
-         9pDWia1lgS1RZg7QGLrzq53ST8N9k454pUhhXSMxbC1gtSrrFpM0JBwJmcMTHILE/QT4
-         uP5i/+XnMOLj6LCXyQvILheYw6gVAXQ7FzvJVTghFHKwwrNki228xXe8PmnHZeg31IZe
-         WFEqJBtMpxrgE2lO3EibwXUtjVJbTZqmmWS3ZWJm/ick9ZnPuSE+HQKl0Tq+d1xAgvum
-         NuDk0X1bIOky3vwexQyuaQ/yYKMVWjN+L8VxxAMqJ1yEYli2Qo2MMSyUhiEIksBhFJUV
-         6Iiw==
-X-Forwarded-Encrypted: i=1; AFNElJ8BvVKNHaOY2FaWHjDIz8vkaxZjeMVwdNicLUEnSZFTf3igmP/B8KTFyPP2ZrMT658CViOtC7iKr3zn@vger.kernel.org
-X-Gm-Message-State: AOJu0YzhHMa/JCLFoFf0fZRmF9OqhuaMlJl2lBNvggjKjRoiID+pOpAV
-	jtTllvAbXoiUab/03wB5xR84jtju1ZK2rHsVZnTepojFIscKzJvo8hMWwhPPxlGlyhs2f/Kl9Zx
-	cRoR7cUm6mF+VYzgKtZd3XkbJi0IuVa0=
-X-Gm-Gg: Acq92OGtQpx2a5KHAWXt9+1P7zE8R5uVlzBaBEFhHim2iOyEiAEmtZSqzFrsCgMGg6d
-	hc+pUaRDjs1xlZ/Qy4Io7T7k2ooC1WmVTgtZ7c1SLArrXmT+mcXsWjBy6uz/yhH/+H8VbOB+F0o
-	c8JsRUzo2mukO2xGaW7Iql+XY/wK/wSAqNQ2m23a1vZ9PtMXZa/RjLa1EukDqmM51ayRjCOS8FV
-	0//eSPXE2lsMxZInRFJEtPkCiNzyDw+FkzDbVkwPYtJxJpKHrZ7qxUv692y4J7FQs5Q9SL+vRsb
-	2FXqXmRFEBYohy97H8BB+/1xiueGxM+XnzlY5SsoAdWnmfBTpR0GmPJNOjQCOQSiCqFsu56cFiF
-	i52Q=
-X-Received: by 2002:a05:622a:d0e:b0:516:707a:cf8 with SMTP id
- d75a77b69052e-516707a0e9amr149948671cf.44.1779149648695; Mon, 18 May 2026
- 17:14:08 -0700 (PDT)
+        d=1e100.net; s=20251104; t=1779153598; x=1779758398;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=61IH/1X9bdUpbndRHMPT6pWv81GYEfTAPjpqMU4gh2E=;
+        b=h3GOl2HlZdx0tSlAE4e+P3Ycgbrtb4MbHoSCUpWs1urbmaOeRaYpYk//YdZ4wYFlov
+         9sAuGvuEaOx//pPa3nUZzflmPaVAc8MiA1eqMe6tFbeWoDSXPWgCkCgjf0U5OxT8Nx+m
+         8E1KQsstwGYYrNmnkyHP9SlW+/FfeEb4u8Zgjm/a9ccfZ95BLlo8TJTl9A3rRKJvgb6G
+         Y8EGN2wHrnIDQ5QWm4hr/hCxW3yqVUcnmmAMzkXBMmwJ8XF9T2QdnQGV3Mek4jJ+wUYf
+         pE8FFdXsftz8MUgy/MPD9KR+Vq2mkiQV+AXhcvyHkqWtYZaVosatZg0ttG/myTCfZ6Rp
+         B+kA==
+X-Forwarded-Encrypted: i=1; AFNElJ+SpLdouShMrFfLjFtg6+QK92CvvfxDabgCEJRRnn/MtXxRaBMy5kdF61I533gbMKGa0e8GVfek7r91@vger.kernel.org
+X-Gm-Message-State: AOJu0Yyp1QKAHhbpBxMkVS/4TrLObQ6bbreeVQmvrypkPnzDr7CYanwi
+	GDuOdBqjbv/rQ4Ts6HsumRXNoHSkM5grZ01PQMvuodGOadR228BlFYX8
+X-Gm-Gg: Acq92OE+VRkWzR7ts8E+PwovoeX83V2gY2r38AVYJlvH1PAUpTwl6MbOZkYVFeEYtAV
+	IGm/v6VSsl59Y7uCQjElwuAL2nAWW0s2zR+2lF4Z95AVxQlPpQ+VIy/ceYnvlCdAcmazDekw0Dq
+	s0MLfRLphUbjVTazhqUkLoWiKclbll9g4rkOlPL8Ybof2frmVmuCBe7QzLC5meYbTuFBokImzIi
+	2ctn2l0CbTbahNkNonp1gv5O9AsSNTMxji22BewlVeqlASCw8q+QBE1yx+mYXBfdNgjo4k1AEBL
+	WpJUypsY6bmbj3Te6JYstZZQjmVete9RLIEgqI5uhewzFYkhD6suLCR4FyDW/ZeRapBBnQDdkBK
+	Me9pwlgij6N2DbXFHeDjd+Yg+OMt+TLo+Lep2fS88/LC4ofTWo9Qu/wdMnoZeGtvy7Z4OnrM75q
+	RqWgG/C65nikqkuFbluPy2iC8zQj5sSRSugkLkkPzENkP4PfSHiZurKvZHH9aHlDpehmYowmeQQ
+	m6MZcCNEPHW7Q2ayQgTc1kUf+ImxjcAvYa6fnVUdqcOxhPwL6tvsvEkyZPpBRabi1Gt47mj0a4/
+	tPaIgtEyn4utkuv5/w==
+X-Received: by 2002:a05:7300:ec07:b0:302:b44b:b64a with SMTP id 5a478bee46e88-3039785c81fmr7064800eec.1.1779153598298;
+        Mon, 18 May 2026 18:19:58 -0700 (PDT)
+Received: from ethan-latitude5420.. (host-127-24.cafrjco.fresno.ca.us.clients.pavlovmedia.net. [68.180.127.24])
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-30296dcb6adsm17034305eec.15.2026.05.18.18.19.56
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 18 May 2026 18:19:57 -0700 (PDT)
+From: Ethan Nelson-Moore <enelsonmoore@gmail.com>
+To: linux-kernel@vger.kernel.org,
+	linux-hexagon@vger.kernel.org,
+	linux-mips@vger.kernel.org,
+	linux-openrisc@vger.kernel.org,
+	linux-parisc@vger.kernel.org,
+	linux-sh@vger.kernel.org,
+	sparclinux@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Cc: Ethan Nelson-Moore <enelsonmoore@gmail.com>,
+	Vineet Gupta <vgupta@kernel.org>,
+	Russell King <linux@armlinux.org.uk>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>,
+	Brian Cain <bcain@kernel.org>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Geert Uytterhoeven <geert@linux-m68k.org>,
+	Michal Simek <monstr@monstr.eu>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Dinh Nguyen <dinguyen@kernel.org>,
+	Jonas Bonn <jonas@southpole.se>,
+	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+	Stafford Horne <shorne@gmail.com>,
+	"James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+	Helge Deller <deller@gmx.de>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Alexandre Ghiti <alex@ghiti.fr>,
+	Yoshinori Sato <ysato@users.sourceforge.jp>,
+	Rich Felker <dalias@libc.org>,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+	"David S. Miller" <davem@davemloft.net>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Chris Zankel <chris@zankel.net>,
+	Max Filippov <jcmvbkbc@gmail.com>,
+	Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] Generate <asm/asm-offsets.h> and remove identical copies in all architectures
+Date: Mon, 18 May 2026 18:18:41 -0700
+Message-ID: <20260519011928.78398-1-enelsonmoore@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260518042833.272221-1-enelsonmoore@gmail.com>
- <d40b1e80-37fc-4c88-9d7f-dae6458efe6c@app.fastmail.com> <20260518105735.GW3126523@noisy.programming.kicks-ass.net>
- <20260518172444.zyd47mcagrcwu7wt@dev-vm-schuster>
-In-Reply-To: <20260518172444.zyd47mcagrcwu7wt@dev-vm-schuster>
-From: Ethan Nelson-Moore <enelsonmoore@gmail.com>
-Date: Mon, 18 May 2026 17:13:58 -0700
-X-Gm-Features: AVHnY4ICd7H9-70Xucdx9uJAfA9u6BhUaXyRyteuNE6Jo8mNtePRuTvmeSFjqyQ
-Message-ID: <CADkSEUjhq6HSdg4ignzbuJiN5uXATsTdxFbRJ3BMxs5=WUWLDg@mail.gmail.com>
-Subject: Re: [PATCH] nios2: remove the architecture
-To: Simon Schuster <schuster.simon@siemens-energy.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, 
-	Dinh Nguyen <dinguyen@kernel.org>, linux-doc@vger.kernel.org, devicetree@vger.kernel.org, 
-	workflows@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, 
-	dmaengine@vger.kernel.org, linux-i2c@vger.kernel.org, 
-	linux-iio@vger.kernel.org, Netdev <netdev@vger.kernel.org>, 
-	linux-pci@vger.kernel.org, linux-pwm@vger.kernel.org, 
-	linux-hardening@vger.kernel.org, linux-kbuild@vger.kernel.org, 
-	"linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, 
-	Shuah Khan <skhan@linuxfoundation.org>, Rob Herring <robh@kernel.org>, 
-	Krzysztof Kozlowski <krzk+dt@kernel.org>, Conor Dooley <conor+dt@kernel.org>, 
-	Daniel Lezcano <daniel.lezcano@kernel.org>, Thomas Gleixner <tglx@kernel.org>, Alex Shi <alexs@kernel.org>, 
-	Yanteng Si <si.yanteng@linux.dev>, Dongliang Mu <dzm91@hust.edu.cn>, 
-	Hu Haowen <2023002089@link.tyut.edu.cn>, Kees Cook <kees@kernel.org>, 
-	Oleg Nesterov <oleg@redhat.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V (Arm)" <aneesh.kumar@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, 
-	Nicholas Piggin <npiggin@gmail.com>, Vinod Koul <vkoul@kernel.org>, Frank Li <Frank.Li@kernel.org>, 
-	Dave Penkler <dpenkler@gmail.com>, Andi Shyti <andi.shyti@kernel.org>, 
-	Jonathan Cameron <jic23@kernel.org>, David Lechner <dlechner@baylibre.com>, 
-	=?UTF-8?B?TnVubyBTw6E=?= <nuno.sa@analog.com>, 
-	Andy Shevchenko <andy@kernel.org>, Andrew Lunn <andrew+netdev@lunn.ch>, 
-	"David S . Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, 
-	Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, 
-	Lorenzo Pieralisi <lpieralisi@kernel.org>, Krzysztof WilczyDski <kwilczynski@kernel.org>, 
-	Andreas Oetken <andreas.oetken@siemens-energy.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 
-Hi, Simon,
+Every architecture supported by the kernel has a functionally identical
+copy of <asm/asm-offsets.h> which simply includes
+<generated/asm-offsets.h>, even though it is also present in
+asm-generic. Eliminate this unnecessary complexity by adding
+<asm/asm-offsets.h> to the list of mandatory asm headers, which causes
+a copy of it that includes <asm-generic/asm-offsets.h> to be generated
+automatically.
 
-Thank you for notifying us of your continued use of the Nios II architectur=
-e.
+Signed-off-by: Ethan Nelson-Moore <enelsonmoore@gmail.com>
+---
+ arch/arc/include/asm/asm-offsets.h        | 6 ------
+ arch/arm/include/asm/asm-offsets.h        | 1 -
+ arch/arm64/include/asm/asm-offsets.h      | 1 -
+ arch/hexagon/include/asm/asm-offsets.h    | 1 -
+ arch/loongarch/include/asm/asm-offsets.h  | 5 -----
+ arch/m68k/include/asm/asm-offsets.h       | 1 -
+ arch/microblaze/include/asm/asm-offsets.h | 1 -
+ arch/mips/include/asm/asm-offsets.h       | 1 -
+ arch/nios2/include/asm/asm-offsets.h      | 7 -------
+ arch/openrisc/include/asm/asm-offsets.h   | 1 -
+ arch/parisc/include/asm/asm-offsets.h     | 1 -
+ arch/powerpc/include/asm/asm-offsets.h    | 1 -
+ arch/riscv/include/asm/asm-offsets.h      | 1 -
+ arch/sh/include/asm/asm-offsets.h         | 2 --
+ arch/sparc/include/asm/asm-offsets.h      | 1 -
+ arch/x86/include/asm/asm-offsets.h        | 1 -
+ arch/xtensa/include/asm/asm-offsets.h     | 1 -
+ include/asm-generic/Kbuild                | 1 +
+ 18 files changed, 1 insertion(+), 33 deletions(-)
+ delete mode 100644 arch/arc/include/asm/asm-offsets.h
+ delete mode 100644 arch/arm/include/asm/asm-offsets.h
+ delete mode 100644 arch/arm64/include/asm/asm-offsets.h
+ delete mode 100644 arch/hexagon/include/asm/asm-offsets.h
+ delete mode 100644 arch/loongarch/include/asm/asm-offsets.h
+ delete mode 100644 arch/m68k/include/asm/asm-offsets.h
+ delete mode 100644 arch/microblaze/include/asm/asm-offsets.h
+ delete mode 100644 arch/mips/include/asm/asm-offsets.h
+ delete mode 100644 arch/nios2/include/asm/asm-offsets.h
+ delete mode 100644 arch/openrisc/include/asm/asm-offsets.h
+ delete mode 100644 arch/parisc/include/asm/asm-offsets.h
+ delete mode 100644 arch/powerpc/include/asm/asm-offsets.h
+ delete mode 100644 arch/riscv/include/asm/asm-offsets.h
+ delete mode 100644 arch/sh/include/asm/asm-offsets.h
+ delete mode 100644 arch/sparc/include/asm/asm-offsets.h
+ delete mode 100644 arch/x86/include/asm/asm-offsets.h
+ delete mode 100644 arch/xtensa/include/asm/asm-offsets.h
 
-On Mon, May 18, 2026 at 10:24=E2=80=AFAM Simon Schuster
-<schuster.simon@siemens-energy.com> wrote:
-> Unfortunately, as we are an infrastructure provider for civil energy
-> infrastructure, the refurbishment cycle is a bit slower than for
-> traditional consumer systems. This implies that the traditional LTS
-> support duration (max. Dec 2028 as of writing [1]) is rather short, and
-> we would be glad if we could keep the architecture in mainline for at
-> least 5 years and only then "decay" to LTS.
+diff --git a/arch/arc/include/asm/asm-offsets.h b/arch/arc/include/asm/asm-offsets.h
+deleted file mode 100644
+index 32a1d3d518dc..000000000000
+--- a/arch/arc/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0-only */
+-/*
+- * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+- */
+-
+-#include <generated/asm-offsets.h>
+diff --git a/arch/arm/include/asm/asm-offsets.h b/arch/arm/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/arm/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/arm64/include/asm/asm-offsets.h b/arch/arm64/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/arm64/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/hexagon/include/asm/asm-offsets.h b/arch/hexagon/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/hexagon/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/loongarch/include/asm/asm-offsets.h b/arch/loongarch/include/asm/asm-offsets.h
+deleted file mode 100644
+index d9ad88d293e7..000000000000
+--- a/arch/loongarch/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1,5 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-/*
+- * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
+- */
+-#include <generated/asm-offsets.h>
+diff --git a/arch/m68k/include/asm/asm-offsets.h b/arch/m68k/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/m68k/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/microblaze/include/asm/asm-offsets.h b/arch/microblaze/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/microblaze/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/mips/include/asm/asm-offsets.h b/arch/mips/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/mips/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/nios2/include/asm/asm-offsets.h b/arch/nios2/include/asm/asm-offsets.h
+deleted file mode 100644
+index e51465213b53..000000000000
+--- a/arch/nios2/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1,7 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0-or-later */
+-/*
+- *  Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
+- *  Copyright (C) 2009 Thomas Chou <thomas@wytron.com.tw>
+- */
+-
+-#include <generated/asm-offsets.h>
+diff --git a/arch/openrisc/include/asm/asm-offsets.h b/arch/openrisc/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/openrisc/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/parisc/include/asm/asm-offsets.h b/arch/parisc/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/parisc/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/powerpc/include/asm/asm-offsets.h b/arch/powerpc/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/powerpc/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/riscv/include/asm/asm-offsets.h b/arch/riscv/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/riscv/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/sh/include/asm/asm-offsets.h b/arch/sh/include/asm/asm-offsets.h
+deleted file mode 100644
+index 9f8535716392..000000000000
+--- a/arch/sh/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1,2 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#include <generated/asm-offsets.h>
+diff --git a/arch/sparc/include/asm/asm-offsets.h b/arch/sparc/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/sparc/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/x86/include/asm/asm-offsets.h b/arch/x86/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/x86/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/arch/xtensa/include/asm/asm-offsets.h b/arch/xtensa/include/asm/asm-offsets.h
+deleted file mode 100644
+index d370ee36a182..000000000000
+--- a/arch/xtensa/include/asm/asm-offsets.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <generated/asm-offsets.h>
+diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
+index 2c53a1e0b760..9879bba63a38 100644
+--- a/include/asm-generic/Kbuild
++++ b/include/asm-generic/Kbuild
+@@ -6,6 +6,7 @@
+ 
+ mandatory-y += atomic.h
+ mandatory-y += archrandom.h
++mandatory-y += asm-offsets.h
+ mandatory-y += barrier.h
+ mandatory-y += bitops.h
+ mandatory-y += bug.h
+-- 
+2.43.0
 
-Your reasoning makes complete sense. However, there is an alternative
-to maintaining the architecture in mainline.
-
-The Civil Infrastructure Platform project maintains super-LTS kernels
-(and a set of base Debian packages) for 10 years. They are intended to
-be used for exactly these kinds of devices.
-See here: https://wiki.linuxfoundation.org/civilinfrastructureplatform/star=
-t#kernel_maintainership
-and here: https://cip-project.org/about/linux-kernel-core-packages
-
-CIP will maintain kernel 6.12 until 2035. Is this long enough for your
-lifecycle? What kernel are you currently using? If it's newer than
-6.12, we can easily wait until the next CIP SLTS release to remove
-Nios II support to avoid a downgrade.
-
-One important thing to note is that the default CIP kernel branches
-are not equivalent to standard LTS branches and include new hardware
-support, which has a higher likelihood of introducing regressions.
-However, the -st branches do not include these changes and follow the
-same patch acceptance rules as standard LTS, so they are likely a
-better fit for your use case.
-
-Also, CIP focuses on architectures used by CIP members - currently I
-think they are x86 (32 and 64-bit), ARM (32 and 64-bit) and RISC-V.
-Since Siemens is already a CIP member, you can simply ask them to add
-Nios II to the list, and you can assist them with testing and directly
-submit patches to them once the standard 6.12 LTS period ends.
-
-I hope this information helps you decide on the best course of action.
-
-Ethan
