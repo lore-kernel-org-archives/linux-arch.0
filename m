@@ -1,54 +1,46 @@
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id BFFDF374178;
-	Wed, 20 May 2026 16:27:26 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8ADC7372B58;
+	Wed, 20 May 2026 17:15:27 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779294448; cv=none; b=a7TWgOd8LgacwTyv/C+wrqFNdk7/I5hev/iTWCtHYUDDzUN9PagbKHEk3FnqWbdQKz+wPmhQfljUR9tgGz8hOIqaDFB3HejsKsXDOYGwUAYi/z56ZotQxM5yZcx/XW+vofK1yv2Qdr5aEQM+41Bp5OdGkQXXq9lB+woQxYy6zGM=
+	t=1779297328; cv=none; b=WzyMYGpEvgWtKwUnnXMXFJalU3h4eqnP1joi0Nd69dK8KC3ZKHSCSVb6+UMw4BBh/yWlud4WnJz6fq1VSWCjrhCzl4vZSzIJ9XEKFDHuhverXozoL8C3w+krVLlcIY06SHXlcHFdbb0WcoeGQ9PQQNGYOISYAAYfNatS9p9RxHY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779294448; c=relaxed/simple;
-	bh=kn3O33iWkMRzrr20zxMKLIqtqvAJ2DDO+NvdjtjMqs4=;
+	s=arc-20240116; t=1779297328; c=relaxed/simple;
+	bh=AN03m8Nb3GUj5nPHISwTrdR9EGmveB2qO0RFcT2taLM=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=AvRzUlVTqXQBqqyUtlL6uzXTsGKKBJcp2LyxOvMp+j3CwGev6S08yEZ8HURIIiguoNifcmb77Ys79EaslFoICMnjqbTs3nqSH02Udraq9lFpnYJKFfmHn+0sjWaAOqaZz3qPfL1OLLJZtrDFjKpgkwnzfbPn67FjI8yEpk2u7pk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=NDcytCVR; arc=none smtp.client-ip=13.77.154.182
+	 Content-Type:Content-Disposition:In-Reply-To; b=qhEtYQpcuZUq3ZGFkvJ8yNxx5jiYwsje6/WMJhmOmwvEBcOVDE3iisU6bsX83x9mGaZ3GNHgwStb9D8QZu+kcjaFdN/BD4lRI3fKGOn3liX/GOaRxD5sbVIGodHbOMrHFleafH9ctA+MID5N3e4yKthj35gjH6/Mjnk1Jm+K6cU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=s2WvwTHM; arc=none smtp.client-ip=13.77.154.182
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="NDcytCVR"
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="s2WvwTHM"
 Received: from localhost (unknown [167.220.233.27])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 7751F20B7167;
-	Wed, 20 May 2026 09:27:18 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 7751F20B7167
+	by linux.microsoft.com (Postfix) with ESMTPSA id 16A1620B7167;
+	Wed, 20 May 2026 10:15:20 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 16A1620B7167
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1779294438;
-	bh=eFSEuj5heaGvT5YYlCZtFr/mwoAJcGEgrnYMPiZpO2U=;
+	s=default; t=1779297320;
+	bh=hnmFeJDl4TBKVIsJUUCbBB+UTJEByCBlUvjrRaqcaEc=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=NDcytCVR00bg66AVB3fasrb4xc5qJ3xzfPI3jmvJswTvEYEkJGazM/h4sOu4YTj0a
-	 KdGuCoYtIgqzcxkK8bTuGJrXa056BDTPEgoANUspQMnkeOQ0s5lZMqySnnd5IBY/lG
-	 R0KJomZUgXvcte1MldoOOFE5zTM7EJcOguTnGOAM=
-Date: Thu, 21 May 2026 00:27:23 +0800
+	b=s2WvwTHMixOOPcCNq+vUZeU47P7Pk/66nkAb9jvNUZScmaAF0nFT6x1etrZIl2Khn
+	 kZcG3sUAcxdBFzfKDaYV7SSatZSOnO2Bu3fduUj7uXLPicd7ALhdbSw+7fj81brS/V
+	 Vhy5M0SktDcuZgkIKjrr7AueKDCvEgtSd99iTgi8=
+Date: Thu, 21 May 2026 01:15:24 +0800
 From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: Michael Kelley <mhklinux@outlook.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
-	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev" <iommu@lists.linux.dev>, 
-	"linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 
-	"wei.liu@kernel.org" <wei.liu@kernel.org>, "kys@microsoft.com" <kys@microsoft.com>, 
-	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>, 
-	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org" <joro@8bytes.org>, 
-	"will@kernel.org" <will@kernel.org>, "robin.murphy@arm.com" <robin.murphy@arm.com>, 
-	"bhelgaas@google.com" <bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>, 
-	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org" <mani@kernel.org>, 
-	"robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
-	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
-	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>
+To: Jason Gunthorpe <jgg@ziepe.ca>, Michael Kelley <mhklinux@outlook.com>
+Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, 
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, 
+	wei.liu@kernel.org, kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com, 
+	longli@microsoft.com, joro@8bytes.org, will@kernel.org, robin.murphy@arm.com, 
+	bhelgaas@google.com, kwilczynski@kernel.org, lpieralisi@kernel.org, mani@kernel.org, 
+	robh@kernel.org, arnd@arndb.de, jacob.pan@linux.microsoft.com, 
+	tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com
 Subject: Re: [PATCH v1 4/4] iommu/hyperv: Add page-selective IOTLB flush
  support
-Message-ID: <3rqbtwl57wdaqgp3my5iajhaq5xb7qpbhbrrsuq6lme7rt7rxp@mcxvqww4tjkf>
+Message-ID: <lxmfd2ml5dafkxquuf5i45uqgh6wxl44hlqphu77kvximqrnmi@b3htoyjc6d5z>
 References: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
  <20260511162408.1180069-5-zhangyu1@linux.microsoft.com>
- <SN6PR02MB41577D5EEC884EAE8AF5E14ED4072@SN6PR02MB4157.namprd02.prod.outlook.com>
- <7wil6tzqp74gdvhyjvpv47zhfernncs42wnfoueznneluz5zrp@pzr63lhy7s5f>
- <SN6PR02MB4157F7758A127AA1E8096B6CD4042@SN6PR02MB4157.namprd02.prod.outlook.com>
- <BN7PR02MB4148D820AEBBBB9A1268D640D4042@BN7PR02MB4148.namprd02.prod.outlook.com>
+ <20260515223545.GL7702@ziepe.ca>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -57,95 +49,72 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <BN7PR02MB4148D820AEBBBB9A1268D640D4042@BN7PR02MB4148.namprd02.prod.outlook.com>
+In-Reply-To: <20260515223545.GL7702@ziepe.ca>
 
-On Fri, May 15, 2026 at 11:33:21PM +0000, Michael Kelley wrote:
-> From: Michael Kelley <mhklinux@outlook.com> Sent: Friday, May 15, 2026 11:00 AM
-> > 
-> > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Friday, May 15, 2026 9:24 AM
-> > >
-> > > On Thu, May 14, 2026 at 06:14:22PM +0000, Michael Kelley wrote:
-> > > > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Monday, May 11, 2026 9:24 AM
-> > > > >
-> > 
-> > [....]
-> > 
-> > > > > +	unsigned long nr_pages = end_pfn - start_pfn;
-> > > > > +	u16 count = 0;
-> > > > > +
-> > > > > +	while (nr_pages > 0) {
-> > > > > +		unsigned long flush_pages;
-> > > > > +		int order;
-> > > > > +		unsigned long pfn_align;
-> > > > > +		unsigned long size_align;
-> > > > > +
-> > > > > +		if (count >= HV_IOMMU_MAX_FLUSH_VA_COUNT) {
-> > > > > +			count = HV_IOMMU_FLUSH_VA_OVERFLOW;
-> > > > > +			break;
-> > > > > +		}
-> > > > > +
-> > > > > +		if (start_pfn)
-> > > > > +			pfn_align = __ffs(start_pfn);
-> > > >
-> > > > I don't understand why __ffs() is correct here. I would expect
-> > > > __fls() so it is consistent with the calculation of size_align. But I
-> > > > can only surmise how the hypercall works since there's no
-> > > > documentation, so maybe my understanding of the hypercall is
-> > > > wrong.   If __ffs really is correct, a comment explaining why
-> > > > would help. :-)
-> > > >
-> > >
-> > > The use of __ffs() is intentional. Each flush entry invalidates a
-> > > naturally aligned 2^N page block, and the hypervisor requires the
-> > > page_number to be aligned to 2^page_mask_shift.
-> > >
-> > > Here __ffs() and __fls() serve different purposes:
-> > > - __ffs(start_pfn) is about the alignment constraint, e.g.,  how
-> > > large a block can this address support?
-> > > - __fls(nr_pages) is about  the size constraint, e.g., how large
-> > > a block can the remaining range hold?
-> > >
-> > > Taking min() of both ensures each entry is both properly aligned
-> > > and within bounds.
-> > >
-> > > Thanks for raising this - it definitely deserves a comment. I had to
-> > > stare at it for a while myself to remember why. :)
-> > 
-> > Hmmm. Something about this still nags at me. I'll run some
-> > experiments to either convince myself that you are right, or to
-> > come up with a counterexample.
+On Fri, May 15, 2026 at 07:35:45PM -0300, Jason Gunthorpe wrote:
+> On Tue, May 12, 2026 at 12:24:08AM +0800, Yu Zhang wrote:
+> > +static inline u16 hv_iommu_fill_iova_list(union hv_iommu_flush_va *iova_list,
+> > +					  unsigned long start,
+> > +					  unsigned long end)
+> > +{
+> > +	unsigned long start_pfn = start >> PAGE_SHIFT;
+> > +	unsigned long end_pfn = PAGE_ALIGN(end) >> PAGE_SHIFT;
+> > +	unsigned long nr_pages = end_pfn - start_pfn;
+> > +	u16 count = 0;
+> > +
+> > +	while (nr_pages > 0) {
+> > +		unsigned long flush_pages;
+> > +		int order;
+> > +		unsigned long pfn_align;
+> > +		unsigned long size_align;
+> > +
+> > +		if (count >= HV_IOMMU_MAX_FLUSH_VA_COUNT) {
+> > +			count = HV_IOMMU_FLUSH_VA_OVERFLOW;
+> > +			break;
+> > +		}
+> > +
+> > +		if (start_pfn)
+> > +			pfn_align = __ffs(start_pfn);
+> > +		else
+> > +			pfn_align = BITS_PER_LONG - 1;
+> > +
+> > +		size_align = __fls(nr_pages);
+> > +		order = min(pfn_align, size_align);
+> > +		iova_list[count].page_mask_shift = order;
+> > +		iova_list[count].page_number = start_pfn;
+> > +
+> > +		flush_pages = 1UL << order;
+> > +		start_pfn += flush_pages;
+> > +		nr_pages -= flush_pages;
+> > +		count++;
+> > +	}
 > 
-> I have resolved what was nagging at me. My understanding of how
-> _ffs() and __fls() work was wrong. :-(  Your code is correct.
-> 
-> > 
-> > A related thought occurred to me. If each flush entry that is passed
-> > to Hyper-V describes a naturally aligned 2^N page block, I don't
-> > think the HV_IOMMU_MAX_FLUSH_VA_COUNT can ever
-> > be reached. The number of entries is limited by the number of
-> > bits in a PFN and the pages count, both of which are 64. And with
-> > 52 bit physical addressing and 4KiB pages, the actual size of
-> > a PFN and pages count is even smaller than 64.
-> > HV_IOMMU_MAX_FLUSH_VA_COUNT is the number of 8 byte
-> > union hv_iommu_flush_va entries that fit in a 4KiB page, so
-> > it's ~500.
-> > 
-> > My statement applies to a single flush range. If multiple flush
-> > ranges were strung together in a single hypercall, a larger count
-> > could be reached, but hv_flush_device_domain_list() only does
-> > a single range. So I don't think the overflow case in
-> > hv_flush_device_domain_list() can ever happen. But let me
-> > do my experiments, and I will also look at this aspect to confirm
-> > if it's right.
-> 
-> My experiments also convince me that the overflow case can't
-> happen as long as the hypercall is being populated with entries
-> derived from a single range.
+> This seems like a really silly hypervisor interface. Why doesn't it
+> just accept a normal range? Splitting it into power of two aligned
+> ranges is very inefficient.
 
-Gosh. You're right. I think I've been overthinking this :( 
+Fair point. I'm not sure how much flexibility we have to change
+this hypercall interface at the moment - it predates the pvIOMMU
+work and may have other consumers beyond Linux guest. On the other
+hand, having the guest specify 2^N-aligned blocks does save the
+hypervisor from having to decompose ranges itself before issuing
+hardware invalidation commands - the guest-provided entries can be
+fed to the HW more or less directly.
 
-So we can simplify this to just do the list flush and fall back
-to HVCALL_FLUSH_DEVICE_DOMAIN only if the list flush fails.
+That said, the way I'm currently using this interface may be
+more precise than necessary. Maybe we have 2 options:
 
-B.R.
+1) Current approach: decompose the range into multiple exact
+   2^N-aligned blocks with no over-flush, but at the cost of
+   more complex calculations and more entries.
+
+2) Follow what Intel/AMD drivers do: find a single minimal
+   2^N-aligned block that covers the entire range, but may
+   over-flush.
+
+Any preference?
+
+@Michael, since you've also been reviewing this patch, I'd
+appreciate your thoughts on the above as well. :)
+
 Yu
