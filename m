@@ -1,46 +1,86 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8ADC7372B58;
-	Wed, 20 May 2026 17:15:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mail-qk1-f181.google.com (mail-qk1-f181.google.com [209.85.222.181])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E90033DC4DA
+	for <linux-arch@vger.kernel.org>; Wed, 20 May 2026 17:29:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.181
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779297328; cv=none; b=WzyMYGpEvgWtKwUnnXMXFJalU3h4eqnP1joi0Nd69dK8KC3ZKHSCSVb6+UMw4BBh/yWlud4WnJz6fq1VSWCjrhCzl4vZSzIJ9XEKFDHuhverXozoL8C3w+krVLlcIY06SHXlcHFdbb0WcoeGQ9PQQNGYOISYAAYfNatS9p9RxHY=
+	t=1779298171; cv=none; b=mx4TwVwGwsVcm000bBfv9oTkEt0mUufy1LmLeLqNbAaW8wUMhd6ojPGYJKsO7VsilZ9YCS2ynmcib2QHl+uuiBkjkgH3NkIgGUISC2pwPiwnQZQO9CUFUqbvZdfVOC5PbOx01ctoC3S9lAqK+XmU4p99nLl+2i+Z+70tkx6EsmQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779297328; c=relaxed/simple;
-	bh=AN03m8Nb3GUj5nPHISwTrdR9EGmveB2qO0RFcT2taLM=;
+	s=arc-20240116; t=1779298171; c=relaxed/simple;
+	bh=swndveOwFBrQHenLNsbHaeYRdxFM/mHCS9gLfA23gKA=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=qhEtYQpcuZUq3ZGFkvJ8yNxx5jiYwsje6/WMJhmOmwvEBcOVDE3iisU6bsX83x9mGaZ3GNHgwStb9D8QZu+kcjaFdN/BD4lRI3fKGOn3liX/GOaRxD5sbVIGodHbOMrHFleafH9ctA+MID5N3e4yKthj35gjH6/Mjnk1Jm+K6cU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=s2WvwTHM; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=BmYprQaERplGrqXU+o51RNlPYQTtmLD5BkqPygrpPBz2BAiMV5siX1pQbwvYMfFxVSa5SALZPPyrJ2ay52UEoOYeHD3PL5NzQmX98KFI7ruxw6iEG+Onigdi+75ptcwsmD8pd5j9F7X4HQPMiw4Ac6shcSj+dRWIDjV4SkXlfWs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=g5q08TTM; arc=none smtp.client-ip=209.85.222.181
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="s2WvwTHM"
-Received: from localhost (unknown [167.220.233.27])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 16A1620B7167;
-	Wed, 20 May 2026 10:15:20 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 16A1620B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1779297320;
-	bh=hnmFeJDl4TBKVIsJUUCbBB+UTJEByCBlUvjrRaqcaEc=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=s2WvwTHMixOOPcCNq+vUZeU47P7Pk/66nkAb9jvNUZScmaAF0nFT6x1etrZIl2Khn
-	 kZcG3sUAcxdBFzfKDaYV7SSatZSOnO2Bu3fduUj7uXLPicd7ALhdbSw+7fj81brS/V
-	 Vhy5M0SktDcuZgkIKjrr7AueKDCvEgtSd99iTgi8=
-Date: Thu, 21 May 2026 01:15:24 +0800
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: Jason Gunthorpe <jgg@ziepe.ca>, Michael Kelley <mhklinux@outlook.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, 
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, 
-	wei.liu@kernel.org, kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com, 
-	longli@microsoft.com, joro@8bytes.org, will@kernel.org, robin.murphy@arm.com, 
-	bhelgaas@google.com, kwilczynski@kernel.org, lpieralisi@kernel.org, mani@kernel.org, 
-	robh@kernel.org, arnd@arndb.de, jacob.pan@linux.microsoft.com, 
+	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="g5q08TTM"
+Received: by mail-qk1-f181.google.com with SMTP id af79cd13be357-91080895355so609384085a.3
+        for <linux-arch@vger.kernel.org>; Wed, 20 May 2026 10:29:29 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=ziepe.ca; s=google; t=1779298169; x=1779902969; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=exjD62wJL9xWPCxLYQZyKnslKmMxfygqA8U7tuRD18o=;
+        b=g5q08TTMelkn0L0SxZb3+ATrnYT+H17KcUvpo6YT57GhpzTX63o12oJoplsGIXqDMF
+         GO76FfzfnDxsdTrA9IqQw3FzgxAp+liRKxpWnAO6W5WAES6sjX1HLkGHHSyBzey8Egxj
+         Kodo0NDVqR/KyaH5hzfiuJe+STzNS1+SjePZUOQxziLgCnw9KN07v7c57mZBskZeM0Vs
+         XCAg4qW6g/lVX9CuvlZ4Xlu/HIiEBvUumlD8G8fwEV7HvcBOflk4eLTYihZH8Rh0Jyji
+         AYvXldlm17JaoZECuUabPJZ7jLeWHL8I8l+54KjnTY7vZTPjp/mF7mD7/21pkdjl2end
+         nXBQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1779298169; x=1779902969;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=exjD62wJL9xWPCxLYQZyKnslKmMxfygqA8U7tuRD18o=;
+        b=E20WdKAZjZA+gK00rdZjWFTITFr6Yx4/2+UR4OySp480t8xuHSbspHEidt3BqMtk1Y
+         CaXxFW7bShNzheF5asXaqUietYu2OoySLJTq427C9PWYPuTEeWm/pM6H6voiJtzYNOHk
+         Wy+Es985UMUZDuFYpjZ6PegwKIfBH+0DQS2nqYM0Hz3a6mS3BhQ3jr84f31IeN9RaObM
+         X505C8STBxI45q98j4cmYNxEY/w/j63D4n+jM+eoJ+DoxYPo6Jrd7WO5FjuS0a3iOK4G
+         Lc2VWGpux93szLTHWoNjC5vnQP+rJx2dHDHNSH2qEhscH07iGW+JeriECx4nTr3eaSOg
+         I3bw==
+X-Forwarded-Encrypted: i=1; AFNElJ+y+cTN7z2pmOfEdM/7TriO1Y/PH7dCZ4zmGAZlI+bzkc8KYQMpNtqb1KyQRPU72Sh4Xuy4/HiCN39Z@vger.kernel.org
+X-Gm-Message-State: AOJu0YzPNmJ0UtAtWFtHiSVQEg5kZiZAzove8fdTu0Dn1v5mXxR6+GO7
+	vpZ85bZPB+iQYY6RZYuNhHzelzqPc8644b6p4xm+JugZGbGx0FVUNI7unzhgxXvvGSo=
+X-Gm-Gg: Acq92OEV7ijIYXOg07tWU6UdJxmGpWw9CtrA6nfiunFN6ICwr7xt2NlTgvtWpMLfZlM
+	SYOzKLiTvaxTiUnF737VGA1bCifTUVRhUzST0AdUCSeolcWEQASdWKCj6gfhW0c38UachKI/lnx
+	EoYasQXSMoyJLGMuhCRowHQ3TbUy0Erii6XAe3jK7dm1BLFNg7y9Q/ZnS9AvKf5vlkvsVZUnH09
+	h4e71NCMypsLuRLeTCbRr+fOnJPQ1yzW6MDNfYAbe9IxpZ6smM4lqysQQA/FSWwm02MEzXUnXSL
+	1KPkytTwdHkyekM7VoZ4q2GhNItJxS1ex4UcawEDwVpHtWDBpw1Cj5v6QxRewBIM/4O3J+7NH9k
+	IlEibF6kbSr+j9bIL4va2hoGYDLGjANwWv4arCMd/+vOzJdDDPOKjuEKk09cUwWW+OCQR3/HvwB
+	xDD2dcgXcmQnBYWz+hc+vzcQdAVUFYWpbYlIkGeGgoA1LD0Vn3IveJuCRuKNVz4k4K1r2uDMkKY
+	9a+Mg==
+X-Received: by 2002:a05:620a:4112:b0:8cd:91f5:7a29 with SMTP id af79cd13be357-911d087bedfmr3730351885a.53.1779298168893;
+        Wed, 20 May 2026 10:29:28 -0700 (PDT)
+Received: from ziepe.ca (crbknf0213w-47-54-130-67.pppoe-dynamic.high-speed.nl.bellaliant.net. [47.54.130.67])
+        by smtp.gmail.com with ESMTPSA id af79cd13be357-910bcf37762sm2298183085a.36.2026.05.20.10.29.28
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 20 May 2026 10:29:28 -0700 (PDT)
+Received: from jgg by wakko with local (Exim 4.97)
+	(envelope-from <jgg@ziepe.ca>)
+	id 1wPkjX-0000000HXSw-2zB0;
+	Wed, 20 May 2026 14:29:27 -0300
+Date: Wed, 20 May 2026 14:29:27 -0300
+From: Jason Gunthorpe <jgg@ziepe.ca>
+To: Yu Zhang <zhangyu1@linux.microsoft.com>
+Cc: Michael Kelley <mhklinux@outlook.com>, linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
+	wei.liu@kernel.org, kys@microsoft.com, haiyangz@microsoft.com,
+	decui@microsoft.com, longli@microsoft.com, joro@8bytes.org,
+	will@kernel.org, robin.murphy@arm.com, bhelgaas@google.com,
+	kwilczynski@kernel.org, lpieralisi@kernel.org, mani@kernel.org,
+	robh@kernel.org, arnd@arndb.de, jacob.pan@linux.microsoft.com,
 	tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com
 Subject: Re: [PATCH v1 4/4] iommu/hyperv: Add page-selective IOTLB flush
  support
-Message-ID: <lxmfd2ml5dafkxquuf5i45uqgh6wxl44hlqphu77kvximqrnmi@b3htoyjc6d5z>
+Message-ID: <20260520172927.GY7702@ziepe.ca>
 References: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
  <20260511162408.1180069-5-zhangyu1@linux.microsoft.com>
  <20260515223545.GL7702@ziepe.ca>
+ <lxmfd2ml5dafkxquuf5i45uqgh6wxl44hlqphu77kvximqrnmi@b3htoyjc6d5z>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -49,72 +89,14 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260515223545.GL7702@ziepe.ca>
+In-Reply-To: <lxmfd2ml5dafkxquuf5i45uqgh6wxl44hlqphu77kvximqrnmi@b3htoyjc6d5z>
 
-On Fri, May 15, 2026 at 07:35:45PM -0300, Jason Gunthorpe wrote:
-> On Tue, May 12, 2026 at 12:24:08AM +0800, Yu Zhang wrote:
-> > +static inline u16 hv_iommu_fill_iova_list(union hv_iommu_flush_va *iova_list,
-> > +					  unsigned long start,
-> > +					  unsigned long end)
-> > +{
-> > +	unsigned long start_pfn = start >> PAGE_SHIFT;
-> > +	unsigned long end_pfn = PAGE_ALIGN(end) >> PAGE_SHIFT;
-> > +	unsigned long nr_pages = end_pfn - start_pfn;
-> > +	u16 count = 0;
-> > +
-> > +	while (nr_pages > 0) {
-> > +		unsigned long flush_pages;
-> > +		int order;
-> > +		unsigned long pfn_align;
-> > +		unsigned long size_align;
-> > +
-> > +		if (count >= HV_IOMMU_MAX_FLUSH_VA_COUNT) {
-> > +			count = HV_IOMMU_FLUSH_VA_OVERFLOW;
-> > +			break;
-> > +		}
-> > +
-> > +		if (start_pfn)
-> > +			pfn_align = __ffs(start_pfn);
-> > +		else
-> > +			pfn_align = BITS_PER_LONG - 1;
-> > +
-> > +		size_align = __fls(nr_pages);
-> > +		order = min(pfn_align, size_align);
-> > +		iova_list[count].page_mask_shift = order;
-> > +		iova_list[count].page_number = start_pfn;
-> > +
-> > +		flush_pages = 1UL << order;
-> > +		start_pfn += flush_pages;
-> > +		nr_pages -= flush_pages;
-> > +		count++;
-> > +	}
-> 
-> This seems like a really silly hypervisor interface. Why doesn't it
-> just accept a normal range? Splitting it into power of two aligned
-> ranges is very inefficient.
+On Thu, May 21, 2026 at 01:15:24AM +0800, Yu Zhang wrote:
 
-Fair point. I'm not sure how much flexibility we have to change
-this hypercall interface at the moment - it predates the pvIOMMU
-work and may have other consumers beyond Linux guest. On the other
-hand, having the guest specify 2^N-aligned blocks does save the
-hypervisor from having to decompose ranges itself before issuing
-hardware invalidation commands - the guest-provided entries can be
-fed to the HW more or less directly.
+> 2) Follow what Intel/AMD drivers do: find a single minimal
+>    2^N-aligned block that covers the entire range, but may
+>    over-flush.
 
-That said, the way I'm currently using this interface may be
-more precise than necessary. Maybe we have 2 options:
+If it is plugged straight into a HW invalidation I would do this..
 
-1) Current approach: decompose the range into multiple exact
-   2^N-aligned blocks with no over-flush, but at the cost of
-   more complex calculations and more entries.
-
-2) Follow what Intel/AMD drivers do: find a single minimal
-   2^N-aligned block that covers the entire range, but may
-   over-flush.
-
-Any preference?
-
-@Michael, since you've also been reviewing this patch, I'd
-appreciate your thoughts on the above as well. :)
-
-Yu
+Jason
