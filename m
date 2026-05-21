@@ -1,132 +1,183 @@
-Received: from mail-pg1-f201.google.com (mail-pg1-f201.google.com [209.85.215.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E99B224AFA
-	for <linux-arch@vger.kernel.org>; Thu, 21 May 2026 13:59:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.201
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 54B8E3D3D0B;
+	Thu, 21 May 2026 14:34:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779371978; cv=none; b=IMceeDozDKU/qE4zek7XpRrjhS4oAjGVlbKtE1yjlowIzkjuFnN6ls0nPVN82XfOyxA3ot7GpR/Ol0X+4r00gRFsHta78GrhigPgxHjFfWtCfSlPAdnNf/U/AbSPQjEUrcga5LLZJTPOTCGbrQV+ieXViTgPqBcfE5sYyG7wEB0=
+	t=1779374066; cv=none; b=ThcEA0+25whmcR3ZLqk4xl2rFyxKPdR00GYI+Lfu2HesD/XD99MjgkyuZFhsxHuwPruKCSy3sY1Xa4V6kMP6EM1lcJZqbYwUKmTuiTiFA9r0YmAMsQTX154I0XfcrEHkQV1Fn35X79qOzg4wY4BV1XiQpMXt4HPaKrevbKeJpbU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779371978; c=relaxed/simple;
-	bh=h+4NVJo3wpAjspHwkhwsyzZn+zEl2CEEOehXzRGNdBY=;
-	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Cc:Content-Type; b=EoxfIGRzz36W2jApkK06MMxYSNbnEQzDLGpPHFCS438yPnrljADBHpIcBMDT0Nnvh++rKIWmMtkSX2JoIW1Tu0jEyC0z5YHyfaMGRtxXF8Tlju6lYbXFHBe/c1QM8vgRO8AlaZHuc4fOu2QfubS6Tmw0NNa29hAe+HlJlv+mk5k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--seanjc.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=jodHEZLM; arc=none smtp.client-ip=209.85.215.201
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--seanjc.bounces.google.com
+	s=arc-20240116; t=1779374066; c=relaxed/simple;
+	bh=oVRExsDbqI3W1ESzcran04U9sA2pzYajuKWQjY1qFwc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=TiuIwOvOivZELnpaAYzKsehLh/hjh0+SNQWAJTQlHmrnnbWblraUqSVn/oeCbCBE2pjPP51c8jNU1hrgPwZRO2e0CXVsYZEauckIsCh3oAa5m/71WqaEWq76frf2f2s3uPCKuxwzRPzGNxsoFt4db5ksb2vBY5WNul1JrBh0Fuo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=a9y/bJGK; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="jodHEZLM"
-Received: by mail-pg1-f201.google.com with SMTP id 41be03b00d2f7-c709551ec08so9438517a12.3
-        for <linux-arch@vger.kernel.org>; Thu, 21 May 2026 06:59:35 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1779371975; x=1779976775; darn=vger.kernel.org;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=tqeEG6FXEKElqAGUt/Z2qfbIbuB++N7b4Fh1Zt6D5dk=;
-        b=jodHEZLMnrXvcr0U+8aiQ3+8HMthO764B3RtgzEf+7ztkCNfkmkIlQBTfUmc0CO1Gm
-         znKHCX5+9bAECaG80vh/IPP806tKIqZE2l7HZLe1YU0HCE1c+TVzdByotFkWkoU+YEws
-         qLgdufxQuD2gsyG2s9NK2v18HBYBS1w+SMsS+Qi6jr0LEmhA4R7O7tZpYus8VaPMyFeG
-         15VYXBj+eYi7/OswJ5AioWab2qhZVYFRjyf4SpApvc+UkSyiNxbsaWg55EmuzRTPh+T9
-         X183BhHSUrQrVCzdTIOykwkJ84D445JXsSdEAvmO37Cr/WfIjw3mclOhGc8OX4c80G1x
-         Di8Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1779371975; x=1779976775;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=tqeEG6FXEKElqAGUt/Z2qfbIbuB++N7b4Fh1Zt6D5dk=;
-        b=iBCGG/O3o+kRbn5zGHNr5Jy9MOlCo8a6i9Evo2fsxkQz+6+fRISBUTnEGZD+xgSHbX
-         ARBgHg/DKDFToY2NWDaVeb780Os0J4r3bYdCBPI0bkdDF/GuLFK6+YLxTjTZHLtiEIM/
-         MrEQ4zL93gW2oBzNy4ENbEC1jSKnnduD2yeTWUhsLHTjYtsIfYaF4XMVlwo0QdUUd2/r
-         wJFXY3mQovaijU/zN6ICi1BRFl+i9G8S/EiuLZF5Xk+hHfeCIeqyuijO5PPmqclqKIqW
-         0j9bcpBG0t+jUW/RwlbeW+N1U4ydd2qqIMGIricsRJg75pW1Vph44ZpfXVxT8XRt+5EY
-         kDTw==
-X-Forwarded-Encrypted: i=1; AFNElJ9NnaznXYCUbt0AuBrrkNbvl0KHdKMWcUm2AnbiGxV2vz6cX9lQDS9455+XNQnxBBIe6nhCjgObkUaq@vger.kernel.org
-X-Gm-Message-State: AOJu0Yw2Nm5omSHkuV8MqeOeieHxfB6az//mMDKjaZMvbG14F+hYc/LD
-	oXRK46SWaydCW/8ofepfsreRAzItSojWiuPhD1OxQSA+mxv2k3csX+pJxb7jNYjUvUvhXuSXD9O
-	UWLDZuA==
-X-Received: from pge1.prod.google.com ([2002:a05:6a02:2d01:b0:c79:83b3:cdf8])
- (user=seanjc job=prod-delivery.src-stubby-dispatcher) by 2002:a05:6a20:431a:b0:39c:a78e:dba9
- with SMTP id adf61e73a8af0-3b308ac1b14mr3725831637.40.1779371973881; Thu, 21
- May 2026 06:59:33 -0700 (PDT)
-Date: Thu, 21 May 2026 06:59:33 -0700
-In-Reply-To: <20260521133326.2465264-4-kees@kernel.org>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="a9y/bJGK"
+Received: from localhost (unknown [167.220.233.27])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 178A520B7167;
+	Thu, 21 May 2026 07:34:17 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 178A520B7167
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1779374057;
+	bh=yuY7/VKIfWBH4Ab+m5RYvn2+pEgbBdbEqQP/VdZLuxk=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=a9y/bJGKwY3aQlb5YklgTtrtaqVP6gnQpATZWuAOiOMgeei+p4MnBPg3n2m7DZbhn
+	 3QOibAa0hCmftbsO/SAfMxtJr0nEyCVuWXUOHEF5R5H3i5EX3l95MTrQTzgZJaPX4k
+	 2nLCXrel9IW7Q7CBWTlnasMUO1FFcg2JFZiUTbg0=
+Date: Thu, 21 May 2026 22:34:22 +0800
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: Michael Kelley <mhklinux@outlook.com>
+Cc: Jason Gunthorpe <jgg@ziepe.ca>, 
+	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, 
+	"iommu@lists.linux.dev" <iommu@lists.linux.dev>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, 
+	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "wei.liu@kernel.org" <wei.liu@kernel.org>, 
+	"kys@microsoft.com" <kys@microsoft.com>, "haiyangz@microsoft.com" <haiyangz@microsoft.com>, 
+	"decui@microsoft.com" <decui@microsoft.com>, "longli@microsoft.com" <longli@microsoft.com>, 
+	"joro@8bytes.org" <joro@8bytes.org>, "will@kernel.org" <will@kernel.org>, 
+	"robin.murphy@arm.com" <robin.murphy@arm.com>, "bhelgaas@google.com" <bhelgaas@google.com>, 
+	"kwilczynski@kernel.org" <kwilczynski@kernel.org>, "lpieralisi@kernel.org" <lpieralisi@kernel.org>, 
+	"mani@kernel.org" <mani@kernel.org>, "robh@kernel.org" <robh@kernel.org>, 
+	"arnd@arndb.de" <arnd@arndb.de>, "jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, 
+	"tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
+	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>
+Subject: Re: [PATCH v1 4/4] iommu/hyperv: Add page-selective IOTLB flush
+ support
+Message-ID: <pxod76qh3jtpvnxdlflvntc5svqgibaeu6tywn2ejrlnea65w3@djehcr3vidnk>
+References: <20260511162408.1180069-1-zhangyu1@linux.microsoft.com>
+ <20260511162408.1180069-5-zhangyu1@linux.microsoft.com>
+ <20260515223545.GL7702@ziepe.ca>
+ <lxmfd2ml5dafkxquuf5i45uqgh6wxl44hlqphu77kvximqrnmi@b3htoyjc6d5z>
+ <SN6PR02MB4157C1EC7F5F69C5ABDA9C7FD4012@SN6PR02MB4157.namprd02.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20260521133315.work.845-kees@kernel.org> <20260521133326.2465264-4-kees@kernel.org>
-Message-ID: <ag8PxTTi5NxT51EW@google.com>
-Subject: Re: [PATCH 04/11] treewide: Convert struct kernel_param_ops
- initializers to DEFINE_KERNEL_PARAM_OPS
-From: Sean Christopherson <seanjc@google.com>
-To: Kees Cook <kees@kernel.org>
-Cc: Luis Chamberlain <mcgrof@kernel.org>, Pengpeng Hou <pengpeng@iscas.ac.cn>, 
-	Petr Pavlu <petr.pavlu@suse.com>, Richard Weinberger <richard@nod.at>, 
-	Anton Ivanov <anton.ivanov@cambridgegreys.com>, Johannes Berg <johannes@sipsolutions.net>, 
-	"Rafael J. Wysocki" <rafael@kernel.org>, Len Brown <lenb@kernel.org>, Corey Minyard <corey@minyard.net>, 
-	Gabriel Somlo <somlo@cmu.edu>, "Michael S. Tsirkin" <mst@redhat.com>, 
-	Jani Nikula <jani.nikula@linux.intel.com>, 
-	Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, 
-	Tvrtko Ursulin <tursulin@ursulin.net>, David Airlie <airlied@gmail.com>, 
-	Simona Vetter <simona@ffwll.ch>, Bart Van Assche <bvanassche@acm.org>, Jason Gunthorpe <jgg@ziepe.ca>, 
-	Leon Romanovsky <leon@kernel.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, 
-	Hans de Goede <hansg@kernel.org>, Mauro Carvalho Chehab <mchehab@kernel.org>, 
-	Bjorn Helgaas <bhelgaas@google.com>, Hannes Reinecke <hare@suse.de>, 
-	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, 
-	"Martin K. Petersen" <martin.petersen@oracle.com>, Daniel Lezcano <daniel.lezcano@kernel.org>, 
-	Zhang Rui <rui.zhang@intel.com>, Lukasz Luba <lukasz.luba@arm.com>, 
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jirislaby@kernel.org>, 
-	Alan Stern <stern@rowland.harvard.edu>, Jason Wang <jasowang@redhat.com>, 
-	Xuan Zhuo <xuanzhuo@linux.alibaba.com>, 
-	"Eugenio =?utf-8?B?UMOpcmV6?=" <eperezma@redhat.com>, Jason Baron <jbaron@akamai.com>, 
-	Jim Cromie <jim.cromie@gmail.com>, Tiwei Bie <tiwei.btw@antgroup.com>, 
-	Benjamin Berg <benjamin.berg@intel.com>, 
-	"Ilpo =?utf-8?B?SsOkcnZpbmVu?=" <ilpo.jarvinen@linux.intel.com>, 
-	"David E. Box" <david.e.box@linux.intel.com>, "Maciej W. Rozycki" <macro@orcam.me.uk>, 
-	Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, 
-	Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
-	Paolo Bonzini <pbonzini@redhat.com>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
-	Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
-	"H. Peter Anvin" <hpa@zytor.com>, Vinod Koul <vkoul@kernel.org>, Frank Li <Frank.Li@kernel.org>, 
-	Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, 
-	Aaron Tomlin <atomlin@atomlin.com>, Alexander Potapenko <glider@google.com>, Marco Elver <elver@google.com>, 
-	Dmitry Vyukov <dvyukov@google.com>, Andrew Morton <akpm@linux-foundation.org>, 
-	John Johansen <john.johansen@canonical.com>, Paul Moore <paul@paul-moore.com>, 
-	James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>, 
-	Andy Shevchenko <andriy.shevchenko@linux.intel.com>, 
-	Georgia Garcia <georgia.garcia@canonical.com>, kvm@vger.kernel.org, 
-	dmaengine@vger.kernel.org, linux-modules@vger.kernel.org, 
-	kasan-dev@googlegroups.com, linux-mm@kvack.org, apparmor@lists.ubuntu.com, 
-	linux-security-module@vger.kernel.org, linux-um@lists.infradead.org, 
-	linux-acpi@vger.kernel.org, openipmi-developer@lists.sourceforge.net, 
-	qemu-devel@nongnu.org, intel-gfx@lists.freedesktop.org, 
-	dri-devel@lists.freedesktop.org, linux-rdma@vger.kernel.org, 
-	linux-media@vger.kernel.org, linux-pci@vger.kernel.org, 
-	linux-scsi@vger.kernel.org, linux-pm@vger.kernel.org, 
-	linuxppc-dev@lists.ozlabs.org, linux-serial@vger.kernel.org, 
-	linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net, 
-	virtualization@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, netdev@vger.kernel.org, 
-	linux-fsdevel@vger.kernel.org, linux-hardening@vger.kernel.org
-Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <SN6PR02MB4157C1EC7F5F69C5ABDA9C7FD4012@SN6PR02MB4157.namprd02.prod.outlook.com>
 
-On Thu, May 21, 2026, Kees Cook wrote:
-> Using Coccinelle, rewrite every struct kernel_param_ops initializer that
-> sets .get into a DEFINE_KERNEL_PARAM_OPS-family macro invocation,
-> for example:
+On Wed, May 20, 2026 at 07:26:24PM +0000, Michael Kelley wrote:
+> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Wednesday, May 20, 2026 10:15 AM
+> > 
+> > On Fri, May 15, 2026 at 07:35:45PM -0300, Jason Gunthorpe wrote:
+> > > On Tue, May 12, 2026 at 12:24:08AM +0800, Yu Zhang wrote:
+> > > > +static inline u16 hv_iommu_fill_iova_list(union hv_iommu_flush_va *iova_list,
+> > > > +					  unsigned long start,
+> > > > +					  unsigned long end)
+> > > > +{
+> > > > +	unsigned long start_pfn = start >> PAGE_SHIFT;
+> > > > +	unsigned long end_pfn = PAGE_ALIGN(end) >> PAGE_SHIFT;
+> > > > +	unsigned long nr_pages = end_pfn - start_pfn;
+> > > > +	u16 count = 0;
+> > > > +
+> > > > +	while (nr_pages > 0) {
+> > > > +		unsigned long flush_pages;
+> > > > +		int order;
+> > > > +		unsigned long pfn_align;
+> > > > +		unsigned long size_align;
+> > > > +
+> > > > +		if (count >= HV_IOMMU_MAX_FLUSH_VA_COUNT) {
+> > > > +			count = HV_IOMMU_FLUSH_VA_OVERFLOW;
+> > > > +			break;
+> > > > +		}
+> > > > +
+> > > > +		if (start_pfn)
+> > > > +			pfn_align = __ffs(start_pfn);
+> > > > +		else
+> > > > +			pfn_align = BITS_PER_LONG - 1;
+> > > > +
+> > > > +		size_align = __fls(nr_pages);
+> > > > +		order = min(pfn_align, size_align);
+> > > > +		iova_list[count].page_mask_shift = order;
+> > > > +		iova_list[count].page_number = start_pfn;
+> > > > +
+> > > > +		flush_pages = 1UL << order;
+> > > > +		start_pfn += flush_pages;
+> > > > +		nr_pages -= flush_pages;
+> > > > +		count++;
+> > > > +	}
+> > >
+> > > This seems like a really silly hypervisor interface. Why doesn't it
+> > > just accept a normal range? Splitting it into power of two aligned
+> > > ranges is very inefficient.
+> > 
+> > Fair point. I'm not sure how much flexibility we have to change
+> > this hypercall interface at the moment - it predates the pvIOMMU
+> > work and may have other consumers beyond Linux guest. On the other
+> > hand, having the guest specify 2^N-aligned blocks does save the
+> > hypervisor from having to decompose ranges itself before issuing
+> > hardware invalidation commands - the guest-provided entries can be
+> > fed to the HW more or less directly.
+> > 
+> > That said, the way I'm currently using this interface may be
+> > more precise than necessary. Maybe we have 2 options:
+> > 
+> > 1) Current approach: decompose the range into multiple exact
+> >    2^N-aligned blocks with no over-flush, but at the cost of
+> >    more complex calculations and more entries.
+> > 
+> > 2) Follow what Intel/AMD drivers do: find a single minimal
+> >    2^N-aligned block that covers the entire range, but may
+> >    over-flush.
+> > 
+> > Any preference?
+> > 
+> > @Michael, since you've also been reviewing this patch, I'd
+> > appreciate your thoughts on the above as well. :)
+> > 
 > 
-> @@
-> declarer name DEFINE_KERNEL_PARAM_OPS;
-> identifier OPS;
-> expression SET, GET;
-> @@
-> - const struct kernel_param_ops OPS = {
-> -       .set = SET,
-> -       .get = GET,
-> - };
-> + DEFINE_KERNEL_PARAM_OPS(OPS, SET, GET);
+> I'm just guessing, but perhaps flushing an aligned power-of-2
+> range can be processed by the hypervisor at a relatively fixed
+> cost, regardless of the size. Having the guest do the decomposing
+> of an arbitrary range allows the hypervisor to make use of the
+> existing "rep" hypercall mechanism if the hypercall is taking
+> "too long". The hypervisor can pause its processing, return to
+> the guest temporarily, and then continue the hypercall. If the
+> arbitrary range were passed into the hypercall for the hypervisor
+> to do the decomposing, that pause-and-restart mechanism
+> wouldn't be available.
+> 
+> Of course, Linux doesn't really take advantage of the pause to
+> reduce guest interrupt latency because the Hyper-V code in
+> Linux typically disable interrupts around a hypercall due to the
+> way the hypercall input page is allocated. But other guest
+> operating systems might benefit from such a pause. And we could
+> probably fix the Hyper-V code in Linux to allow interrupts during a
+> hypercall pause/restart if long-running hypercalls turn out to be
+> a problem.
+> 
+> Regarding proposal (1) vs. (2), perhaps you could confirm with
+> the Hyper-V team that flushing an aligned power-of-2 range
+> has relatively fixed cost, regardless of the size. And what do the
+> flush requests coming from the generic IOMMU subsystem look
+> like? Do they match dma_unmap() ranges, which are probably
+> dominated by relatively small ranges of a few pages at most,
+> with a few outliers for disk I/O requests of 1 MiB or some such?
+> If the dominant flush request is for a few pages at most, then
+> doing (2) seems reasonable.
 
-IMO, "OPS, GET, SET" is more intuitive, especially since that's the order used
-by DEFINE_SIMPLE_ATTRIBUTE and DEFINE_DEBUGFS_ATTRIBUTE.
+Thanks for the thoughtful suggestions, Michael!
+
+I believe the time might be dominated by the number of descriptors,
+instead of the size of each range, especially when device TLB
+invalidations are involved.
+
+Here's my understanding of what hypervisor does in its handler:
+
+Hyper-V constructs one IOTLB invalidation descriptor (and possibly
+a Device TLB invalidation descriptor as well) per iova_list entry
+and submits them to the HW invalidation queue, then synchronously
+waits for completion. So multiple 2^N-aligned entries should be less
+efficient than a single larger 2^N aligned one.
+
+Since both options submit 2^N-aligned entries to the hypervisor,
+either one single coarser-grained entry or a precise decomposition,
+I'm now also leaning towards option 2, which is also what Intel/AMD
+drivers do for page-selective IOTLB flush. Simpler guest code, faster
+flush, and the hypervisor can feed the single entry almost directly
+to HW.
+
+Yu
