@@ -1,43 +1,82 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id F1BA0334C1C;
-	Thu, 21 May 2026 15:15:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from mta-65-141.flowmailer.net (mta-65-141.flowmailer.net [185.136.65.141])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C385A361667
+	for <linux-arch@vger.kernel.org>; Thu, 21 May 2026 15:37:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.136.65.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779376543; cv=none; b=tMQijI+fPt6G9NP1/ZVxyJMSI4rXq37Nhsqfbsb/DVJO+tEx5bgxE1SfAV/RKx5r11bDlIS/ahFxo/9QJgOCono9wJYHf60DFTXkWvuCNyf5axbmE2FxLRYPORgVU9iqhQoF012/v0NHPT/ldOFnCar0iSivwUq0MF+40LLQfsg=
+	t=1779377867; cv=none; b=Z9h/T8Ya67Su7cqiAfnqOf/DP7HMqrTAtbgKZGNhliU/mNjPTYh5oblLvHc5oHqa2RDalJQvx08cYuS73GLFVOb6YDeWRIRMsPl31LPtKN268CQgt/JAuOTZ1ShSwthTvPKff45FeybGoFI0SNEfpgzehiYw//AadPJIn7Dj9qY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779376543; c=relaxed/simple;
-	bh=MNIY+H2hz8eNtjx2NQ8oK9Y7qZVnP9XLnCR/UB41CLM=;
+	s=arc-20240116; t=1779377867; c=relaxed/simple;
+	bh=ueEF+bxWvWqR586sT6h/9OE/noXhk1FsLD5ozFIo48g=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=kVYROMn3Qlwh3xISVRRJRuTdk6NTXLKvdHYHZ3Wfvua+mhe3IvucTLQ6T6bCUSzPUPsEWSGVa8/cnDtxz8v8G1NAyJBNiZEN8nOHponEOwid1S/K4V/rAbNALKyfiVqJ4T/Xy5cXHriZqmkVFSC+pofxeo884SQScoLHr/vh9bM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=gemme+ZS; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=NjSTaEvMX+piCuNzUuGvnH7ZeT5faBv3FWqdpVBrByjZjbeRYz00dmH0yhMDSYbdmVF5SgeUBuHzmXYa7zJWnMvy7p0RxuVhU/GUt+ltdsRD29yJ5u+ZMdG4ze4K5+p95iUyBGxJLBlyQjO23jkSLYr0equud3MELvxS3KQ+Wy0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=siemens-energy.com; spf=pass smtp.mailfrom=errorhandling.siemens-energy.com; dkim=pass (1024-bit key) header.d=flowmailer.net header.i=@flowmailer.net header.b=MMFq36yT; dkim=pass (2048-bit key) header.d=siemens-energy.com header.i=schuster.simon@siemens-energy.com header.b=Zq3CXr0l; arc=none smtp.client-ip=185.136.65.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=siemens-energy.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=errorhandling.siemens-energy.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="gemme+ZS"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 357CD4A03;
-	Thu, 21 May 2026 08:15:36 -0700 (PDT)
-Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id C1B0C3F7B4;
-	Thu, 21 May 2026 08:15:39 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1779376541; bh=MNIY+H2hz8eNtjx2NQ8oK9Y7qZVnP9XLnCR/UB41CLM=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=gemme+ZSaLhd4Tk3MSmYUDcqmIj6z1xhnlwkLRuTm5nUM/ZDUx6VkmyUfM7ZolbPj
-	 NBeJX8Ebd5phpr1NQ0osyFWnterTKoFrCzWNmJdA8mz8Os+o04XMj5cGTydavR+U5T
-	 cC0ECiFd/6DCP8krzcEyfkEC6BDi3F1/zDtxgHGA=
-Date: Thu, 21 May 2026 16:15:37 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-To: Zeng Heng <zengheng@huaweicloud.com>
-Cc: will@kernel.org, akpm@linux-foundation.org, npiggin@gmail.com,
-	aneesh.kumar@kernel.org, peterz@infradead.org,
-	linux-kernel@vger.kernel.org, wangkefeng.wang@huawei.com,
-	linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org,
-	linux-arch@vger.kernel.org, David Hildenbrand <david@kernel.org>
-Subject: Re: [PATCH] arm64: tlb: Flush walk cache when unsharing PMD tables
-Message-ID: <ag8hmZ3kjtJINyIT@arm.com>
-References: <20260521073011.4121277-1-zengheng@huaweicloud.com>
- <ag8fHYL-S26uO0yZ@arm.com>
+	dkim=pass (1024-bit key) header.d=flowmailer.net header.i=@flowmailer.net header.b="MMFq36yT";
+	dkim=pass (2048-bit key) header.d=siemens-energy.com header.i=schuster.simon@siemens-energy.com header.b="Zq3CXr0l"
+Received: by mta-65-141.flowmailer.net with ESMTPSA id 202605211537321080a170960019fd0e
+        for <linux-arch@vger.kernel.org>;
+        Thu, 21 May 2026 17:37:32 +0200
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; s=s1;
+ d=flowmailer.net;
+ h=from:from:sender:to:to:cc:cc:subject:subject:content-type:content-type:content-transfer-encoding:References:In-Reply-To:Date:Message-ID:MIME-Version;
+ bh=KcRzYfxPkdiV7UzaW+6lIfDEOBCRNUcUcG27X2U1VSs=;
+ b=MMFq36yTf/DJOdkiWD8dxyVJTeBb2CpUxQWl6ikCBdoeyzPO1YF1TlVatLLSDsvGHWcQd5
+ VDsmO4GbpHypEfkjO53Qz6kghqkYW63SBOu0Z3QcrtuSqWyhCWSOJvxnT/UwU+hUbYuuGM0J
+ HuZSr59c5et2+K6wbsqMmvXOzxMIc=;
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; s=fm3;
+ d=siemens-energy.com; i=schuster.simon@siemens-energy.com;
+ h=from:from:sender:to:to:cc:cc:subject:subject:content-type:content-type:content-transfer-encoding:References:In-Reply-To:Date:Message-ID:MIME-Version;
+ bh=KcRzYfxPkdiV7UzaW+6lIfDEOBCRNUcUcG27X2U1VSs=;
+ b=Zq3CXr0liSNgT0BCELoEs6XA0YM8cHIjZYr0stylqb6wFZbahGV2hbEmOBF/1TqoTWIGML
+ pQmKEA14s3UI+M6MccDXkCrApiCPspbcb8X1z4i0qqkc0XKsEuZWyaX++RCNyx2Oho4OkebH
+ CljyjSOBruD/mCsSnEVDpu/bRn9huDA1sfKAPLG4TnjoGEs76ifH2dvqbyplGH4LM/bN//MJ
+ TbAfvH9UHgJigDJ9qujRe7uPZe7uulWgnP1HXFpgW6KlqYd6iasg0kXPD7frFGW+6jdQlaQd
+ pc5Ftr3JZPBE4ZdvXY4aK24gQwmJHg5mcdt41zeDIsJIor2N0FKdzstA==;
+Date: Thu, 21 May 2026 17:37:29 +0200
+From: Simon Schuster <schuster.simon@siemens-energy.com>
+To: Arnd Bergmann <arnd@arndb.de>, Dinh Nguyen <dinguyen@kernel.org>,
+	Wolfram Sang <wsa+renesas@sang-engineering.com>,
+	Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
+Cc: Ethan Nelson-Moore <enelsonmoore@gmail.com>, Peter Zijlstra
+ <peterz@infradead.org>, linux-doc@vger.kernel.org,
+ devicetree@vger.kernel.org, workflows@vger.kernel.org, Linux-Arch
+ <linux-arch@vger.kernel.org>, dmaengine@vger.kernel.org,
+ linux-i2c@vger.kernel.org, linux-iio@vger.kernel.org, Netdev
+ <netdev@vger.kernel.org>, linux-pci@vger.kernel.org,
+ linux-pwm@vger.kernel.org, linux-hardening@vger.kernel.org,
+ linux-kbuild@vger.kernel.org, "linux-csky@vger.kernel.org"
+ <linux-csky@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Shuah Khan
+ <skhan@linuxfoundation.org>, Rob Herring <robh@kernel.org>, Krzysztof
+ Kozlowski <krzk+dt@kernel.org>, Conor Dooley <conor+dt@kernel.org>, Daniel
+ Lezcano <daniel.lezcano@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
+ Alex Shi <alexs@kernel.org>, Yanteng Si <si.yanteng@linux.dev>, Dongliang
+ Mu <dzm91@hust.edu.cn>, Hu Haowen <2023002089@link.tyut.edu.cn>, Kees Cook
+ <kees@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Will Deacon
+ <will@kernel.org>, "Aneesh Kumar K.V (Arm)" <aneesh.kumar@kernel.org>,
+ Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin
+ <npiggin@gmail.com>, Vinod Koul <vkoul@kernel.org>, Frank Li
+ <Frank.Li@kernel.org>, Dave Penkler <dpenkler@gmail.com>, Andi Shyti
+ <andi.shyti@kernel.org>, Jonathan Cameron <jic23@kernel.org>, David Lechner
+ <dlechner@baylibre.com>, =?ISO-8859-1?Q?Nuno_S=E1?= <nuno.sa@analog.com>,
+ Andy Shevchenko <andy@kernel.org>, Andrew Lunn <andrew+netdev@lunn.ch>,
+ "David S . Miller" <davem@davemloft.net>, Eric Dumazet
+ <edumazet@google.com>, Jakub Kicinski <kuba@kernel.org>, Paolo Abeni
+ <pabeni@redhat.com>, Lorenzo Pieralisi <lpieralisi@kernel.org>, Krzysztof
+ WilczyDski <kwilczynski@kernel.org>, Andreas Oetken
+ <andreas.oetken@siemens-energy.com>
+Subject: Re: [PATCH] nios2: remove the architecture
+Message-ID: <20260521153729.ig2xgvskkbg3nx47@dev-vm-schuster>
+References: <20260518042833.272221-1-enelsonmoore@gmail.com>
+ <d40b1e80-37fc-4c88-9d7f-dae6458efe6c@app.fastmail.com>
+ <20260518105735.GW3126523@noisy.programming.kicks-ass.net>
+ <20260518172444.zyd47mcagrcwu7wt@dev-vm-schuster>
+ <CADkSEUjhq6HSdg4ignzbuJiN5uXATsTdxFbRJ3BMxs5=WUWLDg@mail.gmail.com>
+ <20260519103012.blot4bssgiqfer6p@dev-vm-schuster>
+ <76af64fa-7820-4d92-8aa9-826c3bd812a1@app.fastmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -46,73 +85,48 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <ag8fHYL-S26uO0yZ@arm.com>
+In-Reply-To: <76af64fa-7820-4d92-8aa9-826c3bd812a1@app.fastmail.com>
 
-On Thu, May 21, 2026 at 04:05:07PM +0100, Catalin Marinas wrote:
-> + David H.
-> 
-> On Thu, May 21, 2026 at 03:30:11PM +0800, Zeng Heng wrote:
-> > From: Zeng Heng <zengheng4@huawei.com>
-> > 
-> > When huge_pmd_unshare() is called to unshare a PMD table, the
-> > tlb_unshare_pmd_ptdesc() function sets tlb->unshared_tables=true
-> > but the aarch64 tlb_flush() only checked tlb->freed_tables to
-> > determine whether to use TLBF_NONE (vae1is, invalidates walk
-> > cache) or TLBF_NOWALKCACHE (vale1is, leaf-only).
-> > 
-> > This caused the stale PMD page table entry to remain in the walk cache
-> > after unshare, potentially leading to incorrect page table walks.
-> > 
-> > Fix by including unshared_tables in the check, so that when
-> > unsharing tables, TLBF_NONE is used and the walk cache is properly
-> > invalidated.
-> > 
-> > Here is the detailed distinction between vae1is and vale1is:
-> > 
-> > | Instruction Combination  | Actual Invalidation Scope                         |
-> > | ------------------------ | --------------------------------------------------|
-> > | `VAE1IS`  + TTL=`0`      | All entries at all levels (full invalidation)     |
-> > | `VAE1IS`  + TTL=`2` (L2) | Non-leaf at Level 0/1 + leaf at Level 2           |
-> > | `VALE1IS` + TTL=`0`      | Leaf entries at all levels (non-leaf not cleared) |
-> > | `VALE1IS` + TTL=`2` (L2) | Leaf entry at Level 2 only                        |
-> > 
-> > Signed-off-by: Zeng Heng <zengheng4@huawei.com>
-> 
-> The fix looks fine but does it need:
-> 
-> Fixes: 8ce720d5bd91 ("mm/hugetlb: fix excessive IPI broadcasts when unsharing PMD tables using mmu_gather")
-> Cc: <stable@vger.kernel.org>
-> 
-> > ---
-> >  arch/arm64/include/asm/tlb.h | 3 ++-
-> >  1 file changed, 2 insertions(+), 1 deletion(-)
-> > 
-> > diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-> > index 10869d7731b8..751bd57bc3ba 100644
-> > --- a/arch/arm64/include/asm/tlb.h
-> > +++ b/arch/arm64/include/asm/tlb.h
-> > @@ -53,7 +53,8 @@ static inline int tlb_get_level(struct mmu_gather *tlb)
-> >  static inline void tlb_flush(struct mmu_gather *tlb)
-> >  {
-> >  	struct vm_area_struct vma = TLB_FLUSH_VMA(tlb->mm, 0);
-> > -	tlbf_t flags = tlb->freed_tables ? TLBF_NONE : TLBF_NOWALKCACHE;
-> > +	tlbf_t flags = (tlb->freed_tables || tlb->unshared_tables) ?
-> > +			TLBF_NONE : TLBF_NOWALKCACHE;
-> >  	unsigned long stride = tlb_get_unmap_size(tlb);
-> >  	int tlb_level = tlb_get_level(tlb);
+Hi Arnd, Dinh, Wolfram, and Miguel,
 
-Do we need this as well?
+thank you for your explanations and encouragement; I've now sent my
+application for co-maintainership for arch/nios2 to you, Dinh.
 
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index 10869d7731b8..3f4ab38cfd6e 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -24,7 +24,7 @@ static void tlb_flush(struct mmu_gather *tlb);
- static inline int tlb_get_level(struct mmu_gather *tlb)
- {
- 	/* The TTL field is only valid for the leaf entry. */
--	if (tlb->freed_tables)
-+	if (tlb->freed_tables || tlb->unshared_tables)
- 		return TLBI_TTL_UNKNOWN;
- 
- 	if (tlb->cleared_ptes && !(tlb->cleared_pmds ||
+On Wed, May 20, 2026 at 09:06:33AM +0200, Arnd Bergmann wrote:
+> I think that is a reasonable target. We have a bunch of embedded
+> architectures that have a similarly small user base and I expect
+> that we will want to remove most of them at some point, as we did
+> for seven architectures in linux-4.17.
+> 
+> As long as there is a maintainer for nios2 and it's not actively
+> getting in the way of a specific treewide change, I don't see any
+> reason to remove this any earlier than the other ones.
+> 
+> Obviously at some point nios2 will have to get removed because
+> of the limit to gcc-14 or older, but that should not be a problem
+> for the next few LTS releases.
+
+This all sounds quite reasonable, including the toolchain
+considerations. Thank you for the offer to keep it around a bit.
+If any issues arise with tree-wide changes I'd be happy to look into
+what can be done on the arch/nios2 side; now that the issues should
+reliably reach me via mail.
+
+> > Sure, I'd be glad to do so, but so far I refrained from it as I was a bit
+> > unsure about the netiquette (can I simply do so by self-proclamation? At
+> > least the git history seems to suggest so...).
+> 
+> Dinh already replied that he welcomes the help, and I also suggested
+> the same thing a year ago. As the only known user that has contributed
+> patches in a long time, you are obviously qualified.
+> 
+> Sending a patch for the MAINTAINERS file to Dinh is the first step,
+> once he has sent that upstream, you can (optionally) apply for
+> kernel.org account that would let you host a git tree on kernel.org
+> or have a tree that you both have access to.
+
+I've sent the patch, I'm sure we can work everything else out from
+there.
+
+Best regards,
+Simon
