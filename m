@@ -1,280 +1,90 @@
-Received: from sender4-pp-o94.zoho.com (sender4-pp-o94.zoho.com [136.143.188.94])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1D7592727F3;
-	Thu, 21 May 2026 19:24:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.94
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779391464; cv=pass; b=hhf0Llt03PsHLpJN8v+dZqyonWS0brtIuYU8vtYewjA+/rc4W0yI7ahWEosjX0IwKT6T0OAWf1gPWS8lOf13lZYEePVxmsixRarymj3RTj1Xnguy+u40OcG8Yjsm8q348b5KO+iHAROL5X1XA3xdpxkecJnCdVRpXHty0HryLb0=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779391464; c=relaxed/simple;
-	bh=QccdGtjCPTuQw17Liwk6hrrcpkp2bQ2AV1Om5vkh24g=;
-	h=From:To:Subject:Date:Message-Id:MIME-Version; b=tUk4/Li5zOlBfDQhvRdFQlNsjekdUmPyJT/SAfH9eZ8jy1ZmkHdsFTYTJabDX8Bg9lfg4mEIdS55JiYsbHFMuhkpPbSaOWtITQleJj41YFr8aBNuLosbkfRQGIn8597eyrX7tHnzecY4t35H/fxe9Nf9yCvLFfC2BwOoG6rBJvQ=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=zohomail.com; spf=pass smtp.mailfrom=zohomail.com; dkim=pass (1024-bit key) header.d=zohomail.com header.i=mhklkml@zohomail.com header.b=ZzWO/21n; arc=pass smtp.client-ip=136.143.188.94
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=zohomail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=zohomail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B7521A9B58;
+	Thu, 21 May 2026 21:46:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1779399992; cv=none; b=adiRsf3mXmVkVdOcReHNHwHdoQE9sjafu2DjOns9VsXkuepmFAUg9OzwdOLUrGel/cuvVHaowmZE0qMmYUoOUzF6u9++/Z5ozdmWmARm4ayR2T7LScTYhRmlTyq7oPQCiCJMBEkNUjS7uu3/N7c1ekeU/qBTGaLVRVRandO7KAg=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1779399992; c=relaxed/simple;
+	bh=egj+N/8dzxEVdKsTe8WaX6PQDQMTC4uQHbYIhFHm4y0=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=VM8JvPZTCYRCbnE4XK7YduLc8MVYj97YWhhV7EpXsHd7yTx9VFEUwTBCbL3vKJFhG26IUGdorhjVZMRoMIpqeS1lJAiNnsUHnB2ifDy82Pzmnv++1I6TnXJxsU2zkHtBuw6HUkcjPQUnGLLFkzUBpkQL6Y3+MAQHLaaDc5iTRvA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=KsYqTJ5z; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=zohomail.com header.i=mhklkml@zohomail.com header.b="ZzWO/21n"
-ARC-Seal: i=1; a=rsa-sha256; t=1779391429; cv=none; 
-	d=zohomail.com; s=zohoarc; 
-	b=AhjQSV7kBemP8mgCSWlmbktV6T8gfYV7999viurCqO0RKZA0Is8wOcc7Yp8RnK/vF5ZgKp4zQkijePvXTnOI2Z9gYSowjhmLBHMNUxcsOEMxeXOzx1IX7dafYojvn3o1p5NstACtHbLt8mePlNy5xkuWqrPCnBOdMhy4KEktFlE=
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
-	t=1779391429; h=Content-Transfer-Encoding:Date:Date:From:From:MIME-Version:Message-ID:Reply-To:Reply-To:Subject:Subject:To:To:Message-Id:Cc; 
-	bh=DQPOht69acmZBj8X2gGPUutfXrAoyI/EZiFYXIeOvSE=; 
-	b=X+mGjXEZhZRVGFFqJonw9sZ7hBzOtFisynWkDocrSqCUbYp0Uv6t5rTwvUzMs6MujGCztrFrHZWvzxs2t7fURugqs6t+/5FjBQs0Fwvu1drwZWUABixunNIeTw2o+wBLyfzHGU4ErT4E5aSu4npf28kAs4i69JIQEx4hIH0w4X4=
-ARC-Authentication-Results: i=1; mx.zohomail.com;
-	dkim=pass  header.i=zohomail.com;
-	spf=pass  smtp.mailfrom=mhklkml@zohomail.com;
-	dmarc=pass header.from=<mhklkml@zohomail.com>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1779391429;
-	s=zm2022; d=zohomail.com; i=mhklkml@zohomail.com;
-	h=From:From:To:To:Subject:Subject:Date:Date:Message-Id:Message-Id:Reply-To:Reply-To:MIME-Version:Content-Transfer-Encoding:Feedback-ID:Cc;
-	bh=DQPOht69acmZBj8X2gGPUutfXrAoyI/EZiFYXIeOvSE=;
-	b=ZzWO/21ny40pBYGH8TYoWeCChgbKsD5vDQnynILfslt++w1wvLDrs14ni/GQV/3x
-	Lmq3mt+ibewBUlXMTv/Dy4w0FrS8JnalHHvKFHTeolXWfKKq4U81Gfmf7juQ61DcngH
-	/dIAe1KSoyBKy7Z7jivYaR3IyleGzuCiwCevtr+M=
-Received: by mx.zohomail.com with SMTPS id 17793914281766.829777932622733;
-	Thu, 21 May 2026 12:23:48 -0700 (PDT)
-From: Michael Kelley <mhklkml@zohomail.com>
-To: kys@microsoft.com,
-	haiyangz@microsoft.com,
-	wei.liu@kernel.org,
-	decui@microsoft.com,
-	longli@microsoft.com,
-	tglx@linutronix.de,
-	mingo@redhat.com,
-	bp@alien8.de,
-	dave.hansen@linux.intel.com,
-	x86@kernel.org,
-	hpa@zytor.com,
-	linux-hyperv@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: [PATCH 1/1] x86/hyperv: Refactor hv_smp_prepare_cpus()
-Date: Thu, 21 May 2026 12:23:36 -0700
-Message-Id: <20260521192336.99623-1-mhklkml@zohomail.com>
-X-Mailer: git-send-email 2.25.1
-Reply-To: mhklinux@outlook.com
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="KsYqTJ5z"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2CF031F000E9;
+	Thu, 21 May 2026 21:46:30 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux-foundation.org; s=korg; t=1779399991;
+	bh=qEpxywtKvyKc8pR0UbQITNwH/Hn/3Ki68Ju72Ok+Xeo=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References;
+	b=KsYqTJ5zyrMd5A1ExmmDtQPu9yHezpY0U/H9UjN/u+a2IHt308AbfEh8k6kDioADF
+	 RtCRqizHjDZU5gcWhZhCBkTOQxscLp8rono5FninvrJX74DZUaq1PP4y0QpG917uPa
+	 iTdvlO/afgA7iKclb8Ltp9gRFnqX76vvfBTh8iD4=
+Date: Thu, 21 May 2026 14:46:29 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Ankur Arora <ankur.a.arora@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
+ linux-next@vger.kernel.org, bpf@vger.kernel.org, arnd@arndb.de,
+ catalin.marinas@arm.com, will@kernel.org, peterz@infradead.org,
+ mark.rutland@arm.com, harisokn@amazon.com, cl@gentwo.org, ast@kernel.org,
+ rafael@kernel.org, daniel.lezcano@linaro.org, memxor@gmail.com,
+ zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com, rdunlap@infradead.org,
+ david.laight.linux@gmail.com, joao.m.martins@oracle.com,
+ boris.ostrovsky@oracle.com, konrad.wilk@oracle.com, ashok.bhat@arm.com,
+ Boqun Feng <boqun.feng@gmail.com>, Boqun Feng <boqun@kernel.org>, Christoph
+ Lameter <cl@linux.com>, Ingo Molnar <mingo@kernel.org>, Konrad Dybcio
+ <konradybcio@kernel.org>, Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v11 1/2] kunit: add tests for smp_cond_load_*_timeout()
+Message-Id: <20260521144629.11ee1e2ff88c5387a589f54a@linux-foundation.org>
+In-Reply-To: <20260521083038.134260-1-ankur.a.arora@oracle.com>
+References: <20260408122538.3610871-15-ankur.a.arora@oracle.com>
+	<20260521083038.134260-1-ankur.a.arora@oracle.com>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Feedback-ID: zu0801122720f4ce7d35a1b8f8a99006110000021ae84133116c29292b9524c743b8259d9f7e7ff09b0f6d8d:ZohoMail
-X-Zoho-CM-AccountID: 0c88436b239415d28725328898ceccb9ce2ba3b61598c1c37bcb2109e0248174
-X-ZohoMailClient: External
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-From: Michael Kelley <mhklinux@outlook.com>
+On Thu, 21 May 2026 01:30:37 -0700 Ankur Arora <ankur.a.arora@oracle.com> wrote:
 
-hv_smp_prepare_cpus() current handles two disjoint cases: a fully
-enlightened SNP guest and running in the root partition. The root
-partition case has recently added more steps, and as a result the
-function is getting somewhat messy.
+> Add success and failure case tests for smp_cond_load_*_timeout().
+> 
+> All of the test cases wait on some state in smp_cond_load_*_timeout().
+> In the success case we spawn a kthread that pokes the bit.
+> 
+> Success or failure cases depend on the expected bit being set (or not).
+> Additionally in failure cases smp_cond_load_*_timeout() cannot return
+> before timeout.
 
-Refactor the code by putting the SNP and root cases into separate
-functions. For the root case, move most of the code into hv_proc.c,
-which is built only when MSHV_ROOT is configured. The move reduces
-the surface area between the main code and the root partition
-extensions. Several stubs go away, with an overall modest reduction
-in lines of code.
+Your title "kunit: ..." implies that this is a kunit patchset.  ie, and
+to my mind, this implies that the patchset makes changes to kunit
+infrastructure.  This isn't the case, of course.
 
-No functional change.
+>
+> ...
+>  
+> +config BARRIER_TIMEOUT_TEST
+> +	tristate "KUnit tests for smp_cond_load_relaxed_timeout()"
 
-Signed-off-by: Michael Kelley <mhklinux@outlook.com>
----
- arch/x86/kernel/cpu/mshyperv.c | 52 +++++++---------------------------
- drivers/hv/hv_proc.c           | 35 +++++++++++++++++++++--
- include/asm-generic/mshyperv.h | 17 ++---------
- 3 files changed, 45 insertions(+), 59 deletions(-)
+The patchset which attempted to add smp_cond_load_relaxed_timeout() was
+titled "barrier: ...", which is a more appropriate identifier for this
+patchset.
 
-diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
-index 640e6b223c2d..442156056cd2 100644
---- a/arch/x86/kernel/cpu/mshyperv.c
-+++ b/arch/x86/kernel/cpu/mshyperv.c
-@@ -32,7 +32,6 @@
- #include <asm/msr.h>
- #include <asm/nmi.h>
- #include <clocksource/hyperv_timer.h>
--#include <asm/numa.h>
- #include <asm/svm.h>
- 
- /* Is Linux running on nested Microsoft Hypervisor */
-@@ -413,46 +412,16 @@ static void __init hv_smp_prepare_boot_cpu(void)
- #endif
- }
- 
--static void __init hv_smp_prepare_cpus(unsigned int max_cpus)
-+static void __init hv_smp_prepare_cpus_for_snp(unsigned int max_cpus)
- {
--#ifdef CONFIG_X86_64
--	int i;
--	int ret;
--#endif
--
- 	native_smp_prepare_cpus(max_cpus);
-+	apic->wakeup_secondary_cpu_64 = hv_snp_boot_ap;
-+}
- 
--	/*
--	 *  Override wakeup_secondary_cpu_64 callback for SEV-SNP
--	 *  enlightened guest.
--	 */
--	if (!ms_hyperv.paravisor_present && hv_isolation_type_snp()) {
--		apic->wakeup_secondary_cpu_64 = hv_snp_boot_ap;
--		return;
--	}
--
--#ifdef CONFIG_X86_64
--	/* If AP LPs exist, we are in a kexec'd kernel and VPs already exist */
--	if (num_present_cpus() == 1 || hv_lp_exists(1))
--		return;
--
--	for_each_present_cpu(i) {
--		if (i == 0)
--			continue;
--		ret = hv_call_add_logical_proc(numa_cpu_node(i), i, cpu_physical_id(i));
--		BUG_ON(ret);
--	}
--
--	ret = hv_call_notify_all_processors_started();
--	WARN_ON(ret);
--
--	for_each_present_cpu(i) {
--		if (i == 0)
--			continue;
--		ret = hv_call_create_vp(numa_cpu_node(i), hv_current_partition_id, i, i);
--		BUG_ON(ret);
--	}
--#endif
-+static void __init hv_smp_prepare_cpus_for_root(unsigned int max_cpus)
-+{
-+	native_smp_prepare_cpus(max_cpus);
-+	hv_smp_prep_cpus();
- }
- #endif
- 
-@@ -722,9 +691,10 @@ static void __init ms_hyperv_init_platform(void)
- 
- # ifdef CONFIG_SMP
- 	smp_ops.smp_prepare_boot_cpu = hv_smp_prepare_boot_cpu;
--	if (hv_root_partition() ||
--	    (!ms_hyperv.paravisor_present && hv_isolation_type_snp()))
--		smp_ops.smp_prepare_cpus = hv_smp_prepare_cpus;
-+	if (!ms_hyperv.paravisor_present && hv_isolation_type_snp())
-+		smp_ops.smp_prepare_cpus = hv_smp_prepare_cpus_for_snp;
-+	else if (hv_root_partition())
-+		smp_ops.smp_prepare_cpus = hv_smp_prepare_cpus_for_root;
- # endif
- 
- 	/*
-diff --git a/drivers/hv/hv_proc.c b/drivers/hv/hv_proc.c
-index 57b2c64197cb..b8aa76a7b19b 100644
---- a/drivers/hv/hv_proc.c
-+++ b/drivers/hv/hv_proc.c
-@@ -8,6 +8,7 @@
- #include <linux/minmax.h>
- #include <linux/export.h>
- #include <asm/mshyperv.h>
-+#include <asm/numa.h>
- 
- /*
-  * See struct hv_deposit_memory. The first u64 is partition ID, the rest
-@@ -154,7 +155,7 @@ bool hv_result_needs_memory(u64 status)
- }
- EXPORT_SYMBOL_GPL(hv_result_needs_memory);
- 
--int hv_call_add_logical_proc(int node, u32 lp_index, u32 apic_id)
-+static int hv_call_add_logical_proc(int node, u32 lp_index, u32 apic_id)
- {
- 	struct hv_input_add_logical_processor *input;
- 	struct hv_output_add_logical_processor *output;
-@@ -240,7 +241,7 @@ int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u32 flags)
- }
- EXPORT_SYMBOL_GPL(hv_call_create_vp);
- 
--int hv_call_notify_all_processors_started(void)
-+static int hv_call_notify_all_processors_started(void)
- {
- 	struct hv_input_notify_partition_event *input;
- 	u64 status;
-@@ -262,7 +263,7 @@ int hv_call_notify_all_processors_started(void)
- 	return ret;
- }
- 
--bool hv_lp_exists(u32 lp_index)
-+static bool hv_lp_exists(u32 lp_index)
- {
- 	struct hv_input_get_logical_processor_run_time *input;
- 	struct hv_output_get_logical_processor_run_time *output;
-@@ -286,3 +287,31 @@ bool hv_lp_exists(u32 lp_index)
- 
- 	return hv_result_success(status);
- }
-+
-+void hv_smp_prep_cpus(void)
-+{
-+#ifdef CONFIG_X86_64
-+	int i, ret;
-+
-+	/* If AP LPs exist, we are in a kexec'd kernel and VPs already exist */
-+	if (num_present_cpus() == 1 || hv_lp_exists(1))
-+		return;
-+
-+	for_each_present_cpu(i) {
-+		if (i == 0)
-+			continue;
-+		ret = hv_call_add_logical_proc(numa_cpu_node(i), i, cpu_physical_id(i));
-+		BUG_ON(ret);
-+	}
-+
-+	ret = hv_call_notify_all_processors_started();
-+	WARN_ON(ret);
-+
-+	for_each_present_cpu(i) {
-+		if (i == 0)
-+			continue;
-+		ret = hv_call_create_vp(numa_cpu_node(i), hv_current_partition_id, i, i);
-+		BUG_ON(ret);
-+	}
-+#endif
-+}
-diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index bf601d67cecb..ea1c4acda1ec 100644
---- a/include/asm-generic/mshyperv.h
-+++ b/include/asm-generic/mshyperv.h
-@@ -346,9 +346,7 @@ static inline bool hv_parent_partition(void)
- bool hv_result_needs_memory(u64 status);
- int hv_deposit_memory_node(int node, u64 partition_id, u64 status);
- int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages);
--int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id);
--int hv_call_notify_all_processors_started(void);
--bool hv_lp_exists(u32 lp_index);
-+void hv_smp_prep_cpus(void);
- int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u32 flags);
- 
- #else /* CONFIG_MSHV_ROOT */
-@@ -364,18 +362,7 @@ static inline int hv_call_deposit_pages(int node, u64 partition_id, u32 num_page
- {
- 	return -EOPNOTSUPP;
- }
--static inline int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id)
--{
--	return -EOPNOTSUPP;
--}
--static inline int hv_call_notify_all_processors_started(void)
--{
--	return -EOPNOTSUPP;
--}
--static inline bool hv_lp_exists(u32 lp_index)
--{
--	return false;
--}
-+static inline void hv_smp_prep_cpus(void) {}
- static inline int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u32 flags)
- {
- 	return -EOPNOTSUPP;
--- 
-2.25.1
+Anyway, I removed the series "barrier: Add
+smp_cond_load_{relaxed,acquire}_timeout()" from mm.git on May 19 for
+forgotten reasons.  So I suggest that the series be respun and resent,
+with these two test patches included.
+
+Again, I'm really not the guy to be handling these patches.  But a 4-6%
+performance improvement in real world workloads is not to be ignored.
+
+Not by me, anyway.
 
