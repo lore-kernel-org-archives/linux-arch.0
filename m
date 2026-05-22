@@ -1,115 +1,103 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 424F82DEA61;
-	Thu, 21 May 2026 22:37:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A9F162030A;
+	Fri, 22 May 2026 00:17:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779403041; cv=none; b=QNmYJ5lFuKogeQTi17DyJBG+qYyk0f9P2P37ECmQ6zY1v13ZurxCIbuSq1bMxJc/nAJQgKoo69PY3JKCGTQoln+ddLBc4F7bNeO9V+HiPmEpIhqi7tSQHkZ7Qi6JyXrVTNDi3XWc4tBUaBeF2vuAGj+pasuFNByZ1T196RM2E3I=
+	t=1779409053; cv=none; b=AOR+BXe3FHwLYwCLvOj0qQ+4R+tWu9zFrLjVZy6KgS0TaGVHDGcNruesKWw4UTYEjYU29JO6IbPq1+V3zwDFZir3gee6jzkaH2gHNprUtPhshe0ddxeiXfpUgib4aTJHwm4kKTn3pafGA2zOHKZkUEp429Fi8jsFErr5UhQHth8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779403041; c=relaxed/simple;
-	bh=42MiyThkTo5Bk2bOjHIfMp4LvvutnSKogcul3+MwEo0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=hnED0OWAzE+qdXiAZgbgBnUaFs0sMhun4C5YS/Qb+WxCQF+4QFyS3zTEWwyDjDBDW2CzdlnqbEAap7MGIMe8naWUkIcm9/BY188c6wUtkA7qEhe/cCx3gePvVTFgb9+pswQt6s27jZepqjfaDZ8vQ+1vAczp1uv3u9NLyh8cgx8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=PD3u1dpk; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1779409053; c=relaxed/simple;
+	bh=PZ642L4eiA5l0jaQb3SS62Q9ow/D8RsHXSgUbtVcVqs=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=eMt5XKsllH8vAmv/NRMcJnE4wJfu0/wWhCRzRKrNddXnxjhiu+V8ALZzONPAjVMjGnj/AqZD5uE5MFRhboj02A07uc8x3t1Q3yYRw3uGEE3POopxW4ChOUVIJVYaubAswegUcsBhgxBXwF7Pj6aTgDZ3YVKtobiJufkpPTwG8qY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=tEOlAwj1; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="PD3u1dpk"
-Received: from [100.93.0.114] (unknown [13.88.17.9])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 60B7820B7167;
-	Thu, 21 May 2026 15:37:11 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 60B7820B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1779403032;
-	bh=K+q3TuQy9kAKm2lWuh8cfQdzIBvnZyK7nIwqQdQIsMs=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=PD3u1dpkY8CuuTd9Hsz6xTzHS4vEragGZv8Ny3WotJz3kld05acbCO15RlLKZHNZO
-	 JYvVs+aFpzC+4Ifsa0kvNkp1/a9fbvX3j0oZP1uGZgMTmGTWCvdjmeAJSkpBaJfmhN
-	 jlvGcAwww/yFceJBsSgaOC5me+Tfkzx2rztrAOXg=
-Message-ID: <58ca691b-0eff-6e4a-4b35-c96b9da59ac2@linux.microsoft.com>
-Date: Thu, 21 May 2026 15:37:17 -0700
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="tEOlAwj1"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0AB491F000E9;
+	Fri, 22 May 2026 00:17:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux-foundation.org; s=korg; t=1779409052;
+	bh=CU1uL6EPLGCDhveEV6q88XhXLU9G2F321bQb4+LouN4=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References;
+	b=tEOlAwj1g8LscGq036JIP92ztTOZa0Zgac7ekTv/50pIaaEK2W4Kh2iSs9mjKKeU3
+	 0E+2P+EF9NE/33lqS+qb4XkzDA6GlEgAvB+jA6sk+cyej3pym+Q94Vs41XiDgm/F+z
+	 FHXvYWEtcRfRDonE2oSvzPrH33/ywop/mXaGAjBA=
+Date: Thu, 21 May 2026 17:17:30 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Qu Wenruo <quwenruo.btrfs@gmx.com>
+Cc: Christoph Hellwig <hch@lst.de>, "H. Peter Anvin" <hpa@zytor.com>,
+ kreijack@inwind.it, David Sterba <dsterba@suse.cz>, Catalin Marinas
+ <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel
+ <ardb@kernel.org>, Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui
+ <kernel@xen0n.name>, Madhavan Srinivasan <maddy@linux.ibm.com>, Michael
+ Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
+ "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, Paul Walmsley
+ <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
+ <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Heiko Carstens
+ <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev
+ <agordeev@linux.ibm.com>, Christian Borntraeger
+ <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>, Thomas
+ Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
+ <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+ Herbert Xu <herbert@gondor.apana.org.au>, Dan Williams
+ <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>, David Sterba
+ <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>, Song Liu
+ <song@kernel.org>, Yu Kuai
+ <yukuai@alb-78bjiv52429oh8qptp.cn-shenzhen.alb.aliyuncs.com>, Li Nan
+ <linan122@huawei.com>, linux-kernel@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
+ linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+ linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
+ linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-raid@vger.kernel.org
+Subject: Re: [PATCH 01/19] btrfs: require at least 4 devices for RAID 6
+Message-Id: <20260521171730.7872482df453975cf60ce7dc@linux-foundation.org>
+In-Reply-To: <f46636c8-80ba-4802-a6a0-74cbc35e7bee@gmx.com>
+References: <20260512052230.2947683-1-hch@lst.de>
+	<20260512052230.2947683-2-hch@lst.de>
+	<20260512114231.GG2558453@suse.cz>
+	<20260513054742.GA1018@lst.de>
+	<0a8d1ff4-f5a2-49e9-aa45-d25dbe4ded40@libero.it>
+	<20260515043705.GA3855@lst.de>
+	<34C16854-1065-4542-8836-DDED58EC1844@zytor.com>
+	<20260518051207.GB9374@lst.de>
+	<f46636c8-80ba-4802-a6a0-74cbc35e7bee@gmx.com>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH V3 09/11] x86/hyperv: Implement Hyper-V virtual IOMMU
-Content-Language: en-US
-To: Jason Gunthorpe <jgg@ziepe.ca>
-Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org, wei.liu@kernel.org,
- mhklinux@outlook.com, muislam@microsoft.com, namjain@linux.microsoft.com,
- magnuskulke@linux.microsoft.com, anbelski@linux.microsoft.com,
- linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
- iommu@lists.linux.dev, linux-pci@vger.kernel.org,
- linux-arch@vger.kernel.org, kys@microsoft.com, haiyangz@microsoft.com,
- decui@microsoft.com, longli@microsoft.com, tglx@kernel.org,
- mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
- joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
- kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de,
- jacob.pan@linux.microsoft.com
-References: <20260512020259.1678627-1-mrathor@linux.microsoft.com>
- <20260512020259.1678627-10-mrathor@linux.microsoft.com>
- <20260515182322.GI7702@ziepe.ca>
-From: Mukesh R <mrathor@linux.microsoft.com>
-In-Reply-To: <20260515182322.GI7702@ziepe.ca>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On 5/15/26 11:23, Jason Gunthorpe wrote:
-> On Mon, May 11, 2026 at 07:02:57PM -0700, Mukesh R wrote:
->> +static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
->> +{
->> +	struct hv_domain *hvdom;
->> +	int rc;
->> +
->> +	if (hv_l1vh_partition() && !hv_curr_thread_is_vmm()) {
->> +		pr_err("Hyper-V: l1vh iommu does not support host devices\n");
->> +		return NULL;
->> +	}
->> +
->> +	hvdom = kzalloc(sizeof(struct hv_domain), GFP_KERNEL);
->> +	if (hvdom == NULL)
->> +		return NULL;
->> +
->> +	spin_lock_init(&hvdom->mappings_lock);
->> +	hvdom->mappings_tree = RB_ROOT_CACHED;
->> +
->> +	/* Called under iommu group mutex, so single threaded */
->> +	if (++unique_id == HV_DEVICE_DOMAIN_ID_S2_NULL)   /* ie, UINTMAX */
->> +		goto out_err;
->> +
->> +	hvdom->domid_num = unique_id;
->> +	hvdom->partid = hv_get_current_partid();
->> +	hvdom->iommu_dom.geometry = default_geometry;
->> +	hvdom->iommu_dom.pgsize_bitmap = HV_IOMMU_PGSIZES;
->> +
->> +	/* For guests, by default we do direct attaches, so no domain in hyp */
->> +	if (hv_dom_owner_is_vmm(hvdom) && !hv_no_attdev)
->> +		hvdom->attached_dom = true;
-> 
-> What are you thinking sending something like this?!?!?
-> 
-> The function is called *alloc domain PAGING*, it does not, and can not
-> allocate weird "special" domains that are not PAGING domains. I just
-> spent a long time removing all this kind of crazyness from drivers.
-> 
-> There is alot of other things I don't like in this patch, but this is
-> too much.
-> 
-> You have to drop this "direct attach" idea from the first iteration,
-> Linux can't do it without alot more work, you should start with the
-> basic paging domain mode.
-> 
-> Jason
+On Wed, 20 May 2026 18:11:09 +0930 Qu Wenruo <quwenruo.btrfs@gmx.com> wrote:
 
-Yeah, agree. There was some ambivalence whether this could be a stop gap
-solution until the iommufd based solution is fully designed.
+> 
+> 
+> 在 2026/5/18 14:42, Christoph Hellwig 写道:
+> > On Fri, May 15, 2026 at 12:59:34PM -0700, H. Peter Anvin wrote:
+> >> I don't think this is a good idea. Error out; it is the btrfs maintainers' job to ensure user data isn't lost.
+> >>
+> >> The RAID-6 code has *never* supported only 3 units, and if it ever worked for *any* of the implementations it was purely by accident. Speaking as the original author I should know; this was deliberate as in some cases the degenerate case (3) would have required extra trays in the code to no user benefit.
+> >>
+> >> I would not be surprised if the kernel crashed or corrupted the page cache in that case.
+> > 
+> > It does, that's why I wanted to exclude it.  Anyway, for the about to be
+> > resent version I'll drop this btrfs patch over the stated objection and
+> > will otherwise not change anything.  This means the (IMHO hypothetical)
+> > users of this configuration will get a WARN_ON_ONCE triggered, but
+> > otherwise keep working (or rather not working) as before.
+> > 
+> 
+> For the btrfs part, I believe I can get the current 2-disk-raid5 and 
+> 3-disk-raid6 to fallback to raid1 inside btrfs.
+> 
+> I hope the btrfs part can be finished and reach the next merge window, 
+> but I'm not 100% sure.
+> 
+> What is the planned cycle to merge this raid5/6 cleanup?
 
-I'll remove the "direct attach" stuff and resend with just basic paging
-domain mode. Thanks for the review.
-
-Thanks,
--Mukesh
-
+At present it's on track for the 7.2-rc1 merge window.  Does that suit?
