@@ -1,233 +1,164 @@
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+Received: from dggsgout11.his.huawei.com (dggsgout11.his.huawei.com [45.249.212.51])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08E4B379C23;
-	Fri, 22 May 2026 05:11:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.165.32
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779426674; cv=fail; b=RiqZ3j2sNxV0kuJE9R8ALGtlfo33p7dx/Zqx+GkhCC37+1E2rJoD2qztqVsdixFsKw0S02Aj9mi1f4KEnMw5B7xzORDxrcNcOwWT8BzAnZfCoCK1xOZtruCOp+HXptb9jK3b4aGLAx0v+0n213aVCMnfWFZYOtFvqivntmKph14=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779426674; c=relaxed/simple;
-	bh=VKP6KBB2tVhefzuShc2+c/YMBlzfq+L8C+97VO1QJ/Y=;
-	h=References:From:To:Cc:Subject:In-reply-to:Date:Message-ID:
-	 Content-Type:MIME-Version; b=GzpiRxYjyk6h4DIeVRGcgWTJYHIuB9hZ0mtb/UasSmU5JVguz1T26gfOc7raKUqi5ctJ9pqzGRXhbDn0xxMLGNOw1ZmDG5KQpB8p6Q15V+z2UIkX6LVXbH33hKnnrpZlZSjtwFHOYZ/z018U162EF0dN+QGJWORQIhkjtdhYLw8=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=JAn5t7BU; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=nOjEdFIk; arc=fail smtp.client-ip=205.220.165.32
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="JAn5t7BU";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="nOjEdFIk"
-Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 64LJfjrN1583139;
-	Fri, 22 May 2026 05:10:29 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=corp-2025-04-25; bh=/H5yVewy3237AioTwB
-	hJLNHXOMZvCLCO/FBrGg0PqjY=; b=JAn5t7BUuxL8c37zGWQl1baz65F9ipxVu7
-	rH66vsnN2GKI/UVV89SdTr0xBZWVdET44iaaz9IPOr419NVzwKfV0fOvqr1MS0Ez
-	pe0plRycV9Gn+q9p2MJS7dpDfWXeveCHDjjPvqcBmS9OV0nixmX2tEl82om1ZXR4
-	0Ooq89g+3QoJKDGCRJin8bVqltrsBDfMkqbEfG2P4ok/PF8+UCWNG6rUbyN4tFbh
-	hQI0yGXv/WcEZF/BCGIDTdtze+mn/5iYGzr8qdJVHPvzeVMx7EvDgYKCNnkjY4p7
-	CEAzgNtrfjuj9XXtYlyfsswmE0lnQorPfOKbX5tdXrwiFAGIZREw==
-Received: from iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta01.appoci.oracle.com [130.35.100.223])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 4e6h4qam93-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 22 May 2026 05:10:29 +0000 (GMT)
-Received: from pps.filterd (iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.7/8.18.1.7) with ESMTP id 64M550jw000439;
-	Fri, 22 May 2026 05:10:28 GMT
-Received: from sa9pr02cu001.outbound.protection.outlook.com (mail-southcentralusazon11013044.outbound.protection.outlook.com [40.93.196.44])
-	by iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 4e6f1kb2da-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 22 May 2026 05:10:28 +0000 (GMT)
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=VuVzjJ55QC0+/84hIqSLDc9KPUS9TKNW8lnsTRNtzpMHCkM2EIO6Q5EGH4TeoT8ya1ZBuLtv83W/+GsMkcgU8gJLCNy8Rz3KPQH1ein8xZ+IeR3bLwroz1DWTidteyJFZVj6+Za5VWkUEupzsJNqR87EPSP9/S59XuhX0OE+vtccnnfdZGZGWnQOgVEE7TEciRh6kA+WQ8hvsEJ8/VIQIuCi4FPkaf8mFm/B551Ez3V9GbMhmpKIA4YjdvU8U8aaZgoNnil2hb0IsxBdNzspzlcmNZ68/XAeXh874ejfshvPjEiVKGb57/FEV725wQ4s506jKnUgu5+gEHE2lLrqYg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=/H5yVewy3237AioTwBhJLNHXOMZvCLCO/FBrGg0PqjY=;
- b=D2JPqjrMD8Psq7pGtBy30PRbR1gG6S8hCiWsL4ipS/jOz0Ck2sx5rvAK6Z9bz9+/JcNsrbXbdr9JgJgERRz5llOV5bWrj4ZhhWEKTdlNCa8l0tc5XGLEQOL+B+m0hn/cyJK/D8vadvD7dwgdtO3RwybOO3PSWURHJu9ZH1gueEbyzUGfDfjX78GmWErbzLWBw2HqTvLU77/D2hILA31HBLXZe6Zik/d7UbSkA3l1N7nysuE11ZHQYoE8HXSuhpjHd24vt0Ig4/auPfW9xKRn9VhmnFawXgkcztVkTuAz9FhJRbcy2weNiCqrLT7qj+Em4GjHUq5ABuiwB3u2XqKxLA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=/H5yVewy3237AioTwBhJLNHXOMZvCLCO/FBrGg0PqjY=;
- b=nOjEdFIkFTftl/GLeUoTuYZFq76d4XTlX9lVFv/83TRTSOCR93nWpNxe359V/ebb7cmr2fpbgiHMxzKotF1CZkGMqGiodH1LQPZS3Qf3kvCOQThhzEQe9wXIlv/DVN3q9NRNtefulzUBUBVMj3aIlJO0L68JFR4gcKkZljeJhlg=
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com (2603:10b6:5:357::14)
- by MN2PR10MB4142.namprd10.prod.outlook.com (2603:10b6:208:1d2::15) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.25.23; Fri, 22 May
- 2026 05:10:24 +0000
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574]) by CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574%6]) with mapi id 15.21.0048.016; Fri, 22 May 2026
- 05:10:24 +0000
-References: <20260408122538.3610871-15-ankur.a.arora@oracle.com>
- <20260521083038.134260-1-ankur.a.arora@oracle.com>
- <20260521144629.11ee1e2ff88c5387a589f54a@linux-foundation.org>
-User-agent: mu4e 1.4.10; emacs 27.2
-From: Ankur Arora <ankur.a.arora@oracle.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Ankur Arora <ankur.a.arora@oracle.com>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-pm@vger.kernel.org, linux-next@vger.kernel.org,
-        bpf@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com,
-        will@kernel.org, peterz@infradead.org, mark.rutland@arm.com,
-        harisokn@amazon.com, cl@gentwo.org, ast@kernel.org, rafael@kernel.org,
-        daniel.lezcano@linaro.org, memxor@gmail.com, zhenglifeng1@huawei.com,
-        xueshuai@linux.alibaba.com, rdunlap@infradead.org,
-        david.laight.linux@gmail.com, joao.m.martins@oracle.com,
-        boris.ostrovsky@oracle.com, konrad.wilk@oracle.com, ashok.bhat@arm.com,
-        Boqun Feng <boqun.feng@gmail.com>, Boqun Feng <boqun@kernel.org>,
-        "Christoph
- Lameter" <cl@linux.com>, Ingo Molnar <mingo@kernel.org>,
-        Konrad Dybcio
- <konradybcio@kernel.org>,
-        Mark Brown <broonie@kernel.org>
-Subject: Re: [PATCH v11 1/2] kunit: add tests for smp_cond_load_*_timeout()
-In-reply-to: <20260521144629.11ee1e2ff88c5387a589f54a@linux-foundation.org>
-Date: Thu, 21 May 2026 22:10:20 -0700
-Message-ID: <87h5o0ni6b.fsf@oracle.com>
-Content-Type: text/plain
-X-ClientProxiedBy: YT3PR01CA0092.CANPRD01.PROD.OUTLOOK.COM
- (2603:10b6:b01:85::8) To CO6PR10MB5409.namprd10.prod.outlook.com
- (2603:10b6:5:357::14)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 26C3539FCC7;
+	Fri, 22 May 2026 05:32:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.249.212.51
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1779427943; cv=none; b=RXVqnrhOXMdZiE59/X13xL6bmBQFIp/y5iODu/NRqtSDGE44H6LEkfxG8xeh0ouFgAc0Oz3DpTLjOujOFdnTYeuKNhlfDrdyilGfvmnzgnKnoumsHvBDdzC/+BCr2r0nNuaYb+oKz7Bo7SLpi8h0JU46jRyAolky9DdcgBRokDk=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1779427943; c=relaxed/simple;
+	bh=+34aCZD6yH0BSaGC6abhQYBNilhPnZkaNMspQ8qyKZQ=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=fEuqSsyKBgZ7tHvCf4piulztnpJa53R730o6qNZSR5QmVHt4g06amKSOUg1RmJwEgRmgNlFZOmH9VJdsl2g7sRGyuWdtmaTI+fvLd4ic00xhYwlyYu1MtOMdaNrxT4hldeGQYi6nn6gGAsmdoKPPPQoBGz0FE2NudcltGFG1BtY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=huaweicloud.com; spf=pass smtp.mailfrom=huaweicloud.com; arc=none smtp.client-ip=45.249.212.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=huaweicloud.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huaweicloud.com
+Received: from mail.maildlp.com (unknown [172.19.163.170])
+	by dggsgout11.his.huawei.com (SkyGuard) with ESMTPS id 4gMDR53W5LzYQtgb;
+	Fri, 22 May 2026 13:31:29 +0800 (CST)
+Received: from mail02.huawei.com (unknown [10.116.40.128])
+	by mail.maildlp.com (Postfix) with ESMTP id C0B614056B;
+	Fri, 22 May 2026 13:32:16 +0800 (CST)
+Received: from [10.174.179.37] (unknown [10.174.179.37])
+	by APP4 (Coremail) with SMTP id gCh0CgA3_1pY6g9qirPHDA--.53518S3;
+	Fri, 22 May 2026 13:32:12 +0800 (CST)
+Message-ID: <b7098272-a348-d918-774a-d5d2645fc7f4@huaweicloud.com>
+Date: Fri, 22 May 2026 13:32:07 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CO6PR10MB5409:EE_|MN2PR10MB4142:EE_
-X-MS-Office365-Filtering-Correlation-Id: 9242980e-427b-4fa0-5acd-08deb7c06e34
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|376014|366016|7416014|1800799024|56012099003|22082099003|18002099003|4143699003;
-X-Microsoft-Antispam-Message-Info:
-	wacHV/qgXo00u4F/kj9Z6F4kZ0B0fyROo8JmFUYP7Zf96WgZgfubDSLe7gOHnI90J6nHYJa0S5YvGhiASNahkMMXRPOiitb9lfknWon7x4cC41mBp9F08wSkLcW6RMlQP2AXLc073/xIJHRVpWB++D8B2tuoqyixIBde99hoaFu5qrJ+DVkn851bTXtYzBqRp9TGoC/ayrBafBqk4Ng2GI0PHqp2oVOjBAidg1G6D2oH8XQBspXkZ2/E2MNJQD4SXj4xohx0TjgciRNwOql5sBt1XGJsuSOVM/Fp67X5P1Rywf+pMlnMFsTSVrMuiDCwFjmrYOWYuLyxRi6g0JsIiI0nH9QjqOqTMm4TsvSFgqrZYwMYOONyH67gQWoj1JNGe+x1nhE9SQEv3ojYgxtbWOJsjr0aZD5q5DFkt4E8F280ScKxjuP0Yj6dCu0TL4q5GmYAYv0KAh78wNHIr5n1UEQazBDaPvxMRq4S15dxPtpyzISHzykK6BIYcVQ3EIIDycwA77VWO1dkMW4neWiMlkwxDbrxFaBXSZwtkNL+kQfbl2Dkh012PJ11CLsRgFy6bLGaj6T8/EdJtbJbyBFxJ9GNp0b5Ovvkd89+CWeWghx8bjOhu9qtkje4SmJYuusRMJxIMwhbihyY4nO/OAo8dPFdOdQHjZ1ZeGrWcQ/tx1McVXvdR6ZyIGIf3d63Aym9
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CO6PR10MB5409.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(376014)(366016)(7416014)(1800799024)(56012099003)(22082099003)(18002099003)(4143699003);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?jgrZspIS+p4DLJRXmxF+cGP7ByN4i3VLtMjVgDgJTMbd8ZR+liy36sj5AzXp?=
- =?us-ascii?Q?4nzyXVYg81Pl1imy2mP+XZ34siBnnLMgHVNdf1YHX5HdO+YaJ56VoAV1fH3o?=
- =?us-ascii?Q?Mdr05ma52XSaOe80itHAiwibklJ+A952bdhjZQ+dq796VSBlJGGy5kbNYwna?=
- =?us-ascii?Q?83xH9DI84oqq3Qj+H4a6Qot3CgXYKeXghkyIqjhSrCj93ztPSMS8Yf+ekAoK?=
- =?us-ascii?Q?rCY1ffT17FVhUSrdnL5+miO2CbILauPzMBTEmxrKrGKfE0l7I4dR54Pgjg2z?=
- =?us-ascii?Q?OPcElVv6UipYeHhMvfNz35WUHdlp6d2/7ZS8yrf/s7ZQrUbDiiRmfFXrtZfd?=
- =?us-ascii?Q?7knJkMz+AgcgS304iiiNV/VejmKzr7AAVpp7LNgbsY1IZ1iC+5GelG8s0mYg?=
- =?us-ascii?Q?iNo00IDnMiN88E2UgSLwkZo+1AZQPaCqi1OoGAABjStG+f8qbDySyeSfTC9K?=
- =?us-ascii?Q?bthqXfOdKs1JV16JxnvAnYvrYhUlowLOV4xDLmbUiKqJ1J0EV3SnqoZYWGoD?=
- =?us-ascii?Q?sgnf0SNhFvYeZu3wpv1D/jZ61hrgDJaSiEAQjlIbH1aGBOVtRY5KUeAbU/H7?=
- =?us-ascii?Q?v9VLxOxexf8AcaL51/mCWQsWPuS+vFKasfMqI8hSKyT6u8eigW5wXuHryWck?=
- =?us-ascii?Q?aDTvA48ZYyNZBj44MNSNP6EtDYTd4jFt222tofecuibENLQ1uJrE1ZYiuWbM?=
- =?us-ascii?Q?q1W2/qW/BCyHIQ/mGrr7rO598z7DzWmcPKFRAjBMA6ANM97DanQcB8LsVpWk?=
- =?us-ascii?Q?ScMzvWxzIyLIh/xAxTYo0hAdvOYHf9lLFJySkmpC9/txNjuoZHsywt1wEiIf?=
- =?us-ascii?Q?8Zf3KjMWx/hQF7H2TzZJMrYuyMRztyyd31EDH4pQ3yivc7RtEnNBZp/hLGkP?=
- =?us-ascii?Q?7e0c3jHRjj3dY6Vr0xIO4dN9F29QMpgK69mRq+BSQ9NuU/7cRMr3HTzfz7Ep?=
- =?us-ascii?Q?Z+ynGJteq5UZwLda8No+21vv4zMD8loesPL8DETSCuJEnDuOd8EKlzkDfPcO?=
- =?us-ascii?Q?bg+dWXRBYg1Ug4tMOIW7yZTlNIMTTIuCyoOh+VUmLR2WOW8JMNVIxHb/hOxi?=
- =?us-ascii?Q?CG+kFVV/Gw2vYJ/8MJFdP9XHN4TeTV4mVNceYbQ2YG6FCUIrct6AF4LHwrCa?=
- =?us-ascii?Q?zeZUi9orMdKAi/u7eQhUrDvJizQz5TsWu7CPQZ08zu3uy3TVJ1u5dNJUEjw6?=
- =?us-ascii?Q?KWFE417GuycIR0C3fa5+SSiVp6+dsfyE+vPqSJttqjM8zsyAFkFNQl2WzIbc?=
- =?us-ascii?Q?0Ptk/UYNe5tBgFyA1Aq23GJRkOJ4hZboB1VtqpgziotNRdwPycsWoWWCqU83?=
- =?us-ascii?Q?rHqr643tjvpfkQJNXEZuFbS+ffScd+MblGjDZr7mngobSzi5bZs5UZYtcXmn?=
- =?us-ascii?Q?r1yTVL3rSPvYydxRbatGmngI2f1UkrCE8KM5OY7MephQLqOndRFRXAEx80Tm?=
- =?us-ascii?Q?3PPKomQeW2+igtfSxMWrN9YRxTcRWDFf8FBbAHY92W5bdKdhCQbz7ANThXhp?=
- =?us-ascii?Q?y7q9/2Kg3wwqgs8BgjkqI164TfCCRkWolxWNA4FNDD06j19+2TfREKFH0Ydz?=
- =?us-ascii?Q?NsqaC3zmclYlhfua6HXI9z5Hi5wuS/hKtnmI60prwdv9boNzEic6cASTXlhN?=
- =?us-ascii?Q?2Yo/bH1N48vplHxx05hyB+8+hD8ZH1aECubTuKkk4Z9zHQC/7CWizSjoFW98?=
- =?us-ascii?Q?i8l4QypTs+aDJqcqU1qQ+mmAy8jI5Afotmb+fypHBdV09o9BLPpPks4RflKd?=
- =?us-ascii?Q?purx1Av04pGv19ZNUm0FLeFju2C7Ex0=3D?=
-X-Exchange-RoutingPolicyChecked:
-	qMyIFOKhx0oZ3GZ8rr9idS8AyEH5Bm2QGtb7Uo9gZP3oh+ATgISd5DnFLsymXti3EHaOSV99JyqE1ll9zJIogQ5EM1q1HEy0pR9TRGz4JMNDzpJQsxUz0Q7QtZEOqYPo2WuD40EKVld3x72IZZD+LPt1onY1H0yWyzkP3heq/ugldI2LccAK90N8hTmOVisPQBuRQ2GjMkiKf8zBnLm+TMHiOl0QWMx27vhx6meSfWn9qaBNIF7H2iGxUKbctR7tZ3a+CK/lTTAsnMumraE2oxixJv5N0g5NSnnSgAk3U3qjEIflw0Ae29jzJW2QSbhNZkp+rWGRJQ7lHUM+UASV2g==
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	1PH7W0Bg+fkQvB5KkFapNj4PDhksgyxn0T90Gq9MHSDvzjOpwYEPjsELJJ71k4y424BXtykhOZFgXvWA5YkO/pg1s3cHlxBpi6/01tIk5SB5+4H6CjChXWsoI7Tj3nq4awVVfsdmcVmurVGpX58uCNs1XBtYWeOYR+0YUD/Sx8A3Qvi71E4AJ4THZAvnMMjHxYGtxpnmOCQzusOGLFPsfMWmK9p3Uy/dCaifJYcizny7898dvG667MYfdxW0JEeDUeoP63lW/r+cK/QwDK6TcJXD34qczmWZ1vDyD+SfraGsgYxSRbuLipv3vRZqbOeEAd55Mx13oZiq45ia0n5MN87eYGocV0ArwFhWcUjfWiZs18w+HATppfC2OVcTCFRgSr47qCbrjJ08EwrleGUM+HQQj/QwOBNYhxcBOT4kpnwL9WvSazqMKSvOgxIk6CdaSfjiynIXpXcFbcs6IYxrzcexgz/csIt/drBp4npNK3fgBEIwb3Nsv05EwXTkle2T+/XjlnBA7CvLd6p6/uAbzlqcNSpovwyDYqbBM2D154djjXc6z/Zg6DUrKQB4ickDTyBL2fU94Wlqmlt7hcZFLoXanCSUMEl1Yu1exC1YzjM=
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 9242980e-427b-4fa0-5acd-08deb7c06e34
-X-MS-Exchange-CrossTenant-AuthSource: CO6PR10MB5409.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 22 May 2026 05:10:24.5597
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: XMJXL5tzPY9RUjs22P2FoZYApcqWgIslAO9KloYeunFl1P9UL2IcROFntViimR9SJEFE49YIdie7eeLoHjf3GWsH63FGBFsEzc1VaOIXQIA=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: MN2PR10MB4142
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.51,FMLib:17.12.100.49
- definitions=2026-05-22_01,2026-05-18_01,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0
- bulkscore=0 phishscore=0 spamscore=0 suspectscore=0 mlxlogscore=999
- adultscore=0 lowpriorityscore=0 mlxscore=0 classifier=spam adjust=0
- reason=mlx scancount=1 engine=8.19.0-2605130000 definitions=main-2605220048
-X-Authority-Analysis: v=2.4 cv=NdnWEWD4 c=1 sm=1 tr=0 ts=6a0fe545 b=1 cx=c_pps
- a=zPCbziy225d3KhSqZt3L1A==:117 a=zPCbziy225d3KhSqZt3L1A==:17
- a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
- a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=xqWC_Br6kY4A:10 a=NGcC8JguVDcA:10
- a=GoEa3M9JfhUA:10 a=VkNPw1HP01LnGYTKEx00:22 a=jiCTI4zE5U7BLdzWsZGv:22
- a=7Gl3-_t3PgB9XO-mQDs3:22 a=Z4Rwk6OoAAAA:8 a=yPCof4ZbAAAA:8
- a=0Wl35Ixz0fAfV_QcqfoA:9 a=HkZW87K1Qel5hWWM3VKY:22 a=5yU3S35YU4bGjq-dph-N:22
- a=Bho9c0fBagfJEIQBS7DQ:22 cc=ntf awl=host:12298
-X-Proofpoint-GUID: -tBC2nFyeUYxsI2P2I0SeuZ5yKwV6BE1
-X-Proofpoint-ORIG-GUID: -tBC2nFyeUYxsI2P2I0SeuZ5yKwV6BE1
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNTIyMDA0OCBTYWx0ZWRfX6Ch1Dx5L4qhK
- TNN46c3WbTLWz9Wz+uPa2iREy3LLXDjy3g/dP+KNx6IvSXAE5EoBoS97i5aPt6PnxZMxGY0fIbg
- yvMGDzr7ETHbqqq2DSbyMc2ABm8M4Mn/V0l+CT78ujkRCBU2xmvCj2u/RUl3w/kZuCNTNOrLc1T
- /N+qYVorV9OXwQtaG2A8OQ1xiBCMtxUyR2yQ38mC0qBPxujYyS9Vj6SjBijNy0vlt9bOROoUTgC
- zSXaKagq+WtG+Rz9qcufeIsFkA8ARm8dNzNuvrfPvhd+oMr3ZWjSG5jd+WoR2toz6D45WRwEuUs
- 4QJCLTn3E1rs1PUFtJF7JAvlJwDneMU2jbzYOnRaojDgdLOqaEWCXnctHpzH1lRBF2F0nWLyJke
- gY3V8noW3BocWV+4C/4EQyZM7/IYlCKq96x+BaeaZR1lOBGRFe8IL0iQJOR8ixOu+rNoKWlGWCP
- qFZMFDNcoiQ5pkRsGbCajEkqCZWAyZVw7v33lgOU=
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
+ Thunderbird/102.11.0
+Subject: Re: [PATCH] arm64: tlb: Flush walk cache when unsharing PMD tables
+Content-Language: en-US
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: yezhenyu2@huawei.com, zhurui3@huawei.com, will@kernel.org,
+ akpm@linux-foundation.org, npiggin@gmail.com, aneesh.kumar@kernel.org,
+ peterz@infradead.org, linux-kernel@vger.kernel.org,
+ wangkefeng.wang@huawei.com, linux-arm-kernel@lists.infradead.org,
+ linux-mm@kvack.org, linux-arch@vger.kernel.org,
+ David Hildenbrand <david@kernel.org>, zengheng4@huawei.com
+References: <20260521073011.4121277-1-zengheng@huaweicloud.com>
+ <ag8fHYL-S26uO0yZ@arm.com> <ag8hmZ3kjtJINyIT@arm.com>
+From: Zeng Heng <zengheng@huaweicloud.com>
+In-Reply-To: <ag8hmZ3kjtJINyIT@arm.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+X-CM-TRANSID:gCh0CgA3_1pY6g9qirPHDA--.53518S3
+X-Coremail-Antispam: 1UD129KBjvJXoWxWry3Cry3ZFWxCryrGryUZFb_yoWrWw13pa
+	43CF9xtFZYgryUA340qw48JFyaya1DJw4Uury8ua4FvFnFvr1vgF4vyryF9F95ArW8Gr4f
+	WFWj9F17ZFWjvaUanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDU0xBIdaVrnRJUUU9Ib4IE77IF4wAFF20E14v26r4j6ryUM7CY07I20VC2zVCF04k2
+	6cxKx2IYs7xG6r1F6r1fM7CIcVAFz4kK6r1j6r18M28lY4IEw2IIxxk0rwA2F7IY1VAKz4
+	vEj48ve4kI8wA2z4x0Y4vE2Ix0cI8IcVAFwI0_tr0E3s1l84ACjcxK6xIIjxv20xvEc7Cj
+	xVAFwI0_Gr1j6F4UJwA2z4x0Y4vEx4A2jsIE14v26rxl6s0DM28EF7xvwVC2z280aVCY1x
+	0267AKxVW0oVCq3wAS0I0E0xvYzxvE52x082IY62kv0487Mc02F40EFcxC0VAKzVAqx4xG
+	6I80ewAv7VC0I7IYx2IY67AKxVWUJVWUGwAv7VC2z280aVAFwI0_Jr0_Gr1lOx8S6xCaFV
+	Cjc4AY6r1j6r4UM4x0Y48IcVAKI48JM4IIrI8v6xkF7I0E8cxan2IY04v7Mxk0xIA0c2IE
+	e2xFo4CEbIxvr21lc7CjxVAaw2AFwI0_Jw0_GFyl42xK82IYc2Ij64vIr41l4I8I3I0E4I
+	kC6x0Yz7v_Jr0_Gr1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWU
+	WwC2zVAF1VAY17CE14v26r1q6r43MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_Jr
+	0_JF4lIxAIcVC0I7IYx2IY6xkF7I0E14v26r4j6F4UMIIF0xvE42xK8VAvwI8IcIk0rVWU
+	JVWUCwCI42IY6I8E87Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJb
+	IYCTnIWIevJa73UjIFyTuYvjxUF1v3UUUUU
+X-CM-SenderInfo: p2hqwxhhqjqx5xdzvxpfor3voofrz/
 
 
-Andrew Morton <akpm@linux-foundation.org> writes:
 
-> On Thu, 21 May 2026 01:30:37 -0700 Ankur Arora <ankur.a.arora@oracle.com> wrote:
->
->> Add success and failure case tests for smp_cond_load_*_timeout().
+On 2026/5/21 23:15, Catalin Marinas wrote:
+> On Thu, May 21, 2026 at 04:05:07PM +0100, Catalin Marinas wrote:
+>> + David H.
 >>
->> All of the test cases wait on some state in smp_cond_load_*_timeout().
->> In the success case we spawn a kthread that pokes the bit.
+>> On Thu, May 21, 2026 at 03:30:11PM +0800, Zeng Heng wrote:
+>>> From: Zeng Heng <zengheng4@huawei.com>
+>>>
+>>> When huge_pmd_unshare() is called to unshare a PMD table, the
+>>> tlb_unshare_pmd_ptdesc() function sets tlb->unshared_tables=true
+>>> but the aarch64 tlb_flush() only checked tlb->freed_tables to
+>>> determine whether to use TLBF_NONE (vae1is, invalidates walk
+>>> cache) or TLBF_NOWALKCACHE (vale1is, leaf-only).
+>>>
+>>> This caused the stale PMD page table entry to remain in the walk cache
+>>> after unshare, potentially leading to incorrect page table walks.
+>>>
+>>> Fix by including unshared_tables in the check, so that when
+>>> unsharing tables, TLBF_NONE is used and the walk cache is properly
+>>> invalidated.
+>>>
+>>> Here is the detailed distinction between vae1is and vale1is:
+>>>
+>>> | Instruction Combination  | Actual Invalidation Scope                         |
+>>> | ------------------------ | --------------------------------------------------|
+>>> | `VAE1IS`  + TTL=`0`      | All entries at all levels (full invalidation)     |
+>>> | `VAE1IS`  + TTL=`2` (L2) | Non-leaf at Level 0/1 + leaf at Level 2           |
+>>> | `VALE1IS` + TTL=`0`      | Leaf entries at all levels (non-leaf not cleared) |
+>>> | `VALE1IS` + TTL=`2` (L2) | Leaf entry at Level 2 only                        |
+>>>
+>>> Signed-off-by: Zeng Heng <zengheng4@huawei.com>
+>> The fix looks fine but does it need:
 >>
->> Success or failure cases depend on the expected bit being set (or not).
->> Additionally in failure cases smp_cond_load_*_timeout() cannot return
->> before timeout.
->
-> Your title "kunit: ..." implies that this is a kunit patchset.  ie, and
-> to my mind, this implies that the patchset makes changes to kunit
-> infrastructure.  This isn't the case, of course.
-
-Aah yes. I did miss that.
-
->> ...
+>> Fixes: 8ce720d5bd91 ("mm/hugetlb: fix excessive IPI broadcasts when unsharing PMD tables using mmu_gather")
+>> Cc: <stable@vger.kernel.org>
 >>
->> +config BARRIER_TIMEOUT_TEST
->> +	tristate "KUnit tests for smp_cond_load_relaxed_timeout()"
+>>> ---
+>>>   arch/arm64/include/asm/tlb.h | 3 ++-
+>>>   1 file changed, 2 insertions(+), 1 deletion(-)
+>>>
+>>> diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+>>> index 10869d7731b8..751bd57bc3ba 100644
+>>> --- a/arch/arm64/include/asm/tlb.h
+>>> +++ b/arch/arm64/include/asm/tlb.h
+>>> @@ -53,7 +53,8 @@ static inline int tlb_get_level(struct mmu_gather *tlb)
+>>>   static inline void tlb_flush(struct mmu_gather *tlb)
+>>>   {
+>>>   	struct vm_area_struct vma = TLB_FLUSH_VMA(tlb->mm, 0);
+>>> -	tlbf_t flags = tlb->freed_tables ? TLBF_NONE : TLBF_NOWALKCACHE;
+>>> +	tlbf_t flags = (tlb->freed_tables || tlb->unshared_tables) ?
+>>> +			TLBF_NONE : TLBF_NOWALKCACHE;
+>>>   	unsigned long stride = tlb_get_unmap_size(tlb);
+>>>   	int tlb_level = tlb_get_level(tlb);
+> Do we need this as well?
+
+The proposed fix has been validated against the issue scenarios and
+works as expected.
+
+Per the ARM Architecture Reference Manual, whether only the last-level
+page table entry is invalidated is determined by the instruction used
+(vale1is for leaf entry only, vae1is for walk cache including leaf entry 
+and
+non-leaf entry), rather than the TTL field. The TTL field merely specifies
+which level the leaf entry belongs to.
+
+Setting TTL to 0 always works fine, however, hardware must assume that
+the entry can be from any level.[1][2]
+
+
+[1]: vae1is instruction introduction by ARM spec,
+https://developer.arm.com/documentation/ddi0601/2026-03/AArch64-Instructions/TLBI-VAE1IS--TLBI-VAE1ISNXS--TLB-Invalidate-by-VA--EL1--Inner-Shareable
+[2]: rvae1is instruction introduction by ARM spec,
+https://developer.arm.com/documentation/ddi0601/2026-03/AArch64-Instructions/TLBI-RVAE1IS--TLBI-RVAE1ISNXS--TLB-Range-Invalidate-by-VA--EL1--Inner-Shareable?lang=en
+
+
+Best regards,
+Zeng Heng
+
+
 >
-> The patchset which attempted to add smp_cond_load_relaxed_timeout() was
-> titled "barrier: ...", which is a more appropriate identifier for this
-> patchset.
->
-> Anyway, I removed the series "barrier: Add
-> smp_cond_load_{relaxed,acquire}_timeout()" from mm.git on May 19 for
-> forgotten reasons.  So I suggest that the series be respun and resent,
-> with these two test patches included.
+> diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+> index 10869d7731b8..3f4ab38cfd6e 100644
+> --- a/arch/arm64/include/asm/tlb.h
+> +++ b/arch/arm64/include/asm/tlb.h
+> @@ -24,7 +24,7 @@ static void tlb_flush(struct mmu_gather *tlb);
+>   static inline int tlb_get_level(struct mmu_gather *tlb)
+>   {
+>   	/* The TTL field is only valid for the leaf entry. */
+> -	if (tlb->freed_tables)
+> +	if (tlb->freed_tables || tlb->unshared_tables)
+>   		return TLBI_TTL_UNKNOWN;
+>   
+>   	if (tlb->cleared_ptes && !(tlb->cleared_pmds ||
 
-Will do.
-
-> Again, I'm really not the guy to be handling these patches.  But a 4-6%
-> performance improvement in real world workloads is not to be ignored.
->
-> Not by me, anyway.
-
-:).
-
-Thanks
---
-ankur
