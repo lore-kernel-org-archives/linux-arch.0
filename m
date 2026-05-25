@@ -1,103 +1,151 @@
-Received: from dggsgout11.his.huawei.com (dggsgout11.his.huawei.com [45.249.212.51])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f47.google.com (mail-wr1-f47.google.com [209.85.221.47])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D0B6B23E325;
-	Mon, 25 May 2026 09:20:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.249.212.51
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AFA0E39A80E
+	for <linux-arch@vger.kernel.org>; Mon, 25 May 2026 09:24:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779700827; cv=none; b=bAyw6DzWXMgsDyir/X7WItrZjqud2tiS7gI4l0uYVCyojD2Um3AFXvSDKUXx82rtOUdkrpj3tflSpevONsvmY9STymaFc4hIRtBfPzVjEFh+rZLBXArT1us3oHdVxbOgS99XJO6D9iBxChR2q2dSFfIUdNXSXzjKGRZ5ayD+v34=
+	t=1779701087; cv=none; b=Oy3mV/ezmEl56c7oGhgZk0C7i+qc5k/G0d5hqdVOrGD69DRCJKZAUa57f2uVsScaJymhl920D34bF2Qmj+5w2zgGUNgsJPuGyH7pdg38hRo2tGvd6+0o+BVhzQGXTZRv64kQtHvDH8tfb14OcQdP1IgeKmfnR+wQA8BRSHoi4Ok=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779700827; c=relaxed/simple;
-	bh=wHwa05q3X0M7pHuwoK/fW6VsqGUz/U6qLAauhlJxAbw=;
+	s=arc-20240116; t=1779701087; c=relaxed/simple;
+	bh=Usv9zpYi4do2lifC/zfE8nnMvp61yptX2XkYnVZEyU4=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=golXmYcJF7Y11schphPcRofJq4Rmi8BhJ/d1F9dCIk4zS0tvV+QiFRiecZ5RAminMF4qjvHo2Ocd/B3Jl66UqtJNsS4FZ689hJoyJ5skIEGlPkrPEu9QdpRMsmaMRN6Q/yO7PTPbX6RSwIKI86mKL7aSO4k/zTkbHqmq6dQjvC8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=huaweicloud.com; spf=pass smtp.mailfrom=huaweicloud.com; arc=none smtp.client-ip=45.249.212.51
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=huaweicloud.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huaweicloud.com
-Received: from mail.maildlp.com (unknown [172.19.163.170])
-	by dggsgout11.his.huawei.com (SkyGuard) with ESMTPS id 4gP9Lk3hZzzYQttb;
-	Mon, 25 May 2026 17:19:26 +0800 (CST)
-Received: from mail02.huawei.com (unknown [10.116.40.128])
-	by mail.maildlp.com (Postfix) with ESMTP id 3349E4056E;
-	Mon, 25 May 2026 17:20:19 +0800 (CST)
-Received: from [10.174.179.37] (unknown [10.174.179.37])
-	by APP4 (Coremail) with SMTP id gCh0CgCXX1tOFBRqJtpJDg--.2213S3;
-	Mon, 25 May 2026 17:20:16 +0800 (CST)
-Message-ID: <f5b7460a-5719-bdb2-c53b-413468857f57@huaweicloud.com>
-Date: Mon, 25 May 2026 17:20:14 +0800
+	 In-Reply-To:Content-Type; b=stlage9Z5Izs9DmW8WnFljikg1kClaYVBYreZhxmNep0hNiNkweccbyg1HsIfpzvfZGMT1+wrYRgrzDsa4ukscpnprhEeRTGrcrF1ajCK+pcLujOiG1zP96211u99wiC8vywEliV9zRl5FBWEYSqGK2xI+DDtn/w9cwGU4AerV0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=GVaBy0+a; arc=none smtp.client-ip=209.85.221.47
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="GVaBy0+a"
+Received: by mail-wr1-f47.google.com with SMTP id ffacd0b85a97d-43fe62837baso5446165f8f.3
+        for <linux-arch@vger.kernel.org>; Mon, 25 May 2026 02:24:45 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1779701084; x=1780305884; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=dXIop8scfYA59+iIi8F9PKH/sL+IWlJPcxqiOfC7myM=;
+        b=GVaBy0+al/3PPx4qotsRTWKFITYfcIsLX9GnH91MlkDd+F5uUyBXskAyv9Z+pCrPbp
+         WsDIheZgEkK4oIMUK+xU7hqwaFWEHTVZJxlo8H8wmZUBeKl/o6HlBWVJNBgSM3W++joU
+         NG+qE3LCcnk5lpC7jDWvC0IQDSwFd/DadFbl16wYuLEOodshw/HKzOkOvW5lEeocAFUg
+         y7Sb3MT64pW6sAdB3RrntmfgvGfIk1XdXsKfLTaENamM9bhWXZqdnTi/+4JisqaoWayR
+         UpKJz3Ldt2uzmzN/WA0ALeDIbB4w76qzkmYffZnHX6wiWMbVjCZT66HWlhjBoZ166Nju
+         qlfg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1779701084; x=1780305884;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=dXIop8scfYA59+iIi8F9PKH/sL+IWlJPcxqiOfC7myM=;
+        b=XALbewbYXuklHuQnFGhlMFqKHG6pBIhpRof/tPG2a5u0e8ZB06OsC2RsYYXkKHk2j0
+         V9vqFR8ar/JFmSuJdXhFZR9xg1bZ0//ESJBxEIkALCXXblKIBOZ7xG5WWetQ70dyZwRN
+         CeabU7z/3/wt5hF2XbUXMmx63+W4cT9OuTBA/ZZppWZI53mTtqw511bhFva/8+v0bnIh
+         bnBP0MU2fPqaLrRGvFVdriIwyNRXdyIv2issCxY+8ngPDJ7pDF4fwDgyjv9z8RAoHHRq
+         YK2PRPS3lnVaZDpECRGDbs+DAhPkQVWL/pkTaBgRc0HWE17f2308djYChmnCBkeQrKDQ
+         ISfw==
+X-Forwarded-Encrypted: i=1; AFNElJ8ozpOsL5cYMqEgpTg7J3pB6uEYNnusGdaN9omG7e2mn2IUuevmOiYdY3TyvRV+ArhPlEYo4449YrPX@vger.kernel.org
+X-Gm-Message-State: AOJu0Yw8dafPQ7V27ZlAbXxEsYzc0XK0G7BZal4iZc3onngPTShJIvID
+	/05aApn30SUZb1YvmllYQ2qCfBhkFW2c3PIUfoIzumprT5k/bqMYqdQYj2slzzJkHM8=
+X-Gm-Gg: Acq92OH1NxUgzQtFCufCooKv/fKrzMrKBM1h89ho5KS1Eb6wz1DofhxjCz0xHq4EHFC
+	VRvKaDP9b+gQX21B9Yu/0RuxvlJT+UXrISIcGFRN6RyHGTqR9gcDgu/JbYh7jjxvTNZzyNk537G
+	ZxANJNZI6GH2Ivd46tyIdDHLuqEIAFeafb9IFbvxUEdzTpL16oIOhbYTBkjRUmK2vRizFiFi+LP
+	4HpxIv88KbuNNUdnkdbUewdX7ptvoyXAeSi+RDK1u/gwu//JavAtAegb/pEF9d5ZAT0TX0hDa6R
+	wYI3alWr1Pi1i0548jsErW9B/wDl43ADMmKOgFxsbHzLym/vZxjDrNCHjH9lal0u/m7F1VSA9/F
+	DGckIiIgPWP2RRSdHOPldDrw4zx/IYH7XCC4p0mAg3jGOBaTPs63PburyGHym2zBm7L/YqzpD3p
+	4RchgXjowGJewzzP0wSvaJ03lsV8lSmkavNPXkHS/zUv1FsB7YHxxGV8k6WyuaOdgMrEIN4WBmA
+	lRFjwbjtvskeCnfQh/GPbSDsMHU2xWk8GCgUK7ajvty2EVVPHhKB1W+sGGwiPAJ/JLMkA==
+X-Received: by 2002:a05:6000:4b04:b0:45e:9420:ed16 with SMTP id ffacd0b85a97d-45eb38b0045mr22939460f8f.10.1779701084065;
+        Mon, 25 May 2026 02:24:44 -0700 (PDT)
+Received: from ?IPV6:2a00:1028:838d:271e:8e3b:4aff:fe4c:a100? (dynamic-2a00-1028-838d-271e-8e3b-4aff-fe4c-a100.ipv6.o2.cz. [2a00:1028:838d:271e:8e3b:4aff:fe4c:a100])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-45eb6c9f598sm26426853f8f.6.2026.05.25.02.24.43
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 25 May 2026 02:24:43 -0700 (PDT)
+Message-ID: <ba0135a1-f03b-433f-96d0-39665bca1557@suse.com>
+Date: Mon, 25 May 2026 11:24:42 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
- Thunderbird/102.11.0
-Subject: Re: [PATCH] arm64: tlb: Flush walk cache when unsharing PMD tables
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 19/24] dyndbg,module: make proper substructs in
+ _ddebug_info
+To: Jim Cromie <jim.cromie@gmail.com>
+Cc: Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>,
+ Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>,
+ Luis Chamberlain <mcgrof@kernel.org>, Daniel Gomez <da.gomez@kernel.org>,
+ Sami Tolvanen <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>,
+ Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuah@kernel.org>,
+ linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+ linux-kselftest@vger.kernel.org, Louis Chauvet <louis.chauvet@bootlin.com>
+References: <20260523-dd-maint-2-v2-0-b937312aa083@gmail.com>
+ <20260523-dd-maint-2-v2-19-b937312aa083@gmail.com>
 Content-Language: en-US
-To: Catalin Marinas <catalin.marinas@arm.com>, will@kernel.org,
- akpm@linux-foundation.org, npiggin@gmail.com, aneesh.kumar@kernel.org,
- peterz@infradead.org
-Cc: linux-kernel@vger.kernel.org, wangkefeng.wang@huawei.com,
- linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org,
- linux-arch@vger.kernel.org, zengheng4@huawei.com, sunnanyong@huawei.com,
- blingxue@tencent.com
-References: <20260521073011.4121277-1-zengheng@huaweicloud.com>
- <177944657885.252010.9796978866224637120.b4-ty@arm.com>
-From: Zeng Heng <zengheng@huaweicloud.com>
-In-Reply-To: <177944657885.252010.9796978866224637120.b4-ty@arm.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260523-dd-maint-2-v2-19-b937312aa083@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-X-CM-TRANSID:gCh0CgCXX1tOFBRqJtpJDg--.2213S3
-X-Coremail-Antispam: 1UD129KBjvdXoWrury7ur13Cr4kKFyUJw1fJFb_yoWDKrX_XF
-	WDA34Duws8Jw4UGa9IyrsrJr9Yga1jqF98Ar15ZayfAF9xXa93JrZ2gw4fCa15WaykWFZ2
-	kwn5Z3Wagr4IkjkaLaAFLSUrUUUUjb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
-	9fnUUIcSsGvfJTRUUUba8YFVCjjxCrM7AC8VAFwI0_Gr0_Xr1l1xkIjI8I6I8E6xAIw20E
-	Y4v20xvaj40_JFC_Wr1l1IIY67AEw4v_Jr0_Jr4l8cAvFVAK0II2c7xJM28CjxkF64kEwV
-	A0rcxSw2x7M28EF7xvwVC0I7IYx2IY67AKxVW7JVWDJwA2z4x0Y4vE2Ix0cI8IcVCY1x02
-	67AKxVWxJVW8Jr1l84ACjcxK6I8E87Iv67AKxVW0oVCq3wA2z4x0Y4vEx4A2jsIEc7CjxV
-	AFwI0_GcCE3s1le2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2
-	j2WlYx0E2Ix0cI8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r1j6r4UMcvjeVCFs4IE7x
-	kEbVWUJVW8JwACjcxG0xvEwIxGrwACI402YVCY1x02628vn2kIc2xKxwCYjI0SjxkI62AI
-	1cAE67vIY487MxkF7I0En4kS14v26r1q6r43MxAIw28IcxkI7VAKI48JMxC20s026xCaFV
-	Cjc4AY6r1j6r4UMI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWl
-	x4CE17CEb7AF67AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26r1j6r
-	1xMIIF0xvE2Ix0cI8IcVCY1x0267AKxVW8JVWxJwCI42IY6xAIw20EY4v20xvaj40_Jr0_
-	JF4lIxAIcVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267AKxVW8JVW8JrUvcS
-	sGvfC2KfnxnUUI43ZEXa7IU17KsUUUUUU==
-X-CM-SenderInfo: p2hqwxhhqjqx5xdzvxpfor3voofrz/
 
-Hi Catalin,
+On 5/23/26 9:14 AM, Jim Cromie wrote:
+> recompose struct _ddebug_info, inserting proper sub-structs.
+> 
+> The struct _ddebug_info has 2 pairs of _vec, num_##_vec fields, for
+> descs and classes respectively.  for_subvec() makes walking these
+> vectors less cumbersome, now lets move those field pairs into their
+> own "vec" structs: _ddebug_descs & _ddebug_class_maps, and re-compose
+> struct _ddebug_info to contain them cleanly.  This also lets us get
+> rid of for_subvec()'s num_##_vec paste-up.
+> 
+> Also recompose struct ddebug_table to contain a _ddebug_info.  This
+> reinforces its use as a cursor into relevant data for a builtin
+> module, and access to the full _ddebug state for modules.
+> 
+> NOTES:
+> 
+> Fixup names: Normalize all struct names to "struct _ddebug_*"
+> eliminating the minor/stupid variations created in classmaps-v1.
+> 
+> Invariant: These vectors ref a contiguous subrange of __section memory
+> in builtin/DATA or in loadable modules via mod->dyndbg_info; with
+> guaranteed life-time for us.
+> 
+> struct module contains a _ddebug_info field and module/main.c sets it
+> up, so that gets adjusted rather obviously.
+> 
+> Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+> Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
+> ---
+> [...]
+> diff --git a/kernel/module/main.c b/kernel/module/main.c
+> index 46dd8d25a605..c2b6e70f2e77 100644
+> --- a/kernel/module/main.c
+> +++ b/kernel/module/main.c
+> @@ -2774,12 +2774,12 @@ static int find_module_sections(struct module *mod, struct load_info *info)
+>  		pr_warn("%s: Ignoring obsolete parameters\n", mod->name);
+>  
+>  #ifdef CONFIG_DYNAMIC_DEBUG_CORE
+> -	mod->dyndbg_info.descs = section_objs(info, "__dyndbg",
+> -					      sizeof(*mod->dyndbg_info.descs),
+> -					      &mod->dyndbg_info.num_descs);
+> -	mod->dyndbg_info.classes = section_objs(info, "__dyndbg_classes",
+> -						sizeof(*mod->dyndbg_info.classes),
+> -						&mod->dyndbg_info.num_classes);
+> +	mod->dyndbg_info.descs.start = section_objs(info, "__dyndbg_descriptors",
+> +						    sizeof(*mod->dyndbg_info.descs.start),
+> +						    &mod->dyndbg_info.descs.len);
+> +	mod->dyndbg_info.maps.start = section_objs(info, "__dyndbg_class_maps",
+> +						   sizeof(*mod->dyndbg_info.maps.start),
+> +						   &mod->dyndbg_info.maps.len);
+>  #endif
+>  
+>  	return 0;
 
+The update changes the names of dyndbg sections that the module loader
+looks up. However, the actual rename is not done until patch 24. It
+would be good to clean this up to avoid potential bisection issues.
 
-On 2026/5/22 18:42, Catalin Marinas wrote:
-> On Thu, 21 May 2026 15:30:11 +0800, Zeng Heng wrote:
->> When huge_pmd_unshare() is called to unshare a PMD table, the
->> tlb_unshare_pmd_ptdesc() function sets tlb->unshared_tables=true
->> but the aarch64 tlb_flush() only checked tlb->freed_tables to
->> determine whether to use TLBF_NONE (vae1is, invalidates walk
->> cache) or TLBF_NOWALKCACHE (vale1is, leaf-only).
->>
->> This caused the stale PMD page table entry to remain in the walk cache
->> after unshare, potentially leading to incorrect page table walks.
->>
->> [...]
-> Applied to arm64 (for-next/fixes), thanks!
->
-> [1/1] arm64: tlb: Flush walk cache when unsharing PMD tables
->        https://git.kernel.org/arm64/c/c2ff4764e03e
-
-This original issue was reported by our customer, who also participated
-in the root cause analysis and resolution.
-
-Could you please help add the below tags:
-
-Co-developed-by: Xue Xiaowei <blingxue@tencent.com>
-Signed-off-by: Xue Xiaowei <blingxue@tencent.com>
-
-Thank you in advance.
-
-
-Best regards,
-Zeng Heng
-
+-- 
+Thanks,
+Petr
