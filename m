@@ -1,127 +1,108 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.12])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f171.google.com (mail-pl1-f171.google.com [209.85.214.171])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BECBC37FF5F;
-	Mon, 25 May 2026 11:44:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.12
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BFEA614E2F2
+	for <linux-arch@vger.kernel.org>; Mon, 25 May 2026 13:07:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.171
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779709443; cv=none; b=dt8J6IeK/RU0u7tlh2HWTzie6N/5Ktxdc9q6hO+v1zof3bFtHbiJRtzHc91GBhBhyvHP1us78zlf1aTHunrCIlRUwD8teUBf/M4yBYaIHNDbRwMrR+h0f3SwVyIN88TSDb6EYtaH7+HAGz8G/Kq8fRxV80EvbGkIbRwLqN7vJZg=
+	t=1779714424; cv=none; b=lTLMCWUD4fFyOyXl12SNmTUCiUwiQH5c03wNFhv+pZM7D7qKosSFuxN+loLpCBJMxxC/cJ21YEMVUd58wcrHTlwpGlNS80oE5t6v42FPmMaKHRCmP9hnJj7yWhgLC6G7QW7mlCtdFclhWJ94u+0Nrrp6yQMnXFMVBfTFG6bz6jk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779709443; c=relaxed/simple;
-	bh=WecPQJfCrErCiVESIdsqsyUdYnPBMpehDox7J972gPE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=a+xQ77G3qaYTVU+gDfEe/vJRBxuC8zBiimQ0pv8DUTULHicaVj5OXKASo2mjGzLFnm951nKN/ete7qmJhs9c3HI4+2C3pu09/mEGXvxknwZbzWLAtYUe9sL8ZjBFd9oRAYP47+WmShoIXf+zbMgcanVxWXXMM3UlTaKryWBj0SQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=NWJaSFdA; arc=none smtp.client-ip=192.198.163.12
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1779714424; c=relaxed/simple;
+	bh=8zGagWSJMx0s2KNlByt4w+wFeH+942Vp1v2W6vlrFCM=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=NLuyyAYXhBaN4tUGaLZZvxf1RNa5x8pt7vn3/CS5a4onm41OtFQQvrrCqzWF2N+NSmgMdcg+pLynJCIrl/bRORhxrJMPrlAnR+5fcHqyrS/DcVPmQJVRRkz07q2zvwnFL2Om9LWnf4+WE2DB1z/yLJlY/3jR0JGm8aVgl3RUl1Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Hi/NyxIG; arc=none smtp.client-ip=209.85.214.171
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="NWJaSFdA"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1779709441; x=1811245441;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=WecPQJfCrErCiVESIdsqsyUdYnPBMpehDox7J972gPE=;
-  b=NWJaSFdAnfztwyxmO8qr8t8ll28H/aqB0dgJhrQprlHaYXYyjTN9UrN8
-   3l2z9ZOAgqAw8PeOy8OFzMEKsQQ9dAJDt3jT4LFMzHJjjHlW87epnSlQd
-   ZyGRo5psLCsV7MD0QWLMp0ZRUep3omQzaQZroPFX471ruvKB794/hFen6
-   mq+civkBes4cXKzFn6UshwAvToh9LvGHTp3sccuRpZTIdUEp88s9HKQKI
-   WhTBB2ngEqXVHnzZjGhzxTbA1UUxeBCa/6ctzXY7eVu/MJDgCJnzrSIsj
-   aZjiZyRAcORD8V/uJJpMCbokBELsXHwXbasdvsqtB/vEsaKOrMs8R4Raq
-   g==;
-X-CSE-ConnectionGUID: LAt7DdmfQT++CZOjw1L9zg==
-X-CSE-MsgGUID: dVflHA2VQI6iMO06UBtQJw==
-X-IronPort-AV: E=McAfee;i="6800,10657,11796"; a="84381702"
-X-IronPort-AV: E=Sophos;i="6.24,167,1774335600"; 
-   d="scan'208";a="84381702"
-Received: from fmviesa003.fm.intel.com ([10.60.135.143])
-  by fmvoesa106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 May 2026 04:43:59 -0700
-X-CSE-ConnectionGUID: UcMbxQW7Sw2/vc+29vukHQ==
-X-CSE-MsgGUID: cfo44RCpSy+bKieFXbF9JQ==
-X-ExtLoop1: 1
-Received: from lkp-server01.sh.intel.com (HELO f0d55cb201f0) ([10.239.97.150])
-  by fmviesa003.fm.intel.com with ESMTP; 25 May 2026 04:43:55 -0700
-Received: from kbuild by f0d55cb201f0 with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1wRTiq-000000001QI-1Msq;
-	Mon, 25 May 2026 11:43:52 +0000
-Date: Mon, 25 May 2026 19:42:54 +0800
-From: kernel test robot <lkp@intel.com>
-To: Michael Kelley <mhklkml@zohomail.com>, kys@microsoft.com,
-	haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com,
-	longli@microsoft.com, tglx@linutronix.de, mingo@redhat.com,
-	bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
-	hpa@zytor.com, linux-hyperv@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev
-Subject: Re: [PATCH 1/1] x86/hyperv: Refactor hv_smp_prepare_cpus()
-Message-ID: <202605251945.TesslTvF-lkp@intel.com>
-References: <20260521192336.99623-1-mhklkml@zohomail.com>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Hi/NyxIG"
+Received: by mail-pl1-f171.google.com with SMTP id d9443c01a7336-2bab82d75fdso47589885ad.2
+        for <linux-arch@vger.kernel.org>; Mon, 25 May 2026 06:07:03 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1779714423; x=1780319223; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=LoOg9JfgXq9ByleBW2o6gzfTbj4C0gQx9Ye/j1VCDx0=;
+        b=Hi/NyxIGwvshOGF3IO3jAjnVaV3EWz1kJECX+w1/0pjm1xf0mALUneC2k2KpvqAdTa
+         dTjzLHFYiNC3moBrL0829ndr7mKLhkcBonmFjOtYrrtkLhjp3X9QrKFl3YBm0VKcBkDP
+         7L+ZkGQGpqd4I60VUO8MaEW9H/6Qg6ZuMCGnIwpfvRlAYlkMT7sjurNPvx/F27opYr7D
+         Z107H/kNRfQc6hOIjXITqVrDPJbREIoC/YOCg1Am0sfWWHVeQj0XHLBR9pbj1Frs9Hwg
+         Pe4isa2mWb8u89jWMSa0lWfyHtjlK02CAEfnu6o+qv3fw/JXRQY6Si5AaQFEmmO/b5b+
+         suxg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1779714423; x=1780319223;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=LoOg9JfgXq9ByleBW2o6gzfTbj4C0gQx9Ye/j1VCDx0=;
+        b=jvYHf0a7AaOMFQNQmCvWHydfFM2Q4V6RC64YpoTxCMYbzy8JQMHkbxG80Og0n68bcX
+         IDCODw3fU0QZZ9WUa1QW7AwRooQ3q4votKA3ts+uI4c0AWFhm3ML2YJ+bjkanQgFX7ua
+         0DM2yEXff0YFncsDVVl2FdmeHK+lOVB1//UlIqmdpdfBP+en7g1yIUEaLbL862QUEDXD
+         BkvzIjAi5WcsaVsgJgfKLdTz1cM8lxaJbSRm/8OAQVdXi8pnx4epjWrrtBCtvYjz9eDE
+         NvfI7+E32QL259GdwavI6ug5tRbGkq3pgSCce6ntYKlGo3uK+yamwOAJJ5jI2pqOIPgG
+         m3iA==
+X-Forwarded-Encrypted: i=1; AFNElJ/sgivDScJj79uWJtZ3yR9ukysV0pR7Jw4ZBz9GrDoe9aF3VIqqU+pP0LJuxzPkSTpXsGj3BV/txYin@vger.kernel.org
+X-Gm-Message-State: AOJu0YyXOlREYkw3QkZlfmABoQhj/2PcId2aDJpEYPb6YhNAYGeKT82P
+	q/LZjR7G+6ce/FuruRJ3GiYTc5xrIu34kmp2q8yQpB/5aBqQXNYWGKPV
+X-Gm-Gg: Acq92OGcmvM5msTY/uSU54B8YoE6MHzmJ+R+kD5wzS4knHWp+WW5jO1Ea6ipjNzUiKT
+	BzadIxbWttV99IzVIUHf4s85x/wPUI25PYBnHKWT2m9yy1bu1hlgJPeMBqqnZ0mMYFgKFURmwUh
+	tz22XdqJYoS8kV2ZSpk2S8MsOe4nLxKVEbaRnN4gA7jl186kfbF/dlh1AWRZ4xhLbQc6SVeEmmm
+	5/DPj/fGYSHFIXh2bWYnspxSlLHzF9xsfYKSqlJp5MvfYU73O4YLYsbKTwm+X05FQf5D+yJ9WXH
+	G4aWs1eQ/H+e+OKhghnKEeQbgD+xPy7BtTSnrZpon4ivqQ18GbCZ4k1wjO4FQHUhRUEzI6C+4mi
+	LxmsYXZFVra/2Ee5zZr6G5Blad55tpAzyHs5GOaootHUzDOPKSRsxYOKw0OZt2NvoVFnavVKVGC
+	4i/dK8V4pGGz2t3zzd238eGzlVCTE6sXIjiPTWFr/ZwM2SBLcx
+X-Received: by 2002:a17:902:fc86:b0:2b9:ea53:4cfc with SMTP id d9443c01a7336-2beb07b7847mr161177895ad.19.1779714422740;
+        Mon, 25 May 2026 06:07:02 -0700 (PDT)
+Received: from honglab.tailc96cb.ts.net ([140.123.97.73])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2beb58d9ce4sm92823055ad.64.2026.05.25.06.07.00
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 25 May 2026 06:07:02 -0700 (PDT)
+From: "WEI-HONG, YE" <1234567weewee457@gmail.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Waiman Long <longman@redhat.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	Cheng-Han Wu <hank20010209@gmail.com>,
+	"WEI-HONG, YE" <1234567weewee457@gmail.com>
+Subject: [PATCH] locking/qspinlock: Clarify pending field layout
+Date: Mon, 25 May 2026 13:04:50 +0000
+Message-ID: <20260525130450.723937-1-1234567weewee457@gmail.com>
+X-Mailer: git-send-email 2.48.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260521192336.99623-1-mhklkml@zohomail.com>
+Content-Transfer-Encoding: 8bit
 
-Hi Michael,
+For CONFIG_NR_CPUS < 16K, _Q_PENDING_BITS is 8 and the pending
+field occupies bits 8-15 of the lock word. The current comment
+documents bit 8 as pending and bits 9-15 as unused, which describes
+the pending flag value rather than the field layout.
 
-kernel test robot noticed the following build errors:
+Describe bits 8-15 as the pending byte so the layout description
+is consistent with the lock byte.
 
-[auto build test ERROR on tip/master]
-[also build test ERROR on linus/master v7.1-rc5 next-20260522]
-[cannot apply to tip/x86/core arnd-asm-generic/master tip/auto-latest]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+Signed-off-by: WEI-HONG, YE <1234567weewee457@gmail.com>
+---
+ include/asm-generic/qspinlock_types.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Michael-Kelley/x86-hyperv-Refactor-hv_smp_prepare_cpus/20260522-032610
-base:   tip/master
-patch link:    https://lore.kernel.org/r/20260521192336.99623-1-mhklkml%40zohomail.com
-patch subject: [PATCH 1/1] x86/hyperv: Refactor hv_smp_prepare_cpus()
-config: x86_64-randconfig-076-20260524 (https://download.01.org/0day-ci/archive/20260525/202605251945.TesslTvF-lkp@intel.com/config)
-compiler: clang version 20.1.8 (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260525/202605251945.TesslTvF-lkp@intel.com/reproduce)
+diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
+index 2fd1fb89ec36..7d17b9bb069c 100644
+--- a/include/asm-generic/qspinlock_types.h
++++ b/include/asm-generic/qspinlock_types.h
+@@ -53,8 +53,7 @@ typedef struct qspinlock {
+  *
+  * When NR_CPUS < 16K
+  *  0- 7: locked byte
+- *     8: pending
+- *  9-15: not used
++ *  8-15: pending byte
+  * 16-17: tail index
+  * 18-31: tail cpu (+1)
+  *
+-- 
+2.48.1
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202605251945.TesslTvF-lkp@intel.com/
-
-All errors (new ones prefixed by >>):
-
->> drivers/hv/hv_proc.c:303:55: error: call to undeclared function 'cpu_physical_id'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
-     303 |                 ret = hv_call_add_logical_proc(numa_cpu_node(i), i, cpu_physical_id(i));
-         |                                                                     ^
-   1 error generated.
-
-Kconfig warnings: (for reference only)
-   WARNING: unmet direct dependencies detected for MFD_STMFX
-   Depends on [n]: HAS_IOMEM [=y] && I2C [=y] && OF [=n]
-   Selected by [y]:
-   - PINCTRL_STMFX [=y] && PINCTRL [=y] && I2C [=y] && HAS_IOMEM [=y]
-
-
-vim +/cpu_physical_id +303 drivers/hv/hv_proc.c
-
-   290	
-   291	void hv_smp_prep_cpus(void)
-   292	{
-   293	#ifdef CONFIG_X86_64
-   294		int i, ret;
-   295	
-   296		/* If AP LPs exist, we are in a kexec'd kernel and VPs already exist */
-   297		if (num_present_cpus() == 1 || hv_lp_exists(1))
-   298			return;
-   299	
-   300		for_each_present_cpu(i) {
-   301			if (i == 0)
-   302				continue;
- > 303			ret = hv_call_add_logical_proc(numa_cpu_node(i), i, cpu_physical_id(i));
-
---
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
