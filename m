@@ -1,68 +1,67 @@
-Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
+Received: from mail-wr1-f45.google.com (mail-wr1-f45.google.com [209.85.221.45])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C88A83D8917
-	for <linux-arch@vger.kernel.org>; Tue, 26 May 2026 09:47:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AE0A93DDDBB
+	for <linux-arch@vger.kernel.org>; Tue, 26 May 2026 10:53:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779788835; cv=none; b=ZqpnvULZxuffv2QygWbyvIHBIcLwO/gUIVk/O943fUQtrZ4OPPsOy2spqZh9lfA9Bx/PTWd16n/RyAmllJhyRLl0FphbFc2Ra5MCJtHdWGe9v7xlyAfwhxwI7wo03s6YqSMIp4q/LE+tufUe4RCha/U1U9p/pxdmFqwROoKZNzs=
+	t=1779792807; cv=none; b=SVTm20AJcqhb/C+nCkRj7wK2Tz7DsBJwQ61YkidofZYxXjyGuKv+o6m7HQx7iFvoXg3tyMJ/iC8iWkjCi7YfzQJ++XsMXosncGuBqIBlwJjG8Ft3deFEv0GHe9hBJGH/E2yOGAHT8gvCwtxL2TriUHkd4JITaOhf/50eAiZfHhw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779788835; c=relaxed/simple;
-	bh=8+nGGSKlUH2wqELDfgHiAT/VMPWJ2mHhPQF2ouWQF0w=;
+	s=arc-20240116; t=1779792807; c=relaxed/simple;
+	bh=2IkIxZNvBAu13Ws4fKNVPeBXSlEtFgUgVx7YLgf7FqE=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=kDosrStafxCl5+Qz0nlYKweKqxYXHYFAMb3Wz7uyHcFfCA4Xg84HpUEArrCCzX+kECzLmZUAlWaZWqucxkJ/L5SxC39cbxET8f7LZrHHJykShQ+iIda6u8187JRa9tuarysjP/wV5rR51Fgylhnouq8DsgoL5cZyElBzeSYX3wg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=EjQTkHLZ; arc=none smtp.client-ip=209.85.128.51
+	 In-Reply-To:Content-Type; b=aWnbVAbZSlZ2rBSQf5nWzho9B2GqwqvBiZAh8AF7LPEFBrha5GUL4Mfs6pQ3VZjNQyAj4xVQ7iCGtEEgKd7qwEc8jbUor+Y9Xyp2o38w4cEcCZjgEZcyUPSaIk3h/LOUnERV2OmZu8412eVhx5s66wMKfOQINrm0sS8hg885V24=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=P9vj4BDJ; arc=none smtp.client-ip=209.85.221.45
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="EjQTkHLZ"
-Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-490426d72f7so36691905e9.3
-        for <linux-arch@vger.kernel.org>; Tue, 26 May 2026 02:47:13 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="P9vj4BDJ"
+Received: by mail-wr1-f45.google.com with SMTP id ffacd0b85a97d-459bf19e87bso6132335f8f.1
+        for <linux-arch@vger.kernel.org>; Tue, 26 May 2026 03:53:25 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1779788832; x=1780393632; darn=vger.kernel.org;
+        d=suse.com; s=google; t=1779792804; x=1780397604; darn=vger.kernel.org;
         h=content-transfer-encoding:in-reply-to:from:content-language
          :references:cc:to:subject:user-agent:mime-version:date:message-id
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=R17d81rZFtdCmrvPdq6FOwdkUs8CSvLL3BM8+TQqKKA=;
-        b=EjQTkHLZWZ8pVUg9gk59c/Y6msmKTq3bu4UiXtP0lNvzAnW1HzNIQOI+8h362r8uOz
-         65J1roOpeed/GO/dcNRKF4mcOqiVwLlqNNBvo5kKdzC6J9wILMHJ9BvPhY9ry3PrsA4i
-         n4rqddafwx34au/rxzpyxQdfV+/h8Wumnpkqoei2H9VUro489toB9gas7h1XDJkUk8CH
-         O+9MN48NZdDBK0b+NhQ0p8I8EarJxSJgpWwmOXqd9qDajMs394MTLqyIaOkGFsYIRRjm
-         3rP/59t6+CkpeqFn2g9Jsq3yp1J79p7PG+5nH+WBxj0dEoelXcyuvD+avrfoVM++dNME
-         5pWA==
+        bh=ankQ6/0PQUNDJRsfxZkkDwmN1Szk45mZhdmBSOH36Gk=;
+        b=P9vj4BDJ738bEySM3lt0h10n0hFn2Ykf0bT4a2Ll2krlRcxNrmJeB0syyRYI6qsWiL
+         KcemkmekriERSdv9CZwdKcd8B4MLcfYU20brkmsELktEXxiUuOhni82tA4J9/a3JhPyX
+         FYbvNfo52NRmuEbOOlML/hghFkxL9ghyvu/UG2Xe9wkOpuHhZkDThcZdSacQlbHMohwl
+         VClNx+443LrxM+VJrbHTQ2vd8eKuItYd12wD9sQBySuyelP0e5ZeJVW5RIpSqQZo1hQF
+         Hp82oIo3QlZwwIKSWGmjzXT52yIKF+m9a9s34CXrRp1Fneg5HFHq/gtmu41dpQl54wUR
+         WSFg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1779788832; x=1780393632;
+        d=1e100.net; s=20251104; t=1779792804; x=1780397604;
         h=content-transfer-encoding:in-reply-to:from:content-language
          :references:cc:to:subject:user-agent:mime-version:date:message-id
          :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=R17d81rZFtdCmrvPdq6FOwdkUs8CSvLL3BM8+TQqKKA=;
-        b=oRABo+GstjskzqBDUiW8sIB2ifU2nioGNwFRUv/7o+YpaQurmxFpT1Wg/S6Sd/YBw0
-         YJ9u+47UN9lDWqhxepLOUNAZafPEPYxxj7FTYLW2N1eBdL52+BxnISv97n3nE+hFOqUO
-         pRDSGoJLnXg3eYw0Bu5+wBWMTeBOsi3o/2s7wm6n7hlzVrGKIcAoZIMYeSxjcEv0tc0t
-         1HPgzFwqA0/BNkIgxfHWLFMsN+6KgarC+6fA7FM0OojLNxnB2NzRJmq9hURaq9xkUkbk
-         vjnqzxc3INXgQ/oqSnKBD0YG1JG/RDlZ5rOOI/fUxy/BN0V4FV1T3aS7fSpzFpvVxeGW
-         2brA==
-X-Forwarded-Encrypted: i=1; AFNElJ+rvo76pDoH5Q8+LbSOya4tn12y0iVm91Q/72SgZGTicSIbSE+FvffAL6fWk2x+jd4MWC4K2M+4yzad@vger.kernel.org
-X-Gm-Message-State: AOJu0YzqP+Tf3fsOwcd85J6c6jzPukTjS7JfLFjqOL6Vvno+yPP2cYwi
-	FoY7+t7tv1bXay4bZkYjJRoCyYvtxEH3ENepPm8671JSNRkXkBbmqiRMgmSrqg3vmUE=
-X-Gm-Gg: Acq92OEJDaHSw6yK66HcH5V+tcksDWKYkOfbb8tFlNlXoGQb3GFENit2ZhXTrYVgg9b
-	z70SCvnX6aZVqPKR75+fVxzb0CvLe7mEA6SEoU4ylNhZl91o7JjvvbLeO/h6kwhLGQh6LSEouZI
-	wZs7CBgISXcOgj2AjfRWcURW/T3muZOi6j+Q4v7goidek0sidLWSXiecZaszr+4DXhbo40ZIv63
-	UsoBsscqScwVpUHIfv/cBoK7022AJj3hb0nYu42LK/tT3fHpsEXaOUla0jS0U+JaZsuW7p17QzX
-	8MW87Xx+ZiJ+i8aX4qXjI3ivTFAcBPRKN1MwNzLdyBCynCnYVaXIsyfj9OGteB4MkXppG5gRmuG
-	zjdug5ubN+mV+5hUaChpdJrCvT3zdvblW7YZYxctPLBAeIzS++Q4a8jJhcq8xo7YJ8yOlsd6O7j
-	VSmvvfgnWxGwqL7XfZ7UxqYq9HZJWJKzpBXm2i8/+ux8OXsnWcImQHTaW8yjYWZ1SerpD1uSkX/
-	BHCroVDo4GdjkFT/wBShfi6+xOVZOarcqjezDCGzkkFgQ8b747V7tR4+FXIwsWNA/IyD7ewd4oY
-	mY5E
-X-Received: by 2002:a05:600c:6209:b0:490:601f:d776 with SMTP id 5b1f17b1804b1-490601fd9admr168561055e9.3.1779788832071;
-        Tue, 26 May 2026 02:47:12 -0700 (PDT)
+        bh=ankQ6/0PQUNDJRsfxZkkDwmN1Szk45mZhdmBSOH36Gk=;
+        b=i2XsI9MpOC5LWpB7zunTaHJdj3KRVYXY3ckqDvANojpozFILtzOB48pbcGzOgksZjx
+         3K27Aun5Zh5/AE5A02ohH/uiA7Gr11+a3JPpHbcCDMbvEhCiLRn0gndQW7kkN7Es2G3g
+         m0LtPcLYmkwHAqN8abDy4aIDqQrPI59auudGHxKWNFCwRlvNlUA45Zs6jzsNbrqpgDMj
+         msEZcwv+kXnudz1BwwihxkDHSAiEqo7ZhpZedVr36W2NnmAJTlViHDzmVu07poDeOr/T
+         52MZaNRxKYPDDGzvkjhPyo+mu+jW53iJD1SSA9eSmAssTnsvR0vMjlSsH++XZRlIV6rm
+         +t/Q==
+X-Forwarded-Encrypted: i=1; AFNElJ/dhxw3pAnDEYUtLhpsMULQ20oLLwxJ0q9MmiQ7KB/4jYiOsjxwmBqTq2nSJVtx3vQMHtxyEFVidySL@vger.kernel.org
+X-Gm-Message-State: AOJu0YwEgzF4O33ptiu3N32ra+IEbiT4axbKkHVLjwBmki/xwMP4W5+/
+	S5PToAa6PfzdoW6RrbS7IP5UNKf4QTtK6WnuKebCIBqZKXOsN4dJ9PI4lB2gFVc8FLg=
+X-Gm-Gg: Acq92OFpfcRUCfRG+q7kMvWAXxZvKQ2YYisR+gktcDzWP+PYOQ7SeCRMkRTy8QouGBk
+	JJEOFH8YzxygCQbFj28sgq0Oz2YJ1mjwMNC3D1mYeWls6HZEVQ5eQb5y13OKBSjVShXxgcKtPH5
+	aglcaeE58iFJHux+sO4V4bB0G/Aq+b0cT1edQApnHo3wKLrE1zjQMa2aeUjTp6WVPkrzpmw11co
+	qbSHbinQ4mPQFr+Fm26GHNKBSzUsgSSZYBSGJr26Qr7o35OFsQU5PveLiDq65UGYWncia0Kwmkn
+	IXf5688fqJ+UgwZ1U8RjYBtvOnE7dc5OcZXcO4luxQjXYw5BkNV+9Q0SS0WRQnPGbP7XgmbLqke
+	RuV3HfyYZlkQqKv3Fsfv47jjfFiYqyQpVrpxcfs2eituZrQkucctXauOIFoqyV2wiPe1lVFMYtq
+	tnl6lsGPGuOYevCcLvo3JpIXa6ifelN9yk29RaT13TKYtUFJ39WgX25wZs6JVw9rK3tOr9NI0EL
+	0FV7swBw1aUMMY3YmI8rCkiLN19m+bskTw4AtjOOKjKYkXHlGdMuw+7D8eW8ZtSHdyMJA==
+X-Received: by 2002:a05:6000:2889:b0:43c:fdd:ea96 with SMTP id ffacd0b85a97d-45eb38c5259mr30630897f8f.26.1779792804025;
+        Tue, 26 May 2026 03:53:24 -0700 (PDT)
 Received: from ?IPV6:2a00:1028:838d:271e:8e3b:4aff:fe4c:a100? (dynamic-2a00-1028-838d-271e-8e3b-4aff-fe4c-a100.ipv6.o2.cz. [2a00:1028:838d:271e:8e3b:4aff:fe4c:a100])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-490454a0b9asm307921735e9.11.2026.05.26.02.47.10
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-45eb6bc5479sm36850849f8f.0.2026.05.26.03.53.22
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 26 May 2026 02:47:11 -0700 (PDT)
-Message-ID: <8de0e6ad-987a-4729-bbd0-8399968dbb48@suse.com>
-Date: Tue, 26 May 2026 11:47:09 +0200
+        Tue, 26 May 2026 03:53:23 -0700 (PDT)
+Message-ID: <0a0736a4-2cdd-49f2-9062-e2f18d769fc0@suse.com>
+Date: Tue, 26 May 2026 12:53:22 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -70,7 +69,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v5 06/14] module: Switch load_info::len to size_t
+Subject: Re: [PATCH v5 07/14] module: Make module authentication usable
+ without MODULE_SIG
 To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 Cc: Alexei Starovoitov <ast@kernel.org>,
  Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
@@ -106,29 +106,42 @@ Cc: Alexei Starovoitov <ast@kernel.org>,
  linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org,
  debian-kernel@lists.debian.org
 References: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
- <20260505-module-hashes-v5-6-e174a5a49fce@weissschuh.net>
+ <20260505-module-hashes-v5-7-e174a5a49fce@weissschuh.net>
 Content-Language: en-US
 From: Petr Pavlu <petr.pavlu@suse.com>
-In-Reply-To: <20260505-module-hashes-v5-6-e174a5a49fce@weissschuh.net>
+In-Reply-To: <20260505-module-hashes-v5-7-e174a5a49fce@weissschuh.net>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 On 5/5/26 11:05 AM, Thomas Weißschuh wrote:
-> Switching the types will make some later changes cleaner.
-
-Since the updated version drops the patch "module: Deduplicate signature
-extraction", I believe this change is no longer necessary.
-
-> size_t is also the semantically correct type for this field.
+> The module authentication functionality will also be used by the
+> hash-based module authentication. Split it out from CONFIG_MODULE_SIG
+> so it is usable by both.
 > 
-> As both 'size_t' and 'unsigned long' are always the same size, this
-> should be risk-free.
+> Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
+> [...]
+> diff --git a/kernel/module/Kconfig b/kernel/module/Kconfig
+> index f535181e0d98..84297da666ff 100644
+> --- a/kernel/module/Kconfig
+> +++ b/kernel/module/Kconfig
+> @@ -271,9 +271,12 @@ config MODULE_SIG
+>  	  debuginfo strip done by some packagers (such as rpmbuild) and
+>  	  inclusion into an initramfs that wants the module size reduced.
+>  
+> +config MODULE_AUTH
+> +	def_bool MODULE_SIG
+> +
+>  config MODULE_SIG_FORCE
+>  	bool "Require modules to be validly signed"
+> -	depends on MODULE_SIG
+> +	depends on MODULE_AUTH
+>  	help
+>  	  Reject unsigned modules or signed modules for which we don't have a
+>  	  key.  Without this, such modules will simply taint the kernel.
 
-The module 'len' would now start in init_module() as 'unsigned long',
-then change in copy_module_from_user() to size_t, and then back to
-'unsigned long' when calling copy_chunked_from_user(). The current code
-is more consistent and mostly uses 'unsigned long', matching the syscall
-interface.
+Should MODULE_SIG_FORCE be renamed to MODULE_AUTH_FORCE, along with
+renaming the sig_enforce functionality in kernel/module/auth.c to
+auth_enforce?
 
 -- 
 Thanks,
