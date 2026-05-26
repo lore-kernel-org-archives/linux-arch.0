@@ -1,29 +1,29 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 76AD13451A7;
-	Tue, 26 May 2026 11:35:59 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 49E583E6385;
+	Tue, 26 May 2026 11:38:30 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779795361; cv=none; b=ciFxkUIJdTLPH6dzaWgeEa/TeHPkTcVIIqA1OT4OeqIWY7+vCxCD8hAzLPUPRjtAMgNfkMHst3RzlcV6fbcUPoVFsz6zZQbvULrnqm8DSFZ/9XSsKecK3/cLRQdxOsyBopzmPu7iW7m8JCtxzBuZLoI9Xa9KPtvrBByV/TZDqKE=
+	t=1779795522; cv=none; b=GmwPMKSVXbiWPVnFLcePhrl7IFgNFczNJsU4CWPRhFpSWt3zHL0XCzHUKPp/ezzg27385M1Fj4aFPiMzMsNMcayiEPFo+W1sQrcKy1JveN5QFNATZMH+tMECAuH5zE/9PkmnnJ+FcfdhEWvaePQp03LnMV4QtPJ00AvURRwvDIs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779795361; c=relaxed/simple;
-	bh=HO2dMnPwk7LD1hzmaJr/Eo9RHeir7zm5koQqCs1AjVo=;
+	s=arc-20240116; t=1779795522; c=relaxed/simple;
+	bh=kTAeZ3xw/Df4ezBjxQUd+PwImFlqzKYS6yA31g42XCM=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=qNEL7PTLDeWfWDUekE8VVckTm0+lwxyD2D0Mfau6qzX2v1hO+P7R0GiHA7apt/Ul753sHnu5zPBvhX611tEE8baZeu6nbkFRUOVbgW2P0b2Cabo9koqMRyztP4DNgfX8La2Gv6sSk00OrMm6czMwtFmy+iRsyAbw+aTjqqivWkk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=aBKvmuQZ; arc=none smtp.client-ip=159.69.126.157
+	 Content-Type:Content-Disposition:In-Reply-To; b=Hb+xkGsskz0KiXnoqdFeFgFQRmf1ulo5Jz0z5wV2Uj+gzoV3yldLwE8p3DSmwYXm79Q0ff1dUyGnkHi60U3sLVrTB3u/nTSusTQcNfibTK5uo5Qy8vCpdGhdq1AQjBa9zpGKnyHBGvLnF+y3v5CCKNrk1TUgz+RGoy0zeHU45DU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=ITIfPnNS; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="aBKvmuQZ"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="ITIfPnNS"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
-	s=mail; t=1779795351;
-	bh=HO2dMnPwk7LD1hzmaJr/Eo9RHeir7zm5koQqCs1AjVo=;
+	s=mail; t=1779795508;
+	bh=kTAeZ3xw/Df4ezBjxQUd+PwImFlqzKYS6yA31g42XCM=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=aBKvmuQZTp6ZKtR7ynKixoXE7f2WMAle0qcJl9B/WSVwC3AiAFcf6xmu8VQ93nDVm
-	 06ZJKxHeEK5WnQDXtpIecpLL231TRGxoWz8jum8/5wkSJPQPszeMFItOggbcmV30p5
-	 izm/ufOZTR+xqoMmUXPxmtOuxymwa4WTfcoECq2I=
-Date: Tue, 26 May 2026 13:35:51 +0200
+	b=ITIfPnNSj4iYGsWPx3Tx9oUQY5RTkoSnYSt5EUf34ubhh7X+6E48t9zD8QK7p9UPJ
+	 XunUJqRsVIEwWtiN2Rg9Bt86WZKhK6wBBXgLhouWeUEnyeCOr/EUakWvBODqgl2TFz
+	 sDgAbkSNsaErv2LOwqvJaTrHYSPNfR2ht4L4Vb1g=
+Date: Tue, 26 May 2026 13:38:27 +0200
 From: Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>
 To: Petr Pavlu <petr.pavlu@suse.com>
 Cc: Alexei Starovoitov <ast@kernel.org>, 
@@ -50,11 +50,12 @@ Cc: Alexei Starovoitov <ast@kernel.org>,
 	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
 	linux-modules@vger.kernel.org, linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org, 
 	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org, debian-kernel@lists.debian.org
-Subject: Re: [PATCH v5 06/14] module: Switch load_info::len to size_t
-Message-ID: <a1be99b5-997c-44d7-9516-5a53238034b7@t-8ch.de>
+Subject: Re: [PATCH v5 07/14] module: Make module authentication usable
+ without MODULE_SIG
+Message-ID: <4ee3c775-1fbf-45e1-8b77-5f9034f45125@t-8ch.de>
 References: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
- <20260505-module-hashes-v5-6-e174a5a49fce@weissschuh.net>
- <8de0e6ad-987a-4729-bbd0-8399968dbb48@suse.com>
+ <20260505-module-hashes-v5-7-e174a5a49fce@weissschuh.net>
+ <0a0736a4-2cdd-49f2-9062-e2f18d769fc0@suse.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -64,17 +65,42 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <8de0e6ad-987a-4729-bbd0-8399968dbb48@suse.com>
+In-Reply-To: <0a0736a4-2cdd-49f2-9062-e2f18d769fc0@suse.com>
 
-On 2026-05-26 11:47:09+0200, Petr Pavlu wrote:
+On 2026-05-26 12:53:22+0200, Petr Pavlu wrote:
 > On 5/5/26 11:05 AM, Thomas Weißschuh wrote:
-> > Switching the types will make some later changes cleaner.
+> > The module authentication functionality will also be used by the
+> > hash-based module authentication. Split it out from CONFIG_MODULE_SIG
+> > so it is usable by both.
+> > 
+> > Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
+> > [...]
+> > diff --git a/kernel/module/Kconfig b/kernel/module/Kconfig
+> > index f535181e0d98..84297da666ff 100644
+> > --- a/kernel/module/Kconfig
+> > +++ b/kernel/module/Kconfig
+> > @@ -271,9 +271,12 @@ config MODULE_SIG
+> >  	  debuginfo strip done by some packagers (such as rpmbuild) and
+> >  	  inclusion into an initramfs that wants the module size reduced.
+> >  
+> > +config MODULE_AUTH
+> > +	def_bool MODULE_SIG
+> > +
+> >  config MODULE_SIG_FORCE
+> >  	bool "Require modules to be validly signed"
+> > -	depends on MODULE_SIG
+> > +	depends on MODULE_AUTH
+> >  	help
+> >  	  Reject unsigned modules or signed modules for which we don't have a
+> >  	  key.  Without this, such modules will simply taint the kernel.
 > 
-> Since the updated version drops the patch "module: Deduplicate signature
-> extraction", I believe this change is no longer necessary.
+> Should MODULE_SIG_FORCE be renamed to MODULE_AUTH_FORCE, along with
+> renaming the sig_enforce functionality in kernel/module/auth.c to
+> auth_enforce?
 
-Ack.
+Given that it is a user-visible symbol we'll need to be a bit careful
+not to break existing configurations.
+I'll try to use the new "transitional" kconfig attribute.
 
-(...)
 
 Thomas
