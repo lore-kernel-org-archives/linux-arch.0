@@ -1,121 +1,85 @@
-Received: from mail.archlinux.org (mail.archlinux.org [95.216.189.61])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5B4223F88AA;
-	Tue, 26 May 2026 12:27:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.216.189.61
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id C48ED22157B;
+	Tue, 26 May 2026 13:01:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779798465; cv=none; b=YrrxGG847tfeWEhARZvj2WgDQzIP/cuyCX3vyZZDj58TQEiKdRsfMv+/9BxvT+vgidhq3rRiZkcwTkhstP1c15MH8u+fVIaSChBuf09N+X4UirgDqcUxJosEqg/j2Lh4YajfBG86xrOkhGL55qBsd/9YS6H8FpsD03M7jq6WHV4=
+	t=1779800487; cv=none; b=FVDGkbSz0vDaQFspPdxNg0T8pwFDBuRGZXI9S/fcInB6ttBp0eeMpeN85Fic/0t0s/HTiTARC+bhnbS8KJIkugTI7mO4NJdVxF/MDLxLTitZeKHIpuAGMpHkcDvD/I2GcBVRQII/1LZemGhiown4BmKkxpwy0N6EMyYTkkgyyZk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779798465; c=relaxed/simple;
-	bh=vDlPE3WlLowbB4twTPNt5oAOKEs7T3k99UMNQRP9CcM=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=PCQW2HGgXmqu9gcuiGCD/CLzy0bCeTJK8X/zHnOm37PBQlPvY2+/WJnv4jS4zRjvj43EQEsIQ/NnYzdUkPyxzxVplVbxqBOByCPuzrrYgjTO3FanAvAPciw3azCc6O15uIc70GTZIfqrQULf0h1qAiErGfKntR3WXEAQLLYiw+w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=archlinux.org; spf=pass smtp.mailfrom=archlinux.org; dkim=pass (4096-bit key) header.d=archlinux.org header.i=@archlinux.org header.b=0PaXCVkX; dkim=permerror (0-bit key) header.d=archlinux.org header.i=@archlinux.org header.b=qAvsEodf; arc=none smtp.client-ip=95.216.189.61
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=archlinux.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=archlinux.org
+	s=arc-20240116; t=1779800487; c=relaxed/simple;
+	bh=QpvJy6L0CWjMFpDpW8hAGQht5XAWKU3uc1IdSsCVqqI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=mQlDfCSi46IRnKhlrgYVarLwFfY9WJBGopP3PCrdKoqn4PSeIOnEjJcIO43lr4GH5X3xM4cJoIwmRVAB4LH4EST/A6TFfjzhnPMqSmjX+5T98YSVeFwVdd8D2RLLY3IodH6vYwRzzqTpaB0S3oLU3tt8Qv3vkWvCKUTJUI4koiI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=p5Dsr0Xg; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (4096-bit key) header.d=archlinux.org header.i=@archlinux.org header.b="0PaXCVkX";
-	dkim=permerror (0-bit key) header.d=archlinux.org header.i=@archlinux.org header.b="qAvsEodf"
-Message-ID: <2d93a9e4-0c36-4bc7-8e94-b15f69ebda79@archlinux.org>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=archlinux.org;
-	s=dkim-rsa; t=1779798460;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=DumjHkMnQiUKEXczcFzbHTJ12Og3qEh2uESbAgSH9Z0=;
-	b=0PaXCVkXBjwxgV57Gtk9GND9h+M3olt9dDZsAZSMh69khuwz+7omoquMv7bxY+X2NwBvDs
-	7cJghWP+kfKXxa/Mzj4ItNhRylLxtHEbXT2U/CdXfxlLvJjJ5rkSidgc2aBrQrTiI+CPaf
-	ofc7Q62sZXcpwYR2fUFCbVV0KYA5RBkUnwqkS7dvPSc8p+xrEimxO3yvUJhT2LR8N394lG
-	zKL5TDaB8eCxpGZRhxbfjUn9RFNKl2xluA2p7u5kkai+avEVgv9hwAOtKMW2EVgYqK2xAn
-	EZYIc0WKVZAH1Nb4ZDiz1NIO/snRu/iHOKTOeHm8VeRYVTieMy8yWHVg8nfo1l/UbnU8Tv
-	k5Yk3bdm2ZtFa0+WU70NGuYxJOHWvVeBaFwICiatUOh8gM6R/WS3IFlU9YbXwjVzymwuFc
-	XKuulQ5BeoNzGUlr/QrMDgw1cdIvgtAwKofD4IsvIOGsRR1yNR3JjzQoMvKvrQPONqF6JZ
-	OMMNLxAhP1LGiCUgH2GoiCYXngwwZmE2ZcjLiIEAmlhKl2r0JyV2gMJn4Uke4zTOViHDJQ
-	/gJXPKLMTm5lh6Zjv6J183nbfZ/UIz4eehTUQeqX6uRy6jBru/K/rs1ICZHdgd/GSKMS+z
-	nP5SILf6vZKcsnA0+D/43BN50nXByYlhjDbPB2kBPA+oekNoiga84=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=archlinux.org;
-	s=dkim-ed25519; t=1779798460;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=DumjHkMnQiUKEXczcFzbHTJ12Og3qEh2uESbAgSH9Z0=;
-	b=qAvsEodfYN9Au3PfLWPaXQEfyjbOcwD3RqWnSlsvTSJQ3NP8ZX9wWEW0wqValvrgMDgl0u
-	ST8XcV+dvsfuSMCQ==
-Authentication-Results: mail.archlinux.org;
-	auth=pass smtp.auth=kpcyrd smtp.mailfrom=kpcyrd@archlinux.org
-Date: Tue, 26 May 2026 14:27:36 +0200
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="p5Dsr0Xg"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 2E9E9169C;
+	Tue, 26 May 2026 06:01:20 -0700 (PDT)
+Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 6F1563F7B4;
+	Tue, 26 May 2026 06:01:23 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1779800485; bh=QpvJy6L0CWjMFpDpW8hAGQht5XAWKU3uc1IdSsCVqqI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=p5Dsr0XgPS8sKERaqTqbDerx+Dn5jf/pmbrKN+O+qEDCMgx32IF7d+aOy0yyNZYcH
+	 +XwBPVX+lcDnvbKX7Dms7cneX8kxmoejWuL43TPu0moc2NGzHIA6y7Q0YGice4hMx+
+	 eCJbFlg5YILwosv9Sj8NQkWWJYc8jsLPEp/mmU1g=
+Date: Tue, 26 May 2026 14:01:20 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+To: Zeng Heng <zengheng@huaweicloud.com>
+Cc: will@kernel.org, akpm@linux-foundation.org, npiggin@gmail.com,
+	aneesh.kumar@kernel.org, peterz@infradead.org,
+	linux-kernel@vger.kernel.org, wangkefeng.wang@huawei.com,
+	linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org,
+	linux-arch@vger.kernel.org, zengheng4@huawei.com,
+	sunnanyong@huawei.com, blingxue@tencent.com
+Subject: Re: [PATCH] arm64: tlb: Flush walk cache when unsharing PMD tables
+Message-ID: <ahWZoD9Ubaxx-GdK@arm.com>
+References: <20260521073011.4121277-1-zengheng@huaweicloud.com>
+ <177944657885.252010.9796978866224637120.b4-ty@arm.com>
+ <f5b7460a-5719-bdb2-c53b-413468857f57@huaweicloud.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH v5 07/14] module: Make module authentication usable
- without MODULE_SIG
-To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>,
- Petr Pavlu <petr.pavlu@suse.com>
-Cc: Alexei Starovoitov <ast@kernel.org>,
- Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
- Eduard Zingerman <eddyz87@gmail.com>,
- Kumar Kartikeya Dwivedi <memxor@gmail.com>,
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
- Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
- Sami Tolvanen <samitolvanen@google.com>, Daniel Gomez
- <da.gomez@samsung.com>, Paul Moore <paul@paul-moore.com>,
- James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>,
- Jonathan Corbet <corbet@lwn.net>, Madhavan Srinivasan <maddy@linux.ibm.com>,
- Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
- Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
- Roberto Sassu <roberto.sassu@huawei.com>,
- Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
- Eric Snowberg <eric.snowberg@oracle.com>,
- Nicolas Schier <nicolas.schier@linux.dev>, Daniel Gomez
- <da.gomez@kernel.org>, Aaron Tomlin <atomlin@atomlin.com>,
- "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
- Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
- Xiu Jianfeng <xiujianfeng@huawei.com>,
- Martin KaFai Lau <martin.lau@linux.dev>, Song Liu <song@kernel.org>,
- Yonghong Song <yonghong.song@linux.dev>, Jiri Olsa <jolsa@kernel.org>,
- bpf@vger.kernel.org, =?UTF-8?Q?Fabian_Gr=C3=BCnbichler?=
- <f.gruenbichler@proxmox.com>, Arnout Engelen <arnout@bzzt.net>,
- Mattia Rizzolo <mattia@mapreri.org>, Christian Heusel <christian@heusel.eu>,
- =?UTF-8?Q?C=C3=A2ju_Mihai-Drosi?= <mcaju95@gmail.com>,
- Eric Biggers <ebiggers@kernel.org>,
- Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
- linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
- linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
- linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org,
- debian-kernel@lists.debian.org,
- Holger Levsen <holger@reproducible-builds.org>
-References: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
- <20260505-module-hashes-v5-7-e174a5a49fce@weissschuh.net>
- <0a0736a4-2cdd-49f2-9062-e2f18d769fc0@suse.com>
- <4ee3c775-1fbf-45e1-8b77-5f9034f45125@t-8ch.de>
-Content-Language: de-DE, en-US
-From: kpcyrd <kpcyrd@archlinux.org>
-In-Reply-To: <4ee3c775-1fbf-45e1-8b77-5f9034f45125@t-8ch.de>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <f5b7460a-5719-bdb2-c53b-413468857f57@huaweicloud.com>
 
-On 5/26/26 1:38 PM, Thomas Weißschuh wrote:
-> On 2026-05-26 12:53:22+0200, Petr Pavlu wrote:
->> Should MODULE_SIG_FORCE be renamed to MODULE_AUTH_FORCE, along with
->> renaming the sig_enforce functionality in kernel/module/auth.c to
->> auth_enforce?
+On Mon, May 25, 2026 at 05:20:14PM +0800, Zeng Heng wrote:
+> On 2026/5/22 18:42, Catalin Marinas wrote:
+> > On Thu, 21 May 2026 15:30:11 +0800, Zeng Heng wrote:
+> > > When huge_pmd_unshare() is called to unshare a PMD table, the
+> > > tlb_unshare_pmd_ptdesc() function sets tlb->unshared_tables=true
+> > > but the aarch64 tlb_flush() only checked tlb->freed_tables to
+> > > determine whether to use TLBF_NONE (vae1is, invalidates walk
+> > > cache) or TLBF_NOWALKCACHE (vale1is, leaf-only).
+> > > 
+> > > This caused the stale PMD page table entry to remain in the walk cache
+> > > after unshare, potentially leading to incorrect page table walks.
+> > > 
+> > > [...]
+> > Applied to arm64 (for-next/fixes), thanks!
+> > 
+> > [1/1] arm64: tlb: Flush walk cache when unsharing PMD tables
+> >        https://git.kernel.org/arm64/c/c2ff4764e03e
 > 
-> Given that it is a user-visible symbol we'll need to be a bit careful
-> not to break existing configurations.
-> I'll try to use the new "transitional" kconfig attribute.
-A slightly softer worded alternative (yet semantically equivalent) name could be 
-MODULE_AUTH_REQUIRE. No strong opinion though, I think MODULE_AUTH_* does make 
-sense.
+> This original issue was reported by our customer, who also participated
+> in the root cause analysis and resolution.
+> 
+> Could you please help add the below tags:
+> 
+> Co-developed-by: Xue Xiaowei <blingxue@tencent.com>
+> Signed-off-by: Xue Xiaowei <blingxue@tencent.com>
+> 
+> Thank you in advance.
 
-I initially shared the concern about renaming well established config options, 
-but the transitional feature does seem to be a good fit for this.
+Too late unfortunately, the pull request went in on Friday. It will be
+in the list archives though.
 
-Sincerely,
-kpcyrd
+-- 
+Catalin
