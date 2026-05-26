@@ -1,286 +1,113 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CDD233655D3;
-	Tue, 26 May 2026 15:22:24 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F228C3B19B7;
+	Tue, 26 May 2026 16:19:13 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779808946; cv=none; b=uZs2LVl5eeR9eLtCwLjixY9mRCnrj76x8bF84NPWZ1NMbu6/Hi87iwmeHGuRZQuSzeyHu0o0yZb9DSdYyroKkE2+KaT/FOLENr52wkgwDUpuSFUXIcDDxgpxnRy8mT1jHVjli3YHxlGgCO8WhG0C+tTA1k9qhh7K8sfazbTy9ak=
+	t=1779812357; cv=none; b=itxdztiWLroq5jADMuo3NCHnl6vGkc9bC3WNnuzhjmY2xfTfgW03rnyC7ldGzn6Ie4UABa/Hc0zZDUKP2unMPAOPAblpWfYhX9o5J/HPm7zkA9brxU5/eUHzc5gYooh2X4MuqQaYSTdCg9m6fDu6VP7/bTbDepp4Vl5C2qMWLeY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779808946; c=relaxed/simple;
-	bh=IvVHarsdCZX3Et2iJECFHRt/SzOVbYcAlOSwalXKdKo=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=PUqkF9ZkRfrWS4afResShzsYEIi2mMDHgznoGzmo7cuJYwc2udDl2ZINIKA3qkfkqA9vDJd2yqXianBzC12UFZLUDwsVeUZt3cOK9LVm11ULp+bbx5lNEdI1hv4ynPss1k69RobcbqMnoSlLeaEfj1isYl3AZYmajAgn6p4DPcg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=meNKiqFD; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1779812357; c=relaxed/simple;
+	bh=dXTt1/BNFKEIsvObIYoVeEbSzI6qvqdsnRC5y7Qr5eI=;
+	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
+	 Subject:From:To:Cc:Date; b=HjxvNhv+wVNEcR6Kq8U9A0D2US6GIwBv1LQZ66VXaNEci5uhqX2jAO6qIpz8jtKgFLvxJqY3KjMzdNve5zihJGICCszRBAiBRtZvw4RKHmNp1xVQmS824wIW9lx5KdpAxHMJ1/2bi5l5Uc9zb4qx7/rEK41Q78aDNtJV0/LJRzg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=fail (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Sglml3+h reason="signature verification failed"; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="meNKiqFD"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6AC1C1F00A3A;
-	Tue, 26 May 2026 15:22:22 +0000 (UTC)
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Sglml3+h"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 94C251F00A3A;
+	Tue, 26 May 2026 16:19:12 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1779808944;
-	bh=i3zOmPyu90dULOuLD4c8bYaft4Tw4zBGIm4qBCcguJQ=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=meNKiqFD3tQ6N6BcLG2aGEHfFJRozeMW7Kc3WUXTcdkej7oW6Ddd2eJkF5K7C481o
-	 dTV5B1TTn66EQc/2uP7sonxsUMOX5DMolQYhACkBs9zVFmIQAYrrvcc6qStc+8Sh6b
-	 uhZma/bu0h2ON52P1hJRwzDiDyE+lCRHKTeZ8f2k6kT9yois/z2eXs/RIzw9NhiE9x
-	 bM9LAWPRFjHmInv0Yc8KowQCWdiKqlZhScSTJfFoXd8evNZJDGemkR1iXNAZc/hjTR
-	 4CO/2DMBo9cjRUGDBDi6Hm2Vz+NaRgxFLJ4cHv9iH8IAHrrkb+1o+1lLTxApnzU2QE
-	 aD2hD584+rCKA==
-Received: from phl-compute-07.internal (phl-compute-07.internal [10.202.2.47])
-	by mailfauth.phl.internal (Postfix) with ESMTP id C15ACF4007A;
-	Tue, 26 May 2026 11:22:21 -0400 (EDT)
-Received: from phl-frontend-03 ([10.202.2.162])
-  by phl-compute-07.internal (MEProxy); Tue, 26 May 2026 11:22:21 -0400
-X-ME-Sender: <xms:rboVatLweiDJXm17KQ8Opy26_A1LlWbclVSWvWxIkMOOALfrKXjpGw>
-    <xme:rboVauDEvxkXX3SWT1c9oZ5ra_5ZBcf5jo7wu9GE0CeSdGMctCbzidRDxxiy54-3P
-    IobOzwnfUhAZNKiGq4h84TfmkRElr_aQdSvqGVjTzIcAXy6b30-BQ>
-X-ME-Received: <xmr:rboVarmpsX_09hxuVT7lHBzwVQubGNE601vCBVVftvCoI3Mq-y2R4K5d8MdoyjK431ERTAhNYPPf_0g29Sp1MN0T5UO7XW4h>
-X-ME-Proxy-Cause: dmFkZTEIsgBVfZQI0OdfcY/RCEsGZQvScgaCncCUwE3uecoCsgHqp2OC8k/Of1VK4ItHYi
-    l0hsZsg9YT9U5JYZ6O06GKU5ooMQWMBZ7PhpwFPsWRPSXPfc63XZe0WRTGPkfjr9uufzlv
-    PWIMkxVYubGpPxQ6A1Y/IQZfimDb8209gLI8E1kXVqTJaoEHKeaBUIsnA8X7Amcm+MMAgE
-    U66eohkoHdBxoqEZnpC6h9K+3X341ap+0FX4m66bRUvn/aV4tKXY22RZQ24uMj2Ci0Wx8c
-    3726fhp5lV3b4xzJr8aU/XjX0EYIZqxiQVYWa/2PXqoRZYrw1OpUgmEeMJAKLjIuNIu2FD
-    /+npKX5IqALG0qB3VO88MGCAog15J6bYG5vSaLQILVZF5Njd2qVNFoPTlpXBlBslZknY+X
-    pO02fCeoPMSoqf2vCYF+xqyog+Bd+Ggu+cNO7KJa9/6svUFRn0/O8/zKxh5n6Xjo0JIC0u
-    G5uwvF2lvF5jDD82571VQB4zUtis2q9jVILXvRJXP/us+paAo1CW0URJzkRVaK5MRkvr+1
-    SSS8Gn51NnHdEkvIduGV9Ws8tlAcljrX/QX+g89oSiAFOFpJp+ZWqrpTJ21f/M15srAyBR
-    vrbMHbSzmofia4/czb2bU0BMxA8GkfqlUYdzjlPwSMZdAFpf7MvMyRZzn/qQ
-X-ME-Proxy: <xmx:rboVag1ASqX9JrC9LGp0bIieYDclRCXm43NZQMaqMUEIdEhYdyMKaA>
-    <xmx:rboVaqdKWSm_UbIlM1tDJIwHjqFAc0qmpEIV4kdnaNSjaCNLMaNMVg>
-    <xmx:rboVarc_5DmXWGjk3F8zh7B4m56jwnIjcSdGJEGSfA2pST7vrsPe_Q>
-    <xmx:rboVarBPgVJFgGF_R-dRhdN8GHGaB_hiHzCEjvMEbNlZCXFRr1isAg>
-    <xmx:rboVahGWSHEPIvYqhrN9DKbBR09P4GtUM40ynIMxjjHo81DUhi-JaN_I>
-Feedback-ID: i8dbe485b:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Tue,
- 26 May 2026 11:22:20 -0400 (EDT)
-From: Boqun Feng <boqun@kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
-	Jonas Bonn <jonas@southpole.se>,
-	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-	Stafford Horne <shorne@gmail.com>,	Heiko Carstens <hca@linux.ibm.com>,
-	Vasily Gorbik <gor@linux.ibm.com>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Christian Borntraeger <borntraeger@linux.ibm.com>,
-	Sven Schnelle <svens@linux.ibm.com>,	Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>,	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,	x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,	Arnd Bergmann <arnd@arndb.de>,
-	Juri Lelli <juri.lelli@redhat.com>,
-	Vincent Guittot <vincent.guittot@linaro.org>,
-	Dietmar Eggemann <dietmar.eggemann@arm.com>,
-	Steven Rostedt <rostedt@goodmis.org>,	Ben Segall <bsegall@google.com>,
-	Mel Gorman <mgorman@suse.de>,	Valentin Schneider <vschneid@redhat.com>,
-	K Prateek Nayak <kprateek.nayak@amd.com>,	Boqun Feng <boqun@kernel.org>,
-	Waiman Long <longman@redhat.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Andrii Nakryiko <andrii@kernel.org>,
-	Eduard Zingerman <eddyz87@gmail.com>,
-	Alexei Starovoitov <ast@kernel.org>,
-	Daniel Borkmann <daniel@iogearbox.net>,
-	Martin KaFai Lau <martin.lau@linux.dev>,
-	Kumar Kartikeya Dwivedi <memxor@gmail.com>,	Song Liu <song@kernel.org>,
-	Yonghong Song <yonghong.song@linux.dev>,	Jiri Olsa <jolsa@kernel.org>,
-	Shuah Khan <shuah@kernel.org>,	Miguel Ojeda <ojeda@kernel.org>,
-	Gary Guo <gary@garyguo.net>,
-	=?UTF-8?q?Bj=C3=B6rn=20Roy=20Baron?= <bjorn3_gh@protonmail.com>,
-	Benno Lossin <lossin@kernel.org>,
-	Andreas Hindborg <a.hindborg@kernel.org>,
-	Alice Ryhl <aliceryhl@google.com>,	Trevor Gross <tmgross@umich.edu>,
-	Danilo Krummrich <dakr@kernel.org>,	Jinjie Ruan <ruanjinjie@huawei.com>,
-	Lyude Paul <lyude@redhat.com>,	Thomas Huth <thuth@redhat.com>,
-	Sohil Mehta <sohil.mehta@intel.com>,	"Xin Li (Intel)" <xin@zytor.com>,
-	Pawan Gupta <pawan.kumar.gupta@linux.intel.com>,
-	Nikunj A Dadhania <nikunj@amd.com>,
-	Joel Fernandes <joelagnelf@nvidia.com>,
-	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-	Randy Dunlap <rdunlap@infradead.org>,	Yury Norov <ynorov@nvidia.com>,
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	linux-kernel@vger.kernel.org,	linux-openrisc@vger.kernel.org,
-	linux-s390@vger.kernel.org,	linux-arch@vger.kernel.org,
-	bpf@vger.kernel.org,	linux-kselftest@vger.kernel.org,
-	rust-for-linux@vger.kernel.org,
-	=?UTF-8?q?Onur=20=C3=96zkan?= <work@onurozkan.dev>,
-	Daniel Almeida <daniel.almeida@collabora.com>
-Subject: [PATCH v2 12/12] s390/preempt: Enable HAS_SEPARATE_PREEMPT_RESCHED_BITS
-Date: Tue, 26 May 2026 08:21:48 -0700
-Message-ID: <20260526152148.30514-13-boqun@kernel.org>
-X-Mailer: git-send-email 2.50.1
-In-Reply-To: <20260526152148.30514-1-boqun@kernel.org>
-References: <20260526152148.30514-1-boqun@kernel.org>
+	s=k20260515; t=1779812353;
+	bh=5SkN1TCAV3N8KFPanxpJeqssiy4h9kR0l/w2B37WK8E=;
+	h=In-Reply-To:References:Subject:From:To:Cc:Date;
+	b=Sglml3+haM8qJZ9vSTtJSlZa5SxfhKaBRf9IdPeA6oEpPtA8GEFOK5svfmw27mTab
+	 Gseoc94vtic5LZ6qdEiGdamwlxAUk4fpVI97K/xIvEisLoqM+K/NnAwg444GpVnOrC
+	 nXl/M0mOvYDTzFTLxvkbiqhGpv+PABEgVAyZW/bvBNKVH3D91649Vm/BaNneH8xOFX
+	 WOL84NTnT17Tp9MZSkbBCsUqV0xIj7jc0QiwRKHCTCUva2HNYUeS2rVWcJtu7r3YNw
+	 qkA+kGp4rxNWrEOdS6ogbef8ulrRKU7ORKjBjZD/h1fNxGsi3BRZpbOArGM5BcuaMM
+	 Lx70DZzjgyFYw==
+Content-Type: multipart/mixed; boundary="===============0782269710716244881=="
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Message-Id: <7b24386ec0b31b63dc8c46477712fd4946306034ec9d17c461e59c2132e4f1bf@mail.kernel.org>
+In-Reply-To: <20260526152148.30514-6-boqun@kernel.org>
+References: <20260526152148.30514-6-boqun@kernel.org>
+Subject: Re: [PATCH v2 05/12] irq & spin_lock: Add counted interrupt disabling/enabling
+From: bot+bpf-ci@kernel.org
+To: boqun@kernel.org,peterz@infradead.org
+Cc: catalin.marinas@arm.com,will@kernel.org,jonas@southpole.se,stefan.kristiansson@saunalahti.fi,shorne@gmail.com,hca@linux.ibm.com,gor@linux.ibm.com,agordeev@linux.ibm.com,borntraeger@linux.ibm.com,svens@linux.ibm.com,tglx@kernel.org,mingo@redhat.com,bp@alien8.de,dave.hansen@linux.intel.com,x86@kernel.org,hpa@zytor.com,arnd@arndb.de,juri.lelli@redhat.com,vincent.guittot@linaro.org,dietmar.eggemann@arm.com,rostedt@goodmis.org,bsegall@google.com,mgorman@suse.de,vschneid@redhat.com,kprateek.nayak@amd.com,boqun@kernel.org,longman@redhat.com,akpm@linux-foundation.org,andrii@kernel.org,eddyz87@gmail.com,ast@kernel.org,daniel@iogearbox.net,martin.lau@linux.dev,memxor@gmail.com,song@kernel.org,yonghong.song@linux.dev,jolsa@kernel.org,shuah@kernel.org,ojeda@kernel.org,gary@garyguo.net,bjorn3_gh@protonmail.com,lossin@kernel.org,a.hindborg@kernel.org,aliceryhl@google.com,tmgross@umich.edu,dakr@kernel.org,ruanjinjie@huawei.com,lyude@redhat.com,thuth@redhat.com,sohil.mehta@intel.com,xin@zytor.co
+ m,pawan.kumar.gupta@linux.intel.com,nikunj@amd.com,joelagnelf@nvidia.com,andriy.shevchenko@linux.intel.com,rdunlap@infradead.org,ynorov@nvidia.com,bigeasy@linutronix.de,linux-kernel@vger.kernel.org,linux-openrisc@vger.kernel.org,linux-s390@vger.kernel.org,linux-arch@vger.kernel.org,bpf@vger.kernel.org,linux-kselftest@vger.kernel.org,rust-for-linux@vger.kernel.org,work@onurozkan.dev,daniel.almeida@collabora.com,boqun.feng@gmail.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
+Date: Tue, 26 May 2026 16:19:12 +0000 (UTC)
 
-From: Heiko Carstens <hca@linux.ibm.com>
+--===============0782269710716244881==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
 
-Convert s390's preempt_count to 64 bit, and change the preempt
-primitives accordingly.
+> diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
+> index 241277cd34cf..9d6012ac929d 100644
+> --- a/include/linux/spinlock.h
+> +++ b/include/linux/spinlock.h
 
-Signed-off-by: Heiko Carstens <hca@linux.ibm.com>
-Signed-off-by: Boqun Feng <boqun@kernel.org>
-Link: https://patch.msgid.link/20260509181249.16281C67-hca@linux.ibm.com
+[ ... ]
+
+> @@ -427,6 +444,11 @@ static __always_inline bool _spin_trylock_irqsave(spinlock_t *lock, unsigned lon
+>  }
+>  #define spin_trylock_irqsave(lock, flags) _spin_trylock_irqsave(lock, &(flags))
+>
+> +static __always_inline int spin_trylock_irq_disable(spinlock_t *lock)
+> +{
+> +	return raw_spin_trylock_irq_disable(&lock->rlock);
+> +}
+> +
+
+Should spin_trylock_irq_disable() include the sparse and clang
+context-analysis annotations that all other spin_trylock_* variants
+carry?
+
+Looking at the other trylock variants in the same file:
+
+spin_trylock():
+    static __always_inline int spin_trylock(spinlock_t *lock)
+        __cond_acquires(true, lock) __no_context_analysis
+
+spin_trylock_bh():
+    static __always_inline int spin_trylock_bh(spinlock_t *lock)
+        __cond_acquires(true, lock) __no_context_analysis
+
+spin_trylock_irq():
+    static __always_inline int spin_trylock_irq(spinlock_t *lock)
+        __cond_acquires(true, lock) __no_context_analysis
+
+_spin_trylock_irqsave():
+    static __always_inline bool _spin_trylock_irqsave(spinlock_t *lock, unsigned long *flags)
+        __cond_acquires(true, lock) __no_context_analysis
+
+The RT counterpart in include/linux/spinlock_rt.h has the
+__cond_acquires(true, lock) annotation:
+
+    static __always_inline int spin_trylock_irq_disable(spinlock_t *lock)
+        __cond_acquires(true, lock)
+
+And the underlying _raw_spin_trylock_irq_disable() in spinlock_api_smp.h
+also has __cond_acquires(true, lock):
+
+    static __always_inline bool _raw_spin_trylock_irq_disable(raw_spinlock_t *lock)
+        __cond_acquires(true, lock)
+
+The wrapper spin_trylock_irq_disable() in spinlock.h is the only place
+where these annotations are missing. This would break sparse static
+analysis and clang's thread-safety analysis for this function, causing
+inconsistent static-checking behavior compared to all peer trylock APIs.
+
+
 ---
- arch/s390/Kconfig               |  1 +
- arch/s390/include/asm/lowcore.h | 13 +++++++----
- arch/s390/include/asm/preempt.h | 41 +++++++++++++++------------------
- 3 files changed, 29 insertions(+), 26 deletions(-)
+AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
+See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index ecbcbb781e40..cbbca82f8443 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -276,6 +276,7 @@ config S390
- 	select PCI_MSI			if PCI
- 	select PCI_MSI_ARCH_FALLBACKS	if PCI_MSI
- 	select PCI_QUIRKS		if PCI
-+	select HAS_SEPARATE_PREEMPT_RESCHED_BITS
- 	select SPARSE_IRQ
- 	select SWIOTLB
- 	select SYSCTL_EXCEPTION_TRACE
-diff --git a/arch/s390/include/asm/lowcore.h b/arch/s390/include/asm/lowcore.h
-index 50ffe75adeb4..0974ab278169 100644
---- a/arch/s390/include/asm/lowcore.h
-+++ b/arch/s390/include/asm/lowcore.h
-@@ -160,10 +160,15 @@ struct lowcore {
- 	/* SMP info area */
- 	__u32	cpu_nr;				/* 0x03a0 */
- 	__u32	softirq_pending;		/* 0x03a4 */
--	__s32	preempt_count;			/* 0x03a8 */
--	__u32	spinlock_lockval;		/* 0x03ac */
--	__u32	spinlock_index;			/* 0x03b0 */
--	__u8	pad_0x03b4[0x03b8-0x03b4];	/* 0x03b4 */
-+	union {
-+		struct {
-+			__u32	need_resched;	/* 0x03a8 */
-+			__u32	count;		/* 0x03ac */
-+		} preempt;
-+		__u64	preempt_count;		/* 0x03a8 */
-+	};
-+	__u32	spinlock_lockval;		/* 0x03b0 */
-+	__u32	spinlock_index;			/* 0x03b4 */
- 	__u64	percpu_offset;			/* 0x03b8 */
- 	__u8	pad_0x03c0[0x0400-0x03c0];	/* 0x03c0 */
- 
-diff --git a/arch/s390/include/asm/preempt.h b/arch/s390/include/asm/preempt.h
-index 0a25d4648b4c..1d5e4d7e9e1b 100644
---- a/arch/s390/include/asm/preempt.h
-+++ b/arch/s390/include/asm/preempt.h
-@@ -8,11 +8,8 @@
- #include <asm/cmpxchg.h>
- #include <asm/march.h>
- 
--/*
-- * Use MSB so it is possible to read preempt_count with LLGT which
-- * reads the least significant 31 bits with a single instruction.
-- */
--#define PREEMPT_NEED_RESCHED	0x80000000
-+/* Use MSB for PREEMPT_NEED_RESCHED mostly because it is available. */
-+#define PREEMPT_NEED_RESCHED	0x8000000000000000UL
- 
- /*
-  * We use the PREEMPT_NEED_RESCHED bit as an inverted NEED_RESCHED such
-@@ -26,25 +23,25 @@
-  */
- static __always_inline int preempt_count(void)
- {
--	unsigned long lc_preempt, count;
-+	unsigned long lc_preempt;
-+	int count;
- 
--	BUILD_BUG_ON(sizeof_field(struct lowcore, preempt_count) != sizeof(int));
--	lc_preempt = offsetof(struct lowcore, preempt_count);
-+	lc_preempt = offsetof(struct lowcore, preempt.count);
- 	/* READ_ONCE(get_lowcore()->preempt_count) & ~PREEMPT_NEED_RESCHED */
- 	asm_inline(
--		ALTERNATIVE("llgt	%[count],%[offzero](%%r0)\n",
--			    "llgt	%[count],%[offalt](%%r0)\n",
-+		ALTERNATIVE("ly		%[count],%[offzero](%%r0)\n",
-+			    "ly		%[count],%[offalt](%%r0)\n",
- 			    ALT_FEATURE(MFEATURE_LOWCORE))
- 		: [count] "=d" (count)
- 		: [offzero] "i" (lc_preempt),
- 		  [offalt] "i" (lc_preempt + LOWCORE_ALT_ADDRESS),
--		  "m" (((struct lowcore *)0)->preempt_count));
-+		  "m" (((struct lowcore *)0)->preempt.count));
- 	return count;
- }
- 
--static __always_inline void preempt_count_set(int pc)
-+static __always_inline void preempt_count_set(unsigned long pc)
- {
--	int old, new;
-+	unsigned long old, new;
- 
- 	old = READ_ONCE(get_lowcore()->preempt_count);
- 	do {
-@@ -63,12 +60,12 @@ static __always_inline void preempt_count_set(int pc)
- 
- static __always_inline void set_preempt_need_resched(void)
- {
--	__atomic_and(~PREEMPT_NEED_RESCHED, &get_lowcore()->preempt_count);
-+	__atomic64_and(~PREEMPT_NEED_RESCHED, (long *)&get_lowcore()->preempt_count);
- }
- 
- static __always_inline void clear_preempt_need_resched(void)
- {
--	__atomic_or(PREEMPT_NEED_RESCHED, &get_lowcore()->preempt_count);
-+	__atomic64_or(PREEMPT_NEED_RESCHED, (long *)&get_lowcore()->preempt_count);
- }
- 
- static __always_inline bool test_preempt_need_resched(void)
-@@ -88,8 +85,8 @@ static __always_inline void __preempt_count_add(int val)
- 
- 			lc_preempt = offsetof(struct lowcore, preempt_count);
- 			asm_inline(
--				ALTERNATIVE("asi	%[offzero](%%r0),%[val]\n",
--					    "asi	%[offalt](%%r0),%[val]\n",
-+				ALTERNATIVE("agsi	%[offzero](%%r0),%[val]\n",
-+					    "agsi	%[offalt](%%r0),%[val]\n",
- 					    ALT_FEATURE(MFEATURE_LOWCORE))
- 				: "+m" (((struct lowcore *)0)->preempt_count)
- 				: [offzero] "i" (lc_preempt), [val] "i" (val),
-@@ -98,7 +95,7 @@ static __always_inline void __preempt_count_add(int val)
- 			return;
- 		}
- 	}
--	__atomic_add(val, &get_lowcore()->preempt_count);
-+	__atomic64_add(val, (long *)&get_lowcore()->preempt_count);
- }
- 
- static __always_inline void __preempt_count_sub(int val)
-@@ -119,15 +116,15 @@ static __always_inline bool __preempt_count_dec_and_test(void)
- 
- 	lc_preempt = offsetof(struct lowcore, preempt_count);
- 	asm_inline(
--		ALTERNATIVE("alsi	%[offzero](%%r0),%[val]\n",
--			    "alsi	%[offalt](%%r0),%[val]\n",
-+		ALTERNATIVE("algsi	%[offzero](%%r0),%[val]\n",
-+			    "algsi	%[offalt](%%r0),%[val]\n",
- 			    ALT_FEATURE(MFEATURE_LOWCORE))
- 		: "=@cc" (cc), "+m" (((struct lowcore *)0)->preempt_count)
- 		: [offzero] "i" (lc_preempt), [val] "i" (-1),
- 		[offalt] "i" (lc_preempt + LOWCORE_ALT_ADDRESS));
- 	return (cc == 0) || (cc == 2);
- #else
--	return __atomic_add_const_and_test(-1, &get_lowcore()->preempt_count);
-+	return __atomic64_add_const_and_test(-1, (long *)&get_lowcore()->preempt_count);
- #endif
- }
- 
-@@ -141,7 +138,7 @@ static __always_inline bool should_resched(int preempt_offset)
- 
- static __always_inline int __preempt_count_add_return(int val)
- {
--	return val + __atomic_add(val, &get_lowcore()->preempt_count);
-+	return val + __atomic64_add(val, (long *)&get_lowcore()->preempt_count);
- }
- 
- static __always_inline int __preempt_count_sub_return(int val)
--- 
-2.50.1 (Apple Git-155)
-
+CI run summary: https://github.com/kernel-patches/bpf/actions/runs/26458754996
+--===============0782269710716244881==--
