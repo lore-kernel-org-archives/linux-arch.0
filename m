@@ -1,85 +1,124 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id C48ED22157B;
-	Tue, 26 May 2026 13:01:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from mail-wr1-f41.google.com (mail-wr1-f41.google.com [209.85.221.41])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D15A9361DCB
+	for <linux-arch@vger.kernel.org>; Tue, 26 May 2026 13:03:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.41
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779800487; cv=none; b=FVDGkbSz0vDaQFspPdxNg0T8pwFDBuRGZXI9S/fcInB6ttBp0eeMpeN85Fic/0t0s/HTiTARC+bhnbS8KJIkugTI7mO4NJdVxF/MDLxLTitZeKHIpuAGMpHkcDvD/I2GcBVRQII/1LZemGhiown4BmKkxpwy0N6EMyYTkkgyyZk=
+	t=1779800628; cv=none; b=J1upIvgqHEe/EI/Ced/n9ZuYx3Mk8CYZSD+2uVOfAEnMSbXQztK8JjQcEboLDAKIfMtBcaKKUXrHs+FXnmZPaQ27uyxU7TsL6lVaxeYPJzpqz8JOP5uB9ms/tq0drER+HWIADP6IKkxhVbJ8JpjLMKeaOBM35aTk0pUEboDTgQ4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779800487; c=relaxed/simple;
-	bh=QpvJy6L0CWjMFpDpW8hAGQht5XAWKU3uc1IdSsCVqqI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=mQlDfCSi46IRnKhlrgYVarLwFfY9WJBGopP3PCrdKoqn4PSeIOnEjJcIO43lr4GH5X3xM4cJoIwmRVAB4LH4EST/A6TFfjzhnPMqSmjX+5T98YSVeFwVdd8D2RLLY3IodH6vYwRzzqTpaB0S3oLU3tt8Qv3vkWvCKUTJUI4koiI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=p5Dsr0Xg; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1779800628; c=relaxed/simple;
+	bh=cIV7eVLFj1WSRdO8UJfWGAKcQ4RL3tgfGuH1jAdS3kQ=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=IqmmeUbIso6iu5zWqwPs/3mzsGRB1O9DUFknGJ9mVH+FzPGO83192OX3SjiZA9WrrA4/m9C3Hc0AxPUr6EkRNshEPDJS7bX5njsQbHX8uAfe2VGRYuBLHWGMGi7ulnG9d+rjZD1VN6E1ajHBwTesaLTjUqUltI5ekTNDzSnql8U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=EKza7bFe; arc=none smtp.client-ip=209.85.221.41
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="p5Dsr0Xg"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 2E9E9169C;
-	Tue, 26 May 2026 06:01:20 -0700 (PDT)
-Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 6F1563F7B4;
-	Tue, 26 May 2026 06:01:23 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1779800485; bh=QpvJy6L0CWjMFpDpW8hAGQht5XAWKU3uc1IdSsCVqqI=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=p5Dsr0XgPS8sKERaqTqbDerx+Dn5jf/pmbrKN+O+qEDCMgx32IF7d+aOy0yyNZYcH
-	 +XwBPVX+lcDnvbKX7Dms7cneX8kxmoejWuL43TPu0moc2NGzHIA6y7Q0YGice4hMx+
-	 eCJbFlg5YILwosv9Sj8NQkWWJYc8jsLPEp/mmU1g=
-Date: Tue, 26 May 2026 14:01:20 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-To: Zeng Heng <zengheng@huaweicloud.com>
-Cc: will@kernel.org, akpm@linux-foundation.org, npiggin@gmail.com,
-	aneesh.kumar@kernel.org, peterz@infradead.org,
-	linux-kernel@vger.kernel.org, wangkefeng.wang@huawei.com,
-	linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org,
-	linux-arch@vger.kernel.org, zengheng4@huawei.com,
-	sunnanyong@huawei.com, blingxue@tencent.com
-Subject: Re: [PATCH] arm64: tlb: Flush walk cache when unsharing PMD tables
-Message-ID: <ahWZoD9Ubaxx-GdK@arm.com>
-References: <20260521073011.4121277-1-zengheng@huaweicloud.com>
- <177944657885.252010.9796978866224637120.b4-ty@arm.com>
- <f5b7460a-5719-bdb2-c53b-413468857f57@huaweicloud.com>
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="EKza7bFe"
+Received: by mail-wr1-f41.google.com with SMTP id ffacd0b85a97d-44a5174670eso5942888f8f.1
+        for <linux-arch@vger.kernel.org>; Tue, 26 May 2026 06:03:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1779800623; x=1780405423; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=UjNTcWc9bOGf723loCTUep8771/uj7ug5EPYZq+XxOs=;
+        b=EKza7bFeRfOQx4baBBdJSdVBzM2bve8Vku8qcuHTL1cYVJoQa2hWXbtAPm6EKv+KnF
+         IterkP4Vdog+meaG7Vze1zOImzDCFf+4VYTp7uhiBNH9SWeHBhz67Egxfm1Y+vIwLZkq
+         iXkupGSTgn20E5+tdlHJ3VTYvJ9nWNOMRCMpxNamsJCwQ3jmAF7d/A4FhvgNh/dKB1k4
+         jIdjIY35h4zCtboEngwh4wP1MQ8ujcO+wcL0uxiix57Hu9LdhlaJfHiWyzZZd8DrRvr4
+         dWlyVvqCuyLlokSTAwAvFB6yTdsoOhP0YVuxsM1t5zz8rNsgqshkwHrtovjbfmMBXRwA
+         jZuw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1779800623; x=1780405423;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=UjNTcWc9bOGf723loCTUep8771/uj7ug5EPYZq+XxOs=;
+        b=Pva4jYmq/MWOxjyCgW9Ce4g1SNQdccrK+/FkIu/GwmIY0RiWXXMOwj2GRFeseMRuJG
+         fEZg6wpo1WCWh0L6/ecJr5WpT1WUU3IZpZVEqjt4ILKlbkoxAkG9f7PSHfOgLXfPM6Kq
+         cjZCgtJDijSdQVpnrcen0c0K7JgMDbwqeMfblzQY9ddKXZlkf7h5/fZCRtaj4QpPEjw4
+         7ty9q5eVk344S+4V4IATjU+IVoikO4dlSdxul40Vhgjg1P47VEaq4zNgjhNIz6Hmq2OL
+         y+G38hH9v+99Xe2ds1c3lgfZAs4+GapWuT1cY5ejm/ndWo8aRyj34pKBtvHSpG0enZ0u
+         8CBw==
+X-Forwarded-Encrypted: i=1; AFNElJ8TKP8CarX9edDHLqODW9VsedEM53oVbSJosroLzkuMlHDrVqhFsBEtO611gV2+aMaJW0+bjFnOuc+1@vger.kernel.org
+X-Gm-Message-State: AOJu0Yy4SDTfagp67ukv4zh6vUQhgwvYljzV3iavb8vbZ1deUZFCa5at
+	3FIBm1RdMP68PVFop0mv9n/5lWb426Opbq0ebHz6VL5OsUylBOMKcbGISjXzt0tQSUk=
+X-Gm-Gg: Acq92OGfsY45DU8Yq4jVmk78DWBJjg6kJW5FOEBuB5rFWuC+GFcRA/rC0/zN+jCqtah
+	piMb6KU2idT1467yer1UwLyj3cqbA+wSUz9cWXJzo+7f9Sp7XNtDA6e9h6RUKctl3qhi2pCJ1xg
+	B/nMz/bX+J420aFiaEqJFE1UZ2E04z44trC/0C7pSsSyp/wRTs8DigEJN2J7I9aBGPttGmapvHn
+	TBHixuCl1pvs2OiSRs30NGC+DUItA9JwHMIAqjv+bkCRJnvtUPq5WaD3C454Jcb6uprxLYswl2E
+	39PGrx1eWxaEpjSf4alsYUP0FuSWDz51VutM/Vp+O2AHtQaDFTY/Hs7S89gzYy1tMITwtGq7lx1
+	KB0KzAID7lTvIpYalxn2MYNsTB9SHrcgjOONIsj6mep4WaSzBzVwlqG9M7apxgK5A2RKQy0hofV
+	PnFbZ6eTlTlszDUnxw1eiUNS1hGHOTW/Dou6rs0ZEaA1dr
+X-Received: by 2002:a05:600c:45ce:b0:490:52c0:73f1 with SMTP id 5b1f17b1804b1-49052c07823mr223327865e9.9.1779800622880;
+        Tue, 26 May 2026 06:03:42 -0700 (PDT)
+Received: from [192.168.42.79] (nat2.prg.suse.com. [195.250.132.146])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4904561a198sm318501285e9.10.2026.05.26.06.03.40
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 26 May 2026 06:03:42 -0700 (PDT)
+Message-ID: <635fed3c-4e39-4357-acd1-13f1653f9e3d@suse.com>
+Date: Tue, 26 May 2026 15:03:39 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <f5b7460a-5719-bdb2-c53b-413468857f57@huaweicloud.com>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v5 09/14] module: Move signature type check out of
+ mod_check_sig()
+To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
+Cc: Alexei Starovoitov <ast@kernel.org>,
+ Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
+ Eduard Zingerman <eddyz87@gmail.com>,
+ Kumar Kartikeya Dwivedi <memxor@gmail.com>,
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
+ Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
+ Sami Tolvanen <samitolvanen@google.com>, Daniel Gomez
+ <da.gomez@samsung.com>, Paul Moore <paul@paul-moore.com>,
+ James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>,
+ Jonathan Corbet <corbet@lwn.net>, Madhavan Srinivasan <maddy@linux.ibm.com>,
+ Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
+ Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+ Roberto Sassu <roberto.sassu@huawei.com>,
+ Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+ Eric Snowberg <eric.snowberg@oracle.com>,
+ Nicolas Schier <nicolas.schier@linux.dev>, Daniel Gomez
+ <da.gomez@kernel.org>, Aaron Tomlin <atomlin@atomlin.com>,
+ "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+ Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+ Xiu Jianfeng <xiujianfeng@huawei.com>,
+ Martin KaFai Lau <martin.lau@linux.dev>, Song Liu <song@kernel.org>,
+ Yonghong Song <yonghong.song@linux.dev>, Jiri Olsa <jolsa@kernel.org>,
+ bpf@vger.kernel.org, =?UTF-8?Q?Fabian_Gr=C3=BCnbichler?=
+ <f.gruenbichler@proxmox.com>, Arnout Engelen <arnout@bzzt.net>,
+ Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
+ Christian Heusel <christian@heusel.eu>, =?UTF-8?Q?C=C3=A2ju_Mihai-Drosi?=
+ <mcaju95@gmail.com>, Eric Biggers <ebiggers@kernel.org>,
+ Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+ linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+ linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+ linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org,
+ debian-kernel@lists.debian.org
+References: <20260505-module-hashes-v5-0-e174a5a49fce@weissschuh.net>
+ <20260505-module-hashes-v5-9-e174a5a49fce@weissschuh.net>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260505-module-hashes-v5-9-e174a5a49fce@weissschuh.net>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On Mon, May 25, 2026 at 05:20:14PM +0800, Zeng Heng wrote:
-> On 2026/5/22 18:42, Catalin Marinas wrote:
-> > On Thu, 21 May 2026 15:30:11 +0800, Zeng Heng wrote:
-> > > When huge_pmd_unshare() is called to unshare a PMD table, the
-> > > tlb_unshare_pmd_ptdesc() function sets tlb->unshared_tables=true
-> > > but the aarch64 tlb_flush() only checked tlb->freed_tables to
-> > > determine whether to use TLBF_NONE (vae1is, invalidates walk
-> > > cache) or TLBF_NOWALKCACHE (vale1is, leaf-only).
-> > > 
-> > > This caused the stale PMD page table entry to remain in the walk cache
-> > > after unshare, potentially leading to incorrect page table walks.
-> > > 
-> > > [...]
-> > Applied to arm64 (for-next/fixes), thanks!
-> > 
-> > [1/1] arm64: tlb: Flush walk cache when unsharing PMD tables
-> >        https://git.kernel.org/arm64/c/c2ff4764e03e
+On 5/5/26 11:05 AM, Thomas Weißschuh wrote:
+> Additional signature types are about to be added.
+> As each caller of mod_check_sig() can have different support for these,
+> move the type validation into the callers.
 > 
-> This original issue was reported by our customer, who also participated
-> in the root cause analysis and resolution.
-> 
-> Could you please help add the below tags:
-> 
-> Co-developed-by: Xue Xiaowei <blingxue@tencent.com>
-> Signed-off-by: Xue Xiaowei <blingxue@tencent.com>
-> 
-> Thank you in advance.
+> Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
 
-Too late unfortunately, the pull request went in on Friday. It will be
-in the list archives though.
+Reviewed-by: Petr Pavlu <petr.pavlu@suse.com>
 
--- 
-Catalin
+-- Petr
