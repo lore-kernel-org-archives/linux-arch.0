@@ -1,63 +1,93 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AE2143AD50B;
-	Wed, 27 May 2026 20:46:38 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 748B912CDA5;
+	Wed, 27 May 2026 23:17:41 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779914799; cv=none; b=oska0oZTBVY8pYxPYfPjVKdy7ru4aorNuzF8ymuO69o3yJawob9PkdQ4Xr4RmtkbQRupHFtzzNey/7af3bfDryqcMi38DQ7yyWvZ9ZZSFPfH6GqobPSJ2crStqqGeNInCMn1Yuo0htqRNy4EkZ+t1S86CfrByekSg4r0k5Oifko=
+	t=1779923862; cv=none; b=PFciLm+e+SBs/Ek3uJbcEH336YvHeKtvnoJ6XOwP0bKLtZ2O253FSA6Qz/3W/qsoxgSPZRFognCqDX4C66U3vQ4eKSlakqBGqzoDSGeZrTeMg/Ff9Cb56uiBQq+NZ7Hc+O9L9y6jDCRh+I5pUg/u+W/HLhnVWWGBw7zqtqJtyB0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779914799; c=relaxed/simple;
-	bh=OjgMpruKTRXZxsp2LjIrAt2to+rWJD2LFFFBKmvjwBo=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=RcmLagamVLwiWkd9tZbjWZYmxK675v8OywYLLHQajKsVLwXrpsMuH++4fJ1RbW2ni3xnFIfsx49Y6M1dVf8WTs4HwA/WVhVQxcbEds/dVSH9dPuQroQRGxmQaHGbYlGSP+ufcIlam6LvtZD3NhNaUasdz5yuTHvpYg7UMTzGjsI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=O9koNAPw; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1779923862; c=relaxed/simple;
+	bh=CZ9SgH4iIizukUaWigKStqHzQdgwqPBo1duJe5NLhCI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=IZK7hdy58ugxgaGMMayP0+ndHE71PhORiqs4AHq5AHQxrbAzGDkWKikh9D4fmz6jRA2zRl3ecl0icBNQfO4HYoQUbHYOzj3iCEwa0SvRR3jTvWHPJvYN0GZbD8DyqYjfqQXbY3TnMuZw6t4av9RXEo5zGhtMyVPLW+5cq5b9Is0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=LeLfEwA5; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="O9koNAPw"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 09C2D1F000E9;
-	Wed, 27 May 2026 20:46:38 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1779914798;
-	bh=zT6s2ZfDPFrK81hDTyTon4JdpXGE/BWdIUEPQ9B/F7c=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=O9koNAPwuL8ckwpo4FRMzwxLdJDvUGlF79kpbznKq14OMdiUBct4+0GX9BFqefHGe
-	 2n1H0CCz4iOm4W43yEysMDaQWFWTTkrYL9CQVzHy4TrDrXE7guiMGT13zeoLjeBASM
-	 uowS3m5h30FBmsWNJvpY/m3Jw9EQcypAJG+w0PZU=
-Date: Wed, 27 May 2026 13:46:37 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: "Li Zhe" <lizhe.67@bytedance.com>
-Cc: <apopple@nvidia.com>, <arnd@arndb.de>, <bp@alien8.de>,
- <dave.hansen@linux.intel.com>, <david@kernel.org>, <kees@kernel.org>,
- <mingo@redhat.com>, <rppt@kernel.org>, <tglx@kernel.org>,
- <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>,
- <linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>
-Subject: Re: [PATCH v3 0/8] mm: speed up ZONE_DEVICE memmap initialization
-Message-Id: <20260527134637.29621cc94aba22eb02f3a544@linux-foundation.org>
-In-Reply-To: <20260527033636.28231-1-lizhe.67@bytedance.com>
-References: <20260527033636.28231-1-lizhe.67@bytedance.com>
-X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="LeLfEwA5"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 105B71F000E9;
+	Wed, 27 May 2026 23:17:41 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1779923861;
+	bh=Zb9tzaSppYJ5lTPKCwIdw1KJepg0Vogvwm6Ghu1mYEA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=LeLfEwA5nWeC4m+SCGm/zRgM6ylE45Ou+venRsXpn0lmrJ+sx1NGE1v/VNzVzLz/j
+	 pnp3XuaAoI8xj4h3aIHivij8/NEiNKFSNKjJ9OTwaqRAvJhDvetxlXGiVx7naMDn9a
+	 PnV9IxQ4QQfyVVQyApyV3mtKxtB4W5s6dNznqF+E1FTGLrEJ+B3O72HAzgqw4s3rye
+	 ub8aaQhac7jIyz46BEaTxq7astDzfcjep9T44RgXUlOiH7GNxVENDaHRsJfe1nQGNR
+	 uQSuTXKPO5ConikzW0fjRg/E8an5vxq2KLiU4ZCOL2b5bVOIwfIaHCGifYCZitREoY
+	 Dv69BGLsD+fkw==
+Date: Wed, 27 May 2026 16:17:39 -0700
+From: Wei Liu <wei.liu@kernel.org>
+To: Michael Kelley <mhklinux@outlook.com>
+Cc: Jork Loeser <jloeser@linux.microsoft.com>,
+	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+	"x86@kernel.org" <x86@kernel.org>,
+	"K . Y . Srinivasan" <kys@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+	Anirudh Rayabharam <anrayabh@linux.microsoft.com>,
+	Stanislav Kinsburskii <stanislav.kinsburskii@gmail.com>,
+	Mukesh Rathor <mrathor@linux.microsoft.com>
+Subject: Re: [PATCH v3 3/6] x86/hyperv: Skip LP/VP creation on kexec
+Message-ID: <20260527231739.GH3518940@liuwe-devbox-debian-v2.local>
+References: <20260408013645.286723-1-jloeser@linux.microsoft.com>
+ <20260408013645.286723-4-jloeser@linux.microsoft.com>
+ <SN6PR02MB41578A8F9A225227FB5E79E6D4312@SN6PR02MB4157.namprd02.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <SN6PR02MB41578A8F9A225227FB5E79E6D4312@SN6PR02MB4157.namprd02.prod.outlook.com>
 
-On Wed, 27 May 2026 11:36:28 +0800 "Li Zhe" <lizhe.67@bytedance.com> wrote:
-
-> This series reduces latency in paths which create or recreate
-> ZONE_DEVICE memmaps. Pmem hotplug is a concrete example.
+On Mon, May 04, 2026 at 03:09:21PM +0000, Michael Kelley wrote:
+> From: Jork Loeser <jloeser@linux.microsoft.com> Sent: Tuesday, April 7, 2026 6:37 PM
+> > 
+> > After a kexec the logical processors and virtual processors already
+> > exist in the hypervisor because they were created by the previous
+> > kernel. Attempting to add them again causes either a BUG_ON or
+> > corrupted VP state leading to MCEs in the new kernel.
+> > 
+> > Add hv_lp_exists() to probe whether an LP is already present by
+> > calling HVCALL_GET_LOGICAL_PROCESSOR_RUN_TIME. When it succeeds the
+> > LP exists and we skip the add-LP and create-VP loops entirely.
+> > 
+> > Also add hv_call_notify_all_processors_started() which informs the
+> > hypervisor that all processors are online. This is required after
+> > adding LPs (fresh boot) and is a no-op on kexec since we skip that
+> > path.
 > 
-> memmap_init_zone_device() can spend a substantial amount of time
-> initializing large ZONE_DEVICE ranges because it repeats nearly
-> identical struct page setup for every PFN.
-> 
-> The series addresses that overhead in eight patches.
+> Adding hv_call_notify_all_processors_started() seems like it should be
+> a separate patch. And this paragraph in the commit message leaves me
+> with questions:  Is it really "required"?  If it is, how does the existing
+> upstream code ever work? Does the change need to be backported
+> to stable kernels? If it isn't *really* required, what are the implications
+> of not doing it?
 
-Thanks.  I'll take no action at this time, as it's getting late in the
--rc cycle and the patchset's review status is rather thin.
+It is complicated. If I remember correctly, we realized this call was
+absolutely needed if SEV-SNP host side support is enabled. If that
+support is not enabled, then things continue to work. I think it is the
+right thing to do to always make this call.
 
-AI review had a number of things to say:
-	https://sashiko.dev/#/patchset/20260527033636.28231-1-lizhe.67@bytedance.com
+We don't need to backport this yet.
+
+Wei
