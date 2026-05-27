@@ -1,43 +1,61 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from mail.ilvokhin.com (mail.ilvokhin.com [178.62.254.231])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F2FE2BEC5F;
-	Wed, 27 May 2026 12:05:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B45C040FDB6;
+	Wed, 27 May 2026 13:31:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.62.254.231
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779883511; cv=none; b=fr5lXvr0GtJE7VE2qQ0/IMtLLl6kqBI001A+d08nCgrgMDaOeLuS5krWTEnA1PYu/bIHH8WPBuTCZXLaAxjwS5nS2qN2LlG6caaWJWgz64QrGKdwLXXXk+IM/YyUa2DUX+gu4sO/NOkSqKlGGQmVgFWZ/AXZnDdtC+SORwPRjC0=
+	t=1779888662; cv=none; b=TKA3QiGDJQx8qx775pfkDYqm41koAIijRw8FO47lXX1lBVrgfuMJKLdEUtzq8P1kkMi+d3rSL+9LG71bR8DvazjPDun71NUvdddVpk8nAjChbuEyKoD0i5iqWDL6m2ooujRAmhPuVceJqvIcukqB5cjfp9Avg+it3vpjlNjaEEw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779883511; c=relaxed/simple;
-	bh=G8y29eByo9Vd74elGBiAptyOBSNFkxSYcTOOZanUKqg=;
+	s=arc-20240116; t=1779888662; c=relaxed/simple;
+	bh=1wytUo+2Aeq9VGu4j/kp+Z/iRR4RMhRU4MM8FIkyicA=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=AS/RtNksKZ2eE3orHgKlxhbaxmoGztPLqXogetrNOeR7r6ZIJ4n0EX8AphtSo/y+Dhm6oz34twzN98PEF0VGm9fSgrlegTMA/pP58fzdRntMVu6ba2v6glRiWsn0NBfluOCjhBC+auLRYRJWQQmrZ0SEzdSLxu5kfuJE2AaUlDQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=iV776Edg; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=JBrqX78bzEEVc/Y4nyC/0YHTP2IpiwKyQL0wX374TtmYdwcos0C56I/kqsKzn1zv4s9iLm0CG8vOoWsMH5sC5nrbgj4CtCkrI8iaLMYdI+uW4L1YEDrB1hCNKdRH/ImNokTBc+LkIcc+NRlSc/S2fYLCygnjziYgH3TzDFfdd/s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=tD9Y95jH; arc=none smtp.client-ip=178.62.254.231
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ilvokhin.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="iV776Edg"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 94EDA1F00A3A;
-	Wed, 27 May 2026 12:05:07 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1779883509;
-	bh=vb+nQUG5DZIwXW194zA/OGtxfBqg13OGT67u0JOBSdo=;
+	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="tD9Y95jH"
+Received: from shell.ilvokhin.com (shell.ilvokhin.com [138.68.190.75])
+	(Authenticated sender: d@ilvokhin.com)
+	by mail.ilvokhin.com (Postfix) with ESMTPSA id A4CA2D0D06;
+	Wed, 27 May 2026 13:30:58 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ilvokhin.com;
+	s=mail; t=1779888658;
+	bh=kUtPQMqnGRZK4WtBtal4fkwqBGL1onBAC0FZaenXB+Y=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=iV776Edg8kbbFFPZFImy8PLyuTrEVAExqe/twlbP7u/sSmtJ3yVDDoHGAq7tBeHIt
-	 4juj6R4QlA/kKD2lZGffm6rzicMp3nV7YbeVCKaF0UI2BKu69EzZR5yx33Baw7QYw6
-	 yJEPO4w/ha3DQgeMnJ4+L0pQ/95r/Tuu77XzdOa+Hf83gV6QwSAiTDzecdFd5S6zD2
-	 qGheJZsL6ikieRlQ43efmz641qVeEecyQUym61paQESzg1SNryVH4eoTvVwKFrsele
-	 z749nZui7B5aqSQKpK5+ABaMdY3iTsG1oUT9iFMQgbP2Diw9qdJiGxCCP9lL3pjSJU
-	 UPo55TRN57gHw==
-Date: Wed, 27 May 2026 13:05:03 +0100
-From: Will Deacon <will@kernel.org>
-To: syzbot <syzbot+a169a27b0538ba43e5d3@syzkaller.appspotmail.com>
-Cc: akpm@linux-foundation.org, aneesh.kumar@kernel.org,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-mm@kvack.org, npiggin@gmail.com, peterz@infradead.org,
-	syzkaller-bugs@googlegroups.com, david@kernel.org,
-	qi.zheng@linux.dev
-Subject: Re: [syzbot] [mm?] [arch?] BUG: sleeping function called from
- invalid context in __tlb_batch_free_encoded_pages
-Message-ID: <ahbd7_KaUn45GK3v@willie-the-truck>
-References: <69f302ff.170a0220.3c4978.0016.GAE@google.com>
+	b=tD9Y95jHJ7FHOR/3K3r+mZ2uCwLkbP7wrlCEb9kG3J6t+6n9iKA3+dtPEa4P98bh/
+	 o5ovibdCKYI+Qo2jmZQ0eu+Zv4aRy24lOcvlMPgLYo/rPTGo6fKNw9U9ZrOf+VboDg
+	 XtEX60Utm7kiii60sP4mieyLYPGASkfm5fIew4eo=
+Date: Wed, 27 May 2026 13:30:57 +0000
+From: Dmitry Ilvokhin <d@ilvokhin.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
+	Boqun Feng <boqun@kernel.org>, Waiman Long <longman@redhat.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Juergen Gross <jgross@suse.com>,
+	Ajay Kaher <ajay.kaher@broadcom.com>,
+	Alexey Makhalov <alexey.makhalov@broadcom.com>,
+	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
+	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+	Christoph Lameter <cl@gentwo.org>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
+	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
+	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
+	kernel-team@meta.com, "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v6 5/7] locking: Add contended_release tracepoint to
+ qspinlock
+Message-ID: <ahbyERN5PICY6qxm@shell.ilvokhin.com>
+References: <cover.1777999826.git.d@ilvokhin.com>
+ <5d7ea75ffe74a785e6b234ada9f23c6373d4b4c1.1777999826.git.d@ilvokhin.com>
+ <20260513193342.GB2545104@noisy.programming.kicks-ass.net>
+ <agXBb0ga_6HJrrnm@shell.ilvokhin.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -46,144 +64,32 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <69f302ff.170a0220.3c4978.0016.GAE@google.com>
+In-Reply-To: <agXBb0ga_6HJrrnm@shell.ilvokhin.com>
 
-I finally got a chance to look at this one...
+Hi Peter,
 
-On Thu, Apr 30, 2026 at 12:21:35AM -0700, syzbot wrote:
-> syzbot found the following issue on:
-> 
-> HEAD commit:    dca922e019dd Merge tag 'xsa48x-7.1-tag' of git://git.kerne..
-> git tree:       upstream
-> console output: https://syzkaller.appspot.com/x/log.txt?x=11cd6b6c580000
-> kernel config:  https://syzkaller.appspot.com/x/.config?x=59da38148f3a3d24
-> dashboard link: https://syzkaller.appspot.com/bug?extid=a169a27b0538ba43e5d3
-> compiler:       gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44
-> 
-> Unfortunately, I don't have any reproducer for this issue yet.
-> 
-> Downloadable assets:
-> disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-dca922e0.raw.xz
-> vmlinux: https://storage.googleapis.com/syzbot-assets/7b447b1b93a9/vmlinux-dca922e0.xz
-> kernel image: https://storage.googleapis.com/syzbot-assets/af7830f5dabf/bzImage-dca922e0.xz
-> 
-> IMPORTANT: if you fix the issue, please add the following tag to the commit:
-> Reported-by: syzbot+a169a27b0538ba43e5d3@syzkaller.appspotmail.com
-> 
-> BUG: sleeping function called from invalid context at mm/mmu_gather.c:142
-> in_atomic(): 0, irqs_disabled(): 0, non_block: 0, pid: 5677, name: rm
-> preempt_count: 0, expected: 0
-> RCU nest depth: 1, expected: 0
-> 2 locks held by rm/5677:
->  #0: ffff888022c20338 (&mm->mmap_lock){++++}-{4:4}, at: mmap_write_lock include/linux/mmap_lock.h:536 [inline]
->  #0: ffff888022c20338 (&mm->mmap_lock){++++}-{4:4}, at: exit_mmap+0x22c/0xa10 mm/mmap.c:1308
->  #1: ffffffff8e7e54e0 (rcu_read_lock){....}-{1:3}, at: rcu_lock_acquire.constprop.0+0x7/0x30 include/linux/rcupdate.h:300
-> CPU: 1 UID: 0 PID: 5677 Comm: rm Not tainted syzkaller #0 PREEMPT(full) 
-> Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
-> Call Trace:
->  <TASK>
->  __dump_stack lib/dump_stack.c:94 [inline]
->  dump_stack_lvl+0x100/0x190 lib/dump_stack.c:120
->  __might_resched.cold+0x1ec/0x232 kernel/sched/core.c:9162
->  __tlb_batch_free_encoded_pages+0x11e/0x280 mm/mmu_gather.c:142
->  tlb_batch_pages_flush mm/mmu_gather.c:151 [inline]
+Gentle ping on this. I wanted to check if the assembly analysis in my
+previous reply changed the picture at all.
 
-... so we're getting deep in the gather code tearing down an mm, where
-we free the unmapped pages but we're somehow inside an RCU read-side
-critical section.
+You were right that the commit message was misleading about the total
+size increase: it's 9 bytes per call site, not just the NOP.
 
-The last report on the sysbot dashboard is from 30th April, which
-coincides with 99ebc509eef5 ("mm: memcontrol: fix rcu unbalance in
-get_non_dying_memcg_end()") landing upstream. Unfortunately, there's no
-reproducer available to test that concretely but it looks like we can
-end up in there via the page freeing path. So hopefully this is fixed.
+That said, when I looked at the executed path with the tracepoint
+disabled, the only addition is the 2-byte NOP (xchg %ax,%ax).
 
-As an aside, it's a bit of a pity that the rcu_read_lock() callsite is
-identified only as the useless rcu_lock_acquire.constprop.0() function
-in this backtrace.
+Both the baseline and instrumented _raw_spin_unlock() fit within a
+single 64-byte cache line, and I wasn't able to measure any difference
+with locktorture: lock() cost completely dominates, unlock() accounts
+for less than 1% of the total, so any overhead is indistinguishable from
+noise.
 
-Will
+If the cost is still a concern, I see two possible paths forward:
 
->  tlb_flush_mmu_free mm/mmu_gather.c:417 [inline]
->  tlb_flush_mmu mm/mmu_gather.c:424 [inline]
->  tlb_finish_mmu+0x1b0/0x810 mm/mmu_gather.c:549
->  exit_mmap+0x454/0xa10 mm/mmap.c:1313
->  __mmput+0x12a/0x410 kernel/fork.c:1178
->  mmput+0x67/0x80 kernel/fork.c:1201
->  exit_mm kernel/exit.c:581 [inline]
->  do_exit+0x833/0x2a60 kernel/exit.c:963
->  do_group_exit+0xd5/0x2a0 kernel/exit.c:1117
->  __do_sys_exit_group kernel/exit.c:1128 [inline]
->  __se_sys_exit_group kernel/exit.c:1126 [inline]
->  __x64_sys_exit_group+0x3e/0x50 kernel/exit.c:1126
->  x64_sys_call+0x102c/0x1530 arch/x86/include/generated/asm/syscalls_64.h:232
->  do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
->  do_syscall_64+0x10b/0xf80 arch/x86/entry/syscall_64.c:94
->  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> RIP: 0033:0x7f9fc102d6c5
-> Code: Unable to access opcode bytes at 0x7f9fc102d69b.
-> RSP: 002b:00007ffd51104bf8 EFLAGS: 00000202 ORIG_RAX: 00000000000000e7
-> RAX: ffffffffffffffda RBX: 00007f9fc112efe8 RCX: 00007f9fc102d6c5
-> RDX: 00000000000000e7 RSI: ffffffffffffff88 RDI: 0000000000000000
-> RBP: 0000000000000001 R08: 00007ffd51104b88 R09: 0000000000000000
-> R10: 00007ffd51104a20 R11: 0000000000000202 R12: 0000000000000000
-> R13: 0000000000000000 R14: 00007f9fc112d680 R15: 00007f9fc112f000
->  </TASK>
-> 
-> ====================================
-> WARNING: rm/5677 still has locks held!
-> syzkaller #0 Tainted: G        W          
-> ------------------------------------
-> 1 lock held by rm/5677:
->  #0: ffffffff8e7e54e0 (rcu_read_lock){....}-{1:3}, at: rcu_lock_acquire.constprop.0+0x7/0x30 include/linux/rcupdate.h:300
-> 
-> stack backtrace:
-> CPU: 1 UID: 0 PID: 5677 Comm: rm Tainted: G        W           syzkaller #0 PREEMPT(full) 
-> Tainted: [W]=WARN
-> Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
-> Call Trace:
->  <TASK>
->  __dump_stack lib/dump_stack.c:94 [inline]
->  dump_stack_lvl+0x100/0x190 lib/dump_stack.c:120
->  print_held_locks_bug kernel/locking/lockdep.c:6752 [inline]
->  debug_check_no_locks_held+0x90/0xa0 kernel/locking/lockdep.c:6760
->  do_exit+0x13ea/0x2a60 kernel/exit.c:997
->  do_group_exit+0xd5/0x2a0 kernel/exit.c:1117
->  __do_sys_exit_group kernel/exit.c:1128 [inline]
->  __se_sys_exit_group kernel/exit.c:1126 [inline]
->  __x64_sys_exit_group+0x3e/0x50 kernel/exit.c:1126
->  x64_sys_call+0x102c/0x1530 arch/x86/include/generated/asm/syscalls_64.h:232
->  do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
->  do_syscall_64+0x10b/0xf80 arch/x86/entry/syscall_64.c:94
->  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> RIP: 0033:0x7f9fc102d6c5
-> Code: Unable to access opcode bytes at 0x7f9fc102d69b.
-> RSP: 002b:00007ffd51104bf8 EFLAGS: 00000202 ORIG_RAX: 00000000000000e7
-> RAX: ffffffffffffffda RBX: 00007f9fc112efe8 RCX: 00007f9fc102d6c5
-> RDX: 00000000000000e7 RSI: ffffffffffffff88 RDI: 0000000000000000
-> RBP: 0000000000000001 R08: 00007ffd51104b88 R09: 0000000000000000
-> R10: 00007ffd51104a20 R11: 0000000000000202 R12: 0000000000000000
-> R13: 0000000000000000 R14: 00007f9fc112d680 R15: 00007f9fc112f000
->  </TASK>
-> 
-> 
-> ---
-> This report is generated by a bot. It may contain errors.
-> See https://goo.gl/tpsmEJ for more information about syzbot.
-> syzbot engineers can be reached at syzkaller@googlegroups.com.
-> 
-> syzbot will keep track of this issue. See:
-> https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-> 
-> If the report is already addressed, let syzbot know by replying with:
-> #syz fix: exact-commit-title
-> 
-> If you want to overwrite report's subsystems, reply with:
-> #syz set subsystems: new-subsystem
-> (See the list of subsystem names on the web dashboard)
-> 
-> If the report is a duplicate of another one, reply with:
-> #syz dup: exact-subject-of-another-report
-> 
-> If you want to undo deduplication, reply with:
-> #syz undup
+1. Guard the spinlock/qrwlock instrumentation behind a Kconfig option
+   (disabled by default), so only kernels that explicitly opt in pay
+   the cost.
+
+2. Drop the spinlock/qrwlock instrumentation entirely and keep
+   contended_release for sleepable locks only.
+  
+Happy to go whichever direction you prefer.
