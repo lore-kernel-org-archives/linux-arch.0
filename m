@@ -1,204 +1,189 @@
-Received: from va-2-114.ptr.blmpb.com (va-2-114.ptr.blmpb.com [209.127.231.114])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B47163845CB
-	for <linux-arch@vger.kernel.org>; Wed, 27 May 2026 03:41:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.114
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F2FE2BEC5F;
+	Wed, 27 May 2026 12:05:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779853266; cv=none; b=TIPDJJgyVzU5IzyjQ+wJc01r1oVO1ZJnSzVqP+XvQh7IQVgjIJkTGh4zBDlS4GFcknPkKht5/5tjPJdKfKCXcnlLm5KzuhuxoibRybDSlSbEi4WjYnW1bpg2y53G89Ae8PPJL8Kv9i28BbpyvJWvg5jo9QgjPB5zLq186kEmF0I=
+	t=1779883511; cv=none; b=fr5lXvr0GtJE7VE2qQ0/IMtLLl6kqBI001A+d08nCgrgMDaOeLuS5krWTEnA1PYu/bIHH8WPBuTCZXLaAxjwS5nS2qN2LlG6caaWJWgz64QrGKdwLXXXk+IM/YyUa2DUX+gu4sO/NOkSqKlGGQmVgFWZ/AXZnDdtC+SORwPRjC0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779853266; c=relaxed/simple;
-	bh=5VhLv2LjLV5L+tN7bDrC78lxsMFkMu3odqF+TAzBMb4=;
-	h=To:Mime-Version:References:Date:Content-Type:Cc:Subject:
-	 In-Reply-To:From:Message-Id; b=WVAwK6OAxNmJLx0iytcDRNCePzPoMT/nWYvUaLV44cCIASYrpUxXXAHV3Oo7ViYWRnDfOY51p+dc2qzOvZewdFIxovZ0E23c221ykhAIMwAfklCzztmHaAnHbvQsre5SWa4YuNK5Ume7CXXZo3MNTr2OtuqhwafdDLxmhQ+s7hk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=jxGxZUs3; arc=none smtp.client-ip=209.127.231.114
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1779883511; c=relaxed/simple;
+	bh=G8y29eByo9Vd74elGBiAptyOBSNFkxSYcTOOZanUKqg=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=AS/RtNksKZ2eE3orHgKlxhbaxmoGztPLqXogetrNOeR7r6ZIJ4n0EX8AphtSo/y+Dhm6oz34twzN98PEF0VGm9fSgrlegTMA/pP58fzdRntMVu6ba2v6glRiWsn0NBfluOCjhBC+auLRYRJWQQmrZ0SEzdSLxu5kfuJE2AaUlDQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=iV776Edg; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="jxGxZUs3"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1779853253; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=/2RvXz8oWe2/xVcoRxII+0kZXLSgfUTV6Cn2seMf/Rg=;
- b=jxGxZUs3u2P4WcI+TbLrf1iJPbfO2E927/UO7AbjPGoyrqScQm+seFYm/WaaloWm9c5OhG
- CaiCfhVRWd7E4dyhdPw7AcSzVAMF0FoQcu4RrI6QjbIqq/lcLvCaCmNvpCn8c1VXkp9NR1
- R8ltVzJBXD93p17b9n5T8bgR3Ui70rmuQRxIB2ioFZfSoEhtRiE7YQNg5qdDFQUJF/uM2q
- qsH8PvlckD2t5q2i6MwQeT12yQmqNTf9CNJkRhSm+TkKksxSI8C/T4UPetnnp7DDkarKaD
- RIpPZh0E21NPr4Cao6omM2bP2e0b1XmS0bv31+ZiTpgH4UZeBl0FWnle0319ZQ==
-X-Mailer: git-send-email 2.45.2
-To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
-	<kees@kernel.org>, <mingo@redhat.com>, <rppt@kernel.org>, 
-	<tglx@kernel.org>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="iV776Edg"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 94EDA1F00A3A;
+	Wed, 27 May 2026 12:05:07 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1779883509;
+	bh=vb+nQUG5DZIwXW194zA/OGtxfBqg13OGT67u0JOBSdo=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=iV776Edg8kbbFFPZFImy8PLyuTrEVAExqe/twlbP7u/sSmtJ3yVDDoHGAq7tBeHIt
+	 4juj6R4QlA/kKD2lZGffm6rzicMp3nV7YbeVCKaF0UI2BKu69EzZR5yx33Baw7QYw6
+	 yJEPO4w/ha3DQgeMnJ4+L0pQ/95r/Tuu77XzdOa+Hf83gV6QwSAiTDzecdFd5S6zD2
+	 qGheJZsL6ikieRlQ43efmz641qVeEecyQUym61paQESzg1SNryVH4eoTvVwKFrsele
+	 z749nZui7B5aqSQKpK5+ABaMdY3iTsG1oUT9iFMQgbP2Diw9qdJiGxCCP9lL3pjSJU
+	 UPo55TRN57gHw==
+Date: Wed, 27 May 2026 13:05:03 +0100
+From: Will Deacon <will@kernel.org>
+To: syzbot <syzbot+a169a27b0538ba43e5d3@syzkaller.appspotmail.com>
+Cc: akpm@linux-foundation.org, aneesh.kumar@kernel.org,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-mm@kvack.org, npiggin@gmail.com, peterz@infradead.org,
+	syzkaller-bugs@googlegroups.com, david@kernel.org,
+	qi.zheng@linux.dev
+Subject: Re: [syzbot] [mm?] [arch?] BUG: sleeping function called from
+ invalid context in __tlb_batch_free_encoded_pages
+Message-ID: <ahbd7_KaUn45GK3v@willie-the-truck>
+References: <69f302ff.170a0220.3c4978.0016.GAE@google.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20260527033636.28231-1-lizhe.67@bytedance.com>
-Date: Wed, 27 May 2026 11:36:36 +0800
-X-Lms-Return-Path: <lba+26a1667c3+f86a1d+vger.kernel.org+lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=UTF-8
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	"Li Zhe" <lizhe.67@bytedance.com>
-Subject: [PATCH v3 8/8] mm: use memcpy_streaming() in zone-device template copies
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-In-Reply-To: <20260527033636.28231-1-lizhe.67@bytedance.com>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Message-Id: <20260527033636.28231-9-lizhe.67@bytedance.com>
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <69f302ff.170a0220.3c4978.0016.GAE@google.com>
 
-The template fast path still leaves the actual copy sequence up to the
-compiler. Use the streaming-copy helpers introduced in the previous
-patches for the ZONE_DEVICE template-copy path so common mm code can
-request a write-once copy primitive without embedding arch-specific
-store layout in the generic layer.
+I finally got a chance to look at this one...
 
-ZONE_DEVICE memmap initialization is a write-once path: each struct page
-is populated once and is not expected to be reused from cache
-immediately afterwards. A regular cached copy can therefore incur
-write-allocate traffic and pollute the cache without much benefit.
-Using memcpy_streaming() lets this path use an architecture-optimized
-streaming copy where available, while still degrading to memcpy() on
-architectures that do not provide a specialized implementation.
+On Thu, Apr 30, 2026 at 12:21:35AM -0700, syzbot wrote:
+> syzbot found the following issue on:
+> 
+> HEAD commit:    dca922e019dd Merge tag 'xsa48x-7.1-tag' of git://git.kerne..
+> git tree:       upstream
+> console output: https://syzkaller.appspot.com/x/log.txt?x=11cd6b6c580000
+> kernel config:  https://syzkaller.appspot.com/x/.config?x=59da38148f3a3d24
+> dashboard link: https://syzkaller.appspot.com/bug?extid=a169a27b0538ba43e5d3
+> compiler:       gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44
+> 
+> Unfortunately, I don't have any reproducer for this issue yet.
+> 
+> Downloadable assets:
+> disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-dca922e0.raw.xz
+> vmlinux: https://storage.googleapis.com/syzbot-assets/7b447b1b93a9/vmlinux-dca922e0.xz
+> kernel image: https://storage.googleapis.com/syzbot-assets/af7830f5dabf/bzImage-dca922e0.xz
+> 
+> IMPORTANT: if you fix the issue, please add the following tag to the commit:
+> Reported-by: syzbot+a169a27b0538ba43e5d3@syzkaller.appspotmail.com
+> 
+> BUG: sleeping function called from invalid context at mm/mmu_gather.c:142
+> in_atomic(): 0, irqs_disabled(): 0, non_block: 0, pid: 5677, name: rm
+> preempt_count: 0, expected: 0
+> RCU nest depth: 1, expected: 0
+> 2 locks held by rm/5677:
+>  #0: ffff888022c20338 (&mm->mmap_lock){++++}-{4:4}, at: mmap_write_lock include/linux/mmap_lock.h:536 [inline]
+>  #0: ffff888022c20338 (&mm->mmap_lock){++++}-{4:4}, at: exit_mmap+0x22c/0xa10 mm/mmap.c:1308
+>  #1: ffffffff8e7e54e0 (rcu_read_lock){....}-{1:3}, at: rcu_lock_acquire.constprop.0+0x7/0x30 include/linux/rcupdate.h:300
+> CPU: 1 UID: 0 PID: 5677 Comm: rm Not tainted syzkaller #0 PREEMPT(full) 
+> Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+> Call Trace:
+>  <TASK>
+>  __dump_stack lib/dump_stack.c:94 [inline]
+>  dump_stack_lvl+0x100/0x190 lib/dump_stack.c:120
+>  __might_resched.cold+0x1ec/0x232 kernel/sched/core.c:9162
+>  __tlb_batch_free_encoded_pages+0x11e/0x280 mm/mmu_gather.c:142
+>  tlb_batch_pages_flush mm/mmu_gather.c:151 [inline]
 
-Keep pageblock-aligned PFNs on memcpy() so pageblock initialization can
-immediately read back page metadata without introducing a
-read-after-streaming dependency. For the remaining PFNs, use
-memcpy_streaming() so the hot path can avoid write-allocate traffic
-while still leaving unsupported or unsuitable cases to the fallback
-implementation.
+... so we're getting deep in the gather code tearing down an mm, where
+we free the unmapped pages but we're somehow inside an RCU read-side
+critical section.
 
-When the streaming backend uses non-temporal stores, order them before
-entering memmap_init_compound(), before prep_compound_head() updates the
-overlapping compound metadata, and before returning from
-memmap_init_zone_device().
+The last report on the sysbot dashboard is from 30th April, which
+coincides with 99ebc509eef5 ("mm: memcontrol: fix rcu unbalance in
+get_non_dying_memcg_end()") landing upstream. Unfortunately, there's no
+reproducer available to test that concretely but it looks like we can
+end up in there via the page freeing path. So hopefully this is fixed.
 
-Keep sanitized builds on the slow path so KASAN/KMSAN retain their
-instrumented stores.
+As an aside, it's a bit of a pity that the rcu_read_lock() callsite is
+identified only as the useless rcu_lock_acquire.constprop.0() function
+in this backtrace.
 
-Tested in a VM with a 100 GB fsdax namespace device configured with
-map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
-server.
+Will
 
-Test procedure:
-Rebind the nd_pmem and dax_pmem driver 30 times and collect the memmap
-initialization time from the pr_debug() output of
-memmap_init_zone_device().
-
-Base(v7.1-rc3):
-  First binding for nd_pmem driver: 1486 ms
-  Average of subsequent rebinds: 273.52 ms
-
-  First binding for dax_pmem driver: 1515 ms
-  Average of subsequent rebinds: 313.45 ms
-
-With this series:
-  First binding for nd_pmem driver: 1285 ms
-  Average of subsequent rebinds: 114.31 ms
-
-  First binding for dax_pmem driver: 1331 ms
-  Average of subsequent rebinds: 99.37 ms
-
-This reduces the average rebind time by about 58.2% for nd_pmem and
-68.3% for dax_pmem.
-
-Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
----
- mm/mm_init.c | 47 +++++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 45 insertions(+), 2 deletions(-)
-
-diff --git a/mm/mm_init.c b/mm/mm_init.c
-index d5ccb49a048f..1f56765b92e1 100644
---- a/mm/mm_init.c
-+++ b/mm/mm_init.c
-@@ -1070,11 +1070,21 @@ static void __ref zone_device_page_init_slow(struct page *page,
- 
- static inline bool zone_device_page_init_optimization_enabled(void)
- {
-+	/*
-+	 * Keep sanitized builds on the slow path so their stores stay
-+	 * instrumented.
-+	 */
-+	if (IS_ENABLED(CONFIG_KASAN) || IS_ENABLED(CONFIG_KMSAN))
-+		return false;
-+
- 	/*
- 	 * The template fast path copies a preinitialized struct page image.
- 	 * Skip it when the page_ref_set tracepoint is enabled.
- 	 */
--	return !page_ref_tracepoint_active(page_ref_set);
-+	if (page_ref_tracepoint_active(page_ref_set))
-+		return false;
-+
-+	return true;
- }
- 
- static inline void zone_device_template_head_page_init(struct page *template,
-@@ -1120,9 +1130,19 @@ static void zone_device_page_init_from_template(struct page *page,
- 	 * 'template' carries the invariant portion of a ZONE_DEVICE struct
- 	 * page. Update the PFN-dependent fields in place before copying it
- 	 * to the destination page.
-+	 *
-+	 * pageblock-aligned pages immediately feed
-+	 * init_pageblock_migratetype(), which reads back page metadata via
-+	 * helpers like page_zone(page). Avoid a read-after-streaming
-+	 * dependency for these rare pages by using regular cached stores
-+	 * instead of non-temporal ones.
- 	 */
- 	zone_device_page_update_template(template, pfn);
--	memcpy(page, template, sizeof(*page));
-+	if (unlikely(pageblock_aligned(pfn)))
-+		memcpy(page, template, sizeof(*page));
-+	else
-+		memcpy_streaming(page, template, sizeof(*page));
-+
- 	zone_device_page_init_pageblock(page, pfn);
- }
- 
-@@ -1184,6 +1204,15 @@ static void __ref memmap_init_compound(struct page *head,
- 		prep_compound_tail(page, head, order);
- 		set_page_count(page, 0);
- 	}
-+
-+	/*
-+	 * prep_compound_head() updates compound metadata in struct folio fields
-+	 * that alias the first tail-page descriptors. When the tail pages above
-+	 * were populated with non-temporal stores, order those writes before the
-+	 * overlapping metadata updates below.
-+	 */
-+	if (use_template)
-+		memcpy_streaming_drain();
- 	prep_compound_head(head, order);
- }
- 
-@@ -1232,10 +1261,24 @@ void __ref memmap_init_zone_device(struct zone *zone,
- 		if (pfns_per_compound == 1)
- 			continue;
- 
-+		/*
-+		 * memmap_init_compound() immediately updates compound-head
-+		 * metadata. If the head-page template copy above used
-+		 * non-temporal stores, order them before entering the
-+		 * compound setup path.
-+		 */
-+		if (use_template)
-+			memcpy_streaming_drain();
-+
- 		memmap_init_compound(page, pfn, zone_idx, nid, pgmap,
- 				     compound_nr_pages(altmap, pgmap),
- 				     use_template);
- 	}
-+	/*
-+	 * Drain any remaining non-temporal stores before returning.
-+	 */
-+	if (use_template)
-+		memcpy_streaming_drain();
- 
- 	pr_debug("%s initialised %lu pages in %ums\n", __func__,
- 		nr_pages, jiffies_to_msecs(jiffies - start));
--- 
-2.20.1
+>  tlb_flush_mmu_free mm/mmu_gather.c:417 [inline]
+>  tlb_flush_mmu mm/mmu_gather.c:424 [inline]
+>  tlb_finish_mmu+0x1b0/0x810 mm/mmu_gather.c:549
+>  exit_mmap+0x454/0xa10 mm/mmap.c:1313
+>  __mmput+0x12a/0x410 kernel/fork.c:1178
+>  mmput+0x67/0x80 kernel/fork.c:1201
+>  exit_mm kernel/exit.c:581 [inline]
+>  do_exit+0x833/0x2a60 kernel/exit.c:963
+>  do_group_exit+0xd5/0x2a0 kernel/exit.c:1117
+>  __do_sys_exit_group kernel/exit.c:1128 [inline]
+>  __se_sys_exit_group kernel/exit.c:1126 [inline]
+>  __x64_sys_exit_group+0x3e/0x50 kernel/exit.c:1126
+>  x64_sys_call+0x102c/0x1530 arch/x86/include/generated/asm/syscalls_64.h:232
+>  do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+>  do_syscall_64+0x10b/0xf80 arch/x86/entry/syscall_64.c:94
+>  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> RIP: 0033:0x7f9fc102d6c5
+> Code: Unable to access opcode bytes at 0x7f9fc102d69b.
+> RSP: 002b:00007ffd51104bf8 EFLAGS: 00000202 ORIG_RAX: 00000000000000e7
+> RAX: ffffffffffffffda RBX: 00007f9fc112efe8 RCX: 00007f9fc102d6c5
+> RDX: 00000000000000e7 RSI: ffffffffffffff88 RDI: 0000000000000000
+> RBP: 0000000000000001 R08: 00007ffd51104b88 R09: 0000000000000000
+> R10: 00007ffd51104a20 R11: 0000000000000202 R12: 0000000000000000
+> R13: 0000000000000000 R14: 00007f9fc112d680 R15: 00007f9fc112f000
+>  </TASK>
+> 
+> ====================================
+> WARNING: rm/5677 still has locks held!
+> syzkaller #0 Tainted: G        W          
+> ------------------------------------
+> 1 lock held by rm/5677:
+>  #0: ffffffff8e7e54e0 (rcu_read_lock){....}-{1:3}, at: rcu_lock_acquire.constprop.0+0x7/0x30 include/linux/rcupdate.h:300
+> 
+> stack backtrace:
+> CPU: 1 UID: 0 PID: 5677 Comm: rm Tainted: G        W           syzkaller #0 PREEMPT(full) 
+> Tainted: [W]=WARN
+> Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+> Call Trace:
+>  <TASK>
+>  __dump_stack lib/dump_stack.c:94 [inline]
+>  dump_stack_lvl+0x100/0x190 lib/dump_stack.c:120
+>  print_held_locks_bug kernel/locking/lockdep.c:6752 [inline]
+>  debug_check_no_locks_held+0x90/0xa0 kernel/locking/lockdep.c:6760
+>  do_exit+0x13ea/0x2a60 kernel/exit.c:997
+>  do_group_exit+0xd5/0x2a0 kernel/exit.c:1117
+>  __do_sys_exit_group kernel/exit.c:1128 [inline]
+>  __se_sys_exit_group kernel/exit.c:1126 [inline]
+>  __x64_sys_exit_group+0x3e/0x50 kernel/exit.c:1126
+>  x64_sys_call+0x102c/0x1530 arch/x86/include/generated/asm/syscalls_64.h:232
+>  do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+>  do_syscall_64+0x10b/0xf80 arch/x86/entry/syscall_64.c:94
+>  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> RIP: 0033:0x7f9fc102d6c5
+> Code: Unable to access opcode bytes at 0x7f9fc102d69b.
+> RSP: 002b:00007ffd51104bf8 EFLAGS: 00000202 ORIG_RAX: 00000000000000e7
+> RAX: ffffffffffffffda RBX: 00007f9fc112efe8 RCX: 00007f9fc102d6c5
+> RDX: 00000000000000e7 RSI: ffffffffffffff88 RDI: 0000000000000000
+> RBP: 0000000000000001 R08: 00007ffd51104b88 R09: 0000000000000000
+> R10: 00007ffd51104a20 R11: 0000000000000202 R12: 0000000000000000
+> R13: 0000000000000000 R14: 00007f9fc112d680 R15: 00007f9fc112f000
+>  </TASK>
+> 
+> 
+> ---
+> This report is generated by a bot. It may contain errors.
+> See https://goo.gl/tpsmEJ for more information about syzbot.
+> syzbot engineers can be reached at syzkaller@googlegroups.com.
+> 
+> syzbot will keep track of this issue. See:
+> https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+> 
+> If the report is already addressed, let syzbot know by replying with:
+> #syz fix: exact-commit-title
+> 
+> If you want to overwrite report's subsystems, reply with:
+> #syz set subsystems: new-subsystem
+> (See the list of subsystem names on the web dashboard)
+> 
+> If the report is a duplicate of another one, reply with:
+> #syz dup: exact-subject-of-another-report
+> 
+> If you want to undo deduplication, reply with:
+> #syz undup
