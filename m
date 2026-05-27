@@ -1,216 +1,204 @@
-Received: from va-1-112.ptr.blmpb.com (va-1-112.ptr.blmpb.com [209.127.230.112])
+Received: from va-2-114.ptr.blmpb.com (va-2-114.ptr.blmpb.com [209.127.231.114])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CF7D5383C95
-	for <linux-arch@vger.kernel.org>; Wed, 27 May 2026 03:40:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.112
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B47163845CB
+	for <linux-arch@vger.kernel.org>; Wed, 27 May 2026 03:41:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.114
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779853238; cv=none; b=KwiTFSkfuxbij75b7oDnXymqiEAT8eZvHKXTdkQzpX+pAVC/or0F6SHEeSFlW9vRt/d5e0qwymUkx2vS9Sr4zQ+tusZuOsiXQWX2tiC9uBpu6EpnfKIWgpSXKxQUeZFEQgzG5OAxCwzPhTLOjyqrDOyUazTg8fxxxW0qDhRjyQI=
+	t=1779853266; cv=none; b=TIPDJJgyVzU5IzyjQ+wJc01r1oVO1ZJnSzVqP+XvQh7IQVgjIJkTGh4zBDlS4GFcknPkKht5/5tjPJdKfKCXcnlLm5KzuhuxoibRybDSlSbEi4WjYnW1bpg2y53G89Ae8PPJL8Kv9i28BbpyvJWvg5jo9QgjPB5zLq186kEmF0I=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779853238; c=relaxed/simple;
-	bh=owEAbc5vf/a1Bh9MErm0fqtO4o73BLGK9Nbp32zKEYE=;
-	h=Message-Id:References:Cc:From:Content-Type:To:Date:In-Reply-To:
-	 Subject:Mime-Version; b=cz2YNVLSrGWpPawHAIbowXNeUrCv9GqNhkTcyEXcqrEdHnoCgW5R0Ez4OOeI3qWx1hZ9jYXw3HnV32rTp2Al9xIBuo80rpwh2Bg3RJQ887YMMWAV20ZMGWzkdlu+mx9dzezfxoN9pJsKwZEXaVgzZiU455c6Pc32jghqCmX9DHU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=oFjOk4qQ; arc=none smtp.client-ip=209.127.230.112
+	s=arc-20240116; t=1779853266; c=relaxed/simple;
+	bh=5VhLv2LjLV5L+tN7bDrC78lxsMFkMu3odqF+TAzBMb4=;
+	h=To:Mime-Version:References:Date:Content-Type:Cc:Subject:
+	 In-Reply-To:From:Message-Id; b=WVAwK6OAxNmJLx0iytcDRNCePzPoMT/nWYvUaLV44cCIASYrpUxXXAHV3Oo7ViYWRnDfOY51p+dc2qzOvZewdFIxovZ0E23c221ykhAIMwAfklCzztmHaAnHbvQsre5SWa4YuNK5Ume7CXXZo3MNTr2OtuqhwafdDLxmhQ+s7hk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=jxGxZUs3; arc=none smtp.client-ip=209.127.231.114
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="oFjOk4qQ"
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="jxGxZUs3"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1779853232; h=from:subject:
+ s=2212171451; d=bytedance.com; t=1779853253; h=from:subject:
  mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
  mime-version:in-reply-to:message-id;
- bh=kJpm339USLr3ZYM719LtoiE3fktdOEdjk2CrZTZZdLc=;
- b=oFjOk4qQhMiG8po92VVLk9UGTEdsfPyQrFr9BomK8iJHh708mm9zzBxXZQ6TVZIJm6acg+
- pIOrHYW0J5avxnddrvuFXKJva1Hi+xwp5A/qPyVKdyQjqt4cR3TNoZX0enxsAL5kVNRoY+
- fF+DTM/v0oDf5lilrLp4RORkejPyj2yzi2LOow2oCJpj4j9J7SgfFXi3FfBsn32FhodHg0
- 4vMLfjj2BgxfOzbLegZ0IR8ofrkFe6bw3FkWVMdJ0onztcyzil8mPQB4J9YdZh/S0hHn+t
- lc0us9jWcHzpFKiTWTavFA8FZaudtlu9tNRdj3/ZhzMQWoJms+gFIQsbYBrceQ==
-Message-Id: <20260527033636.28231-8-lizhe.67@bytedance.com>
-References: <20260527033636.28231-1-lizhe.67@bytedance.com>
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	"Li Zhe" <lizhe.67@bytedance.com>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Content-Transfer-Encoding: 7bit
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-X-Lms-Return-Path: <lba+26a1667ae+fc958e+vger.kernel.org+lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=UTF-8
+ bh=/2RvXz8oWe2/xVcoRxII+0kZXLSgfUTV6Cn2seMf/Rg=;
+ b=jxGxZUs3u2P4WcI+TbLrf1iJPbfO2E927/UO7AbjPGoyrqScQm+seFYm/WaaloWm9c5OhG
+ CaiCfhVRWd7E4dyhdPw7AcSzVAMF0FoQcu4RrI6QjbIqq/lcLvCaCmNvpCn8c1VXkp9NR1
+ R8ltVzJBXD93p17b9n5T8bgR3Ui70rmuQRxIB2ioFZfSoEhtRiE7YQNg5qdDFQUJF/uM2q
+ qsH8PvlckD2t5q2i6MwQeT12yQmqNTf9CNJkRhSm+TkKksxSI8C/T4UPetnnp7DDkarKaD
+ RIpPZh0E21NPr4Cao6omM2bP2e0b1XmS0bv31+ZiTpgH4UZeBl0FWnle0319ZQ==
+X-Mailer: git-send-email 2.45.2
 To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
 	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
 	<kees@kernel.org>, <mingo@redhat.com>, <rppt@kernel.org>, 
 	<tglx@kernel.org>
-Date: Wed, 27 May 2026 11:36:35 +0800
-In-Reply-To: <20260527033636.28231-1-lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
-Subject: [PATCH v3 7/8] x86/string: extend memcpy_flushcache() fixed-size fastpaths
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
+References: <20260527033636.28231-1-lizhe.67@bytedance.com>
+Date: Wed, 27 May 2026 11:36:36 +0800
+X-Lms-Return-Path: <lba+26a1667c3+f86a1d+vger.kernel.org+lizhe.67@bytedance.com>
+Content-Type: text/plain; charset=UTF-8
+Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
+	"Li Zhe" <lizhe.67@bytedance.com>
+Subject: [PATCH v3 8/8] mm: use memcpy_streaming() in zone-device template copies
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+In-Reply-To: <20260527033636.28231-1-lizhe.67@bytedance.com>
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Message-Id: <20260527033636.28231-9-lizhe.67@bytedance.com>
+Content-Transfer-Encoding: 7bit
 
-Small constant-sized flushcache copies currently fall back to
-__memcpy_flushcache() unless they are exactly 4, 8, or 16 bytes.
+The template fast path still leaves the actual copy sequence up to the
+compiler. Use the streaming-copy helpers introduced in the previous
+patches for the ZONE_DEVICE template-copy path so common mm code can
+request a write-once copy primitive without embedding arch-specific
+store layout in the generic layer.
 
-Factor the existing inline movnti sequences into small helpers and
-extend the fixed-size fastpath coverage to 24..96 bytes for naturally
-aligned transfers. This keeps common struct-page-sized copies on the
-inline path for the upcoming memcpy_streaming() user, while still
-falling back to __memcpy_flushcache() for unaligned or uncommon sizes.
-Zero-length copies return immediately.
+ZONE_DEVICE memmap initialization is a write-once path: each struct page
+is populated once and is not expected to be reused from cache
+immediately afterwards. A regular cached copy can therefore incur
+write-allocate traffic and pollute the cache without much benefit.
+Using memcpy_streaming() lets this path use an architecture-optimized
+streaming copy where available, while still degrading to memcpy() on
+architectures that do not provide a specialized implementation.
 
-Issue the fixed-size stores in ascending address order so
-write-combining sees a forward stream.
+Keep pageblock-aligned PFNs on memcpy() so pageblock initialization can
+immediately read back page metadata without introducing a
+read-after-streaming dependency. For the remaining PFNs, use
+memcpy_streaming() so the hot path can avoid write-allocate traffic
+while still leaving unsupported or unsuitable cases to the fallback
+implementation.
+
+When the streaming backend uses non-temporal stores, order them before
+entering memmap_init_compound(), before prep_compound_head() updates the
+overlapping compound metadata, and before returning from
+memmap_init_zone_device().
+
+Keep sanitized builds on the slow path so KASAN/KMSAN retain their
+instrumented stores.
+
+Tested in a VM with a 100 GB fsdax namespace device configured with
+map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
+server.
+
+Test procedure:
+Rebind the nd_pmem and dax_pmem driver 30 times and collect the memmap
+initialization time from the pr_debug() output of
+memmap_init_zone_device().
+
+Base(v7.1-rc3):
+  First binding for nd_pmem driver: 1486 ms
+  Average of subsequent rebinds: 273.52 ms
+
+  First binding for dax_pmem driver: 1515 ms
+  Average of subsequent rebinds: 313.45 ms
+
+With this series:
+  First binding for nd_pmem driver: 1285 ms
+  Average of subsequent rebinds: 114.31 ms
+
+  First binding for dax_pmem driver: 1331 ms
+  Average of subsequent rebinds: 99.37 ms
+
+This reduces the average rebind time by about 58.2% for nd_pmem and
+68.3% for dax_pmem.
 
 Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
 ---
- arch/x86/include/asm/string_64.h | 125 ++++++++++++++++++++++++++-----
- 1 file changed, 107 insertions(+), 18 deletions(-)
+ mm/mm_init.c | 47 +++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 45 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
-index 0b57e9e6f3db..8e6fca0185ee 100644
---- a/arch/x86/include/asm/string_64.h
-+++ b/arch/x86/include/asm/string_64.h
-@@ -82,24 +82,6 @@ int strcmp(const char *cs, const char *ct);
- #ifdef CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE
- #define __HAVE_ARCH_MEMCPY_FLUSHCACHE 1
- void __memcpy_flushcache(void *dst, const void *src, size_t cnt);
--static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t cnt)
--{
--	if (__builtin_constant_p(cnt)) {
--		switch (cnt) {
--			case 4:
--				asm ("movntil %1, %0" : "=m"(*(u32 *)dst) : "r"(*(u32 *)src));
--				return;
--			case 8:
--				asm ("movntiq %1, %0" : "=m"(*(u64 *)dst) : "r"(*(u64 *)src));
--				return;
--			case 16:
--				asm ("movntiq %1, %0" : "=m"(*(u64 *)dst) : "r"(*(u64 *)src));
--				asm ("movntiq %1, %0" : "=m"(*(u64 *)(dst + 8)) : "r"(*(u64 *)(src + 8)));
--				return;
--		}
--	}
--	__memcpy_flushcache(dst, src, cnt);
--}
+diff --git a/mm/mm_init.c b/mm/mm_init.c
+index d5ccb49a048f..1f56765b92e1 100644
+--- a/mm/mm_init.c
++++ b/mm/mm_init.c
+@@ -1070,11 +1070,21 @@ static void __ref zone_device_page_init_slow(struct page *page,
  
- /*
-  * Only reuse memcpy_flushcache() for transfers that can stay entirely
-@@ -123,6 +105,113 @@ static __always_inline int memcpy_flushcache_nt_safe(const void *dst,
- 	return cnt == 4 && !(d & 3) && !(s & 3);
+ static inline bool zone_device_page_init_optimization_enabled(void)
+ {
++	/*
++	 * Keep sanitized builds on the slow path so their stores stay
++	 * instrumented.
++	 */
++	if (IS_ENABLED(CONFIG_KASAN) || IS_ENABLED(CONFIG_KMSAN))
++		return false;
++
+ 	/*
+ 	 * The template fast path copies a preinitialized struct page image.
+ 	 * Skip it when the page_ref_set tracepoint is enabled.
+ 	 */
+-	return !page_ref_tracepoint_active(page_ref_set);
++	if (page_ref_tracepoint_active(page_ref_set))
++		return false;
++
++	return true;
  }
  
-+static __always_inline void memcpy_flushcache_4(void *dst, const void *src)
-+{
-+	asm volatile("movntil %1, %0"
-+		     : "=m"(*(u32 *)dst)
-+		     : "r"(*(const u32 *)src)
-+		     : "memory");
-+}
+ static inline void zone_device_template_head_page_init(struct page *template,
+@@ -1120,9 +1130,19 @@ static void zone_device_page_init_from_template(struct page *page,
+ 	 * 'template' carries the invariant portion of a ZONE_DEVICE struct
+ 	 * page. Update the PFN-dependent fields in place before copying it
+ 	 * to the destination page.
++	 *
++	 * pageblock-aligned pages immediately feed
++	 * init_pageblock_migratetype(), which reads back page metadata via
++	 * helpers like page_zone(page). Avoid a read-after-streaming
++	 * dependency for these rare pages by using regular cached stores
++	 * instead of non-temporal ones.
+ 	 */
+ 	zone_device_page_update_template(template, pfn);
+-	memcpy(page, template, sizeof(*page));
++	if (unlikely(pageblock_aligned(pfn)))
++		memcpy(page, template, sizeof(*page));
++	else
++		memcpy_streaming(page, template, sizeof(*page));
 +
-+static __always_inline void memcpy_flushcache_8(void *dst, const void *src)
-+{
-+	asm volatile("movntiq %1, %0"
-+		     : "=m"(*(u64 *)dst)
-+		     : "r"(*(const u64 *)src)
-+		     : "memory");
-+}
+ 	zone_device_page_init_pageblock(page, pfn);
+ }
+ 
+@@ -1184,6 +1204,15 @@ static void __ref memmap_init_compound(struct page *head,
+ 		prep_compound_tail(page, head, order);
+ 		set_page_count(page, 0);
+ 	}
 +
-+static __always_inline void memcpy_flushcache_16(void *dst,
-+						 const void *src)
-+{
-+	memcpy_flushcache_8(dst, src);
-+	memcpy_flushcache_8(dst + 8, src + 8);
-+}
++	/*
++	 * prep_compound_head() updates compound metadata in struct folio fields
++	 * that alias the first tail-page descriptors. When the tail pages above
++	 * were populated with non-temporal stores, order those writes before the
++	 * overlapping metadata updates below.
++	 */
++	if (use_template)
++		memcpy_streaming_drain();
+ 	prep_compound_head(head, order);
+ }
+ 
+@@ -1232,10 +1261,24 @@ void __ref memmap_init_zone_device(struct zone *zone,
+ 		if (pfns_per_compound == 1)
+ 			continue;
+ 
++		/*
++		 * memmap_init_compound() immediately updates compound-head
++		 * metadata. If the head-page template copy above used
++		 * non-temporal stores, order them before entering the
++		 * compound setup path.
++		 */
++		if (use_template)
++			memcpy_streaming_drain();
 +
-+static __always_inline void memcpy_flushcache_32(void *dst,
-+						 const void *src)
-+{
-+	memcpy_flushcache_16(dst, src);
-+	memcpy_flushcache_16(dst + 16, src + 16);
-+}
-+
-+static __always_inline void memcpy_flushcache_64(void *dst,
-+						 const void *src)
-+{
-+	memcpy_flushcache_32(dst, src);
-+	memcpy_flushcache_32(dst + 32, src + 32);
-+}
-+
-+/*
-+ * Keep common fixed-size copies on the inline movnti path when they can
-+ * stay entirely on aligned non-temporal stores. Issue the stores in
-+ * ascending address order so write-combining sees a forward stream.
-+ */
-+static __always_inline int memcpy_flushcache_small(void *dst,
-+						   const void *src,
-+						   size_t cnt)
-+{
-+	char *d = dst;
-+	const char *s = src;
-+
-+	if (!memcpy_flushcache_nt_safe(dst, src, cnt))
-+		return 0;
-+
-+	switch (cnt) {
-+	case 4:
-+		memcpy_flushcache_4(d, s);
-+		return 1;
-+	case 8:
-+		memcpy_flushcache_8(d, s);
-+		return 1;
-+	}
-+
-+	if (cnt & 8) {
-+		memcpy_flushcache_8(d, s);
-+		d += 8;
-+		s += 8;
-+		cnt -= 8;
-+	}
-+
-+	switch (cnt) {
-+	case 16:
-+		memcpy_flushcache_16(d, s);
-+		return 1;
-+	case 32:
-+		memcpy_flushcache_32(d, s);
-+		return 1;
-+	case 48:
-+		memcpy_flushcache_32(d, s);
-+		memcpy_flushcache_16(d + 32, s + 32);
-+		return 1;
-+	case 64:
-+		memcpy_flushcache_64(d, s);
-+		return 1;
-+	case 80:
-+		memcpy_flushcache_64(d, s);
-+		memcpy_flushcache_16(d + 64, s + 64);
-+		return 1;
-+	case 96:
-+		memcpy_flushcache_64(d, s);
-+		memcpy_flushcache_32(d + 64, s + 64);
-+		return 1;
-+	}
-+
-+	return 0;
-+}
-+
-+static __always_inline void memcpy_flushcache(void *dst, const void *src,
-+					      size_t cnt)
-+{
-+	if (!cnt)
-+		return;
-+
-+	if (__builtin_constant_p(cnt) && memcpy_flushcache_small(dst, src, cnt))
-+		return;
-+
-+	__memcpy_flushcache(dst, src, cnt);
-+}
-+
- #define __HAVE_ARCH_MEMCPY_STREAMING 1
- static __always_inline void memcpy_streaming(void *dst, const void *src,
- 					     size_t cnt)
+ 		memmap_init_compound(page, pfn, zone_idx, nid, pgmap,
+ 				     compound_nr_pages(altmap, pgmap),
+ 				     use_template);
+ 	}
++	/*
++	 * Drain any remaining non-temporal stores before returning.
++	 */
++	if (use_template)
++		memcpy_streaming_drain();
+ 
+ 	pr_debug("%s initialised %lu pages in %ums\n", __func__,
+ 		nr_pages, jiffies_to_msecs(jiffies - start));
 -- 
 2.20.1
