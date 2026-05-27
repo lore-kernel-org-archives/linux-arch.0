@@ -1,125 +1,189 @@
-Received: from va-1-115.ptr.blmpb.com (va-1-115.ptr.blmpb.com [209.127.230.115])
+Received: from va-1-114.ptr.blmpb.com (va-1-114.ptr.blmpb.com [209.127.230.114])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 97EDD194C98
-	for <linux-arch@vger.kernel.org>; Wed, 27 May 2026 03:39:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.115
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1772B368974
+	for <linux-arch@vger.kernel.org>; Wed, 27 May 2026 03:39:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.114
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779853157; cv=none; b=Aza2c2dr6qc4yzPwq9PWcMURFMRZ/G5mhQ4JZcq6Vav+zG+xJEJ2fSpdTmc2W3d1yZ6/o0enXS1aMIKg2t1sDzWQjKvHAJJ7D/v9hmrU2lkFsKyTXSFUOrdk/pKYbE7VTrTNdWrol+gkQ9f5mTLidLKAksFnPCZO9P7PjUL9p88=
+	t=1779853176; cv=none; b=pNNtpS4OmBQZojE6spiHLsCRqFZugHMfUoKfA00rcx1A5Wks2CyOvUSd7AdjAzNw09jPzoWMKDNU4Lw9SWxHzRmui9c1vNYuJFf5OHAmXfvH8HsezrbA3y/A1/t14Xrx7VgxYhoHqjEBcqgVyHkhGlR8Vq8Q4EsjoogiZQtxWYs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779853157; c=relaxed/simple;
-	bh=d0aczSMYu0LsWJWfpHcpC5eYLM8CWn7oG+3NwJ0kky8=;
-	h=Subject:Message-Id:To:Content-Type:In-Reply-To:From:Date:Cc:
-	 References:Mime-Version; b=Pn2vYALRQ0+3DrkyvwfMIYPBydpV+pLo9LEXyEcm2rocZJg7zl9GKFNK7BG2aVGbKFxNh+eDS1hXXL/WYEAq21p5b87eSSYnV4P7O6wTjbShYAujOxljlDIlxkPwQT3qgJGJ8AjurwMGjnEWMyqxFT9XdAhSDqnexcLdk/StiX8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=XjjgQoyL; arc=none smtp.client-ip=209.127.230.115
+	s=arc-20240116; t=1779853176; c=relaxed/simple;
+	bh=nWmNgDU3Xl1gL5b6TXRuY0AwEqhJMD4CdRVipNrdc6A=;
+	h=Subject:Message-Id:Content-Type:References:Cc:Date:To:From:
+	 Mime-Version:In-Reply-To; b=Zz3FKtXcwy6JLUb54u1Gc4nobNCvyIzve8KGLrd0tbmzvpYcGjrIKJ3TOhyByOGBrZ4UBlr8/SxvXjKzTff5+urCtCFERpbr1KJRuTfXSQ/2GuSXC7YIo086Of0wJa4CGRgIph9Oa4aYSP+tNz2F71wJRB0OROLZgxJMA0IOkF4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=YwdUF4vx; arc=none smtp.client-ip=209.127.230.114
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="XjjgQoyL"
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="YwdUF4vx"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1779853145; h=from:subject:
+ s=2212171451; d=bytedance.com; t=1779853170; h=from:subject:
  mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
  mime-version:in-reply-to:message-id;
- bh=+cxbxhZdlUYhyShSVcB1R4gZ5/57w7jfc0KexcGnvXs=;
- b=XjjgQoyLWWQRwtjh6asBScAkA0PK9toxFsBttGjSQcgZ4F9XO98k//o+68O3y2pHGXVkB/
- 5K7HEiU46Gbz/1eE+Vye1TJUbGbKOymhOZ56PlwfiAQ4LbITsNPAUhefiM+P/sJM/cSL0K
- e9GDYrM65m1oJn3NeK8d1Xq8Tt8Yp4ce23/MPxQPmoOqsgK/UVlFFWgsQLrjhdbXorW5Ti
- XVGP56elmQ6qUiZsYmmeI7l+9FL/TJLGGSqfJCUQUN6ydG12yhFEUzUO4wI1x7V7F5CPfb
- wj8c/6YMrH5jlHA1FRssV1nkwLzSQ/xALh9/N/9xET8UOll52wJL1fSzepzz8A==
-Subject: [PATCH v3 3/8] mm: add a set_page_section_from_pfn() helper
-Message-Id: <20260527033636.28231-4-lizhe.67@bytedance.com>
-Content-Transfer-Encoding: 7bit
+ bh=KzkylVMxN4y+4R6jlaSHNSlINGBpPYCeLuqqe59IvVQ=;
+ b=YwdUF4vxjEVMX3DVK9cFUXxI5I2jq/+n6ZCTldDEVU1vZQ7APxXxPD58Ss4VT1IMID7njM
+ aQ3RpUkw1wXtTU7oAzFze26P6dCHoIBQ44klBbBvv6iL1JDKe3R8J7Y13uTbBE7tE7ZYs2
+ DhUPY09hXKDM5UB8B1GXm15mUZ0iixXuGY8tHCTiFAWUsYHUE9PeIZLo9C6oO5uBdlzTiz
+ /7VqGcXOcDB66qNIfziSjqd52VFFLBF5317VSA+apSLkq+ZjPE83od1W1uoyqeBfsoiO5Q
+ Y6BMWpzo6hVjMWrodwegLamrX0Jddpm9EAqxaW0JIteZ7YYmcQAAl7AZ3zSqag==
+Subject: [PATCH v3 4/8] mm: add a template-based fast path for zone-device page init
+Message-Id: <20260527033636.28231-5-lizhe.67@bytedance.com>
+X-Mailer: git-send-email 2.45.2
+Content-Type: text/plain; charset=UTF-8
+References: <20260527033636.28231-1-lizhe.67@bytedance.com>
+Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
+	"Li Zhe" <lizhe.67@bytedance.com>
+Date: Wed, 27 May 2026 11:36:32 +0800
 X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-X-Lms-Return-Path: <lba+26a166757+94f111+vger.kernel.org+lizhe.67@bytedance.com>
+X-Lms-Return-Path: <lba+26a166770+1f6a8f+vger.kernel.org+lizhe.67@bytedance.com>
+Content-Transfer-Encoding: 7bit
 To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
 	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
 	<kees@kernel.org>, <mingo@redhat.com>, <rppt@kernel.org>, 
 	<tglx@kernel.org>
-Content-Type: text/plain; charset=UTF-8
-In-Reply-To: <20260527033636.28231-1-lizhe.67@bytedance.com>
 From: "Li Zhe" <lizhe.67@bytedance.com>
-Date: Wed, 27 May 2026 11:36:31 +0800
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	"Li Zhe" <lizhe.67@bytedance.com>
-References: <20260527033636.28231-1-lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
+In-Reply-To: <20260527033636.28231-1-lizhe.67@bytedance.com>
 
-Callers that want to update section bits from a PFN currently need to
-open-code:
+memmap_init_zone_device() repeats nearly identical head-page
+initialization for each PFN. Prepare one reusable ZONE_DEVICE head-page
+template through the existing slow path, refresh the PFN-dependent
+fields in that template before each copy, and memcpy it into each
+destination page.
 
-	set_page_section(page, pfn_to_section_nr(pfn));
+The optimized path assigns _refcount through the copied template, so
+keep it disabled when the page_ref_set tracepoint is enabled.
 
-and guard that sequence with #ifdef SECTION_IN_PAGE_FLAGS.
+This patch accelerates the pfns_per_compound == 1 case. Compound tails
+are handled in the next patch.
 
-Add set_page_section_from_pfn() to wrap that update in one place. When
-section bits are stored in page flags, the helper derives the section
-number from the PFN and updates the page flags. Otherwise it degrades to
-a no-op.
+Tested in a VM with a 100 GB fsdax namespace device configured with
+map=dev on Intel Ice Lake server. This test exercises the nd_pmem rebind
+path (pfns_per_compound == 1).
 
-Convert set_page_links() to use the new helper so later ZONE_DEVICE
-fast-path patches can also update section bits without open-coding
-SECTION_IN_PAGE_FLAGS at each callsite.
+Test procedure:
+Rebind the nd_pmem driver 30 times and collect the memmap initialization
+time from the pr_debug() output of memmap_init_zone_device().
 
-This keeps the PFN-to-section translation local to the configurations
-that actually store section bits in struct page flags, and avoids
-exposing that detail to generic callers.
+Base(v7.1-rc3):
+  First binding: 1486 ms
+  Average of subsequent rebinds: 273.52 ms
 
-No functional change intended.
+With this patch and its prerequisites applied:
+  First binding: 1422 ms
+  Average of subsequent rebinds: 246.65 ms
+
+This reduces the average rebind time from 273.52 ms to 246.65 ms, or
+about 10%.
 
 Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
 ---
- include/linux/mm.h | 19 ++++++++++++++++---
- 1 file changed, 16 insertions(+), 3 deletions(-)
+ mm/mm_init.c | 63 +++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 62 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index af23453e9dbd..bf84e698385c 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2507,11 +2507,26 @@ static inline void set_page_section(struct page *page, unsigned long section)
- 	page->flags.f |= (section & SECTIONS_MASK) << SECTIONS_PGSHIFT;
+diff --git a/mm/mm_init.c b/mm/mm_init.c
+index 2e5899c5cf35..53c0241c66b7 100644
+--- a/mm/mm_init.c
++++ b/mm/mm_init.c
+@@ -1068,6 +1068,56 @@ static void __ref zone_device_page_init_slow(struct page *page,
+ 	zone_device_page_init_pageblock(page, pfn);
  }
  
-+static inline void set_page_section_from_pfn(struct page *page,
-+					     unsigned long pfn)
++static inline bool zone_device_page_init_optimization_enabled(void)
 +{
-+	set_page_section(page, pfn_to_section_nr(pfn));
++	/*
++	 * The template fast path copies a preinitialized struct page image.
++	 * Skip it when the page_ref_set tracepoint is enabled.
++	 */
++	return !page_ref_tracepoint_active(page_ref_set);
 +}
 +
- static inline unsigned long memdesc_section(memdesc_flags_t mdf)
- {
- 	return (mdf.f >> SECTIONS_PGSHIFT) & SECTIONS_MASK;
- }
- #else /* !SECTION_IN_PAGE_FLAGS */
-+static inline void set_page_section(struct page *page, unsigned long section)
++static inline void zone_device_template_page_init(struct page *template,
++						  unsigned long pfn,
++						  unsigned long zone_idx,
++						  int nid,
++						  struct dev_pagemap *pgmap)
 +{
++	__zone_device_page_init(template, pfn, zone_idx, nid, pgmap);
++	if (!pagemap_resets_refcount(pgmap))
++		set_page_count(template, 0);
 +}
 +
-+static inline void set_page_section_from_pfn(struct page *page,
-+					     unsigned long pfn)
++/*
++ * 'template' is a reusable page prototype rather than a strictly immutable
++ * object. Most ZONE_DEVICE fields stay constant across the pages covered by
++ * the current template, but section bits and page->virtual may still depend
++ * on the PFN. Refresh those PFN-dependent fields in the template before
++ * copying it into @page.
++ */
++static inline void zone_device_page_update_template(struct page *template,
++		unsigned long pfn)
 +{
++	set_page_section_from_pfn(template, pfn);
++#ifdef WANT_PAGE_VIRTUAL
++	if (!is_highmem_idx(ZONE_DEVICE))
++		set_page_address(template, __va(pfn << PAGE_SHIFT));
++#endif
 +}
 +
- static inline unsigned long memdesc_section(memdesc_flags_t mdf)
++static void zone_device_page_init_from_template(struct page *page,
++		unsigned long pfn, struct page *template)
++{
++	/*
++	 * 'template' carries the invariant portion of a ZONE_DEVICE struct
++	 * page. Update the PFN-dependent fields in place before copying it
++	 * to the destination page.
++	 */
++	zone_device_page_update_template(template, pfn);
++	memcpy(page, template, sizeof(*page));
++	zone_device_page_init_pageblock(page, pfn);
++}
++
+ /*
+  * With compound page geometry and when struct pages are stored in ram most
+  * tail pages are reused. Consequently, the amount of unique struct pages to
+@@ -1116,6 +1166,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
+ 				   unsigned long nr_pages,
+ 				   struct dev_pagemap *pgmap)
  {
- 	return 0;
-@@ -2734,9 +2749,7 @@ static inline void set_page_links(struct page *page, enum zone_type zone,
- {
- 	set_page_zone(page, zone);
- 	set_page_node(page, node);
--#ifdef SECTION_IN_PAGE_FLAGS
--	set_page_section(page, pfn_to_section_nr(pfn));
--#endif
-+	set_page_section_from_pfn(page, pfn);
- }
++	bool use_template = zone_device_page_init_optimization_enabled();
+ 	unsigned long pfn, end_pfn = start_pfn + nr_pages;
+ 	struct pglist_data *pgdat = zone->zone_pgdat;
+ 	struct vmem_altmap *altmap = pgmap_altmap(pgmap);
+@@ -1123,6 +1174,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
+ 	unsigned long zone_idx = zone_idx(zone);
+ 	unsigned long start = jiffies;
+ 	int nid = pgdat->node_id;
++	struct page template;
  
- /**
+ 	if (WARN_ON_ONCE(!pgmap || zone_idx != ZONE_DEVICE))
+ 		return;
+@@ -1137,10 +1189,19 @@ void __ref memmap_init_zone_device(struct zone *zone,
+ 		nr_pages = end_pfn - start_pfn;
+ 	}
+ 
++	if (use_template)
++		zone_device_template_page_init(&template, start_pfn, zone_idx,
++					       nid, pgmap);
++
+ 	for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
+ 		struct page *page = pfn_to_page(pfn);
+ 
+-		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
++		if (use_template)
++			zone_device_page_init_from_template(page, pfn,
++							    &template);
++		else
++			zone_device_page_init_slow(page, pfn, zone_idx,
++						   nid, pgmap);
+ 
+ 		if (pfns_per_compound == 1)
+ 			continue;
 -- 
 2.20.1
