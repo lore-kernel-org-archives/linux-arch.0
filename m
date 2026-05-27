@@ -1,189 +1,158 @@
-Received: from va-1-113.ptr.blmpb.com (va-1-113.ptr.blmpb.com [209.127.230.113])
+Received: from va-2-115.ptr.blmpb.com (va-2-115.ptr.blmpb.com [209.127.231.115])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E179833B6ED
-	for <linux-arch@vger.kernel.org>; Wed, 27 May 2026 03:40:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.113
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 85A592E975E
+	for <linux-arch@vger.kernel.org>; Wed, 27 May 2026 03:40:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.115
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779853204; cv=none; b=EkXly+2pRfY6crp5x5wTTwQ1Jmtn7mjft/jJD48VSJhWIsJ5RzpTI6zj9h8oUyLjqT0YgPL6Nl3b4Y8sM0Po7eYnAwlvS8cXhvfbCHmjXP32uq5fX4wPYLW1u/AIVP0j3Wq7ImeSvRbxSfDREYIo349FyeJzsx2VXyD+2VPeuSU=
+	t=1779853219; cv=none; b=HZSh21Rj8kfNcwq7HXmnrFLeNxREHCv1QM7zIAXylB+28+4mcLpaXVp1bpYCHVizbnpvQjhIii3t3MQLYjnC95WAOv1gWkFCACOoJu284qaEV5bp4rBAZHsDRvtRepduHdMwpFAaxLRh+lgHwv9ayDe4oWkbeG14GB3h3ZiKmjY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779853204; c=relaxed/simple;
-	bh=DlK+g81q/+QLzt73oFhG2ez81k6aSbUj3H6PZsNZYsY=;
-	h=Cc:Mime-Version:Date:Content-Type:Message-Id:References:To:From:
-	 Subject:In-Reply-To; b=pYy6eb1xa0X9EmMX8kkDGgZyQI2ubjhTVDFOAEYCHJEYnXqJd2HPJviN3UgG5KcbyEB5G+gL3N2no9APryPy/iCZl6grugVVVv8kQmEIhc+cOX8XhC7w2/sthOSw4yZelpGF3d/LiyCg7BPTP/J+slnoWpPwyAKcZaMHc0UvTdA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=VDBRTUy6; arc=none smtp.client-ip=209.127.230.113
+	s=arc-20240116; t=1779853219; c=relaxed/simple;
+	bh=/B9bHCzKxO2WBOFU4VOAAcAC/QSpAytvHDnH12PBs1Y=;
+	h=Date:Mime-Version:In-Reply-To:References:Cc:Content-Type:From:
+	 Message-Id:To:Subject; b=Sa97Bhw3nqZ6lQ1OGzc7crAN65vmO+0FfSRkW/7NOF7tvdr9I6IJ5fWlO0Jvg+pR2iVRV15xZfrLTjkwueJ1e8geAH0d2MrBBThohVjWAVYdF0xQMlVtZ0mjSTrnYp7uRBC6gh+uqyrusbUo+ISD4BgOEiqTWoftFM6ZmMcwVcc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=Q6/FJunI; arc=none smtp.client-ip=209.127.231.115
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="VDBRTUy6"
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="Q6/FJunI"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1779853192; h=from:subject:
+ s=2212171451; d=bytedance.com; t=1779853213; h=from:subject:
  mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
  mime-version:in-reply-to:message-id;
- bh=qFCgbSTStAjZ31U1E/z3VlWcowp913bpgnmrB6tBGlA=;
- b=VDBRTUy6wTeRvedsk63DIVKDHdV91v5VfNxab6UMk/we/EWYeA9cDX9OvInP4kxIDXqock
- kdVqQ77BZzfG/PoVSNxWUMByu9yDsJXWu/C8yAQ8q0fJN6wXXj/ldsW/xGcZCxytMQq/ij
- RFlA9L6zsT5EjamwCwiURQpmJM3zkg2EhB6MZw+MoJ0Y/kVg875aHrYSm08Vy6lDUn+wrj
- WFOg2YhrPKvXmlPpaX9qAfS/FAbKpa/Xxzk0EKrxxAy1nxKmkyySwkjH4K4iNxxd9MIX4E
- s6O5zYuhHK3dZqInhXINxZI5NfjRuwTOFPNhfCRV7sUI7YKYFZNx27hgzOaX9w==
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	"Li Zhe" <lizhe.67@bytedance.com>
+ bh=F7+PWjKsjsPUzsocI71Frs9HaxpL6NKJS1KqgSbi3hg=;
+ b=Q6/FJunI3E3ldgk6G6CS8xZcUrSUIeLAp8D7H0/U0QGv72Eg7Pg18pLR5I436RPhCG6xXk
+ bhpgSKowZ6br4VQWkDBbJ3L03tU6jZ4BgwoBsEV2XxVwhmDkK7Etd+taAiGb+ogDNS5O1z
+ bXsUAWFjHxxgu2rJNYDmZfPXuiSrwTincCbEM/ngWhRZSGMm4+W0v+e1ieuGwEhXaCgOLd
+ D67mLm19hNsA0WwwRbNveN/TRKmSVR/qXsxqXQil24CqgK75o9iQN3g0dIF+r+F4eATCyv
+ O1DEwX6d1ovyFbnU0Vurnj3nctAHjFemzh+Lgg2R2EJYwckwSTZOpgq98GTPbw==
+Date: Wed, 27 May 2026 11:36:34 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
-Date: Wed, 27 May 2026 11:36:33 +0800
-X-Lms-Return-Path: <lba+26a166786+8ff2e0+vger.kernel.org+lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=UTF-8
-Message-Id: <20260527033636.28231-6-lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
+In-Reply-To: <20260527033636.28231-1-lizhe.67@bytedance.com>
 References: <20260527033636.28231-1-lizhe.67@bytedance.com>
 Content-Transfer-Encoding: 7bit
+Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
+	"Li Zhe" <lizhe.67@bytedance.com>
+Content-Type: text/plain; charset=UTF-8
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Message-Id: <20260527033636.28231-7-lizhe.67@bytedance.com>
+X-Mailer: git-send-email 2.45.2
+X-Lms-Return-Path: <lba+26a16679b+08e28c+vger.kernel.org+lizhe.67@bytedance.com>
 To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
 	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
 	<kees@kernel.org>, <mingo@redhat.com>, <rppt@kernel.org>, 
 	<tglx@kernel.org>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Subject: [PATCH v3 5/8] mm: extend the template fast path to zone-device compound tails
-In-Reply-To: <20260527033636.28231-1-lizhe.67@bytedance.com>
 X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+Subject: [PATCH v3 6/8] string: introduce memcpy_streaming() helpers
 
-The template fast path from the previous patch only accelerates head
-pages. Compound tails in memmap_init_compound() still go through the
-slow path one by one.
+Introduce a generic memcpy_streaming() interface for write-once copy
+sites that can fall back to memcpy() when no architecture-specific
+optimization is available, or when an architecture-specific backend
+cannot safely handle a given transfer.
 
-Build separate head and tail templates and reuse one prepared tail
-template across the tail pages in a compound range. Head pages preserve
-the existing refcount policy, while compound tails always start with a
-refcount of 0 after prep_compound_tail().
+Add memcpy_streaming_drain() alongside it so callers can separate the
+copy primitive from any required ordering point. On x86, use
+memcpy_flushcache() and sfence only for aligned transfers that can stay
+entirely on the non-temporal store path; otherwise fall back to memcpy()
+so the generic API does not expose flushcache semantics on cached
+head/tail fragments.
 
-This extends the template-copy fast path to pfns_per_compound > 1
-without changing the existing slow path. Tail-page PFN-dependent fields
-are refreshed in the reusable tail template before each copy.
-
-Tested in a VM with a 100 GB devdax namespace (align=2097152) on Intel
-Ice Lake server. This test exercises the dax_pmem rebind path and
-measures memmap initialization latency.
-
-Test procedure:
-Unbind and rebind the dax_pmem driver 30 times, collect memmap
-initialization time from the pr_debug() output of memmap_init_zone_device().
-
-Base(v7.1-rc3):
-  First binding: 1515 ms
-  Average of subsequent rebinds: 313.45 ms
-
-With this patch and its prerequisites applied:
-  First binding: 1422 ms
-  Average of subsequent rebinds: 240.42 ms
-
-This reduces the average rebind time from 313.45 ms to 240.42 ms, or
-about 23.3%.
+Callers are responsible for invoking memcpy_streaming_drain() before
+later normal stores that must be ordered after the streaming copy.
 
 Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
 ---
- mm/mm_init.c | 45 ++++++++++++++++++++++++++++++++++++---------
- 1 file changed, 36 insertions(+), 9 deletions(-)
+ arch/x86/include/asm/string_64.h | 40 ++++++++++++++++++++++++++++++++
+ include/linux/string.h           | 20 ++++++++++++++++
+ 2 files changed, 60 insertions(+)
 
-diff --git a/mm/mm_init.c b/mm/mm_init.c
-index 53c0241c66b7..d5ccb49a048f 100644
---- a/mm/mm_init.c
-+++ b/mm/mm_init.c
-@@ -1077,17 +1077,25 @@ static inline bool zone_device_page_init_optimization_enabled(void)
- 	return !page_ref_tracepoint_active(page_ref_set);
+diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
+index 4635616863f5..0b57e9e6f3db 100644
+--- a/arch/x86/include/asm/string_64.h
++++ b/arch/x86/include/asm/string_64.h
+@@ -100,6 +100,46 @@ static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t
+ 	}
+ 	__memcpy_flushcache(dst, src, cnt);
  }
- 
--static inline void zone_device_template_page_init(struct page *template,
--						  unsigned long pfn,
--						  unsigned long zone_idx,
--						  int nid,
--						  struct dev_pagemap *pgmap)
-+static inline void zone_device_template_head_page_init(struct page *template,
-+		unsigned long pfn, unsigned long zone_idx, int nid,
-+		struct dev_pagemap *pgmap)
- {
- 	__zone_device_page_init(template, pfn, zone_idx, nid, pgmap);
- 	if (!pagemap_resets_refcount(pgmap))
- 		set_page_count(template, 0);
- }
- 
-+static inline void zone_device_template_tail_page_init(struct page *template,
-+		unsigned long pfn, unsigned long zone_idx, int nid,
-+		struct dev_pagemap *pgmap, const struct page *head,
-+		unsigned int order)
++
++/*
++ * Only reuse memcpy_flushcache() for transfers that can stay entirely
++ * on its non-temporal store path. Fall back to memcpy() for zero-length
++ * copies and for unaligned transfers so the generic streaming API does
++ * not expose flushcache semantics on cached head/tail fragments.
++ */
++static __always_inline int memcpy_flushcache_nt_safe(const void *dst,
++						     const void *src,
++						     size_t cnt)
 +{
-+	__zone_device_page_init(template, pfn, zone_idx, nid, pgmap);
-+	prep_compound_tail(template, head, order);
-+	set_page_count(template, 0);
++	unsigned long d = (unsigned long)dst;
++	unsigned long s = (unsigned long)src;
++
++	if (!cnt)
++		return 0;
++
++	if (cnt >= 8)
++		return !(d & 7) && !(s & 7) && !(cnt & 7);
++
++	return cnt == 4 && !(d & 3) && !(s & 3);
 +}
 +
- /*
-  * 'template' is a reusable page prototype rather than a strictly immutable
-  * object. Most ZONE_DEVICE fields stay constant across the pages covered by
-@@ -1139,10 +1147,12 @@ static void __ref memmap_init_compound(struct page *head,
- 				       unsigned long head_pfn,
- 				       unsigned long zone_idx, int nid,
- 				       struct dev_pagemap *pgmap,
--				       unsigned long nr_pages)
-+				       unsigned long nr_pages,
-+				       bool use_template)
- {
- 	unsigned long pfn, end_pfn = head_pfn + nr_pages;
- 	unsigned int order = pgmap->vmemmap_shift;
-+	struct page template;
- 
- 	/*
- 	 * We have to initialize the pages, including setting up page links.
-@@ -1151,9 +1161,25 @@ static void __ref memmap_init_compound(struct page *head,
- 	 * the pages in the same go.
- 	 */
- 	__SetPageHead(head);
++#define __HAVE_ARCH_MEMCPY_STREAMING 1
++static __always_inline void memcpy_streaming(void *dst, const void *src,
++					     size_t cnt)
++{
++	if (!cnt)
++		return;
 +
-+	/*
-+	 * All tails of the same compound page share the state established by
-+	 * prep_compound_tail(). Reuse one tail template for the whole range and
-+	 * refresh only the PFN-dependent fields in that template before each copy.
-+	 */
-+	if (use_template)
-+		zone_device_template_tail_page_init(&template, head_pfn + 1,
-+						    zone_idx, nid, pgmap,
-+						    head, order);
++	if (memcpy_flushcache_nt_safe(dst, src, cnt))
++		memcpy_flushcache(dst, src, cnt);
++	else
++		memcpy(dst, src, cnt);
++}
 +
- 	for (pfn = head_pfn + 1; pfn < end_pfn; pfn++) {
- 		struct page *page = pfn_to_page(pfn);
++static __always_inline void memcpy_streaming_drain(void)
++{
++	asm volatile("sfence" : : : "memory");
++}
+ #endif
  
-+		if (use_template) {
-+			zone_device_page_init_from_template(page, pfn,
-+							    &template);
-+			continue;
-+		}
- 		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
- 		prep_compound_tail(page, head, order);
- 		set_page_count(page, 0);
-@@ -1190,8 +1216,8 @@ void __ref memmap_init_zone_device(struct zone *zone,
- 	}
+ #endif /* __KERNEL__ */
+diff --git a/include/linux/string.h b/include/linux/string.h
+index b850bd91b3d8..a4c2d4347f58 100644
+--- a/include/linux/string.h
++++ b/include/linux/string.h
+@@ -281,6 +281,26 @@ static inline void memcpy_flushcache(void *dst, const void *src, size_t cnt)
+ }
+ #endif
  
- 	if (use_template)
--		zone_device_template_page_init(&template, start_pfn, zone_idx,
--					       nid, pgmap);
-+		zone_device_template_head_page_init(&template, start_pfn,
-+						    zone_idx, nid, pgmap);
++#ifndef __HAVE_ARCH_MEMCPY_STREAMING
++/*
++ * memcpy_streaming() is for write-once copy sites that may use
++ * non-temporal stores on some architectures. Callers must follow it
++ * with memcpy_streaming_drain() before later normal stores that need to
++ * be ordered after the streaming copy. Implementations may fall back to
++ * memcpy() when a specialized backend cannot safely handle the given
++ * transfer, and backends that use regular cached stores can make the
++ * drain a no-op.
++ */
++static inline void memcpy_streaming(void *dst, const void *src, size_t cnt)
++{
++	memcpy(dst, src, cnt);
++}
++
++static inline void memcpy_streaming_drain(void)
++{
++}
++#endif
++
+ void *memchr_inv(const void *s, int c, size_t n);
+ char *strreplace(char *str, char old, char new);
  
- 	for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
- 		struct page *page = pfn_to_page(pfn);
-@@ -1207,7 +1233,8 @@ void __ref memmap_init_zone_device(struct zone *zone,
- 			continue;
- 
- 		memmap_init_compound(page, pfn, zone_idx, nid, pgmap,
--				     compound_nr_pages(altmap, pgmap));
-+				     compound_nr_pages(altmap, pgmap),
-+				     use_template);
- 	}
- 
- 	pr_debug("%s initialised %lu pages in %ums\n", __func__,
 -- 
 2.20.1
