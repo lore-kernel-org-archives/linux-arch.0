@@ -1,93 +1,74 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from va-1-115.ptr.blmpb.com (va-1-115.ptr.blmpb.com [209.127.230.115])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 748B912CDA5;
-	Wed, 27 May 2026 23:17:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5D07B33F8AA
+	for <linux-arch@vger.kernel.org>; Thu, 28 May 2026 07:06:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.115
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779923862; cv=none; b=PFciLm+e+SBs/Ek3uJbcEH336YvHeKtvnoJ6XOwP0bKLtZ2O253FSA6Qz/3W/qsoxgSPZRFognCqDX4C66U3vQ4eKSlakqBGqzoDSGeZrTeMg/Ff9Cb56uiBQq+NZ7Hc+O9L9y6jDCRh+I5pUg/u+W/HLhnVWWGBw7zqtqJtyB0=
+	t=1779952003; cv=none; b=iFkPD204VX00bRrJ1cYlkiZjaoivrsURMMXjsSDTkovO7KslyVOs74mPkMMO5lTdLbeZDVm+CI0hA93Zp8fCsZp3LwU5b3vN/g6hO1QOgUNh9zUi1cHGP9RzszYKQAbc/pGJ0TrucbTlwmnWwwqAOS354l+3PnRiAGrBpEmDOBA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779923862; c=relaxed/simple;
-	bh=CZ9SgH4iIizukUaWigKStqHzQdgwqPBo1duJe5NLhCI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=IZK7hdy58ugxgaGMMayP0+ndHE71PhORiqs4AHq5AHQxrbAzGDkWKikh9D4fmz6jRA2zRl3ecl0icBNQfO4HYoQUbHYOzj3iCEwa0SvRR3jTvWHPJvYN0GZbD8DyqYjfqQXbY3TnMuZw6t4av9RXEo5zGhtMyVPLW+5cq5b9Is0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=LeLfEwA5; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1779952003; c=relaxed/simple;
+	bh=Alp6pz18Ku5DV5YJ6h+f3xmg8R271lx67qyOfBSkLFk=;
+	h=Cc:To:From:Subject:Message-Id:References:Content-Type:Date:
+	 Mime-Version:In-Reply-To; b=AKidHmMENMVh/uGl1aoLaP3bgzsUVdriAnm2z9fmqpfWOH584p6UaR5ThnP7OWgUbNJ3B5aYKzbIwzYoqi2n5issEKHqQuQ9i8Zk6CKEY+I10D2QN47b20A0De956+HwhacBP8UTrGTsYphvfXm0kMsWbmvpDt+JD2K43xVvNf4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=nIRMzggJ; arc=none smtp.client-ip=209.127.230.115
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="LeLfEwA5"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 105B71F000E9;
-	Wed, 27 May 2026 23:17:41 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1779923861;
-	bh=Zb9tzaSppYJ5lTPKCwIdw1KJepg0Vogvwm6Ghu1mYEA=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=LeLfEwA5nWeC4m+SCGm/zRgM6ylE45Ou+venRsXpn0lmrJ+sx1NGE1v/VNzVzLz/j
-	 pnp3XuaAoI8xj4h3aIHivij8/NEiNKFSNKjJ9OTwaqRAvJhDvetxlXGiVx7naMDn9a
-	 PnV9IxQ4QQfyVVQyApyV3mtKxtB4W5s6dNznqF+E1FTGLrEJ+B3O72HAzgqw4s3rye
-	 ub8aaQhac7jIyz46BEaTxq7astDzfcjep9T44RgXUlOiH7GNxVENDaHRsJfe1nQGNR
-	 uQSuTXKPO5ConikzW0fjRg/E8an5vxq2KLiU4ZCOL2b5bVOIwfIaHCGifYCZitREoY
-	 Dv69BGLsD+fkw==
-Date: Wed, 27 May 2026 16:17:39 -0700
-From: Wei Liu <wei.liu@kernel.org>
-To: Michael Kelley <mhklinux@outlook.com>
-Cc: Jork Loeser <jloeser@linux.microsoft.com>,
-	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
-	"x86@kernel.org" <x86@kernel.org>,
-	"K . Y . Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
-	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-	Anirudh Rayabharam <anrayabh@linux.microsoft.com>,
-	Stanislav Kinsburskii <stanislav.kinsburskii@gmail.com>,
-	Mukesh Rathor <mrathor@linux.microsoft.com>
-Subject: Re: [PATCH v3 3/6] x86/hyperv: Skip LP/VP creation on kexec
-Message-ID: <20260527231739.GH3518940@liuwe-devbox-debian-v2.local>
-References: <20260408013645.286723-1-jloeser@linux.microsoft.com>
- <20260408013645.286723-4-jloeser@linux.microsoft.com>
- <SN6PR02MB41578A8F9A225227FB5E79E6D4312@SN6PR02MB4157.namprd02.prod.outlook.com>
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="nIRMzggJ"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ s=2212171451; d=bytedance.com; t=1779951995; h=from:subject:
+ mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
+ mime-version:in-reply-to:message-id;
+ bh=my2xvfOIM0CS3HYizu8JqBpZyrW0PkSKxr4c77D1g00=;
+ b=nIRMzggJB/M8XnPTLSsM4ldKjnbkMQ8yB9+w/avwzq+lpRDBQktzDMn7zs0Ajk3eFVs6BO
+ lA+JIK21cFDJ2dVdRPBPEZ+2o946CuU9FXXQ4I93gFRdDsN1cUW4pwyxsUeCrDme8Ags4z
+ 2iwFFwQV41mz0EnmNoepFL1T7azakno90d1J7c24TwHjyJ82jl/HUE95HBTv6HsnSe7ZsU
+ w0MM/YgxdgxmFKcgx/ri2BGdMPrK9a1EjsnVLhCEu1nQqOU/pbf64bWX4ise1r9O1arfrF
+ Uz7gvT5ZU+eTpbq4HYJ3ngTaWd6+yNvYA+FW3RLB8fmN7W1jUoWuAc+L+9JkWw==
+Cc: <apopple@nvidia.com>, <arnd@arndb.de>, <bp@alien8.de>, 
+	<dave.hansen@linux.intel.com>, <david@kernel.org>, <kees@kernel.org>, 
+	<linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
+	<lizhe.67@bytedance.com>, <mingo@redhat.com>, <rppt@kernel.org>, 
+	<tglx@kernel.org>, <x86@kernel.org>
+X-Lms-Return-Path: <lba+26a17e978+296eb2+vger.kernel.org+lizhe.67@bytedance.com>
+To: <akpm@linux-foundation.org>
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Subject: Re: [PATCH v3 0/8] mm: speed up ZONE_DEVICE memmap initialization
+Message-Id: <20260528070611.85255-1-lizhe.67@bytedance.com>
+Content-Transfer-Encoding: 7bit
+X-Mailer: git-send-email 2.45.2
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+References: <20260527134637.29621cc94aba22eb02f3a544@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
+Date: Thu, 28 May 2026 15:06:11 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <SN6PR02MB41578A8F9A225227FB5E79E6D4312@SN6PR02MB4157.namprd02.prod.outlook.com>
+Mime-Version: 1.0
+In-Reply-To: <20260527134637.29621cc94aba22eb02f3a544@linux-foundation.org>
 
-On Mon, May 04, 2026 at 03:09:21PM +0000, Michael Kelley wrote:
-> From: Jork Loeser <jloeser@linux.microsoft.com> Sent: Tuesday, April 7, 2026 6:37 PM
-> > 
-> > After a kexec the logical processors and virtual processors already
-> > exist in the hypervisor because they were created by the previous
-> > kernel. Attempting to add them again causes either a BUG_ON or
-> > corrupted VP state leading to MCEs in the new kernel.
-> > 
-> > Add hv_lp_exists() to probe whether an LP is already present by
-> > calling HVCALL_GET_LOGICAL_PROCESSOR_RUN_TIME. When it succeeds the
-> > LP exists and we skip the add-LP and create-VP loops entirely.
-> > 
-> > Also add hv_call_notify_all_processors_started() which informs the
-> > hypervisor that all processors are online. This is required after
-> > adding LPs (fresh boot) and is a no-op on kexec since we skip that
-> > path.
-> 
-> Adding hv_call_notify_all_processors_started() seems like it should be
-> a separate patch. And this paragraph in the commit message leaves me
-> with questions:  Is it really "required"?  If it is, how does the existing
-> upstream code ever work? Does the change need to be backported
-> to stable kernels? If it isn't *really* required, what are the implications
-> of not doing it?
+On Wed, 27 May 2026 13:46:37 -0700, akpm@linux-foundation.org wrote:
 
-It is complicated. If I remember correctly, we realized this call was
-absolutely needed if SEV-SNP host side support is enabled. If that
-support is not enabled, then things continue to work. I think it is the
-right thing to do to always make this call.
+> AI review had a number of things to say:
+> 	https://sashiko.dev/#/patchset/20260527033636.28231-1-lizhe.67@bytedance.com
 
-We don't need to backport this yet.
+Thanks for the review. All four points are valid.
 
-Wei
+  1. The head-page template setup should not run page initialization and
+     refcount helpers on a stack-resident struct page.
+  2. The compound-tail template path has the same issue and should avoid
+     running compound-tail/refcount setup on a stack object.
+  3. The x86 memcpy_streaming() eligibility check is too permissive, so some
+     transfers that cannot stay entirely on the non-temporal path may still
+     go through memcpy_flushcache().
+  4. memcpy_flushcache_small() should reject unsupported sizes before issuing
+     any store, otherwise fallback can observe partial writes.
+
+I have prepared corresponding fixups on top of v3.
+
+Thanks,
+Zhe
