@@ -1,119 +1,116 @@
-Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
+Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.183])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D57D2F4A0C;
-	Mon,  1 Jun 2026 16:22:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C68F12E8DFC
+	for <linux-arch@vger.kernel.org>; Mon,  1 Jun 2026 16:27:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.183
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780330978; cv=none; b=BKzAGMimwMNXMD1yPl4YKOqQ5zezNlWjRzDCd0VcGxCqxO4enmvd40Eg41AgLbeM9IoXnj7Zb9uUqT0DgD/eSCKjge/WvML0/ZRlgf7hGzW8qpaS8e05tcn8fa1HuuVBvVZG/zBVmZH3mVcg9zu9sscGjLfRLYEfVSuMVT4994c=
+	t=1780331278; cv=none; b=WNr+WqQaaAtRw3pMk5bYuPlfku8pgP4UC/bYTJHkmY6fGPJn9wy+UWwX9BHEHnLnn+YRoVP9JJNthniRvumgjidkiE0+BO0ccHbhrze6uxtQw2AsphROl+kkXIsTjk4LD/ZeM8YyKPOKX6kATtyrP8xN0VrznEf07GWss2S55y0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780330978; c=relaxed/simple;
-	bh=VOHOiM2ncWDTs6pavjkvSt+M4Adnz+MXROO/ORF6SiY=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=qYMXeQAtSh5l1Ek0UIDhfjtCApfF89gXfTzBs4jynfut32u/ia1bvPbEkIsuEprLqCvFnaDmT3u1ydhnR8f2g2H/ydaDPvIBkkyebGw4IFWLv561VGtsCJ20rR1i2B1ZnbvG3vIrn/QqHDV44G4STCmHx/jSGvdIENgj5AVDs/k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=VtkZTt3v; arc=none smtp.client-ip=213.97.179.56
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
+	s=arc-20240116; t=1780331278; c=relaxed/simple;
+	bh=3LkQaNGBB576338VrgcW2QO/D63U7HdVQHPRBsznKmw=;
+	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
+	 MIME-Version:Content-Type; b=ffbb6Buuq3m7UBlQisohu9Kqj+FClSZEjMHXdkkmYauXjuNjm2dwyDNdqpRq94naVOUX9QY6HG9/VxnTtGwHpC0FZdXcb3qkdjMiazqYsMcmuSnCxhuXr8EL26+DH9MCcKQ9sfMyHim84gEmbYUuXp96k3gsOQn1zA8rdYcxI+g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=TlwexXkJ; arc=none smtp.client-ip=195.121.94.183
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="VtkZTt3v"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
-	s=20170329; h=Content-Transfer-Encoding:Content-Type:In-Reply-To:From:
-	References:Cc:To:Subject:MIME-Version:Date:Message-ID:Sender:Reply-To:
-	Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:
-	Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:
-	List-Subscribe:List-Post:List-Owner:List-Archive;
-	bh=XGTfXQpJJgOvUWnNJBWL9rDECpWQG2T8jJ/gmcDpZ9g=; b=VtkZTt3vePlJjjQtqvEdRnQTYl
-	8dNcmgt3dQ3hPxoENlfLakdKRdiRvICFEpPetNFVi2/G9fa9kxeeUDgAqN6W9J6q//e/W8m3X7KcM
-	kgj4b1QosMxaiO+JTRwRI4J26UVdLEpNB0cHvOvZTdfjA3jIrqAeXKGbLJdGMUWxzpRPjUXdsKRlF
-	TgSh23LDOOB2lxgg+nM/H1fJzCzYJGTDUrJ/Lnw5bfOX34mFZEmI6gNvsI2fTblm7Zt/d4m7Xk2t1
-	OCCFZKHEvOACf2YFxXPVfGryCw5dvKGhGnq/zDXZoKzREn/415MdZ9Soj+tnu5FJBKUOjP1S1sSWl
-	csI7rklw==;
-Received: from [177.172.121.54] (helo=[192.168.15.100])
-	by fanzine2.igalia.com with esmtpsa 
-	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_128_GCM:128) (Exim)
-	id 1wU5PP-00B6P0-Dk; Mon, 01 Jun 2026 18:22:35 +0200
-Message-ID: <798c75ba-615d-48d1-bc04-53bc40bc6503@igalia.com>
-Date: Mon, 1 Jun 2026 13:22:28 -0300
+	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="TlwexXkJ"
+X-KPN-MessageId: d70d3d74-5dd6-11f1-beaa-005056992ed3
+Received: from mta.kpnmail.nl (unknown [10.31.161.189])
+	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
+	id d70d3d74-5dd6-11f1-beaa-005056992ed3;
+	Mon, 01 Jun 2026 18:27:53 +0200 (CEST)
+Received: from mtaoutbound.kpnmail.nl (unknown [10.128.135.190])
+	by mta.kpnmail.nl (Halon) with ESMTP
+	id d71a5691-5dd6-11f1-b5d4-0050569981f5;
+	Mon, 01 Jun 2026 18:27:53 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=xs4all.nl; s=xs4all01;
+	h=content-type:mime-version:subject:message-id:to:from:date;
+	bh=pK+jjtVDJ2yLuCLQOZ9lmN1H22vbdo/jUfd0aOxeWEE=;
+	b=TlwexXkJlVVfSCFt36aIroW1RQ6VcK7pkkx2M4RMm5m9H813JtnViSj97vyxDcC3VCO93TL2mBekR
+	 UUT8HRQEocT2k1W4IBnl0JEFa5rqUqYgFITCt0OBbdkxuDgon5c5p5fMw93AXDa6jO3QX8kD82iob/
+	 n7g4SlOYcGu3P1RpLjpfmXGWEoA8EBd8dA3aHOtVDPmv4ayrprZYBeoUyZudgI9dRldqzCtYdRvzt1
+	 +nf77+xe+/l0p3Rvb18R0IUU2DeB8ulSoWSrZbFKmzAt2aCygRkpE2brkcPhJgvWnRcZhRGX5GDtce
+	 +sghEunUgt+S2PBppNU96FoD3RJtkcw==
+X-KPN-MID: 33|pZDn2B+8ANNonqD19nq9YXOH1vcOd5gkw6iRvxFwuUGPb7hl8Btc6w3GRJ1q4Rc
+ X6iCL+Yj546TDrzzHhQLhjg0JdAiEEkVKt49Or4Mp568=
+X-CMASSUN: 33|aXviZNRv+9GvSwkHh7Lz5KkmILZ+rhY7f4dzCyn/tCn0PZ9K7bBp0P3jSxk7KJH
+ s4TYg6G95CzybeLXjKhdQVw==
+X-KPN-VerifiedSender: Yes
+Received: from cpxoxapps-mh03 (cpxoxapps-mh03.personalcloud.so.kpn.org [10.128.135.209])
+	by mtaoutbound.kpnmail.nl (Halon) with ESMTPSA
+	id d709217b-5dd6-11f1-b8d7-005056995d6c;
+	Mon, 01 Jun 2026 18:27:53 +0200 (CEST)
+Date: Mon, 1 Jun 2026 18:27:53 +0200 (CEST)
+From: Jori Koolstra <jkoolstra@xs4all.nl>
+To: Jan Kara <jack@suse.cz>, Jeff Layton <jlayton@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>,
+	"open list:FILESYSTEMS (VFS and infrastructure)"
+ <linux-fsdevel@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>,
+	"open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Message-ID: <2002074169.107129.1780331273724@kpc.webmail.kpnmail.nl>
+In-Reply-To: <xdknvjlda7wxwo35toe357nnyaydsllv5g65ogzsomxqgm7jfu@qwtugpoy2rcw>
+References: <20260531104947.6142-1-jkoolstra@xs4all.nl>
+ <c5e32b78aeaa833d18d9b7a566358a6f71d09f23.camel@kernel.org>
+ <xdknvjlda7wxwo35toe357nnyaydsllv5g65ogzsomxqgm7jfu@qwtugpoy2rcw>
+Subject: Re: [PATCH] vfs: missing inode operation should return a consistent
+ error code
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 2/5] arm64: vdso: Implement
- __vdso_futex_robust_try_unlock()
-To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: linux-arm-kernel@lists.infradead.org, Rich Felker <dalias@aerifal.cx>,
- Florian Weimer <fweimer@redhat.com>, Thomas Gleixner <tglx@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Davidlohr Bueso <dave@stgolabs.net>,
- Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
- Carlos O'Donell <carlos@redhat.com>, =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?=
- <linux@weissschuh.net>, Will Deacon <will@kernel.org>,
- Catalin Marinas <catalin.marinas@arm.com>, Uros Bizjak <ubizjak@gmail.com>,
- Arnd Bergmann <arnd@arndb.de>, Darren Hart <dvhart@infradead.org>,
- "Liam R . Howlett" <Liam.Howlett@oracle.com>,
- Torvald Riegel <triegel@redhat.com>, Ingo Molnar <mingo@kernel.org>,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
- kernel-dev@igalia.com, Mark Rutland <mark.rutland@arm.com>
-References: <20260529-tonyk-robust_arm-v3-0-a6f02684d4fe@igalia.com>
- <20260529-tonyk-robust_arm-v3-2-a6f02684d4fe@igalia.com>
- <844b56fe-b5d4-42b2-ae8e-ce07980d0f50@efficios.com>
-Content-Language: en-US
-From: =?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
-In-Reply-To: <844b56fe-b5d4-42b2-ae8e-ce07980d0f50@efficios.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-Priority: 3
+Importance: Normal
 
-Em 29/05/2026 14:47, Mathieu Desnoyers escreveu:
-> On 2026-05-29 12:33, André Almeida wrote:
->> Based on the x86 implementation, implement the vDSO function for 
->> unlocking
->> a robust futex correctly.
->>
->> Commit xxxxxxxxxxxx ("x86/vdso: Implement 
->> __vdso_futex_robust_try_unlock()") has
->> the full explanation about why this mechanism is needed.
->>
->> The unlock assembly sequence for arm64 is:
->>
->>     __vdso_futex_robust_list64_try_unlock:
->>     retry:
->>         ldxr    w8, [x0] // Load the value from *futex
->>         cmp    w1, w8   // Compare with TID
->>         b.ne    __vdso_futex_list64_try_unlock_cs_end
->>         stlxr    w9, wzr, [x0] // Try to zero *futex
+
+> Op 01-06-2026 17:58 CEST schreef Jan Kara <jack@suse.cz>:
 > 
-> So it looks like stlxr can be successful, and the process is killed
-> right here. This is not within the start/end critical section, so the
-> fixup is missed ? Or am I missing something ?
+>  
+> On Sun 31-05-26 10:08:47, Jeff Layton wrote:
+> > 
+> > This seems ill-advised. The problem is that most of this behavior has
+> > been well established for years, and not all userland software (and
+> > even some internal callers like nfsd), will react well when you go
+> > changing behavior like this.
+> > 
+> > As a case in point, the POSIX spec doesn't list EOPNOTSUPP as a valid
+> > error return for open():
+> > 
+> >    https://pubs.opengroup.org/onlinepubs/9690949399/functions/open.html
+> > 
+> > The manpage for open() says only:
+> > 
+> >        EOPNOTSUPP
+> >               The filesystem containing pathname does not support O_TMPFILE.
+> > 
+> > What is the poor userland developer to make of this when open() starts
+> > returning EOPNOTSUPP without O_TMPFILE being specified?
 > 
+> So I wouldn't care as much about POSIX, we largely ignore it anyway in the
+> kernel. But I tend to agree that changing the error code we returned for
+> several decades just for the sake of "cleanliness" isn't IMHO a good enough
+> reason to risk breaking userspace or causing confusion.
+> 
+> 								Honza
+> -- 
+> Jan Kara <jack@suse.com>
+> SUSE Labs, CR
 
-As me and Mathieu discussed on IRC, this should be the right thing to do 
-here:
+For what its worth, the EACCES return value for not having a create() call on
+the fs is also not specified in the open() man page. For mkdir, EPERM IS specified.
 
-  - Move the critical section label one instruction above to include 
-`cbnz` on it
-  - Use the result register as the check for the store success, not the 
-zero flag register.
+But in general, can we never add new error codes to any syscall? Are there user
+programs that do neatly check for each specified error code in the man page, but
+that do not implement a fallback at all? I mean, I am not unsympathetic to the
+arguments that you and Jeff make, but such a user program would be odd.
 
-So it will look like this:
-
-	__vdso_futex_robust_list64_try_unlock:
-	retry:
-		ldxr	w8, [x0] // Load the value from *futex
-		cmp	w1, w8   // Compare with TID
-		b.ne	__vdso_futex_list64_try_unlock_cs_end
-		stlxr	w9, wzr, [x0] // Try to zero *futex
-	__vdso_futex_list64_try_unlock_cs_start:
-		cbnz	w9, retry
-		str	xzr, [x2] // After zeroing *futex, zero *op_pending
-	__vdso_futex_list64_try_unlock_cs_end>:
-
-The decision regarding if the pointer should be cleared or not lies on 
-checking the result register:
-
-	return (regs->user_regs[9]) ? NULL :
-		(void __user *) regs->user_regs.regs[2];
-
-Thanks for the review!
+Best,
+Jori.
