@@ -1,124 +1,219 @@
-Received: from sender4-op-o15.zoho.com (sender4-op-o15.zoho.com [136.143.188.15])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7323A18B0A;
-	Mon,  1 Jun 2026 02:47:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.15
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780282058; cv=pass; b=qWXDoZ1TeDC1hgTj8qFAG/jPDDnijm2I+0l/gxHR9UMHJMkOkWEPKyAY7XOCXDUfTtQWCMRBtXEObrmwTaJYAGoIWuTfCTIiBEXKSrIopsWh5M5TXLOVuKxCRcQO1gUM0N28IUPQWlIDOhd2fvzc9/0F5XoUwjDmfgzhc+yuZvY=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780282058; c=relaxed/simple;
-	bh=+cvRLTMfGFbpnFcw0p+gJeOVuz5qvmXtedBnn0RfWWg=;
-	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
-	 MIME-Version:Content-Type; b=TlZXSo6YenwDM3/8ozDN5KS45uUnsR/Z/Jlq5EllS/4Wsi+vOZHtNrgOYpSzpQkiyivQwP5ZyH2s7nsw1AgJf9cIuzrzWXw6y7eGhTCj5jMqPVQcVg6WEGVYb0yeH9x3iaSvd54p6sMCynsrywCye4LnbMzuSLt0h3fx2WjraZ8=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty; spf=pass smtp.mailfrom=linux.beauty; dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b=i4uWgPWD; arc=pass smtp.client-ip=136.143.188.15
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.beauty
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B29535E1DA
+	for <linux-arch@vger.kernel.org>; Mon,  1 Jun 2026 12:05:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.41
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1780315502; cv=none; b=UirBDa4RmYC2C7pMQpUIQ6nH9RNNUi5jAnVZqmc+YQ2n57d6yfhRglsvmsVf8KL3mZI2B61LFWemvkIyJmOXCsAwcOCcVcEzarUkTLMgxfSIlN0rM12k9DL5jUdnPPYT6lX7we5I0QkERJAIcjr8UW6q/nO/MYmFEs6EI60uswk=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1780315502; c=relaxed/simple;
+	bh=UexA6IlALDsQZOTV0hLwfWpaRW3TbsQLPhPBboqis4A=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=oTZkDCMdvSvsSXNR+yfV4CN3e71jAF8j03KJti31gzgyH6Ar7zdnN2OIsHxVfHTpNzeu5ZqV3akqX7r5bBZxybf2eKh+BRH0dZhBG3U+3n9iC+ItoauYQj3S8xTalSC8TxvVoIAlUAi8A88drCrBuoGvJNUd4Slb228Cvpg+cqY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=JQ7F7Xxq; arc=none smtp.client-ip=209.85.128.41
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b="i4uWgPWD"
-ARC-Seal: i=1; a=rsa-sha256; t=1780282022; cv=none; 
-	d=zohomail.com; s=zohoarc; 
-	b=VhevDLX+jcvxZX+UlQ+Wxz0FCFg+LjBiWzNfXWyC6bp6Q9wQBLfvAwEx84FhSc/2nYZEKzb5DRlJDZSC+u9RX6eI3lcoTwaTP+bngDtffMdxgy0dHAfNBeTwuHnvSQlf8j9fVwRw11AyP6yxXw5XpOCkIiIvlEkwtWG/5/Z4d9A=
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
-	t=1780282022; h=Content-Type:Content-Transfer-Encoding:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
-	bh=0j5y4eHjA2s58keIUCJbqELrbC/VcqvqjEm+eO/tp38=; 
-	b=lSbIdqfNnvt2r8wfFWL9TJ+mSRjbsNaoUAeAFJg3rV8UeQlrUH8z8wrM2DJBd7PlbInrPAjQ4JwEphoQnD7v2eRO2MXq2PDbzWRcJaeXyF4L0qVs4Bqqb8Svz7eFAY2K5Y3KGnaH4I4H5pxLkHOCyGl6Q85F+yD/E/pRtJko0Ok=
-ARC-Authentication-Results: i=1; mx.zohomail.com;
-	dkim=pass  header.i=linux.beauty;
-	spf=pass  smtp.mailfrom=me@linux.beauty;
-	dmarc=pass header.from=<me@linux.beauty>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1780282022;
-	s=zmail; d=linux.beauty; i=me@linux.beauty;
-	h=Date:Date:From:From:To:To:Cc:Cc:Message-ID:In-Reply-To:References:Subject:Subject:MIME-Version:Content-Type:Content-Transfer-Encoding:Message-Id:Reply-To;
-	bh=0j5y4eHjA2s58keIUCJbqELrbC/VcqvqjEm+eO/tp38=;
-	b=i4uWgPWDiFQiBL7nZhR4Fm2f/IlUPCFd62QikIjgStAEislo+YBK6vlj5POZsB6L
-	SDFxCJQfURcxOAO4XbXQQHGZW6alw1m02iJZzYSa4l2UMWxuMeb+PCHrQ/VfjKbqJsW
-	AK8cifPY6TEdUz6yVwpoT7hbCaJbJ8wLp6um5Q8k=
-Received: from mail.zoho.com by mx.zohomail.com
-	with SMTP id 178028202051664.08529719843057; Sun, 31 May 2026 19:47:00 -0700 (PDT)
-Date: Mon, 01 Jun 2026 10:47:00 +0800
-From: Li Chen <me@linux.beauty>
-To: "Christian Brauner" <brauner@kernel.org>
-Cc: "Kees Cook" <kees@kernel.org>,
-	"Alexander Viro" <viro@zeniv.linux.org.uk>,
-	"linux-fsdevel" <linux-fsdevel@vger.kernel.org>,
-	"linux-api" <linux-api@vger.kernel.org>,
-	"linux-kernel" <linux-kernel@vger.kernel.org>,
-	"linux-mm" <linux-mm@kvack.org>,
-	"linux-arch" <linux-arch@vger.kernel.org>,
-	"linux-doc" <linux-doc@vger.kernel.org>,
-	"linux-kselftest" <linux-kselftest@vger.kernel.org>,
-	"x86" <x86@kernel.org>, "Arnd Bergmann" <arnd@arndb.de>,
-	"Andy Lutomirski" <luto@kernel.org>,
-	"Thomas Gleixner" <tglx@kernel.org>,
-	"Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
-	"Dave Hansen" <dave.hansen@linux.intel.com>,
-	"H. Peter Anvin" <hpa@zytor.com>, "Jan Kara" <jack@suse.cz>,
-	"Jonathan Corbet" <corbet@lwn.net>,
-	"Shuah Khan" <skhan@linuxfoundation.org>
-Message-ID: <19e8113d290.893abab26142069.5024234139508454104@linux.beauty>
-In-Reply-To: <20260528-madig-fachrichtung-fehlinformation-61117ba640da@brauner>
-References: <20260528095235.2491226-1-me@linux.beauty> <20260528-madig-fachrichtung-fehlinformation-61117ba640da@brauner>
-Subject: Re: [RFC PATCH v1 00/13] exec: add spawn templates for repeated
- executable startup
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="JQ7F7Xxq"
+Received: by mail-wm1-f41.google.com with SMTP id 5b1f17b1804b1-4909e3fa4b2so29255495e9.0
+        for <linux-arch@vger.kernel.org>; Mon, 01 Jun 2026 05:05:00 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1780315499; x=1780920299; darn=vger.kernel.org;
+        h=cc:to:content-transfer-encoding:mime-version:message-id:date
+         :subject:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=n5qzKyfnccgdjCAGXdsv8yWwGixxrImvsfnV142aaYI=;
+        b=JQ7F7XxqW9g6DVtsZTVcda+KjsdeNYn03hmt1o6VGeG8nxxIPttdGcU2M3XHOG1i/o
+         j8BQD+cSziDz2A3oOPRlYD8cXBkW3gRsJZup1Z7KrLkD+8yKuGZpMdGg0HFyOcHHErNj
+         pPn8msShsZmISyTLfGbxQRUWehoHPj0nbB/knuRc2A5NIzEWaW87Kwn73G/eFSwpwz/p
+         08mQMiTn/KI/RXo3qWKj9Wk7aX7Mu7l7MeuDUpln6AsUedO1PVyF/10kJZSLJX96Z8dq
+         GxdF5jRwpCqMnWT3Bj1SkWjBR/xpawinuD53I1lZypcGGqPuiafesvGeIuqtaipOtIbb
+         fQgA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1780315499; x=1780920299;
+        h=cc:to:content-transfer-encoding:mime-version:message-id:date
+         :subject:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=n5qzKyfnccgdjCAGXdsv8yWwGixxrImvsfnV142aaYI=;
+        b=PrJ5uW7utHLEnRPML5k/UG6F62Eu7uU5MBnNOq3eIT48V2Xbj74VLaKqxsOtCw+jIM
+         ikgKZXLsZfcpirRaiFvbkPkW+SpcYN/wmvqzyLcqV3twaxYetVSzO1uySDsCXCv1XwO1
+         J+YBGhN5F/937u7me+Lw0yujx2EhRW/504bNearKf6X8bhHneAgt5DmnVj/lP4bvXGqs
+         GsxsQcigziFqwjyxLi/oTlz0DHdDrVsisf8KbIFRyDq14pq5nZsz12zjlhyFTGpn8jwJ
+         BwDZb+b9Fq2N8M+xjtZR+XGoE1ps9phS3IsCzqk8QZBRaGM36oOLHqiPu7HeSAGpXamU
+         pK8A==
+X-Forwarded-Encrypted: i=1; AFNElJ+ivF9zqTVWARUPep8RVNbfB+NVYHmQP0bhpxXigbofot8hTPBeQub3XEIK2N+snHJiyUrtNejVLT3k@vger.kernel.org
+X-Gm-Message-State: AOJu0YydkgbXWL/r7z+MV1qUnGgKY3dL8kWeuRbp2tD3xmVVB9SyL4nR
+	S+HK8XC7hFo83vb8soVUvqRgR/I+6YfTTYbFdC+xTpvOfmvW1o9ujcmD
+X-Gm-Gg: Acq92OHTth2jS0gTUURr3XzSM5x5T5H4lw5kqJ6KVS45eIN8iDpAgyn6pHJK6mko4eD
+	3bdJ4PHmrY+JL9saSOkpWC6RkftvI+W8Sd4aHYx4SqLWVJCac7G4+Zu5+fuahJdoPjTzNab/pQQ
+	V8IehrU7U03tf2KWjfNuJmhVTqBsxTbryGxp3+cY5jZ/s4hORF04wODr1RO43tyUkwkfd7x8Njz
+	3toM0+pDsJo7h9WtsJZERzkET0MDioszgDZ1PKgYnY7SxQTMsHm3tHnEvxwgohCQ8u6XrrdHuy/
+	POS1vV8N4AS39BI3JRhPxY8KfHjtsVSBZK7gOhVO/z/wzt5LfGUMSl/DL4PEEGcyt1m+zoHDaN/
+	jVne45k4YPJSE/hNgurGcKcJ168gysCcn3SSvJ1tsx+qAJB+Es+V+DsCZT9d0FV7Ccp6Mayw9Id
+	svZVlMq0abBg7e8NsV4VgPat6NWcjiJ1tjs7OT0TA2jQ==
+X-Received: by 2002:a05:600c:3487:b0:48f:e1ac:c94f with SMTP id 5b1f17b1804b1-490a2918103mr212890145e9.10.1780315498448;
+        Mon, 01 Jun 2026 05:04:58 -0700 (PDT)
+Received: from [172.16.188.153] ([213.181.114.83])
+        by smtp.googlemail.com with ESMTPSA id 5b1f17b1804b1-4909c152570sm103972805e9.9.2026.06.01.05.04.55
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 01 Jun 2026 05:04:57 -0700 (PDT)
+From: Jim Cromie <jim.cromie@gmail.com>
+Subject: [PATCH v3 00/24] dynamic-debug cleanups refactors maintenance +
+ alignment fix
+Date: Mon, 01 Jun 2026 12:04:46 +0000
+Message-Id: <20260601-dd-maint-2-v3-0-4a15b241bd3c@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Importance: Medium
-User-Agent: Zoho Mail
-X-Mailer: Zoho Mail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/02MwQrCMBBEf6Xs2ZV0Yxvryf+QHmIS2wWblKQEp
+ fTfjQXBy8CbYd4KyUV2CS7VCtFlThx8AXmowIzaDw7ZFgYS1IqGarQWJ81+QULVmuZEQnUloBz
+ m6B782mW3vvDIaQnxvbszfdufRv5rMqHAeyeVrElrcZbXoUzPowkT9Nu2fQATd1+rpAAAAA==
+X-Change-ID: 20260521-dd-maint-2-76c542079420
+To: Jonathan Corbet <corbet@lwn.net>, 
+ Shuah Khan <skhan@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, 
+ Jason Baron <jbaron@akamai.com>, Luis Chamberlain <mcgrof@kernel.org>, 
+ Petr Pavlu <petr.pavlu@suse.com>, Daniel Gomez <da.gomez@kernel.org>, 
+ Sami Tolvanen <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>, 
+ Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuah@kernel.org>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>
+Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ linux-arch@vger.kernel.org, linux-modules@vger.kernel.org, 
+ linux-kselftest@vger.kernel.org, dri-devel@lists.freedesktop.org, 
+ Jim Cromie <jim.cromie@gmail.com>, 
+ Louis Chauvet <louis.chauvet@bootlin.com>, 
+ =?utf-8?q?=C5=81ukasz_Bartosik?= <ukaszb@chromium.org>
+X-Mailer: b4 0.14.3
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1780315495; l=5739;
+ i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
+ bh=UexA6IlALDsQZOTV0hLwfWpaRW3TbsQLPhPBboqis4A=;
+ b=lvmgQ8g7xkH604t4KBSwylbWD7BLSeGoj0N94EqFttk+uNoSZ34wsVJ4kCQjAP+56C7j9e8+r
+ 8/livVa5JYuDL7dtGrwkxv+mPMASsWpXe10/NQqoJFwX0pqQwFAG0+r
+X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
+ pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 
-Hi Christian,
+This series starts with 2 doc-only patches updating the current state
+of dynamic-debug, they were posted separately here, without pushback.
 
-Thanks a lot for your great review!
+https://lore.kernel.org/linux-doc/20260502-dyndbg-doc-v1-0-67cc4a93a77e@gmail.com/
+    
+Next 5 are a fix to a linker-script alignment problem in 32bit arches
+causing a null-ptr scanning dyndbg-descriptor section on i386.  These
+were reviewed by Petr Pavlu.
 
- ---- On Thu, 28 May 2026 19:02:53 +0800  Christian Brauner <brauner@kernel=
-.org> wrote ---=20
- > On Thu, May 28, 2026 at 05:52:21PM +0800, Li Chen wrote:
- > > Hi,
- > >=20
- > > This is an early RFC for an idea that is probably still rough in both =
-the
- > > UAPI and implementation details. Sorry for the rough edges; I am sendi=
-ng
- > > it now to check whether this direction is worth pursuing and to get
- > > feedback on the kernel/userspace boundary.
- >=20
- > The idea of having a builder api for exec isn't all that crazy. But it
- > should simply be built on top of pidfds and thus pidfs itself instead.
- > It has all the basic infrastructure in place already.
+The remaining patches are cleanups, refactors in preparation for an
+API change needed to fix a regression in DRM when it uses classmaps.
+I split these out for easier review, I will follow up with the API
+change afterwards.
 
-Yes, that makes a lot more sense. I was staring too hard at the "hot
-executable" part and made the cache/template the API, which was probably
-the wrong thing to expose. Sorry about that.
+The biggest revision vs V2 is the new patch: 25.  It addresses a flaw
+detected by sashiko which is best described by example.
 
- > Any implementation
- > should also allow userspace to implement posix_spawn() on top of it.
+Dyndbg uses KBUILD_MODNAME to provide module-name, this works well for
+loadable modules (module loader requires unique module names), but for
+builtin modules, is effectively kbasename, and not unique.
 
-That's so cool, and this is a really useful point. I had not thought about =
-this as
-something that could sit under posix_spawn(), but that makes the target
-much clearer. It should be a generic exec/spawn builder first, and the
-agent use case should just be one user of it.
+So we get 4 modules named "main": init/main, kernel/power/main,
+kernel/base/poser/main.  This ambiguity is visible in user-space since
+the beginning of dyndbg.
 
- > fd =3D pidfd_open(0, PIDFD_EMPTY /* or better name */)
- >=20
- > pidfd_config(fd, ...) // modeled similar to fsconfig()
+Now suppose kernel/{,base}/power/main want to define classmaps to
+categorize the various pr-debugs they have.  The current code finds a
+module's classmaps by strcmp on modname, so init/main will match
+against classmaps defined by both kernel/{,base}/power/main.
 
-Reusing pidfd_open() with an empty target is nice because it keeps the API =
-close
-to pidfds, but I wonder if a separate entry point such as
-pidfd_spawn_open() or pidfd_create() would make the "new process
-builder" case a bit more explicit? Either way, the configuration side
-being fsconfig-like makes sense to me.
+The current code will also map "main" classes to kernel/*/power/main,
+so they will probably work at first, but 2 independent classmaps can
+both use class-ids 0-N, but will conflict if they're both used by a
+module.  Then we have classmap overlaps and unpredictable results.
 
-Thanks again for pointing me in this direction. It helps a lot.
+patch-25 eliminates the ambiguity by using KBUILD_MODFILE to provide a
+unique module-name, then adds matching against kbasename(modname) to
+restore the legacy query behavior.  It *does* change the modname
+exposed in /proc/dynamic_debug/control, but not the result of a query
+like "module main +p".
 
-Regards,
-Li=E2=80=8B
+OLDER VERSIONS:
+
+V2 primarily revises:
+ https://lore.kernel.org/lkml/20260504-dd-cleanups-2-v1-0-6fdd24040642@gmail.com/
+    
+V2 addressed most of sashiko's feedback on V1:
+ https://sashiko.dev/#/patchset/20260504-dd-cleanups-2-v1-0-6fdd24040642%40gmail.com
+    
+It dropped the pr-fmt patch, as not reproducible,
+advanced the drop-NAMES patch to reduce subsequent churn,
+and fixed the classmaps PARAMs to u64 to avoid 32bit flags on 32bit arches
+    
+For easy one-stop-shopping, V2 also included 2 smaller series:
+    
+1st fixes a section alignment problem, with Reviewed-by from Petr Pavlu
+ https://lore.kernel.org/lkml/20260515-asm-generic-1-v3-0-680b273666d4@gmail.com/
+    
+Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+    
+
+Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+---
+Changes in v3:
+- EDITME: describe what is new in this series revision.
+- EDITME: use bulletpoints and terse descriptions.
+- Link to v2: https://lore.kernel.org/r/20260523-dd-maint-2-v2-0-b937312aa083@gmail.com
+
+---
+Jim Cromie (24):
+      docs/dyndbg: update examples \012 to \n
+      docs/dyndbg: explain flags parse 1st
+      vmlinux.lds.h: refactor BOUNDED_SECTION_* macros into bounded_sections.lds.h
+      vmlinux.lds.h: drop unused HEADERED_SECTION* macros
+      vmlinux.lds.h: Fix ALIGN(8) omission causing NULL ptr on i386
+      vmlinux.lds.h: remove redundant ALIGN(8) directives
+      dyndbg.lds.S: fix lost dyndbg sections in modules
+      dyndbg: factor ddebug_match_desc out from ddebug_change
+      dyndbg: add stub macro for DECLARE_DYNDBG_CLASSMAP
+      dyndbg: reword "class unknown," to "class:_UNKNOWN_"
+      dyndbg-API: remove DD_CLASS_TYPE_(DISJOINT|LEVEL)_NAMES and code
+      dyndbg: drop NUM_TYPE_ARGS
+      dyndbg: reduce verbose/debug clutter
+      dyndbg: refactor param_set_dyndbg_classes and below
+      dyndbg: tighten fn-sig of ddebug_apply_class_bitmap
+      dyndbg: replace classmap list with an array-slice
+      dyndbg: macrofy a 2-index for-loop pattern
+      dyndbg: Upgrade class param storage to u64 for 64-bit classmaps
+      dyndbg,module: make proper substructs in _ddebug_info
+      dyndbg: move mod_name down from struct ddebug_table to _ddebug_info
+      dyndbg: hoist classmap-filter-by-modname up to ddebug_add_module
+      selftests-dyndbg: add a dynamic_debug run_tests target
+      dyndbg: change __dynamic_func_call_cls* macros into expressions
+      dynamic_debug: use KBUILD_MODFILE for unique builtin module names
+
+ Documentation/admin-guide/dynamic-debug-howto.rst  |  55 ++-
+ MAINTAINERS                                        |   2 +
+ drivers/gpu/drm/drm_print.c                        |   6 +-
+ include/asm-generic/bounded_sections.lds.h         |  32 ++
+ include/asm-generic/dyndbg.lds.h                   |  18 +
+ include/asm-generic/vmlinux.lds.h                  |  68 +--
+ include/drm/drm_print.h                            |   2 +-
+ include/linux/dynamic_debug.h                      | 133 +++---
+ kernel/module/main.c                               |  12 +-
+ lib/dynamic_debug.c                                | 501 ++++++++++-----------
+ lib/test_dynamic_debug.c                           |  30 +-
+ scripts/module.lds.S                               |   2 +
+ tools/testing/selftests/Makefile                   |   1 +
+ tools/testing/selftests/dynamic_debug/Makefile     |   9 +
+ tools/testing/selftests/dynamic_debug/config       |   8 +
+ .../selftests/dynamic_debug/dyndbg_selftest.sh     | 294 ++++++++++++
+ 16 files changed, 736 insertions(+), 437 deletions(-)
+---
+base-commit: e43ffb69e0438cddd72aaa30898b4dc446f664f8
+change-id: 20260521-dd-maint-2-76c542079420
+
+Best regards,
+-- 
+Jim Cromie <jim.cromie@gmail.com>
 
