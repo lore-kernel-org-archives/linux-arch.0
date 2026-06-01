@@ -1,364 +1,646 @@
-Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4B14837C902
-	for <linux-arch@vger.kernel.org>; Mon,  1 Jun 2026 12:06:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.41
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0A03B3ACF0E
+	for <linux-arch@vger.kernel.org>; Mon,  1 Jun 2026 13:47:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780315565; cv=none; b=YGXcJuv6Cgv5osWSSXVlACzSmVhnBhkOavmmCsuXrdOfS83FvAqmU1vSH3hQeQZYS38zY2h/VK5fdDajP886Mrvrk2aZThLBPW+QtvqYTbMS7CLNBlXklnnOJ2Uu+GtmmBU3zN5Y3AaINF5b86Qns8ocpFKytl5riEHYLi52QQM=
+	t=1780321624; cv=none; b=iTVGNDfsPefjhwbykAd/Y2H2acT5IZ+6OgdPTSjJlARoIc9ZEutHgNTw5IsFSEheXmMQ/2bdlMFM2XJlWvVdZ9yGNS8Nb2fMAbMqrcjoFokpqVGxrZuBmSd55GU6dWby/uqL1lCHEN1qE1NhQSr86fay7U7egCWTDwg3rid/ZHY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780315565; c=relaxed/simple;
-	bh=sEO7u0MUmNyTUFNIPBYBwtZCCgzYuBjfxfoGHbMv0oE=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=i3Y3l20yDOk8wlwOC9hnrci7DUD//NQSsurC5TfXXSIGDTJ3e5RLaHg0LJGFz5H5t2QvS3uoUAT+UdM5y3oRwJoVA8HT62cH6J+t1RiPN+sK9aKCVIeEod0rykbwA5LhfN3NnBU02Rk5VqLAPsbf4bFQrQC6DtLoIyIfTBDW2os=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=emQ0ufQA; arc=none smtp.client-ip=209.85.128.41
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1780321624; c=relaxed/simple;
+	bh=sNxKoCHtaQHjooWXE5msYQ8XpPeBdUokNP4VpfDNJCI=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=e2I8CW7Ojo3zXs44rVs0H8zbDw8fwu+544Dd/CamuE0Y7rMyh1TwPLXpoRofz6NgiUw3SlVtquvfdKpP4qhP3PrRScWMxEZmdSs2kmgC5LbyY4iazHy0un1xTHLq9Y7knjCaS8sC31Gu1+eIOh/Ula7/8ku9MWbBoRIwogBmvME=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=e386a6yo; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="emQ0ufQA"
-Received: by mail-wm1-f41.google.com with SMTP id 5b1f17b1804b1-490a7678b2dso11176145e9.2
-        for <linux-arch@vger.kernel.org>; Mon, 01 Jun 2026 05:06:02 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1780315561; x=1780920361; darn=vger.kernel.org;
-        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :mime-version:subject:date:from:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=vU7EFGuwqCZWgkJhEpDIGpXxPiY17lJwErVDlJ76auc=;
-        b=emQ0ufQAvvX5Yq7G0xvsXQqdAXdECmMQL0fgULqP7x4AbHzbn9FID0sgTxPP1cN+5N
-         phgMCYmxdtEKj9trh4ESlCb4GWV9WlSZPOjg+sWb1vQ150Q2AyPeXlWt4/xNorJnguc4
-         6tIJkXixN7F4N34K/RgU5fzc7Ycek1XnTTd/5A2TEwmHNrXWHIcDLtHcbCuofQtmqUch
-         31a1z8RtBnBX9tWT+BhFT9Rq3n0dcKsme71BAIpP4xl9dpZIzskOfS+xLuRtI4js7Pjp
-         3s5+RVImHEGbVPmvOEXTP+cXj/EMbwqxgbC0wgi0P9ZgwxtYAGVmWQqFIu0rM9hyraEh
-         JaBA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1780315561; x=1780920361;
-        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :mime-version:subject:date:from:x-gm-gg:x-gm-message-state:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=vU7EFGuwqCZWgkJhEpDIGpXxPiY17lJwErVDlJ76auc=;
-        b=OrjrEHOFyKnbIhWR9yy2tjMYksxeV+f5ZGPaa1pNdZUj4pALcROFft8BdyaQSTqEUh
-         0vXl0ygqKgkg7Av4E+HkKBVxUoKGr598U7APiw5wmaBg6Ijow9yaxMSl4n+aDsXpDNLC
-         bdIRqrTv4cfOTQ0da1pF3GDhVUxenzt71CQeaBfRfCn3sYK7498tWUpRgIRdMS4nWYWi
-         LHlR/RGlG5pS5808YgZum86g/8rzBBiRDgOO5Otbvielh4MI032OeA+BC8vll/sn74QD
-         luS+wH5ijrcd5tJS6CI8Gs5mK/z2G93XgiuwSGLBMkNKbkIgxxsBhiTLPyPjaNStz1Bk
-         GvXg==
-X-Forwarded-Encrypted: i=1; AFNElJ/l2JzlEDtDgl6QVxLYwaLGkFNQC6Fv2Q3gKKPBQiNW3pd3ygNdT5mbfOzov1BnmSowiDUAxkfPfmcD@vger.kernel.org
-X-Gm-Message-State: AOJu0YyC97DzkNHfWmdDvG6DGVq6sxRZC9ZsWja4NtSHTMjNDkLYyDfm
-	NTbxYeQIys+mQJONtw4bdVIdTiITitIoyzhceyLJpooR3NvNFsdCbKCWIDb4+Q==
-X-Gm-Gg: Acq92OFXeQCrRZI0d7IneVMf3MZApUyiH2NAM3wDmp5iWI77fcyMsKMcuFdlPvuPjHu
-	+Je96CStFps1SQrQMgrhhyBbMZC3xKCh2TM3lEQ7AhXvqNPDX2Tk1ZI88122AYR6i1j+a2ZDVtf
-	FpYgZhwRhke4YKrgHBacQS7KigeA3jRYN5QS/JnljgxK89TQFVHizJ62lycftmNFnT5EUL+W466
-	RNfyaWAs6dR+ps4HzyKBiCYnRCzVcLJl+zN3FsKf/WHkkYQyjUXa30P+zvXyHkEG/Pjpj3mxFkc
-	S3a4seb8IPfdj9oQ8JHmcKn7H/JVirbyzk3O425iBqWNpoz/Hq+uEeZP5kXr10sZ21j9IQ5Q767
-	xzrKN9j7vK9FGUeZyw89pN3Lh4lj9SnTiyVAj3MtR/5IPZXgLLxVt12WfkEpkcDglHiePV19EYw
-	wzxkrvMVjlF/lXCYyvVUKLVSAodnbWmQwatTcpCYSrxA==
-X-Received: by 2002:a05:600c:4e92:b0:490:8fd1:72a with SMTP id 5b1f17b1804b1-490a2900dacmr202132615e9.3.1780315560582;
-        Mon, 01 Jun 2026 05:06:00 -0700 (PDT)
-Received: from [172.16.188.153] ([213.181.114.83])
-        by smtp.googlemail.com with ESMTPSA id 5b1f17b1804b1-4909c152570sm103972805e9.9.2026.06.01.05.05.58
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 01 Jun 2026 05:06:00 -0700 (PDT)
-From: Jim Cromie <jim.cromie@gmail.com>
-Date: Mon, 01 Jun 2026 12:05:10 +0000
-Subject: [PATCH v3 24/24] dynamic_debug: use KBUILD_MODFILE for unique
- builtin module names
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="e386a6yo"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B46411F0089B
+	for <linux-arch@vger.kernel.org>; Mon,  1 Jun 2026 13:47:01 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1780321621;
+	bh=A45zwgLDvye6TEegvl1U4QSxvenm+a7HwzCRUpJ1vug=;
+	h=References:In-Reply-To:From:Date:Subject:To:Cc;
+	b=e386a6yo6rXnY2N0CMclUYFSOPrN9T2e9FpcVzJ6X3fpvNGsr9G7AWNgWJQaWXUbz
+	 cjpfkV00DgP6zK0vPX57MXQ1eaNVAIQebT2vtegKx33L71BMcUdIY7hMORAdSgeCnv
+	 kXNTKnyMtLYlVi+XYWjoOPoYSX8v6RJROcCy457LlVynfceOoyQRbgxOQGE68rqxfH
+	 Cq9F14yp4OkWmlW06mObud6qCxTXi4AY6aGzJ2wYj9INlb0u1uULP8X3KgVS/KnK9S
+	 aSBk26Vy4dxjHOggyogmNOvutz7CGhOLxZxf4SWGbkWoSEhOr8PPM7C5uL92ywS4FM
+	 9gryrk1D+wGJw==
+Received: by mail-ej1-f47.google.com with SMTP id a640c23a62f3a-bec3ffb95dbso200180966b.0
+        for <linux-arch@vger.kernel.org>; Mon, 01 Jun 2026 06:47:01 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AFNElJ+PvxPeZrJyQjBsZn5U8u4NRYDStJQLf68+iK94fY6Cet6EsWfzdJzrlEWyorlbzAUNtZFmN9WJhZwd@vger.kernel.org
+X-Gm-Message-State: AOJu0YxPKrLR71bm/Q8oJTzaYHJX48CIZ9T8FTksNbgEguUV4XJfsSOA
+	gYnYW1/HQ35CaTKdIUKZ08iyxVTgIf0yboKAybAhJAQdnQZixxK79aTDMl5pHFhMC0H8czcMmum
+	znDkAtTRg/tP+XxW3Nwk0+ccYxTakcbc=
+X-Received: by 2002:a17:907:e143:b0:beb:7b50:3a7b with SMTP id
+ a640c23a62f3a-beb7b505c83mr250887766b.6.1780321620095; Mon, 01 Jun 2026
+ 06:47:00 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20260601-dd-maint-2-v3-24-4a15b241bd3c@gmail.com>
-References: <20260601-dd-maint-2-v3-0-4a15b241bd3c@gmail.com>
-In-Reply-To: <20260601-dd-maint-2-v3-0-4a15b241bd3c@gmail.com>
-To: Jonathan Corbet <corbet@lwn.net>, 
- Shuah Khan <skhan@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, 
- Jason Baron <jbaron@akamai.com>, Luis Chamberlain <mcgrof@kernel.org>, 
- Petr Pavlu <petr.pavlu@suse.com>, Daniel Gomez <da.gomez@kernel.org>, 
- Sami Tolvanen <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>, 
- Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuah@kernel.org>, 
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
- Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
- David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>
-Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, 
- linux-arch@vger.kernel.org, linux-modules@vger.kernel.org, 
- linux-kselftest@vger.kernel.org, dri-devel@lists.freedesktop.org, 
- Jim Cromie <jim.cromie@gmail.com>
-X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1780315495; l=11525;
- i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=sEO7u0MUmNyTUFNIPBYBwtZCCgzYuBjfxfoGHbMv0oE=;
- b=DPwcRKWEUYRhXRmC55DFt4XbR2ofmt1arOnS2i/wN8YubW92I1k8pJhvFDor9/LqQslDrC/N3
- VZ62XvXMhV/CsYupwAafT1pAtBZ/E9i8lMFkaVFl/5C4jYDJWbI3ouy
-X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
- pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
+References: <20260428072021.7289-1-yangtiezhu@loongson.cn> <20260428072021.7289-2-yangtiezhu@loongson.cn>
+In-Reply-To: <20260428072021.7289-2-yangtiezhu@loongson.cn>
+From: Huacai Chen <chenhuacai@kernel.org>
+Date: Mon, 1 Jun 2026 21:46:49 +0800
+X-Gmail-Original-Message-ID: <CAAhV-H5tLpXtnMJOx=b5MCDY71jMNkQ5pv1YhgCf72FV=ewcxg@mail.gmail.com>
+X-Gm-Features: AVHnY4KVpcGmTAOt7WrIRLWPhtbWdlDJc7dmEVNTSn_uZS12VezuLxly93RKS5s
+Message-ID: <CAAhV-H5tLpXtnMJOx=b5MCDY71jMNkQ5pv1YhgCf72FV=ewcxg@mail.gmail.com>
+Subject: Re: [RFC PATCH 1/3] LoongArch: Implement CONFIG_THREAD_INFO_IN_TASK
+To: Tiezhu Yang <yangtiezhu@loongson.cn>
+Cc: loongarch@lists.linux.dev, bpf@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Historically dynamic-debug gets its module names from KBUILD_MODNAME.
-This works well for loadable modules, as the module loader has always
-required them to have unique names, but for builtins it is basically
-kbasename(srcfile), which sadly gives us many modules named "main".
+Hi, Tiezhu,
 
-This makes the following ambiguous:
-  bash-5.3# echo module main +m > /proc/dynamic_debug/control
+On Tue, Apr 28, 2026 at 3:20=E2=80=AFPM Tiezhu Yang <yangtiezhu@loongson.cn=
+> wrote:
+>
+> Like other architectures such as x86, arm64, riscv, powerpc and s390,
+> select THREAD_INFO_IN_TASK for LoongArch to move thread_info off the
+> stack into task_struct. This follows modern kernel standards and also
+> makes the system more secure.
+>
+> With this patch, thread_info is included in task_struct at an offset
+> of 0 instead of being placed at the bottom of the kernel stack. Thus,
+> the $tp register points to both thread_info and task_struct.
+>
+> To support this, introduce a per-CPU variable __entry_task to store
+> the pointer to the current task_struct. This decouples the recovery
+> of the $tp register from the stack pointer during exception entry.
+> Relying on SP for task identification is insecure since the SP can be
+> controlled or corrupted by userspace.
+>
+> Then initialize __entry_task for both the primary and secondary CPUs
+> during arch-specific setup and SMP boot paths, modify SAVE_SOME and
+> handle_syscall to restore the $tp register from __entry_task, and use
+> la_abs absolute addressing for __entry_task access in assembly to
+> bypass relocation limits within exception handling sections. Also,
+> add entry_task_switch() to update __entry_task during switch_to().
+>
+> Additionally, add reg02 ($tp) to thread_struct and initialize it in
+> both INIT_THREAD and copy_thread() to ensure that the "current" task
+> pointer is correctly set up for the initial idle task and all future
+> child processes. While __switch_to() directly updates $tp from a1 for
+> efficiency, storing it in thread_struct ensures correct restoration
+> for new processes and in non-standard switch paths.
+>
+> Furthermore, initialize reg03 ($sp) in INIT_THREAD to set the initial
+> kernel stack pointer for the idle task. This ensures the idle task has
+> a valid stack to use when the system first starts or whenever it is
+> switched back to.
+>
+> Signed-off-by: Tiezhu Yang <yangtiezhu@loongson.cn>
+> ---
+>  arch/loongarch/Kconfig                   |  1 +
+>  arch/loongarch/include/asm/current.h     | 22 ++++++++++++
+>  arch/loongarch/include/asm/processor.h   | 44 +++---------------------
+>  arch/loongarch/include/asm/ptrace.h      |  6 ----
+>  arch/loongarch/include/asm/smp.h         |  3 +-
+>  arch/loongarch/include/asm/stackframe.h  |  9 +++--
+>  arch/loongarch/include/asm/switch_to.h   | 15 ++++++--
+>  arch/loongarch/include/asm/thread_info.h | 13 +------
+>  arch/loongarch/kernel/asm-offsets.c      |  7 ++--
+>  arch/loongarch/kernel/entry.S            |  7 ++--
+>  arch/loongarch/kernel/head.S             | 18 ++++++----
+>  arch/loongarch/kernel/process.c          |  6 ++++
+>  arch/loongarch/kernel/relocate.c         |  2 +-
+>  arch/loongarch/kernel/setup.c            |  3 ++
+>  arch/loongarch/kernel/smp.c              |  8 +++--
+>  arch/loongarch/kernel/switch.S           |  9 ++---
+>  16 files changed, 89 insertions(+), 84 deletions(-)
+>  create mode 100644 arch/loongarch/include/asm/current.h
+First of all, you should update
+Documentation/features/core/thread-info-in-task/arch-support.txt
+together.
 
-since it would affect 4 independent modules named main:
-  bash-5.3# ddgrep =m
-  init/main.c:1265 [main]initcall_blacklist =m "blacklisting initcall %s\n"
-  kernel/power/main.c:49 [main]pm_restore_gfp_mask =m "GFP mask restored\n"
-  kernel/module/main.c:2862 [main]move_module =m "\t0x%lx 0x%.8lx %s\n"
-  drivers/base/power/main.c:149 [main]device_pm_add =m "Adding info for %s:%s\n"
+>
+> diff --git a/arch/loongarch/Kconfig b/arch/loongarch/Kconfig
+> index 3b042dbb2c41..ea29d5d17588 100644
+> --- a/arch/loongarch/Kconfig
+> +++ b/arch/loongarch/Kconfig
+> @@ -210,6 +210,7 @@ config LOONGARCH
+>         select SYSCTL_ARCH_UNALIGN_NO_WARN
+>         select SYSCTL_EXCEPTION_TRACE
+>         select SWIOTLB if 64BIT
+> +       select THREAD_INFO_IN_TASK
+>         select TRACE_IRQFLAGS_SUPPORT
+>         select USE_PERCPU_NUMA_NODE_ID
+>         select USER_STACKTRACE_SUPPORT
+> diff --git a/arch/loongarch/include/asm/current.h b/arch/loongarch/includ=
+e/asm/current.h
+> new file mode 100644
+> index 000000000000..c03cf0abb863
+> --- /dev/null
+> +++ b/arch/loongarch/include/asm/current.h
+> @@ -0,0 +1,22 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef __ASM_LOONGARCH_CURRENT_H
+> +#define __ASM_LOONGARCH_CURRENT_H
+> +
+> +#include <linux/compiler.h>
+> +
+> +#ifndef __ASSEMBLER__
+> +
+> +struct task_struct;
+> +
+> +register struct task_struct *current_thread_pointer __asm__("$tp");
+> +
+> +static __always_inline struct task_struct *get_current(void)
+> +{
+> +       return current_thread_pointer;
+> +}
+> +
+> +#define current get_current()
+> +
+> +#endif /* __ASSEMBLER__ */
+> +
+> +#endif /* __ASM_LOONGARCH_CURRENT_H */
+> diff --git a/arch/loongarch/include/asm/processor.h b/arch/loongarch/incl=
+ude/asm/processor.h
+> index ce8b953f8c79..df927a4318cc 100644
+> --- a/arch/loongarch/include/asm/processor.h
+> +++ b/arch/loongarch/include/asm/processor.h
+> @@ -109,7 +109,7 @@ struct loongarch_vdso_info;
+>   */
+>  struct thread_struct {
+>         /* Main processor registers. */
+> -       unsigned long reg01, reg03, reg22; /* ra sp fp */
+> +       unsigned long reg01, reg02, reg03, reg22; /* ra tp sp fp */
+>         unsigned long reg23, reg24, reg25, reg26; /* s0-s3 */
+>         unsigned long reg27, reg28, reg29, reg30, reg31; /* s4-s8 */
+>
+> @@ -145,45 +145,9 @@ struct thread_struct {
+>  #define thread_saved_ra(tsk)   (tsk->thread.sched_ra)
+>  #define thread_saved_fp(tsk)   (tsk->thread.sched_cfa)
+>
+> -#define INIT_THREAD  {                                         \
+> -       /*                                                      \
+> -        * Main processor registers                             \
+> -        */                                                     \
+> -       .reg01                  =3D 0,                            \
+> -       .reg03                  =3D 0,                            \
+> -       .reg22                  =3D 0,                            \
+> -       .reg23                  =3D 0,                            \
+> -       .reg24                  =3D 0,                            \
+> -       .reg25                  =3D 0,                            \
+> -       .reg26                  =3D 0,                            \
+> -       .reg27                  =3D 0,                            \
+> -       .reg28                  =3D 0,                            \
+> -       .reg29                  =3D 0,                            \
+> -       .reg30                  =3D 0,                            \
+> -       .reg31                  =3D 0,                            \
+> -       .sched_ra               =3D 0,                            \
+> -       .sched_cfa              =3D 0,                            \
+> -       .csr_crmd               =3D 0,                            \
+> -       .csr_prmd               =3D 0,                            \
+> -       .csr_euen               =3D 0,                            \
+> -       .csr_ecfg               =3D 0,                            \
+> -       .csr_badvaddr           =3D 0,                            \
+> -       /*                                                      \
+> -        * Other stuff associated with the process              \
+> -        */                                                     \
+> -       .trap_nr                =3D 0,                            \
+> -       .error_code             =3D 0,                            \
+> -       /*                                                      \
+> -        * FPU & vector registers                               \
+> -        */                                                     \
+> -       .fpu                    =3D {                             \
+> -               .fcc            =3D 0,                            \
+> -               .fcsr           =3D 0,                            \
+> -               .ftop           =3D 0,                            \
+> -               .fpr            =3D {{{0,},},},                   \
+> -       },                                                      \
+> -       .hbp_break              =3D {0},                          \
+> -       .hbp_watch              =3D {0},                          \
+> +#define INIT_THREAD  {                                                 \
+> +       .reg02 =3D (unsigned long)&init_task,                            =
+ \
+> +       .reg03 =3D (unsigned long)&init_stack + sizeof(init_stack),      =
+ \
+>  }
+Don't remove the old code, just adding reg02 is enough. Though the
+result is the same, explicitly initialization can give more
+information.
 
-We can improve this by using KBUILD_MODFILE for dyndbg's modname in
-builtins, and KBUILD_MODNAME for loadables.
+>
+>  struct task_struct;
+> diff --git a/arch/loongarch/include/asm/ptrace.h b/arch/loongarch/include=
+/asm/ptrace.h
+> index e5d21e836d99..37f53629d3c7 100644
+> --- a/arch/loongarch/include/asm/ptrace.h
+> +++ b/arch/loongarch/include/asm/ptrace.h
+> @@ -170,12 +170,6 @@ static inline void die_if_kernel(const char *str, st=
+ruct pt_regs *regs)
+>                 die(str, regs);
+>  }
+>
+> -#define current_pt_regs()                                              \
+> -({                                                                     \
+> -       unsigned long sp =3D (unsigned long)__builtin_frame_address(0);  =
+ \
+> -       (struct pt_regs *)((sp | (THREAD_SIZE - 1)) + 1) - 1;           \
+> -})
+> -
+This is still correct after CONFIG_THREAD_INFO_IN_TASK, so please keep
+it. Especially CONFIG_THREAD_INFO_IN_TASK increases the cost of
+exception/syscalls, keeping this can minimize the performance
+impaction.
 
-The above control-file entries then become:
-  init/main.c:1265 [init/main]initcall_blacklist ...
-  kernel/power/main.c:49 [kernel/power/main]pm_restore_gfp_mask ...
-  kernel/module/main.c:2862 [kernel/module/main]move_module ...
-  drivers/base/power/main.c:149 [drivers/base/power/main]device_pm_add ...
+>  /* Helpers for working with the user stack pointer */
+>
+>  static inline unsigned long user_stack_pointer(struct pt_regs *regs)
+> diff --git a/arch/loongarch/include/asm/smp.h b/arch/loongarch/include/as=
+m/smp.h
+> index 3a47f52959a8..761cc0016df8 100644
+> --- a/arch/loongarch/include/asm/smp.h
+> +++ b/arch/loongarch/include/asm/smp.h
+> @@ -82,7 +82,8 @@ struct seq_file;
+>
+>  struct secondary_data {
+>         unsigned long stack;
+> -       unsigned long thread_info;
+> +       unsigned long task;
+> +       unsigned long offset;
+>  };
+>  extern struct secondary_data cpuboot_data;
+>
+> diff --git a/arch/loongarch/include/asm/stackframe.h b/arch/loongarch/inc=
+lude/asm/stackframe.h
+> index ecc8e50fffa8..eeda5dcc982e 100644
+> --- a/arch/loongarch/include/asm/stackframe.h
+> +++ b/arch/loongarch/include/asm/stackframe.h
+> @@ -191,8 +191,13 @@
+>         andi    t0, t0, 0x3     /* extract pplv bit */
+>         beqz    t0, 9f
+>
+> -       LONG_LI tp, ~_THREAD_MASK
+> -       and     tp, tp, sp
+> +       la_abs      t1, __entry_task
+> +#ifdef CONFIG_SMP
+> +       csrrd       t0, PERCPU_BASE_KS
+> +       LONG_ADD    t1, t1, t0
+> +#endif
+> +       LONG_L      tp, t1, 0
+> +
+>         cfi_st  u0, PT_R21, \docfi
+>         csrrd   u0, PERCPU_BASE_KS
+Move these lines near to "cfi_st  fp, PT_R22, \docfi", then the above
+"csrrd       t0, PERCPU_BASE_KS" can be removed.
 
-While this is a user visible change; [params] becomes [kernel/params],
-it is not a behavior change; we now match the query-module against the
-subsystem/module name or its kbasename (the simple-modname), which as
-before, matches all 4 modules.
+>  9:
+> diff --git a/arch/loongarch/include/asm/switch_to.h b/arch/loongarch/incl=
+ude/asm/switch_to.h
+> index 5b225aff3ba2..9932429cfe17 100644
+> --- a/arch/loongarch/include/asm/switch_to.h
+> +++ b/arch/loongarch/include/asm/switch_to.h
+> @@ -5,17 +5,25 @@
+>  #ifndef _ASM_SWITCH_TO_H
+>  #define _ASM_SWITCH_TO_H
+>
+> +#include <linux/percpu.h>
+> +
+>  #include <asm/cpu-features.h>
+>  #include <asm/fpu.h>
+>  #include <asm/lbt.h>
+>
+>  struct task_struct;
+>
+> +DECLARE_PER_CPU(struct task_struct *, __entry_task);
+> +
+> +static inline void entry_task_switch(struct task_struct *next)
+> +{
+> +       __this_cpu_write(__entry_task, next);
+> +}
+I love the UML naming, which means rename __entry_task to cpu_tasks
+and rename entry_task_switch() to set_current(), then move them to
+current.h.
 
-This allows queries to be specific when desired: "module init/main",
-while preserving the existing meaning of "module main"
+> +
+>  /**
+>   * __switch_to - switch execution of a task
+>   * @prev:      The task previously executed.
+>   * @next:      The task to begin executing.
+> - * @next_ti:   task_thread_info(next).
+>   * @sched_ra:  __schedule return address.
+>   * @sched_cfa: __schedule call frame address.
+>   *
+> @@ -23,7 +31,7 @@ struct task_struct;
+>   * the context of next. Returns prev.
+>   */
+>  extern asmlinkage struct task_struct *__switch_to(struct task_struct *pr=
+ev,
+> -                       struct task_struct *next, struct thread_info *nex=
+t_ti,
+> +                       struct task_struct *next,
+>                         void *sched_ra, void *sched_cfa);
+>
+>  /*
+> @@ -37,7 +45,8 @@ do {                                                   =
+                       \
+>         lose_fpu_inatomic(1, prev);                                      =
+       \
+>         lose_lbt_inatomic(1, prev);                                      =
+       \
+>         hw_breakpoint_thread_switch(next);                               =
+       \
+> -       (last) =3D __switch_to(prev, next, task_thread_info(next),       =
+         \
+> +       entry_task_switch(next);                                         =
+       \
+> +       (last) =3D __switch_to(prev, next,                               =
+         \
+>                  __builtin_return_address(0), __builtin_frame_address(0))=
+;      \
+>  } while (0)
+>
+> diff --git a/arch/loongarch/include/asm/thread_info.h b/arch/loongarch/in=
+clude/asm/thread_info.h
+> index 4d7117fcdc78..2c95a5134976 100644
+> --- a/arch/loongarch/include/asm/thread_info.h
+> +++ b/arch/loongarch/include/asm/thread_info.h
+> @@ -22,9 +22,7 @@
+>   *   must also be changed
+>   */
+>  struct thread_info {
+> -       struct task_struct      *task;          /* main task structure */
+>         unsigned long           flags;          /* low level flags */
+> -       unsigned long           tp_value;       /* thread pointer */
+Don't remove tp_value, it has nothing to do with this patch, instead,
+it is for future LBT tls.
 
-The deeper reason for this change is not obvious.  If any builtin
-"main" module were to add a classmap, it would attach to all "main"
-modules.  If 2 "main" modules defined separate classmaps, both modules
-would inadvertently share both classmaps.  Since classmaps map
-classnames to 0..62, and independently defined classmaps are most
-likely to start at 0 (unless author is planning to share the 0..62
-range with other classmaps), we have a setup for later reserved range
-conflicts.  Having unique names prevents future conflicts.
+>         __u32                   cpu;            /* current CPU */
+>         int                     preempt_count;  /* 0 =3D> preemptible, <0=
+ =3D> BUG */
+>         struct pt_regs          *regs;
+> @@ -37,20 +35,11 @@ struct thread_info {
+>   */
+>  #define INIT_THREAD_INFO(tsk)                  \
+>  {                                              \
+> -       .task           =3D &tsk,                 \
+> -       .flags          =3D _TIF_FIXADE,          \
+> +       .flags          =3D 0,                    \
+Don't change flags.
 
-This solution isn't perfect:
-1. it changes displayed [params] to [kernel/params] etc
-2. its mostly redundant with "filename */main.*"
-3. "module power", "module module", "module base/power" might be better
-   but would break old queries.
+>         .cpu            =3D 0,                    \
+>         .preempt_count  =3D INIT_PREEMPT_COUNT,   \
+>  }
+>
+> -/* How to get the thread information struct from C. */
+> -register struct thread_info *__current_thread_info __asm__("$tp");
+> -
+> -static inline struct thread_info *current_thread_info(void)
+> -{
+> -       return __current_thread_info;
+> -}
+> -
+>  register unsigned long current_stack_pointer __asm__("$sp");
+>
+>  #endif /* !__ASSEMBLER__ */
+> diff --git a/arch/loongarch/kernel/asm-offsets.c b/arch/loongarch/kernel/=
+asm-offsets.c
+> index 2cc953f113ac..55f4ffc1aca5 100644
+> --- a/arch/loongarch/kernel/asm-offsets.c
+> +++ b/arch/loongarch/kernel/asm-offsets.c
+> @@ -70,7 +70,7 @@ static void __used output_task_defines(void)
+>  {
+>         COMMENT("LoongArch task_struct offsets.");
+>         OFFSET(TASK_STATE, task_struct, __state);
+> -       OFFSET(TASK_THREAD_INFO, task_struct, stack);
+> +       OFFSET(TASK_STACK, task_struct, stack);
+>         OFFSET(TASK_FLAGS, task_struct, flags);
+>         OFFSET(TASK_MM, task_struct, mm);
+>         OFFSET(TASK_PID, task_struct, pid);
+> @@ -84,9 +84,7 @@ static void __used output_task_defines(void)
+>  static void __used output_thread_info_defines(void)
+>  {
+>         COMMENT("LoongArch thread_info offsets.");
+> -       OFFSET(TI_TASK, thread_info, task);
+>         OFFSET(TI_FLAGS, thread_info, flags);
+> -       OFFSET(TI_TP_VALUE, thread_info, tp_value);
+>         OFFSET(TI_CPU, thread_info, cpu);
+>         OFFSET(TI_PRE_COUNT, thread_info, preempt_count);
+>         OFFSET(TI_REGS, thread_info, regs);
+> @@ -267,7 +265,8 @@ static void __used output_smpboot_defines(void)
+>  {
+>         COMMENT("Linux smp cpu boot offsets.");
+>         OFFSET(CPU_BOOT_STACK, secondary_data, stack);
+> -       OFFSET(CPU_BOOT_TINFO, secondary_data, thread_info);
+> +       OFFSET(CPU_BOOT_TASK, secondary_data, task);
+> +       OFFSET(CPU_BOOT_OFFSET, secondary_data, offset);
+>         BLANK();
+>  }
+>  #endif
+> diff --git a/arch/loongarch/kernel/entry.S b/arch/loongarch/kernel/entry.=
+S
+> index b53d333a7c42..b099672eab60 100644
+> --- a/arch/loongarch/kernel/entry.S
+> +++ b/arch/loongarch/kernel/entry.S
+> @@ -67,8 +67,11 @@ SYM_CODE_START(handle_syscall)
+>  #endif
+>
+>         move            u0, t0
+> -       LONG_LI         tp, ~_THREAD_MASK
+> -       and             tp, tp, sp
+> +       la_abs          t1, __entry_task
+> +#ifdef CONFIG_SMP
+> +       LONG_ADD        t1, t1, u0
+> +#endif
+> +       LONG_L          tp, t1, 0
+>
+>         move            a0, sp
+>         bl              do_syscall
+> diff --git a/arch/loongarch/kernel/head.S b/arch/loongarch/kernel/head.S
+> index 4eed7bc312a8..ec67faab907b 100644
+> --- a/arch/loongarch/kernel/head.S
+> +++ b/arch/loongarch/kernel/head.S
+> @@ -74,10 +74,11 @@ SYM_CODE_START(kernel_entry)                        #=
+ kernel entry point
+>         /* GPR21 used for percpu base (runtime), initialized as 0 */
+>         move            u0, zero
+>
+> -       la.pcrel        tp, init_thread_union
+> -       /* Set the SP after an empty pt_regs.  */
+> -       PTR_LI          sp, (_THREAD_SIZE - PT_SIZE)
+> -       PTR_ADD         sp, sp, tp
+> +       la.pcrel        tp, init_task
+> +       la.pcrel        t0, init_stack
+> +       PTR_LI          t1, _THREAD_SIZE
+> +       PTR_ADD         t0, t0, t1
+> +       PTR_ADDI        sp, t0, -PT_SIZE
+>         set_saved_sp    sp, t0, t1
+>
+>  #ifdef CONFIG_RELOCATABLE
+> @@ -86,8 +87,10 @@ SYM_CODE_START(kernel_entry)                 # kernel =
+entry point
+>
+>  #ifdef CONFIG_RANDOMIZE_BASE
+>         /* Repoint the sp into the new kernel */
+> -       PTR_LI          sp, (_THREAD_SIZE - PT_SIZE)
+> -       PTR_ADD         sp, sp, tp
+> +       LONG_LPTR       t0, tp, TASK_STACK
+> +       PTR_LI          t1, _THREAD_SIZE
+> +       PTR_ADD         t0, t0, t1
+> +       PTR_ADDI        sp, t0, -PT_SIZE
+>         set_saved_sp    sp, t0, t1
+>
+>         /* Jump to the new kernel: new_pc =3D current_pc + random_offset =
+*/
+> @@ -128,7 +131,8 @@ SYM_CODE_START(smpboot_entry)
+>  #endif
+>         la.pcrel        t0, cpuboot_data
+>         ld.d            sp, t0, CPU_BOOT_STACK
+> -       ld.d            tp, t0, CPU_BOOT_TINFO
+> +       ld.d            tp, t0, CPU_BOOT_TASK
+> +       ld.d            u0, t0, CPU_BOOT_OFFSET
+>
+>         bl              start_secondary
+>         ASM_BUG()
+> diff --git a/arch/loongarch/kernel/process.c b/arch/loongarch/kernel/proc=
+ess.c
+> index 5505fc355e1b..71c9c6468e60 100644
+> --- a/arch/loongarch/kernel/process.c
+> +++ b/arch/loongarch/kernel/process.c
+> @@ -54,6 +54,9 @@
+>  #include <asm/vdso.h>
+>  #include <asm/vdso/vdso.h>
+>
+> +DEFINE_PER_CPU(struct task_struct *, __entry_task);
+> +EXPORT_PER_CPU_SYMBOL_GPL(__entry_task);
+> +
+>  #ifdef CONFIG_STACKPROTECTOR
+>  #include <linux/stackprotector.h>
+>  unsigned long __stack_chk_guard __read_mostly;
+> @@ -223,6 +226,9 @@ int copy_thread(struct task_struct *p, const struct k=
+ernel_clone_args *args)
+>         if (clone_flags & CLONE_SETTLS)
+>                 childregs->regs[2] =3D tls;
+>
+> +       /* Set tp to the new task structure for context switching */
+> +       p->thread.reg02 =3D (unsigned long)p;
+This should be before "if (unlikely(args->fn))" for kernel thread.
 
-Adapt dynamic-debug selftest:
-1- Add 'test_subsystem_module_queries' to verify path-based module matching.
-2- Use dynamic counting with precise regexes to determine expectations.
-3- Reorder tests to run slash-query verification immediately after
-   basic tests.
-4- Update basic_tests and comma_terminator_tests to use 'kernel/params'
-   instead of 'params' to match new path-based names for built-ins.
+> +
+>  out:
+>         ptrace_hw_copy_thread(p);
+>         clear_tsk_thread_flag(p, TIF_USEDFPU);
+> diff --git a/arch/loongarch/kernel/relocate.c b/arch/loongarch/kernel/rel=
+ocate.c
+> index 16f6a9b39659..a9ef38459629 100644
+> --- a/arch/loongarch/kernel/relocate.c
+> +++ b/arch/loongarch/kernel/relocate.c
+> @@ -263,7 +263,7 @@ unsigned long __init relocate_kernel(void)
+>                 reloc_offset +=3D random_offset;
+>
+>                 /* The current thread is now within the relocated kernel =
+*/
+> -               __current_thread_info =3D RELOCATED_KASLR(__current_threa=
+d_info);
+> +               current_thread_pointer =3D RELOCATED_KASLR(current_thread=
+_pointer);
+>
+>                 update_reloc_offset(&reloc_offset, random_offset);
+>         }
+> diff --git a/arch/loongarch/kernel/setup.c b/arch/loongarch/kernel/setup.=
+c
+> index 839b23edee87..5d434c5612ab 100644
+> --- a/arch/loongarch/kernel/setup.c
+> +++ b/arch/loongarch/kernel/setup.c
+> @@ -46,6 +46,7 @@
+>  #include <asm/pgalloc.h>
+>  #include <asm/sections.h>
+>  #include <asm/setup.h>
+> +#include <asm/switch_to.h>
+>  #include <asm/time.h>
+>  #include <asm/unwind.h>
+>
+> @@ -617,4 +618,6 @@ void __init setup_arch(char **cmdline_p)
+>  #ifdef CONFIG_KASAN
+>         kasan_init();
+>  #endif
+> +
+> +       entry_task_switch(&init_task);
+This should be as early as possible, I suggest moving it after unwind_init(=
+).
 
-And adjust Documentation
+>  }
+> diff --git a/arch/loongarch/kernel/smp.c b/arch/loongarch/kernel/smp.c
+> index 64a048f1b880..e8b0d2fc2a9a 100644
+> --- a/arch/loongarch/kernel/smp.c
+> +++ b/arch/loongarch/kernel/smp.c
+> @@ -34,6 +34,7 @@
+>  #include <asm/paravirt.h>
+>  #include <asm/processor.h>
+>  #include <asm/setup.h>
+> +#include <asm/switch_to.h>
+>  #include <asm/time.h>
+>
+>  int __cpu_number_map[NR_CPUS];   /* Map physical to logical */
+> @@ -400,8 +401,9 @@ void loongson_boot_secondary(int cpu, struct task_str=
+uct *idle)
+>         pr_info("Booting CPU#%d...\n", cpu);
+>
+>         entry =3D __pa_symbol((unsigned long)&smpboot_entry);
+> -       cpuboot_data.stack =3D (unsigned long)__KSTK_TOS(idle);
+> -       cpuboot_data.thread_info =3D (unsigned long)task_thread_info(idle=
+);
+> +       cpuboot_data.stack =3D (unsigned long)task_pt_regs(idle);
+> +       cpuboot_data.task =3D (unsigned long)idle;
+> +       cpuboot_data.offset =3D per_cpu_offset(cpu);
+>
+>         csr_mail_send(entry, cpu_logical_map(cpu), 0);
+>
+> @@ -686,6 +688,8 @@ asmlinkage void start_secondary(void)
+>          */
+>         complete(&cpu_running);
+>
+> +       entry_task_switch(current);
+This should be as early as possible, I suggest moving it after cpu_probe().
 
-Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
----
-v3: new patch in rev-3
-Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
----
- Documentation/admin-guide/dynamic-debug-howto.rst  | 40 ++++++++++----------
- include/linux/dynamic_debug.h                      | 17 +++++++--
- lib/dynamic_debug.c                                |  3 +-
- .../selftests/dynamic_debug/dyndbg_selftest.sh     | 44 ++++++++++++++++++++--
- 4 files changed, 77 insertions(+), 27 deletions(-)
+> +
+>         /*
+>          * irq will be enabled in loongson_smp_finish(), enabling it too
+>          * early is dangerous.
+> diff --git a/arch/loongarch/kernel/switch.S b/arch/loongarch/kernel/switc=
+h.S
+> index f377d8f5c51a..644348e05f6a 100644
+> --- a/arch/loongarch/kernel/switch.S
+> +++ b/arch/loongarch/kernel/switch.S
+> @@ -12,7 +12,7 @@
+>
+>  /*
+>   * task_struct *__switch_to(task_struct *prev, task_struct *next,
+> - *                         struct thread_info *next_ti, void *sched_ra, =
+void *sched_cfa)
+> + *                         void *sched_ra, void *sched_cfa)
+>   */
+>         .align  5
+>  SYM_FUNC_START(__switch_to)
+> @@ -33,11 +33,12 @@ SYM_FUNC_START(__switch_to)
+>         LONG_SPTR       t8, t7, 0
+>  #endif
+>
+> -       move    tp, a2
+> +       move    tp, a1
+>         cpu_restore_nonscratch a1
+>
+> -       li.w            t0, _THREAD_SIZE
+> -       PTR_ADD         t0, t0, tp
+> +       LONG_LPTR       t0, tp, TASK_STACK
+This should be "LONG_LPTR       t0, tp, (TASK_STACK -
+TASK_STRUCT_OFFSET)", otherwise it is wrong for 32BIT.
 
-diff --git a/Documentation/admin-guide/dynamic-debug-howto.rst b/Documentation/admin-guide/dynamic-debug-howto.rst
-index 9c2f096ed1d8..8befb69575b7 100644
---- a/Documentation/admin-guide/dynamic-debug-howto.rst
-+++ b/Documentation/admin-guide/dynamic-debug-howto.rst
-@@ -38,12 +38,12 @@ You can view the currently configured behaviour in the *prdbg* catalog::
- 
-   :#> head -n7 /proc/dynamic_debug/control
-   # filename:lineno [module]function flags format
--  init/main.c:1179 [main]initcall_blacklist =_ "blacklisting initcall %s\n"
--  init/main.c:1218 [main]initcall_blacklisted =_ "initcall %s blacklisted\n"
--  init/main.c:1424 [main]run_init_process =_ "  with arguments:\n"
--  init/main.c:1426 [main]run_init_process =_ "    %s\n"
--  init/main.c:1427 [main]run_init_process =_ "  with environment:\n"
--  init/main.c:1429 [main]run_init_process =_ "    %s\n"
-+  init/main.c:1179 [init/main]initcall_blacklist =_ "blacklisting initcall %s\n"
-+  init/main.c:1218 [init/main]initcall_blacklisted =_ "initcall %s blacklisted\n"
-+  init/main.c:1424 [init/main]run_init_process =_ "  with arguments:\n"
-+  init/main.c:1426 [init/main]run_init_process =_ "    %s\n"
-+  init/main.c:1427 [init/main]run_init_process =_ "  with environment:\n"
-+  init/main.c:1429 [init/main]run_init_process =_ "    %s\n"
- 
- The 3rd space-delimited column shows the current flags, preceded by
- a ``=`` for easy use with grep/cut. ``=p`` shows enabled callsites.
-@@ -59,10 +59,10 @@ query/commands to the control file.  Example::
- 
-   :#> ddcmd '-p; module main func run* +p'
-   :#> grep =p /proc/dynamic_debug/control
--  init/main.c:1424 [main]run_init_process =p "  with arguments:\n"
--  init/main.c:1426 [main]run_init_process =p "    %s\n"
--  init/main.c:1427 [main]run_init_process =p "  with environment:\n"
--  init/main.c:1429 [main]run_init_process =p "    %s\n"
-+  init/main.c:1424 [init/main]run_init_process =p "  with arguments:\n"
-+  init/main.c:1426 [init/main]run_init_process =p "    %s\n"
-+  init/main.c:1427 [init/main]run_init_process =p "  with environment:\n"
-+  init/main.c:1429 [init/main]run_init_process =p "    %s\n"
- 
- Error messages go to console/syslog::
- 
-@@ -161,17 +161,19 @@ file
- 	file kernel/freezer.c	# ie column 1 of control file
- 	file drivers/usb/*	# all callsites under it
- 	file inode.c:start_*	# parse :tail as a func (above)
--	file inode.c:1-100	# parse :tail as a line-range (above)
-+	file inode.c:1-100	# parse :tail as a line-range (below)
- 
- module
--    The given string is compared against the module name
--    of each callsite.  The module name is the string as
--    seen in ``lsmod``, i.e. without the directory or the ``.ko``
--    suffix and with ``-`` changed to ``_``.  Examples::
--
--	module sunrpc
--	module nfsd
--	module drm*	# both drm, drm_kms_helper
-+    The query string is compared against the subsystem module name of
-+    each callsite, as shown in the control file.  The simple module
-+    name is the string as seen in ``lsmod``, i.e. without the
-+    directory or the ``.ko`` suffix and with ``-`` changed to ``_``.
-+
-+    Examples::
-+
-+	module nfsd        # simple modname (as from lsmod)
-+	module init/main   # subsystem modname (as in control file)
-+	module drm*	   # both drm, drm_kms_helper
- 
- format
-     The given string is searched for in the dynamic debug format
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 2d6983186f37..aee6f3d0916f 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -8,6 +8,17 @@
- 
- #include <linux/build_bug.h>
- 
-+/*
-+ * Pick the best name for the module:
-+ * KBUILD_MODFILE includes the path (e.g., drivers/usb/core/usbcore) for built-ins.
-+ * Fall back to KBUILD_MODNAME for modules (loader requires unique names).
-+ */
-+#ifdef KBUILD_MODFILE
-+# define DDEBUG_MODNAME KBUILD_MODFILE
-+#else
-+# define DDEBUG_MODNAME KBUILD_MODNAME
-+#endif
-+
- /*
-  * An instance of this structure is created in a special
-  * ELF section at every dynamic debug callsite.  At runtime,
-@@ -128,9 +139,9 @@ struct _ddebug_class_param {
- #define DECLARE_DYNDBG_CLASSMAP(_var, _maptype, _base, ...)		\
- 	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
- 	static struct _ddebug_class_map __aligned(8) __used		\
--		__section("__dyndbg_class_maps") _var = {			\
-+	__section("__dyndbg_class_maps") _var = {			\
- 		.mod = THIS_MODULE,					\
--		.mod_name = KBUILD_MODNAME,				\
-+		.mod_name = DDEBUG_MODNAME,				\
- 		.base = _base,						\
- 		.map_type = _maptype,					\
- 		.length = ARRAY_SIZE(_var##_classnames),		\
-@@ -169,7 +180,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
- #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)	\
- 	static struct _ddebug  __aligned(8)			\
- 	__section("__dyndbg_descs") name = {			\
--		.modname = KBUILD_MODNAME,			\
-+		.modname = DDEBUG_MODNAME,			\
- 		.function = __func__,				\
- 		.filename = __FILE__,				\
- 		.format = (fmt),				\
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index fdb730db385e..7f78c6b3eeaf 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -248,7 +248,8 @@ static int ddebug_change(const struct ddebug_query *query,
- 
- 		/* match against the module name */
- 		if (query->module &&
--		    !match_wildcard(query->module, di->mod_name))
-+		    !match_wildcard(query->module, di->mod_name) &&
-+		    !match_wildcard(query->module, kbasename(di->mod_name)))
- 			continue;
- 
- 		if (query->class_string) {
-diff --git a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-index 8b2b7388678e..541a2ea7bcb3 100755
---- a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-+++ b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-@@ -76,9 +76,9 @@ function handle_exit_code() {
- # $1 - pattern to match, pattern in $1 is enclosed by spaces for a match ""\s$1\s"
- # $2 - number of times the pattern passed in $1 is expected to match
- # $3 - optional can be set either to "-r" or "-v"
--#       "-r" means relaxed matching in this case pattern provided in $1 is passed
--#       as is without enclosing it with spaces
--#       "-v" prints matching lines
-+#       "-r" means relaxed matching in this case pattern provided in
-+#       $1 is passed as is without enclosing it with spaces "-v"
-+#       prints matching lines
- # $4 - optional when $3 is set to "-r" then $4 can be used to pass "-v"
- function check_match_ct {
-     pattern="\s$1\s"
-@@ -223,7 +223,7 @@ function basic_tests {
-     check_match_ct =p 0
- 
-     # module params are builtin to handle boot args
--    check_match_ct '\[params\]' 4 -r
-+    check_match_ct '\[kernel/params\]' 4 -r
-     ddcmd module params +mpf
-     check_match_ct =pmf 4
- 
-@@ -238,8 +238,44 @@ EOF
-     ddcmd =_
- }
- 
-+function test_subsystem_module_queries {
-+    echo -e "${GREEN}# TEST_SUBSYTEM_MODULE_QUERIES ${NC}"
-+    ddcmd =_
-+
-+    # Find how many 'main' modules we have in total (by basename)
-+    # Use a more precise regex to avoid false positives like [irqdomain]
-+    local total_main=$(grep -c "\[\([^]]*/\)\?main\]" /proc/dynamic_debug/control)
-+    echo "# found $total_main total 'main' modules"
-+
-+    if [ $total_main -eq 0 ]; then
-+        echo "SKIP - no 'main' modules found to test slashes"
-+        return
-+    fi
-+
-+    echo "# testing 'module */main'"
-+    ddcmd module "*/main" +p
-+    # This should match modules that HAVE a slash and end in /main
-+    local slash_main=$(grep -c "\[[^]]*/main\]" /proc/dynamic_debug/control)
-+    check_match_ct =p $slash_main -r
-+
-+    echo "# testing 'module init/main' (specific path)"
-+    ddcmd =_
-+    ddcmd module "init/main" +p
-+    local init_main=$(grep -c "\[init/main\]" /proc/dynamic_debug/control)
-+    check_match_ct =p $init_main
-+
-+    echo "# testing 'module main' (basename match)"
-+    ddcmd =_
-+    ddcmd module main +p
-+    # This should match ALL $total_main entries due to kbasename matching
-+    check_match_ct =p $total_main
-+
-+    ddcmd =_
-+}
-+
- tests_list=(
-     basic_tests
-+    test_subsystem_module_queries
- )
- 
- # Run tests
-
--- 
-2.54.0
-
+Huacai
+> +       PTR_LI          t1, _THREAD_SIZE
+> +       PTR_ADD         t0, t0, t1
+>         set_saved_sp    t0, t1, t2
+>
+>         LONG_LPTR       t1, a1, (THREAD_CSRPRMD - TASK_STRUCT_OFFSET)
+> --
+> 2.42.0
+>
+>
