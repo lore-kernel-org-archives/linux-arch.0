@@ -1,278 +1,211 @@
-Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CA91A3AE183
-	for <linux-arch@vger.kernel.org>; Mon,  1 Jun 2026 15:58:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1109C279358;
+	Mon,  1 Jun 2026 16:18:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780329494; cv=none; b=mgYhrZrOWfz6N8meJY4gDRoZTz4Fnoh96YB9W+KLQSjCT/ZktpAnVK+1GLcI7Q8eR3kEM4/fv8P/x+ZRsdWnzkUt6FxlDzKazi4gZQ94JAGvGJ68LKAI+X3IQQaES2HaMrgyELllHcZQqYGidvyXxBZCgw8L4ey9dBUiRey6cZ0=
+	t=1780330710; cv=none; b=YFcAr4Yqn6A0JIMd+s0Eoo3D96ASVBK9RCMvzuIWoEVP01N/JHD0NOVjkCvTHYiO9BnpvwLGgkVxvK85ukW12zuE+rumwdsO1tG7mUPWo/3R7UNojx3O/heldHRL3ppvaWqz7kiASIinDApm+vMi6PEkM588XJLH4OVRE12PqcM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780329494; c=relaxed/simple;
-	bh=wfFGpa4hd8MriFRaj1C27iappjFj/ZUW6x4WeHYHXDY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=fV4I1LUasrN3mH2wlTiXfk6t2bEPMOeF5kd/EYMGiC3fDfncarAbxuqU3ZrUSTgP0QjlGowGKMkMKMXTW/7snILqYo53HzWz2nT+zfEuyfEPwigHmZbItrsq1aPS8yg0P+eZAw/QgJjKZWY4FlKY4giLFOzqUkdnNC9LpHNgizM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=E9UpFtjY; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=dKUn2my4; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=OwvWznOn; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=/ukgfTtP; arc=none smtp.client-ip=195.135.223.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	s=arc-20240116; t=1780330710; c=relaxed/simple;
+	bh=+9b7RjQJQuXZy0Jp2ebaO6VQe59KIG1m+70EKnmJnCk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Vsp4faQxJDcWz4ebD7uCaavEG8ZK6K572NnGSFvforJbRKhM+XgzJMRejNAVEtUn/pR/4baGpvZwZywS1omApPTYwcNQFKsVosaHGyUh7qOA8LWO3aZ6REa+k58tiWmIgaB5xSM9NRSkNNkLqAmNTly/3q4DVP9VdM7F08ekm50=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=n77TsKRM; arc=none smtp.client-ip=213.97.179.56
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="E9UpFtjY";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="dKUn2my4";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="OwvWznOn";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="/ukgfTtP"
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out2.suse.de (Postfix) with ESMTPS id ED3F167ACB;
-	Mon,  1 Jun 2026 15:58:10 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1780329491; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=558HwviRqQQ7RjjiJ/cce6YAyjTcOG6jdw14ixD5Wug=;
-	b=E9UpFtjYof29VTrn+k0FzAi7f1TMoQDoqsc1/by5B1fbCdp2T6PvqsQmir4MIkeR2DEfhn
-	lyJF5hc3JSqD1MIiFZDLlCBIVaTB/ifIX9vt5Tl7C7ck8YJFLu5A4ahzG6cWQYPTJdbBpn
-	xhxsijwcwmQG9z4yQu7dbQlrFAv9MGQ=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1780329491;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=558HwviRqQQ7RjjiJ/cce6YAyjTcOG6jdw14ixD5Wug=;
-	b=dKUn2my4qemsQRg99uoLnfG/mLKXIrxrwXZv9je1Bdodcx+Y0ap5xz+H4+RQOfVEk/143J
-	JSqo6LfIWaOl54Bw==
-Authentication-Results: smtp-out2.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1780329490; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=558HwviRqQQ7RjjiJ/cce6YAyjTcOG6jdw14ixD5Wug=;
-	b=OwvWznOn2dDN0ZkcEXwuL26IhLKSlu64T3PgIUsjzgumRYkrWzLhBvxwvBej5UBOGKeLLZ
-	DRKZZU2keNjx5syYaQl7A4b1eg8MHQhLWOrFYOz/4ou3D9rKM5gf7aBMqJk2ujw+Gq7M6v
-	wNMgEIchhqGzA9bty/YshNpbbs1s/Dk=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1780329490;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=558HwviRqQQ7RjjiJ/cce6YAyjTcOG6jdw14ixD5Wug=;
-	b=/ukgfTtPXPnrrAL7uR/ZwwErxUHs5fVgJvyJxirAfFtkh3GYN3PaWnfxTpFfKmPLuOd09i
-	gg0p/4n2cZt+q5Cw==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id DDB63779A7;
-	Mon,  1 Jun 2026 15:58:10 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id GD0bNhKsHWpQXQAAD6G6ig
-	(envelope-from <jack@suse.cz>); Mon, 01 Jun 2026 15:58:10 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 7A8EBA0EC0; Mon, 01 Jun 2026 17:58:10 +0200 (CEST)
-Date: Mon, 1 Jun 2026 17:58:10 +0200
-From: Jan Kara <jack@suse.cz>
-To: Jeff Layton <jlayton@kernel.org>
-Cc: Jori Koolstra <jkoolstra@xs4all.nl>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>, 
-	Arnd Bergmann <arnd@arndb.de>, 
-	"open list:FILESYSTEMS (VFS and infrastructure)" <linux-fsdevel@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>, 
-	"open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
-Subject: Re: [PATCH] vfs: missing inode operation should return a consistent
- error code
-Message-ID: <xdknvjlda7wxwo35toe357nnyaydsllv5g65ogzsomxqgm7jfu@qwtugpoy2rcw>
-References: <20260531104947.6142-1-jkoolstra@xs4all.nl>
- <c5e32b78aeaa833d18d9b7a566358a6f71d09f23.camel@kernel.org>
+	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="n77TsKRM"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
+	s=20170329; h=Content-Transfer-Encoding:Content-Type:In-Reply-To:From:
+	References:Cc:To:Subject:MIME-Version:Date:Message-ID:Sender:Reply-To:
+	Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:
+	Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:
+	List-Subscribe:List-Post:List-Owner:List-Archive;
+	bh=fJZwHBlIWaVYPF8vygrFg9lljHY6FPv3NF+DSCaap04=; b=n77TsKRMNIYCQvziJZDQgDPZj8
+	ch2YgEyPpWEvLvIkddOI/GIEScSlRTqv9BHqxLpLMh7zC0GUtKGlRzNqUQPbDZRGG34obWh7274IO
+	B+7VDNm1DUwjHXXJzK+33Lxh+tV2Ou6TsBtMrj6LUHLOQCg89keCABC0zRi4PflDv6oX4RTke3Lpw
+	qqdrVrZF1cFrXDNf59OswVDsWGdn3GsbGLrX78pI6MWz2Io6Jz5XJb11dUuAcC7NpavdJ/OgZFq42
+	4VJow5UsiC3Q0AMEXHgTyjE0EGEqODFO83UTr82O6jlaXqwdBhZAhJMJrYRPabGbWnykA4o59C+ac
+	sGceAO7A==;
+Received: from [177.172.121.54] (helo=[192.168.15.100])
+	by fanzine2.igalia.com with esmtpsa 
+	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_128_GCM:128) (Exim)
+	id 1wU5Ke-00B6HW-N9; Mon, 01 Jun 2026 18:17:40 +0200
+Message-ID: <ae090604-4ea0-416e-b79b-6a4f5eba4e85@igalia.com>
+Date: Mon, 1 Jun 2026 13:17:33 -0300
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <c5e32b78aeaa833d18d9b7a566358a6f71d09f23.camel@kernel.org>
-X-Spam-Flag: NO
-X-Spam-Score: -3.80
-X-Spamd-Result: default: False [-3.80 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	FUZZY_RATELIMITED(0.00)[rspamd.com];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	ARC_NA(0.00)[];
-	RCPT_COUNT_SEVEN(0.00)[9];
-	MISSING_XM_UA(0.00)[];
-	RCVD_COUNT_THREE(0.00)[3];
-	FREEMAIL_ENVRCPT(0.00)[xs4all.nl];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	FROM_HAS_DN(0.00)[];
-	FREEMAIL_CC(0.00)[xs4all.nl,zeniv.linux.org.uk,kernel.org,suse.cz,arndb.de,vger.kernel.org];
-	MIME_TRACE(0.00)[0:+];
-	FROM_EQ_ENVFROM(0.00)[];
-	TO_DN_ALL(0.00)[];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	RCVD_TLS_LAST(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[opengroup.org:url,suse.com:email,xs4all.nl:email,imap1.dmz-prg2.suse.org:helo]
-X-Spam-Level: 
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3 1/5] arm64: vdso: Prepare for robust futex unlock
+ support
+To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Thomas Gleixner <tglx@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
+ Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+ Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+ Carlos O'Donell <carlos@redhat.com>, Peter Zijlstra <peterz@infradead.org>,
+ Florian Weimer <fweimer@redhat.com>, Rich Felker <dalias@aerifal.cx>,
+ Torvald Riegel <triegel@redhat.com>, Darren Hart <dvhart@infradead.org>,
+ Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>,
+ Arnd Bergmann <arnd@arndb.de>, "Liam R . Howlett" <Liam.Howlett@oracle.com>,
+ Uros Bizjak <ubizjak@gmail.com>, linux-arm-kernel@lists.infradead.org,
+ linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ kernel-dev@igalia.com
+References: <20260529-tonyk-robust_arm-v3-0-a6f02684d4fe@igalia.com>
+ <20260529-tonyk-robust_arm-v3-1-a6f02684d4fe@igalia.com>
+ <b23ab875-fd4c-4095-a661-6a19b6a070e3@t-8ch.de>
+Content-Language: en-US
+From: =?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
+In-Reply-To: <b23ab875-fd4c-4095-a661-6a19b6a070e3@t-8ch.de>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 
-On Sun 31-05-26 10:08:47, Jeff Layton wrote:
-> On Sun, 2026-05-31 at 12:49 +0200, Jori Koolstra wrote:
-> > Currently several different error codes are used in the VFS for
-> > situations where the underlying filesystem does not support the
-> > requested inode operation (such as mkdir, tmpfile, create, etc.)
-> > Examples: create returns EACCES, mkdir EPERM, tmpfile EOPNOTSUPP,
-> > fileattr_get ENOIOCTLCMD.
-> > 
-> > We should provide a sensible unified error code for these situations.
-> > EOPNOTSUPP is already used for this both in the kernel (when lacking
-> > tmpfile support) and in userland (e.g. glibc).[1] Restricting EOPNOTSUPP
-> > to socket operations as POSIX suggests is not the current reality and
-> > this was recently changed in the man page as well.[2]
-> > 
-> > vfs_fileattr_get|set return ENOIOCTLCMD, but this cannot be changed
-> > since EOPNOTSUPP is already used to by underlying filesystems to indicate
-> > that a flag is not supported. The change to EOPNOTSUPP was reverted by
-> > 4dd5b5ac089b ("Revert "fs: make vfs_fileattr_[get|set] return
-> > -EOPNOTSUPP"")
-> > 
-> > [1]: https://lore.kernel.org/all/20260528-abnimmt-befreien-perspektive-a7930659fb40@brauner/
-> > [2]: https://lore.kernel.org/linux-fsdevel/ahd3SmZZqnzP0-O2@devuan/T/#t
-> > 
-> > Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
-> > ---
-> >  fs/namei.c                       | 18 +++++++++---------
-> >  include/uapi/asm-generic/errno.h |  2 +-
-> >  2 files changed, 10 insertions(+), 10 deletions(-)
-> > 
-> > diff --git a/fs/namei.c b/fs/namei.c
-> > index c7fac83c9a85..813419c340ad 100644
-> > --- a/fs/namei.c
-> > +++ b/fs/namei.c
-> > @@ -4192,7 +4192,7 @@ int vfs_create(struct mnt_idmap *idmap, struct dentry *dentry, umode_t mode,
-> >  		return error;
-> >  
-> >  	if (!dir->i_op->create)
-> > -		return -EACCES;	/* shouldn't it be ENOSYS? */
-> > +		return -EOPNOTSUPP;
-> >  
-> >  	mode = vfs_prepare_mode(idmap, dir, mode, S_IALLUGO, S_IFREG);
-> >  	error = security_inode_create(dir, dentry, mode);
-> > @@ -4504,7 +4504,7 @@ static struct dentry *lookup_open(struct nameidata *nd, struct file *file,
-> >  		file->f_mode |= FMODE_CREATED;
-> >  		audit_inode_child(dir_inode, dentry, AUDIT_TYPE_CHILD_CREATE);
-> >  		if (!dir_inode->i_op->create) {
-> > -			error = -EACCES;
-> > +			error = -EOPNOTSUPP;
-> >  			goto out_dput;
-> >  		}
-> >  
-> > @@ -5102,7 +5102,7 @@ int vfs_mknod(struct mnt_idmap *idmap, struct inode *dir,
-> >  		return -EPERM;
-> >  
-> >  	if (!dir->i_op->mknod)
-> > -		return -EPERM;
-> > +		return -EOPNOTSUPP;
-> >  
-> >  	mode = vfs_prepare_mode(idmap, dir, mode, mode, mode);
-> >  	error = devcgroup_inode_mknod(mode, dev);
-> > @@ -5241,7 +5241,7 @@ struct dentry *vfs_mkdir(struct mnt_idmap *idmap, struct inode *dir,
-> >  	if (error)
-> >  		goto err;
-> >  
-> > -	error = -EPERM;
-> > +	error = -EOPNOTSUPP;
-> >  	if (!dir->i_op->mkdir)
-> >  		goto err;
-> >  
-> > @@ -5345,7 +5345,7 @@ int vfs_rmdir(struct mnt_idmap *idmap, struct inode *dir,
-> >  		return error;
-> >  
-> >  	if (!dir->i_op->rmdir)
-> > -		return -EPERM;
-> > +		return -EOPNOTSUPP;
-> >  
-> >  	dget(dentry);
-> >  	inode_lock(dentry->d_inode);
-> > @@ -5479,7 +5479,7 @@ int vfs_unlink(struct mnt_idmap *idmap, struct inode *dir,
-> >  		return error;
-> >  
-> >  	if (!dir->i_op->unlink)
-> > -		return -EPERM;
-> > +		return -EOPNOTSUPP;
-> >  
-> >  	inode_lock(target);
-> >  	if (IS_SWAPFILE(target))
-> > @@ -5630,7 +5630,7 @@ int vfs_symlink(struct mnt_idmap *idmap, struct inode *dir,
-> >  		return error;
-> >  
-> >  	if (!dir->i_op->symlink)
-> > -		return -EPERM;
-> > +		return -EOPNOTSUPP;
-> >  
-> >  	error = security_inode_symlink(dir, dentry, oldname);
-> >  	if (error)
-> > @@ -5752,7 +5752,7 @@ int vfs_link(struct dentry *old_dentry, struct mnt_idmap *idmap,
-> >  	if (HAS_UNMAPPED_ID(idmap, inode))
-> >  		return -EPERM;
-> >  	if (!dir->i_op->link)
-> > -		return -EPERM;
-> > +		return -EOPNOTSUPP;
-> >  	if (S_ISDIR(inode->i_mode))
-> >  		return -EPERM;
-> >  
-> > @@ -5961,7 +5961,7 @@ int vfs_rename(struct renamedata *rd)
-> >  		return error;
-> >  
-> >  	if (!old_dir->i_op->rename)
-> > -		return -EPERM;
-> > +		return -EOPNOTSUPP;
-> >  
-> >  	/*
-> >  	 * If we are going to change the parent - check write permissions,
-> > diff --git a/include/uapi/asm-generic/errno.h b/include/uapi/asm-generic/errno.h
-> > index 92e7ae493ee3..7b5b71ae1b12 100644
-> > --- a/include/uapi/asm-generic/errno.h
-> > +++ b/include/uapi/asm-generic/errno.h
-> > @@ -76,7 +76,7 @@
-> >  #define	ENOPROTOOPT	92	/* Protocol not available */
-> >  #define	EPROTONOSUPPORT	93	/* Protocol not supported */
-> >  #define	ESOCKTNOSUPPORT	94	/* Socket type not supported */
-> > -#define	EOPNOTSUPP	95	/* Operation not supported on transport endpoint */
-> > +#define	EOPNOTSUPP	95	/* Operation not supported */
-> >  #define	EPFNOSUPPORT	96	/* Protocol family not supported */
-> >  #define	EAFNOSUPPORT	97	/* Address family not supported by protocol */
-> >  #define	EADDRINUSE	98	/* Address already in use */
-> > 
-> > base-commit: 670b77dfebe7257adc0defbc48a4c43cfdf6c8f6
+Em 29/05/2026 14:16, Thomas Weißschuh escreveu:
+> On 2026-05-29 13:33:53-0300, André Almeida wrote:
+>> There will be a VDSO function to unlock non-contended robust futexes in
+>> user space. The unlock sequence is racy vs. clearing the list_pending_op
+>> pointer in the task's robust list head. To plug this race the kernel needs
+>> to know the critical section window so it can clear the pointer when the
+>> task is interrupted within that race window. The window is determined by
+>> labels in the inline assembly.
+>>
+>> Signed-off-by: André Almeida <andrealmeid@igalia.com>
+>> ---
+>> Notes:
+>>   - The diff futex_set_vdso_cs_range() should happen in the commit that
+>>   introduced it, and rebase will clear it from here
+>>   - So far I couldn't figure out why current->rseq.event.user_irq is never set in
+>>   aarch64
 > 
-> This seems ill-advised. The problem is that most of this behavior has
-> been well established for years, and not all userland software (and
-> even some internal callers like nfsd), will react well when you go
-> changing behavior like this.
+> Why not put these unrelated changes into their own commits?
+> It makes reviewing and integrating it into the original series easier.
 > 
-> As a case in point, the POSIX spec doesn't list EOPNOTSUPP as a valid
-> error return for open():
-> 
->    https://pubs.opengroup.org/onlinepubs/9690949399/functions/open.html
-> 
-> The manpage for open() says only:
-> 
->        EOPNOTSUPP
->               The filesystem containing pathname does not support O_TMPFILE.
-> 
-> What is the poor userland developer to make of this when open() starts
-> returning EOPNOTSUPP without O_TMPFILE being specified?
 
-So I wouldn't care as much about POSIX, we largely ignore it anyway in the
-kernel. But I tend to agree that changing the error code we returned for
-several decades just for the sake of "cleanliness" isn't IMHO a good enough
-reason to risk breaking userspace or causing confusion.
+OK, I will separated them for a next version. But hopefully those 
+changes won't be needed for the next one.
 
-								Honza
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+>> v3:
+>>   - Fix adding vdso base addr twice
+>>   - Call vdso_futex_robust_unlock_update_ips() on remap as well
+>> v2:
+>>   - Fixed linker not finding VDSO symbols
+>> ---
+>>   arch/arm64/kernel/vdso.c          | 25 +++++++++++++++++++++++++
+>>   arch/arm64/kernel/vdso/vdso.lds.S |  5 +++++
+>>   arch/x86/entry/vdso/vma.c         |  4 ++--
+>>   include/linux/futex.h             | 13 ++-----------
+>>   4 files changed, 34 insertions(+), 13 deletions(-)
+>>
+>> diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+>> index 592dd8668de4..76f22ea8e181 100644
+>> --- a/arch/arm64/kernel/vdso.c
+>> +++ b/arch/arm64/kernel/vdso.c
+>> @@ -11,6 +11,7 @@
+>>   #include <linux/clocksource.h>
+>>   #include <linux/elf.h>
+>>   #include <linux/err.h>
+>> +#include <linux/futex.h>
+>>   #include <linux/errno.h>
+>>   #include <linux/gfp.h>
+>>   #include <linux/kernel.h>
+>> @@ -57,11 +58,31 @@ static struct vdso_abi_info vdso_info[] __ro_after_init = {
+>>   #endif /* CONFIG_COMPAT_VDSO */
+>>   };
+>>   
+>> +#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
+>> +static void vdso_futex_robust_unlock_update_ips(enum vdso_abi abi, struct mm_struct *mm)
+>> +{
+>> +	unsigned long vdso = (unsigned long) mm->context.vdso;
+>> +	struct futex_mm_data *fd = &mm->futex;
+>> +	uintptr_t success, end;
+>> +
+>> +	if (abi == VDSO_ABI_AA64) {
+>> +		success = (uintptr_t) VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_success);
+>> +		end = (uintptr_t) VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_end);
+>> +
+>> +		futex_set_vdso_cs_range(fd, 0, success, end, false);
+>> +	}
+>> +}
+>> +#else
+>> +static inline void vdso_futex_robust_unlock_update_ips(enum vdso_abi abi, struct mm_struct *mm) { }
+>> +#endif /* CONFIG_FUTEX_ROBUST_UNLOCK */
+>> +
+>>   static int vdso_mremap(const struct vm_special_mapping *sm,
+>>   		struct vm_area_struct *new_vma)
+>>   {
+>>   	current->mm->context.vdso = (void *)new_vma->vm_start;
+>>   
+>> +	vdso_futex_robust_unlock_update_ips(VDSO_ABI_AA64, current->mm);
+>> +
+>>   	return 0;
+>>   }
+>>   
+>> @@ -134,6 +155,8 @@ static int __setup_additional_pages(enum vdso_abi abi,
+>>   	if (IS_ERR(ret))
+>>   		goto up_fail;
+>>   
+>> +	vdso_futex_robust_unlock_update_ips(abi, mm);
+>> +
+>>   	return 0;
+>>   
+>>   up_fail:
+>> @@ -159,6 +182,8 @@ static int aarch32_sigpage_mremap(const struct vm_special_mapping *sm,
+>>   {
+>>   	current->mm->context.sigpage = (void *)new_vma->vm_start;
+>>   
+>> +	vdso_futex_robust_unlock_update_ips(VDSO_ABI_AA32, current->mm);
+> 
+> This is for the sigpage remap, not the vDSO, is it really necessary?
+> If yes it should be part of the later VDSO_ABI_AA32 patch IMO.
+> 
+
+Ok, I don't think it moves the vDSO indeed.
+
+> 
+> If there is a way for a 64-bit application to call 32-bit syscalls then
+> the 64-bit vDSO also needs the 32-bit functions. See:
+> [0] https://lore.kernel.org/lkml/875x4zw4bp.ffs@tglx/
+> 
+
+I believe this is true for x86, but not for aarch64. Currently x86 apps 
+running on top of arm64 have no way to register a 32 bit list, but this 
+will change with the upcoming multi list feature.
+>>   	return 0;
+>>   }
+>>   
+>> diff --git a/arch/arm64/kernel/vdso/vdso.lds.S b/arch/arm64/kernel/vdso/vdso.lds.S
+>> index 52314be29191..8633aafe6b81 100644
+>> --- a/arch/arm64/kernel/vdso/vdso.lds.S
+>> +++ b/arch/arm64/kernel/vdso/vdso.lds.S
+>> @@ -104,6 +104,7 @@ VERSION
+>>   		__kernel_clock_gettime;
+>>   		__kernel_clock_getres;
+>>   		__kernel_getrandom;
+>> +		__vdso_futex_robust_list64_try_unlock;
+> 
+> Guard behind CONFIG_FUTEX_ROBUST_UNLOCK ?
+> 
+> ld.lld fails when a function mentioned in the linker script is missing.
+
+Yes, you are right, thanks for the review!
+
+> 
+>>   	local: *;
+>>   	};
+>>   }
+>> @@ -112,3 +113,7 @@ VERSION
+>>    * Make the sigreturn code visible to the kernel.
+>>    */
+>>   VDSO_sigtramp		= __kernel_rt_sigreturn;
+>> +
+>> +VDSO_futex_list64_try_unlock_cs_start = __futex_list64_try_unlock_cs_start;
+>> +VDSO_futex_list64_try_unlock_cs_success = __futex_list64_try_unlock_cs_success;
+>> +VDSO_futex_list64_try_unlock_cs_end = __futex_list64_try_unlock_cs_end;
+> 
+> (...)
+
