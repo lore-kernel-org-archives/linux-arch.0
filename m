@@ -1,135 +1,109 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+Received: from mail-out.m-online.net (mail-out.m-online.net [212.18.0.10])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0CEA337E30F;
-	Mon,  1 Jun 2026 20:24:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC388386C25;
+	Mon,  1 Jun 2026 20:59:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.18.0.10
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780345463; cv=none; b=JO064iHtiRGhJk9CJ4YVy46rjntTacS25eTJ07t9K8lFea9Zul7ipvEaYd3kc1mNZSou95kS2n6JrECnIp28EFG7gy1OylAKMmcpcmQzmnWe+A/l/mD8j212K/AFIp6LcF6k6loDmeBIe6J7XfrRI0sbkZzG19SSZ/YrW3BvIQk=
+	t=1780347546; cv=none; b=J/eaMYw1+XYQqGKM+IvLqRQ/oy9FRz69nN4ah/+T/WwgG8xpx1oXOtmiF2Kcq7V6LTVsFGQ9ggCh2hgKp3gGo8TJg2/sGPJseJy7TxPxWPb3mkMcEkY5KqpGLQwZ12vzqHxgzNKy818lw0M6fC/imvgfUiv4555SabcOoC67sr0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780345463; c=relaxed/simple;
-	bh=l3dLCfo8STCCjPr/FqdtQ/3GS1wUw1HahkL+2RftIZg=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=UKPrEQh6Hps01Kb1Y3KPK/oWFn31YcWM9+QDtgSb9mSjBJ1PNpVBSf7I/+diJFqLeJ8hN4t9rehpbW+p8R3slESZqltvauOcgj3SYTlPnXHJSnqjStNlCx+FNG7vVkVdnBSYlDCvy9QStDile0PiVm+V09+876wSH+sMVXiveYg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=JD/rgItE; arc=none smtp.client-ip=90.155.50.34
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="JD/rgItE"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=6/5W0G6Gs1Q9GB3IxcldPERQvThA7tz7U249bqa4a9U=; b=JD/rgItEItTF3waKZU0fyhZfOO
-	p6KhOF2dIKsWbBlXDH6Szda6v6pwxYE0KSLQ6p9Jvu4aC0kMd1Jp91bHbXXGW1JY4kLAuzDZFSXs9
-	P7bQk5/xrqJRa6GrGWdxnMhnM9cOr/Mh7DhOreUlDgBnF2TcRdtGfQbRd9WsBVDwHFqfKKNmW2p+o
-	Eq81r5ZCto6v0j62Ti/4LX0nmYsBAqhcbZ6JenvK3VL8pcuJJabuzAf2wJL1ohACsCSDs/sp5+nbD
-	m2tuZulS6JhmLQAZ2oWemvoJrOfuaHp1Sctzmp2YTWfFeramTBO8sylg/IQVtL1hc2i3NQH4Kt9qQ
-	+ovW+CfA==;
-Received: from willy by casper.infradead.org with local (Exim 4.99.1 #2 (Red Hat Linux))
-	id 1wU9Av-00000000iHG-2DOC;
-	Mon, 01 Jun 2026 20:23:53 +0000
-Date: Mon, 1 Jun 2026 21:23:53 +0100
-From: Matthew Wilcox <willy@infradead.org>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: Kees Cook <kees@kernel.org>, Luis Chamberlain <mcgrof@kernel.org>,
-	Pengpeng Hou <pengpeng@iscas.ac.cn>, stable@vger.kernel.org,
-	Petr Pavlu <petr.pavlu@suse.com>,
-	Richard Weinberger <richard@nod.at>,
-	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-	Johannes Berg <johannes@sipsolutions.net>,
-	"Rafael J. Wysocki" <rafael@kernel.org>,
-	Len Brown <lenb@kernel.org>, Corey Minyard <corey@minyard.net>,
-	Gabriel Somlo <somlo@cmu.edu>,
-	"Michael S. Tsirkin" <mst@redhat.com>,
-	Jani Nikula <jani.nikula@linux.intel.com>,
-	Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
-	Rodrigo Vivi <rodrigo.vivi@intel.com>,
-	Tvrtko Ursulin <tursulin@ursulin.net>,
-	David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
-	Bart Van Assche <bvanassche@acm.org>,
-	Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>,
-	Laurent Pinchart <laurent.pinchart@ideasonboard.com>,
-	Hans de Goede <hansg@kernel.org>,
-	Mauro Carvalho Chehab <mchehab@kernel.org>,
-	Bjorn Helgaas <bhelgaas@google.com>, Hannes Reinecke <hare@suse.de>,
-	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-	"Martin K. Petersen" <martin.petersen@oracle.com>,
-	Daniel Lezcano <daniel.lezcano@kernel.org>,
-	Zhang Rui <rui.zhang@intel.com>, Lukasz Luba <lukasz.luba@arm.com>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	Jiri Slaby <jirislaby@kernel.org>,
-	Alan Stern <stern@rowland.harvard.edu>,
-	Jason Wang <jasowang@redhat.com>,
-	Xuan Zhuo <xuanzhuo@linux.alibaba.com>,
-	Eugenio =?iso-8859-1?Q?P=E9rez?= <eperezma@redhat.com>,
-	Jason Baron <jbaron@akamai.com>, Jim Cromie <jim.cromie@gmail.com>,
-	Tiwei Bie <tiwei.btw@antgroup.com>,
-	Benjamin Berg <benjamin.berg@intel.com>,
-	Ilpo =?iso-8859-1?Q?J=E4rvinen?= <ilpo.jarvinen@linux.intel.com>,
-	"David E. Box" <david.e.box@linux.intel.com>,
-	"Maciej W. Rozycki" <macro@orcam.me.uk>,
-	Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Heiko Carstens <hca@linux.ibm.com>,
-	Vasily Gorbik <gor@linux.ibm.com>,
-	Sean Christopherson <seanjc@google.com>,
-	Paolo Bonzini <pbonzini@redhat.com>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Vinod Koul <vkoul@kernel.org>,
-	Frank Li <Frank.Li@kernel.org>, Daniel Gomez <da.gomez@kernel.org>,
-	Sami Tolvanen <samitolvanen@google.com>,
-	Aaron Tomlin <atomlin@atomlin.com>,
-	Alexander Potapenko <glider@google.com>,
-	Marco Elver <elver@google.com>, Dmitry Vyukov <dvyukov@google.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	John Johansen <john.johansen@canonical.com>,
-	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
-	"Serge E. Hallyn" <serge@hallyn.com>,
-	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-	Georgia Garcia <georgia.garcia@canonical.com>, kvm@vger.kernel.org,
-	dmaengine@vger.kernel.org, linux-modules@vger.kernel.org,
-	kasan-dev@googlegroups.com, linux-mm@kvack.org,
-	apparmor@lists.ubuntu.com, linux-security-module@vger.kernel.org,
-	linux-um@lists.infradead.org, linux-acpi@vger.kernel.org,
-	openipmi-developer@lists.sourceforge.net, qemu-devel@nongnu.org,
-	intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
-	linux-rdma@vger.kernel.org, linux-media@vger.kernel.org,
-	linux-pci@vger.kernel.org, linux-scsi@vger.kernel.org,
-	linux-pm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-	linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
-	usb-storage@lists.one-eyed-alien.net,
-	virtualization@lists.linux.dev, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org, netdev@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org, linux-hardening@vger.kernel.org
-Subject: Re: [PATCH 01/11] params: bound array element output to the caller's
- page buffer
-Message-ID: <ah3qWZ4cqhrbHZcl@casper.infradead.org>
-References: <20260521133315.work.845-kees@kernel.org>
- <20260521133326.2465264-1-kees@kernel.org>
- <20260521174631.71a06440@pumpkin>
+	s=arc-20240116; t=1780347546; c=relaxed/simple;
+	bh=JSuMB78WGrnAVsJ7teKH/zI0mt19h3G7ax62Fj2NvyE=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=plFGTNz0M+lvKSLMn6n2ix1XPXVL95qy2avLq0cwLkBD8yW5ySkb7Q2XbwPOF6cSSzSBQONY1JaJ59ulOvoNY31IDPzdzLFbSZE563gsgHEcI5TDrmjrD8Fqzj4vzX0Uv1IOYRQFtgBJr9ZnmfsVb9KHJGipKI36RFqpsKLL09k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=nefkom.net; arc=none smtp.client-ip=212.18.0.10
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=nefkom.net
+Received: from mail-out.m-online.net (mail-out.m-online.net [212.18.0.10])
+	by mail-out.m-online.net (Postfix) with ESMTP id 4gTmXZ1PYGz1sGWy;
+	Mon,  1 Jun 2026 22:58:54 +0200 (CEST)
+Received: from frontend03.mail.m-online.net (unknown [192.168.6.182])
+	by mail-out.m-online.net (Postfix) with ESMTP id 4gTmXY53gdz1sG8c;
+	Mon,  1 Jun 2026 22:58:53 +0200 (CEST)
+Received: from localhost (dynscan3.mnet-online.de [192.168.6.87])
+	by mail.m-online.net (Postfix) with ESMTP id 4gTmXY3vBrz1qqlS;
+	Mon,  1 Jun 2026 22:58:53 +0200 (CEST)
+X-Virus-Scanned: amavis at mnet-online.de
+Received: from mail.mnet-online.de ([192.168.6.182])
+ by localhost (dynscan3.mail.m-online.net [192.168.6.87]) (amavis, port 10024)
+ with ESMTP id e1EAzhraFHWf; Mon,  1 Jun 2026 22:58:52 +0200 (CEST)
+X-Auth-Info: FqnxIDPc+CejjKHAe9u56JUkf8btEszKYhyFrkdtC5LkcdNUzyTOWALY7FYpYrLU
+Received: from igel.home (aftr-82-135-83-133.dynamic.mnet-online.de [82.135.83.133])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mail.mnet-online.de (Postfix) with ESMTPSA;
+	Mon,  1 Jun 2026 22:58:52 +0200 (CEST)
+Received: by igel.home (Postfix, from userid 1000)
+	id 6F0742C16DB; Mon,  1 Jun 2026 22:58:52 +0200 (CEST)
+From: Andreas Schwab <schwab@linux-m68k.org>
+To: Deepak Gupta <debug@rivosinc.com>
+Cc: Deepak Gupta via B4 Relay <devnull+debug.rivosinc.com@kernel.org>,
+  Thomas Gleixner <tglx@linutronix.de>,  Ingo Molnar <mingo@redhat.com>,
+  Borislav Petkov <bp@alien8.de>,  Dave Hansen
+ <dave.hansen@linux.intel.com>,  x86@kernel.org,  "H. Peter Anvin"
+ <hpa@zytor.com>,  Andrew Morton <akpm@linux-foundation.org>,  "Liam R.
+ Howlett" <Liam.Howlett@oracle.com>,  Vlastimil Babka <vbabka@suse.cz>,
+  Lorenzo Stoakes <lorenzo.stoakes@oracle.com>,  Paul Walmsley
+ <paul.walmsley@sifive.com>,  Palmer Dabbelt <palmer@dabbelt.com>,  Albert
+ Ou <aou@eecs.berkeley.edu>,  Conor Dooley <conor@kernel.org>,  Rob Herring
+ <robh@kernel.org>,  Krzysztof Kozlowski <krzk+dt@kernel.org>,  Arnd
+ Bergmann <arnd@arndb.de>,  Christian Brauner <brauner@kernel.org>,  Peter
+ Zijlstra <peterz@infradead.org>,  Oleg Nesterov <oleg@redhat.com>,  Eric
+ Biederman <ebiederm@xmission.com>,  Kees Cook <kees@kernel.org>,  Jonathan
+ Corbet <corbet@lwn.net>,  Shuah Khan <shuah@kernel.org>,  Jann Horn
+ <jannh@google.com>,  Conor Dooley <conor+dt@kernel.org>,  Miguel Ojeda
+ <ojeda@kernel.org>,  Alex Gaynor <alex.gaynor@gmail.com>,  Boqun Feng
+ <boqun.feng@gmail.com>,  Gary Guo <gary@garyguo.net>,  =?utf-8?Q?Bj=C3=B6?=
+ =?utf-8?Q?rn?= Roy Baron
+ <bjorn3_gh@protonmail.com>,  Andreas Hindborg <a.hindborg@kernel.org>,
+  Alice Ryhl <aliceryhl@google.com>,  Trevor Gross <tmgross@umich.edu>,
+  Benno Lossin <lossin@kernel.org>,  linux-kernel@vger.kernel.org,
+  linux-fsdevel@vger.kernel.org,  linux-mm@kvack.org,
+  linux-riscv@lists.infradead.org,  devicetree@vger.kernel.org,
+  linux-arch@vger.kernel.org,  linux-doc@vger.kernel.org,
+  linux-kselftest@vger.kernel.org,  alistair.francis@wdc.com,
+  richard.henderson@linaro.org,  jim.shu@sifive.com,  andybnac@gmail.com,
+  kito.cheng@sifive.com,  charlie@rivosinc.com,  atishp@rivosinc.com,
+  evan@rivosinc.com,  cleger@rivosinc.com,  alexghiti@rivosinc.com,
+  samitolvanen@google.com,  broonie@kernel.org,
+  rick.p.edgecombe@intel.com,  rust-for-linux@vger.kernel.org,  Zong Li
+ <zong.li@sifive.com>
+Subject: Re: [PATCH v23 06/28] riscv/mm : ensure PROT_WRITE leads to VM_READ
+ | VM_WRITE
+In-Reply-To: <CAKC1njR+dTdvp+BmLGPtgd8dufiUwBtkQ9a-qinELT_Fmi13sQ@mail.gmail.com>
+	(Deepak Gupta's message of "Mon, 1 Jun 2026 10:57:41 -0700")
+References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
+	<20251112-v5_user_cfi_series-v23-6-b55691eacf4f@rivosinc.com>
+	<87jyslndo4.fsf@igel.home>
+	<CAKC1njS=AHu6uHrH4ae8VxcdEbhgiPXYCAoN3F_mnppBd3SwOA@mail.gmail.com>
+	<875x44o9hj.fsf@igel.home>
+	<CAKC1njSn_rtCj8ii876PNQTk0nsCTfWsb4DzdymufHVthh1Rkg@mail.gmail.com>
+	<871peqgp9v.fsf@igel.home>
+	<CAKC1njR+dTdvp+BmLGPtgd8dufiUwBtkQ9a-qinELT_Fmi13sQ@mail.gmail.com>
+Date: Mon, 01 Jun 2026 22:58:52 +0200
+Message-ID: <87wlwif04z.fsf@igel.home>
+User-Agent: Gnus/5.13 (Gnus v5.13)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260521174631.71a06440@pumpkin>
+Content-Type: text/plain
 
-On Thu, May 21, 2026 at 05:46:31PM +0100, David Laight wrote:
-> On Thu, 21 May 2026 06:33:14 -0700
-> Kees Cook <kees@kernel.org> wrote:
-> > Collect each element into a temporary PAGE_SIZE buffer first and then
-> > copy only the remaining space into the caller's page buffer.
-> 
-> Should this be using a 4k buffer on all architectures?
-> Initially perhaps just using a different name for the constant until
-> all the associated PAGE_SIZE limits have been removed.
+On Jun 01 2026, Deepak Gupta wrote:
 
-If we're acually going to think about this, even 4KiB is too big.
-An 80x25 terminal is 2000 bytes (assuming no utf8), so 4KiB is two
-entire screenfuls.  Limiting to 2048 would seem reasonable to me.
+> riscv uses `VM_SHADOW_STACK`. It's just very simple to use `protection_map`
+> with just `VM_WRITE`. On RISC-V, `-W-` is a shadow stack mapping. It's not same
+> on x86 or arm64. So `protection_map[VM_WRITE]` simply picks shadow stack
+> encoding. We just ensure that PROT_WRITE is converted to
+> "VM_READ | VM_WRITE" at vma level.
+
+That does not explain _why_ you need to make that user visible change,
+when others can get away without it.
+
+-- 
+Andreas Schwab, schwab@linux-m68k.org
+GPG Key fingerprint = 7578 EB47 D4E5 4D69 2510  2552 DF73 E780 A9DA AEC1
+"And now for something completely different."
