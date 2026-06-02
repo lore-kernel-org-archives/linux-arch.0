@@ -1,138 +1,158 @@
-Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
+Received: from out02.mta.xmission.com (out02.mta.xmission.com [166.70.13.232])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D36A43C3C03;
-	Tue,  2 Jun 2026 08:30:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C5D0D3D5C0C;
+	Tue,  2 Jun 2026 11:12:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.70.13.232
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780389039; cv=none; b=kWzZOWDk1l6Dp3NtkRkmIaOsPO96kA1tEOcFw0zNlAPfdT0Et+OluEcFWZ/kBp0WyvR4Fu0dSDuJDWsmecnQ7AAdS47aAduE59sxKWAuBOfBOdeIzSoIcdZmGhJgBzVA2VXmL/3T31mP2W4LhW40wH3y25CJi6aSf8fiJhlkLYM=
+	t=1780398772; cv=none; b=qgLH/i0NL+XBarjIdlPH26etRAHkrP97UHzrntyNLC5oncKOTQ56u/Hbit3C/yGw9AbsgyVFMGhiI55krm/VUZnxlSpn+XtA1kgPr3Mi4fTcsONTYM5FXCuVeFZAWL0TeyGqQRRos1uey/2Xu3ctT2FX1EqBBx/eTvY28KbbfUQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780389039; c=relaxed/simple;
-	bh=PT+6lJbxojln0Y3MXIQ5J0jCKL58p13yFJTiQO26mEs=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=H6PctBh/0wENHr21tNky75oCJsj3ydAqeJi5p00hEq05Pa8bi25Q3TgK5MogJ/xDoulpbWIdcgTWJCnlWDgF0exe4Fb4+TCyD7sh+fgjVVNHZX+sRihiQSrOOcaJ0i+30CdBbVLGT8FIks1JPPZdzwc/fUIY515xUZA4SfOv6Lg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=YZG/8NKh; arc=none smtp.client-ip=159.69.126.157
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
+	s=arc-20240116; t=1780398772; c=relaxed/simple;
+	bh=vvILlsXaVQShutp1p5WceQi2Eaf3pB4ovG/S15HHsU4=;
+	h=From:To:Cc:In-Reply-To:References:Date:Message-ID:MIME-Version:
+	 Content-Type:Subject; b=cNHkPHmtouJJRpCZK+UhcqWNnVG5Lnj/ejJkkyBb5FzLTOY4+tGJEfbHDPiD/c+8vGwiYeHAUgNjc0CC3//sCAJFkNx0uwE8zfSpNt6jFeXySlJHlHrdViH9FrHGsc9zhd0iiVVL9o91EUAYtQCKiwa1XB3bZ3PFo73l6liDFYc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=xmission.com; spf=pass smtp.mailfrom=xmission.com; dkim=pass (1024-bit key) header.d=xmission.com header.i=@xmission.com header.b=PT1nwI4K; arc=none smtp.client-ip=166.70.13.232
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=xmission.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xmission.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="YZG/8NKh"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
-	s=mail; t=1780389029;
-	bh=PT+6lJbxojln0Y3MXIQ5J0jCKL58p13yFJTiQO26mEs=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=YZG/8NKhTOheOicD/ZKCr+Y6m9yQdyWFpnBSofLKDQJDgY47n46wSnhwNTk0stkRG
-	 9Rg/L96JOFYVHz6KRCDFRSN08vfI2tJfuAo2apcknRdfFJwytTK38NCkqrTsmzdau7
-	 ytyNz4jZhNKWgchT/RnsxKv2QtamLLRIcBYiqBmA=
-Date: Tue, 2 Jun 2026 10:30:28 +0200
-From: Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>
-To: =?utf-8?B?QW5kcsOp?= Almeida <andrealmeid@igalia.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, 
-	Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Carlos O'Donell <carlos@redhat.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Florian Weimer <fweimer@redhat.com>, 
-	Rich Felker <dalias@aerifal.cx>, Torvald Riegel <triegel@redhat.com>, 
-	Darren Hart <dvhart@infradead.org>, Ingo Molnar <mingo@kernel.org>, 
-	Davidlohr Bueso <dave@stgolabs.net>, Arnd Bergmann <arnd@arndb.de>, 
-	"Liam R . Howlett" <Liam.Howlett@oracle.com>, Uros Bizjak <ubizjak@gmail.com>, 
-	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	kernel-dev@igalia.com
-Subject: Re: [PATCH v3 5/5] arm64: vdso32: Implement
- __vdso_futex_robust_try_unlock()
-Message-ID: <67474c48-a49f-417c-b440-97db0baee602@t-8ch.de>
-References: <20260529-tonyk-robust_arm-v3-0-a6f02684d4fe@igalia.com>
- <20260529-tonyk-robust_arm-v3-5-a6f02684d4fe@igalia.com>
+	dkim=pass (1024-bit key) header.d=xmission.com header.i=@xmission.com header.b="PT1nwI4K"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=simple/simple; d=xmission.com;
+	 s=xmission; h=Subject:Content-Type:MIME-Version:Message-ID:Date:References:
+	In-Reply-To:Cc:To:From:Sender:Reply-To:Content-Transfer-Encoding:Content-ID:
+	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
+	:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:List-Subscribe:
+	List-Post:List-Owner:List-Archive;
+	bh=vvILlsXaVQShutp1p5WceQi2Eaf3pB4ovG/S15HHsU4=; b=PT1nwI4K/LueK0DDSNL+s4C13J
+	wCISW9cQ6Rku1p5e71v6LNcH9E8BpNOErgTq20OxsIi/JohdQWrgMebuwQrMKgen7pJXROs+AsRqv
+	q/PDtUrCrIsMZAHrVRiLpwUsOkpysGxuDIlQz4e1uDX5u9eweqgYZDbb9a8545EZNJqI=;
+Received: from in01.mta.xmission.com ([166.70.13.51]:57296)
+	by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+	(Exim 4.93)
+	(envelope-from <ebiederm@xmission.com>)
+	id 1wUMHI-00EQUk-Sf; Tue, 02 Jun 2026 04:23:20 -0600
+Received: from ip72-198-198-28.om.om.cox.net ([72.198.198.28]:37600 helo=email.froward.int.ebiederm.org.xmission.com)
+	by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+	(Exim 4.93)
+	(envelope-from <ebiederm@xmission.com>)
+	id 1wUMHF-002RRp-JI; Tue, 02 Jun 2026 04:23:20 -0600
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: Deepak Gupta <debug@rivosinc.com>,  Deepak Gupta via B4 Relay
+ <devnull+debug.rivosinc.com@kernel.org>,  Thomas Gleixner
+ <tglx@linutronix.de>,  Ingo Molnar <mingo@redhat.com>,  Borislav Petkov
+ <bp@alien8.de>,  Dave Hansen <dave.hansen@linux.intel.com>,
+  x86@kernel.org,  "H. Peter Anvin" <hpa@zytor.com>,  Andrew Morton
+ <akpm@linux-foundation.org>,  "Liam R. Howlett" <Liam.Howlett@oracle.com>,
+  Vlastimil Babka <vbabka@suse.cz>,  Lorenzo Stoakes
+ <lorenzo.stoakes@oracle.com>,  Paul Walmsley <paul.walmsley@sifive.com>,
+  Palmer Dabbelt <palmer@dabbelt.com>,  Albert Ou <aou@eecs.berkeley.edu>,
+  Conor Dooley <conor@kernel.org>,  Rob Herring <robh@kernel.org>,
+  Krzysztof Kozlowski <krzk+dt@kernel.org>,  Arnd Bergmann <arnd@arndb.de>,
+  Christian Brauner <brauner@kernel.org>,  Peter Zijlstra
+ <peterz@infradead.org>,  Oleg Nesterov <oleg@redhat.com>,  Kees Cook
+ <kees@kernel.org>,  Jonathan Corbet <corbet@lwn.net>,  Shuah Khan
+ <shuah@kernel.org>,  Jann Horn <jannh@google.com>,  Conor Dooley
+ <conor+dt@kernel.org>,  Miguel Ojeda <ojeda@kernel.org>,  Alex Gaynor
+ <alex.gaynor@gmail.com>,  Boqun Feng <boqun.feng@gmail.com>,  Gary Guo
+ <gary@garyguo.net>,  =?utf-8?Q?Bj=C3=B6rn?= Roy Baron
+ <bjorn3_gh@protonmail.com>,  Andreas
+ Hindborg <a.hindborg@kernel.org>,  Alice Ryhl <aliceryhl@google.com>,
+  Trevor Gross <tmgross@umich.edu>,  Benno Lossin <lossin@kernel.org>,
+  linux-kernel@vger.kernel.org,  linux-fsdevel@vger.kernel.org,
+  linux-mm@kvack.org,  linux-riscv@lists.infradead.org,
+  devicetree@vger.kernel.org,  linux-arch@vger.kernel.org,
+  linux-doc@vger.kernel.org,  linux-kselftest@vger.kernel.org,
+  alistair.francis@wdc.com,  richard.henderson@linaro.org,
+  jim.shu@sifive.com,  andybnac@gmail.com,  kito.cheng@sifive.com,
+  charlie@rivosinc.com,  atishp@rivosinc.com,  evan@rivosinc.com,
+  cleger@rivosinc.com,  alexghiti@rivosinc.com,  samitolvanen@google.com,
+  broonie@kernel.org,  rick.p.edgecombe@intel.com,
+  rust-for-linux@vger.kernel.org,  Zong Li <zong.li@sifive.com>
+In-Reply-To: <87wlwif04z.fsf@igel.home> (Andreas Schwab's message of "Mon, 01
+	Jun 2026 22:58:52 +0200")
+References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
+	<20251112-v5_user_cfi_series-v23-6-b55691eacf4f@rivosinc.com>
+	<87jyslndo4.fsf@igel.home>
+	<CAKC1njS=AHu6uHrH4ae8VxcdEbhgiPXYCAoN3F_mnppBd3SwOA@mail.gmail.com>
+	<875x44o9hj.fsf@igel.home>
+	<CAKC1njSn_rtCj8ii876PNQTk0nsCTfWsb4DzdymufHVthh1Rkg@mail.gmail.com>
+	<871peqgp9v.fsf@igel.home>
+	<CAKC1njR+dTdvp+BmLGPtgd8dufiUwBtkQ9a-qinELT_Fmi13sQ@mail.gmail.com>
+	<87wlwif04z.fsf@igel.home>
+Date: Tue, 02 Jun 2026 05:23:10 -0500
+Message-ID: <87tsrli6lt.fsf@email.froward.int.ebiederm.org>
+User-Agent: Gnus/5.13 (Gnus v5.13)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20260529-tonyk-robust_arm-v3-5-a6f02684d4fe@igalia.com>
+Content-Type: text/plain
+X-XM-SPF: eid=1wUMHF-002RRp-JI;;;mid=<87tsrli6lt.fsf@email.froward.int.ebiederm.org>;;;hst=in01.mta.xmission.com;;;ip=72.198.198.28;;;frm=ebiederm@xmission.com;;;spf=pass
+X-XM-AID: U2FsdGVkX19J6tpF2AGRJ9xglxGPNzSSZeVg13KZsgY=
+X-Spam-Level: 
+X-Spam-Virus: No
+X-Spam-Report: 
+	* -1.0 ALL_TRUSTED Passed through trusted hosts only via SMTP
+	*  0.1 BAYES_50 BODY: Bayes spam probability is 40 to 60%
+	*      [score: 0.4997]
+	*  0.7 XMSubLong Long Subject
+	*  0.0 T_TM2_M_HEADER_IN_MSG BODY: No description available.
+	* -0.0 DCC_CHECK_NEGATIVE Not listed in DCC
+	*      [sa02 1397; Body=1 Fuz1=1 Fuz2=1]
+	*  0.0 T_TooManySym_01 4+ unique symbols in subject
+	*  0.0 T_TooManySym_02 5+ unique symbols in subject
+X-Spam-DCC: XMission; sa02 1397; Body=1 Fuz1=1 Fuz2=1 
+X-Spam-Combo: ;Andreas Schwab <schwab@linux-m68k.org>
+X-Spam-Relay-Country: 
+X-Spam-Timing: total 2774 ms - load_scoreonly_sql: 0.03 (0.0%),
+	signal_user_changed: 3.6 (0.1%), b_tie_ro: 2.5 (0.1%), parse: 0.84
+	(0.0%), extract_message_metadata: 8 (0.3%), get_uri_detail_list: 0.86
+	(0.0%), tests_pri_-2000: 7 (0.3%), tests_pri_-1000: 8 (0.3%),
+	tests_pri_-950: 1.02 (0.0%), tests_pri_-900: 0.92 (0.0%),
+	tests_pri_-90: 62 (2.2%), check_bayes: 61 (2.2%), b_tokenize: 13
+	(0.5%), b_tok_get_all: 9 (0.3%), b_comp_prob: 1.76 (0.1%),
+	b_tok_touch_all: 35 (1.3%), b_finish: 0.56 (0.0%), tests_pri_0: 297
+	(10.7%), check_dkim_signature: 0.41 (0.0%), check_dkim_adsp: 3.2
+	(0.1%), poll_dns_idle: 2367 (85.3%), tests_pri_10: 2.7 (0.1%),
+	tests_pri_500: 2379 (85.8%), rewrite_mail: 0.00 (0.0%)
+Subject: Re: [PATCH v23 06/28] riscv/mm : ensure PROT_WRITE leads to VM_READ
+ | VM_WRITE
+X-SA-Exim-Connect-IP: 166.70.13.51
+X-SA-Exim-Rcpt-To: too long (recipient list exceeded maximum allowed size of 512 bytes)
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+X-SA-Exim-Scanned: No (on out02.mta.xmission.com); SAEximRunCond expanded to false
 
-On 2026-05-29 13:33:57-0300, André Almeida wrote:
-> Based on aarch64 implementation, provide a 32 bit entry point for this vDSO.
-> 
-> In order to keep compatibility with arm64_futex_robust_unlock_get_pop(),
-> make sure to store the pop address at r2.
-> 
-> Signed-off-by: André Almeida <andrealmeid@igalia.com>
-> ---
->  arch/arm64/kernel/vdso.c            |  9 +++++++++
->  arch/arm64/kernel/vdso32/Makefile   |  2 +-
->  arch/arm64/kernel/vdso32/vdso.lds.S |  5 +++++
->  arch/arm64/kernel/vdso32/vfutex.c   | 33 +++++++++++++++++++++++++++++++++
->  4 files changed, 48 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-> index 76f22ea8e181..3ce9d9d79431 100644
-> --- a/arch/arm64/kernel/vdso.c
-> +++ b/arch/arm64/kernel/vdso.c
-> @@ -71,6 +71,15 @@ static void vdso_futex_robust_unlock_update_ips(enum vdso_abi abi, struct mm_str
->  
->  		futex_set_vdso_cs_range(fd, 0, success, end, false);
->  	}
-> +
-> +#ifdef CONFIG_COMPAT_VDSO
-> +	if (abi == VDSO_ABI_AA32) {
-> +		success = (uintptr_t) VDSO_SYMBOL(vdso, futex_list32_try_unlock_cs_success);
-> +		end = (uintptr_t) VDSO_SYMBOL(vdso, futex_list32_try_unlock_cs_end);
-> +
-> +		futex_set_vdso_cs_range(fd, 1, success, end, true);
+Andreas Schwab <schwab@linux-m68k.org> writes:
 
-Should also be idx = 0, I think.
+> On Jun 01 2026, Deepak Gupta wrote:
+>
+>> riscv uses `VM_SHADOW_STACK`. It's just very simple to use `protection_map`
+>> with just `VM_WRITE`. On RISC-V, `-W-` is a shadow stack mapping. It's not same
+>> on x86 or arm64. So `protection_map[VM_WRITE]` simply picks shadow stack
+>> encoding. We just ensure that PROT_WRITE is converted to
+>> "VM_READ | VM_WRITE" at vma level.
+>
+> That does not explain _why_ you need to make that user visible change,
+> when others can get away without it.
 
-> +	}
-> +#endif
->  }
->  #else
->  static inline void vdso_futex_robust_unlock_update_ips(enum vdso_abi abi, struct mm_struct *mm) { }
-> diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
-> index 2775843e53cd..cc4248539bec 100644
-> --- a/arch/arm64/kernel/vdso32/Makefile
-> +++ b/arch/arm64/kernel/vdso32/Makefile
-> @@ -97,7 +97,7 @@ VDSO_LDFLAGS += --orphan-handling=$(CONFIG_LD_ORPHAN_WARN_LEVEL)
->  munge := ../../../arm/vdso/vdsomunge
->  hostprogs := $(munge)
->  
-> -c-obj-vdso := note.o
-> +c-obj-vdso := note.o vfutex.o
+Especially since as I recall the decision was made was that the user
+visible protection bits would match the mmap call.  If there is some
+combination an architecture does not support that would simply not be
+reflected in hardware until some future version of the hardware gets
+around to supporting it.
 
-#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
+This is what happened with executable page permissions on x86 for
+example.  It used to be that it was not possible to deny execute
+permission on a readable page.  Later that proved sufficiently valuable
+that support for denying execute permission was added to the hardware.
 
->  c-obj-vdso-gettimeofday := vgettimeofday.o
->  
->  ifneq ($(c-gettimeofday-y),)
-> diff --git a/arch/arm64/kernel/vdso32/vdso.lds.S b/arch/arm64/kernel/vdso32/vdso.lds.S
-> index c374fb0146f3..31e0a3770c32 100644
-> --- a/arch/arm64/kernel/vdso32/vdso.lds.S
-> +++ b/arch/arm64/kernel/vdso32/vdso.lds.S
-> @@ -87,6 +87,11 @@ VERSION
->  		__vdso_clock_getres;
->  		__vdso_clock_gettime64;
->  		__vdso_clock_getres_time64;
-> +		__vdso_futex_robust_list32_try_unlock;
+That all happened quite transparently to userspace, that wasn't trying
+to assuming PROT_READ implied PROT_EXEC.
 
-#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
+So I am at a complete loss why someone would choose to break userspace
+by confusing hardware limitations with what userspace asks for in mmap.
 
->  	local: *;
->  	};
->  }
-> +
-> +VDSO_futex_list32_try_unlock_cs_success = __futex_list32_try_unlock_cs_success;
-> +VDSO_futex_list32_try_unlock_cs_start = __futex_list32_try_unlock_cs_start;
-> +VDSO_futex_list32_try_unlock_cs_end = __futex_list32_try_unlock_cs_end;
+Eric
 
-When support for 32-bit robust lists will be added to the 64-bit vDSO
-then both vDSOs will have these symbols and they will conflict.
-Maybe add VDSO32_SYMBOL() which uses a different namespace than the
-regular VDSO_SYMBOL(). And teach gen_vdso_offsets.sh to use that
-namespace.
-
-(...)
-
-
-Thomas
