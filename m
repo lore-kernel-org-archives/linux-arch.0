@@ -1,67 +1,67 @@
 Received: from mail-wr1-f46.google.com (mail-wr1-f46.google.com [209.85.221.46])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3B14C3D3CF4
-	for <linux-arch@vger.kernel.org>; Tue,  2 Jun 2026 22:49:04 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E61D43D1CCA
+	for <linux-arch@vger.kernel.org>; Tue,  2 Jun 2026 22:49:06 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.46
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780440546; cv=none; b=kpdVdLkUJHjsDBgCOFLxUXI+cyWiCd7917gomrPD1X0WSslJV4vp5+oSbl27xWZX/nbbagdcYS2iKMxYOy8qyQmmin0BERQWgtf/DQ25o7EtEfjFgrHn8aVrqw6qZJwIMLxku82zjWV67ozsqaXWwsqZOtVlaqbAZkPoy10B/5E=
+	t=1780440550; cv=none; b=KhxhkqhOtKoIn+hC2k4sVVMzWx1BqN5ups8HBivgu4EwvgQxiqdExRv4kHhDJEROQpNgWZwqU4KluBSxdWiTHS2UrN6hE+GQbpFF8G7XbsS7qIw5WIXaVvQtAGqOfBDKZgXGt4PgBgGpDE8OgHznWuIyA4dDA80Euel65H7MnCY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780440546; c=relaxed/simple;
-	bh=7QkcTyZCWN6yMIODzwkt5kyZDMXqN9r1gKsRuM6vY0A=;
+	s=arc-20240116; t=1780440550; c=relaxed/simple;
+	bh=a1YwseQaE7rwdsmfJ7bSKBT6pGE1MSI+QaPHqlpLaow=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=btAx1sdUm1IsWCseiDzRAc4p9N3p63zNL1fjH7ynQej9iJB9IhPdTql5V2qSPbVatv7IGNUNj848K6WfGBgNwJ4M0tlfkgEtXNA7P72c+RbDNXzc61SfDkoPovS6zt/c7uFPS3t9r69CLqiLE8fsTt+/D+X5LtkCQfmahHcxEDk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=sxa1dIPx; arc=none smtp.client-ip=209.85.221.46
+	 In-Reply-To:To:Cc; b=LgetGSeeNwbI1ypKp2//p7r3hrLmRxcjOiYWoQTIQDV7R/DcJALjUIykLhPs1Z06wtqb582kxQpAmHuJz8ffkuYVK2EsUJouKD6Ub489Yk7kHNiOsimYDRHaHcgfpeprK2iSSS2Iz/RiBMr1pWiB0PqL/zlLBw7vAxAUzyxoAk8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=BugsESx4; arc=none smtp.client-ip=209.85.221.46
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="sxa1dIPx"
-Received: by mail-wr1-f46.google.com with SMTP id ffacd0b85a97d-45ef6565cfdso2208654f8f.0
-        for <linux-arch@vger.kernel.org>; Tue, 02 Jun 2026 15:49:04 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="BugsESx4"
+Received: by mail-wr1-f46.google.com with SMTP id ffacd0b85a97d-45ef5146b56so38240f8f.0
+        for <linux-arch@vger.kernel.org>; Tue, 02 Jun 2026 15:49:06 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1780440543; x=1781045343; darn=vger.kernel.org;
+        d=gmail.com; s=20251104; t=1780440545; x=1781045345; darn=vger.kernel.org;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=n6yMzakS1WVzaIBy+f9smd1nqOBpafHkibEk4ZXvtyg=;
-        b=sxa1dIPxe3qqOPfK243s6qYB5pdp+z+Zzp+UyeTuzeveZwimQUaEJTPltvfwS3PqxE
-         Xws6SFjkt2yIu67Z8/6Am7jB3HQu9+U09CsOShbZVi/VUfy+mSUUJeLv5OW/2g8Q4icJ
-         oDkLoUQ8SyBpzlNJkwgyA7VHuIY7KNVHYiEBIUu1iqgjMSmp3JmM4/MoaCU3NrrxLgAe
-         /CrsztXSeQUk9DfA8I2x8rnxQfP1VdxpK4r/113kzrxrVh+osHLyNfi+XWFIw36H5t8x
-         pC4OQX0OCxol+0OFabCiLnXteCDI5bWOJa1SuP/Nm8Pnv3vK4YeNxyLHSKHQ/FRCSY7U
-         3MVw==
+        bh=s09INlj8seWn/YOle83dzShBKe394Jq1/oZpUANOzOk=;
+        b=BugsESx4O/HaBi1zax3z3rH/2y+iaS1p1SKvCmtou+yoEmZ0mGoX3JN8+VdHkkLSjD
+         9oP9aa89cXWQYokQ79hX0UYNpVBWw51q02u/NoBWvAxJYAW6/COkOMgWKc+EMsFf08jh
+         1M3+knR49GHJmswpuNGziT0lMAt0jyk4Aevxb+VGP+Q9DyVfWHrJbBuX622Vu6px9fDd
+         uTRSjSD1+c0j+hkFxO9S+xM5Q6nqwL2KIOWR/UQl8z/XmNeKc0cSkVWJu7TIDraWl567
+         Aii1+Wp8JdvCJZ+2w8dKc4l53c+xN8VJNdzTCMrr9GLmWmhlemdE34GYAAu+4N80ZX/R
+         Al3A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1780440543; x=1781045343;
+        d=1e100.net; s=20251104; t=1780440545; x=1781045345;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:x-gm-gg:x-gm-message-state:from:to
          :cc:subject:date:message-id:reply-to;
-        bh=n6yMzakS1WVzaIBy+f9smd1nqOBpafHkibEk4ZXvtyg=;
-        b=n9AkuMCeZHCWnKZ6fJEiwyw9sPY881rY1WsTz4p8q7HvRdM8Y6BA+/pT2wmpQremOe
-         6Wq0Huu6iabGd9e36G/YUqJBuEzxZUecBPf5ByclP3fPLMc1Mcx/BuLhlNv93h6phLmz
-         NMBICJj7k0uDIeiofBPpQbQjGReZxOYltYOG3whpNC7yIUVNYQibaErAHw9bB+kaHf4C
-         fqHD1VNUlW1ZgyD/PawetT9BzLC2/RKDOMzT0UL0GGM+K9DQXHRXYacGuHyJbJ/GVot+
-         /Th1sFh4zdI8sIUhgp9/Z+qwUBSkXQvZB7cokrOgy+5Mo1oj7ELkx4NuoZkmMTnlG5M0
-         BAqQ==
-X-Forwarded-Encrypted: i=1; AFNElJ9uwNJtik8lwc19vTY8PVGbrztwHy+RNJ+SSD12p4D0hmCqfKs649fu8ZITCNEnizBT/bSg/403AHo+@vger.kernel.org
-X-Gm-Message-State: AOJu0Yzo5xiqYxkde9O79qBueikk3aj/WT3E87/+3v+vUv3T2J4XzJIU
-	IAAtWYyxV0awHL8FjGNFzSBr01tVVqtj0kRKnWOHR4OXx+HwmqH6LsHJ
-X-Gm-Gg: Acq92OEu3kn+W3ibEED0xVQuEFS+DSVu6PAfKReD7rmstufQxBnaBTfV8x0fqgeQBga
-	Ra1rrTUT8rC704B/jGVV3Gk/MmY9/tpphdSHNEColferXw/QYh2+YYF7Rxym99wiPSjcf+rFG39
-	/2Jib+g2CEgNNM0qBwquvXMSQfsmT/g8PgwQDskTaS9wyJAcCzOjMbl+d9LAhApzSDkykbooX8X
-	Ckylws8J50ohtk1OZLGEbOEaawWDfmk9j7gGfX0pdPKVTR3zWANU4PDAcNzWumqaZ0c+5oDegqj
-	bqcTUPl/jx5YhR1YMcxjrCGzUgsBzY8J+4NVqKms1OzGue1a309DK78+XTjIYTCawgnHlKE92V6
-	GY/1Y02FK52ScOyfx/0nSk4UGU6mFY7UDcKcpkM/SQT+IOSf5kOOlFgcap1D/pTrQOt8BpZVdjy
-	o7Ic1mMDPpAJqTsCch0yzisMHS853TMZL8qM6298Uy+w==
-X-Received: by 2002:a05:6000:299c:20b0:45e:f52b:f4b7 with SMTP id ffacd0b85a97d-460217f1fddmr454368f8f.17.1780440542599;
-        Tue, 02 Jun 2026 15:49:02 -0700 (PDT)
+        bh=s09INlj8seWn/YOle83dzShBKe394Jq1/oZpUANOzOk=;
+        b=q6Dfzdali75+Y2Zb6Yk0+U8QVQ5pERTdYMHJk4aV6D5eEGZ/Z3qz6VRkXiN1etwub1
+         sLGXktk4xkj8pNzdcDkIq+/QyzOIBOCajopHINJaIKYWwAZIWliqcjo63Um19zVKyu+H
+         j9gPD0X7a2Pj4kq93OyOAOptetMJ2dG4wxwVzMEYoJJTF3j9IPnLlXdBAbNTxcd+PgYe
+         2L4NoCRb54xqRWfAdTr+l016inz6iKJhx6v+ohGTlW57pxx3O00lSq2gnbI/pu9hlUrg
+         dX1keTu/jR0PfkyNn15O/lA7QkkHMjKWYE9h+U1jq8wdchUk0xFIlqOXXK0cR9mWNtz/
+         HnMw==
+X-Forwarded-Encrypted: i=1; AFNElJ+221z2HmT+tTfaRHZ53YNxDZgSwwz7bkya6IBi6AuSPJ+VZfUWVTT+mmfN9QRre5uvDUnNVDFWoV/u@vger.kernel.org
+X-Gm-Message-State: AOJu0Yyl2Y76Pb4yW5+AVYNp2ypO+E1njK40E9ms5AkbcdVyRlUZG0sm
+	batTPTKYIw0DT5G08JX+pyhYtpiV+RqZd1wiGi4LlJ67uWNDKxT2QSFl
+X-Gm-Gg: Acq92OHpU2DnSw5lOBFfp3qlpQRlo/xti2y152hvI4RmRUhwbo/v5mfrIT6y/fDG4lL
+	9VriGiIgUCusoGrqgMk8JkCTfaFVvNCPGZZbLDufeXjXYwlBDAGShVaiyt8j6XFL4CNXxKZQ8SI
+	wFH/umtrPKZKksVOQYx+rK/kM362/S2mnLQVXrTJSmsTKpMW371onnXKBdCxxlavvAewRuTHBbW
+	LXsf05Lb48us/GYmgFPBGbj48ANlAiE9XVM9gV1/dCThbm+LP7Koa74T3j9wo6WOrtOgVS6mLrc
+	dzh1OIRIXWka8HoLe16rcaa4ufIaavBs2vXQUKxV0jUwa8/3rp9iokk1if1W6EAyYVOWF9vlDcF
+	In8rGeUaUitFMD6mxTqoy1ef1NMO6cmgMk7KAXqNwRYlpgbZC0u6pAZWR0QxcZQq3Zgl3tF0h0Z
+	CEDO+AgwK8tcA8GMS4vvEXZ/9JW9GWuXSh3QL7i6zW5w==
+X-Received: by 2002:a05:6000:1acf:b0:460:118f:7a73 with SMTP id ffacd0b85a97d-4602130ddbdmr922848f8f.18.1780440545312;
+        Tue, 02 Jun 2026 15:49:05 -0700 (PDT)
 Received: from [172.16.188.153] ([213.181.114.83])
-        by smtp.googlemail.com with ESMTPSA id ffacd0b85a97d-4601f2f2710sm1999791f8f.14.2026.06.02.15.48.59
+        by smtp.googlemail.com with ESMTPSA id ffacd0b85a97d-4601f2f2710sm1999791f8f.14.2026.06.02.15.49.02
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 02 Jun 2026 15:49:02 -0700 (PDT)
+        Tue, 02 Jun 2026 15:49:04 -0700 (PDT)
 From: Jim Cromie <jim.cromie@gmail.com>
-Date: Tue, 02 Jun 2026 22:48:15 +0000
-Subject: [PATCH v4 18/25] dyndbg: Upgrade class param storage to u64 for
- 64-bit classmaps
+Date: Tue, 02 Jun 2026 22:48:16 +0000
+Subject: [PATCH v4 19/25] dyndbg,module: make proper substructs in
+ _ddebug_info
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -70,7 +70,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260602-dd-maint-2-v4-18-19a1445585a8@gmail.com>
+Message-Id: <20260602-dd-maint-2-v4-19-19a1445585a8@gmail.com>
 References: <20260602-dd-maint-2-v4-0-19a1445585a8@gmail.com>
 In-Reply-To: <20260602-dd-maint-2-v4-0-19a1445585a8@gmail.com>
 To: Jonathan Corbet <corbet@lwn.net>, 
@@ -85,241 +85,552 @@ To: Jonathan Corbet <corbet@lwn.net>,
 Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-modules@vger.kernel.org, 
  linux-kselftest@vger.kernel.org, dri-devel@lists.freedesktop.org, 
- Jim Cromie <jim.cromie@gmail.com>
+ Jim Cromie <jim.cromie@gmail.com>, 
+ Louis Chauvet <louis.chauvet@bootlin.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1780440488; l=8637;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1780440488; l=19018;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=7QkcTyZCWN6yMIODzwkt5kyZDMXqN9r1gKsRuM6vY0A=;
- b=0tpHpFzLjk8I4uwZ21aYU4mH5QtyS0EHyjlodH96NB2V6T/cqfRSNVZpN0KHfArMXx6At1891
- X3DtNc8ymnsDLLJPKFCU+WzVHsGCA8A5P82H74gtj+knahAPOgRnlYf
+ bh=a1YwseQaE7rwdsmfJ7bSKBT6pGE1MSI+QaPHqlpLaow=;
+ b=swHSwYnwjzhSTULr00VfyEqzOJJtaSCZzAHlHFzUeO8OdjwtOLOq6YXx9feLD6lcLx4aIH/19
+ NQQ2ehduIhgAi5Yup8qEVlgL/CAEnQq1AuR/0M7Bybfg23myMTs+rZe
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 
-Currently, `struct ddebug_class_param` uses `unsigned long` pointers
-to store the state of `bits` and `lvl`. On 32-bit architectures, this
-limits the bit-vector to 32 bits, which truncates 64-bit classmaps
-(such as the one needed by `__drm_debug`).
+recompose struct _ddebug_info, inserting proper sub-structs.
 
-To guarantee support for 64-bit debug categories across all
-architectures, upgrade the internal storage types in `struct
-_ddebug_class_param` to `u64`. This inherently makes both union
-members the same size while safely avoiding truncation.
+The struct _ddebug_info has 2 pairs of _vec, num_##_vec fields, for
+descs and classes respectively.  for_subvec() makes walking these
+vectors less cumbersome, now lets move those field pairs into their
+own "vec" structs: _ddebug_descs & _ddebug_class_maps, and re-compose
+struct _ddebug_info to contain them cleanly.  This also lets us get
+rid of for_subvec()'s num_##_vec paste-up.
 
-This includes:
-- Changing union members `bits` and `lvl` to `u64 *`.
-- Using `kstrtou64()` for sysfs input parsing.
-- Replacing array-based `test_bit()` operations with safe `u64` scalar
-  bitwise logic (`!!(val & (1ULL << bi))`).
-- adjusting lib/test_dynamic_debug.c too
+Also recompose struct ddebug_table to contain a _ddebug_info.  This
+reinforces its use as a cursor into relevant data for a builtin
+module, and access to the full _ddebug state for modules.
 
-- Updating `drm_print`'s `__drm_debug` refs to `u64`
-  further changes to drm later, when BROKEN is fixed.
+NOTES:
+
+Fixup names: Normalize all struct names to "struct _ddebug_*"
+eliminating the minor/stupid variations created in classmaps-v1.
+
+Change section names together, for more obvious name pairing.
+
+Invariant: These vectors ref a contiguous subrange of __section memory
+in builtin/DATA or in loadable modules via mod->dyndbg_info; with
+guaranteed life-time for us.
+
+struct module contains a _ddebug_info field and module/main.c sets it
+up, so that gets adjusted rather obviously.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
 ---
-v4: undo change struct ddebug_class_param to _ddebug_class_param
-this is better done in next patch, with other normalization on _ddebug
 
-v3:
-fix undefd behavior when classmaps is all 64 bits.
-change module_param_named( type-arg from ulong to ullong)
-change struct ddebug_class_param to _ddebug_class_param
-
-in drivers/gpu/drm/drm_print.{c,h}
-api change later
+v3: squash in section name changes.
 
 v2:
 
-patch was "make bits & lvl same size"
-but that size was unsigned long, only 32 bits on i386 etc
-use u64 for all bits, and %llu %llx
+Move RvB after SoB
+In structs _ddebug_descs & _ddebug_class_maps, change int length to unsigned int
+No use of <0 vals is contemplated.
 
-u64-fix
+dyndbg: improve section names
 
-u64-drm-dbg
+change __dyndbg to __dyndbg_descs
+change __dyndbg_classes to __dyndbg_class_maps
 
-_ddebug-cl-parm-drm
+this sets up for adding __dyndbg_class_users
 ---
- drivers/gpu/drm/drm_print.c   |  4 ++--
- include/drm/drm_print.h       |  2 +-
- include/linux/dynamic_debug.h |  4 ++--
- lib/dynamic_debug.c           | 34 ++++++++++++++++++----------------
- lib/test_dynamic_debug.c      |  2 +-
- 5 files changed, 24 insertions(+), 22 deletions(-)
+ drivers/gpu/drm/drm_print.c      |   2 +-
+ include/asm-generic/dyndbg.lds.h |  14 ++---
+ include/linux/dynamic_debug.h    |  40 ++++++++-----
+ kernel/module/main.c             |  12 ++--
+ lib/dynamic_debug.c              | 118 +++++++++++++++++++--------------------
+ lib/test_dynamic_debug.c         |   2 +-
+ 6 files changed, 100 insertions(+), 88 deletions(-)
 
 diff --git a/drivers/gpu/drm/drm_print.c b/drivers/gpu/drm/drm_print.c
-index ded9461df5f2..3a470e808e39 100644
+index 3a470e808e39..9b4d8e3baacc 100644
 --- a/drivers/gpu/drm/drm_print.c
 +++ b/drivers/gpu/drm/drm_print.c
-@@ -40,7 +40,7 @@
-  * __drm_debug: Enable debug output.
-  * Bitmask of DRM_UT_x. See include/drm/drm_print.h for details.
-  */
--unsigned long __drm_debug;
-+u64 __drm_debug;
- EXPORT_SYMBOL(__drm_debug);
+@@ -69,7 +69,7 @@ DECLARE_DYNDBG_CLASSMAP(drm_debug_classes, DD_CLASS_TYPE_DISJOINT_BITS, 0,
+ 			"DRM_UT_DP",
+ 			"DRM_UT_DRMRES");
  
- MODULE_PARM_DESC(debug, "Enable debug output, where each bit enables a debug category.\n"
-@@ -54,7 +54,7 @@ MODULE_PARM_DESC(debug, "Enable debug output, where each bit enables a debug cat
- "\t\tBit 8 (0x100) will enable DP messages (displayport code)");
+-static struct ddebug_class_param drm_debug_bitmap = {
++static struct _ddebug_class_param drm_debug_bitmap = {
+ 	.bits = &__drm_debug,
+ 	.flags = "p",
+ 	.map = &drm_debug_classes,
+diff --git a/include/asm-generic/dyndbg.lds.h b/include/asm-generic/dyndbg.lds.h
+index 9d8951bef688..ec661f9f3793 100644
+--- a/include/asm-generic/dyndbg.lds.h
++++ b/include/asm-generic/dyndbg.lds.h
+@@ -3,16 +3,16 @@
+ #define __ASM_GENERIC_DYNDBG_LDS_H
  
- #if !defined(CONFIG_DRM_USE_DYNAMIC_DEBUG)
--module_param_named(debug, __drm_debug, ulong, 0600);
-+module_param_named(debug, __drm_debug, ullong, 0600);
- #else
- /* classnames must match vals of enum drm_debug_category */
- DECLARE_DYNDBG_CLASSMAP(drm_debug_classes, DD_CLASS_TYPE_DISJOINT_BITS, 0,
-diff --git a/include/drm/drm_print.h b/include/drm/drm_print.h
-index ab017b05e175..21a0ced0b2f2 100644
---- a/include/drm/drm_print.h
-+++ b/include/drm/drm_print.h
-@@ -39,7 +39,7 @@ struct drm_device;
- struct seq_file;
+ #include <asm-generic/bounded_sections.lds.h>
+-#define DYNDBG_SECTIONS()					\
+-	BOUNDED_SECTION_BY(__dyndbg, ___dyndbg)			\
+-	BOUNDED_SECTION_BY(__dyndbg_classes, ___dyndbg_classes)
++#define DYNDBG_SECTIONS()						\
++	BOUNDED_SECTION_BY(__dyndbg_descs, ___dyndbg_descs)		\
++	BOUNDED_SECTION_BY(__dyndbg_class_maps, ___dyndbg_class_maps)
  
- /* Do *not* use outside of drm_print.[ch]! */
--extern unsigned long __drm_debug;
-+extern u64 __drm_debug;
+ #define MOD_DYNDBG_SECTIONS()						\
+-	__dyndbg 0 : ALIGN(8) {						\
+-		KEEP(*(__dyndbg))					\
++	__dyndbg_descs 0 : ALIGN(8) {					\
++		KEEP(*(__dyndbg_descs))					\
+ 	}								\
+-	__dyndbg_classes 0 : ALIGN(8) {					\
+-		KEEP(*(__dyndbg_classes))				\
++	__dyndbg_class_maps 0 : ALIGN(8) {				\
++		KEEP(*(__dyndbg_class_maps))				\
+ 	}
  
- /**
-  * DOC: print
+ #endif /* __ASM_GENERIC_DYNDBG_LDS_H */
 diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 0443781ed95b..91546a99014b 100644
+index 91546a99014b..8fc315d0e5a5 100644
 --- a/include/linux/dynamic_debug.h
 +++ b/include/linux/dynamic_debug.h
-@@ -91,8 +91,8 @@ struct _ddebug_info {
+@@ -72,8 +72,8 @@ enum ddebug_class_map_type {
+ 	 */
+ };
  
- struct ddebug_class_param {
+-struct ddebug_class_map {
+-	struct module *mod;
++struct _ddebug_class_map {
++	struct module *mod;	/* NULL for builtins */
+ 	const char *mod_name;	/* needed for builtins */
+ 	const char **class_names;
+ 	const int length;
+@@ -81,21 +81,33 @@ struct ddebug_class_map {
+ 	enum ddebug_class_map_type map_type;
+ };
+ 
+-/* encapsulate linker provided built-in (or module) dyndbg data */
++/*
++ * @_ddebug_info: gathers module/builtin dyndbg_* __sections together.
++ * For builtins, it is used as a cursor, with the inner structs
++ * marking sub-vectors of the builtin __sections in DATA.
++ */
++struct _ddebug_descs {
++	struct _ddebug *start;
++	unsigned int len;
++};
++
++struct _ddebug_class_maps {
++	struct _ddebug_class_map *start;
++	unsigned int len;
++};
++
+ struct _ddebug_info {
+-	struct _ddebug *descs;
+-	struct ddebug_class_map *classes;
+-	unsigned int num_descs;
+-	unsigned int num_classes;
++	struct _ddebug_descs descs;
++	struct _ddebug_class_maps maps;
+ };
+ 
+-struct ddebug_class_param {
++struct _ddebug_class_param {
  	union {
--		unsigned long *bits;
--		unsigned int *lvl;
-+		u64 *bits;
-+		u64 *lvl;
+ 		u64 *bits;
+ 		u64 *lvl;
  	};
  	char flags[8];
- 	const struct ddebug_class_map *map;
+-	const struct ddebug_class_map *map;
++	const struct _ddebug_class_map *map;
+ };
+ 
+ /*
+@@ -114,8 +126,8 @@ struct ddebug_class_param {
+  */
+ #define DECLARE_DYNDBG_CLASSMAP(_var, _maptype, _base, ...)		\
+ 	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
+-	static struct ddebug_class_map __aligned(8) __used		\
+-		__section("__dyndbg_classes") _var = {			\
++	static struct _ddebug_class_map __aligned(8) __used		\
++		__section("__dyndbg_class_maps") _var = {			\
+ 		.mod = THIS_MODULE,					\
+ 		.mod_name = KBUILD_MODNAME,				\
+ 		.base = _base,						\
+@@ -155,7 +167,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+ 
+ #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)	\
+ 	static struct _ddebug  __aligned(8)			\
+-	__section("__dyndbg") name = {				\
++	__section("__dyndbg_descs") name = {			\
+ 		.modname = KBUILD_MODNAME,			\
+ 		.function = __func__,				\
+ 		.filename = __FILE__,				\
+@@ -242,7 +254,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+  * macro.
+  */
+ #define _dynamic_func_call_cls(cls, fmt, func, ...)			\
+-	__dynamic_func_call_cls(__UNIQUE_ID(ddebug), cls, fmt, func, ##__VA_ARGS__)
++	__dynamic_func_call_cls(__UNIQUE_ID(_ddebug), cls, fmt, func, ##__VA_ARGS__)
+ #define _dynamic_func_call(fmt, func, ...)				\
+ 	_dynamic_func_call_cls(_DPRINTK_CLASS_DFLT, fmt, func, ##__VA_ARGS__)
+ 
+@@ -252,7 +264,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+  * with precisely the macro's varargs.
+  */
+ #define _dynamic_func_call_cls_no_desc(cls, fmt, func, ...)		\
+-	__dynamic_func_call_cls_no_desc(__UNIQUE_ID(ddebug), cls, fmt,	\
++	__dynamic_func_call_cls_no_desc(__UNIQUE_ID(_ddebug), cls, fmt,	\
+ 					func, ##__VA_ARGS__)
+ #define _dynamic_func_call_no_desc(fmt, func, ...)			\
+ 	_dynamic_func_call_cls_no_desc(_DPRINTK_CLASS_DFLT, fmt,	\
+diff --git a/kernel/module/main.c b/kernel/module/main.c
+index 46dd8d25a605..bd7899a91755 100644
+--- a/kernel/module/main.c
++++ b/kernel/module/main.c
+@@ -2774,12 +2774,12 @@ static int find_module_sections(struct module *mod, struct load_info *info)
+ 		pr_warn("%s: Ignoring obsolete parameters\n", mod->name);
+ 
+ #ifdef CONFIG_DYNAMIC_DEBUG_CORE
+-	mod->dyndbg_info.descs = section_objs(info, "__dyndbg",
+-					      sizeof(*mod->dyndbg_info.descs),
+-					      &mod->dyndbg_info.num_descs);
+-	mod->dyndbg_info.classes = section_objs(info, "__dyndbg_classes",
+-						sizeof(*mod->dyndbg_info.classes),
+-						&mod->dyndbg_info.num_classes);
++	mod->dyndbg_info.descs.start = section_objs(info, "__dyndbg_descs",
++						    sizeof(*mod->dyndbg_info.descs.start),
++						    &mod->dyndbg_info.descs.len);
++	mod->dyndbg_info.maps.start = section_objs(info, "__dyndbg_class_maps",
++						   sizeof(*mod->dyndbg_info.maps.start),
++						   &mod->dyndbg_info.maps.len);
+ #endif
+ 
+ 	return 0;
 diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index a593e040d1ae..f164e11c1853 100644
+index f164e11c1853..29086aad436b 100644
 --- a/lib/dynamic_debug.c
 +++ b/lib/dynamic_debug.c
-@@ -627,8 +627,7 @@ static int ddebug_exec_queries(char *query, const char *modname)
+@@ -39,17 +39,15 @@
+ 
+ #include <rdma/ib_verbs.h>
+ 
+-extern struct _ddebug __start___dyndbg[];
+-extern struct _ddebug __stop___dyndbg[];
+-extern struct ddebug_class_map __start___dyndbg_classes[];
+-extern struct ddebug_class_map __stop___dyndbg_classes[];
++extern struct _ddebug __start___dyndbg_descs[];
++extern struct _ddebug __stop___dyndbg_descs[];
++extern struct _ddebug_class_map __start___dyndbg_class_maps[];
++extern struct _ddebug_class_map __stop___dyndbg_class_maps[];
+ 
+ struct ddebug_table {
+ 	struct list_head link;
+ 	const char *mod_name;
+-	struct _ddebug *ddebugs;
+-	struct ddebug_class_map *classes;
+-	unsigned int num_ddebugs, num_classes;
++	struct _ddebug_info info;
+ };
+ 
+ struct ddebug_query {
+@@ -159,18 +157,18 @@ static void v3pr_info_dq(const struct ddebug_query *query, const char *msg)
+  * @_vec: name of a member in @_box
+  */
+ #define for_subvec(_i, _sp, _box, _vec)			\
+-	for ((_i) = 0, (_sp) = (_box)->_vec;		\
+-	     (_i) < (_box)->num_##_vec;			\
++	for ((_i) = 0, (_sp) = (_box)->_vec.start;	\
++	     (_i) < (_box)->_vec.len;			\
+ 	     (_i)++, (_sp)++)		/* { block } */
+ 
+-static struct ddebug_class_map *ddebug_find_valid_class(struct ddebug_table const *dt,
+-							const char *class_string,
+-							int *class_id)
++static struct _ddebug_class_map *ddebug_find_valid_class(struct ddebug_table const *dt,
++							 const char *class_string,
++							 int *class_id)
+ {
+-	struct ddebug_class_map *map;
++	struct _ddebug_class_map *map;
+ 	int i, idx;
+ 
+-	for_subvec(i, map, dt, classes) {
++	for_subvec(i, map, &dt->info, maps) {
+ 		idx = match_string(map->class_names, map->length, class_string);
+ 		if (idx >= 0) {
+ 			*class_id = idx + map->base;
+@@ -241,7 +239,7 @@ static int ddebug_change(const struct ddebug_query *query,
+ 	unsigned int newflags;
+ 	unsigned int nfound = 0;
+ 	struct flagsbuf fbuf, nbuf;
+-	struct ddebug_class_map *map = NULL;
++	struct _ddebug_class_map *map = NULL;
+ 	int valid_class;
+ 
+ 	/* search for matching ddebugs */
+@@ -262,8 +260,8 @@ static int ddebug_change(const struct ddebug_query *query,
+ 			valid_class = _DPRINTK_CLASS_DFLT;
+ 		}
+ 
+-		for (i = 0; i < dt->num_ddebugs; i++) {
+-			struct _ddebug *dp = &dt->ddebugs[i];
++		for (i = 0; i < dt->info.descs.len; i++) {
++			struct _ddebug *dp = &dt->info.descs.start[i];
+ 
+ 			if (!ddebug_match_desc(query, dp, valid_class))
+ 				continue;
+@@ -626,13 +624,13 @@ static int ddebug_exec_queries(char *query, const char *modname)
+ }
  
  /* apply a new class-param setting */
- static int ddebug_apply_class_bitmap(const struct ddebug_class_param *dcp,
--				     const unsigned long *new_bits,
--				     const unsigned long old_bits,
-+				     const u64 *new_bits, const u64 old_bits,
+-static int ddebug_apply_class_bitmap(const struct ddebug_class_param *dcp,
++static int ddebug_apply_class_bitmap(const struct _ddebug_class_param *dcp,
+ 				     const u64 *new_bits, const u64 old_bits,
  				     const char *query_modname)
  {
  #define QUERY_SIZE 128
-@@ -638,24 +637,27 @@ static int ddebug_apply_class_bitmap(const struct ddebug_class_param *dcp,
+ 	char query[QUERY_SIZE];
+-	const struct ddebug_class_map *map = dcp->map;
++	const struct _ddebug_class_map *map = dcp->map;
+ 	int matches = 0;
  	int bi, ct;
  
- 	if (*new_bits != old_bits)
--		v2pr_info("apply bitmap: 0x%lx to: 0x%lx for %s\n", *new_bits,
-+		v2pr_info("apply bitmap: 0x%llx to: 0x%llx for %s\n", *new_bits,
- 			  old_bits, query_modname ?: "'*'");
- 
- 	for (bi = 0; bi < map->length; bi++) {
--		if (test_bit(bi, new_bits) == test_bit(bi, &old_bits))
-+		bool new_b = !!(*new_bits & (1ULL << bi));
-+		bool old_b = !!(old_bits & (1ULL << bi));
-+
-+		if (new_b == old_b)
- 			continue;
- 
- 		snprintf(query, QUERY_SIZE, "class %s %c%s", map->class_names[bi],
--			 test_bit(bi, new_bits) ? '+' : '-', dcp->flags);
-+			 new_b ? '+' : '-', dcp->flags);
- 
- 		ct = ddebug_exec_queries(query, query_modname);
- 		matches += ct;
- 
--		v2pr_info("bit_%d: %d matches on class: %s -> 0x%lx\n", bi,
-+		v2pr_info("bit_%d: %d matches on class: %s -> 0x%llx\n", bi,
- 			  ct, map->class_names[bi], *new_bits);
- 	}
- 	if (*new_bits != old_bits)
--		v2pr_info("applied bitmap: 0x%lx to: 0x%lx for %s\n", *new_bits,
-+		v2pr_info("applied bitmap: 0x%llx to: 0x%llx for %s\n", *new_bits,
- 			  old_bits, query_modname ?: "'*'");
- 
- 	return matches;
-@@ -664,7 +666,7 @@ static int ddebug_apply_class_bitmap(const struct ddebug_class_param *dcp,
- /* stub to later conditionally add "$module." prefix where not already done */
- #define KP_NAME(kp)	kp->name
- 
--#define CLASSMAP_BITMASK(width) ((1UL << (width)) - 1)
-+#define CLASSMAP_BITMASK(width) ((width) == 64 ? ~0ULL : (1ULL << (width)) - 1)
- 
- /**
-  * param_set_dyndbg_classes - class FOO >control
-@@ -684,10 +686,10 @@ static int param_set_dyndbg_module_classes(const char *instr,
+@@ -684,8 +682,8 @@ static int param_set_dyndbg_module_classes(const char *instr,
+ 					   const struct kernel_param *kp,
+ 					   const char *mod_name)
  {
- 	const struct ddebug_class_param *dcp = kp->arg;
- 	const struct ddebug_class_map *map = dcp->map;
--	unsigned long inrep, new_bits, old_bits;
-+	u64 inrep, new_bits, old_bits;
+-	const struct ddebug_class_param *dcp = kp->arg;
+-	const struct ddebug_class_map *map = dcp->map;
++	const struct _ddebug_class_param *dcp = kp->arg;
++	const struct _ddebug_class_map *map = dcp->map;
+ 	u64 inrep, new_bits, old_bits;
  	int rc, totct = 0;
  
--	rc = kstrtoul(instr, 0, &inrep);
-+	rc = kstrtou64(instr, 0, &inrep);
- 	if (rc) {
- 		int len = strcspn(instr, "\n");
- 		pr_err("expecting numeric input, not: %.*s > %s\n",
-@@ -699,24 +701,24 @@ static int param_set_dyndbg_module_classes(const char *instr,
- 	case DD_CLASS_TYPE_DISJOINT_BITS:
- 		/* expect bits. mask and warn if too many */
- 		if (inrep & ~CLASSMAP_BITMASK(map->length)) {
--			pr_warn("%s: input: 0x%lx exceeds mask: 0x%lx, masking\n",
-+			pr_warn("%s: input: 0x%llx exceeds mask: 0x%llx, masking\n",
- 				KP_NAME(kp), inrep, CLASSMAP_BITMASK(map->length));
- 			inrep &= CLASSMAP_BITMASK(map->length);
- 		}
--		v2pr_info("bits:0x%lx > %s.%s\n", inrep, mod_name ?: "*", KP_NAME(kp));
-+		v2pr_info("bits:0x%llx > %s.%s\n", inrep, mod_name ?: "*", KP_NAME(kp));
- 		totct += ddebug_apply_class_bitmap(dcp, &inrep, *dcp->bits, mod_name);
- 		*dcp->bits = inrep;
- 		break;
- 	case DD_CLASS_TYPE_LEVEL_NUM:
- 		/* input is bitpos, of highest verbosity to be enabled */
- 		if (inrep > map->length) {
--			pr_warn("%s: level:%ld exceeds max:%d, clamping\n",
-+			pr_warn("%s: level:%llu exceeds max:%d, clamping\n",
- 				KP_NAME(kp), inrep, map->length);
- 			inrep = map->length;
- 		}
- 		old_bits = CLASSMAP_BITMASK(*dcp->lvl);
- 		new_bits = CLASSMAP_BITMASK(inrep);
--		v2pr_info("lvl:%ld bits:0x%lx > %s\n", inrep, new_bits, KP_NAME(kp));
-+		v2pr_info("lvl:%llu bits:0x%llx > %s\n", inrep, new_bits, KP_NAME(kp));
- 		totct += ddebug_apply_class_bitmap(dcp, &new_bits, old_bits, mod_name);
- 		*dcp->lvl = inrep;
- 		break;
-@@ -762,9 +764,9 @@ int param_get_dyndbg_classes(char *buffer, const struct kernel_param *kp)
+@@ -759,8 +757,8 @@ EXPORT_SYMBOL(param_set_dyndbg_classes);
+  */
+ int param_get_dyndbg_classes(char *buffer, const struct kernel_param *kp)
+ {
+-	const struct ddebug_class_param *dcp = kp->arg;
+-	const struct ddebug_class_map *map = dcp->map;
++	const struct _ddebug_class_param *dcp = kp->arg;
++	const struct _ddebug_class_map *map = dcp->map;
  
  	switch (map->map_type) {
  	case DD_CLASS_TYPE_DISJOINT_BITS:
--		return scnprintf(buffer, PAGE_SIZE, "0x%lx\n", *dcp->bits);
-+		return scnprintf(buffer, PAGE_SIZE, "0x%llx\n", *dcp->bits);
- 	case DD_CLASS_TYPE_LEVEL_NUM:
--		return scnprintf(buffer, PAGE_SIZE, "%d\n", *dcp->lvl);
-+		return scnprintf(buffer, PAGE_SIZE, "%llu\n", *dcp->lvl);
- 	default:
- 		return -1;
+@@ -1007,8 +1005,8 @@ static struct _ddebug *ddebug_iter_first(struct ddebug_iter *iter)
  	}
+ 	iter->table = list_entry(ddebug_tables.next,
+ 				 struct ddebug_table, link);
+-	iter->idx = iter->table->num_ddebugs;
+-	return &iter->table->ddebugs[--iter->idx];
++	iter->idx = iter->table->info.descs.len;
++	return &iter->table->info.descs.start[--iter->idx];
+ }
+ 
+ /*
+@@ -1029,10 +1027,10 @@ static struct _ddebug *ddebug_iter_next(struct ddebug_iter *iter)
+ 		}
+ 		iter->table = list_entry(iter->table->link.next,
+ 					 struct ddebug_table, link);
+-		iter->idx = iter->table->num_ddebugs;
++		iter->idx = iter->table->info.descs.len;
+ 		--iter->idx;
+ 	}
+-	return &iter->table->ddebugs[iter->idx];
++	return &iter->table->info.descs.start[iter->idx];
+ }
+ 
+ /*
+@@ -1076,16 +1074,19 @@ static void *ddebug_proc_next(struct seq_file *m, void *p, loff_t *pos)
+ 	return dp;
+ }
+ 
+-#define class_in_range(class_id, map)					\
+-	(class_id >= map->base && class_id < map->base + map->length)
++static bool ddebug_class_in_range(const int class_id, const struct _ddebug_class_map *map)
++{
++	return (class_id >= map->base &&
++		class_id < map->base + map->length);
++}
+ 
+-static const char *ddebug_class_name(struct ddebug_iter *iter, struct _ddebug *dp)
++static const char *ddebug_class_name(struct ddebug_table *dt, struct _ddebug *dp)
+ {
+-	struct ddebug_class_map *map = iter->table->classes;
+-	int i, nc = iter->table->num_classes;
++	struct _ddebug_class_map *map;
++	int i;
+ 
+-	for (i = 0; i < nc; i++, map++)
+-		if (class_in_range(dp->class_id, map))
++	for_subvec(i, map, &dt->info, maps)
++		if (ddebug_class_in_range(dp->class_id, map))
+ 			return map->class_names[dp->class_id - map->base];
+ 
+ 	return NULL;
+@@ -1118,7 +1119,7 @@ static int ddebug_proc_show(struct seq_file *m, void *p)
+ 	seq_putc(m, '"');
+ 
+ 	if (dp->class_id != _DPRINTK_CLASS_DFLT) {
+-		class = ddebug_class_name(iter, dp);
++		class = ddebug_class_name(iter->table, dp);
+ 		if (class)
+ 			seq_printf(m, " class:%s", class);
+ 		else
+@@ -1170,7 +1171,7 @@ static const struct proc_ops proc_fops = {
+ 
+ static void ddebug_attach_module_classes(struct ddebug_table *dt, struct _ddebug_info *di)
+ {
+-	struct ddebug_class_map *cm;
++	struct _ddebug_class_map *cm;
+ 	int i, nc = 0;
+ 
+ 	/*
+@@ -1178,12 +1179,12 @@ static void ddebug_attach_module_classes(struct ddebug_table *dt, struct _ddebug
+ 	 * the builtin/modular classmap vector/section.  Save the start
+ 	 * and length of the subrange at its edges.
+ 	 */
+-	for_subvec(i, cm, di, classes) {
++	for_subvec(i, cm, di, maps) {
+ 		if (!strcmp(cm->mod_name, dt->mod_name)) {
+ 			if (!nc) {
+ 				v2pr_info("start subrange, class[%d]: module:%s base:%d len:%d ty:%d\n",
+ 					  i, cm->mod_name, cm->base, cm->length, cm->map_type);
+-				dt->classes = cm;
++				dt->info.maps.start = cm;
+ 			}
+ 			nc++;
+ 		} else if (nc) {
+@@ -1192,7 +1193,7 @@ static void ddebug_attach_module_classes(struct ddebug_table *dt, struct _ddebug
+ 		}
+ 	}
+ 	if (nc) {
+-		dt->num_classes = nc;
++		dt->info.maps.len = nc;
+ 		vpr_info("module:%s attached %d classes\n", dt->mod_name, nc);
+ 	}
+ }
+@@ -1205,10 +1206,10 @@ static int ddebug_add_module(struct _ddebug_info *di, const char *modname)
+ {
+ 	struct ddebug_table *dt;
+ 
+-	if (!di->num_descs)
++	if (!di->descs.len)
+ 		return 0;
+ 
+-	v3pr_info("add-module: %s %d sites\n", modname, di->num_descs);
++	v3pr_info("add-module: %s %d sites\n", modname, di->descs.len);
+ 
+ 	dt = kzalloc_obj(*dt);
+ 	if (dt == NULL) {
+@@ -1222,19 +1223,18 @@ static int ddebug_add_module(struct _ddebug_info *di, const char *modname)
+ 	 * this struct ddebug_table.
+ 	 */
+ 	dt->mod_name = modname;
+-	dt->ddebugs = di->descs;
+-	dt->num_ddebugs = di->num_descs;
++	dt->info = *di;
+ 
+ 	INIT_LIST_HEAD(&dt->link);
+ 
+-	if (di->classes && di->num_classes)
++	if (di->maps.len)
+ 		ddebug_attach_module_classes(dt, di);
+ 
+ 	mutex_lock(&ddebug_lock);
+ 	list_add_tail(&dt->link, &ddebug_tables);
+ 	mutex_unlock(&ddebug_lock);
+ 
+-	vpr_info("%3u debug prints in module %s\n", di->num_descs, modname);
++	vpr_info("%3u debug prints in module %s\n", di->descs.len, modname);
+ 	return 0;
+ }
+ 
+@@ -1381,10 +1381,10 @@ static int __init dynamic_debug_init(void)
+ 	char *cmdline;
+ 
+ 	struct _ddebug_info di = {
+-		.descs = __start___dyndbg,
+-		.classes = __start___dyndbg_classes,
+-		.num_descs = __stop___dyndbg - __start___dyndbg,
+-		.num_classes = __stop___dyndbg_classes - __start___dyndbg_classes,
++		.descs.start = __start___dyndbg_descs,
++		.maps.start  = __start___dyndbg_class_maps,
++		.descs.len = __stop___dyndbg_descs - __start___dyndbg_descs,
++		.maps.len  = __stop___dyndbg_class_maps - __start___dyndbg_class_maps,
+ 	};
+ 
+ #ifdef CONFIG_MODULES
+@@ -1395,7 +1395,7 @@ static int __init dynamic_debug_init(void)
+ 	}
+ #endif /* CONFIG_MODULES */
+ 
+-	if (&__start___dyndbg == &__stop___dyndbg) {
++	if (&__start___dyndbg_descs == &__stop___dyndbg_descs) {
+ 		if (IS_ENABLED(CONFIG_DYNAMIC_DEBUG)) {
+ 			pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
+ 			return 1;
+@@ -1405,16 +1405,16 @@ static int __init dynamic_debug_init(void)
+ 		return 0;
+ 	}
+ 
+-	iter = iter_mod_start = __start___dyndbg;
++	iter = iter_mod_start = __start___dyndbg_descs;
+ 	modname = iter->modname;
+ 	i = mod_sites = mod_ct = 0;
+ 
+-	for (; iter < __stop___dyndbg; iter++, i++, mod_sites++) {
++	for (; iter < __stop___dyndbg_descs; iter++, i++, mod_sites++) {
+ 
+ 		if (strcmp(modname, iter->modname)) {
+ 			mod_ct++;
+-			di.num_descs = mod_sites;
+-			di.descs = iter_mod_start;
++			di.descs.len = mod_sites;
++			di.descs.start = iter_mod_start;
+ 			ret = ddebug_add_module(&di, modname);
+ 			if (ret)
+ 				goto out_err;
+@@ -1424,19 +1424,19 @@ static int __init dynamic_debug_init(void)
+ 			iter_mod_start = iter;
+ 		}
+ 	}
+-	di.num_descs = mod_sites;
+-	di.descs = iter_mod_start;
++	di.descs.len = mod_sites;
++	di.descs.start = iter_mod_start;
+ 	ret = ddebug_add_module(&di, modname);
+ 	if (ret)
+ 		goto out_err;
+ 
+ 	ddebug_init_success = 1;
+-	vpr_info("%d prdebugs in %d modules, %d KiB in ddebug tables, %d kiB in __dyndbg section\n",
++	vpr_info("%d prdebugs in %d modules, %d KiB in ddebug tables, %d kiB in __dyndbg_descs section\n",
+ 		 i, mod_ct, (int)((mod_ct * sizeof(struct ddebug_table)) >> 10),
+ 		 (int)((i * sizeof(struct _ddebug)) >> 10));
+ 
+-	if (di.num_classes)
+-		v2pr_info("  %d builtin ddebug class-maps\n", di.num_classes);
++	if (di.maps.len)
++		v2pr_info("  %d builtin ddebug class-maps\n", di.maps.len);
+ 
+ 	/* now that ddebug tables are loaded, process all boot args
+ 	 * again to find and activate queries given in dyndbg params.
 diff --git a/lib/test_dynamic_debug.c b/lib/test_dynamic_debug.c
-index 74d183ebf3e0..c049580d2152 100644
+index c049580d2152..e6b2422ca671 100644
 --- a/lib/test_dynamic_debug.c
 +++ b/lib/test_dynamic_debug.c
-@@ -40,7 +40,7 @@ module_param_cb(do_prints, &param_ops_do_prints, NULL, 0600);
-  * - tie together sysname, mapname, bitsname, flagsname
+@@ -41,7 +41,7 @@ module_param_cb(do_prints, &param_ops_do_prints, NULL, 0600);
   */
  #define DD_SYS_WRAP(_model, _flags)					\
--	static unsigned long bits_##_model;				\
-+	static u64 bits_##_model;					\
- 	static struct ddebug_class_param _flags##_model = {		\
+ 	static u64 bits_##_model;					\
+-	static struct ddebug_class_param _flags##_model = {		\
++	static struct _ddebug_class_param _flags##_model = {		\
  		.bits = &bits_##_model,					\
  		.flags = #_flags,					\
+ 		.map = &map_##_model,					\
 
 -- 
 2.54.0
