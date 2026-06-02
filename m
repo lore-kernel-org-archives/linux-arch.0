@@ -1,109 +1,100 @@
-Received: from mail-out.m-online.net (mail-out.m-online.net [212.18.0.10])
+Received: from mta-64-140.flowmailer.net (mta-64-140.flowmailer.net [185.136.64.140])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC388386C25;
-	Mon,  1 Jun 2026 20:59:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.18.0.10
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F12C5359A6F
+	for <linux-arch@vger.kernel.org>; Tue,  2 Jun 2026 07:23:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.136.64.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780347546; cv=none; b=J/eaMYw1+XYQqGKM+IvLqRQ/oy9FRz69nN4ah/+T/WwgG8xpx1oXOtmiF2Kcq7V6LTVsFGQ9ggCh2hgKp3gGo8TJg2/sGPJseJy7TxPxWPb3mkMcEkY5KqpGLQwZ12vzqHxgzNKy818lw0M6fC/imvgfUiv4555SabcOoC67sr0=
+	t=1780385008; cv=none; b=eb5B5Z9wse1w2w16G3YEZIduRmYLmm1HtgO33Hm3wnpMhJlTjNDJTfP9Y74pInpUstaFqJ+nJR2ogC8Rc8KLMw9B9zUgwN7QCBJAFXTv2KD3DhtLc8RjaAyiuGhZaUOpmbYrEZtZVmIFDZ4Q5g4KYLjKWkSKtnYaSvxHi5YnTxY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780347546; c=relaxed/simple;
-	bh=JSuMB78WGrnAVsJ7teKH/zI0mt19h3G7ax62Fj2NvyE=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=plFGTNz0M+lvKSLMn6n2ix1XPXVL95qy2avLq0cwLkBD8yW5ySkb7Q2XbwPOF6cSSzSBQONY1JaJ59ulOvoNY31IDPzdzLFbSZE563gsgHEcI5TDrmjrD8Fqzj4vzX0Uv1IOYRQFtgBJr9ZnmfsVb9KHJGipKI36RFqpsKLL09k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=nefkom.net; arc=none smtp.client-ip=212.18.0.10
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=nefkom.net
-Received: from mail-out.m-online.net (mail-out.m-online.net [212.18.0.10])
-	by mail-out.m-online.net (Postfix) with ESMTP id 4gTmXZ1PYGz1sGWy;
-	Mon,  1 Jun 2026 22:58:54 +0200 (CEST)
-Received: from frontend03.mail.m-online.net (unknown [192.168.6.182])
-	by mail-out.m-online.net (Postfix) with ESMTP id 4gTmXY53gdz1sG8c;
-	Mon,  1 Jun 2026 22:58:53 +0200 (CEST)
-Received: from localhost (dynscan3.mnet-online.de [192.168.6.87])
-	by mail.m-online.net (Postfix) with ESMTP id 4gTmXY3vBrz1qqlS;
-	Mon,  1 Jun 2026 22:58:53 +0200 (CEST)
-X-Virus-Scanned: amavis at mnet-online.de
-Received: from mail.mnet-online.de ([192.168.6.182])
- by localhost (dynscan3.mail.m-online.net [192.168.6.87]) (amavis, port 10024)
- with ESMTP id e1EAzhraFHWf; Mon,  1 Jun 2026 22:58:52 +0200 (CEST)
-X-Auth-Info: FqnxIDPc+CejjKHAe9u56JUkf8btEszKYhyFrkdtC5LkcdNUzyTOWALY7FYpYrLU
-Received: from igel.home (aftr-82-135-83-133.dynamic.mnet-online.de [82.135.83.133])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mail.mnet-online.de (Postfix) with ESMTPSA;
-	Mon,  1 Jun 2026 22:58:52 +0200 (CEST)
-Received: by igel.home (Postfix, from userid 1000)
-	id 6F0742C16DB; Mon,  1 Jun 2026 22:58:52 +0200 (CEST)
-From: Andreas Schwab <schwab@linux-m68k.org>
-To: Deepak Gupta <debug@rivosinc.com>
-Cc: Deepak Gupta via B4 Relay <devnull+debug.rivosinc.com@kernel.org>,
-  Thomas Gleixner <tglx@linutronix.de>,  Ingo Molnar <mingo@redhat.com>,
-  Borislav Petkov <bp@alien8.de>,  Dave Hansen
- <dave.hansen@linux.intel.com>,  x86@kernel.org,  "H. Peter Anvin"
- <hpa@zytor.com>,  Andrew Morton <akpm@linux-foundation.org>,  "Liam R.
- Howlett" <Liam.Howlett@oracle.com>,  Vlastimil Babka <vbabka@suse.cz>,
-  Lorenzo Stoakes <lorenzo.stoakes@oracle.com>,  Paul Walmsley
- <paul.walmsley@sifive.com>,  Palmer Dabbelt <palmer@dabbelt.com>,  Albert
- Ou <aou@eecs.berkeley.edu>,  Conor Dooley <conor@kernel.org>,  Rob Herring
- <robh@kernel.org>,  Krzysztof Kozlowski <krzk+dt@kernel.org>,  Arnd
- Bergmann <arnd@arndb.de>,  Christian Brauner <brauner@kernel.org>,  Peter
- Zijlstra <peterz@infradead.org>,  Oleg Nesterov <oleg@redhat.com>,  Eric
- Biederman <ebiederm@xmission.com>,  Kees Cook <kees@kernel.org>,  Jonathan
- Corbet <corbet@lwn.net>,  Shuah Khan <shuah@kernel.org>,  Jann Horn
- <jannh@google.com>,  Conor Dooley <conor+dt@kernel.org>,  Miguel Ojeda
- <ojeda@kernel.org>,  Alex Gaynor <alex.gaynor@gmail.com>,  Boqun Feng
- <boqun.feng@gmail.com>,  Gary Guo <gary@garyguo.net>,  =?utf-8?Q?Bj=C3=B6?=
- =?utf-8?Q?rn?= Roy Baron
- <bjorn3_gh@protonmail.com>,  Andreas Hindborg <a.hindborg@kernel.org>,
-  Alice Ryhl <aliceryhl@google.com>,  Trevor Gross <tmgross@umich.edu>,
-  Benno Lossin <lossin@kernel.org>,  linux-kernel@vger.kernel.org,
-  linux-fsdevel@vger.kernel.org,  linux-mm@kvack.org,
-  linux-riscv@lists.infradead.org,  devicetree@vger.kernel.org,
-  linux-arch@vger.kernel.org,  linux-doc@vger.kernel.org,
-  linux-kselftest@vger.kernel.org,  alistair.francis@wdc.com,
-  richard.henderson@linaro.org,  jim.shu@sifive.com,  andybnac@gmail.com,
-  kito.cheng@sifive.com,  charlie@rivosinc.com,  atishp@rivosinc.com,
-  evan@rivosinc.com,  cleger@rivosinc.com,  alexghiti@rivosinc.com,
-  samitolvanen@google.com,  broonie@kernel.org,
-  rick.p.edgecombe@intel.com,  rust-for-linux@vger.kernel.org,  Zong Li
- <zong.li@sifive.com>
-Subject: Re: [PATCH v23 06/28] riscv/mm : ensure PROT_WRITE leads to VM_READ
- | VM_WRITE
-In-Reply-To: <CAKC1njR+dTdvp+BmLGPtgd8dufiUwBtkQ9a-qinELT_Fmi13sQ@mail.gmail.com>
-	(Deepak Gupta's message of "Mon, 1 Jun 2026 10:57:41 -0700")
-References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
-	<20251112-v5_user_cfi_series-v23-6-b55691eacf4f@rivosinc.com>
-	<87jyslndo4.fsf@igel.home>
-	<CAKC1njS=AHu6uHrH4ae8VxcdEbhgiPXYCAoN3F_mnppBd3SwOA@mail.gmail.com>
-	<875x44o9hj.fsf@igel.home>
-	<CAKC1njSn_rtCj8ii876PNQTk0nsCTfWsb4DzdymufHVthh1Rkg@mail.gmail.com>
-	<871peqgp9v.fsf@igel.home>
-	<CAKC1njR+dTdvp+BmLGPtgd8dufiUwBtkQ9a-qinELT_Fmi13sQ@mail.gmail.com>
-Date: Mon, 01 Jun 2026 22:58:52 +0200
-Message-ID: <87wlwif04z.fsf@igel.home>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	s=arc-20240116; t=1780385008; c=relaxed/simple;
+	bh=rTMmvdqLn8XGVIbwx6QxILaPnIKuu93HhNdO2BLhr54=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=It46gSDzu/p1UaIvelGnjWK1gQ49wfhyq6z0wMZ5pzwHz9F04Wiu5sfJgMfxEfJszFcapsIPsbDsLSP3Ga3DCn3DG5QA5QpsAlvYB3NyfhQkCVVX/KF4SU4kQOhTcu2ippHBAYMjLOzu/IWt302h6/lrTYGc4gh1eK8WY9GXBSc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=siemens-energy.com; spf=pass smtp.mailfrom=errorhandling.siemens-energy.com; dkim=pass (1024-bit key) header.d=flowmailer.net header.i=@flowmailer.net header.b=Toge8bLz; dkim=pass (2048-bit key) header.d=siemens-energy.com header.i=schuster.simon@siemens-energy.com header.b=ec+PfJIe; arc=none smtp.client-ip=185.136.64.140
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=siemens-energy.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=errorhandling.siemens-energy.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=flowmailer.net header.i=@flowmailer.net header.b="Toge8bLz";
+	dkim=pass (2048-bit key) header.d=siemens-energy.com header.i=schuster.simon@siemens-energy.com header.b="ec+PfJIe"
+Received: by mta-64-140.flowmailer.net with ESMTPSA id 2026060207131452caf6d58d0019fdbf
+        for <linux-arch@vger.kernel.org>;
+        Tue, 02 Jun 2026 09:13:14 +0200
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; s=s1;
+ d=flowmailer.net;
+ h=from:from:sender:to:to:cc:cc:subject:subject:content-type:content-type:content-transfer-encoding:References:In-Reply-To:Date:Message-ID:MIME-Version;
+ bh=rTMmvdqLn8XGVIbwx6QxILaPnIKuu93HhNdO2BLhr54=;
+ b=Toge8bLz2dyLab0qL8rkthmm38M0DIbWMwxIZTkHCglUndNKtXlsEFzupMzU1i/vzCdijc
+ miocQZzlL9bzz0ZuwDfASqzdjU/d6NY+xy09C5rIOtPgu1bTsWHtrNYMYexJC33Ow7Pw9BIh
+ 4PggmgbDjvYm9EN9UTfgesMkNvRAg=;
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; s=fm3;
+ d=siemens-energy.com; i=schuster.simon@siemens-energy.com;
+ h=from:from:sender:to:to:cc:cc:subject:subject:content-type:content-type:content-transfer-encoding:References:In-Reply-To:Date:Message-ID:MIME-Version;
+ bh=rTMmvdqLn8XGVIbwx6QxILaPnIKuu93HhNdO2BLhr54=;
+ b=ec+PfJIeqY0XmjF70C+uM3vKHeUzZAh1oTg2/qKJ7kPp6hfzDsi97fQ48IoGRskdwuz7Cu
+ BGbuFZJ1Q9hHZckYImkEVD3l7jGDitagbUlrsjtMZGp7BQq6QWHs2rCwJGEOP6xEi685QNoj
+ Dhxnc4HYfsbAg8Fm/fRfi0hYIxCejI2QpzVxqaXoytvcWrW15vVIQ9nYgGgotDILZbmKgedc
+ b8LJKCIxu/nklS6gM/yKotmExl+J8oVb93bKKA61U9r3GprrFfQDONQGoXo5/evBr8Iz8wW4
+ xRQAllgjoeOQIpdd6p46Xuo84qL1JvVLvPqgCUmzpiwzXycLeLiQhrYQ==;
+Date: Tue, 2 Jun 2026 09:13:11 +0200
+From: Simon Schuster <schuster.simon@siemens-energy.com>
+To: Andy Shevchenko <andriy.shevchenko@intel.com>
+Cc: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, Ethan Nelson-Moore
+ <enelsonmoore@gmail.com>, Wolfram Sang <wsa+renesas@sang-engineering.com>,
+ Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Dinh
+ Nguyen <dinguyen@kernel.org>, linux-doc@vger.kernel.org,
+ devicetree@vger.kernel.org, workflows@vger.kernel.org, Linux-Arch
+ <linux-arch@vger.kernel.org>, dmaengine@vger.kernel.org,
+ linux-i2c@vger.kernel.org, linux-iio@vger.kernel.org, Netdev
+ <netdev@vger.kernel.org>, linux-pci@vger.kernel.org,
+ linux-pwm@vger.kernel.org, linux-hardening@vger.kernel.org,
+ linux-kbuild@vger.kernel.org, "linux-csky@vger.kernel.org"
+ <linux-csky@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Shuah Khan
+ <skhan@linuxfoundation.org>, Rob Herring <robh@kernel.org>, Krzysztof
+ Kozlowski <krzk+dt@kernel.org>, Conor Dooley <conor+dt@kernel.org>, Daniel
+ Lezcano <daniel.lezcano@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
+ Alex Shi <alexs@kernel.org>, Yanteng Si <si.yanteng@linux.dev>, Dongliang
+ Mu <dzm91@hust.edu.cn>, Hu Haowen <2023002089@link.tyut.edu.cn>, Kees Cook
+ <kees@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Will Deacon
+ <will@kernel.org>, "Aneesh Kumar K.V (Arm)" <aneesh.kumar@kernel.org>,
+ Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin
+ <npiggin@gmail.com>, Vinod Koul <vkoul@kernel.org>, Frank Li
+ <Frank.Li@kernel.org>, Dave Penkler <dpenkler@gmail.com>, Andi Shyti
+ <andi.shyti@kernel.org>, Jonathan Cameron <jic23@kernel.org>, David Lechner
+ <dlechner@baylibre.com>, =?ISO-8859-1?Q?Nuno_S=E1?= <nuno.sa@analog.com>,
+ Andy Shevchenko <andy@kernel.org>, Andrew Lunn <andrew+netdev@lunn.ch>,
+ "David S . Miller" <davem@davemloft.net>, Eric Dumazet
+ <edumazet@google.com>, Jakub Kicinski <kuba@kernel.org>, Paolo Abeni
+ <pabeni@redhat.com>, Lorenzo Pieralisi <lpieralisi@kernel.org>, Krzysztof
+ WilczyDski <kwilczynski@kernel.org>, Andreas Oetken
+ <andreas.oetken@siemens-energy.com>
+Subject: Re: [PATCH] nios2: remove the architecture
+Message-ID: <20260602071311.gtvif43wcjyulphh@dev-vm-schuster>
+References: <20260518042833.272221-1-enelsonmoore@gmail.com>
+ <d40b1e80-37fc-4c88-9d7f-dae6458efe6c@app.fastmail.com>
+ <20260518105735.GW3126523@noisy.programming.kicks-ass.net>
+ <20260518172444.zyd47mcagrcwu7wt@dev-vm-schuster>
+ <CADkSEUjhq6HSdg4ignzbuJiN5uXATsTdxFbRJ3BMxs5=WUWLDg@mail.gmail.com>
+ <20260519103012.blot4bssgiqfer6p@dev-vm-schuster>
+ <CANiq72=6oYtHf0Q1NaLXZ+25uQyYbej2xnvUhtgpHyvozhP7_Q@mail.gmail.com>
+ <ah3TN93e7lRpVihW@ashevche-desk.local>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <ah3TN93e7lRpVihW@ashevche-desk.local>
 
-On Jun 01 2026, Deepak Gupta wrote:
+Hello Andy,
 
-> riscv uses `VM_SHADOW_STACK`. It's just very simple to use `protection_map`
-> with just `VM_WRITE`. On RISC-V, `-W-` is a shadow stack mapping. It's not same
-> on x86 or arm64. So `protection_map[VM_WRITE]` simply picks shadow stack
-> encoding. We just ensure that PROT_WRITE is converted to
-> "VM_READ | VM_WRITE" at vma level.
+On Mon, Jun 01, 2026 at 09:45:11PM +0300, Andy Shevchenko wrote:
+> Supported implies that one gets real money for the job. Is this the case here?
 
-That does not explain _why_ you need to make that user visible change,
-when others can get away without it.
+Thank you for caring about NIOSII. I'm doing so as part of my
+employment at Siemens Energy; if this is real enough then yes :)
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 7578 EB47 D4E5 4D69 2510  2552 DF73 E780 A9DA AEC1
-"And now for something completely different."
+Best regards
+Simon
