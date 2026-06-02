@@ -1,158 +1,200 @@
-Received: from out02.mta.xmission.com (out02.mta.xmission.com [166.70.13.232])
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.15])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C5D0D3D5C0C;
-	Tue,  2 Jun 2026 11:12:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.70.13.232
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 68C4B36A03A;
+	Tue,  2 Jun 2026 11:27:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.15
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780398772; cv=none; b=qgLH/i0NL+XBarjIdlPH26etRAHkrP97UHzrntyNLC5oncKOTQ56u/Hbit3C/yGw9AbsgyVFMGhiI55krm/VUZnxlSpn+XtA1kgPr3Mi4fTcsONTYM5FXCuVeFZAWL0TeyGqQRRos1uey/2Xu3ctT2FX1EqBBx/eTvY28KbbfUQ=
+	t=1780399631; cv=none; b=YGSKUDZVmOvrSjOK37t8/orP7PGEimetOYIVjhZTXRwprO81+zT5ZhH+pEsysVq8bF/O76rMGd+JJKO8h6mc1yopRItik2yxTvHO7MVqf6/iESuWJV/oEFiI5/P0bI8+B34GlQNSg85fYw5jlDv8Oe9lMiCB4XPWDgryfyKnKFc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780398772; c=relaxed/simple;
-	bh=vvILlsXaVQShutp1p5WceQi2Eaf3pB4ovG/S15HHsU4=;
-	h=From:To:Cc:In-Reply-To:References:Date:Message-ID:MIME-Version:
-	 Content-Type:Subject; b=cNHkPHmtouJJRpCZK+UhcqWNnVG5Lnj/ejJkkyBb5FzLTOY4+tGJEfbHDPiD/c+8vGwiYeHAUgNjc0CC3//sCAJFkNx0uwE8zfSpNt6jFeXySlJHlHrdViH9FrHGsc9zhd0iiVVL9o91EUAYtQCKiwa1XB3bZ3PFo73l6liDFYc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=xmission.com; spf=pass smtp.mailfrom=xmission.com; dkim=pass (1024-bit key) header.d=xmission.com header.i=@xmission.com header.b=PT1nwI4K; arc=none smtp.client-ip=166.70.13.232
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=xmission.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xmission.com
+	s=arc-20240116; t=1780399631; c=relaxed/simple;
+	bh=vFe0YHJbZeLES+sUauMUh5hZ46dD8ew9Ej6lDFLoT9Q=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Rr6jO1fByXYRx+tKEK7oTG4goSfF7waXcXdlLuctriRPjvmmYXgrxRRMfeZmLjnhcsB26z04C5zk7rXis6u4wOAZSP+LWrbDBXU493YwRtXD1OrEKJ9qdFg/28FfxBFreuc3DLPZS1xXWQ44/bD7tNJ5VtEr6kS4PNen2nqbcK8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.intel.com; spf=pass smtp.mailfrom=linux.intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=OpuvB+TC; arc=none smtp.client-ip=198.175.65.15
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=xmission.com header.i=@xmission.com header.b="PT1nwI4K"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=simple/simple; d=xmission.com;
-	 s=xmission; h=Subject:Content-Type:MIME-Version:Message-ID:Date:References:
-	In-Reply-To:Cc:To:From:Sender:Reply-To:Content-Transfer-Encoding:Content-ID:
-	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
-	:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:List-Subscribe:
-	List-Post:List-Owner:List-Archive;
-	bh=vvILlsXaVQShutp1p5WceQi2Eaf3pB4ovG/S15HHsU4=; b=PT1nwI4K/LueK0DDSNL+s4C13J
-	wCISW9cQ6Rku1p5e71v6LNcH9E8BpNOErgTq20OxsIi/JohdQWrgMebuwQrMKgen7pJXROs+AsRqv
-	q/PDtUrCrIsMZAHrVRiLpwUsOkpysGxuDIlQz4e1uDX5u9eweqgYZDbb9a8545EZNJqI=;
-Received: from in01.mta.xmission.com ([166.70.13.51]:57296)
-	by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	(Exim 4.93)
-	(envelope-from <ebiederm@xmission.com>)
-	id 1wUMHI-00EQUk-Sf; Tue, 02 Jun 2026 04:23:20 -0600
-Received: from ip72-198-198-28.om.om.cox.net ([72.198.198.28]:37600 helo=email.froward.int.ebiederm.org.xmission.com)
-	by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	(Exim 4.93)
-	(envelope-from <ebiederm@xmission.com>)
-	id 1wUMHF-002RRp-JI; Tue, 02 Jun 2026 04:23:20 -0600
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-To: Andreas Schwab <schwab@linux-m68k.org>
-Cc: Deepak Gupta <debug@rivosinc.com>,  Deepak Gupta via B4 Relay
- <devnull+debug.rivosinc.com@kernel.org>,  Thomas Gleixner
- <tglx@linutronix.de>,  Ingo Molnar <mingo@redhat.com>,  Borislav Petkov
- <bp@alien8.de>,  Dave Hansen <dave.hansen@linux.intel.com>,
-  x86@kernel.org,  "H. Peter Anvin" <hpa@zytor.com>,  Andrew Morton
- <akpm@linux-foundation.org>,  "Liam R. Howlett" <Liam.Howlett@oracle.com>,
-  Vlastimil Babka <vbabka@suse.cz>,  Lorenzo Stoakes
- <lorenzo.stoakes@oracle.com>,  Paul Walmsley <paul.walmsley@sifive.com>,
-  Palmer Dabbelt <palmer@dabbelt.com>,  Albert Ou <aou@eecs.berkeley.edu>,
-  Conor Dooley <conor@kernel.org>,  Rob Herring <robh@kernel.org>,
-  Krzysztof Kozlowski <krzk+dt@kernel.org>,  Arnd Bergmann <arnd@arndb.de>,
-  Christian Brauner <brauner@kernel.org>,  Peter Zijlstra
- <peterz@infradead.org>,  Oleg Nesterov <oleg@redhat.com>,  Kees Cook
- <kees@kernel.org>,  Jonathan Corbet <corbet@lwn.net>,  Shuah Khan
- <shuah@kernel.org>,  Jann Horn <jannh@google.com>,  Conor Dooley
- <conor+dt@kernel.org>,  Miguel Ojeda <ojeda@kernel.org>,  Alex Gaynor
- <alex.gaynor@gmail.com>,  Boqun Feng <boqun.feng@gmail.com>,  Gary Guo
- <gary@garyguo.net>,  =?utf-8?Q?Bj=C3=B6rn?= Roy Baron
- <bjorn3_gh@protonmail.com>,  Andreas
- Hindborg <a.hindborg@kernel.org>,  Alice Ryhl <aliceryhl@google.com>,
-  Trevor Gross <tmgross@umich.edu>,  Benno Lossin <lossin@kernel.org>,
-  linux-kernel@vger.kernel.org,  linux-fsdevel@vger.kernel.org,
-  linux-mm@kvack.org,  linux-riscv@lists.infradead.org,
-  devicetree@vger.kernel.org,  linux-arch@vger.kernel.org,
-  linux-doc@vger.kernel.org,  linux-kselftest@vger.kernel.org,
-  alistair.francis@wdc.com,  richard.henderson@linaro.org,
-  jim.shu@sifive.com,  andybnac@gmail.com,  kito.cheng@sifive.com,
-  charlie@rivosinc.com,  atishp@rivosinc.com,  evan@rivosinc.com,
-  cleger@rivosinc.com,  alexghiti@rivosinc.com,  samitolvanen@google.com,
-  broonie@kernel.org,  rick.p.edgecombe@intel.com,
-  rust-for-linux@vger.kernel.org,  Zong Li <zong.li@sifive.com>
-In-Reply-To: <87wlwif04z.fsf@igel.home> (Andreas Schwab's message of "Mon, 01
-	Jun 2026 22:58:52 +0200")
-References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
-	<20251112-v5_user_cfi_series-v23-6-b55691eacf4f@rivosinc.com>
-	<87jyslndo4.fsf@igel.home>
-	<CAKC1njS=AHu6uHrH4ae8VxcdEbhgiPXYCAoN3F_mnppBd3SwOA@mail.gmail.com>
-	<875x44o9hj.fsf@igel.home>
-	<CAKC1njSn_rtCj8ii876PNQTk0nsCTfWsb4DzdymufHVthh1Rkg@mail.gmail.com>
-	<871peqgp9v.fsf@igel.home>
-	<CAKC1njR+dTdvp+BmLGPtgd8dufiUwBtkQ9a-qinELT_Fmi13sQ@mail.gmail.com>
-	<87wlwif04z.fsf@igel.home>
-Date: Tue, 02 Jun 2026 05:23:10 -0500
-Message-ID: <87tsrli6lt.fsf@email.froward.int.ebiederm.org>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="OpuvB+TC"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1780399630; x=1811935630;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=vFe0YHJbZeLES+sUauMUh5hZ46dD8ew9Ej6lDFLoT9Q=;
+  b=OpuvB+TCFOlrTj1dTsQq4IO6bT0RYvhdqKiNi7guAfItcI40qmxJuR+2
+   JxfSI7H8Vs0pb6lSzui2MNNzEWzxhK2dqWRYpbiEiVo05UowkhP/brLIc
+   ZVeqrXsY/GHqe3VM+ZWp1v4ClJFL3WOZdAoNffJszSxQymB3W2SmL0kdn
+   EoTQOQCHyRV6IH4CmL1hEzveBQPF06YlAMtiXnjfxI7VYYLoSP3+xGnlr
+   LFm/IXvUvXoEkVqVbja68afnmQGU98K68zOP52EZcPPPHvMGyw+ljzTra
+   1vViH6ezFD00NvPoMZN+e9EIaC8+Q8JOgg1j4bdpBSO6q8EyVZiF5BWXP
+   A==;
+X-CSE-ConnectionGUID: oIlO4b2fRxuCw2x5D/ONOg==
+X-CSE-MsgGUID: uezSZkyoSk+dL6kVsxakLg==
+X-IronPort-AV: E=McAfee;i="6800,10657,11804"; a="84804995"
+X-IronPort-AV: E=Sophos;i="6.24,183,1774335600"; 
+   d="scan'208";a="84804995"
+Received: from fmviesa007.fm.intel.com ([10.60.135.147])
+  by orvoesa107.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Jun 2026 04:27:07 -0700
+X-CSE-ConnectionGUID: 57WJuzJhQk+bJIT4F8AZnw==
+X-CSE-MsgGUID: InV+5AxmRSKrEz4WoNh7bQ==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.24,183,1774335600"; 
+   d="scan'208";a="240879149"
+Received: from mkosciow-mobl1.ger.corp.intel.com (HELO localhost) ([10.245.245.229])
+  by fmviesa007-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Jun 2026 04:26:48 -0700
+Date: Tue, 2 Jun 2026 14:26:46 +0300
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+To: Kees Cook <kees@kernel.org>
+Cc: Luis Chamberlain <mcgrof@kernel.org>,
+	Pengpeng Hou <pengpeng@iscas.ac.cn>, stable@vger.kernel.org,
+	Petr Pavlu <petr.pavlu@suse.com>,
+	Richard Weinberger <richard@nod.at>,
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+	Johannes Berg <johannes@sipsolutions.net>,
+	"Rafael J. Wysocki" <rafael@kernel.org>,
+	Len Brown <lenb@kernel.org>, Corey Minyard <corey@minyard.net>,
+	Gabriel Somlo <somlo@cmu.edu>,
+	"Michael S. Tsirkin" <mst@redhat.com>,
+	Jani Nikula <jani.nikula@linux.intel.com>,
+	Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+	Rodrigo Vivi <rodrigo.vivi@intel.com>,
+	Tvrtko Ursulin <tursulin@ursulin.net>,
+	David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
+	Bart Van Assche <bvanassche@acm.org>,
+	Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>,
+	Laurent Pinchart <laurent.pinchart@ideasonboard.com>,
+	Hans de Goede <hansg@kernel.org>,
+	Mauro Carvalho Chehab <mchehab@kernel.org>,
+	Bjorn Helgaas <bhelgaas@google.com>, Hannes Reinecke <hare@suse.de>,
+	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
+	"Martin K. Petersen" <martin.petersen@oracle.com>,
+	Daniel Lezcano <daniel.lezcano@kernel.org>,
+	Zhang Rui <rui.zhang@intel.com>, Lukasz Luba <lukasz.luba@arm.com>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	Jiri Slaby <jirislaby@kernel.org>,
+	Alan Stern <stern@rowland.harvard.edu>,
+	Jason Wang <jasowang@redhat.com>,
+	Xuan Zhuo <xuanzhuo@linux.alibaba.com>,
+	Eugenio =?iso-8859-1?Q?P=E9rez?= <eperezma@redhat.com>,
+	Jason Baron <jbaron@akamai.com>, Jim Cromie <jim.cromie@gmail.com>,
+	Tiwei Bie <tiwei.btw@antgroup.com>,
+	Benjamin Berg <benjamin.berg@intel.com>,
+	Ilpo =?iso-8859-1?Q?J=E4rvinen?= <ilpo.jarvinen@linux.intel.com>,
+	"David E. Box" <david.e.box@linux.intel.com>,
+	"Maciej W. Rozycki" <macro@orcam.me.uk>,
+	Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Sean Christopherson <seanjc@google.com>,
+	Paolo Bonzini <pbonzini@redhat.com>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Vinod Koul <vkoul@kernel.org>,
+	Frank Li <Frank.Li@kernel.org>, Daniel Gomez <da.gomez@kernel.org>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	Alexander Potapenko <glider@google.com>,
+	Marco Elver <elver@google.com>, Dmitry Vyukov <dvyukov@google.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	John Johansen <john.johansen@canonical.com>,
+	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Georgia Garcia <georgia.garcia@canonical.com>, kvm@vger.kernel.org,
+	dmaengine@vger.kernel.org, linux-modules@vger.kernel.org,
+	kasan-dev@googlegroups.com, linux-mm@kvack.org,
+	apparmor@lists.ubuntu.com, linux-security-module@vger.kernel.org,
+	linux-um@lists.infradead.org, linux-acpi@vger.kernel.org,
+	openipmi-developer@lists.sourceforge.net, qemu-devel@nongnu.org,
+	intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
+	linux-rdma@vger.kernel.org, linux-media@vger.kernel.org,
+	linux-pci@vger.kernel.org, linux-scsi@vger.kernel.org,
+	linux-pm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+	linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
+	usb-storage@lists.one-eyed-alien.net,
+	virtualization@lists.linux.dev, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, netdev@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org, linux-hardening@vger.kernel.org
+Subject: Re: [PATCH 01/11] params: bound array element output to the caller's
+ page buffer
+Message-ID: <ah699hwLxIIOZ0-7@ashevche-desk.local>
+References: <20260521133315.work.845-kees@kernel.org>
+ <20260521133326.2465264-1-kees@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
-X-XM-SPF: eid=1wUMHF-002RRp-JI;;;mid=<87tsrli6lt.fsf@email.froward.int.ebiederm.org>;;;hst=in01.mta.xmission.com;;;ip=72.198.198.28;;;frm=ebiederm@xmission.com;;;spf=pass
-X-XM-AID: U2FsdGVkX19J6tpF2AGRJ9xglxGPNzSSZeVg13KZsgY=
-X-Spam-Level: 
-X-Spam-Virus: No
-X-Spam-Report: 
-	* -1.0 ALL_TRUSTED Passed through trusted hosts only via SMTP
-	*  0.1 BAYES_50 BODY: Bayes spam probability is 40 to 60%
-	*      [score: 0.4997]
-	*  0.7 XMSubLong Long Subject
-	*  0.0 T_TM2_M_HEADER_IN_MSG BODY: No description available.
-	* -0.0 DCC_CHECK_NEGATIVE Not listed in DCC
-	*      [sa02 1397; Body=1 Fuz1=1 Fuz2=1]
-	*  0.0 T_TooManySym_01 4+ unique symbols in subject
-	*  0.0 T_TooManySym_02 5+ unique symbols in subject
-X-Spam-DCC: XMission; sa02 1397; Body=1 Fuz1=1 Fuz2=1 
-X-Spam-Combo: ;Andreas Schwab <schwab@linux-m68k.org>
-X-Spam-Relay-Country: 
-X-Spam-Timing: total 2774 ms - load_scoreonly_sql: 0.03 (0.0%),
-	signal_user_changed: 3.6 (0.1%), b_tie_ro: 2.5 (0.1%), parse: 0.84
-	(0.0%), extract_message_metadata: 8 (0.3%), get_uri_detail_list: 0.86
-	(0.0%), tests_pri_-2000: 7 (0.3%), tests_pri_-1000: 8 (0.3%),
-	tests_pri_-950: 1.02 (0.0%), tests_pri_-900: 0.92 (0.0%),
-	tests_pri_-90: 62 (2.2%), check_bayes: 61 (2.2%), b_tokenize: 13
-	(0.5%), b_tok_get_all: 9 (0.3%), b_comp_prob: 1.76 (0.1%),
-	b_tok_touch_all: 35 (1.3%), b_finish: 0.56 (0.0%), tests_pri_0: 297
-	(10.7%), check_dkim_signature: 0.41 (0.0%), check_dkim_adsp: 3.2
-	(0.1%), poll_dns_idle: 2367 (85.3%), tests_pri_10: 2.7 (0.1%),
-	tests_pri_500: 2379 (85.8%), rewrite_mail: 0.00 (0.0%)
-Subject: Re: [PATCH v23 06/28] riscv/mm : ensure PROT_WRITE leads to VM_READ
- | VM_WRITE
-X-SA-Exim-Connect-IP: 166.70.13.51
-X-SA-Exim-Rcpt-To: too long (recipient list exceeded maximum allowed size of 512 bytes)
-X-SA-Exim-Mail-From: ebiederm@xmission.com
-X-SA-Exim-Scanned: No (on out02.mta.xmission.com); SAEximRunCond expanded to false
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260521133326.2465264-1-kees@kernel.org>
+Organization: Intel Finland Oy - BIC 0357606-4 - c/o Alberga Business Park, 6
+ krs, Bertel Jungin Aukio 5, 02600 Espoo
 
-Andreas Schwab <schwab@linux-m68k.org> writes:
+On Thu, May 21, 2026 at 06:33:14AM -0700, Kees Cook wrote:
+> 
+> param_array_get() appends each element's string representation into the
+> shared sysfs page buffer by passing buffer + off to the element getter.
+> 
+> That works for getters that only write a small bounded string, but
+> param_get_charp() and similar helpers format against PAGE_SIZE from the
+> pointer they receive. Once off is non-zero, an element getter can
+> therefore write past the end of the original sysfs page buffer.
+> 
+> Collect each element into a temporary PAGE_SIZE buffer first and then
+> copy only the remaining space into the caller's page buffer.
 
-> On Jun 01 2026, Deepak Gupta wrote:
->
->> riscv uses `VM_SHADOW_STACK`. It's just very simple to use `protection_map`
->> with just `VM_WRITE`. On RISC-V, `-W-` is a shadow stack mapping. It's not same
->> on x86 or arm64. So `protection_map[VM_WRITE]` simply picks shadow stack
->> encoding. We just ensure that PROT_WRITE is converted to
->> "VM_READ | VM_WRITE" at vma level.
->
-> That does not explain _why_ you need to make that user visible change,
-> when others can get away without it.
+...
 
-Especially since as I recall the decision was made was that the user
-visible protection bits would match the mmap call.  If there is some
-combination an architecture does not support that would simply not be
-reflected in hardware until some future version of the hardware gets
-around to supporting it.
+> +	elem_buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
 
-This is what happened with executable page permissions on x86 for
-example.  It used to be that it was not possible to deny execute
-permission on a readable page.  Later that proved sufficiently valuable
-that support for denying execute permission was added to the hardware.
+get_free_page() (or how it is called)?
 
-That all happened quite transparently to userspace, that wasn't trying
-to assuming PROT_READ implied PROT_EXEC.
+> +	if (!elem_buf)
+> +		return -ENOMEM;
+> +
+>  	for (i = off = 0; i < (arr->num ? *arr->num : arr->max); i++) {
+> -		/* Replace \n with comma */
+> -		if (i)
+> -			buffer[off - 1] = ',';
+>  		p.arg = arr->elem + arr->elemsize * i;
+>  		check_kparam_locked(p.mod);
+> -		ret = arr->ops->get(buffer + off, &p);
+> +		ret = arr->ops->get(elem_buf, &p);
+>  		if (ret < 0)
+> -			return ret;
+> +			goto out;
+> +		ret = min(ret, (int)(PAGE_SIZE - 1 - off));
 
-So I am at a complete loss why someone would choose to break userspace
-by confusing hardware limitations with what userspace asks for in mmap.
+It's usually discouraged to use castings in min/max/clamp. Can we make ret long
+or do something different here?
 
-Eric
+> +		if (!ret)
+> +			break;
+
+> +		/* Replace the previous element's trailing newline with a comma. */
+> +		if (i)
+> +			buffer[off - 1] = ',';
+
+Can't we do this after with help of strreplace()?
+
+> +		memcpy(buffer + off, elem_buf, ret);
+>  		off += ret;
+> +		if (off == PAGE_SIZE - 1)
+> +			break;
+>  	}
+>  	buffer[off] = '\0';
+> -	return off;
+> +	ret = off;
+> +out:
+> +	kfree(elem_buf);
+> +	return ret;
+
+-- 
+With Best Regards,
+Andy Shevchenko
+
 
