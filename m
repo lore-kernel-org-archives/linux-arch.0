@@ -1,209 +1,184 @@
-Received: from mail-wm1-f44.google.com (mail-wm1-f44.google.com [209.85.128.44])
+Received: from mail-yx1-f49.google.com (mail-yx1-f49.google.com [74.125.224.49])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2F1643E3150
-	for <linux-arch@vger.kernel.org>; Tue,  2 Jun 2026 13:04:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.44
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780405500; cv=none; b=GAII38LzuDm6/0Xf3NFvKtciMuKlCmuNtyyZDGUKdEBB7QjzFmmf0tEihQCYX59BynWegGjgtuxZZbz91+/xNFJ+1RXFQmC5eVnChKCQOWgnj6y2912inAO4/E/3ki8/VT8dnFmsV0Tq95CUth30GwzFlDxNIUeBPHicFln3I+c=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780405500; c=relaxed/simple;
-	bh=Lv88enNvVjptEHx4RPDpSYkoiYl4NHCAht/k1YwYRy4=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=esmECfRY21hpRgQl2shzZ27+VwBC+FgXmRb4qUy0OCS0E2EqsN6uVhbBNaV8Yxhr4V/kv35fyfjQz5Etwc1Na9LLKsB0FzptSM17F6ma+/3HEyU69iLHlD/8B2oUtoEcf2RBsyxTgXL1sai6husMeKSN2qgjYBylYVjd8YuDBpY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=oYCy8oWL; arc=none smtp.client-ip=209.85.128.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0873932B100
+	for <linux-arch@vger.kernel.org>; Tue,  2 Jun 2026 16:20:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.224.49
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1780417204; cv=pass; b=Ezp62CDtSoLVhnzKDeW6h+lFf9xL0cVfwj4sO+uZQCGYBdufjYhX1SYkURVXuejmxMIyhTj9BAza2mwuSL74S+DDqjPsCaubXHhKnqaX2/NUzMKiW/PDvArQL9jMejOyLMAOxWIQEcViOISfzqH+FIUXHhZrpW6EttM7cbvy7Ww=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1780417204; c=relaxed/simple;
+	bh=ydH4/QV/1+IbTAhdeYNLwa8ygu64uWvWhoVur27Jo/0=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=PfchiQnvfiJlKdJASw4wVIr7r8WTWZHviX5XOsI1poROm37ogsKo7N1aX1vWSLjFmvKFdzOowDLL4w9h3ffvy+ASJWmGvBRIQ2iBxtuLFEYLnUwLBOtO2RB757b3yutC7ROA3x4hKylC/pBF6aXLtxJFGhoOkShximH36TREgfY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rivosinc.com; spf=pass smtp.mailfrom=rivosinc.com; dkim=pass (2048-bit key) header.d=rivosinc.com header.i=@rivosinc.com header.b=c/VE6Dfq; arc=pass smtp.client-ip=74.125.224.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rivosinc.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=rivosinc.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="oYCy8oWL"
-Received: by mail-wm1-f44.google.com with SMTP id 5b1f17b1804b1-4906869f0cbso106713165e9.1
-        for <linux-arch@vger.kernel.org>; Tue, 02 Jun 2026 06:04:57 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=rivosinc.com header.i=@rivosinc.com header.b="c/VE6Dfq"
+Received: by mail-yx1-f49.google.com with SMTP id 956f58d0204a3-660390a8999so6360154d50.3
+        for <linux-arch@vger.kernel.org>; Tue, 02 Jun 2026 09:20:02 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1780417202; cv=none;
+        d=google.com; s=arc-20240605;
+        b=TAl+IKLNIPIusmtdLfnO7UvQm58T/vD7sbenAkhGqtd2SaP07SKZeVJweYETJfCzuA
+         hONEb9Mn1HevdeBx7lcDnNIFzdJy3M60cEQjA3ASuE3G/3vq9CkUbEIljJv0+kpK1obr
+         R46LfCbB5HnGp0zgxa+44R40OB2jd+/rHpXSQcr346DXKtI+so5lHxSclMQeZxwRkmaD
+         o1FbWrgdGqtDgADoAKcYGXGTk+RMmgfI1calOii31PBSi+2YfaMm6n0u5xZwOOA5potN
+         mXH/J8IAVfgu3TOFlZ5cL4ie1WQm3U5Ys6jaKdMhidPtx+3issKQQcTcIonZRxXYbZ2U
+         X8Sw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=qYFMKnZkfNnmRXGo0xQ4eN2VdP8xCoBWS52ZR4ARnJo=;
+        fh=V76+MXrvCCY8do/psdkm8VemigNgFEo5WsTj5tMdx3Y=;
+        b=Cw9WQ9KKzv50PyHZIzeOwGQGLyN6KHYkLwu/PDJWijdnGWAltjXb4kRu44jrPEwiVB
+         KpQlWME4slazrv6PbRijUiMZ48L5PcuFdeXEwkgbix2kiEn7IzVaUZMVxt0gYA7jmtei
+         jScK/8otyG3nDfUPCvdpKrCMz65GIrUYjAHAHB4wAKCgUt0x0XiKuGqtcyEz8eSXDJFA
+         KNiG4lNL7oAw2IVJwAIn2OtD7Lc+s7dObnZm5Bcmby7ZzajiFDi72gfI04ZTGqPuHlfz
+         /F7Hk4bG163AVCoRjfgk6JccNWJnub5a2DaMGd2b7tFJM4QpWj+0ZJgZaqPvGaWSXPIM
+         aJzg==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1780405496; x=1781010296; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
+        d=rivosinc.com; s=google; t=1780417202; x=1781022002; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=H/8nMdqnIqVIuE86ZCCEmz0EQ1iXOszPXfKX9VZoGH4=;
-        b=oYCy8oWLEOXs3ZZpnQ8VOQHoNFjKZT62/QUyW3df6kxvDecqCOK07UnU98cT9bih7d
-         QifFlcWIr+EJiA3Y4YekpYVbMWMA0XqQZb9m0aNzEy+n6CZ9KNJxUBct5gbgm0d6jBJX
-         4RYm7cSM4Fa+MgP775wpjzUTJB2NacljxFREy0lFq+bJunDJIYp2ZV4sTIDkO+Vc1xr7
-         FpcRQcE1R3qM6zq5aytz97WBpu5zXpd39pgEA0GnDnl2ujkjmEdAdRZhqHjKWr+k4Lc4
-         ry5o67NwkoWSsT9Lap7TwhGHQwNn20aUpkBNKTwaaKQ1kQ2Jb1T0oTaxOfTVux7BZHHQ
-         5nZw==
+        bh=qYFMKnZkfNnmRXGo0xQ4eN2VdP8xCoBWS52ZR4ARnJo=;
+        b=c/VE6DfqYn4w+HWhelXW5cH3cKDMBvmmPkVsAt1mRpbe/kx0fpJhdpax/nVFBksa/q
+         kWQOQ3TaZTqarShkrrTJKHivLOSIJRlP5ChFQxVgYC5hqdi3Kwy6ThI+1cQiLvakbV5r
+         EN2CKw4yqeAbNirJuDwnGr7HREmnRWw1TVqQR6cWIWIwpsKjofo4YQYGqkv4kX6L0rF1
+         3FeGiu6Xyw+dqrRgyICL5NayCKUBiSvyHv3Mf2Vtla8HNIKYLEAD6fI0S3XIcPnRNC6e
+         U9PgeKeKvgpuY8awo8S5+XjMCS2FR7ESbtR2gvFFaxrelzBcqVhqbvmX5lzxFG3CThxE
+         SolQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1780405496; x=1781010296;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
+        d=1e100.net; s=20251104; t=1780417202; x=1781022002;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=H/8nMdqnIqVIuE86ZCCEmz0EQ1iXOszPXfKX9VZoGH4=;
-        b=c8n7iZzqmbUYk5+UNxQkb/mUEIUHaA7aejPNimIxqL+0uuEuxSlIpofZfglbwsWvzn
-         iCzdr7YRYnWtsuAZGb0mN3sislSNngsf/YNsj4CiIfXFsmqTPRgy2HRsusmOxnlH9hWO
-         xF6HmasFgtEvZlIdw7owIdu1Qc8MH2FJq5icCrAszSsqSrovAjTxWLiQi8RO0SiCaJ2R
-         quWgQQ6m8rqb0uFYxqEk1VQrLnADni6SdOaI10fhxARuBAHBviAAd4Oyq48aAzNVptmY
-         QeVxAoVvCF7mf54w11LsBw6Rlm+CA2xj10AvEdkiqUwsqHA/bfRkGBz6t8Wm+18hGQMz
-         2vBw==
-X-Forwarded-Encrypted: i=1; AFNElJ8v1GHFx66aKZ4wn9ACqPMDSFcpq40pvVnvEp8EkSVHPSnHL8O01WKUpwZSOzEc+vzAMUQc8DgMhrpo@vger.kernel.org
-X-Gm-Message-State: AOJu0Yz/3mNS5dFNxqRNpvmpIgp5ARUOrjzAperV22C1yWtz5SDjq/fX
-	Z8UZ+punbXTOtDpZolfUoeAzDmKAjtuwZqnF9xErohpb1Nd3aOS4u7MC
-X-Gm-Gg: Acq92OEP0Ng4I0y9VFLY5orZnTVaPJNnSKQDmh7Bj6MSdwH6AXfBFUobOkM+telS4/9
-	8JqP6nfJ4BT15QK/+8H/BPWfNNymEeQ232z6K8h2viIH5nr1bKS+t5AG/mCVY9OFvdSqqCyjb07
-	bdXSZOalo6HFzDW1HOpbQq9dlvKVmxfC3Eam8kMdAR02s/bLF7o1iRCNzlEIQzoU7ZEeU5+rfYk
-	zKiGKD6cJvP6lqUEKynzqKVcDEbZW1Q/YI7CK2YxTTpaEBGriIwQB+5MIAGiu0LLpjRaC2Ull3S
-	GIu6LnRyMYrp9EzfBykOfai4duzaKgB9cXJsOe7IGmd3LhQhdQoCeZRqSPUmGCtsZMolG5W+fAb
-	aZkessjMkfTyUF+Oo637Y2NI/2q7UpeeU6dU9MA6S9GG1wedKu21umZgYCCmqvr/E/4R261kfi0
-	q78ZDO7kiaaZHXyOPockWHyv3z8Hftj/EUZ1R7+rcO5azHTZWM+6NEZhwT27bi3F4gWaK8Ciu7w
-	9aHHMTV8Q==
-X-Received: by 2002:a05:600c:8105:b0:490:b072:1be6 with SMTP id 5b1f17b1804b1-490b0721e0amr76565325e9.25.1780405495119;
-        Tue, 02 Jun 2026 06:04:55 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-45ef34b834esm33184301f8f.11.2026.06.02.06.04.53
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 02 Jun 2026 06:04:54 -0700 (PDT)
-Date: Tue, 2 Jun 2026 14:04:51 +0100
-From: David Laight <david.laight.linux@gmail.com>
-To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: Kees Cook <kees@kernel.org>, Luis Chamberlain <mcgrof@kernel.org>,
- Pengpeng Hou <pengpeng@iscas.ac.cn>, stable@vger.kernel.org, Petr Pavlu
- <petr.pavlu@suse.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov
- <anton.ivanov@cambridgegreys.com>, Johannes Berg
- <johannes@sipsolutions.net>, "Rafael J. Wysocki" <rafael@kernel.org>, Len
- Brown <lenb@kernel.org>, Corey Minyard <corey@minyard.net>, Gabriel Somlo
- <somlo@cmu.edu>, "Michael S. Tsirkin" <mst@redhat.com>, Jani Nikula
- <jani.nikula@linux.intel.com>, Joonas Lahtinen
- <joonas.lahtinen@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>,
- Tvrtko Ursulin <tursulin@ursulin.net>, David Airlie <airlied@gmail.com>,
- Simona Vetter <simona@ffwll.ch>, Bart Van Assche <bvanassche@acm.org>,
- Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, Laurent
- Pinchart <laurent.pinchart@ideasonboard.com>, Hans de Goede
- <hansg@kernel.org>, Mauro Carvalho Chehab <mchehab@kernel.org>, Bjorn
- Helgaas <bhelgaas@google.com>, Hannes Reinecke <hare@suse.de>, "James E.J.
- Bottomley" <James.Bottomley@hansenpartnership.com>, "Martin K. Petersen"
- <martin.petersen@oracle.com>, Daniel Lezcano <daniel.lezcano@kernel.org>,
- Zhang Rui <rui.zhang@intel.com>, Lukasz Luba <lukasz.luba@arm.com>, Greg
- Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby
- <jirislaby@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Jason Wang
- <jasowang@redhat.com>, Xuan Zhuo <xuanzhuo@linux.alibaba.com>, Eugenio
- =?UTF-8?B?UMOpcmV6?= <eperezma@redhat.com>, Jason Baron
- <jbaron@akamai.com>, Jim Cromie <jim.cromie@gmail.com>, Tiwei Bie
- <tiwei.btw@antgroup.com>, Benjamin Berg <benjamin.berg@intel.com>, Ilpo
- =?UTF-8?B?SsOkcnZpbmVu?= <ilpo.jarvinen@linux.intel.com>, "David E. Box"
- <david.e.box@linux.intel.com>, "Maciej W. Rozycki" <macro@orcam.me.uk>,
- Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Peter Zijlstra
- <peterz@infradead.org>, Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik
- <gor@linux.ibm.com>, Sean Christopherson <seanjc@google.com>, Paolo Bonzini
- <pbonzini@redhat.com>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
- <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
- <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
- <hpa@zytor.com>, Vinod Koul <vkoul@kernel.org>, Frank Li
- <Frank.Li@kernel.org>, Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen
- <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>, Alexander
- Potapenko <glider@google.com>, Marco Elver <elver@google.com>, Dmitry
- Vyukov <dvyukov@google.com>, Andrew Morton <akpm@linux-foundation.org>,
- John Johansen <john.johansen@canonical.com>, Paul Moore
- <paul@paul-moore.com>, James Morris <jmorris@namei.org>, "Serge E. Hallyn"
- <serge@hallyn.com>, Georgia Garcia <georgia.garcia@canonical.com>,
- kvm@vger.kernel.org, dmaengine@vger.kernel.org,
- linux-modules@vger.kernel.org, kasan-dev@googlegroups.com,
- linux-mm@kvack.org, apparmor@lists.ubuntu.com,
- linux-security-module@vger.kernel.org, linux-um@lists.infradead.org,
- linux-acpi@vger.kernel.org, openipmi-developer@lists.sourceforge.net,
- qemu-devel@nongnu.org, intel-gfx@lists.freedesktop.org,
- dri-devel@lists.freedesktop.org, linux-rdma@vger.kernel.org,
- linux-media@vger.kernel.org, linux-pci@vger.kernel.org,
- linux-scsi@vger.kernel.org, linux-pm@vger.kernel.org,
- linuxppc-dev@lists.ozlabs.org, linux-serial@vger.kernel.org,
- linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net,
- virtualization@lists.linux.dev, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, netdev@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, linux-hardening@vger.kernel.org
-Subject: Re: [PATCH 01/11] params: bound array element output to the
- caller's page buffer
-Message-ID: <20260602140451.2e3e6622@pumpkin>
-In-Reply-To: <ah699hwLxIIOZ0-7@ashevche-desk.local>
-References: <20260521133315.work.845-kees@kernel.org>
-	<20260521133326.2465264-1-kees@kernel.org>
-	<ah699hwLxIIOZ0-7@ashevche-desk.local>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+        bh=qYFMKnZkfNnmRXGo0xQ4eN2VdP8xCoBWS52ZR4ARnJo=;
+        b=J1mjI1r8w2eAQBpAjbNWMgsuX0HCdcV8ndcKscmbvBi5lQfO5mJT9/OIh3o+x6V4mn
+         e3vCZRgSpLw54ziYub0frau5RFhHapv/yzgCzk6Mujc9nFn/0w1JjKepKIass+coiyeP
+         9uW3gnnL818S+5A4PupHKUqgJ6/jfetABHh+LS7YvjODwZPiZh1HBqa5yP2+1q8Wt4zV
+         F5PIwgpvJxTwn5tIEfcV0eieuZ5ITSFB4XX0/0VW0JS5ew0OJPBMHukcb9mQmcdcEV/E
+         Zs4Aglw0qTdJGLC6CI2uagBZnZ/uBnsx+JgCVSGHE5do2I0uUaNf8hWaeDxz8PEJX/Wu
+         2SOA==
+X-Forwarded-Encrypted: i=1; AFNElJ8G/enkdzi7+FYiPxSqWHk3KtHylDV4czCEO7nVtudvgoS3cif5fN/aUXk+RodrmqhiCpxINHLokHIa@vger.kernel.org
+X-Gm-Message-State: AOJu0Ywgg+VqMW6GgXGxuNv9+A8qeEoabYuvBCmbslnOEYCzVU+5l3Il
+	6qZVcduP4AZLC0nKKKdp7Hk8Ca51ZF2/s3W4M62Fy2nwITtfilqSxBMcUJvg1avfH17VgHp/jUB
+	F95+LJzhJ9ixg1WesviY2FbgIcagDm1cjBPMS3YSwjw==
+X-Gm-Gg: Acq92OEh/wavTWcS3iWyMoBxUW2uiOODlXR2Jgf9DmvRSItVzbWpbAH8f34pkH0+QXA
+	cEKC2XRbTYT7vJb2x9VCPt6h0SBNFBmjU8eOWe8G20AbLqPIH1CJ40wUC3suD80LKRUpTh37vql
+	ho8m+fjj5hPQgTXbc+dzG/a7K4Mqxp5GFClnmgR67XBGfOKZ3BmF8mpU3itrM9ftHBurcIVVDl7
+	ZY8Pky/tV4XTE5OesaDyyFIFpA4M2lxXa2E+Aqljth8Lvd8b1XVaSeE7F34YQgt49F6dWq4swHX
+	0nJ8T40yaGnSYgCRaPYjQJq6WvTwdBD8XQ==
+X-Received: by 2002:a05:690e:23c7:b0:660:367d:539c with SMTP id
+ 956f58d0204a3-660d61a5f90mr366583d50.65.1780417201973; Tue, 02 Jun 2026
+ 09:20:01 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
+ <20251112-v5_user_cfi_series-v23-6-b55691eacf4f@rivosinc.com>
+ <87jyslndo4.fsf@igel.home> <CAKC1njS=AHu6uHrH4ae8VxcdEbhgiPXYCAoN3F_mnppBd3SwOA@mail.gmail.com>
+ <875x44o9hj.fsf@igel.home> <CAKC1njSn_rtCj8ii876PNQTk0nsCTfWsb4DzdymufHVthh1Rkg@mail.gmail.com>
+ <871peqgp9v.fsf@igel.home> <CAKC1njR+dTdvp+BmLGPtgd8dufiUwBtkQ9a-qinELT_Fmi13sQ@mail.gmail.com>
+ <87wlwif04z.fsf@igel.home> <87tsrli6lt.fsf@email.froward.int.ebiederm.org>
+In-Reply-To: <87tsrli6lt.fsf@email.froward.int.ebiederm.org>
+From: Deepak Gupta <debug@rivosinc.com>
+Date: Tue, 2 Jun 2026 09:19:50 -0700
+X-Gm-Features: AVHnY4LGzvAggFLA4mHNoi-t9ivcZhZK65HitG7Axu1HWjT50Q9msXqH7dSmtzU
+Message-ID: <CAKC1njRapOxS6ibQdCuES1E3aAjsA+yGz4yZ1xJAZHU2vkAm_A@mail.gmail.com>
+Subject: Re: [PATCH v23 06/28] riscv/mm : ensure PROT_WRITE leads to VM_READ | VM_WRITE
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, 
+	Deepak Gupta via B4 Relay <devnull+debug.rivosinc.com@kernel.org>, 
+	Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
+	"H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, 
+	"Liam R. Howlett" <Liam.Howlett@oracle.com>, Vlastimil Babka <vbabka@suse.cz>, 
+	Lorenzo Stoakes <lorenzo.stoakes@oracle.com>, Paul Walmsley <paul.walmsley@sifive.com>, 
+	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Conor Dooley <conor@kernel.org>, Rob Herring <robh@kernel.org>, 
+	Krzysztof Kozlowski <krzk+dt@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
+	Christian Brauner <brauner@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
+	Oleg Nesterov <oleg@redhat.com>, Kees Cook <kees@kernel.org>, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <shuah@kernel.org>, Jann Horn <jannh@google.com>, Conor Dooley <conor+dt@kernel.org>, 
+	Miguel Ojeda <ojeda@kernel.org>, Alex Gaynor <alex.gaynor@gmail.com>, 
+	Boqun Feng <boqun.feng@gmail.com>, Gary Guo <gary@garyguo.net>, 
+	=?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
+	Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>, 
+	Trevor Gross <tmgross@umich.edu>, Benno Lossin <lossin@kernel.org>, linux-kernel@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, 
+	linux-riscv@lists.infradead.org, devicetree@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, alistair.francis@wdc.com, 
+	richard.henderson@linaro.org, jim.shu@sifive.com, andybnac@gmail.com, 
+	kito.cheng@sifive.com, charlie@rivosinc.com, atishp@rivosinc.com, 
+	evan@rivosinc.com, cleger@rivosinc.com, alexghiti@rivosinc.com, 
+	samitolvanen@google.com, broonie@kernel.org, rick.p.edgecombe@intel.com, 
+	rust-for-linux@vger.kernel.org, Zong Li <zong.li@sifive.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Tue, 2 Jun 2026 14:26:46 +0300
-Andy Shevchenko <andriy.shevchenko@linux.intel.com> wrote:
+On Tue, Jun 2, 2026 at 3:23=E2=80=AFAM Eric W. Biederman <ebiederm@xmission=
+.com> wrote:
+>
+> Andreas Schwab <schwab@linux-m68k.org> writes:
+>
+> > On Jun 01 2026, Deepak Gupta wrote:
+> >
+> >> riscv uses `VM_SHADOW_STACK`. It's just very simple to use `protection=
+_map`
+> >> with just `VM_WRITE`. On RISC-V, `-W-` is a shadow stack mapping. It's=
+ not same
+> >> on x86 or arm64. So `protection_map[VM_WRITE]` simply picks shadow sta=
+ck
+> >> encoding. We just ensure that PROT_WRITE is converted to
+> >> "VM_READ | VM_WRITE" at vma level.
+> >
+> > That does not explain _why_ you need to make that user visible change,
+> > when others can get away without it.
+>
+> Especially since as I recall the decision was made was that the user
+> visible protection bits would match the mmap call.  If there is some
+> combination an architecture does not support that would simply not be
+> reflected in hardware until some future version of the hardware gets
+> around to supporting it.
+>
+> This is what happened with executable page permissions on x86 for
+> example.  It used to be that it was not possible to deny execute
+> permission on a readable page.  Later that proved sufficiently valuable
+> that support for denying execute permission was added to the hardware.
+>
+> That all happened quite transparently to userspace, that wasn't trying
+> to assuming PROT_READ implied PROT_EXEC.
+>
+> So I am at a complete loss why someone would choose to break userspace
+> by confusing hardware limitations with what userspace asks for in mmap.
 
-> On Thu, May 21, 2026 at 06:33:14AM -0700, Kees Cook wrote:
-> > 
-> > param_array_get() appends each element's string representation into the
-> > shared sysfs page buffer by passing buffer + off to the element getter.
-> > 
-> > That works for getters that only write a small bounded string, but
-> > param_get_charp() and similar helpers format against PAGE_SIZE from the
-> > pointer they receive. Once off is non-zero, an element getter can
-> > therefore write past the end of the original sysfs page buffer.
-> > 
-> > Collect each element into a temporary PAGE_SIZE buffer first and then
-> > copy only the remaining space into the caller's page buffer.  
-> 
-> ...
-> 
-> > +	elem_buf = kmalloc(PAGE_SIZE, GFP_KERNEL);  
-> 
-> get_free_page() (or how it is called)?
+Initially my plan was to re-use (only) VM_WRITE as (alias to) VM_SHADOW_STA=
+CK
+on risc-v to match hardware Write-only PTE encoding and I didn't see
+any opposition
+to that initially. Until later when it was suggested to  use distinct
+VM_SHADOW_STACK
+encoding.
+Although there wasn't any oppostion to this patch, seems like it made it in=
+.
 
-The kmalloc() should be faster and I think has to be aligned.
-There is another patch set to replace get_free_pages() with kmalloc().
+Now that I take a look at it, I think it can be made to work. Sorry about t=
+hat.
 
-Although all these 'show' functions should really head to using a safer
-interface.
-Although, at the moment, it is really difficult to find the ones that
-are guaranteed to be passed a page aligned buffer.
+Now that I have switched my affiliation to meta, I'll have to spend
+some time to set
+up risc-v dev environment.
 
--- David
+I'll send a patch. Thanks.
 
-> 
-> > +	if (!elem_buf)
-> > +		return -ENOMEM;
-> > +
-> >  	for (i = off = 0; i < (arr->num ? *arr->num : arr->max); i++) {
-> > -		/* Replace \n with comma */
-> > -		if (i)
-> > -			buffer[off - 1] = ',';
-> >  		p.arg = arr->elem + arr->elemsize * i;
-> >  		check_kparam_locked(p.mod);
-> > -		ret = arr->ops->get(buffer + off, &p);
-> > +		ret = arr->ops->get(elem_buf, &p);
-> >  		if (ret < 0)
-> > -			return ret;
-> > +			goto out;
-> > +		ret = min(ret, (int)(PAGE_SIZE - 1 - off));  
-> 
-> It's usually discouraged to use castings in min/max/clamp. Can we make ret long
-> or do something different here?
-> 
-> > +		if (!ret)
-> > +			break;  
-> 
-> > +		/* Replace the previous element's trailing newline with a comma. */
-> > +		if (i)
-> > +			buffer[off - 1] = ',';  
-> 
-> Can't we do this after with help of strreplace()?
-> 
-> > +		memcpy(buffer + off, elem_buf, ret);
-> >  		off += ret;
-> > +		if (off == PAGE_SIZE - 1)
-> > +			break;
-> >  	}
-> >  	buffer[off] = '\0';
-> > -	return off;
-> > +	ret = off;
-> > +out:
-> > +	kfree(elem_buf);
-> > +	return ret;  
-> 
-
+>
+> Eric
+>
