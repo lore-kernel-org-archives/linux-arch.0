@@ -1,68 +1,114 @@
-Received: from desiato.infradead.org (desiato.infradead.org [90.155.92.199])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E7EF23D16E9;
-	Wed,  3 Jun 2026 14:27:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.92.199
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B91363998B2;
+	Wed,  3 Jun 2026 19:20:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780496836; cv=none; b=BDgskUaV9dzPnIICYPRBG/oUC4fWnivnBm1rqijRqeGpiz1c6AG5lktmo9RnUBw3r/leFSGVN8ghjzXpxD3f/6k5LcUJw6ldeL+wU7TaCKJrNur/oKO/pYo6KsYM3m1M2DLXERgZ/c7wjaI+pbuKg0llogFp2BMCx9N+8rmWHR0=
+	t=1780514451; cv=none; b=hkG2Z8mP6acHDgJRYDEjQY6ezkMBvSQ5LICQT+YzZC6UqNq1ISE8vvx48qtFcZAwN34Q5iWxthgSiGeVQd/HCrAtT8qFDHgxJhPtXWIWW1NEiclURpnpGvPrPDlWwiMfEbq2OJ+Gi84dwRCf8/tpYldDPhlQBWITk6ZUeAiBVvs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780496836; c=relaxed/simple;
-	bh=AuGuRH+fFyEdbJRKSt1mI4XMyMufmkTscbswOCeuews=;
+	s=arc-20240116; t=1780514451; c=relaxed/simple;
+	bh=fcF2L2qJqR2J21wKlux/XhaLbrXjW+w0lA8W8N2pVNw=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=QtNlARfBrp+m4INV4kNvgN8NMantNM+Pc2UfBpzzDbH2b6oRIaq8O1Ne/YFn0HTgEg06vfomVf2cWWW8chgrQLh9XHxn2U+93FucFhlK1hX2VM5Dy6SHWiaZkK8yhcyBl20Vhk3uxGoM2h8+W7Qo+hs3I0x2Jlf1fntkJzwVntI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=mXm4zhu/; arc=none smtp.client-ip=90.155.92.199
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
+	 Content-Type:Content-Disposition:In-Reply-To; b=olR8Mdgqpy7vs0M4D1kh/u8+kC0mAimlm59aQ05nCM8eNDJsmOVQ3qE0sEEKABfoNdZM0Pj6HXGM4iHwwjxz6nZlGZj+mq2nuTyq63pyp7J2Sc9Tv8NZcnnNkA/btcJlItscG3ffgfwLN186xWyc3AFR7z7eX8ILxsUZkmRIHwg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=D3vsA/4Z; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="mXm4zhu/"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=os4aRjDnafKUzup1QuKJHbiKJ+/dQN99U138wr5Ge48=; b=mXm4zhu/Rg+tWnyBEHPAizygP+
-	MokSQOOwsmHArQ5zsrd7YX3dwe41qJEnF1l5tg9WYaOHQgJI7SXdYYZZQyEz4Rtg697HMdeiKdyNY
-	V6QXv/NtFvmWLicZFBildOj3UogNmhtP8Ig6qT0IAl6uvnLiEBLKWu1anuSJI+qD+b8E9YGOA5KnK
-	AD/mZR5Hl1ie8T7XhS/5kg/3/z3q/me369Frj+mf4355m7BAd1/WiLPkkTV+l9MyKXB24EQCXsLht
-	mZny4wOhaOGbHX+TMYQmQ1cefA+QUrDIee5OqkmMyL0JDD02lRozDH6sryst0Ib0jaTxT1G7v7bpu
-	7mO+FzAA==;
-Received: from 2001-1c00-8d85-4b00-266e-96ff-fe07-7dcc.cable.dynamic.v6.ziggo.nl ([2001:1c00:8d85:4b00:266e:96ff:fe07:7dcc] helo=noisy.programming.kicks-ass.net)
-	by desiato.infradead.org with esmtpsa (Exim 4.99.2 #2 (Red Hat Linux))
-	id 1wUmYe-0000000CPBt-2ufD;
-	Wed, 03 Jun 2026 14:27:00 +0000
-Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
-	id 67A053007A4; Wed, 03 Jun 2026 16:26:59 +0200 (CEST)
-Date: Wed, 3 Jun 2026 16:26:59 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-To: Dmitry Ilvokhin <d@ilvokhin.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
-	Boqun Feng <boqun@kernel.org>, Waiman Long <longman@redhat.com>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Juergen Gross <jgross@suse.com>,
-	Ajay Kaher <ajay.kaher@broadcom.com>,
-	Alexey Makhalov <alexey.makhalov@broadcom.com>,
-	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
-	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="D3vsA/4Z"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C82211F00893;
+	Wed,  3 Jun 2026 19:20:48 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1780514450;
+	bh=MtjugWZzUUxCR/pWyiEIyzLKQZNA0zi91c/pvTORnJM=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=D3vsA/4Z35OrFgCjgF40/eXW5TJAQt/6K5xRMUlikV5XNelSI2ac8CNw3Zvwj7h8m
+	 nuYuycK3K2X048XKTLEhV6VNA1rVQFTMZBieZErbsYdVNKnLLiFrTsWjCbd59vdDmh
+	 XbnT/cNoDkDJ1LG9GBazWWBBRNBtEbG9MXX898PeRdxQ94hUS1jWJ1BP6c+3Ikjmf8
+	 mwFk9zG6KpacopBieevces+QQWYAsGujLChs329wN5Rn3JoVC17ri9yWm6t7MZZiNn
+	 SuZt2DWTNZxP6X6Cy2uX8Jw2iyLUuj0MGtPqHW7vNIqzjJjPL1phaDNN3hhdveJLWV
+	 Az2tXqaTNbsuA==
+Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
+	by mailfauth.phl.internal (Postfix) with ESMTP id E6188F4007A;
+	Wed,  3 Jun 2026 15:20:47 -0400 (EDT)
+Received: from phl-frontend-04 ([10.202.2.163])
+  by phl-compute-05.internal (MEProxy); Wed, 03 Jun 2026 15:20:47 -0400
+X-ME-Sender: <xms:j34gasQL4-Fd_zCg6zoUAew_Xfe2Tu-mM6kWak4fuCYZc3XEzysW7w>
+    <xme:j34gauqpYK4MaASRZNRD9-LBvokpRFzAb6LBOCO8_ij3q6-cr8jFq843CT5kVkd-H
+    k2PmHl7k3-Ro20QQJL02aoNQHj6QKq9oYoTdzV8veLpxIIv9zgsZw>
+X-ME-Received: <xmr:j34gavsqMidDdxLXOSYcHEO-efGdp0Ke1g-VX-JKmRjf8VIBCJtTCh19I_4>
+X-ME-Proxy-Cause: dmFkZTEeKZPKaxEW7sI+Y0OjRzaTROUW6RyGxvT1JY5zke8k7MdMeqjg5c3T8fCY/y7cWI
+    j189K4S4lRXCvuW5BKdmiZ9flLa/Fp/BwLhxLdkpITLAAAHtEOChqQHhh39QPW0zEpiW9X
+    qSGozLU6iDQyostAWt5KJUHnZDit/hu8dIn86X3JZQxg6wdJb1GrQzxuTLCyK3oUG6IAr4
+    pA05MXi4+NjX2ZoyYefPheB+TPrymPSqGDOr+CgAAJddhHa49XUIPsiByV7vq4hOEKWskK
+    Yu1enfoCKCyoPA3E/cV9cQEoN32DMeCrsN4HMNtD5WETRMRYCdN8ifZkJu5o7GJtbGgwQA
+    tzd1q0CuKP6VWNIojSIWR4qkzbondVmNLu9zoDeAf8jlTdEJqku1mjELUs+derQnRNqtRP
+    G78II45sF1gi4xAlp7aBtJ3SVdwV+LorBCq8nvlmWQ/sK9LCoOTIEujTVRB0uRGERSdBC8
+    vEVKF7o7adHUQwV4aUQBOxDiyzeuua9nvw4uR+EfnO5xqSBuI730Yxy027VJgnvdgGGZ/h
+    9gm5IpclBU9LqeZmDprL8aXAGLDlT4H1k9mU3F9PdsbfBm1FAFUUDg/Y5dtUWXVnunMtvX
+    9StD62X568WMdQZLz4Zpldz1ousET1wIueR9kkQrmHyNHEFM68Y+n9mEBM8w
+X-ME-Proxy: <xmx:j34gaieV-s9jS_1suoBu0diQkBqqRwVQeqAAHqS43hPkBW89eLo2LQ>
+    <xmx:j34garni2sI6kdIt9hQV7XYrTaJ2-GeC83C2HsfJD7FNc2KMlnMEZw>
+    <xmx:j34gamErStH6IlZpYki_qtN2QbRf3DZBWZ00VyuCwywqtc_mljYZ_A>
+    <xmx:j34gahJjWQdzRQzwPLdR6Wtko0SDyFKaNy8IWYNEtTRhDWnJ2cnxGg>
+    <xmx:j34gasviCm1UhxSR58jaTzzwL_2XMGhoX23niAhA_l4jblw_HAK9tiH_>
+Feedback-ID: i8dbe485b:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Wed,
+ 3 Jun 2026 15:20:46 -0400 (EDT)
+Date: Wed, 3 Jun 2026 12:20:45 -0700
+From: Boqun Feng <boqun@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
+ Jonas Bonn <jonas@southpole.se>,
+	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+	Stafford Horne <shorne@gmail.com>,	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,	Thomas Gleixner <tglx@kernel.org>,
+ Ingo Molnar <mingo@redhat.com>,	Borislav Petkov <bp@alien8.de>,
 	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
 	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
-	Christoph Lameter <cl@gentwo.org>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
-	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
-	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
-	kernel-team@meta.com, "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v6 5/7] locking: Add contended_release tracepoint to
- qspinlock
-Message-ID: <20260603142659.GW3102624@noisy.programming.kicks-ass.net>
-References: <cover.1777999826.git.d@ilvokhin.com>
- <5d7ea75ffe74a785e6b234ada9f23c6373d4b4c1.1777999826.git.d@ilvokhin.com>
- <20260513193342.GB2545104@noisy.programming.kicks-ass.net>
- <agXBb0ga_6HJrrnm@shell.ilvokhin.com>
- <20260603120811.GW3493090@noisy.programming.kicks-ass.net>
- <aiA3dzjKVq2_cpSY@shell.ilvokhin.com>
+	Juri Lelli <juri.lelli@redhat.com>,
+	Vincent Guittot <vincent.guittot@linaro.org>,
+	Dietmar Eggemann <dietmar.eggemann@arm.com>,
+	Steven Rostedt <rostedt@goodmis.org>,	Ben Segall <bsegall@google.com>,
+ Mel Gorman <mgorman@suse.de>,	Valentin Schneider <vschneid@redhat.com>,
+	K Prateek Nayak <kprateek.nayak@amd.com>,
+	Waiman Long <longman@redhat.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Andrii Nakryiko <andrii@kernel.org>,
+	Eduard Zingerman <eddyz87@gmail.com>,
+	Alexei Starovoitov <ast@kernel.org>,
+	Daniel Borkmann <daniel@iogearbox.net>,
+	Martin KaFai Lau <martin.lau@linux.dev>,
+	Kumar Kartikeya Dwivedi <memxor@gmail.com>,	Song Liu <song@kernel.org>,
+ Yonghong Song <yonghong.song@linux.dev>,	Jiri Olsa <jolsa@kernel.org>,
+ Shuah Khan <shuah@kernel.org>,	Miguel Ojeda <ojeda@kernel.org>,
+ Gary Guo <gary@garyguo.net>,
+	=?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
+	Benno Lossin <lossin@kernel.org>,
+	Andreas Hindborg <a.hindborg@kernel.org>,
+	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
+	Danilo Krummrich <dakr@kernel.org>,	Jinjie Ruan <ruanjinjie@huawei.com>,
+ Lyude Paul <lyude@redhat.com>,	Thomas Huth <thuth@redhat.com>,
+ Sohil Mehta <sohil.mehta@intel.com>,	"Xin Li (Intel)" <xin@zytor.com>,
+	Pawan Gupta <pawan.kumar.gupta@linux.intel.com>,
+	Nikunj A Dadhania <nikunj@amd.com>,
+	Joel Fernandes <joelagnelf@nvidia.com>,
+	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+	Randy Dunlap <rdunlap@infradead.org>,	Yury Norov <ynorov@nvidia.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	linux-kernel@vger.kernel.org, linux-openrisc@vger.kernel.org,
+	linux-s390@vger.kernel.org, linux-arch@vger.kernel.org,
+	bpf@vger.kernel.org, linux-kselftest@vger.kernel.org,
+	rust-for-linux@vger.kernel.org,
+	Onur =?iso-8859-1?Q?=D6zkan?= <work@onurozkan.dev>,
+	Daniel Almeida <daniel.almeida@collabora.com>
+Subject: Re: [PATCH v2 00/12] Refcounted interrupt disable and SpinLockIrq
+ for rust (Part 1)
+Message-ID: <aiB-jQqWRmKqqH_7@tardis-2.local>
+References: <20260526152148.30514-1-boqun@kernel.org>
+ <20260527161844.GG3102624@noisy.programming.kicks-ass.net>
+ <ahcc8Tudh4TJI5UM@tardis.local>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -71,63 +117,62 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <aiA3dzjKVq2_cpSY@shell.ilvokhin.com>
+In-Reply-To: <ahcc8Tudh4TJI5UM@tardis.local>
 
-On Wed, Jun 03, 2026 at 02:17:27PM +0000, Dmitry Ilvokhin wrote:
-
-> > Something a little like so, which is completely untested, except to
-> > build kernel/locking/spinlock.o (with clang-23).
+On Wed, May 27, 2026 at 09:33:53AM -0700, Boqun Feng wrote:
+> On Wed, May 27, 2026 at 06:18:44PM +0200, Peter Zijlstra wrote:
+> > On Tue, May 26, 2026 at 08:21:36AM -0700, Boqun Feng wrote:
+> > > Hi Peter,
+> > > 
+> > > This is a follow-up for Lyude's work [1]. After learning the current
+> > > preempt_count() usage and how ARM64 handle this, I came up with this
+> > > series that could resolve your feedback [2]. The basic idea is based on:
+> > > 
+> > > 1) preempt_count() previously already masks our NEED_RESCHED bit, so the
+> > >    effective bits is 31bits
+> > > 2) with a 64bit preempt count implementation (as in your PREEMPT_LONG
+> > >    proposal), the effective bits that record "whether we CAN preempt or
+> > >    not" still fit in 32bit (i.e. an int)
+> > > 
+> > > as a result, I don't think we need to change the existing
+> > > preempt_count() API, but rather keep "32bit vs 64bit" as an
+> > > implementation detail. This saves us the need to change the printk code
+> > > for preempt_count().
+> > 
+> > > 
+> > > v1: https://lore.kernel.org/rust-for-linux/20260508042111.24358-1-boqun@kernel.org/
+> > > 
+> > > Changes since v1:
+> > > 
+> > > * Rename PREEMPT_COUNT_64BIT to HAS_SEPARATE_PREEMPT_RESCHED_BITS per
+> > >   Mark Rutland.
+> > 
+> > Blergh, so I really don't like that new name. It isn't that
+> > PREEMPT_RESCHED is separate, it really is a 64bit preempt count.
+> > 
+> > Shashiko has a few fits, but its mostly being stupid. Although I think
+> > it might be useful to perhaps put a WARN_ON_ONCE(in_nmi()) in
+> > local_interrupt_disable().
 > 
-> Thanks a lot for taking a look, Peter.
+> Yes, that's also what I'm thinking of, and also we need to check
+> local_softirq_pending() in local_interrupt_enable() I think, because now
+> HARDIRQ_DISABLE bits being non-zero means deferring softirq. (Shashiko
+> also reported this as well).
 > 
-> I like the static_call idea. It's truly zero cost on x86 (and, as you
-> note, even a byte smaller). The one caveat is that it relies on
-> HAVE_STATIC_CALL_INLINE to stay free. 
+
+After some thoughts on this, I will postpone the idea of checking of
+local_softirq_pending() in local_interrupt_enable(), because that
+essientially makes every interrupt enabling a point to trigger softirq,
+and that's different from the current local_irq_{enable,restore}().
+
+Regards,
+Boqun
+
+> > 
+> > Anyway, I'll re-read things again tomorrow, but I suppose this will do.
+> > 
 > 
-> So my plan would be: static_call where HAVE_STATIC_CALL_INLINE is
-> available (x86), and a static branch fallback elsewhere, gated behind a
-> default-off config so it imposes nothing on arches/kernels that don't
-> opt in. I'm mostly interested in x86, but would like arm64 to work too,
-> which would use the fallback.
-
-(i386 doesn't have STATIC_CALL_INLINE, but nobody cares about the
-performance on that target, so anything goes really ;-)
-
+> Thank you!
 > 
-> Concretely:
-> 
-> 1. Split the sleepable-lock patches out and send them separately.
->    They're independent of the static call work and look far less
->    controversial.
-> 
-> 2. Convert the paravirt spinlock unlock to a static_call, as the
->    foundation for the unlock tracepoint. I'm happy to take a stab at it.
->    Let me know if you'd rather do it yourself.
-
-Yeah, I think that patch as-is *should* work, but like said, I haven't
-even tried it, so it could be terribly broken :-)
-
-> 3. Build the unlock tracepoint on top: static_call where it's cheap,
->    config-gated static_branch fallback where it isn't.
-
-Right, so I think we need some sort of custom callback for tracepoint
-enable/disable. Its been a minute since I dug through the tracepoint
-code, but I don't think it provides that with a convenient wrapper, but
-it should be doable.
-
-One thing to note is that when you set the tracepoint unlock function,
-it should either tail-call into the original function, or you have to
-create two unlock_trace functions, one for native and one for paravirt
-and pick the right one.
-
-> Does this plan sound reasonable to you?
-
-Yeah, should work.
-
-> > Also, I think someone should go do some performance runs with
-> > ARCH_INLINE_SPIN_* set for x86 just like for s390.
-> 
-> That's a good point, I'll run benchmarks and report back with the
-> results.
-
-Thanks!
+> Regards,
+> Boqun
