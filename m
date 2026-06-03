@@ -1,206 +1,340 @@
-Received: from va-2-115.ptr.blmpb.com (va-2-115.ptr.blmpb.com [209.127.231.115])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from desiato.infradead.org (desiato.infradead.org [90.155.92.199])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 17070405C44
-	for <linux-arch@vger.kernel.org>; Wed,  3 Jun 2026 08:08:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.115
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C232346AF20;
+	Wed,  3 Jun 2026 12:08:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.92.199
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780474094; cv=none; b=IvzxcxH314/sbqLXB3HKhsI1JhHXMThZ+lced2dRDQ4DVzcGsEauDof4Gq7eeO+PV8DSekIqJQibK3t8xNx/z9eUNPPURyZ73X61beTm1xeNeD5yiOGizwfoeiF6FVTTPaZLS1SzZRjyZrakMaTiQ8L6wvqCDbLjgUWdw0dYpjs=
+	t=1780488508; cv=none; b=svQ17K1kNmXcpvyUNLoD/b27ibhRVqkihb3HuMSPuqoDZUE7bTkylyQI1IkHN/AFiUQaCsXdu9yLUPr1EhZyasHihjy/L4RZ1ZN9qIPXRIgg21piXZbf8FF3lSDH1QVci9DkR0oZQplaindwjF52O8OMXa1wpt0ieHrUTBJ9qic=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780474094; c=relaxed/simple;
-	bh=NDZ6qErnQG6w0k+nmX3Ucp0GetTk9yJWwLhq6duuSSU=;
-	h=In-Reply-To:Content-Type:To:From:Subject:Date:Message-Id:
-	 References:Cc:Mime-Version; b=bRH3iYpgTv5521wK6EfkVx1s+0i/6/fLDI4XR1dLNuuNhziwf0SfBPE3mTpe67QoByzy9kEVBY6m4J7VF5MoiP3+rcYR5bg5nY3GgoGZpKWnkdY8fACIKk2x7CM0/BZWOo39wNkQqvI/73usjebvbzka7ChfKwRgxX9ev/fU4yU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=pB4S8BwY; arc=none smtp.client-ip=209.127.231.115
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1780488508; c=relaxed/simple;
+	bh=husHsBXts++6xfeVS4vQrdtk6eNs1v5BuuRy3CU7I4g=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=pfN/7gJRSODtsjrOHO7WN7R/jqnzHogS7rDqGGyZIzdXtUEuR8H88BQImzXu7Qn/t8H7CT48QNm4VMmPmHiEbJR90HpLMJe9uzYUKHIbbKbHklipczYYgA7aXdAOBranA8W4RAd+IZYnR2VHXyU3PrC/kd0w5U/7hmKZS+mXvXc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=d5SmmfEf; arc=none smtp.client-ip=90.155.92.199
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="pB4S8BwY"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="d5SmmfEf"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1780474088; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=A5euipl6qc7ONaSWy009BEQvfxAQyFAQV+XgcOVI8kM=;
- b=pB4S8BwYAbNJ4NDAhr3y0o+XUY71E7wUogqlxhMSeC7adJ4B9e3UXJVbAjlOyy39srx9NF
- M6nBZgYHNkTxAxfQUI1EyJlHPBPk73tFzQqtarfY3fIDbYoKSx6wK05noC+cr7UjhqoJvf
- OnLbv6p13Dzpaeh/LC8msfhWHWaPViH4UO3Lk2/d9RueXY7+bnnVebgJP91lvv+So7GqdQ
- VHaJoMHp7BKTyxgdcPFmkVWL5QsIeNOBiQjVHgnbIht7lUfcjcCJOqHN7t06t1a/6vL5l6
- kDZBlBjOLpTdY4UZ8Mk1bFearc1ysjWCtxe0ttTdZqnrqW/xi0oudyu8UhQkdA==
-X-Lms-Return-Path: <lba+26a1fe0e6+93eeaf+vger.kernel.org+lizhe.67@bytedance.com>
-Content-Transfer-Encoding: 7bit
-In-Reply-To: <20260603080152.64728-1-lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=UTF-8
-To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
-	<kees@kernel.org>, <mingo@redhat.com>, <rppt@kernel.org>, 
-	<tglx@kernel.org>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-Subject: [PATCH v4 8/8] mm: use memcpy_streaming() in zone-device template copies
-Date: Wed,  3 Jun 2026 16:01:52 +0800
-Message-Id: <20260603080152.64728-9-lizhe.67@bytedance.com>
-References: <20260603080152.64728-1-lizhe.67@bytedance.com>
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	<lizhe.67@bytedance.com>
+	d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=BjZzErQAmk+oO+4E0XcjmiW9hmCrWCk9t8jkFgLyPC4=; b=d5SmmfEf7raSFzg4vFDuRz3coH
+	z+67jG4KbJDEQovNpX0QBLbtbh5tdhne1+qs53r3XBtvymPRPtmo6uHSxh9oTTahgs8dAc3hjubVH
+	TjxIyF2tByPYK1SNwdAus4bunqc+oiQhx3KaDikJD7OR0bH0zHwcXCFc9PxzwQo2USWMY6gaz+gax
+	psOIEAn7ENGHGHDIPOHAfDrAgVYPG6MBJtugLGYM7rNY0SHSlYJY1ZLW248a62PrBMjvpfpPST3Ww
+	bn+ca1kNG1zCTGcCom57PuIUIbLXrVuU18Xy917FFvYAMb+dhQxvJQYnGRos24DqYx2XD0xeX8VK0
+	H/LTg4FA==;
+Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
+	by desiato.infradead.org with esmtpsa (Exim 4.99.2 #2 (Red Hat Linux))
+	id 1wUkOK-0000000C4nY-1pBX;
+	Wed, 03 Jun 2026 12:08:12 +0000
+Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
+	id 7A6863007A4; Wed, 03 Jun 2026 14:08:11 +0200 (CEST)
+Date: Wed, 3 Jun 2026 14:08:11 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+To: Dmitry Ilvokhin <d@ilvokhin.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
+	Boqun Feng <boqun@kernel.org>, Waiman Long <longman@redhat.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Juergen Gross <jgross@suse.com>,
+	Ajay Kaher <ajay.kaher@broadcom.com>,
+	Alexey Makhalov <alexey.makhalov@broadcom.com>,
+	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
+	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+	Christoph Lameter <cl@gentwo.org>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
+	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
+	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
+	kernel-team@meta.com, "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v6 5/7] locking: Add contended_release tracepoint to
+ qspinlock
+Message-ID: <20260603120811.GW3493090@noisy.programming.kicks-ass.net>
+References: <cover.1777999826.git.d@ilvokhin.com>
+ <5d7ea75ffe74a785e6b234ada9f23c6373d4b4c1.1777999826.git.d@ilvokhin.com>
+ <20260513193342.GB2545104@noisy.programming.kicks-ass.net>
+ <agXBb0ga_6HJrrnm@shell.ilvokhin.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-X-Mailer: git-send-email 2.45.2
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <agXBb0ga_6HJrrnm@shell.ilvokhin.com>
 
-The template fast path still leaves the actual copy sequence up to the
-compiler. Use the streaming-copy helpers introduced in the previous
-patches for the ZONE_DEVICE template-copy path so common mm code can
-request a write-once copy primitive without embedding arch-specific
-store layout in the generic layer.
+On Thu, May 14, 2026 at 12:34:55PM +0000, Dmitry Ilvokhin wrote:
 
-ZONE_DEVICE memmap initialization is a write-once path: each struct page
-is populated once and is not expected to be reused from cache
-immediately afterwards. A regular cached copy can therefore incur
-write-allocate traffic and pollute the cache without much benefit.
-Using memcpy_streaming() lets this path use an architecture-optimized
-streaming copy where available, while still degrading to memcpy() on
-architectures that do not provide a specialized implementation.
+> Baseline, in best case scenario of least number of executed
+> instructions.
+> 
+>     3e0:  endbr64                          ; 4 bytes (always executed)
+>     3e4:  movb $0x0,(%rdi)                 ; 3 bytes (unlock,
+>                                            ; always executed)
+>     3e7:  decl %gs:__preempt_count         ; 7 bytes (always executed)
+>     3ee:  je   3f5                         ; 2 bytes (always executed)
+>     3f0:  jmp  __x86_return_thunk          ; 5 bytes (executed if above
+>                                            ; je is not taken)
+>                                            ; rest is not executed
+>     3f5:  call __SCT__preempt_schedule     ; 5 bytes
+>     3fa:  jmp  __x86_return_thunk          ; 5 bytes
+> 
+> Tracepoint (again same case of least number of executed instructions).
+> 
+>     bc0:  endbr64                          ; 4 bytes (always executed)
+>     bc4:  xchg %ax,%ax                     ; 2 bytes (always executed, this is an
+>                                            ; only addition on the execution path).
+>     bc6:  movb $0x0,(%rdi)                 ; 3 bytes (unlock, always executed)
+>     bc9:  decl %gs:__preempt_count         ; 7 bytes (always executed)
+>     bd0:  je   bde                         ; 2 bytes (always executed)
+>     bd2:  jmp  __x86_return_thunk          ; 5 bytes (executed if above
+>                                            ; je is not taken)
+>                                            ; rest is not executed
+>     bd7:  call queued_spin_release_traced  ; 5 bytes
+>     bdc:  jmp  bc9                         ; 2 bytes
+>     bde:  call __SCT__preempt_schedule     ; 5 bytes
+>     be3:  jmp  __x86_return_thunk          ; 5 bytes
+> 
 
-Keep pageblock-aligned PFNs on memcpy() so pageblock initialization can
-immediately read back page metadata without introducing a
-read-after-streaming dependency. For the remaining PFNs, use
-memcpy_streaming() so the hot path can avoid write-allocate traffic
-while still leaving unsupported or unsuitable cases to the fallback
-implementation.
+So I've been playing with this a bit, and it is all really sad.
 
-When the streaming backend uses non-temporal stores, order them before
-entering memmap_init_compound(), before prep_compound_head() updates the
-overlapping compound metadata, and before returning from
-memmap_init_zone_device().
+Now, since pretty much everybody+dog will have PARAVIRT_SPINLOCK=y, the
+'best' solution would be changing that paravirt call with a
+static_call(), that actually shrinks the code by 1 byte.
 
-Keep sanitized builds on the slow path so KASAN/KMSAN retain their
-instrumented stores.
+And then this tracepoint nonsense can simply use a different unlock
+function, just like paravirt.
 
-Tested in a VM with a 100 GB fsdax namespace device configured with
-map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
-server.
+0000 00000000000001d0 <_raw_spin_unlock>:
+0000  1d0:	f3 0f 1e fa          	endbr64
+0004  1d4:	ff 15 00 00 00 00    	call   *0x0(%rip)        # 1da <_raw_spin_unlock+0xa>	1d6: R_X86_64_PC32	pv_ops_lock+0x4
+000a  1da:	65 ff 0d 00 00 00 00 	decl   %gs:0x0(%rip)        # 1e1 <_raw_spin_unlock+0x11>	1dd: R_X86_64_PC32	__preempt_count-0x4
+0011  1e1:	74 06                	je     1e9 <_raw_spin_unlock+0x19>
+0013  1e3:	2e e9 00 00 00 00    	cs jmp 1e9 <_raw_spin_unlock+0x19>	1e5: R_X86_64_PLT32	__x86_return_thunk-0x4
+0019  1e9:	e8 00 00 00 00       	call   1ee <_raw_spin_unlock+0x1e>	1ea: R_X86_64_PLT32	__SCT__preempt_schedule-0x4
+001e  1ee:	2e e9 00 00 00 00    	cs jmp 1f4 <_raw_spin_unlock+0x24>	1f0: R_X86_64_PLT32	__x86_return_thunk-0x4
 
-Test procedure:
-Rebind the nd_pmem and dax_pmem driver 30 times and collect the memmap
-initialization time from the pr_debug() output of
-memmap_init_zone_device().
 
-Base(v7.1-rc6):
-  First binding for nd_pmem driver: 1466 ms
-  Average of subsequent rebinds: 262.12 ms
+0000 00000000000001d0 <_raw_spin_unlock>:
+0000  1d0:	f3 0f 1e fa          	endbr64
+0004  1d4:	e8 00 00 00 00       	call   1d9 <_raw_spin_unlock+0x9>	1d5: R_X86_64_PLT32	__SCT__queued_spin_unlock-0x4
+0009  1d9:	65 ff 0d 00 00 00 00 	decl   %gs:0x0(%rip)        # 1e0 <_raw_spin_unlock+0x10>	1dc: R_X86_64_PC32	__preempt_count-0x4
+0010  1e0:	74 06                	je     1e8 <_raw_spin_unlock+0x18>
+0012  1e2:	2e e9 00 00 00 00    	cs jmp 1e8 <_raw_spin_unlock+0x18>	1e4: R_X86_64_PLT32	__x86_return_thunk-0x4
+0018  1e8:	e8 00 00 00 00       	call   1ed <_raw_spin_unlock+0x1d>	1e9: R_X86_64_PLT32	__SCT__preempt_schedule-0x4
+001d  1ed:	2e e9 00 00 00 00    	cs jmp 1f3 <_raw_spin_unlock+0x23>	1ef: R_X86_64_PLT32	__x86_return_thunk-0x4
 
-  First binding for dax_pmem driver: 1430 ms
-  Average of subsequent rebinds: 229.12 ms
 
-With this series:
-  First binding for nd_pmem driver: 1359 ms
-  Average of subsequent rebinds: 108.36 ms
+Something a little like so, which is completely untested, except to
+build kernel/locking/spinlock.o (with clang-23).
 
-  First binding for dax_pmem driver: 1273 ms
-  Average of subsequent rebinds: 100.17 ms
+Also, I think someone should go do some performance runs with
+ARCH_INLINE_SPIN_* set for x86 just like for s390.
 
-This reduces the average rebind time by about 58.6% for nd_pmem and
-56.3% for dax_pmem.
+Of course, this is only x86 done, and it doesn't nicely tie in with
+tracepoints, but it does give the sanest asm.
 
-Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
 ---
- mm/mm_init.c | 49 +++++++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 47 insertions(+), 2 deletions(-)
-
-diff --git a/mm/mm_init.c b/mm/mm_init.c
-index ad078ee354fb..fbc873284fb8 100644
---- a/mm/mm_init.c
-+++ b/mm/mm_init.c
-@@ -1070,11 +1070,21 @@ static void __ref zone_device_page_init_slow(struct page *page,
+diff --git a/arch/x86/hyperv/hv_spinlock.c b/arch/x86/hyperv/hv_spinlock.c
+index 210b494e4de0..6b4bdea18218 100644
+--- a/arch/x86/hyperv/hv_spinlock.c
++++ b/arch/x86/hyperv/hv_spinlock.c
+@@ -78,8 +78,8 @@ void __init hv_init_spinlocks(void)
+ 	pr_info("PV spinlocks enabled\n");
  
- static inline bool zone_device_page_init_optimization_enabled(void)
+ 	__pv_init_lock_hash();
+-	pv_ops_lock.queued_spin_lock_slowpath = __pv_queued_spin_lock_slowpath;
+-	pv_ops_lock.queued_spin_unlock = PV_CALLEE_SAVE(__pv_queued_spin_unlock);
++	static_call_update(queued_spin_lock_slowpath, __pv_queued_spin_lock_slowpath);
++	static_call_update(queued_spin_unlock, __raw_callee_save___pv_queued_spin_unlock);
+ 	pv_ops_lock.wait = hv_qlock_wait;
+ 	pv_ops_lock.kick = hv_qlock_kick;
+ 	pv_ops_lock.vcpu_is_preempted = PV_CALLEE_SAVE(hv_vcpu_is_preempted);
+diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+index 1d506e5d6f46..52e7ce10df57 100644
+--- a/arch/x86/include/asm/cpufeatures.h
++++ b/arch/x86/include/asm/cpufeatures.h
+@@ -225,7 +225,6 @@
+ #define X86_FEATURE_EPT_AD		( 8*32+17) /* "ept_ad" Intel Extended Page Table access-dirty bit */
+ #define X86_FEATURE_VMCALL		( 8*32+18) /* Hypervisor supports the VMCALL instruction */
+ #define X86_FEATURE_VMW_VMMCALL		( 8*32+19) /* VMware prefers VMMCALL hypercall instruction */
+-#define X86_FEATURE_PVUNLOCK		( 8*32+20) /* PV unlock function */
+ #define X86_FEATURE_VCPUPREEMPT		( 8*32+21) /* PV vcpu_is_preempted function */
+ #define X86_FEATURE_TDX_GUEST		( 8*32+22) /* "tdx_guest" Intel Trust Domain Extensions Guest */
+ 
+diff --git a/arch/x86/include/asm/paravirt-spinlock.h b/arch/x86/include/asm/paravirt-spinlock.h
+index 7beffcb08ed6..553910f92906 100644
+--- a/arch/x86/include/asm/paravirt-spinlock.h
++++ b/arch/x86/include/asm/paravirt-spinlock.h
+@@ -3,6 +3,7 @@
+ #define _ASM_X86_PARAVIRT_SPINLOCK_H
+ 
+ #include <asm/paravirt_types.h>
++#include <linux/static_call_types.h>
+ 
+ #ifdef CONFIG_SMP
+ #include <asm/spinlock_types.h>
+@@ -11,9 +12,6 @@
+ struct qspinlock;
+ 
+ struct pv_lock_ops {
+-	void (*queued_spin_lock_slowpath)(struct qspinlock *lock, u32 val);
+-	struct paravirt_callee_save queued_spin_unlock;
+-
+ 	void (*wait)(u8 *ptr, u8 val);
+ 	void (*kick)(int cpu);
+ 
+@@ -26,20 +24,23 @@ extern struct pv_lock_ops pv_ops_lock;
+ extern void native_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+ extern void __pv_init_lock_hash(void);
+ extern void __pv_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
++extern void __raw_callee_save___native_queued_spin_unlock(struct qspinlock *lock);
+ extern void __raw_callee_save___pv_queued_spin_unlock(struct qspinlock *lock);
+ extern bool nopvspin;
+ 
++DECLARE_STATIC_CALL(queued_spin_lock_slowpath, native_queued_spin_lock_slowpath);
++DECLARE_STATIC_CALL(queued_spin_unlock, __raw_callee_save___native_queued_spin_unlock);
++
+ static __always_inline void pv_queued_spin_lock_slowpath(struct qspinlock *lock,
+ 							 u32 val)
  {
-+	/*
-+	 * Keep sanitized builds on the slow path so their stores stay
-+	 * instrumented.
-+	 */
-+	if (IS_ENABLED(CONFIG_KASAN) || IS_ENABLED(CONFIG_KMSAN))
-+		return false;
-+
- 	/*
- 	 * The template fast path copies a preinitialized struct page image.
- 	 * Skip it when the page_ref_set tracepoint is enabled.
- 	 */
--	return !page_ref_tracepoint_active(page_ref_set);
-+	if (page_ref_tracepoint_active(page_ref_set))
-+		return false;
-+
-+	return true;
+-	PVOP_VCALL2(pv_ops_lock, queued_spin_lock_slowpath, lock, val);
++	static_call(queued_spin_lock_slowpath)(lock, val);
  }
  
- static inline void zone_device_template_page_init(struct page *template,
-@@ -1117,9 +1127,19 @@ static void zone_device_page_init_from_template(struct page *page,
- 	 * 'template' carries the invariant portion of a ZONE_DEVICE struct
- 	 * page. Update the PFN-dependent fields in place before copying it
- 	 * to the destination page.
-+	 *
-+	 * pageblock-aligned pages immediately feed
-+	 * init_pageblock_migratetype(), which reads back page metadata via
-+	 * helpers like page_zone(page). Avoid a read-after-streaming
-+	 * dependency for these rare pages by using regular cached stores
-+	 * instead of non-temporal ones.
- 	 */
- 	zone_device_page_update_template(template, pfn);
--	memcpy(page, template, sizeof(*page));
-+	if (unlikely(pageblock_aligned(pfn)))
-+		memcpy(page, template, sizeof(*page));
-+	else
-+		memcpy_streaming(page, template, sizeof(*page));
-+
- 	zone_device_page_init_pageblock(page, pfn);
+ static __always_inline void pv_queued_spin_unlock(struct qspinlock *lock)
+ {
+-	PVOP_ALT_VCALLEE1(pv_ops_lock, queued_spin_unlock, lock,
+-			  "movb $0, (%%" _ASM_ARG1 ")",
+-			  ALT_NOT(X86_FEATURE_PVUNLOCK));
++	__STATIC_CALL_MOD_ADDRESSABLE(queued_spin_unlock);
++	asm volatile ("call " STATIC_CALL_TRAMP_STR(queued_spin_unlock) : ASM_CALL_CONSTRAINT);
  }
  
-@@ -1184,6 +1204,15 @@ static void __ref memmap_init_compound(struct page *head,
- 			zone_device_tail_page_init(page, pfn, zone_idx, nid,
- 						   pgmap, head, order);
- 	}
+ static __always_inline bool pv_vcpu_is_preempted(long cpu)
+diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+index 29226d112029..5908d9fd94bb 100644
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -1135,9 +1135,8 @@ void __init kvm_spinlock_init(void)
+ 	pr_info("PV spinlocks enabled\n");
+ 
+ 	__pv_init_lock_hash();
+-	pv_ops_lock.queued_spin_lock_slowpath = __pv_queued_spin_lock_slowpath;
+-	pv_ops_lock.queued_spin_unlock =
+-		PV_CALLEE_SAVE(__pv_queued_spin_unlock);
++	static_call_update(queued_spin_lock_slowpath, __pv_queued_spin_lock_slowpath);
++	static_call_update(queued_spin_unlock, __raw_callee_save___pv_queued_spin_unlock);
+ 	pv_ops_lock.wait = kvm_wait;
+ 	pv_ops_lock.kick = kvm_kick_cpu;
+ 
+diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
+index 95452444868f..28407304f123 100644
+--- a/arch/x86/kernel/paravirt-spinlocks.c
++++ b/arch/x86/kernel/paravirt-spinlocks.c
+@@ -25,9 +25,12 @@ __visible void __native_queued_spin_unlock(struct qspinlock *lock)
+ }
+ PV_CALLEE_SAVE_REGS_THUNK(__native_queued_spin_unlock);
+ 
++DEFINE_STATIC_CALL(queued_spin_lock_slowpath, native_queued_spin_lock_slowpath);
++DEFINE_STATIC_CALL(queued_spin_unlock, __raw_callee_save___native_queued_spin_unlock);
 +
-+	/*
-+	 * When the template path is enabled, order the preceding tail-page copies
-+	 * before prep_compound_head() updates the overlapping compound metadata
-+	 * in the first tail-page descriptors. If memcpy_streaming() fell back to
-+	 * regular cached stores, memcpy_streaming_drain() may be a no-op.
-+	 */
-+	if (use_template)
-+		memcpy_streaming_drain();
- 	prep_compound_head(head, order);
+ bool pv_is_native_spin_unlock(void)
+ {
+-	return pv_ops_lock.queued_spin_unlock.func ==
++	return static_call_query(queued_spin_unlock) ==
+ 		__raw_callee_save___native_queued_spin_unlock;
  }
  
-@@ -1248,10 +1277,26 @@ void __ref memmap_init_zone_device(struct zone *zone,
- 		if (pfns_per_compound == 1)
- 			continue;
+@@ -45,16 +48,11 @@ bool pv_is_native_vcpu_is_preempted(void)
  
-+		/*
-+		 * When the template path is enabled, order the preceding head-page copy
-+		 * before memmap_init_compound(), which immediately updates compound-head
-+		 * metadata. If memcpy_streaming() fell back to regular cached stores,
-+		 * memcpy_streaming_drain() may be a no-op.
-+		 */
-+		if (use_template)
-+			memcpy_streaming_drain();
+ void __init paravirt_set_cap(void)
+ {
+-	if (!pv_is_native_spin_unlock())
+-		setup_force_cpu_cap(X86_FEATURE_PVUNLOCK);
+-
+ 	if (!pv_is_native_vcpu_is_preempted())
+ 		setup_force_cpu_cap(X86_FEATURE_VCPUPREEMPT);
+ }
+ 
+ struct pv_lock_ops pv_ops_lock = {
+-	.queued_spin_lock_slowpath	= native_queued_spin_lock_slowpath,
+-	.queued_spin_unlock		= PV_CALLEE_SAVE(__native_queued_spin_unlock),
+ 	.wait				= paravirt_nop,
+ 	.kick				= paravirt_nop,
+ 	.vcpu_is_preempted		= PV_CALLEE_SAVE(__native_vcpu_is_preempted),
+diff --git a/arch/x86/kernel/static_call.c b/arch/x86/kernel/static_call.c
+index 61592e41a6b1..1268b7dc93b1 100644
+--- a/arch/x86/kernel/static_call.c
++++ b/arch/x86/kernel/static_call.c
+@@ -3,6 +3,7 @@
+ #include <linux/memory.h>
+ #include <linux/bug.h>
+ #include <asm/text-patching.h>
++#include <asm/paravirt-spinlock.h>
+ 
+ enum insn_type {
+ 	CALL = 0, /* site call */
+@@ -31,6 +32,15 @@ static const u8 retinsn[] = { RET_INSN_OPCODE, 0xcc, 0xcc, 0xcc, 0xcc };
+  */
+ static const u8 warninsn[] = { 0x67, 0x48, 0x0f, 0xb9, 0x3a };
+ 
++/*
++ * ds ds movb $0, (_ASM_ARG1)
++ */
++#ifdef CONFIG_64BIT
++static const u8 unlockinsn[] = { 0x3e, 0x3e, 0xc6, 0x07, 0x00 };
++#else
++static const u8 unlockinsn[] = { 0x3e, 0x3e, 0xc6, 0x00, 0x00 };
++#endif
 +
- 		memmap_init_compound(page, pfn, zone_idx, nid, pgmap,
- 				     compound_nr_pages(altmap, pgmap),
- 				     use_template);
- 	}
-+	/*
-+	 * Ensure any prior template copies are ordered before returning.
-+	 * On architectures where memcpy_streaming() used regular cached stores,
-+	 * memcpy_streaming_drain() may be a no-op.
-+	 */
-+	if (use_template)
-+		memcpy_streaming_drain();
+ static u8 __is_Jcc(u8 *insn) /* Jcc.d32 */
+ {
+ 	u8 ret = 0;
+@@ -78,6 +88,10 @@ static void __ref __static_call_transform(void *insn, enum insn_type type,
+ 			emulate = code;
+ 			code = &warninsn;
+ 		}
++		if (func == &__raw_callee_save___native_queued_spin_unlock) {
++			emulate = code;
++			code = &unlockinsn;
++		}
+ 		break;
  
- 	pr_debug("%s initialised %lu pages in %ums\n", __func__,
- 		nr_pages, jiffies_to_msecs(jiffies - start));
--- 
-2.20.1
+ 	case NOP:
+diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
+index 83ac24ead289..f718e535ea7c 100644
+--- a/arch/x86/xen/spinlock.c
++++ b/arch/x86/xen/spinlock.c
+@@ -134,9 +134,8 @@ void __init xen_init_spinlocks(void)
+ 	printk(KERN_DEBUG "xen: PV spinlocks enabled\n");
+ 
+ 	__pv_init_lock_hash();
+-	pv_ops_lock.queued_spin_lock_slowpath = __pv_queued_spin_lock_slowpath;
+-	pv_ops_lock.queued_spin_unlock =
+-		PV_CALLEE_SAVE(__pv_queued_spin_unlock);
++	static_call_update(queued_spin_lock_slowpath, __pv_queued_spin_lock_slowpath);
++	static_call_update(queued_spin_unlock, __raw_callee_save___pv_queued_spin_unlock);
+ 	pv_ops_lock.wait = xen_qlock_wait;
+ 	pv_ops_lock.kick = xen_qlock_kick;
+ 	pv_ops_lock.vcpu_is_preempted = PV_CALLEE_SAVE(xen_vcpu_stolen);
+diff --git a/tools/arch/x86/include/asm/cpufeatures.h b/tools/arch/x86/include/asm/cpufeatures.h
+index 86d17b195e79..61541f042f74 100644
+--- a/tools/arch/x86/include/asm/cpufeatures.h
++++ b/tools/arch/x86/include/asm/cpufeatures.h
+@@ -225,7 +225,6 @@
+ #define X86_FEATURE_EPT_AD		( 8*32+17) /* "ept_ad" Intel Extended Page Table access-dirty bit */
+ #define X86_FEATURE_VMCALL		( 8*32+18) /* Hypervisor supports the VMCALL instruction */
+ #define X86_FEATURE_VMW_VMMCALL		( 8*32+19) /* VMware prefers VMMCALL hypercall instruction */
+-#define X86_FEATURE_PVUNLOCK		( 8*32+20) /* PV unlock function */
+ #define X86_FEATURE_VCPUPREEMPT		( 8*32+21) /* PV vcpu_is_preempted function */
+ #define X86_FEATURE_TDX_GUEST		( 8*32+22) /* "tdx_guest" Intel Trust Domain Extensions Guest */
+ 
