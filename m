@@ -1,330 +1,296 @@
-Received: from DM1PR04CU001.outbound.protection.outlook.com (mail-centralusazon11010007.outbound.protection.outlook.com [52.101.61.7])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6F3F833B6C6;
-	Thu,  4 Jun 2026 08:14:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.61.7
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780560866; cv=fail; b=URsftwAPsqmH9b/5XBhR1Hth2PvUxF6pQ//HqI9Ic6SLXYStnL9yHw0JZrwBvtv5yga3136NN9LtqsqQjgaMQeuk2/+mZXEfMf2bKUPfCIFIFPUqD82z4MtIQC/sCbVTToPQEWPs6eixQKHaxDOTrh0o0FsoJ3Y+MYiIhgNRA50=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780560866; c=relaxed/simple;
-	bh=a4q8HHj7DMN3lsT7HwnmZZcQpK7IN2JxDhSSKAMxDUk=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=CP40NxJBORPflXFtQZ1tO14enaszYyuw5FM+OXIrMVgQ62bLOsrjZMkcXIhgUgaAtjM/aL49hiVbfZ+37lQjV8OQrjvDq4lc1xvahxIlPZz8GqBt5fkbjOWZcaQ3xL8rMbl5Y8bKMInjyONjTul8S+JXvs/Z41v4+A7OW9PQ8GM=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=qrZ7NT6r; arc=fail smtp.client-ip=52.101.61.7
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 53E8D3E275F;
+	Thu,  4 Jun 2026 12:36:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1780576603; cv=none; b=CpnsbkKwnun9NiI2rrTHZkO8F8+bpZmKSQ81YvKPz8XoQjj1kqx8bXJ0+iUEjUw9wFNrvQYK/SMTEB2yYvERBPhXYykbRxqfIxWHqu6omHlU/WVe1g/Vtv7xvRi2Kyg/CGrhDVHWMjt4etE4Vy6PUzghEeqS+PEQ3vYy2C0Rg3E=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1780576603; c=relaxed/simple;
+	bh=fb/j4RhN61MLa1Qk9TfcPzZk/H+4QghW1asCur8EklE=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=PhAo+v2j5mrB/1Z8zbI71IalJcZHmc3nqICzfwslnSmLMPUPWo2UZGv2iQ9Zf1zAGRo2ulFS87i/TADP+nMzyNRsroNaX7jXicEyqFmz2OKPz1EL7Xv3/1FkpGljs4JbwhW39V7cWCl3UmpAGrS86wx68vk4CbjrhY2EmgXdvfE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=GauXLrMr; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="qrZ7NT6r"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=oWeC5QC9HFGp1adJSH7iO9OFCauMCDDCY3S8ZuovnEj4ko/MNKTbDpVnEirQfpjlgHdIPNc2MFGUhwxr2MkX3KykuRdJK/YZaBRy+qevh/GAlGUleQr8I4OzfWhh8JvMEvmPD2ei9CXRssJgYAAlByfs/4n1uRRocVYSo4ckXm3Gm3r3DJXTbKePQKPmifYl+kKAqmN5ei9nHW6TfPSZwo6N1WbUIWUZltR/QyDjtprjfLVLvv+iEZUMOEJhPwkD8i90TNS2vvKTcFVHHklCyGI0etUsoPOB0no0L9x5GYXw5eMsrg+V2XkxCPA71e9f8lyX6+erpbrnE9oGEG6zWg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=A2BCbHXFYeqwBA4U5rgoNiZvvrCZ2xPPKJSxut6nFTM=;
- b=UgnSaUuZwqS8Vk65z5hhaCt5z1oTczYAaH/ceHgowd/QVXaHZjJ/Suigm3fRj+FVassxfbZK9cYTHQEMdG4oY1uA+QX8tmY6YcLmG4oW8kQSNgDZxgC3B7e/D7E+yKOvbTE79xKdEeGgBv3VA4x3RWRhq50Sgf1r5QX69XpJNZxfLsynW08engdBy2/kjKC0JxuQYT+xefVTAYV1tmLCi8ZEL333ZE7eruQ0owuUmiufIAVggOxwT2GXIa+jtPvfeBKAUXFBs59etrOzx4XBsP5HbXDTKWzItwY+EZ16qOUygT3HEXNFyJk0favL8kqTcB+NNtmh9iK/lIfh+PEGMg==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
- dkim=pass header.d=nvidia.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=A2BCbHXFYeqwBA4U5rgoNiZvvrCZ2xPPKJSxut6nFTM=;
- b=qrZ7NT6rie54aG2/6nXpHemiwMmMtidI3+9aLbB7w3RXbIIfEK1frD/8Bu35vz0bCkMsoyq9ryhngpbHtuDq/90Wvot7Q2JG6s72N9A6p9utQoQTy6+PAm1sbzdENlWsZNU0qNYOY6imz4EUCbk/p+bLzkZpe5C29d0mPncQhMBCAqeutUTh1LQwUnDykYeOA4+cIUwOflkBJBNOmB01sZtHTNrv9UznSUHmpquEkvGnWwjh+BwQJrTB02xgasZ4hPuZy1C3bUFhqyKGO9bDth3yxbZB3TZRFF58VlK7uvvwsuegd6A8GOulw+bb0nVuhjd8oTyLA6ApRpF8g8lEkQ==
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=nvidia.com;
-Received: from DS0PR12MB7726.namprd12.prod.outlook.com (2603:10b6:8:130::6) by
- CH3PR12MB8404.namprd12.prod.outlook.com (2603:10b6:610:12d::17) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.92.7; Thu, 4 Jun 2026
- 08:14:17 +0000
-Received: from DS0PR12MB7726.namprd12.prod.outlook.com
- ([fe80::5807:8e24:69b0:f6c0]) by DS0PR12MB7726.namprd12.prod.outlook.com
- ([fe80::5807:8e24:69b0:f6c0%4]) with mapi id 15.21.0092.006; Thu, 4 Jun 2026
- 08:14:17 +0000
-Date: Thu, 4 Jun 2026 18:14:05 +1000
-From: Alistair Popple <apopple@nvidia.com>
-To: Li Zhe <lizhe.67@bytedance.com>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, bp@alien8.de, 
-	dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org, mingo@redhat.com, 
-	rppt@kernel.org, tglx@kernel.org, linux-arch@vger.kernel.org, 
-	linux-hardening@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
-Subject: Re: [PATCH v4 0/8] mm: speed up ZONE_DEVICE memmap initialization
-Message-ID: <aiEoByaQdRR3xtM5@nvdebian.thelocal>
-References: <20260603080152.64728-1-lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260603080152.64728-1-lizhe.67@bytedance.com>
-X-ClientProxiedBy: SY6PR01CA0046.ausprd01.prod.outlook.com
- (2603:10c6:10:e9::15) To DS0PR12MB7726.namprd12.prod.outlook.com
- (2603:10b6:8:130::6)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="GauXLrMr"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0288D1F00899;
+	Thu,  4 Jun 2026 12:36:39 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1780576602;
+	bh=G2t4b9T7YKjL70px21BHpISBAJ1CJJ2CGRX8h/3pybQ=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=GauXLrMrz8RgvQ+nC/xGJSWPjlY+Jwu+ne+c0Ic1W9UqrACD+g8YVbd0LkZZEVoWg
+	 wQTGzzDe9wwz8ocJuKiqJ7u6D+QEDorj0tqYrXGYPKh/Ap6rDosele6Lo1oyA+Z9on
+	 aninjg6DfWgzwpfV43rpHcs+EcEMbGFcHyQ8dXp8rRp5SyzYUS/3wiJwITTbX+sfIO
+	 OSATRic4XDbFEAJAfG2LE9mWrAWthl2KhBU6+lKwUXtMLBvSClccm01cqeN58UEJyw
+	 ke81hZZ4fDzO8SfAqHO4FXIs+nx0+LMR29CGaEA4YLJp5aiCZErU0GgDvrF7TUaBW1
+	 /yH6ELHNR+dsQ==
+Received: from phl-compute-02.internal (phl-compute-02.internal [10.202.2.42])
+	by mailfauth.phl.internal (Postfix) with ESMTP id 09DD4F4007C;
+	Thu,  4 Jun 2026 08:36:39 -0400 (EDT)
+Received: from phl-frontend-04 ([10.202.2.163])
+  by phl-compute-02.internal (MEProxy); Thu, 04 Jun 2026 08:36:39 -0400
+X-ME-Sender: <xms:VnEhagZzao9gyXUu93RNckXpTAxkfVObN80Ho1taOPQdYigkCroIBQ>
+    <xme:VnEhavbXeglNrO6gWeheBztORlLIBm2SMURYwDXzzM_SL5eI0pk_CA2Gco4nlikhz
+    W0Xvo3cVnaMgIWfEKX7osPMd1CxMs1j__MLs3lNlZrg-zVvwuRc>
+X-ME-Received: <xmr:VnEhaqAuPs88Zher25i5NkFsA4Hi6Md1NcEbWxn1Llk4vHkGLNy8rw7mwnw>
+X-ME-Proxy-Cause: dmFkZTEQFwMtfD0LSxw/EWQ8kkWfNDbO1B39r8wgdzVN7edb5KWhufCaURpXW1jgf2CWrq
+    XBWW3gIZcyl0yhjmX9ikFd4Pe/uurQpbuBtyZuFc3PXRL2zv2UA2M3gGkc55jKgRT9qAep
+    WLiJtZPvNiYOsRfbJ/9+uNp4HhrZydvVwlIEGJiUspc/R12m8keG0+WcmEwV/bQBeVTM2r
+    liekhxajBnCWjhAzVNgbVvojIzxbYqXCK1IdigNF/VMcqZ5YAbhiRFFvYqEjsoEdZ+UuHz
+    ZgVQAr4ekHEvTUTFBwnby/fHqxidy/2fM0P9Wo0Gd0s6JapT6jXiJdVohmQHyTkiMdcWEi
+    eVv+Y58tefCJqOIOwT9NqYVRgh4gjhLf6m/a8LLzr51MIW2WMhP/1EHC5R5VCf8T/p1S9P
+    RmlE9um5TKSyWkyIfftuWVwigR6EuuNk6ekL/pl7XrJwXhJ53ljdQkqZh3N6+j+Qm72vyL
+    g+n6IrLdjLnIO13IARat26zoWiOdc/k8JSsseB9HJKBOlvLGqjWe94CgA6dBT8oWfVv/tH
+    8q9xwURjC9cGNy2sQX3Vr5GgYyd98cl+sKu19Ppr1eUcnZcsK4z8sqGwg4jESVuYZLE95g
+    g6Ng4Iu4pf9wCnl6aD5b0AVVsNRevDZ1RJWlttuWhEaM64BIkluVYxjdjY0w
+X-ME-Proxy: <xmx:VnEhasYQwHH8M6tRqmwkHnYMdgRjZziFsaIa09cda3HKlsvutRBK8Q>
+    <xmx:VnEhajgh0Is2Pfttoi2bSpCGxHnKrhRkm0t0QDqqiJA9lU4EHLxSKQ>
+    <xmx:VnEhasZTKobjv4pnrW4-aHoSRssGNMAqp_SWIZ-7-aLw6ae2OjppkQ>
+    <xmx:VnEhal58u1XFkuHD6Z3Ut19o05Fwf1u_t4YWKglkALSHjIA_SdioRQ>
+    <xmx:V3EhavVdLobtvhpiE4ac3NxE4XTOHF5WoOBYnFkGgjHSeF0bn8gH_Z5K>
+Feedback-ID: i8dbe485b:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Thu,
+ 4 Jun 2026 08:36:37 -0400 (EDT)
+Date: Thu, 4 Jun 2026 05:36:36 -0700
+From: Boqun Feng <boqun@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
+ Jonas Bonn <jonas@southpole.se>,
+	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+	Stafford Horne <shorne@gmail.com>,	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,	Thomas Gleixner <tglx@kernel.org>,
+ Ingo Molnar <mingo@redhat.com>,	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Juri Lelli <juri.lelli@redhat.com>,
+	Vincent Guittot <vincent.guittot@linaro.org>,
+	Dietmar Eggemann <dietmar.eggemann@arm.com>,
+	Steven Rostedt <rostedt@goodmis.org>,	Ben Segall <bsegall@google.com>,
+ Mel Gorman <mgorman@suse.de>,	Valentin Schneider <vschneid@redhat.com>,
+	K Prateek Nayak <kprateek.nayak@amd.com>,
+	Waiman Long <longman@redhat.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Andrii Nakryiko <andrii@kernel.org>,
+	Eduard Zingerman <eddyz87@gmail.com>,
+	Alexei Starovoitov <ast@kernel.org>,
+	Daniel Borkmann <daniel@iogearbox.net>,
+	Martin KaFai Lau <martin.lau@linux.dev>,
+	Kumar Kartikeya Dwivedi <memxor@gmail.com>,	Song Liu <song@kernel.org>,
+ Yonghong Song <yonghong.song@linux.dev>,	Jiri Olsa <jolsa@kernel.org>,
+ Shuah Khan <shuah@kernel.org>,	Miguel Ojeda <ojeda@kernel.org>,
+ Gary Guo <gary@garyguo.net>,
+	=?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
+	Benno Lossin <lossin@kernel.org>,
+	Andreas Hindborg <a.hindborg@kernel.org>,
+	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
+	Danilo Krummrich <dakr@kernel.org>,	Jinjie Ruan <ruanjinjie@huawei.com>,
+ Lyude Paul <lyude@redhat.com>,	Thomas Huth <thuth@redhat.com>,
+ Sohil Mehta <sohil.mehta@intel.com>,	"Xin Li (Intel)" <xin@zytor.com>,
+	Pawan Gupta <pawan.kumar.gupta@linux.intel.com>,
+	Nikunj A Dadhania <nikunj@amd.com>,
+	Joel Fernandes <joelagnelf@nvidia.com>,
+	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+	Randy Dunlap <rdunlap@infradead.org>,	Yury Norov <ynorov@nvidia.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	linux-kernel@vger.kernel.org, linux-openrisc@vger.kernel.org,
+	linux-s390@vger.kernel.org, linux-arch@vger.kernel.org,
+	bpf@vger.kernel.org, linux-kselftest@vger.kernel.org,
+	rust-for-linux@vger.kernel.org,
+	Onur =?iso-8859-1?Q?=D6zkan?= <work@onurozkan.dev>,
+	Daniel Almeida <daniel.almeida@collabora.com>,
+	Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH v2 01/12] preempt: Track NMI nesting to separate per-CPU
+ counter
+Message-ID: <aiFxVG3epMKAva76@tardis-2.local>
+References: <20260526152148.30514-1-boqun@kernel.org>
+ <20260526152148.30514-2-boqun@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: DS0PR12MB7726:EE_|CH3PR12MB8404:EE_
-X-MS-Office365-Filtering-Correlation-Id: 3b08a133-4316-4d9e-19cd-08dec2114552
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|366016|1800799024|376014|7416014|6133799003|22082099003|13003099007|3023799007|11063799006|18002099003|56012099006;
-X-Microsoft-Antispam-Message-Info:
-	tFKuR2pvWD5mkQJcjkR5H93juAJT4rQE8CO62fO0nx6K+uRdjSXWL7tP5kmfiA8l8I/vJBwHQbFlSJuh/I1ST+Fhqnjhj7d4ZXfXuhH4BWlo7UsipXp8IPRw9SW9lIhrJZphTnDAoLCLAKGWeyVWcGsOWzwCNKiDKPMZPRqDt2xWtfX3owwO30h5P660Sn/x3yTiBh0mZGS8O/rqVLM/doPsH6mYQrq82S9qqbiVe3cejXK+Xx3ONtyuptuYOSjkEEko5HaCZLvdNcSCqjfbO85RXqQxkh1kTWhGBbfNksAvRGN4hPhw+We/RGlENEhadL8sBhFcAko7aCCv41X8QA460ixJzljGs8pkPkbJRfCjlxLtvZBK4B/hfMh81biZjQa75/5YjWrAWzs79QZqF1xKm+GZKlkkJxx3sSnMyoXK5LDtK1PBzFzC0oMEZ1QP9khIxj50oTe3FsCIAu81CMDncqe1IMaYBHyWg2/d9cdbS/YePhUXOKQdcRMvS2T3eWE97OVG2IBSWbd7nmaASJ7cRBV/XLHSgW1qQk968vAytNml/+7htw0Om0Tg1baZnWA1SDBp3Me2E1oyPU944Jgx941vez/k+vW6utuVlcbrTpH8EWNxxKta2jOtbA4wv0Yw6dLMSTfXYM4/m/rEgoA0vGjCTgcp6t0xHXQEhaVVLW3atXMpRCdkHV+RA/7lmSve/MHgXU2IHhixqKBXBw==
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:DS0PR12MB7726.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(1800799024)(376014)(7416014)(6133799003)(22082099003)(13003099007)(3023799007)(11063799006)(18002099003)(56012099006);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?iP9YPVUpawVfq5oighIGBDyMMjuMeFFJKyaNwiynE4HClUcdmyBTAl6kCRJu?=
- =?us-ascii?Q?2O6540XTYjUSKS0HqjPGwGTAWnCbOg1pOA+xK3mkhOWZrygQSuxUh1yrZxFt?=
- =?us-ascii?Q?9fzNRDd+KE/zOMKfVy4CUedclT6A10coJK3RH8OzTJwz1mUiOVfiY4YCCpUz?=
- =?us-ascii?Q?jkR+vesAwNWxj92jHPqPa2za20ChZOlPnOcrIPaeJnnUrYGDOskg9Hg1PBbh?=
- =?us-ascii?Q?zCgHYE3voNab3NFYtA8h5Bt+NE9KnJevUBo/mhA4vZij/BZyPl8MDSSeaHao?=
- =?us-ascii?Q?bdyzBfIDFitg2KtQs1/IJM/wcHGL4RH+CWKNwnkoa8jao4MyTsDMRT65EFXn?=
- =?us-ascii?Q?NQb0IeNL8uzAwcIcarspJJfvrlCjQbcMfDcWysUa81BKsqjXiKHGFD01dHlI?=
- =?us-ascii?Q?VYDwcHGOZ1HPQQF+9h6qrx3CvyPu03Qz6ORc7G2H/uKKGoddpdG5sBwIlOTi?=
- =?us-ascii?Q?Ca6olqAYg/trAWvyKbPDzQq7/m78C1UCreYUbxDHGjsnM9LNwFHUeJSk5Wut?=
- =?us-ascii?Q?Dtenz12yqttBYWI4qli25Oh1JD0jdQ6Lc/33jNvvHhKnYenEm9QJBagFaMcc?=
- =?us-ascii?Q?dr2JjR3OKMyyeoXZ0C/dkaY6RpAFWpuflNfGHCPBTA3YvU/S6clvJ9XTNgT3?=
- =?us-ascii?Q?HCxeyBN3eF3fwimoICyXuzIyLSPCtpl7gcLQwamIZbEzvK8G0u8FncdmZkvE?=
- =?us-ascii?Q?HRGP0itungtaTeF2e5asB2XnM/de2vc1S//onouJHqQMZCXbAqq64TZtbIUs?=
- =?us-ascii?Q?kr6MfP9WeUzpw+9h7UtD+s/SU/a9kSj3XgHsMlDE3/T17LELYtH49aYzMwQU?=
- =?us-ascii?Q?cj+etwDSQ/EbqLnuqqfRvgMalJtnrErqIztUIsGOCxmAvzz7R3OhL26B57V+?=
- =?us-ascii?Q?VUPyD+y6fKH1f3h0g75/qGpE+r5PhDpRt6EInFUkezXMXHL0c8CvfiZMIwjQ?=
- =?us-ascii?Q?Y6tdhbp1jbTZ7gQ6ZFahFPu4XKD9AYtfmDVAZHp+UvMUNw+BNoZKTh4oKcLu?=
- =?us-ascii?Q?bzoHuxcGq6woQLJY3jlPFvhUd+UjDnrd7MFTEHI0zjfoKvxe+6HZAP9qci8S?=
- =?us-ascii?Q?4z3DxxRRX4TNMBK5+F1UDlpb3SXkKFeolaYWHc1JiNPo/jtp0Em8eggfKode?=
- =?us-ascii?Q?Z9m3SEwKwXpt8r0A45JP1V67/R4SOqJwesJVZ7UjoNdRxYf6JhHXyDQ3KkP7?=
- =?us-ascii?Q?9QMjb2O01Vk3BhApo1eUUeG0EfOdb1ZvtGiBRGkG+7XYwny/CDgel+wf2Lz0?=
- =?us-ascii?Q?+syjxmmQnZQZi1mMa2fpmIF8MJpvtbbn/tOZwDNF+F0r9L1FJ9JWwGtoYg9e?=
- =?us-ascii?Q?iipHeVXSLlAXPIM8Hl06a9qjX7iSuijg3wzS4zYr/DihBUB/uo4XgaSx1s2b?=
- =?us-ascii?Q?VOR2P0gkRKWwkUNO23mtw4aqpUts7mvs2uTEq9M96LHi/Y9RKzidTrJuWfyp?=
- =?us-ascii?Q?fvLeQY8tLpSOuntEQApXVpGQJWGIJiIYyYmZywfgAV8h0gZQa7YHRJlKW3nd?=
- =?us-ascii?Q?pxlB7eqkZ1esSbv6wLQEB6SI7bvsHoBx4/a2QaZO38mnWMeLh+iW6TVgE03X?=
- =?us-ascii?Q?PDZhXtgltcFhWzE1vydgxYUS5iz31uqqwDRdxb8fj1prcoxLyn1faWlzmQRU?=
- =?us-ascii?Q?/0gwVnyar8iunb5GlPrHH0ytc13N8hEIQX5TNylUvNUP/drxzXfKAYXd1dBn?=
- =?us-ascii?Q?dp0H+kbCj/vQR84X2bW4HwpY84jOANhWBxr6QcA3H9F9xarfFQP/J3kCIG9b?=
- =?us-ascii?Q?4eepqqfxgQ=3D=3D?=
-X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 3b08a133-4316-4d9e-19cd-08dec2114552
-X-MS-Exchange-CrossTenant-AuthSource: DS0PR12MB7726.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Jun 2026 08:14:16.9839
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: hzHhLcpS6H4wTUiNxCa1EPFchbM3nBh3xfdjgXbSFfy9nWfn10vLZXMWn4qdFJqQuTIAucNU6VNkHmMBJwuWaA==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH3PR12MB8404
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260526152148.30514-2-boqun@kernel.org>
 
-On 2026-06-03 at 18:01 +1000, Li Zhe <lizhe.67@bytedance.com> wrote...
-> memmap_init_zone_device() can spend a substantial amount of time
-> initializing large ZONE_DEVICE ranges because it repeats nearly
-> identical struct page setup for every PFN.
+On Tue, May 26, 2026 at 08:21:37AM -0700, Boqun Feng wrote:
+> From: Joel Fernandes <joelagnelf@nvidia.com>
 > 
-> This series reduces that overhead in eight steps.
+> Move NMI nesting tracking from the preempt_count bits to a separate per-CPU
+> counter (nmi_nesting). This is to free up the NMI bits in the preempt_count,
+> allowing those bits to be repurposed for other uses.
 > 
-> The first patch fixes a stale comment in __init_zone_device_page() so
-> the documented refcount policy matches the current ZONE_DEVICE code.
+> Reduce NMI_BITS from 4 to 1, using it only to detect if we're in an NMI.
+> The per-CPU counter currently caps nesting at 15.
 > 
-> The second patch factors the reusable pieces out of
-> __init_zone_device_page() so later patches can share the same logic
-> without changing the existing slow path.
+> [boqun: Solve Steven Rostedt's comment on the BUG_ON() condition]
 > 
-> The third patch adds set_page_section_from_pfn(), so callers that want
-> to refresh section bits from a PFN no longer need to open-code
-> SECTION_IN_PAGE_FLAGS handling.
-> 
-> The fourth patch adds a template-based fast path for ZONE_DEVICE head
-> pages. Instead of rebuilding the same struct page state for every PFN,
-> it prepares one reusable template through the existing slow path,
-> refreshes the PFN-dependent fields in that template, and copies it to
-> each destination page.
-> 
-> The fifth patch extends the same template-based approach to compound
-> tails, so pfns_per_compound > 1 can also benefit from the fast path.
-> 
-> The sixth patch introduces memcpy_streaming() and
-> memcpy_streaming_drain() as a generic interface for write-once copies.
-> Architectures that do not provide a specialized backend, or cases that
-> cannot safely use one, fall back to memcpy().
-> 
-> The seventh patch extends x86 memcpy_flushcache() small fixed-size
-> fastpaths so struct-page-sized streaming copies can stay on the inline
-> path when alignment permits.
-> 
-> The last patch switches the ZONE_DEVICE template-copy path over to
-> memcpy_streaming(). It keeps pageblock-aligned PFNs on regular memcpy(),
-> uses memcpy_streaming() for the remaining write-once copies, and drains
-> streaming stores before later metadata updates that may depend on them.
-> 
-> This is not intended as a steady-state data-path optimization. Its
-> benefit is in pmem bring-up paths where memmap_init_zone_device()
-> dominates device online / rebind latency, such as:
->   - fsdax or devdax namespace creation and reconfiguration
->   - nd_pmem / dax_pmem driver bind or rebind
-> 
-> In those paths, the kernel initializes a large vmemmap range once and
-> does not immediately benefit from keeping the copied struct page state
-> hot in cache. Reducing write-allocate traffic in that one-time setup
-> path can therefore reduce end-to-end device bring-up latency.
-> 
-> The optimized path is disabled when the page_ref_set tracepoint is
-> enabled, and sanitized builds remain on the slow path so their
-> instrumented stores are preserved.
-> 
-> Testing
-> =======
-> 
-> Tests were run in a VM on an Intel Ice Lake server.
-> 
-> Two PMEM configurations were used:
->   - a 100 GB fsdax namespace configured with map=dev, which exercises
->     the nd_pmem rebind path (pfns_per_compound == 1)
->   - a 100 GB devdax namespace configured with align=2097152, which
->     exercises the dax_pmem rebind path (pfns_per_compound > 1)
-> 
-> For each configuration, the corresponding driver was unbound and
-> rebound 30 times. Memmap initialization latency was collected from the
-> pr_debug() output of memmap_init_zone_device().
-> 
-> The first bind is reported separately, and the average of subsequent
-> rebinds is used as the steady-state result.
-> 
-> Performance
-> ===========
-> 
-> nd_pmem rebind, 100 GB fsdax namespace, map=dev
->   Base(v7.1-rc6):
->     First binding: 1466 ms
->     Average of subsequent rebinds: 262.12 ms
->   Full series:
->     First binding: 1359 ms
->     Average of subsequent rebinds: 108.36 ms
-> 
-> dax_pmem rebind, 100 GB devdax namespace, align=2097152
->   Base(v7.1-rc6):
->     First binding: 1430 ms
->     Average of subsequent rebinds: 229.12 ms
->   Full series:
->     First binding: 1273 ms
->     Average of subsequent rebinds: 100.17 ms
-
-The results here are impressive, but I've been having trouble replicating them
-with hmm_test on my local development machines. Both an older AMD machine and
-a newer Arrow Lake based machine shows ~3% worse performance with this series
-applied doing ZONE_DEVICE_PRIVATE.
-
-This is based on measuring the memremap_pages() call when inserting test_hmm.ko
-in a VM using the following hack to measure 10 64GB memremaps. Is there an easy
-way for me to replicate your results in a VM? Or is there something in my
-testing that I'm missing here?
-
----
-
-diff --git a/lib/test_hmm.c b/lib/test_hmm.c
-index 213504915737..a1d5463dbc86 100644
---- a/lib/test_hmm.c
-+++ b/lib/test_hmm.c
-@@ -34,7 +34,7 @@
- 
- #define DMIRROR_NDEVICES		4
- #define DMIRROR_RANGE_FAULT_TIMEOUT	1000
--#define DEVMEM_CHUNK_SIZE		(256 * 1024 * 1024U)
-+#define DEVMEM_CHUNK_SIZE		(64 * 1024 * 1024 * 1024UL)
- #define DEVMEM_CHUNKS_RESERVE		16
- 
- /*
-@@ -565,6 +565,8 @@ static int dmirror_allocate_chunk(struct dmirror_device *mdevice,
- 	unsigned long pfn_last;
- 	void *ptr;
- 	int ret = -ENOMEM;
-+	int i;
-+	u64 t0, total = 0;
- 
- 	devmem = kzalloc_obj(*devmem);
- 	if (!devmem)
-@@ -613,6 +615,22 @@ static int dmirror_allocate_chunk(struct dmirror_device *mdevice,
- 		mdevice->devmem_capacity = new_capacity;
- 		mdevice->devmem_chunks = new_chunks;
- 	}
-+
-+	for (i = 0; i < 10; i++) {
-+		t0 = ktime_get_ns();
-+		ptr = memremap_pages(&devmem->pagemap, numa_node_id());
-+		total += ktime_get_ns() - t0;
-+		if (IS_ERR_OR_NULL(ptr)) {
-+			if (ptr)
-+				ret = PTR_ERR(ptr);
-+			else
-+				ret = -EFAULT;
-+			goto err_release;
-+		}
-+		memunmap_pages(&devmem->pagemap);
-+	}
-+	pr_info("avg memremap %llu ns\n", total / i);
-+
- 	ptr = memremap_pages(&devmem->pagemap, numa_node_id());
- 	if (IS_ERR_OR_NULL(ptr)) {
- 		if (ptr)
-@@ -629,7 +647,7 @@ static int dmirror_allocate_chunk(struct dmirror_device *mdevice,
- 
- 	mutex_unlock(&mdevice->devmem_lock);
- 
--	pr_info("added new %u MB chunk (total %u chunks, %u MB) PFNs [0x%lx 0x%lx)\n",
-+	pr_info("added new %lu MB chunk (total %u chunks, %lu MB) PFNs [0x%lx 0x%lx)\n",
- 		DEVMEM_CHUNK_SIZE / (1024 * 1024),
- 		mdevice->devmem_count,
- 		mdevice->devmem_count * (DEVMEM_CHUNK_SIZE / (1024 * 1024)),
-
-> Li Zhe (8):
->   mm: fix stale ZONE_DEVICE refcount comment
->   mm: factor zone-device page init helpers out of
->     __init_zone_device_page
->   mm: add a set_page_section_from_pfn() helper
->   mm: add a template-based fast path for zone-device page init
->   mm: extend the template fast path to zone-device compound tails
->   string: introduce memcpy_streaming() helpers
->   x86/string: extend memcpy_flushcache() fixed-size fastpaths
->   mm: use memcpy_streaming() in zone-device template copies
-> 
->  arch/x86/include/asm/string_64.h | 140 ++++++++++++++++++--
->  include/linux/mm.h               |  19 ++-
->  include/linux/string.h           |  20 +++
->  mm/mm_init.c                     | 221 +++++++++++++++++++++++++++----
->  4 files changed, 360 insertions(+), 40 deletions(-)
-> 
+> Suggested-by: Boqun Feng <boqun.feng@gmail.com>
+> Signed-off-by: Joel Fernandes <joelagnelf@nvidia.com>
+> Signed-off-by: Lyude Paul <lyude@redhat.com>
+> Signed-off-by: Boqun Feng <boqun@kernel.org>
+> Link: https://patch.msgid.link/20260121223933.1568682-3-lyude@redhat.com
 > ---
-> v3: https://lore.kernel.org/all/20260527033636.28231-1-lizhe.67@bytedance.com/
-> v2: https://lore.kernel.org/all/20260521040124.10608-1-lizhe.67@bytedance.com/
-> v1: https://lore.kernel.org/all/20260515082045.63029-1-lizhe.67@bytedance.com/
+>  include/linux/hardirq.h                        | 17 +++++++++++++----
+>  include/linux/preempt.h                        |  9 +++++++--
+>  kernel/softirq.c                               |  2 ++
+>  tools/testing/selftests/bpf/bpf_experimental.h |  2 +-
+>  4 files changed, 23 insertions(+), 7 deletions(-)
 > 
-> Changelogs:
-> 
-> v3->v4:
-> - Rebase the series from v7.1-rc3 to v7.1-rc6.
-> - Rework patch 4 so the reusable head-page template is seeded from the
->   first real struct page, rather than being initialized directly on a
->   stack-resident template object. Also add an explicit !nr_pages early
->   return. Suggested by Andrew Morton.
-> - Rework patch 5 similarly for compound tails: seed the reusable
->   tail-page template from the first real tail page, thread
->   use_template through compound-page initialization, and reuse that
->   prepared tail-page image for the remaining tails. Suggested by Andrew
->   Morton.
-> - Tighten patch 6 so memcpy_streaming() maps to memcpy_flushcache() only
->   when the destination alignment and size allow the transfer to stay
->   entirely on the non-temporal path; other cases fall back to memcpy().
->   Suggested by Andrew Morton.
-> - Rework patch 7 so the existing 4/8/16-byte cases remain handled
->   directly in memcpy_flushcache(), while the new aligned fixed-size
->   fastpaths cover only the larger 32/48/64/80/96-byte cases. Suggested
->   by Andrew Morton.
-> 
-> For changelogs of earlier revisions, please refer to the v3 cover letter:
-> https://lore.kernel.org/all/20260527033636.28231-1-lizhe.67@bytedance.com/
-> 
+> diff --git a/include/linux/hardirq.h b/include/linux/hardirq.h
+> index d57cab4d4c06..1a0360a1000f 100644
+> --- a/include/linux/hardirq.h
+> +++ b/include/linux/hardirq.h
+> @@ -10,6 +10,8 @@
+>  #include <linux/vtime.h>
+>  #include <asm/hardirq.h>
+>  
+> +DECLARE_PER_CPU(unsigned int, nmi_nesting);
+> +
+>  extern void synchronize_irq(unsigned int irq);
+>  extern bool synchronize_hardirq(unsigned int irq);
+>  
+> @@ -102,14 +104,17 @@ void irq_exit_rcu(void);
+>   */
+>  
+>  /*
+> - * nmi_enter() can nest up to 15 times; see NMI_BITS.
+> + * nmi_enter() can nest - nesting is tracked in a per-CPU counter.
+>   */
+>  #define __nmi_enter()						\
+>  	do {							\
+>  		lockdep_off();					\
+>  		arch_nmi_enter();				\
+> -		BUG_ON(in_nmi() == NMI_MASK);			\
+> -		__preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
+> +		/* Maximum NMI nesting is 15. */		\
+> +		BUG_ON(__this_cpu_read(nmi_nesting) >= 15);	\
+> +		__this_cpu_inc(nmi_nesting);			\
+> +		__preempt_count_add(HARDIRQ_OFFSET);		\
+> +		preempt_count_set(preempt_count() | NMI_MASK);	\
+>  	} while (0)
+>  
+>  #define nmi_enter()						\
+> @@ -124,8 +129,12 @@ void irq_exit_rcu(void);
+>  
+>  #define __nmi_exit()						\
+>  	do {							\
+> +		unsigned int nesting;				\
+>  		BUG_ON(!in_nmi());				\
+> -		__preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET);	\
+> +		__preempt_count_sub(HARDIRQ_OFFSET);		\
+> +		nesting = __this_cpu_dec_return(nmi_nesting);	\
+> +		if (!nesting)					\
+> +			__preempt_count_sub(NMI_OFFSET);	\
+
+We have an issue here in the following case:
+
+  // nmi_nesting == 1
+  __nmi_exit():
+    ..
+    nesting = __this_cpu_dec_return(nmi_nesting); // <- nesting == 0
+    <another NMI comes>
+      __nmi_enter()
+      // nmi_nesting becomes 1
+      __nmi_exit():
+        nesting = __this_cpu_dec_return(nmi_nesting); // <- nesting == 0
+        if (!nesting)
+	  __preempt_count_sub(NMI_OFFSET);
+	// NMI_OFFSET bit is 0
+    if (!nesting)
+       __preempt_count_sub(NMI_OFFSET); // underflow!
+
+I think we need to do:
+      
+#define __nmi_exit()						\
+	do {							\
+		unsigned int nesting;				\
+		BUG_ON(!in_nmi());				\
+		__preempt_count_sub(HARDIRQ_OFFSET);		\
+		nesting = __this_cpu_dec_return(nmi_nesting);	\
+		if (!nesting)					\
+			preempt_count_set(preempt_count() & ~NMI_MASK);	\
+		arch_nmi_exit();				\
+  		lockdep_on();					\
+	} while (0)
+
+@Joel, thoughts?
+
+Similarly, we have this issue in patch #10 as well.
+
+Regards,
+Boqun
+
+>  		arch_nmi_exit();				\
+>  		lockdep_on();					\
+>  	} while (0)
+> diff --git a/include/linux/preempt.h b/include/linux/preempt.h
+> index d964f965c8ff..586f96688325 100644
+> --- a/include/linux/preempt.h
+> +++ b/include/linux/preempt.h
+> @@ -17,6 +17,8 @@
+>   *
+>   * - bits 0-7 are the preemption count (max preemption depth: 256)
+>   * - bits 8-15 are the softirq count (max # of softirqs: 256)
+> + * - bits 16-19 are the hardirq count (max # of hardirqs: 16)
+> + * - bit 20 is the NMI flag (no nesting count, tracked separately)
+>   *
+>   * The hardirq count could in theory be the same as the number of
+>   * interrupts in the system, but we run all interrupt handlers with
+> @@ -24,16 +26,19 @@
+>   * there are a few palaeontologic drivers which reenable interrupts in
+>   * the handler, so we need more than one bit here.
+>   *
+> + * NMI nesting depth is tracked in a separate per-CPU variable
+> + * (nmi_nesting) to save bits in preempt_count.
+> + *
+>   *         PREEMPT_MASK:	0x000000ff
+>   *         SOFTIRQ_MASK:	0x0000ff00
+>   *         HARDIRQ_MASK:	0x000f0000
+> - *             NMI_MASK:	0x00f00000
+> + *             NMI_MASK:	0x00100000
+>   * PREEMPT_NEED_RESCHED:	0x80000000
+>   */
+>  #define PREEMPT_BITS	8
+>  #define SOFTIRQ_BITS	8
+>  #define HARDIRQ_BITS	4
+> -#define NMI_BITS	4
+> +#define NMI_BITS	1
+>  
+>  #define PREEMPT_SHIFT	0
+>  #define SOFTIRQ_SHIFT	(PREEMPT_SHIFT + PREEMPT_BITS)
+> diff --git a/kernel/softirq.c b/kernel/softirq.c
+> index 4425d8dce44b..10af5ed859e7 100644
+> --- a/kernel/softirq.c
+> +++ b/kernel/softirq.c
+> @@ -88,6 +88,8 @@ EXPORT_PER_CPU_SYMBOL_GPL(hardirqs_enabled);
+>  EXPORT_PER_CPU_SYMBOL_GPL(hardirq_context);
+>  #endif
+>  
+> +DEFINE_PER_CPU(unsigned int, nmi_nesting);
+> +
+>  /*
+>   * SOFTIRQ_OFFSET usage:
+>   *
+> diff --git a/tools/testing/selftests/bpf/bpf_experimental.h b/tools/testing/selftests/bpf/bpf_experimental.h
+> index 2234bd6bc9d3..2d4256ff471f 100644
+> --- a/tools/testing/selftests/bpf/bpf_experimental.h
+> +++ b/tools/testing/selftests/bpf/bpf_experimental.h
+> @@ -449,7 +449,7 @@ extern int bpf_cgroup_read_xattr(struct cgroup *cgroup, const char *name__str,
+>  #define PREEMPT_BITS	8
+>  #define SOFTIRQ_BITS	8
+>  #define HARDIRQ_BITS	4
+> -#define NMI_BITS	4
+> +#define NMI_BITS	1
+>  
+>  #define PREEMPT_SHIFT	0
+>  #define SOFTIRQ_SHIFT	(PREEMPT_SHIFT + PREEMPT_BITS)
 > -- 
-> 2.20.1
+> 2.50.1 (Apple Git-155)
+> 
