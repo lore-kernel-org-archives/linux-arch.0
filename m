@@ -1,58 +1,58 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 64761400E17;
-	Fri,  5 Jun 2026 05:41:45 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 334254014A1;
+	Fri,  5 Jun 2026 05:41:47 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780638107; cv=none; b=sV2YhSDi5Y60SVCIKKa6JCdVqtObMyIBhsyLtOpJniUMgWwKictClG2Xs+Wepvy3/RTPSmOB8daxRCuGH3twa3VTT9deGezuCmbKg4GV1hyKpMA/qJ+gDNoPlbsKfG1e4C/YnGPrbWGfk7AUjDswbecI2hF9k53JHEY1/CuGjk8=
+	t=1780638108; cv=none; b=LVCUUIqs4IVQ9wx5d6UFFlww4gEJhOp+grXhdTmdoE00xBDqm7sVow5rhvjI2EBqStoSVx8XXCszHadovnPFvG49zlzoPLfX969/NhI5Mm/aeSZL2dE8E5kBbE7kzNLVqlM49Cr80GGpefY9xePysqFkU9pztkYneM8jgehdNVo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780638107; c=relaxed/simple;
-	bh=VxbsBjHdRvXTR0KV6QwpQV6PvkcezsCcgEhIoL++T/Y=;
+	s=arc-20240116; t=1780638108; c=relaxed/simple;
+	bh=CBE6V82/9cSnE5zKiDaINuabdT3G7eBPLHLX8ZZAYo4=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=DK5hycB9VymRJ/h2XNydWGIxgsqmAfQLyecJDy1p7MrTlupf8QYthT92VTTMDjR82/0lOYdMzkILpKt9gLY8isP8WYmeUetkXc2w6F6D4oto/O1yoYvPEpZzJ7wREZeP86U/rt661OfW9fNTzJpTXXJ8ygHni2cbBul6LIKVU+0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ECZ+E5n4; arc=none smtp.client-ip=100.103.45.18
+	 MIME-Version; b=QSjKjeV9bfMyg2PellGSv7z1itmecQzsRkTsDz/BCG1SJDTCtBsJfxg0DK5N2MpqMebKtnx2PQ6BSVIkR5SYcXmsbK5SmVpA/EmHkROpvRd16KsKb8SEazcqXvHdsbTvMNZg0hbG66gKIljY9I7pidEUw6BJDB01HaAEqV1T3Vs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=YnDGd/nT; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ECZ+E5n4"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4DC6D1F0089F;
-	Fri,  5 Jun 2026 05:41:43 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="YnDGd/nT"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B29F31F00899;
+	Fri,  5 Jun 2026 05:41:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1780638105;
-	bh=rQENKqT9pyTIBLJdn4Wt5SoRtkTc7Vr1VCzymuIIqXI=;
+	s=k20260515; t=1780638107;
+	bh=3RwpUO4CBjZA9J030nD/wwixercDouC6GsvjDNlY070=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=ECZ+E5n4zdozdVYTiJeQE4/UsZ0YhS+89IgOEI3BqR6ERvz39HALWNz2j7ovf5QqO
-	 ndYbYl37JF6tzBVviSUgVQwc+4Kx/SVOtEj3sKlaYfYrJVCXK0VwCMCjbQhJfoVu3G
-	 HAMj1ASM9i1ZEkqnc2W5P8ogFI9yufaD5SvRHo/w5IT7gzTrCYA/4n2oI6QB12QHXr
-	 nMQUe6z+4cQGiNPCddSvWP7gXERADmm5gQ3JVc2l3DE7iRdsNZlvJ4UXKgLNgpKYp1
-	 NqFv7Yj/STFmHfsr/dAQ9bCfYoIG6nZ4gFqokFhSeF+0AUj2gb3AxkT3nM8+HbkTZG
-	 UETldyG/L74RQ==
-Received: from phl-compute-02.internal (phl-compute-02.internal [10.202.2.42])
-	by mailfauth.phl.internal (Postfix) with ESMTP id 641FEF40072;
-	Fri,  5 Jun 2026 01:41:42 -0400 (EDT)
+	b=YnDGd/nTdfwFkeLUrGAWfWEDOgtxAk2VkimxNu4cdz50kwDsVHIX3Rp8+SAN1xteJ
+	 I1ZKiauKMNznaA9/TvTcQCOSrnP0YOUUS+71uZjEX+XiJzvme/5iS7rmwaj0TFFIVl
+	 7gYI8f16/w/r1DM56dtzIeLhORae8a0Hn3enVqpNtJSj+fNjk+LMDzjGK3zGNR50PG
+	 tWytHlQNCif7JwyrAsBKrXrGeRd1YZl/jG9D02MnMH7UDfbHuaK7UPtZB58ulwJJsZ
+	 rD/F0tE9aE82dyB9HQn0fphKuiW6B0bKog6pzbxqlpzwVDzQaQ/9KWjNoj0jBawHx/
+	 KcnnVwcsGhkNA==
+Received: from phl-compute-10.internal (phl-compute-10.internal [10.202.2.50])
+	by mailfauth.phl.internal (Postfix) with ESMTP id 0791DF40068;
+	Fri,  5 Jun 2026 01:41:44 -0400 (EDT)
 Received: from phl-frontend-03 ([10.202.2.162])
-  by phl-compute-02.internal (MEProxy); Fri, 05 Jun 2026 01:41:42 -0400
-X-ME-Sender: <xms:lmEias6sa1xX0LQqxf935Czyn7HwVyr0VYxk2s3kWeKzUM3PHJJF6A>
-    <xme:lmEianDVOWtbD32caQYbgZRmOJNHT6PdKQK_jw36J_8hTt94Hd30NCO9R3M_lAzph
-    o-YdoLU7N9RMP_5l9MrYBQQSGll0sVc-QsJgXhDtKpI1PkvXKnI0w>
-X-ME-Received: <xmr:lmEiakXzxhTvNMKrKVwCDPLzWMKGN94jNWmKYn02qDgDfFqEyanuPKgcM0I>
-X-ME-Proxy-Cause: dmFkZTFCwYGExB8+n21rrRlgZz2BZEPfw3mIE0bRNe76RMQAdH8f2KDaPLT52qZo7gxyWp
-    0wXQACdPWdspv4jN5UYFCpihH+vrJtJ5nM33JJDnQyPnqbA42Pv6gENFpmiA7vDUbZDCAC
-    N+ZmE7MklGAiGBNJA045y18Z9khhPwbxKZPuahNIwIz69+nOH0m/THs5eb4pu9rOFYQQI9
-    b1h3voWmc5QUasjwQpRDRo+W3jNrB4TeCrmSTmM73SZRB0LYstjQaA4JitE82TBWNXKOy5
-    NeQugQn5+UA17tSJ+MYIgsz9Sw+H8LaFdylvI7Cq2OhiaEqC4YLyUJJOJm9vOjE+2O1NIb
-    ifGBvOfA1bRvdD1rzC6dalPswwrstFlyf7Pap/tukclD4RSnOep05M0BoiV6vs7Bgu2EkN
-    p72ke8BUte3XkipOs/+CKWn/TsXg6p4p138xCLDsao5vi8Ksw7pMG7tzPlOYBuOqdg6z8c
-    MidLD+dCzBqmfkLMsHdOHLfs1Pt53AU/mth+xQxJ6Wnq5W1rjhMKkcb5wW6tQdd0P7matz
-    OCENDIVnfvIMJ8TC4oMgg+jtzeGeX2yW4wFkT7CuUw7nTNzjxH9wZghvZaZUbOwF7xfC59
-    Af1ZSoVdz9AYOcDTSgfAw9IS9LKJ+IE4V38tIidtjIBck5rDsCz/vk+vM9iQ
-X-ME-Proxy: <xmx:lmEiajyG_ECODsknMZaiWeI6lB4RM-vHCwzS-PLCp6k5bCe6EXIhlA>
-    <xmx:lmEianhqhWew4_M-RbHKXbUo9j7BJ6hB77uaIa51Ix-nkG3kmlephA>
-    <xmx:lmEiajnjrfVmMD59vAD_hOpEb1wCKtBMQwa4E2GJxkCuwW2EC6mW1Q>
-    <xmx:lmEiarKWbhlo4-3nQzXarPfEw3SXJQgaSWdfTsOLyo6L81tykc9_ww>
-    <xmx:lmEiakClBCsQNUnsD-35n_uhF0mJr-eTEXof0sHzFm3oZii2Z8rIPQfZ>
+  by phl-compute-10.internal (MEProxy); Fri, 05 Jun 2026 01:41:44 -0400
+X-ME-Sender: <xms:l2EiatVawqlPiiodPj3IiVvkKJ7P5Nb5ToItwVcKoUK2LAigAu_V9w>
+    <xme:l2EiaieaKgvPlfUt7VzBTIvYIxW63VeWrVSd7jKPUHsa0lqqHbYe8bMJgfzCo7C6I
+    JKfUZDY6EQDuMh_2QMO_gKAIm7SDe3QYHqunfloq-_7sN_xSxZi-w>
+X-ME-Received: <xmr:l2EiavRCQHWHImpg1_0yD6Ot96U9mgi_pRoMQ9oLsm8PNYU60-urVRM7xnA>
+X-ME-Proxy-Cause: dmFkZTFhOfDTFTb8fH37X+ASfp2vsHy1Fqb2Lywq6X3h5fMlxk7wW33nxe7aSTekseFO11
+    xBiB7Md3Dfg950zHftACRl4BCrZIGkOLORwuU667qK/t4b7uPTnvvrgSwCuAred6lniidQ
+    x6+o43dstQnrbqqi/v6Nl3jrEdQj/OnTFIkpkf7j4tfd81Pm1F4hDhUzK5vMKXR0zokP4K
+    KZGWpXQjfkPb9q0v8LW9bszX8CgnIWJLXLSKFiZe/Ul+6TINXLg1BnxiItQp/bB4zXvV+6
+    Qcp88FhWc5Q0N1TQTHx/VoF2pZ7nT3Uyapa4Doti8umM92UFgjuSWC48vH+lnu7P/MqXlF
+    GeOVtGQCkz/77hw7utJcM8Nnu748HG644DL3wNUgTwYWNRbIZnxx2oDFfkUYK7pXuhbe+s
+    dKyyp+45sTnSjZpM49Rg9gkpuNINa5ytP+OgAKtc8MjL1tnGTrmEpiizdjBTsXrNWbyux7
+    btZSz6tbrb7IkG4Knv3M1tLoxodRBPle8REkapVui30uzARmYC+ezi4lf9ZqW11/pk6n/d
+    aZofGXE7LFwGU4avCC6fZigXlFUdQi8WVZW6cHlczGiNm69BpTx4jYafd/kKNIeoGA1AH9
+    xDsb4kw/sx05m+lLlDfRnF4BZ5/M7ZwZZL3qnsdXb8+tUNDopP1WeJGQMnMQ
+X-ME-Proxy: <xmx:l2EiaiyAEL0RHmq-qSLMyRrsBQlMdOAXuoCcklRnvU9eGfiyj1arCw>
+    <xmx:mGEiatpx8mS55Y0ejhf5bEWOPwQiyyDeQdNkv2VOACfiktioV2_6vA>
+    <xmx:mGEiam7CVZDV3y4b7stj7xlKReXSWXF5A_WqBwBK7MvecJrzDvD05Q>
+    <xmx:mGEiapth-k6k5XDWrDXzMLflgS4QjROtwaXEqSiMM1wj3rSTKlb5uw>
+    <xmx:mGEiaiBZkgU_eBOjTpZokU9wAzNyTniE9xEANOEpwJUBrGEgd8dxXvWm>
 Feedback-ID: i8dbe485b:Fastmail
 Received: by mail.messagingengine.com (Postfix) with ESMTPA; Fri,
- 5 Jun 2026 01:41:41 -0400 (EDT)
+ 5 Jun 2026 01:41:43 -0400 (EDT)
 From: Boqun Feng <boqun@kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
@@ -100,10 +100,10 @@ Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
 	linux-kernel@vger.kernel.org,	linux-openrisc@vger.kernel.org,
 	linux-s390@vger.kernel.org,	linux-arch@vger.kernel.org,
 	bpf@vger.kernel.org,	linux-kselftest@vger.kernel.org,
-	rust-for-linux@vger.kernel.org
-Subject: [PATCH v3 06/13] irq: Add KUnit test for refcounted interrupt enable/disable
-Date: Thu,  4 Jun 2026 22:41:21 -0700
-Message-ID: <20260605054128.5925-7-boqun@kernel.org>
+	rust-for-linux@vger.kernel.org,	Boqun Feng <boqun.feng@gmail.com>
+Subject: [PATCH v3 07/13] locking: Switch to _irq_{disable,enable}() variants in cleanup guards
+Date: Thu,  4 Jun 2026 22:41:22 -0700
+Message-ID: <20260605054128.5925-8-boqun@kernel.org>
 X-Mailer: git-send-email 2.51.0
 In-Reply-To: <20260605054128.5925-1-boqun@kernel.org>
 References: <20260605054128.5925-1-boqun@kernel.org>
@@ -115,146 +115,92 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-From: Lyude Paul <lyude@redhat.com>
+From: Boqun Feng <boqun.feng@gmail.com>
 
-While making changes to the refcounted interrupt patch series, at some
-point on my local branch I broke something and ended up writing some kunit
-tests for testing refcounted interrupts as a result. So, let's include
-these tests now that we have refcounted interrupts.
+The semantics of various irq disabling guards match what
+*_irq_{disable,enable}() provide, i.e. the interrupt disabling is
+properly nested, therefore it's OK to switch to use
+*_irq_{disable,enable}() primitives.
 
-Signed-off-by: Lyude Paul <lyude@redhat.com>
 Signed-off-by: Boqun Feng <boqun@kernel.org>
-Link: https://patch.msgid.link/20260121223933.1568682-7-lyude@redhat.com
+Link: https://patch.msgid.link/20260121223933.1568682-17-lyude@redhat.com
 ---
- kernel/irq/Makefile                  |   1 +
- kernel/irq/refcount_interrupt_test.c | 109 +++++++++++++++++++++++++++
- 2 files changed, 110 insertions(+)
- create mode 100644 kernel/irq/refcount_interrupt_test.c
+ include/linux/spinlock.h | 26 ++++++++++++--------------
+ 1 file changed, 12 insertions(+), 14 deletions(-)
 
-diff --git a/kernel/irq/Makefile b/kernel/irq/Makefile
-index 86a2e5ae08f9..44c4d6fc502a 100644
---- a/kernel/irq/Makefile
-+++ b/kernel/irq/Makefile
-@@ -16,3 +16,4 @@ obj-$(CONFIG_SMP) += affinity.o
- obj-$(CONFIG_GENERIC_IRQ_DEBUGFS) += debugfs.o
- obj-$(CONFIG_GENERIC_IRQ_MATRIX_ALLOCATOR) += matrix.o
- obj-$(CONFIG_IRQ_KUNIT_TEST) += irq_test.o
-+obj-$(CONFIG_KUNIT) += refcount_interrupt_test.o
-diff --git a/kernel/irq/refcount_interrupt_test.c b/kernel/irq/refcount_interrupt_test.c
-new file mode 100644
-index 000000000000..b4f224595f26
---- /dev/null
-+++ b/kernel/irq/refcount_interrupt_test.c
-@@ -0,0 +1,109 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * KUnit test for refcounted interrupt enable/disables.
-+ */
-+
-+#include <kunit/test.h>
-+#include <linux/interrupt_rc.h>
-+
-+#define TEST_IRQ_ON() KUNIT_EXPECT_FALSE(test, irqs_disabled())
-+#define TEST_IRQ_OFF() KUNIT_EXPECT_TRUE(test, irqs_disabled())
-+
-+/* ===== Test cases ===== */
-+static void test_single_irq_change(struct kunit *test)
-+{
-+	local_interrupt_disable();
-+	TEST_IRQ_OFF();
-+	local_interrupt_enable();
-+}
-+
-+static void test_nested_irq_change(struct kunit *test)
-+{
-+	local_interrupt_disable();
-+	TEST_IRQ_OFF();
-+	local_interrupt_disable();
-+	TEST_IRQ_OFF();
-+	local_interrupt_disable();
-+	TEST_IRQ_OFF();
-+
-+	local_interrupt_enable();
-+	TEST_IRQ_OFF();
-+	local_interrupt_enable();
-+	TEST_IRQ_OFF();
-+	local_interrupt_enable();
-+	TEST_IRQ_ON();
-+}
-+
-+static void test_multiple_irq_change(struct kunit *test)
-+{
-+	local_interrupt_disable();
-+	TEST_IRQ_OFF();
-+	local_interrupt_disable();
-+	TEST_IRQ_OFF();
-+
-+	local_interrupt_enable();
-+	TEST_IRQ_OFF();
-+	local_interrupt_enable();
-+	TEST_IRQ_ON();
-+
-+	local_interrupt_disable();
-+	TEST_IRQ_OFF();
-+	local_interrupt_enable();
-+	TEST_IRQ_ON();
-+}
-+
-+static void test_irq_save(struct kunit *test)
-+{
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	TEST_IRQ_OFF();
-+	local_interrupt_disable();
-+	TEST_IRQ_OFF();
-+	local_interrupt_enable();
-+	TEST_IRQ_OFF();
-+	local_irq_restore(flags);
-+	TEST_IRQ_ON();
-+
-+	local_interrupt_disable();
-+	TEST_IRQ_OFF();
-+	local_irq_save(flags);
-+	TEST_IRQ_OFF();
-+	local_irq_restore(flags);
-+	TEST_IRQ_OFF();
-+	local_interrupt_enable();
-+	TEST_IRQ_ON();
-+}
-+
-+static struct kunit_case test_cases[] = {
-+	KUNIT_CASE(test_single_irq_change),
-+	KUNIT_CASE(test_nested_irq_change),
-+	KUNIT_CASE(test_multiple_irq_change),
-+	KUNIT_CASE(test_irq_save),
-+	{},
-+};
-+
-+/* (init and exit are the same */
-+static int test_init(struct kunit *test)
-+{
-+	TEST_IRQ_ON();
-+
-+	return 0;
-+}
-+
-+static void test_exit(struct kunit *test)
-+{
-+	TEST_IRQ_ON();
-+}
-+
-+static struct kunit_suite refcount_interrupt_test_suite = {
-+	.name = "refcount_interrupt",
-+	.test_cases = test_cases,
-+	.init = test_init,
-+	.exit = test_exit,
-+};
-+
-+kunit_test_suite(refcount_interrupt_test_suite);
-+MODULE_AUTHOR("Lyude Paul <lyude@redhat.com>");
-+MODULE_DESCRIPTION("Refcounted interrupt unit test suite");
-+MODULE_LICENSE("GPL");
+diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
+index 3d405cc4c121..799a8f7d2741 100644
+--- a/include/linux/spinlock.h
++++ b/include/linux/spinlock.h
+@@ -572,12 +572,12 @@ DECLARE_LOCK_GUARD_1_ATTRS(raw_spinlock_nested, __acquires(_T), __releases(*(raw
+ #define class_raw_spinlock_nested_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(raw_spinlock_nested, _T)
+ 
+ DEFINE_LOCK_GUARD_1(raw_spinlock_irq, raw_spinlock_t,
+-		    raw_spin_lock_irq(_T->lock),
+-		    raw_spin_unlock_irq(_T->lock))
++		    raw_spin_lock_irq_disable(_T->lock),
++		    raw_spin_unlock_irq_enable(_T->lock))
+ DECLARE_LOCK_GUARD_1_ATTRS(raw_spinlock_irq, __acquires(_T), __releases(*(raw_spinlock_t **)_T))
+ #define class_raw_spinlock_irq_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(raw_spinlock_irq, _T)
+ 
+-DEFINE_LOCK_GUARD_1_COND(raw_spinlock_irq, _try, raw_spin_trylock_irq(_T->lock))
++DEFINE_LOCK_GUARD_1_COND(raw_spinlock_irq, _try, raw_spin_trylock_irq_disable(_T->lock))
+ DECLARE_LOCK_GUARD_1_ATTRS(raw_spinlock_irq_try, __acquires(_T), __releases(*(raw_spinlock_t **)_T))
+ #define class_raw_spinlock_irq_try_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(raw_spinlock_irq_try, _T)
+ 
+@@ -592,14 +592,13 @@ DECLARE_LOCK_GUARD_1_ATTRS(raw_spinlock_bh_try, __acquires(_T), __releases(*(raw
+ #define class_raw_spinlock_bh_try_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(raw_spinlock_bh_try, _T)
+ 
+ DEFINE_LOCK_GUARD_1(raw_spinlock_irqsave, raw_spinlock_t,
+-		    raw_spin_lock_irqsave(_T->lock, _T->flags),
+-		    raw_spin_unlock_irqrestore(_T->lock, _T->flags),
+-		    unsigned long flags)
++		    raw_spin_lock_irq_disable(_T->lock),
++		    raw_spin_unlock_irq_enable(_T->lock))
+ DECLARE_LOCK_GUARD_1_ATTRS(raw_spinlock_irqsave, __acquires(_T), __releases(*(raw_spinlock_t **)_T))
+ #define class_raw_spinlock_irqsave_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(raw_spinlock_irqsave, _T)
+ 
+ DEFINE_LOCK_GUARD_1_COND(raw_spinlock_irqsave, _try,
+-			 raw_spin_trylock_irqsave(_T->lock, _T->flags))
++			 raw_spin_trylock_irq_disable(_T->lock))
+ DECLARE_LOCK_GUARD_1_ATTRS(raw_spinlock_irqsave_try, __acquires(_T), __releases(*(raw_spinlock_t **)_T))
+ #define class_raw_spinlock_irqsave_try_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(raw_spinlock_irqsave_try, _T)
+ 
+@@ -618,13 +617,13 @@ DECLARE_LOCK_GUARD_1_ATTRS(spinlock_try, __acquires(_T), __releases(*(spinlock_t
+ #define class_spinlock_try_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(spinlock_try, _T)
+ 
+ DEFINE_LOCK_GUARD_1(spinlock_irq, spinlock_t,
+-		    spin_lock_irq(_T->lock),
+-		    spin_unlock_irq(_T->lock))
++		    spin_lock_irq_disable(_T->lock),
++		    spin_unlock_irq_enable(_T->lock))
+ DECLARE_LOCK_GUARD_1_ATTRS(spinlock_irq, __acquires(_T), __releases(*(spinlock_t **)_T))
+ #define class_spinlock_irq_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(spinlock_irq, _T)
+ 
+ DEFINE_LOCK_GUARD_1_COND(spinlock_irq, _try,
+-			 spin_trylock_irq(_T->lock))
++			 spin_trylock_irq_disable(_T->lock))
+ DECLARE_LOCK_GUARD_1_ATTRS(spinlock_irq_try, __acquires(_T), __releases(*(spinlock_t **)_T))
+ #define class_spinlock_irq_try_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(spinlock_irq_try, _T)
+ 
+@@ -640,14 +639,13 @@ DECLARE_LOCK_GUARD_1_ATTRS(spinlock_bh_try, __acquires(_T), __releases(*(spinloc
+ #define class_spinlock_bh_try_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(spinlock_bh_try, _T)
+ 
+ DEFINE_LOCK_GUARD_1(spinlock_irqsave, spinlock_t,
+-		    spin_lock_irqsave(_T->lock, _T->flags),
+-		    spin_unlock_irqrestore(_T->lock, _T->flags),
+-		    unsigned long flags)
++		    spin_lock_irq_disable(_T->lock),
++		    spin_unlock_irq_enable(_T->lock))
+ DECLARE_LOCK_GUARD_1_ATTRS(spinlock_irqsave, __acquires(_T), __releases(*(spinlock_t **)_T))
+ #define class_spinlock_irqsave_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(spinlock_irqsave, _T)
+ 
+ DEFINE_LOCK_GUARD_1_COND(spinlock_irqsave, _try,
+-			 spin_trylock_irqsave(_T->lock, _T->flags))
++			 spin_trylock_irq_disable(_T->lock))
+ DECLARE_LOCK_GUARD_1_ATTRS(spinlock_irqsave_try, __acquires(_T), __releases(*(spinlock_t **)_T))
+ #define class_spinlock_irqsave_try_constructor(_T) WITH_LOCK_GUARD_1_ATTRS(spinlock_irqsave_try, _T)
+ 
 -- 
 2.51.0
 
