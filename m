@@ -1,58 +1,58 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A89D33DD534;
-	Fri,  5 Jun 2026 05:41:38 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B2513FD971;
+	Fri,  5 Jun 2026 05:41:41 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780638102; cv=none; b=gf7vNME3EmpjhVF7xuKH2w7EUgMGSpDtXtxno1QroJvZd1QAOjBI/vYv9H0KMSNLPVOwKlu9zmhjTebkhVosbN7i6w3UdCHJXqIz/yh7mgQDvuGKCv+Fuj5KyUJa+1Io7mUlTOeGUpgFb8+2CYToDO/T4x2ffD6iEf2CZ3eZmWY=
+	t=1780638103; cv=none; b=st75rvZDHssPQ/959K5BH7yzUqfA8CiVmU3cUBAffovveH+9q6PI7Ax+JJ1EDYlWC9gbCBhaRHsszBcHGyD9Go+xOc9yy8hRyzcrDVIXMzUwUnNP/3RtG49/jqss7g37siP5RsHkHce0aAXue79wpKLxKTSkSeH6XsgtHNAe6w4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780638102; c=relaxed/simple;
-	bh=VsHssmG4iLDQg0XELCmXp+HbJFOZQrjGWZwsM0sxDDg=;
+	s=arc-20240116; t=1780638103; c=relaxed/simple;
+	bh=MbtvuBNH3GysMzOJRSBr0Nwx1iy6lfFNP2fljYwUfY0=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=hIZo/NzhmK0oClwlPSGYIlVmzUjYdRgvRrDDUyUa1/ac+MRDTbdeq3VNQPdW5iPAthF71PwhS+bgopuzwRW6+z4y0uexnZZIhoZGhvBZmgss04gqpqEtfSnzh0R93+c8MJYxfOiC7WyQR+td/1gZXhqR8K0cBctNUriKc1Vq4vQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=N0AvAI0j; arc=none smtp.client-ip=100.103.45.18
+	 MIME-Version; b=tRYSKqH2N/KDSLd1ZZgjjbQsCXQWXgM7zPiHfhA99vRDci7jKGVU/PzXQ3r7xg6AIJ0Fi2xwGuRKQm0019Y3Wgsfzv8+VaffcLWlEgw9xwq5KL6YPk3IAcLn61NRtMucl5CfC0gebgLW+4tDyyACCdIF4Uh//u3PX3mBjJLa2Ak=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=WJLeiJLp; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="N0AvAI0j"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D34841F0089F;
-	Fri,  5 Jun 2026 05:41:36 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="WJLeiJLp"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D2F4D1F008A2;
+	Fri,  5 Jun 2026 05:41:39 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1780638098;
-	bh=/DGq2VclRBHsAUIaHXCPJUpfdhEM7VNlnnsEfM8ae3g=;
+	s=k20260515; t=1780638101;
+	bh=3bY5pS2rVgQa9nC8tbPnRn1j/SHdGkv637KqxwEbuVU=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=N0AvAI0je5HFbIxwVACgj35f4RdZer0MXZ/UIHzfG1jAyoAvLihR0O9/m+zYkJYyo
-	 zlpKXNDLb6LaXMR3apTHwQh7DTu/Qc3jW+NI29dqJ86Vx5Xx3g2T6nHhw5vYs9DRUh
-	 bAaoZ87s/ynM2A0QXo1YAWbQg+wjLlJhF7VXil5+bpQ9LK6qFhlcxgRKSuX8blATZC
-	 cOVbxddynzeCA9mZjV49ACv2cmzwC2DJLc+YbTWFurPby5/iWnCd73B+cUCORDAcUE
-	 /uiHka4A9jjgh7SmcKQn+QyGkW0WQ/QYX8GmGsDaA/E2JFT57xcokBw2QVnpSQSUq7
-	 zT0/If1WTvy7Q==
-Received: from phl-compute-03.internal (phl-compute-03.internal [10.202.2.43])
-	by mailfauth.phl.internal (Postfix) with ESMTP id 27096F40078;
-	Fri,  5 Jun 2026 01:41:36 -0400 (EDT)
+	b=WJLeiJLpGTULrGaD3KJ5ZO/qhAD/WTXhS88AlVTFLOs0aEjG5xtuCJqqos8RhJbat
+	 mhChDxDbwYUJxeI0ODSa/E0r5b1XWCOKqOdT25UJhv6TGQix4wMpvjFST/D5kTuJFk
+	 27FwOTqTMEKtwJN2N6W9wm5pWcOYnYuG7OU6u/Y/VwZaGJ047neU3hDZOzt+uJ3rsl
+	 G9u+LiEKJRa6WeYT4eVdlb5WPAX6/uTHy7tzVCKVlsdS0xFwBLqATE+4bnJVyYww1Z
+	 3y0kwJU7MisSREttB7QzSQ6+O2nrwCPqi4p6ikyNj17aW5wdwTKN61KaHzmEPIHFLT
+	 vKcGr7z7vAMsg==
+Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
+	by mailfauth.phl.internal (Postfix) with ESMTP id 26FE3F40075;
+	Fri,  5 Jun 2026 01:41:39 -0400 (EDT)
 Received: from phl-frontend-03 ([10.202.2.162])
-  by phl-compute-03.internal (MEProxy); Fri, 05 Jun 2026 01:41:36 -0400
-X-ME-Sender: <xms:kGEiat_QIYi_NvEuySR6sO393d15cNkX5K2FyeGvYQrEVCFfYkAJzA>
-    <xme:kGEiao-1ewkmW4P4Vdnu9Rimby4BeP9kSB92VY-fZ1BwVVadI1amYKBD9DcldBgxs
-    Lru50N2bBykHQkxaAUsv3EqVnHc-L2aKaOcf8xAIAgnF4J6lHnyQg>
-X-ME-Received: <xmr:kGEiaqiM_ryLoIsu3VsYFoNcDfBT553O6l-IKs9BEWRG_UqmssXCbdaYApc>
-X-ME-Proxy-Cause: dmFkZTFhOfDTFTb8fH37X+ASfp2vsHy1Fqb2Lywq6X3h5fMlxk7wW33nxe7aSTekseFO11
-    xBiB7Md3Dfg950zHftACRl4BCrZIGkOLORwuU667qK/t4b7uPTnvvrgSwCuAred6lniidQ
-    x6+o43dstQnrbqqi/v6Nl3jrEdQj/OnTFIkpkf7j4tfd81Pm1F4hDhUzK5vMKXR0zokP4K
-    KZGWpXQjfkPb9q0v8LW9bszX8CgnIWJLXLSKFiZe/Ul+6TINXLg1BnxiItQp/bB4zXvV+6
-    Qcp88FhWc5Q0N1TQTHx/VoF2pZ7nT3Uyapa4Doti8umM92UFgjuSWC48vH+lnu7P/MqXtO
-    1x7/NWjqOpmZJG2oWYOrLpGPqVyo+okymTgf44j8sFEdWMojKiseEGVjpZUelIIeOS9o8E
-    HdWyH8Xufbs1TTRzWZRr1qJr/SNNelAtATCOTjox8ShD9mKRQ0u6c+b8rbSLel/LZID4n5
-    nKR7RaEb4K4FBscijWIxu+5c6cSlGa00JCIjG8oTYmaxKXfsUjn4MkrdC75vOYqwMvtM4/
-    RtBWb6Crse49u4woUwI7sMvScGA4raR5d6KZ1LjCgAWQE725NkNeNtG/3PBOa2bR4KmLAv
-    ir2FrfQ+geGHbWvA1TRaFPHsUQ3H8ZhEYlm4yLkAWTs8rm1vumFN2owWXa9Q
-X-ME-Proxy: <xmx:kGEiaqlbApKBOnd_WcIRs8b7QDMmnWx6TRb4gE6U_PMMPGWO4pGnwg>
-    <xmx:kGEial1Xb2_jnsJ2j1Q2bJ75IfiTRzFT_Tu6Z3iGoBM0tgGwzcz5kQ>
-    <xmx:kGEianv3wqfN-rQy1K7vDyOSln410SoYGPT9VVMrwT4O4bLX5nq01Q>
-    <xmx:kGEiagVYogJar1dgtgPjp6v2GsPuKyuUCTEHzebtP0doOYSJCleYEw>
-    <xmx:kGEiagsRP9jtPVVe7bS0WF8r6L7a-zXrTOmI5VWQ9zbXC2Jn_Xw7JaTC>
+  by phl-compute-01.internal (MEProxy); Fri, 05 Jun 2026 01:41:39 -0400
+X-ME-Sender: <xms:k2EiapF7hlZDOAuYu1xlaWFvcJpn8Cm5ugjMNMJOagiFqAYdbByCPg>
+    <xme:k2EialJVF-ZtJPh1V3OUR0_zu6n4HpKdeYgdMK6l84mTGY_gK7pyQYiNuCFjZ2wg4
+    5S8bswIlx3N_yM8KbJyfQMaTVRARomPBIZkFWCzf2mGxZpLXY2mLQ>
+X-ME-Received: <xmr:k2EiasXzSUJRLCKRSIBhhiulg3FNaSdfob9iET4hpfjWEX8GvyzYYdWfMRs>
+X-ME-Proxy-Cause: dmFkZTFCwYGExB8+n21rrRlgZz2BZEPfw3mIE0bRNe76RMQAdH8f2KDaPLT52qZo7gxyWp
+    0wXQACdPWdspv4jN5UYFCpihH+vrJtJ5nM33JJDnQyPnqbA42Pv6gENFpmiA7vDUbZDCAC
+    N+ZmE7MklGAiGBNJA045y18Z9khhPwbxKZPuahNIwIz69+nOH0m/THs5eb4pu9rOFYQQI9
+    b1h3voWmc5QUasjwQpRDRo+W3jNrB4TeCrmSTmM73SZRB0LYstjQaA4JitE82TBWNXKOy5
+    NeQugQn5+UA17tSJ+MYIgsz9Sw+H8LaFdylvI7Cq2OhiaEqC4YLyUJJOJm9vOjE+2O1Njz
+    jp4sreZDsZ269nsz2mo/kcC7coE3T6hddbvivsAbKivqCFPV3/0vs6kZgVMc2e9TJrhRt4
+    fHYKqMx8M1PZxSYs7AntkRGfCKC7aBsXRQ6kbOk1KsC10Ei1hZZuLRE8BTnXhSkdEHM54H
+    lhpM6NGWlljg7EPOyVAxg2wG6/DdZVDRtaWTY3aH6bYu8JoW+/jY1i4UdVw5IgTsxxQHR1
+    ltgW9dvVp0pCbLg/ftDSu7Dc+bAfuiwlzk6SJccnFUDu09D5+4zqk8qhwu9T3M94LlcZXi
+    jn3q9K0ZJyPphv2GjNN8d5hWgag33nJE1mZKYhWRYKxAOyy1OdD4jaybX7SA
+X-ME-Proxy: <xmx:k2Eias0jMk5GlOmh2DXtBQ5-5tzjEw9qSOBxOxEgsYizTC0ECdEugw>
+    <xmx:k2EiamoqF-zDWQKbkEyB1dqrcB2cUwWkm2thwUYyh2wufveCu9AkkQ>
+    <xmx:k2Eiao_sY7kt7z2Q1-2nU-EK_BZpV2cLs3RLyBW7YCsXhyIApA9sMw>
+    <xmx:k2EialnCWn-F4YFUJBMWw3EtFjhK3cGFSYQpUKjiHcAcLfU1WL_gcA>
+    <xmx:k2Eiaj5M9ptUWrJTGR04zTPVBfdJXeqhGffyzzQAFSVHZjVACJC7NSX5>
 Feedback-ID: i8dbe485b:Fastmail
 Received: by mail.messagingengine.com (Postfix) with ESMTPA; Fri,
- 5 Jun 2026 01:41:35 -0400 (EDT)
+ 5 Jun 2026 01:41:38 -0400 (EDT)
 From: Boqun Feng <boqun@kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
@@ -100,10 +100,10 @@ Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
 	linux-kernel@vger.kernel.org,	linux-openrisc@vger.kernel.org,
 	linux-s390@vger.kernel.org,	linux-arch@vger.kernel.org,
 	bpf@vger.kernel.org,	linux-kselftest@vger.kernel.org,
-	rust-for-linux@vger.kernel.org,	Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v3 02/13] preempt: Introduce HARDIRQ_DISABLE_BITS
-Date: Thu,  4 Jun 2026 22:41:17 -0700
-Message-ID: <20260605054128.5925-3-boqun@kernel.org>
+	rust-for-linux@vger.kernel.org
+Subject: [PATCH v3 04/13] openrisc: Include <linux/cpumask.h> in smp.h
+Date: Thu,  4 Jun 2026 22:41:19 -0700
+Message-ID: <20260605054128.5925-5-boqun@kernel.org>
 X-Mailer: git-send-email 2.51.0
 In-Reply-To: <20260605054128.5925-1-boqun@kernel.org>
 References: <20260605054128.5925-1-boqun@kernel.org>
@@ -115,100 +115,75 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-From: Boqun Feng <boqun.feng@gmail.com>
+From: Lyude Paul <lyude@redhat.com>
 
-In order to support preempt_disable()-like interrupt disabling, that is,
-using part of preempt_count() to track interrupt disabling nested level,
-change the preempt_count() layout to contain 8-bit HARDIRQ_DISABLE
-count.
+While OpenRISC currently doesn't fail to build upstream, it appears that
+include <asm/smp.h> in the right headers is enough to break that -
+primarily because OpenRISC's asm/smp.h header doesn't actually provide any
+definition for struct cpumask. Which means the only reason we aren't
+failing to build kernel is because we've been lucky enough that every spot
+including asm/smp.h already has definitions for struct cpumask pulled in.
+
+This became evident when trying to work on a patch series for adding
+ref-counted interrupt enable/disables to the kernel, where introducing a
+new interrupt_rc.h header suddenly introduced a build error on OpenRISC:
+
+     In file included from include/linux/interrupt_rc.h:17,
+                      from include/linux/spinlock.h:60,
+                      from include/linux/mmzone.h:8,
+                      from include/linux/gfp.h:7,
+                      from include/linux/mm.h:7,
+                      from arch/openrisc/include/asm/pgalloc.h:20,
+                      from arch/openrisc/include/asm/io.h:18,
+                      from include/linux/io.h:12,
+                      from drivers/irqchip/irq-ompic.c:61:
+     arch/openrisc/include/asm/smp.h:21:59: warning: 'struct cpumask'
+     declared inside parameter list will not be visible outside of this
+     definition or declaration
+        21 | extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
+           |                                                           ^~~~~~~
+     arch/openrisc/include/asm/smp.h:23:54: warning: 'struct cpumask'
+     declared inside parameter list will not be visible outside of this
+     definition or declaration
+        23 | extern void set_smp_cross_call(void (*)(const struct cpumask *, unsigned int));
+           |                                                      ^~~~~~~
+     drivers/irqchip/irq-ompic.c: In function 'ompic_of_init':
+  >> drivers/irqchip/irq-ompic.c:191:28: error: passing argument 1 of
+     'set_smp_cross_call' from incompatible pointer type
+     [-Werror=incompatible-pointer-types]
+       191 |         set_smp_cross_call(ompic_raise_softirq);
+           |                            ^~~~~~~~~~~~~~~~~~~
+           |                            |
+           |                            void (*)(const struct cpumask *, unsigned int)
+     arch/openrisc/include/asm/smp.h:23:32: note: expected 'void (*)(const
+     struct cpumask *, unsigned int)' but argument is of type 'void
+     (*)(const struct cpumask *, unsigned int)'
+        23 | extern void set_smp_cross_call(void (*)(const struct cpumask *, unsigned int));
+
+To fix this, let's take an example from the smp.h headers of other
+architectures (x86, hexagon, arm64, probably more): just include
+linux/cpumask.h at the top.
 
 Signed-off-by: Lyude Paul <lyude@redhat.com>
+Acked-by: Stafford Horne <shorne@gmail.com>
 Signed-off-by: Boqun Feng <boqun@kernel.org>
-Link: https://patch.msgid.link/20260121223933.1568682-2-lyude@redhat.com
+Link: https://patch.msgid.link/20260121223933.1568682-5-lyude@redhat.com
 ---
- include/linux/preempt.h                        | 16 +++++++++++-----
- tools/testing/selftests/bpf/bpf_experimental.h |  5 ++++-
- 2 files changed, 15 insertions(+), 6 deletions(-)
+ arch/openrisc/include/asm/smp.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/include/linux/preempt.h b/include/linux/preempt.h
-index 586f96688325..e2d3079d3f5f 100644
---- a/include/linux/preempt.h
-+++ b/include/linux/preempt.h
-@@ -17,8 +17,9 @@
-  *
-  * - bits 0-7 are the preemption count (max preemption depth: 256)
-  * - bits 8-15 are the softirq count (max # of softirqs: 256)
-- * - bits 16-19 are the hardirq count (max # of hardirqs: 16)
-- * - bit 20 is the NMI flag (no nesting count, tracked separately)
-+ * - bits 16-23 are the hardirq disable count (max # of hardirq disable: 256)
-+ * - bits 24-27 are the hardirq count (max # of hardirqs: 16)
-+ * - bit 28 is the NMI flag (no nesting count, tracked separately)
-  *
-  * The hardirq count could in theory be the same as the number of
-  * interrupts in the system, but we run all interrupt handlers with
-@@ -31,29 +32,34 @@
-  *
-  *         PREEMPT_MASK:	0x000000ff
-  *         SOFTIRQ_MASK:	0x0000ff00
-- *         HARDIRQ_MASK:	0x000f0000
-- *             NMI_MASK:	0x00100000
-+ * HARDIRQ_DISABLE_MASK:	0x00ff0000
-+ *         HARDIRQ_MASK:	0x0f000000
-+ *             NMI_MASK:	0x10000000
-  * PREEMPT_NEED_RESCHED:	0x80000000
-  */
- #define PREEMPT_BITS	8
- #define SOFTIRQ_BITS	8
-+#define HARDIRQ_DISABLE_BITS	8
- #define HARDIRQ_BITS	4
- #define NMI_BITS	1
+diff --git a/arch/openrisc/include/asm/smp.h b/arch/openrisc/include/asm/smp.h
+index 007296f160ef..84653aaffa96 100644
+--- a/arch/openrisc/include/asm/smp.h
++++ b/arch/openrisc/include/asm/smp.h
+@@ -9,6 +9,8 @@
+ #ifndef __ASM_OPENRISC_SMP_H
+ #define __ASM_OPENRISC_SMP_H
  
- #define PREEMPT_SHIFT	0
- #define SOFTIRQ_SHIFT	(PREEMPT_SHIFT + PREEMPT_BITS)
--#define HARDIRQ_SHIFT	(SOFTIRQ_SHIFT + SOFTIRQ_BITS)
-+#define HARDIRQ_DISABLE_SHIFT	(SOFTIRQ_SHIFT + SOFTIRQ_BITS)
-+#define HARDIRQ_SHIFT	(HARDIRQ_DISABLE_SHIFT + HARDIRQ_DISABLE_BITS)
- #define NMI_SHIFT	(HARDIRQ_SHIFT + HARDIRQ_BITS)
- 
- #define __IRQ_MASK(x)	((1UL << (x))-1)
- 
- #define PREEMPT_MASK	(__IRQ_MASK(PREEMPT_BITS) << PREEMPT_SHIFT)
- #define SOFTIRQ_MASK	(__IRQ_MASK(SOFTIRQ_BITS) << SOFTIRQ_SHIFT)
-+#define HARDIRQ_DISABLE_MASK	(__IRQ_MASK(HARDIRQ_DISABLE_BITS) << HARDIRQ_DISABLE_SHIFT)
- #define HARDIRQ_MASK	(__IRQ_MASK(HARDIRQ_BITS) << HARDIRQ_SHIFT)
- #define NMI_MASK	(__IRQ_MASK(NMI_BITS)     << NMI_SHIFT)
- 
- #define PREEMPT_OFFSET	(1UL << PREEMPT_SHIFT)
- #define SOFTIRQ_OFFSET	(1UL << SOFTIRQ_SHIFT)
-+#define HARDIRQ_DISABLE_OFFSET	(1UL << HARDIRQ_DISABLE_SHIFT)
- #define HARDIRQ_OFFSET	(1UL << HARDIRQ_SHIFT)
- #define NMI_OFFSET	(1UL << NMI_SHIFT)
- 
-diff --git a/tools/testing/selftests/bpf/bpf_experimental.h b/tools/testing/selftests/bpf/bpf_experimental.h
-index 2d4256ff471f..a811b080db02 100644
---- a/tools/testing/selftests/bpf/bpf_experimental.h
-+++ b/tools/testing/selftests/bpf/bpf_experimental.h
-@@ -448,17 +448,20 @@ extern int bpf_cgroup_read_xattr(struct cgroup *cgroup, const char *name__str,
- 
- #define PREEMPT_BITS	8
- #define SOFTIRQ_BITS	8
-+#define HARDIRQ_DISABLE_BITS	8
- #define HARDIRQ_BITS	4
- #define NMI_BITS	1
- 
- #define PREEMPT_SHIFT	0
- #define SOFTIRQ_SHIFT	(PREEMPT_SHIFT + PREEMPT_BITS)
--#define HARDIRQ_SHIFT	(SOFTIRQ_SHIFT + SOFTIRQ_BITS)
-+#define HARDIRQ_DISABLE_SHIFT	(SOFTIRQ_SHIFT + SOFTIRQ_BITS)
-+#define HARDIRQ_SHIFT	(HARDIRQ_DISABLE_SHIFT + HARDIRQ_DISABLE_BITS)
- #define NMI_SHIFT	(HARDIRQ_SHIFT + HARDIRQ_BITS)
- 
- #define __IRQ_MASK(x)	((1UL << (x))-1)
- 
- #define SOFTIRQ_MASK	(__IRQ_MASK(SOFTIRQ_BITS) << SOFTIRQ_SHIFT)
-+#define HARDIRQ_DISABLE_MASK	(__IRQ_MASK(HARDIRQ_DISABLE_BITS) << HARDIRQ_DISABLE_SHIFT)
- #define HARDIRQ_MASK	(__IRQ_MASK(HARDIRQ_BITS) << HARDIRQ_SHIFT)
- #define NMI_MASK	(__IRQ_MASK(NMI_BITS)     << NMI_SHIFT)
++#include <linux/cpumask.h>
++
+ #include <asm/spr.h>
+ #include <asm/spr_defs.h>
  
 -- 
 2.51.0
