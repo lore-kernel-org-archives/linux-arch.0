@@ -1,58 +1,58 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4294F1E766F;
-	Fri,  5 Jun 2026 05:41:41 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E4CAA3FE355;
+	Fri,  5 Jun 2026 05:41:43 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780638103; cv=none; b=vDZtM0RzAm1JGR0gIIU+oEMxxKxwS8DEFJOcdZDqlyCQ3EbZxgAbNLEIwK6TJDpp4pWxNqzEpRmpyQU8J0FDEMXvt0jmLe+ByhBMRPQ6qdj4PtmH8DOcr9YWCi9w2DehkzT1cYEUwwLP2N/Iju9VhGHXVblrKhbD24KntN3PnkM=
+	t=1780638106; cv=none; b=WhIYuyppD/sBw32wUrc3H/kix3wqOkNdRSEIRNBw950FydVaDhSO7lDzfu4la6DmYottnT1SKFW40WhS+Bar4W6+VuAxy1eeoFSDhTn6cAjcA+/nGzmeGRy8zVFAN37gmsoF7X7eTUBAdGXPYIPkMgEpJtEY3x7e5eSEsYTMMlQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780638103; c=relaxed/simple;
-	bh=OYMeV7jWag8jjr/SGJIJdoM4RRdbcgCBusx85a29JNQ=;
+	s=arc-20240116; t=1780638106; c=relaxed/simple;
+	bh=mOT67SRge2DYGQ3V8PH8u80wEcnMPeiwjCuNb2Q9Cg4=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=oU1UFBLJll+gdYKR7S9N5NmSGasMO1vshW3zx/90mnbuCZcdOCm2e509IGk+wxuEv/wodUxvMLE3ZEw57w8AP8O+LPYM83pduPrutQFrIjHGa8QriBjop0NV7r6UDQsWcMYasteb/zSAJC5pdfZs8g4tR+keX1rUuGvLhmDsI5o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Q2WGNhvG; arc=none smtp.client-ip=100.103.45.18
+	 MIME-Version; b=gr8DR3zZzGL7S7VHbvrKy2+DhBEc26otUFtUiEIF29Phk6b/5URY5L2faSdkQchJR0OtR9BibkzndAnEc3qf3qVqb4YJVmawLiOCDwn2xVangHQTkQpLb2oNl5ms/fzylfCP6yVkYR0d+SdFhMQ0iAbRxEjq7dXMjs1NkZ76yMg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=J7LedXB+; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Q2WGNhvG"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 603851F00899;
-	Fri,  5 Jun 2026 05:41:38 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="J7LedXB+"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 8DEE61F0089A;
+	Fri,  5 Jun 2026 05:41:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1780638101;
-	bh=q22StVZMYHsonhMzLNuiRfEYi7dvpll9rGA0FOoOgUM=;
+	s=k20260515; t=1780638103;
+	bh=i20Jbk8jR938mnl3MQP4hTOg893J4gee3kCeY2sRyw8=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=Q2WGNhvGzYQeYKM20dUjf7C5ngQjn0exnl32DPMtvuprmdV85/ocsmDlr2Tcy2JNx
-	 qefFhVY6nLNJnn17JP6ctpzi+D6eS8Rzj3zIsJTMg2SPdY0OamPpTqSOHlnFc1FuOL
-	 WqDlknT/o4QAgyg5l2CLkRimIVVeOcx0uHCjZ40ifzH6Ke6FtxkXhH90ZSBCFPRN5Z
-	 oIQOTxQ3406XyfWXpO9uoQCm2kRAL8zKWJ8EI98hLRxwEfmQSNt7Pj88+VjKSCHQLH
-	 OuYTUxCETRap8BK2DsJTXE9SjZu9B/AVQsfi7DiyN7t6bW5TuUg7WT1PZkznDDy3oI
-	 kDCtXsBrxMaLA==
-Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
-	by mailfauth.phl.internal (Postfix) with ESMTP id AA5CAF40077;
-	Fri,  5 Jun 2026 01:41:37 -0400 (EDT)
+	b=J7LedXB+DsB1SHAd9h1Rz2Tf7+pN4DMTHYyTgsN9wKktZlSGcuEo6Dlc/pfnmkf5+
+	 rDiKilYo62oSkQaLOi3yrXvq+IRH/fVp4BBrvxvOiZ3J197z//CHL0rOZNRzW1LDAb
+	 IlCJJN0pQoPLBuP69NH+8zF8OssT0hmtp8BV+gDyyszLTeAT0thmwCsQqz+KOjmlVV
+	 +bk1Hrxkc0CrdZUCdUFWtgQpOSTSh2MAbMaJVqPh9VhwroRCtRQruVZJW8bNLQL+YM
+	 /aa0kUqdGf1+c3QZS7lmsU7qYVpPztbuPbGtZbcZjilb6Ky5/U7GiaHkI932MD+vQG
+	 WGopPEc1u3Fng==
+Received: from phl-compute-12.internal (phl-compute-12.internal [10.202.2.52])
+	by mailfauth.phl.internal (Postfix) with ESMTP id C9A23F40078;
+	Fri,  5 Jun 2026 01:41:40 -0400 (EDT)
 Received: from phl-frontend-03 ([10.202.2.162])
-  by phl-compute-01.internal (MEProxy); Fri, 05 Jun 2026 01:41:37 -0400
-X-ME-Sender: <xms:kWEianm9Odxpr9h6xdaPwhDWDJ5YH7HqaUwKQxlp3j0r6dI8I90zMQ>
-    <xme:kWEiavvxzvFtzcUcv6abPoh-DBPv49w99o17uRdV1j-7P4IHprxyMAukE5PVUnDH3
-    pVSydazCmNDqaYSXUY3kcmxHfOB_raDnd7wsdT2_wlnqxKrNrgV>
-X-ME-Received: <xmr:kWEiajggkh-tASySkGZXu1iL_P9HENioaTqgteAX_tCamtGXa7VyVV3v8tE>
-X-ME-Proxy-Cause: dmFkZTFhOfDTFTb8fH37X+ASfp2vsHy1Fqb2Lywq6X3h5fMlxk7wW33nxe7aSTekseFO11
-    xBiB7Md3Dfg950zHftACRl4BCrZIGkOLORwuU667qK/t4b7uPTnvvrgSwCuAred6lniidQ
-    x6+o43dstQnrbqqi/v6Nl3jrEdQj/OnTFIkpkf7j4tfd81Pm1F4hDhUzK5vMKXR0zokP4K
-    KZGWpXQjfkPb9q0v8LW9bszX8CgnIWJLXLSKFiZe/Ul+6TINXLg1BnxiItQp/bB4zXvV+6
-    Qcp88FhWc5Q0N1TQTHx/VoF2pZ7nT3Uyapa4Doti8umM92UFgjuSWC48vH+lnu7P/MqXQy
-    5fmb7JXidSEtZ94DTq5AOqHkZS7B2jcW9RZpYNSTVsMl9756g7TyoyUAFQFdU+5zUF86JT
-    O36jgGKgvkCiI3g/Alv7jhIIamDTa/2iF9zV4B9PuQLxCfp9mSan8it3Ky4vGO0AzNa51w
-    vgVxfBvfzy2ytIVHsdR/uT05Yd6f2+ctUGK6dq5LzLXUloZnu6mrSspEjLUK874UUfCORI
-    FJccIc8RovUYWSz3K+Ftmeex7VWfnVHNcot6oL84ZpNZHdYPSiXSvNW+O2od2TihDsP6xV
-    St0xihM/B25nP3OR4yRm05xPXFUOB1ge+YKPKimm6RhFij7O/o/GIeT+R93g
-X-ME-Proxy: <xmx:kWEiaiDOZsHfPNWIaLqP-4_yMp9ZKXLRyU3MIY8Vo5mry8H2klWyTQ>
-    <xmx:kWEiar7aqjz1N348figYbayWOIYX4Af2r3tIqOC1b4hwUp7M-DnevA>
-    <xmx:kWEiaoJDR4KPW_08OV68VwuW9HU6BNbRd4VR3aaXIy0Jjk7LSccJzA>
-    <xmx:kWEiah9PNqNFR5Jm-Tdeh9sUpApNCPY-y8xlLkyVD9W8EZqFrq55nA>
-    <xmx:kWEialQSKyg28ndyK26UTqInfnkj-dfLao45xwK79Xar3-690K2wpn1e>
+  by phl-compute-12.internal (MEProxy); Fri, 05 Jun 2026 01:41:40 -0400
+X-ME-Sender: <xms:lGEiaqACXOYHcQoTgP8KIZDJN7pF1sGdqqtZzuNIVQVcOKllTzmpig>
+    <xme:lGEiapZte56fUqMAXT4WixRADfT3-Msi5ZfikgUc8PrRuS9asR0XYUKu5CWlii4mt
+    HcclYrN31oOqBQMNXizu1shB9q6zcZvnqWizkUsFK7eSlLddpu3bg>
+X-ME-Received: <xmr:lGEiajcD9PgcG29gYG_03GjVbOC4E56we19keop2gnkdTUW0z5ZmV_40Kdk>
+X-ME-Proxy-Cause: dmFkZTF+6OUUl/WCeAyQA+P/KqXroNkAuAtPUHNl1vALYE5KKUMlpAJi8c1hSqvkDOBmSu
+    og8IoH4iECmUOPDYoHvgTGwLFu6kpNwoB75p+MLMl8MT6vaA1WsL6CU8agmpbETpm4E1cB
+    bLMkCxTyHwEdm3oOfwtuXZvOzHVWP6/DVgkNaX8k7bGDiWnLoWwQX5656s96warllOs5ok
+    lO4tbNuKg5fkFkZ+l9SEBg3RmtnD7tA2FRJKy8heCeUo0hK2TErE8oXhHlnNx8f5tN9bsv
+    2tJXSev/YKJTwprsCkjkEBicRFFbL5UvjUrjGWcaHl1TCldB0K/McQaby8W6BdJptNtsaV
+    wfprYAqf+JgzoRy0wHvrjhVnSofg6dd4F0Ds4CZAVY6wicbeBBBNsK0eUtiCmQLfDKO1R/
+    HDXTJZWaNphTvPAsZoB3+1Ddr0EVF1XpM+ssGIYkczRiiOCykV44EjneZ78/8BMthNsrKh
+    CDEJtpN00wm8DzJPv0IPYwHbOwY/IG8RvMtHedDQiIwupkBfthaVXuffFxUQ2cECuhETGN
+    WDHnvtu8McePxyjUK/16rLRf85Os5+K7wMp/m9GDT5+FOGfMi0nOpXNtq4QiPqDbkjz3Oi
+    obQc3WAwd+94QbFLT/XUt94+gh679yIgNov5A+X5St3OTIyYmJ2p+EJjclBQ
+X-ME-Proxy: <xmx:lGEiarOOGac97fM9N_YV5aNXXf6Wu7AlGlnqGWTsHnisklJ6PzRHpA>
+    <xmx:lGEialXrTqQRWN_RZMAfloAEl5dFS_4damvhP0WOKKK1RMVeXGpk7A>
+    <xmx:lGEias39PUcfGkV-UCjnahNoGiehDutB7JJ118io9RrZwRffUaqu7Q>
+    <xmx:lGEiag4Dx_IGtTtIJJb2SQ-ZC6NfdrSuDCh-OiHzs32lzpgaQHQBPg>
+    <xmx:lGEiahdpxCx4_s8_JgcteQr8W40xpLc6Bba4NUtSimE0PPpohMV7yxKm>
 Feedback-ID: i8dbe485b:Fastmail
 Received: by mail.messagingengine.com (Postfix) with ESMTPA; Fri,
- 5 Jun 2026 01:41:36 -0400 (EDT)
+ 5 Jun 2026 01:41:39 -0400 (EDT)
 From: Boqun Feng <boqun@kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
@@ -101,9 +101,9 @@ Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
 	linux-s390@vger.kernel.org,	linux-arch@vger.kernel.org,
 	bpf@vger.kernel.org,	linux-kselftest@vger.kernel.org,
 	rust-for-linux@vger.kernel.org,	Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v3 03/13] preempt: Introduce __preempt_count_{sub, add}_return()
-Date: Thu,  4 Jun 2026 22:41:18 -0700
-Message-ID: <20260605054128.5925-4-boqun@kernel.org>
+Subject: [PATCH v3 05/13] irq & spin_lock: Add counted interrupt disabling/enabling
+Date: Thu,  4 Jun 2026 22:41:20 -0700
+Message-ID: <20260605054128.5925-6-boqun@kernel.org>
 X-Mailer: git-send-email 2.51.0
 In-Reply-To: <20260605054128.5925-1-boqun@kernel.org>
 References: <20260605054128.5925-1-boqun@kernel.org>
@@ -117,131 +117,512 @@ Content-Transfer-Encoding: 8bit
 
 From: Boqun Feng <boqun.feng@gmail.com>
 
-In order to use preempt_count() to tracking the interrupt disable
-nesting level, __preempt_count_{add,sub}_return() are introduced, as
-their name suggest, these primitives return the new value of the
-preempt_count() after changing it. The following example shows the usage
-of it in local_interrupt_disable():
+Currently the nested interrupt disabling and enabling is present by
+_irqsave() and _irqrestore() APIs, which are relatively unsafe, for
+example:
 
-	// increase the HARDIRQ_DISABLE bit
-	new_count = __preempt_count_add_return(HARDIRQ_DISABLE_OFFSET);
+	<interrupts are enabled as beginning>
+	spin_lock_irqsave(l1, flag1);
+	spin_lock_irqsave(l2, flag2);
+	spin_unlock_irqrestore(l1, flags1);
+	<l2 is still held but interrupts are enabled>
+	// accesses to interrupt-disable protect data will cause races.
 
-	// if it's the first-time increment, then disable the interrupt
-	// at hardware level.
-	if (new_count & HARDIRQ_DISABLE_MASK == HARDIRQ_DISABLE_OFFSET) {
-		local_irq_save(flags);
-		raw_cpu_write(local_interrupt_disable_state.flags, flags);
+This is even easier to triggered with guard facilities:
+
+	unsigned long flag2;
+
+	scoped_guard(spin_lock_irqsave, l1) {
+		spin_lock_irqsave(l2, flag2);
 	}
+	// l2 locked but interrupts are enabled.
+	spin_unlock_irqrestore(l2, flag2);
 
-Having these primitives will avoid a read of preempt_count() after
-changing preempt_count() on certain architectures.
+(Hand-to-hand locking critical sections are not uncommon for a
+fine-grained lock design)
 
-Acked-by: Heiko Carstens <hca@linux.ibm.com> # s390
+And because this unsafety, Rust cannot easily wrap the
+interrupt-disabling locks in a safe API, which complicates the design.
+
+To resolve this, introduce a new set of interrupt disabling APIs:
+
+*	local_interrupt_disable();
+*	local_interrupt_enable();
+
+They work like local_irq_save() and local_irq_restore() except that 1)
+the outermost local_interrupt_disable() call save the interrupt state
+into a percpu variable, so that the outermost local_interrupt_enable()
+can restore the state, and 2) a percpu counter is added to record the
+nest level of these calls, so that interrupts are not accidentally
+enabled inside the outermost critical section.
+
+Also add the corresponding spin_lock primitives: spin_lock_irq_disable()
+and spin_unlock_irq_enable(), as a result, code as follow:
+
+	spin_lock_irq_disable(l1);
+	spin_lock_irq_disable(l2);
+	spin_unlock_irq_enable(l1);
+	// Interrupts are still disabled.
+	spin_unlock_irq_enable(l2);
+
+doesn't have the issue that interrupts are accidentally enabled.
+
+This also makes the wrapper of interrupt-disabling locks on Rust easier
+to design.
+
+Signed-off-by: Lyude Paul <lyude@redhat.com>
 Signed-off-by: Boqun Feng <boqun@kernel.org>
-Link: https://patch.msgid.link/20260121223933.1568682-4-lyude@redhat.com
+Link: https://patch.msgid.link/20260121223933.1568682-6-lyude@redhat.com
 ---
- arch/arm64/include/asm/preempt.h | 18 ++++++++++++++++++
- arch/s390/include/asm/preempt.h  | 10 ++++++++++
- arch/x86/include/asm/preempt.h   | 10 ++++++++++
- include/asm-generic/preempt.h    | 14 ++++++++++++++
- 4 files changed, 52 insertions(+)
+ include/linux/interrupt_rc.h     | 67 ++++++++++++++++++++++++++++++++
+ include/linux/preempt.h          |  4 ++
+ include/linux/spinlock.h         | 23 +++++++++++
+ include/linux/spinlock_api_smp.h | 41 +++++++++++++++++++
+ include/linux/spinlock_api_up.h  | 16 ++++++++
+ include/linux/spinlock_rt.h      | 18 +++++++++
+ kernel/locking/spinlock.c        | 29 ++++++++++++++
+ kernel/softirq.c                 | 14 ++++++-
+ 8 files changed, 211 insertions(+), 1 deletion(-)
+ create mode 100644 include/linux/interrupt_rc.h
 
-diff --git a/arch/arm64/include/asm/preempt.h b/arch/arm64/include/asm/preempt.h
-index 932ea4b62042..0dd8221d1bef 100644
---- a/arch/arm64/include/asm/preempt.h
-+++ b/arch/arm64/include/asm/preempt.h
-@@ -55,6 +55,24 @@ static inline void __preempt_count_sub(int val)
- 	WRITE_ONCE(current_thread_info()->preempt.count, pc);
- }
+diff --git a/include/linux/interrupt_rc.h b/include/linux/interrupt_rc.h
+new file mode 100644
+index 000000000000..dd4444c61330
+--- /dev/null
++++ b/include/linux/interrupt_rc.h
+@@ -0,0 +1,67 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * include/linux/interrupt_rc.h - refcounted local processor interrupt
++ * management.
++ *
++ * Since the implementation of this API currently depends on
++ * local_irq_save()/local_irq_restore(), we split this into it's own header to
++ * make it easier to include without hitting circular header dependencies.
++ */
++
++#ifndef __LINUX_INTERRUPT_RC_H
++#define __LINUX_INTERRUPT_RC_H
++
++#include <linux/irqflags.h>
++#include <asm/processor.h>
++#ifdef CONFIG_SMP
++#include <asm/smp.h>
++#endif
++
++/* Per-cpu interrupt disabling state for local_interrupt_{disable,enable}() */
++struct interrupt_disable_state {
++	unsigned long flags;
++};
++
++DECLARE_PER_CPU(struct interrupt_disable_state, local_interrupt_disable_state);
++
++static inline void local_interrupt_disable(void)
++{
++	unsigned long flags;
++	int new_count;
++
++	WARN_ON_ONCE(in_nmi());
++
++	new_count = hardirq_disable_enter();
++
++	/* Interrupts can happen here, but it's OK, see __irq_exit_rcu(). */
++
++	if ((new_count & HARDIRQ_DISABLE_MASK) == HARDIRQ_DISABLE_OFFSET) {
++		local_irq_save(flags);
++		raw_cpu_write(local_interrupt_disable_state.flags, flags);
++	}
++}
++
++static inline void local_interrupt_enable(void)
++{
++	int new_count;
++
++	new_count = hardirq_disable_exit();
++
++	if ((new_count & HARDIRQ_DISABLE_MASK) == 0) {
++		unsigned long flags;
++
++		flags = raw_cpu_read(local_interrupt_disable_state.flags);
++		local_irq_restore(flags);
++		/*
++		 * TODO: re-read preempt count can be avoided, but it needs
++		 * should_resched() taking another parameter as the current
++		 * preempt count
++		 */
++#ifdef CONFIG_PREEMPTION
++		if (should_resched(0))
++			__preempt_schedule();
++#endif
++	}
++}
++
++#endif /* !__LINUX_INTERRUPT_RC_H */
+diff --git a/include/linux/preempt.h b/include/linux/preempt.h
+index e2d3079d3f5f..33fc4c814a9f 100644
+--- a/include/linux/preempt.h
++++ b/include/linux/preempt.h
+@@ -151,6 +151,10 @@ static __always_inline unsigned char interrupt_context_level(void)
+ #define in_softirq()		(softirq_count())
+ #define in_interrupt()		(irq_count())
  
-+static inline int __preempt_count_add_return(int val)
-+{
-+	u32 pc = READ_ONCE(current_thread_info()->preempt.count);
-+	pc += val;
-+	WRITE_ONCE(current_thread_info()->preempt.count, pc);
-+
-+	return pc;
-+}
-+
-+static inline int __preempt_count_sub_return(int val)
-+{
-+	u32 pc = READ_ONCE(current_thread_info()->preempt.count);
-+	pc -= val;
-+	WRITE_ONCE(current_thread_info()->preempt.count, pc);
-+
-+	return pc;
-+}
-+
- static inline bool __preempt_count_dec_and_test(void)
- {
- 	struct thread_info *ti = current_thread_info();
-diff --git a/arch/s390/include/asm/preempt.h b/arch/s390/include/asm/preempt.h
-index 6e5821bb047e..0a25d4648b4c 100644
---- a/arch/s390/include/asm/preempt.h
-+++ b/arch/s390/include/asm/preempt.h
-@@ -139,6 +139,16 @@ static __always_inline bool should_resched(int preempt_offset)
- 	return unlikely(READ_ONCE(get_lowcore()->preempt_count) == preempt_offset);
- }
- 
-+static __always_inline int __preempt_count_add_return(int val)
-+{
-+	return val + __atomic_add(val, &get_lowcore()->preempt_count);
-+}
-+
-+static __always_inline int __preempt_count_sub_return(int val)
-+{
-+	return __preempt_count_add_return(-val);
-+}
-+
- #define init_task_preempt_count(p)	do { } while (0)
- /* Deferred to CPU bringup time */
- #define init_idle_preempt_count(p, cpu)	do { } while (0)
-diff --git a/arch/x86/include/asm/preempt.h b/arch/x86/include/asm/preempt.h
-index 578441db09f0..1220656f3370 100644
---- a/arch/x86/include/asm/preempt.h
-+++ b/arch/x86/include/asm/preempt.h
-@@ -85,6 +85,16 @@ static __always_inline void __preempt_count_sub(int val)
- 	raw_cpu_add_4(__preempt_count, -val);
- }
- 
-+static __always_inline int __preempt_count_add_return(int val)
-+{
-+	return raw_cpu_add_return_4(__preempt_count, val);
-+}
-+
-+static __always_inline int __preempt_count_sub_return(int val)
-+{
-+	return raw_cpu_add_return_4(__preempt_count, -val);
-+}
++#define hardirq_disable_count()	((preempt_count() & HARDIRQ_DISABLE_MASK) >> HARDIRQ_DISABLE_SHIFT)
++#define hardirq_disable_enter()	__preempt_count_add_return(HARDIRQ_DISABLE_OFFSET)
++#define hardirq_disable_exit()	__preempt_count_sub_return(HARDIRQ_DISABLE_OFFSET)
 +
  /*
-  * Because we keep PREEMPT_NEED_RESCHED set when we do _not_ need to reschedule
-  * a decrement which hits zero means we have no preempt_count and should
-diff --git a/include/asm-generic/preempt.h b/include/asm-generic/preempt.h
-index 51f8f3881523..c8683c046615 100644
---- a/include/asm-generic/preempt.h
-+++ b/include/asm-generic/preempt.h
-@@ -59,6 +59,20 @@ static __always_inline void __preempt_count_sub(int val)
- 	*preempt_count_ptr() -= val;
+  * The preempt_count offset after preempt_disable();
+  */
+diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
+index 241277cd34cf..3d405cc4c121 100644
+--- a/include/linux/spinlock.h
++++ b/include/linux/spinlock.h
+@@ -57,6 +57,7 @@
+ #include <linux/linkage.h>
+ #include <linux/compiler.h>
+ #include <linux/irqflags.h>
++#include <linux/interrupt_rc.h>
+ #include <linux/thread_info.h>
+ #include <linux/stringify.h>
+ #include <linux/bottom_half.h>
+@@ -273,9 +274,11 @@ static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock)
+ #endif
+ 
+ #define raw_spin_lock_irq(lock)		_raw_spin_lock_irq(lock)
++#define raw_spin_lock_irq_disable(lock)	_raw_spin_lock_irq_disable(lock)
+ #define raw_spin_lock_bh(lock)		_raw_spin_lock_bh(lock)
+ #define raw_spin_unlock(lock)		_raw_spin_unlock(lock)
+ #define raw_spin_unlock_irq(lock)	_raw_spin_unlock_irq(lock)
++#define raw_spin_unlock_irq_enable(lock)	_raw_spin_unlock_irq_enable(lock)
+ 
+ #define raw_spin_unlock_irqrestore(lock, flags)		\
+ 	do {							\
+@@ -290,6 +293,8 @@ static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock)
+ 
+ #define raw_spin_trylock_irqsave(lock, flags) _raw_spin_trylock_irqsave(lock, &(flags))
+ 
++#define raw_spin_trylock_irq_disable(lock)	_raw_spin_trylock_irq_disable(lock)
++
+ #ifndef CONFIG_PREEMPT_RT
+ /* Include rwlock functions for !RT */
+ #include <linux/rwlock.h>
+@@ -372,6 +377,12 @@ static __always_inline void spin_lock_irq(spinlock_t *lock)
+ 	raw_spin_lock_irq(&lock->rlock);
  }
  
-+static __always_inline int __preempt_count_add_return(int val)
++static __always_inline void spin_lock_irq_disable(spinlock_t *lock)
++	__acquires(lock) __no_context_analysis
 +{
-+	*preempt_count_ptr() += val;
-+
-+	return *preempt_count_ptr();
++	raw_spin_lock_irq_disable(&lock->rlock);
 +}
 +
-+static __always_inline int __preempt_count_sub_return(int val)
+ #define spin_lock_irqsave(lock, flags)				\
+ do {								\
+ 	raw_spin_lock_irqsave(spinlock_check(lock), flags);	\
+@@ -402,6 +413,12 @@ static __always_inline void spin_unlock_irq(spinlock_t *lock)
+ 	raw_spin_unlock_irq(&lock->rlock);
+ }
+ 
++static __always_inline void spin_unlock_irq_enable(spinlock_t *lock)
++	__releases(lock) __no_context_analysis
 +{
-+	*preempt_count_ptr() -= val;
-+
-+	return *preempt_count_ptr();
++	raw_spin_unlock_irq_enable(&lock->rlock);
 +}
 +
- static __always_inline bool __preempt_count_dec_and_test(void)
+ static __always_inline void spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
+ 	__releases(lock) __no_context_analysis
  {
- 	/*
+@@ -427,6 +444,12 @@ static __always_inline bool _spin_trylock_irqsave(spinlock_t *lock, unsigned lon
+ }
+ #define spin_trylock_irqsave(lock, flags) _spin_trylock_irqsave(lock, &(flags))
+ 
++static __always_inline int spin_trylock_irq_disable(spinlock_t *lock)
++	__cond_acquires(true, lock) __no_context_analysis
++{
++	return raw_spin_trylock_irq_disable(&lock->rlock);
++}
++
+ /**
+  * spin_is_locked() - Check whether a spinlock is locked.
+  * @lock: Pointer to the spinlock.
+diff --git a/include/linux/spinlock_api_smp.h b/include/linux/spinlock_api_smp.h
+index bda5e7a390cd..07a94ba1d760 100644
+--- a/include/linux/spinlock_api_smp.h
++++ b/include/linux/spinlock_api_smp.h
+@@ -28,6 +28,8 @@ _raw_spin_lock_nest_lock(raw_spinlock_t *lock, struct lockdep_map *map)
+ void __lockfunc _raw_spin_lock_bh(raw_spinlock_t *lock)		__acquires(lock);
+ void __lockfunc _raw_spin_lock_irq(raw_spinlock_t *lock)
+ 								__acquires(lock);
++void __lockfunc _raw_spin_lock_irq_disable(raw_spinlock_t *lock)
++								__acquires(lock);
+ 
+ unsigned long __lockfunc _raw_spin_lock_irqsave(raw_spinlock_t *lock)
+ 								__acquires(lock);
+@@ -39,6 +41,7 @@ int __lockfunc _raw_spin_trylock_bh(raw_spinlock_t *lock)	__cond_acquires(true,
+ void __lockfunc _raw_spin_unlock(raw_spinlock_t *lock)		__releases(lock);
+ void __lockfunc _raw_spin_unlock_bh(raw_spinlock_t *lock)	__releases(lock);
+ void __lockfunc _raw_spin_unlock_irq(raw_spinlock_t *lock)	__releases(lock);
++void __lockfunc _raw_spin_unlock_irq_enable(raw_spinlock_t *lock)	__releases(lock);
+ void __lockfunc
+ _raw_spin_unlock_irqrestore(raw_spinlock_t *lock, unsigned long flags)
+ 								__releases(lock);
+@@ -55,6 +58,11 @@ _raw_spin_unlock_irqrestore(raw_spinlock_t *lock, unsigned long flags)
+ #define _raw_spin_lock_irq(lock) __raw_spin_lock_irq(lock)
+ #endif
+ 
++/* Use the same config as spin_lock_irq() temporarily. */
++#ifdef CONFIG_INLINE_SPIN_LOCK_IRQ
++#define _raw_spin_lock_irq_disable(lock) __raw_spin_lock_irq_disable(lock)
++#endif
++
+ #ifdef CONFIG_INLINE_SPIN_LOCK_IRQSAVE
+ #define _raw_spin_lock_irqsave(lock) __raw_spin_lock_irqsave(lock)
+ #endif
+@@ -79,6 +87,11 @@ _raw_spin_unlock_irqrestore(raw_spinlock_t *lock, unsigned long flags)
+ #define _raw_spin_unlock_irq(lock) __raw_spin_unlock_irq(lock)
+ #endif
+ 
++/* Use the same config as spin_unlock_irq() temporarily. */
++#ifdef CONFIG_INLINE_SPIN_UNLOCK_IRQ
++#define _raw_spin_unlock_irq_enable(lock) __raw_spin_unlock_irq_enable(lock)
++#endif
++
+ #ifdef CONFIG_INLINE_SPIN_UNLOCK_IRQRESTORE
+ #define _raw_spin_unlock_irqrestore(lock, flags) __raw_spin_unlock_irqrestore(lock, flags)
+ #endif
+@@ -105,6 +118,18 @@ static __always_inline bool _raw_spin_trylock_irq(raw_spinlock_t *lock)
+ 	return false;
+ }
+ 
++static __always_inline bool _raw_spin_trylock_irq_disable(raw_spinlock_t *lock)
++	__cond_acquires(true, lock)
++{
++	local_interrupt_disable();
++	if (do_raw_spin_trylock(lock)) {
++		spin_acquire(&lock->dep_map, 0, 1, _RET_IP_);
++		return true;
++	}
++	local_interrupt_enable();
++	return false;
++}
++
+ static __always_inline bool _raw_spin_trylock_irqsave(raw_spinlock_t *lock, unsigned long *flags)
+ 	__cond_acquires(true, lock)
+ {
+@@ -143,6 +168,14 @@ static inline void __raw_spin_lock_irq(raw_spinlock_t *lock)
+ 	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
+ }
+ 
++static inline void __raw_spin_lock_irq_disable(raw_spinlock_t *lock)
++	__acquires(lock) __no_context_analysis
++{
++	local_interrupt_disable();
++	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
++}
++
+ static inline void __raw_spin_lock_bh(raw_spinlock_t *lock)
+ 	__acquires(lock) __no_context_analysis
+ {
+@@ -188,6 +221,14 @@ static inline void __raw_spin_unlock_irq(raw_spinlock_t *lock)
+ 	preempt_enable();
+ }
+ 
++static inline void __raw_spin_unlock_irq_enable(raw_spinlock_t *lock)
++	__releases(lock)
++{
++	spin_release(&lock->dep_map, _RET_IP_);
++	do_raw_spin_unlock(lock);
++	local_interrupt_enable();
++}
++
+ static inline void __raw_spin_unlock_bh(raw_spinlock_t *lock)
+ 	__releases(lock)
+ {
+diff --git a/include/linux/spinlock_api_up.h b/include/linux/spinlock_api_up.h
+index a9d5c7c66e03..e4de8bb26a15 100644
+--- a/include/linux/spinlock_api_up.h
++++ b/include/linux/spinlock_api_up.h
+@@ -42,6 +42,9 @@
+ #define __LOCK_IRQSAVE(lock, flags, ...) \
+   do { local_irq_save(flags); __LOCK(lock, ##__VA_ARGS__); } while (0)
+ 
++#define __LOCK_IRQ_DISABLE(lock, ...) \
++  do { local_interrupt_disable(); __LOCK(lock, ##__VA_ARGS__); } while (0)
++
+ #define ___UNLOCK_(lock) \
+   do { __release(lock); (void)(lock); } while (0)
+ 
+@@ -61,6 +64,10 @@
+ #define __UNLOCK_IRQRESTORE(lock, flags, ...) \
+   do { local_irq_restore(flags); __UNLOCK(lock, ##__VA_ARGS__); } while (0)
+ 
++#define __UNLOCK_IRQ_ENABLE(lock, ...) \
++  do { __UNLOCK(lock, ##__VA_ARGS__); local_interrupt_enable(); } while (0)
++
++
+ #define _raw_spin_lock(lock)			__LOCK(lock)
+ #define _raw_spin_lock_nested(lock, subclass)	__LOCK(lock)
+ #define _raw_read_lock(lock)			__LOCK(lock, shared)
+@@ -70,6 +77,7 @@
+ #define _raw_read_lock_bh(lock)			__LOCK_BH(lock, shared)
+ #define _raw_write_lock_bh(lock)		__LOCK_BH(lock)
+ #define _raw_spin_lock_irq(lock)		__LOCK_IRQ(lock)
++#define _raw_spin_lock_irq_disable(lock)	__LOCK_IRQ_DISABLE(lock)
+ #define _raw_read_lock_irq(lock)		__LOCK_IRQ(lock, shared)
+ #define _raw_write_lock_irq(lock)		__LOCK_IRQ(lock)
+ #define _raw_spin_lock_irqsave(lock, flags)	__LOCK_IRQSAVE(lock, flags)
+@@ -97,6 +105,13 @@ static __always_inline int _raw_spin_trylock_irq(raw_spinlock_t *lock)
+ 	return 1;
+ }
+ 
++static __always_inline int _raw_spin_trylock_irq_disable(raw_spinlock_t *lock)
++	__cond_acquires(true, lock)
++{
++	__LOCK_IRQ_DISABLE(lock);
++	return 1;
++}
++
+ static __always_inline int _raw_spin_trylock_irqsave(raw_spinlock_t *lock, unsigned long *flags)
+ 	__cond_acquires(true, lock)
+ {
+@@ -132,6 +147,7 @@ static __always_inline int _raw_write_trylock_irqsave(rwlock_t *lock, unsigned l
+ #define _raw_write_unlock_bh(lock)		__UNLOCK_BH(lock)
+ #define _raw_read_unlock_bh(lock)		__UNLOCK_BH(lock, shared)
+ #define _raw_spin_unlock_irq(lock)		__UNLOCK_IRQ(lock)
++#define _raw_spin_unlock_irq_enable(lock)	__UNLOCK_IRQ_ENABLE(lock)
+ #define _raw_read_unlock_irq(lock)		__UNLOCK_IRQ(lock, shared)
+ #define _raw_write_unlock_irq(lock)		__UNLOCK_IRQ(lock)
+ #define _raw_spin_unlock_irqrestore(lock, flags) \
+diff --git a/include/linux/spinlock_rt.h b/include/linux/spinlock_rt.h
+index 373618a4243c..560d06384e0c 100644
+--- a/include/linux/spinlock_rt.h
++++ b/include/linux/spinlock_rt.h
+@@ -96,6 +96,12 @@ static __always_inline void spin_lock_irq(spinlock_t *lock)
+ 	rt_spin_lock(lock);
+ }
+ 
++static __always_inline void spin_lock_irq_disable(spinlock_t *lock)
++	__acquires(lock)
++{
++	rt_spin_lock(lock);
++}
++
+ #define spin_lock_irqsave(lock, flags)			 \
+ 	do {						 \
+ 		typecheck(unsigned long, flags);	 \
+@@ -122,6 +128,12 @@ static __always_inline void spin_unlock_irq(spinlock_t *lock)
+ 	rt_spin_unlock(lock);
+ }
+ 
++static __always_inline void spin_unlock_irq_enable(spinlock_t *lock)
++	__releases(lock)
++{
++	rt_spin_unlock(lock);
++}
++
+ static __always_inline void spin_unlock_irqrestore(spinlock_t *lock,
+ 						   unsigned long flags)
+ 	__releases(lock)
+@@ -131,6 +143,12 @@ static __always_inline void spin_unlock_irqrestore(spinlock_t *lock,
+ 
+ #define spin_trylock(lock)	rt_spin_trylock(lock)
+ 
++static __always_inline int spin_trylock_irq_disable(spinlock_t *lock)
++	__cond_acquires(true, lock)
++{
++	return rt_spin_trylock(lock);
++}
++
+ #define spin_trylock_bh(lock)	rt_spin_trylock_bh(lock)
+ 
+ #define spin_trylock_irq(lock)	rt_spin_trylock(lock)
+diff --git a/kernel/locking/spinlock.c b/kernel/locking/spinlock.c
+index b42d293da38b..764641f6ec57 100644
+--- a/kernel/locking/spinlock.c
++++ b/kernel/locking/spinlock.c
+@@ -129,6 +129,19 @@ static void __lockfunc __raw_##op##_lock_bh(locktype##_t *lock)		\
+  */
+ BUILD_LOCK_OPS(spin, raw_spinlock, __acquires);
+ 
++/* No rwlock_t variants for now, so just build this function by hand */
++static void __lockfunc __raw_spin_lock_irq_disable(raw_spinlock_t *lock)
++{
++	for (;;) {
++		local_interrupt_disable();
++		if (likely(do_raw_spin_trylock(lock)))
++			break;
++		local_interrupt_enable();
++
++		arch_spin_relax(&lock->raw_lock);
++	}
++}
++
+ #ifndef CONFIG_PREEMPT_RT
+ BUILD_LOCK_OPS(read, rwlock, __acquires_shared);
+ BUILD_LOCK_OPS(write, rwlock, __acquires);
+@@ -176,6 +189,14 @@ noinline void __lockfunc _raw_spin_lock_irq(raw_spinlock_t *lock)
+ EXPORT_SYMBOL(_raw_spin_lock_irq);
+ #endif
+ 
++#ifndef CONFIG_INLINE_SPIN_LOCK_IRQ
++noinline void __lockfunc _raw_spin_lock_irq_disable(raw_spinlock_t *lock)
++{
++	__raw_spin_lock_irq_disable(lock);
++}
++EXPORT_SYMBOL_GPL(_raw_spin_lock_irq_disable);
++#endif
++
+ #ifndef CONFIG_INLINE_SPIN_LOCK_BH
+ noinline void __lockfunc _raw_spin_lock_bh(raw_spinlock_t *lock)
+ {
+@@ -208,6 +229,14 @@ noinline void __lockfunc _raw_spin_unlock_irq(raw_spinlock_t *lock)
+ EXPORT_SYMBOL(_raw_spin_unlock_irq);
+ #endif
+ 
++#ifndef CONFIG_INLINE_SPIN_UNLOCK_IRQ
++noinline void __lockfunc _raw_spin_unlock_irq_enable(raw_spinlock_t *lock)
++{
++	__raw_spin_unlock_irq_enable(lock);
++}
++EXPORT_SYMBOL_GPL(_raw_spin_unlock_irq_enable);
++#endif
++
+ #ifndef CONFIG_INLINE_SPIN_UNLOCK_BH
+ noinline void __lockfunc _raw_spin_unlock_bh(raw_spinlock_t *lock)
+ {
+diff --git a/kernel/softirq.c b/kernel/softirq.c
+index 10af5ed859e7..d1ab1799794c 100644
+--- a/kernel/softirq.c
++++ b/kernel/softirq.c
+@@ -88,6 +88,9 @@ EXPORT_PER_CPU_SYMBOL_GPL(hardirqs_enabled);
+ EXPORT_PER_CPU_SYMBOL_GPL(hardirq_context);
+ #endif
+ 
++DEFINE_PER_CPU(struct interrupt_disable_state, local_interrupt_disable_state);
++EXPORT_PER_CPU_SYMBOL_GPL(local_interrupt_disable_state);
++
+ DEFINE_PER_CPU(unsigned int, nmi_nesting);
+ 
+ /*
+@@ -728,7 +731,16 @@ static inline void __irq_exit_rcu(void)
+ #endif
+ 	account_hardirq_exit(current);
+ 	preempt_count_sub(HARDIRQ_OFFSET);
+-	if (!in_interrupt() && local_softirq_pending()) {
++	/*
++	 * Interrupts may happen between hardirq_disable_enter() and
++	 * local_irq_save() in local_interrupt_disable(), if irq_exit() invokes
++	 * softirq here, we may have a softirq handler calling
++	 * local_interrupt_disable() but it won't disable the irq because
++	 * hardirq disabling count is already 1, hence we need to prevent
++	 * invoking softirq when a local_interrupt_disable() is ongoing.
++	 */
++	if (!in_interrupt() && !hardirq_disable_count() &&
++	    local_softirq_pending()) {
+ 		/*
+ 		 * If we left hrtimers unarmed, make sure to arm them now,
+ 		 * before enabling interrupts to run SoftIRQ.
 -- 
 2.51.0
 
