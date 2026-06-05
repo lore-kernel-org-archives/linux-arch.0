@@ -1,58 +1,58 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AE8E03FE669;
-	Fri,  5 Jun 2026 05:41:48 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B866740586A;
+	Fri,  5 Jun 2026 05:41:50 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780638110; cv=none; b=KmS+FNPSVWZxARKHI+txsccVfkvVjqHBUi0vOpjBBEAGoO1m/jOBgWlKZyxILtbX3gXrcC11Lvw0I5Nc4DUeZKwjo8RKbMrfZyd/0vspBGzLJUI92LRXqKm/RBxqGyT9Jauz/+4i2GWJIBWqGETEPt3Dw2M8rdsgV0WamG+7Ld8=
+	t=1780638113; cv=none; b=URH8KyQTrQuMaxRZLHg+YXExCJiR1k6I0mYacCBAFB+nT2CKDcLPZASUmB5EJNTccntSdL3jh/kWgZ2GU0vrlTLnYDyndK0eB9jh9oK1/IlWQhosnL1ZQOfrn9e2Jlz/6ttJgq8L2fwZ3awcfJLIgPoykwxLqykNhMang8SfJJQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780638110; c=relaxed/simple;
-	bh=OCIQ1JNYaYn1HO1wd9Wum3zvGhBgUH5HslNCfI5WKfk=;
+	s=arc-20240116; t=1780638113; c=relaxed/simple;
+	bh=EEF7M1M56zwwhTGXRepJ6Df3YmQZblYNwV9p/gbKAlY=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=SL5CLE5ZncwNFbTL7imNpwFJkLv4ZqMWis4kWx8EbJ6BERl2Aqnn6I6H++XD7Yz1tMiEz7lLALYga8IGvzxbUeZL9534NJrKHYqSmx2zAf60FlklaqGzpSdtTDMeRvyecDf4LG+WDqc4pz6wztTsKjLLNFd0vMUBhJMEoRr9doY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=RShrFXJC; arc=none smtp.client-ip=100.103.45.18
+	 MIME-Version; b=H0iaSxusWlzCnDVFl56XSAZmA1CIL021MiqHYuAH96xBPocnVXauTQgt2G7tdtdyegWa1li+cdwAceBAD8uZaH5uOATkLYhwykiaRysD2actu/qHsWTC+FquKxc4An1G08/IzBL8g8cBakngPp1/TDp1emEcCHQbqRVrvDqweRo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=bZoiokMs; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="RShrFXJC"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 578B41F0089C;
-	Fri,  5 Jun 2026 05:41:46 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="bZoiokMs"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C2D561F008A1;
+	Fri,  5 Jun 2026 05:41:48 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1780638108;
-	bh=na6ChhIW2x+wIN9W0OHq/rAhwLKFaVTMYx/jBn9ncTo=;
+	s=k20260515; t=1780638110;
+	bh=pFJVb0XMzYiDkWRfHTccDmCKdRjygd0kE9XeKrNBbFM=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=RShrFXJCQcqwe0yCV7e2WjfLKFGrueu70yGHB59yRWOyCSwQzAtnrFSBdjYVBwyNu
-	 jcL8zIRElJyagC9JOOSTS0BrBXu8bA8aY5Q9wKkA990JVg9197ltIP+zAyw+ADyNlp
-	 /Wn8/+hQgaj3+fX3jxJGg+0Nb2UoNTmOWcwDzoXuVTPAj4EHSl4luv54xMxeqfgnxH
-	 7tmQJkiPX0pDBx/KFQeY3gVq0LboIc/94tMT+WPmCPfSV4PhEA0aNkZCZCaM+gdERi
-	 S0U4N91eEjpEC7VSfZC63+dUxdS2S38SofG9Cm5tA8t1c/0S02P3t5AGk2R4o1lg8+
-	 J74yyg5TaRV3g==
-Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
-	by mailfauth.phl.internal (Postfix) with ESMTP id A0AAAF4006D;
-	Fri,  5 Jun 2026 01:41:45 -0400 (EDT)
+	b=bZoiokMslLIjN2vzT4TIFP69TYMaOYz/Rs8dBvcDVfh8znI5PyQZZ/MI6h3qmF8+J
+	 b8FKP5o9Y5Kg/pfhZicPqaKRm0YEhlLb4BD1sbQoJ5K2gC2cU0VzVIDPO8b+U58q5q
+	 FA8v9c06PZwWgVmOt8V3eDYVr3o5b+hTQ76ys3oo2xVbh+ItLecG0caDz97MCKImn5
+	 aWP5IjVIw+HArzbUh8huLosDMiMAchoYiheeZ0nQI8sPAZsiMSij+Kw6ccKBJJnEVR
+	 r+r8gSfJl4Q+t6jJrcUyMG8SwUAG3vrB+lzxKaGcs3tIy9tn7JnJInhrAQ1pm8GeuL
+	 f9ui1biHAMgQw==
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailfauth.phl.internal (Postfix) with ESMTP id 0C7FEF40068;
+	Fri,  5 Jun 2026 01:41:48 -0400 (EDT)
 Received: from phl-frontend-03 ([10.202.2.162])
-  by phl-compute-01.internal (MEProxy); Fri, 05 Jun 2026 01:41:45 -0400
-X-ME-Sender: <xms:mWEiagGPzDNw9Fd6jcWAQGFiM_agWiPEzjyNTNh_ootOgXC2N75C9A>
-    <xme:mWEiagI8pB3Oeuqhtngqe7m9rLa1weaEfTlmwTJ-Bo-Mmy_bkOkpBlTp-xS4cuGw2
-    a6anGqMs4PWSP772pw1TFRoY4CcBGfyplo75P6p4wNotWo64a65>
-X-ME-Received: <xmr:mWEiarVMysrQpXeopAtRPnbFRcLsLNCfEAdn2JGo6Ov8Rj0LNnAV70pezQk>
+  by phl-compute-04.internal (MEProxy); Fri, 05 Jun 2026 01:41:48 -0400
+X-ME-Sender: <xms:m2EiaolB7zlLUj0MVetnv0Lsvm_OuSZabWrSq9osHKs3Qpozp4ceHw>
+    <xme:m2Eiag8rRDqyS3A6ucXng57bGi9CfObuemW9vzQAVQqXDWuusIFzqEYAmF6iavR9z
+    Nqj2IUgcwQrez3pPte48nhAs9iWsISntCneKtvv8hWeuDtjgs-Dbg>
+X-ME-Received: <xmr:m2EiavhBrlXeuK1ihUb4nFGVIdcsodLWXNu7UT1K7f48RcFQ_GnHyFpHcg0>
 X-ME-Proxy-Cause: dmFkZTFG0WJa+84B5ZLakFCJusLrHx60u/M2e4tgb8vvSWGQWHXMFZeKktHow9VrFaQhwL
     60vkPLe/GHUXrF9uQjn9EtWhYCiYebO343SXKkauObGNd0gaHEDMGyAUdMEWI3xvV5+MXM
     Y5XIGIH+RCj/YpjPsc3XHQUzqyjdf8JDGbXE7uRDsVlh2adsQWoVoEG+11Li6tmpxBjo+n
     GbGHXxcMsG5BC+v/PWXz65OFiJmnJTn18gjrdwmPsAQA0I/XEj3HJhBv36WGSvCgORqSG4
-    pkDfFOinWXk05Px2n3ZYSDFusuNrnah7Cqk2jZsViR99U7a3ccatK3SGLf/zDxH9xSS8M3
-    BYqcTNPoSFWTUAYnzRQsPMjoijWzTQhJOBECvxoAHstZsQERmbxNGFxrYJ8nuf451xz6Gi
-    JZckgK1Vr5EFN2I5rL2HrR+uvyRf0Y+ZKW5Aw/kjsrHcSbsPMzgMKvgil5ZUhIbAr+LJ5o
-    eosapYegMdAxAxC/a1+cCt7IJcekuaTmfVEbYwAJwRPjaQcP6RF4fHYxtzwOSbipcxtilW
-    zSZYZFVdtyChk/sU7KPXknN2o+XmbO6+PO+/G8uhRcp2pRsqwCpE9WqpYEAFBbyOIc0hBF
-    e6ovp43WLtoCFTStA2qhLzt36hynsitQNYUu5oVB7X6mw6jqChkvdvQitnRw
-X-ME-Proxy: <xmx:mWEiav2h_9kCWCJ3d6n8nrQPh1btokbBBVyuD8DAS5GOFjY_F4UpaQ>
-    <xmx:mWEiatoENQZWGEtid-OJArj3To2FhSPd4maL0_H1VuW9whomaH0eOw>
-    <xmx:mWEiaj-OmikDacgWrz7F39PYYtItAqERdGvWo2JLBvnXKX8FvsJKWA>
-    <xmx:mWEiakm6IQrGHxNntMQ1JxCZ9tRBrjuWg_DjFaJkYZjmjd0SbBxFbQ>
-    <xmx:mWEiam59ryaprfqdDo_-z6ynUNv9sCCDTP0R8g3ShxwYJAjFwe9-cdSE>
+    pkDfFOinWXk05Px2n3ZYSDFusuNrnah7Cqk2jZsViR99U7a3ccatK3SGLf/zDxH9xSS8Bx
+    NJDPeypZR+UT9k/SqltVTKWiw30nGSTGNtoJTZhFEw535tbPvHx+fxLRs5Z4ou1e4WVvr5
+    fjYq3d0sE8tdFC8joSEqZ+Uo7JwQns/hPHB/VwsR4PvGZtpea1JqcCyFMlPJgyyx8EE4pv
+    jvz4p8DgyUVrtSDfrlYz1plh7KfMMU0jKMO8SRKIOnV1u69YyXD/2yFnyoWy2B1n65QqoC
+    B93ANNq/Xa14drwvS5S7v3OdLu8oSVLylHkLZ+VvgmcmCDl4meFSxlGDWOyi5EBtb/cBbE
+    fuJpgrv2lvgm+etFqRsdjN9nNR9q729Z/AtVZ6SmDmULleejLzV6BAMpyAjQ
+X-ME-Proxy: <xmx:m2EianPaMXuru3-AFtwyCA1Hta101iP2NV1KREiT8MywQg0mx5TlAA>
+    <xmx:nGEiauOvl25w-t4m6rWXegZP32t47S6xYr4FPpP0_7KG1WGfqaucWw>
+    <xmx:nGEiasiTdyvGC_-w9JyTZWBJF0BrS1MDgnYvGkNaRt2RHk-sKuvE6w>
+    <xmx:nGEiapU9w_oFmGCo_I_q8s_KFerlmmVkOTri-Q557e6IBKiKtbhHCQ>
+    <xmx:nGEiauelQ92Dl6HxLv5H5F0zH9kWEZXhm5Wsk3L3t5NUMhQi04Zx-7d1>
 Feedback-ID: i8dbe485b:Fastmail
 Received: by mail.messagingengine.com (Postfix) with ESMTPA; Fri,
- 5 Jun 2026 01:41:44 -0400 (EDT)
+ 5 Jun 2026 01:41:46 -0400 (EDT)
 From: Boqun Feng <boqun@kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
@@ -101,9 +101,9 @@ Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
 	linux-s390@vger.kernel.org,	linux-arch@vger.kernel.org,
 	bpf@vger.kernel.org,	linux-kselftest@vger.kernel.org,
 	rust-for-linux@vger.kernel.org
-Subject: [PATCH v3 08/13] sched: Remove the unused preempt_offset parameter of __cant_sleep()
-Date: Thu,  4 Jun 2026 22:41:23 -0700
-Message-ID: <20260605054128.5925-9-boqun@kernel.org>
+Subject: [PATCH v3 09/13] sched: Avoid signed comparison of preempt_count() in __cant_migrate()
+Date: Thu,  4 Jun 2026 22:41:24 -0700
+Message-ID: <20260605054128.5925-10-boqun@kernel.org>
 X-Mailer: git-send-email 2.51.0
 In-Reply-To: <20260605054128.5925-1-boqun@kernel.org>
 References: <20260605054128.5925-1-boqun@kernel.org>
@@ -115,56 +115,29 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The preempt_offset is always 0 in all the callsites of __cant_sleep(),
-hence remove it. It also allows us to clear the code a bit by stopping
-using a "preempt_count() > .." comparison.
+Currently preempt_count() is always a non-negative int on all archs
+(PREEMPT_NEED_RESCHED archs will mask out the MSB when return
+preempt_count()), hence the checking in __cant_migrate() is in fact just
+checking whether preempt_count() is 0 or not. In a future change, we are
+going to use all the 32 bits of preempt_count(), which would make
+negative int values possible from preempt_count(). Therefore convert the
+"> 0" comparison into a zero checking to prepare for the future change.
+No functional changes are intended.
 
 Signed-off-by: Boqun Feng <boqun@kernel.org>
 ---
- include/linux/kernel.h | 4 ++--
- kernel/sched/core.c    | 4 ++--
- 2 files changed, 4 insertions(+), 4 deletions(-)
+ kernel/sched/core.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index e5570a16cbb1..24414c79e59a 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -72,7 +72,7 @@ extern int dynamic_might_resched(void);
- #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
- extern void __might_resched(const char *file, int line, unsigned int offsets);
- extern void __might_sleep(const char *file, int line);
--extern void __cant_sleep(const char *file, int line, int preempt_offset);
-+extern void __cant_sleep(const char *file, int line);
- extern void __cant_migrate(const char *file, int line);
- 
- /**
-@@ -95,7 +95,7 @@ extern void __cant_migrate(const char *file, int line);
-  * this macro will print a stack trace if it is executed with preemption enabled
-  */
- # define cant_sleep() \
--	do { __cant_sleep(__FILE__, __LINE__, 0); } while (0)
-+	do { __cant_sleep(__FILE__, __LINE__); } while (0)
- # define sched_annotate_sleep()	(current->task_state_change = 0)
- 
- /**
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index b8871449d3c6..75dba7cc09bd 100644
+index 75dba7cc09bd..636e6a15f104 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -9165,7 +9165,7 @@ void __might_resched(const char *file, int line, unsigned int offsets)
- }
- EXPORT_SYMBOL(__might_resched);
- 
--void __cant_sleep(const char *file, int line, int preempt_offset)
-+void __cant_sleep(const char *file, int line)
- {
- 	static unsigned long prev_jiffy;
- 
-@@ -9175,7 +9175,7 @@ void __cant_sleep(const char *file, int line, int preempt_offset)
+@@ -9207,7 +9207,7 @@ void __cant_migrate(const char *file, int line)
  	if (!IS_ENABLED(CONFIG_PREEMPT_COUNT))
  		return;
  
--	if (preempt_count() > preempt_offset)
+-	if (preempt_count() > 0)
 +	if (preempt_count())
  		return;
  
