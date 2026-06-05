@@ -1,78 +1,76 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8D9253A5E89;
-	Thu,  4 Jun 2026 12:40:43 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C664B3BB136
+	for <linux-arch@vger.kernel.org>; Fri,  5 Jun 2026 05:41:35 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780576844; cv=none; b=Skes5YCuElk4Hyu/oNh/5sSalQDzPtpCD6u9XQMoyUffhgAFTH3ijAQutUcqdVAUlivGUVYjJlLQAvJ47ZQk+8/5oL9t64pWR75QvL9gtTRTYgRT71WTMde4ey6NGimEEYRmjL8IHNwzMyHfy5b+5PwcrUAzZPoFV1GfcLlykps=
+	t=1780638097; cv=none; b=N9Del2lJzPwioQAtktH710T4ULPxh/X2eS0nPnwDcHw4tZUhGuAqKZdskilQuvl2/6YDA3K0OBXymgBWdaX9sqi1r1DgodjPPcFvEHSiI4ZeMipnKwU7g6YJ7cwiOGqdz+xvhnICf8F02yTrX84oKJiUmZ/j+csIr0Dt+t0Qv+k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780576844; c=relaxed/simple;
-	bh=3motd/Kk9tEcEy98c5ncAGr3nNkb1fzwM1uTOGz4Qus=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=KAVGqEsQqFBvIfHaD01KJdfq6MfSaMT+/yB+cloAYXLcZBEqebiSjsuWaaEhLJ7tXXkUliKxyugyGhdgWcZGc4OKCwMF1y1NaL+fFd0oHFvlbGwF6DIkX/7N5uwUxOHC4RVVNMuptmLU2GQjIXMPMdt0bpjxegBHJp8icG41uIo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=daq4p9mT; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1780638097; c=relaxed/simple;
+	bh=Ls8jAn9uxSIuXUvxGwKTd0oyRzMQf9ICZGzwFlvvGEc=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=TyOIEOZPmXtcF0EJ+u+4iPMXXXdP/8qnWs/UlRdqzwycX0zj/X1xEX5QPf4B7h+EM0Fk2iI4hYTvdv+qhwxUiSqvfOu/Hj6Z/iAN4ymBlrFf1x5AeEuxOLs1t1kPlcui0x+T3ZFr6afVfASOEBxkmGnqurv62OKQLdYj+hmiLYc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=jVLTKvnF; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="daq4p9mT"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BBDC31F00899;
-	Thu,  4 Jun 2026 12:40:41 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="jVLTKvnF"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E3E211F00893;
+	Fri,  5 Jun 2026 05:41:33 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1780576843;
-	bh=GnOm+v7F1LKSbVaBQReSZi8hz25Kzy0nepO4bxrUVcs=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=daq4p9mTxZM6hg5qQa/qHACfQnQNHHJBfDXDZldcF2oHlB3rhT2K9WeXrV8DpICBQ
-	 ChETc4cbkLuTEfQQomffF4ZDXoOkbJlShcZp+gaRwsU03Ob6jh4vxRpGgmIybx7MiS
-	 0Q6kTXsQaMMkiRlLva0vqHO8zJAZ25fV2lo4Iwm7JCR2aKboyZBL5lVEITHft9qxX0
-	 GkQdYzIUJ5P8y31MMiUfphTTGDChzuxN8Hs86+X2QhDQOpjt8UdnXhaxci7Ao2eogs
-	 lUnPqgL3gvZxrYqDe7AeVTZYhdiIepM/Oxx/uFb99h7xH99KiZewhfCg5FOfUIFW0e
-	 /X2zv2MBvrBtg==
-Received: from phl-compute-06.internal (phl-compute-06.internal [10.202.2.46])
-	by mailfauth.phl.internal (Postfix) with ESMTP id F3A80F40084;
-	Thu,  4 Jun 2026 08:40:40 -0400 (EDT)
-Received: from phl-frontend-04 ([10.202.2.163])
-  by phl-compute-06.internal (MEProxy); Thu, 04 Jun 2026 08:40:41 -0400
-X-ME-Sender: <xms:SHIhakSnCrdg9gx5m4iHzTicKaK_DQbZUK11E3bhlG_5yYmLh4HVcA>
-    <xme:SHIhamrf8l8qqXn5spEz_3zIQSqGxPGzydYKiqYC1Ad9mQIGDEO2BI-tVRzQTjo8L
-    N8dPE-jHh3R_hm5kGq61j-lWA9098jHtcxIXHtK6lSOM5b04J8>
-X-ME-Received: <xmr:SHIhanvyg3DUTUpzz1Tr6mmNDYVvEMOWhgBEhBREpTYdxxCkkBVJjshxDdQ>
-X-ME-Proxy-Cause: dmFkZTF1BaCWatKURocL+NpcgGk8YfcgR1XBShgJesrvsvC2cG3vlDNwoRLKuuKWvI9wgr
-    KG4Un6Q8MLsUhJ7qUby0lAaArhUaGksZuyniOIcFRF3jBJfW9luEJSa356GyMvadHeAIUB
-    F7Fsk6uIaYS9/XUo/AHbvEW2iTXW7UQHwAiD96JBraglfj5eFgrMXQqkhBFZpo5fmGG/eI
-    AQb5l6O4b5u+PthGYCRYvuYPUJXdmWKqj7KOhX79C+va6qRUJSnqWA/slW9fvEtsxZflmn
-    cZYxt7SIfaZSY+71gr8mRZqSZhlvD3ofSHh//MmWZCDH7C7YuX5/Ca4yauFP5gCXu8R5e8
-    ATuCazD5w14RyGhUDf8kJ2nnJlgWRO3UwgsRWPcouZeOlihQh5D8nnxfIJXtuCyTTW3jlv
-    7TsEq+dkGy+hPVqy5gzBhzu74DPvX0twDJI7dlB6ID2+z1ZSG+J1UYSs61b9WIUb4ttyzS
-    TjZSEePWTPWlDNq9PoUQQWqdzHgd48jCUCsvE2SpVwPE7xmxBMRNl9jVOmXJglehoDpXd9
-    z7WWsk64xF+a6MwNoBsFE/yKMv6OSIpaAByuh/5HYUXC1C2pht/LVhYAvicEDOwXVeAMyN
-    6QHhq6XTEBwnqHjw+vWgmxJE8KWrktttFqSpXIHL+Ldl3JEWwh3FcBx1FKuw
-X-ME-Proxy: <xmx:SHIhaqeGCWvoTr6Zf4A7VuqQKHMJAl9R7ARuuX7SWO3hikB0EABGqw>
-    <xmx:SHIhajm2MNfjagJxh9VKB7kVOB1FHuJFe5pi_tBuhyOPef0APhlWJA>
-    <xmx:SHIhauE42o8acVl_EkD0i90rEiqekyJ5wDDuuU7N0Uc-cMcHHEKKFA>
-    <xmx:SHIhapIi0Aj_i8f5RMMHTUFMJs_gmylfCV5Mpk-2TVrJhlM3iZONJw>
-    <xmx:SHIhaktsp0bNSEQQ_zMYZ1h3aUBSoUkTxD9FkfVknP1rAqe0eaUb8bXA>
+	s=k20260515; t=1780638095;
+	bh=SPlBajyEY6daFB22p/LrTuA35kcRxPh5dhkRnYY+Ggo=;
+	h=From:To:Cc:Subject:Date;
+	b=jVLTKvnFEugQT3TkxhzyzswioUyN1v2R7LUBwa0MO1HPYDLZZmXXlTIlWa/XaAof/
+	 QoSVg2JaZIRISAKY/DYK9rA/wFBEqvQmkiUL6K5wwXPC6u0cX9eO4MQRqt8Y8ZBs/v
+	 Gw7XGubeZhsbbTr0r83tp7/jwsDiR6SccghrbFjQcEEtBdADV0GkH+qWY02l5wHmHR
+	 5ihNP/8mIu0Ty3O3UsYH+M58l80ThRyWOSnDdKSphSQ+ZudVZ9+F/IXZKmFO5kUmEv
+	 o4h1uZGe7BPbSiu0C2Xu5Xc5CTXt9NSptGaLyqOzhdQ5nDsKWvQYzsOJaLz1lFvfz8
+	 oULA5ZNEeUGsw==
+Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
+	by mailfauth.phl.internal (Postfix) with ESMTP id 0DF60F40075;
+	Fri,  5 Jun 2026 01:41:33 -0400 (EDT)
+Received: from phl-frontend-03 ([10.202.2.162])
+  by phl-compute-05.internal (MEProxy); Fri, 05 Jun 2026 01:41:33 -0400
+X-ME-Sender: <xms:jGEian6pbR-I090HCRq40lABCksHe_AMB-tMU-ksxzL_HbSyBS0yKA>
+    <xme:jGEiajvRRAC1Tj8t6DkGoYYfBIkyUIAYBaNwdNIhkk_6rNBN86RfumUO-7N67Bvz6
+    4KtuohlS_Q1UaG-wIO55zGGP5VZdbRsWDNnAG1bXmVMUqV261VZPQ>
+X-ME-Received: <xmr:jGEiavoLx40h6nXgPtksAw3ktngeKFB3savDUCnwY_dYiQs3Wjs0MHTX_Dg>
+X-ME-Proxy-Cause: dmFkZTFc+6I5dnayd2BYaWnu3DfmchaRspDny6hXOeQ0WXB+cUQ8+NyHSxw59pEB4HYxYa
+    hQ/jpd2pfuJ3tb8YfwNEy34LuyXTLFRcJbt/R3UZar0R7U6maQKv8Ka6NzqAWGME+IqBdu
+    RQdq5hY1TEX4Mkzh6yYHh+p5reirdqtNwaqftTDkO7sP45Jaff/WH/0OIgW/vJp50latAm
+    /rZjqCPZR5E6s9fBO3Fb5bdDNNFP7jhf5AaUB5cFypzcKqHlteCps9x6FxSEcbNaEgP8SO
+    zQY036UKu1kACwxOSXMerD2djNH46JMVmwsHENjblrU+CF4vthjwdTe26BiLxe3GIJfiJG
+    RjxR1yUIIVwSsXPKsrNdSCXGu6UprlEJkGbJ3B1VFu+tZg4rlXYG22BD0s8OrcXSQwm7NC
+    l4CbhELYEZuVNoKuLdDMRZr6C/IjJWC97a4XxBGAxUFbF8LpyT/BC/HsxqwBEQ/HRLMbAh
+    Dpp4/sZ1kF0bb4aiYj3m13E2PmMVn7cftH8o+dAQNxJdTp5fTb/EjC26ZGRBOA1Q80npOd
+    2Qex/+DWN7SgpELtlSBBcSbTL2nubPHJymTzywzvBJolNNEtkVlORFC1UwerW2cGz53Isx
+    M8QJPTjEsaTF7VLs8NWwd5o0BuRMm78L/vG+Z9c0aa9bn7IoCunGEhauKf3Q
+X-ME-Proxy: <xmx:jGEial4QER2MrYz0DiDUDJTLXRdmyy4sQPfOBLh--p6E8484ePvGKw>
+    <xmx:jWEiaicqOB0Nq2Wcw2UqV6QRBAqL9B5h-SAx_FgKDB17GXzl0BbAig>
+    <xmx:jWEiagiecPLdtMT_wqMPQ4ardSZLgJsKqWeVe8FvkR0wca5Uc-lpcw>
+    <xmx:jWEiat4IwbpUPMVrOQ3uAqNXnEsZDnDVf39rqZQ8w6mLTWaT0MoCLg>
+    <xmx:jWEiat_QeSJwiP0onTcKhoVUIw9TYHNqOUQ0_iNoX_CSNMiaNUGoFc-i>
 Feedback-ID: i8dbe485b:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Thu,
- 4 Jun 2026 08:40:40 -0400 (EDT)
-Date: Thu, 4 Jun 2026 05:40:39 -0700
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Fri,
+ 5 Jun 2026 01:41:32 -0400 (EDT)
 From: Boqun Feng <boqun@kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
- Jonas Bonn <jonas@southpole.se>,
+	Jonas Bonn <jonas@southpole.se>,
 	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
 	Stafford Horne <shorne@gmail.com>,	Heiko Carstens <hca@linux.ibm.com>,
 	Vasily Gorbik <gor@linux.ibm.com>,
 	Alexander Gordeev <agordeev@linux.ibm.com>,
 	Christian Borntraeger <borntraeger@linux.ibm.com>,
 	Sven Schnelle <svens@linux.ibm.com>,	Thomas Gleixner <tglx@kernel.org>,
- Ingo Molnar <mingo@redhat.com>,	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Ingo Molnar <mingo@redhat.com>,	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,	Arnd Bergmann <arnd@arndb.de>,
 	Juri Lelli <juri.lelli@redhat.com>,
 	Vincent Guittot <vincent.guittot@linaro.org>,
 	Dietmar Eggemann <dietmar.eggemann@arm.com>,
 	Steven Rostedt <rostedt@goodmis.org>,	Ben Segall <bsegall@google.com>,
- Mel Gorman <mgorman@suse.de>,	Valentin Schneider <vschneid@redhat.com>,
-	K Prateek Nayak <kprateek.nayak@amd.com>,
+	Mel Gorman <mgorman@suse.de>,	Valentin Schneider <vschneid@redhat.com>,
+	K Prateek Nayak <kprateek.nayak@amd.com>,	Boqun Feng <boqun@kernel.org>,
 	Waiman Long <longman@redhat.com>,
 	Andrew Morton <akpm@linux-foundation.org>,
 	Andrii Nakryiko <andrii@kernel.org>,
@@ -81,93 +79,108 @@ Cc: Catalin Marinas <catalin.marinas@arm.com>,	Will Deacon <will@kernel.org>,
 	Daniel Borkmann <daniel@iogearbox.net>,
 	Martin KaFai Lau <martin.lau@linux.dev>,
 	Kumar Kartikeya Dwivedi <memxor@gmail.com>,	Song Liu <song@kernel.org>,
- Yonghong Song <yonghong.song@linux.dev>,	Jiri Olsa <jolsa@kernel.org>,
- Shuah Khan <shuah@kernel.org>,	Miguel Ojeda <ojeda@kernel.org>,
- Gary Guo <gary@garyguo.net>,
-	=?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
+	Yonghong Song <yonghong.song@linux.dev>,	Jiri Olsa <jolsa@kernel.org>,
+	Shuah Khan <shuah@kernel.org>,	Miguel Ojeda <ojeda@kernel.org>,
+	Gary Guo <gary@garyguo.net>,
+	=?UTF-8?q?Bj=C3=B6rn=20Roy=20Baron?= <bjorn3_gh@protonmail.com>,
 	Benno Lossin <lossin@kernel.org>,
 	Andreas Hindborg <a.hindborg@kernel.org>,
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
+	Alice Ryhl <aliceryhl@google.com>,	Trevor Gross <tmgross@umich.edu>,
 	Danilo Krummrich <dakr@kernel.org>,	Jinjie Ruan <ruanjinjie@huawei.com>,
- Lyude Paul <lyude@redhat.com>,	Thomas Huth <thuth@redhat.com>,
- Sohil Mehta <sohil.mehta@intel.com>,	"Xin Li (Intel)" <xin@zytor.com>,
+	Lyude Paul <lyude@redhat.com>,	Thomas Huth <thuth@redhat.com>,
+	Sohil Mehta <sohil.mehta@intel.com>,
 	Pawan Gupta <pawan.kumar.gupta@linux.intel.com>,
-	Nikunj A Dadhania <nikunj@amd.com>,
+	Sean Christopherson <seanjc@google.com>,
+	Nikunj A Dadhania <nikunj@amd.com>,	"Xin Li (Intel)" <xin@zytor.com>,
 	Joel Fernandes <joelagnelf@nvidia.com>,
 	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
 	Randy Dunlap <rdunlap@infradead.org>,	Yury Norov <ynorov@nvidia.com>,
 	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	linux-kernel@vger.kernel.org, linux-openrisc@vger.kernel.org,
-	linux-s390@vger.kernel.org, linux-arch@vger.kernel.org,
-	bpf@vger.kernel.org, linux-kselftest@vger.kernel.org,
-	rust-for-linux@vger.kernel.org,
-	Onur =?iso-8859-1?Q?=D6zkan?= <work@onurozkan.dev>,
-	Daniel Almeida <daniel.almeida@collabora.com>
-Subject: Re: [PATCH v2 10/12] preempt: Introduce
- HAS_SEPARATE_PREEMPT_RESCHED_BITS
-Message-ID: <aiFyR-9rSGx38tWi@tardis-2.local>
-References: <20260526152148.30514-1-boqun@kernel.org>
- <20260526152148.30514-11-boqun@kernel.org>
+	linux-kernel@vger.kernel.org,	linux-openrisc@vger.kernel.org,
+	linux-s390@vger.kernel.org,	linux-arch@vger.kernel.org,
+	bpf@vger.kernel.org,	linux-kselftest@vger.kernel.org,
+	rust-for-linux@vger.kernel.org
+Subject: [PATCH v3 00/13] Refcounted interrupt disable and SpinLockIrq for rust (Part 1)
+Date: Thu,  4 Jun 2026 22:41:15 -0700
+Message-ID: <20260605054128.5925-1-boqun@kernel.org>
+X-Mailer: git-send-email 2.51.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260526152148.30514-11-boqun@kernel.org>
+Content-Transfer-Encoding: 8bit
 
-On Tue, May 26, 2026 at 08:21:46AM -0700, Boqun Feng wrote:
-[...]
-> +#ifdef CONFIG_HAS_SEPARATE_PREEMPT_RESCHED_BITS
-> +static __always_inline void __preempt_count_nmi_enter(void)
-> +{
-> +	__preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);
-> +}
-> +
-> +static __always_inline void __preempt_count_nmi_exit(void)
-> +{
-> +	__preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET);
-> +}
-> +#else
-> +DECLARE_PER_CPU(unsigned int, nmi_nesting);
-> +
-> +#define __preempt_count_nmi_enter()				\
-> +	do {							\
-> +		unsigned int _o = NMI_MASK + HARDIRQ_OFFSET;	\
-> +		/* Maximum NMI nesting is 15. */		\
-> +		BUG_ON(__this_cpu_read(nmi_nesting) >= 15);	\
-> +		__this_cpu_inc(nmi_nesting);			\
-> +		_o -= (preempt_count() & NMI_MASK);		\
-> +		__preempt_count_add(_o);			\
-> +	} while (0)
-> +
-> +#define __preempt_count_nmi_exit()				\
-> +	do {							\
-> +		unsigned int _o = HARDIRQ_OFFSET;		\
-> +		if (!__this_cpu_dec_return(nmi_nesting))	\
-> +			_o += NMI_MASK;				\
-> +		__preempt_count_sub(_o);			\
-> +	} while (0)
+Hi Peter,
 
-This needs to be:
+Please take a look at the v3 of refcounted interrupt disabling.
 
-#define __preempt_count_nmi_exit()				\
-	do {							\
-		__preempt_count_sub(HARDIRQ_OFFSET);		\
-		if (!__this_cpu_dec_return(nmi_nesting))	\
-			preempt_count_set(preempt_count() & ~NMI_MASK); \
-	} while (0)
+Changes since v2:
 
-otherwise we would have an underflow issue if an NMI happen between
-the "if" being true and __preempt_count_sub(_o);
+- Fix NMI_OFFSET underflow issue reported by sashiko. See patch #1
+  (__nmi_ext()) and #10 (__preempt_count_nmi_exit()) for details: we
+  have to replace preempt_count_sub() with preempt_count_set().
+- Add WARN_ON_ONCE(in_nmi()) in local_interrupt_disable() per Peter.
+- Remove the use of should_resched() in local_interrupt_enable(), see
+  patch #13.
+- Remove my gmail in SoB.
 
-Regards,
-Boqun
 
-> +
-> +#endif
-> +
-> +
-[...]
+v1: https://lore.kernel.org/rust-for-linux/20260508042111.24358-1-boqun@kernel.org/
+v2: 
+
+Boqun Feng (9):
+  preempt: Introduce HARDIRQ_DISABLE_BITS
+  preempt: Introduce __preempt_count_{sub, add}_return()
+  irq & spin_lock: Add counted interrupt disabling/enabling
+  locking: Switch to _irq_{disable,enable}() variants in cleanup guards
+  sched: Remove the unused preempt_offset parameter of __cant_sleep()
+  sched: Avoid signed comparison of preempt_count() in __cant_migrate()
+  preempt: Introduce HAS_SEPARATE_PREEMPT_RESCHED_BITS
+  arm64: sched/preempt: Enable HAS_SEPARATE_PREEMPT_RESCHED_BITS
+  irq: Optimize reschedule check in local_interrupt_enable()
+
+Heiko Carstens (1):
+  s390/preempt: Enable HAS_SEPARATE_PREEMPT_RESCHED_BITS
+
+Joel Fernandes (1):
+  preempt: Track NMI nesting to separate per-CPU counter
+
+Lyude Paul (2):
+  openrisc: Include <linux/cpumask.h> in smp.h
+  irq: Add KUnit test for refcounted interrupt enable/disable
+
+ arch/arm64/Kconfig                            |   1 +
+ arch/arm64/include/asm/preempt.h              |  18 +++
+ arch/openrisc/include/asm/smp.h               |   2 +
+ arch/s390/Kconfig                             |   1 +
+ arch/s390/include/asm/lowcore.h               |  13 ++-
+ arch/s390/include/asm/preempt.h               |  49 ++++----
+ arch/x86/Kconfig                              |   1 +
+ arch/x86/include/asm/preempt.h                |  61 +++++++---
+ arch/x86/kernel/cpu/common.c                  |   2 +-
+ include/asm-generic/preempt.h                 |  14 +++
+ include/linux/hardirq.h                       |  41 ++++++-
+ include/linux/interrupt_rc.h                  |  76 ++++++++++++
+ include/linux/kernel.h                        |   4 +-
+ include/linux/preempt.h                       |  35 ++++--
+ include/linux/spinlock.h                      |  49 +++++---
+ include/linux/spinlock_api_smp.h              |  41 +++++++
+ include/linux/spinlock_api_up.h               |  16 +++
+ include/linux/spinlock_rt.h                   |  18 +++
+ kernel/Kconfig.preempt                        |   4 +
+ kernel/irq/Makefile                           |   1 +
+ kernel/irq/refcount_interrupt_test.c          | 109 ++++++++++++++++++
+ kernel/locking/spinlock.c                     |  29 +++++
+ kernel/sched/core.c                           |  18 ++-
+ kernel/softirq.c                              |  22 +++-
+ lib/locking-selftest.c                        |   2 +-
+ .../testing/selftests/bpf/bpf_experimental.h  |   7 +-
+ 26 files changed, 554 insertions(+), 80 deletions(-)
+ create mode 100644 include/linux/interrupt_rc.h
+ create mode 100644 kernel/irq/refcount_interrupt_test.c
+
+-- 
+2.51.0
+
