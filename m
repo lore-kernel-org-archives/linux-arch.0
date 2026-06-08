@@ -1,134 +1,158 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f50.google.com (mail-ed1-f50.google.com [209.85.208.50])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 185F62192F4;
-	Mon,  8 Jun 2026 09:04:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780909492; cv=none; b=YHuiI7RolPTqw7NwTtQ2XPp3pf0IuRu887QzaoJved2p/ttpO0T5d3lYyHBgcq6IQ8ox/FzcNQdMXBKr4V0hePQ3sGSf0KtXC54/8MDqTGMbAVoSpyQ6almDmgcMoLC/oH7I96t4jvFGs9+1TIeimFeXwANPjKDXf88kMW4Yzgs=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780909492; c=relaxed/simple;
-	bh=toJk1ctZErkqLyuS7bbJhiSfbHVht1LdmOkBJGDBC9Y=;
-	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
-	 Subject:From:To:Cc:Date; b=XzEUFZBUf+1gEF7hF73esve7RLjTAF9at+egvM9I3HvYH70ANiSM7sMgScfUNS7YfyNzTTSV7OCzpkVgYr7AI4/FbisGsjH5eUAZlLGBv2rdh1Rozx9C3B2+3njawh0Q2miORZFqmG0vaZ6/EJoBNIlgHoR6HQNgy+VekO8Y8Ps=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=SQ1Gqx3l; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F318F413241
+	for <linux-arch@vger.kernel.org>; Mon,  8 Jun 2026 15:02:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.50
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1780930970; cv=pass; b=X83pmoQ1EAne8rfV5F2kB/MVDLTetW/D7989YyTyz/P9kxWbCDLmi9culzM97gBNg/NbYUtxI5usH47N0NlCw6ldTkg8NG14P1yCd8Sy1AGHcm5hW+eoOoKqjTQNqSsK+dtqB9AdVKYrGrn7/7PgHFcoqK0+OhOEvfGy72CHlB0=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1780930970; c=relaxed/simple;
+	bh=g51x3Dke8m4hq5BD7mWP1JIENWwriEm4dzZwpkBeih4=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=U0h5qcVLIzt/ptGEmZuXX5dLVqtvju6tfpVHOQvQyeikCECm2F/VASsxaO0iKq4vJvOwO7+5+tXg24wdR9Jnce/VW4rq+yIl/URgPDQKQk8RAsyTQzSOBzp6VHCMDXaxLLj1AryoC1MycedVvhHLhx5K12OSw1Y/acFh3vPSxIg=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=SN4g2w+7; arc=pass smtp.client-ip=209.85.208.50
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="SQ1Gqx3l"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D31A61F00893;
-	Mon,  8 Jun 2026 09:04:49 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1780909490;
-	bh=Gaxzxjs/vW8KUnXlGRbEJH8BuwjUHLEEzwHgn4vcNq8=;
-	h=In-Reply-To:References:Subject:From:To:Cc:Date;
-	b=SQ1Gqx3lfMg1hXe2Mb/ikw+gqB4wOZOyqjjovAYrXAeEsXeF1jK+guNjO5eGNGgo3
-	 Ua69ha6cNJlcOHmqQqGVviip9bSqm5kgnPgRtjVIpE0mFjsNWa82qbnV0UNUDcLnZD
-	 JvhfX6WW1qx5wmM13Xp24kzC7ArgAk5YtsnjF5ukKNAK5BDnD/a8A9PIQt1YHfu7FU
-	 n+nzjbnyVIo1jUpENZ48U7MrSuJ3svSENTZPp4eM3CYy8ExExiFO11uVKKmRoUeS4b
-	 okcmC8gz+smucdPSuFAFdXWyfUV46uXXG0rud4CX4NzWNh0Tp8SNGXRqPUDz+POEJ/
-	 VdEy+KASUxFXQ==
-Content-Type: multipart/mixed; boundary="===============6094207814609945116=="
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="SN4g2w+7"
+Received: by mail-ed1-f50.google.com with SMTP id 4fb4d7f45d1cf-68d22476e88so29122a12.0
+        for <linux-arch@vger.kernel.org>; Mon, 08 Jun 2026 08:02:44 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1780930963; cv=none;
+        d=google.com; s=arc-20240605;
+        b=LHydgzz42RioIdCrO/vpfOjru3Q5L3+3dLrXP+LIzbJIej6wTTDM6ptbyIE2qm6mtq
+         d8IZpWyFr2F4jZqIf6wOG7xP8mqbNJQObiKH0nDAtIviM2u5oWIVHVfHHD3wWr4Q92CD
+         DbBuvitgPW9+1nPO4FpN1GX4UYEjv5kiCoKAaa9A7kH9aG8jeRI3FN+89GRbLf4xHn5O
+         NDjafPzu9byCuwd5M+LN/RZJhilS1MuX18tBTGP/iuJW0VV7qu8vLuFjQ6uJd7gfItKJ
+         To490+rYiWRbfW8z0Bmqeoj8Iqf4R4anxKipciLaVWM06odP/LsLFJq4kOlthpQvqsKL
+         E7Fg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=g51x3Dke8m4hq5BD7mWP1JIENWwriEm4dzZwpkBeih4=;
+        fh=tFtVp5PM5DvCKwmLaOHCTA+XAMlGNfRjDZnSp42QbEA=;
+        b=jJQSRZAQV+4XkzlAw60sZut0zaXM5QSVeyRq5Yp+Tan/e1L3wy+MgEwNnSirPB/2wX
+         p9YEo5vIJyAirwaw/Yj5HBtsEzPoFJxahT9Jd0qF4p+ZwFApeyB7jrx8wDX36gxtSG53
+         kRF9iz7r6drpyNN5y7MZw0TK0Lx696fexgAsJVTcyk+gMsS52qXxJijErDtkrwNAHmzk
+         /B+qXBHRz5Trgd+5qy7uGITS/hSXEapMDEzUaVbF0zrtZ2U3lTABjpqc/Klo4Zw3HOSl
+         JB/oLowf3e7fr2NYUCCuPeG2VMecYerRo24yItyeYdSK21k2QloUZF5dhKlsA5hOdn5e
+         tgVA==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1780930963; x=1781535763; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=g51x3Dke8m4hq5BD7mWP1JIENWwriEm4dzZwpkBeih4=;
+        b=SN4g2w+7L37u55NOHnH62hsXGmHRkvICDQ97Qol/4mqxJN6kaeE8TAGexGnPVk+0Sj
+         vOwhOYMqgm/ZclL9AVkos/+Rx8n4xUQp6WI17G0GvGaF7oUhQmM6qa4pgZfpehiTajlm
+         1SDyEkqnzK56xnyHFwufRSwSX0EjLVEUE9paFJ3tapzaLxxpDd9MLsnbyCvYHXQ8eyRx
+         jqeFQF/H5AIlNqAkFEFS+VpK/60tXK9rrfMmWz4xC7aWMinwx328dqWwShlEraX65KC1
+         MjGPFslpEltXzdQ+rgN6o+Eovk1f5szk3IXtjEeBQEUbHxqXHqaAtVntDNampvk7JuT5
+         Eqbw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1780930963; x=1781535763;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=g51x3Dke8m4hq5BD7mWP1JIENWwriEm4dzZwpkBeih4=;
+        b=g8HdWSYXVN5L7x6b8+rM0PL69iKwxDkWzRU6MyrfhDGQv91RXd3AweA88OrL6ZWxic
+         nnKP7f4H/cMLjdGn5+KErdpdIjwkWgEsyT2/3wLXvGIs4c96tHX2YjTJwoJq2z1BORKx
+         hMLmIokMN6qr1XtKHLEl/0gf8UwhqlnmnnMf4BkWingYMz2WmBFL0alSfD0KahzDulSp
+         EqOqycN/8LcYEf9c9cDrAp1GmAkwoRT1bWP5Yz7Dyfcp2ADSWGBA5suGK2WKzO1wPDt3
+         +LQabi47WoHoGoPhdyAtrQD1Geupk8mw8m1PIQO93T5zZhcbRFlAxQxREF0Xo9CDEaf8
+         FSmw==
+X-Forwarded-Encrypted: i=1; AFNElJ+Pb7ls6TgLgOH1/irFdT2HQkywp0GIUegS1DbCOi3kAuOhs3RQY4Rsd9xAHpXgEpRqWbJofkmduoxz@vger.kernel.org
+X-Gm-Message-State: AOJu0YxscwcqMepKCniyifJxlCOFoCgFpbNvxgKufmePmpCXrov8KCC8
+	OW4cKdk1LgJ4CqOCd4diWPVKff+QaafTrkbP7awJRSxZfWtgUR0vU8cvRkhmTnawI3AcCaRBXqN
+	vn+Y5UNPxKl4TqZjD6jHmnM10ZTCU5TU9McddHnAP
+X-Gm-Gg: Acq92OH+uYvCtCVXVW34LPOIvQCu3dAfjnDzLboDYu0mWBsl39t8c6KXbwsdyRm1Jum
+	UZ3vS0zWY5PA1YKJvYFiPRHdk3hclqtt4GltDAXhm7VBvYtiWHAVi6jlH4dK3A4p1zmS4bKDNhY
+	Adc1litbT6aSi5To4cCnXTvlBRwTc+ukfRfBVXFeOATPfpU3NuzRlqwba2PErHJHJDfaPK5SxFx
+	XwBXIT9imDsbqTcJSSGCWnQxmQdBVIgR9HTyGFGLnvolNdHyzWL1J5qHWnwDTxArZ9L/Ym+EASn
+	PYG+znCDKdkssgr89R6wRSdp2U42uYCprtDlEA7lpB8sDE9J
+X-Received: by 2002:aa7:d848:0:b0:68f:d41d:ca5d with SMTP id
+ 4fb4d7f45d1cf-68fe907ab8amr167661a12.11.1780930962621; Mon, 08 Jun 2026
+ 08:02:42 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Message-Id: <05f7ab2eeaf872990f9f43125fe21311719d65271c2b1ef3c40bb2ca2e8c679b@mail.kernel.org>
-In-Reply-To: <20260608080440.127491-11-ankur.a.arora@oracle.com>
-References: <20260608080440.127491-11-ankur.a.arora@oracle.com>
-Subject: Re: [PATCH v12 10/15] bpf/rqspinlock: Use smp_cond_load_acquire_timeout()
-From: bot+bpf-ci@kernel.org
-To: ankur.a.arora@oracle.com,linux-kernel@vger.kernel.org,linux-arch@vger.kernel.org,linux-arm-kernel@lists.infradead.org,linux-pm@vger.kernel.org,bpf@vger.kernel.org
-Cc: arnd@arndb.de,catalin.marinas@arm.com,will@kernel.org,peterz@infradead.org,akpm@linux-foundation.org,mark.rutland@arm.com,harisokn@amazon.com,cl@gentwo.org,ast@kernel.org,rafael@kernel.org,daniel.lezcano@linaro.org,memxor@gmail.com,zhenglifeng1@huawei.com,xueshuai@linux.alibaba.com,rdunlap@infradead.org,david.laight.linux@gmail.com,broonie@kernel.org,joao.m.martins@oracle.com,boris.ostrovsky@oracle.com,konrad.wilk@oracle.com,ashok.bhat@arm.com,ankur.a.arora@oracle.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
-Date: Mon,  8 Jun 2026 09:04:49 +0000 (UTC)
+References: <20260528095235.2491226-1-me@linux.beauty> <vealb52tv5suireenkke4lul2l3wbnaul2rp3ea545ly5wa5ty@yk3aksvp7skt>
+In-Reply-To: <vealb52tv5suireenkke4lul2l3wbnaul2rp3ea545ly5wa5ty@yk3aksvp7skt>
+From: Jann Horn <jannh@google.com>
+Date: Mon, 8 Jun 2026 17:02:06 +0200
+X-Gm-Features: AVVi8CcAEOXMmuMTSZ94akkMqWU1PSwZDT3Kns1-hWwyFL18yvP1h0y8fjumjnQ
+Message-ID: <CAG48ez38OEE8ZPLyU6nr9=cYx-hMsdoh5WRrv-GMZGMDKyyOTA@mail.gmail.com>
+Subject: Re: [RFC PATCH v1 00/13] exec: add spawn templates for repeated
+ executable startup
+To: Mateusz Guzik <mjguzik@gmail.com>, Christian Brauner <brauner@kernel.org>
+Cc: Li Chen <me@linux.beauty>, Kees Cook <kees@kernel.org>, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, 
+	linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, 
+	linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, x86@kernel.org, 
+	Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
+	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
---===============6094207814609945116==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+On Thu, May 28, 2026 at 2:55=E2=80=AFPM Mateusz Guzik <mjguzik@gmail.com> w=
+rote:
+> This problem is dear to my heart and I have been pondering it on and off
+> for some time now. The entire fork + exec idiom is terrible and needs to
+> be retired.
 
-> bpf/rqspinlock: Use smp_cond_load_acquire_timeout()
+It seems to me like vfork+exec is a decent UAPI building block, on
+which you can build nice-looking userspace APIs, though I agree that
+this is not an ideal direct interface for application code.
+
+> Additionally there is a known problem where transiently copied file
+> descriptors on fork + exec cause a headache in multithreaded programs
+> doing something like this in parallel. I only did cursory reading, it
+> seems your patchset keeps the same problem in place.
+
+I think we almost have UAPI that would let you avoid this issue?
+You can use clone() with CLONE_FILES, then unshare the FD table with
+close_range(3, UINT_MAX, CLOSE_RANGE_UNSHARE). That is not currently
+implemented to be atomic with stuff that happens on other threads, but
+if we changed that, and it doesn't provide a good way to carry some
+FDs across, but it feels to me like this could be fixed with a variant
+of close_range() that removes O_CLOEXEC FDs except ones listed in an
+array.
+
+> There are numerous impactful ways to speed up execs both in terms of
+> single-threaded cost and their multicore scalability, most of which
+> would be immediately usable by all programs without an opt-in. imo these
+> needs to be exhausted before something like a "template" can be
+> considered.
+
+(I think probably a large part of this would be stuff that happens in
+userspace, like dynamic linking.)
+
+> Per the above, the primary win would stem from *NOT* messing with mm.
+
+As you write below, I think we have that with CLONE_MM? The C function
+vfork() is kind of a terrible API because of its returns-twice
+behavior, but I think if process cloning with CLONE_VM|CLONE_VFORK was
+wrapped by libc in a way similar to clone() (with the child executing
+a separate handler function), or if it was used in the implementation
+of some higher-level process-spawning API, it would be a perfectly
+fine API?
+
+Or am I misunderstanding what you mean by "messing with mm"?
+
+> As in, whatever the interface, it needs to create an "empty" target
+> process (for lack of a better term).
 >
-> Switch out the conditional load interfaces used by rqspinlock
-> to smp_cond_read_acquire_timeout() and its wrapper,
-> atomic_cond_read_acquire_timeout().
->
-> Both these handle the timeout and amortize as needed, so use the
-> non-amortized RES_CHECK_TIMEOUT.
->
-> RES_CHECK_TIMEOUT does double duty here -- presenting the current
-> clock value, the timeout/deadlock error from clock_deadlock() to
-> the cond-load and, returning the error value via ret.
->
-> For correctness, we need to ensure that the error case of the
-> cond-load interface always agrees with that in clock_deadlock().
->
-> For the most part, this is fine because there's no independent clock,
-> or double reads from the clock in cond-load -- either of which could
-> lead to its internal state going out of sync from that of
-> clock_deadlock().
->
-> There is, however, an edge case where clock_deadlock() checks for:
->
->         if (time > ts->timeout_end)
->                 return -ETIMEDOUT;
->
-> while smp_cond_load_acquire_timeout() checks for:
->
->         __time_now = (time_expr_ns);
->         if (__time_now <= 0 || __time_now >= __time_end) {
->                 VAL = READ_ONCE(*__PTR);
->                 break;
->         }
->
-> This runs into a problem when (__time_now == __time_end) since
-> clock_deadlock() does not treat it as a timeout condition but
-> the second clause in the conditional above does.
-> So, add an equality check in clock_deadlock().
->
-> Finally, redefine SMP_TIMEOUT_POLL_COUNT to be 16k to be similar to
-> the spin-count used in the amortized version. We only do this for
-> non-arm64 as that uses a waiting implementation.
->
-> Cc: bpf@vger.kernel.org
-> Cc: Kumar Kartikeya Dwivedi <memxor@gmail.com>
-> Cc: Alexei Starovoitov <ast@kernel.org>
-> Acked-by: Kumar Kartikeya Dwivedi <memxor@gmail.com>
-> Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
+> In terms of userspace-visible APIs, a clean solution escapes me.
 
-Besides switching to the new cond-load interface, this commit also
-changes the boundary comparison in clock_deadlock() from:
-
-        if (time > ts->timeout_end)
-                return -ETIMEDOUT;
-
-to:
-
-        if (time >= ts->timeout_end)
-                return -ETIMEDOUT;
-
-so that time == timeout_end is now treated as a timeout, matching the
-__time_now >= __time_end check in smp_cond_load_acquire_timeout().
-
-The time > ts->timeout_end check, and the timeout_end field itself, were
-first introduced in the then-named check_timeout() helper by:
-
-  commit 14c48ee81452 ("rqspinlock: Add support for timeouts")
-
-Should this commit carry a Fixes: tag for that boundary change?
-
-  Fixes: 14c48ee81452 ("rqspinlock: Add support for timeouts")
-
-This is offered tentatively: under the previous res_smp_cond_load_acquire
-interface the '>' comparison was internally consistent, and the boundary
-divergence only becomes observable once this commit switches to the
-'__time_now >= __time_end' interface. So this may read more as a
-self-contained adjustment than a fix for a pre-existing bug.
-
-
----
-AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
-See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
-
-CI run summary: https://github.com/kernel-patches/bpf/actions/runs/27125050324
---===============6094207814609945116==--
+I think we already have relatively good API for this - you can use
+clone() to create something that initially shares almost all the state
+that a thread would, and then incrementally unshare resources and go
+through execve().
