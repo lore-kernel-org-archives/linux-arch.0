@@ -1,183 +1,160 @@
-Received: from va-1-112.ptr.blmpb.com (va-1-112.ptr.blmpb.com [209.127.230.112])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E013740861A
-	for <linux-arch@vger.kernel.org>; Tue,  9 Jun 2026 12:02:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.112
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 534BE41C2EF
+	for <linux-arch@vger.kernel.org>; Tue,  9 Jun 2026 13:04:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781006529; cv=none; b=sBn+sGaOAbp8+0RV+s5zJBlDbJWnLAF9si2wD8da8Reo9hORPX7v9zjsFF+4lknQE2EnU9iNfTJKLDUgBW2iYqp7B/272wIbbm1Q0qEInXndbawqncYdeyvz43gPYZng+RTRzHl5WNyZW3tK4Zdz6821mHE7wVwIipFMWMuaHKc=
+	t=1781010253; cv=none; b=ls4fq3i0YSEENA4Ls9gXqNx8RbdD66DWRyk2HBc67jcf/eMCsDvVdi8rvm+lr9NKwLeccvPr/vNB2PnkDfe5eQ0251Uc5PSFCQg+4Cx2sMO09CiXlVNe1elcfoGiDXcFdeXFTR3o3FleRTZpqxAyNo74i4o4M7UztALttnWafUA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781006529; c=relaxed/simple;
-	bh=G7EVk2DIInWxvU8yG0p32IQGdK4y1Qo29hxVBO64A/s=;
-	h=To:Subject:Date:Mime-Version:In-Reply-To:Content-Type:Cc:From:
-	 Message-Id:References; b=uYh5a0hapRnuHhKBV0Sa7YWki+mc4FIyb2uX9HePhruCay7RTa/RPl+VC9Ie7weGQbAhjiv2meRQebXWAyQ/SWGZHZ8h4e3YNE4mVUbJiYZQznm2eEb2zd9UB7WfYP5/xYZyJVxJP2ByBk6XaGSW8RRsk7WcP7QOOMlKrpkG0a0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=Gt3J+Ts+; arc=none smtp.client-ip=209.127.230.112
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1781010253; c=relaxed/simple;
+	bh=AHik3y1rFFAh2jFY0ef9fqt8T+dLqSNzfLG+Vm8k4EU=;
+	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=MF8xrpPCTHWid3Jk+IrrUYfaFxq+cR1jPNVM3ogoEzlTPvL0GyiyZyrLOEZs+wMEEtCWMGetziRKGg9jEZ7MARxhx9HqOfIfj8iFqJGw7ZCCOJ+WhorJXF1o4Rgfdjh5dkB1M6VLDVi/0UiotR990J386qnhP8urW4r5DEnL2hQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=dw6KkLjz; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=AG9p3Eok; arc=none smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="Gt3J+Ts+"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1781006516; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=VtIvpKTvFtvgcG9xuXHskUbv+ygenMEnXGmAq+TVMPs=;
- b=Gt3J+Ts+V6FIDn3wjdp0RMkSYeGrbVVwdytN1sfQ7Vd2PKmwiQ9NEmX3X0rsUOCNkQCR6u
- Z0VwmiLnLLphpkdEfLGHAkiBhXeEJmSy6Nm64tE5sG9LB/W7oHHaHdPvcOr4SLYHBgBSLV
- lEg3k5NTBNW0YAUcCTGUAoWZW3nAiRrZ9GtbKfpy8Dc4bunHiezQ++sVy9J+XyMU/iyPhM
- 4wWSbyLrXLlT8oi1HcheIAYUHobBsnXb4ZtKzQvZXrslAHLmhfGlR2iiPe6JFhFkyAnAA4
- VMh5xWSqKpnqe4TYXtefZ3p1ZgMje8QHWLmvTR+mzXtq/lb3OIXPviNS9BRMsQ==
-To: <bp@alien8.de>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
-Subject: Re: [PATCH v4 6/8] string: introduce memcpy_streaming() helpers
-Date: Tue,  9 Jun 2026 20:01:32 +0800
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="dw6KkLjz";
+	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="AG9p3Eok"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1781010248;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=AHik3y1rFFAh2jFY0ef9fqt8T+dLqSNzfLG+Vm8k4EU=;
+	b=dw6KkLjzZxUtRtpWibLYT1ARvofDg6qNPDk/gPXqWUQeOHM1RlI/smaFgtH2HDbEXFSiy8
+	9ukfXlc37JolM2kbW9tJkdJpwo+gKzodFOutefMAxHDDthXjxBwgkznJS+IAM+UEePuQ2y
+	8A5p9r3Wsq7pAYVuA85P6OIkyayjDK8=
+Received: from mail-wm1-f71.google.com (mail-wm1-f71.google.com
+ [209.85.128.71]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-590-a2w-2k7mOOOFnAYVSd85OA-1; Tue, 09 Jun 2026 09:04:07 -0400
+X-MC-Unique: a2w-2k7mOOOFnAYVSd85OA-1
+X-Mimecast-MFC-AGG-ID: a2w-2k7mOOOFnAYVSd85OA_1781010246
+Received: by mail-wm1-f71.google.com with SMTP id 5b1f17b1804b1-490a767c7dcso44491805e9.2
+        for <linux-arch@vger.kernel.org>; Tue, 09 Jun 2026 06:04:06 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=redhat.com; s=google; t=1781010246; x=1781615046; darn=vger.kernel.org;
+        h=mime-version:user-agent:content-transfer-encoding:references
+         :in-reply-to:date:cc:to:from:subject:message-id:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=AHik3y1rFFAh2jFY0ef9fqt8T+dLqSNzfLG+Vm8k4EU=;
+        b=AG9p3EokQEnyJHPmHFZV3iSgeH9+SGNiazP5fPXJHBaFyFQp3zU8de1B2QPYnMeBbX
+         FOTz6djzKUrkcOVTtiYCzhC4bCtyN9dEzDbAW6MB3js+uTvYWwPkt/1tcISc/8sR1EL8
+         ljddYOJPcrKlE86aBaz3AzUH8jxd0788q8Nhm+qblVk5t6ImyAv0yI4fbNxgExseodqD
+         VMzxzAr8PjiAkV6+X614Gp3dA0SQDDqG/cPGKizpyGVbj4Q4Z4jkcdP504rslmk33huF
+         Q4ab+y3DzHrN5FiEEGhqgREATUxVeZ1ZFP9Di9AURJT7U08FoxfhId2+u6hH1hGCNLIl
+         y+Wg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1781010246; x=1781615046;
+        h=mime-version:user-agent:content-transfer-encoding:references
+         :in-reply-to:date:cc:to:from:subject:message-id:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=AHik3y1rFFAh2jFY0ef9fqt8T+dLqSNzfLG+Vm8k4EU=;
+        b=A0L91iGeq3yN6ysDJu0kDx5DGHJGK+t8yhEleFsHA8HDcsBmUYUe+C5zQxwqPgraYc
+         teohdZOT9WOnuQhBCMeipCkRK4/1NAjkWP80WRTjEEGcscc9sRPpftrnLUr85p1tPO+Y
+         rSveqVvU1QkXHA0YMBhBwz6ATcsmk8hDG76jOWyMYk6nwxFDtOy1I09D6YKTSxW5mOf1
+         DKnuHjiq6lkYlFal+9GydTcxJVtnYpx0Sz/SoIel12a2YN2hqa/l9UfzlTOzhnMcqVD/
+         zwZTUVHi3SSOYI1/xJPjdXf47Mq6j0M/TkKy3HoXBPA8soAfX5leB/1wWN14U0xdIYsR
+         tnFg==
+X-Forwarded-Encrypted: i=1; AFNElJ8wJy/2GKrKoxrGQqQ+gKxvy/h9ZJp9oQ9WkFk0ztxPg3q79qxI5reO8GMggrS40dEIaMn0nJ7KfRGX@vger.kernel.org
+X-Gm-Message-State: AOJu0Ywx6lniYAQRN6f2+02OVMoEEdiZ/vhfcHoIv0tPTcZ4BujuFxzG
+	fZjaMI2Tj4UTsS013qij3GAsx447gSw1IY9bKAKYbq+t1J32aSdrSjBhKZLhAqO8H4yAUP780q/
+	tBiYjnfTK0akm50l3NhIYC7giw+K/Wfs4dILhWqF/JvUjmbyDilibn+J6RGHlsUU=
+X-Gm-Gg: Acq92OGN/o+sczTbYmFDAm/1jtfyf9f7MhlDfSofBfHsEGsOv3Dr6F91+sesKPLwwYB
+	+piS0UTyLed/L4lFyN62OXjEYOlJ943NfczIYAe2AqczbXvxdQEkUxNwB2kJ5WIa49hzKgN2q7V
+	m/qf39/NAxWXxKO6ge5KeyHJqRk1gP9kXNuYMPA/09iVvnmzV4/3X2ytS06BVvOhWfI+B1R3Oq5
+	uXg7h2hel5aVsCuXEM/4AxLuK9Lb0ZNb+hdEHjQl9aYgcwE6xlhN3a25FOb5BeMIKKWEc9buOd4
+	osJpwTwh7uXs7NKkGOVc4ZblAh2j3bQaJc3jjUFJQy00qJkPoaaJWinDKmPV44nRV+Q0uWJ6jPe
+	WrCLcHfwh7lrmNQEUbMV2uYOvlhcIq6vlXJLd
+X-Received: by 2002:a05:600d:8648:10b0:490:d354:bd0a with SMTP id 5b1f17b1804b1-490d354bef4mr61259475e9.31.1781010245837;
+        Tue, 09 Jun 2026 06:04:05 -0700 (PDT)
+X-Received: by 2002:a05:600d:8648:10b0:490:d354:bd0a with SMTP id 5b1f17b1804b1-490d354bef4mr61258885e9.31.1781010245374;
+        Tue, 09 Jun 2026 06:04:05 -0700 (PDT)
+Received: from [192.168.1.167] ([185.168.96.228])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-490c2d2d11asm425564445e9.1.2026.06.09.06.04.03
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 09 Jun 2026 06:04:04 -0700 (PDT)
+Message-ID: <defc6b1339dea2f64f936902dd6e1f850cff9f4e.camel@redhat.com>
+Subject: Re: [PATCH] rqspinlock: Fix order in raw_res_spin_(un)lock_irq to
+ allow schedule
+From: Gabriele Monaco <gmonaco@redhat.com>
+To: Arnd Bergmann <arnd@arndb.de>, Alexei Starovoitov <ast@kernel.org>, 
+ Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko
+ <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>,  Kumar Kartikeya
+ Dwivedi	 <memxor@gmail.com>, bpf@vger.kernel.org, Linux-Arch
+ <linux-arch@vger.kernel.org>, 	linux-kernel@vger.kernel.org
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, 
+ Will Deacon <will@kernel.org>, Boqun Feng <boqun@kernel.org>, Waiman Long
+ <longman@redhat.com>
+Date: Tue, 09 Jun 2026 15:04:03 +0200
+In-Reply-To: <d40ba64d-78d9-45f5-99b9-4bfb1fc27f6c@app.fastmail.com>
+References: <20260609094941.56122-1-gmonaco@redhat.com>
+	 <d40ba64d-78d9-45f5-99b9-4bfb1fc27f6c@app.fastmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: base64
+User-Agent: Evolution 3.60.2 (3.60.2-1.fc44) 
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-In-Reply-To: <20260607190804.GAaiXBlGO2eRcfs1oB@fat_crate.local>
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset=UTF-8
-Cc: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<dave.hansen@linux.intel.com>, <david@kernel.org>, <kees@kernel.org>, 
-	<linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
-	<lizhe.67@bytedance.com>, <mingo@redhat.com>, <rppt@kernel.org>, 
-	<tglx@kernel.org>, <x86@kernel.org>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Message-Id: <20260609120132.84323-1-lizhe.67@bytedance.com>
-References: <20260607190804.GAaiXBlGO2eRcfs1oB@fat_crate.local>
-X-Lms-Return-Path: <lba+26a2800b2+03b1cc+vger.kernel.org+lizhe.67@bytedance.com>
+MIME-Version: 1.0
 
-On Sun, 7 Jun 2026 12:08:04 -0700, bp@alien8.de wrote:
+T24gVHVlLCAyMDI2LTA2LTA5IGF0IDEzOjIyICswMjAwLCBBcm5kIEJlcmdtYW5uIHdyb3RlOgo+
+IFNob3VsZCB0aGlzIGJlIENjOnN0YWJsZUB2Z2VyLmtlcm5lbC5vcmfCoHRvIGdldCBiYWNrcG9y
+dGVkPwoKTm90IHN1cmUgaWYgdGhlIEZpeGVzOiBpcyBlbm91Z2ggdG8gdHJpZ2dlciB0aGUgYXV0
+b21hdGlvbiwgSSByYXJlbHkKcmVtZW1iZXIgdG8gQ2M6c3RhYmxlQHZnZXIua2VybmVsLm9yZyBh
+bmQgdGhleSdyZSB1c3VhbGx5IHBpY2tlZC4KCkluIGNhc2UgSSBndWVzcyBJJ2QgbmVlZCB0byBy
+ZS1zdWJtaXQgdGhlIHBhdGNoIHJpZ2h0PwoKPiBEaWQgeW91IHNlZSB0aGlzIGNhdXNlIG1lYXN1
+cmFibGUgcGVyZm9ybWFuY2UgcHJvYmxlbXMsCj4gb3IgZGlkIHlvdSBmaW5kIGl0IHRocm91Z2gg
+aW5zcGVjdGlvbj8KCkkgbm90aWNlZCBpdCB3aGlsZSBkZWJ1Z2dpbmcgYW4gRU5PTUVNIGlzc3Vl
+IGluIHRoZSB0ZXN0X21hcHMgQlBGCnNlbGZ0ZXN0IG9uIFBSRUVNUFRfUlQgYW5kIHRoaXMgd2Fz
+IGFuIG9idmlvdXMgY3VwbHJpdCAoaXJxX3dvcmsgbm90CnNjaGVkdWxlZCBkdXJpbmcgYSBzdHJl
+c3MgcnVuKS4gVHVybnMgb3V0IHRoZSBwcm9ibGVtIGlzIHN0aWxsIHRoZXJlCmFmdGVyIHRoaXMg
+Zml4IHRob3VnaC4KCj4gCj4gPiBTaWduZWQtb2ZmLWJ5OiBHYWJyaWVsZSBNb25hY28gPGdtb25h
+Y29AcmVkaGF0LmNvbT4KPiAKPiBBY2tlZC1ieTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5k
+ZT4gIyBhc20tZ2VuZXJpYwoKVGhhbmtzLApHYWJyaWVsZQoKPiAKPiBUaGlzIHNob3VsZCBwcm9i
+YWJseSBnZXQgbWVyZ2VkIHRocm91Z2ggdGhlIEJQRiB0cmVlLCBidXQgSSd2ZQo+IGFkZGVkIHRo
+ZSBrZXJuZWwvbG9ja2luZyBtYWludGFpbmVycyB0byBDYyBhcyB3ZWxsLCBzaW5jZSBJCj4gZmVl
+bCBpdCdzIG1vcmUgdXNlZnVsIHRvIGhhdmUgdGhlbSBsb29rIGF0IGl0IHRoYW4gbWUuCj4gCj4g
+TWF5YmUgaXQgd291bGQgYmUgZ29vZCB0byB1cGRhdGUgKGFzIGEgc2VwYXJhdGUgcGF0Y2gpIHRo
+ZQo+IE1BSU5UQUlORVJTIGZpbGUgc28gdGhlIGxvY2tpbmcgc3Vic3lzdGVtIGFsc28gaW5jbHVk
+ZXMgdGhlCj4gaGVhZGVycyBjdXJyZW50bHkgbWlzc2luZzoKPiAKPiBhcmNoLyovaW5jbHVkZS9h
+c20vKnNwaW5sb2NrKi5oCj4gYXJjaC8qL2luY2x1ZGUvYXNtLypyd2xvY2sqLmgKPiBpbmNsdWRl
+L2FzbS1nZW5lcmljLypzcGlubG9jayouaAo+IGluY2x1ZGUvYXNtLWdlbmVyaWMvKnJ3bG9jayou
+aAo+IAo+IMKgwqDCoMKgwqDCoCBBcm5kCj4gCj4gKGZ1bGwgcGF0Y2ggcXVvdGVkIGJlbG93KQo+
+IAo+ID4gLS0tCj4gPiDCoGluY2x1ZGUvYXNtLWdlbmVyaWMvcnFzcGlubG9jay5oIHwgMTQgKysr
+KysrKysrKystLS0KPiA+IMKgMSBmaWxlIGNoYW5nZWQsIDExIGluc2VydGlvbnMoKyksIDMgZGVs
+ZXRpb25zKC0pCj4gPiAKPiA+IGRpZmYgLS1naXQgYS9pbmNsdWRlL2FzbS1nZW5lcmljL3Jxc3Bp
+bmxvY2suaCAKPiA+IGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9ycXNwaW5sb2NrLmgKPiA+IGluZGV4
+IDE1MWQyNjdhNDkuLjRkNDY2NDNmNDYgMTAwNjQ0Cj4gPiAtLS0gYS9pbmNsdWRlL2FzbS1nZW5l
+cmljL3Jxc3BpbmxvY2suaAo+ID4gKysrIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9ycXNwaW5sb2Nr
+LmgKPiA+IEBAIC0yNDMsMTIgKzI0MywyMCBAQCBzdGF0aWMgX19hbHdheXNfaW5saW5lIHZvaWQg
+Cj4gPiByZXNfc3Bpbl91bmxvY2socnFzcGlubG9ja190ICpsb2NrKQo+ID4gwqAJKHvCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqAgXAo+ID4gwqAJCWludCBfX3JldDvCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIFwKPiA+IMKgCQlsb2NhbF9pcnFfc2F2ZShmbGFncyk7
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoCBcCj4gPiAtCQlfX3JldCA9IHJhd19yZXNfc3Bpbl9sb2Nr
+KGxvY2spO8KgIFwKPiA+IC0JCWlmIChfX3JldCnCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgIFwKPiA+ICsJCXByZWVtcHRfZGlzYWJsZSgpO8KgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoCBcCj4gPiArCQlfX3JldCA9IHJlc19zcGluX2xvY2sobG9jayk7
+wqDCoMKgwqDCoCBcCj4gPiArCQlpZiAoX19yZXQpIHvCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqAgXAo+ID4gwqAJCQlsb2NhbF9pcnFfcmVzdG9yZShmbGFncyk7IFwK
+PiA+ICsJCQlwcmVlbXB0X2VuYWJsZSgpO8KgwqDCoMKgwqDCoMKgwqAgXAo+ID4gKwkJfcKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqAgXAo+ID4gwqAJCV9fcmV0O8KgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoCBcCj4gPiDCoAl9KQo+ID4gCj4gPiAtI2RlZmluZSByYXdfcmVzX3Nw
+aW5fdW5sb2NrX2lycXJlc3RvcmUobG9jaywgZmxhZ3MpICh7IAo+ID4gcmF3X3Jlc19zcGluX3Vu
+bG9jayhsb2NrKTsgbG9jYWxfaXJxX3Jlc3RvcmUoZmxhZ3MpOyB9KQo+ID4gKyNkZWZpbmUgcmF3
+X3Jlc19zcGluX3VubG9ja19pcnFyZXN0b3JlKGxvY2ssIGZsYWdzKSBcCj4gPiArCSh7wqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoCBcCj4gPiArCQlyZXNfc3Bpbl91bmxvY2sobG9jayk7wqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqAgXAo+ID4gKwkJbG9jYWxfaXJxX3Jlc3RvcmUoZmxhZ3MpO8Kg
+wqDCoMKgwqDCoMKgwqDCoMKgIFwKPiA+ICsJCXByZWVtcHRfZW5hYmxlKCk7wqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIFwKPiA+ICsJfSkKPiA+IAo+ID4gwqAjZW5kaWYgLyog
+X19BU01fR0VORVJJQ19SUVNQSU5MT0NLX0ggKi8KPiA+IAo+ID4gYmFzZS1jb21taXQ6IGU0M2Zm
+YjY5ZTA0MzhjZGRkNzJhYWEzMDg5OGI0ZGM0NDZmNjY0ZjgKPiA+IC0tIAo+ID4gMi41NC4wCg==
 
-> On Wed, Jun 03, 2026 at 04:01:50PM +0800, Li Zhe wrote:
-> > Introduce a generic memcpy_streaming() interface for write-once copy
-> > sites that can fall back to memcpy() when no architecture-specific
-> > optimization is available, or when an architecture-specific backend
-> > cannot safely handle a given transfer.
-> >
-> > Add memcpy_streaming_drain() alongside it so callers can separate the
-> > copy primitive from any required ordering point. On x86, use
-> > memcpy_flushcache() and sfence only for aligned transfers that can stay
-> > entirely on the non-temporal store path; otherwise fall back to memcpy()
-> 
-> So you throwing "streaming", "non-temporal" and "flush-cache" wildly around
-> here and this is adding unnecessary confusion where it shouldn't. I'd suggest
-> you stick to "non-temporal" which you can abbreviate short'n'sweet to "nt" and
-> that's it. Keep it simple.
-
-Thanks for the review. Will switch to nt-based naming in next revision.
-
-> > so the generic API does not expose flushcache semantics on cached
-> > head/tail fragments.
-> >
-> > Callers are responsible for invoking memcpy_streaming_drain() before
-> > later normal stores that must be ordered after the streaming copy.
-> >
-> > Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-> > ---
-> >  arch/x86/include/asm/string_64.h | 32 ++++++++++++++++++++++++++++++++
-> >  include/linux/string.h           | 20 ++++++++++++++++++++
-> >  2 files changed, 52 insertions(+)
-> >
-> > diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
-> > index 4635616863f5..aee63108577f 100644
-> > --- a/arch/x86/include/asm/string_64.h
-> > +++ b/arch/x86/include/asm/string_64.h
-> 
-> There's arch/x86/include/asm/string.h. Why are those here, in the _64 variant?
-
-The current placement was meant to reflect that the x86 implementation
-here is really just a thin wrapper around the existing
-memcpy_flushcache() backend, and that backend is x86_64-only today.
-
-On x86, CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE is selected only for X86_64,
-so a 32-bit build would still need to fall back to the generic
-memcpy()-based implementation anyway. Keeping it in string_64.h made
-that backend dependency explicit.
-
-That said, I see your layering point. If arch/x86/include/asm/string.h
-is the preferred place for the arch-visible wrapper, I can move the
-wrapper there in the next revision while keeping the x86_64-specific
-implementation details in string_64.h.
-
-> > @@ -4,6 +4,7 @@
-> >
-> >  #ifdef __KERNEL__
-> >  #include <linux/jump_label.h>
-> > +#include <linux/align.h>
-> >
-> >  /* Written 2002 by Andi Kleen */
-> >
-> > @@ -100,6 +101,37 @@ static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t
-> >  	}
-> >  	__memcpy_flushcache(dst, src, cnt);
-> >  }
-> > +
-> > +/*
-> > + * Only map memcpy_streaming() to memcpy_flushcache() when the destination
-> > + * is already 8-byte aligned and the size can be handled without cached
-> > + * head/tail fragments in __memcpy_flushcache().
-> > + */
-> > +static __always_inline bool memcpy_flushcache_nt_safe(const void *dst,
-> > +						      size_t cnt)
-> 
-> This is checking alignment. Then call it that.
-> 
-> > +{
-> > +	unsigned long d = (unsigned long)dst;
-> 
-> Useless.
-> 
-> > +
-> > +	return cnt && IS_ALIGNED(d, 8) && IS_ALIGNED(cnt, 4);
-> > +}
-> 
-> AFAICT, this helper is used only once. Zap it completely.
-
-Agreed. That helper is over-factored in its current form.
-
-I'll fold the alignment test into the callsite and drop the temporary
-variable in the next revision.
-
-> > +
-> > +#define __HAVE_ARCH_MEMCPY_STREAMING 1
-> > +static __always_inline void memcpy_streaming(void *dst, const void *src,
-> 
-> memcpy_nt()
-> 
-> > +					     size_t cnt)
-> > +{
-> > +	if (!cnt)
-> > +		return;
-> > +
-> > +	if (memcpy_flushcache_nt_safe(dst, cnt))
-> 
-> That branch can cost. Why is that alignment checking so necessary? Why can't
-> you simply DTRT by handling the misaligned parts like __memcpy_flushcache().
-> 
-> What does this bring you? None of that is explained in the commit message so
-> why do I want this patch at all?
-> 
-> The commit message is basically telling me what the patch does but I can kinda
-> read that from the diff itself. What it is not telling me is *why* it exists.
-
-The extra alignment gating was meant to keep this helper narrower than
-__memcpy_flushcache(), so patch 8 would not inherit the mixed cached
-head/tail handling from that implementation.
-
-Thinking about it more, I agree that this is hard to justify for a
-generic helper. For this series, what really matters is that the
-struct page copies in patch 8 can use the existing x86
-memcpy_flushcache() fastpaths where that is beneficial; I do not need
-patch 6 to impose extra selection policy on unrelated callers.
-
-I'll simplify and rework this part in the next revision, rewrite the
-changelog to explain the actual motivation more clearly, and respin
-patches 6-8 accordingly.
-
-Thanks,
-Zhe
