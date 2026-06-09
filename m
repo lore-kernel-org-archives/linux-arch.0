@@ -1,119 +1,116 @@
 Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3A573CF21E
-	for <linux-arch@vger.kernel.org>; Tue,  9 Jun 2026 06:08:22 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 60E7F38E5DE
+	for <linux-arch@vger.kernel.org>; Tue,  9 Jun 2026 09:50:26 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780985304; cv=none; b=Vfp3hZLzsyDfJVDtHa84azkGo2rnxy2Y1IRPUGgcUCuuL4fuVhPNPGb2N7e3KHUFAIPHBVay6iMAlNdxM3mp1i04Y7oW5zpv16MsjCpjN+SNFJiQm6spwDds2A4rBWo2EGUZK/jVksf3PGnnfZfqs33NPtrlrXSaatY6H2Z62wg=
+	t=1780998628; cv=none; b=JnSCtyQ/S2tauOxpcV98JTqDXBUUTuGslmMAKm3n9OqziTMdpL2M0XiVFQ2DznDOFWwbaPBmM111mnWYYShY7AXEWJNd+VEsxB7YinXAstCE0uJ9P3ov9q+AQHRObbKmzfC65I0nQoeRnXLYAmCSjgaVNPmnw2B+gm4BZzG+gVU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780985304; c=relaxed/simple;
-	bh=zTpFxujaVIqXrqntYJQiK4/X3IRtxtcHngsZQzceJcA=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=jJZpmdgCigkA/xwdcAUaSJD15MkS5AMNYZeG7EFuVRuNMY21JDOIGlUXNLvbH8tNddyZUKN5AB7JztRfxWFUmmNrsZh/w1ZD7RPz6z31R/IG7Lv71RfHpBnt2DbZAw6vUXCGgQ4MTDiklruV3wOWIgkC33O8OyYaSf/FqEyOrBI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=FzFx+Yed; arc=none smtp.client-ip=170.10.133.124
+	s=arc-20240116; t=1780998628; c=relaxed/simple;
+	bh=yH+pJLV9DLLLfsLex3zDu02U5b1k2nz+bLLSPCtaa10=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=AreKB/KRLTAzBZJUgYYmfCHa4F1ECNxoaZJ+Kmaf/D5Mwd0o0Zjgyxi0ou+tYWu0pletX/cJMJ2he9LTGZjqPFOwv7i13GbsU+bk4dIeAl+VQYd/33S375iNkmj8/elonR34xrEIqEk/S3oJhc+00lDNcDF6tZK3A8PkEh3LvTI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=fJLJgWCR; arc=none smtp.client-ip=170.10.133.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="FzFx+Yed"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="fJLJgWCR"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1780985301;
+	s=mimecast20190719; t=1780998625;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=lbOz6L7GY6LUh60QQjLA14yLmOVQNSrkAN1JuAX65lY=;
-	b=FzFx+YednrELTpOnaP/BmKLAiLiAqndqnolWj3PeSK3mRngYN3Zb/nphXIa8DprGDkHZyu
-	aRPbleWe1kgjzNEfg4bnz9gI+iFm8URWpWmTq7Nh14a0ZFs0sUYb2j2P9yYifLQWq99RbK
-	NQPUl5z0nkxOrRDsIWDfYZuD6caOB+w=
-Received: from mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=f8CmiU3sgUCl+h3h7HqmJr8vJwOTJcWXfSC0goNaROU=;
+	b=fJLJgWCRiJ9KR1DhW6j4BmrOz0iaYMfeP0GQkMDM0Sh2XRISRwFC6MMKWsETRufnPRfhjw
+	1Wd3J6TElTPE8192gDJBgoZ1I53rE4UUbg7Luq0Oq+16mn6xNd5mdGxo02g4p+Ps+HFM/Y
+	fuwPBsW5XKrKp407aa8YpGriyUR8LAw=
+Received: from mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
  relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-144-CiiFh2z4PQSasqSREsKifg-1; Tue,
- 09 Jun 2026 02:08:18 -0400
-X-MC-Unique: CiiFh2z4PQSasqSREsKifg-1
-X-Mimecast-MFC-AGG-ID: CiiFh2z4PQSasqSREsKifg_1780985295
-Received: from mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.12])
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-50-XiocsaLxMzmr72nHBlMcZA-1; Tue,
+ 09 Jun 2026 05:50:21 -0400
+X-MC-Unique: XiocsaLxMzmr72nHBlMcZA-1
+X-Mimecast-MFC-AGG-ID: XiocsaLxMzmr72nHBlMcZA_1780998620
+Received: from mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.4])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
 	(No client certificate requested)
-	by mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 0FD03180065C;
-	Tue,  9 Jun 2026 06:08:15 +0000 (UTC)
-Received: from fweimer-oldenburg.csb.redhat.com (unknown [10.44.32.189])
-	by mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 98CB719560A2;
-	Tue,  9 Jun 2026 06:08:07 +0000 (UTC)
-From: Florian Weimer <fweimer@redhat.com>
-To: Jann Horn <jannh@google.com>
-Cc: Mateusz Guzik <mjguzik@gmail.com>,  Christian Brauner
- <brauner@kernel.org>,  Li Chen <me@linux.beauty>,  Kees Cook
- <kees@kernel.org>,  Alexander Viro <viro@zeniv.linux.org.uk>,
-  linux-fsdevel@vger.kernel.org,  linux-api@vger.kernel.org,
-  linux-kernel@vger.kernel.org,  linux-mm@kvack.org,
-  linux-arch@vger.kernel.org,  linux-doc@vger.kernel.org,
-  linux-kselftest@vger.kernel.org,  x86@kernel.org,  Arnd Bergmann
- <arnd@arndb.de>,  Andy Lutomirski <luto@kernel.org>,  Thomas Gleixner
- <tglx@kernel.org>,  Ingo Molnar <mingo@redhat.com>,  Borislav Petkov
- <bp@alien8.de>,  Dave Hansen <dave.hansen@linux.intel.com>,  "H. Peter
- Anvin" <hpa@zytor.com>,  Jan Kara <jack@suse.cz>,  Jonathan Corbet
- <corbet@lwn.net>,  Shuah Khan <skhan@linuxfoundation.org>
-Subject: Re: [RFC PATCH v1 00/13] exec: add spawn templates for repeated
- executable startup
-In-Reply-To: <CAG48ez38OEE8ZPLyU6nr9=cYx-hMsdoh5WRrv-GMZGMDKyyOTA@mail.gmail.com>
-	(Jann Horn's message of "Mon, 8 Jun 2026 17:02:06 +0200")
-References: <20260528095235.2491226-1-me@linux.beauty>
-	<vealb52tv5suireenkke4lul2l3wbnaul2rp3ea545ly5wa5ty@yk3aksvp7skt>
-	<CAG48ez38OEE8ZPLyU6nr9=cYx-hMsdoh5WRrv-GMZGMDKyyOTA@mail.gmail.com>
-Date: Tue, 09 Jun 2026 08:08:05 +0200
-Message-ID: <lhubjdk1c1m.fsf@oldenburg.str.redhat.com>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	by mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id F2D0B1964CE5;
+	Tue,  9 Jun 2026 09:50:19 +0000 (UTC)
+Received: from fedora-pc.redhat.corp (headnet01.pony-001.prod.iad2.dc.redhat.com [10.2.32.101])
+	by mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id A595B3008B37;
+	Tue,  9 Jun 2026 09:50:16 +0000 (UTC)
+From: Gabriele Monaco <gmonaco@redhat.com>
+To: Alexei Starovoitov <ast@kernel.org>,
+	Daniel Borkmann <daniel@iogearbox.net>,
+	Andrii Nakryiko <andrii@kernel.org>,
+	Eduard Zingerman <eddyz87@gmail.com>,
+	Kumar Kartikeya Dwivedi <memxor@gmail.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	bpf@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Cc: Gabriele Monaco <gmonaco@redhat.com>
+Subject: [PATCH] rqspinlock: Fix order in raw_res_spin_(un)lock_irq to allow schedule
+Date: Tue,  9 Jun 2026 11:49:40 +0200
+Message-ID: <20260609094941.56122-1-gmonaco@redhat.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-X-Scanned-By: MIMEDefang 3.0 on 10.30.177.12
+Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.4
 
-* Jann Horn:
+raw_res_spin_unlock_irqrestore() calls raw_res_spin_unlock() and then
+restores interrupts, this means preemption is enabled when interrupts
+are still disabled (as part of raw_res_spin_unlock()) so this cannot
+trigger an actual preemption.
+This is inconsistent with other spinlock implementations
+(raw_spin_unlock_irqrestore() and bpf_res_spin_unlock_irqrestore()
+itself).
 
->> Per the above, the primary win would stem from *NOT* messing with mm.
->
-> As you write below, I think we have that with CLONE_MM? The C function
-> vfork() is kind of a terrible API because of its returns-twice
-> behavior, but I think if process cloning with CLONE_VM|CLONE_VFORK was
-> wrapped by libc in a way similar to clone() (with the child executing
-> a separate handler function), or if it was used in the implementation
-> of some higher-level process-spawning API, it would be a perfectly
-> fine API?
+Adjust the macro to ensure interrupts are enabled before enabling
+preemption, allowing to schedule at that point. Make the same
+modification in the error path of raw_res_spin_lock_irqsave().
 
-No, there is still a problem with SIGTSTP handling because we cannot
-atomically unmask the signal during execve.  We need to unblock SIGTSTP
-before execve in the new process, but this means that it can get
-suspended by SIGTSTP.  Consequently, the execve never happens and the
-original process is stuck in vfork:
+Fixes: 101acd2e78b1 ("rqspinlock: Add macros for rqspinlock usage")
+Signed-off-by: Gabriele Monaco <gmonaco@redhat.com>
+---
+ include/asm-generic/rqspinlock.h | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
 
-  posix_spawn: parent can get stuck in uninterruptible sleep if child
-  receives SIGTSTP early enough
-  <https://inbox.sourceware.org/libc-help/2921668c-773e-465d-9480-0abb6f979=
-bf9@www.fastmail.com/>
+diff --git a/include/asm-generic/rqspinlock.h b/include/asm-generic/rqspinlock.h
+index 151d267a49..4d46643f46 100644
+--- a/include/asm-generic/rqspinlock.h
++++ b/include/asm-generic/rqspinlock.h
+@@ -243,12 +243,20 @@ static __always_inline void res_spin_unlock(rqspinlock_t *lock)
+ 	({                                        \
+ 		int __ret;                        \
+ 		local_irq_save(flags);            \
+-		__ret = raw_res_spin_lock(lock);  \
+-		if (__ret)                        \
++		preempt_disable();                \
++		__ret = res_spin_lock(lock);      \
++		if (__ret) {                      \
+ 			local_irq_restore(flags); \
++			preempt_enable();         \
++		}                                 \
+ 		__ret;                            \
+ 	})
+ 
+-#define raw_res_spin_unlock_irqrestore(lock, flags) ({ raw_res_spin_unlock(lock); local_irq_restore(flags); })
++#define raw_res_spin_unlock_irqrestore(lock, flags) \
++	({                                          \
++		res_spin_unlock(lock);              \
++		local_irq_restore(flags);           \
++		preempt_enable();                   \
++	})
+ 
+ #endif /* __ASM_GENERIC_RQSPINLOCK_H */
 
-More on the low-level side, it's difficult to make sure that execve gets
-a consistent snapshot of the environ vector.  Both vfork and execve need
-to be async-signal-safe.  Any locking or memory allocation (except for
-the stack =E2=80=A6) persists in the original process after vfork returns. =
- The
-environ vector can be large, so making a copy on the stack is not ideal.
-It's even harder for getenv/setenv/unsetenv implementations that use
-locking instead of software transactional memory.
-
-In general, I prefer the vfork+execve API over things like posix_spawn
-because eventually, you have dependencies between the syslets, or need
-control flow.  This introduces a lot of complexity.  Conceptually,
-vfork+execve is much simpler, and in many ways quite safe (even mutexes
-work as long as they do not need a correct TID).
-
-Thanks,
-Florian
+base-commit: e43ffb69e0438cddd72aaa30898b4dc446f664f8
+-- 
+2.54.0
 
