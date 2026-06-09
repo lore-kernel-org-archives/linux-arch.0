@@ -1,177 +1,183 @@
-Received: from fout-b8-smtp.messagingengine.com (fout-b8-smtp.messagingengine.com [202.12.124.151])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from va-1-112.ptr.blmpb.com (va-1-112.ptr.blmpb.com [209.127.230.112])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 526962EEE99;
-	Tue,  9 Jun 2026 11:23:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.151
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E013740861A
+	for <linux-arch@vger.kernel.org>; Tue,  9 Jun 2026 12:02:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781004200; cv=none; b=fvScJjXnTYAthj4OD5NkBqyYBcGAfNY7IttXY2gzEJjxsVSe7J4iz8NWs1CxeRUggiyPW6QNUIqyDma7BU+xrJ1Jjx5rL+vSK+CGAeJ4ThwwmGZOkynQJwUBMUPCLyvlkU4DSsszh//MMWw/iB34RZSbRHSlJL2+HZMbCELE4VU=
+	t=1781006529; cv=none; b=sBn+sGaOAbp8+0RV+s5zJBlDbJWnLAF9si2wD8da8Reo9hORPX7v9zjsFF+4lknQE2EnU9iNfTJKLDUgBW2iYqp7B/272wIbbm1Q0qEInXndbawqncYdeyvz43gPYZng+RTRzHl5WNyZW3tK4Zdz6821mHE7wVwIipFMWMuaHKc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781004200; c=relaxed/simple;
-	bh=npuz46d4QNvDA7287/pTEq2o529ZaLuUT9R8U7Jnb+g=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=fJB+HfxelyArxUgeGtoc0iHm1g+aCLA4+7Pfl50NnA5kaK0QQo+ynlFDQeJZ7IJa2G9CQwDU71PyS/I5EyddYr/wSGZA0vP8jiiFsc7qZ+25ergpLQDfSUjUPa4gLKFhtIw6DnSBWotwzT57GP8gsJn5P4gyeaW+FJrVXxN4Ahg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=jjKXS9Qj; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=JYqoDNqO; arc=none smtp.client-ip=202.12.124.151
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1781006529; c=relaxed/simple;
+	bh=G7EVk2DIInWxvU8yG0p32IQGdK4y1Qo29hxVBO64A/s=;
+	h=To:Subject:Date:Mime-Version:In-Reply-To:Content-Type:Cc:From:
+	 Message-Id:References; b=uYh5a0hapRnuHhKBV0Sa7YWki+mc4FIyb2uX9HePhruCay7RTa/RPl+VC9Ie7weGQbAhjiv2meRQebXWAyQ/SWGZHZ8h4e3YNE4mVUbJiYZQznm2eEb2zd9UB7WfYP5/xYZyJVxJP2ByBk6XaGSW8RRsk7WcP7QOOMlKrpkG0a0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=Gt3J+Ts+; arc=none smtp.client-ip=209.127.230.112
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="jjKXS9Qj";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="JYqoDNqO"
-Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
-	by mailfout.stl.internal (Postfix) with ESMTP id 01C221D000E0;
-	Tue,  9 Jun 2026 07:23:16 -0400 (EDT)
-Received: from phl-imap-05 ([10.202.2.95])
-  by phl-compute-04.internal (MEProxy); Tue, 09 Jun 2026 07:23:17 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm3; t=1781004196;
-	 x=1781090596; bh=1mQ7A3k2eL3dmBv1RGEa6g48o965CaMvRnltTJSLW/4=; b=
-	jjKXS9QjWObACljUXx+p0sJWConxBHYd7f87JZAgG0rle6EfJ58n9Nn8Fk/ugr2/
-	RSP3Gf4sgMLZbuVlW5xM7nwcfG9ozHSOn0NIjHX9MTVXcisQL0S0rF6FaDRBTc4O
-	69RIPp15mwvMZvPCVO7r35DjFk3JUfDoncqOdDrmUDtfc64PstmuDUO3PF7X50D9
-	Ya883xUyOWt8eJ6LMf7CRlMJtRH7zr37oRlZmGgMS4nWeHtrIio2WqhOV3o7eKHs
-	qRzjcPzv9FvYrgpCrr7oqEBxRrlzABM3BVvCgfaEvCV5ZpubJvhwvMn0laVSnDMJ
-	V54D+g6I5Vk5SvjVmQ30zQ==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1781004196; x=
-	1781090596; bh=1mQ7A3k2eL3dmBv1RGEa6g48o965CaMvRnltTJSLW/4=; b=J
-	YqoDNqO5w/zB9C6lbs5mW6LgRFW8OqCTp+nvoibim7XSi+z7FQhiBIIzxC0keczd
-	22BXfmTqpr+nP2v5hS3sbpL4hHrCCGaq5Aw8h8RrWMEEn/44IYehCH86gsmIMcHM
-	0+6rFcW2pIQlEG6awJH968SQk1gqRdtosqnpJYQbJJ1dn+8Wq4ZkHccmCIK8Xzgg
-	9jAYCwpWceyDv0HoUwmcLjVR+je02lRRFjX1MQxFFm/Bjj0ii3Fg8c8aWCNuzSEn
-	ohhTnRnAau5p1IH3EEgU2LB9OGn+Q9BzqSOPIvZurh1P/ezSVkUkHehQj5pGFPzS
-	ww+JNr1LaGPpymwWYkWMQ==
-X-ME-Sender: <xms:pPcnagozGa7isxBoFCmmNeID6YUFUE1WvG7LGxebcogj63xG9UPBTQ>
-    <xme:pPcnaheLXFmeDA5WUk5oW9fG8OGbHdZB0o_aNVFgih3ZyFddA8AXpMA0jTeh18nLj
-    jN4N2buKy0IC96EFlUI5pks73JzbF9ca9LK5sH2O_Vjg1ADAjx8JCU>
-X-ME-Proxy-Cause: dmFkZTE1RtXEoLbmq5P7Kd6uocq9oWWVmqdvkT5Blg9hIP7htVA1vfmpIIsI0ojZEFC+1X
-    hZqtBQLwwUvx5fUN0WAZxvFY8iHyWrlR6E68kk7Oh/e5KhsozDaW1uC12PbZbAhEftqm+r
-    0HSYj9jINg2wkP7rhNOvo7Oh6aBjqU/2HPbQ1oUwIAsrQMLerq2aGgT8YfX/4ZlpNyxHWM
-    hvYrkPHMjL02PhtNhE3qksZcNISogyiOakZl9Vn80eKl/DDQuyndeARWn8BM6YqurqVpPg
-    KfC3jOqFayOCApHWazPAxwqF3gDhXBOZ4SoXLXHWCOjrfeQcEcOFmF1H1u04B7USAKH9Wf
-    sBwJW5Qgnqnsawdw4YoCpGX95vaX8ZjMtdXiDFiW7sz8m0VovOXVPe13j8S2V0K3Sg2kE0
-    rJpAwOYGcC50Vvpp3CAXPWFSnNttVCLKa3iP2lU2MnliXlK+ynrZ4+09RDnfb6dE13WRAh
-    DZ1f//Hlg/C37CJUmrAfYdX1YVzENQuGu0sy37eSpRqfP1b4MEItabR60xPFOkSeime9US
-    i2MfS0K7vtOy0QEQeBaWyXvRzprMLbV1PnFo0gJOMcMGJo2EbFTMrv2DG88zfm0MlGGMjd
-    LvTEOSzKr6JbQ41czgKaCxenmrSk3HcC82N9yMj/jhNi3JA+psX/JrSULx3w
-X-ME-Proxy: <xmx:pPcnas6Ma7Am7VBO6gGG6GAaevTRaao5SeDMszNxDrf92rMJ7NGYMw>
-    <xmx:pPcnaqSHFHGwrCAAzZGnepHg01NmFoyHWV-Mh2ylDp1ChfaNdQl5DQ>
-    <xmx:pPcnav6phh3gqRQ0OcCQgHgAhEMttgrpTsYSS6tUs-fI0xuUoCa63w>
-    <xmx:pPcnavSpbRAcTXYSa2FhA69BxeqxzNyyVfOcf8DangjyBkAtB7Xphg>
-    <xmx:pPcnakf8AqOXu0VJGGVO3T-V4R_eooMEqPFpVmjeeHPc3zu7dDly2lIM>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 66B24182007E; Tue,  9 Jun 2026 07:23:16 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="Gt3J+Ts+"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ s=2212171451; d=bytedance.com; t=1781006516; h=from:subject:
+ mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
+ mime-version:in-reply-to:message-id;
+ bh=VtIvpKTvFtvgcG9xuXHskUbv+ygenMEnXGmAq+TVMPs=;
+ b=Gt3J+Ts+V6FIDn3wjdp0RMkSYeGrbVVwdytN1sfQ7Vd2PKmwiQ9NEmX3X0rsUOCNkQCR6u
+ Z0VwmiLnLLphpkdEfLGHAkiBhXeEJmSy6Nm64tE5sG9LB/W7oHHaHdPvcOr4SLYHBgBSLV
+ lEg3k5NTBNW0YAUcCTGUAoWZW3nAiRrZ9GtbKfpy8Dc4bunHiezQ++sVy9J+XyMU/iyPhM
+ 4wWSbyLrXLlT8oi1HcheIAYUHobBsnXb4ZtKzQvZXrslAHLmhfGlR2iiPe6JFhFkyAnAA4
+ VMh5xWSqKpnqe4TYXtefZ3p1ZgMje8QHWLmvTR+mzXtq/lb3OIXPviNS9BRMsQ==
+To: <bp@alien8.de>
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+X-Mailer: git-send-email 2.45.2
+Subject: Re: [PATCH v4 6/8] string: introduce memcpy_streaming() helpers
+Date: Tue,  9 Jun 2026 20:01:32 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-X-ThreadId: ANX22ru2X65k
-Date: Tue, 09 Jun 2026 13:22:35 +0200
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Gabriele Monaco" <gmonaco@redhat.com>,
- "Alexei Starovoitov" <ast@kernel.org>,
- "Daniel Borkmann" <daniel@iogearbox.net>,
- "Andrii Nakryiko" <andrii@kernel.org>,
- "Eduard Zingerman" <eddyz87@gmail.com>,
- "Kumar Kartikeya Dwivedi" <memxor@gmail.com>, bpf@vger.kernel.org,
- Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org
-Cc: "Peter Zijlstra" <peterz@infradead.org>, "Ingo Molnar" <mingo@redhat.com>,
- "Will Deacon" <will@kernel.org>, "Boqun Feng" <boqun@kernel.org>,
- "Waiman Long" <longman@redhat.com>
-Message-Id: <d40ba64d-78d9-45f5-99b9-4bfb1fc27f6c@app.fastmail.com>
-In-Reply-To: <20260609094941.56122-1-gmonaco@redhat.com>
-References: <20260609094941.56122-1-gmonaco@redhat.com>
-Subject: Re: [PATCH] rqspinlock: Fix order in raw_res_spin_(un)lock_irq to allow
- schedule
-Content-Type: text/plain
+Mime-Version: 1.0
+In-Reply-To: <20260607190804.GAaiXBlGO2eRcfs1oB@fat_crate.local>
 Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Cc: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
+	<dave.hansen@linux.intel.com>, <david@kernel.org>, <kees@kernel.org>, 
+	<linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
+	<lizhe.67@bytedance.com>, <mingo@redhat.com>, <rppt@kernel.org>, 
+	<tglx@kernel.org>, <x86@kernel.org>
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Message-Id: <20260609120132.84323-1-lizhe.67@bytedance.com>
+References: <20260607190804.GAaiXBlGO2eRcfs1oB@fat_crate.local>
+X-Lms-Return-Path: <lba+26a2800b2+03b1cc+vger.kernel.org+lizhe.67@bytedance.com>
 
-On Tue, Jun 9, 2026, at 11:49, Gabriele Monaco wrote:
-> raw_res_spin_unlock_irqrestore() calls raw_res_spin_unlock() and then
-> restores interrupts, this means preemption is enabled when interrupts
-> are still disabled (as part of raw_res_spin_unlock()) so this cannot
-> trigger an actual preemption.
-> This is inconsistent with other spinlock implementations
-> (raw_spin_unlock_irqrestore() and bpf_res_spin_unlock_irqrestore()
-> itself).
->
-> Adjust the macro to ensure interrupts are enabled before enabling
-> preemption, allowing to schedule at that point. Make the same
-> modification in the error path of raw_res_spin_lock_irqsave().
->
-> Fixes: 101acd2e78b1 ("rqspinlock: Add macros for rqspinlock usage")
+On Sun, 7 Jun 2026 12:08:04 -0700, bp@alien8.de wrote:
 
-Should this be Cc:stable@vger.kernel.org to get backported?
-
-Did you see this cause measurable performance problems,
-or did you find it through inspection?
-
-> Signed-off-by: Gabriele Monaco <gmonaco@redhat.com>
-
-Acked-by: Arnd Bergmann <arnd@arndb.de> # asm-generic
-
-This should probably get merged through the BPF tree, but I've
-added the kernel/locking maintainers to Cc as well, since I
-feel it's more useful to have them look at it than me.
-
-Maybe it would be good to update (as a separate patch) the
-MAINTAINERS file so the locking subsystem also includes the
-headers currently missing:
-
-arch/*/include/asm/*spinlock*.h
-arch/*/include/asm/*rwlock*.h
-include/asm-generic/*spinlock*.h
-include/asm-generic/*rwlock*.h
-
-       Arnd
-
-(full patch quoted below)
-
-> ---
->  include/asm-generic/rqspinlock.h | 14 +++++++++++---
->  1 file changed, 11 insertions(+), 3 deletions(-)
->
-> diff --git a/include/asm-generic/rqspinlock.h 
-> b/include/asm-generic/rqspinlock.h
-> index 151d267a49..4d46643f46 100644
-> --- a/include/asm-generic/rqspinlock.h
-> +++ b/include/asm-generic/rqspinlock.h
-> @@ -243,12 +243,20 @@ static __always_inline void 
-> res_spin_unlock(rqspinlock_t *lock)
->  	({                                        \
->  		int __ret;                        \
->  		local_irq_save(flags);            \
-> -		__ret = raw_res_spin_lock(lock);  \
-> -		if (__ret)                        \
-> +		preempt_disable();                \
-> +		__ret = res_spin_lock(lock);      \
-> +		if (__ret) {                      \
->  			local_irq_restore(flags); \
-> +			preempt_enable();         \
-> +		}                                 \
->  		__ret;                            \
->  	})
+> On Wed, Jun 03, 2026 at 04:01:50PM +0800, Li Zhe wrote:
+> > Introduce a generic memcpy_streaming() interface for write-once copy
+> > sites that can fall back to memcpy() when no architecture-specific
+> > optimization is available, or when an architecture-specific backend
+> > cannot safely handle a given transfer.
+> >
+> > Add memcpy_streaming_drain() alongside it so callers can separate the
+> > copy primitive from any required ordering point. On x86, use
+> > memcpy_flushcache() and sfence only for aligned transfers that can stay
+> > entirely on the non-temporal store path; otherwise fall back to memcpy()
 > 
-> -#define raw_res_spin_unlock_irqrestore(lock, flags) ({ 
-> raw_res_spin_unlock(lock); local_irq_restore(flags); })
-> +#define raw_res_spin_unlock_irqrestore(lock, flags) \
-> +	({                                          \
-> +		res_spin_unlock(lock);              \
-> +		local_irq_restore(flags);           \
-> +		preempt_enable();                   \
-> +	})
+> So you throwing "streaming", "non-temporal" and "flush-cache" wildly around
+> here and this is adding unnecessary confusion where it shouldn't. I'd suggest
+> you stick to "non-temporal" which you can abbreviate short'n'sweet to "nt" and
+> that's it. Keep it simple.
+
+Thanks for the review. Will switch to nt-based naming in next revision.
+
+> > so the generic API does not expose flushcache semantics on cached
+> > head/tail fragments.
+> >
+> > Callers are responsible for invoking memcpy_streaming_drain() before
+> > later normal stores that must be ordered after the streaming copy.
+> >
+> > Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+> > ---
+> >  arch/x86/include/asm/string_64.h | 32 ++++++++++++++++++++++++++++++++
+> >  include/linux/string.h           | 20 ++++++++++++++++++++
+> >  2 files changed, 52 insertions(+)
+> >
+> > diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
+> > index 4635616863f5..aee63108577f 100644
+> > --- a/arch/x86/include/asm/string_64.h
+> > +++ b/arch/x86/include/asm/string_64.h
 > 
->  #endif /* __ASM_GENERIC_RQSPINLOCK_H */
->
-> base-commit: e43ffb69e0438cddd72aaa30898b4dc446f664f8
-> -- 
-> 2.54.0
+> There's arch/x86/include/asm/string.h. Why are those here, in the _64 variant?
+
+The current placement was meant to reflect that the x86 implementation
+here is really just a thin wrapper around the existing
+memcpy_flushcache() backend, and that backend is x86_64-only today.
+
+On x86, CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE is selected only for X86_64,
+so a 32-bit build would still need to fall back to the generic
+memcpy()-based implementation anyway. Keeping it in string_64.h made
+that backend dependency explicit.
+
+That said, I see your layering point. If arch/x86/include/asm/string.h
+is the preferred place for the arch-visible wrapper, I can move the
+wrapper there in the next revision while keeping the x86_64-specific
+implementation details in string_64.h.
+
+> > @@ -4,6 +4,7 @@
+> >
+> >  #ifdef __KERNEL__
+> >  #include <linux/jump_label.h>
+> > +#include <linux/align.h>
+> >
+> >  /* Written 2002 by Andi Kleen */
+> >
+> > @@ -100,6 +101,37 @@ static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t
+> >  	}
+> >  	__memcpy_flushcache(dst, src, cnt);
+> >  }
+> > +
+> > +/*
+> > + * Only map memcpy_streaming() to memcpy_flushcache() when the destination
+> > + * is already 8-byte aligned and the size can be handled without cached
+> > + * head/tail fragments in __memcpy_flushcache().
+> > + */
+> > +static __always_inline bool memcpy_flushcache_nt_safe(const void *dst,
+> > +						      size_t cnt)
+> 
+> This is checking alignment. Then call it that.
+> 
+> > +{
+> > +	unsigned long d = (unsigned long)dst;
+> 
+> Useless.
+> 
+> > +
+> > +	return cnt && IS_ALIGNED(d, 8) && IS_ALIGNED(cnt, 4);
+> > +}
+> 
+> AFAICT, this helper is used only once. Zap it completely.
+
+Agreed. That helper is over-factored in its current form.
+
+I'll fold the alignment test into the callsite and drop the temporary
+variable in the next revision.
+
+> > +
+> > +#define __HAVE_ARCH_MEMCPY_STREAMING 1
+> > +static __always_inline void memcpy_streaming(void *dst, const void *src,
+> 
+> memcpy_nt()
+> 
+> > +					     size_t cnt)
+> > +{
+> > +	if (!cnt)
+> > +		return;
+> > +
+> > +	if (memcpy_flushcache_nt_safe(dst, cnt))
+> 
+> That branch can cost. Why is that alignment checking so necessary? Why can't
+> you simply DTRT by handling the misaligned parts like __memcpy_flushcache().
+> 
+> What does this bring you? None of that is explained in the commit message so
+> why do I want this patch at all?
+> 
+> The commit message is basically telling me what the patch does but I can kinda
+> read that from the diff itself. What it is not telling me is *why* it exists.
+
+The extra alignment gating was meant to keep this helper narrower than
+__memcpy_flushcache(), so patch 8 would not inherit the mixed cached
+head/tail handling from that implementation.
+
+Thinking about it more, I agree that this is hard to justify for a
+generic helper. For this series, what really matters is that the
+struct page copies in patch 8 can use the existing x86
+memcpy_flushcache() fastpaths where that is beneficial; I do not need
+patch 6 to impose extra selection policy on unrelated callers.
+
+I'll simplify and rework this part in the next revision, rewrite the
+changelog to explain the actual motivation more clearly, and respin
+patches 6-8 accordingly.
+
+Thanks,
+Zhe
