@@ -1,180 +1,187 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from flow-b2-smtp.messagingengine.com (flow-b2-smtp.messagingengine.com [202.12.124.137])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E77537DAB1
-	for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2026 19:53:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=170.10.129.124
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781121222; cv=pass; b=isENkOeuPhTwTsR6xre0K8pMNz3uyFbjYMGyi7ZD1Y0EAMDAuAvQ6hU53cz3VK6JhnmhKQfNzwdOQEKaNTSJyG9jaL5D2R4ExJ7a2wo7LoFz3cnE3P5rT8rNVnIEd03S4jRqOafi6bUQiULqiGqr8lOIRFBq9dOGYdsy0YkTnig=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781121222; c=relaxed/simple;
-	bh=459PmgaIKTi+jGFsDwJCbEFj0+/x7260xa519JdirmE=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=pm1eLnq3MbAG7+0fKxAe2K+i0MikgCoTqjRU6LkUXLCH2uIwp/+B2WE4IjVeHlSuyOdq9AcsuQNgzyNGEJDjtVhCA9JWFM0P8W4pXQ2U+rqaWMvSWwh8dmgpXyhe0p5hPiZ5d303EfLCpWdkOOI2E4PHJPe1s/ACG48oUmIeeL8=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=d6UXAEWh; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=EPz+JN4A; arc=pass smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 22FC47DA66;
+	Wed, 10 Jun 2026 20:38:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.137
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1781123926; cv=none; b=GM8uPIp/Jo8kYJcS9UIxQDIblo6M8b4yeF/kU+Gym+h8bfVCjIUS0EMmbf9Q2LrlRE4OBwXF3v3w7wVV/IaGLpLJiFCCNtw/cgO/uxw+jJQ+AVAddXy53/yiUIlQuzsPl9uIA0sInMc1eyl0y/v+IwJ3oVcPlzJmUs8BkdIX76M=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1781123926; c=relaxed/simple;
+	bh=bEDrxC0e7YHTg9BGEJLnFRHo2kndEcLOabEL2KZLl+I=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=ZNziSeedN13SbLDzX2OVPsxyZscJFkaLslRzjVc4mn4j9ibUTasvkxOuvbD0hCNA1JJx1thT1LYQMg28GK/ktkm1/NXyDkpMaJKLdlTEVSbtkKc4heKlBQwr/oohJBuWRn2k0lu8919yNeEtM4uFtWyMLCm5ITQ/P8INZavC52s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me; spf=pass smtp.mailfrom=johnericson.me; dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b=RnQFdc1e; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=QRgU8rRJ; arc=none smtp.client-ip=202.12.124.137
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=johnericson.me
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="d6UXAEWh";
-	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="EPz+JN4A"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1781121220;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=eiPgIwpyVmZj/Z9v28nFfViLd+qwYfqwQqLAO1PeANY=;
-	b=d6UXAEWhA+cDwBGrwe+54e+NLR98xiyt+55lMF3YJHjSsQSFvPa+d17adFtcrwNFSPNX/k
-	xsjkslDV1BXjGLJsjklMmKEHUgPlgAE8M/EplnYiYU/yYS0Id1NDHxz7qZlhixDTzqLd+l
-	5h82uQ7DKjaTpGe6LDX9hZw99aIvpaA=
-Received: from mail-ej1-f70.google.com (mail-ej1-f70.google.com
- [209.85.218.70]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-471-l4vw8N5XPceY3Aep_JwyKg-1; Wed, 10 Jun 2026 15:53:38 -0400
-X-MC-Unique: l4vw8N5XPceY3Aep_JwyKg-1
-X-Mimecast-MFC-AGG-ID: l4vw8N5XPceY3Aep_JwyKg_1781121218
-Received: by mail-ej1-f70.google.com with SMTP id a640c23a62f3a-bf523a51c24so460883366b.2
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2026 12:53:38 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1781121217; cv=none;
-        d=google.com; s=arc-20240605;
-        b=dCPorH5gwMsgCKmyzr1V7YJDqpE4vFCBa2YqjMZsLwfxGereu5wwKa948JYG6Q3C05
-         +75gcBKNVwNjhiyCCkjbcy66sM7/E+/VRvo8IEJo+B7vfz64pAhISrHYmVAQRNShLAQN
-         i/eJEFIVaVBX6edO9aweMeMwL5y1u6wJje3RtMKN7U6zGJpG2yScyY5tT7y6Pq8VWRUc
-         W4faiXaZ5Ok7f0dQf+v+6mbCYC6eGHgW8wpYo3jDNkq+g7w9Hqq/mnRWR+moO/e+YRvb
-         VRAvjVc8tdYAV9VwkviDhyR6eMgbzi6laz9IafgNk5BtevPNqrhfORaPMwbHhj9M8Th5
-         2Wnw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=eiPgIwpyVmZj/Z9v28nFfViLd+qwYfqwQqLAO1PeANY=;
-        fh=LBzCk6SKxae8upA1RbytB70wosmwNejpxBOYJ66VNxU=;
-        b=eG/al62dwBaSe2W+3+aDrkYt1FY0eSEX+uEIadS/iPo2od2/Z47+OgdoTHxriZJaCf
-         OUd4M1YJ2S3Q7dGJLUyvyWKExKF4lLWGlTtoXlPNtmEkSuhD2H2GOtByJupAb1tKc4hB
-         prVVQ9uUdAGkZjriEPbYPGZdnHzcUutxAHr1NujLxtq1dNFDawLYL5INjYCcYBZhLjcC
-         C6u+iNdtoEvw25d6pgs8USRbTeIX5LlzBxrKQs2wdNvMlRyJGHRdgMAmiHRrj8uhrnPx
-         dNS8XEFN/QybYpu5t/AF+vkE7eX/eOebQPUJ5y9ntandwGwbshodcMvjLPm50EdchT/J
-         EVow==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=redhat.com; s=google; t=1781121217; x=1781726017; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=eiPgIwpyVmZj/Z9v28nFfViLd+qwYfqwQqLAO1PeANY=;
-        b=EPz+JN4AzkuWyUXGqwj26FVh5ZX/NIxAWG6SdsGtiBHTHLmIMuiCBVO6rGtNMKf2h6
-         0rwAh+opkh4qGgBKXCW526sDv4CfcfLPo5BbVOYBrQyku2cZs0DkJZ+6HpxQffsOkxZZ
-         JULXGgQ2PrldDcyKuWYN9GZIqUav9vO6KoYgRKzVwqljjxNZTICE4kYcqNnb313iJ01A
-         UbT3V+M4mEl99QIvRlzas7WfJygJvyghFJJrXN1ihqxKQbKmPhrg4+imKdim6Nw7Sdec
-         K5RFPWDP05fjs4yub+VgoMFFh+uGC6ITF4ma67jxk3anoZ51FmwRl1KDMYBEb54kodA7
-         tScA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1781121217; x=1781726017;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=eiPgIwpyVmZj/Z9v28nFfViLd+qwYfqwQqLAO1PeANY=;
-        b=VDo7cKA93WksLlkWd4CSrUKD/T9ImzrX12NKJqCij+5jPFw47nXrGgGcsOaoKolDFy
-         HepVjOHIZFPNXoXW/kIDBHaIoEskwMZPCV2idcw7E54b5QgJzgEK3S0njpLRPhvM7o8b
-         jzq82Fevv/0iPQyxo/i8mXW8JHFSOkW6nBUu11HyoyN1g1Cn2DeWqFTQSilmhmfzX6vi
-         HjuHThfrC1MZIKpE5UzWvgzD720kKFh+H0I9aBxpJm3ZDomA7ICNaR6QjqR+064HCtUB
-         MXKOnGIJCpQ9AOb0jdhcBy/XrsVZDKzfDHOQ7ohL5g3vW9ClAjaaLZdakqh9gSWVrtIs
-         M7mg==
-X-Forwarded-Encrypted: i=1; AFNElJ849saOo7xpsYvXuZ3PAvRkbYYdvFqzPVDH86NWp60cbAqwnhJZAbh0MvfX/1Xh8RI3LPD6Ny/kh0Ob@vger.kernel.org
-X-Gm-Message-State: AOJu0YzNjKf+OGevEH57REGRoIxmJsZmhLFkK4PgO9RWpCWe5w7JDxQX
-	HdOwkSawoDY/4EiTwbsPTQGfcRds6PJWAienGbaosRSFQT7Kb/F35aoOTgFvN16o8NKVBlhEXZb
-	tLhlpYeGWQj4MWmUL16PqbyToH5U9Q8028QVaic+2phgf5OR4SHbpLbFEnk1OqUJUmRUaHb+LAr
-	KXH+P89W3WIshk4vQaDLPfSGnj8N1qcrkAcwpcAA==
-X-Gm-Gg: Acq92OGsQO8/SHp75Cj7jLP9CGfaCMx5syes3HB1KyDXOARC5tEN2fq1dm49laiVtf6
-	aR5DXE5pLIsNDrbiv2f8Af6wA2B/rMN74AjC2/FguduYqGgcT5WUMVrs2LptPIwNrQYHhItEgyl
-	LFyAA5vWeh/0FppIhlB67lZICXM5OGPztJmQfXSZ9nEmHWL1t6LCQjSEnij6gHLqO18smQPax3L
-	4LAF0EOrbg1enhy7+qgSb8dEKWBjJhAydzZiK9iBrJlOw+S5y5AUHYzctyqd3T2MiKj+WHRxeHg
-	n/dkJTnYVjZg7g86zv6LWhvW/Vvm5d8I+3I=
-X-Received: by 2002:a17:907:d40e:b0:bec:a96b:75b8 with SMTP id a640c23a62f3a-bf372741180mr1368090166b.32.1781121217613;
-        Wed, 10 Jun 2026 12:53:37 -0700 (PDT)
-X-Received: by 2002:a17:907:d40e:b0:bec:a96b:75b8 with SMTP id
- a640c23a62f3a-bf372741180mr1368089166b.32.1781121217229; Wed, 10 Jun 2026
- 12:53:37 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b="RnQFdc1e";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="QRgU8rRJ"
+Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
+	by mailflow.stl.internal (Postfix) with ESMTP id 19C1E1300074;
+	Wed, 10 Jun 2026 16:38:43 -0400 (EDT)
+Received: from phl-imap-16 ([10.202.2.88])
+  by phl-compute-05.internal (MEProxy); Wed, 10 Jun 2026 16:38:44 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=johnericson.me;
+	 h=cc:cc:content-transfer-encoding:content-type:content-type
+	:date:date:from:from:in-reply-to:in-reply-to:message-id
+	:mime-version:references:reply-to:subject:subject:to:to; s=fm3;
+	 t=1781123922; x=1781131122; bh=bEDrxC0e7YHTg9BGEJLnFRHo2kndEcLO
+	abEL2KZLl+I=; b=RnQFdc1ehookfxZskeYaO0LGYH4k+xPtvLoa3oFfYCkoTFn0
+	Ttg7K+wuvRAF0lBdwJlU+xe/XNjGunYkSuKCPEIknEhzPzuR+tLFnZFZp+ktFnRO
+	GtvOk4bBVFEkTto3BzClF+pC5PcukJAHw6OLfB5FVw9Z5v6StXjzNZpCwftoZA11
+	7GUuhQ+gmeG6cxKGRIIT9uYk64vQdXsOt6WnVeKNR88DPEnuo6S6Y9Anrp+fqIR8
+	jgVpp3+hDQgA6vuVO3RnkA6Er8+Jom9IEvjRo+vghEzZwEXK4LAhm3nCvT+bf3px
+	Q5FMMAeS/RTjX/X9FN7Y9OMRbhaFqlVCFS1w2Q==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1781123922; x=
+	1781131122; bh=bEDrxC0e7YHTg9BGEJLnFRHo2kndEcLOabEL2KZLl+I=; b=Q
+	RgU8rRJzIa4UEklCAnc+PAwkaoWMsC+u6PhAtkmGDKTEYl2fN+CtlEyzv1P1ToB+
+	epglkq6CbsdgT+alHGBdNXnURyXvky2HS7VQh/nLqR37Y9A134IoyA/ySO7fgvVw
+	Irwz7rIbnthhVKH5fgF0qGxvMs+ifWt6xUHAuevWd4KTckK0lhvTVbrwUNP/Vi5Y
+	WaGSvS1BZE/88VDpoxmxQ323V3szRJuzPKHYsJPfabCCJafHuRo5C743P29RFY1O
+	qCoLP1Hf/ASvZAQCHiNPC2STa8ZxfZaV6Vt/p6XXz0Em9ukXbwLiwm6Bo65rYqPT
+	uGd+rWiwYIfxBVjcJAJiQ==
+X-ME-Sender: <xms:Ucspaq7ROJCg94S7g4ApNvmWiIM15KYk-FwcGKB01eMGISMqqZWXNA>
+    <xme:UcspautuioAppC5EgckFH6FaPBCNDWxu3dOShwhdGeAAVatOQRQ9CxfhwKBfVsEo0
+    oJ7xrGp33oWrk_ayvA1VgPv-bTntZ_dF9hhtHT4Xsj6GS4ENM41VrQL>
+X-ME-Proxy-Cause: dmFkZTGaNeNTQ3G1F1+JWzJkMGql3D6L8AUgdkqFLx0WG5ejhftcD6XNOk17L4aaI3sLyo
+    JMs836zpWnZQRvY3wiKtPAVpFVuFdcwBGOM0exgvpRf4fra7IypSfeU+3Wp4jbrVCLy94M
+    NVooNMv5d55qj5zihBo2bVG0kwGZBVLwYdxuS4ieBQ4SBqpCBRuhhnAtTnBGICpgg0fcIe
+    nR3Hz/EB3Go9W8jzMC6yHEBv8uBcD2hYbb+iMMYQB2o60laEVAFrKuuSjBswonvVOCc3Gk
+    odcH87lSsUh/amBG/pxMLt5RblP2Wa+j2WlJhSp6SQ2RVeTNecZ/Rxy5QSf99EO5UNP9l3
+    Se6+hqZ/tYap9i/epw532BHzfBQkdEs5R9F/V1PLK6u6OgDA9T5ub7dSAmN4fFWW9BO637
+    EbIERqO3LWEweYPxuggu2I8QB5nG/ZPtxX8+uZKMIJcFOMDx8OzGhDh2c0vlu/dO1syAOq
+    svLYMTbXYfn/go0WBEHsfsmnlehos1beHVOBHH3XKslvDcpES7DepH9Ha/h9SZPRPbVkS2
+    v/lbpuDzk+lslHGotkLNybQ6pPEzlJI/q9jq3S7DK94vL5G+5dtvEesArzUM80edCJU8IL
+    O5fGVCoGommkM13WiiVPQnxH6+WuNSjbPGN3yuNQOUgS+iyp4cJJE3EMqvnw
+X-ME-Proxy: <xmx:UcspahQly0uFpZlUjGh--NhkJzJMv4OI3yFazQLn0Zj4Rv8sNw9s1w>
+    <xmx:UcspausIaR3QHHlo8gAv8Huxu_KvqCsyrCHfJZUoXhO-7cMmHCwcMQ>
+    <xmx:UcspavUtHS9qlU_-DywzPzzLAQrh-65e_La29NAujNrxgwZvHINEzg>
+    <xmx:UcspainAboznNphZuC_qA7s4dkyCtpJ5aA7zI5AwFtpde5H2t0LTXA>
+    <xmx:UsspahiyYw0Bh2a2JnJpgkhZM9oZYoc2lr4_FWH1CPIAoGZSxqg4pueu>
+Feedback-ID: ieb4144f1:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id 59E002CC0083; Wed, 10 Jun 2026 16:38:41 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260610164719.2668906-1-rrobaina@redhat.com> <476e0a44-c6fb-4e6a-af56-a9f1d054518a@app.fastmail.com>
- <CAABTaaBBVP6eY8D+a1KTgfZ3x8v3egnKTiQLRQfXPiOhpmQXjg@mail.gmail.com>
- <2021591.7Z3S40VBb9@x2> <4c885308-7556-49a9-836b-37089ac3bafb@app.fastmail.com>
-In-Reply-To: <4c885308-7556-49a9-836b-37089ac3bafb@app.fastmail.com>
-From: Ricardo Robaina <rrobaina@redhat.com>
-Date: Wed, 10 Jun 2026 16:53:25 -0300
-X-Gm-Features: AVVi8CegNJFmA5pJjXnR6bzdeWqrb7ywcRPoDsKS9Cmo3gkCjJrGU4TIKNqXM6U
-Message-ID: <CAABTaaCPpxSxUDXe-YthFOiNqM_SgsvVaVuVv8AxogRTd1nQ5Q@mail.gmail.com>
-Subject: Re: [PATCH] audit: add missing syscalls to PERM class tables
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Steve Grubb <sgrubb@redhat.com>, audit@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	Linux-Arch <linux-arch@vger.kernel.org>, Paul Moore <paul@paul-moore.com>, 
-	Eric Paris <eparis@redhat.com>
-Content-Type: text/plain; charset="UTF-8"
+X-ThreadId: AtGJywdvvpER
+Date: Wed, 10 Jun 2026 16:38:21 -0400
+From: "John Ericson" <mail@johnericson.me>
+To: "Li Chen" <me@linux.beauty>
+Cc: "Andy Lutomirski" <luto@kernel.org>,
+ "Christian Brauner" <brauner@kernel.org>, "Kees Cook" <kees@kernel.org>,
+ "Al Viro" <viro@zeniv.linux.org.uk>,
+ linux-fsdevel <linux-fsdevel@vger.kernel.org>,
+ linux-api <linux-api@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>,
+ linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>,
+ linux-doc <linux-doc@vger.kernel.org>,
+ linux-kselftest <linux-kselftest@vger.kernel.org>, x86 <x86@kernel.org>,
+ "Arnd Bergmann" <arnd@arndb.de>, "Thomas Gleixner" <tglx@kernel.org>,
+ "Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
+ "Dave Hansen" <dave.hansen@linux.intel.com>,
+ "H. Peter Anvin" <hpa@zytor.com>, "Jan Kara" <jack@suse.cz>,
+ "Jonathan Corbet" <corbet@lwn.net>, "Shuah Khan" <skhan@linuxfoundation.org>
+Message-Id: <48594f3a-2ae9-4e1c-a575-ae54a6e1536d@app.fastmail.com>
+In-Reply-To: <19eb181fdd4.6d028f442844776.3737831021032223216@linux.beauty>
+References: <20260528095235.2491226-1-me@linux.beauty>
+ <20260528-madig-fachrichtung-fehlinformation-61117ba640da@brauner>
+ <CALCETrWJQpLR4n1cpichBk8=uExSKLWTMGU3BufGdk_WE_p5UA@mail.gmail.com>
+ <19eacd64508.26b92c022125848.262962729296162879@linux.beauty>
+ <4e049396-377d-48a7-a34c-91318413a876@app.fastmail.com>
+ <19eb181fdd4.6d028f442844776.3737831021032223216@linux.beauty>
+Subject: Re: [RFC PATCH v1 00/13] exec: add spawn templates for repeated executable
+ startup
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
 
-On Wed, Jun 10, 2026 at 4:39=E2=80=AFPM Arnd Bergmann <arnd@arndb.de> wrote=
-:
+On Wed, Jun 10, 2026, at 8:29 AM, Li Chen wrote:
+> Hi John,
 >
-> On Wed, Jun 10, 2026, at 20:13, Steve Grubb wrote:
-> > On Wednesday, June 10, 2026 1:40:47=E2=80=AFPM Eastern Daylight Time Ri=
-cardo Robaina
-> > wrote:
+> [...]
 >
-> >> > scripts/syscall.tbl:79  stat64  fstatat64
-> >> > sys_fstatat64 scripts/syscall.tbl:80  stat64  fstat64
-> >> >      sys_fstat64 arch/x86/entry/syscalls/syscall_32.tbl:18       i38=
-6
-> >> > oldstat                 sys_stat
-> >> > arch/x86/entry/syscalls/syscall_32.tbl:28       i386    oldfstat
-> >> >        sys_fstat arch/x86/entry/syscalls/syscall_32.tbl:84       i38=
-6
-> >> > oldlstat                sys_lstat
-> >> > arch/x86/entry/syscalls/syscall_32.tbl:195      i386    stat64
-> >> >        sys_stat64                      compat_sys_ia32_stat64
-> >> > arch/x86/entry/syscalls/syscall_32.tbl:196      i386    lstat64
-> >> >        sys_lstat64                     compat_sys_ia32_lstat64
-> >> > arch/x86/entry/syscalls/syscall_32.tbl:197      i386    fstat64
-> >> >        sys_fstat64                     compat_sys_ia32_fstat64
-> >> > arch/x86/entry/syscalls/syscall_32.tbl:300      i386    fstatat64
-> >> >        sys_fstatat64                   compat_sys_ia32_fstatat64
-> >> > arch/alpha/kernel/syscalls/syscall.tbl:224      common  osf_stat
-> >> >                sys_osf_stat arch/alpha/kernel/syscalls/syscall.tbl:2=
-25
-> >> >    common  osf_lstat                       sys_osf_lstat
-> >> > arch/alpha/kernel/syscalls/syscall.tbl:226      common  osf_fstat
-> >> >                sys_osf_fstat
-> >> Hi Arnd,
-> >>
-> >> Thanks for reviewing this patch! You're right, it seems all these stat
-> >> variants should be added as well. Steve and Paul, correct me if I'm
-> >> wrong here, please.
-> >
-> > Alpha is unsupported. Those are True64 compatibility syscalls. You can
-> > include it and #ifdef will filter it everywhere else.  But, yeah. I gue=
-ss the
-> > rest are ok. I don't pay much attention to the 32 bit arches.
->
-> Ah, indeed. I assumed that these were part of the syscalls that
-> originally came from osf1 but are still used on Linux systems,
-> but it appears that the stat family was never used like that
-> with glibc.
->
-> The oldstat family is actually in a similar category, as those
-> were only used on libc5 or earlier. stat64 is definitely
-> still needed on 32-bit userspace with 32-bit time_t.
->
->      Arnd
->
+> Thanks, this helped a lot. I looked at FreeBSD/OpenBSD/XNU after your
+> note. FreeBSD has P_INEXEC, OpenBSD has PS_INEXEC, and XNU seems even
+> closer with P_LINTRANSIT, described as "process in exec or in creation=
+".
+> Linux does not seem to have a single equivalent today: current->in_exe=
+cve
+> is only an LSM hint, while the real synchronization is spread across
+> exec_update_lock, cred_guard_mutex, and the exec path.
 
-Thanks for the context, Arnd and Steve. I'll append just stat64,
-lstat64, fstat64 and fstatat64 to the v2 I'm about to send, then.
+Great! Glad to hear my suggestion (and the patch too I linked in the
+other email, I hope?) was useful.
 
-Please let me know if there's anything else to adjust.
+> I am switching my local WIP from the two-fd builder model to one fd,
+> closer to Christian's sketch:
+>
+> fd =3D pidfd_open(0, PIDFD_EMPTY);
+> pidfd_config(fd, ...);
+> pidfd_spawn_run(fd, ...);
 
--Ricardo
+Glad to hear it is also one-fd now.
 
+> In my current local version, I still use copy_process(), so the fd poi=
+nts
+> at a real task_struct/pid that is not woken until run.
+
+So this is an interesting thing to think about. My hunch is that
+`copy_process` is, at least in the longer term, still doing too much! In
+particular, `struct kernel_clone_args` has many degrees of freedom, and
+might also make assumptions about preserving more of the parent process
+than is needed in this case.
+
+This is a bit tangential, but one thing I have thought about is having
+"null namespaces". I think the current (i.e. existing clone API) default
+of "share with parent process" is a poor security practice (more
+privileges, i.e. sharing, should always be opt-in). But the opposite
+default of "unshare everything" is expensive since creating new
+namespaces is non-free. The goal of the null namespaces would be a cheap
+way of creating a more isolated and unprivileged process =E2=80=94 and "=
+cheap"
+here is literal: a null pointer in `nsproxy`, no allocation, no
+namespace object, no ID. This null state would be what
+`pidfd_open(0, PIDFD_EMPTY)` (using your example above, or really
+whatever the first step is) hands back.
+
+Then, from that maximally cheap and unprivileged initial state, the
+`pidfd_config(fd, ...);` calls (plural important, I think!) would opt
+into either sharing or unsharing namespaces between the child and parent
+as the parent sees fit.
+
+The larger point here is that insofar as there are not good defaults for
+things, there is pressure, whether in step 1 or step 2, to make larger
+everything-at-once configuration. But when we think a bit outside the
+box to create the good defaults where they didn't previously exist, we
+can end up in a situation where a minimal initial blank unstarted
+process, and the builder pattern to initialize it, are more "natural".
+
+> Following
+> Christian's point that existing APIs can handle this not-yet-running c=
+ase
+> with ESRCH, I currently make ordinary pidfd operations that need a real
+> started process return -ESRCH before start.
+
+Also glad to hear.
+
+> I am not sure yet whether Linux should grow a general exec/creation
+> transition state like that, or whether a narrower future-process
+> lifecycle is enough for this API. I will think more about that when
+> working on the pristine process version.
+
+Sounds good, as I think you can guess, my preference is for "yes", but I
+agree we can see what you end up with in the next patchset and make more
+informed decisions based on that.
+
+Cheers,
+
+John
