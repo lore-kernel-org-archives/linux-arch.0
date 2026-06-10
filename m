@@ -1,137 +1,198 @@
-Received: from fhigh-a8-smtp.messagingengine.com (fhigh-a8-smtp.messagingengine.com [103.168.172.159])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 77865347BA9;
-	Wed, 10 Jun 2026 17:05:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.159
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781111142; cv=none; b=uZWqOaPERYnARMMcP9N61Vz5mhg3tS99FHXI/IuxFmwLpwmXbN5TSExcRWznXTq+O8UNza+mdpI6Ep4HCn8cTlc5SiK8uVutG7MikxtjvsRDNAhVmCrJlMILCMcCgUHmd3RZbGmhM/UU0rxnRXf9E+xHgZIs45ZW1WYZ/CrDg34=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781111142; c=relaxed/simple;
-	bh=FoKUPjVS2yqChr13zxKJmc7Jy67i3fLW1yE95E1Q3lY=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=ajE2wioFjaRePC0YRIwwWB9KyPoDsH90GRNzKwLcABoUqfG5OwEU5kmCpzsmzbTw1iQ+Y7pJEAECYS0j3gOZoeMFaPuEKNJyNv8qeeHyP+1u2Q+76L53mwO0Ug0ieqipww97m0bwuJO1ZVl6hpI3rvpKhtJZtRIcFWZrj0fSBmE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=I/tZjp7R; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=aNhvtegL; arc=none smtp.client-ip=103.168.172.159
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BB3C6346A10
+	for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2026 17:41:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=170.10.133.124
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1781113264; cv=pass; b=hlBaFFJk4JxpveWkjcxf4zjDrzZBmGhiT9ez5AddXQbjMV7I6LYrLh4XxjrHndwla5tNZ7dzspByupN2s6q+B4+ikcWWJXnXyNdFmvALFIFOr2Zunw/+qT4/MyBsR3cvJyylaDfM25EqMufC6SUiT7dlNy4zjE3VZXrKfhTmpmI=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1781113264; c=relaxed/simple;
+	bh=1AxItsFe16jGeUOX9ul3gEcPkmr5Ky6rSQxHxc9GX+I=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=HydlqOrLyGFCNjTUrn/N6iBFDFuIuIGTu5hddZ7zjzbqD6QaD6mG0DaoWjA2c0oKIsfG6qQXGUPp+rXjp9dUJUna/YgplIiZc4f+VHsdGzd7HWcR5gCtO6cuIsCSEeWaDzWlyEPyQDlF3t5Bk8RQ2ArdM/T2WFx3MNs+StMpjO0=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=AXjZ8L6N; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=QS2zSd5X; arc=pass smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="I/tZjp7R";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="aNhvtegL"
-Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
-	by mailfhigh.phl.internal (Postfix) with ESMTP id B82B314000A9;
-	Wed, 10 Jun 2026 13:05:39 -0400 (EDT)
-Received: from phl-imap-05 ([10.202.2.95])
-  by phl-compute-04.internal (MEProxy); Wed, 10 Jun 2026 13:05:39 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm3; t=1781111139;
-	 x=1781197539; bh=e8awhWVorz38yIuvReRRJK6Nopj+kEe7dHTRwLJI5YM=; b=
-	I/tZjp7RV0TYsh9pnfe6DMZUHwQcC+wcXiyqDAoQQtUf/Aq+mCjSqwu32pKhlv3b
-	onel80rL7PNnmZOpErU2CI7Oj9PJxe9FYjfga1eHgXBQFzbMpyGUesIahHEq/yeS
-	g7AdmABeM/sComupKewVS3VPdzceyPiugXVN13v3HrFCHMBa3pGGEe9JghfLooZi
-	5W9gqiY/DZcgUx6WzuJOFseg0YUdu+ytI0hMpEuG8DiDzMOli6xFBlO2b0UnRkvI
-	BCBXhPYXy9jB1MK37KxkaVjbxrlrcy9Qd6vOAkKxhfgRNM7gePSpjajmnW5Qxk8a
-	0RCTkqypPsNJLwjm/i4F0w==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1781111139; x=
-	1781197539; bh=e8awhWVorz38yIuvReRRJK6Nopj+kEe7dHTRwLJI5YM=; b=a
-	NhvtegLQXU6s46KGMlzen0uaqpyegAC6Cmohg/cWcQ4soqYl2MLkpKRHRRGcmB7b
-	gvKqs/50BAWOQYn2/10ToN1EgICCqlxcnJwTzpY3Hto97QpxDHWKdvr/Yw84cDsF
-	PqjynzdZs+25yS/m2ZTWm/QnOIN9tunxmAntIm8DikV65R5fXpwXXF/5UoJaMWac
-	LdHKgmTi26r4L57g4jl4z4qLrJJ8kvRGjUyXFAX6twMRvK6D8JJvwJ08PKy+ZyHd
-	Wh8c8ausiun1FZ5VzWTz6RcLmtHovixwyPvjCiCix4qG6Et4TBylFUqKRsk/wfLB
-	ZiJDdYR1NxcXk2b+8JUQA==
-X-ME-Sender: <xms:Y5kpaj4WSaixdoDsV_-lX7aFHc4GU2gEnwsYMpswZwbVPR1-bVh6AA>
-    <xme:Y5kpajsA0XF6bAED2GTLggziOJl3tvbY_gGC_Zj3bZDHSc2jH93VlJZmH3cw0OHb4
-    wQ5fRCWhiUt3nn9BMbWgpD9w5mfZ85VP0rc3fgK3lKafGW-T4LtNBQ>
-X-ME-Proxy-Cause: dmFkZTFafDG/NYujNQLZNmw+l6RnwHC65slhH5KowelXTirb3dtxT41VrGFN5KepZDPHU/
-    ghAssV3R3GHTzhF3Ro38iMoUlgVcxKsVCej1YUAvq6kdQqq6KqK5RmDy5iY3bxmxlpy39p
-    myMCbIEeoR2NjKu1PmAN0vpCahdlwuDvSENG91+dHlaOKCZF8uw6yCBR7UtdeKFXScqiUv
-    RcYGUJXPimb1hHguyarIsobt4qjudoPRL4SPubZDh3w4bDQ/h2ZqnBg0phVWwOD8vLsDc6
-    qWCbB/qdMB/LFzRvv/alehn4he4srgfp0ugOZsMtXMXxkPOOfBIT+nOCfjYicfPQuI2Cos
-    4SLULznUNSiZvkWKncPwCtnmLYb7VebZxwabNAN2DR3sfb7VgyG9SKykg421n6YHK2pvWv
-    zTOoWc7UYfHmYKhcDK9FdKjWIoqvgfSNjdTwPZocCrbDTiBvmFOkjJeo3mR05LcEG4dwLd
-    L7nZXjPTm6YbK7CNIs4D/sj51RmZGwaG4TKPO/vCeAGy2tERrmTa91YEcyqrZ4fx5Lq6EP
-    Mlf9ZeripWJZFDLCpjhbzo1GpARAsk2AjcJN9E3V3k6UJzNxmJAgykuGaX/7s7I/2lvmqR
-    2xxfykY0mB6xLL8ffsXzBEe2g8hZXw/RFk01b5/dtUU+6DU/plcSzopYQGmA
-X-ME-Proxy: <xmx:Y5kpany2M4XzxoKv4QvNbng-k1OTnge25ehljHIeSuqF8fEa194wdA>
-    <xmx:Y5kpasPY1IJkWE2_B3xLlxvghAPODRaaiucig6xa_he64d7_CrKg8Q>
-    <xmx:Y5kpas-aDFKp-_NDMOODnBzQU8sfEoC5pjsa5aNmZhKQ5fAv-z7t-g>
-    <xmx:Y5kpap5yhqMYDZlBcKLhM8BjgUoOF-5xEUgt3iEMQRlfc_1aPmuO1A>
-    <xmx:Y5kpanRkpQ8t0xAsyhERvbUQnV14OA9xkmJ9QRLt-wh1TQ_2IJkNc58A>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 4A2C6182007A; Wed, 10 Jun 2026 13:05:39 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="AXjZ8L6N";
+	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="QS2zSd5X"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1781113261;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=8rRrx2CMmFDPJ+DJMgfhWsa26qfJLjrkLxeC/ehw4UU=;
+	b=AXjZ8L6N5UATgOpEHw9EHVlDYzFTEEyXN7p8dO81hfGqyGfkqyOPK2H6cd7ZAFZjFnVPJ9
+	P+QZUnZ85PilhwVChnvjvkcNZcRoqS/SIzM+ChAWIHwctaEiGVG0CAAhog2btkkPqzErBH
+	vZSSRkXJLLH3XISOUaIBcKKu33roFco=
+Received: from mail-ej1-f72.google.com (mail-ej1-f72.google.com
+ [209.85.218.72]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-62-yxOHrVW_PIWPqi1-NFW8yw-1; Wed, 10 Jun 2026 13:41:00 -0400
+X-MC-Unique: yxOHrVW_PIWPqi1-NFW8yw-1
+X-Mimecast-MFC-AGG-ID: yxOHrVW_PIWPqi1-NFW8yw_1781113259
+Received: by mail-ej1-f72.google.com with SMTP id a640c23a62f3a-beeb1713d20so606346866b.1
+        for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2026 10:41:00 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1781113259; cv=none;
+        d=google.com; s=arc-20240605;
+        b=Cbe04/86ayMzSjR08Qg7BR8TQPYVWwdc2MwOXfMcfuzcgYKPKEuq9W7W118JSfK1cu
+         IiU5r+W8fMCCLixkNFJTEWsiLG4aIt2XMsdIVNVSQ2IqoWrFhxbdEcRd7ufgOrDbl0Ov
+         W2xK+w7e+mb9dewBYq5mUqZjJSkpQPb6uJcj9Agzy0m6X3l30R0H6JUgq6LEqILZad9A
+         rkqUDsgayYr6zKa3G8C3lsJiQUBroNXG9I9VjdqUWejI9MWh2ts5ojYO7wdrgHt1Iupc
+         KQ11guvfr5rYS4ByFNIRjIT9kF6fOf7F9id6AkqSPbpZzxwMTJYx1mHU83smoOf976aQ
+         juXg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=8rRrx2CMmFDPJ+DJMgfhWsa26qfJLjrkLxeC/ehw4UU=;
+        fh=rvkfUnP7uswkfrVgZaI9nbXpC27Q6zs0s1ua+Up6Z/o=;
+        b=k2Fke7Mljs6JloF2Z2Uua9RP+8nNO1ob9vJzEBsS+R9HFAJaOlF1/YOERYVZs/0ZdW
+         Ko/uYG4C1WEbDnanQkMFHoMma/adiewIZD+itS9DmzkI4bHabJ38xJlQPz3Gy+oh0jr1
+         S2ByEsU0ISxCfzLfydTofva1fQwqSie/vF59IBy7GtFoCMPx0u3a4H9CmMZ17DFgon8y
+         UnOBRfxy/L3cLfleyD8Lb9/LIih1XyVF9dNFh+TWAqmsnw36vDquKHGtKKCCwOE74pMJ
+         WmwLkRblhQUr6ME5I/BDi/iUmY/rj4YZnIo3NHvxtV1Xa8yr50HeYFbIEJdoYs/HqjWD
+         hzUQ==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=redhat.com; s=google; t=1781113259; x=1781718059; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=8rRrx2CMmFDPJ+DJMgfhWsa26qfJLjrkLxeC/ehw4UU=;
+        b=QS2zSd5X3t0eThz+LSMhBjsul5jpaJBV212uB8/zGozPe59z18/le0VrGKm6aJoYwB
+         T4XIwLac0si6SGzDtDUO9Dcn5XYNkZC9Qdzk/QWnXBUeREaga40GSlTkpUcwBBj3jBsP
+         Dbq9io+j1lMZ31mUIZQ7OLeiBCNuYKmgr57UWwXVhB2snpr/fDwQ7FAnwC/TG6iEXwjz
+         hO/rFP1whFUQx78ahSbzLepKEUlS3GZkH/kKL0Z9EjauYE3gSH11cBrhPP2QZQ7uM1oh
+         +jklm0PYsquyKRl2/4nApCYOeiTblov8Kg4YSBHwIQDXitxvFpcMmrh/xaPHyHFbaspt
+         cdHw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1781113259; x=1781718059;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=8rRrx2CMmFDPJ+DJMgfhWsa26qfJLjrkLxeC/ehw4UU=;
+        b=rxCkOUUTc5M9Eb5lVuWShqppqxkrMAXVqMukvRUOnygcSolHjkbMuml6BeUg31p576
+         vOx0Lhc9f2pf1lgOomuz4o45CJN21QPMcyfP38QgbL1IanLdNIVFXqB6lGa7QhbgTZ/B
+         cXl9OFJqLDon/pVjAmmU/FGO9OkNYgOpWYWyZkYGMl165X4or96jqyClPubkNEZr43d+
+         ot11vFsO8/vJrXUkJoBOppW4CuRw9nMgku7VFBFx6s/oddywRCueHWPpZsZ6er0pasoY
+         Kbo9L6joukh1k4P/5CgvOVfz5w2Cw+NbNS1yFo8cC9gNGYu+Fx5Cqppyneac301fOBNs
+         eu/A==
+X-Forwarded-Encrypted: i=1; AFNElJ8SuBKIzMtQ2vGnaJ0tnp7mni3Ccgk9MC3cjdrCn/wPl/CUvTA1Pq3+1bPWkc12HVXk3EtFSYfGak97@vger.kernel.org
+X-Gm-Message-State: AOJu0YxRo10zmXBcdojg21qR0o/t6Koczm7Ta59gDW4+3jsuPTrsUtM6
+	CRUaH5dfHjxxQEyBU5u6h/xo/n91co2BWqRYIpnUO30WnlD6RDi3MqlLM+gcZiqbggztAnzmQ86
+	BdSapdirsoREZChv2QSHmiQ10rOfKLh8oq6XXhXWFZRY5SzRmrOe8AeNtjJdudlU0gJftIYU53v
+	5a4/oE/Jq84YeO3mOZKtD7MRq6uM/4mXm9ITVGkg==
+X-Gm-Gg: Acq92OH7BcCaTLePythIQ0vCdGK24SK89X+nkmv7eVJnt59LyOv0cHrpgmDRAOPn5lY
+	FD+BJgERpbQH2yBL9Rhmnz/8Zm4s+FuENICrHtepZmUi5LqJfx44tVy0KCXPyixJgBA0u67EJq9
+	mkbQZ9ajva/zY7FNSENpvPfIWeFQsXrCGAoM/7aFqd2G6+sgigjGUfn48kZ99w9VtCmF8J50EoP
+	+t9njMslqw3sniy6RgWiPLqQUHrTVFVVTZNtJohBU43+3r1NbO8asl5J9lTU0WJqsJf+asoqIbk
+	93mcV41cLah0tp1fYgvUXPTK5xdO2xSxxg0=
+X-Received: by 2002:a17:906:6a01:b0:bed:87c:b24e with SMTP id a640c23a62f3a-bf3721513damr1253746166b.29.1781113259330;
+        Wed, 10 Jun 2026 10:40:59 -0700 (PDT)
+X-Received: by 2002:a17:906:6a01:b0:bed:87c:b24e with SMTP id
+ a640c23a62f3a-bf3721513damr1253744866b.29.1781113258996; Wed, 10 Jun 2026
+ 10:40:58 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: A35GQ856c1Rw
-Date: Wed, 10 Jun 2026 19:05:18 +0200
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Ricardo Robaina" <rrobaina@redhat.com>, audit@vger.kernel.org,
- linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
-Cc: "Paul Moore" <paul@paul-moore.com>, "Eric Paris" <eparis@redhat.com>,
- sgrubb@redhat.com
-Message-Id: <476e0a44-c6fb-4e6a-af56-a9f1d054518a@app.fastmail.com>
-In-Reply-To: <20260610164719.2668906-1-rrobaina@redhat.com>
-References: <20260610164719.2668906-1-rrobaina@redhat.com>
+References: <20260610164719.2668906-1-rrobaina@redhat.com> <476e0a44-c6fb-4e6a-af56-a9f1d054518a@app.fastmail.com>
+In-Reply-To: <476e0a44-c6fb-4e6a-af56-a9f1d054518a@app.fastmail.com>
+From: Ricardo Robaina <rrobaina@redhat.com>
+Date: Wed, 10 Jun 2026 14:40:47 -0300
+X-Gm-Features: AVVi8CeUHfgLiWmp9hQn1L3Vkdm96Ld0E64v1VlTaEQSS5bJm1lcsISDAQPRmA0
+Message-ID: <CAABTaaBBVP6eY8D+a1KTgfZ3x8v3egnKTiQLRQfXPiOhpmQXjg@mail.gmail.com>
 Subject: Re: [PATCH] audit: add missing syscalls to PERM class tables
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: audit@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	Linux-Arch <linux-arch@vger.kernel.org>, Paul Moore <paul@paul-moore.com>, 
+	Eric Paris <eparis@redhat.com>, sgrubb@redhat.com
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, Jun 10, 2026, at 18:47, Ricardo Robaina wrote:
-> diff --git a/include/asm-generic/audit_read.h 
-> b/include/asm-generic/audit_read.h
-> index fb9991f53fb6..8feebc5b4c50 100644
-> --- a/include/asm-generic/audit_read.h
-> +++ b/include/asm-generic/audit_read.h
-> @@ -18,3 +21,19 @@ __NR_fgetxattr,
->  #ifdef __NR_readlinkat
->  __NR_readlinkat,
->  #endif
-> +#ifdef __NR_file_getattr
-> +__NR_file_getattr,
-> +#endif
-> +#ifdef __NR_stat
-> +__NR_stat,
-> +#endif
-> +#ifdef __NR_lstat
-> +__NR_lstat,
-> +#endif
-> +#ifdef __NR_fstat
-> +__NR_fstat,
-> +#endif
-> +#ifdef __NR_newfstatat
-> +__NR_newfstatat,
-> +#endif
-> +__NR_statx,
+On Wed, Jun 10, 2026 at 2:05=E2=80=AFPM Arnd Bergmann <arnd@arndb.de> wrote=
+:
+>
+> On Wed, Jun 10, 2026, at 18:47, Ricardo Robaina wrote:
+> > diff --git a/include/asm-generic/audit_read.h
+> > b/include/asm-generic/audit_read.h
+> > index fb9991f53fb6..8feebc5b4c50 100644
+> > --- a/include/asm-generic/audit_read.h
+> > +++ b/include/asm-generic/audit_read.h
+> > @@ -18,3 +21,19 @@ __NR_fgetxattr,
+> >  #ifdef __NR_readlinkat
+> >  __NR_readlinkat,
+> >  #endif
+> > +#ifdef __NR_file_getattr
+> > +__NR_file_getattr,
+> > +#endif
+> > +#ifdef __NR_stat
+> > +__NR_stat,
+> > +#endif
+> > +#ifdef __NR_lstat
+> > +__NR_lstat,
+> > +#endif
+> > +#ifdef __NR_fstat
+> > +__NR_fstat,
+> > +#endif
+> > +#ifdef __NR_newfstatat
+> > +__NR_newfstatat,
+> > +#endif
+> > +__NR_statx,
+>
+> There are additional variants of 'stat' that I think you need
+> to cover here:
+>
+> scripts/syscall.tbl:79  stat64  fstatat64                       sys_fstat=
+at64
+> scripts/syscall.tbl:80  stat64  fstat64                         sys_fstat=
+64
+> arch/x86/entry/syscalls/syscall_32.tbl:18       i386    oldstat          =
+       sys_stat
+> arch/x86/entry/syscalls/syscall_32.tbl:28       i386    oldfstat         =
+       sys_fstat
+> arch/x86/entry/syscalls/syscall_32.tbl:84       i386    oldlstat         =
+       sys_lstat
+> arch/x86/entry/syscalls/syscall_32.tbl:195      i386    stat64           =
+       sys_stat64                      compat_sys_ia32_stat64
+> arch/x86/entry/syscalls/syscall_32.tbl:196      i386    lstat64          =
+       sys_lstat64                     compat_sys_ia32_lstat64
+> arch/x86/entry/syscalls/syscall_32.tbl:197      i386    fstat64          =
+       sys_fstat64                     compat_sys_ia32_fstat64
+> arch/x86/entry/syscalls/syscall_32.tbl:300      i386    fstatat64        =
+       sys_fstatat64                   compat_sys_ia32_fstatat64
+> arch/alpha/kernel/syscalls/syscall.tbl:224      common  osf_stat         =
+               sys_osf_stat
+> arch/alpha/kernel/syscalls/syscall.tbl:225      common  osf_lstat        =
+               sys_osf_lstat
+> arch/alpha/kernel/syscalls/syscall.tbl:226      common  osf_fstat        =
+               sys_osf_fstat
+>
 
-There are additional variants of 'stat' that I think you need
-to cover here:
+Hi Arnd,
 
-scripts/syscall.tbl:79	stat64	fstatat64			sys_fstatat64
-scripts/syscall.tbl:80	stat64	fstat64				sys_fstat64
-arch/x86/entry/syscalls/syscall_32.tbl:18	i386	oldstat			sys_stat
-arch/x86/entry/syscalls/syscall_32.tbl:28	i386	oldfstat		sys_fstat
-arch/x86/entry/syscalls/syscall_32.tbl:84	i386	oldlstat		sys_lstat
-arch/x86/entry/syscalls/syscall_32.tbl:195	i386	stat64			sys_stat64			compat_sys_ia32_stat64
-arch/x86/entry/syscalls/syscall_32.tbl:196	i386	lstat64			sys_lstat64			compat_sys_ia32_lstat64
-arch/x86/entry/syscalls/syscall_32.tbl:197	i386	fstat64			sys_fstat64			compat_sys_ia32_fstat64
-arch/x86/entry/syscalls/syscall_32.tbl:300	i386	fstatat64		sys_fstatat64			compat_sys_ia32_fstatat64
-arch/alpha/kernel/syscalls/syscall.tbl:224	common	osf_stat			sys_osf_stat
-arch/alpha/kernel/syscalls/syscall.tbl:225	common	osf_lstat			sys_osf_lstat
-arch/alpha/kernel/syscalls/syscall.tbl:226	common	osf_fstat			sys_osf_fstat
+Thanks for reviewing this patch! You're right, it seems all these stat
+variants should be added as well. Steve and Paul, correct me if I'm
+wrong here, please.
 
-Not sure about ustat/fstatfs/statfs, I suppose those are a different
-category, right?
+> Not sure about ustat/fstatfs/statfs, I suppose those are a different
+> category, right?
 
-       Arnd
+Yes, I believe these would fall under a different category, since they
+are related to filesystem stats. Audit PERM classes are specifically
+for file metadata and access operations, not filesystem statistics
+
+>
+>        Arnd
+>
+
+I will work on v2 shortly.
+
+Thanks,
+-Ricardo
+
