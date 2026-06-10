@@ -1,126 +1,116 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 13BF53AD528
-	for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2026 09:05:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B4193D9DCB;
+	Wed, 10 Jun 2026 09:43:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781082305; cv=none; b=Imh3qbBc/Tdn1YOUn67cTEYDg1EZ/aQksuLypIwBjeQmJ6+nowRSfcipR96qOmaAF7Ap4gxUTfeL7twRC30UIPLV1RBl/Q2gclOsCygTcECqBBLiNoBRK73stkd+jdTqfYHbXOm1Hb0voSPGNNKgM24q0Px2iqbBMpuY+mEu5kA=
+	t=1781084609; cv=none; b=kR0697XlKguU6g9VTbrPSZYVXQWOG8hJFCooiEAud6Sb+LrKH2y3nRULAXnj1z6Lb9QWU3lI6eaUOH9m0zzagRuq6dkDCqFaT04eKaYmInqHGXon/IvtmFiW5mmU3X7YF10UDxovuiYSGs/zC3RtUvYR1acL2KRdt/2lXD4GJq0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781082305; c=relaxed/simple;
-	bh=IRQm3dt0P9dV3RkqQkn/DS+iNiQJKrzZzaxRKL+uIUE=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=HXj1DAlgdaCav6d5jHA7Kn4oeByWXiIDXeBxK+oB9aeOX0cZy7TxlGvjBVMLa3V+kJT3R+mo+Rrc2TgKSU4jBgNhDmO2PnpRsIK8LKFzlSLaCE/v3T3rct899jpyCDuSl2iOf51XyqfcGPyV6TcAsPzRsrD3rAajORJfFrx0iFg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=NkyoJb+B; arc=none smtp.client-ip=170.10.133.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1781084609; c=relaxed/simple;
+	bh=IJBwPmQY5Ds80ge09B85RTW8y7eglgINAmM6/+V5aSo=;
+	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
+	 Subject:From:To:Cc:Date; b=P+IPEbLXhNn1RCd/kO9D/CGOC/WbS9dnVogNtBE4bWCA/YyheOZQymV9WbHAQ6IE//FO6Ml1OtGyHFFCVM57DVE3kUxZ1iUSOObXH11Y7V5OjM4kurM0gYY0MLYXQqMsZvVAJ8QOspEeuS1qMhrMW91eho4q/AqfwsEwOL68d6I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=cEqH8LJK; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="NkyoJb+B"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1781082303;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding;
-	bh=KHpLRjzpwGKmiwk/zPO/cOdYmfizCDf0cuh4d+ia5yw=;
-	b=NkyoJb+BPBoLCSO/LnDLDS2X4CC1zb994UFsaMIthSIKqlljU8aKAxqfqU8kABJA++DhOV
-	RV80cELa6X9EJoNHsJarU+TScC/6F3GcVVkIus0BYwFxRbrETdgZ6HVr90/2GzpTikoTG9
-	eo6b6RxY93MRqqpT6KAtLr5r7apYPbE=
-Received: from mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-686-RCX4qt4GN3CKsitOWJJBSg-1; Wed,
- 10 Jun 2026 05:04:57 -0400
-X-MC-Unique: RCX4qt4GN3CKsitOWJJBSg-1
-X-Mimecast-MFC-AGG-ID: RCX4qt4GN3CKsitOWJJBSg_1781082296
-Received: from mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.4])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 9CE3318009DE;
-	Wed, 10 Jun 2026 09:04:55 +0000 (UTC)
-Received: from fedora-pc.redhat.corp (headnet01.pony-001.prod.rdu2.dc.redhat.com [10.11.142.86])
-	by mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id E98193008B35;
-	Wed, 10 Jun 2026 09:04:51 +0000 (UTC)
-From: Gabriele Monaco <gmonaco@redhat.com>
-To: Alexei Starovoitov <ast@kernel.org>,
-	Daniel Borkmann <daniel@iogearbox.net>,
-	Andrii Nakryiko <andrii@kernel.org>,
-	Eduard Zingerman <eddyz87@gmail.com>,
-	Kumar Kartikeya Dwivedi <memxor@gmail.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	bpf@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Cc: Gabriele Monaco <gmonaco@redhat.com>,
-	stable@vger.kernel.org,
-	Waiman Long <longman@redhat.com>
-Subject: [PATCH bpf-next] rqspinlock: Fix order in raw_res_spin_(un)lock_irq to allow schedule
-Date: Wed, 10 Jun 2026 11:04:29 +0200
-Message-ID: <20260610090431.32427-1-gmonaco@redhat.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="cEqH8LJK"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B254F1F00893;
+	Wed, 10 Jun 2026 09:43:27 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1781084608;
+	bh=PY9S597pltiIS4DOesWSWpeMRyCq6V7eq4ymyDsyJCI=;
+	h=In-Reply-To:References:Subject:From:To:Cc:Date;
+	b=cEqH8LJKd8OXnuiqYSvjfucD79mc8KdvhQnGzmNP54iE+sDGP5/76szASZUHQ6PLW
+	 Iw+QyPyYmQ4FjdoEOA8F6qOp3tIYidVb5+pFquUFA9FD5IHiNbyMtOLVCiFgqI87Ns
+	 yLKEyzXCLQByQAtgek+GaPTZRsIj05eoi/ecwi/UqMYP76SPjwLEaaLuCYK6Wtbeeg
+	 oGdTs7mxP9wx6b+DN1qC4Peb+nG6FD+uBPI4qoF8jXfSOuUzyUZKFBmHzAEGFQARa1
+	 I+1CAloIDdlKp9T0MicPWvfJwUH+LGfM82z0lXUkLmt9/z+qr9+gnDntG+JxOqEEFr
+	 OC7BkzfsuRNEA==
+Content-Type: multipart/mixed; boundary="===============5374219254305281125=="
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.4
+Message-Id: <b45a6ddc670d998b1459004df9d6a03ef6754cf963417bfa764ca0bbc4716321@mail.kernel.org>
+In-Reply-To: <20260610090431.32427-1-gmonaco@redhat.com>
+References: <20260610090431.32427-1-gmonaco@redhat.com>
+Subject: Re: [PATCH bpf-next] rqspinlock: Fix order in raw_res_spin_(un)lock_irq to allow schedule
+From: bot+bpf-ci@kernel.org
+To: gmonaco@redhat.com,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,eddyz87@gmail.com,memxor@gmail.com,arnd@arndb.de,bpf@vger.kernel.org,linux-arch@vger.kernel.org,linux-kernel@vger.kernel.org
+Cc: gmonaco@redhat.com,stable@vger.kernel.org,longman@redhat.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
+Date: Wed, 10 Jun 2026 09:43:27 +0000 (UTC)
 
-raw_res_spin_unlock_irqrestore() calls raw_res_spin_unlock() and then
-restores interrupts, this means preemption is enabled when interrupts
-are still disabled (as part of raw_res_spin_unlock()) so this cannot
-trigger an actual preemption.
-This is inconsistent with other spinlock implementations
-(raw_spin_unlock_irqrestore() and bpf_res_spin_unlock_irqrestore()
-itself).
+--===============5374219254305281125==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
 
-Adjust the macro to ensure interrupts are enabled before enabling
-preemption, allowing to schedule at that point. Make the same
-modification in the error path of raw_res_spin_lock_irqsave().
+> diff --git a/include/asm-generic/rqspinlock.h b/include/asm-generic/rqspinlock.h
+> index 151d267a496b..4d46643f46cb 100644
+> --- a/include/asm-generic/rqspinlock.h
+> +++ b/include/asm-generic/rqspinlock.h
+> @@ -243,12 +243,20 @@ static __always_inline void res_spin_unlock(rqspinlock_t *lock)
+>  	({                                        \
+>  		int __ret;                        \
+>  		local_irq_save(flags);            \
+> -		__ret = raw_res_spin_lock(lock);  \
+> -		if (__ret)                        \
+> +		preempt_disable();                \
+> +		__ret = res_spin_lock(lock);      \
+> +		if (__ret) {                      \
+>  			local_irq_restore(flags); \
+> +			preempt_enable();         \
+> +		}                                 \
+>  		__ret;                            \
+>  	})
+>
+> -#define raw_res_spin_unlock_irqrestore(lock, flags) ({ raw_res_spin_unlock(lock); local_irq_restore(flags); })
+> +#define raw_res_spin_unlock_irqrestore(lock, flags) \
+> +	({                                          \
+> +		res_spin_unlock(lock);              \
+> +		local_irq_restore(flags);           \
+> +		preempt_enable();                   \
+> +	})
+>
+>  #endif /* __ASM_GENERIC_RQSPINLOCK_H */
 
-Fixes: 101acd2e78b1 ("rqspinlock: Add macros for rqspinlock usage")
-Cc: stable@vger.kernel.org
-Acked-by: Arnd Bergmann <arnd@arndb.de> # asm-generic
-Acked-by: Waiman Long <longman@redhat.com>
-Acked-by: Kumar Kartikeya Dwivedi <memxor@gmail.com>
-Signed-off-by: Gabriele Monaco <gmonaco@redhat.com>
+Related issue in kernel/locking/locktorture.c
+
+During the v2 review discussion, the Sashiko AI bot identified a
+pre-existing bug in the locktorture module where return values from
+raw_res_spin_lock() and raw_res_spin_lock_irqsave() are ignored in
+torture_raw_res_spin_write_lock():
+
+    static int torture_raw_res_spin_write_lock(int tid __maybe_unused)
+    {
+        raw_res_spin_lock(&rqspinlock);
+        return 0;
+    }
+
+Since these functions can fail with -EDEADLK or -ETIMEDOUT, ignoring
+the return value allows the caller to proceed into the critical section
+without holding the lock. When the torture thread later calls
+raw_res_spin_unlock(), it will cause an unbalanced preempt_enable()
+because the failed lock acquisition path already restored preemption.
+
+Furthermore, forcibly clearing the lock state could unlock a lock
+legitimately held by another thread, potentially causing lock state
+corruption.
+
+The same issue exists in torture_raw_res_spin_write_lock_irq() which
+also ignores the return value from raw_res_spin_lock_irqsave().
+
+Should these torture functions check the return values and handle lock
+acquisition failures appropriately?
+
+Reference: https://lore.kernel.org/all/20260610091602.318C01F00893@smtp.kernel.org/
+
+
 ---
-New submission of [1]
+AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
+See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
 
-[1] - https://lore.kernel.org/lkml/20260609094941.56122-1-gmonaco@redhat.com
----
- include/asm-generic/rqspinlock.h | 14 +++++++++++---
- 1 file changed, 11 insertions(+), 3 deletions(-)
-
-diff --git a/include/asm-generic/rqspinlock.h b/include/asm-generic/rqspinlock.h
-index 151d267a49..4d46643f46 100644
---- a/include/asm-generic/rqspinlock.h
-+++ b/include/asm-generic/rqspinlock.h
-@@ -243,12 +243,20 @@ static __always_inline void res_spin_unlock(rqspinlock_t *lock)
- 	({                                        \
- 		int __ret;                        \
- 		local_irq_save(flags);            \
--		__ret = raw_res_spin_lock(lock);  \
--		if (__ret)                        \
-+		preempt_disable();                \
-+		__ret = res_spin_lock(lock);      \
-+		if (__ret) {                      \
- 			local_irq_restore(flags); \
-+			preempt_enable();         \
-+		}                                 \
- 		__ret;                            \
- 	})
- 
--#define raw_res_spin_unlock_irqrestore(lock, flags) ({ raw_res_spin_unlock(lock); local_irq_restore(flags); })
-+#define raw_res_spin_unlock_irqrestore(lock, flags) \
-+	({                                          \
-+		res_spin_unlock(lock);              \
-+		local_irq_restore(flags);           \
-+		preempt_enable();                   \
-+	})
- 
- #endif /* __ASM_GENERIC_RQSPINLOCK_H */
-
-base-commit: e43ffb69e0438cddd72aaa30898b4dc446f664f8
--- 
-2.54.0
-
+CI run summary: https://github.com/kernel-patches/bpf/actions/runs/27265934925
+--===============5374219254305281125==--
