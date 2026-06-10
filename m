@@ -1,116 +1,227 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from sender4-op-o15.zoho.com (sender4-op-o15.zoho.com [136.143.188.15])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B4193D9DCB;
-	Wed, 10 Jun 2026 09:43:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781084609; cv=none; b=kR0697XlKguU6g9VTbrPSZYVXQWOG8hJFCooiEAud6Sb+LrKH2y3nRULAXnj1z6Lb9QWU3lI6eaUOH9m0zzagRuq6dkDCqFaT04eKaYmInqHGXon/IvtmFiW5mmU3X7YF10UDxovuiYSGs/zC3RtUvYR1acL2KRdt/2lXD4GJq0=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781084609; c=relaxed/simple;
-	bh=IJBwPmQY5Ds80ge09B85RTW8y7eglgINAmM6/+V5aSo=;
-	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
-	 Subject:From:To:Cc:Date; b=P+IPEbLXhNn1RCd/kO9D/CGOC/WbS9dnVogNtBE4bWCA/YyheOZQymV9WbHAQ6IE//FO6Ml1OtGyHFFCVM57DVE3kUxZ1iUSOObXH11Y7V5OjM4kurM0gYY0MLYXQqMsZvVAJ8QOspEeuS1qMhrMW91eho4q/AqfwsEwOL68d6I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=cEqH8LJK; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DEE2E406800;
+	Wed, 10 Jun 2026 12:29:48 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.15
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1781094590; cv=pass; b=TnfvLDr95hNUheTnKAunI7xXjAtWl9vRRvDY6uHQ7eNMH8yCjdCMXQ3nSRIDG76JDbRUv4cQOOIQZ2l16uh11WWMDXdvJ1gddbudISGKRl1BcMTae3Kr3W0i1vtyz13EqzIcJ5t5KmzjdIH8PowdC7EARbSIjRThSw/twb23MRU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1781094590; c=relaxed/simple;
+	bh=Ehyp2sjyZl9fsCoc42SNrwhrfpyVX2OogBueMKKla8k=;
+	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
+	 MIME-Version:Content-Type; b=ZfALBHkRxy0vPQW8rZOwHm+vB3RKH9qoEh1mU3+x63geoX1QhMKFq/tGsbG2c2qCTu2TrtaizwBWgdV0YN+QaIcIhtlhl9+/vNhIr3oBsGWv664gjNRwCv2e3J5Ltkk+5w7Vn1TiGI6GrIOCmmleUoFLR1m8o83mSv3mFPh5e6k=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty; spf=pass smtp.mailfrom=linux.beauty; dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b=WvDDwVgj; arc=pass smtp.client-ip=136.143.188.15
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.beauty
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="cEqH8LJK"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B254F1F00893;
-	Wed, 10 Jun 2026 09:43:27 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1781084608;
-	bh=PY9S597pltiIS4DOesWSWpeMRyCq6V7eq4ymyDsyJCI=;
-	h=In-Reply-To:References:Subject:From:To:Cc:Date;
-	b=cEqH8LJKd8OXnuiqYSvjfucD79mc8KdvhQnGzmNP54iE+sDGP5/76szASZUHQ6PLW
-	 Iw+QyPyYmQ4FjdoEOA8F6qOp3tIYidVb5+pFquUFA9FD5IHiNbyMtOLVCiFgqI87Ns
-	 yLKEyzXCLQByQAtgek+GaPTZRsIj05eoi/ecwi/UqMYP76SPjwLEaaLuCYK6Wtbeeg
-	 oGdTs7mxP9wx6b+DN1qC4Peb+nG6FD+uBPI4qoF8jXfSOuUzyUZKFBmHzAEGFQARa1
-	 I+1CAloIDdlKp9T0MicPWvfJwUH+LGfM82z0lXUkLmt9/z+qr9+gnDntG+JxOqEEFr
-	 OC7BkzfsuRNEA==
-Content-Type: multipart/mixed; boundary="===============5374219254305281125=="
+	dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b="WvDDwVgj"
+ARC-Seal: i=1; a=rsa-sha256; t=1781094549; cv=none; 
+	d=zohomail.com; s=zohoarc; 
+	b=P8D++KH7LHOQpE3Rrq+mnUydsarX4SA8jf37vzhCBVtdpXd9oICu2vM2tNQE2bw3EFi7weXZFFlzkHl3SxvVMsMUCMuPU8dM3Y+1GvEQzIF+Rpw+70J/Vn9h5lvB+1/bAaGU2fvr/YCOpyAXkTMf8ymyMRLKwp9+J+IJkNeTga8=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
+	t=1781094549; h=Content-Type:Content-Transfer-Encoding:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=ckf24HwJNr0/jCTjEgcbMFrOZMOX2rhuYx11RBKLbRI=; 
+	b=mUTmYgpyHmOoGuHezBtMDvJHAJNG71qY/+PD9+moxQK1Jkh8pok05MkSrIHHKZON0v60ZFQRagSjcoBE9A3ANnVxEQN0NUXx3D2VhglOkHIiMqyDzIJcAQk3agMZP+EERK4I+OV2mvfOdE1pnChPg/ID1zDYRGJXStzi/5plQyw=
+ARC-Authentication-Results: i=1; mx.zohomail.com;
+	dkim=pass  header.i=linux.beauty;
+	spf=pass  smtp.mailfrom=me@linux.beauty;
+	dmarc=pass header.from=<me@linux.beauty>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1781094549;
+	s=zmail; d=linux.beauty; i=me@linux.beauty;
+	h=Date:Date:From:From:To:To:Cc:Cc:Message-ID:In-Reply-To:References:Subject:Subject:MIME-Version:Content-Type:Content-Transfer-Encoding:Message-Id:Reply-To;
+	bh=ckf24HwJNr0/jCTjEgcbMFrOZMOX2rhuYx11RBKLbRI=;
+	b=WvDDwVgjxHIb6Ld4g/STPkj/qNyJrcX72eFf7bqJitIWy/EzMXAo4o6Q5lwnf870
+	homOUv6wByNuqLwm/c7J6HHcMwiq8lbk1Td4lWIWiSg0M2rKPVn77MjTWE8BnhZv2Zv
+	9YTeG3B1BxTxwESjMHgSAHbmGhCWNG4mipLqXTSM=
+Received: from mail.zoho.com by mx.zohomail.com
+	with SMTP id 1781094546927254.30322356312638; Wed, 10 Jun 2026 05:29:06 -0700 (PDT)
+Date: Wed, 10 Jun 2026 20:29:06 +0800
+From: Li Chen <me@linux.beauty>
+To: "John Ericson" <mail@johnericson.me>
+Cc: "Andy Lutomirski" <luto@kernel.org>,
+	"Christian Brauner" <brauner@kernel.org>,
+	"Kees Cook" <kees@kernel.org>, "Al Viro" <viro@zeniv.linux.org.uk>,
+	"linux-fsdevel" <linux-fsdevel@vger.kernel.org>,
+	"linux-api" <linux-api@vger.kernel.org>,
+	"LKML" <linux-kernel@vger.kernel.org>,
+	"linux-mm" <linux-mm@kvack.org>,
+	"linux-arch" <linux-arch@vger.kernel.org>,
+	"linux-doc" <linux-doc@vger.kernel.org>,
+	"linux-kselftest" <linux-kselftest@vger.kernel.org>,
+	"x86" <x86@kernel.org>, "Arnd Bergmann" <arnd@arndb.de>,
+	"Thomas Gleixner" <tglx@kernel.org>,
+	"Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
+	"Dave Hansen" <dave.hansen@linux.intel.com>,
+	"H. Peter Anvin" <hpa@zytor.com>, "Jan Kara" <jack@suse.cz>,
+	"Jonathan Corbet" <corbet@lwn.net>,
+	"Shuah Khan" <skhan@linuxfoundation.org>
+Message-ID: <19eb181fdd4.6d028f442844776.3737831021032223216@linux.beauty>
+In-Reply-To: <4e049396-377d-48a7-a34c-91318413a876@app.fastmail.com>
+References: <20260528095235.2491226-1-me@linux.beauty>
+ <20260528-madig-fachrichtung-fehlinformation-61117ba640da@brauner>
+ <CALCETrWJQpLR4n1cpichBk8=uExSKLWTMGU3BufGdk_WE_p5UA@mail.gmail.com>
+ <19eacd64508.26b92c022125848.262962729296162879@linux.beauty> <4e049396-377d-48a7-a34c-91318413a876@app.fastmail.com>
+Subject: Re: [RFC PATCH v1 00/13] exec: add spawn templates for repeated
+ executable startup
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Message-Id: <b45a6ddc670d998b1459004df9d6a03ef6754cf963417bfa764ca0bbc4716321@mail.kernel.org>
-In-Reply-To: <20260610090431.32427-1-gmonaco@redhat.com>
-References: <20260610090431.32427-1-gmonaco@redhat.com>
-Subject: Re: [PATCH bpf-next] rqspinlock: Fix order in raw_res_spin_(un)lock_irq to allow schedule
-From: bot+bpf-ci@kernel.org
-To: gmonaco@redhat.com,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,eddyz87@gmail.com,memxor@gmail.com,arnd@arndb.de,bpf@vger.kernel.org,linux-arch@vger.kernel.org,linux-kernel@vger.kernel.org
-Cc: gmonaco@redhat.com,stable@vger.kernel.org,longman@redhat.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
-Date: Wed, 10 Jun 2026 09:43:27 +0000 (UTC)
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Importance: Medium
+User-Agent: Zoho Mail
+X-Mailer: Zoho Mail
 
---===============5374219254305281125==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Hi John,
 
-> diff --git a/include/asm-generic/rqspinlock.h b/include/asm-generic/rqspinlock.h
-> index 151d267a496b..4d46643f46cb 100644
-> --- a/include/asm-generic/rqspinlock.h
-> +++ b/include/asm-generic/rqspinlock.h
-> @@ -243,12 +243,20 @@ static __always_inline void res_spin_unlock(rqspinlock_t *lock)
->  	({                                        \
->  		int __ret;                        \
->  		local_irq_save(flags);            \
-> -		__ret = raw_res_spin_lock(lock);  \
-> -		if (__ret)                        \
-> +		preempt_disable();                \
-> +		__ret = res_spin_lock(lock);      \
-> +		if (__ret) {                      \
->  			local_irq_restore(flags); \
-> +			preempt_enable();         \
-> +		}                                 \
->  		__ret;                            \
->  	})
->
-> -#define raw_res_spin_unlock_irqrestore(lock, flags) ({ raw_res_spin_unlock(lock); local_irq_restore(flags); })
-> +#define raw_res_spin_unlock_irqrestore(lock, flags) \
-> +	({                                          \
-> +		res_spin_unlock(lock);              \
-> +		local_irq_restore(flags);           \
-> +		preempt_enable();                   \
-> +	})
->
->  #endif /* __ASM_GENERIC_RQSPINLOCK_H */
+ ---- On Wed, 10 Jun 2026 01:27:47 +0800  John Ericson <mail@johnericson.me=
+> wrote ---=20
+ >=20
+ >=20
+ > On Tue, Jun 9, 2026, at 10:43 AM, Li Chen wrote:
+ > > Hi Andy,
+ > >
+ > > ---- On Tue, 09 Jun 2026 08:01:57 +0800  Andy Lutomirski <luto@kernel.=
+org> wrote ---
+ > > > [...]
+ > > >
+ > > > After contemplating this for a bit... why pidfd?  Doesn't a pidfd
+ > > > refer to an actual process that is, or at least was, running?  This
+ > > > new thing is a process that we are contemplating spawning.  I can
+ > > > imagine that basically all pidfd APIs would be a bit confused by the
+ > > > nonexistence of the process in question.
+ > > >
+ > >
+ > > Yes, I think that is a real concern.
+ > >
+ > > In my current local WIP I tried to keep that distinction explicit.
+ > > pidfd_spawn_open() returns a pidfs-backed builder fd, not a normal pid=
+fd
+ > > referring to a process. The builder fd is allocated as an anonymous pi=
+dfs
+ > > file with builder-specific file operations:
+ > >
+ > >     file =3D pidfs_alloc_anon_file("[pidfd_spawn]",
+ > >                                  &pidfd_spawn_builder_fops, builder,
+ > >                                  O_RDWR);
+ > >
+ >=20
+ > What does your builder fd point to, explicitly? For example in my other =
+reply I
+ > talked about how it was "real" process state. In my FreeBSD patch, for e=
+xample,
+ > I found there was already a status for a process "in exec", and I figure=
+d that
+ > was clean to reuse for one of these "embryonic" processes that also hadn=
+'t
+ > started running. I would reckon that Linux probably has some similar not=
+ions.
+ >=20
+ > > and the normal pidfd helpers still reject it because it does not use t=
+he
+ > > ordinary pidfd file operations:
+ > >
+ > >     struct pid *pidfd_pid(const struct file *file)
+ > >     {
+ > >         if (file->f_op !=3D &pidfs_file_operations)
+ > >             return ERR_PTR(-EBADF);
+ > >         return file_inode(file)->i_private;
+ > >     }
+ > >
+ > > So the current split is:
+ > >
+ > >     builder_fd =3D pidfd_spawn_open(...);       /* builder object */
+ > >     pidfd_config(builder_fd, ...);
+ > >     child_pidfd =3D pidfd_spawn_run(builder_fd, ...); /* real pidfd */
+ > >
+ > > Only the last fd is a normal pidfd for an actual child process. The bu=
+ilder
+ > > fd is only accepted by the builder operations.
+ > >
+ > > This avoids having to define what waitid(P_PIDFD), pidfd_send_signal()=
+,
+ > > pidfd_getfd(), poll(), etc. mean before the process exists.
+ >=20
+ > I wouldn't be so sure this is necessary/good. For example, I think it co=
+uld
+ > make sense to wait on a process that has yet to be started; one just wai=
+ts for
+ > both the process to start and the process to exit. Obviously a blocking =
+syscall
+ > in the thread that is spawning the process is not useful, but the asynch=
+ronous
+ > poll variation seems fine.
+ >=20
+ > As long as there is real process state here, it shouldn't be too hard to
+ > implement.
+ >=20
+ > > The downside is that it adds a separate open-style entry point and is =
+less
+ > > uniform than the pidfd_open(0, PIDFD_EMPTY) spelling Christian sketche=
+d.
+ >=20
+ > I do think there is no point having two file descriptors. The file descr=
+iptor
+ > that previously referred to the builder/embryonic process then can refer=
+ to the
+ > real process, right?
+ >=20
+ > > If people think there is a better way to represent the pre-spawn build=
+er
+ > > state, or if the preference is to integrate it directly into pidfd_ope=
+n()
+ > > with an explicit empty/future-pidfd state, I would be happy to discuss=
+ that.
+ >=20
+ > Hope the above answers your question? I suppose my ideas lean more on th=
+e
+ > "future" than "empty" side --- there is indeed a thread in the thread gr=
+oup,
+ > with real VM/namespace/file descriptor etc. state. Moreover, state gets
+ > initialized before the process is started, so the actual start is a pret=
+ty
+ > lightweight step of just letting the scheduler know the now-ready proces=
+s can
+ > be scheduled. The only thing that distinguishes the embryonic process fr=
+om a
+ > real one is simply that it isn't running --- i.e. isn't (yet) available =
+to be
+ > scheduled --- so the pidfds holders are free to poke at its state.
+ >=20
+ > Cheers,
+ >=20
+ > John
+ >=20
 
-Related issue in kernel/locking/locktorture.c
+Thanks, this helped a lot. I looked at FreeBSD/OpenBSD/XNU after your
+note. FreeBSD has P_INEXEC, OpenBSD has PS_INEXEC, and XNU seems even
+closer with P_LINTRANSIT, described as "process in exec or in creation".
+Linux does not seem to have a single equivalent today: current->in_execve
+is only an LSM hint, while the real synchronization is spread across
+exec_update_lock, cred_guard_mutex, and the exec path.
 
-During the v2 review discussion, the Sashiko AI bot identified a
-pre-existing bug in the locktorture module where return values from
-raw_res_spin_lock() and raw_res_spin_lock_irqsave() are ignored in
-torture_raw_res_spin_write_lock():
+I am switching my local WIP from the two-fd builder model to one fd,
+closer to Christian's sketch:
 
-    static int torture_raw_res_spin_write_lock(int tid __maybe_unused)
-    {
-        raw_res_spin_lock(&rqspinlock);
-        return 0;
-    }
+fd =3D pidfd_open(0, PIDFD_EMPTY);
+pidfd_config(fd, ...);
+pidfd_spawn_run(fd, ...);
 
-Since these functions can fail with -EDEADLK or -ETIMEDOUT, ignoring
-the return value allows the caller to proceed into the critical section
-without holding the lock. When the torture thread later calls
-raw_res_spin_unlock(), it will cause an unbalanced preempt_enable()
-because the failed lock acquisition path already restored preemption.
+In my current local version, I still use copy_process(), so the fd points
+at a real task_struct/pid that is not woken until run. Following
+Christian's point that existing APIs can handle this not-yet-running case
+with ESRCH, I currently make ordinary pidfd operations that need a real
+started process return -ESRCH before start.
 
-Furthermore, forcibly clearing the lock state could unlock a lock
-legitimately held by another thread, potentially causing lock state
-corruption.
+I am not sure yet whether Linux should grow a general exec/creation
+transition state like that, or whether a narrower future-process
+lifecycle is enough for this API. I will think more about that when
+working on the pristine process version.
 
-The same issue exists in torture_raw_res_spin_write_lock_irq() which
-also ignores the return value from raw_res_spin_lock_irqsave().
+Regards,
+Li=E2=80=8B
 
-Should these torture functions check the return values and handle lock
-acquisition failures appropriately?
-
-Reference: https://lore.kernel.org/all/20260610091602.318C01F00893@smtp.kernel.org/
-
-
----
-AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
-See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
-
-CI run summary: https://github.com/kernel-patches/bpf/actions/runs/27265934925
---===============5374219254305281125==--
