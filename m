@@ -1,99 +1,150 @@
-Received: from mail.alien8.de (mail.alien8.de [65.109.113.108])
+Received: from fout-a5-smtp.messagingengine.com (fout-a5-smtp.messagingengine.com [103.168.172.148])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B2BD736C9C2;
-	Wed, 10 Jun 2026 19:19:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=65.109.113.108
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CE9A4F9E8;
+	Wed, 10 Jun 2026 19:39:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.148
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781119193; cv=none; b=YZNsCubW6+/4uH0BbiDk7jMLN8oqQXaAJuO0BP6gPEJD8rXdKgd7Tybgy9XbY6GfvvEYWKa3kxkbDGnPsUY10nIggAyq0Oj+c0y7CVlRy7PUlnJrV8dcO5STGyoG+PKdPFAcx4hiqqV/Gh4KJahnMJDEKFzIGA9OhNmMyfDvShI=
+	t=1781120391; cv=none; b=QlyLdCqHs6jAEVh3OaReyxcIFlU3QT8VZYYF6skIqNKNvW1RJJ8LS/rjKogSAMzxjccgyJ/gRIPh4xgKYn4/fs2+f6uNIJBhZzLhziCWWwIZf3tFFuMV5VL15kfv//ou+c9l8FhlxmVaJVGgui6FVtVm1bKCTRLLLpWhLY1qX5U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781119193; c=relaxed/simple;
-	bh=5J0IeNThya3UT08dAWzEzDsB32UrFOWKtcPSoW1ZZkQ=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=fi24o85fIV6ZlBc3AnGS01KIw2wzPlwE2cVW1IabFQfcxFp8B0VCxoqdJbhtYwDfi97lZuF2qFC0pl9pnWyeyQJaW9uw7OKRUUa5uEKNeKa0GPBN6FFoEXorUDBrKKZ3iE1QCjOdbv/L7X+ts4JP7StAiT+drH9fTDsNRuhqsLg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de; spf=pass smtp.mailfrom=alien8.de; dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b=JceC9ePc; arc=none smtp.client-ip=65.109.113.108
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=alien8.de
+	s=arc-20240116; t=1781120391; c=relaxed/simple;
+	bh=GWZ9PDkv6iAEVxTpAqny6/ydn9TMuFl2SSpXyIW0BUE=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=KMLDSZ0rtR1fk9F0dCIkofIAB7SvOK4QxcGhkiZNof5sDxd+uFL+wc97gLPVDGVRWEEqS1HTqWhG2f2LYFYlejtTO1S72qO2AcnGE9jLKK11A3Fr8ZGI7ueUDrnzpYcxyqcNsAhv3iS2BeuyQODz20b5xnVZZfQ8pVpuf1SeU3o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=JcwOAfGS; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=I6N1ITuP; arc=none smtp.client-ip=103.168.172.148
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b="JceC9ePc"
-Received: from localhost (localhost.localdomain [127.0.0.1])
-	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTP id 4EBA340E0177;
-	Wed, 10 Jun 2026 19:19:49 +0000 (UTC)
-X-Virus-Scanned: Debian amavisd-new at mail.alien8.de
-Authentication-Results: mail.alien8.de (amavisd-new); dkim=pass (4096-bit key)
-	header.d=alien8.de
-Received: from mail.alien8.de ([127.0.0.1])
-	by localhost (mail.alien8.de [127.0.0.1]) (amavisd-new, port 10026)
-	with ESMTP id 8nyn0l_YIkCi; Wed, 10 Jun 2026 19:19:39 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=alien8;
-	t=1781119179; bh=JysIXdHqb/AfYm9Wq38SegXh3xO5K+ZoKmjZT9fhfWE=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=JceC9ePcoFi7qjCMH22o5S3xFxLlydWzyZvW2u2eZHiksbHKuXbdnlx1p7ujPkotk
-	 C6U9Up8ZdzWzvfl5udJAHcg3aUuEpkPEqQfE/CGCSQffYtmKnBguQ6WTj5WY4FQprz
-	 kV+FpnxtiSQ0ivUNwWCVSZrJM1Hy1HoYuBh5r9Cco8R3hbMChgQrInyAdK+XhUy9PF
-	 /UEj+kTvgroGGKCaoG7SwdwvyR/7DzCwqSW9d+iCodMCRxW8+psphgPVDq8ixaGDUB
-	 E7T1v4mLvFr95/m3DqW6qxBPbxQuEOdb1hY3zfA1sZqitymqRXE4UrpkZB64mDuekD
-	 Raqrr+fQ7MKy/jG8tQouQ3bqfof37zTlEZaeFNO78nEdLhQi+NgaPIFK12z5+lVNvr
-	 3Ir2xmbh9mVSmV6m6buYFSw7v/EEWbJ0FXuqxR7+OOluS37N8Elk9L3NTDm7ODGKCA
-	 NM9tHMpX6PhuDnI7dgOlgYafrusn2O2UbFI6Ap/ZApb1UeyiMQoi9oocL+K23R+k0Y
-	 pIU3bYEMMK0Nqewco6E5Rv7TDUn0Ks7hioOYxvBhnx6sghZga+WLbk9gz1uL4KIBfC
-	 NRqlI903GpRy75JLK1l+nska7lWTSoonARyvpSViO6PgrALz9sGL0dRvmL03edO1sc
-	 IkpYbKVJMDMp8u/PzvVKuJoE=
-Received: from stx.tnic (unknown [IPv6:2600:1700:38ca:c00::1a])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (P-256) server-signature ECDSA (P-256) server-digest SHA256)
-	(No client certificate requested)
-	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 8F43D40E01B5;
-	Wed, 10 Jun 2026 19:19:23 +0000 (UTC)
-Date: Wed, 10 Jun 2026 12:19:20 -0700
-From: Borislav Petkov <bp@alien8.de>
-To: Li Zhe <lizhe.67@bytedance.com>
-Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
-	dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org,
-	linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-mm@kvack.org, mingo@redhat.com,
-	rppt@kernel.org, tglx@kernel.org, x86@kernel.org
-Subject: Re: [PATCH v4 6/8] string: introduce memcpy_streaming() helpers
-Message-ID: <20260610191920.GBaim4uMX3z6OqJwHr@fat_crate.local>
-References: <20260607190804.GAaiXBlGO2eRcfs1oB@fat_crate.local>
- <20260609120132.84323-1-lizhe.67@bytedance.com>
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="JcwOAfGS";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="I6N1ITuP"
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailfout.phl.internal (Postfix) with ESMTP id CBB35EC01F3;
+	Wed, 10 Jun 2026 15:39:48 -0400 (EDT)
+Received: from phl-imap-05 ([10.202.2.95])
+  by phl-compute-04.internal (MEProxy); Wed, 10 Jun 2026 15:39:48 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1781120388;
+	 x=1781206788; bh=NqdYBQWFHFEli9IDL2ysVJrxqttFz0CwMRMUHf20k5o=; b=
+	JcwOAfGSwnDPHaqGRBnSrNFvACtlAf++J+VvqEDppE7KjX2zVGASiBjX8XTLyTEb
+	cqOBrQI+SuJ9MUd5bfbXFt9pxJdX6BHxI4fPeyft01b0cr+eQOqxK33FYSOvbeZc
+	tRrnv08Bfo1Fzhhke1dCErEazmdZrtYtV1GAalCKdeMqMxcJak0S7eIkrFt1tvwm
+	CRpQwpdY+xFmBmXNDrxDCNuP7IRP0iNV08B3eZxjgtVXkb7VzZ93TNpNOLgYy1HN
+	BeCY4FgiMcw19ZA2d/ENd0Pe0vTNhOvd4toV3b3HleVSV8an8xuBqTMJgieEi9S1
+	VIWCftbNWgl1W64w+LTI3g==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1781120388; x=
+	1781206788; bh=NqdYBQWFHFEli9IDL2ysVJrxqttFz0CwMRMUHf20k5o=; b=I
+	6N1ITuPqciMp+fJS46tN/KAt0w9ZdsFknHL6VsoptSaftiP6ZMysp7hwgtXQmfOV
+	oJgYbqNzyYoTuMky2HJujfa8IiXtxDp9dtJ2786fjRixCV7+I9oPd4Fqpq1t80HH
+	UaJ/CK8uPdb4/78U0QSq0coY1ZZPfurDnb7XI8jnZkXwhwp9Fo4suxEE/LgssSBM
+	hlwesLNZ8j/2qkyRbx8nIZaOwPkDJCG9fr9c1Am3tcZc1d67CMBi4pEcxU0dPheu
+	tgv2HzOmTPCQSPF0wetcewMJUL0Rd6qExO4/k9xawqDdC6Z/+g9DfEAZFVlKmsTo
+	K1EAJeRgidM8prBnEYjHg==
+X-ME-Sender: <xms:hL0pagAGyeARbP60I-PXfw1KKerO2J1PXspSi1Y9-gl3WPgub8wVuA>
+    <xme:hL0patVhirQQuEosRQls7Z3zXuxny0BA-g3NFHj2wcI2ZzySGKsDEcwCE7PEO8Xk2
+    WNELPol66FZeYL6boNnxXkceyfMyX4MTzt1hb-BNhLFRt99ZRaeXEM>
+X-ME-Proxy-Cause: dmFkZTEJXg0EkZJzjkCtDsSVin1L8yZ9dOeiZBu6dVbrUkJcNcMI+00RYYQUt+HNHfq2N6
+    awqa3xAnhFAZMvIxKIt5aFgAiBa2veTzjWYXuquThKe0EDKhOmTZ2oeS6Cy73zBiT3fyOo
+    WEpuk8Iq+ygICDcHaLClkqAwcHLHplK61L7Yx+O7XWfbiW8CtWq2dBLcunWgdSZtruhl3h
+    YJqAIxQubJ8ey2TzHs43gr2IjVHYRyuNBvdmcAJ8UT31zDjtBcKZS4YpE97yyAIRbIiYAe
+    GuozHrUZrRHj06VtpsKS+5L4kbirezp/I+P+iLUFQidXTpOVgGLe+Tot2vCWCOpXeiqym0
+    +7IU5jKrZDrkrbyjOrFNEwdUz3BkbFHr7VAHPg7PlrVkDK712FVsnuRRTFIlMVLpByP/JD
+    HjOaCdy9CNhOeFr5bWZMynuDJO87VB94owBOgmHyAlvT9eNCBS3lv6sh6769UzIT+ErPxU
+    mPhjnju3DGUYEm70L+ZydRUcsfQHlMgfBz7tZVcQ9fSw/a9mvDKodE9PDMvyi/fNIP5Vmq
+    +PqgaSGCL/To07JCm/vzz/cNRai3A7tzJqnSuVUIIuuvClPtRv74gaX6lD1HyWDUW/ukgV
+    dhWUUVLM9fFi8ObGy0xGBx8ogF3tGmDI8oyXeipJQNCzDHl1f8ZvJfYXnsqw
+X-ME-Proxy: <xmx:hL0paia-HPj5dpQVGyDh8eMOBO39bArDr2w-JmJ1d1fvN8Hd6GJYSw>
+    <xmx:hL0paiXYp0l_HiENIiswa08NyIxTjD8sXC1_HeSrLI6BdoRcyGMS7Q>
+    <xmx:hL0paoljrfUsOMPqweTNUVlLBtHvBTJVsEYmaUUuuMdz1GNyZpRhrw>
+    <xmx:hL0patAFyxpvWCPMTrAx2fe_tKAM1owJAmjLFHHmcpz4PsRESz16ig>
+    <xmx:hL0papyrflcnvuaGFz8TQrH0UuElCwbZSvsYH_FjJfmKA0iEcGXtkJa3>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id 38D241820086; Wed, 10 Jun 2026 15:39:48 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+X-ThreadId: A35GQ856c1Rw
+Date: Wed, 10 Jun 2026 21:39:19 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Steve Grubb" <sgrubb@redhat.com>, "Ricardo Robaina" <rrobaina@redhat.com>
+Cc: audit@vger.kernel.org, linux-kernel@vger.kernel.org,
+ Linux-Arch <linux-arch@vger.kernel.org>, "Paul Moore" <paul@paul-moore.com>,
+ "Eric Paris" <eparis@redhat.com>
+Message-Id: <4c885308-7556-49a9-836b-37089ac3bafb@app.fastmail.com>
+In-Reply-To: <2021591.7Z3S40VBb9@x2>
+References: <20260610164719.2668906-1-rrobaina@redhat.com>
+ <476e0a44-c6fb-4e6a-af56-a9f1d054518a@app.fastmail.com>
+ <CAABTaaBBVP6eY8D+a1KTgfZ3x8v3egnKTiQLRQfXPiOhpmQXjg@mail.gmail.com>
+ <2021591.7Z3S40VBb9@x2>
+Subject: Re: [PATCH] audit: add missing syscalls to PERM class tables
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20260609120132.84323-1-lizhe.67@bytedance.com>
+Content-Transfer-Encoding: quoted-printable
 
-On Tue, Jun 09, 2026 at 08:01:32PM +0800, Li Zhe wrote:
-> That said, I see your layering point. If arch/x86/include/asm/string.h
-> is the preferred place for the arch-visible wrapper, I can move the
-> wrapper there in the next revision while keeping the x86_64-specific
-> implementation details in string_64.h.
+On Wed, Jun 10, 2026, at 20:13, Steve Grubb wrote:
+> On Wednesday, June 10, 2026 1:40:47=E2=80=AFPM Eastern Daylight Time R=
+icardo Robaina=20
+> wrote:
 
-No, 64-bit only's fine. We don't put any new features into 32-bit already
-anyway but that wasn't clear from the commit message what your goal is.
+>> > scripts/syscall.tbl:79  stat64  fstatat64                     =20
+>> > sys_fstatat64 scripts/syscall.tbl:80  stat64  fstat64              =
+    =20
+>> >      sys_fstat64 arch/x86/entry/syscalls/syscall_32.tbl:18       i3=
+86  =20
+>> > oldstat                 sys_stat
+>> > arch/x86/entry/syscalls/syscall_32.tbl:28       i386    oldfstat   =
+    =20
+>> >        sys_fstat arch/x86/entry/syscalls/syscall_32.tbl:84       i3=
+86  =20
+>> > oldlstat                sys_lstat
+>> > arch/x86/entry/syscalls/syscall_32.tbl:195      i386    stat64     =
+    =20
+>> >        sys_stat64                      compat_sys_ia32_stat64
+>> > arch/x86/entry/syscalls/syscall_32.tbl:196      i386    lstat64    =
+    =20
+>> >        sys_lstat64                     compat_sys_ia32_lstat64
+>> > arch/x86/entry/syscalls/syscall_32.tbl:197      i386    fstat64    =
+    =20
+>> >        sys_fstat64                     compat_sys_ia32_fstat64
+>> > arch/x86/entry/syscalls/syscall_32.tbl:300      i386    fstatat64  =
+    =20
+>> >        sys_fstatat64                   compat_sys_ia32_fstatat64
+>> > arch/alpha/kernel/syscalls/syscall.tbl:224      common  osf_stat   =
+    =20
+>> >                sys_osf_stat arch/alpha/kernel/syscalls/syscall.tbl:=
+225 =20
+>> >    common  osf_lstat                       sys_osf_lstat
+>> > arch/alpha/kernel/syscalls/syscall.tbl:226      common  osf_fstat  =
+    =20
+>> >                sys_osf_fstat
+>> Hi Arnd,
+>>=20
+>> Thanks for reviewing this patch! You're right, it seems all these stat
+>> variants should be added as well. Steve and Paul, correct me if I'm
+>> wrong here, please.
+>
+> Alpha is unsupported. Those are True64 compatibility syscalls. You can=20
+> include it and #ifdef will filter it everywhere else.  But, yeah. I gu=
+ess the=20
+> rest are ok. I don't pay much attention to the 32 bit arches.
 
-> Thinking about it more, I agree that this is hard to justify for a
-> generic helper. For this series, what really matters is that the
-> struct page copies in patch 8 can use the existing x86
-> memcpy_flushcache() fastpaths where that is beneficial; I do not need
-> patch 6 to impose extra selection policy on unrelated callers.
+Ah, indeed. I assumed that these were part of the syscalls that
+originally came from osf1 but are still used on Linux systems,
+but it appears that the stat family was never used like that
+with glibc.
 
-What I am asking is, you need to show numbers why those helpers exist.
+The oldstat family is actually in a similar category, as those
+were only used on libc5 or earlier. stat64 is definitely
+still needed on 32-bit userspace with 32-bit time_t.
 
-Your 0th message is talking about measuring this in VMs. If this workload is
-not VM-specific, then those numbers don't matter. They're just handwaving.
-
-So I'd need a good justification why we need the changes before we go any
-further.
-
-HTH.
-
--- 
-Regards/Gruss,
-    Boris.
-
-https://people.kernel.org/tglx/notes-about-netiquette
+     Arnd
