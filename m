@@ -1,88 +1,126 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D7AD9233921;
-	Wed, 10 Jun 2026 07:28:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 13BF53AD528
+	for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2026 09:05:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781076522; cv=none; b=M3TGiIwef/3Ifr4Bt7VrMucSnDkBnG8ckcnNSj5OSvgP0+Apxu5ah329zKfhBMBM52v1eWyhVPLYrKzqS+iGHMvOxyoY4hjvRVz28Xi26qw1zbeufHBZlzqLoi4C+dZh05BLZfDjzSwzLz7qRzukWsSPS3nFmaqYBAoHybHj9YE=
+	t=1781082305; cv=none; b=Imh3qbBc/Tdn1YOUn67cTEYDg1EZ/aQksuLypIwBjeQmJ6+nowRSfcipR96qOmaAF7Ap4gxUTfeL7twRC30UIPLV1RBl/Q2gclOsCygTcECqBBLiNoBRK73stkd+jdTqfYHbXOm1Hb0voSPGNNKgM24q0Px2iqbBMpuY+mEu5kA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781076522; c=relaxed/simple;
-	bh=XVzT4dC9J9FFpWrYJ1jidUjuN9wz2V7gqq0wjB+r38s=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=LUOSeJBZUSZxnvYfJVR0HYtlj7W4K9l17CB18hf3XuzPRkCegJjsLWSb8QiKvmawcaUNXrlO65syW+kzLYOMyQ1Js6229GRgaQJaMRNdp1e3tCTuY7+WWavbHY5cM7Wz9C72PysN3deF80x9KQHCQtEfSreJY6zceU23sFr46ZI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=fgvSiRD0; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1781082305; c=relaxed/simple;
+	bh=IRQm3dt0P9dV3RkqQkn/DS+iNiQJKrzZzaxRKL+uIUE=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=HXj1DAlgdaCav6d5jHA7Kn4oeByWXiIDXeBxK+oB9aeOX0cZy7TxlGvjBVMLa3V+kJT3R+mo+Rrc2TgKSU4jBgNhDmO2PnpRsIK8LKFzlSLaCE/v3T3rct899jpyCDuSl2iOf51XyqfcGPyV6TcAsPzRsrD3rAajORJfFrx0iFg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=NkyoJb+B; arc=none smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="fgvSiRD0"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9D40D1F00893;
-	Wed, 10 Jun 2026 07:28:35 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1781076521;
-	bh=Ujw8//AhBz2ofNEZXVOO0whE9ziRkQU7WuP9Q2n1nw4=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=fgvSiRD0nlrWeKZ00ARxxj8+SIeSOssxKo/IteKl5SNNXShxIV9RzZYZjW2fJDF4Y
-	 BRLJiLnad8I+/cgypVTOTIn/c5oxyEme4EK0poeNVEmG9QKE7i/U92Q7yjVt2JPZoo
-	 KKab8o9SdIM2XvpGoVICIQ4XwdgAVtaPGhU54ayQfCnfLlEaW3lPQVBllb9BkmzECO
-	 nE7j1CjEqBtnt3cNbOS7Erz0xZkaANJGk+ly24VtiJa0PCDT3qoW/N+IRr4nTvwqZd
-	 Z5PKSNrIQl7+mm2qzkxCg4AIGhgZkp5e7n9mKFUe2JXKDXK2WgGk0nXZXZ5u3/BshM
-	 PjG2C1OvGIzpg==
-Date: Wed, 10 Jun 2026 09:28:32 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Li Chen <me@linux.beauty>, Kees Cook <kees@kernel.org>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 
-	linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org, 
-	Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>
-Subject: Re: [RFC PATCH v1 00/13] exec: add spawn templates for repeated
- executable startup
-Message-ID: <20260610-saufen-zerfallen-uncool-5608105e0d8e@brauner>
-References: <20260528095235.2491226-1-me@linux.beauty>
- <20260528-madig-fachrichtung-fehlinformation-61117ba640da@brauner>
- <CALCETrWJQpLR4n1cpichBk8=uExSKLWTMGU3BufGdk_WE_p5UA@mail.gmail.com>
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="NkyoJb+B"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1781082303;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=KHpLRjzpwGKmiwk/zPO/cOdYmfizCDf0cuh4d+ia5yw=;
+	b=NkyoJb+BPBoLCSO/LnDLDS2X4CC1zb994UFsaMIthSIKqlljU8aKAxqfqU8kABJA++DhOV
+	RV80cELa6X9EJoNHsJarU+TScC/6F3GcVVkIus0BYwFxRbrETdgZ6HVr90/2GzpTikoTG9
+	eo6b6RxY93MRqqpT6KAtLr5r7apYPbE=
+Received: from mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-686-RCX4qt4GN3CKsitOWJJBSg-1; Wed,
+ 10 Jun 2026 05:04:57 -0400
+X-MC-Unique: RCX4qt4GN3CKsitOWJJBSg-1
+X-Mimecast-MFC-AGG-ID: RCX4qt4GN3CKsitOWJJBSg_1781082296
+Received: from mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.4])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mx-prod-mc-06.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 9CE3318009DE;
+	Wed, 10 Jun 2026 09:04:55 +0000 (UTC)
+Received: from fedora-pc.redhat.corp (headnet01.pony-001.prod.rdu2.dc.redhat.com [10.11.142.86])
+	by mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id E98193008B35;
+	Wed, 10 Jun 2026 09:04:51 +0000 (UTC)
+From: Gabriele Monaco <gmonaco@redhat.com>
+To: Alexei Starovoitov <ast@kernel.org>,
+	Daniel Borkmann <daniel@iogearbox.net>,
+	Andrii Nakryiko <andrii@kernel.org>,
+	Eduard Zingerman <eddyz87@gmail.com>,
+	Kumar Kartikeya Dwivedi <memxor@gmail.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	bpf@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Cc: Gabriele Monaco <gmonaco@redhat.com>,
+	stable@vger.kernel.org,
+	Waiman Long <longman@redhat.com>
+Subject: [PATCH bpf-next] rqspinlock: Fix order in raw_res_spin_(un)lock_irq to allow schedule
+Date: Wed, 10 Jun 2026 11:04:29 +0200
+Message-ID: <20260610090431.32427-1-gmonaco@redhat.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <CALCETrWJQpLR4n1cpichBk8=uExSKLWTMGU3BufGdk_WE_p5UA@mail.gmail.com>
+X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.4
 
-On Mon, Jun 08, 2026 at 05:01:57PM -0700, Andy Lutomirski wrote:
-> On Thu, May 28, 2026 at 4:05 AM Christian Brauner <brauner@kernel.org> wrote:
-> >
-> > On Thu, May 28, 2026 at 05:52:21PM +0800, Li Chen wrote:
-> > > Hi,
-> > >
-> > > This is an early RFC for an idea that is probably still rough in both the
-> > > UAPI and implementation details. Sorry for the rough edges; I am sending
-> > > it now to check whether this direction is worth pursuing and to get
-> > > feedback on the kernel/userspace boundary.
-> >
-> > The idea of having a builder api for exec isn't all that crazy. But it
-> > should simply be built on top of pidfds and thus pidfs itself instead.
-> > It has all the basic infrastructure in place already. Any implementation
-> > should also allow userspace to implement posix_spawn() on top of it.
-> >
-> > fd = pidfd_open(0, PIDFD_EMPTY /* or better name */)
-> >
-> > pidfd_config(fd, ...) // modeled similar to fsconfig()
-> >
-> 
-> After contemplating this for a bit... why pidfd?  Doesn't a pidfd
-> refer to an actual process that is, or at least was, running?  This
-> new thing is a process that we are contemplating spawning.  I can
-> imagine that basically all pidfd APIs would be a bit confused by the
-> nonexistence of the process in question.
+raw_res_spin_unlock_irqrestore() calls raw_res_spin_unlock() and then
+restores interrupts, this means preemption is enabled when interrupts
+are still disabled (as part of raw_res_spin_unlock()) so this cannot
+trigger an actual preemption.
+This is inconsistent with other spinlock implementations
+(raw_spin_unlock_irqrestore() and bpf_res_spin_unlock_irqrestore()
+itself).
 
-I don't think that would be a problem because every api just needs to
-handle ESRCH. Ignoring that for a second: the mount api has a builder fd
-that is later transformed into a pidfd. Which is easily doable here as
-well. My point is that all the infrastructure building blocks already
-exist in pidfs.
+Adjust the macro to ensure interrupts are enabled before enabling
+preemption, allowing to schedule at that point. Make the same
+modification in the error path of raw_res_spin_lock_irqsave().
+
+Fixes: 101acd2e78b1 ("rqspinlock: Add macros for rqspinlock usage")
+Cc: stable@vger.kernel.org
+Acked-by: Arnd Bergmann <arnd@arndb.de> # asm-generic
+Acked-by: Waiman Long <longman@redhat.com>
+Acked-by: Kumar Kartikeya Dwivedi <memxor@gmail.com>
+Signed-off-by: Gabriele Monaco <gmonaco@redhat.com>
+---
+New submission of [1]
+
+[1] - https://lore.kernel.org/lkml/20260609094941.56122-1-gmonaco@redhat.com
+---
+ include/asm-generic/rqspinlock.h | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/include/asm-generic/rqspinlock.h b/include/asm-generic/rqspinlock.h
+index 151d267a49..4d46643f46 100644
+--- a/include/asm-generic/rqspinlock.h
++++ b/include/asm-generic/rqspinlock.h
+@@ -243,12 +243,20 @@ static __always_inline void res_spin_unlock(rqspinlock_t *lock)
+ 	({                                        \
+ 		int __ret;                        \
+ 		local_irq_save(flags);            \
+-		__ret = raw_res_spin_lock(lock);  \
+-		if (__ret)                        \
++		preempt_disable();                \
++		__ret = res_spin_lock(lock);      \
++		if (__ret) {                      \
+ 			local_irq_restore(flags); \
++			preempt_enable();         \
++		}                                 \
+ 		__ret;                            \
+ 	})
+ 
+-#define raw_res_spin_unlock_irqrestore(lock, flags) ({ raw_res_spin_unlock(lock); local_irq_restore(flags); })
++#define raw_res_spin_unlock_irqrestore(lock, flags) \
++	({                                          \
++		res_spin_unlock(lock);              \
++		local_irq_restore(flags);           \
++		preempt_enable();                   \
++	})
+ 
+ #endif /* __ASM_GENERIC_RQSPINLOCK_H */
+
+base-commit: e43ffb69e0438cddd72aaa30898b4dc446f664f8
+-- 
+2.54.0
+
