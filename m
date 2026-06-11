@@ -1,100 +1,89 @@
-Received: from va-1-111.ptr.blmpb.com (va-1-111.ptr.blmpb.com [209.127.230.111])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D1F9A3BADA9
-	for <linux-arch@vger.kernel.org>; Thu, 11 Jun 2026 09:38:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.111
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 166473FBEBC;
+	Thu, 11 Jun 2026 13:45:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781170719; cv=none; b=i8WK4kwAUZUqM47XcvxOl/gyF0evHyNbUjKx4DptzZomeISJFtZhz5J/Wgs7G8Fx2ZJW42mjbZCytsgdlXmlxVs4FLgJT9quJHaexBjsgF/PgjKRycXP6rXdU/BJIcxvWatC+mqoHfByutViSGOrPzzCaspJmWhpRRKqobDWznQ=
+	t=1781185509; cv=none; b=UxdEoKvV+APV+VffqgSggF2jwAJXfAuHDb8nVfT/zfyYGswq5Mu/80DVcvjaPrB+458w2KC6PJMfwingSX0eebME9RyLJIZ1ro7qAnlCV3GUKtWKTQLz3c4rUsbau2ENXiOC08IvkkB4B13gmY8jVmrlw3veeuwG4Y4gla9GPy4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781170719; c=relaxed/simple;
-	bh=kNPLZmfssJekzdvb4cuoNxf9QPode5jfaxyfBMiR+30=;
-	h=Cc:From:Date:Message-Id:Content-Type:In-Reply-To:References:To:
-	 Subject:Mime-Version; b=OQGCjy+PqNqe4AxKKQquJxxbAcIvKSk7eBz3uAOFSNavKsab8Jp3piU0ODfXdwkPymDhO5FZubmmbJQIMNWMjtk3fhjrISPYEs9lW3lIeZYNxp7MJ7K5KvcZKH5AabyeVPd+AbGJW3TutzFJ3cvkI9myZokXdqbHPISSgAo9u8Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=JceRipBg; arc=none smtp.client-ip=209.127.230.111
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1781185509; c=relaxed/simple;
+	bh=kUIwqYLzboTXSW9mocUnEjpqnAKtc9Q3KI2UV2OLx0Y=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=l5DWruKl6rGFWLqoSTUu5V984+xtht/7FiC2XTs5LiBCq14bENWnu7/VWepVS+myI6vBr1/6l+0AbNt0+k9QghSMK474oc2O+UXjpIqIz10rJpjfgRg8nqtrQORcNBm9mx7Q5SEzt994vKhaKyzihaswMEHV+DYZdS8b5ODXI8I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=ibs/lTWy; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="JceRipBg"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="ibs/lTWy"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1781170705; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=c9l8T6vuQd8ofYyGxx3NB8W3+1YzVxoYB7Bmx+2O71A=;
- b=JceRipBgMnyCRSncb1gLxnjk1tDDIUwYUSfCVm6p3SAF8MkXhHndETHQk+4e5cLPnD93C5
- GsPld2iGj6XCVhEn3+0+/gmsYTxLA5lOMKiNMbLyadk4zCp6Mi+sjHxHqr4vi6AcCEcyzu
- ACqFI1bvgsb03URfC02v/4u0frmXndutq+ep7SXNtP3tLodBI3f9y8DcFlCSdiSre2e09L
- CWkEtxFe2tpwk8OODH2NH1WsOJ1vWCmEGeSfWQ+S1KzcFW87OMay3NOcTNpTRo9MlyDJEs
- BdarHub4dXuqDyVMdWu3RHxT6j4PvnmAIJD4fpudFlrpIbroi1i1hv8lQ+OX/g==
-Cc: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<dave.hansen@linux.intel.com>, <david@kernel.org>, <kees@kernel.org>, 
-	<linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
-	<lizhe.67@bytedance.com>, <mingo@redhat.com>, <rppt@kernel.org>, 
-	<tglx@kernel.org>, <x86@kernel.org>
-Content-Transfer-Encoding: 7bit
-X-Lms-Return-Path: <lba+26a2a820f+d57ec4+vger.kernel.org+lizhe.67@bytedance.com>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Date: Thu, 11 Jun 2026 17:38:02 +0800
-Message-Id: <20260611093802.74707-1-lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=UTF-8
-In-Reply-To: <20260610191920.GBaim4uMX3z6OqJwHr@fat_crate.local>
-References: <20260610191920.GBaim4uMX3z6OqJwHr@fat_crate.local>
-X-Mailer: git-send-email 2.45.2
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-To: <bp@alien8.de>
-Subject: Re: [PATCH v4 6/8] string: introduce memcpy_streaming() helpers
+	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=m0fD9KCk/6I6qo6Wg6wfui77ADSGp/LJkYfEAup3lwY=; b=ibs/lTWyAjLVWXS3n4wPjA79OS
+	ITb//Iv1CxtQUrx/67IL+hYSamUfqJOQPft+Dglj3UFpe6AehWYKHnyrdmyQlnLCCHnR37eSF04YY
+	BV8xlmAh95887QUefrFHmh4w0rqaGST435zBbQpMYZ8US3gRQg+HjRI0XuAaxBi7gclydQf69ZDM5
+	k61d3A3iRRXuQJHaZacf+KNxVaTzU7pWHtqGjdFKnziZBtLLfi6vKmz1i2qN9G7/mZEKcluKIADZP
+	arbxTyUtAa9KswEQnkGYCnK7u+EJaXbbI3n2nupMq3G+mbNR2VmbwbcZlBXNHkE7grhJz1GNpvuDh
+	FnJVAQdw==;
+Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
+	by casper.infradead.org with esmtpsa (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wXfi7-00000001ydR-0GUg;
+	Thu, 11 Jun 2026 13:44:43 +0000
+Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
+	id 0B6CD3002F0; Thu, 11 Jun 2026 15:44:42 +0200 (CEST)
+Date: Thu, 11 Jun 2026 15:44:42 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+To: Dmitry Ilvokhin <d@ilvokhin.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
+	Boqun Feng <boqun@kernel.org>, Waiman Long <longman@redhat.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Juergen Gross <jgross@suse.com>,
+	Ajay Kaher <ajay.kaher@broadcom.com>,
+	Alexey Makhalov <alexey.makhalov@broadcom.com>,
+	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
+	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+	Christoph Lameter <cl@gentwo.org>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
+	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
+	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
+	kernel-team@meta.com, "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v6 5/7] locking: Add contended_release tracepoint to
+ qspinlock
+Message-ID: <20260611134442.GJ48970@noisy.programming.kicks-ass.net>
+References: <cover.1777999826.git.d@ilvokhin.com>
+ <5d7ea75ffe74a785e6b234ada9f23c6373d4b4c1.1777999826.git.d@ilvokhin.com>
+ <20260513193342.GB2545104@noisy.programming.kicks-ass.net>
+ <agXBb0ga_6HJrrnm@shell.ilvokhin.com>
+ <20260603120811.GW3493090@noisy.programming.kicks-ass.net>
+ <aiphFXe_TPNPxZ_n@shell.ilvokhin.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aiphFXe_TPNPxZ_n@shell.ilvokhin.com>
 
-On Wed, Jun 10, 2026 at 12:19:20 -0700, bp@alien8.de wrote:
-
-> On Tue, Jun 09, 2026 at 08:01:32PM +0800, Li Zhe wrote:
-> > That said, I see your layering point. If arch/x86/include/asm/string.h
-> > is the preferred place for the arch-visible wrapper, I can move the
-> > wrapper there in the next revision while keeping the x86_64-specific
-> > implementation details in string_64.h.
+On Thu, Jun 11, 2026 at 07:17:41AM +0000, Dmitry Ilvokhin wrote:
+> On Wed, Jun 03, 2026 at 02:08:11PM +0200, Peter Zijlstra wrote:
+> > Also, I think someone should go do some performance runs with
+> > ARCH_INLINE_SPIN_* set for x86 just like for s390.
 > 
-> No, 64-bit only's fine. We don't put any new features into 32-bit already
-> anyway but that wasn't clear from the commit message what your goal is.
-
-Thanks, that makes sense.
-
-> > Thinking about it more, I agree that this is hard to justify for a
-> > generic helper. For this series, what really matters is that the
-> > struct page copies in patch 8 can use the existing x86
-> > memcpy_flushcache() fastpaths where that is beneficial; I do not need
-> > patch 6 to impose extra selection policy on unrelated callers.
+> As promised, I set ARCH_INLINE_SPIN_UNLOCK{,_BH,_IRQ,_IRQRESTORE} for
+> x86 and measured the effect on a few real workloads.
 > 
-> What I am asking is, you need to show numbers why those helpers exist.
-> 
-> Your 0th message is talking about measuring this in VMs. If this workload is
-> not VM-specific, then those numbers don't matter. They're just handwaving.
-> 
-> So I'd need a good justification why we need the changes before we go any
-> further.
+> Short version: inlining of _raw_spin_unlock() adds measurable kernel
+> i-cache pressure on every workload I tried, and on a
+> kernel-i-cache-bound one (nginx connection churn) it costs ~1.27%
+> throughput. I did not find a workload where it helps.
 
-Understood.
-
-I do not currently have access to physical PMEM hardware on my side, so
-the numbers I posted so far were all from a VM-based setup. I agree that
-this is not sufficient justification for introducing the helper / x86 nt
-part of the series.
-
-For the next resend, I will first split out and resend the mm-only
-subset, and drop the helper / x86 nt part for now.
-
-If anyone  has access to real PMEM hardware and is willing to test
-whether that part shows a measurable benefit there, I would greatly
-appreciate it.
-
-Otherwise, is there a preferred way to justify or validate that part
-without physical PMEM measurements, or is the right approach simply to
-keep it out of the series until such data is available?
-
-Thanks,
-Zhe
+Thanks for checking!
