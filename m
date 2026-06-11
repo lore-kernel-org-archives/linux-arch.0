@@ -1,84 +1,62 @@
-Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mail.ilvokhin.com (mail.ilvokhin.com [178.62.254.231])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2456138E8A5
-	for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2026 23:41:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9821635E950;
+	Thu, 11 Jun 2026 07:17:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.62.254.231
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781134867; cv=none; b=r55bw1e17Apzi9Gt3gA2991pB1vP7u8CoPxawLS4EkW3SEO4aj6hqSsgYVtEKaSDKvlJy+o1UVSn83WfGN/kIXg+MqQleXvi0j0pqaN0AOe52EaTnm7HxPbLgzos2j5JlQor1/ZTC1rhhnLUbEQQTJSn3e+8TQ/qV3w4g5qxkIw=
+	t=1781162275; cv=none; b=GC9lpDkZXL1L1nTqBTdSaJrAIdkZNmkIMmxK1/e8MFF4GnHN++LkK++I+hma/xODJC9hcLWprBQB2wJkDkcMU+nlgU27j0w+a2iNbRMp0oTOLeUMqJi/l6Tl8DdU7F+/n7t9feDOyJxkQhldgvS+o55JAODEns5MLtl1tOIQLng=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781134867; c=relaxed/simple;
-	bh=WLKFSvoHBAuURbkH0azFPoXH0iTJec2iRBnKyq7YHT8=;
+	s=arc-20240116; t=1781162275; c=relaxed/simple;
+	bh=mx7Coopivs4IKxGcY9Afs8u7C5ixpvwisrBYow1ZD3g=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Wg6Se7EvGH7d4u0BdfaOOkzuPZP10IRBxOmGU45CYn8lWvtjm1lBA1F97aPw9nNK4jizFtKhdKfL/IYEhQJEjtaKNagHTdXNunIaqFi1hF2pjYeHwvMBeSFa2BO3g1JzsHIsDhb2756LlvYL0zk0cPGKnGBUJLJeBwrCKhJHiy0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=slxb3N4b; arc=none smtp.client-ip=209.85.128.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=RZSYYBPR49asn/MyYlbqgu18t84SfNSQADm/jCs5+W1td1y3VttJnq22R/MYuRI0tZhQhauGvz5lMMMyBLx3sxFv4W03mIfQyREb25qMimK2wrY9UbhDjX2HmUgdi1O8SROxo4f9SL9TpI52rfyKfaQzcgT/F5aWf3t+w/ZXn4U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=sy5dx0+f; arc=none smtp.client-ip=178.62.254.231
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ilvokhin.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="slxb3N4b"
-Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-490bc6a7958so3425155e9.1
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2026 16:41:04 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1781134863; x=1781739663; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=hItbBwzE/UemJbPm5Fn7DOlYpjoWK0GBfBYmIwvZBe8=;
-        b=slxb3N4bFW1Qs3memInulsiDuICRh2Zf9ZsFSF1rVQ6FbolbwDG06y5HMYqDQ+mfpH
-         Q3a9n74hereuyEvM9iVcgruLRnEeLYlPWIqVTVTkbFQ83+4U1mr2LyFN2OisN60VIRIu
-         VM06mzir7DHgGFkA1iRFyBHcrQPA3uBO4eajSfqiPHW/4rHOAioxIjoY1GJYYpI3LIGx
-         7FJFGIL25t2kEN0M90zrhuPf0rbhPVcfcH8Zb4DMekwwgReCijPDrG+wpiTPk2P4G9A5
-         28Py06VePTd2y10Rzca9UJfwv+h/fcBSHPRqr/cr1XhGgvGW3dfrV2xLYomD/lFwAyxl
-         wnGg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1781134863; x=1781739663;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=hItbBwzE/UemJbPm5Fn7DOlYpjoWK0GBfBYmIwvZBe8=;
-        b=LTXmO9WLudGGLDS7foqCa47//92vuGI/mqKFNmlFBCGC/AuaMmXfuQXwVMhmgVKfZB
-         a5boP7A0HJpTJG5ZJaPWjeL2tnPX1Ah13k+JsivUCDAwbwS7bltsj/sN4HTLOq5FzINs
-         Hzh2wxdnDz4rPu5EY71cqc7KIuFWljg1+nbZ3Llo0TG8hbZ0qPZTBkUJPJKIpc5kY00M
-         fe8FX0tdj1xBGejZwV4m0mbqCkI3HPO59GaAvx1OxZioeaek6QKKwF+cgCUy17KbtGtc
-         rJFhH9b0Bc9W1ztMXBEOtXz1hnoH5h3Eg53tCoU3Nsm7TGD2JX3M7gEdI66U9BvU9PjR
-         Fltg==
-X-Forwarded-Encrypted: i=1; AFNElJ/roq1joEwEzEFD07tfLEWAlshKnXaCB7sguv/OzQElM4yMXrFT+EhqGCRaxL24Xf2eJsrPxpkTKEY8@vger.kernel.org
-X-Gm-Message-State: AOJu0YxsrpreafeTly+rbeu6kBSXXKsQm/CjQ+wxmMgV0qxN28YKOdz+
-	E5xsmZUeaHY4VQYTETalwcX/T0S1xGiU0Q+sl7KtSXhtLxpG+lnFPYJW
-X-Gm-Gg: Acq92OECHFAnsIyNquoySPszdcNakisJHht7lWOh15ry5PuNNALLrZFxVHtfK0R7sQV
-	Z5BrbsVRjUISV77l4XiYd/MMaAkAKIC898GtU47FvTOkg/EbE5c5mZG710vtAe6Lb+7awUi8XUV
-	qKqlNebXRgwS04kFZ6zZOuUWfAaoloIZDEbbErbcv9rk5d3nsq+Qc6/Zh/5ys3jamAv0ED4lso0
-	KGnCMvbcmU4jrfPzMLkJZRiTZDtK2+NxhnFpkSUQT5041BeKck2fwGxivhgHw5yIWN86aqx/pR9
-	ORuhaAdb/e3EX3SsL9GrKjzwMHR4X5mCieu2EHtc1JWNGWzZ5ghsUkwN0t8GywAWtDjoz8g7rzy
-	7wJOJhdGpdo6+ggd9hvYCleF01qfakCejqBKuEL1uf8bix9NFOwtv4F7Lv99mxikx4iE1ONNWrk
-	87qlQU2RuZG0oXDAowuT1TOzbGLxf2cGHVmW/hiyNGbGUa/qtcgd7ydusEwIAAKVuW/of8ILgYA
-	d6X6u8u5Q==
-X-Received: by 2002:a05:600c:1554:b0:48f:e230:29f4 with SMTP id 5b1f17b1804b1-490e5318363mr872135e9.15.1781134863322;
-        Wed, 10 Jun 2026 16:41:03 -0700 (PDT)
-Received: from f (cst-prg-85-110.cust.vodafone.cz. [46.135.85.110])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-490e422e321sm4497435e9.0.2026.06.10.16.41.00
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 10 Jun 2026 16:41:02 -0700 (PDT)
-Date: Thu, 11 Jun 2026 01:40:56 +0200
-From: Mateusz Guzik <mjguzik@gmail.com>
-To: Li Chen <me@linux.beauty>
-Cc: John Ericson <mail@johnericson.me>, Andy Lutomirski <luto@kernel.org>, 
-	Christian Brauner <brauner@kernel.org>, Kees Cook <kees@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, 
-	linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, 
-	LKML <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, 
-	linux-arch <linux-arch@vger.kernel.org>, linux-doc <linux-doc@vger.kernel.org>, 
-	linux-kselftest <linux-kselftest@vger.kernel.org>, x86 <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>
-Subject: Re: [RFC PATCH v1 00/13] exec: add spawn templates for repeated
- executable startup
-Message-ID: <hd3i6pxxohsjesyid7nhuic6ppp6nyoxxpwa4mny6riqvpyqec@mylfprni2yaw>
-References: <20260528095235.2491226-1-me@linux.beauty>
- <20260528-madig-fachrichtung-fehlinformation-61117ba640da@brauner>
- <CALCETrWJQpLR4n1cpichBk8=uExSKLWTMGU3BufGdk_WE_p5UA@mail.gmail.com>
- <19eacd64508.26b92c022125848.262962729296162879@linux.beauty>
- <4e049396-377d-48a7-a34c-91318413a876@app.fastmail.com>
- <19eb181fdd4.6d028f442844776.3737831021032223216@linux.beauty>
+	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="sy5dx0+f"
+Received: from shell.ilvokhin.com (shell.ilvokhin.com [138.68.190.75])
+	(Authenticated sender: d@ilvokhin.com)
+	by mail.ilvokhin.com (Postfix) with ESMTPSA id B2D35D1438;
+	Thu, 11 Jun 2026 07:17:45 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ilvokhin.com;
+	s=mail; t=1781162265;
+	bh=SQhvUZ/DbKf6/FrlFmNBUBTYC4OnQ9SUq8CAmtvtmpA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=sy5dx0+foJ2ScZ4tBYFnB4DhLS92V5pg+v0SGYTkem1nbyFd6xfJTyFf9OYEhfLwJ
+	 ZaAc/VbC7/EOornnQ7Y6s4ARfBsV0d9MxWFS+NCaBc1HINhdYGNHKpn29lf2DyNF1K
+	 8iW896swJPRi2QnuCHQ4br1eZusJ65henUh4DGAA=
+Date: Thu, 11 Jun 2026 07:17:41 +0000
+From: Dmitry Ilvokhin <d@ilvokhin.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
+	Boqun Feng <boqun@kernel.org>, Waiman Long <longman@redhat.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Juergen Gross <jgross@suse.com>,
+	Ajay Kaher <ajay.kaher@broadcom.com>,
+	Alexey Makhalov <alexey.makhalov@broadcom.com>,
+	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
+	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+	Christoph Lameter <cl@gentwo.org>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
+	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
+	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
+	kernel-team@meta.com, "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v6 5/7] locking: Add contended_release tracepoint to
+ qspinlock
+Message-ID: <aiphFXe_TPNPxZ_n@shell.ilvokhin.com>
+References: <cover.1777999826.git.d@ilvokhin.com>
+ <5d7ea75ffe74a785e6b234ada9f23c6373d4b4c1.1777999826.git.d@ilvokhin.com>
+ <20260513193342.GB2545104@noisy.programming.kicks-ass.net>
+ <agXBb0ga_6HJrrnm@shell.ilvokhin.com>
+ <20260603120811.GW3493090@noisy.programming.kicks-ass.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -87,98 +65,210 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <19eb181fdd4.6d028f442844776.3737831021032223216@linux.beauty>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260603120811.GW3493090@noisy.programming.kicks-ass.net>
 
-On Wed, Jun 10, 2026 at 08:29:06PM +0800, Li Chen wrote:
->  ---- On Wed, 10 Jun 2026 01:27:47 +0800  John Ericson <mail@johnericson.me> wrote --- 
->  > Hope the above answers your question? I suppose my ideas lean more on the
->  > "future" than "empty" side --- there is indeed a thread in the thread group,
->  > with real VM/namespace/file descriptor etc. state. Moreover, state gets
->  > initialized before the process is started, so the actual start is a pretty
->  > lightweight step of just letting the scheduler know the now-ready process can
->  > be scheduled. The only thing that distinguishes the embryonic process from a
->  > real one is simply that it isn't running --- i.e. isn't (yet) available to be
->  > scheduled --- so the pidfds holders are free to poke at its state.
->  > 
-> 
-> Thanks, this helped a lot. I looked at FreeBSD/OpenBSD/XNU after your
-> note. FreeBSD has P_INEXEC, OpenBSD has PS_INEXEC, and XNU seems even
-> closer with P_LINTRANSIT, described as "process in exec or in creation".
-> Linux does not seem to have a single equivalent today: current->in_execve
-> is only an LSM hint, while the real synchronization is spread across
-> exec_update_lock, cred_guard_mutex, and the exec path.
-> 
-> I am switching my local WIP from the two-fd builder model to one fd,
-> closer to Christian's sketch:
-> 
-> fd = pidfd_open(0, PIDFD_EMPTY);
-> pidfd_config(fd, ...);
-> pidfd_spawn_run(fd, ...);
-> 
-> In my current local version, I still use copy_process(), so the fd points
-> at a real task_struct/pid that is not woken until run. Following
-> Christian's point that existing APIs can handle this not-yet-running case
-> with ESRCH, I currently make ordinary pidfd operations that need a real
-> started process return -ESRCH before start.
-> 
-> I am not sure yet whether Linux should grow a general exec/creation
-> transition state like that, or whether a narrower future-process
-> lifecycle is enough for this API. I will think more about that when
-> working on the pristine process version.
-> 
+On Wed, Jun 03, 2026 at 02:08:11PM +0200, Peter Zijlstra wrote:
+> Also, I think someone should go do some performance runs with
+> ARCH_INLINE_SPIN_* set for x86 just like for s390.
 
-As I tried to explain in my previous e-mail this approach does not cut
-it because of NUMA.
+As promised, I set ARCH_INLINE_SPIN_UNLOCK{,_BH,_IRQ,_IRQRESTORE} for
+x86 and measured the effect on a few real workloads.
 
-Suppose you have a machine with 2 nodes. The parent-to-be is running
-on node 0 and the child is intended to exec something on node 1.
+Short version: inlining of _raw_spin_unlock() adds measurable kernel
+i-cache pressure on every workload I tried, and on a
+kernel-i-cache-bound one (nginx connection churn) it costs ~1.27%
+throughput. I did not find a workload where it helps.
 
-When the parent-to-be allocates and populates stuff, it takes place with
-memory backed by node 0. If you allocate task_struct, the file table and
-other frequently used (and modified!) objs in this way, you are
-guaranteeing performance loss due to interconnect traffic to access it.
+HOW BENCHMARKS WERE CHOSEN
 
-Trying to add plumbing so that all allocations respect numa placement is
-probably too cumbersome.
+The cost of inlining unlock is text footprint increase. Every unlock
+site grows, and the extra bytes compete for the shared L1i. The bill is
+paid by unrelated code, in both kernel and userspace.
 
-The primary example for that is looking up the binary to exec in the
-first place.
+Locktorture and similar microbenchmarks can't see this, because they
+usually hammer a tiny loop that stays L1i-resident, so they measure
+fast-path cycles, where inlining (fewer instructions per unlock) looks
+neutral-to-good.
 
-userspace likes to pass paths which don't exist, meaning checking for
-the binary before any hard work is a useful optimizaiton. Suppose the
-binary to be executed is in a container bound with a taskset using
-node 1 and the content of the fs part of the container is currently
-fully uncached.
+To make the cost visible, the workload has to have real instruction
+cache pressure. To achieve that, it has to touch a lot of code.
 
-When you perform the lookup on node 0, you are populating a bunch of
-metadata (inode, dentry) using memory from that domain. But the intended
-user will only execute on node 1, again resulting in a performance loss.
+A good way to screen benchmarks: look for high tma_frontend_bound
+fraction from 'perf stat -M TopdownL1' and simultaneously require it to
+spend non-trivial time in the kernel (be syscall-heavy).
 
-In order to not do it you would need to convince VFS to allocate memory
-elsewhere.
+SETUP
 
-So I stand by my previous claim that ultimately a pristine child has to
-be created (like in this patch), but which also has to do the work on
-its own.
+Hardware: 2x Intel Xeon Gold 6138 (Skylake-SP), 20 cores/socket, 40C/80T
+with kernel built from locking/core branch. Baseline _raw_spin_unlock()
+is out-of-line via UNINLINE_SPIN_UNLOCK=y. Experiment adds the four
+selects above (exact patch is at the end of this message). Cache
+geometry (lscpu -C):
 
-Suppose there is no explicit placement requested anywhere. Even in that
-case there are legitimate workloads which will eventually be forced to
-exec stuff on another node. Even these have a better chance retaining
-full locality if the child process does all the work.
+NAME ONE-SIZE ALL-SIZE WAYS TYPE        LEVEL  SETS PHY-LINE COHERENCY-SIZE
+L1d       32K     1.3M    8 Data            1    64        1             64
+L1i       32K     1.3M    8 Instruction     1    64        1             64
+L2         1M      40M   16 Unified         2  1024        1             64
+L3      27.5M      55M   11 Unified         3 40960        1             64
 
-Per my previous message I don't see a clean interface to do it.
-something quasi-posix_spawn is probably the least bad way out, it will
-also allow userspace to easily wrap the new thing with posix_spawn
-itself.
+Per run I collected cycles, instructions and L1i-misses. To stay within
+the available PMU counters, each run used only 3 events: cycles,
+instructions and one L1i filter (:u or :k). The NMI watchdog was off and
+every run reported 100% counter enablement (no multiplexing). Userspace
+and kernel misses therefore come from separate runs. Each benchmark was
+run 20x per side: 10 with the :u counter, 10 with :k.  Cycles,
+instructions and throughput are pooled across all 20, each L1i split
+comes from its 10.
 
-Also note there is another issue with the fd-based approach: the fd will
-get inherited on fork and will hang out in the child afterwards unless
-explicitly closed. Suppose you have a multithreaded program which likes
-to both fork(+no exec) and fork+exec. With the fd-based approach you
-have no means of stopping another thread from grabbing your state thanks
-to unix defaulting to copying everything. There was an attempt to fix
-this aspect with O_CLOFORK, but this got rejected.
+KERNEL IMAGE SIZE
 
-Whatever exactly happens, NUMA is a sad fact of computing and needs to
-be accounted for. The approach as proposed not only does not do it, but
-it actively hinders such deployments.
+To give a sense of the code-footprint increase, scripts/bloat-o-meter on
+vmlinux, GCC 11, x86_64, defconfig + CONFIG_PARAVIRT_SPINLOCKS=y:
+
+    Total: Before=23838694, After=23977159, chg +0.58%
+
+ROCKSDB (DELETESEQ)
+
+    db_bench -benchmarks=deleteseq
+
+Metric                       Baseline      Experiment     Delta   Sig
+----------------------------------------------------------------------
+Instructions (total)    9,574,476,543   9,573,602,441    -0.01%   flat
+L1i-miss :k (kernel)      198,588,165     216,672,536    +9.11%   **
+L1i-miss :u (userspace)   593,276,235     616,433,813    +3.90%   **
+Throughput ops/s            431,398         432,897      +0.35%   ns
+Cycles (total)          4,681,002,302   4,665,106,876    -0.34%   ns
+IPC                          2.045           2.052       +0.33%   ns
+Time elapsed (s)            2.4012          2.3865       -0.62%   ns
+----------------------------------------------------------------------
+L1i-miss: higher = worse. Throughput: higher = better.
+** = beyond per-run noise (+-0.1..0.36%), ns = within noise.
+
+At constant instructions, inlining raises L1i misses +9.11% (kernel) and
++3.90% (userspace), both well beyond noise. Throughput, cycles, IPC and
+wall-time all stay within run-to-run noise. So the i-cache cost is real,
+but at IPC ~2 db_bench isn't fetch-bound at the app level, so it doesn't
+surface.
+
+No benefit from _raw_spin_unlock() inlining.
+
+KERNEL BUILD
+
+Building locking/core (defconfig), GCC 11.
+
+    make -j80
+
+Metric              Baseline      Experiment     Delta   Sig
+-------------------------------------------------------------
+L1i-miss :k          36.72G        37.51G       +2.16%   **
+L1i-miss :u         246.99G       246.06G       -0.38%   **
+Sys (s)             478.250       482.420       +0.87%   **
+Time elapsed (s)    105.221       105.373       +0.14%   ns
+User (s)           4022.046      4024.012       +0.05%   flat
+Cycles            8,894.10G     8,902.12G       +0.09%   flat
+Instructions      8,424.28G     8,426.48G       +0.03%   flat
+IPC                   0.947         0.947       -0.06%   flat
+-------------------------------------------------------------
+L1i-miss/Sys: higher = worse.
+** = beyond per-run noise, ns = within noise.
+
+Kernel i-cache misses (+2.16%) and sys time (+0.87%) both rise and are
+significant. Wall-time and userspace L1i are flat. Kernel build is
+GCC/userspace-bound (User 4022s vs Sys 478s), so the added kernel fetch
+cost is real but appears to sit off the critical path.
+
+No benefit from _raw_spin_unlock() inlining.
+
+NGINX
+
+I ran nginx with taskset -c 2.
+
+    perf stat -C 2 ... -- ab -n 100000 -c 80 http://127.0.0.1:8080/
+
+Config for nginx was the following.
+
+  worker_processes 1;
+  error_log /tmp/ngx/error.log;
+  pid       /tmp/ngx/nginx.pid;
+  events { worker_connections 16384; }
+  http {
+      access_log off;
+      server { listen 8080 reuseport; location / { return 200 "ok\n"; } }
+  }
+
+
+I used nginx version 1.20.1 (prebuilt, from CentOS repo).
+
+Metric              Baseline      Experiment     Delta   Sig
+------------------------------------------------------------
+req/s (ab)           25,113        24,795       -1.27%   **
+L1i MPKI :k          70.06         72.10        +2.92%   **
+L1i MPKI :u          20.16         20.66        +2.50%   **
+instructions          5.86G         5.83G       -0.50%   **
+L1i-miss :k           0.41G         0.42G       +2.44%   **
+L1i-miss :u           0.12G         0.12G       +1.95%   **
+cycles                4.82G         4.81G       -0.28%   ns
+IPC                   1.215         1.213       -0.22%   ns
+perf time (s)         4.077         4.129       +1.26%   **
+failed reqs              0             0          -      valid
+------------------------------------------------------------
+req/s: higher=better. MPKI: higher=worse.
+** = beyond per-run noise, ns = within noise.
+
+nginx connection-churn is the one workload that is genuinely
+kernel-fetch-bound: MPKI:k ~70 and IPC ~1.2 (vs db_bench's 2.05). Here
+the cost surfaces: req/s −1.27%. Misses rise in both domains (+2.9%
+MPKI:k, +2.5% MPKI:u). Unlike kernel build, userspace is hit too,
+because nginx runs user and kernel hot on the same core and the kernel
+bloat pollutes the shared L1i.
+
+And the kicker: instructions fell 0.5% (inlining removed the call/ret)
+yet throughput dropped.
+
+Caveat: ab is single-threaded, so it seems the worker core is
+under-saturated: cycles is flat (−0.28%, ns) while wall-time rose
+(+1.26%).
+
+Measurable throughput regression from _raw_spin_unlock() inlining.
+
+CONCLUSION
+
+Inlining _raw_spin_unlock() raises kernel L1i misses on every workload.
+It's an unconditional cost. Whether it costs the application throughput
+depends on how kernel-fetch-bound the workload is.
+  
+The cost is real everywhere. It only surfaces as throughput regression
+where the kernel is on the fetch critical path. And inlining did not
+help in any workload I measured. The one micro-effect inlining produced
+(-0.5% instructions on nginx) was erased by the added i-cache pressure.
+
+
+From 99502328caed3c195e20cf194a1e8aa1563f3896 Mon Sep 17 00:00:00 2001
+From: Dmitry Ilvokhin <d@ilvokhin.com>
+Date: Thu, 4 Jun 2026 07:43:00 -0700
+Subject: [PATCH] x86/locking: Inline the spin_unlock()
+
+Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
+---
+ arch/x86/Kconfig | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index fdaef60b46d6..c9a0638225fd 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -113,6 +113,10 @@ config X86
+ 	select ARCH_HAS_ZONE_DMA_SET if EXPERT
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select ARCH_HAVE_EXTRA_ELF_NOTES
++	select ARCH_INLINE_SPIN_UNLOCK
++	select ARCH_INLINE_SPIN_UNLOCK_BH
++	select ARCH_INLINE_SPIN_UNLOCK_IRQ
++	select ARCH_INLINE_SPIN_UNLOCK_IRQRESTORE
+ 	select ARCH_MEMORY_ORDER_TSO
+ 	select ARCH_MHP_MEMMAP_ON_MEMORY_ENABLE
+ 	select ARCH_MIGHT_HAVE_ACPI_PDC		if ACPI
+-- 
+2.53.0-Meta
+
