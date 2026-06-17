@@ -1,79 +1,218 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44E163F54C9;
-	Wed, 17 Jun 2026 13:24:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1FBF744B68E
+	for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2026 14:45:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781702677; cv=none; b=T4RcQw2u0xF0JhdvMfwjZoywFqHkBbnkkoBkU+PKpx/s6S0XkTYGAznYZ86jtEuT+aE00/NYfmp+nEaz0hM50WKYJkXxojA2PAw85qLwmchGadQjC+xsqCzVnn9WJHl2KMvVGXIFvg+7C3nhzXrNSBIf+8IrARDXMoxDhcO9lXg=
+	t=1781707508; cv=none; b=Ooi/OTUmbu/Nd3/R6fVOXpx4KEyf6gKVSXx9KBJOv+ugRj8xO/KniXUCgbvojvkkeInfvPPYwKR6C+ppfZ+0+5SfPGmIhy7bfvVSvFEo2eTfRhoX4G2yShurLGSOL8DrbM7SGqNH6FKOO5VOrWCehq+OgOKeXS/tG2cTK1bc40o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781702677; c=relaxed/simple;
-	bh=CUgoKR2Wc5cxQPYEOOnKz/0q/FvF40o5TROEsPHQXSM=;
+	s=arc-20240116; t=1781707508; c=relaxed/simple;
+	bh=Wjebvt+/HMDVq6NvMreZPnc/Hpe/ljpU0C7lL3f/kAU=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=JK5qScwS9SblaSS6A6IUALqwNDZdkgXY5hBzWk+/jOFdNsBUpEDzweAvZ4sjwFfayx4LYGrlj1tkFGR3QZcbPFvKS8efubpOcQQ2+mafP4jxbVycSTzJs33KTS6xUmNdtHcgXUbTL3jIkQcBG8KtdOGZw5nwi0Ofs9dNJlwid6g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=m9veR9t+; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=DDn0IhMFlXXG/uJYGVn9IFr6r8OGYdUQBm6t6+0n6S1Ndr/bjGZ3UaJLOb4OQUBrN/X+iO7nBJiOvHKRFjWUXY9gG/EAPlfxyiMw9JgiY/7vOKKSlKIUn5+qXWg7IS4F29dn9sSc71vV37XWzBx6ywo2clGzIR0oXXLk+iyTDYg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de; spf=pass smtp.mailfrom=suse.de; dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b=sA99UH9E; dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b=+9RctsNO; dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b=sA99UH9E; dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b=+9RctsNO; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="m9veR9t+"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1AA4A1F00A3A;
-	Wed, 17 Jun 2026 13:24:33 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1781702676;
-	bh=EZO1mohog/fU8uSiK9F/3p5WWQpe8vkDRi43VoSm4gY=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=m9veR9t+S9hWRq+Yg0R9S1Be36Q/9ZBk+FxaXe1mLu/Kqmr0/yV96nED2ZLvMT+4N
-	 Y23pPyGRv9vA+1EJDOeLB6l3UV/3jOTOK9ln44oLT5RdFZ2D4jO1VDezIieGxqF/jf
-	 QI9Y2qhBXB/NdSRJ+3fyFsLJr2orJDyKVzzTjDDiX8GIy19TyWoIlwpEy5CSmtjqI4
-	 FIWWqkXC0enbRFCeoP55I86XNYedSuSC0jUy5IPHgN1cw1UUxAQEIHtbtEEyiZ733l
-	 r8GDkiX9xdUYqKpnO0/3G2XWb16PvykA87Nlpfg8nKJvMwACFZJEoJlIu+GYMU23Nl
-	 C0npAMjuxNjTA==
-Date: Wed, 17 Jun 2026 15:24:31 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Jori Koolstra <jkoolstra@xs4all.nl>
-Cc: Jan Kara <jack@suse.cz>, Jeff Layton <jlayton@kernel.org>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, 
+	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b="sA99UH9E";
+	dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b="+9RctsNO";
+	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b="sA99UH9E";
+	dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b="+9RctsNO"
+Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id 4E22D6C188;
+	Wed, 17 Jun 2026 14:45:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+	t=1781707505; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=iXEQBvVn+HV2ICUcFECMY5al1JyFoCvmK1kLXmm+dUk=;
+	b=sA99UH9EfIZuQ3XzOl0+ILdUMrUyw+I+sOzLKSgr72NpaOAqx0ZsNCxZjP1LmdrqVbCLgO
+	DmqQMRJWqRhLPEwgs/Xje6XXIr9JAA+NE/JY0wkwVOfECSkI9vL2LTQCJHti6ZK/BrmwGO
+	Y+jXkZw0uxRhghIT4zW3qdohp7eA/Uc=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+	s=susede2_ed25519; t=1781707505;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=iXEQBvVn+HV2ICUcFECMY5al1JyFoCvmK1kLXmm+dUk=;
+	b=+9RctsNO9Sbh+MpI9cMTvruyJRzfNHkFpmBxw3R31ky3FQNO9313vKJB9K3A+zn4rEHQQf
+	GYf//d55Qx+9fVAQ==
+Authentication-Results: smtp-out1.suse.de;
+	none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+	t=1781707505; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=iXEQBvVn+HV2ICUcFECMY5al1JyFoCvmK1kLXmm+dUk=;
+	b=sA99UH9EfIZuQ3XzOl0+ILdUMrUyw+I+sOzLKSgr72NpaOAqx0ZsNCxZjP1LmdrqVbCLgO
+	DmqQMRJWqRhLPEwgs/Xje6XXIr9JAA+NE/JY0wkwVOfECSkI9vL2LTQCJHti6ZK/BrmwGO
+	Y+jXkZw0uxRhghIT4zW3qdohp7eA/Uc=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+	s=susede2_ed25519; t=1781707505;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=iXEQBvVn+HV2ICUcFECMY5al1JyFoCvmK1kLXmm+dUk=;
+	b=+9RctsNO9Sbh+MpI9cMTvruyJRzfNHkFpmBxw3R31ky3FQNO9313vKJB9K3A+zn4rEHQQf
+	GYf//d55Qx+9fVAQ==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id A554D779A8;
+	Wed, 17 Jun 2026 14:45:04 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id Pq/uJPCyMmqWMAAAD6G6ig
+	(envelope-from <pfalcato@suse.de>); Wed, 17 Jun 2026 14:45:04 +0000
+Date: Wed, 17 Jun 2026 15:44:57 +0100
+From: Pedro Falcato <pfalcato@suse.de>
+To: Jan Kara <jack@suse.cz>
+Cc: Jori Koolstra <jkoolstra@xs4all.nl>, Jeff Layton <jlayton@kernel.org>, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>, 
+	Arnd Bergmann <arnd@arndb.de>, 
 	"open list:FILESYSTEMS (VFS and infrastructure)" <linux-fsdevel@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>, 
 	"open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
 Subject: Re: [PATCH] vfs: missing inode operation should return a consistent
  error code
-Message-ID: <20260617-asphalt-hochachtung-federn-23e94198aa4a@brauner>
+Message-ID: <ajKve--rL2tg7n2j@pedro-suse>
 References: <20260531104947.6142-1-jkoolstra@xs4all.nl>
  <c5e32b78aeaa833d18d9b7a566358a6f71d09f23.camel@kernel.org>
  <xdknvjlda7wxwo35toe357nnyaydsllv5g65ogzsomxqgm7jfu@qwtugpoy2rcw>
  <2002074169.107129.1780331273724@kpc.webmail.kpnmail.nl>
  <m5fqzr2ny4zb36u6zhmrrxgl36ycsxvlqnzf5idvsq4lxpfh3i@g276qtqgfv3f>
- <1512332516.1435503.1781209872436@kpc.webmail.kpnmail.nl>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1512332516.1435503.1781209872436@kpc.webmail.kpnmail.nl>
+In-Reply-To: <m5fqzr2ny4zb36u6zhmrrxgl36ycsxvlqnzf5idvsq4lxpfh3i@g276qtqgfv3f>
+X-Spam-Flag: NO
+X-Spamd-Result: default: False [-3.80 / 50.00];
+	BAYES_HAM(-3.00)[100.00%];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	MID_RHS_NOT_FQDN(0.50)[];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	RCPT_COUNT_SEVEN(0.00)[9];
+	MISSING_XM_UA(0.00)[];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	ARC_NA(0.00)[];
+	FUZZY_RATELIMITED(0.00)[rspamd.com];
+	RCVD_TLS_ALL(0.00)[];
+	FREEMAIL_ENVRCPT(0.00)[xs4all.nl];
+	DKIM_SIGNED(0.00)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
+	TO_DN_ALL(0.00)[];
+	FROM_HAS_DN(0.00)[];
+	FREEMAIL_CC(0.00)[xs4all.nl,kernel.org,zeniv.linux.org.uk,arndb.de,vger.kernel.org];
+	MIME_TRACE(0.00)[0:+];
+	FROM_EQ_ENVFROM(0.00)[];
+	TO_MATCH_ENVRCPT_ALL(0.00)[];
+	RCVD_COUNT_TWO(0.00)[2];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[opengroup.org:url,suse.com:email,suse.cz:email,imap1.dmz-prg2.suse.org:helo]
+X-Spam-Level: 
+X-Spam-Score: -3.80
 
-On Thu, Jun 11, 2026 at 10:31:12PM +0200, Jori Koolstra wrote:
-> @Christian, since you suggested equalizing the error codes for missing
-> inode ops, what is your opinion?
-> 
-> > Op 01-06-2026 18:50 CEST schreef Jan Kara <jack@suse.cz>:
+On Mon, Jun 01, 2026 at 06:50:10PM +0200, Jan Kara wrote:
+> On Mon 01-06-26 18:27:53, Jori Koolstra wrote:
 > > 
-> > We certainly can (and sometimes do) modify the returned errors. It is
-> > always just a balancing act between the benefit of the change and chances
-> > somebody will get broken by it. In this case I don't quite see the
-> > benefit, not that I'd be too worried about the a regression but there's
-> > always the chance...
+> > > Op 01-06-2026 17:58 CEST schreef Jan Kara <jack@suse.cz>:
+> > > 
+> > >  
+> > > On Sun 31-05-26 10:08:47, Jeff Layton wrote:
+> > > > 
+> > > > This seems ill-advised. The problem is that most of this behavior has
+> > > > been well established for years, and not all userland software (and
+> > > > even some internal callers like nfsd), will react well when you go
+> > > > changing behavior like this.
+> > > > 
+> > > > As a case in point, the POSIX spec doesn't list EOPNOTSUPP as a valid
+> > > > error return for open():
+> > > > 
+> > > >    https://pubs.opengroup.org/onlinepubs/9690949399/functions/open.html
+> > > > 
+> > > > The manpage for open() says only:
+> > > > 
+> > > >        EOPNOTSUPP
+> > > >               The filesystem containing pathname does not support O_TMPFILE.
+> > > > 
+> > > > What is the poor userland developer to make of this when open() starts
+> > > > returning EOPNOTSUPP without O_TMPFILE being specified?
+> > > 
+> > > So I wouldn't care as much about POSIX, we largely ignore it anyway in the
+> > > kernel. But I tend to agree that changing the error code we returned for
+> > > several decades just for the sake of "cleanliness" isn't IMHO a good enough
+> > > reason to risk breaking userspace or causing confusion.
+> > > 
+> > > 								Honza
+> > > -- 
+> > > Jan Kara <jack@suse.com>
+> > > SUSE Labs, CR
 > > 
-> > 								Honza
+> > For what its worth, the EACCES return value for not having a create()
+> > call on the fs is also not specified in the open() man page. For mkdir,
+> > EPERM IS specified.
 > 
-> No, I get that, and maybe you are right. I feel in this case it would be
-> really odd if this breaks anyone's application. It would mean you are
-> rigorously testing for receiving specific error codes, without handling
-> a general error case. That just seems odd, especially since some of these
-> error codes are not even listed as a possibility for missing ops (like EACCES).
-> I would say we change this and revert if anyone complains. I believe that was
-> also Christian's view in another thread, but I may be mistaken.
+> Yep, as I said we don't really follow POSIX closely. And it goes way
+> further than just error code :)
 
-It's a general stance, yes. I think trying to make the things we
-maintain more consistent is worth risking someone reporting a
-regression.
+Not trying to excessively necro here (just seen this thread), but I'll
+have to interject here: POSIX very much lets you return whatever error codes
+you want. Quoting directly from POSIX.1-2024 (System Interfaces, 2.3 Error Numbers)
+
+> Implementations may support additional errors not included in this list,
+> may generate errors included in this list under circumstances other than
+> those described here, or may contain extensions or limitations that prevent
+> some errors from occurring.
+
+and also:
+> Implementations may generate error numbers listed here under circumstances
+> other than those described [...]
+> Implementations shall not generate a different error number from one
+> required by this volume of POSIX.1-2024 for an error condition described
+> in this volume of POSIX.1-2024, but may generate additional errors unless
+> explicitly disallowed for a particular function.
+
+which pretty much give you the freedom to do whatever you want (and that's how
+I've seen other people language-lawyer this as well).
+
+So, yes, while it is true that the kernel sometimes treats POSIX as merely a
+suggestion, in this case we're strictly adhering :)
+
+
+> 
+> > But in general, can we never add new error codes to any syscall? Are
+> > there user programs that do neatly check for each specified error code in
+> > the man page, but that do not implement a fallback at all? I mean, I am
+> > not unsympathetic to the arguments that you and Jeff make, but such a
+> > user program would be odd.
+> 
+> We certainly can (and sometimes do) modify the returned errors. It is
+> always just a balancing act between the benefit of the change and chances
+> somebody will get broken by it. In this case I don't quite see the
+> benefit, not that I'd be too worried about the a regression but there's
+> always the chance...
+> 
+
+FWIW my opinion here would be that changing the error number doesn't _really_
+matter. Filesystems with missing ops are generally already outliers in "sane
+filesystems semantics ", and it's unlikely that someone is doing something like
+
+if (unlink(path) < 0 && errno == EPERM) {
+	printf("path is bad since you can't unlink it!!!\n");
+}
+
+particularly as most of these error numbers are actually impossible to
+distinguish (I don't have permissions on the filesystem, or does the
+filesystem not implement this op?).
+
+
+-- 
+Pedro
