@@ -1,143 +1,113 @@
-Received: from mail-dy1-f171.google.com (mail-dy1-f171.google.com [74.125.82.171])
+Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1A0AE3C1F
-	for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2026 00:06:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.82.171
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781654776; cv=pass; b=iLxLydqVskcU3VHh7srGOvC/ejimqP37E9Ah05+R8fFGzZm9P8NvfjVM5aiqGPnnz3cfl3uPiwCkEJlzdie3wMyfRKdr/VPHWczzRJFGog6oTX7XnhphvuUPIQKR3K/msi8yG11u8dtOT5Q20KGXKdll1SHT3Pow8St1biZxseg=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781654776; c=relaxed/simple;
-	bh=fkrCmopnIb13ipuEWVakk/KrAFvH7xz7xKtU4zl9YnE=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=YyXBamtO/fN5Ev182OcKakpaXYF0/fG1H+UpQn5okYc6yjTMCUDvBPv0LSMH3aAbIVxP4m3WIg9sIiejLmUXAQbEvQuyjNbwzv1v8PBdue7aj408zfYrzOGunt2UB6eNnxJN9DjmqTuROxE2brcmBWfhwQc3wjleBDI4rwzrLuk=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=VyKfVvUQ; arc=pass smtp.client-ip=74.125.82.171
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D37521E32D6
+	for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2026 12:39:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1781699998; cv=none; b=TcsiHM3+kd81G12dlOmdb/indQlukvBi/XWCJA7rPo3mYdUtWw5Rt7dGMTi96mDRs8YO7tmrBn6+2SjlRV98sVQL3gQX4UdqbZXoLhqXZjL/7V1SJeUlXOo+HjZbaU4bFc56mHrgz+s+knEjADQGgmpr3mff9dou7jAjiV/JWng=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1781699998; c=relaxed/simple;
+	bh=LQqeWLUXpCQ3xWzoSnndmXhM2WFPmN77ePTrKVSZm2Y=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=L1NpGN0FTLr/xUgPb66bu8rSmdxDV0AhESLTx+4fF5JmlnYEFezI/g0Gsn5SkGfige8b06Wj2sMNCBcRXiZyx4T8Jxi/FPgjq2iGmxPLPnW4TxoX/G96uU2gvMhpImLQxZXJ4stdizkTGXD39QFbp8EmoKOYbTZCtz0XYmNWh90=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=gLnWJc3T; arc=none smtp.client-ip=209.85.128.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="VyKfVvUQ"
-Received: by mail-dy1-f171.google.com with SMTP id 5a478bee46e88-30bc871ecdfso666138eec.1
-        for <linux-arch@vger.kernel.org>; Tue, 16 Jun 2026 17:06:13 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1781654773; cv=none;
-        d=google.com; s=arc-20240605;
-        b=HjOZ7FMf4OMNJLBVxoIGYuzucL6q2F4goVTIyattgtVzYJMNBRPyQID1bYFWATm8Fs
-         xvkDlz+DN+41VTHIaaj5JL/7WglZIq3UQrNOnXR6M+hI0v9rul6VELeni+oeNGh37B9g
-         e+2JUkzXKzfUAHG0Tj3TPWaDCtKVCkO27TQ2Xwlm7ntm0xMrU4m7opRdow5hbdbwQuyk
-         /6LqD7eYG0eVbY9WV1qEngt2nZLS+ZsZFegVg72FtEMdMF5+GFm9R0jJDXrDuqTswzPI
-         lL4YPZ19JwWPkWiOzO6r06Zq8Ddsshlqm6sa7H7PuKwZJArslmOchsS/xJF1a7nizrOG
-         0A7Q==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=zN2+45z8RuYVOYkmuHkDGfc4Yz20/+fHvo1TnYpToEo=;
-        fh=XR1aQvyhtria1vGC+VwYyyUsD2asUNL285f/ZZJx/sE=;
-        b=kogdj74ssltUP4PfjropDlhO3CwxeQmU5vnhSjr0zR8qJtWIls/DK/MT68u8pJMxmX
-         A7o/FPyysqDRJi/myKAsYmqkeI1ylJ40/bX3wqxiQXV5/LDfQH4lQjDkNeq/gKp9NWRF
-         dLGA6B2Ih4SFWx9lSLWII1GX7qQKCMfx+6NLZi37r9WPeeOpRxLmd+iGEJkuc3HOAqVw
-         ohm4fPUreA8MojzdXu288Hz+oBILO14kiIm546U6v1NZiBcDgMUQ+opnEaA+RBd2zuw/
-         Nz01SrT/sqjOPd6zhnsOsMOLk3aTJSyZwMWlNBu6JSMYvyqid0zJVYei4PadAYOyZ1Mf
-         Tu4Q==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="gLnWJc3T"
+Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-490b3637b90so45248555e9.3
+        for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2026 05:39:56 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1781654773; x=1782259573; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=zN2+45z8RuYVOYkmuHkDGfc4Yz20/+fHvo1TnYpToEo=;
-        b=VyKfVvUQXBCvLPemoQfZAR1bpev/sXFbiYLvZNnkHW2QBnUmfUW5+EnR4H82tLJ5mQ
-         fbIQrNhDToKOI5DMRmP4+w7EMro+mYGuAIjLLKP9Lzn3BfdQXT8za5DyMs30k5w653om
-         XFNNEfczuDqsfD5hbSGTrtsSYddnbJUa4K7C4jvMEM8XSaE+n2lJ2mgjTlg98ILI/z76
-         5t/97QXRzCQrAYGq/eN2YsAu909DuCkIu8zcIYY7nQBlK3P3EbeJa+Rby+lsQstVqhGe
-         s/lv8vyKhwQXfYlfGqAo27FN2SyY3wnxyRwRJJSeHt0qUK6RDEP9lV/IulWvAMzMpe4T
-         B7sg==
+        d=suse.com; s=google; t=1781699995; x=1782304795; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=UZi5bo8Cugwshp04KdhwM9Mfr4BTkMqYISdeW8xQXaI=;
+        b=gLnWJc3T8g5mPH0ygz7/MKXwNq0sHTNISHAeXBM3sux0+KzF/+5k2Xip4oIBTnsx3y
+         f/HbwTeE6dSxnCgdfRmx9u1XTNWc7GJx6kh/zQVMRbeYsYJO20cTpu+UBP7w2eypER5Q
+         odDwRzIuwBFKbYaOBFtEZSHF3BtSEpm3UipvxXOvZNEieSx+ha5SXIfUaoMrGD/A7N+3
+         BsStJODsCHhRGW9axRFQbrRv4o61l77DTHVYKtIXUqQANatvYejwz9iVHQLONtIblt3F
+         Br/Bo9wXwhm4hv3Q+B7liAEZomGRP1vf+Iy1pO20aar5Q0a/cbLeJTXnRb68lD8h6ASJ
+         G/EA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1781654773; x=1782259573;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=zN2+45z8RuYVOYkmuHkDGfc4Yz20/+fHvo1TnYpToEo=;
-        b=qq2lfBoQGIlOkbMFaLvDVYbTrOReiVF/zL4fPnpeuDcgMeYxC/toNCAWtaBpD3Bu1P
-         ft0XrRsPfvb7d4gLaOpMJ8QQ5W1MP5+ZmnNSnvuoldKVlWydQlwsR5KzVD2BeKJJqzXQ
-         WkiiZBxRUIDO+VceCiECG2ZoPyPfb/xKXY+wqt13B3T8h4pxe28vliaPhkSjWSFBHzkX
-         F+gtgzQut/rFlGxiXCGG/0Pv9v8n4kFnhUFZTMWQKgu8BIMh2eJ2Og2qSmfozEhoW42M
-         qLUooJkpW7A7sVvtss/pxPlYaIQpzw5xYg6KwdM1wZU4dc7d0XhGt94h1Jr1onDIHYXJ
-         FrKg==
-X-Forwarded-Encrypted: i=1; AFNElJ8oamOVYguGDZMOPEr17C152FLqfTDs5ugvy/9aWd0ObfR5pZaEDKSQDO6ucJ96wE3lwHTsttovWrTl@vger.kernel.org
-X-Gm-Message-State: AOJu0YxbrFVf/Vq281txnS7J3QMd9PG4VTxd1HaFeotjzaHQH1wMbkFN
-	lwWFL8uURm/O74F8K0EdfMbKuZqdQghbU5aPFEqbaQzh0sdXL0P0360bcafxUbwClVrhNpT/Qf8
-	wPb0bvie6Z71BbJ0g59IJLPeuBuUyo0r4lye4a2Rd
-X-Gm-Gg: AfdE7clG+LNlTG5pKa7svtsyzplIlftZ3SU9j82gxtcLzAx5E28p+SZ3I8hpXF/RQDR
-	7mEKHIq5+8JhHPBp+NJUu8//DsdRti61DC7gNqWpbBpzFADI9vCXc8c88mzsQ2nI/b2IR11CpqP
-	DEKbZGuk43f0F8uvlllmSdoKyFsKRkFk252oQp01Gnq5zSHhi69MsvuWaXHpbyrR9M24oXsMr2a
-	uA1geobw+CUpkcCkkBHwZagqJMlqyFPSndk52e7JRla6fRFzULPV4NvllFndEtmt+tNZnXfG/Um
-	lpWdsbVe4JVmriI0uyYUeyj8+0zYmvljtd7yDb+vvitCQeVnLimKmBe6oOmgsvhs5DqNj0+D0lp
-	LKFQ4MGqsNz/T2M2Go1XCKBrz4oGa4VztblukOfIy5pGznSn1
-X-Received: by 2002:a05:7300:6917:b0:2e0:1f09:d924 with SMTP id
- 5a478bee46e88-30bc992c59cmr985150eec.5.1781654772212; Tue, 16 Jun 2026
- 17:06:12 -0700 (PDT)
+        d=1e100.net; s=20251104; t=1781699995; x=1782304795;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=UZi5bo8Cugwshp04KdhwM9Mfr4BTkMqYISdeW8xQXaI=;
+        b=A2zP200n3iN4FMSR0pyrV5lnQBMAmYtSmoHDEP6GQVVhDOL9a0MK/JLgBfrMjp6blJ
+         9CeTGgqTRle1qNWEMAnId76rubTR1g+rg9PyNKNzlJ681bUKKtHRfdYUs8tVRB8ezXA+
+         aXw8ZjRJ27RKBWyiAS3KiEYkoeT2q3YGp9Pua2ZimeAevkz5ZiJ55CabiZRi32SsUM89
+         F6SOdbk7a1hqe9wlffrkA0mprICrwlki9JT+Uum3PhstORDq72OScwPvErcA3S/Hy7nq
+         dPiGVQew15maHm0jopjeYQx7shkB/y9E6j8xaPUpvu7akx8kG0qV8Q8WhrUJ+NGCdo7f
+         XNbA==
+X-Forwarded-Encrypted: i=1; AFNElJ+j/n3EG5l7YQllw3GZQQvzEw9qi1NdqGbsdLNGxEpy9shUHKAH++lpCX6shHWi3+yKdmOP/k19TN/A@vger.kernel.org
+X-Gm-Message-State: AOJu0YxClVwnUiT7empHQohzPqKcue1byoATyE8v71yhRVt35dG9/vLZ
+	j4CeEk3TACbx5i2IjLqP9ep4tLkD1V8u//LO68qZF8nEvuBkyNHgPaMbKYov+oeHKBM=
+X-Gm-Gg: Acq92OEnnEWvf4/NuhLsFPk8gPdsc9F3K0FrBpLpIV3I3N/vvgVfVUQVgAv2vcvTsB3
+	Y73RzfKkxCQPpv13RlLQr4AiAVDpdspIzaYLyESwqj+qCNhSQGYTNvJxFnVFwd/2qqxKDU1WqTD
+	pBcMxc/zx0iN2q6FUeZUsbHi4MbeFi2+/H1BSdBySmB83nd+dbzuA3qRKB6P40Wul7RoOTCxZtC
+	4Orzt59O9eOrD2Hcya09RfwsMZS8SycHbgiUpt4EnGSx/0VC200OB81eXc1FrS/H1CKu/qljm5i
+	Lrtd445kpfJDLNOVjPYQZSOKS91kwcrPThz8EA/7WsnEyhTgcARwXYqunkNNXTzH4HCPvAVfFSH
+	KV4dfx5b/drV/GqTCf/QnOt4WMAlZ1OKHNe6M822WsOtJ1Wk4DD3rzjxpCDPadvFDiW8/T3B7pK
+	p6N/ICxX/NTYqNeRnixigYBP0eQOJvuA==
+X-Received: by 2002:a05:600c:e557:20b0:492:1e36:85dc with SMTP id 5b1f17b1804b1-492333e2b9dmr46704045e9.36.1781699995234;
+        Wed, 17 Jun 2026 05:39:55 -0700 (PDT)
+Received: from [10.0.2.3] (109-81-1-107.rct.o2.cz. [109.81.1.107])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4922fa891acsm161753865e9.9.2026.06.17.05.39.54
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 17 Jun 2026 05:39:54 -0700 (PDT)
+Message-ID: <79ace94f-31d3-4a5e-9a47-3fad69304fe5@suse.com>
+Date: Wed, 17 Jun 2026 14:39:53 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260616143020.3458085-1-jkoolstra@xs4all.nl> <20260616143020.3458085-2-jkoolstra@xs4all.nl>
-In-Reply-To: <20260616143020.3458085-2-jkoolstra@xs4all.nl>
-From: Kuniyuki Iwashima <kuniyu@google.com>
-Date: Tue, 16 Jun 2026 17:06:01 -0700
-X-Gm-Features: AVVi8Cce5oIkQ6o0SM96_tTZrEuKWAAnxCW1BPbsireeIZuVvbRqCN_usM_TBAY
-Message-ID: <CAAVpQUDqPsRXdsW31prBCDart-LGsF2EmFVN31gB3Nx6WPT2kA@mail.gmail.com>
-Subject: Re: [PATCH v2 2/4] net: af_unix: Useful handling of LSM denials on SCM_RIGHTS
-To: Jori Koolstra <jkoolstra@xs4all.nl>
-Cc: brauner@kernel.org, cyphar@cyphar.com, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>, 
-	"David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, 
-	Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>, 
-	Arnd Bergmann <arnd@arndb.de>, Willem de Bruijn <willemb@google.com>, linux-fsdevel@vger.kernel.org, 
-	Jeff Layton <jlayton@kernel.org>, open list <linux-kernel@vger.kernel.org>, 
-	"open list:NETWORKING [GENERAL]" <netdev@vger.kernel.org>, 
-	"open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] init/main: Expose built-in initcalls and blacklist status
+ via debugfs
+To: Aaron Tomlin <atomlin@atomlin.com>
+Cc: arnd@arndb.de, mcgrof@kernel.org, da.gomez@kernel.org,
+ samitolvanen@google.com, neelx@suse.com, sean@ashe.io, chjohnst@mail.com,
+ steve@abita.co, mproche@mail.com, nick.lane@mail.com,
+ linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+ linux-kernel@vger.kernel.org
+References: <20260510061301.41341-1-atomlin@atomlin.com>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260510061301.41341-1-atomlin@atomlin.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Tue, Jun 16, 2026 at 7:29=E2=80=AFAM Jori Koolstra <jkoolstra@xs4all.nl>=
- wrote:
->
-> Right now if some LSM such as Smack denies an AF_UNIX socket peer to
-> receive an SCM_RIGHTS fd, the SCM_RIGHTS fd array will be cut short at
-> that point, and MSG_CTRUNC is set on return of recvmsg(). This is
-> highly problematic behaviour, because it leaves the receiver
-> wondering what happened. As per man page MSG_CTRUNC is supposed to
-> indicate that the control buffer was sized too short, but suddenly
-> a permission error might result in the exact same flag being set.
-> Moreover, the receiver has no chance to determine how many fds got
-> originally sent and how many were suppressed.[1]
->
-> Add a SO_RIGHTS_NOTRUNC option to UNIX sockets to enable more useful
-> handling of LSM denials when receiving SCM_RIGHTS messages: instead of
-> truncating the message at the first blocked fd, keep every fd slot
-> and store the LSM errno in the blocked slot.
->
-> [1]: https://github.com/uapi-group/kernel-features#useful-handling-of-lsm=
--denials-on-scm_rights
->
-> Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
-> ---
->  fs/file.c                         | 48 ++++++++++++++++++++-----------
->  include/linux/file.h              |  2 ++
->  include/net/af_unix.h             |  1 +
+On 5/10/26 8:13 AM, Aaron Tomlin wrote:
+> At present, identifying the correct function name to supply to the
+> "initcall_blacklist=" kernel command-line parameter requires manual
+> inspection of the source code or kernel symbol tables. Furthermore,
+> administrators lack a reliable runtime mechanism to verify whether a
+> specified built-in module has been successfully blacklisted.
 
-net-next is closed during the merge window, so please repost after that.
+My understanding is that initcall_blacklist is primarily a debugging
+facility. This is documented in
+Documentation/admin-guide/kernel-parameters.txt [1] and also outlined in
+the initial commit 7b0b73d76651 ("init/main.c: add initcall_blacklist
+kernel parameter") [2]. It is expected that to use it, one must inspect
+the kernel source code.
 
-a few comments: please
+If the goal is to allow specific built-in modules to be blacklisted,
+I wonder whether extending module_blacklist to also cover built-in
+modules might be a better option. Module names are more appropriate for
+administrators to use, while initcall names should remain internal to
+the kernel. Additionally, initcalls are typically "static" and therefore
+are not guaranteed to have unique names + using module names avoids
+a dependency on CONFIG_KALLSYMS=y.
 
-* add cover letter
-* separate fs/ and net/ changes
-* do not touch tools/testing/selftest/Makefile
-* use kselftest_harness.h and system()
-* check other local rules (reverse xmas tree order, etc) in
-Documentation/process/maintainer-netdev.rst
+[1] https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/admin-guide/kernel-parameters.txt?h=v7.1#n2408
+[2] https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7b0b73d76651e5f88c88b76efa18d719f832bf6f
 
----
-pw-bot: cr
+-- 
+Thanks,
+Petr
