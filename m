@@ -1,133 +1,121 @@
-Received: from mail-oi1-f197.google.com (mail-oi1-f197.google.com [209.85.167.197])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from m16.mail.163.com (m16.mail.163.com [117.135.210.2])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C2EAE33439A
-	for <linux-arch@vger.kernel.org>; Thu, 18 Jun 2026 06:40:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.197
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E6C12566D3;
+	Thu, 18 Jun 2026 06:49:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=117.135.210.2
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781764804; cv=none; b=mBvnpJkQtppZZxd45D0IRvoTSZQcx8fRpJKfPcbvE8lqJS4IF20nUg7i/JtvpiCIWsBex7tsCJavj6DSUi9B7kgxE8TZzBMZ6OB5hqePVsmWMa6PqOT5739lDeoRJkE/Wyhk5D8aAR9ccS0ojJabWP5IQFOJaVaonwfNFP/AB10=
+	t=1781765369; cv=none; b=dA56OJmfLZbsx9G0gXC9md/zRBzivMqRKxo+et+kb7lYVBsTOmJ0z0QE6MKAbxdJiNzL5owVrEkgvo9K4SObDrd25KBBdEZYw2NUFAbIj+dEtM2ZAG9DttqPX3+seELiLHr/cIqo2/aNnDf4zajNxrdLo9csBpPUzKSShqV5MOE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781764804; c=relaxed/simple;
-	bh=jhEqjZKx88pIBpeKmrv1Sas4UoMrgqFVYBMP0Df5Ubo=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:Cc:
-	 Content-Type; b=smuRNwelT8s+ffoA/29UEH191hSM9YR3Dxgj3MlWc8JzfEwlMRUZVJ4JU7ngR9agq/7mvyxQcb5dougHUGwVlk6VbGqhNKJBxXdjvnHyXDXseEW3XiKZ+HoR5YGC3IiUWO056xiWl11skTYhh2+iy4nVE8rUNb5N/Iw6fou+u78=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.197
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oi1-f197.google.com with SMTP id 5614622812f47-48952d1c293so1263088b6e.3
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2026 23:40:02 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1781764802; x=1782369602;
-        h=cc:to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=Hz071LhqoCdVzTS1WyTwcmYkHUJfSiLehw55eYvJ1/U=;
-        b=pl5hoy6eeRXlb7hDBu5RGV+ttgg408mmpDSCFW5feZ/t3T3W83nZuAWqa7DZKboAIL
-         KdePnyBfzMelTEhUwZJOqThuwIaHCmfMNyS6q1rOHz+yJkV/+dk12uWQxbjQWJMvlCIi
-         B6NZGOELp1TilMbLPd+r34lwATASJXcrqBjmy+QzmwnPQkanYEa8j518F2qeewPBXu1Z
-         Yxj9UqWu9CxzbY0pHsF8QjoRRePAToo94WDprCYEEwLvO2YI4l90bXMEgvW1TR9P7pc9
-         2NjkyR/8AzRInzIZsccAT+RrkLOMp3arGO4HkQfQszW078yZEN56t4sL1nruc01lPwW+
-         QviQ==
-X-Forwarded-Encrypted: i=1; AFNElJ/WqjQwwDGIve2xMNdJKfpD+jlWlT2s9Dq2lL8fHNdHyASddKI7AA1Enue9Cwo2owu0QlMLVJ1wsAmH@vger.kernel.org
-X-Gm-Message-State: AOJu0YzPo0Zp0ZPhc9oByh+ydWTrqGS6+C/OiCRyoQufp0wLXbbzUffL
-	i2cBKlVt9STml+5WQTgr0YDzqjCX+y1C0fPanmSqQJDVBhoduzseLV9JQHOuyV0AJssu2arZm6b
-	c8Thl5UESQ09hHQ3P6HD8xCV+R66wgiejjkYSNledM+kYSEoVsWNmzYxNV88=
+	s=arc-20240116; t=1781765369; c=relaxed/simple;
+	bh=gsJf9Jm5coSQi6PJtpTH8ZO3WjpGXpEMR3yZ9eqzbPA=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=BsaKFsOy6r7rcpUp6FXtNHCZLolvgOHjfYp0OW5Uf/mNZXvaD9GUu+bmuSpnizqx1NBdbiZUHd31esdHWDbuhQ08UhqCyIGfOCtGRDS2LhLlIuWwQ8icXXgVJ9BIzROzJDMCw4cUcHqa/OLnb8f9J0Ls+TiDB9oIRe1k0F+G+1Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=iu1d7Nxn; arc=none smtp.client-ip=117.135.210.2
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="iu1d7Nxn"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
+	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version; bh=Pg
+	0B+9qKQMRhvj5J2hGwz0RIESiJqMrSgNuCqkEtBvA=; b=iu1d7NxnpDvAaAdTKU
+	s1dRqVQ9ovgm3up+le1IpR39ERKRZycqYMFgWQWs0jxFNng3Ij/W9dGu0l0IDkhh
+	/vu507XLg3M7fwLN9rRaxIjLbmfj1HqpUFqHYeacnkRqA+IS+oWBcIKUl48khWFh
+	tUkJKAg5BJYBI2QsBnnF5/knA=
+Received: from zhaoxin-MS-7E12.. (unknown [])
+	by gzga-smtp-mtada-g0-1 (Coremail) with SMTP id _____wD3XynGlDNq3B6NEA--.57322S2;
+	Thu, 18 Jun 2026 14:48:40 +0800 (CST)
+From: Xin Zhao <jackzxcui1989@163.com>
+To: ebiederm@xmission.com
+Cc: alex.aring@gmail.com,
+	allen.lkml@gmail.com,
+	arnd@arndb.de,
+	brauner@kernel.org,
+	chuck.lever@oracle.com,
+	j.granados@samsung.com,
+	jack@suse.cz,
+	jackzxcui1989@163.com,
+	jlayton@kernel.org,
+	keescook@chromium.org,
+	linux-arch@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	mcgrof@kernel.org,
+	viro@zeniv.linux.org.uk
+Subject: Re: [PATCH] coredump/fcntl: Add FD_CLOBCOR flag to close fd before dumping core
+Date: Thu, 18 Jun 2026 14:48:38 +0800
+Message-Id: <20260618064838.2636840-1-jackzxcui1989@163.com>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <87zf0se7qi.fsf@email.froward.int.ebiederm.org>
+References: <87zf0se7qi.fsf@email.froward.int.ebiederm.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6808:4fcc:b0:489:443d:a8ec with SMTP id
- 5614622812f47-4895d312ba2mr993414b6e.39.1781764801759; Wed, 17 Jun 2026
- 23:40:01 -0700 (PDT)
-Date: Wed, 17 Jun 2026 23:40:01 -0700
-In-Reply-To: <20260618030700.2511668-1-jackzxcui1989@163.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6a3392c1.8c9cf54e.2a1067.001c.GAE@google.com>
-Subject: [syzbot ci] Re: coredump/fcntl: Add FD_CLOBCOR flag to close fd
- before dumping core
-From: syzbot ci <syzbot+ci70676f29c0f1964b@syzkaller.appspotmail.com>
-To: alex.aring@gmail.com, allen.lkml@gmail.com, arnd@arndb.de, 
-	brauner@kernel.org, chuck.lever@oracle.com, ebiederm@xmission.com, 
-	j.granados@samsung.com, jack@suse.cz, jackzxcui1989@163.com, 
-	jlayton@kernel.org, keescook@chromium.org, linux-arch@vger.kernel.org, 
-	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	mcgrof@kernel.org, viro@zeniv.linux.org.uk
-Cc: syzbot@lists.linux.dev, syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-CM-TRANSID:_____wD3XynGlDNq3B6NEA--.57322S2
+X-Coremail-Antispam: 1Uf129KBjvJXoWxGF43JF4kCF48Kw4UWF4kJFb_yoW5XrW8pa
+	y5Ka40ya1kKrs7ta97Z3W8A3WFg3yrGFsrXrnxury5Cws8u3WSyF1fKa15ta47JwsYyayY
+	qFy7tasrWryYvFJanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x0pRE388UUUUU=
+X-CM-SenderInfo: pmdfy650fxxiqzyzqiywtou0bp/xtbCwAi+yGozlMhQmwAA3w
 
-syzbot ci has tested the following series
+On Thu, 18 Jun 2026 00:29:57 -0500 "Eric W. Biederman" <ebiederm@xmission.com> wrote:
 
-[v1] coredump/fcntl: Add FD_CLOBCOR flag to close fd before dumping core
-https://lore.kernel.org/all/20260618030700.2511668-1-jackzxcui1989@163.com
-* [PATCH] coredump/fcntl: Add FD_CLOBCOR flag to close fd before dumping core
+> > A coredump typically takes some time to complete. If we happen to hold a
+> > write lock with flock just before triggering the coredump, that write lock
+> > will not be released during the entire coredump process. As a result,
+> > other processes attempting to acquire the same write lock may experience
+> > significant delays.
+> 
+> You are talking about giant processes writing to slow backing store?
+> 
+> I suspect you would be better off quickly writing the coredump to a pipe,
+> and then writing it to disk.
+> 
+> Unless your machine is badly balanced that should take perhaps a second.
+> 
+> That said I don't see why you need elaborate machinery to do something
+> about these file descriptors.  Unless I am mistaken no file descriptors
+> are placed into a coredump.  In which case it should be possible to just
+> call exit_files early.
 
-and found the following issue:
-WARNING: suspicious RCU usage in exit_files_before_core
+Thank you for your suggestion. Are you suggesting modifying the coredump
+path to a location like /tmp and then copying the files from /tmp to the
+final storage location? That would indeed be faster, but our tasks
+sometimes consume a considerable amount of memory, and the dump time might
+still be significant even when using a pipe. For our higher-level code,
+even 100 ms might be a bit too long. Additionally, while directly calling
+exit_files() in coredump_wait can cover most scenarios, if the
+coredump_filter includes (bit 3) file-backed shared memory, it may not be
+appropriate to release all files.
 
-Full report is available here:
-https://ci.syzbot.org/series/bda032a0-64d8-4226-8ad1-6a4c99514d61
-
-***
-
-WARNING: suspicious RCU usage in exit_files_before_core
-
-tree:      torvalds
-URL:       https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux
-base:      2a706d98d50a28dd635b3d028531d839c1f5f19a
-arch:      amd64
-compiler:  Debian clang version 21.1.8 (++20251221033036+2078da43e25a-1~exp1~20251221153213.50), Debian LLD 21.1.8
-config:    https://ci.syzbot.org/builds/e0dd4cce-02a0-415c-9720-8816ca17346d/config
-
-=============================
-WARNING: suspicious RCU usage
-syzkaller #0 Not tainted
------------------------------
-./include/linux/fdtable.h:104 suspicious rcu_dereference_check() usage!
-
-other info that might help us debug this:
+I actually prefer to dynamically create the bitmap for determining
+close_before_core on demand. If the task hasn't set this attribute, then
+we wouldn't create the bitmap, which would also save time on memory
+allocation when this feature is not used.
 
 
-rcu_scheduler_active = 2, debug_locks = 1
-no locks held by syz.2.65/5687.
+> > To address this, we introduce the F_[GET|SET]FD_EX fcntl operation and the
+> > FD_CLOBCOR flag, allowing coredump_wait() to release any file descriptors
+> > marked with FD_CLOBCOR. We can also assign the FD_CLOBCOR flag to specific
+> > shared memory segments, preventing the coredump from including shared
+> > memory that we are not interested in, thereby reducing both the coredump
+> > duration and the size of the core file.
+> 
+> Please look at vma_dump_size.  There are plenty of ways already to
+> skip dumping a memory area.  Using file backed shared memory,
+> and madvise(MADV_DONTDUMP) are two easy ones that already exist.
+> 
+> My point is that there are cleaner ways to solve your problem than
+> the solutions you have proposed.
 
-stack backtrace:
-CPU: 0 UID: 0 PID: 5687 Comm: syz.2.65 Not tainted syzkaller #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.2-debian-1.16.2-1 04/01/2014
-Call Trace:
- <TASK>
- dump_stack_lvl+0xe8/0x150
- lockdep_rcu_suspicious+0x13f/0x1d0
- exit_files_before_core+0x35a/0x410
- vfs_coredump+0xa52/0x4550
- get_signal+0x1107/0x1330
- arch_do_signal_or_restart+0xbc/0x830
- irqentry_exit+0x2a4/0x860
- asm_exc_page_fault+0x26/0x30
-RIP: 0033:0x0
-Code: Unable to access opcode bytes at 0xffffffffffffffd6.
-RSP: 002b:0000200000000008 EFLAGS: 00010217
-RAX: 0000000000000000 RBX: 00007f3125415fa0 RCX: 00007f312519ce59
-RDX: 0000200000000000 RSI: 0000200000000000 RDI: 0000000000000000
-RBP: 00007f3125232d6f R08: 0000200000000000 R09: 0000000000000000
-R10: 0000200000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007f3125415fac R14: 00007f3125415fa0 R15: 00007f3125415fa0
- </TASK>
+This requirement can indeed be addressed with the MADV_DONTDUMP you
+mentioned, thank you for your suggestion. But what troubles me is the
+scenario mentioned above.
 
+Thanks
+Xin Zhao
 
-***
-
-If these findings have caused you to resend the series or submit a
-separate fix, please add the following tag to your commit message:
-  Tested-by: syzbot@syzkaller.appspotmail.com
-
----
-This report is generated by a bot. It may contain errors.
-syzbot ci engineers can be reached at syzkaller@googlegroups.com.
-
-To test a patch for this bug, please reply with `#syz test`
-(should be on a separate line).
-
-The patch should be attached to the email.
-Note: arguments like custom git repos and branches are not supported.
