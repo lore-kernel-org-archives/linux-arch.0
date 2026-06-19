@@ -1,112 +1,103 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 118602F8EA5;
-	Fri, 19 Jun 2026 13:54:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E97D53B47E1
+	for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2026 16:14:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781877281; cv=none; b=jW4ibAKET5vGToO2q++EIaCw5s5452Yq/cI07+c1Qw63DoQLS1+X3AAkE4Oa7DZC6znF5G46OgLQM/zfPcNgT3gkR+Ox9RDKMMmRlH29Fu5up0j7oPkbd1G+L+6lcY3fc5Ofdc0o99lpK/ikUFBr1fKyjNiwWBFofy8Dn6kwItc=
+	t=1781885685; cv=none; b=L4jZcuIHxW5izvtcCqWSGqzwZmv0liHmVGI33gG8PsnlpTM1cE5zTFypTRPPN9uOjYfd9+IZPp0Ge+jc0Lf7B5SF2sOGF0s8zC8ySHC+UVODl0v+foISvHJRYKgceYXt8k9Uge9a6wRvcedRXjmSSvK77TyFo6KMlwBmnRkRei8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781877281; c=relaxed/simple;
-	bh=Se2YS+MysaHYdTAXA918wZ9iDPhbkTOeVjJdMoD/QNs=;
-	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
-	 References:Date:Message-Id; b=AP71o53OmA5c6sEleMQul7GhFl05lOw/gVvHyOPZFVtickSUtP05HQ381r7aAZceRJ0w7vzcm/ThT9PekMakGXGPOuqvGA013oA+7To56erLYidykBNljWCNHi9W3UIKGn0mD4pWS5ROHEx8nOtSgEd+KWaleJ6f5cib4p4AeHA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=FqoGyad3; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1781885685; c=relaxed/simple;
+	bh=CciQhVZkdMjQeQurwPQlK3eA3fJ1BEEhkxvOiJb2L9w=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=YdwZXZdH5Lp4V5GuoOGsWfoIaH+ZGgbh9Il/lWC0W7HoYVHgNmWYxFaJ4U+/3CPwhZidauebcynRwkwNyW7Vrp0rxaNBwh75qjjGs6E5wfKtmRLbF5lQIie5DsnTfXWpvk5S0ZA9kT3EKJTPfgu5b2lzWG0G09M6pOsB3siEJNY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=UgjdGRO/; arc=none smtp.client-ip=170.10.129.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="FqoGyad3"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C6F3A1F000E9;
-	Fri, 19 Jun 2026 13:54:32 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1781877276;
-	bh=hPmW2sA0yrda5AdXRNfJKhNs4MlR4+tuoG6ayHqZROQ=;
-	h=Subject:From:To:Cc:In-Reply-To:References:Date;
-	b=FqoGyad3OYkhL+VDjB28X7/5ekIRit1Sh6whdYj8D2/QjksCtlsZZldUxuDFRXNJT
-	 8nFOdqVguMNvGQBPZj2ngTi/VWQMM0Vcvs+ViPKijYBjZ8Jj4bGXst+EW1/cVH6XY9
-	 42sSBw3SuJ0yz4jgGWQIP+PeLGMCDyQR+0h+qsfUbzfk9Rna10KteX7OlAxH3i8Lky
-	 X0oa8DR3sos2aKqnP4mgCsVKBF7wlTmVqlGG7dqIYy5PafB8onZDaKFLXnOH+GnrS9
-	 UmrWz2g/AiqZYslqKqbLcByOMMUo786KS58S4+fyEF29WsYiksLrxDklFkEFXMJh7T
-	 6aw5DPpW8C80A==
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="UgjdGRO/"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1781885683;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=qjdJl/aIjLBeqeT1ey7cLdIZICtMkB44mhPgkeKrWdY=;
+	b=UgjdGRO/IZ+cGqD+43MNCQ/04rmnGAI4AUWe1+jci6y9DG3vr+21m08l2Lfu8XdzSMAeqB
+	d2BgIl6iGwcsOEIUGeOssfnmavRBvRsKdPpeRaqwtQVnlBRYPBQeqJGinH1SmBpmyGKOXY
+	Ekz3bpNhCcl6SHKEXOG5GIudgDRa6Uc=
+Received: from mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-329-8hx6TyT-Okexek8-hjIhyg-1; Fri,
+ 19 Jun 2026 12:14:39 -0400
+X-MC-Unique: 8hx6TyT-Okexek8-hjIhyg-1
+X-Mimecast-MFC-AGG-ID: 8hx6TyT-Okexek8-hjIhyg_1781885678
+Received: from mx-prod-int-08.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-08.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.111])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id EC0AF1944D45;
+	Fri, 19 Jun 2026 16:14:37 +0000 (UTC)
+Received: from thuth-p1g4.redhat.corp (headnet03.pony-001.prod.iad2.dc.redhat.com [10.2.32.114])
+	by mx-prod-int-08.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id C46C418005B7;
+	Fri, 19 Jun 2026 16:14:35 +0000 (UTC)
+From: Thomas Huth <thuth@redhat.com>
+To: Naveen N Rao <naveen@kernel.org>,
+	"David S. Miller" <davem@davemloft.net>,
+	Masami Hiramatsu <mhiramat@kernel.org>
+Cc: linux-kernel@vger.kernel.org,
+	linux-trace-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Subject: [PATCH] kprobes: Replace __ASSEMBLY__ with __ASSEMBLER__ in header file
+Date: Fri, 19 Jun 2026 18:14:34 +0200
+Message-ID: <20260619161434.88270-1-thuth@redhat.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Subject: Re: [PATCH v3] coredump: exit_files() in coredump_wait() if
- MMF_DUMP_MAPPED_SHARED is not set
-From: Christian Brauner <brauner@kernel.org>
-To: Xin Zhao <jackzxcui1989@163.com>
-Cc: pfalcato@suse.de, brauner@kernel.org, ebiederm@xmission.com, 
- viro@zeniv.linux.org.uk, jack@suse.cz, jlayton@kernel.org, 
- chuck.lever@oracle.com, alex.aring@gmail.com, arnd@arndb.de, 
- keescook@chromium.org, mcgrof@kernel.org, j.granados@samsung.com, 
- allen.lkml@gmail.com, linux-fsdevel@vger.kernel.org, 
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-In-Reply-To: <20260619122419.3954581-1-jackzxcui1989@163.com>
-References: <20260619122419.3954581-1-jackzxcui1989@163.com>
-Date: Fri, 19 Jun 2026 15:54:26 +0200
-Message-Id: <178187726633.350634.1366346571707417413.b4-review@b4>
-X-Mailer: b4 0.16-dev-aeb64
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2226; i=brauner@kernel.org;
- h=from:subject:message-id; bh=Se2YS+MysaHYdTAXA918wZ9iDPhbkTOeVjJdMoD/QNs=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWSZeklcP1KssX6fmdTH2S+2/ju+NdvM0Svz/9/Xsm5Gf
- Gwv/0826ihlYRDjYpAVU2RxaDcJl1vOU7HZKFMDZg4rE8gQBi5OAZhIaTjD/5wpflNUFuptvH3P
- ZwFjvpNy10G+26URe+6eLv57Py/w0QqG/yl9OUwu79fwHLwmsavr+uWXL23kc+sS0/7nPn635iq
- rACMA
-X-Developer-Key: i=brauner@kernel.org; a=openpgp;
- fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
+X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.111
 
-> A coredump typically takes some time to complete. If we happen to hold a
-> write lock with flock just before triggering the coredump, that write lock
-> will not be released during the entire coredump process. As a result,
-> other processes attempting to acquire the same write lock may experience
-> significant delays.
-> 
-> To address this, call exit_files() in the end of coredump_wait(), if
-> MMF_DUMP_MAPPED_SHARED is not set. Note that early unlocking a flock on a
-> file allows other processes to lock and modify the mapped data protected
-> by the flock.
-> 
-> Signed-off-by: Xin Zhao <jackzxcui1989@163.com>
->
-> diff --git a/fs/coredump.c b/fs/coredump.c
-> index bb6fdb1f458e..70698d06ec9d 100644
-> --- a/fs/coredump.c
-> +++ b/fs/coredump.c
-> @@ -548,6 +548,13 @@ static int coredump_wait(int exit_code, struct core_state *core_state)
->  		}
->  	}
->  
-> +	/*
-> +	 * Early unlocking a flock on a file allows other processes
-> +	 * to lock and modify the mapped data protected by the flock.
-> +	 */
-> +	if (!mm_flags_test(MMF_DUMP_MAPPED_SHARED, tsk->mm))
-> +		exit_files(tsk);
+From: Thomas Huth <thuth@redhat.com>
 
-This doesn't work - at least not unconditionally. Tools like
-systemd-coredump or apport go through the fds. Specifically
-systemd-coredump does:
+While the GCC and Clang compilers already define __ASSEMBLER__
+automatically when compiling assembly code, __ASSEMBLY__ is a
+macro that only gets defined by the Makefiles in the kernel.
+This can be very confusing when switching between userspace
+and kernelspace coding, or when dealing with uapi headers that
+rather should use __ASSEMBLER__ instead. So let's standardize now
+on the __ASSEMBLER__ macro that is provided by the compilers.
 
-1) /proc/[pid]/fd/ — opendir() then, per entry, readlinkat() to get the symlink target.
-2) /proc/[pid]/fdinfo/ — for each fd it reads the fdinfo text lines
+Signed-off-by: Thomas Huth <thuth@redhat.com>
+---
+ Note: This patch has been split from an earlier bigger patch of
+ mine to ease reviewing.
+ 
+ include/asm-generic/kprobes.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-The blob is attached to the journal record as the COREDUMP_OPEN_FDS=
-field. So the open-fd list is recorded as metadata, retrievable later
-(e.g. coredumpctl info shows it).
-
-Also, irc some clever implementations use pidfd_getfd() to preserve the
-files from a coredumping process to preserve them.
-
-So you break all that - and only in some of the cases which is really
-opaque to userspace. That's not acceptable. If you only care about the
-case where you dump to a file then either special-case it to the legacy
-file coredump format or if it's generally useful make it an optional
-argument that can be passed to the coredump pipe and a new flag
-extension to the coredump socket that makes the coredumping process shed
-it's file descriptors.
-
+diff --git a/include/asm-generic/kprobes.h b/include/asm-generic/kprobes.h
+index 5290a2b2e15a0..16f16963d503d 100644
+--- a/include/asm-generic/kprobes.h
++++ b/include/asm-generic/kprobes.h
+@@ -2,7 +2,7 @@
+ #ifndef _ASM_GENERIC_KPROBES_H
+ #define _ASM_GENERIC_KPROBES_H
+ 
+-#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
++#if defined(__KERNEL__) && !defined(__ASSEMBLER__)
+ #ifdef CONFIG_KPROBES
+ /*
+  * Blacklist ganerating macro. Specify functions which is not probed
+@@ -21,6 +21,6 @@ static unsigned long __used					\
+ # define __kprobes
+ # define nokprobe_inline	inline
+ #endif
+-#endif /* defined(__KERNEL__) && !defined(__ASSEMBLY__) */
++#endif /* defined(__KERNEL__) && !defined(__ASSEMBLER__) */
+ 
+ #endif /* _ASM_GENERIC_KPROBES_H */
 -- 
-Christian Brauner <brauner@kernel.org>
+2.54.0
+
