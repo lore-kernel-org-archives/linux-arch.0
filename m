@@ -1,91 +1,78 @@
-Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.5])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 32ECC33A9D6;
-	Fri, 19 Jun 2026 00:39:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=220.197.31.5
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B6F5F30F927;
+	Fri, 19 Jun 2026 07:23:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781829602; cv=none; b=CTM1k59ZNuhvWTQZA54/CgoVk8ENeTqZ5/X+gF4q83kFiAdxu6+LG10mVE85uvSEPjU+65hERr2pNrNZhcLOqPN9YjsVFy91vmW7k779efAmp0v147qoMpg2sxhgAYm7YNuGYPJ33S6TnNCUbgI3ZOYxsO0b6vOFZPChWmXQKsg=
+	t=1781853817; cv=none; b=q3ZA21ywYpx+KvrDEO/AsW19pPz2jrMH6cIpG15vMoTo7nrtQYlBcY5fOTcxo+xWQaT3TvN3rmWR490CBrQCj7Y7kZCQudyWFgR1z1iFlMyR6+E88zluOS6cm5gGSyHMzW4RWCbr+s2gTd17ynlvUCcSjJRl76Us/I2vfk9UeaQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781829602; c=relaxed/simple;
-	bh=TSyHsKp8MWY4GZFrYjBoTpWtkFWhqpdhoGfHUL9PYZE=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=g7n/RN5Ql/6DPTKyBQQU6xosgsKpRaeqO45ZJ1RJsEaxjHBxhwLtKOYlt4m9HsrKlIDa/O/RbyINw5jiiVz3l+o6/+MVRXjJJf71BPHF+Zzyyxtln9SKz3RT0Km+7lCsg6FG/zbyvgdjZXkFJv/Pds9li/49Ks8kxrgduZ5kNc0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=DoNv1B4U; arc=none smtp.client-ip=220.197.31.5
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
+	s=arc-20240116; t=1781853817; c=relaxed/simple;
+	bh=QkeHkE3g4wxMH5hB0NvQvJUDbnS7C2lZFlpit8rOu+Q=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=RNzmOv4yrkfc2h/2cy+c900v1i0ad6vkulZs4iBKURfYjdz/se4ldtAgtYCGdGYFaSZwDXKcjR6xmFrjmzKjixOimUnti8NlMNXh1f/UG5ZPqc4vNBOIv98b5nFl06fLzgr4tBKP4LyfpJeTJB9gRJT0TZU1L7lkgRPOF/cfv6o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=i2QGe8V2; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="DoNv1B4U"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
-	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version; bh=xs
-	M+T7jwnvEavB8dE5tjK8QL9ECktCoIX9VX/xAC6iE=; b=DoNv1B4Uw8K9qvdJ7f
-	tAIyldCMLzJidNNXHZJ2nd4crtu5cvf76mX3EhLpN+lU/Fn4NQnWS9G9tUmyvX/s
-	sXersmT6/Ptx+stss1ALEvz8W0AR3b5mDVYneKmd0LT4Ev+zJE1bPirE9CdMv2ZS
-	u4GahWzTy+7q7hcN9GP9zMKFQ=
-Received: from zhaoxin-MS-7E12.. (unknown [])
-	by gzga-smtp-mtada-g0-4 (Coremail) with SMTP id _____wD31qakjzRqBTQuEg--.1443S2;
-	Fri, 19 Jun 2026 08:39:01 +0800 (CST)
-From: Xin Zhao <jackzxcui1989@163.com>
-To: pfalcato@suse.de
-Cc: alex.aring@gmail.com,
-	allen.lkml@gmail.com,
-	arnd@arndb.de,
-	brauner@kernel.org,
-	chuck.lever@oracle.com,
-	ebiederm@xmission.com,
-	j.granados@samsung.com,
-	jack@suse.cz,
-	jackzxcui1989@163.com,
-	jlayton@kernel.org,
-	keescook@chromium.org,
-	linux-arch@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	mcgrof@kernel.org,
-	viro@zeniv.linux.org.uk
-Subject: Re: [PATCH v2] coredump: exit_files() in coredump_wait() if MMF_DUMP_MAPPED_SHARED is not set
-Date: Fri, 19 Jun 2026 08:39:00 +0800
-Message-Id: <20260619003900.3546571-1-jackzxcui1989@163.com>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <ajQoFeTyIqh6tMVv@pedro-suse>
-References: <ajQoFeTyIqh6tMVv@pedro-suse>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="i2QGe8V2"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 394231F000E9;
+	Fri, 19 Jun 2026 07:23:32 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1781853816;
+	bh=TtH5IhKUgd1+u0cPTAuCNhSuI0z3WmY/qXULu9PIz6M=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=i2QGe8V2YVe5021kDRz7YtlsDZlNPojmr/jMUfd2VtwG8kWW5GTTphjnwjVw6JsYf
+	 I0xHDaybM6jGx7YBtJq+zOW+5cZg5cW1hONwcDZBftj3qMv2dzwdvB958w6V1MRMZs
+	 t5ADsweGp1L3PkIBctpeF5HxyMFSZLSFfL5IYp3O3dckZSVOwnHl2M/fTSSN3xnttm
+	 Pu7Hr8u1R0uaxq/okoIqbLX8nL9IZmj6YRVVRSl8i6XCAjtXk9hKFsTH6piBg2WqCK
+	 NqpV1so47k06y+b6cjJI2xjMeBBfTmDfymlJP1dRvxmuWZ2SB7+Twj7E1G8QdXDNf5
+	 sXumZmKFtxqYw==
+Date: Fri, 19 Jun 2026 09:23:30 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: Xin Zhao <jackzxcui1989@163.com>
+Cc: viro@zeniv.linux.org.uk, jack@suse.cz, jlayton@kernel.org, 
+	chuck.lever@oracle.com, alex.aring@gmail.com, arnd@arndb.de, ebiederm@xmission.com, 
+	keescook@chromium.org, mcgrof@kernel.org, j.granados@samsung.com, allen.lkml@gmail.com, 
+	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH] coredump/fcntl: Add FD_CLOBCOR flag to close fd before
+ dumping core
+Message-ID: <20260619-hiervon-kopfsache-rechen-efbdf4463544@brauner>
+References: <20260618030700.2511668-1-jackzxcui1989@163.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:_____wD31qakjzRqBTQuEg--.1443S2
-X-Coremail-Antispam: 1Uf129KBjvdXoW7GF47Xr4xtw4fur15CryUWrg_yoWDCwbE9a
-	yFvw4vv348ZFs5Wr13GrsrWrZxtayDWFyDtan8ZFW7Jry8XayIkryvvrZ5Aa4FqFWF9w1D
-	Grn5ua4jqry2gjkaLaAFLSUrUUUUjb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
-	9fnUUvcSsGvfC2KfnxnUUI43ZEXa7sREhF4PUUUUU==
-X-CM-SenderInfo: pmdfy650fxxiqzyzqiywtou0bp/xtbC5wW0vmo0j6UJHAAA3J
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20260618030700.2511668-1-jackzxcui1989@163.com>
 
-On Thu, 18 Jun 2026 18:19:16 +0100 Pedro Falcato <pfalcato@suse.de> wrote:
-
-> > > +	if (!mm_flags_test(MMF_DUMP_MAPPED_SHARED, tsk->mm))
-> > > +		exit_files(tsk);
-> > 
-> > Memory mapped files keep their own separate references to the files
-> > (in struct vm_area_struct::vm_file), so there is no need to attempt to
-> > work around this. Unless I'm misunderstanding what you're attempting
-> > to work around.
+On Thu, Jun 18, 2026 at 11:07:00AM +0800, Xin Zhao wrote:
+> A coredump typically takes some time to complete. If we happen to hold a
+> write lock with flock just before triggering the coredump, that write lock
+> will not be released during the entire coredump process. As a result,
+> other processes attempting to acquire the same write lock may experience
+> significant delays.
 > 
-> Waiit, I think I get it - you have a flock on a file, and you're scared
-> that if you unlock early, some other process can lock it and modify some other
-> file we have mapped? If so, that does make some sense. Please add that as
-> a comment and/or into the git log, because it feels very much non-obvious
-> to me.
+> To address this, we introduce the F_[GET|SET]FD_EX fcntl operation and the
+> FD_CLOBCOR flag, allowing coredump_wait() to release any file descriptors
+> marked with FD_CLOBCOR. We can also assign the FD_CLOBCOR flag to specific
+> shared memory segments, preventing the coredump from including shared
+> memory that we are not interested in, thereby reducing both the coredump
+> duration and the size of the core file.
+> 
+> We actually considered using signals that generate coredumps to perform
+> the actions we wanted in user space. However, since other threads within
+> the process are not frozen when handling these signals, indiscriminately
+> closing an fd can lead to concurrency issues. For example, if the thread
+> that triggered the coredump closes the fd in the signal handler while
+> other threads are using the resources associated with that fd, it could
+> cause secondary corruption of the coredump state.
+> 
+> Signed-off-by: Xin Zhao <jackzxcui1989@163.com>
+> ---
 
-I did forget that mmap also increases the reference count, but the case
-you mentioned is one we also want to work around. I will add this
-information to both the commit log and the comments as below:
-
-Early unlocking a flock on a file allows other processes to lock and
-modify the mapped data protected by the flock.
-
-Thanks
-Xin Zhao
-
+Eew, NAK. No way we're doing this.
+I can see a point in filtering memory that one isn't interested in but
+that has to be built on top of the coredump socket protoctol by
+extending it.
