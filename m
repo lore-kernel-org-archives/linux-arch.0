@@ -1,53 +1,51 @@
-Received: from m16.mail.163.com (m16.mail.163.com [117.135.210.2])
+Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.3])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CF1A437B03E;
-	Fri, 19 Jun 2026 11:28:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=117.135.210.2
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6863A1E98EF;
+	Fri, 19 Jun 2026 12:25:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=220.197.31.3
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781868518; cv=none; b=ilovJ/CfPjVEqYeoFuw/ZLgTy+2AY4dtCG8BSkqOSBHJAN1RHD6W1zEH4E2/h6MQTig0LdDEnzpK9P4sV5xW1+7lpxClNO5x25C8tfWLNxwel00Khbom3QF43bdf5sIPKyiGvCzNlOjj9dpDVbS/bMPLAvpW1MKVc+yuahU5LAg=
+	t=1781871938; cv=none; b=FirOz/WKVgczjZTtjdg8S6OwhB0UlTnaUUp5Ld8jVpCbumN6YK6cG60ZBt3Rq2raeHa8zE4LieDXEWcmmHXxN3xe/MBIL7+7X0OpL6YvTU4PelMYO5xpF4xiA8Bbtz9/PyepowqF3UzR8zN3neUAwu+Ec2heSgkAd3l1SJapknM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781868518; c=relaxed/simple;
-	bh=wG8vqSZRlfADMw19ZyBJUL9fV/W959NkPCp0oBJpaGY=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=AUi4KNep6DdqSURa24Co7/sPicy4Cy/++OZj6ErFyJW4bRU6gLLW+g3JtxcWWUymhhHVxTMjG9NvHT/5wJ6wR3c6FbY9BWkDb5wqybC7VuQ3E6wCVug8czIbV24TUeHdzyx7NgMRVJHPoTC9BJbofjR0cM0Z3e3c3ONYWHYNNeg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=Bq1J5b+6; arc=none smtp.client-ip=117.135.210.2
+	s=arc-20240116; t=1781871938; c=relaxed/simple;
+	bh=ed0uN7i1eEjaMsLqpmegENrI+R0FiaVCazj78TebJTE=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=Tr4kBATw6K00tJyIDGvbEtuOkTHiDOQyCzTZlS5zJ4RiK5eI4D5QVCu8GI3ZnrRvRtlAQM9vBEwp89H9F/Sx6xy87FWTPK5Ndl8sdRxbYHNypyxJWvSTvoruKE+bKyJhQyhW5KQcWT402CHW7+VdQNVZXE3inI1c4z2Bp8/aOT0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=e17kKzQa; arc=none smtp.client-ip=220.197.31.3
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="Bq1J5b+6"
+	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="e17kKzQa"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
-	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version; bh=dF
-	FX1HkXHLgluOIZ1FYNUEJLqZLrQvqoPtt5ncKjmX0=; b=Bq1J5b+6+H18kgN2Ng
-	NC9KkVd1SOW2IIywduRzrSPHJkEyfeEiBAmI7n4yUshKgcrqDAjvPlxs5txpE7/V
-	MVNFYGwhazJRDRQy+PfR5qxp2MiGzK5g1cs9MXLk/prRLvOmgnGL7QLpPyPPgt9M
-	pE1FPWRBAepH1C9rae/jM7+5Y=
+	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version; bh=IV
+	7FTXAAktNTIOVliYO4ZBZ3CTZVDDl4HyRkFvIav7M=; b=e17kKzQaYqXGOfK/t3
+	ErMO0NL7h4NEFHBNqabvf99qh98U/vsb9ZjwR8LcLedbeZng46z9G5Tm3UH0EkV8
+	mIoI4GnWY2o6XqP6jfv32Jh8omVVbSwSDzQVYIakmeEh7wClH3UFnRqKVfQCWht+
+	n/f75QnxTh2fsutt9Pevc26aY=
 Received: from zhaoxin-MS-7E12.. (unknown [])
-	by gzga-smtp-mtada-g0-4 (Coremail) with SMTP id _____wD3NKOmJzVqVoGHEg--.21031S2;
-	Fri, 19 Jun 2026 19:27:36 +0800 (CST)
+	by gzsmtp5 (Coremail) with SMTP id QCgvCgCH7rH1NDVqnm0eDA--.53549S2;
+	Fri, 19 Jun 2026 20:24:22 +0800 (CST)
 From: Xin Zhao <jackzxcui1989@163.com>
-To: brauner@kernel.org
-Cc: alex.aring@gmail.com,
-	allen.lkml@gmail.com,
-	arnd@arndb.de,
-	chuck.lever@oracle.com,
+To: pfalcato@suse.de,
+	brauner@kernel.org,
 	ebiederm@xmission.com,
-	j.granados@samsung.com,
+	viro@zeniv.linux.org.uk,
 	jack@suse.cz,
-	jackzxcui1989@163.com,
 	jlayton@kernel.org,
+	chuck.lever@oracle.com,
+	alex.aring@gmail.com,
+	arnd@arndb.de,
 	keescook@chromium.org,
-	linux-arch@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
 	mcgrof@kernel.org,
-	viro@zeniv.linux.org.uk
-Subject: Re: [PATCH] coredump/fcntl: Add FD_CLOBCOR flag to close fd before dumping core
-Date: Fri, 19 Jun 2026 19:27:34 +0800
-Message-Id: <20260619112734.3918607-1-jackzxcui1989@163.com>
+	j.granados@samsung.com,
+	allen.lkml@gmail.com
+Cc: linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	Xin Zhao <jackzxcui1989@163.com>
+Subject: [PATCH v3] coredump: exit_files() in coredump_wait() if MMF_DUMP_MAPPED_SHARED is not set
+Date: Fri, 19 Jun 2026 20:24:19 +0800
+Message-Id: <20260619122419.3954581-1-jackzxcui1989@163.com>
 X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20260619-hiervon-kopfsache-rechen-efbdf4463544@brauner>
-References: <20260619-hiervon-kopfsache-rechen-efbdf4463544@brauner>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -55,57 +53,69 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:_____wD3NKOmJzVqVoGHEg--.21031S2
-X-Coremail-Antispam: 1Uf129KBjvJXoW7tFyUWF1DWF15KFyDuw4rZrb_yoW8KFWDpa
-	98Ka4IyF4DKFZ7AFs7J3W8Ja4rG34rJr47ur9xu34DA3ZxuF13XFW3tFW5t3Z8Cr4kK3yF
-	qFWjq34Uu343taDanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x0JU79NsUUUUU=
-X-CM-SenderInfo: pmdfy650fxxiqzyzqiywtou0bp/xtbCvwnb5Wo1J6nOCAAA3f
+X-CM-TRANSID:QCgvCgCH7rH1NDVqnm0eDA--.53549S2
+X-Coremail-Antispam: 1Uf129KBjvJXoW7trW3Zr1fXFyUKr1DtF13Jwb_yoW8ur1rpa
+	ykWa92k3W5KFy7tFWxAF1fZr1rZw45Jry7uryIqr43AF45ZFyxAFsxta4fXrn7J39aka93
+	JFy3t3yDC347tFJanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x0zi2Xd8UUUUU=
+X-CM-SenderInfo: pmdfy650fxxiqzyzqiywtou0bp/xtbCvxgzPWo1NPgyCgAA3C
 
-On Fri, 19 Jun 2026 09:23:30 +0200 Christian Brauner <brauner@kernel.org> wrote:
+A coredump typically takes some time to complete. If we happen to hold a
+write lock with flock just before triggering the coredump, that write lock
+will not be released during the entire coredump process. As a result,
+other processes attempting to acquire the same write lock may experience
+significant delays.
 
-> On Thu, Jun 18, 2026 at 11:07:00AM +0800, Xin Zhao wrote:
-> > A coredump typically takes some time to complete. If we happen to hold a
-> > write lock with flock just before triggering the coredump, that write lock
-> > will not be released during the entire coredump process. As a result,
-> > other processes attempting to acquire the same write lock may experience
-> > significant delays.
-> > 
-> > To address this, we introduce the F_[GET|SET]FD_EX fcntl operation and the
-> > FD_CLOBCOR flag, allowing coredump_wait() to release any file descriptors
-> > marked with FD_CLOBCOR. We can also assign the FD_CLOBCOR flag to specific
-> > shared memory segments, preventing the coredump from including shared
-> > memory that we are not interested in, thereby reducing both the coredump
-> > duration and the size of the core file.
-> > 
-> > We actually considered using signals that generate coredumps to perform
-> > the actions we wanted in user space. However, since other threads within
-> > the process are not frozen when handling these signals, indiscriminately
-> > closing an fd can lead to concurrency issues. For example, if the thread
-> > that triggered the coredump closes the fd in the signal handler while
-> > other threads are using the resources associated with that fd, it could
-> > cause secondary corruption of the coredump state.
-> > 
-> > Signed-off-by: Xin Zhao <jackzxcui1989@163.com>
-> > ---
-> 
-> Eew, NAK. No way we're doing this.
-> I can see a point in filtering memory that one isn't interested in but
-> that has to be built on top of the coredump socket protoctol by
-> extending it.
+To address this, call exit_files() in the end of coredump_wait(), if
+MMF_DUMP_MAPPED_SHARED is not set. Note that early unlocking a flock on a
+file allows other processes to lock and modify the mapped data protected
+by the flock.
 
-Thank you for your suggestion. Now, besides knowing about MADV_DONTDUMP to
-filter out uninteresting memory, I also learned about the new method you
-mentioned: the coredump socket protocol.
+Signed-off-by: Xin Zhao <jackzxcui1989@163.com>
+---
 
-In addition to the need to filter out uninteresting memory during a core
-dump, what I really hope to address is the issue of the flock lock being
-held for a long time during the core dump process. I have completely
-given up on adding a new fcntl interface to solve this problem. In the v2
-version I sent, I called exit_files in coredump_wait to address this
-issue. Please let me know if you have any comments on my v2 version.
-Link: https://lore.kernel.org/lkml/20260619003900.3546571-1-jackzxcui1989@163.com/
+Change in v3:
+- Add comment and commit-log to explain why do the MMF_DUMP_MAPPED_SHARED
+  mm_flags_test() check, note that memory mapped files keep their own
+  separate references to the files. The case to work around is that early
+  unlocking a flock on a file allows other processes to lock and modify
+  the mapped data protected by the flock,
+  as suggested by Pedro Falcato.
 
-Thanks
-Xin Zhao
+Change in v2:
+- Get rid of the implement of adding new fcntl API, the issue does not
+  worth inflicting the cost on everyone,
+  as suggested by Al Viro.
+- Call exit_files() in coredump_wait(),
+  as suggested by Eric W. Biederman.
+  Add MMF_DUMP_MAPPED_SHARED mm_flags_test() check to filter cases that
+  need to dump file-backed shared memory.
+- Link to v2: https://lore.kernel.org/lkml/20260618150301.3226517-1-jackzxcui1989@163.com/
+
+v1:
+- Link to v1: https://lore.kernel.org/all/20260618030700.2511668-1-jackzxcui1989@163.com/
+---
+ fs/coredump.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/fs/coredump.c b/fs/coredump.c
+index bb6fdb1f4..70698d06e 100644
+--- a/fs/coredump.c
++++ b/fs/coredump.c
+@@ -548,6 +548,13 @@ static int coredump_wait(int exit_code, struct core_state *core_state)
+ 		}
+ 	}
+ 
++	/*
++	 * Early unlocking a flock on a file allows other processes
++	 * to lock and modify the mapped data protected by the flock.
++	 */
++	if (!mm_flags_test(MMF_DUMP_MAPPED_SHARED, tsk->mm))
++		exit_files(tsk);
++
+ 	return core_waiters;
+ }
+ 
+-- 
+2.34.1
 
