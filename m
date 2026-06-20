@@ -1,85 +1,106 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from m16.mail.163.com (m16.mail.163.com [117.135.210.5])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40CEF19D092;
-	Fri, 19 Jun 2026 23:54:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ED42FCA5A;
+	Sat, 20 Jun 2026 02:43:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=117.135.210.5
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781913295; cv=none; b=afIdoAz/yuAhUq1DHxtmTHiwhgoL/P5WkxSKJSh2nZK3WcE2VeagMVNCpXPo0VFlUQRe/T5IHkA12uDxAm+7gLG1KCigiZOgtCipWi/BVnFkW5eSvVcalkdFnKy/2kjQbbBLOiwnTF8+5plF3nDIyrFxF0pKPIy4G8hk4xNobNk=
+	t=1781923386; cv=none; b=OMnkvjT2OWAUYvYpzMryt0lAOtEzjKYQqwUPGEfxwF+7e0szgWRHku68advB0tbdnpRz1ds2n1aWPIKoaom/yWvAhvhQT3ulv8KQakYZMBlDzmWTuB8viriHFh+fv+WEWLMldbZxAu6XmQsLyDp75tF472U/5cGxh70bHgXQn7E=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781913295; c=relaxed/simple;
-	bh=4uDAlJGIuj1sxAgSiHnZekE5owd/QoOV8Dk33leZ13Q=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=h+TblBg3dtQjAhl+JHFhZndGgVntqh4WyEgbOxJDTqY0bGa50eXp9jlfxiC9zJMoe6GkZVCv5qAbsEEj8d0d9kaULSGehRT66KKBfEQzqfRFOsD+K2hPSj4OpBrmr6fT7daGkLXL5m/YBvsT7Q6vhateHqt0MRbHklbYkffYSgM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=MFSFWYrM; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1781923386; c=relaxed/simple;
+	bh=32+sjMX2GkYUexwm+xIw+X/kVrYqzdacPiUjupXT4XA=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=UsMYWl+S9ox5x11r/RjL2d6kZRglFusKzr6UrFR3ZWPCXaKd8oYMRA2Yi5rhvPe7gzxtXOnpPruVG3/2xUz8sIokCd5M++ZUXYUuC5Fdv6yWEahx17bSllwpHoYIHkEUkq5iHqT0ayqSy8oyW/6bmoN8rR/g8edVnGll0ulZNNs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=EXz1/2QT; arc=none smtp.client-ip=117.135.210.5
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="MFSFWYrM"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CF6ED1F000E9;
-	Fri, 19 Jun 2026 23:54:53 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1781913293;
-	bh=T2U6mD5Mi888Hcm8xp1sqPPOMOUnXskbr2jM/AcqYN0=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=MFSFWYrMI30DpGUYSviB3mF0oMxLpUDKjrBft2OtFxA5uWy0f01420l8cek0mMKZm
-	 SPBoIfC1iKg02qhAv6VtWy2neMROUeTEPxOE3SLlr/WZ/N7wgLVl910xr3NObOx+Ub
-	 8vT92jPm0m5RzKdtlZM++nW7awockcRqxBZlg4s03nT1z3hwSSje+94MrTRPc6yDAV
-	 xutiuMxLRaImQGCgxbm0wP5QbIsg2dcQAapoHOGx2j8FYUuGxtQwgYEzT/AnVSKtme
-	 uhaMtdDBzVia1xtMuLlxV5mfVa/ZLQ3XAZTTOnxcYeBjYqLv/5Ixk1+duLPC0tHkeR
-	 pKwQXvtH2vAKw==
-Date: Fri, 19 Jun 2026 16:54:53 -0700
-From: Kees Cook <kees@kernel.org>
-To: guoren@kernel.org
-Cc: arnd@arndb.de, palmer@rivosinc.com, tglx@linutronix.de,
-	peterz@infradead.org, luto@kernel.org, conor.dooley@microchip.com,
-	heiko@sntech.de, jszhang@kernel.org, lazyparser@gmail.com,
-	falcon@tinylab.org, chenhuacai@kernel.org, apatel@ventanamicro.com,
-	atishp@atishpatra.org, mark.rutland@arm.com, bjorn@kernel.org,
-	palmer@dabbelt.com, bjorn@rivosinc.com, daniel.thompson@linaro.org,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-riscv@lists.infradead.org, stable@vger.kernel.org,
-	Guo Ren <guoren@linux.alibaba.com>
-Subject: Re: [PATCH] riscv: entry: Fixup do_trap_break from kernel side
-Message-ID: <202606191652.38297DE51@keescook>
-References: <20230702025708.784106-1-guoren@kernel.org>
+	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="EXz1/2QT"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
+	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version:
+	Content-Type; bh=AwVzzKOO1YYPeW0btzF292cttcXJMiHzF+v7tHfTQN8=;
+	b=EXz1/2QTadaugPvJqVNL+DD8/i+PjZL1t2Pk2pz6JpZ70EIXc0uXNHJCcPzf9G
+	MuXjs5ErvZbEO9EHnA29BRakXJa54lMQ2JinvAzexGmW+CdpoqCi6i/ybSIaxdtS
+	kDGQrLSI/iH5DHkNfTTt3sqoXAdF1/NU9tInTicua655s=
+Received: from zhaoxin-MS-7E12.. (unknown [])
+	by gzga-smtp-mtada-g1-2 (Coremail) with SMTP id _____wD3f3MA_jVq4w5_Eg--.24340S2;
+	Sat, 20 Jun 2026 10:42:09 +0800 (CST)
+From: Xin Zhao <jackzxcui1989@163.com>
+To: brauner@kernel.org
+Cc: alex.aring@gmail.com,
+	allen.lkml@gmail.com,
+	arnd@arndb.de,
+	chuck.lever@oracle.com,
+	ebiederm@xmission.com,
+	j.granados@samsung.com,
+	jack@suse.cz,
+	jackzxcui1989@163.com,
+	jlayton@kernel.org,
+	keescook@chromium.org,
+	linux-arch@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	mcgrof@kernel.org,
+	pfalcato@suse.de,
+	viro@zeniv.linux.org.uk
+Subject: Re: [PATCH v3] coredump: exit_files() in coredump_wait() if MMF_DUMP_MAPPED_SHARED is not set
+Date: Sat, 20 Jun 2026 10:42:07 +0800
+Message-Id: <20260620024207.238713-1-jackzxcui1989@163.com>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <178187726633.350634.1366346571707417413.b4-review@b4>
+References: <178187726633.350634.1366346571707417413.b4-review@b4>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20230702025708.784106-1-guoren@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-CM-TRANSID:_____wD3f3MA_jVq4w5_Eg--.24340S2
+X-Coremail-Antispam: 1Uf129KBjvJXoW7tF4DKryfWF4DAr13trW5ZFb_yoW8Ar1kpF
+	s0gayIk3WDGF1xur1Iyr4xJFWrJ345ursIgF1agr9akFnxuF1av3yfKayS9asrGFZakw4j
+	vr42v34rCwn8JFJanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x0pRgyCQUUUUU=
+X-CM-SenderInfo: pmdfy650fxxiqzyzqiywtou0bp/xtbCvwGnsWo1-gEoGgAA36
 
-*thread encromancy*
+On Fri, 19 Jun 2026 15:54:26 +0200 Christian Brauner <brauner@kernel.org> wrote:
 
-On Sat, Jul 01, 2023 at 10:57:07PM -0400, guoren@kernel.org wrote:
-> From: Guo Ren <guoren@linux.alibaba.com>
+> > +	/*
+> > +	 * Early unlocking a flock on a file allows other processes
+> > +	 * to lock and modify the mapped data protected by the flock.
+> > +	 */
+> > +	if (!mm_flags_test(MMF_DUMP_MAPPED_SHARED, tsk->mm))
+> > +		exit_files(tsk);
 > 
-> The irqentry_nmi_enter/exit would force the current context into in_interrupt.
-> That would trigger the kernel to dead panic, but the kdb still needs "ebreak" to
-> debug the kernel.
+> This doesn't work - at least not unconditionally. Tools like
+> systemd-coredump or apport go through the fds. Specifically
+> systemd-coredump does:
 > 
-> Move irqentry_nmi_enter/exit to exception_enter/exit could correct handle_break
-> of the kernel side.
+> 1) /proc/[pid]/fd/ — opendir() then, per entry, readlinkat() to get the symlink target.
+> 2) /proc/[pid]/fdinfo/ — for each fd it reads the fdinfo text lines
 > 
-> Before the fixup:
-> $echo BUG > /sys/kernel/debug/provoke-crash/DIRECT
->   lkdtm: Performing direct entry BUG
->   ------------[ cut here ]------------
->   kernel BUG at drivers/misc/lkdtm/bugs.c:78!
-> [...]
->   Kernel panic - not syncing: Aiee, killing interrupt handler!
+> The blob is attached to the journal record as the COREDUMP_OPEN_FDS=
+> field. So the open-fd list is recorded as metadata, retrievable later
+> (e.g. coredumpctl info shows it).
+> 
+> Also, irc some clever implementations use pidfd_getfd() to preserve the
+> files from a coredumping process to preserve them.
+> 
+> So you break all that - and only in some of the cases which is really
+> opaque to userspace. That's not acceptable. If you only care about the
+> case where you dump to a file then either special-case it to the legacy
+> file coredump format or if it's generally useful make it an optional
+> argument that can be passed to the coredump pipe and a new flag
+> extension to the coredump socket that makes the coredumping process shed
+> it's file descriptors.
 
-This appears to still be unfixed. What's the blocker? The solutions in
-this thread seem to work...
+Thank you for providing such useful information. I’ve also learned about
+the useful pidfd_getfd() interface. Returning to the issue, I really want
+to find a suitable method to resolve it. Now I know how to proceed, and I
+will modify a version; I would appreciate it if you could take a look at
+it later.
 
-I'd like to be exercising an Oops path via KUnit (for KCFI), and riscv
-just instantly falls over instead of thread-killing on the exception.
+Thanks
+Xin Zhao
 
-Thanks!
-
--Kees
-
--- 
-Kees Cook
