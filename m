@@ -1,230 +1,211 @@
-Received: from m16.mail.163.com (m16.mail.163.com [117.135.210.3])
+Received: from CWXP265CU008.outbound.protection.outlook.com (mail-ukwestazon11020122.outbound.protection.outlook.com [52.101.195.122])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A7ADABA3D;
-	Sat, 20 Jun 2026 03:05:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=117.135.210.3
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781924736; cv=none; b=dkMcBLlt4ly2MCldMWUhQccDvf67/Hfvx+aROUaTK0ubQiIfRWtGQp0vC4J08kSP3RO7368DVddwe/w8KZqUFMpOum1Q3ORF4Ic5m/oat2r4dd/uxBsHF7yP2WQjA+y/2mnORx62tLK3oAZiU9MGU69YdfTpsw2n0PH/hS2NZ+o=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781924736; c=relaxed/simple;
-	bh=t4raIeO8bUulaw+gjqzav7MK1qnu8Ublgh34VdjjrS4=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=TiSJHhui6FZibT7jNZTp7g6jJWboVFgKkEr465L3D0ASb19ewzEgyEy6aqN10BZg57jIQasyRAh/28jlgk3t9r55icyqhKlZdnlfR7wnCsD0iFLYhxua548tNm7rQ1sZbMwrZRXXILR/DBGME95tFdB1SewyHOUWV1zlnFShjD4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=n+r4iYPB; arc=none smtp.client-ip=117.135.210.3
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="n+r4iYPB"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
-	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version:
-	Content-Type; bh=uS4QmL8znGKvVQwTwtA0SsKOy3t/cx7+36b2MDv6IPI=;
-	b=n+r4iYPB5gpmA9AU1pnoRExcUmrPrtehzWnttnlVskB22qWiGPIWAmRIYZOyW+
-	rgDhDQo0L6fE8uWkKJkS1p9LLpvQ3RrQVTmWoM6HOl5kjw+qnJzNcNR9mHY943Mk
-	oazbjheTR68fCtUU33euCrUPXAOtQtolbDrgU92TJV9wg=
-Received: from zhaoxin-MS-7E12.. (unknown [])
-	by gzsmtp3 (Coremail) with SMTP id PigvCgCHOQE0AzZqwKl0DQ--.63564S2;
-	Sat, 20 Jun 2026 11:04:21 +0800 (CST)
-From: Xin Zhao <jackzxcui1989@163.com>
-To: mjguzik@gmail.com
-Cc: alex.aring@gmail.com,
-	allen.lkml@gmail.com,
-	arnd@arndb.de,
-	brauner@kernel.org,
-	chuck.lever@oracle.com,
-	ebiederm@xmission.com,
-	j.granados@samsung.com,
-	jack@suse.cz,
-	jackzxcui1989@163.com,
-	jlayton@kernel.org,
-	keescook@chromium.org,
-	linux-arch@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	mcgrof@kernel.org,
-	pfalcato@suse.de,
-	viro@zeniv.linux.org.uk
-Subject: Re: [PATCH v3] coredump: exit_files() in coredump_wait() if MMF_DUMP_MAPPED_SHARED is not set
-Date: Sat, 20 Jun 2026 11:04:20 +0800
-Message-Id: <20260620030420.252025-1-jackzxcui1989@163.com>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <jt7glnz6scdbnbzzl7l3slvnu4vtr2uzlbwe74znxp3sxeqdtc@dhrwwjhhn6md>
-References: <jt7glnz6scdbnbzzl7l3slvnu4vtr2uzlbwe74znxp3sxeqdtc@dhrwwjhhn6md>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D29C9E555;
+	Sat, 20 Jun 2026 23:11:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.195.122
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1781997115; cv=fail; b=Idoo/HGjzpvTW9XhxN5xqGLXqrD+Y6quxd831iK59kytwhdETSpfdusYMjO/bym1ZUB58lsRU8V89coRCjI4Q3ULdeItLtv2LSDLvMjF2M/ZQrCeWTe52joDxBYDhtIHiNlJNGRMebOC2c3S9TfSAuA+uIz4hZPCg9xRdpZBntc=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1781997115; c=relaxed/simple;
+	bh=PfFF2lfMujKmiEfFuc6Qzl1FiKkFGSW7dV+SDLlbtwg=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=oQkzr3WpT1E5E0CUG6tCAzO8eUnZFNMmkEOxMzvbSMeWpAs585WWJ8gt0A0v4ltTXuljM9KyaBTyrsQMVLjot5RN0jdcUw4R+HoU0+cbEzHDlq4qIxemuV1gnAN2w6vxx6xXyDsZk9dxkjewaf7/1OiDCEYnKPdujLkMYHT485Y=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.195.122
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=WY5w9ZUxhN7OCuwuHZOKLRKIGRQ8TTnZQwzl9s4/f7xFzNFAGPLmZTaV6iZuRMrRE63Y8t3whSRfDdAwDb+Z9i/RCb1O43B6/IL25l+Tj4saj21v3kqN1bJiS7giUASXx0eIrXwUgTEqGs/XUo+VhjUcJttUkkqZV1L0SGOLHjBUvMwj5MxwnAKwnlISydMxHo1E6YSZogOr0usano8SO0b7AJNaNO9PMVuZidCJS0TRBwbrDP8kfC7B0bGoz6Mx/kOTUl/2yHXcs4uLHqOR5dmQhFtaoZhCv+IGjihiCDfaSjxvoplq5FrMeZ2S3lmROr+AN554LTXtZSIJl9EHog==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
+ bh=PfFF2lfMujKmiEfFuc6Qzl1FiKkFGSW7dV+SDLlbtwg=;
+ b=uevgjaQpelFr0J/jLXhs3X11TBoinxpoeRvvaZLiu1mlr3DA0/E6+Q0+EdEA+kQltlo3hj4mjS2bQTBjgWfJS3sgH7g9rG+9rpBlSRUj8IAgEDfg5/1m3gO1Z0+EjFqcSpLaFzCkyG1Yw0VfyRtHp33FErdbO7Vzd2xDsiWkWNyFXF/1nO9hu50HGpyIAyhtvPILNbH8CsXc+Ar8xthw7vE+LMi2qV5bPSDQuJ+6C2oBE5fjGkPKIP1zHGkC23/Z/M2OaNKPHN89dhtJngAQOpP4suUCotY9b9aOkAPFH9d6czVeCVzN1ANhhf3lKRu6MP1qrCCZaf697YB6MCuF1w==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
+ dkim=pass header.d=atomlin.com; arc=none
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=atomlin.com;
+Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
+ by CWLP123MB6427.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:1d0::13) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.139.18; Sat, 20 Jun
+ 2026 23:11:49 +0000
+Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+ ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+ ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0139.018; Sat, 20 Jun 2026
+ 23:11:49 +0000
+Date: Sat, 20 Jun 2026 19:11:45 -0400
+From: Aaron Tomlin <atomlin@atomlin.com>
+To: Petr Pavlu <petr.pavlu@suse.com>
+Cc: arnd@arndb.de, mcgrof@kernel.org, da.gomez@kernel.org, 
+	samitolvanen@google.com, neelx@suse.com, sean@ashe.io, chjohnst@mail.com, steve@abita.co, 
+	mproche@mail.com, nick.lane@mail.com, linux-arch@vger.kernel.org, 
+	linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH] init/main: Expose built-in initcalls and blacklist
+ status via debugfs
+Message-ID: <hplhgfhifn2sgrahg3zxkugthqivdynwgsljjiudfxiggjymlk@uan6jrv2fcvo>
+References: <20260510061301.41341-1-atomlin@atomlin.com>
+ <79ace94f-31d3-4a5e-9a47-3fad69304fe5@suse.com>
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="ymovtao3vlbisfdp"
+Content-Disposition: inline
+In-Reply-To: <79ace94f-31d3-4a5e-9a47-3fad69304fe5@suse.com>
+X-ClientProxiedBy: BN0PR03CA0032.namprd03.prod.outlook.com
+ (2603:10b6:408:e7::7) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+ (2603:10a6:400:183::5)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:PigvCgCHOQE0AzZqwKl0DQ--.63564S2
-X-Coremail-Antispam: 1Uf129KBjvJXoWxuF1UXF4DWF1kGw4UKF1xXwb_yoW5uw4fpF
-	4Dua4Ykr4kGayUXr40yr90kF1rZws7Gr1DWryjga4qvr13XFWxKF4xt3y5ZF18Xrs7Wan5
-	uFWDZw1YkrnrZaUanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x0pR9SdhUUUUU=
-X-CM-SenderInfo: pmdfy650fxxiqzyzqiywtou0bp/xtbCwBb1AGo2AzZ62AAA3o
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|CWLP123MB6427:EE_
+X-MS-Office365-Filtering-Correlation-Id: eb2f90fd-0ac5-4922-ff9d-08decf214e38
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|366016|376014|7416014|1800799024|23010399003|22082099003|18002099003|56012099006|4143699003|6133799003|3023799007;
+X-Microsoft-Antispam-Message-Info:
+	oWoGdUh3F4NtsO0ivjQlb6ZR6eHX1UhrG4g0Kr8Z/B52NFpRc+WLssdV/ku/0J87i51KhjNcn3H8h1QAVAKd1WfLyHnrxq5C9UMvQDbBwtUXjGj6ywtOS2WjXaoqItc64+3hEKOIlBV1n9RUAb500cypVP/+dhbOWJH+wwPl+Fsvx/ks1FNUICDnoSepHEoGd425/dEtKeuSKDtgGpHcBaaNRqBZxpGufndUp1EBUGZHJ0lji51JdoOqiHZCQAtp0RvNRxPJT9rR0K0tDBR5CtwP00OGVP/wcf0vTvUVpOqnx2hkKVIqUIecJTgGgPMFKdmQBSlfxCMrbMUt+pXJafZVElZswRNRSO6sdF+KpVQIl9NiK+1RSO/Sxz1Hc8QoVHXY3pUapHjVlRsJ2geg6BWSCRgHLkNB7dRmnhxRBE2bwRYnDvfkd2C7/+3Jt1juvKrWFP2lzv+B7kx07xF0QOtpEiB997jqG8lAe2RXdvctI6zqTREq8dzh1VMsOw5QiE0OIttNTagQso1wpwt3JiGmjElX32lHU5bHYSApTzAhDDcEkejPNFsn9kTJFvtjBWwqWS7dfcN093p7aQx9+ghkoebHAEatSzpep+c/qQ5DtGWDTVIvAKeEx9EOBLVG88gvJ/zC5xhUl6cPxpo3VYatd6Sl4Y1QliJzJ+CTFrY=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(366016)(376014)(7416014)(1800799024)(23010399003)(22082099003)(18002099003)(56012099006)(4143699003)(6133799003)(3023799007);DIR:OUT;SFP:1102;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?utf-8?B?VmpCQ29mbXlhbmt6NmN6cHlnNFJ3NU5lRkw4c0JnZy95U1p5em5oRDZXeVd5?=
+ =?utf-8?B?d21NR01iSUhzYkE3Q0JLS1I4aDBVcFBxTE5HODErTDVpS2sxekIyTnlCUlln?=
+ =?utf-8?B?b3JtVlBnT2hSb3FLWlZLa2ptMlk3M2dOcEpwUTRrRE10NU0zOVFNamNtb3Zn?=
+ =?utf-8?B?N05mdjBHOTdyNk0zc09JdkRCWW9LNW8xVVh0RVlXOWpFTUpTdGpMcEVmN2Er?=
+ =?utf-8?B?WGxTcFQ2TFF0VHNTTnAxMXJ3TFBxVjBhejBvVVZORXpUb0o3U2t3S1o3bkpk?=
+ =?utf-8?B?OC9SYTVOeThqQmFMK1EzOXdzWjU3cjVjWVg4SThKcVJsUEZmZ25XY01oQUQ0?=
+ =?utf-8?B?bExQYmszYng2aUQrNk1wZEgrRmppYjdaSVNhUTY0SVBHM2dnaXJyREI4OGhL?=
+ =?utf-8?B?RHRsUFY4cUZTWFhqN0ZzdkdtY0F2eEl4MVg3djVUVTlxRllCSmpCMTF1cWRk?=
+ =?utf-8?B?aFJhS1p0SjUwNGYvd0dTWWxZS1VyVm9CNTYyaS94QkpZM1dYZlhGTTR0blVi?=
+ =?utf-8?B?dWd6TmhVV3dSRXpUSzd2bWhTanhsYWxROGpmU3R1SmFEMWx5QjRHa3dkSkpM?=
+ =?utf-8?B?dTloT3lFK2QyMDloVlgvOW1uZkQ5Sk0zdFU1NTJJMTN5QUtZbDlGYm1XK1dC?=
+ =?utf-8?B?clRTMG9sUGhKcTFKN3ZMZWVtOUtZejJvb3JSQjFZOURGSjVsaW5iWDN3RjlG?=
+ =?utf-8?B?NFFldzFuWjRCSUdKU3NDbkErcmpyT3lGNklzTFRJR1lNTkQ5Z21GbGpoOXdr?=
+ =?utf-8?B?ZDJWRytMNGhZcmM4MmVyNXBaYThNUnRsUnZvMEVMb0NWVXBNOXpNOEpacnk2?=
+ =?utf-8?B?WkZBKzFBYkp4bU56czRkSklOSHpoUmRWU0tjcVZmT2FiZjdCbGhreHNFMWo5?=
+ =?utf-8?B?TElUeGwrVFRTdlhQRExINHBnTE1lTU5OckxvVUJpaWFaVWlDVUg5dkZ5anVJ?=
+ =?utf-8?B?ckV1czlMLzF1aWxEYTA0Zy9hbWltU0k0VUpaUG9YRHczTEFpSlBqREZDVXRM?=
+ =?utf-8?B?RVRqQkZjNUdQcUNwdFpGUGllK2dyQ0l5eG1PV28xVjNNS1QxMm1GbE9XS01C?=
+ =?utf-8?B?a2V0d1NTcGp2MVUyNi93ZktoeTNEc0s3Zjd5VU54UElFbzdUeXUvLy9TV1Jl?=
+ =?utf-8?B?U0lYZVlBU0NTazJiWWJjT3I3Zm51RHZGUzZ3NzBQNmU4eXdsdmFqZkdUTGRr?=
+ =?utf-8?B?d29LQ2puSHhrbzk1ejNvc2N6eitCME84ZDNuOW1kVjdyYWl2NlhtRVJYTzdu?=
+ =?utf-8?B?U0NlTEYwWmw4MTBOalVRdTk2cDFOeGw0bVlNT2FzYmhSZyt3a2dzSzZmUlJZ?=
+ =?utf-8?B?empQYnB3Zkw0bXZlZ1d1WnFoMmJpSmxhLzZqQVp5RCtHRnBBM0p0ZXMrbkVm?=
+ =?utf-8?B?V2RXMWZLaVNIMTNsWld1bkRrNUZ3RWFWRkI3MkZFQXNPWURjSGdIc21jcklr?=
+ =?utf-8?B?Yyt6clljems5dEp5VUpodUNmczdDUU1aNXVPMmJ6cWUwREt0T2EvbHFmZFpi?=
+ =?utf-8?B?VkwrelpMSW1KTnRXM1FJd2lJRGZDZGw4ejNFY2xCM21jeHR1NnFXb04zdUd1?=
+ =?utf-8?B?bHcwRjdTbUdBZElMZ1UwZE9rWHIvM0IwYmhoUXp2VE5kelJVNXMrNjFzK2Jt?=
+ =?utf-8?B?eHNzQU41TWFQaldGL3ByeXRXWjFQcUtmSWtIQ0l5Q3c2Tll5TUlsdzB3czlw?=
+ =?utf-8?B?c0NOTFFlZ3dyUXlGUDhzRHpST3hxQjJlaEsrRkNkb2FPOXd2c0hqczNoSDI2?=
+ =?utf-8?B?S1dQYUg1TDJsZmNIZlNQbytIenl2dVlTdk1iODhLZ1E5WDdQdFkzZmZ5NHEy?=
+ =?utf-8?B?blpFWld1V3FpcnpoNVFIbUMyZGRHZTlEYjl6REh1eG9XaGI5S2ZBQUdsMmRh?=
+ =?utf-8?B?UDdranR2MEJ1R3c3NjZ6UFJqSXVnL1JuN1MwekIrZGtLNENITVA0T1czMHds?=
+ =?utf-8?B?aEdkeVlQYi9WcEhES0Nnc2JGbXZRQml4UHk1Sk41cHc2N0JpWkxMQjJ1a3Z4?=
+ =?utf-8?B?UGpSQmtwU0NmVHhmWGpHcGN1YzUyRUdLRy8zNVU3OXVEN1pEVHNxTW9VRG9j?=
+ =?utf-8?B?ZEFQOWZCem5aMlk4ZUc2U0NoTXFtd3FIdWNUWmVSZjdRbVJnbk9pVUQvanZ1?=
+ =?utf-8?B?NEpYbGIxYzdLLzR4dUdIYnNhS0tBanRJS2h5ZUJ4WXdRbm0zSngxekhyUFhZ?=
+ =?utf-8?B?ckllOXh5M1JOd05QTUthZjlLYlduTHNva21QcUFiWTRjN0xmanMyTkExN2M4?=
+ =?utf-8?B?SUZ5WU1qSVloL0xDNGRWY3ZSL1ZqU0paM1REWFNWcGtESE1KSGdpWTU5MzAw?=
+ =?utf-8?B?UFNyL0REQmpvb2REcnBDcFZEWmE1MkhSNnhSb0NwTk9aa01jZGNvUT09?=
+X-OriginatorOrg: atomlin.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: eb2f90fd-0ac5-4922-ff9d-08decf214e38
+X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 20 Jun 2026 23:11:48.9858
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: aMK1rm7TRnDQovxmonMkRCartbijUx8zMeND2yQTwdCMN+M71UnfBCqI4qtpEhREBSrA47WpuuK67Rp17swn3Q==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CWLP123MB6427
 
-On Fri, 19 Jun 2026 19:33:16 +0200 Mateusz Guzik <mjguzik@gmail.com> wrote:
+--ymovtao3vlbisfdp
+Content-Type: text/plain; protected-headers=v1; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+Subject: Re: [PATCH] init/main: Expose built-in initcalls and blacklist
+ status via debugfs
+MIME-Version: 1.0
 
-> The claim is the coredump takes "some time" without specifying what kind
-> of window is it (seconds, minutes?), nor where said time is spent.
-> 
-> For example it is known that a big mmapped areas are slow to dump even
-> if they are sparsely populated.
-> 
-> So I would suggest profiling what exactly happens in this case. It is
-> virtually guaranteed the time can be shortened, but it is plausible even
-> with fixups it will be too long.
+On Wed, Jun 17, 2026 at 02:39:53PM +0200, Petr Pavlu wrote:
+> On 5/10/26 8:13 AM, Aaron Tomlin wrote:
+> > At present, identifying the correct function name to supply to the
+> > "initcall_blacklist=3D" kernel command-line parameter requires manual
+> > inspection of the source code or kernel symbol tables. Furthermore,
+> > administrators lack a reliable runtime mechanism to verify whether a
+> > specified built-in module has been successfully blacklisted.
+>=20
+> My understanding is that initcall_blacklist is primarily a debugging
+> facility. This is documented in
+> Documentation/admin-guide/kernel-parameters.txt [1] and also outlined in
+> the initial commit 7b0b73d76651 ("init/main.c: add initcall_blacklist
+> kernel parameter") [2]. It is expected that to use it, one must inspect
+> the kernel source code.
+>=20
+> If the goal is to allow specific built-in modules to be blacklisted,
+> I wonder whether extending module_blacklist to also cover built-in
+> modules might be a better option. Module names are more appropriate for
+> administrators to use, while initcall names should remain internal to
+> the kernel. Additionally, initcalls are typically "static" and therefore
+> are not guaranteed to have unique names + using module names avoids
+> a dependency on CONFIG_KALLSYMS=3Dy.
+>=20
+> [1] https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tr=
+ee/Documentation/admin-guide/kernel-parameters.txt?h=3Dv7.1#n2408
+> [2] https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/co=
+mmit/?id=3D7b0b73d76651e5f88c88b76efa18d719f832bf6f
 
-I test it by running the first testflock, wait until it output
-'get flock success' and then run the second testflock.
-testflock will send signal 6 to trigger coredump to the first testflock.
-The second flock wait 11 seconds to get the flock. (it may wait less time
-if I do not polling get the flock--add sleep in the while loop, as the two
-testflock function is run by ssh, and they share the same cpu), but still
-wait a long time(about 5 seconds).
+Hi Petr,
 
-./testflock
-get flock success!
-Aborted (core dumped)
+Thank you for your review and the excellent historical context.
 
-./testflock
-get flock fail!
-lock_pid=8724
-get flock success!
-waitms=11443
+Your points regarding static function name collisions and the
+unnecessary kallsyms dependency are correct.
+
+Extending the module blacklist parameter to intercept built in modules
+makes far more architectural sense. It provides a consistent interface for
+administrators and aligns perfectly with existing kernel conventions.
+
+For the forthcoming v2 patchset, I have completely dropped the original
+approach. Instead, I am implementing a parallel metadata section. By
+updating the core initcall macros, the compiler will emit the module name
+string into a custom ELF section directly alongside the function pointer.
+The core boot code can then evaluate this mapping against the module
+blacklist before executing the initialisation function.
+
+This new architecture performs all the mapping at compile time. It entirely
+avoids the kallsyms dependency you highlighted, perfectly preserves the
+original function names for debugging purposes, and resides securely within
+the initialisation data so the memory is freed completely immediately after
+boot.
 
 
-The testflock program（the test program only use 500MB heap memory, the
-memory used by other business processes will exceed this value）:
+Kind regards,
+--=20
+Aaron Tomlin
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/file.h>
-#include <errno.h>
-#include <time.h>
-#include <signal.h>
-#include <sys/syscall.h>
+--ymovtao3vlbisfdp
+Content-Type: application/pgp-signature; name="signature.asc"
 
-static inline long get_msec(void)
-{
-    struct timespec ts;
+-----BEGIN PGP SIGNATURE-----
 
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-}
+iQIzBAEBCgAdFiEEeQaE6/qKljiNHm6b4t6WWBnMd9YFAmo3HjAACgkQ4t6WWBnM
+d9YTPQ//Yia6tUsKstLJqv8jNygWZfsROIrcAqs9RMYub+4ChsURVILSGeER8ez9
+1GzB+hTds05ZzsqMi4rHErdKgCEL+4dyfOgJ5UCHnIElupdwe+Hsr2H75alkflNL
+JR8vuX7GtZeLY4GIh2mIE7uSf3mauKB03fAlO43g5QbfWVvhQObHha09DUv73FLu
+N1jm3QoQjOucofJVr6l6szkjSqCTzFAsReJNbjxRyHZWXbMlbF/PP7J8B6eKAuSW
+UdTSYXfZtW5mGGU98BvnztGw7mHSXAJj8kV2AjpTqbJwiZKKXGzkMuePF+7uysJW
+8t8Gz3++LNNp0N7ZAv+WoN/xTgHSp0bqp0STL3JSvoIEjYoK00FgwC+KOgIrM9XV
+kHPLVIR1RZVKerJZHGW9eHVeXjVvBKyNcAsRqJr/VBqcOfk9Yf7cVzg/BIG+rQNh
+IT4wvjaYXl6IdTNd9wr1OvIBxPzsSUMphAU9TqFY46bKSnQNsNh7XnyPYVLF/ywK
+XCfJCONvnqw2cIwahtqL/ETX88sTTtvkH2zp2rW/KDdrt6oEdXUgvokwzU9Da0AD
+gq/sQc/jfWJy+oLjaQrRKNG7MfsvyUCfdhLPy0Cm/qnlhAKLbzgqcY2oRHUiLBnM
+PUot4bgcfBuyXRAuXi9Z0fALa2gZz/GgMtO6YwZRTjcs0cXJqWk=
+=zNxD
+-----END PGP SIGNATURE-----
 
-#ifndef F_GETFD_EX
-#define F_GETFD_EX	18
-#endif
-
-#ifndef F_SETFD_EX
-#define F_SETFD_EX	19
-#endif
-
-#define FD_CLOBCOR	2
-
-int main(int argc, char *argv[])
-{
-    size_t size_mb = 512;
-	size_t size, i;
-    long start = 0, stop;
-    int mode = 1;
-
-    const char *dir = "/map/zhaoxin/flock_tmp";
-    int fd;
-    int ret;
-    char *buf;
-
-    if (argc == 2 && strcmp(argv[1], "0") == 0) {
-        printf("Do not send signal when fail!\n");
-        mode = 0;
-    }
-
-    size = size_mb * 1024 * 1024;
-    buf = (char*)malloc(size);
-	if (!buf) {
-		perror("malloc 失败");
-		return 1;
-	}
-    for (i = 0; i < size; i++) {
-        buf[i] = (char)i;
-    }
-
-    /* 打开目录，需要读权限 */
-    fd = open(dir, O_CREAT | O_RDWR, 0777);
-    if (fd < 0) {
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
-    int setfd_ex_ret = fcntl(fd, F_SETFD_EX, FD_CLOBCOR);
-
-    struct flock fl;
-    fl.l_type = F_WRLCK;
-    fl.l_whence = SEEK_SET;
-    fl.l_start = 0;
-    fl.l_len = 0;
-
-    bool brunonce = false;
-    int lastresult;
-
-    int lock_pid = 0;
-
-    while (1) {
-        int result = fcntl(fd, F_SETLK, &fl);
-        if (errno == EBADF || errno == EINVAL) {
-          printf("errno=%d\n", errno);
-          return -1;
-        }
-        if (!brunonce) {
-            brunonce = true;
-            // let lastresult differ from result
-            lastresult = result + 1;
-        }
-        if (lastresult != result) {
-            if (result == 0) {
-                printf("get flock success!\n");
-                if (start) {
-                    stop = get_msec();
-                    printf("waitms=%ld\n", stop - start);
-                }
-                while (1) {
-                    sleep(1000);
-                }
-            }
-            lastresult = result;
-            if (errno == EAGAIN || errno == EACCES) {
-                printf("get flock fail!\n");
-                struct flock lock;
-                (void)memset(&lock, 0, sizeof(lock));
-                lock.l_type = F_WRLCK;
-                lock.l_whence = SEEK_SET;
-                lock.l_start = 0;
-                lock.l_len = 0;
-                if (fcntl(fd, F_GETLK, &lock) == 0) {
-                    if (lock.l_type != F_UNLCK) {
-                        lock_pid = lock.l_pid;
-
-                        start = get_msec();
-
-                        if (mode) {
-                            int ret = syscall(SYS_tgkill, lock_pid, lock_pid, SIGABRT);
-                        }
-                        
-                    }
-                    printf("lock_pid=%d\n", lock_pid);
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-
-Thanks
-Xin Zhao
-
+--ymovtao3vlbisfdp--
