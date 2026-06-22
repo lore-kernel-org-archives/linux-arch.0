@@ -1,158 +1,231 @@
-Received: from cstnet.cn (smtp25.cstnet.cn [159.226.251.25])
-	(using TLSv1.2 with cipher DHE-RSA-AES256-SHA (256/256 bits))
+Received: from desiato.infradead.org (desiato.infradead.org [90.155.92.199])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3CBD83A545E;
-	Mon, 22 Jun 2026 10:25:52 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.226.251.25
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B715A37A48D;
+	Mon, 22 Jun 2026 11:18:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.92.199
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782123955; cv=none; b=T4jpwEsJl6yAMRkuLeufPO6bAlyPD3uWduNpyIWE+hbmkLZqs7EHZveqLWga8vwd5Q/a/xofAxEkit2QBSkLe7uN88i8SBiYRNqiyjBBl+wYttQo3iZXOLWwP2WQfSs57ZQO+DAkzqMiYPE0qxWYrplCFZ0Emsutf/Tji9oZsjY=
+	t=1782127099; cv=none; b=Bvr40a8N0hy2rqgKeG8uXliDaNHA8xtDe6oX1QbTScWlMkRRC8RbJS/f+FIahmq3rceuCPOjv8o9M40OsOeOJNoce/uqTI2l2IKVdckwp4AT/LqfXvFFA+jBtG5Yvk/GwjBHK8vWD7HK2B/Ckk50k9il0KLd0L/nNKwgUdXbyTc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782123955; c=relaxed/simple;
-	bh=iN2N/e3dZW+kPQjRl36cn7UsVIeGGeCWu7/JO1xDn3U=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=Ef0R4cAsUSdhTpxPfHOFRJ5dh+oUaR/QTuGFjjN6r9jjB5u1+S6baKMC73XUGx3VZ4GQ3r17Kn6Lb23hBBMVq6oH2ixoQDENqTV244siMhy2iMsfih8HdL7YqVwiIFlszT6on0HgJRBqNlaHzBun/yEcIEGfBgJsiX10wJTwuYY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=iscas.ac.cn; spf=pass smtp.mailfrom=iscas.ac.cn; arc=none smtp.client-ip=159.226.251.25
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=iscas.ac.cn
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=iscas.ac.cn
-Received: from [192.168.0.105] (unknown [123.118.218.239])
-	by APP-05 (Coremail) with SMTP id zQCowAA3nN+JDTlqtLaqFA--.57426S2;
-	Mon, 22 Jun 2026 18:25:14 +0800 (CST)
-Message-ID: <2f32370b-63c1-4e8a-bf71-d40874b6bebb@iscas.ac.cn>
-Date: Mon, 22 Jun 2026 18:25:13 +0800
+	s=arc-20240116; t=1782127099; c=relaxed/simple;
+	bh=kdDo6ypa4cOIwBmMmbS8Rzq4f/dFdL6x+3y7be+fJwE=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=aYfjifZXbipszjRZIDp93O/yjScnTBKpnzZmIHIHaAbV/+vc68E65BWMSXHdEzJ3fb+snh1UjGqUGBphZu1kNAZr20TlwbQ0K39yiV+Xo94wrp9Q7pzuUb9kvu4a08fdxotJ9/14CMhuQDqD5ju3Z/TvQ0oPRWRhWkAdu+GIILs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=izFgCDrX; arc=none smtp.client-ip=90.155.92.199
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="izFgCDrX"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=ZcreGeJT4Kj/CaPNDSlKZDUKKKxkr0txGhSxJTbFmLI=; b=izFgCDrXKVK8GXO6DlHUFoL2vI
+	s88x4+C8IX21G+0x7NcPB5HFHwA+XDBNGwGuhmdcFJX4XqA8n9DYODh7tGfBAjbxElFFg72fme9Rv
+	jKRBExkUG+Sq4skXhuGGMsDyXT+ZOKtU3ya/3uZ8fnEpPFWDKWUHW8AyQ07mPZsDAPpgpj92riBvk
+	4LNDRM2T6KAVH53dJECXozeiITts7uIwsaSMvKenLwh9LcMwrsO1PCPjhzGP5NasPyukm/RUF+j5y
+	GUtO/ozfTq8sFRJz+Vcrx9MZ7j7UblLnyg1a6Fua3TRtFPWiC9xpcew7xLJgh5KzK887kX8z+TvS+
+	YzmfMhxw==;
+Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
+	by desiato.infradead.org with esmtpsa (Exim 4.99.2 #2 (Red Hat Linux))
+	id 1wbcf8-0000000HNgu-49Ue;
+	Mon, 22 Jun 2026 11:17:59 +0000
+Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
+	id 3F49B300B5F; Mon, 22 Jun 2026 13:17:57 +0200 (CEST)
+Date: Mon, 22 Jun 2026 13:17:57 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+To: Vivian Wang <wangruikang@iscas.ac.cn>
+Cc: Guo Ren <guoren@kernel.org>, Kees Cook <kees@kernel.org>, arnd@arndb.de,
+	palmer@rivosinc.com, tglx@linutronix.de, luto@kernel.org,
+	conor.dooley@microchip.com, heiko@sntech.de, jszhang@kernel.org,
+	lazyparser@gmail.com, falcon@tinylab.org, chenhuacai@kernel.org,
+	apatel@ventanamicro.com, atishp@atishpatra.org,
+	mark.rutland@arm.com, bjorn@kernel.org, palmer@dabbelt.com,
+	bjorn@rivosinc.com, daniel.thompson@linaro.org,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-riscv@lists.infradead.org, stable@vger.kernel.org,
+	Guo Ren <guoren@linux.alibaba.com>
+Subject: Re: [PATCH] riscv: entry: Fixup do_trap_break from kernel side
+Message-ID: <20260622111757.GR48970@noisy.programming.kicks-ass.net>
+References: <20230702025708.784106-1-guoren@kernel.org>
+ <202606191652.38297DE51@keescook>
+ <ajeKPpg2rwadVPY4@gmail.com>
+ <20260622082841.GW49951@noisy.programming.kicks-ass.net>
+ <2f32370b-63c1-4e8a-bf71-d40874b6bebb@iscas.ac.cn>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] riscv: entry: Fixup do_trap_break from kernel side
-To: Peter Zijlstra <peterz@infradead.org>, Guo Ren <guoren@kernel.org>
-Cc: Kees Cook <kees@kernel.org>, arnd@arndb.de, palmer@rivosinc.com,
- tglx@linutronix.de, luto@kernel.org, conor.dooley@microchip.com,
- heiko@sntech.de, jszhang@kernel.org, lazyparser@gmail.com,
- falcon@tinylab.org, chenhuacai@kernel.org, apatel@ventanamicro.com,
- atishp@atishpatra.org, mark.rutland@arm.com, bjorn@kernel.org,
- palmer@dabbelt.com, bjorn@rivosinc.com, daniel.thompson@linaro.org,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-riscv@lists.infradead.org, stable@vger.kernel.org,
- Guo Ren <guoren@linux.alibaba.com>
-References: <20230702025708.784106-1-guoren@kernel.org>
- <202606191652.38297DE51@keescook> <ajeKPpg2rwadVPY4@gmail.com>
- <20260622082841.GW49951@noisy.programming.kicks-ass.net>
-Content-Language: en-US
-From: Vivian Wang <wangruikang@iscas.ac.cn>
-In-Reply-To: <20260622082841.GW49951@noisy.programming.kicks-ass.net>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:zQCowAA3nN+JDTlqtLaqFA--.57426S2
-X-Coremail-Antispam: 1UD129KBjvJXoWxur4ktFy3KFW7Cw4fCrykZrb_yoW5CFWkpF
-	W3Kay2kF4kJryxZwsrKw40vF9Yka4SqF4rCr45tryrJw4avr1SgFs7trW3KFWDZrW8Wr12
-	vFy0q3srua4UAaDanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDU0xBIdaVrnRJUUUvvb7Iv0xC_Kw4lb4IE77IF4wAFF20E14v26ryj6rWUM7CY07I2
-	0VC2zVCF04k26cxKx2IYs7xG6rWj6s0DM7CIcVAFz4kK6r1j6r18M28lY4IEw2IIxxk0rw
-	A2F7IY1VAKz4vEj48ve4kI8wA2z4x0Y4vE2Ix0cI8IcVAFwI0_Xr0_Ar1l84ACjcxK6xII
-	jxv20xvEc7CjxVAFwI0_Cr0_Gr1UM28EF7xvwVC2z280aVAFwI0_GcCE3s1l84ACjcxK6I
-	8E87Iv6xkF7I0E14v26rxl6s0DM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI
-	64kE6c02F40Ex7xfMcIj6xIIjxv20xvE14v26r1j6r18McIj6I8E87Iv67AKxVWUJVW8Jw
-	Am72CE4IkC6x0Yz7v_Jr0_Gr1lF7xvr2IY64vIr41lFIxGxcIEc7CjxVA2Y2ka0xkIwI1l
-	c7CjxVAaw2AFwI0_GFv_Wryl42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr
-	1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE
-	14v26r4a6rW5MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7
-	IYx2IY6xkF7I0E14v26r4j6F4UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I8E
-	87Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJbIYCTnIWIevJa73Uj
-	IFyTuYvjxUvaZXDUUUU
-X-CM-SenderInfo: pzdqw2pxlnt03j6l2u1dvotugofq/
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <2f32370b-63c1-4e8a-bf71-d40874b6bebb@iscas.ac.cn>
 
-On 6/22/26 16:28, Peter Zijlstra wrote:
-> On Sun, Jun 21, 2026 at 02:52:46AM -0400, Guo Ren wrote:
->> On Fri, Jun 19, 2026 at 04:54:53PM -0700, Kees Cook wrote:
->>> *thread encromancy*
->>>
->>> On Sat, Jul 01, 2023 at 10:57:07PM -0400, guoren@kernel.org wrote:
->>>> From: Guo Ren <guoren@linux.alibaba.com>
->>>>
->>>> The irqentry_nmi_enter/exit would force the current context into in_interrupt.
->>>> That would trigger the kernel to dead panic, but the kdb still needs "ebreak" to
->>>> debug the kernel.
->>>>
->>>> Move irqentry_nmi_enter/exit to exception_enter/exit could correct handle_break
->>>> of the kernel side.
->>>>
->>>> Before the fixup:
->>>> $echo BUG > /sys/kernel/debug/provoke-crash/DIRECT
->>>>   lkdtm: Performing direct entry BUG
->>>>   ------------[ cut here ]------------
->>>>   kernel BUG at drivers/misc/lkdtm/bugs.c:78!
->>>> [...]
->>>>   Kernel panic - not syncing: Aiee, killing interrupt handler!
->>> This appears to still be unfixed. What's the blocker? The solutions in
->>> this thread seem to work...
->>>
->>> I'd like to be exercising an Oops path via KUnit (for KCFI), and riscv
->>> just instantly falls over instead of thread-killing on the exception.
->> Thanks for reviving this thread. At the time I didn’t fully understand
->> Peter’s point. We should only use the NMI path when the trap occurs with
->> interrupts disabled.
->> Here’s the updated fix:
->>
->>  do_trap_break(struct pt_regs *regs)
->> ... 
->>  		irqentry_exit_to_user_mode(regs);
->>  	} else {
->> -		irqentry_state_t state = irqentry_nmi_enter(regs);
->> +		if (regs->status & SR_IE) {
->> +			enum ctx_state prev_state = exception_enter();
->>  
->> -		handle_break(regs);
->> +			handle_break(regs);
->>  
->> -		irqentry_nmi_exit(regs, state);
->> +			exception_exit(prev_state);
->> +		} else {
->> +			irqentry_state_t state = irqentry_nmi_enter(regs);
->> +
->> +			handle_break(regs);
->> +
->> +			irqentry_nmi_exit(regs, state);
->> +		}
->>  	}
->>  }
->>
->> If you & Peter have no objection, I’ll post a v2.
-> I still don't understand it. This cannot fix anything. Consider:
->
->  EBREAK
->  raw_spin_lock_irq(&your_lock)
->  EBREAK
->
-> So now the first 'works', but the second will crash. Additionally,
-> having the EBREAK context differ so dramatically between invocations
-> seems like a very bad deal to me.
+On Mon, Jun 22, 2026 at 06:25:13PM +0800, Vivian Wang wrote:
 
-To spell it out, the problem that needs fixing is:
+> > I still don't understand it. This cannot fix anything. Consider:
+> >
+> >  EBREAK
+> >  raw_spin_lock_irq(&your_lock)
+> >  EBREAK
+> >
+> > So now the first 'works', but the second will crash. Additionally,
+> > having the EBREAK context differ so dramatically between invocations
+> > seems like a very bad deal to me.
+> 
+> To spell it out, the problem that needs fixing is:
+> 
+> -> BUG()
+>    -> ebreak instruction
+>       -> Breakpoint exception
+>          -> do_trap_break()
+>             -> irqentry_nmi_enter()
+>             [ now in_nmi() / in_interrupt() ]
+>             -> report_bug() returns BUG_TRAP_TYPE_BUG
+>             -> die()
+>                -> make_task_dead()
+>                   -> panic() because we're in_interrupt()
+> 
+> As such, currently on riscv all BUG() simply completely panic() the
+> entire machine, rather than just killing the one task.
 
--> BUG()
-   -> ebreak instruction
-      -> Breakpoint exception
-         -> do_trap_break()
-            -> irqentry_nmi_enter()
-            [ now in_nmi() / in_interrupt() ]
-            -> report_bug() returns BUG_TRAP_TYPE_BUG
-            -> die()
-               -> make_task_dead()
-                  -> panic() because we're in_interrupt()
+Hmm, from reading some of the previous emails this morning, I got the
+impression the problem was with kgdb, not BUG().
 
-As such, currently on riscv all BUG() simply completely panic() the
-entire machine, rather than just killing the one task.
+Anyway, my argument doesn't change, with the proposed patch:
 
-How do you think this should be fixed? Here are some ideas but I'm not
-familiar with generic entry stuff:
+  BUG()
 
-  * Should we irqentry_nmi_exit() before calling die() for BUG()?
-  * Should we move the GENERIC_BUG trap instruction to cause illegal
-    instruction exception instead, for which we can write a simpler
-    handler that doesn't need to care about the probe stuff?
+and:
 
-Vivian "dramforever" Wang
+  local_irq_disable();
+  BUG();
+
+will behave quite differently, for no sane reason.
+
+Anyway, BUG()/trap is indeed a bit of magic, the x86 code lives in
+arch/x86/kernel/traps.c:exc_invalid_op(). And it looks like we do not
+indeed use NMI-like for this path, although I cannot remember why.
+
+*however* I see your kgdb thing also uses ebreak, whereas on x86
+WARN/BUG and kGDB use different exceptions (#UD for WARN/BUG and #BP for
+gdb). And our #BP handler (exc_int3) very much does NMI for from-kernel.
+
+Same for kprobes, we use #BP/int3 for that, you also have that in
+EBREAK.
+
+Anyway, you're handling 3 different cases in one exception, which is a
+bit of a mess, but something like so perhaps?
+
+---
+diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
+index 8c62c771a656..41c7faac7eb3 100644
+--- a/arch/riscv/kernel/traps.c
++++ b/arch/riscv/kernel/traps.c
+@@ -264,42 +264,58 @@ static inline unsigned long get_break_insn_length(unsigned long pc)
+ 	return GET_INSN_LENGTH(insn);
+ }
+ 
+-static bool probe_single_step_handler(struct pt_regs *regs)
++static void handle_kernel_die(struct pt_regs *regs)
+ {
+-	bool user = user_mode(regs);
+-
+-	return user ? uprobe_single_step_handler(regs) : kprobe_single_step_handler(regs);
++	irqentry_state_t state = irqentry_enter(regs);
++	die(regs, "Kernel BUG");
++	irqentry_exit(regs, state);
+ }
+ 
+-static bool probe_breakpoint_handler(struct pt_regs *regs)
++static bool handle_kernel_bug(struct pt_regs *regs)
+ {
+-	bool user = user_mode(regs);
++	if (report_bug(regs->epc, regs) == BUG_TRAP_TYPE_WARN ||
++	    handle_cfi_failure(regs) == BUG_TRAP_TYPE_WARN) {
++		regs->epc += get_break_insn_length(regs->epc);
++		return true;
++	}
+ 
+-	return user ? uprobe_breakpoint_handler(regs) : kprobe_breakpoint_handler(regs);
++	return false;
+ }
+ 
+-void handle_break(struct pt_regs *regs)
++static bool  __handle_kernel_break(struct pt_regs *regs)
+ {
+-	if (probe_single_step_handler(regs))
+-		return;
+ 
+-	if (probe_breakpoint_handler(regs))
++	if (kprobe_single_step_handler(regs) ||
++	    kprobe_breakpoint_handler(regs))
++		return true;
++
++	current->thread.bad_cause = regs->cause;
++
++#ifdef CONFIG_KGDB
++	if (notify_die(DIE_TRAP, "EBREAK", regs, 0, regs->cause, SIGTRAP)
++								== NOTIFY_STOP)
++		return true;
++#endif
++	return false;
++}
++
++static bool handle_kernel_break(struct pt_regs *regs)
++{
++	irqentry_state_t state = irqentry_nmi_enter(regs);
++	bool ret = __handle_kernel_break(regs);
++	irqentry_nmi_exit(regs, state);
++	return ret;
++}
++
++static void handle_user_break(struct pt_regs *regs)
++{
++	if (uprobe_single_step_handler(regs) ||
++	    uprobe_breakpoint_handler(regs))
+ 		return;
+ 
+ 	current->thread.bad_cause = regs->cause;
+ 
+-	if (user_mode(regs))
+-		force_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *)regs->epc);
+-#ifdef CONFIG_KGDB
+-	else if (notify_die(DIE_TRAP, "EBREAK", regs, 0, regs->cause, SIGTRAP)
+-								== NOTIFY_STOP)
+-		return;
+-#endif
+-	else if (report_bug(regs->epc, regs) == BUG_TRAP_TYPE_WARN ||
+-		 handle_cfi_failure(regs) == BUG_TRAP_TYPE_WARN)
+-		regs->epc += get_break_insn_length(regs->epc);
+-	else
+-		die(regs, "Kernel BUG");
++	force_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *)regs->epc);
+ }
+ 
+ asmlinkage __visible __trap_section void do_trap_break(struct pt_regs *regs)
+@@ -308,16 +324,18 @@ asmlinkage __visible __trap_section void do_trap_break(struct pt_regs *regs)
+ 		irqentry_enter_from_user_mode(regs);
+ 		local_irq_enable();
+ 
+-		handle_break(regs);
++		handle_user_break(regs);
+ 
+ 		local_irq_disable();
+ 		irqentry_exit_to_user_mode(regs);
+ 	} else {
+-		irqentry_state_t state = irqentry_nmi_enter(regs);
++		if (handle_kernel_bug(regs))
++			return;
+ 
+-		handle_break(regs);
++		if (handle_kernel_break(regs))
++			return;
+ 
+-		irqentry_nmi_exit(regs, state);
++		handle_kernel_die(regs);
+ 	}
+ }
+ 
 
