@@ -1,147 +1,223 @@
-Received: from mail-dl1-f51.google.com (mail-dl1-f51.google.com [74.125.82.51])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from BN8PR05CU002.outbound.protection.outlook.com (mail-eastus2azon11011009.outbound.protection.outlook.com [52.101.57.9])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 071A72E7F39
-	for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2026 07:01:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.82.51
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782198074; cv=none; b=lF3/bvMSI9u/jC4g50mjwH+lA9b+hy6Vkn8qBaU3adaRg0G/jM2M0yTDezaP1G7wqId3B0M8Yb1zHmgFdmfwaeFSFGzIWvDhclG+8IddbjDzVPOWVt7EGTMZU7eFU289JByJMt4OcLrG6DdnZ8OtLRWieg8rJg8HrvfpX4cDMJo=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782198074; c=relaxed/simple;
-	bh=7eTid/Y/ZrFuJ9aQUGHjb+pKuO0yMAyOl/AKL5G3obA=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=rWzdliIZ8gUtob/u84d4oK957IcnDTYJPUyJZHhwToHEGGz036NcDtImAIlnEgcIGM1ai1VsUF6c7idoQcPBsIUWJEOJLhTVQH0f9m6UmGG8coq8ObraVJ4IAjlq+Z9aA1/V4q99mQxeT2IYIYLECzcMp1TOB1Te6JDwYMwEvMo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=WQTOqSUb; arc=none smtp.client-ip=74.125.82.51
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1B0FC3D412C;
+	Tue, 23 Jun 2026 11:44:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.57.9
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1782215088; cv=fail; b=L+u7/jJo0s28EQn/lHPoDB70PxmhW3rWz+px1b8/rCzaCW3jzjSkT0pPIumiG8HoUR8Vn91BhaFoFI7345hXu469mRQiDiYv+MBvAsj6wt7CfAK/WDO4WYzrV3DMrikhvhCHcnkkJpPP/xrRFlbgZ97ackjXsWbexpDxNzeoQDY=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1782215088; c=relaxed/simple;
+	bh=h6kPcXhGdw5VE0Z8dlkx4l6TUWQa1XGZXf5euEkm2EE=;
+	h=From:To:CC:Subject:Date:Message-ID:MIME-Version:Content-Type; b=KYSKnABlxRMn64cBveR9q8GG81tKSbYgoRIHiRZQ3Pe8XQtDvqhC+Qkd7FbyDQ0WarrJe2nd3v8xLKnT3qWAVfZMSwleiyYttvbon4HEaNUdmtPzCa4UOKit+Zsu2bY10jxtghZ7JH4fJasoPmIIJplutLaskgsIRS4mtSmAfRo=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com; spf=fail smtp.mailfrom=amd.com; dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b=gA9cmxxY; arc=fail smtp.client-ip=52.101.57.9
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=amd.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="WQTOqSUb"
-Received: by mail-dl1-f51.google.com with SMTP id a92af1059eb24-139a71baa35so8553384c88.0
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2026 00:01:12 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1782198072; x=1782802872; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=d6Ap3YJUEuoJTFxCbawQ11i/jSYqTs+DIopPqv2NeZw=;
-        b=WQTOqSUbPsS4Vsh+KdBzDd+sE2ej5BekmKaD9l7AJosNCGdtJgxo+yA4mZekkxkejw
-         YghzOpaIzh9j8x2afrIWN7pizwCIL3QQ5amED4IPwYUaF3Kp+CkBroDbaldOqapwu0Em
-         6LNwZYKaUdju0AJZW3YiFzj2exOJf++VRcoeQhTPb71oEgCmonMcjI+tNYFtPBZgX2/L
-         HDSBR6fJTXyIeJkBztDBkcByUnF7vAZm6oENh83T5sXAG3ysaVmxhLjbP7iMAaj6wOlW
-         OXGkrRvT9+Do5+GB9h7Qq2PXg4zfLG79m4Y7lJm//QYO8iQABtVbZ5mOr6LCXEzgsz0N
-         ZPWQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1782198072; x=1782802872;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=d6Ap3YJUEuoJTFxCbawQ11i/jSYqTs+DIopPqv2NeZw=;
-        b=q2Xcnn9YuIWr9jK9AYrkyDpShmlUMl2hlBetxQGNM3QijrGG7m8GH8Gpb+QO7KggLQ
-         lLIYBix+Sord5bKsV+anDssCVTMmDvddmZ3Fpv9+dUB8YKmuIb+W6oD4FGaeyAPwKB2h
-         G3yTjBj1MU/jb2I/lH+1KQCr+DlbTHpF4NviVNHZrbRGmtiultIx5DbtRU/HOiVbJgoB
-         o8HnYNMSCBeJF9yb4bEKxjkFGMSA4rfiH6Xur4m8rdIEeiE0g0mvU3oK69yHnpGBp6OW
-         kqcFfifg1FHDn0BFcr75Ruqg9hRkjZKSFbWiROyehcnO2IAlUVJI0umCcLXIf35Qh2uC
-         9MOQ==
-X-Forwarded-Encrypted: i=1; AHgh+Rq3HNHSC0XYgb4wFtcH21UcI199bSSJbPw8xOnqHiX8zNlGcQgJMjex1XTyC9PQuTtzax9DIG8lvIXA@vger.kernel.org
-X-Gm-Message-State: AOJu0Yy++7jIrfz243em6LMsvEkxQMytqrAub2humak6GG/Td3CbEjcr
-	qEiVw9hTTtx63n2NGZq+K5oALJHybWMoDPhZt7EN60xKHgAPksZFg5hB
-X-Gm-Gg: AfdE7clbKE8eOUKb7KUCPwPlG/tAGLz5ShoQwJOl046JsObnPJA4YSFPWM14G/C5yve
-	FnFYUee69eSPe65ysMvQEjNTgrSqoed8TnR7KbYwEHCBS1opdZKpajzstxeIiOxWnm+RlgrxS8Y
-	/zygBWYxlSXi+Ey2+J4/r1mU4mHDEkV2IErlnf3opqAkUoXX+xm1hPAUQNIR7/LJvlrBGVqjHqo
-	B2ODRCniQGf8rdYzRi8ZSPod3CnEcG1FtkByKF/e5KDXYA9IkfNVDG1OZnv1iXYNgeJdHqcpzEG
-	0eJYqevJaFOiLiqegc0pOJ1qFZkvtyIOHcaqeDPyy2PC7uxQ7RhUKJSlPKZG1RKJyNAvuDeqT4r
-	dbk1HIgx/eTuD+e4J7PE9WRYG1YNbFO1s0OlTI+yZfulBb48hQDnE/WatrtYiCPVByKjABIOvJc
-	DY
-X-Received: by 2002:a05:7301:3f09:b0:30a:e52f:9bcf with SMTP id 5a478bee46e88-30c06e2e675mr12844078eec.10.1782198071896;
-        Tue, 23 Jun 2026 00:01:11 -0700 (PDT)
-Received: from blinky ([2601:647:6700:64d0::92d1])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-30c1bdffa83sm18003870eec.23.2026.06.23.00.01.10
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 23 Jun 2026 00:01:11 -0700 (PDT)
-Date: Tue, 23 Jun 2026 00:01:08 -0700
-From: Charlie Jenkins <thecharlesjenkins@gmail.com>
-To: K Prateek Nayak <kprateek.nayak@amd.com>
-Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Guo Ren <guoren@kernel.org>,
-	Darren Hart <dvhart@infradead.org>,
-	Davidlohr Bueso <dave@stgolabs.net>,
-	=?iso-8859-1?Q?Andr=E9?= Almeida <andrealmeid@igalia.com>,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org,
-	linux-arm-kernel@lists.infradead.org,
-	Alexandre Ghiti <alex@ghiti.fr>,
-	Charlie Jenkins <charlie@rivosinc.com>,
-	Jisheng Zhang <jszhang@kernel.org>,
-	Charles Mirabile <cmirabil@redhat.com>
-Subject: Re: [PATCH v4 5/8] riscv/runtime-const: Introduce
- runtime_const_mask_32()
-Message-ID: <ajovNDH2uo6V4NJx@blinky>
-References: <20260430094730.31624-1-kprateek.nayak@amd.com>
- <20260430094730.31624-6-kprateek.nayak@amd.com>
- <178219229643.10927.7189200920480581019.b4-review@b4>
- <ff9678fb-4cca-4849-8ffb-7cb76db60e1a@amd.com>
+	dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b="gA9cmxxY"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=V85AgKTVGCvjbMc5Z64JaFHXuD4YlYDl/eT9bMxiA7Mdzw+MrkUiACmtIJRqqLvf2ogMTgJsQXFIfDaUvbMeacaYyU9OZ6HqJAf4uxSGSPfN4OKD9gwVEnYY7U0yY2qrMtrDOhoN7eV6I/Py+xk0A2B0jxDNHO3vwiEjpVBd5zWI7I79zKWn+x56jQ+4Osd5I4Ml5YamqT/2EDWENeY6N9O8uCG1HP5ck+KkEh+m6M49IF8+WTl4ofUps6sVcDl+Fa3h6d4iXJ3Uo8Iz8JTdeEwRa21uEqDbVVmsK4rjFVMA0//Rt1vomi5NopF9NtNa5DeQuUATwNh9HIMAyOOwpA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=tSqHpaC3N5h1QLHJR/8jhQv2KN6Dj380ECJeIv6IFJw=;
+ b=an5hDhKL9EwqMSt8/Kew/suKVICl5SGlFZGLVzmFy5Vx3kYZ7WzAnotFL3tN5D5wsS6KV3y/Iv696nlAaK8HBpHkbNIxHpBhFDbyw26D9pAJcLwTg4qTh8AsI4KuRxyo4+BLzbFnxLoZzREemvEYzVarWQG+6/GTMMqDu0JjF5zP8AWM+Uqvx69pH31vbf2mXLNMt/eD7aObS4XITX87uyaBwuAI23oI4GpyQCllP8ciU/VUF7CtZPxX7q32nvDsMEUkF32Royiox6JuJEv4tx8nNwyK1Db0XyUdSdDLqOCEMdvE/EiBmyhSFP2detwUoGxRPU9zjGrWHTljGlRYIg==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass (sender ip is
+ 165.204.84.17) smtp.rcpttodomain=vger.kernel.org smtp.mailfrom=amd.com;
+ dmarc=pass (p=quarantine sp=quarantine pct=100) action=none
+ header.from=amd.com; dkim=none (message not signed); arc=none (0)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=tSqHpaC3N5h1QLHJR/8jhQv2KN6Dj380ECJeIv6IFJw=;
+ b=gA9cmxxYpikJEH6f28MMwzxFsfBDPzFv8SnZNWY/EJDEfKTc3uGyA+jSxtIj9smLKa9PNqzuBHGO/oOrEQaJyTs9qzW/mVmy/MwNe8YW8nUG05OKINxBw+JXv/P91Aho69A3eMskhVoMywtX4FVl117ET2VM6Smz18qXpNYxK30=
+Received: from MW4PR02CA0002.namprd02.prod.outlook.com (2603:10b6:303:16d::10)
+ by BL3PR12MB6451.namprd12.prod.outlook.com (2603:10b6:208:3ba::9) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.139.20; Tue, 23 Jun
+ 2026 11:44:39 +0000
+Received: from CO1PEPF000066EC.namprd05.prod.outlook.com
+ (2603:10b6:303:16d:cafe::62) by MW4PR02CA0002.outlook.office365.com
+ (2603:10b6:303:16d::10) with Microsoft SMTP Server (version=TLS1_3,
+ cipher=TLS_AES_256_GCM_SHA384) id 15.21.139.16 via Frontend Transport; Tue,
+ 23 Jun 2026 11:44:39 +0000
+X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 165.204.84.17)
+ smtp.mailfrom=amd.com; dkim=none (message not signed)
+ header.d=none;dmarc=pass action=none header.from=amd.com;
+Received-SPF: Pass (protection.outlook.com: domain of amd.com designates
+ 165.204.84.17 as permitted sender) receiver=protection.outlook.com;
+ client-ip=165.204.84.17; helo=satlexmb08.amd.com; pr=C
+Received: from satlexmb08.amd.com (165.204.84.17) by
+ CO1PEPF000066EC.mail.protection.outlook.com (10.167.249.8) with Microsoft
+ SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.21.159.10 via Frontend Transport; Tue, 23 Jun 2026 11:44:38 +0000
+Received: from satlexmb08.amd.com (10.181.42.217) by satlexmb08.amd.com
+ (10.181.42.217) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.2562.41; Tue, 23 Jun
+ 2026 06:44:37 -0500
+Received: from xhdshubhraj40.xilinx.com (10.180.168.240) by satlexmb08.amd.com
+ (10.181.42.217) with Microsoft SMTP Server id 15.2.2562.41 via Frontend
+ Transport; Tue, 23 Jun 2026 06:44:31 -0500
+From: Shubham Patil <shubhamsanjay.patil@amd.com>
+To: <git@amd.com>, <michal.simek@amd.com>, <alexandre.belloni@bootlin.com>,
+	<Frank.Li@nxp.com>, <robh@kernel.org>, <krzk+dt@kernel.org>,
+	<conor+dt@kernel.org>, <pgaj@cadence.com>,
+	<wsa+renesas@sang-engineering.com>, <tommaso.merciai.xr@bp.renesas.com>,
+	<arnd@arndb.de>, <quic_msavaliy@quicinc.com>, <Shyam-sundar.S-k@amd.com>,
+	<sakari.ailus@linux.intel.com>, <billy_tsai@aspeedtech.com>,
+	<kees@kernel.org>, <gustavoars@kernel.org>, <jarkko.nikula@linux.intel.com>,
+	<jorge.marques@analog.com>, <linux-i3c@lists.infradead.org>,
+	<devicetree@vger.kernel.org>, <linux-kernel@vger.kernel.org>,
+	<linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>
+CC: <radhey.shyam.pandey@amd.com>, <srinivas.goud@amd.com>,
+	<shubhrajyoti.datta@amd.com>, <shubhamsanjay.patil@amd.com>
+Subject: [PATCH v9 0/2] Add AMD I3C master controller driver and bindings
+Date: Tue, 23 Jun 2026 17:14:14 +0530
+Message-ID: <20260623114417.2578189-1-shubhamsanjay.patil@amd.com>
+X-Mailer: git-send-email 2.49.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <ff9678fb-4cca-4849-8ffb-7cb76db60e1a@amd.com>
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-EOPAttributedMessage: 0
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CO1PEPF000066EC:EE_|BL3PR12MB6451:EE_
+X-MS-Office365-Filtering-Correlation-Id: aa113acc-12a6-4e94-141a-08ded11ccec2
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|23010399003|36860700016|376014|7416014|82310400026|1800799024|6133799003|56012099006|921020|18002099003|11063799006|3023799007;
+X-Microsoft-Antispam-Message-Info:
+	CMd7FJNxlbkMpn8moiQ9taLKi/oPsz5PB6kpBMdYLt8HneHzmGipa8AQGAP9/4GXGgciYO8GrY8h+ddNi7wjFt9Sps+O58EtVoAXob8jOGZkQ80kE0kYaL4ZY21KQffskF2ClR296D8xUUVGoOCvJOTJ4QZ4GqUq8KGx0zFtBWpu5pdSqYqjvvC3hfqhQySc75BdHqqa4Q4nhXD2ox+o/VsQvDcC3cXVQswgvoVIiySC2ntkkh1rNIJLWH+BwTs/e/A8EUpLryi1MH2UIWKstNxgokZJ3Ra4SUzm+uJGWgCpfYf7pHepiLueAr8NM64ABpF9Q7fZPuAfnBakzIr6XKxlNQAotWQtgJY6ojyXYQxZJF4iSvaRl1vsjrCr7PhFdVlgkMP5r7HzifUTRBMnAtBELiwEcOyD9O558dCF7Wmu5ghdYm6BgAwuPLUbsw5QXabN/NxGL0sjCzjny6yjB/i9pCrVFbmxeDK5ZpAfjPXUTjYLtdmTNxZHVlv04kD6UmdzZDfNiK/68ih1QtuOV1fQmOt5ApoXBuTycimuL0AqYvuXXbZhP1wxuQcCWtUHON+eidpCS5YchNIqhzeu3HIsiL0Q0BXYPQDZ9Pit3pOWMWPXPZngr4ESuRTe0l3W6ohzXQG0t+eNt5MWbarKEXtsGCxFLWL3BY+w07zofCKOZflgqzrUzX2paIcCmTYTXoygwJoNOQ+uP+GEF89aj6o59dhMP1xRYjBzbxrGgs9WwRDselXMJgryrxXR1bhT
+X-Forefront-Antispam-Report:
+	CIP:165.204.84.17;CTRY:US;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:satlexmb08.amd.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(23010399003)(36860700016)(376014)(7416014)(82310400026)(1800799024)(6133799003)(56012099006)(921020)(18002099003)(11063799006)(3023799007);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	wQOinEGNlWHzuyMFDQ7ilFo4ise7umvpoXRyFv7+wFviD3bKHXXBbWvrq/zDyjhD6Bl2GBuJ5XMPTLWdaMRxAsJl7Js8HTh7CrHMO/PfHwjJKKzc2+jU0EPiqCk/BnraHIGnCtKbeOk1VSnNaJl2m9AQMQlfq8PDL3BhnLMT8lerSPMEQPw0fEHB9NyUAEOOLi+JuVbtC/NTGhoB49Wff9Br89GK9aW3SeKikDR2slXqBB8MslpUFu+t8Wdf2hhOi7/7cuU7mYB3dKHMTYhPgDC76Mo6czPAgTLc8M6EhlUpGtaosOTDnPvckAOlqd/hIt0FFdkXZpP71qAgn4ap3k4M3kGRx0LHQUodtOb1teDpu3qEMEjFnHnX/zdT3j9OAjIcG/bcfw5S5WtNlYLiF/BebUzgNUjk51X1LWscePU0REslnImTT4JpqkHBgLAC
+X-OriginatorOrg: amd.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 23 Jun 2026 11:44:38.9966
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: aa113acc-12a6-4e94-141a-08ded11ccec2
+X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=3dd8961f-e488-4e60-8e11-a82d994e183d;Ip=[165.204.84.17];Helo=[satlexmb08.amd.com]
+X-MS-Exchange-CrossTenant-AuthSource:
+	CO1PEPF000066EC.namprd05.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: BL3PR12MB6451
 
-On Tue, Jun 23, 2026 at 11:43:39AM +0530, K Prateek Nayak wrote:
-> Hello Charlie,
-> 
-> On 6/23/2026 10:54 AM, Charlie Jenkins wrote:
-> > On Thu, 30 Apr 2026 09:47:27 +0000, K Prateek Nayak <kprateek.nayak@amd.com> wrote:
-> >> Futex hash computation requires a mask operation with read-only after
-> >> init data that will be converted to a runtime constant in the subsequent
-> >> commit.
-> >>
-> >> Introduce runtime_const_mask_32 to further optimize the mask operation
-> >> in the futex hash computation hot path. GCC generates a:
-> >>
-> >>   lui   a0, 0x12346       # upper; +0x800 then >>12 for correct rounding
-> >>   addi  a0, a0, 0x678     # lower 12 bits
-> >>   and   a1, a1, a0        # a1 = a1 & a0
-> >>
-> >> pattern to tackle arbitrary 32-bit masks and the same was also suggested
-> >> by Claude which is implemented here. The final (__ret & val) operation
-> >> is intentionally placed outside of asm block to allow compilers to
-> >> further optimize it if possible.
-> > 
-> > If the mask fits in 12 bits, we can nop the lui and the addi and just
-> > patch an "andi" instruction with the 12 bits of the mask. We already do
-> > this with the lui+addi block and nop the lui if val fits in 12 bits. I
-> > would be happy to help draft that optimization.
-> > 
-> > But I think the better solution would be to take the power of 2
-> > assumption since that will also benefit arm. We should still only emit
-> > an andi if val fits in 12 bits, but if it doesn't we can patch in
-> > shifts:
-> > 
-> > slli    a0,a0,x
-> > srli    a0,a0,x
-> > 
-> > Where x is the constant (arch_size - _futex_shift - 1)
-> 
-> I can do that for the next version and use ubfx for ARM. I can just put
-> in a BUG_ON() at the arch/ specific __runtime_fixup_mask() and if a
-> new use case arises which hits that, we can perhaps move on the dynamic
-> nop patching scheme that you mentioned earlier.
-> 
-> Let me know if that works and I can pivot to that scheme in v5 and send
-> it out post -rc1 after some testing.
+This patch series introduces support for the AMD I3C master controller,
+including the device tree binding and driver implementation.
 
-That sounds like a great plan :)
+Compared to v8, the big-endian MMIO accessor and i3c FIFO-endianness
+patches have been dropped; the driver now handles big-endian FIFO
+accesses internally.
 
-- Charlie
+Note: There was an extended gap since v8 due to the transfer of ownership
+of this series from Manikanta to Shubham. This transition contributed
+to the delay in releasing the v9 update addressing the v8 review comments.
+We appreciate your patience.
+---
+Changes for V9:
+Dropped the three big-endian MMIO/FIFO infrastructure patches; the
+driver now handles big-endian FIFO accesses internally.
+Replaced the async transfer-queue with a synchronous transfer path.
+Reworked error/response handling using enum i3c_error_code and proper
+-ENODEV/-EIO returns; propagate err to CCCs and priv xfers.
+Switched to the new .i3c_xfers op (reject non-SDR, report actual_len).
+Reworked DAA (incremental address assignment, -ENOSPC bound, -ENODEV
+end-of-enumeration, checked device registration).
+Avoid busy-spin with usleep_range(); use FIELD_PREP() and inline
+helpers; split the timeout macros with documented units.
+Dropped ENTHDR (SDR-only); updated MAINTAINERS, Kconfig symbol
+(AMD_AXI_I3C_MASTER), authors and binding maintainers.
 
-> 
-> -- 
-> Thanks and Regards,
-> Prateek
-> 
+Changes for V8:
+Included dependent patch "i3c: fix big-endian FIFO transfers"
+to this series as [3/5].
+Resolved conflicts with "i3c: fix big-endian FIFO transfers".
+Updated description.
+Used time_left instead of timeout.
+Used __free(kfree) for xfer to simplify err path in multiple places.
+
+Changes for V7:
+Added i3c controller version details to commit description.
+Added Reviewed-by tag to binding patch [1/4].
+Added big-endian MMIO accessors [2/4].
+Added endianness support for i3c_readl_fifo() and i3c_writel_fifo() [3/4].
+Updated timeout macro name.
+Updated xi3c_master_wr_to_tx_fifo() and xi3c_master_rd_from_rx_fifo()
+to use i3c_writel_fifo() and i3c_readl_fifo().
+
+Changes for V6:
+Corrected the $id in the YAML file to match the filename and fix
+the dtschema warning.
+Removed typecast for xi3c_getrevisionnumber(), xi3c_wrfifolevel(),
+and xi3c_rdfifolevel().
+Replaced dynamic allocation with a static variable for pid_bcr_dcr.
+Fixed sparse warning in do_daa by typecasting the address parity value
+to u8.
+Fixed sparse warning in xi3c_master_bus_init by typecasting the pid value
+to u64 in info.pid calculation.
+
+Changes for V5:
+Renamed the xlnx,axi-i3c.yaml file into xlnx,axi-i3c-1.0.yaml.
+Used GENMASK_ULL for PID mask as it's 64bit mask.
+
+Changes for V4:
+Added h/w documentation details.
+Updated timeout macros.
+Removed type casting for xi3c_is_resp_available() macro.
+Used ioread32() and iowrite32() instead of readl() and writel()
+to keep consistency.
+Read XI3C_RESET_OFFSET reg before udelay().
+Removed xi3c_master_free_xfer() and directly used kfree().
+Skipped checking return value of i3c_master_add_i3c_dev_locked().
+Used devm_mutex_init() instead of mutex_init().
+
+Changes for V3:
+Updated commit description.
+Corrected the order of properties and removed resets property.
+Added compatible to required list.
+Added interrupts to example.
+Resolved merge conflicts.
+
+Changes for V2:
+Updated commit subject and description.
+Moved allOf to after required.
+Removed xlnx,num-targets property.
+Added mixed mode support with clock configuration.
+Converted smaller functions into inline functions.
+Used FIELD_GET() in xi3c_get_response().
+Updated xi3c_master_rd_from_rx_fifo() to use cmd->rx_buf.
+Used parity8() for address parity calculation.
+Added guards for locks.
+Dropped num_targets and updated xi3c_master_do_daa().
+Used __free(kfree) in xi3c_master_send_bdcast_ccc_cmd().
+Dropped PM runtime support.
+Updated xi3c_master_read() and xi3c_master_write() with
+xi3c_is_resp_available() check.
+Created separate functions: xi3c_master_init() and xi3c_master_reinit().
+Used xi3c_master_init() in bus initialization and xi3c_master_reinit()
+in error paths.
+Added DAA structure to xi3c_master structure.
+---
+Manikanta Guntupalli (2):
+  dt-bindings: i3c: Add AMD I3C master controller support
+  i3c: master: Add driver for AMD AXI I3C master controller
+
+ .../bindings/i3c/xlnx,axi-i3c-1.0.yaml        |   56 +
+ MAINTAINERS                                   |    8 +
+ drivers/i3c/master/Kconfig                    |   15 +
+ drivers/i3c/master/Makefile                   |    1 +
+ drivers/i3c/master/amd-i3c-master.c           | 1060 +++++++++++++++++
+ 5 files changed, 1140 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/i3c/xlnx,axi-i3c-1.0.yaml
+ create mode 100644 drivers/i3c/master/amd-i3c-master.c
+
+-- 
+2.34.1
+
