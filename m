@@ -1,63 +1,63 @@
 Received: from mail-dy1-f181.google.com (mail-dy1-f181.google.com [74.125.82.181])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ECA2C3A960E
-	for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2026 05:26:06 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A84383A960E
+	for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2026 05:26:08 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.82.181
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782192368; cv=none; b=lhdgZ/XcEsCam+Fv3lLtmxymIuCuqV0wTI0AN0PycbYhhOFpcUY57y4xpYAlOw6jtt7IUQaAV0ZRdFAZ8RvR8YxrMkX6yXT/rXKqUH1G5GQvQT3AXz5TT+aWbaM5lSJJtdnHp5adRqUQ60we7CADaEJWaPK4IFSkbGah6KZFICo=
+	t=1782192369; cv=none; b=Bs7ABRgZmdkTwXZuBOHoVyvsate02Jzd07ypioNDFATQ/YB7RHx4LAePJqLCPmKps5FzyrRNzKOnBUNplB/SG20ES8Xnhp+kwL+hxYPdQYxhhm17TUDXKGROJoZ5jJrTQnu56MfpRR34baz5b4TOGHCtDE2u8PeQcC7fylb5v9w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782192368; c=relaxed/simple;
-	bh=n+I3lxePERllHyfwEWyDEAhZnniet1N62LffQ9iv1A4=;
+	s=arc-20240116; t=1782192369; c=relaxed/simple;
+	bh=DjSs5oRw9rccbhTB4m6pdAGiet3QtdAO5qUM5zvUvsg=;
 	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
-	 References:Date:Message-Id; b=eLDWuPe/sb7nwj1B8fyRqeU/8mxzfxxgxLP+NgXY6xKnEiF+f21f6Ad5T89nDjKE7g8extjtAzpu5O0yUP3FuzpdPM5JhbGQyRK98vk/OM2YmJZ8A+9VU7R6AADbbhzgGyIyoRLNY9EJA1U4wUYzWZDh22vs79wXoHrodp51fCk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=mYcGli/P; arc=none smtp.client-ip=74.125.82.181
+	 References:Date:Message-Id; b=tKTpaenmtTtLGdeWh7gfrVzaXr+cipbDXrJ/0tVsOb4Hl0kkmmWNpxnE5FnE5u35dj6OZiqlOwuOgyb2nUd0al8HaPZgoz+hHatxAUg+qNiejChrRnaF8KxP7PIjaUQeiFUG0hZcH5l2uXSjfzek6JIbOcBFybGRJM64YONflOE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=quAcfAc+; arc=none smtp.client-ip=74.125.82.181
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="mYcGli/P"
-Received: by mail-dy1-f181.google.com with SMTP id 5a478bee46e88-30c591fb1cbso487632eec.1
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2026 22:26:06 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="quAcfAc+"
+Received: by mail-dy1-f181.google.com with SMTP id 5a478bee46e88-30bf132969bso6540340eec.0
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2026 22:26:08 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1782192366; x=1782797166; darn=vger.kernel.org;
+        d=gmail.com; s=20251104; t=1782192368; x=1782797168; darn=vger.kernel.org;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=euxUr99gVRmTKzYrxOsYTZTBpKcYj3aY+Du6bnH69fU=;
-        b=mYcGli/P1lJ69hPdMg+UpqSD8tXOmM95KZ2M03D4tDHK9HJBW6oa723omPDh/LDHLT
-         HaP305+JZb1qBBLghQTd2fIl/DlV+5kVPnKgQ9ggaJBhEQPMeV121rcAWMqpMJVmBBGQ
-         lwqw2u0Z6WCJdD1bNVENJOEP4kEw966Y72KsovZrO4ODgjYMIgK50eZHg2l23IaxwlKX
-         4hw3/qdl+qg0WLA6wz4X7x6MrlSMk2Q4crfX4UvzrBPy6mqHxTurizOUkyQV0V8Hlz7o
-         1U0uGtyr3IiNVPiy+4KCLJH8s+MRlBSl3YdnxqEvqCQy/IMrAWfI3AKr1JXlyk2IYzf9
-         qTsQ==
+        bh=FPvEzMllSbsUeGZyzSL2DVJCIDjlLydKz1PcX2CIArY=;
+        b=quAcfAc+KwRbKomjlQ7OiNMV8QEi8jSn8Odt68rJIlULORthSyjOAwkegrYPyPZSq6
+         hNf6IqAhMz0fcANJgjvfSnSAHnhgceyvvWnf7wyuKmSMgYyaHH2YqWX6ZhmbbHLRmqvr
+         aKmBZTdtD/BANMu+hZghsaifUFfnGNhwX1TFrGRHih3MZ6O3P1qtDUlMx8FVFmHIe281
+         rq9bqMojGlaogwe74714ZbAlhp7SST1U6jGkMiqC6ewdBTcDmASN8y/KV9NxUntnM+eb
+         ShjHnLIYvBPb+SQP29yOuOOd4R7m9xXygN+EYVHWb8QHnjKIY+2iD5pB749zZcQeR2GA
+         DJuA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1782192366; x=1782797166;
+        d=1e100.net; s=20251104; t=1782192368; x=1782797168;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:mime-version:x-gm-gg:x-gm-message-state
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=euxUr99gVRmTKzYrxOsYTZTBpKcYj3aY+Du6bnH69fU=;
-        b=GxOn2MsMPFc7mt/VeDC/NHC35qMCro4WXXnyzkBEipJg4m/uTDGRtH0rqh8snq7jFN
-         7ESr+0RsBs0TEsMDcVew/34EymQX/doIKQuY64lEmqybve5otnbzPcZwZHikuxqk0Nog
-         LcLST3uMdY14vlAgawvqWPeyHm0Pa/euNjBgcc4l8yAvoS/zoX7XHGb7pGS+t4x1zODu
-         JizoLHgBQTGiNIeMaZbpVJoQFGiG9PnlV4IrXI8x8bRAFwyaBk5hz2y2LuRWBqMmZE9H
-         nGDJxVGVT8f0lwNWj5IcMwp8UQPwwNZ2pIOAXuHaprUoT1/1E2OAr1TuhLKA+aJ3XCxP
-         MkxA==
-X-Forwarded-Encrypted: i=1; AHgh+Ro5iQU28r0B1CgIBe5I+VTUVrrJS8s5QAEqNwU+uKv3Edru7JH5t99s37rVTNdr2nTYO90q2HX06nKB@vger.kernel.org
-X-Gm-Message-State: AOJu0YwWga3/jRjDgCK6ndpEpkmfyvpc4JsfcmorKHcR83zvjI+xk5hN
-	RhgF+EgfBMM53KDNme5Tas9bHIz9ABhjUnJH7fg2nuLci+X40bF76VuS
-X-Gm-Gg: AfdE7ckIpQKeFxLwJ+IglMu8g4RfAGES5tYGWNOwlfK/eXWFwOJ4ru3sk9T80m7hU7W
-	lPkis5QsNZnAvSOxSaJRYut+Py0Pl8Mpw6yMUiIudeMSWboLeP6uLCG8BSY7RBFADX7BloV9iwY
-	qmp9AQ7uiRygrDzWN3V1GG5qquC5tGdwTwwhIRK4PuHjrWghoRkMhB4i/yo3KlaejFgzhIOcqCZ
-	XQa5eWRvCVbGw4E7OFFhKX8iByCwwz26LNi3JeNIGgGRL0/ZYyKkKVw8Eft0yvNqk+Qi8JwfMEb
-	SxoMhBqjsLuq8B3TWRS5TBvdsouPHMllFTe12DhzdQzk3w4TRcc6LHF6mFIlQF87ZZj5Oy8ObxS
-	FD6XJPG+aGoJPVWOTX/1jFMiHb+jDOkKvRk4+zwl+Cj2dJa2GQnJOBirdbX2/bb6P1EdIXaCs74
-	vRisWYgo4=
-X-Received: by 2002:a05:7300:fd04:b0:2ea:c085:44b1 with SMTP id 5a478bee46e88-30c5b87a4c0mr708300eec.19.1782192366092;
-        Mon, 22 Jun 2026 22:26:06 -0700 (PDT)
+        bh=FPvEzMllSbsUeGZyzSL2DVJCIDjlLydKz1PcX2CIArY=;
+        b=R2zqJZt4B1NLeVxvsTDiBKRxhF7K1l6Ha1tXXBR/lJdPg90Y0hBSZR5wHM+0PZLZBb
+         5kWsVaS4qS+IX0y7iXZm/B/2W1ebc2ac9pvUD30fhuwQ7ZOk/pltCBo1g7xd5htEl2Tk
+         JjZMEdK7GpmUAizES5zbhGnOlyhFMiqHSIXDJzHKyYZGk7DQsuspVNsc2bC0XzAKn4xY
+         ptVmlWEB2lRt/xWiyRp+D3t1f5UIfuhpFaWO6AfQrLILFKvTsw99Ss5zYatea6EDuPDG
+         t3+V3qlERYIotX7H33K628AzYYP24oZOBVZL3YaOPb9/2nYY+bUoZqJV0pzjZaOTdbHK
+         oIWA==
+X-Forwarded-Encrypted: i=1; AHgh+RpmaaG9S+1/EJXNavCN8NwMGhaeIOZpNia5uJgDgejH2QFyqs0T1jjZhFSh8eTNgDEzfwNYKlKr1u41@vger.kernel.org
+X-Gm-Message-State: AOJu0YysHFImyy5MMGohO2AeIAOAPVHlTatJXH/f0fwKd9AYXQeCLEuk
+	+3jf9V/PchOp1g7FwgwPmnkMjUC/zhtdKjlO9/6yhC/xAU4MTs5fM8G9
+X-Gm-Gg: AfdE7ckbOdaeKeCyK88jKoV+xXvzQEizDlLA0+7qso3zBOvsS5uWlQrUg2u/PfuaCto
+	psiZg97SghOL9vIbJtgotYXOKbk5Ben2+AQNndwvl+CVYCK4NfXKz2HfAVcuynDEEWb5sf1qXud
+	CEaCe9p3G4V+IQ7L/l0g8IP9LcqGpNi1G4zmmTQEQ8HraM1Cq8ZaxXwio58d+MLflkEgNBk8uC5
+	m/AGL4SgsTI8fzG0eVDnKSc8CiKACqRKRBQfz62BjoTAJCdAh9u7AoyZu1eJ+uzBSjwHBh7Vy5G
+	mHxZvFXSKnLipV/iv1GdGq3ycSx071AxYz8cHd/97vrayA24C4a7UCx0mlvT0XQkp15yojh/6Nn
+	9+jHus6zZwQ1LbEfnctIDk7Kjffulm4jPylPw6yMT7zvYVgEclLqnM/TaOfV2CtHNaj337mWSPt
+	dA3N/kpRs=
+X-Received: by 2002:a05:7300:d507:b0:30c:1276:cdf7 with SMTP id 5a478bee46e88-30c5bc78138mr708393eec.25.1782192367703;
+        Mon, 22 Jun 2026 22:26:07 -0700 (PDT)
 Received: from [10.0.0.65] ([2601:647:6700:64d0::92d1])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-30c1be4967fsm13102455eec.26.2026.06.22.22.26.04
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-30c1be4967fsm13102455eec.26.2026.06.22.22.26.06
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 22 Jun 2026 22:26:05 -0700 (PDT)
+        Mon, 22 Jun 2026 22:26:07 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -66,8 +66,8 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v4 4/8] riscv/runtime-const: Replace open-coded
- placeholder with RUNTIME_MAGIC
+Subject: Re: [PATCH v4 5/8] riscv/runtime-const: Introduce
+ runtime_const_mask_32()
 From: Charlie Jenkins <thecharlesjenkins@gmail.com>
 To: K Prateek Nayak <kprateek.nayak@amd.com>
 Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
@@ -82,34 +82,53 @@ Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
  linux-arm-kernel@lists.infradead.org, Alexandre Ghiti <alex@ghiti.fr>, 
  Charlie Jenkins <charlie@rivosinc.com>, Jisheng Zhang <jszhang@kernel.org>, 
  Charles Mirabile <cmirabil@redhat.com>
-In-Reply-To: <20260430094730.31624-5-kprateek.nayak@amd.com>
+In-Reply-To: <20260430094730.31624-6-kprateek.nayak@amd.com>
 References: <20260430094730.31624-1-kprateek.nayak@amd.com>
- <20260430094730.31624-5-kprateek.nayak@amd.com>
+ <20260430094730.31624-6-kprateek.nayak@amd.com>
 Date: Mon, 22 Jun 2026 22:24:56 -0700
-Message-Id: <178219229642.10927.5804159175321604816.b4-review@b4>
+Message-Id: <178219229643.10927.7189200920480581019.b4-review@b4>
 X-Mailer: b4 0.15.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1782192362; l=610;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1782192362; l=1456;
  i=thecharlesjenkins@gmail.com; s=20260605; h=from:subject:message-id;
- bh=n+I3lxePERllHyfwEWyDEAhZnniet1N62LffQ9iv1A4=;
- b=BbyI070isif1KhCepDopyZNJYOc01bHzD6A+jVT3UijnT3HrwXWLYOswSXorRMeV+HlI4Inun
- OKgODIqIXrUAHVTJFNoyMxYBsj+Slz8Acjz3vKWxwe3qbx4eUZs6N2L
+ bh=DjSs5oRw9rccbhTB4m6pdAGiet3QtdAO5qUM5zvUvsg=;
+ b=Q7gZYCRpUNaR0P6LCnsW2BKyT1zjAR9X/QtNq425aoOkO4GWUw2wE2DMsLI9hCenc1NtUPLh0
+ LKuQabhh/3jCnBFxJDuU/QtOQWYl5v1MrRasvhVADGKiAdB5C5B53hi
 X-Developer-Key: i=thecharlesjenkins@gmail.com; a=ed25519;
  pk=ajnnRQ98PIdwKp4HeMkq9U32okYbnh6Zb4G3o5XXvkg=
 
-On Thu, 30 Apr 2026 09:47:26 +0000, K Prateek Nayak <kprateek.nayak@amd.com> wrote:
-> Define the placeholder used for lui + addi[w] patching sequence as
-> RUNTIME_MAGIC and use that instead of open coding the constants in the
-> inline assembly.
+On Thu, 30 Apr 2026 09:47:27 +0000, K Prateek Nayak <kprateek.nayak@amd.com> wrote:
+> Futex hash computation requires a mask operation with read-only after
+> init data that will be converted to a runtime constant in the subsequent
+> commit.
 > 
-> No functional changes intended.
+> Introduce runtime_const_mask_32 to further optimize the mask operation
+> in the futex hash computation hot path. GCC generates a:
 > 
-> Suggested-by: Guo Ren <guoren@kernel.org>
-> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
+>   lui   a0, 0x12346       # upper; +0x800 then >>12 for correct rounding
+>   addi  a0, a0, 0x678     # lower 12 bits
+>   and   a1, a1, a0        # a1 = a1 & a0
+> 
+> pattern to tackle arbitrary 32-bit masks and the same was also suggested
+> by Claude which is implemented here. The final (__ret & val) operation
+> is intentionally placed outside of asm block to allow compilers to
+> further optimize it if possible.
 
-This is a great addition, thank you!
+If the mask fits in 12 bits, we can nop the lui and the addi and just
+patch an "andi" instruction with the 12 bits of the mask. We already do
+this with the lui+addi block and nop the lui if val fits in 12 bits. I
+would be happy to help draft that optimization. 
 
-Reviewed-by: Charlie Jenkins <thecharlesjenkins@gmail.com>
-Tested-by: Charlie Jenkins <thecharlesjenkins@gmail.com>
+But I think the better solution would be to take the power of 2
+assumption since that will also benefit arm. We should still only emit
+an andi if val fits in 12 bits, but if it doesn't we can patch in
+shifts:
+
+slli    a0,a0,x
+srli    a0,a0,x
+
+Where x is the constant (arch_size - _futex_shift - 1)
+
+- Charlie
 
 -- 
 Charlie Jenkins <thecharlesjenkins@gmail.com>
