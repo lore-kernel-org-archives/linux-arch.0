@@ -1,269 +1,147 @@
-Received: from DU2PR03CU002.outbound.protection.outlook.com (mail-northeuropeazon11021078.outbound.protection.outlook.com [52.101.65.78])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-dl1-f51.google.com (mail-dl1-f51.google.com [74.125.82.51])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A93C73C4164;
-	Tue, 23 Jun 2026 06:30:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.65.78
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782196220; cv=fail; b=L3B+X2Ga3jdp6HuSnTHpCuqy8Zysan0v0GoMgiUEHfpSrGeK5Am6b9kA/7lfNf0Fo0RFMQwTHxWchN3y5ElsyltZTpMn7Clqz6AifJ9KcXjz4mN7NzG1WvKO8T/h+HKIvFQY7eMe/pCCxMFpINByQZaRN6l8YqrSh10rRHQmsjc=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782196220; c=relaxed/simple;
-	bh=ELC3ZzvnQeufB+ZvpE+37kUNNJBJxEfEzvZWPG3HJ64=;
-	h=From:To:CC:Subject:Date:Message-ID:Content-Type:MIME-Version; b=Nv8/DpX/Yz55jI3+BjR5LcoLOBBUpp9fzxtHF9Bt/PfkeLkY+fPqcubkaIpW4kRrErpQQnGPzUPrXyMmrpQPLkwq2d0/CCSZ/97ppyMWj7CD5fOO8V5r2IOb1sPcC4tTejOkRni9zvoFGXhBWIYm8t1aSoxjoehDyplswA1sTS0=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=docforce.de; spf=pass smtp.mailfrom=docforce.de; dkim=pass (1024-bit key) header.d=docforce.onmicrosoft.com header.i=@docforce.onmicrosoft.com header.b=GpK7Asux; arc=fail smtp.client-ip=52.101.65.78
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=docforce.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=docforce.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 071A72E7F39
+	for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2026 07:01:12 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.82.51
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1782198074; cv=none; b=lF3/bvMSI9u/jC4g50mjwH+lA9b+hy6Vkn8qBaU3adaRg0G/jM2M0yTDezaP1G7wqId3B0M8Yb1zHmgFdmfwaeFSFGzIWvDhclG+8IddbjDzVPOWVt7EGTMZU7eFU289JByJMt4OcLrG6DdnZ8OtLRWieg8rJg8HrvfpX4cDMJo=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1782198074; c=relaxed/simple;
+	bh=7eTid/Y/ZrFuJ9aQUGHjb+pKuO0yMAyOl/AKL5G3obA=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=rWzdliIZ8gUtob/u84d4oK957IcnDTYJPUyJZHhwToHEGGz036NcDtImAIlnEgcIGM1ai1VsUF6c7idoQcPBsIUWJEOJLhTVQH0f9m6UmGG8coq8ObraVJ4IAjlq+Z9aA1/V4q99mQxeT2IYIYLECzcMp1TOB1Te6JDwYMwEvMo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=WQTOqSUb; arc=none smtp.client-ip=74.125.82.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=docforce.onmicrosoft.com header.i=@docforce.onmicrosoft.com header.b="GpK7Asux"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=CjdN7u2FPAndQa7ZphnXji5lGV+bF2+dM1cUuJWpgEmYWpdwrVIjC4FCX3jOi8+oXFR2n8+2uSAOmrv3jLP90xEdrv6mZ657rC3UbXOJzvJXB/eJt1yjRKcH5gr5qlMqrwz3elM4u4LiIPqSDngSvxUW9038e7WYEDCFuID4m0dKR3r2Ty7kkzuPQ/ruPuWdt9mJZOLQrO21iES2l/O1+ZlXoIIZWQE9pjEMnDQei2PIi9e7wZga+QqRvPi1SrhO+AyGWB1O5ANXexG2Fcy9ORcRJ/e7IO+dy9YcRYqmBFRj0ilKdwBh3wtZBEv8aPu/rRVvOVZz9PvCUublNZXneQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=ELC3ZzvnQeufB+ZvpE+37kUNNJBJxEfEzvZWPG3HJ64=;
- b=VtwBb7gJDkPoZVzZomMRC0fpgKe0hAqZlIxFdl+AeK3aBW3hgkGfZgHDaOBtfvZesRintBlqs4XOda9AHLHIf8Wc+nv/qq677WhJJj0wreTKBBuXKzmjPLVqeCJmjcuRP/COg+LlOnE0knUc714N+MeqcyCkt1v8oL5QAizSss1KnE58e3Z75IlmmRGgwvkqSB/YVwRA75YEio38yVidwy/Lr1QrmVNlYkLqxyDl/XMwK31lM36fCdvovApHxJJgFylIdkajCn6j+2C0sA9sdZSGAY2T5wTvXq2fEzZIOG58ZgNZGYmW5xyvJz3uGbWWME36F2PYwMfzqfwQ0+wVHg==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=docforce.de; dmarc=pass action=none header.from=docforce.de;
- dkim=pass header.d=docforce.de; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="WQTOqSUb"
+Received: by mail-dl1-f51.google.com with SMTP id a92af1059eb24-139a71baa35so8553384c88.0
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2026 00:01:12 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=docforce.onmicrosoft.com; s=selector2-docforce-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=ELC3ZzvnQeufB+ZvpE+37kUNNJBJxEfEzvZWPG3HJ64=;
- b=GpK7AsuxQJwVeuVE9Byuu4cZync3em6xFyjyNGIVCok7cVYJm8T3f7CS75zj9aaEd/GRTrq8f3Z2gRG26pdAcJsmSPw5Oq9hydoPnnKW0T93PnbNfU5J6eZ4qibgxrINd/9FXtPo6NRcwbU1obi6n8yMoKg0R5mie66rLTNRuKQ=
-Received: from AM6PR05MB4903.eurprd05.prod.outlook.com (2603:10a6:20b:12::11)
- by GVXPR05MB12014.eurprd05.prod.outlook.com (2603:10a6:150:322::19) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.139.18; Tue, 23 Jun
- 2026 06:30:16 +0000
-Received: from AM6PR05MB4903.eurprd05.prod.outlook.com
- ([fe80::6b8f:8919:9555:ce34]) by AM6PR05MB4903.eurprd05.prod.outlook.com
- ([fe80::6b8f:8919:9555:ce34%6]) with mapi id 15.21.0139.018; Tue, 23 Jun 2026
- 06:30:15 +0000
-From: Tim Parth <tim.parth@docforce.de>
-To: "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-CC: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Subject: [RFC] signal: per-thread control over alternate signal stack delivery
- for selected signals
-Thread-Topic: [RFC] signal: per-thread control over alternate signal stack
- delivery for selected signals
-Thread-Index: Ad0C2a5mCii6+plqRmWqi0ohehBXMg==
-Date: Tue, 23 Jun 2026 06:30:15 +0000
-Message-ID:
- <AM6PR05MB49032404F2001561036ADA1BE1EE2@AM6PR05MB4903.eurprd05.prod.outlook.com>
-Accept-Language: de-DE, en-US
-Content-Language: de-DE
-X-MS-Has-Attach:
-X-MS-TNEF-Correlator:
-authentication-results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=docforce.de;
-x-ms-publictraffictype: Email
-x-ms-traffictypediagnostic: AM6PR05MB4903:EE_|GVXPR05MB12014:EE_
-x-ms-office365-filtering-correlation-id: 908a1b2c-f0a6-4f14-fe74-08ded0f0e36a
-x-ms-exchange-senderadcheck: 1
-x-ms-exchange-antispam-relay: 0
-x-microsoft-antispam:
- BCL:0;ARA:13230040|23010399003|10070799003|366016|376014|1800799024|6133799003|18002099003|56012099006|5023799004|38070700021;
-x-microsoft-antispam-message-info:
- azKI+U6AkIFxter+7FYBLrkiraQpT0N8C5Su0jNR+D7+7dFZqxB7kn43cPHclmFNHXeOA1KzULg0V0xvSoOBwMvxrlEF+pylPWtmXzlnQzyx9dJtAUxKKsG7Y6OOrddyIC78Dp8Ri5qMuwzw387/eQuRzSqEHz335NTM9XOqJ1fyR5MbdVyvhHJFIj8muNTH3Rl+Rym359rpFfMzOWXNuVk1UvfIGEeN9FW0MRtFl1Jl21putsfaj2T9ntcV6gw01Z0n0vRNPnn7Fqfh1kvpDYjFwom+pYUZ9yPqrfJSR2NgpJ4LmKje3IvjMN2ZecPS1s1WxtPen3/C9NWRPHvXoYzXOj72DlO5TBzQNLw3I3wNmE0Qr2+svxi+WMwO0TTrFqpcmZWh8yB6fNm3axFVLgpI1VUq2nBM5nAE1JYg/VkBZloFeSjMGrl6cizCaa68jsRWHVTQgPnO/VPywVzia16Crpzf1XgPNfw8AQA5Jy5xcTJl83aLP9FPBtHmpkqr8O0aaazL2YsC/2Ox9Ktgy49SpmMjUjNkoIjHBqTwGOL9OXfo/EoMDWa0JIA7lDh5a3AIa9ogEgkMaL1Ua4CFtrRbz/nUYIDeMrGSZ3Pm61yAS5SmGQ77grOryi32FZguN4SbXb6bdAs160BZsrzmUc5ui0B43AF9jHYOffWjI8aP6gfzOrcRGxVZj42CViAEXdVRn6Vcrww8G7T0bx+JZJ3Qxh8Bh3r//ujivsjb/P8=
-x-forefront-antispam-report:
- CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:AM6PR05MB4903.eurprd05.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(23010399003)(10070799003)(366016)(376014)(1800799024)(6133799003)(18002099003)(56012099006)(5023799004)(38070700021);DIR:OUT;SFP:1102;
-x-ms-exchange-antispam-messagedata-chunkcount: 1
-x-ms-exchange-antispam-messagedata-0:
- =?us-ascii?Q?k+lhFM+cgn3fIPJXNUrE9ir4Vy5g0LhqOj0syVNk3YugowmJn/3f4Y0U88DB?=
- =?us-ascii?Q?+GgG73uOMzm82tA1WbGW/oiIaZ4tob9L4poKkash1MCpX83C6C7+RFDU2Hk0?=
- =?us-ascii?Q?oilfJ9Q5qliSm98KzQinnJRIJGSzS68/BDGNZjpzUv8Y4ikTHYD3OKa6gkcV?=
- =?us-ascii?Q?SBA3PVxVtuguRzwevfuZWDwuOQGtuI4ALdc1I/EjB+bf+dbCh+XP7nhvYx5+?=
- =?us-ascii?Q?eIgGjp0XLRJZunm3rXtJQYNHtkN7eZox3rxd/GKp4f40mm/wawlOmcXhQtSl?=
- =?us-ascii?Q?pdtwGkCKJtzB4wq/h3FcO+dj+HmaCY+CvMp45D7YB5TsVzaMuZ9rcRxZOztX?=
- =?us-ascii?Q?q1+Gk+yfFgdTgRjGuUu8pJNQRZ5W53KGuF2hoKwO6RVb6+DBURmV5T3POIIq?=
- =?us-ascii?Q?mlG7nMSShEIiXycQEb7fdoTBusuGYgFRuXtugmSWVk4V2Nkrw4EJ360HQBMS?=
- =?us-ascii?Q?NXKGphqerWRScSQyM3CciGcrZHuDubZFhYsqFsFnwvzRX38oYgjJ9lMv80+3?=
- =?us-ascii?Q?7+5Dof/Tqo1BXxoP+LX0XFmXeS8aA1Ovxjq1u3zNwNqDurGfaJseLDheLZAp?=
- =?us-ascii?Q?8a42ZjG7O4OpQ89Me/ldqMuNwxRinwMxGOnqI99qvkY0vHDc55TYkDglR2ZN?=
- =?us-ascii?Q?1ItR1ZlxJn4qzLdrfELsR/YOmviq+K8QpTarqvaEW94vN0/5EGWUvd21SDu2?=
- =?us-ascii?Q?6KrH2rFGHYCZcEhRDn8XEaoXPbB13I8C3E3LC1gcrNKntgujlj3AFSAi0mA4?=
- =?us-ascii?Q?8P5I82sWJdr8ks3JbIsQ/YyoWrt/ncfcjXUB9bOWQ5Rw0iIz0dxiDx73yV/O?=
- =?us-ascii?Q?wZ6pE1VuL2Cl8VO90+ge0ThRUj/aQ52s5QN6ojCfh4Y8LgazxRtDNMObTVgv?=
- =?us-ascii?Q?nvaO3mY7IrWdPiAW8WlX49wpw8UPTLSyWvTD8a28psHrsY2Obcb7eBneT9Oy?=
- =?us-ascii?Q?hSF73iq7PcfFGPRnB+gqhqiMH1GaF7yLkkv2JFnc28V8n1W4UrArtHOJKr8N?=
- =?us-ascii?Q?BQNEJtFb0AzXGnGq7AI2IAC54S4y6uHCYCjCn2KZzSN8pZluzKVpGldaakRh?=
- =?us-ascii?Q?Czp1IE4/qLGaugrMSToHgHSo6/iRgwSVtX/vL2Zjh8O76x19e7a01AoqekMp?=
- =?us-ascii?Q?I3ZcWuuSqQHfXtRyHTikXt/pX9KNjHwXeiNs2lgdn4gdrgv06octVk0o1ItG?=
- =?us-ascii?Q?igJAjUPu3O8Q115JX/mWNYqUwIiWC00UWaMlMAz9P4PLG2/JVa5SrWEXlV0x?=
- =?us-ascii?Q?856HwpfGlJ6mTzfXdb+yo7IRWNuHgLc1PvL15nG0Uv/kCJ951ua0VkWXuLn6?=
- =?us-ascii?Q?XtkKG+irJ9KYEeTSH3REEE/Wd2tQPwhMFUCepiOKl7YO4+8PAu3qdfag13jv?=
- =?us-ascii?Q?GpM/mfaXyRciSRMSRtapwcvhEEMErye6Z8ncJucK3EmhElqu2CNpUxTMA/+8?=
- =?us-ascii?Q?7fgsElIPZqsNHK7M/S9D7tu587oeTszCtNp4Ll/V37577iCpAAPxRps6NJ6R?=
- =?us-ascii?Q?I+lP0eMbLfdNYy3hg2zoQA6M+yqIlhZTA4LRu2WN/r+ZWt3sKiYq0pDSMgZk?=
- =?us-ascii?Q?u1SNpAZSaJ1Nafj/9rXHeYWGpNeAZx4eRo4SnpTbdqrkeq7BlHBPSrirkPev?=
- =?us-ascii?Q?phyUMta9QnA2bQlIowhSVLRHhCvPF/nlBsMfoZgiGJDdAMDOKpFrXS78AFIe?=
- =?us-ascii?Q?2cdPrQS/rcu6J5glKYJu7/eNn0SykYwh1IVt8CMWfrYCfJ/bApA5DuQQ51zf?=
- =?us-ascii?Q?9lqKRoG4YL2riGkdQ+CSZU0HLa5B0m3Dxs4jABrIhydvG14K96IQ?=
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+        d=gmail.com; s=20251104; t=1782198072; x=1782802872; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=d6Ap3YJUEuoJTFxCbawQ11i/jSYqTs+DIopPqv2NeZw=;
+        b=WQTOqSUbPsS4Vsh+KdBzDd+sE2ej5BekmKaD9l7AJosNCGdtJgxo+yA4mZekkxkejw
+         YghzOpaIzh9j8x2afrIWN7pizwCIL3QQ5amED4IPwYUaF3Kp+CkBroDbaldOqapwu0Em
+         6LNwZYKaUdju0AJZW3YiFzj2exOJf++VRcoeQhTPb71oEgCmonMcjI+tNYFtPBZgX2/L
+         HDSBR6fJTXyIeJkBztDBkcByUnF7vAZm6oENh83T5sXAG3ysaVmxhLjbP7iMAaj6wOlW
+         OXGkrRvT9+Do5+GB9h7Qq2PXg4zfLG79m4Y7lJm//QYO8iQABtVbZ5mOr6LCXEzgsz0N
+         ZPWQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1782198072; x=1782802872;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=d6Ap3YJUEuoJTFxCbawQ11i/jSYqTs+DIopPqv2NeZw=;
+        b=q2Xcnn9YuIWr9jK9AYrkyDpShmlUMl2hlBetxQGNM3QijrGG7m8GH8Gpb+QO7KggLQ
+         lLIYBix+Sord5bKsV+anDssCVTMmDvddmZ3Fpv9+dUB8YKmuIb+W6oD4FGaeyAPwKB2h
+         G3yTjBj1MU/jb2I/lH+1KQCr+DlbTHpF4NviVNHZrbRGmtiultIx5DbtRU/HOiVbJgoB
+         o8HnYNMSCBeJF9yb4bEKxjkFGMSA4rfiH6Xur4m8rdIEeiE0g0mvU3oK69yHnpGBp6OW
+         kqcFfifg1FHDn0BFcr75Ruqg9hRkjZKSFbWiROyehcnO2IAlUVJI0umCcLXIf35Qh2uC
+         9MOQ==
+X-Forwarded-Encrypted: i=1; AHgh+Rq3HNHSC0XYgb4wFtcH21UcI199bSSJbPw8xOnqHiX8zNlGcQgJMjex1XTyC9PQuTtzax9DIG8lvIXA@vger.kernel.org
+X-Gm-Message-State: AOJu0Yy++7jIrfz243em6LMsvEkxQMytqrAub2humak6GG/Td3CbEjcr
+	qEiVw9hTTtx63n2NGZq+K5oALJHybWMoDPhZt7EN60xKHgAPksZFg5hB
+X-Gm-Gg: AfdE7clbKE8eOUKb7KUCPwPlG/tAGLz5ShoQwJOl046JsObnPJA4YSFPWM14G/C5yve
+	FnFYUee69eSPe65ysMvQEjNTgrSqoed8TnR7KbYwEHCBS1opdZKpajzstxeIiOxWnm+RlgrxS8Y
+	/zygBWYxlSXi+Ey2+J4/r1mU4mHDEkV2IErlnf3opqAkUoXX+xm1hPAUQNIR7/LJvlrBGVqjHqo
+	B2ODRCniQGf8rdYzRi8ZSPod3CnEcG1FtkByKF/e5KDXYA9IkfNVDG1OZnv1iXYNgeJdHqcpzEG
+	0eJYqevJaFOiLiqegc0pOJ1qFZkvtyIOHcaqeDPyy2PC7uxQ7RhUKJSlPKZG1RKJyNAvuDeqT4r
+	dbk1HIgx/eTuD+e4J7PE9WRYG1YNbFO1s0OlTI+yZfulBb48hQDnE/WatrtYiCPVByKjABIOvJc
+	DY
+X-Received: by 2002:a05:7301:3f09:b0:30a:e52f:9bcf with SMTP id 5a478bee46e88-30c06e2e675mr12844078eec.10.1782198071896;
+        Tue, 23 Jun 2026 00:01:11 -0700 (PDT)
+Received: from blinky ([2601:647:6700:64d0::92d1])
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-30c1bdffa83sm18003870eec.23.2026.06.23.00.01.10
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 23 Jun 2026 00:01:11 -0700 (PDT)
+Date: Tue, 23 Jun 2026 00:01:08 -0700
+From: Charlie Jenkins <thecharlesjenkins@gmail.com>
+To: K Prateek Nayak <kprateek.nayak@amd.com>
+Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Guo Ren <guoren@kernel.org>,
+	Darren Hart <dvhart@infradead.org>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	=?iso-8859-1?Q?Andr=E9?= Almeida <andrealmeid@igalia.com>,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org,
+	linux-arm-kernel@lists.infradead.org,
+	Alexandre Ghiti <alex@ghiti.fr>,
+	Charlie Jenkins <charlie@rivosinc.com>,
+	Jisheng Zhang <jszhang@kernel.org>,
+	Charles Mirabile <cmirabil@redhat.com>
+Subject: Re: [PATCH v4 5/8] riscv/runtime-const: Introduce
+ runtime_const_mask_32()
+Message-ID: <ajovNDH2uo6V4NJx@blinky>
+References: <20260430094730.31624-1-kprateek.nayak@amd.com>
+ <20260430094730.31624-6-kprateek.nayak@amd.com>
+ <178219229643.10927.7189200920480581019.b4-review@b4>
+ <ff9678fb-4cca-4849-8ffb-7cb76db60e1a@amd.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-OriginatorOrg: docforce.de
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: AM6PR05MB4903.eurprd05.prod.outlook.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 908a1b2c-f0a6-4f14-fe74-08ded0f0e36a
-X-MS-Exchange-CrossTenant-originalarrivaltime: 23 Jun 2026 06:30:15.8727
- (UTC)
-X-MS-Exchange-CrossTenant-fromentityheader: Hosted
-X-MS-Exchange-CrossTenant-id: b5f6141d-a00a-4f0a-86d2-fddfde43e6e2
-X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
-X-MS-Exchange-CrossTenant-userprincipalname: EplNt3hLgdhvk+OnkJKe0XaU98ELClJVBsvG3+uJ4NxZ9dx1v0z5yzgU9vLxUHm6hx/zwk74y+zU/LrDU9tYFQ==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: GVXPR05MB12014
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <ff9678fb-4cca-4849-8ffb-7cb76db60e1a@amd.com>
 
-Hi,
+On Tue, Jun 23, 2026 at 11:43:39AM +0530, K Prateek Nayak wrote:
+> Hello Charlie,
+> 
+> On 6/23/2026 10:54 AM, Charlie Jenkins wrote:
+> > On Thu, 30 Apr 2026 09:47:27 +0000, K Prateek Nayak <kprateek.nayak@amd.com> wrote:
+> >> Futex hash computation requires a mask operation with read-only after
+> >> init data that will be converted to a runtime constant in the subsequent
+> >> commit.
+> >>
+> >> Introduce runtime_const_mask_32 to further optimize the mask operation
+> >> in the futex hash computation hot path. GCC generates a:
+> >>
+> >>   lui   a0, 0x12346       # upper; +0x800 then >>12 for correct rounding
+> >>   addi  a0, a0, 0x678     # lower 12 bits
+> >>   and   a1, a1, a0        # a1 = a1 & a0
+> >>
+> >> pattern to tackle arbitrary 32-bit masks and the same was also suggested
+> >> by Claude which is implemented here. The final (__ret & val) operation
+> >> is intentionally placed outside of asm block to allow compilers to
+> >> further optimize it if possible.
+> > 
+> > If the mask fits in 12 bits, we can nop the lui and the addi and just
+> > patch an "andi" instruction with the 12 bits of the mask. We already do
+> > this with the lui+addi block and nop the lui if val fits in 12 bits. I
+> > would be happy to help draft that optimization.
+> > 
+> > But I think the better solution would be to take the power of 2
+> > assumption since that will also benefit arm. We should still only emit
+> > an andi if val fits in 12 bits, but if it doesn't we can patch in
+> > shifts:
+> > 
+> > slli    a0,a0,x
+> > srli    a0,a0,x
+> > 
+> > Where x is the constant (arch_size - _futex_shift - 1)
+> 
+> I can do that for the next version and use ubfx for ARM. I can just put
+> in a BUG_ON() at the arch/ specific __runtime_fixup_mask() and if a
+> new use case arises which hits that, we can perhaps move on the dynamic
+> nop patching scheme that you mentioned earlier.
+> 
+> Let me know if that works and I can pivot to that scheme in v5 and send
+> it out post -rc1 after some testing.
 
-I am looking for guidance on a Linux signal ABI limitation that shows up in=
- multi-runtime processes, specifically a .NET host loading a Go c-shared li=
-brary.
+That sounds like a great plan :)
 
-Disclaimer: I am reporting this from the application/runtime integration si=
-de, not as a kernel developer. I arrived here after tracing crashes in a .N=
-ET application hosting a Go shared library through several runtime-specific=
- issues, reproductions, and analyses. My understanding of the Linux signal =
-subsystem and ABI details is therefore limited, and I may be missing import=
-ant details.
+- Charlie
 
-The technical summary below reflects my best understanding of the issue bas=
-ed on the referenced investigations. I used AI-assisted editing to help str=
-ucture and clarify this report, but the observations, reproducer, and refer=
-enced analyses come from the linked investigations.
-
-This is not a claim that the current kernel behavior violates the existing =
-ABI. Rather, I believe the current ABI lacks a way for multiple language ru=
-ntimes in the same process to compose their signal and sigaltstack requirem=
-ents safely.
-
-Observed failure
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-
-A .NET process loads a Go shared library built with -buildmode=3Dc-shared a=
-nd calls it via P/Invoke. Under stress, the process crashes with SIGSEGV wh=
-ile CoreCLR is handling SIGRTMIN for runtime activation / GC suspension.
-
-The reproducer is here:
-
-https://github.com/egonelbre/csharp-go-interop-issue/tree/main/dotnet-go-re=
-producer
-
-Related runtime issues:
-
-https://github.com/golang/go/issues/78883
-https://github.com/dotnet/runtime/issues/127320
-
-The .NET-side analysis shows that the crash happens inside CoreCLR's inject=
-_activation_handler path. The kernel delivered SIGRTMIN on the thread's alt=
-ernate signal stack, and CoreCLR then ran a call chain deep enough to overf=
-low that stack. In the reported case the per-thread alternate stack install=
-ed by CoreCLR was 16 KiB. Increasing it to around 49 KiB avoids the crash i=
-n the provided stress test, but that is a runtime-specific mitigation and d=
-oes not address the general ABI composition problem.
-
-Current ABI interaction
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-
-The problematic interaction is:
-
-1. Signal disposition, including SA_ONSTACK, is per-process.
-2. sigaltstack is per-thread.
-3. On signal delivery, Linux uses the alternate signal stack if the handler=
- has SA_ONSTACK and the current thread has an alternate stack.
-4. The Go runtime documents that non-Go signal handlers must use SA_ONSTACK=
-, because Go may be running on limited stacks. For -buildmode=3Dc-shared, w=
-hen Go sees an existing signal handler it may turn on SA_ONSTACK and otherw=
-ise keep the existing handler.
-5. CoreCLR has internal signals such as SIGRTMIN whose handlers may need a =
-different stack policy or a larger stack budget than the alternate stack cu=
-rrently registered on that thread.
-
-The result is that one runtime can make a process-wide SA_ONSTACK decision =
-that affects handlers and threads owned by another runtime. The other runti=
-me can install a larger per-thread sigaltstack, but that becomes an arms ra=
-ce and does not give a runtime any way to express which signals should use =
-which stack policy on a particular thread.
-
-Why existing mechanisms do not fully solve this
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-
-- Raising SIGSTKSZ or MINSIGSTKSZ does not solve the general issue. The ker=
-nel can only know the signal frame requirements, not the maximum user-space=
- stack consumption of an arbitrary signal handler and everything it calls.
-
-- The kernel cannot automatically extend an alternate signal stack.
-
-- Clearing SA_ONSTACK with sigaction is process-wide and can violate the re=
-quirements of another runtime, for example Go's requirement that signal han=
-dlers run on an alternate stack when Go code may be interrupted.
-
-- SS_AUTODISARM helps with a different class of problems, such as avoiding =
-corruption when switching away from a signal handler, but it does not let a=
- thread express "use an alternate stack for SIGSEGV but not for this runtim=
-e-internal suspension signal", nor does it provide separate stack policies =
-for different signals.
-
-Possible ABI direction
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-
-One possible direction would be an opt-in, per-thread signal-altstack polic=
-y, for example a prctl() or similar interface that lets a thread provide a =
-signal mask for which SA_ONSTACK should be ignored on that thread:
-PR_SET_SIGALTSTACK_EXCLUDE_MASK(sigset_t *mask, size_t sigsetsize)
-
-The default mask would be empty, preserving current behavior. Signal delive=
-ry would then become, conceptually:
-
-if (handler_has_SA_ONSTACK &&
-thread_has_altstack &&
-!signal_is_in_current_thread_altstack_exclude_mask)
-deliver_on_altstack;
-else
-deliver_on_normal_stack;
-
-This is only a sketch. I am not attached to this exact interface. Another s=
-hape might be preferable, such as a more general per-thread/per-signal alte=
-rnate stack policy or a way to associate alternate stack requirements with =
-particular signals.
-
-Questions
-=3D=3D=3D=3D=3D=3D=3D=3D=3D
-
-1. Is the signal maintainers' view that multi-runtime processes should solv=
-e this entirely in userspace by agreeing on one sufficiently large per-thre=
-ad sigaltstack?
-
-2. Would a per-thread/per-signal opt-in policy for alternate signal stack d=
-elivery be considered acceptable as a Linux UAPI extension?
-
-3. If such a UAPI is plausible, is prctl() the right place, or would mainta=
-iners prefer a different interface?
-
-4. Which subsystem/list should own this discussion? I am sending this first=
- to linux-api and LKML because this appears to be a userspace ABI issue aro=
-und signal delivery.
-
-Environment from the reproducer report
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-
-- Architecture: x86_64
-- OS: Linux
-- Example distro: Ubuntu 24.04
-- Go: go1.26.2 linux/amd64
-- .NET: 10.0.6 and runtime main were tested in the linked report
-- Signal involved in the reproducer: SIGRTMIN
-- Failure mode: SIGSEGV while running CoreCLR activation handling on the
-alternate signal stack
-
-Thanks,
-
-Tim Parth
+> 
+> -- 
+> Thanks and Regards,
+> Prateek
+> 
