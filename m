@@ -1,51 +1,50 @@
 Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2A9013B71C6;
-	Wed, 24 Jun 2026 10:08:44 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9EDC2CA52;
+	Wed, 24 Jun 2026 11:03:34 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782295726; cv=none; b=RMsRIH0oUbty6/bTyrP3BblKQWjhVn96yd6ejaqHppnb1JgUlPUQBiUmumqltzQ01zmDczhpFDtd6B9vQZalwWf1qPO+4g2iDYsGeYLPmkeWW+MlDosI2FGRylxvUnnngFcFPjNQ361VGCaBmA//venLUnY9N7/DCvO+ZMrnbu4=
+	t=1782299015; cv=none; b=ZckWWczgMRIndvRFngkKEEaEuq/bBbfrwJt/Tms81iexvT2Mk/IeiNPMgVCqVmGD7Og0NhX3CdBu2nrNKdyJJhgRWbIFpDySDUa7pR58y1rhpkJfg4WvCjXBbEYTzHtIPXCHmbw+yq40+DXaM5J6018bsuGLPHk6XwX9SivOJsY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782295726; c=relaxed/simple;
-	bh=Zgq0HceP4qnVEiXOOc7bhS8RStlam2Jmor0wsOciRiE=;
+	s=arc-20240116; t=1782299015; c=relaxed/simple;
+	bh=hUGzCg4pLTxuBArxKUQImUWhWgqWcxFVhlDSFamFQdk=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=XZwf3vGEcCxMNjkrUhPm5A0pDw+vtyPn0sGVVtBq77MOoGOUa6+2ZYa6u6YYy/jsm3ZRXtTX9evWaKBvULd8/1OmOnDCiqwaj8N3RivLBoypbgFYXPoiL1jkaG8XNm6tyRPxSG3QLJKyx9DxCxX26uCIbSZYSm33wfEk8MXNEBU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=Ie+Gx05T; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=ObC5D9bb; arc=none smtp.client-ip=193.142.43.55
+	 Content-Type:Content-Disposition:In-Reply-To; b=MWpIz/iTNNFTtnPKbaAwzXTHeEk5HTTAwDiRKchSc+cJf63ZoEMOpKi9neQZLEzYMqUWcCvxotW9xqGESrWth1nSaEsjqJLW07cnpRoAhTzmE/FYvcdKmeTUsFvzBDjIlXNQmTukuPjm74VIT81zQHiwhu+V3bzgqfB412+6KZk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=ZUNSRun/; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=qKouf1AV; arc=none smtp.client-ip=193.142.43.55
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="Ie+Gx05T";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="ObC5D9bb"
-Date: Wed, 24 Jun 2026 12:08:39 +0200
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="ZUNSRun/";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="qKouf1AV"
+Date: Wed, 24 Jun 2026 13:03:31 +0200
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1782295722;
+	s=2020; t=1782299013;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=Xn0h6VOL/cdoKYPxSepbduPQBw6kBDF1WxhF/z0UW7Y=;
-	b=Ie+Gx05T8M23x7bJzrMK2MWptU0vHip0oyTQvuPFUgWsDKpCmZksVEcVfnxxA6d/PQLScl
-	rI45s4KZMsDfMRY8ysL3w9fRA/NtG7VK+g6I1xz3/gMLJttFFL2WFnXXUV8/YJTe8thBQY
-	Qf5y4rRLeauo/kJaUBrjHulczdTlHum1Pjyu9d1ikel9LA9G9pqns+8gi5gfkDw/0fPW+p
-	HAOBcDvlaw0j/brtNJ/63ueQ4HHzgcBIY7sztfCfVmK/HMSmgbrSONvH5mf4267F9Vl+Jv
-	ZtKzYWIAQK8vuJRTynGfqP/W/wIX2uqXhNg13ZzoUKWh2zio38ymGp9tbDVb0w==
+	bh=1to4aN27mXUg6e3//FhiOnDtrnDrsfOW2HNyWBwR80g=;
+	b=ZUNSRun/KgPTj+yok/k3XNRhYqfDg34NbQWQximnyMtK4oj2KJOqTTSt/56peOhiLoVFAP
+	BD2C7/hs+paMj1uketRIKjHkCl0bGy9hRONm/u3q9kpQDQJvV5INYZREMeL3ui3/jYjvbm
+	bKOu/VDZhvqdvRp8AT8LrBdN/oXPsbQ0gc30pYfWoXdjhBpkvT9X4ykaUGp7+IugGzJGGZ
+	e5iKB/Kj0cMqyceBtGBbq1KY3V0L1YKm6quKw4J5rDKTkhLgvT4jKj1G91dCeGDjW406h0
+	sr19aOPa9smhnOdWM9BJYeuH2Jl5gAPSXgVtkPVuRbAgfOnsYVM59B/AeT3iww==
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1782295722;
+	s=2020e; t=1782299013;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=Xn0h6VOL/cdoKYPxSepbduPQBw6kBDF1WxhF/z0UW7Y=;
-	b=ObC5D9bbUWMoq2zqZJkHwNc6RZ8DTjjcUpKSr3VjK2xHvs0BzkFlm3YAJYg/fJF7Ba6atC
-	0iZH/dKSumbrHwDw==
+	bh=1to4aN27mXUg6e3//FhiOnDtrnDrsfOW2HNyWBwR80g=;
+	b=qKouf1AVMwkpseA87WaquDtq2H4f8a+je/52pZlZYEG5kcBNKEzU3NkoVOEsrFDuQ61fWx
+	+3BxS7ihbWvAh3BQ==
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-To: Peter Zijlstra <peterz@infradead.org>
+To: Breno Leitao <leitao@debian.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
 	sched-ext@lists.linux.dev, netdev@vger.kernel.org,
 	"David S . Miller" <davem@davemloft.net>,
 	Andrea Righi <arighi@nvidia.com>,
 	Andrew Morton <akpm@linux-foundation.org>,
 	Arnd Bergmann <arnd@arndb.de>, Ben Segall <bsegall@google.com>,
-	Breno Leitao <leitao@debian.org>,
 	Changwoo Min <changwoo@igalia.com>,
 	David Vernet <void@manifault.com>,
 	Dietmar Eggemann <dietmar.eggemann@arm.com>,
@@ -54,7 +53,9 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
 	John Ogness <john.ogness@linutronix.de>,
 	Juri Lelli <juri.lelli@redhat.com>,
 	K Prateek Nayak <kprateek.nayak@amd.com>,
-	Paolo Abeni <pabeni@redhat.com>, Petr Mladek <pmladek@suse.com>,
+	Paolo Abeni <pabeni@redhat.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Petr Mladek <pmladek@suse.com>,
 	Sergey Senozhatsky <senozhatsky@chromium.org>,
 	Simon Horman <horms@kernel.org>,
 	Steven Rostedt <rostedt@goodmis.org>, Tejun Heo <tj@kernel.org>,
@@ -62,10 +63,10 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
 	Vlad Poenaru <vlad.wing@gmail.com>
 Subject: Re: [PATCH 1/2] bug: Provide WARN_ON.*DEFERRED() macros for console
  deferred output
-Message-ID: <20260624100839.XS5R23mk@linutronix.de>
+Message-ID: <20260624110331.iHt4U2xo@linutronix.de>
 References: <20260623142650.265721-1-bigeasy@linutronix.de>
  <20260623142650.265721-2-bigeasy@linutronix.de>
- <20260624093117.GY48970@noisy.programming.kicks-ass.net>
+ <ajuWnKsQR0Z825Wn@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -74,48 +75,38 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20260624093117.GY48970@noisy.programming.kicks-ass.net>
+In-Reply-To: <ajuWnKsQR0Z825Wn@gmail.com>
 
-On 2026-06-24 11:31:17 [+0200], Peter Zijlstra wrote:
-> On Tue, Jun 23, 2026 at 04:26:49PM +0200, Sebastian Andrzej Siewior wrote:
+On 2026-06-24 01:37:53 [-0700], Breno Leitao wrote:
+Hi Breno,
+
+> Have you considered an approach similar to printk_deferred_enter(),
+> where you mark the code region that needs deferral and all WARN() calls
+> within that region are automatically deferred?
+
+Doing this at rq-lock site is not something the scheduler department
+takes. It increases/ bloats the code sides more than what we have now.
+
+Not everything is in __sched section so we can't check for this from
+within printk. So this turd was the only idea I had.
+
+> The current proposal requires changing individual WARN() call sites,
+> but whether they need deferral might depend on the calling context. This
+> means you'd need to convert many call sites and ensure all nested
+> warnings are also converted to the deferred variant.
+
+I hope for the forced-threaded-legacy the default but this camp has not
+a lot members. It would increase the pressure to provide nbcon so it
+could be a good thing.
+
+To accept this series and make it more bullet-proof we could do
+s/WARN_ON\>/WARN_ON_DEFERRED/ for all sched/ and require it regardless
+if the rq-lock is held. So you wouldn't have to audit it each and every
+time. Due to that preempt-disable thingy it can be used in preemptible
+sections without breaking anything.
+
 > 
-> > +#ifndef WARN_ON_DEFERRED
-> > +#define WARN_ON_DEFERRED(condition) ({					\
-> > +	int __ret_warn_on = !!(condition);				\
-> > +	if (unlikely(__ret_warn_on)) {					\
-> > +		guard(preempt)();					\
-> > +		printk_deferred_enter()					\
-> > +		__WARN();						\
-> > +		printk_deferred_exit()					\
-> > +	}								\
-> > +	unlikely(__ret_warn_on);					\
-> > +})
-> > +#endif
-> 
-> This will generate atrocious shite at the WARN sites.
-
-You mean the missing semicolon and huge size increase?
-On x86 with these guard+deffered in the upper variant, before:
-    text    data     bss     dec   filename
-   93910   37424     832  132166   kernel/sched/core.o
-   61802    4945     152   66899   kernel/sched/fair.o
-  215108   24453    3768  243329   kernel/sched/build_policy.o
-   86128   30092   12704  128924   kernel/sched/build_utility.o
-  456948   96914   17456  571318   total
-After:
-   96140   37408     832  134380   kernel/sched/core.o
-   64490    4937     152   69579   kernel/sched/fair.o
-  222980   24157    3768  250905   kernel/sched/build_policy.o
-   86544   30100   12704  129348   kernel/sched/build_utility.o
-  470154   96602   17456  584212   total + 1.3%
-
-total went up by 1.3% or 12.59KiB.
-This effects:  alpha, arc, arm, csky, hexagon, m68k, microblaze, mips,
-nios2, openrisc, sparc, um, xtensa
-and could motivate them to implement __WARN_FLAGS which would lower size
-in general and this stunt would have no effect.
-
-Just looked at arm and it has support for invalid opcodes somehow but
-not for this.
+> Thanks,
+> --breno
 
 Sebastian
