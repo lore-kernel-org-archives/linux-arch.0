@@ -1,195 +1,452 @@
-Received: from flow-a8-smtp.messagingengine.com (flow-a8-smtp.messagingengine.com [103.168.172.143])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DE341176238;
-	Thu, 25 Jun 2026 03:41:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.143
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 85AA35CDF1;
+	Thu, 25 Jun 2026 07:28:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782358893; cv=none; b=MKbys026SoVRM1gQCr+9PSh51U4xdYdAs1T01JjUXq84NLdVpJP0x+H5SfyzCQEj+E3K8QNc5BheE3ucO0Io+mevwWT2vi+LtMuBWmAanPZh8VagG07dDQGK0TuLbs81cYzDaxS3NfrVDAX2zZf3MptfsCTZ39tqk6/Or2vLwEE=
+	t=1782372499; cv=none; b=k5USbRV/qgy48ZQ+jXyAbTrnooZqj0Sh3XTQ6EH6JjmL7r9U/fyD3cS4+ET4+rJiBSrAjEvCqMvZT18ksOC9u/zQZ+dIdbCt5ErS5JjptDq+eltHRnRe5O5y4DkauvaZ5Me1kqdCK2WFTbeA0OyrIgMYKIZXbt82W0/3r/fBnss=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782358893; c=relaxed/simple;
-	bh=1b8491NiBf4oRUYibKv57V5l3o0D9cGEPxDoCVVsCsA=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=J8OcRnILpBHLqCaqQzUYC7K8PJ3XHc2w78G6Tge4WL1LVhxABmjori+YM4JewzQ3tyjnrkidfpUNPT1Bw+MIu/uRnspFHj6Ok5eq58Ij1gW6OQLg+hIuKBhErbtbvlCDXlEB757puWT2vHdTJI9PR5+1eWJ/9ItSxcVQz4sxf38=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me; spf=pass smtp.mailfrom=johnericson.me; dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b=E3YyoYVS; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=O4MOHO2m; arc=none smtp.client-ip=103.168.172.143
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=johnericson.me
+	s=arc-20240116; t=1782372499; c=relaxed/simple;
+	bh=KUo4NekPNXgv90VG8qkIbf6JzzGOminOB0cX6JdfmA4=;
+	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
+	 References:Date:Message-Id; b=ozFmE5t/sV5eWD6FnuPHd9+NB66WDp+DcuUuMBHuA5isKW1MQELABYNvJlXX4CsdCf5zGCD7da9aeUhf9dzS3kDzqb3Z/1QCb1vVWCxgu0FQ4qZnOi9UtHzMUqBCb1F/wMsPwBGHW5rAYzDOm1t2yQOqyvx5z1i4SbRrfQnADMw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=InHGXEXT; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b="E3YyoYVS";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="O4MOHO2m"
-Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
-	by mailflow.phl.internal (Postfix) with ESMTP id ED2281380300;
-	Wed, 24 Jun 2026 23:41:30 -0400 (EDT)
-Received: from phl-imap-16 ([10.202.2.88])
-  by phl-compute-05.internal (MEProxy); Wed, 24 Jun 2026 23:41:30 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=johnericson.me;
-	 h=cc:cc:content-transfer-encoding:content-type:content-type
-	:date:date:from:from:in-reply-to:in-reply-to:message-id
-	:mime-version:references:reply-to:subject:subject:to:to; s=fm3;
-	 t=1782358890; x=1782366090; bh=5+lJe3bNGVItVn6B+rNzShQxgl8DKdHB
-	QcEr+NONrcE=; b=E3YyoYVSVAcpw8g068+og1sIryKoQR8rIwxTuZKuvNTUDYxL
-	+yX2qgZmywBKrQ1bqArU+A32ULdGJ4kHlSpF8a/adcHpnBSmCuV3JVFbI354eFvD
-	FP3FzoHvbQwhPnoKXrxCV8OVIaica4Xq1oEIIWRHf5a/oyu5h3NzP9VWAtUDuy/5
-	LdCVJ8mKWNj6AxXymy2iEBv3PlR5THSG0d15tmXMsdTEWmr78bduPwCt6jTR9baR
-	p2oqdQ/Nv/duap4Qm7UZCe0//6CWELyfOWwI6cnuWLc71WntmhuCBxjXG8dCyY5m
-	oCHe1UKOLLU+4mZsV9OmfKwHoKUo2YrTGnp/tQ==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1782358890; x=
-	1782366090; bh=5+lJe3bNGVItVn6B+rNzShQxgl8DKdHBQcEr+NONrcE=; b=O
-	4MOHO2mkN1aSrV1W3ZCS1+Cm3HTHN5bhztCFCTXfUfUTXpm+3HCCf8j/UWsr1zxF
-	IWq0acee26Y32bxj668GXZWGoy6QPYeYc21TZL7/Y7+7ChBcC9jI/a29AipD5Ck/
-	gCy+rHCpp6Ma8C0/eqIDOxCF4vP+ME4ZXEJBa+nOcIUYUYfW/sqb0FPZWpx7JzyC
-	JB3cZa84eiig6EV2Lv3q+tyzg7SzRp0gjyMQryfNnjx0QEVtxzfaJdMAw4/Gggj1
-	hSuYY31EBq26v3H1Cs7rZYsLvqCX5uC9OK3RI0Mf/YtQffWWtsR2xD9AUHDu1x9J
-	J45fUsiCn8qtANR1n11ww==
-X-ME-Sender: <xms:aaM8amDITqozBHwkbroN2j23EkDU75NFiIjTCoLbP1ar7WB-t4SkmA>
-    <xme:aaM8arVkoB9iGSXHiH3QNLmUumym_DEePgPMX-OcdAijdAN-O6b0CdGEMxGR-OtkP
-    r8KlqUsAPppLCeaZQkROTIcOuQ1bRe4mE_AhzSc0y36CuShoWxccuo>
-X-ME-Proxy-Cause: dmFkZTEOSZ1G/dhNAKDsT+2j3RzjT8bsDvJokJhgbWbC8Ku0+jtd3bjWkuI11V1VYxVqXC
-    bnZi3Cz8f4Htpgs2AVsZDMf3L5HtP7FBps6/iy1Al0MlzKmaTito2Dh1WVZ7z8JAf0XwzA
-    VE9JNAspfHMrvPg3ZuRXFV/VJaCRNG89FrilxuEk0l+WwWER5MfmMQEOeuygWia9AZ50Im
-    5WavG8uKqPUl7SwZFKqp9ubQPCJTJq9YtdYZ2PsYCOXxDjjYCWDcCiQB8gSQItzsy1cute
-    FB36Bvxv4oXqOlm+nRn0l/9FMwuTMQI+x9AWAq6pH3g5+A+oIP7Fg504BaVpzrZ8rrI+Xn
-    IHJ6pjj+X4SAWZJF4gY+bJF1EIokUEDotICk5P3DEyxnDqrSDD+/h497/BPbVDLff0Pz1c
-    DK60JyYXh3yb2WY6uPMB6YusnQ2TlHbWgJxA7QsuSm+EZlz8igz+qs6flBBmipzcbWISdr
-    bzlpLEyv9RFZGf3riC2bBfetfb0ZTESlNTxCY9HK+q18fl8I3bk3VgFfJ0Tx27iIqM9kjj
-    T+1K27Gq0ESgwrPkdmdcIP+3tqwZ6Z6FigVOkfU2BC7buhX4nCXGssqZGoEtpzEVqIkRwf
-    eIRQFDHvIBFmsn2dDxrDCZt/O1XXjE0uDIrtfeBrM5BJhyOtbv2LFVfgYc0w
-X-ME-Proxy: <xmx:aaM8aswNxZLKq7MPjgzd7ntvjkfBnmnnl0jkPAgmVndDI2N5qqVNJA>
-    <xmx:aaM8atd-lD4pQbZHuoJNlRxcpk_cGP0hB85PCW5YupTvvRGzPot_dA>
-    <xmx:aaM8ai2kGmcjJVLBWbJ_Q_pFH5998FyzEzQrIG0AiGr5Z2I5tx0l6Q>
-    <xmx:aaM8amtcHUscJ24DZ2pLyn0qNk1mWRpuvlhaxdMOM1ZAjqq5zYfCOw>
-    <xmx:aqM8apyuhcwJO-e4yDAPnt-66N8-IcJqf-rXlLowI4NDDiGkCD2uUEkR>
-Feedback-ID: ieb4144f1:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id A8CF82CC0088; Wed, 24 Jun 2026 23:41:29 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="InHGXEXT"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 49D931F000E9;
+	Thu, 25 Jun 2026 07:28:13 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1782372498;
+	bh=P04TvlBD9QP71s0/lKtJ4I0j+WyUYhmTovuk4tkqFWA=;
+	h=Subject:From:To:Cc:In-Reply-To:References:Date;
+	b=InHGXEXTihcGMuKNaPsHaM/LKQ4QTJEp9gpyWN1aWSAUjqO4NCJZ7yWbdOVmQ8BYo
+	 Z+Q9SESV1VaxGFoLzdczzyupSF0jHeX7kF8516iFMSEv+AtvhwZWKkkSZK7JktCmqz
+	 UBtgE5QHw12ahyF1xVtpUMlA2iv1KuVFLHsAIiJh0cR/g9Y/KVlMGHuoMTnRDYVYBw
+	 8TlCpIfHt9mSWSanPTptt461iTYvWohzy7ivkIhc8eupl9cbgx2M5nETPZHZcs68lX
+	 3i44FElRM6DKTKqU2oL/YhypExW7GN4iW1IVHBwLRyuAanuhS8vVLdTuCwrIxGiVVb
+	 ztCa/vOtx6D7Q==
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: AG8qDlxFSDr7
-Date: Wed, 24 Jun 2026 23:41:07 -0400
-From: "John Ericson" <mail@johnericson.me>
-To: "Al Viro" <viro@zeniv.linux.org.uk>
-Cc: "Andy Lutomirski" <luto@kernel.org>, "Li Chen" <me@linux.beauty>,
- "Cong Wang" <cwang@multikernel.io>, "Christian Brauner" <brauner@kernel.org>,
- linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>,
- linux-fsdevel <linux-fsdevel@vger.kernel.org>,
- linux-api <linux-api@vger.kernel.org>, "Arnd Bergmann" <arnd@arndb.de>,
- "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
- "Borislav Petkov" <bp@alien8.de>,
- "Dave Hansen" <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, "Jan Kara" <jack@suse.cz>,
- "Jonathan Corbet" <corbet@lwn.net>, "Shuah Khan" <skhan@linuxfoundation.org>,
- "Kees Cook" <kees@kernel.org>, "Sergei Zimmerman" <sergei@zimmerman.foo>,
- "Farid Zakaria" <farid.m.zakaria@gmail.com>
-Message-Id: <a75a9b82-a15b-4893-8f92-62b62664ea83@app.fastmail.com>
-In-Reply-To: <20260625011023.GM2636677@ZenIV>
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
- <CALCETrWhXNetw-BsAaoyT31suMmjYLdMh9MAuLB2Lvk2ac-31g@mail.gmail.com>
- <CALCETrU3bgUxp0k1y-U-uL0-fW2016Gmsyu9O_=830czEUGMcQ@mail.gmail.com>
- <103524f8-1658-41df-88e9-cf49c628a721@app.fastmail.com>
- <20260625011023.GM2636677@ZenIV>
-Subject: Re: [RFC] Null Namespaces
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH v4] coredump: Add /proc/<pid>/coredump_pre_exit for
+ pre-exit before dumping
+From: Christian Brauner <brauner@kernel.org>
+To: David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+ Lorenzo Stoakes <ljs@kernel.org>, brauner@kernel.org, mjguzik@gmail.com, 
+ pfalcato@suse.de, ebiederm@xmission.com, viro@zeniv.linux.org.uk, 
+ jack@suse.cz, jlayton@kernel.org, chuck.lever@oracle.com, 
+ alex.aring@gmail.com, arnd@arndb.de, keescook@chromium.org, 
+ mcgrof@kernel.org, j.granados@samsung.com, allen.lkml@gmail.com
+Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ linux-arch@vger.kernel.org, Xin Zhao <jackzxcui1989@163.com>, 
+ linux-mm@kvack.org
+In-Reply-To: <20260624145552.70143-1-jackzxcui1989@163.com>
+References: <20260624145552.70143-1-jackzxcui1989@163.com>
+Date: Thu, 25 Jun 2026 09:28:08 +0200
+Message-Id: <20260625-wappnen-drohbrief-wermutstropfen-c53538f01547@brauner>
+X-Mailer: b4 0.16-dev-d9d01
+X-Developer-Signature: v=1; a=openpgp-sha256; l=13305; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=KUo4NekPNXgv90VG8qkIbf6JzzGOminOB0cX6JdfmA4=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWTZ3OhZodjWND3vVla0xtVsvve8slcnlNyQ0xfinPxvr
+ anRkjq/jlIWBjEuBlkxRRaHdpNwueU8FZuNMjVg5rAygQxh4OIUgIlsuMLI8OyGxt5JIVcXhgfL
+ WWWFL61ylt5ybYZG+kllu4NWV1aXXWL4p8zZcvlA+jVHhdBvLSzcDvqtOfEfr4i58tydeT6qYZ8
+ NCwA=
+X-Developer-Key: i=brauner@kernel.org; a=openpgp;
+ fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-Ah, I started replying to your first email, but this is better, this
-gets to the heart of the matter. Please don't mind me responding to your
-two questions in reverse.
+> A coredump typically takes some time to complete. If we happen to hold a
+> write lock with flock just before triggering the coredump, that write lock
+> will not be released during the entire coredump process. As a result,
+> other processes attempting to acquire the same write lock may experience
+> significant delays. Another typical scenario is that shared memory, such
+> as dma-buf, remains occupied and is not released for a long time due to
+> core dumps.
+> 
+> To address this, add /proc/<pid>/coredump_pre_exit node so that people can
+> specify which resources they want to release before dumping core. This
+> patch implements the early release of two types of resources: flock files
+> and file-backed shared memory. Default settings are NOT pre-exit anything.
+> 
+> A temporary bit, O_TMPCLOS, is added to mark vma->vm_file->f_flags during
+> the execution of the newly introduced exit_mmap_mapped_shared() function.
+> In this way, the subsequent exit_files_pre_exit() function does not need
+> to find the corresponding vma through the file to check for the VM_SHARED
+> attribute, thereby reducing the traversal cost.
+> 
+> Signed-off-by: Xin Zhao <jackzxcui1989@163.com>
+>
+> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+> index f575d450861e..bc6d3859f874 100644
+> --- a/Documentation/admin-guide/kernel-parameters.txt
+> +++ b/Documentation/admin-guide/kernel-parameters.txt
+> @@ -1024,6 +1024,11 @@ Kernel parameters
+>  			/proc/<pid>/coredump_filter.
+>  			See also Documentation/filesystems/proc.rst.
+>  
+> +	coredump_pre_exit=
+> +			[KNL] Change the default value for
+> +			/proc/<pid>/coredump_pre_exit.
+> +			See also Documentation/filesystems/proc.rst.
 
-On Wed, Jun 24, 2026, at 9:10 PM, Al Viro wrote:
-> What's the fundamental difference between CWD and any open descriptor
-> for a directory?  Why does it make sense to ban the former, but allow
-> the equivalents done via the latter?
+Nah, we're not doing a separate file for this. That makes no sense
+whatsoever. I've already explained this in the first mail. There are
+effectively three modes:
 
-Yes! These two notions are very close --- but that's the *problem*, not
-a reason to not care about the existence of the CWD and root FS. I want
-to get rid of CWD in my processes not because it is fundamentally
-different (it isn't), but because it is superfluous.
+(1) dump to a file
+(2) spawn super-privileged usermode helper process connect coredumping
+    process and said helper via pipe
+(3) coredumping process connects to AF_UNIX socket
 
-If one is capability-minded like me, it's a bad mistake that we ever had
-this "working directory" notion to begin with, and yet another example
-of the folks at Bell Labs sticking something in the kernel that was
-really only needed by the shell, and that could have just been done in
-userland.
+Parameterize (1) and (2) via a command line arguments. I strongly
+suspect you're using some AI tooling so it should be able to figure out
+how this was done in the past.
 
-The current working directory, roughly, is *just* some global state
-holding a directory file descriptor. But I don't want that global state.
-If I am writing my userland program (that is not a shell), I would not
-create the global variable. I do not appreciate the fact that the kernel
-foists that state upon me whether I like it or not.
+(3) can be extended by just introducing a new flag value for struct
+    coredump_req. That is also illustrated by previous work.
 
-Now obviously we cannot have a giant breaking change removing the notion
-of a current working directory altogether. But we can allow individual
-processes which don't want it to opt out, and that is what nulling out
-these fields (and updating the path resolution code to cope with that)
-allows.
+We're not spreading procfs files. It's terrible api design especially
+for security sensitive changes.
 
-There is no loss of expressive power doing this, because one can (and
-should!) just use the `*at` and file descriptors. But there is, however,
-the imposition of discipline. The programmer (or coding agent) is
-encouraged to do everything with file descriptors rather than path
-concatenations etc., because they need to use `*at` anyways, and then
-voil=C3=A0, without browbeating anyone in security seminars or code revi=
-ew, a
-bunch of TOCTOU issues disappear simply because doing the right thing is
-now the path of least resistance.
+> +static void coredump_pre_exit(void)
+> +{
+> +	struct task_struct *tsk = current;
+> +	unsigned long flags = __mm_flags_get_dumpable(tsk->mm);
+> +
+> +	if (!likely(flags & MMF_DUMP_PRE_EXIT_MASK))
+> +		return;
+> +
+> +	/*
+> +	 * Set O_TMPCLOS of file f_flags if file needs to be closed.
+> +	 */
+> +	if (test_bit(MMF_DUMP_PRE_EXIT_FILE_BACKED_SHARED, &flags) &&
+> +	    !test_bit(MMF_DUMP_MAPPED_SHARED, &flags))
+> +		exit_mmap_mapped_shared(tsk->mm);
+> +
+> +	/*
+> +	 * Check O_TMPCLOS of file f_flags to close file and clear it.
+> +	 */
+> +	exit_files_pre_exit(tsk, mm_flags_test(MMF_DUMP_PRE_EXIT_FLOCK, tsk->mm));
+> +}
+> +
+>  static int coredump_wait(int exit_code, struct core_state *core_state)
+>  {
+>  	struct task_struct *tsk = current;
+> @@ -1100,6 +1121,8 @@ static void do_coredump(struct core_name *cn, struct coredump_params *cprm,
+>  		return;
+>  	}
+>  
+> +	coredump_pre_exit();
+> +
+>  	switch (cn->core_type) {
+>  	case COREDUMP_FILE:
+>  		if (!coredump_file(cn, cprm, binfmt))
+> diff --git a/fs/file.c b/fs/file.c
+> index 2c81c0b162d0..a58ffffcc31d 100644
+> --- a/fs/file.c
+> +++ b/fs/file.c
+> @@ -23,6 +23,7 @@
+>  #include <linux/file_ref.h>
+>  #include <net/sock.h>
+>  #include <linux/init_task.h>
+> +#include <linux/filelock.h>
+>  
+>  #include "internal.h"
+>  
+> @@ -527,6 +528,51 @@ void exit_files(struct task_struct *tsk)
+>  	}
+>  }
+>  
+> +void exit_files_pre_exit(struct task_struct *tsk, bool checkflock)
+> +{
+> +	struct files_struct *files = tsk->files;
+> +	struct fdtable *fdt;
+> +	struct file *file;
+> +	unsigned int i, j = 0;
+> +
+> +	if (!files)
+> +		return;
+> +
+> +	fdt = rcu_dereference_raw(files->fdt);
+> +	for (;;) {
+> +		unsigned long set;
+> +
+> +		i = j * BITS_PER_LONG;
+> +		if (i >= fdt->max_fds)
+> +			break;
+> +		set = fdt->open_fds[j++];
+> +		while (set) {
+> +			if (!(set & 1))
+> +				goto next_fd;
+> +			file = fdt->fd[i];
+> +			if (!file)
+> +				goto next_fd;
+> +			if (file->f_flags & O_TMPCLOS) {
+> +				file->f_flags &= ~O_TMPCLOS;
+> +				goto close_fd;
+> +			}
+> +			if (!checkflock)
+> +				goto next_fd;
+> +			if (!vfs_inode_has_locks(file_inode(file)))
+> +				goto next_fd;
+> +
+> +close_fd:
+> +			fdt->fd[i] = NULL;
+> +			filp_close(file, files);
+> +			cond_resched();
+> +
+> +next_fd:
+> +			i++;
+> +			set >>= 1;
+> +		}
+> +	}
+> +}
+> +
+>  struct files_struct init_files = {
+>  	.count		= ATOMIC_INIT(1),
+>  	.fdt		= &init_files.fdtab,
+> diff --git a/fs/proc/base.c b/fs/proc/base.c
+> index d9acfa89c894..99b5f219f7fa 100644
+> --- a/fs/proc/base.c
+> +++ b/fs/proc/base.c
+> @@ -3026,6 +3026,83 @@ static const struct file_operations proc_coredump_filter_operations = {
+>  	.write		= proc_coredump_filter_write,
+>  	.llseek		= generic_file_llseek,
+>  };
+> +
+> +static ssize_t proc_coredump_pre_exit_read(struct file *file, char __user *buf,
+> +					   size_t count, loff_t *ppos)
+> +{
+> +	struct task_struct *task = get_proc_task(file_inode(file));
+> +	struct mm_struct *mm;
+> +	char buffer[PROC_NUMBUF];
+> +	size_t len;
+> +	int ret;
+> +
+> +	if (!task)
+> +		return -ESRCH;
+> +
+> +	ret = 0;
+> +	mm = get_task_mm(task);
+> +	if (mm) {
+> +		unsigned long flags = __mm_flags_get_dumpable(mm);
+> +
+> +		len = snprintf(buffer, sizeof(buffer), "%08lx\n",
+> +			       ((flags & MMF_DUMP_PRE_EXIT_MASK) >>
+> +				MMF_DUMP_PRE_EXIT_SHIFT));
+> +		mmput(mm);
+> +		ret = simple_read_from_buffer(buf, count, ppos, buffer, len);
+> +	}
+> +
+> +	put_task_struct(task);
+> +
+> +	return ret;
+> +}
+> +
+> +static ssize_t proc_coredump_pre_exit_write(struct file *file,
+> +					    const char __user *buf,
+> +					    size_t count,
+> +					    loff_t *ppos)
+> +{
+> +	struct task_struct *task;
+> +	struct mm_struct *mm;
+> +	unsigned int val;
+> +	int ret;
+> +	int i;
+> +	unsigned long mask;
+> +
+> +	ret = kstrtouint_from_user(buf, count, 0, &val);
+> +	if (ret < 0)
+> +		return ret;
+> +
+> +	ret = -ESRCH;
+> +	task = get_proc_task(file_inode(file));
+> +	if (!task)
+> +		goto out_no_task;
+> +
+> +	mm = get_task_mm(task);
+> +	if (!mm)
+> +		goto out_no_mm;
+> +	ret = 0;
+> +
+> +	for (i = 0, mask = 1; i < MMF_DUMP_PRE_EXIT_BITS; i++, mask <<= 1) {
+> +		if (val & mask)
+> +			mm_flags_set(i + MMF_DUMP_PRE_EXIT_SHIFT, mm);
+> +		else
+> +			mm_flags_clear(i + MMF_DUMP_PRE_EXIT_SHIFT, mm);
+> +	}
+> +
+> +	mmput(mm);
+> + out_no_mm:
+> +	put_task_struct(task);
+> + out_no_task:
+> +	if (ret < 0)
+> +		return ret;
+> +	return count;
+> +}
+> +
+> +static const struct file_operations proc_coredump_pre_exit_operations = {
+> +	.read		= proc_coredump_pre_exit_read,
+> +	.write		= proc_coredump_pre_exit_write,
+> +	.llseek		= generic_file_llseek,
+> +};
+>  #endif
+>  
+>  #ifdef CONFIG_TASK_IO_ACCOUNTING
+> @@ -3391,6 +3468,7 @@ static const struct pid_entry tgid_base_stuff[] = {
+>  #endif
+>  #ifdef CONFIG_ELF_CORE
+>  	REG("coredump_filter", S_IRUGO|S_IWUSR, proc_coredump_filter_operations),
+> +	REG("coredump_pre_exit", S_IRUGO|S_IWUSR, proc_coredump_pre_exit_operations),
+>  #endif
+>  #ifdef CONFIG_TASK_IO_ACCOUNTING
+>  	ONE("io",	S_IRUSR, proc_tgid_io_accounting),
+> diff --git a/include/linux/mm.h b/include/linux/mm.h
+> index af23453e9dbd..dfd4717c7e3e 100644
+> --- a/include/linux/mm.h
+> +++ b/include/linux/mm.h
+> @@ -4066,6 +4066,7 @@ void anon_vma_interval_tree_verify(struct anon_vma_chain *node);
+>  extern int __vm_enough_memory(const struct mm_struct *mm, long pages, int cap_sys_admin);
+>  extern int insert_vm_struct(struct mm_struct *, struct vm_area_struct *);
+>  extern void exit_mmap(struct mm_struct *);
+> +extern void exit_mmap_mapped_shared(struct mm_struct *mm);
+>  bool mmap_read_lock_maybe_expand(struct mm_struct *mm, struct vm_area_struct *vma,
+>  				 unsigned long addr, bool write);
+>  
+> diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
+> index c7db35be6a30..0555aaf50001 100644
+> --- a/include/linux/mm_types.h
+> +++ b/include/linux/mm_types.h
+> @@ -1963,6 +1963,15 @@ enum {
+>  	(BIT(MMF_DUMP_ANON_PRIVATE) | BIT(MMF_DUMP_ANON_SHARED) | \
+>  	 BIT(MMF_DUMP_HUGETLB_PRIVATE) | MMF_DUMP_MASK_DEFAULT_ELF)
+>  
+> +/* coredump pre-exit bits */
+> +#define MMF_DUMP_PRE_EXIT_FLOCK	11
+> +#define MMF_DUMP_PRE_EXIT_FILE_BACKED_SHARED 12
+> +
+> +#define MMF_DUMP_PRE_EXIT_SHIFT	(MMF_DUMPABLE_BITS + MMF_DUMP_FILTER_BITS)
+> +#define MMF_DUMP_PRE_EXIT_BITS	2
+> +#define MMF_DUMP_PRE_EXIT_MASK	\
+> +	(((1 << MMF_DUMP_PRE_EXIT_BITS) - 1) << MMF_DUMP_PRE_EXIT_SHIFT)
+> +
+>  #ifdef CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS
+>  # define MMF_DUMP_MASK_DEFAULT_ELF	BIT(MMF_DUMP_ELF_HEADERS)
+>  #else
+> diff --git a/include/linux/sched/task.h b/include/linux/sched/task.h
+> index 41ed884cffc9..b4becbf6c0eb 100644
+> --- a/include/linux/sched/task.h
+> +++ b/include/linux/sched/task.h
+> @@ -93,6 +93,7 @@ static inline void exit_thread(struct task_struct *tsk)
+>  extern __noreturn void do_group_exit(int);
+>  
+>  extern void exit_files(struct task_struct *);
+> +extern void exit_files_pre_exit(struct task_struct *, bool);
+>  extern void exit_itimers(struct task_struct *);
+>  
+>  extern pid_t kernel_clone(struct kernel_clone_args *kargs);
+> diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+> index 613475285643..360604d653b4 100644
+> --- a/include/uapi/asm-generic/fcntl.h
+> +++ b/include/uapi/asm-generic/fcntl.h
+> @@ -95,6 +95,10 @@
+>  #define O_NDELAY	O_NONBLOCK
+>  #endif
+>  
+> +#ifndef O_TMPCLOS
+> +#define O_TMPCLOS	0x80000000	/* tag need close, temporarily used */
+> +#endif
 
-> Please, start with explaining what, in your opinion, a mount namespace
-> _is_, and where does "mount X is attached at path P relative to mount
-> Y" belong.
+Sorry, not going to happen. This doesn't not justify the addition of a
+new uapi value at all.
 
-Let's take a pathological example:
+I'm also including various Sashkio comments:
 
-- Process A has `/foo` bind-mounted at `/bar/foo`
+sashiko.dev <sashiko@sashiko.dev>:
 
-- Process B has `/bar` without that bind mount, and `/foo` mounted at
-  `/baz/foo`, as is possible because it is in a different mount
-  namespace.
+[Severity: Medium]
+Is it safe to expose an internal, temporary kernel flag in a UAPI header?
+Userspace applications could intentionally or accidentally pass O_TMPCLOS to
+open(), which might permanently pollute the userspace ABI and trigger
+unexpected behavior during a coredump.
 
-If A opens `/bar/foo`, and sends it over (via socket) to B, and then B
-does `openat(recv_fd, "..")`, B will get `/bar`, not `/baz`. This is
-because `..` is resolved according to the mount referenced in the open
-file. (This is, by the way, very good! Directory file descriptors would
-be perilous to use if this were not the case!)
+via: https://sashiko.dev/#/message/20260624145552.70143-1-jackzxcui1989@163.com
 
-The moral of the story is that "mount X is attached at path P relative
-to mount Y" is information accessed in the mounts themselves (maybe via
-their containing mount namespace, per the `mnt_ns` field, or maybe not,
-I am not sure, but it is immaterial). In contrast, the mount namespace
-of the *opening* task (`current->nsproxy->mnt_ns`, and current is B)
-doesn't matter at all for this purpose.
+> +
+>  #define F_DUPFD		0	/* dup */
+>  #define F_GETFD		1	/* get close_on_exec */
+>  #define F_SETFD		2	/* set/clear close_on_exec */
+> diff --git a/kernel/fork.c b/kernel/fork.c
+> index a679b2448234..84f1ee7f32cf 100644
+> --- a/kernel/fork.c
+> +++ b/kernel/fork.c
+> @@ -1030,6 +1030,18 @@ static int __init coredump_filter_setup(char *s)
+>  
+>  __setup("coredump_filter=", coredump_filter_setup);
+>  
+> +static unsigned long default_dump_pre_exit;
+> +
+> +static int __init coredump_pre_exit_setup(char *s)
+> +{
+> +	default_dump_pre_exit =
+> +		(simple_strtoul(s, NULL, 0) << MMF_DUMP_PRE_EXIT_SHIFT) &
+> +		MMF_DUMP_PRE_EXIT_MASK;
+> +	return 1;
+> +}
+> +
+> +__setup("coredump_pre_exit=", coredump_pre_exit_setup);
 
-I am not on a crusade against `struct mnt_namespace` in general; I am
-just trying to null out `(struct nsproxy)::mnt_ns` in particular. (This
-is just as I am not on a crusade against `struct path`, just `root` and
-`pwd` of `struct fs_struct`.)
+This makes no sense. I think you really need to sit down and think about
+a design for this that doesn't introduce state machinery for boot, mm,
+and the VFS in one shot to solve a fringe problem...
 
-These days, `current->nsproxy->mnt_ns` is, to me, first and foremost,
-there for the legacy mount API. Again, just like our CWD example above,
-this is mostly just global state.
 
-The new mount API drastically [^1] reduces the need for it, since it
-allows referring to mounts explicitly via file descriptors. That's OK!
-The argument is the same as the above --- I am *not* trying to limit
-what can be done if one has all the right files open with the right
-perms. I am just trying to limit what works out of the box --- to reduce
-the default set of privileges, *especially* where the resources involved
-are implicit and/or stateful.
 
-[^1]: It doesn't *quite* eliminate the need for `nsproxy->mnt_ns`
-    entirely, since (as I understand it, from reading the `move_mount`
-    man page) it is still used for some authorization checks, since
-    `O_PATH` file descriptors do not grant privileges other than mere
-    discoverability. But that's a problem that could be solved later
-    with an `O_MOUNT` option analogous to `O_RDONLY` or `O_WRONLY`. In
-    the meantime, I am perfectly happy if my processes with null mount
-    namespaces get `move_mount` permission errors.
+
+
+sashiko.dev <sashiko@sashiko.dev>:
+
+[Severity: High]
+Does modifying the VMA maple tree via do_munmap() during the for_each_vma()
+iteration invalidate the outer iterator? The loop traverses the maple tree
+using the iterator vmi. However, do_munmap() creates its own internal
+VMA_ITERATOR and removes the VMA from the tree. Because the outer vmi
+iterator is not updated to reflect these structural changes, its cached
+state becomes stale, which can lead to a use-after-free when vma_next()
+is subsequently called.
+
+via: https://sashiko.dev/#/message/20260624145552.70143-1-jackzxcui1989@163.com
+
+
+sashiko.dev <sashiko@sashiko.dev>:
+
+[Severity: High]
+Is it safe to iterate the file descriptor table without holding
+rcu_read_lock()? Because coredump_pre_exit() is called before zap_threads()
+kills other threads, concurrent threads can still trigger expand_files(),
+which replaces the fdt and frees the old one after an RCU grace period.
+
+via: https://sashiko.dev/#/message/20260624145552.70143-1-jackzxcui1989@163.com
+
+
+sashiko.dev <sashiko@sashiko.dev>:
+
+[Severity: Medium]
+Similar to the issue in exit_mmap_mapped_shared(), this non-atomic update
+of file->f_flags risks losing concurrent fcntl() updates since it doesn't
+hold file->f_lock.
+
+Also, if a file has duplicated file descriptors (e.g., via dup()), will
+clearing O_TMPCLOS here prematurely skip the closure of the remaining
+descriptors? When encountering the duplicated descriptor later, the flag
+will already be cleared, leaving the shared file actively referenced.
+
+via: https://sashiko.dev/#/message/20260624145552.70143-1-jackzxcui1989@163.com
+
+-- 
+Christian Brauner <brauner@kernel.org>
