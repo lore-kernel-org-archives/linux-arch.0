@@ -1,152 +1,294 @@
-Received: from flow-a4-smtp.messagingengine.com (flow-a4-smtp.messagingengine.com [103.168.172.139])
+Received: from CH5PR02CU005.outbound.protection.outlook.com (mail-northcentralusazolkn19012054.outbound.protection.outlook.com [52.103.20.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 00E7130566D;
-	Thu, 25 Jun 2026 18:24:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.139
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782411848; cv=none; b=eG8zCSo/mkPwACsvYBZWSX9OKJxNFF9Gqf57OEjGv335JnnY3zJKArdgcYXvh66+UVWRYznD9OZQt/jWJapDM7AbytqW6iWSWsivvk6Kx+f2XV2BHGH6BqQI4LhvxVOegxS1WOWRjouURLmTq3FiNUu7BlixnEVm8+AbP2z3F1o=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782411848; c=relaxed/simple;
-	bh=FxbkPs6VOjJEhJrxoI/4FTDTG7hckuRIEReabgvOAP0=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=QNiCtVoi11EbmLhsNmh9U3xLu1szFOijP0NwZ2AV2U7jPo+aIMm7HedO6+5aWhO83VG9WQfcvsFtW7nOsBENtSfkDX5mveOjPJqc/bQvV158MzsYHA7o3BJR8F9WdMBn2BCA+QlNiy7Ve1KGCVsAP3hhKYlFNgJgIHh4bTsH2aM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me; spf=pass smtp.mailfrom=johnericson.me; dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b=fPrig3KX; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=U0Ki/W1F; arc=none smtp.client-ip=103.168.172.139
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=johnericson.me
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CF167331222;
+	Thu, 25 Jun 2026 18:58:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.103.20.54
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1782413900; cv=fail; b=bogG5O6aovN2Mz2vbfhGm7Vts4Saav2eqNnW2DmhqAsbE6CWhh8LWoYteHRKZtHZy0zwasQDVyv5ee/CQc2mQNZkWQe6VTLz3tyMcPvv28dPPD+YPQNy5yp7nGJ5hQPhUfRBD4F8wVZ4GUMfqPE9ecBoZYhLzQTMCgyZ1ABBve8=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1782413900; c=relaxed/simple;
+	bh=ggleP9/r/bRAEWgIwGdKNKUN+8bPgLNhkc0TEKWDFvg=;
+	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
+	 Content-Type:MIME-Version; b=H882XGO5zm1+SSlwBsQ4KIwp87Z10V22Amgv9a2C5gEUuUQhpE1iOepn5uOTmDzQ8xc8/h3KWv+S8ZxJM+lnBltDQRINd/DKOyiFDQoSG4KtRq1iTND+IZZ+0UL24NpZPcKUtLFHJ9DIYzp+MPsORc1R/UiuvQ819Sm51tyqWcc=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=GOJoeHJh; arc=fail smtp.client-ip=52.103.20.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b="fPrig3KX";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="U0Ki/W1F"
-Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
-	by mailflow.phl.internal (Postfix) with ESMTP id 05A791380923;
-	Thu, 25 Jun 2026 14:24:05 -0400 (EDT)
-Received: from phl-imap-16 ([10.202.2.88])
-  by phl-compute-05.internal (MEProxy); Thu, 25 Jun 2026 14:24:05 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=johnericson.me;
-	 h=cc:cc:content-transfer-encoding:content-type:content-type
-	:date:date:from:from:in-reply-to:in-reply-to:message-id
-	:mime-version:references:reply-to:subject:subject:to:to; s=fm3;
-	 t=1782411845; x=1782419045; bh=m+Vo2gCieDBsezt/WtRstmVlDLfhdQBZ
-	5OOOQny6uNo=; b=fPrig3KXrFd/rGV3bv52ys5LKfDurXDKhX/ELM+7I3U9NfuQ
-	Y+gEvJA+Jno6b07JbxGRlspTVYgfJ3F3Rcubr0WIfghfABaDVOtDkJZAv4spExnr
-	q/Ug7opOpLRBTlXYb9+0vHVYQIuhSC0YXe/HvE0hhZmg02Ld1eONlgYOAdpbGBls
-	/NQ/h6pTh8qm8hRvh2BTzdWF86FFXz+n0W/SJqWvTPm3/JkLnFY+bWEov3BhxFuH
-	UFvIdmJnPDXCzYXDjoSUv0LriWkpD6bnoqHlCsJEKrKTk+1JcGCNJX4YTw/+j6Kr
-	NEE5zMiYs8nNDBQFi6IX6RQO3nr/5q5kidKTbA==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1782411845; x=
-	1782419045; bh=m+Vo2gCieDBsezt/WtRstmVlDLfhdQBZ5OOOQny6uNo=; b=U
-	0Ki/W1FjTNtxYNqKU4vKMUlYvANglhLeNHrUI1gKy2reTy4+cHq+AJr2OIBQtPCs
-	R0isubLk5GH5U2pr5EzXa7TWhgDHxODxFiYRQqblJWwabJ62HYNIR9wwB2+JuGq5
-	zV5kUJdHcf21i/reIkepyODko7OdjwbFGmMxY3WtdLGI/5OsaHyiPX4DJRr8rlG1
-	SJHzOhriI2azsW5UCtq+tX84HSaD8UkZjIz1ultHg8LwHfp8Z/HRFNJztD9CSv6/
-	IDTfp57ZBOjUTkjPhaUYM3HoywO0wyiw025G53X/6ey9/5BRl/EfOA6WBGmYdH28
-	tICPEO2bYjuUNRrcXL03g==
-X-ME-Sender: <xms:Q3I9ahto_UBYzml4qt3RUvPyJrgPvZ8LcW3GqFKT8oZtV4ydGdBRig>
-    <xme:Q3I9alRp4JUEqQ12M4UnV-pEEcUv7QKcMftQauxRww-fcoat2YaIaCcqPixuyo1MN
-    pHhqbD1xTC3INGQ6MAF2ma8eInLyuXirzC1o1q1xHVX3hJz2gRrT2g>
-X-ME-Proxy-Cause: dmFkZTFyeIi362Iqgeflrx8SfWAUimV8NIXGDAs+oBvs4keGPehc5LIzevdlDF0NWjSyQe
-    rjGOMj50/KDiHVtZOqMyMBNvHW2R+Hk9mKiNHsA809U87AAei98vwrZfj+SF+BxrBfw3BH
-    DGa9FVsenW85K+hrP0YbDmL8jDLqb14lON88z8hgHIiUF1/tugD1lJWE2yCw4QwNc3AK19
-    XkVh8vdvrtZxIdo5ZkFG3SdpfiR8BHfahKU7c/IpRWZodUAE4QWkcdH/cPUjie2XMxkf2W
-    LZxcLMTKYscUj8LMA452mVjsF6Z1N+EavWYsvbSKavRMKBZYO1qk030/WuVljWBZTt0noO
-    V25ok3cp+J+f9se3nVgiOrW/95O1228fxtVxvVASCzAIIwnKuwu0TMve6p3gHtHwsqXTiV
-    npPMWjLAxJRggUkksQGraXveoEm3MforjDhqXB6WzeVyixLJy/UqTbShs6FhgrbIc5B5K2
-    R8Xe1aUmz053Gf43Qy1iJlbrd1mMYxkqbbuL2o/Ix72e4BCsFzZ9E9faIdK8Ltv4xvu76z
-    m6tKpO/po0RjOXPtNHY9bMOBLdUvfn3rmGz++o//x6Y4N42JWiFyPo7rB2W2N8kjX1c5YS
-    63jKXAElC9xow0rwAIljNLJsLyxdHnR/WbmxAu9ZG0MTWx49BRiwEM+xmv+A
-X-ME-Proxy: <xmx:Q3I9ag-X5qKkM7bORdpbEc6XpVZAKGllEfkV0CqslKokBwbB5XTCMw>
-    <xmx:Q3I9al4i8uEFpiTxfPe8aYPwtSTb_3F0oqGAhb7h9cqt8V-7CqqlAA>
-    <xmx:Q3I9aqiOWOmXm07JkazGreqPeliJw18i1gixMh3WKPkFnk3Gb_mp4A>
-    <xmx:Q3I9asq0iDPnLh87nImobuUTHUJg2LsnTCez2mVVbCnz3hMZnz6ZlA>
-    <xmx:RXI9aq-l3-MAhBirN22asZ7Ce3DwCW_VDvpzKMKk43cUvFfm0pROoRkG>
-Feedback-ID: ieb4144f1:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 53D2E2CC0088; Thu, 25 Jun 2026 14:24:03 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="GOJoeHJh"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=o/RQvztpc/2D+PG4QjK5eGbQhRxCDHPbXNpNTQ7Jj3NhiCIQgIqBJsciGjpFAzmblJ6g7nLFyy4b2926bjnK0VsK1OyJ01j7NNoFPiShy45v9yLefopgZNE7UjkJ0j9FEU0EtUAEc7Lm19NwNADDzQo7pyTI1TiSZVwUu1XuGkjNuC5qwT+PpAXbO90y3EO6DdnvJs5o10nAqn5iCZC9Fl/21OQL1uVKjRlWxZVO5ZGsooLsODXkdzXU3KmAV7ETDRs53Vi2OzVCvG0bkKq1qvVDQvfZaLUR2tcCAsVFd/oBW36T4ebWDA5Nuqyg//0V581LHqINMdLcoZhQKe/6VQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=VZM9WkY2KHqaGXQATmZk0EOVpXhqPcnK1FqzyZATKC0=;
+ b=AI/94v2qJ6EZQ4M3pHh2GeWxbxzHgwM2bg/04a7WMwPCE2SDRuxe6fumDgehqlc6jU9iNnRTmQu12g2qvkLQTXZxZ363P/RvVqORO+EeX837u83xpLgIcu986jM6e4T3dZRz9NQVTsm8/oD4OV2ZgsvM8dMSIMFmMf7TDfyyEcHG2IDjDFDzROQOqk0MjxmO+ahqmLqi4G3ZsFpH9E2Cjbw8wMU1URFEkwFpeEj/TQTfuC65Z6w4C79ptJVLnTW6t6XPALs1c2u9xPnCShe7AQf7bxwoJGl4Ngdo0ZjcqSZ6S2eAwdv0BeBEdmInj6W4u01l4NrxyYJ/24DoQO6fjw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
+ dkim=none; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
+ s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=VZM9WkY2KHqaGXQATmZk0EOVpXhqPcnK1FqzyZATKC0=;
+ b=GOJoeHJhGBPl6jFx00guadwfoO5fZtTZ6gqpgl+frHor646djpFVPzC2GqlY0jRNtRpiwPn7OpnKAxANRMJC+dKl3WVVaLimpTQ9gZH+jqk9P2otxG4HttW/cRXKHpkvokL0UGIbZItQRCmtZMVgaUnfu1XPP1BiUl85E9+EKDujVUiOWV5r0pPme/VNMqG3y/LO1DxaWelUowXwHPdXm9NAPLO0ErGBDY/YnxOohNF10ZOwWgM6/u+P+tVBVQXKryxnphBBOGkU9xW4KS5fI7HdzQ78lyBavyJtr/eakVtcI1KWOpRg7q0JeaTkTRUR8oI1iVK7NBeI91E2o3YjFg==
+Received: from SN6PR02MB4157.namprd02.prod.outlook.com (2603:10b6:805:33::23)
+ by LV9PR02MB10808.namprd02.prod.outlook.com (2603:10b6:408:2f2::15) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.159.13; Thu, 25 Jun
+ 2026 18:58:15 +0000
+Received: from SN6PR02MB4157.namprd02.prod.outlook.com
+ ([fe80::900:1ccf:2b1e:52b6]) by SN6PR02MB4157.namprd02.prod.outlook.com
+ ([fe80::900:1ccf:2b1e:52b6%3]) with mapi id 15.21.0159.007; Thu, 25 Jun 2026
+ 18:58:15 +0000
+From: Michael Kelley <mhklinux@outlook.com>
+To: Kameron Carr <kameroncarr@linux.microsoft.com>, "kys@microsoft.com"
+	<kys@microsoft.com>, "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
+	"wei.liu@kernel.org" <wei.liu@kernel.org>, "decui@microsoft.com"
+	<decui@microsoft.com>, "longli@microsoft.com" <longli@microsoft.com>
+CC: "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org"
+	<will@kernel.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>,
+	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "sudeep.holla@kernel.org"
+	<sudeep.holla@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>,
+	"thuth@redhat.com" <thuth@redhat.com>, "linux-hyperv@vger.kernel.org"
+	<linux-hyperv@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org"
+	<linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org"
+	<linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org"
+	<linux-arch@vger.kernel.org>, Michael Kelley <mhklinux@outlook.com>
+Subject: RE: [PATCH v2 3/6] arm64: hyperv: Add per-CPU RSI host call
+ infrastructure for CCA Realms
+Thread-Topic: [PATCH v2 3/6] arm64: hyperv: Add per-CPU RSI host call
+ infrastructure for CCA Realms
+Thread-Index: AQHdBMj4HRUufFmw8UGpqHl8eYXAkrZPn5PA
+Date: Thu, 25 Jun 2026 18:58:15 +0000
+Message-ID:
+ <SN6PR02MB4157D9A0C6527A896780EC63D4EC2@SN6PR02MB4157.namprd02.prod.outlook.com>
+References: <20260625173500.1995481-1-kameroncarr@linux.microsoft.com>
+ <20260625173500.1995481-4-kameroncarr@linux.microsoft.com>
+In-Reply-To: <20260625173500.1995481-4-kameroncarr@linux.microsoft.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach:
+X-MS-TNEF-Correlator:
+x-ms-publictraffictype: Email
+x-ms-traffictypediagnostic: SN6PR02MB4157:EE_|LV9PR02MB10808:EE_
+x-ms-office365-filtering-correlation-id: b710da2c-eb31-428e-f00c-08ded2ebb691
+x-ms-exchange-slblob-mailprops:
+ qdrM8TqeFBvhuFgLLe5qs4jWk9CHdv0AzK+WaIeeUeS+ykgs0qKzfWNg36GOH+OOsGwUKHZZ6McBqMe1gZk2uXCRm09cDei+EAMnCKoEin7D+D7klyqZCZxVIHphGAbAIT1cjA66NvvjYM9oxtLI6LIDNXT9n7l8/viyQICxwnfnWvRFRLVw+6Sfue1o6FwxamhgGnev6fJGrDywQUMbDgmI1V5xoQ+2ZuXdqLI2+LbBXetLEZAoATw0ir+p+u4RgWK70r7mVE92gPLmPgfnFyfHYUXTfnmYdIDvRRZ6fbN/LwDEwCAaipcMSr74uu9VkyMiHcdIPZgFfdr8/wvDZFcw4otopSjk/o3RbOP/fKyqxKRxy9h3OCTBPhKkfyD4TzMh9w8ak/TbKQa7BPtSwA4tsiY4/WcCV+QNxg21Cwwdu8kbo68rOmmcRhdTmpDCx3xzY8ANYr3/IQtwzjMNYqjNtAKruVk5pGpFujYDn+c7FzHkdKTPjEAw4vzU9796pvYf0j86qWTzAz+QgJwC/F4BuPf+rE8zkW1XPFT8zTkrMLvpsSkp51nLTVSmKLREoNZkw7xXkEWzqblHtbaw2xRIY6/M/6J866bAF6zeMAKS46zP5kHunzY4KOYOOhU+eYz9ddtW0EY9VOqtTgh3689trfKLsyP8/zurmXdqh/C65pD2cahqcfkhf9/prlWSvESbgKd1R+DhSqhQdsyPW/yKsEPGbv0Atxo9KN0hovuXlNOrqbS6sBsevOjFN3ojYpX0aFXtKB29qpBSwqPvOCA7/8+tRkPF
+x-microsoft-antispam:
+ BCL:0;ARA:14566002|31061999003|8060799015|8062599012|19110799012|25010399006|41001999006|13091999003|51005399006|15080799012|19101099003|12121999013|37011999003|102099032|40105399003|3412199025|440099028|12091999003|1710799026;
+x-microsoft-antispam-message-info:
+ =?us-ascii?Q?M0X/14g61zI9eD+36GZ2GW+4SqvxohATpxAIA2F5wbC2svUq7R4FR7a2/aFu?=
+ =?us-ascii?Q?RBQJPY6svhA0oTeG6Sa67TTwJ0edIp0r7WPNZ6X+orP1j+BmJwkZBKM3Josf?=
+ =?us-ascii?Q?hFg7k4/QhvbQu+WQIuxxZSxsSycnftjsnUHT0b5qmA2yyxHo32cYOvh7EwKD?=
+ =?us-ascii?Q?qVwLkP6mIVWkwpfNudrQkXbAUmEOsTUw0LVWvvx35/JoFK1ltnzFMld7K8bz?=
+ =?us-ascii?Q?9S/Cz3qj+iqRiDSDXN/rMwcBKlBYTtEBZFh0IFcZmk7yBlrhSd4hZXqlIEAS?=
+ =?us-ascii?Q?r8TLPB3sGq7q1TUcXF9v4YAhryFfJ2eYX15TxrrIby1N4ueoAdchcCNUO/t3?=
+ =?us-ascii?Q?OlV6kQsoOQLNnRYabYAkQuWadNUoWss2U2HQMWbl2fcuNKrKEbdqIlF1v7c9?=
+ =?us-ascii?Q?V28vvzuCeh+SZvAi4lmDF3LeG+KXKZU/VWYODdjcFOQPRF9ZW2LjVgMa18+m?=
+ =?us-ascii?Q?OLVYXNwckIZQApTjVw/xtF4JpSggNCASHmGUGaqkqo9SZvYtjgBkunzH8qD0?=
+ =?us-ascii?Q?8zOx2p7bBp5ZAuTqFc0kmZXz0k98v8zcqk37+5mTS6YmEXjfuUGdecq1SjCQ?=
+ =?us-ascii?Q?DEYI5W7h6FXEGWkK7v7X1MhVt94YnOK8GF4YgPHkqyNXAEEl9swch1QNU2hW?=
+ =?us-ascii?Q?8Ft0pvSvJF0peiZ+yDirRZ5TiR1Sp5GRR1D9yy/+s1ROYL9kKJPhxPBgutUm?=
+ =?us-ascii?Q?rVDTe+C3/NBL4ezyYRO8AzKmJMhivMbo9611f9BInrVtivEk07oRayfq8jY1?=
+ =?us-ascii?Q?8l+d00wZi+xTmipEkl1SXfD2HmH0yOJLqqrY7ZBGzkp3QVnJ4UfPlKa1Gl/4?=
+ =?us-ascii?Q?3q3NfWN3X0zJE4txcCNIMynMfnYGVldMsHaG5yxeXszmKA3hPnjsA3PqBr9g?=
+ =?us-ascii?Q?YSN9XpS38TrK+hN0SCZxkgkQA9aRfBQYpZjmv7DWe7LVULQRQYOfKua/Hz6P?=
+ =?us-ascii?Q?Rw4LTGHKgrQbEuTnQl4E0056wprPPIi37Metyqjbl8PwrrZCQRhPymy2RDWn?=
+ =?us-ascii?Q?z+5ksmf67jxB8ae01EkTgCXNvEuGUC82c095LEaWAv+drvjKLHtfg5V5PsEG?=
+ =?us-ascii?Q?IV8JRDkKxzuQYuIqcPwUoAAVGkKvzKqsKQ6SX+ETr41NzwyJH9pzAU8zz47D?=
+ =?us-ascii?Q?g+KQUN8lQD6L?=
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0:
+ =?us-ascii?Q?x77rZerZ5h4/VUKrCe3wbZ2a9C2oveAsh/xvYz8/UKe8A1cnU7COsBtHStlj?=
+ =?us-ascii?Q?vaYYIGOeDnxYxtPWTZ/czmzEDAZuGQLm11ju7un/3OVi22hniDmfyx0yKMKl?=
+ =?us-ascii?Q?AwWpWzPSMxyuiJ0qi1G7Y5SEtbZ9GJt5Gx2/NDl+1w2P8kT5DTZegGxYXfYO?=
+ =?us-ascii?Q?pGk6Wq409AYUai8RB/JT3VMypW9m4qhDPUmzlrAY7KDC3CkMWJFjxaYfj5HH?=
+ =?us-ascii?Q?wGH5AJKEoHX4fy+IGSUfJO7DfcqmnQ2S5I6IJkHGYjzUx9D0hlJDXBZd5FX4?=
+ =?us-ascii?Q?QimddoUm3kptjlfJMYoRR+Pbydnsxl8xNlk0kqWINochn/7RXJNC3IzYMM0l?=
+ =?us-ascii?Q?J/jocJZZzSmULwFistJJPLnT63DilEo13nLtGV+22yBOQUkrCoaP8QBQabGu?=
+ =?us-ascii?Q?30UognkiagSr+wDd1+QInSQwrod/omLp51VUzqO0sMgW49rR08b0h/FQmWBn?=
+ =?us-ascii?Q?Li/UZN41iifMtrB/FNr2asCDKHWdeF6BueZYgbiRV1MS7xYNWVJC1/wh0bs1?=
+ =?us-ascii?Q?nSTAoN/LwLRu+eOrQmPRD7gEXx1mxMN8avA8e3AUjDT2BNxMEA+L4lj2WU67?=
+ =?us-ascii?Q?Kmqkeg1nm02iPbhVaRtu1ktXvR3cwJHa37PSc7LMtqyuO5kmubzL5cdxp4u0?=
+ =?us-ascii?Q?Na6rXN8mXlKzv46PMgSWyStu205lwqwEanqPk8/lb3zdy78dAYnnVh3epQJh?=
+ =?us-ascii?Q?jH6ZOvisC1eeFEjmEJb/2DYXt7gCTxHwQVhSCMUfnvkR6jpsW8t6x7MC+vts?=
+ =?us-ascii?Q?M65wImSpnYPylsHPb0OxqaYJCbINCHmTFoQJxI8s109/j6qeDq1Xix6WTy38?=
+ =?us-ascii?Q?tFUHVfwPsucGaSqH7fsXqDSFsfmsH/faSD60azgOYs3/efPnq8rSBNWVwa2X?=
+ =?us-ascii?Q?tFq7uNkqn1zaoKDFWxfZHod1idKpXJYmFQuNZahCVtHunuenuJ29c1M535k2?=
+ =?us-ascii?Q?nuGTnpCwDtzmlM0xo7DgmT1/FRk8rqm/KzfG4BFrldvxaNTuYzDNrLmG7Nzv?=
+ =?us-ascii?Q?RRoEbrZn7frokOQ9mZGlMCZZJub1FAZT9WuyIyH6/012iBxme1C3yEW9tTUr?=
+ =?us-ascii?Q?hTJ5ZuQEMwmeHeLK5OtxFQCFOQQ2E0re5/JFh5dacKAJIYbjsW+1ap2qSpuc?=
+ =?us-ascii?Q?OhVsyL3NECLt33Y+uvmuqa5bX0I23IZIGYRpWZND5XxOqklPycG+U6avpzdW?=
+ =?us-ascii?Q?rl7jqdBG4/RTJF98eWNC2oyD4of/Ivyfzg+aAQUpbvJEIAhswsHAVKpm/NPx?=
+ =?us-ascii?Q?ILlzvuk+DOuRNzvkOg5AC0rgYmUJT7gt9qTwhXpgTladFQl4DStcnsSzrAgb?=
+ =?us-ascii?Q?rcAZNpQqDa/p7/wpNoqYiU/g4MHpJG9R1ZyF86f9e9egCUBcP9okQVhgfoe7?=
+ =?us-ascii?Q?q5xkDag=3D?=
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: AG8qDlxFSDr7
-Date: Thu, 25 Jun 2026 14:21:01 -0400
-From: "John Ericson" <mail@johnericson.me>
-To: "Andy Lutomirski" <luto@kernel.org>
-Cc: "Al Viro" <viro@zeniv.linux.org.uk>, "Li Chen" <me@linux.beauty>,
- "Cong Wang" <cwang@multikernel.io>, "Christian Brauner" <brauner@kernel.org>,
- linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>,
- linux-fsdevel <linux-fsdevel@vger.kernel.org>,
- linux-api <linux-api@vger.kernel.org>, "Arnd Bergmann" <arnd@arndb.de>,
- "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
- "Borislav Petkov" <bp@alien8.de>,
- "Dave Hansen" <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, "Jan Kara" <jack@suse.cz>,
- "Jonathan Corbet" <corbet@lwn.net>, "Shuah Khan" <skhan@linuxfoundation.org>,
- "Kees Cook" <kees@kernel.org>, "Sergei Zimmerman" <sergei@zimmerman.foo>,
- "Farid Zakaria" <farid.m.zakaria@gmail.com>
-Message-Id: <829ad432-8312-45af-bd8e-8b079e8c6226@app.fastmail.com>
-In-Reply-To: 
- <CALCETrVdtYeJ7rXmvymLpOvn6X4LsfHYoVmbL6XgTqnjcP5n7g@mail.gmail.com>
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
- <CALCETrWhXNetw-BsAaoyT31suMmjYLdMh9MAuLB2Lvk2ac-31g@mail.gmail.com>
- <CALCETrU3bgUxp0k1y-U-uL0-fW2016Gmsyu9O_=830czEUGMcQ@mail.gmail.com>
- <103524f8-1658-41df-88e9-cf49c628a721@app.fastmail.com>
- <20260625011023.GM2636677@ZenIV>
- <a75a9b82-a15b-4893-8f92-62b62664ea83@app.fastmail.com>
- <CALCETrVdtYeJ7rXmvymLpOvn6X4LsfHYoVmbL6XgTqnjcP5n7g@mail.gmail.com>
-Subject: Re: [RFC] Null Namespaces
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+X-OriginatorOrg: outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: SN6PR02MB4157.namprd02.prod.outlook.com
+X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-CrossTenant-Network-Message-Id: b710da2c-eb31-428e-f00c-08ded2ebb691
+X-MS-Exchange-CrossTenant-originalarrivaltime: 25 Jun 2026 18:58:15.5187
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
+X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: LV9PR02MB10808
 
-On Thu, Jun 25, 2026, at 11:51 AM, Andy Lutomirski wrote:
-> On Wed, Jun 24, 2026 at 8:41=E2=80=AFPM John Ericson <mail@johnericson=
-.me> wrote:
->
-> It's sort of a combination -- read the data structures :)  Other than
-> the propagation part, they're really not that bad.
+From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Thursday, June 2=
+5, 2026 10:35 AM
+> To: kys@microsoft.com; haiyangz@microsoft.com; wei.liu@kernel.org;
+> decui@microsoft.com; longli@microsoft.com
+> Cc: catalin.marinas@arm.com; will@kernel.org; mark.rutland@arm.com;
+> lpieralisi@kernel.org; sudeep.holla@kernel.org; arnd@arndb.de; thuth@redh=
+at.com; linux-
+> hyperv@vger.kernel.org; linux-arm-kernel@lists.infradead.org; linux-
+> kernel@vger.kernel.org; linux-arch@vger.kernel.org; mhklinux@outlook.com
+> Subject: [PATCH v2 3/6] arm64: hyperv: Add per-CPU RSI host call infrastr=
+ucture for CCA
+> Realms
+>=20
+> Arm CCA Realms cannot issue Hyper-V hypercalls via HVC; the guest must
+> route them through the RSI_HOST_CALL interface, which takes the IPA of a
+> per-CPU rsi_host_call structure as its argument.
+>=20
+> Add hv_hostcall_array as a per-CPU struct array and allocate it during
+> hyperv_init(). The allocation is gated on is_realm_world() so non-Realm
+> arm64 Hyper-V guests pay no memory cost.
+>=20
+> Signed-off-by: Kameron Carr <kameroncarr@linux.microsoft.com>
+> ---
+>  arch/arm64/hyperv/mshyperv.c      | 32 ++++++++++++++++++++++++++++++-
+>  arch/arm64/include/asm/mshyperv.h |  4 ++++
+>  2 files changed, 35 insertions(+), 1 deletion(-)
+>=20
+> diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
+> index 4fdc26ade1d74..7d536d7fb557e 100644
+> --- a/arch/arm64/hyperv/mshyperv.c
+> +++ b/arch/arm64/hyperv/mshyperv.c
+> @@ -15,10 +15,15 @@
+>  #include <linux/errno.h>
+>  #include <linux/version.h>
+>  #include <linux/cpuhotplug.h>
+> +#include <linux/slab.h>
+>  #include <asm/mshyperv.h>
+> +#include <asm/rsi.h>
+>=20
+>  static bool hyperv_initialized;
+>=20
+> +struct rsi_host_call *hv_hostcall_array;
+> +EXPORT_SYMBOL_GPL(hv_hostcall_array);
+> +
+>  int hv_get_hypervisor_version(union hv_hypervisor_version_info *info)
+>  {
+>  	hv_get_vpreg_128(HV_REGISTER_HYPERVISOR_VERSION,
+> @@ -60,6 +65,12 @@ static bool __init hyperv_detect_via_acpi(void)
+>=20
+>  #endif
+>=20
+> +static void hv_hostcall_free(void)
+> +{
+> +	kfree(hv_hostcall_array);
+> +	hv_hostcall_array =3D NULL;
+> +}
+> +
+>  static bool __init hyperv_detect_via_smccc(void)
+>  {
+>  	uuid_t hyperv_uuid =3D UUID_INIT(
+> @@ -85,6 +96,20 @@ static int __init hyperv_init(void)
+>  	if (!hyperv_detect_via_acpi() && !hyperv_detect_via_smccc())
+>  		return 0;
+>=20
+> +	/*
+> +	 * The RSI host-call buffers are only ever used when
+> +	 * is_realm_world() is true. Skip the allocation on non-Realm
+> +	 * guests. A single contiguous array of nr_cpu_ids entries is
+> +	 * allocated; each CPU indexes into it by its processor ID.
+> +	 */
+> +	if (is_realm_world()) {
+> +		hv_hostcall_array =3D kcalloc(nr_cpu_ids,
+> +					    sizeof(struct rsi_host_call),
+> +					    GFP_KERNEL);
+> +		if (!hv_hostcall_array)
+> +			return -ENOMEM;
+> +	}
+> +
+>  	/* Setup the guest ID */
+>  	guest_id =3D hv_generate_guest_id(LINUX_VERSION_CODE);
+>  	hv_set_vpreg(HV_REGISTER_GUEST_OS_ID, guest_id);
+> @@ -106,12 +131,13 @@ static int __init hyperv_init(void)
+>=20
+>  	ret =3D hv_common_init();
+>  	if (ret)
+> -		return ret;
+> +		goto free_hostcall_mem;
+>=20
+>  	ret =3D cpuhp_setup_state(CPUHP_AP_HYPERV_ONLINE, "arm64/hyperv_init:on=
+line",
+>  				hv_common_cpu_init, hv_common_cpu_die);
+>  	if (ret < 0) {
+>  		hv_common_free();
+> +		hv_hostcall_free();
+>  		return ret;
 
-Are you saying path resolution *does* depend on the mount namespace that
-the task belongs to? I certainly hope not! I did look over the data
-structures along with my patches and I didn't see an example of this ---
-just path resolution depending on the CWD and root directories (as one
-would expect it to).
+Let me suggest a small additional simplification. For this error
+path, call hv_common_free() as you have now, but then do
+"goto free_hostcall_mem". At the free_hostcall_mem label, do
 
-> In any event, I think this discussion is sort of immaterial to the
-> proposed API change.  No one is about to remove the concept of a mount
-> namespace.  But maybe it makes sense to have a way to have a task that
-> doesn't actually belong to a mount namespace.  A mount namespace is
-> certainly going to exist.
+	kfree(hv_hostcall_array);
+	hv_hostcall_array =3D NULL;
 
-I am not sure if that is addressed more to Al or me? I certainly do
-agree with all that, in any case. Mount namespaces are absolutely here
-to stay, and I'm just trying to make a process that does not belong to
-one; that's exactly correct. Sorry if my motivation by way of historical
-analysis veered off topic.
+directly inline, and eliminate the hv_hostcall_free() helper
+function. Saves about 5 lines of code overall and I think is a=20
+bit simpler.
 
-> There will definitely be subtleties.  For example, what happens if a
-> task with "no mount namespace" tries to do OPEN_TREE_CLONE?  In some
-> logical sense it ought to work but it ought to be impossible to
-> actually mount the resulting tree anywhere, but this risks running
-> afoul of all kinds of checks.  Maybe you get a whole new mount
-> namespace (that does not become your current mnt_ns) if you
-> OPEN_TREE_CLONE?
->
-> This stuff is complex and it probably makes more sense to keep changes=
- simple.
+>  	}
+>=20
+> @@ -125,6 +151,10 @@ static int __init hyperv_init(void)
+>=20
+>  	hyperv_initialized =3D true;
+>  	return 0;
+> +
+> +free_hostcall_mem:
+> +	hv_hostcall_free();
+> +	return ret;
+>  }
+>=20
+>  early_initcall(hyperv_init);
+> diff --git a/arch/arm64/include/asm/mshyperv.h b/arch/arm64/include/asm/m=
+shyperv.h
+> index b721d3134ab66..c207a3f79b99b 100644
+> --- a/arch/arm64/include/asm/mshyperv.h
+> +++ b/arch/arm64/include/asm/mshyperv.h
+> @@ -63,4 +63,8 @@ static inline u64 hv_get_non_nested_msr(unsigned int re=
+g)
+>=20
+>  #include <asm-generic/mshyperv.h>
+>=20
+> +/* Per-CPU-indexed RSI host call structures for CCA Realms */
+> +struct rsi_host_call;
+> +extern struct rsi_host_call *hv_hostcall_array;
+> +
 
-Yes it is subtle; I definitely don't claim to fully understand the
-permission model with mount namespace modifications yet, for one. Should
-we switch gears to just discussing the null CWD and root directories,
-then, and return to mount namespaces later?
+The intent is that the #include of asm-generic/mshyperv.h should be
+last in the arch-specific version of mshyperv.h. If there's a need to go
+after the #include, that's a red flag to check if some restructuring of
+the definitions would be appropriate.
 
-I have started to rework my patch series accordingly, so I have a new
-draft first patch for just that, before changing anything else. I could
-(after some testing) submit that next; it's pretty small.
+Unless I'm missing something, I think these new definitions can go
+above the #include.
 
-John
+Michael
+
+>  #endif
+> --
+> 2.45.4
+>=20
+
