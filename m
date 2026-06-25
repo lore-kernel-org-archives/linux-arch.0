@@ -1,90 +1,99 @@
-Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
+Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.5])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C1D0036826B;
-	Thu, 25 Jun 2026 01:10:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7655514F70;
+	Thu, 25 Jun 2026 02:52:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=220.197.31.5
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782349832; cv=none; b=BoT6m3lCE8kev44SAPEjwAR3ogieNq2Kp57L4xwzpQVx8Sa0k66kKn32Uf4rFtCSiT7VHRr1jT5dVMGiy02QQF28Is72jOZa1Px1qEmYtZIiYkjh82RioaU+BfltgjhAyVgYffcOWf0toQXmlY8Yo2baarB0vGWIQFNG3PUFXwE=
+	t=1782355938; cv=none; b=ZGcjriQSqrgMzcVedY8CBpQyfvGe5+dmXbFb9PpgjXJy+vRV5bhHww2z2mLUBnBUHY83T51IBVPpsGUKoAj3nhal2Wbego43j+z5LcD6kYoWiPk8S9lftUUVg6VE7VgyauJo3fzHwdraiHy9/s6nvWyjTzDkKsLmtQbB27EaFJY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782349832; c=relaxed/simple;
-	bh=CqwfMqI7Lr/nMU8ct+Xrq+khEb3WLP3QzcepDFSZkM8=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=ovOtYoXI+LgaYOV/9pvs7v/TVlNm6GvIFny+ItkCgPy/lX72MtwbXZnzU8H2z17KbcfDbX995U6WnmTyDNpru8PY7YXznLZ3PL6ol4BcIxP2lJ3oS0XggcX1IisRJYjTtK6NMqm7yQXlczy4klxAduX7ZR1Ost7yWkxgJU1fonA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=lS0jlFVy; arc=none smtp.client-ip=62.89.141.173
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
+	s=arc-20240116; t=1782355938; c=relaxed/simple;
+	bh=y6dIq1/fbViPyKvG3/D66N0tBt67VKNGdMsMunx9jWU=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=OsnjamIqVQKX8+JcmYZzlZTqRaPIim8McIZpnpVYhs4ZJyDUc1VUPLyh02RlTVO9EJ9yvnnjdqXvGD0l8DUZpw0zk0/5ymn4kTCNbCUkFwFvpg5XmE8yRqGSFpXjL9GVoLCFKPdumTy+pHpYSeRbEZIMC+Q1W9t462vfmzEQPS4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=naeU9af+; arc=none smtp.client-ip=220.197.31.5
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="lS0jlFVy"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
-	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=hYRs/fxYUnkXklcro/L2vZevBsDfMonAZUv31Sq9qQ8=; b=lS0jlFVy0HdzioRFRFJPBGvCLn
-	Rvc1kh+NFMzO9UpMKeuX62GqobexdfhY/1LvkMFgSVHa5L4tgjY/NEPSQsVyp3FuLlHXbojkiKGBg
-	FsAEASiDPwIH+atpDSROOPztQp6ns5FyjiQ7ht04Z8rQjH1cEiaYPm7S9qJzrpARU1VXpyj0GKknj
-	gapNPLw8tYCmmmcEwKytAS6AUqe86o+p8t8JtF0rym6i/W3zSmjaoJ7bcR0e/izJWvp3phGInMMWy
-	Wt9jtDLPNahr4h+cQ38Jp6vqUQAR0MVwLJaIOere/KF4Iy4uXCEX06H045Ly9pm4GWsroazib5oW7
-	S08E/BxQ==;
-Received: from viro by zeniv.linux.org.uk with local (Exim 4.99.4 #2 (Red Hat Linux))
-	id 1wcYbn-0000000Ce4N-3caE;
-	Thu, 25 Jun 2026 01:10:23 +0000
-Date: Thu, 25 Jun 2026 02:10:23 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-To: John Ericson <mail@johnericson.me>
-Cc: Andy Lutomirski <luto@kernel.org>, Li Chen <me@linux.beauty>,
-	Cong Wang <cwang@multikernel.io>,
-	Christian Brauner <brauner@kernel.org>,
-	linux-arch <linux-arch@vger.kernel.org>,
-	LKML <linux-kernel@vger.kernel.org>,
-	linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-	linux-api <linux-api@vger.kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	"H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Shuah Khan <skhan@linuxfoundation.org>, Kees Cook <kees@kernel.org>,
-	Sergei Zimmerman <sergei@zimmerman.foo>,
-	Farid Zakaria <farid.m.zakaria@gmail.com>
-Subject: Re: [RFC] Null Namespaces
-Message-ID: <20260625011023.GM2636677@ZenIV>
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
- <CALCETrWhXNetw-BsAaoyT31suMmjYLdMh9MAuLB2Lvk2ac-31g@mail.gmail.com>
- <CALCETrU3bgUxp0k1y-U-uL0-fW2016Gmsyu9O_=830czEUGMcQ@mail.gmail.com>
- <103524f8-1658-41df-88e9-cf49c628a721@app.fastmail.com>
+	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="naeU9af+"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
+	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version; bh=X0
+	91vhqSRGmu5hgUk9ZcgAG7mu4WX2XXyRIobACtVuE=; b=naeU9af+rcPm0evwQB
+	OjrWHKBwBshUp5xJmM+AcjAf9VCye4A/cplP/r4KqdcmhiGa0I2T1TbcVOzXYZbp
+	5LzFx0/hqCHymXPobQHAaSF8dL2I21tZ2MhPWJXdM1//RbK8TeXT7+D4NRHIhLOK
+	hOy14mK4YgiGxpF3pvQMAmZgM=
+Received: from zhaoxin-MS-7E12.. (unknown [])
+	by gzga-smtp-mtada-g0-0 (Coremail) with SMTP id _____wD3NwiwlzxqpCW7FA--.55660S2;
+	Thu, 25 Jun 2026 10:51:29 +0800 (CST)
+From: Xin Zhao <jackzxcui1989@163.com>
+To: viro@zeniv.linux.org.uk
+Cc: alex.aring@gmail.com,
+	allen.lkml@gmail.com,
+	arnd@arndb.de,
+	brauner@kernel.org,
+	chuck.lever@oracle.com,
+	ebiederm@xmission.com,
+	j.granados@samsung.com,
+	jack@suse.cz,
+	jackzxcui1989@163.com,
+	jlayton@kernel.org,
+	keescook@chromium.org,
+	linux-arch@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	mcgrof@kernel.org,
+	mjguzik@gmail.com,
+	pfalcato@suse.de
+Subject: Re: [PATCH v4] coredump: Add /proc/<pid>/coredump_pre_exit for pre-exit before dumping
+Date: Thu, 25 Jun 2026 10:51:28 +0800
+Message-Id: <20260625025128.483736-1-jackzxcui1989@163.com>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20260624162844.GK2636677@ZenIV>
+References: <20260624162844.GK2636677@ZenIV>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <103524f8-1658-41df-88e9-cf49c628a721@app.fastmail.com>
-Sender: Al Viro <viro@ftp.linux.org.uk>
+Content-Transfer-Encoding: 8bit
+X-CM-TRANSID:_____wD3NwiwlzxqpCW7FA--.55660S2
+X-Coremail-Antispam: 1Uf129KBjvJXoWrtF43WF18Zw4furW5XF4ktFb_yoW8Jr4DpF
+	WFva1jy3ZxJryrtFs7Zw4xGF1YgrWfC3y5AryYgr17XwsIqFySqF4SgF45Was8CrsYvw4q
+	v3yUKrykArWDu37anT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x0pRgyCQUUUUU=
+X-CM-SenderInfo: pmdfy650fxxiqzyzqiywtou0bp/xtbC6BK7xWo8l7InYQAA3x
 
-On Wed, Jun 24, 2026 at 07:53:53PM -0400, John Ericson wrote:
-> I wanted to discuss a bit about each type of namespace to indicate that
-> this is a concept I think works across the board --- it wouldn't be such
-> a good solution for the process spawning API if it was only applicable
-> to some but not all namespace types. But the truth is that I have
-> thought about the FS cases the most, as I think you have picked up on.
-> 
-> If there is interest in landing
-> 
->   1. null CWD
->   2. null root fs
->   3. null mount namespace
-> 
-> in isolation, and then returning to the other namespaces to iron out
-> their details, that would be fantastic. It would be much nicer for me to
-> get some momentum that way, without having to design everything all at
-> once first before getting to implement anything.
+On Wed, 24 Jun 2026 17:28:44 +0100 Al Viro <viro@zeniv.linux.org.uk> wrote:
 
-Please, start with explaining what, in your opinion, a mount namespace _is_,
-and where does "mount X is attached at path P relative to mount Y" belong.
+> > +			if (file->f_flags & O_TMPCLOS) {
+> > +				file->f_flags &= ~O_TMPCLOS;
+> > +				goto close_fd;
+> > +			}
+> 
+> *blink*
+> 
+> 	How could that possibly make sense?  Many descriptors
+> may refer to the same file; what's more, many descriptor tables
+> may contain such descriptors, so... just what is that code
+> trying to do?
 
-What's the fundamental difference between CWD and any open descriptor for
-a directory?  Why does it make sense to ban the former, but allow the
-equivalents done via the latter?
+This is yet another serious mistake. Perhaps my test scenarios were not
+complex enough, or I was overly confident in removing the logic that
+cleared the O_TMPCLOS flag and performed debug printing only when the
+reference count dropped to zero during that single close operation,
+without conducting further tests.
+
+In v5, I plan to avoid clearing the O_TMPCLOS flag to handle the situation
+where multiple file descriptors map to a single file. Of course, there are
+some cases where the lifecycle of this file may extend beyond the process
+exit, but AFICT such situations either cannot last long or do not involve
+memory in the case where i_nlink != 0. Therefore, keeping this flag seems
+unlikely to cause any issues.
+
+Since this flag is no longer used temporarily (it will never be cleared),
+I would like to rename it to O_PRECLOS.
+
+Thanks
+Xin Zhao
+
