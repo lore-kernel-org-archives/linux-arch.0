@@ -1,178 +1,300 @@
-Received: from mail-wm1-f44.google.com (mail-wm1-f44.google.com [209.85.128.44])
+Received: from mail-pg1-f170.google.com (mail-pg1-f170.google.com [209.85.215.170])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1112B3E00A3
-	for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2026 08:27:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.44
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0A2083E3C4C
+	for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2026 08:42:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782462475; cv=none; b=XWB01ELyw1Vq2eJm38chPITtAJAVycjv32ufKOkMmJKs0SGMqzDjhW/Lv4Qxl1/x/WcuxKgcT9cVLiPjA0F1kM/Ucd0XyHTlGPraAi4Sv4apO4vBJqO7WxbViM/e/IjJUHX8VO7G6gAOklTKJuLpuoCotoP3MmsDBblqJoi2BNE=
+	t=1782463337; cv=none; b=IkMt/aw1nBgn6kXr/E9juoLodQ0j4Rh9AJzpCISgGRUgKGRqQWq8MRDlJlGS/QKdfBkmAaj41/jDhaRotuX6H8Cb7ZTxTjRKxqJQH5ClNUD5MadmZQCccqQ3HXopOfBxPdn5y3ETiUA8RIOjIj99m4JuzNMNSUsm2ByyvXGoPlw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782462475; c=relaxed/simple;
-	bh=zuf6ntfPTW462871MTn9iuX+pcWTpeY3OFHEjvBsUmw=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=JkmvjcEo5nn/PS8suS9gyY5JfpW7fMouDt/7LqKk8l+nPtURi9+Ccq8x22IrjckFcqQClJkJMRHixf0bDWQemNR8Wu0ShOjbxk84sx0YgP86rLN3p9BOPhlPw3lWvA2W40YqSnO6a7WhgLzLCCp9ypUDIRjX/jtncAbICjjFHio=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=VuQ4qUsx; arc=none smtp.client-ip=209.85.128.44
+	s=arc-20240116; t=1782463337; c=relaxed/simple;
+	bh=vcUvLC6avRDTrJZEGsIvosWZLLA5HorAUzlVan0sQ3w=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=oDv+mxNgLr101zVZ2yxlG6rmGo3zPw0JhVeEXkq+fn8r0h2VCE+wst2Yc66lR8FiZ5aIl4O3/nbsaW7VJ9oF4kdl7oqAot3EM+kz1h4dwsj1ASKIYatt/jC6zTjfuW9KuzuLk1EXECuBJIx04KeoRd/cLZp3Htm3q7UHCKDvDRo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=D6bNGbk4; arc=none smtp.client-ip=209.85.215.170
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="VuQ4qUsx"
-Received: by mail-wm1-f44.google.com with SMTP id 5b1f17b1804b1-490b613a17bso6417805e9.3
-        for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2026 01:27:53 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="D6bNGbk4"
+Received: by mail-pg1-f170.google.com with SMTP id 41be03b00d2f7-c88b8fe9059so246525a12.3
+        for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2026 01:42:14 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1782462472; x=1783067272; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=LPblrGuL3HxTSPqhVNEf1Cuy4s+Ns4aI9V32Ls67imw=;
-        b=VuQ4qUsx+cWNoimp2j+KEaMlEKsx6J7flpPXu/uCwRBlS0LPFCUDyGnk7Gd+EYk9aK
-         il+5lgu0N+dhbh64JNF1FfVDtWS3EOwTEA7DPSBJLw4BKDTzHPemP0Ftf8FYZ614/Jzj
-         EV+p0wKefRVA4EmFLrodWBZ6RH4EIEPFk8FFaB0sj8lv1XPVSsRZHAmK1UUlwhfMS3Hh
-         2UFDsQO2vE9BJnHHbtGy9jViDAA5bvUgoTRby3xLcZd0H2kiVCxIFEfhUqU3se/4uz9y
-         GMK8uPvMfIe+TXIeaRokXSiOP7QsSUU99yzH761XDm0a5/HuSdgbW3QCYffChpozoLLO
-         TApw==
+        d=gmail.com; s=20251104; t=1782463334; x=1783068134; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=JsvSBjnG06bUFbh9b1fjdG1LZreCknqQFnMC8kjK6/8=;
+        b=D6bNGbk4f93HZGWZUlxU9fqke940w6Tsk6urYJjs7EP4s5kwajSLmHLjyFpKD6wSVD
+         E7tRhFVfKPUttoto8mdY14/eTmWODlPbqu3ex7kgy5jNrDDEAWcRk+eMmwYzKRZoYqBo
+         mTFHTDpamwxLqAv4l7c5N1m7ulfBKE3c1O/6h4bIbsvi6zrk0EeH9//G5KYDgRMH31Y6
+         kDJec5CzXWyOkEVGGvLjsX7DwB0TxcIz4rNN9kLJ+tJsUWuMuHUs+nwM7QNXIwHvHi08
+         +c3cmcruz7tMX++e4qGy1IwSUkGNOLmky2ktNYJo16c3F7dFrZzOT2zXQmdVgpz//l6L
+         ur7g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1782462472; x=1783067272;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=LPblrGuL3HxTSPqhVNEf1Cuy4s+Ns4aI9V32Ls67imw=;
-        b=CM1lSzYQ0S3azGfPjhWo6/+xlEcaObE+ZBzPBYetS4/fhlsRWsDtgiudVVsxl/m+d0
-         qZVn7Vc8pcI/37I3kbZvVXsEy9xI60Riy+pZkppuaVGrtldNrD3WUX3mVBQ/jz8m+mAZ
-         pKz4ssty6H3moMxGUxIZYwM9KPIUzXhPD8/V9eVXiRV2ugk1KyiKdWBNfp4B6aGDHy2s
-         FgyTrBv0vA4YO/Tmfi8WYSL7gK01tKwDnUPTs5ZiVmUNBJIKX7+6WteRdhIXM4jQLXNy
-         k5CJO+bupoOsOp46G5bfv5aeE1ANG2V+ZsvnTERk+FE7E2d02iPvDZEAU4aPV50D8Frp
-         4y0w==
-X-Forwarded-Encrypted: i=1; AFNElJ/aQb4I1dcVt+GRtCSSOZgxu07NBzS4x3B7Ul756jkLVzC9ps2HQM7pI3Sx6JD0gQg+NkJgvJ6LTOuf@vger.kernel.org
-X-Gm-Message-State: AOJu0YzFa8emA/fOVYOiDxZ+EnFAUw8KH6q1PXqhgB16xREYtS5ksHvC
-	GAtD2lDZqEO0n/BYsxksBzKBkSDYcmCtttFn3JlxmwVhxZgFbzGmVlV7
-X-Gm-Gg: AfdE7cka8h4BtXmiMSlNrThbMJ2vcBAFElRPqgKfn48Lph+LOpXdbDKPw49D1Ebhb9+
-	TCm12sJ4aH1CIQ09+6/FdkqiHOy/3S0BsnhF7VgbWTpse/jh+1qM4f2FJDXl42YI1Zn6vFTjm0Y
-	CfLhirhHFVGnBLxSMVIANK5bkUixEF/v2jZj4LGGFIutbYjuiysRJ9gL575cF09abuYh5NrvaVG
-	WHVGhm9oVo+vcYifj8hjw/fmUjnHTaooh292us3u7dEMoyiEZjmcEZMDNjZRIsQ0wa+9+RiUhbd
-	dKSIL7bS5Q566NGIIYNjUFvf9w99CsPTfZK0Ie5VDIqvEqHPbaDK7k68ubY3dnA+X4cVE9GammZ
-	6HmoamwqBqCBdc27aRUzyzhjmmJPKRx6Ms2FLdERvacIERH0JQ036YU7gFnEJjXUgg8m6LmWg0j
-	6iF1QISi7abEVH0FwaziLYB3BPePKgqzeAuRtUMR4urbjlUtuYUA==
-X-Received: by 2002:a05:600c:6094:b0:492:63c3:8eeb with SMTP id 5b1f17b1804b1-492668aa8b7mr81702715e9.35.1782462472357;
-        Fri, 26 Jun 2026 01:27:52 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49268fde98csm65311585e9.6.2026.06.26.01.27.51
+        d=1e100.net; s=20251104; t=1782463334; x=1783068134;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=JsvSBjnG06bUFbh9b1fjdG1LZreCknqQFnMC8kjK6/8=;
+        b=AF05wO8ggA8LfEo0YDMH7iXVWlUWHpi5AqAMoAroS0onjf3Tlx9aEuor28mz3wsyIq
+         vggyRersarM+yue/kSCp78/tkpDdQCv2voZUK5OTDS+wwb2X/2DaXdVryOB94mZCEb52
+         iQS2IDo9wQZD9rC7yueYZeSHutPHvVmxH2dOAPL66t8N3ZGvFCVwAHtLaWncHeR8DMRq
+         lHG75tMmYtdVBU2rzPq0a/kQcDQ8+YTkLO0tJg4qd9BAfPdjH67ZYMzXcIqxK96wXAi5
+         5N8PG2V+HG7xNsPsySaG/AolMo2TrSWc0cmiX6Xzi6SDYfGSNahx+XC/36y7IaRTkOgr
+         Xf2w==
+X-Forwarded-Encrypted: i=1; AFNElJ8ZkdpbKTUG/LFTCa6YiL0sTcrn8BTdXbLAQWYMhbziNY6FBtOlQhRZz4B9DGrAWADC0E+7Ja2iEFb/@vger.kernel.org
+X-Gm-Message-State: AOJu0YyAM5I72tCetnpZbmT7WdjBY5zT0HGQYHJNyeCAtiPNp2/DgAJ7
+	UJTcPLjnnFgnYmykPwnbpN5757xwZSnsXupUQ0+rpcbJB1h2eOoZExHf
+X-Gm-Gg: AfdE7cmaFniH8SOUPBhAejOdzpdLD1SxODkcFqSG9p5ESQWFZBPrauM0fPDE+Clcf3c
+	sG4jyMu1Sla8QnZ5i7DrUY2vB1cMYvAncnkQ8GS3/gd43eE6j27qB0gN8viFFte3IVKTfR6A0KS
+	J6Th9h2qgX/Y2AWqPqmqS90NqmxuESxnqmHx3E3T4K5+BFbNqRH5xGuBFDUvLpbi2c6lotRKK7o
+	ivB1nsb1YEn87WXYkqhc+aLTLqlG43B6mt3hQZhwEFhsBnpFeExgpbbGF2C4vUyWXq6VxQJSl+C
+	ATVRIn+wZ8NZPsDoqZQr/xkz+1vimyDgaRAiuYpkm7QuGTucUx+q6Awl0dydasQOkwHLHRwtSZh
+	KXDkNf7T5vjwZBngVo3DjjLUntSG28NZuL8YuDT8OP0E7x3yu6Zlfva/+ghExOeFE
+X-Received: by 2002:a05:6a20:9397:b0:3b7:8027:dfeb with SMTP id adf61e73a8af0-3bd4aec7163mr7059290637.22.1782463334219;
+        Fri, 26 Jun 2026 01:42:14 -0700 (PDT)
+Received: from localhost ([2001:da8:7001:11::cb])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c92b96eccf8sm3107580a12.3.2026.06.26.01.42.13
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 26 Jun 2026 01:27:52 -0700 (PDT)
-Date: Fri, 26 Jun 2026 09:27:50 +0100
-From: David Laight <david.laight.linux@gmail.com>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: John Ericson <mail@johnericson.me>, "H. Peter Anvin" <hpa@zytor.com>, Al
- Viro <viro@zeniv.linux.org.uk>, Li Chen <me@linux.beauty>, Cong Wang
- <cwang@multikernel.io>, Christian Brauner <brauner@kernel.org>, linux-arch
- <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>,
- linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-api
- <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner
- <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
- <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, Jan Kara
- <jack@suse.cz>, Jonathan Corbet <corbet@lwn.net>, Shuah Khan
- <skhan@linuxfoundation.org>, Kees Cook <kees@kernel.org>, Sergei Zimmerman
- <sergei@zimmerman.foo>, Farid Zakaria <farid.m.zakaria@gmail.com>
-Subject: Re: [RFC] Null Namespaces
-Message-ID: <20260626092750.58a8de9c@pumpkin>
-In-Reply-To: <CALCETrWxi1g1wy2Bi4y6URW728Cmo8D3tchdMqs4GZ7S476iJA@mail.gmail.com>
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
-	<20260624231219.GL2636677@ZenIV>
-	<29cd3188-2d7c-4470-a39a-6648638f795e@zytor.com>
-	<614b290f-e274-4eb2-b687-008b004de526@app.fastmail.com>
-	<CALCETrWxi1g1wy2Bi4y6URW728Cmo8D3tchdMqs4GZ7S476iJA@mail.gmail.com>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+        Fri, 26 Jun 2026 01:42:13 -0700 (PDT)
+Date: Fri, 26 Jun 2026 16:41:52 +0800
+From: Inochi Amaoto <inochiama@gmail.com>
+To: Paul Walmsley <pjw@kernel.org>
+Cc: guoren@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, 
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
+	Chen Wang <unicorn_wang@outlook.com>, Inochi Amaoto <inochiama@gmail.com>, 
+	Leonardo Bras <leobras@redhat.com>, Raj Vishwanathan4 <rvishwanathan@mips.com>, 
+	Djordje Todorovic <djordje.todorovic@htecgroup.com>, Alexandre Ghiti <alexghiti@rivosinc.com>, 
+	Han Gao <gaohan@iscas.ac.cn>, Yao Zi <me@ziyao.cc>, Xiaoguang Xing <xiaoguang.xing@sophgo.com>, 
+	Aleksandar Rikalo <arikalo@gmail.com>, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, sophgo@lists.linux.dev
+Subject: Re: [PATCH V5] riscv: errata: Add ERRATA_THEAD_WRITE_ONCE fixup
+Message-ID: <aj463BBQccFwUoV5@inochi.infowork>
+References: <20260421143154.1590156-1-guoren@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260421143154.1590156-1-guoren@kernel.org>
 
-On Thu, 25 Jun 2026 16:09:58 -0700
-Andy Lutomirski <luto@kernel.org> wrote:
+On Tue, Apr 21, 2026 at 10:31:40AM -0400, guoren@kernel.org wrote:
+> From: "Guo Ren (Alibaba DAMO Academy)" <guoren@kernel.org>
+> 
+> The early version of XuanTie C910 core has a store merge buffer
+> delay problem. The store merge buffer could improve the store queue
+> performance by merging multi-store requests, but when there are not
+> continued store requests, the prior single store request would be
+> waiting in the store queue for a long time. That would cause
+> significant problems for communication between multi-cores. This
+> problem was found on sg2042 & th1520 platforms with the qspinlock
+> lock torture test.
+> 
+> So appending a fence w.o could immediately flush the store merge
+> buffer and let other cores see the write result.
+> 
+> This will apply the WRITE_ONCE errata to handle the non-standard
+> behavior via appending a fence w.o instruction for WRITE_ONCE().
+> 
+> This problem is only observed on the sg2042 hardware platform by
+> running the lock_torture test program for half an hour. The problem
+> was not found in the user space application, because interrupt can
+> break the livelock.
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
+> Reviewed-by: Leonardo Bras <leobras@redhat.com>
+> Reviewed-by: Inochi Amaoto <inochiama@gmail.com>
+> Tested-by: Han Gao <gaohan@iscas.ac.cn>
+> Tested-by: Yao Zi <me@ziyao.cc>
+> Cc: Chen Wang <unicorn_wang@outlook.com>
+> Cc: Xiaoguang Xing <xiaoguang.xing@sophgo.com>
+> Cc: Paul Walmsley <pjw@kernel.org>
+> Signed-off-by: Guo Ren (Alibaba DAMO Academy) <guoren@kernel.org>
+> ---
+> Changelog
+> 
+> v5:
+>  - Add Acked-by: Arnd Bergmann <arnd@arndb.de> for asm/generic
+>  - Add Reviewed-by: Inochi Amaoto <inochiama@gmail.com>
+>  - Rebase on v7.0
+> 
 
-> On Thu, Jun 25, 2026 at 2:53=E2=80=AFPM John Ericson <mail@johnericson.me=
-> wrote:
-> >
-> > On Thu, Jun 25, 2026, at 5:00 PM, H. Peter Anvin wrote: =20
-> > > On 2026-06-24 16:12, Al Viro wrote: =20
-> > > > On Wed, Jun 24, 2026 at 06:51:47PM -0400, John Ericson wrote:
-> > > > =20
-> > > >> #### Null mount namespace
-> > > >>
-> > > >> - requires:
-> > > >>
-> > > >>   - null root file system: absolute paths don't work.
-> > > >>
-> > > >>   - null current working directory: relative paths with traditiona=
-l,
-> > > >>     non-`*at` system calls (and `*at` ones using `AT_FDCWD`) don't=
- work.
-> > > >>
-> > > >> - All operations relating to the "ambient" mount tree don't work.
-> > > >>
-> > > >> - `*at` operations with a file descriptor do work. =20
-> > > >
-> > > > Huh?  The last bit looks contradicts the previous one - if you have
-> > > > an opened directory in a mount from some namespace, those `*at` ope=
-rations
-> > > > with that descriptor *will* be seeing the mount tree of that namesp=
-ace,
-> > > > whatever the hell is "ambient" supposed to mean.  Either that, or y=
-ou
-> > > > will be exposing whatever's overmounted in that mount, which is a h=
-uge
-> > > > can of worms. =20
-> > >
-> > > It seems to me that this is really no different *in practice* to havi=
-ng an
-> > > empty mount namespace, no? You might still be able to stat("/") and g=
-et a
-> > > d--------- result, but how does that actually affect anything? =20
-> >
-> > The argument against just having an empty, immutable root directory and
-> > calling it a day is the tie-in with a new process-spawning API discussed
-> > near the bottom of my original email. I want to have nice secure
-> > defaults, rather than forcing the programmer to remember to unshare, but
-> > I also don't want to degrade performance by speculatively creating new
-> > empty mount namespaces that might just be thrown away. Null fields alone
-> > get us both --- security and good performance. =20
->=20
-> This seems like a false dichotomy.  There's such thing as a singleton.
->=20
-> In fact, we have this spiffy nullfs_fs_get_tree.  It seems relatively
-> straightforward to have an API to get an fd to the singleton nullfs,
-> and the default for a newly spawned process could even be to have cwd
-> pointing at nullfs.
->=20
-> root is still harder, because of the shadowing issue.  I think I
-> proposed, ages ago, relaxing the chroot rules so that, at least under
-> certain circumstances (e.g. the task is not already chrooted) an
-> unprivileged task could chroot.  chrooting to nullfs seems like a
-> somewhat useful operation.
->=20
-> I can imagine more complex schemes to allow even a chrooted process to
-> safely start acting as though their root is nullfs, but that would be
-> potentially fairly nasty.  *Maybe* everything would work if there was
-> a root-for-dotdot and a separate root-for-absolute-paths, and
-> nameidata->root could point to the former, but I'm certainly not
-> willing to say that I think this would work with any confidence at
-> all.
+Hi, Paul
 
-You'd also need to sort out the 'pwd' mess.
-The kernel inode always has its real parent, inside a chroot the scan stops
-when the inode is the same as that of the base of the chroot.
-But faf about with namespaces (IIRC I was doing an unshare to get out of
-a network namespace) and that comparison can fail (if the chroot base isn't
-a mount point) - so "../.." can go all the way back to the real root rather
-than stopping at the base of the chroot (as you would expect).
+I wonder whether this is possible for applying? I think this is 
+a necessary fix for SG2042.
 
-	David
+Regards,
+Inochi
 
 
->=20
-> --Andy
->=20
-
+> v4:
+> https://lore.kernel.org/linux-riscv/20260412143116.1445893-1-guoren@kernel.org/
+>  - Add Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
+>    (https://lore.kernel.org/linux-riscv/1cfdf6c1-a384-43ad-9588-284335d073f7@ghiti.fr/)
+>  - Add Tested-by: Yao Zi <me@ziyao.cc>
+>  - Rebase on v7.0-rc7
+> 
+> v3:
+> https://lore.kernel.org/linux-riscv/20260125063941.443777-1-guoren@kernel.org/
+>  - Rebase on 6.19-rc6.
+>  - Remove errata_list_vendors patch which has been merged.
+>  - Add Tested-by tag.
+> 
+> v2:
+> https://lore.kernel.org/linux-riscv/20250713155321.2064856-1-guoren@kernel.org/
+>  - Add new header file for errata_list_vendors.
+>  - Rebase newest kernel version.
+> 
+> v1:
+> https://lore.kernel.org/all/20241214143039.4139398-1-guoren@kernel.org/
+> ---
+>  arch/riscv/Kconfig.errata                    | 17 ++++++++++
+>  arch/riscv/errata/thead/errata.c             | 20 ++++++++++++
+>  arch/riscv/include/asm/errata_list_vendors.h |  3 +-
+>  arch/riscv/include/asm/rwonce.h              | 34 ++++++++++++++++++++
+>  include/asm-generic/rwonce.h                 |  2 ++
+>  5 files changed, 75 insertions(+), 1 deletion(-)
+>  create mode 100644 arch/riscv/include/asm/rwonce.h
+> 
+> diff --git a/arch/riscv/Kconfig.errata b/arch/riscv/Kconfig.errata
+> index 3c945d086c7d..4d3f13522da6 100644
+> --- a/arch/riscv/Kconfig.errata
+> +++ b/arch/riscv/Kconfig.errata
+> @@ -154,4 +154,21 @@ config ERRATA_THEAD_GHOSTWRITE
+>  
+>  	  If you don't know what to do here, say "Y".
+>  
+> +config ERRATA_THEAD_WRITE_ONCE
+> +	bool "Apply T-Head WRITE_ONCE errata"
+> +	depends on ERRATA_THEAD
+> +	default y
+> +	help
+> +	  The early version of T-Head C9xx cores of sg2042 & th1520 have a store
+> +	  merge buffer delay problem. The store merge buffer could improve the
+> +	  store queue performance by merging multi-store requests, but when there
+> +	  are no continued store requests, the prior single store request would be
+> +	  waiting in the store queue for a long time. That would cause signifi-
+> +	  cant problems for communication between multi-cores. Appending a
+> +	  fence w.o could immediately flush the store merge buffer and let other
+> +	  cores see the write result.
+> +
+> +	  This will apply the WRITE_ONCE errata to handle the non-standard beh-
+> +	  avior via appending a fence w.o instruction for WRITE_ONCE().
+> +
+>  endmenu # "CPU errata selection"
+> diff --git a/arch/riscv/errata/thead/errata.c b/arch/riscv/errata/thead/errata.c
+> index 0b942183f708..fbe46f2fa8fb 100644
+> --- a/arch/riscv/errata/thead/errata.c
+> +++ b/arch/riscv/errata/thead/errata.c
+> @@ -168,6 +168,23 @@ static bool errata_probe_ghostwrite(unsigned int stage,
+>  	return true;
+>  }
+>  
+> +static bool errata_probe_write_once(unsigned int stage,
+> +				    unsigned long arch_id, unsigned long impid)
+> +{
+> +	if (!IS_ENABLED(CONFIG_ERRATA_THEAD_WRITE_ONCE))
+> +		return false;
+> +
+> +	/* target-c9xx cores report arch_id and impid as 0 */
+> +	if (arch_id != 0 || impid != 0)
+> +		return false;
+> +
+> +	if (stage == RISCV_ALTERNATIVES_BOOT ||
+> +	    stage == RISCV_ALTERNATIVES_MODULE)
+> +		return true;
+> +
+> +	return false;
+> +}
+> +
+>  static u32 thead_errata_probe(unsigned int stage,
+>  			      unsigned long archid, unsigned long impid)
+>  {
+> @@ -183,6 +200,9 @@ static u32 thead_errata_probe(unsigned int stage,
+>  
+>  	errata_probe_ghostwrite(stage, archid, impid);
+>  
+> +	if (errata_probe_write_once(stage, archid, impid))
+> +		cpu_req_errata |= BIT(ERRATA_THEAD_WRITE_ONCE);
+> +
+>  	return cpu_req_errata;
+>  }
+>  
+> diff --git a/arch/riscv/include/asm/errata_list_vendors.h b/arch/riscv/include/asm/errata_list_vendors.h
+> index ec7eba373437..8fd7c36307e2 100644
+> --- a/arch/riscv/include/asm/errata_list_vendors.h
+> +++ b/arch/riscv/include/asm/errata_list_vendors.h
+> @@ -18,7 +18,8 @@
+>  #define	ERRATA_THEAD_MAE 0
+>  #define	ERRATA_THEAD_PMU 1
+>  #define	ERRATA_THEAD_GHOSTWRITE 2
+> -#define	ERRATA_THEAD_NUMBER 3
+> +#define	ERRATA_THEAD_WRITE_ONCE 3
+> +#define	ERRATA_THEAD_NUMBER 4
+>  #endif
+>  
+>  #ifdef CONFIG_ERRATA_MIPS
+> diff --git a/arch/riscv/include/asm/rwonce.h b/arch/riscv/include/asm/rwonce.h
+> new file mode 100644
+> index 000000000000..081793d4d772
+> --- /dev/null
+> +++ b/arch/riscv/include/asm/rwonce.h
+> @@ -0,0 +1,34 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +
+> +#ifndef __ASM_RWONCE_H
+> +#define __ASM_RWONCE_H
+> +
+> +#include <linux/compiler_types.h>
+> +#include <asm/alternative-macros.h>
+> +#include <asm/vendorid_list.h>
+> +#include <asm/errata_list_vendors.h>
+> +
+> +#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE)
+> +
+> +#define write_once_fence()				\
+> +do {							\
+> +	asm volatile(ALTERNATIVE(			\
+> +		"nop",					\
+> +		"fence w, o",				\
+> +		THEAD_VENDOR_ID,			\
+> +		ERRATA_THEAD_WRITE_ONCE,		\
+> +		CONFIG_ERRATA_THEAD_WRITE_ONCE)		\
+> +		: : : "memory");			\
+> +} while (0)
+> +
+> +#define __WRITE_ONCE(x, val)				\
+> +do {							\
+> +	*(volatile typeof(x) *)&(x) = (val);		\
+> +	write_once_fence();				\
+> +} while (0)
+> +
+> +#endif /* defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE) */
+> +
+> +#include <asm-generic/rwonce.h>
+> +
+> +#endif	/* __ASM_RWONCE_H */
+> diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.h
+> index 52b969c7cef9..4e2d941f15a1 100644
+> --- a/include/asm-generic/rwonce.h
+> +++ b/include/asm-generic/rwonce.h
+> @@ -50,10 +50,12 @@
+>  	__READ_ONCE(x);							\
+>  })
+>  
+> +#ifndef __WRITE_ONCE
+>  #define __WRITE_ONCE(x, val)						\
+>  do {									\
+>  	*(volatile typeof(x) *)&(x) = (val);				\
+>  } while (0)
+> +#endif
+>  
+>  #define WRITE_ONCE(x, val)						\
+>  do {									\
+> -- 
+> 2.40.1
+> 
