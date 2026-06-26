@@ -1,72 +1,72 @@
-Received: from flow-a1-smtp.messagingengine.com (flow-a1-smtp.messagingengine.com [103.168.172.136])
+Received: from flow-a8-smtp.messagingengine.com (flow-a8-smtp.messagingengine.com [103.168.172.143])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 209633E2AD1;
-	Fri, 26 Jun 2026 16:26:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.136
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 878AE18C933;
+	Fri, 26 Jun 2026 17:30:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.143
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782491193; cv=none; b=shcJeTTDwQ6rRk7Xq5YKv0+D1GTjSketmewI/xnR7vAa6ZGRnccQ9dbEOA6HXx1ir64tvImhz7lgfBnfKGHYt7YZsd29Ta21Cha1zCFkJ1T6Gdlgfpl0PAlrUse1/I1T+hn61dhwUFPxTVWsBXrCDZV8II6OYQKmnbSuXS8fpq8=
+	t=1782495022; cv=none; b=dxO66VFF+uQpIgQhb9OKvr9lAuc5dyH/N9ignKvXwOlfkp2sQBTsWoHR7nbLBlkdgdTi1ZwvwMKXDnv5kJQ7Sx6tHzRdJ11vKc6QCSvFbe9YUyLs9NDDd2XQseTUh1cdiVCwccODQy0cc9z9gZT0he91SskohDDnRkMUoyePUYM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782491193; c=relaxed/simple;
-	bh=Mz/U24SwsVtPOUHfNr1Quz+WAfYt6WoruIadhcSODqs=;
+	s=arc-20240116; t=1782495022; c=relaxed/simple;
+	bh=fdzE8WKk9XytKfmKg8U5BbsfoByuUmF093+Yi2JrkXM=;
 	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=dYNu67OhWbYMCU+biJ5SbRJK3dDKM6C5tG+yvpnF//sYduxk3KttgD+c0WWWjwpwn2set5kGbJcb8xFdNLXukmOT8g6yDN2IMzI15b8i676XRoVpshsAg6erS8skKtug2u8hqTG9NdK5N5jLQAl0H9Y6RpEgd/0fej9Yt1H3mbs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me; spf=pass smtp.mailfrom=johnericson.me; dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b=SPlopbP4; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=dRYp2Ehi; arc=none smtp.client-ip=103.168.172.136
+	 Subject:Content-Type; b=rA6CUjkE6YIltlwln86Titrj6ekyWVkYUHZlUmmK5hpn70N7mOvQnQWx5M1yxU5r3AYgEFZBEY72pTqvU1gyLQzRZak/zJ1LqhHn07SpB6BeRdaqBrvbv7rF5VIqHN7ui7SFp/RpW7Q6Iqh3ImQ3ly7h+TrUpAHXXS4BdwB+tn0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me; spf=pass smtp.mailfrom=johnericson.me; dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b=jGcgE5fm; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=PpcwJ/7k; arc=none smtp.client-ip=103.168.172.143
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=johnericson.me
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b="SPlopbP4";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="dRYp2Ehi"
+	dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b="jGcgE5fm";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="PpcwJ/7k"
 Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
-	by mailflow.phl.internal (Postfix) with ESMTP id 28702138003B;
-	Fri, 26 Jun 2026 12:26:31 -0400 (EDT)
+	by mailflow.phl.internal (Postfix) with ESMTP id C0E82138021A;
+	Fri, 26 Jun 2026 13:26:28 -0400 (EDT)
 Received: from phl-imap-16 ([10.202.2.88])
-  by phl-compute-05.internal (MEProxy); Fri, 26 Jun 2026 12:26:31 -0400
+  by phl-compute-05.internal (MEProxy); Fri, 26 Jun 2026 13:26:28 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=johnericson.me;
 	 h=cc:cc:content-transfer-encoding:content-type:content-type
 	:date:date:from:from:in-reply-to:in-reply-to:message-id
 	:mime-version:references:reply-to:subject:subject:to:to; s=fm3;
-	 t=1782491191; x=1782498391; bh=zo1vKmi6nDEQFw10MzbUtqBMgAqbeul2
-	j6P3vSvt178=; b=SPlopbP4GHueoT5BMNLqY+W4uGbAwB7jgw8agYIaF28shVlJ
-	wK+qVZDYILJwhka56O2+QDYejbn+J076sNf/S5wRAqjesV2RGpprbRZbUApJH0/V
-	agJmXOataX29I4DlvVvrdlQDJGf+TPxGYL812FMMOFJ6koI1srV0VVuCK8708xYi
-	JliDazJjoyO6tyLhbuwW2fCs7YO/9cBZaaKbkraRN3SMiebslX78owsfSz/rcGpE
-	4oUUgHcP61VyMt7Sr+7Na6Gtzt2/5YxmynYsG8cZWAbIWm13GkNcu5QTfyb1nhJH
-	ovsSv1YsA8tzbvFHlKhZnYdrQuWYPX8OHeNUfg==
+	 t=1782494788; x=1782501988; bh=F2RQwL0S2/VBTjE/xlZGTYwV5SDIqeUh
+	RspcCvNMHJo=; b=jGcgE5fm/SNJF+NeB2QfMDqHWD6tAYDnlE/VEuXh1ob8eNeY
+	JNkWsHzS9ZPuhFDPEgShLU8SipdrgmzRs19yY15NuyZKmcb9yjJTlCpTyjS64M/U
+	k0pzJ6iH7+ffQHJZRkBvxXl6jl+GDvwtwH3xjQbDnQQC+gq7q9+rOiOZX+S4YwDV
+	IIKw2auqdLH5DvpwIqJeEVbaxDMhdsaMcBpvWJPD0xN1rbhhnmQHebqS12iC016F
+	6beXHR/krbcxAdxe96mYsOoiID3b3iEsiwViM/k3ayNy1KXQQ5NF0gEG6PvKaZVh
+	FCFTmetM+6IV47YmpOgQX23B4zNDnUs5D/fkpg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
 	messagingengine.com; h=cc:cc:content-transfer-encoding
 	:content-type:content-type:date:date:feedback-id:feedback-id
 	:from:from:in-reply-to:in-reply-to:message-id:mime-version
 	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1782491191; x=
-	1782498391; bh=zo1vKmi6nDEQFw10MzbUtqBMgAqbeul2j6P3vSvt178=; b=d
-	RYp2EhiXV6GsJrVk1oSNWuBObCMSYuI6jdEsE0jW+k6solP1QmAKUGSO4hMrU+Ig
-	kBJXiMo6ecgXTDa2oQb0ck7puBap8f4nAshtLteQDCq5GnToY6DwWqvwstgi9Psp
-	Lxfd67txHAJ7I0iYze3F3q1g8Xha9dzkHy2Bt9pp2gjq06HhXrfGau7nkblXe1m8
-	lax94wM9GhDnH0WZK0PmTTsmJW7U1RTsfv/hJe0oyOgpqohKQmYrByJa6bzbjXGh
-	vre79tsw5dXQWXhlQVKfa78bnT9XTMMFvCV1hm7Pjt2fXQFuec65oAwW+t1au/0F
-	ksRBEGo/z9mhjwBh8RSDg==
-X-ME-Sender: <xms:Nag-auWLtcHt889oRmjF6T0gdOKSR2Ux2gwekvx9hJf8goqgFzeHZw>
-    <xme:Nag-alYip_4aAgrSnK6xbQSQSZjOhc-92PCq5HlaNxRW8KXf39qO9odKYBWcXnJht
-    EW6eDC240djqRV2M9HE-tOh3zKFIdh5B4JbMvnOjcvZBuM1YYF4Xw>
-X-ME-Proxy-Cause: dmFkZTFgiFjdRsukHEqzjO2JlLF7qtQ8Ajnv4KbpUVK5BbcUW0/0LZ3HdLzuqk6crIinlh
-    AT292UJL2AHJNFqudBA5tfxvDt8hYr7Pdk4v+1HQ4wDmBditK366BV6RX9xHSDn80klhcA
-    d/vBx2JAgw9T6A8zOCaf6hAUcvgu+oKBKIXdZtdeYeTcpeq9azqtWPuyLZccbY0lvTBD/M
-    GAjnp4AJZR97bP7ThB/C4qvdSCeWKlTgEBzROUQtIgrMMB58RTEvrcvNORUWnWIkl0ZBg/
-    Ont/O9F3HXeMnaYCvOtEysBRg5fpV3zKl5dqOExuwEjnAL1ss0NO2OstgPGN0e7O+pvzcU
-    Mf7k7w2q8iqj3hDGPHirXoPB+oL9jzueRN2HJAkmyFfqYApCHRQTBdj66ufCko0o05sdqA
-    s3Hw54rZHUpSr0yvj4dHK0KbY8HUEXntKsyhG2nWa96gZpMWQirZSLzhHQD/V/+/dJLbKQ
-    8SrgF383091dRJiIIZ061ttxGeRjqMl31lAO+zb2f0epruqcpwsvKjJ2ayBCaCWO1+xUTQ
-    CnGBtEbfQwHqL/+FpOYhlGOm7OOCStq5irIwAPMHj+WsfX0qIXEwtZfHc0d8TETmTVrhzX
-    Zp8WdrXxKjG2CNHFpH/klWZpMczA8gYkg91B3O8TA7TNvVnbV23t+TjN1iww
-X-ME-Proxy: <xmx:Nag-ask1XphmWFQQNKq8v7Fq8pQRsEsRBwdUXQMUX-EVamT2DDV7Iw>
-    <xmx:Nag-apDT832kxHmlJjNL6sl4q37nvlQWiRULoK-DA1e4dcjFfDGvbA>
-    <xmx:Nag-avLsW5GcdZwYn_d-y8EvNfvw5esU3-vroppDogeMrGWKewTQBQ>
-    <xmx:Nag-akxW5tuizNbDxm51vDsMBMAJH9eQrB5T0zo5xMAk-onLEXD1VQ>
-    <xmx:N6g-amMIh2rml7_nZOvyXzk16RhXb0pM48ntbw0pojR4GlFdtIUpjoRO>
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1782494788; x=
+	1782501988; bh=F2RQwL0S2/VBTjE/xlZGTYwV5SDIqeUhRspcCvNMHJo=; b=P
+	pcwJ/7kMW5Pmz6H1rv4LBMKXztsUU/tRc/Jg1x+NnJ9mo+6VruE9mwD8Z5EEI1p2
+	Zj8kBGHlkpLGlK6I6bWdloNvEGBnfp2A7tK9MmR/16iLd9LSHpnF2ZgIeBpMs2Hk
+	YO5mCstjyHy2EI1Ho+5uPWug9w+7jyHci+vQqlbwkPQPV8ISnzmasMuUZUTOE/mM
+	7KinOBesAHG5hhpb7mXNGGdO82JEOYKfquE+19nkS0jEt9GkyArH6eNSN5LCV8yQ
+	A5Q77Ydc79EkdjQyB4v45SlNbO6nHwJW0F9yvqrUPd8VNtKkGABRw3Psxn6mNMDE
+	m3XAt5vebvW0WPpgiyDyA==
+X-ME-Sender: <xms:Q7Y-apYyb5q46ROZzKr7butEZxfRNgMuEUP6qM8NDZeNazaiRl-96A>
+    <xme:Q7Y-arMhojrg0BMt98EgIcJChfM-ouZla5lrttcwd9pP37nFlkiMfDxxrnkkYq0gG
+    15z2e_32Oolrpf6Ie-imo4UIQjEyVA3Ah4lVXkASTQjRpA1z04jkxk>
+X-ME-Proxy-Cause: dmFkZTGXKVzao0YncuT4RAnLE/QsHNCC0UboLlIUDyeCJjeLHHZRHdxcvPsPzDS2xVKsHQ
+    GYl3fc96MpX6xhtF7obx24gHFAtP5WIh2T5EX2P0wKHxRH2Peq9vtBcWEP2W3DSbrHf+mv
+    UBfjgRve7aAMMxnL6Dn2f33M6yyqz5GX9xJJ+38zUfrrhx1hr7NaldLsT5Dul+CLLzh0/M
+    4jN2FGDqmMfKaOY+Ipd2MF/rBhzoB9D3psamhdsgVWS55EOUpExs5NIJLv4Uk4xttzOX+j
+    BZjDs/iO7ZP6xvPHDBmY6AD5I2ogEhDn+DATFHmBjnh0uiqaTvpLDaxQH/Jfb0QdMJFOPD
+    pa7EcU5vZMPzvlv2IxiPe75IUFFFg6JncZdTr6ButkcOMRUn/Rf4NnU7vtdk0kwlDe6IML
+    yt5W+9bnQGUkPM1j2KSYDWBMj2DDFLMtkqEdFxYc/qtc00gQaQkc+k3buyHFidz7pIRXZy
+    sVTK4H9k/2J54dRQzw+0IsAoQUL+RSViYHznZr2TZF/ggHGJ1m3GHLHs/cZcHe0EfH8YVX
+    OE7PeS2WPxGWkyys4xeyswuAXXEwlccBjWRuWAnP6u7wAM7lhVlvDIpegjFhYjdjrwV4db
+    Yp4Yhotp4G6nNM/fpP3pAslU2X5KJWi6cOe2MvzDzDlh1/0UDzucwao+J00g
+X-ME-Proxy: <xmx:Q7Y-alYdIPQ2AVA4Nmw8ijq_09lgV-FM8PNc7Og5_JqrQtVmJ8UIXw>
+    <xmx:Q7Y-ahS1oG3TaXU7YoV1SbwvUIam-X82itxpZMbZhbV66nWSX6bciQ>
+    <xmx:Q7Y-algiua63ltREhcMehgDbIh8rWCGTDQbmmxii20GZk8i7Ca2hRA>
+    <xmx:Q7Y-alt_cb_PDz8TwtXQ6jf0Ce09-yLqtURl2fnjtYWMjh5LbBwtKQ>
+    <xmx:RLY-atTr08hYhLgO9zJmj95aaRxyoL8orhMyAJ-wJ0G1UGvX-03p7O0l>
 Feedback-ID: ieb4144f1:Fastmail
 Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 952122CC0083; Fri, 26 Jun 2026 12:26:29 -0400 (EDT)
+	id 987882CC0083; Fri, 26 Jun 2026 13:26:27 -0400 (EDT)
 X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -75,117 +75,129 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-ThreadId: AG8qDlxFSDr7
-Date: Fri, 26 Jun 2026 12:26:09 -0400
+Date: Fri, 26 Jun 2026 13:23:50 -0400
 From: "John Ericson" <mail@johnericson.me>
-To: "Al Viro" <viro@zeniv.linux.org.uk>
-Cc: "Andy Lutomirski" <luto@kernel.org>, "Li Chen" <me@linux.beauty>,
- "Cong Wang" <cwang@multikernel.io>, "Christian Brauner" <brauner@kernel.org>,
+To: "David Laight" <david.laight.linux@gmail.com>,
+ "Andy Lutomirski" <luto@kernel.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, "Al Viro" <viro@zeniv.linux.org.uk>,
+ "Li Chen" <me@linux.beauty>, "Cong Wang" <cwang@multikernel.io>,
+ "Christian Brauner" <brauner@kernel.org>,
  linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>,
  linux-fsdevel <linux-fsdevel@vger.kernel.org>,
  linux-api <linux-api@vger.kernel.org>, "Arnd Bergmann" <arnd@arndb.de>,
  "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
  "Borislav Petkov" <bp@alien8.de>,
- "Dave Hansen" <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, "Jan Kara" <jack@suse.cz>,
+ "Dave Hansen" <dave.hansen@linux.intel.com>, "Jan Kara" <jack@suse.cz>,
  "Jonathan Corbet" <corbet@lwn.net>, "Shuah Khan" <skhan@linuxfoundation.org>,
  "Kees Cook" <kees@kernel.org>, "Sergei Zimmerman" <sergei@zimmerman.foo>,
  "Farid Zakaria" <farid.m.zakaria@gmail.com>
-Message-Id: <ba6be060-2dd8-4cda-ac73-4b154f968692@app.fastmail.com>
-In-Reply-To: <20260626001538.GO2636677@ZenIV>
+Message-Id: <497dadf6-c7af-4052-8e2b-dacff204d90c@app.fastmail.com>
+In-Reply-To: <20260626092750.58a8de9c@pumpkin>
 References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
- <CALCETrWhXNetw-BsAaoyT31suMmjYLdMh9MAuLB2Lvk2ac-31g@mail.gmail.com>
- <CALCETrU3bgUxp0k1y-U-uL0-fW2016Gmsyu9O_=830czEUGMcQ@mail.gmail.com>
- <103524f8-1658-41df-88e9-cf49c628a721@app.fastmail.com>
- <20260625011023.GM2636677@ZenIV>
- <a75a9b82-a15b-4893-8f92-62b62664ea83@app.fastmail.com>
- <20260626001538.GO2636677@ZenIV>
+ <20260624231219.GL2636677@ZenIV>
+ <29cd3188-2d7c-4470-a39a-6648638f795e@zytor.com>
+ <614b290f-e274-4eb2-b687-008b004de526@app.fastmail.com>
+ <CALCETrWxi1g1wy2Bi4y6URW728Cmo8D3tchdMqs4GZ7S476iJA@mail.gmail.com>
+ <20260626092750.58a8de9c@pumpkin>
 Subject: Re: [RFC] Null Namespaces
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
 
-On Thu, Jun 25, 2026, at 8:15 PM, Al Viro wrote:
-> On Wed, Jun 24, 2026 at 11:41:07PM -0400, John Ericson wrote:
+I am replying to both Andy and David in a single email --- hope that is
+not confusing.
+
+On Thu, Jun 25, 2026, at 7:09 PM, Andy Lutomirski wrote:
+> On Thu, Jun 25, 2026 at 2:53=E2=80=AFPM John Ericson <mail@johnericson=
+.me> wrote:
+> >
+> > The argument against just having an empty, immutable root directory =
+and
+> > calling it a day is the tie-in with a new process-spawning API discu=
+ssed
+> > near the bottom of my original email. I want to have nice secure
+> > defaults, rather than forcing the programmer to remember to unshare,=
+ but
+> > I also don't want to degrade performance by speculatively creating n=
+ew
+> > empty mount namespaces that might just be thrown away. Null fields a=
+lone
+> > get us both --- security and good performance.
 >
-> > But I don't want that global state.
+> This seems like a false dichotomy.  There's such thing as a singleton.
 >
-> Don't use it, then... out of curiosity, does that extend to stdout et.=
-al.?
+> In fact, we have this spiffy nullfs_fs_get_tree.  It seems relatively
+> straightforward to have an API to get an fd to the singleton nullfs,
+> and the default for a newly spawned process could even be to have cwd
+> pointing at nullfs.
 
-Good question; it turns out I like the standard streams much better!
+Ah! This is the first I am learning about the new nullfs. OK yes I agree
+this gives us both properties, since it is truly immutably empty.
 
-First of all, the standard streams are just an idiom --- there is
-nothing actually special about file descriptors 0, 1, and 2. That's a
-clean design --- the kernel doesn't need to know about userspace idioms.
+I still have a slight preference for something that also makes
+statting/opening/etc. of `/` itself fail, but this is otherwise good ---
+there's no denying it.
 
-Second of all, if you don't want any of those, you can just close 'em!
-You can't do that with the cwd, however. It's stuck open.
-
-Ideally `*at` would have been with us from the beginning, and, say, file
-descriptor 3 would have been the "current working directory" merely by
-convention.
-
-> Would that kind of thing added kernel-side assist the development of s=
-uch
-> library?  Maybe, but I wouldn't bet too much on that - if you start fr=
-om
-> scratch, you can trivially verify that you don't even attempt given
-> set of syscalls and if you use libc as a starting point, you get to
-> debug all the failure exits you've added...
-
-First of all, I am trying to change what processes are allowed to do,
-and this includes programs I did not write. A libc-based solution is the
-program cooperating with its own sandboxing; this is not a solution for
-running arbitrary programs which may not be trusted in a restricted
-manner.
-
-Second of all, this would be very laborious in practice, because we're
-talking not about what syscalls the program uses, but about what data is
-passed in those syscalls. Any program that consumes arbitrary user input
-(like shell utilities) might receive an absolute or relative path, and
-so it would have to manually check for that, lest the user input "trick"
-the program into using the root dir and cwd it is trying to ignore.
-
-Making a tiny few edits in the kernel path resolution logic to allow for
-these null fields is much more practical than defending a much broader
-perimeter in userspace.
-
-> > The programmer (or coding agent) is
-> > encouraged to do everything with file descriptors rather than path
-> > concatenations etc., because they need to use `*at` anyways, and then
-> > voil=C3=A0, without browbeating anyone in security seminars or code =
-review, a
-> > bunch of TOCTOU issues disappear simply because doing the right thin=
-g is
-> > now the path of least resistance.
+> root is still harder, because of the shadowing issue.  I think I
+> proposed, ages ago, relaxing the chroot rules so that, at least under
+> certain circumstances (e.g. the task is not already chrooted) an
+> unprivileged task could chroot.  chrooting to nullfs seems like a
+> somewhat useful operation.
 >
-> I'm sorry, but the path of least resistance is picking a snippet from =
-google
-> that will implement open(), etc., on top of your setup and using it.
-> _Especially_ if coding agents are going to be involved, precisely beca=
-use
-> they'll do a convincing simulation of human duhveloper's behaviour, i.=
-e.
-> "cut'n'paste it from the net".
+> I can imagine more complex schemes to allow even a chrooted process to
+> safely start acting as though their root is nullfs, but that would be
+> potentially fairly nasty.  *Maybe* everything would work if there was
+> a root-for-dotdot and a separate root-for-absolute-paths, and
+> nameidata->root could point to the former, but I'm certainly not
+> willing to say that I think this would work with any confidence at
+> all.
 
-We agree! But this is precisely why it is important to make these things
-fail. Mindless Stack Overflow cut'n'pasters (human or agent) still run
-their program to make sure it works. Making the thing you don't want
-them to do *actually fail* creates sufficiently strong and incremental
-feedback that they will end up doing the right thing.
+I really like these ideas!
 
-> > The current working directory, roughly, is *just* some global state
-> > holding a directory file descriptor.
+- Splitting the two uses of root sounds great. Even more generally (at
+  least as a thought experiment, I don't like the O(n) performance), one
+  can imagine a set of paths one must not `cd ..` past. Conceptually, I
+  feel optimistic that inserting another boundary path into the set on
+  every `chroot` makes it safe.
+
+- In the original "real root", the "root for .." field could be null,
+  since no `..` check is actually needed. Then, if we only want to have
+  a single "root for .." (to avoid the O(n)), only the initial
+  assignment of it from null to non-null would be unprivileged --- this
+  would implement your "task is not already chrooted" idea. Subsequent
+  assignment would still be privileged since we are replacing, not
+  extending our "set". (The nullable single path means we have 0 or 1
+  paths in our set.)
+
+----
+
+On Fri, Jun 26, 2026, at 4:27 AM, David Laight wrote:
 >
-> So's the descriptor table; what's the difference?
+> You'd also need to sort out the 'pwd' mess.
+> The kernel inode always has its real parent, inside a chroot the scan =
+stops
+> when the inode is the same as that of the base of the chroot.
+> But faf about with namespaces (IIRC I was doing an unshare to get out =
+of
+> a network namespace) and that comparison can fail (if the chroot base =
+isn't
+> a mount point) - so "../.." can go all the way back to the real root r=
+ather
+> than stopping at the base of the chroot (as you would expect).
+>
+> David
 
-Now that I've responded to everything else, I can answer this in
-summary:
+I did get the impression that the `..` check is...rather fragile. I am
+also thinking that a global setting like `openat2`'s `RESOLVE_BENEATH`
+to make `..` never work would be useful; then all manner of chrooting is
+trivially safe, because you cannot go up regardless!
 
-- File descriptors can be closed; cwd and root cannot be.
+----
 
-- File descriptors need to be explicitly used in syscalls. The cwd and
-  root are implicitly used (in too many different syscalls to make
-  syscall-level auditing practical) based on the sort of path string
-  argument to the syscall, without the program's explicit consent.
+Given the state of the discussion, I'll go submit my null cwd and root
+patch momentarily. The nullfs alternative is quite compelling; to the
+extent that I do prefer making the root operations fail as I said above,
+I think my best shot is demonstrating that this patch is so small and
+lightweight that this slight benefit is paid for by the simplicity of
+the implementation.
 
 John
