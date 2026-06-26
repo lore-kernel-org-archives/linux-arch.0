@@ -1,241 +1,191 @@
-Received: from CH4PR04CU002.outbound.protection.outlook.com (mail-northcentralusazolkn19013094.outbound.protection.outlook.com [52.103.20.94])
+Received: from flow-a1-smtp.messagingengine.com (flow-a1-smtp.messagingengine.com [103.168.172.136])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BB9B1374195;
-	Fri, 26 Jun 2026 15:04:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.103.20.94
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782486247; cv=fail; b=UbcmMmZPqlgKJoxczmO57tcUqYiFVaNa38CuvoPMgJM2a4K8FEGVUo5FkL/AQliF+c/XIe+aVVtAGVgyadK76DgLvObbT5dwWuwDtru1zaILFhhCGgkRHeMNt9IMPODoY7ugHGI8vFqcQa6z2FQQvz2ismv8B73XanZcenbtDak=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782486247; c=relaxed/simple;
-	bh=tt4bvEcxP+PRwqht6gv385GbgA82Cl5IGVg39m9r14s=;
-	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
-	 Content-Type:MIME-Version; b=kMOJ6c84r5cJQwY+Nb1vEaINDpMCJTPdkeuEE6/aqk+cJ8ZY/8ZuSpkmXX9Y+RNVm0FT1a6RR8Dv83xBlzXxd/4X5vb+MF240ei/rG+NNv7/j5Mot+c0pZl0M1swF5ExOFb/mH31zjq+jev9+tjK87Q10mFmi7r0ibTyNLR4k10=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=nrO7GdqJ; arc=fail smtp.client-ip=52.103.20.94
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 209633E2AD1;
+	Fri, 26 Jun 2026 16:26:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.136
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1782491193; cv=none; b=shcJeTTDwQ6rRk7Xq5YKv0+D1GTjSketmewI/xnR7vAa6ZGRnccQ9dbEOA6HXx1ir64tvImhz7lgfBnfKGHYt7YZsd29Ta21Cha1zCFkJ1T6Gdlgfpl0PAlrUse1/I1T+hn61dhwUFPxTVWsBXrCDZV8II6OYQKmnbSuXS8fpq8=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1782491193; c=relaxed/simple;
+	bh=Mz/U24SwsVtPOUHfNr1Quz+WAfYt6WoruIadhcSODqs=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=dYNu67OhWbYMCU+biJ5SbRJK3dDKM6C5tG+yvpnF//sYduxk3KttgD+c0WWWjwpwn2set5kGbJcb8xFdNLXukmOT8g6yDN2IMzI15b8i676XRoVpshsAg6erS8skKtug2u8hqTG9NdK5N5jLQAl0H9Y6RpEgd/0fej9Yt1H3mbs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me; spf=pass smtp.mailfrom=johnericson.me; dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b=SPlopbP4; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=dRYp2Ehi; arc=none smtp.client-ip=103.168.172.136
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=johnericson.me
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="nrO7GdqJ"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=awy8ThVHE1mIC3MLNs3LD3ymzA5WNuhkIdTMY+4F2AhYV+0TSkjVb6ZCKOAq0KZ/KZHwadPqPZByJgjjp7++pUFfCIe5z5/Wb2wU9Vim4HroExQ8MOUXEPdcWCszlyIQMGFqSSAo9irCWRWGmmA9Tup2WvppWeMo0hj64DFfONGpIGEEv4hN3bxwLLN+JWNASCmp2sTuBZ9Jv62UabaHWfKVRdRwMLlL9bH0RP51gsQAzbgT0L48b2rYcZi5kSQfMsLpkQYXma/3dCUDtA2zwHzAUtjLOf9BTp4j/dfoHxYJlkT5i8BpE+Yv1hxZdpddNvqB4sp/Nr6qyNKAUNZiYA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=fjCQORy/yklmyO4rpJfmpSZy0BWSQ0TX7iZSaDzt5cg=;
- b=mTc6PQX5YgDB18TBTNYJnesuaqDohaUYQfhkmSatEfA/g/ldpDUan5giYD6Xg2VB+kEW+FTAcPyi/YU+xYr4kITZvsoMvaM9WgwmM9dNMecqgDEKSllxbYtH7and0/QAjfumJ5wD4iB+MN/ZlTWy32Zlp0Bdy0p3humfaY05urG24hLdb0W1aTEH0ohPMpKNCP3prq1XjO/6wpbcZOhPc5hhSm8X8LnLf2/xWm3wGDxb3zFSalio2kV1/GIx1707YRaS0OGph6zlFgS8X8Dvx04xZ36Ebw93Xur6hP+1ng9KkJO01MkqNobTn5B4vdiPbTaOEaZS/ce4nh/C4Akbyw==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
- dkim=none; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
- s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=fjCQORy/yklmyO4rpJfmpSZy0BWSQ0TX7iZSaDzt5cg=;
- b=nrO7GdqJfAlAm1BMl2Eg24MONz5gUHUbpgpEUfVXAIEd9nK5j5lxSIFE0itu2g63LvJzrDYzCYyx2JjI38JCeUlZ5i1GssjsM9d6LnWKp5YbKbtMjfYU3BTobfk8ej1eTWCPVx0rl4H2KDjGoXCqPD9KWpyhmg9lNP46RFtODbVSFSk3V8SBoRB4Wgj870FTEy4b2LdOY4NftUjWTXBE3ZBdTtbqEDnB24shimeFGSUW3lg0OEJC1MsfoyOpNBI/31/V00Zmcd3Hd6yUvUKYvSPJAxE1BX+aLtM5ffbkTBLBfGrAZCqBNFrQtr5QzQ2dCINcEgQFnRLOpkyE/jvQ+g==
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com (2603:10b6:805:33::23)
- by IA3PR02MB10568.namprd02.prod.outlook.com (2603:10b6:208:53b::22) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.159.13; Fri, 26 Jun
- 2026 15:04:00 +0000
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::900:1ccf:2b1e:52b6]) by SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::900:1ccf:2b1e:52b6%3]) with mapi id 15.21.0159.007; Fri, 26 Jun 2026
- 15:04:00 +0000
-From: Michael Kelley <mhklinux@outlook.com>
-To: Kameron Carr <kameroncarr@linux.microsoft.com>, Michael Kelley
-	<mhklinux@outlook.com>, "kys@microsoft.com" <kys@microsoft.com>,
-	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "wei.liu@kernel.org"
-	<wei.liu@kernel.org>, "decui@microsoft.com" <decui@microsoft.com>,
-	"longli@microsoft.com" <longli@microsoft.com>
-CC: "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org"
-	<will@kernel.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>,
-	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "sudeep.holla@kernel.org"
-	<sudeep.holla@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>,
-	"thuth@redhat.com" <thuth@redhat.com>, "linux-hyperv@vger.kernel.org"
-	<linux-hyperv@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org"
-	<linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org"
-	<linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org"
-	<linux-arch@vger.kernel.org>
-Subject: RE: [PATCH v2 4/6] Drivers: hv: Mark shared memory as decrypted for
- CCA Realms
-Thread-Topic: [PATCH v2 4/6] Drivers: hv: Mark shared memory as decrypted for
- CCA Realms
-Thread-Index: AQHdBMj4p7vUSbVMmE+fvPgM94V6W7ZPn6qAgAEPDwCAAEG8oA==
-Date: Fri, 26 Jun 2026 15:04:00 +0000
-Message-ID:
- <SN6PR02MB41571AB004406F331E167203D4EB2@SN6PR02MB4157.namprd02.prod.outlook.com>
-References: <20260625173500.1995481-1-kameroncarr@linux.microsoft.com>
- <20260625173500.1995481-5-kameroncarr@linux.microsoft.com>
- <SN6PR02MB4157D5F94B5C5F35020FF047D4EC2@SN6PR02MB4157.namprd02.prod.outlook.com>
- <000801dd055c$2e375050$8aa5f0f0$@linux.microsoft.com>
-In-Reply-To: <000801dd055c$2e375050$8aa5f0f0$@linux.microsoft.com>
-Accept-Language: en-US
-Content-Language: en-US
-X-MS-Has-Attach:
-X-MS-TNEF-Correlator:
-x-ms-publictraffictype: Email
-x-ms-traffictypediagnostic: SN6PR02MB4157:EE_|IA3PR02MB10568:EE_
-x-ms-office365-filtering-correlation-id: 43851b75-3a81-4262-b3c7-08ded39427a8
-x-ms-exchange-slblob-mailprops:
- znQPCv1HvwUXBahuwteIkQeW30lJPuxOF1PXm9A0ZeLXlonzuv4zSh0DPHX/Zagh91CLQP2f/HTrTwwam00EMGvqxY1aol8iTUTG28Fxcc/jCN2wgI15lnDuDzz1/+MzrkQd9XsEhg5v7+rSnYPT6HZagD4Jv8YvRyak3pVRpbRKqUBKSbin52Unv+lssFam353Jf7oQ+djvlssCZNyUt6fA5ihYpZEc49xIPgdbf/uYXTGEW4+enTGfR7zNm6kpyzlkZPyAl3CH8e5aVxNlkB+ts2Pj35tvn9roqB0ZPsfKrfEY9/teerq9ZPbJemhXd5dzz3TtcjVlSOzzRLtFWW5335emp1IyIc6DKibNBhO+2FgtqbmRP9qWptydkJ4yF1k1UCopUg7Ux+5kyBX37qMXSDzvIDuP23+rsLb3FAXjZcftg692IjQ2NSCZSe5YiLZDuoJvy8VwoHQ1SEbzG52KjE9BaSjId+86fIPoHBGkKKTuUZMMETuvmEGVzEgyKaQdcI8tDdbyYTQJ+288GSv6Vc5TnYhbd3Zhy8Zv1vfa2V72HPfX+GrVt9MAhkUEEuojqKEXkoAuhGqiHz/EaUK2NpAEWzEaUM+7FncXHe+becM0aKKvrLNg/DZjbeB0KQB9iIWvo2XqY62B4k+/730mzcSAchKGZyEq6uuCiUQKniTDZsNjClx+apUbuub7dJA255qUzmnyAql7wzTbzJz67wS61bcN/6oCkOe6oBYZjQYOTTqU1FbWzLb95EgKFwcYJdt9rMw=
-x-microsoft-antispam:
- BCL:0;ARA:14566002|31061999003|19101099003|8062599012|37011999003|19110799012|25010399006|8060799015|41001999006|13091999003|51005399006|15080799012|40105399003|102099032|3412199025|440099028|1710799026;
-x-microsoft-antispam-message-info:
- =?us-ascii?Q?y/te1Mpm+beqTk+nlaq4tECc24eQ6JrhnUK32OtjUCpLbq4+XK+pmlTp1JfY?=
- =?us-ascii?Q?ezMvcPfF+EcE2ghO3nMwfytKYXCiHUIRWRUJOhfRL8un8TY+XBLwu/H9IFfw?=
- =?us-ascii?Q?+qc/JGddUUqu1PYXZaf6A1kHSdabbzVpUVzJW9tEh7jPNk08V6BJdSZJVvp7?=
- =?us-ascii?Q?zzzNY+0N69mO/vmhQr/GeWkYtWSOOHoIAo+Gm/lK9CdEAbBOkpzc3HcKOECP?=
- =?us-ascii?Q?aDPeojV54Ja21CdCDuqDMKTnU7OB9+wYqozsahBRmJa2nLPX+ly/4d3K/guE?=
- =?us-ascii?Q?6ViogVPjv2oZd1CubegkxxAlIg95fOt+2ORaxGP22ifKTQwGDoyzRRZJuTqC?=
- =?us-ascii?Q?gVvb6pY5BoMTpVcgodaT1lT2qjdDphAc9wswEzjJiTS+8q/FUdewGh3s8+Xu?=
- =?us-ascii?Q?lPl5WEkt/vEFnmk2QB+EhUC4FXb52+7Pav5D2LpSQZol/pqeeqzAfqeyX4DE?=
- =?us-ascii?Q?ybS54LXGmrj5WS4TsjQgxmu8iDkBSAhQYvpOFLbkzPC31WUJ3uC1x5PwyDUM?=
- =?us-ascii?Q?LYhUYJPgmRHCnfDBmcJzRVuK6HYjGRClWbNXP+UWOC3FhqW3b1ORmI4MpM1T?=
- =?us-ascii?Q?CDUoNR7bzD5Uc1JUxSMw4HKGXnwLkFWktWfGBGEGRtCmlmFGNyRYwSiUnTXk?=
- =?us-ascii?Q?kroo7NZc25GzqayszlDbMHD5L0DSyZwTeKGp+EWEjWaIBp42TGssaiFYJwMZ?=
- =?us-ascii?Q?P5A05Cg3B22kwdInQXmQMk1N9pQT4tOMcjOb0TMeY0tCJUzs/sJDJ4Npn0Dw?=
- =?us-ascii?Q?OywvOlIw0n9ns2BZrL6l13lzDFX/hYQuFkxxgCC7ZY3Y6NmUOtiwSWufCbOn?=
- =?us-ascii?Q?5uC2AEd8PXJFL/k4IlJ1UnCSqvildYUQ8CAR5J7jEQ5feturr5HcFwxB403p?=
- =?us-ascii?Q?vhF0dtXUMi+NzM5Solyr/86zXr5deYZ9czIGmpZhhgMWgRFsMfaOGXN7ITxF?=
- =?us-ascii?Q?OJVlcVOUBbcxMJZDpMG5dY6U6sWzt1UPbfeQ04Mh2euPQSQfUO82QK8y0fkB?=
- =?us-ascii?Q?R4HMubUd88M2/PECSB8EmXUiy94VE/ZkveMKMVRcN25VaSbSFTLaOqS3KRqn?=
- =?us-ascii?Q?BQXlSok0?=
-x-ms-exchange-antispam-messagedata-chunkcount: 1
-x-ms-exchange-antispam-messagedata-0:
- =?us-ascii?Q?PW72ajV3FVzDi4M7+1qvMYsUn8Dr/ebTquIzDVfjAMBmUGPj26ih9eKCKgaN?=
- =?us-ascii?Q?uoFE1S4eHrzDTnl4hzSnaSiRUjHnLMFGuX9ea1V3DxA19rWMoSCtiUmYUvOv?=
- =?us-ascii?Q?fFnBInJjnpilvUo2Fy8wcRkp0r/vatBZspGVTMCZt9T19V0qJs6+AHvGKVr6?=
- =?us-ascii?Q?XiNOX/Yg8L2lL4BZeZIBZXuH+PoE60AL4EVhyn/y54Tg0sMub4LAnrhHtQLI?=
- =?us-ascii?Q?LjaNDkjsCxgJrkMywNc7aQ65NcesvbnVba9dyVp60j+7GNLp8voglsAaT+I4?=
- =?us-ascii?Q?BKriYPZk7frYXYxJa4mZx9XXyLi5SwDMEs1FOGDXZOqVPRnEiHoS+3XHIRT7?=
- =?us-ascii?Q?zyxiPDyAkIVmAvQ6zVoRZkfcbbIlxLhbFbTYrBLFHzrrPozP+rBEurLSxAr/?=
- =?us-ascii?Q?DB6W5PYTIQaP86MLjMQNlKVz3MSfwhAajG5oeVAGZahITZqdAUkhCnxJ2+7N?=
- =?us-ascii?Q?djoTZlJeqGL6F0rkh2Q6f4MHyPZYsVyDNWmTJT8NjxjkQ11dcbwjbH+uvXT+?=
- =?us-ascii?Q?ksOeF76Mvd40iIjKsdYjoUpEFwkqczmHEJUA/l+qv2SNbVqLdg5f0s4DeFI5?=
- =?us-ascii?Q?X67fsy7CKxk7A1tKbnfljNhQoUMoS7aLy3Ma+Ye91UTB+QszxbCNOKcAkm5+?=
- =?us-ascii?Q?QeTlU6LBY5bN0NwMAWV69cnndbznuU3AtXskRDmFvOK1jP0omT9OeHUE6dIu?=
- =?us-ascii?Q?Zll5l3OxHdTS2VMVvG1Bz3IFfqhrt1kJRGStc6vBZ2+3LaAWE68T3Y9lX6tv?=
- =?us-ascii?Q?9mbtN2GvZZL7uQuBCZPfCXeCpoaGz6vuUGjCXpc1d/a0/KlP2V1yZfrDYpWn?=
- =?us-ascii?Q?1u1G/UEt97dewTWDxTz6MlBsQ8mHt5HbblcXAlYNyNI9aJYa4/npkuvMtNR7?=
- =?us-ascii?Q?JwRU2plysL5GB8qmq29T6Ie9OQllZ0MIGtTNHm2ZuFUSKdTWM4QDg9lJLnZ8?=
- =?us-ascii?Q?pwJZjADtUPf1CeG/UmM4YnAcf7tgIksMsyBPFZVGQir/SiLHQJvRFWWNFPCi?=
- =?us-ascii?Q?WbEhtRO+guuUw0PKdcp9fwEToG+SGv4qyH+EOFErcv0JZcA9q5nILiPCcKeP?=
- =?us-ascii?Q?BNbRCZ+klXq2X6aIjcLPHKREQ3waW9umej+jrENOADtrtKFQwWoXGbgxmcCy?=
- =?us-ascii?Q?65mJHFsi8RKyufcZrSgi87IE2FOooXCaluczVyP07qOJt8bFTGTh7gtaU5km?=
- =?us-ascii?Q?Xq/bta7bpdsc4kzse6Fnq/SzKwAJ2lWuhZp1q7FAHuuDSSjnWWZdTtTRa/4T?=
- =?us-ascii?Q?ZhzRCnx/6N+rW3LYhgocyCu34IccPeO18Wf7For/OA0bCxXQaceM9/+0kN9K?=
- =?us-ascii?Q?cbU7z+J166TPodkliSbKZIxxDHG/7VWOwIguWUONkgt2S8dFvlr7cAKlkFs2?=
- =?us-ascii?Q?c0oXRD0=3D?=
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+	dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b="SPlopbP4";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="dRYp2Ehi"
+Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
+	by mailflow.phl.internal (Postfix) with ESMTP id 28702138003B;
+	Fri, 26 Jun 2026 12:26:31 -0400 (EDT)
+Received: from phl-imap-16 ([10.202.2.88])
+  by phl-compute-05.internal (MEProxy); Fri, 26 Jun 2026 12:26:31 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=johnericson.me;
+	 h=cc:cc:content-transfer-encoding:content-type:content-type
+	:date:date:from:from:in-reply-to:in-reply-to:message-id
+	:mime-version:references:reply-to:subject:subject:to:to; s=fm3;
+	 t=1782491191; x=1782498391; bh=zo1vKmi6nDEQFw10MzbUtqBMgAqbeul2
+	j6P3vSvt178=; b=SPlopbP4GHueoT5BMNLqY+W4uGbAwB7jgw8agYIaF28shVlJ
+	wK+qVZDYILJwhka56O2+QDYejbn+J076sNf/S5wRAqjesV2RGpprbRZbUApJH0/V
+	agJmXOataX29I4DlvVvrdlQDJGf+TPxGYL812FMMOFJ6koI1srV0VVuCK8708xYi
+	JliDazJjoyO6tyLhbuwW2fCs7YO/9cBZaaKbkraRN3SMiebslX78owsfSz/rcGpE
+	4oUUgHcP61VyMt7Sr+7Na6Gtzt2/5YxmynYsG8cZWAbIWm13GkNcu5QTfyb1nhJH
+	ovsSv1YsA8tzbvFHlKhZnYdrQuWYPX8OHeNUfg==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1782491191; x=
+	1782498391; bh=zo1vKmi6nDEQFw10MzbUtqBMgAqbeul2j6P3vSvt178=; b=d
+	RYp2EhiXV6GsJrVk1oSNWuBObCMSYuI6jdEsE0jW+k6solP1QmAKUGSO4hMrU+Ig
+	kBJXiMo6ecgXTDa2oQb0ck7puBap8f4nAshtLteQDCq5GnToY6DwWqvwstgi9Psp
+	Lxfd67txHAJ7I0iYze3F3q1g8Xha9dzkHy2Bt9pp2gjq06HhXrfGau7nkblXe1m8
+	lax94wM9GhDnH0WZK0PmTTsmJW7U1RTsfv/hJe0oyOgpqohKQmYrByJa6bzbjXGh
+	vre79tsw5dXQWXhlQVKfa78bnT9XTMMFvCV1hm7Pjt2fXQFuec65oAwW+t1au/0F
+	ksRBEGo/z9mhjwBh8RSDg==
+X-ME-Sender: <xms:Nag-auWLtcHt889oRmjF6T0gdOKSR2Ux2gwekvx9hJf8goqgFzeHZw>
+    <xme:Nag-alYip_4aAgrSnK6xbQSQSZjOhc-92PCq5HlaNxRW8KXf39qO9odKYBWcXnJht
+    EW6eDC240djqRV2M9HE-tOh3zKFIdh5B4JbMvnOjcvZBuM1YYF4Xw>
+X-ME-Proxy-Cause: dmFkZTFgiFjdRsukHEqzjO2JlLF7qtQ8Ajnv4KbpUVK5BbcUW0/0LZ3HdLzuqk6crIinlh
+    AT292UJL2AHJNFqudBA5tfxvDt8hYr7Pdk4v+1HQ4wDmBditK366BV6RX9xHSDn80klhcA
+    d/vBx2JAgw9T6A8zOCaf6hAUcvgu+oKBKIXdZtdeYeTcpeq9azqtWPuyLZccbY0lvTBD/M
+    GAjnp4AJZR97bP7ThB/C4qvdSCeWKlTgEBzROUQtIgrMMB58RTEvrcvNORUWnWIkl0ZBg/
+    Ont/O9F3HXeMnaYCvOtEysBRg5fpV3zKl5dqOExuwEjnAL1ss0NO2OstgPGN0e7O+pvzcU
+    Mf7k7w2q8iqj3hDGPHirXoPB+oL9jzueRN2HJAkmyFfqYApCHRQTBdj66ufCko0o05sdqA
+    s3Hw54rZHUpSr0yvj4dHK0KbY8HUEXntKsyhG2nWa96gZpMWQirZSLzhHQD/V/+/dJLbKQ
+    8SrgF383091dRJiIIZ061ttxGeRjqMl31lAO+zb2f0epruqcpwsvKjJ2ayBCaCWO1+xUTQ
+    CnGBtEbfQwHqL/+FpOYhlGOm7OOCStq5irIwAPMHj+WsfX0qIXEwtZfHc0d8TETmTVrhzX
+    Zp8WdrXxKjG2CNHFpH/klWZpMczA8gYkg91B3O8TA7TNvVnbV23t+TjN1iww
+X-ME-Proxy: <xmx:Nag-ask1XphmWFQQNKq8v7Fq8pQRsEsRBwdUXQMUX-EVamT2DDV7Iw>
+    <xmx:Nag-apDT832kxHmlJjNL6sl4q37nvlQWiRULoK-DA1e4dcjFfDGvbA>
+    <xmx:Nag-avLsW5GcdZwYn_d-y8EvNfvw5esU3-vroppDogeMrGWKewTQBQ>
+    <xmx:Nag-akxW5tuizNbDxm51vDsMBMAJH9eQrB5T0zo5xMAk-onLEXD1VQ>
+    <xmx:N6g-amMIh2rml7_nZOvyXzk16RhXb0pM48ntbw0pojR4GlFdtIUpjoRO>
+Feedback-ID: ieb4144f1:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id 952122CC0083; Fri, 26 Jun 2026 12:26:29 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-OriginatorOrg: outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: SN6PR02MB4157.namprd02.prod.outlook.com
-X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-CrossTenant-Network-Message-Id: 43851b75-3a81-4262-b3c7-08ded39427a8
-X-MS-Exchange-CrossTenant-originalarrivaltime: 26 Jun 2026 15:04:00.7103
- (UTC)
-X-MS-Exchange-CrossTenant-fromentityheader: Hosted
-X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
-X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: IA3PR02MB10568
+X-ThreadId: AG8qDlxFSDr7
+Date: Fri, 26 Jun 2026 12:26:09 -0400
+From: "John Ericson" <mail@johnericson.me>
+To: "Al Viro" <viro@zeniv.linux.org.uk>
+Cc: "Andy Lutomirski" <luto@kernel.org>, "Li Chen" <me@linux.beauty>,
+ "Cong Wang" <cwang@multikernel.io>, "Christian Brauner" <brauner@kernel.org>,
+ linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>,
+ linux-fsdevel <linux-fsdevel@vger.kernel.org>,
+ linux-api <linux-api@vger.kernel.org>, "Arnd Bergmann" <arnd@arndb.de>,
+ "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
+ "Borislav Petkov" <bp@alien8.de>,
+ "Dave Hansen" <dave.hansen@linux.intel.com>,
+ "H. Peter Anvin" <hpa@zytor.com>, "Jan Kara" <jack@suse.cz>,
+ "Jonathan Corbet" <corbet@lwn.net>, "Shuah Khan" <skhan@linuxfoundation.org>,
+ "Kees Cook" <kees@kernel.org>, "Sergei Zimmerman" <sergei@zimmerman.foo>,
+ "Farid Zakaria" <farid.m.zakaria@gmail.com>
+Message-Id: <ba6be060-2dd8-4cda-ac73-4b154f968692@app.fastmail.com>
+In-Reply-To: <20260626001538.GO2636677@ZenIV>
+References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
+ <CALCETrWhXNetw-BsAaoyT31suMmjYLdMh9MAuLB2Lvk2ac-31g@mail.gmail.com>
+ <CALCETrU3bgUxp0k1y-U-uL0-fW2016Gmsyu9O_=830czEUGMcQ@mail.gmail.com>
+ <103524f8-1658-41df-88e9-cf49c628a721@app.fastmail.com>
+ <20260625011023.GM2636677@ZenIV>
+ <a75a9b82-a15b-4893-8f92-62b62664ea83@app.fastmail.com>
+ <20260626001538.GO2636677@ZenIV>
+Subject: Re: [RFC] Null Namespaces
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Friday, June 26,=
- 2026 4:09 AM
->=20
-> On Thursday, June 25, 2026 11:59 AM, Michael Kelley wrote:
-> > From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Thursday,
-> > June 25, 2026 10:35 AM
-> > > We need to round up the memory allocated for the input/output pages t=
-o
-> > > the nearest PAGE_SIZE, since set_memory_decrypted() requires the size=
- to
-> > > be a multiple of PAGE_SIZE. This only has an effect on ARM VMs that a=
-re
-> > > using PAGE_SIZE larger than 4K.
-> >
-> > I think this change resulted from a Sashiko comment. My understanding i=
-s
-> > that the ARM CCA architecture only supports CCA guests with 4 KiB page
-> > size. Is that still the case, or has that restriction been lifted in a =
-later version
-> > of the architecture? I'm in favor of handling the larger page sizes, if=
- only for
-> > future proofing. But I wondered whether your intent is to always suppor=
-t
-> > > 4 KiB page sizes even if CCA doesn't support them now. Another way to
-> > put it: In reviewing code, should I flag issues related to page sizes >=
- 4 KiB?
->=20
-> I think you might be right. I'm looking at RMM spec 2.0 beta 2, and the R=
-MI
-> can have granule size 4KB, 16KB, 64KB, but the RSI is restricted to granu=
-le size
-> 4KB.
->=20
-> I'm open to suggestion on best way to move forward.
+On Thu, Jun 25, 2026, at 8:15 PM, Al Viro wrote:
+> On Wed, Jun 24, 2026 at 11:41:07PM -0400, John Ericson wrote:
+>
+> > But I don't want that global state.
+>
+> Don't use it, then... out of curiosity, does that extend to stdout et.=
+al.?
 
-The best approach probably depends on whether the 4 KiB restriction is
-likely to be lifted in a future version of the CCA architecture, and I don'=
-t have
-any insight into that.
+Good question; it turns out I like the standard streams much better!
 
-If it is likely to be lifted, then doing the initial implementation to supp=
-ort
-larger page sizes probably makes sense (which is what you've done here).
-It's less work than going back and adding later. But the commit message
-and/or code comments should indicate that the larger page size support
-is future-proofing work, so that someone doesn't get the wrong idea that
-it should work with larger page sizes now.
+First of all, the standard streams are just an idiom --- there is
+nothing actually special about file descriptors 0, 1, and 2. That's a
+clean design --- the kernel doesn't need to know about userspace idioms.
 
-The alternate approach is to not do any larger page size support now,
-and to explicitly state that the code is assuming the current restriction
-of 4 KiB page size only.
+Second of all, if you don't want any of those, you can just close 'em!
+You can't do that with the cwd, however. It's stuck open.
 
-Whichever approach is chosen should be used consistently so there's
-not a mishmash.
+Ideally `*at` would have been with us from the beginning, and, say, file
+descriptor 3 would have been the "current working directory" merely by
+convention.
 
->=20
-> > > @@ -499,14 +500,16 @@ int hv_common_cpu_init(unsigned int cpu)
-> > >  		}
-> > >
-> > >  		if (!ms_hyperv.paravisor_present &&
-> > > -		    (hv_isolation_type_snp() || hv_isolation_type_tdx())) {
-> > > -			ret =3D set_memory_decrypted((unsigned long)mem, pgcount);
-> > > +		    (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
-> > > +		     hv_isolation_type_cca())) {
-> > > +			ret =3D set_memory_decrypted((unsigned long)kasan_reset_tag(mem),
-> > > +				alloc_size >> PAGE_SHIFT);
-> >
-> > I don't know enough about KASAN or the tag situation on ARM64
-> > to comment on this change. But this same sequence of allocating
-> > memory and then decrypting it occurs in other places in Hyper-V
-> > code. It seems like those places would also need the same
-> > kasan_reset_tag() call.
->=20
-> I'm not sure of the exact behavior of PAGE_END when there are
-> KASAN tags, but it looks like tags could mess with the address
-> comparison.
->=20
-> I do see that __virt_to_phys_nodebug() and virt_addr_valid() in
-> arch/arm64/include/asm/memory.h both reset tags before calling
-> __is_lm_address().
->=20
-> If there are many calls that follow this pattern, it may be better to
-> add the tag reset in __set_memory_enc_dec().
+> Would that kind of thing added kernel-side assist the development of s=
+uch
+> library?  Maybe, but I wouldn't bet too much on that - if you start fr=
+om
+> scratch, you can trivially verify that you don't even attempt given
+> set of syscalls and if you use libc as a starting point, you get to
+> debug all the failure exits you've added...
 
-I had the same thought.
+First of all, I am trying to change what processes are allowed to do,
+and this includes programs I did not write. A libc-based solution is the
+program cooperating with its own sandboxing; this is not a solution for
+running arbitrary programs which may not be trusted in a restricted
+manner.
 
->=20
-> I can undo this change.
->=20
+Second of all, this would be very laborious in practice, because we're
+talking not about what syscalls the program uses, but about what data is
+passed in those syscalls. Any program that consumes arbitrary user input
+(like shell utilities) might receive an absolute or relative path, and
+so it would have to manually check for that, lest the user input "trick"
+the program into using the root dir and cwd it is trying to ignore.
 
-Unfortunately, I don't know whether undoing it is right or not. I
-haven't taken the time to go learn about the whole scheme and its
-implications.
+Making a tiny few edits in the kernel path resolution logic to allow for
+these null fields is much more practical than defending a much broader
+perimeter in userspace.
 
-Michael
+> > The programmer (or coding agent) is
+> > encouraged to do everything with file descriptors rather than path
+> > concatenations etc., because they need to use `*at` anyways, and then
+> > voil=C3=A0, without browbeating anyone in security seminars or code =
+review, a
+> > bunch of TOCTOU issues disappear simply because doing the right thin=
+g is
+> > now the path of least resistance.
+>
+> I'm sorry, but the path of least resistance is picking a snippet from =
+google
+> that will implement open(), etc., on top of your setup and using it.
+> _Especially_ if coding agents are going to be involved, precisely beca=
+use
+> they'll do a convincing simulation of human duhveloper's behaviour, i.=
+e.
+> "cut'n'paste it from the net".
+
+We agree! But this is precisely why it is important to make these things
+fail. Mindless Stack Overflow cut'n'pasters (human or agent) still run
+their program to make sure it works. Making the thing you don't want
+them to do *actually fail* creates sufficiently strong and incremental
+feedback that they will end up doing the right thing.
+
+> > The current working directory, roughly, is *just* some global state
+> > holding a directory file descriptor.
+>
+> So's the descriptor table; what's the difference?
+
+Now that I've responded to everything else, I can answer this in
+summary:
+
+- File descriptors can be closed; cwd and root cannot be.
+
+- File descriptors need to be explicitly used in syscalls. The cwd and
+  root are implicitly used (in too many different syscalls to make
+  syscall-level auditing practical) based on the sort of path string
+  argument to the syscall, without the program's explicit consent.
+
+John
