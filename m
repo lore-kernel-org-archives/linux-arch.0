@@ -1,84 +1,119 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7A3651917CD;
-	Thu, 25 Jun 2026 23:50:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F0213148850;
+	Fri, 26 Jun 2026 00:15:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782431413; cv=none; b=KAbsf/obhXqYjDxkckM/jqNMcD1eVnQ6vAd2amFWqxMkYordl9UdUJfGnxXd0VK9TgEpJloZlqxjU+SHTeWxQwS9jeyCF+HPD8s6GukFnhL9IwrJHceuyS7Ea8fFg99z9pELuuuuKrqTLm7JR6aIC9fGs0f2uuii3wtWwnpJ9n4=
+	t=1782432949; cv=none; b=kq0mfvBRqpdoSbFHBxNnENbbhOsCWiWrVHk4AsIbd0VE1xu057mXvIn2qyUel0LD7mplBzcBr1RutE3KVf4i5qQOdQ6Ruv6YGxIB/a1qU/Q/SMUfKHNc4EsOTBsjQslrmzafsE7zJpnwDjhbDQIkupvf9h6jGNBNvNhj+wljzuM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782431413; c=relaxed/simple;
-	bh=b/uzxwEipj/Efz4MXpWRmScHzZ/r1bhdcMgpZhRcZRA=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=cgBn1rZko/4+Opg9dBglQAOYZVah1+SOZ+JAF9dr2yrkYtFR3JCdLbV32KYr+8vyKvIO+NeJJEo4s+t5iUvp19aY2d4jam4eTIidBnGTs2BZWaa2Qn1Epmeu2AiZlFaYlGQW01i4bIrEeshicBWy/XD0EwRWWsnB5Bc8jcBPb/E=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=V+A7P8ux; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1782432949; c=relaxed/simple;
+	bh=TXFUd1//ASVCm45IdM7vCzKmpt2KivxrRxl8T59HmGA=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=DzTZL6YMbwDwJySwLYr31zW72T2BgztYjedVbgDDtTJ59gWiK8POwP6wYO847cwFoqWiYmGb1tuL5b1bLSckpIFCkJQA95sar3VbH7JlMKopQU73QAXdv3mhG80QwWBuu2qRa4Q+QkMBkuCLArHuiFbvUyEOmebcAZwOEN6+fBw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=E6c+dNVg; arc=none smtp.client-ip=62.89.141.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="V+A7P8ux"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 8FEEB1F000E9;
-	Thu, 25 Jun 2026 23:50:11 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1782431412;
-	bh=R1YH/25jH8EUpnUYE4yYe3IAuRxDTUoa/BzAPS6Us+Q=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=V+A7P8uxAtf89viHayjsoJigHhanmOpAi9FfKGACSN9DGz5jlM6pdO8WDxGk2SvpW
-	 FOATRzor8tbMA246cNjmKDqGuPC51MxrTIAR6cQWrNjP21f4QLSl8FRAmMwsPlskEa
-	 hZftnM+m3orh6hScXPTr3VBYtNpa1dul2/P9W3cM=
-Date: Thu, 25 Jun 2026 16:50:11 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: Aaron Tomlin <atomlin@atomlin.com>
-Cc: arnd@arndb.de, mcgrof@kernel.org, petr.pavlu@suse.com,
- da.gomez@kernel.org, samitolvanen@google.com, neelx@suse.com, sean@ashe.io,
- chjohnst@mail.com, steve@abita.co, mproche@mail.com, nick.lane@mail.com,
- linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
- linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] init/main: Expose built-in initcalls and blacklist
- status via debugfs
-Message-Id: <20260625165011.63b47ca601b6f871797d98ac@linux-foundation.org>
-In-Reply-To: <20260510061301.41341-1-atomlin@atomlin.com>
-References: <20260510061301.41341-1-atomlin@atomlin.com>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="E6c+dNVg"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:
+	Content-Transfer-Encoding:Content-Type:MIME-Version:References:Message-ID:
+	Subject:Cc:To:From:Date:Reply-To:Content-ID:Content-Description;
+	bh=RXGcvQsylfrmfPpvXKTtDL2DjwJxYfuocbo/6g3/+YM=; b=E6c+dNVgGQn1AxI7tf4I3RZVpV
+	WQzWhxxIRnyg/nFdU2MWLaU9k2Nx16h9SuUQXDzsCI0mW8rOONB61jAS95qQzU0+YzVc1gk/ywTQR
+	NW15XHxFmnGwTg06CmqVu1u/fH+kU8bG6dMprh0I+x7IzZGR3jxzakN/+mv275qNhdhyt3/YHfOWO
+	YQ52SD/e4Z0gIDwi93qD21rWErt0BfLjsl1VuiVkQK9N3LDOEon6GFmBuRN4LTEvpx3AQbIT0i9Ao
+	GaOnq5G/ZPnZVL4HoACTibttIzA5BSRtYn5e26KELgJnwm4der3mC/6ruuYuui5U757ifAoThgXf6
+	2ZQd8gfA==;
+Received: from viro by zeniv.linux.org.uk with local (Exim 4.99.4 #2 (Red Hat Linux))
+	id 1wcuEM-000000082GQ-1gGn;
+	Fri, 26 Jun 2026 00:15:39 +0000
+Date: Fri, 26 Jun 2026 01:15:38 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
+To: John Ericson <mail@johnericson.me>
+Cc: Andy Lutomirski <luto@kernel.org>, Li Chen <me@linux.beauty>,
+	Cong Wang <cwang@multikernel.io>,
+	Christian Brauner <brauner@kernel.org>,
+	linux-arch <linux-arch@vger.kernel.org>,
+	LKML <linux-kernel@vger.kernel.org>,
+	linux-fsdevel <linux-fsdevel@vger.kernel.org>,
+	linux-api <linux-api@vger.kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	"H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Shuah Khan <skhan@linuxfoundation.org>, Kees Cook <kees@kernel.org>,
+	Sergei Zimmerman <sergei@zimmerman.foo>,
+	Farid Zakaria <farid.m.zakaria@gmail.com>
+Subject: Re: [RFC] Null Namespaces
+Message-ID: <20260626001538.GO2636677@ZenIV>
+References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
+ <CALCETrWhXNetw-BsAaoyT31suMmjYLdMh9MAuLB2Lvk2ac-31g@mail.gmail.com>
+ <CALCETrU3bgUxp0k1y-U-uL0-fW2016Gmsyu9O_=830czEUGMcQ@mail.gmail.com>
+ <103524f8-1658-41df-88e9-cf49c628a721@app.fastmail.com>
+ <20260625011023.GM2636677@ZenIV>
+ <a75a9b82-a15b-4893-8f92-62b62664ea83@app.fastmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <a75a9b82-a15b-4893-8f92-62b62664ea83@app.fastmail.com>
+Sender: Al Viro <viro@ftp.linux.org.uk>
 
-On Sun, 10 May 2026 02:13:01 -0400 Aaron Tomlin <atomlin@atomlin.com> wrote:
+On Wed, Jun 24, 2026 at 11:41:07PM -0400, John Ericson wrote:
 
-> At present, identifying the correct function name to supply to the
-> "initcall_blacklist=" kernel command-line parameter requires manual
-> inspection of the source code or kernel symbol tables. Furthermore,
-> administrators lack a reliable runtime mechanism to verify whether a
-> specified built-in module has been successfully blacklisted.
+> The current working directory, roughly, is *just* some global state
+> holding a directory file descriptor.
 
-I expect nobody has felt a need for this in their day-to-day work, so
-the interest is low.
+So's the descriptor table; what's the difference?
 
-A detailed description of the use-cases would be of benefit - help
-people better understand the value of this to our users.  I suggest you
-add this info and send a v2, if motivated.
+> But I don't want that global state.
 
-> To resolve this, introduce a new debugfs interface at
-> /sys/kernel/debug/modules/builtin_initcalls. This file enumerates all
-> built-in modules alongside their corresponding initialisation callbacks
-> (e.g., those specified by module_init()) in a simple format:
-> "module_name init_callback".
+Don't use it, then... out of curiosity, does that extend to stdout et.al.?
 
-Isn't this information all available at build time?
+> If I am writing my userland program (that is not a shell), I would not
+> create the global variable. I do not appreciate the fact that the kernel
+> foists that state upon me whether I like it or not.
 
-Can we extract it and put it in some file somewhere which becomes part
-of the distributed kernel package?
+<wry> Kernel will have to live without your appreciation, I suppose. </wry>
 
-Or is it possible to write some userspace application which processes
-the files which are typically in the kernel package and which extracts
-this info?
+> Now obviously we cannot have a giant breaking change removing the notion
+> of a current working directory altogether. But we can allow individual
+> processes which don't want it to opt out, and that is what nulling out
+> these fields (and updating the path resolution code to cope with that)
+> allows.
+> 
+> There is no loss of expressive power doing this, because one can (and
+> should!) just use the `*at` and file descriptors. But there is, however,
+> the imposition of discipline.
 
-> If a built-in module has been actively
-> blacklisted, the entry is explicitly appended with a " [blacklisted]"
-> suffix.
+So supply a library of your own and try to convince people to use it
+instead of libc.  You'll have to anyway, seeing that a large and
+hard-to-predict part of libc will be non-functional.  Which syscalls
+are used by your library is entirely up to you.
 
-Can this be added to the /proc/modules output in some fashion?  Perhaps
-just add TAINT_BLACKLISTED and we get this info almost for free?
+Would that kind of thing added kernel-side assist the development of such
+library?  Maybe, but I wouldn't bet too much on that - if you start from
+scratch, you can trivially verify that you don't even attempt given
+set of syscalls and if you use libc as a starting point, you get to
+debug all the failure exits you've added...
+
+> The programmer (or coding agent) is
+> encouraged to do everything with file descriptors rather than path
+> concatenations etc., because they need to use `*at` anyways, and then
+> voilà, without browbeating anyone in security seminars or code review, a
+> bunch of TOCTOU issues disappear simply because doing the right thing is
+> now the path of least resistance.
+
+I'm sorry, but the path of least resistance is picking a snippet from google
+that will implement open(), etc., on top of your setup and using it.
+_Especially_ if coding agents are going to be involved, precisely because
+they'll do a convincing simulation of human duhveloper's behaviour, i.e.
+"cut'n'paste it from the net".
