@@ -1,130 +1,196 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E49E394780;
-	Mon, 29 Jun 2026 07:12:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id B978B3EDE6A;
+	Mon, 29 Jun 2026 08:19:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782717139; cv=none; b=hpB2LnZxmswmO+Spa4J5KB7A5qNKNv8Jdwy7MMqtnOqrMoNHr1YBeOPNlNVZQVMP84QzVnCD9DGgBrgX96FSc6WabjSenm7nCMbxPmpNyH91aGgjYZZ/8FWpf0B1Wj8hZfxuOxB+f2JFsxlKSqxVZ+wXMeVrx9SfjV9/GYyG+V8=
+	t=1782721143; cv=none; b=eldJBFh8/Tox9U+16WQw4785Cti6PEbUVUVCGG9C71zIZlyiafNz//z8D4XYn1OMr8+OqHtwAd720rRDVj+1hkb2qr4WlXzAbeKSOT2V9UrEYnyB3hhh8jK2F3JzTNp7QMUKdSJ7fVRaReBnHx7SEoCfzhAJ7KX0eQX51OOiz+s=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782717139; c=relaxed/simple;
-	bh=iIFLBAM/tIt0dQ5zz76F+VqqO3DXDSEYi0YBpjgPesI=;
-	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
-	 References:Date:Message-Id; b=lFs3+RDLtcsU8mkzKWXe4UCJU0BT3ySCzWi0Ek5cZ0IJsJG0gW6hMIEZlTm7eIKx0jXgbqe3RhMsJlWQD1NxxKnF7nmUpeBjrzS2ge5PJ9BYvENx5dmDjHGfldBy4HtNWLhjgcbgfQ5wXeu6yBI2z0zyH7WeM5xLP0rfVtRMa+8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=MrYJJ0zh; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1782721143; c=relaxed/simple;
+	bh=vdIwsM5VwLMwOyR5nmZmGyQCjALyr3YaMsY8v0GXe6E=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=c5K9PFRFhkT3ytniuIOQLDlf6PRHJbi/Hvto1Ul1465QtiDvgRM2tl9YgxzFwYSWZmY4D3xp69YLQyZP3pLKtUTUdvWIgvFEV3ivXK6XqJsupvWuXRY9/KsA7C+CcCFN55qSUdctjYwlTZCXHNwzbf17SKq73O3ub9gBkMSLisY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=irVpVIBd; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="MrYJJ0zh"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2920C1F000E9;
-	Mon, 29 Jun 2026 07:12:12 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1782717137;
-	bh=RfYGT01dvLOEc8FqHgrZrGneidKm26R2Z1JVOqhWxrM=;
-	h=Subject:From:To:Cc:In-Reply-To:References:Date;
-	b=MrYJJ0zhU6cSrLl39RQigi+2QZvaFhOxbtu1yEA6hTyfVFpe/kYj8ZS00AXP7ptpn
-	 Zs/rJ4Dk4D534ofnWSAGcbnEwLBN/KnvzIci93vQYjVXwfpFlx1AlhBW9Fl152Ded2
-	 /d2CVFTAmvwi5kDgZUn7qhQmYO2wdcMIKJ4WVa+ZCyvoFeewkXIeIOzYKTxPYfM626
-	 SjdOu9pZ7M9zKvR4x37LFNlLbmDD8YtYoeFwpksA/Z471kU6qCbYSB3sCDLkxfcAQi
-	 JOMt77dEy2HlYYsyn4/PmvnAsM7jCjaWO0fNwc7DiAVI1I8URakcULdgc+Xyp2+ihr
-	 o5UyVL2HDf0Jw==
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="irVpVIBd"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 8C83B1A00;
+	Mon, 29 Jun 2026 01:18:55 -0700 (PDT)
+Received: from [192.168.7.252] (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 50C943F836;
+	Mon, 29 Jun 2026 01:18:59 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1782721140; bh=vdIwsM5VwLMwOyR5nmZmGyQCjALyr3YaMsY8v0GXe6E=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=irVpVIBdPYx6IgoFS4gIJNMnmB19XzTpVbrzPw/Pv91RzbqL4TsZD0/uNldTg64Vk
+	 BMdgzIZz6C0yJjCRqxhnxEhP+VlFwCX37LZQIwx8FaLBMpLWvqkhiFNP+34Mctjx43
+	 /+ot73ukejEkdy52U3ym2VzQWo0HpZtL1nKVbMkY=
+Message-ID: <e63ff5e2-831c-4b9c-8306-ba6cf343e524@arm.com>
+Date: Mon, 29 Jun 2026 09:18:58 +0100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] vdso: Replace __ASSEMBLY__ with __ASSEMBLER__ in header
+ files
+Content-Language: en-GB
+To: Thomas Huth <thuth@redhat.com>, Andy Lutomirski <luto@kernel.org>,
+ Thomas Gleixner <tglx@kernel.org>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+References: <20260619100600.121042-1-thuth@redhat.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+In-Reply-To: <20260619100600.121042-1-thuth@redhat.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v4] coredump: Add /proc/<pid>/coredump_pre_exit for
- pre-exit before dumping
-From: Christian Brauner <brauner@kernel.org>
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Pedro Falcato <pfalcato@suse.de>, 
- Christian Brauner <brauner@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
- Lorenzo Stoakes <ljs@kernel.org>, mjguzik@gmail.com, ebiederm@xmission.com, 
- viro@zeniv.linux.org.uk, jack@suse.cz, jlayton@kernel.org, 
- chuck.lever@oracle.com, alex.aring@gmail.com, arnd@arndb.de, 
- keescook@chromium.org, mcgrof@kernel.org, j.granados@samsung.com, 
- allen.lkml@gmail.com, linux-fsdevel@vger.kernel.org, 
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
- Xin Zhao <jackzxcui1989@163.com>, linux-mm@kvack.org
-In-Reply-To: <9a8e189a-39b4-4571-bdd5-400cf6443204@kernel.org>
-References: <20260624145552.70143-1-jackzxcui1989@163.com>
- <20260625-wappnen-drohbrief-wermutstropfen-c53538f01547@brauner>
- <9105c433-44a7-4e8f-bacb-def93d11a7f2@kernel.org>
- <aj0Mr3e9yt0kU-Qj@pedro-suse>
- <9a8e189a-39b4-4571-bdd5-400cf6443204@kernel.org>
-Date: Mon, 29 Jun 2026 09:11:33 +0200
-Message-Id: <20260629-zunutze-wirkt-furor-e9ed5e4c31ee@brauner>
-X-Mailer: b4 0.16-dev-4217c
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2891; i=brauner@kernel.org;
- h=from:subject:message-id; bh=iIFLBAM/tIt0dQ5zz76F+VqqO3DXDSEYi0YBpjgPesI=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQ5Se197O5/9JN18ZuQuB087FV2hsyBitO0r6+OvXRY1
- uRYwsnzHaUsDGJcDLJiiiwO7Sbhcst5KjYbZWrAzGFlAhnCwMUpABNpn8HwV3pngYVt49uynd6p
- 3+a2TZzmxvVtguLbMr6tfY9XBIX9bWX4n9C9UiVUPda/2qBRe06i9a2NodH7fbWCpnPt/WTjph3
- PAgA=
-X-Developer-Key: i=brauner@kernel.org; a=openpgp;
- fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-On 2026-06-25 13:43 +0200, David Hildenbrand (Arm) wrote:
-> On 6/25/26 13:18, Pedro Falcato wrote:
-> > On Thu, Jun 25, 2026 at 12:57:02PM +0200, David Hildenbrand (Arm) wrote:
-> >>>
-> >>> This makes no sense. I think you really need to sit down and think about
-> >>> a design for this that doesn't introduce state machinery for boot, mm,
-> >>> and the VFS in one shot to solve a fringe problem...
-> >>
-> >> Staring at exit_mmap_mapped_shared(), ... this looks rather hacky ("let's fake
-> >> munmap and set some magical flags").
-> >>
-> >> We're essentially saying "we don't want (pretty much) anything that's MAP_SHARED
-> >> in the coredump". And for some reason someone should configure that, that's a
-> >> rather weird toggle tbh.
-> >>
-> >> And the granularity ("file-backed shared memory") is completely odd.
-> >>
-> >>
-> >> Aren't there other ways we could optimize this internally?
-> >>
-> >> Like, if we know that a process is dead and cannot run anymore, downgrade writes
-> >> to reads (and make sure we block GUP write attempts accordingly), or would that
-> >> also not be sufficient?
-> >>
-> >>
-> >> Another thought:
-> >>
-> >> fs/coredump.c calls get_dump_page().
-> >>
-> >> get_dump_page() will not fault in any memory. So if a page is not in the page
-> >> tables at the time of the dump, it will not get included in the coredump. Which
-> >> means, that whether most non-anonymous memory will be included in a coredump is
-> >> already like playing the lottery.
-> >>
-> >> This is true for MAP_SHARED file mappings and MAP_PRIVATE file mappings without
-> >> private modifications.
-> >>
-> >> Which makes me wonder: How much is tooling relying on file-backed pages to end
-> >> up in a coredump?
-> > 
-> > FWIW this mechanism already exists, see /proc/self/coredump_filter. The
-> > default is bits 0, 1, 4 and 5 (see core(5)), which maps back to no file pages
-> > being dumped to a core dump, apart from ELF headers (these help the debugger
-> > trace back the mapped binary to the debug info using the buildid).
-> > 
-> > So the answer to this question is "approximately none" :)
-> > 
+Hi Thomas,
+
+thank you for your patch.
+
+On 19/06/2026 11:06, Thomas Huth wrote:
+> From: Thomas Huth <thuth@redhat.com>
 > 
-> Ah, thanks! vma_dump_size() honors this, and I am sure through some magical
-> routing the information stored in m->dump_size will end up not dumping these pages.
+> While the GCC and Clang compilers already define __ASSEMBLER__
+> automatically when compiling assembly code, __ASSEMBLY__ is a
+> macro that only gets defined by the Makefiles in the kernel.
+> This can be very confusing when switching between userspace
+> and kernelspace coding, or when dealing with uapi headers that
+> rather should use __ASSEMBLER__ instead. So let's standardize now
+> on the __ASSEMBLER__ macro that is provided by the compilers.
 > 
-> Staring at elf_core_dump(), this "unmap some stuff" part is really, really
-> nasty, as it effectively removes the VMAs->segments from the dump. (unless I am
-> missing something important)
+> This is a completely mechanical patch (done with a simple "sed -i"
+> statement).
+> 
+> Signed-off-by: Thomas Huth <thuth@redhat.com>
 
-I would not mind if you would clean the mm portion of coredump up as I
-think it's pretty ancient and - as you can see - rather questionable.
+Reviewed-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-Fwiw, for the coredump socket I added a "userspace" mode a little while
-ago where the kernel doesn't actually generate the coredump at all but
-let's userspace do it. Android has the same model but uses signal
-handler tricks (iirc) to do this.
+> ---
+>  Note: This patch has been split from an earlier bigger patch of mine
+>        to ease reviewing.
+> 
+>  include/asm-generic/vdso/vsyscall.h | 4 ++--
+>  include/vdso/datapage.h             | 6 +++---
+>  include/vdso/helpers.h              | 4 ++--
+>  include/vdso/processor.h            | 4 ++--
+>  include/vdso/vsyscall.h             | 4 ++--
+>  5 files changed, 11 insertions(+), 11 deletions(-)
+> 
+> diff --git a/include/asm-generic/vdso/vsyscall.h b/include/asm-generic/vdso/vsyscall.h
+> index 5c6d9799f4e74..a6b03cfba0e24 100644
+> --- a/include/asm-generic/vdso/vsyscall.h
+> +++ b/include/asm-generic/vdso/vsyscall.h
+> @@ -2,7 +2,7 @@
+>  #ifndef __ASM_GENERIC_VSYSCALL_H
+>  #define __ASM_GENERIC_VSYSCALL_H
+>  
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>  
+>  #ifndef __arch_get_vdso_u_time_data
+>  static __always_inline const struct vdso_time_data *__arch_get_vdso_u_time_data(void)
+> @@ -30,6 +30,6 @@ static __always_inline void __arch_sync_vdso_time_data(struct vdso_time_data *vd
+>  }
+>  #endif /* __arch_sync_vdso_time_data */
+>  
+> -#endif /* !__ASSEMBLY__ */
+> +#endif /* !__ASSEMBLER__ */
+>  
+>  #endif /* __ASM_GENERIC_VSYSCALL_H */
+> diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+> index 5977723fb3b5d..09897f76ae07a 100644
+> --- a/include/vdso/datapage.h
+> +++ b/include/vdso/datapage.h
+> @@ -2,7 +2,7 @@
+>  #ifndef __VDSO_DATAPAGE_H
+>  #define __VDSO_DATAPAGE_H
+>  
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>  
+>  #include <linux/types.h>
+>  
+> @@ -176,7 +176,7 @@ enum vdso_pages {
+>  	VDSO_NR_PAGES
+>  };
+>  
+> -#else /* !__ASSEMBLY__ */
+> +#else /* !__ASSEMBLER__ */
+>  
+>  #ifdef CONFIG_VDSO_GETRANDOM
+>  #define __vdso_u_rng_data	PROVIDE(vdso_u_rng_data = vdso_u_data + 2 * PAGE_SIZE);
+> @@ -197,6 +197,6 @@ enum vdso_pages {
+>  	__vdso_u_arch_data					\
+>  
+>  
+> -#endif /* !__ASSEMBLY__ */
+> +#endif /* !__ASSEMBLER__ */
+>  
+>  #endif /* __VDSO_DATAPAGE_H */
+> diff --git a/include/vdso/helpers.h b/include/vdso/helpers.h
+> index a3bf4f1c0d37d..65151b681c4f5 100644
+> --- a/include/vdso/helpers.h
+> +++ b/include/vdso/helpers.h
+> @@ -2,7 +2,7 @@
+>  #ifndef __VDSO_HELPERS_H
+>  #define __VDSO_HELPERS_H
+>  
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>  
+>  #include <asm/barrier.h>
+>  #include <vdso/datapage.h>
+> @@ -111,6 +111,6 @@ static __always_inline void vdso_write_end(struct vdso_time_data *vd)
+>  	vdso_write_seq_end(&vc[CS_RAW]);
+>  }
+>  
+> -#endif /* !__ASSEMBLY__ */
+> +#endif /* !__ASSEMBLER__ */
+>  
+>  #endif /* __VDSO_HELPERS_H */
+> diff --git a/include/vdso/processor.h b/include/vdso/processor.h
+> index fbe8265ea3c49..cc781912a696e 100644
+> --- a/include/vdso/processor.h
+> +++ b/include/vdso/processor.h
+> @@ -5,10 +5,10 @@
+>  #ifndef __VDSO_PROCESSOR_H
+>  #define __VDSO_PROCESSOR_H
+>  
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>  
+>  #include <asm/vdso/processor.h>
+>  
+> -#endif /* __ASSEMBLY__ */
+> +#endif /* __ASSEMBLER__ */
+>  
+>  #endif /* __VDSO_PROCESSOR_H */
+> diff --git a/include/vdso/vsyscall.h b/include/vdso/vsyscall.h
+> index b0fdc9c6bf439..c5c2a2c078571 100644
+> --- a/include/vdso/vsyscall.h
+> +++ b/include/vdso/vsyscall.h
+> @@ -2,13 +2,13 @@
+>  #ifndef __VDSO_VSYSCALL_H
+>  #define __VDSO_VSYSCALL_H
+>  
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>  
+>  #include <asm/vdso/vsyscall.h>
+>  
+>  unsigned long vdso_update_begin(void);
+>  void vdso_update_end(unsigned long flags);
+>  
+> -#endif /* !__ASSEMBLY__ */
+> +#endif /* !__ASSEMBLER__ */
+>  
+>  #endif /* __VDSO_VSYSCALL_H */
+
+-- 
+Regards,
+Vincenzo
 
