@@ -1,165 +1,85 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from verein.lst.de (verein.lst.de [213.95.11.211])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 424263E1D0B;
-	Mon, 29 Jun 2026 11:45:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BCBFD3FF882;
+	Mon, 29 Jun 2026 12:22:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.95.11.211
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782733533; cv=none; b=F9la2bS9foX4qKodtJAPd/xZTuLGA6OnPbftNog6FoocloHuXrxopROyPFjYtHTiai8AT7ebXlup3t2pCRyv5VHm8ZaCth8uMsrJupdJ4jh02822fpAUewPNGmhWy/dSnlpwlwBEgGy0Pl6BTlucv20Vvm2ezmwcGoYrNx6aVdo=
+	t=1782735726; cv=none; b=mYPCdwbXXgk22QfY/TCFzPUDPteoUWnjUyUbpCuu+UgwGYbZymY7FPaTnpPsnjDjfh0D4xe2DKlqO8rFKOsFBlU44JHyjpouoz0GKomvT6OTpKvodAejWcbIkyDWJ8VXuBxQ2GvDYhNHZgcJHCj6W22gbw67OQzxgNjpTbzqVgw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782733533; c=relaxed/simple;
-	bh=mO6KBVEcVU6weHyHSOPR/eUgWm69nMeEAxQhCBoxhO4=;
+	s=arc-20240116; t=1782735726; c=relaxed/simple;
+	bh=iXiWJaNmrgEVAFaZ3zGsQNIPOs7ChWbqNeUDOQroWWY=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=XGCAwVo3xM712B1f5yAGGwi4u0w7c/Ptv//7lqcZ6x1qfp0yK3Gkryt4WqQgnAKdEHhanVbRIsqi8f8YK+84jNxuOzYt+ubhOh9cuGS/xq7UUQ+TcjKbQGt2qzc/mkb11B+q5qrDdPkBqPPyQVE8JRTMJhWbicVke6HAYbishYI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ZCFvIaou; arc=none smtp.client-ip=100.103.45.18
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ZCFvIaou"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2C0A81F00A3A;
-	Mon, 29 Jun 2026 11:45:26 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1782733532;
-	bh=3EDzNCjzRQuh6bcRTPIewp0CJ8CdNnMKQoMPKCrJ1Bs=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=ZCFvIaouUKUttP0YYQr2mIlykz17U2Jlqi9E1koSxGoRLeARD4ke/DxzYQ8I/jJFi
-	 A7xNJo67AYDnJtSjuhxH/8cOx8R5Ts4QIgMx6BjfR+z5kipRDosz/YvP3eAVvKHMS7
-	 NlDDiSKMvDrA3WxiRJV7Ijf6s/KFhn9wxfoGxlDMU1N7sV44lOIFk04OsDkgXzFrVO
-	 vzdEfwjVFkRa8OjYCevbmK7V0AK6PHf0OUL2OhQ12WH2Y8O/cpsNSHzq3tGKUoT9Pq
-	 7Q1idLWhdbr9LzEMZyCVFs9lfUvu1ALPKg0tYwafX6ShYOu5J0+eeo3nwAavmC8RiU
-	 rIiuSSAllSmIg==
-Date: Mon, 29 Jun 2026 13:45:24 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: John Ericson <mail@johnericson.me>
-Cc: Li Chen <me@linux.beauty>, Cong Wang <cwang@multikernel.io>, 
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Kees Cook <kees@kernel.org>, 
-	Sergei Zimmerman <sergei@zimmerman.foo>, Farid Zakaria <farid.m.zakaria@gmail.com>
-Subject: Re: [RFC] Null Namespaces
-Message-ID: <20260629-hauer-erhitzen-sobald-96d3dff68707@brauner>
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
+	 Content-Type:Content-Disposition:In-Reply-To; b=q0L5Dmk14nNVbJkCAdY9mC9JZwJorCM1M8DUvqrc+8GJbLcp1nM/+SDM9DRTOB/02SBZyxxUcYNALcMuoOzGlykD3zaG0P8onrCfBxuu5Q7VjH7v1a+jQZ16lEDQPhJ1/AYbPodbVXW09EpwgQLlJ6b8WdbscQkzjI/+MLb6YWI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de; spf=pass smtp.mailfrom=lst.de; arc=none smtp.client-ip=213.95.11.211
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lst.de
+Received: by verein.lst.de (Postfix, from userid 2407)
+	id E5ACE68AFE; Mon, 29 Jun 2026 14:21:52 +0200 (CEST)
+Date: Mon, 29 Jun 2026 14:21:52 +0200
+From: Christoph Hellwig <hch@lst.de>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Christoph Hellwig <hch@lst.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	Herbert Xu <herbert@gondor.apana.org.au>,
+	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+	Song Liu <song@kernel.org>,
+	Yu Kuai <yukuai@alb-78bjiv52429oh8qptp.cn-shenzhen.alb.aliyuncs.com>,
+	Li Nan <linan122@huawei.com>, linux-kernel@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
+	linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+	linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
+	linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-raid@vger.kernel.org
+Subject: Re: cleanup the RAID6 P/Q library v3
+Message-ID: <20260629122152.GA21344@lst.de>
+References: <20260518051804.462141-1-hch@lst.de> <20260518141205.c100f76eec5f58e78bbbf7af@linux-foundation.org> <20260519082432.GA14956@lst.de> <7d8efc7c-65e3-49f8-9381-910de7affef2@zytor.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
+In-Reply-To: <7d8efc7c-65e3-49f8-9381-910de7affef2@zytor.com>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 
-On Wed, Jun 24, 2026 at 06:51:47PM -0400, John Ericson wrote:
-> Hello, I am hoping to discuss an idea I've had for a while, that I am
-> calling "null namespaces" that has become more relevant with some recent
-> other discussions. First I'll discuss null namespaces in general terms,
-> and then I'll link those recent discussions and relate null namespaces
-> to them.
+On Fri, Jun 26, 2026 at 05:52:18PM -0700, H. Peter Anvin wrote:
+> On 2026-05-19 01:24, Christoph Hellwig wrote:
+> > 
+> > raid6: rework registration of optimized algorithms
+> > 
+> >  - avx2 instead of avx512 is probably the right thing for no
+> >    benchmarking, but if it was intentional (it wasn't), that should
+> >    be document.  So I'll just switch back to the previous version to
+> >    keep the state of the art
 > 
-> ### Null namespaces
+> It is unlikely to be the right thing *going forward*, though.
 > 
-> The essence of null namespaces is trying to give processes as little
-> ambient authority as possible, so they are lighter weight and allowed to
-> do even less than fully unshared processes today.
-> 
-> Namespaces as they exist today are frequently described as an isolation
-> mechanism, but I think this is the conflation of two different things.
-> *Removing* a new process from its parent's namespaces unquestionably is
-> increasing isolation --- no disagreement there. But putting the process
-> in new namespaces is something else; I would call it supporting
-> "delusions of grandeur" of that process. For example, namespaces allow a
-> process to do mounts, have `CAP_SYS_ADMIN`, create network interfaces,
-> look up other processes by PID, etc.
-> 
-> Conceptually, to remove a process from one ambient authority scope (the
-> very name "namespaces" indicates they are about ambient authority)
-> should not require putting it in some ambient authority scope. Just
-> because, for example, the process cannot see one mount tree, doesn't
-> mean it needs to see another.
-> 
-> Here's what I am thinking would happen concretely:
-> 
-> First, the simpler cases:
-> 
-> #### Null mount namespace
-> 
-> - requires:
-> 
->   - null root file system: absolute paths don't work.
-> 
->   - null current working directory: relative paths with traditional,
->     non-`*at` system calls (and `*at` ones using `AT_FDCWD`) don't work.
-> 
-> - All operations relating to the "ambient" mount tree don't work.
-> 
-> - `*at` operations with a file descriptor do work.
-> 
-> - The new fd-based mount APIs with detached mounts do work, modulo
->   the calling process having enough permissions (as usual).
+> The very unfortunate performance inversion is likely model-specific. It is one
+> of those things where you largely would have to have a list of quirks :(
 
-Nothing here requires you to NULL anything and I oppose this on code
-sanity reasons alone. We shoud absolutely not start to stash any NULL
-pointers in core kernel objects such as struct path that are used
-everywhere.
+Note that the default is still to benchmark the implementations.
+This is just about the case where the user explicitly disabled that
+benchmark-based selection.
 
-So I've added nullfs a few releases back. It's currently not mountable
-from userspace but I've already mentioned in the commit message that
-this is going to change. But I also added:
-
-unshare(UNSHARE_EMPTY_MNTNS)
-clone3(CLONE_EMPTY_MNTNS)
-
-In both cases the process is placed into a completely empty mount
-namespace with nullfs as it's root and cwd. If you're in a new mount
-namespace with CAP_SYS_ADMIN thrown away it means you're going to be in
-nullfs forever.
-
-It's possible we can come up with:
-
-unshare(UNSHARE_FS_EMPTY)
-clone3(CLONE_FS_EMPTY)
-
-which just moves the task into an isolated nullfs instance (it would
-need some thinking about interactions with chroot()).
-
-But I guess the even simpler model would be to copy what I've been doing
-for pidfs:
-
-+static struct path nullfs_root_path = {};
-+
-+void nullfs_get_root(struct path *path)
-+{
-+       *path = nullfs_root_path;
-+       path_get(path);
-+}
-+
- static void __init init_mount_tree(void)
- {
-        struct vfsmount *mnt, *nullfs_mnt;
-@@ -6209,6 +6217,8 @@ static void __init init_mount_tree(void)
-        /* Mount mutable rootfs on top of nullfs. */
-        root.mnt                = nullfs_mnt;
-        root.dentry             = nullfs_mnt->mnt_root;
-+       nullfs_root_path.mnt    = nullfs_mnt;
-+       pidfs_root_path.dentry  = nullfs_mnt->mnt_root;
-
-        LOCK_MOUNT_EXACT(mp, &root);
-        if (unlikely(IS_ERR(mp.parent)))
-diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
-index aadfbf6e0cb3..f55c87c70b78 100644
---- a/include/uapi/linux/fcntl.h
-+++ b/include/uapi/linux/fcntl.h
-@@ -124,6 +124,7 @@ struct delegation {
-
- #define FD_PIDFS_ROOT                  -10002 /* Root of the pidfs filesystem */
- #define FD_NSFS_ROOT                   -10003 /* Root of the nsfs filesystem */
-+#define FD_NULLFS_ROOT                 -10004 /* Root of the nullfs filesystem */
- #define FD_INVALID                     -10009 /* Invalid file descriptor: -10000 - EBADF = -10009 */
-
- /* Generic flags for the *at(2) family of syscalls. */
-
-we then add fchroot() (overdue anyway) and then teach both fchdir() and
-fchroot() to honor FD_NULLFS_ROOT. Then a process may shed its fs state
-and move itself into nullfs. Restrict *chdir() and *chroot() for said
-process via seccomp and it's locked in forever as well.
