@@ -1,150 +1,124 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B7AB739283C
-	for <linux-arch@vger.kernel.org>; Tue, 30 Jun 2026 06:48:14 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9D5D53D1CCF;
+	Tue, 30 Jun 2026 07:14:37 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782802097; cv=none; b=evm4JJsOiO4CqfUVbRk0sbWgL7HJwZUrgGZv/E8gvS8qCHiIkh9U3We0CHma7IxBKYwKBKkr+lPVh0tLs3OUSEFy6QTfx1KQrJMLtBdKyabeJNDM83cLyCiirQZTmTj6B3uNMakGq3d15ZzzvR9Xo6psiLwsJdrnGK7MOft9mh0=
+	t=1782803678; cv=none; b=HVfPvK2P1CqQmWqC9pG3kfT95Pb5hq7TSs8AVnwru3hcKug+8FC4OSZ+bQR7CNA+pil/KacQnOOnldsLDAWx/EbiO9AuGRZtVTVPaA7FyOVa8J+aTavh/MgwqvfZ4MgYf2C0oFvbNDaN5u5jzGK7duIuqFdezomArtaiPl9N8/M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782802097; c=relaxed/simple;
-	bh=HH7V0RO+G10+WPRVyC1TrQpVHHN/W20mERyQs529ODk=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=YPTuZ3MLQXRInJVLKsLUxLcF9uWqhx/VUFZPTpzbc/zZVOkD+KQ5dewV6QLbcI4sTO9FEWKtXHhW9cLtB6li+128siUcTrTuO8Cu6pxwbEIvdHkw56JTQYEKNmrMc+bEdTiGhugfx2UXAKbZ0rfJGyOtFa9mssTly3dUJM1kZl0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=gQbUHPxh; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1782803678; c=relaxed/simple;
+	bh=VICWaE9WUXW2LWdO5r9lbkxHnC+JwXq4KpepnM7pCA0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=QkJXs8BC9pvEm3+f77B9V7EvylyQh9161F8W/HW6QQuuCBFoYe9gaOG1SHwcq6zBHReOq9kNEk1YmidGEof+6vhuKBzMq7X3ykgZU8XxhsTOH7pxDeqsUtFXQj8EQofqqNtK0bdMZzwjDFBLKmumHMOEr/hgi3rXOlJKB5cws0s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=lF6Bhj9O; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="gQbUHPxh"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6B5D21F01558
-	for <linux-arch@vger.kernel.org>; Tue, 30 Jun 2026 06:48:14 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="lF6Bhj9O"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CAE601F00A3A;
+	Tue, 30 Jun 2026 07:14:32 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1782802094;
-	bh=GmOeYBnH+pucvx3tPfeJ0XPPeaBlbElUu+Q/ZIKymgM=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc;
-	b=gQbUHPxhEiH2raHpZIN6oBRl9E+1UD3QUNT2Fw4BPeFQ+WDHDN+zFU6PwALsNMK05
-	 2WjNlTS+FoMmA2fr/tFjj4GhPIvIc9cC2METu1pc6GLfvit78DT+DLQV/gs1JE0hbt
-	 fgb31zwcDdQo31BoonXIRM6Fq/apx7UcxVtwwsvPyNwkqB88Yh/LevTtxWfRLdoZMZ
-	 rGXNGVVtUgJi44UaN8zODBgy2aNOsaQGrrILL7pUJP5D7qUzL9mSiRR3za3IxR1s/f
-	 4WmaLujPY3xb+FTws1zpYt90YJaXS77LpBoqsRjCJKuubo6YxPtNvlspKmDadlCY35
-	 LSZgNK5KCJ5eg==
-Received: by mail-wr1-f52.google.com with SMTP id ffacd0b85a97d-47231f1f8f3so3355308f8f.1
-        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2026 23:48:14 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AHgh+RojAgdKLbCZEQMkUiYEwPl4XJP+Zpu49hsTo5otyM7g38lf6o+ALitqXsgyScUzASx4cSkUUiU8ecsi@vger.kernel.org
-X-Gm-Message-State: AOJu0YztjC//xD/tBv+yK4lzNbfwWXJ8jAgPL5g8ki44mgDzbmElNcvZ
-	eS8H9WvJnabC3eDFHQQ9EjHVf+OarErDqlkpaAS1dKYEMr/Vs+wF9cq7uuNXjocnetvOk1bXKBd
-	VoRDNbbU/oP1tIwlKajmtSR1elBXEahc=
-X-Received: by 2002:a5d:5d06:0:b0:475:f100:3600 with SMTP id
- ffacd0b85a97d-475f100372fmr683383f8f.61.1782802093102; Mon, 29 Jun 2026
- 23:48:13 -0700 (PDT)
+	s=k20260515; t=1782803677;
+	bh=+QSVg6eV+J0zaLkGpTTo7MZ6WXU0ihg0UHJ87/LB+6w=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=lF6Bhj9OoogKud4iTtoRksj3SG8/hInr72NpOxv+PftPWGHJV4EyNPyxPsqL7ND/T
+	 HPxN3DCwTGHq+fQubufrypHawzwGcB3ChEl6hr8v+CNSILbRcCHoGoNHOkcQuuloko
+	 OhuMoeWIy23ruLd/DRjYuxPubIpK4OvaVWx7qzPh2ndE8B9L2q5pUqWSMpWzrHn+By
+	 Uj3NVRJjqGt+fY1aoLJRe9EYTho5ZESjxfkVBNGRFaSm8oNFQOQTQzmKJ6OnXYTk05
+	 R9KMYRv0T8qLJRR0Q0meWmz0yOZ2eudt4x3nCrzXpfOpqkGl0BD+1RdHQAciG5MVB7
+	 pB5lWonGYgsdQ==
+Date: Tue, 30 Jun 2026 09:14:30 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: John Ericson <mail@johnericson.me>
+Cc: Li Chen <me@linux.beauty>, Cong Wang <cwang@multikernel.io>, 
+	linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, 
+	linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, 
+	Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, 
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
+	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
+	Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <kees@kernel.org>, 
+	Sergei Zimmerman <sergei@zimmerman.foo>, Farid Zakaria <farid.m.zakaria@gmail.com>
+Subject: Re: [RFC] Null Namespaces
+Message-ID: <20260630-kippen-jobaussicht-restriktionen-2149cc663b22@brauner>
+References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
+ <20260629-hauer-erhitzen-sobald-96d3dff68707@brauner>
+ <eb390c52-eeb3-44b3-88e9-e65c52a26c05@app.fastmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260630045531.3939-1-kprateek.nayak@amd.com> <20260630045531.3939-5-kprateek.nayak@amd.com>
-In-Reply-To: <20260630045531.3939-5-kprateek.nayak@amd.com>
-From: Guo Ren <guoren@kernel.org>
-Date: Tue, 30 Jun 2026 14:47:57 +0800
-X-Gmail-Original-Message-ID: <CAJF2gTTi3EJj7NrOEZ0GF21VxfyUFujnaGbRmLuYy1_YcPkbDw@mail.gmail.com>
-X-Gm-Features: AVVi8Cc9p7eoaCe7f58H6IC6apx1iBlYENd1M3Ce4o3oou9E96K3mWDK4f0IxWE
-Message-ID: <CAJF2gTTi3EJj7NrOEZ0GF21VxfyUFujnaGbRmLuYy1_YcPkbDw@mail.gmail.com>
-Subject: Re: [PATCH v5 4/8] riscv/runtime-const: Replace open-coded
- placeholder with RUNTIME_MAGIC
-To: K Prateek Nayak <kprateek.nayak@amd.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
-	Darren Hart <dvhart@infradead.org>, Davidlohr Bueso <dave@stgolabs.net>, 
-	=?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>, 
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	Samuel Holland <samuel.holland@sifive.com>, Charlie Jenkins <thecharlesjenkins@gmail.com>, 
-	linux-arm-kernel@lists.infradead.org, linux-riscv@lists.infradead.org, 
-	linux-s390@vger.kernel.org, Alexandre Ghiti <alex@ghiti.fr>, 
-	Jisheng Zhang <jszhang@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <eb390c52-eeb3-44b3-88e9-e65c52a26c05@app.fastmail.com>
 
-On Tue, Jun 30, 2026 at 12:57=E2=80=AFPM K Prateek Nayak <kprateek.nayak@am=
-d.com> wrote:
->
-> Define the placeholder used for lui + addi[w] patching sequence as
-> RUNTIME_MAGIC and use that instead of open coding the constants in the
-> inline assembly.
->
-> No functional changes intended.
->
-> Suggested-by: Guo Ren <guoren@kernel.org>
-> Reviewed-by: Charlie Jenkins <thecharlesjenkins@gmail.com>
-> Tested-by: Charlie Jenkins <thecharlesjenkins@gmail.com>
-> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
-> ---
-> changelog v4..v5:
->
-> o Collected tags from Charlie (Thanks a ton!)
-> ---
->  arch/riscv/include/asm/runtime-const.h | 38 ++++++++++++++------------
->  1 file changed, 20 insertions(+), 18 deletions(-)
->
-> diff --git a/arch/riscv/include/asm/runtime-const.h b/arch/riscv/include/=
-asm/runtime-const.h
-> index 900db0a103d05..1ce02605d2e43 100644
-> --- a/arch/riscv/include/asm/runtime-const.h
-> +++ b/arch/riscv/include/asm/runtime-const.h
-> @@ -15,21 +15,23 @@
->
->  #include <linux/uaccess.h>
->
-> +#define RUNTIME_MAGIC __ASM_STR(0x89ABCDEF)
-> +
->  #ifdef CONFIG_32BIT
-> -#define runtime_const_ptr(sym)                                 \
-> -({                                                             \
-> -       typeof(sym) __ret;                                      \
-> -       asm_inline(".option push\n\t"                           \
-> -               ".option norvc\n\t"                             \
-> -               "1:\t"                                          \
-> -               "lui    %[__ret],0x89abd\n\t"                   \
-> -               "addi   %[__ret],%[__ret],-0x211\n\t"           \
-> -               ".option pop\n\t"                               \
-> -               ".pushsection runtime_ptr_" #sym ",\"a\"\n\t"   \
-> -               ".long 1b - .\n\t"                              \
-> -               ".popsection"                                   \
-> -               : [__ret] "=3Dr" (__ret));                        \
-> -       __ret;                                                  \
-> +#define runtime_const_ptr(sym)                                         \
-> +({                                                                     \
-> +       typeof(sym) __ret;                                              \
-> +       asm_inline(".option push\n\t"                                   \
-> +               ".option norvc\n\t"                                     \
-> +               "1:\t"                                                  \
-> +               "lui    %[__ret], %%hi(" RUNTIME_MAGIC ")\n\t"          \
-> +               "addi   %[__ret],%[__ret], %%lo(" RUNTIME_MAGIC ")\n\t" \
-> +               ".option pop\n\t"                                       \
-> +               ".pushsection runtime_ptr_" #sym ",\"a\"\n\t"           \
-> +               ".long 1b - .\n\t"                                      \
-> +               ".popsection"                                           \
-> +               : [__ret] "=3Dr" (__ret));                               =
- \
-> +       __ret;                                                          \
->  })
->  #else
->  /*
-> @@ -46,10 +48,10 @@
->         ".option push\n\t"                                      \
->         ".option norvc\n\t"                                     \
->         "1:\t"                                                  \
-> -       "lui    %[__ret],0x89abd\n\t"                           \
-> -       "lui    %[__tmp],0x1234\n\t"                            \
-> -       "addiw  %[__ret],%[__ret],-0x211\n\t"                   \
-> -       "addiw  %[__tmp],%[__tmp],0x567\n\t"                    \
-> +       "lui    %[__ret], %%hi(" RUNTIME_MAGIC ")\n\t"          \
-> +       "lui    %[__tmp], %%hi(" RUNTIME_MAGIC ")\n\t"          \
-> +       "addiw  %[__ret],%[__ret], %%lo(" RUNTIME_MAGIC ")\n\t" \
-> +       "addiw  %[__tmp],%[__tmp], %%lo(" RUNTIME_MAGIC ")\n\t" \
-LGTM!
+On Mon, Jun 29, 2026 at 10:50:38PM -0400, John Ericson wrote:
+> On Mon, Jun 29, 2026, at 7:45 AM, Christian Brauner wrote:
+> > But I guess the even simpler model would be to copy what I've been doing
+> > for pidfs:
+> >
+> > [...]
+> >
+> > we then add fchroot() (overdue anyway) and then teach both fchdir() and
+> > fchroot() to honor FD_NULLFS_ROOT. Then a process may shed its fs state
+> > and move itself into nullfs. Restrict *chdir() and *chroot() for said
+> > process via seccomp and it's locked in forever as well.
+> 
+> This looks good! It delivers most of what I want, and I do want to be
+> very clear that while I am responding to your comments on my patch
+> below, I would still be very pleased if we just did this, much more than
+> I am pleased with the status quo.
+> 
+> (And also, yes, good to create the long-overdue fchroot regardless of
+> what we do here.)
+> 
+> > Nothing here requires you to NULL anything and I oppose this on code
+> > sanity reasons alone. We shoud absolutely not start to stash any NULL
+> > pointers in core kernel objects such as struct path that are used
+> > everywhere.
+> 
+> Before we do the "pidfd style" nullfs route, I want to make one thing
+> clear about my patch: I was *not* trying to relax the invariant across
+> the board that (live) `struct path` should only contain non-null
+> pointers. Rather, I just want `struct fs_struct` to contain ("morally")
+> `Option<struct path>`. My use of the null pointer was merely me doing
+> the sort of ragged union packing that, for example, Rust does. I think
+> as a matter of A_B_I (emphasis on "binary"), this is fine, and not
+> going to cause Armageddon --- `struct path` is widely used, but `struct
+> fs_struct` is (as far as I can tell) not.
+> 
+> All that said, as a matter of A_P_I (emphasis on "program"), I do see
+> your point that it's too easy for someone to not read my comment, and
+> then `struct path` with null pointers starts leaking all over the place,
+> making a big mess. I think a simple enough fix is to just use another C
+> encoding, such as a union, for `Option<struct path>`.
+> 
+> For example:
+> 
+>     union optional_path {
+>         struct {
+>             void *p0, *p1; /* must be null */
+>         } __randomize_layout null_path;
+>         struct path path; /* both fields must be non-null */
+>     };
+> 
+> To continue saving space, or --- if relying on the overlap of
+> `null_path` and `path.mnt` is too sketchy --- making a bona fide tagged
+> union:
+> 
+>     struct optional_path {
+>         enum {
+>             OPTIONAL_PATH_ABSENT,
+>             OPTIONAL_PATH_PRESENT,
+>         } tag;
+>         union {
+>             struct {} null_path;
+>             struct path path;
+>         };
+>     };
 
-Reviewed-by: Guo Ren <guoren@kernel.org>
-
---=20
-Best Regards
- Guo Ren
+I think Al is about to have a stroke reading this... and I might too.
+I agree with the sentiment I disagree with the details of this and
+touching the whole kernel for this. You know what the easy solution is:
+don't allow a struct path to be empty...
