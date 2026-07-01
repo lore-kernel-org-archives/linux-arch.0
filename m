@@ -1,101 +1,160 @@
-Received: from mail-out.m-online.net (mail-out.m-online.net [212.18.0.10])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oi1-f169.google.com (mail-oi1-f169.google.com [209.85.167.169])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52BC63B6356;
-	Wed,  1 Jul 2026 11:13:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.18.0.10
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782904387; cv=none; b=PQ2KJAh8EGm+lDlJoyOOUuo1pHFzv+0/b6Jh9QRxp90uiIFwyCM86eOAFb8mlX6M9N1oLbV4Tj8CR45Wngtkdc564R833HqtZ/zEiTQ0Xc1ZpfZI1/D9l6sWh+F/ONU3lzNnLIM3aVWki6PRx98QRenTwpkKCLuTmletaTero4o=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782904387; c=relaxed/simple;
-	bh=lmqv6nwOMIQ1/A6MU3tdd/l8iraWfFOg4UXcDmZWx3Q=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=Tba9GsrutolAMYiyhx1zdpjFS9uxZyv1y4rYtqyKsfFGB/9VC/XODoiX9dxmnd6d/6SYN/s5xlO8F+KvLx2AHzoboocOfBHkwJId8HTEPuE06M5i17I+8lX7wcRoWMGn46vxNxjE318vnudf2sR+lrfT3C7Tld7rKTMcssOg8RI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; arc=none smtp.client-ip=212.18.0.10
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
-Received: from mail-out.m-online.net (mail-out.m-online.net [212.18.0.10])
-	by mail-out.m-online.net (Postfix) with ESMTP id 4gqxxr4nzTz1sHPn;
-	Wed,  1 Jul 2026 13:05:20 +0200 (CEST)
-Received: from frontend03.mail.m-online.net (unknown [192.168.6.182])
-	by mail-out.m-online.net (Postfix) with ESMTP id 4gqxxq4lg4z1sHPX;
-	Wed,  1 Jul 2026 13:05:19 +0200 (CEST)
-Received: from localhost (dynscan3.mnet-online.de [192.168.6.87])
-	by mail.m-online.net (Postfix) with ESMTP id 4gqxxp59v1z1qqlT;
-	Wed,  1 Jul 2026 13:05:18 +0200 (CEST)
-X-Virus-Scanned: amavis at mnet-online.de
-Received: from mail.mnet-online.de ([192.168.6.182])
- by localhost (dynscan3.mail.m-online.net [192.168.6.87]) (amavis, port 10024)
- with ESMTP id tQZ9_tKXpaIT; Wed,  1 Jul 2026 13:05:09 +0200 (CEST)
-X-Auth-Info: Pt4uSQGEyIjPFT3BPFolkb81GA8tMoI4Th+4yeNg3MiwksamljRMriYVf7/YBrTR
-Received: from hawking (unknown [80.255.5.134])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (P-256) server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mail.mnet-online.de (Postfix) with ESMTPSA;
-	Wed,  1 Jul 2026 13:05:09 +0200 (CEST)
-From: Andreas Schwab <schwab@linux-m68k.org>
-To: Deepak Gupta <debug@rivosinc.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>,  Deepak Gupta via B4 Relay
- <devnull+debug.rivosinc.com@kernel.org>,  Thomas Gleixner
- <tglx@linutronix.de>,  Ingo Molnar <mingo@redhat.com>,  Borislav Petkov
- <bp@alien8.de>,  Dave Hansen <dave.hansen@linux.intel.com>,
-  x86@kernel.org,  "H. Peter Anvin" <hpa@zytor.com>,  Andrew Morton
- <akpm@linux-foundation.org>,  "Liam R. Howlett" <Liam.Howlett@oracle.com>,
-  Vlastimil Babka <vbabka@suse.cz>,  Lorenzo Stoakes
- <lorenzo.stoakes@oracle.com>,  Paul Walmsley <paul.walmsley@sifive.com>,
-  Palmer Dabbelt <palmer@dabbelt.com>,  Albert Ou <aou@eecs.berkeley.edu>,
-  Conor Dooley <conor@kernel.org>,  Rob Herring <robh@kernel.org>,
-  Krzysztof Kozlowski <krzk+dt@kernel.org>,  Arnd Bergmann <arnd@arndb.de>,
-  Christian Brauner <brauner@kernel.org>,  Peter Zijlstra
- <peterz@infradead.org>,  Oleg Nesterov <oleg@redhat.com>,  Kees Cook
- <kees@kernel.org>,  Jonathan Corbet <corbet@lwn.net>,  Shuah Khan
- <shuah@kernel.org>,  Jann Horn <jannh@google.com>,  Conor Dooley
- <conor+dt@kernel.org>,  Miguel Ojeda <ojeda@kernel.org>,  Alex Gaynor
- <alex.gaynor@gmail.com>,  Boqun Feng <boqun.feng@gmail.com>,  Gary Guo
- <gary@garyguo.net>,  =?utf-8?Q?Bj=C3=B6rn?= Roy Baron
- <bjorn3_gh@protonmail.com>,  Andreas
- Hindborg <a.hindborg@kernel.org>,  Alice Ryhl <aliceryhl@google.com>,
-  Trevor Gross <tmgross@umich.edu>,  Benno Lossin <lossin@kernel.org>,
-  linux-kernel@vger.kernel.org,  linux-fsdevel@vger.kernel.org,
-  linux-mm@kvack.org,  linux-riscv@lists.infradead.org,
-  devicetree@vger.kernel.org,  linux-arch@vger.kernel.org,
-  linux-doc@vger.kernel.org,  linux-kselftest@vger.kernel.org,
-  alistair.francis@wdc.com,  richard.henderson@linaro.org,
-  jim.shu@sifive.com,  andybnac@gmail.com,  kito.cheng@sifive.com,
-  charlie@rivosinc.com,  atishp@rivosinc.com,  evan@rivosinc.com,
-  cleger@rivosinc.com,  alexghiti@rivosinc.com,  samitolvanen@google.com,
-  broonie@kernel.org,  rick.p.edgecombe@intel.com,
-  rust-for-linux@vger.kernel.org,  Zong Li <zong.li@sifive.com>
-Subject: Re: [PATCH v23 06/28] riscv/mm : ensure PROT_WRITE leads to VM_READ
- | VM_WRITE
-In-Reply-To: <CAKC1njRapOxS6ibQdCuES1E3aAjsA+yGz4yZ1xJAZHU2vkAm_A@mail.gmail.com>
-	(Deepak Gupta's message of "Tue, 2 Jun 2026 09:19:50 -0700")
-References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
-	<20251112-v5_user_cfi_series-v23-6-b55691eacf4f@rivosinc.com>
-	<87jyslndo4.fsf@igel.home>
-	<CAKC1njS=AHu6uHrH4ae8VxcdEbhgiPXYCAoN3F_mnppBd3SwOA@mail.gmail.com>
-	<875x44o9hj.fsf@igel.home>
-	<CAKC1njSn_rtCj8ii876PNQTk0nsCTfWsb4DzdymufHVthh1Rkg@mail.gmail.com>
-	<871peqgp9v.fsf@igel.home>
-	<CAKC1njR+dTdvp+BmLGPtgd8dufiUwBtkQ9a-qinELT_Fmi13sQ@mail.gmail.com>
-	<87wlwif04z.fsf@igel.home>
-	<87tsrli6lt.fsf@email.froward.int.ebiederm.org>
-	<CAKC1njRapOxS6ibQdCuES1E3aAjsA+yGz4yZ1xJAZHU2vkAm_A@mail.gmail.com>
-Date: Wed, 01 Jul 2026 13:05:09 +0200
-Message-ID: <mvm8q7vt1ga.fsf@suse.de>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA1B5480DD1
+	for <linux-arch@vger.kernel.org>; Wed,  1 Jul 2026 11:57:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.167.169
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1782907069; cv=pass; b=RS3s8nIQTqSe6IRUNOKT57DfRar8Iws1W0BrIzE0/Q7rdhqwMF2a71rq+SszernmISVht00UOvm8SOw/PV+DjyDFgYgebU089RakqqVKdLiNrtBBBtKyqNziTZkmPHKi41D8BckVRoYoaa15CRgriVsXcn0XcA/KKQfzlzBQhZM=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1782907069; c=relaxed/simple;
+	bh=k/m7mOwOe2VK+7j1exKhxSnw3ozmGI8iEWqvbTFE6eI=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=rfOnbckwj47R374SgR5rUgNsl9hGguIooLfF8eBDZElD3Dvo7MwdTivC3w0tY8GRAcmIFusbwa9aJTTC1pyzG0YuHz+leT5BAE00IBt+1AgydR63WRh6jOTQGJMC/AHJx/88tzsuSXIg3KE3qmzvEGtJTbDlFBPssIxGsfCLvsg=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=beayJkSQ; arc=pass smtp.client-ip=209.85.167.169
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="beayJkSQ"
+Received: by mail-oi1-f169.google.com with SMTP id 5614622812f47-4896ae35be9so269368b6e.0
+        for <linux-arch@vger.kernel.org>; Wed, 01 Jul 2026 04:57:46 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1782907065; cv=none;
+        d=google.com; s=arc-20260327;
+        b=l73SkcVOVNPMUytJbyNX0fp5psqa/EVZn+Ni2EfjIq6WfxfwN4E32DQhbcrn0pX1n1
+         6E0k5ZXSUOQNJqLzwZ9HBy+tAK8xpSRJffxG8fTzl/OpHpQUxCZYRWraMfpQ1BQKTemD
+         jHC6YjpNw7J2VCMTdrtREw8QcTO8cA7kf1wObmm+Jq/kgHTMJPGXWRrQOiB9Qz0lSvWe
+         ERJREOL+XE9QfiEamac4HK5bXcy9bG09DfA4EyqKjVOA/8oirpZMsa4EIsdEZC6nWqzU
+         s9K5Szf+8HCC28FVdGgTX6kZESGOnivz9scDfFCJx+KKYRsl/afrUda78qiECTc9MQF7
+         ObZg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=lqKxpCifHTwVLxyMY/FMijSWYZ0kJMALXZou2Lu6auM=;
+        fh=PPCiDfWqpRv9A3Jb+A09Bd1DlcFxJHqBXxQ7xpWBdnA=;
+        b=HAvAuiMS/+xnSrJTEh6VOXvw04ZaMxR6jPYUYpbVGEewjwD3G9kmP3iwE5hdeC1/AD
+         B1aQh4i3tOswtpLHTDStR476H/oUzez9xCQN0L8g5W40hn4jGUWdRJ6xf9le/amLwtI1
+         r7VVltLQQYRJ+C9nZdb8xraNrIp43l7JD4sM1GTgSA2QFgfdn3NMKITW7jaydr6/Gmjy
+         bBCxyAet/kzFE/g8mg1670kNBX9uwHbgC2dx00XkdqHxK8G4nxwAwH4ELXR5AkgwO+HA
+         xRsYL7JI6lKZMhIEbeYH2YUbyIgiT9ezC9RjOs82ayRHRmLN+lCkb3Hd3RALHiqlio6x
+         Ilig==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=bytedance.com; s=google; t=1782907065; x=1783511865; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=lqKxpCifHTwVLxyMY/FMijSWYZ0kJMALXZou2Lu6auM=;
+        b=beayJkSQr05vWYthJphsua2qi+wI2deN3ee4s+RMMCcgG36dU/SEXscL3RrMizBEa3
+         eOAxxSCX2hqgrkeKXxMxF7dAXzzyw67pfUz/T15fHCiNkUaPTnlR/pZynfzeNlGeDDKq
+         buWXeDmcWf/HUMynqzaP/5i1vsu9w/Yj0BGAeuvAZ4gZ1WMo11SqajiqzMHOIlAJsTtw
+         FOzLTQj7VUgrAQdAIS5uuRU2zq7AGqH3shd3tSFeo31+Uvd59dItC1E/EROQsNmp0rAT
+         GrjUFCOZfpGFgvYMRBTNx+zSAIk5+nIHn0pTElTWQqb8uHmUnEi87FV+p3IjP54ID4OV
+         HxhA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1782907065; x=1783511865;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=lqKxpCifHTwVLxyMY/FMijSWYZ0kJMALXZou2Lu6auM=;
+        b=VYrPsrhMmvNEIIVXEQbyyCP3DtwHphteL9AuWx/qTi/Gbq2aGnIBf39PhCXkO3C8cn
+         7ZOoRUPsttnXIfqZpuuovEvAgFgCRb1iGcCwsx1VX7ruS+F9dj7ZhHuvQUxsefBUpf0X
+         bxMCJWiYplp5HdP1Wh3RIppetRFHm6mop39VT7stG03AU1IsDjxB0jBpHgvBI1bULnFc
+         20uDQTnFB30YXXBio8TxkQE2MipUZ30gP0xM6shFfR2rHF060kMJf5Gvr/NLwunjW9Sk
+         8hMqzl0ojFYVt66jOe8Rnp7bUxDWEQuOrQo9N6UN3z5635wWGxLbF3mI0HMewcgxcGIC
+         265w==
+X-Forwarded-Encrypted: i=1; AFNElJ+YamSZhAGhL9WUOm16eye0+6n1XuYvlgR5jVjwSIsrCGKQwlgtMEEJTorTHDJKnSgvNPj5Iz0aQ9bM@vger.kernel.org
+X-Gm-Message-State: AOJu0YxQaGs81UUtdQ+D0Rp2gY3RhIxfVCx4U2IVpoDt88g7eEhdTir8
+	BJ4LvP98yU+DgNibNZ3vuDXePan9OQYy8HMpxzfO86TQfRA9gdCXbFTpsTNZL1MFMGBF4Nn0mWG
+	NGgRP3JTAQ865/Rzntvir8EMg45uDB9cl8NVlc792bw==
+X-Gm-Gg: AfdE7cn7MCve7F0/1F69wL57/3SS3N811kOJ535vV1w8lJB6ND/yqfKCgWY+TkID1oU
+	9KOmKh8mP3eyFjNaei1vrKWpecOkp9qMdYeOd/fBU/RlzDeW8YvsDP5ubM3g9R8ZGmiKzUJZLCl
+	9KwEnJeOZbKNuvzrbMVmXWWmWOlan7L5Zml7RjOeBXkZD4MPM4zxj7J6zMXezepTNf4gioVdEP+
+	h35TmSaemz/RKbLgBvt+Rzy9YEB5fSwJMR/8v1b8Hjo8lgx6LMgZUuvkI2PHD/yN2W+2mISNFA=
+X-Received: by 2002:a05:6808:1389:b0:492:5bf0:d29f with SMTP id
+ 5614622812f47-4960f0d2101mr838181b6e.37.1782907065542; Wed, 01 Jul 2026
+ 04:57:45 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+References: <cover.1782877663.git.cuiyunhui@bytedance.com> <7988df83f6341ea045ebd7294af2e8907dbd5ee7.1782877663.git.cuiyunhui@bytedance.com>
+ <ea525a80-1e6f-4304-a371-3ec17d91ee96@app.fastmail.com>
+In-Reply-To: <ea525a80-1e6f-4304-a371-3ec17d91ee96@app.fastmail.com>
+From: yunhui cui <cuiyunhui@bytedance.com>
+Date: Wed, 1 Jul 2026 19:57:33 +0800
+X-Gm-Features: AVVi8Ce8Hvhgv036NZvyTtBZ5NMmFq-2bEMlGWh7WwSjecXpQvRJF8LZ_SFRCM4
+Message-ID: <CAEEQ3wnDACZ08kk6ycpgXezgyS5zxi+P_vF_yBScK2sxU+UKaw@mail.gmail.com>
+Subject: Re: [External] Re: [PATCH v5 1/3] riscv: io: avoid null-pointer
+ arithmetic in PIO helpers
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Dennis Zhou <dennis@kernel.org>, 
+	Tejun Heo <tj@kernel.org>, "Christoph Lameter (Ampere)" <cl@gentwo.org>, Alexei Starovoitov <ast@kernel.org>, 
+	Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>, 
+	Martin KaFai Lau <martin.lau@linux.dev>, Eduard Zingerman <eddyz87@gmail.com>, 
+	Kumar Kartikeya Dwivedi <memxor@gmail.com>, Song Liu <song@kernel.org>, 
+	Yonghong Song <yonghong.song@linux.dev>, Jiri Olsa <jolsa@kernel.org>, 
+	=?UTF-8?B?QmrDtnJuIFTDtnBlbA==?= <bjorn@kernel.org>, pulehui@huawei.com, 
+	puranjay@kernel.org, Thomas Huth <thuth@redhat.com>, 
+	Andrew Jones <ajones@ventanamicro.com>, Ben Dooks <ben.dooks@codethink.co.uk>, 
+	=?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@ventanamicro.com>, 
+	Samuel Holland <samuel.holland@sifive.com>, Zong Li <zong.li@sifive.com>, 
+	"Conor.Dooley" <conor.dooley@microchip.com>, Thomas Gleixner <tglx@kernel.org>, 
+	Deepak Gupta <debug@rivosinc.com>, seanwascoding@gmail.com, 
+	Andy Chiu <andybnac@gmail.com>, menglong8.dong@gmail.com, cyrilbur@tenstorrent.com, 
+	Vivian Wang <wangruikang@iscas.ac.cn>, Atish Patra <atishp@rivosinc.com>, 
+	Anup Patel <apatel@ventanamicro.com>, linux-riscv@lists.infradead.org, 
+	linux-kernel@vger.kernel.org, linux-mm@kvack.org, bpf@vger.kernel.org, 
+	Nathan Chancellor <nathan@kernel.org>, Nick Desaulniers <nick.desaulniers+lkml@gmail.com>, 
+	Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, qingfang.deng@siflower.com.cn, 
+	Linux-Arch <linux-arch@vger.kernel.org>, llvm@lists.linux.dev
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Any news? This is still broken in 7.2-rc1.
+Hi Arnd,
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 7578 EB47 D4E5 4D69 2510  2552 DF73 E780 A9DA AEC1
-"And now for something completely different."
+On Wed, Jul 1, 2026 at 2:25=E2=80=AFPM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Wed, Jul 1, 2026, at 06:20, Yunhui Cui wrote:
+> > @@ -56,6 +56,8 @@
+> >  #define __io_pbw()   RISCV_FENCE(iow, o)
+> >  #define __io_paw()   RISCV_FENCE(o, io)
+> >
+> > +#define PCI_IO_ADDR(addr)    ((void __iomem *)((unsigned long)PCI_IOBA=
+SE
+> > + (addr)))
+>
+> This does not seem to have any purpose, is this just left over
+> from the previous version?
+>
+> >
+> > +#ifdef CONFIG_HAS_IOPORT
+> >  __io_reads_ins(ins,  u8, b, __io_pbr(), __io_par(addr))
+> >  __io_reads_ins(ins, u16, w, __io_pbr(), __io_par(addr))
+> >  __io_reads_ins(ins, u32, l, __io_pbr(), __io_par(addr))
+> > -#define insb(addr, buffer, count) __insb(PCI_IOBASE + (addr), buffer, =
+count)
+> > -#define insw(addr, buffer, count) __insw(PCI_IOBASE + (addr), buffer, =
+count)
+> > -#define insl(addr, buffer, count) __insl(PCI_IOBASE + (addr), buffer, =
+count)
+> > +#define insb(addr, buffer, count) __insb(PCI_IO_ADDR(addr), buffer, co=
+unt)
+> > +#define insw(addr, buffer, count) __insw(PCI_IO_ADDR(addr), buffer, co=
+unt)
+> > +#define insl(addr, buffer, count) __insl(PCI_IO_ADDR(addr), buffer, co=
+unt)
+> > +#endif
+>
+> As far as I can tell, just adding the #ifdef here should be sufficient.
+
+Okay.
+
+>
+>       Arnd
+
+Thanks,
+Yunhui
