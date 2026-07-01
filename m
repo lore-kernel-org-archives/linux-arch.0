@@ -1,71 +1,75 @@
 Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D17892BCF4C;
-	Wed,  1 Jul 2026 15:31:58 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B98CD320CCC;
+	Wed,  1 Jul 2026 16:17:41 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782919920; cv=none; b=oyAtEqoL0DfHI9FTHeGOdO4JDFuZ+ZerbnCVbkCuTNwU7pdKZ74JFTmp7KfKofsV1kfNUrWbuu4VB1ogMzPsZpbt4DvuCaYMKEMAlZFncNa/R9xWaebZh2NqlXvWfkJbxPwG63A0TrctMJmbC+TK6HwrgwMCk5x9sv9M2oxgj28=
+	t=1782922663; cv=none; b=jdVLfgl0ageWHTl9S/NQqunkjw2iCNfQRg+pM7DZS0laKT9M3QM1bt8rjTeGM2XqzxDpC6knDnCBqWwDGozEdqOtL8Nm5B9h3vcKqXg8ZQJqX5OSvuah8J/RFJzn/vk0FSyR9YxYx5R9lS5jI1vJ7y2z3KQh47zDw+DAwrfqy+Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782919920; c=relaxed/simple;
-	bh=bsHkWhmSkDsG3oqGlKhSSDNE7xRPYEaMsNYqqPV5vi0=;
+	s=arc-20240116; t=1782922663; c=relaxed/simple;
+	bh=28yaKk7mLPJhVQQx6WKD3FN+YK7zA5MH9cuQEl4rjoE=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=fGsbFnQI0biq6IzcejumokrYDDwD/6wXc783V2h27SVsN4QL6VIcXPMNgziROHIFw99o2sfQml3NLrvBnwqYXKSV/xTJseQvngIyltRnySwFNQok4xqSO+/9+kNZwdhSRuiw5CSVjn6dK28y9eujDSdibR3PuMwswc6LZG1guSw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=ForHa2zc; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=Yxarkfhc; arc=none smtp.client-ip=193.142.43.55
+	 Content-Type:Content-Disposition:In-Reply-To; b=a7ckJG9OaSlFINt3shxobiPNdGUKBzk1pANzXMUIOCIUyPzcRK6JwUiKzzws1AOk591WOBCcGNMcDXn0WSr7/jCiYLTLALYKYVm4sEzEhVBQ2j7ItNMNb6O52WHQkqqeRVoR+q70A0oACKvNMaAacnlN8RpV7Y34EumGu2VdHpU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=EsVOyL/O; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=qFYc53sa; arc=none smtp.client-ip=193.142.43.55
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="ForHa2zc";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="Yxarkfhc"
-Date: Wed, 1 Jul 2026 17:31:54 +0200
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="EsVOyL/O";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="qFYc53sa"
+Date: Wed, 1 Jul 2026 18:17:36 +0200
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1782919916;
+	s=2020; t=1782922658;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=bsHkWhmSkDsG3oqGlKhSSDNE7xRPYEaMsNYqqPV5vi0=;
-	b=ForHa2zcTmyUo0NV17RYDMzuFMMEm+LyJtdYFeTm9s7E0cAEVlo623vHcwdu9Ot1NFdmj0
-	SrDiQ7uqSnp1SAkcZjLSJsEiit3w9sDAwyX/opS7WDn3HA4gKEwD5GKicHAqviC9C2TGXR
-	HdPQQqSCBZb/Q0IX2tWaRjF9FzXV6X+FLisEeWPU4BLOXhKgnv/xbQ0vHRchbYKML+3Fqv
-	EWwwE9xosigvGnED+hOD7sygLx/ro+ZZEFVF4/aaQu4ExpaYyjXIjFVUXVuYxP0ky0iGGX
-	b7SKe6GNBsnEG70VWTN+wZMEwwlxAN439aPTCP/oH/fvtSWC7YETJS3DqAcojA==
+	bh=L2lRSuF/an/7YC+KLWyfsyxeZeo/jAhgGQaxohFrdhc=;
+	b=EsVOyL/O4PkbWArMdz+v6gZguCvGG9j7x/3IOQgfmssmAyzbqbf3Dwnmp6iiWjIQLh8IAK
+	JRAGYLysl4sguhM8CiL52IwItjrsA45kJA1HxJerrdKce1yFKscd6hUfBDk8kRLLBMASP9
+	HAaDRaeyfaUrcTEpWpEuetEq4glZT0vuVbB1uLjbuxzlPtCFN1uTxxJMQUwfqVd4rBfF4R
+	wCJsPf0rmhs1B6MbHjJUE4G4tH6Wt9Gtq6+Gm8frjT4c8E48ygPJmbA5oLD59dsCa1kUWd
+	30TWjA4Jl5hk3kMLudqnPwPZBzaW22VoMTwcgpgNZPMUp1ROWvJNyZ1aXCKRQQ==
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1782919916;
+	s=2020e; t=1782922658;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=bsHkWhmSkDsG3oqGlKhSSDNE7xRPYEaMsNYqqPV5vi0=;
-	b=Yxarkfhc7yYk2weoKQYOe679AGIbI4iJVdhSqBujP7ll1wXxG2G2SpG8BronG5TcteS+J9
-	PZ0YyNWe8dMbV1Bg==
+	bh=L2lRSuF/an/7YC+KLWyfsyxeZeo/jAhgGQaxohFrdhc=;
+	b=qFYc53saNm3tZyv7Mrg+WEORV4WZSIwyhGD1WLYh9NkQnExpQvcYwwIZIB8tgYMjlnnAMr
+	VNvK+45twjg6TcDQ==
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-To: Peter Zijlstra <peterz@infradead.org>,
-	Vlad Poenaru <vlad.wing@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	sched-ext@lists.linux.dev, netdev@vger.kernel.org,
-	"David S . Miller" <davem@davemloft.net>,
-	Andrea Righi <arighi@nvidia.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Arnd Bergmann <arnd@arndb.de>, Ben Segall <bsegall@google.com>,
-	Breno Leitao <leitao@debian.org>,
-	Changwoo Min <changwoo@igalia.com>,
-	David Vernet <void@manifault.com>,
-	Dietmar Eggemann <dietmar.eggemann@arm.com>,
-	Eric Dumazet <edumazet@google.com>, Ingo Molnar <mingo@redhat.com>,
-	Jakub Kicinski <kuba@kernel.org>,
-	John Ogness <john.ogness@linutronix.de>,
-	Juri Lelli <juri.lelli@redhat.com>,
-	K Prateek Nayak <kprateek.nayak@amd.com>,
-	Paolo Abeni <pabeni@redhat.com>, Petr Mladek <pmladek@suse.com>,
-	Sergey Senozhatsky <senozhatsky@chromium.org>,
-	Simon Horman <horms@kernel.org>,
-	Steven Rostedt <rostedt@goodmis.org>, Tejun Heo <tj@kernel.org>,
-	Vincent Guittot <vincent.guittot@linaro.org>
-Subject: Re: [PATCH 0/2] sched: Introduce and use deferred WARNs in sched
-Message-ID: <20260701153154.a-n6eXNF@linutronix.de>
-References: <20260623142650.265721-1-bigeasy@linutronix.de>
- <20260624093329.GZ48970@noisy.programming.kicks-ass.net>
+To: K Prateek Nayak <kprateek.nayak@amd.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Darren Hart <dvhart@infradead.org>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	=?utf-8?B?QW5kcsOp?= Almeida <andrealmeid@igalia.com>,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	Samuel Holland <samuel.holland@sifive.com>,
+	Charlie Jenkins <thecharlesjenkins@gmail.com>,
+	linux-arm-kernel@lists.infradead.org,
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Thomas Huth <thuth@redhat.com>,
+	Sean Christopherson <seanjc@google.com>,
+	Jisheng Zhang <jszhang@kernel.org>, Alexandre Ghiti <alex@ghiti.fr>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>
+Subject: [PATCH] futex: Optimise the size check get_futex_key()
+Message-ID: <20260701161736.xYYizA0e@linutronix.de>
+References: <20260630045531.3939-1-kprateek.nayak@amd.com>
+ <20260630045531.3939-9-kprateek.nayak@amd.com>
+ <20260701075714.GP48970@noisy.programming.kicks-ass.net>
+ <20260701084150.GNOeboLw@linutronix.de>
+ <38239f40-1673-469f-baa3-4a343d2aa4c3@amd.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -74,27 +78,49 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-In-Reply-To: <20260624093329.GZ48970@noisy.programming.kicks-ass.net>
+In-Reply-To: <38239f40-1673-469f-baa3-4a343d2aa4c3@amd.com>
 
-On 2026-06-24 11:33:29 [+0200], Peter Zijlstra wrote:
-> So I really don't see why we should do this. This has been a 'problem'
-> forever, and printk() is actually being fixed.
+The futex address must be naturally aligned and this is checked via
+"address % size" where `address' is the supplied address and `size' is
+the expected size of futex. It is guaranteed that `size' is power of two
+but the compiler does not see it and creates here a `div' operation
+(x86, arm, gcc-15).
 
-I just prepared v2 and apparently missed this. So let me postpone it=E2=80=
-=A6
+We can take advantage of the pow2 property and rewrite it as
+"address & (size-1)".
 
-A user triggered a warning under the rq lock so it is not a theoretical
-problem which happens during development. printk is fixed it is just the
-console driver that are lagging behind. The 8250 is probably the role
-model that everyone is waiting for and once it becomes a NBCON it is no
-longer affected by the "deferred" requirement here.
-The problem was reproduced on netconsole which is a NBCON, too.
+As per testing, the command
+|perf bench futex hash -f 1 -b 16384 -t 1 -r 30
 
-So we just ignore the problem because it is well known? I was hoping for
-some duct tape until we have NBCON and threaded-legacy consoles.
+improved from
+| [thread  0] futex: 0x5619f931f740 [ 7001583 ops/sec ]
+to
+| [thread  0] futex: 0x55da173e5740 [ 7376137 ops/sec ]
 
-Vlad: Were you doing something special to trigger the warning in
-question or did it randomly trigger?
+or by 5.3%
 
-Sebastian
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
+
+Could someone verify this, please? The 5% look a bit high. This is on
+top of the series (but not worsen by the series).
+
+ kernel/futex/core.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/kernel/futex/core.c b/kernel/futex/core.c
+index 179b26e9c9341..2b00ab510e7d2 100644
+--- a/kernel/futex/core.c
++++ b/kernel/futex/core.c
+@@ -520,7 +520,7 @@ int get_futex_key(u32 __user *uaddr, unsigned int flags, union futex_key *key,
+ 	 * The futex address must be "naturally" aligned.
+ 	 */
+ 	key->both.offset = address % PAGE_SIZE;
+-	if (unlikely((address % size) != 0))
++	if (unlikely((address & (size-1)) != 0))
+ 		return -EINVAL;
+ 	address -= key->both.offset;
+ 
+-- 
+2.53.0
+
