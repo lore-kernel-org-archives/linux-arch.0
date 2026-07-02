@@ -1,47 +1,77 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BACF73C585B;
-	Thu,  2 Jul 2026 09:34:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3897F357CE1;
+	Thu,  2 Jul 2026 10:56:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782984849; cv=none; b=o5PfxQYRjeTxjzq2mINfJ0VK04ogKwFeXJKaLm5794i86Cjn9n/r/s3YHKix1tJq5mnUK5+RE7zrUfObLkad1ObjA/q2u3QUApD8A9YjZ6RhgAbUOEGfcscwyW4UCQzfSRzikRefW9RmFlZ9JeuW94BAWDfSplVC7XZY27oBiCw=
+	t=1782989780; cv=none; b=i51rc7sSCV7acyfXDeE5Mp4AoQ1PwgTN28MmoSDh2q4Jmaf6LuynhFE6lXafnZVqaHnFThCbdCXBxn81PqUgfrFxO6rMb8bWvsdQyo5dobWTUoTJMvdYCFNJwcsRlmdEoy+jhoWzvM/BeSdZDN9NtC7CmxNswwprL11fylmGkNs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782984849; c=relaxed/simple;
-	bh=OQGQJ9k7AjYDuJr9gGYov76Q+MbkBhbJjTVHEbYsBjc=;
+	s=arc-20240116; t=1782989780; c=relaxed/simple;
+	bh=WIcjYfoWn6gcmd0f9zDPpY6wy1Eu6WkQW0J8BHM4Zdo=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=jRaypVCAOLySkMzCkA0FqdlFxUpu+S1rK3QN2voxh1Uxx/YMkT+QFSmK0Gz1B3WehYberFY644dYg4dcbuqGm+MVlKbK2z0L615uRcQRZmkVIw0ovsVyco6mVlvSCieer5vUMrTSQWigDoyu1h6gRG5XdkasCUSSaD32aVagY/4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=R3FyXP42; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=uEZv6oVOyXUHQtq/smNbLSgzaGvwJ/XZDu2ow3qnIyfZhdpR3Kh/00rkxcB/Po8dpCjKNQQ9NcbkkAeqpnu9GZzAcPMljPWPSVw1xdU+89JavO718ED7M9us3hUbNJDt9F2ui4xtRwhciQAa56/DWH5fq9Os9yQn+lqZKnrtnOc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=4TVhvdqA; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=sH6bVU2F; arc=none smtp.client-ip=193.142.43.55
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="R3FyXP42"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B21C61F00A3A;
-	Thu,  2 Jul 2026 09:34:03 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1782984848;
-	bh=I6ljKjFilDZDw8eVEUNLqFNyOGzShy3qTsG1Pdqsu2s=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=R3FyXP42pzYYWvmmy6o99v7zM015UzCtT7KGWYJyZEIrp+tnoMOnMURDmzLkXEb1S
-	 +4DnOSB6HmieRiwwwEwIV+IhHfLLBVHPeVciwUgxy0bCUHJNL5HRZ+3r0UjtqHDppV
-	 8rMCIn41+fouCViD13NAjp4UDO80IJhg7tRuqHiynrdcMAq5Odi96MyYL4VZtRhsN4
-	 FOEbU8sGISNsXsx4vGmaMAd0ZDwepDWteOq2P2JfyWYPnV0lFdIU9p93b3dTSI1XdC
-	 PZmcF1tfFhpVT5lF4zUu9Q0V63Z9rulVuMcnDlxOWlaxnBDSuCiGZWAN3oPKw++tWx
-	 ZP2078bgeg5Nw==
-Date: Thu, 2 Jul 2026 11:34:01 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: John Ericson <mail@johnericson.me>, Li Chen <me@linux.beauty>, 
-	Cong Wang <cwang@multikernel.io>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Kees Cook <kees@kernel.org>, 
-	Sergei Zimmerman <sergei@zimmerman.foo>, Farid Zakaria <farid.m.zakaria@gmail.com>
-Subject: Re: [RFC] Null Namespaces
-Message-ID: <20260702-entladen-farbkombinationen-klarheit-fe24cb608f23@brauner>
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
- <20260629-hauer-erhitzen-sobald-96d3dff68707@brauner>
- <CALCETrVuh0-biOw=TgYN9ERTFAoiki57XeZ3S2T3dO2+hL54gA@mail.gmail.com>
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="4TVhvdqA";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="sH6bVU2F"
+Date: Thu, 2 Jul 2026 12:56:15 +0200
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020; t=1782989777;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=ixPQhnXgf4TKhclNNixfZQM7k/+d5gcWfCG3ObKKmF0=;
+	b=4TVhvdqAIOEciydZhtWWTSBcjaeQ7Q4Nw9cuTHhL5opET36YUxZTwm3tFIMjXOSyivMsdt
+	e0nVvs6ZVME8To/TkXXaWt9vu/ln7SPpBWx1P7HA4t0Pa7TQR7NzLgcvsS4YnG+QFfuA2k
+	jsYLqaHd7uofGl1j45DFi+maomvGsdRErti9RqvI/7AcnlWEQPSWjCnZQX5zJ/p4BY96ey
+	QuN0X4JZNXCH04yMHGSmEnv7E0fqOXkibVit8kf41tnXjZi3Uwslp69Trx+GBHyxL0CpUD
+	9fxWC9NFlot4OKOHjeJwpm0BfXn01F53jFXoGwwFb35RESO/ccPB7phTFYI+aw==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020e; t=1782989777;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=ixPQhnXgf4TKhclNNixfZQM7k/+d5gcWfCG3ObKKmF0=;
+	b=sH6bVU2F/pVuBlU067fDQEXZV5D8/UVBZNrA5jq3yQM1YprNUp9catTpYWYg5/RKz98OuW
+	P0HauLhefLtPWAAQ==
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: K Prateek Nayak <kprateek.nayak@amd.com>, Arnd Bergmann <arnd@arndb.de>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Darren Hart <dvhart@infradead.org>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	=?utf-8?B?QW5kcsOp?= Almeida <andrealmeid@igalia.com>,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	Samuel Holland <samuel.holland@sifive.com>,
+	Charlie Jenkins <thecharlesjenkins@gmail.com>,
+	linux-arm-kernel@lists.infradead.org,
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Thomas Huth <thuth@redhat.com>,
+	Sean Christopherson <seanjc@google.com>,
+	Jisheng Zhang <jszhang@kernel.org>, Alexandre Ghiti <alex@ghiti.fr>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>
+Subject: Re: [PATCH] futex: Optimise the size check get_futex_key()
+Message-ID: <20260702105615.PiYhQ9Rt@linutronix.de>
+References: <20260630045531.3939-1-kprateek.nayak@amd.com>
+ <20260630045531.3939-9-kprateek.nayak@amd.com>
+ <20260701075714.GP48970@noisy.programming.kicks-ass.net>
+ <20260701084150.GNOeboLw@linutronix.de>
+ <38239f40-1673-469f-baa3-4a343d2aa4c3@amd.com>
+ <20260701161736.xYYizA0e@linutronix.de>
+ <20260702085921.GD49951@noisy.programming.kicks-ass.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -50,102 +80,33 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CALCETrVuh0-biOw=TgYN9ERTFAoiki57XeZ3S2T3dO2+hL54gA@mail.gmail.com>
+In-Reply-To: <20260702085921.GD49951@noisy.programming.kicks-ass.net>
 
-On Mon, Jun 29, 2026 at 02:06:55PM -0700, Andy Lutomirski wrote:
-> On Mon, Jun 29, 2026 at 4:45 AM Christian Brauner <brauner@kernel.org> wrote:
-> >
+On 2026-07-02 10:59:21 [+0200], Peter Zijlstra wrote:
+> > Could someone verify this, please? The 5% look a bit high. This is on
+> > top of the series (but not worsen by the series).
 > 
-> > But I guess the even simpler model would be to copy what I've been doing
-> > for pidfs:
-> >
-> > +static struct path nullfs_root_path = {};
-> > +
-> > +void nullfs_get_root(struct path *path)
-> > +{
-> > +       *path = nullfs_root_path;
-> > +       path_get(path);
-> > +}
-> > +
-> >  static void __init init_mount_tree(void)
-> >  {
-> >         struct vfsmount *mnt, *nullfs_mnt;
-> > @@ -6209,6 +6217,8 @@ static void __init init_mount_tree(void)
-> >         /* Mount mutable rootfs on top of nullfs. */
-> >         root.mnt                = nullfs_mnt;
-> >         root.dentry             = nullfs_mnt->mnt_root;
-> > +       nullfs_root_path.mnt    = nullfs_mnt;
-> > +       pidfs_root_path.dentry  = nullfs_mnt->mnt_root;
-> >
-> >         LOCK_MOUNT_EXACT(mp, &root);
-> >         if (unlikely(IS_ERR(mp.parent)))
-> > diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
-> > index aadfbf6e0cb3..f55c87c70b78 100644
-> > --- a/include/uapi/linux/fcntl.h
-> > +++ b/include/uapi/linux/fcntl.h
-> > @@ -124,6 +124,7 @@ struct delegation {
-> >
-> >  #define FD_PIDFS_ROOT                  -10002 /* Root of the pidfs filesystem */
-> >  #define FD_NSFS_ROOT                   -10003 /* Root of the nsfs filesystem */
-> > +#define FD_NULLFS_ROOT                 -10004 /* Root of the nullfs filesystem */
-> >  #define FD_INVALID                     -10009 /* Invalid file descriptor: -10000 - EBADF = -10009 */
-> >
-> >  /* Generic flags for the *at(2) family of syscalls. */
-> >
-> > we then add fchroot() (overdue anyway) and then teach both fchdir() and
-> > fchroot() to honor FD_NULLFS_ROOT. Then a process may shed its fs state
-> > and move itself into nullfs. Restrict *chdir() and *chroot() for said
-> > process via seccomp and it's locked in forever as well.
-> >
+> Bah, I tried to reproduce and couldn't. Then I noticed I did a clang
+> build and that is in fact clever enough to do this optimization itself.
 > 
-> One thing comes to mind that might need a bit of care: this would give
-> an API for any task to get an fd to a directory that lives in the init
-> mount namespace.  It's not at all obvious to me that this is dangerous
-> or even observable (you're not about to find a setuid program in
-> nullfs), but I think it's at least worth a tiny bit of consideration.
-
-Yes, I thought about this as well. But it doesn't have to be this way.
-Every mount namespaces has nullfs as it's root ever since I introduced
-it. Which means FD_NULLFS_ROOT can also just mean "nullfs within that
-specific mount namespace". That's fine.
-
-For my FD_FAILFS_ROOT proposal it would be enough if we make failfs
-SB_KERNMOUNT which means it's logically distinct from every mount
-namespace. I think that might be the right thing to do. I need to spend
-one or more brain cycles on this though.
-
+> /me tries again with a GCC build.
 > 
-> But if this happens, maybe we could finally land one of the patches to
-> enable unprivileged chroot?  It's been tried a few times.
+> pre:  [thread  0] futex: 0x561f14430680 [ 9021408 ops/sec ]
+> post: [thread  0] futex: 0x55feadbbb680 [ 8977527 ops/sec ]
 > 
-> https://lore.kernel.org/lkml/0e2f0f54e19bff53a3739ecfddb4ffa9a6dbde4d.1327858005.git.luto@amacapital.net/
+> (and this seems to be well inside the error threshold of this test).
 > 
-> https://lore.kernel.org/all/20210316203633.424794-2-mic@digikod.net/
-> 
-> I think the need for it has reduced a tiny bit with user namespaces,
-> as you can sort of emulate it by unsharing your user namespace and
-> thus getting enough privilege, but this is rather heavyweight and
-> limiting.
+> So I see the GCC build do the DIV, and no longer with his patch applied,
+> but for some reason I cannot get the runtime performance to actually
+> improve much of anything on my system.
 
-I think we could make that work with both FD_NULLFS_ROOT and
-FD_FAILFS_ROOT...
+I did open https://gcc.gnu.org/bugzilla/show_bug.cgi?id=126078 for the
+div.
 
-> 
-> 
-> If all of the above landed, then the old chroot /var/empty kludge that
-> security-minded programs have done for decades could finally be
-> modernized and not require any privilege :)
+My .config is the debian distro on the 4 node big iron. [ in case it
+it has so much overhead elsewhere that this place a bigger role].
 
-I think I like it.
+"perf top" showed this as 6% or something and red in the function. After
+the removal it did not show up.
 
-> Hmm, thinking aloud: every now and then someone brings up the idea of
-> having an fd (really an OFD) that points to a file or a directory but
-> carries less in the way of permissions/capabilities than the usual
-> OFDs.  If we had a way to make an OFD to a directory that forced
-> RESOLVE_BENEATH (or RESOLVE_IN_ROOT) and that propagated that
-> restriction to anything you open using it, and if an unprivileged
-> process could chroot itself to nullfs, then we would be getting quite
-> close to what Capsicum can do.
-
-Next steps. I hear you volunteering...
+Sebastian
