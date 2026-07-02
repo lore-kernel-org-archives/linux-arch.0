@@ -1,67 +1,67 @@
-Received: from mail-oo1-f50.google.com (mail-oo1-f50.google.com [209.85.161.50])
+Received: from mail-oa1-f44.google.com (mail-oa1-f44.google.com [209.85.160.44])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 09AA73976B8
-	for <linux-arch@vger.kernel.org>; Thu,  2 Jul 2026 16:41:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.50
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0388E390CB4
+	for <linux-arch@vger.kernel.org>; Thu,  2 Jul 2026 16:41:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783010494; cv=none; b=ghSiyQ4M8VeGdMlhGj/WcFo71KcY4vWi5yVeq/ZV5z/Pv3G7Eu5ITKesxwEj0hqaDbpVuIlP24yPd3lw/tQgZszk7y8WtOYVT7WJkO5B37GFKiL9GIT9mXVxSyl8TJtMEDdZjwPSM1vr6m1ZeGp1aUDz8sPYTiBtRvZpbYKKTDI=
+	t=1783010494; cv=none; b=kDoNZZvQB/LZf2vskQagbORkgKdQW69XpJK6xaj6xh1qD9uxT3YrPjXWuIgq9qCEKkqnknJFFrk3CdQ2A/KC90xo10kzTV+leE4a53bxsVSg8+GZg0YuoTp/A34rc688XmXlxqKxkNJzDnWT6KHcv0wqIjg6dDl8ePxqx9av+zs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1783010494; c=relaxed/simple;
-	bh=yIjUo04fS9hFhZVQqd7QNfMx8c7rakFHpoauTbqrYcM=;
+	bh=qZKCtfeZXgr9USX3+37WWDppizwZjEcqYLWdj0ZjKXQ=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=VN/Dph0wAY9rhL5DxTxANDiesfyHQBk1wNs8UpjXafufKjKJTNxNPo+4INfrpkknVMvHBEr0Tuk6H+UNsjjjgxKlrOiTbt+ZV93bnAlo1Pcmmnz+Hv6abP31M5mAHoL3134sJMp4seyqHEgaFBU3v0UBwqe2xjYRRZV1UAv/4Tg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=XdUEjCqs; arc=none smtp.client-ip=209.85.161.50
+	 In-Reply-To:To:Cc; b=oDGk5jl82MVN4VuTieD81XT04Gnie8HJghqd4w+HEyAAEVxq1y4O+6E2KNtS+xmMb8/KR/JEh4ejDOT4SowFIots6vQ70XO4xncNSFKmZCes0iLG5+xb81dBVFpQkyXDUCdQ5XOjKFxFwMCoG5ZPvJDq5SUwa4pQtD5EqVj99UA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=BA3T4kgg; arc=none smtp.client-ip=209.85.160.44
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="XdUEjCqs"
-Received: by mail-oo1-f50.google.com with SMTP id 006d021491bc7-6a308736a36so1113092eaf.3
-        for <linux-arch@vger.kernel.org>; Thu, 02 Jul 2026 09:41:26 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="BA3T4kgg"
+Received: by mail-oa1-f44.google.com with SMTP id 586e51a60fabf-44cc65b0a7fso585170fac.0
+        for <linux-arch@vger.kernel.org>; Thu, 02 Jul 2026 09:41:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1783010485; x=1783615285; darn=vger.kernel.org;
+        d=gmail.com; s=20251104; t=1783010487; x=1783615287; darn=vger.kernel.org;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :content-type:mime-version:subject:date:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=Kg5EcJIb7/NbC+BTLvTpewRkCYpge7iehUzwDyOw0vo=;
-        b=XdUEjCqslRr90GK2Kc3MReHZT/j65Y7fTdToko0510+9DiVsE80IJZNdg+kHlEmGf+
-         dfNhcWYJut22VYmDs6k7PhqgWbpUZZVgU3RvM+bzeTRYeBE2xwnaEa2yo/vg1yZb1Cgk
-         lOwCMqFAr0lWQYX3AcelafajOz7eQd7utOZP3aD5Crf1/MiaAQWiyDPMUGtVhSlYL0aL
-         2wZtX0n/SLYuc1j8h5PJnkEv0RFQbUjezCViVEH9PxrujG/x9DCtTOBSnwxw4x0dGqDp
-         zYNDCHLDESlMaNZxtve2BbSGljF59QBE67EoGFExCjcRAw2YOEyzHUbVtHDr6H0xhTT0
-         THQw==
+         :mime-version:subject:date:from:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=+qvzOPyUHO3fHuBhGDC3KudpInHlOoaoXrnpC0iw+NA=;
+        b=BA3T4kggu3XkBpYCbmqYfFtPIc5EloBJw9hqIi7C9+q2U7QsGY4SqjIRkImKVsMxwR
+         nxgBPf2zP4QhnkwJBZatpvOKQ9iqpVmNV3v4sucaLcfFk1PRsMABsJDd+Mz99ySKAM2D
+         lB4SFGxkOAaTBNJeUPy5aBLMjNunrsMHeI75W+wOdlZJyetImdKpN5WXYvpVokum2ZI7
+         mZCJ4fqjLYOfeZfPboc2Wc14XbKJGMP9TvIbg5omlE8SZc6LN+QYHrcD4HqQN618zzca
+         sXlFh8WoeajNhyCRchEGUA+mre59k2OmQoVfW+kqWJRBij5IoQGeH05opGtohGa/FDqo
+         YiEg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1783010485; x=1783615285;
+        d=1e100.net; s=20251104; t=1783010487; x=1783615287;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :content-type:mime-version:subject:date:from:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=Kg5EcJIb7/NbC+BTLvTpewRkCYpge7iehUzwDyOw0vo=;
-        b=aldRTtH02uULyXuTOvWuVn+HKtmiEO3y7fp5Ci/nRy+KkD4EdSEzGTxL1y9FVasM3Q
-         7Ksa/8T+Hw3MsxgojsLop13KqdZif2kEBamHAJPknbIZJmCJgkiBzOKd5DrEKFqK/CJH
-         2UlvD6ByKxYvhqNBtG8rnR7/4RWBHxaYOby44+HCMq+0oHCZjFAdsU4sfNSSKq0BNJ8c
-         U6b9sSUpvhKz7IrZ/aIgXnYIbGijSbFyY0muUTkQeElpY548xF5YOom3zix+w1V5lvtr
-         tQ8uvkzSR6YVQRHnN6MndpuSWweCv6V7ktERdJK09hpELiq42z7LKh08fApEXwOR+hbv
-         O+4w==
-X-Forwarded-Encrypted: i=1; AFNElJ/fcZRXELdrMJYq0CPOuYaV62TxPdW1EZ2+TpIL+YDV9rmcMI3pq+xOE4D2sYd/nVPqQ5OYCeq7oLnJ@vger.kernel.org
-X-Gm-Message-State: AOJu0YxgUtjn0V4DeEI/D3pkIAdDX0+0/FpWmA3o0KIdVPqQ8sCF65xw
-	yWYMU1rZaO9lbVbWvLWpQ7PKJDYgRNxbM3oaINPEbh7UmH1y0pj5SlJs
-X-Gm-Gg: AfdE7clvtsims5Xcz5L5ovhyI3L/5+/GVze+kRK0mYrQC7980v68368EcV2PnSpIv/h
-	qErsIsxTD+k5Qr8Bg3SHNv35w3bUvskTyopO3gUxCXu//0qkU3QMNgSUvSmddZz0zPVCvzNoX8g
-	qPd/cKPYeRfFbk6uJXvvB0h4VxEVuu087U47Yhsv3wYfU/6WmLh1PrcLCijUKh0rI/nu1/XeD/3
-	A7VvAs4s3SpRFpc/MuCUz2bM3nomoYtMjK1qiLR6F5tESrCP5ktXlkiDDUXu2CnzesMsjjLsikX
-	VXmxDFK5UpMvnGHFpoIgqaZogTx6vNYf7kyjQMvqTtFRR88VL0Nh2/OKP56UXcWTOpan1gKhC0t
-	w3fAyc320vXYKea4QaoUPphKkmlspDr7EqjaF7Ds2ldDd8EyLamipTEY2oat8wW3ytmJPtdMzs4
-	PN1e5H10tDEqp0pnb3dY/tLoxWZmBopk8+331OnKdzlrhIJoftuL4=
-X-Received: by 2002:a05:6820:199b:b0:6a1:5847:3dda with SMTP id 006d021491bc7-6a30d8ac0c4mr3660257eaf.48.1783010485438;
-        Thu, 02 Jul 2026 09:41:25 -0700 (PDT)
+         :mime-version:subject:date:from:x-gm-gg:x-gm-message-state:from:to
+         :cc:subject:date:message-id:reply-to;
+        bh=+qvzOPyUHO3fHuBhGDC3KudpInHlOoaoXrnpC0iw+NA=;
+        b=gOJ8IxU4gKZoGHMEQbNLD4t3u0aYieQ1bw0WD3W6G6qpWDJF5CHEL+/0p4wjSf6d8R
+         e1k7aBw2udhJjLPTLBzZxz7wpwC2mwMDBUa8aREcWq5QXJYpPmu1ZubOcffvDiECgFTJ
+         q/3p03wWYTQrSOz9R1+Vi/S/9Gi0hEUCKwdjpEFUMsKjw5A07V0Xxu5hd5ak3ZT5UdYH
+         fnPdpJin2P2E5kDSNQQG6ikoepz6sSHT0vdT+c63q0hKO1vuARgrLUT+JyIPgcG0nSjC
+         mYg8MIy3ave4VzY4xDfwMZepp673/v7GI+zxfIpyOgj+alEbD9AboVcpNdog8jrGjqn+
+         q2Bw==
+X-Forwarded-Encrypted: i=1; AHgh+RpJvVEoW5CYgszsf07Q6TyTHTnG4n4zcvcB4cFtA1/E7aRaTzyx5vkQR7nhtKFgpokwGzn1bRuJF7X+@vger.kernel.org
+X-Gm-Message-State: AOJu0YzmLJFNanpMPwUlvFk63Eo+GCJsf8X8icwe21TBVpBhCy8zsJT5
+	H6eM6eykwcHYE8Ny+5ETR8eeKtLBWPz/riRnr1LOZdyCBgYkP01qDfLS
+X-Gm-Gg: AfdE7ck2ZR9bsw9qHxF8bOiNnQMxqqXooMXKLuuM4MeDA1DUXVDbS2zpbqRMYM4Z5DH
+	BGsGPSz8IKO5reJzypxuy0eApDnwRi+GKr0VzCv5zYo1XChfay1QtHcVin+Zkp4qFKpw2mtNhjq
+	iExtwXG156HwlUBYkHi8obKrinA4F8s9omaQTxvKJXpBCEn6TNaGHGlxmxiHm8GoyaqbJRqBpMF
+	wwMxKP7/C8Al3B5KOdYRUH8Y7pO7Vy49RxPvAi/52ZEfXrlcbVfvspCiJp2smMDQ6ji7hyZa4af
+	/spube0szh7oCnPhYDSO6nuNWuEAsOBRyPZD9k/tKxSjxqsBda+GX8xY5qDKXdz10hj8vc6yZeA
+	aHkyx8QxyVai6Pzhp7dFBQ8O/AcdC8Nhq3eca/W6MuB5Xm2y5fquINUBwu6Ec1B3koZ771f1rR1
+	Gad8idToYXLIvwMRqgz1NGUltN1MZnOcH0tTW5XrgAaioY2NoXhrjLZ1TMOotzpg==
+X-Received: by 2002:a05:6871:890:b0:448:558c:d8bf with SMTP id 586e51a60fabf-44cea4ec473mr416039fac.17.1783010486868;
+        Thu, 02 Jul 2026 09:41:26 -0700 (PDT)
 Received: from [192.168.0.245] (c-98-38-17-99.hsd1.co.comcast.net. [98.38.17.99])
-        by smtp.googlemail.com with ESMTPSA id 586e51a60fabf-44cbec93702sm3189652fac.12.2026.07.02.09.41.24
+        by smtp.googlemail.com with ESMTPSA id 586e51a60fabf-44cbec93702sm3189652fac.12.2026.07.02.09.41.25
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 02 Jul 2026 09:41:25 -0700 (PDT)
+        Thu, 02 Jul 2026 09:41:26 -0700 (PDT)
 From: Jim Cromie <jim.cromie@gmail.com>
-Date: Thu, 02 Jul 2026 10:40:59 -0600
-Subject: [PATCH v5 07/18] dyndbg: reduce verbose/debug clutter
+Date: Thu, 02 Jul 2026 10:41:00 -0600
+Subject: [PATCH v5 08/18] lib/parser: add match_wildcard_hyphen() for
+ agnostic matching
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -70,7 +70,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260702-dd-maint-2-v5-7-24f22b052bf2@gmail.com>
+Message-Id: <20260702-dd-maint-2-v5-8-24f22b052bf2@gmail.com>
 References: <20260702-dd-maint-2-v5-0-24f22b052bf2@gmail.com>
 In-Reply-To: <20260702-dd-maint-2-v5-0-24f22b052bf2@gmail.com>
 To: Andrew Morton <akpm@linux-foundation.org>, 
@@ -84,171 +84,136 @@ To: Andrew Morton <akpm@linux-foundation.org>,
  Sami Tolvanen <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>
 Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, 
  dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
- linux-modules@vger.kernel.org, Louis Chauvet <louis.chauvet@bootlin.com>
+ linux-modules@vger.kernel.org
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1783010473; l=5280;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1783010473; l=4222;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=yIjUo04fS9hFhZVQqd7QNfMx8c7rakFHpoauTbqrYcM=;
- b=7XTGzlwc+qQjDmQhNpjyATyUsQF5hxsmAXqfHagY5YutP/SAIko8Y0nf1YEus2ocx5lasClDz
- IvHgRcyfvh+CxmkXlsh2+poPVCyXyPLinEqHzFcsXWzhHTNxYCP1byo
+ bh=qZKCtfeZXgr9USX3+37WWDppizwZjEcqYLWdj0ZjKXQ=;
+ b=HDabVOht9/LjgxGn9EUPsGTjVLA6SABPlrw+n+vplGk0ZZsVg/BaAE17NvzN4FDBlciWIe69k
+ oC0z4UynkjQDC8xxlVvCE64H0VdKQuGpVqPudup+cHHcIckvCztnQby
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 
-currently, for verbose=3, these are logged (blank lines for clarity):
+This commit introduces match_wildcard_hyphen() as a variant of the
+existing match_wildcard() function. It treats hyphens and underscores
+as identical characters during the matching process.
 
- dyndbg: query 0: "class DRM_UT_CORE +p" mod:*
- dyndbg: split into words: "class" "DRM_UT_CORE" "+p"
+This is necessary for subsystems like dynamic_debug that need to match
+module names provided by users (who often use underscores) against
+names stored in the kernel (which may use hyphens, especially when
+using KBUILD_MODFILE for built-ins).
 
- dyndbg: op='+'
- dyndbg: flags=0x1
- dyndbg: *flagsp=0x1 *maskp=0xffffffff
-
- dyndbg: parsed: func="" file="" module="" format="" lineno=0-0 class=...
- dyndbg: no matches for query
- dyndbg: no-match: func="" file="" module="" format="" lineno=0-0 class=...
- dyndbg: processed 1 queries, with 0 matches, 0 errs
-
-That is excessive, so this patch:
- - shrinks 3 lines of 2nd stanza to single line
- - drops 1st 2 lines of 3rd stanza
-   3rd line is like 1st, with result, not procedure.
-   2nd line is just status, retold in 4th, with more info.
-
-New output:
-
- dyndbg: query 0: "class DRM_UT_CORE +p"
- dyndbg: split into words: "class" "DRM_UT_CORE" "+p"
- dyndbg: op='+' flags=0x1 maskp=0xffffffff
- dyndbg: processed 1 queries, with 0 matches, 0 errs
-
-Also drop several verbose=3 messages in ddebug_add_module.  When
-modprobing a module, dyndbg currently logs/says "add-module", and then
-"skipping" if the module has no prdbgs.  Instead just check 1st and
-return quietly.
-
-Unmatched query diagnostics are intentionally restricted to verbose
-level 3 (v3pr_info_dq) to reduce dmesg output clutter on standard
-verbose levels (verbose=1 and verbose=2), aligning with the overall
-de-cluttering of dynamic debug logging.
+To avoid code duplication, the core logic is refactored into a private
+__match_wildcard() function marked as __always_inline. This allows the
+compiler to generate optimized versions for both the strict and agnostic
+callsites with zero runtime overhead.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
-Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
 ---
-v4: rename vpr_dq_info to v3pr_dq_info to tell its active logging level
-    adjust some vX levels per doc'd intentions
-v2: RvB after SoB
-
-trivial change to verbose-debug output line to output the actual
-"module" keyword rather than "mod:", and do so only when the module is
-constrained by the callchain (ie as part of a modprobe).
-
- was:   query X: "(keyword value)* [+-=]flags" mod:*
- now:   query X: "(keyword value)* [+-=]flags"
-   or   query X: module FOO "keyword value)* [+-=]flags"
-
-IOW, adjust output to reflect the input grammar more closely.
-
-drop-info-parsed
-
-vinfo-applied-nomatch
-
-dyndbg: tweak verbose-levels per doc
+v5: move ahead of array-slice patch to silence sashiko complaint about it
+v4: initial version
 ---
- lib/dynamic_debug.c | 24 ++++++++++--------------
- 1 file changed, 10 insertions(+), 14 deletions(-)
+ include/linux/parser.h |  1 +
+ lib/parser.c           | 58 +++++++++++++++++++++++++++++++++++++-------------
+ 2 files changed, 44 insertions(+), 15 deletions(-)
 
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index efe12fac6363..2e321b7eb957 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -128,7 +128,7 @@ do {								\
- #define v3pr_info(fmt, ...)	vnpr_info(3, fmt, ##__VA_ARGS__)
- #define v4pr_info(fmt, ...)	vnpr_info(4, fmt, ##__VA_ARGS__)
+diff --git a/include/linux/parser.h b/include/linux/parser.h
+index dd79f45a37b8..a3cc7bc5fb93 100644
+--- a/include/linux/parser.h
++++ b/include/linux/parser.h
+@@ -34,6 +34,7 @@ int match_u64(substring_t *, u64 *result);
+ int match_octal(substring_t *, int *result);
+ int match_hex(substring_t *, int *result);
+ bool match_wildcard(const char *pattern, const char *str);
++bool match_wildcard_hyphen(const char *pattern, const char *str);
+ size_t match_strlcpy(char *, const substring_t *, size_t);
+ char *match_strdup(const substring_t *);
  
--static void vpr_info_dq(const struct ddebug_query *query, const char *msg)
-+static void v3pr_info_dq(const struct ddebug_query *query, const char *msg)
- {
- 	/* trim any trailing newlines */
- 	int fmtlen = 0;
-@@ -280,9 +280,6 @@ static int ddebug_change(const struct ddebug_query *query,
- 	}
- 	mutex_unlock(&ddebug_lock);
- 
--	if (!nfound && verbose)
--		pr_info("no matches for query\n");
--
- 	return nfound;
+diff --git a/lib/parser.c b/lib/parser.c
+index 62da0ac0d438..d5be01fa9adf 100644
+--- a/lib/parser.c
++++ b/lib/parser.c
+@@ -268,20 +268,13 @@ int match_hex(substring_t *s, int *result)
  }
+ EXPORT_SYMBOL(match_hex);
  
-@@ -491,7 +488,6 @@ static int ddebug_parse_query(char *words[], int nwords,
- 		 */
- 		query->module = modname;
- 
--	vpr_info_dq(query, "parsed");
- 	return 0;
- }
- 
-@@ -515,7 +511,6 @@ static int ddebug_parse_flags(const char *str, struct flag_settings *modifiers)
- 		pr_err("bad flag-op %c, at start of %s\n", *str, str);
- 		return -EINVAL;
- 	}
--	v3pr_info("op='%c'\n", op);
- 
- 	for (; *str ; ++str) {
- 		for (i = ARRAY_SIZE(opt_array) - 1; i >= 0; i--) {
-@@ -529,7 +524,6 @@ static int ddebug_parse_flags(const char *str, struct flag_settings *modifiers)
- 			return -EINVAL;
- 		}
- 	}
--	v3pr_info("flags=0x%x\n", modifiers->flags);
- 
- 	/* calculate final flags, mask based upon op */
- 	switch (op) {
-@@ -545,7 +539,7 @@ static int ddebug_parse_flags(const char *str, struct flag_settings *modifiers)
- 		modifiers->flags = 0;
- 		break;
- 	}
--	v3pr_info("*flagsp=0x%x *maskp=0x%x\n", modifiers->flags, modifiers->mask);
-+	v3pr_info("op='%c' flags=0x%x maskp=0x%x\n", op, modifiers->flags, modifiers->mask);
- 
- 	return 0;
- }
-@@ -574,7 +568,7 @@ static int ddebug_exec_query(char *query_string, const char *modname)
- 	}
- 	/* actually go and implement the change */
- 	nfound = ddebug_change(&query, &modifiers);
--	vpr_info_dq(&query, nfound ? "applied" : "no-match");
-+	v3pr_info_dq(&query, nfound ? "applied" : "no-match");
- 
- 	return nfound;
- }
-@@ -597,7 +591,10 @@ static int ddebug_exec_queries(char *query, const char *modname)
- 		if (!query || !*query || *query == '#')
- 			continue;
- 
--		vpr_info("query %d: \"%s\" mod:%s\n", i, query, modname ?: "*");
-+		if (modname)
-+			v2pr_info("query %d: module %s \"%s\"\n", i, modname, query);
-+		else
-+			v2pr_info("query %d: \"%s\"\n", i, query);
- 
- 		rc = ddebug_exec_query(query, modname);
- 		if (rc < 0) {
-@@ -1163,11 +1160,10 @@ static int ddebug_add_module(struct _ddebug_info *di, const char *modname)
- {
- 	struct ddebug_table *dt;
- 
--	v3pr_info("add-module: %s.%d sites\n", modname, di->num_descs);
--	if (!di->num_descs) {
--		v3pr_info(" skip %s\n", modname);
-+	if (!di->num_descs)
- 		return 0;
--	}
+-/**
+- * match_wildcard - parse if a string matches given wildcard pattern
+- * @pattern: wildcard pattern
+- * @str: the string to be parsed
+- *
+- * Description: Parse the string @str to check if matches wildcard
+- * pattern @pattern. The pattern may contain two types of wildcards:
+- *
+- * * '*' - matches zero or more characters
+- * * '?' - matches one character
+- *
+- * Return: If the @str matches the @pattern, return true, else return false.
+- */
+-bool match_wildcard(const char *pattern, const char *str)
++static inline char dash2underscore(char c)
++{
++	return (c == '-') ? '_' : c;
++}
 +
-+	v3pr_info("add-module: %s %d sites\n", modname, di->num_descs);
++static __always_inline bool __match_wildcard(const char *pattern, const char *str,
++					     bool hyphen_agnostic)
+ {
+ 	const char *s = str;
+ 	const char *p = pattern;
+@@ -301,7 +294,9 @@ bool match_wildcard(const char *pattern, const char *str)
+ 			pattern = p;
+ 			break;
+ 		default:
+-			if (*s == *p) {
++			if (hyphen_agnostic ?
++			    (dash2underscore(*s) == dash2underscore(*p)) :
++			    (*s == *p)) {
+ 				s++;
+ 				p++;
+ 			} else {
+@@ -319,8 +314,41 @@ bool match_wildcard(const char *pattern, const char *str)
+ 		++p;
+ 	return !*p;
+ }
++
++/**
++ * match_wildcard - parse if a string matches given wildcard pattern
++ * @pattern: wildcard pattern
++ * @str: the string to be parsed
++ *
++ * Description: Parse the string @str to check if matches wildcard
++ * pattern @pattern. The pattern may contain two types of wildcards:
++ *
++ * * '*' - matches zero or more characters
++ * * '?' - matches one character
++ *
++ * Return: If the @str matches the @pattern, return true, else return false.
++ */
++bool match_wildcard(const char *pattern, const char *str)
++{
++	return __match_wildcard(pattern, str, false);
++}
+ EXPORT_SYMBOL(match_wildcard);
  
- 	dt = kzalloc_obj(*dt);
- 	if (dt == NULL) {
++/**
++ * match_wildcard_hyphen - parse if a string matches given wildcard pattern
++ * @pattern: wildcard pattern
++ * @str: the string to be parsed
++ *
++ * Description: Same as match_wildcard, but treats '-' and '_' as identical.
++ *
++ * Return: If the @str matches the @pattern, return true, else return false.
++ */
++bool match_wildcard_hyphen(const char *pattern, const char *str)
++{
++	return __match_wildcard(pattern, str, true);
++}
++EXPORT_SYMBOL(match_wildcard_hyphen);
++
+ /**
+  * match_strlcpy - Copy the characters from a substring_t to a sized buffer
+  * @dest: where to copy to
 
 -- 
 2.54.0
