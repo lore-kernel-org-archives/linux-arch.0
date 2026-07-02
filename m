@@ -1,114 +1,196 @@
-Received: from flow-b5-smtp.messagingengine.com (flow-b5-smtp.messagingengine.com [202.12.124.140])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 61AE43191CE;
-	Thu,  2 Jul 2026 15:43:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.140
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 5AC4B314B76;
+	Thu,  2 Jul 2026 16:05:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783007035; cv=none; b=CRGb6pxdMxWgHssbNGleRWfIw/5+ZbDA3yl1M1cgZO6QPx41ISQVOkt/EOBgZ39ewVBb3OIY2RPIxulEHD/USk01sjkfGkKjde37s1oGZwxELMIGm8K+LC2ZzDia7WXs+NUQXoPb4WT5TsusPS6CRdS9dBpNja5BdOX9u39dkQ4=
+	t=1783008327; cv=none; b=M5AYPJbOIekTn/zazrpss3Vn4pSCeCXtSxzJ+Kgnur2CO5fpqdWHp6aJYJSh2XuxojyUjV69rtscnF3L3WZNy3Cnxj4frE4t4mbz6mGkCiRgMaxlidzf+SoqCXbNJiE6lLyQ50JEHkQ3ng9f6wNh2CjIErGvmwpPIAn9LSp3f+w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783007035; c=relaxed/simple;
-	bh=vf9XSdkCvFVNbsoR1vcY9ePWywXI5GETA9KGjDxzwiY=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=J0ummyyfWWoxKLID4SGs07oHdUQLtRaAl5oq2WhJwN47FG2otdugmHPWbaUZUG3ijEPKmxDCLBazgffQV77AOqYPuIr7pQ2fTE6PohG/79WAPWjpSN9a6SZe/0tZd1fKoeGx8ONTzy5uSQTwqvybHEXH9hRI71G2McrQliFEB8k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me; spf=pass smtp.mailfrom=johnericson.me; dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b=wPiWIf7i; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=PK70Z+VM; arc=none smtp.client-ip=202.12.124.140
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=johnericson.me
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=johnericson.me
+	s=arc-20240116; t=1783008327; c=relaxed/simple;
+	bh=lpQShleLcnURdAFGoGFwoTepKOWCxvG/AyRe6mlJ8iw=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=UADLyTdtf9RQWVKsJ6suxKN60GK/5x4CM9slIzz7x4HMRGQmcuG6lyxeHBj1RxOvrBZFe46wZaNdKTV6KFgYdhhX90OeoQhP2kfR+NdHKDaciOVtMxxbuRCsTOIHI2/Cqk4vgWhF0E0VnwedfJYHm7TxPzMNvYvOGP/GXlp/fa0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=XBrdEHo+; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=johnericson.me header.i=@johnericson.me header.b="wPiWIf7i";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="PK70Z+VM"
-Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
-	by mailflow.stl.internal (Postfix) with ESMTP id 222731300436;
-	Thu,  2 Jul 2026 11:43:53 -0400 (EDT)
-Received: from phl-imap-16 ([10.202.2.88])
-  by phl-compute-05.internal (MEProxy); Thu, 02 Jul 2026 11:43:53 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=johnericson.me;
-	 h=cc:cc:content-transfer-encoding:content-type:content-type
-	:date:date:from:from:in-reply-to:in-reply-to:message-id
-	:mime-version:references:reply-to:subject:subject:to:to; s=fm1;
-	 t=1783007032; x=1783014232; bh=vf9XSdkCvFVNbsoR1vcY9ePWywXI5GET
-	A9KGjDxzwiY=; b=wPiWIf7iWy32YLJJ0SMGd1NcHSYqScVIM3M7FpHP8AXgk4g7
-	Y7i3X/KOZkuNAUqQ+y3cdD+UjdGk2QXfFwWaLUZmgmw8LEii8rDeuYKdDBHXz2LA
-	3KsnRLL4yDkarzv5R87JCrikNYvgeMrOwAcxYEiGGihPIoZrIewMC89TruqSbNZR
-	O48Cm0gC7ZEuKEgBi0XIjbc4mZmEGaYft6zUHn4PtlkbSghDjcw6gdcjDdLVeK0T
-	Fu2thCuuX7tid1qgyLz2LNbNM3eCHR3ycyCBGK7XwjipzJBYH+1UKeOZy3a0cT3l
-	VOC+PGhPVBiLY+mkhuLVfAKgozera91Ua6z4GA==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1783007032; x=
-	1783014232; bh=vf9XSdkCvFVNbsoR1vcY9ePWywXI5GETA9KGjDxzwiY=; b=P
-	K70Z+VMbMfq+5ZKQNqUpYAOuUQfjP68coj6vUY9T6sckYR/HCRZhcEEqVNjBpDnr
-	A1PNn5KW8Sd44fxzC1E2EoUXgZ8hEduXecCuqoCFn9ADyjEU9heuclcZ1/0l5Fx6
-	4U7FWpitVNBg8XD1YkSA7/bE8pVSUR+eHlQ1guvRFysOTh7M0piqZiAPg9SGzos2
-	Z+u2VDsihTHs965Jl9oLVAL4u5bh+q1p/2hVUSMwVIS92/e2YEOwjvFTDV/PCCbM
-	NSeuxsP/6QzjJo3uK+IEDCrnoopkXuQ/VEWV94lxtqE+mUZsuUfLp5qCTq/BrARg
-	xFLhph53xQ5zPK5B/JJTg==
-X-ME-Sender: <xms:OIdGasFIfFAiBrIhi8ce5Kwx18rxTFFEvEo3pPv8ajOwE1Y220Bxmg>
-    <xme:OIdGagI0wzl2dkZWudPjNS6w2ARQiDJNdsoSaWK1KyL6DG-LvPc0aXIftuEjxhW3R
-    tIIBjJvpTZTR9ixMD-BT1iDAAyL9L6MQfgJ4qM-QjQ5LX8tJ6ixWsVl>
-X-ME-Proxy-Cause: dmFkZTF1QqVkYWXEVVgDZimDsMhAsUZjAfnUjHrZwcnS/C2Z757MjYdRqxqUruGGfXLYdW
-    EsoNXCOq8oCONH5vd0WLSrPRGh9XFE8tHmJ1gIKI3LuR0La/9A8vB/90k9UUGtpCROmeqr
-    xHmVjgn0C2+RD+VkPMucZPlynxVuKdbUDWjDu4wK0IRjKix6gagkr3wmFWR3LNLEV9Rcrl
-    d9NT3Ro+fl2aGLLooU775EXkXRypUrCfdW5tcQQow3+UGwF9AH4FP5pAbsZyHku8tid93+
-    X6dlYUPXj0i4Xyp1/NMOVWNiCdOMerJRKfs7lrvxsYCHxoTkteaLKD0Urj1867+0bKMvZz
-    S/ii+FXiFN7nD8u4I3FvgYqJiCiA7WCi8pPvn1QXN1rLkkWzeOlBlyVwN16RHwLHkUzFIH
-    oMWpl5sMBsJ9nt7ScHh5ydDbtkh6qZO1DbQAX8PysYJVmGU/aIUvIPcfoSTRoo8eptZjQ0
-    01x7Ah/VTUS9FmOXJbdiIlK8sdBwon4KSGeXiS8TI3Ta/Q8eAz17Xmkc36EvAtPrwhyuPB
-    BUpkC6FPwbNRUovXDE3tGLXxD3giOz/US6YfpnE2jSqlUU22ly0+i6Y/Ymv/cUdQDG2uH3
-    kgJsHTxCF0+tOnroapZT+O4AnJsT0KVXmYIY24hYnlnUAADbZK2FXvgaoZ0Q
-X-ME-Proxy: <xmx:OIdGakVnKWaSJABfEYQHKXqQa3tynug9Da6dnI3Hv9HGSm99vrbDNg>
-    <xmx:OIdGalxNPdKZLG_iXrmDRY-OAgX92Bc5M5ZhW82Xlv83I4MX3bK52w>
-    <xmx:OIdGas4QIqiXvdTjtz6tFoS2jpfWXqo5z0CotTmmRIv9YJ_kJVGQXg>
-    <xmx:OIdGavhCS2ne6jKctt3pB-EWRMd6JBpw6iwI-8mFVNVl6Bix8WNyXQ>
-    <xmx:OIdGao9rnT-IushQv9sjuHB3_QfZcYHKn5pcNMezfWfAZJ1Z06q8Evw2>
-Feedback-ID: ieb4144f1:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 117E12CC0083; Thu,  2 Jul 2026 11:43:52 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="XBrdEHo+"
+Received: from zhangyu-hyperv.mshome.net (unknown [167.220.233.38])
+	by linux.microsoft.com (Postfix) with ESMTPSA id DB0A620B7167;
+	Thu,  2 Jul 2026 09:05:18 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com DB0A620B7167
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1783008323;
+	bh=Vjs7ij0yRe5VI0EfYmaoUe/0H9VspAUIQwDoikZjFHc=;
+	h=From:To:Cc:Subject:Date:From;
+	b=XBrdEHo+qmUvhLer+0cF/N0JsHTdzS6f77qhYqc4aTJTnWRgND90UMNjX/M1O7SFA
+	 UkZf25AA8CM+0fxgQIba0dcokWFdS9Xz5sC3tgLyHy/Y6bc0AaEZ8yDOGn0Zlwfir5
+	 VKlPqBqess3QMluTgIISxACK9eqWLvNuME6oeZAU=
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org,
+	iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Cc: wei.liu@kernel.org,
+	kys@microsoft.com,
+	haiyangz@microsoft.com,
+	decui@microsoft.com,
+	longli@microsoft.com,
+	joro@8bytes.org,
+	will@kernel.org,
+	robin.murphy@arm.com,
+	bhelgaas@google.com,
+	kwilczynski@kernel.org,
+	lpieralisi@kernel.org,
+	mani@kernel.org,
+	robh@kernel.org,
+	arnd@arndb.de,
+	jgg@ziepe.ca,
+	mhklinux@outlook.com,
+	jacob.pan@linux.microsoft.com,
+	tgopinath@linux.microsoft.com,
+	easwar.hariharan@linux.microsoft.com,
+	mrathor@linux.microsoft.com
+Subject: [PATCH v2 0/4] Hyper-V: Add para-virtualized IOMMU support for Linux guests
+Date: Fri,  3 Jul 2026 00:05:14 +0800
+Message-ID: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
+X-Mailer: git-send-email 2.52.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: AG8qDlxFSDr7
-Date: Thu, 02 Jul 2026 11:43:31 -0400
-From: "John Ericson" <mail@johnericson.me>
-To: "Christian Brauner" <brauner@kernel.org>,
- "Andy Lutomirski" <luto@kernel.org>
-Cc: "Li Chen" <me@linux.beauty>, "Cong Wang" <cwang@multikernel.io>,
- linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>,
- linux-fsdevel <linux-fsdevel@vger.kernel.org>,
- linux-api <linux-api@vger.kernel.org>, "Arnd Bergmann" <arnd@arndb.de>,
- "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
- "Borislav Petkov" <bp@alien8.de>,
- "Dave Hansen" <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, "Jan Kara" <jack@suse.cz>,
- "Jonathan Corbet" <corbet@lwn.net>, "Shuah Khan" <skhan@linuxfoundation.org>,
- "Al Viro" <viro@zeniv.linux.org.uk>, "Kees Cook" <kees@kernel.org>,
- "Sergei Zimmerman" <sergei@zimmerman.foo>,
- "Farid Zakaria" <farid.m.zakaria@gmail.com>
-Message-Id: <5abd7c81-3c6b-45d1-aaab-195493c1cdc9@app.fastmail.com>
-In-Reply-To: 
- <20260702-entladen-farbkombinationen-klarheit-fe24cb608f23@brauner>
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
- <20260629-hauer-erhitzen-sobald-96d3dff68707@brauner>
- <CALCETrVuh0-biOw=TgYN9ERTFAoiki57XeZ3S2T3dO2+hL54gA@mail.gmail.com>
- <20260702-entladen-farbkombinationen-klarheit-fe24cb608f23@brauner>
-Subject: Re: [RFC] Null Namespaces
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On Thu, Jul 2, 2026, at 4:34 AM, Christian Brauner wrote:
-> I think we could make that work with both FD_NULLFS_ROOT and
-> FD_FAILFS_ROOT...
+This patch series introduces a para-virtualized IOMMU driver for
+Linux guests running on Microsoft Hyper-V. The driver enables two
+primary use cases:
+  1) In-kernel DMA protection for devices assigned to the guest.
+  2) Device assignment to guest user space (e.g., via VFIO).
 
-Fantastic!!
+The driver implements the following core functionality:
+*   Hypercall-based Enumeration
+    Unlike traditional ACPI-based discovery (e.g., DMAR/IVRS),
+    this driver enumerates the Hyper-V IOMMU capabilities directly
+    via hypercalls. This approach allows the guest to discover
+    IOMMU presence and features without requiring specific virtual
+    firmware extensions or modifications.
 
-What comes next? Do you want to submit the patches for this, Christian,
-or do you want one of us to? (Just trying to be helpful.)
+*   Domain Management
+    The driver manages IOMMU domains through a new set of Hyper-V
+    hypercall interfaces, handling domain allocation and attachment
+    for endpoint devices.
 
-John
+*   Nested Translation Support
+    This implementation leverages guest-managed stage-1 I/O page
+    tables nested with host stage-2 translations. It is built
+    upon the consolidated IOMMU page table framework (IOMMU_PT).
+    This design eliminates the need for emulating map operations.
+    Both Intel VT-d and AMD IOMMU platforms are supported.
+
+*   IOTLB Invalidation
+    IOTLB invalidation requests are marshaled and issued to the
+    hypervisor through the same hypercall mechanism. Both domain-
+    selective and page-selective flushes are supported.
+
+Implementation Notes:
+*   Platform Support
+    The current implementation targets x86 platforms with Intel
+    VT-d and AMD IOMMU hardware.
+
+*   MSI Region Handling
+    The hardware MSI region is hard-coded to the standard x86
+    interrupt range (0xfee00000 - 0xfeefffff). Future updates may
+    allow this configuration to be queried via hypercalls if new
+    hardware platforms are to be supported.
+
+*   Reserved Regions (RMRR)
+    There is currently no requirement to support assigned devices with
+    ACPI RMRR limitations. Consequently, this patch series does not
+    specify or query reserved memory regions.
+
+Testing:
+This series has been validated with the following configurations:
+- Intel DSA devices assigned to the guest, tested with dmatest.
+- NVMe devices assigned to the guest on AMD platforms, tested
+  with fio.
+- dma_map_benchmark for DMA mapping performance evaluation.
+
+Changelog:
+
+v1[1] -> v2:
+- Dropped the "move to subdirectory" patch; the directory now exists
+  upstream.
+
+- hv: logical device ID registry:
+  - Moved the registry to hv_common.c so it can be shared, and derived
+    the prefix via a shared helper instead of caching it in pci-hyperv's
+    private struct.
+  - Moved the lookup out of the irq-disabled region (PREEMPT_RT).
+
+- iommu/hyperv: para-virtualized IOMMU:
+  - Removed the unused detach_dev op.
+  - Rejected a hypervisor not advertising x86 page sizes instead of
+    masking and warning.
+  - Statically initialized the identity and blocking domains.
+  - Gave the blocking domain its own attach op, which returns the hypercall
+    status and WARNs on failure.
+
+- iommu/hyperv: page-selective IOTLB flush:
+  - Used a single descriptor covering a slightly larger power-of-two
+    range, instead of splitting the range into multiple descriptors.
+  - Fixed the inclusive-end corner case in the flush range calculation.
+
+RFC v1[2] -> v1[1]:
+- Scoped platform support to x86 only (Intel VT-d and AMD IOMMU);
+  initialization now uses x86_init.iommu.iommu_init
+- Added page-selective IOTLB flush support
+- Disable device ATS in hv_iommu_release_device()
+- Addressed review comments from Michael Kelley:
+  - Reversed dependency: pvIOMMU exports registration API for
+    pci-hyperv to call, instead of pci-hyperv exporting
+    hv_build_logical_dev_id()
+  - Dropped separate output page allocation patch; hypercall input
+    and output now share the same per-CPU page
+  - Cleaned up Kconfig (removed PCI_HYPERV dependency, unnecessary
+    selects)
+  - Removed dev_list, per-domain spinlock, and syscore_ops
+  - Removed forward declarations by reordering functions
+  - Fixed typos, cleaned up Kconfig selects, improved pr_info
+    messages, etc.
+
+[1] https://lore.kernel.org/linux-hyperv/20260511162408.1180069-1-zhangyu1@linux.microsoft.com/
+[2] https://lore.kernel.org/linux-hyperv/20251209051128.76913-1-zhangyu1@linux.microsoft.com/
+
+
+Easwar Hariharan (1):
+  Drivers: hv: Add logical device ID registry for vPCI devices
+
+Wei Liu (1):
+  hyperv: Introduce new hypercall interfaces used by Hyper-V guest IOMMU
+
+Yu Zhang (2):
+  iommu/hyperv: Add para-virtualized IOMMU support for Hyper-V guest
+  iommu/hyperv: Add page-selective IOTLB flush support
+
+ arch/x86/hyperv/hv_init.c           |   4 +
+ arch/x86/include/asm/mshyperv.h     |   4 +
+ drivers/hv/hv_common.c              |  95 ++++
+ drivers/iommu/Kconfig               |   1 +
+ drivers/iommu/hyperv/Kconfig        |  16 +
+ drivers/iommu/hyperv/Makefile       |   1 +
+ drivers/iommu/hyperv/iommu.c        | 686 ++++++++++++++++++++++++++++
+ drivers/iommu/hyperv/iommu.h        |  51 +++
+ drivers/pci/controller/pci-hyperv.c |  21 +-
+ include/asm-generic/mshyperv.h      |  13 +
+ include/hyperv/hvgdk_mini.h         |   9 +
+ include/hyperv/hvhdk_mini.h         | 141 ++++++
+ include/linux/hyperv.h              |   8 +
+ 13 files changed, 1045 insertions(+), 5 deletions(-)
+ create mode 100644 drivers/iommu/hyperv/Kconfig
+ create mode 100644 drivers/iommu/hyperv/iommu.c
+ create mode 100644 drivers/iommu/hyperv/iommu.h
+
+-- 
+2.52.0
+
