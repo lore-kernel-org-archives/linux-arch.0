@@ -1,84 +1,122 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1213E33F8CA;
-	Thu,  2 Jul 2026 07:48:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7EA7E412284;
+	Thu,  2 Jul 2026 08:59:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782978486; cv=none; b=FL2U1zTpUj16QrUEhZyGZyKvOsfpY/fQjppMEMWhubR8zqoTtERIA1/k7WuhcNqi6spv0mrp0UaHZ4YnpoOgAf3E+p6ZpuRPFDOifC1qrz99n3j4ZmWbNUvjIL/QlAn8pqXbUGJZcnf1SQL5brrtLtCFLn4AJS6yCsdBjFVCZ6k=
+	t=1782982788; cv=none; b=BVoweiOHI8hcjC0ORm914AYJOsXT1PIVPDCmTA9IhvYdqAz3R+owaGfLCqCfoJRXveN+zCTXEcr2X3o/xLICePU6NIQbdi5P/m84Z79bTPtNqvnZORIg2zmjdidz7c8AnloqucB02lUfckgbif393GYa55lOI1RVUEkrDX3KA5c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782978486; c=relaxed/simple;
-	bh=iq5IDacNqkK4D+r1dY9SZzQ4xGh6/ncHNeFC4F2FzI0=;
-	h=From:To:Cc:Cc:In-Reply-To:References:Subject:Message-Id:Date:
-	 MIME-Version:Content-Type; b=eHcbXCw/qkdmqtjLMTf88phXWgKyRg++LgmAgoLy1hsT4nKVr2TLXHWQQD5BoX9xAhRHPW4ToouvdiPdDtOaq87oznXgIuH7DyvpSXCc2myec6v270GSDZZe6eUmvZs8zQpekP8++zs3HjIBWfckxCv7ykbMQbUBJCSwH3mJ/n8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=YzaUkTUh; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1782982788; c=relaxed/simple;
+	bh=ZLVcbKipQNAdEJWKtk1WjEx5k5Uhknn05I6n6iCUbSc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=nt5C69M+glnhFSR6KHmgN1uJj5WK+R+GBStOeeP76iHEfHtnSaACUNq3Ob6Y4DWA44NNa7SmvmiTM+UonJn+iEvkOGZHw0HgprajdVrd0MpYVi35tkgGFCrfJuvFWzlm2zRcZHvOPe72JY8M6l628eru4vQ8T6FAny3gDMxPLl4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=g7X4++Be; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="YzaUkTUh"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3356E1F000E9;
-	Thu,  2 Jul 2026 07:48:03 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1782978484;
-	bh=zf+n+7geep32l3qdAzpVP4lARvoBFB3Fg31YxOXIA74=;
-	h=From:To:Cc:Cc:In-Reply-To:References:Subject:Date;
-	b=YzaUkTUh5WQGln1lfllhXS5QpzSmZ66alWnLiAUU193OK9d3IhkbFBCBDzsPj6Iw0
-	 mpjz1z0N/cqqDE5tPAKFpbf42sC3DkRO/TIs9/EhU2TxklGewem0S8eGh5S8wHHuwy
-	 n6O9jGsDz++TDwxvGi+z55qUps5Hm/Q+u5SfHcoH6RDbGQexshDX/i0oX5U3fTW3IK
-	 bVN70lM3VXH/gxDUf4HAmT7Whnt0nkI8A9vkg1eOg5odpui2UPGjiE0YuJU2JHo2Yx
-	 JY/Tj17o0iCOhoDsVx5FiLBD0loqdyMSsiVRT+gx+6kTzKeehaoFQl2wy6e2yr+FxP
-	 NJFKseEJ3Yang==
-From: Christian Brauner <brauner@kernel.org>
-To: Jori Koolstra <jkoolstra@xs4all.nl>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>, 
- Arnd Bergmann <arnd@arndb.de>
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, 
- linux-arch@vger.kernel.org
-In-Reply-To: <20260531104947.6142-1-jkoolstra@xs4all.nl>
-References: <20260531104947.6142-1-jkoolstra@xs4all.nl>
-Subject: Re: [PATCH] vfs: missing inode operation should return a
- consistent error code
-Message-Id: <20260702-forensik-unfertig-korpulent-56f199eb061a@brauner>
-Date: Thu, 02 Jul 2026 09:47:24 +0200
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="g7X4++Be"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=usqHyr4FCppk89cjD1Lh8z87EZeT9dV/v0SgCLCx+zE=; b=g7X4++BeQ2q3zvMDe0NyPsUx45
+	3RF7kSMPpRJbYt9i13rM6nx2YrMi6bglLo9KaWHX2kW0o8LMDoTT//Ifa+E2G6xEy8JVh7LI3VLhV
+	pfLPjaeloaGkxDf/EyrDWK2d7ZPwETD3mnRd+Zm8U6Wo+zHIzbHkfvtnSaV65UQjpEgZlRWPz74t1
+	uZ+2Qyh1y+o5EGlK7R8iiQorjBWQbQ11s5JP91ZxzfTGtLpP9bGB4U2aA3Jjn9RfPRYqPUK6KqVbt
+	qrDiRFk4oGgCIyvEEwrlJoQ1fPKiasr1jqeVQKiw9AwCA6vyTYqUeBHmOLeCCitZYCa+2W1O3HTS0
+	CCZNiKSQ==;
+Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
+	by casper.infradead.org with esmtpsa (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wfDGU-00000008EIf-3h8q;
+	Thu, 02 Jul 2026 08:59:23 +0000
+Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
+	id EF899300402; Thu, 02 Jul 2026 10:59:21 +0200 (CEST)
+Date: Thu, 2 Jul 2026 10:59:21 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Cc: K Prateek Nayak <kprateek.nayak@amd.com>, Arnd Bergmann <arnd@arndb.de>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Darren Hart <dvhart@infradead.org>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	=?iso-8859-1?Q?Andr=E9?= Almeida <andrealmeid@igalia.com>,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	Samuel Holland <samuel.holland@sifive.com>,
+	Charlie Jenkins <thecharlesjenkins@gmail.com>,
+	linux-arm-kernel@lists.infradead.org,
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Thomas Huth <thuth@redhat.com>,
+	Sean Christopherson <seanjc@google.com>,
+	Jisheng Zhang <jszhang@kernel.org>, Alexandre Ghiti <alex@ghiti.fr>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>
+Subject: Re: [PATCH] futex: Optimise the size check get_futex_key()
+Message-ID: <20260702085921.GD49951@noisy.programming.kicks-ass.net>
+References: <20260630045531.3939-1-kprateek.nayak@amd.com>
+ <20260630045531.3939-9-kprateek.nayak@amd.com>
+ <20260701075714.GP48970@noisy.programming.kicks-ass.net>
+ <20260701084150.GNOeboLw@linutronix.de>
+ <38239f40-1673-469f-baa3-4a343d2aa4c3@amd.com>
+ <20260701161736.xYYizA0e@linutronix.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-X-Mailer: b4 0.16-dev-4217c
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1010; i=brauner@kernel.org;
- h=from:subject:message-id; bh=iq5IDacNqkK4D+r1dY9SZzQ4xGh6/ncHNeFC4F2FzI0=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWS5iW/6K6BdH/WYIy6ppPhDA2vm8/yqyms9CmIO1Zunt
- z47siO5o5SFQYyLQVZMkcWh3SRcbjlPxWajTA2YOaxMIEMYuDgFYCLHfjEyND76IW21MetO8G+e
- bW9VN6Sxsz+QO+Mh8mxZrID6S7vTNQz/LD8uMP5t4WYxq26NQI9eoMrmjflF8rIVGuskda+sCfJ
- jBAA=
-X-Developer-Key: i=brauner@kernel.org; a=openpgp;
- fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260701161736.xYYizA0e@linutronix.de>
 
-On Sun, 31 May 2026 12:49:46 +0200, Jori Koolstra wrote:
-> vfs: missing inode operation should return a consistent error code
+On Wed, Jul 01, 2026 at 06:17:36PM +0200, Sebastian Andrzej Siewior wrote:
+> The futex address must be naturally aligned and this is checked via
+> "address % size" where `address' is the supplied address and `size' is
+> the expected size of futex. It is guaranteed that `size' is power of two
+> but the compiler does not see it and creates here a `div' operation
+> (x86, arm, gcc-15).
 
-I've stuffed this on a separate branch. Let's see whether we see any
-fallout.
+That's pretty stupid, since size = futex_size() := 1 << (blah); so it
+has every opportunity to actually see this. Also, see below, clang does!
 
----
+> We can take advantage of the pow2 property and rewrite it as
+> "address & (size-1)".
+> 
+> As per testing, the command
+> |perf bench futex hash -f 1 -b 16384 -t 1 -r 30
+> 
+> improved from
+> | [thread  0] futex: 0x5619f931f740 [ 7001583 ops/sec ]
+> to
+> | [thread  0] futex: 0x55da173e5740 [ 7376137 ops/sec ]
+> 
+> or by 5.3%
+> 
+> Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+> ---
+> 
+> Could someone verify this, please? The 5% look a bit high. This is on
+> top of the series (but not worsen by the series).
 
-Applied to the vfs-7.3.errno branch of the vfs/vfs.git tree.
-Patches in the vfs-7.3.errno branch should appear in linux-next soon.
+Bah, I tried to reproduce and couldn't. Then I noticed I did a clang
+build and that is in fact clever enough to do this optimization itself.
 
-Please report any outstanding bugs that were missed during review in a
-new review to the original patch series allowing us to drop it.
+/me tries again with a GCC build.
 
-It's encouraged to provide Acked-bys and Reviewed-bys even though the
-patch has now been applied. If possible patch trailers will be updated.
+pre:  [thread  0] futex: 0x561f14430680 [ 9021408 ops/sec ]
+post: [thread  0] futex: 0x55feadbbb680 [ 8977527 ops/sec ]
 
-Note that commit hashes shown below are subject to change due to rebase,
-trailer updates or similar. If in doubt, please check the listed branch.
+(and this seems to be well inside the error threshold of this test).
 
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git
-branch: vfs-7.3.errno
-
-[1/1] vfs: missing inode operation should return a consistent error code
-      https://git.kernel.org/vfs/vfs/c/7028d60a643a
+So I see the GCC build do the DIV, and no longer with his patch applied,
+but for some reason I cannot get the runtime performance to actually
+improve much of anything on my system.
 
