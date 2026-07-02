@@ -1,301 +1,130 @@
-Received: from mail-pj1-f49.google.com (mail-pj1-f49.google.com [209.85.216.49])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from flow-a4-smtp.messagingengine.com (flow-a4-smtp.messagingengine.com [103.168.172.139])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AA95030F819
-	for <linux-arch@vger.kernel.org>; Thu,  2 Jul 2026 02:56:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 597B63859CE;
+	Thu,  2 Jul 2026 06:21:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.139
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782960970; cv=none; b=d6n3NE4ORulgOGZsb/ChTm5re7+kuYRhZ8AswMyngOgIhxfGiuhMV6y/ee5ZpnHYPUqz2+RrMRI4OTnthg7Abppg6z19Bwath/b/ZIoF1zWhJKG/4Bv+wXSsTOcDKyGQqcDykH9S7iDScxwIhioACsOSMkZwIIeMne3YlFKHlRE=
+	t=1782973271; cv=none; b=Mq3Gku+vyPqFl6BQXtaflPKV/ik7GQIheb22gJmkhskOqIPcXPe+C1vDqAJHTIOc+HBaOuS57lX+RXpuwNZkY6KtObv3tf0YL1T2ZL4lzNh2/iudtDcw2iWeeNbTKFLqo04MNpkfWHjvIJtEBnDKkr6j5aWP1JW8YVne5GxiCGA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782960970; c=relaxed/simple;
-	bh=m0V0OPDHu9n8ExfR/oojEcseWQEh1xnRnoD6pdxSmg4=;
-	h=From:To:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=vDNBA3ZjBUtfili+nkhiT6v2foXTb71JtDr+oqhzZ9Nis30lU9kL5Cx8gL0gDSsmvXSVS+0L/puSjhDCaDpSHNJOKkNA9w3FvnqQohzz87E6Ltw+xlOqGVsx5k97Ztrh9MO7lLZuUrGFowbXpwMGtnUnyrrVMPX4RfnkuMGkS6w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=Mn5/sraM; arc=none smtp.client-ip=209.85.216.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1782973271; c=relaxed/simple;
+	bh=gtNJnOoM3M3WWrtb/BDrLaX2se0o79gQY7jHyTuquhs=;
+	h=MIME-Version:Date:From:To:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=tlQtBtaDHS4MODLlcpCDwd+pG4LQQrlTOXrvU5PLiQ7CZ2WjtVySyNOLev2aQY25rKJi3jxt5BUCzEDQF732DcOOUQMLRVCEC2la4sYSnMqHoZP1jdwElmrNK0PgFVMW2qBnzSFztceD2GCTs87YmDtJsWxVtq7XWGgDAdBWRVg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=pHG6L5mH; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=nL/rU/Yw; arc=none smtp.client-ip=103.168.172.139
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="Mn5/sraM"
-Received: by mail-pj1-f49.google.com with SMTP id 98e67ed59e1d1-380cda7f00cso546021a91.0
-        for <linux-arch@vger.kernel.org>; Wed, 01 Jul 2026 19:56:07 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=bytedance.com; s=google; t=1782960967; x=1783565767; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:to:from:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=FQPTBqHJeemrKxXZgGGu1DBrDIrOfa0jY+13RjETMTs=;
-        b=Mn5/sraM+xOfMHvaUr2bbUDZehK5hEBpIYtoPur6bCmIYqa20OckCe2ElhZuyaGfp2
-         4PWlSeB0/7sGoO06qx6QSx/iWwc2PzDTe1F6rajEALmVeLCcMSp/Vum2SG+o3oXtBJHj
-         4jxh1VMOZB5/oWPonEb895qQv8VgZP1CedNjxpnn2YyCDtZiVgd3vrfXj3k+ThBpb939
-         RECxr4i8gsbIl6Ltu5LC/d7de1VGmae9XXSTFcoSvCH6npzZ2rTdpO3uLzlkkZxEHfmY
-         dbX6u9Rgod/ukLbVbnqlAX1xw9JIxYmOCGerih4m84AQWajgUCaqzGjNVBMpWXildaHT
-         MJWQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1782960967; x=1783565767;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:to:from:x-gm-gg:x-gm-message-state:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=FQPTBqHJeemrKxXZgGGu1DBrDIrOfa0jY+13RjETMTs=;
-        b=SXdXZ63ueADmma3kB+bfhkVc45W3XzC6eSzrPdlejPpboSmsutLRN4NHLgD1J23b1G
-         mX6kB/HPbsX2zfuu5zyxBBMw+gNTIAI7dvMckA937/7i6Qg6dzb9sITb/NSprbeWU/nE
-         Jh5nprkIUgNYl6Fv/0wDW75TYgfyja14BDkI821vykxtTSWdWHH1mWLHOQRrR2PESiTG
-         gqseBp7vLz1kzo/QMekwMU7ySI2VCz7Kv3uUu4N0VPLSjUQLLwxTG6MT4SYsoewjU8w4
-         x74cr6+RAyRSCjZcgzbPop1xrbGIyH72jI3VbcPgCHJrDz/Di+VGG10/Q56eZHk9AVfZ
-         xxfA==
-X-Forwarded-Encrypted: i=1; AHgh+Ro56T5GZt/NF2TkwnIkUT/SFngGJw/ovA6az4DPyRodc6TUXV8f94j2nT7uKRTMqbwwD/DV7zLyOZmT@vger.kernel.org
-X-Gm-Message-State: AOJu0YyaWOuOyKs4ZGGUF/9U02ZRs7Jd/wCGtOmB2688RWE/W5wMwX4u
-	/Nc2iwe98+nsOb4+sk83sfohKQMv9InLzUDySMoZt9sD+SpYDaSPaxd8AZbmVk3rmaE=
-X-Gm-Gg: AfdE7cmY1IpoCw9GugTzCbEWMoJ9aRwJFuH+Fr/8DeUdTxb/nbSkCpUu6lqMs3RKQB8
-	TYM4tC4NkXCW6Gzb0Ub4kNYAalvlagqcMF4PXFM5QBwndshtedL/Ppm+toNlANcndS5QPXOpwdW
-	OiOqo9Xhan6dvlmRDBhBax/pACCQDQzNTJwFbiJxvdvOh6hfKTvHmvV+AfYmgOql5tODn55Y1qJ
-	7qqX95LMMw8oLLolDUFDLxzCYGPpiQ8ZnVm26+DTHF5ib00/hJH17oTS972pO6Nh0NBlIB9c0H4
-	+JMdYUobShjwgMbRjvBax2dO+fo+aSyWiD2EqDBkCtIx3FD80B0kVEZ+X1RY/5K6uCwzgxK4eHK
-	+ret3XfvHaFuoFBhWHH6GJJehfI+ukux1DNBUa+CB8DUlBFKvlVCptHrBAeNgUy71nzIQd/AMcj
-	vtDOUpqSx5LIpRDIZy3EqeHf4CZ05II37o8XKF+9pR9JSDbg==
-X-Received: by 2002:a17:90b:5863:b0:37d:ac5b:392f with SMTP id 98e67ed59e1d1-380ba8a2945mr3208382a91.8.1782960966655;
-        Wed, 01 Jul 2026 19:56:06 -0700 (PDT)
-Received: from L6YN4KR4K9.bytedance.net ([139.177.225.248])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-30f0bb80f5csm4358686eec.15.2026.07.01.19.55.49
-        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
-        Wed, 01 Jul 2026 19:56:06 -0700 (PDT)
-From: Yunhui Cui <cuiyunhui@bytedance.com>
-To: pjw@kernel.org,
-	palmer@dabbelt.com,
-	aou@eecs.berkeley.edu,
-	alex@ghiti.fr,
-	dennis@kernel.org,
-	tj@kernel.org,
-	cl@gentwo.org,
-	ast@kernel.org,
-	daniel@iogearbox.net,
-	andrii@kernel.org,
-	martin.lau@linux.dev,
-	eddyz87@gmail.com,
-	memxor@gmail.com,
-	song@kernel.org,
-	yonghong.song@linux.dev,
-	jolsa@kernel.org,
-	bjorn@kernel.org,
-	pulehui@huawei.com,
-	puranjay@kernel.org,
-	thuth@redhat.com,
-	ajones@ventanamicro.com,
-	ben.dooks@codethink.co.uk,
-	rkrcmar@ventanamicro.com,
-	cuiyunhui@bytedance.com,
-	samuel.holland@sifive.com,
-	zong.li@sifive.com,
-	conor.dooley@microchip.com,
-	tglx@kernel.org,
-	debug@rivosinc.com,
-	seanwascoding@gmail.com,
-	andybnac@gmail.com,
-	menglong8.dong@gmail.com,
-	cyrilbur@tenstorrent.com,
-	wangruikang@iscas.ac.cn,
-	atishp@rivosinc.com,
-	apatel@ventanamicro.com,
-	linux-riscv@lists.infradead.org,
-	linux-kernel@vger.kernel.org,
-	linux-mm@kvack.org,
-	bpf@vger.kernel.org,
-	arnd@arndb.de,
-	nathan@kernel.org,
-	nick.desaulniers+lkml@gmail.com,
-	morbo@google.com,
-	justinstitt@google.com,
-	qingfang.deng@siflower.com.cn,
-	linux-arch@vger.kernel.org,
-	llvm@lists.linux.dev
-Subject: [PATCH v7 3/3] riscv: store percpu offset into thread_info
-Date: Thu,  2 Jul 2026 10:54:43 +0800
-Message-Id: <20260702025443.83389-4-cuiyunhui@bytedance.com>
-X-Mailer: git-send-email 2.39.2 (Apple Git-143)
-In-Reply-To: <20260702025443.83389-1-cuiyunhui@bytedance.com>
-References: <20260702025443.83389-1-cuiyunhui@bytedance.com>
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="pHG6L5mH";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="nL/rU/Yw"
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailflow.phl.internal (Postfix) with ESMTP id EFC121380BEE;
+	Thu,  2 Jul 2026 02:21:05 -0400 (EDT)
+Received: from phl-imap-05 ([10.202.2.95])
+  by phl-compute-04.internal (MEProxy); Thu, 02 Jul 2026 02:21:06 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:content-transfer-encoding:content-type:content-type:date:date
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm1; t=1782973265;
+	 x=1782980465; bh=b3PWSBg4KChgsJan4tuQCL8jbVLFvYUrGfeJer055uM=; b=
+	pHG6L5mHwpZ3+t5ToOn88ZFsBk/C4OTZhsX4TG3c/Jn22zYlndw3yAb5k+Xi0afh
+	pmgxFuvKvn2WzbHsGmYr8xpNhshaVrqt8RX/YVKMcsNY7+HhVHcAUKmJCtg0C8iJ
+	pq6uQxeZKcxSHthNbdF2GgtA/DtusqRQMjNsF9VDT+ehZsXFv3K0UH/81+Z17GAW
+	qmsyyAhPIYBsJFRGSDOmS8s0QjXy57JKLTBlLoy2divLD816rwL5dRpZuum7DQ+T
+	2jG0Vi428hRsMde6LRDHrXKy+ohPp1d/bjF9p1bA3Q6PxLStspEz6TERmv7GyLpB
+	TjjgXYDVBay3ayP5X4Sp+A==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:content-transfer-encoding:content-type
+	:content-type:date:date:feedback-id:feedback-id:from:from
+	:in-reply-to:in-reply-to:message-id:mime-version:references
+	:reply-to:subject:subject:to:to:x-me-proxy:x-me-sender
+	:x-me-sender:x-sasl-enc; s=fm2; t=1782973265; x=1782980465; bh=b
+	3PWSBg4KChgsJan4tuQCL8jbVLFvYUrGfeJer055uM=; b=nL/rU/Yw5uhaXwXhi
+	Pd3VAx3B2hx7wViUybdKoAQE+tVB17JWqmgJ85oRMoaLYHDoDWVbGQqP7/jPlIPU
+	hzbo9kt/XdamhIBRpkOv4/lunP1reK+zNkZgOQjxx115BlKGKezHMD05psIryBAj
+	5LRCN7P9/fAgRQO8SWm/ccU53eWMTgwM9u2dEhWtqDmP0bBoyNtcEzjQh3+7oJ1B
+	ZjGO8+Gmq9TqtIRRgJOO3n9v6MLzQ8TSKTFNIABkPUFjxvQtCrMk6GYaK/w6YIf9
+	vvIaPZTtgA5tQsOEZsbx6RUGGOSIIQXvDiI07XWpmunN5bmAAH1o1FX6lIjes+k4
+	FJCQg==
+X-ME-Sender: <xms:TgNGak7Ze3et09HaNnBg_7EeQDX1WpWebr4V831dQRQ0tvGSRYeivA>
+    <xme:TgNGagtubviHB1QN1yH-MEOhjFwJ8OckeYJXHlsGjoKr7RueVhicU1OBsXy2_s9kp
+    RsZM6FGHSlUvd4aJTwHseRgONcCnDljF7qFg43tXxjmj3ZPxkWMv4q4>
+X-ME-Proxy-Cause: dmFkZTFLXnvGPrjS72UE2Cqoo5k3ZB5gW2fmq0+H7vA6q9/xqCZId+5ccMWvDzoGXPw/0n
+    bjmGiO0C5Lo3nj4814huzfyegsEBWSnqZoUE37P6yUUBXeBynDaNZOtEBZabAT6pGBLEgU
+    TEXwWHPQDy4swa2ntT+PIpDMucMVt6OvaMl5lrlzMeK7PZwOzrwQDo9+/Gzz/Ie0GPu+Tm
+    kbTjJ/ulLLG9DyncXMFNYmwJcjO6WDGqMUTanigqlUey17X5CJkl0f5gb2UEykQU+/4Cjo
+    mfffcyLiE7gORaIWIJTK/7sCi1c8oo/WWzgxdhxPbFkX7CHDV/F+fGNobcmZI3WILujIku
+    kiedAWW3wRu29mXJiSRShIxXoXZ5aZqgbsuWLiW6ge3WV8Hb+V3JwhBVZWtnluFGL+P1Ns
+    4Z5fVXr51VV6UZILO2z+SSwiFlEu7tZlvb5FQn7yigxfSJGrT4rMcV3J/B+VlYDYX5gEDU
+    V6u8xf8P2wj9O9ZpESK00kmIyUHTVbXQlq6l7G4dzuHWpBQG8cvL7+wxEaBV6d8AzjoyNB
+    5/rkY8Z2KYSOkqZoV39s+5tQtJs9f64Or/qTG1GQcjMVv0vUkB43dqvpcEeDCp2r5ZAyW1
+    Anmp3iBPSl4IC2zBhhx5W5jKsXeXS7eXQveoueb2CZRFXBR0D+w/2xtPZQlg
+X-ME-Proxy: <xmx:TgNGaqCgZyrr9Xnr787Z91vrIHBNiHjg43elOA4_XUWAhfKmGuwMdw>
+    <xmx:TgNGagSOcRYgdkPiRpDyOyP4_XAjmTow4SSXpP2BodR0JaFbxyJeqQ>
+    <xmx:TgNGamKPz_fqI_hnI52rvFsBrZFhzD9m9HQVojzO4Mmyabb9IIP9fg>
+    <xmx:TgNGap5OGCVE8hEKbrsOGNvpaduUNlxToEz72V_Qp4afO3lJIy6hRg>
+    <xmx:UQNGalg_WH4O8rD15jW7viiZk_F5cGP2IcPo9TPcvYnUn-YFbaXQEXfz>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id C0D98182007E; Thu,  2 Jul 2026 02:21:02 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-ThreadId: AGRLTTzEx-Mw
+Date: Thu, 02 Jul 2026 08:20:42 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Yunhui Cui" <cuiyunhui@bytedance.com>, "Paul Walmsley" <pjw@kernel.org>,
+ "Palmer Dabbelt" <palmer@dabbelt.com>,
+ "Albert Ou" <aou@eecs.berkeley.edu>, "Alexandre Ghiti" <alex@ghiti.fr>,
+ "Dennis Zhou" <dennis@kernel.org>, "Tejun Heo" <tj@kernel.org>,
+ "Christoph Lameter (Ampere)" <cl@gentwo.org>,
+ "Alexei Starovoitov" <ast@kernel.org>,
+ "Daniel Borkmann" <daniel@iogearbox.net>,
+ "Andrii Nakryiko" <andrii@kernel.org>,
+ "Martin KaFai Lau" <martin.lau@linux.dev>,
+ "Eduard Zingerman" <eddyz87@gmail.com>,
+ "Kumar Kartikeya Dwivedi" <memxor@gmail.com>,
+ "Song Liu" <song@kernel.org>, "Yonghong Song" <yonghong.song@linux.dev>,
+ "Jiri Olsa" <jolsa@kernel.org>,
+ =?UTF-8?Q?Bj=C3=B6rn_T=C3=B6pel?= <bjorn@kernel.org>, pulehui@huawei.com,
+ puranjay@kernel.org, "Thomas Huth" <thuth@redhat.com>,
+ "Andrew Jones" <ajones@ventanamicro.com>,
+ "Ben Dooks" <ben.dooks@codethink.co.uk>,
+ =?UTF-8?Q?Radim_Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@ventanamicro.com>,
+ "Samuel Holland" <samuel.holland@sifive.com>,
+ "Zong Li" <zong.li@sifive.com>,
+ "Conor.Dooley" <conor.dooley@microchip.com>,
+ "Thomas Gleixner" <tglx@kernel.org>, "Deepak Gupta" <debug@rivosinc.com>,
+ seanwascoding@gmail.com, "Andy Chiu" <andybnac@gmail.com>,
+ menglong8.dong@gmail.com, cyrilbur@tenstorrent.com,
+ "Vivian Wang" <wangruikang@iscas.ac.cn>,
+ "Atish Patra" <atishp@rivosinc.com>,
+ "Anup Patel" <apatel@ventanamicro.com>, linux-riscv@lists.infradead.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org, bpf@vger.kernel.org,
+ "Nathan Chancellor" <nathan@kernel.org>,
+ "Nick Desaulniers" <nick.desaulniers+lkml@gmail.com>,
+ "Bill Wendling" <morbo@google.com>,
+ "Justin Stitt" <justinstitt@google.com>, qingfang.deng@siflower.com.cn,
+ Linux-Arch <linux-arch@vger.kernel.org>, llvm@lists.linux.dev
+Message-Id: <c190a4ea-8c87-4b4a-9146-20e06d0250b0@app.fastmail.com>
+In-Reply-To: <20260702025443.83389-2-cuiyunhui@bytedance.com>
+References: <20260702025443.83389-1-cuiyunhui@bytedance.com>
+ <20260702025443.83389-2-cuiyunhui@bytedance.com>
+Subject: Re: [PATCH v7 1/3] riscv: io: avoid null-pointer arithmetic in PIO helpers
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-RISC-V percpu addressing currently derives the base offset from the CPU
-number and __per_cpu_offset[]. Cache the current CPU percpu offset in
-thread_info so percpu accesses can load it directly.
+On Thu, Jul 2, 2026, at 04:54, Yunhui Cui wrote:
+> When port I/O is not supported, exposing the port-string helpers is both
+> unnecessary and can make clang diagnose null-pointer arithmetic from the
+> PCI_IOBASE based address expression.  Keep the MMIO string helpers
+> available as before, but only provide the port I/O variants when
+> CONFIG_HAS_IOPORT is enabled.
+>
+> Signed-off-by: Yunhui Cui <cuiyunhui@bytedance.com>
 
-Keep the cached value up to date for the boot CPU, context switches and
-secondary CPU bringup. Initialize secondary idle tasks before they start
-running so early percpu accesses use the secondary CPU offset rather than
-inheriting the boot CPU value.
-
-Link: https://lists.riscv.org/g/tech-privileged/topic/risc_v_tech_arch_review/113437553?page=2
-Signed-off-by: Yunhui Cui <cuiyunhui@bytedance.com>
----
- arch/riscv/include/asm/asm.h         | 6 +-----
- arch/riscv/include/asm/percpu.h      | 4 ++++
- arch/riscv/include/asm/switch_to.h   | 8 ++++++++
- arch/riscv/include/asm/thread_info.h | 3 ++-
- arch/riscv/kernel/asm-offsets.c      | 1 +
- arch/riscv/kernel/smpboot.c          | 8 ++++++++
- arch/riscv/net/bpf_jit_comp64.c      | 9 +--------
- 7 files changed, 25 insertions(+), 14 deletions(-)
-
-diff --git a/arch/riscv/include/asm/asm.h b/arch/riscv/include/asm/asm.h
-index e9e8ba83e632f..137a49488325e 100644
---- a/arch/riscv/include/asm/asm.h
-+++ b/arch/riscv/include/asm/asm.h
-@@ -91,11 +91,7 @@
- 
- #ifdef CONFIG_SMP
- .macro asm_per_cpu dst sym tmp
--	lw    \tmp, TASK_TI_CPU_NUM(tp)
--	slli  \tmp, \tmp, RISCV_LGPTR
--	la    \dst, __per_cpu_offset
--	add   \dst, \dst, \tmp
--	REG_L \tmp, 0(\dst)
-+	REG_L \tmp, TASK_TI_PCPU_OFFSET(tp)
- 	la    \dst, \sym
- 	add   \dst, \dst, \tmp
- .endm
-diff --git a/arch/riscv/include/asm/percpu.h b/arch/riscv/include/asm/percpu.h
-index 76b1b8c1fb953..9bf9f4cf4ca5a 100644
---- a/arch/riscv/include/asm/percpu.h
-+++ b/arch/riscv/include/asm/percpu.h
-@@ -9,7 +9,9 @@
- #include <asm/alternative-macros.h>
- #include <asm/cmpxchg.h>
- #include <asm/cpufeature-macros.h>
-+#include <asm/current.h>
- #include <asm/hwcap.h>
-+#include <asm/thread_info.h>
- 
- #define PERCPU_RW_OPS(sz)						\
- static inline unsigned long __percpu_read_##sz(void *ptr)		\
-@@ -279,6 +281,8 @@ _pcp_protect_return(__percpu_add_return_amo_case_64, pcp, val)
- })
- #endif
- 
-+#define __my_cpu_offset (((struct thread_info *)current)->pcpu_offset)
-+
- #undef PERCPU_RW_OPS
- #undef __PERCPU_AMO_OP_CASE
- #undef PERCPU_OP
-diff --git a/arch/riscv/include/asm/switch_to.h b/arch/riscv/include/asm/switch_to.h
-index 0e71eb82f920c..733b6cd306e40 100644
---- a/arch/riscv/include/asm/switch_to.h
-+++ b/arch/riscv/include/asm/switch_to.h
-@@ -88,6 +88,13 @@ static inline void __switch_to_envcfg(struct task_struct *next)
- 			:: "r" (next->thread.envcfg) : "memory");
- }
- 
-+static inline void __switch_to_pcpu_offset(struct task_struct *next)
-+{
-+#ifdef CONFIG_SMP
-+	next->thread_info.pcpu_offset = __my_cpu_offset;
-+#endif
-+}
-+
- extern struct task_struct *__switch_to(struct task_struct *,
- 				       struct task_struct *);
- 
-@@ -122,6 +129,7 @@ do {							\
- 	if (switch_to_should_flush_icache(__next))	\
- 		local_flush_icache_all();		\
- 	__switch_to_envcfg(__next);			\
-+	__switch_to_pcpu_offset(__next);		\
- 	((last) = __switch_to(__prev, __next));		\
- } while (0)
- 
-diff --git a/arch/riscv/include/asm/thread_info.h b/arch/riscv/include/asm/thread_info.h
-index 55019fdfa9eca..f10ba62b61016 100644
---- a/arch/riscv/include/asm/thread_info.h
-+++ b/arch/riscv/include/asm/thread_info.h
-@@ -53,6 +53,7 @@
- struct thread_info {
- 	unsigned long		flags;		/* low level flags */
- 	int                     preempt_count;  /* 0=>preemptible, <0=>BUG */
-+	int			cpu;
- 	/*
- 	 * These stack pointers are overwritten on every system call or
- 	 * exception.  SP is also saved to the stack it can be recovered when
-@@ -60,8 +61,8 @@ struct thread_info {
- 	 */
- 	long			kernel_sp;	/* Kernel stack pointer */
- 	long			user_sp;	/* User stack pointer */
--	int			cpu;
- 	unsigned long		syscall_work;	/* SYSCALL_WORK_ flags */
-+	unsigned long		pcpu_offset;
- #ifdef CONFIG_SHADOW_CALL_STACK
- 	void			*scs_base;
- 	void			*scs_sp;
-diff --git a/arch/riscv/kernel/asm-offsets.c b/arch/riscv/kernel/asm-offsets.c
-index a75f0cfea1e9f..20d46c28fdde9 100644
---- a/arch/riscv/kernel/asm-offsets.c
-+++ b/arch/riscv/kernel/asm-offsets.c
-@@ -38,6 +38,7 @@ void asm_offsets(void)
- 	OFFSET(TASK_THREAD_SUM, task_struct, thread.sum);
- 
- 	OFFSET(TASK_TI_CPU, task_struct, thread_info.cpu);
-+	OFFSET(TASK_TI_PCPU_OFFSET, task_struct, thread_info.pcpu_offset);
- 	OFFSET(TASK_TI_PREEMPT_COUNT, task_struct, thread_info.preempt_count);
- 	OFFSET(TASK_TI_KERNEL_SP, task_struct, thread_info.kernel_sp);
- 	OFFSET(TASK_TI_USER_SP, task_struct, thread_info.user_sp);
-diff --git a/arch/riscv/kernel/smpboot.c b/arch/riscv/kernel/smpboot.c
-index f6ef57930b50a..7876854d16279 100644
---- a/arch/riscv/kernel/smpboot.c
-+++ b/arch/riscv/kernel/smpboot.c
-@@ -191,6 +191,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
- {
- 	int ret;
- 	tidle->thread_info.cpu = cpu;
-+	tidle->thread_info.pcpu_offset = per_cpu_offset(cpu);
- 
- 	ret = start_secondary_cpu(cpu, tidle);
- 	if (!ret) {
-@@ -208,6 +209,11 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
- }
- #endif
- 
-+void __init smp_prepare_boot_cpu(void)
-+{
-+	__my_cpu_offset = per_cpu_offset(smp_processor_id());
-+}
-+
- void __init smp_cpus_done(unsigned int max_cpus)
- {
- }
-@@ -233,6 +239,8 @@ asmlinkage __visible void smp_callin(void)
- 	mmgrab(mm);
- 	current->active_mm = mm;
- 
-+	__my_cpu_offset = per_cpu_offset(smp_processor_id());
-+
- #ifdef CONFIG_HOTPLUG_PARALLEL
- 	cpuhp_ap_sync_alive();
- #endif
-diff --git a/arch/riscv/net/bpf_jit_comp64.c b/arch/riscv/net/bpf_jit_comp64.c
-index c03c1de16b79a..eab93d5258e9e 100644
---- a/arch/riscv/net/bpf_jit_comp64.c
-+++ b/arch/riscv/net/bpf_jit_comp64.c
-@@ -1395,15 +1395,8 @@ int bpf_jit_emit_insn(const struct bpf_insn *insn, struct rv_jit_context *ctx,
- 			if (rd != rs)
- 				emit_mv(rd, rs, ctx);
- #ifdef CONFIG_SMP
--			/* Load current CPU number in T1 */
--			emit_lw(RV_REG_T1, offsetof(struct thread_info, cpu),
-+			emit_ld(RV_REG_T1, offsetof(struct thread_info, pcpu_offset),
- 				RV_REG_TP, ctx);
--			/* Load address of __per_cpu_offset array in T2 */
--			emit_addr(RV_REG_T2, (u64)&__per_cpu_offset, extra_pass, ctx);
--			/* Get address of __per_cpu_offset[cpu] in T1 */
--			emit_sh3add(RV_REG_T1, RV_REG_T1, RV_REG_T2, ctx);
--			/* Load __per_cpu_offset[cpu] in T1 */
--			emit_ld(RV_REG_T1, 0, RV_REG_T1, ctx);
- 			/* Add the offset to Rd */
- 			emit_add(rd, rd, RV_REG_T1, ctx);
- #endif
--- 
-2.39.5
-
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
