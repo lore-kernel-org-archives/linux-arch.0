@@ -1,97 +1,95 @@
-Received: from va-1-114.ptr.blmpb.com (va-1-114.ptr.blmpb.com [209.127.230.114])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 80D023AE1BB
-	for <linux-arch@vger.kernel.org>; Thu,  2 Jul 2026 07:41:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.114
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E79D3B992C;
+	Thu,  2 Jul 2026 07:45:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782978099; cv=none; b=C7Sd8elHdaCOzl04Jn0ng3FesGUeZsu0kLmXf2ZggL8arL3xCXlvaBhgTAeGHAJA3dbVfTBa3fR/41hVDQSXbDeBLS1g5KTWs/mGUadBwKNI8zknzxRDN2AzAXN7YyvrpS2WGKH0zX2d744iROpWCX5PCsNkSx8YYTNtHQ4Qpf4=
+	t=1782978354; cv=none; b=uFORAhfMAyBRpd8GYTTKuH6wDyv5Fx7uhW5X+Ks23xenpJEJDRJDG8B9xVUoi0NiU+I7neTiSUyTah31ykkJpbz0YqPe542SonHU5oA7cdadenYicFq5OCl9kCYBRKGpKunez3L1JoARl6b/GFkzJrWBBwo22+d5CRpHWsWNhP8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782978099; c=relaxed/simple;
-	bh=ZQxIpkuEHvh0dCjK0QCC5RnnLql+W3wPr8GoWGCq4Xc=;
-	h=From:Date:Message-Id:To:In-Reply-To:References:Mime-Version:
-	 Content-Type:Subject:Cc; b=G3i7sJqlux0REU7U4Lr6O1Egl+ibPMqftIDwX6El7Xpx+1u8VyBdawTueqA0+CeLnHOsLQiUeTEO1kuHP7/hV92bOEQB7igHAEJ8T0Y4ecdElu0QL+fk0KnRwfIt9IYN0CPp1RJOfp8bv9tzbXwtXKLYMlTU0WHokIo/Gz4nzWc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=ZqtbmojB; arc=none smtp.client-ip=209.127.230.114
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1782978354; c=relaxed/simple;
+	bh=28yDBFYY3AWuJOcR19d8dRKyos5zNaHUDVS4ooszIpg=;
+	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
+	 References:Date:Message-Id; b=dNRF6zHRo+6Sg5TJIUbXtZmfsbzCIgXIVSrk65n7DLe/eLPY4NkjT6BwZlU4Jys6UL7QGPLFunWYiVmbZYO6ADzjWnmDFX4DhkzOYEBNSYOllLTwyNwdAu61gZsxSVmSBydwlJM2ONVsyMSfvBBxK74mIbMhSfgSLq7FEMCH75o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DU4Oc7Wc; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="ZqtbmojB"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1782978090; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=/dj7RTovRhDXEmfG0BztNGy5VfoucgAi636TM9fh3k4=;
- b=ZqtbmojB89fzg2gwWK/oEOIFh9S0Mbm2E7wFGyaz1ng6Z/6oXDq9ZllNbrubI6wHa20rlI
- EOODCAZmpk6XtgSRxMwE0b/2aWJdxs1TGKUIlHlY5LMZebR3Qhhh7HMX7/AzDIm/0NclgU
- rklet7NG/1YPQ5xKkFST53ZI07inkaloxJoT+u/UY163krDQt9sFBbs08IAvYF02LWPbrZ
- yAFY3z2gG1cbK/KGn/z0cOLA3klFYGXE3KJ2y1Tn0/VKX48kTv1smPLuj7ayg0Xvq6fTHP
- yidhIVQ77cJyYrjCzzIZZZKWkj/kXwDhulMi7GKJ1LNNgyYLhYmwqaaBvC3uJA==
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Date: Thu,  2 Jul 2026 15:39:54 +0800
-Message-Id: <20260702073954.73937-1-lizhe.67@bytedance.com>
-To: <akpm@linux-foundation.org>
-In-Reply-To: <20260701162808.f6701ef751f874b9ff1c1c85@linux-foundation.org>
-References: <20260701162808.f6701ef751f874b9ff1c1c85@linux-foundation.org>
-X-Lms-Return-Path: <lba+26a461628+23e982+vger.kernel.org+lizhe.67@bytedance.com>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DU4Oc7Wc"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B7E3E1F000E9;
+	Thu,  2 Jul 2026 07:45:49 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1782978351;
+	bh=Zpz00LqtbumxgvKsj3x6dXRusjAC6G+eOGQBgk5D4Rs=;
+	h=Subject:From:To:Cc:In-Reply-To:References:Date;
+	b=DU4Oc7WctIepw8LM1j88KPfRxUA0jW99cwN/kzCgnzHmWu4xcijPCQKmBsfNBtu7U
+	 f3VeHVYPCHaDD+Bb8dY/MXXkfCMOvLWMkvqZSaCV0ALSdgwlhCksZq0/NNG7ec6tRj
+	 vbOblNu7WKpvzCjdjURhcXUdRef1PfO+jdgWbhPxcQrbt2gej7LTTqxFByGp6lZ1kE
+	 brbedfuQ+LZsWXgCl8Djz328OSPYKaCzPYzXTFbe94Vx7MYLFb2y6EUuH1a5hzZYt0
+	 8I4oiCqR2pPf5fvF5WoJzuh4BdxuAlQArFxQIyszZH8S8X3P65qGOO7uKGoSXvhNWj
+	 aNGs1JQSL7JJw==
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Subject: Re: [PATCH v5 0/8] mm: optimize zone-device memmap initialization
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-X-Mailer: git-send-email 2.45.2
-Cc: <apopple@nvidia.com>, <arnd@arndb.de>, <balbirs@nvidia.com>, 
-	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
-	<kees@kernel.org>, <linux-arch@vger.kernel.org>, 
-	<linux-hardening@vger.kernel.org>, <linux-kernel@vger.kernel.org>, 
-	<linux-mm@kvack.org>, <lizhe.67@bytedance.com>, <mingo@redhat.com>, 
-	<rppt@kernel.org>, <tglx@kernel.org>, <x86@kernel.org>
+Subject: Re: [PATCH] vfs: missing inode operation should return a
+ consistent error code
+From: Christian Brauner <brauner@kernel.org>
+To: Christian Brauner <brauner@kernel.org>
+Cc: Jori Koolstra <jkoolstra@xs4all.nl>, Jan Kara <jack@suse.cz>, 
+ Jeff Layton <jlayton@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+ Arnd Bergmann <arnd@arndb.de>, 
+ "open list:FILESYSTEMS (VFS and infrastructure)" <linux-fsdevel@vger.kernel.org>, 
+ open list <linux-kernel@vger.kernel.org>, 
+ "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+In-Reply-To: <20260617-asphalt-hochachtung-federn-23e94198aa4a@brauner>
+References: <20260531104947.6142-1-jkoolstra@xs4all.nl>
+ <c5e32b78aeaa833d18d9b7a566358a6f71d09f23.camel@kernel.org>
+ <xdknvjlda7wxwo35toe357nnyaydsllv5g65ogzsomxqgm7jfu@qwtugpoy2rcw>
+ <2002074169.107129.1780331273724@kpc.webmail.kpnmail.nl>
+ <m5fqzr2ny4zb36u6zhmrrxgl36ycsxvlqnzf5idvsq4lxpfh3i@g276qtqgfv3f>
+ <1512332516.1435503.1781209872436@kpc.webmail.kpnmail.nl>
+ <20260617-asphalt-hochachtung-federn-23e94198aa4a@brauner>
+Date: Thu, 02 Jul 2026 09:45:47 +0200
+Message-Id: <20260702-wegdiskutieren-immobilien-klang-261482d68d67@brauner>
+X-Mailer: b4 0.16-dev-4217c
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1466; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=28yDBFYY3AWuJOcR19d8dRKyos5zNaHUDVS4ooszIpg=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWS5iete2vU06JfMSadUtY+s4ottV7tGHVsgGOG5ySDtU
+ GPTDKeQjlIWBjEuBlkxRRaHdpNwueU8FZuNMjVg5rAygQxh4OIUgIn4eDP8D5tpzCLhvbO2v8l/
+ 45P1ha/uHzC8rsHCz833IWW5fVb7I6CKQ9K1pav14tpulb70MutVOVcd5i4elikorBUuGdMuxQI A
+X-Developer-Key: i=brauner@kernel.org; a=openpgp;
+ fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-On Wed, 1 Jul 2026 16:28:08 -0700, akpm@linux-foundation.org wrote:
+On 2026-06-17 15:24 +0200, Christian Brauner wrote:
+> On Thu, Jun 11, 2026 at 10:31:12PM +0200, Jori Koolstra wrote:
+> > @Christian, since you suggested equalizing the error codes for missing
+> > inode ops, what is your opinion?
+> > 
+> > > Op 01-06-2026 18:50 CEST schreef Jan Kara <jack@suse.cz>:
+> > > 
+> > > We certainly can (and sometimes do) modify the returned errors. It is
+> > > always just a balancing act between the benefit of the change and chances
+> > > somebody will get broken by it. In this case I don't quite see the
+> > > benefit, not that I'd be too worried about the a regression but there's
+> > > always the chance...
+> > > 
+> > > 								Honza
+> > 
+> > No, I get that, and maybe you are right. I feel in this case it would be
+> > really odd if this breaks anyone's application. It would mean you are
+> > rigorously testing for receiving specific error codes, without handling
+> > a general error case. That just seems odd, especially since some of these
+> > error codes are not even listed as a possibility for missing ops (like EACCES).
+> > I would say we change this and revert if anyone complains. I believe that was
+> > also Christian's view in another thread, but I may be mistaken.
+> 
+> It's a general stance, yes. I think trying to make the things we
+> maintain more consistent is worth risking someone reporting a
+> regression.
 
-> On Wed,  1 Jul 2026 17:05:45 +0800 "Li Zhe" <lizhe.67@bytedance.com> wrote:
-> 
-> > memmap_init_zone_device() can take a noticeable amount of time when large
-> > pmem namespaces are bound or rebound, because it initializes nearly
-> > identical struct page descriptors one PFN at a time. This series reduces
-> > that ZONE_DEVICE memmap initialization overhead by reusing prepared
-> > struct page templates and, on x86, using memcpy_nt() for the template
-> > copy path.
-> >
-> > The main target is large fsdax/devdax pmem configurations, where the
-> > cost of initializing the memmap shows up directly in nd_pmem/dax_pmem
-> > bind and rebind latency.
-> >
-> > Patches 1-3 are preparatory cleanups and helper extraction. Patches 4-5
-> > add the template-copy fast path for head pages and compound tails.
-> > Patches 6-8 introduce memcpy_nt()/memcpy_nt_drain(), extend the x86
-> > fixed-size memcpy_flushcache() inline cases used by that helper, and
-> > switch the template-copy path over to memcpy_nt().
-> >
-> > The fast path remains disabled when the page_ref_set tracepoint is
-> > active, and sanitized builds stay on the slow path so their instrumented
-> > stores are preserved. Architectures without a specialized memcpy_nt()
-> > backend continue to fall back to memcpy().
-> >
-> > Tested in a VM with a 100 GB fsdax namespace device configured with
-> > map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
-> > server.
-> 
-> Thanks for persisting with this.
-> 
-> Review is still thin :( I see that Mike, Boris and Alistair have
-> commented on previous versions.  As did Balbir, who wasn't cc'ed on
-> this (fixed).
-> 
-> I'll add it to mm.git for testing exposure (because I'm still a sucker
-> for speedups), but more review is needed, please.
+I'm still mulling this patch btw. And I'm leaning more towards trying
+this...
 
-Thanks, Andrew. I appreciate your help here. I'll address the latest
-review comments in the next version.
-
-Thanks,
-Zhe
