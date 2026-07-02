@@ -1,30 +1,29 @@
-Received: from m16.mail.126.com (m16.mail.126.com [220.197.31.8])
+Received: from m16.mail.126.com (m16.mail.126.com [117.135.210.8])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 54C172DEA7B;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C80F018D636;
 	Thu,  2 Jul 2026 02:39:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=220.197.31.8
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=117.135.210.8
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782959969; cv=none; b=SZ//5z5Q3Xmgq0K6UHjN83pV2F1tshqsxiyHNxORae/g20t5HBrTBdqH6ngjtCWjNY56316cTUTYKV2Wgi9hIbFxUwZxTvbO6v16wjGFdzbdmK3O1n6P9NGKcbWrgUmtedF88MI/PqreeAp+Q5MXfCpeE77qH6re+yi3zpTAeC4=
+	t=1782959970; cv=none; b=FT52Zb+hYSwAUiRKAxveBJ36W3e0HGTCbbz4qydjsIDtMs7xnkhITwP8fN4dhXXQ45gULdExUmMfuuh13OCclSlomQ8KWmCOf6BcQX8Of/mqY3PfpISSiWSbINb4rD/vJ31laY2xh3rzoPVATWj6f1Hf73CY0X3f7HBr2C8NTzw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782959969; c=relaxed/simple;
-	bh=C2IH9lN6ISt8C5qJl7zLutJbyLDuah7mmkj1ow/z4U4=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=OsM3DP8SOaBurhMouv1fNPyhM9F+Z42/vcGGJ/QJWg5cIzXthg31F75o4uVHuQ87uxmRfbc2ST6g08KX5s/s+P/N/V5ZFvrGu4lQF8aikVgMGs/Y0BL3bcnr9hivMYRoaKwdRpZCsFIswwXBTupgqGRINcf75UWDxkc1Y31iGrU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=126.com; spf=pass smtp.mailfrom=126.com; dkim=pass (1024-bit key) header.d=126.com header.i=@126.com header.b=hVV8VvlI; arc=none smtp.client-ip=220.197.31.8
+	s=arc-20240116; t=1782959970; c=relaxed/simple;
+	bh=5Yc36cFlRDeEt0w9k+afmK3vtvI3VFO93Rkf8PYmFPQ=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=SmsskLpwcaF3M4mW8Wj6bjQhbMt+CtuAaTvbH3TUA1XXB8rLaX6toEeRfpAd2hTm0bze0WBux21LmaJmE1rS6t0ccgOnGSWPdWb8XG9Yp85wu/jlbCBs8/kIm0n8Jywkze/Qh/DQoBtSh2WHG4d5kmX5GWwaLuZjTMJldtZY3Jk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=126.com; spf=pass smtp.mailfrom=126.com; dkim=pass (1024-bit key) header.d=126.com header.i=@126.com header.b=nqVk4CgK; arc=none smtp.client-ip=117.135.210.8
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=126.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=126.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=126.com header.i=@126.com header.b="hVV8VvlI"
+	dkim=pass (1024-bit key) header.d=126.com header.i=@126.com header.b="nqVk4CgK"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=126.com;
-	s=s110527; h=From:To:Subject:Date:Message-ID:MIME-Version; bh=R0
-	fZk7cw47NM3PZyeQotTKEsd6zLI7x4WIDlkM2CwcM=; b=hVV8VvlIX1epoiqvLO
-	rkcAEkdnahtoQfRJZnJ7ohfezWGinVoS27ZsW14hPEqmJ/OrKQFAyZMKlZqlSYhy
-	cY8XgfbfXlqbX0JHF4SSeq1zantNsIBjY8/NodcKJxrAy6igppHdf/oLsSaKs1Iz
-	wc3nO9jJf372+uINyC7oM7js4=
+	s=s110527; h=From:To:Subject:Date:Message-ID:MIME-Version; bh=fo
+	SVsAG7FhEiHEqJg6LX4tAMVGZgYKYg/ODwQYy2tps=; b=nqVk4CgKlNAnE3H9yU
+	6f1nDc6jbODqCwzEFesD7w67qZqNlIO+pr4fzKWwhTXT9hcf4joXHbHhifJAEQ++
+	4SU01l7a1v8/XkTokrNNxpJsVkxw8veCiemcGagRCS4Kp/6d+57NNuukuj28I83m
+	aVSxKw+Tdz2Kms9QjSQdL71q4=
 Received: from song-MS-7D48.. (unknown [])
-	by gzsmtp4 (Coremail) with SMTP id PykvCgDnr2i3zkVqTx3MCA--.26814S4;
-	Thu, 02 Jul 2026 10:36:49 +0800 (CST)
+	by gzsmtp4 (Coremail) with SMTP id PykvCgDnr2i3zkVqTx3MCA--.26814S2;
+	Thu, 02 Jul 2026 10:36:41 +0800 (CST)
 From: Song Chen <chensong_2000@126.com>
 To: arnd@arndb.de,
 	kees@kernel.org,
@@ -33,12 +32,10 @@ To: arnd@arndb.de,
 Cc: linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org,
 	Song Chen <chensong_2000@126.com>
-Subject: [PATCH 2/2] btrfs: Allow error injection on btrfs_data_csum_ok
-Date: Thu,  2 Jul 2026 10:36:38 +0800
-Message-ID: <20260702023638.8165-3-chensong_2000@126.com>
+Subject: [PATCH 0/2] btrfs: add error injection support for checksum verification
+Date: Thu,  2 Jul 2026 10:36:36 +0800
+Message-ID: <20260702023638.8165-1-chensong_2000@126.com>
 X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20260702023638.8165-1-chensong_2000@126.com>
-References: <20260702023638.8165-1-chensong_2000@126.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -46,55 +43,33 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:PykvCgDnr2i3zkVqTx3MCA--.26814S4
-X-Coremail-Antispam: 1Uf129KBjvJXoW7uFWfZr4kWFykJw4xJFWrXwb_yoW8Xw4fpr
-	WUGw1ruFWDXr97Wrs7Gay09ryFg3yDWa10gFnxZw4YywsIkw1FqrZay3WxGa48KrZrX343
-	Z3Z0gw17ZF1DAFJanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x07j8GYJUUUUU=
-X-CM-SenderInfo: xfkh02prqjsjqqqqqiyswou0bp/xtbBswHPT2pFzsGg7AAA3e
+X-CM-TRANSID:PykvCgDnr2i3zkVqTx3MCA--.26814S2
+X-Coremail-Antispam: 1Uf129KBjvdXoWrtF4xGr47ArWkWr17WF4Uurg_yoW3Xwc_u3
+	yvqayfXrW3Xa1UGF4xur4xtrZ3K34Ygryjv34rtr4ktFyavws0kw4qqr1Yvr4kWw42qFnI
+	vrn8Cr13J343ujkaLaAFLSUrUUUUjb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
+	9fnUUvcSsGvfC2KfnxnUUI43ZEXa7IUjMa0JUUUUU==
+X-CM-SenderInfo: xfkh02prqjsjqqqqqiyswou0bp/xtbBsxnNTWpFzrmglQAA3H
 
-btrfs_data_csum_ok validates the checksum of a data block
-after a read I/O completes. A mismatch between the on-disk
-checksum and the one computed from the read data indicates
-silent data corruption, which can be caused by bit flips due
-to DRAM errors, storage media degradation, or bus transmission
-faults.
+This patchset adds fault injection support for btrfs_data_csum_ok,
+enabling controlled simulation of checksum mismatches to test btrfs
+silent data corruption detection and reporting paths.
 
-Testing the error handling path that responds to such
-corruption, including any warning output and uspace
-notification, normally requires reproducing the hardware
-fault, which is not always feasible.
+The first patch extends the error injection framework with a new type,
+EI_ETYPE_FALSE, which allows bool-returning functions to be overridden
+with a false return value directly.
 
-Mark btrfs_data_csum_ok with ALLOW_ERROR_INJECTION so that
-the fail_function infrastructure can override its return value
-to false, simulating a checksum mismatch without requiring
-actual data corruption. This enables validation of the full
-error detection and reporting path in a controlled environment.
+The second patch marks btrfs_data_csum_ok with ALLOW_ERROR_INJECTION
+using this new type.
 
-Usage:
-        cd /sys/kernel/debug/fail_function
-        echo btrfs_data_csum_ok > inject
-        echo 0 > btrfs_data_csum_ok/retval
-        echo 100 > probability
-        echo N > times
+Song Chen (2):
+  error-injection: Introduce EI_ETYPE_FALSE for fail_function
+  btrfs: Allow error injection on btrfs_data_csum_ok
 
-Signed-off-by: Song Chen <chensong_2000@126.com>
----
- fs/btrfs/inode.c | 1 +
- 1 file changed, 1 insertion(+)
+ fs/btrfs/inode.c                      | 1 +
+ include/asm-generic/error-injection.h | 1 +
+ kernel/fail_function.c                | 2 ++
+ 3 files changed, 4 insertions(+)
 
-diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
-index 906d5c21ebc4..6be3e920b954 100644
---- a/fs/btrfs/inode.c
-+++ b/fs/btrfs/inode.c
-@@ -3574,6 +3574,7 @@ bool btrfs_data_csum_ok(struct btrfs_bio *bbio, struct btrfs_device *dev,
- 		memzero_page(phys_to_page(paddrs[i]), offset_in_page(paddrs[i]), step);
- 	return false;
- }
-+ALLOW_ERROR_INJECTION(btrfs_data_csum_ok, FALSE);
- 
- /*
-  * Perform a delayed iput on @inode.
 -- 
 2.43.0
 
