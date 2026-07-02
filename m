@@ -1,132 +1,87 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from mail.alien8.de (mail.alien8.de [65.109.113.108])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E69642E8B6B;
-	Thu,  2 Jul 2026 02:11:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A64362853FD;
+	Thu,  2 Jul 2026 02:16:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=65.109.113.108
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782958317; cv=none; b=H+ZH2QU1U5qpObscs07rT13yn9uXe2OSkFQMlgtcqvGeOMzYW3ShJuihg+xDaZg1HgY6kEjFYHCKLBjIZwPQJScmgp/vA/ZrYRzgs8qsptZ+ILNjDc3K1Ol08e7htqBMniYhlbfZYZOHhtb5YT3EYZ66HxqkQSGlq3/HlBUgfeE=
+	t=1782958612; cv=none; b=ZImHDuWMoHlSdJvQm4TbOpZ7ywHfuZ7TKQ4mx2vbjeiPL3iQZczaFtn1OjWNeEG2U4mBDrWXPhjLmoQcMqF5de+0dZxlBO42en+Cu08xoHDaW+35iY7FMM0w2R9fuP+nX6RIinCPK6tvdmh0YgigOSbzYDJJLEZDMEU7JdY8cxQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782958317; c=relaxed/simple;
-	bh=+/6kqHOBHSJnm3HKR5zkZvO0Pei8wRETfdwkMhmkxDI=;
-	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
-	 Subject:From:To:Cc:Date; b=ZRdAtqQAglD1S9d2X9bqoG3TSm+fbAlnrZ1azG1zqUn9lD2B2CkCoR7DnxP9CtFj3Xfo0SFL/LdO0cxyxWntZnoRxl2SefNX7Xn+dNrIBusGA+MDzLYSdYxXwZj0NQb0nrR0MeCINI7P51hQedZdc0L3P2uFPEScHifOquhNEPQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=AnhhggMG; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1782958612; c=relaxed/simple;
+	bh=UXCBA2Bre4/bWySg1KvkyjGhklbsFGFnfXY9gyzqmJU=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=QIK3oSP7V4kEkpMxVGVzbRdrAD4FDlEWLITeKL7l2CJ2dQyIpI7hhVpIS7UbR0rjntfKKKwkcfodaEdCGFz9YbHjr/wgQhIA+vnYUNQBnwScWYFl2zoK9ymRG8UQEpeb7Wn3Fk7i8efmK583xaJo48PrgswjYmT9VkCLQ/rQl4k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de; spf=pass smtp.mailfrom=alien8.de; dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b=DJ20JY7s; arc=none smtp.client-ip=65.109.113.108
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=alien8.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="AnhhggMG"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 29F581F00A3A;
-	Thu,  2 Jul 2026 02:11:55 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1782958315;
-	bh=22emMlIsPtDrhqmZ4A8+AHkM26C/CxzEvHf32koa6ZE=;
-	h=In-Reply-To:References:Subject:From:To:Cc:Date;
-	b=AnhhggMGcmGV9OElKHa7vlVrgQFcxDdyStdOySnJQe8g8PtnwExNxBsde62x5riKZ
-	 CivR8hFUzCpLGfZ7WLs6NF9WmyLyZVbD0awEEmQlEELORxx/SVjAAA5JfVcO62Fvll
-	 qUjmNu9SLSLuhXKGl57T1A5PBcBtq4/r+Ra20RI7z284AgQe+Px1wIq7N/mvPb3dhA
-	 Dy2B7Bzu5aSAu6ohriAzsvGoei7VPPZBJ5XOHdyilsU1LITPaoDIzyJK8YABsB4HRF
-	 XzNzrFlDOwYhPWaxbWiKr4qwuM0eZtnAj7n3ngaXICd2ZSSEPruMpMaqtVEgYsRCC+
-	 R6Hnln1KH11Bw==
-Content-Type: multipart/mixed; boundary="===============0253007402283867756=="
+	dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b="DJ20JY7s"
+Received: from localhost (localhost.localdomain [127.0.0.1])
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTP id 6210A40E01B4;
+	Thu,  2 Jul 2026 02:16:48 +0000 (UTC)
+X-Virus-Scanned: Debian amavisd-new at mail.alien8.de
+Authentication-Results: mail.alien8.de (amavisd-new); dkim=pass (4096-bit key)
+	header.d=alien8.de
+Received: from mail.alien8.de ([127.0.0.1])
+	by localhost (mail.alien8.de [127.0.0.1]) (amavisd-new, port 10026)
+	with ESMTP id 8qrYl36SsMot; Thu,  2 Jul 2026 02:16:38 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=alien8;
+	t=1782958598; bh=U0ibtjdKS8/Jb1mPEb064Gd1FFp8S8EP9vMedmZd3dQ=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=DJ20JY7sQSmCBewgz8N5PqPWR9+U09bSWpydcI5HXfTet4cQvMhbJKW5VSw4i6xjB
+	 9VI5tpedP/BwFLtOUVOcMweQNuXMfdFSjdAXn6eJ0PCrU2XqjVQ1ClhyXYm91QqezB
+	 BWBxBhgCntE+LllJ9eI3gXQNdcBzT6kCX6jCDe0fRwyS5jwA6QLvgvSgHExdm4+ANc
+	 EqWYH3ZDqfk8AYG+qNGddTsqrJQ0IkyPE2hjqMZGDrLtDUy4ECrSrwyMSTKOhgVwRs
+	 LUUbQJDDRVx2dfqaba062lxJoKv4Wn9IKM1NBgcRXlg3o8lxWwjVusTeLEqJ7W+MC7
+	 iOawLnpudAR3YuqT4/jIRUZd32Ucbul4mqqSMLsK+CIBFis+8dR4iAYJYEFAdpqZFs
+	 dW+7xWlp8DBymok8tGte46Hsf+NiVujhE/VMj5uIxA9eT5ZR/jPDkWCHr3WwX4nUB8
+	 EE85y77vQx77LWcizkjJ8JHZS4WTVUA2S1ZPpPT3bFJl5Tlb2Piynk6bZHdKlr0Y64
+	 V6HDpIzSaZ6ayfPpNgI1huWSmN27DSyOsq7UEML5mkgEoJbaqpLmaQw+2qfCOadcso
+	 Z0NrLTAP9BZi6REpw492LID8XOdObMxtgdyE2igruVR/oWldCk/EoUnX8RtvJdmlUw
+	 VZSVQ4w4nHV9TF6a8e30Smfw=
+Received: from stx.tnic (unknown [IPv6:2600:1700:38ca:c00::1a])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (P-256) server-signature ECDSA (P-256) server-digest SHA256)
+	(No client certificate requested)
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id BAB9540E016E;
+	Thu,  2 Jul 2026 02:16:22 +0000 (UTC)
+Date: Wed, 1 Jul 2026 19:16:19 -0700
+From: Borislav Petkov <bp@alien8.de>
+To: Li Zhe <lizhe.67@bytedance.com>
+Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
+	dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org,
+	mingo@redhat.com, rppt@kernel.org, tglx@kernel.org,
+	linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
+Subject: Re: [PATCH v5 6/8] string: introduce memcpy_nt() helpers
+Message-ID: <20260702021619.GEakXJ89-0rZcYGIq8@fat_crate.local>
+References: <20260701090553.62691-1-lizhe.67@bytedance.com>
+ <20260701090553.62691-7-lizhe.67@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Message-Id: <457d2616d79d9e1a2a3fe06ab548cde2028a979433bd95bdc5859da4d7760e79@mail.kernel.org>
-In-Reply-To: <20260702013334.140905-2-ankur.a.arora@oracle.com>
-References: <20260702013334.140905-2-ankur.a.arora@oracle.com>
-Subject: Re: [PATCH v13 01/15] asm-generic: barrier: Add smp_cond_load_relaxed_timeout()
-From: bot+bpf-ci@kernel.org
-To: ankur.a.arora@oracle.com,linux-kernel@vger.kernel.org,linux-arch@vger.kernel.org,linux-arm-kernel@lists.infradead.org,linux-pm@vger.kernel.org,bpf@vger.kernel.org
-Cc: arnd@arndb.de,catalin.marinas@arm.com,will@kernel.org,peterz@infradead.org,akpm@linux-foundation.org,mark.rutland@arm.com,harisokn@amazon.com,cl@gentwo.org,ast@kernel.org,rafael@kernel.org,daniel.lezcano@linaro.org,memxor@gmail.com,zhenglifeng1@huawei.com,xueshuai@linux.alibaba.com,rdunlap@infradead.org,david.laight.linux@gmail.com,broonie@kernel.org,joao.m.martins@oracle.com,boris.ostrovsky@oracle.com,konrad.wilk@oracle.com,ashok.bhat@arm.com,ankur.a.arora@oracle.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
-Date: Thu,  2 Jul 2026 02:11:55 +0000 (UTC)
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20260701090553.62691-7-lizhe.67@bytedance.com>
 
---===============0253007402283867756==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+On Wed, Jul 01, 2026 at 05:05:51PM +0800, Li Zhe wrote:
+> +static __always_inline void memcpy_nt_drain(void)
+> +{
+> +	asm volatile("sfence" : : : "memory");
 
-> diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-> index b99cb57dfccc..d1e9ed15bbfc 100644
-> --- a/include/asm-generic/barrier.h
-> +++ b/include/asm-generic/barrier.h
-> @@ -273,6 +273,85 @@ do {									\
->  })
->  #endif
->
-> +/*
-> + * Number of times we iterate in the loop before doing the time check.
-> + * Note that the iteration count assumes that the loop condition is
-> + * relatively cheap.
-> + */
-> +#ifndef SMP_TIMEOUT_POLL_COUNT
-> +#define SMP_TIMEOUT_POLL_COUNT		200
-> +#endif
+Doing a simple grep around the tree will give you the hint to use wmb() and
+not reinvent the wheel here. Not to mention that this is bypassing KCSAN
+instrumentation.
 
-[ ... ]
+And then you don't need to go define this drain thing but simply use wmb()
+because, oh, look, other architectures already define a write memory barrier
+too.
 
-> +#ifndef cpu_poll_relax
-> +#define cpu_poll_relax(ptr, val, timeout_ns)	cpu_relax()
-> +#endif
+-- 
+Regards/Gruss,
+    Boris.
 
-[ ... ]
-
-> +#ifndef smp_cond_load_relaxed_timeout
-> +#define smp_cond_load_relaxed_timeout(ptr, cond_expr,			\
-> +				      time_expr_ns, timeout_ns)		\
-> +({									\
-> +	typeof(ptr) __PTR = (ptr);					\
-> +	__unqual_scalar_typeof(*(ptr)) VAL;				\
-> +	u32 __count = 0, __spin = SMP_TIMEOUT_POLL_COUNT;		\
-> +	s64 __timeout = (s64)timeout_ns;				\
-> +	s64 __time_now, __time_end = 0;					\
-> +									\
-> +	for (;;) {							\
-> +		VAL = READ_ONCE(*__PTR);				\
-> +		if (cond_expr)						\
-> +			break;						\
-> +		cpu_poll_relax(__PTR, VAL, (u64)__timeout);		\
-
-This same point came up during review of v11. David Laight noted that
-__timeout here is a relative value, and that passing it straight to
-cpu_poll_relax() is only safe when cpu_poll_relax() ignores its timeout
-argument, as the generic cpu_relax() fallback does.
-
-For an arm64 WFE/WFET style cpu_poll_relax() that actually waits on the
-supplied timeout, would this spin roughly SMP_TIMEOUT_POLL_COUNT *
-timeout_ns before the first time-check?
-
-> +		if (++__count < __spin)					\
-> +			continue;					\
-> +		__time_now = (s64)(time_expr_ns);			\
-> +		if (unlikely(__time_end == 0))				\
-> +			__time_end = __time_now + __timeout;		\
-
-__time_end is only initialized here, after the first cpu_poll_relax()
-call has already run with the full relative __timeout, so the initial
-wait is not counted against the timeout window.
-
-Would it be worth converting the relative timeout to an absolute end-time
-once up front, or at least documenting that the effective timeout can be
-roughly doubled for such an implementation?
-
-> +		__timeout = __time_end - __time_now;			\
-> +		if (__time_now <= 0 || __timeout <= 0) {		\
-> +			VAL = READ_ONCE(*__PTR);			\
-> +			break;						\
-> +		}							\
-> +		__count = 0;						\
-> +	}								\
-> +	(typeof(*(ptr)))VAL;						\
-> +})
-> +#endif
-> +
-
-
----
-AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
-See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
-
-CI run summary: https://github.com/kernel-patches/bpf/actions/runs/28559763019
---===============0253007402283867756==--
+https://people.kernel.org/tglx/notes-about-netiquette
