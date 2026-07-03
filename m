@@ -1,61 +1,63 @@
-Received: from mail-pf1-f174.google.com (mail-pf1-f174.google.com [209.85.210.174])
+Received: from mail-pg1-f174.google.com (mail-pg1-f174.google.com [209.85.215.174])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2FB7C3D16F9
-	for <linux-arch@vger.kernel.org>; Fri,  3 Jul 2026 12:28:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.174
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E1E63CE0A7
+	for <linux-arch@vger.kernel.org>; Fri,  3 Jul 2026 12:29:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.174
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783081742; cv=none; b=hqm+pP97lHPebOAdkOaZmqi0GXZEnrC6Wu28JZzgq2uMyxhRaggQy0IS7FmFBVdRX/mbrPTlT/ru2XaXMEYD6LDHB+CP1N5wkd48Gsue23sFOnEnm8QpNVh0zmj1W2Vu+QD+MmwGf3+JQ/LpjAVX68u+yYa04qe3LiYpvHoGYh8=
+	t=1783081755; cv=none; b=ivrtjWoL4/YCq7lufeQdnArX21cfY92vR91PZGN1fUiuC6prK9q/M9EcRTZlrNDn+em31TYE8iYPb3z7ShzfVr+WgBH3oCNKX4w4QXnMmdmBDnH82fs0n5HcUge6Hrv1+iXuh6hWyMyi1JPVJNMN/F1tpsqSVUtE5+9p3B5LHlw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783081742; c=relaxed/simple;
-	bh=R91542bB5CYtbj9FWp/+W0JMaOO6fVrDX51mZmOMWCg=;
-	h=From:To:Subject:Date:Message-Id:MIME-Version; b=bd5z2SObppTK7u4EYIyGD5Q9p5ida2LqnihUEnIJ7XkKrjiI5N/uTZ1EeI6sPD+ESVNxxYJjs2TPpUu4uDdFKdCO2a3oodCFUQ31UP2+zJkNMJrQlhjPjxwMM3M6QXTLcA8iy3YBpggBUinVY6bizcx4RGZ4X+VeT9idApAVf9Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=Pb8fcf4/; arc=none smtp.client-ip=209.85.210.174
+	s=arc-20240116; t=1783081755; c=relaxed/simple;
+	bh=3enjAhj+bJCSQm1Q7LRQk1xR8OO/wkxTmZzaOgcPYa4=;
+	h=From:To:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=KGQ5SbjVLnASHJ89eBon7lEoRsvYpod6sWk+ccc+PXFEBAexJki7A27rjnbKVoAiOY2l/SWVh60hHRPLQCDQPaV3OdG9744woBWWudxV61yPfNa7DBh3vDIdm+1Vba6AtVDp8TouYk5O3z20UrDmSqkXNohNJL2smj3j/0DYxOQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=WkmeyIv1; arc=none smtp.client-ip=209.85.215.174
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="Pb8fcf4/"
-Received: by mail-pf1-f174.google.com with SMTP id d2e1a72fcca58-847a69ba83dso361694b3a.2
-        for <linux-arch@vger.kernel.org>; Fri, 03 Jul 2026 05:28:59 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="WkmeyIv1"
+Received: by mail-pg1-f174.google.com with SMTP id 41be03b00d2f7-c96d2bebca3so305022a12.3
+        for <linux-arch@vger.kernel.org>; Fri, 03 Jul 2026 05:29:13 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=bytedance.com; s=google; t=1783081738; x=1783686538; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:to
-         :from:from:to:cc:subject:date:message-id:reply-to;
-        bh=3xWVG/3qQZSSCl9XZAnFe0CG/d9wAGXcusZYIWuv8No=;
-        b=Pb8fcf4/0Sgohk6LKbKU/6ei+inw+Zka+/Z1NkZ2gzXg+ccnbCrIlqRAIijyMIb/ZM
-         tb97s70U+q+ON6q6tbGmVP5kAFuEPbzXd0o82RF4cDlP/YLTq+xEspW87zFUPZuqsVnH
-         o4QThFvErPJO0MBNwPDgHtSRNZsoXHOyWuGNDfAW0vIyIzFfX22fqg1m6dvJkYo+JtMk
-         0+sXwAo7e5tW9YJkFbKjQ1x4RhFwjWixB0a9Gc12YgDvTA5iEfDkiTcNv8MZnuv2h4XA
-         rVjl+4rhCbF90BRVU53gYQrbyjOv9kFfDYHwZ3i0oPoo6mxTja/ew1sYPKAY750QYd+M
-         Y9Ug==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1783081738; x=1783686538;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:to
-         :from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+        d=bytedance.com; s=google; t=1783081753; x=1783686553; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:to:from:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=3xWVG/3qQZSSCl9XZAnFe0CG/d9wAGXcusZYIWuv8No=;
-        b=lfXhhhlxxVAJqjmehRtjh7CMH9wxrqlUn93DZIgfrUfEmSiuVxRfuG+KSvd72mQBgx
-         3cHr2E4+voZfXK2TlHY4PJe3/M4/S7klw/Q62X9NALhUdY//EStEnVIrcApqaVrt4ztn
-         o+KlMZiL8sRWqWUisnMK5M5sIeP/i8kntXV8GgkvVn/WDPk1lTbS72UM36FrhMd6S02Z
-         ewtLI5StJ29/c5pCltk6IftqjfWkcQ+P0LHzZFGS+dcWryfkDFlc67AHUMyErZhey73J
-         Gr7ZXSr9uCQMT/e7mQlvotV3qC+jN7rVwe6tqXKB9ujIAtfQQPwrUhSTbR9JgHfAbq3F
-         JDTA==
-X-Forwarded-Encrypted: i=1; AHgh+RrBqnrQUUsDWnEzD3N2bfI2b+pT2fpNP+thbgFDalfqCr6K/W6A8T+K4TQ4T5h/t+6RCDP1PFCxs5oh@vger.kernel.org
-X-Gm-Message-State: AOJu0YyGbPmK7RYxxBolSgc+DofSw+HiH91vxzmnv3mGf/vt7EpWQRgT
-	Ym6A5rjSjy2LjOuUEWYPTFw8NAMnuXghIoqKC88D+WON/MdLsFLIioNcFuXGi+VEo7M=
-X-Gm-Gg: AfdE7cnAZAfwj4OnWYInhFnVQHUJzS/AiNEeilYXKug7WPFr4cW7J65t/waxGZ5SDkH
-	GKkbfFefEPRuIPHYa7bhCoEsQKT9CoM7l+mBf+/xs5A04qE8llM4VyQk3p4pPhRsHjL1ui0RXMm
-	UTjIHzEHUAD1iNVQPuf6WcZPraYhcDvAVeKvnMAejyR6Q9BhTatIYt4bI9iMgk5zXY3T40f2THm
-	heZ+oRmfzEiiV9Syghm31vGBt07khCYz+YaTMifn5P64gtrnUfp0KoiI8AmFFwiU2ywTk8AH7lb
-	hUJmTtnAWP1zVG+iDxQFlgX5221VcBUldVOGmP+eSDGlOagJMR882tKSU4N/+2TwVlEU8ZmfDC7
-	3+O0TOPI3pWktZbDmr3S3WYJAqbtuBS89XNzGNIhknAt4ivo3h8DYOxIF/+RiNw6MG1F5tSGEVm
-	XH6mtlD9Z0OCXvSLaKtakFt55xbsSZCWSwKPQrGmOinPGxdtS6eH1l41I2GlrOLg==
-X-Received: by 2002:a05:6a00:18a7:b0:847:8b0f:2508 with SMTP id d2e1a72fcca58-847c0686cc3mr10380342b3a.13.1783081738170;
-        Fri, 03 Jul 2026 05:28:58 -0700 (PDT)
+        bh=v+VxPGsXEB5teg9HEsa3LZ3vy1Qgi8wQBPtiYzVf6Qc=;
+        b=WkmeyIv19WFtZsms5/dPudHOxsyiAC6KOMSXxcgjxTVxkbW+0rJg0HK7s8jcoywfLL
+         riGhpZRz5fzR3YDBzKyUSctQzZzoUCJZ/A321WCDFnnlQwWT368rbpGaQnx1Z7xFw665
+         8axCiTjh2DMi7xFneknJND9ngbwNNksLz5YoVsKWi7m3/enDRJ6KsQCxbbq8TYxXLaf+
+         vWHZF3SHySIP2ICeTa+FstBF2lP4fnYl/9GQp91IxEwe/qO6EWFTPKXI+vZ/XltsiUWW
+         cdLVVgDIfCVExdPczXctgvu65hPk23eNpnoM++vZZkJ4MFxT2r/ePTgBovJvkfONHi8p
+         2hrg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1783081753; x=1783686553;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:to:from:x-gm-gg:x-gm-message-state:from:to
+         :cc:subject:date:message-id:reply-to;
+        bh=v+VxPGsXEB5teg9HEsa3LZ3vy1Qgi8wQBPtiYzVf6Qc=;
+        b=s1WSq+X3NgRLFopq4ro3nY2PaxlzxBFPM06dzaaHsMHpL6XfIL1TvfCa4flXXEmXt8
+         ejcoYmawyAOGnzllPBaJA0OIORdjNWKkoZETlCuzdRRbqlxct59skBtausZVLa6v3bII
+         pYgoOgIzrBKwXNFDyVbVsztdCF7f3RMUkphUjVE2wi5f4xxdPSqwBTTuxUGArmmenYa1
+         GwI6Ssc1IgDrqvyNCtTwSqMlttG25wQnnbn6Fnxv6QgMYc3ThXJGI90Q0vhfiRqNq4kT
+         +D9fWBqqMERDQsRlJJOGYzOT1jMEF3wFSxRLNe/KeFmCWTqn/AXfEnEE2UTfQSFcaOQT
+         v/7w==
+X-Forwarded-Encrypted: i=1; AFNElJ/uHEfJbZ2u5cK8npVCPo26TaKTMI+5kn/WExbCbQ+x1mj9gHyhtalc70oNmVXdAd9JCtqU3HUxsePt@vger.kernel.org
+X-Gm-Message-State: AOJu0Yy8RDVXW9w3UG6qGjz4W7Txk5guEopGS9uWBWCEOhpDMCjNQ1C/
+	07r+7Lo8dtSGR3W15wYtSpRrG1FX7PC7nRIjb4AvkneeYEljijiQWZxOwvq1/GBmHeY=
+X-Gm-Gg: AfdE7cl+MLj7Vl59v5rNBcnkN1nt2LWiiKN6lIdwbpV+mO7Xn+ykGckNswCCLeBGFt/
+	lgPVn16oeZFsQrziVJWJitb7+48lDpcjSjBIQygyFTwUJPyr6hZF0lsleleFvFpJrStswRqOrdr
+	Z5mb2qsKdM4Tvv+8fv9vq7lp1+iqHjzuvYuRltQi6I0WvmrZIyw+KcHFqQPIfLwaDlXOw7g9R88
+	GWY3b/I1zzKIJDJpB3ndmNLVSLBCjSX/+d0gGrTGAznmhPDCjY5o0GGbRo7g6UoZeXyaXWHCrjL
+	0hchAOcto37h/jD4cRUGGDqsERGyX8cHeC6nh8b0EyS4NRCthbYYwAhSh3z1diHg8c/imCm46Sk
+	bLHbU9hfxXaXuWXDzi0rphyvrFikwiNZOmRZn0iI9sdS6WBV+m/DvnzOKrvYR87pl4VrzCao+1U
+	DjP/OUsfMTrmkhITCKyenT2FSO2c3rAdVFxrsQ86DeRKKKHbxkAjY=
+X-Received: by 2002:a05:6a21:514:b0:3bf:b960:6fc4 with SMTP id adf61e73a8af0-3bfed4701b4mr11795889637.30.1783081752569;
+        Fri, 03 Jul 2026 05:29:12 -0700 (PDT)
 Received: from L6YN4KR4K9.bytedance.net ([139.177.225.224])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c9e8f3d74ccsm2705551a12.9.2026.07.03.05.28.43
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c9e8f3d74ccsm2705551a12.9.2026.07.03.05.28.58
         (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
-        Fri, 03 Jul 2026 05:28:56 -0700 (PDT)
+        Fri, 03 Jul 2026 05:29:11 -0700 (PDT)
 From: Yunhui Cui <cuiyunhui@bytedance.com>
 To: pjw@kernel.org,
 	palmer@dabbelt.com,
@@ -105,10 +107,12 @@ To: pjw@kernel.org,
 	qingfang.deng@siflower.com.cn,
 	linux-arch@vger.kernel.org,
 	llvm@lists.linux.dev
-Subject: [PATCH v8 0/3] riscv: fix PIO helpers and add optimized percpu ops
-Date: Fri,  3 Jul 2026 20:28:29 +0800
-Message-Id: <20260703122832.15984-1-cuiyunhui@bytedance.com>
+Subject: [PATCH v8 1/3] riscv: io: avoid null-pointer arithmetic in PIO helpers
+Date: Fri,  3 Jul 2026 20:28:30 +0800
+Message-Id: <20260703122832.15984-2-cuiyunhui@bytedance.com>
 X-Mailer: git-send-email 2.39.2 (Apple Git-143)
+In-Reply-To: <20260703122832.15984-1-cuiyunhui@bytedance.com>
+References: <20260703122832.15984-1-cuiyunhui@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -117,57 +121,70 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Changes in v8:
-- Fold the TASK_TI_CPU_NUM cleanup into patch 3.
-- Pick up Arnd's Reviewed-by tag for patch 1.
+When port I/O is not supported, exposing the port-string helpers is both
+unnecessary and can make clang diagnose null-pointer arithmetic from the
+PCI_IOBASE based address expression.  Keep the MMIO string helpers
+available as before, but only provide the port I/O variants when
+CONFIG_HAS_IOPORT is enabled.
 
-Changes in v7:
-- Rename the internal AND helpers for consistency.
-- Undefine internal percpu helper macros before including asm-generic/percpu.h.
+Signed-off-by: Yunhui Cui <cuiyunhui@bytedance.com>
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/riscv/include/asm/io.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-Changes in v6:
-- Keep the RISC-V PIO fix local by directly guarding ins*/outs* helpers.
-- Add the missing asm/cmpxchg.h include and clean up LR/SC fallback naming.
-
-Changes in v5:
-- Drop the generic HAS_IOPORT_MAP/ioport_map changes.
-- Fix 8/16-bit LR/SC fallback masking and constraints.
-- Initialize secondary idle task pcpu_offset before CPU bringup.
-
-Changes in v4:
-- Rework the series into the current PIO helper fix, percpu.h, and
-  thread_info pcpu_offset layout.
-- Keep the generic pci_iounmap() behavior intact.
-
-Changes in v3:
-- Fix this_cpu_cmpxchg128() build issues when cmpxchg128 is unavailable.
-- Fix sparse warnings.
-
-Changes in v2:
-- Add non-Zabha percpu add/and/or support.
-- Add the thread_info pcpu_offset optimization.
-
-Changes in v1:
-- Initial RISC-V percpu.h series using optimized native-width percpu ops.
-
-Yunhui Cui (3):
-  riscv: io: avoid null-pointer arithmetic in PIO helpers
-  riscv: introduce percpu.h into include/asm
-  riscv: store percpu offset into thread_info
-
- arch/riscv/include/asm/asm.h         |   6 +-
- arch/riscv/include/asm/io.h          |   8 +
- arch/riscv/include/asm/percpu.h      | 300 +++++++++++++++++++++++++++
- arch/riscv/include/asm/switch_to.h   |   8 +
- arch/riscv/include/asm/thread_info.h |   3 +-
- arch/riscv/kernel/asm-offsets.c      |   2 +-
- arch/riscv/kernel/smpboot.c          |   8 +
- arch/riscv/net/bpf_jit_comp64.c      |   9 +-
- 8 files changed, 329 insertions(+), 15 deletions(-)
- create mode 100644 arch/riscv/include/asm/percpu.h
-
-
-base-commit: 7de6ae9e12207ec146f2f3f1e58d1a99317e88bc
+diff --git a/arch/riscv/include/asm/io.h b/arch/riscv/include/asm/io.h
+index 09bb5f57a9d34..92d5f831f3495 100644
+--- a/arch/riscv/include/asm/io.h
++++ b/arch/riscv/include/asm/io.h
+@@ -102,12 +102,14 @@ __io_reads_ins(reads, u32, l, __io_br(), __io_ar(addr))
+ #define readsw(addr, buffer, count) __readsw(addr, buffer, count)
+ #define readsl(addr, buffer, count) __readsl(addr, buffer, count)
+ 
++#ifdef CONFIG_HAS_IOPORT
+ __io_reads_ins(ins,  u8, b, __io_pbr(), __io_par(addr))
+ __io_reads_ins(ins, u16, w, __io_pbr(), __io_par(addr))
+ __io_reads_ins(ins, u32, l, __io_pbr(), __io_par(addr))
+ #define insb(addr, buffer, count) __insb(PCI_IOBASE + (addr), buffer, count)
+ #define insw(addr, buffer, count) __insw(PCI_IOBASE + (addr), buffer, count)
+ #define insl(addr, buffer, count) __insl(PCI_IOBASE + (addr), buffer, count)
++#endif
+ 
+ __io_writes_outs(writes,  u8, b, __io_bw(), __io_aw())
+ __io_writes_outs(writes, u16, w, __io_bw(), __io_aw())
+@@ -116,26 +118,32 @@ __io_writes_outs(writes, u32, l, __io_bw(), __io_aw())
+ #define writesw(addr, buffer, count) __writesw(addr, buffer, count)
+ #define writesl(addr, buffer, count) __writesl(addr, buffer, count)
+ 
++#ifdef CONFIG_HAS_IOPORT
+ __io_writes_outs(outs,  u8, b, __io_pbw(), __io_paw())
+ __io_writes_outs(outs, u16, w, __io_pbw(), __io_paw())
+ __io_writes_outs(outs, u32, l, __io_pbw(), __io_paw())
+ #define outsb(addr, buffer, count) __outsb(PCI_IOBASE + (addr), buffer, count)
+ #define outsw(addr, buffer, count) __outsw(PCI_IOBASE + (addr), buffer, count)
+ #define outsl(addr, buffer, count) __outsl(PCI_IOBASE + (addr), buffer, count)
++#endif
+ 
+ #ifdef CONFIG_64BIT
+ __io_reads_ins(reads, u64, q, __io_br(), __io_ar(addr))
+ #define readsq(addr, buffer, count) __readsq(addr, buffer, count)
+ 
++#ifdef CONFIG_HAS_IOPORT
+ __io_reads_ins(ins, u64, q, __io_pbr(), __io_par(addr))
+ #define insq(addr, buffer, count) __insq(PCI_IOBASE + (addr), buffer, count)
++#endif
+ 
+ __io_writes_outs(writes, u64, q, __io_bw(), __io_aw())
+ #define writesq(addr, buffer, count) __writesq(addr, buffer, count)
+ 
++#ifdef CONFIG_HAS_IOPORT
+ __io_writes_outs(outs, u64, q, __io_pbr(), __io_paw())
+ #define outsq(addr, buffer, count) __outsq(PCI_IOBASE + (addr), buffer, count)
+ #endif
++#endif
+ 
+ #include <asm-generic/io.h>
+ 
 -- 
 2.39.5
 
