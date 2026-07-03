@@ -1,253 +1,290 @@
-Received: from mail-qt1-f177.google.com (mail-qt1-f177.google.com [209.85.160.177])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16805288C0E
-	for <linux-arch@vger.kernel.org>; Fri,  3 Jul 2026 17:32:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1DA2930AD0B
+	for <linux-arch@vger.kernel.org>; Fri,  3 Jul 2026 17:35:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783099971; cv=none; b=oVDxaUyz3Vyl/Dn34ruSCcrUXsPT6b6NjM7OmbQLpzYBTgQSKUw9EJ7iBRWAM4guKSdpjcgm9ww0r5yFT1ZqI0qhKKiAr0dRw/BM26DaeUZYtjK0JFEqHD31nJEWDyMwPojsU+Z9zcDQbtiOUZ5BuvPuM4tuQzIMeQDAZndU/yc=
+	t=1783100153; cv=none; b=e/NWMJiV/XNoQIIWgq3GXp9j6EnUy/Z4dtRQeHOnHwZSlfQ7HfAljMH+QxZMJ6TQuyLJdBrjg6ar4wZXAxPqiDSN2j7138Oi1eVJ1S3L+JuCs34KEs48+uFN9zp7yorbgcny1RiQ1S1dzGcY0nwc5vRwxLyH2EyV291cMrVc5Po=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783099971; c=relaxed/simple;
-	bh=Wcpl1M8C6rbl+gWtOZA3jLQB6f728HV5z3+kNftSXRU=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=ukTTcWJu+Irz/kJYpkAmKb90iV9PfvxcFag/Gvu5yvBDVr2jO/3F4stNXGvtavKwN4qySNCkQBIalINu5NutZBZLd0GgAw574xSxoZmSYgZh/VhObGz4Xy1J+szjZZgvFkUD1itUAHlTBNpYLykvbMBykD2uq/8ShJ1Xg6iAzZU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=mF1sVXMO; arc=none smtp.client-ip=209.85.160.177
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
+	s=arc-20240116; t=1783100153; c=relaxed/simple;
+	bh=AbEmXxgy/FDmbds8Ppv+0UauIp43P/HY1boqMBn225U=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=h6QddRpMVJnwfQNa56o3IdZ8b3nOtmcRmjY/zjQlgbKxDD5z5jjFCnZP7rJii6P5cDFG8oht3y/B+M1BcwKanXOJ55tExU1kymAI19gCgF8txqwtiaeEW7H8tKH9Fzp0xaRe1Df+EoxlrIXeWdLd4Z4mWVymBBt0SelyYWIvf6I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=mO0zYr2i; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="mF1sVXMO"
-Received: by mail-qt1-f177.google.com with SMTP id d75a77b69052e-51c2a449c57so5414241cf.1
-        for <linux-arch@vger.kernel.org>; Fri, 03 Jul 2026 10:32:49 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=ziepe.ca; s=google; t=1783099969; x=1783704769; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=yiTtUHYVC+sBH8N9u4bqwWOXo++BMfy79AiAKwhU9io=;
-        b=mF1sVXMOMvgQrEnwIMqB4rY7uKNNPHHW+R+o0znH9WS0jEM7MZIf+ecJ0/qLq8jPvN
-         vzRc3UN8Gq9LdcPJla0jj0lihaWdydDDuPiknHRO1irv6GcFJHK/0GbmBuW+y9xeAJ3N
-         WlGbcSggJ6kW+KZntqyr4HnCXCPlQiwTIrz77E1tIT/bB30Z0ObKmrW4i1AgRJXGwmdJ
-         X9kuKH4lUeBuRXn6m5GQSzvvgCQtvqCkFdTigKl9qByon+KreNc+XXE536/tmda5hU82
-         cXr+0NYMK1I4qXU1MNlA7nOCUgYeI8Na0eN1sBCIgycVP5FNlehXzx3rvvWxqxOHWUFM
-         WdlQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1783099969; x=1783704769;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=yiTtUHYVC+sBH8N9u4bqwWOXo++BMfy79AiAKwhU9io=;
-        b=lngpYkNS/WmWdfxyJ5DJQ/1T7Xu9rfNwfgMCiGZ1ruDxStfJa6cysgX/UJdbh7Ngbd
-         cWJAxVFeCurU1yDUP+p9IwjsRmq6lPjYHsC1/r/A+Ej381GB/6PoWOCLXCy1BOddMOM4
-         5GG1fir/5D7U/YJDzzXvO5uSI8GF413YoP3ayS3S8mEcYomBdIvEdHSyLRhPMqViE43V
-         MjcX1NuJs55s5DL+MVgUjPhSKpzaqzcv5ZTSfJyVkqi4rCMy5i1B78JE4Q/xk6g9b4Yl
-         JPQ3I4Yx/dcSxSPWmQJxUs55ngTt8lWjz3TY6qP04PFdbFnenfBWLuhRIuDcmpbHWHGT
-         8agA==
-X-Forwarded-Encrypted: i=1; AFNElJ/PmN/Z57CB5/lvfzREB7Q8Z7kX5xyw+fQU1NI5ffr+sU9oY7xSF9al/Sz3RQoTVU19Nh7mB9sttG06@vger.kernel.org
-X-Gm-Message-State: AOJu0YxpXK3GTkMJTx22mismnkVCUJy/+Tgnxp/3BB+FGsp1yA2gRa8e
-	O0Gzdj3OgqP8e45dMbxFqYWzsEksuilYE5EyQSSdp3YIuC0pe0MxC33kwnoBEphqdEk=
-X-Gm-Gg: AfdE7cmZMUnnJ6v0Yy+GHa0Y+1SFvlVz5uRDrRlXiLFEMgXc2S6u4LGG+wM9mthlNxd
-	iBcku0cP6gKIgq/9EXqAS6ySNOxptEtN+KupwVWeTUiyRt/brR8QQbjC1kxKxv2RIFLMH3dCYZe
-	k9Y0pvii/vhqLkXIiSfBeAWEhIa5pJ0RFg2mu9qNJXj5X7E8gWXai4DY9ox2D5kiqV9DG3vxhTt
-	6JOjwplCKGiVw9Dfkm/fz5OhiXDXr9rbjbQhoxXQFF8bZ+bpUjikaKM70EZEf7v9S/p8RcBAg5q
-	mvSR59pkwlcFQgy1MCKnauXkJxRwfFdmVJ5oXajUyqiZAdKuWwBJsnpGzebTTCZIYnnMlxJVR1B
-	SPmr+iePfzHDoOA+bUvwFfUBgrfc1RqXqESccsgH/bhC57jDOUc8nkXMPC8YVjV7IhdCw0tcfMT
-	t2UI+WRxNMhfldi40EP+TNUtS2UpKIV4z9Qq9vjgrlQjx9sWY239GiHOFphZrajIJVlQ8=
-X-Received: by 2002:a05:622a:290:b0:51c:e14:87a7 with SMTP id d75a77b69052e-51c4c214c01mr7650981cf.28.1783099969076;
-        Fri, 03 Jul 2026 10:32:49 -0700 (PDT)
-Received: from ziepe.ca (crbknf0213w-47-54-130-67.pppoe-dynamic.high-speed.nl.bellaliant.net. [47.54.130.67])
-        by smtp.gmail.com with ESMTPSA id 6a1803df08f44-8f472a9ad1fsm58402856d6.47.2026.07.03.10.32.48
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 03 Jul 2026 10:32:48 -0700 (PDT)
-Received: from jgg by wakko with local (Exim 4.97)
-	(envelope-from <jgg@ziepe.ca>)
-	id 1wfhku-00000008Ink-0GPL;
-	Fri, 03 Jul 2026 14:32:48 -0300
-Date: Fri, 3 Jul 2026 14:32:48 -0300
-From: Jason Gunthorpe <jgg@ziepe.ca>
-To: Yu Zhang <zhangyu1@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org, wei.liu@kernel.org, kys@microsoft.com,
-	haiyangz@microsoft.com, decui@microsoft.com, longli@microsoft.com,
-	joro@8bytes.org, will@kernel.org, robin.murphy@arm.com,
-	bhelgaas@google.com, kwilczynski@kernel.org, lpieralisi@kernel.org,
-	mani@kernel.org, robh@kernel.org, arnd@arndb.de,
-	mhklinux@outlook.com, jacob.pan@linux.microsoft.com,
-	tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com,
-	mrathor@linux.microsoft.com
-Subject: Re: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Message-ID: <20260703173248.GB1968184@ziepe.ca>
-References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
- <20260702160518.311234-4-zhangyu1@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="mO0zYr2i"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CAAAF1F00ADF
+	for <linux-arch@vger.kernel.org>; Fri,  3 Jul 2026 17:35:50 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1783100150;
+	bh=h6pMdw59YeAPW8oCGL6skH/PxCmKpbckddnagWCxG8g=;
+	h=References:In-Reply-To:From:Date:Subject:To:Cc;
+	b=mO0zYr2iAksadMVlcSFH+oTsGEHRq6izb8vXeC66nG6KepwsAoNNoFD9BahlOZ5xS
+	 W6yUqe2Hj0tAEAeM9ox1ap2hMl6PV5d77AOmwiyu2+c5o04fyPJCqMPjdTPOcRwmxv
+	 buCRm5qLkqI13T0uBFAAsBVRoUcfbXM2DjdtKiGzpPtOACwpvjUUn2X1ULFea3tIyA
+	 fML83/pJLS4zTMeSqPMMFXAGiDlUUTFOM9jHp9Yn/9uIuLs6aw8krbLAP9VOwPSZXI
+	 UQC4NvwkgP+xSnomxCKYks7kzQLFii9sdAqYv1Zq46Z89TGg50WZDQ9K+SCSAma2aX
+	 qS+V7DZqo453Q==
+Received: by mail-lf1-f46.google.com with SMTP id 2adb3069b0e04-5aeb17c2564so850040e87.0
+        for <linux-arch@vger.kernel.org>; Fri, 03 Jul 2026 10:35:50 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AHgh+RrXzhcf8+s+N7RYTd152Bjq9nExHUCycL26sa9Pigo/ac8Jg09tUKsozh9RWtAic6Js4/eJ0P52Zzal@vger.kernel.org
+X-Gm-Message-State: AOJu0YwOtU1LMho+6vA/U6z0ppDDq1DZEmF68R7iPwrK2FTBsTx/KizS
+	aXXZh67oE9MvbA0XY+oo0uSffugEvQgV/0VgZn+VsnMgO7K4k3hq5UZjUlZGGlHmdGBSm+9HCI5
+	iKCkhhI33a3Sp1EVNCYY8pDee+PnLgejfF/Vc5qk6
+X-Received: by 2002:a05:6512:224e:b0:5ae:bf17:c4e2 with SMTP id
+ 2adb3069b0e04-5aed452e549mr161744e87.9.1783100149019; Fri, 03 Jul 2026
+ 10:35:49 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260702160518.311234-4-zhangyu1@linux.microsoft.com>
+References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
+ <20260629-hauer-erhitzen-sobald-96d3dff68707@brauner> <CALCETrVuh0-biOw=TgYN9ERTFAoiki57XeZ3S2T3dO2+hL54gA@mail.gmail.com>
+ <20260702-entladen-farbkombinationen-klarheit-fe24cb608f23@brauner>
+In-Reply-To: <20260702-entladen-farbkombinationen-klarheit-fe24cb608f23@brauner>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Fri, 3 Jul 2026 10:35:35 -0700
+X-Gmail-Original-Message-ID: <CALCETrXLBw0DxtYa_ipaSQRbkptphEonsq3CojFv7NJk9pFOzA@mail.gmail.com>
+X-Gm-Features: AVVi8CcIFTahLBIuvl-mgzlcM0nbdwIDoF801puOt51jvhgWAPRDcVEllZN1QQg
+Message-ID: <CALCETrXLBw0DxtYa_ipaSQRbkptphEonsq3CojFv7NJk9pFOzA@mail.gmail.com>
+Subject: Directory capability brain dump (Re: [RFC] Null Namespaces)
+To: Christian Brauner <brauner@kernel.org>
+Cc: Andy Lutomirski <luto@kernel.org>, John Ericson <mail@johnericson.me>, Li Chen <me@linux.beauty>, 
+	Cong Wang <cwang@multikernel.io>, linux-arch <linux-arch@vger.kernel.org>, 
+	LKML <linux-kernel@vger.kernel.org>, 
+	Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, 
+	Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
+	Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
+	"H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Kees Cook <kees@kernel.org>, Sergei Zimmerman <sergei@zimmerman.foo>, 
+	Farid Zakaria <farid.m.zakaria@gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Fri, Jul 03, 2026 at 12:05:17AM +0800, Yu Zhang wrote:
+On Thu, Jul 2, 2026 at 3:02=E2=80=AFAM Christian Brauner <brauner@kernel.or=
+g> wrote:
+>
+> On Mon, Jun 29, 2026 at 02:06:55PM -0700, Andy Lutomirski wrote:
+> > On Mon, Jun 29, 2026 at 4:45=E2=80=AFAM Christian Brauner <brauner@kern=
+el.org> wrote:
+> > >
+> >
+> > > But I guess the even simpler model would be to copy what I've been do=
+ing
+> > > for pidfs:
+> > >
+> > > +static struct path nullfs_root_path =3D {};
+> > > +
+> > > +void nullfs_get_root(struct path *path)
+> > > +{
+> > > +       *path =3D nullfs_root_path;
+> > > +       path_get(path);
+> > > +}
+> > > +
+> > >  static void __init init_mount_tree(void)
+> > >  {
+> > >         struct vfsmount *mnt, *nullfs_mnt;
+> > > @@ -6209,6 +6217,8 @@ static void __init init_mount_tree(void)
+> > >         /* Mount mutable rootfs on top of nullfs. */
+> > >         root.mnt                =3D nullfs_mnt;
+> > >         root.dentry             =3D nullfs_mnt->mnt_root;
+> > > +       nullfs_root_path.mnt    =3D nullfs_mnt;
+> > > +       pidfs_root_path.dentry  =3D nullfs_mnt->mnt_root;
+> > >
+> > >         LOCK_MOUNT_EXACT(mp, &root);
+> > >         if (unlikely(IS_ERR(mp.parent)))
+> > > diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
+> > > index aadfbf6e0cb3..f55c87c70b78 100644
+> > > --- a/include/uapi/linux/fcntl.h
+> > > +++ b/include/uapi/linux/fcntl.h
+> > > @@ -124,6 +124,7 @@ struct delegation {
+> > >
+> > >  #define FD_PIDFS_ROOT                  -10002 /* Root of the pidfs f=
+ilesystem */
+> > >  #define FD_NSFS_ROOT                   -10003 /* Root of the nsfs fi=
+lesystem */
+> > > +#define FD_NULLFS_ROOT                 -10004 /* Root of the nullfs =
+filesystem */
+> > >  #define FD_INVALID                     -10009 /* Invalid file descri=
+ptor: -10000 - EBADF =3D -10009 */
+> > >
+> > >  /* Generic flags for the *at(2) family of syscalls. */
+> > >
+> > > we then add fchroot() (overdue anyway) and then teach both fchdir() a=
+nd
+> > > fchroot() to honor FD_NULLFS_ROOT. Then a process may shed its fs sta=
+te
+> > > and move itself into nullfs. Restrict *chdir() and *chroot() for said
+> > > process via seccomp and it's locked in forever as well.
+> > >
+> >
+> > One thing comes to mind that might need a bit of care: this would give
+> > an API for any task to get an fd to a directory that lives in the init
+> > mount namespace.  It's not at all obvious to me that this is dangerous
+> > or even observable (you're not about to find a setuid program in
+> > nullfs), but I think it's at least worth a tiny bit of consideration.
+>
+> Yes, I thought about this as well. But it doesn't have to be this way.
+> Every mount namespaces has nullfs as it's root ever since I introduced
+> it. Which means FD_NULLFS_ROOT can also just mean "nullfs within that
+> specific mount namespace". That's fine.
+>
+> For my FD_FAILFS_ROOT proposal it would be enough if we make failfs
+> SB_KERNMOUNT which means it's logically distinct from every mount
+> namespace. I think that might be the right thing to do. I need to spend
+> one or more brain cycles on this though.
+>
+> >
+> > But if this happens, maybe we could finally land one of the patches to
+> > enable unprivileged chroot?  It's been tried a few times.
+> >
+> > https://lore.kernel.org/lkml/0e2f0f54e19bff53a3739ecfddb4ffa9a6dbde4d.1=
+327858005.git.luto@amacapital.net/
+> >
+> > https://lore.kernel.org/all/20210316203633.424794-2-mic@digikod.net/
+> >
+> > I think the need for it has reduced a tiny bit with user namespaces,
+> > as you can sort of emulate it by unsharing your user namespace and
+> > thus getting enough privilege, but this is rather heavyweight and
+> > limiting.
+>
+> I think we could make that work with both FD_NULLFS_ROOT and
+> FD_FAILFS_ROOT...
+>
+> >
+> >
+> > If all of the above landed, then the old chroot /var/empty kludge that
+> > security-minded programs have done for decades could finally be
+> > modernized and not require any privilege :)
+>
+> I think I like it.
+>
+> > Hmm, thinking aloud: every now and then someone brings up the idea of
+> > having an fd (really an OFD) that points to a file or a directory but
+> > carries less in the way of permissions/capabilities than the usual
+> > OFDs.  If we had a way to make an OFD to a directory that forced
+> > RESOLVE_BENEATH (or RESOLVE_IN_ROOT) and that propagated that
+> > restriction to anything you open using it, and if an unprivileged
+> > process could chroot itself to nullfs, then we would be getting quite
+> > close to what Capsicum can do.
+>
+> Next steps. I hear you volunteering...
+>
 
-> +static bool hv_iommu_capable(struct device *dev, enum iommu_cap cap)
-> +{
-> +	switch (cap) {
-> +	case IOMMU_CAP_CACHE_COHERENCY:
-> +		return true;
-> +	case IOMMU_CAP_DEFERRED_FLUSH:
-> +		return true;
+Haha.  I volunteer to give somewhat of a brain dump, which is very
+incomplete.  Doing a decent job of this would be maybe 90% figuring
+out nasty details and 10% implementation.  I might even volunteer to
+do some implementation if there is anything resembling agreement on a
+design.
 
-This CAP isn't necessary anymore
+First of all, I was way too glib with "OFD", because OFD doesn't cover
+cwd, root, or any of the magic links in /proc, nor does OFD cover
+mountpoints.
 
-> +static struct iommu_device *hv_iommu_probe_device(struct device *dev)
-> +{
-> +	struct pci_dev *pdev;
-> +	struct hv_iommu_endpoint *vdev;
-> +	struct hv_output_get_logical_device_property device_iommu_property = {0};
-> +
-> +	if (!dev_is_pci(dev))
-> +		return ERR_PTR(-ENODEV);
-> +
-> +	pdev = to_pci_dev(dev);
-> +
-> +	if (hv_iommu_get_logical_device_property(dev,
-> +						 HV_LOGICAL_DEVICE_PROPERTY_PVIOMMU,
-> +						 &device_iommu_property) ||
-> +	    !(device_iommu_property.device_iommu & HV_DEVICE_IOMMU_ENABLED))
-> +		return ERR_PTR(-ENODEV);
-> +
-> +	vdev = kzalloc_obj(*vdev, GFP_KERNEL);
-> +	if (!vdev)
-> +		return ERR_PTR(-ENOMEM);
-> +
-> +	vdev->dev = dev;
-> +	vdev->hv_iommu = hv_iommu_device;
-> +	dev_iommu_priv_set(dev, vdev);
-> +
-> +	if (hv_iommu_ats_supported(hv_iommu_device->cap) &&
-> +	    pci_ats_supported(pdev))
-> +		pci_enable_ats(pdev, __ffs(hv_iommu_device->pgsize_bitmap));
+Second, I confess to having my brain dump be hopelessly polluted by a
+substantial ulterior motive: I want fds (or whatevers)-as-capabilities
+to go both ways, which means that I want to be able to open an fd that
+captures certain of my privileges such that someone with different
+current->cred can use it.  And I want *that* ability to work with bind
+mounts and such.  The main motivation for this is that I *despise* the
+way that outside-a-container filesystem modes interact with
+containers.  It makes me extremely disappointed that I can take an
+ordinary subdirectory of my home directory and mount it into a Linux
+container on a Mac running MacOS without mucking with permissions at
+all, but trying to do the same thing on the average Linux distro plus
+the average container runtime is an exercise in hair pulling,
+especially when SELinux is involved.  *Why* can't it just work?
 
-This can probably just be PAGE_SHIFT
+So let's call the directory version of this thing a "directory
+capability", and directory capabilities can live in OFDs or in cwd,
+root, or a vfsmount.
 
-Also ATS shouldn't be enabled until a translation is installed,
-otherwise the driver cannot participate in the ATS error handling
-Nicolin is working on.
+The default directory capability (IMO) ought to be exactly equivalent
+to O_PATH or a cwd.  But I think one should be able to make a
+restricted one with bits like:
 
-> +static void hv_iommu_release_device(struct device *dev)
-> +{
-> +	struct hv_iommu_endpoint *vdev = dev_iommu_priv_get(dev);
-> +	struct pci_dev *pdev = to_pci_dev(dev);
-> +
-> +	if (pdev->ats_enabled)
-> +		pci_disable_ats(pdev);
-> +
-> +	dev_iommu_priv_set(dev, NULL);
+- read: if not set, you can't read the files in here. executing
+unconditionally counts as reading for this purpose.
 
-No necessary, the caller does it
+- execute: If not set, you can't execute the files in here.  (This
+kind of "execute" has nothing to do with opening subdirectories.
+we're not talking about POSIX.)  Everyone can argue about whether
+running a shell script and/or loading a shared library counts as
+executing.
 
-> +static struct iommu_group *hv_iommu_device_group(struct device *dev)
-> +{
-> +	if (dev_is_pci(dev))
-> +		return pci_device_group(dev);
-> +
-> +	WARN_ON_ONCE(1);
-> +	return generic_device_group(dev);
+- write: If not set, you can't write the files in here.
 
-I think you can just return failure here instead of WARN_ON ?
+- create: If not set, you can't create files in here.  (How does this
+interact with write?)
 
-> +static int __init hv_initialize_static_domains(void)
-> +{
-> +	int ret;
-> +	struct hv_iommu_domain *hv_domain;
-> +
-> +	/* Default stage-1 identity domain */
-> +	hv_domain = &hv_identity_domain;
-> +
-> +	ret = hv_create_device_domain(hv_domain, HV_DEVICE_DOMAIN_TYPE_S1);
-> +	if (ret)
-> +		return ret;
-> +
-> +	ret = hv_configure_device_domain(hv_domain, IOMMU_DOMAIN_IDENTITY);
-> +	if (ret)
-> +		goto delete_identity_domain;
+- maybe some bits to prevent writing metadata, fs-specific ioctls, etc.
 
-IMHO I would change this around to have a single function that accepts
-a struct hv_input_configure_device_domain as input and does both of
-the hypercalls inside. Then here it is easy to directly construct the
-hv_input_configure_device_domain for blocking and identity.
+- dotdot and/or ancestor: needs thought.  One way would be what I
+mentioned above: any path resolution starting at this directory
+capability or anything derived from it forces RESOLVE_BENEATH.
 
-I'd be happy if this never touched domain_type, drivers shouldn't be
-touching that.
+- open question: what happens if i open a directory and then unmount
+something that was mounted on one of its subdirectories?  Does this
+matter?
 
-> +static void __init hv_init_iommu_device(struct hv_iommu_dev *hv_iommu,
-> +			struct hv_output_get_iommu_capabilities *hv_iommu_cap)
-> +{
-> +	ida_init(&hv_iommu->domain_ids);
-> +
-> +	hv_iommu->cap = hv_iommu_cap->iommu_cap;
-> +	hv_iommu->max_iova_width = hv_iommu_cap->max_iova_width;
-> +	if (!hv_iommu_5lvl_supported(hv_iommu->cap) &&
-> +	    hv_iommu->max_iova_width > 48) {
-> +		pr_info("5-level paging not supported, limiting iova width to 48.\n");
-> +		hv_iommu->max_iova_width = 48;
-> +	}
-> +
-> +	hv_iommu->geometry = (struct iommu_domain_geometry) {
-> +		.aperture_start = 0,
-> +		.aperture_end = (((u64)1) << hv_iommu->max_iova_width) - 1,
-> +		.force_aperture = true,
-> +	};
+The general idea of using these things is that one might open an fd
+with constraints:
 
-I don't see anything reading this, I don't expect this to be used?
+fd =3D open_with_constraints(..., read | execute);
 
-The max_iova_width has to be passed into the iommupt creation, which
-it does:
+Now using fd in openat forces RESOLVE_BENEATH (because I didn't say
+dotdot), and any attempt to open a file for write or to create a new
+file will fail.  And if I fchdir or fchroot to fd, then those
+constraints still apply.  And if I do:
 
- +	cfg.common.hw_max_vasz_lg2 = hv_iommu_device->max_iova_width;
- +	cfg.common.hw_max_oasz_lg2 = 52;
- +	cfg.top_level = (hv_iommu_device->max_iova_width > 48) ? 4 : 3;
- +	ret = pt_iommu_x86_64_init(&hv_domain->pt_iommu_x86_64, &cfg, GFP_KERNEL);
- +	if (ret)
+fd =3D open_with_constraints(..., read);
+fd2 =3D open_with_constraints(fd, ..., read | execute);
 
-So just delete hv->iommu->geometry.
+then we need to decide whether to fail outright or to return something
+that doesn't have execute.
 
-Also, VT-D has weirdness where the HW can require a 4 level table but
-only a 3 level worth of IOVA width is being used. This was a
-real-world bug we hit when converting to iommupt. This interaction
-with the HV doesn't seem able to represent that.
+If I do:
 
-> +	/*
-> +	 * The page table code only maps x86 page sizes (4K/2M/1G); require the
-> +	 * hypervisor to advertise a non-empty subset of exactly those.
-> +	 */
-> +	if (!hv_iommu_cap.pgsize_bitmap ||
-> +	    (hv_iommu_cap.pgsize_bitmap & ~(u64)(SZ_4K | SZ_2M | SZ_1G))) {
-> +		pr_err("unsupported page sizes: pgsize_bitmap=0x%llx\n",
-> +		       hv_iommu_cap.pgsize_bitmap);
-> +		return -ENODEV;
-> +	}
+fd =3D open_with_constraints(..., read);
+fchdir(fd);
+open("/proc/self/cwd/../foo") needs to fail (or perhaps just open ~/foo?)
 
-This can just be
+If I take that same fd and bind-mount it on /mnt/restricted, then I
+should not be able to find its ancestors via /mnt/restricted/..
+(obviously -- that doesn't work anyway).  (But maybe there should be
+an extra flag "seethrough" which, if not set, would prevent a
+non-recursive bind mount like that, since it would let someone see
+through mounts on the tree referred to by fd.)  And I should also not
+be able to write to /mnt/restricted/foo.
 
-if (!(hv_iommu_cap.pgsize_bitmap & PAGE_SHIFT)) {
-		pr_err("unsupported page sizes: pgsize_bitmap=0x%llx\n",
-		       hv_iommu_cap.pgsize_bitmap);
-}		return -ENODEV;
 
-Which is all you really need. If the HV doesn't support 1G it is
-perfectly fine, the iommupt page bitmap is already masked by this. 
+For added fun (see above), I want an ability to "delegate" my own
+permissions into an fd.
 
-> +	ret = iommu_device_register(&hv_iommu->iommu, &hv_iommu_ops, NULL);
-> +	if (ret) {
-> +		pr_err("iommu_device_register failed: %d\n", ret);
-> +		goto err_sysfs_remove;
-> +	}
-> +
-> +	pr_info("successfully initialized\n");
+fd =3D open_delegate(..., read);
 
-Don't log someting so vauge?
+Now *anyone* with a copy of fd (or access via cwd, etc) can read files
+in the subtree using my credentials, as captured when I called
+open_delegate.  And this should survive bind mounting, so I could
+finally do:
 
-Jason
+my_favorite_container_tool --delegate /home/username/foo,/mnt/mountpoint,re=
+ad
+
+and the things in the container, even if they use a dynamic subuid or
+have some funky SELinux context, could actually read via
+/mnt/mountpoint, and I could stop cursing at my computer.
+
+- Open question: what happens to /proc/.../exe?  IMO it would be
+*really* nice if we could get away with applying this sort of system
+to /proc/.../exe.  There are ABI compatibility concerns here.  A whole
+class of old nasty vulnerabilities would go away if writing through
+/proc/.../exe were simply impossible.
+
+
+Okay, there's my brain dump.  Feel free to make fun of it.  No LLMs
+were roused from their slumber in the writing of this email :)
