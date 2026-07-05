@@ -1,116 +1,123 @@
-Received: from sender4-op-o15.zoho.com (sender4-op-o15.zoho.com [136.143.188.15])
+Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 025406FBF;
-	Sat,  4 Jul 2026 13:21:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.15
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783171287; cv=pass; b=DOBVbGztOqtBq30szUxzcSELQt5HPHtsoNGSGtlf/jJOU9HqwniFefIiomM7X+rz5kVLE+YDOqOaEmwUNEBHMXu5AL7qisJ57YCjr+CnERJqXvc6gDeicuLPrKxi74lecw4MBlbijpl6fhqC5OJRLw9KjsF3IoEd5/WH835Py/E=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783171287; c=relaxed/simple;
-	bh=mDzTIdZazAIkO+ZIeXqTNrPNl0f5rj/73pijf4BO9pc=;
-	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
-	 MIME-Version:Content-Type; b=sDETOOiSKsPAWBRCsxN1qxrm9/a7Mq11cP8Jihbq57QrnfPQmr8FhF+DT7Vxjg+mNb9w8DqV6qU5cH1S3OR3hj86Eeyhz9V5fooIje0VMsmtaFz5+HV/OTINBeFq/DFO0yIsKsrfiCK/ay+6NyfySw/qvFcYpy9Mov7pB+xCZZM=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty; spf=pass smtp.mailfrom=linux.beauty; dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b=fHNX0rg6; arc=pass smtp.client-ip=136.143.188.15
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.beauty
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5992C2FB969;
+	Sun,  5 Jul 2026 17:57:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783274280; cv=none; b=Ij7YizAYELZVCCA+Dy+74W8DvzHjaAH/ef9hHtOcsx4Rj63incJRAHglQjRPVAUYeSKANarf7sMplEXxlOY5i/C41BL8SeuWfTVvyCmDOEuswBUhCVIxmZYcRIvgG5fhNdDtDbq36s9HLUH+Ef2bulE8g3i850jN2GiOc2Fh4JQ=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783274280; c=relaxed/simple;
+	bh=E3KRSpnz4BdV2/+ZkQMD5yBIHwkT4n5mnJ+4/nTKZfU=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=ALwIQGFAqBGbdgT72F8nm1pXIxU5QUdcPAc954qUl1egHLQvROV7trB3E7GA56PHCA2vhdtvYBS2BoYG/BMaSTpfvbOylVM4QZ4wBRBomMirknxHzrRKiyUOnQJ782Omn2YW1XdJu2cKaLkHRPbF2Gn8zvAbD3i0EXFH9cgtb4Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=nEgOrksR; arc=none smtp.client-ip=213.97.179.56
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b="fHNX0rg6"
-ARC-Seal: i=1; a=rsa-sha256; t=1783171244; cv=none; 
-	d=zohomail.com; s=zohoarc; 
-	b=dHNyqRIT7IQ0kr5zYrqM0mKfXavHvMTsYaRzLl0DjpxUbjsXtN0CQpFwiLm7yu0rL+H1CDEf39XX8wuRYXYBQ/UnAmvDg4cLWdtn7l9E6POwJaoXP4sqVhixKgsP4aBc74DsXAItIPpLt12pZhOvno3Punn/i/uUqFS9H5iK9KY=
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
-	t=1783171244; h=Content-Type:Content-Transfer-Encoding:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
-	bh=mDzTIdZazAIkO+ZIeXqTNrPNl0f5rj/73pijf4BO9pc=; 
-	b=MCglm6GRXlPD5hcCbftTbiMpdT+rkleIZRVITBt1zP2bXYlU5EgkA1kmQqkIg85qGj6LeRWCvAguz0oCDZ8lTodRYI7OTOi5YvTNIsJBaTCoIBV1rlyKL0IEoECqqesc1qrKxzZqmu1pzuTABNCLlcfrRC39QugdsedHfgm2LHc=
-ARC-Authentication-Results: i=1; mx.zohomail.com;
-	dkim=pass  header.i=linux.beauty;
-	spf=pass  smtp.mailfrom=me@linux.beauty;
-	dmarc=pass header.from=<me@linux.beauty>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1783171244;
-	s=zmail; d=linux.beauty; i=me@linux.beauty;
-	h=Date:Date:From:From:To:To:Cc:Cc:Message-ID:In-Reply-To:References:Subject:Subject:MIME-Version:Content-Type:Content-Transfer-Encoding:Message-Id:Reply-To;
-	bh=mDzTIdZazAIkO+ZIeXqTNrPNl0f5rj/73pijf4BO9pc=;
-	b=fHNX0rg6NtqLgEQOrIwZHz2DSvFrCVB/YZptvfSMMUa5UQhWu4ogy7VBNSCHLUmR
-	zoLMo6ztX8tlxZVTGZSsh/S4MGoU+z4uSXe9PdGy08HFgFCqJ9LVcUeXgg/1Rjc8Kwf
-	FwUr6htfNrR6Wq/azfLFsjjgL+2Hetcz9xf3JFyg=
-Received: from mail.zoho.com by mx.zohomail.com
-	with SMTP id 1783171244368989.4027705624679; Sat, 4 Jul 2026 06:20:44 -0700 (PDT)
-Received: from mail.zoho.com by mx.zohomail.com
-	with SMTP id 1783171242006432.66307911146623; Sat, 4 Jul 2026 06:20:42 -0700 (PDT)
-Date: Sat, 04 Jul 2026 21:20:41 +0800
-From: Li Chen <me@linux.beauty>
-To: "John Ericson" <mail@johnericson.me>
-Cc: "Cong Wang" <cwang@multikernel.io>,
-	"Christian Brauner" <brauner@kernel.org>,
-	"linux-arch" <linux-arch@vger.kernel.org>,
-	"linux-kernel" <linux-kernel@vger.kernel.org>,
-	"linux-fsdevel" <linux-fsdevel@vger.kernel.org>,
-	"linux-api" <linux-api@vger.kernel.org>,
-	"Arnd Bergmann" <arnd@arndb.de>, "Andy Lutomirski" <luto@kernel.org>,
-	"Thomas Gleixner" <tglx@kernel.org>,
-	"Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
-	"Dave Hansen" <dave.hansen@linux.intel.com>,
-	"H. Peter Anvin" <hpa@zytor.com>, "Jan Kara" <jack@suse.cz>,
-	"Jonathan Corbet" <corbet@lwn.net>,
-	"Shuah Khan" <skhan@linuxfoundation.org>,
-	"Alexander Viro" <viro@zeniv.linux.org.uk>,
-	"Kees Cook" <kees@kernel.org>,
-	"Sergei Zimmerman" <sergei@zimmerman.foo>,
-	"Farid Zakaria" <farid.m.zakaria@gmail.com>
-Message-ID: <19f2d49d806.2efa03c49662153.3517116418763791597@linux.beauty>
-In-Reply-To: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
-Subject: Re: [RFC] Null Namespaces
+	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="nEgOrksR"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
+	s=20170329; h=Cc:To:In-Reply-To:References:Message-Id:
+	Content-Transfer-Encoding:Content-Type:MIME-Version:Subject:Date:From:Sender:
+	Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender
+	:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:
+	List-Subscribe:List-Post:List-Owner:List-Archive;
+	bh=rcVS3cHMbkHHKBbkrjwyVmtTsLiB6GhrifHpaP7dKxw=; b=nEgOrksRV8oAN86xBjspHkltBK
+	/U6wqN/l07wZSvWLHNVlekIBjHZfLGY0001/W13AuJ9NxIC5e5/YvD5sYJflH/pXUt7yre5OZ8M7Z
+	WZPF7JDMV9zlxQfCAPGEcPfb9ueKgrXTlQatsPRc9cC3MU9ikEeLsvfLSmuxPqgpMUIhx+L/0H3CI
+	qEJBQVuDyLwXMji6Q2ZNmNlvuwrCHVz09wkd8YXyZ8d4C21FKnIQFTEl2UklPortOw77zvIFUcgbU
+	X7dtIyeggbb9sE0wmG2tq4lC6bpiO2H93R4js/4bma6XJ7PaA35qBdXH2ovCD3A5f+L0ypSUzzsd/
+	GjWY5PAQ==;
+Received: from 201-69-111-23.dial-up.telesp.net.br ([201.69.111.23] helo=[192.168.15.100])
+	by fanzine2.igalia.com with esmtpsa 
+	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_256_GCM:256) (Exim)
+	id 1wgR5i-009PnY-G9; Sun, 05 Jul 2026 19:57:18 +0200
+From: =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
+Date: Sun, 05 Jul 2026 14:56:51 -0300
+Subject: [PATCH v4 1/5] arm64/entry: Unify user mode handling
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Importance: Medium
-User-Agent: Zoho Mail
-X-Mailer: Zoho Mail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Message-Id: <20260705-tonyk-robust_arm-v4-1-e0fd0fa259d3@igalia.com>
+References: <20260705-tonyk-robust_arm-v4-0-e0fd0fa259d3@igalia.com>
+In-Reply-To: <20260705-tonyk-robust_arm-v4-0-e0fd0fa259d3@igalia.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, 
+ Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
+ Mark Rutland <mark.rutland@arm.com>, 
+ Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+ Sebastian Andrzej Siewior <bigeasy@linutronix.de>, 
+ Carlos O'Donell <carlos@redhat.com>, Peter Zijlstra <peterz@infradead.org>, 
+ Florian Weimer <fweimer@redhat.com>, Rich Felker <dalias@aerifal.cx>, 
+ Torvald Riegel <triegel@redhat.com>, Darren Hart <dvhart@infradead.org>, 
+ Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, 
+ Arnd Bergmann <arnd@arndb.de>, Uros Bizjak <ubizjak@gmail.com>, 
+ =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>, 
+ "Liam R. Howlett" <liam@infradead.org>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, 
+ linux-arch@vger.kernel.org, kernel-dev@igalia.com, 
+ LKML <linux-kernel@vger.kernel.org>, 
+ =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
+X-Mailer: b4 0.15.2
 
-Hi John,
+Currently, arm64 has two functions to prepare and handle context switches
+from userspace: arm64_syscall_enter_from_user_mode() and
+arm64_enter_from_user_mode(). The only difference is that the later calls
+rseq_note_user_irq_entry() that sets rseq.event.user_irq as true.
 
-Sorry for the silence. I got pulled into some work stuff recently and
-only caught up with these threads now. I still have not studied every
-patch line by line, but I wanted to say that I really appreciate you
-pushing on this.
+To ensure that futex_fixup_robust_unlock() works correctly, unify the
+handling from user mode functions into one that always calls
+rseq_note_user_irq_entry().
 
-The embryonic-process framing lines up well with the direction I have
-been trying to move toward after the earlier feedback: make the
-not-yet-runnable state explicit, and keep task creation separate from the
-state installed into the new task.
+Other architectures calls irqentry_enter_from_user_mode() for syscalls
+and interruptions, that sets rseq.event.user_irq as well.
 
-For my next process-builder RFC, I plan to keep the first step small: a
-pidfd-based builder for posix_spawn-style semantics, with limited action
-support; it will not yet have the pristine/no-source backend.=20
-So cwd/root, non-CLOEXEC fds, and
-other selected source state can still be inherited unless actions or
-attributes say otherwise.
+Signed-off-by: André Almeida <andrealmeid@igalia.com>
+---
+ arch/arm64/kernel/entry-common.c | 11 ++---------
+ 1 file changed, 2 insertions(+), 9 deletions(-)
 
-I think the lower-authority/null-namespace side should be an explicit
-mode, not the default for the posix_spawn-compatible path. Otherwise it
-would change existing expectations around cwd/root, inherited fds, and
-other source state.
+diff --git a/arch/arm64/kernel/entry-common.c b/arch/arm64/kernel/entry-common.c
+index ceb4eb11232a..fd62ee585b52 100644
+--- a/arch/arm64/kernel/entry-common.c
++++ b/arch/arm64/kernel/entry-common.c
+@@ -62,13 +62,6 @@ static void noinstr arm64_exit_to_kernel_mode(struct pt_regs *regs,
+ 	irqentry_exit_to_kernel_mode_after_preempt(regs, state);
+ }
+ 
+-static __always_inline void arm64_syscall_enter_from_user_mode(struct pt_regs *regs)
+-{
+-	enter_from_user_mode(regs);
+-	mte_disable_tco_entry(current);
+-	sme_enter_from_user_mode();
+-}
+-
+ /*
+  * Handle IRQ/context state management when entering from user mode.
+  * Before this function is called it is not safe to call regular kernel code,
+@@ -729,7 +722,7 @@ static void noinstr el0_brk64(struct pt_regs *regs, unsigned long esr)
+ 
+ static void noinstr el0_svc(struct pt_regs *regs)
+ {
+-	arm64_syscall_enter_from_user_mode(regs);
++	arm64_enter_from_user_mode(regs);
+ 	cortex_a76_erratum_1463225_svc_handler();
+ 	fpsimd_syscall_enter();
+ 	local_daif_restore(DAIF_PROCCTX);
+@@ -881,7 +874,7 @@ static void noinstr el0_cp15(struct pt_regs *regs, unsigned long esr)
+ 
+ static void noinstr el0_svc_compat(struct pt_regs *regs)
+ {
+-	arm64_syscall_enter_from_user_mode(regs);
++	arm64_enter_from_user_mode(regs);
+ 	cortex_a76_erratum_1463225_svc_handler();
+ 	local_daif_restore(DAIF_PROCCTX);
+ 	do_el0_svc_compat(regs);
 
-Longer term, I would like to add that lower-authority side as follow-up
-work: pristine/no-source process creation, where resources are installed
-deliberately instead of starting from the parent's fs/fd/mm state. I had
-an earlier experimental local branch that tried to separate pristine task
-allocation from source-state installation, but that is not the RFC I plan
-to send first.
-
-For that later mode, Christian's nullfs/failfs direction also looks like
-the more practical way to express the low-authority fs state.
-
-Thanks again for pushing this forward.
-
-Regards,
-Li=E2=80=8B
-
+-- 
+2.54.0
 
