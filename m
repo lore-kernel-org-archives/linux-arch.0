@@ -1,17 +1,17 @@
 Received: from invmail4.hynix.com (exvmail4.hynix.com [166.125.252.92])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 5D6993E5ED0;
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 5903E3E5A33;
 	Mon,  6 Jul 2026 06:20:58 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.125.252.92
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783318882; cv=none; b=IXNCniZN63HXD1LC/sRKTVaI3rx8VOi2t0soTdouttLCoD84Vus6jS9tUaVMEOfxAUBnq8xDq1rei7PsYA0VN+zIjEg955EGXeGf2OPWl6tFEKegYmCRWFyZukkb5r8HbcUbS0JmgbHJPpiLX/k4yxA2MO+9El068LoA+Qt5/EY=
+	t=1783318872; cv=none; b=e7PS43Hv5Sm+4MGcwYfRCmSaP//ITisX6s1T1Qp/qBNn8gIecHmNWkg5FvVM5bSKQCvUsoc3xcPaUm0MImNOYrcYMsvuNFUAUktTPcaLhUdNzu+5yVdZZOd9VoezJnpKBzgL2pWEEADwYpFl1NQm+oaSdQCpmxFwFi0FKx51UjY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783318882; c=relaxed/simple;
-	bh=sXq6ZG2FCPgGrD/93i05yDVFGWV/kuOXrwRc2Zt22go=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=RW6uu8eXA7cSWpCrl/+Sq+vMj1e3AgE3NwmwrvfoNqVqGuUclnmRcBX6Z9JJ/USjpaNLGxOfPHBP8LueF0ubdQTlH5IscDkenNbaff00VNvr3eBZ0nIhsXwMiJNfie6O5ce8uY2llmNjLQHV63rLH17iEokaRYPj3KXAzpQzam4=
+	s=arc-20240116; t=1783318872; c=relaxed/simple;
+	bh=b4wIyRNvI2EycGpP1ATGas8ShfzLdMlBYh3q9Efaew0=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=pHrCr/PRkliDhO7y3MqVozBaX7uwWiKiX8TrWS3mGSgY8zcoaKp57++qV2XDuRs7h84ty/UaAbFCW12f8kG6iDTfb0Xdw73DqNrdjmiMTE9wFRAJFYuDv2KjuYD0+jXUytaRjKmILOMd/J8ptpUfAMDtFvmPEMj74jmYvMS9LfM=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com; spf=pass smtp.mailfrom=sk.com; arc=none smtp.client-ip=166.125.252.92
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sk.com
-X-AuditID: a67dfc5b-c45ff70000001609-7f-6a4b49005c15
+X-AuditID: a67dfc5b-c2dff70000001609-59-6a4b4904ad2c
 From: Byungchul Park <byungchul@sk.com>
 To: linux-kernel@vger.kernel.org
 Cc: max.byungchul.park@gmail.com,
@@ -178,45 +178,45 @@ Cc: max.byungchul.park@gmail.com,
 	aliceryhl@google.com,
 	tmgross@umich.edu,
 	rust-for-linux@vger.kernel.org
-Subject: [PATCH v19 19/40] dept: apply timeout consideration to hashed-waitqueue wait
-Date: Mon,  6 Jul 2026 15:19:07 +0900
-Message-Id: <20260706061928.66713-20-byungchul@sk.com>
+Subject: [PATCH v19 26/40] cpu/hotplug: use a weaker annotation in AP thread
+Date: Mon,  6 Jul 2026 15:19:14 +0900
+Message-Id: <20260706061928.66713-27-byungchul@sk.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20260706061928.66713-1-byungchul@sk.com>
 References: <20260706061928.66713-1-byungchul@sk.com>
-X-Brightmail-Tracker: H4sIAAAAAAAAAzWSe0xTZxjG/c75zqUNXY71wtElYqoyRwQvweVdsjgSTfZ5YRcvc5l/uGac
-	jCK3tFrAxKyo1aoohXiJLThGpalQgVE3LILpcMOgEMQqNFFui6KNsG4VqAgFC8T/fnmeJ0/e
-	N3l4WvmYWcprMg9K2kx1uoqVY/lwVHk8tXV72jpnZSyYjD9DV74Hw+iICUNJjZOFsLWeA1Pd
-	ZQb6Rk0IQhNWGozuaQzh4hYOpptaEDhv5FPwunaKhVd3gggC9gIElkErB/6/v4DhvlsMdI8N
-	IXjmOYkgfPEA/FLuYmGivYOGXwd6aAj6+xHcaOlF0OQ4ysJz8+80eJ99AI9GAywMd5ZQ8G8t
-	C51trxCUWosRHLPVsODub+Cgqi4Z+uyDGO6byym45GfBeukYBeP2Sg7abE8x2A2rwNruZeAf
-	hyVybFkW9BRewFA93MFAa29X5Ke7JxioN/RzMPJogAJTwyiGy1eestDY1IrBFB5BYLCGGHjg
-	uc9AzQsfBa2WaxietBdy0NFwnYGBfh+TlEJCxnOYVLr+oIjxYZglzitORCbeFiNiNEfozlCA
-	JsddOaRprAyTe+UiuXrqLUWK2uOJ29LDkbK6Q8TliCO2Rj/1dfz38s9SpHSNXtKu3fSDPDV0
-	Jjn7HJf7vLaIMaAB5jSS8aKQKOZX+9nTiJ9l+/Q3MzIrfCT6fOP0DC8Ulouus4ORuJynBW+M
-	WGA/i2eMBcIecfJF4WwPFlaJQ/YgNcMK4ROxKvSSneuPEatqPbNFsohePVk6m1EKG8Ungbt4
-	LmOTidca4+Z4ifinw4fNSFGG5lUipSZTn6HWpCcmpOZlanITfszKqEORsdmPTO67iYIPdjUj
-	gUeqKAUkbUtTMmq9Li+jGYk8rVqoiF29PU2pSFHnHZa0Wfu1h9IlXTP6kMeqaMWGsZwUpfCT
-	+qB0QJKyJe17l+JlSw2oaP4J+lNv4orVRWnmC/+59V/tVqycuLXYrD/aF62gk/Z3Tq0JninM
-	7f7W4vVtWqOM+TiUbH3jWfT/X53jzO6SnTsqbv92UZjOkTmCy1QrSSkpiGejpuqXjYv8dwlt
-	h/duOb/59hF1b1v159kVNveXI438Td36rd3RXamL3AH/zuVGFdalqtfH0Vqd+h2bAKxEaAMA
-	AA==
-X-Brightmail-Tracker: H4sIAAAAAAAAAzWSe0hTcRTH+93XrqvVZRldtOegkh5WkHHKiKKgS6XUHxHUHzny0uabrSyD
-	HnONVlrN0SY1tWW6QpeuaZbJaCjZw0TNMsuWSdMUNWNpY25zbUH/HD7nfL/ny/nj0Li4gYyh
-	5VkneUWWNENCCQlhcqJ6XYjbl7bhpTERtJoL8KXfTUKPyknA1KSWgJJaKwVB0xMBaO23SHj1
-	MZ+AzppqBP1TWgRevwkHTWOIgKC+VQCTvj4BGFQIQo5WBMYuPQ69nc9xsNarMPhtm6FgtMWD
-	wDDgpqB4REXAhKUQwe0hkwBGXuyB8f4mEkKuHxh8/DOGwOKewcDtvIwgaEyHO+V14XXjLwr8
-	7R04FBs6EdwdcOHgGfmGoL71KwLHg3wKBnWPceh2z4X3UxMUvDYUUDDeVYLBTxsF5nwHCV1v
-	RxGUmvQIhj47MFDfq6XAWGonoPHbMwF0jQYw+GLUY1BtT4J+yxABbbpyLHxu2PVoIZiK1Vi4
-	DGNgeNiEgc9SJdhRiTiv5jrBVdU1YJzmXZDirGVWxPmn9YibrFTjnEYXblvGJnDuUt1prrJt
-	jOKmpz5QnOOPmeDelLNcxZVpjCtqX8c13nYJDuw8ItyWymfIc3nF+u0pQpm3ICnnuuDMoK2I
-	vIgGyKuIpllmE2sJHbyKomiKWcX29vrwCEczy9i6a0Nhi5DGme6lbKHlGhER5jOH2MCPG2SE
-	CWYFO2bxYBEWMZvZau8wFWGWWcpW25z/gqLC85pA6T+PmElg+yZeEjokNKNZVShanpWbKZVn
-	JMQr02V5WfIz8cezM+0o/E2Wc4Gip2iye08zYmgkmSOCHXvTxKQ0V5mX2YxYGpdEi1bG7UsT
-	i1KleWd5RfYxxakMXtmMYmlCslC09zCfImZOSE/y6Tyfwyv+qxgdFXMRmVJvGq6k7D+WsEys
-	1QfvL99yILbivn9jh/mXN84ze/7yTZ9kOS3bD/U1FAziM78XqBn54vNNgcINu4QNvvb0J7vX
-	ixXlR+MaX/QULZEld1doxd9L+k6rti7a3bGm4r3f9c4WE1/Wk+t2KY+aT6XEzltrtcc6c3x8
-	yOZN1DnrPZ8khFIm3bgaVyilfwH0aI66SQMAAA==
+X-Brightmail-Tracker: H4sIAAAAAAAAAzWSa0xbdRjG+Z97G6rHssQz9mFag3eGLNvyuhlkCdHDZYkJkQ8imVVOpNy2
+	lYtg5hxOkBFuQgobjI0ORi23YYGNybhLVFxHG3YplE4asQUZRbl0K9TNUwjffu/z5H2e98PL
+	4HIrGcio0jMFdboyVUFJCemivzaYiIxOfqtHEwqF+V+Dqb0FQZW5AgeLaQCH1q48DDT2WQqq
+	5/MIWGoqRlDjqKVhfvR9eGpzYnDf/RDBf1UpsGEcx6FaY0KgtdtwmJh9BhbNFzBwdVBgvrWA
+	oK62AsGZhqviuODFYLqqAhNTKaitnhM72nox8NpDwVamIaB9cZwEw+QogsKf1ggw/HmPhL6p
+	N0Bb0EhAcUc3CabB30mwGstosM9YSHCX7gJL+V8I2lyXKah0ORAsuJtwcNwtwEDfZ6RAf0mH
+	oMKxTMN06d8E3JnsRdBfOIOBs6YOg5G1hxiM2VZo6DRocFi39ZCwrhP7jdfGaNB4C8Uz80oR
+	dI8+oqHjXx0Fqy3Nojb6gA4P55s7r2F868VWxK9eOYPz+eUi9bnrCb7x7DrGf28M5m/U2Gj+
+	2/4pmq83ZPENN+cx3tB8luK1G3M4P33vJsW7bt+m+dk71dgHL34kfSdRSFVlC+qQsE+kSRbt
+	MHHcIcnxPHCTp9E3TBGSMBy7j7uy7EHb/GT1HOZjin2Fs1g8uI93sC9wnSUOsghJGZyd2M0V
+	N5UQPiOAjeHM9y/TPibYIG5DN0n6WMYe4KxDv1Fbobu5lo7BzSCJqLd76zYL5Ox+zrr0C+EL
+	5VidhCtavk5uLezkhn6wEOVIVo/8mpFclZ6dplSl7tuTlJuuytnz2bE0AxJfrukrb3wPWjbF
+	DiOWQQp/GYRHJctJZXZGbtow4hhcsUP28qvRyXJZojL3S0F97Kg6K1XIGEa7GELxvGyv+4tE
+	Ofu5MlNIEYTjgnrbxRhJ4GmUfVjhMMyc+NHtjLgV4dfrejcs4CX7+ec488CjuY+dwR82NviF
+	RSZaE+yXngQFxoW8F/Trd7Uxf3yabH9tqS/w0MqMOvbo+NWJuLfjAi7Geit/tjeMPSv8443K
+	WZxQ1D+O96vSez3OsuttR0b0pw76M48TFHq958ZKZvTJ3nNdb4a3ryuIjCRl6Ou4OkP5Pz/8
+	+OduAwAA
+X-Brightmail-Tracker: H4sIAAAAAAAAAzWSe2xLcRTH/e6rd80qV7fYDX+QikckGxKWkxAhzK55E48swsou695axojH
+	Oo0alWrSjlXZxopttq7z2EZjKuYxo7WxMduQrszGmHayRzct8c/J55zvOd9z/jg0Lq4iJ9Cy
+	1L28PFWaLKGEhHD1/OxwfPmKxNmXRyJBrToK7ztcJLzJqiXA61ETcKG8lAKf8Y4A1NbzJDxp
+	VhLgKCtB0OFVI/g9ZMRBVT1KgE9XJwDPQKsA9FkIRm11CAxOHQ4tjvs4lN7MwuCXZYSC7od9
+	CPQfXRTkdmUR0Gs+jSDPbRRA16No+NZxl4TRts8YNPf3IDC7RjBw1Z5A4DMkwaXCSv+44QcF
+	Qw0vccjVOxAUfGzDoa/rA4Kbde0IbNeUFHRqb+HQ6BoLTd5eCp7qT1HwzXkBg+8WCvKVNhKc
+	z7sRmIw6BO53NgyyL5dTYDBZCaj+UCMAZ/cwBu8NOgxKrKugw+wmoF5biPnP9XdVhIExNxvz
+	hy8Y6G/cxWDAXCxYVIS436ozBFdceRvjVK98FFd6sRRxQ4M6xHmKsnFOpfWnD3t6ce545X6u
+	qL6H4ga9rynO1p9PcM8KWe7KyUGMO9sQzlXntQnWLo4VLojnk2UZvHzWwjhhQkuBnUh3Bx0Y
+	aO8njyElnYOCaJaZy454zmEBppjpbEvLAB7gUGYyW6lxkzlISONM4yT2tFlDBIQQZiXrbC4U
+	BJhgprJDV9+SARYxkWzrg6fUP9NJbIml9q9RkL9eNmz6u0DMzGNbex8TWiTMR2OKUagsNSNF
+	KkueF6FISshMlR2I2JmWYkX+fzIfHj5bhTyN0XbE0EgSLIJFMYliUpqhyEyxI5bGJaGiaTNW
+	JIpF8dLMg7w8bbt8XzKvsKOJNCEJE8Vs5uPEzG7pXj6J59N5+X8Vo4MmHEPrtG8O1+xyLd1f
+	JrrR/uC2RKZdtefcrKNtFx3k4qown7LV2zzX4Xi9NdbdNPFF6MZtG+yak+XGmE2m4KXMdxOm
+	MS0rsN/rXBMS3xXVN8UaNVN451VFZ6xFE5YTsv7HvtVfHdG2Qz/TP824Pn7LkTM78jrHqeXB
+	kTVLvE1N0zZGWebUSwhFgnTOTFyukP4BUcBZc0sDAAA=
 X-CFilter-Loop: Reflected
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -224,28 +224,42 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 
-Now that CONFIG_DEPT_AGGRESSIVE_TIMEOUT_WAIT was introduced, apply the
-consideration to hashed-waitqueue wait, assuming an input 'ret' in
-___wait_var_event() macro is used as a timeout value.
+cb92173d1f0 ("locking/lockdep, cpu/hotplug: Annotate AP thread") was
+introduced to make lockdep_assert_cpus_held() work in AP thread.
+
+However, the annotation is too strong for that purpose.  We don't have
+to use more than try lock annotation for that.
+
+rwsem_acquire() implies:
+
+   1. might be a waiter on contention of the lock.
+   2. enter to the critical section of the lock.
+
+All we need in here is to act 2, not 1.  So trylock version of
+annotation is sufficient for that purpose.  Now that dept partially
+relies on lockdep annotaions, dept interpets rwsem_acquire() as a
+potential wait and might report a deadlock by the wait.
+
+Replace it with trylock version of annotation.
 
 Signed-off-by: Byungchul Park <byungchul@sk.com>
 ---
- include/linux/wait_bit.h | 2 +-
+ kernel/cpu.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/linux/wait_bit.h b/include/linux/wait_bit.h
-index 179a616ad245..9885ac4e1ded 100644
---- a/include/linux/wait_bit.h
-+++ b/include/linux/wait_bit.h
-@@ -258,7 +258,7 @@ extern wait_queue_head_t *__var_waitqueue(void *p);
- 	struct wait_bit_queue_entry __wbq_entry;			\
- 	long __ret = ret; /* explicit shadow */				\
- 									\
--	sdt_might_sleep_start(NULL);					\
-+	sdt_might_sleep_start_timeout(NULL, __ret);			\
- 	init_wait_var_entry(&__wbq_entry, var,				\
- 			    exclusive ? WQ_FLAG_EXCLUSIVE : 0);		\
- 	for (;;) {							\
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index bc4f7a9ba64e..ba9d89613590 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -542,7 +542,7 @@ int lockdep_is_cpus_write_held(void)
+ 
+ static void lockdep_acquire_cpus_lock(void)
+ {
+-	rwsem_acquire(&cpu_hotplug_lock.dep_map, 0, 0, _THIS_IP_);
++	rwsem_acquire(&cpu_hotplug_lock.dep_map, 0, 1, _THIS_IP_);
+ }
+ 
+ static void lockdep_release_cpus_lock(void)
 -- 
 2.17.1
 
