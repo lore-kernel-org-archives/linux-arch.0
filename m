@@ -1,142 +1,117 @@
-Received: from va-1-112.ptr.blmpb.com (va-1-112.ptr.blmpb.com [209.127.230.112])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 17C953BED56
-	for <linux-arch@vger.kernel.org>; Mon,  6 Jul 2026 07:46:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.112
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BDCBA423168;
+	Mon,  6 Jul 2026 09:11:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783323972; cv=none; b=Vlf77IWz1lbkUqdi728tKDTadI3h4vsBulo60NwmSEG1I7/KoiYBB5OQC/eujwEMW1VuhgBSNobi6Eb/Shm22HBuk1zpDBkjWLDZ3y9ivBPlnSNCvKh8+YDE5XErS5rOojjofecUeuZ3gajsXvrjnsecztHRBWoJmmYeZqalz8g=
+	t=1783329089; cv=none; b=V7gZ1XXDIOMYdaAuyRFlAUHmE1AEK5v+hNkpCiyaygboLVWh58T/8FqgdD+1Aq0zEhCWrAwavEFiRyKOwoM/w9qAZAsl+WyB9oxhpxcW6KAFMXJvwwYI1zD3uM5rzlJdOmlYMTWsPakF+9dpq/T4OTLzeyL2W1lhTQApDHW+Xhc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783323972; c=relaxed/simple;
-	bh=9XefnfWK9TEY2YEAWePtrhrCW+V7nnuoK4APLqKmnuI=;
-	h=Subject:Date:In-Reply-To:Content-Type:Cc:Mime-Version:References:
-	 Message-Id:From:To; b=b+a39rs5ld/3pkb/mMucZkgFCiVmkOHK1wIvcWKkbviZpjSXrGU1B7ykAq19RZlJ2oLd2O+cfWAyjP/9fwMqZmdSDaIKW1/7raVFBotAgkHV42ToiDqIZ0xjrORYMnTkQ7zYZhhPViBajX1Sx7IjvqvwUKea0ZCoCXtCdluEWD0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=dTdvR0Ty; arc=none smtp.client-ip=209.127.230.112
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1783329089; c=relaxed/simple;
+	bh=Yjvw/HVVmh70MVDhZySNDvXNJK4oCHdYgeZDhZvn3Ew=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=J1oweo1l7Zd/m4YyRh+Idj9IkoONHsFgXtiWLU8aY72JfngeP5mX14o2sHEgggLbpzOV3TReMAG97gerWoLiV0ct3PHGspcFvuAbaQVBwlznBUxg0Z64P8wLLicHh9vXnYknQUcBRq6Gdwf8ta9pS1oNLMKxLixdhynZRDpshtY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=eG2rVnJC; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="dTdvR0Ty"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1783323951; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=/z6wV3oJTOVm+St0XwYa3g9dR2I+dcMz7cR6ea5u0LE=;
- b=dTdvR0TyV0l782HOvbS5Rxs5l31ff73b+/mteCRsgiZLLBmDc1UwDTDHhLg7TF37RmFFbT
- A3p7OXLNnuPBVMfiytFMH0hv1Hg+9cDUl8Xjf3J5SLIDyQYU6TV5Brsl/VyGwRpWZz5d7V
- a5GO4buKYG6P2lwBOY0/HEs14IenDMx4VQjkBEkFuESxN4Tl09wwz9vLCFGeSfAWwZk2Yw
- 0rDtGl2+eaCkgVF1uJmJla0D9avSWrdAE7aZ8MBuOjss6cwjN+W16t4RVM5GiS6Q/R6KkF
- ournOd4jO7u8YaUq/H/y/FYZaXYkFL0d9lbSOHgLx6ZZElI0WBfp7WYHx//xZg==
-Subject: Re: [PATCH v5 4/8] mm: add a template-based fast path for zone-device page init
-Date: Mon,  6 Jul 2026 15:45:27 +0800
-In-Reply-To: <akfB6Qe-jKDEMUxz@kernel.org>
-Content-Type: text/plain; charset=UTF-8
-Cc: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
-	<kees@kernel.org>, <linux-arch@vger.kernel.org>, 
-	<linux-hardening@vger.kernel.org>, <linux-kernel@vger.kernel.org>, 
-	<linux-mm@kvack.org>, <lizhe.67@bytedance.com>, <mingo@redhat.com>, 
-	<tglx@kernel.org>, <x86@kernel.org>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="eG2rVnJC"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9A9FD1F000E9;
+	Mon,  6 Jul 2026 09:11:14 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1783329079;
+	bh=QkFcj8l+oLXhC7aF9NZNqPGpSl0c31kzpzMlDAFV+QE=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=eG2rVnJCBidyUV6k5BBeWCCNM0F85/+WLTF1a2gL5CGxYgFLCFHCnWCFYkXxi2Gui
+	 gDSVgdzO8E6gbyBl1IAWNCCK2l/zOAT2aR1gsO7xQLSKCUDwFXdHcgwy1HRFT3xOCz
+	 eKZWz8qRLy6vOYo+YpPeOUkDqS9LlSYVzoaDIRTp+J36Z5Jg5J9M4glSVPaw1eG56j
+	 qViuc9HDHORqEf1JGyxn/2GpdcuorVLkLmARIVmJuOeYgO4vFWj0zNgi5cfqbVrP6x
+	 kvmaz3sd5ZdMQXmYDf0Her2yi6jY2CEtWmO+2AsD3bZmiL0pZUvfkuIR88Yax+Adve
+	 IU3CGjON99saw==
+Message-ID: <a1ffd1b0-f790-4c5c-af5e-541b15df3a4c@kernel.org>
+Date: Mon, 6 Jul 2026 11:11:12 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-X-Mailer: git-send-email 2.45.2
-References: <akfB6Qe-jKDEMUxz@kernel.org>
-Message-Id: <20260706074527.23978-1-lizhe.67@bytedance.com>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-X-Lms-Return-Path: <lba+26a4b5d2d+fafbf6+vger.kernel.org+lizhe.67@bytedance.com>
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v5 1/8] mm: fix stale ZONE_DEVICE refcount comment
+To: Li Zhe <lizhe.67@bytedance.com>, akpm@linux-foundation.org,
+ apopple@nvidia.com, arnd@arndb.de, bp@alien8.de,
+ dave.hansen@linux.intel.com, kees@kernel.org, mingo@redhat.com,
+ rppt@kernel.org, tglx@kernel.org
+Cc: linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
+References: <20260701090553.62691-1-lizhe.67@bytedance.com>
+ <20260701090553.62691-2-lizhe.67@bytedance.com>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <20260701090553.62691-2-lizhe.67@bytedance.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-To: <rppt@kernel.org>
 
-On Fri, 3 Jul 2026 17:06:33 +0300, rppt@kernel.org wrote:
-
-> On Wed, Jul 01, 2026 at 05:05:49PM +0800, Li Zhe wrote:
-> > memmap_init_zone_device() repeats nearly identical head-page
-> > initialization for each PFN. Prepare one reusable ZONE_DEVICE head-page
-> > template through the existing slow path, refresh the PFN-dependent
-> > fields in that template before each copy, and memcpy it into each
-> > destination page.
-> >
-> > This reduces the average rebind time from 244.28 ms to 217.19 ms, or
-> > about 11%.
-> >
-> > Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-> > ---
-> >  mm/mm_init.c | 76 ++++++++++++++++++++++++++++++++++++++++++++++++++--
-> >  1 file changed, 74 insertions(+), 2 deletions(-)
-> >
-> > diff --git a/mm/mm_init.c b/mm/mm_init.c
-> > index 4c7fad440c2a..cc8417951467 100644
-> > --- a/mm/mm_init.c
-> > +++ b/mm/mm_init.c
-> > @@ -1066,6 +1066,50 @@ static void __ref zone_device_page_init_slow(struct page *page,
-> >  		set_page_count(page, 0);
-> >  }
-> >
-> > +static inline bool zone_device_page_init_optimization_enabled(void)
-> > +{
-> > +	/*
-> > +	 * The template fast path copies a preinitialized struct page image.
-> > +	 * Skip it when the page_ref_set tracepoint is enabled.
-> > +	 */
-> > +	return !page_ref_tracepoint_active(page_ref_set);
-> > +}
-> > +
-> > +static inline void zone_device_template_page_init(struct page *template,
-> > +						  struct page *src)
-> > +{
-> > +	memcpy(template, src, sizeof(*template));
-> > +}
-> > +
-> > +/*
-> > + * 'template' is a reusable page prototype rather than a strictly immutable
-> > + * object. Most ZONE_DEVICE fields stay constant across the pages covered by
-> > + * the current template, but section bits and page->virtual may still depend
-> > + * on the PFN. Refresh those PFN-dependent fields in the template before
-> > + * copying it into @page.
-> > + */
-> > +static inline void zone_device_page_update_template(struct page *template,
-> > +		unsigned long pfn)
-> > +{
-> > +	set_page_section_from_pfn(template, pfn);
-> > +#ifdef WANT_PAGE_VIRTUAL
-> > +	if (!is_highmem_idx(ZONE_DEVICE))
-> > +		set_page_address(template, __va(pfn << PAGE_SHIFT));
-> > +#endif
-> > +}
-> > +
-> > +static void zone_device_page_init_from_template(struct page *page,
-> > +		unsigned long pfn, struct page *template)
-> > +{
-> > +	/*
-> > +	 * 'template' carries the invariant portion of a ZONE_DEVICE struct
-> > +	 * page. Update the PFN-dependent fields in place before copying it
-> > +	 * to the destination page.
-> > +	 */
-> > +	zone_device_page_update_template(template, pfn);
-> > +	memcpy(page, template, sizeof(*page));
-> > +}
-> > +
+On 7/1/26 11:05, Li Zhe wrote:
+> The comment in __init_zone_device_page() still uses the old
+> MEMORY_TYPE_* names and implies that FS_DAX pages regain a
+> refcount of 1 in the free path. That no longer matches the code.
 > 
-> The whole bunch of template functions look like it could be useful for
-> initialization of the non-zone-device struct pages as well.
+> Update the comment to describe the current policy correctly:
+> MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free path,
+> while the remaining ZONE_DEVICE types start from 0 here and raise the
+> count again when the allocator or driver hands the page out.
 > 
-> As I mentioned previously, it's interesting to see if this approach speeds
-> up normal memory map initialization as well. If if does could have a single
-> set of the template functions.
+> No functional change intended.
+> 
+> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+> ---
 
-Thanks for the suggestion. I agree this is worth exploring.
+Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
 
-For this series, I would prefer to keep the scope limited to the
-ZONE_DEVICE initialization path and get that part settled first.
+-- 
+Cheers,
 
-After this series is settled, I plan to look into whether a similar
-template-based approach can also help normal page initialization. If it
-shows a real benefit there as well, I can follow up with a separate
-series.
-
-Thanks,
-Zhe
+David
