@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DFD992E737D;
-	Mon,  6 Jul 2026 13:47:50 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4FB4726FD93;
+	Mon,  6 Jul 2026 13:48:23 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783345671; cv=none; b=AuwLvE90sKf5zQSE/oUJNg5N9fci0kTkFYIS1FhvvD0fjxuX0DqJgb6vrelyLMjCIO6WQk0/BFyWGcgO3zrVx5VYmD3BiyFy9WfsqdgHcpEHm1EjUVJGc7d2Y70ThrIpqnyqAJNplnBlQAOHTKL91i5ub0bk8Q4rqBAZh0QS9vg=
+	t=1783345704; cv=none; b=GAGV7FCDCR/aMCEY6IswsM8fou7CLVwNiuM9eMfFmomb4eXtef3Sh5jj9rr9sfhpC16ulnZacH5uHbxpsyIcKRN90sttRhQkvAp8IW7HwSri33Mc2V0d+kPE576X3UQIkX7HbCTeXa0TWXOEmPQQA9R9CAWdr6ILmYo7vblRdJ4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783345671; c=relaxed/simple;
-	bh=rv8ZKH0Ntfkdd4rrjEmfz3KCubhs6qD6nP4IJFh+yLc=;
+	s=arc-20240116; t=1783345704; c=relaxed/simple;
+	bh=K57juaZQjhk/7uXFYQjiW+CcCn/XsBXljXyXFNLsPTA=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=prlJaJgctAZC5IyNPVYU8aijHAjesRKhd4LJAbHabQIhUxBGX1qjxVwl+Yt49Gt2wWIgHCKEglXpSge8PCt2MNIdu3iDspfbueBhdiOccYwakeaHoqfx7kAfqJ0FoO0S2gns6gmPM79Xade/Ns0isEq6n5eyK/ZWMUTOh2FsK3Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=T7lLSbte; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=slSslNpe3K5Ji4EFaUr4lT8vcOesZyVa4WNNTifH4C17kuBTDYaQFv5yUJKQhjw9F2HCyAfO4p9UWTa/8b5lZX6opX4p1c/AcZfHi3Ur/SLVpaifrQIV9udqBIi/OU8ptRXBwvV5t1Q/jdqhy2Gj3C3G6lPAhJE8W0aXvZKWn4A=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=MJpvANO7; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="T7lLSbte"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 8C0A41F00AC4;
-	Mon,  6 Jul 2026 13:47:46 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="MJpvANO7"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CD5101F00A3D;
+	Mon,  6 Jul 2026 13:48:18 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783345670;
-	bh=XbPEspgjb9iGcX/qagd/OLVGEsMaq2T5st1yXWGMpXw=;
+	s=k20260515; t=1783345703;
+	bh=9KGHs3IaR4sMS8H8qaxq37Cq5Iqi3LZuorN5eZgO0so=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=T7lLSbte1fabsTl8bqPNuY+WLRW6VPGciNfEAYPT0untF/dtC13lyqXaIO0GUsbnr
-	 XYTVpJJ5iSiIBpBoxy4cw6YQyaZpL+8tqyGQ8Um1dEpjQHgpXD8mWTKuV5TUacGD4V
-	 oJ735qQnfjo9RyoPMRCr0PXK0GeQdEC1wR80Tm/f9OCNJr+/bWfPJQAI134iqWkPly
-	 Z0K+i2IqKGqfKnpbqJ5B7sITRrsf3hZqa2a1UntZgvnAwrzBx52Ja0uDy8kHmCy9y8
-	 2HxQdNUljStTVdpR6WtuwGU+mGKZQgJwNsmUIO7lNa5o58I0xDcvjxs1nzjJ2RHi92
-	 YsuDksmPhh2Rg==
-Message-ID: <374a0a2a-444c-412b-8ab8-414dff6a2ca9@kernel.org>
-Date: Mon, 6 Jul 2026 15:47:43 +0200
+	b=MJpvANO7oMNOdUNCDbxaRuWKZI6IrdcFSfL/z/0IGKB1xpzEiaQ31nPCnpb23z4AQ
+	 5k2yoWzaYwh+KJPHcWoxyK8rfhSBw5GxgyOMkKY2jTUT13x8SxcBbrtZDLYd2v7b3e
+	 lBTmg/ZLXQ5yaX9qVna2VhrjoCGo54hkv9Aw2kqOr9OUQXWSO+PkwaqFggOYhBq8EX
+	 MWFKnKeKwLMLu4CKnlXubeWlKGKhnV+PiYZlWWr6q3z0CGPWZgNW4Z25UGK78BVeN7
+	 7NQiO/oBBEVvn8lgVqSeWs10wFd1EsssyH75XL0I5Cr2TH917CSeyfD8/epkSiv9G9
+	 z/84ROp/1LRHQ==
+Message-ID: <efd55e0c-8caf-4633-b876-18e8e788493a@kernel.org>
+Date: Mon, 6 Jul 2026 15:48:16 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,16 +35,15 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v5 2/8] mm: factor zone-device page init helpers out of
- __init_zone_device_page
+Subject: Re: [PATCH v5 3/8] mm: add a set_page_section_from_pfn() helper
 To: Li Zhe <lizhe.67@bytedance.com>
 Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
  bp@alien8.de, dave.hansen@linux.intel.com, kees@kernel.org,
  linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
  linux-kernel@vger.kernel.org, linux-mm@kvack.org, mingo@redhat.com,
  rppt@kernel.org, tglx@kernel.org, x86@kernel.org
-References: <38919e81-4c35-4e8b-ba2a-8af8be60b0b6@kernel.org>
- <20260706115035.49813-1-lizhe.67@bytedance.com>
+References: <8a6f0bc0-5b6d-406d-9d2c-d3861b5c31b5@kernel.org>
+ <20260706115213.50375-1-lizhe.67@bytedance.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -91,48 +90,59 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20260706115035.49813-1-lizhe.67@bytedance.com>
+In-Reply-To: <20260706115213.50375-1-lizhe.67@bytedance.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 7/6/26 13:50, Li Zhe wrote:
-> On Mon, Jul 6, 2026 at 11:13:45AM +0200, david@kernel.org wrote:
+On 7/6/26 13:52, Li Zhe wrote:
+> On Mon, Jul 6, 2026 at 11:15:36AM +0200, david@kernel.org wrote:
 > 
->>> +static inline bool pagemap_resets_refcount(const struct dev_pagemap *pgmap)
+>>> diff --git a/include/linux/mm.h b/include/linux/mm.h
+>>> index 485df9c2dbdd..f78afa63dd3d 100644
+>>> --- a/include/linux/mm.h
+>>> +++ b/include/linux/mm.h
+>>> @@ -2541,11 +2541,26 @@ static inline void set_page_section(struct page *page, unsigned long section)
+>>>  	page->flags.f |= (section & SECTIONS_MASK) << SECTIONS_PGSHIFT;
+>>>  }
+>>>  
+>>> +static inline void set_page_section_from_pfn(struct page *page,
+>>> +					     unsigned long pfn)
+>>
+>> Two tab indent.
+> 
+> Thanks, I will fix the indentation in v6.
+> 
 >>> +{
->>> +	/*
->>> +	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
->>> +	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
->>> +	 * the count again when the allocator or driver hands the page out.
->>> +	 */
->>> +	switch (pgmap->type) {
->>> +	case MEMORY_DEVICE_FS_DAX:
->>> +	case MEMORY_DEVICE_PRIVATE:
->>> +	case MEMORY_DEVICE_COHERENT:
->>> +	case MEMORY_DEVICE_PCI_P2PDMA:
->>> +		return false;
->>> +	case MEMORY_DEVICE_GENERIC:
->>> +		return true;
->>> +	default:
->>> +		WARN_ONCE(1, "Unknown memory type!");
->>> +		return true;
+>>> +	set_page_section(page, pfn_to_section_nr(pfn));
+>>> +}
+>>> +
+>>>  static inline unsigned long memdesc_section(memdesc_flags_t mdf)
+>>>  {
+>>>  	return (mdf.f >> SECTIONS_PGSHIFT) & SECTIONS_MASK;
+>>>  }
+>>>  #else /* !SECTION_IN_PAGE_FLAGS */
+>>> +static inline void set_page_section(struct page *page, unsigned long section)
+>>> +{
+>>> +}
 >>
->> Wouldn't the compiler warn if we would define a new type but forgot to update it
->> here? We're using an enum, and I thought the compiler would bail out in that case.
+>> Why do we need this?
+> 
+> The empty set_page_section() helper is not needed. I will drop it in
+> v6.
+> 
+>>> +
+>>> +static inline void set_page_section_from_pfn(struct page *page,
+>>> +					     unsigned long pfn)
+>>> +{
+>>> +}
 >>
->> Or are we scared of some other garbage ending up in there?
->>
->> Apart from that LGTM.
+>> Dito.
 > 
-> Thanks.
-> 
-> I will drop the default case in v6 so a newly added enum memory_type
-> value is easier to catch during build review.
-> 
-> I will move the WARN_ONCE() after the switch so we still keep a
-> runtime guard in case some invalid value ever shows up there.
+> The no-op set_page_section_from_pfn() helper is still needed for
+> !SECTION_IN_PAGE_FLAGS so callers can use a single helper without
+> open-coding #ifdef SECTION_IN_PAGE_FLAGS at each callsite.
 
-If the compiler complains, we won't need the WARN_ONCE().
+Sorry, I meant two-tab indent :) Why we need that was clear to me.
 
 -- 
 Cheers,
