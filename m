@@ -1,107 +1,105 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from mail.alien8.de (mail.alien8.de [65.109.113.108])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CA502381B1E
-	for <linux-arch@vger.kernel.org>; Mon,  6 Jul 2026 17:10:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 543FD3B7779;
+	Mon,  6 Jul 2026 17:19:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=65.109.113.108
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783357847; cv=none; b=Y9gMxrSygFA4Rip/nVeUFWXbev8crB1eYpEIpU4lt9P2mYuFSQYdWdHhc0aDgDDvFVXQP0II0i/409dazecBGysQo/QAm91zWTh1uY9wRB0moUNDgnoane0I/gWC69k3QLDxTSpXv6lRiYoF4EYkRgF9O5JwFaIk2JHpntD9QIM=
+	t=1783358376; cv=none; b=GDOU7pJTlDKUA3fC7wSy5SE60km3lr6J8KHSluEgHj/cO8q98SbJl2rZ7FrKvljUNsE9427TEHD6iz2ZeH7kaScrpjBwtvWZVkv9nIbN1TtDyOTmyMExTdTSBsZLfpBIVFmg450oPOQtB7hdh39Mocs+YqLoatAczpU2kwzKa2c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783357847; c=relaxed/simple;
-	bh=UE1/A4JUkdvobYsxruX3DgPOIwXgNzWpCHo/V4LViqA=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=HTyP9PDomALbtYkPYuZppiJ7qUQ6lSKUpe35JnOKUK7UbABGDYEVKw6tZvC1LpHRM0KNNRt3FL1OKEsAyp7hudox8eZoTOht/U0zA2pmENHsImbIWnk++pASO+bdSgzwRs3HoIBo2aterm9bwCVe19l/LE8EHeaIOHV90dH+Iig=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Tyf8QR6X; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1783358376; c=relaxed/simple;
+	bh=L0L0FF9JzdvaxhZgwZNkOjyWh3L8/Q+Sd6PJuQ5Xyec=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=RQh4/f6QUdu6t28q3Xf/Bnge7uLVF6Z5oC3Tw4W+iVxmqpKsV3lS4i8vhu64NkhBlXJzxv6euj8rHdkRNgb6N2bfgNWKAqE5ETujbMaQPwL0i7fAxilo1rtCITLztIcmnvzk+zQx0yp28rS9PgcCpGOiIe5kolJOpv7sRjBMobs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de; spf=pass smtp.mailfrom=alien8.de; dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b=bpaFdjdu; arc=none smtp.client-ip=65.109.113.108
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=alien8.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Tyf8QR6X"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 81F9B1F0155F
-	for <linux-arch@vger.kernel.org>; Mon,  6 Jul 2026 17:10:46 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783357846;
-	bh=eJA0xUON18WtiblCyjyGpTE1Z5c5pH5jHS0SuDx0JtU=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc;
-	b=Tyf8QR6XyteL2kdcjnK3HIH0ZI3hOc3X/cm+auLHOlskcZozcYwemYDvvQl21ctLR
-	 7J5PJl7oUaSRZISzFkAothy9yf0ZBPr0LtS/JS4CZJg0dJfhUx5T8qrh2noIQ7Dkk7
-	 soiDGykDdSZ+60yBvww8LWxPwbjSEa+b0wgJxpLxdZ2rAEslLM7DoOR+kfexVlW5CF
-	 GUuDlwo+Yatjxl9gAjXHKgZ6bBKwtsH7K9Lt3vujVvjZm4k29/tEtfNVajFrA4cY69
-	 lfkYlxtPajCXUDcY4zKd8OFr5IhJrTf4Hly49zRMcS7hHO3AyNA2sqKYQR5XxT5GDW
-	 iwYU2r0PO9mCQ==
-Received: by mail-lf1-f48.google.com with SMTP id 2adb3069b0e04-5aeb59d54b1so2677979e87.1
-        for <linux-arch@vger.kernel.org>; Mon, 06 Jul 2026 10:10:46 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AHgh+Ro6MVMHn1a+6SYk0Xu+pyzHc+btAAs9RDX6yDMQ6FFDR7AflOh2bQkH+ssuTqz1ZILZASyVmWAXPH07@vger.kernel.org
-X-Gm-Message-State: AOJu0YyGjrRiATJ14F0jXYOXo+T1nw0iYpL/GS1lVdfTjHzIJEf/12m4
-	l4/0+j4mdPEJ+JmxPtn1udlIjVQZq33LLdu1P2czjF2+nQHEsZtjUVHGu4U5dIOfpONgk4uGjzx
-	eKwRFziAID3T5SpqVlQXfVH1TKpJTOjkHEo8PH0Hp
-X-Received: by 2002:a05:6512:254e:b0:5ad:5cec:74d4 with SMTP id
- 2adb3069b0e04-5b007bc6019mr205711e87.41.1783357844812; Mon, 06 Jul 2026
- 10:10:44 -0700 (PDT)
+	dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b="bpaFdjdu"
+Received: from localhost (localhost.localdomain [127.0.0.1])
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTP id 218C640E00C0;
+	Mon,  6 Jul 2026 17:19:31 +0000 (UTC)
+X-Virus-Scanned: Debian amavisd-new at mail.alien8.de
+Authentication-Results: mail.alien8.de (amavisd-new); dkim=pass (4096-bit key)
+	header.d=alien8.de
+Received: from mail.alien8.de ([127.0.0.1])
+	by localhost (mail.alien8.de [127.0.0.1]) (amavisd-new, port 10026)
+	with ESMTP id XZjjGk29IVBx; Mon,  6 Jul 2026 17:19:21 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=alien8;
+	t=1783358361; bh=DM6ZBlt0zfO3Oxu5g1xHzady00ujWkiGTPHBW0POuGI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=bpaFdjdu7MeLFpwxJSUxbUN2zFVzHvpjeEX3yENf0gapDgpb38KuOEddMkkTXgf70
+	 cAj1hYFfp60+FBEfB5QeUs5VzgHkUzDJsrRW8joss+DYyzGCkn+b4FMhTOj2Y0Mr1T
+	 r89df/BS4pK6QPE0w+EpspS1EbTTvetdE7yZIsU//NDMqTNPjeUFrmXvy/E6LDXKVc
+	 1/9GgGFZ8wx5g2OjcepRtDSMLK7tucXC+moW5Z8+PpRGMO0r4gO04rmtUi6ZhTC9/P
+	 cQ9HrtVv7dGJt1aKdQRVkLPcu3e++nk5LZELNGuse4WvsCtIjtzGPt9btDmBUEeUA/
+	 A0wTRpBQYIRKviTCwHHkK53tjSPK0cR6ZdSk29JBmET8hQhUtOe1Cfzf2s8Gsq6XrH
+	 mJXQpN44UKQAF1SfZxdiQrV1IFLXBzgqM6AiM1s2X0iFBM1JRw9Eqj5qr3cgIoWo1J
+	 kJJMK9UNBs7jGIiqEY5KGNINByS0yHLhZ7d7bTMy0MJbWDcCyzKrQOfVnTta9A+kCv
+	 316Zx1nxDKYFZhcDEqCR2xq2UVwSr8ae8A2lecRPap07vDNDKU1cE2LBaEqMDBAwrg
+	 axWuu6/TE2eI7hoDEKQuOlIByonIR+JnhhcvGra6UrfiODroSgRg6g0IVQISQ2qptm
+	 xyobEQ+SWKLbhNsbJqxa0V4o=
+Received: from stx.tnic (unknown [IPv6:2600:1700:38ca:c00::42])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (P-256) server-signature ECDSA (P-256) server-digest SHA256)
+	(No client certificate requested)
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 826F640E00DC;
+	Mon,  6 Jul 2026 17:19:05 +0000 (UTC)
+Date: Mon, 6 Jul 2026 10:19:02 -0700
+From: Borislav Petkov <bp@alien8.de>
+To: Li Zhe <lizhe.67@bytedance.com>
+Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
+	dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org,
+	linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-mm@kvack.org, mingo@redhat.com,
+	rppt@kernel.org, tglx@kernel.org, x86@kernel.org
+Subject: Re: [PATCH v5 7/8] x86/string: extend memcpy_flushcache() fixed-size
+ fastpaths
+Message-ID: <20260706171902.GCakvjhl5U89iJdaNP@fat_crate.local>
+References: <20260703195619.GGakgT44P7lpcoMVlY@fat_crate.local>
+ <20260706074346.23928-1-lizhe.67@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
- <20260629-hauer-erhitzen-sobald-96d3dff68707@brauner> <CALCETrVuh0-biOw=TgYN9ERTFAoiki57XeZ3S2T3dO2+hL54gA@mail.gmail.com>
- <20260702-entladen-farbkombinationen-klarheit-fe24cb608f23@brauner>
- <20260706-dabei-radeln-glitzer-71ecb835029c@brauner> <CAG48ez0sh7vEzBxtaG1HCJ0bmUMmhF_JR3=xXcc4+vpfB6LUOQ@mail.gmail.com>
-In-Reply-To: <CAG48ez0sh7vEzBxtaG1HCJ0bmUMmhF_JR3=xXcc4+vpfB6LUOQ@mail.gmail.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Mon, 6 Jul 2026 10:10:32 -0700
-X-Gmail-Original-Message-ID: <CALCETrW6HO22peDYwA44Kk05YdLbsK4mJ51R7qodLUUBYnspGA@mail.gmail.com>
-X-Gm-Features: AVVi8Cfu2si1SpvPZPvwXFx-sB9HeAk226nHqLE8GCDNAolic_zOW6mpgLOpyNU
-Message-ID: <CALCETrW6HO22peDYwA44Kk05YdLbsK4mJ51R7qodLUUBYnspGA@mail.gmail.com>
-Subject: Re: [RFC] Null Namespaces
-To: Jann Horn <jannh@google.com>
-Cc: Christian Brauner <brauner@kernel.org>, Andy Lutomirski <luto@kernel.org>, 
-	John Ericson <mail@johnericson.me>, Li Chen <me@linux.beauty>, Cong Wang <cwang@multikernel.io>, 
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, 
-	Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
-	Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
-	"H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, Jonathan Corbet <corbet@lwn.net>, 
-	Shuah Khan <skhan@linuxfoundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Kees Cook <kees@kernel.org>, Sergei Zimmerman <sergei@zimmerman.foo>, 
-	Farid Zakaria <farid.m.zakaria@gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20260706074346.23928-1-lizhe.67@bytedance.com>
 
-On Mon, Jul 6, 2026 at 9:55=E2=80=AFAM Jann Horn <jannh@google.com> wrote:
->
+On Mon, Jul 06, 2026 at 03:43:46PM +0800, Li Zhe wrote:
+> The extra IS_ALIGNED() check is meant as a conservative performance
+> choice, not because MOVNTI itself would be invalid on a misaligned
+> destination.
 
-> I mostly agree, though we might want to gate this on no_new_privs just
-> to be sure - you could theoretically have a setuid root program that
-> gives the caller more privileges if it can't find its config file.
-> That's kind of a far-fetched scenario, and in reality it would
-> probably fail because the dynamic linker can't be found, but there is
-> precedent for other sandboxing stuff also requiring no_new_privs, so
-> we might as well require that here, too...
->
+Dude, you can't just wait for me to pull every unobvious decision in the code
+out of you - you need to write it down in your commit messages! I'm not a mind
+reader, you know.
 
-My ancient patch did this gating.
+> As the Intel optimization reference manual notes, higher-throughput
+> data movement usually comes with alignment considerations, and can
+> be more efficient when the destination is naturally aligned.
 
-FWIW, if we are contemplating letting unprivileged tasks chroot to an
-*empty* mountns and they don't have privileges to bind anything there,
-then the mnt_may_suid() will prevent them from using execveat to run a
-setuid program.
+This can't get any more vague.
 
-> (I think it actually might be fine to just make chroot entirely
-> unprivileged as long as no_new_privs is set, but I don't think we
-> should actually do that, that would just be unnecessarily playing with
-> fire and would probably confuse some security monitoring tools or
-> such.)
->
-> We should probably also reject if current_chrooted() is true, for the
-> same reason we reject userns creation when that's true.
->
+> So for these larger fixed-size cases, I kept the inline path limited
+> to the aligned case. For misaligned destinations, falling back to
+> __memcpy_flushcache() is expected to be the better choice, since it
+> already handles the unaligned head first and only then enters its
+> MOVNTI loops.
+> 
+> I will make that rationale explicit in the code comment and commit
+> message in v6.
 
-These empty-tree proposals might expose a little issue in
-current_chrooted().  We don't want to check whether our root is the
-namespace root -- I think we may want to check whether our root has a
-parent.  Otherwise once you chroot to an empty tree once, you can't
-chroot again, which is silly.  Maybe if we add this empty tree thing,
-the definition of current_chrooted should change.
+No, you need to show whether the alignment brigns anything and then add it or
+remove it. We don't do things based on hearsay in the kernel - only on hard
+performance numbers.
 
-(This is already an issue with open_tree and probably even with
-detached mounts before that, but I don't think it's as easily
-observable.)
+Thx.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+https://people.kernel.org/tglx/notes-about-netiquette
