@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D4774BCAD6;
-	Mon,  6 Jul 2026 09:15:49 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 877EA414A1D;
+	Mon,  6 Jul 2026 09:18:55 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783329356; cv=none; b=h9JjyWrVkp5QSvZRHCNgWWX8qkziuxcsv82pmjZf4jCq1G/+2Srfbl/Om4NvcIrQ4CV+aJbUL/u55vmpB9oTCi86cGdfv2lpCMgJxWz+c7OA1TQ3HFgWGFr0JtAlO02R48PqnochNDtjpDXbfg6ZKAmCQ4X/OStQ+BwqEDr3tRM=
+	t=1783329539; cv=none; b=R+CM2J9r+Eif4JlPn/d6o5LcSM5WLG6kQ2vg0NT6bBmCKUiO3yhT0tXgZA98Xab2YgLvGadauSguhfWxyZ041lXapYMIblfnlYLzovsZq5+uoF+GiVxhKTTxqKk0d0NTuf29YdAZY6mNvOTiCT5xSEdKXhBNTQ3J2SR8Jlcvq2Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783329356; c=relaxed/simple;
-	bh=QJ5HYOo1sZr+RAZDpfHmJKKZulL4cWyqvGndm2DUaJ0=;
+	s=arc-20240116; t=1783329539; c=relaxed/simple;
+	bh=0ZeyoyG9u0TeBIdAewzJeBAdmmO/wfP33IryoilEibs=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=aC+gp73WWJHQkfzgmbwFs1N5jLHMtzje3feaTTays+hNrgO689zBRW7jPQGfqV6UMJTx4GhfbQhf42NZ9uB0sE854YsntFIhdwebOVAEzzGgxrkd0SWKRHYsOPoirRQhtB1CRc39MnzMAnQdvngdI7wcEOHXgG2qbOwPo9CXWMM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=PuHdcLS1; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=bYnp0BDbekgLYx9a99pkolDV7QjHZvDb7s63x/ub9P5bN/AG2wMvdrGuk2HELhATdNanObmztPxCAAOOuQekWmabcJWCODpj8FswRkKVKYskL7JFzm8mDGkymH3oiRXxgL5wr0eiEYT9UVpKDisaQrLsU3JDQr8Xpi4AbchAIPM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=oeOGQZW7; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="PuHdcLS1"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1B6B81F000E9;
-	Mon,  6 Jul 2026 09:15:37 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="oeOGQZW7"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7FD361F000E9;
+	Mon,  6 Jul 2026 09:18:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783329341;
-	bh=bokzjo0yW55RfvluZv8dBD0vpjCIgsPtps5JnOgTFww=;
+	s=k20260515; t=1783329534;
+	bh=ziaY5WXr4Dzm49LRmQEzdVWFHT5H2HonZXNfRetu1Io=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=PuHdcLS1JTZ9/r5Mr4tauz++6saoXfkiZkpk17nVpbDKcJKf9cDmGBG5lRKa/b/cb
-	 m5aHsmlaHkT+ptUZkhSvSlQLJ7I1GpFf0JpcIljNfrqqgYpiDBhQjkzQXsateYVWg+
-	 4FbzPzDDVXQjKSZ4+QTp7H2efjV4RdUOuR66Yb4kMI2VtBUj2/PlFtkJuSJYmjilVs
-	 RjSM2dUGGPJG7cvGItYbpQ/80J9wMK/LFMss6b+pi2qO4Q6AkoARLZVCO4kB3OKEej
-	 tA48zarkJbc+ndBT2e7reXXpM6FTtuqmG3Iu3b7Frg7nZbVhCMEUpDg4YXVhzR49jd
-	 w68UsR7xZn/nw==
-Message-ID: <8a6f0bc0-5b6d-406d-9d2c-d3861b5c31b5@kernel.org>
-Date: Mon, 6 Jul 2026 11:15:36 +0200
+	b=oeOGQZW7+2lXYly6yT3KoxX63IAXYc6OlLNugLBcTJJexyCB1hvdNwP2WEncAgC60
+	 ky7gotRrg58K7eNVbaelwPLeWMJzEyE/FCGCPAuSXCdgd/kW/NJ5VrRj/IL50dVwvF
+	 X3V+QvNBJtV87fn4jS8LfXt+YJhKRQMf2iKHBgaAd70USwfZPMD7FycUrxmNxqqqYA
+	 cHvBDSJC5YgI2loUMag3VeDCCpDkmmKh/qLUAHlyFngVm4s7bUAjflkHWuW5oawmgc
+	 aALChYa3yR6DyIq+diGzQMaCb4yRvtuHzkL22C2kkKa15xoMqYJxAnLmPI63DYrLDe
+	 llM3mTl8BD/CA==
+Message-ID: <c02d8cd6-a3e8-470f-a7ea-a2f2f666b10c@kernel.org>
+Date: Mon, 6 Jul 2026 11:18:48 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,7 +35,7 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v5 3/8] mm: add a set_page_section_from_pfn() helper
+Subject: Re: [PATCH v5 6/8] string: introduce memcpy_nt() helpers
 To: Li Zhe <lizhe.67@bytedance.com>, akpm@linux-foundation.org,
  apopple@nvidia.com, arnd@arndb.de, bp@alien8.de,
  dave.hansen@linux.intel.com, kees@kernel.org, mingo@redhat.com,
@@ -43,7 +43,7 @@ To: Li Zhe <lizhe.67@bytedance.com>, akpm@linux-foundation.org,
 Cc: linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
  linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
 References: <20260701090553.62691-1-lizhe.67@bytedance.com>
- <20260701090553.62691-4-lizhe.67@bytedance.com>
+ <20260701090553.62691-7-lizhe.67@bytedance.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -90,91 +90,63 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20260701090553.62691-4-lizhe.67@bytedance.com>
+In-Reply-To: <20260701090553.62691-7-lizhe.67@bytedance.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 On 7/1/26 11:05, Li Zhe wrote:
-> Callers that want to update section bits from a PFN currently need to
-> open-code:
+> Introduce memcpy_nt() and memcpy_nt_drain() for write-once copy sites
+> that want a named non-temporal copy primitive plus an explicit ordering
+> point. On x86, place the arch-visible wrapper in
+> arch/x86/include/asm/string_64.h and map it to the existing
+> memcpy_flushcache() backend plus sfence. Architectures that do not
+> override the helper fall back to memcpy() and a no-op drain in
+> include/linux/string.h.
 > 
-> 	set_page_section(page, pfn_to_section_nr(pfn));
+> The immediate user is the ZONE_DEVICE template-copy path. That path
+> populates struct page descriptors in a write-once pattern, so most
+> destination cachelines are not expected to be reused immediately after
+> the copy. A regular cached memcpy() can therefore incur avoidable
+> write-allocate traffic and pollute the cache with data that has little
+> near-term reuse.
 > 
-> and guard that sequence with #ifdef SECTION_IN_PAGE_FLAGS.
-> 
-> Add set_page_section_from_pfn() to wrap that update in one place. When
-> section bits are stored in page flags, the helper derives the section
-> number from the PFN and updates the page flags. Otherwise it degrades to
-> a no-op.
-> 
-> Convert set_page_links() to use the new helper so later ZONE_DEVICE
-> fast-path patches can also update section bits without open-coding
-> SECTION_IN_PAGE_FLAGS at each callsite.
-> 
-> This keeps the PFN-to-section translation local to the configurations
-> that actually store section bits in struct page flags, and avoids
-> exposing that detail to generic callers.
-> 
-> No functional change intended.
+> This interface lets callers request that non-temporal-copy semantics
+> directly, while x86 simply reuses the existing memcpy_flushcache()
+> backend instead of adding another generic memcpy-like wrapper with
+> extra selection policy above it.
 > 
 > Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-> Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
 > ---
->  include/linux/mm.h | 19 ++++++++++++++++---
->  1 file changed, 16 insertions(+), 3 deletions(-)
+>  arch/x86/include/asm/string_64.h | 16 ++++++++++++++++
+>  include/linux/string.h           | 18 ++++++++++++++++++
+>  2 files changed, 34 insertions(+)
 > 
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index 485df9c2dbdd..f78afa63dd3d 100644
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -2541,11 +2541,26 @@ static inline void set_page_section(struct page *page, unsigned long section)
->  	page->flags.f |= (section & SECTIONS_MASK) << SECTIONS_PGSHIFT;
+> diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
+> index 4635616863f5..6f36abedc56a 100644
+> --- a/arch/x86/include/asm/string_64.h
+> +++ b/arch/x86/include/asm/string_64.h
+> @@ -100,6 +100,22 @@ static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t
+>  	}
+>  	__memcpy_flushcache(dst, src, cnt);
 >  }
->  
-> +static inline void set_page_section_from_pfn(struct page *page,
-> +					     unsigned long pfn)
-
-Two tab indent.
-
-> +{
-> +	set_page_section(page, pfn_to_section_nr(pfn));
-> +}
 > +
->  static inline unsigned long memdesc_section(memdesc_flags_t mdf)
->  {
->  	return (mdf.f >> SECTIONS_PGSHIFT) & SECTIONS_MASK;
->  }
->  #else /* !SECTION_IN_PAGE_FLAGS */
-> +static inline void set_page_section(struct page *page, unsigned long section)
+> +#define __HAVE_ARCH_MEMCPY_NT 1
+> +/*
+> + * Reuse the existing x86 flushcache backend as the nt copy primitive.
+> + * Callers pair it with memcpy_nt_drain() when later stores must be
+> + * ordered after the copy.
+> + */
+> +static __always_inline void memcpy_nt(void *dst, const void *src, size_t cnt)
 > +{
+> +	memcpy_flushcache(dst, src, cnt);
 > +}
 
-Why do we need this?
+In particular if you end up with a single function (that jsut requires a write
+memory barrier afterwards), please make this
 
-> +
-> +static inline void set_page_section_from_pfn(struct page *page,
-> +					     unsigned long pfn)
-> +{
-> +}
+#define memcpy_nt memcpy_nt
 
-Dito.
-
-> +
->  static inline unsigned long memdesc_section(memdesc_flags_t mdf)
->  {
->  	return 0;
-> @@ -2768,9 +2783,7 @@ static inline void set_page_links(struct page *page, enum zone_type zone,
->  {
->  	set_page_zone(page, zone);
->  	set_page_node(page, node);
-> -#ifdef SECTION_IN_PAGE_FLAGS
-> -	set_page_section(page, pfn_to_section_nr(pfn));
-> -#endif
-> +	set_page_section_from_pfn(page, pfn);
->  }
->  
->  /**
-
+instead.
 
 -- 
 Cheers,
