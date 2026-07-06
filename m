@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4FB4726FD93;
-	Mon,  6 Jul 2026 13:48:23 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D852D265CA2;
+	Mon,  6 Jul 2026 13:49:27 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783345704; cv=none; b=GAGV7FCDCR/aMCEY6IswsM8fou7CLVwNiuM9eMfFmomb4eXtef3Sh5jj9rr9sfhpC16ulnZacH5uHbxpsyIcKRN90sttRhQkvAp8IW7HwSri33Mc2V0d+kPE576X3UQIkX7HbCTeXa0TWXOEmPQQA9R9CAWdr6ILmYo7vblRdJ4=
+	t=1783345768; cv=none; b=JWZ6jDUn5CaviarrhEDM2pn8mouGOAlFLLsUEH+Bnn0qPmpfJmzzBzq/1ti/VCJlpHsvoI1a9sQlaDu9egj1ftIRXmrdVCkzi/2BODd9jzJ1MAQZm+Ppl52ML6edzGd9BIevuyFc8TthLyUfdD3cTuKOPnwE8GWtZFdZKScPvmc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783345704; c=relaxed/simple;
-	bh=K57juaZQjhk/7uXFYQjiW+CcCn/XsBXljXyXFNLsPTA=;
+	s=arc-20240116; t=1783345768; c=relaxed/simple;
+	bh=wZOvNFkBPsWuGeuJiDW57s7pVPfH0Iv5i4aVAjcdTGI=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=slSslNpe3K5Ji4EFaUr4lT8vcOesZyVa4WNNTifH4C17kuBTDYaQFv5yUJKQhjw9F2HCyAfO4p9UWTa/8b5lZX6opX4p1c/AcZfHi3Ur/SLVpaifrQIV9udqBIi/OU8ptRXBwvV5t1Q/jdqhy2Gj3C3G6lPAhJE8W0aXvZKWn4A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=MJpvANO7; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=bEF1I/S8Q1EiJjAJUVXssSUMMTPE1GaNGr0KiFMCS5orKk9jXDJnOB6/duCYwJKRioTT7hZoAShqpBpfzs7uepTwDD9qHmIq2SOT88ULheTNc6Oh/AZ1MN05bn7/Hw7wCHOasQywewatwaEN3IABLtVg83k8DitIYbg1heP03Oc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=cfweDhmY; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="MJpvANO7"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CD5101F00A3D;
-	Mon,  6 Jul 2026 13:48:18 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="cfweDhmY"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9DD4A1F000E9;
+	Mon,  6 Jul 2026 13:49:23 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783345703;
-	bh=9KGHs3IaR4sMS8H8qaxq37Cq5Iqi3LZuorN5eZgO0so=;
+	s=k20260515; t=1783345767;
+	bh=wK0aCBXBbwqdK294JK8uznzPRp3oLmGuOxio1ftZy3s=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=MJpvANO7oMNOdUNCDbxaRuWKZI6IrdcFSfL/z/0IGKB1xpzEiaQ31nPCnpb23z4AQ
-	 5k2yoWzaYwh+KJPHcWoxyK8rfhSBw5GxgyOMkKY2jTUT13x8SxcBbrtZDLYd2v7b3e
-	 lBTmg/ZLXQ5yaX9qVna2VhrjoCGo54hkv9Aw2kqOr9OUQXWSO+PkwaqFggOYhBq8EX
-	 MWFKnKeKwLMLu4CKnlXubeWlKGKhnV+PiYZlWWr6q3z0CGPWZgNW4Z25UGK78BVeN7
-	 7NQiO/oBBEVvn8lgVqSeWs10wFd1EsssyH75XL0I5Cr2TH917CSeyfD8/epkSiv9G9
-	 z/84ROp/1LRHQ==
-Message-ID: <efd55e0c-8caf-4633-b876-18e8e788493a@kernel.org>
-Date: Mon, 6 Jul 2026 15:48:16 +0200
+	b=cfweDhmY3uzvwT/ivKj11445D9BHzpepvwDhcWWBY0Ax9ECQOnkIy2JdCFBTcQh+O
+	 OL5bc+sjjh6g1WZpz3gftwLq3vURxlcGhKoQlk3w1QcGdY5BCWKL3qNxOepmz9mnHw
+	 hLf8zsYFvcrlxKTU2kIii7Q9VvyYogkTc9t2AndndPnTcQ+2jYibLpoixg1z4E2qHw
+	 3ZKVmPO5NGQEfdRfmdvnPu4KES5JWkbJaMtwRLpstX//I7D3xenCII9qgmhmfLP9zx
+	 zh226Qdu3vaRu6SDP2qO8V1dLSuWZZGFYZ3k5Es3tJa5Lf3fTt4n+n4Z/Z+Ijpxi/J
+	 QSIKNgtpyQ+zA==
+Message-ID: <d5a9c3b7-fa4c-47b7-9417-4c81b21760b8@kernel.org>
+Date: Mon, 6 Jul 2026 15:49:21 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,15 +35,15 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v5 3/8] mm: add a set_page_section_from_pfn() helper
+Subject: Re: [PATCH v5 6/8] string: introduce memcpy_nt() helpers
 To: Li Zhe <lizhe.67@bytedance.com>
 Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
  bp@alien8.de, dave.hansen@linux.intel.com, kees@kernel.org,
  linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
  linux-kernel@vger.kernel.org, linux-mm@kvack.org, mingo@redhat.com,
  rppt@kernel.org, tglx@kernel.org, x86@kernel.org
-References: <8a6f0bc0-5b6d-406d-9d2c-d3861b5c31b5@kernel.org>
- <20260706115213.50375-1-lizhe.67@bytedance.com>
+References: <c02d8cd6-a3e8-470f-a7ea-a2f2f666b10c@kernel.org>
+ <20260706115313.50524-1-lizhe.67@bytedance.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -90,59 +90,45 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20260706115213.50375-1-lizhe.67@bytedance.com>
+In-Reply-To: <20260706115313.50524-1-lizhe.67@bytedance.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 7/6/26 13:52, Li Zhe wrote:
-> On Mon, Jul 6, 2026 at 11:15:36AM +0200, david@kernel.org wrote:
-> 
->>> diff --git a/include/linux/mm.h b/include/linux/mm.h
->>> index 485df9c2dbdd..f78afa63dd3d 100644
->>> --- a/include/linux/mm.h
->>> +++ b/include/linux/mm.h
->>> @@ -2541,11 +2541,26 @@ static inline void set_page_section(struct page *page, unsigned long section)
->>>  	page->flags.f |= (section & SECTIONS_MASK) << SECTIONS_PGSHIFT;
->>>  }
->>>  
->>> +static inline void set_page_section_from_pfn(struct page *page,
->>> +					     unsigned long pfn)
->>
->> Two tab indent.
-> 
-> Thanks, I will fix the indentation in v6.
-> 
->>> +{
->>> +	set_page_section(page, pfn_to_section_nr(pfn));
->>> +}
->>> +
->>>  static inline unsigned long memdesc_section(memdesc_flags_t mdf)
->>>  {
->>>  	return (mdf.f >> SECTIONS_PGSHIFT) & SECTIONS_MASK;
->>>  }
->>>  #else /* !SECTION_IN_PAGE_FLAGS */
->>> +static inline void set_page_section(struct page *page, unsigned long section)
->>> +{
->>> +}
->>
->> Why do we need this?
-> 
-> The empty set_page_section() helper is not needed. I will drop it in
-> v6.
+On 7/6/26 13:53, Li Zhe wrote:
+> On Mon, Jul 6, 2026 at 11:18:48AM +0200, david@kernel.org wrote:
 > 
 >>> +
->>> +static inline void set_page_section_from_pfn(struct page *page,
->>> +					     unsigned long pfn)
+>>> +#define __HAVE_ARCH_MEMCPY_NT 1
+>>> +/*
+>>> + * Reuse the existing x86 flushcache backend as the nt copy primitive.
+>>> + * Callers pair it with memcpy_nt_drain() when later stores must be
+>>> + * ordered after the copy.
+>>> + */
+>>> +static __always_inline void memcpy_nt(void *dst, const void *src, size_t cnt)
 >>> +{
+>>> +	memcpy_flushcache(dst, src, cnt);
 >>> +}
 >>
->> Dito.
+>> In particular if you end up with a single function (that jsut requires a write
+>> memory barrier afterwards), please make this
+>>
+>> #define memcpy_nt memcpy_nt
+>>
+>> instead.
 > 
-> The no-op set_page_section_from_pfn() helper is still needed for
-> !SECTION_IN_PAGE_FLAGS so callers can use a single helper without
-> open-coding #ifdef SECTION_IN_PAGE_FLAGS at each callsite.
+> Thanks for the review.
+> 
+> Just to make sure I understood this correctly: do you mean that, rather
+> than using a separate __HAVE_ARCH_MEMCPY_NT feature macro, you would
+> prefer the usual self-macro override pattern, with
+> 
+>     #define memcpy_nt memcpy_nt
+> 
+> in arch/x86/include/asm/string_64.h and the generic fallback kept under
+> #ifndef memcpy_nt in include/linux/string.h?
 
-Sorry, I meant two-tab indent :) Why we need that was clear to me.
+Yes, that's what Linus suggested as the preferred way for single functions when
+it came up in different context recently.
 
 -- 
 Cheers,
