@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BDCBA423168;
-	Mon,  6 Jul 2026 09:11:22 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 307283F7872;
+	Mon,  6 Jul 2026 09:13:57 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783329089; cv=none; b=V7gZ1XXDIOMYdaAuyRFlAUHmE1AEK5v+hNkpCiyaygboLVWh58T/8FqgdD+1Aq0zEhCWrAwavEFiRyKOwoM/w9qAZAsl+WyB9oxhpxcW6KAFMXJvwwYI1zD3uM5rzlJdOmlYMTWsPakF+9dpq/T4OTLzeyL2W1lhTQApDHW+Xhc=
+	t=1783329250; cv=none; b=E7XxtEocrTm/46M6SnD96BHnNIjGbsi3IEYC5yNBG2lhmCGGLZLbXPbRAujUMclxg8qIh1rmbrGRCoBxWF6M8wz0kPN7uBUloF5whA0eVWg9jCMUhwvG5UIsu3KD0vrlcMPAIPJhNOac1P2uX1qeMG5BTlvIXM1jy30LSD11suM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783329089; c=relaxed/simple;
-	bh=Yjvw/HVVmh70MVDhZySNDvXNJK4oCHdYgeZDhZvn3Ew=;
+	s=arc-20240116; t=1783329250; c=relaxed/simple;
+	bh=U2TZGHZOKqUQPBRD8v6boHrullJrbIXhoODUDLFu6lQ=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=J1oweo1l7Zd/m4YyRh+Idj9IkoONHsFgXtiWLU8aY72JfngeP5mX14o2sHEgggLbpzOV3TReMAG97gerWoLiV0ct3PHGspcFvuAbaQVBwlznBUxg0Z64P8wLLicHh9vXnYknQUcBRq6Gdwf8ta9pS1oNLMKxLixdhynZRDpshtY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=eG2rVnJC; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=pTy86fmTP/8Sd/ItyT3hdygUYLE1M9z87AlJmgamacr+i7+4CpugYvXRE5h8JAvUfKQ7v17gc924iYUOulRXbViAI8rNtRwP4VrGokcNhoZdLT+UVzkn0lwJD7UrZWOR/V0uc9BCB1sygAF3zYFLW1ZO9N5VhRN0qxRS9GOYFQ0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=gifK1Ti/; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="eG2rVnJC"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9A9FD1F000E9;
-	Mon,  6 Jul 2026 09:11:14 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="gifK1Ti/"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CA4751F000E9;
+	Mon,  6 Jul 2026 09:13:47 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783329079;
-	bh=QkFcj8l+oLXhC7aF9NZNqPGpSl0c31kzpzMlDAFV+QE=;
+	s=k20260515; t=1783329232;
+	bh=8ELD/QV0x1kpN1PYPogRPMQ8Jugn3hQYtAP47s/qJMk=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=eG2rVnJCBidyUV6k5BBeWCCNM0F85/+WLTF1a2gL5CGxYgFLCFHCnWCFYkXxi2Gui
-	 gDSVgdzO8E6gbyBl1IAWNCCK2l/zOAT2aR1gsO7xQLSKCUDwFXdHcgwy1HRFT3xOCz
-	 eKZWz8qRLy6vOYo+YpPeOUkDqS9LlSYVzoaDIRTp+J36Z5Jg5J9M4glSVPaw1eG56j
-	 qViuc9HDHORqEf1JGyxn/2GpdcuorVLkLmARIVmJuOeYgO4vFWj0zNgi5cfqbVrP6x
-	 kvmaz3sd5ZdMQXmYDf0Her2yi6jY2CEtWmO+2AsD3bZmiL0pZUvfkuIR88Yax+Adve
-	 IU3CGjON99saw==
-Message-ID: <a1ffd1b0-f790-4c5c-af5e-541b15df3a4c@kernel.org>
-Date: Mon, 6 Jul 2026 11:11:12 +0200
+	b=gifK1Ti/VgNSex0l9sLQuUuZpqcdPVUpCa5aG1GjioAJxNHU9wnKrZuzvodrfce5o
+	 +2fMUkRg8wVr9tLGihB9hRmgu2LdPyMeLpzwfG8f4FI3hLloTDVfiJOmkQA59klUdD
+	 xPnrsyUjuVfKruR8NR2jiRDVPaIHiL9WP6z8N1Z+4IeClzGWGDbwg4gjKyV4qoxp6v
+	 8hDcXinuFA39qRkmfkC6UoGpU00pHf/19pnNKtB4o5o5Zk7RxHtfz6vHqxsWl3k2TG
+	 lBtDw1xdUV5GaeHgFs07tXbu9uXpOQDVmJTT1N01przGF7zo/YhP0bDKf+yBUWpyV6
+	 Il4A8a9nGgqJA==
+Message-ID: <38919e81-4c35-4e8b-ba2a-8af8be60b0b6@kernel.org>
+Date: Mon, 6 Jul 2026 11:13:45 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,7 +35,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v5 1/8] mm: fix stale ZONE_DEVICE refcount comment
+Subject: Re: [PATCH v5 2/8] mm: factor zone-device page init helpers out of
+ __init_zone_device_page
 To: Li Zhe <lizhe.67@bytedance.com>, akpm@linux-foundation.org,
  apopple@nvidia.com, arnd@arndb.de, bp@alien8.de,
  dave.hansen@linux.intel.com, kees@kernel.org, mingo@redhat.com,
@@ -43,7 +44,7 @@ To: Li Zhe <lizhe.67@bytedance.com>, akpm@linux-foundation.org,
 Cc: linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
  linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
 References: <20260701090553.62691-1-lizhe.67@bytedance.com>
- <20260701090553.62691-2-lizhe.67@bytedance.com>
+ <20260701090553.62691-3-lizhe.67@bytedance.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -90,26 +91,70 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20260701090553.62691-2-lizhe.67@bytedance.com>
+In-Reply-To: <20260701090553.62691-3-lizhe.67@bytedance.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 On 7/1/26 11:05, Li Zhe wrote:
-> The comment in __init_zone_device_page() still uses the old
-> MEMORY_TYPE_* names and implies that FS_DAX pages regain a
-> refcount of 1 in the free path. That no longer matches the code.
+> memmap_init_zone_device() currently mixes refcount policy and core
+> ZONE_DEVICE page setup in a single helper.
 > 
-> Update the comment to describe the current policy correctly:
-> MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free path,
-> while the remaining ZONE_DEVICE types start from 0 here and raise the
-> count again when the allocator or driver hands the page out.
+> Factor the refcount-reset predicate into pagemap_resets_refcount(), move
+> the common page initialization into __zone_device_page_init(), and wrap
+> the existing slow path in zone_device_page_init_slow().
+> 
+> This keeps the slow-path behaviour unchanged and gives later patches
+> reusable helper boundaries.
 > 
 > No functional change intended.
 > 
 > Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+> Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
 > ---
+>  mm/mm_init.c | 57 ++++++++++++++++++++++++++++++++++------------------
+>  1 file changed, 38 insertions(+), 19 deletions(-)
+> 
+> diff --git a/mm/mm_init.c b/mm/mm_init.c
+> index 95808ab5cfdb..4c7fad440c2a 100644
+> --- a/mm/mm_init.c
+> +++ b/mm/mm_init.c
+> @@ -1005,11 +1005,38 @@ static void __init memmap_init(void)
+>  }
+>  
+>  #ifdef CONFIG_ZONE_DEVICE
+> -static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
+> +/*
+> + * Return true when the free path for this pagemap type restores the page
+> + * refcount to 1, so memmap_init_zone_device() can keep the count set by
+> + * __init_single_page(). Otherwise initialize the refcount to 0 and leave
+> + * it to the allocator or pgmap callbacks to raise it when the page is
+> + * handed out again.
+> + */
+> +static inline bool pagemap_resets_refcount(const struct dev_pagemap *pgmap)
+> +{
+> +	/*
+> +	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
+> +	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
+> +	 * the count again when the allocator or driver hands the page out.
+> +	 */
+> +	switch (pgmap->type) {
+> +	case MEMORY_DEVICE_FS_DAX:
+> +	case MEMORY_DEVICE_PRIVATE:
+> +	case MEMORY_DEVICE_COHERENT:
+> +	case MEMORY_DEVICE_PCI_P2PDMA:
+> +		return false;
+> +	case MEMORY_DEVICE_GENERIC:
+> +		return true;
+> +	default:
+> +		WARN_ONCE(1, "Unknown memory type!");
+> +		return true;
 
-Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
+Wouldn't the compiler warn if we would define a new type but forgot to update it
+here? We're using an enum, and I thought the compiler would bail out in that case.
+
+Or are we scared of some other garbage ending up in there?
+
+Apart from that LGTM.
 
 -- 
 Cheers,
