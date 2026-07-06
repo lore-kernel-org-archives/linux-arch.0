@@ -1,17 +1,17 @@
 Received: from invmail4.hynix.com (exvmail4.hynix.com [166.125.252.92])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 12B124252D7;
-	Mon,  6 Jul 2026 06:21:57 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 12A5442B307;
+	Mon,  6 Jul 2026 06:22:09 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.125.252.92
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783318930; cv=none; b=b12VK5P+gSR/SrctCBAtVmdeeBJ3Ebnq6RGD8Kz2H0jzKtOuLkVtvRn7DPuxHaXRT7J0jYV2qbcxKUZmDdA8pMl4xD88oHjBY0wV1CtpGKj+IgSChIqjDZmyP2MnJZQteNz5ibFM8saA7YJH1vj1IH39kjEGAhP7KLeajMJyJPc=
+	t=1783318947; cv=none; b=BGogdNHlGW+rFfgVDC9ka7aHboAS3ds2AtUf2ypH0MtQG2o6nm3Sl4jEsIOJamGDEl6Y079oDpSZDPe9vTpcPfu1rzLTK1uQqW6OZuQacDSx9mEthKQAYzPvxDeztlGh5HnOdjWgG31cRs/Nxzs0bJ7llBV66Mdo2GlzY48XnmM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783318930; c=relaxed/simple;
-	bh=6m46/bR7ahZ1eyue+jCsPNm2Mx2DXPiA4927jmqmv5Q=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=IhbkBgOvIw8oPeybsia7BIjOS3/ahQIoHlR9TZJVeucGOB9houd5bDNYjHUDt+yYpcBijz9nD6K2vbdJCZm2ysDAPyRLNvYn28VNWc+C1wROE0prsSMNyPSo7hbkx2MYoqbl7RZ069Yre6Vh1Zii2u1e3ksyCynYqLXiJSLCfI4=
+	s=arc-20240116; t=1783318947; c=relaxed/simple;
+	bh=IVs7UrTREahv4P4gaL8VNCv4Y1x1l3V8HrPMnx32xWM=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=Ii9cv++GAYG8ROXzYS/KhSc6hSxtYIdNWK7wBp/Or13y960HIcwcn8Iw676mTBL2UjrXmqJEFMsxmu8y9GXmxCEglNurNqct7CaSiHNo2gvGNs7SbZoA+c3mn53SkJsyV/mGXj70YaqNgAEBHN6bN7OofYVhPbKRLwPNXQ1zJUY=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com; spf=pass smtp.mailfrom=sk.com; arc=none smtp.client-ip=166.125.252.92
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sk.com
-X-AuditID: a67dfc5b-c2dff70000001609-02-6a4b4983a234
+X-AuditID: a67dfc5b-c2dff70000001609-3e-6a4b4984481c
 From: Byungchul Park <byungchul@sk.com>
 To: linux-kernel@vger.kernel.org
 Cc: max.byungchul.park@gmail.com,
@@ -178,45 +178,45 @@ Cc: max.byungchul.park@gmail.com,
 	aliceryhl@google.com,
 	tmgross@umich.edu,
 	rust-for-linux@vger.kernel.org
-Subject: [PATCH v19 36/40] dept: track PG_writeback with dept
-Date: Mon,  6 Jul 2026 15:19:24 +0900
-Message-Id: <20260706061928.66713-37-byungchul@sk.com>
+Subject: [PATCH v19 38/40] mm: percpu: increase PERCPU_DYNAMIC_SIZE_SHIFT on DEPT and large PAGE_SIZE
+Date: Mon,  6 Jul 2026 15:19:26 +0900
+Message-Id: <20260706061928.66713-39-byungchul@sk.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20260706061928.66713-1-byungchul@sk.com>
 References: <20260706061928.66713-1-byungchul@sk.com>
-X-Brightmail-Tracker: H4sIAAAAAAAAAzWSbUxTZxTH99z7PPdeKjXXasJFluG6uC3MMVxwnixz4+Nl7oPJTKZui9Zx
-	I0XeLMpgyRSVOkSgTScQKAKKdAiV1VbGrFSRLJUOO4rd9A6BwqxluDXurToGyFqMX05+53/y
-	/306HK0KkNWcNn+/pMvX5KoZBVaE40+/Wp65OSfthIGDCv0hGAsECdw63I9hwdzLQoW9gYCv
-	uwtBIFKB4NGcmYYFk5uFRZcbQd2IiQbZd5WGv22PGaidCjJQP3MYQ2PIzEI4cJnA4vg0BZbg
-	YwqC/V8gaDnjYGDOO0xDfa0PwempcRouuicQuDqOMHDP2EODP7gcwiNNFLQecREIjboouDTp
-	ZGGszkRBwBLCUHchAcz1R6no+JWC2vOXKbjRNobB7PUT+KWjkYX5qfXg7ppmYdxQi6E7PEzA
-	M3GLQG/ZJAvWqhANFc4IBvvdaNbQPMZAn8uDwe9sYqDK1kNgwrpI4GaXD8PX0zIFQ+5BDJ7G
-	cxjueA0sDDvPE2i/PULB1KRMwOG9QWdkiY/0NVjsdHxDifqbC4xobbYice4/ExL/aT9Ki3pj
-	dG0f+p0RXQ9bsfj9GUG81DjOiq32A2L5d2EiOjpSxLa+GUq0dx5ntqTuULyVJeVqiyXda2/v
-	UmR7jx+jC2efK/ktcgyVodnEShTHCXy6MNDeg59yZLSNjTHDvyTI8iwd41X8GsFRHSKVSMHR
-	vD9ZqLJULxVW8puEr1xGEmPMrxUqw71LrOTfEFomf0BPpMlCl61/SRQXzbvnT1ExVvEbhDsP
-	ruOYVODb4oTgzJfkSSFRuNYhYyNStqJnOpFKm1+cp9Hmpqdml+ZrS1I/Kcizo+jbWT6f//Bb
-	9Jfv/QHEc0gdr4SMd3NURFNcVJo3gASOVq9Svvjy5hyVMktT+pmkK9ipO5ArFQ2gJA6rE5Sv
-	P/w0S8Xv0eyX9kpSoaR7eqW4uNVlyOLau8lnvZhJDa4bOlRFfzx35V9DdSRpy7P7CjYYPej5
-	5mtr9qzw4WVy37k36+7dbsqr+cjWkO75+aSz5YOD/n0lcvJ9/2BCSuSFHX/47xYaTp3Uy+/9
-	tCic3boxzWYqz6hJu5589f47hvJXhjLrt19ZnhhMGv3zx6bd22y74j2JPXBCjYuyNetTaF2R
-	5n/ObYLocgMAAA==
-X-Brightmail-Tracker: H4sIAAAAAAAAAzWSe0hTcRTH+/3u3b3X1eqypF0LKhZZBPaAHodeGP3RLXv9E1EEOfKS87Fs
-	K8sgcq6Z2oM52qSWZZYr1HRtpi4bmaI9V5pZZpmTlmVqlrlkU7Ot6J/D53y/53w5fxyGkFaL
-	pjNK1SFBrVIkySkxKd66Shel2xiTsPjcZxlk6U/A+06vCF5ra0nwDWWRcKm8lIIxSxUNWfYL
-	Inj0JoOEprISBJ2+LATDIxYC9M5xEsaMjTQM+d/RYNIiGHc1IjA3Gwloa7pPQGmFFsNP228K
-	eusHEZi6vBTk9WhJGLCeQXCx20JDT8MG6O+sEcF4x2cMb371IbB6f2Pw1p5CMGZOhCuFjuC6
-	+TsFI+4XBOSZmhBc7eogYLDHg6Ci8QMC180MCj4Z7hDQ4p0Mr3wDFDw2naagv/kShm82Cgoy
-	XCJoftaLIN9iRNDd7sKgu1ZOgTnfToLTc5eG5t5RDO/NRgwl9i3Qae0m4amhEAfPDU7dloEl
-	T4eD5QsG060aDH5rMR1dhPhh/TmSL3ZUYl7/coziSy+XIn4kYET8UJGO4PWGYFvfN0DwJx1H
-	+KKnfRQf8LVSvOtXAck/KeT469kBzOe6o3jnxQ56+7rd4tVxQpIyVVAvWhsrjndnZxIp/plH
-	e32ZKB35I3JQGMOxSzlf+zU6xBQ7j2tr8xMhDmdnc46z3aIcJGYItmUWd8Z6lgwZU9k13A2X
-	QRRikp3L5fRX/WUJu5y74nmO/oXO4kpstX+DwoJ62Wg+DrGUXca9G3hIGpC4AE0oRuFKVWqy
-	Qpm0bKEmMT5NpTy6cN+BZDsK/pP1+GhuNRpq2VCHWAbJJ0kgelOCVKRI1aQl1yGOIeThksj5
-	MQlSSZwi7ZigPrBXfThJ0NShGQwpl0k27RRipex+xSEhURBSBPV/FzNh09MRjrj6zL1+5Y8d
-	JdOWb7N50iar7ztaTQerH6dksrYpw7YCO7+Cylhd4ZNFBNyt0Z6Jztzsr5Vz6HqTNEp1eIq/
-	xWlfpS107Gr8tujezqrUBTWayB+bB+Uzu9Lxp/lvA7ntcXNUchkzcVJt5ANZ4g22wRUOLxKs
-	5/eUn/jYcLwyRk5q4hVLFhBqjeIPAg6jj0sDAAA=
+X-Brightmail-Tracker: H4sIAAAAAAAAAzVSbUxTZxj1vfe9H21scq1mXnFT0oguGnAYMM8Po/4xuUg0MyQmajJt1uso
+	lsLKt8uywgBrB1oxHRFEq4wLCqmshU2QToYGgsgs2QcdrGK1KyowUAtOW62txn/nOec5JzlP
+	HpZU/k3FsVp9vmjQq3UqWo7lM4svJpanpWd9cvnsKjBVfAPzQRMGk+MMBW57K4KJeROC56F6
+	Eiq6Ihhe1fQzEHwxzoC1FEHE1Y/A475OwrP21zRM3XiKwOrz01D7qBTDrFQVXfFOEjC6MI1A
+	8r8mwN97DEFo+A4JtVY3ggs+LwmuljIa/rV0kjBo/Y4GW5mLgob6GgSBMRcB3zc4MHTd62Zg
+	ZCpMQKtjF0xIAQxDlotR8cflUF/7kIDbjf9gkIwJEPYlQ8SWA/2tkwx4T1ox2GfuUDB49y8K
+	pgI1NEwMVFIQ/MNHQFtVgART9zwG19gG6HENRnu/CiLov3qfgKr2zugFeocouDLpIWCw7hKG
+	8eGTDDSNjhDgu+ehwDl8mwT3qWpqu0Z4XnECC23n2pAQelmDhGDTt6RQYYmON6ZnSaHcWSQ0
+	DU3Twsv5P2nBtWDDwqnhRKGrzssI5b+MMYLNUSA4W9YLjT2PiE+T9su3aESdtlA0bNx6SJ7p
+	uemhcjtlxT+bIowR3WfMSMbyXAo/IjWS7/FPx8vpGKa5dbzH8+Itv4yL553VAcqM5CzJ/b6a
+	r5KqcUxYyom8y2yOGlgWcwn8te6CGK3gNvP/hXvod5mr+db23rc5sihvDzcQMazkUvnx2QEc
+	y+S5Rhk/7ZfQO8MK/tcWD7YghQ0tuoyUWn1htlqrS0nKLNFri5M+z8l2oOjDSV+HD1xFT90Z
+	fYhjkWqxArbvzFJS6sK8kuw+xLOkapli7cfpWUqFRl1yVDTkHDQU6MS8PrSSxarlik0LRRol
+	94U6Xzwiirmi4b1KsLI4IxI7hHWW4zufWJaU/Z8e2VHcrJmjN1UWPbi+xvnZ7g9+8O/T7wmu
+	vbIvbZvKmPugbuvG5psDLR99eYCYG+2OezyTuih19revVhjtp0N1x4Y22+OlD5ODREZiaf2h
+	QP6OC74jaQn7y1Qd0pz3mSz+cPPuttCtjFVFe28t7ag0z+h0h8+nqHBepjp5PWnIU78Blxps
+	5mwDAAA=
+X-Brightmail-Tracker: H4sIAAAAAAAAAzVSe0hTcRjtd+/dvdfR4rKELvaHMehBYVlkfJGUBdXtSRER9E+NvOTcQ9vK
+	shJ1a7jspYtNalpmbuSjtFmZ2cisLHu6LBvpmtqaia+wLdHNbCv65+N853zncP74aFxcL4ih
+	ZarDvFolVUhIISHcvkoXp9u0JTX+qzsRDPps6PJ4BdCR20RAwG8goLimmoRJSz0FBvslAbz4
+	pCWg7VYVAk/AgGAsaMFB3zBFwKSxhQL/eCcFplwEU44WBGanEQdX2yMcqu/kYvCz9jcJA09G
+	EZh6vCQU9ecSMGI7i+Cyz0JB/7ONMORpFMCUuw+DT78GEdi8vzHwNuUhmDTL4WpZXdhu/kFC
+	8M07HIpMbQiu9bhxGO3vRnCn5QsCxw0tCd8K7uLQ7p0BHwIjJLSazpAw5CzGYLiWhFKtQwDO
+	1wMISixGBL7PDgx012tIMJfYCWjofkCBcyCEQZfZiEGVfRt4bD4CXhWUYeG64avbs8BSpMPC
+	4zsGppuNGIzbKqkkK+LG9OcJrrLuHsbp30+SXPWVasQFJ4yI81t1OKcvCK9PBkdw7lTdUc76
+	apDkJgIfSc7xq5TgXpaxXPnpCYwrfBPHNVx2UzvW7hUmJvMKWQavXrJ6vzDF9dQlSL8bdaze
+	MEXloF4qH0XRLLOcvXf6FBnBJDOfdbnG8QiOZuawded8gnwkpHGmPZY9aztHRISZDM868vPD
+	BpommLls44MjEVrErGCHQw/Jf5mxbFVt09+cqDB/K1SCRbCYSWA7R54TBUhYiqZVomiZKkMp
+	lSkSFmvkKZkq2bHFB9KUdhR+J1tWqPA+8rdvbEYMjSTTRZC0OVUskGZoMpXNiKVxSbRo3oIt
+	qWJRsjTzOK9O26c+ouA1zWg2TUhmiTbv4feLmYPSw7yc59N59X8Vo6NictAyEZaVt3Nnh7xw
+	fUJv4/mYjF0T3YduKw3HF4H80EqVOsGv7RyuiXOfLN/9NqAqr0jTC8dHK8ou1CqslfVDwTyt
+	8sTFMd9QcYfu6tr4E6HW71uTe6cH12zoGNU692YvDF4p9cRUJD6yX5gZ30z09fGPuxwzrPTD
+	n3lx7zVt69IcEkKTIl26EFdrpH8ALUQrlUoDAAA=
 X-CFilter-Loop: Reflected
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -224,111 +224,41 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 
-Makes dept able to track PG_writeback waits and events, which will be
-useful in practice.
+Yunseong reported a build failure due to the BUILD_BUG_ON() statement in
+alloc_kmem_cache_cpus().  In the following test:
 
+  PERCPU_DYNAMIC_EARLY_SIZE < NR_KMALLOC_TYPES * KMALLOC_SHIFT_HIGH * sizeof(struct kmem_cache_cpu)
+
+The following factors increase the right side of the equation:
+
+  1. PAGE_SIZE > 4KiB increases KMALLOC_SHIFT_HIGH.
+  2. DEPT increases the size of the local_lock_t in kmem_cache_cpu.
+
+Increase PERCPU_DYNAMIC_SIZE_SHIFT to 11 on configs with PAGE_SIZE
+larger than 4KiB and DEPT enabled.
+
+Reported-by: Yunseong Kim <ysk@kzalloc.com>
 Signed-off-by: Byungchul Park <byungchul@sk.com>
 ---
- include/linux/mm_types.h   | 1 +
- include/linux/page-flags.h | 7 +++++++
- mm/filemap.c               | 6 +++++-
- mm/mm_init.c               | 1 +
- 4 files changed, 14 insertions(+), 1 deletion(-)
+ include/linux/percpu.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
-index e25d09f3dfa9..81dc9999090a 100644
---- a/include/linux/mm_types.h
-+++ b/include/linux/mm_types.h
-@@ -222,6 +222,7 @@ struct page {
+diff --git a/include/linux/percpu.h b/include/linux/percpu.h
+index 85bf8dd9f087..dd74321d4bbd 100644
+--- a/include/linux/percpu.h
++++ b/include/linux/percpu.h
+@@ -43,7 +43,11 @@
+ # define PERCPU_DYNAMIC_SIZE_SHIFT      12
+ #endif /* LOCKDEP and PAGE_SIZE > 4KiB */
+ #else
++#if defined(CONFIG_DEPT) && !defined(CONFIG_PAGE_SIZE_4KB)
++#define PERCPU_DYNAMIC_SIZE_SHIFT      11
++#else
+ #define PERCPU_DYNAMIC_SIZE_SHIFT      10
++#endif /* DEPT and PAGE_SIZE > 4KiB */
  #endif
- 	struct dept_page_usage usage;
- 	struct dept_ext_wgen pg_locked_wgen;
-+	struct dept_ext_wgen pg_writeback_wgen;
- } _struct_page_alignment;
  
  /*
-diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
-index 0b0655354b08..ec736811a2c6 100644
---- a/include/linux/page-flags.h
-+++ b/include/linux/page-flags.h
-@@ -203,6 +203,7 @@ enum pageflags {
- #include <linux/dept.h>
- 
- extern struct dept_map pg_locked_map;
-+extern struct dept_map pg_writeback_map;
- 
- static inline void dept_set_page_usage(struct page *p,
- 		unsigned int new_type)
-@@ -292,6 +293,8 @@ static inline void dept_page_set_bit(struct page *p, int bit_nr)
- 
- 	if (bit_nr == PG_locked)
- 		dept_request_event(&pg_locked_map, &p->pg_locked_wgen);
-+	else if (bit_nr == PG_writeback)
-+		dept_request_event(&pg_writeback_map, &p->pg_writeback_wgen);
- }
- 
- static inline void dept_page_clear_bit(struct page *p, int bit_nr)
-@@ -300,6 +303,8 @@ static inline void dept_page_clear_bit(struct page *p, int bit_nr)
- 
- 	if (bit_nr == PG_locked)
- 		dept_event(&pg_locked_map, evt_f, _RET_IP_, __func__, &p->pg_locked_wgen);
-+	else if (bit_nr == PG_writeback)
-+		dept_event(&pg_writeback_map, evt_f, _RET_IP_, __func__, &p->pg_writeback_wgen);
- }
- 
- static inline void dept_page_wait_on_bit(struct page *p, int bit_nr)
-@@ -311,6 +316,8 @@ static inline void dept_page_wait_on_bit(struct page *p, int bit_nr)
- 
- 	if (bit_nr == PG_locked)
- 		dept_wait(&pg_locked_map, evt_f, _RET_IP_, __func__, 0, -1L);
-+	else if (bit_nr == PG_writeback)
-+		dept_wait(&pg_writeback_map, evt_f, _RET_IP_, __func__, 0, -1L);
- }
- 
- static inline void dept_folio_set_bit(struct folio *f, int bit_nr)
-diff --git a/mm/filemap.c b/mm/filemap.c
-index c0bff1e08a28..e3aa2754da3f 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -1197,7 +1197,7 @@ static void folio_wake_bit(struct folio *folio, int bit_nr)
- 	 * dept_page_clear_bit() being called multiple times is harmless.
- 	 * The worst case is to miss some dependencies but it's okay.
- 	 */
--	if (bit_nr == PG_locked)
-+	if (bit_nr == PG_locked || bit_nr == PG_writeback)
- 		dept_page_clear_bit(&folio->page, bit_nr);
- 
- 	spin_lock_irqsave(&q->lock, flags);
-@@ -1254,6 +1254,9 @@ static inline bool folio_trylock_flag(struct folio *folio, int bit_nr,
- struct dept_map __maybe_unused pg_locked_map = DEPT_MAP_INITIALIZER(pg_locked_map, NULL);
- EXPORT_SYMBOL(pg_locked_map);
- 
-+struct dept_map __maybe_unused pg_writeback_map = DEPT_MAP_INITIALIZER(pg_writeback_map, NULL);
-+EXPORT_SYMBOL(pg_writeback_map);
-+
- static inline int folio_wait_bit_common(struct folio *folio, int bit_nr,
- 		int state, enum behavior behavior)
- {
-@@ -1697,6 +1700,7 @@ void folio_end_writeback_no_dropbehind(struct folio *folio)
- 		folio_rotate_reclaimable(folio);
- 	}
- 
-+	dept_page_clear_bit(&folio->page, PG_writeback);
- 	if (__folio_end_writeback(folio))
- 		folio_wake_bit(folio, PG_writeback);
- 
-diff --git a/mm/mm_init.c b/mm/mm_init.c
-index 66b68c02d8d4..2695d7b3b089 100644
---- a/mm/mm_init.c
-+++ b/mm/mm_init.c
-@@ -589,6 +589,7 @@ void __meminit __init_single_page(struct page *page, unsigned long pfn,
- 	page_cpupid_reset_last(page);
- 	page_kasan_tag_reset(page);
- 	dept_ext_wgen_init(&page->pg_locked_wgen);
-+	dept_ext_wgen_init(&page->pg_writeback_wgen);
- 
- 	INIT_LIST_HEAD(&page->lru);
- #ifdef WANT_PAGE_VIRTUAL
 -- 
 2.17.1
 
