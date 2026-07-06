@@ -1,105 +1,161 @@
-Received: from mail.alien8.de (mail.alien8.de [65.109.113.108])
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 543FD3B7779;
-	Mon,  6 Jul 2026 17:19:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=65.109.113.108
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F549422549;
+	Mon,  6 Jul 2026 18:06:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783358376; cv=none; b=GDOU7pJTlDKUA3fC7wSy5SE60km3lr6J8KHSluEgHj/cO8q98SbJl2rZ7FrKvljUNsE9427TEHD6iz2ZeH7kaScrpjBwtvWZVkv9nIbN1TtDyOTmyMExTdTSBsZLfpBIVFmg450oPOQtB7hdh39Mocs+YqLoatAczpU2kwzKa2c=
+	t=1783361181; cv=none; b=lWre/ScDu8bT9gcIMlHG8tm5k0HuwM6UmfwWIzQE0Ng7b4wkTP2b0JrZVmvAF7kKCHD7p+uWXQsIAXw0GhKFPT3gngU4XZ3W8pZ6lxkzYU5yam4xSGy+CID8JH6+7zCOQVL12kLtmTFpQgjXxA9CySY7LaiQppt2vMWHKn5BEio=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783358376; c=relaxed/simple;
-	bh=L0L0FF9JzdvaxhZgwZNkOjyWh3L8/Q+Sd6PJuQ5Xyec=;
+	s=arc-20240116; t=1783361181; c=relaxed/simple;
+	bh=WSrxhZ3K3aHd+oacRAsc/khrD9rBmmLfoF539Nq0u78=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=RQh4/f6QUdu6t28q3Xf/Bnge7uLVF6Z5oC3Tw4W+iVxmqpKsV3lS4i8vhu64NkhBlXJzxv6euj8rHdkRNgb6N2bfgNWKAqE5ETujbMaQPwL0i7fAxilo1rtCITLztIcmnvzk+zQx0yp28rS9PgcCpGOiIe5kolJOpv7sRjBMobs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de; spf=pass smtp.mailfrom=alien8.de; dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b=bpaFdjdu; arc=none smtp.client-ip=65.109.113.108
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=alien8.de
+	 Content-Type:Content-Disposition:In-Reply-To; b=govuGuGGEytB6D5rxJrZaN1xwVOXsq2EzjnD9vP922e/ybGk/aqV/nudPbCgA9/54xz4qS9n/ZbY9ruVJ8l4X8SG46so3IMjJKISMjE00YcIfaeBwGj+FV3Mo8n4JqZ4rRzHHHAibMO6jSPv+R4zfthXjbFrZwu8D59Lqcwho38=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=CNyUy7kr; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b="bpaFdjdu"
-Received: from localhost (localhost.localdomain [127.0.0.1])
-	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTP id 218C640E00C0;
-	Mon,  6 Jul 2026 17:19:31 +0000 (UTC)
-X-Virus-Scanned: Debian amavisd-new at mail.alien8.de
-Authentication-Results: mail.alien8.de (amavisd-new); dkim=pass (4096-bit key)
-	header.d=alien8.de
-Received: from mail.alien8.de ([127.0.0.1])
-	by localhost (mail.alien8.de [127.0.0.1]) (amavisd-new, port 10026)
-	with ESMTP id XZjjGk29IVBx; Mon,  6 Jul 2026 17:19:21 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=alien8;
-	t=1783358361; bh=DM6ZBlt0zfO3Oxu5g1xHzady00ujWkiGTPHBW0POuGI=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=bpaFdjdu7MeLFpwxJSUxbUN2zFVzHvpjeEX3yENf0gapDgpb38KuOEddMkkTXgf70
-	 cAj1hYFfp60+FBEfB5QeUs5VzgHkUzDJsrRW8joss+DYyzGCkn+b4FMhTOj2Y0Mr1T
-	 r89df/BS4pK6QPE0w+EpspS1EbTTvetdE7yZIsU//NDMqTNPjeUFrmXvy/E6LDXKVc
-	 1/9GgGFZ8wx5g2OjcepRtDSMLK7tucXC+moW5Z8+PpRGMO0r4gO04rmtUi6ZhTC9/P
-	 cQ9HrtVv7dGJt1aKdQRVkLPcu3e++nk5LZELNGuse4WvsCtIjtzGPt9btDmBUEeUA/
-	 A0wTRpBQYIRKviTCwHHkK53tjSPK0cR6ZdSk29JBmET8hQhUtOe1Cfzf2s8Gsq6XrH
-	 mJXQpN44UKQAF1SfZxdiQrV1IFLXBzgqM6AiM1s2X0iFBM1JRw9Eqj5qr3cgIoWo1J
-	 kJJMK9UNBs7jGIiqEY5KGNINByS0yHLhZ7d7bTMy0MJbWDcCyzKrQOfVnTta9A+kCv
-	 316Zx1nxDKYFZhcDEqCR2xq2UVwSr8ae8A2lecRPap07vDNDKU1cE2LBaEqMDBAwrg
-	 axWuu6/TE2eI7hoDEKQuOlIByonIR+JnhhcvGra6UrfiODroSgRg6g0IVQISQ2qptm
-	 xyobEQ+SWKLbhNsbJqxa0V4o=
-Received: from stx.tnic (unknown [IPv6:2600:1700:38ca:c00::42])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (P-256) server-signature ECDSA (P-256) server-digest SHA256)
-	(No client certificate requested)
-	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 826F640E00DC;
-	Mon,  6 Jul 2026 17:19:05 +0000 (UTC)
-Date: Mon, 6 Jul 2026 10:19:02 -0700
-From: Borislav Petkov <bp@alien8.de>
-To: Li Zhe <lizhe.67@bytedance.com>
-Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
-	dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org,
-	linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-mm@kvack.org, mingo@redhat.com,
-	rppt@kernel.org, tglx@kernel.org, x86@kernel.org
-Subject: Re: [PATCH v5 7/8] x86/string: extend memcpy_flushcache() fixed-size
- fastpaths
-Message-ID: <20260706171902.GCakvjhl5U89iJdaNP@fat_crate.local>
-References: <20260703195619.GGakgT44P7lpcoMVlY@fat_crate.local>
- <20260706074346.23928-1-lizhe.67@bytedance.com>
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="CNyUy7kr"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=7OW/CenuU9P13pzjhjZutuMsDUz3ebL4YDkxxEUpTq8=; b=CNyUy7krT2KWgEwmWVKxtIQ+mF
+	Vb+1q+gyB5yQGtWUUUTFfkVXSRepuw7fyFqIY66jb6ov+a2TSQuU6Oeko21f10IdvUo87ND796N2s
+	r4dJq4T0v6JLzeGf9VmqXcqhhRS0zxb+AYnr/OkLGsRdGJ59LoP8x6HtyxyIaDGX/UNF4eV4mx/6j
+	9DFL/3RA2rxLGItPLNRlN3OyyNrc4LrBZnn6Z3pAqvn4XXv6D9Sm5JmxAl/Nx6Vi/43ITWBd3Tatn
+	UF0bFlXL9IwSqecAJqVY3MLm3w3NDEriZxsXwEytou0y28YZK6qZ/ZV3pvVIppH/oIVxHPm218vXX
+	ibjZRXUw==;
+Received: from willy by casper.infradead.org with local (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wgnhQ-0000000GLqy-1n2W;
+	Mon, 06 Jul 2026 18:05:44 +0000
+Date: Mon, 6 Jul 2026 19:05:44 +0100
+From: Matthew Wilcox <willy@infradead.org>
+To: Byungchul Park <byungchul@sk.com>
+Cc: linux-kernel@vger.kernel.org, max.byungchul.park@gmail.com,
+	kernel_team@skhynix.com, torvalds@linux-foundation.org,
+	damien.lemoal@opensource.wdc.com, linux-ide@vger.kernel.org,
+	adilger.kernel@dilger.ca, linux-ext4@vger.kernel.org,
+	mingo@redhat.com, peterz@infradead.org, will@kernel.org,
+	tglx@linutronix.de, rostedt@goodmis.org, joel@joelfernandes.org,
+	sashal@kernel.org, daniel.vetter@ffwll.ch, duyuyang@gmail.com,
+	johannes.berg@intel.com, tj@kernel.org, tytso@mit.edu,
+	david@fromorbit.com, amir73il@gmail.com, gregkh@linuxfoundation.org,
+	kernel-team@lge.com, linux-mm@kvack.org, akpm@linux-foundation.org,
+	mhocko@kernel.org, minchan@kernel.org, hannes@cmpxchg.org,
+	vdavydov.dev@gmail.com, sj@kernel.org, jglisse@redhat.com,
+	dennis@kernel.org, cl@linux.com, penberg@kernel.org,
+	rientjes@google.com, vbabka@suse.cz, ngupta@vflare.org,
+	linux-block@vger.kernel.org, josef@toxicpanda.com,
+	linux-fsdevel@vger.kernel.org, jack@suse.cz, jlayton@kernel.org,
+	dan.j.williams@intel.com, hch@infradead.org, djwong@kernel.org,
+	dri-devel@lists.freedesktop.org, rodrigosiqueiramelo@gmail.com,
+	melissa.srw@gmail.com, hamohammed.sa@gmail.com,
+	harry.yoo@oracle.com, chris.p.wilson@intel.com,
+	gwan-gyeong.mun@intel.com, boqun.feng@gmail.com, longman@redhat.com,
+	yunseong.kim@ericsson.com, ysk@kzalloc.com, yeoreum.yun@arm.com,
+	netdev@vger.kernel.org, matthew.brost@intel.com,
+	her0gyugyu@gmail.com, corbet@lwn.net, catalin.marinas@arm.com,
+	bp@alien8.de, x86@kernel.org, hpa@zytor.com, luto@kernel.org,
+	sumit.semwal@linaro.org, gustavo@padovan.org,
+	christian.koenig@amd.com, andi.shyti@kernel.org, arnd@arndb.de,
+	lorenzo.stoakes@oracle.com, Liam.Howlett@oracle.com,
+	rppt@kernel.org, surenb@google.com, mcgrof@kernel.org,
+	petr.pavlu@suse.com, da.gomez@kernel.org, samitolvanen@google.com,
+	paulmck@kernel.org, frederic@kernel.org, neeraj.upadhyay@kernel.org,
+	joelagnelf@nvidia.com, josh@joshtriplett.org, urezki@gmail.com,
+	mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com,
+	qiang.zhang@linux.dev, juri.lelli@redhat.com,
+	vincent.guittot@linaro.org, dietmar.eggemann@arm.com,
+	bsegall@google.com, mgorman@suse.de, vschneid@redhat.com,
+	chuck.lever@oracle.com, neil@brown.name, okorniev@redhat.com,
+	Dai.Ngo@oracle.com, tom@talpey.com, trondmy@kernel.org,
+	anna@kernel.org, kees@kernel.org, bigeasy@linutronix.de,
+	clrkwllms@kernel.org, mark.rutland@arm.com, ada.coupriediaz@arm.com,
+	kristina.martsenko@arm.com, wangkefeng.wang@huawei.com,
+	broonie@kernel.org, kevin.brodsky@arm.com, dwmw@amazon.co.uk,
+	shakeel.butt@linux.dev, ast@kernel.org, ziy@nvidia.com,
+	yuzhao@google.com, baolin.wang@linux.alibaba.com,
+	usamaarif642@gmail.com, joel.granados@kernel.org,
+	richard.weiyang@gmail.com, geert+renesas@glider.be,
+	tim.c.chen@linux.intel.com, linux@treblig.org,
+	alexander.shishkin@linux.intel.com, lillian@star-ark.net,
+	chenhuacai@kernel.org, francesco@valla.it,
+	guoweikang.kernel@gmail.com, link@vivo.com, jpoimboe@kernel.org,
+	masahiroy@kernel.org, brauner@kernel.org,
+	thomas.weissschuh@linutronix.de, oleg@redhat.com, mjguzik@gmail.com,
+	andrii@kernel.org, wangfushuai@baidu.com, linux-doc@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, linux-media@vger.kernel.org,
+	linaro-mm-sig@lists.linaro.org, linux-i2c@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	rcu@vger.kernel.org, linux-nfs@vger.kernel.org,
+	linux-rt-devel@lists.linux.dev, 2407018371@qq.com, dakr@kernel.org,
+	miguel.ojeda.sandonis@gmail.com, neilb@ownmail.net,
+	bagasdotme@gmail.com, wsa+renesas@sang-engineering.com,
+	dave.hansen@intel.com, geert@linux-m68k.org, ojeda@kernel.org,
+	alex.gaynor@gmail.com, gary@garyguo.net, bjorn3_gh@protonmail.com,
+	lossin@kernel.org, a.hindborg@kernel.org, aliceryhl@google.com,
+	tmgross@umich.edu, rust-for-linux@vger.kernel.org
+Subject: Re: [PATCH v19 22/40] dept: track PG_locked with dept
+Message-ID: <akvueAxPl8aoLvMR@casper.infradead.org>
+References: <20260706061928.66713-1-byungchul@sk.com>
+ <20260706061928.66713-23-byungchul@sk.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260706074346.23928-1-lizhe.67@bytedance.com>
+In-Reply-To: <20260706061928.66713-23-byungchul@sk.com>
 
-On Mon, Jul 06, 2026 at 03:43:46PM +0800, Li Zhe wrote:
-> The extra IS_ALIGNED() check is meant as a conservative performance
-> choice, not because MOVNTI itself would be invalid on a misaligned
-> destination.
-
-Dude, you can't just wait for me to pull every unobvious decision in the code
-out of you - you need to write it down in your commit messages! I'm not a mind
-reader, you know.
-
-> As the Intel optimization reference manual notes, higher-throughput
-> data movement usually comes with alignment considerations, and can
-> be more efficient when the destination is naturally aligned.
-
-This can't get any more vague.
-
-> So for these larger fixed-size cases, I kept the inline path limited
-> to the aligned case. For misaligned destinations, falling back to
-> __memcpy_flushcache() is expected to be the better choice, since it
-> already handles the unaligned head first and only then enters its
-> MOVNTI loops.
+On Mon, Jul 06, 2026 at 03:19:10PM +0900, Byungchul Park wrote:
+> Makes dept able to track PG_locked waits and events, which will be
+> useful in practice.  See the following link that shows dept worked with
+> PG_locked and detected real issues in practice:
 > 
-> I will make that rationale explicit in the code comment and commit
-> message in v6.
+>    https://lore.kernel.org/lkml/1674268856-31807-1-git-send-email-byungchul.park@lge.com/
 
-No, you need to show whether the alignment brigns anything and then add it or
-remove it. We don't do things based on hearsay in the kernel - only on hard
-performance numbers.
+> @@ -219,6 +220,7 @@ struct page {
+>  	struct page *kmsan_shadow;
+>  	struct page *kmsan_origin;
+>  #endif
+> +	struct dept_ext_wgen pg_locked_wgen;
+>  } _struct_page_alignment;
 
-Thx.
+I may not understand this quite correctly, but I think that tracking
+PG_locked dependencies in the struct page has both false positive and
+false negative problems.
 
--- 
-Regards/Gruss,
-    Boris.
+Imagine we have a file mapping M1 containing folio F1 at index 0 and F2
+at index 1.  It is correct locking order to lock F1 before locking F2
+(for example when doing writeback).  Later, M1 has its folios reclaimed
+and returned to the free pool.  Then each is added to mapping M2, this
+time with folio F2 at index 8 and F1 at index 9.  Now the correct order
+to lock these folios in the order F2 followed by F1.
 
-https://people.kernel.org/tglx/notes-about-netiquette
+I don't see a part of this patch where we clear pg_locked_wgen when the
+page is returned to the page allocator.  Maybe I missed that.
+
+I think we should be tracking PG_locked dependencies in the owner
+of the folio.  For files, that would be in the struct address_space.
+For anon memory, I think that's in the anon_vma, but if somebody told
+me it was in some other structure, I wouldn't argue with them.
+
+This requires slightly more complexity than lockdep currently has.
+We don't want to use a lockdep class for each folio, obviously.  So we
+need something to say "I already have folio F1 locked, is it OK to lock
+folio F2?".  Essentially figuring out how we can track all folios in a
+given mapping the same way, and making sure that we don't deadlock on
+folios in the same mapping.
+
+If F1 and F2 are in different mappings, it's not a deadlock if F1 is in a
+filesystem mapping and F2 is in its backing dev.  It's also not a deadlock
+if F1 and F2 are both filesystem folios and the inodes are both locked.
+See vfs_lock_two_folios() in fs/remap_range.c.
+
+I have much less knowledge about anonymous memory locking order.
+Maybe it doesn't happen.  Or about locking one anon and one file folio.
+For slab memory, we don't sleep on PG_locked (it's used as a spinlock bit).
+For other kinds of memory ... I don't know.  Page migration is fun.
