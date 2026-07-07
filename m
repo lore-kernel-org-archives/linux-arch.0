@@ -1,129 +1,239 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 13F2730AABE;
-	Tue,  7 Jul 2026 14:48:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D3962F12A5;
+	Tue,  7 Jul 2026 19:05:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783435699; cv=none; b=ZiBIrYp3J2RKMXHLC/lENhVK6Jri9560B/o9yCAYHxPlLpcgaaqDxoAl/1Xl7wxdwDICkat6Gp+lJETh2MgpiZQLd/insidJgo+DB0jTMZmoTy2ov15haIvYigQm8lGK3tqlOmJxYZAttTGMDanp/S/RoVpcHiAdoQEAvwCJUw4=
+	t=1783451159; cv=none; b=pkEvgJ/wGEQHYxNTnXDdjRAdNZ6ke0tREY3EjUFeQGyP17E4byRSUqaFmG0xcXuEyqA2krjEvKEwANDQ9XKDbSp6HHkHRhDc0KH03YiiuNba8/qiZW3ZDqUL9fliqA/etdXvesJbA5zZvnK4WFTpOexSr+LCHPs4xeV9VUJTp50=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783435699; c=relaxed/simple;
-	bh=3tWkLtv1r5S9y1Rh08QPuFqmn/Edh3V72WQL303pkDY=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=thpfKRXYu1Z2uV714oKOJNMyp2VLzYlXfCDnJzorsc+iML6ahnvLFi6KgEwGUz77eYOxgzei1qyJBDk/xpm2/6EmG2Zu/xdQjs+y4P3W2xKoJaenevDyKbl3CDgIN5FbV2go85SGfZkF7iP1A+kIKfyODJoei3t7V5J2p3aJA7Y=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=jCD1N2xC; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1783451159; c=relaxed/simple;
+	bh=QXLUt1TPzW5KUIfT+EbS13frXZWcSnBhPA0WRti5QHo=;
+	h=Date:Message-ID:From:To:Cc:Subject; b=POA9D7ZKW0/zNUHuA5rKB3WkMniTIJteB8EAENg8NhbVwtwBt1fg1LHd6lLxJcr0qlUrf1Pmg0JlU1I6ZWzgY3/UX05uHHb/AeEgLfHkg2qeTewX/n0KReX/MxrzlfZTfT3AJBHZflxvsHuI+ljeIgwraSElD/x/7CLYHHxXlTE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=VFkWTdo5; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="jCD1N2xC"
-Received: from localhost (unknown [20.236.11.29])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 2F94920B7166;
-	Tue,  7 Jul 2026 07:48:12 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 2F94920B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1783435693;
-	bh=jZRO96unfBRPa4hmnICsULiigA4xhGgQeUwW9uBSN7c=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=jCD1N2xCD97HB8h/7Xd9VHwi0f+vmVZsGMEZ0RLfbm9mvrKY8H9ja5k8PSAMrq5US
-	 znoXfGfJ2Gg6fI/jfFerPC6XQy/g79MMpXS7tHDNwPG8S/10KbOGHrV+GFbq2Yru/I
-	 ilErZQbReXPQ4sF24kgh5fOy7X6ZKcueVHgVWA+U=
-Date: Tue, 7 Jul 2026 07:48:14 -0700
-From: Jacob Pan <jacob.pan@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: Yu Zhang <zhangyu1@linux.microsoft.com>, linux-kernel@vger.kernel.org,
- linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
- linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, wei.liu@kernel.org,
- kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
- longli@microsoft.com, joro@8bytes.org, will@kernel.org,
- robin.murphy@arm.com, bhelgaas@google.com, kwilczynski@kernel.org,
- lpieralisi@kernel.org, mani@kernel.org, robh@kernel.org, arnd@arndb.de,
- jgg@ziepe.ca, mhklinux@outlook.com, tgopinath@linux.microsoft.com,
- easwar.hariharan@linux.microsoft.com, jacob.pan@linux.microsoft.com
-Subject: Re: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Message-ID: <20260707074814.000010a0@linux.microsoft.com>
-In-Reply-To: <1f57d1d9-ccbb-ff4e-9680-d45adc7821ea@linux.microsoft.com>
-References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
-	<20260702160518.311234-4-zhangyu1@linux.microsoft.com>
-	<1f57d1d9-ccbb-ff4e-9680-d45adc7821ea@linux.microsoft.com>
-Organization: LSG
-X-Mailer: Claws Mail 3.21.0 (GTK+ 2.24.33; x86_64-w64-mingw32)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="VFkWTdo5"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 113781F000E9;
+	Tue,  7 Jul 2026 19:05:56 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1783451156;
+	bh=sKaa6jqJcnZ3kixdUKctGHCLE8bgvUhOgv/iQQ4U2eg=;
+	h=Date:From:To:Cc:Subject;
+	b=VFkWTdo5yhgpXx9sxvRHZ3HlP4xSZ4aHXa1zsGtMnp9mQpMvU4qieroT0K0+AUmNe
+	 mH4Zbvrp37BWRtV+WSrFvOBwzQyMx5YfHARXuOrmubRPkhjAk6NgYYQTWgkAhazAju
+	 1djGcOQc2V77x2qVXGFvC6BkwM/+Iezw2J7QhqUY7M9Y5saOvbXsETd73JhuSwTJ1e
+	 Hk7rq39ys7eddzm/Skk6nfXmoJIZBJVZnDdD7rbJtFga+XVDyFyYEDjJyfJdP9Y2Vt
+	 rb/jER5CfvGmtQfb87VuvQHb1UgZTCkpnw26sWY8rQ0z0x4vkc0U56YUbxw1o0tQkB
+	 6sQc63NXlLiVQ==
+Date: Tue, 07 Jul 2026 21:05:53 +0200
+Message-ID: <20260707181957.433213175@kernel.org>
+User-Agent: quilt/0.69
+From: Thomas Gleixner <tglx@kernel.org>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>,
+ Michael Ellerman <mpe@ellerman.id.au>,
+ Shrikanth Hegde <sshegde@linux.ibm.com>,
+ linuxppc-dev@lists.ozlabs.org,
+ Kees Cook <kees@kernel.org>,
+ Huacai Chen <chenhuacai@kernel.org>,
+ loongarch@lists.linux.dev,
+ Paul Walmsley <pjw@kernel.org>,
+ Palmer Dabbelt <palmer@dabbelt.com>,
+ linux-riscv@lists.infradead.org,
+ Sven Schnelle <svens@linux.ibm.com>,
+ linux-s390@vger.kernel.org,
+ x86@kernel.org,
+ Mark Rutland <mark.rutland@arm.com>,
+ Jinjie Ruan <ruanjinjie@huawei.com>,
+ Andy Lutomirski <luto@kernel.org>,
+ Oleg Nesterov <oleg@redhat.com>,
+ Richard Henderson <richard.henderson@linaro.org>,
+ Russell King <linux@armlinux.org.uk>,
+ Catalin Marinas <catalin.marinas@arm.com>,
+ Guo Ren <guoren@kernel.org>,
+ Geert Uytterhoeven <geert@linux-m68k.org>,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Helge Deller <deller@gmx.de>,
+ Yoshinori Sato <ysato@users.sourceforge.jp>,
+ Richard Weinberger <richard@nod.at>,
+ Chris Zankel <chris@zankel.net>,
+ linux-arm-kernel@lists.infradead.org,
+ linux-alpha@vger.kernel.org,
+ linux-csky@vger.kernel.org,
+ linux-m68k@lists.linux-m68k.org,
+ linux-mips@vger.kernel.org,
+ linux-parisc@vger.kernel.org,
+ linux-sh@vger.kernel.org,
+ linux-um@lists.infradead.org,
+ Arnd Bergmann <arnd@arndb.de>,
+ Vineet Gupta <vgupta@kernel.org>,
+ Will Deacon <will@kernel.org>,
+ Brian Cain <bcain@kernel.org>,
+ Michal Simek <monstr@monstr.eu>,
+ Dinh Nguyen <dinguyen@kernel.org>,
+ "David S. Miller" <davem@davemloft.net>,
+ Andreas Larsson <andreas@gaisler.com>,
+ linux-snps-arc@lists.infradead.org,
+ linux-hexagon@vger.kernel.org,
+ linux-openrisc@vger.kernel.org,
+ sparclinux@vger.kernel.org,
+ linux-arch@vger.kernel.org,
+ =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>,
+ Jonathan Corbet <corbet@lwn.net>,
+ linux-doc@vger.kernel.org
+Subject: [patch 00/18] entry: Consolidate and rework syscall entry handling
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
 
-Hi Mukesh,
+Sorry for the long CC list, but this is a treewide change.
 
-On Mon, 6 Jul 2026 17:08:50 -0700
-Mukesh R <mrathor@linux.microsoft.com> wrote:
+Michal recently posted a RFC patch to separate the potential syscall number
+modifications in syscall_enter_user_mode_work() from the information
+whether the syscall should be processed and the return value modified:
 
-> From: Mukesh R <mrathor@linux.microsoft.com>
-> To: Yu Zhang <zhangyu1@linux.microsoft.com>,
-> linux-kernel@vger.kernel.org,  linux-hyperv@vger.kernel.org,
-> iommu@lists.linux.dev,  linux-pci@vger.kernel.org,
-> linux-arch@vger.kernel.org Cc: wei.liu@kernel.org, kys@microsoft.com,
-> haiyangz@microsoft.com,  decui@microsoft.com, longli@microsoft.com,
-> joro@8bytes.org, will@kernel.org,  robin.murphy@arm.com,
-> bhelgaas@google.com, kwilczynski@kernel.org,  lpieralisi@kernel.org,
-> mani@kernel.org, robh@kernel.org, arnd@arndb.de,  jgg@ziepe.ca,
-> mhklinux@outlook.com, jacob.pan@linux.microsoft.com,
-> tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com
-> Subject: Re: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU
-> support  for Hyper-V guest Date: Mon, 6 Jul 2026 17:08:50 -0700
-> User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
-> Thunderbird/91.13.1
-> 
-> On 7/2/26 09:05, Yu Zhang wrote:
-> > Add a para-virtualized IOMMU driver for Linux guests running on
-> > Hyper-V. This driver implements stage-1 IO translation within the
-> > guest OS. It integrates with the Linux IOMMU core, utilizing
-> > Hyper-V hypercalls for:
-> >   - Capability discovery
-> >   - Domain allocation, configuration, and deallocation
-> >   - Device attachment and detachment
-> >   - IOTLB invalidation
-> > 
-> > The driver constructs x86-compatible stage-1 IO page tables in the
-> > guest memory using consolidated IO page table helpers. This allows
-> > the guest to manage stage-1 translations independently of vendor-
-> > specific drivers (like Intel VT-d or AMD IOMMU).
-> > 
-> > Hyper-V consumes this stage-1 IO page table when a device domain is
-> > created and configured, and nests it with the host's stage-2 IO page
-> > tables, therefore eliminating the VM exits for guest IOMMU mapping
-> > operations. For unmapping operations, VM exits to perform the IOTLB
-> > flush are still unavoidable.
-> > 
-> > To identify a device in its hypercall interface, the driver looks
-> > up the logical device ID prefix registered for the device's PCI
-> > domain (see the logical device ID registry in hv_common.c) and
-> > combines it with the PCI function number of the endpoint device.
-> > 
-> > Co-developed-by: Wei Liu <wei.liu@kernel.org>
-> > Signed-off-by: Wei Liu <wei.liu@kernel.org>
-> > Co-developed-by: Easwar Hariharan
-> > <easwar.hariharan@linux.microsoft.com> Signed-off-by: Easwar
-> > Hariharan <easwar.hariharan@linux.microsoft.com> Signed-off-by: Yu
-> > Zhang <zhangyu1@linux.microsoft.com> ---
-> >   arch/x86/hyperv/hv_init.c       |   4 +
-> >   arch/x86/include/asm/mshyperv.h |   4 +
-> >   drivers/iommu/Kconfig           |   1 +
-> >   drivers/iommu/hyperv/Kconfig    |  16 +
-> >   drivers/iommu/hyperv/Makefile   |   1 +
-> >   drivers/iommu/hyperv/iommu.c    | 620
-> > ++++++++++++++++++++++++++++++++ drivers/iommu/hyperv/iommu.h    |
-> > 51 +++ 7 files changed, 697 insertions(+)
-> >   create mode 100644 drivers/iommu/hyperv/Kconfig
-> >   create mode 100644 drivers/iommu/hyperv/iommu.c  
-> 
-> Hey Jacob,
-> 
-> You had suggested I rename iommu.c to iommu-root.c (I called it
-> hv-iommu-root.c eventually), so this needs to be renamed also,
-> right?
+  https://lore.kernel.org/lkml/CE1qW@kunlun.suse.cz
 
-yes, I agree. I feel it is clearer to name it hv-iommu-guest.c since
-this is a guest only driver.
+The existing logic is:
+
+arch_syscall()
+	regs->result = -ENOSYS;
+
+	syscallnr = syscall_enter_from_user_mode(regs, syscall);
+
+	if (syscallnr != -1L)
+		regs->result = invoke_syscall(regs, syscall;
+
+syscall_enter_from_user_mode() invokes ptrace, seccomp and
+tracing/BPF/Probes. All of them can modify the syscall number.
+
+ptrace and seccomp explicitly set the syscall number to -1L to indicate
+that the syscall invocation needs to be skipped and the result has not to
+be modified as it might have been modified by ptrace or seccomp. The
+tracer/BPF/Probes mechanism can modify the syscall number as well and
+relies implicitly on the -1L logic.
+
+This can obviously not be differentiated from a syscall invocation where
+userspace provided -1 as syscall number.
+
+The general agreement of the discussion was that the current mechanism,
+while functionally correct is non-intuitive and something like Michals
+proposal would make that code clearer and easier to handle on the
+architecture side:
+
+arch_syscall()
+	regs->result = -ENOSYS;
+
+	if (syscall_enter_from_user_mode(regs, &syscall)) 
+		regs->result = invoke_syscall(regs, syscall;
+
+That discussion made me look deeper into the related code and as usual
+there were a lot of other things to discover.
+
+  1) Stack randomization
+
+     add_random_kstack_offset() can only be invoked after
+     enter_from_user_mode() established proper state as it calls into
+     instrumentable code.
+
+     PowerPC got that wrong and the other architectures either invoke it
+     after enter_from_user_mode() or after syscall_enter_from_user_mode().
+
+     The latter is suboptimal as the randomization takes place after all
+     the user mode entry work. Aside of that add_random_kstack_offset()
+     uses get/put_cpu_var(), which makes it usable in preemptible code, but
+     when invoked in the interrupt disabled region that's pointless
+     overhead.
+
+  2) As discussed in the above thread just changing the function signature
+     of syscall_enter_from_user_mode[_work]() so they take a pointer
+     argument for the syscall and then return 0 on success is not really
+     intuitive either. Aside of that this breaks the implicit assumption of
+     the tracer when setting the syscall number to -1.
+
+  3) The x86 entry code has some historically accumulated oddities
+
+The following series addresses this by:
+
+  1) Providing new [syscall_]enter_from_user_mode() variants, which include
+     stack randomization and utilize a new add_random_kstack_offset_irqsoff()
+     variant, which avoids the get/put_cpu_var() overhead and converting all
+     usage sites over
+
+  2) Picking up Jinjie's seccomp patch from:
+
+     https://lore.kernel.org/lkml/20260629130616.642022-2-ruanjinjie@huawei.com
+
+     and addressing the feedback (renaming the seccomp functions)
+
+  3) Making the ptrace and tracer related functions return a boolean value
+     to indicate syscall permission
+
+  4) Addressing the x86 oddities
+
+  5) Converting the tree over to the new scheme
+
+With that all architectures using the generic syscall entry code follow the
+same scheme, apply stack randomization at the correct and earliest possible
+place and skip syscall processing depending on the boolean return value of
+syscall_enter_from_user_mode[_work]().
+
+There should be no functional changes, at least there are none intended.
+
+The resulting text size for the syscall entry code on x8664 is slightly
+smaller than before these changes.
+
+Testing syscall heavy workloads and micro benchmarks shows a small
+performance gain for the general rework, but the last patch, which changes
+the logic to be more understandable has no measurable impact in either
+direction.
+
+The series applies on Linus tree and is also available from git:
+
+        git://git.kernel.org/pub/scm/linux/kernel/git/tglx/devel.git entry-rework-v1
+
+Thanks,
+
+	tglx
+---
+ Documentation/core-api/entry.rst      |   33 +++++---
+ arch/alpha/kernel/ptrace.c            |    4 -
+ arch/arc/kernel/ptrace.c              |    2 
+ arch/arm/kernel/ptrace.c              |    4 -
+ arch/arm64/kernel/ptrace.c            |    4 -
+ arch/csky/kernel/ptrace.c             |    4 -
+ arch/hexagon/kernel/traps.c           |    2 
+ arch/loongarch/kernel/syscall.c       |   17 +---
+ arch/m68k/kernel/ptrace.c             |    4 -
+ arch/microblaze/kernel/ptrace.c       |    2 
+ arch/mips/kernel/ptrace.c             |    4 -
+ arch/nios2/kernel/ptrace.c            |    2 
+ arch/openrisc/kernel/ptrace.c         |    2 
+ arch/parisc/kernel/ptrace.c           |   12 +--
+ arch/powerpc/kernel/syscall.c         |    5 -
+ arch/riscv/kernel/traps.c             |   14 +--
+ arch/s390/kernel/syscall.c            |   11 +-
+ arch/sh/kernel/ptrace_32.c            |    4 -
+ arch/sparc/kernel/ptrace_32.c         |    2 
+ arch/sparc/kernel/ptrace_64.c         |    2 
+ arch/um/kernel/ptrace.c               |    2 
+ arch/um/kernel/skas/syscall.c         |    2 
+ arch/x86/entry/syscall_32.c           |   70 +++++++------------
+ arch/x86/entry/syscall_64.c           |   61 ++++++----------
+ arch/x86/entry/vsyscall/vsyscall_64.c |   14 +--
+ arch/x86/include/asm/entry-common.h   |    1 
+ arch/x86/include/asm/syscall.h        |   10 --
+ arch/xtensa/kernel/ptrace.c           |    5 -
+ include/asm-generic/syscall.h         |    4 -
+ include/linux/entry-common.h          |  125 ++++++++++++++++++++--------------
+ include/linux/irq-entry-common.h      |    6 -
+ include/linux/ptrace.h                |   13 +--
+ include/linux/randomize_kstack.h      |   19 +++++
+ include/linux/seccomp.h               |   12 +--
+ kernel/entry/syscall-common.c         |    7 +
+ kernel/seccomp.c                      |   35 ++++-----
+ 36 files changed, 264 insertions(+), 256 deletions(-)
+
+
