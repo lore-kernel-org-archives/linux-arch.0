@@ -1,298 +1,289 @@
-Received: from invmail4.hynix.com (exvmail4.skhynix.com [166.125.252.92])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id ABBA02D7BF;
-	Tue,  7 Jul 2026 02:35:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.125.252.92
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783391756; cv=none; b=avezIVHor5HBINqgHTabGyzkFeCNg794O0UTbP0YuELdXWqwPMgtJW5CC9z9lU+vkbs0LB04oMH5FDkOmcTdy6OSm1I76xvNG9kX9Sikx9O2rJ/Dr3E01HzP5zu7sUanoFnbCntE6P9hpGO8LNiocbRwCuZIXVA5BjCHsRKK8zQ=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783391756; c=relaxed/simple;
-	bh=4aXH2f9ytQjDBaSOD98MPjwilmVXY5Gbzhe6oue0oYM=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=CrknILNZmzbBrxGUn5HMTs3x9e9J87LTdTXOBHJRMXSSyWYy2WRJ3g2VKdTcT/io+4KWKAPM4ymWr5jdhlu1DXlgfmo2H6K42xrRaAfADWYcIysL52js83cVjJDtYDBccIgf0ZAZ1jHUf5FIK1FL9vN/GG6Bz3FOv1O0NprSxtU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com; spf=pass smtp.mailfrom=sk.com; arc=none smtp.client-ip=166.125.252.92
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sk.com
-X-AuditID: a67dfc5b-c2dff70000001609-b0-6a4c66049ff9
-Date: Tue, 7 Jul 2026 11:35:42 +0900
-From: Byungchul Park <byungchul@sk.com>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: linux-kernel@vger.kernel.org, max.byungchul.park@gmail.com,
-	kernel_team@skhynix.com, torvalds@linux-foundation.org,
-	damien.lemoal@opensource.wdc.com, linux-ide@vger.kernel.org,
-	adilger.kernel@dilger.ca, linux-ext4@vger.kernel.org,
-	mingo@redhat.com, peterz@infradead.org, will@kernel.org,
-	tglx@linutronix.de, rostedt@goodmis.org, joel@joelfernandes.org,
-	sashal@kernel.org, daniel.vetter@ffwll.ch, duyuyang@gmail.com,
-	johannes.berg@intel.com, tj@kernel.org, tytso@mit.edu,
-	david@fromorbit.com, amir73il@gmail.com, gregkh@linuxfoundation.org,
-	kernel-team@lge.com, linux-mm@kvack.org, akpm@linux-foundation.org,
-	mhocko@kernel.org, minchan@kernel.org, hannes@cmpxchg.org,
-	vdavydov.dev@gmail.com, sj@kernel.org, jglisse@redhat.com,
-	dennis@kernel.org, cl@linux.com, penberg@kernel.org,
-	rientjes@google.com, vbabka@suse.cz, ngupta@vflare.org,
-	linux-block@vger.kernel.org, josef@toxicpanda.com,
-	linux-fsdevel@vger.kernel.org, jack@suse.cz, jlayton@kernel.org,
-	dan.j.williams@intel.com, hch@infradead.org, djwong@kernel.org,
-	dri-devel@lists.freedesktop.org, rodrigosiqueiramelo@gmail.com,
-	melissa.srw@gmail.com, hamohammed.sa@gmail.com,
-	harry.yoo@oracle.com, chris.p.wilson@intel.com,
-	gwan-gyeong.mun@intel.com, boqun.feng@gmail.com, longman@redhat.com,
-	yunseong.kim@ericsson.com, ysk@kzalloc.com, yeoreum.yun@arm.com,
-	netdev@vger.kernel.org, matthew.brost@intel.com,
-	her0gyugyu@gmail.com, corbet@lwn.net, catalin.marinas@arm.com,
-	bp@alien8.de, x86@kernel.org, hpa@zytor.com, luto@kernel.org,
-	sumit.semwal@linaro.org, gustavo@padovan.org,
-	christian.koenig@amd.com, andi.shyti@kernel.org, arnd@arndb.de,
-	lorenzo.stoakes@oracle.com, Liam.Howlett@oracle.com,
-	rppt@kernel.org, surenb@google.com, mcgrof@kernel.org,
-	petr.pavlu@suse.com, da.gomez@kernel.org, samitolvanen@google.com,
-	paulmck@kernel.org, frederic@kernel.org, neeraj.upadhyay@kernel.org,
-	joelagnelf@nvidia.com, josh@joshtriplett.org, urezki@gmail.com,
-	mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com,
-	qiang.zhang@linux.dev, juri.lelli@redhat.com,
-	vincent.guittot@linaro.org, dietmar.eggemann@arm.com,
-	bsegall@google.com, mgorman@suse.de, vschneid@redhat.com,
-	chuck.lever@oracle.com, neil@brown.name, okorniev@redhat.com,
-	Dai.Ngo@oracle.com, tom@talpey.com, trondmy@kernel.org,
-	anna@kernel.org, kees@kernel.org, bigeasy@linutronix.de,
-	clrkwllms@kernel.org, mark.rutland@arm.com, ada.coupriediaz@arm.com,
-	kristina.martsenko@arm.com, wangkefeng.wang@huawei.com,
-	broonie@kernel.org, kevin.brodsky@arm.com, dwmw@amazon.co.uk,
-	shakeel.butt@linux.dev, ast@kernel.org, ziy@nvidia.com,
-	yuzhao@google.com, baolin.wang@linux.alibaba.com,
-	usamaarif642@gmail.com, joel.granados@kernel.org,
-	richard.weiyang@gmail.com, geert+renesas@glider.be,
-	tim.c.chen@linux.intel.com, linux@treblig.org,
-	alexander.shishkin@linux.intel.com, lillian@star-ark.net,
-	chenhuacai@kernel.org, francesco@valla.it,
-	guoweikang.kernel@gmail.com, link@vivo.com, jpoimboe@kernel.org,
-	masahiroy@kernel.org, brauner@kernel.org,
-	thomas.weissschuh@linutronix.de, oleg@redhat.com, mjguzik@gmail.com,
-	andrii@kernel.org, wangfushuai@baidu.com, linux-doc@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-media@vger.kernel.org,
-	linaro-mm-sig@lists.linaro.org, linux-i2c@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
-	rcu@vger.kernel.org, linux-nfs@vger.kernel.org,
-	linux-rt-devel@lists.linux.dev, 2407018371@qq.com, dakr@kernel.org,
-	miguel.ojeda.sandonis@gmail.com, neilb@ownmail.net,
-	bagasdotme@gmail.com, wsa+renesas@sang-engineering.com,
-	dave.hansen@intel.com, geert@linux-m68k.org, ojeda@kernel.org,
-	alex.gaynor@gmail.com, gary@garyguo.net, bjorn3_gh@protonmail.com,
-	lossin@kernel.org, a.hindborg@kernel.org, aliceryhl@google.com,
-	tmgross@umich.edu, rust-for-linux@vger.kernel.org
-Subject: Re: [PATCH v19 22/40] dept: track PG_locked with dept
-Message-ID: <20260707023542.GA33746@system.software.com>
-References: <20260706061928.66713-1-byungchul@sk.com>
- <20260706061928.66713-23-byungchul@sk.com>
- <akvueAxPl8aoLvMR@casper.infradead.org>
+Received: from SJ2PR03CU001.outbound.protection.outlook.com (mail-westusazon11012013.outbound.protection.outlook.com [52.101.43.13])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 100D53793BA;
+	Tue,  7 Jul 2026 03:04:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.43.13
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783393442; cv=fail; b=Lu0YqaTgB7oug1vk8aIeaFQ3XBk0OGEVpHedqBnWukTzqdKmm77T13yqJH87SFfS4moPBmTyATBNx+3U39Dk2EdwVlN5AVZr9P1TGf0V91ddQlHqWiLfxuHakQsVNrK5djLhb0D9E5bqYUK0jwcqBZiZe7ORFRf6F2MCMOGsO1w=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783393442; c=relaxed/simple;
+	bh=MpDuzucRmnPh9b+6bD85aCc/1xo0Uf28oaTsJNTz5dk=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=gFouWF1uSye4pAnmpzc70u8pX82pSOFYc+KIW3VExwvAqOoVeBEmdo9+CNIwe8soTYtKCRXqxPPxyE3EHHpDYt61hG7c2gCuWe7nb37y8vTtRb3/Gszfm0oaxr4GZuedOaSogyd9NGEGs7RwOSnPiK7c1u1pfengIs8xue9eit8=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=dyH3vsUH; arc=fail smtp.client-ip=52.101.43.13
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="dyH3vsUH"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=K9hqZc7RW/7sVmXFtDa4PVrqWzzhJjeAo3JDKrUYEr7IlKKRgeMWDIsnSef1YvyJ6UTYyfjrgB0YLNC8SnAFYM6VsDT58dH4IRmBSAC+9d2FNGRo75PzjYlin2jWkBc9J6pFMP3fAYS0B1xJmQ77RdfTW0tLwdKLjj4Ft0aBcsPgM5qt/XNbUiuZ3LK0IvRb7qrdB8OzGbMIyuKmiSEhbC8bZ7rXpe3KafY6KWG/+OLLqhL9XgvhnzGpOZ06DohCtjN3MfXeAaixwvEG3V5JYnMf7JdkvXPeJu0/9scT4e2dGB1gf9em1QcY8JTwvNFTVFwmoTwSaP5K4/lixsfJMg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=eKReyStzCu60GUZcWwZ29FnEijq1osKolLGH9MuB0rs=;
+ b=Jom20b1E/HBeTU45pSrHATUNxJRFfMeoR60D+Qmq+EUOJvxqplh1l7rzSSPYMkhwh9b6dW5bEVn7lNPuTiPIy2Y784cqmqnBd5GGI8qCXAmQtWxBJYhpCxv/CE9IvDK+WakkkFT8Aljq4AbSqF4eDMKSnOU/s22SbHjEJCWaM8sgggPJK2lPanUlW/2uEH15IZ+SZJlVi+If/Yncr//ptteiZL95t8wQQW1UQuWyst8yDeTAkWFdNTN1bz15B7OPvZ1wCywy64hrniJtKJcrz58k4Hrx1o3GYg2zsEWcmEqx5rAGpCPTZp7SInyg0+St1hzRkdwCapjlbsYKPckWCQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=eKReyStzCu60GUZcWwZ29FnEijq1osKolLGH9MuB0rs=;
+ b=dyH3vsUHtMoEr6pxSrhrFj9yaoPxJLjsRx82SataptDX93hAEtyGosF5vEoy3dmIBHD3Hw3x2yXqBB4e5riisYpgH7a6ahrQMBcwlPJYLgPZa1BO8HEP8uiIEQ5qKthMIk3NWcw6G9MIG/ctcVsNK88hV62HfaMhj+GXwxyqYPGieTzFeD5/LhCWhDRREKFS0pZ5Ckoqfc4QqJv22Xm2cX1UYo673CdZPFVUtww4jLmKdGYghqaRxPKtBbBk386fyKxtqH0cI0qVYuh1SD04qGZqfz5FoobuMFMEkUFbHC9lnXvh/LTtE8MU7v/XsCY8IB6d5q5oyOGS4aUYz2OiEw==
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from DS0PR12MB7726.namprd12.prod.outlook.com (2603:10b6:8:130::6) by
+ CYYPR12MB9015.namprd12.prod.outlook.com (2603:10b6:930:c8::6) with Microsoft
+ SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.21.181.8; Tue, 7 Jul 2026 03:03:03 +0000
+Received: from DS0PR12MB7726.namprd12.prod.outlook.com
+ ([fe80::5807:8e24:69b0:f6c0]) by DS0PR12MB7726.namprd12.prod.outlook.com
+ ([fe80::5807:8e24:69b0:f6c0%4]) with mapi id 15.21.0181.008; Tue, 7 Jul 2026
+ 03:03:03 +0000
+Date: Tue, 7 Jul 2026 13:02:52 +1000
+From: Alistair Popple <apopple@nvidia.com>
+To: Li Zhe <lizhe.67@bytedance.com>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, bp@alien8.de, 
+	dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org, mingo@redhat.com, 
+	rppt@kernel.org, tglx@kernel.org, linux-arch@vger.kernel.org, 
+	linux-hardening@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
+Subject: Re: [PATCH v5 4/8] mm: add a template-based fast path for
+ zone-device page init
+Message-ID: <akxpS3WOP7oUBNKF@nvdebian.thelocal>
+References: <20260701090553.62691-1-lizhe.67@bytedance.com>
+ <20260701090553.62691-5-lizhe.67@bytedance.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260701090553.62691-5-lizhe.67@bytedance.com>
+X-ClientProxiedBy: SY5P300CA0018.AUSP300.PROD.OUTLOOK.COM
+ (2603:10c6:10:1ff::6) To DS0PR12MB7726.namprd12.prod.outlook.com
+ (2603:10b6:8:130::6)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <akvueAxPl8aoLvMR@casper.infradead.org>
-User-Agent: Mutt/1.9.4 (2018-02-28)
-X-Brightmail-Tracker: H4sIAAAAAAAAA02Sa0yTZxTH87zv815o2u218/IMNp0dY4ZsbCgfjstG/LDIu8wtGvdpJtMK
-	VYoFTSsoy4ySbV3XsI6hE2mJtl4AS0VpRRkDBwhIxzWTdEW5yEWxWaGx0g7l4lqNmd9++Z9/
-	fud8ODwtt7GxvDpnv0qbo9QoWAmWTElPv4t3bcp63/hoHRi+PwyhGQOGsosOFhYsVznoq65C
-	MBIyIHjS2I7AcbmAghJfAYZAeSECX1sa/B32I5ho+gHBwvE9MNfdS4NtdIiGoO8Ogv5QgIXO
-	otMUHK9ZAZaSbynoOjOIYazSzEF71SQH1VO9DIzc0DNgqA9hcI57GLDpz2IoPTnIQkOjG0N7
-	3RgFw44nDPxV1Yfh4qSXgs72Dgxu83kMt7t/5qC3/gIDo3e8DLi6u2gIm+Lg6PQ9BAMlfg7K
-	Q4HIMutyOH+qAkHxvSAH/QO/IzhXOcXA9ZCfgj+HHnLweKiOAU/xKRYeV7Qh+HXewIKlwITA
-	0BqmYW62jAVTTxrMXhpnYKbKzsJ00QwDlrZhbsMG0XHSgcTvXAfEc51+VmwMW7H4m3mIE63O
-	XNFVmSieafBRotP+Iys6g8WcaJu7T4uDngZWnO7p4cSOE3OR/uh6caK/hNr8xpeSDzNUGnWe
-	Svte6g5J5oMLd+l9luSDLnsjdwQ9TDCiGJ4IKaSjuZZ5zqWuGhxlLMSTnlYrFWVWeJt4vY9o
-	I+L5pcIa4r+81ogkPC0cW0lspitctPOKkEqu3Q4/ZZkApMh6jIuW5EIhIv7CRfxssIS4Syee
-	Mi0kEu+ij4pKaSGOVCzy0TgmcsPIv//QUV4mvEmartygoh4ijMWQ+rvPPER4lTRXenEREswv
-	aM0vaM3/a62ItiO5OicvW6nWpCRl5ueoDyal7812osjjlh+a31aHgn1bW5DAI4VUdsn4aZac
-	Uebp8rNbEOFpxVJZwppIJMtQ5n+t0u7drs3VqHQtKI7HihWyteEDGXJht3K/ao9KtU+lfT6l
-	+JjYI0iv0f2BN730Sdnm1o03d0gHFpgvmlanjZq8y+UJjt71k6HZQ6s/Tq0tjX19/OzOha9k
-	Gxfjr62UBoY/G9Z3Je/6/NaWZSn8qqb7r21/OSu9tuaXj46eSAp4ch+8lS5skcLhhKvTA27N
-	rXfWpZbd3BY/m6ef+Sbo+WnnB5rmPt49X51tX6XAukxlciKt1Sn/A9zEkT+0AwAA
-X-Brightmail-Tracker: H4sIAAAAAAAAA02SbUxTZxTH8zzP7b2XZtVrZfMGEhLry0wzcTI0J3PzJVnCzXyJcR+2+EWb
-	cZXypmkdA5NFKDRWJKY0toRWtKLUBXkrrUxwZVi2MmUOKttgA1ZZKti0jg15CSDF1mXRLye/
-	8z///8n5cFgij0qSWHX+KVGTr8pV0FJKemBH6Wbq2L7sdwMTUjDoz8BIICiB30q6KJiZNlBw
-	qbmBhiXbNwwYWqsl8OOgjoL+ppsIAjMGBHOLNgL69mUKlkw+BqbnhxkwlyBY9vgQWPwmAkP9
-	3xFocJdgeNYSpSHcPYXAPBakoSpUQsGkowKBddzGQOiHDHgauCOB5dEJDIOzEQSOYBRDsOss
-	giVLDlypdcXiln9oWHzQR6DK3I/g6tgoganQIwRu358IPF/raHhsvEVgILgCfpmZpOGe+TwN
-	T/2XMPzdQoNd55GA/6cwghqbCcH4Hx4MpdeaabDUtFLQ/qiDAX/4OYYRiwnDzdb9EHCMU9Br
-	rMWxc2Mu5xqwVZXiWHmCwdx4B8O8o57ZXYeEOf0FSqh3tWFB/3CJFhouNyBhccGEhOm6UiLo
-	jbG2OzJJhDLXl0Jdb4QWFmZ+pQXPrJ0S7tfywvVzC1iofLBZaLeOMgf3HJZ+kCnmqgtEzZad
-	R6VZ/zY+JidtWwtd9R6mGD3bWI4SWJ5L56tdTirOFLee//l7O44zzb3NDw3Nk3LEsoncJj7i
-	TitHUpZwF1P4qxfamLhnNbeT7xyefckyDnij/SITN8m5CsRHKqLUf4NV/L3q4EsmnJIfioZw
-	fCnhkvkbUTYuJ8RuCMyFSZzf5NbxXW092Ihk1tfS1tfS1ldpOyL1KFGdX5CnUuduS9XmZBXl
-	qwtTPz+R14piX+n46nnlbTQ9kOFFHIsUb8hayvdmyyWqAm1RnhfxLFEkyjZuikmyTFXRaVFz
-	4ojmi1xR60XJLKVYI/v4U/GonDuuOiXmiOJJUfP/FLMJScVox8rOTzqN207vYrZ3HAzNjvUd
-	ej/tQ+9b78gHC4uFhYq6bP9HqUfW9w4cakJlzhTnsfdu/I5GjG7Pck96dI//4Srf9hppzxZb
-	d8YtX3Ll3W/DE86IUuFOYJo6XOfGy9YOW9OaJRuUuhFvn1Lc9VfSZ/evJDam56lG16YYdIev
-	TWUqKG2WaquSaLSqF3VSn4uRAwAA
-X-CFilter-Loop: Reflected
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: DS0PR12MB7726:EE_|CYYPR12MB9015:EE_
+X-MS-Office365-Filtering-Correlation-Id: 690283d6-4620-4bbb-64f2-08dedbd44286
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|1800799024|23010399003|7416014|376014|366016|56012099006|4143699003|3023799007|22082099003|11063799006|18002099003|6133799003;
+X-Microsoft-Antispam-Message-Info:
+	lsIn/MetmaGZ/SKIlKggkkrcL0LpzuSGbzYVA5Qz6A+dvvlxIjfpx2hjifcez+uYQcclebjPQ7VyIdh271PzPQ/R2QBzPBGdnDE5A3YStMeVxTHmRERXefYVqMrU+bPPLxV3uzrY3/D6YrxjAgO7PW5yD1TIXvH1hramph6nzr9K7xlFspVMzoyZyfFZzoyWWIvZN70ruhv8RVp+nsGXEsphugHzro7ShpWAQJ8BSIhs1DThLEsiutZbbhNqd+1Tg2fuVGhv7c8pngYkRSDof/GfkgHeygy7bck2v+UB9BNbcN9nFQpD0nbcWkiU2vPGKRhnaFje8kkuZ1RF8joluKhvloAkV+6jOnpYUXtM3IQIN9YpmcPNzdn/pw5JxvZGq2Q6YZEhBhMf972syVXtALoCWb91BCEPjJhcWsd2gIMTSSNfp8iFU9GItr+v6QsqfAvR+Ap/msMmgpKetM0GwHnY2BtJIuFNCiXzcM3Iascd4pnJwHZDPcFnI6f9X25/0/MH4e3Bd/SOTbApywagQNGpA8vbh68q3R2msz8rJu92hmFo3zRoopg1ooMK05jvCXG7V17uvJLIO5FOcv9vtG37wbKR6tAeM1W5J0s7Ypee8889np24DpXA1rlhKwY3vAAMKoSZvHD7JaevvxEsQeJsy9JFKHrBrDDA1gHheKk=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:DS0PR12MB7726.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(23010399003)(7416014)(376014)(366016)(56012099006)(4143699003)(3023799007)(22082099003)(11063799006)(18002099003)(6133799003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?QP6VkFD+zMJXEL59T2OntIxXv34U07I0Mqh47+RQteTDi5S/vZvPZ47tyX7u?=
+ =?us-ascii?Q?zsJsJg+DKKxB8euv+OvQimP+TQM3FQ7VLrlidpyTp+VNJzSFF8C+DqSEfOYy?=
+ =?us-ascii?Q?zc66K5bx+gVtjy2TI7mSBbYQSth4+V/IqONIc5s+bVi/AooEvGrdf5rggCfB?=
+ =?us-ascii?Q?zJiIvKLdkUrVmsg1bpwFskjqkWEsKIccIbsQVDkn96hjDYK7QewJsy4nXMCk?=
+ =?us-ascii?Q?9KVniVNgMSANUz/qrdt1/q3CMA0FSrfa2QPt3NIsirT8NloaDowqyXve5HPl?=
+ =?us-ascii?Q?VJZm5Kcsaq+6KS8w4vjgCZE4nyy2b4UQVJ+V7hyvM3N9Zb9872mk/KtuVxsi?=
+ =?us-ascii?Q?cEYsP9luHPSx28Qybxu8HfaGpjaxVIZu42B25nJ1ToBAt6wSCjaso9F/3XN2?=
+ =?us-ascii?Q?l0/0Xc39rv2+lk+qyzPU+jnkxzhORJIZjKbhmx0/HTa3zs5395c4hoWTnqui?=
+ =?us-ascii?Q?tO5Fjah5l/rDDH9tWbIQlPtI+AQLsUHBnxRe0iv1ObaT+jwy6bI0Ea7CwEFm?=
+ =?us-ascii?Q?97T4SZaSBFCjr+23hj8PyRnaQGg/3k2jgUYsKK/eV7tEofAvFHJwAoep3LF6?=
+ =?us-ascii?Q?Cv8vhobkp23dEUe0L9NQjU8enn4diLykwYAB83xGFiFjCoRB8++bc+6jVvAd?=
+ =?us-ascii?Q?2k3C9lQrY8Cnr5gwmogL2/5SRg0704J472u7aMQIeciCbhDZ5HWBZBKSoxd0?=
+ =?us-ascii?Q?svqf7QTTPQ9awI9YmHnAEd+j0OC8lR1i4W/pJoj7URe8zZE2KVZt5zo1FPk0?=
+ =?us-ascii?Q?DISy2Jf6CQPjUQ/jgYPfCiUpwULbkEPuv/6Dsb++6hbSMxJLgUaY4UDoXnEg?=
+ =?us-ascii?Q?QcRWotCQqalRrqrrNbAD5415b1iCArdQBT1SuABvIX+O8JFkQgZKS4mpSz+T?=
+ =?us-ascii?Q?c6OtKmzxuBbIOCijADBRJ0+1uaDsDANwSmp53DLntOvbEZd7xEMAxkrIiLEm?=
+ =?us-ascii?Q?zdLaavnp1LL4IZli8vIhfuTOhJ08CoJ9/IChjc5MsSe+eGrrtAvAKnUdl8u8?=
+ =?us-ascii?Q?h9aYFaN/x55ncGkaOgq0XbM+GBZOoa3+DUO4b2UFDQJf/Fu/9y2TJatMzbQx?=
+ =?us-ascii?Q?6Km0jNQTnts2WDcpMQ+Pfo7Jy2aDQ4gAB8pUUGr5cnCbqC3+szOOBkkDqUHt?=
+ =?us-ascii?Q?yjkNTb4DdKUGIrTFWO5O3VyWOWddBcTuUzN0mIBKSSLgz0o7+/m00RVyKfqT?=
+ =?us-ascii?Q?GEtdAEVDuMK6IzSuNUMdSTR3iptpLIfV9u+FmK1lBrzDcs3BdrYOWTvYQDNm?=
+ =?us-ascii?Q?EYBhgTgUfSneBQcnYvUYUKbFn8wR0P919/kqol3zhAVuGUvhxyiMtGK3gtX+?=
+ =?us-ascii?Q?3lU2wHq7BZSR8V5T50slxTKqhmp3zAYiP4qHxHgR9hQaWCqmEWF/cbA46cYb?=
+ =?us-ascii?Q?WlBuDdEGzHH1ytCmkZBxJqb/H67EBxMwHRyDpOifhmyULirtXRTKPjiyeWqp?=
+ =?us-ascii?Q?kzHgRcHcdfTWjE8hPiinYvu8oOdx1bhO7isSnzH5HXcNtjLjV7O9zdrSdw5q?=
+ =?us-ascii?Q?swTFUvluExbmcvVKPM9aMU2fNcuc7+nj/2pF3nG95Q6oiGImx79y1iNIcDrV?=
+ =?us-ascii?Q?1SIXJSxhpVbzMtqNbbJjybVnHJ93zeiLp+SC27WhWytwgIqwjIyrgUOh+wwj?=
+ =?us-ascii?Q?e19LBkKJ9XipjSZDECSKLlMbOu2XQNWKb5FDJAymSwNKS6LYjg9xDdLbWGfa?=
+ =?us-ascii?Q?HWD+dBse3O0TkzUdSr4b8pTXA7/D4wd0dvGQvJaY6whNLAEnFPTEjtgXU/pT?=
+ =?us-ascii?Q?k2QzEdUz2Q=3D=3D?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 690283d6-4620-4bbb-64f2-08dedbd44286
+X-MS-Exchange-CrossTenant-AuthSource: DS0PR12MB7726.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Jul 2026 03:03:03.0375
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: ASNhkDSyU8YBg43XP7HjYM3fVMgwa45C8T6rc6LhmqxLU/BW1XDMy1R065JQlKB3rH3CSWD2d+UBfuJb4Jz0NA==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CYYPR12MB9015
 
-On Mon, Jul 06, 2026 at 07:05:44PM +0100, Matthew Wilcox wrote:
-> On Mon, Jul 06, 2026 at 03:19:10PM +0900, Byungchul Park wrote:
-> > Makes dept able to track PG_locked waits and events, which will be
-> > useful in practice.  See the following link that shows dept worked with
-> > PG_locked and detected real issues in practice:
-> >
-> >    https://lore.kernel.org/lkml/1674268856-31807-1-git-send-email-byungchul.park@lge.com/
+On 2026-07-01 at 19:05 +1000, Li Zhe <lizhe.67@bytedance.com> wrote...
+> memmap_init_zone_device() repeats nearly identical head-page
+> initialization for each PFN. Prepare one reusable ZONE_DEVICE head-page
+> template through the existing slow path, refresh the PFN-dependent
+> fields in that template before each copy, and memcpy it into each
+> destination page.
 > 
-> > @@ -219,6 +220,7 @@ struct page {
-> >       struct page *kmsan_shadow;
-> >       struct page *kmsan_origin;
-> >  #endif
-> > +     struct dept_ext_wgen pg_locked_wgen;
-> >  } _struct_page_alignment;
+> The optimized path assigns _refcount through the copied template, so
+> keep it disabled when the page_ref_set tracepoint is enabled.
 > 
-> I may not understand this quite correctly, but I think that tracking
-> PG_locked dependencies in the struct page has both false positive and
-> false negative problems.
+> This patch accelerates head-page initialization. The pfns_per_compound
+> == 1 case gets the full benefit here, compound tails are handled in the
+> next patch.
 > 
-> Imagine we have a file mapping M1 containing folio F1 at index 0 and F2
-> at index 1.  It is correct locking order to lock F1 before locking F2
-> (for example when doing writeback).  Later, M1 has its folios reclaimed
-> and returned to the free pool.  Then each is added to mapping M2, this
-> time with folio F2 at index 8 and F1 at index 9.  Now the correct order
-> to lock these folios in the order F2 followed by F1.
+> Tested in a VM with a 100 GB fsdax namespace device configured with
+> map=dev on Intel Ice Lake server. This test exercises the nd_pmem rebind
+> path (pfns_per_compound == 1).
+> 
+> Test procedure:
+> Rebind the nd_pmem driver 30 times and collect the memmap initialization
+> time from the pr_debug() output of memmap_init_zone_device().
+> 
+> Base(v7.2-rc1):
+>   First binding: 1456 ms
+>   Average of subsequent rebinds: 244.28 ms
+> 
+> With this patch and its prerequisites applied:
+>   First binding: 1440 ms
+>   Average of subsequent rebinds: 217.19 ms
+> 
+> This reduces the average rebind time from 244.28 ms to 217.19 ms, or
+> about 11%.
+> 
+> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+> ---
+>  mm/mm_init.c | 76 ++++++++++++++++++++++++++++++++++++++++++++++++++--
+>  1 file changed, 74 insertions(+), 2 deletions(-)
+> 
+> diff --git a/mm/mm_init.c b/mm/mm_init.c
+> index 4c7fad440c2a..cc8417951467 100644
+> --- a/mm/mm_init.c
+> +++ b/mm/mm_init.c
+> @@ -1066,6 +1066,50 @@ static void __ref zone_device_page_init_slow(struct page *page,
+>  		set_page_count(page, 0);
+>  }
+>  
+> +static inline bool zone_device_page_init_optimization_enabled(void)
+> +{
+> +	/*
+> +	 * The template fast path copies a preinitialized struct page image.
+> +	 * Skip it when the page_ref_set tracepoint is enabled.
+> +	 */
+> +	return !page_ref_tracepoint_active(page_ref_set);
+> +}
+> +
+> +static inline void zone_device_template_page_init(struct page *template,
+> +						  struct page *src)
+> +{
+> +	memcpy(template, src, sizeof(*template));
 
-First of all, I appreciate your feedback.  Thanks!
+I'd drop this function and just open-code the memcpy as I think that ends up
+being clearer and removes a naming confusion - I kept mixing up the purpose of
+`zone_device_template_page_init` and `zone_device_page_init_from_template`
 
-That case doesn't generate any dependency unless any other waits are
-involved in.  That should be handled in xxx_nested manner e.g.
-folio_lock_nested() that I need to introduce.  The work is in progress.
+> +}
+> +
+> +/*
+> + * 'template' is a reusable page prototype rather than a strictly immutable
+> + * object. Most ZONE_DEVICE fields stay constant across the pages covered by
+> + * the current template, but section bits and page->virtual may still depend
+> + * on the PFN. Refresh those PFN-dependent fields in the template before
+> + * copying it into @page.
+> + */
+> +static inline void zone_device_page_update_template(struct page *template,
+> +		unsigned long pfn)
+> +{
+> +	set_page_section_from_pfn(template, pfn);
+> +#ifdef WANT_PAGE_VIRTUAL
+> +	if (!is_highmem_idx(ZONE_DEVICE))
+> +		set_page_address(template, __va(pfn << PAGE_SHIFT));
+> +#endif
+> +}
+> +
+> +static void zone_device_page_init_from_template(struct page *page,
+> +		unsigned long pfn, struct page *template)
+> +{
+> +	/*
+> +	 * 'template' carries the invariant portion of a ZONE_DEVICE struct
+> +	 * page. Update the PFN-dependent fields in place before copying it
+> +	 * to the destination page.
+> +	 */
+> +	zone_device_page_update_template(template, pfn);
+> +	memcpy(page, template, sizeof(*page));
+> +}
+> +
+>  /*
+>   * With compound page geometry and when struct pages are stored in ram most
+>   * tail pages are reused. Consequently, the amount of unique struct pages to
+> @@ -1121,6 +1165,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
+>  				   unsigned long nr_pages,
+>  				   struct dev_pagemap *pgmap)
+>  {
+> +	bool use_template = zone_device_page_init_optimization_enabled();
+>  	unsigned long pfn, end_pfn = start_pfn + nr_pages;
+>  	struct pglist_data *pgdat = zone->zone_pgdat;
+>  	struct vmem_altmap *altmap = pgmap_altmap(pgmap);
+> @@ -1128,6 +1173,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
+>  	unsigned long zone_idx = zone_idx(zone);
+>  	unsigned long start = jiffies;
+>  	int nid = pgdat->node_id;
+> +	struct page template;
+>  
+>  	if (WARN_ON_ONCE(!pgmap || zone_idx != ZONE_DEVICE))
+>  		return;
+> @@ -1142,10 +1188,36 @@ void __ref memmap_init_zone_device(struct zone *zone,
+>  		nr_pages = end_pfn - start_pfn;
+>  	}
+>  
+> -	for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
+> -		struct page *page = pfn_to_page(pfn);
+> +
+> +	if (!nr_pages)
+> +		return;
+> +
+> +	pfn = start_pfn;
+> +	/*
+> +	 * Seed the reusable head-page template from the first real struct
+> +	 * page, because the existing page-init and pageblock helpers expect
+> +	 * a real memmap entry rather than a stack object.
+> +	 */
+> +	if (use_template) {
+> +		struct page *page = pfn_to_page(start_pfn);
+>  
+>  		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
+> +		zone_device_template_page_init(&template, page);
+> +		if (pfns_per_compound != 1)
+> +			memmap_init_compound(page, pfn, zone_idx, nid, pgmap,
+> +				compound_nr_pages(start_pfn, altmap, pgmap));
+> +		pfn += pfns_per_compound;
 
-> I don't see a part of this patch where we clear pg_locked_wgen when the
-> page is returned to the page allocator.  Maybe I missed that.
+I think it would be clearer and less error prone to not unroll the loop here.
+Instead just initialise the template page and leave the for loop starting at
+pfn = start_pfn and let it handle the rest of the steps. I can't imagine the
+extra call to zone_deivce_page_init_from_template() would cause a noticable
+perf impact.
 
-You are right.  pg_locked_wgen doesn't get cleared.  However, DEPT works
-this way:
+It also avoids the obvious danger of someone updating the loop but missing the
+unrolled version above.
 
-   folio_lock()
-      wait_for_pg_locked_cleared()
-      set_pg_locked() // (1) update pg_locked_wgen to the current wgen
+ - Alistair
 
-   ... // there might be other waits
-
-   folio_unlock()
-      clear_pg_locked() // (2) check if there have been any waits since (1)
-
-In other words, it's guranteed that pg_locked_wgen has been updated e.i.
-(1) when DEPT refers to pg_locked_wgen e.i. (2).  So I don't think it's
-a problem.
-
-> I think we should be tracking PG_locked dependencies in the owner
-> of the folio.  For files, that would be in the struct address_space.
-> For anon memory, I think that's in the anon_vma, but if somebody told
-> me it was in some other structure, I wouldn't argue with them.
-
-I think it's a good point but it's a classification issue.  folios owned
-by struct address_space should be classified to e.g. address_space_class
-and ones owned by struct anon_vma should be classified to e.g.
-anon_vma_class.  I will work on it to apply the insight you just gave
-but better do it as follow-up patches since the initial patchset is
-already too big to get reviewed.
-
-> This requires slightly more complexity than lockdep currently has.
-> We don't want to use a lockdep class for each folio, obviously.  So we
-> need something to say "I already have folio F1 locked, is it OK to lock
-
-From DEPT's perspective, folio_lock(F1) and folio_lock(F2) are waits and
-folio_unlock(F1) and folio_unlock(F2) are events.  Since DEPT tracks
-dependencies with specified classes between waits and events, DEPT's
-interest in the following example is to detect a situation like:
-
-   < context X >
-
-   folio_lock(address_space_class'ed F1)
-   ...
-   folio_lock(anon_vma_class'ed F2)
-   ...
-   folio_unlock(anon_vma_class'ed F2)
-   ...
-   folio_unlock(address_space_class'ed F1)
-
-   < context Y >
-
-   folio_lock(anon_vma_class'ed any folio)
-   ...
-   folio_lock(address_space_class'ed any folio)
-   ...
-   folio_unlock(address_space_class'ed any folio)
-   ...
-   folio_unlock(anon_vma_class'ed any folio)
-
-However, the following pattern should be manually annotated by
-developers like using folio_lock_nested() or something.  DEPT cannot
-work with it automatically:
-
-   folio_lock(address_space_class'ed F1)
-   ...
-   folio_lock(address_space_class'ed F2)
-   ...
-   folio_unlock(address_space_class'ed F2)
-   ...
-   folio_unlock(address_space_class'ed F1)
-
-or
-
-   folio_lock(anon_vma_class'ed F1)
-   ...
-   folio_lock(anon_vma_class'ed F2)
-   ...
-   folio_unlock(anon_vma_class'ed F2)
-   ...
-   folio_unlock(anon_vma_class'ed F1)
-
-These should be explicitly annotated by developers if it's intended:
-
-   folio_lock(address_space_class'ed F1)
-   ...
-   folio_lock_nested(address_space_class'ed F2)
-   ...
-   folio_unlock(address_space_class'ed F2)
-   ...
-   folio_unlock(address_space_class'ed F1)
-
-or
-
-   folio_lock(anon_vma_class'ed F1)
-   ...
-   folio_lock_nested(anon_vma_class'ed F2)
-   ...
-   folio_unlock(anon_vma_class'ed F2)
-   ...
-   folio_unlock(anon_vma_class'ed F1)
-
-> folio F2?".  Essentially figuring out how we can track all folios in a
-> given mapping the same way, and making sure that we don't deadlock on
-> folios in the same mapping.
-
-At the moment, as I told you, DEPT cannot work with dependencies between
-the same class'ed folios.  However, it'd be much better if DEPT can work
-with even those cases.  Could you provide a scenario where a deadlock
-happens between the same class'ed ones?  Any idea how to detect for the
-cases?
-
-> If F1 and F2 are in different mappings, it's not a deadlock if F1 is in a
-> filesystem mapping and F2 is in its backing dev.  It's also not a deadlock
-> if F1 and F2 are both filesystem folios and the inodes are both locked.
-> See vfs_lock_two_folios() in fs/remap_range.c.
-
-Yeah.. DEPT is a tracker to track dependencies between waits and events
-even across different contexts, but not a magic unfortunately.  That
-lock ordering issue - with the same class'ed ones - should be resolved
-in the manual manner as vfs_lock_two_folios() does.
-
-> I have much less knowledge about anonymous memory locking order.
-> Maybe it doesn't happen.  Or about locking one anon and one file folio.
-> For slab memory, we don't sleep on PG_locked (it's used as a spinlock bit).
-> For other kinds of memory ... I don't know.  Page migration is fun.
-
-Anyway, the sophisticated classification you mentioned is necessary for
-DEPT to be better especially for folio locking mechanism.
-
-Thanks again!
-
-	Byungchul
+> +	}
+> +
+> +	for (; pfn < end_pfn; pfn += pfns_per_compound) {
+> +		struct page *page = pfn_to_page(pfn);
+> +
+> +		if (use_template)
+> +			zone_device_page_init_from_template(page, pfn,
+> +							    &template);
+> +		else
+> +			zone_device_page_init_slow(page, pfn, zone_idx,
+> +						   nid, pgmap);
+>  
+>  		if (IS_ALIGNED(pfn, PAGES_PER_SECTION))
+>  			cond_resched();
+> -- 
+> 2.20.1
