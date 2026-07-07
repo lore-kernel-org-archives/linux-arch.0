@@ -1,405 +1,175 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from LO2P265CU024.outbound.protection.outlook.com (mail-uksouthazon11021101.outbound.protection.outlook.com [52.101.95.101])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6584148BD56;
-	Tue,  7 Jul 2026 19:07:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783451245; cv=none; b=FnVFvsQFasZwV69f4to1LS0uYHO+WoZmdkUYibvZP4lo25BGRmRNP4ONQn/lQzYwbMkOz+gxMUW3OiFYImDOUgFxMZtUD5Et/Q5z+AnY4App5NCOvFDGnEaa/tRfAshRDvwV6xFjzt+LsdmGyxaCY9xt2dzG/olviCivQcG97MA=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783451245; c=relaxed/simple;
-	bh=qidwgz2JI9Io+EYfmSyqNxasGkS+3VHzmC5tYP+sG+o=;
-	h=Date:Message-ID:From:To:Cc:Subject:References:MIME-Version:
-	 Content-Type; b=XQ+x6nqglB+XsHm6xF4KiV6dyhEopIYa1NQwDoKs+Wq8F7YgucCCXJSHt9nxL9bLu41YnOyezZSjOn4WZ85XwMuTt9DIlfs3JGgHevl1jZYZR+AXm+KSw7hMk+31uMlNU9It4wltvQSL0OAtIUNANiiKkV/rphAODPdwti67vDw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=AHEhZEMB; arc=none smtp.client-ip=100.103.45.18
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="AHEhZEMB"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 959C01F00A3E;
-	Tue,  7 Jul 2026 19:07:11 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783451232;
-	bh=ujg63nFpNppD6hh8ErFLF1J5JX2ZfpeEoGN6ZrinWc0=;
-	h=Date:From:To:Cc:Subject:References;
-	b=AHEhZEMBYzBtdLcDTyhlS45Q7S7ZwTjKIqiJzRbhD5/XAbHDISjmwksUK82ZNX4eN
-	 v/56KPMLh+ap7XlsQOg/BTaFcC0r6cCqimRsKEEjnM7HqpHCJ0wTkRT4YpPRqksdHy
-	 hbur5BBOkf2MqLhVXO+OEJPygToMV0GfcDHqGyXAo5xm9el2SAov1vxRwDLsZ9mDTO
-	 8DMadvH3j+KUyVnLd3M9IfC7bg8qqqSHv1wejHUyEH+mIuHPWHU4dWWsyjmGqtk7PJ
-	 8vvvohEhLbaJuT/nrhqQWxuMcj0mhqi8CGIjfadl6DsadWHk3iOaJCLltrwK6NFjAk
-	 oac7QSSvNoGEw==
-Date: Tue, 07 Jul 2026 21:07:09 +0200
-Message-ID: <20260707190254.603111179@kernel.org>
-User-Agent: quilt/0.69
-From: Thomas Gleixner <tglx@kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>,
- =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>,
- Jonathan Corbet <corbet@lwn.net>,
- Arnd Bergmann <arnd@arndb.de>,
- Mark Rutland <mark.rutland@arm.com>,
- Huacai Chen <chenhuacai@kernel.org>,
- Michael Ellerman <mpe@ellerman.id.au>,
- Shrikanth Hegde <sshegde@linux.ibm.com>,
- Paul Walmsley <pjw@kernel.org>,
- Palmer Dabbelt <palmer@dabbelt.com>,
- Sven Schnelle <svens@linux.ibm.com>,
- linux-doc@vger.kernel.org,
- loongarch@lists.linux.dev,
- linuxppc-dev@lists.ozlabs.org,
- linux-riscv@lists.infradead.org,
- linux-s390@vger.kernel.org,
- Kees Cook <kees@kernel.org>,
- x86@kernel.org,
- Jinjie Ruan <ruanjinjie@huawei.com>,
- Andy Lutomirski <luto@kernel.org>,
- Oleg Nesterov <oleg@redhat.com>,
- Richard Henderson <richard.henderson@linaro.org>,
- Russell King <linux@armlinux.org.uk>,
- Catalin Marinas <catalin.marinas@arm.com>,
- Guo Ren <guoren@kernel.org>,
- Geert Uytterhoeven <geert@linux-m68k.org>,
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
- Helge Deller <deller@gmx.de>,
- Yoshinori Sato <ysato@users.sourceforge.jp>,
- Richard Weinberger <richard@nod.at>,
- Chris Zankel <chris@zankel.net>,
- linux-arm-kernel@lists.infradead.org,
- linux-alpha@vger.kernel.org,
- linux-csky@vger.kernel.org,
- linux-m68k@lists.linux-m68k.org,
- linux-mips@vger.kernel.org,
- linux-parisc@vger.kernel.org,
- linux-sh@vger.kernel.org,
- linux-um@lists.infradead.org,
- Vineet Gupta <vgupta@kernel.org>,
- Will Deacon <will@kernel.org>,
- Brian Cain <bcain@kernel.org>,
- Michal Simek <monstr@monstr.eu>,
- Dinh Nguyen <dinguyen@kernel.org>,
- "David S. Miller" <davem@davemloft.net>,
- Andreas Larsson <andreas@gaisler.com>,
- linux-snps-arc@lists.infradead.org,
- linux-hexagon@vger.kernel.org,
- linux-openrisc@vger.kernel.org,
- sparclinux@vger.kernel.org,
- linux-arch@vger.kernel.org
-Subject: [patch 18/18] entry,
- treewide: Make syscall_enter_from_user_mode[_work]() indicate syscall
- execution
-References: <20260707181957.433213175@kernel.org>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 321C7238D27;
+	Tue,  7 Jul 2026 19:38:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.95.101
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783453110; cv=fail; b=gp9Rgau+ut1pur7i52q2E5jtKRIKNx7zer1/2zstqyVR24UtjdTv3nrJVepga6pzVvaa+IoKqi1NTExDp9JV8+dKQSvm13oEAqyadX8LSF6cjydiOd7iXGEFEZZrWFKHGD0tRKCrvOzoGFj5A0TqJn7la6LzZzUQuacPWG75mCU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783453110; c=relaxed/simple;
+	bh=XQeRVv1Ibq69Wf+ozO1unieMgXT1M9zhNuCQp/Ayo08=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=X4B6jtKKYd6S86vG7PXu+oOSnxuAbSb52ZuNccYHumeR9+MDZQ/nc7+HkDGcwobh/Lm/GRnwkqxmZM+CztsUa0LijN3cvOE2fBx8JVPOoIIQh3bLLmBSwU6OIDnjytO/6rRa89srdI5IYeabjjZfRaF/VDqydxS4oZWNZedbit4=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.95.101
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=Pqa82mVA5EW8RiNLNmWItT+UKW4E/IyOv7NYBgUUKJiF+wWFUWW1T/UrPF1CdPXcvbsOiM85qN6GIQC00ZOSSAh2TF8hOVCrS0P6Mhqj9Aur05BXNWqLuQV5sAKXmep+L9XuAHejjvL64Cj+TAz0qxTbtJDkT+lR0FbU6fZESMVty04jPJN9dHeQRW045+KOBdK+YZ2j+uJ994PCBhi0v1YPrgnP39Bks+ZCjYF8g1H8g56YlXsAm1zPC+/lxHdCE22l8WQiZSEhagNgwd6EPyHiRp90tH4yZMHTHm4WOSZt9lYyL8Duwn0AScPY52+ySB0RBZRW1Ke53C6g/Efs5g==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
+ bh=Pa/tmdmJGV/LLXbXVagxlYcY+0hdhxVRqgHmUPCbPIg=;
+ b=jttoAF/b3jLgMWPGSLtsco6vdUs6JFoeam+I9dfOBOvu4nLh8q7mhis2ox8WaGzIDHXtxyjlx8Epe/SH8WHx7f9Z5LVfY/5GI99xlKkj2HyI29AMhy9EvykHucKwuCJP39E18cedzxKSXKIhwEGkfJ0XviKmE6JJ6pvJ/T1PqyWyuSsuE6npKxLTl5UxZvGwq5OXDO5EVqLX4Pemuq7EbHukRdeOOz7SQ+7dXY0V8es+VIbfWPuDfXFgM6CmyKYPSCON1m/ZskUGpyq8K+L6ShkEwPfx2s6bIdUTDDq5dn9Zvy9to1PW5t3QrjFQUjATduohP6+3g8O7I2XWW2+pSw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
+ dkim=pass header.d=atomlin.com; arc=none
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=atomlin.com;
+Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
+ by LO8P123MB8002.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:3d6::11) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.181.10; Tue, 7 Jul
+ 2026 19:38:25 +0000
+Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+ ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+ ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0181.010; Tue, 7 Jul 2026
+ 19:38:25 +0000
+Date: Tue, 7 Jul 2026 15:38:20 -0400
+From: Aaron Tomlin <atomlin@atomlin.com>
+To: arnd@arndb.de, mcgrof@kernel.org, petr.pavlu@suse.com, 
+	da.gomez@kernel.org, samitolvanen@google.com, peterz@infradead.org
+Cc: akpm@linux-foundation.org, mhiramat@kernel.org, neelx@suse.com, 
+	da.anzani@gmail.com, sean@ashe.io, chjohnst@mail.com, steve@abita.co, 
+	mproche@mail.com, nick.lane@mail.com, linux-arch@vger.kernel.org, 
+	linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v3] module: Extend module_blacklist parameter to built-in
+ modules
+Message-ID: <amnaa4wr7kmx5abcixwbfldexlhbn5spzfritjn3gxmutnvbdm@kqeaw6fu7c4l>
+References: <20260706050337.7613-1-atomlin@atomlin.com>
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20260706050337.7613-1-atomlin@atomlin.com>
+X-ClientProxiedBy: IA4P220CA0006.NAMP220.PROD.OUTLOOK.COM
+ (2603:10b6:208:558::7) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+ (2603:10a6:400:183::5)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LO8P123MB8002:EE_
+X-MS-Office365-Filtering-Correlation-Id: b8f2d970-2a98-42e1-d35e-08dedc5f4f85
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|1800799024|7416014|376014|23010399003|366016|22082099003|56012099006|18002099003|6133799003;
+X-Microsoft-Antispam-Message-Info:
+	oXgTM6QiT8t0QVpszfXH9GTVmWNQSNepniSs00TKKHbGYiwYJKbs/TukDIrZAn3hvZwzvBfXCNMlS+e9wyBYRUuGDC8uM6RHnCNiXQsQrI75yzqPg9Du7HW79lcZ1d8b4kCOPHbAIH1DmGerUI1/MFCbzlU294roEadg7OxUusGDdmnlLTDngKuPiCK1LX4X0OWkRdrxcOkklr1h2ZmO/g8TX7R2819M8VE5zqvr31dKgzg+7z1mh9WiB4kVy4QhS9jxjLplSI+QQJQyUjTSFBe8gp4B1M5jT8GlyVVn0CTINZMtg4GLqujKSiQtFy20Ne9Q5KAzfYzZ1uac9fy7C7Hy3TtShmDxkRy04iP5tMRrT33XT8peI4mb5uN5iydYm69RBCPY/J0brv89+PYuA6G6DSTCTX+DNaeiT+w4CY68fikgoeMuEPlwBPaXBijkXEf20zTgUFo6uuY3lvvuARvO40gN2pSe6HZI4ELqmipmlKVWzh+d133vBzQwGszbeVYopCfgzNq/RVUY4W73xe6Fnx5Uyt7kdjqGCq+okUA6Hrc6LQZVf7piVt+A659hwbL9fy36eb3c30+EgwFk4sM4jbjetLwUrEnwUiK3gnM=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(7416014)(376014)(23010399003)(366016)(22082099003)(56012099006)(18002099003)(6133799003);DIR:OUT;SFP:1102;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?utf-8?B?b2EvbTJ4eWJWQ1llVTYzTm51eVgyQ1JVT0s1eWZpcjB6L09MbmNKbUFwaWdr?=
+ =?utf-8?B?ZzJPY3Ftelgxa3dNcmNTNTRXUVA3c1VHZHVjTUxPdUhaSUlpQmQzVlZyTjl1?=
+ =?utf-8?B?Tkc2cENDNUw2d1I5RW5YY3YyN0U3NUFTYlUvK0RiZ085VDJNaGxwTGlqR0Yz?=
+ =?utf-8?B?a1dvOGYvejNLeTk3TlByMXI1NnhYbkFacmRsa2oyb0E4NGpvUVQ5bnJrU3pH?=
+ =?utf-8?B?bzduN2xlMnczQ0VYcHdPdDBZdk9jQ3FOZ20zbVBHZlJWa2FJMDNIU2V2NUx6?=
+ =?utf-8?B?ZXFIQlFvam0rY3ZSRXM2WFNEM2lETWxxWVo2OS9TbW12OElCZ1RhZ1ZheWxE?=
+ =?utf-8?B?azl2OFNGWXNkR0ZxQlFmVDRlVHJkREl4amRBYkQxZS90NHlyTDlUcFUvdi9w?=
+ =?utf-8?B?MXVUZjYxR1RBWnZRK253T3FXT0hDTmIzY1F1eGk5OFMzMy9aN1NmS3hhUUlD?=
+ =?utf-8?B?OXY4Sld2MUl3UWFSN1BkVkpsYitMc0lwcStCMUJzam93QjdkcXovZDJOVTNu?=
+ =?utf-8?B?ckkyZTBuaTVmdEV4MWZRK09GUDhFYWlVaEhPeDZFQ3lTTnQ3TkcwY1ZUZzNh?=
+ =?utf-8?B?Zk5wZkVmckhGWXRIbVRtMmVjUEN2R2NQWFZzMmJ3YndHQnBwckRuNEV3RWkz?=
+ =?utf-8?B?ZjFTRk9OaE13Y2lZeGhsOXVWenR1VDhJSFhycUZmdzJycXRTam05Q3J2ZkxQ?=
+ =?utf-8?B?M0MvOUR2TnZ0VFRrd0RzSG9pNjN6MjJZd3JaNmtNOERoMTNIcW9hSE5SMjdw?=
+ =?utf-8?B?ZGVFRytYQmdadkpxNE56U2FNYjMyYnUydlg0aWZkV1ViUFNRWFdoMFhUQnFh?=
+ =?utf-8?B?ZXVLemtlditObjZjNDBVaUZlekxMeHZKYXViTDljM3paa0ZYc0pYNFdPUnA3?=
+ =?utf-8?B?MlJpTnAvdFYvT2dEZm82YkhLcE5FQXBmWW1OanJIRUs0WWU2MmtNUHNlcGFx?=
+ =?utf-8?B?bFg5OFJzeExHcTF0Yko2cld2WTZyd0dLZmtxSU9HYUx5Uk44NGRNTW40Nkp1?=
+ =?utf-8?B?MzIzOE9TaXIybjRCMElOd3pWNUR5bDNrSUVlcW9aTWlkdzJsQVlXVndSSVlo?=
+ =?utf-8?B?UWFvbHAwdG1LSkptbVBTRk9PekRwNEd3SWgxSEtBa0NRSXc0dmpBTElrSmZn?=
+ =?utf-8?B?eWo0dTVFK0krc0pvSGdaVXRpaENxZWVSSUtxNERTT2h2Y0NSd1pmVlVnbjZl?=
+ =?utf-8?B?dHlsMHVNYWx2Ty83KzJhU29iRk9yWTlDalRoTklEU0J3b0xZMFJRclRFVytu?=
+ =?utf-8?B?NUN3bjFJREp6NjVPbmpnWUR1Z2ZIcHF1WGdhU3VYSlZCL1czOFlwUGtrZnNR?=
+ =?utf-8?B?T2V2OVAwZ1dpbjU0KzZjUlRBTkE0UlBia01LWnhsNWUvYThwWk5QTHBqSmkx?=
+ =?utf-8?B?cGkyQUd2SHYybWxWbnlXb28yZStHell0TDNabkNvQ2VQc29MVWtQZHNmVk5T?=
+ =?utf-8?B?Zm5vQWxac0xVbFRubEhVM3pjUnkxazk3azk3YVNDTHdBQkR1cDhuUk9kclVu?=
+ =?utf-8?B?OHhFQ0kySjlDa1YrZlFldjFSWC8zL2plVDIvWTRkZHJmODBKL2paNnJzektw?=
+ =?utf-8?B?YTQ0WWZFTTVwSFI0aVVTQkUyVk1DWFBic2V5VU9jRVVRbGF5aUsrWTQ3d0to?=
+ =?utf-8?B?bEFUZ0lHa2lnUEhlYUtCdEFvcHpYNVlETWUzeDdNUGs4a1BqdHFtQ255RTVE?=
+ =?utf-8?B?Kzl1NUFGT0RkeGV0NXlvTzNSTzlTU2xuL0JocUVrQUIyQjRyeUdOd3BlTzFH?=
+ =?utf-8?B?Y0dxcGozTFJWYSttby9IMGgyUThGWHFRVjhMZ3htZGRUbkZwZy84ZmlyY2dr?=
+ =?utf-8?B?U1NVeFFEYlFZRTFVZjNNVlJUM2dTZjl3VHVsTkRRYmJtaFJOMlQ2cXZaUHRR?=
+ =?utf-8?B?SzRacDNIUng5WUk2SU5FRzhQRTk0ZHY0TWg0cFR6OTl5SGZSdmRpTmp4WGMr?=
+ =?utf-8?B?QnNXdEtPSGhJdDk5THRJNmh3UmhabURNOHd6U0Y2bUYvc0VnYlBXcWJuZFVU?=
+ =?utf-8?B?QTdXSkRzMEhvWU5Neno5eTE1QjlCTnpOLzVERkVWTHpKbmxLRkIrYnJhRjBn?=
+ =?utf-8?B?MENjOTZpb3VKTUkyQ2xlcUN5TExTZHYwUHArNk5iZXJQbTAxUXowdlJIa2FP?=
+ =?utf-8?B?N2FEZmJZMGJhbDNJdTV3YXB5WXliQllEUHhOZkVOUS8wcTQzSW53RmVlc3Fj?=
+ =?utf-8?B?a2dyZmVPK3hFbkIrbm9ZTVNKUlkxbDNIVmY2azdsWEFBVGg0TU0vZS8wbVo2?=
+ =?utf-8?B?OGNhQUU1VkZIZHN4RVo1SnAzNldEdjhXMkQ2cXBTL3FmMnFidmRJQ29EN25o?=
+ =?utf-8?B?WEY1ZThMZWNiWk5Md3JHaXgrNHFDeGJOc2JJdFgxYnl5TjNFL3Nsdz09?=
+X-OriginatorOrg: atomlin.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: b8f2d970-2a98-42e1-d35e-08dedc5f4f85
+X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Jul 2026 19:38:24.9568
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: vjLJBmJi3tLDR2RuLk2uLpC1dn6qxtDSDj5LbzZ0Y34shs3C4H8R9ldgPLHhKYemaaZZLEy3wr6OGuxR2Ze58g==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: LO8P123MB8002
 
-From: Michal Suchánek <msuchanek@suse.de>
+On Mon, Jul 06, 2026 at 01:03:37AM -0400, Aaron Tomlin wrote:
+> Currently, the "module_blacklist=" command-line parameter only applies to
+> loadable modules. If a module is built-in, the parameter is silently
+> ignored. This patch extends the blacklisting functionality to built-in
+> modules by intercepting their initialization routines during early boot.
+> 
+> To achieve this, we introduce a new ".initcall.modnames" memory section.
+> For each built-in module, we use a standard C structure (i.e., struct
+> initcall_modname) to map its initcall function pointer to its associated
+> KBUILD_MODNAME string.
+> 
+> During boot, do_one_initcall() cross-references the initcall function
+> pointer against this table. If a match is found and the module is
+> present in the blacklist, the initcall is skipped.
 
-The return values of syscall_enter_from_user_mode[_work]() are
-non-intuitive. Both functions return the syscall number which should be
-invoked by the architecture specific syscall entry code. The returned
-number can be:
+Hi Arnd, Luis, Petr, Daniel, Sami,
 
-  - the unmodified syscall number which was handed in by the caller
+Please ignore. I will send a v4.
 
-  - a modified syscall number (ptrace, seccomp, trace/probe/bpf)
+Sashiko [1] correctly reported further issues (e.g., CONFIG_MODULES=n)
+which have been addressed as follows:
 
-That has an additional twist. If the return value is -1L then the caller is
-not allowed to modify the return value as that indicates that the modifying
-entity requests to abort the syscall and set the return value already. That
-can obviously not be differentiated from a syscall which handed in -1 as
-syscall number.
+ - Decoupled the module_blacklist parameter parsing and the
+   module_is_blacklisted() function from CONFIG_MODULES, moving the
+   logic to init/main.c. This ensures the blacklist works for built-in
+   modules even on monolithic kernels built without loadable module
+   support (CONFIG_MODULES=n)
 
-The established way to deal with that is:
+ - Removed the conditional stub implementation of
+   module_is_blacklisted() in module.h and replaced it with a single,
+   unconditional declaration outside of the #ifdef CONFIG_MODULES block.
+   This prevents compiler warnings about missing prototypes and ensures
+   visibility under a monolithic configuration
 
-    set_return_value(regs, -ENOSYS);
-    nr = syscall_enter_from_user_mode(regs, nr);
-    if ((unsigned)nr < SYSCALLNR_MAX)
-    	handle_syscall(regs, nr);
-    else if (nr != -1)
-    	set_return_value(regs, -ENOSYS);
+ - Replaced the initmem_freed state variable and its synchronisation
+   logic in kernel_init() with race-free spatial boundary checks using
+   is_kernel_text() and is_kernel_inittext() in initcall_get_modname() .
 
-The latter is obviously redundant, but that's just a leftover of the
-historical evolution of this code. S390 has some special requirements here,
-which can be avoided when the return value is not ambiguous.
+ - Aligned the .initcall_modnames table with relocations by assigning
+   .initcall_fn using the __initcall_stub() helper in
+   ___define_initcall(). This ensures the lookup matches the actual stub
+   pointer passed to do_one_initcall() when
+   CONFIG_HAVE_ARCH_PREL32_RELOCATIONS is enabled
 
-Now that the functions which modify the syscall number and want to abort
-are converted to indicate that with a boolean return value, it's obvious to
-hand this through to the callers.
+ - Updated initcall_get_modname() in main.c to resolve the function
+   pointer fn using dereference_function_descriptor(fn) prior to
+   checking the .text and .init.text boundaries
 
-Rework syscall_enter_from_user_mode[_work]) so they take a pointer to the
-syscall number and return a boolean, which indicates whether the syscall
-should be handled or not.
-
-That's not only more intuitive, it also results in slightly denser
-executable code on x86 at least, but perf results are neutral and within
-the noise.
-
-[ tglx: Adopted it to the changes in the generic entry code, fixed up the
-  	32-bit fallout and rewrote change log ]
-
-Signed-off-by: Michal Suchánek <msuchanek@suse.de>
-Signed-off-by: Thomas Gleixner <tglx@kernel.org>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Huacai Chen <chenhuacai@kernel.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Shrikanth Hegde <sshegde@linux.ibm.com>
-Cc: Paul Walmsley <pjw@kernel.org>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Sven Schnelle <svens@linux.ibm.com>
-Cc: linux-doc@vger.kernel.org
-Cc: loongarch@lists.linux.dev
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-riscv@lists.infradead.org
-Cc: linux-s390@vger.kernel.org
----
- Documentation/core-api/entry.rst |   18 +++++++++++-------
- arch/loongarch/kernel/syscall.c  |   14 +++++++-------
- arch/powerpc/kernel/syscall.c    |    3 ++-
- arch/riscv/kernel/traps.c        |   11 +++++------
- arch/s390/kernel/syscall.c       |    7 +++++--
- arch/x86/entry/syscall_32.c      |   25 ++++++++++++-------------
- arch/x86/entry/syscall_64.c      |   12 ++++++------
- include/linux/entry-common.h     |   12 +++++-------
- 8 files changed, 53 insertions(+), 49 deletions(-)
-
---- a/Documentation/core-api/entry.rst
-+++ b/Documentation/core-api/entry.rst
-@@ -68,16 +68,20 @@ low-level C code must not be instrumente
-   noinstr void syscall(struct pt_regs *regs, int nr)
-   {
- 	arch_syscall_enter(regs);
--	nr = syscall_enter_from_user_mode_randomize_stack(regs, nr);
--
--	instrumentation_begin();
--	if (!invoke_syscall(regs, nr) && nr != -1)
--	 	result_reg(regs) = __sys_ni_syscall(regs);
--	instrumentation_end();
--
-+	result_reg(regs) = -ENOSYS;
-+	if (syscall_enter_from_user_mode_randomize_stack(regs, &nr)) {
-+		instrumentation_begin();
-+		if (!invoke_syscall(regs, nr))
-+			result_reg(regs) = __sys_ni_syscall(regs);
-+		instrumentation_end();
-+	}
- 	syscall_exit_to_user_mode(regs);
-   }
- 
-+It is required that either the low level assembly code or the syscall
-+function sets the result register to -ENOSYS before invoking the generic
-+code.
-+
- syscall_enter_from_user_mode_randomize_stack() first invokes
- enter_from_user_mode_randomize_stack() which establishes state in the
- following order:
---- a/arch/loongarch/kernel/syscall.c
-+++ b/arch/loongarch/kernel/syscall.c
-@@ -57,8 +57,8 @@ typedef long (*sys_call_fn)(unsigned lon
- 
- void noinstr __no_stack_protector do_syscall(struct pt_regs *regs)
- {
--	unsigned long nr;
- 	sys_call_fn syscall_fn;
-+	unsigned long nr;
- 
- 	nr = regs->regs[11];
- 	/* Set for syscall restarting */
-@@ -69,12 +69,12 @@ void noinstr __no_stack_protector do_sys
- 	regs->orig_a0 = regs->regs[4];
- 	regs->regs[4] = -ENOSYS;
- 
--	nr = syscall_enter_from_user_mode_randomize_stack(regs, nr);
--
--	if (nr < NR_syscalls) {
--		syscall_fn = sys_call_table[array_index_nospec(nr, NR_syscalls)];
--		regs->regs[4] = syscall_fn(regs->orig_a0, regs->regs[5], regs->regs[6],
--					   regs->regs[7], regs->regs[8], regs->regs[9]);
-+	if (likely(syscall_enter_from_user_mode_randomize_stack(regs, &nr))) {
-+		if (nr < NR_syscalls) {
-+			syscall_fn = sys_call_table[array_index_nospec(nr, NR_syscalls)];
-+			regs->regs[4] = syscall_fn(regs->orig_a0, regs->regs[5], regs->regs[6],
-+						   regs->regs[7], regs->regs[8], regs->regs[9]);
-+		}
- 	}
- 
- 	syscall_exit_to_user_mode(regs);
---- a/arch/powerpc/kernel/syscall.c
-+++ b/arch/powerpc/kernel/syscall.c
-@@ -18,7 +18,8 @@ notrace long system_call_exception(struc
- 	long ret;
- 	syscall_fn f;
- 
--	r0 = syscall_enter_from_user_mode_randomize_stack(regs, r0);
-+	if (unlikely(!syscall_enter_from_user_mode_randomize_stack(regs, &r0))
-+		return syscall_get_error(current, regs);
- 
- 	if (unlikely(r0 >= NR_syscalls)) {
- 		if (unlikely(trap_is_unsupported_scv(regs))) {
---- a/arch/riscv/kernel/traps.c
-+++ b/arch/riscv/kernel/traps.c
-@@ -332,13 +332,12 @@ void do_trap_ecall_u(struct pt_regs *reg
- 
- 		riscv_v_vstate_discard(regs);
- 
--		syscall = syscall_enter_from_user_mode_randomize_stack(regs, syscall);
--
--		if (syscall >= 0 && syscall < NR_syscalls) {
--			syscall = array_index_nospec(syscall, NR_syscalls);
--			syscall_handler(regs, syscall);
-+		if (syscall_enter_from_user_mode_randomize_stack(regs, &syscall)) {
-+			if (syscall >= 0 && syscall < NR_syscalls) {
-+				syscall = array_index_nospec(syscall, NR_syscalls);
-+				syscall_handler(regs, syscall);
-+			}
- 		}
--
- 		syscall_exit_to_user_mode(regs);
- 	} else {
- 		irqentry_state_t state = irqentry_nmi_enter(regs);
---- a/arch/s390/kernel/syscall.c
-+++ b/arch/s390/kernel/syscall.c
-@@ -96,6 +96,7 @@ SYSCALL_DEFINE0(ni_syscall)
- void noinstr __do_syscall(struct pt_regs *regs, int per_trap)
- {
- 	unsigned long nr;
-+	bool permit;
- 
- 	enter_from_user_mode_randomize_stack(regs);
- 
-@@ -121,7 +122,9 @@ void noinstr __do_syscall(struct pt_regs
- 		regs->psw.addr = current->restart_block.arch_data;
- 		current->restart_block.arch_data = 1;
- 	}
--	nr = syscall_enter_from_user_mode_work(regs, nr);
-+
-+	permit = syscall_enter_from_user_mode_work(regs, &nr);
-+
- 	/*
- 	 * In the s390 ptrace ABI, both the syscall number and the return value
- 	 * use gpr2. However, userspace puts the syscall number either in the
-@@ -129,7 +132,7 @@ void noinstr __do_syscall(struct pt_regs
- 	 * work, the ptrace code sets PIF_SYSCALL_RET_SET, which is checked here
- 	 * and if set, the syscall will be skipped.
- 	 */
--	if (unlikely(test_and_clear_pt_regs_flag(regs, PIF_SYSCALL_RET_SET)))
-+	if (unlikely(test_and_clear_pt_regs_flag(regs, PIF_SYSCALL_RET_SET) || !permit))
- 		goto out;
- 	regs->gprs[2] = -ENOSYS;
- 	if (likely(nr < NR_syscalls)) {
---- a/arch/x86/entry/syscall_32.c
-+++ b/arch/x86/entry/syscall_32.c
-@@ -161,8 +161,9 @@ static __always_inline bool int80_is_ext
- 	nr = syscall_32_enter(regs);
- 
- 	local_irq_enable();
--	nr = syscall_enter_from_user_mode_work(regs, nr);
--	do_syscall_32_irqs_on(regs, nr);
-+
-+	if (likely(syscall_enter_from_user_mode_work(regs, &nr)))
-+		do_syscall_32_irqs_on(regs, nr);
- 
- 	instrumentation_end();
- 	syscall_exit_to_user_mode(regs);
-@@ -223,8 +224,8 @@ DEFINE_FREDENTRY_RAW(int80_emulation)
- 	nr = syscall_32_enter(regs);
- 
- 	local_irq_enable();
--	nr = syscall_enter_from_user_mode_work(regs, nr);
--	do_syscall_32_irqs_on(regs, nr);
-+	if (likely(syscall_enter_from_user_mode_work(regs, &nr)))
-+		do_syscall_32_irqs_on(regs, nr);
- 
- 	instrumentation_end();
- 	syscall_exit_to_user_mode(regs);
-@@ -243,13 +244,13 @@ DEFINE_FREDENTRY_RAW(int80_emulation)
- 	 * orig_ax, the int return value truncates it. This matches
- 	 * the semantics of syscall_get_nr().
- 	 */
--	nr = syscall_enter_from_user_mode_randomize_stack(regs, nr);
--
--	instrumentation_begin();
-+	if (likely(syscall_enter_from_user_mode_randomize_stack(regs, &nr))) {
-+		instrumentation_begin();
- 
--	do_syscall_32_irqs_on(regs, nr);
-+		do_syscall_32_irqs_on(regs, nr);
- 
--	instrumentation_end();
-+		instrumentation_end();
-+	}
- 	syscall_exit_to_user_mode(regs);
- }
- #endif /* !CONFIG_IA32_EMULATION */
-@@ -286,10 +287,8 @@ static noinstr bool __do_fast_syscall_32
- 		return false;
- 	}
- 
--	nr = syscall_enter_from_user_mode_work(regs, nr);
--
--	/* Now this is just like a normal syscall. */
--	do_syscall_32_irqs_on(regs, nr);
-+	if (likely(syscall_enter_from_user_mode_work(regs, &nr)))
-+		do_syscall_32_irqs_on(regs, nr);
- 
- 	instrumentation_end();
- 	syscall_exit_to_user_mode(regs);
---- a/arch/x86/entry/syscall_64.c
-+++ b/arch/x86/entry/syscall_64.c
-@@ -78,14 +78,14 @@ static __always_inline void do_syscall_x
- /* Returns true to return using SYSRET, or false to use IRET */
- __visible noinstr bool do_syscall_64(struct pt_regs *regs, long nr)
- {
--	nr = syscall_enter_from_user_mode_randomize_stack(regs, nr);
-+	if (likely(syscall_enter_from_user_mode_randomize_stack(regs, &nr))) {
-+		instrumentation_begin();
- 
--	instrumentation_begin();
-+		if (!do_syscall_x64(regs, nr))
-+			do_syscall_x32(regs, nr);
- 
--	if (!do_syscall_x64(regs, nr))
--		do_syscall_x32(regs, nr);
--
--	instrumentation_end();
-+		instrumentation_end();
-+	}
- 	syscall_exit_to_user_mode(regs);
- 
- 	/*
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -71,7 +71,7 @@ static inline void syscall_enter_audit(s
- 	}
- }
- 
--static __always_inline bool syscall_trace_enter(struct pt_regs *regs, unsigned long work,
-+static __always_inline long syscall_trace_enter(struct pt_regs *regs, unsigned long work,
- 						long *syscall)
- {
- 	/*
-@@ -141,16 +141,14 @@ static __always_inline bool syscall_trac
-  *     ptrace_report_syscall_permit_entry(), __seccomp_permit_syscall(), trace_sys_enter()
-  *  2) Invocation of audit_syscall_entry()
-  */
--static __always_inline long syscall_enter_from_user_mode_work(struct pt_regs *regs, long syscall)
-+static __always_inline bool syscall_enter_from_user_mode_work(struct pt_regs *regs, long *syscall)
- {
- 	unsigned long work = READ_ONCE(current_thread_info()->syscall_work);
- 
--	if (work & SYSCALL_WORK_ENTER) {
--		if (!syscall_trace_enter(regs, work, &syscall))
--			return -1L;
--	}
-+	if (unlikely(work & SYSCALL_WORK_ENTER))
-+		return syscall_trace_enter(regs, work, syscall);
- 
--	return syscall;
-+	return true;
- }
- 
- /**
-
+[1]: https://sashiko.dev/#/patchset/20260706050337.7613-1-atomlin%40atomlin.com
+-- 
+Aaron Tomlin
