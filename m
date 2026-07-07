@@ -1,81 +1,151 @@
-Received: from va-1-111.ptr.blmpb.com (va-1-111.ptr.blmpb.com [209.127.230.111])
+Received: from va-1-114.ptr.blmpb.com (va-1-114.ptr.blmpb.com [209.127.230.114])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7CDB23A8724
-	for <linux-arch@vger.kernel.org>; Tue,  7 Jul 2026 06:38:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.111
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E99603C8C55
+	for <linux-arch@vger.kernel.org>; Tue,  7 Jul 2026 11:34:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.114
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783406328; cv=none; b=Mqc1LijcDSphQ/uMBjkWX2llmirtODFW/nGlvN5XnA66QoucG6v3ZcxXt9WCW8PzS7ojuCOUfqXWwRagfM2kPDeZG8wp80rzsnxltuaupUpUbQWW6TsH5aCx4t+t0bx7eqUGMSetefL56LTVQ+5DwYnFwRNUQVRKY0jTitvbmxA=
+	t=1783424085; cv=none; b=QCYrI2wnty5NSlpo2+i+QqGr8LK+eOjQSrNxpxqmMkr6CMwrxu1W6N5cxbmw4OZwsOb4ga+pd8WPX+Vodr2BhnfHm01+TlkJ29Z5ezjqCpDlWo3g8QVw6U0yBeAv5vV7mkxRp6oekGIu4sTKGg3+NrWu/iAaUdxDS4Zt7ukiGa8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783406328; c=relaxed/simple;
-	bh=nV2AGITJZTU1NzNzryu2M0rvwVAs69WU7Il0XZUHCqU=;
-	h=Subject:Date:Message-Id:To:Cc:From:Mime-Version:In-Reply-To:
-	 References:Content-Type; b=gTO4/ypCGhoUdVJ2gal1RT7l4ojoFvHtgbCcS0mqORR8EhTAd/3Exd3uoVP7BZrdlHa7gzHoQBVXR+09Mq18H8RQPNlQ2LYVZg+PfLpoZIPaIBfzVqV6VWAvxZ9vGiTA0WtSsQq6sIAHAhOF8fyxZYXhMX4UfpCiiQcUgfvS+yI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=T9c9o/hg; arc=none smtp.client-ip=209.127.230.111
+	s=arc-20240116; t=1783424085; c=relaxed/simple;
+	bh=bwMlJUahduxpYuI7dxnCe73XeR1A9mK1WvouKmZcB2g=;
+	h=In-Reply-To:Content-Type:To:Subject:Mime-Version:Date:Message-Id:
+	 References:Cc:From; b=rlfGDsCWINS7HQt6rg1b57OofThbl2iAZdjD8ae9XF+Esvf5ec+eKqvLZyVlFTqE/Vxum1Ks4ukkUXYIMZA2VqP0v6zCYTQ5QcBllxBGwBJDQ5T+IHyNTAcx5YUBEAEVriiIlnKotrGdRfbLLvqmNnGAKD09ASIJnJlhKea4GpA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=S0HZYj6i; arc=none smtp.client-ip=209.127.230.114
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="T9c9o/hg"
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="S0HZYj6i"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1783406321; h=from:subject:
+ s=2212171451; d=bytedance.com; t=1783424072; h=from:subject:
  mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
  mime-version:in-reply-to:message-id;
- bh=t1BFGaGU2xupQRN461NQlBdIPrGwg67ma5LofMnJBF8=;
- b=T9c9o/hgrsIen/ufvk8cRltvXc98r0f7EqRqol0h2xOlpYPaEds9LiOavYAnXnMqZK1QU/
- tJFTdwl9AqBP1WE4OfIcKhnLtFGofcXfP6cdLzrZa9UWblf4j+5XR9NDS71K863YqXjtmz
- xmFuMZJGfliqsMk18REwMAJICS4nCNTxK7f92WV5FRLJ1qBczS3RAUcmVt07IoUIIGfQl4
- 48L5Bdg31dUmUISHQQ8enci+/1njK//6szFSdbL/RUP5w9Kwk7KoOBLidOuQ/lQtpWa08w
- 3fD5BpDEMR8LcT0qm5q25TaViyAC5t1NFXHzMqiEzMGXMUwpqGu6Lm25artsnw==
-Subject: Re: [PATCH v5 5/8] mm: extend the template fast path to zone-device compound tails
-Date: Tue,  7 Jul 2026 14:38:14 +0800
-Message-Id: <20260707063814.40421-1-lizhe.67@bytedance.com>
-To: <apopple@nvidia.com>
-Cc: <akpm@linux-foundation.org>, <arnd@arndb.de>, <bp@alien8.de>, 
-	<dave.hansen@linux.intel.com>, <david@kernel.org>, <kees@kernel.org>, 
-	<linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
-	<lizhe.67@bytedance.com>, <mingo@redhat.com>, <rppt@kernel.org>, 
-	<tglx@kernel.org>, <x86@kernel.org>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-X-Lms-Return-Path: <lba+26a4c9eef+4b62c2+vger.kernel.org+lizhe.67@bytedance.com>
+ bh=jQE3oIJ4htoW+wFqKdDDzBtKjMtLRHL9VUuCAay6Gu0=;
+ b=S0HZYj6iA/8doMYhRv7PwCxyEjwG6yYdBTwX0CGw0zVs0c+gaQ3KMv3Nr30+Q8pkPvZkDP
+ 1elSkLWqTSqBgWJXGUnYbgDpBpgw6g0KhF4oQSKG5jyeOB8ZPUTNtGlrlNrrAUnFbfhqZh
+ li8F2SESyx+3UqSjOq5nN9f/IaSmeDP67Twqg2Epvjj/vby8Qx11wNnCPNyNZumV4GQ3Dm
+ QvyWKIoqfZb8KI1wGir5jyRIMKp5/jR7WxpFJZvnopRLNxd+48Neq3BC9R/UfcidI4xQ17
+ mJ1fTN5Hlmq/IS5Ee9ZEkAa4RQNDI43MS89PNob21AY4hsCqojimrG/UOsP9sA==
+In-Reply-To: <20260706171902.GCakvjhl5U89iJdaNP@fat_crate.local>
+Content-Type: text/plain; charset=UTF-8
+To: <bp@alien8.de>
+Subject: Re: [PATCH v5 7/8] x86/string: extend memcpy_flushcache() fixed-size fastpaths
+Content-Transfer-Encoding: 7bit
+X-Lms-Return-Path: <lba+26a4ce446+543edf+vger.kernel.org+lizhe.67@bytedance.com>
+X-Mailer: git-send-email 2.45.2
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
-In-Reply-To: <akxtWBdz5XjoAAzF@nvdebian.thelocal>
-X-Mailer: git-send-email 2.45.2
-References: <akxtWBdz5XjoAAzF@nvdebian.thelocal>
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset=UTF-8
+Date: Tue,  7 Jul 2026 19:34:09 +0800
+Message-Id: <20260707113409.71996-1-lizhe.67@bytedance.com>
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+References: <20260706171902.GCakvjhl5U89iJdaNP@fat_crate.local>
+Cc: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
+	<dave.hansen@linux.intel.com>, <david@kernel.org>, <kees@kernel.org>, 
+	<linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
+	<lizhe.67@bytedance.com>, <mingo@redhat.com>, <rppt@kernel.org>, 
+	<tglx@kernel.org>, <x86@kernel.org>
+From: "Li Zhe" <lizhe.67@bytedance.com>
 
-On Tue, 7 Jul 2026 13:09:01 +1000, apopple@nvidia.com wrote:
+On Mon, 6 Jul 2026 10:19:02 -0700, bp@alien8.de wrote:
 
-> > -	for (pfn = head_pfn + 1; pfn < end_pfn; pfn++) {
-> > +
-> > +	pfn = head_pfn + 1;
-> > +	/*
-> > +	 * All tails of the same compound page share the state established by
-> > +	 * prep_compound_tail(). Reuse one tail template for the whole range and
-> > +	 * refresh only the PFN-dependent fields in that template before each copy.
-> > +	 */
-> > +	if (use_template) {
-> >  		struct page *page = pfn_to_page(pfn);
-> >
-> > -		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
-> > -		prep_compound_tail(page, head, order);
-> > -		set_page_count(page, 0);
-> > +		zone_device_tail_page_init(page, pfn, zone_idx, nid,
-> > +					   pgmap, head, order);
-> > +		zone_device_template_page_init(&template, page);
-> > +		pfn++;
+> On Mon, Jul 06, 2026 at 03:43:46PM +0800, Li Zhe wrote:
+> > The extra IS_ALIGNED() check is meant as a conservative performance
+> > choice, not because MOVNTI itself would be invalid on a misaligned
+> > destination.
 > 
-> Similar comment as the previous patch - I think it's clearer to just init the
-> template page here as a separate step and not unroll the loop.
+> Dude, you can't just wait for me to pull every unobvious decision in the code
+> out of you - you need to write it down in your commit messages! I'm not a mind
+> reader, you know.
+> 
+> > As the Intel optimization reference manual notes, higher-throughput
+> > data movement usually comes with alignment considerations, and can
+> > be more efficient when the destination is naturally aligned.
+> 
+> This can't get any more vague.
+> 
+> > So for these larger fixed-size cases, I kept the inline path limited
+> > to the aligned case. For misaligned destinations, falling back to
+> > __memcpy_flushcache() is expected to be the better choice, since it
+> > already handles the unaligned head first and only then enters its
+> > MOVNTI loops.
+> >
+> > I will make that rationale explicit in the code comment and commit
+> > message in v6.
+> 
+> No, you need to show whether the alignment brigns anything and then add it or
+> remove it. We don't do things based on hearsay in the kernel - only on hard
+> performance numbers.
 
-Thanks. I will rework memmap_init_compound() the same way in v6.
+Thanks. I measured the exact tradeoff on the physical x86_64 host with
+an out-of-tree microbenchmark.
+
+The question for this patch is whether misaligned 32/48/64/80/96-byte
+copies should still stay in the fixed-size switch, or whether an extra
+alignment check should redirect them to the generic
+__memcpy_flushcache() path.
+
+To isolate that choice, I benchmarked two memcpy_flushcache()-style
+helpers which shared the same generic body. The only difference was
+whether those fixed-size cases always stayed in the fixed-size MOVNTI
+switch, or whether misaligned destinations were redirected to the
+generic path:
+
+variant A:
+    switch (len) {
+    case 32 ... 96:
+        do fixed-size MOVNTI stores;
+        return;
+    default:
+        generic __memcpy_flushcache()-style body;
+    }
+
+variant B:
+    switch (len) {
+    case 32 ... 96:
+        if (!IS_ALIGNED(dst, 8))
+            goto generic_path;
+        do fixed-size MOVNTI stores;
+        return;
+    default:
+    generic_path:
+        generic __memcpy_flushcache()-style body;
+    }
+
+On the same CPU, with the same source buffer, destination layout,
+stride, and iteration count, I measured the median time per memcpy.
+The wmb() was used only to separate rounds and was not included in the
+timed interval.
+
+For offset 0, the two variants were essentially the same. For
+misaligned destinations (offsets 1..7 averaged), keeping those sizes in
+the fixed-size switch took about:
+
+    32-byte memcpy: 0.410 us
+    48-byte memcpy: 0.411 us
+    64-byte memcpy: 0.426 us
+    80-byte memcpy: 0.426 us
+    96-byte memcpy: 0.428 us
+
+Redirecting the same misaligned cases to the generic
+__memcpy_flushcache() path took about:
+
+    32-byte memcpy: 0.962 us
+    48-byte memcpy: 0.956 us
+    64-byte memcpy: 0.923 us
+    80-byte memcpy: 0.998 us
+    96-byte memcpy: 1.001 us
+
+So based on these measurements, the extra alignment check is not buying
+us anything here. It consistently makes the misaligned 32/48/64/80/96
+cases slower by redirecting them to the generic path.
+
+I will drop the separate alignment check and fold 32/48/64/80/96 into
+the main fixed-size switch in the next version.
 
 Thanks,
 Zhe
