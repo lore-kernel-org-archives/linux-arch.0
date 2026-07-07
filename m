@@ -1,187 +1,129 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1BB43392C25;
-	Tue,  7 Jul 2026 14:27:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 13F2730AABE;
+	Tue,  7 Jul 2026 14:48:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783434435; cv=none; b=V625BY5Z7DO3mFvNJwFJW9YqtsbYryiPPzxJsAoQN1QIm5hje5W5EB6njSXp+vBPfyuCOI3PRZcc0IWLXGEA/FtphiNkiAwcGL3vuk4gxSq2gk5Pn8Xmt0WxV2O8EK35QuNGUF3m04uMd8rkrcpdEXy4aH4dDOSLC9avsHzPCso=
+	t=1783435699; cv=none; b=ZiBIrYp3J2RKMXHLC/lENhVK6Jri9560B/o9yCAYHxPlLpcgaaqDxoAl/1Xl7wxdwDICkat6Gp+lJETh2MgpiZQLd/insidJgo+DB0jTMZmoTy2ov15haIvYigQm8lGK3tqlOmJxYZAttTGMDanp/S/RoVpcHiAdoQEAvwCJUw4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783434435; c=relaxed/simple;
-	bh=4NwUP6aOyhMEDaz1G7Jxklo6X4SzHBzp+nAEAVS6hbE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=k6KcMi7HBis7yrkaCKKsEzcJd6jSb2fYwCZTFqcWNOFURutWp8AZMORbTo9CZxBEBl6b53//6oOkrfsnXpX0IgShgN8b9MPd0rl9zsrBX8nfgXATSrUF3Dvk7QICSdV+zpXjHze2TpmRW/8WBUrIrmB0lF/uiI5R0ZM/ZkgstIg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=iYY9XAYY; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1783435699; c=relaxed/simple;
+	bh=3tWkLtv1r5S9y1Rh08QPuFqmn/Edh3V72WQL303pkDY=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=thpfKRXYu1Z2uV714oKOJNMyp2VLzYlXfCDnJzorsc+iML6ahnvLFi6KgEwGUz77eYOxgzei1qyJBDk/xpm2/6EmG2Zu/xdQjs+y4P3W2xKoJaenevDyKbl3CDgIN5FbV2go85SGfZkF7iP1A+kIKfyODJoei3t7V5J2p3aJA7Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=jCD1N2xC; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="iYY9XAYY"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 45DA31F000E9;
-	Tue,  7 Jul 2026 14:27:10 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783434431;
-	bh=1U8ZXFlW4rX9c/2F9h4tPUhUQFvqjXcEFFpByr/JDUY=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=iYY9XAYYMs2G9ELeHa2Gcaq15Lq7TLnMHoVJPgo1lTK0zDQTMiglPrLXs5ocCKFuK
-	 xDjlbNEM1JpdWstL9gCrcvGy+2YNVZEuWZIgEW4zQFocqVJfwka6aiJFJ3c1heTeUq
-	 x8raJidAc8dA+v7YuYp8q1Gr4mUKcUGUqSlV0egPC2lt4dgPTW8eMhA9X594tTQsLL
-	 YQWuHWzWzO+12Ub6hInXq2CE44mKlWXxewnZpE805jeAnRjMYUZfD9bW/ElTab88J7
-	 dnkuFoO4aWfpC7RiaMkCuPnMxXS0Y4vOnqTp4QY2QjBLdQY4DZQcRuHOfJDzYEkmwT
-	 9oJ1K9OTa/vIA==
-Date: Tue, 7 Jul 2026 15:27:07 +0100
-From: Mark Brown <broonie@kernel.org>
-To: Christian Brauner <brauner@kernel.org>
-Cc: Jori Koolstra <jkoolstra@xs4all.nl>,
-	Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>,
-	Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [PATCH] vfs: missing inode operation should return a consistent
- error code
-Message-ID: <90228c39-04e7-41ef-ad91-84a8bb866650@sirena.org.uk>
-References: <20260531104947.6142-1-jkoolstra@xs4all.nl>
- <20260702-forensik-unfertig-korpulent-56f199eb061a@brauner>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="jCD1N2xC"
+Received: from localhost (unknown [20.236.11.29])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 2F94920B7166;
+	Tue,  7 Jul 2026 07:48:12 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 2F94920B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1783435693;
+	bh=jZRO96unfBRPa4hmnICsULiigA4xhGgQeUwW9uBSN7c=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=jCD1N2xCD97HB8h/7Xd9VHwi0f+vmVZsGMEZ0RLfbm9mvrKY8H9ja5k8PSAMrq5US
+	 znoXfGfJ2Gg6fI/jfFerPC6XQy/g79MMpXS7tHDNwPG8S/10KbOGHrV+GFbq2Yru/I
+	 ilErZQbReXPQ4sF24kgh5fOy7X6ZKcueVHgVWA+U=
+Date: Tue, 7 Jul 2026 07:48:14 -0700
+From: Jacob Pan <jacob.pan@linux.microsoft.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: Yu Zhang <zhangyu1@linux.microsoft.com>, linux-kernel@vger.kernel.org,
+ linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
+ linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, wei.liu@kernel.org,
+ kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
+ longli@microsoft.com, joro@8bytes.org, will@kernel.org,
+ robin.murphy@arm.com, bhelgaas@google.com, kwilczynski@kernel.org,
+ lpieralisi@kernel.org, mani@kernel.org, robh@kernel.org, arnd@arndb.de,
+ jgg@ziepe.ca, mhklinux@outlook.com, tgopinath@linux.microsoft.com,
+ easwar.hariharan@linux.microsoft.com, jacob.pan@linux.microsoft.com
+Subject: Re: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU support
+ for Hyper-V guest
+Message-ID: <20260707074814.000010a0@linux.microsoft.com>
+In-Reply-To: <1f57d1d9-ccbb-ff4e-9680-d45adc7821ea@linux.microsoft.com>
+References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
+	<20260702160518.311234-4-zhangyu1@linux.microsoft.com>
+	<1f57d1d9-ccbb-ff4e-9680-d45adc7821ea@linux.microsoft.com>
+Organization: LSG
+X-Mailer: Claws Mail 3.21.0 (GTK+ 2.24.33; x86_64-w64-mingw32)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="CwuKocahL5R9xkrP"
-Content-Disposition: inline
-In-Reply-To: <20260702-forensik-unfertig-korpulent-56f199eb061a@brauner>
-X-Cookie: All rights reserved.
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
+Hi Mukesh,
 
---CwuKocahL5R9xkrP
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Mon, 6 Jul 2026 17:08:50 -0700
+Mukesh R <mrathor@linux.microsoft.com> wrote:
 
-On Thu, Jul 02, 2026 at 09:47:24AM +0200, Christian Brauner wrote:
-> On Sun, 31 May 2026 12:49:46 +0200, Jori Koolstra wrote:
-> > vfs: missing inode operation should return a consistent error code
->=20
-> I've stuffed this on a separate branch. Let's see whether we see any
-> fallout.
+> From: Mukesh R <mrathor@linux.microsoft.com>
+> To: Yu Zhang <zhangyu1@linux.microsoft.com>,
+> linux-kernel@vger.kernel.org,  linux-hyperv@vger.kernel.org,
+> iommu@lists.linux.dev,  linux-pci@vger.kernel.org,
+> linux-arch@vger.kernel.org Cc: wei.liu@kernel.org, kys@microsoft.com,
+> haiyangz@microsoft.com,  decui@microsoft.com, longli@microsoft.com,
+> joro@8bytes.org, will@kernel.org,  robin.murphy@arm.com,
+> bhelgaas@google.com, kwilczynski@kernel.org,  lpieralisi@kernel.org,
+> mani@kernel.org, robh@kernel.org, arnd@arndb.de,  jgg@ziepe.ca,
+> mhklinux@outlook.com, jacob.pan@linux.microsoft.com,
+> tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com
+> Subject: Re: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU
+> support  for Hyper-V guest Date: Mon, 6 Jul 2026 17:08:50 -0700
+> User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+> Thunderbird/91.13.1
+> 
+> On 7/2/26 09:05, Yu Zhang wrote:
+> > Add a para-virtualized IOMMU driver for Linux guests running on
+> > Hyper-V. This driver implements stage-1 IO translation within the
+> > guest OS. It integrates with the Linux IOMMU core, utilizing
+> > Hyper-V hypercalls for:
+> >   - Capability discovery
+> >   - Domain allocation, configuration, and deallocation
+> >   - Device attachment and detachment
+> >   - IOTLB invalidation
+> > 
+> > The driver constructs x86-compatible stage-1 IO page tables in the
+> > guest memory using consolidated IO page table helpers. This allows
+> > the guest to manage stage-1 translations independently of vendor-
+> > specific drivers (like Intel VT-d or AMD IOMMU).
+> > 
+> > Hyper-V consumes this stage-1 IO page table when a device domain is
+> > created and configured, and nests it with the host's stage-2 IO page
+> > tables, therefore eliminating the VM exits for guest IOMMU mapping
+> > operations. For unmapping operations, VM exits to perform the IOTLB
+> > flush are still unavoidable.
+> > 
+> > To identify a device in its hypercall interface, the driver looks
+> > up the logical device ID prefix registered for the device's PCI
+> > domain (see the logical device ID registry in hv_common.c) and
+> > combines it with the PCI function number of the endpoint device.
+> > 
+> > Co-developed-by: Wei Liu <wei.liu@kernel.org>
+> > Signed-off-by: Wei Liu <wei.liu@kernel.org>
+> > Co-developed-by: Easwar Hariharan
+> > <easwar.hariharan@linux.microsoft.com> Signed-off-by: Easwar
+> > Hariharan <easwar.hariharan@linux.microsoft.com> Signed-off-by: Yu
+> > Zhang <zhangyu1@linux.microsoft.com> ---
+> >   arch/x86/hyperv/hv_init.c       |   4 +
+> >   arch/x86/include/asm/mshyperv.h |   4 +
+> >   drivers/iommu/Kconfig           |   1 +
+> >   drivers/iommu/hyperv/Kconfig    |  16 +
+> >   drivers/iommu/hyperv/Makefile   |   1 +
+> >   drivers/iommu/hyperv/iommu.c    | 620
+> > ++++++++++++++++++++++++++++++++ drivers/iommu/hyperv/iommu.h    |
+> > 51 +++ 7 files changed, 697 insertions(+)
+> >   create mode 100644 drivers/iommu/hyperv/Kconfig
+> >   create mode 100644 drivers/iommu/hyperv/iommu.c  
+> 
+> Hey Jacob,
+> 
+> You had suggested I rename iommu.c to iommu-root.c (I called it
+> hv-iommu-root.c eventually), so this needs to be renamed also,
+> right?
 
-I'm seeing a failure in the chdir01 LTP test on arm64, everything seems
-to work fine apart from vfat:
-
-tst_buffers.c:57: TINFO: Test is using guarded buffers
-L5023tst_tmpdir.c:316: TINFO: Using /tmp/LTP_chdkVKCfH as tmpdir (tmpfs fil=
-esystem)
-L5024tst_device.c:98: TINFO: Found free device 0 '/dev/loop0'
-L5025tst_test.c:2047: TINFO: LTP version: 20260130
-L5026tst_test.c:2050: TINFO: Tested kernel: 7.2.0-rc2-next-20260707 #1 SMP =
-PREEMPT @1783429165 aarch64
-L5027tst_kconfig.c:88: TINFO: Parsing kernel config '/proc/config.gz'
-L5028tst_test.c:1875: TINFO: Overall timeout per run is 0h 00m 40s
-
-=2E..
-
-tst_test.c:1985: TINFO: =3D=3D=3D Testing on vfat =3D=3D=3D
-L5158tst_test.c:1290: TINFO: Formatting /dev/loop0 with vfat opts=3D'' extr=
-a opts=3D''
-L5159tst_test.c:1302: TINFO: Mounting /dev/loop0 to /tmp/LTP_chdkVKCfH/mntp=
-oint fstyp=3Dvfat flags=3D0
-L5160chdir01.c:85: TBROK: Cannot create symlinks: EOPNOTSUPP (95)
-
-Looks like a changed the error code here has confused the test's feature
-detection.  How many non-LTP applications have the same detection
-algorithm is a separate question.
-
-A full log may be visible at:
-
-  https://lava.sirena.org.uk/scheduler/job/2954697#L5157
-
-but I'm having a horrible time with AI scrapers at the minute so your
-mileage may very much vary.
-
-Bisect log:
-
-# bad: [5c73cd9f0819c1c44e373e3dabb68318b1de1a12] Add linux-next specific f=
-iles for 20260707
-# good: [fc5f2284ad6951ce06d6881ca8cbd6d14d5f5071] Merge branch 'for-linux-=
-next-fixes' of https://gitlab.freedesktop.org/drm/misc/kernel.git
-# good: [42843a9ac5e809f0cc23d9c7fc4f7fc680ef533f] Merge branch 'vfs-7.3.io=
-map' into vfs.all
-# good: [9a2e05b1fd4254f89110c9ec5efd23c838e92f1b] Merge branch 'vfs-7.3.mo=
-unt' into vfs.all
-# good: [526b2b2b2461704c8e8ecf7c3e514221a80ddc0d] Merge branch 'vfs-7.3.ne=
-tfs' into vfs.all
-# good: [5c73bf8878bf4e2770549c029ea41b328993de92] Merge branch 'vfs-7.3.kt=
-hread' into vfs.all
-# good: [8abc1c8badc11c859bb4ba43211611347e59c55c] Merge patch series "Add =
-bpf_sock_read_xattr() kfunc to read socket xattrs"
-# good: [41fda7804af4931df056f74f91661edf7f696777] super: make fs_holder_op=
-s private
-# good: [fb3fcb406b8882a91d1e51bae97101802fc991e1] soc: document merges
-# good: [4015411d5c76b22831d20f48abfe03754c2f41aa] Merge branch 'soc/dt' in=
-to for-next
-# good: [1c996a37fd244d19e5dbb715328c1676e28ef607] tools/power turbostat: p=
-mt: Improve sscanf() hygiene
-git bisect start '5c73cd9f0819c1c44e373e3dabb68318b1de1a12' 'fc5f2284ad6951=
-ce06d6881ca8cbd6d14d5f5071' '42843a9ac5e809f0cc23d9c7fc4f7fc680ef533f' '9a2=
-e05b1fd4254f89110c9ec5efd23c838e92f1b' '526b2b2b2461704c8e8ecf7c3e514221a80=
-ddc0d' '5c73bf8878bf4e2770549c029ea41b328993de92' '8abc1c8badc11c859bb4ba43=
-211611347e59c55c' '41fda7804af4931df056f74f91661edf7f696777' 'fb3fcb406b888=
-2a91d1e51bae97101802fc991e1' '4015411d5c76b22831d20f48abfe03754c2f41aa' '1c=
-996a37fd244d19e5dbb715328c1676e28ef607'
-# test job: [42843a9ac5e809f0cc23d9c7fc4f7fc680ef533f] https://lava.sirena.=
-org.uk/scheduler/job/2946674
-# test job: [9a2e05b1fd4254f89110c9ec5efd23c838e92f1b] https://lava.sirena.=
-org.uk/scheduler/job/2946625
-# test job: [526b2b2b2461704c8e8ecf7c3e514221a80ddc0d] https://lava.sirena.=
-org.uk/scheduler/job/2946471
-# test job: [5c73bf8878bf4e2770549c029ea41b328993de92] https://lava.sirena.=
-org.uk/scheduler/job/2946559
-# test job: [8abc1c8badc11c859bb4ba43211611347e59c55c] https://lava.sirena.=
-org.uk/scheduler/job/2946694
-# test job: [41fda7804af4931df056f74f91661edf7f696777] https://lava.sirena.=
-org.uk/scheduler/job/2946598
-# test job: [fb3fcb406b8882a91d1e51bae97101802fc991e1] https://lava.sirena.=
-org.uk/scheduler/job/2849417
-# test job: [4015411d5c76b22831d20f48abfe03754c2f41aa] https://lava.sirena.=
-org.uk/scheduler/job/2849285
-# test job: [1c996a37fd244d19e5dbb715328c1676e28ef607] https://lava.sirena.=
-org.uk/scheduler/job/2829780
-# test job: [5c73cd9f0819c1c44e373e3dabb68318b1de1a12] https://lava.sirena.=
-org.uk/scheduler/job/2954697
-# bad: [5c73cd9f0819c1c44e373e3dabb68318b1de1a12] Add linux-next specific f=
-iles for 20260707
-git bisect bad 5c73cd9f0819c1c44e373e3dabb68318b1de1a12
-# test job: [cf6f88615485a68df77092de1f90f88708a32fa6] https://lava.sirena.=
-org.uk/scheduler/job/2948415
-# bad: [cf6f88615485a68df77092de1f90f88708a32fa6] Merge branch 'vfs-7.3.err=
-no' into vfs.all
-git bisect bad cf6f88615485a68df77092de1f90f88708a32fa6
-# test job: [7028d60a643ac945826ae281ae5ec1940ee06fbf] https://lava.sirena.=
-org.uk/scheduler/job/2948438
-# bad: [7028d60a643ac945826ae281ae5ec1940ee06fbf] vfs: missing inode operat=
-ion should return a consistent error code
-git bisect bad 7028d60a643ac945826ae281ae5ec1940ee06fbf
-# first bad commit: [7028d60a643ac945826ae281ae5ec1940ee06fbf] vfs: missing=
- inode operation should return a consistent error code
-# test job: [7028d60a643ac945826ae281ae5ec1940ee06fbf] https://lava.sirena.=
-org.uk/scheduler/job/2948438
-# bad: [7028d60a643ac945826ae281ae5ec1940ee06fbf] vfs: missing inode operat=
-ion should return a consistent error code
-git bisect bad 7028d60a643ac945826ae281ae5ec1940ee06fbf
-# first bad commit: [7028d60a643ac945826ae281ae5ec1940ee06fbf] vfs: missing=
- inode operation should return a consistent error code
-
---CwuKocahL5R9xkrP
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAmpNDLoACgkQJNaLcl1U
-h9DC8Af/VlaXe7QIksLACKdLRVkcQHmxZpxlySa5iEgEw5d69yk59ZecLW7pUZW9
-o9WkNFYSeo9CN+hm/8gGcD4pI2m5NqbVeyJ4KQ7Nacg7XrI7T1hXPaSKQp6Su+4t
-YRkMu5fMeMlg+IsK/3akb1W3Zdfu6P+N9Gxp97DuDUpugGscV3oRjxNTZs+pu0T5
-iPWMsRo/N6qk1i3pYKVG+wtAiTQKfRzree8xkZVpi9CrlvfI3UJ81vJtI45NP/+m
-X00Q4vOaoLkVM72hdiUuaoqble8s38We/mhlMHviEGAcG0HdzsBWrncnvy6TAqgl
-KQZZ+UJNYAN8CMqtOIDZ6OBef//kOA==
-=/3xL
------END PGP SIGNATURE-----
-
---CwuKocahL5R9xkrP--
+yes, I agree. I feel it is clearer to name it hv-iommu-guest.c since
+this is a guest only driver.
