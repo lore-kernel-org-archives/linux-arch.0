@@ -1,467 +1,250 @@
-Received: from LO3P265CU004.outbound.protection.outlook.com (mail-uksouthazon11020088.outbound.protection.outlook.com [52.101.196.88])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oi1-f181.google.com (mail-oi1-f181.google.com [209.85.167.181])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ADC233B3BEC;
-	Wed,  8 Jul 2026 02:00:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.196.88
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783476019; cv=fail; b=uXVXdk87PWnL+O8DjvjvzAU+Etgmr9NZxnaWlusa3bpYNqJdxTQPPE0mThHHvgmw4V5FPV0qDdMslzYxJHEy8QHm+iJ9Avlu9XB+fXDhTYduFb3ai/bed+OBEqeCRHlpZxu+GLc1TuDr4OBtMYa1It0ZZrQiuxa6ThHLG6ec+b4=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783476019; c=relaxed/simple;
-	bh=HCoOSv4KiptCu8TLxhvs1+0mSsAz91UsRy7+alR+Ezk=;
-	h=From:To:Cc:Subject:Date:Message-ID:Content-Type:MIME-Version; b=GayhBvkN+gniTk/tNRH69N3+QWK96o+gxMIpwArXIULccBWfD06GlE0PbxFpDkInQSsegpc4hNOfTLivoC10FKDfsQKB2C2q+hb4/gunMmTRgZTCqjWtT8sjjONNNVhwwJ36aZqUzixGb6ITe6J/v+Xwwv/dGeMfL1MtPzFCdcE=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.196.88
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=gQJo+hpwkryBipsOuayn3Xq8A3MAq7BAdfZVCL9IQ8xlgW9d47SyuqLXuBLFfrnS1BgOfuIa63C8Eeglcza5TjZXTucvgcDpD8T2RYAzTz0MV4l7zG/AXABN/KNyYGk+V8J90T6twoFhgxKS2L3prO+QpAr9UsEtJ8Jx4je5RyacJs5jfSejIYhJl3DQupk6P46advRucAJ4NnbfReNGEbx8ZHEngwI/7hiSjSBZj1QT7NxronTFCsT/M9sCMBK02pw4IfV9IgwZh6CU69ImuZcnI77+L1rzYcNtVnQchtZ1MpdatevQCfoKsG0dc4TwRFiz0hoYvcjPuF+u23czXQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
- bh=IAoxglqmEj2baHz6K5OFmCYhey/UQ4t1T5QJ/krHXBE=;
- b=rAnOn2vGKH3+rW8qeeF5q6tQLQ8rYa6SkJOtpGMPNkX/V8Q3HxwZhUUGS4dH/wj0ctlYzckPv1M2WIo6icuPcOXHb86CZTzXHcGQW/0dKAZ1GxkHE56OppUAnK1se1ufZzUEI+KuESM+oZ8rI+n7MXaGH2lbejVNizhgmwvJl4i3oes3TiRCL6ceCr6TQpa6VE+TXf5DZ8FSAehZilNK6Gj3vGQx3AHF0uXIimmqshesUy3kb08BMqtz2718B6lVQXbM+iWr/P/jhFgn7cjbORGMr9BjugYP5OX5mdFm+GGOiV41x+HSsJqTqyb+NwKQOhERTu6DexVPzOBUpdCQ6Q==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
- dkim=pass header.d=atomlin.com; arc=none
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=atomlin.com;
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
- by LO6P123MB6376.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:2a2::12) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.181.10; Wed, 8 Jul
- 2026 02:00:11 +0000
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0181.010; Wed, 8 Jul 2026
- 02:00:11 +0000
-From: Aaron Tomlin <atomlin@atomlin.com>
-To: arnd@arndb.de,
-	mcgrof@kernel.org,
-	petr.pavlu@suse.com,
-	da.gomez@kernel.org,
-	samitolvanen@google.com,
-	peterz@infradead.org
-Cc: akpm@linux-foundation.org,
-	mhiramat@kernel.org,
-	atomlin@atomlin.com,
-	neelx@suse.com,
-	da.anzani@gmail.com,
-	sean@ashe.io,
-	chjohnst@mail.com,
-	steve@abita.co,
-	mproche@mail.com,
-	nick.lane@mail.com,
-	linux-arch@vger.kernel.org,
-	linux-modules@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH v4] module: Extend module_blacklist parameter to built-in modules
-Date: Tue,  7 Jul 2026 22:00:07 -0400
-Message-ID: <20260708020007.55728-1-atomlin@atomlin.com>
-X-Mailer: git-send-email 2.54.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-ClientProxiedBy: BN1PR10CA0020.namprd10.prod.outlook.com
- (2603:10b6:408:e0::25) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- (2603:10a6:400:183::5)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ACD5A3803E7
+	for <linux-arch@vger.kernel.org>; Wed,  8 Jul 2026 02:18:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.181
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783477107; cv=none; b=RJ8aNRCCJJzr0+hJdBnQUqGY8kXnj9KCGR2SzLuAzDWwfzNS6WiH6fHra6dSnPADYiBusB/y0Tb0OqMGpqwtfGazK8v6ctQbsgsViP06CGejg65HP9Kid06XRv0y8VLRjfpHFYLQlC5WJedyKzRG25U1URYGxpKrFebKz+Z08OA=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783477107; c=relaxed/simple;
+	bh=Y6iplDL8rNgmn0X2LDL04ve9ymDJVghIuEaIPWNObfk=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=K7fIs4pLY1ZBUA7tXMXfiA3zBt6f5PEyRRtJEzX1Ivl9gA/XnIigYrrNljlV+Pg6SfFJM1pk6VndSb61DXlo0Izw0MuwKA444v5GWO3lZfWgB6nRBl9tuQW2iWtYspNJaxLQQ4jN2rNC1RrI3OZR/HdgcNlsU7U1Uz0vJAYJ/4U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=enYAPEWu; arc=none smtp.client-ip=209.85.167.181
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="enYAPEWu"
+Received: by mail-oi1-f181.google.com with SMTP id 5614622812f47-495ee8e807aso83972b6e.2
+        for <linux-arch@vger.kernel.org>; Tue, 07 Jul 2026 19:18:25 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1783477105; x=1784081905; darn=vger.kernel.org;
+        h=cc:to:content-transfer-encoding:content-type:mime-version
+         :message-id:date:subject:from:from:to:cc:subject:date:message-id
+         :reply-to:content-type;
+        bh=NMN7ABXuRfB8gym1Nu0oTUlXvbUyY+lInnKbjPM/RBo=;
+        b=enYAPEWuEkBRAlI5Do5YpusL/ZlGkLm7whDsgiMj8PBjYxxeZD5o4bvqwrjj65xYrq
+         uluxIS5YlYSYaBIXqtgeugzZCig+jjphoZ33scGPW/vG1g9gTpQjr3KupOwedVdZJL2W
+         PQd/+vn2S32cCpX8mFNRecUJhZkASH5vK4bL2UHXoKtQ+Q6NKGawCM1XxZA/ae3iXmjF
+         oOQhQN4dSjSbmKSkPMZ+LMCiZeqositjhYquaB50WT/axlSTRyTgS88zdbpd0wKhench
+         I8kisr33ShxkwpDezkHHvPVqCwQv3QnHGS5aywCdjNtCubYCZ7jPxR1qijWl1mM0DwM8
+         b7BQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1783477105; x=1784081905;
+        h=cc:to:content-transfer-encoding:content-type:mime-version
+         :message-id:date:subject:from:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=NMN7ABXuRfB8gym1Nu0oTUlXvbUyY+lInnKbjPM/RBo=;
+        b=OPM0tB7yEbm6A/qcJvc7k7XdeqTxezV2SmzO3kcm6qQFoBDOCE0ccXbwPnKNPblqnw
+         6Glyzq5UnULR4zhnRbx5CcMwM2HuYduYCocpNzZk5AUKrk0hTOGLFKdy6WxNPd2MECCk
+         NiylPoIOzUDvub4XUPslFCDtwewoD4N4wvERbULfNhjZzEBsHvbTy6dyeH6BxY7k68q6
+         0deZlCqsbWa2kAb5MNjSps4ACTKJlbqc09FQSoYP3DBQ8SDA1uC4FUP8Q1cqJoqsqfZZ
+         SMF8m4mvNzZPGiG4RuAqD18vTX5UYnuX0Zg9r0zJpHYwn+0nfYCcAr3VR9w14kr9jfCz
+         JUww==
+X-Forwarded-Encrypted: i=1; AFNElJ/VwhVoLmrPgRdltqy29iq3Kcm8+Br+f2Xf+1GUs71kfgflYj4NWm06Dj/9cRhWTwPLw55LLvL46eLA@vger.kernel.org
+X-Gm-Message-State: AOJu0YyypeBfZ4QbVLJ2b1Z5bi/CmaEPQdgegQH2ifwSvI7q0Y+MPubh
+	HE8xakPbpp+SFy5QjCp/C18bkltNF7uue/OwMAKk6Xy8ljRrzZuhKZ03
+X-Gm-Gg: AfdE7ckTGwDuXY8Gww4r7p5kdwol2SLH3TVtRYgBUNls2p8bAPvwktNYay6z/FhaB+M
+	wSwLG0hpuLNSZ2FI+XkyFy2+mzYoSRnF/8s7D+CU9wXIqvn8HHPFZCo+MgVq4i8+CaSFp6ZIpb/
+	5VBlxC1EkVTE0SUxOJslFRuKnwtekNEqjltwJ8vMzt6nYwlpqDwJEhHN/mkX8oXP/lldPh4EDeH
+	A6JnFBTrVGx1uKlF8tNXPIPL44uLUjwj+m5zW+rQxhWz/XiJWvQZPQvrlh+GKKk1Q5zMPe3KBE9
+	9WNCtgk1osoCOkMw0YivBXqQLH5LNQcLmyRb/VVGkgNtq/6JyUT9aHkkQ60XEoQPnQMLw/9kLrp
+	W2w6KYBYDjAY04PUQLl0jYMZ52SunsXW0JSemV6hRRTSMAVYwRmfnY2QkH0ey9cOpYdi5+itfyF
+	/Ni1AyqqJ/1vgJPr0tOax50GVYWkMyMX9jr6bPgSyWq8avunhpPhk=
+X-Received: by 2002:a05:6808:3305:b0:492:5b42:ab02 with SMTP id 5614622812f47-4a1fe930f52mr487342b6e.0.1783477104559;
+        Tue, 07 Jul 2026 19:18:24 -0700 (PDT)
+Received: from [192.168.0.245] (c-98-38-17-99.hsd1.co.comcast.net. [98.38.17.99])
+        by smtp.googlemail.com with ESMTPSA id 5614622812f47-4a1aa006f74sm799975b6e.0.2026.07.07.19.18.23
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 07 Jul 2026 19:18:24 -0700 (PDT)
+From: Jim Cromie <jim.cromie@gmail.com>
+Subject: [PATCH v6 00/24] fix dynamic-debug classmaps API for DRM
+Date: Tue, 07 Jul 2026 20:18:00 -0600
+Message-Id: <20260707-dd-maint-2-v6-0-381f3edb0045@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LO6P123MB6376:EE_
-X-MS-Office365-Filtering-Correlation-Id: 4bfc1761-f2ef-4b0d-f02f-08dedc94a4d6
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|1800799024|366016|23010399003|376014|7416014|18002099003|5023799004|6133799003|56012099006;
-X-Microsoft-Antispam-Message-Info:
-	0nYMRA+uyAiZ0J9BK19xCy6tDF6rg9O49HmATByCDo79iutFSEiwH8af1DH0eLaBfCIc8WF+c1+ym8UJhkHw9rw8NAKuKWnpw7mwWvsRMNZ6xLtWOn7ZWkwOv/zE3TOwY8iY+MgjnJCXhGXy3gkHTvAWVApGdfp8kZpmbsm5PaDPJS33QoAG1VDw8vKOPGJa4bSwCNfc8s2cWh8A0v7UqFExceStyBRikNYnFg+ZojKE0aFRGRZuYM6oyse6WicSJ6rqcl1OMNK5bFJuJNISiE2wdQMXVKvw3AYYMp4meCYbi0snHteAaANF/TORr8ndy0UVHF/m/oxYAkMXT4+a2hFIPCDhdZbnzIReLoYCGIxdWTbUKgO/PHDGqolyNT3DZBmB1NLkatPh9vU59L7tr9GDSQpoJBrhyEle0KHzXJpHL7xo0IgxkDueQoXH0AeWjssLy89YcC5rWw1VcYN2BVyBfDP0ic45+eyydSYzuZx29xxr980TOAY+yRkhQfGMmblV/4OSm56LRIq/T0IKNFiHTqMWicSiiMmt31olYPEdLLsNHiUJZTw9lR0XHm2oFU9bLk4CI9iiNuadXww1bH1y9RGwhPfWUChFLpqbh+hUpomHc9UnKueg2XGfGb1HgnRl/Womb5qkSmk3RgI7SUqd9JKu4fcpWB3/yc9mOCk=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(366016)(23010399003)(376014)(7416014)(18002099003)(5023799004)(6133799003)(56012099006);DIR:OUT;SFP:1102;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?ErQ3gSQu1yCJIQmNatie0euPEE2qdlH/tgBroY/UEbupUPS6Cum6sFJFzc/V?=
- =?us-ascii?Q?mcGLdhxs7sukbm1742EN09XbjjyG+Qzpk7A752APoluYiLNhk+30N1I0IT+5?=
- =?us-ascii?Q?VVFlNcMRr0uLK2Vh3L/aGcEAunNinmXw9jSd7+AodxRcfPpPN16IFf2ppXIj?=
- =?us-ascii?Q?hqFfWPaGClYywFKsMA/zF0IhLBlfIMKZAzdvLFxPGuGKK3bXMarTjHWyUNt3?=
- =?us-ascii?Q?mI8xbKlrqKQjR98DndtZYbrlfegrn/UwgCNBhWeu6pYXcVAocJpIv/Tl4sU1?=
- =?us-ascii?Q?BXM9cEWL6vp8HwWYsaR/MCBYU428CTKBWEBYOiDBOk688oodIQgcwLgTqEY0?=
- =?us-ascii?Q?PRfjqoK/BtFed3MaBMJDxFZ0ZOJupjn1ggfeHuG1edFlPNplSQ1FIX59u7Fz?=
- =?us-ascii?Q?nJkIQXiIcD2BPSZLAzmbXcsGzIwLmW+w64+aQr7BuMo0fUpi8XuLixIx4Syw?=
- =?us-ascii?Q?WWMaz3px3xWysIMTvoNWYjAq+q1wQ75a2Ox+M0Wto9qkcLYL9FG8Oe3cqCRX?=
- =?us-ascii?Q?sRJnA+P1AgrkUZTUPm7TfQQh1BLD5D50noIhzZyMnvqa635qGEVbVcsBZUnY?=
- =?us-ascii?Q?zc3U2UHQuE2m1eaN1N+mkKK2n8vL6PZbNuGGIQt/qszStm67dj+6qOlnvXn6?=
- =?us-ascii?Q?1Jp0hMm4Pb0hkxTBsjaN+rT6s6MQdnLj8CWroufzQ39IUISosqSMR41T+pTL?=
- =?us-ascii?Q?aYkxILy3SLHbhXvayGVlZqNchj7UWZNud8KulLURF4SKPSQiJaW13CiAeP5S?=
- =?us-ascii?Q?Oe1xib77OtWRuY7zQ36bEOftejwOuKFDeihaiP81W+xrY6c7Z6EfRIrjWQNR?=
- =?us-ascii?Q?Ekw5o0lER6PBN7Ut9gMDLSGt9Wxj/EmNO6TXWlfO5tujpzc7BvrfUnVKJrZ4?=
- =?us-ascii?Q?IUcYirsIFZ3KFqB3ui2AK+WDbeVlD+VbCcSpoNjM7Dzl6j21FFgq2o6LeVkB?=
- =?us-ascii?Q?XZA4VxthFXGgPxPwDtJhtC8l23CudllWOhXnJveQ8F+oBjzsegvrjUWTtGNO?=
- =?us-ascii?Q?acthJ0bfpyvD/ABs/jdo7FS4Os2DS2aAYcZLHZvTUH+U1FirNbbhynYH1fe9?=
- =?us-ascii?Q?UsuQGQmdDswf3HBu6cXEDPdkhXsOLDWkldhZdhXLG6JGUAIotuvxqjQ6Xvas?=
- =?us-ascii?Q?i0W585RarMmGavs+j2dOVWTaxipoKUtWtgbcVNG9ByhouyavHqULmsaNIHnz?=
- =?us-ascii?Q?LxlqQDQvO7QrDDLkmavXJLMNS522/i0v38mlAAfEBSz3v+o4PRDcpUUSezjh?=
- =?us-ascii?Q?GUILPGAiAu/fcebaen8QneeEPWayc82MR31siP5D/S/Ysq+RIqgZC6mXRXxW?=
- =?us-ascii?Q?1Cg7g4UAnPJ4vdsmve14iVedxdUzthP3DJJbNy6PfQGYHLRRXg1tfQmjgWvf?=
- =?us-ascii?Q?xaMTxtwexU6ugCCi2cywy+lLN5VnE9Bw8CmH/xKsPXvXT/CoeaCrFKT6oE6s?=
- =?us-ascii?Q?zcRZtj5SdEO46jpZi+yY39FIs73tUt8z2D0do3yHeYm7f8lqIz1AsZCPMJKM?=
- =?us-ascii?Q?T35AWvVU1SaQlEH0M+7cyQmWFAbwM6Ktk5ZTkIFgqEf4JyHbaXnUzlXxgXwA?=
- =?us-ascii?Q?wuTP0GRH6+hlQYwHQeJgRzQCWwxup01WkPhmqGh+Q33ftTjjRgKZ4Ocwd42Y?=
- =?us-ascii?Q?KBuSkkDPpiWE0h7dm0xnquRFIbYE5sTkJEUMEtlVJ8gWNROR2XqbhLIaA/3N?=
- =?us-ascii?Q?MDd9JAvPJUae6XpC8vnWCw/61HsklJQ66k2nCbibowKqdnc8AQYD02kMt7XX?=
- =?us-ascii?Q?8RvlzNaXlw=3D=3D?=
-X-OriginatorOrg: atomlin.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 4bfc1761-f2ef-4b0d-f02f-08dedc94a4d6
-X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 08 Jul 2026 02:00:11.3949
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: tL76rTxFMau1kI9csed2kCXzGQdrGQmWzYqAdFoIB+uyIQ9p2sNcCBVfwcca6jdKWgMWLau2ekTQXibjOVhABQ==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: LO6P123MB6376
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/13QTW6DMBAF4KsgrzuVPf4DVr1HlYUNhlhKIDXUa
+ hVx906CKggbS2Prexq/O5tCimFidXFnKeQ4xXGgwbwVrDm7oQ8QW5oZcjRco4C2hauLwwwI1jR
+ aIbcVHYzALYUu/jzDPk80n+M0j+n3mZ3xcfsfI/cxGYGDr6SVAp3jpfzo6eny3oxX9ojJcqOGv
+ 2yQJVHlhPaohG9lc6RqT/GFKqKickIprUvtyiPVG7UHqomi6hA9/cV3uKfLWkQKX99U5ry2sXV
+ ZF+sykgN1Be4S+wF0WVlZGoPCiJp2Pi3LH4EByVuZAQAA
+X-Change-ID: 20260521-dd-maint-2-76c542079420
+To: Andrew Morton <akpm@linux-foundation.org>, 
+ Jason Baron <jbaron@akamai.com>, 
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
+ Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+ Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>, 
+ Petr Pavlu <petr.pavlu@suse.com>
+Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, 
+ dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
+ linux-modules@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>, 
+ Louis Chauvet <louis.chauvet@bootlin.com>
+X-Mailer: b4 0.14.3
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1783477102; l=6982;
+ i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
+ bh=Y6iplDL8rNgmn0X2LDL04ve9ymDJVghIuEaIPWNObfk=;
+ b=hWui+05aR2eCgLHG18GUk6iggaF9pb0RRyc9fuSQ1A3d8frVErXNCduqRoSg+LWSEuaT6EG92
+ EWCyo8dj6zEASJiOtzA9I2v/73xkxdS+1F7bjpsf+KOR3j+igWyo56D
+X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
+ pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 
-Currently, the "module_blacklist=" command-line parameter only applies
-to loadable modules. If a module is built-in, the parameter is silently
-ignored. This patch extends the blacklisting functionality to built-in
-modules by intercepting their initialisation routines during early boot.
+This series fixes problems which broke CONFIG_DRM_USE_DYNAMIC_DEBUG=Y.
 
-To preserve the existing user-space ABI, "module_blacklist=" is kept
-as a legacy alias pointing to the same module_denylist variable.
+1st chunk fixes a section misalignement on i386, when CONFIG_DRM=y and
+CONFIG_DRM_USE_DYNAMIC_DEBUG=Y.  It also repairs a linkage failure
+where the dyndbg sections got dropped from loadable modules in some
+arches.  This chunk was reviewed by Petr Pavlu (thx).
 
-To achieve this, we introduce a new ".initcall.modnames" memory section.
-For each built-in module, we use a standard C structure (i.e., struct
-initcall_modname) to map its initcall function pointer to its associated
-KBUILD_MODNAME string.
+2nd chunk is a set of cleanups, callchain refactors, struct refactors,
+and internal reorgs in preparation for the API change needed to fix
+the regression seen in DRM where boot-time drm.debug settings (in
+core) did not propagate to drivers.
 
-During boot, do_one_initcall() cross-references the initcall function
-pointer against this table. If a match is found and the module is
-present in the denylist, the initcall is skipped.
+3rd is the API change itself; replacing DECLARE_DYNDBG_CLASSMAP (used
+in both core and drivers, a K&R define-once-use-thereafter violation,
+which caused the regression) with DYNAMIC_DEBUG_CLASSMAP_DEFINE in
+core, and $1_USE in drivers and helpers.
 
-To make the denylist functional on monolithic kernels, the command-line
-parameter parsing and the module_is_denylisted() lookup function are
-decoupled from the loadable module subsystem and moved to init/main.c.
-This enables "module_denylist=" and "module_blacklist=" to intercept
-built-in modules even on kernels built with CONFIG_MODULES=n.
+There are 2 user-visible changes:
 
-Design Considerations and Trade-offs:
+1. change an ERROR condition displayed in dynamic_debug/control,
+from "class:unknown, _id:1" to "class:_UNKNOWN_ id:1"
 
-    1.  LTO and CFI Compatibility vs. PREL32
+This only happens if a classmap is incorrectly defined, so it should
+not pass review, and should be SHOUTED about.  And since classmaps are
+BROKEN for DRM (its only user), this affects no users.
 
-        Previous iterations of this patch attempted to use top-level
-        inline assembly to generate 32-bit relative offsets (PREL32) to
-        save memory. However, raw inline assembly operates blindly
-        outside of the C compiler's visibility. When compiled with
-        CONFIG_LTO_CLANG or CONFIG_CFI_CLANG, the compiler applies
-        symbol renaming and generates Control Flow Integrity stubs.
-        The raw assembly string-matching fails to track these changes,
-        resulting in undefined references or runtime address mismatches.
+2. change builtin module names, displayed in dynamic_debug/control,
+from simple "[main]" to subsystem "[init/main]" etc.  This corrects an
+existing naming ambiguity, which is disallowed for loadable modules by
+the module loader.  To preserve legacy query behavior, "module main"
+will select all of "[*/main]".
 
-        To resolve this, we strictly use standard C structures to hold
-        the function pointers. This natively allows the compiler to
-        resolve LTO renaming and map CFI stubs correctly. We trade the
-        minor spatial optimisation of PREL32 (using absolute 64-bit
-        pointers instead) to guarantee architectural safety under modern
-        compiler protections. Because this metadata is placed in an
-        ".init" section and freed entirely after boot, the temporary
-        memory overhead is negligible.
+NB: the current ambiguity prevents cleanly adding classmaps to
+builtins named "[main]".  Such an addition is quite unlikely, so this
+change could be dropped, but it seemed proper to correct it and point
+it out.
 
-    2.  Prevention of UAF (Use-After-Free) via temporal and spatial
-        boundaries:
+3. revert a change in classmaps-v1 (2022) which enlarged __drm_debug
+from (unsigned) int to long int.  64 categories of drm-debug is well
+past reasonable, the param is now a u32, for clarity.
 
-        Because do_one_initcall() is a shared path invoked by both the
-        early boot process and runtime module loading (i.e.,
-        do_init_module()), we must prevent loadable modules from
-        attempting to scan the ".initcall.modnames" section after it has
-        been reclaimed by free_initmem().
-
-        To ensure safety, we employ a two-fold validation check:
-        - A temporal check using 'system_state >= SYSTEM_FREEING_INITMEM'
-          to immediately return NULL once init memory is freed.
-        - A spatial check using 'is_kernel_text()' and
-          'is_kernel_inittext()' to confirm the function resides in core
-          kernel text.
-
-        Since dynamically loaded modules reside in separately allocated
-        module memory outside these ranges, they bypass the table lookup
-        entirely. This makes the lookup lockless, race-free, and safe
-        from UAF vulnerabilities.
-
-Signed-off-by: Aaron Tomlin <atomlin@atomlin.com>
 ---
-Changes since v3:
+this is based on v7.2-rc2
+Ive trimmed the cc-list to stay under gmail's 500msgs/day
 
- - Renamed the external function prototype and internal helper to
-   module_is_denylisted(), while updating the backing variable in
-   main.c to module_denylist. To preserve user-space compatibility
-   while adopting modern terminology, separate core_param entries have
-   been introduced, allowing both the preferred module_denylist=
-   parameter and the legacy module_blacklist= parameter to resolve to
-   the same underlying variable (Andrew Morton)
+Changes in v6:
 
- - I introduced the __initcall_fn_ptr() macro helper to dynamically
-   resolve the initcall pointer configuration:
-    - For architectures with relative 32-bit relocations
-      (CONFIG_HAVE_ARCH_PREL32_RELOCATIONS=y), it resolves to the
-      relocation stub pointer  __initcall_stub(fn, __iid, id)
-    - For architectures without PREL32 relocations, it resolves
-      directly to the function pointer fn
+previous versions split the 1st chunk into a separate submission, in
+an attempt to get past gmail's 500 msgs/day limit, and to ease review.
 
- - Decoupled the module_denylist parameter parsing and the
-   module_is_denylisted() function from CONFIG_MODULES, moving the
-   logic to init/main.c. This ensures the denylist works for built-in
-   modules even on monolithic kernels built without loadable module
-   support (CONFIG_MODULES=n)
+This complicated application; although the 2nd chunk had the b4
+dependency on the 1st, this fact was missed by sashiko, which
+therefore couldnt apply it.
 
- - Removed the conditional stub implementation of
-   module_is_denylisted() in module.h and replaced it with a single,
-   unconditional declaration outside of the #ifdef CONFIG_MODULES block.
-   This prevents compiler warnings about missing prototypes and ensures
-   visibility under a monolithic configuration
+A followon series adds compile-time and runtime checks to fail-fast if
+classmaps are used incorrectly.
 
- - Replaced the initmem_freed state variable and its synchronisation
-   logic in kernel_init() with race-free spatial boundary checks using
-   is_kernel_text() and is_kernel_inittext() in initcall_get_modname()
+Changes in v5:
 
- - Aligned the .initcall_modnames table with relocations by assigning
-   .initcall_fn using the __initcall_stub() helper in
-   ___define_initcall(). This ensures the lookup matches the actual stub
-   pointer passed to do_one_initcall() when
-   CONFIG_HAVE_ARCH_PREL32_RELOCATIONS is enabled. Passed the preprocessor
-   __iid argument to ____define_initcall_modname once to avoid double
-   evaluation of __COUNTER__ (which caused build failures with LTO)
+move KBUILD_MODFILE ahead of array-slice, to address sashiko
+complaints which were fixed by later patches in V4.
 
- - Updated initcall_get_modname() in main.c to resolve the function
-   pointer fn using dereference_function_descriptor(fn) prior to
-   checking the .text and .init.text boundaries, and dereference both
-   fn and p->initcall_fn in the comparison loop to support descriptor-based
-   architectures (e.g., PPC64)
+Changes in v4:
 
- - Linked to v3: https://lore.kernel.org/lkml/20260706050337.7613-1-atomlin@atomlin.com/
+Dyndbg previously used KBUILD_MODNAME to provide module-name, this
+works well for loadable modules (module loader requires unique module
+names), but for builtin modules, is effectively kbasename, and is not
+guaranteed unique.
 
-Changes since v2:
+So we get 4 modules named "main": init/main, kernel/power/main,
+kernel/base/power/main.  This ambiguity is visible in user-space since
+the beginning of dyndbg.
 
- - Avoided relative 32-bit offsets (PREL32) with inline assembly, opting
-   instead for standard C structures with absolute pointers. This fixes LTO
-   and CFI compatibility issues (e.g., under Clang) where raw inline assembly
-   fails to track compiler-generated symbols and CFI stubs
+Now suppose kernel/{,base}/power/main want to define classmaps to
+categorize the various pr-debugs they have.  The current code finds a
+module's classmaps by strcmp on modname, so init/main will match
+against classmaps defined by both kernel/{,base}/power/main.
 
- - Placed module name strings into the ".init.rodata" section via a dedicated
-   static array to ensure they are freed from memory after boot
+The current code will also map "main" classes to kernel/*/power/main,
+so they will probably work at first, but 2 independent classmaps can
+both use class-ids 0-N, but will conflict if they're both used by a
+module.  Then we have classmap overlaps and unpredictable results.
 
- - Avoided Use-After-Free (UAF) bugs post-boot when loading dynamic modules:
-   - Added an 'initmem_freed' flag, marked as '__ro_after_init', set after
-     free_initmem() to skip table lookups for dynamically loaded modules
-   - Added a blacklist check in do_init_module() for dynamic modules
+v3:
+- move #includes to top of files,
+- drop redundant ALIGN(8) in dydnbg.lds.S: DYNDBG_SECTIONS macro
+- add Reviewed-by tag (thx Petr)
 
- - Simplified the linker script using the BOUNDED_SECTION_PRE_LABEL() macro
-   to define the ".initcall.modnames" section boundary
+v2:
+- avoid BOUNDED_SECTION in modules, dont need _start & _end symbols.
+- sets 0 address to the sections, not just whatever current is.
 
- - Added a dummy/stub implementation of module_is_blacklisted() when
-   CONFIG_MODULES is disabled to avoid build errors
-
- - Linked to v2: https://lore.kernel.org/lkml/20260622140259.2974-1-atomlin@atomlin.com/
-
-Changes since v1:
-
- - Pivoted entirely from exposing built-in initcalls and their blacklist
-   status via a debugfs interface to directly extending the existing
-   "module_blacklist=" and new "module_blacklist=" to intercept built-in
-   modules at boot (Petr Pavlu)
-
- - Implemented 32-bit relative offsets (CONFIG_HAVE_ARCH_PREL32_RELOCATIONS)
-   to store the mappings, preventing binary bloat and preserving KASLR
-   efficacy
-
- - Linked to v1: https://lore.kernel.org/lkml/20260510061301.41341-1-atomlin@atomlin.com/
 ---
- include/asm-generic/vmlinux.lds.h |  4 ++-
- include/linux/init.h              | 26 +++++++++++++--
- include/linux/module.h            |  2 ++
- init/main.c                       | 53 +++++++++++++++++++++++++++++++
- kernel/module/main.c              | 24 ++------------
- 5 files changed, 84 insertions(+), 25 deletions(-)
+Jim Cromie (24):
+      vmlinux.lds.h: refactor BOUNDED_SECTION_* macros into bounded_sections.lds.h
+      vmlinux.lds.h: drop unused HEADERED_SECTION* macros
+      vmlinux.lds.h: Fix ALIGN(8) omission causing NULL ptr on i386
+      vmlinux.lds.h: remove redundant ALIGN(8) directives
+      dyndbg.lds.S: fix lost dyndbg sections in modules
+      dyndbg: factor ddebug_match_desc out from ddebug_change
+      dyndbg: add stub macro for DECLARE_DYNDBG_CLASSMAP
+      dyndbg: reword "class unknown," to "class:_UNKNOWN_"
+      dyndbg-API: remove DD_CLASS_TYPE_(DISJOINT|LEVEL)_NAMES and code
+      dyndbg: drop NUM_TYPE_ARGS
+      dyndbg: bump num-tokens in a query-cmd from 9 to 15
+      dyndbg: reduce verbose/debug clutter
+      lib/parser: add match_wildcard_hyphen() for agnostic matching
+      dyndbg: use KBUILD_MODFILE for unique builtin module names
+      dyndbg: refactor param_set_dyndbg_classes and below
+      dyndbg: tighten fn-sig of ddebug_apply_class_bitmap
+      dyndbg: replace classmap list with an array-slice
+      dyndbg: macrofy a 2-index for-loop pattern
+      dyndbg: pin class param storage to u32
+      dyndbg,module: make proper substructs in _ddebug_info
+      dyndbg: move mod_name down from struct ddebug_table to _ddebug_info
+      dyndbg: hoist classmap-filter-by-modname up to ddebug_add_module
+      dyndbg: change __dynamic_func_call_cls* macros into expressions
+      dyndbg-API: replace DECLARE_DYNDBG_CLASSMAP
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 5659f4b5a125..fc863595743e 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -734,7 +734,9 @@
- 	EARLYCON_TABLE()						\
- 	LSM_TABLE()							\
- 	EARLY_LSM_TABLE()						\
--	KUNIT_INIT_TABLE()
-+	KUNIT_INIT_TABLE()						\
-+	. = ALIGN(8);							\
-+	BOUNDED_SECTION_PRE_LABEL(.initcall.modnames, initcall_modnames, __start_, __stop_)
- 
- #define INIT_TEXT							\
- 	*(.init.text .init.text.*)					\
-diff --git a/include/linux/init.h b/include/linux/init.h
-index 40331923b9f4..9c78b6c30361 100644
---- a/include/linux/init.h
-+++ b/include/linux/init.h
-@@ -271,8 +271,30 @@ extern struct module __this_module;
- 		__initcall_name(initcall, __iid, id),		\
- 		__initcall_section(__sec, __iid))
- 
--#define ___define_initcall(fn, id, __sec)			\
--	__unique_initcall(fn, id, __sec, __initcall_id(fn))
-+#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
-+#define __initcall_fn_ptr(fn, __iid, id)	__initcall_stub(fn, __iid, id)
-+#else
-+#define __initcall_fn_ptr(fn, __iid, id)	fn
-+#endif
-+
-+struct initcall_modname {
-+	initcall_t initcall_fn;
-+	const char *modname;
-+};
-+
-+#define ____define_initcall_modname(fn, id, __sec, __iid)		\
-+	__unique_initcall(fn, id, __sec, __iid)				\
-+	static const char __initstr_##fn[] __used __aligned(1)		\
-+		__section(".init.rodata") = KBUILD_MODNAME;		\
-+	static const struct initcall_modname __modname_##fn __used	\
-+		__section(".initcall.modnames") = {			\
-+			.initcall_fn = __initcall_fn_ptr(fn, __iid, id), \
-+			.modname = __initstr_##fn			\
-+		};
-+
-+#define ___define_initcall(fn, id, __sec)				\
-+	____define_initcall_modname(fn, id, __sec, __initcall_id(fn))
-+
- 
- #define __define_initcall(fn, id) ___define_initcall(fn, id, .initcall##id)
- 
-diff --git a/include/linux/module.h b/include/linux/module.h
-index 7566815fabbe..bc2968c225e1 100644
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -883,6 +883,8 @@ static inline void module_for_each_mod(int(*func)(struct module *mod, void *data
- }
- #endif /* CONFIG_MODULES */
- 
-+extern bool module_is_denylisted(const char *module_name);
-+
- #ifdef CONFIG_SYSFS
- extern struct kset *module_kset;
- extern const struct kobj_type module_ktype;
-diff --git a/init/main.c b/init/main.c
-index e363232b428b..af71811d24e3 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -1334,12 +1334,65 @@ static inline void do_trace_initcall_level(const char *level)
- }
- #endif /* !TRACEPOINTS_ENABLED */
- 
-+extern struct initcall_modname __start_initcall_modnames[];
-+extern struct initcall_modname __stop_initcall_modnames[];
-+
-+/* module_denylist is a comma-separated list of module names */
-+static char *module_denylist;
-+bool module_is_denylisted(const char *module_name)
-+{
-+	const char *p;
-+	size_t len;
-+
-+	if (!module_denylist)
-+		return false;
-+
-+	for (p = module_denylist; *p; p += len) {
-+		len = strcspn(p, ",");
-+		if (strlen(module_name) == len && !memcmp(module_name, p, len))
-+			return true;
-+		if (p[len] == ',')
-+			len++;
-+	}
-+	return false;
-+}
-+core_param(module_denylist, module_denylist, charp, 0400);
-+core_param(module_blacklist, module_denylist, charp, 0400);
-+
-+static const char *initcall_get_modname(initcall_t fn)
-+{
-+	struct initcall_modname *p;
-+	unsigned long addr = (unsigned long)dereference_function_descriptor(fn);
-+
-+	if (system_state >= SYSTEM_FREEING_INITMEM)
-+		return NULL;
-+
-+	if (!is_kernel_text(addr) &&
-+	    !is_kernel_inittext(addr))
-+		return NULL;
-+
-+	for (p = __start_initcall_modnames; p < __stop_initcall_modnames; p++) {
-+		if (dereference_function_descriptor(p->initcall_fn) ==
-+		    dereference_function_descriptor(fn))
-+			return p->modname;
-+	}
-+	return NULL;
-+}
-+
- int __init_or_module do_one_initcall(initcall_t fn)
- {
- 	int count = preempt_count();
- 	char msgbuf[64];
-+	const char *modname;
- 	int ret;
- 
-+	modname = initcall_get_modname(fn);
-+	if (modname && module_is_denylisted(modname)) {
-+		pr_info("Skipping initcall for blacklisted built-in module %s\n",
-+			modname);
-+		return 0;
-+	}
-+
- 	if (initcall_blacklisted(fn))
- 		return -EPERM;
- 
-diff --git a/kernel/module/main.c b/kernel/module/main.c
-index 46dd8d25a605..e6d9c52b9786 100644
---- a/kernel/module/main.c
-+++ b/kernel/module/main.c
-@@ -2919,26 +2919,6 @@ int __weak module_frob_arch_sections(Elf_Ehdr *hdr,
- 	return 0;
- }
- 
--/* module_blacklist is a comma-separated list of module names */
--static char *module_blacklist;
--static bool blacklisted(const char *module_name)
--{
--	const char *p;
--	size_t len;
--
--	if (!module_blacklist)
--		return false;
--
--	for (p = module_blacklist; *p; p += len) {
--		len = strcspn(p, ",");
--		if (strlen(module_name) == len && !memcmp(module_name, p, len))
--			return true;
--		if (p[len] == ',')
--			len++;
--	}
--	return false;
--}
--core_param(module_blacklist, module_blacklist, charp, 0400);
- 
- static struct module *layout_and_allocate(struct load_info *info, int flags)
- {
-@@ -3389,9 +3369,9 @@ static int early_mod_check(struct load_info *info, int flags)
- 
- 	/*
- 	 * Now that we know we have the correct module name, check
--	 * if it's blacklisted.
-+	 * if it's denylisted.
- 	 */
--	if (blacklisted(info->name)) {
-+	if (module_is_denylisted(info->name)) {
- 		pr_err("Module %s is blacklisted\n", info->name);
- 		return -EPERM;
- 	}
+ Documentation/admin-guide/dynamic-debug-howto.rst |  42 +-
+ MAINTAINERS                                       |   1 +
+ drivers/gpu/drm/drm_print.c                       |   6 +-
+ include/asm-generic/bounded_sections.lds.h        |  32 ++
+ include/asm-generic/dyndbg.lds.h                  |  22 +
+ include/asm-generic/vmlinux.lds.h                 |  68 +--
+ include/drm/drm_print.h                           |   2 +-
+ include/linux/dynamic_debug.h                     | 275 +++++++---
+ include/linux/parser.h                            |   1 +
+ kernel/module/main.c                              |  15 +-
+ lib/Kconfig.debug                                 |  24 +-
+ lib/Makefile                                      |   3 +
+ lib/dynamic_debug.c                               | 608 +++++++++++++---------
+ lib/parser.c                                      |  58 ++-
+ lib/test_dynamic_debug.c                          | 145 ++++--
+ lib/test_dynamic_debug_submod.c                   |  14 +
+ scripts/module.lds.S                              |   2 +
+ 17 files changed, 846 insertions(+), 472 deletions(-)
+---
+base-commit: 8cdeaa50eae8dad34885515f62559ee83e7e8dda
+change-id: 20260521-dd-maint-2-76c542079420
+prerequisite-change-id: 20260630-fix-align-589738662161:v4
+prerequisite-patch-id: d6b2b7d254c7e8bbc0aea891d49b15dc1e71eaa4
+prerequisite-patch-id: 3dffaa165e78dc58e443469755eddb07972d0ddf
+prerequisite-patch-id: 2c4827d84b4159e71df89cca2a03938a534ecdb5
+prerequisite-patch-id: 4599f9be1eb06c0d7f2a7c657d4940411635e94b
+prerequisite-patch-id: aea9e121b30e3c7f3d76921b49f81ad421b7af51
+
+Best regards,
 -- 
-2.54.0
+Jim Cromie <jim.cromie@gmail.com>
 
