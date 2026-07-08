@@ -1,64 +1,64 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA1853ADBA3;
-	Wed,  8 Jul 2026 07:59:49 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B736837B413;
+	Wed,  8 Jul 2026 08:07:20 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783497598; cv=none; b=k21I97TieLrPORUK+B+YpG7s+xeJEI1vVo0eSF8frfqboD1RfFTd4nikGIeg1TpB9h0fz9dVxnoXPIh9Y70JOI7yTOZA4fuWp+U6pAcKPJpX93NhzOZ5v1AuzmhgYXeCl3V/VCf+E0iE6M1Mj6yjeZqBZgmG1Nx/Mz76SNgwEvU=
+	t=1783498044; cv=none; b=Llvv7loApgy8L55bcmtjAo+gZS5kn77vFBPw5l0fQZD2cuct1Em2FuC8bFQUMWG+xJheJzqZ5yFaAEyD9ug967OThlOqKBkDsE6UBYB8e6QbWo7tVh7rU4tbqeVK52LssOuBdmpWxxCU7fVNaCtUOds6MKG72Ns4wB6Yr/sw1VA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783497598; c=relaxed/simple;
-	bh=VDsM4b/bVlZZcXhMITQ/pfQFYc8FtssAtd+E5BYl3ns=;
+	s=arc-20240116; t=1783498044; c=relaxed/simple;
+	bh=X2l21CxO40liE0vtBuCa34UuYtJiZaNbW2I/DA4lTfo=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=MMjjBr5nVcFb4+bOTzs2wXfy9gjxBbZd9oZVroDI+xwSkaVxJzYxG7PD3Ivnab7c97LcMpGBIdMj95yatAgzsk9BAxo1OCRZp8r31gYQWZ8E/lxex75LJLORpFsb6TUzooYXI0EKnG9PUHGI55W9TKaZwgWLRONAwvcM67Vosm4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=cogbiAXK; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=WXESFzOWFVIrg4p/ENKOavBRkeW0ERvgaslpZNletDviPI2N7CtxMSCHT2d++vcLJww/UN8u9GdsTJIfIo34UQ7EwvUvQ4fe4lEzc0nGxPa7aGjCXnaW/PNmS+Km/CrCBA4VGnto299vRqRvvqywbD196EK/XlDU9KaABEq9uA8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=flVw3qAh; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="cogbiAXK"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id F22611F000E9;
-	Wed,  8 Jul 2026 07:59:34 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="flVw3qAh"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B9B7C1F000E9;
+	Wed,  8 Jul 2026 08:07:01 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783497586;
-	bh=8g8Ttn0kjFhoN2K8SOSf7rP1PCWBsxtWcEWwceV1Cm8=;
+	s=k20260515; t=1783498039;
+	bh=eey33vCwR2TDg/L/7ImDVaFgtxdBYVYOOW3e0Hzed1c=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=cogbiAXKmyAMp8pfFGMw1+XH+2/KFQZ2sirJm0MkZ25BfGjdi7K7UkK2mGaisfiBm
-	 KuN5ega3YTdU78XA4W+ovM0uk40KtUwj1IQJmdwuQOvmh0MLUniAH2UDpAzGHUZg0P
-	 u1fYmNoGSHOAUHdmYneYRgfT/AZFQBTayBEa9v7QKC/NjNK+mp6bmS9UuUV3dYDcI3
-	 TkVvcloCp1L2SU5GfdNRvlOhdCjDCV2Q9JdhGctPFX1cA+y3HBjoNVMbHew/PGh6oC
-	 sTKjkZqL/4xzF5SYpZ1Wl95LijL6ZH0gEp7MczaplLaen9JfL6pHR73TxoEo+KBbpn
-	 Dl5SwOUOzgI6g==
-Date: Wed, 8 Jul 2026 08:59:26 +0100
+	b=flVw3qAh6hNuSMs/jQ8WX9sgUiBwvxP3Ah3MtOh+v89sSULzfJkDqVDC424Q0Y5jh
+	 P3kK3AKqV6dUJvPIGHbGPjmZjI0mR4s0cuOFp63O9iNuB7pNgxb8/NvkAP/qeyXH6l
+	 0nmHlEgYdvyDtwSKmbDMsA9JAkFppmUGrLvd5SnrAa2d4aaiXGWhWH+y1RZ16LRQlO
+	 mCgx8xerhgXKUC6O6KR1rj3CrfX2UTR0bHeBtFPC9TMI3v6cN64oP3iau+gOLlIg+j
+	 VcoPp+Cqei0kj2IbhK3HLvMiczZxO2AaGvEjL094Q9kcLHOeU4Ib0hbRjAk1sR5Kxz
+	 wLNu+X43UaeHw==
+Date: Wed, 8 Jul 2026 09:06:52 +0100
 From: Lorenzo Stoakes <ljs@kernel.org>
 To: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, 
-	Shuah Khan <skhan@linuxfoundation.org>, Eugen Hristev <ehristev@kernel.org>, 
-	Arnd Bergmann <arnd@arndb.de>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, 
-	Christoph Lameter <cl@gentwo.org>, Andrew Morton <akpm@linux-foundation.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
-	Anna-Maria Behnsen <anna-maria@linutronix.de>, Frederic Weisbecker <frederic@kernel.org>, 
-	John Stultz <jstultz@google.com>, Stephen Boyd <sboyd@kernel.org>, Kees Cook <kees@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Juri Lelli <juri.lelli@redhat.com>, 
-	Vincent Guittot <vincent.guittot@linaro.org>, Dietmar Eggemann <dietmar.eggemann@arm.com>, 
-	Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>, 
-	Valentin Schneider <vschneid@redhat.com>, K Prateek Nayak <kprateek.nayak@amd.com>, 
-	David Hildenbrand <david@kernel.org>, "Liam R. Howlett" <liam@infradead.org>, 
-	Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
-	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
-	Brendan Jackman <jackmanb@google.com>, Johannes Weiner <hannes@cmpxchg.org>, Zi Yan <ziy@nvidia.com>, 
-	Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
-	Barry Song <baohua@kernel.org>, Youngjun Park <youngjun.park@lge.com>, 
-	Petr Mladek <pmladek@suse.com>, John Ogness <john.ogness@linutronix.de>, 
-	Sergey Senozhatsky <senozhatsky@chromium.org>, Bjorn Andersson <andersson@kernel.org>, 
-	Mathieu Poirier <mathieu.poirier@linaro.org>, Konrad Dybcio <konradybcio@kernel.org>, 
-	Rob Herring <robh@kernel.org>, Krzysztof Kozlowski <krzk+dt@kernel.org>, 
-	Conor Dooley <conor+dt@kernel.org>, Saravana Kannan <saravanak@kernel.org>, 
-	workflows@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-msm@vger.kernel.org, 
-	linux-remoteproc@vger.kernel.org, devicetree@vger.kernel.org
-Subject: Re: [PATCH v3 21/26] printk: Register information into meminspect
-Message-ID: <ak4Cr5GEMdo8xWqu@lucifer>
+Cc: akpm@linux-foundation.org, anna-maria@linutronix.de, arnd@arndb.de, 
+	andersson@kernel.org, chrisl@kernel.org, cl@gentwo.org, conor+dt@kernel.org, 
+	david@kernel.org, dennis@kernel.org, devicetree@vger.kernel.org, 
+	ehristev@kernel.org, frederic@kernel.org, mingo@redhat.com, jstultz@google.com, 
+	corbet@lwn.net, juri.lelli@redhat.com, kasong@tencent.com, kees@kernel.org, 
+	konradybcio@kernel.org, krzk+dt@kernel.org, linux-arch@vger.kernel.org, 
+	linux-arm-msm@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-mm@kvack.org, linux-remoteproc@vger.kernel.org, mathieu.poirier@linaro.org, 
+	peterz@infradead.org, pmladek@suse.com, robh@kernel.org, saravanak@kernel.org, 
+	tj@kernel.org, tglx@kernel.org, vincent.guittot@linaro.org, 
+	workflows@vger.kernel.org, atomlin@atomlin.com, ast@kernel.org, aliceryhl@google.com, 
+	linux.amoon@gmail.com, ardb@kernel.org, baoquan.he@linux.dev, baohua@kernel.org, 
+	bsegall@google.com, jackmanb@google.com, leitao@debian.org, brauner@kernel.org, 
+	coxu@redhat.com, dietmar.eggemann@arm.com, dianders@chromium.org, 
+	ebiggers@kernel.org, feng.tang@linux.alibaba.com, yangfeng@kylinos.cn, 
+	gary@garyguo.net, guohanjun@huawei.com, jack@suse.cz, wangjinchao600@gmail.com, 
+	joel.granados@kernel.org, hannes@cmpxchg.org, john.ogness@linutronix.de, 
+	jpoimboe@kernel.org, shikemeng@huaweicloud.com, kas@kernel.org, 
+	kprateek.nayak@amd.com, liam@infradead.org, elver@google.com, mgorman@suse.de, 
+	mhocko@suse.com, ojeda@kernel.org, rppt@kernel.org, namcao@linutronix.de, 
+	nathan@kernel.org, nphamcs@gmail.com, n.schier@fritz.com, pasha.tatashin@soleen.com, 
+	petr.pavlu@suse.com, pnina.feder@mobileye.com, rdunlap@infradead.org, 
+	rioo.tsukatsukii@gmail.com, senozhatsky@chromium.org, skhan@linuxfoundation.org, 
+	sboyd@kernel.org, rostedt@goodmis.org, surenb@google.com, 
+	thomas.weissschuh@linutronix.de, vschneid@redhat.com, vbabka@kernel.org, youngjun.park@lge.com, 
+	zhengyejian@huaweicloud.com, ziy@nvidia.com, Eugen Hristev <eugen.hristev@linaro.org>
+Subject: Re: [PATCH v3 26/26] meminspect: Add debug kinfo compatible driver
+Message-ID: <ak4DqBta0boElPak@lucifer>
 References: <20260708-meminspect-v3-v3-0-7aa5a0a74d5c@oss.qualcomm.com>
- <20260708-meminspect-v3-v3-21-7aa5a0a74d5c@oss.qualcomm.com>
+ <20260708070809.2660886-1-mukesh.ojha@oss.qualcomm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -67,95 +67,354 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260708-meminspect-v3-v3-21-7aa5a0a74d5c@oss.qualcomm.com>
+In-Reply-To: <20260708070809.2660886-1-mukesh.ojha@oss.qualcomm.com>
 
-On Wed, Jul 08, 2026 at 11:02:00AM +0530, Mukesh Ojha wrote:
-> Annotate vital static, dynamic information into meminspect for debugging
+On Wed, Jul 08, 2026 at 12:38:09PM +0530, Mukesh Ojha wrote:
+> From: Eugen Hristev <eugen.hristev@linaro.org>
 >
-> Static:
->  - prb_descs
->  - prb_infos
->  - prb
->  - prb_data
->  - clear_seq
->  - printk_rb_static
->  - printk_rb_dynamic
+> With this driver, the registered regions are copied to a shared memory
+> zone at register time. The shared memory zone is supplied via OF. This
+> driver will select only regions that are of interest, and keep only
+> addresses. The format of the list is Kinfo compatible, with devices like
+> Google Pixel phone. The firmware is only interested in some symbols'
+> addresses.
 >
-> Dynamic:
->  - new_descs
->  - new_infos
->  - new_log_buf
->
-> meminspect uses a different API to annotate variables for inspection,
-> and information about these variables is stored in the inspection table.
-
-This commit message is a mess again. You're writing what the code does, not why,
-you mention separate API but not which or why.
-
-It's useless basically, and it's weird to list arbitrary fields like this.
-
-Always think 'what would be useful to reviewers and people coming back to this
-patch in debug/development'.
-
-If it just says what the code says it's useless. Put what's NOT there.
-
->
-> Reviewed-by: Petr Mladek <pmladek@suse.com>
-> Co-developed-by: Eugen Hristev <eugen.hristev@linaro.org>
 > Signed-off-by: Eugen Hristev <eugen.hristev@linaro.org>
-> Reviewed-by: John Ogness <john.ogness@linutronix.de>
 > Signed-off-by: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
+
+Hang on, this is a driver that exposes internal kernel symbol information in a
+shared memory region for anybody who wants to access it?
+
+This doesn't really seem sane?
+
+Looking through the code it seems you are only exposing things that are already
+otherwise exposed, so maybe it's not so bad, but it seems as if a registered
+meminfo driver could in any case get access to things they shouldn't?
+
 > ---
->  kernel/printk/printk.c | 12 ++++++++++++
->  1 file changed, 12 insertions(+)
+>  MAINTAINERS                |   1 +
+>  drivers/of/platform.c      |   1 +
+>  kernel/meminspect/Kconfig  |  11 ++
+>  kernel/meminspect/Makefile |   1 +
+>  kernel/meminspect/kinfo.c  | 257 +++++++++++++++++++++++++++++++++++++
+>  5 files changed, 271 insertions(+)
+>  create mode 100644 kernel/meminspect/kinfo.c
 >
-> diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
-> index 2fe9a963c823..f7f32c09b9b8 100644
-> --- a/kernel/printk/printk.c
-> +++ b/kernel/printk/printk.c
-> @@ -49,6 +49,7 @@
->  #include <linux/sched/debug.h>
->  #include <linux/sched/task_stack.h>
->  #include <linux/panic.h>
-> +#include <linux/meminspect.h>
+> diff --git a/MAINTAINERS b/MAINTAINERS
+> index 2d816d783024..d805ff9fedac 100644
+> --- a/MAINTAINERS
+> +++ b/MAINTAINERS
+> @@ -16906,6 +16906,7 @@ M:	Eugen Hristev <eugen.hristev@linaro.org>
+>  M:	Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
+>  S:	Maintained
+>  F:	Documentation/devicetree/bindings/reserved-memory/google,debug-kinfo.yaml
+> +F:	kernel/meminspect/kinfo.c
 >
->  #include <linux/uaccess.h>
->  #include <asm/sections.h>
-> @@ -518,10 +519,17 @@ static u32 log_buf_len = __LOG_BUF_LEN;
->  #endif
->  _DEFINE_PRINTKRB(printk_rb_static, CONFIG_LOG_BUF_SHIFT - PRB_AVGBITS,
->  		 PRB_AVGBITS, &__log_buf[0]);
-> +MEMINSPECT_NAMED_ENTRY(prb_descs, _printk_rb_static_descs);
-> +MEMINSPECT_NAMED_ENTRY(prb_infos, _printk_rb_static_infos);
-> +MEMINSPECT_NAMED_ENTRY(prb_data, __log_buf);
-> +MEMINSPECT_SIMPLE_ENTRY(printk_rb_static);
+>  MEMBLOCK AND MEMORY MANAGEMENT INITIALIZATION
+>  M:	Mike Rapoport <rppt@kernel.org>
+> diff --git a/drivers/of/platform.c b/drivers/of/platform.c
+> index 53bca8c6f781..f80bd25fc481 100644
+> --- a/drivers/of/platform.c
+> +++ b/drivers/of/platform.c
+> @@ -494,6 +494,7 @@ static const struct of_device_id reserved_mem_matches[] = {
+>  	{ .compatible = "qcom,smem" },
+>  	{ .compatible = "ramoops" },
+>  	{ .compatible = "nvmem-rmem" },
+> +	{ .compatible = "google,debug-kinfo" },
+>  	{ .compatible = "google,open-dice" },
+>  	{}
+>  };
+> diff --git a/kernel/meminspect/Kconfig b/kernel/meminspect/Kconfig
+> index 18ff511ad4cf..7f6436c3344b 100644
+> --- a/kernel/meminspect/Kconfig
+> +++ b/kernel/meminspect/Kconfig
+> @@ -16,3 +16,14 @@ config MEMINSPECT
 >
->  static struct printk_ringbuffer printk_rb_dynamic;
-> +MEMINSPECT_SIMPLE_ENTRY(printk_rb_dynamic);
->
->  struct printk_ringbuffer *prb = &printk_rb_static;
-> +MEMINSPECT_SIMPLE_ENTRY(prb);
-> +MEMINSPECT_SIMPLE_ENTRY(clear_seq);
->
->  /*
->   * We cannot access per-CPU data (e.g. per-CPU flush irq_work) before
-> @@ -1238,6 +1246,10 @@ void __init setup_log_buf(int early)
->
->  	local_irq_restore(flags);
->
-> +	meminspect_lock_register_va(new_log_buf, new_log_buf_len);
-> +	meminspect_lock_register_va(new_descs, new_descs_size);
-> +	meminspect_lock_register_va(new_infos, new_infos_size);
+>  	  Note that modules using this feature must be rebuilt if this
+>  	  option changes.
 > +
->  	/*
->  	 * Copy any remaining messages that might have appeared from
->  	 * NMI context after copying but before switching to the
+> +config MEMINSPECT_KINFO
+> +	tristate "Shared memory KInfo compatible driver"
+> +	depends on MEMINSPECT
+> +	help
+> +	  Say y here to enable the Shared memory KInfo compatible driver.
+> +	  With this driver, the registered regions are copied to a shared
+> +	  memory zone at register time.
+> +	  The shared memory zone is supplied via OF.
+> +	  This driver will select only regions that are of interest,
+> +	  and keep only addresses. The format of the list is Kinfo compatible.
+> diff --git a/kernel/meminspect/Makefile b/kernel/meminspect/Makefile
+> index 09fd55e6d9cf..283604d892e5 100644
+> --- a/kernel/meminspect/Makefile
+> +++ b/kernel/meminspect/Makefile
+> @@ -1,3 +1,4 @@
+>  # SPDX-License-Identifier: GPL-2.0
 >
+>  obj-$(CONFIG_MEMINSPECT) += meminspect.o
+> +obj-$(CONFIG_MEMINSPECT_KINFO) += kinfo.o
+> diff --git a/kernel/meminspect/kinfo.c b/kernel/meminspect/kinfo.c
+> new file mode 100644
+> index 000000000000..7451c13bc316
+> --- /dev/null
+> +++ b/kernel/meminspect/kinfo.c
+> @@ -0,0 +1,257 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +/*
+> + *
+> + * Copyright 2002 Rusty Russell <rusty@rustcorp.com.au> IBM Corporation
+> + * Copyright 2021 Google LLC
+> + * Copyright 2025 Linaro Ltd. Eugen Hristev <eugen.hristev@linaro.org>
+> + */
+> +#include <linux/container_of.h>
+> +#include <linux/kallsyms.h>
+> +#include <linux/meminspect.h>
+> +#include <linux/module.h>
+> +#include <linux/of.h>
+> +#include <linux/of_reserved_mem.h>
+> +#include <linux/platform_device.h>
+> +#include <linux/utsname.h>
+> +
+> +#define BUILD_INFO_LEN		256
+> +#define DEBUG_KINFO_MAGIC	0xcceeddff
+> +
+> +/*
+> + * Header structure must be byte-packed, since the table is provided to
+> + * bootloader.
+> + */
+> +struct kernel_info {
+> +	/* For kallsyms */
+> +	u8 enabled_all;
+> +	u8 enabled_base_relative;
+> +	u8 enabled_absolute_percpu;
+> +	u8 enabled_cfi_clang;
+> +	u32 num_syms;
+> +	u16 name_len;
+> +	u16 bit_per_long;
+> +	u16 module_name_len;
+> +	u16 symbol_len;
+> +	u64 _relative_pa;
+> +	u64 _text_pa;
+> +	u64 _stext_pa;
+> +	u64 _etext_pa;
+> +	u64 _sinittext_pa;
+> +	u64 _einittext_pa;
+> +	u64 _end_pa;
+> +	u64 _offsets_pa;
+> +	u64 _names_pa;
+> +	u64 _token_table_pa;
+> +	u64 _token_index_pa;
+> +	u64 _markers_pa;
+> +	u64 _seqs_of_names_pa;
+> +
+> +	/* For frame pointer */
+> +	u32 thread_size;
+> +
+> +	/* For virt_to_phys */
+> +	u64 swapper_pg_dir_pa;
+> +
+> +	/* For linux banner */
+> +	u8 last_uts_release[__NEW_UTS_LEN];
+> +
+> +	/* For module kallsyms */
+> +	u32 enabled_modules_tree_lookup;
+> +	u32 mod_mem_offset;
+> +	u32 mod_kallsyms_offset;
+> +} __packed;
+> +
+> +struct kernel_all_info {
+> +	u32 magic_number;
+> +	u32 combined_checksum;
+> +	struct kernel_info info;
+> +} __packed;
+> +
+> +struct debug_kinfo {
+> +	struct device *dev;
+> +	void *all_info_addr;
+> +	size_t all_info_size;
+> +	struct notifier_block nb;
+> +};
+> +
+> +static void update_kernel_all_info(struct kernel_all_info *all_info)
+> +{
+> +	struct kernel_info *info;
+> +	u32 *checksum_info;
+> +	int index;
+> +
+> +	all_info->magic_number = DEBUG_KINFO_MAGIC;
+> +	all_info->combined_checksum = 0;
+> +
+> +	info = &all_info->info;
+> +	checksum_info = (u32 *)info;
+> +	for (index = 0; index < sizeof(*info) / sizeof(u32); index++)
+> +		all_info->combined_checksum ^= checksum_info[index];
+> +}
+> +
+> +static void __maybe_unused register_kinfo_region(void *priv,
+> +						 const struct inspect_entry *e)
+> +{
+> +	struct debug_kinfo *kinfo = priv;
+> +	struct kernel_all_info *all_info = kinfo->all_info_addr;
+> +	struct kernel_info *info = &all_info->info;
+> +	struct uts_namespace *uts;
+> +	u64 paddr;
+> +
+> +	if (e->pa)
+> +		paddr = e->pa;
+> +	else
+> +		paddr = __pa(e->va);
+> +
+> +	switch (e->id) {
+> +	case MEMINSPECT_ID__sinittext:
+> +		info->_sinittext_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID__einittext:
+> +		info->_einittext_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID__end:
+> +		info->_end_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID__text:
+> +		info->_text_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID__stext:
+> +		info->_stext_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID__etext:
+> +		info->_etext_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID_kallsyms_num_syms:
+> +		info->num_syms = *(__u32 *)e->va;
+> +		break;
+> +	case MEMINSPECT_ID_kallsyms_offsets:
+> +		info->_offsets_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID_kallsyms_names:
+> +		info->_names_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID_kallsyms_token_table:
+> +		info->_token_table_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID_kallsyms_token_index:
+> +		info->_token_index_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID_kallsyms_markers:
+> +		info->_markers_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID_kallsyms_seqs_of_names:
+> +		info->_seqs_of_names_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID_swapper_pg_dir:
+> +		info->swapper_pg_dir_pa = paddr;
+> +		break;
+> +	case MEMINSPECT_ID_init_uts_ns:
+> +		if (!e->va)
+> +			return;
+> +		uts = e->va;
+> +		strscpy(info->last_uts_release, uts->name.release, __NEW_UTS_LEN);
+> +		break;
+> +	default:
+> +		break;
+> +	};
+> +
+> +	update_kernel_all_info(all_info);
+> +}
+> +
+> +static int kinfo_notifier_cb(struct notifier_block *nb,
+> +			     unsigned long code, void *entry)
+> +{
+> +	struct debug_kinfo *kinfo = container_of(nb, struct debug_kinfo, nb);
+> +
+> +	if (code == MEMINSPECT_NOTIFIER_ADD)
+> +		register_kinfo_region(kinfo, entry);
+> +
+> +	return NOTIFY_DONE;
+> +}
+> +
+> +static int debug_kinfo_probe(struct platform_device *pdev)
+> +{
+> +	struct kernel_all_info *all_info;
+> +	struct device *dev = &pdev->dev;
+> +	struct reserved_mem *rmem;
+> +	struct debug_kinfo *kinfo;
+> +	struct kernel_info *info;
+> +
+> +	rmem = of_reserved_mem_lookup(dev->of_node);
+> +	if (!rmem)
+> +		return dev_err_probe(dev, -ENODEV, "no such reserved mem of node name %s\n",
+> +			      dev->of_node->name);
+> +
+> +	/* Need to wait for reserved memory to be mapped */
+> +	if (!rmem->priv)
+> +		return -EPROBE_DEFER;
+> +
+> +	if (!rmem->base || !rmem->size)
+> +		dev_err_probe(dev, -EINVAL, "unexpected reserved memory\n");
+> +
+> +	if (rmem->size < sizeof(struct kernel_all_info))
+> +		dev_err_probe(dev, -EINVAL, "reserved memory size too small\n");
+> +
+> +	kinfo = devm_kzalloc(dev, sizeof(*kinfo), GFP_KERNEL);
+> +	if (!kinfo)
+> +		return -ENOMEM;
+> +
+> +	platform_set_drvdata(pdev, kinfo);
+> +
+> +	kinfo->dev = dev;
+> +	kinfo->all_info_addr = rmem->priv;
+> +	kinfo->all_info_size = rmem->size;
+> +
+> +	all_info = kinfo->all_info_addr;
+> +
+> +	memset(all_info, 0, sizeof(struct kernel_all_info));
+> +	info = &all_info->info;
+> +	info->enabled_all = IS_ENABLED(CONFIG_KALLSYMS_ALL);
+> +	info->enabled_absolute_percpu = IS_ENABLED(CONFIG_KALLSYMS_ABSOLUTE_PERCPU);
+> +	info->enabled_base_relative = IS_ENABLED(CONFIG_KALLSYMS_BASE_RELATIVE);
+> +	info->enabled_cfi_clang = IS_ENABLED(CONFIG_CFI_CLANG);
+> +	info->name_len = KSYM_NAME_LEN;
+> +	info->bit_per_long = BITS_PER_LONG;
+> +	info->module_name_len = MODULE_NAME_LEN;
+> +	info->symbol_len = KSYM_SYMBOL_LEN;
+> +	info->thread_size = THREAD_SIZE;
+> +	info->enabled_modules_tree_lookup = IS_ENABLED(CONFIG_MODULES_TREE_LOOKUP);
+> +	info->mod_mem_offset = offsetof(struct module, mem);
+> +	info->mod_kallsyms_offset = offsetof(struct module, kallsyms);
+> +
+> +	kinfo->nb.notifier_call = kinfo_notifier_cb;
+> +
+> +	meminspect_notifier_register(&kinfo->nb);
+> +	meminspect_lock_traverse(kinfo, register_kinfo_region);
+> +
+> +	return 0;
+> +}
+> +
+> +static void debug_kinfo_remove(struct platform_device *pdev)
+> +{
+> +	struct debug_kinfo *kinfo = platform_get_drvdata(pdev);
+> +
+> +	meminspect_notifier_unregister(&kinfo->nb);
+> +}
+> +
+> +static const struct of_device_id debug_kinfo_of_match[] = {
+> +	{ .compatible	= "google,debug-kinfo" },
+> +	{},
+> +};
+> +MODULE_DEVICE_TABLE(of, debug_kinfo_of_match);
+> +
+> +static struct platform_driver debug_kinfo_driver = {
+> +	.probe = debug_kinfo_probe,
+> +	.remove = debug_kinfo_remove,
+> +	.driver = {
+> +		.name = "debug-kinfo",
+> +		.of_match_table = debug_kinfo_of_match,
+> +	},
+> +};
+> +module_platform_driver(debug_kinfo_driver);
+> +
+> +MODULE_AUTHOR("Eugen Hristev <eugen.hristev@linaro.org>");
+> +MODULE_AUTHOR("Jone Chou <jonechou@google.com>");
+> +MODULE_DESCRIPTION("meminspect Kinfo Driver");
+> +MODULE_LICENSE("GPL");
 > --
 > 2.53.0
 >
-
-Overall exposing live dynamic printk information to drivers seems unwise, but
-not quite as insane as some of the other stuff thus exposed...
-
-Thanks, Lorenzo
