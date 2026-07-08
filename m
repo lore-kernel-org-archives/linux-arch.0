@@ -1,32 +1,32 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 619663A1E69;
-	Wed,  8 Jul 2026 07:55:23 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA1853ADBA3;
+	Wed,  8 Jul 2026 07:59:49 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783497333; cv=none; b=MG+SC05TTLSyzAAqMjw1XpRcbY/unpM2XZBsk5zYkAVSF8NtZWEVmh3YbOeFPmvIihpCkHw47JTHbPbnsAKXZ1z6PlxZ/y18tD5BGJfYeKgHp3gHpRUhUsxo7k+KHH85L57Y31QVInJP+XhS63r8EIvqM4KYqLH0EpRIBjKvYks=
+	t=1783497598; cv=none; b=k21I97TieLrPORUK+B+YpG7s+xeJEI1vVo0eSF8frfqboD1RfFTd4nikGIeg1TpB9h0fz9dVxnoXPIh9Y70JOI7yTOZA4fuWp+U6pAcKPJpX93NhzOZ5v1AuzmhgYXeCl3V/VCf+E0iE6M1Mj6yjeZqBZgmG1Nx/Mz76SNgwEvU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783497333; c=relaxed/simple;
-	bh=cFqinEafZe+E/zME4VUnOHBN5JjLYv6Wo/u8UdjY8Jo=;
+	s=arc-20240116; t=1783497598; c=relaxed/simple;
+	bh=VDsM4b/bVlZZcXhMITQ/pfQFYc8FtssAtd+E5BYl3ns=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=jTn5Fr6xe0GkU4t6tABphljxos9DkFBAp6IikWpGGM8e4S6YYsMbLEv9/uPnXbz5Be0Y1qpftwlq1JIErr+s08qFGE9QmeNAf1lTbU0VrbiY74mrSRdKI8DO0crL9aOYP5zI0zGzdoOMxWoVedBTzdBpb6MH5nwsOBBQY7pHHmo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=mGcrgBs5; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=MMjjBr5nVcFb4+bOTzs2wXfy9gjxBbZd9oZVroDI+xwSkaVxJzYxG7PD3Ivnab7c97LcMpGBIdMj95yatAgzsk9BAxo1OCRZp8r31gYQWZ8E/lxex75LJLORpFsb6TUzooYXI0EKnG9PUHGI55W9TKaZwgWLRONAwvcM67Vosm4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=cogbiAXK; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="mGcrgBs5"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CF31E1F000E9;
-	Wed,  8 Jul 2026 07:55:08 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="cogbiAXK"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id F22611F000E9;
+	Wed,  8 Jul 2026 07:59:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783497320;
-	bh=FGLD0lBwBOza5qGEuYHyTEO5snzgDd2JCF7uerUmJDA=;
+	s=k20260515; t=1783497586;
+	bh=8g8Ttn0kjFhoN2K8SOSf7rP1PCWBsxtWcEWwceV1Cm8=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=mGcrgBs5/vg3Vd5SnHL7lqtCAfSCfHWs8GW3AEUmce9wsmWNv9ojKUWfDuosr3A2B
-	 /9pUOQBlEzNtTgB+gLQ8GEnbi9ShdWvpKuXDqkEm899h0/1Ga+sR9Kiq0Iqf2FiJMo
-	 wDAdqZIYR0utJM5INXn83bOaSZ3xyggKrKT+vwNJ5/t/Gb2agcM6NHcjq/ZvEV6038
-	 y5BpkB6eUBFrSheOv3jiYSvx03nzO90M1tNHyKDiQzIsoWFIHUXEX0GrkbbzPaCNTT
-	 6/IT4fwRhj++fdu8RM4V2hEiNk4FecbuMwGdIQ5anvuP+uyrhYNhuyWtPjEvo8byb3
-	 5tb+Yx37WTMmA==
-Date: Wed, 8 Jul 2026 08:55:00 +0100
+	b=cogbiAXKmyAMp8pfFGMw1+XH+2/KFQZ2sirJm0MkZ25BfGjdi7K7UkK2mGaisfiBm
+	 KuN5ega3YTdU78XA4W+ovM0uk40KtUwj1IQJmdwuQOvmh0MLUniAH2UDpAzGHUZg0P
+	 u1fYmNoGSHOAUHdmYneYRgfT/AZFQBTayBEa9v7QKC/NjNK+mp6bmS9UuUV3dYDcI3
+	 TkVvcloCp1L2SU5GfdNRvlOhdCjDCV2Q9JdhGctPFX1cA+y3HBjoNVMbHew/PGh6oC
+	 sTKjkZqL/4xzF5SYpZ1Wl95LijL6ZH0gEp7MczaplLaen9JfL6pHR73TxoEo+KBbpn
+	 Dl5SwOUOzgI6g==
+Date: Wed, 8 Jul 2026 08:59:26 +0100
 From: Lorenzo Stoakes <ljs@kernel.org>
 To: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
 Cc: Jonathan Corbet <corbet@lwn.net>, 
@@ -55,11 +55,10 @@ Cc: Jonathan Corbet <corbet@lwn.net>,
 	workflows@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, 
 	linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-msm@vger.kernel.org, 
 	linux-remoteproc@vger.kernel.org, devicetree@vger.kernel.org
-Subject: Re: [PATCH v3 19/26] mm/numa: Register node data information into
- meminspect
-Message-ID: <ak4B8L57VDYFGGIh@lucifer>
+Subject: Re: [PATCH v3 21/26] printk: Register information into meminspect
+Message-ID: <ak4Cr5GEMdo8xWqu@lucifer>
 References: <20260708-meminspect-v3-v3-0-7aa5a0a74d5c@oss.qualcomm.com>
- <20260708-meminspect-v3-v3-19-7aa5a0a74d5c@oss.qualcomm.com>
+ <20260708-meminspect-v3-v3-21-7aa5a0a74d5c@oss.qualcomm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -68,52 +67,95 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260708-meminspect-v3-v3-19-7aa5a0a74d5c@oss.qualcomm.com>
+In-Reply-To: <20260708-meminspect-v3-v3-21-7aa5a0a74d5c@oss.qualcomm.com>
 
-On Wed, Jul 08, 2026 at 11:01:58AM +0530, Mukesh Ojha wrote:
-> Register dynamic information into meminspect for debugging:
->  - dynamic node data for each node
+On Wed, Jul 08, 2026 at 11:02:00AM +0530, Mukesh Ojha wrote:
+> Annotate vital static, dynamic information into meminspect for debugging
 >
-> Use meminspect_register_pa() to collect node data into meminspect.
+> Static:
+>  - prb_descs
+>  - prb_infos
+>  - prb
+>  - prb_data
+>  - clear_seq
+>  - printk_rb_static
+>  - printk_rb_dynamic
+>
+> Dynamic:
+>  - new_descs
+>  - new_infos
+>  - new_log_buf
+>
+> meminspect uses a different API to annotate variables for inspection,
+> and information about these variables is stored in the inspection table.
 
-This commit message is a total mess, this feels like internal development stuff
-not something you're trying to get upstreamed in core.
+This commit message is a mess again. You're writing what the code does, not why,
+you mention separate API but not which or why.
+
+It's useless basically, and it's weird to list arbitrary fields like this.
+
+Always think 'what would be useful to reviewers and people coming back to this
+patch in debug/development'.
+
+If it just says what the code says it's useless. Put what's NOT there.
 
 >
+> Reviewed-by: Petr Mladek <pmladek@suse.com>
 > Co-developed-by: Eugen Hristev <eugen.hristev@linaro.org>
 > Signed-off-by: Eugen Hristev <eugen.hristev@linaro.org>
+> Reviewed-by: John Ogness <john.ogness@linutronix.de>
 > Signed-off-by: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
 > ---
->  mm/numa.c | 2 ++
->  1 file changed, 2 insertions(+)
+>  kernel/printk/printk.c | 12 ++++++++++++
+>  1 file changed, 12 insertions(+)
 >
-> diff --git a/mm/numa.c b/mm/numa.c
-> index 7d5e06fe5bd4..f04740dfb2cb 100644
-> --- a/mm/numa.c
-> +++ b/mm/numa.c
-> @@ -4,6 +4,7 @@
->  #include <linux/printk.h>
->  #include <linux/numa.h>
->  #include <linux/numa_memblks.h>
+> diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+> index 2fe9a963c823..f7f32c09b9b8 100644
+> --- a/kernel/printk/printk.c
+> +++ b/kernel/printk/printk.c
+> @@ -49,6 +49,7 @@
+>  #include <linux/sched/debug.h>
+>  #include <linux/sched/task_stack.h>
+>  #include <linux/panic.h>
 > +#include <linux/meminspect.h>
 >
->  struct pglist_data *node_data[MAX_NUMNODES];
->  EXPORT_SYMBOL(node_data);
-> @@ -20,6 +21,7 @@ void __init alloc_node_data(int nid)
->  	if (!nd_pa)
->  		panic("Cannot allocate %zu bytes for node %d data\n",
->  		      nd_size, nid);
-> +	meminspect_lock_register_pa(nd_pa, nd_size);
-
-Not keyed on node ID, just exposing the physical address assigned to a node to
-all drivers.
-
-Nope to this.
-
+>  #include <linux/uaccess.h>
+>  #include <asm/sections.h>
+> @@ -518,10 +519,17 @@ static u32 log_buf_len = __LOG_BUF_LEN;
+>  #endif
+>  _DEFINE_PRINTKRB(printk_rb_static, CONFIG_LOG_BUF_SHIFT - PRB_AVGBITS,
+>  		 PRB_AVGBITS, &__log_buf[0]);
+> +MEMINSPECT_NAMED_ENTRY(prb_descs, _printk_rb_static_descs);
+> +MEMINSPECT_NAMED_ENTRY(prb_infos, _printk_rb_static_infos);
+> +MEMINSPECT_NAMED_ENTRY(prb_data, __log_buf);
+> +MEMINSPECT_SIMPLE_ENTRY(printk_rb_static);
 >
->  	/* report and initialize */
->  	pr_info("NODE_DATA(%d) allocated [mem %#010Lx-%#010Lx]\n", nid,
+>  static struct printk_ringbuffer printk_rb_dynamic;
+> +MEMINSPECT_SIMPLE_ENTRY(printk_rb_dynamic);
+>
+>  struct printk_ringbuffer *prb = &printk_rb_static;
+> +MEMINSPECT_SIMPLE_ENTRY(prb);
+> +MEMINSPECT_SIMPLE_ENTRY(clear_seq);
+>
+>  /*
+>   * We cannot access per-CPU data (e.g. per-CPU flush irq_work) before
+> @@ -1238,6 +1246,10 @@ void __init setup_log_buf(int early)
+>
+>  	local_irq_restore(flags);
+>
+> +	meminspect_lock_register_va(new_log_buf, new_log_buf_len);
+> +	meminspect_lock_register_va(new_descs, new_descs_size);
+> +	meminspect_lock_register_va(new_infos, new_infos_size);
+> +
+>  	/*
+>  	 * Copy any remaining messages that might have appeared from
+>  	 * NMI context after copying but before switching to the
 >
 > --
 > 2.53.0
 >
+
+Overall exposing live dynamic printk information to drivers seems unwise, but
+not quite as insane as some of the other stuff thus exposed...
+
+Thanks, Lorenzo
