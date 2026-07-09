@@ -1,44 +1,35 @@
-Received: from va-1-113.ptr.blmpb.com (va-1-113.ptr.blmpb.com [209.127.230.113])
+Received: from va-1-112.ptr.blmpb.com (va-1-112.ptr.blmpb.com [209.127.230.112])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 31DCA3FB7E0
-	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 11:26:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.113
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 878CB413D60
+	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 11:26:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783596398; cv=none; b=Qx6S+WxRNU476s/ao2Da2ypRZzgUuLXjBUFiWknsYBC/fIC9w9EKgeVyZPd4b+dfthCc/z1vl2+cSCHZIqbjfL6rgYc1VK+tHcXlXz1kXWlxh9vg5V59DzwcRsxqVIXW08TwU0m6pdA5KslrEigA/uSYuElbiCNRa9YHcH7XBIg=
+	t=1783596422; cv=none; b=NfzRNFCMFytpidI3MQ0qR6cEO7COBNg50wAXpb6NjzRY0zXrTwX6VLYIGLfrT+ge9wG4TSdTpANsZZ0nOW6ghOdGbc3Dwa2bH4cnq/4dxS6hmavMv+pqq0xkWY88oObRtgzkNKDLz+yt+cmxCLmhG1sg79Mmcg1xWHnYEt6pJBg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783596398; c=relaxed/simple;
-	bh=3jCROqcK3PRfaxKNp/4sINPqiySra5nBhDdxlU6mbYg=;
-	h=Message-Id:From:Date:Mime-Version:References:In-Reply-To:To:Cc:
-	 Content-Type:Subject; b=OAysx2o9hKWlUcR8kNgv4sAeKzyJA6wdSm1moiKbFugmUPaKoyQTAyGUQkcBoBIOf+GAULTKTYaTrIcDq8aLwgk/b2gfBZ7iKm7KU0oS6TMfNAsxJYLynzcqqep4RqQ5tRszD5JeIGd+toqx+ciQbQck54twTU/euLbahBDtB34=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=fa8+fkBt; arc=none smtp.client-ip=209.127.230.113
+	s=arc-20240116; t=1783596422; c=relaxed/simple;
+	bh=BmpmWhktmibrc478v+9OiwwkmFxmUQ1BTd/op1LKZOs=;
+	h=Subject:Date:To:Cc:In-Reply-To:References:Message-Id:Content-Type:
+	 From:Mime-Version; b=GjK6ch80Fz+klh3z9gxXBNhPxWQSOoFHv6Dy0CH3LEvqW+KaikjqrCsVvJ2eZaTU8SXn3lc/om6HmPE/nY49suhd7b0K3j+NLellK04Sr4SvlcWfs6e/bm9cZUYmmEeZ3AIH9Kh4tXmyVvlwSjCFPmg4NWPnnuK7N8xseZrm5sE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=okSmaLq3; arc=none smtp.client-ip=209.127.230.112
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="fa8+fkBt"
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="okSmaLq3"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1783596392; h=from:subject:
+ s=2212171451; d=bytedance.com; t=1783596414; h=from:subject:
  mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
  mime-version:in-reply-to:message-id;
- bh=SNOp3A+Cf74MvgdRY1y3rnv0S7rzKFSj9rQ2hHQ4JAk=;
- b=fa8+fkBtNF/5N6G1S9f4NYUJtXbvZEOe8QsX7g7dcMYYai206gryNTRTStY8jEyCXeejoU
- irCrffoFU5vUATBzq4yedLP2dqnJnPf5Cwh/SM8iJIM81iKxyKaYBGuz5h65BoWNY3CfJA
- W0rIIkd9HlCLg5TIJjAiZqghJ96a0wZI1Qmar1JgpN6YX60QlDVNDblFSjPrbrsGaifDzV
- kLi3IAB+ESHlRHXjkhID1gIX0VgRAYDLxPoFscSQ7myyRHnUwihJ6J43+ccn32jGYNX2Nu
- +BpnA61jfdVuZPd0uDHYq3+Kwf6JshuF+jCaccmOCpKQlCDmxNN63QoJCOSwZw==
-Message-Id: <20260709112520.24857-3-lizhe.67@bytedance.com>
+ bh=Ys2Upgcdh8Sov7eMQd5S5YsjOZi6b1QwjfihqCLWpT4=;
+ b=okSmaLq3Mu7uU7dUerUjWtavAzz+qd7UeIXUy25RBrQO+GlvmFLmQMJW0vXFFsDJAg3Uzf
+ Rwa9BrNDI+gNJaSwZkk0N258IrBE5H2UR1m8ZVIfSY2LDPWPZTvae+feaApkOjT5c8COf6
+ +sf9eNFFyZeffDHW7Ub09AeiFykw2rWPpEq7eAJ+tByk6CcKxBSSlz55K4Puelr3ghvJSa
+ DyJCDwyhLnO+EfzSK/agKs3Pf4zC1NkS9Nr+3dgzj5EOdnExqHYnfmZ5vft+VwcrfHBXWy
+ FpnLtO0ss2Hysn8dnyL8WzdXcJjbRQYybxogV8Yb2hth6KiC3GN3p63JHF32Jg==
+Subject: [PATCH v6 3/8] mm: add a set_page_section_from_pfn() helper
+Date: Thu,  9 Jul 2026 19:25:15 +0800
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
 X-Mailer: git-send-email 2.45.2
-Content-Transfer-Encoding: 7bit
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Date: Thu,  9 Jul 2026 19:25:14 +0800
-Precedence: bulk
-X-Mailing-List: linux-arch@vger.kernel.org
-List-Id: <linux-arch.vger.kernel.org>
-List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
-List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20260709112520.24857-1-lizhe.67@bytedance.com>
-In-Reply-To: <20260709112520.24857-1-lizhe.67@bytedance.com>
 To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
 	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
 	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
@@ -46,121 +37,86 @@ To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>,
 Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
 	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
 	<lizhe.67@bytedance.com>, <x86@kernel.org>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+X-Lms-Return-Path: <lba+26a4f857c+7bd4b5+vger.kernel.org+lizhe.67@bytedance.com>
+In-Reply-To: <20260709112520.24857-1-lizhe.67@bytedance.com>
+References: <20260709112520.24857-1-lizhe.67@bytedance.com>
+Message-Id: <20260709112520.24857-4-lizhe.67@bytedance.com>
 Content-Type: text/plain; charset=UTF-8
-Subject: [PATCH v6 2/8] mm: factor zone-device page init helpers out of __init_zone_device_page
-X-Lms-Return-Path: <lba+26a4f8566+271cd3+vger.kernel.org+lizhe.67@bytedance.com>
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Precedence: bulk
+X-Mailing-List: linux-arch@vger.kernel.org
+List-Id: <linux-arch.vger.kernel.org>
+List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
+List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 
-memmap_init_zone_device() currently mixes refcount policy and core
-ZONE_DEVICE page setup in a single helper.
+Callers that want to update section bits from a PFN currently need to
+open-code:
 
-Factor the refcount-reset predicate into pagemap_resets_refcount(), move
-the common page initialization into __zone_device_page_init(), and wrap
-the existing slow path in zone_device_page_init_slow().
+	set_page_section(page, pfn_to_section_nr(pfn));
 
-This keeps the slow-path behaviour unchanged and gives later patches
-reusable helper boundaries.
+and guard that sequence with #ifdef SECTION_IN_PAGE_FLAGS.
+
+Add set_page_section_from_pfn() to wrap that update in one place. When
+section bits are stored in page flags, the helper derives the section
+number from the PFN and updates the page flags. Otherwise keep it as a
+no-op so callers can use one helper without open-coding
+SECTION_IN_PAGE_FLAGS.
+
+Convert set_page_links() to use the new helper so later ZONE_DEVICE
+fast-path patches can also update section bits without open-coding
+SECTION_IN_PAGE_FLAGS at each callsite.
+
+This keeps the PFN-to-section translation local to the configurations
+that actually store section bits in struct page flags, and avoids
+exposing that detail to generic callers.
 
 No functional change intended.
 
 Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
 Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
 ---
- mm/mm_init.c | 56 ++++++++++++++++++++++++++++++++++------------------
- 1 file changed, 37 insertions(+), 19 deletions(-)
+ include/linux/mm.h | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
 
-diff --git a/mm/mm_init.c b/mm/mm_init.c
-index 95808ab5cfdb..5fccfbacf855 100644
---- a/mm/mm_init.c
-+++ b/mm/mm_init.c
-@@ -1005,11 +1005,37 @@ static void __init memmap_init(void)
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 485df9c2dbdd..43343bfce493 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2541,11 +2541,22 @@ static inline void set_page_section(struct page *page, unsigned long section)
+ 	page->flags.f |= (section & SECTIONS_MASK) << SECTIONS_PGSHIFT;
  }
  
- #ifdef CONFIG_ZONE_DEVICE
--static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
-+/*
-+ * Return true when the free path for this pagemap type restores the page
-+ * refcount to 1, so memmap_init_zone_device() can keep the count set by
-+ * __init_single_page(). Otherwise initialize the refcount to 0 and leave
-+ * it to the allocator or pgmap callbacks to raise it when the page is
-+ * handed out again.
-+ */
-+static inline bool pagemap_resets_refcount(const struct dev_pagemap *pgmap)
++static inline void set_page_section_from_pfn(struct page *page,
++		unsigned long pfn)
 +{
-+	/*
-+	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
-+	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
-+	 * the count again when the allocator or driver hands the page out.
-+	 */
-+	switch (pgmap->type) {
-+	case MEMORY_DEVICE_FS_DAX:
-+	case MEMORY_DEVICE_PRIVATE:
-+	case MEMORY_DEVICE_COHERENT:
-+	case MEMORY_DEVICE_PCI_P2PDMA:
-+		return false;
-+	case MEMORY_DEVICE_GENERIC:
-+		return true;
-+	}
-+
-+	return true;
++	set_page_section(page, pfn_to_section_nr(pfn));
 +}
 +
-+static void __ref __zone_device_page_init(struct page *page, unsigned long pfn,
- 					  unsigned long zone_idx, int nid,
- 					  struct dev_pagemap *pgmap)
+ static inline unsigned long memdesc_section(memdesc_flags_t mdf)
  {
--
- 	__init_single_page(page, pfn, zone_idx, nid);
- 
- 	/*
-@@ -1028,23 +1054,15 @@ static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
- 	 */
- 	page_folio(page)->pgmap = pgmap;
- 	page->zone_device_data = NULL;
-+}
- 
--	/*
--	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
--	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
--	 * the count again when the allocator or driver hands the page out.
--	 */
--	switch (pgmap->type) {
--	case MEMORY_DEVICE_FS_DAX:
--	case MEMORY_DEVICE_PRIVATE:
--	case MEMORY_DEVICE_COHERENT:
--	case MEMORY_DEVICE_PCI_P2PDMA:
-+static void __ref zone_device_page_init_slow(struct page *page,
-+		unsigned long pfn, unsigned long zone_idx, int nid,
-+		struct dev_pagemap *pgmap)
+ 	return (mdf.f >> SECTIONS_PGSHIFT) & SECTIONS_MASK;
+ }
+ #else /* !SECTION_IN_PAGE_FLAGS */
++static inline void set_page_section_from_pfn(struct page *page,
++		unsigned long pfn)
 +{
-+	__zone_device_page_init(page, pfn, zone_idx, nid, pgmap);
-+	if (!pagemap_resets_refcount(pgmap))
- 		set_page_count(page, 0);
--		break;
--
--	case MEMORY_DEVICE_GENERIC:
--		break;
--	}
++}
++
+ static inline unsigned long memdesc_section(memdesc_flags_t mdf)
+ {
+ 	return 0;
+@@ -2768,9 +2779,7 @@ static inline void set_page_links(struct page *page, enum zone_type zone,
+ {
+ 	set_page_zone(page, zone);
+ 	set_page_node(page, node);
+-#ifdef SECTION_IN_PAGE_FLAGS
+-	set_page_section(page, pfn_to_section_nr(pfn));
+-#endif
++	set_page_section_from_pfn(page, pfn);
  }
  
- /*
-@@ -1090,7 +1108,7 @@ static void __ref memmap_init_compound(struct page *head,
- 	for (pfn = head_pfn + 1; pfn < end_pfn; pfn++) {
- 		struct page *page = pfn_to_page(pfn);
- 
--		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
-+		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
- 		prep_compound_tail(page, head, order);
- 		set_page_count(page, 0);
- 	}
-@@ -1126,7 +1144,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
- 	for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
- 		struct page *page = pfn_to_page(pfn);
- 
--		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
-+		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
- 
- 		if (IS_ALIGNED(pfn, PAGES_PER_SECTION))
- 			cond_resched();
+ /**
 -- 
 2.20.1
