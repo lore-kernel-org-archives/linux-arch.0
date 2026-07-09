@@ -1,159 +1,200 @@
-Received: from va-1-111.ptr.blmpb.com (va-1-111.ptr.blmpb.com [209.127.230.111])
+Received: from va-2-115.ptr.blmpb.com (va-2-115.ptr.blmpb.com [209.127.231.115])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C50B23F7AB4
-	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 11:28:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.111
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 164C73F5BDC
+	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 11:28:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.115
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783596491; cv=none; b=IdumuRiMxLirlyGS9uXBXqk77acVWXB0kit+BC3pOMVR4uH+RjJorWrEFlNhHRbn6qoz4x3N6ehIil0qr47UpaGNm0LqIb9CadRf0OosSABlnkNYtbKDo1LKZOr6yKi3OXupPvokezyRJI9snWhxyDIQueTNt6opI78DjhOLldw=
+	t=1783596513; cv=none; b=DyMdZ9MvRW0dzRINk/5frLvngVKCk40iPZUiy7Nn+mEt5vL8UeskGO4c0NbpbAmSf0kLwMSDUlcVxFq6XyQWuMWlBo6RGVVdwWGxvM28LGMvz+fo84iuHuJ3SxXXiKaLlL3DAXTji8T+YsnD4B/4t8nbcA9P2yC3oBcAJTkIJMM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783596491; c=relaxed/simple;
-	bh=RVgSIGpZ8uAoEoXoqoGDdEXdRYSBUV3M4TAREl+MJRg=;
-	h=In-Reply-To:References:Content-Type:To:Cc:Date:Message-Id:From:
-	 Subject:Mime-Version; b=dhszTbkcj3zBChG2HOG5ctQ4ETnVKW7iCymzmBpNlKG1K1TdnLlZGnBQFbmy2zgFxQ96x0gzGst3O65l2+tlJnXSfhiQES+4VuKEK2SYkXVtFMsLpmTYQsL2Of+22GfPc9EJpw5m5/EEPazdgVm9T2himX9X7bdgcfSu76VxNTs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=ELW3/md9; arc=none smtp.client-ip=209.127.230.111
+	s=arc-20240116; t=1783596513; c=relaxed/simple;
+	bh=KL3mc7nUlJWrt7L+NhR6qS8dfJwZtMnmFhFWdby+22I=;
+	h=Cc:Subject:From:Message-Id:In-Reply-To:Content-Type:To:Date:
+	 Mime-Version:References; b=ZHhv8jSxKprizfbDzJLjkxOIMcASWrlsT2PT9KvHcLy3VGgWdzP2XpL/aActznnRJxzPzaG/oq3tDD8QU1V0O5HgOKHrk6tj6DTGn5tx4WJdr2iQg/cYB0pg7Aykdb79Hsqqc6WpE6HN0qoD6Mms+T5CfsGx5KvU714N88VkkWo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=et2VeqbG; arc=none smtp.client-ip=209.127.231.115
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="ELW3/md9"
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="et2VeqbG"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1783596485; h=from:subject:
+ s=2212171451; d=bytedance.com; t=1783596506; h=from:subject:
  mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
  mime-version:in-reply-to:message-id;
- bh=gtpXPQ/H4ZBimfcBe1xu9rcXWfMUV2ijOuTMHAq22Iw=;
- b=ELW3/md9IJpgFdhsKU8JS+ciQKPN6fAoW0iwiX0zhksg+SyIgwN3pkanfW/P7hXgXluMHi
- iMIBrgRa6sPPLLmgH0XyrSIf8bv1/tH/lcQEOAOZaaDzT0s54p388hF7IBqvu2cldP8ww8
- Oc4g/hbliSy4VUgVpNLH32so6VOGHKM3z1IfQmvVcjEy/+fnDfggu6hHkngPUoP1BHvCd/
- rXSmpVIn3nTGwjWpqNuc2TXnaMLz2g85mcukNeBZp5VRzgcmeQYJhFzZ0tsFiHvgr5kzf6
- zmxMxuPhkgDzXRc6oAeQX8VwBRCaLEOFLJHpcOiYhkiE0SdmSMZ5nLx/ECgQaA==
-Content-Transfer-Encoding: 7bit
+ bh=AN464t3GErrzCu0A8hyIj0aMpfRwo0PDzzsVvqxolEc=;
+ b=et2VeqbGY3Yb26WM2odN801kehVtE1LMN9E9+kSbKQWi8OyTNkzF0dKE7/SplLzTRZT5Xq
+ DlS2o8wxkCRO8fOD5UX6WeZ8okhfIUTQP/5mngLll3U5FSnqIcu+CgarfpyFLR2D6M1VkI
+ TDJzKO7V/odmu6FOslia3CqaQOQnD3FSxlARnCzM6X9b34YJ8ZLRNFMl0G4wf+El4e9B4h
+ jdM4vCCy0dFiFs5/OJUjk20mFjt2FeMbTQu56VohMLBU/LOSWqrgS2Ryl/m0JJZ+JxBHHV
+ F8TPANhYmSsGnJ0g/mzwwt9iadY7o/nH3RbsoyTDanEV0DXLAsQheEXfTKxtnA==
+Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
+	<lizhe.67@bytedance.com>, <x86@kernel.org>
+Subject: [PATCH v6 7/8] x86/string: extend memcpy_flushcache() fixed-size fastpaths
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Message-Id: <20260709112520.24857-8-lizhe.67@bytedance.com>
+X-Lms-Return-Path: <lba+26a4f85d8+1fa58e+vger.kernel.org+lizhe.67@bytedance.com>
 In-Reply-To: <20260709112520.24857-1-lizhe.67@bytedance.com>
-X-Lms-Return-Path: <lba+26a4f85c3+3a8943+vger.kernel.org+lizhe.67@bytedance.com>
-References: <20260709112520.24857-1-lizhe.67@bytedance.com>
 Content-Type: text/plain; charset=UTF-8
 To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
 	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
 	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
 	<rppt@kernel.org>, <tglx@kernel.org>
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
-	<lizhe.67@bytedance.com>, <x86@kernel.org>
-Date: Thu,  9 Jul 2026 19:25:18 +0800
-Message-Id: <20260709112520.24857-7-lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Subject: [PATCH v6 6/8] string: introduce memcpy_nt() helpers
+Date: Thu,  9 Jul 2026 19:25:19 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+References: <20260709112520.24857-1-lizhe.67@bytedance.com>
+X-Mailer: git-send-email 2.45.2
+Content-Transfer-Encoding: 7bit
 
-Introduce memcpy_nt() and memcpy_nt_drain() for write-once copy sites
-that want a named non-temporal copy primitive plus an explicit drain
-step.
+The new x86 memcpy_nt() helper in this series maps to
+memcpy_flushcache(), and the ZONE_DEVICE fast path uses that primitive
+for constant-sized struct page template copies.
 
-On x86_64, override both helpers in arch/x86/include/asm/string_64.h
-using the usual self-macro pattern, next to the existing
-memcpy_flushcache() backend that memcpy_nt() wraps. The x86_64
-implementation maps memcpy_nt() to memcpy_flushcache() and uses wmb()
-for memcpy_nt_drain(), because that backend issues MOVNTI stores and
-callers need an ordering point before later normal stores that depend
-on those writes becoming visible.
+The immediately relevant x86_64 sizeof(struct page) values here are 64,
+80, and 96 bytes. memcpy_flushcache() currently inlines only the 4, 8,
+and 16-byte cases, so even those constant-sized struct page copies fall
+through to __memcpy_flushcache().
 
-include/linux/string.h provides the generic fallback under
-memcpy_nt() as plain memcpy() and leaves memcpy_nt_drain() empty, so
-architectures that do not override memcpy_nt() do not pay an
-unconditional barrier. Architectures that later grow a specialized
-memcpy_nt() backend can override memcpy_nt_drain() with whatever
-drain primitive their memory-ordering rules require.
+Add 32, 48, 64, 80, and 96-byte MOVNTI sequences to the main fixed-size
+switch so those constant-sized copies can stay on the inline path.
+Factor the larger sequences into movnti_8()/16()/32()/64() helpers so
+the switch can reuse them without duplicating the inline assembly.
+While the ZONE_DEVICE template-copy path only needs 64/80/96-byte
+copies, keep 32-byte and 48-byte copies inline as well rather than
+sending those nearby fixed-size cases back to __memcpy_flushcache().
 
-The immediate user is the ZONE_DEVICE template-copy path. It populates
-struct page descriptors in a write-once pattern, so a regular cached
-memcpy() can incur avoidable write-allocate traffic and cache
-pollution for data with little near-term reuse.
+A microbenchmark compared two memcpy_flushcache()-style helpers that
+shared the same generic body and differed only in whether
+32/48/64/80/96-byte copies stayed in the fixed-size switch or were
+redirected to __memcpy_flushcache() when the destination was not 8-byte
+aligned. The timed interval covered the copy loop only; wmb() was used
+only to separate rounds.
+
+In pseudo-code, the two variants were:
+
+variant A:
+	switch (len) {
+		case 32:
+		case 48:
+		case 64:
+		case 80:
+		case 96:
+			do fixed-size MOVNTI stores;
+			return;
+		default:
+			generic __memcpy_flushcache()-style body;
+	}
+
+variant B:
+	switch (len) {
+		case 32:
+		case 48:
+		case 64:
+		case 80:
+		case 96:
+			if (!IS_ALIGNED(dst, 8))
+				goto generic_path;
+			do fixed-size MOVNTI stores;
+			return;
+		default:
+	generic_path:
+			generic __memcpy_flushcache()-style body;
+	}
+
+For offsets 1..7 averaged, keeping those sizes in the fixed-size
+switch took about 0.410/0.411/0.426/0.426/0.428 us per
+32/48/64/80/96-byte copy, while redirecting the same cases to
+__memcpy_flushcache() took about 0.962/0.956/0.923/0.998/1.001 us.
+
+Based on that measurement, keep these new cases in the main
+memcpy_flushcache() fixed-size switch without a separate
+alignment check.
 
 Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
 ---
- arch/x86/include/asm/string_64.h | 22 ++++++++++++++++++++++
- include/linux/string.h           | 23 +++++++++++++++++++++++
- 2 files changed, 45 insertions(+)
+ arch/x86/include/asm/string_64.h | 56 +++++++++++++++++++++++++++++++-
+ 1 file changed, 55 insertions(+), 1 deletion(-)
 
 diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
-index 4635616863f5..6cb9e0ac7fa0 100644
+index 6cb9e0ac7fa0..1e634264a31b 100644
 --- a/arch/x86/include/asm/string_64.h
 +++ b/arch/x86/include/asm/string_64.h
-@@ -4,6 +4,7 @@
- 
- #ifdef __KERNEL__
- #include <linux/jump_label.h>
-+#include <asm/barrier.h>
- 
- /* Written 2002 by Andi Kleen */
- 
-@@ -100,6 +101,27 @@ static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t
+@@ -83,7 +83,35 @@ int strcmp(const char *cs, const char *ct);
+ #ifdef CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE
+ #define __HAVE_ARCH_MEMCPY_FLUSHCACHE 1
+ void __memcpy_flushcache(void *dst, const void *src, size_t cnt);
+-static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t cnt)
++
++static __always_inline void movnti_8(void *dst, const void *src)
++{
++	asm volatile("movntiq %1, %0"
++		     : "=m"(*(u64 *)dst)
++		     : "r"(*(const u64 *)src)
++		     : "memory");
++}
++
++static __always_inline void movnti_16(void *dst, const void *src)
++{
++	movnti_8(dst, src);
++	movnti_8(dst + 8, src + 8);
++}
++
++static __always_inline void movnti_32(void *dst, const void *src)
++{
++	movnti_16(dst, src);
++	movnti_16(dst + 16, src + 16);
++}
++
++static __always_inline void movnti_64(void *dst, const void *src)
++{
++	movnti_32(dst, src);
++	movnti_32(dst + 32, src + 32);
++}
++
++static __always_inline void memcpy_flushcache(void *dst, const void *src,
++					      size_t cnt)
+ {
+ 	if (__builtin_constant_p(cnt)) {
+ 		switch (cnt) {
+@@ -97,8 +125,34 @@ static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t
+ 				asm ("movntiq %1, %0" : "=m"(*(u64 *)dst) : "r"(*(u64 *)src));
+ 				asm ("movntiq %1, %0" : "=m"(*(u64 *)(dst + 8)) : "r"(*(u64 *)(src + 8)));
+ 				return;
++			/*
++			 * The relevant fixed-size copies here are the
++			 * x86_64 struct page sizes: 64, 80, and 96 bytes.
++			 * Keep 32-byte and 48-byte copies inline as well
++			 * instead of sending those nearby fixed-size
++			 * cases back to __memcpy_flushcache().
++			 */
++			case 32:
++				movnti_32(dst, src);
++				return;
++			case 48:
++				movnti_32(dst, src);
++				movnti_16(dst + 32, src + 32);
++				return;
++			case 64:
++				movnti_64(dst, src);
++				return;
++			case 80:
++				movnti_64(dst, src);
++				movnti_16(dst + 64, src + 64);
++				return;
++			case 96:
++				movnti_64(dst, src);
++				movnti_32(dst + 64, src + 64);
++				return;
+ 		}
  	}
++
  	__memcpy_flushcache(dst, src, cnt);
  }
-+
-+#define memcpy_nt memcpy_nt
-+/*
-+ * Reuse the existing x86 flushcache backend as the nt copy primitive.
-+ * Callers pair it with memcpy_nt_drain() when later stores must be
-+ * ordered after the copy.
-+ */
-+static __always_inline void memcpy_nt(void *dst, const void *src, size_t cnt)
-+{
-+	memcpy_flushcache(dst, src, cnt);
-+}
-+
-+#define memcpy_nt_drain memcpy_nt_drain
-+static __always_inline void memcpy_nt_drain(void)
-+{
-+	/*
-+	 * Order the prior MOVNTI stores issued by memcpy_flushcache()
-+	 * before later normal stores.
-+	 */
-+	wmb();
-+}
- #endif
- 
- #endif /* __KERNEL__ */
-diff --git a/include/linux/string.h b/include/linux/string.h
-index 5702daca4326..a109b2f86ca6 100644
---- a/include/linux/string.h
-+++ b/include/linux/string.h
-@@ -278,6 +278,29 @@ static inline void memcpy_flushcache(void *dst, const void *src, size_t cnt)
- }
- #endif
- 
-+#ifndef memcpy_nt
-+/*
-+ * memcpy_nt() requests a non-temporal copy when the architecture has a
-+ * suitable backend. Architectures that do not override it fall back to
-+ * memcpy().
-+ */
-+static inline void memcpy_nt(void *dst, const void *src, size_t cnt)
-+{
-+	memcpy(dst, src, cnt);
-+}
-+#endif
-+
-+#ifndef memcpy_nt_drain
-+/*
-+ * Callers use memcpy_nt_drain() before later normal stores that need to
-+ * be ordered after memcpy_nt(). Architectures without a specialized
-+ * backend can leave it empty.
-+ */
-+static inline void memcpy_nt_drain(void)
-+{
-+}
-+#endif
-+
- void *memchr_inv(const void *s, int c, size_t n);
- char *strreplace(char *str, char old, char new);
  
 -- 
 2.20.1
