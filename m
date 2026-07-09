@@ -1,45 +1,47 @@
 Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8468441C2E1;
-	Thu,  9 Jul 2026 11:32:41 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0958641DED0;
+	Thu,  9 Jul 2026 11:32:42 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783596763; cv=none; b=WnRBlFp44/ZxzYB+AJ3WMHQL+4yq0NfDLwLA0s/XS9tdjmo+SpwXiCXjk9AgPy8rvp4Bp0Vh/tALxqEJYlO2hP0yBTS6cJ2ev/5gylDOHB8d032P9FYyEQEJvIFj/PCh9HpTMB67Q0Nm5ouEzXtkgckGYjIuFqzOyj3f7GLwjDc=
+	t=1783596763; cv=none; b=TJgBESwwNLFChtl6lfRs4I2tHMxByocp/dzAlCV6+1HJRVJzG9YKro8nSgqDknvNvLp+sf6FyKvkgXatHmRrIcepYNU2bZMZJiEzRhDC5xjQ+YfXV0eFDs0T1Xy9t+EuAfgNGdUX+EZBUvI73O9N6GOe+cTe4ZV3bO3tQF4I4zo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1783596763; c=relaxed/simple;
-	bh=bd62m/ysnHtkfVSUaGn+V8oLxmFUlxg59T9FJQBkVtY=;
-	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=Zf9zaCm8tkXIr1tI+7l3PTG5YwpYobrc+DNX/m2WEDwjOBEiBN76ObRV+BMZgITpp+fa8bQkFGmSIwcONJFXbhUVUA50df/cv7B6WVL+QqM8tY9skse4JdXohVZFWgbi2nFVBtwdK4ftszpOtdKocQEvL1W2XHdAcwq2BaSmSIc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=giBxjz3T; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=dhUA7ErG; arc=none smtp.client-ip=193.142.43.55
+	bh=Xax8qgR+SGGeOkJrm9ZK8P3x7lKX/ptqrxvCpMAlK6g=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=N53xQjORzDReKK01mp3s1yo2uhOvxx05BIVw7GMF/5/ZF5weNoAR84tDzA1T8Lu9RPXxVbfJ3Matp8G042UKKxPx9s6/XeVfE310kanmb/2vzz/Pjq7Y5F+E5nMOZLOpadtPkn9y/N3IuR06fA1WJWZUBQAVPIvDP+qVyAsjy4o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=3Tlr8lwj; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=1odo7jSN; arc=none smtp.client-ip=193.142.43.55
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="giBxjz3T";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="dhUA7ErG"
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="3Tlr8lwj";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="1odo7jSN"
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1783596759;
+	s=2020; t=1783596760;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding;
-	bh=3h/womV9Fbhg3p/L/491wrRWOveYAatastwr60h0rPA=;
-	b=giBxjz3T0P2S6MQBaE7q0V1Y+P8GtU/83OH5yvA/IJYRF6rEaZNH72uhWRmoHYQPBvSeaM
-	aYnR4r1jdyxlKCtHofIYIu21ZYJGKVw0zu+eZEOXrVSQ4jqcThtvVq/2UTbCrBN/YEV7Tq
-	5tFNpsN0J1iSkT07jP/gg2PBJPINWCi3E3tnw+Fa9V9beR+M/vw5jMh1JmIJ1HAhyEjrfH
-	hpRUEFeMrvg4MVEEMmBLkDNRDEghr9gcOcOvOWEXIrt33Fhbgz7NP8tocFyKQBWNFVbmLa
-	pbX1QoRmmZ62rssps6gM9ElrjWLJL8LCmFPjAHg1v8EZF9vB/RLuN7DuE5bxiA==
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=zk86msNEN/gnWpX9C3rxNSV4hOokUpTWZRuN8F96/Nc=;
+	b=3Tlr8lwjEQMKUWzx2INzXGyqzMn7U7cffmZUVyqa4EabPGgOlth6pNXkh69SdZD9IyTuva
+	P6LcVPAyvPH3BR3XWD80JId7SB7vxgjFqLOoFYZ96eBUfQJ+7qbelhC2Unbdz/e9/LRmRS
+	h3tZILA4lKwjjPrtBBwTmXGFxOb/6mO5Ofba3hxsKasNgfNb4LCABYp2ii3FDuD2zF/BY0
+	8L8WSMyub4zU02TewatPe06w2I5TmQ7U4+JVhko2v2LVy6s7TOTsc7gkdIYwZnPzIMcrB7
+	77BbGmtoZSIrFl5xdnSY3IvvMH6O5q2zThMK3fn7WxLCpVpOu8Xa1fJtP2NnVA==
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1783596759;
+	s=2020e; t=1783596760;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding;
-	bh=3h/womV9Fbhg3p/L/491wrRWOveYAatastwr60h0rPA=;
-	b=dhUA7ErG68WNBRzhRd+NtTZFYpT3et+sDudNK/W2f5/GDKNvhVYhhGh6UArQIQUKejGRLk
-	3THQK4lIsGB1LlCg==
-Subject: [PATCH 0/7] vDSO: Replace CONFIG_GENERIC_GETTIMEOFDAY ifdeffery
- with IS_ENABLED()
-Date: Thu, 09 Jul 2026 13:32:36 +0200
-Message-Id: <20260709-vdso-arch-clockmodes-v1-0-3fd780bbf851@linutronix.de>
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=zk86msNEN/gnWpX9C3rxNSV4hOokUpTWZRuN8F96/Nc=;
+	b=1odo7jSNfz5NW/HvHzWtgVuuOaD6TIOwysekv2u0iL+FsKAjM1a56kySZs9tXkR5a3FEY/
+	9DyNKWP5h645jWDg==
+Date: Thu, 09 Jul 2026 13:32:38 +0200
+Subject: [PATCH 2/7] vDSO: Make clockmode constants available without
+ CONFIG_GENERIC_GETTIMEOFDAY
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -48,10 +50,9 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-X-B4-Tracking: v=1; b=H4sIAAAAAAAC/x3MQQqEMAxA0atI1gZqUVGvMrioaarBGTs0UATx7
- haXb/H/BcpJWGGqLkicRSUeBU1dAW3uWBnFF4M1tje96TB7jegSbUjfSPsvelZcArkwOktDO0B
- J/4mDnO/2M9/3Ayijr3NmAAAA
-X-Change-ID: 20260605-vdso-arch-clockmodes-bfcaf9a2c848
+Message-Id: <20260709-vdso-arch-clockmodes-v1-2-3fd780bbf851@linutronix.de>
+References: <20260709-vdso-arch-clockmodes-v1-0-3fd780bbf851@linutronix.de>
+In-Reply-To: <20260709-vdso-arch-clockmodes-v1-0-3fd780bbf851@linutronix.de>
 To: Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, 
  Thomas Gleixner <tglx@kernel.org>, 
  Vincenzo Frascino <vincenzo.frascino@arm.com>, 
@@ -67,43 +68,67 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
  linux-arm-kernel@lists.infradead.org, linux-riscv@lists.infradead.org, 
  loongarch@lists.linux.dev, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1783596759; l=1590;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1783596759; l=1850;
  i=thomas.weissschuh@linutronix.de; s=20240209; h=from:subject:message-id;
- bh=bd62m/ysnHtkfVSUaGn+V8oLxmFUlxg59T9FJQBkVtY=;
- b=v0PUn23gIRlT3wMLw6uvxNhG8MDsFLklGKvI5FMtQ09FTJRHMHBj0/elS9bs0Z3CEgLqrSM8/
- LBkRruGlMC/DM32fLjupE7GsD6pdIWQ+TzzZgMOdIZkoEhk+dyQS3TE
+ bh=Xax8qgR+SGGeOkJrm9ZK8P3x7lKX/ptqrxvCpMAlK6g=;
+ b=46BCx+9PphfTRayVEAxbIQeVvMzW/0LWqNLBEcXQOqP9X9mObQV+e21QCB2KfVXaitBboNNYq
+ iSHkBBI2pMPDE6SOc1YgmV5vYEtwJ8WyMhnDMk7paHoHTHPKge8t1Pz
 X-Developer-Key: i=thomas.weissschuh@linutronix.de; a=ed25519;
  pk=pfvxvpFUDJV2h2nY0FidLUml22uGLSjByFbM6aqQQws=
 
-Provide dummy declarations of the VDSO_CLOCKMODE_* constants and use
-those to replace some ugly ifdeffery with cleaner IS_ENABLED() checks.
+Some code, for example clocksource drivers, may want to use the vDSO
+clockmode constants even when CONFIG_GENERIC_GETTIMEOFDAY=n.
+But the symbols are completely hidden in that case, making ugly
+ifdeffery necessary.
+
+Provide unlinkable dummy definitions. These can be used with
+IS_ENABLED(CONFIG_GENERIC_GETTIMEOFDAY).
+
+As not all architectures provide asm/vdso/clocksource.h,
+provide an empty stub in asm-generic for it.
 
 Signed-off-by: Thomas Weißschuh <thomas.weissschuh@linutronix.de>
 ---
-Thomas Weißschuh (7):
-      kbuild: support generated asm-headers in subdirectories
-      vDSO: Make clockmode constants available without CONFIG_GENERIC_GETTIMEOFDAY
-      MIPS: csrc-r4k: Replace CONFIG_GENERIC_GETTIMEOFDAY ifdeffery with IS_ENABLED()
-      clocksource/drivers/mips-gic-timer: Replace CONFIG_GENERIC_GETTIMEOFDAY ifdeffery with IS_ENABLED()
-      clocksource/drivers/arm_arch_timer: Replace CONFIG_GENERIC_GETTIMEOFDAY ifdeffery with IS_ENABLED()
-      clocksource/drivers/timer-riscv: Replace CONFIG_GENERIC_GETTIMEOFDAY ifdeffery with IS_ENABLED()
-      LoongArch: Replace CONFIG_GENERIC_GETTIMEOFDAY ifdeffery with IS_ENABLED()
+ include/asm-generic/Kbuild             | 1 +
+ include/asm-generic/vdso/clocksource.h | 0
+ include/vdso/clocksource.h             | 7 +++++--
+ 3 files changed, 6 insertions(+), 2 deletions(-)
 
- arch/loongarch/kernel/time.c           |  5 ++---
- arch/mips/kernel/csrc-r4k.c            |  4 +---
- drivers/clocksource/arm_arch_timer.c   |  7 ++-----
- drivers/clocksource/mips-gic-timer.c   |  5 ++---
- drivers/clocksource/timer-riscv.c      |  7 ++-----
- include/asm-generic/Kbuild             |  1 +
- include/asm-generic/vdso/clocksource.h |  0
- include/vdso/clocksource.h             |  7 +++++--
- scripts/Makefile.asm-headers           | 11 +++++------
- 9 files changed, 20 insertions(+), 27 deletions(-)
----
-base-commit: dc59e4fea9d83f03bad6bddf3fa2e52491777482
-change-id: 20260605-vdso-arch-clockmodes-bfcaf9a2c848
+diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
+index 15df9dcb42a5..2bc00c67dc54 100644
+--- a/include/asm-generic/Kbuild
++++ b/include/asm-generic/Kbuild
+@@ -62,6 +62,7 @@ mandatory-y += topology.h
+ mandatory-y += trace_clock.h
+ mandatory-y += uaccess.h
+ mandatory-y += unwind_user.h
++mandatory-y += vdso/clocksource.h
+ mandatory-y += vermagic.h
+ mandatory-y += vga.h
+ mandatory-y += video.h
+diff --git a/include/asm-generic/vdso/clocksource.h b/include/asm-generic/vdso/clocksource.h
+new file mode 100644
+index 000000000000..e69de29bb2d1
+diff --git a/include/vdso/clocksource.h b/include/vdso/clocksource.h
+index c682e7c60273..63ee8c4ea15c 100644
+--- a/include/vdso/clocksource.h
++++ b/include/vdso/clocksource.h
+@@ -4,9 +4,12 @@
+ 
+ #include <vdso/limits.h>
+ 
+-#ifdef CONFIG_GENERIC_GETTIMEOFDAY
+ #include <asm/vdso/clocksource.h>
+-#endif /* CONFIG_GENERIC_GETTIMEOFDAY */
++
++#if !IS_ENABLED(CONFIG_GENERIC_GETTIMEOFDAY) && defined(VDSO_ARCH_CLOCKMODES)
++/* Unlinkable dummy stubs */
++extern int VDSO_ARCH_CLOCKMODES;
++#endif
+ 
+ enum vdso_clock_mode {
+ 	VDSO_CLOCKMODE_NONE,
 
-Best regards,
---  
-Thomas Weißschuh <thomas.weissschuh@linutronix.de>
+-- 
+2.55.0
 
