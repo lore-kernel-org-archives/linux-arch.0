@@ -1,326 +1,510 @@
-Received: from SJ2PR03CU001.outbound.protection.outlook.com (mail-westusazolkn19012059.outbound.protection.outlook.com [52.103.2.59])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj1-f43.google.com (mail-pj1-f43.google.com [209.85.216.43])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6A8CF449991;
-	Thu,  9 Jul 2026 19:08:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.103.2.59
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783624130; cv=fail; b=XaZ9ZyKsSaeFQvmsgnm2IKZ3k36Exb6zmNi5uhcKCU5HdpQUAU6vwefKKbDW9ABnFsnagDwfP5cXmpXH+sx51NIMD3DkRe2x8gZBVcC9EuNBQXFJKcdP3fmcddj7YMWDVhv/ahOdzZ27tR6w/EfdPkBxuUYEAO/FGEE08n3drM8=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783624130; c=relaxed/simple;
-	bh=qW5Dry2QuVRbldNlOA7ru8rZO4UPHltinYF2a9THWO4=;
-	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
-	 Content-Type:MIME-Version; b=nk3ecn54g+1oPKQ/owwlsjAsdBX52Tvadd7kRawZEb4ZLP2UD+/kKR5AaZZjMVhMPp3nyJoAxYHdDqqDDESsbrb/cBR7P8OpB/9i+xK0yfiZRn3n/nk1aL8qP1GI3SrLBBJrT62l3ictdV3r4Ir4E6Kh26IPzV65RLyu0A63JwM=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=naoh+wph; arc=fail smtp.client-ip=52.103.2.59
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0B0052E737D
+	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 19:10:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.43
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783624241; cv=none; b=qpAOL/lg+uj6rR0kX8chOpmGQTtNtJR2naPpKMWmCfgP9xsdNk5THjJcR258mxwa4pzfYjGTH7aFwFk8oq5zq4mKmQbfW1GBiUhsi8uzoC4pmxIraNkFwRVbDbxv5OLDYOspY3uh0UMlikjeV3euwaAQ3EphbN//x8HoLEHl+SA=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783624241; c=relaxed/simple;
+	bh=r/QQlmrJdbGDvO500PKX/NU2Q7BMk0sP6jnQ5CxvlzU=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=USMFQXs0SowAWhmqvZl0eb3XRqVXExZIAAiXKb/rVdYy1RDZkjBwjiaGE4yaztmvVvxts7yLUNPpz8qFJ51fetgb704c+9Tm9zzLFYmJbfSnkskKrV7jssEq/1pdvb82F/aCAEOLpHYhM0sEdVuc9Enxu7Fm5Ka25FGjNYxyq6U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=FJEzWz3C; arc=none smtp.client-ip=209.85.216.43
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="naoh+wph"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=Za80asbC5NSIdfD3FFIacO0MgO/Wr7qBLZUUfEGUF2WSX78263MXDLNKMWCCK7AiFSi5/HvwLDiW2RVzLvA0s+DiUqgv0JDLfJJqF1LBZXY/uFL0SPQVDlX1R9kckqU8FdKc/5qRkNm5tEqgvpTa6VB/RNAOaVCOd4lW2hBlCkwRn0wpRHhhQOdNdYuQWbKfcvMS4nUIHNpk6mtUMA9bs8Cvs0PBZ+9pUPFG2LFk20hk/gtXumn+Ar/g4qmg+xymzNSXdT4GSos3UuOF6yOHW0adw2kcEDg++ldOOYAwTbdmTUfOPx4eAW0TCf2UFjuqln4oV7jlKw8GAm48Orz6CQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=R8mOSiJhvfQBH7mmR9C+TI/+K00LyuBPwtXohZhtgqo=;
- b=d+zW1jzp7wu3WKrZg7HSF0VnALq6grsOY/JICLv96kSIvWD7ezyaYBWK9byTlVBtPnolCuOCHfCkendg4152pKpbn6d1NU2JBX52N4tRIh+BRndXOReYTFEb5+cz5sTv/ldiMsyTu5yDjA2CbaD3tMCoe8i9u0PzznrLBDYl4TIHrbwsM85El8/HM0e3nkihMLiHTRU6YDHHXZyP869z4FbU1nlfQ1444RqXw7IS2xTF9tALuWpYgwEP/sYETEqXz4xpUihwF3FRK3kOj7oWGIgbJjNfSPamUFdOiu8TsjUVCGow8B3eY+eL80opG05tx9GXU82IyxOcvlOO78ZQKw==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
- dkim=none; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
- s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=R8mOSiJhvfQBH7mmR9C+TI/+K00LyuBPwtXohZhtgqo=;
- b=naoh+wphc98ykz8V20N9yzB3bW1AuAZlOyxgXTt6+U6VC91WRuLTfh1XEXyjBLfHANzedUoo/+IG4O5/0f2W9bLBHTMc+AAGB9NwwTn+gPHmzcpyIXk3GVt6o9hDw+jmReXnYJ3jmMpJA50UKdJ4S0MgvOsVz6qMc00UBRsVUfzGXOTvuVpuAtrKOVR7FUlfUoRuUY66BcOtTjzfresFe9pzGzopmQY9H18Ni3EzNuXRa63+I7TeOmC2lSyrJtLkJquCjpTbU077l09ygiteQXCi6c3jUm1UU7znqlD+Dd0jGiAaizZT5etPBhazm8fLkcZPI1FhApqk2aIi8qRMQw==
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com (2603:10b6:805:33::23)
- by DM6PR02MB6905.namprd02.prod.outlook.com (2603:10b6:5:252::15) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.181.16; Thu, 9 Jul
- 2026 19:08:47 +0000
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::900:1ccf:2b1e:52b6]) by SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::900:1ccf:2b1e:52b6%3]) with mapi id 15.21.0181.014; Thu, 9 Jul 2026
- 19:08:47 +0000
-From: Michael Kelley <mhklinux@outlook.com>
-To: Yu Zhang <zhangyu1@linux.microsoft.com>, "linux-kernel@vger.kernel.org"
-	<linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org"
-	<linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev"
-	<iommu@lists.linux.dev>, "linux-pci@vger.kernel.org"
-	<linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org"
-	<linux-arch@vger.kernel.org>
-CC: "wei.liu@kernel.org" <wei.liu@kernel.org>, "kys@microsoft.com"
-	<kys@microsoft.com>, "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
-	"decui@microsoft.com" <decui@microsoft.com>, "longli@microsoft.com"
-	<longli@microsoft.com>, "joro@8bytes.org" <joro@8bytes.org>,
-	"will@kernel.org" <will@kernel.org>, "robin.murphy@arm.com"
-	<robin.murphy@arm.com>, "bhelgaas@google.com" <bhelgaas@google.com>,
-	"kwilczynski@kernel.org" <kwilczynski@kernel.org>, "lpieralisi@kernel.org"
-	<lpieralisi@kernel.org>, "mani@kernel.org" <mani@kernel.org>,
-	"robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>,
-	"jgg@ziepe.ca" <jgg@ziepe.ca>, Michael Kelley <mhklinux@outlook.com>,
-	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>,
-	"tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>,
-	"easwar.hariharan@linux.microsoft.com"
-	<easwar.hariharan@linux.microsoft.com>, "mrathor@linux.microsoft.com"
-	<mrathor@linux.microsoft.com>
-Subject: RE: [PATCH v2 4/4] iommu/hyperv: Add page-selective IOTLB flush
- support
-Thread-Topic: [PATCH v2 4/4] iommu/hyperv: Add page-selective IOTLB flush
- support
-Thread-Index: AQHdCjymkcgjkjrpdUyYQ1Fm2oFqarZlmEJw
-Date: Thu, 9 Jul 2026 19:08:47 +0000
-Message-ID:
- <SN6PR02MB415780D9D86B04EA1AE1B2BBD4FE2@SN6PR02MB4157.namprd02.prod.outlook.com>
-References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
- <20260702160518.311234-5-zhangyu1@linux.microsoft.com>
-In-Reply-To: <20260702160518.311234-5-zhangyu1@linux.microsoft.com>
-Accept-Language: en-US
-Content-Language: en-US
-X-MS-Has-Attach:
-X-MS-TNEF-Correlator:
-x-ms-publictraffictype: Email
-x-ms-traffictypediagnostic: SN6PR02MB4157:EE_|DM6PR02MB6905:EE_
-x-ms-office365-filtering-correlation-id: def0f78a-60b0-4694-1e87-08dedded8119
-x-microsoft-antispam:
- BCL:0;ARA:14566002|13091999003|19110799012|8062599012|8060799015|51005399006|31061999003|19101099003|16051099003|25010399006|37011999003|15080799012|40105399003|12091999003|102099032|3412199025|440099028|1710799026;
-x-microsoft-antispam-message-info:
- =?us-ascii?Q?EqsJjSCmJEBrj21XBAJLjM+nZTUerl5mw2EBIxtUIHFGqMiU3LsxzvMoqKP5?=
- =?us-ascii?Q?3lLKOj+Iwnoo1y91efnP9QOC2N+0Uak/q7O+NqvyCaGWwisLpIUeelBjWghW?=
- =?us-ascii?Q?ezqCKOSBXpIXwLDFEM2sxU2MzE9uv1scD8da/5GtZ4tn8i/fw6Dfv+FQ40qs?=
- =?us-ascii?Q?sakVDgCQI6EXru3ze92ygVie+w9zw47n88+yKvBbprkDoxo9R/kh0WpXvqkS?=
- =?us-ascii?Q?pWJrWYubLPxGaF6RCxNr5R5kKydomFl9hFEuq4YvCG9N2Fo81FpjBxwzm3Up?=
- =?us-ascii?Q?6OXEmpchmKqRKU9mRVNdOWYL+owNJsnIh5yTZlFkC8ZHRl6+ysWX1RH6z47m?=
- =?us-ascii?Q?AJtw/CZFbpSK8x5Mj2JYDI39k5qEu5prYAy/3NEoAljHM+dAzSR3zNoli2KE?=
- =?us-ascii?Q?7r72C4bEsZWIgJfJNOTh2wD7/I54RH0eQjVqZmcE3F6bWfn1qOpSjzOD8tAi?=
- =?us-ascii?Q?iV1BxVTpgbdDLq1FgFrXBbIEJC2QangMsiKOzJAy4qfhyn6XfOeNwBqJHfwF?=
- =?us-ascii?Q?lGMvi/M+N8Ikte6EcsYW0A634DEGch3xXwmi7x/GHLTRW5+cRn7sVXRO1jZc?=
- =?us-ascii?Q?1hoyS7K1R9Al4gCxmdrrvrWX7x+cfa3dAeaQGOiaOBodloD67xT9tU2rb2OB?=
- =?us-ascii?Q?9bZw2qwvfehMMf5t1F38ATTgKGq0HiPwXgQfOEFdAvd3cUAMt+XK8S/tAX5m?=
- =?us-ascii?Q?TURIw6n+sXQROE+V0ZT2eHJG+9mxm9tE0hDyzAvDFtE77MD+g3G/MTfHN4eJ?=
- =?us-ascii?Q?qQKvXJ71G68uZ0+XNG/JTJ0MLG7yE6USZcBMn0HvKS55eA82hztdVuCMPgG/?=
- =?us-ascii?Q?O6fBxioZ9RPaFS1D4LM9olw0KkUiydPuAAwX5+Qjp1xzlJVSKeNV7zn+gcpj?=
- =?us-ascii?Q?kx30bU6VLX2zFAkHLCbWknah7SZSIwkkNAtxPIHOxTjcLUOE3XJLqI2Pa5+m?=
- =?us-ascii?Q?2LC8f90GTxE8zzEIJN6jZ2O5lzUlN2dxQgmJX625k6R/LiXflyVXS6Qd5Vcz?=
- =?us-ascii?Q?M8mMgHLvEIEOCB90yPR2CSlA7soaET9pz6hO+Me1AzXwedtPigS60WbVewu8?=
- =?us-ascii?Q?JRZ93bUJFSsBTf9N1YkuJtS59D+uqLEd1eXPSBBWZp1kYmS/CZ4=3D?=
-x-ms-exchange-antispam-messagedata-chunkcount: 1
-x-ms-exchange-antispam-messagedata-0:
- =?us-ascii?Q?OALv/0laQSG8Zt6AY0YIFGGHsMsL4ieID4x7hkVSaj9juTGtGQK03HYxwSx9?=
- =?us-ascii?Q?gThsBNn1vNjRmVyGHATL9cn/KVgGvFSgN49T/bvLG0v1cojSgcD7Zk8dYBlM?=
- =?us-ascii?Q?0Z2FAMh2Z9gtcQ7792EBVZDApw+ilDGR0wIfjllVerugwgiD8rkXh87TkC/0?=
- =?us-ascii?Q?Yl15ul9d58ZXnKgx5uhIpcd9ygSDZDvOGytOREppu0laQubNZwoo9qX6DfqS?=
- =?us-ascii?Q?e9sO9jsxTKKdGQ/O0OWw9m2ejvpLNDrylCBszoVldIiK9s+OkvlPHbIkLH+M?=
- =?us-ascii?Q?F6AXQb/2ppQ+mhvgQItGFgwUvYbjeLQ4LuU0NR9lRpydn9iT4OCfVheR+Hdy?=
- =?us-ascii?Q?LPz3IN+Oa5Y34H5kCYSiDkM/267QUFu5AEaMNuZVa/Pj4TO6B0KZ8sky4b62?=
- =?us-ascii?Q?y7Bod2gza7KO4d2vXN21O7rrN9B085L4JUjTb1Zu47s9DP1HdUVzIpiLtpy7?=
- =?us-ascii?Q?7hzxRmn8K/kKK7LxWhLzac2Rl2WsVdh7b1/OlirDTn1wxw7wyFCtUe4FIlXm?=
- =?us-ascii?Q?lJM7xVKjwd84ux72wC7bC9UQEE+XgAk/pua0pcdJkAtBeLshrb+3To7HBH5u?=
- =?us-ascii?Q?5V8469vYBNO4HZWVEG+AIwqvBm1FMDClJksl0micuEjP3MetZbfwxo99zrOm?=
- =?us-ascii?Q?Y2LE8NBq7ln4jnzVu1CpqnXeCC+tzpQxBqcwbRDAAjfQgGx8zDGAs8IgNrbc?=
- =?us-ascii?Q?KW+LE8jKzEURh74x+h4M2NUhnzb+hBdOFmAlelhsjOQ4lyuHSVElet1JA783?=
- =?us-ascii?Q?rlLKrD8HMFF2IhPQn5Jj/i2CkLCzytste8MON7mC4B/MwHuDMSHL08Npyiyv?=
- =?us-ascii?Q?F157cq84VMAoaMiwwxNShTPDy027Rog35gxJ0931rnfih5ekslhHdUVgNrgd?=
- =?us-ascii?Q?BYbTtQ+V8pjnNvVEtEdwwkCsc8jH4iji4Jnxe1nWU/MJzp+cqa7Sx77bnE2/?=
- =?us-ascii?Q?2/Z2eO4B0iv2pcKTsjaIxg5oAuyw8nn+OrlsVOV+jKWRlKfYYO8V06JTWSxG?=
- =?us-ascii?Q?CQ6+UJZ9BJJu/gk9kX+lGdcsZGXhZueSfFFML9XljHpQPWTMJYyJYBsDnP8z?=
- =?us-ascii?Q?4iUinZBjWJepUFpQKJDcHrUBlXhlVB6b8CnVZSZosWioRD2dp+YTTRGUh7H2?=
- =?us-ascii?Q?WzSwDKGtN24qcr2Y0h8MKm/0WAhmwbYbOs9octAIfcykTLaZ4GnOR6uIlFXh?=
- =?us-ascii?Q?auic0FG4+CexPBl6YhS5XBH6CHlKcjM795HfZVx3OLFBpn8W8dm0ge2yygny?=
- =?us-ascii?Q?yt0mVOvIIlV6Fzrv/MRdc/2ElTy1pu5qkc52pAgBYAd8IdvIkTZO5tGhBs83?=
- =?us-ascii?Q?Q2XuMJYIhP5zG3eTQKpSmECehHBhCk6FlxHoD/Z9en+X0ncBU36urLNGHXfd?=
- =?us-ascii?Q?JhTB6K4=3D?=
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="FJEzWz3C"
+Received: by mail-pj1-f43.google.com with SMTP id 98e67ed59e1d1-37fc02e660bso393185a91.0
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2026 12:10:36 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1783624236; x=1784229036; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=4WLiLUcdHKcbdohnfRqoOLrBkSnwixIbkHxH0bk89UM=;
+        b=FJEzWz3CLaShLbMo7Iq3aX6axNOngzcR3SPJrD/IoGCT+ZdBeYgdpK9pjRPlnczjBv
+         DMvxSQqv7Tu8IyW93N+9mJG5F2rW04DmcQaHpt7OrP2Jo1EnTa4kx1TPH1eGnlL9edCS
+         ZuwHwLCbxsTnYBHG3wn+xt+BNarRmMWpY44B+m1d+2nlEy9s5uBAlJdiu5wgohYSabEJ
+         gUD5zxFRKxYISiunn4o0rwqcH8dWqyHGDxpkzOAXMy1kiEkWay9Rg6ACVVP+Xs+0CChF
+         b8zmI+q6PXw/t6Pg15nmqT3nodi7Zo1V0Sxdd8j+X0JAaGNkYu2l46kC8vwOrhS0n0He
+         7j7w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1783624236; x=1784229036;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=4WLiLUcdHKcbdohnfRqoOLrBkSnwixIbkHxH0bk89UM=;
+        b=SDr5T9KxzvuFI+sTgECem7hG9d0zSOPipEzbKzFD/falKSrqc4Mqz3iDjhoKcasyO6
+         Q575gYOxBEH6bT2OKjvvU1N6linFc2OfdU7vWlJ29iQlgdwQ9hXfglzmtQt4zcmZBv2O
+         WvHdj5yhrTOUhka69m68YoVcfQ6VoreEWqdxleKYPRwYI/gb7uZ8gkXO9NXKzFa7J2pY
+         PWXElb9iD1WWAH7It8HqES/EAODToT1wuSNCmiYwaOl/qj8ZBV+RojRn92bAZObm8tmk
+         2XAIoin9Q4M/d3dm+sD+Rbd1Hx7OkqtU70hMi/TQxbS8Ker87ady+puRrKZLXVfAJxws
+         l4Fw==
+X-Forwarded-Encrypted: i=1; AHgh+RquHld3zzVqHHqvJhU7NhbSt+XiXvMWUBJ4MyyJJrdjJfYlbGmOcHlyglwwKue4bpThynvRk+l3Gqtk@vger.kernel.org
+X-Gm-Message-State: AOJu0YzEzkR8vVRQRsHo17x44MPcl7WsL9BQaW7+ZI61a9D9iiSREVt9
+	OmA/O5d/V+SEqJDIrXpLvTxQLBqhiNXbHRairheLe9SlV2ZnlsODJmbC
+X-Gm-Gg: AfdE7cn0Mz960ypnObBdwD2BB1oGQSJXDNnjdt2hh3i5M6Uc+/mQjD9MuAfcVGe8kTl
+	819fIuD9JB/mdTTjMcAjBVFtG1l7A41nMQUeTcgtBWE/mzxAzzd3gt+YRymlyNFI4e3MWgywIff
+	NySz9YmaQ6J1XT81pGBrCjTC12sDd3mNcHVOF7jSrsqOBRTEWh1am4ktPkPrt/19DH0lBr6/o/X
+	AxRq2JQsI3T3JnkzrtJVVqSAPL6jk4IyCB9+ahsesh/hFmNtQ1gBkSW0MN4Y92pmb6I3rnbkg9Y
+	ZNLnH/sNdvNPY7ruQfzyr2uaNE7V6On/Q8dHxU/Da6rcwS2RrLTcaSbC4OngRcoRuhbObzcCbBu
+	ax+VlhGnoka7KdLzfW4fQybdwdyUCsoFwQ9sv9G30xlIpbRTbOEnygnn87LqwffWxQT+mzEgBup
+	fdaAX7WW12cLkxJFoqWJuqI28prUaqScUuwzhnYhBVPkBPXAI+/BA98mDJFTbY
+X-Received: by 2002:a17:90a:c2d0:b0:381:dc88:7c09 with SMTP id 98e67ed59e1d1-38941ebc22dmr8070366a91.33.1783624236407;
+        Thu, 09 Jul 2026 12:10:36 -0700 (PDT)
+Received: from li-1a3e774c-28e4-11b2-a85c-acc9f2883e29.ibm.com ([106.51.160.236])
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-31174a92eccsm30700023eec.23.2026.07.09.12.10.03
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 09 Jul 2026 12:10:35 -0700 (PDT)
+Date: Fri, 10 Jul 2026 00:40:00 +0530
+From: Mukesh Kumar Chaurasiya <mkchauras@gmail.com>
+To: Thomas Gleixner <tglx@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, 
+	Peter Zijlstra <peterz@infradead.org>, Mark Rutland <mark.rutland@arm.com>, 
+	Jinjie Ruan <ruanjinjie@huawei.com>, Kees Cook <kees@kernel.org>, Andy Lutomirski <luto@kernel.org>, 
+	Oleg Nesterov <oleg@redhat.com>, Richard Henderson <richard.henderson@linaro.org>, 
+	Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, 
+	Guo Ren <guoren@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, 
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Helge Deller <deller@gmx.de>, 
+	Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Weinberger <richard@nod.at>, 
+	Chris Zankel <chris@zankel.net>, linux-arm-kernel@lists.infradead.org, 
+	linux-alpha@vger.kernel.org, linux-csky@vger.kernel.org, linux-m68k@lists.linux-m68k.org, 
+	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, 
+	linux-um@lists.infradead.org, Michael Ellerman <mpe@ellerman.id.au>, 
+	Shrikanth Hegde <sshegde@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org, 
+	Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev, Paul Walmsley <pjw@kernel.org>, 
+	Palmer Dabbelt <palmer@dabbelt.com>, linux-riscv@lists.infradead.org, 
+	Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org, x86@kernel.org, 
+	Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <vgupta@kernel.org>, Will Deacon <will@kernel.org>, 
+	Brian Cain <bcain@kernel.org>, Michal Simek <monstr@monstr.eu>, 
+	Dinh Nguyen <dinguyen@kernel.org>, "David S. Miller" <davem@davemloft.net>, 
+	Andreas Larsson <andreas@gaisler.com>, linux-snps-arc@lists.infradead.org, 
+	linux-hexagon@vger.kernel.org, linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org, 
+	linux-arch@vger.kernel.org, Michal =?utf-8?B?U3VjaMOhbmVr?= <msuchanek@suse.de>, 
+	Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+Subject: Re: [patch 11/18] seccomp, treewide: Rename and convert
+ __secure_computing() to return boolean
+Message-ID: <ak_x_ndzTNX2hfSG@li-1a3e774c-28e4-11b2-a85c-acc9f2883e29.ibm.com>
+References: <20260707181957.433213175@kernel.org>
+ <20260707190254.230735780@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-OriginatorOrg: outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: SN6PR02MB4157.namprd02.prod.outlook.com
-X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-CrossTenant-Network-Message-Id: def0f78a-60b0-4694-1e87-08dedded8119
-X-MS-Exchange-CrossTenant-originalarrivaltime: 09 Jul 2026 19:08:47.5736
- (UTC)
-X-MS-Exchange-CrossTenant-fromentityheader: Hosted
-X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
-X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM6PR02MB6905
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260707190254.230735780@kernel.org>
 
-From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Thursday, July 2, 2026 =
-9:05 AM
->=20
-> Add page-selective IOTLB flush using HVCALL_FLUSH_DEVICE_DOMAIN_LIST.
-> This hypercall accepts a list of (page_number, page_mask_shift) entries,
-> enabling finer-grained IOTLB invalidation compared to the domain-wide
-> HVCALL_FLUSH_DEVICE_DOMAIN used by hv_iommu_flush_iotlb_all().
->=20
-> hv_iommu_calc_flush_range() computes the smallest power-of-two aligned
-> range that covers the target IOVA region, producing a single flush
-> descriptor. This may over-flush when the range is not naturally aligned,
-> matching the approach used by Intel VT-d PSI. If the page-selective
-> flush fails, the code falls back to a full domain flush.
->=20
-> Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-> Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
+On Tue, Jul 07, 2026 at 09:06:40PM +0200, Thomas Gleixner wrote:
+> From: Jinjie Ruan <ruanjinjie@huawei.com>
+> 
+> The return value of __secure_computing() currently uses 0 to indicate
+> that a system call should be allowed, and -1 to indicate that it should
+> be blocked/killed. This 0/-1 pattern is non-intuitive for a security
+> check function and makes the control flow at the call sites less readable.
+> 
+> Furthermore, any potential future changes to these return values would
+> require a high-risk, error-prone audit of all its users across different
+> architectures.
+> 
+> Sanitize this logic by converting the return type of __secure_computing()
+> to a proper boolean, where 'true' explicitly means 'allow' and 'false'
+> means 'fail/deny'.
+> 
+> Update all the two dozen or so call sites across the tree to align with
+> this new boolean semantic. No functional changes are intended, as the
+> callers still return -1 to the lower-level assembly entry code upon
+> seccomp denial.
+> 
+> Rename the function to __seccomp_permit_syscall() so that the purpose is
+> entirely clear.
+> 
+> [ tglx: Rename the function ]
+> 
+> Suggested-by: Thomas Gleixner <tglx@kernel.org>
+> Suggested-by: Mark Rutland <mark.rutland@arm.com>
+> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
+> Signed-off-by: Thomas Gleixner <tglx@kernel.org>
+> Cc: Kees Cook <kees@kernel.org>
+> Cc: Andy Lutomirski <luto@kernel.org>
+> Cc: Oleg Nesterov <oleg@redhat.com>
+> Cc: Richard Henderson <richard.henderson@linaro.org>
+> Cc: Russell King <linux@armlinux.org.uk>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Guo Ren <guoren@kernel.org>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+> Cc: Helge Deller <deller@gmx.de>
+> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> Cc: Richard Weinberger <richard@nod.at>
+> Cc: Chris Zankel <chris@zankel.net>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linux-alpha@vger.kernel.org
+> Cc: linux-csky@vger.kernel.org
+> Cc: linux-m68k@lists.linux-m68k.org
+> Cc: linux-mips@vger.kernel.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Cc: linux-um@lists.infradead.org
 > ---
->  drivers/iommu/hyperv/iommu.c | 68 +++++++++++++++++++++++++++++++++++-
->  include/hyperv/hvgdk_mini.h  |  1 +
->  include/hyperv/hvhdk_mini.h  | 17 +++++++++
->  3 files changed, 85 insertions(+), 1 deletion(-)
->=20
-> diff --git a/drivers/iommu/hyperv/iommu.c b/drivers/iommu/hyperv/iommu.c
-> index 254136946404..e9b104a322fd 100644
-> --- a/drivers/iommu/hyperv/iommu.c
-> +++ b/drivers/iommu/hyperv/iommu.c
-> @@ -9,6 +9,7 @@
->  #define pr_fmt(fmt) "Hyper-V pvIOMMU: " fmt
->  #define dev_fmt(fmt) pr_fmt(fmt)
->=20
-> +#include <linux/hyperv.h>
->  #include <linux/iommu.h>
->  #include <linux/pci.h>
->  #include <linux/dma-map-ops.h>
-> @@ -401,10 +402,74 @@ static void hv_iommu_flush_iotlb_all(struct iommu_d=
-omain *domain)
->  	hv_flush_device_domain(to_hv_iommu_domain(domain));
->  }
->=20
-> +/*
-> + * Calculate the minimal power-of-two aligned range that covers [start, =
-end]
-> + * (end is inclusive). Returns a single (page_number, page_mask_shift)
-> + * descriptor that may over-flush when the range is not naturally aligne=
-d.
-> + */
-> +static void hv_iommu_calc_flush_range(unsigned long start, unsigned long=
- end,
-> +				       union hv_iommu_flush_va *va)
-> +{
-> +	unsigned long start_pfn =3D HVPFN_DOWN(start);
-> +	unsigned long last_pfn =3D HVPFN_UP(end + 1) - 1;
-> +	unsigned long mask_shift, aligned_pfn;
-> +
-> +	if (start_pfn =3D=3D last_pfn) {
-> +		mask_shift =3D 0;
-> +	} else {
-> +		/*
-> +		 * Find the highest bit position where start_pfn and last_pfn
-> +		 * differ.  A range aligned to one above that bit is the
-> +		 * smallest power-of-two region that covers both endpoints.
-> +		 */
-> +		mask_shift =3D __fls(start_pfn ^ last_pfn) + 1;
-> +	}
-> +
-> +	aligned_pfn =3D ALIGN_DOWN(start_pfn, 1UL << mask_shift);
-> +	va->page_number =3D aligned_pfn;
-> +	va->page_mask_shift =3D mask_shift;
-> +}
-> +
-> +static void hv_flush_device_domain_list(struct hv_iommu_domain *hv_domai=
-n,
-> +					struct iommu_iotlb_gather *iotlb_gather)
-> +{
-> +	u64 status;
-> +	unsigned long flags;
-> +	struct hv_input_flush_device_domain_list *input;
-> +
-> +	local_irq_save(flags);
-> +
-> +	input =3D *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->device_domain =3D hv_domain->device_domain;
-> +	input->flags |=3D HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT;
-> +	hv_iommu_calc_flush_range(iotlb_gather->start, iotlb_gather->end,
-> +				  &input->iova_list[0]);
-> +
-> +	status =3D hv_do_rep_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN_LIST,
-> +				     1, 0, input, NULL);
-> +
-> +	if (!hv_result_success(status)) {
-> +		/* Page-selective flush failed, fall back to full flush. */
-
-With the selective flush now simplified to just a single entry, it really
-shouldn't fail, right? Doing a full flush as a fallback makes sense, but
-perhaps do a WARN_ON_ONCE() first so that there's an indication that
-the selective flush failed.
-
-> +		struct hv_input_flush_device_domain *flush_all =3D (void *)input;
-> +
-> +		memset(flush_all, 0, sizeof(*flush_all));
-> +		flush_all->device_domain =3D hv_domain->device_domain;
-> +		status =3D hv_do_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN,
-> +					flush_all, NULL);
-> +		WARN(!hv_result_success(status),
-> +		     "HVCALL_FLUSH_DEVICE_DOMAIN fallback also failed: %lld\n",
-> +		     status);
-> +	}
-> +
-> +	local_irq_restore(flags);
-> +}
-> +
->  static void hv_iommu_iotlb_sync(struct iommu_domain *domain,
->  				struct iommu_iotlb_gather *iotlb_gather)
+>  arch/alpha/kernel/ptrace.c            |    2 -
+>  arch/arm/kernel/ptrace.c              |    2 -
+>  arch/arm64/kernel/ptrace.c            |    2 -
+>  arch/csky/kernel/ptrace.c             |    2 -
+>  arch/m68k/kernel/ptrace.c             |    2 -
+>  arch/mips/kernel/ptrace.c             |    2 -
+>  arch/parisc/kernel/ptrace.c           |    2 -
+>  arch/sh/kernel/ptrace_32.c            |    2 -
+>  arch/um/kernel/skas/syscall.c         |    2 -
+>  arch/x86/entry/vsyscall/vsyscall_64.c |   14 ++++++-------
+>  arch/xtensa/kernel/ptrace.c           |    3 --
+>  include/linux/entry-common.h          |    9 +++-----
+>  include/linux/seccomp.h               |   12 +++++------
+>  kernel/seccomp.c                      |   35 +++++++++++++++++-----------------
+>  14 files changed, 45 insertions(+), 46 deletions(-)
+> --- a/arch/alpha/kernel/ptrace.c
+> +++ b/arch/alpha/kernel/ptrace.c
+> @@ -387,7 +387,7 @@ asmlinkage unsigned long syscall_trace_e
+>  	 * If this fails, seccomp may already have set up the return value
+>  	 * (e.g. SECCOMP_RET_ERRNO / TRACE).
+>  	 */
+> -	if (secure_computing() == -1) {
+> +	if (!seccomp_permit_syscall()) {
+>  		if (regs->r19 == 0 && regs->r0 == (unsigned long)-1)
+>  			syscall_set_return_value(current, regs, -ENOSYS, 0);
+>  		syscall_set_nr(current, regs, -1);
+> --- a/arch/arm/kernel/ptrace.c
+> +++ b/arch/arm/kernel/ptrace.c
+> @@ -855,7 +855,7 @@ asmlinkage int syscall_trace_enter(struc
+>  
+>  	/* Do seccomp after ptrace; syscall may have changed. */
+>  #ifdef CONFIG_HAVE_ARCH_SECCOMP_FILTER
+> -	if (secure_computing() == -1)
+> +	if (!seccomp_permit_syscall())
+>  		return -1;
+>  #else
+>  	/* XXX: remove this once OABI gets fixed */
+> --- a/arch/arm64/kernel/ptrace.c
+> +++ b/arch/arm64/kernel/ptrace.c
+> @@ -2420,7 +2420,7 @@ int syscall_trace_enter(struct pt_regs *
+>  	}
+>  
+>  	/* Do the secure computing after ptrace; failures should be fast. */
+> -	if (secure_computing() == -1)
+> +	if (!seccomp_permit_syscall())
+>  		return NO_SYSCALL;
+>  
+>  	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+> --- a/arch/csky/kernel/ptrace.c
+> +++ b/arch/csky/kernel/ptrace.c
+> @@ -323,7 +323,7 @@ asmlinkage int syscall_trace_enter(struc
+>  		if (ptrace_report_syscall_entry(regs))
+>  			return -1;
+>  
+> -	if (secure_computing() == -1)
+> +	if (!seccomp_permit_syscall())
+>  		return -1;
+>  
+>  	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+> --- a/arch/m68k/kernel/ptrace.c
+> +++ b/arch/m68k/kernel/ptrace.c
+> @@ -281,7 +281,7 @@ asmlinkage int syscall_trace_enter(void)
+>  	if (test_thread_flag(TIF_SYSCALL_TRACE))
+>  		ret = ptrace_report_syscall_entry(task_pt_regs(current));
+>  
+> -	if (secure_computing() == -1)
+> +	if (!seccomp_permit_syscall())
+>  		return -1;
+>  
+>  	return ret;
+> --- a/arch/mips/kernel/ptrace.c
+> +++ b/arch/mips/kernel/ptrace.c
+> @@ -1328,7 +1328,7 @@ asmlinkage long syscall_trace_enter(stru
+>  			return -1;
+>  	}
+>  
+> -	if (secure_computing())
+> +	if (!seccomp_permit_syscall())
+>  		return -1;
+>  
+>  	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
+> --- a/arch/parisc/kernel/ptrace.c
+> +++ b/arch/parisc/kernel/ptrace.c
+> @@ -351,7 +351,7 @@ long do_syscall_trace_enter(struct pt_re
+>  	}
+>  
+>  	/* Do the secure computing check after ptrace. */
+> -	if (secure_computing() == -1)
+> +	if (!seccomp_permit_syscall())
+>  		return -1;
+>  
+>  #ifdef CONFIG_HAVE_SYSCALL_TRACEPOINTS
+> --- a/arch/sh/kernel/ptrace_32.c
+> +++ b/arch/sh/kernel/ptrace_32.c
+> @@ -460,7 +460,7 @@ asmlinkage long do_syscall_trace_enter(s
+>  		return -1;
+>  	}
+>  
+> -	if (secure_computing() == -1)
+> +	if (!seccomp_permit_syscall())
+>  		return -1;
+>  
+>  	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
+> --- a/arch/um/kernel/skas/syscall.c
+> +++ b/arch/um/kernel/skas/syscall.c
+> @@ -27,7 +27,7 @@ void handle_syscall(struct uml_pt_regs *
+>  		goto out;
+>  
+>  	/* Do the seccomp check after ptrace; failures should be fast. */
+> -	if (secure_computing() == -1)
+> +	if (!seccomp_permit_syscall())
+>  		goto out;
+>  
+>  	syscall = UPT_SYSCALL_NR(r);
+> --- a/arch/x86/entry/vsyscall/vsyscall_64.c
+> +++ b/arch/x86/entry/vsyscall/vsyscall_64.c
+> @@ -118,10 +118,10 @@ static bool write_ok_or_segv(unsigned lo
+>  
+>  static bool __emulate_vsyscall(struct pt_regs *regs, unsigned long address)
 >  {
-> -	hv_flush_device_domain(to_hv_iommu_domain(domain));
-> +	hv_flush_device_domain_list(to_hv_iommu_domain(domain), iotlb_gather);
->=20
->  	iommu_put_pages_list(&iotlb_gather->freelist);
+> -	unsigned long caller;
+> -	int vsyscall_nr, syscall_nr, tmp;
+> +	unsigned long caller, orig_dx;
+> +	int vsyscall_nr, syscall_nr;
+> +	bool skip;
+>  	long ret;
+> -	unsigned long orig_dx;
+>  
+>  	/* Confirm that the fault happened in 64-bit user mode */
+>  	if (!user_64bit_mode(regs))
+> @@ -197,16 +197,16 @@ static bool __emulate_vsyscall(struct pt
+>  	 */
+>  	regs->orig_ax = syscall_nr;
+>  	regs->ax = -ENOSYS;
+> -	tmp = secure_computing();
+> -	if ((!tmp && regs->orig_ax != syscall_nr) || regs->ip != address) {
+> +	skip = !seccomp_permit_syscall();
+> +	if ((!skip && regs->orig_ax != syscall_nr) || regs->ip != address) {
+>  		warn_bad_vsyscall(KERN_DEBUG, regs,
+>  				  "seccomp tried to change syscall nr or ip");
+>  		force_exit_sig(SIGSYS);
+>  		return true;
+>  	}
+>  	regs->orig_ax = -1;
+> -	if (tmp)
+> -		goto do_ret;  /* skip requested */
+> +	if (skip)
+> +		goto do_ret;
+>  
+>  	/*
+>  	 * With a real vsyscall, page faults cause SIGSEGV.
+> --- a/arch/xtensa/kernel/ptrace.c
+> +++ b/arch/xtensa/kernel/ptrace.c
+> @@ -553,8 +553,7 @@ int do_syscall_trace_enter(struct pt_reg
+>  		return 0;
+>  	}
+>  
+> -	if (regs->syscall == NO_SYSCALL ||
+> -	    secure_computing() == -1) {
+> +	if (regs->syscall == NO_SYSCALL || !seccomp_permit_syscall()) {
+>  		do_syscall_trace_leave(regs);
+>  		return 0;
+>  	}
+> --- a/include/linux/entry-common.h
+> +++ b/include/linux/entry-common.h
+> @@ -102,9 +102,8 @@ static __always_inline long syscall_trac
+>  
+>  	/* Do seccomp after ptrace, to catch any tracer changes. */
+>  	if (work & SYSCALL_WORK_SECCOMP) {
+> -		ret = __secure_computing();
+> -		if (ret == -1L)
+> -			return ret;
+> +		if (!__seccomp_permit_syscall())
+> +			return -1L;
+>  	}
+>  
+>  	/* Either of the above might have changed the syscall number */
+> @@ -115,7 +114,7 @@ static __always_inline long syscall_trac
+>  
+>  	syscall_enter_audit(regs, syscall);
+>  
+> -	return ret ? : syscall;
+> +	return syscall;
 >  }
-> @@ -455,6 +520,7 @@ static struct iommu_domain *hv_iommu_domain_alloc_pag=
-ing(struct device *dev)
->=20
->  	cfg.common.hw_max_vasz_lg2 =3D hv_iommu_device->max_iova_width;
->  	cfg.common.hw_max_oasz_lg2 =3D 52;
-> +	cfg.common.features |=3D BIT(PT_FEAT_FLUSH_RANGE);
->  	cfg.top_level =3D (hv_iommu_device->max_iova_width > 48) ? 4 : 3;
->=20
->  	ret =3D pt_iommu_x86_64_init(&hv_domain->pt_iommu_x86_64, &cfg, GFP_KER=
-NEL);
-> diff --git a/include/hyperv/hvgdk_mini.h b/include/hyperv/hvgdk_mini.h
-> index 5bdbb44da112..eaaf87171478 100644
-> --- a/include/hyperv/hvgdk_mini.h
-> +++ b/include/hyperv/hvgdk_mini.h
-> @@ -496,6 +496,7 @@ union hv_vp_assist_msr_contents {	 /*
-> HV_REGISTER_VP_ASSIST_PAGE */
->  #define HVCALL_GET_GPA_PAGES_ACCESS_STATES		0x00c9
->  #define HVCALL_CONFIGURE_DEVICE_DOMAIN			0x00ce
->  #define HVCALL_FLUSH_DEVICE_DOMAIN			0x00d0
-> +#define HVCALL_FLUSH_DEVICE_DOMAIN_LIST			0x00d1
->  #define HVCALL_ACQUIRE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d7
->  #define HVCALL_RELEASE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d8
->  #define HVCALL_MODIFY_SPARSE_GPA_PAGE_HOST_VISIBILITY	0x00db
-> diff --git a/include/hyperv/hvhdk_mini.h b/include/hyperv/hvhdk_mini.h
-> index 493608e791b4..f51d5d9467f1 100644
-> --- a/include/hyperv/hvhdk_mini.h
-> +++ b/include/hyperv/hvhdk_mini.h
-> @@ -671,4 +671,21 @@ struct hv_input_flush_device_domain {
->  	u32 reserved;
->  } __packed;
->=20
-> +union hv_iommu_flush_va {
-> +	u64 iova;
-> +	struct {
-> +		u64 page_mask_shift : 12;
-> +		u64 page_number : 52;
-> +	};
-> +} __packed;
+>  
+>  /**
+> @@ -138,7 +137,7 @@ static __always_inline long syscall_trac
+>   * It handles the following work items:
+>   *
+>   *  1) syscall_work flag dependent invocations of
+> - *     ptrace_report_syscall_entry(), __secure_computing(), trace_sys_enter()
+> + *     ptrace_report_syscall_entry(), __seccomp_permit_syscall(), trace_sys_enter()
+>   *  2) Invocation of audit_syscall_entry()
+>   */
+>  static __always_inline long syscall_enter_from_user_mode_work(struct pt_regs *regs, long syscall)
+> --- a/include/linux/seccomp.h
+> +++ b/include/linux/seccomp.h
+> @@ -22,14 +22,14 @@
+>  #include <linux/atomic.h>
+>  #include <asm/seccomp.h>
+>  
+> -extern int __secure_computing(void);
+> +extern bool __seccomp_permit_syscall(void);
+>  
+>  #ifdef CONFIG_HAVE_ARCH_SECCOMP_FILTER
+> -static inline int secure_computing(void)
+> +static __always_inline bool seccomp_permit_syscall(void)
+>  {
+>  	if (unlikely(test_syscall_work(SECCOMP)))
+> -		return  __secure_computing();
+> -	return 0;
+> +		return  __seccomp_permit_syscall();
+> +	return true;
+>  }
+>  #else
+>  extern void secure_computing_strict(int this_syscall);
+> @@ -50,11 +50,11 @@ static inline int seccomp_mode(struct se
+>  struct seccomp_data;
+>  
+>  #ifdef CONFIG_HAVE_ARCH_SECCOMP_FILTER
+> -static inline int secure_computing(void) { return 0; }
+> +static inline bool seccomp_permit_syscall(void) { return true; }
+>  #else
+>  static inline void secure_computing_strict(int this_syscall) { return; }
+>  #endif
+> -static inline int __secure_computing(void) { return 0; }
+> +static inline bool __seccomp_permit_syscall(void) { return true; }
+>  
+>  static inline long prctl_get_seccomp(void)
+>  {
+> --- a/kernel/seccomp.c
+> +++ b/kernel/seccomp.c
+> @@ -1100,12 +1100,13 @@ void secure_computing_strict(int this_sy
+>  	else
+>  		BUG();
+>  }
+> -int __secure_computing(void)
 > +
-> +
-> +struct hv_input_flush_device_domain_list {
-> +	struct hv_input_device_domain device_domain;
-> +#define HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT (1 << 0)
-
-Use BIT()?
-
-> +	u32 flags;
-> +	u32 reserved;
-> +	union hv_iommu_flush_va iova_list[];
-> +} __packed;
-> +
->  #endif /* _HV_HVHDK_MINI_H */
-> --
-> 2.52.0
->=20
-
+> +bool __seccomp_permit_syscall(void)
+>  {
+>  	int this_syscall = syscall_get_nr(current, current_pt_regs());
+>  
+>  	secure_computing_strict(this_syscall);
+> -	return 0;
+> +	return true;
+>  }
+>  #else
+>  
+> @@ -1256,7 +1257,7 @@ static int seccomp_do_user_notification(
+>  	return -1;
+>  }
+>  
+> -static int __seccomp_filter(int this_syscall, const bool recheck_after_trace)
+> +static bool __seccomp_filter(int this_syscall, const bool recheck_after_trace)
+>  {
+>  	u32 filter_ret, action;
+>  	struct seccomp_data sd;
+> @@ -1294,7 +1295,7 @@ static int __seccomp_filter(int this_sys
+>  	case SECCOMP_RET_TRACE:
+>  		/* We've been put in this state by the ptracer already. */
+>  		if (recheck_after_trace)
+> -			return 0;
+> +			return true;
+>  
+>  		/* ENOSYS these calls if there is no tracer attached. */
+>  		if (!ptrace_event_enabled(current, PTRACE_EVENT_SECCOMP)) {
+> @@ -1330,19 +1331,19 @@ static int __seccomp_filter(int this_sys
+>  		 * a skip would have already been reported.
+>  		 */
+>  		if (__seccomp_filter(this_syscall, true))
+> -			return -1;
+> +			return false;
+>  
+> -		return 0;
+> +		return true;
+>  
+>  	case SECCOMP_RET_USER_NOTIF:
+>  		if (seccomp_do_user_notification(this_syscall, match, &sd))
+>  			goto skip;
+>  
+> -		return 0;
+> +		return true;
+>  
+>  	case SECCOMP_RET_LOG:
+>  		seccomp_log(this_syscall, 0, action, true);
+> -		return 0;
+> +		return true;
+>  
+>  	case SECCOMP_RET_ALLOW:
+>  		/*
+> @@ -1350,7 +1351,7 @@ static int __seccomp_filter(int this_sys
+>  		 * this action since SECCOMP_RET_ALLOW is the starting
+>  		 * state in seccomp_run_filters().
+>  		 */
+> -		return 0;
+> +		return true;
+>  
+>  	case SECCOMP_RET_KILL_THREAD:
+>  	case SECCOMP_RET_KILL_PROCESS:
+> @@ -1367,46 +1368,46 @@ static int __seccomp_filter(int this_sys
+>  		} else {
+>  			do_exit(SIGSYS);
+>  		}
+> -		return -1; /* skip the syscall go directly to signal handling */
+> +		return false; /* skip the syscall go directly to signal handling */
+>  	}
+>  
+>  	unreachable();
+>  
+>  skip:
+>  	seccomp_log(this_syscall, 0, action, match ? match->log : false);
+> -	return -1;
+> +	return false;
+>  }
+>  #else
+> -static int __seccomp_filter(int this_syscall, const bool recheck_after_trace)
+> +static bool __seccomp_filter(int this_syscall, const bool recheck_after_trace)
+>  {
+>  	BUG();
+>  
+> -	return -1;
+> +	return false;
+>  }
+>  #endif
+>  
+> -int __secure_computing(void)
+> +bool __seccomp_permit_syscall(void)
+>  {
+>  	int mode = current->seccomp.mode;
+>  	int this_syscall;
+>  
+>  	if (IS_ENABLED(CONFIG_CHECKPOINT_RESTORE) &&
+>  	    unlikely(current->ptrace & PT_SUSPEND_SECCOMP))
+> -		return 0;
+> +		return true;
+>  
+>  	this_syscall = syscall_get_nr(current, current_pt_regs());
+>  
+>  	switch (mode) {
+>  	case SECCOMP_MODE_STRICT:
+>  		__secure_computing_strict(this_syscall);  /* may call do_exit */
+> -		return 0;
+> +		return true;
+>  	case SECCOMP_MODE_FILTER:
+>  		return __seccomp_filter(this_syscall, false);
+>  	/* Surviving SECCOMP_RET_KILL_* must be proactively impossible. */
+>  	case SECCOMP_MODE_DEAD:
+>  		WARN_ON_ONCE(1);
+>  		do_exit(SIGKILL);
+> -		return -1;
+> +		return false;
+>  	default:
+>  		BUG();
+>  	}
+> 
+Reviewed-by: Mukesh Kumar Chaurasiya (IBM) <mkchauras@gmail.com>
