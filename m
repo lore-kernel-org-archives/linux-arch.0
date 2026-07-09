@@ -1,173 +1,217 @@
-Received: from mx0a-0031df01.pphosted.com (mx0a-0031df01.pphosted.com [205.220.168.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from va-2-114.ptr.blmpb.com (va-2-114.ptr.blmpb.com [209.127.231.114])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1D5AD40E8FE
-	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 11:22:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.168.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 01B1F3F5BC7
+	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 11:25:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.114
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783596155; cv=none; b=V8eyUyjMtyEbgKOjGcTlWjj1+pY1ZcbPc0aze+Oj/GNZQCxg9U+r3meESGN7vWiA/WrJg3o3TrJCnXy48GaJ9E0WyT6bhpfH28JTgpCZvdJjcBInk7oOFq9kIN8l2tZBNgx6azy/SA8fkc0UNWfhRKs2x9t1DqBshsa9OskoQII=
+	t=1783596363; cv=none; b=p7aHPe3HFkB3X0pFcNAc+Y1H7K01Y/zyGonBe5ZK5SeNGxvnDIWE9rdLefsW4y9L0Y/Wn3N2spGsPEuVGyyTO9thVqrSBzfJtio9AFbXBrY9LXFypbmqKjLLZawqfC1XBBEEtVHlOrFSUovdBehbhYXBECXCDRGXraCG69g+IQY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783596155; c=relaxed/simple;
-	bh=GMTUKuNW7nHEjTmJYQtVLsm+lxP07KtZQHvvJ99eHNs=;
-	h=Message-ID:Date:MIME-Version:Subject:From:To:Cc:References:
-	 In-Reply-To:Content-Type; b=EgsUKpeA31dkIhrW/vfwwsSPgGLytUO5+jU8Z0B9XiKuuHJD3RdryipdjPIEAwh/1cI4QPjCZsAdm2GsxMzl7JpccCkjfYB8nS4ZdHN0rol54A6VXpilgDu/yGykjKq1F7nnbadzgUL5eytGOMnlaRcv8SIJued86sML2axHnOU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com; spf=pass smtp.mailfrom=oss.qualcomm.com; dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b=jTI7fkXQ; dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b=HNO0+w7l; arc=none smtp.client-ip=205.220.168.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oss.qualcomm.com
+	s=arc-20240116; t=1783596363; c=relaxed/simple;
+	bh=m/pd2dP2zINWku9rXXBt6JnvTg9ByMMSESiJmZWTRu4=;
+	h=To:From:Date:Content-Type:Cc:Subject:Message-Id:Mime-Version; b=PqyrOVu3AdR6nhzAn6lxODbeYUfZNDl+JM7RwxxtFEwsbnNO/tJ6j2ztuaiSSEs327v8WLag4D44DtQ1HPx280gwrultXN2gLS3kbGu02oKkqEKISgEyWFbG0tXcqrtGkwSPCI4cnejGhpGJ5xHUjW4lop5U7FB5FL1SKz7jRjg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=kzjgJrZq; arc=none smtp.client-ip=209.127.231.114
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b="jTI7fkXQ";
-	dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b="HNO0+w7l"
-Received: from pps.filterd (m0279863.ppops.net [127.0.0.1])
-	by mx0a-0031df01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 669AwuSV1614087
-	for <linux-arch@vger.kernel.org>; Thu, 9 Jul 2026 11:22:31 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qualcomm.com; h=
-	cc:content-transfer-encoding:content-type:date:from:in-reply-to
-	:message-id:mime-version:references:subject:to; s=qcppdkim1; bh=
-	GMTUKuNW7nHEjTmJYQtVLsm+lxP07KtZQHvvJ99eHNs=; b=jTI7fkXQl7cmfY8u
-	/6bNS+Fwu0N0JYJjqKlpNE/bUkl2mhzeMCIy9YTKs/eoShIUpl8OQCJgxUcCe1Qs
-	3cJw4qK9vv+hDmJX2IozRyra6X37WE8v8Vxl6bxaUL0j5/MLQKzhvIKs34reKXrh
-	QWs1Vb41u8wIG/o9knrL4GgKq2/ZBNYGTwPnHTuT5u7jJ3EMLnaiRdEBXGlLErlS
-	QMBDjPbvcSMQgesyK7qkf9Xbt4GVvlCDF7pU0Ep4e6tiqGpO14UiKVK+WJIifgMb
-	eFDVUlYtLgbk+5e07s9PeDWnBLvsQTPHVnHxEKk6PFxWS/VH6saUNZqOsHQv410+
-	3wCVHw==
-Received: from mail-qt1-f199.google.com (mail-qt1-f199.google.com [209.85.160.199])
-	by mx0a-0031df01.pphosted.com (PPS) with ESMTPS id 4fa418htnn-1
-	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2026 11:22:31 +0000 (GMT)
-Received: by mail-qt1-f199.google.com with SMTP id d75a77b69052e-51c1eb52e1fso14289091cf.0
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2026 04:22:31 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=oss.qualcomm.com; s=google; t=1783596150; x=1784200950; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:in-reply-to:references:cc:to
-         :from:content-language:subject:user-agent:mime-version:date
-         :message-id:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=GMTUKuNW7nHEjTmJYQtVLsm+lxP07KtZQHvvJ99eHNs=;
-        b=HNO0+w7l2OsxUbsOybOYNyKmysXf0kKE7WQiIln1AxSJ8JozCERuZdfdJKyE4Z0IkF
-         VjOxhwMV/hxBDUBFVguCHTwdYe5JoJM6LNZmr4Xxz+TguBPBPr5+W/hmbg3C07hrEWp5
-         Z96xzAgOGQxIP4HhUe6klo0o6XWvnZl+4RNupW5yEWFUKmpxmpIfM16PliPA6EKXKbKe
-         CO3lTT+7+pppbRBFYUBUCYL18rihfaC1srGVO4eIlIeBqd7jUy2nQLMvIglOURbObLet
-         P7cZAM1JE/WZNkWWbChcZcU2/4o2or9j01jFVDrcNFyaOddANc8dyqVKHG87WHrHWZhJ
-         RMfw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1783596150; x=1784200950;
-        h=content-transfer-encoding:content-type:in-reply-to:references:cc:to
-         :from:content-language:subject:user-agent:mime-version:date
-         :message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=GMTUKuNW7nHEjTmJYQtVLsm+lxP07KtZQHvvJ99eHNs=;
-        b=TaHMh1DkgchDpYGT1KAnUzMYmHeD+VCK8HVt4iYCN7ySyLqg6bpPTND8ecefS8HTNJ
-         aiR/gwp10b2pU1AkA9p59fSQ6lcRaf4aEjrXbQD6huTgjOer4WHbpElN5sAwsVvgIDSu
-         oVokcWdTrWAPAa/RsRUiLqI5I0ydS0Ti6Chr21DqUGrByldP2Cvs1wnMKL/40lasXrVy
-         fuq6GD3vPNTdKSk7/bMkBAjoGUpL0SJ0YBIaHzIXiuc9dY+5R4ymNFt8olrj58z0++8j
-         zEKXL6QVqvofL+4toTYnThsVDoirne9JRUEOKFCprqxlcApOBIIrr3z6C7Iu02lSO4kR
-         7uNg==
-X-Forwarded-Encrypted: i=1; AHgh+RpNWuXl8fOCH3bgXxVy2ePAT09XUA4DQwi2G/J1HFFgArIu54ohZFD2FjDP9ii2EumaukQoR0OGiOFF@vger.kernel.org
-X-Gm-Message-State: AOJu0YzVaNDkiNeFCS1mQ/AFA+kVRx9s8dFxDhLPbyOECUMka5qZ9pq2
-	lXXZWNT0gxfHC4y9HFtv/bmN2dnHU/qJpLv5p5Fp+9AnvJpur53w4+t+z1zh0LIBF5CNm7ngEap
-	7GZ9Bs4AgeXaYVcC5mZ9AP9UXiN69UPTLU5dJI+d2T3V0zsoM7mbDkcxPXdafBbw4
-X-Gm-Gg: AfdE7cmL3u4EW1FOKleDv1e19d1TygFj3pXjz16ZJTo5gz/bHMPphuT5f171HU7D8Kt
-	mDDgNjnyL8Sti5DMRhzOJ9Gt7YCKeaAtWtT+aFxXHvTIRrvtvrXwwEPXjWkCF0Cd2YgcZ1ISlcQ
-	iEDioJqlL6SrnORhEXoA3zjSgIxlwFjeyso6YYmaX79TRomeh0TK4J7nDZdy12feooRmjxonE75
-	2H3r9e4fwkFiALMhv1rv7OS0G2t4qYeP0gsW5EsRKs0zAOXNo3E54tOZyK7Nk8i8hGiH/ZLrlHy
-	acf4XtYL/g3c9yYB/e0+Q3lKRtkAHsH5DEoZD0tasyTCnztL9SEUGqDIvgosm6b51EMXsqTzReq
-	fhtHBtdpBVOhLiwJSGEl6cs22z6rDcJf5nk/ufjWXaU6ItIWuWdygjL8NzqDq2g==
-X-Received: by 2002:ac8:58d4:0:b0:51a:8c86:bd4a with SMTP id d75a77b69052e-51c8b407e1cmr74987551cf.71.1783596150555;
-        Thu, 09 Jul 2026 04:22:30 -0700 (PDT)
-X-Received: by 2002:ac8:58d4:0:b0:51a:8c86:bd4a with SMTP id d75a77b69052e-51c8b407e1cmr74987351cf.71.1783596150195;
-        Thu, 09 Jul 2026 04:22:30 -0700 (PDT)
-Received: from [192.168.69.219] (88-187-86-199.subs.proxad.net. [88.187.86.199])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-47a9de1e6ccsm50814277f8f.5.2026.07.09.04.22.27
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 09 Jul 2026 04:22:29 -0700 (PDT)
-Message-ID: <ea24e611-91e0-4397-a49c-1493966094f9@oss.qualcomm.com>
-Date: Thu, 9 Jul 2026 13:22:26 +0200
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="kzjgJrZq"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ s=2212171451; d=bytedance.com; t=1783596348; h=from:subject:
+ mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
+ mime-version:in-reply-to:message-id;
+ bh=4hnKT2U0BQq9BUwMBRD2qfbEirp8V8apnVJSe2FPr0M=;
+ b=kzjgJrZq+Ip8/EyWMUvE4wp8CkbAoKLcYPn4g00hN8za62oF13oyeF9GhAiXCl/nxcXG75
+ 21CAJnRu3e5ilsJEZZyRlmdhnq19TLCr2OYzhYwD7szWC0SJ/9b/9d8AoGVMowacFM60gc
+ Kj/GkqzUpzTX3t5mpsKVwTxCYNPs/fhoqTOvuOwU5F9kXkbEbA8WTWGg1BseH13MM3WkkM
+ jGlQx+UV+zVfIBHcJ16pnvljztYcBGGNY3r+m0js7Up7hQ5OronqKzAlseZSq12bnIuCvN
+ NMIPy52FU4B/ye0ObiK9bmZF5Zxd86skd96svkEHSYYAmpqBOwdp9BNaWM7r0Q==
+To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
+	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
+	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
+	<rppt@kernel.org>, <tglx@kernel.org>
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Content-Transfer-Encoding: 7bit
+Date: Thu,  9 Jul 2026 19:25:12 +0800
+X-Mailer: git-send-email 2.45.2
+Content-Type: text/plain; charset=UTF-8
+Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, 
+	<lizhe.67@bytedance.com>, <x86@kernel.org>
+Subject: [PATCH v6 0/8] mm: optimize zone-device memmap initialization
+Message-Id: <20260709112520.24857-1-lizhe.67@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [patch 10/18] entry: Use syscall number instead of rereading it
-Content-Language: en-US
-From: =?UTF-8?Q?Philippe_Mathieu-Daud=C3=A9?= <philmd@oss.qualcomm.com>
-To: Thomas Gleixner <tglx@kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Shrikanth Hegde <sshegde@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org,
-        Kees Cook <kees@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
-        loongarch@lists.linux.dev, Paul Walmsley <pjw@kernel.org>,
-        Palmer Dabbelt <palmer@dabbelt.com>, linux-riscv@lists.infradead.org,
-        Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
-        x86@kernel.org, Mark Rutland <mark.rutland@arm.com>,
-        Jinjie Ruan <ruanjinjie@huawei.com>, Andy Lutomirski <luto@kernel.org>,
-        Oleg Nesterov <oleg@redhat.com>,
-        Richard Henderson <richard.henderson@linaro.org>,
-        Russell King <linux@armlinux.org.uk>,
-        Catalin Marinas <catalin.marinas@arm.com>, Guo Ren <guoren@kernel.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Helge Deller
- <deller@gmx.de>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Richard Weinberger <richard@nod.at>, Chris Zankel <chris@zankel.net>,
-        linux-arm-kernel@lists.infradead.org, linux-alpha@vger.kernel.org,
-        linux-csky@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-        linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
-        Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <vgupta@kernel.org>,
-        Will Deacon <will@kernel.org>, Brian Cain <bcain@kernel.org>,
-        Michal Simek <monstr@monstr.eu>, Dinh Nguyen <dinguyen@kernel.org>,
-        "David S. Miller" <davem@davemloft.net>,
-        Andreas Larsson <andreas@gaisler.com>,
-        linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org,
-        linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org,
-        linux-arch@vger.kernel.org,
-        =?UTF-8?Q?Michal_Such=C3=A1nek?= <msuchanek@suse.de>,
-        Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
-References: <20260707181957.433213175@kernel.org>
- <20260707190254.181086755@kernel.org>
- <73b82749-2df3-4c12-bc2a-ff7628dc8292@oss.qualcomm.com>
-In-Reply-To: <73b82749-2df3-4c12-bc2a-ff7628dc8292@oss.qualcomm.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
-X-Authority-Analysis: v=2.4 cv=UI3t2ify c=1 sm=1 tr=0 ts=6a4f8477 cx=c_pps
- a=WeENfcodrlLV9YRTxbY/uA==:117 a=4s3hRJSeHn4rkQlkrse1kQ==:17
- a=IkcTkHD0fZMA:10 a=RAioF0-LDSMA:10 a=M51BFTxLslgA:10 a=s4-Qcg_JpJYA:10
- a=VkNPw1HP01LnGYTKEx00:22 a=u7WPNUs3qKkmUXheDGA7:22 a=yOCtJkima9RkubShWh1s:22
- a=VwQbUJbxAAAA:8 a=EUspDBNiAAAA:8 a=1tSEMpTH9XP_W59IOagA:9 a=3ZKOabzyN94A:10
- a=QEXdDO2ut3YA:10 a=kacYvNCVWA4VmyqE58fU:22
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNzA5MDEwOCBTYWx0ZWRfX/kGIgf6jjJ+W
- qvkqKg5Uqi9LD2o5pTbX1bf2xf147+dxLwizh4qzY5M/CP7OP0DO8tyaMB4koGE2wKcvL7072Om
- 66849yA1ZQIZ6s5inX9sAu+K6aBdyg/pVM4SfA65fpKjz36TVD+lMM9/GsOOusAid7txkJiFK51
- uIpxTMOMmwHayZkA9pPRXK+S6XzWPfCyazc8jo/A8VCv1xgNcnfmpOhB35n/iVibwYH9q9hHw77
- J3dPAT1advrikMrrW8Og39bNGxnMhg5dx3WfDB0ua9vgNFoZI4oRd6aIBC4xMnyq/MigeiC3id0
- rUcV8hzEWEVMTUDcxbRcV0OAAkRppMkaK7Nz1hwHKudojTFqLsVkeDOiZA3mDkHiIgGycR4Ys5N
- ltu9gtIklbT65YzUiOelSBCYxiq2HlpQgbhdA9LjWU3byXNFpXRyrW5AQvZlg3TUMcOrUdpLMzk
- PSIlZ5jujY2hS/W2IlA==
-X-Proofpoint-Spam-Info: AW1haW4tMjYwNzA5MDEwOCBTYWx0ZWRfX9/hyFQkFbbpV
- kB9lX4PeZTf1aiH7fADGEAT3/GNabceYFpwiHysSW49mFNierT9lXXbk4B8YC5gGDUx215/oUpP
- rz/WHUhb6jzFPyR8l6l/RwboOBRIV2w=
-X-Proofpoint-GUID: y73232ZA5gkeNfWfe3jWnuS5S1X9H9-c
-X-Proofpoint-ORIG-GUID: y73232ZA5gkeNfWfe3jWnuS5S1X9H9-c
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.134,FMLib:17.12.100.49
- definitions=2026-07-09_02,2026-07-09_01,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- priorityscore=1501 suspectscore=0 spamscore=0 malwarescore=0 bulkscore=0
- adultscore=0 clxscore=1015 lowpriorityscore=0 impostorscore=0 phishscore=0
- classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
- reason=mlx scancount=1 engine=8.22.0-2606150000 definitions=main-2607090108
+Mime-Version: 1.0
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+X-Lms-Return-Path: <lba+26a4f853a+d301fb+vger.kernel.org+lizhe.67@bytedance.com>
 
-On 9/7/26 13:20, Philippe Mathieu-DaudÃ© wrote:
-> On 7/7/26 21:06, Thomas Gleixner wrote:
->> rseq_syscall_enter_work() is invoked before the syscall number can be
->> modified. So there is no point in rereading it from pt_regs.
->>
->> Signed-off-by: Thomas Gleixner <tglx@kernel.org>
->> ---
->>   include/linux/entry-common.h |    9 +++++----
->>   1 file changed, 5 insertions(+), 4 deletions(-)
+memmap_init_zone_device() can take a noticeable amount of time when large
+pmem namespaces are bound or rebound, because it initializes nearly
+identical struct page descriptors one PFN at a time. This series reduces
+that ZONE_DEVICE memmap initialization overhead by reusing prepared
+struct page templates and, on x86, using memcpy_nt() for the template
+copy path.
 
-Reviewed-by: Philippe Mathieu-Daudé <philmd@oss.qualcomm.com>
+The main target is large fsdax/devdax pmem configurations, where the
+cost of initializing the memmap shows up directly in nd_pmem/dax_pmem
+bind and rebind latency.
 
+Patches 1-3 are preparatory cleanups and helper extraction. Patches 4-5
+add the template-copy fast path for head pages and compound tails.
+Patches 6-8 introduce memcpy_nt()/memcpy_nt_drain(), extend the x86
+fixed-size memcpy_flushcache() inline cases used by that helper, and
+switch the template-copy path over to memcpy_nt().
+
+The fast path remains disabled when the page_ref_set tracepoint is
+active, and sanitized builds stay on the slow path so their instrumented
+stores are preserved. Architectures without a specialized memcpy_nt()
+backend continue to fall back to memcpy().
+
+Tested in a VM with a 100 GB fsdax namespace device configured with
+map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
+server.
+
+Test procedure:
+Rebind the nd_pmem and dax_pmem driver 30 times and collect the memmap
+initialization time from the pr_debug() output of
+memmap_init_zone_device().
+
+Base(v7.2-rc1):
+  First binding for nd_pmem driver: 1456 ms
+  Average of subsequent rebinds: 244.28 ms
+
+  First binding for dax_pmem driver: 1462 ms
+  Average of subsequent rebinds: 273.31 ms
+
+With this series applied:
+  First binding for nd_pmem driver: 1272 ms
+  Average of subsequent rebinds: 96.79 ms
+
+  First binding for dax_pmem driver: 1354 ms
+  Average of subsequent rebinds: 119.04 ms
+
+This reduces the average rebind time by about 60.4% for nd_pmem and
+56.4% for dax_pmem.
+
+As an additional data point, I also ran a smaller set of measurements on
+the same physical x86_64 host with a 100 GB PMEM region created via the
+memmap= kernel command line, configured as fsdax and devdax namespaces
+with map=dev and 2 MiB alignment.
+
+For brevity, the individual patches keep only the VM results rather than
+including a second set of physical-host measurements throughout the
+series. The physical-host numbers below are included only as
+supplemental evidence that the same optimization also provides a similar
+benefit on a non-virtualized system.
+
+Test procedure:
+Reconfigure the namespace mode, rebind the nd_pmem or dax_pmem driver
+once, and collect the memmap initialization time from the pr_debug()
+output of memmap_init_zone_device().
+
+Base (v7.2-rc1):
+  nd_pmem / fsdax: 179 ms
+  dax_pmem / devdax: 264 ms
+
+With this series applied:
+  nd_pmem / fsdax: 82 ms
+  dax_pmem / devdax: 113 ms
+
+This reduces the measured rebind time by about 54.2% for nd_pmem and
+57.2% for dax_pmem on that setup, which is broadly consistent with the
+VM results above.
+
+As another supplemental data point, I also measured the test_hmm.ko
+module on the same physical x86_64 host, using the test_hmm.ko setup
+from the previous discussion that times ten 64 GB
+memremap_pages()/memunmap_pages() iterations during module insertion[1].
+By default, module insertion initializes two DEVICE_PRIVATE dmirror
+devices, so two avg memremap values are reported; each value is the
+average for one 64 GB chunk.
+
+This is not the primary target workload of the series, but it exercises
+the same large ZONE_DEVICE memmap initialization path and shows the same
+direction of improvement.
+
+Base (v7.2-rc1):
+  avg memremap reported during module insertion: 116689362 ns, 116539263 ns
+
+With this series applied:
+  avg memremap reported during module insertion: 54607108 ns, 54458236 ns
+
+This corresponds to about a 53.2% reduction based on the mean of the
+reported values, which is again consistent with the pmem bind/rebind
+results above.
+
+[1] https://lore.kernel.org/all/aiEoByaQdRR3xtM5@nvdebian.thelocal/
+
+Li Zhe (8):
+  mm: fix stale ZONE_DEVICE refcount comment
+  mm: factor zone-device page init helpers out of
+    __init_zone_device_page
+  mm: add a set_page_section_from_pfn() helper
+  mm: add a template-based fast path for zone-device page init
+  mm: extend the template fast path to zone-device compound tails
+  string: introduce memcpy_nt() helpers
+  x86/string: extend memcpy_flushcache() fixed-size fastpaths
+  mm: use memcpy_nt() in zone-device template copies
+
+ arch/x86/include/asm/string_64.h |  78 ++++++++++++-
+ include/linux/mm.h               |  15 ++-
+ include/linux/string.h           |  23 ++++
+ mm/mm_init.c                     | 186 ++++++++++++++++++++++++++-----
+ 4 files changed, 273 insertions(+), 29 deletions(-)
+
+---
+v5: https://lore.kernel.org/all/20260701090553.62691-1-lizhe.67@bytedance.com/
+v4: https://lore.kernel.org/all/20260603080152.64728-1-lizhe.67@bytedance.com/
+v3: https://lore.kernel.org/all/20260527033636.28231-1-lizhe.67@bytedance.com/
+v2: https://lore.kernel.org/all/20260521040124.10608-1-lizhe.67@bytedance.com/
+v1: https://lore.kernel.org/all/20260515082045.63029-1-lizhe.67@bytedance.com/
+
+Changelogs:
+
+v5->v6:
+- Rework patch 6 so the x86 memcpy_nt_drain() helper uses wmb()
+  instead of an open-coded sfence, while architectures that do not
+  override memcpy_nt() keep the generic no-op drain fallback.
+  Suggested by Borislav Petkov.
+- Rework patch 6 to use the usual self-macro override pattern for
+  memcpy_nt() and memcpy_nt_drain() instead of a dedicated
+  __HAVE_ARCH_MEMCPY_NT feature macro. Suggested by David
+  Hildenbrand.
+- Drop the default: case from pagemap_resets_refcount() and drop the
+  WARN_ONCE() after the switch so newly added enum memory_type values
+  remain visible to compiler switch checking. Suggested by David
+  Hildenbrand.
+- Drop the unnecessary empty set_page_section() stub from patch 3, keep
+  set_page_section_from_pfn() as the only !SECTION_IN_PAGE_FLAGS no-op
+  helper and fix its indentation. Suggested by David Hildenbrand.
+- Rework patch 4 so the reusable head-page template is seeded from the
+  first loop iteration, keeping the main loop intact while ensuring the
+  first page is initialized only once; also drop the extra template
+  memcpy helper, as suggested by Alistair Popple.
+- Rework patch 5 similarly for compound tails: seed the reusable tail
+  template from the first tail-page iteration so the first tail page is
+  initialized only once, while keeping the main tail loop intact, as
+  suggested by Alistair Popple.
+- Rework patch 7 to rename the internal fixed-size MOVNTI helpers to
+  movnti_*(), keep memcpy_flushcache() as the externally visible
+  wrapper, fold the new 32/48/64/80/96-byte copies into the main
+  fixed-size switch, clarify in the code and changelog that the
+  ZONE_DEVICE template-copy path relies on the 64/80/96-byte struct
+  page copies while 32/48-byte copies stay inline as well, and drop the
+  separate alignment check based on the physical-host microbenchmark
+  results. Suggested by Borislav Petkov.
+- Run v6 VM spot checks for the fsdax/devdax map=dev paths. The
+  results stayed in the same ballpark as v5, so keep the previously
+  posted v5 full-run numbers in this version instead of replacing them
+  with another partial data set.
+
+For changelogs of earlier revisions, please refer to the v5 cover letter.
+
+-- 
+2.20.1
