@@ -1,67 +1,76 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 17ACE2D594F;
-	Thu,  9 Jul 2026 14:54:04 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D4F242E8E2;
+	Thu,  9 Jul 2026 16:22:06 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783608846; cv=none; b=Ye7VOvSgQStQQb+pEbRs7rDetx+jnPedMbhwmzr2LodnNW/UZlg0Ysrv/n8Yz00agCQ2khyhSPXkxTODH8TnFu5wThyndvQM1DiO4so52cvCUKD61koZDrrO0hswxMC+Muy83u9KAbcbfljmoXjP8sSPyAc3W+igs5QNUKsue9U=
+	t=1783614128; cv=none; b=Y5BEaKvyfj9umFm4LQIHUj2Q+C1HHaGaOZiMjaGdkY+h1in51AiLOfZZAwtD1mDTCLnq1PsJq3N+993yD71Mwqrq7lJSFi7EvScvGcfrMPkEFLhwIn4HFl1aMCOIMnfzsu6oDQtVcjM7+YBvC5hZOdnu4xnR3OxIYafkcQPclxM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783608846; c=relaxed/simple;
-	bh=KsqiLd+WP/dEzp/JtdS1jz3UBoP38vUKUrL26WhPsAo=;
+	s=arc-20240116; t=1783614128; c=relaxed/simple;
+	bh=VI3Ojo7ccWWfCHnU/9oqVcNO820ulcvMp+VbcWTgRSA=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=un2erJjttmYaKYN5oFeGuApKcoTM/4BwHLmK7acop0OexvAdGdiMde6viErTfkpT3iGY5Zbylw5o5oGOrYPV0qvRq4HWvooqqD0vfx9nBMPXTeuRdpIGoZg9kyI9n6ZskOptIb6QlNvk93tItzawKZ8pKV9hF73sPiL+mekzx78=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=E4N+VKkF; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=VHunwbQbfxwTT//vRwY1WPAj9TINyxq93S9KS8Hv4UWeVHU/crfjJaceQPtzMIfJaVbzKpSCmJGgsvnetcwsSFzAb4CLjXn/A9xTVfnHl0xPR4XRN3IxCHJ8PZ+usMuBEMg0l5BZW2Bhy5tecgiPpR+DN4aQ8rvYFKFlflQ329o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=S/Uien6v; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="E4N+VKkF"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C2C441F000E9;
-	Thu,  9 Jul 2026 14:53:52 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="S/Uien6v"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9B0FB1F000E9;
+	Thu,  9 Jul 2026 16:22:06 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783608844;
-	bh=u454d5mIhB0nOu1CqQBC0ybTPHcXpjed1DznN7MFSXs=;
+	s=k20260515; t=1783614126;
+	bh=E3GKiVGCG/M7FltpcGzY43WO5HnNe5q++QmCFGBnpG0=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=E4N+VKkFWWOS8bapsV8QXmtj6E1a5IrfEPvBLUpZDbV3x2oCUCv2sI3ZXTqzmOOoq
-	 p5Gnaz1AqvXrVp+DnTRXeqVHQuLv9w6hfPeLILoVV0TYOV+9fOTbkKRZF8papECTFy
-	 QxKzh4b1DYXzWcqj/9goODU1sXsYaHiHGox43v/ujz8IE2UB+sLm56ryHziFZKNSos
-	 JAq6u1/25pk6PvAxDpXFxLwnIJ3mOWHZSfFueyHLoWBjJhOZc539HlZfE4Ox2vrH2T
-	 lVVXs1dIygIi/6lnNTUq9jjv/12423Mv4WCXoAVQoZc2b50WK+jhDLrR6DY85v8yQs
-	 o15o3Gni1rTZg==
-Date: Thu, 9 Jul 2026 15:53:44 +0100
-From: Lorenzo Stoakes <ljs@kernel.org>
-To: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, 
-	Shuah Khan <skhan@linuxfoundation.org>, Eugen Hristev <ehristev@kernel.org>, 
-	Arnd Bergmann <arnd@arndb.de>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, 
-	Christoph Lameter <cl@gentwo.org>, Andrew Morton <akpm@linux-foundation.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
-	Anna-Maria Behnsen <anna-maria@linutronix.de>, Frederic Weisbecker <frederic@kernel.org>, 
-	John Stultz <jstultz@google.com>, Stephen Boyd <sboyd@kernel.org>, Kees Cook <kees@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Juri Lelli <juri.lelli@redhat.com>, 
-	Vincent Guittot <vincent.guittot@linaro.org>, Dietmar Eggemann <dietmar.eggemann@arm.com>, 
-	Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>, 
-	Valentin Schneider <vschneid@redhat.com>, K Prateek Nayak <kprateek.nayak@amd.com>, 
-	David Hildenbrand <david@kernel.org>, "Liam R. Howlett" <liam@infradead.org>, 
-	Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
-	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
-	Brendan Jackman <jackmanb@google.com>, Johannes Weiner <hannes@cmpxchg.org>, Zi Yan <ziy@nvidia.com>, 
-	Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
-	Barry Song <baohua@kernel.org>, Youngjun Park <youngjun.park@lge.com>, 
-	Petr Mladek <pmladek@suse.com>, John Ogness <john.ogness@linutronix.de>, 
-	Sergey Senozhatsky <senozhatsky@chromium.org>, Bjorn Andersson <andersson@kernel.org>, 
-	Mathieu Poirier <mathieu.poirier@linaro.org>, Konrad Dybcio <konradybcio@kernel.org>, 
-	Rob Herring <robh@kernel.org>, Krzysztof Kozlowski <krzk+dt@kernel.org>, 
-	Conor Dooley <conor+dt@kernel.org>, Saravana Kannan <saravanak@kernel.org>, 
-	workflows@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-msm@vger.kernel.org, 
-	linux-remoteproc@vger.kernel.org, devicetree@vger.kernel.org
-Subject: Re: [PATCH v3 11/26] mm/swapfile: Annotate static information into
- meminspect
-Message-ID: <ak-1HujOABoQ9wR_@lucifer>
-References: <20260708-meminspect-v3-v3-0-7aa5a0a74d5c@oss.qualcomm.com>
- <20260708-meminspect-v3-v3-11-7aa5a0a74d5c@oss.qualcomm.com>
- <ak4AgXqMnkn8rVGE@lucifer>
- <20260708190535.fhqaddicljho44eq@hu-mojha-hyd.qualcomm.com>
+	b=S/Uien6vGeymdukHshCIRbD/qQirZnmNv1fkPyrZGO6+K+ckkFdEYSDwlnKFpi2BF
+	 tuyJKBhR0dyYdYiHulLx/LgusylN0RPtbaGzeJM/aCdOjZzg650pi7YEBbg+JGqSHR
+	 64dXPeQbq2evJa22r52hBC05ICSGISNW2xikw530YpQ+nCbruCjZdneQ5mim5aCUCw
+	 Xf0AYTbfJ+wFGM1bNULmUZblGmQ7iYYE8zwgMJIETdC1+LLXgejWycDXueD9QUnxdI
+	 F83JV94XXQwp5V/iZ2sAm+8m4as7p5Y/PmHH5g0nCXnFS05/jmhxEmyZJZGFezfdfB
+	 UQzRtgW6GQfPA==
+Date: Thu, 9 Jul 2026 09:22:06 -0700
+From: Kees Cook <kees@kernel.org>
+To: Thomas Gleixner <tglx@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Mark Rutland <mark.rutland@arm.com>,
+	Jinjie Ruan <ruanjinjie@huawei.com>,
+	Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>,
+	Richard Henderson <richard.henderson@linaro.org>,
+	Russell King <linux@armlinux.org.uk>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Guo Ren <guoren@kernel.org>,
+	Geert Uytterhoeven <geert@linux-m68k.org>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Helge Deller <deller@gmx.de>,
+	Yoshinori Sato <ysato@users.sourceforge.jp>,
+	Richard Weinberger <richard@nod.at>,
+	Chris Zankel <chris@zankel.net>,
+	linux-arm-kernel@lists.infradead.org, linux-alpha@vger.kernel.org,
+	linux-csky@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+	linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Shrikanth Hegde <sshegde@linux.ibm.com>,
+	linuxppc-dev@lists.ozlabs.org, Huacai Chen <chenhuacai@kernel.org>,
+	loongarch@lists.linux.dev, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	linux-riscv@lists.infradead.org,
+	Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
+	x86@kernel.org, Arnd Bergmann <arnd@arndb.de>,
+	Vineet Gupta <vgupta@kernel.org>, Will Deacon <will@kernel.org>,
+	Brian Cain <bcain@kernel.org>, Michal Simek <monstr@monstr.eu>,
+	Dinh Nguyen <dinguyen@kernel.org>,
+	"David S. Miller" <davem@davemloft.net>,
+	Andreas Larsson <andreas@gaisler.com>,
+	linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org,
+	linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	Michal =?iso-8859-1?Q?Such=E1nek?= <msuchanek@suse.de>,
+	Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+Subject: Re: [patch 11/18] seccomp, treewide: Rename and convert
+ __secure_computing() to return boolean
+Message-ID: <202607090921.ABE4BB4A@keescook>
+References: <20260707181957.433213175@kernel.org>
+ <20260707190254.230735780@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -70,75 +79,18 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260708190535.fhqaddicljho44eq@hu-mojha-hyd.qualcomm.com>
+In-Reply-To: <20260707190254.230735780@kernel.org>
 
-On Thu, Jul 09, 2026 at 12:35:35AM +0530, Mukesh Ojha wrote:
-> On Wed, Jul 08, 2026 at 08:47:51AM +0100, Lorenzo Stoakes wrote:
-> > On Wed, Jul 08, 2026 at 11:01:50AM +0530, Mukesh Ojha wrote:
-> > > From: Eugen Hristev <ehristev@kernel.org>
-> > >
-> > > Annotate vital static information into inspection table:
-> > >  - nr_swapfiles
-> > >
-> > > Information on these variables is stored in a dedicated meminspect
-> > > section.
-> > >
-> > > Signed-off-by: Eugen Hristev <eugen.hristev@linaro.org>
-> > > Signed-off-by: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
-> > > ---
-> > >  mm/swapfile.c | 2 ++
-> > >  1 file changed, 2 insertions(+)
-> > >
-> > > diff --git a/mm/swapfile.c b/mm/swapfile.c
-> > > index a602e5820513..d480727e4987 100644
-> > > --- a/mm/swapfile.c
-> > > +++ b/mm/swapfile.c
-> > > @@ -42,6 +42,7 @@
-> > >  #include <linux/suspend.h>
-> > >  #include <linux/zswap.h>
-> > >  #include <linux/plist.h>
-> > > +#include <linux/meminspect.h>
-> > >
-> > >  #include <asm/tlbflush.h>
-> > >  #include <linux/leafops.h>
-> > > @@ -65,6 +66,7 @@ static void move_cluster(struct swap_info_struct *si,
-> > >   */
-> > >  static DEFINE_SPINLOCK(swap_lock);
-> > >  static unsigned int nr_swapfiles;
-> > > +MEMINSPECT_SIMPLE_ENTRY(nr_swapfiles);
-> >
-> > Now the EXPORT_SYMBOL_GPL() is an EXPORT_SYMBOL() in effect no?
->
-> The whole reason we had to tag most of the MM symbols is that
-> the crash tool looks for this information while launching itself.
+On Tue, Jul 07, 2026 at 09:06:40PM +0200, Thomas Gleixner wrote:
+> From: Jinjie Ruan <ruanjinjie@huawei.com>
+> 
+> The return value of __secure_computing() currently uses 0 to indicate
+> that a system call should be allowed, and -1 to indicate that it should
+> be blocked/killed. This 0/-1 pattern is non-intuitive for a security
+> check function and makes the control flow at the call sites less readable.
 
-You're missing the point.
+Conceptually, I'm good with this. Just make sure that the
+tools/testing/selftests/seccomp/seccomp_bpf tests still passes. :)
 
-EXPORT_SYMBOL_GPL() != EXPORT_SYMBOL().
-
-We cannot and will not allow symbols that are GPL-only to be exported by the
-back door to non-GPL modules.
-
-Meminspect seems to ignore all of this and just exports symbols another way
-overriding kernel mechanisms which is just not acceptable...
-
-I also don't really understand what you're saying here either, what has what
-crash looks up on startup got to do with anything?
-
->
-> e.g.,
->
-> ./crash --no_modules --no_panic --no_kmem_cache --zero_excluded ./vmlinux  ./minidump.elf
->
->
-> >
-> > >  atomic_long_t nr_swap_pages;
-> > >  /*
-> > >   * Some modules use swappable objects and may try to swap them out under
-> > >
-> > > --
-> > > 2.53.0
-> > >
->
-> --
-> -Mukesh Ojha
+-- 
+Kees Cook
