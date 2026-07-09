@@ -1,285 +1,214 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 0C78141B37F;
-	Thu,  9 Jul 2026 11:33:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mail-wr1-f42.google.com (mail-wr1-f42.google.com [209.85.221.42])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 77F9B27FB0E
+	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 13:24:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.42
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783596830; cv=none; b=VmYftbZuqx/g+0Yz/k/UXSY55T2LQUt+uwVfu2hrsKpU9xJ5C4BkMQk7488CEgAGISI9P9LW3YoaqoWsn+fRez72EnxIlLcmAnUTDFwsoQ+KSR2+f2BwUzdOEVqyUg/RZdXcZUFsoFa6bNK9qR896EYU9muX9IGR4VfQZAuESrs=
+	t=1783603501; cv=none; b=ENO5pMx/VeenZhO0OQHpbelVwZoMTFb0sf3/aanC5Y1Fq486cykmnqdNtc8cxj3RFNjQO63DxtGMxFTXSEgWOinA21FOfPwa0NoQntmZpOAH4jXyVQ+w9x24aImQOnHWIccOeMvWFfxSX1lUpNBGf/PBndllxOQzad/3NE3AJto=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783596830; c=relaxed/simple;
-	bh=K0THlXNwZqipz/KEI06FjAdUeSpg5s7LDONtQ2Zte8g=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=A3Of4dP9I/Akf5phD5Z5OgdQCrc3odfuk4wDVOHz02BSvv8k6XYtKkFOG5H5bw31MAUFu16bOjfnb+bRjoYpYcPypj2/pXTOMSboGVQiTAjZnU1oQ5LA+3/HRkj4kK22CVIEMh1v3SWZRKZgQRxFJWd9ud3HMMPnzHz6wmIGKuU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=hovpNZ3T; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1783603501; c=relaxed/simple;
+	bh=7ISU5xPOy74bICjanRZFVU/MoFoShesRb4zQUg2TqBY=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=C7wlv5qKFZG8jVXsi/TsgQKkGRrynHkxfWhS9hifVGuIgApNGq5CJ2OtZ8hl9wXElltqkDsnykZnz6/Jc7ETZQKFPC9rNMCds2dWbVudjUyzEBRLdM/hllfzI0nHacM4V68cMlQH6/VrQWFq3rfCBQKlOWXsTA9yVZShLX2pWEM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Wzua9qWw; arc=none smtp.client-ip=209.85.221.42
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="hovpNZ3T"
-Received: from localhost (unknown [167.220.233.38])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 4A43420B716B;
-	Thu,  9 Jul 2026 04:33:38 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 4A43420B716B
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1783596818;
-	bh=LJd/+GU+PpP/Ium6hNk30csI0fmCJwtgCwZHUVsgKho=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=hovpNZ3TPhHx/HgG/98cgurUwIpqSkztqwDe0evKW+PVJY8k7FqGSIMz2PlREZPEW
-	 5FRx12WtVtyS1Sjp6ozdvLGdCLoGIMag2WiCU2x6FgNo6nsSQ7VensjxunuGYb+i+H
-	 undDj7/2n65it5yFFcbnKT4Asefw6BMab67xV/Nk=
-Date: Thu, 9 Jul 2026 19:33:41 +0800
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: Michael Kelley <mhklinux@outlook.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
-	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev" <iommu@lists.linux.dev>, 
-	"linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 
-	"wei.liu@kernel.org" <wei.liu@kernel.org>, "kys@microsoft.com" <kys@microsoft.com>, 
-	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>, 
-	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org" <joro@8bytes.org>, 
-	"will@kernel.org" <will@kernel.org>, "robin.murphy@arm.com" <robin.murphy@arm.com>, 
-	"bhelgaas@google.com" <bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>, 
-	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org" <mani@kernel.org>, 
-	"robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
-	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
-	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>, "mrathor@linux.microsoft.com" <mrathor@linux.microsoft.com>
-Subject: Re: [PATCH v2 2/4] Drivers: hv: Add logical device ID registry for
- vPCI devices
-Message-ID: <ja2drof5i7xjhpj4vbpavnphtn6cx4y5d3337vjrofxr47gxtq@msvg6xpbkb2h>
-References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
- <20260702160518.311234-3-zhangyu1@linux.microsoft.com>
- <SN6PR02MB415798534DFCC14E5202D021D4FF2@SN6PR02MB4157.namprd02.prod.outlook.com>
- <u2l4lz5skybcukrb6hwp2u6v3jdibrugokxmclgv3uq4ljj3vw@x7mlfvuwb5f4>
- <BN7PR02MB4148C8DB748CFD863B97D1B7D4FF2@BN7PR02MB4148.namprd02.prod.outlook.com>
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Wzua9qWw"
+Received: by mail-wr1-f42.google.com with SMTP id ffacd0b85a97d-4703bc0a99aso1122861f8f.3
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2026 06:24:59 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1783603498; x=1784208298; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=X+2+l0R7RX9cCzxaoR4qreoVsEJbp9qB9SwPbos71OM=;
+        b=Wzua9qWwbN16wpcMUQD2HQzqjaIDt6s5Xiotl7GUM94PxCcWlXR4WcgNkvzvyR9DIw
+         hBSyh/HJq7PwgDGmo/yy/Mvfoty27OK7ID/UU+ZnthIiD5GWAFLBy08oRXOeiMiQPbJb
+         OSriVOtOJB6Aw/BO9ERxVhefDLYl2A0tXehA08EaZYT9NLREIBQQJMVQvm7f8ZqRf+jS
+         j0frJ8WDFLUS8d13Vov48HJF0Hvr8Bv/kx3hKo16I+L6ke/ZLQjcPCkicGV0JiKerxWL
+         hiVVKxlyudOBr2gcfKTV+72TpMSBrQdoSsTWD2fFF2O6oU+o9M11FoEpVIHzZ/aC8SoQ
+         4Sww==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1783603498; x=1784208298;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=X+2+l0R7RX9cCzxaoR4qreoVsEJbp9qB9SwPbos71OM=;
+        b=IwnS1mw6fH9ks3a/uZZSMLKzkQddacgt7rJE/sk5Q0aW3UCDO5naMrIr8Q39yXJRUp
+         KjMDKHaltAoJKGA25cLFbhvoTu0qoqfnljdNQM1rh1nH6km41bZEVFy27UrQh9ohF3e8
+         eD2UO00vqsOPnR+lvZlMbCzYkrzflxSKpSpPZb5QdQ8QxwgYiGMyl/oE75NK0x0ywpsE
+         taSzqx4+DmkDdfeHlt5fZ4Vn6zY8K/e3pAHFgWsiAxlBNFP7gtFqDA36kXCLHPBf2kq8
+         TATbaYgeRHqS+lonm2GLd9gMpVmwhZcPFBj4rFhhObibwSAr48L6eArsK+Dahn8miKcB
+         saYA==
+X-Forwarded-Encrypted: i=1; AHgh+RqKMar8+tN0JAJ9TLIcSwMLHyxx0yddST13nG3TTcFG7WPaT4SgF/to8bbHqjhPg8fo5HRTp3Mb2IaF@vger.kernel.org
+X-Gm-Message-State: AOJu0Yzxhwf6W99TKUxhMHWg9ogW97nimmC2AVZd2RU0tvD2xqJwtfMB
+	s2tndKxwW7tfQ93QmmWMlZBWpiPwk+OwmP+KwZpKZz4eq3Qm1xSSsqBcIfYgaz91if4=
+X-Gm-Gg: AfdE7cnxVCtDDkTFB6MHI+U7FKGC8yIyKU3PkwuIsjU8JkYxG5wwvjP/T8wHddJCbHx
+	XbicJxC5Hrtnvxwkxm725w7fRzWYrMzSBvLV1Ieqd205L9OgzDc9LPFY+dN/eQxBqShkRb1Tyxg
+	rQgytBupGKnuzBlvUSp1EggvFgPL0dorZX80WuNX+uRw/MSYDeUleLDSvOIuK8v1bPuTZGF1qK2
+	fboK2tsTIyFjQ//XxTuou8fcxYjwXGNiIXfrJY7kaZeYJVdu3j2bdbb08+CA1Tf9URh8iAXj+fO
+	GccUoMZ3ZgYKw7qvNnCe/MByMXyatM+M+CewhNY8HJ7UXC3GMsc5nlyL34HChWqCgYh/VpK6Om0
+	kmPESCM6IrsAd3YKNJCQ4yx6+YP8Z8xwfjFLmRoGcHAv7h0BryqmvwcwNWtnm0m+Wnu276jQNM1
+	SVpeyzzu5chkmvS9lvROhw6kK5S+DZMZVmEPF+XdDYbAHB
+X-Received: by 2002:a05:6000:2013:b0:46e:624e:3c2f with SMTP id ffacd0b85a97d-47df077b2e6mr7512557f8f.47.1783603497728;
+        Thu, 09 Jul 2026 06:24:57 -0700 (PDT)
+Received: from [192.168.42.79] (nat2.prg.suse.com. [195.250.132.146])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-47aa0a55be4sm47212857f8f.31.2026.07.09.06.24.54
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 09 Jul 2026 06:24:57 -0700 (PDT)
+Message-ID: <84ded2aa-397f-465b-b2e5-d2fa31fc807d@suse.com>
+Date: Thu, 9 Jul 2026 15:24:54 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <BN7PR02MB4148C8DB748CFD863B97D1B7D4FF2@BN7PR02MB4148.namprd02.prod.outlook.com>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3 26/26] meminspect: Add debug kinfo compatible driver
+To: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
+Cc: akpm@linux-foundation.org, anna-maria@linutronix.de, arnd@arndb.de,
+ andersson@kernel.org, chrisl@kernel.org, cl@gentwo.org, conor+dt@kernel.org,
+ david@kernel.org, dennis@kernel.org, devicetree@vger.kernel.org,
+ ehristev@kernel.org, frederic@kernel.org, mingo@redhat.com,
+ jstultz@google.com, corbet@lwn.net, juri.lelli@redhat.com,
+ kasong@tencent.com, kees@kernel.org, konradybcio@kernel.org,
+ krzk+dt@kernel.org, linux-arch@vger.kernel.org,
+ linux-arm-msm@vger.kernel.org, linux-doc@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+ linux-remoteproc@vger.kernel.org, mathieu.poirier@linaro.org,
+ peterz@infradead.org, pmladek@suse.com, robh@kernel.org,
+ saravanak@kernel.org, tj@kernel.org, tglx@kernel.org,
+ vincent.guittot@linaro.org, workflows@vger.kernel.org, atomlin@atomlin.com,
+ ast@kernel.org, aliceryhl@google.com, linux.amoon@gmail.com,
+ ardb@kernel.org, baoquan.he@linux.dev, baohua@kernel.org,
+ bsegall@google.com, jackmanb@google.com, leitao@debian.org,
+ brauner@kernel.org, coxu@redhat.com, dietmar.eggemann@arm.com,
+ dianders@chromium.org, ebiggers@kernel.org, feng.tang@linux.alibaba.com,
+ yangfeng@kylinos.cn, gary@garyguo.net, guohanjun@huawei.com, jack@suse.cz,
+ wangjinchao600@gmail.com, joel.granados@kernel.org, hannes@cmpxchg.org,
+ john.ogness@linutronix.de, jpoimboe@kernel.org, shikemeng@huaweicloud.com,
+ kas@kernel.org, kprateek.nayak@amd.com, liam@infradead.org, ljs@kernel.org,
+ elver@google.com, mgorman@suse.de, mhocko@suse.com, ojeda@kernel.org,
+ rppt@kernel.org, namcao@linutronix.de, nathan@kernel.org, nphamcs@gmail.com,
+ n.schier@fritz.com, pasha.tatashin@soleen.com, pnina.feder@mobileye.com,
+ rdunlap@infradead.org, rioo.tsukatsukii@gmail.com, senozhatsky@chromium.org,
+ skhan@linuxfoundation.org, sboyd@kernel.org, rostedt@goodmis.org,
+ surenb@google.com, thomas.weissschuh@linutronix.de, vschneid@redhat.com,
+ vbabka@kernel.org, youngjun.park@lge.com, zhengyejian@huaweicloud.com,
+ ziy@nvidia.com, Eugen Hristev <eugen.hristev@linaro.org>
+References: <20260708-meminspect-v3-v3-0-7aa5a0a74d5c@oss.qualcomm.com>
+ <20260708070809.2660886-1-mukesh.ojha@oss.qualcomm.com>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260708070809.2660886-1-mukesh.ojha@oss.qualcomm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Wed, Jul 08, 2026 at 01:28:42PM +0000, Michael Kelley wrote:
-> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Wednesday, July 8, 2026 6:09 AM
-> > 
-> > On Wed, Jul 08, 2026 at 02:52:43AM +0000, Michael Kelley wrote:
-> > > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Thursday, July 2, 2026 9:05 AM
-> > > >
-> > > > From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-> > > >
-> > > > Hyper-V identifies each PCI pass-thru device by a logical device ID in
-> > > > its hypercall interface. This ID consists of a per-bus prefix, derived
-> > > > from the VMBus device instance GUID, combined with the PCI function
-> > > > number of the endpoint device.
-> > > >
-> > > > Add a small registry in hv_common.c that maps a PCI domain number to its
-> > > > logical device ID prefix. The vPCI bus driver (pci-hyperv) registers the
-> > > > prefix when a bus is probed and unregisters it when the bus is removed.
-> > > > Consumers such as the para-virtualized IOMMU driver look up the prefix
-> > > > by PCI domain number and combine it with the function number to form the
-> > > > complete logical device ID for hypercalls.
-> > > >
-> > > > The prefix construction is shared via hv_build_logical_dev_id_prefix() so
-> > > > that pci-hyperv's interrupt retargeting path and the registry use exactly
-> > > > the same byte layout. It is derived on demand from the constant hv_device
-> > > > instance GUID rather than cached in struct hv_pcibus_device, which is
-> > > > private to the pci-hyperv module; this keeps the interface narrow and
-> > > > avoids depending on pci-hyperv internals.
-> > > >
-> > > > Co-developed-by: Yu Zhang <zhangyu1@linux.microsoft.com>
-> > > > Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
-> > > > Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-> > > > ---
-> > > >  drivers/hv/hv_common.c              | 95 +++++++++++++++++++++++++++++
-> > > >  drivers/pci/controller/pci-hyperv.c | 21 +++++--
-> > > >  include/asm-generic/mshyperv.h      | 13 ++++
-> > > >  include/linux/hyperv.h              |  8 +++
-> > > >  4 files changed, 132 insertions(+), 5 deletions(-)
-> > > >
-> > > > diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
-> > > > index 6b67ac616789..53493f8d14dc 100644
-> > > > --- a/drivers/hv/hv_common.c
-> > > > +++ b/drivers/hv/hv_common.c
-> > > > @@ -26,6 +26,8 @@
-> > > >  #include <linux/kmsg_dump.h>
-> > > >  #include <linux/sizes.h>
-> > > >  #include <linux/slab.h>
-> > > > +#include <linux/list.h>
-> > > > +#include <linux/spinlock.h>
-> > > >  #include <linux/dma-map-ops.h>
-> > > >  #include <linux/set_memory.h>
-> > > >  #include <hyperv/hvhdk.h>
-> > > > @@ -863,3 +865,96 @@ const char *hv_result_to_string(u64 status)
-> > > >  	return "Unknown";
-> > > >  }
-> > > >  EXPORT_SYMBOL_GPL(hv_result_to_string);
-> > > > +
-> > > > +#ifdef CONFIG_HYPERV_PVIOMMU
-> > > > +/*
-> > > > + * Logical device ID registry shared between the vPCI bus driver
-> > > > + * (pci-hyperv) and the para-virtualized IOMMU driver. The vPCI driver
-> > > > + * registers the per-bus logical device ID prefix at bus probe time, and
-> > > > + * the pvIOMMU driver looks it up to build the full logical device ID used
-> > > > + * in IOMMU hypercalls.
-> > > > + */
-> > > > +struct hv_pci_busdata {
-> > > > +	int		 pci_domain_nr;
-> > > > +	u32		 logical_dev_id_prefix;
-> > > > +	struct list_head list;
-> > > > +};
-> > > > +
-> > > > +static LIST_HEAD(hv_pci_bus_list);
-> > > > +static DEFINE_SPINLOCK(hv_pci_bus_lock);
-> > > > +
-> > > > +int hv_iommu_register_pci_bus(int pci_domain_nr, u32 logical_dev_id_prefix)
-> > > > +{
-> > > > +	struct hv_pci_busdata *bus, *new;
-> > > > +	int ret = 0;
-> > > > +
-> > > > +	new = kzalloc_obj(*new, GFP_KERNEL);
-> > > > +	if (!new)
-> > > > +		return -ENOMEM;
-> > > > +
-> > > > +	spin_lock(&hv_pci_bus_lock);
-> > > > +	list_for_each_entry(bus, &hv_pci_bus_list, list) {
-> > > > +		if (bus->pci_domain_nr != pci_domain_nr)
-> > > > +			continue;
-> > > > +
-> > > > +		if (bus->logical_dev_id_prefix != logical_dev_id_prefix) {
-> > > > +			pr_err("stale registration for PCI domain %d (old prefix 0x%08x, new 0x%08x)\n",
-> > > > +			       pci_domain_nr, bus->logical_dev_id_prefix,
-> > > > +			       logical_dev_id_prefix);
-> > > > +			ret = -EEXIST;
-> > > > +		}
-> > > > +
-> > > > +		goto out_free;
-> > > > +	}
-> > > > +
-> > > > +	new->pci_domain_nr = pci_domain_nr;
-> > > > +	new->logical_dev_id_prefix = logical_dev_id_prefix;
-> > > > +	list_add(&new->list, &hv_pci_bus_list);
-> > > > +	spin_unlock(&hv_pci_bus_lock);
-> > > > +	return 0;
-> > > > +
-> > > > +out_free:
-> > > > +	spin_unlock(&hv_pci_bus_lock);
-> > > > +	kfree(new);
-> > > > +	return ret;
-> > > > +}
-> > > > +EXPORT_SYMBOL_FOR_MODULES(hv_iommu_register_pci_bus, "pci-hyperv");
-> > > > +
-> > > > +void hv_iommu_unregister_pci_bus(int pci_domain_nr)
-> > > > +{
-> > > > +	struct hv_pci_busdata *bus, *tmp;
-> > > > +
-> > > > +	spin_lock(&hv_pci_bus_lock);
-> > > > +	list_for_each_entry_safe(bus, tmp, &hv_pci_bus_list, list) {
-> > > > +		if (bus->pci_domain_nr == pci_domain_nr) {
-> > > > +			list_del(&bus->list);
-> > > > +			kfree(bus);
-> > > > +			break;
-> > > > +		}
-> > > > +	}
-> > > > +	spin_unlock(&hv_pci_bus_lock);
-> > > > +}
-> > > > +EXPORT_SYMBOL_FOR_MODULES(hv_iommu_unregister_pci_bus, "pci-hyperv");
-> > > > +
-> > > > +/*
-> > > > + * Look up the logical device ID prefix registered for @pci_domain_nr.
-> > > > + * Returns 0 on success with *prefix filled in; -ENODEV if no entry is
-> > > > + * registered for that PCI domain.
-> > > > + */
-> > > > +int hv_iommu_lookup_logical_dev_id(int pci_domain_nr, u32 *prefix)
-> > > > +{
-> > > > +	struct hv_pci_busdata *bus;
-> > > > +	int ret = -ENODEV;
-> > > > +
-> > > > +	spin_lock(&hv_pci_bus_lock);
-> > > > +	list_for_each_entry(bus, &hv_pci_bus_list, list) {
-> > > > +		if (bus->pci_domain_nr == pci_domain_nr) {
-> > > > +			*prefix = bus->logical_dev_id_prefix;
-> > > > +			ret = 0;
-> > > > +			break;
-> > > > +		}
-> > > > +	}
-> > > > +	spin_unlock(&hv_pci_bus_lock);
-> > > > +	return ret;
-> > > > +}
-> > >
-> > > I started thinking about the mechanism here because it's somewhat
-> > > annoying that it takes 77 lines of code (sans comments) to manage
-> > > this simple little mapping. I also started thinking about how many entries
-> > > are likely to be in the mapping. A guest VM probably has fewer than 10
-> > > entries unless it has multiple NICs and maybe some GPUs. But this code
-> > > is also intended to be used by the Linux-as-root code, and I'm thinking
-> > > that the number of PCI devices managed by the root could easily be a
-> > > hundred or more if the root is managing a couple dozen VMs on a large
-> > > physical server. Searching a linked list with 100 or more entries could be
-> > > a bit slow.
-> > >
-> > > If only the guest scenario were needed, you could declare a static
-> > > array with 64 entries (64 is an arbitrary upper bound), and just search
-> > > through the array instead of having to allocate memory, deal with
-> > > allocation failures, and deal with linked lists. But a fixed size array
-> > > would need to be much bigger for the root scenario, and you would
-> > > still be doing a linear search.
-> > >
-> > > A better alternative to consider is rhashtable, which is an existing
-> > > Linux kernel facility. Based on what an AI bot generated for me, the
-> > > code for setting up and using rhashtable is straightforward, and
-> > > would probably result in far fewer than 77 lines of code. Lookups
-> > > would also be faster than a linear search, at least for the root case
-> > > with more than just a few entries. I'd suggest looking at rhashtable
-> > > to see whether you like how the resulting code comes out for this
-> > > use case, and whether it really is simpler than a roll-your-own linked
-> > > list.
-> > >
-> > 
-> > Thank you so much for thinking this through, Michael! That is really
-> > a valid concern.
-> > 
-> > How about using XArray? It might be more lightweight compared with
-> > rhashtable. Using pci_domain_nr as the key and prefix as the value.
-> > Maybe sth. like:
-> >                                                                                                                                                         ┃
-> > 	static DEFINE_XARRAY(hv_pci_bus_xa);
-> > 
-> > 	int hv_iommu_register_pci_bus(int domain_nr, u32 prefix)
-> > 	{
-> > 		return xa_insert(&hv_pci_bus_xa, domain_nr,
-> > 				xa_mk_value(prefix), GFP_KERNEL);
-> > 	}                                                                                                                                                ┃
-> > 
-> > 	void hv_iommu_unregister_pci_bus(int domain_nr)
-> > 	{
-> > 		xa_erase(&hv_pci_bus_xa, domain_nr);
-> > 	}
-> > 
-> > 	int hv_iommu_lookup_logical_dev_id(int domain_nr, u32 *prefix)
-> > 	{
-> > 		void *entry = xa_load(&hv_pci_bus_xa, domain_nr);
-> > 		if (!entry)
-> > ┃
-> > 			return -ENODEV;
-> > 		*prefix = xa_to_value(entry);
-> > 		return 0;
-> > ┃
-> > 	}
-> > 
+On 7/8/26 9:08 AM, Mukesh Ojha wrote:
+> From: Eugen Hristev <eugen.hristev@linaro.org>
 > 
-> xarray is best where the keys are dense or mostly dense integers. In
-> this use case, the pci_domain_nr keys are essentially random 16-bit
-> values, which doesn't fit xarray as well. It would work, but wouldn't
-> be very efficient. See the 2nd paragraph of the documentation here:
+> With this driver, the registered regions are copied to a shared memory
+> zone at register time. The shared memory zone is supplied via OF. This
+> driver will select only regions that are of interest, and keep only
+> addresses. The format of the list is Kinfo compatible, with devices like
+> Google Pixel phone. The firmware is only interested in some symbols'
+> addresses.
 > 
-> https://www.kernel.org/doc/html/latest/core-api/xarray.html#xarray
-> 
+> Signed-off-by: Eugen Hristev <eugen.hristev@linaro.org>
+> Signed-off-by: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
+> ---
+[...]
+> diff --git a/kernel/meminspect/kinfo.c b/kernel/meminspect/kinfo.c
+> new file mode 100644
+> index 000000000000..7451c13bc316
+> --- /dev/null
+> +++ b/kernel/meminspect/kinfo.c
+> @@ -0,0 +1,257 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +/*
+> + *
+> + * Copyright 2002 Rusty Russell <rusty@rustcorp.com.au> IBM Corporation
+> + * Copyright 2021 Google LLC
+> + * Copyright 2025 Linaro Ltd. Eugen Hristev <eugen.hristev@linaro.org>
+> + */
+> +#include <linux/container_of.h>
+> +#include <linux/kallsyms.h>
+> +#include <linux/meminspect.h>
+> +#include <linux/module.h>
+> +#include <linux/of.h>
+> +#include <linux/of_reserved_mem.h>
+> +#include <linux/platform_device.h>
+> +#include <linux/utsname.h>
+> +
+> +#define BUILD_INFO_LEN		256
+> +#define DEBUG_KINFO_MAGIC	0xcceeddff
+> +
+> +/*
+> + * Header structure must be byte-packed, since the table is provided to
+> + * bootloader.
+> + */
+> +struct kernel_info {
+> +	/* For kallsyms */
+> +	u8 enabled_all;
+> +	u8 enabled_base_relative;
+> +	u8 enabled_absolute_percpu;
+> +	u8 enabled_cfi_clang;
+> +	u32 num_syms;
+> +	u16 name_len;
+> +	u16 bit_per_long;
+> +	u16 module_name_len;
+> +	u16 symbol_len;
+> +	u64 _relative_pa;
+> +	u64 _text_pa;
+> +	u64 _stext_pa;
+> +	u64 _etext_pa;
+> +	u64 _sinittext_pa;
+> +	u64 _einittext_pa;
+> +	u64 _end_pa;
+> +	u64 _offsets_pa;
+> +	u64 _names_pa;
+> +	u64 _token_table_pa;
+> +	u64 _token_index_pa;
+> +	u64 _markers_pa;
+> +	u64 _seqs_of_names_pa;
+> +
+> +	/* For frame pointer */
+> +	u32 thread_size;
+> +
+> +	/* For virt_to_phys */
+> +	u64 swapper_pg_dir_pa;
+> +
+> +	/* For linux banner */
+> +	u8 last_uts_release[__NEW_UTS_LEN];
+> +
+> +	/* For module kallsyms */
+> +	u32 enabled_modules_tree_lookup;
+> +	u32 mod_mem_offset;
+> +	u32 mod_kallsyms_offset;
+> +} __packed;
 
-Thanks for pointing out the documentation. You're right. With sparse
-16-bit keys, a hash-based data structure makes more sense than a
-radix-based one. I'll try reworking it with rhashtable and let you
-know if it doesn't work out.
+Is this kinfo format documented anywhere? I was only able to find
+a reference to the equivalent downstream Android driver [1] in the cover
+letter. However, I don't quite understand what it is or what the
+associated bootloader component does with this information. In
+particular, I'm unclear about the purpose of the following
+module-related fields:
 
-B.R.
-Yu
-> Michael
+module_name_len
+enabled_modules_tree_lookup
+mod_mem_offset
+mod_kallsyms_offset
+
+These appear to be exposed for reading the internals of the module
+loader. Be aware that this data is not stable.
+
+[1] https://android.googlesource.com/kernel/common/+/refs/heads/android-mainline/drivers/android/debug_kinfo.c
+
+-- 
+Thanks,
+Petr
