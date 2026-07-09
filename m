@@ -1,114 +1,192 @@
-Received: from mail-pl1-f180.google.com (mail-pl1-f180.google.com [209.85.214.180])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mx0b-0031df01.pphosted.com (mx0b-0031df01.pphosted.com [205.220.180.131])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9697A289367
-	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 08:49:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.180
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8D3E0410D1E
+	for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2026 11:13:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.180.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783586970; cv=none; b=UKH1p0c1ZU+6IWaImzRNutCv7J0amF9nYk6zYSLECX6FYAAhwkPSxf0Cg59RtsHO4vtsEDWYBbnWxCKe3QdK0y1FSzDSSZdo2e7P1OVNBuBvztr8ZqGRneZeSSCAb/+0eEYZ7/tyajZKtZhVJhwwXCzoqFpXFFXz3lTAeQHoyHc=
+	t=1783595588; cv=none; b=qOG3GeNV7f2/+PuJrAWw0QQ1jLRelNscs9BTbO1/GO4iNivYABes+1UMlMLsy8vk1bXhxI437qxz1FaztTLo8tu/brN6pYN0c4P6KVW7fuAl8HOzpyYM0U5sfcsoazWZMl1MeM06iazvjVMq3/nwIuU5QExipqEIUj2TzVMb7to=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783586970; c=relaxed/simple;
-	bh=vcIYcFn8wOu64JToHCd3V3ghUBsco6aWxPDuriYHfZc=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=PFvOltWztS6MmGWz6PaessYyBQeeDTWMN7MK8ifav2YIijbxiKcgkaIDT5TDdTKodigntSsqOo/nmcF1JHw5Tq6EeFkGKx6quSFq8XWCrImI6ubn05P4irmFFfsJ8zOAIRL3I/khMO7cGvW419UJCRQMEkybIzJEfIYPt143ZDc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=gmail.com; arc=none smtp.client-ip=209.85.214.180
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Received: by mail-pl1-f180.google.com with SMTP id d9443c01a7336-2cad8076b01so18751965ad.2
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2026 01:49:28 -0700 (PDT)
+	s=arc-20240116; t=1783595588; c=relaxed/simple;
+	bh=HqXh4BfYQkZLyAofgdtRXqw9mAcQUWbFiU48fKsf49U=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Izl91W+p4p/RdPICEiSYwn84UtiqwSCqCOrO7vuqrdZquo5F/9JcPgrLnsRSfUFOiQ5hPLPQDdzFN64dqV7v0JntLz9kHK0sJE6m235LqB0UYA/wixApw9GlFgBNqDMmjlQH5LFGi3X/FB9CHVpvcGxELde1d2Q2YX5XurSTwaQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com; spf=pass smtp.mailfrom=oss.qualcomm.com; dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b=jqvWJK8P; dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b=iG0CDJi3; arc=none smtp.client-ip=205.220.180.131
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oss.qualcomm.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b="jqvWJK8P";
+	dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b="iG0CDJi3"
+Received: from pps.filterd (m0279869.ppops.net [127.0.0.1])
+	by mx0a-0031df01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 669Axciw1619468
+	for <linux-arch@vger.kernel.org>; Thu, 9 Jul 2026 11:13:03 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qualcomm.com; h=
+	cc:content-transfer-encoding:content-type:date:from:in-reply-to
+	:message-id:mime-version:references:subject:to; s=qcppdkim1; bh=
+	Tx1kSZXz579iItxHsi1/8Nt3maK8vpLohSpfVXF4Ysw=; b=jqvWJK8PLEi8s+Po
+	PkAhOcF1EZ0TGn8umnL5kgryJ/tFquXm2xFzKz63mEvAAckXJG2v/bBhmyd/J+vv
+	w606gHPQkOOhu8auM9bbQnd68PLYN5DhMVRn/TQO3SYM9ZXEOEAB8F2FTaHvyyzL
+	/gj6GXZOaZ7Kqn5MccKMlGU9Y/8NaD7WUS1XOInbClq4x0wSv71WFJfHopsmfL88
+	joRiOO1NBxKuiVXV4p/tSPunQ9pAf4nwUwhwVoGhXqa2d3YUXy3NiFuuL84Sr5z0
+	sFBM3VIfsHX5R32LvKrkWCid7sj7it6qPECFAQp6EaOHyXV68SwSVXRcZbVTi1ag
+	vIF6OQ==
+Received: from mail-qt1-f198.google.com (mail-qt1-f198.google.com [209.85.160.198])
+	by mx0a-0031df01.pphosted.com (PPS) with ESMTPS id 4f9sqsbx0g-1
+	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2026 11:13:03 +0000 (GMT)
+Received: by mail-qt1-f198.google.com with SMTP id d75a77b69052e-51c19493ac2so11226351cf.1
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2026 04:13:03 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=oss.qualcomm.com; s=google; t=1783595583; x=1784200383; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from:references
+         :cc:to:content-language:subject:user-agent:mime-version:date
+         :message-id:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=Tx1kSZXz579iItxHsi1/8Nt3maK8vpLohSpfVXF4Ysw=;
+        b=iG0CDJi3fEdX0+CvpLHa3ZPfVRJBQiHYA56w/vMcyBgF2+hpy32q3CU1HZq6nPC6xy
+         UmjDZFf4CwiqV+QRBUVkridGTJW9uiQzqQdFVGemCQ+fVOre4X736H4qF6HV/I/Mg0mm
+         4mQQgA3UOxLee/+tn5H8iVMGP5DDnyDMYlMIM9yoA1vaqRiHEh4xDXOiyTrPenIWL3Xv
+         eEl3zNhexfGNgmBPVd+rnFNzwmYjP+AaruVL6dHO/2bvZ+hVBZIQCV8e7So3Wmx1wRIW
+         WODuJ0vTVTLLQ2w4X1BNziAAkXp95D3RtzBpcq8BLOHS2Nfw+jtRug1n/63Y//6MSIFB
+         fkwA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1783586967; x=1784191767;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=O3mkBNkViagFAJs3obyg41kBlrTMtmvpPUP/R2gZOPo=;
-        b=ZKabslPk2kCoodmNmID9ZOpg3MpXmIUS39eYggLMWRHijW/LnbxKL7tGqdUUCbHNml
-         w8oU9OgJic/KSvpeehOALvUG58W1mWiDr7RVxLk3yKpscrJLODL2EWc2D9Rh0KMy5nEB
-         riCPItOu9f4fonkhkN7NgKs1zynC8P+NRZC8uWP12DR8ELvyTvqfRcHVT0zkJ8xr3YDo
-         A3ute3uirKWkFgFtXp89mYBN2DFjRVo3S8pgXzP4A33g2kdnB7IxgonAipsRnHivCCsn
-         XFgx7iJ0PEJH3Uu/d6h1MkFApJMOtF+ijQU9s859o4OsYyYG1EwYB5n9NNHtG5mElQHs
-         u/Fg==
-X-Forwarded-Encrypted: i=1; AHgh+RqZjsgkegv6UxYirffaMrEF4YTtLJC6ZUQiO4QU9PE4uqVsB2Pa5DfYp2f7YK00gITIVZH8Jb+1fV68@vger.kernel.org
-X-Gm-Message-State: AOJu0Yy5TV4boWimSo+LuUiukUkZiHjzah3IdaeiIgchJp0SJ0nGlN4A
-	nBXs1NEC6jNSjmPYis7DG4+IngFOCfsEu9r5FQTsPDOz/ENPprx3DW3X6WF4iAJXJDc=
-X-Gm-Gg: AfdE7cloBQ3NPloufSujS7J7s90DL0UUdf2VIxrhsXHqd5tiux1Gl133I7mY6h32agQ
-	gID97p//93ItmfhSi4ALjI0H2t/1+ErbpFH4bKJah+VupUkl5wX3S9tcHThbh9ucgCPls4fAKFA
-	BsLby0xTVeFjpY0eyWFxEpedwVgxu1w1V0jI40YSqYPgVpg/5qDilRU3GoQv7WgqpxjrJyJJffr
-	qp3KszJUBWH0tR+Q6c/bhnbJQsu/sftfHJaWCNmvFlyvp1RM7XYCCyyOVFxl1gwJzQ08c7063vJ
-	u+crC9eqcoBzQfScmB7wYxk3wXH5cHd0YW6cWMPjpsJveWcWgoneqMFKX34q9Ygnyt0GrT4NZRF
-	nMCm0ZsJUQTEMZf3yctQlg2PA2Lln5ek4WE/sSk5iouJ+Gb6NSPuJM2lUkZP3jRS1y87At1iqpp
-	xsaCUHHUX8owWrX1vClgZDfyQCxmJLDNF9e7Sr8n1egJCOdulOWTbL9w==
-X-Received: by 2002:a17:902:ebd2:b0:2c6:a772:7e43 with SMTP id d9443c01a7336-2ccea39354fmr73212945ad.18.1783586966711;
-        Thu, 09 Jul 2026 01:49:26 -0700 (PDT)
-Received: from mail-pg1-f174.google.com (mail-pg1-f174.google.com. [209.85.215.174])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2ccc9d3bcc0sm40243275ad.67.2026.07.09.01.49.26
-        for <linux-arch@vger.kernel.org>
+        d=1e100.net; s=20251104; t=1783595583; x=1784200383;
+        h=content-transfer-encoding:content-type:in-reply-to:from:references
+         :cc:to:content-language:subject:user-agent:mime-version:date
+         :message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=Tx1kSZXz579iItxHsi1/8Nt3maK8vpLohSpfVXF4Ysw=;
+        b=CAn/sBYrPquge9mJAVbxAoSMzufpkZlFxHn5aIw4gcWrJEd+G6p7tZ7e371isNJ/8D
+         gDAR/rCyBlRbQxwTG+tYn+tgLCGYOgbyY1HzJQaTPVwKPlDtULra8696Of5LUFBBnoGH
+         qsUpeqs6CWBYUaV13SKeeIeT6mkwuP8bMGD5XSG3Qjl3RP1am6yMIFJ+kNi2RrQuI/6m
+         LH2AwMQYZT9O5KDcK1hYILsAjHD8NQ3ra7j5tY8muE0E0eoyVTfQdojfHc0xAdkCGEfp
+         0LqdcpIcV6ASPvuXrYKDSSBf/SOKhmUIq899Xb222P6xomHvk0zTaL9Kz/PfYhTP+YoI
+         KHhg==
+X-Forwarded-Encrypted: i=1; AHgh+RrQz/eLYk9VemE6l5BoUFKPJrmv27KDKMaYEZfEBRkreCBAGLd41v7/M8LwZImqKGxTyHVsQY1BVNtE@vger.kernel.org
+X-Gm-Message-State: AOJu0YzR1/zu7oFFlh3HyF+/Gqytdir19H0dAkdFd7lTGvK676y0m46w
+	vL2V8C8lslTaRo6tMStwGPYTWbZ/tytnSAQa71T1F0zG09Ot6+Dwz/jxxB6zjil3x3gzuc074Ac
+	dQ4LMQSM6T59OTxk33Q3P6MSoa0WIqrfXuCAkVRv+9TdnWVoDMTZ+gGYwSP52DrBd
+X-Gm-Gg: AfdE7cmfQ5ZupN+TsXP7So4PLprwYjsZnHBa1nHznCy4wArukPrtbOVOFqO5QPJBr6j
+	74oZ4D0ii0sk0gE3qpjLlAcW2D71E4j4b3luFlDavOwc+W3SGeyZ7xPhLQttCyKGDVEbiFmMinL
+	HCxuDvfNOGDkgaRzRyn3zdO3SWHgULiM71uldugqWZWbUxWTO2tHnYCyuWFyyKRAcoiJUb8RouE
+	w3wwg1ZhlTX3yF94wCxh6g4uck30SYGSiReZrsVgLU/YeMnLYiVUia8b8Xw8OG4BDOPsj0XfiX2
+	86+OTHWQBO18T1AsaRy3bl2gqib7AjS1iaRsmvLR1UlS8K0bLRxFbkCZVFx9bkeV39AWoFHCNsK
+	4bZECinKQhIcNb8NKYJbdYBj9IwBBuCLbW3GFZjNtA0GApLZNza/pAdYlPv5TXQ==
+X-Received: by 2002:ac8:7d14:0:b0:517:61d5:2f7b with SMTP id d75a77b69052e-51c8b4d596amr63974231cf.56.1783595582861;
+        Thu, 09 Jul 2026 04:13:02 -0700 (PDT)
+X-Received: by 2002:ac8:7d14:0:b0:517:61d5:2f7b with SMTP id d75a77b69052e-51c8b4d596amr63973951cf.56.1783595582395;
+        Thu, 09 Jul 2026 04:13:02 -0700 (PDT)
+Received: from [192.168.69.219] (88-187-86-199.subs.proxad.net. [88.187.86.199])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-47aa0f213e8sm48543085f8f.34.2026.07.09.04.12.58
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 09 Jul 2026 01:49:26 -0700 (PDT)
-Received: by mail-pg1-f174.google.com with SMTP id 41be03b00d2f7-c999f162c9aso931790a12.3
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2026 01:49:26 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AHgh+RqodyIb5TjgK2UvVk4Wvd3IhIwIBd5pA6gKJDY1YuhH9N4bZTwjESEmfi5Vl5Sn1VRActXTxyrnmDx0@vger.kernel.org
-X-Received: by 2002:a05:6102:6895:b0:738:9dd5:9b03 with SMTP id
- ada2fe7eead31-744e03a337dmr3306957137.20.1783586528282; Thu, 09 Jul 2026
- 01:42:08 -0700 (PDT)
+        Thu, 09 Jul 2026 04:13:01 -0700 (PDT)
+Message-ID: <835e2f62-3b66-45d4-a614-dc2198a715ad@oss.qualcomm.com>
+Date: Thu, 9 Jul 2026 13:12:57 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260707181957.433213175@kernel.org> <20260707190254.280015701@kernel.org>
-In-Reply-To: <20260707190254.280015701@kernel.org>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Thu, 9 Jul 2026 10:41:56 +0200
-X-Gmail-Original-Message-ID: <CAMuHMdWe1D0CZrav5h6EhDDbeJzgJcHvT89jrs6109Bdj-pdTw@mail.gmail.com>
-X-Gm-Features: AUfX_mw8w2Kp5VuAYozzfDNS6gDbdKhQdYzfXsv-G72F3LS58UBytbGwOmplITc
-Message-ID: <CAMuHMdWe1D0CZrav5h6EhDDbeJzgJcHvT89jrs6109Bdj-pdTw@mail.gmail.com>
-Subject: Re: [patch 12/18] ptrace, treewide: Rename ptrace_report_syscall_entry()
- to ptrace_report_syscall_permit_entry()
-To: Thomas Gleixner <tglx@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
-	Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>, 
-	Richard Henderson <richard.henderson@linaro.org>, Vineet Gupta <vgupta@kernel.org>, 
-	Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, 
-	Will Deacon <will@kernel.org>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@kernel.org>, 
-	Michal Simek <monstr@monstr.eu>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
-	Dinh Nguyen <dinguyen@kernel.org>, Helge Deller <deller@gmx.de>, 
-	Yoshinori Sato <ysato@users.sourceforge.jp>, "David S. Miller" <davem@davemloft.net>, 
-	Andreas Larsson <andreas@gaisler.com>, Chris Zankel <chris@zankel.net>, linux-alpha@vger.kernel.org, 
-	linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, 
-	linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, 
-	linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, 
-	linux-openrisc@vger.kernel.org, linux-parisc@vger.kernel.org, 
-	linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, 
-	linux-um@lists.infradead.org, linux-arch@vger.kernel.org, 
-	Michael Ellerman <mpe@ellerman.id.au>, Shrikanth Hegde <sshegde@linux.ibm.com>, 
-	linuxppc-dev@lists.ozlabs.org, Kees Cook <kees@kernel.org>, 
-	Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, linux-riscv@lists.infradead.org, 
-	Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org, x86@kernel.org, 
-	Mark Rutland <mark.rutland@arm.com>, Jinjie Ruan <ruanjinjie@huawei.com>, 
-	Andy Lutomirski <luto@kernel.org>, Richard Weinberger <richard@nod.at>, =?UTF-8?Q?Michal_Such=C3=A1nek?= <msuchanek@suse.de>, 
-	Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [patch 01/18] powerpc: Move stack randomization after
+ syscall_enter_from_user_mode()
+Content-Language: en-US
+To: Thomas Gleixner <tglx@kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Shrikanth Hegde <sshegde@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org,
+        Kees Cook <kees@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+        loongarch@lists.linux.dev, Paul Walmsley <pjw@kernel.org>,
+        Palmer Dabbelt <palmer@dabbelt.com>, linux-riscv@lists.infradead.org,
+        Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
+        x86@kernel.org, Mark Rutland <mark.rutland@arm.com>,
+        Jinjie Ruan <ruanjinjie@huawei.com>, Andy Lutomirski <luto@kernel.org>,
+        Oleg Nesterov <oleg@redhat.com>,
+        Richard Henderson <richard.henderson@linaro.org>,
+        Russell King <linux@armlinux.org.uk>,
+        Catalin Marinas <catalin.marinas@arm.com>, Guo Ren <guoren@kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Helge Deller
+ <deller@gmx.de>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Richard Weinberger <richard@nod.at>, Chris Zankel <chris@zankel.net>,
+        linux-arm-kernel@lists.infradead.org, linux-alpha@vger.kernel.org,
+        linux-csky@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
+        Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <vgupta@kernel.org>,
+        Will Deacon <will@kernel.org>, Brian Cain <bcain@kernel.org>,
+        Michal Simek <monstr@monstr.eu>, Dinh Nguyen <dinguyen@kernel.org>,
+        "David S. Miller" <davem@davemloft.net>,
+        Andreas Larsson <andreas@gaisler.com>,
+        linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org,
+        linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org,
+        linux-arch@vger.kernel.org,
+        =?UTF-8?Q?Michal_Such=C3=A1nek?= <msuchanek@suse.de>,
+        Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+References: <20260707181957.433213175@kernel.org>
+ <20260707190253.718191130@kernel.org>
+From: =?UTF-8?Q?Philippe_Mathieu-Daud=C3=A9?= <philmd@oss.qualcomm.com>
+In-Reply-To: <20260707190253.718191130@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
+X-Proofpoint-Spam-Info: AW1haW4tMjYwNzA5MDEwOCBTYWx0ZWRfX9Qqvc6Uy2cE1
+ gVTNB8snai8AbgIT5oMgJl0HYnt/nbJkErTaVHQu9zvL9oGCbGSi3obnEdJunHrtR40ER2W56KW
+ Vza1obG1w7sLj6vJAojrD7TKpDgL/34=
+X-Proofpoint-GUID: hxaoxaoPbdbTvk_o19GXSX4eCr6WR5xC
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNzA5MDEwOCBTYWx0ZWRfX0xYlvwukwFdq
+ F7hmxHrsNPrFOsHijHjx5mSIqmGHTV8XrsnHOjTLli5eRhPLd6fdnGUsEZEvxvPk4JHHcsfCBqd
+ JhyJh6KQc2UIwSL6COF/t6UzMOlf0Vz/MfLpiRn8661fNg+mvIQtzsB2H9pTndeSd4f7TLULsqR
+ GkCrDaeVK9uXSsX5KSVve8aFYMbCzY6EmlBtW2rTKXtXFPJIcpzteznZAmf9iShmKpyVS++TF8c
+ XURJC3J2NA5U9pDIcpw1AHVYGP8xKB4xkFnIMWTjUt7ixG+dw33TQO9rBQfOEHG+OIAz2TYfnr8
+ EFhth3Ysg+LppcaZDGRuFCfNX6+Iljre7QpIaMryHsFr47RxHAXps9rsK0k6LTRmB4ZBeDtD+nA
+ iG8bwsh7fXmsIoJ2azJb8TzTqO1EPzKK+b/Dz1f9KbNK+el99H1n1Lj7AKhhG675HH80bYEsRmX
+ q/7qifE/mKyJnZSgfpg==
+X-Authority-Analysis: v=2.4 cv=Sv2gLvO0 c=1 sm=1 tr=0 ts=6a4f823f cx=c_pps
+ a=mPf7EqFMSY9/WdsSgAYMbA==:117 a=4s3hRJSeHn4rkQlkrse1kQ==:17
+ a=IkcTkHD0fZMA:10 a=RAioF0-LDSMA:10 a=M51BFTxLslgA:10 a=s4-Qcg_JpJYA:10
+ a=VkNPw1HP01LnGYTKEx00:22 a=u7WPNUs3qKkmUXheDGA7:22 a=_glEPmIy2e8OvE2BGh3C:22
+ a=VwQbUJbxAAAA:8 a=VnNF1IyMAAAA:8 a=voM4FWlXAAAA:8 a=EUspDBNiAAAA:8
+ a=63ny2n9c4_t8xnV3ltYA:9 a=3ZKOabzyN94A:10 a=QEXdDO2ut3YA:10
+ a=dawVfQjAaf238kedN5IG:22 a=IC2XNlieTeVoXbcui8wp:22
+X-Proofpoint-ORIG-GUID: hxaoxaoPbdbTvk_o19GXSX4eCr6WR5xC
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.134,FMLib:17.12.100.49
+ definitions=2026-07-09_02,2026-07-09_01,2025-10-01_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
+ spamscore=0 adultscore=0 priorityscore=1501 suspectscore=0 malwarescore=0
+ impostorscore=0 lowpriorityscore=0 clxscore=1011 bulkscore=0 phishscore=0
+ classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
+ reason=mlx scancount=1 engine=8.22.0-2606150000 definitions=main-2607090108
 
-On Tue, 7 Jul 2026 at 21:06, Thomas Gleixner <tglx@kernel.org> wrote:
-> The return value of that function is boolean and tells the caller whether
-> to permit the syscall processing or not.
->
-> Rename the function so the purpose is clear and make the return type bool.
-
->  arch/m68k/kernel/ptrace.c       |    2 +-
-
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org> # m68k
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+On 7/7/26 21:05, Thomas Gleixner wrote:
+> add_random_kstack_offset() is invoked before syscall_enter_from_user_mode()
+> establishes state. That's wrong because add_random_kstack_offset() calls
+> into instrumentable code.
+> 
+> Move it after syscall_enter_from_user_mode() to ensure that state is
+> correctly established.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@kernel.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Shrikanth Hegde <sshegde@linux.ibm.com>
+> Cc: linuxppc-dev@lists.ozlabs.org
+> ---
+>   arch/powerpc/kernel/syscall.c |    2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> --- a/arch/powerpc/kernel/syscall.c
+> +++ b/arch/powerpc/kernel/syscall.c
+> @@ -19,8 +19,8 @@ notrace long system_call_exception(struc
+>   	long ret;
+>   	syscall_fn f;
+>   
+> -	add_random_kstack_offset();
+>   	r0 = syscall_enter_from_user_mode(regs, r0);
+> +	add_random_kstack_offset();
+>   
+>   	if (unlikely(r0 >= NR_syscalls)) {
+>   		if (unlikely(trap_is_unsupported_scv(regs))) {
+> 
+Reviewed-by: Philippe Mathieu-Daudé <philmd@oss.qualcomm.com>
