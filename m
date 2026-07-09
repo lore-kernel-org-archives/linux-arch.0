@@ -1,109 +1,285 @@
-Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 682BE42188B;
-	Thu,  9 Jul 2026 11:32:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 0C78141B37F;
+	Thu,  9 Jul 2026 11:33:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783596768; cv=none; b=f49IWJ2vo33vcTz5l09hbF/q6gJ0x5jbSSyxeI4dbUGaNsl7a/Gmvb1yA3ET2JII3hhH4B0vTJXSL7f9RGT3/4zq6mw8lENhmDlTlooXnwQzVnvlWpzULvqlIiVH0LgLc2YxX6HdbnahCUQ++Lt75ZyKKb5q+0dTSqmgT2JDuGQ=
+	t=1783596830; cv=none; b=VmYftbZuqx/g+0Yz/k/UXSY55T2LQUt+uwVfu2hrsKpU9xJ5C4BkMQk7488CEgAGISI9P9LW3YoaqoWsn+fRez72EnxIlLcmAnUTDFwsoQ+KSR2+f2BwUzdOEVqyUg/RZdXcZUFsoFa6bNK9qR896EYU9muX9IGR4VfQZAuESrs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783596768; c=relaxed/simple;
-	bh=HBDbLxQ/mmLThuSCavhDFNuAv2+3px29VTHQ8QYWw1w=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=sZwUZ9dxpXyIKTJ6+yK3WRsmsGWW6EBYEkRY746C2LAEkZRkJWu1/VLGdZwW8yJoJTV4OMLkMNvUvjRkksN4RYSj1LUNI9twu5RGP3GjV6j45vGDoMgetdyGHRwm+7p4Zu8CztZyI3oQnZHuXFxISKOGbEbssdpt5RV2apIh+KI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=xLBBBBbh; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=OgMhKys2; arc=none smtp.client-ip=193.142.43.55
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
+	s=arc-20240116; t=1783596830; c=relaxed/simple;
+	bh=K0THlXNwZqipz/KEI06FjAdUeSpg5s7LDONtQ2Zte8g=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=A3Of4dP9I/Akf5phD5Z5OgdQCrc3odfuk4wDVOHz02BSvv8k6XYtKkFOG5H5bw31MAUFu16bOjfnb+bRjoYpYcPypj2/pXTOMSboGVQiTAjZnU1oQ5LA+3/HRkj4kK22CVIEMh1v3SWZRKZgQRxFJWd9ud3HMMPnzHz6wmIGKuU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=hovpNZ3T; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="xLBBBBbh";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="OgMhKys2"
-From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1783596761;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=3ukFASTVcwJCA9KHs65XStV/NanPY9+t/aJWekQ6IKw=;
-	b=xLBBBBbh4/VWO9XnxdBWWEUvqzn9mmxKtghNmN65V+Cf4har8MzUX9hyoH+gOUFNJ0QDZH
-	mhrQzKul8EzypjUmmlpwnx86X/j6mp+M74+44prDPC5Lb8pQqlkpFANr1hPoiweBhjIMvL
-	IJQ6MiL3Yuyh11sCsUB/qGlCV3fC2EXReRUTsEgy1o+ZC4hqFkeSEsi0TIZ4voWO+rfnY1
-	Dv8Px5LpQHM/R1zjHRBtez08FAjNDJgYULJlhWKa/IrL6yP6/p/2kOaw2JHAzOmlqglsU6
-	/03UR9MkVzy/rbOrYQVZ342ujoRW8Tk7nPvjQmW03SqWiWzVIxa6VuNOlviODw==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1783596761;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=3ukFASTVcwJCA9KHs65XStV/NanPY9+t/aJWekQ6IKw=;
-	b=OgMhKys2yLyiiIrzt/ebS8mgwv4WAKvLSUlGBZDOz+da0ok2x1dai57gPiCFIfoQeTZIiC
-	uHk5AT5qmEA4l1Dg==
-Date: Thu, 09 Jul 2026 13:32:41 +0200
-Subject: [PATCH 5/7] clocksource/drivers/arm_arch_timer: Replace
- CONFIG_GENERIC_GETTIMEOFDAY ifdeffery with IS_ENABLED()
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="hovpNZ3T"
+Received: from localhost (unknown [167.220.233.38])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 4A43420B716B;
+	Thu,  9 Jul 2026 04:33:38 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 4A43420B716B
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1783596818;
+	bh=LJd/+GU+PpP/Ium6hNk30csI0fmCJwtgCwZHUVsgKho=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=hovpNZ3TPhHx/HgG/98cgurUwIpqSkztqwDe0evKW+PVJY8k7FqGSIMz2PlREZPEW
+	 5FRx12WtVtyS1Sjp6ozdvLGdCLoGIMag2WiCU2x6FgNo6nsSQ7VensjxunuGYb+i+H
+	 undDj7/2n65it5yFFcbnKT4Asefw6BMab67xV/Nk=
+Date: Thu, 9 Jul 2026 19:33:41 +0800
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: Michael Kelley <mhklinux@outlook.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
+	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev" <iommu@lists.linux.dev>, 
+	"linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 
+	"wei.liu@kernel.org" <wei.liu@kernel.org>, "kys@microsoft.com" <kys@microsoft.com>, 
+	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>, 
+	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org" <joro@8bytes.org>, 
+	"will@kernel.org" <will@kernel.org>, "robin.murphy@arm.com" <robin.murphy@arm.com>, 
+	"bhelgaas@google.com" <bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>, 
+	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org" <mani@kernel.org>, 
+	"robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
+	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
+	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>, "mrathor@linux.microsoft.com" <mrathor@linux.microsoft.com>
+Subject: Re: [PATCH v2 2/4] Drivers: hv: Add logical device ID registry for
+ vPCI devices
+Message-ID: <ja2drof5i7xjhpj4vbpavnphtn6cx4y5d3337vjrofxr47gxtq@msvg6xpbkb2h>
+References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
+ <20260702160518.311234-3-zhangyu1@linux.microsoft.com>
+ <SN6PR02MB415798534DFCC14E5202D021D4FF2@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <u2l4lz5skybcukrb6hwp2u6v3jdibrugokxmclgv3uq4ljj3vw@x7mlfvuwb5f4>
+ <BN7PR02MB4148C8DB748CFD863B97D1B7D4FF2@BN7PR02MB4148.namprd02.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-Message-Id: <20260709-vdso-arch-clockmodes-v1-5-3fd780bbf851@linutronix.de>
-References: <20260709-vdso-arch-clockmodes-v1-0-3fd780bbf851@linutronix.de>
-In-Reply-To: <20260709-vdso-arch-clockmodes-v1-0-3fd780bbf851@linutronix.de>
-To: Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, 
- Thomas Gleixner <tglx@kernel.org>, 
- Vincenzo Frascino <vincenzo.frascino@arm.com>, 
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
- Daniel Lezcano <daniel.lezcano@kernel.org>, 
- Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, 
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
- Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
- Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
- linux-kbuild@vger.kernel.org, linux-mips@vger.kernel.org, 
- linux-arm-kernel@lists.infradead.org, linux-riscv@lists.infradead.org, 
- loongarch@lists.linux.dev, 
- =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1783596759; l=1366;
- i=thomas.weissschuh@linutronix.de; s=20240209; h=from:subject:message-id;
- bh=HBDbLxQ/mmLThuSCavhDFNuAv2+3px29VTHQ8QYWw1w=;
- b=/EvHsm6ydzGcPsxrNvqkQUB75XQjGIMB3dJQHMvHaYcR1e6vOjowSLWMYmBC9iC39j5MyPR+r
- GKnBIHG7yBIC0ZzIDI8rObHsO7fQLB+a+bRP7h1extXlNquFlV9wR/m
-X-Developer-Key: i=thomas.weissschuh@linutronix.de; a=ed25519;
- pk=pfvxvpFUDJV2h2nY0FidLUml22uGLSjByFbM6aqQQws=
+In-Reply-To: <BN7PR02MB4148C8DB748CFD863B97D1B7D4FF2@BN7PR02MB4148.namprd02.prod.outlook.com>
 
-Now that there is a dummy declaration of VDSO_CLOCKMODE_ARCHTIMER,
-even if no vDSO is built, the ugly ifdeffery can be replaced with
-a cleaner IS_ENABLED() check.
+On Wed, Jul 08, 2026 at 01:28:42PM +0000, Michael Kelley wrote:
+> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Wednesday, July 8, 2026 6:09 AM
+> > 
+> > On Wed, Jul 08, 2026 at 02:52:43AM +0000, Michael Kelley wrote:
+> > > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Thursday, July 2, 2026 9:05 AM
+> > > >
+> > > > From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+> > > >
+> > > > Hyper-V identifies each PCI pass-thru device by a logical device ID in
+> > > > its hypercall interface. This ID consists of a per-bus prefix, derived
+> > > > from the VMBus device instance GUID, combined with the PCI function
+> > > > number of the endpoint device.
+> > > >
+> > > > Add a small registry in hv_common.c that maps a PCI domain number to its
+> > > > logical device ID prefix. The vPCI bus driver (pci-hyperv) registers the
+> > > > prefix when a bus is probed and unregisters it when the bus is removed.
+> > > > Consumers such as the para-virtualized IOMMU driver look up the prefix
+> > > > by PCI domain number and combine it with the function number to form the
+> > > > complete logical device ID for hypercalls.
+> > > >
+> > > > The prefix construction is shared via hv_build_logical_dev_id_prefix() so
+> > > > that pci-hyperv's interrupt retargeting path and the registry use exactly
+> > > > the same byte layout. It is derived on demand from the constant hv_device
+> > > > instance GUID rather than cached in struct hv_pcibus_device, which is
+> > > > private to the pci-hyperv module; this keeps the interface narrow and
+> > > > avoids depending on pci-hyperv internals.
+> > > >
+> > > > Co-developed-by: Yu Zhang <zhangyu1@linux.microsoft.com>
+> > > > Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
+> > > > Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+> > > > ---
+> > > >  drivers/hv/hv_common.c              | 95 +++++++++++++++++++++++++++++
+> > > >  drivers/pci/controller/pci-hyperv.c | 21 +++++--
+> > > >  include/asm-generic/mshyperv.h      | 13 ++++
+> > > >  include/linux/hyperv.h              |  8 +++
+> > > >  4 files changed, 132 insertions(+), 5 deletions(-)
+> > > >
+> > > > diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+> > > > index 6b67ac616789..53493f8d14dc 100644
+> > > > --- a/drivers/hv/hv_common.c
+> > > > +++ b/drivers/hv/hv_common.c
+> > > > @@ -26,6 +26,8 @@
+> > > >  #include <linux/kmsg_dump.h>
+> > > >  #include <linux/sizes.h>
+> > > >  #include <linux/slab.h>
+> > > > +#include <linux/list.h>
+> > > > +#include <linux/spinlock.h>
+> > > >  #include <linux/dma-map-ops.h>
+> > > >  #include <linux/set_memory.h>
+> > > >  #include <hyperv/hvhdk.h>
+> > > > @@ -863,3 +865,96 @@ const char *hv_result_to_string(u64 status)
+> > > >  	return "Unknown";
+> > > >  }
+> > > >  EXPORT_SYMBOL_GPL(hv_result_to_string);
+> > > > +
+> > > > +#ifdef CONFIG_HYPERV_PVIOMMU
+> > > > +/*
+> > > > + * Logical device ID registry shared between the vPCI bus driver
+> > > > + * (pci-hyperv) and the para-virtualized IOMMU driver. The vPCI driver
+> > > > + * registers the per-bus logical device ID prefix at bus probe time, and
+> > > > + * the pvIOMMU driver looks it up to build the full logical device ID used
+> > > > + * in IOMMU hypercalls.
+> > > > + */
+> > > > +struct hv_pci_busdata {
+> > > > +	int		 pci_domain_nr;
+> > > > +	u32		 logical_dev_id_prefix;
+> > > > +	struct list_head list;
+> > > > +};
+> > > > +
+> > > > +static LIST_HEAD(hv_pci_bus_list);
+> > > > +static DEFINE_SPINLOCK(hv_pci_bus_lock);
+> > > > +
+> > > > +int hv_iommu_register_pci_bus(int pci_domain_nr, u32 logical_dev_id_prefix)
+> > > > +{
+> > > > +	struct hv_pci_busdata *bus, *new;
+> > > > +	int ret = 0;
+> > > > +
+> > > > +	new = kzalloc_obj(*new, GFP_KERNEL);
+> > > > +	if (!new)
+> > > > +		return -ENOMEM;
+> > > > +
+> > > > +	spin_lock(&hv_pci_bus_lock);
+> > > > +	list_for_each_entry(bus, &hv_pci_bus_list, list) {
+> > > > +		if (bus->pci_domain_nr != pci_domain_nr)
+> > > > +			continue;
+> > > > +
+> > > > +		if (bus->logical_dev_id_prefix != logical_dev_id_prefix) {
+> > > > +			pr_err("stale registration for PCI domain %d (old prefix 0x%08x, new 0x%08x)\n",
+> > > > +			       pci_domain_nr, bus->logical_dev_id_prefix,
+> > > > +			       logical_dev_id_prefix);
+> > > > +			ret = -EEXIST;
+> > > > +		}
+> > > > +
+> > > > +		goto out_free;
+> > > > +	}
+> > > > +
+> > > > +	new->pci_domain_nr = pci_domain_nr;
+> > > > +	new->logical_dev_id_prefix = logical_dev_id_prefix;
+> > > > +	list_add(&new->list, &hv_pci_bus_list);
+> > > > +	spin_unlock(&hv_pci_bus_lock);
+> > > > +	return 0;
+> > > > +
+> > > > +out_free:
+> > > > +	spin_unlock(&hv_pci_bus_lock);
+> > > > +	kfree(new);
+> > > > +	return ret;
+> > > > +}
+> > > > +EXPORT_SYMBOL_FOR_MODULES(hv_iommu_register_pci_bus, "pci-hyperv");
+> > > > +
+> > > > +void hv_iommu_unregister_pci_bus(int pci_domain_nr)
+> > > > +{
+> > > > +	struct hv_pci_busdata *bus, *tmp;
+> > > > +
+> > > > +	spin_lock(&hv_pci_bus_lock);
+> > > > +	list_for_each_entry_safe(bus, tmp, &hv_pci_bus_list, list) {
+> > > > +		if (bus->pci_domain_nr == pci_domain_nr) {
+> > > > +			list_del(&bus->list);
+> > > > +			kfree(bus);
+> > > > +			break;
+> > > > +		}
+> > > > +	}
+> > > > +	spin_unlock(&hv_pci_bus_lock);
+> > > > +}
+> > > > +EXPORT_SYMBOL_FOR_MODULES(hv_iommu_unregister_pci_bus, "pci-hyperv");
+> > > > +
+> > > > +/*
+> > > > + * Look up the logical device ID prefix registered for @pci_domain_nr.
+> > > > + * Returns 0 on success with *prefix filled in; -ENODEV if no entry is
+> > > > + * registered for that PCI domain.
+> > > > + */
+> > > > +int hv_iommu_lookup_logical_dev_id(int pci_domain_nr, u32 *prefix)
+> > > > +{
+> > > > +	struct hv_pci_busdata *bus;
+> > > > +	int ret = -ENODEV;
+> > > > +
+> > > > +	spin_lock(&hv_pci_bus_lock);
+> > > > +	list_for_each_entry(bus, &hv_pci_bus_list, list) {
+> > > > +		if (bus->pci_domain_nr == pci_domain_nr) {
+> > > > +			*prefix = bus->logical_dev_id_prefix;
+> > > > +			ret = 0;
+> > > > +			break;
+> > > > +		}
+> > > > +	}
+> > > > +	spin_unlock(&hv_pci_bus_lock);
+> > > > +	return ret;
+> > > > +}
+> > >
+> > > I started thinking about the mechanism here because it's somewhat
+> > > annoying that it takes 77 lines of code (sans comments) to manage
+> > > this simple little mapping. I also started thinking about how many entries
+> > > are likely to be in the mapping. A guest VM probably has fewer than 10
+> > > entries unless it has multiple NICs and maybe some GPUs. But this code
+> > > is also intended to be used by the Linux-as-root code, and I'm thinking
+> > > that the number of PCI devices managed by the root could easily be a
+> > > hundred or more if the root is managing a couple dozen VMs on a large
+> > > physical server. Searching a linked list with 100 or more entries could be
+> > > a bit slow.
+> > >
+> > > If only the guest scenario were needed, you could declare a static
+> > > array with 64 entries (64 is an arbitrary upper bound), and just search
+> > > through the array instead of having to allocate memory, deal with
+> > > allocation failures, and deal with linked lists. But a fixed size array
+> > > would need to be much bigger for the root scenario, and you would
+> > > still be doing a linear search.
+> > >
+> > > A better alternative to consider is rhashtable, which is an existing
+> > > Linux kernel facility. Based on what an AI bot generated for me, the
+> > > code for setting up and using rhashtable is straightforward, and
+> > > would probably result in far fewer than 77 lines of code. Lookups
+> > > would also be faster than a linear search, at least for the root case
+> > > with more than just a few entries. I'd suggest looking at rhashtable
+> > > to see whether you like how the resulting code comes out for this
+> > > use case, and whether it really is simpler than a roll-your-own linked
+> > > list.
+> > >
+> > 
+> > Thank you so much for thinking this through, Michael! That is really
+> > a valid concern.
+> > 
+> > How about using XArray? It might be more lightweight compared with
+> > rhashtable. Using pci_domain_nr as the key and prefix as the value.
+> > Maybe sth. like:
+> >                                                                                                                                                         ┃
+> > 	static DEFINE_XARRAY(hv_pci_bus_xa);
+> > 
+> > 	int hv_iommu_register_pci_bus(int domain_nr, u32 prefix)
+> > 	{
+> > 		return xa_insert(&hv_pci_bus_xa, domain_nr,
+> > 				xa_mk_value(prefix), GFP_KERNEL);
+> > 	}                                                                                                                                                ┃
+> > 
+> > 	void hv_iommu_unregister_pci_bus(int domain_nr)
+> > 	{
+> > 		xa_erase(&hv_pci_bus_xa, domain_nr);
+> > 	}
+> > 
+> > 	int hv_iommu_lookup_logical_dev_id(int domain_nr, u32 *prefix)
+> > 	{
+> > 		void *entry = xa_load(&hv_pci_bus_xa, domain_nr);
+> > 		if (!entry)
+> > ┃
+> > 			return -ENODEV;
+> > 		*prefix = xa_to_value(entry);
+> > 		return 0;
+> > ┃
+> > 	}
+> > 
+> 
+> xarray is best where the keys are dense or mostly dense integers. In
+> this use case, the pci_domain_nr keys are essentially random 16-bit
+> values, which doesn't fit xarray as well. It would work, but wouldn't
+> be very efficient. See the 2nd paragraph of the documentation here:
+> 
+> https://www.kernel.org/doc/html/latest/core-api/xarray.html#xarray
+> 
 
-Signed-off-by: Thomas Weißschuh <thomas.weissschuh@linutronix.de>
----
- drivers/clocksource/arm_arch_timer.c | 7 ++-----
- 1 file changed, 2 insertions(+), 5 deletions(-)
+Thanks for pointing out the documentation. You're right. With sparse
+16-bit keys, a hash-based data structure makes more sense than a
+radix-based one. I'll try reworking it with rhashtable and let you
+know if it doesn't work out.
 
-diff --git a/drivers/clocksource/arm_arch_timer.c b/drivers/clocksource/arm_arch_timer.c
-index 4adf756423de..d67125a8730a 100644
---- a/drivers/clocksource/arm_arch_timer.c
-+++ b/drivers/clocksource/arm_arch_timer.c
-@@ -56,11 +56,8 @@ static struct clock_event_device __percpu *arch_timer_evt;
- static enum arch_timer_ppi_nr arch_timer_uses_ppi __ro_after_init = ARCH_TIMER_VIRT_PPI;
- static bool arch_timer_c3stop __ro_after_init;
- static bool arch_counter_suspend_stop __ro_after_init;
--#ifdef CONFIG_GENERIC_GETTIMEOFDAY
--static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_ARCHTIMER;
--#else
--static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_NONE;
--#endif /* CONFIG_GENERIC_GETTIMEOFDAY */
-+static enum vdso_clock_mode vdso_default = IS_ENABLED(CONFIG_GENERIC_GETTIMEOFDAY) ?
-+	VDSO_CLOCKMODE_ARCHTIMER : VDSO_CLOCKMODE_NONE;
- 
- static cpumask_t evtstrm_available = CPU_MASK_NONE;
- static bool evtstrm_enable __ro_after_init = IS_ENABLED(CONFIG_ARM_ARCH_TIMER_EVTSTREAM);
-
--- 
-2.55.0
-
+B.R.
+Yu
+> Michael
