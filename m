@@ -1,143 +1,116 @@
-Received: from mail-qt1-f179.google.com (mail-qt1-f179.google.com [209.85.160.179])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from fhigh-a4-smtp.messagingengine.com (fhigh-a4-smtp.messagingengine.com [103.168.172.155])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9C775431E6F
-	for <linux-arch@vger.kernel.org>; Fri, 10 Jul 2026 15:43:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.179
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783698209; cv=pass; b=kzp+SrAvK5r3Y9QWLA2OuH4ZHru4fF26QsPqz3ZWNSDK778TVNyFVLLNBXvjcQs5YCaPQPh/ledzp2WWIiGhVUMeaXawVdamEUF8wtz8U/g+zPCYf0xUNkgqJS6miZVpyG0wpv3xWihVv/JBzgpmLcXWgrDJkPJucO8afy9FlXk=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783698209; c=relaxed/simple;
-	bh=SIP3TprJxk9f7sZwXPXIEhZyUNkSDUUk4StLKXdW3xI=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=EiH4GF0zWQPbWkBz/DUSp8wAk9mTtizGTOSGOhPq6yL6QI2wukPOqZz0F1Y9WEIciZl/HTQ6Wdz3bGlmnaef0bfyQOo6OYNvnpd8P3i+8x9f5ACH85e/Dj9ynj43tiQzJSAoOSEemoJpS5Cj+Bogrii0xIlnTd+0iioYzsrpRyM=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=j9qCgyR4; arc=pass smtp.client-ip=209.85.160.179
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9B9E14343F3;
+	Fri, 10 Jul 2026 16:00:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.155
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783699239; cv=none; b=psOJmlRN9BFc/zCXV9pns2X9K+VAEyk8BgVuE4b/czjNXOEHE4gPwGk8O4JSUJBYWUOq6SyN/p6kcjM42vCpgIDbViwIDAZ348BFxZJp6d7tgzmwe6cHjNUffOwKm0adnhh9SnIsXGp/u/aZYR+KTJYuAzn3nG1R00KoOjF8XuA=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783699239; c=relaxed/simple;
+	bh=dyTGQVpE/XQ20CTj5yKU56GOe+OIRXiPo1pB4wIkTso=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=EamiOPrWtPhRw1BowqudDr7MKWUXr5vWZsXvvRuCWfgjprVdh59X6opn3BtkA9NFoHjqBWQsd2AwIbnmag3WbgH+rqC1Jtr5EHLN24Qd+JQAClhYixZcbsTznVjrdqiBQwyiycrgC90xtnfecgvE55tmpT/tmjBdNoY2yg83oxE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=PGXC25HU; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=XNLBbcLx; arc=none smtp.client-ip=103.168.172.155
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="j9qCgyR4"
-Received: by mail-qt1-f179.google.com with SMTP id d75a77b69052e-51c01c79467so363151cf.0
-        for <linux-arch@vger.kernel.org>; Fri, 10 Jul 2026 08:43:27 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1783698206; cv=none;
-        d=google.com; s=arc-20260327;
-        b=ksR+sArkD6k9jK82M1WzUTPaVec6QzySrqDNW5rVOtj46feVDm1PG62x8KUAjP8hKq
-         9K3a8EGgYv0PnIskUV5O/ldYaeZlj3PfCZ0SneN2KiYU8eFSeoFIXnuTRaOZZ5d5yMIQ
-         rW9MI+tNNdsfsJNw3KHQ3pOBT3AcoNjpV1kkls7avhnTeYrr+hwOdMl43Y7UuQvXd6Lr
-         NCiV5ZH094SjE8qff7fUUsCDWJ+3P8dcfcctMSoHNsng2G2konHJqzUcsVBmRqJE42ju
-         VDW76HRNitYB3UI8A0UaoEk9z5n0a77sUIfcjuFVoHier7ZCwOUOBus8rUym3hvJnM4i
-         SpsA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=eiWuhZx3fx/3kwPRGWti1RYKNclAJ7EyzHkbsfNA19c=;
-        fh=Yek+ZXzCnhxk06vRxWmSqAsN7hLVcT/tRLBayQBgNQI=;
-        b=re9JEnr93b9t7CGpZKbi4lilQ2ZBR4h0bmcMc1LkJQA49kA00mHsI+C44UOoK+yOvO
-         KbNGz35W1AyTMNxt0az5gYh3pYas8mxx4kLS8yu7bbW3AO0GZN8CRnmjnTy3l1SdSQmY
-         rDgNneSw+0trtPfHrRpfe/woDlgIGru4LE+HjbdoRUhMk7hUnnx7GJ75XtOdi6Elhabf
-         818LiWxqLQVpH7Yva2eDRuzIMwZCDhyvAZ5lteokpGqZ6rkt4ZMJPTKY9xVmbiFjFXD8
-         m1MnftZOSo+jKJZmR4ihS0By4dh1eEtNyhfidsNXVkutwwrZ1dORtGIkTCDPh9vu47qp
-         UNMg==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1783698206; x=1784303006; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=eiWuhZx3fx/3kwPRGWti1RYKNclAJ7EyzHkbsfNA19c=;
-        b=j9qCgyR4NGWJlEPkgXXWxToAwmFJRYNqrWHN7j9Jmo02W4IloIsfcd5L4rH7fTKc+Z
-         1Cm21MwOyHLU8Yivb0xABmjkht4JOpqIoNnpjB1z2FRzYxyZKxaaTNlHWPMmhIfQDMy+
-         DVp79hoz2o1nOn4vCxsBzF988uWtrS2VVtUXGkIdT935+zhiVC3tQCvx4CW8zo7vxNa8
-         HZBrqOxfy7WEosM8FKLmI9GC3LJ5OhvdJVHUgOdfRyYjQi6KGYFMjnJd+Kc6fFRZ9hod
-         JnN4n7OYCKE1u6zGH5kYy5PQoOgWTyX5LJlEWL/CVtTH6H+Ika/K/7mEtlQPH83tBt4A
-         0gRw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1783698206; x=1784303006;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=eiWuhZx3fx/3kwPRGWti1RYKNclAJ7EyzHkbsfNA19c=;
-        b=kELD31vmluG7voMe7ymg8L7uRFR+IIaXagLyeqvu1Qx8BxBv/ojiM51F+TKI6CnCxB
-         wgWGpfBT+x755wCEwebLDRegMjuNt/BBiXjaIT7YStFb4QHbdIpiY9ZOVtLMkthfKqd8
-         R3Om+2bPJSCxihNM23PhCCO7Pquq+wgc86I6GvG0mnFTEKpcdE05ljNzAkkNGymokgrg
-         ydlLFQqJArqRX3ByYOTB6BLuZyAOJYVrhTVKRgFykZPqpjl3+cleaMOJ5iXgveKg7zQ0
-         uorxw5v/Qzj066rcw2fcC9ERfkwRqwXFCTU6aaeXy1CdTO+lcXf8/1nAiSJjIT2S+SpE
-         rBAA==
-X-Forwarded-Encrypted: i=1; AHgh+Rpt1k8/bBTTuNBE/nceHXEdYaypwqEx+JFCmttMbA/dJQ6/iu37RW5O+FFPFMqaDL/tRLjmYSMnE6q5@vger.kernel.org
-X-Gm-Message-State: AOJu0YwmmVdHT9qhHRoAmG1hbaq8jicreusZ0ZnVoU7vsRFoNWsuxM25
-	HKwXXRruMjh8e/2gfocQbfwMPvH4TnqcrALw4lWxK9Oj0FzwWlx53WyEusZEwl3NignV2vwotUg
-	uVs/YFqEEGSD26O5V5UkOpyB15OzrEWhuNM10dMzEq+jEMCr+3da8lEkg
-X-Gm-Gg: AfdE7cmhuX1B4MnmUQ5Voc0wH0ot2BihhNnEfh8GvVIplK4XoTI1WjIlUfWwBcj6k1i
-	LfpewVCClXQZtj5O63FYL3ggjAjOS1tmlGz6si+h5rJTtkyCNhAGmpObJkgwjAEZ86UZCGsI0Hy
-	XRVK/EqS2v7Nswh2y77r33BOJqopYEHiHa1afH1zNuN1TqDIypewYvqYdhjLsbVsAU86x3rzoCO
-	8eejU/kIvCvkr3x4FS53+LHdJfnWC+NVI3m8nBEkQVZ16eL8cb4AEkixlZNgd1GPKgbYA==
-X-Received: by 2002:a05:622a:4e:b0:51c:7a8b:c401 with SMTP id
- d75a77b69052e-51caa49039fmr10222971cf.26.1783698205823; Fri, 10 Jul 2026
- 08:43:25 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="PGXC25HU";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="XNLBbcLx"
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailfhigh.phl.internal (Postfix) with ESMTP id 5D7C01400108;
+	Fri, 10 Jul 2026 12:00:31 -0400 (EDT)
+Received: from phl-imap-05 ([10.202.2.95])
+  by phl-compute-04.internal (MEProxy); Fri, 10 Jul 2026 12:00:31 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm1; t=1783699231;
+	 x=1783785631; bh=xh+sDsHpazFTFZx3vfrQLYzWsd6rDYC53w1yN+flPQc=; b=
+	PGXC25HUeUXAcKz/qiHkmChzH1MVOWeYGouVzm/oPp6aGEKRgwEuwgc9ggBcXo/a
+	MHa7n0Ka5JfNwVEs9dLzz2fO/DeUpC2ik4dDp5G63cT+C6hoLHwHGUPfCYLxRUDj
+	fIewVPCOxrt8I7LKDBZKuDeYQdp2E8tgIxYPx6amobDunhsfxhUMquC3/moTDDYG
+	Ds1PBrvobhLG6nE01Bw4W99NpJAhmIcvfiptf8RmiQR81gELlrepXx+7nt7P9NQy
+	o6HJMB1uESObxa6k1CgZd1McWyLzhjwvsFBOQJmupXeuWze7ZI3KmNpgKgknxpjh
+	lA7f4n73uqsBUGsbB6k4KQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1783699231; x=
+	1783785631; bh=xh+sDsHpazFTFZx3vfrQLYzWsd6rDYC53w1yN+flPQc=; b=X
+	NLBbcLx+dqAFyjxgTsIJXUREGwrBA5z3qlTZPQQsThv99A9v1exgNldv/S96GgzK
+	I2NLdmfILaIc1mL39di2p6XaWzOMNiVssQYD2tB8L1zCfAbMX3M1UwNZv/23jApP
+	Z2KUJvprxTi7JV7iJiJdidE8gxKxgGPuF1ZrnlzLU4InZWwcuOero4xdsNlsZTQR
+	2U4Hd988RnGABNZhOEyXJ16+BQmqH+cHioMEb9W0osD7Roj/8McjHCYD+K4J4tA6
+	qAOgDEHNGJwM2BM7A1bnrAIIBgG4dWtZXdvDk4DB1Sn04ZSifcT6ypwSKrNy70We
+	5T/BafO90sZ32PpMZSLTg==
+X-ME-Sender: <xms:HhdRaqIT0_JqhmSC8nMtSXDUZKdKw0gBvx7ukOSUGS0HBIoq0nkDyg>
+    <xme:HhdRas-7aXh8mII-V1zHB7rRzPu9BGHa7xuwaU2ZG5ttlYRewYf07tvxitJspsi-q
+    bWZl8SkfDiukgZ_JbP0m6Hp0yT4Z4maCGb6nFuPwUez5rRfqO4ptW6i>
+X-ME-Proxy-Cause: dmFkZTF/D7XEemVIzhqh+MvGbobD9yHt/GHpuib2UI/WeTSduHiFLfsOdDu67+Vs7J1+x9
+    OQPv9XejemVdWAhKn2RvlCAuIZ6CviPDNJzUmXYsF3o//DFt1MaDxhlSbg3LzNaJZ++R/c
+    fqKsXefeIqA22pR6Ofzhrkb+JE+frVMVnyuvG65qD6L44jpjYzVI1pyGz7lhtbS5qXzH9L
+    egPGMVio56eleQ6ANbxZfdW0xvNM+dUwTRBrmVIUec+AbynVrm2wowhJnA4mRoUcL2TMmQ
+    mqf88FHGYokfZp14VthIdwzvJ/TE1FmGecxWWblFjg2IpLV8Gmwro6wKPqEjmcVO1lWwWZ
+    IqacxR6nex3bAkBr+hbdAi29TWcdtWkFPNZFXyZuKcKudhr5XMiy1iyLjSLLsiavYKt43P
+    5wna7zHq8espFbQhYkGxB4jcFDExoDpk0SWsRXc24AwQktkSpr8ZdAjHKC+uxVAz745JrW
+    lx3LKYCv3/9ABf33dI54aOZqlugobCis2o214E7m+JdRyyxNkUAi3tjf5Ju3c0vQT8VsOS
+    CWrGfZKLFFArp7DNokIe2K5Mwdgiu+iPDgAOAKz5tNCYVzpIXuPxxmldOFKzYtMrQPGgK/
+    HHy2sKeuM8ofVXlwuQ2VD84iwUzqGbA03ygB3LBmJxFT0DO9H8g5nb8UZqsg
+X-ME-Proxy: <xmx:HhdRausLaDPY9U68EWlmLhpHsYW-kT-dwS54wF_IG_4kxAfW-UId-g>
+    <xmx:HhdRasPQzsF3SIaWMVlb_HvUnY9xrWfqIEJkVi0iVO5y6GFjDspNJw>
+    <xmx:HhdRaoc0AS3smy7wAnaN6lA7VrUWG4jTt5vIPFRZHgHDLZSSwJaPXg>
+    <xmx:HhdRark-Qx9AnLvtcRqeI_REz_mc0JKyAKBFIUxzwSxfQhor-vx7aQ>
+    <xmx:HxdRauUHZAp3l_FMvob9KsRom9miHUxu7OTLqqKfAVKTU-0XG3OhJHK2>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id 3BAA31820086; Fri, 10 Jul 2026 12:00:30 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260708020007.55728-1-atomlin@atomlin.com>
+X-ThreadId: A2UGMrT-rt8g
+Date: Fri, 10 Jul 2026 17:59:59 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Aaron Tomlin" <atomlin@atomlin.com>,
+ "Luis Chamberlain" <mcgrof@kernel.org>, "Petr Pavlu" <petr.pavlu@suse.com>,
+ da.gomez@kernel.org, "Sami Tolvanen" <samitolvanen@google.com>,
+ "Peter Zijlstra" <peterz@infradead.org>
+Cc: "Andrew Morton" <akpm@linux-foundation.org>,
+ "Masami Hiramatsu" <mhiramat@kernel.org>, neelx@suse.com,
+ da.anzani@gmail.com, sean@ashe.io, chjohnst@mail.com, steve@abita.co,
+ mproche@mail.com, nick.lane@mail.com,
+ Linux-Arch <linux-arch@vger.kernel.org>, linux-modules@vger.kernel.org,
+ linux-kernel@vger.kernel.org
+Message-Id: <33171ccd-038b-4bb8-b796-f104a131c0ee@app.fastmail.com>
 In-Reply-To: <20260708020007.55728-1-atomlin@atomlin.com>
-From: Sami Tolvanen <samitolvanen@google.com>
-Date: Fri, 10 Jul 2026 08:42:49 -0700
-X-Gm-Features: AUfX_mymkLg6O86WvMfSVNUd1VOB0p_rGM5VJHexLUldDKSDY_UVK2hUt0TDUHM
-Message-ID: <CABCJKufGH621Vh6JBxmk5XVrFETSvX2tJP1bNiBRg0T-=n+GRw@mail.gmail.com>
+References: <20260708020007.55728-1-atomlin@atomlin.com>
 Subject: Re: [PATCH v4] module: Extend module_blacklist parameter to built-in modules
-To: Aaron Tomlin <atomlin@atomlin.com>
-Cc: arnd@arndb.de, mcgrof@kernel.org, petr.pavlu@suse.com, da.gomez@kernel.org, 
-	peterz@infradead.org, akpm@linux-foundation.org, mhiramat@kernel.org, 
-	neelx@suse.com, da.anzani@gmail.com, sean@ashe.io, chjohnst@mail.com, 
-	steve@abita.co, mproche@mail.com, nick.lane@mail.com, 
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org, 
-	linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-Hi Aaron,
+On Wed, Jul 8, 2026, at 04:00, Aaron Tomlin wrote:
+> Currently, the "module_blacklist=" command-line parameter only applies
+> to loadable modules. If a module is built-in, the parameter is silently
+> ignored. This patch extends the blacklisting functionality to built-in
+> modules by intercepting their initialisation routines during early boot.
 
-On Tue, Jul 7, 2026 at 7:00=E2=80=AFPM Aaron Tomlin <atomlin@atomlin.com> w=
-rote:
->
-> +static const char *initcall_get_modname(initcall_t fn)
-> +{
-> +       struct initcall_modname *p;
-> +       unsigned long addr =3D (unsigned long)dereference_function_descri=
-ptor(fn);
-> +
-> +       if (system_state >=3D SYSTEM_FREEING_INITMEM)
-> +               return NULL;
-> +
-> +       if (!is_kernel_text(addr) &&
-> +           !is_kernel_inittext(addr))
-> +               return NULL;
-> +
-> +       for (p =3D __start_initcall_modnames; p < __stop_initcall_modname=
-s; p++) {
-> +               if (dereference_function_descriptor(p->initcall_fn) =3D=
-=3D
-> +                   dereference_function_descriptor(fn))
-> +                       return p->modname;
-> +       }
-> +       return NULL;
-> +}
-> +
->  int __init_or_module do_one_initcall(initcall_t fn)
->  {
->         int count =3D preempt_count();
->         char msgbuf[64];
-> +       const char *modname;
->         int ret;
->
-> +       modname =3D initcall_get_modname(fn);
+Andrew already asked you to provide more background on what you need
+this part for. Do you have a specific driver you need to disable?
 
-If I'm reading this correctly, this ends up scanning the
-initcall_modnames list for every initcall. Have you measured whether
-this has any boot time impact? Can we at least skip this scan if no
-module denylist is provided?
+Can't you do the same thing using initcall_blacklist?
 
-Sami
+> To preserve the existing user-space ABI, "module_blacklist=" is kept
+> as a legacy alias pointing to the same module_denylist variable.
+
+It looks like the denylist is only introduced in the same patch?
+
+That sounds more useful, but would better be done in a separate
+change, and also needs a proper changelog text.
+
+     Arnd
