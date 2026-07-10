@@ -1,92 +1,51 @@
-Received: from invmail4.hynix.com (exvmail4.hynix.com [166.125.252.92])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id BCC83233958;
-	Fri, 10 Jul 2026 05:54:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.125.252.92
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 40A44372EEF;
+	Fri, 10 Jul 2026 06:17:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783662853; cv=none; b=ueCD2zFrv+MdlRfIJHrHCJdhZo9HanZ55ZK/uRY8v2OQNFNLp5ENywz/DMih1EI0vWDe8BbiGhjXkG2ncSCxwBLfLaw5NJcTj2rAwjnC1i+C7132BtbKDJVFuKva1RfsB2+DHWa+gBYpoEqEGKsy/0rpIvbhwPnmwYTsjY2SClo=
+	t=1783664271; cv=none; b=kYfhcq54WP08TC6lAYOy/gkfD0FDy7me5kd6Zwrzf1iqSsTCgHiRoW1pknbOVWB94pUefRtlOKAv71aDO+c1oBJzfaPyk1b/UdgPT6hDYSknsYvzmYI0Z1pOPc+0Eyl6zlpBguMYuur9lbFkM2lgBdX2eZTYXCqNhSynjpYD6Ow=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783662853; c=relaxed/simple;
-	bh=nyDBnktELM+hz7RvTSyEr5tTXDizK+ufnQXY3jTKq48=;
+	s=arc-20240116; t=1783664271; c=relaxed/simple;
+	bh=XOmSjByoNF6Vt4jgC7Oz9VwkAlxisH3g8HUOSqtXj8g=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=HHnNTng40LYlxMTCqM6XcjVREF4/k/oaH9ahfyy5Arw+jpXnGc2i8Ro68QoH8dv0kZTkQHDUG5mFrx9Gx8Rpj42bJHAz2j5bVoS/6hG1WcF2kODfR8+yWe798+pf5Lz/2Ys5KXyOkrwWnt1aveZUFtJtjAV3PUMe3YYQo+V6YOM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com; spf=pass smtp.mailfrom=sk.com; arc=none smtp.client-ip=166.125.252.92
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sk.com
-X-AuditID: a67dfc5b-c45ff70000001609-cb-6a5088f7cfdd
-Date: Fri, 10 Jul 2026 14:53:54 +0900
-From: Byungchul Park <byungchul@sk.com>
-To: Gary Guo <gary@garyguo.net>
-Cc: linux-kernel@vger.kernel.org, max.byungchul.park@gmail.com,
-	kernel_team@skhynix.com, torvalds@linux-foundation.org,
-	damien.lemoal@opensource.wdc.com, linux-ide@vger.kernel.org,
-	adilger.kernel@dilger.ca, linux-ext4@vger.kernel.org,
-	mingo@redhat.com, peterz@infradead.org, will@kernel.org,
-	tglx@linutronix.de, rostedt@goodmis.org, joel@joelfernandes.org,
-	sashal@kernel.org, daniel.vetter@ffwll.ch, duyuyang@gmail.com,
-	johannes.berg@intel.com, tj@kernel.org, tytso@mit.edu,
-	willy@infradead.org, david@fromorbit.com, amir73il@gmail.com,
-	gregkh@linuxfoundation.org, kernel-team@lge.com, linux-mm@kvack.org,
-	akpm@linux-foundation.org, mhocko@kernel.org, minchan@kernel.org,
-	hannes@cmpxchg.org, vdavydov.dev@gmail.com, sj@kernel.org,
-	jglisse@redhat.com, dennis@kernel.org, cl@linux.com,
-	penberg@kernel.org, rientjes@google.com, vbabka@suse.cz,
-	ngupta@vflare.org, linux-block@vger.kernel.org,
-	josef@toxicpanda.com, linux-fsdevel@vger.kernel.org, jack@suse.cz,
-	jlayton@kernel.org, dan.j.williams@intel.com, hch@infradead.org,
-	djwong@kernel.org, dri-devel@lists.freedesktop.org,
-	rodrigosiqueiramelo@gmail.com, melissa.srw@gmail.com,
-	hamohammed.sa@gmail.com, harry.yoo@oracle.com,
-	chris.p.wilson@intel.com, gwan-gyeong.mun@intel.com,
-	boqun.feng@gmail.com, longman@redhat.com, yunseong.kim@ericsson.com,
-	ysk@kzalloc.com, yeoreum.yun@arm.com, netdev@vger.kernel.org,
-	matthew.brost@intel.com, her0gyugyu@gmail.com, corbet@lwn.net,
-	catalin.marinas@arm.com, bp@alien8.de, x86@kernel.org,
-	hpa@zytor.com, luto@kernel.org, sumit.semwal@linaro.org,
-	gustavo@padovan.org, christian.koenig@amd.com,
-	andi.shyti@kernel.org, arnd@arndb.de, lorenzo.stoakes@oracle.com,
-	Liam.Howlett@oracle.com, rppt@kernel.org, surenb@google.com,
-	mcgrof@kernel.org, petr.pavlu@suse.com, da.gomez@kernel.org,
-	samitolvanen@google.com, paulmck@kernel.org, frederic@kernel.org,
-	neeraj.upadhyay@kernel.org, joelagnelf@nvidia.com,
-	josh@joshtriplett.org, urezki@gmail.com,
-	mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com,
-	qiang.zhang@linux.dev, juri.lelli@redhat.com,
-	vincent.guittot@linaro.org, dietmar.eggemann@arm.com,
-	bsegall@google.com, mgorman@suse.de, vschneid@redhat.com,
-	chuck.lever@oracle.com, neil@brown.name, okorniev@redhat.com,
-	Dai.Ngo@oracle.com, tom@talpey.com, trondmy@kernel.org,
-	anna@kernel.org, kees@kernel.org, bigeasy@linutronix.de,
-	clrkwllms@kernel.org, mark.rutland@arm.com, ada.coupriediaz@arm.com,
-	kristina.martsenko@arm.com, wangkefeng.wang@huawei.com,
-	broonie@kernel.org, kevin.brodsky@arm.com, dwmw@amazon.co.uk,
-	shakeel.butt@linux.dev, ast@kernel.org, ziy@nvidia.com,
-	yuzhao@google.com, baolin.wang@linux.alibaba.com,
-	usamaarif642@gmail.com, joel.granados@kernel.org,
-	richard.weiyang@gmail.com, geert+renesas@glider.be,
-	tim.c.chen@linux.intel.com, linux@treblig.org,
-	alexander.shishkin@linux.intel.com, lillian@star-ark.net,
-	chenhuacai@kernel.org, francesco@valla.it,
-	guoweikang.kernel@gmail.com, link@vivo.com, jpoimboe@kernel.org,
-	masahiroy@kernel.org, brauner@kernel.org,
-	thomas.weissschuh@linutronix.de, oleg@redhat.com, mjguzik@gmail.com,
-	andrii@kernel.org, wangfushuai@baidu.com, linux-doc@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-media@vger.kernel.org,
-	linaro-mm-sig@lists.linaro.org, linux-i2c@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
-	rcu@vger.kernel.org, linux-nfs@vger.kernel.org,
-	linux-rt-devel@lists.linux.dev, 2407018371@qq.com, dakr@kernel.org,
-	miguel.ojeda.sandonis@gmail.com, neilb@ownmail.net,
-	bagasdotme@gmail.com, wsa+renesas@sang-engineering.com,
-	dave.hansen@intel.com, geert@linux-m68k.org, ojeda@kernel.org,
-	alex.gaynor@gmail.com, bjorn3_gh@protonmail.com, lossin@kernel.org,
-	a.hindborg@kernel.org, aliceryhl@google.com, tmgross@umich.edu,
-	rust-for-linux@vger.kernel.org
-Subject: Re: [PATCH v19 31/40] dept: assign unique dept_key to each distinct
- wait_for_completion() caller
-Message-ID: <20260710055354.GA37630@system.software.com>
-References: <20260706061928.66713-1-byungchul@sk.com>
- <20260706061928.66713-32-byungchul@sk.com>
- <DJSEK3KA2ECQ.1512A4KGOBSCV@garyguo.net>
+	 Content-Type:Content-Disposition:In-Reply-To; b=eNgWpoIkJrmwoMTPDOjix+Mxjr7TGwl70rzWm18xBJcGaRLgGeJGAch13yra6+3ctpBxZqvWpe96HWPg7rx3K/2JalHG5wqn3iJrmH/jPpcMilMJ0MZwrW191TFWNAERrievGoJyPLZDrHx25TnEP0Z2JepSZ08n+omz6hpJg40=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=YNqa0lUn; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="YNqa0lUn"
+Received: from localhost (unknown [167.220.233.38])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 3839B20B716E;
+	Thu,  9 Jul 2026 23:17:42 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 3839B20B716E
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1783664262;
+	bh=5BI1bwekiHhmXFmNYH3osBguDBBQ2ik4qNO2EtDDABM=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=YNqa0lUnd+91XFtKhumTUuIQSy5ymXySxSHsDfPqXrA1xNJyuESOexSzLLaDphq7b
+	 jyRGPVEgyP4IRfULmaHSeagXGJdN4TWsSjHa1LDg2HxO20SohSYAfhc+akJ+Rgsl3v
+	 hqdL5nVm1HB+kjepLHBimGMiY57EwZakHmmpTrc8=
+Date: Fri, 10 Jul 2026 14:17:46 +0800
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: Michael Kelley <mhklinux@outlook.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
+	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev" <iommu@lists.linux.dev>, 
+	"linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 
+	"wei.liu@kernel.org" <wei.liu@kernel.org>, "kys@microsoft.com" <kys@microsoft.com>, 
+	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>, 
+	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org" <joro@8bytes.org>, 
+	"will@kernel.org" <will@kernel.org>, "robin.murphy@arm.com" <robin.murphy@arm.com>, 
+	"bhelgaas@google.com" <bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>, 
+	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org" <mani@kernel.org>, 
+	"robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
+	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
+	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>, "mrathor@linux.microsoft.com" <mrathor@linux.microsoft.com>
+Subject: Re: [PATCH v2 1/4] hyperv: Introduce new hypercall interfaces used
+ by Hyper-V guest IOMMU
+Message-ID: <skgtaljhihedmdtax3jlqbrbtl3goky2odrdvohaopux35gljh@ieyan5a7cxpu>
+References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
+ <20260702160518.311234-2-zhangyu1@linux.microsoft.com>
+ <SN6PR02MB41579A957E1C81583BBA1119D4FE2@SN6PR02MB4157.namprd02.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -95,93 +54,229 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <DJSEK3KA2ECQ.1512A4KGOBSCV@garyguo.net>
-User-Agent: Mutt/1.9.4 (2018-02-28)
-X-Brightmail-Tracker: H4sIAAAAAAAAA02Sa0yTdxTG93/vNDR56WT7C7t2LltYdOIlHp0xkizxTeaGyZYscR9mI+9G
-	paBpBcHEKGNIvYDYbHa0CuU2uVQg5TJXMDKEAmYd2LFSMy6WmzhaFaTVAaUrVTO//fKc5zzn
-	+XA4UlbJxHDKtMOiOk2hkjMSSuKNLF37RLvnwPpsezRoc4/DxXozA1pLEQ09g99RMOrTInD1
-	XyfB3JRNgGHKyIJ3tJWGQb8HwUR7HoLAhRQoKWtkYNHeR0Kpe5iEJtsIgsnCZhIGfA8YuPX7
-	DIJLRh2CnPJ6BoYu6Agw6qcJWHLHg632LgvD536koM7bR8PMlI6B0e6TNMwPuAkwn50iQWv1
-	UWAZd9JQVDwUaheYR2C7OkbAn9aLDIyYgzT0Gqop+Nt+joU+6xUaKgdvEeC+46LBVTiJ4Lbe
-	w4Kj3URA1ayehuprdgZspleg+Xougrzp1lCngn8o6Kz/hYAbPg8BTl0JA/aWmywYswsQaDv9
-	JDTMXmag4I9d8KRhPNSutoaBKwEnAmPXCLtzp5DrCDCCudiMhPnKHFJY8P3FCNf8Jkq4WYaF
-	ilMLhHDevlb41TDMCiZLumCpOcUIljkdK5QuTpPCkLONEXp+WqSEiQE9sWfNXsn2JFGlzBDV
-	H+7YJ0nuqmihDhVHZVqn2sgTaFZ6GkVwmN+Eg3W11HMe62yjV5ji38XeHA+7wgz/Hna5/iVX
-	eBX/JrbUlBGnkYQj+aI3sMPfG154mU/BS1X3wiYpD/iGszxskvH5CNsWjPTTQRTuLZoIXyP5
-	OOxavhcycSGOxZeXuRU5gt+MHzbNhQ9H8+/g9pbucA7mxyLwD03BZ01X49+qXFQh4g0vxBpe
-	iDX8H2tCZA2SKdMyUhVK1aZ1yVlpysx1+w+mWlDoeX8+tvTVVTTX/3kH4jkkj5SuP554QEYr
-	MjRZqR0Ic6R8lfTOayFJmqTIOiqqD36tTleJmg4Uy1HyV6Ub/EeSZPy3isNiiigeEtXPpwQX
-	EXMCfbT68dmSjEcboh7sqBYeJSYc5S59sezemOh4W7mldZ7dpo0MNH7g399g8yWc2V5uD3q8
-	j83tL/V8Ulea3510X+yK7y52n+wTtlYob79Fzk1+s9uTrylMOO/I/D5Gr7qf93GjpGHX+0FZ
-	+mdL2XfjzlQd+3T89X39bbutX0Y3z2xrdcTKKU2yIj6OVGsU/wHjrPZquAMAAA==
-X-Brightmail-Tracker: H4sIAAAAAAAAA02Sa0xTZxjH877n9PTQWT0UCCdek5rFhEyRTZIn2bKLmXpivPCNhCzRRk9G
-	5aJpEWUJU6iN1ampTVqk9QJFKitMsCCOSyMBrUPnbLlIo7DCUuu6giBQCJeWnWKMfnnye57n
-	/8vzfnhpQrYkWk0r8wt4Vb4iV05JSMm+LzWbZ3UZR7bet6aCTnsKBn1+ETwv6SAhPK0j4Wp9
-	HQURyz0x6BzlIvhjoJQE9+1aBL6wDsHsgoUAbcsSCRGDSwzTcy/FYCxBsOR0ITB5DAR43fcJ
-	qGsqwTDVEKUg1DWJwDjip6AsWELCuO0CAnPAIobgw10w5msTwdLQawwDM6MIbP4oBn/HWQQR
-	Uw7csDYKummCgoWnzwgoM7oRVI4METAZHEbQ5PobgbOmlIJX+rsE9PpXQl94nIJu4y8UjHmu
-	YnjTQEFFqVMEnj9DCK5ZDAgCL5wYNFX1FJiuOUhoGW4Vgye0iGHQZMBQ69gLPluAhCd6Kxae
-	K6TuJIOlTIOF8i8G429tGOZsdvG31Yib1V4iOXtjM+a0PRGKq7teh7iFeQPipqs1BKfVC23X
-	6DjBnWk8wVU/GaW4+XA/xTlnKkjusZXlbp6bx9zlp5u5FvOQOOO7LMlXh/lcZSGvSv36oCT7
-	4c1m8tj1+JOtgXbiNHorPY/iaJbZxv7zoF0UY5L5lB3TjIpjTDGbWK93johxIrOBddit+DyS
-	0ARTvp7tmeleFhKYHHaxJrgckjLAdj2vWg7JmIuIdc1bRO8W8Wx3uZ+MMcGksN5oUAjRAq9h
-	b0Xp2DiOSWcnmiaXDycxG9mO5kdYj6Tmj2zzR7b5g12BCDtKVOYX5imUuelb1DnZRfnKk1sO
-	Hc1zIOFb2ooXL/+Opnt3dSKGRvIV0q2n9h+RiRSF6qK8TsTShDxROrxWGEkPK4p+4lVHD6iO
-	5/LqTrSGJuXJ0t2Z/EEZ86OigM/h+WO86v0W03GrT6NNrXcKip9lq88W7zBMeONTd//X03ku
-	lLh36pXsojnl5aNP0jrazUWRAcnaK+4+Q8iV3PD5TllCZtKqxuTt4YxfM+9VfpEU/N7zwD5Y
-	2+/ybf+mH+uyVuzYqV73Q3Pv20D6SNvdqopV6/V861Rl9K8+RVZC8DO38/XjffXMngvlB9J+
-	lpPqbEVaCqFSK/4HtzJC/ZIDAAA=
-X-CFilter-Loop: Reflected
+In-Reply-To: <SN6PR02MB41579A957E1C81583BBA1119D4FE2@SN6PR02MB4157.namprd02.prod.outlook.com>
 
-On Tue, Jul 07, 2026 at 03:18:29PM +0100, Gary Guo wrote:
-> On Mon Jul 6, 2026 at 7:19 AM BST, Byungchul Park wrote:
-> > wait_for_completion() can be used at various points in the code and it's
-> > very hard to distinguish wait_for_completion()s between different usages.
-> > Using a single dept_key for all the wait_for_completion()s could trigger
-> > false positive reports.
-> >
-> > Assign unique dept_key to each distinct wait_for_completion() caller to
-> > avoid false positive reports.
-> >
-> > While at it, add a rust helper for wait_for_completion() to avoid build
-> > errors.
-> 
-> This will cause Rust code to share the same dept_key, so it will have all the
-> false positives that the change is trying to avoid.
-
-Thank you for the input.
-
-> In general it is easy to create Rust bindings for static inline C functions
-> because it'll be just some computation, while creating bindings for C
-> function-like macros that define additional statics can be challenging.
-> 
-> Is dept_key similar to lock_class_key, where only the address matters? If so,
-> the approach that I use in
-> https://lore.kernel.org/rust-for-linux/DJP0CDOR98N5.29BK8PUFRWRUK@garyguo.net
-
-Yes, dept_key is similar to lock_class_key.  IIUC, the way you tried for
-lock_class_key can be applied to DEPT too.  I will do:
-
-   1) add 'key' parameter to sdt_might_sleep_start_timeout()
-   2) introduce init_completion_dkey() to allow custom keys
-   3) remove init_completion_dmap() and adjust the existing users
-
-Just in case, it's worth noting that the custom keys must be
-well-managed using e.g. dept_key_destroy() when the key gets freed.
-
-	Byungchul
-
-> could be used for dept_key as well, then we can keep Rust `wait_for_completion`
-> still a function; otherwise we have to turn it into a macro too on the Rust side
-> to create such statics, which isn't ideal.
-> 
-> Best,
-> Gary
-> 
-> >
-> > Signed-off-by: Byungchul Park <byungchul@sk.com>
+On Thu, Jul 09, 2026 at 07:06:19PM +0000, Michael Kelley wrote:
+> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Thursday, July 2, 2026 9:05 AM
+> > 
+> > From: Wei Liu <wei.liu@kernel.org>
+> > 
+> > Hyper-V guest IOMMU is a para-virtualized IOMMU based on hypercalls.
+> > Introduce the hypercalls used by the child partition to interact with
+> > this facility.
+> > 
+> > These hypercalls fall into below categories:
+> > - Detection and capability: HVCALL_GET_IOMMU_CAPABILITIES is used to
+> >   detect the existence and capabilities of the guest IOMMU.
+> > 
+> > - Device management: HVCALL_GET_LOGICAL_DEVICE_PROPERTY is used to
+> >   check whether an endpoint device is managed by the guest IOMMU.
+> > 
+> > - Domain management: A set of hypercalls is provided to handle the
+> >   creation, configuration, and deletion of guest domains, as well as
+> >   the attachment/detachment of endpoint devices to/from those domains.
+> > 
+> > - IOTLB flushing: HVCALL_FLUSH_DEVICE_DOMAIN is used to ask Hyper-V
+> >   for a domain-selective IOTLB flush (which in its handler may flush
+> >   the device TLB as well).
+> > 
+> > Signed-off-by: Wei Liu <wei.liu@kernel.org>
+> > Co-developed-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+> > Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+> > Co-developed-by: Yu Zhang <zhangyu1@linux.microsoft.com>
+> > Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
 > > ---
-> >  include/linux/completion.h | 100 +++++++++++++++++++++++++++++++------
-> >  kernel/sched/completion.c  |  60 +++++++++++-----------
-> >  rust/helpers/completion.c  |   5 ++
-> >  3 files changed, 120 insertions(+), 45 deletions(-)
+> >  include/hyperv/hvgdk_mini.h |   8 +++
+> >  include/hyperv/hvhdk_mini.h | 124 ++++++++++++++++++++++++++++++++++++
+> >  2 files changed, 132 insertions(+)
+> > 
+> > diff --git a/include/hyperv/hvgdk_mini.h b/include/hyperv/hvgdk_mini.h
+> > index 6a4e8b9d570f..5bdbb44da112 100644
+> > --- a/include/hyperv/hvgdk_mini.h
+> > +++ b/include/hyperv/hvgdk_mini.h
+> > @@ -486,10 +486,16 @@ union hv_vp_assist_msr_contents {	 /*
+> > HV_REGISTER_VP_ASSIST_PAGE */
+> >  #define HVCALL_GET_VP_INDEX_FROM_APIC_ID		0x009a
+> >  #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE	0x00af
+> >  #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_LIST	0x00b0
+> > +#define HVCALL_CREATE_DEVICE_DOMAIN			0x00b1
+> > +#define HVCALL_ATTACH_DEVICE_DOMAIN			0x00b2
+> >  #define HVCALL_SIGNAL_EVENT_DIRECT			0x00c0
+> >  #define HVCALL_POST_MESSAGE_DIRECT			0x00c1
+> >  #define HVCALL_DISPATCH_VP				0x00c2
+> > +#define HVCALL_DETACH_DEVICE_DOMAIN			0x00c4
+> > +#define HVCALL_DELETE_DEVICE_DOMAIN			0x00c5
+> >  #define HVCALL_GET_GPA_PAGES_ACCESS_STATES		0x00c9
+> > +#define HVCALL_CONFIGURE_DEVICE_DOMAIN			0x00ce
+> > +#define HVCALL_FLUSH_DEVICE_DOMAIN			0x00d0
+> >  #define HVCALL_ACQUIRE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d7
+> >  #define HVCALL_RELEASE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d8
+> >  #define HVCALL_MODIFY_SPARSE_GPA_PAGE_HOST_VISIBILITY	0x00db
+> > @@ -502,6 +508,8 @@ union hv_vp_assist_msr_contents {	 /*
+> > HV_REGISTER_VP_ASSIST_PAGE */
+> >  #define HVCALL_MMIO_READ				0x0106
+> >  #define HVCALL_MMIO_WRITE				0x0107
+> >  #define HVCALL_DISABLE_HYP_EX                           0x010f
+> > +#define HVCALL_GET_IOMMU_CAPABILITIES			0x0125
+> > +#define HVCALL_GET_LOGICAL_DEVICE_PROPERTY		0x0127
+> >  #define HVCALL_MAP_STATS_PAGE2				0x0131
+> > 
+> >  /* HV_HYPERCALL_INPUT */
+> > diff --git a/include/hyperv/hvhdk_mini.h b/include/hyperv/hvhdk_mini.h
+> > index b4cb2fa26e9b..493608e791b4 100644
+> > --- a/include/hyperv/hvhdk_mini.h
+> > +++ b/include/hyperv/hvhdk_mini.h
+> > @@ -547,4 +547,128 @@ union hv_device_id {		/* HV_DEVICE_ID */
+> >  	} acpi;
+> >  } __packed;
+> > 
+> > +/* Device domain types */
+> > +#define HV_DEVICE_DOMAIN_TYPE_S1	1 /* Stage 1 domain */
+> > +
+> > +/* ID for default domain and NULL domain */
+> > +#define HV_DEVICE_DOMAIN_ID_DEFAULT 0
+> > +#define HV_DEVICE_DOMAIN_ID_NULL    0xFFFFFFFFULL
+> > +
+> > +union hv_device_domain_id {
+> > +	u64 as_uint64;
+> > +	struct {
+> > +		u32 type: 4;
+> > +		u32 reserved: 28;
+> > +		u32 id;
+> > +	} __packed;
+> > +};
+> > +
+> > +struct hv_input_device_domain {
+> > +	u64 partition_id;
+> > +	union hv_input_vtl owner_vtl;
+> > +	u8 padding[7];
+> > +	union hv_device_domain_id domain_id;
+> > +} __packed;
+> > +
+> > +union hv_create_device_domain_flags {
+> > +	u32 as_uint32;
+> > +	struct {
+> > +		u32 forward_progress_required: 1;
+> > +		u32 inherit_owning_vtl: 1;
+> > +		u32 reserved: 30;
+> > +	} __packed;
+> > +};
+> > +
+> > +struct hv_input_create_device_domain {
+> > +	struct hv_input_device_domain device_domain;
+> > +	union hv_create_device_domain_flags create_device_domain_flags;
+> > +} __packed;
+> > +
+> > +struct hv_input_delete_device_domain {
+> > +	struct hv_input_device_domain device_domain;
+> > +} __packed;
+> > +
+> > +struct hv_input_attach_device_domain {
+> > +	struct hv_input_device_domain device_domain;
+> > +	union hv_device_id device_id;
+> > +} __packed;
+> > +
+> > +struct hv_input_detach_device_domain {
+> > +	u64 partition_id;
+> > +	union hv_device_id device_id;
+> > +} __packed;
+> > +
+> > +struct hv_device_domain_settings {
+> > +	struct {
+> > +		/*
+> > +		 * Enable translations. If not enabled, all transaction bypass
+> > +		 * S1 translations.
+> > +		 */
+> > +		u64 translation_enabled: 1;
+> > +		u64 blocked: 1;
+> > +		/*
+> > +		 * First stage address translation paging mode:
+> > +		 * 0: 4-level paging (default)
+> > +		 * 1: 5-level paging
+> > +		 */
+> > +		u64 first_stage_paging_mode: 1;
+> > +		u64 reserved: 61;
+> > +	} flags;
+> > +
+> > +	/* Address of translation table */
+> > +	u64 page_table_root;
+> > +} __packed;
+> > +
+> > +struct hv_input_configure_device_domain {
+> > +	struct hv_input_device_domain device_domain;
+> > +	struct hv_device_domain_settings settings;
+> > +} __packed;
+> > +
+> > +struct hv_input_get_iommu_capabilities {
+> > +	u64 partition_id;
+> > +	u64 reserved;
+> > +} __packed;
+> > +
+> > +struct hv_output_get_iommu_capabilities {
+> > +	u32 size;
+> > +	u16 reserved;
+> > +	u8  max_iova_width;
+> > +	u8  max_pasid_width;
+> > +
+> > +#define HV_IOMMU_CAP_PRESENT (1ULL << 0)
+> > +#define HV_IOMMU_CAP_S2 (1ULL << 1)
+> > +#define HV_IOMMU_CAP_S1 (1ULL << 2)
+> > +#define HV_IOMMU_CAP_S1_5LVL (1ULL << 3)
+> > +#define HV_IOMMU_CAP_PASID (1ULL << 4)
+> > +#define HV_IOMMU_CAP_ATS (1ULL << 5)
+> > +#define HV_IOMMU_CAP_PRI (1ULL << 6)
+> 
+> hvgdk_mini.h mostly uses the Linux BIT() and BIT_ULL()
+> macros instead of explicit shifts. But this is hvhdk_mini.h.
+> Does it need to play by a different set of rules for
+> compatibility with the original Windows files? I think
+> the Linux BIT* macros are preferable if possible. 
+> 
+
+I'm not aware of any compatibility requirement. And since it
+does not change the real definition, I guess we should use
+BIT*.
+
+> > +
+> > +	u64 iommu_cap;
+> > +	u64 pgsize_bitmap;
+> > +} __packed;
+> > +
+> > +enum hv_logical_device_property_code {
+> > +	HV_LOGICAL_DEVICE_PROPERTY_PVIOMMU = 10,
+> > +};
+> > +
+> > +struct hv_input_get_logical_device_property {
+> > +	u64 partition_id;
+> > +	u64 logical_device_id;
+> > +	/* Takes values from enum hv_logical_device_property_code. */
+> > +	u32 code;
+> > +	u32 reserved;
+> > +} __packed;
+> > +
+> > +struct hv_output_get_logical_device_property {
+> > +#define HV_DEVICE_IOMMU_ENABLED (1ULL << 0)
+> 
+> Same here about BIT_ULL().
+> 
+
+Will fix. Thanks!
+
+B.R.
+Yu
+
+> > +	u64 device_iommu;
+> > +	u64 reserved;
+> > +} __packed;
+> > +
+> > +struct hv_input_flush_device_domain {
+> > +	struct hv_input_device_domain device_domain;
+> > +	u32 flags;
+> > +	u32 reserved;
+> > +} __packed;
+> > +
+> >  #endif /* _HV_HVHDK_MINI_H */
+> > --
+> > 2.52.0
+> > 
+> 
