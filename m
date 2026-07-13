@@ -1,153 +1,126 @@
-Received: from invmail4.hynix.com (exvmail4.skhynix.com [166.125.252.92])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 26D9D25B0B3;
-	Mon, 13 Jul 2026 03:36:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.125.252.92
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CC8E414F70
+	for <linux-arch@vger.kernel.org>; Mon, 13 Jul 2026 07:06:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783913801; cv=none; b=Hps71Y7xLQfxf0sQb3B24jDdVu3hMLqVQ+AKbH8FvX38fdPugXLRo1OlfEB3L7Bdxb44XvecA8g4wu7W3uEsuxy/DvuzZ/c8mR6nlFC1y21kKWGG8mPrqj73b+QCqc6Pc3SA6zdR2G8duILZAaRJCyLrMiG1m4XvdJLOzxrLnbw=
+	t=1783926387; cv=none; b=I+4GnA9LcIRSVapgTuQJjGOnUlVR5WAxax957vg+W3dIX5+Ylmlo8YSpzSA3h9T5zY6qwKUdHkslCnMs/bnB/T2C3FD9fPfUZfvJ55ZF5FItdC+uapNgxh5dtOO5S3IswQqaos81uYjqy8hixL6G8YjJNMK1D9LaRCK+Y1awtgs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783913801; c=relaxed/simple;
-	bh=/M9QIh4BDhVbOh90sNI83T2LK3a7Bga3WuACDOoWjts=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=QJdOWW07FlHvhRpYiEK2ytkir90nqsAz1jDXkz/tOiEy8dQCwMZeyCdsZSYOo1xE6QGrWfK46tAOJpTLgNcnFqGPuHYlikcFMkhsTFWMuD8SAGfy5CZev44/9MzoGBKT3eNj+7lJIn+9oMWFeuayvmS4eUBVmjsbRvDGEDf48vI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com; spf=pass smtp.mailfrom=sk.com; arc=none smtp.client-ip=166.125.252.92
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sk.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sk.com
-X-AuditID: a67dfc5b-c45ff70000001609-f9-6a545d3c324c
-Date: Mon, 13 Jul 2026 12:36:23 +0900
-From: Byungchul Park <byungchul@sk.com>
-To: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
-Cc: Gary Guo <gary@garyguo.net>, linux-kernel@vger.kernel.org,
-	max.byungchul.park@gmail.com, kernel_team@skhynix.com,
-	torvalds@linux-foundation.org, damien.lemoal@opensource.wdc.com,
-	linux-ide@vger.kernel.org, adilger.kernel@dilger.ca,
-	linux-ext4@vger.kernel.org, mingo@redhat.com, peterz@infradead.org,
-	will@kernel.org, tglx@linutronix.de, rostedt@goodmis.org,
-	joel@joelfernandes.org, sashal@kernel.org, daniel.vetter@ffwll.ch,
-	duyuyang@gmail.com, johannes.berg@intel.com, tj@kernel.org,
-	tytso@mit.edu, willy@infradead.org, david@fromorbit.com,
-	amir73il@gmail.com, gregkh@linuxfoundation.org, kernel-team@lge.com,
-	linux-mm@kvack.org, akpm@linux-foundation.org, mhocko@kernel.org,
-	minchan@kernel.org, hannes@cmpxchg.org, vdavydov.dev@gmail.com,
-	sj@kernel.org, jglisse@redhat.com, dennis@kernel.org, cl@linux.com,
-	penberg@kernel.org, rientjes@google.com, vbabka@suse.cz,
-	ngupta@vflare.org, linux-block@vger.kernel.org,
-	josef@toxicpanda.com, linux-fsdevel@vger.kernel.org, jack@suse.cz,
-	jlayton@kernel.org, dan.j.williams@intel.com, hch@infradead.org,
-	djwong@kernel.org, dri-devel@lists.freedesktop.org,
-	rodrigosiqueiramelo@gmail.com, melissa.srw@gmail.com,
-	hamohammed.sa@gmail.com, harry.yoo@oracle.com,
-	chris.p.wilson@intel.com, gwan-gyeong.mun@intel.com,
-	boqun.feng@gmail.com, longman@redhat.com, yunseong.kim@ericsson.com,
-	ysk@kzalloc.com, yeoreum.yun@arm.com, netdev@vger.kernel.org,
-	matthew.brost@intel.com, her0gyugyu@gmail.com, corbet@lwn.net,
-	catalin.marinas@arm.com, bp@alien8.de, x86@kernel.org,
-	hpa@zytor.com, luto@kernel.org, sumit.semwal@linaro.org,
-	gustavo@padovan.org, christian.koenig@amd.com,
-	andi.shyti@kernel.org, arnd@arndb.de, lorenzo.stoakes@oracle.com,
-	Liam.Howlett@oracle.com, rppt@kernel.org, surenb@google.com,
-	mcgrof@kernel.org, petr.pavlu@suse.com, da.gomez@kernel.org,
-	samitolvanen@google.com, paulmck@kernel.org, frederic@kernel.org,
-	neeraj.upadhyay@kernel.org, joelagnelf@nvidia.com,
-	josh@joshtriplett.org, urezki@gmail.com,
-	mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com,
-	qiang.zhang@linux.dev, juri.lelli@redhat.com,
-	vincent.guittot@linaro.org, dietmar.eggemann@arm.com,
-	bsegall@google.com, mgorman@suse.de, vschneid@redhat.com,
-	chuck.lever@oracle.com, neil@brown.name, okorniev@redhat.com,
-	Dai.Ngo@oracle.com, tom@talpey.com, trondmy@kernel.org,
-	anna@kernel.org, kees@kernel.org, bigeasy@linutronix.de,
-	clrkwllms@kernel.org, mark.rutland@arm.com, ada.coupriediaz@arm.com,
-	kristina.martsenko@arm.com, wangkefeng.wang@huawei.com,
-	broonie@kernel.org, kevin.brodsky@arm.com, dwmw@amazon.co.uk,
-	shakeel.butt@linux.dev, ast@kernel.org, ziy@nvidia.com,
-	yuzhao@google.com, baolin.wang@linux.alibaba.com,
-	usamaarif642@gmail.com, joel.granados@kernel.org,
-	richard.weiyang@gmail.com, geert+renesas@glider.be,
-	tim.c.chen@linux.intel.com, linux@treblig.org,
-	alexander.shishkin@linux.intel.com, lillian@star-ark.net,
-	chenhuacai@kernel.org, francesco@valla.it,
-	guoweikang.kernel@gmail.com, link@vivo.com, jpoimboe@kernel.org,
-	masahiroy@kernel.org, brauner@kernel.org,
-	thomas.weissschuh@linutronix.de, oleg@redhat.com, mjguzik@gmail.com,
-	andrii@kernel.org, wangfushuai@baidu.com, linux-doc@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-media@vger.kernel.org,
-	linaro-mm-sig@lists.linaro.org, linux-i2c@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
-	rcu@vger.kernel.org, linux-nfs@vger.kernel.org,
-	linux-rt-devel@lists.linux.dev, 2407018371@qq.com, dakr@kernel.org,
-	neilb@ownmail.net, bagasdotme@gmail.com,
-	wsa+renesas@sang-engineering.com, dave.hansen@intel.com,
-	geert@linux-m68k.org, ojeda@kernel.org, alex.gaynor@gmail.com,
-	bjorn3_gh@protonmail.com, lossin@kernel.org, a.hindborg@kernel.org,
-	aliceryhl@google.com, tmgross@umich.edu,
-	rust-for-linux@vger.kernel.org
-Subject: Re: [PATCH v19 39/40] rust: completion: Add __rust_helper to
- rust_helper_wait_for_completion()
-Message-ID: <20260713033623.GA79338@system.software.com>
-References: <20260706061928.66713-1-byungchul@sk.com>
- <20260706061928.66713-40-byungchul@sk.com>
- <CANiq72kEo=bGcHNaSA9JZhv4iuE+YDvu0kN+Z7aopVp3=2C+Wg@mail.gmail.com>
+	s=arc-20240116; t=1783926387; c=relaxed/simple;
+	bh=hCeMAFawqUQZK5TTzZSun5coCAr0fqMieti9jZqRw7A=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=XZ0pmwADOTKOYNHIwfdx3Vr2cpo0EjLslb3QjLyhJJxE5hh7GIQ0a0Pdf61qC8WzaJCxtMEjQVRsO9QwPThmUlBjlm83gAzJZ4b/MLSNtkTeq4R4nltRouco/sb7xQIowf6p4AD5C1Sw+s/rfTN/ZWoLEHJdIZNmoI4P8ZRD1/g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=TbglOxZr; arc=none smtp.client-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="TbglOxZr"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6AACD1F01559
+	for <linux-arch@vger.kernel.org>; Mon, 13 Jul 2026 07:06:24 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1783926384;
+	bh=MaoMLNzrQSdilHBAPxvn7cFGYo6KCQRZiQrYmmdeSDg=;
+	h=References:In-Reply-To:From:Date:Subject:To:Cc;
+	b=TbglOxZrZc+8ho1Z2BcK0IhS3egNUSq0c5Yekd6nxDBKZQhVPPnrHghm6ItjXrvW8
+	 myYXJ6x6lFh7QX5ecmuh/vq7Qwc4aN3eTk8kvvmFs1d8wRQY7vrvAGfQK8ML7sZ4Yj
+	 k2WeLrzUteazWoeRwgjCCUDZJ2+PWRLzL1ozd2prV95l5uW3ki91C/T/KpUndY2saf
+	 +I1D4H0CLwMJu74DptZISJOOYDmUct5uhnCyLsAUx2HSrcK3fC5VZsBannIxQYZ7Rq
+	 GNjV6d1+IgN8jsegZ7lli5dbQ5dULez5iyH6dt+oUZzipNLSJVSN9n9AB3HDQyztKw
+	 NLk2nciGwWqEA==
+Received: by mail-wr1-f49.google.com with SMTP id ffacd0b85a97d-470174001a0so1619689f8f.0
+        for <linux-arch@vger.kernel.org>; Mon, 13 Jul 2026 00:06:24 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AHgh+RpWKnTYrEF473v7noBx6kA87LtBY31AUIDDFGv6GFRxiUTwbMDtEU+Dc99ndeJoLttAKKLZK2JqfPLh@vger.kernel.org
+X-Gm-Message-State: AOJu0YyjR7quYd1jppn4kx2Q2fSb0U86ptboFRZkr5+y2aLAKXbLqVGd
+	iwmNLGD6Tvq5KeV5LC6oztWDK98vVJJ5u6YHMezkR7hH7HXA+Gm3J/8WGmj7sXgbyOi+S+cAUUE
+	OMjUzH4PCmoTlXcGFRzKzt61kb+raC1c=
+X-Received: by 2002:a05:6000:186c:b0:476:d13f:bb74 with SMTP id
+ ffacd0b85a97d-47f2dc9bac8mr8770361f8f.15.1783926382749; Mon, 13 Jul 2026
+ 00:06:22 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CANiq72kEo=bGcHNaSA9JZhv4iuE+YDvu0kN+Z7aopVp3=2C+Wg@mail.gmail.com>
-User-Agent: Mutt/1.9.4 (2018-02-28)
-X-Brightmail-Tracker: H4sIAAAAAAAAA02Sb0wTdxjH87u73l0bm1w7F35AxkwNWcKCHcQlj8u28MqdL9xmXELioluR
-	c9RB0VY7MVlCxW5uQ+zq2oZWXC1QSmlAccifrUsFLW5YB8QITjYnqWUIVFcKWyeDHXVmvPvm
-	+3yf7+d58bCkspfOYrW6Q4JepylX0TJKNrfOk//a7nf2vzTbhuGWKUTBP65uBobb2xAkU3cY
-	WAmGEdhHrCTMDCQQOKZNFDz01iKYvvoGjC3OIvBGlwmIhj5FMGN/RMPjyE8kOGzDCL4J/4og
-	6DtGw31LFwlzI2cIcB8LSqDBZUXQ+1sfAxN2KwFDFg8hFtNgv5ABLkcNAdcbJyjwVudCuG2K
-	gZmYlYbkzXsEBGpjJJzoW6Ag+POLEO6ZJKBjalxsCF+j4E7kFAPNYyMEnI7HxGMWvSTcdswy
-	MBpyE9AajNDQ+nULAmsswUCiaZGCwZMhAj5pukDAlY5uApp9cxKYcjYQMLAwS8DfLVcRJBqW
-	JWCuTTHwhdlOwfk/Wmgwzd9FcHziZUi2+WmIW5KSoiLef/ESwQfOBhCfbK4h+R89mP8yks/3
-	On9heHfnYf74lTkJf9GXxzd+N03w5xILEr7T/xnNn3v8O8nHb9xg+N57W/joTQfxds4u2aul
-	QrnWKOjVr78vKzOt1JEHXNSRyfpOVI0ayc+RlMXcZrzk9kieattQHVrVFJeLT4xeo1Y1zb2A
-	x8dT6fx6rhDfGvpW9GUsydlysOfhmfTCM5wWT1mC6ZCcA3w/tZL2lVwrws6Zoie+Av9QH02X
-	kmLp0tlRMc+KOhu3LLNP7OdxTZcrXSPlduDGUIRe1c9yG3Ho0iCxysVcXIo9p8P/HZ2JL/vG
-	KQtSONcgnGsQzv8RzjUIN6L8SKnVGSs02vLNm8qqdNojm/ZWVnQi8aG9Hy+924MSwzv7Ecci
-	1Tr5ecPO/UqJxmioquhHmCVV6+UF2aIlL9VUHRX0le/pD5cLhn6UzVKqDHnh4kelSu4DzSHh
-	Q0E4IOifTglWmlWNqp/b9mCvk9u1b3tgbDBorrf5i40DxVl75gs2xnL1IffW+Z7Jg+bbNQoq
-	Z8ujg9vZ7zfk9nk8rQ/azdNUypjRLqgV6q7oUVNeXjDQ0545snB9d9PdP980+qXa7pIdb6mz
-	ZLa/9vm2mepKdB2Vl9Unw8uFW0eLT5X4Fa9syI9/lamiDGWagjxSb9D8C1H9KO/MAwAA
-X-Brightmail-Tracker: H4sIAAAAAAAAA02SbUxTVxjHPffenl6a1VwRw4lkc3bqlhl1bmKeRLJp/MDN3qJjZsuWRTq5
-	WWsBsVUmJoqldtbNNKWm7WgrMBhVsUNWsA6hGYGIVUbkZUNUEFgqjoGACJjyVi81y/hy8j+/
-	839+eT4clo6145WsOvOQoM1UpiuwjJF9vM2wIemrT/e/FR5ZByZjLnT3hiTQqa9nYHLCxID7
-	shfDnOuqFEy+AgkE7+Qx0FpxCUHvpAnBsxkXDcaaCANz1iYpTITvS8GmRxAJNCGwt1lp6Gr9
-	nQZvtZ6Cp5XzGIYaxxHY+kMYHIN6BkY9ZxA4B1xSGLyeDI97ayUQ6XlEwZ2pYQSe0DwFofpT
-	CObsGigqqRLH7WMYZlpu0+CwtSL4qb+HhvHBPgTVTQ8QBC7kYXhouUJDR2gp/Dk5iuGm7QcM
-	j9vcFIxUYijOC0ig7Y8hBOdcVgQD9wIUGEovY7Cf8zFQ03dNCm1DsxR0260UXPJ9BL2eAQaa
-	LSWUuK7Y+jUeXA4DJR7/UGD7pZaCsKdcur0M8c+MZoYvr/JTvLF9DvPeQi/iZ6atiJ8oM9C8
-	0SJeG4dHaf5k1bd8WfMw5qcn/8J8YKqY4W+VEP7n09MUn9+yga9x9kh37fhClpQmpKuzBe2m
-	d1NlKn3ETGe5mCN/F/jQCVRKf49iWMJtIbZmM1rIDLeWmNqDzELG3Oukqysc7cRxb5PO5lqR
-	y1ias71CSkbd0YHlnJo8sgSiJTkH5GE4EuWx3EVEnEPbX/Bl5GZBKCqlRelsYbvYZ8WcQM7P
-	sy/wKmK44opqYrjdpLS+BS/kFdxrpN5/g7Kgpc5FJucik/N/k3ORqRgx5ShOnZmdoVSnJ27U
-	aVQ5meojG/cdyPAh8bd6js3m/4YmOpIbEMcixUvySl3K/liJMluXk9GACEsr4uSbE0QkT1Pm
-	HBW0B/ZqD6cLugaUwDKKePn7nwmpsdw3ykOCRhCyBO1/rxQbs/IECn4i+NHaiuu55j1nD75x
-	xvDBj/1POnFa4a01n+s0I1/Ghf9d0mcz5j5ReOMTHRcHXnWM95UuyavcYZ66sDfl6tfF608X
-	jfEpLTfcSauPyxP9yp1jsxXBdzSdyVtXn7x/+7vhuvOkruNe1ofBs1t1iZ6RIr9K1Z2ldj/N
-	r3j5vWXCg7sKRqdSbn6T1uqUzwG4/G81qQMAAA==
-X-CFilter-Loop: Reflected
+References: <20260707181957.433213175@kernel.org> <20260707190253.974626922@kernel.org>
+In-Reply-To: <20260707190253.974626922@kernel.org>
+From: Guo Ren <guoren@kernel.org>
+Date: Mon, 13 Jul 2026 15:06:10 +0800
+X-Gmail-Original-Message-ID: <CAJF2gTTjW0RfZsJmHVAqrRsHpK4cJ+01G_Kkytt=0Wpm4sZpkg@mail.gmail.com>
+X-Gm-Features: AUfX_mzuKA4JwmuMUWB774bzpkP7q4a7PrJvxtp8N1GWwrENQwGP0BULxiqlyqc
+Message-ID: <CAJF2gTTjW0RfZsJmHVAqrRsHpK4cJ+01G_Kkytt=0Wpm4sZpkg@mail.gmail.com>
+Subject: Re: [patch 06/18] riscv/syscall: Use syscall_enter_from_user_mode_randomize_stack()
+To: Thomas Gleixner <tglx@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, linux-riscv@lists.infradead.org, 
+	Michael Ellerman <mpe@ellerman.id.au>, Shrikanth Hegde <sshegde@linux.ibm.com>, 
+	linuxppc-dev@lists.ozlabs.org, Kees Cook <kees@kernel.org>, 
+	Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev, 
+	Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org, x86@kernel.org, 
+	Mark Rutland <mark.rutland@arm.com>, Jinjie Ruan <ruanjinjie@huawei.com>, 
+	Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, 
+	Richard Henderson <richard.henderson@linaro.org>, Russell King <linux@armlinux.org.uk>, 
+	Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, 
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Helge Deller <deller@gmx.de>, 
+	Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Weinberger <richard@nod.at>, 
+	Chris Zankel <chris@zankel.net>, linux-arm-kernel@lists.infradead.org, 
+	linux-alpha@vger.kernel.org, linux-csky@vger.kernel.org, 
+	linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, 
+	linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, 
+	linux-um@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, 
+	Vineet Gupta <vgupta@kernel.org>, Will Deacon <will@kernel.org>, Brian Cain <bcain@kernel.org>, 
+	Michal Simek <monstr@monstr.eu>, Dinh Nguyen <dinguyen@kernel.org>, 
+	"David S. Miller" <davem@davemloft.net>, Andreas Larsson <andreas@gaisler.com>, 
+	linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org, 
+	linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org, 
+	linux-arch@vger.kernel.org, =?UTF-8?Q?Michal_Such=C3=A1nek?= <msuchanek@suse.de>, 
+	Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Sat, Jul 11, 2026 at 02:13:05PM +0200, Miguel Ojeda wrote:
-> On Mon, Jul 6, 2026 at 8:22 AM Byungchul Park <byungchul@sk.com> wrote:
-> >
-> > This is needed to inline these helpers into Rust code, which is required
-> > for DEPT to play with wait_for_completion().
-> >
-> > Signed-off-by: Byungchul Park <byungchul@sk.com>
-> 
-> Apart from what Gary said -- why did you need to do this in a separate
-> patch in the same series?
+On Wed, Jul 8, 2026 at 3:06=E2=80=AFAM Thomas Gleixner <tglx@kernel.org> wr=
+ote:
+>
+> syscall_enter_from_user_mode_randomize_stack() replaces
+> syscall_enter_from_user_mode() and the subsequent invocation of
+> add_random_kstack_offset().
+>
+> The advantage is that it applies the stack randomization right after
+> enter_from_user_mode() and thereby avoids the overhead of get/put_cpu_var=
+()
+> as that code is invoked with interrupts disabled.
+>
+> No functional change.
+>
+> Signed-off-by: Thomas Gleixner <tglx@kernel.org>
+> Cc: Paul Walmsley <pjw@kernel.org>
+> Cc: Palmer Dabbelt <palmer@dabbelt.com>
+> Cc: linux-riscv@lists.infradead.org
+> ---
+>  arch/riscv/kernel/traps.c |    5 +----
+>  1 file changed, 1 insertion(+), 4 deletions(-)
+>
+> --- a/arch/riscv/kernel/traps.c
+> +++ b/arch/riscv/kernel/traps.c
+> @@ -7,7 +7,6 @@
+>  #include <linux/kernel.h>
+>  #include <linux/init.h>
+>  #include <linux/irqflags.h>
+> -#include <linux/randomize_kstack.h>
+>  #include <linux/sched.h>
+>  #include <linux/sched/debug.h>
+>  #include <linux/sched/signal.h>
+> @@ -333,9 +332,7 @@ void do_trap_ecall_u(struct pt_regs *reg
+>
+>                 riscv_v_vstate_discard(regs);
+>
+> -               syscall =3D syscall_enter_from_user_mode(regs, syscall);
+> -
+> -               add_random_kstack_offset();
+> +               syscall =3D syscall_enter_from_user_mode_randomize_stack(=
+regs, syscall);
 
-Not necessary.  I will make them into one patch.  Thanks.
+Reviewed-by: Guo Ren <guoren@kernel.org>
 
-	Byungchul
-> 
-> Cheers,
-> Miguel
+--=20
+Best Regards
+ Guo Ren
