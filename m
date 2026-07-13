@@ -1,31 +1,31 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 402CB438007;
-	Mon, 13 Jul 2026 13:58:35 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id F3194437474;
+	Mon, 13 Jul 2026 13:58:47 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783951117; cv=none; b=bsNqe6O9PLwB4ARqluwTxCoGZGzB/+8wJ+/1oKKEc0fDiebO9OzLrqKDvalo57KLE8LrqgPVjbhXgFyFgTlJ1EjcMIla1ebjp8V2ms62PeoxnkRFs8uetV5hvlg2LMdjgeRYOCKsFiILcIvUEY4Z3sRAIt/OCOvhMMSFLkU4O80=
+	t=1783951129; cv=none; b=lGT1Hh66cE9JQNye9dCC2eebxlXlbXesUkkQvueaoz9oA9uopd/JrtMCC+xeQItcfCu3yGINojFrcheNJ6G5Mw4BmEu62vCiKv9T5c+0jr4exrpYomp2PY1sSA+K4lH2ukHklh/NBCgMEtsLFDwYv6uQloBa8t48J4Z/hhWPdcA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783951117; c=relaxed/simple;
-	bh=ijbMFumg8P8gGkdSIJoBYbLSyYeD/Vjhz9UbWDLoy8k=;
+	s=arc-20240116; t=1783951129; c=relaxed/simple;
+	bh=uqt0YCzTdiYk9CWaJTOcbu4/zhkZINw0+fy6QeqfMrM=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=J8kq5PmrVIJikg1FWR84mlMVVbNxxTZSzLQewAjbHx63fh0ZgFCON1RShSI+nSGppccMn6c6CC0alSe1qbpY6mKRcswxK2kL3IN0pkQVbDE6Bj95sM3V538gRVfoB+JlkroPUojCFKHajaxoyPTmupAXseW2RzxN60O6G7xRer4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=CHlkydzV; arc=none smtp.client-ip=217.140.110.172
+	 MIME-Version; b=qI1CbE0MDYTS6iIW7WAFahGhmn4Bp4AHHSglrwpnOKBX9osBgHAD93qdOsD1/2Di0+g/tDWrahMm5ZwejgDAzyYuCMFWRCwtzEdcmqBExqoN819zYm7WsLwo6weBEnMXkSAbRBwkZKx/H+VVHH0SEHV7D64EY0H2WHOp+ic5M9g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=YkNMk2du; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="CHlkydzV"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="YkNMk2du"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 626221AC1;
-	Mon, 13 Jul 2026 06:58:30 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id EBC211AC1;
+	Mon, 13 Jul 2026 06:58:42 -0700 (PDT)
 Received: from e129823.cambridge.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 722843F7B4;
-	Mon, 13 Jul 2026 06:58:22 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id F144A3F7B4;
+	Mon, 13 Jul 2026 06:58:34 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1783951114; bh=ijbMFumg8P8gGkdSIJoBYbLSyYeD/Vjhz9UbWDLoy8k=;
+	t=1783951127; bh=uqt0YCzTdiYk9CWaJTOcbu4/zhkZINw0+fy6QeqfMrM=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=CHlkydzVCllPoGxzxcQSUErvYXIAGBQ595+NL7G7e1sqPROHhsxJ8MBiTiSYo8eIB
-	 Mu0LCgbjUkOW4pofPbQVpr3Y0M6KWgdVpaR90WouabYCqysQ0cuW4q7ADzrIlktriy
-	 gEX7NRAFqIzU5fkSuMPNTtCBJn75XvGeTJjmc76Q=
+	b=YkNMk2duo++wV39RQ3zQsSkBtiXGMU8KXH8jVFl7fKMdTT/xjjvp60qA2AMoxmk68
+	 Eg4fUEaPBaK2tL00GYQTBSmmhplTwjTD2k3y608RG1C/j/Fh8LekoiysZImaxes3aD
+	 i+drxBJLKGmYBW0HKqOEYeyxcBZniTS0k9lWnbXQ=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
 To: linux-arm-kernel@lists.infradead.org,
 	linux-kernel@vger.kernel.org,
@@ -122,9 +122,9 @@ Cc: david@kernel.org,
 	jonas@southpole.se,
 	stefan.kristiansson@saunalahti.fi,
 	Yeoreum Yun <yeoreum.yun@arm.com>
-Subject: [RFC PATCH 10/34] x86: mm: carve out the generic compile-time folded pgtable case in effective_prot()
-Date: Mon, 13 Jul 2026 14:55:49 +0100
-Message-ID: <20260713135614.1618183-11-yeoreum.yun@arm.com>
+Subject: [RFC PATCH 11/34] mm: vmscan: remove stack copy address of pud pass in wallk_pud_range()
+Date: Mon, 13 Jul 2026 14:55:50 +0100
+Message-ID: <20260713135614.1618183-12-yeoreum.yun@arm.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20260713135614.1618183-1-yeoreum.yun@arm.com>
 References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
@@ -136,68 +136,31 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-
 We want to change how pXdp_get() works with generic compile-time folded
-page tables. To prepare for that, rework effective_prot() to ignore any
-folded page tables entries, as it will unconditionally get called by
-ptdump core with pXd_val(pXdp_get()), and we really should be ignoring
-that value for folded entries.
-
-For this, identify the first real page-table level and
-update effective_prot only when the current entry is not folded.
+page tables. To prepare for that, replace passing the address of a stack
+copy of a pXd to walk_pmd_range() with pud pointer directly so that
+the ignoring the value of folded entries.
 
 There should be no functional change.
 
 Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
 ---
- arch/x86/mm/dump_pagetables.c | 18 +++++++++++++++++-
- 1 file changed, 17 insertions(+), 1 deletion(-)
+ mm/vmscan.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
-index 2afa7a23340e9..e32848c7f26d4 100644
---- a/arch/x86/mm/dump_pagetables.c
-+++ b/arch/x86/mm/dump_pagetables.c
-@@ -27,6 +27,7 @@
-  */
- struct pg_state {
- 	struct ptdump_state ptdump;
-+	struct mm_struct *mm;
- 	int level;
- 	pgprotval_t current_prot;
- 	pgprotval_t effective_prot;
-@@ -253,8 +254,22 @@ static void effective_prot(struct ptdump_state *pt_st, int level, u64 val)
- 	struct pg_state *st = container_of(pt_st, struct pg_state, ptdump);
- 	pgprotval_t prot = val & PTE_FLAGS_MASK;
- 	pgprotval_t effective;
-+	bool first_level = false;
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 986dde8e7429f..61470223d8213 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -3725,7 +3725,7 @@ static int walk_pud_range(p4d_t *p4d, unsigned long start, unsigned long end,
+ 		if (!pud_present(val) || WARN_ON_ONCE(pud_leaf(val)))
+ 			continue;
  
--	if (level > 0) {
-+	/* Ignore folded levels ... */
-+	if (((level == 0) && mm_p4d_folded(st->mm)) ||
-+	    ((level == 1) && mm_pud_folded(st->mm)) ||
-+	    ((level == 2) && mm_pmd_folded(st->mm)))
-+		return;
-+
-+	/* ... and make the actual first level remember the protection. */
-+	if (((level == 0)) ||
-+	    ((level == 1) && mm_p4d_folded(st->mm)) ||
-+	    ((level == 2) && mm_pud_folded(st->mm)) ||
-+	    ((level == 3) && mm_pmd_folded(st->mm)))
-+		first_level = true;
-+
-+	if (!first_level) {
- 		pgprotval_t higher_prot = st->prot_levels[level - 1];
+-		walk_pmd_range(&val, addr, next, args);
++		walk_pmd_range(pud + i, addr, next, args);
  
- 		effective = (higher_prot & prot & (_PAGE_USER | _PAGE_RW)) |
-@@ -449,6 +464,7 @@ bool ptdump_walk_pgd_level_core(struct seq_file *m,
- 			.effective_prot_pgd = effective_prot_pgd,
- 			.range		= ptdump_ranges
- 		},
-+		.mm		= mm,
- 		.level = -1,
- 		.to_dmesg	= dmesg,
- 		.check_wx	= checkwx,
+ 		if (need_resched() || walk->batched >= MAX_LRU_BATCH) {
+ 			end = (addr | ~PUD_MASK) + 1;
 -- 
 LEVI:{C3F47F37-75D8-414A-A8BA-3980EC8A46D7}
 
