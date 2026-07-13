@@ -1,223 +1,100 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D679A30C17D;
-	Mon, 13 Jul 2026 16:05:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id BAA2325B0AA;
+	Mon, 13 Jul 2026 16:13:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783958713; cv=none; b=KeqfhhtTYQXp+i5eAHq2jQZFXqxIYSJiVn0EdIs27i90Mww5TdFDsEKLNO+jaruJnm52+rRPQbPIUMW/P3e6wa0UNCzUThTAwaUONBrx/LWfwPXWBSHA1TIgo8uWcXyojoCxEFmq1it1ZjKYG2AqckJe59CfA61lMqn4SKAWHks=
+	t=1783959209; cv=none; b=ApyZ1Zuz6Aj07gAnHKfXBV1T7eyRbDPRAGjpPO5ya7VeUJ0BJ8+S83dWtzUv0gUoeOQpFrYLZk1x79/2KnLrsnVQ2oVLzqYBku/1fKhgYA0laYuT9NnWSP0dmu5Upla+ogf65Q5L43IBRffyRD2zYx5C8pVCoTqyLzq+9ewJ6C0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783958713; c=relaxed/simple;
-	bh=oibnUKSYXikDF+73wKpPOWQmjAAJwAwVq1TqJiuicvU=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=YeR16D/3TszwCadWsTmY9/muvkSjpFaiAmHfu8NEy5tyn7XOoo62ri+UOlk/Conv8BlQWSF3dhBlKAkwvo4ErVttPxieckEdJamt87ZXk5j3F9Rbw3dlWd/BmN8+hSp6bIgYKQgeQjEwtb+z4j1L3qXVIModSabGtRt8ZoPxuo8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=BvAfS+kz; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1783959209; c=relaxed/simple;
+	bh=87+DyGXvAKm5IXJiKbRVm11dCASshYHur0HdtyBZK18=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=UoGrscXX/fTdHG+F1G+arMORYtBuvBoBHuNOGXYjJiqQ15ye7RGf4PUnxT9xiT/21nphXYm1FwXm+zujMdz1C2jQ3B1fC5MaAPZmmsLH3hEUR8dbZYVX8jp51MGhairHiFJzb7sUzt7Azq1DkI83zAKXTyp3C3nRotrStAvwkqA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=XZeBtsqO; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="BvAfS+kz"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 224DD1F000E9;
-	Mon, 13 Jul 2026 16:04:55 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1783958710;
-	bh=1ESM2SzSD3UynOgixO3ALqhK0K8aaLtWF+/LHsivKfc=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=BvAfS+kzALSX82y1Di2VtOQp38EMVYa/a0vHm/IjTpc7kf4jHjuOTM3sKo8R84O9c
-	 xOk4JPna7qvfy1PaukIZF3T6cPMAXfpfTSZDna4XE+oYrFfmsKMFc4d0xDKcU5/eKx
-	 U2YwGSZRSNFKcvP67THVBGvhPF76bHe3Vlejfo+krhMrjRfHJBFUB8U4uJ9SFX0fWQ
-	 Qts/DhSoySClKbyxe4FlftP3EjW4m8SF2SIajlKKylzaXj3KgTYmFpd3BWKFz00kdW
-	 b89lbYsbbXIQskkvAlEcQj7q/YxyAGkwddulKX1HhX8qMFejkF1bio8/BTAmHZMc7B
-	 eOM3fNCfKhXaw==
-Message-ID: <2858abeb-4134-4768-9a35-a569d5c86e10@kernel.org>
-Date: Mon, 13 Jul 2026 18:04:54 +0200
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="XZeBtsqO"
+Received: from localhost (unknown [20.236.11.42])
+	by linux.microsoft.com (Postfix) with ESMTPSA id DEA4520B716F;
+	Mon, 13 Jul 2026 09:13:18 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com DEA4520B716F
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1783959199;
+	bh=eeKOrgOt+xXm+V5IRef1lDOmRNhHqtuxeaF/QYex0Kk=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=XZeBtsqOdJFY4BYYsLd+wm1yi+LZ8NbE8VsdAstHLGM5iSE3p7geCt0pHWkLfZOXI
+	 DMBuxTymJLCT1F5m8zAUPQOJ5YsfC1h79HtjvhjMM7+Kf0Lwx9KCdlWDfKJW/W8voN
+	 HSbtdm71FNrpf0fRvLi11OcwBg0H17iZziutadVw=
+Date: Mon, 13 Jul 2026 09:13:28 -0700
+From: Jacob Pan <jacob.pan@linux.microsoft.com>
+To: Michael Kelley <mhklinux@outlook.com>
+Cc: Yu Zhang <zhangyu1@linux.microsoft.com>, "linux-kernel@vger.kernel.org"
+ <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org"
+ <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev"
+ <iommu@lists.linux.dev>, "linux-pci@vger.kernel.org"
+ <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org"
+ <linux-arch@vger.kernel.org>, "wei.liu@kernel.org" <wei.liu@kernel.org>,
+ "kys@microsoft.com" <kys@microsoft.com>, "haiyangz@microsoft.com"
+ <haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>,
+ "longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org"
+ <joro@8bytes.org>, "will@kernel.org" <will@kernel.org>,
+ "robin.murphy@arm.com" <robin.murphy@arm.com>, "bhelgaas@google.com"
+ <bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>,
+ "lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org"
+ <mani@kernel.org>, "robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de"
+ <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>,
+ "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>,
+ "easwar.hariharan@linux.microsoft.com"
+ <easwar.hariharan@linux.microsoft.com>, "mrathor@linux.microsoft.com"
+ <mrathor@linux.microsoft.com>, jacob.pan@linux.microsoft.com
+Subject: Re: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU support
+ for Hyper-V guest
+Message-ID: <20260713091328.00004fc9@linux.microsoft.com>
+In-Reply-To: <SN6PR02MB4157805F23ACA85A668FA065D4FC2@SN6PR02MB4157.namprd02.prod.outlook.com>
+References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
+	<20260702160518.311234-4-zhangyu1@linux.microsoft.com>
+	<SN6PR02MB4157253E030D477FD91B7E26D4FE2@SN6PR02MB4157.namprd02.prod.outlook.com>
+	<enpkphavwmqrkded73c43vprczslvei4755lkxuedof4z2k3kk@y2jtklbk4efz>
+	<SN6PR02MB4157805F23ACA85A668FA065D4FC2@SN6PR02MB4157.namprd02.prod.outlook.com>
+Organization: LSG
+X-Mailer: Claws Mail 3.21.0 (GTK+ 2.24.33; x86_64-w64-mingw32)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH 02/34] ARM: mm: make 2-level pgd_t a scalar
-To: Arnd Bergmann <arnd@arndb.de>, Yeoreum Yun <yeoreum.yun@arm.com>,
- linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
- loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
- Linux-Arch <linux-arch@vger.kernel.org>, kvm-riscv@lists.infradead.org,
- linux-riscv@lists.infradead.org, x86@kernel.org, linux-mm@kvack.org,
- kasan-dev@googlegroups.com,
- "linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>,
- linux-m68k@lists.linux-m68k.org,
- "linux-openrisc@vger.kernel.org" <linux-openrisc@vger.kernel.org>
-Cc: Russell King <linux@armlinux.org.uk>,
- Andrew Morton <akpm@linux-foundation.org>,
- Ankur Arora <ankur.a.arora@oracle.com>, Mike Rapoport <rppt@kernel.org>,
- Magnus Lindholm <linmag7@gmail.com>, Christophe Leroy <chleroy@kernel.org>,
- Klara Modin <klarasmodin@gmail.com>, Huacai Chen <chenhuacai@kernel.org>,
- WANG Xuerui <kernel@xen0n.name>, "Kirill A. Shutemov" <kas@kernel.org>,
- zhangtianyang@loongson.cn, wangyuli@aosc.io,
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
- Lorenzo Stoakes <ljs@kernel.org>, Jason Gunthorpe <jgg@ziepe.ca>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Ryan Roberts <ryan.roberts@arm.com>,
- Pasha Tatashin <pasha.tatashin@soleen.com>,
- Rohan McLure <rmclure@linux.ibm.com>,
- Baolin Wang <baolin.wang@linux.alibaba.com>, Tejun Heo <tj@kernel.org>,
- Kevin Brodsky <kevin.brodsky@arm.com>, Anup Patel <anup@brainfault.org>,
- atish.patra@linux.dev, Paul Walmsley <pjw@kernel.org>,
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
- Alexandre Ghiti <alex@ghiti.fr>, Dave Hansen <dave.hansen@linux.intel.com>,
- Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>,
- Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
- qi.zheng@linux.dev, Shakeel Butt <shakeel.butt@linux.dev>,
- Kairui Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>,
- Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
- Wei Xu <weixugc@google.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>,
- Alexander Potapenko <glider@google.com>,
- Andrey Konovalov <andreyknvl@gmail.com>, Dmitry Vyukov <dvyukov@google.com>,
- Vincenzo Frascino <vincenzo.frascino@arm.com>,
- Anshuman Khandual <anshuman.khandual@arm.com>,
- Yang Shi <yang@os.amperecomputing.com>, chaitanyas.prakash@arm.com,
- Ard Biesheuvel <ardb@kernel.org>, guoren <guoren@kernel.org>,
- yang.li85200@gmail.com, Alexander Viro <viro@zeniv.linux.org.uk>,
- Dinh Nguyen <dinguyen@kernel.org>,
- "schuster.simon@siemens-energy.com" <schuster.simon@siemens-energy.com>,
- Vivian Wang <wangruikang@iscas.ac.cn>, junhui.liu@pigmoral.tech,
- Muchun Song <muchun.song@linux.dev>,
- "Vishal Moola (Oracle)" <vishal.moola@gmail.com>,
- Nam Cao <namcao@linutronix.de>, Pavel Machek <pavel@kernel.org>,
- djbw@kernel.org, yu-cheng.yu@intel.com, Baolu Lu <baolu.lu@linux.intel.com>,
- Jonathan Cameron <Jonathan.Cameron@huawei.com>, Coiby Xu <coxu@redhat.com>,
- Andreas Larsson <andreas@gaisler.com>, "Liam R. Howlett"
- <liam@infradead.org>, "Vlastimil Babka (SUSE)" <vbabka@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- Geert Uytterhoeven <geert@linux-m68k.org>, Stafford Horne
- <shorne@gmail.com>, Jonas Bonn <jonas@southpole.se>,
- Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
- <20260713135614.1618183-3-yeoreum.yun@arm.com>
- <d57f5b18-583d-4848-9d74-65b15c93dcf8@app.fastmail.com>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- xsFNBFXLn5EBEAC+zYvAFJxCBY9Tr1xZgcESmxVNI/0ffzE/ZQOiHJl6mGkmA1R7/uUpiCjJ
- dBrn+lhhOYjjNefFQou6478faXE6o2AhmebqT4KiQoUQFV4R7y1KMEKoSyy8hQaK1umALTdL
- QZLQMzNE74ap+GDK0wnacPQFpcG1AE9RMq3aeErY5tujekBS32jfC/7AnH7I0v1v1TbbK3Gp
- XNeiN4QroO+5qaSr0ID2sz5jtBLRb15RMre27E1ImpaIv2Jw8NJgW0k/D1RyKCwaTsgRdwuK
- Kx/Y91XuSBdz0uOyU/S8kM1+ag0wvsGlpBVxRR/xw/E8M7TEwuCZQArqqTCmkG6HGcXFT0V9
- PXFNNgV5jXMQRwU0O/ztJIQqsE5LsUomE//bLwzj9IVsaQpKDqW6TAPjcdBDPLHvriq7kGjt
- WhVhdl0qEYB8lkBEU7V2Yb+SYhmhpDrti9Fq1EsmhiHSkxJcGREoMK/63r9WLZYI3+4W2rAc
- UucZa4OT27U5ZISjNg3Ev0rxU5UH2/pT4wJCfxwocmqaRr6UYmrtZmND89X0KigoFD/XSeVv
- jwBRNjPAubK9/k5NoRrYqztM9W6sJqrH8+UWZ1Idd/DdmogJh0gNC0+N42Za9yBRURfIdKSb
- B3JfpUqcWwE7vUaYrHG1nw54pLUoPG6sAA7Mehl3nd4pZUALHwARAQABzS5EYXZpZCBIaWxk
- ZW5icmFuZCAoQ3VycmVudCkgPGRhdmlkQGtlcm5lbC5vcmc+wsGQBBMBCAA6AhsDBQkmWAik
- AgsJBBUKCQgCFgICHgUCF4AWIQQb2cqtc1xMOkYN/MpN3hD3AP+DWgUCaYJt/AIZAQAKCRBN
- 3hD3AP+DWriiD/9BLGEKG+N8L2AXhikJg6YmXom9ytRwPqDgpHpVg2xdhopoWdMRXjzOrIKD
- g4LSnFaKneQD0hZhoArEeamG5tyo32xoRsPwkbpIzL0OKSZ8G6mVbFGpjmyDLQCAxteXCLXz
- ZI0VbsuJKelYnKcXWOIndOrNRvE5eoOfTt2XfBnAapxMYY2IsV+qaUXlO63GgfIOg8RBaj7x
- 3NxkI3rV0SHhI4GU9K6jCvGghxeS1QX6L/XI9mfAYaIwGy5B68kF26piAVYv/QZDEVIpo3t7
- /fjSpxKT8plJH6rhhR0epy8dWRHk3qT5tk2P85twasdloWtkMZ7FsCJRKWscm1BLpsDn6EQ4
- jeMHECiY9kGKKi8dQpv3FRyo2QApZ49NNDbwcR0ZndK0XFo15iH708H5Qja/8TuXCwnPWAcJ
- DQoNIDFyaxe26Rx3ZwUkRALa3iPcVjE0//TrQ4KnFf+lMBSrS33xDDBfevW9+Dk6IISmDH1R
- HFq2jpkN+FX/PE8eVhV68B2DsAPZ5rUwyCKUXPTJ/irrCCmAAb5Jpv11S7hUSpqtM/6oVESC
- 3z/7CzrVtRODzLtNgV4r5EI+wAv/3PgJLlMwgJM90Fb3CB2IgbxhjvmB1WNdvXACVydx55V7
- LPPKodSTF29rlnQAf9HLgCphuuSrrPn5VQDaYZl4N/7zc2wcWM7BTQRVy5+RARAA59fefSDR
- 9nMGCb9LbMX+TFAoIQo/wgP5XPyzLYakO+94GrgfZjfhdaxPXMsl2+o8jhp/hlIzG56taNdt
- VZtPp3ih1AgbR8rHgXw1xwOpuAd5lE1qNd54ndHuADO9a9A0vPimIes78Hi1/yy+ZEEvRkHk
- /kDa6F3AtTc1m4rbbOk2fiKzzsE9YXweFjQvl9p+AMw6qd/iC4lUk9g0+FQXNdRs+o4o6Qvy
- iOQJfGQ4UcBuOy1IrkJrd8qq5jet1fcM2j4QvsW8CLDWZS1L7kZ5gT5EycMKxUWb8LuRjxzZ
- 3QY1aQH2kkzn6acigU3HLtgFyV1gBNV44ehjgvJpRY2cC8VhanTx0dZ9mj1YKIky5N+C0f21
- zvntBqcxV0+3p8MrxRRcgEtDZNav+xAoT3G0W4SahAaUTWXpsZoOecwtxi74CyneQNPTDjNg
- azHmvpdBVEfj7k3p4dmJp5i0U66Onmf6mMFpArvBRSMOKU9DlAzMi4IvhiNWjKVaIE2Se9BY
- FdKVAJaZq85P2y20ZBd08ILnKcj7XKZkLU5FkoA0udEBvQ0f9QLNyyy3DZMCQWcwRuj1m73D
- sq8DEFBdZ5eEkj1dCyx+t/ga6x2rHyc8Sl86oK1tvAkwBNsfKou3v+jP/l14a7DGBvrmlYjO
- 59o3t6inu6H7pt7OL6u6BQj7DoMAEQEAAcLBfAQYAQgAJgIbDBYhBBvZyq1zXEw6Rg38yk3e
- EPcA/4NaBQJonNqrBQkmWAihAAoJEE3eEPcA/4NaKtMQALAJ8PzprBEXbXcEXwDKQu+P/vts
- IfUb1UNMfMV76BicGa5NCZnJNQASDP/+bFg6O3gx5NbhHHPeaWz/VxlOmYHokHodOvtL0WCC
- 8A5PEP8tOk6029Z+J+xUcMrJClNVFpzVvOpb1lCbhjwAV465Hy+NUSbbUiRxdzNQtLtgZzOV
- Zw7jxUCs4UUZLQTCuBpFgb15bBxYZ/BL9MbzxPxvfUQIPbnzQMcqtpUs21CMK2PdfCh5c4gS
- sDci6D5/ZIBw94UQWmGpM/O1ilGXde2ZzzGYl64glmccD8e87OnEgKnH3FbnJnT4iJchtSvx
- yJNi1+t0+qDti4m88+/9IuPqCKb6Stl+s2dnLtJNrjXBGJtsQG/sRpqsJz5x1/2nPJSRMsx9
- 5YfqbdrJSOFXDzZ8/r82HgQEtUvlSXNaXCa95ez0UkOG7+bDm2b3s0XahBQeLVCH0mw3RAQg
- r7xDAYKIrAwfHHmMTnBQDPJwVqxJjVNr7yBic4yfzVWGCGNE4DnOW0vcIeoyhy9vnIa3w1uZ
- 3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
- CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
- qIws/H2t
-In-Reply-To: <d57f5b18-583d-4848-9d74-65b15c93dcf8@app.fastmail.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-On 7/13/26 17:38, Arnd Bergmann wrote:
-> On Mon, Jul 13, 2026, at 15:55, Yeoreum Yun wrote:
->> From: "David Hildenbrand (Arm)" <david@kernel.org>
->>
->> We don't want pgd_t to be an array, as it prohibits returning it from a
->> function, like pgdp_get().
-> 
-> What should pgdp_get() return on ARM 2-stage page tables then?
-> Does it return just the first entry or concatenate the two?
+Hi Michael,
 
-It is rather obscure what we do (below).
+On Sat, 11 Jul 2026 18:31:15 +0000
+Michael Kelley <mhklinux@outlook.com> wrote:
 
-This patch tries to keep the existing behavior.
+> One new thought:  Have you considered the hibernate/resume
+> cycle? Does anything need to be done with the pvIOMMU to
+> make it functional again after resume? I see that the Intel and
+> AMD IOMMU drivers have suspend and resume functions. I
+> don't know enough about the Hyper-V pvIOMMU to know if it
+> might also need suspend and resume functions.
 
-> 
->> +typedef u64 pgdval_t;
-> 
->> +static inline pmdval_t pgd_val(pgd_t pgd)
->> +{
->> +	return (*(pmdval_t (*)[2])&pgd)[0];
->> +}
-> 
-> This could use a comment to explain what this actually
-> returns and why the second entry is discarded.
+I don't think the Hyper-V pvIOMMU guest driver needs the same kind of
+suspend/resume handling as a hardware IOMMU driver. Unlike VT-d or AMD
+IOMMU, the guest driver does not own physical IOMMU registers, root
+tables, command queues, or translation enable state that must be saved
+and reprogrammed on resume.
 
-It's rather crazy. We have two page table levels, but fake that we have 3.
+For nested translation, the guest does own the stage-1 I/O page tables,
+but those are normal guest memory. They survive S3 as system RAM. The
+guest driver still needs to issue the normal pvIOMMU invalidations when
+it changes S1 mappings, but suspend/resume by itself does not modify
+the S1 page tables and should not require a special flush.
 
+The important contract is on the Hyper-V side: Hyper-V owns translation
+enable/disable and must prevent device DMA while translation state is
+not valid.
 
-There is some documentation in arch/arm/include/asm/pgtable-2level.h
+Thanks,
 
-/*
- * Hardware-wise, we have a two level page table structure, where the first
- * level has 4096 entries, and the second level has 256 entries.  Each entry
- * is one 32-bit word.  Most of the bits in the second level entry are used
- * by hardware, and there aren't any "accessed" and "dirty" bits.
- *
- * Linux on the other hand has a three level page table structure, which can
- * be wrapped to fit a two level page table structure easily - using the PGD
- * and PTE only.  However, Linux also expects one "PTE" table per page, and
- * at least a "dirty" bit.
- *
- * Therefore, we tweak the implementation slightly - we tell Linux that we
- * have 2048 entries in the first level, each of which is 8 bytes (iow, two
- * hardware pointers to the second level.)  The second level contains two
- * hardware PTE tables arranged contiguously, preceded by Linux versions
- * which contain the state information Linux needs.  We, therefore, end up
- * with 512 entries in the "PTE" level.
- *
- * This leads to the page tables having the following layout:
- *
- *    pgd             pte
- * |        |
- * +--------+
- * |        |       +------------+ +0
- * +- - - - +       | Linux pt 0 |
- * |        |       +------------+ +1024
- * +--------+ +0    | Linux pt 1 |
- * |        |-----> +------------+ +2048
- * +- - - - + +4    |  h/w pt 0  |
- * |        |-----> +------------+ +3072
- * +--------+ +8    |  h/w pt 1  |
- * |        |       +------------+ +4096
- *
-
-So we interpret two 32bit entries as a pair (64bit value). Together they span
-2x256 values.
-
-Then we make PTRS_PER_PTE = 512, to iterate all of them (both pairs).
-
-Let me do some more digging to come up with something I can confidentially
-document here ... maybe I'll just refer to the comment in pgtable-2level.h.
-
--- 
-Cheers,
-
-David
+Jacob
