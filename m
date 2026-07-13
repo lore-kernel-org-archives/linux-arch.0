@@ -1,50 +1,50 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.10])
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.16])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8EFE341B36C;
-	Mon, 13 Jul 2026 14:19:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.10
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F226E43CEC1;
+	Mon, 13 Jul 2026 14:38:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.16
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783952393; cv=none; b=oXowXgpPLVJJ+1FN3yoDXBuF221Hv4AuiZFdYjlmVkVgDMz69Jlk0HikBU47bPPfyQXrqbfM7bYVCbq1iPNXArVlmJDVxDK9pNU5kMPXS235tiMxHp5dJobTLk7OUyVmblNeWi721Cw13vd44v3+0kJV+PIk5+F5OEkWm4QjEdY=
+	t=1783953495; cv=none; b=TzhLXldlwpFWuK0+rY3i+So62AXogAHhwxx+fqhuvq570kpp65qjgLmofLCHvB/aV50tFsbfOTMxtxaS/AsPXyfx9032gha1qbiOkt+CiqlpncyQHXkYPmlqQuB4V1RDo7Qxetv/sknkP60aelJfsY2rdx5+Hlg/V7qB1Z0oHB4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783952393; c=relaxed/simple;
-	bh=ACEEsriG9dCD5Makw171QvwlNnRaGMIWxBoV9AUffyw=;
+	s=arc-20240116; t=1783953495; c=relaxed/simple;
+	bh=ZAJryuF52FAlpwYrHYLnTWDIffGafKrRhmpWNU5bWuQ=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=KF1eaO9M1O0FTT1VX5peOccEh1v0Rrz6ildcE5uuoAzZqkcNNQWO6COCzJgtV3rwLs/fqr/ZEAvgaMgKwj8jeUUhZKe9FHOtJ1yaJEei5wJXt0QbwRfOIW50PyKzQ+6xIL18Zc21kUE7dW9fLj6VWG/WGLdPG46mNa/OeS1Au08=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=WnuKxKl4; arc=none smtp.client-ip=198.175.65.10
+	 In-Reply-To:Content-Type; b=u3DtdORiHfDPX47nMnJDNfcqSdKpod2OI6gBs35dNBkgu9iIfAT6SLWAg3KHIHMGPeHkoPkvPjcUaOz79ioyaZJ0h1acwLn95cINSpPoiZZ3SsDAEParkoUgoVU+fGjIoDHCuNClFIjFPpbOJ6RvM5DPlrCzhx/Ow6D1rEJ4D6E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=PLKb2mKY; arc=none smtp.client-ip=198.175.65.16
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="WnuKxKl4"
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="PLKb2mKY"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1783952391; x=1815488391;
+  t=1783953492; x=1815489492;
   h=message-id:date:mime-version:subject:to:cc:references:
    from:in-reply-to:content-transfer-encoding;
-  bh=ACEEsriG9dCD5Makw171QvwlNnRaGMIWxBoV9AUffyw=;
-  b=WnuKxKl4lEyA2/OQZw58cc0JpT/KSpWPmfW/SrSr5ArQYc2y0PEKYDcp
-   lsXpJhMOQAi+HgJxYv5Pn7wBSIew91OEaoM/9qtBjtKeEK7tcJ5WNCyFu
-   h8+JzlFg/MfzX63Vw3dBpyYsb4jLt8ZjFIpRTEy06kwHeQHm9x2RmKzHf
-   6pnEl9qD49Bq2aoU/4PRoOVduO+FepQF43yR88sMMBAzSk43Hc/3XAYLd
-   Wkk9q5H/hhJcCMMpWbN9wmxtYz+Rsxb3EgCy5QXog7kz9Ty61WYdBPZ9l
-   WNDUhJTsU02jmwS+6OowmFpqVvxITOQdR41i+79+fL97NCcVav37oJqSp
-   Q==;
-X-CSE-ConnectionGUID: irLj4PscRDi7xbSptEqmiA==
-X-CSE-MsgGUID: q3Cehmh7R0mc6aH76nqA+g==
-X-IronPort-AV: E=McAfee;i="6800,10657,11841"; a="101986139"
+  bh=ZAJryuF52FAlpwYrHYLnTWDIffGafKrRhmpWNU5bWuQ=;
+  b=PLKb2mKYiv3VWh5ACVyqOKUxLAHCxlBpSI9ysQ5HWBZL2aqyfwWfmQdG
+   D//8DLF3wWtiUEahzoy2esJBZA/NLY7auhwmS5l5lEBz9vYQ4MXNFDRB4
+   pHgzNuG8wwquK7Xj99ZzgwIvUZw3IQSNdjEyCsYVb/HlWYD0I8WGoTPJK
+   uOSwJIx95tcHuZ2MA8qBBHG3tY1msO89TQHHfdRHa0sARD1K3mtAQSBcR
+   jFJNty3jDmsMaS4mpB/qjZwOLSk+N/DOPuQOS68slxQaNvSTy0sUzkb4l
+   3QU6nAD2nj0TeBZYt+3fUQ9KJrP4Bsu8x9v2hENKTb5aZGL6osVlrvY3/
+   g==;
+X-CSE-ConnectionGUID: twr5+OY9TgqYi3FK4huArg==
+X-CSE-MsgGUID: mcVKMeZoTBS04sSsBMF39g==
+X-IronPort-AV: E=McAfee;i="6800,10657,11841"; a="84756808"
 X-IronPort-AV: E=Sophos;i="6.25,154,1779174000"; 
-   d="scan'208";a="101986139"
-Received: from fmviesa009.fm.intel.com ([10.60.135.149])
-  by orvoesa102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Jul 2026 07:19:50 -0700
-X-CSE-ConnectionGUID: Bhu909OcTi2Jw8FWWspLNQ==
-X-CSE-MsgGUID: etPWERUSRBqiiOVfAtNJ+A==
+   d="scan'208";a="84756808"
+Received: from orviesa008.jf.intel.com ([10.64.159.148])
+  by orvoesa108.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Jul 2026 07:38:11 -0700
+X-CSE-ConnectionGUID: Qqebxm3FTj6zb1tCrVg3lQ==
+X-CSE-MsgGUID: Tn+xtzRURciwKeDDBZYmow==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="6.25,154,1779174000"; 
-   d="scan'208";a="249209989"
+   d="scan'208";a="255057088"
 Received: from gabaabhi-mobl2.amr.corp.intel.com (HELO [10.125.108.45]) ([10.125.108.45])
-  by fmviesa009-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Jul 2026 07:19:47 -0700
-Message-ID: <c3edfb13-08ec-419c-bc05-8f3f64186b24@intel.com>
-Date: Mon, 13 Jul 2026 07:19:47 -0700
+  by orviesa008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Jul 2026 07:38:09 -0700
+Message-ID: <595e5ba5-0bc4-4630-b8f0-8637298076ce@intel.com>
+Date: Mon, 13 Jul 2026 07:38:11 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -52,8 +52,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH 10/34] x86: mm: carve out the generic compile-time
- folded pgtable case in effective_prot()
+Subject: Re: [RFC PATCH 19/34] x86: power: use proper set_pXd() for generic
+ compile-time folded patable in resume_one_md_table_init()
 To: Yeoreum Yun <yeoreum.yun@arm.com>, linux-arm-kernel@lists.infradead.org,
  linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
  linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
@@ -89,7 +89,7 @@ Cc: david@kernel.org, linux@armlinux.org.uk, akpm@linux-foundation.org,
  geert@linux-m68k.org, shorne@gmail.com, jonas@southpole.se,
  stefan.kristiansson@saunalahti.fi
 References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
- <20260713135614.1618183-11-yeoreum.yun@arm.com>
+ <20260713135614.1618183-20-yeoreum.yun@arm.com>
 From: Dave Hansen <dave.hansen@intel.com>
 Content-Language: en-US
 Autocrypt: addr=dave.hansen@intel.com; keydata=
@@ -135,32 +135,51 @@ Autocrypt: addr=dave.hansen@intel.com; keydata=
  MTsCeQDdjpgHsj+P2ZDeEKCbma4m6Ez/YWs4+zDm1X8uZDkZcfQlD9NldbKDJEXLIjYWo1PH
  hYepSffIWPyvBMBTW2W5FRjJ4vLRrJSUoEfJuPQ3vW9Y73foyo/qFoURHO48AinGPZ7PC7TF
  vUaNOTjKedrqHkaOcqB185ahG2had0xnFsDPlx5y
-In-Reply-To: <20260713135614.1618183-11-yeoreum.yun@arm.com>
+In-Reply-To: <20260713135614.1618183-20-yeoreum.yun@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 On 7/13/26 06:55, Yeoreum Yun wrote:
-> We want to change how pXdp_get() works with generic compile-time folded
-> page tables. To prepare for that, rework effective_prot() to ignore any
-> folded page tables entries, as it will unconditionally get called by
-> ptdump core with pXd_val(pXdp_get()), and we really should be ignoring
-> that value for folded entries.
-> 
-> For this, identify the first real page-table level and
-> update effective_prot only when the current entry is not folded.
+> @@ -134,11 +129,12 @@ static inline void resume_init_first_level_page_table(pgd_t *pg_dir)
+>  {
+>  #ifdef CONFIG_X86_PAE
+>  	int i;
+> +	pud_t *pud = pud_offset(p4d_offset(pg_dir, 0), 0);
+>  
+>  	/* Init entries of the first-level page table to the zero page */
+>  	for (i = 0; i < PTRS_PER_PGD; i++)
+> -		set_pgd(pg_dir + i,
+> -			__pgd(__pa(empty_zero_page) | _PAGE_PRESENT));
+> +		set_pud(pud + i,
+> +			__pud(__pa(empty_zero_page) | _PAGE_PRESENT));
+>  #endif
+>  }
 
-Nit: could you please clean up the "we's" and move over to imperative
-voice for the series? We're picky about it on the x86 side, but I do
-think it's generally a good preferred practice across the kernel.
+If this is the way forward, it's going to require the retraining of some
+awfully old brain cells.
 
-Also I really do think this made the code worse. effective_prot() is a
-pretty tidy function. This change more than doubles the size and is also
-basically the same block copied and pasted twice.
+It also doesn't really read correctly. Loop over each PGD entry:
 
-Further, this does seem like it will stop filling out some of the
-st->prot_levels[] entries. That seems like it might break things. It
-definitely needs to be covered in the changelog.
+	for (i = 0; i < PTRS_PER_PGD; i++)
 
-So, in the end, I'm not 100% sure what this is doing. Is it "optimizing"
-the ptdump code? Or is it preemptively fixing code that will soon be
-throwing a compile error?
+... and set a pud?
+
+		set_pud(...)
+
+I'm not sure how I'd ever learn the rules to write this code from
+scratch. Right now, the code says: "The pgd_t is the top level of the
+page tables. I know there are PTRS_PER_PGD of those top level entries
+entries I need to 'zero'."
+
+You don't have to know what is folded, just that you're dealing with the
+top level.
+
+But *this* code says:
+
+1. The pgd_t is the top level of the page tables. Start there.
+2. "Walk" down *two* (folded) levels
+3. Set the third-level (pud) entries to 'zero'
+
+So the code now *has* to know how the folding occurs.
+
+This seems really hard to work with to me.
