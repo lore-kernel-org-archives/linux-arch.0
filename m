@@ -1,259 +1,207 @@
-Received: from CH5PR02CU005.outbound.protection.outlook.com (mail-northcentralusazon11012003.outbound.protection.outlook.com [40.107.200.3])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 88BCD3382F1;
-	Mon, 13 Jul 2026 16:38:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.107.200.3
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783960707; cv=fail; b=SEN+TMTuWmgFiOHldsYNpv9VXdfoIpsKXs8GcQxgJ/KKi8jFDg88M5Huk0DnalePpeDokxpFKfJdBRgx9Pa4EfLzB5znpKn7s4Btu9z/3IQ89qXNfc00oy4Yxb5aoKA3+kPSm8jiEUmC6/BNKGwu/BCjCOq7FpUz3+QLakllm7o=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783960707; c=relaxed/simple;
-	bh=6pA1x4hy1S5BrvbPcwsR+HBw0/UjS/cu+7r2SyMOzUA=;
-	h=Message-ID:Date:Subject:To:Cc:References:From:In-Reply-To:
-	 Content-Type:MIME-Version; b=FAtIHD3FcOadyvb9vBWqmo0PT9b9cNoKbtIRjh9829swGPD3QcCbaZCt+cgWa/me7cdY0iri7lgf16oFCYn8PsSvk+OhKIt0Q5pD4VU6nr2LX2aewrLU3VdFwCAKOf6P3ww+XJyHHf1gneU7a4cAJ3VCgcZFCs55Aoy53ygDYeQ=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com; spf=fail smtp.mailfrom=amd.com; dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b=LuGZfSNU; arc=fail smtp.client-ip=40.107.200.3
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=amd.com
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1C29E281530;
+	Mon, 13 Jul 2026 16:46:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783961182; cv=none; b=Hn1Y6sodq0GRr6dEmEts8r/BmF8TQnSsU2FK4N2OqQxNKyOCaWeIQX+Be5nibmWKiUe5GPrFTpWnh7wi2ORCJ+dvbY6NzNi6MAGKLTCtw0waMDL2fyxgsCVNDVFXT+T6NlGY5xqwTmLuGFhJIRPpj1849RAkSyDyl5LeNelyDMQ=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783961182; c=relaxed/simple;
+	bh=Sem6KJo6jUTitXm7NbisqjqOR5BQYp0HkiBD76Cxjk0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=TM5q+IzoFBQ3TLo6gy5+8VpSh782YxYkCM3+sBwsVKcB/FOJZiIFB0TmW9RYD1tXjMcxpTaflWDBgEPkOySPEJeiNx1OqmPmboRPkUPXBR2FNjabz6gDnY+43s+hVwBDSAXZmmmSbBMx5jtVNh2H971Wqsa1EzOIT/GwxQhoCBo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=TYdlTv69; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b="LuGZfSNU"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=L1vAhvMXrgynBDXhdK/ais5Fuv2poCf9VRLlj1vTR7cCnzEBVptR5KWLCjICtQDzloDI/A7FmAk487xYzbrL9YuoCU1gpURzoQa541VHQUGIuOV0EBSSwNRJb9eRLe5HqedaI5aYn+gEgKQmIAGKTe8SclOjmdUh6P4MU4KH65f3GIBBAiz6WYh+qzbF7YvgXv0/a6nr1EAYy+92Q7r4WWRwwhasklzOeCPjToIY1iHhqWslVBq9oL/P+uay40pMg1e73JprDLg7IPdM6EHmv+cs5PgyaqHJTIn7RQ8vvvgL1nlgu5ZQG0g/uCrdd1kXf2Op3OPFbsfRhVyMIpAyJg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=1Q/en/7ckSEXraxMygO/NvLcwDhwUznwW94J4pPpTUg=;
- b=wfxoQUKxAkjByu0ozScrsGLM/+gHDIuTmIaJIGGL3Nn/NfqVwarU0Mtkykp6imIFPmUT73iulE+D/w/dxl5HW+qkgx8KA4CjSifEprAsA1CWzXxyOn2kleZxdgCBtR5mGrYpjNObe6kHmrCqyVKILeIXkdsW/zlMENOdVNahe/0qrqrKW5BICJMIZblnpGY3XmsejTiM2srkgQDbQA5U5bMTvWEhWKJHS1uSLFArVSMtJUEU9XkgRrdOdhtRy7PM3nA2DIIO+CczgRrN7DY3nN5bezg7xkuZi1rCkTzvwSWdszXG1aKDG2wyQO/yBsiFD+zpkbZ5KdEu0nNVn/ZaeQ==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=amd.com; dmarc=pass action=none header.from=amd.com; dkim=pass
- header.d=amd.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=1Q/en/7ckSEXraxMygO/NvLcwDhwUznwW94J4pPpTUg=;
- b=LuGZfSNUJy5XLgbmujn9u4bUQjiM6AG5cZI9jniQJahtYkQvPFvV8XiiirokaNu4appEjHstbFSYRvy1cxipcoLx3EdtZ/xGLUUN4Mtm968luXe6kqX3LjCIb/kneqGl5DQEYt5cz6Qy2Qn+KO5kLFmvxENUHyqIMcc1nIPkFLg=
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=amd.com;
-Received: from CY1PR12MB9697.namprd12.prod.outlook.com (2603:10b6:930:107::6)
- by IA1PR12MB6532.namprd12.prod.outlook.com (2603:10b6:208:3a3::12) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.202.18; Mon, 13 Jul
- 2026 16:38:17 +0000
-Received: from CY1PR12MB9697.namprd12.prod.outlook.com
- ([fe80::3a41:55a0:8203:596d]) by CY1PR12MB9697.namprd12.prod.outlook.com
- ([fe80::3a41:55a0:8203:596d%5]) with mapi id 15.21.0202.014; Mon, 13 Jul 2026
- 16:38:17 +0000
-Message-ID: <02ccf4e3-8193-4ba7-931a-e5bf2dde3f12@amd.com>
-Date: Mon, 13 Jul 2026 22:08:03 +0530
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v10 1/2] dt-bindings: i3c: Add AMD I3C master controller
- support
-To: Shubham Patil <shubhamsanjay.patil@amd.com>, git@amd.com,
- michal.simek@amd.com, alexandre.belloni@bootlin.com, Frank.Li@nxp.com,
- robh@kernel.org, krzk+dt@kernel.org, conor+dt@kernel.org, pgaj@cadence.com,
- wsa+renesas@sang-engineering.com, tommaso.merciai.xr@bp.renesas.com,
- arnd@arndb.de, quic_msavaliy@quicinc.com, Shyam-sundar.S-k@amd.com,
- sakari.ailus@linux.intel.com, billy_tsai@aspeedtech.com, kees@kernel.org,
- gustavoars@kernel.org, jarkko.nikula@linux.intel.com,
- jorge.marques@analog.com, linux-i3c@lists.infradead.org,
- devicetree@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org
-Cc: radhey.shyam.pandey@amd.com, srinivas.goud@amd.com,
- shubhrajyoti.datta@amd.com,
- Manikanta Guntupalli <manikanta.guntupalli@amd.com>
-References: <20260709064233.1451482-1-shubhamsanjay.patil@amd.com>
- <20260709064233.1451482-2-shubhamsanjay.patil@amd.com>
-Content-Language: en-US
-From: "Pandey, Radhey Shyam" <radheys@amd.com>
-In-Reply-To: <20260709064233.1451482-2-shubhamsanjay.patil@amd.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-X-ClientProxiedBy: PN3PR01CA0125.INDPRD01.PROD.OUTLOOK.COM
- (2603:1096:c01:96::11) To CY1PR12MB9697.namprd12.prod.outlook.com
- (2603:10b6:930:107::6)
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="TYdlTv69"
+Received: from localhost (unknown [167.220.233.38])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 6718F20B7166;
+	Mon, 13 Jul 2026 09:46:12 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 6718F20B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1783961172;
+	bh=GW97O9s/FqeNwr7q4Bm2RaJJPumMCy7wcDQxp5UqbLI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=TYdlTv698y99d+W8mwAyKPyT7FCVp7+pKIW8pi9KkSOfQ4/s6MBvmCfJ5hNf9wwD3
+	 OW7Uf+GFIvI3ehv2UGqtaYl0oVCPWUyjR8heS33V+eU0lRqd9XtgREamqIW/DYZ4MK
+	 2jc87WSEX7SMB/sGmV6qdzj52oj6TUcL8SMpEbZM=
+Date: Tue, 14 Jul 2026 00:46:18 +0800
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: Michael Kelley <mhklinux@outlook.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
+	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev" <iommu@lists.linux.dev>, 
+	"linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 
+	"wei.liu@kernel.org" <wei.liu@kernel.org>, "kys@microsoft.com" <kys@microsoft.com>, 
+	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>, 
+	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org" <joro@8bytes.org>, 
+	"will@kernel.org" <will@kernel.org>, "robin.murphy@arm.com" <robin.murphy@arm.com>, 
+	"bhelgaas@google.com" <bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>, 
+	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org" <mani@kernel.org>, 
+	"robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
+	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
+	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>, "mrathor@linux.microsoft.com" <mrathor@linux.microsoft.com>
+Subject: Re: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU support
+ for Hyper-V guest
+Message-ID: <3ty6yq6oftsvq52skrngjv5xpyixhsyfo3dndhoujt7emxsb2o@y6ischifpmfn>
+References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
+ <20260702160518.311234-4-zhangyu1@linux.microsoft.com>
+ <SN6PR02MB4157253E030D477FD91B7E26D4FE2@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <enpkphavwmqrkded73c43vprczslvei4755lkxuedof4z2k3kk@y2jtklbk4efz>
+ <SN6PR02MB4157805F23ACA85A668FA065D4FC2@SN6PR02MB4157.namprd02.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CY1PR12MB9697:EE_|IA1PR12MB6532:EE_
-X-MS-Office365-Filtering-Correlation-Id: 3201d55b-5b6b-45d1-4784-08dee0fd2424
-X-LD-Processed: 3dd8961f-e488-4e60-8e11-a82d994e183d,ExtAddr
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|366016|23010399003|1800799024|7416014|376014|11063799006|56012099006|4143699003|3023799007|9063799003|22082099003|18002099003|921020;
-X-Microsoft-Antispam-Message-Info:
-	HZ7Btc9nUGa9GKHJ4yYgntoiWddF6EtX+4MA8PZP7KXmAyhEo/XYfOTD9LYm+22EV1YB935DOe805n7sAhvG+wKnDFh+xVjl2b+B8eUEdBohmaWIPgPF4OJxbx9jCPdteC6WH2W8ED7rIVKbhotVY7KFH0o2UWQW2ZGC+YGHQl8/PLT7wm4wEVWHqNmyWwW5yh1QCHOvlLlMq1HGkxznl5xrNIjwOX0DTn7L3fVy9RjKWf5atqLXXzytLVHE36taoeyppFKxvRMw1A6FXBQENOXqE2ksnU05XAF6B39cyJ8NOa1tLfloPQGd8OWQNG3f1HQ9LGy1GpfGmOooJDzUYxOl9CTqn/FU6hn9Ye7T6ofZumg2lSKTRpxBQCbWVIz4dPr4L9npCJy/bJlqLNSoepE0nLEXy82Mnf/OQUpIPAGl8Z7E2pBEmxjUt8gRfYN85bkLqYir3NYxEKDlZPeVfv56hhZv1Pq15eobQiOH18rN/iTrSw3bMATzSPTLSh2d1cUTHM51nqN5HYl7HBcdnGbjs4j2gfqxfqcbaFhegBxy6Pzqf6FvpgXnLvN14bLNunjOnBdumTN28U3BfXbKQwIpFJCPrjT5OcyNkMqIKN1SSnoNvn7mWa+iuBkegjs9ofWYmDa++uL1G4RUsjEJcn2LHKhhq3GyrmCqludDre8=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CY1PR12MB9697.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(23010399003)(1800799024)(7416014)(376014)(11063799006)(56012099006)(4143699003)(3023799007)(9063799003)(22082099003)(18002099003)(921020);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?dkpKS2VodEprWGJRT2krVjhFOTZwdE1wb0dJOTZBVTcxOW9CZ2RvOTFjZXJi?=
- =?utf-8?B?UVNvNUxsTm1FVmErdklES2V6VEVCSWFKdTdQYUY5V1ZsbXBHMFFHWkVTdVVB?=
- =?utf-8?B?ZnZ3eEViTlY0SzVpS2RjbWtVUjlLdmhRKzZ3Q3B5cjFGa0JDSEZGU3ZjOFp1?=
- =?utf-8?B?bW84eG5aQ1F4R3dISVdVM3ZLL2UvcU4yem9GMW1sbjdjTTZzTEc4c2d0amR2?=
- =?utf-8?B?R0VkVGNXSWNSM2lDa2pjek9WbFk2WUR6TkZIZDMzTU4wOSt0VERTQTEwelJQ?=
- =?utf-8?B?Qkx5RmhWK0ZFTmJjM2QxOWFkNkNHMnFGWXJ5bEVaWFg2NjlBNVJKNHJiRVo3?=
- =?utf-8?B?QmJJZXBmL0FJeUptOFFleWZ6ZmFsWDNzRnhFc09wZGEybVBwWTYrWlFnd2lx?=
- =?utf-8?B?aFJkK1hjZ3ZnZHRYNTN1L3VONnRBSkU0YnE5bnlOZzJ3QlFiRldxV3pIUzVw?=
- =?utf-8?B?TGZibzZDUXcrckxWV2pmNitLWkR3R25QanBiQTI4YVlUN3phRnVpL2hXbE8r?=
- =?utf-8?B?aXBteFZpMHpOTHd4ZGNjS0NZWVZLblFmeWJaTHVVYUYyZUx2QmhYdjBXdWZi?=
- =?utf-8?B?Y21BSm16NjFUYXVUajNaN3ZLR2hzM1A5a3NibW9xaFozR24yY240NDlvTHEy?=
- =?utf-8?B?bk56OTRxaXY2eXVCbTVKbWlkL05adUJ6M3lxbE8yb05CZ2FFZVkzMUhneCt4?=
- =?utf-8?B?Y0Jkc01BZnhTWjlRVmJTaDYweTB6dlEwTW9WUTEzZ0hvY05WQnVUaTNvYW8w?=
- =?utf-8?B?QXZWTkNBR0J6cWFxVmJOTFplM1pkbkNBNWZsRWFUSXFHek5YaDluZ25MZlVY?=
- =?utf-8?B?WVVtZldWUC92bXpsU2MyZnlkRjJzbGNKL2VrZ3dHWGdlYXRlUGRHRjB5UnpK?=
- =?utf-8?B?NUhYOWIrSUpRU1VYVCtnNXdVT0VEMUtPL0p1dnNCZ3YrV3QyTnFZUTZFRlFh?=
- =?utf-8?B?dHovdE5CK2V4bFVzZXhBemRmaGptRkMyZ3YzNmJCVkU4RVVFdEhYYzFVWjZO?=
- =?utf-8?B?VHUzd0Rsai93amUwSkl4RTNJUjl5Nzl6TkRvWlYydzhRUVpjUnI2ZGlkb3Jq?=
- =?utf-8?B?TlAzRTlpZ2lpcVI2ZHFmVEZEVGtIcWZTaDU5cWxDV3J5L2lrZEFxWUF2QWxu?=
- =?utf-8?B?akNFTHowTVJLeFNEK3FrTjhqUWRER01hc09lMSsvKzlLdTNOUm5yOG1EV0Zr?=
- =?utf-8?B?Z04rMUtVR1VFdzl6V3JidWVOcGoyb296RGFiN1lvMmZUT2tzRWJsUisvVlFt?=
- =?utf-8?B?VVBzSUdKbDdxWlBQRTJrdEs2Y1owamp3RVQvYzJhVkllbldXRlVsU1FRTmwy?=
- =?utf-8?B?RnZCeE1DekZCQksxN3RMTk9lemlmd3ZUd1BCZ3czQkpvbUNjYldZdVoxNDM4?=
- =?utf-8?B?NDRtYXlRRlBkdm8wUVpDdFhJdkprNHI2aDNBUEdqcUxnYUpTWjZLVU5QU2tK?=
- =?utf-8?B?dTVLUVd6NS8zcWkvSmVlWDExL3JLZ0pSQm1wSHB1cUhyM3BUZHhCTXFSb0l2?=
- =?utf-8?B?OUdCRVBBMXVOOUpYejVuUXRMMjdYTWRIT3haL1MrRzAzTEVnT0ZmQ3F4aXJu?=
- =?utf-8?B?N3cwdWNka25rUDhZZHlFZ1NvTlQ0UVlDS2ZuM2JWN1BBNTduVmhHOSttQ09Y?=
- =?utf-8?B?bU9KVXM2ak1OaGpNSlBnbUVGdEJQdzBJMU5NTW02dkdwejB4Y2tscFU5enRX?=
- =?utf-8?B?NXhjdkhEaEZscW1HYTFubXNzSExJNTg3WWErb0RtOVo5YXhybmtaVExpOFh3?=
- =?utf-8?B?K0F3WHFKN2I2TXY2VXZxS3BKNCtuTU5jRVcxNGZJNHpQSGt1UTlOczUrSm5n?=
- =?utf-8?B?cCtBOEU1R2dhK3dTNnB5eGtWb0VOWSt6eFhNaXFrN0QyS3ROY1BZc2F5WGtt?=
- =?utf-8?B?R0lYN0hDd3FxM2xNNldObDRiOE1LY1VjbXNaeHhYS0g0M0s5MmswODZNMXpz?=
- =?utf-8?B?TEZkM0E5ZFdmQVphTFZOQVlDZ3VWY2t4TnhocE1xdEExc211YjNnKzhDa05k?=
- =?utf-8?B?MlBBUHp1bGswUUM2Y1JRaWo0NGgwUVZMV2ZDZkJrUXVocncyakJaV2JQSEpM?=
- =?utf-8?B?YThNZlRtVEpVOEM4UUc1R0Q0anJPc2NWZm5GZWgwdGl2dWZ3UTV4VGRTR29u?=
- =?utf-8?B?NXNHZlo0T3pNekdWVTQ5am9QSnEyQ28xZVBHb2cxVFRpYi9tcUc4LzJEMloy?=
- =?utf-8?B?VHMvelN0ZTh0TkJiZnk2c2NBbituL0Fxa09xU1VOZjVsRGppSUxhRk4vekJw?=
- =?utf-8?B?bEV1Q3h0SHdPVFlzL2JoN3Mzai9SYzFzbUUwTUtJY1B4cmorcXVFaGJrcXBk?=
- =?utf-8?B?c2N4clpkMXAwRzZmZk5ZcFpEL0hMOWl4OUpDckRPTHJRRkE4ejV0UT09?=
-X-OriginatorOrg: amd.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 3201d55b-5b6b-45d1-4784-08dee0fd2424
-X-MS-Exchange-CrossTenant-AuthSource: CY1PR12MB9697.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 13 Jul 2026 16:38:17.2247
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: cnOq/4vGdOlFSspQXgidxq8DNcMXTZn5xAnEJK+6bIjeGMefRqeYlWEywRrymV4G
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: IA1PR12MB6532
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <SN6PR02MB4157805F23ACA85A668FA065D4FC2@SN6PR02MB4157.namprd02.prod.outlook.com>
 
-> From: Manikanta Guntupalli <manikanta.guntupalli@amd.com>
+On Sat, Jul 11, 2026 at 06:31:15PM +0000, Michael Kelley wrote:
+> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Friday, July 10, 2026 12:34 AM
+> > 
+> > On Thu, Jul 09, 2026 at 07:08:26PM +0000, Michael Kelley wrote:
+> > > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Thursday, July 2, 2026 9:05 AM
+> > > >
+> > > > Add a para-virtualized IOMMU driver for Linux guests running on Hyper-V.
+> > > > This driver implements stage-1 IO translation within the guest OS.
+> > > > It integrates with the Linux IOMMU core, utilizing Hyper-V hypercalls
+> > > > for:
+> > > >  - Capability discovery
+> > > >  - Domain allocation, configuration, and deallocation
+> > > >  - Device attachment and detachment
+> > > >  - IOTLB invalidation
+> > > >
+> > > > The driver constructs x86-compatible stage-1 IO page tables in the
+> > > > guest memory using consolidated IO page table helpers. This allows
+> > > > the guest to manage stage-1 translations independently of vendor-
+> > > > specific drivers (like Intel VT-d or AMD IOMMU).
+> > > >
+> > > > Hyper-V consumes this stage-1 IO page table when a device domain is
+> > > > created and configured, and nests it with the host's stage-2 IO page
+> > > > tables, therefore eliminating the VM exits for guest IOMMU mapping
+> > > > operations. For unmapping operations, VM exits to perform the IOTLB
+> > > > flush are still unavoidable.
+> > > >
+> > > > To identify a device in its hypercall interface, the driver looks up the
+> > > > logical device ID prefix registered for the device's PCI domain (see the
+> > > > logical device ID registry in hv_common.c) and combines it with the PCI
+> > > > function number of the endpoint device.
+> > > >
+> > > > Co-developed-by: Wei Liu <wei.liu@kernel.org>
+> > > > Signed-off-by: Wei Liu <wei.liu@kernel.org>
+> > > > Co-developed-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+> > > > Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+> > > > Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
+> > > > ---
+> > > >  arch/x86/hyperv/hv_init.c       |   4 +
+> > > >  arch/x86/include/asm/mshyperv.h |   4 +
+> > > >  drivers/iommu/Kconfig           |   1 +
+> > > >  drivers/iommu/hyperv/Kconfig    |  16 +
+> > > >  drivers/iommu/hyperv/Makefile   |   1 +
+> > > >  drivers/iommu/hyperv/iommu.c    | 620 ++++++++++++++++++++++++++++++++
+> > > >  drivers/iommu/hyperv/iommu.h    |  51 +++
+> > > >  7 files changed, 697 insertions(+)
+> > > >  create mode 100644 drivers/iommu/hyperv/Kconfig
+> > > >  create mode 100644 drivers/iommu/hyperv/iommu.c
+> > > >  create mode 100644 drivers/iommu/hyperv/iommu.h
+> > > >
+> > > > diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+> > > > index 55a8b6de2865..094f9f7ddb72 100644
+> > > > --- a/arch/x86/hyperv/hv_init.c
+> > > > +++ b/arch/x86/hyperv/hv_init.c
+> > > > @@ -578,6 +578,10 @@ void __init hyperv_init(void)
+> > > >  	old_setup_percpu_clockev = x86_init.timers.setup_percpu_clockev;
+> > > >  	x86_init.timers.setup_percpu_clockev = hv_stimer_setup_percpu_clockev;
+> > > >
+> > > > +#ifdef CONFIG_HYPERV_PVIOMMU
+> > > > +	x86_init.iommu.iommu_init = hv_iommu_init;
+> > > > +#endif
+> > > > +
+> > >
+> > > This approach to .iommu_init is a bit different from the Intel VT-d and
+> > > AMD IOMMU initialization. Those cases detect the existence of the
+> > > IOMMU first via a "detect" function that is called in pci_iommu_alloc().
+> > > If the detect function finds an IOMMU, it sets .iommu_init. Any
+> > > reason not to use the same approach for the Hyper-V pvIOMMU?
+> > > One problem with exactly the same approach is that Hyper-V
+> > > hypercalls aren't set up at the time pci_iommu_alloc() runs.
+> > 
+> > Yes. That's why I did not follow Intel VT-d and AMD IOMMU's approach -
+> > the hv_hypercall_pg is not ready yet.
+> > 
+> > > So you'd have to call the "detect" function here in hyperv_init(),
+> > > and have the detect function set .iommu_init if pvIOMMU
+> > > support is present.
+> > >
+> > 
+> > The detecion of the presense and capabilities of the pvIOMMU are done
+> > in one hypercall. But I guess we can:
+> > - do the HVCALL_GET_IOMMU_CAPABILITIES in hyperv_init();
+> > - check the presense and only set .iommu_init to hyperv_iommu_init()
+> >   if pvIOMMU is present;
+> > - and then do other capalibities check in hv_iommu_init();
+> > - only give the error log if an pvIOMMU is present yet its capabilities
+> >   are not legal.
+> > So below errors will not be printed for guest kernels built with
+> > CONFIG_HYPERV_PVIOMMU and running on a host w/o one.
 > 
-> Add device tree binding documentation for the AMD I3C master controller
-> version 1.0.
+> I see your point about detection and capabilities coming from
+> single hypercall, and that separating those two functions
+> would duplicate code. My biggest concern is about errors in the
+> dmesg log for a valid configuration where the host doesn't
+> supply a pvIOMMU. Fixing that problem in the context of the
+> current code structure would be acceptable.
 > 
-> Signed-off-by: Manikanta Guntupalli <manikanta.guntupalli@amd.com>
-> Co-developed-by: Shubham Patil <shubhamsanjay.patil@amd.com>
-> Signed-off-by: Shubham Patil <shubhamsanjay.patil@amd.com>
-> Reviewed-by: Rob Herring (Arm) <robh@kernel.org>
-> ---
-v10 changes looks fine to me.
+> A minor concern is arguably misusing the .iommu_init function
+> to do detection. But that function is only called once at boot
+> time, so leaving it set to hv_iommu_init() even if there isn't
+> a Hyper-V pvIOMMU is probably more a conceptual issue
+> than a real issue. I wouldn't object if you prefer to leave that
+> "as is" to avoid duplicating the hypercall.
+> 
+> One new thought:  Have you considered the hibernate/resume
+> cycle? Does anything need to be done with the pvIOMMU to
+> make it functional again after resume? I see that the Intel and
+> AMD IOMMU drivers have suspend and resume functions. I
+> don't know enough about the Hyper-V pvIOMMU to know if it
+> might also need suspend and resume functions.
+> 
 
-Reviewed-by: Radhey Shyam Pandey <radhey.shyam.pandey@amd.com>
-Thanks!
+Thanks for raising this, Michael. We have not considered such support.
 
-> Changes for V10:
-> Use symbolic interrupt macros and include arm-gic.h.
-> Added Shubham Patil as Co-developed-by / Signed-off-by on the binding.
-> 
-> Changes for V9:
-> Updated the MAINTAINER section.
-> 
-> Changes for V8:
-> None.
-> 
-> Changes for V7:
-> Added i3c controller version details to commit description.
-> 
-> Changes for V6:
-> Corrected the file name for $id in yaml to fix the dtschema warning.
-> 
-> Changes for V5:
-> Renamed the xlnx,axi-i3c.yaml file into xlnx,axi-i3c-1.0.yaml.
-> 
-> Changes for V4:
-> Added h/w documentation details.
-> 
-> Changes for V3:
-> Updated commit description.
-> Corrected the order of properties and removed resets property.
-> Added compatible to required list.
-> Added interrupts to example.
-> 
-> Changes for V2:
-> Updated commit subject and description.
-> Moved allOf to after required.
-> Removed xlnx,num-targets property.
-> ---
->   .../bindings/i3c/xlnx,axi-i3c-1.0.yaml        | 58 +++++++++++++++++++
->   1 file changed, 58 insertions(+)
->   create mode 100644 Documentation/devicetree/bindings/i3c/xlnx,axi-i3c-1.0.yaml
-> 
-> diff --git a/Documentation/devicetree/bindings/i3c/xlnx,axi-i3c-1.0.yaml b/Documentation/devicetree/bindings/i3c/xlnx,axi-i3c-1.0.yaml
-> new file mode 100644
-> index 000000000000..2caa245a8656
-> --- /dev/null
-> +++ b/Documentation/devicetree/bindings/i3c/xlnx,axi-i3c-1.0.yaml
-> @@ -0,0 +1,58 @@
-> +# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
-> +%YAML 1.2
-> +---
-> +$id: http://devicetree.org/schemas/i3c/xlnx,axi-i3c-1.0.yaml#
-> +$schema: http://devicetree.org/meta-schemas/core.yaml#
-> +
-> +title: AMD I3C master
-> +
-> +maintainers:
-> +  - Shubhrajyoti Datta <shubhrajyoti.datta@amd.com>
-> +  - Shubham Patil <shubhamsanjay.patil@amd.com>
-> +
-> +description:
-> +  The AXI-I3C IP is an I3C Controller with an AXI4-Lite interface, compatible
-> +  with the MIPI I3C Specification v1.1.1. The design includes bidirectional I/O
-> +  buffers that implement open collector drivers for the SDA and SCL signals.
-> +  External pull-up resistors are required to properly hold the bus at a Logic-1
-> +  level when the drivers are released.
-> +
-> +  For more details, please see https://docs.amd.com/r/en-US/pg439-axi-i3c
-> +
-> +properties:
-> +  compatible:
-> +    const: xlnx,axi-i3c-1.0
-> +
-> +  reg:
-> +    maxItems: 1
-> +
-> +  clocks:
-> +    maxItems: 1
-> +
-> +  interrupts:
-> +    maxItems: 1
-> +
-> +required:
-> +  - compatible
-> +  - reg
-> +  - clocks
-> +
-> +allOf:
-> +  - $ref: i3c.yaml#
-> +
-> +unevaluatedProperties: false
-> +
-> +examples:
-> +  - |
-> +    #include <dt-bindings/interrupt-controller/arm-gic.h>
-> +
-> +    i3c@80000000 {
-> +        compatible = "xlnx,axi-i3c-1.0";
-> +        reg = <0x80000000 0x10000>;
-> +        clocks = <&zynqmp_clk 71>;
-> +        interrupt-parent = <&imux>;
-> +        interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
-> +        #address-cells = <3>;
-> +        #size-cells = <0>;
-> +    };
-> +...
+My understanding is that the Intel and AMD drivers only disable the
+IOMMU translation, flush the IOTLB during the suspend and re-enable/
+reload the preserved root tables and other HW state during in the
+resueme.
 
+But for pvIOMMU, I guess such job shall be done by the hypervisor? 
+For a device resumed on the same VM, its logical device ID should
+also remain unchanged?  And the corresponding Hyper-V domain objects,
+configuration, and device attachments shall be preserved and restored
+by hypervisor? I don't think the current Hyper-V ABI explicitly defines
+this. But maybe if we want such feature, it could be done by the
+hypervisor transparently?
+
+
+B.R.
+Yu
+
+> Michael
+> 
+> > 
+> > > While the code currently in this patch works, it generates boot
+> > > time errors if the kernel is built with CONFIG_HYPERV_PVIOMMU
+> > > but run in a guest on a host without pvIOMMU support:
+> > >
+> > > [    0.101673] Hyper-V pvIOMMU: HVCALL_GET_IOMMU_CAPABILITIES failed, status 2
+> > > [    0.101675] Hyper-V pvIOMMU: HVCALL_GET_IOMMU_CAPABILITIES failed: -22
+> > >
+> > > We really don't want errors if it's just the case that there's no
+> > > pvIOMMU support. A less alarming message (at INFO level instead
+> > > of ERROR level) about running without an IOMMU might be OK, but
+> > > perhaps is unnecessary since you have an INFO message if the
+> > > pvIOMMU is found and successfully initialized.
+> > >
+> 
