@@ -1,202 +1,169 @@
-Received: from CO1PR03CU002.outbound.protection.outlook.com (mail-westus2azolkn19010036.outbound.protection.outlook.com [52.103.10.36])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52E51349CDC;
-	Mon, 13 Jul 2026 17:37:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.103.10.36
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783964276; cv=fail; b=QPhAxbxKbbwNQQ5f8kipkZhIPgN2CFaqKkB9Ljf/7PmE4Zkc1npiRojGTAycXsTD8KZWCYQTUny2hNYnMCvWa9VD5MT7QsDlNcQBp+m3vU+hABAEDZNi357aO+yV6QvPm8cMa1M9PrejgKh8y0IOtMo5De0RP+fpWQPJqUWPiC0=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783964276; c=relaxed/simple;
-	bh=VnKzvYCyXXkAWm9b/OjwjYm63qk0Q65V7c2n/7SeJDo=;
-	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
-	 Content-Type:MIME-Version; b=RITECWpW/q+Sw4vCJzB1NvaUc5our+ZIRkaX2jmNy6JhllZtlNLIMjfinmpdEwhgvsb4L3BTx1PUWeDN0gdpXHhFMx06uvCisskcdUWwpzah0fspfi4X6h1Pe7xLT0zNQTJT5sFO45ihqk0ptQkIC3MWLkrgX4TpMjPRfg/Fc2g=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=CYaXFDnP; arc=fail smtp.client-ip=52.103.10.36
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 18E672F360A;
+	Mon, 13 Jul 2026 17:57:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.17
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783965453; cv=none; b=eVpqYez0DzARITS+TNpsQeyHtxjlgOtYkqD/4z1KrrsEs9N3H76Q9S4mgiNpmLi/6qrxNqaOeH5Jz8IlMWgaO1YA1d06SE5RI7ymsX7tw8jRoYBJrev9SvJGT6dsSgI5su7hm8KbicZRjHNaKJ6VYRaat1kAcoJLndq7BFTzs1c=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783965453; c=relaxed/simple;
+	bh=WRbL80hDPjLf7xZO/c4mZwcWwZ2vjIKzQLFiN6cVkn8=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=MMwzK2PxfTmHRodM+URcY0B4+2lxrjYqNjBnwraES0ZQ4QMVR+r3ajRZJ2Eg0IIcASnUrIUYmXZvgPdwlb+g2NId/SWzlIo6EJusnkkgQggrtD+CEHhZxPIeSB1dFh8wNr1lgIsIgksVeqUhtPXpJgygSjDaTrCz8YXbpjv7hu8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=C8hsZk70; arc=none smtp.client-ip=192.198.163.17
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="CYaXFDnP"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=eGDxG7knbhY1OJTQb/Kd5T1PEyahcwK+kny1gkcFTbTsskM6GJxa5HECpB9UxbBDkrvyRe8yRMIYVu1LaZl76UEd1tTWyEEC5mQF7VPWWFtRC1MPkbYzp7Mw/zv4VeyxckYqADhn7MWK06h9bysOlUMRXbW/cqi3TzwCp9BUCLRAupfD1LsGn7Q/xQBgNZJtiWzBwwb73+0WaRWA7au2SVNPytseFLDLQSUHCGDM3nCYd0ROO5QFGHUTrzTV9NponJx/gnAXOc8AxCe4ZY2y+X9QCUeQGMju6TEDP7igqw09g5fpxoZtBLwe1dKxsJjDfT74bKgxKzXaFrqgbufZ7w==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=Mkm0UTQBw8bDw5wqo8OQrDLCTSN1xFr0G0kLArLdDR8=;
- b=BrW9zxW93mPEL8LtWzaSLkIFnVrexvonTT8o0dNEqm8b+gqYFNpX02L6TiMpfBxseYoTwIsr+WPnGttPXe31wPQsIbkxy1j6/uqgIucC97powg6TKBExzv10LzI43zz43aungySKcARDaV4XzX2LqVThgzdt56mZO8IfA8KJ2pgl7H4E3m6v0uZvZZE7EzG4wKAz4Y9JvFnmTbCA7zLPcHe8cI3wvK7mGmLc9DVhrB6mLoavBNe89fBzpPxSK7MEm7bxXajeGC0rp5QZmyKqE1bxiK5pLLRpiSK3T6TF/a/kqZLu7YLrOY2FySLNoxAf9uyVUYL3qq3BXyHbNPL+1Q==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
- dkim=none; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
- s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=Mkm0UTQBw8bDw5wqo8OQrDLCTSN1xFr0G0kLArLdDR8=;
- b=CYaXFDnPHfkPpri+j+LWXKqGyjvX7MVVnF27q67lc7lAxn5GNaFTvsZJP9UYR4zhIDu/VIqDxxfCc7PYSLpta4YAqPPLkkBjfFJGcxkUp+14mmAVt1ovL976Ylo99a6Ez9T9brN6d8I1Aet0gBlfmXCA3nyZMU0y3D7573+/rC1hb1B43HNijcCuoY/E0Rr59tIUdUcW9oNQwDc0BnfIDkw0ZBbTVW365vib0N82kPPclOipJjAZO4voDRC7WMyNzl0EqVsGIaeKmDT/5xPChaVOzpL6SmeVap6nIc0uX0p9sei6f3MODV5o5kgoFcMZO/QE/XoMSbT3cU2mH/a8uA==
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com (2603:10b6:805:33::23)
- by SA1PR02MB9758.namprd02.prod.outlook.com (2603:10b6:806:373::8) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.202.18; Mon, 13 Jul
- 2026 17:37:51 +0000
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::900:1ccf:2b1e:52b6]) by SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::900:1ccf:2b1e:52b6%3]) with mapi id 15.21.0202.014; Mon, 13 Jul 2026
- 17:37:51 +0000
-From: Michael Kelley <mhklinux@outlook.com>
-To: Yu Zhang <zhangyu1@linux.microsoft.com>
-CC: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
-	"iommu@lists.linux.dev" <iommu@lists.linux.dev>, "linux-pci@vger.kernel.org"
-	<linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org"
-	<linux-arch@vger.kernel.org>, "wei.liu@kernel.org" <wei.liu@kernel.org>,
-	"kys@microsoft.com" <kys@microsoft.com>, "haiyangz@microsoft.com"
-	<haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>,
-	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org"
-	<joro@8bytes.org>, "will@kernel.org" <will@kernel.org>,
-	"robin.murphy@arm.com" <robin.murphy@arm.com>, "bhelgaas@google.com"
-	<bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>,
-	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org"
-	<mani@kernel.org>, "robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de"
-	<arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>,
-	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>,
-	"tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>,
-	"easwar.hariharan@linux.microsoft.com"
-	<easwar.hariharan@linux.microsoft.com>, "mrathor@linux.microsoft.com"
-	<mrathor@linux.microsoft.com>
-Subject: RE: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Thread-Topic: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Thread-Index: AQHdCjyk3FoDd2PvoEaR3JQ0We2DX7ZlmCnQgADQU4CAAknxcIADB1oAgAAOZJA=
-Date: Mon, 13 Jul 2026 17:37:51 +0000
-Message-ID:
- <SN6PR02MB41575E067DFEBEACF316CD35D4FA2@SN6PR02MB4157.namprd02.prod.outlook.com>
-References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
- <20260702160518.311234-4-zhangyu1@linux.microsoft.com>
- <SN6PR02MB4157253E030D477FD91B7E26D4FE2@SN6PR02MB4157.namprd02.prod.outlook.com>
- <enpkphavwmqrkded73c43vprczslvei4755lkxuedof4z2k3kk@y2jtklbk4efz>
- <SN6PR02MB4157805F23ACA85A668FA065D4FC2@SN6PR02MB4157.namprd02.prod.outlook.com>
- <3ty6yq6oftsvq52skrngjv5xpyixhsyfo3dndhoujt7emxsb2o@y6ischifpmfn>
-In-Reply-To: <3ty6yq6oftsvq52skrngjv5xpyixhsyfo3dndhoujt7emxsb2o@y6ischifpmfn>
-Accept-Language: en-US
-Content-Language: en-US
-X-MS-Has-Attach:
-X-MS-TNEF-Correlator:
-x-ms-publictraffictype: Email
-x-ms-traffictypediagnostic: SN6PR02MB4157:EE_|SA1PR02MB9758:EE_
-x-ms-office365-filtering-correlation-id: 331d68f2-8330-4403-c9be-08dee10576c0
-x-microsoft-antispam:
- BCL:0;ARA:14566002|25010399006|37011999003|24021099003|51005399006|15080799012|13091999003|8060799015|19110799012|8062599012|31061999003|12091999003|3412199025|440099028|102099032|40105399003;
-x-microsoft-antispam-message-info:
- =?us-ascii?Q?Kj/Qf861LN+zQB3HyRGM3oR3LzUqDTXWoAFnz8MCGdXVaYwQs5TGu4akYmXM?=
- =?us-ascii?Q?eJIivpKkj8yewZbwVvW5h6D56SikfH/35vzEp3RQVaVZXGejZUi7wxl9AK/u?=
- =?us-ascii?Q?ovhJWiaZ3rK1QW2ccBGZvVaHmcfL7K/GADyUG89so0qoCKpgtYVq5+KM4/ef?=
- =?us-ascii?Q?Ldeb3+TdkeGNg/GT9tCzPky7yqSvZT/EpmMKGuoK7M+2G63OHpKslAxFHsf6?=
- =?us-ascii?Q?WXz0tIb978fTiEW7GTDn2WxVjYtOgFiqrZR0lVSwMs3sHQdnGLmi5me9ioTd?=
- =?us-ascii?Q?71uoIkWFKzhVvlbWzhs21/I6q/MxsNLGUzfw44USxz6nYr/GMPL2cw+VmH0L?=
- =?us-ascii?Q?ihvgwkcSrFul/6W7EwkI9zi7Ox8Cfa7guHYE6IO1MOayluzspJQBUURz+yCn?=
- =?us-ascii?Q?uwy7Ovfpj60n65habH2n0JknLG5kUbV5QOvuIMAuejeBVLOetqHv+tdXnZdF?=
- =?us-ascii?Q?YczCUwv/NDdXB6F/uXiaEFsL9fXzdYM+0hDeR8VuL7hUy2gMkJDuMssgQfxa?=
- =?us-ascii?Q?tazvXk8vCGS4qt0Vcp6CEGw96i4l/SNF6bcCEC+YC3xVKduKPNo6zvWAaHTt?=
- =?us-ascii?Q?Cmc7pEgDN8FUME3IU52AymOncq89vCWnunk3qyGILO7fWYZY4GoTsEBHz7En?=
- =?us-ascii?Q?L/NGv44rkYZ64Uvw1qMFnqpgIUiCevJW4b7RzKhJ46OcKpCQXPScBe9d9Cnx?=
- =?us-ascii?Q?17M6OAwfmqAg6qDN8Qdmh+jOF4BhgL77DYPAvSkdOIDWd+szh4Y8q1IlmPfc?=
- =?us-ascii?Q?qTKgOndbrOnn79p01AsX/maeWxTr5TNvff1n28GiISbotgqGFv/uFOtpudrr?=
- =?us-ascii?Q?YsC/NAh79a89ZCM2vRTyJuntnlSqsV+WSw/9MoWtNcvsTE/8DTgg8tJsXor/?=
- =?us-ascii?Q?m79pF97xTzUp9NONntWEiC/pmKWaqnr13t26Z6CUvIx4+OJgCbh7S0YmnEsJ?=
- =?us-ascii?Q?ZnnURli0nYJeza83o0CG195n57EeJZhMeNvJDq9MWqvZo9rV+HO2cMMzK4OD?=
- =?us-ascii?Q?m1FalHmUqqk/mNHXLJaUBc08owHs+OJK8ZeNGbLJ6S7Ge80=3D?=
-x-ms-exchange-antispam-messagedata-chunkcount: 1
-x-ms-exchange-antispam-messagedata-0:
- =?us-ascii?Q?ccYszQ+u9cY54G2ptaXD2rPdhYpd/TJthMNmsNEbclegOPY2RFvNyGcLy1U4?=
- =?us-ascii?Q?ivOk4/eAVq3XSL2L3ExU1LzoByoLfe4wB0G6fGsdo9AJBbmXU2n3UQC/jCn2?=
- =?us-ascii?Q?bGRQKfW9CzMdAfSemV+n7wt9S9ZgzQKuaUyRUg+k1PNgkEf+tLj0dhZys+Y4?=
- =?us-ascii?Q?dl7z0Rp94rV9NAEngWwaI2g6Pn4N/Yn5V5aDAG3YqbcEVn6QF2bHaVR+tB/7?=
- =?us-ascii?Q?lO+TrUZitE18pOhk3KIZEIrxU2x/ZoDqEZLS20Lia6/p1MtjA5El+8vAPJZZ?=
- =?us-ascii?Q?9JZx91tYZQwagM0Mk6z2EYc6L3Gstz9HkYsYv7wgdeA2lIwZRlDS4hSw1aHm?=
- =?us-ascii?Q?2dZe/E6muKEKq9zOqRNPh0JUDw8FXzRhn6fh76ZHoeMgYInGm5Qa4mai/Fu9?=
- =?us-ascii?Q?vjmVx3g6nSGvDSUuRdac7VD7RvcxcNN/eX30738/oEmblWhWDtKDBQ+85BVf?=
- =?us-ascii?Q?ha4KrUaQln6o8Oa/W+Uc7UPFU7gy2eiAGUQ7bupow7qR8OAD5Vb9ak7PvzPV?=
- =?us-ascii?Q?DLmlq95MRa07TcTtP+jbmrlw2k40KpihNvc7Tt0iCEMiD2fgm7gjMhj9aeuk?=
- =?us-ascii?Q?Hk+C4nvTo6y3BTyURgNhU0XQjUkixFPjTcbepax1QWX9dz2RFUPXAMc54JPk?=
- =?us-ascii?Q?/6pyjgawLImtH920REd43s1tMDkGIP6F9WO//7r+WNLynYCxM8BMYZhSjgy2?=
- =?us-ascii?Q?OjwLG7WbSPtt6fswchMEuF63+UdvUZKLSCT2wGT+iPOdvFSAze8OKj5rOTuj?=
- =?us-ascii?Q?BStIsnZ4q3eEaocd63l8QJPLPxDiBQAoqETSXLrQENpk6vZvvb+7+RScd6CA?=
- =?us-ascii?Q?UaVT0vSSXX7S3ba02SwPmY/bm4llLjhY3vZLWguVTcub8eWd5vVA/yJ9kLlM?=
- =?us-ascii?Q?mR0T1vEzVWCxNXRU9eql0cOHBupZ/FDKnWSEVimAKS1qs6NPIt78O978SUrS?=
- =?us-ascii?Q?0hBksTQ0jUaQW1rhqXRM9SXrJ4ctt8nKF23monR9tsIo+Nfk7PEECmEtcN1G?=
- =?us-ascii?Q?mWA/mJhaJvpjZGdPP0vjeJWBwyLWRVY3klrgAWThS5KhD6QQTitrhp063bf4?=
- =?us-ascii?Q?ugYuF5xMUaVFE9PjSO+vyZxqaCb+r/P4X3qSCmF5B5BjDUSXT7ar6EYRfZZi?=
- =?us-ascii?Q?qjGgem70GfgHf5Ht8wq5Y+jKDuajc79enJOqO6UYcG0k/bRu7TO+yOpJVSuW?=
- =?us-ascii?Q?jXO1OwqtLFG2Yvqzj5fpHFUidKyg2ieQP8pPtpANYXM+pwWOF7egaaI/J4+i?=
- =?us-ascii?Q?B6GGAX1IKMz9XYWl14KfltgvPqElNJJ8xgPeCKf8JZd0PjKI8vUEWhbVW3UG?=
- =?us-ascii?Q?MpRkSbpU1tDcy5j+qCFUshOR+ySwvgwrgxAwGAPXKt7YuoXtcOGYyspOH8/g?=
- =?us-ascii?Q?x/1x9yQ=3D?=
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="C8hsZk70"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1783965441; x=1815501441;
+  h=message-id:date:mime-version:subject:to:cc:references:
+   from:in-reply-to:content-transfer-encoding;
+  bh=WRbL80hDPjLf7xZO/c4mZwcWwZ2vjIKzQLFiN6cVkn8=;
+  b=C8hsZk70BM7pauzx3UjSXvR764oMNGxqzT/UC6MToBS+L+uB3JoHL62+
+   VKq63COJAWXPNLjSiK89SXDvR32jkAfouzIbwhArnHeJnPY8FE/kXZgSR
+   /rI18kD5nxo3RQCsgRe9ImABUMF2M2BlS7gaJclyVs1+xqSlXQn2VPIq1
+   s83mqYm/7r9ddk/Yur5cQVJiTjUE4yuDC+MNJFQpnL/QiodpF/LEdxWyT
+   iV9u23JM8JdWf80OdvaDeLUuPBFuFfR7suB5Nr2ex6zrJzoZkpHK/2/2s
+   KryOUY6SMONj/8a5OOQTrB/wCiKA3HM4/0/uFKdQejbsta5BosT/0c5H7
+   w==;
+X-CSE-ConnectionGUID: XtW/+JJGTneGoJG61DRHqQ==
+X-CSE-MsgGUID: bJzR+3kcRyqIcUJfHpWLAw==
+X-IronPort-AV: E=McAfee;i="6800,10657,11841"; a="84459204"
+X-IronPort-AV: E=Sophos;i="6.25,154,1779174000"; 
+   d="scan'208";a="84459204"
+Received: from orviesa008.jf.intel.com ([10.64.159.148])
+  by fmvoesa111.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Jul 2026 10:57:18 -0700
+X-CSE-ConnectionGUID: pKvhLf9LTu+eHV+HNZK7iA==
+X-CSE-MsgGUID: BWtH56OzTBSLHcmLMAMQ4w==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.25,154,1779174000"; 
+   d="scan'208";a="255108504"
+Received: from smithj1-mobl2.amr.corp.intel.com (HELO [10.125.108.83]) ([10.125.108.83])
+  by orviesa008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Jul 2026 10:57:16 -0700
+Message-ID: <32d459d1-ad19-4baf-bbb1-0565458001d2@intel.com>
+Date: Mon, 13 Jul 2026 10:57:18 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-OriginatorOrg: outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: SN6PR02MB4157.namprd02.prod.outlook.com
-X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-CrossTenant-Network-Message-Id: 331d68f2-8330-4403-c9be-08dee10576c0
-X-MS-Exchange-CrossTenant-originalarrivaltime: 13 Jul 2026 17:37:51.6177
- (UTC)
-X-MS-Exchange-CrossTenant-fromentityheader: Hosted
-X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
-X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: SA1PR02MB9758
+User-Agent: Mozilla Thunderbird
+Subject: Re: [RFC PATCH 10/34] x86: mm: carve out the generic compile-time
+ folded pgtable case in effective_prot()
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+ Yeoreum Yun <yeoreum.yun@arm.com>, linux-arm-kernel@lists.infradead.org,
+ linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
+ kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
+ x86@kernel.org, linux-mm@kvack.org, kasan-dev@googlegroups.com,
+ linux-csky@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+ linux-openrisc@vger.kernel.org
+Cc: linux@armlinux.org.uk, akpm@linux-foundation.org,
+ ankur.a.arora@oracle.com, rppt@kernel.org, linmag7@gmail.com,
+ chleroy@kernel.org, klarasmodin@gmail.com, chenhuacai@kernel.org,
+ kernel@xen0n.name, kas@kernel.org, zhangtianyang@loongson.cn,
+ wangyuli@aosc.io, tsbogend@alpha.franken.de, ljs@kernel.org, jgg@ziepe.ca,
+ catalin.marinas@arm.com, will@kernel.org, arnd@arndb.de,
+ ryan.roberts@arm.com, pasha.tatashin@soleen.com, rmclure@linux.ibm.com,
+ baolin.wang@linux.alibaba.com, tj@kernel.org, kevin.brodsky@arm.com,
+ anup@brainfault.org, atish.patra@linux.dev, pjw@kernel.org,
+ palmer@dabbelt.com, aou@eecs.berkeley.edu, alex@ghiti.fr,
+ dave.hansen@linux.intel.com, luto@kernel.org, peterz@infradead.org,
+ tglx@kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com,
+ hannes@cmpxchg.org, mhocko@kernel.org, qi.zheng@linux.dev,
+ shakeel.butt@linux.dev, kasong@tencent.com, baohua@kernel.org,
+ axelrasmussen@google.com, yuanchu@google.com, weixugc@google.com,
+ ryabinin.a.a@gmail.com, glider@google.com, andreyknvl@gmail.com,
+ dvyukov@google.com, vincenzo.frascino@arm.com, anshuman.khandual@arm.com,
+ yang@os.amperecomputing.com, chaitanyas.prakash@arm.com, ardb@kernel.org,
+ guoren@kernel.org, yang.li85200@gmail.com, viro@zeniv.linux.org.uk,
+ dinguyen@kernel.org, schuster.simon@siemens-energy.com,
+ wangruikang@iscas.ac.cn, junhui.liu@pigmoral.tech, muchun.song@linux.dev,
+ vishal.moola@gmail.com, namcao@linutronix.de, pavel@kernel.org,
+ djbw@kernel.org, yu-cheng.yu@intel.com, baolu.lu@linux.intel.com,
+ Jonathan.Cameron@huawei.com, coxu@redhat.com, andreas@gaisler.com,
+ liam@infradead.org, vbabka@kernel.org, surenb@google.com, mhocko@suse.com,
+ geert@linux-m68k.org, shorne@gmail.com, jonas@southpole.se,
+ stefan.kristiansson@saunalahti.fi
+References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
+ <20260713135614.1618183-11-yeoreum.yun@arm.com>
+ <c3edfb13-08ec-419c-bc05-8f3f64186b24@intel.com>
+ <ac365196-8ccc-4d8b-83d7-28fec763e75c@kernel.org>
+ <710b7eb0-8e0c-4f07-991c-2285c77e1beb@intel.com>
+ <6007625e-c3f9-4ad6-99a8-61396bccbcec@kernel.org>
+From: Dave Hansen <dave.hansen@intel.com>
+Content-Language: en-US
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ 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
+In-Reply-To: <6007625e-c3f9-4ad6-99a8-61396bccbcec@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Monday, July 13, 2026 9=
-:46 AM
->=20
-> On Sat, Jul 11, 2026 at 06:31:15PM +0000, Michael Kelley wrote:
-> > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Friday, July 10, 20=
-26 12:34 AM
+On 7/13/26 08:02, David Hildenbrand (Arm) wrote:
+> It's always been the latter:
+> 
+> 	...folding => PUD => PMD => PTE
 
-[snip]
+This is kinda arguing semantics, and there are different ways to look at
+it. But I'd argue it couldn't *possibly* have always been this way.
+Linux hasn't always had a PUD or a PMD for that matter. The i386 only
+had two levels. PAE support was added later.
 
-> >
-> > One new thought:  Have you considered the hibernate/resume
-> > cycle? Does anything need to be done with the pvIOMMU to
-> > make it functional again after resume? I see that the Intel and
-> > AMD IOMMU drivers have suspend and resume functions. I
-> > don't know enough about the Hyper-V pvIOMMU to know if it
-> > might also need suspend and resume functions.
-> >
->=20
-> Thanks for raising this, Michael. We have not considered such support.
->=20
-> My understanding is that the Intel and AMD drivers only disable the
-> IOMMU translation, flush the IOTLB during the suspend and re-enable/
-> reload the preserved root tables and other HW state during in the
-> resueme.
->=20
-> But for pvIOMMU, I guess such job shall be done by the hypervisor?
-> For a device resumed on the same VM, its logical device ID should
-> also remain unchanged?  And the corresponding Hyper-V domain objects,
-> configuration, and device attachments shall be preserved and restored
-> by hypervisor? I don't think the current Hyper-V ABI explicitly defines
-> this. But maybe if we want such feature, it could be done by the
-> hypervisor transparently?
->=20
+I think the pmd_t came with Alpha support (before my time) and pud_t
+came later IIRC. I'm pretty sure Linux didn't have a pud_t when I first
+started hacking on it circa 2001.
 
-I agree with your and Jacob's comments that the guest doesn't have
-any responsibility for saving/restoring IOMMU hardware state, as the
-Intel and AMD IOMMU drivers do.
+Second (and again this is my subjective opinion) a pgd_t* has always
+been the "top" or "base" of the page tables. This is why there's an
+mm->pgd and not an mm->pud. We've also talked *forever* about things
+like a "special pgd" for the LDT remap. Or having two pgd pages for KPTI.
 
-But yes, I'm wondering about the Hyper-V domain objects and device
-attachments. I doubt Hyper-V can do anything to save and restore
-them. Hibernation is a Linux concept that the Hyper-V host doesn't
-know anything about.
+My point is that the PGD hasn't itself ever been folded. It's the top
+hardware level of the page tables and always has been.
 
-Hibernation is already complicated, and in a VM it is even worse. :-(
-As a start, see Documentation/virt/hyperv/hibernation.rst, which I
-wrote about 18 months ago. It provides some basics as well as outlines
-the additional complexity in a Hyper-V guest VM. I'll also try to spend
-some time thinking through the implications for a pvIOMMU, and let
-you know if I have any more thoughts.
-
-Michael
+I really do think this series is changing things, not keeping them the same.
