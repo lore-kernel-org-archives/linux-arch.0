@@ -1,203 +1,282 @@
-Received: from LO2P265CU024.outbound.protection.outlook.com (mail-uksouthazon11021136.outbound.protection.outlook.com [52.101.95.136])
+Received: from out-183.mta0.migadu.com (out-183.mta0.migadu.com [91.218.175.183])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B8F4633A708;
-	Mon, 13 Jul 2026 12:13:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.95.136
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783944818; cv=fail; b=tR8fRj1TUHqaoLqdhpn3aFci8JxMD5BKh009OeYtqFR3X/6/CUpiPbS3Q9xqkHl3bTSNr/tJGQ9ul9OxJbSwjygVcFqju8o/ktnH01IhlF4z46ja6YneHRFppyewKRlyHlwqgw2Fc7odO53YN3BGIxKypTsvJUI3nEuIJipPRYE=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783944818; c=relaxed/simple;
-	bh=taUgO+5rB4+Dy57bSkXQFXGut5quVfVAVRQ90sYdswE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=Urum7ovoKKR31u+kJx23U9KU3pFDZlTO7X0i1EMYgDE4EaiaStjlYvkWyuT1hyr6hc0r2brRSkLZRyqSTtYZYRi/mmQwG3qpl3QGMdYSzQHiNNnnyB6DCWDwUkb4LWphSEp+seGumMTQJPHvADHefBVpiwsgM48gLSDIiC9bXeo=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.95.136
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=JCq4sPm0aorg2Qlce/Mc6KALN3zLlFgROlp5ZPWzmKGZv9+/KepLEcIE/41gKE7f3WqsPxiytlQOCm3ZNkWIZ+TxFmu7U/NO9NM4A0Otg2Hb6VqZ+yBc5sty+bSZyxXKha896UIoKNYSY3abQmDNvJ0U9NEse5Kdt+hcUkBxx7sVMwGKil++EBZO2nhOD/wM1GXInlnPZlEK5waDc/top16C7T/ca4/q550ZOh/lhoKAz08gGptaw73TjoKP0sg3qy7w+HSGNX6pydK9XRYQYIPariBh18Syw2mzl9zoa/dSnK0cCPTxjObJaDcpBDPruEmsBVF5bjJ+ftyhI+Kanw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
- bh=ll2oz5U503hPxFQQ7GdCwE31jTpf8NA4iQID/EpTBAk=;
- b=G7diUHklCuFFlr6gWBc91NksXAtkW+zirlL9ClYsrtJLwAcNME1SkKN42M1SDivOeMOvgFPE6NSGzzdfzq0KWfrl5hg9cAVMO9g5xJXq82VdtyhYG5xDUBLBxg0TOne9emsbNIkPYg68Gva+uhVGnK8P4QwS3gRFVgzaJL6tC0kPC4eUWu8+Vn9PyH5ON41GPG468kO2y3wBEdfaWth7bMJBNwfTib7fFc9AjKY1l0aBGUBRQdXF5nQ4kd5eMmbvaVpb49Oqefk2yclioC40Xcn0TR5Wa2XnwK6AaPr6D9YeTEYb/aYb4HukoveUU/X6o6ZJWCIc4E+JOt5OW8k9vw==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
- dkim=pass header.d=atomlin.com; arc=none
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=atomlin.com;
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
- by LO0P123MB7261.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:336::6) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.202.19; Mon, 13 Jul
- 2026 12:13:31 +0000
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0202.018; Mon, 13 Jul 2026
- 12:13:31 +0000
-Date: Mon, 13 Jul 2026 08:13:26 -0400
-From: Aaron Tomlin <atomlin@atomlin.com>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
-	da.gomez@kernel.org, Sami Tolvanen <samitolvanen@google.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, neelx@suse.com, da.anzani@gmail.com, sean@ashe.io, 
-	chjohnst@mail.com, steve@abita.co, mproche@mail.com, nick.lane@mail.com, 
-	Linux-Arch <linux-arch@vger.kernel.org>, linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v4] module: Extend module_blacklist parameter to built-in
- modules
-Message-ID: <ea7kdjwoucecvetzf73ce5dpda3l3etb6i75bks6deekfu6mb6@ooptba3x2oh3>
-References: <20260708020007.55728-1-atomlin@atomlin.com>
- <33171ccd-038b-4bb8-b796-f104a131c0ee@app.fastmail.com>
- <in7aczdvb22suqhao6uzsjkh22tgyx2qug4i6efdxyfiuj72ba@k6fr4oc27kim>
- <78ec1da5-11ae-4c35-a08e-cc88a5d083f4@app.fastmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <78ec1da5-11ae-4c35-a08e-cc88a5d083f4@app.fastmail.com>
-X-ClientProxiedBy: BN0PR04CA0072.namprd04.prod.outlook.com
- (2603:10b6:408:ea::17) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- (2603:10a6:400:183::5)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 42AAF421A03
+	for <linux-arch@vger.kernel.org>; Mon, 13 Jul 2026 13:16:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.183
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783948571; cv=none; b=jB9WaYH9TveeRt4SqLRaArrb9UiRvJHX7sMa/k9VwY0/i9sy82uneQ6UMPAmIdk848Eml/QTjfgEVaV2gqRKH0Wi1MuaFllYnm1DATqS+A7d7m39f1dzRT/ZTUkYNqQG1wHUvWhaLFSAvQW5qWMGcLt6wLlBUZPFzmE7bWgCqmQ=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783948571; c=relaxed/simple;
+	bh=a4SzCdkRRHc/jms2Jj79zGLP27YJuyvagu4ZznWT118=;
+	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
+	 Message-Id:References:To; b=ukVVEwNOCeUrhtCmayqsJM1ulZnTCiL8AzB6DPdpbaD93jHskopiiNvkFVqLJKjE4CTV5m+iE12EB0+99Fy+rxG/0SrgTURXrWpy6gT+3/SujS4kb1LyYPL8lhyWd+/PZeC0iiyytIYZzOS2tWuD39epmowQsziHcNd/OwjvHm0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=LzlWtJnY; arc=none smtp.client-ip=91.218.175.183
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="LzlWtJnY"
+Content-Type: text/plain;
+	charset=us-ascii
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1783948557;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=loKEcLzupCf5eogPXEODoUGsHwah+Nyt24MVTxOpJDU=;
+	b=LzlWtJnY7ZWv3HudNubSmpvpLWrqzfRvPluQCU7iADMhfHzGQql69P3IvMU4imgn/N6rKE
+	iipXYs79lNyUTtL5FWOY/X+f+abZGzOa46wjqbBz5fsBUy7F6gTgWsUMDolFpiWMRyFu4A
+	DV1N8VYxpmbnD1Io03kX+OydZ/Ww9iQ=
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LO0P123MB7261:EE_
-X-MS-Office365-Filtering-Correlation-Id: 044109e0-9483-48db-b10e-08dee0d82714
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|376014|7416014|366016|1800799024|23010399003|18002099003|22082099003|6133799003|56012099006|5023799004|4143699003|3023799007;
-X-Microsoft-Antispam-Message-Info:
-	s14csgBQpwM5pNV5V1/PABTUm62dPnEZh7S+ktoczqG5xxe72EiylWTQlmO4CCF4IwpDvZCf+MnEDeXkYc4ZNLHtLa1MliQ3WS3fmmMIwJwagugfzVFaEFfjrvc6mvjJwPOMtVbto+qP7xixZ6eAEtkkwtvoKkZAkvyRBVFTs+mizKsEinjtbanot0a2v3Cg5ZDcZQjDZk0Mgm7mxaVtx/CjxxPW8RD+IbyuiuVZ/N4rywOf70dGha3iBCOjHF4OiwQGtJVhQd6HLfGRG+/endv58907p336vRP6amqp9/WK3XSiQcOI+v6/YSE6jf9gB+/az5IWN1j1c0jSHjKhlf+/07oOnuDAzRtN4M/W4TYrrvu2NF7BCVfKiJqjyQfvNAu3AXi1S8c24p9u7Jzb5887h9EDQlbxP1s//nt325B0vxGFwb0GriaefMZyvPs0b36UJYrsyhoyvXyIv5mwbP6DnzPMFtp5O0VtSDxabkCsmiOgtHkZsBpxGmmmw3LcYrSuNWYXEY98WQPD0wfTkAxLThSKcdI/F81phprUPvVgq6v6WVXwxzJA5uS1UKENkzFW1qu3Mvz8NLIPinrg06/xHFJh8B/YsjJd+C8sHb5dwSv6RYdbMr1SSxOAWkHTPO/pjdAUeFqwCmK2/UyRCCNtSvSfcw4zVEnlhsRgllI=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(376014)(7416014)(366016)(1800799024)(23010399003)(18002099003)(22082099003)(6133799003)(56012099006)(5023799004)(4143699003)(3023799007);DIR:OUT;SFP:1102;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?dE5jVG5CeUU3RlhkeUIwWWxObDBjVmgxUlkyRGVzKytxZmJjamZ4RzJjMG9s?=
- =?utf-8?B?dTN5K21ZV2paQjcrdUxPdmFway9JUUI5N3ExQkNaaWRXQXp0d05PZmV2bFNB?=
- =?utf-8?B?alQra25jaVhuMlpJVzRiMHZ3d2k1MHNzWGpsdXl5ZE9pa3d6eW5kemR0b0xp?=
- =?utf-8?B?VEhDdmtiN3VIay85TFMxbVN6NmtHSWlEdTVqekl3d1c5NTluWllLUVk2aUcw?=
- =?utf-8?B?VVRNMUs1MlhOQS9mMVBzNUFxb3ZOMHlhUlp4ekJMV1hSeEwya2xqTFhyRjF2?=
- =?utf-8?B?VVZFdlYvVmZkaWhMS004YjRreWVNYmxuY2JVeTM0eVRKWU9JVys4dUsvZHlo?=
- =?utf-8?B?UElhM3llcHV3elN0Tk9NeVJQTW00VjJQeGNKMHF5b1M1MExRM05wVDJuU2s1?=
- =?utf-8?B?L0JnTkVrUXZFTGdobG9nWEdEWnkxR0lNcTZ2THl5N3VmR3JiQndJUElidThw?=
- =?utf-8?B?VUJSRExwb3RaNHgvTHVhNXBsOTM3QW81ZnRYN2VsbENheFBTbitWb2JPaG5w?=
- =?utf-8?B?V0VFdDFmSGE1emFXUlFNYmdqZHB1dVBRVkQzQVprWHd5RGhyLytCZGtnY05I?=
- =?utf-8?B?VU02VW5uQjVMb2JxVUZKZTRMV3dUbDYwZDB6UnNIcWVQKy93YXVaYjYzRVh5?=
- =?utf-8?B?V01xZDNMbzB2NU1wVzNwMlhEVTBkYVgwby9HNSszSnM4TGtLY21WMXhJa0h5?=
- =?utf-8?B?M1NpQWtsdkFiUmxyVEdpVVUySCtCeDVQVWljbE84emYxVmc5QjR6Z1VxQzZ6?=
- =?utf-8?B?b01xOFdhbGRQSDlFcnl5NUZZRVNEanNFbDlBMjdnWXdBclhublFTMmFVdHJ1?=
- =?utf-8?B?ZlZWRU9iQnpWSDhZMUoxMHFLLzE4MzdWNVFRd2tycW12K3IyWDlBb3RTcm5o?=
- =?utf-8?B?eForcnMvSTcvZ0NDWmtBZ0lMajd3VEdab0JzMnA3a1hPM20rMFpjWlNBWG5B?=
- =?utf-8?B?TU9Fb0tHSGg0M2RlVVF3a0tVRGVsVWJ0ZmVGekpvYmlMMnNzZFNwZEtVbitr?=
- =?utf-8?B?MFIvZ3dJaUwzTHFHOUhKc3o0VDRSQ0h0aCtUZUI3M1NXU0xnNDBmMjN2L1NN?=
- =?utf-8?B?U2toc3RUUG9yWG55Wk1XR3lsRE5MSStiSzdyU2pxTWM5UGd2RkVGTHhZV0Jy?=
- =?utf-8?B?bUxBZm9rWEhJVnZUWXhVdjJpQlN4RE05aVZoN20yYndLUmROMTg0eFVXbGpa?=
- =?utf-8?B?UCs3Y3pVN0szaldWbzZzOWx0NHdDcFpmWVB5ME1ra2xUcXhoZ2czdVpLaE1h?=
- =?utf-8?B?aDFzUW9sbEdLcURIcmlNUFIrd1ZoMVJzNTVMRXJjUmdPYXQzZ0dNdnJqdkQz?=
- =?utf-8?B?blB0OS9JL1lha0JMLy9LUHBLNEI0aGZQK2xFdlBtSXM5c1d5eUtyb3djeENN?=
- =?utf-8?B?L3ZUTUVpTGUxOWlxTnAwMjdqRnhuUDdoZVN6L1YrK0V6OWs5cHl0ZU55TCtj?=
- =?utf-8?B?YzljcHZKWWZkREZJRzhKVjA2eU1JVGFTMTRQZFR6T29VMnRaek1tV1p0YWlO?=
- =?utf-8?B?Ky9IbmRrV2pNZVk1dFpnTHBxblpwakpFVzV5bW1zTHgxRStkTVMxVy9RbGhC?=
- =?utf-8?B?MVlUdVFmSUxocHVEYjZDTnh0dHZQd0JsRk1pb0s2SlY2YUFiQnN5OVN4bisy?=
- =?utf-8?B?TDJxM291Tithc0lBVDM4TmpORW90cXpUTmYzUjNDRkIrYWdiT2lINlk2MFFE?=
- =?utf-8?B?ejVuWTFkaEx2eHUveHcvRXR3VzRyUWNPYmEreVF3SG5aNVIvNlF2Y0I5RW1R?=
- =?utf-8?B?d0xFQVI5RDE2Y2VEUnN1WHJmU2VSUWxkTm96eFpZMzlIM3BESkhCYTQ2Kysw?=
- =?utf-8?B?eTFMcUtwbTkwRXY1SDlnbHdJeS8yV0p2Q29JYTdpbXZTeEE3dG0wRDg4OTdz?=
- =?utf-8?B?UjVUcG45Q3pqOVpOeXQvTTNEYUMrTWVmZ2Yvdk91N3RSQWhqQlV0cG1FeGtu?=
- =?utf-8?B?NGprZGhVOThuM2d6dVJzMis2Z05wOHlXNGJJcWJ6ZTFsekVaZTk4OGRWd1dW?=
- =?utf-8?B?TW1XUXJkZ2ZGVEZERmJ4YjhuWjI4T2lsK3Q4NHN6azVLblRXWjl2WFpqdWZR?=
- =?utf-8?B?Q1p3Q0JzMzY0ZFBmaFJqdGVXVHJLVHI1NmJJdTNxMjBzMHBOdUZtTXl3RnFM?=
- =?utf-8?B?WTF3OVRFQzRWSi9RbjhGNlBLSTBLZkY0YWRDNVAvSEtmUGJVMTdKVjNaZXpq?=
- =?utf-8?B?ekVibEg0bjgyc3F5V0pVWjdsbVFlVFA4MGZaSFRaUnF1OWJ2SFdLam9aRncv?=
- =?utf-8?B?RjN6ekdHWTJ1SGtFRHhXV3VUTks0UjNSZ0NXNENzTTc0ZkxtZVJDeWhOME1V?=
- =?utf-8?B?ajB6am15L3dmVlJOS2FNVXI3enN3d0o4S2pVQzBwK0NRNzdEeWtnQT09?=
-X-OriginatorOrg: atomlin.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 044109e0-9483-48db-b10e-08dee0d82714
-X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 13 Jul 2026 12:13:30.8742
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: rhN04NJooWxl8dAA9CE6Vo5iyYmMmErxOp6tRQWRrwiNTeoqoHgJ0OMu9cg0piJJayyKlss1LPmWlOxQnk5K/w==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: LO0P123MB7261
-
-On Mon, Jul 13, 2026 at 10:32:14AM +0200, Arnd Bergmann wrote:
-> On Sat, Jul 11, 2026, at 01:13, Aaron Tomlin wrote:
-> > On Fri, Jul 10, 2026 at 05:59:59PM +0200, Arnd Bergmann wrote:
-> >> On Wed, Jul 8, 2026, at 04:00, Aaron Tomlin wrote:
-> >> > Currently, the "module_blacklist=" command-line parameter only applies
-> >> > to loadable modules. If a module is built-in, the parameter is silently
-> >> > ignored. This patch extends the blacklisting functionality to built-in
-> >> > modules by intercepting their initialisation routines during early boot.
-> >> 
-> >> Andrew already asked you to provide more background on what you need
-> >> this part for. Do you have a specific driver you need to disable?
-> >> 
-> >> Can't you do the same thing using initcall_blacklist?
-> >
-> > The primary motivation for this patch is to provide consistent
-> > administrative control.
-> 
-> Ok, it sounds like you don't actually need it then.
-> 
-> > Regarding your suggestion to use initcall_blacklist=, while it is certainly
-> > a capable mechanism, it is fundamentally considered a debugging facility
-> > intended for developers.
-> 
-> I don't see much of a difference here, it's clearly still only a
-> debugging tool to me, not a general administrative interface: turning
-> off a random built-in driver likely causes undefined behavior later
-> if there are any other drivers (built-in or loaded) that depend on it.
-> 
-> Overall I don't think it's worth the added complexity.
-
-Hi Arnd,
-
-I appreciate your candour, but I must respectfully disagree with the
-assessment that this is merely a debugging tool with no practical
-necessity.
-
-The requirement stems from large-scale infrastructure management and
-configuration consistency. System administrators rely on standard
-provisioning scripts across diverse hardware. If a distribution arbitrarily
-alters a kernel configuration, changing a module from loadable (=m) to
-built-in (=y), the administrator's module_blacklist= directive is suddenly
-and silently ignored. This creates a severe policy enforcement gap.
-
-Regarding the distinction between initcall_blacklist= and
-module_blacklist=, the difference lies entirely in ABI stability.
-To use initcall_blacklist= requires the administrator to know the exact
-internal C function name of the initialisation routine (e.g.,
-foo_driver_init). This is an internal kernel implementation detail, subject
-to change without notice, and entirely undocumented for users. Conversely,
-the module name is a stable, well-known, and documented user-facing
-identifier. Providing a stable interface for administrative policy is the
-very definition of a general administrative tool, rather than a developer
-debugging facility.
-For example, consider CVE-2021-43267. A system administrator can now use
-module_blacklist=tipc which would cover both built-in and loadable module
-configurations.
-
-To address your concern regarding undefined behaviour, disabling a built-in
-driver carries the exact same dependency risks as preventing a loadable
-module from loading via the traditional blacklist. In both scenarios,
-dependent drivers will naturally fail to probe or initialise. System
-administrators who apply denylists are already expected to understand the
-hardware and software dependencies of the modules they are explicitly
-disabling.
-
-I understand your hesitation regarding added complexity. However, with the
-fast-path optimisation suggested by Sami (which bypassing the scan entirely
-if the parameter is unused), the overhead is essentially zero. I believe
-bridging the logical gap between how we treat =m and =y modules is well
-worth that minimal footprint.
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3864.600.51.1.1\))
+Subject: Re: [PATCH v6 0/8] mm: optimize zone-device memmap initialization
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+From: Muchun Song <muchun.song@linux.dev>
+In-Reply-To: <20260709112520.24857-1-lizhe.67@bytedance.com>
+Date: Mon, 13 Jul 2026 21:15:26 +0800
+Cc: akpm@linux-foundation.org,
+ apopple@nvidia.com,
+ arnd@arndb.de,
+ balbirs@nvidia.com,
+ bp@alien8.de,
+ dave.hansen@linux.intel.com,
+ david@kernel.org,
+ kees@kernel.org,
+ mingo@redhat.com,
+ rppt@kernel.org,
+ tglx@kernel.org,
+ linux-arch@vger.kernel.org,
+ linux-hardening@vger.kernel.org,
+ linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org,
+ x86@kernel.org
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <F1115D12-9B88-4230-A3E3-2CA3A961E4A6@linux.dev>
+References: <20260709112520.24857-1-lizhe.67@bytedance.com>
+To: Li Zhe <lizhe.67@bytedance.com>
+X-Migadu-Flow: FLOW_OUT
 
 
-Kind regards,
--- 
-Aaron Tomlin
+
+> On Jul 9, 2026, at 19:25, Li Zhe <lizhe.67@bytedance.com> wrote:
+>=20
+> memmap_init_zone_device() can take a noticeable amount of time when =
+large
+> pmem namespaces are bound or rebound, because it initializes nearly
+> identical struct page descriptors one PFN at a time. This series =
+reduces
+
+Hi, I have a detailed question regarding the timing of the bound or =
+rebound
+process.
+
+1. How long does the entire process take?
+2. Specifically, how long does the struct page initialization take?
+
+I'm trying to understand the time distribution and what percentage of =
+the
+total process is occupied by the struct page initialization.
+
+> that ZONE_DEVICE memmap initialization overhead by reusing prepared
+> struct page templates and, on x86, using memcpy_nt() for the template
+> copy path.
+>=20
+> The main target is large fsdax/devdax pmem configurations, where the
+> cost of initializing the memmap shows up directly in nd_pmem/dax_pmem
+> bind and rebind latency.
+>=20
+> Patches 1-3 are preparatory cleanups and helper extraction. Patches =
+4-5
+> add the template-copy fast path for head pages and compound tails.
+> Patches 6-8 introduce memcpy_nt()/memcpy_nt_drain(), extend the x86
+> fixed-size memcpy_flushcache() inline cases used by that helper, and
+> switch the template-copy path over to memcpy_nt().
+>=20
+> The fast path remains disabled when the page_ref_set tracepoint is
+> active, and sanitized builds stay on the slow path so their =
+instrumented
+> stores are preserved. Architectures without a specialized memcpy_nt()
+> backend continue to fall back to memcpy().
+>=20
+> Tested in a VM with a 100 GB fsdax namespace device configured with
+> map=3Ddev and a 100 GB devdax namespace (align=3D2097152) on Intel Ice =
+Lake
+> server.
+>=20
+> Test procedure:
+> Rebind the nd_pmem and dax_pmem driver 30 times and collect the memmap
+> initialization time from the pr_debug() output of
+> memmap_init_zone_device().
+>=20
+> Base(v7.2-rc1):
+>  First binding for nd_pmem driver: 1456 ms
+>  Average of subsequent rebinds: 244.28 ms
+>=20
+>  First binding for dax_pmem driver: 1462 ms
+>  Average of subsequent rebinds: 273.31 ms
+>=20
+> With this series applied:
+>  First binding for nd_pmem driver: 1272 ms
+>  Average of subsequent rebinds: 96.79 ms
+>=20
+>  First binding for dax_pmem driver: 1354 ms
+>  Average of subsequent rebinds: 119.04 ms
+>=20
+> This reduces the average rebind time by about 60.4% for nd_pmem and
+> 56.4% for dax_pmem.
+
+Regarding the 60% reduction in time: does this refer to the entire =
+process,
+or specifically to the initialization of struct pages in =
+memmap_init_zone_device()?
+
+Thanks.
+
+>=20
+> As an additional data point, I also ran a smaller set of measurements =
+on
+> the same physical x86_64 host with a 100 GB PMEM region created via =
+the
+> memmap=3D kernel command line, configured as fsdax and devdax =
+namespaces
+> with map=3Ddev and 2 MiB alignment.
+>=20
+> For brevity, the individual patches keep only the VM results rather =
+than
+> including a second set of physical-host measurements throughout the
+> series. The physical-host numbers below are included only as
+> supplemental evidence that the same optimization also provides a =
+similar
+> benefit on a non-virtualized system.
+>=20
+> Test procedure:
+> Reconfigure the namespace mode, rebind the nd_pmem or dax_pmem driver
+> once, and collect the memmap initialization time from the pr_debug()
+> output of memmap_init_zone_device().
+>=20
+> Base (v7.2-rc1):
+>  nd_pmem / fsdax: 179 ms
+>  dax_pmem / devdax: 264 ms
+>=20
+> With this series applied:
+>  nd_pmem / fsdax: 82 ms
+>  dax_pmem / devdax: 113 ms
+>=20
+> This reduces the measured rebind time by about 54.2% for nd_pmem and
+> 57.2% for dax_pmem on that setup, which is broadly consistent with the
+> VM results above.
+>=20
+> As another supplemental data point, I also measured the test_hmm.ko
+> module on the same physical x86_64 host, using the test_hmm.ko setup
+> from the previous discussion that times ten 64 GB
+> memremap_pages()/memunmap_pages() iterations during module =
+insertion[1].
+> By default, module insertion initializes two DEVICE_PRIVATE dmirror
+> devices, so two avg memremap values are reported; each value is the
+> average for one 64 GB chunk.
+>=20
+> This is not the primary target workload of the series, but it =
+exercises
+> the same large ZONE_DEVICE memmap initialization path and shows the =
+same
+> direction of improvement.
+>=20
+> Base (v7.2-rc1):
+>  avg memremap reported during module insertion: 116689362 ns, =
+116539263 ns
+>=20
+> With this series applied:
+>  avg memremap reported during module insertion: 54607108 ns, 54458236 =
+ns
+>=20
+> This corresponds to about a 53.2% reduction based on the mean of the
+> reported values, which is again consistent with the pmem bind/rebind
+> results above.
+>=20
+> [1] https://lore.kernel.org/all/aiEoByaQdRR3xtM5@nvdebian.thelocal/
+>=20
+> Li Zhe (8):
+>  mm: fix stale ZONE_DEVICE refcount comment
+>  mm: factor zone-device page init helpers out of
+>    __init_zone_device_page
+>  mm: add a set_page_section_from_pfn() helper
+>  mm: add a template-based fast path for zone-device page init
+>  mm: extend the template fast path to zone-device compound tails
+>  string: introduce memcpy_nt() helpers
+>  x86/string: extend memcpy_flushcache() fixed-size fastpaths
+>  mm: use memcpy_nt() in zone-device template copies
+>=20
+> arch/x86/include/asm/string_64.h |  78 ++++++++++++-
+> include/linux/mm.h               |  15 ++-
+> include/linux/string.h           |  23 ++++
+> mm/mm_init.c                     | 186 ++++++++++++++++++++++++++-----
+> 4 files changed, 273 insertions(+), 29 deletions(-)
+>=20
+> ---
+> v5: =
+https://lore.kernel.org/all/20260701090553.62691-1-lizhe.67@bytedance.com/=
+
+> v4: =
+https://lore.kernel.org/all/20260603080152.64728-1-lizhe.67@bytedance.com/=
+
+> v3: =
+https://lore.kernel.org/all/20260527033636.28231-1-lizhe.67@bytedance.com/=
+
+> v2: =
+https://lore.kernel.org/all/20260521040124.10608-1-lizhe.67@bytedance.com/=
+
+> v1: =
+https://lore.kernel.org/all/20260515082045.63029-1-lizhe.67@bytedance.com/=
+
+>=20
+> Changelogs:
+>=20
+> v5->v6:
+> - Rework patch 6 so the x86 memcpy_nt_drain() helper uses wmb()
+>  instead of an open-coded sfence, while architectures that do not
+>  override memcpy_nt() keep the generic no-op drain fallback.
+>  Suggested by Borislav Petkov.
+> - Rework patch 6 to use the usual self-macro override pattern for
+>  memcpy_nt() and memcpy_nt_drain() instead of a dedicated
+>  __HAVE_ARCH_MEMCPY_NT feature macro. Suggested by David
+>  Hildenbrand.
+> - Drop the default: case from pagemap_resets_refcount() and drop the
+>  WARN_ONCE() after the switch so newly added enum memory_type values
+>  remain visible to compiler switch checking. Suggested by David
+>  Hildenbrand.
+> - Drop the unnecessary empty set_page_section() stub from patch 3, =
+keep
+>  set_page_section_from_pfn() as the only !SECTION_IN_PAGE_FLAGS no-op
+>  helper and fix its indentation. Suggested by David Hildenbrand.
+> - Rework patch 4 so the reusable head-page template is seeded from the
+>  first loop iteration, keeping the main loop intact while ensuring the
+>  first page is initialized only once; also drop the extra template
+>  memcpy helper, as suggested by Alistair Popple.
+> - Rework patch 5 similarly for compound tails: seed the reusable tail
+>  template from the first tail-page iteration so the first tail page is
+>  initialized only once, while keeping the main tail loop intact, as
+>  suggested by Alistair Popple.
+> - Rework patch 7 to rename the internal fixed-size MOVNTI helpers to
+>  movnti_*(), keep memcpy_flushcache() as the externally visible
+>  wrapper, fold the new 32/48/64/80/96-byte copies into the main
+>  fixed-size switch, clarify in the code and changelog that the
+>  ZONE_DEVICE template-copy path relies on the 64/80/96-byte struct
+>  page copies while 32/48-byte copies stay inline as well, and drop the
+>  separate alignment check based on the physical-host microbenchmark
+>  results. Suggested by Borislav Petkov.
+> - Run v6 VM spot checks for the fsdax/devdax map=3Ddev paths. The
+>  results stayed in the same ballpark as v5, so keep the previously
+>  posted v5 full-run numbers in this version instead of replacing them
+>  with another partial data set.
+>=20
+> For changelogs of earlier revisions, please refer to the v5 cover =
+letter.
+>=20
+> --
+> 2.20.1
+
