@@ -1,31 +1,31 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id D7299437478;
-	Mon, 13 Jul 2026 13:58:22 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 402CB438007;
+	Mon, 13 Jul 2026 13:58:35 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783951104; cv=none; b=h8JfVhqDLu3jentUP6DHHjNDAwe/2y9C+g5I60A4GHXHkVdDwMpvRvrQ0kAcDZtUc4PAvBWHUzYYHkJmseGBeVX3ogkgQvjRhyWEyrVWcmmzYJdaKInS5cUucCVLjPKKsxHP/MUNNPXdC9n/1MN83UCVS9s3wbsRiWkK0Qlx7xY=
+	t=1783951117; cv=none; b=bsNqe6O9PLwB4ARqluwTxCoGZGzB/+8wJ+/1oKKEc0fDiebO9OzLrqKDvalo57KLE8LrqgPVjbhXgFyFgTlJ1EjcMIla1ebjp8V2ms62PeoxnkRFs8uetV5hvlg2LMdjgeRYOCKsFiILcIvUEY4Z3sRAIt/OCOvhMMSFLkU4O80=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783951104; c=relaxed/simple;
-	bh=BGsfhjHwglNJ8takg97xfz6u1VYDa2ALCLHL7YdtZVY=;
+	s=arc-20240116; t=1783951117; c=relaxed/simple;
+	bh=ijbMFumg8P8gGkdSIJoBYbLSyYeD/Vjhz9UbWDLoy8k=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=an7kApbpF07Adu3v4ynyIATPwxvIPgh6r/R5mns5ldfC8ZD2j8iiucWIGBzid6uXZklpw5VLPu7lqkqUSsBILi5RaeljVywnphzVxhNum44cuP/Fid8UCK+QsKmDNwhT6jdfXPGG56Xj/plxgJRqr6rbtkRCzak8HiCSNVoFqyA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=Dz8TsGvo; arc=none smtp.client-ip=217.140.110.172
+	 MIME-Version; b=J8kq5PmrVIJikg1FWR84mlMVVbNxxTZSzLQewAjbHx63fh0ZgFCON1RShSI+nSGppccMn6c6CC0alSe1qbpY6mKRcswxK2kL3IN0pkQVbDE6Bj95sM3V538gRVfoB+JlkroPUojCFKHajaxoyPTmupAXseW2RzxN60O6G7xRer4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=CHlkydzV; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="Dz8TsGvo"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="CHlkydzV"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id D47DD1AC1;
-	Mon, 13 Jul 2026 06:58:17 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 626221AC1;
+	Mon, 13 Jul 2026 06:58:30 -0700 (PDT)
 Received: from e129823.cambridge.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id E1DC73F7B4;
-	Mon, 13 Jul 2026 06:58:09 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 722843F7B4;
+	Mon, 13 Jul 2026 06:58:22 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1783951102; bh=BGsfhjHwglNJ8takg97xfz6u1VYDa2ALCLHL7YdtZVY=;
+	t=1783951114; bh=ijbMFumg8P8gGkdSIJoBYbLSyYeD/Vjhz9UbWDLoy8k=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=Dz8TsGvoiFCjSE9z1oywYVBzDQTRnVTBd1MrzH3foNMVyPE9dAvo6/Vmp2r1CP3Iq
-	 dYS8FrDpbH32e1UYPU6fcNuLmNE0xLD77xr5QXu44Aa9wPIPj4v7t5wmVOLYCmlFUF
-	 JVFxTL7j0+jeFL2ci92qPOtagM5QvVFicmyJBbgs=
+	b=CHlkydzVCllPoGxzxcQSUErvYXIAGBQ595+NL7G7e1sqPROHhsxJ8MBiTiSYo8eIB
+	 Mu0LCgbjUkOW4pofPbQVpr3Y0M6KWgdVpaR90WouabYCqysQ0cuW4q7ADzrIlktriy
+	 gEX7NRAFqIzU5fkSuMPNTtCBJn75XvGeTJjmc76Q=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
 To: linux-arm-kernel@lists.infradead.org,
 	linux-kernel@vger.kernel.org,
@@ -122,9 +122,9 @@ Cc: david@kernel.org,
 	jonas@southpole.se,
 	stefan.kristiansson@saunalahti.fi,
 	Yeoreum Yun <yeoreum.yun@arm.com>
-Subject: [RFC PATCH 09/34] riscv: kvm: remove stack copy address of pXd in pXd_offset()
-Date: Mon, 13 Jul 2026 14:55:48 +0100
-Message-ID: <20260713135614.1618183-10-yeoreum.yun@arm.com>
+Subject: [RFC PATCH 10/34] x86: mm: carve out the generic compile-time folded pgtable case in effective_prot()
+Date: Mon, 13 Jul 2026 14:55:49 +0100
+Message-ID: <20260713135614.1618183-11-yeoreum.yun@arm.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20260713135614.1618183-1-yeoreum.yun@arm.com>
 References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
@@ -136,70 +136,68 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-We want to change how pXdp_get() works with generic compile-time folded
-page tables. To prepare for that, rework get_hva_mapping_size() to avoid
-use of a stack copy of a pXd and pass it as argument to pXd_offset() so that
-the folded entries value is ignored.
+From: "David Hildenbrand (Arm)" <david@kernel.org>
 
-Replace direct uses of stack-based pXd values with pXd_offset_lockless()
-and there should be no functional change.
+We want to change how pXdp_get() works with generic compile-time folded
+page tables. To prepare for that, rework effective_prot() to ignore any
+folded page tables entries, as it will unconditionally get called by
+ptdump core with pXd_val(pXdp_get()), and we really should be ignoring
+that value for folded entries.
+
+For this, identify the first real page-table level and
+update effective_prot only when the current entry is not folded.
+
+There should be no functional change.
 
 Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
 ---
- arch/riscv/kvm/mmu.c | 20 ++++++++++++--------
- 1 file changed, 12 insertions(+), 8 deletions(-)
+ arch/x86/mm/dump_pagetables.c | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
 
-diff --git a/arch/riscv/kvm/mmu.c b/arch/riscv/kvm/mmu.c
-index 082f9b2617338..6d6042b81d790 100644
---- a/arch/riscv/kvm/mmu.c
-+++ b/arch/riscv/kvm/mmu.c
-@@ -362,10 +362,10 @@ static int get_hva_mapping_size(struct kvm *kvm,
- {
- 	int size = PAGE_SIZE;
- 	unsigned long flags;
--	pgd_t pgd;
--	p4d_t p4d;
--	pud_t pud;
--	pmd_t pmd;
-+	pgd_t *pgdp, pgd;
-+	p4d_t *p4dp, p4d;
-+	pud_t *pudp, pud;
-+	pmd_t *pmdp, pmd;
+diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
+index 2afa7a23340e9..e32848c7f26d4 100644
+--- a/arch/x86/mm/dump_pagetables.c
++++ b/arch/x86/mm/dump_pagetables.c
+@@ -27,6 +27,7 @@
+  */
+ struct pg_state {
+ 	struct ptdump_state ptdump;
++	struct mm_struct *mm;
+ 	int level;
+ 	pgprotval_t current_prot;
+ 	pgprotval_t effective_prot;
+@@ -253,8 +254,22 @@ static void effective_prot(struct ptdump_state *pt_st, int level, u64 val)
+ 	struct pg_state *st = container_of(pt_st, struct pg_state, ptdump);
+ 	pgprotval_t prot = val & PTE_FLAGS_MASK;
+ 	pgprotval_t effective;
++	bool first_level = false;
  
- 	/*
- 	 * Disable IRQs to prevent concurrent tear down of host page tables,
-@@ -381,15 +381,18 @@ static int get_hva_mapping_size(struct kvm *kvm,
- 	 * value) and then p*d_offset() walks into the target huge page instead
- 	 * of the old page table (sees the new value).
- 	 */
--	pgd = pgdp_get(pgd_offset(kvm->mm, hva));
-+	pgdp = pgd_offset(kvm->mm, hva);
-+	pgd = pgdp_get(pgdp);
- 	if (pgd_none(pgd))
- 		goto out;
+-	if (level > 0) {
++	/* Ignore folded levels ... */
++	if (((level == 0) && mm_p4d_folded(st->mm)) ||
++	    ((level == 1) && mm_pud_folded(st->mm)) ||
++	    ((level == 2) && mm_pmd_folded(st->mm)))
++		return;
++
++	/* ... and make the actual first level remember the protection. */
++	if (((level == 0)) ||
++	    ((level == 1) && mm_p4d_folded(st->mm)) ||
++	    ((level == 2) && mm_pud_folded(st->mm)) ||
++	    ((level == 3) && mm_pmd_folded(st->mm)))
++		first_level = true;
++
++	if (!first_level) {
+ 		pgprotval_t higher_prot = st->prot_levels[level - 1];
  
--	p4d = p4dp_get(p4d_offset(&pgd, hva));
-+	p4dp = p4d_offset_lockless(pgdp, pgd, hva);
-+	p4d = p4dp_get(p4dp);
- 	if (p4d_none(p4d) || !p4d_present(p4d))
- 		goto out;
- 
--	pud = pudp_get(pud_offset(&p4d, hva));
-+	pudp = pud_offset_lockless(p4dp, p4d, hva);
-+	pud = pudp_get(pudp);
- 	if (pud_none(pud) || !pud_present(pud))
- 		goto out;
- 
-@@ -398,7 +401,8 @@ static int get_hva_mapping_size(struct kvm *kvm,
- 		goto out;
- 	}
- 
--	pmd = pmdp_get(pmd_offset(&pud, hva));
-+	pmdp = pmd_offset_lockless(pudp, pud, hva);
-+	pmd = pmdp_get(pmdp);
- 	if (pmd_none(pmd) || !pmd_present(pmd))
- 		goto out;
- 
+ 		effective = (higher_prot & prot & (_PAGE_USER | _PAGE_RW)) |
+@@ -449,6 +464,7 @@ bool ptdump_walk_pgd_level_core(struct seq_file *m,
+ 			.effective_prot_pgd = effective_prot_pgd,
+ 			.range		= ptdump_ranges
+ 		},
++		.mm		= mm,
+ 		.level = -1,
+ 		.to_dmesg	= dmesg,
+ 		.check_wx	= checkwx,
 -- 
 LEVI:{C3F47F37-75D8-414A-A8BA-3980EC8A46D7}
 
