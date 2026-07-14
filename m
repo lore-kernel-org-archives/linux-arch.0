@@ -1,97 +1,123 @@
-Received: from out-172.mta0.migadu.com (out-172.mta0.migadu.com [91.218.175.172])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D1B643A0E81
-	for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2026 02:46:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.172
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 57FC318DB1A;
+	Tue, 14 Jul 2026 03:34:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783997195; cv=none; b=skVZtrOqjCDrd+fhQbjTqsDnvplMQchvTUvFLCNaCdbqPEFL8E3cI5KzJK1Rusbt/zSZTujx/DwgOyzzOjSnsFyAHJy4Q2/amufgK9AWP2G+cVXnu1TTjg/7Hpo0PMEz+wS/EF84UHVBycOrYfQHkM7/0G9UGOapzESfhI7+bfQ=
+	t=1784000065; cv=none; b=iQgpuwSEqnLftCV8h+wIQOoM8MXVh3eURzWkrmwSKuz5YPf2ND0Q4ER20WvFlQT9ABNMVUgTdhEHLetK+F7Df3f3vSrA6eAMAJHJ52BoyFEIAyf07odPOSuAALvSEiF7M12gmrS/nWIUiXmcCdZRouLvFBjAinxahDpyq64008k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783997195; c=relaxed/simple;
-	bh=9bUacWTJi0a97hmDwxtNquaIhVVwoI9zj+xO3eJwnuo=;
-	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
-	 Message-Id:References:To; b=cQXrrqU/vwMIeS4I6nD2ZBGR2aPzHfxH6NQZ3kOklwHZm8KbS3gJr++toefjJVnNZMvTMUuB5YEfuVjbqpG25JdYgiICUyJ1I4/5XABV8PLynF1Gs4jJwzjLnsfm5+dcbabW0DNFmGAaLXEXP91fOMHZZDxWBoK6viGmS5D4LTM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=mClcqMyN; arc=none smtp.client-ip=91.218.175.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	s=arc-20240116; t=1784000065; c=relaxed/simple;
+	bh=B6QjqsTCceglXTjrdbHmu3Fd6hA0gffWs3PjsBDdmhI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=KP8lhThu65SIpBwAzbAsBC840VjOxCI3amkdIcC/K3C2bOywZPsvc0AvY56CSwhAOI2KPoMf2zbXqBRUJ5PO9osUzUoG0TD61UWISmBjG/5YFf3noF6QZTrOw+tSwdEhzhL37xiJ+qo9CwvapoK9HVnWDFUq2Rr/H+Flayv700g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=TEQ4mSyc; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="mClcqMyN"
-Content-Type: text/plain;
-	charset=us-ascii
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1783997189;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=EAQHSDx5Pf+w4+v4uxcesiEVqlXwwknrma7QzuTbLYc=;
-	b=mClcqMyNV4sFTQazeEiZNF5uDwQLQhez8hYB4lH6ijsXHxaEdK7XG/mIiCfJdQb7RPf5bd
-	2fiOxABPjI7E2jAbl7eAiY6MNJnUN6xTLjVE78wHQmn1D6S5R7TOBzUqy6H5uXrahWl0qB
-	eNc/y8IWLJ9AhDmXEIBwS+W2nimHfKQ=
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="TEQ4mSyc"
+Received: from localhost (unknown [167.220.233.38])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 57B3D20B7166;
+	Mon, 13 Jul 2026 20:34:15 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 57B3D20B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1784000055;
+	bh=KAZQv62H0azYxiU1DuGKBqf//wlcUoJu/KF5uIUpZhI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=TEQ4mSycKUDcvlPTFdFVgJOwUO52dEvB5haGH+yL3kfCTyhw2CV0/cGTmkH25mNW9
+	 NPg3Th2kOLW0HTUfobsvEIptk3eR4uUi93bOkQgPGgKIafD5dRPYUsE0qyWVN8jB4s
+	 cJS0DeK2mHrYyaMpEzppezoGVATrnK1mC4UF+3Ag=
+Date: Tue, 14 Jul 2026 11:34:21 +0800
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: Michael Kelley <mhklinux@outlook.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
+	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev" <iommu@lists.linux.dev>, 
+	"linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 
+	"wei.liu@kernel.org" <wei.liu@kernel.org>, "kys@microsoft.com" <kys@microsoft.com>, 
+	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "decui@microsoft.com" <decui@microsoft.com>, 
+	"longli@microsoft.com" <longli@microsoft.com>, "joro@8bytes.org" <joro@8bytes.org>, 
+	"will@kernel.org" <will@kernel.org>, "robin.murphy@arm.com" <robin.murphy@arm.com>, 
+	"bhelgaas@google.com" <bhelgaas@google.com>, "kwilczynski@kernel.org" <kwilczynski@kernel.org>, 
+	"lpieralisi@kernel.org" <lpieralisi@kernel.org>, "mani@kernel.org" <mani@kernel.org>, 
+	"robh@kernel.org" <robh@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
+	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
+	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>, "mrathor@linux.microsoft.com" <mrathor@linux.microsoft.com>
+Subject: Re: [PATCH v2 3/4] iommu/hyperv: Add para-virtualized IOMMU support
+ for Hyper-V guest
+Message-ID: <r35cz2l3yz2wyi5d663mxwqoiz2rrl6kzpiw6rsruh7ofk6vu6@temnhcfsp6fa>
+References: <20260702160518.311234-1-zhangyu1@linux.microsoft.com>
+ <20260702160518.311234-4-zhangyu1@linux.microsoft.com>
+ <SN6PR02MB4157253E030D477FD91B7E26D4FE2@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <enpkphavwmqrkded73c43vprczslvei4755lkxuedof4z2k3kk@y2jtklbk4efz>
+ <SN6PR02MB4157805F23ACA85A668FA065D4FC2@SN6PR02MB4157.namprd02.prod.outlook.com>
+ <3ty6yq6oftsvq52skrngjv5xpyixhsyfo3dndhoujt7emxsb2o@y6ischifpmfn>
+ <SN6PR02MB41575E067DFEBEACF316CD35D4FA2@SN6PR02MB4157.namprd02.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3864.600.51.1.1\))
-Subject: Re: [PATCH v6 3/8] mm: add a set_page_section_from_pfn() helper
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-From: Muchun Song <muchun.song@linux.dev>
-In-Reply-To: <20260709112520.24857-4-lizhe.67@bytedance.com>
-Date: Tue, 14 Jul 2026 10:45:52 +0800
-Cc: akpm@linux-foundation.org,
- apopple@nvidia.com,
- arnd@arndb.de,
- balbirs@nvidia.com,
- bp@alien8.de,
- dave.hansen@linux.intel.com,
- david@kernel.org,
- kees@kernel.org,
- mingo@redhat.com,
- rppt@kernel.org,
- tglx@kernel.org,
- linux-arch@vger.kernel.org,
- linux-hardening@vger.kernel.org,
- linux-kernel@vger.kernel.org,
- linux-mm@kvack.org,
- x86@kernel.org
-Content-Transfer-Encoding: 7bit
-Message-Id: <ED913AB8-0DF0-4F2B-9E7E-ABC4BF926C9D@linux.dev>
-References: <20260709112520.24857-1-lizhe.67@bytedance.com>
- <20260709112520.24857-4-lizhe.67@bytedance.com>
-To: Li Zhe <lizhe.67@bytedance.com>
-X-Migadu-Flow: FLOW_OUT
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <SN6PR02MB41575E067DFEBEACF316CD35D4FA2@SN6PR02MB4157.namprd02.prod.outlook.com>
 
+On Mon, Jul 13, 2026 at 05:37:51PM +0000, Michael Kelley wrote:
+> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Monday, July 13, 2026 9:46 AM
+> > 
+> > On Sat, Jul 11, 2026 at 06:31:15PM +0000, Michael Kelley wrote:
+> > > From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Friday, July 10, 2026 12:34 AM
+> 
+> [snip]
+> 
+> > >
+> > > One new thought:  Have you considered the hibernate/resume
+> > > cycle? Does anything need to be done with the pvIOMMU to
+> > > make it functional again after resume? I see that the Intel and
+> > > AMD IOMMU drivers have suspend and resume functions. I
+> > > don't know enough about the Hyper-V pvIOMMU to know if it
+> > > might also need suspend and resume functions.
+> > >
+> > 
+> > Thanks for raising this, Michael. We have not considered such support.
+> > 
+> > My understanding is that the Intel and AMD drivers only disable the
+> > IOMMU translation, flush the IOTLB during the suspend and re-enable/
+> > reload the preserved root tables and other HW state during in the
+> > resueme.
+> > 
+> > But for pvIOMMU, I guess such job shall be done by the hypervisor?
+> > For a device resumed on the same VM, its logical device ID should
+> > also remain unchanged?  And the corresponding Hyper-V domain objects,
+> > configuration, and device attachments shall be preserved and restored
+> > by hypervisor? I don't think the current Hyper-V ABI explicitly defines
+> > this. But maybe if we want such feature, it could be done by the
+> > hypervisor transparently?
+> > 
+> 
+> I agree with your and Jacob's comments that the guest doesn't have
+> any responsibility for saving/restoring IOMMU hardware state, as the
+> Intel and AMD IOMMU drivers do.
+> 
+> But yes, I'm wondering about the Hyper-V domain objects and device
+> attachments. I doubt Hyper-V can do anything to save and restore
+> them. Hibernation is a Linux concept that the Hyper-V host doesn't
+> know anything about.
+> 
+> Hibernation is already complicated, and in a VM it is even worse. :-(
+> As a start, see Documentation/virt/hyperv/hibernation.rst, which I
+> wrote about 18 months ago. It provides some basics as well as outlines
+> the additional complexity in a Hyper-V guest VM. I'll also try to spend
+> some time thinking through the implications for a pvIOMMU, and let
+> you know if I have any more thoughts.
+> 
 
+Thank you, Michael, and thanks for pointing us to the documentation. I
+need some time to better understand the Linux guest hibernation and resume
+flow and its implications for pvIOMMU.
 
-> On Jul 9, 2026, at 19:25, Li Zhe <lizhe.67@bytedance.com> wrote:
-> 
-> Callers that want to update section bits from a PFN currently need to
-> open-code:
-> 
-> set_page_section(page, pfn_to_section_nr(pfn));
-> 
-> and guard that sequence with #ifdef SECTION_IN_PAGE_FLAGS.
-> 
-> Add set_page_section_from_pfn() to wrap that update in one place. When
-> section bits are stored in page flags, the helper derives the section
-> number from the PFN and updates the page flags. Otherwise keep it as a
-> no-op so callers can use one helper without open-coding
-> SECTION_IN_PAGE_FLAGS.
-> 
-> Convert set_page_links() to use the new helper so later ZONE_DEVICE
-> fast-path patches can also update section bits without open-coding
-> SECTION_IN_PAGE_FLAGS at each callsite.
-> 
-> This keeps the PFN-to-section translation local to the configurations
-> that actually store section bits in struct page flags, and avoids
-> exposing that detail to generic callers.
-> 
-> No functional change intended.
-> 
-> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-> Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
+Meanwhile, do you think this limitation should be documented in the
+commit message or the cover letter?
 
-Acked-by: Muchun Song <muchun.song@linux.dev>
+B.R.
+Yu
 
-
+> Michael
