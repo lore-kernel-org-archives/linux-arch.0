@@ -1,256 +1,292 @@
-Received: from PH0PR06CU001.outbound.protection.outlook.com (mail-westus3azon11011005.outbound.protection.outlook.com [40.107.208.5])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3174A3845C1;
-	Tue, 14 Jul 2026 11:35:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.107.208.5
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784028961; cv=fail; b=IKb5JUJ8WnIZJ/rMMX2xRqa8AzThagsbApLYXf/NEUIYfFz84DxmNvTNJ1TbJL0DwuOHk/7aIBmCPHpWaf0A8SgS8o8I50psMkgxjRvlJmhrHU6tDUsoSTOIzDqFXMeRf55SBr/Gos9g4XCJzaZDxKbkiEl/Un2D8EJ44aTabWw=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784028961; c=relaxed/simple;
-	bh=4vV77GVq0z3peGS/mg4Jsgfwb37ocnT++rnxYn7gXSg=;
-	h=Message-ID:Date:Subject:To:Cc:References:From:In-Reply-To:
-	 Content-Type:MIME-Version; b=mErdKCD5iC9DgDdsER5AyYB1AKpF+QFO2LMId18Kn0mK4ztq9wSbbGrId0Mdx2xe5PTLrbrg2K8ps4t0VucI8g6Fqp3dgr1d6dqzIr3t0dpDHQKaMQES7DGdheBl43Shu4qEco99zGC9dz5f9Uz7W65ic4hmDhfhopEun9c7+Z4=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=Xu1EBMXz; arc=fail smtp.client-ip=40.107.208.5
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8548135BDDB;
+	Tue, 14 Jul 2026 11:40:48 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1784029250; cv=none; b=gkLDomIq9GdbwFK0sw4eeDfi64+PuZiyHL7Kvb1Yn6BDi6kSdw7NyTa3xqsg20MuPaSEGe8d6hBo1/KKYks7GbDXqTxxp/3w59Dyk14NMWSop6aJBCc/Upj+tl6B5KfaIcbZvBlyw5vnxbQf2MQbzJ3w8VPTYTN+kFFKFprgzlA=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1784029250; c=relaxed/simple;
+	bh=MCWhEFrql7UL36iBX9OZiHoegQ6HAcW6h4DKukQd0P8=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=mv2zq6TaowRwZGy7QzadnnW9GyEu/ohsgFPL/6gSWoWITjKwMXm+YAvGEWAqOgzHvrd6BazXS6Ie4c5sn9tT//HWZjSrhk18iseMGf4bo+wS5X2lNGkD2l2zQo25F9dFZJiMknCzTHT7WftETV7jpslsnHPJLmvPYSfpsKgX9Sc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=MvgpT4yw; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="Xu1EBMXz"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=qQbn4Hihz1RqBLgDPtTxXw04gKtpWl7SUyuPUJgux7h2XlWXNSLasvjYiO55U5fjozZogB1Af2oc9Am/ZuzDxpyh592LahAZHghfsGif+mJi/DQfMNJHktOR5FfumYHgOyLL0qen6XUtN4TkVn+X6ustfVBFf1CC3tuwOs410UAwu0HCvvxqN2fEZZJ9ufiE9VAUWn9fNpae74dHlJq0buFYjJvOVj7VKtMpY4tNNLJgoOzTcKMoTSmh8cFPdwDi3SyeK33YK0QRAYc9Vp1qaPZqKSCS/BdU7SDjiJCk6Q/3HzELMrTgExf71Og7j2QXy7cgbzSHeYgxoYVkJAwcuQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=50c/2a4cgZyUQrqlxOZ0b7WMOIbsLSy6QmLfqAj6kcw=;
- b=TpNwdLQXFezB1dKVqcQPexC85wgr3UxYb8jRErTyzw7YKy4pXgOdIklw7ciI9HkCVy3ONwdSlIUeEVpdKG//odK8p6NZu37D5OuORUo6UTnceEe/yHhFexKLVlGmvUPT1QWELZ2ZyVZMU8xWgER3u1WtfnMS/GiWN5/OAjKoWR2vgxqLYxoJ4RCd/wDKMCFAqtWwra1sf7OLJrYlIebceDzpXuNEJIukP9u+ULTRT8tDaEaqaD02rd0UAGRbER8EUbUDc/iXTIab0MF07TQHwCJCjkpb3PFsr/jD80Ok7OSiD9Yc0/cQYBJGYHDKFFAYsspRea8eQHCSyX130Ji2RQ==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
- dkim=pass header.d=nvidia.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=50c/2a4cgZyUQrqlxOZ0b7WMOIbsLSy6QmLfqAj6kcw=;
- b=Xu1EBMXzdGOfW8TzQaxm5uU5LeHAPrqZ2AC4RJBPwg4LzsEZGT3f/r5fHicgq8vaUTzgekeT4kTtlbDBuk2CQESPU27z22Z31/7s3A/LNMbcosyMsYi6/rts5MC2s99QPQBmCqM46Wcarw4a1IvCvY5eEdAXPU3eEWcHQLqaLANJLVYOPoI+o/AErpOnAPb0e3rD/yH0jHtbG17Yp/NaOrhkD9x0hP3DJWupSELDMEo2ZY8lQzFNjuUPRaGMyyBADaXgxWK5zS4kePp+mP/KXRrcuoMFIcCMycojME1jlLyDmG9H1TmoEBjFlzDbfFtAiBGWSaVBQq2SIvrfrjroag==
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=nvidia.com;
-Received: from CH2PR12MB5001.namprd12.prod.outlook.com (2603:10b6:610:61::18)
- by IA0PR12MB8746.namprd12.prod.outlook.com (2603:10b6:208:490::7) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.223.10; Tue, 14 Jul
- 2026 11:35:53 +0000
-Received: from CH2PR12MB5001.namprd12.prod.outlook.com
- ([fe80::89e3:6df0:de90:8dfe]) by CH2PR12MB5001.namprd12.prod.outlook.com
- ([fe80::89e3:6df0:de90:8dfe%3]) with mapi id 15.21.0223.008; Tue, 14 Jul 2026
- 11:35:53 +0000
-Message-ID: <ff75fd32-6aef-4712-8a4c-4deaeb5c3269@nvidia.com>
-Date: Tue, 14 Jul 2026 21:35:44 +1000
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v6 2/8] mm: factor zone-device page init helpers out of
- __init_zone_device_page
-To: Li Zhe <lizhe.67@bytedance.com>, akpm@linux-foundation.org,
- apopple@nvidia.com, arnd@arndb.de, bp@alien8.de,
- dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org,
- mingo@redhat.com, rppt@kernel.org, tglx@kernel.org
-Cc: linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
-References: <20260709112520.24857-1-lizhe.67@bytedance.com>
- <20260709112520.24857-3-lizhe.67@bytedance.com>
-Content-Language: en-US
-From: Balbir Singh <balbirs@nvidia.com>
-In-Reply-To: <20260709112520.24857-3-lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-ClientProxiedBy: ME3PR01CA0053.ausprd01.prod.outlook.com
- (2603:10c6:220:f7::10) To CH2PR12MB5001.namprd12.prod.outlook.com
- (2603:10b6:610:61::18)
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="MvgpT4yw"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 7EF1B1476;
+	Tue, 14 Jul 2026 04:40:43 -0700 (PDT)
+Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 6AA603F93E;
+	Tue, 14 Jul 2026 04:40:37 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1784029247; bh=MCWhEFrql7UL36iBX9OZiHoegQ6HAcW6h4DKukQd0P8=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=MvgpT4ywcE00IxG1JVUyBpm3lJ+pIfECdF6FM/Sc9MXmE2eFpNJRbIz7x2PHnayFc
+	 rIEH/1buiyXOZIfInJgpBQRwP/xJTZ/bbTCuLcFjDgZe3iZFv28lVTuFyfnYkwAUXC
+	 NhDONHzT6KNdhRrz3tcDrHH80ODV8po7FJy3msTE=
+Date: Tue, 14 Jul 2026 12:40:35 +0100
+From: Yeoreum Yun <yeoreum.yun@arm.com>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: Dave Hansen <dave.hansen@intel.com>, Yeoreum Yun <yeoreum.yun@arm.com>,
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+	linux-arch@vger.kernel.org, kvm-riscv@lists.infradead.org,
+	linux-riscv@lists.infradead.org, x86@kernel.org, linux-mm@kvack.org,
+	kasan-dev@googlegroups.com, linux-csky@vger.kernel.org,
+	linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org,
+	linux@armlinux.org.uk, akpm@linux-foundation.org,
+	ankur.a.arora@oracle.com, rppt@kernel.org, linmag7@gmail.com,
+	chleroy@kernel.org, klarasmodin@gmail.com, chenhuacai@kernel.org,
+	kernel@xen0n.name, kas@kernel.org, zhangtianyang@loongson.cn,
+	wangyuli@aosc.io, tsbogend@alpha.franken.de, ljs@kernel.org,
+	jgg@ziepe.ca, catalin.marinas@arm.com, will@kernel.org,
+	arnd@arndb.de, ryan.roberts@arm.com, pasha.tatashin@soleen.com,
+	rmclure@linux.ibm.com, baolin.wang@linux.alibaba.com, tj@kernel.org,
+	kevin.brodsky@arm.com, anup@brainfault.org, atish.patra@linux.dev,
+	pjw@kernel.org, palmer@dabbelt.com, aou@eecs.berkeley.edu,
+	alex@ghiti.fr, dave.hansen@linux.intel.com, luto@kernel.org,
+	peterz@infradead.org, tglx@kernel.org, mingo@redhat.com,
+	bp@alien8.de, hpa@zytor.com, hannes@cmpxchg.org, mhocko@kernel.org,
+	qi.zheng@linux.dev, shakeel.butt@linux.dev, kasong@tencent.com,
+	baohua@kernel.org, axelrasmussen@google.com, yuanchu@google.com,
+	weixugc@google.com, ryabinin.a.a@gmail.com, glider@google.com,
+	andreyknvl@gmail.com, dvyukov@google.com, vincenzo.frascino@arm.com,
+	anshuman.khandual@arm.com, yang@os.amperecomputing.com,
+	chaitanyas.prakash@arm.com, ardb@kernel.org, guoren@kernel.org,
+	yang.li85200@gmail.com, viro@zeniv.linux.org.uk,
+	dinguyen@kernel.org, schuster.simon@siemens-energy.com,
+	wangruikang@iscas.ac.cn, junhui.liu@pigmoral.tech,
+	muchun.song@linux.dev, vishal.moola@gmail.com, namcao@linutronix.de,
+	pavel@kernel.org, djbw@kernel.org, yu-cheng.yu@intel.com,
+	baolu.lu@linux.intel.com, Jonathan.Cameron@huawei.com,
+	coxu@redhat.com, andreas@gaisler.com, liam@infradead.org,
+	vbabka@kernel.org, surenb@google.com, mhocko@suse.com,
+	geert@linux-m68k.org, shorne@gmail.com, jonas@southpole.se,
+	stefan.kristiansson@saunalahti.fi
+Subject: Re: [RFC PATCH 10/34] x86: mm: carve out the generic compile-time
+ folded pgtable case in effective_prot()
+Message-ID: <alYgMxKqRnF6_X0A@e129823.arm.com>
+References: <c3edfb13-08ec-419c-bc05-8f3f64186b24@intel.com>
+ <ac365196-8ccc-4d8b-83d7-28fec763e75c@kernel.org>
+ <710b7eb0-8e0c-4f07-991c-2285c77e1beb@intel.com>
+ <6007625e-c3f9-4ad6-99a8-61396bccbcec@kernel.org>
+ <32d459d1-ad19-4baf-bbb1-0565458001d2@intel.com>
+ <3ea30f8a-bb29-4bf5-8400-1c4840d46a88@kernel.org>
+ <7e84b200-25eb-43a6-b5e2-5f27f2d82a77@intel.com>
+ <31988089-095a-4eed-b5e2-c677c70f79f6@kernel.org>
+ <14e250db-1641-4085-8d13-02f819657d5f@intel.com>
+ <d83c76b3-ea4d-4c41-b4c5-f5ae558ace55@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CH2PR12MB5001:EE_|IA0PR12MB8746:EE_
-X-MS-Office365-Filtering-Correlation-Id: 6b608fbf-fb5a-428f-91c5-08dee19c0fc9
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|1800799024|366016|7416014|376014|23010399003|6133799003|4143699003|56012099006|11063799006|22082099003|18002099003|921020;
-X-Microsoft-Antispam-Message-Info:
-	bux7qwnPEaSVJc8ISOIMthqPu0LhA/rEZudXnF9fYH6KEsuaNA486+npTgsA3exjzdKGDNjuIb5opUqufiKGWXJZ/LNn3ZQGyokHFLpro6D5BxiWqKVjOgmyFObEytS0cNrVCbfZVT6D5apDItygKZlLnmztY31/F6YAIq5vrLZFrpHjnWz6yUs/8tAZlzBfqG2Wq4LvsvNGTAYhI9iYtOktVM1qUylO/SV11Ow+HTXkXOoXzOKbm4qtk1NzjK6CgA2e0+IAIrgZ2JIkMIozCKw0jG0MxoZzuOAlqIGBINELat8vuBnciwZ31MZoXVygDCRmXMDOSVPxZfI2323Nb0ghCeYk9giG2pGXD7W1kC0AA8CkBuqjVljwUPIHO/LIRoXgumw5TcNsKepmN+PYnxEtI4oZv3lr9rqwbDDug1py3T66I00mapXJhmpQ+xniUczH81HR88PLcKUsSnYhEwnWOcisjpiRnKsBEX3CqOC5UXgxyyMG9ZxsZhRvDEpzexdaUgxq6VjO3Yq8m8m1w8Rhgqs7AqETWgdTiZXVzFYXjQFHmdC2l4MMe7/UeDJeKoM38JbByvwDU10k1PDnGqJB+/2s0hELnQSIbsM3jRoQ/iT8bgwXiKkkeutGgKM5BWVwcAJk4xqeKUxSt8PNf31pOvmr2MmoHqiCEqwRmCnpjNQfkjBBzGriZpCjTXPsK11/2HcPSzMgru2hTf6ziA==
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CH2PR12MB5001.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(366016)(7416014)(376014)(23010399003)(6133799003)(4143699003)(56012099006)(11063799006)(22082099003)(18002099003)(921020);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?SU16UEVlUkdxWXFNcDR2K21xWTZOa3BmcURqMUl1U0NtU09yN1dQblp4SW4w?=
- =?utf-8?B?Rm50SHFyM3VYN3EwS0xuT2JWRXM5WGJmS3FIdXF6UEc4RFZIMks5d0xLeGlU?=
- =?utf-8?B?MnlDaHNydElkRjhpNkt2TElDbkZIMTR6QktZVFhCVEZhTEpSM2Q3akI1VkY5?=
- =?utf-8?B?YXpOTy9mVWxRTERrN1RVTnJWbHp2OWc5MURPMlRJUXk5Nm5yWGJveElsdFMw?=
- =?utf-8?B?SCt1S1RNd1NVVUVrMVNhUHJHdm5lSnJCTXphK255dXpydjdScUZHdFFpbFZR?=
- =?utf-8?B?RUZQWHVzdWVmdHZtZmM4RDZQVFNnY0x0bTRtOGZtOVVKNVV6amdFZnkxQ2N2?=
- =?utf-8?B?WGloYUYzWk8xdGtSbkxFN3YzT0FDdWRVa29GL3IwdFhOTnV6UjRFYmEyc2pa?=
- =?utf-8?B?eHFQQlRWU2t2Z0FUSHZNTTRxbGdlb3MreVpaMmVJdTkrb2U4N1JwdmJLNnJG?=
- =?utf-8?B?b1ZUT1V4MDhNMFZkemkvSnFsbE50OUFFdXVucCtacTlNSHdLbFBycGpwVFpM?=
- =?utf-8?B?dW1FWWExN016c3p5dHpXd0NxRXRCM0FpbDN3dE5Jbi9OVFpSMTMxTVJhR25y?=
- =?utf-8?B?Sjl6NVBnbEc3UzIyU3dpZng0WWtUVk1qay9MOEZnY1RwM2I1ODJDQkh4RUdv?=
- =?utf-8?B?YnROMEFVK1pVeWRRdGFNZklDYnBtdHhlRDkvYWZpUU51RUk3YzdiditqQVRo?=
- =?utf-8?B?U2RxMDhSOGErYXRGeGNpbkJwdTlLangySGdxTkpqMXMxdjZWY3U5aHVXejhE?=
- =?utf-8?B?YnJ3aXBNMk4rSER6Z2MyM2hxY3gwU1RzdXdWZ3lRdEI5MmY5Qk1ZMnJmVmRu?=
- =?utf-8?B?d3NjTzVWQ1NIeUdJelBrZmpGSk5kR1F2b0VKWklDSWhLUUtoejFweFAvQnlY?=
- =?utf-8?B?RFZIcXNLV3llQWFkVWNTVVU3UXN0cm5Xc2FLRGNZdjJ4VHVVejNkRmJzbSs5?=
- =?utf-8?B?bm92QWFzc2krR2hEUExFcE9NMmhKWi9wc1FnNjVIdFExcU1seEdaRjZXWUpn?=
- =?utf-8?B?QkZmUndabnBsa1hkdnVQRld4Qm1IZXUyL2tabC9XOFd4L3hyWHUreXJCdGdk?=
- =?utf-8?B?VEZIY2ZRdTkwN2lyemxZNGtDRjNYUm0rb1lJVjB5WGR2OE8vTHhSMUJGalZp?=
- =?utf-8?B?K1lnZTJwbXFOakxaZThrVThNNUYyTCs2WmZ0WFRxQlRJRkNLa08yR25oaXhw?=
- =?utf-8?B?YmZmTnY1MHEvb2lxcXB5Ukptbkg3Vm1OWWtrQmkwQlh4WWRmTkp3czRsK1c4?=
- =?utf-8?B?eXJEZHZaRTRRRHF3UVQzL0I1MEU3cXNMM25mWUhxTllUZzdMTEVMVjQ1M2Uz?=
- =?utf-8?B?SnVEc0hDTlhKQnRvK0JwMFdhVnI0V3dUVUE1Y055T2Y5LzNTZG8wT3RNaWNO?=
- =?utf-8?B?Y0hIQzhSN3V5MVc5eE1CaVpWUVhFcVZsMlhkOFpsSUtMNVI3cHhRZU04Um5S?=
- =?utf-8?B?QytEVWZGNnlDMk9YMGFBOVZPWk5ZS2RvUlN6SWlqSklOUWRVNFFkdmZtb3dk?=
- =?utf-8?B?bG1XSldraUhNREJ1TGc3LzV1TDNyNHIxdEMvL1Myc0c2dVFMeE5pTzIvSVRQ?=
- =?utf-8?B?M3B5UG03Zi9ra3p0cU1LZTBrNWU4TU9nQUkwbkZiR0l5eHgyVEQzYnhRZGpU?=
- =?utf-8?B?WG1Wc2o5TitTUGtDdmREQ3RIUTlQQ1RHUXpsd2o2Uy9uSlU0R2FETlEzbndo?=
- =?utf-8?B?enA1V1g2azNNZndNZCtSUGJNUDR3UWhqcW9JcHdudmFFejNHczZyT1VQL1A1?=
- =?utf-8?B?alo1MWl0QXlOcFFnbHBsZ1plTGRwTlRTRk5hZWVkN0JEWGplVmJFa3A0RTZV?=
- =?utf-8?B?aysyRTdEaTJQK3V2Ung1ZHpCbW5ZblJ1WU5HUEZhZXBjVEhCaDlnYXJFTEE0?=
- =?utf-8?B?VGlBczJ6TFE0ek1wREg3ZlEwaUJZRWw0N1gxZWIvR1FLbG5XN1J3UXJTTFhU?=
- =?utf-8?B?TG0yYkV0ajJEc0VOMWNKSGlxdzlFYnJuMDRhWjFtWVhQeUFKd1Z0dXk0dGdq?=
- =?utf-8?B?V0R1UURuWjFvajhnQVplY1RLckVOV2lhRTRPNE9oMHFUUThtT05TeVA1QXJD?=
- =?utf-8?B?Nk5CQitlVTh4dkh5bWtScnp5V25GTTF1U21Rdm9Zc3F2aklxUGFmMjVvUDJL?=
- =?utf-8?B?SXQ3Y2VHMWdaSmI4U0RXeEZ0akNMajRXUmtkVklSSnlmL05kZHQ5WUY5bU5E?=
- =?utf-8?B?bHJJNDJadGtmdlIwUTNlNm1XMVFnb1ZBeDl6QXpWTTh1NnlYQmpScExzSmhv?=
- =?utf-8?B?cmdSMGFBUzVsWndFZ2kvQTNCSk1BTDBlVlhPbGJGSmd3S3VaWnQzUzFxMkFH?=
- =?utf-8?B?WS9UdFJHaGM1eDJyQVdlb0owcHc4UGQ0aVVhMERyS3R2RlQyZjNjQT09?=
-X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 6b608fbf-fb5a-428f-91c5-08dee19c0fc9
-X-MS-Exchange-CrossTenant-AuthSource: CH2PR12MB5001.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 14 Jul 2026 11:35:53.3096
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: dMKCSbwsVc8DMIiesXdcadp9a0aLX9XDL5oKSgxdhR/j8X21FGir3vulJo+pG/VjWWAYZyrCybq1R2Au/ej0pQ==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: IA0PR12MB8746
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <d83c76b3-ea4d-4c41-b4c5-f5ae558ace55@kernel.org>
 
-On 7/9/26 9:25 PM, Li Zhe wrote:
-> memmap_init_zone_device() currently mixes refcount policy and core
-> ZONE_DEVICE page setup in a single helper.
+> On 7/13/26 23:40, Dave Hansen wrote:
+> > On 7/13/26 14:17, David Hildenbrand (Arm) wrote:
+> >>> To me, the double READ_ONCE() is a non-issue.
+> >> To other arch maintainers, it is!
+> > 
+> > Ahh, so it seems like Christophe in ppc32 land was looking at this more
+> > like a regression that needed to get fixed.
 > 
-> Factor the refcount-reset predicate into pagemap_resets_refcount(), move
-> the common page initialization into __zone_device_page_init(), and wrap
-> the existing slow path in zone_device_page_init_slow().
+> Yes, exactly. :)
 > 
-> This keeps the slow-path behaviour unchanged and gives later patches
-> reusable helper boundaries.
+> And I agree that it is something we should be optimizing.
 > 
-> No functional change intended.
+> > 
+> > Christophe, just out of curiosity, was this something that was causing
+> > you practical problems like measurable performance regressions, or was
+> > it really just insane code generation that seems unacceptably suboptimal?
 > 
-> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-> Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
-> ---
->  mm/mm_init.c | 56 ++++++++++++++++++++++++++++++++++------------------
->  1 file changed, 37 insertions(+), 19 deletions(-)
+> I'd be curious about that as well. I mean, looking at the generated code
+> it's clear that it is suboptimal.
 > 
-> diff --git a/mm/mm_init.c b/mm/mm_init.c
-> index 95808ab5cfdb..5fccfbacf855 100644
-> --- a/mm/mm_init.c
-> +++ b/mm/mm_init.c
-> @@ -1005,11 +1005,37 @@ static void __init memmap_init(void)
->  }
+> 
+> The solution space I see:
+> 
+> 
+> (1) Pass the result from e.g., pgdp_get() into p4d_get(), so it can just return 
+>     the value with folded p4ds.
+> 
+> That requires extreme amounts of churn in core-mm AFAIKS, so I don't see that as feasible.
+> 
+> 
+> (2) Rewrite folding code to make p4d_present() be a dummy instead of 
+>     pgd_present(), and make p4dp_get() return a dummy value.
+> 
+> ... a lot of churn across architectures. I'm sure we'll learn soon why it was done 
+> ike the way it is today in the first place. Something interesting to look at,
+> certainly, but a bit of a stretch just to optimize reads.
+> 
+> 
+> (3) Make folded pgdp_get() use an ordinary read instead of a READ_ONCE / dummy.
+> 
+> I don't like that, because we couldn't catch easily if the value is then
+> actually used some old/new code.
+> 
+> If pgd_present() etc are supposed to ignore the value, I'd rather have a mechanism
+> that enforces that the values are actually ignore in pgd_offset() etc as well.
+> 
+> 
+> (4) What we do in this series, but instead of forbidding set_pgd(), make it only 
+>     complain when we are passing in a dummy value.
+> 
+> The expectation is that it would avoid touching most architecture code in patch
+> 12 -> 27 and still prevent mistakes in the future.
+> 
+> @Yeoreum can you play with that and see what the end result would be?
+
+Okay. I'll try with (4) and let me reply how much we can reuduce
+the volume of this patch series.
+
+> 
+> 
+> The problem of how to handle ptdump effective_prot remains. Which is unfortunately an
+> x86 32-bit only problem ;) ... and effective_prot is essentially an x86-only thing.
+> 
+> There are various ways we could handle that, my preferred one would be
+> 
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index fb298e2191792..3d56e48fe4151 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -96,7 +96,7 @@ config X86
+>         select ARCH_HAS_NON_OVERLAPPING_ADDRESS_SPACE
+>         select ARCH_HAS_PMEM_API                if X86_64
+>         select ARCH_HAS_PREEMPT_LAZY
+> -       select ARCH_HAS_PTDUMP
+> +       select ARCH_HAS_PTDUMP                  if X86_64
+>         select ARCH_HAS_PTE_SPECIAL
+>         select ARCH_HAS_HW_PTE_YOUNG
+>         select ARCH_HAS_NONLEAF_PMD_YOUNG       if PGTABLE_LEVELS > 2
+> 
+> 
+> Another option would be to keep the behavior unchanged:
+> 
+> 
+> diff --git a/mm/ptdump.c b/mm/ptdump.c
+> index 5851096e6f656..ce2cf5e07ac0a 100644
+> --- a/mm/ptdump.c
+> +++ b/mm/ptdump.c
+> @@ -39,6 +39,9 @@ static int ptdump_pgd_entry(pgd_t *pgd, unsigned long addr,
+>                 return note_kasan_page_table(walk, addr);
+>  #endif
 >  
->  #ifdef CONFIG_ZONE_DEVICE
-> -static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
-> +/*
-> + * Return true when the free path for this pagemap type restores the page
-> + * refcount to 1, so memmap_init_zone_device() can keep the count set by
-> + * __init_single_page(). Otherwise initialize the refcount to 0 and leave
-> + * it to the allocator or pgmap callbacks to raise it when the page is
-> + * handed out again.
-> + */
-> +static inline bool pagemap_resets_refcount(const struct dev_pagemap *pgmap)
-> +{
-
-resets_refcount reads like it resets it to 0, but it could be just me. How does
-pagemap_requires_refcount_reset() sound, with the value returned being toggled
-
-> +	/*
-> +	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
-> +	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
-> +	 * the count again when the allocator or driver hands the page out.
-> +	 */
-> +	switch (pgmap->type) {
-> +	case MEMORY_DEVICE_FS_DAX:
-> +	case MEMORY_DEVICE_PRIVATE:
-> +	case MEMORY_DEVICE_COHERENT:
-> +	case MEMORY_DEVICE_PCI_P2PDMA:
-> +		return false;
-> +	case MEMORY_DEVICE_GENERIC:
-> +		return true;
-> +	}
+> +       if (mm_p4d_folded(walk->mm))
+> +               return 0;
 > +
-> +	return true;
-
-Shouldn't the default be a VM_WARN_ON()?
-
-> +}
+>         if (st->effective_prot_pgd)
+>                 st->effective_prot_pgd(st, val);
+>  
+> @@ -62,6 +65,13 @@ static int ptdump_p4d_entry(p4d_t *p4d, unsigned long addr,
+>                 return note_kasan_page_table(walk, addr);
+>  #endif
+>  
+> +       if (mm_pud_folded(walk->mm))
+> +               return 0;
 > +
-> +static void __ref __zone_device_page_init(struct page *page, unsigned long pfn,
->  					  unsigned long zone_idx, int nid,
->  					  struct dev_pagemap *pgmap)
->  {
-> -
->  	__init_single_page(page, pfn, zone_idx, nid);
+> +       /* Simulate old behavior: all page table levels exist with folded values. */
+> +       if (mm_p4d_folded(walk->mm) && (st->effective_prot_pgd))
+> +               st->effective_prot_pgd(st, __pgd(p4d_val(val)));
+> +
+>         if (st->effective_prot_p4d)
+>                 st->effective_prot_p4d(st, val);
 >  
->  	/*
-> @@ -1028,23 +1054,15 @@ static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
->  	 */
->  	page_folio(page)->pgmap = pgmap;
->  	page->zone_device_data = NULL;
-> +}
+> @@ -85,6 +95,15 @@ static int ptdump_pud_entry(pud_t *pud, unsigned long addr,
+>                 return note_kasan_page_table(walk, addr);
+>  #endif
 >  
-> -	/*
-> -	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
-> -	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
-> -	 * the count again when the allocator or driver hands the page out.
-> -	 */
-> -	switch (pgmap->type) {
-> -	case MEMORY_DEVICE_FS_DAX:
-> -	case MEMORY_DEVICE_PRIVATE:
-> -	case MEMORY_DEVICE_COHERENT:
-> -	case MEMORY_DEVICE_PCI_P2PDMA:
-> +static void __ref zone_device_page_init_slow(struct page *page,
-> +		unsigned long pfn, unsigned long zone_idx, int nid,
-> +		struct dev_pagemap *pgmap)
-> +{
-> +	__zone_device_page_init(page, pfn, zone_idx, nid, pgmap);
-> +	if (!pagemap_resets_refcount(pgmap))
->  		set_page_count(page, 0);
-> -		break;
-> -
-> -	case MEMORY_DEVICE_GENERIC:
-> -		break;
-> -	}
->  }
+> +       if (mm_pmd_folded(walk->mm))
+> +               return 0;
+> +
+> +       /* Simulate old behavior: all page table levels exist with folded values. */
+> +       if (mm_pud_folded(walk->mm) && st->effective_prot_pgd)
+> +               st->effective_prot_pgd(st, __pgd(pud_val(val)));
+> +       if (mm_p4d_folded(walk->mm) && st->effective_prot_p4d)
+> +               st->effective_prot_p4d(st, __p4d(pud_val(val)));
+> +
+>         if (st->effective_prot_pud)
+>                 st->effective_prot_pud(st, val);
 >  
->  /*
-> @@ -1090,7 +1108,7 @@ static void __ref memmap_init_compound(struct page *head,
->  	for (pfn = head_pfn + 1; pfn < end_pfn; pfn++) {
->  		struct page *page = pfn_to_page(pfn);
+> @@ -107,6 +126,14 @@ static int ptdump_pmd_entry(pmd_t *pmd, unsigned long addr,
+>                 return note_kasan_page_table(walk, addr);
+>  #endif
 >  
-> -		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
-> +		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
->  		prep_compound_tail(page, head, order);
->  		set_page_count(page, 0);
->  	}
-> @@ -1126,7 +1144,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
->  	for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
->  		struct page *page = pfn_to_page(pfn);
->  
-> -		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
-> +		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
->  
->  		if (IS_ALIGNED(pfn, PAGES_PER_SECTION))
->  			cond_resched();
+> +       /* Simulate old behavior: all page table levels exist with folded values. */
+> +       if (mm_pud_folded(walk->mm) && st->effective_prot_pgd)
+> +               st->effective_prot_pgd(st, __pgd(pmd_val(val)));
+> +       if (mm_p4d_folded(walk->mm) && st->effective_prot_p4d)
+> +               st->effective_prot_p4d(st, __p4d(pmd_val(val)));
+> +       if (mm_pmd_folded(walk->mm) && st->effective_prot_pud)
+> +               st->effective_prot_pud(st, __pud(pmd_val(val)));
+> +
+>         if (st->effective_prot_pmd)
+>                 st->effective_prot_pmd(st, val);
+>         if (pmd_leaf(val)) {
 
-Balbir
+But I think we can get rid of simulation if the x86 allows to modify
+(of course, x86 still wants to use PTDUMP) like:
+
+diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
+index e32848c7f26d4..aa1277f35773a 100644
+--- a/arch/x86/mm/dump_pagetables.c
++++ b/arch/x86/mm/dump_pagetables.c
+@@ -29,6 +29,7 @@ struct pg_state {
+        struct ptdump_state ptdump;
+        struct mm_struct *mm;
+        int level;
++       int first_level;
+        pgprotval_t current_prot;
+        pgprotval_t effective_prot;
+        pgprotval_t prot_levels[5];
+@@ -254,22 +255,8 @@ static void effective_prot(struct ptdump_state *pt_st, int level, u64 val)
+        struct pg_state *st = container_of(pt_st, struct pg_state, ptdump);
+        pgprotval_t prot = val & PTE_FLAGS_MASK;
+        pgprotval_t effective;
+-       bool first_level = false;
+
+-       /* Ignore folded levels ... */
+-       if (((level == 0) && mm_p4d_folded(st->mm)) ||
+-           ((level == 1) && mm_pud_folded(st->mm)) ||
+-           ((level == 2) && mm_pmd_folded(st->mm)))
+-               return;
+-
+-       /* ... and make the actual first level remember the protection. */
+-       if (((level == 0)) ||
+-           ((level == 1) && mm_p4d_folded(st->mm)) ||
+-           ((level == 2) && mm_pud_folded(st->mm)) ||
+-           ((level == 3) && mm_pmd_folded(st->mm)))
+-               first_level = true;
+-
+-       if (!first_level) {
++       if (first_level > st->first_level) {
+                pgprotval_t higher_prot = st->prot_levels[level - 1];
+
+                effective = (higher_prot & prot & (_PAGE_USER | _PAGE_RW)) |
+@@ -471,6 +458,15 @@ bool ptdump_walk_pgd_level_core(struct seq_file *m,
+                .seq            = m
+        };
+
++       if (mm_pmd_folded (mm))
++               st->first_level = 3;
++       else if (mm_pud_folded (mm))
++               st->first_level = 2;
++       else if (mm_p4d_folded (mm))
++               st->first_level = 1;
++       else
++               st->first_level = 0;
++
+        ptdump_walk_pgd(&st.ptdump, mm, pgd);
+
+        if (!checkwx)
+
+-- 
+Sincerely,
+Yeoreum Yun
