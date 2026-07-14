@@ -1,244 +1,151 @@
-Received: from mail-pl1-f170.google.com (mail-pl1-f170.google.com [209.85.214.170])
+Received: from mail-oa1-f42.google.com (mail-oa1-f42.google.com [209.85.160.42])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 48E1B3D6493
-	for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2026 06:00:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.170
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784008808; cv=none; b=ggI7ac8pu+KOUAdV6i/JxNlWFwLIkYcZGF38KXkKNke1HznyAi2xkSU1Xr/fBlc4vLUTAW9L+lxkrjDweGJlpMaWnvDsCWIxAcnAG8QAu9NiUld8J/wBJLRFtM1oo/cKjHyGbgpGFR4lopa+fubLFUpF1I1rfaW+AYJmdIGQEsA=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784008808; c=relaxed/simple;
-	bh=xlJMw2tMmCEPTBG7tQsXutCy9H4kFNuobvk0IKQRiyg=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=nD6WFm+/6/rCG2KcaNscKmikLT5fe7JkVZFVEphgohrBwxh8m+f/9beNuBSSwn/AMoRtE8cqliOFZMbk992w23A6jHzEyMXaLP+Su6g998cCfAymR+EkjNdzFhQwUqZWlA0Mc7Qye6yNo0GaNyx5/vWukj0eCbNP3ZB0e96Lzbk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Ydjbv7oF; arc=none smtp.client-ip=209.85.214.170
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 73BC53D3D00
+	for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2026 06:23:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.42
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1784010206; cv=pass; b=J2i3W9gTiE2At50R5faZZwj/H7mpzake+gj6dopiYQwiV+xXts6k4hQRE4z5Gp33NUYOz6Q2JXYVO7sIp0KkgskFBpHbvCSnH8evZV5Q4fq8VMVmGbvMJ1BNSQakNui+gk8WmI8J54iDwdRzXAIBd4T3oHcbOkLsBfjdWhl8ERk=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1784010206; c=relaxed/simple;
+	bh=Wnrg0Gu0f2+9+eCpNmhH2Vvi2/B647p4odZ67Sj98Qg=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=m1rTEcx46e88QUCoZrX/0KBYclX5ykDYmK6o2qCWoQTWk+COvjwkDyhngikdm4USwAdZXMuvUI8nDuijGQUmDESzNLmP/iFAwunIdGYgkEU5sk73PbVqs2JN8ecCJth2mHNskSYhGlRGXi3tAE2DcOZuSwPnZdZYua+0kjCI1gQ=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=C5yZtrYa; arc=pass smtp.client-ip=209.85.160.42
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Ydjbv7oF"
-Received: by mail-pl1-f170.google.com with SMTP id d9443c01a7336-2cea3004256so35491955ad.0
-        for <linux-arch@vger.kernel.org>; Mon, 13 Jul 2026 23:00:07 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="C5yZtrYa"
+Received: by mail-oa1-f42.google.com with SMTP id 586e51a60fabf-4513435cdd2so1461723fac.2
+        for <linux-arch@vger.kernel.org>; Mon, 13 Jul 2026 23:23:24 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1784010203; cv=none;
+        d=google.com; s=arc-20260327;
+        b=DyRTtNrpNoGx13jkXWtx3+PepKvLDHX4Z4zDm4mad+Iwt/r3b8Yr1Kc+HgCx8cSety
+         jQ2gZDzu05/T/p09gS3vuIlCxG1qHLbAq/V5o5DjnG5dFwM6C4qVpf2JvCm5tu0G1IIL
+         k1BVKefta+9bUQNny9E/yltBexYixElEOtnU7ThVrbne4FPZg+No1urZSJAnvddI/O5q
+         uzgQ72MayUOy8yuSbHcd7Ej/TdhR4lm0ZoW9nLS7icPtCcd64u1T8XIg33Z9vHVCYJA4
+         gRXbceUn/4D3SRp6MMD8Vk8YkBXzQQ7QxN4orkqmaCTn9qEgAekUYlmaF8eZxdCctYHn
+         y/FQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=UmwZ2JdGpnQjzlIbtGvTSfdYg7lmImsp/NzZpGZ4h5M=;
+        fh=ETIwW2nmwLIMmRi2Qu8I7I0gJOcL+LYAlTHGuh/x7UY=;
+        b=rqJ2+8nVMzjvD/o1wMO/TbR6MkCUaxpjY4wfndwmcB1sk4DJkOQHs1DrzYTtpCEuZ/
+         /iEcS6CGzwxBXimwjyOqfvra7uvmVhvwZ/iWTr0gEVKYHXunxNwiIxKz/7HkDt8cYFN5
+         p7Os+z0hNxXtP9fK5N/sCXoYd+EvEjlRVqQi6IWw/Oybbr6LgJ4RiQta5NsNSfFxBHLM
+         G0PXjYx0OEM6mbtigkvu4f3iLO7Q0TrKQ8bpe/lNzYjNRBrRLAh/7qq5N9B2144tFZWE
+         Zuf+iyTG7miGGpTpOQXfhNN8GbgW1WSxzON1AiNjw/0G9PWCuPr5CjTepDXwZlXqFLFH
+         TttQ==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1784008807; x=1784613607; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+        d=bytedance.com; s=google; t=1784010203; x=1784615003; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=ekTn3UMJic44VT5Ls673Az1lxgbjw95C1C5IWJSyBYM=;
-        b=Ydjbv7oFS1gbZMQYzoi6cloRIjR4qzza5dDyY483Z56tHbeyITTS4wBhBlKQpNuyiN
-         tJA0pPeL0SyGzd/wCbHUHwX3dTgRg4nMuIGmWFNsPuRpYgh4p9fmzk1Uo1UTjNCarKYv
-         smpHf+VZg3XkrUM6AHRyaRZsKJOyoAUwUqk93W1RYNv0lnU2FHsmFedXNB1TLC/J0ye/
-         WjA7bnIGd1zJc6zv0exSo24U6v4vKMPQdpG1clZPEvGmL6W+A1KAqbZYgzpx94m92GZY
-         6B5N0S76JN3fnKcQPBJKQimMPiE/Z7H5RyhPduK0hmgtixbgwa3NqwqN48UbHnxiUui7
-         MNiQ==
+        bh=UmwZ2JdGpnQjzlIbtGvTSfdYg7lmImsp/NzZpGZ4h5M=;
+        b=C5yZtrYaiOai+7as/nU2LgehtiklETKyJnzwc2vxBneqEmyzoH+JQh4eQyBUziM0lG
+         C5BFzgkQ0c2YxmZDEwST2r64De/ECjJmxzDv2TrvOOCpuQTfRfVb87y/yoDNNyxYiYGK
+         hGT+t4qBr1h2v3f0HU25s3P6QndmCuieG7ZWLNGT48IjDmJevjgX4rG6V0Kt7bbf0DHg
+         wfJwy951dE9B5rrv9Xvd3Zl37pc6fokNAUUTN/MbomosKUGuFZnUbp3pbRH5WLoo9fxQ
+         5PXbFNjVnwVb/4ZUmvXNnJapsE4j+3FyH/bOMiIVDa7gFXhWuKtSN1CJrzKAthipaDP2
+         LOkA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1784008807; x=1784613607;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
+        d=1e100.net; s=20251104; t=1784010203; x=1784615003;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=ekTn3UMJic44VT5Ls673Az1lxgbjw95C1C5IWJSyBYM=;
-        b=Oo18ZK59YYISm1ZYBN8bmZO8Y1MfhtmPa/GlNARX+CVIc2+AmvhjL/As70Dh2ZJuhy
-         vWoRbE+Bf5lqj4v7jkWJe10LI3pqmtd9q/UECXEjHNKbw4cY+Q39ySQpx/syEoR15VdM
-         XuTZQB+pI68wTaCPqjoGKJsxP2NV8H3xmLKM9d0PYKRwjOL1gymYcTdjl5Dw2kqCrfCl
-         RZh1BnY3rFdn5PGeSwYZCg5XU8uiZa/XsSSV15g0P8I/M3SPd7jShr/vvKiTVsaw9zVE
-         JRz5YEukvsiOBzKdrh9yM3Bf8Z3cpDRwJh0fqq9hE1d8AilEuiKMJ/3cfqQF65uKLzwG
-         klJA==
-X-Forwarded-Encrypted: i=1; AHgh+RqH1gbtOqT5oCQalITEZSY90muzL8b5JPQ3SlXzCR7QC1TJh8hHTu8j2HYmaBHWh1ojIpRCq8pxftwE@vger.kernel.org
-X-Gm-Message-State: AOJu0Yx6BnvTBD4z9m22bZnxiUWkZXmnrXLVBJUpe4vlFD0A/pXLO5Z7
-	AOFM7B6SOTQI0p1paTlCDQnJkb2RcMKnI3cibvYosMmPSTyEKqdsyWvn
-X-Gm-Gg: AfdE7cncz48HxEqreta6Y8sYNpGIe8BqZAEJx3uwJZgkAXPVbQV7USLpuQYGylQIdeK
-	dAYH6o4pLgCSZeJ+st+HVRgye+AVBZNCa53gSjf+hBGitI44fOCFFfpu5VkCC+1eWrt/ivYp6RR
-	7v1zwS9SzUx2/8bumHyJjPNoPl570gFnNryVX7KNa3PRVXXknGPGtRuI0KzeUvyfjqPhrku/+Rv
-	l8QV3sJV3DpOz/0wUBxUP13mVCqFNnVWJP12og6G10PA991jyHTcDlBXFyM7594/HfuPE9pbdny
-	1BcCDWis7UOoP3kUxGR4nDipmnxHayvr0jYDeEpDp9CeUZwj2Umd/tKzOxHXtTMMeK4UGLn+lRm
-	M+taEcRMdx9m0okngSPD7T/kdehatqrbOOiy0qiRv/mZUhaer2AuGU5x4UyUS90X+fZhEdQa2HS
-	dNKdLONXu+PKNcadfyYuHrFMxpk5TO+MN6
-X-Received: by 2002:a05:6a21:8cc1:b0:3bf:6011:53b with SMTP id adf61e73a8af0-3c3571d0438mr1375652637.38.1784008806472;
-        Mon, 13 Jul 2026 23:00:06 -0700 (PDT)
-Received: from blinky ([2601:647:4000:5070::76e1])
-        by smtp.gmail.com with ESMTPSA id a92af1059eb24-13b924258a2sm63657400c88.1.2026.07.13.23.00.04
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 13 Jul 2026 23:00:05 -0700 (PDT)
-Date: Mon, 13 Jul 2026 23:00:03 -0700
-From: Charlie Jenkins <thecharlesjenkins@gmail.com>
-To: K Prateek Nayak <kprateek.nayak@amd.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>,
-	Darren Hart <dvhart@infradead.org>,
-	Davidlohr Bueso <dave@stgolabs.net>,
-	=?iso-8859-1?Q?Andr=E9?= Almeida <andrealmeid@igalia.com>,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	Samuel Holland <samuel.holland@sifive.com>,
-	linux-arm-kernel@lists.infradead.org,
-	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
-	Alexandre Ghiti <alex@ghiti.fr>, Jisheng Zhang <jszhang@kernel.org>
-Subject: Re: [PATCH v5 5/8] riscv/runtime-const: Introduce
- runtime_const_mask_32()
-Message-ID: <alXQY4hgZYLmr8x7@blinky>
-References: <20260630045531.3939-1-kprateek.nayak@amd.com>
- <20260630045531.3939-6-kprateek.nayak@amd.com>
- <178366995930.1208691.2993932866462893112.b4-review@b4>
- <650c7050-2a77-4415-b597-3bb39ccfb1e8@amd.com>
+        bh=UmwZ2JdGpnQjzlIbtGvTSfdYg7lmImsp/NzZpGZ4h5M=;
+        b=fBIKUENbztaM42GbIW6h1Pg0KvBpaJYKI2gT3GCW4K7N8++YZCDzxrljKX0PVmNeFp
+         x5aqf0Zy13KQJhLL2CH+BjmXMJvaEdnFuVvR9TtvB4MH6XJhkhwrgEGmnT/ICbe4lLML
+         x4PGWB2kgplmUS2MwDT402cVWy7D5Pze1UOCSutHbOQxkP1EOCP4FENuBjisv0PUDs/K
+         i+ROgTzK/WEbXhqnKksdLWnsZH8zKPNX7/neDY0uyF9LdhT1qjUvnvccI10C4M1YQrxr
+         +EziPASevJm3EmfsV7U1ybK1Pl+lXsjcj0RneGE843XICyvQL6JTUs57YruRnvPiqcbk
+         FLHg==
+X-Forwarded-Encrypted: i=1; AFNElJ//7Ck6pM9GQXynEjbgd+12Gg7wjQwX4WiQJXzbnEtxTfIs3lj2Z4wt73GoSvSWKcXa3+ibAPKQxNh1@vger.kernel.org
+X-Gm-Message-State: AOJu0Yxys2ZT6ZNso1Z1S5I1VaK9+x1qqCZBlMhK32M5O972Xgs+5eoW
+	l9koicYm2hRTo8l7BC9ulu/6wLkSgnqrAFLiexZrH7joTfTeDqocHzTuqPUh+IdY4vVkZYeI8Gf
+	ciINowOMXGljKIOIPdmb//iQqWFI/EfkhiwGq/oDtmg==
+X-Gm-Gg: AfdE7clovpajLEcTnwhZUCRe0xH1odWrEmqu9aUFgKUiFslwW0GB68VU30EhzvEtQ8a
+	xGP0+PY4F5aL6pKD/8pKus3A9elret1/PonjMOyP+Kljmf8BAFsOBZocSNkjepNvUVTzIUng5ZN
+	lg5etu7dfAf+AFNXxtq5BW8g3eSDM0WOp87pmxVig4TCL9cvqCaWurw96rD8vH2YqIDsvjJSGfx
+	MXjEhRrCp6deIXkJ+CIgVXo8nAxFDnZ4eyNN6hDj6RSRhaJQ1ZduVBPP0cHOYtiK6n05TtD1S0=
+X-Received: by 2002:a05:6808:1b24:b0:495:f79d:b08e with SMTP id
+ 5614622812f47-4a47a6c1d27mr439710b6e.21.1784010203197; Mon, 13 Jul 2026
+ 23:23:23 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <650c7050-2a77-4415-b597-3bb39ccfb1e8@amd.com>
+References: <20260703122832.15984-1-cuiyunhui@bytedance.com>
+ <20260703122832.15984-2-cuiyunhui@bytedance.com> <74ffb0c5-4edd-7b64-3d3f-be76c2aec4c2@kernel.org>
+In-Reply-To: <74ffb0c5-4edd-7b64-3d3f-be76c2aec4c2@kernel.org>
+From: yunhui cui <cuiyunhui@bytedance.com>
+Date: Tue, 14 Jul 2026 14:23:12 +0800
+X-Gm-Features: AUfX_mxF_EkkHPpXwVLSHWKREo9gY6a3BeqhKBMKR6LcYXx54wa2zu3a3fsDMQ8
+Message-ID: <CAEEQ3wk8gK9pam2da=o5mbfzU3-5EtfH5nyhAoVfCoy+7UuCGA@mail.gmail.com>
+Subject: Re: [External] Re: [PATCH v8 1/3] riscv: io: avoid null-pointer
+ arithmetic in PIO helpers
+To: Paul Walmsley <pjw@kernel.org>
+Cc: palmer@dabbelt.com, aou@eecs.berkeley.edu, alex@ghiti.fr, 
+	dennis@kernel.org, tj@kernel.org, cl@gentwo.org, ast@kernel.org, 
+	daniel@iogearbox.net, andrii@kernel.org, martin.lau@linux.dev, 
+	eddyz87@gmail.com, memxor@gmail.com, song@kernel.org, yonghong.song@linux.dev, 
+	jolsa@kernel.org, bjorn@kernel.org, pulehui@huawei.com, puranjay@kernel.org, 
+	thuth@redhat.com, ajones@ventanamicro.com, ben.dooks@codethink.co.uk, 
+	rkrcmar@ventanamicro.com, samuel.holland@sifive.com, zong.li@sifive.com, 
+	conor.dooley@microchip.com, tglx@kernel.org, debug@rivosinc.com, 
+	seanwascoding@gmail.com, andybnac@gmail.com, menglong8.dong@gmail.com, 
+	cyrilbur@tenstorrent.com, wangruikang@iscas.ac.cn, atishp@rivosinc.com, 
+	apatel@ventanamicro.com, linux-riscv@lists.infradead.org, 
+	linux-kernel@vger.kernel.org, linux-mm@kvack.org, bpf@vger.kernel.org, 
+	arnd@arndb.de, nathan@kernel.org, nick.desaulniers+lkml@gmail.com, 
+	morbo@google.com, justinstitt@google.com, qingfang.deng@siflower.com.cn, 
+	linux-arch@vger.kernel.org, llvm@lists.linux.dev
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Fri, Jul 10, 2026 at 01:47:10PM +0530, K Prateek Nayak wrote:
-> Hello Charlie,
-> 
-> On 7/10/2026 1:22 PM, Charlie Jenkins wrote:
-> > [You don't often get email from thecharlesjenkins@gmail.com. Learn why this is important at https://aka.ms/LearnAboutSenderIdentification ]
-> > 
-> > On Tue, 30 Jun 2026 04:55:28 +0000, K Prateek Nayak <kprateek.nayak@amd.com> wrote:
-> >> Futex hash computation requires a mask operation with read-only after
-> >> init data that will be converted to a runtime constant in the subsequent
-> >> commit.
-> >>
-> >> Introduce runtime_const_mask_32 to further optimize the mask operation
-> >> in the futex hash computation hot path. Since all the current use-cases
-> >> are of the form GENMASK(n, 0), with n > 0, following sequence:
-> > 
-> > I really appreciate you spending the time to do this, thank you!
-> 
-> My pleasure! And I really appreciate you taking time to review and test
-> this series. Thanks a ton for that!
-> 
-> > 
-> >>
-> >>
-> >> diff --git a/arch/riscv/include/asm/runtime-const.h b/arch/riscv/include/asm/runtime-const.h
-> >> index 1ce02605d2e4..dbf96c937dbb 100644
-> >> --- a/arch/riscv/include/asm/runtime-const.h
-> >> +++ b/arch/riscv/include/asm/runtime-const.h
-> >> @@ -262,6 +279,33 @@ static inline void __runtime_fixup_shift(void *where, unsigned long val)
-> >> [ ... skip 24 lines ... ]
-> >> +     BUG_ON(!val || width > 31 || (GENMASK(width - 1, 0) != val));
-> >> +
-> >> +     __runtime_fixup_shift(where, 32 - width);
-> >> +     __runtime_fixup_shift(where + 4, 32 - width);
-> >> +}
-> >> +
-> > 
-> > It would be "optimal" to use an andi when the mask is <=11 bits since
-> > andi can fit an 11 bit mask. What you have is good enough but I'll leave
-> > my stab at doing the andi patching here in case you want to apply it.
-> > 
-> > From 9e5527aaddd464783af795aacdb6d094e11cc31e Mon Sep 17 00:00:00 2001
-> > From: Charlie Jenkins <thecharlesjenkins@gmail.com>
-> > Date: Thu, 9 Jul 2026 23:18:09 -0700
-> > Subject: [PATCH] riscv: Optimize __runtime_fixup_mask for masks with <= 11
-> >  bits
-> 
-> Peter seems to have merged the v5 series in his tree but If you could give
-> your S-o-b, I can throw in a commit log, some testing along with a few
-> cosmetic modifications, and send it for official review on top of
-> queue:locking/core ;-)
+Hi Paul,
 
-I'm glad it got merged, I missed that! Here's my tag that I forgot to
-add...
+On Tue, Jul 14, 2026 at 2:04=E2=80=AFAM Paul Walmsley <pjw@kernel.org> wrot=
+e:
+>
+> On Fri, 3 Jul 2026, Yunhui Cui wrote:
+>
+> > When port I/O is not supported, exposing the port-string helpers is bot=
+h
+> > unnecessary and can make clang diagnose null-pointer arithmetic from th=
+e
+> > PCI_IOBASE based address expression.  Keep the MMIO string helpers
+> > available as before, but only provide the port I/O variants when
+> > CONFIG_HAS_IOPORT is enabled.
+> >
+> > Signed-off-by: Yunhui Cui <cuiyunhui@bytedance.com>
+> > Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+>
+> Thanks, queued for v7.2-rc.
 
-Signed-off-by: Charlie Jenkins <thecharlesjenkins@gmail.com>
+Thanks for queuing patch 1.
 
-> 
-> > 
-> > ---
-> >  arch/riscv/include/asm/insn.h          |  2 ++
-> >  arch/riscv/include/asm/runtime-const.h | 29 ++++++++++++++++++++++++--
-> >  2 files changed, 29 insertions(+), 2 deletions(-)
-> > 
-> > diff --git a/arch/riscv/include/asm/insn.h b/arch/riscv/include/asm/insn.h
-> > index c3005573e8c9..0a34cd7305d0 100644
-> > --- a/arch/riscv/include/asm/insn.h
-> > +++ b/arch/riscv/include/asm/insn.h
-> > @@ -141,6 +141,7 @@
-> >  #define RVG_OPCODE_JALR                0x67
-> >  #define RVG_OPCODE_JAL         0x6f
-> >  #define RVG_OPCODE_SYSTEM      0x73
-> > +#define RVG_OPCODE_ANDI                0x13
-> >  #define RVG_SYSTEM_CSR_OFF     20
-> >  #define RVG_SYSTEM_CSR_MASK    GENMASK(12, 0)
-> > 
-> > @@ -175,6 +176,7 @@
-> >  #define RVG_FUNCT3_BGE         0x5
-> >  #define RVG_FUNCT3_BLTU                0x6
-> >  #define RVG_FUNCT3_BGEU                0x7
-> > +#define RVG_FUNCT3_ANDI                0x7
-> > 
-> >  /* parts of funct3 code for C extension*/
-> >  #define RVC_FUNCT3_C_BEQZ      0x6
-> > diff --git a/arch/riscv/include/asm/runtime-const.h b/arch/riscv/include/asm/runtime-const.h
-> > index dbf96c937dbb..24a9b13081f7 100644
-> > --- a/arch/riscv/include/asm/runtime-const.h
-> > +++ b/arch/riscv/include/asm/runtime-const.h
-> > @@ -9,6 +9,7 @@
-> >  #include <asm/asm.h>
-> >  #include <asm/alternative.h>
-> >  #include <asm/cacheflush.h>
-> > +#include <asm/insn.h>
-> >  #include <asm/insn-def.h>
-> >  #include <linux/memory.h>
-> >  #include <asm/text-patching.h>
-> > @@ -302,8 +303,32 @@ static inline void __runtime_fixup_mask(void *where, unsigned long val)
-> >          */
-> >         BUG_ON(!val || width > 31 || (GENMASK(width - 1, 0) != val));
-> > 
-> > -       __runtime_fixup_shift(where, 32 - width);
-> > -       __runtime_fixup_shift(where + 4, 32 - width);
-> > +       /*
-> > +        * A riscv 'andi' instruction can fit an 11 bit immediate, so the mask
-> > +        * can be directly applied. Otherwise fall back to SRLI + SLLI.
-> > +        */
-> > +       if (width < 11) {
-> > +               __le16 *parcel = where;
-> > +               u32 insn;
-> > +               __le32 res, nop;
-> > +
-> > +               insn = (u32)le16_to_cpu(parcel[0]) | (u32)le16_to_cpu(parcel[1]) << 16;
-> > +
-> > +               /* Replace the slli/slliw with an andi */
-> > +               insn &= 0x000fcf80;
-> > +               insn |= val << 20 | RV_ENCODE_FUNCT3(ANDI) | RVG_OPCODE_ANDI;
-> > +
-> > +               res = cpu_to_le32(insn);
-> > +               /* Replace the srli/srliw with a nop */
-> > +               nop = cpu_to_le32(RISCV_INSN_NOP4);
-> > +               mutex_lock(&text_mutex);
-> > +               patch_text_nosync(where, &res, sizeof(insn));
-> > +               patch_text_nosync(where + 4, &nop, sizeof(insn));
-> > +               mutex_unlock(&text_mutex);
-> > +       } else {
-> > +               __runtime_fixup_shift(where, 32 - width);
-> > +               __runtime_fixup_shift(where + 4, 32 - width);
-> > +       }
-> >  }
-> > 
-> >  static inline void runtime_const_fixup(void (*fn)(void *, unsigned long),
-> > --
-> > 2.54.0
-> > 
-> > 
-> > I would prefer including this, but I am happy to approve this
-> > regardless.
-> 
-> Ack! I'll keep it as an optimization on top to retain your attribution.
-> 
-> > 
-> > Reviewed-by: Charlie Jenkins <thecharlesjenkins@gmail.com>
-> > Tested-by: Charlie Jenkins <thecharlesjenkins@gmail.com>
-> 
-> Thank you again!
-> 
-> -- 
-> Thanks and Regards,
-> Prateek
-> 
+That patch is independent and safe to take as-is.
+
+For patches 2/3, we later found that the percpu try_cmpxchg fallback path c=
+an
+expose a variable-shadowing issue in the current RISC-V cmpxchg macro
+implementation in arch/riscv/include/asm/cmpxchg.h.
+
+I'll address that in the next revision of the percpu patches, so please jus=
+t
+take patch 1 from v8 for now.
+
+>
+>
+> - Paul
+
+
+Thanks,
+Yunhui
