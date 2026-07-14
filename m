@@ -1,32 +1,32 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 189CC417BEA;
-	Tue, 14 Jul 2026 17:59:11 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id B47132DB79F;
+	Tue, 14 Jul 2026 18:29:09 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784051957; cv=none; b=DtRMVCpMq9Id/SmpEchUvr8TikKbnWj3p5FSN4Qemo5PDJ9fxlfaRkGM4iiWKRWiMbY4x3bHPqzGtB+Kj4ct4i0rFwBSyAzL9d1kMKG9J8+elMhcVaU1dGlwyjVOBupdmFhumWtum+oRBU902a6Ot2EXIOUure9XMBbleFR9cOY=
+	t=1784053751; cv=none; b=Z79FbCgLCneGN+T6qt1sWY2YgbPGnwM9kQvPPLdDzPCnFYeV8AIhy8Eno80+TvqkYd9fsm5mAkr5XeAYIyljrJXUIXDnlXyvWCaHiAsUWQlv0ieFAXVe1T872jrwjaQP0hwfqRjY1nNQdE+xjRVTV4zAttksjxuqKKoDl/jidAU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784051957; c=relaxed/simple;
-	bh=YLSO3cj4uznp59HTo6K3Y3qLIJ+ISsuvzTFqOw8DO8w=;
+	s=arc-20240116; t=1784053751; c=relaxed/simple;
+	bh=Q1RaqZFJWDyzCpzM1YydwuIkdx6+prWZv8uRlRqjdPI=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=oeQoaLdyCMb5JG3lyYNQI6W2JQG4BPLy1ZexAcE4X+NLl2Wk+hhE5zGSngzNn8BdytCjr2RrUuE1HXgGnEnGaNW+J+yGncxB9s+dqNVeoIluCSDBD5S7Z5O4aYpiHGZKmQXfgcI16TaF1H+oUAHJV23y/oTxSWq9mbjiGGZ1Phk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=Sy24kfg6; arc=none smtp.client-ip=217.140.110.172
+	 Content-Type:Content-Disposition:In-Reply-To; b=Zdz+GkH3ONs/ics7G0RP/NrhsM3l7m7B4A6IwD+sw04brI6m8Cp2KLcYJVHE3Wr4FnPo7i0oSbz3GJe0y8f5yhoDhCnIhfUlBGiAuQT/L3uDvunxec0bxzcnIL5QzoEnGFAPLQ/bMx+DqPjmIsDqGTsdsmwWFpZSxyv6jDT9S+M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=qQBkYOYv; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="Sy24kfg6"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="qQBkYOYv"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 27E89339;
-	Tue, 14 Jul 2026 10:59:06 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id CECC5339;
+	Tue, 14 Jul 2026 11:29:04 -0700 (PDT)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 13F4F3F915;
-	Tue, 14 Jul 2026 10:58:59 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id B86773F7D8;
+	Tue, 14 Jul 2026 11:28:58 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1784051950; bh=YLSO3cj4uznp59HTo6K3Y3qLIJ+ISsuvzTFqOw8DO8w=;
+	t=1784053749; bh=Q1RaqZFJWDyzCpzM1YydwuIkdx6+prWZv8uRlRqjdPI=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=Sy24kfg6zd8pNJNRop/ip6vK3z44QuvSe+ei7yBDMgOJ+AmuCVqSqQsYm6AbuGoqC
-	 lZJ+hB5IynonlF0Xd5xFhRT6j05I3fGK7eqV9iwp4S7UfNaW857WlXcvL4lT3vU6jA
-	 Qslx6H13Q5aAiK/4ThVrFPZNAc560M7EpnY0APes=
-Date: Tue, 14 Jul 2026 18:58:57 +0100
+	b=qQBkYOYvll6kV7ChEqyEs9q4KbHl0/kv64+7ai5nhYymyDIN8BvOvG1HzfhI1sCcI
+	 qnEtCqga3FrW8+7FXBrXN5emMU1ez24iSDr20rEKRSLvtMZ9oCz/5VlGhBuCnHlKFi
+	 ME8BD+bOTZVCgK3PWVNAk87A3Vsa2vT+e5mfIs0s=
+Date: Tue, 14 Jul 2026 19:28:56 +0100
 From: Yeoreum Yun <yeoreum.yun@arm.com>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Dave Hansen <dave.hansen@intel.com>,
@@ -67,8 +67,9 @@ Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Dave Hansen <dave.hansen@intel.com>,
 	stefan.kristiansson@saunalahti.fi
 Subject: Re: [RFC PATCH 10/34] x86: mm: carve out the generic compile-time
  folded pgtable case in effective_prot()
-Message-ID: <alZ44XdgTEVFX6jU@e129823.arm.com>
-References: <3ea30f8a-bb29-4bf5-8400-1c4840d46a88@kernel.org>
+Message-ID: <alZ_6HFc56zC7tt0@e129823.arm.com>
+References: <32d459d1-ad19-4baf-bbb1-0565458001d2@intel.com>
+ <3ea30f8a-bb29-4bf5-8400-1c4840d46a88@kernel.org>
  <7e84b200-25eb-43a6-b5e2-5f27f2d82a77@intel.com>
  <31988089-095a-4eed-b5e2-c677c70f79f6@kernel.org>
  <14e250db-1641-4085-8d13-02f819657d5f@intel.com>
@@ -76,8 +77,7 @@ References: <3ea30f8a-bb29-4bf5-8400-1c4840d46a88@kernel.org>
  <alYgMxKqRnF6_X0A@e129823.arm.com>
  <6df814c9-405c-48d8-96ea-929c4b28949b@intel.com>
  <alZe-Cu7yQw9qRXU@e129823.arm.com>
- <alZo9feSrSB_StfO@e129823.arm.com>
- <7cff02d6-d3ce-4315-b667-34911fc6f321@kernel.org>
+ <2d51a1ad-85be-46bf-ac36-18eca199b449@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -86,56 +86,41 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <7cff02d6-d3ce-4315-b667-34911fc6f321@kernel.org>
+In-Reply-To: <2d51a1ad-85be-46bf-ac36-18eca199b449@kernel.org>
 
-On Tue, Jul 14, 2026 at 07:29:38PM +0200, David Hildenbrand (Arm) wrote:
-> On 7/14/26 18:51, Yeoreum Yun wrote:
-> > On Tue, Jul 14, 2026 at 05:08:24PM +0100, Yeoreum Yun wrote:
-> >> On Tue, Jul 14, 2026 at 07:35:19AM -0700, Dave Hansen wrote:
-> >>>
-> >>> This is indeed an improvement and a step in the right direction! Thanks
-> >>> for looking at this.
-> >>>
-> >>> But one of my test for whether it's good x86 code is whether there's any
-> >>> actually x86-specific logic in it. Isn't this basically a translation
-> >>> between the integer level number and whether it is folded?
-> >>>
-> >>> That seems like a common helper that more than one arch could use. Could
-> >>> this be stuck in a helper so that all arch/x86 has to do is:
-> >>>
-> >>> 	if (mm_pt_level_folded(mm, level))
-> >>> 		return;
-> >>
-> >> Yes. at least the level semantic in ptdump (pgd is level 0,
-> >> p4d is level 1, ...) is same to all archs where use ptdump.
-> >> So It seems reasonable to add this common helper in ptdump.c
-> >>
-> > 
-> > Furthermore, the effective_prot() need to require to identify whether
-> > it's the first pgtable to prevent the inheriting from dummy value.
-> > So I think it seems to make a ptdump_pt_level_first() like:
-> > 
-> > diff --git a/mm/ptdump.c b/mm/ptdump.c
-> > index 973020000096c..2ec5700e4be5e 100644
-> > --- a/mm/ptdump.c
-> > +++ b/mm/ptdump.c
-> > @@ -190,6 +190,23 @@ void ptdump_walk_pgd(struct ptdump_state *st, struct mm_struct *mm, pgd_t *pgd)
-> >         st->note_page_flush(st);
-> >  }
-> > 
-> > +bool pdtump_pt_level_first(struct mm_struct *mm, int level)
-> > +{
-> > +       if (!mm || level > CONFIG_PGTABLE_LEVELS)
-> > +               return false;
+On Tue, Jul 14, 2026 at 06:31:22PM +0200, David Hildenbrand (Arm) wrote:
 > 
-> Do we actually ever get !mm ?
+> >> This makes a *ton* of sense in effective_prot() especially. Its entire
+> >> job is mirroring the hardware's job of inheriting permissions from
+> >> higher levels of the page tables and enforcing them on lower level leaf
+> >> entries. If a higher level is folded, there's nothing to inherit.
+> >>
+> >> I also think it's worth taking a brief pause on the coding to think
+> >> about what kind of design would actually be nice here. If the design
+> >> really is that the pgd is folded, the 'struct mm_walk_ops' code would
+> >> ideally not even call ->pgd_entry(). It would just (for example) *start*
+> >> at ->pud_entry() for a 3-level hardware page table.
+> >>
+> >> If there are no pgds, why bother calling ->pgd_entry()? It couldn't be
+> >> done transparently to mm_walk users of course but it could be done
+> >> incrementally where users move one at a time over to a new scheme.
+> > 
+> > Agree. Calling a pXd_entry() about folded one seems meaningless.
+> > But seems enough to check mm_pXd_folded() before calling pXd_entry()
+> > in each walk_pXd_range().
+> 
+> Needs some double-checking that callers can handle it (like effective_prot()
+> would currently not), but certainly something to look into!
 
-Yes. for the case of s390 use mm anyway for folded check.
-> 
-> -- 
-> Cheers,
-> 
-> David
+Most of mm_walk_ops *implicitly* handles the folded pgtable case
+(e.x) pXd_none() / pXd_present() and other can handle explicitly in
+its own handler.
+
+But, IMHO, It would be better to skip calling pXd_entry() in the
+walk_pXd_range() by checking the folded and this is clearer conceptually.
+
+For this, it  requires the rewrite the walk_mm() where use only *p4d_entry()*
+to gather the leaf/non-leaf information for MGLRU.
 
 -- 
 Sincerely,
