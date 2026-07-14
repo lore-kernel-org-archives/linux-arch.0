@@ -1,203 +1,246 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from out-189.mta1.migadu.com (out-189.mta1.migadu.com [95.215.58.189])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C67B2365A0F;
-	Tue, 14 Jul 2026 10:54:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5C854376A0C
+	for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2026 11:23:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.189
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784026485; cv=none; b=bNj83rOsBfm4NmQsQ2TvvGuG6/WzoOUOVjyUf/JXofiQ1lDpRB3Xt75eBq7K910e7+cVerMKO0oN5USPCqO5qN3bHjpGTi8Y/vHap+j/cFcn0607CmEeO05hBdHRi2vsK7Z7ch+uz5qqUFFfHpjuQ8KoM6CG6yFjbvsgGSUuhQQ=
+	t=1784028212; cv=none; b=ibV+U0+mNt+GZw0vlNysxIrbLLZmfT9bCUyzdjbpdLPfyTbTHNfNnwI2tId5t6yS7/R440w/SPJfx42xgv0NRo7KqXf99ifm5Kawa6ld5Vep7IO3G8SPJjGldwaibiTS5isN5+4TyGsL8jkVbzv/E8xADQlC55R1pdk0S6rHoU8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784026485; c=relaxed/simple;
-	bh=BPpw5fEkBdr8tCRcYySvpHp2LbRTPSljZzISlvX1qGU=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=pyk3kE+o1vsF+em0jdw/11Qzy7toe/0noxg+C3W40V65EhtmMf4ehqjT2VWZVPuhUjkkc/vNi6NJ6b6qezj9BPq7JldLFrWZZX1P6TQTv5UgNicBuYZ2yDwYpVEnlHuyBA+v8vqeJiLh81w/vQ46a5wQba0drcNPqZbYpGbT5hI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=G62+q4R0; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1784028212; c=relaxed/simple;
+	bh=gi7MhfdQLbCvDBoMf2FV1lTS6pvW2brH0HiT9uusij4=;
+	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
+	 Message-Id:References:To; b=BgcrYCdncFGFX2sKpebDrXHG7tKDkkJQOKOzixCJIOpZI2quyOxJ+xqr0njHizJlv/dmF3bwz2fq7zrV8oHkoed8ykKFGhH9zLidWNIMCpjuzRWQ8ssh6l9ZK2Lv4B1zq6FK+slabzuz4uKEChmZJeYwW/OeGINh5KIySHCA8ZQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=BTzB0iPZ; arc=none smtp.client-ip=95.215.58.189
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="G62+q4R0"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 294991F000E9;
-	Tue, 14 Jul 2026 10:54:29 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1784026484;
-	bh=BE9Tn1RAp+IvoGH4WDLW9L8P6c+reQ5yX7yO2HvT8Kk=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=G62+q4R01qBeZPrRNev9vE4OIHnXH7tAR6mXURlQFZOUnZg764GFzh5Ws+CzndRp4
-	 6H5eX5vAbkjRrtpWKwbBi9XaZvwVe+KWg4XH1UQdflJKeI5T18qjLvG9xw+YmRCgnz
-	 DpRikfkfs/jBBxY/QptbK/URo8iNoyoxP3bKNmBGo2YuJK2Y6G4uoCSNqoC/EnVykR
-	 hVtRmY3TGkSaiYI3wuePNIm9SOdqK+DlYhJJU5CDgz6DkBceaTBpNGAuSF/E7EDSVp
-	 0uMrFO+GfdEin9HAT0QicMbToGASgZQCdGjyxVVYSyDCGYH61NzH6E07faEz3sSD4U
-	 bZb+fKYzllKhg==
-Message-ID: <a5083625-40fb-4da1-b1d4-06ee44cb9074@kernel.org>
-Date: Tue, 14 Jul 2026 12:54:28 +0200
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="BTzB0iPZ"
+Content-Type: text/plain;
+	charset=us-ascii
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1784028208;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Ic+aWwaSz46V+LedNdfmAheNIC6sClM8F1svsoDeJLQ=;
+	b=BTzB0iPZJxSwIjoJI+hAEyWR8xxBjAJMON/tbmuUmybdBNBD14IL/+qBx7/G0FNdwotYAv
+	Wo94bFny/4PokGhwWVU60T4ZI3e2OECohbrdVrdrGGBB3EzFNWGgmcFBNCJpfNkFR8G+0o
+	x+PZZkCIokQdJYLmn0RvwX9FB35yNMI=
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH 02/34] ARM: mm: make 2-level pgd_t a scalar
-To: Pedro Falcato <pfalcato@suse.de>, Yeoreum Yun <yeoreum.yun@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
- loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
- linux-arch@vger.kernel.org, kvm-riscv@lists.infradead.org,
- linux-riscv@lists.infradead.org, x86@kernel.org, linux-mm@kvack.org,
- kasan-dev@googlegroups.com, linux-csky@vger.kernel.org,
- linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org,
- linux@armlinux.org.uk, akpm@linux-foundation.org, ankur.a.arora@oracle.com,
- rppt@kernel.org, linmag7@gmail.com, chleroy@kernel.org,
- klarasmodin@gmail.com, chenhuacai@kernel.org, kernel@xen0n.name,
- kas@kernel.org, zhangtianyang@loongson.cn, wangyuli@aosc.io,
- tsbogend@alpha.franken.de, ljs@kernel.org, jgg@ziepe.ca,
- catalin.marinas@arm.com, will@kernel.org, arnd@arndb.de,
- ryan.roberts@arm.com, pasha.tatashin@soleen.com, rmclure@linux.ibm.com,
- baolin.wang@linux.alibaba.com, tj@kernel.org, kevin.brodsky@arm.com,
- anup@brainfault.org, atish.patra@linux.dev, pjw@kernel.org,
- palmer@dabbelt.com, aou@eecs.berkeley.edu, alex@ghiti.fr,
- dave.hansen@linux.intel.com, luto@kernel.org, peterz@infradead.org,
- tglx@kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com,
- hannes@cmpxchg.org, mhocko@kernel.org, qi.zheng@linux.dev,
- shakeel.butt@linux.dev, kasong@tencent.com, baohua@kernel.org,
- axelrasmussen@google.com, yuanchu@google.com, weixugc@google.com,
- ryabinin.a.a@gmail.com, glider@google.com, andreyknvl@gmail.com,
- dvyukov@google.com, vincenzo.frascino@arm.com, anshuman.khandual@arm.com,
- yang@os.amperecomputing.com, chaitanyas.prakash@arm.com, ardb@kernel.org,
- guoren@kernel.org, yang.li85200@gmail.com, viro@zeniv.linux.org.uk,
- dinguyen@kernel.org, schuster.simon@siemens-energy.com,
- wangruikang@iscas.ac.cn, junhui.liu@pigmoral.tech, muchun.song@linux.dev,
- vishal.moola@gmail.com, namcao@linutronix.de, pavel@kernel.org,
- djbw@kernel.org, yu-cheng.yu@intel.com, baolu.lu@linux.intel.com,
- Jonathan.Cameron@huawei.com, coxu@redhat.com, andreas@gaisler.com,
- liam@infradead.org, vbabka@kernel.org, surenb@google.com, mhocko@suse.com,
- geert@linux-m68k.org, shorne@gmail.com, jonas@southpole.se,
- stefan.kristiansson@saunalahti.fi
-References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
- <20260713135614.1618183-3-yeoreum.yun@arm.com> <alYL7B0HAvmLVHGU@pedro-suse>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- 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
- qIws/H2t
-In-Reply-To: <alYL7B0HAvmLVHGU@pedro-suse>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3864.600.51.1.1\))
+Subject: Re: [PATCH v6 8/8] mm: use memcpy_nt() in zone-device template copies
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+From: Muchun Song <muchun.song@linux.dev>
+In-Reply-To: <04f5b50a-a526-4644-b9f0-c54a0d6db702@linux.dev>
+Date: Tue, 14 Jul 2026 19:22:39 +0800
+Cc: linux-arch@vger.kernel.org,
+ linux-hardening@vger.kernel.org,
+ linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org,
+ x86@kernel.org,
+ akpm@linux-foundation.org,
+ apopple@nvidia.com,
+ arnd@arndb.de,
+ balbirs@nvidia.com,
+ bp@alien8.de,
+ dave.hansen@linux.intel.com,
+ david@kernel.org,
+ kees@kernel.org,
+ mingo@redhat.com,
+ rppt@kernel.org,
+ tglx@kernel.org
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <67BC9BE5-A201-4DED-B847-8C74BF30B16D@linux.dev>
+References: <20260709112520.24857-1-lizhe.67@bytedance.com>
+ <20260709112520.24857-9-lizhe.67@bytedance.com>
+ <04f5b50a-a526-4644-b9f0-c54a0d6db702@linux.dev>
+To: Li Zhe <lizhe.67@bytedance.com>
+X-Migadu-Flow: FLOW_OUT
 
-On 7/14/26 12:26, Pedro Falcato wrote:
-> On Mon, Jul 13, 2026 at 02:55:41PM +0100, Yeoreum Yun wrote:
->> From: "David Hildenbrand (Arm)" <david@kernel.org>
->>
->> We don't want pgd_t to be an array, as it prohibits returning it from a
->> function, like pgdp_get().
->>
->> So let's just use an u64, and extract the right 32bit value in
->> pgd_val().
->>
->> Leave the STRICT_MM_TYPECHECKS case alone for now.
-> 
-> I have to ask: is there a good reason for the STRICT_MM_TYPECHECKS ifdef?
-> 
-> I see the compiler has an awkward time returning a u64 struct (see
-> https://godbolt.org/z/qejbv6j9a), but if this doesn't work maybe we should
-> get rid of the STRICT_MM_TYPECHECKS stuff? I seriously doubt anyone is
-> purposefully toggling it on for testing from time to time.
-> 
-> If STRICT_MM_TYPEDEFS's worse codegen doesn't matter then maybe we should
-> permanently toggle it on.
->>
->> As an alternative, we could use the STRICT_MM_TYPECHECKS approach here
->> as well, but using an u64 looks conceptually cleaner, even though
->> pgd_val() gets a bit more involved.
->>
->> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->> Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
+
+
+> On Jul 14, 2026, at 17:45, Muchun Song <muchun.song@linux.dev> wrote:
+>=20
+>=20
+>=20
+> On 2026/7/9 19:25, Li Zhe wrote:
+>> The template fast path currently uses memcpy() for the actual struct
+>> page copy. Switch zone_device_page_init_from_template() to =
+memcpy_nt()
+>> and add memcpy_nt_drain() before memmap_init_compound(), before
+>> prep_compound_head() updates overlapping tail metadata, and before
+>> returning from memmap_init_zone_device().
+>>=20
+>> ZONE_DEVICE memmap initialization is largely write-once: each struct
+>> page is populated once, and most destination cachelines are not =
+expected
+>> to be reused immediately afterwards. On x86, a regular cached =
+memcpy()
+>> can therefore incur write-allocate traffic by pulling destination
+>> cachelines into the cache before writeback, and can populate the =
+cache
+>> with data that has little near-term reuse. Using memcpy_nt() lets =
+this
+>> path request non-temporal stores for that copy pattern, which can =
+reduce
+>> cache pollution and avoid part of the associated write-allocate
+>> overhead, while architectures without a specialized backend still =
+fall
+>> back to memcpy().
+>>=20
+>> When memcpy_nt() maps to non-temporal stores, order those stores =
+before
+>> memmap_init_compound(), before prep_compound_head() updates =
+overlapping
+>> compound metadata, and before returning from =
+memmap_init_zone_device().
+>>=20
+>> Keep sanitized builds on the slow path so KASAN/KMSAN retain their
+>> instrumented stores.
+>>=20
+>> Tested in a VM with a 100 GB fsdax namespace device configured with
+>> map=3Ddev and a 100 GB devdax namespace (align=3D2097152) on Intel =
+Ice Lake
+>> server.
+>>=20
+>> Test procedure:
+>> Rebind the nd_pmem and dax_pmem driver 30 times and collect the =
+memmap
+>> initialization time from the pr_debug() output of
+>> memmap_init_zone_device().
+>>=20
+>> Base(v7.2-rc1):
+>>   First binding for nd_pmem driver: 1456 ms
+>>   Average of subsequent rebinds: 244.28 ms
+>>=20
+>>   First binding for dax_pmem driver: 1462 ms
+>>   Average of subsequent rebinds: 273.31 ms
+>>=20
+>> With this series:
+>>   First binding for nd_pmem driver: 1272 ms
+>>   Average of subsequent rebinds: 96.79 ms
+>>=20
+>>   First binding for dax_pmem driver: 1354 ms
+>>   Average of subsequent rebinds: 119.04 ms
+>>=20
+>> This reduces the average rebind time by about 60.4% for nd_pmem and
+>> 56.4% for dax_pmem.
+>>=20
+>> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
 >> ---
->>  arch/arm/include/asm/pgtable-2level-types.h | 13 ++++++++++---
->>  1 file changed, 10 insertions(+), 3 deletions(-)
->>
->> diff --git a/arch/arm/include/asm/pgtable-2level-types.h b/arch/arm/include/asm/pgtable-2level-types.h
->> index 650e793f41429..02052cef9437a 100644
->> --- a/arch/arm/include/asm/pgtable-2level-types.h
->> +++ b/arch/arm/include/asm/pgtable-2level-types.h
->> @@ -25,7 +25,7 @@ typedef struct { pteval_t pgprot; } pgprot_t;
->>  
->>  #define pte_val(x)      ((x).pte)
->>  #define pmd_val(x)      ((x).pmd)
->> -#define pgd_val(x)	((x).pgd[0])
->> +#define pgd_val(x)      ((x).pgd[0])
->>  #define pgprot_val(x)   ((x).pgprot)
->>  
->>  #define __pte(x)        ((pte_t) { (x) } )
->> @@ -36,14 +36,21 @@ typedef struct { pteval_t pgprot; } pgprot_t;
->>  /*
->>   * .. while these make it easier on the compiler
+>>  mm/mm_init.c | 39 +++++++++++++++++++++++++++++++++++++--
+>>  1 file changed, 37 insertions(+), 2 deletions(-)
+>>=20
+>> diff --git a/mm/mm_init.c b/mm/mm_init.c
+>> index fb855bb0437a..addb4969587e 100644
+>> --- a/mm/mm_init.c
+>> +++ b/mm/mm_init.c
+>> @@ -1067,11 +1067,21 @@ static void __ref =
+zone_device_page_init_slow(struct page *page,
+>>=20
+>>  static inline bool zone_device_page_init_optimization_enabled(void)
+>>  {
+>> + /*
+>> + * Keep sanitized builds on the slow path so their stores stay
+>> + * instrumented.
+>> + */
+>> + if (IS_ENABLED(CONFIG_KASAN) || IS_ENABLED(CONFIG_KMSAN))
+>> + return false;
+>=20
+> It is not a major concern if struct page initialization lacks KASAN or
+> KMSAN instrumentation. To keep things simple, let's just entirely =
+remove
+> zone_device_page_init_optimization_enabled() to simplify the code.
+
+BTW, If you really want to properly support KASAN, you should integrate
+the check directly into memcpy_flushcache() via kasan_check_write(), =
+rather
+than treating it as a special case here.
+
+>=20
+> Thanks.
+>=20
+>> +
+>>   /*
+>>   * The template fast path copies a preinitialized struct page image.
+>>   * Skip it when the page_ref_set tracepoint is enabled.
 >>   */
->> +typedef u64 pgdval_t;
+>> - return !page_ref_tracepoint_active(page_ref_set);
+>> + if (page_ref_tracepoint_active(page_ref_set))
+>> + return false;
 >> +
->>  typedef pteval_t pte_t;
->>  typedef pmdval_t pmd_t;
->> -typedef pmdval_t pgd_t[2];
->> +typedef pgdval_t pgd_t;
->>  typedef pteval_t pgprot_t;
->>  
->>  #define pte_val(x)      (x)
->>  #define pmd_val(x)      (x)
->> -#define pgd_val(x)	((x)[0])
+>> + return true;
+>>  }
+>>=20
+>>  static inline void zone_device_tail_page_init(struct page *page,
+>> @@ -1110,7 +1120,7 @@ static void =
+zone_device_page_init_from_template(struct page *page,
+>>   * to the destination page.
+>>   */
+>>   zone_device_page_update_template(template, pfn);
+>> - memcpy(page, template, sizeof(*page));
+>> + memcpy_nt(page, template, sizeof(*page));
+>>  }
+>>=20
+>>  /*
+>> @@ -1179,6 +1189,15 @@ static void __ref memmap_init_compound(struct =
+page *head,
+>>      &template);
+>>   }
+>>   }
 >> +
->> +static inline pmdval_t pgd_val(pgd_t pgd)
->> +{
->> +	return (*(pmdval_t (*)[2])&pgd)[0];
-> 
-> Ugh. This isn't correct C code. It only works because the kernel passes
-> -fno-strict-aliasing.
+>> + /*
+>> + * When the template path is enabled, order the preceding tail-page =
+copies
+>> + * before prep_compound_head() updates the overlapping compound =
+metadata
+>> + * in the first tail-page descriptors. If memcpy_nt() fell back to
+>> + * regular cached stores, memcpy_nt_drain() may be a no-op.
+>> + */
+>> + if (use_template)
+>> + memcpy_nt_drain();
+>>   prep_compound_head(head, order);
+>>  }
+>>=20
+>> @@ -1238,10 +1257,26 @@ void __ref memmap_init_zone_device(struct =
+zone *zone,
+>>   if (pfns_per_compound =3D=3D 1)
+>>   continue;
+>>=20
+>> + /*
+>> + * When the template path is enabled, order the preceding head-page =
+copy
+>> + * before memmap_init_compound(), which immediately updates =
+compound-head
+>> + * metadata. If memcpy_nt() fell back to regular cached stores,
+>> + * memcpy_nt_drain() may be a no-op.
+>> + */
+>> + if (use_template)
+>> + memcpy_nt_drain();
+>> +
+>>   memmap_init_compound(page, pfn, zone_idx, nid, pgmap,
+>>       compound_nr_pages(pfn, altmap, pgmap),
+>>       use_template);
+>>   }
+>> + /*
+>> + * Ensure any prior template copies are ordered before returning.
+>> + * On architectures where memcpy_nt() used regular cached stores,
+>> + * memcpy_nt_drain() may be a no-op.
+>> + */
+>> + if (use_template)
+>> + memcpy_nt_drain();
+>>=20
+>>   pageblock_migratetype_init_range(start_pfn, nr_pages, =
+MIGRATE_MOVABLE);
+>>=20
+>> --
+>> 2.20.1
+>>=20
+>=20
 
-So it is correct C code? ;)
-
-> I would recommend either forcing a struct here, or
-> using a u64 with bitmasks/shifts.
-
-I had that, but little vs. big endian was annoying.
-
--- 
-Cheers,
-
-David
