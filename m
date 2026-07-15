@@ -1,33 +1,33 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 546AB2F25F5;
-	Wed, 15 Jul 2026 13:44:29 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 6298B39A046;
+	Wed, 15 Jul 2026 15:07:18 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784123071; cv=none; b=q5tNW7ASLd1eLMM79dg/D7GvomnPE0mcKoUr2rwsGGdQoKcCb2QeZ1S2YjFhYxTTnsUlEcMqd5PWZK/j+rAKXjZXCthUBTleU6QwU8NxrsUmbvu6Zbuy3kAiyT5eXEnqJyq9BkMLXGHZhU4F4SFrh3pHCj/Pz6EEMgmLMImaFys=
+	t=1784128040; cv=none; b=IVvNafFWVP8J+Hppqv2yk29PL2ApuFOK4c5qCtu/+PoTPOSVZ2a1fcnAz60xl5/SLbZ/hlvmV9YsVUSWlHEyBpEVzSJgPdSrnJoQEQPBq1Vvr/Z1cCMPK0xhjOidQdeZpq6sZl23DrgTKL81i8WQ0fNF+Sy1mKYKocpOHx494N4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784123071; c=relaxed/simple;
-	bh=eIgpCTRPgqPTqdx54P+55ycRFoiVAMVPyrH/hSOkxIw=;
-	h=Message-ID:Date:MIME-Version:Cc:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=npQpwoRo+m5C7g0FV9EXk3heRQnSPoy48pTwUy0A2oEEsGyeF4X917kkLX6g0orkrlyrgwYZWIUA9y6TIuE3y3KT8HaK2cRBuQwu12IW2WR/t9TXnd++IUq9disR2JZGCb6oza7zZMzgp9j+TJ2JcztFg6RyVyrmQyluaWRFEoI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=XUDBCE9u; arc=none smtp.client-ip=217.140.110.172
+	s=arc-20240116; t=1784128040; c=relaxed/simple;
+	bh=+jFMWWv220aZ8z/A3E0zhi9BB4H/u0SqqJRjY/UOWiM=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=S4sDuHt4fLZwdres2R1OuCSecel6zALaLiWY1dcKQXNDpTSRfSMrIiBB0VNLqWA0l934diTAkV32LxUI//1mYPRSYF5+h9h91tFbEHTGN1ccsCKxbV8ZsLzBDYvqB8gXjswDccFFxL13paeITeFdsjO48Trz9v+tnT9pY7WAdRo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=Z5zyq2Hj; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="XUDBCE9u"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="Z5zyq2Hj"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id BC4D31477;
-	Wed, 15 Jul 2026 06:44:18 -0700 (PDT)
-Received: from [10.2.198.93] (e142334-100.cambridge.arm.com [10.2.198.93])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id A51C63F915;
-	Wed, 15 Jul 2026 06:44:12 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 8F4601477;
+	Wed, 15 Jul 2026 08:07:13 -0700 (PDT)
+Received: from [10.57.82.220] (unknown [10.57.82.220])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 28E1B3F905;
+	Wed, 15 Jul 2026 08:07:05 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1784123063; bh=eIgpCTRPgqPTqdx54P+55ycRFoiVAMVPyrH/hSOkxIw=;
-	h=Date:Cc:Subject:To:References:From:In-Reply-To:From;
-	b=XUDBCE9uKhapcjpn3hEyydo6n8Z10XJL4DGb4h958hMrkQQ51e4U0TkwAjNzJDzOk
-	 eD/LOzYvppL+1IQtFhflB4XCT6Ncvq4/Hh0/F3eNv5PwdHMKH6kHWKs0fpugu38REX
-	 eGLtl9O5j7jNXOw9fMgYIdBX0uaZplN8x21Nq5zc=
-Message-ID: <1dcd93fa-4922-433b-9f1d-c096c0de3665@arm.com>
-Date: Wed, 15 Jul 2026 14:44:11 +0100
+	t=1784128037; bh=+jFMWWv220aZ8z/A3E0zhi9BB4H/u0SqqJRjY/UOWiM=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=Z5zyq2HjC1J3H+2sS3zu5v1h+CSpo+X2JamGTGR0pKplJ+iyMq9LehKG+jacWhbPZ
+	 WPUxV70PTchy+e9ITMIQB1lc3Qrkdac2O7M9gEkdlvEpppy6u5k2BxIx/dsQ5U+PV6
+	 B4YDMFmLqLte+c5rOhprH1XGuK2zbmrCTYOVdNc8=
+Message-ID: <6d167aaa-e9b0-4687-970c-1c67d0df6344@arm.com>
+Date: Wed, 15 Jul 2026 17:07:02 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,79 +35,104 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Cc: usama.anjum@arm.com, david@kernel.org, linux@armlinux.org.uk,
- akpm@linux-foundation.org, ankur.a.arora@oracle.com, rppt@kernel.org,
- linmag7@gmail.com, chleroy@kernel.org, klarasmodin@gmail.com,
- chenhuacai@kernel.org, kernel@xen0n.name, kas@kernel.org,
- zhangtianyang@loongson.cn, wangyuli@aosc.io, tsbogend@alpha.franken.de,
- ljs@kernel.org, jgg@ziepe.ca, catalin.marinas@arm.com, will@kernel.org,
- arnd@arndb.de, ryan.roberts@arm.com, pasha.tatashin@soleen.com,
- rmclure@linux.ibm.com, baolin.wang@linux.alibaba.com, tj@kernel.org,
- kevin.brodsky@arm.com, anup@brainfault.org, atish.patra@linux.dev,
- pjw@kernel.org, palmer@dabbelt.com, aou@eecs.berkeley.edu, alex@ghiti.fr,
- dave.hansen@linux.intel.com, luto@kernel.org, peterz@infradead.org,
- tglx@kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com,
- hannes@cmpxchg.org, mhocko@kernel.org, qi.zheng@linux.dev,
- shakeel.butt@linux.dev, kasong@tencent.com, baohua@kernel.org,
- axelrasmussen@google.com, yuanchu@google.com, weixugc@google.com,
- ryabinin.a.a@gmail.com, glider@google.com, andreyknvl@gmail.com,
- dvyukov@google.com, vincenzo.frascino@arm.com, anshuman.khandual@arm.com,
- yang@os.amperecomputing.com, chaitanyas.prakash@arm.com, ardb@kernel.org,
- guoren@kernel.org, yang.li85200@gmail.com, viro@zeniv.linux.org.uk,
- dinguyen@kernel.org, schuster.simon@siemens-energy.com,
- wangruikang@iscas.ac.cn, junhui.liu@pigmoral.tech, muchun.song@linux.dev,
- vishal.moola@gmail.com, namcao@linutronix.de, pavel@kernel.org,
- djbw@kernel.org, yu-cheng.yu@intel.com, baolu.lu@linux.intel.com,
- Jonathan.Cameron@huawei.com, coxu@redhat.com, andreas@gaisler.com,
- liam@infradead.org, vbabka@kernel.org, surenb@google.com, mhocko@suse.com,
- geert@linux-m68k.org, shorne@gmail.com, jonas@southpole.se,
- stefan.kristiansson@saunalahti.fi
-Subject: Re: [RFC PATCH 11/34] mm: vmscan: remove stack copy address of pud
- pass in wallk_pud_range()
-To: Yeoreum Yun <yeoreum.yun@arm.com>, linux-arm-kernel@lists.infradead.org,
- linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
- linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
- x86@kernel.org, linux-mm@kvack.org, kasan-dev@googlegroups.com,
- linux-csky@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
- linux-openrisc@vger.kernel.org
-References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
- <20260713135614.1618183-12-yeoreum.yun@arm.com>
-From: Usama Anjum <usama.anjum@arm.com>
-Content-Language: en-US
-In-Reply-To: <20260713135614.1618183-12-yeoreum.yun@arm.com>
+Subject: Re: [PATCH 00/22] Simplify special kernel page table handling
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+ David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Russell King <linux@armlinux.org.uk>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org,
+ Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev,
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+ Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org,
+ Madhavan Srinivasan <maddy@linux.ibm.com>,
+ Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org,
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+ Albert Ou <aou@eecs.berkeley.edu>, linux-riscv@lists.infradead.org,
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>,
+ Gerald Schaefer <gerald.schaefer@linux.ibm.com>, linux-s390@vger.kernel.org,
+ "David S. Miller" <davem@davemloft.net>,
+ Andreas Larsson <andreas@gaisler.com>, sparclinux@vger.kernel.org,
+ Richard Weinberger <richard@nod.at>,
+ Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+ Johannes Berg <johannes@sipsolutions.net>, linux-um@lists.infradead.org,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
+ "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, Ning Sun <ning.sun@intel.com>,
+ x86@kernel.org, tboot-devel@lists.sourceforge.net,
+ Ard Biesheuvel <ardb@kernel.org>,
+ Ilias Apalodimas <ilias.apalodimas@linaro.org>, linux-efi@vger.kernel.org,
+ Vishal Moola <vishal.moola@gmail.com>, Alistair Popple <apopple@nvidia.com>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+ linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+References: <20260714-remove_pgtable_cdtor-v1-0-44be8a7685d7@arm.com>
+From: Kevin Brodsky <kevin.brodsky@arm.com>
+Content-Language: en-GB
+In-Reply-To: <20260714-remove_pgtable_cdtor-v1-0-44be8a7685d7@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 13/07/2026 2:55 pm, Yeoreum Yun wrote:
-> We want to change how pXdp_get() works with generic compile-time folded
-> page tables. To prepare for that, replace passing the address of a stack
-> copy of a pXd to walk_pmd_range() with pud pointer directly so that
-> the ignoring the value of folded entries.
-> 
-> There should be no functional change.
-> 
-> Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
-> ---
->  mm/vmscan.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/mm/vmscan.c b/mm/vmscan.c
-> index 986dde8e7429f..61470223d8213 100644
-> --- a/mm/vmscan.c
-> +++ b/mm/vmscan.c
-> @@ -3725,7 +3725,7 @@ static int walk_pud_range(p4d_t *p4d, unsigned long start, unsigned long end,
->  		if (!pud_present(val) || WARN_ON_ONCE(pud_leaf(val)))
->  			continue;
->  
-> -		walk_pmd_range(&val, addr, next, args);
-> +		walk_pmd_range(pud + i, addr, next, args);
-While I was working on converting these page table types to hardware types, I
-had this exact patch for this problem.
+On 14/07/2026 16:03, Kevin Brodsky wrote:
+> Page table constructors and destructors were originally introduced
+> specifically for user PTE pages. Over time, their use became more
+> widespread, and starting from v6.16 they are called at all levels
+> and for both user and kernel page tables [1]. Or so I thought. Turns
+> out, we still have various special kernel page tables where the
+> ctor/dtor are not called; vmemmap page tables is one such case.
+>
+> Looking closer, we do not actually need per-level ctors for kernel
+> page tables. In fact we do not need ctors for them at all, because
+> nothing is specific to kernel page tables in the ctor/dtor and
+> nowadays they should be allocated with pagetable_alloc().
+>
+> Here's the plan: all the generic page table handling moves to
+> pagetable_{alloc,free}(). Whatever is left is specific to user page
+> tables; the ctor/dtor are only called for user page tables at the
+> required levels (PTE/PMD), and renamed to make that clear.
+>
+> Doing this will allow us to remove a good amount of special casing,
+> but there's quite a bit of churn to get there. Here's what this
+> series does:
+>
+> 1. Introduce the concept of "kernel mm" and replace most comparisons
+>    with &init_mm with a flag check (patch 1-12); no functional change
+>    so far.
+>
+> 2. Move the page table accounting/type setting to pagetable_{alloc,free}
+>    (patch 13-15). Kernel mm's do not need to call the ctor/dtor any
+>    more.
 
-Reviewed-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+The underlying assumption here is that pagetable_{alloc,free} are used
+wherever the ctor/dtor are called, and as Sashiko pointed out there are
+counterexamples:
 
->  
->  		if (need_resched() || walk->batched >= MAX_LRU_BATCH) {
->  			end = (addr | ~PUD_MASK) + 1;
+1. sparc32 calls the ctor/dtor for user PTE pages, but uses a custom
+allocator.
 
+2. archs that do not select MMU_GATHER_TABLE_FREE do not use
+pagetable_free() in tlb_remove_table().
+
+3. arch_remove_memory() and vmemmap_free() are a bit of a mess - some
+archs call the dtor and/or use pagetable_free() for freeing the direct
+map page tables, some don't.
+
+How I'm thinking to address these:
+
+1. sparc32 does not use split ptlocks, so maybe doing the memory
+accounting explicitly? Otherwise, we may need to keep the page type
+handling + memory accounting in a separate helper that sparc32 can
+explicitly call.
+
+2. Always enable MMU_GATHER_TABLE_FREE. pagetable_free() should always
+be used for pages allocated with pagetable_alloc().
+
+3. Go through all the implementations of memory hotplug and vmemmap, and
+ensure that pagetable_free() is used for those pages allocated with
+pagetable_free() (and only those). That may well call for a separate series.
+
+- Kevin
