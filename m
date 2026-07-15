@@ -1,45 +1,44 @@
-Received: from out-174.mta1.migadu.com (out-174.mta1.migadu.com [95.215.58.174])
+Received: from out-171.mta0.migadu.com (out-171.mta0.migadu.com [91.218.175.171])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 78F3C42376D;
-	Wed, 15 Jul 2026 09:20:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.174
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B11C43302D
+	for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2026 09:34:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.171
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784107209; cv=none; b=btbBLw7Ntk8uB1rUhH53p8zqZZSQOvxo5tgcq95Xkpu8FH/0eAdg/C5O+klfRH6wwCCmwws8W0LvVz9K/UGSe5xNEw9XS6eh5teaawdiFwba08KKEVPIzZimVhRKIcfIIW+orATkwyKH0IVVm3SucnMMthCo2t00vtImHBOqrhg=
+	t=1784108054; cv=none; b=pxZP/mFXiC77jQ8qgLxpw04LZzfF3zsPN10EVqlVr+uRu4Gl+Ioadief/93zpWvWFtFYdJcH8NKgWiQbPcJMQhMMRusGQJfM8h0oM55SL0Yc/NV9LV6RLgfBBX1aA52IvHfYy+ipisZew2dPG6LfPKCkfUME07b/USAY8+6GZEg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784107209; c=relaxed/simple;
-	bh=7bqX575miDuDXxtkUM5rIRiOrm7H9ZQm+Q8G5UwWC5E=;
+	s=arc-20240116; t=1784108054; c=relaxed/simple;
+	bh=3awXuump5UvqnDy3qde52dqw5qWrD3T9YG0fYi5Lkek=;
 	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
-	 Message-Id:References:To; b=f5sBWNMYOJhcOVkASaxCEdl4cDtwDw9cW6iFMh3Cgr9qSd/4im0ZdHSDeNSq40hLZ07b/KdyqYFaNWTMqRvRU1ymNZSZ5K1t0nFbSxcFWGdUEM1QnB6JT5YbyqKdrOj7gvlP2UcTR/uinmgKl2qeA2hzCH5nUivJO7HPe5Uhqm0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=SKTE+a+J; arc=none smtp.client-ip=95.215.58.174
+	 Message-Id:References:To; b=dIF5a6/lQZZIIgDmzY1CJ0L177C8fhrteIxKAc4HgcXTHF3Vfw3RtT5Spv2qHxXhYvC8uAYlCFPFfdwmT7sQK88JoucJuHAfSpwBB69Hj2TebnvbzzfKXSZrSLk+X2dZqbWI7t9Lk4uGpgk6E+kM0whrK0Y93VMDfq2G74uPE6k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=oV2WHMYL; arc=none smtp.client-ip=91.218.175.171
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="SKTE+a+J"
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="oV2WHMYL"
 Content-Type: text/plain;
 	charset=us-ascii
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1784107205;
+	t=1784108034;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=bO9YvcI54ue/gwDNdgB1p3Ix0P3xCAMWlTg6ILi3wPw=;
-	b=SKTE+a+Jqj1MwRmJW7eGwo0/jz6WimdogmPp1HPKMXNzQl/nGGV6NKOLoVkLUBQJajM1gD
-	41oVl93srSOA3OKg6v6h0WJTIMxAQTIaZYM+m3tR9qN8L5LKnE+4Or3zdDA0nkQ0ASEcJm
-	a39ToRz0q7nGV7XgjMxLSoh3WZaQIcg=
+	bh=oF3YK+5K8ha0tN8sHxJR+k2ivBzzY2bSpI1XmJ8lbwQ=;
+	b=oV2WHMYLzQrj/FC0XxU5Bg9xXz4idugxo/OKh71BZIVBG86rtJiCwmFwGmJIjzy1d6AS8k
+	NAIM7CS+ilWXPpi4vtRsWA9zDKTGHWvDmrqYaD/uj3jK1H++xIDx4nDVNik0TpJprQKjIA
+	AeEtthAUvoyCOg6fX/hEwxAFZN4Wsyc=
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3864.600.51.1.1\))
-Subject: Re: [PATCH v6 4/8] mm: add a template-based fast path for zone-device
- page init
+Subject: Re: [PATCH v6 6/8] string: introduce memcpy_nt() helpers
 X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
 From: Muchun Song <muchun.song@linux.dev>
-In-Reply-To: <b4308d88-3486-4e4d-ae81-6c7ae66956a1@bytedance.com>
-Date: Wed, 15 Jul 2026 17:19:21 +0800
+In-Reply-To: <abd1f6da-a6f4-40ed-923f-94201bba4690@bytedance.com>
+Date: Wed, 15 Jul 2026 17:33:15 +0800
 Cc: linux-arch@vger.kernel.org,
  linux-hardening@vger.kernel.org,
  linux-kernel@vger.kernel.org,
@@ -57,202 +56,186 @@ Cc: linux-arch@vger.kernel.org,
  rppt@kernel.org,
  tglx@kernel.org
 Content-Transfer-Encoding: 7bit
-Message-Id: <E103722E-D074-4B5F-9271-93894152DD84@linux.dev>
+Message-Id: <80A0AAC8-DC3C-4FB7-8CE3-EF2EC96EB47F@linux.dev>
 References: <20260709112520.24857-1-lizhe.67@bytedance.com>
- <20260709112520.24857-5-lizhe.67@bytedance.com>
- <08d40cad-8f61-4aba-9556-5a84067c6494@linux.dev>
- <b4308d88-3486-4e4d-ae81-6c7ae66956a1@bytedance.com>
+ <20260709112520.24857-7-lizhe.67@bytedance.com>
+ <7bfb13a0-8f4a-4f4b-9df4-da842169f8f1@linux.dev>
+ <abd1f6da-a6f4-40ed-923f-94201bba4690@bytedance.com>
 To: Li Zhe <lizhe.67@bytedance.com>
 X-Migadu-Flow: FLOW_OUT
 
 
 
-> On Jul 15, 2026, at 14:11, Li Zhe <lizhe.67@bytedance.com> wrote:
+> On Jul 15, 2026, at 14:18, Li Zhe <lizhe.67@bytedance.com> wrote:
 > 
-> On 7/14/26 4:38 PM, Muchun Song wrote:
+> On 7/14/26 5:24 PM, Muchun Song wrote:
 >> 
 >> 
 >> On 2026/7/9 19:25, Li Zhe wrote:
->>> memmap_init_zone_device() repeats nearly identical head-page
->>> initialization for each PFN. Prepare one reusable ZONE_DEVICE head-page
->>> template through the existing slow path, refresh the PFN-dependent
->>> fields in that template before each copy, and memcpy it into each
->>> destination page.
+>>> Introduce memcpy_nt() and memcpy_nt_drain() for write-once copy sites
+>>> that want a named non-temporal copy primitive plus an explicit drain
+>>> step.
 >>> 
->>> The optimized path assigns _refcount through the copied template, so
->>> keep it disabled when the page_ref_set tracepoint is enabled.
+>>> On x86_64, override both helpers in arch/x86/include/asm/string_64.h
+>>> using the usual self-macro pattern, next to the existing
+>>> memcpy_flushcache() backend that memcpy_nt() wraps. The x86_64
+>>> implementation maps memcpy_nt() to memcpy_flushcache() and uses wmb()
+>>> for memcpy_nt_drain(), because that backend issues MOVNTI stores and
+>>> callers need an ordering point before later normal stores that depend
+>>> on those writes becoming visible.
 >>> 
->>> This patch accelerates head-page initialization. The pfns_per_compound
->>> == 1 case gets the full benefit here, compound tails are handled in the
->>> next patch.
+>>> include/linux/string.h provides the generic fallback under
+>>> memcpy_nt() as plain memcpy() and leaves memcpy_nt_drain() empty, so
+>>> architectures that do not override memcpy_nt() do not pay an
+>>> unconditional barrier. Architectures that later grow a specialized
+>>> memcpy_nt() backend can override memcpy_nt_drain() with whatever
+>>> drain primitive their memory-ordering rules require.
 >>> 
->>> Tested in a VM with a 100 GB fsdax namespace device configured with
->>> map=dev on Intel Ice Lake server. This test exercises the nd_pmem rebind
->>> path (pfns_per_compound == 1).
->>> 
->>> Test procedure:
->>> Rebind the nd_pmem driver 30 times and collect the memmap initialization
->>> time from the pr_debug() output of memmap_init_zone_device().
->>> 
->>> Base(v7.2-rc1):
->>>    First binding: 1456 ms
->>>    Average of subsequent rebinds: 244.28 ms
->>> 
->>> With this patch and its prerequisites applied:
->>>    First binding: 1440 ms
->>>    Average of subsequent rebinds: 217.19 ms
->>> 
->>> This reduces the average rebind time from 244.28 ms to 217.19 ms, or
->>> about 11%.
+>>> The immediate user is the ZONE_DEVICE template-copy path. It populates
+>>> struct page descriptors in a write-once pattern, so a regular cached
+>>> memcpy() can incur avoidable write-allocate traffic and cache
+>>> pollution for data with little near-term reuse.
 >>> 
 >>> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
 >>> ---
->>>   mm/mm_init.c | 59 +++++++++++++++++++++++++++++++++++++++++++++++++++-
->>>   1 file changed, 58 insertions(+), 1 deletion(-)
+>>>   arch/x86/include/asm/string_64.h | 22 ++++++++++++++++++++++
+>>>   include/linux/string.h           | 23 +++++++++++++++++++++++
+>>>   2 files changed, 45 insertions(+)
 >>> 
->>> diff --git a/mm/mm_init.c b/mm/mm_init.c
->>> index 5fccfbacf855..170021e182e0 100644
->>> --- a/mm/mm_init.c
->>> +++ b/mm/mm_init.c
->>> @@ -1065,6 +1065,44 @@ static void __ref 
->>> zone_device_page_init_slow(struct page *page,
->>>           set_page_count(page, 0);
+>>> diff --git a/arch/x86/include/asm/string_64.h 
+>>> b/arch/x86/include/asm/string_64.h
+>>> index 4635616863f5..6cb9e0ac7fa0 100644
+>>> --- a/arch/x86/include/asm/string_64.h
+>>> +++ b/arch/x86/include/asm/string_64.h
+>>> @@ -4,6 +4,7 @@
+>>> 
+>>>   #ifdef __KERNEL__
+>>>   #include <linux/jump_label.h>
+>>> +#include <asm/barrier.h>
+>>> 
+>>>   /* Written 2002 by Andi Kleen */
+>>> 
+>>> @@ -100,6 +101,27 @@ static __always_inline void 
+>>> memcpy_flushcache(void *dst, const void *src, size_t
+>>>       }
+>>>       __memcpy_flushcache(dst, src, cnt);
 >>>   }
->>>   +static inline bool zone_device_page_init_optimization_enabled(void)
+>>> +
+>>> +#define memcpy_nt memcpy_nt
+>>> +/*
+>>> + * Reuse the existing x86 flushcache backend as the nt copy primitive.
+>>> + * Callers pair it with memcpy_nt_drain() when later stores must be
+>>> + * ordered after the copy.
+>>> + */
+>>> +static __always_inline void memcpy_nt(void *dst, const void *src, 
+>>> size_t cnt)
+>>> +{
+>>> +    memcpy_flushcache(dst, src, cnt);
+>> 
+>> Why not use memcpy_flushcache() directly in device dax path? I don't
+>> understand the necessity of introducing memcpy_nt here.
+>> 
+> 
+> The reason for introducing memcpy_nt() is to give generic MM code a
+> named non-temporal copy primitive, instead of hardwiring the x86
+> memcpy_flushcache() backend into a generic caller.
+> 
+> On x86, memcpy_nt() maps to memcpy_flushcache() today. On other
+> architectures, memcpy_flushcache() may have different semantics, and we
+> also do not know whether its implementation would provide the same
+> optimization opportunity as on x86. Using memcpy_nt() lets the generic
+> caller express the intent while leaving the backend choice to each
+> architecture.
+
+Got it. But the 'nt' suffix is overly abbreviated and not direct enough.
+Therefore, I suggest avoiding uncommon abbreviations and instead keeping
+things as explicit as the 'flushcache' suffix in memcpy_flushcache.
+
+> 
+>>> +}
+>>> +
+>>> +#define memcpy_nt_drain memcpy_nt_drain
+>>> +static __always_inline void memcpy_nt_drain(void)
 >>> +{
 >>> +    /*
->>> +     * The template fast path copies a preinitialized struct page 
->>> image.
->>> +     * Skip it when the page_ref_set tracepoint is enabled.
+>>> +     * Order the prior MOVNTI stores issued by memcpy_flushcache()
+>>> +     * before later normal stores.
 >>> +     */
->>> +    return !page_ref_tracepoint_active(page_ref_set);
 >> 
->> I'm not sure why we need to make this. I think we can go ahead and
->> perform this optimization unconditionally.
+>> I also have a question here: why are we using wmb to guarantee visibility
+>> at this stage?
 >> 
->> If we look at why the tracepoint was added in the first place, it's
->> clear that its primary purpose is for debugging, particularly regarding
->> why CMA memory pages cannot be allocated (see commit 95813b8faa0). But
->> at this stage, the struct page hasn't even been initialized yet; we
->> are currently in the middle of initialization. From the perspective of
->> the page being initialized, the user doesn't need to care at all about
->> how the reference count is changing. Therefore, I don't think we need to
->> include these checks. It would only increase the complexity of the code.
->> 
->> I suggest deleting this section of code to keep things simple.
+>> Since we are still in the very early phases of memory initialization 
+>> (specifically,
+>> struct page initialization), since we are still in an intermediate 
+>> initialization
+>> state, this shouldn't be visible to other CPUs anyway.
 >> 
 >> Thanks.
 > 
-> I would prefer to keep this check.
+> The drain is not about exposing the intermediate initialization state to
+> other CPUs.
 > 
-> When page_ref_set debugging is enabled, preserving the existing per-page
-> set_page_count() behavior is still useful, including during
-> initialization, because it keeps the debug trace complete and unchanged.
+> It is there to order the earlier non-temporal stores before the later
+> normal stores on the same control path, for example before
+> memmap_init_compound() / prep_compound_head() update overlapping
+> compound metadata.
 
-When you say 'useful,' what aspects are you referring to?
-
-> 
-> In the normal case, page_ref_set is off by default, so this only affects
-> an explicit debugging configuration and leaves the production fast path
-> unchanged. The extra logic here is also fairly small and stays local to
-> this optimization path.
-
-I know there's no real overhead here. The point I'm actually trying to make
-is that since deleting the code has no impact, why not go with the simpler
-approach?
+For a single core, out-of-order execution is invisible to developers.
+Therefore, I'm curious about your reasons for preserving the order? What
+would be the consequences of not maintaining it?
 
 Thanks.
 
 > 
+> On x86, memcpy_nt() maps to MOVNTI-based memcpy_flushcache(), so
+> memcpy_nt_drain() uses wmb(), which maps to the required sfence there.
+> 
 > Thanks,
 > Zhe
 > 
+>> 
+>>> +    wmb();
 >>> +}
->>> +
+>>>   #endif
+>>> 
+>>>   #endif /* __KERNEL__ */
+>>> diff --git a/include/linux/string.h b/include/linux/string.h
+>>> index 5702daca4326..a109b2f86ca6 100644
+>>> --- a/include/linux/string.h
+>>> +++ b/include/linux/string.h
+>>> @@ -278,6 +278,29 @@ static inline void memcpy_flushcache(void *dst, 
+>>> const void *src, size_t cnt)
+>>>   }
+>>>   #endif
+>>> 
+>>> +#ifndef memcpy_nt
 >>> +/*
->>> + * 'template' is a reusable page prototype rather than a strictly 
->>> immutable
->>> + * object. Most ZONE_DEVICE fields stay constant across the pages 
->>> covered by
->>> + * the current template, but section bits and page->virtual may 
->>> still depend
->>> + * on the PFN. Refresh those PFN-dependent fields in the template 
->>> before
->>> + * copying it into @page.
+>>> + * memcpy_nt() requests a non-temporal copy when the architecture has a
+>>> + * suitable backend. Architectures that do not override it fall back to
+>>> + * memcpy().
 >>> + */
->>> +static inline void zone_device_page_update_template(struct page 
->>> *template,
->>> +        unsigned long pfn)
+>>> +static inline void memcpy_nt(void *dst, const void *src, size_t cnt)
 >>> +{
->>> +    set_page_section_from_pfn(template, pfn);
->>> +#ifdef WANT_PAGE_VIRTUAL
->>> +    if (!is_highmem_idx(ZONE_DEVICE))
->>> +        set_page_address(template, __va(pfn << PAGE_SHIFT));
+>>> +    memcpy(dst, src, cnt);
+>>> +}
 >>> +#endif
->>> +}
 >>> +
->>> +static void zone_device_page_init_from_template(struct page *page,
->>> +        unsigned long pfn, struct page *template)
+>>> +#ifndef memcpy_nt_drain
+>>> +/*
+>>> + * Callers use memcpy_nt_drain() before later normal stores that 
+>>> need to
+>>> + * be ordered after memcpy_nt(). Architectures without a specialized
+>>> + * backend can leave it empty.
+>>> + */
+>>> +static inline void memcpy_nt_drain(void)
 >>> +{
->>> +    /*
->>> +     * 'template' carries the invariant portion of a ZONE_DEVICE struct
->>> +     * page. Update the PFN-dependent fields in place before copying it
->>> +     * to the destination page.
->>> +     */
->>> +    zone_device_page_update_template(template, pfn);
->>> +    memcpy(page, template, sizeof(*page));
 >>> +}
+>>> +#endif
 >>> +
->>>   /*
->>>    * With compound page geometry and when struct pages are stored in 
->>> ram most
->>>    * tail pages are reused. Consequently, the amount of unique struct 
->>> pages to
->>> @@ -1120,6 +1158,7 @@ void __ref memmap_init_zone_device(struct zone 
->>> *zone,
->>>                      unsigned long nr_pages,
->>>                      struct dev_pagemap *pgmap)
->>>   {
->>> +    bool use_template = zone_device_page_init_optimization_enabled();
->>>       unsigned long pfn, end_pfn = start_pfn + nr_pages;
->>>       struct pglist_data *pgdat = zone->zone_pgdat;
->>>       struct vmem_altmap *altmap = pgmap_altmap(pgmap);
->>> @@ -1127,6 +1166,7 @@ void __ref memmap_init_zone_device(struct zone 
->>> *zone,
->>>       unsigned long zone_idx = zone_idx(zone);
->>>       unsigned long start = jiffies;
->>>       int nid = pgdat->node_id;
->>> +    struct page template;
+>>>   void *memchr_inv(const void *s, int c, size_t n);
+>>>   char *strreplace(char *str, char old, char new);
 >>> 
->>>       if (WARN_ON_ONCE(!pgmap || zone_idx != ZONE_DEVICE))
->>>           return;
->>> @@ -1144,7 +1184,24 @@ void __ref memmap_init_zone_device(struct zone 
->>> *zone,
->>>       for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
->>>           struct page *page = pfn_to_page(pfn);
->>> 
->>> -        zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
->>> +        if (!use_template) {
->>> +            zone_device_page_init_slow(page, pfn, zone_idx,
->>> +                           nid, pgmap);
->>> +        } else if (pfn == start_pfn) {
->>> +            /*
->>> +             * Seed the reusable head-page template from the
->>> +             * first real struct page, because the existing
->>> +             * page-init and pageblock helpers expect a real
->>> +             * memmap entry rather than a stack object.
->>> +             */
->>> +            zone_device_page_init_slow(page, pfn, zone_idx,
->>> +                           nid, pgmap);
->>> +            /* init template page */
->>> +            memcpy(&template, page, sizeof(*page));
->>> +        } else {
->>> +            zone_device_page_init_from_template(page, pfn,
->>> +                                &template);
->>> +        }
->>> 
->>>           if (IS_ALIGNED(pfn, PAGES_PER_SECTION))
->>>               cond_resched();
 >>> -- 
 >>> 2.20.1
 
