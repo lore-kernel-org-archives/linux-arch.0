@@ -1,274 +1,179 @@
-Received: from va-1-113.ptr.blmpb.com (va-1-113.ptr.blmpb.com [209.127.230.113])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from flow-a6-smtp.messagingengine.com (flow-a6-smtp.messagingengine.com [103.168.172.141])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7A62A175A93
-	for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2026 06:12:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.113
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C0C611DF261;
+	Wed, 15 Jul 2026 06:17:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784095928; cv=none; b=jYoyikJRDV/JLR77Q4x7Gvr4lBcJp7vbIYEUskkmhNSS4vP6BPcKImiPU+3V85/n4fbgrbt8S5u0xKG9tuKJHzGy3fbF9QmE5RfmnCMJ2VTtwSw9U6B4wPmRQ/KQoba8i2gIu/5DoQR2I5t+oN2Rd6FEK/zjNdI+8l0aLoLTLdY=
+	t=1784096248; cv=none; b=nrSZQ72Wxmma332YIbMTL+NWx9zY6d/c1ZXsfumGVa3/rMvsfzvlFIaGGHRyFpq3AVA2Kcc8OAyDs+YhRd4TRZ+7vrp67iF3hHd4u/1KBiOBnWXNDm8npmakhVKaIOZgV54SbhjqECMig0l8X0rQ8ZWX/nb174yqjn+3+jhPkEw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784095928; c=relaxed/simple;
-	bh=j+gJA7tqEZMJUaymDan0oLSAsVsiMfSlVhTnTUzhvlQ=;
-	h=In-Reply-To:Cc:From:References:Date:Content-Type:Message-Id:
-	 Mime-Version:To:Subject; b=kso8S1ODw1xdaTQuLmA3cgACqHo7k5u7VA36BH9jt0uJCsRxS8u9pkL+vK7hZevdwkj6vR+kczYhhZbPtfDnDPGHreD1+INae4LcVt4i/9rbsSMNHH35BInroScasOSEICT0fxoiOJ5KPjrhLgdvAUP+qcmcJp9pr+W1L5Bn+Lg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=Hw0x9EZ1; arc=none smtp.client-ip=209.127.230.113
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1784096248; c=relaxed/simple;
+	bh=R7w8WDf0IA0/2pr5cbO928qK57kdMAshIWAldrpTyJA=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=eLyipwwiop4Y0Af9GsM0HWGyvOIxgl3IEsqj0KepZ2aH9ryHf1ZZPsBygr78lXs1zbI7xnxTUnBI8TolduPMy3XQGmWK3ZjlPX/JgTi/mimyYxr0I+/4QCs1zUQDX8ZMZpnkPld2mwiMa/2soaHReDkTelo6PzzUzJvuEtIfdY4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=Br8RyOFd; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=jV2/fhH4; arc=none smtp.client-ip=103.168.172.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="Hw0x9EZ1"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1784095920; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=j+gJA7tqEZMJUaymDan0oLSAsVsiMfSlVhTnTUzhvlQ=;
- b=Hw0x9EZ16f1lejpQSPimnI40mvy5Rt2aUouHz9c28RDxEp6WcbQg2W+R4FW8p3isU20ST1
- wJwxJ8lnor1/MY8GhGspTAUa9Z17QOymMWyfSqXWtDy58IVIBreNuOJxVU5Hatgx5qvoBy
- TIr1ml3LcSWaRCCerjid354Z9c+3d7GpxkldCnyzPJnhb1Rq/AQGQpRjzOxhwx/Ftinofi
- NFksaJN5x3SFmYtWBdPsln3Wup/GAxn18jHnJbrO/JcMzmTF08QEY38/kvVyOgepem7yHc
- ytdAh4f9IBQgq5B2BHlPl3Va3xbZQpQQ5qwhyTCaHLZdou4PY5CmjUiprNALZQ==
-In-Reply-To: <08d40cad-8f61-4aba-9556-5a84067c6494@linux.dev>
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	<akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
-	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
-	<rppt@kernel.org>, <tglx@kernel.org>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Content-Transfer-Encoding: quoted-printable
-References: <20260709112520.24857-1-lizhe.67@bytedance.com> <20260709112520.24857-5-lizhe.67@bytedance.com> <08d40cad-8f61-4aba-9556-5a84067c6494@linux.dev>
-User-Agent: Mozilla Thunderbird
-Date: Wed, 15 Jul 2026 14:11:36 +0800
-Content-Type: text/plain; charset=UTF-8
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-Message-Id: <b4308d88-3486-4e4d-ae81-6c7ae66956a1@bytedance.com>
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="Br8RyOFd";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="jV2/fhH4"
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailflow.phl.internal (Postfix) with ESMTP id 9E02C13801A5;
+	Wed, 15 Jul 2026 02:17:25 -0400 (EDT)
+Received: from phl-imap-05 ([10.202.2.95])
+  by phl-compute-04.internal (MEProxy); Wed, 15 Jul 2026 02:17:25 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm1; t=1784096245;
+	 x=1784103445; bh=9Zlh+AwrrnJNWN6iwdGzo8tmzqBKgmHLc8ZF5j+zMvU=; b=
+	Br8RyOFdUU94WhnEqNGK6OUInEwtt42ECqpexhjmCAEtiEUbqF92211n+hxOfHMY
+	ZEPZNepS6e+8b5e4Ny5oNgceLgGc5c3vLc4r+DxSTddj5qKK/VlPhAtv8gfyZypL
+	VVhwha6CAnSjH23ukVh31ZHnKeJrBbcBfjdhjsA9Erz1NcVRn2D/aBT/96seeB84
+	mf6GR4E2aXL75RlOqM5NPBrQmUNI68q5OUxqVV6/teUfiDYxF6d+zdYjKSFjb+t/
+	9oYJ2Of3oxf9sYaet24kMDOpkQ0wPNWNbMYpn9a2NRPuxt6xLMqZoYqcOnUh59a+
+	+snQXzLC6ACje/o05mzrQw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1784096245; x=
+	1784103445; bh=9Zlh+AwrrnJNWN6iwdGzo8tmzqBKgmHLc8ZF5j+zMvU=; b=j
+	V2/fhH4BpAIEas3AbTCLp5pwaexaM4H3pU2w1JHxfB3jtl6WngmQSemystLzp9qI
+	kWMQ7JWcKJGnDPx9mRGLn2Umfn2cnwb+LWXFjfwmECSbyQFoqIFE+5Gcz+QZtLcx
+	Djt/VFfBgZ9Z9KOK+Kt5sy4Ld9PfnVTM7DBVfQSUP1gznaJuyEygTd4hE0ubvkLV
+	tMDqFvTinCd/9JEtBjD6pEIlpFu20QTtfHQkEtiZ6kv/55h7sInOkbaxpre8Snr4
+	67P24aRTv0Jy//R76n3QrS+jXmY8Vxky/K4Wx6HmYkHx5dmdzwGsfrttZe7l/jMe
+	5/Z9GWv/msY8WPAe60zAQ==
+X-ME-Sender: <xms:9CVXainnxMtoA9WomfkvTWtGS0gs7bLSo00FlLyMY1H-JWdtdxrNhw>
+    <xme:9CVXakoW4C3nQ9zyEuECqPuFxXYetF31e_FoGsrh6tB6lWfigrViHutFLvUHessFR
+    piUbutdBQ-Th0L0YlgUUjLO99TO-3z4t7GIE2PZ5zOv0GyY84P61lk>
+X-ME-Proxy-Cause: dmFkZTGkwoR0hlFQFm+73y1mguWnuh+qc3yybVVSFAuoDmPngFYjOIr0Zb9hX5c2qcCVvn
+    sI1HXzG2bPbm7F/c+6YwzDUd5Ig/e1VsbxdAbFwgFKlMGi6ZWtvUVGPs4BD4qR21Gx2FgY
+    EtkDPkZr2rPSNRzPvoEgLUgekSzaH0MaFl5YTqFpgdt7nbdd0Gr9D2hY5jjAVLBGjROutK
+    3Te1HF7xnfK0lu7kPD/DEMvn0oDGfUjAou46olhYK2/TlIpolme0vRNz8fZXLnF+UFTqfA
+    NrNuIYP+bMmZiOZ4/s235Gl05UEeW0+kr+DcX0HurL5HoblvsKRQW0en2vUrNDn/cfo8eM
+    exj9pqaZGMevjLWoRPwN9dSbRRNGcxRkfpJT/FYjGh0L6fAUl6AQwMFen3HgF4pXyziFj5
+    /S9FXxpGcks2/CkdMnCH3B76v2+TiHSLO+QchtDMmxtuw2ui7BdR5Glgc9xh9TAtT1ohxu
+    MfBnF/qHM+b0mENiWUSBQbYQ3b9EZU+Kn1zB1QA8bKonaOqdvl96RV/Fo+8h99Z580HSaU
+    rCtQOfLPHYRo7gxQPxYCOGfwJFFODA80tAc+IOlK9AzN5HVV/7ithUEhkK2Kafx3mlEywN
+    TjGeOlAui3leqCQavfLsLa6Bdl0Ntd5Y70kbqbLghPHduKu5sNeG6daRUv7A
+X-ME-Proxy: <xmx:9CVXamTS_Lhaint5DUHBdUZEtxYNB-HSfIXxjasq4DRxQ0ZzmiwQnQ>
+    <xmx:9CVXai-ytlfd-5wXglShUGyU2nhzt-PPuvo1QSHSJm0YdKIH9BLuMw>
+    <xmx:9CVXaoMOkyqoX4affuo8pkHyFPYU5s_-A1SBrmLhKQhJQn3FU_0hmw>
+    <xmx:9CVXaqtJ7VQ4-VLSF9ISdlKWFfQyA29rjfU-TEE0Xb_61iMVCkr_pA>
+    <xmx:9SVXatvjP514hx98-inUvTjSygpQ4_uDBf1DEi6JA-S80eWlqZCeXxVH>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id B53161820086; Wed, 15 Jul 2026 02:17:24 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-X-Lms-Return-Path: <lba+26a5724ae+cca19f+vger.kernel.org+lizhe.67@bytedance.com>
-To: "Muchun Song" <muchun.song@linux.dev>
-Subject: Re: [PATCH v6 4/8] mm: add a template-based fast path for zone-device page init
+MIME-Version: 1.0
+X-ThreadId: ASU80-mPZ9gg
+Date: Wed, 15 Jul 2026 08:15:42 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Yeoreum Yun" <yeoreum.yun@arm.com>, linux-arm-kernel@lists.infradead.org,
+ linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-mips@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>,
+ kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
+ x86@kernel.org, linux-mm@kvack.org, kasan-dev@googlegroups.com,
+ "linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>,
+ linux-m68k@lists.linux-m68k.org,
+ "linux-openrisc@vger.kernel.org" <linux-openrisc@vger.kernel.org>
+Cc: "David Hildenbrand (Red Hat)" <david@kernel.org>,
+ "Russell King" <linux@armlinux.org.uk>,
+ "Andrew Morton" <akpm@linux-foundation.org>,
+ "Ankur Arora" <ankur.a.arora@oracle.com>,
+ "Mike Rapoport" <rppt@kernel.org>, "Magnus Lindholm" <linmag7@gmail.com>,
+ "Christophe Leroy" <chleroy@kernel.org>,
+ "Klara Modin" <klarasmodin@gmail.com>,
+ "Huacai Chen" <chenhuacai@kernel.org>, "WANG Xuerui" <kernel@xen0n.name>,
+ "Kirill A. Shutemov" <kas@kernel.org>, zhangtianyang@loongson.cn,
+ wangyuli@aosc.io, "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>,
+ "Lorenzo Stoakes" <ljs@kernel.org>, "Jason Gunthorpe" <jgg@ziepe.ca>,
+ "Catalin Marinas" <catalin.marinas@arm.com>,
+ "Will Deacon" <will@kernel.org>, "Ryan Roberts" <ryan.roberts@arm.com>,
+ "Pasha Tatashin" <pasha.tatashin@soleen.com>,
+ "Rohan McLure" <rmclure@linux.ibm.com>,
+ "Baolin Wang" <baolin.wang@linux.alibaba.com>,
+ "Tejun Heo" <tj@kernel.org>, "Kevin Brodsky" <kevin.brodsky@arm.com>,
+ "Anup Patel" <anup@brainfault.org>, atish.patra@linux.dev,
+ "Paul Walmsley" <pjw@kernel.org>, "Palmer Dabbelt" <palmer@dabbelt.com>,
+ "Albert Ou" <aou@eecs.berkeley.edu>, "Alexandre Ghiti" <alex@ghiti.fr>,
+ "Dave Hansen" <dave.hansen@linux.intel.com>,
+ "Andy Lutomirski" <luto@kernel.org>,
+ "Peter Zijlstra" <peterz@infradead.org>,
+ "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
+ "Borislav Petkov" <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>,
+ "Johannes Weiner" <hannes@cmpxchg.org>,
+ "Michal Hocko" <mhocko@kernel.org>, qi.zheng@linux.dev,
+ "Shakeel Butt" <shakeel.butt@linux.dev>,
+ "Kairui Song" <kasong@tencent.com>, "Barry Song" <baohua@kernel.org>,
+ "Axel Rasmussen" <axelrasmussen@google.com>,
+ "Yuanchu Xie" <yuanchu@google.com>, "Wei Xu" <weixugc@google.com>,
+ "Andrey Ryabinin" <ryabinin.a.a@gmail.com>,
+ "Alexander Potapenko" <glider@google.com>,
+ "Andrey Konovalov" <andreyknvl@gmail.com>,
+ "Dmitry Vyukov" <dvyukov@google.com>,
+ "Vincenzo Frascino" <vincenzo.frascino@arm.com>,
+ "Anshuman Khandual" <anshuman.khandual@arm.com>,
+ "Yang Shi" <yang@os.amperecomputing.com>, chaitanyas.prakash@arm.com,
+ "Ard Biesheuvel" <ardb@kernel.org>, guoren <guoren@kernel.org>,
+ yang.li85200@gmail.com, "Alexander Viro" <viro@zeniv.linux.org.uk>,
+ "Dinh Nguyen" <dinguyen@kernel.org>,
+ "schuster.simon@siemens-energy.com" <schuster.simon@siemens-energy.com>,
+ "Vivian Wang" <wangruikang@iscas.ac.cn>, junhui.liu@pigmoral.tech,
+ "Muchun Song" <muchun.song@linux.dev>,
+ "Vishal Moola (Oracle)" <vishal.moola@gmail.com>,
+ "Nam Cao" <namcao@linutronix.de>, "Pavel Machek" <pavel@kernel.org>,
+ djbw@kernel.org, yu-cheng.yu@intel.com,
+ "Baolu Lu" <baolu.lu@linux.intel.com>,
+ "Jonathan Cameron" <Jonathan.Cameron@huawei.com>,
+ "Coiby Xu" <coxu@redhat.com>, "Andreas Larsson" <andreas@gaisler.com>,
+ "Liam R. Howlett" <liam@infradead.org>,
+ "Vlastimil Babka (SUSE)" <vbabka@kernel.org>,
+ "Suren Baghdasaryan" <surenb@google.com>,
+ "Michal Hocko" <mhocko@suse.com>,
+ "Geert Uytterhoeven" <geert@linux-m68k.org>,
+ "Stafford Horne" <shorne@gmail.com>, "Jonas Bonn" <jonas@southpole.se>,
+ "Stefan Kristiansson" <stefan.kristiansson@saunalahti.fi>
+Message-Id: <4a0f9161-961e-47f9-8672-9a06e52fefea@app.fastmail.com>
+In-Reply-To: <20260713135614.1618183-3-yeoreum.yun@arm.com>
+References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
+ <20260713135614.1618183-3-yeoreum.yun@arm.com>
+Subject: Re: [RFC PATCH 02/34] ARM: mm: make 2-level pgd_t a scalar
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-On 7/14/26 4:38 PM, Muchun Song wrote:
->
->
-> On 2026/7/9 19:25, Li Zhe wrote:
->> memmap_init_zone_device() repeats nearly identical head-page
->> initialization for each PFN. Prepare one reusable ZONE_DEVICE head-page
->> template through the existing slow path, refresh the PFN-dependent
->> fields in that template before each copy, and memcpy it into each
->> destination page.
->>
->> The optimized path assigns _refcount through the copied template, so
->> keep it disabled when the page_ref_set tracepoint is enabled.
->>
->> This patch accelerates head-page initialization. The pfns_per_compound
->> =3D=3D 1 case gets the full benefit here, compound tails are handled in =
-the
->> next patch.
->>
->> Tested in a VM with a 100 GB fsdax namespace device configured with
->> map=3Ddev on Intel Ice Lake server. This test exercises the nd_pmem rebi=
-nd
->> path (pfns_per_compound =3D=3D 1).
->>
->> Test procedure:
->> Rebind the nd_pmem driver 30 times and collect the memmap initialization
->> time from the pr_debug() output of memmap_init_zone_device().
->>
->> Base(v7.2-rc1):
->> =C2=A0=C2=A0 First binding: 1456 ms
->> =C2=A0=C2=A0 Average of subsequent rebinds: 244.28 ms
->>
->> With this patch and its prerequisites applied:
->> =C2=A0=C2=A0 First binding: 1440 ms
->> =C2=A0=C2=A0 Average of subsequent rebinds: 217.19 ms
->>
->> This reduces the average rebind time from 244.28 ms to 217.19 ms, or
->> about 11%.
->>
->> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
->> ---
->> =C2=A0 mm/mm_init.c | 59 +++++++++++++++++++++++++++++++++++++++++++++++=
-++++-
->> =C2=A0 1 file changed, 58 insertions(+), 1 deletion(-)
->>
->> diff --git a/mm/mm_init.c b/mm/mm_init.c
->> index 5fccfbacf855..170021e182e0 100644
->> --- a/mm/mm_init.c
->> +++ b/mm/mm_init.c
->> @@ -1065,6 +1065,44 @@ static void __ref=20
->> zone_device_page_init_slow(struct page *page,
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 set_page_count(pa=
-ge, 0);
->> =C2=A0 }
->> =C2=A0 +static inline bool zone_device_page_init_optimization_enabled(vo=
-id)
->> +{
->> +=C2=A0=C2=A0=C2=A0 /*
->> +=C2=A0=C2=A0=C2=A0=C2=A0 * The template fast path copies a preinitializ=
-ed struct page=20
->> image.
->> +=C2=A0=C2=A0=C2=A0=C2=A0 * Skip it when the page_ref_set tracepoint is =
-enabled.
->> +=C2=A0=C2=A0=C2=A0=C2=A0 */
->> +=C2=A0=C2=A0=C2=A0 return !page_ref_tracepoint_active(page_ref_set);
->
-> I'm not sure why we need to make this. I think we can go ahead and
-> perform this optimization unconditionally.
->
-> If we look at why the tracepoint was added in the first place, it's
-> clear that its primary purpose is for debugging, particularly regarding
-> why CMA memory pages cannot be allocated (see commit 95813b8faa0). But
-> at this stage, the struct page hasn't even been initialized yet; we
-> are currently in the middle of initialization. From the perspective of
-> the page being initialized, the user doesn't need to care at all about
-> how the reference count is changing. Therefore, I don't think we need to
-> include these checks. It would only increase the complexity of the code.
->
-> I suggest deleting this section of code to keep things simple.
->
-> Thanks.
+On Mon, Jul 13, 2026, at 15:55, Yeoreum Yun wrote:
 
-I would prefer to keep this check.
+>  typedef pteval_t pte_t;
+>  typedef pmdval_t pmd_t;
+> -typedef pmdval_t pgd_t[2];
+> +typedef pgdval_t pgd_t;
+>  typedef pteval_t pgprot_t;
+> 
 
-When page_ref_set debugging is enabled, preserving the existing per-page
-set_page_count() behavior is still useful, including during
-initialization, because it keeps the debug trace complete and unchanged.
+Just noticed one more issue here, I think this will break these
+two macros that now access four entries instead of two:
 
-In the normal case, page_ref_set is off by default, so this only affects
-an explicit debugging configuration and leaves the production fast path
-unchanged. The extra logic here is also fairly small and stays local to
-this optimization path.
+#define copy_pmd(pmdpd,pmdps)           \
+        do {                            \
+                pmdpd[0] = pmdps[0];    \
+                pmdpd[1] = pmdps[1];    \
+                flush_pmd_entry(pmdpd); \
+        } while (0)
 
-Thanks,
-Zhe
+#define pmd_clear(pmdp)                 \
+        do {                            \
+                pmdp[0] = __pmd(0);     \
+                pmdp[1] = __pmd(0);     \
+                clean_pmd_entry(pmdp);  \
+        } while (0)
 
->> +}
->> +
->> +/*
->> + * 'template' is a reusable page prototype rather than a strictly=20
->> immutable
->> + * object. Most ZONE_DEVICE fields stay constant across the pages=20
->> covered by
->> + * the current template, but section bits and page->virtual may=20
->> still depend
->> + * on the PFN. Refresh those PFN-dependent fields in the template=20
->> before
->> + * copying it into @page.
->> + */
->> +static inline void zone_device_page_update_template(struct page=20
->> *template,
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 unsigned long pfn)
->> +{
->> +=C2=A0=C2=A0=C2=A0 set_page_section_from_pfn(template, pfn);
->> +#ifdef WANT_PAGE_VIRTUAL
->> +=C2=A0=C2=A0=C2=A0 if (!is_highmem_idx(ZONE_DEVICE))
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 set_page_address(template, _=
-_va(pfn << PAGE_SHIFT));
->> +#endif
->> +}
->> +
->> +static void zone_device_page_init_from_template(struct page *page,
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 unsigned long pfn, struct pa=
-ge *template)
->> +{
->> +=C2=A0=C2=A0=C2=A0 /*
->> +=C2=A0=C2=A0=C2=A0=C2=A0 * 'template' carries the invariant portion of =
-a ZONE_DEVICE struct
->> +=C2=A0=C2=A0=C2=A0=C2=A0 * page. Update the PFN-dependent fields in pla=
-ce before copying it
->> +=C2=A0=C2=A0=C2=A0=C2=A0 * to the destination page.
->> +=C2=A0=C2=A0=C2=A0=C2=A0 */
->> +=C2=A0=C2=A0=C2=A0 zone_device_page_update_template(template, pfn);
->> +=C2=A0=C2=A0=C2=A0 memcpy(page, template, sizeof(*page));
->> +}
->> +
->> =C2=A0 /*
->> =C2=A0=C2=A0 * With compound page geometry and when struct pages are sto=
-red in=20
->> ram most
->> =C2=A0=C2=A0 * tail pages are reused. Consequently, the amount of unique=
- struct=20
->> pages to
->> @@ -1120,6 +1158,7 @@ void __ref memmap_init_zone_device(struct zone=20
->> *zone,
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 unsigned long nr_pages,
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 struct dev_pagemap *pgmap)
->> =C2=A0 {
->> +=C2=A0=C2=A0=C2=A0 bool use_template =3D zone_device_page_init_optimiza=
-tion_enabled();
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 unsigned long pfn, end_pfn =3D start_pfn =
-+ nr_pages;
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 struct pglist_data *pgdat =3D zone->zone_=
-pgdat;
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 struct vmem_altmap *altmap =3D pgmap_altm=
-ap(pgmap);
->> @@ -1127,6 +1166,7 @@ void __ref memmap_init_zone_device(struct zone=20
->> *zone,
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 unsigned long zone_idx =3D zone_idx(zone)=
-;
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 unsigned long start =3D jiffies;
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 int nid =3D pgdat->node_id;
->> +=C2=A0=C2=A0=C2=A0 struct page template;
->>
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (WARN_ON_ONCE(!pgmap || zone_idx !=3D =
-ZONE_DEVICE))
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 return;
->> @@ -1144,7 +1184,24 @@ void __ref memmap_init_zone_device(struct zone=20
->> *zone,
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 for (pfn =3D start_pfn; pfn < end_pfn; pf=
-n +=3D pfns_per_compound) {
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 struct page *page=
- =3D pfn_to_page(pfn);
->>
->> -=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 zone_device_page_init_slow(p=
-age, pfn, zone_idx, nid, pgmap);
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (!use_template) {
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 zone=
-_device_page_init_slow(page, pfn, zone_idx,
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0 nid, pgmap);
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 } else if (pfn =3D=3D start_=
-pfn) {
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 /*
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0 * Seed the reusable head-page template from the
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0 * first real struct page, because the existing
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0 * page-init and pageblock helpers expect a real
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0 * memmap entry rather than a stack object.
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0 */
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 zone=
-_device_page_init_slow(page, pfn, zone_idx,
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0 nid, pgmap);
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 /* i=
-nit template page */
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 memc=
-py(&template, page, sizeof(*page));
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 } else {
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 zone=
-_device_page_init_from_template(page, pfn,
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 &template);
->> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 }
->>
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (IS_ALIGNED(pf=
-n, PAGES_PER_SECTION))
->> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0 cond_resched();
->> --=20
->> 2.20.1
->>
->
+    Arnd
