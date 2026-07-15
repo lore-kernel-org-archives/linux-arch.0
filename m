@@ -1,206 +1,230 @@
-Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
+Received: from va-1-115.ptr.blmpb.com (va-1-115.ptr.blmpb.com [209.127.230.115])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 183FE427FAD
-	for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2026 21:45:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 139913B2D39
+	for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2026 04:13:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.115
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784065559; cv=none; b=f3spDne7WtfVH6dnVeI5UxBvD9zETpHzTdvkXqwGBmMAYJj1D48hlbtE39MTJTxzOuA4sTXSyq2UlnyLLXG225mzBL0TuQprMUeOgWtgRDDyaKD3kf8DyW1ItgMVE5J9zClplTTFdDZwa4Y1iFHS+AVUdX3UOWSS9j9HOvQ7bdU=
+	t=1784088814; cv=none; b=gnl1gMr7oNodP8moGUW/Y1s3qBrkYK2IJX5taG+E/pu2T/1DGgEgt7q0amlgvsAhuYlBLWYh1J9YQQmpg7Q1IhXRmR6w1zwBM7Bg60f6sY6gotgAVQq2nG0im1vfxDSgEdODrTMq4eA1JqaVm4Qd/0CttdcsL8DqPqLpEOlJQTc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784065559; c=relaxed/simple;
-	bh=cAVW45uqQg2SRPEYKmKtszJRvMO//7p4A7xPCiBzVyY=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=PnP6cQ271+YGv9XrJ+L69oWAfbfo0vS9a2ElcsEy84LSge37Lo/KLXvsCJp8YyXqd3vGowNj90gAuuEwn4QXVNk11lUhNl36HsF7a7KQPD5DbB83IlDfNo77oWErFNPpGD8UDTBkfxFCSDToPoElh/ubHuobqjSRYqCaDjYJMHc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=KkjWbcaa; arc=none smtp.client-ip=209.85.128.42
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1784088814; c=relaxed/simple;
+	bh=iYeoB2Oy/GZpBzjfZl/wRaVKRhISTMx1gSLVXS3r6YQ=;
+	h=Content-Type:To:Cc:From:Date:Mime-Version:Subject:References:
+	 Message-Id:In-Reply-To; b=KOPFhqy1gVbsEIh+j+RD+o5RVOZQR2oUnBsmwjtMBmupcqHskRUmMzGAxQHU5A7Yh5PP4vT67lVUduuNMbTssWcKM/ni4880OcELLClio5ualujJFKbfsUWbhdSvz1gqMZ4octLNQKXMdQiuQpPJEMDSz61KlWGNtXMwTtgeYJo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=VjO3PUvT; arc=none smtp.client-ip=209.127.230.115
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="KkjWbcaa"
-Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-493e8d4f4dcso36559575e9.0
-        for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2026 14:45:57 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1784065556; x=1784670356; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:mime-version:references
-         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=lsgDUhCPZi1cUpPkNQ/I7/JmqQLLDAJpIhlyKeHE0tE=;
-        b=KkjWbcaazAke3wXuU80om0NUqMSXZObBDwLbhD/9EV5XAxe3Xq6GRLNsM8aoBv3HdJ
-         dW6MdyWIupPBH2Pyr/S2bwdL+ClHqaQ+LVgx1JLKA3G7ASLVatx3lX6lE9fjL0rnJHk0
-         mgr8pokiOu++KxonyRuT5nChTpiJjJJvrt+8/3YGXm2owcmxJq+uLW6Nb7l9ECyS/Orx
-         st30PZQ9xPol8bl0v8EPr0EvpfEw9W1w9i/+AKCg+uiX6MGJUTK5ZR2y4OdhKvq767CH
-         o1bGfs4S9DJxz9Enexow/bW+AjFBUIAXPf1g9uElm0dnJZz8kvTDpQjfcUuTr/+eMVO5
-         mVWA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1784065556; x=1784670356;
-        h=content-transfer-encoding:content-type:mime-version:references
-         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=lsgDUhCPZi1cUpPkNQ/I7/JmqQLLDAJpIhlyKeHE0tE=;
-        b=T8YFAC9CKfRRGsLcPzJQcSEsUnL7sElh8BmdFpSLOchagGkQSwhlC1zItca3L9Il/i
-         3Ixs9nvP41egFYR3Pv9NDM74dD2jnB1v0fPY0IyicL9djsMJ3aKmbhnmHPH468OxrRbg
-         jlCXajDCQ1U9F/ZVDGrYoT/m7zypjLL36BmmfBKsKc370v3tcjZTQGWSpqWEc56vryL2
-         Pgj0/Ty+88SwcbL4yGq69gKse1Jf+LSNWgRRbNEf5jgJfa21Q+5w1ceyDGl6rbltVC8K
-         HF/dtIyxybPESdotY3ln3zR47qcLrwWfc1UhT11SN6hAjPOL/BQ3ely1Pz8LhJQ82AXL
-         6GGg==
-X-Forwarded-Encrypted: i=1; AHgh+Rpup005EiME2LGBqamr7hjuQpx2+0dv8duUto8pefYU54g4I0cQPaKKBOqGfue6tv6Dtda1Ph0Sn0Ob@vger.kernel.org
-X-Gm-Message-State: AOJu0Yy8aBTEx66BL28R9mzwMEJ+B1LpWb0CmX18i7zdd1KK5ySpZuDw
-	qvQ94PKlgjRntRyiEqQLy6iPwPRQDoeFZzbd/0AYWa8wL04HFNv211ZR
-X-Gm-Gg: AfdE7ckmD5VK1nBUIc7FcAvPnTzGPPvQXeqAZyHZuBTD2XDw1xfGJz4KFoAhJW5Q4vC
-	XeiQoVJQ1P8FckQTILQHi//+mVAZp1w0Y/TNQYe2NgkiK3XobBNdkV96PkvcKnQIx/osB+pZQDw
-	f7QKK8YMiFVSOG2tgtmNV5hHeHLYEtz3fBynW82kf2I0vUac9QNBgD9XRu5S+7hMHueVeAc+caX
-	i/8H6gOAcgxnOnPXVapUD8Eod3Rp0TIVH7AwNrZAYgphtt4e5FNgSyHTX4Qr2h4KpqBNmZdr+9k
-	8yN539sE09f/dKHHo5soNYNn+SdXuzRsBNXQUMpfg6tY05Ps34x/Bau6QylWjpkfRJmb7Adl2Jk
-	wJnwaGB65ZUgy0jZhCCwEX7oWR8v18cn9wJBVZGmLdh0t2C+K9xJ1erhdxAWW3CkbyPesevue50
-	JbqKLr0Sa5iu32nctbFbzCUHmmhdKzMAfyZM8pFUaxIqCVhKMz7A==
-X-Received: by 2002:a05:600c:4e8f:b0:493:b307:6777 with SMTP id 5b1f17b1804b1-4953c273de7mr4061435e9.22.1784065556082;
-        Tue, 14 Jul 2026 14:45:56 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4950a32b9f3sm118533945e9.13.2026.07.14.14.45.54
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 14 Jul 2026 14:45:55 -0700 (PDT)
-Date: Tue, 14 Jul 2026 22:45:53 +0100
-From: David Laight <david.laight.linux@gmail.com>
-To: "Arnd Bergmann" <arnd@arndb.de>
-Cc: "Pedro Falcato" <pfalcato@suse.de>, "Yeoreum Yun" <yeoreum.yun@arm.com>,
- linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
- loongarch@lists.linux.dev, linux-mips@vger.kernel.org, Linux-Arch
- <linux-arch@vger.kernel.org>, kvm-riscv@lists.infradead.org,
- linux-riscv@lists.infradead.org, x86@kernel.org, linux-mm@kvack.org,
- kasan-dev@googlegroups.com, "linux-csky@vger.kernel.org"
- <linux-csky@vger.kernel.org>, linux-m68k@lists.linux-m68k.org,
- "linux-openrisc@vger.kernel.org" <linux-openrisc@vger.kernel.org>, "David
- Hildenbrand (Red Hat)" <david@kernel.org>, "Russell King"
- <linux@armlinux.org.uk>, "Andrew Morton" <akpm@linux-foundation.org>,
- "Ankur Arora" <ankur.a.arora@oracle.com>, "Mike Rapoport"
- <rppt@kernel.org>, "Magnus Lindholm" <linmag7@gmail.com>, "Christophe
- Leroy" <chleroy@kernel.org>, "Klara Modin" <klarasmodin@gmail.com>, "Huacai
- Chen" <chenhuacai@kernel.org>, "WANG Xuerui" <kernel@xen0n.name>, "Kirill
- A. Shutemov" <kas@kernel.org>, zhangtianyang@loongson.cn, wangyuli@aosc.io,
- "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>, "Lorenzo Stoakes"
- <ljs@kernel.org>, "Jason Gunthorpe" <jgg@ziepe.ca>, "Catalin Marinas"
- <catalin.marinas@arm.com>, "Will Deacon" <will@kernel.org>, "Ryan Roberts"
- <ryan.roberts@arm.com>, "Pasha Tatashin" <pasha.tatashin@soleen.com>,
- "Rohan McLure" <rmclure@linux.ibm.com>, "Baolin Wang"
- <baolin.wang@linux.alibaba.com>, "Tejun Heo" <tj@kernel.org>, "Kevin
- Brodsky" <kevin.brodsky@arm.com>, "Anup Patel" <anup@brainfault.org>,
- atish.patra@linux.dev, "Paul Walmsley" <pjw@kernel.org>, "Palmer Dabbelt"
- <palmer@dabbelt.com>, "Albert Ou" <aou@eecs.berkeley.edu>, "Alexandre
- Ghiti" <alex@ghiti.fr>, "Dave Hansen" <dave.hansen@linux.intel.com>, "Andy
- Lutomirski" <luto@kernel.org>, "Peter Zijlstra" <peterz@infradead.org>,
- "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
- "Borislav Petkov" <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>,
- "Johannes Weiner" <hannes@cmpxchg.org>, "Michal Hocko" <mhocko@kernel.org>,
- qi.zheng@linux.dev, "Shakeel Butt" <shakeel.butt@linux.dev>, "Kairui Song"
- <kasong@tencent.com>, "Barry Song" <baohua@kernel.org>, "Axel Rasmussen"
- <axelrasmussen@google.com>, "Yuanchu Xie" <yuanchu@google.com>, "Wei Xu"
- <weixugc@google.com>, "Andrey Ryabinin" <ryabinin.a.a@gmail.com>,
- "Alexander Potapenko" <glider@google.com>, "Andrey Konovalov"
- <andreyknvl@gmail.com>, "Dmitry Vyukov" <dvyukov@google.com>, "Vincenzo
- Frascino" <vincenzo.frascino@arm.com>, "Anshuman Khandual"
- <anshuman.khandual@arm.com>, "Yang Shi" <yang@os.amperecomputing.com>,
- chaitanyas.prakash@arm.com, "Ard Biesheuvel" <ardb@kernel.org>, guoren
- <guoren@kernel.org>, yang.li85200@gmail.com, "Alexander Viro"
- <viro@zeniv.linux.org.uk>, "Dinh Nguyen" <dinguyen@kernel.org>,
- "schuster.simon@siemens-energy.com" <schuster.simon@siemens-energy.com>,
- "Vivian Wang" <wangruikang@iscas.ac.cn>, junhui.liu@pigmoral.tech, "Muchun
- Song" <muchun.song@linux.dev>, "Vishal Moola (Oracle)"
- <vishal.moola@gmail.com>, "Nam Cao" <namcao@linutronix.de>, "Pavel Machek"
- <pavel@kernel.org>, djbw@kernel.org, yu-cheng.yu@intel.com, "Baolu Lu"
- <baolu.lu@linux.intel.com>, "Jonathan Cameron"
- <Jonathan.Cameron@huawei.com>, "Coiby Xu" <coxu@redhat.com>, "Andreas
- Larsson" <andreas@gaisler.com>, "Liam R. Howlett" <liam@infradead.org>,
- "Vlastimil Babka (SUSE)" <vbabka@kernel.org>, "Suren Baghdasaryan"
- <surenb@google.com>, "Michal Hocko" <mhocko@suse.com>, "Geert Uytterhoeven"
- <geert@linux-m68k.org>, "Stafford Horne" <shorne@gmail.com>, "Jonas Bonn"
- <jonas@southpole.se>, "Stefan Kristiansson"
- <stefan.kristiansson@saunalahti.fi>
-Subject: Re: [RFC PATCH 02/34] ARM: mm: make 2-level pgd_t a scalar
-Message-ID: <20260714224553.583c8445@pumpkin>
-In-Reply-To: <aceb8582-bafa-41b3-8f56-77fec89a4d90@app.fastmail.com>
-References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
-	<20260713135614.1618183-3-yeoreum.yun@arm.com>
-	<alYL7B0HAvmLVHGU@pedro-suse>
-	<b7dbc476-1477-4004-93b3-c5e667e24df8@app.fastmail.com>
-	<20260714143450.61a94085@pumpkin>
-	<aceb8582-bafa-41b3-8f56-77fec89a4d90@app.fastmail.com>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="VjO3PUvT"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ s=2212171451; d=bytedance.com; t=1784088800; h=from:subject:
+ mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
+ mime-version:in-reply-to:message-id;
+ bh=iYeoB2Oy/GZpBzjfZl/wRaVKRhISTMx1gSLVXS3r6YQ=;
+ b=VjO3PUvTDUj3RjNqk8bDBkutYkm4ldUGqiss4dQJVY9POQZM40HbYe9+YncVtM8itsjyjY
+ Pf5EthMWJRltFiODPOFTPpNyne/X22AJ4cpV9dPjxMrxIU1K8e0HS3Tgtqqj6kFOYGTFg7
+ 7S0Hmpa1Q5Zuadsl7/4XgkNYKPjcqakEfTfRj/vOPRBjMIa6WrdODeQmr6HyacSdwAyUnT
+ E+suoiQpgO/qwQxEffUb6YAy/d6vlp0ixyQv5KWpB/lWnhgpSVFOrAddrxoQyiK/ray4Ad
+ x8JT/bvDJdevYO4+7bTTTNVgp7KbN5Jxt5/3x5MNxkMgI+9Eweo9HDrT6AGjPg==
+Content-Type: text/plain; charset=UTF-8
+To: "Muchun Song" <muchun.song@linux.dev>
+Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
+	<akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
+	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
+	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
+	<rppt@kernel.org>, <tglx@kernel.org>
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Date: Wed, 15 Jul 2026 12:12:57 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
+User-Agent: Mozilla Thunderbird
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+Subject: Re: [PATCH v6 2/8] mm: factor zone-device page init helpers out of __init_zone_device_page
+Content-Transfer-Encoding: quoted-printable
+References: <20260709112520.24857-1-lizhe.67@bytedance.com> <20260709112520.24857-3-lizhe.67@bytedance.com> <993afd58-e503-46aa-acaf-19243b0d147c@linux.dev>
+Message-Id: <0f83a711-5493-45f1-871b-1fade5fa2916@bytedance.com>
+X-Lms-Return-Path: <lba+26a5708de+c656cf+vger.kernel.org+lizhe.67@bytedance.com>
+In-Reply-To: <993afd58-e503-46aa-acaf-19243b0d147c@linux.dev>
 
-On Tue, 14 Jul 2026 17:06:00 +0200
-"Arnd Bergmann" <arnd@arndb.de> wrote:
+On 7/14/26 10:44 AM, Muchun Song wrote:
+>
+>
+> On 2026/7/9 19:25, Li Zhe wrote:
+>> memmap_init_zone_device() currently mixes refcount policy and core
+>> ZONE_DEVICE page setup in a single helper.
+>>
+>> Factor the refcount-reset predicate into pagemap_resets_refcount(), move
+>> the common page initialization into __zone_device_page_init(), and wrap
+>> the existing slow path in zone_device_page_init_slow().
+>
+> Hi,
+>
+> Sorry if this has been discussed before, but I'm still curious=E2=80=94wh=
+at
+> is the significance of the 'slow' suffix here? I don't think I quite
+> understand why this is called the 'slow path' here. Is there also a
+> 'fast path' for initializing struct page?
+>
+> Thanks.=20
 
-> On Tue, Jul 14, 2026, at 15:34, David Laight wrote:
-> > On Tue, 14 Jul 2026 13:55:18 +0200
-> > "Arnd Bergmann" <arnd@arndb.de> wrote:  
-> >> > I see the compiler has an awkward time returning a u64 struct (see
-> >> > https://godbolt.org/z/qejbv6j9a), but if this doesn't work maybe we should
-> >> > get rid of the STRICT_MM_TYPECHECKS stuff? I seriously doubt anyone is
-> >> > purposefully toggling it on for testing from time to time.    
-> >> 
-> >> As far as I can tell, the #ifdef was originally in i386 and
-> >> got copied to all other architectures at the time, but was
-> >> removed in linux-2.3.23 from the original copy when CONFIG_X86_PAE
-> >> was introduced.  
-> >
-> > For x86-32 the makefiles request 64bit structures be returned in registers
-> > (at the same place regparm=3 is set - probably added at the same time
-> > between 2.4 and 2.6).
-> >
-> > Note that arm32 can will return a 32bit struct in a register and
-> > arm64 will return a 128bit struct in two registers.
-> >
-> > The only problem is returning a 64bit struct in 32bit mode.
-> >
-> > I'm sure this code is arm64 only.  
-> 
-> The file we are talking about is arch/arm/include/asm/pgtable-2level-types.h,
-> which is definitely 32-bit only and force a 64-bit struct return
-> on the stack.
+The "slow" suffix here is relative to the template-copy fast path added
+later in patch 4.
 
-I've clearly failed to detect the environment :-(
-The 'struct return by reference' is part of the ABI.
+Patch 2 factors the existing per-page initialization path into a helper
+so that the later patches can reuse it as the fallback path when
+template copying is not used. In that sense, this helper is the slow
+path, while the fast path is introduced later in the series.
 
-> I checked some trivial tests that show that arm-linux-gnueabihf-gcc-16
-> also still produces badly optimized object code with structures
-> passed by value, and will spill those to the stack for no apparent
-> reason. clang handles those just fine as a pair of registers.
+Thanks,
+Zhe
 
-I'd have thought it would be ok if the structure had two 32bit values
-and they were directly accessed.
-The silly test I did earlier didn't spill.
-Taking the address could easily force a spill in the function itself.
-So that ((int (*)[2])&var)[0] (which is just ((int *)&var)[0]) is likely
-to be problematic - or certainly heading in that direction.
-
-> For the 2-level page table, this only concerns pgd_t, which is
-> rarely passed around or returned by value. The 3-level page
-> table has a 64-bit pte_t, which means we probably won't
-> want STRICT_MM_TYPECHECKS there.
-
-I did do some mmu setup for a strongarm a long time ago.
-I do remember in being odd.
-But I was only moving the software frame buffer away from the physical
-frame buffer to steal a load of screen rows for a keyboard.
-
-Is the 64bit pte_t needed to get the extra modified and accessed
-flags there aren't free bits for in the hardware pte?
-Would it have been possible to use bits that are fixed in the hardware
-pte for the extra bits and write the value to pte[0] and pte[256] fixing
-up the value written to pte[0] (that the hardware reads).
-
-The arm docs seem hard to read...
-(the left-right scroll doesn't help!)
-
-	David
-
-> 
->       Arnd
-
+>>
+>> This keeps the slow-path behaviour unchanged and gives later patches
+>> reusable helper boundaries.
+>>
+>> No functional change intended.
+>>
+>> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+>> Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
+>> ---
+>> =C2=A0 mm/mm_init.c | 56 ++++++++++++++++++++++++++++++++++-------------=
+-----
+>> =C2=A0 1 file changed, 37 insertions(+), 19 deletions(-)
+>>
+>> diff --git a/mm/mm_init.c b/mm/mm_init.c
+>> index 95808ab5cfdb..5fccfbacf855 100644
+>> --- a/mm/mm_init.c
+>> +++ b/mm/mm_init.c
+>> @@ -1005,11 +1005,37 @@ static void __init memmap_init(void)
+>> =C2=A0 }
+>> =C2=A0 =C2=A0 #ifdef CONFIG_ZONE_DEVICE
+>> -static void __ref __init_zone_device_page(struct page *page,=20
+>> unsigned long pfn,
+>> +/*
+>> + * Return true when the free path for this pagemap type restores the=20
+>> page
+>> + * refcount to 1, so memmap_init_zone_device() can keep the count=20
+>> set by
+>> + * __init_single_page(). Otherwise initialize the refcount to 0 and=20
+>> leave
+>> + * it to the allocator or pgmap callbacks to raise it when the page is
+>> + * handed out again.
+>> + */
+>> +static inline bool pagemap_resets_refcount(const struct dev_pagemap=20
+>> *pgmap)
+>> +{
+>> +=C2=A0=C2=A0=C2=A0 /*
+>> +=C2=A0=C2=A0=C2=A0=C2=A0 * MEMORY_DEVICE_GENERIC pages regain a refcoun=
+t of 1 in the free
+>> +=C2=A0=C2=A0=C2=A0=C2=A0 * path. The remaining ZONE_DEVICE types start =
+from 0 here and=20
+>> raise
+>> +=C2=A0=C2=A0=C2=A0=C2=A0 * the count again when the allocator or driver=
+ hands the page out.
+>> +=C2=A0=C2=A0=C2=A0=C2=A0 */
+>> +=C2=A0=C2=A0=C2=A0 switch (pgmap->type) {
+>> +=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_FS_DAX:
+>> +=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_PRIVATE:
+>> +=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_COHERENT:
+>> +=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_PCI_P2PDMA:
+>> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 return false;
+>> +=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_GENERIC:
+>> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 return true;
+>> +=C2=A0=C2=A0=C2=A0 }
+>> +
+>> +=C2=A0=C2=A0=C2=A0 return true;
+>> +}
+>> +
+>> +static void __ref __zone_device_page_init(struct page *page,=20
+>> unsigned long pfn,
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 unsigned=
+ long zone_idx, int nid,
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 struct d=
+ev_pagemap *pgmap)
+>> =C2=A0 {
+>> -
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 __init_single_page(page, pfn, zone_idx, n=
+id);
+>>
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 /*
+>> @@ -1028,23 +1054,15 @@ static void __ref=20
+>> __init_zone_device_page(struct page *page, unsigned long pfn,
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 */
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 page_folio(page)->pgmap =3D pgmap;
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 page->zone_device_data =3D NULL;
+>> +}
+>>
+>> -=C2=A0=C2=A0=C2=A0 /*
+>> -=C2=A0=C2=A0=C2=A0=C2=A0 * MEMORY_DEVICE_GENERIC pages regain a refcoun=
+t of 1 in the free
+>> -=C2=A0=C2=A0=C2=A0=C2=A0 * path. The remaining ZONE_DEVICE types start =
+from 0 here and=20
+>> raise
+>> -=C2=A0=C2=A0=C2=A0=C2=A0 * the count again when the allocator or driver=
+ hands the page out.
+>> -=C2=A0=C2=A0=C2=A0=C2=A0 */
+>> -=C2=A0=C2=A0=C2=A0 switch (pgmap->type) {
+>> -=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_FS_DAX:
+>> -=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_PRIVATE:
+>> -=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_COHERENT:
+>> -=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_PCI_P2PDMA:
+>> +static void __ref zone_device_page_init_slow(struct page *page,
+>> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 unsigned long pfn, unsigned =
+long zone_idx, int nid,
+>> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 struct dev_pagemap *pgmap)
+>> +{
+>> +=C2=A0=C2=A0=C2=A0 __zone_device_page_init(page, pfn, zone_idx, nid, pg=
+map);
+>> +=C2=A0=C2=A0=C2=A0 if (!pagemap_resets_refcount(pgmap))
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 set_page_count(pa=
+ge, 0);
+>> -=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 break;
+>> -
+>> -=C2=A0=C2=A0=C2=A0 case MEMORY_DEVICE_GENERIC:
+>> -=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 break;
+>> -=C2=A0=C2=A0=C2=A0 }
+>> =C2=A0 }
+>>
+>> =C2=A0 /*
+>> @@ -1090,7 +1108,7 @@ static void __ref memmap_init_compound(struct=20
+>> page *head,
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 for (pfn =3D head_pfn + 1; pfn < end_pfn;=
+ pfn++) {
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 struct page *page=
+ =3D pfn_to_page(pfn);
+>>
+>> -=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 __init_zone_device_page(page=
+, pfn, zone_idx, nid, pgmap);
+>> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 zone_device_page_init_slow(p=
+age, pfn, zone_idx, nid, pgmap);
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 prep_compound_tai=
+l(page, head, order);
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 set_page_count(pa=
+ge, 0);
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 }
+>> @@ -1126,7 +1144,7 @@ void __ref memmap_init_zone_device(struct zone=20
+>> *zone,
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 for (pfn =3D start_pfn; pfn < end_pfn; pf=
+n +=3D pfns_per_compound) {
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 struct page *page=
+ =3D pfn_to_page(pfn);
+>>
+>> -=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 __init_zone_device_page(page=
+, pfn, zone_idx, nid, pgmap);
+>> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 zone_device_page_init_slow(p=
+age, pfn, zone_idx, nid, pgmap);
+>>
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (IS_ALIGNED(pf=
+n, PAGES_PER_SECTION))
+>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0 cond_resched();
+>> --=20
+>> 2.20.1
+>
