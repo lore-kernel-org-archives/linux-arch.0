@@ -1,242 +1,181 @@
-Received: from out-171.mta0.migadu.com (out-171.mta0.migadu.com [91.218.175.171])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B11C43302D
-	for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2026 09:34:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7D457438488;
+	Wed, 15 Jul 2026 09:42:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784108054; cv=none; b=pxZP/mFXiC77jQ8qgLxpw04LZzfF3zsPN10EVqlVr+uRu4Gl+Ioadief/93zpWvWFtFYdJcH8NKgWiQbPcJMQhMMRusGQJfM8h0oM55SL0Yc/NV9LV6RLgfBBX1aA52IvHfYy+ipisZew2dPG6LfPKCkfUME07b/USAY8+6GZEg=
+	t=1784108530; cv=none; b=VlrhS8HIWEGTse3m2nIaKCqpYmZRVxA1mPYSmje6eHqJnlx6cE56d0o6UcWoiH6Z0qtE952apWwG8+ZDcvvTQCZpaSK5NpAdmc/PSpxoumOBWqOi3ZalB5PZnFb6d0mkMvRvKE+QzXPByiuBMMWG0RxH/tSC3B2pHOqGMLgi0mw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784108054; c=relaxed/simple;
-	bh=3awXuump5UvqnDy3qde52dqw5qWrD3T9YG0fYi5Lkek=;
-	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
-	 Message-Id:References:To; b=dIF5a6/lQZZIIgDmzY1CJ0L177C8fhrteIxKAc4HgcXTHF3Vfw3RtT5Spv2qHxXhYvC8uAYlCFPFfdwmT7sQK88JoucJuHAfSpwBB69Hj2TebnvbzzfKXSZrSLk+X2dZqbWI7t9Lk4uGpgk6E+kM0whrK0Y93VMDfq2G74uPE6k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=oV2WHMYL; arc=none smtp.client-ip=91.218.175.171
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	s=arc-20240116; t=1784108530; c=relaxed/simple;
+	bh=MTIXqsT8IK4LgAKnrdmFWqR2jWtIGSZsez8rl9WZZWk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=NjBqmGGuG2mRzBhgSzFxATYstCRISDEsaEMI6WlRJjm6+UuzIePS3yaOv3YG1yXOcbAbjgp4xlFqhWK6AoOHDXmO3vDABArKpZ5NSqAzUrZGrTdwZqiAQflumpUQ0SWA5+B9LwjuTA15tdvpT4zgroO8t629hq9DzS4aXaAN4Yk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=BuGz//px; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="oV2WHMYL"
-Content-Type: text/plain;
-	charset=us-ascii
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1784108034;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=oF3YK+5K8ha0tN8sHxJR+k2ivBzzY2bSpI1XmJ8lbwQ=;
-	b=oV2WHMYLzQrj/FC0XxU5Bg9xXz4idugxo/OKh71BZIVBG86rtJiCwmFwGmJIjzy1d6AS8k
-	NAIM7CS+ilWXPpi4vtRsWA9zDKTGHWvDmrqYaD/uj3jK1H++xIDx4nDVNik0TpJprQKjIA
-	AeEtthAUvoyCOg6fX/hEwxAFZN4Wsyc=
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="BuGz//px"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2CF8E1F000E9;
+	Wed, 15 Jul 2026 09:41:43 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1784108517;
+	bh=OsOrjOhnWHROAiL5jDixjdTy01yhp26YPrQZj+ZKGmw=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=BuGz//px8JYdlH1ROvcuFbUOrHqWr7Rai0ClmU5vVCqM4fdwBLoq9Vk7jfZQEhE8o
+	 IrnCDnGAkDVIoIFoRjcmZxlwdPG6OC+YipvyBE1odgnKvHKfNNwCh2XB2buwJGPS5R
+	 iBefsX/TKhJhR9hmzL7dGwZoJU/Ji9SN05RgUmsskxXD435oXeBrcPkdG2DFhsu4vj
+	 +e3aJz8AcS0lF7M/snH51Xce3ywkaeqf7dD4P6hu8Nxym6mLslJ6h4MrI357cw7O81
+	 XRBPOHup+Txi7+dBCWr1PZMqToL9uE9MZabdtccbuNt9Ibi4HCKPDlvi2/hKJAx9qB
+	 MWWxwbBRaMUlw==
+Message-ID: <7abd77fd-6c3e-4560-8e68-cbcde48264f5@kernel.org>
+Date: Wed, 15 Jul 2026 11:41:41 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3864.600.51.1.1\))
-Subject: Re: [PATCH v6 6/8] string: introduce memcpy_nt() helpers
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-From: Muchun Song <muchun.song@linux.dev>
-In-Reply-To: <abd1f6da-a6f4-40ed-923f-94201bba4690@bytedance.com>
-Date: Wed, 15 Jul 2026 17:33:15 +0800
-Cc: linux-arch@vger.kernel.org,
- linux-hardening@vger.kernel.org,
- linux-kernel@vger.kernel.org,
- linux-mm@kvack.org,
- x86@kernel.org,
- akpm@linux-foundation.org,
- apopple@nvidia.com,
- arnd@arndb.de,
- balbirs@nvidia.com,
- bp@alien8.de,
- dave.hansen@linux.intel.com,
- david@kernel.org,
- kees@kernel.org,
- mingo@redhat.com,
- rppt@kernel.org,
- tglx@kernel.org
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [RFC PATCH 02/34] ARM: mm: make 2-level pgd_t a scalar
+To: Arnd Bergmann <arnd@arndb.de>, Yeoreum Yun <yeoreum.yun@arm.com>,
+ linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+ loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+ Linux-Arch <linux-arch@vger.kernel.org>, kvm-riscv@lists.infradead.org,
+ linux-riscv@lists.infradead.org, x86@kernel.org, linux-mm@kvack.org,
+ kasan-dev@googlegroups.com,
+ "linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>,
+ linux-m68k@lists.linux-m68k.org,
+ "linux-openrisc@vger.kernel.org" <linux-openrisc@vger.kernel.org>
+Cc: Russell King <linux@armlinux.org.uk>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ Ankur Arora <ankur.a.arora@oracle.com>, Mike Rapoport <rppt@kernel.org>,
+ Magnus Lindholm <linmag7@gmail.com>, Christophe Leroy <chleroy@kernel.org>,
+ Klara Modin <klarasmodin@gmail.com>, Huacai Chen <chenhuacai@kernel.org>,
+ WANG Xuerui <kernel@xen0n.name>, "Kirill A. Shutemov" <kas@kernel.org>,
+ zhangtianyang@loongson.cn, wangyuli@aosc.io,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Lorenzo Stoakes <ljs@kernel.org>, Jason Gunthorpe <jgg@ziepe.ca>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Ryan Roberts <ryan.roberts@arm.com>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Rohan McLure <rmclure@linux.ibm.com>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>, Tejun Heo <tj@kernel.org>,
+ Kevin Brodsky <kevin.brodsky@arm.com>, Anup Patel <anup@brainfault.org>,
+ atish.patra@linux.dev, Paul Walmsley <pjw@kernel.org>,
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Alexandre Ghiti <alex@ghiti.fr>, Dave Hansen <dave.hansen@linux.intel.com>,
+ Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+ qi.zheng@linux.dev, Shakeel Butt <shakeel.butt@linux.dev>,
+ Kairui Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>,
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
+ Wei Xu <weixugc@google.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>,
+ Alexander Potapenko <glider@google.com>,
+ Andrey Konovalov <andreyknvl@gmail.com>, Dmitry Vyukov <dvyukov@google.com>,
+ Vincenzo Frascino <vincenzo.frascino@arm.com>,
+ Anshuman Khandual <anshuman.khandual@arm.com>,
+ Yang Shi <yang@os.amperecomputing.com>, chaitanyas.prakash@arm.com,
+ Ard Biesheuvel <ardb@kernel.org>, guoren <guoren@kernel.org>,
+ yang.li85200@gmail.com, Alexander Viro <viro@zeniv.linux.org.uk>,
+ Dinh Nguyen <dinguyen@kernel.org>,
+ "schuster.simon@siemens-energy.com" <schuster.simon@siemens-energy.com>,
+ Vivian Wang <wangruikang@iscas.ac.cn>, junhui.liu@pigmoral.tech,
+ Muchun Song <muchun.song@linux.dev>,
+ "Vishal Moola (Oracle)" <vishal.moola@gmail.com>,
+ Nam Cao <namcao@linutronix.de>, Pavel Machek <pavel@kernel.org>,
+ djbw@kernel.org, yu-cheng.yu@intel.com, Baolu Lu <baolu.lu@linux.intel.com>,
+ Jonathan Cameron <Jonathan.Cameron@huawei.com>, Coiby Xu <coxu@redhat.com>,
+ Andreas Larsson <andreas@gaisler.com>, "Liam R. Howlett"
+ <liam@infradead.org>, "Vlastimil Babka (SUSE)" <vbabka@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Geert Uytterhoeven <geert@linux-m68k.org>, Stafford Horne
+ <shorne@gmail.com>, Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
+ <20260713135614.1618183-3-yeoreum.yun@arm.com>
+ <4a0f9161-961e-47f9-8672-9a06e52fefea@app.fastmail.com>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ xsFNBFXLn5EBEAC+zYvAFJxCBY9Tr1xZgcESmxVNI/0ffzE/ZQOiHJl6mGkmA1R7/uUpiCjJ
+ dBrn+lhhOYjjNefFQou6478faXE6o2AhmebqT4KiQoUQFV4R7y1KMEKoSyy8hQaK1umALTdL
+ QZLQMzNE74ap+GDK0wnacPQFpcG1AE9RMq3aeErY5tujekBS32jfC/7AnH7I0v1v1TbbK3Gp
+ XNeiN4QroO+5qaSr0ID2sz5jtBLRb15RMre27E1ImpaIv2Jw8NJgW0k/D1RyKCwaTsgRdwuK
+ Kx/Y91XuSBdz0uOyU/S8kM1+ag0wvsGlpBVxRR/xw/E8M7TEwuCZQArqqTCmkG6HGcXFT0V9
+ PXFNNgV5jXMQRwU0O/ztJIQqsE5LsUomE//bLwzj9IVsaQpKDqW6TAPjcdBDPLHvriq7kGjt
+ WhVhdl0qEYB8lkBEU7V2Yb+SYhmhpDrti9Fq1EsmhiHSkxJcGREoMK/63r9WLZYI3+4W2rAc
+ UucZa4OT27U5ZISjNg3Ev0rxU5UH2/pT4wJCfxwocmqaRr6UYmrtZmND89X0KigoFD/XSeVv
+ jwBRNjPAubK9/k5NoRrYqztM9W6sJqrH8+UWZ1Idd/DdmogJh0gNC0+N42Za9yBRURfIdKSb
+ B3JfpUqcWwE7vUaYrHG1nw54pLUoPG6sAA7Mehl3nd4pZUALHwARAQABzS5EYXZpZCBIaWxk
+ ZW5icmFuZCAoQ3VycmVudCkgPGRhdmlkQGtlcm5lbC5vcmc+wsGQBBMBCAA6AhsDBQkmWAik
+ AgsJBBUKCQgCFgICHgUCF4AWIQQb2cqtc1xMOkYN/MpN3hD3AP+DWgUCaYJt/AIZAQAKCRBN
+ 3hD3AP+DWriiD/9BLGEKG+N8L2AXhikJg6YmXom9ytRwPqDgpHpVg2xdhopoWdMRXjzOrIKD
+ g4LSnFaKneQD0hZhoArEeamG5tyo32xoRsPwkbpIzL0OKSZ8G6mVbFGpjmyDLQCAxteXCLXz
+ ZI0VbsuJKelYnKcXWOIndOrNRvE5eoOfTt2XfBnAapxMYY2IsV+qaUXlO63GgfIOg8RBaj7x
+ 3NxkI3rV0SHhI4GU9K6jCvGghxeS1QX6L/XI9mfAYaIwGy5B68kF26piAVYv/QZDEVIpo3t7
+ /fjSpxKT8plJH6rhhR0epy8dWRHk3qT5tk2P85twasdloWtkMZ7FsCJRKWscm1BLpsDn6EQ4
+ jeMHECiY9kGKKi8dQpv3FRyo2QApZ49NNDbwcR0ZndK0XFo15iH708H5Qja/8TuXCwnPWAcJ
+ DQoNIDFyaxe26Rx3ZwUkRALa3iPcVjE0//TrQ4KnFf+lMBSrS33xDDBfevW9+Dk6IISmDH1R
+ HFq2jpkN+FX/PE8eVhV68B2DsAPZ5rUwyCKUXPTJ/irrCCmAAb5Jpv11S7hUSpqtM/6oVESC
+ 3z/7CzrVtRODzLtNgV4r5EI+wAv/3PgJLlMwgJM90Fb3CB2IgbxhjvmB1WNdvXACVydx55V7
+ LPPKodSTF29rlnQAf9HLgCphuuSrrPn5VQDaYZl4N/7zc2wcWM7BTQRVy5+RARAA59fefSDR
+ 9nMGCb9LbMX+TFAoIQo/wgP5XPyzLYakO+94GrgfZjfhdaxPXMsl2+o8jhp/hlIzG56taNdt
+ VZtPp3ih1AgbR8rHgXw1xwOpuAd5lE1qNd54ndHuADO9a9A0vPimIes78Hi1/yy+ZEEvRkHk
+ /kDa6F3AtTc1m4rbbOk2fiKzzsE9YXweFjQvl9p+AMw6qd/iC4lUk9g0+FQXNdRs+o4o6Qvy
+ iOQJfGQ4UcBuOy1IrkJrd8qq5jet1fcM2j4QvsW8CLDWZS1L7kZ5gT5EycMKxUWb8LuRjxzZ
+ 3QY1aQH2kkzn6acigU3HLtgFyV1gBNV44ehjgvJpRY2cC8VhanTx0dZ9mj1YKIky5N+C0f21
+ zvntBqcxV0+3p8MrxRRcgEtDZNav+xAoT3G0W4SahAaUTWXpsZoOecwtxi74CyneQNPTDjNg
+ azHmvpdBVEfj7k3p4dmJp5i0U66Onmf6mMFpArvBRSMOKU9DlAzMi4IvhiNWjKVaIE2Se9BY
+ FdKVAJaZq85P2y20ZBd08ILnKcj7XKZkLU5FkoA0udEBvQ0f9QLNyyy3DZMCQWcwRuj1m73D
+ sq8DEFBdZ5eEkj1dCyx+t/ga6x2rHyc8Sl86oK1tvAkwBNsfKou3v+jP/l14a7DGBvrmlYjO
+ 59o3t6inu6H7pt7OL6u6BQj7DoMAEQEAAcLBfAQYAQgAJgIbDBYhBBvZyq1zXEw6Rg38yk3e
+ EPcA/4NaBQJonNqrBQkmWAihAAoJEE3eEPcA/4NaKtMQALAJ8PzprBEXbXcEXwDKQu+P/vts
+ IfUb1UNMfMV76BicGa5NCZnJNQASDP/+bFg6O3gx5NbhHHPeaWz/VxlOmYHokHodOvtL0WCC
+ 8A5PEP8tOk6029Z+J+xUcMrJClNVFpzVvOpb1lCbhjwAV465Hy+NUSbbUiRxdzNQtLtgZzOV
+ Zw7jxUCs4UUZLQTCuBpFgb15bBxYZ/BL9MbzxPxvfUQIPbnzQMcqtpUs21CMK2PdfCh5c4gS
+ sDci6D5/ZIBw94UQWmGpM/O1ilGXde2ZzzGYl64glmccD8e87OnEgKnH3FbnJnT4iJchtSvx
+ yJNi1+t0+qDti4m88+/9IuPqCKb6Stl+s2dnLtJNrjXBGJtsQG/sRpqsJz5x1/2nPJSRMsx9
+ 5YfqbdrJSOFXDzZ8/r82HgQEtUvlSXNaXCa95ez0UkOG7+bDm2b3s0XahBQeLVCH0mw3RAQg
+ r7xDAYKIrAwfHHmMTnBQDPJwVqxJjVNr7yBic4yfzVWGCGNE4DnOW0vcIeoyhy9vnIa3w1uZ
+ 3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
+ CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
+ qIws/H2t
+In-Reply-To: <4a0f9161-961e-47f9-8672-9a06e52fefea@app.fastmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Message-Id: <80A0AAC8-DC3C-4FB7-8CE3-EF2EC96EB47F@linux.dev>
-References: <20260709112520.24857-1-lizhe.67@bytedance.com>
- <20260709112520.24857-7-lizhe.67@bytedance.com>
- <7bfb13a0-8f4a-4f4b-9df4-da842169f8f1@linux.dev>
- <abd1f6da-a6f4-40ed-923f-94201bba4690@bytedance.com>
-To: Li Zhe <lizhe.67@bytedance.com>
-X-Migadu-Flow: FLOW_OUT
 
-
-
-> On Jul 15, 2026, at 14:18, Li Zhe <lizhe.67@bytedance.com> wrote:
+On 7/15/26 08:15, Arnd Bergmann wrote:
+> On Mon, Jul 13, 2026, at 15:55, Yeoreum Yun wrote:
 > 
-> On 7/14/26 5:24 PM, Muchun Song wrote:
->> 
->> 
->> On 2026/7/9 19:25, Li Zhe wrote:
->>> Introduce memcpy_nt() and memcpy_nt_drain() for write-once copy sites
->>> that want a named non-temporal copy primitive plus an explicit drain
->>> step.
->>> 
->>> On x86_64, override both helpers in arch/x86/include/asm/string_64.h
->>> using the usual self-macro pattern, next to the existing
->>> memcpy_flushcache() backend that memcpy_nt() wraps. The x86_64
->>> implementation maps memcpy_nt() to memcpy_flushcache() and uses wmb()
->>> for memcpy_nt_drain(), because that backend issues MOVNTI stores and
->>> callers need an ordering point before later normal stores that depend
->>> on those writes becoming visible.
->>> 
->>> include/linux/string.h provides the generic fallback under
->>> memcpy_nt() as plain memcpy() and leaves memcpy_nt_drain() empty, so
->>> architectures that do not override memcpy_nt() do not pay an
->>> unconditional barrier. Architectures that later grow a specialized
->>> memcpy_nt() backend can override memcpy_nt_drain() with whatever
->>> drain primitive their memory-ordering rules require.
->>> 
->>> The immediate user is the ZONE_DEVICE template-copy path. It populates
->>> struct page descriptors in a write-once pattern, so a regular cached
->>> memcpy() can incur avoidable write-allocate traffic and cache
->>> pollution for data with little near-term reuse.
->>> 
->>> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
->>> ---
->>>   arch/x86/include/asm/string_64.h | 22 ++++++++++++++++++++++
->>>   include/linux/string.h           | 23 +++++++++++++++++++++++
->>>   2 files changed, 45 insertions(+)
->>> 
->>> diff --git a/arch/x86/include/asm/string_64.h 
->>> b/arch/x86/include/asm/string_64.h
->>> index 4635616863f5..6cb9e0ac7fa0 100644
->>> --- a/arch/x86/include/asm/string_64.h
->>> +++ b/arch/x86/include/asm/string_64.h
->>> @@ -4,6 +4,7 @@
->>> 
->>>   #ifdef __KERNEL__
->>>   #include <linux/jump_label.h>
->>> +#include <asm/barrier.h>
->>> 
->>>   /* Written 2002 by Andi Kleen */
->>> 
->>> @@ -100,6 +101,27 @@ static __always_inline void 
->>> memcpy_flushcache(void *dst, const void *src, size_t
->>>       }
->>>       __memcpy_flushcache(dst, src, cnt);
->>>   }
->>> +
->>> +#define memcpy_nt memcpy_nt
->>> +/*
->>> + * Reuse the existing x86 flushcache backend as the nt copy primitive.
->>> + * Callers pair it with memcpy_nt_drain() when later stores must be
->>> + * ordered after the copy.
->>> + */
->>> +static __always_inline void memcpy_nt(void *dst, const void *src, 
->>> size_t cnt)
->>> +{
->>> +    memcpy_flushcache(dst, src, cnt);
->> 
->> Why not use memcpy_flushcache() directly in device dax path? I don't
->> understand the necessity of introducing memcpy_nt here.
->> 
+>>  typedef pteval_t pte_t;
+>>  typedef pmdval_t pmd_t;
+>> -typedef pmdval_t pgd_t[2];
+>> +typedef pgdval_t pgd_t;
+>>  typedef pteval_t pgprot_t;
+>>
 > 
-> The reason for introducing memcpy_nt() is to give generic MM code a
-> named non-temporal copy primitive, instead of hardwiring the x86
-> memcpy_flushcache() backend into a generic caller.
+> Just noticed one more issue here, I think this will break these
+> two macros that now access four entries instead of two:
 > 
-> On x86, memcpy_nt() maps to memcpy_flushcache() today. On other
-> architectures, memcpy_flushcache() may have different semantics, and we
-> also do not know whether its implementation would provide the same
-> optimization opportunity as on x86. Using memcpy_nt() lets the generic
-> caller express the intent while leaving the backend choice to each
-> architecture.
+> #define copy_pmd(pmdpd,pmdps)           \
+>         do {                            \
+>                 pmdpd[0] = pmdps[0];    \
+>                 pmdpd[1] = pmdps[1];    \
+>                 flush_pmd_entry(pmdpd); \
+>         } while (0)
+> 
+> #define pmd_clear(pmdp)                 \
+>         do {                            \
+>                 pmdp[0] = __pmd(0);     \
+>                 pmdp[1] = __pmd(0);     \
+>                 clean_pmd_entry(pmdp);  \
+>         } while (0)
 
-Got it. But the 'nt' suffix is overly abbreviated and not direct enough.
-Therefore, I suggest avoiding uncommon abbreviations and instead keeping
-things as explicit as the 'flushcache' suffix in memcpy_flushcache.
+Yeah, let me look into it now that I understand roughly which tricks ARM is
+playing there :)
 
-> 
->>> +}
->>> +
->>> +#define memcpy_nt_drain memcpy_nt_drain
->>> +static __always_inline void memcpy_nt_drain(void)
->>> +{
->>> +    /*
->>> +     * Order the prior MOVNTI stores issued by memcpy_flushcache()
->>> +     * before later normal stores.
->>> +     */
->> 
->> I also have a question here: why are we using wmb to guarantee visibility
->> at this stage?
->> 
->> Since we are still in the very early phases of memory initialization 
->> (specifically,
->> struct page initialization), since we are still in an intermediate 
->> initialization
->> state, this shouldn't be visible to other CPUs anyway.
->> 
->> Thanks.
-> 
-> The drain is not about exposing the intermediate initialization state to
-> other CPUs.
-> 
-> It is there to order the earlier non-temporal stores before the later
-> normal stores on the same control path, for example before
-> memmap_init_compound() / prep_compound_head() update overlapping
-> compound metadata.
+-- 
+Cheers,
 
-For a single core, out-of-order execution is invisible to developers.
-Therefore, I'm curious about your reasons for preserving the order? What
-would be the consequences of not maintaining it?
-
-Thanks.
-
-> 
-> On x86, memcpy_nt() maps to MOVNTI-based memcpy_flushcache(), so
-> memcpy_nt_drain() uses wmb(), which maps to the required sfence there.
-> 
-> Thanks,
-> Zhe
-> 
->> 
->>> +    wmb();
->>> +}
->>>   #endif
->>> 
->>>   #endif /* __KERNEL__ */
->>> diff --git a/include/linux/string.h b/include/linux/string.h
->>> index 5702daca4326..a109b2f86ca6 100644
->>> --- a/include/linux/string.h
->>> +++ b/include/linux/string.h
->>> @@ -278,6 +278,29 @@ static inline void memcpy_flushcache(void *dst, 
->>> const void *src, size_t cnt)
->>>   }
->>>   #endif
->>> 
->>> +#ifndef memcpy_nt
->>> +/*
->>> + * memcpy_nt() requests a non-temporal copy when the architecture has a
->>> + * suitable backend. Architectures that do not override it fall back to
->>> + * memcpy().
->>> + */
->>> +static inline void memcpy_nt(void *dst, const void *src, size_t cnt)
->>> +{
->>> +    memcpy(dst, src, cnt);
->>> +}
->>> +#endif
->>> +
->>> +#ifndef memcpy_nt_drain
->>> +/*
->>> + * Callers use memcpy_nt_drain() before later normal stores that 
->>> need to
->>> + * be ordered after memcpy_nt(). Architectures without a specialized
->>> + * backend can leave it empty.
->>> + */
->>> +static inline void memcpy_nt_drain(void)
->>> +{
->>> +}
->>> +#endif
->>> +
->>>   void *memchr_inv(const void *s, int c, size_t n);
->>>   char *strreplace(char *str, char old, char new);
->>> 
->>> -- 
->>> 2.20.1
-
-
+David
