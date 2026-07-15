@@ -1,144 +1,158 @@
-Received: from fout-a3-smtp.messagingengine.com (fout-a3-smtp.messagingengine.com [103.168.172.146])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qt1-f170.google.com (mail-qt1-f170.google.com [209.85.160.170])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8A583435539;
-	Wed, 15 Jul 2026 10:13:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.146
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 29CB3436BF0
+	for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2026 10:42:51 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784110439; cv=none; b=XtudxZRygXKwxsEY+iZnCfmJ58gucElmbe0XiJSBf4nQN7Js6yvFzgDWUILkK8EInqCp2wqfef4kv6XDfNP/d8rAKJWwbvJnUqUlpgV7JvUyZs92ZaCPHcrlKtZf+1+9F6ixitZPmRlmhMO85vzb7iu5mkEei8K4TxBW/GTBHPo=
+	t=1784112172; cv=none; b=PlcLqB8Vq05ysKaIwGGmsUvDkWz6qdM4Gan0lNKqO9A/2azNFEevDoCyZpdODdjn3+icisGno7Ju3tQ/33FJN+dWItb6WdVSdVQlYagArf9fJTPIlFDS1En3VRQx1SOCmzpdiLfe5AMOHQEkXKKf+8At+K0T+bqwuFVlqdsYFeo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784110439; c=relaxed/simple;
-	bh=vjNiJbd68lTdO0MIGUyizblDsaMMG3ck38tplnYLBJI=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=HPUegFCVInWR2gVrqc1Eev25EkSQ8oEn0vUYKcomvTM0qVGdRbhQbYjOYoAhG/wTM8/p/mPYos//SoyhLODkZLo9T/BhARgG21gUvvhW/049kfJ/1+XErkukXwCac1mf5SCZVtQjFbpXT2RcW030HWOIvnj/tCIRxz5oB+yA05o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=xV5+RR4p; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=bYEn7OOo; arc=none smtp.client-ip=103.168.172.146
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="xV5+RR4p";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="bYEn7OOo"
-Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
-	by mailfout.phl.internal (Postfix) with ESMTP id B34E3EC01F0;
-	Wed, 15 Jul 2026 06:13:57 -0400 (EDT)
-Received: from phl-imap-05 ([10.202.2.95])
-  by phl-compute-04.internal (MEProxy); Wed, 15 Jul 2026 06:13:57 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm1; t=1784110437;
-	 x=1784196837; bh=Gu9zw8RR2Cmhp5RnOK+0qu8XOtAv+L3E2BPrnjRUzAk=; b=
-	xV5+RR4pDt0UViS7EXROvKgdzfemK4kJs/mc/M4kEeEhQn3yuUIbGHuZscTSw8l5
-	zrQkJU+ngMoDVdLtq+qfR4qKI7dBrik/7fCMvc36+MRSPlVdfsncsjON9K9QmiTq
-	e2dCk/vQoyZrBrqwUiqwAPKW7RjZUX7TG9eL6Z0Otvjuus0eez3LegPT/LO5HYIo
-	4YgEyIj/SNBby5WXCPYxR+dx6dmJ68OTgCYXlzDXHwzHDcMomhuF1rvr6MD2RIpP
-	hVb+VomZ/lKEE/T2nWb8nChL+qarxcjdD3aulkvwfRUZFJwaUWlVomHCPqX6oaSB
-	SnhwXr23Ha7a27yVvejl6Q==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1784110437; x=
-	1784196837; bh=Gu9zw8RR2Cmhp5RnOK+0qu8XOtAv+L3E2BPrnjRUzAk=; b=b
-	YEn7OOof0QUF6qWo8cPh9eDHxrPJn/D33ZVC23wXoRhggqcEzF1kAfaotBQ1Nz5z
-	kMMTrPf7A9GrDySSFlsRlgqs+YLznLmXb0wkoE7CpTKZhAqMftWTbazQ2n9KFnGE
-	tCad1ono7TPVxiVBOztuvZnmsn6Mfi9KK1+x7RzoM0kLCUcMQUg8faMrnSECSwyL
-	GHXh55WjUjd/VP+B1SLaXAAjC5wvwrPs+w1QWaN7cA5w3Od8ODqufaFq2kBuBXVs
-	ulE6lpsIikZJCqdSNVcfOezBX+r0QsZZuTq1ovWqXdqesqJDIlN6LHBjdznTB3Ss
-	lqNSI2SFiCD4Ut7fVRT1A==
-X-ME-Sender: <xms:ZF1XakRqZTH7wv1ZcRAvW2VWX-BDNvbi4Xp9vkAFPyLV7tMveE0PPw>
-    <xme:ZF1Xaskq5u_i-PGWhwDmmkuKCuhj7BDLGgqNtP71NuE7eZvA5vcbwk5vvOS1YDxZf
-    -SMw5MdRzxwkKcOwnuimQcHdmaezYJEytVlAIWNy2duQdht1QqddAs>
-X-ME-Proxy-Cause: dmFkZTFLhEwUOOUSeE15S3w19zjkdTnAsNUBdeZx7QjdH/i+PYps0l7WyNVeJwiurKDuvo
-    NgJyy+q0Y56GLBdscP8qD05J4sLi8nYcemPbel6b0753Xdv4ChYVvZxsltLQ8RkWUpXshF
-    OjUg23v7wa8tpWy8tfxP1nnWJ1fJmuoj0LDWtTUi0AHe5jnjrku6BTu6DJKQzUT9xg1KA+
-    6IrTZymLwYB7kkRY6GbT3zaZOiKepFB9jHKAXzmQJFgu9r0m6xmCcCTG3TAyiMvOiIXc9z
-    Ohxb0rTiqtaZ75qL1bxitFDtCJ/gQGz3/Kk7RTtsY6PsTVkSuXMKDd04xxwol5viKVoKXh
-    5NKqNrWowQd2J+Htud9T5mig4KvREhwaTJ3n30FIat1siB44W8OcIz19Ge4gCrW7Oz8UBZ
-    1C/YcqkSwbB/FPQcsE8mvto3ckIXwjmSzVSBh9CYRNSuaHZYLEfBTEH03HduFpFCDVO53A
-    jagUk0oEXngNZB8CGr61JJHYxdWFECeXd9if5e3EbdG1eE0NH7960PqmKkKfu6sWO6fPt4
-    YQ7dYkop3El95uNGDIVwb3zmtaGVQik5MEIUClDFCDsUux2S88w3uNwKrKEWhXRL+3vXEq
-    LMt2VWNOmTG5FUNNA+SUhigUmkz3Ay1qdf8jGHr25FMqf3hZceUjqlGeygtQ
-X-ME-Proxy: <xmx:ZF1Xamqvn0dSlc6OKp74fshXHrxVhXUYQZ3JVNFpL8VDOOpGgOLE6w>
-    <xmx:ZF1Xagwb8fD0pDUjqYAaJ3-oRpY8fFKBvpxLgWcL80JJJpaWOcK2_g>
-    <xmx:ZF1XanCYT7QkpsDd333iBz2crSePeHcEn-zcKAuFZEjohHLVUDt_xA>
-    <xmx:ZF1XavMidYNHjdaV8L3n5tPqA4AcDSBzKSoMqjSeyLxNoL_HEaYFqw>
-    <xmx:ZV1XatutlieSAZZxBaUy3rH_MgAXR1gL-pzhmiShjrI00JyMl41re_g2>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 72D39182007E; Wed, 15 Jul 2026 06:13:56 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	s=arc-20240116; t=1784112172; c=relaxed/simple;
+	bh=dYuyA6Dz/ajxhYT4dU+02MPd/j4lWQd1ctOD3UM1CNE=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=DCGC6SnnrhJqFresB7jGpjUmQqkYhwI38ChXw4PdepGhEpgEwG31TAN6ye6GhjC1X4WIR+VwVpCpdU/RuKqCTlOmBo9X07gPIA2EtJMsjyQ/vATpQZbGrFN7B0exwQQ+tV5rBFnoh6OlNwyvd11mXvfX4BuAEFpA+KWFvGBaCfU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=gmail.com; arc=none smtp.client-ip=209.85.160.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Received: by mail-qt1-f170.google.com with SMTP id d75a77b69052e-51c5382806fso15011021cf.2
+        for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2026 03:42:51 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1784112170; x=1784716970;
+        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
+         :references:mime-version:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=BcTdMoZv6JVy6M/fO3WdP9FofoXGw30zAP9bsFgIqfs=;
+        b=bKxO3cRkPGiYNib0PGTeA0frblrLTqXDbj8knToovSmjPglVD097QgY/8TGA4FLUtf
+         EIyEaE061ynkutFA9OI2PdJerETH5LoEQ5wwKA4JDogoB/iTfQtMpkHhLH+V64g6vkrr
+         OPolKJCoLM2/KA1MPgKzdd6JQLmick2BvfHnqpcxRBiKWOvzT4ffHMKLRQ+ejdj8MxBX
+         USYgWEe8uiNmsMkB+wHDK31kGD7VfgHOBw4fcE9JsTlGPerYoCeupHptJsmlWlGZbx3J
+         5y3mQOg39TR+6moFZKKP8hzp9sw65QUcEKpjwCA7l6BzZUlx1AYvT8eZTe/5LFnhQ3D+
+         qZMw==
+X-Forwarded-Encrypted: i=1; AHgh+RoZFBu+tX4uQahQie+wf1nq9xwPn0MUejXyI6KjcdKAcpxc/FMswSI31K3Pz8/FoWfx3qfpBua1h+xA@vger.kernel.org
+X-Gm-Message-State: AOJu0YxF/uBiVGJQd1qSxe19wB/0YMSHXVIYp+6enVysHcB6MiMAn81O
+	YmIoXKD8zOly68c+IGmELQLzw39Z9dGADESsu6aH7U/cVqxvRbNrAHDmeeFjs98p9qU=
+X-Gm-Gg: AfdE7cmat2i44baOCgjuRWJkMlFcYPHzkGEDCfrAO1HD9btfb4CiXjI4jP5bUSBY0JC
+	FFxiA+ueyByjBBmGOYmXvG84kLFhWC/wuDuiAZcHxwEVXT0VGoxAhSUIL0fMQ3iAFsfyXjELBY7
+	jxpannnfUc6u6XzY491++E0cRw0JvWGoX08ngr8a2YrJeOJFENw0+SLCHLmmdupl5t9IzeA3HOA
+	54TZ41AUjtfAml9qwSf+5628HQm7M0ciyea6vhQOoKDVZuS+nmayEWcRU9PcuyJwvj/eWJOHKS7
+	/c0ntB57ncEkdsuhkghjjahIUM3ciDyKu1xbi8WoNxr46pBmVGUeCfmn3PrBfY4bUpy8NDJ996Z
+	nd1pCprtzinag5J/o0sDCTuSxd3K8cuE4fDEdsq868xDwogt13mIg1zKD4BVpSRQ4oZUZXuvz1s
+	zNIG5ri9WDEshkZ402Z3dBCKILdeTzlfztLsxjrq/C5rXXZb3CgEx62w==
+X-Received: by 2002:a05:622a:111:b0:51b:eb55:2919 with SMTP id d75a77b69052e-51cbf27709emr170688271cf.51.1784112169951;
+        Wed, 15 Jul 2026 03:42:49 -0700 (PDT)
+Received: from mail-qt1-f174.google.com (mail-qt1-f174.google.com. [209.85.160.174])
+        by smtp.gmail.com with ESMTPSA id 6a1803df08f44-8ffd56bf455sm189027676d6.13.2026.07.15.03.42.49
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 15 Jul 2026 03:42:49 -0700 (PDT)
+Received: by mail-qt1-f174.google.com with SMTP id d75a77b69052e-51c2cce930cso17929721cf.0
+        for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2026 03:42:49 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AHgh+RraxvKEpSnrKraiVj7/2Y9V1vBhARmceHfirLqqTeYBUyvXVex6kh/QGB3uFVTteZfJxttJkDSgGAiX@vger.kernel.org
+X-Received: by 2002:a05:6102:94c:b0:730:db02:1d08 with SMTP id
+ ada2fe7eead31-74533c1eae8mr11245328137.10.1784111681255; Wed, 15 Jul 2026
+ 03:34:41 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: AjbDdkWFEQuV
-Date: Wed, 15 Jul 2026 12:13:06 +0200
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>,
- "Thomas Gleixner" <tglx@kernel.org>
-Cc: "Andy Lutomirski" <luto@kernel.org>,
- "Vincenzo Frascino" <vincenzo.frascino@arm.com>,
- "Nathan Chancellor" <nathan@kernel.org>, "Nicolas Schier" <nsc@kernel.org>,
- "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>,
- "Daniel Lezcano" <daniel.lezcano@kernel.org>,
- "Mark Rutland" <mark.rutland@arm.com>, "Marc Zyngier" <maz@kernel.org>,
- "Paul Walmsley" <pjw@kernel.org>, "Palmer Dabbelt" <palmer@dabbelt.com>,
- "Albert Ou" <aou@eecs.berkeley.edu>, "Alexandre Ghiti" <alex@ghiti.fr>,
- "Huacai Chen" <chenhuacai@kernel.org>, "WANG Xuerui" <kernel@xen0n.name>,
- Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org,
- linux-kbuild@vger.kernel.org, linux-mips@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, linux-riscv@lists.infradead.org,
- loongarch@lists.linux.dev
-Message-Id: <ee62c755-a15a-41e8-b0bb-7595e9366977@app.fastmail.com>
-In-Reply-To: 
- <20260715102751-d1ed7195-f541-484e-9843-73ee4237b7b5@linutronix.de>
-References: <20260709-vdso-arch-clockmodes-v1-0-3fd780bbf851@linutronix.de>
- <20260709-vdso-arch-clockmodes-v1-3-3fd780bbf851@linutronix.de>
- <87wluwoe1c.ffs@fw13>
- <20260715102751-d1ed7195-f541-484e-9843-73ee4237b7b5@linutronix.de>
-Subject: Re: [PATCH 3/7] MIPS: csrc-r4k: Replace CONFIG_GENERIC_GETTIMEOFDAY ifdeffery
- with IS_ENABLED()
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+References: <3ea30f8a-bb29-4bf5-8400-1c4840d46a88@kernel.org>
+ <7e84b200-25eb-43a6-b5e2-5f27f2d82a77@intel.com> <31988089-095a-4eed-b5e2-c677c70f79f6@kernel.org>
+ <14e250db-1641-4085-8d13-02f819657d5f@intel.com> <d83c76b3-ea4d-4c41-b4c5-f5ae558ace55@kernel.org>
+ <alYgMxKqRnF6_X0A@e129823.arm.com> <6df814c9-405c-48d8-96ea-929c4b28949b@intel.com>
+ <alZe-Cu7yQw9qRXU@e129823.arm.com> <alZo9feSrSB_StfO@e129823.arm.com>
+ <CAMuHMdUqL=vJFAzYgcRVNbD_VWWwhehwTuhTfwLt_yRR8c+B0g@mail.gmail.com> <aldV23PwIXnFloaN@e129823.arm.com>
+In-Reply-To: <aldV23PwIXnFloaN@e129823.arm.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 15 Jul 2026 12:34:29 +0200
+X-Gmail-Original-Message-ID: <CAMuHMdVOHm6MmP9QsNVvxLsGp1e0jC9u9RGb6+xee0ZBs4Zwfw@mail.gmail.com>
+X-Gm-Features: AUfX_mxU0lxjO-fzCeQeNX344H_SVkvovWXaE8EEgaGKFYO5e9NLd2LkTofC79k
+Message-ID: <CAMuHMdVOHm6MmP9QsNVvxLsGp1e0jC9u9RGb6+xee0ZBs4Zwfw@mail.gmail.com>
+Subject: Re: [RFC PATCH 10/34] x86: mm: carve out the generic compile-time
+ folded pgtable case in effective_prot()
+To: Yeoreum Yun <yeoreum.yun@arm.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, "David Hildenbrand (Arm)" <david@kernel.org>, 
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, 
+	loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
+	linux-arch@vger.kernel.org, kvm-riscv@lists.infradead.org, 
+	linux-riscv@lists.infradead.org, x86@kernel.org, linux-mm@kvack.org, 
+	kasan-dev@googlegroups.com, linux-csky@vger.kernel.org, 
+	linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org, 
+	linux@armlinux.org.uk, akpm@linux-foundation.org, ankur.a.arora@oracle.com, 
+	rppt@kernel.org, linmag7@gmail.com, chleroy@kernel.org, klarasmodin@gmail.com, 
+	chenhuacai@kernel.org, kernel@xen0n.name, kas@kernel.org, 
+	zhangtianyang@loongson.cn, wangyuli@aosc.io, tsbogend@alpha.franken.de, 
+	ljs@kernel.org, jgg@ziepe.ca, catalin.marinas@arm.com, will@kernel.org, 
+	arnd@arndb.de, ryan.roberts@arm.com, pasha.tatashin@soleen.com, 
+	rmclure@linux.ibm.com, baolin.wang@linux.alibaba.com, tj@kernel.org, 
+	kevin.brodsky@arm.com, anup@brainfault.org, atish.patra@linux.dev, 
+	pjw@kernel.org, palmer@dabbelt.com, aou@eecs.berkeley.edu, alex@ghiti.fr, 
+	dave.hansen@linux.intel.com, luto@kernel.org, peterz@infradead.org, 
+	tglx@kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, 
+	hannes@cmpxchg.org, mhocko@kernel.org, qi.zheng@linux.dev, 
+	shakeel.butt@linux.dev, kasong@tencent.com, baohua@kernel.org, 
+	axelrasmussen@google.com, yuanchu@google.com, weixugc@google.com, 
+	ryabinin.a.a@gmail.com, glider@google.com, andreyknvl@gmail.com, 
+	dvyukov@google.com, vincenzo.frascino@arm.com, anshuman.khandual@arm.com, 
+	yang@os.amperecomputing.com, chaitanyas.prakash@arm.com, ardb@kernel.org, 
+	guoren@kernel.org, yang.li85200@gmail.com, viro@zeniv.linux.org.uk, 
+	dinguyen@kernel.org, schuster.simon@siemens-energy.com, 
+	wangruikang@iscas.ac.cn, junhui.liu@pigmoral.tech, muchun.song@linux.dev, 
+	vishal.moola@gmail.com, namcao@linutronix.de, pavel@kernel.org, 
+	djbw@kernel.org, yu-cheng.yu@intel.com, baolu.lu@linux.intel.com, 
+	Jonathan.Cameron@huawei.com, coxu@redhat.com, andreas@gaisler.com, 
+	liam@infradead.org, vbabka@kernel.org, surenb@google.com, mhocko@suse.com, 
+	shorne@gmail.com, jonas@southpole.se, stefan.kristiansson@saunalahti.fi
+Content-Type: text/plain; charset="UTF-8"
 
-On Wed, Jul 15, 2026, at 10:43, Thomas Wei=C3=9Fschuh wrote:
-> On Wed, Jul 15, 2026 at 10:25:19AM +0200, Thomas Gleixner wrote:
+Hi Yeoreum,
 
->> -#ifdef CONFIG_GENERIC_GETTIMEOFDAY
->>  #include <asm/vdso/clocksource.h>
->> -#endif /* CONFIG_GENERIC_GETTIMEOFDAY */
->>  enum vdso_clock_mode {
->>  	VDSO_CLOCKMODE_NONE,
->> -#ifdef CONFIG_GENERIC_GETTIMEOFDAY
->> +#ifdef VDSO_ARCH_CLOCKMODES
->>  	VDSO_ARCH_CLOCKMODES,
->>  #endif
->>  	VDSO_CLOCKMODE_MAX,
->>=20
->> and then you can just unconditionally set clocksource::vdso_clock_mode
->> in all drivers.
->>=20
->> No?
+On Wed, 15 Jul 2026 at 11:42, Yeoreum Yun <yeoreum.yun@arm.com> wrote:
+> > On Tue, 14 Jul 2026 at 18:51, Yeoreum Yun <yeoreum.yun@arm.com> wrote:
+> > > --- a/mm/ptdump.c
+> > > +++ b/mm/ptdump.c
+> > > @@ -190,6 +190,23 @@ void ptdump_walk_pgd(struct ptdump_state *st, struct mm_struct *mm, pgd_t *pgd)
+> > >         st->note_page_flush(st);
+> > >  }
+> > >
+> > > +bool pdtump_pt_level_first(struct mm_struct *mm, int level)
+> > > +{
+> > > +       if (!mm || level > CONFIG_PGTABLE_LEVELS)
+> > > +               return false;
+> > > +
+> > > +       if (mm_pmd_folded(mm) && level == 3)
+> > > +               return true;
+> > > +       if (mm_pud_folded(mm) && level == 2)
+> > > +               return true;
+> > > +       if (mm_p4d_folded(mm) && level == 1)
+> > > +               return true;
+> >
+> > Is this order (... && level == ...) the optimal order?
+> > On arm64, mm_pud_folded() and mm_p4d_folded() perform several checks.
+> >
+> > > +       if (level == 0)
+> > > +               return true;
+> > > +
+> > > +       return false;
+> > > +}
 >
-> It will weaken the sanity check in __clocksouce_register_scale() if
-> CONFIG_GENERIC_GETTIMEOFDAY=3Dn. I am not sure what that sanity check
-> is supposed to protect against, so I left it as is.
+> It is. since the purpose of ptdump_pt_level_first is designed to be used
+> in the *callback* of pXd_entry(). IOW, if we check level 0 first,
+> it always returns wrong return in folded case.
 
-Is there still a reason to even allow CONFIG_GENERIC_GETTIMEOFDAY=3Dn
-when  generic VDSO is enabled? I see that loongarch32 and
-riscv32 are still missing the vdso time support, but that may
-be more a sign that nobody cares enough about performance
-on those targets.
+I meant the order inside the if () conditions.
+E.g.
+"if (mm_pud_folded(mm) && level == 2)" does the expensive check first.
+"if (level == 2 && mm_pud_folded(mm))" does the cheap check first.
 
-In particular, riscv64 doesn't even build the vdso32 code for
-compat tasks, which indicates that userspace doesn't actually
-need vdso. On loongarch32, the commit adding the vdso said
-GENERIC_GETTIMEOFDAY 'will be supported in future'.
+Gr{oetje,eeting}s,
 
-On everything else, GENERIC_GETTIMEOFDAY and HAVE_GENERIC_VDSO
-are already synonyms.
+                        Geert
 
-    Arnd
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
