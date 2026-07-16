@@ -1,62 +1,62 @@
-Received: from mail-pg1-f171.google.com (mail-pg1-f171.google.com [209.85.215.171])
+Received: from mail-pg1-f174.google.com (mail-pg1-f174.google.com [209.85.215.174])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 15C0240D564
-	for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2026 12:43:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 189AE42048B
+	for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2026 12:44:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.174
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784205837; cv=none; b=Vq9BZElwx22NFhJp0bFubdpqMvCPwSwtJeEzM0MXwUeNFnKDcUYOSjOLuOebDCFTyBQSkC9bgKPXnEmE9AvSSQo+Ousxm9ZigKbX45HaqNWVCXpBVZX3gSTPdpSqowEMn93rcHboCdFHVOZJQNTHbXBVdeyNGE3h7d4brIxSp0c=
+	t=1784205846; cv=none; b=c4BmqQCtKki3GPuj6vkjqSoOTL9q3sc39F9XwnW9Mz66bGfXwVbKpidCuzaH5pRVuGDevDu2thaJ5roeYMr1HwIUGkffRKgdL3FLwqNAkMrCpgw92kdSUynOrDd0NKeHiix7DHaTDKAXDlOvb8RAHry1UoU+ee81pAsgQrHn/GI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784205837; c=relaxed/simple;
-	bh=90nS3q4DtnsYAyUyFabfkm3foM3+3QOdYnVlr+MPWhA=;
+	s=arc-20240116; t=1784205846; c=relaxed/simple;
+	bh=1jB7gIqPJlL2X3fTP78amNRlL24ELpsJZv6OaAlT5aE=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=H1OcVgJSWWpPbPvGborcTYvMCFfqABDNqv9G9WB+ijuPfh8J3THKqtXXgwj2LJEEa8uMiY2+q0bgddipKZLpdto2eLZI6Lc3NPoSNpexdvWPtymNpp5z9T5UzNrinjXnSRbeUc9JXianGHT3KRnEeuf+ltzKyPNe5o1yv4OKWzI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=LHQ5UwQN; arc=none smtp.client-ip=209.85.215.171
+	 MIME-Version; b=BBXSYcmjPCs47jtBrX74BO8wQfrmHtAgwp8UDDrK9eHTM1Gy4CT0JulUVw0u3M+5f/R3us2mWC0f++dr6g/5LmLgflUHvgbdXmzA6qjRxrlAz9ipNfQmkN9TIkhruDKxXW57a6bVtbT+wKx2tSFFy8ZWcdSaP6x8pMDrCj5qlJk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=eo10wiwM; arc=none smtp.client-ip=209.85.215.174
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="LHQ5UwQN"
-Received: by mail-pg1-f171.google.com with SMTP id 41be03b00d2f7-c999f162c9aso4162246a12.3
-        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2026 05:43:55 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="eo10wiwM"
+Received: by mail-pg1-f174.google.com with SMTP id 41be03b00d2f7-ca7bea5e5b3so4804559a12.1
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2026 05:44:04 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=bytedance.com; s=google; t=1784205835; x=1784810635; darn=vger.kernel.org;
+        d=bytedance.com; s=google; t=1784205844; x=1784810644; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=wO7rgHUMjvOOREbomqim3hRFXtwbnBvZKsCnDiin3lw=;
-        b=LHQ5UwQNIf/GJkpohzKV5XQoQrxPWGPirBss/d4VcG/+5OpbyR/WeSHPbyBY1SsZv0
-         1m61k69AYNpVglRebg2jjshqg9IEbKrpzH+8Fx0orFDIFtxNtoYOOfx36dwWCR2LpjdK
-         Vu699vFjZMbQrCCUsnnTVnBhemixvPbZam/wKUME2NUlHkPK1ejPKZli4XxYQe1mqPql
-         3l6WsxnHEzkGsTLDxdldqgEfC1F/xL/4LWg8w5Lx+/Px0F18aPbfQ9U2jsM08yPSqnBG
-         SWnWmCQ3vaC1dUdF/51QRQMp0QJwZkPqFPMqpY2FLwCVNW0UNtiye/uj6kEVUdavI+cQ
-         Y/ww==
+        bh=RVEhlrHEVqIN0Ar3D+s2eFCiOScwlS1S3mz2hTaXKkY=;
+        b=eo10wiwMJQKMiTLy6l++isI9WnaIKsrmIMX98HY/aWNRTseylUp9wXtVLd48pDhNVv
+         w8Prp7kvIZcZAwIkecfTumAPfcs9aF5hn/PVmZIL9gXKvpO5wgwoVZG7GdshGTRAVXxv
+         zl1KJ13PB5ybYnl9+YYLN6JmdfLRPq7XvZMSBFUvgHiIs2Uub+7PhboAACzDXZ78iz3k
+         59NCleD1Im9lQyKT1IpSC9aFZE/8vf090gL1weV2QdydCYdAp51EDhNb/HRXDUpC5Ukc
+         052I1oev5G6ieXJ/r+oosCFIZ8lQfQgo2KfkidFSMZ9Ene/usGtZIv4E4m6a5aZARB4K
+         F/aA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1784205835; x=1784810635;
+        d=1e100.net; s=20251104; t=1784205844; x=1784810644;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=wO7rgHUMjvOOREbomqim3hRFXtwbnBvZKsCnDiin3lw=;
-        b=JxGo1S4MxCranRQk9OZUq3VOqumaEgHFc0neDOArDFtujpMgvxHefLDwV+4USZVf9n
-         d/WXiJ2r1xgAQzrSFuallGCdJqPb4qdQZEzV5gVM10Km/53sHShfCbaZoWKw23zQwF92
-         bxmvxpq+zGGBS806QeLjv/tfjnk56uz7FnuTet9iIwBvsTQdXos12Y28vyYIw5a7vfr3
-         egXjQ/1MhXpfEZaY29bbFnUXmR1Bp/Vm/plL+GPKdIntr7OkDG1ODmUUSb+95svxcOOa
-         WlcAmZXO3N7XGGaiWQaB/IGygp1CQACHzVGqkkyKGnJr2h6wkByND/oP1pFKLncLccuX
-         oZtA==
-X-Gm-Message-State: AOJu0Yy5m63gAvR6iLNZq0vEyyP/Q0S5bmq3Y+ZQXIPXd9Adk56m+RZu
-	2UPlEUTPe9sWrpQRepTQvIAHrJr4MtdKfBTfp47LhgB4BWG51dzjLvDjdZ9eW/CvDJw=
-X-Gm-Gg: AfdE7ckyK4oH5DQTn89Bv8fz5mzNYZIF21WWcUqrGouKNXeOeBZdDsRQS0sHzFjbmgS
-	gkw1gnBgD4bODPAfO1Q4uDwgkq3hpEXv8psduftkEKXb9DWOIioeiYlIosHKhL748XA6QFpaPP0
-	4ayNcYN7GzY8iRJY7I5KYqolqeUIiY98yf/L2bcT5feBhs/so8BGhv+M8sFg3AC7RM4nDK/Bjsg
-	/BHTB67kd3uz/NSPgDIsbzjd9jKZpqWLZFJxq2WIpmg+bP35EHy2c616f3TocjZzQN10ig5SxJ5
-	YcO7EmY97mU25oh8MkhKzKKp/Cb7fbEJJpSRZoqO4JmxuNqaRVCuUoUODb16/JuZcNK4ADJIXUw
-	NnN2+mL9KByKGJmVb6cvDXkv4qWYhb4wBY1MufxJovVLApNpijG+RMwzF85MI6R8UCkNyybrmqS
-	/JmgJBmfwdrzZ/mGIrf4k6/wLnj7HdRGTk7g==
-X-Received: by 2002:a05:6a20:20c3:b0:3c3:859b:c20c with SMTP id adf61e73a8af0-3c3859be277mr3653741637.15.1784205835267;
-        Thu, 16 Jul 2026 05:43:55 -0700 (PDT)
+        bh=RVEhlrHEVqIN0Ar3D+s2eFCiOScwlS1S3mz2hTaXKkY=;
+        b=Idg9BOx3LN7MbvNgYWHixJxhRrFMJPBcbyYqrrAeXeGb2CxCr/nre3ypsS80Equt2s
+         Z+Wy7Og9EFxCapli3oHsOqxoueNQq2CtX2GoIIQrM3hHJ33w8POY3MdJV1aZOZ518ptJ
+         hz/OeOoVtVmjfiVL1hwzW1vwlapTKe9ZNKCe0slLcK7Afp19/tcuSfR9YuCZ6Z+3LSMP
+         UtfX71o9hA4a2D+98PgciB8L7Ntb3mukTHcJulBGwiRT+kipIEPaREkbxj7cAJkLgQCm
+         6f4kkzJ54RKxIkG0+MUvahLoYu6YemSYUA2zL0hRvAMFrfsVf0pqRGOF8Y8i7gC+optG
+         x1vg==
+X-Gm-Message-State: AOJu0YwDKEUMZIO4KLP/go/YcHskvZvJg0uNKtnp+GBT+1EDF5a+eqN/
+	HXto2P0T7rZ/BEGZ1CfV/26IIangezneL8ALC+rT5+0CMT8M62dS3a2QY7D8KqmPOrs=
+X-Gm-Gg: AfdE7cmNX+jKyejbQe1nfvBcisqMlOiqowJqEF/6V29yh2I9xlmuk5o6+yR71nSYxzf
+	aM7whaoWEP80UUqmwHmWFmqMNfOzgmkIRZPMl07iEDNBcYpcqmWbFYrs5ImVXiVU3NOyzZRZ6bH
+	48S39UR9rGFwmKWQkiLgR1JwesYSsJW3sHW+T6/vyzpS6zjMccKYzv1oiybu8iWmkIUKE5Nb2z3
+	FfgN2nsnzf+8aWW088wNb0gDBvApL/C774MPmNLjL/6WOghV4ILjqQrfWyOzu79iX1KZpdKQ61r
+	ECsKVMhXQgZ3mOKtwtZq87jk7S/NuV5q2C6PAh47XthFoPeF49XWDTl1DJVbny/LuLv9/YmSqBb
+	f1hGv4+QvdcMG4ubnZMwoRtAhQPqQEpNF0mnP9/h6/1EBru8QobWT0teXUJmpFole9OG4wEeHOs
+	ZwcbuynDZ9imsAldLzuKG1gD4=
+X-Received: by 2002:a05:6a20:4308:b0:3ba:cd5b:3dc8 with SMTP id adf61e73a8af0-3c36c1f1e9dmr7530059637.31.1784205844222;
+        Thu, 16 Jul 2026 05:44:04 -0700 (PDT)
 Received: from L6YN4KR4K9.bytedance.net ([2408:8606:1800:501::2:f])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-cb258eeaba2sm1730793a12.12.2026.07.16.05.43.47
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-cb258eeaba2sm1730793a12.12.2026.07.16.05.43.55
         (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
-        Thu, 16 Jul 2026 05:43:54 -0700 (PDT)
+        Thu, 16 Jul 2026 05:44:03 -0700 (PDT)
 From: Yunhui Cui <cuiyunhui@bytedance.com>
 To: linux-riscv@lists.infradead.org,
 	linux-mm@kvack.org,
@@ -69,9 +69,9 @@ Cc: linux-arch@vger.kernel.org,
 	linux-perf-users@vger.kernel.org,
 	kasan-dev@googlegroups.com,
 	Yunhui Cui <cuiyunhui@bytedance.com>
-Subject: [PATCH v2 08/15] riscv/mm: avoid redundant Svnapot A/D aggregation
-Date: Thu, 16 Jul 2026 20:41:43 +0800
-Message-Id: <66e43057442a0f37e0c7348016ccef382387898d.1784201104.git.cuiyunhui@bytedance.com>
+Subject: [PATCH v2 09/15] riscv/mm: avoid Svnapot consistency checks in ptep_get()
+Date: Thu, 16 Jul 2026 20:41:44 +0800
+Message-Id: <687dadf430c49a840e24976e37ba09f991bc3222.1784201104.git.cuiyunhui@bytedance.com>
 X-Mailer: git-send-email 2.39.2 (Apple Git-143)
 In-Reply-To: <cover.1784201104.git.cuiyunhui@bytedance.com>
 References: <cover.1784201104.git.cuiyunhui@bytedance.com>
@@ -83,107 +83,100 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Svnapot mappings encode a 64KB range as a NAPOT PTE block, while the
-public getter returns a logical base-page PTE. To preserve that PTE view,
-the getter folds accessed and dirty information from the whole NAPOT block
-into the returned PTE.
+napotpte_ptep_get() builds the returned logical sub-PTE from the
+initial PTE observed at the target address. Neighbouring entries in the
+NAPOT block are only scanned to gather accessed and dirty state, so they
+cannot contribute PFN, permission, present or writable state to the
+returned PTE.
 
-This aggregation is an OR-style operation. Once the returned PTE has both
-accessed and dirty state set, later entries in the block cannot change the
-result. Avoid reading the rest of the block in that case.
+Drop the range consistency checks from this ptep_get() path. Callers
+that rely on the block-wide A/D view are expected to hold the PTL. There
+are generic lockless ptep_get() users, such as userfaultfd_must_wait()
+and HMM walks after pte_offset_map(), but those paths use the present,
+marker, write and PFN state and do not consume the gathered A/D bits.
 
-The lockless getter still validates each entry before consuming its A/D
-state, so it preserves the self-consistent range requirement while also
-avoiding reads that cannot affect the returned PTE.
+Keep the consistency checks in napotpte_ptep_get_lockless(). That API
+must return a self-consistent PTE snapshot to lockless walkers and fault
+retry paths. napotpte_is_consistent() verifies that every scanned entry
+still belongs to the same NAPOT mapping, ignoring A/D bits, and retries
+if a concurrent unfold, rewrite or refold tears the range while A/D
+state is being gathered.
 
 Signed-off-by: Yunhui Cui <cuiyunhui@bytedance.com>
 ---
- arch/riscv/mm/contpte.c | 60 ++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 56 insertions(+), 4 deletions(-)
+ arch/riscv/include/asm/pgtable.h |  3 +++
+ arch/riscv/mm/contpte.c          | 19 +++++++++++++------
+ 2 files changed, 16 insertions(+), 6 deletions(-)
 
+diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
+index e4b9c05014c00..dd56c20a817bb 100644
+--- a/arch/riscv/include/asm/pgtable.h
++++ b/arch/riscv/include/asm/pgtable.h
+@@ -930,6 +930,9 @@ static __always_inline void napotpte_try_unfold(struct mm_struct *mm,
+ /*
+  * Public PTE helpers may transparently handle Svnapot-encoded mappings.
+  * NAPOT-aware arch users should stick to the private/raw __pte* helpers.
++ * Callers relying on the block-wide A/D view from ptep_get() are
++ * expected to hold the PTL. Lockless callers that require a
++ * self-consistent Svnapot range must use ptep_get_lockless().
+  */
+ #define ptep_get ptep_get
+ static inline pte_t ptep_get(pte_t *ptep)
 diff --git a/arch/riscv/mm/contpte.c b/arch/riscv/mm/contpte.c
-index 9ffdffdc2b0c0..70f9a0668b50c 100644
+index 70f9a0668b50c..0f66426b0ecfd 100644
 --- a/arch/riscv/mm/contpte.c
 +++ b/arch/riscv/mm/contpte.c
-@@ -309,10 +309,34 @@ pte_t napotpte_ptep_get(pte_t *ptep, pte_t orig_pte)
+@@ -294,6 +294,13 @@ EXPORT_SYMBOL(__napotpte_try_unfold);
+ 
+ pte_t napotpte_ptep_get(pte_t *ptep, pte_t orig_pte)
+ {
++	/*
++	 * Gather access/dirty bits from the whole NAPOT range for the
++	 * ptep_get() view. The returned sub-PTE is built from orig_pte;
++	 * neighbouring entries only contribute A/D state. Lockless callers
++	 * requiring a self-consistent range must use ptep_get_lockless().
++	 */
++
+ 	pte_t pte, cur;
+ 	pte_t *start;
+ 	unsigned int i, nr;
+@@ -307,14 +314,10 @@ pte_t napotpte_ptep_get(pte_t *ptep, pte_t orig_pte)
+ 
+ 	for (i = 0; i < nr; i++) {
  		cur = READ_ONCE(start[i]);
- 		if (!napotpte_is_consistent(cur, orig_pte))
- 			return napotpte_subpte(ptep, orig_pte);
--		if (pte_dirty(cur))
-+		if (pte_dirty(cur)) {
+-		if (!napotpte_is_consistent(cur, orig_pte))
+-			return napotpte_subpte(ptep, orig_pte);
+ 		if (pte_dirty(cur)) {
  			pte = riscv_pte_mkhwdirty(pte);
--		if (pte_young(cur))
-+			for (; i < nr; i++) {
-+				cur = READ_ONCE(start[i]);
-+				if (!napotpte_is_consistent(cur, orig_pte))
-+					return napotpte_subpte(ptep, orig_pte);
-+				if (pte_young(cur)) {
-+					pte = pte_mkyoung(pte);
-+					break;
-+				}
-+			}
-+			break;
-+		}
-+
-+		if (pte_young(cur)) {
- 			pte = pte_mkyoung(pte);
-+			i++;
-+			for (; i < nr; i++) {
-+				cur = READ_ONCE(start[i]);
-+				if (!napotpte_is_consistent(cur, orig_pte))
-+					return napotpte_subpte(ptep, orig_pte);
-+				if (pte_dirty(cur)) {
-+					pte = riscv_pte_mkhwdirty(pte);
-+					break;
-+				}
-+			}
-+			break;
-+		}
- 	}
+ 			for (; i < nr; i++) {
+ 				cur = READ_ONCE(start[i]);
+-				if (!napotpte_is_consistent(cur, orig_pte))
+-					return napotpte_subpte(ptep, orig_pte);
+ 				if (pte_young(cur)) {
+ 					pte = pte_mkyoung(pte);
+ 					break;
+@@ -328,8 +331,6 @@ pte_t napotpte_ptep_get(pte_t *ptep, pte_t orig_pte)
+ 			i++;
+ 			for (; i < nr; i++) {
+ 				cur = READ_ONCE(start[i]);
+-				if (!napotpte_is_consistent(cur, orig_pte))
+-					return napotpte_subpte(ptep, orig_pte);
+ 				if (pte_dirty(cur)) {
+ 					pte = riscv_pte_mkhwdirty(pte);
+ 					break;
+@@ -345,6 +346,12 @@ EXPORT_SYMBOL(napotpte_ptep_get);
  
- 	return napotpte_subpte(ptep, pte);
-@@ -343,11 +367,39 @@ pte_t napotpte_ptep_get_lockless(pte_t *orig_ptep)
- 		if (!napotpte_is_consistent(pte, orig_pte))
- 			goto retry;
- 
--		if (pte_dirty(pte))
-+		if (pte_dirty(pte)) {
- 			orig_pte = riscv_pte_mkhwdirty(orig_pte);
-+			for (; i < nr; i++, ptep++) {
-+				pte = READ_ONCE(*ptep);
-+
-+				if (!napotpte_is_consistent(pte, orig_pte))
-+					goto retry;
- 
--		if (pte_young(pte))
-+				if (pte_young(pte)) {
-+					orig_pte = pte_mkyoung(orig_pte);
-+					break;
-+				}
-+			}
-+			break;
-+		}
-+
-+		if (pte_young(pte)) {
- 			orig_pte = pte_mkyoung(orig_pte);
-+			i++;
-+			ptep++;
-+			for (; i < nr; i++, ptep++) {
-+				pte = READ_ONCE(*ptep);
-+
-+				if (!napotpte_is_consistent(pte, orig_pte))
-+					goto retry;
-+
-+				if (pte_dirty(pte)) {
-+					orig_pte = riscv_pte_mkhwdirty(orig_pte);
-+					break;
-+				}
-+			}
-+			break;
-+		}
- 	}
- 
- 	return napotpte_subpte(orig_ptep, orig_pte);
+ pte_t napotpte_ptep_get_lockless(pte_t *orig_ptep)
+ {
++	/*
++	 * ptep_get_lockless() must return a self-consistent PTE without the
++	 * PTL. Recheck that the whole NAPOT range still describes the same
++	 * mapping, ignoring A/D bits, and retry if a concurrent update tears
++	 * the range while A/D state is being gathered.
++	 */
+ 	pte_t orig_pte, pte;
+ 	pte_t *ptep;
+ 	unsigned int i, nr;
 -- 
 2.39.5
 
