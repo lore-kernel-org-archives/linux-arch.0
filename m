@@ -1,37 +1,38 @@
 Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 838593F0774;
-	Fri, 17 Jul 2026 14:42:25 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 009AF429CDB;
+	Fri, 17 Jul 2026 14:42:26 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784299348; cv=none; b=sBjYHlsYIwxqNriMOwsmkPI3QceWI19f5q7B3XQo0k4EK3/S55gZTraMukVJPgZwyFyxxd/DYo3ogcZJjk3O3szwdtsruViZK1vV5QIn7XfGDPPcbLzuie9Xj6pehrrtb3cilHllnq3MDGrCLrQTAJPUdJns5I3HjA2BFUPkWaE=
+	t=1784299348; cv=none; b=gFU+ZTIJ3dpzork6TCnHKrN02+Xp07734mmnCg55I3XMnqyicLqTOd9kKCEa9W41UY1JdGfIev269ytJWIvbr8jPNYcYBIiu27fAz4m8GC0Sjv8/ipkRvDJzBZP2y+iWg9zghHiqrlSOhcBXtGHd1W317QX66kYPxRGWTyvRNwc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1784299348; c=relaxed/simple;
-	bh=poYqrUsi500s0fQyhLYCsmsHf0i//77QFNaIOGes8ek=;
+	bh=tCu3x1GUAtejJXUdG+KzVJ4tcWL/cJSe31+zSWtGpJo=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=SqOtWhkFtFTdxjYAUJaUzg4sMQ2+VktvjBEqtORZDncmAG+IlwRJmrySOE/1PJpOMJVwjtjN/LJUclxlpjMO5DvNCgFyuX9/O1ad6mFMDw9x1W3VYfBuYs9sOK7fN5LIi1Hv0hxcqB+RMlwBMKjn/lLMiM6rgAx0fNOdUf9N0YU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=WOphFKdy; arc=none smtp.client-ip=213.97.179.56
+	 In-Reply-To:To:Cc; b=VJGax/l0r0B1XrNBCPGen9SRVMr+T5huguQ/HnP+B6IC3ob7rZ8VZ16rPlHs7gF36qnTl3HFgwx5GG/EAAMkIwvSJY7GvYqdmSGHVz92U8y5JkYtaRJpNtpyUM9dq04rkAO3RaJf3ZzyqoG78bxo6TRcTsWcMxYF9wh8JQvWF+c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=XhTj3Nfc; arc=none smtp.client-ip=213.97.179.56
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="WOphFKdy"
+	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="XhTj3Nfc"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
 	s=20170329; h=Cc:To:Message-Id:Content-Transfer-Encoding:Content-Type:
 	MIME-Version:Subject:Date:From:From:Reply-To;
-	bh=K8kjW1mgVYNAmXTDHsHgs1H1Tp7aKYu9ZJKgbwnVZzM=; b=WOphFKdyVWS3R6jvupHqZ18tCb
-	8jN33exbLIxiPoeiYT4sWKOp6MPTa1VxqPC7QheYSnT7S9Ap3a2Yq0Z2BfySiZjjRepCmpaLcI7vP
-	t56zRQYhHd4Mua/g4wiB3HfxNrqzBOm3ozCBx9xbyIlWuhPy2i2wtlQCP8JMDWz3Y6NKa/la/AoCz
-	h9v/4lAMOxV2NQuD0IEmCFfhcMKrDru9EiVNz3v8/eFz3yeic3kqG+C3NgI6ZPHwR/gFXWXW7cdyM
-	FBCJnme9qz8LMUxC6gvPFQm5pWyB3Izg03xK2nxmqgjgatXulig6kQJ/+UmEAjzlYZGR4/+2veBLV
-	rjA2xsJg==;
+	bh=xiHRHGRCN+D8F05AzRxD1qJuLVX4cK/IR40j35eLsPY=; b=XhTj3NfcBSmxdHT6hwbMEqcC1c
+	wnqAPgR+OsPOpU1aiwcqAjKvKW3tgIUCFzC5jrlLJWmUrq3T2GoDex9aNo7BB3UJRs2LTLJV1lAGP
+	F8M/S2fuL0cNPy9467OE5HfIjuhb9Q4Ll1Cw3jd8LAHsfCydInjvPtEfKywWp68YKkhgSG2eOUtaK
+	IpNIetDqg9/AwtyIVXOdKN3k4yCnb3NOWINDk0aTyjDsQnoZ1wk/KPAJ5utuWfBecV2kaMTTOkyhZ
+	e4wLJ3pmd2Y9/ubo5NL0AFeOvt9EquFb/68Ew6KXUcaDMax+XFMoYfgiN8l9dOL4AeJ0Sc6ZbzFab
+	IgeL23EA==;
 Received: from [179.118.191.219] (helo=[192.168.15.100])
 	by fanzine2.igalia.com with esmtpsa 
 	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_256_GCM:256) (Exim)
-	id 1wkjlV-00GdLF-2p; Fri, 17 Jul 2026 16:42:13 +0200
+	id 1wkjlP-00GdLF-8r; Fri, 17 Jul 2026 16:42:07 +0200
 From: =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
-Date: Fri, 17 Jul 2026 11:41:42 -0300
-Subject: [PATCH v5 3/4] arm64: vdso32: Bring vdso32-offsets.h back
+Date: Fri, 17 Jul 2026 11:41:41 -0300
+Subject: [PATCH v5 2/4] arm64: vdso: Implement
+ __vdso_futex_robust_try_unlock()
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -40,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20260717-tonyk-robust_arm-v5-3-ffd1ad318d17@igalia.com>
+Message-Id: <20260717-tonyk-robust_arm-v5-2-ffd1ad318d17@igalia.com>
 References: <20260717-tonyk-robust_arm-v5-0-ffd1ad318d17@igalia.com>
 In-Reply-To: <20260717-tonyk-robust_arm-v5-0-ffd1ad318d17@igalia.com>
 To: Catalin Marinas <catalin.marinas@arm.com>, 
@@ -61,65 +62,170 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
 X-Mailer: b4 0.15.2
 
-Commit c7767f5c43df ("arm64: vdso32: Remove unused vdso32-offsets.h")
-removed vdso32-offsets.h because it was empty and therefore useless.
+Based on the x86 implementation, implement the vDSO function for unlocking
+a robust futex correctly.
 
-With the introduction of __vdso_futex_robust_try_unlock(), there is the
-need to expose offsets again.
+Commit a2274cc0091e ("x86/vdso: Implement __vdso_futex_robust_try_unlock()")
+has the full explanation about why this mechanism is needed.
+
+The unlock assembly sequence for arm64 is:
+
+	__vdso_futex_robust_list64_try_unlock:
+	retry:
+		ldxr	w8, [x0] // Load the value from *futex
+		cmp	w1, w8   // Compare with TID
+		b.ne	__vdso_futex_list64_try_unlock_cs_end
+		stlxr	w3, wzr, [x0] // Try to zero *futex
+	__vdso_futex_list64_try_unlock_cs_start:
+		cbnz	w3, retry
+		str	xzr, [x2] // After zeroing *futex, zero *op_pending
+	__vdso_futex_list64_try_unlock_cs_end>:
+
+The decision regarding if the pointer should be cleared or not lies on
+checking the w3 register:
+
+	return (regs->user_regs[3]) ? NULL : (void __user *)
+		regs->user_regs.regs[2];
+
+If it's zero, that means that the exclusive store worked and the kernel
+should clear op_pending (if userspace didn't managed to) stored at x2.
 
 Signed-off-by: André Almeida <andrealmeid@igalia.com>
 ---
- arch/arm64/Makefile               | 2 +-
- arch/arm64/include/asm/vdso.h     | 3 +++
- arch/arm64/kernel/vdso32/Makefile | 8 ++++++++
- 3 files changed, 12 insertions(+), 1 deletion(-)
+Notes:
+ - Only LL/SC for now but I can add LSE later if this looks good
 
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index 6b005c8fef70..265716644193 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -211,7 +211,7 @@ vdso_prepare: prepare0
- 	include/generated/vdso-offsets.h arch/arm64/kernel/vdso/vdso.so
- ifdef CONFIG_COMPAT_VDSO
- 	$(Q)$(MAKE) $(build)=arch/arm64/kernel/vdso32 \
--	arch/arm64/kernel/vdso32/vdso.so
-+	include/generated/vdso32-offsets.h arch/arm64/kernel/vdso32/vdso.so
- endif
- endif
- 
-diff --git a/arch/arm64/include/asm/vdso.h b/arch/arm64/include/asm/vdso.h
-index 232b46969088..43a214b93524 100644
---- a/arch/arm64/include/asm/vdso.h
-+++ b/arch/arm64/include/asm/vdso.h
-@@ -10,6 +10,9 @@
- #ifndef __ASSEMBLER__
- 
- #include <generated/vdso-offsets.h>
-+#ifdef CONFIG_COMPAT_VDSO
-+#include <generated/vdso32-offsets.h>
-+#endif
- 
- #define VDSO_SYMBOL(base, name)						   \
- ({									   \
-diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
-index bea3675fa668..4bd60f059f4a 100644
---- a/arch/arm64/kernel/vdso32/Makefile
-+++ b/arch/arm64/kernel/vdso32/Makefile
-@@ -135,6 +135,14 @@ $(c-obj-vdso-gettimeofday): %.o: %.c FORCE
- $(asm-obj-vdso): %.o: %.S FORCE
- 	$(call if_changed_dep,vdsoas)
- 
-+# Generate VDSO offsets using helper script
-+gen-vdsosym := $(src)/../vdso/gen_vdso_offsets.sh
-+quiet_cmd_vdsosym = VDSOSYM $@
-+      cmd_vdsosym = $(NM) $< | $(gen-vdsosym) | LC_ALL=C sort > $@
+v4:
+ - Guard makefile for vfutex.o with ifdef
+ - Moved _start label one instruction above
+ - Use results register (w3) to check for store success instead of using zero
+   flag
+
+v3:
+ - Managed to get pop to always be stored at x2
+---
+ arch/arm64/Kconfig                    |  1 +
+ arch/arm64/include/asm/futex_robust.h | 19 +++++++++++++++++++
+ arch/arm64/kernel/vdso/Makefile       | 10 ++++++++++
+ arch/arm64/kernel/vdso/vfutex.c       | 35 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 65 insertions(+)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index b3afe0688919..0582172811d9 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -221,6 +221,7 @@ config ARM64
+ 	select HAVE_RELIABLE_STACKTRACE
+ 	select HAVE_POSIX_CPU_TIMERS_TASK_WORK
+ 	select HAVE_FUNCTION_ARG_ACCESS_API
++	select HAVE_FUTEX_ROBUST_UNLOCK
+ 	select MMU_GATHER_RCU_TABLE_FREE
+ 	select HAVE_RSEQ
+ 	select HAVE_RUST if RUSTC_SUPPORTS_ARM64
+diff --git a/arch/arm64/include/asm/futex_robust.h b/arch/arm64/include/asm/futex_robust.h
+new file mode 100644
+index 000000000000..64f22166756a
+--- /dev/null
++++ b/arch/arm64/include/asm/futex_robust.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_ARM64_FUTEX_ROBUST_H
++#define _ASM_ARM64_FUTEX_ROBUST_H
 +
-+include/generated/vdso32-offsets.h: $(obj)/vdso32.so.dbg FORCE
-+	$(call if_changed,vdsosym)
++#include <asm/ptrace.h>
 +
- # Actual build commands
- quiet_cmd_vdsold_and_vdso_check = LD32    $@
-       cmd_vdsold_and_vdso_check = $(cmd_vdsold); $(cmd_vdso_check)
++static __always_inline void __user *arm64_futex_robust_unlock_get_pop(struct pt_regs *regs)
++{
++	/*
++	 * w3 is stores the result of the stlxr instruction. If it's zero, the then
++	 * the ll/sc cmpxchg succeeded and the pending op pointer needs to be cleared.
++	 */
++	return (regs->user_regs.regs[3]) ? NULL : (void __user *) regs->user_regs.regs[2];
++}
++
++#define arch_futex_robust_unlock_get_pop(regs)	\
++	arm64_futex_robust_unlock_get_pop(regs)
++
++#endif /* _ASM_ARM64_FUTEX_ROBUST_H */
+diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
+index 7dec05dd33b7..985346c7a0bb 100644
+--- a/arch/arm64/kernel/vdso/Makefile
++++ b/arch/arm64/kernel/vdso/Makefile
+@@ -11,6 +11,10 @@ include $(srctree)/lib/vdso/Makefile.include
+ 
+ obj-vdso := vgettimeofday.o note.o sigreturn.o vgetrandom.o vgetrandom-chacha.o
+ 
++ifdef CONFIG_FUTEX_ROBUST_UNLOCK
++  obj-vdso += vfutex.o
++endif
++
+ # Build rules
+ targets := $(obj-vdso) vdso.so vdso.so.dbg
+ obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
+@@ -45,9 +49,11 @@ CC_FLAGS_ADD_VDSO := -O2 -mcmodel=tiny -fasynchronous-unwind-tables
+ 
+ CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_REMOVE_VDSO)
+ CFLAGS_REMOVE_vgetrandom.o = $(CC_FLAGS_REMOVE_VDSO)
++CFLAGS_REMOVE_vfutex.o = $(CC_FLAGS_REMOVE_VDSO)
+ 
+ CFLAGS_vgettimeofday.o = $(CC_FLAGS_ADD_VDSO)
+ CFLAGS_vgetrandom.o = $(CC_FLAGS_ADD_VDSO)
++CFLAGS_vfutex.o = $(CC_FLAGS_ADD_VDSO)
+ 
+ ifneq ($(c-gettimeofday-y),)
+   CFLAGS_vgettimeofday.o += -include $(c-gettimeofday-y)
+@@ -57,6 +63,10 @@ ifneq ($(c-getrandom-y),)
+   CFLAGS_vgetrandom.o += -include $(c-getrandom-y)
+ endif
+ 
++ifneq ($(c-futex-y),)
++  CFLAGS_vfutex.o += -include $(c-futex-y)
++endif
++
+ targets += vdso.lds
+ CPPFLAGS_vdso.lds += -P -C -U$(ARCH)
+ 
+diff --git a/arch/arm64/kernel/vdso/vfutex.c b/arch/arm64/kernel/vdso/vfutex.c
+new file mode 100644
+index 000000000000..4c69d92426fd
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/vfutex.c
+@@ -0,0 +1,35 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++#include <linux/stringify.h>
++#include <vdso/futex.h>
++
++#define LABEL(name, sz) __stringify(__futex_list##sz##_try_unlock_cs_##name)
++
++#define GLOBLS(sz) ".globl " LABEL(start, sz) ", " LABEL(success, sz) ", " LABEL(end, sz) "\n"
++
++__u32 __vdso_futex_robust_list64_try_unlock(__u32 *lock, __u32 tid, __u64 *pop)
++{
++	register __u64 *pop_reg asm("x2") = pop;
++	register __u32 result_reg asm("w3") = 0;
++	__u32 val;
++
++	asm volatile (
++		GLOBLS(64)
++		"	prfm pstl1strm, %[lock]			\n"
++		"retry:						\n"
++		"	ldxr %w[val], %[lock]			\n"
++		"	cmp %w[tid], %w[val]			\n"
++		"	bne " LABEL(end, 64)"			\n"
++		"	stlxr %w[result], wzr, %[lock]		\n"
++		LABEL(start, 64)":				\n"
++		"	cbnz %w[result], retry			\n"
++		LABEL(success, 64)":				\n"
++		"	str xzr, %[pop_reg]			\n"
++		LABEL(end, 64)":				\n"
++
++		: [val] "=&r" (val), [result] "=&r" (result_reg)
++		: [tid] "r" (tid), [lock] "Q" (*lock), [pop_reg] "Q" (*pop_reg)
++		: "cc", "memory"
++	);
++
++	return val;
++}
 
 -- 
 2.55.0
