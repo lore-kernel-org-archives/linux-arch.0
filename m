@@ -1,198 +1,100 @@
-Received: from flow-b7-smtp.messagingengine.com (flow-b7-smtp.messagingengine.com [202.12.124.142])
+Received: from out-180.mta0.migadu.com (out-180.mta0.migadu.com [91.218.175.180])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B040D2F28EA;
-	Fri, 17 Jul 2026 06:18:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.142
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8A43E38A72B
+	for <linux-arch@vger.kernel.org>; Fri, 17 Jul 2026 07:32:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.180
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784269092; cv=none; b=Nn+0SegszrEJS5x2GADUptw0G1OpHeBbQUxgs/lZKakQ6BZQJ9aCIbEwUjbH2SFNNz7AkC8g6VNiSp/8bq/wputzIljVyKy0vJ3U0mUTk3/qRbQ8CRNsKRV/3XBg4rsKAdsRBhZGGp70JsQ3PYjP1TdqsGeq8H4mivUSq5LCoEg=
+	t=1784273566; cv=none; b=RoWGQeJ5gv5O9lXrgHJ8UCSI29KqDB1piU5uhuLBA0GuhOXZifAdA+NpnpbFEIszZ4smdfhq9d4MCLwe1fRquRUW8O0HFDeCmEIVggJE7E9LcoAvVWp3GB2SxL9ouHpTkbImgsvCzo6WuII7cDdtvwm0mv2CExktChaPSxsCINg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784269092; c=relaxed/simple;
-	bh=1rpBdiF18TYSJ+Ia8zFd3UYs+lR0SkQsXit3jO8Xc4M=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=NMquz+0W93ql2Bv/CSN5dGtukgybuFGhiE91HBGdXAbSyBInYN3lQLEkwVfMmwDlfUTdLJep7MwLj1EIsvTaXnkEbCQ+ZwOWvIfivcmtBoF8ftB8eJ5g1xmJBANsMfXo83VseohAEvA2pmfDf849G3BmlMXN/rHfmk4kqPmLTzM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=qJurhs5J; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=SNFPT9EY; arc=none smtp.client-ip=202.12.124.142
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1784273566; c=relaxed/simple;
+	bh=Vy5ZSJ22cdtNWDqeuqJPSM8EgqDujfx3XdweAxFOAKg=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=GTZtaVVGO35C/x6BTslvLMjbfcCbdPcPR3ksM+JykeQpAvyOU2pCIDzHweUbDXZv9DlXD0zfhjKul17wmZSFbhaBfSLNaDWr5rlYtZ02Pxz8wUJfRtiGY5NEJFReB3zbWqRCW1bk74GHq9GQpm1x2QKyf5mad/AStWdcKh+qYmY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=SZDc8iyH; arc=none smtp.client-ip=91.218.175.180
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="qJurhs5J";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="SNFPT9EY"
-Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
-	by mailflow.stl.internal (Postfix) with ESMTP id C9D6E1300108;
-	Fri, 17 Jul 2026 02:18:08 -0400 (EDT)
-Received: from phl-imap-05 ([10.202.2.95])
-  by phl-compute-04.internal (MEProxy); Fri, 17 Jul 2026 02:18:09 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm1; t=1784269088;
-	 x=1784276288; bh=DIwsi7KwJyaKhQst6GtgDPKu/03zqC/ceJLNUsU0G7I=; b=
-	qJurhs5JdXDOPoUVTQH/c7wlS654Wk2iQcPnJ/CfxGI+lDliQ5WoXu9PkdWdggbW
-	4d8b/pP1UoIb+cUshsR429F+4jAmsqxfXulbery4qx9QQ9L3k+CuBjhMRAcJ508P
-	hkFpMA3/09yB51NIbjjASJyhc4gDS65tiI7/bPl+e6FpPcMswXKJWDAOkLhGoqnj
-	HfqcoQ3m4Kfmmvcx/bzssrZ+hwlg6Dm2Q58Y1+XLiXurzsv9XLe/lU2RHonAjrmT
-	Rv8BYN1KEYHV5Vnvxz9qEvOgjyUxplJIK+PqCHpYIathhx7GXGR9hFZ9zhMg6XKd
-	bY7i6Vl1mKinY8/PcRF8Pg==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1784269088; x=
-	1784276288; bh=DIwsi7KwJyaKhQst6GtgDPKu/03zqC/ceJLNUsU0G7I=; b=S
-	NFPT9EYrba01yD5+bxd0o86ReIuerWFEUX4KTVAPRJpdmcVvwba+/+L9NrYNYEqz
-	GNFOhIqqFlmQEic5XKMgufYnt51BOVzJ8oDuEigx6ZTwQNCDwNABsx0yaefvPyAq
-	OSVnT7Tk53WZGASdhTaErR5DhzAyaNihwPtUYvF8CprRClo4GENwngWSfd4DUaAQ
-	EMRcoeeFZRfQ650IbUBfrdYE669ijsQbPxh0v80NFCLXPm16uJm+D7nmUC9SBQ0g
-	dCX7TAfRWr6pfs/wSbK1bJr1MAJw50n1HthqFPfXnFg7BhG8N/GGqs/ei+tMgQeU
-	WuOo19ntWRmsneHGOshlQ==
-X-ME-Sender: <xms:HMlZagVQAqiQ2wrxcfzlM64OJgs_v7E5hozglxjLbZA3oFDx16Q4Sg>
-    <xme:HMlZavZjC5M5VU4vv_x6XA8Q9mGZD-v9gYlS1ZunodCNZxSELR3_B5xqo0NQQ1Kkk
-    S3Vnm8TCLvFoV9aetukmCzWBHrmtSXqTSyvspwykP4Js9EywzxWvA>
-X-ME-Proxy-Cause: dmFkZTEsnogHl3/584/D3E3UL21JNIJ0IpLGex2XJCrBcpEOIptBGsASC8eWXQmjmgrrA+
-    DsJi/6WKuBBi5F7OuvHSL+g/7EoKzEioTp1iZcObcFlCUdN9FQiLyhQ2WJckBsyhX/9Aho
-    5zQIT0Bvwp2+NRIJWoZWWMC8SmjxWARp06CdfI/xQXVcnw57hiZzQkOQc2pwFGFa0PD3Ig
-    VJ+Fd0xeZxtZewuZTM7xNyzpSHGuXpGq3mqq0soJ2shLfJD66nl9DGJFWVxpf76R9pb+Fn
-    JOiGB9PJjr5FAsfP8hraRM4k548vGuSqGP1eA/PLgcn2VY+22D2Q5gmScaUtFJHkQeGQl0
-    qOdJSMCXCOKVo2GYO0c8fM24yoitw5qkoNohPbWnf30vjF6onkva4ikrIgyRvIKEJvZNRA
-    2o7FLDlhqcoPYk1+SmVJ4d4YE9GOtue1HKQ96xeNVuknOhecYVmSMo0VsLMLmjY8/FISBD
-    gWTMCij41tnxpv39fvK9ULBw+8sWNQSqKe16iK2O+3X4VjSrm4lXzDGTiCUanjHSVT38ZI
-    vviFiqNWzxfI/YQs5BbNcV3zIA9lOiFNZ/YeaHhcz7lLGZ/gbDMi5asWUg1zuEVqw7zMyu
-    qV8v8QTwW2fXPoxCr2PY3YezqzuWa0Y6IrZCF0DlJYjYcHwuiRvpQbFeuHgw
-X-ME-Proxy: <xmx:HMlZatns8IaYGj1VLUytOw4spltodteAcr4k00MZgvzHgwqZMovQtA>
-    <xmx:HMlZahNXyXTuH2E6lbACeQcbmNWaNrYAiCMfDDD8K8uf2luwqFnldQ>
-    <xmx:HMlZat5qsP5jnznKN1zDwch0mVoi_kuQo9F-CYJkyvhZNwwUsQEKRA>
-    <xmx:HMlZaiL-pxHqt-gDvYbR-kuRnd0nkUgMhwofbEfTT8VK3P-i3s-mPw>
-    <xmx:IMlZakFwaTi3Bb2V5_o7u3qejYOcKPIj7XfIuyMLQ8lJxF0u_ZM4Y94W>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 0ADC3182007E; Fri, 17 Jul 2026 02:18:03 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="SZDc8iyH"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1784273551;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=elRl5YRyZ0y1WMkVX9LMG4a6K2L6QLQxfDuvThpHS/4=;
+	b=SZDc8iyH/xzfzc61bGU0vNcrYNP02mRyzVgqIqje1igvLl6swc8fNHMULP7KoWEFG/eAGh
+	ym5LHR6L4GR1b5pLxPLBtDoXzlf/EEkeJmG2eMX96hQzQb8eyr2m6WQ+b2bKgAwESBlEg4
+	KtMywIDT1V+NEk0PZixwQ+dYxTbDdIM=
+From: Thorsten Blum <thorsten.blum@linux.dev>
+To: Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Arnd Bergmann <arnd@arndb.de>
+Cc: Thorsten Blum <thorsten.blum@linux.dev>,
+	linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Subject: [PATCH] x86/serial: Use generic BASE_BAUD in asm/serial.h
+Date: Fri, 17 Jul 2026 09:31:50 +0200
+Message-ID: <20260717073149.3622-3-thorsten.blum@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: ASU80-mPZ9gg
-Date: Fri, 17 Jul 2026 08:16:55 +0200
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Yeoreum Yun" <yeoreum.yun@arm.com>
-Cc: "Pedro Falcato" <pfalcato@suse.de>, linux-arm-kernel@lists.infradead.org,
- linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
- linux-mips@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>,
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
- x86@kernel.org, linux-mm@kvack.org, kasan-dev@googlegroups.com,
- "linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>,
- linux-m68k@lists.linux-m68k.org,
- "linux-openrisc@vger.kernel.org" <linux-openrisc@vger.kernel.org>,
- "David Hildenbrand (Red Hat)" <david@kernel.org>,
- "Russell King" <linux@armlinux.org.uk>,
- "Andrew Morton" <akpm@linux-foundation.org>,
- "Ankur Arora" <ankur.a.arora@oracle.com>,
- "Mike Rapoport" <rppt@kernel.org>, "Magnus Lindholm" <linmag7@gmail.com>,
- "Christophe Leroy" <chleroy@kernel.org>,
- "Klara Modin" <klarasmodin@gmail.com>,
- "Huacai Chen" <chenhuacai@kernel.org>, "WANG Xuerui" <kernel@xen0n.name>,
- "Kirill A. Shutemov" <kas@kernel.org>, zhangtianyang@loongson.cn,
- wangyuli@aosc.io, "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>,
- "Lorenzo Stoakes" <ljs@kernel.org>, "Jason Gunthorpe" <jgg@ziepe.ca>,
- "Catalin Marinas" <catalin.marinas@arm.com>,
- "Will Deacon" <will@kernel.org>, "Ryan Roberts" <ryan.roberts@arm.com>,
- "Pasha Tatashin" <pasha.tatashin@soleen.com>,
- "Rohan McLure" <rmclure@linux.ibm.com>,
- "Baolin Wang" <baolin.wang@linux.alibaba.com>,
- "Tejun Heo" <tj@kernel.org>, "Kevin Brodsky" <kevin.brodsky@arm.com>,
- "Anup Patel" <anup@brainfault.org>, atish.patra@linux.dev,
- "Paul Walmsley" <pjw@kernel.org>, "Palmer Dabbelt" <palmer@dabbelt.com>,
- "Albert Ou" <aou@eecs.berkeley.edu>, "Alexandre Ghiti" <alex@ghiti.fr>,
- "Dave Hansen" <dave.hansen@linux.intel.com>,
- "Andy Lutomirski" <luto@kernel.org>,
- "Peter Zijlstra" <peterz@infradead.org>,
- "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
- "Borislav Petkov" <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>,
- "Johannes Weiner" <hannes@cmpxchg.org>,
- "Michal Hocko" <mhocko@kernel.org>, qi.zheng@linux.dev,
- "Shakeel Butt" <shakeel.butt@linux.dev>,
- "Kairui Song" <kasong@tencent.com>, "Barry Song" <baohua@kernel.org>,
- "Axel Rasmussen" <axelrasmussen@google.com>,
- "Yuanchu Xie" <yuanchu@google.com>, "Wei Xu" <weixugc@google.com>,
- "Andrey Ryabinin" <ryabinin.a.a@gmail.com>,
- "Alexander Potapenko" <glider@google.com>,
- "Andrey Konovalov" <andreyknvl@gmail.com>,
- "Dmitry Vyukov" <dvyukov@google.com>,
- "Vincenzo Frascino" <vincenzo.frascino@arm.com>,
- "Anshuman Khandual" <anshuman.khandual@arm.com>,
- "Yang Shi" <yang@os.amperecomputing.com>, chaitanyas.prakash@arm.com,
- "Ard Biesheuvel" <ardb@kernel.org>, guoren <guoren@kernel.org>,
- yang.li85200@gmail.com, "Alexander Viro" <viro@zeniv.linux.org.uk>,
- "Dinh Nguyen" <dinguyen@kernel.org>,
- "schuster.simon@siemens-energy.com" <schuster.simon@siemens-energy.com>,
- "Vivian Wang" <wangruikang@iscas.ac.cn>, junhui.liu@pigmoral.tech,
- "Muchun Song" <muchun.song@linux.dev>,
- "Vishal Moola (Oracle)" <vishal.moola@gmail.com>,
- "Nam Cao" <namcao@linutronix.de>, "Pavel Machek" <pavel@kernel.org>,
- djbw@kernel.org, yu-cheng.yu@intel.com,
- "Baolu Lu" <baolu.lu@linux.intel.com>,
- "Jonathan Cameron" <Jonathan.Cameron@huawei.com>,
- "Coiby Xu" <coxu@redhat.com>, "Andreas Larsson" <andreas@gaisler.com>,
- "Liam R. Howlett" <liam@infradead.org>,
- "Vlastimil Babka (SUSE)" <vbabka@kernel.org>,
- "Suren Baghdasaryan" <surenb@google.com>,
- "Michal Hocko" <mhocko@suse.com>,
- "Geert Uytterhoeven" <geert@linux-m68k.org>,
- "Stafford Horne" <shorne@gmail.com>, "Jonas Bonn" <jonas@southpole.se>,
- "Stefan Kristiansson" <stefan.kristiansson@saunalahti.fi>
-Message-Id: <4c3067df-20f0-43e8-8e62-354888afac04@app.fastmail.com>
-In-Reply-To: <alkrWNECXmoxkrUC@e129823.arm.com>
-References: <20260713135614.1618183-1-yeoreum.yun@arm.com>
- <20260713135614.1618183-3-yeoreum.yun@arm.com> <alYL7B0HAvmLVHGU@pedro-suse>
- <b7dbc476-1477-4004-93b3-c5e667e24df8@app.fastmail.com>
- <alkrWNECXmoxkrUC@e129823.arm.com>
-Subject: Re: [RFC PATCH 02/34] ARM: mm: make 2-level pgd_t a scalar
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1657; i=thorsten.blum@linux.dev; h=from:subject; bh=Vy5ZSJ22cdtNWDqeuqJPSM8EgqDujfx3XdweAxFOAKg=; b=owGbwMvMwCUWt7pQ4caZUj3G02pJDFmRt9Icl+oH3HWoOPvO6OOzTLca0Qi/Y7cutwYWPImrs elavcKyo5SFQYyLQVZMkeXBrB8zfEtrKjeZROyEmcPKBDKEgYtTACaiosbwT+FNl9m/P2JzH3X9 mWVq0bKqts15VWej4/8woUW1HvLd+xkZ3hpfCBNi5i1Q0L+/Jjypb+ajV1vDj+0SuP16k2zbnJu VvAA=
+X-Developer-Key: i=thorsten.blum@linux.dev; a=openpgp; fpr=1D60735E8AEF3BE473B69D84733678FD8DFEEAD4
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-On Thu, Jul 16, 2026, at 21:04, Yeoreum Yun wrote:
->>
->> > Ugh. This isn't correct C code. It only works because the kernel passes
->> > -fno-strict-aliasing.
->> 
->> I think the bigger problem is the code dereferencing the pgd
->> pointer in the first place: Since the pgd pair is written in
->> 32-bit units in __pmd_populate(), anything reading it would
->> technically have to operate on both entries.
->> 
->> As the kernel relies on -fno-strict-aliasing, the type mismatch
->> is less of a problem than actually doing the potentially wrong
->> thing.
->> 
->> As far as I can tell, we are however saved by pgd_val()
->> only ever being used for debug prints, where printing
->> the first entry is likely all that is needed to analyse
->> the real bug.
->> 
->> > I would recommend either forcing a struct here, or
->> > using a u64 with bitmasks/shifts.
->> 
->> That would require extra complexity for the big-endian
->> case though.
->
-> Agree. And since the users of pgd_val() mostly uses with
-> pmd_pfn(), pmd_page() and etc. I think it doesn't matter to return
-> lower pmdval_t or higher one.
->
-> Therefore, without considering endianess, it's enough with downcast
-> like:
->
->    #define pgd_val(x)      ((pmdval_t)x)
->
-> Could we apply this in next version?
+Include asm-generic/serial.h and use the generic BASE_BAUD definition
+instead of redefining it. Update the comment accordingly.
 
-I would just leave the original version here, at least it
-keeps the current behavior for something that is easy to
-get wrong. Taking the second entry on big-endian sounds
-counterintuitive, especially when you have a hugetlb
-mapping where the two don't just point to the same page.
+Signed-off-by: Thorsten Blum <thorsten.blum@linux.dev>
+---
+ arch/x86/include/asm/serial.h | 9 +--------
+ include/asm-generic/serial.h  | 7 ++-----
+ 2 files changed, 3 insertions(+), 13 deletions(-)
 
-      Arnd
+diff --git a/arch/x86/include/asm/serial.h b/arch/x86/include/asm/serial.h
+index ece8299d2695..b623f6d70f64 100644
+--- a/arch/x86/include/asm/serial.h
++++ b/arch/x86/include/asm/serial.h
+@@ -2,14 +2,7 @@
+ #ifndef _ASM_X86_SERIAL_H
+ #define _ASM_X86_SERIAL_H
+ 
+-/*
+- * This assumes you have a 1.8432 MHz clock for your UART.
+- *
+- * It'd be nice if someone built a serial card with a 24.576 MHz
+- * clock, since the 16550A is capable of handling a top speed of 1.5
+- * megabits/second; but this requires a faster clock.
+- */
+-#define BASE_BAUD (1843200/16)
++#include <asm-generic/serial.h>
+ 
+ /* Standard COM flags (except for COM4, because of the 8514 problem) */
+ #ifdef CONFIG_SERIAL_8250_DETECT_IRQ
+diff --git a/include/asm-generic/serial.h b/include/asm-generic/serial.h
+index ca9f7b6be3f0..53b04e607972 100644
+--- a/include/asm-generic/serial.h
++++ b/include/asm-generic/serial.h
+@@ -3,12 +3,9 @@
+ #define __ASM_GENERIC_SERIAL_H
+ 
+ /*
+- * This should not be an architecture specific #define, oh well.
+- *
+- * Traditionally, it just describes i8250 and related serial ports
+- * that have this clock rate.
++ * Default base baud for i8250 and related serial ports using a
++ * 1.8432 MHz UART clock.
+  */
+-
+ #define BASE_BAUD (1843200 / 16)
+ 
+ #endif /* __ASM_GENERIC_SERIAL_H */
