@@ -1,57 +1,66 @@
-Received: from CWXP265CU009.outbound.protection.outlook.com (mail-ukwestazon11021118.outbound.protection.outlook.com [52.101.100.118])
+Received: from LO3P265CU004.outbound.protection.outlook.com (mail-uksouthazon11020101.outbound.protection.outlook.com [52.101.196.101])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A5FF343F0B5;
-	Sat, 18 Jul 2026 04:03:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.100.118
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0D7FA2CCB9;
+	Sat, 18 Jul 2026 05:13:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.196.101
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784347411; cv=fail; b=DYVrnhn/LrXBXZsXzvwBOkwDWaomzCl39jv6GmHLpdn3elQlomzFSIFMc1aNuRIfKchpVjPTGkMyI5JroIVSL19NPfKT6sBy6iwISSd8Rbs9mEeIbyfklyqUP5fGBdBRA7cKfsyb0/DtCNyb+t4+AY/xzJWBsddaGxfLXRaKMpU=
+	t=1784351639; cv=fail; b=XFvNhIy4TqZM6YAo28Il9KlegVDVl2mZbPkdKJ/3F9Lh3dj+b7GSDZFc0cyFmo1RyZ88oLiYJkifOAyIi2TyAtPuNwi2xHoUrQtoDuc8bNYg2mneb0UwUJ408jFhpIjJE+ibIl50FsKqIgR2mf442EYHgoS/maZmyfr31FCo+Wo=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784347411; c=relaxed/simple;
-	bh=RgSHJ1PsEBMz3gq+TUQpLy2ryb2gyvFFHhzO9Noxcgk=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=RrL5coZkg8HNCB120EW7GmQ+3UYkW22972sNspCETyZP2dAIaRduO6v7MteQrf25VwWWD1a3+4W++6L579NRehESRAi3u7QZLUaDCkHre9iOPikzGf2tVsjf+Uw5hQqQfyfOhZaw9jwdjihHP3DcqnvegJT8zJCpPidNuhyjipg=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.100.118
+	s=arc-20240116; t=1784351639; c=relaxed/simple;
+	bh=rA8/S7bYY8wAUK7mjkpSvVWfgM+AzrLNM/3SiLXUByg=;
+	h=From:To:Cc:Subject:Date:Message-ID:Content-Type:MIME-Version; b=hn/GGQF4RpMRotXPTcvmLLWs2KNaPGC+n5FWDWxBVPLNoY59o/VhXb5OXCX33ZGG24DpN9yiW9aWlJxitbwf8tGoHDVWFd1c94GebrCscIj5rxMnaC8HuQo7WHO5MNpam5DRIMG1LKyScqtRt1v+CzCIPWk+jaQ9nuAOOgfIWXg=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.196.101
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=v9DmlLu5crbzvIMYD8yRBI0Axblh32WUuJ0Kx8lgxYrYpzpRyw0ywsLOriKGPxuy+TUPYUH0M8tL97RwUnOi3cIIQ3VeGkjTNz2tILqmfFYXu4oe7dsLgavjrENgkxGJVQUDXbb4RyRYomkDAR9chdjJNPrCa8dF9l75ug1JgH9xpyYG2GoFZ9V526NH8MHQ6SJViTZnhxC315UGReHo8RLiQU+SpFhb3OegNBKRHmJDfsl4f8r58Unj2aorygpvy9rIO/lH3qA6GiL1ydpQ0Ct24nsVRxxeZtV0DO9IDfRpom6+WqOOXVqnUG4ClJeLYPnCHnODtWQrA86ECDqusA==
+ b=yMBoQ+znIeCdW++Zb8b5q+n118MZlwvcue0J4TaXZmWd5Cek5A25JmlMQkQffMcsgjTpj1W38RIgkx0NerRBuh0qV7Mp+mX53lSwORZZLyo4EF2WuvWeouh+qve4RHO4hRi6/qjfVbax5uHDdqMsERoQtqBXGFt/Od6EDsi3XkHy2COBV3EhjPSwi0UMlCKffl7QuqQDEQKjrA4BjOibFbMlixH+IVH3tJbE07rk2xatri6f4m+cuO83gN0cMrhI6lTTZdHCcLFfJqKKUAyuF0yBiv7wCfnQtvzeXqRj82nlqkH10PTpjkrMNNiLI54hsyAyv9g8zUfga6rkC2qg3g==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
- bh=bNiToSsC5ccTCt+nvQwCyFfvd5IyM6Fqp8EXVgiBd10=;
- b=D/8CrtPNfaFuc8VQoYMPEEOIktskBSVbWP9qxREQnehvks/cxmYAstsZgn+5nlp28kva4ARZsRryZ0pvquGXtsZHNviIUvtBY0vgmpbpxpkAhofDk6Xyk5e9x05AHWLAk/85nSfT93IY1bw7j0gjUQafifJOWwewLZO2iNQynDcrjKv5QBDjUtRQidMCbR51n5Jab/R3Hl8+x54WmqUnCweZCHCanKiOitfnBCF9mUYLMxRXiWzMtxMdcosH6T/S7dY0SM/eyCsQkZP2AKNQZQQ4kBDUUVLDy79+L/Qgak002joEJb0QxsRS1eSx2HwjXKy3Qcz6pvBGzA5+WU1bmQ==
+ bh=vi7BCpeX3wWsCK6zdTpsFe6wia3ibj/QjFVZXgWyr6U=;
+ b=HENRtXGC3iCXWsvQ2ihnN9m5dS5S0FFgtD7MTDrwj3KH/OvAkhD8mkDXFf3bYDx9Dvgkpzw54FzI5R7YODE3FUg2xeqQ0O3VZTDlurXIhMmHeq4VC+XQ2Pq1gyIZHa1xMHqy6ftyJqAc8hZ6TrCLyG0Eyi3h9ic6gUATWTv1R32B8KR5IiBVXLz7U36ROg4MgNmf55vQ8PGkFDUFaboq2MhRAoZTMZ3Y2yd6hcdkoAgHzuHdAMDuxHuCi01Tc7j8iMD5cWiV+CHp8ovbdMVdDs3kloqDFTNy6gFtFw4ZhNfWsl3gkj3iUpwQU4VAvDQXneBuC04sNVAHu2Qd+/jQvA==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
  dkim=pass header.d=atomlin.com; arc=none
 Authentication-Results: dkim=none (message not signed)
  header.d=none;dmarc=none action=none header.from=atomlin.com;
 Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
- by LOBP123MB8923.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:482::7) with
+ by LO9P123MB7540.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:3ba::11) with
  Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.223.13; Sat, 18 Jul
- 2026 04:03:25 +0000
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.223.14; Sat, 18 Jul
+ 2026 05:13:54 +0000
 Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
  ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
  ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0223.013; Sat, 18 Jul 2026
- 04:03:24 +0000
-Date: Sat, 18 Jul 2026 00:03:20 -0400
+ 05:13:54 +0000
 From: Aaron Tomlin <atomlin@atomlin.com>
-To: Petr Pavlu <petr.pavlu@suse.com>
-Cc: arnd@arndb.de, mcgrof@kernel.org, da.gomez@kernel.org, 
-	samitolvanen@google.com, peterz@infradead.org, akpm@linux-foundation.org, 
-	mhiramat@kernel.org, neelx@suse.com, da.anzani@gmail.com, sean@ashe.io, 
-	chjohnst@mail.com, steve@abita.co, mproche@mail.com, nick.lane@mail.com, 
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v4] module: Extend module_blacklist parameter to built-in
- modules
-Message-ID: <vcnw3a4v7tfe7yhxu6myy2cxhxqcx4sbc44n3g7wrhweutaxiz@px23o6r6wahq>
-References: <20260708020007.55728-1-atomlin@atomlin.com>
- <7a946c5a-5bad-4e10-8633-0d593f3ab5a7@suse.com>
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <7a946c5a-5bad-4e10-8633-0d593f3ab5a7@suse.com>
-X-ClientProxiedBy: BN9PR03CA0172.namprd03.prod.outlook.com
- (2603:10b6:408:f4::27) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+To: arnd@arndb.de,
+	mcgrof@kernel.org,
+	petr.pavlu@suse.com,
+	da.gomez@kernel.org,
+	samitolvanen@google.com,
+	peterz@infradead.org
+Cc: akpm@linux-foundation.org,
+	mhiramat@kernel.org,
+	atomlin@atomlin.com,
+	neelx@suse.com,
+	da.anzani@gmail.com,
+	sean@ashe.io,
+	chjohnst@mail.com,
+	steve@abita.co,
+	mproche@mail.com,
+	nick.lane@mail.com,
+	linux-arch@vger.kernel.org,
+	linux-modules@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH v5 0/2] module: Extend blacklist parameter to support built-in modules
+Date: Sat, 18 Jul 2026 01:13:48 -0400
+Message-ID: <20260718051350.344772-1-atomlin@atomlin.com>
+X-Mailer: git-send-email 2.54.0
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-ClientProxiedBy: BN9P220CA0026.NAMP220.PROD.OUTLOOK.COM
+ (2603:10b6:408:13e::31) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
  (2603:10a6:400:183::5)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -60,249 +69,98 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LOBP123MB8923:EE_
-X-MS-Office365-Filtering-Correlation-Id: 7afacfeb-8299-4124-438d-08dee48183a4
+X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LO9P123MB7540:EE_
+X-MS-Office365-Filtering-Correlation-Id: fc1a1545-a71b-45dd-7723-08dee48b5c8c
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|23010399003|376014|7416014|1800799024|366016|56012099006|10067099003|4143699003|22082099003|18002099003|3023799007;
+	BCL:0;ARA:13230040|376014|7416014|23010399003|366016|1800799024|6133799003|18002099003|56012099006|10067099003;
 X-Microsoft-Antispam-Message-Info:
-	VFoV1B5zZBBwpYlI8fdDyQEzZhef2j2lYEWyq2htOrYthAsoQLa1Nsos9TK59Ou2KSqJvZVRQ+INg79BBHnS0IlMk2viovqf+Ztupj/mZNZJl2INyjXJw1IPTtRJrRGFHKX15YXwRVZz3zGl3jaGu14jVf/QsLQi252W9pjSJ3NCfnHht1tx1DHxYQNB1+f/upK/C+1R0DIeKGexDKmVPJp7zloI7STNau6q16wBA01tA/HmUMWziGhwJvvGQPxrS39RW+ZAh4mCJQ23/VsuNzAVUJa2kD4Vb/GlH2VMVvtFLV4L/OvwS3jOUD8ZqjTJMc2fqHcqm/hHN8e4aU5LxsAOaWH1yTXK56xnRKvXVlOSUL61gMX+TzBhyjHJjn4lYwQ6s6xtevvcgEQqj7m8QdV3dhsb/W+14ZDHmt9GhqONNTUylHpg/FiNXEAp0IMDQe1IxOG0BWb+uydnv7fbSOTD2bwImzZIajW8Q0LWf+zP1RxJ6B8fuCZ1DkGJsbqjFKMQC1cXfTTgmO/4G225ntaEoUpVsVxYW9GjZ+BYkSmYih24MEdhsG4SZb/NyvDf5yfllRDbzk8W3xfTcCZf9r8iUjG2IgeuuPHNLOCOaFEmaA2jI+Z9TytGHrFQsv6oQqcPggKAWejzReujAI0IDC9+vTOb6Azle0uYaNfTCGY=
+	bbxjU+CMKu1O2zDOCpihqr0Ex+7/eodg2G+Aoa6KtcLC8siYYGl/3WX3f5b67qzGAZqKCwV6H0QH34Z5LkMQw6VuexcYiZOKD72AbopQ+UsOGM5zh7Gdaer4MXQxUYbvesq3uQuUOBBqPIL1pToMlQmgh4u6pWUS6GfVQF68ffKRNHYna15XkGxU/5nRAKJfPFxmeg9V7gCl2eW44GMhFFUqqNr5iP4zmlu0Xf9oILxHDIQAjCCPgjJfOAv1SEZPCwWYeXOrRu6+d6hi+aQnoPDsSSirDg1uwehEqOgfN0GAT/RY8f6g+9EAKq4hzNcavUikhjV54toAUa1XGNOzcgvxOHpaGvV/SFVR4g7hJ1auPHOE9T5AWdt9fMpCU6IVHTKLXl/7XzMhrrpF64JvnUJRJ7Drs/mUdC/U92eoecs8fK5o3P53f8p8K8T64cxxET34Ob8glenisN3oWWWlKKjiuF0WMk/MFgDW093rk+sSreGiOugRsNCmKRyLYAxM5b9a64VvSjF4b6jL/aHhzl0SaBF+PpkqFsv3HDpphozY7H/jHrQwuG2m4SiPNOYVZETzMgKzPZvks7fRN7/Af8xsa19JA9sVy98X68BE+o6mTn5d8WrDugqLQnTmS9s+jvoYPdStpnoDWNilMXz7SmmYDi9N0NLadtJ3u2+n8gE=
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(23010399003)(376014)(7416014)(1800799024)(366016)(56012099006)(10067099003)(4143699003)(22082099003)(18002099003)(3023799007);DIR:OUT;SFP:1102;
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(376014)(7416014)(23010399003)(366016)(1800799024)(6133799003)(18002099003)(56012099006)(10067099003);DIR:OUT;SFP:1102;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?cGc3czJlL2FCSFIxK3ZiTDhwWThlblREYnVpUUxXWjBIeEZPRFUvL1pCcURz?=
- =?utf-8?B?Mm1SYlg5R3JEVzlMZ3JsaGxUVXBTcWVNL2ZqMHpvTTViSWpjMmlUY2tFQjNG?=
- =?utf-8?B?NHkvclNaai9nK0dEL2hDMCtISzNmNVIreHkyNFNac2t1Q21OYi9HcUpUdncv?=
- =?utf-8?B?anJwcmM5NlJqMTJXRDhoNXdRTUdnQVBOTEpiQ1RBQ0RaMWNWSWtmR2YwNlZZ?=
- =?utf-8?B?dUNDUFhLNkRiQjUwMFJQUnZqZGpDNldvME1ySGpCcnlVZmpWQWVHREc4S2tv?=
- =?utf-8?B?V2RmSkJFYVhyK09zMDFtemY4NXBXaXNFZVdMMHdDb2NreVJjWDZ3T21kdTFW?=
- =?utf-8?B?bG81U2J2M0Z0OTNVS1I0KzRtLzlQV1E0WEIybkZXdUh2SGk2MzhGRDA2U0lH?=
- =?utf-8?B?eUNyTUlzNGhkb2Rwa0gzSUNKV3g2WGVGR3MzdnIvVDU2cThBMUp2M09DRGd4?=
- =?utf-8?B?bTFjZm1laVozZElkRURjTzh2YnYralFlNnB4WmZqYlN5M2IzOGRBcFJTQ3Nx?=
- =?utf-8?B?Nm04bnlJZmNZdENsTWVBYmRMODM1QnFwN1l4LzVwSndMa0R6M0JUdWlOd1Uv?=
- =?utf-8?B?YWJDL1NCYVV2K1RHSWFnL3F1ZkhOZUM0Tmo2MTVnOXA2VkRzOVphTTFxZ3Jl?=
- =?utf-8?B?Q3dOY2lRVFJrNGIybDJhZjBxUWxzQUxmcmczbHRTb0hEQURTOU0ranVlaWEr?=
- =?utf-8?B?OTJwcCtWcW1YZDh3Y3FXeEFza3lnRHozVVVZclJSUTAxUElHc0J0emwzc3BQ?=
- =?utf-8?B?eFZmMUh4WXUzOTRWQUM1c1M2SzFpa3MraGJ2bERRWk5yeUhRRWZNM1V5Tmdx?=
- =?utf-8?B?NEovaUFnTGpnSnZzWW04MGU1aGt2bWJCRm1BSGJOdy94ei9GOUFnYkg5Yzgz?=
- =?utf-8?B?V3Y3TnBSM1JGT2dCcHRiY1llcTNhT1FFTkh0bkNJMUx4L2VBYVZSU2huMzBG?=
- =?utf-8?B?ZXhyL25HSlh0ckJ3Z25CdXBIR0czWGtHN3MvNm1ibllISi9WV1c2Q1hRWTFF?=
- =?utf-8?B?eTFPd2IyY1A4bGtnQy9ldGEyVEhCMTY3VGJxSWliQ0lLZHVmaE1xL1BwL0oy?=
- =?utf-8?B?dVc0K2xiSjUvNjVQNGU3YmtNRFhFS283ZDIxOUsvcjVRRGkxZ1l2WHlobzVx?=
- =?utf-8?B?dTAyUFJLUDNvK1NGSGMrdUVqSFJ6UnQ0Q1VRblRiQm5GSE1EUkRHV2todTl0?=
- =?utf-8?B?cnRzZ0dOMjl2a3hjRVhrdHJuTjlHN2JVRWo2SnNoem9HWkNqUmh1eWtuclF3?=
- =?utf-8?B?amVrUmxsUE5MeVJSNUw1NDZ5SmtvKzhxYkhxbW5tZWNCNWovMURkdEJZM3pT?=
- =?utf-8?B?Rmp5M2lKVmNLWmtIZUJyWmN4bHA4d3gzNnRuU0ZFdmVlUldaVkFsQmZ4b3Bw?=
- =?utf-8?B?QVFYajg5bUVxM3dSczRLaTFURzdUajJpNm80c2VnbXdPVXc4TWEzWmZxQ2I2?=
- =?utf-8?B?cE1OMjBTeUtCeGQ3RUxNMUxoWUFNQUR2cjlKY0RqNkxVS2UzUDdMNFUyVHVj?=
- =?utf-8?B?MUJ6aWp2cnR4OWs1ckVKdXF5dGp4WW95M0JFUlNxRVNMb1l1dzB3OGhBUmxE?=
- =?utf-8?B?TUdBK0d6blpPVEdtZDhEby9EZ3JwQjY5anJqL3laNm1PTldnajRVaEpUSk5z?=
- =?utf-8?B?amNWa0xtSEVqL2FtajJvYWU2RTVFQUNaUzRsVXd0dFpxRm5nSkU4UzF4VmpW?=
- =?utf-8?B?bGZ5UlQya1VlcWxQUG9BYThqcDEzOVhLZFovRW5obWMwcXVNbS9MMnpERDJn?=
- =?utf-8?B?MzA2ejQ5eFE4ZkRUZDBESzlzMzI4L2NPMGkrdWMyVGUzcnV3VkpUckswa2d4?=
- =?utf-8?B?azBxQ3Y2YnlDbEQxNklNVERENmYwYkNBMWNMOEcrdWxzTFE5bklLK1lCaldt?=
- =?utf-8?B?ZlNQR2J6V29KUGQzdzcyQW9rWFpNVHU1eHlGSmduME5VUk1mcHd2UG5MakdD?=
- =?utf-8?B?djFEVk1zZnl1WmVMNlgyM1RxbTdBRm1KUDV0c2cvZkxuWWhya1BrWElCMU5X?=
- =?utf-8?B?RXRYNzRxY3pTcHpZTU9GWnF6RnBURytJOXRWTVE1c0pxUjNkRlhKUmNZL21G?=
- =?utf-8?B?Umg4QzhleDBuTEQ0cFRRQTBnZEdqMUJpN1FoMnQ4d0t4M1VZdk9CUExPejgw?=
- =?utf-8?B?T09kK20zSVdva0ZKTkYrbzIzOUFGWkFKdzduYk1OYkpMVnpscDlBdE41U2xz?=
- =?utf-8?B?YWV6SThLWC9UckFjSm84RzRXUUZQNGNQc25OZ0JGT1lkQ3pENk1mUmszRjZo?=
- =?utf-8?B?QW1xc2VMZ1RtZkpuaUdzd0MrUitJSDlwdm4rcXBWRjJORkhRNEhjUVJIRG5r?=
- =?utf-8?B?c0pPbzNDMzNtd1EycmpQRTMzY1o1ZmJXdVoxdnJzQ01jb3BKTENBQT09?=
+	=?us-ascii?Q?LBwlhOhhDMXWisR9j4vjSr6aixD+pMDuqpdAMrsnHLw1LMYUoPsTGV3aKW4q?=
+ =?us-ascii?Q?Sm6l3fzx3ikqD+/Q3135kwD1AOtueNYPX9i1PJGOl67ZrQPI601PRYwyzaGD?=
+ =?us-ascii?Q?sYF06R/FUzlDRCvxwzaUBFFO1+gwvS+g24i+aInUZg+2jMKIWZiRk5koqkAN?=
+ =?us-ascii?Q?uqVppQSG4rN0v/RjxdvU8FxCBxV2ZHAo57CBUFt6Jc7kA+nDLje55PN2Eltw?=
+ =?us-ascii?Q?Ym2dnx4/TcPLTVxiJ6/A8kGMaSMMin7Rzpzkxu/udaY6HkaluR+b752blJvG?=
+ =?us-ascii?Q?pNOHG9uPzhqZk8bDChY8XqRPvTwnAFPjkMs+uQ6vdD/vPtYphdBsl9z0IfXm?=
+ =?us-ascii?Q?hATjCOBDbOFeYPPr6faruychBdACX5GgEVQqiIdrrZ/gjRioTujEGxkUg74R?=
+ =?us-ascii?Q?oDtCQno1b5sHNAdp8yZ0t9OEPCrBJ6z5SGxZsL5lsk1JNt1fY9Hd7LtX2tgx?=
+ =?us-ascii?Q?aiTirq7pt1qQC3aNns2FF5pwL3NAlAjDIDaWg/cWQuB6DsXDqc/VC0B8q3eO?=
+ =?us-ascii?Q?ibGXqEWCd+9/wveVcli0hboIg+Ae7KxoM+XfmyWPLjq89FlwqpgpgBDawMyw?=
+ =?us-ascii?Q?Qbo/9fubqRPl1mRaY+68iK1nJlBafaMaEO7doROUpvWL6G/6SsUBL9rxHz1l?=
+ =?us-ascii?Q?eloz0fdrxbgi2CeavSR2S4FkypUiwLcd9WL3+4zf3Sh3jTFxg+jpLpAPw15H?=
+ =?us-ascii?Q?hYwj8L+vNkX9B/InO25CiogFaGEqK+eK17X1VGrCYDqINblC7Hji2iHqML6o?=
+ =?us-ascii?Q?/gaaVWIwei+K934SH54NKFpMbRjLjbt8xt7u3w3ykpiWhyJ/WEfa33d7E1yo?=
+ =?us-ascii?Q?BDhDeyLVrJ5pV46UAW7teCu7nXIMr7sG31LPGj9mbHzCRLl759hxekvkvNIR?=
+ =?us-ascii?Q?RJyt/fX3EY2GT6lt48tW0Xr2mA4nQi0V/AbMDq0exikWi1Gk3X/0jfR7fseL?=
+ =?us-ascii?Q?m+MCr1FI1gqlmmVKCPL8DTjVuqrKdD2aivz5sHpOxl8jQZgCTzeB5J5V2q5w?=
+ =?us-ascii?Q?5jwBPwDOoUYUhPmlYpoP//QZLQ8ky0PHuVSePpCHo9PTpNS7jZvV9CfKSoFk?=
+ =?us-ascii?Q?OXxrO0pZ/6B4gwK2oFyaO2IZOw9W81aohgY0UC2IOlV6zWsqni7RRcYvwQKf?=
+ =?us-ascii?Q?+HjQYRa6oop3Fkgy4cKM7YHST6hH1njrGPXNHLwrIIGrso5t6YAW99sb6yte?=
+ =?us-ascii?Q?ne9U1h5laDAlZagN1MC6dzzrsgTi+CXexhcaRDh0urTFxADw7O1W4ck7jOBS?=
+ =?us-ascii?Q?/6v/cZkqeTYEhyx/LcJUHu2UQSsRbQjlGnxCm/50SZPI8zmXZy9Lqdw+5lkn?=
+ =?us-ascii?Q?HfthBxi7aOJIRFaX6Wk4nwK/0GYO+S0laeQcgwiM7S8ftfZUrquq5CDRhbt+?=
+ =?us-ascii?Q?Ilzr98R9aOLOAhTE0fuInggoL3/FhrE6dtMh5ZSt1Dlvvz5b/Zq+qfuScfsQ?=
+ =?us-ascii?Q?gwNN0uUtzKMlDKm5Az4c19diWmwO8wo5Pu0q2c7mHN8wz2DZSLNqJy7AD2sp?=
+ =?us-ascii?Q?nyXR5dJNdsAfdjjFtFNLWFgjoOYqL9mYtwwtn2JO4ZNMnnQsBPL0NtYpYfj3?=
+ =?us-ascii?Q?CvYFltSCUKpeF/N3WTnOoD+OR+MGnSteyvatcqRh4d69R5G9XVt1OKfncgfC?=
+ =?us-ascii?Q?3zwCQjEDp+qrcGTvsTfi0crfhJ1s+2FzlsC4woVtnirL2O/rKw1n9Zx4F3Pr?=
+ =?us-ascii?Q?fsQ0j0Yn53bpGKSRi6+EQ21YhqgyR/XOWnxf1ZD4DJDIp72mEY9jZAzIuykN?=
+ =?us-ascii?Q?Ck7g5PAtgg=3D=3D?=
 X-OriginatorOrg: atomlin.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 7afacfeb-8299-4124-438d-08dee48183a4
+X-MS-Exchange-CrossTenant-Network-Message-Id: fc1a1545-a71b-45dd-7723-08dee48b5c8c
 X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 18 Jul 2026 04:03:24.5960
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 18 Jul 2026 05:13:53.9755
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: TeMEO1JtbVHmljJ1JtMVP55/BgFSX4BJr0dcQAU5nBf20+RHaMaVjGJmIKDCv6PbZ0PxUA7BD1TmsoJj53nqtg==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: LOBP123MB8923
+X-MS-Exchange-CrossTenant-UserPrincipalName: 1G1inzu9azeZZ1ShjUYfmmGg38XK3Cg0jwAB3WB8Pih884SlvbPY+SlFmpNTaO24Evdp0rlvibbsl5c5Nc01dg==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: LO9P123MB7540
 
-On Tue, Jul 14, 2026 at 04:46:08PM +0200, Petr Pavlu wrote:
-> > @@ -734,7 +734,9 @@
-> >  	EARLYCON_TABLE()						\
-> >  	LSM_TABLE()							\
-> >  	EARLY_LSM_TABLE()						\
-> > -	KUNIT_INIT_TABLE()
-> > +	KUNIT_INIT_TABLE()						\
-> > +	. = ALIGN(8);							\
-> 
-> Is ALIGN(8) sufficient, or is STRUCT_ALIGN() needed instead?
+Currently, the "module_blacklist=" command-line parameter only applies to
+loadable modules. If a module is built-in, the parameter is silently
+ignored. This patch series extends the blacklisting functionality to
+built-in modules by intercepting their initialisation routines during early
+boot.
 
-Hi Petr,
+Following review feedback, the implementation has been split into two
+separate changes to decouple the introduction of the new feature from the
+terminology renaming:
 
-Thank you for your feedback.
+    1.  The first patch extends the "module_blacklist=" parameter to
+        built-in modules using the original blacklist terminology. It
+        introduces the ".initcall.modnames" section to map initcall
+        function pointers to their associated KBUILD_MODNAME strings
+        (restricted only to module_init() invocations to save memory and
+        avoid matching core kernel subsystems). It also implements temporal
+        boundary checks to prevent use-after-free (UAF) risks when loading
+        dynamic modules, and a fast-path check to eliminate lookup overhead
+        during boot when the parameter is not in use
 
-I can use STRUCT_ALIGN() instead of ALIGN(8) to match structure alignment.
-
-> > +	BOUNDED_SECTION_PRE_LABEL(.initcall.modnames, initcall_modnames, __start_, __stop_)
-> 
-> Nit: I think this can be shortened to:
-> 
-> BOUNDED_SECTION_BY(.initcall.modnames, _initcall_modnames)
-
-Acknowledged.
-
-> >  #define INIT_TEXT							\
-> >  	*(.init.text .init.text.*)					\
-> > diff --git a/include/linux/init.h b/include/linux/init.h
-> > index 40331923b9f4..9c78b6c30361 100644
-> > --- a/include/linux/init.h
-> > +++ b/include/linux/init.h
-> > @@ -271,8 +271,30 @@ extern struct module __this_module;
-> >  		__initcall_name(initcall, __iid, id),		\
-> >  		__initcall_section(__sec, __iid))
-> >  
-> > -#define ___define_initcall(fn, id, __sec)			\
-> > -	__unique_initcall(fn, id, __sec, __initcall_id(fn))
-> > +#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
-> > +#define __initcall_fn_ptr(fn, __iid, id)	__initcall_stub(fn, __iid, id)
-> > +#else
-> > +#define __initcall_fn_ptr(fn, __iid, id)	fn
-> > +#endif
-> > +
-> > +struct initcall_modname {
-> > +	initcall_t initcall_fn;
-> > +	const char *modname;
-> > +};
-> > +
-> > +#define ____define_initcall_modname(fn, id, __sec, __iid)		\
-> > +	__unique_initcall(fn, id, __sec, __iid)				\
-> > +	static const char __initstr_##fn[] __used __aligned(1)		\
-> > +		__section(".init.rodata") = KBUILD_MODNAME;		\
-> > +	static const struct initcall_modname __modname_##fn __used	\
-> > +		__section(".initcall.modnames") = {			\
-> > +			.initcall_fn = __initcall_fn_ptr(fn, __iid, id), \
-> > +			.modname = __initstr_##fn			\
-> > +		};
-> 
-> All initcalls are ultimately defined via ____define_initcall_modname(),
-> including initcalls in vmlinux code that can never be built as modules.
-> In such a case, KBUILD_MODNAME is set to the target's basename (same as
-> KBUILD_BASENAME).
-> 
-> This wastes memory and also allows the module_blacklist parameter to
-> match initcalls that are unrelated to built-in modules.
-
-Agreed.
-
-In the next iteration, I restored the default ___define_initcall definition
-in include/linux/init.h back to using the standard __unique_initcall
-without mapping.
-
-To restrict the mapping strictly to actual built-in modules, I redefined
-module_init() under #ifndef MODULE in include/linux/module.h to expand to
-____define_initcall_modname().        
-  
-Indeed since core vmlinux code that can never be built as modules does not
-use module_init(), the next iteration ensures that:
-  
-    1.  No mapping metadata is generated for core subsystem initcalls
-
-    2.  The module_blacklist (or module_denylist) parameters can no longer
-        accidentally match or skip unrelated core kernel initcalls
-
-> > +
-> > +#define ___define_initcall(fn, id, __sec)				\
-> > +	____define_initcall_modname(fn, id, __sec, __initcall_id(fn))
-> > +
-> >  
-> >  #define __define_initcall(fn, id) ___define_initcall(fn, id, .initcall##id)
-> >  
-> > diff --git a/include/linux/module.h b/include/linux/module.h
-> > index 7566815fabbe..bc2968c225e1 100644
-> > --- a/include/linux/module.h
-> > +++ b/include/linux/module.h
-> > @@ -883,6 +883,8 @@ static inline void module_for_each_mod(int(*func)(struct module *mod, void *data
-> >  }
-> >  #endif /* CONFIG_MODULES */
-> >  
-> > +extern bool module_is_denylisted(const char *module_name);
-> > +
-> 
-> Nit: The extern keyword in function declarations is unnecessary. See
-> Documentation/process/coding-style.rst.
-
-Acknowledged.
-
-> 
-> >  #ifdef CONFIG_SYSFS
-> >  extern struct kset *module_kset;
-> >  extern const struct kobj_type module_ktype;
-> > diff --git a/init/main.c b/init/main.c
-> > index e363232b428b..af71811d24e3 100644
-> > --- a/init/main.c
-> > +++ b/init/main.c
-> > @@ -1334,12 +1334,65 @@ static inline void do_trace_initcall_level(const char *level)
-> >  }
-> >  #endif /* !TRACEPOINTS_ENABLED */
-> >  
-> > +extern struct initcall_modname __start_initcall_modnames[];
-> > +extern struct initcall_modname __stop_initcall_modnames[];
-> > +
-> > +/* module_denylist is a comma-separated list of module names */
-> > +static char *module_denylist;
-> > +bool module_is_denylisted(const char *module_name)
-> 
-> module_is_denylisted() should be __init_or_module.
-
-Acknowledged.
-
-> > +{
-> > +	const char *p;
-> > +	size_t len;
-> > +
-> > +	if (!module_denylist)
-> > +		return false;
-> > +
-> > +	for (p = module_denylist; *p; p += len) {
-> > +		len = strcspn(p, ",");
-> > +		if (strlen(module_name) == len && !memcmp(module_name, p, len))
-> > +			return true;
-> > +		if (p[len] == ',')
-> > +			len++;
-> > +	}
-> > +	return false;
-> > +}
-> > +core_param(module_denylist, module_denylist, charp, 0400);
-> > +core_param(module_blacklist, module_denylist, charp, 0400);
-> > +
-> > +static const char *initcall_get_modname(initcall_t fn)
-> 
-> initcall_get_modname() should ideally be __init.
-
-Acknowledged.
-
-> 
-> Nit: I think a better name would be something like get_builtin_modname()
-> to make clear that the function returns a module name only for built-in
-> modules, not regular ones.
-
-Agreed.
-
-> > +{
-> > +	struct initcall_modname *p;
-> > +	unsigned long addr = (unsigned long)dereference_function_descriptor(fn);
-> > +
-> > +	if (system_state >= SYSTEM_FREEING_INITMEM)
-> > +		return NULL;
-> > +
-> > +	if (!is_kernel_text(addr) &&
-> > +	    !is_kernel_inittext(addr))
-> > +		return NULL;
-> 
-> I believe these checks could be avoided if the code was reorganized to
-> avoid reaching this logic on the do_init_module() path in the first
-> place.
-
-Agreed.
+    2.  The second patch renames the variables and helper functions to
+        adopt the preferred "module_denylist=" and module_is_denylisted()
+        terminology in the codebase. To preserve the existing user-space
+        ABI, "module_blacklist=" is kept as a legacy alias pointing to the
+        same module_denylist variable
 
 
-Kind regards,
+Aaron Tomlin (2):
+  module: Extend module_blacklist parameter to built-in modules
+  module: Rename module_blacklist to module_denylist
+
+ include/asm-generic/vmlinux.lds.h |  4 ++-
+ include/linux/init.h              | 24 +++++++++++++++-
+ include/linux/module.h            |  5 +++-
+ init/main.c                       | 47 +++++++++++++++++++++++++++++++
+ kernel/module/main.c              | 24 ++--------------
+ 5 files changed, 79 insertions(+), 25 deletions(-)
+
 -- 
-Aaron Tomlin
+2.54.0
+
