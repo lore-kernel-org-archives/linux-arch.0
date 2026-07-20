@@ -1,38 +1,38 @@
 Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E403E400967;
-	Mon, 20 Jul 2026 16:03:37 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3A7D0400992;
+	Mon, 20 Jul 2026 16:03:38 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784563420; cv=none; b=bhsGYT2qn9u97iMadfEaf4yOCw5iqC7kWiDTxIlPzmFMNyKTytA0wRe1BMhT2X5tADImrhBJslaiPISt9oiuBgvs1dTvvOLdMki3J+MnJdx369+NooFZIw2PR2tBo3Z0rtDCsUKG+buqdnx9Ryn8RwHXPktujr8ZS2ZdRcKMZms=
+	t=1784563421; cv=none; b=IFgDBIp7UMqJp28hTnKxkTg0NUlLsFdXsDLGDO7+tCM3coERzMwv+K874QgbW0GX9pdhfjR2+jqFSRygkaDIgeCyd1KIcxE8uP3ppqiiPUSTRBCnlkza8m3qVYzhgHfOrDogr5Lv8H8tAICav4QkxASUqQhWsRUZ97/1nMZ9Trw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784563420; c=relaxed/simple;
-	bh=+T7csHINHcHFGCq5A5xDC1oiI6yT4G1aDR9CDDjMxwU=;
+	s=arc-20240116; t=1784563421; c=relaxed/simple;
+	bh=WF9yaGbc9+T3YfcyodhQRRcqqFEYaS8KaTw2pSxUdhk=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=fuBXIp76nsN6GHEfwuVlvsPXW2CHaRtFlwBsbocuQkgW6Uhf3qQg+ByYKYjBDmYd4l4zXQyEchO7OnXN8WGHlzA6pzWBOtBbGYkbfgK7TOfvCO+MMwpUH4OuqDkha4oadUQBueCE6DJUdTlYFmXz31r2otiDDwbmisJTK5G/qoY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=DtlTktoG; arc=none smtp.client-ip=213.97.179.56
+	 In-Reply-To:To:Cc; b=usoLBrZJrnc41fgpLm+Dl8P+sY7VLHLnx1J4qS+UFiyFXeZamCNuA0L3g8GMKYkUAVXnlXvFgFNuqIVxnSrCbtaVF2ud3s5o5zuw4qYQREBijASaGall2RjYt+AmVRKiYeGUjX5VbjYviJi6tLC1X+VyF7bsXsqJzjwBVzuuUE0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=K1lzBlGQ; arc=none smtp.client-ip=213.97.179.56
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="DtlTktoG"
+	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="K1lzBlGQ"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
 	s=20170329; h=Cc:To:Message-Id:Content-Transfer-Encoding:Content-Type:
 	MIME-Version:Subject:Date:From:From:Reply-To;
-	bh=ptmo/42mb6OleOo3WAUeI3RlL5iqmYR87B2SI/srVQA=; b=DtlTktoGxA4xxfCNOTNR6a6l6f
-	060S+NOEVJcElqK+SYGCubbQOzEBc8NLtgnldn6HyS9ZC1uLkoinR+WIsC6Ejk/bQBLbhDovxhz6N
-	/TePLTsXlo65/Hgy1DhZ3Z3CBoASWiuIjn2cVbYNU1NltmWveRR39YsfGWQwTD6Iluj/LbT8ASR0g
-	0x1NCo542IOoLZSjGi3zRcuOuOrWYpq5vU/V9BecDRsGoqPCwsVO8QvVMzsBao1Y9GKxTViUQsK6p
-	tC4eG5uy0EWnagyT0U8kMatOzX0Q0qB9eia876SUAecVnUbHU5fs/0G9+ZRBxXT+WtiKJax53BwmG
-	R882q27w==;
+	bh=SY+V7m3x81ZE0Jh30T1ph1E6RS77jxcGLAevQyeWPtc=; b=K1lzBlGQrNKDlDiIBi1VkMkP+q
+	3u+582HhMM2BJqFKSKYZtfKUh5GbLgR/Fpj/KBpYGKWh3KT+KZAzc3d4vfz/k0JGIvZFITnpeCz43
+	FypVruJMS3MXkFvRORvG4j8X1PC6niT4UJZ7oyvrefsv339UpS0vay7hbc3EBJX4f9MHqPEu3bJyN
+	szkA0q+ftvgD2twy/odnaF1zyMu73wgjbacJcwSk2ttRBt7+YEHf07ywrUIcm0k2ebvynxa4WYI//
+	FvOzrObYiUOQ6gjKTGC8TgGnufZPB6oXAw6k8Mxe82JOX26PudyQrqAWdNS0xhhaKXVJNGTFJEzez
+	rRveZP7A==;
 Received: from [179.118.191.219] (helo=[192.168.15.100])
 	by fanzine2.igalia.com with esmtpsa 
 	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_256_GCM:256) (Exim)
-	id 1wlqSi-001CZ2-IS; Mon, 20 Jul 2026 18:03:24 +0200
+	id 1wlqSn-001CZ2-5e; Mon, 20 Jul 2026 18:03:29 +0200
 From: =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
-Date: Mon, 20 Jul 2026 13:03:01 -0300
-Subject: [PATCH v6 1/4] arm64: vdso: Prepare for robust futex unlock
- support
+Date: Mon, 20 Jul 2026 13:03:02 -0300
+Subject: [PATCH v6 2/4] arm64: vdso: Implement
+ __vdso_futex_robust_try_unlock()
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20260720-tonyk-robust_arm-v6-1-7e68c122047e@igalia.com>
+Message-Id: <20260720-tonyk-robust_arm-v6-2-7e68c122047e@igalia.com>
 References: <20260720-tonyk-robust_arm-v6-0-7e68c122047e@igalia.com>
 In-Reply-To: <20260720-tonyk-robust_arm-v6-0-7e68c122047e@igalia.com>
 To: Catalin Marinas <catalin.marinas@arm.com>, 
@@ -60,127 +60,213 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
 X-Mailer: b4 0.15.2
 
-To solve the robust futex's list_pending_op clearing race condition,
-prepare for implement __vdso_futex_robust_try_unlock() for arm64 with the
-following steps:
+The futex's robust list uAPI has a struct robust_list_head::list_op_pending
+pointer used by userspace as a temporary variable while the mutex unlock is
+happening. User sets it to the futex address that's about to be released
+and removed from the robust list, and list_op_pending is cleared after.
+After a thread dies, the kernel checks it's list_op_pending and wakes the
+mutex in that address, to prevent starvation, and flip a bit in the mutex
+word (FUTEX_OWNER_DIED).
 
-- Create a helper function that sets the struct futex_mm_data with the
-VDSO's labels addresses. The robust futex fixup mechanism needs to
-compare the current instruction pointer to the VDSO instructions range.
+However, there's a critical section where the user thread dies after the
+mutex is released but before list_op_pending is cleared. If that happens,
+another thread can wake up, use the lock, release it, and free its
+memory. Now, if the robust list cleanup happens after this, the
+killed thread's list_op_pending becomes a dandling pointer. The
+kernel wrongly treats this address as a mutex, calls a futex_wake()
+on it and flips a bit, causing a memory corruption.
 
-- Split vdso_mremap() in vdso_mremap() and aarch32_mremap(), this allows
-the VDSO to be setup correctly regarding the instructions addresses for
-both ABIs when a mremap happens.
+To avoid using the dangling pointer, implement
+__vdso_futex_robust_try_unlock() for arm64. Make the VDSO release the mutex
+and clear the list_op_pending fields, just as is done in userspace right
+now. But having it in a VDSO means that, in the case of a killed user
+thread, the kernel can know exactly in which part of the release process
+the thread was interrupt, check the registers for the operation success and
+clears the list_op_pending on behalf of the user thread to prevent the
+use-after-free bug.
 
-- Implement arch_futex_robust_unlock_get_pop() for arm64, checking for r2
-and r3 registers values for the fixup function. The role of this registers
-is explained in the commit that implement the assembly portion of the VDSO.
+The need for checking the instructions addresses and the register makes
+this mechanism arch-dependent. Implement it using LL/SC semantics. If the
+user instruction pointer is between the labels
+__futex_list64_try_unlock_cs_start and __futex_list64_try_unlock_cs_end,
+the critical section was interrupted. The kernel checks for the result
+register (always w3) of the stlxr instruction used for atomically releasing
+the mutex. If it's 1, the release happened and the kernel should clear the
+list_op_pending field (always stored at x2).
 
 Signed-off-by: André Almeida <andrealmeid@igalia.com>
 ---
 v6:
- - Restructured this commit. Move the arch bits away, kept just the
- generic/helper functions.
+ - Complete reword of commit message to make it clear
+ - Better commit split, only the specific aarch64 things here
+ - Use explicity labels instead of macros
 
 v4:
-- Guard symbols from vdso.lds.S with ifdef
-- drop update_ips() from sigpage remap function
+ - Guard makefile for vfutex.o with ifdef
+ - Moved _start label one instruction above
+ - Use results register (w3) to check for store success instead of using zero
+   flag
 
 v3:
- - Fix adding vdso base addr twice
- - Call vdso_futex_robust_unlock_update_ips() on remap as well
-v2:
- - Fixed linker not finding VDSO symbols
+ - Managed to get pop to always be stored at x2
 ---
----
- arch/arm64/include/asm/futex_robust.h | 19 +++++++++++++++++++
- arch/arm64/kernel/vdso.c              | 27 ++++++++++++++++++++++++++-
- 2 files changed, 45 insertions(+), 1 deletion(-)
+ arch/arm64/Kconfig                |  1 +
+ arch/arm64/kernel/vdso.c          | 13 +++++++++++++
+ arch/arm64/kernel/vdso/Makefile   | 10 ++++++++++
+ arch/arm64/kernel/vdso/vdso.lds.S |  9 +++++++++
+ arch/arm64/kernel/vdso/vfutex.c   | 35 +++++++++++++++++++++++++++++++++++
+ 5 files changed, 68 insertions(+)
 
-diff --git a/arch/arm64/include/asm/futex_robust.h b/arch/arm64/include/asm/futex_robust.h
-new file mode 100644
-index 000000000000..4ff783bb2dc3
---- /dev/null
-+++ b/arch/arm64/include/asm/futex_robust.h
-@@ -0,0 +1,19 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _ASM_ARM64_FUTEX_ROBUST_H
-+#define _ASM_ARM64_FUTEX_ROBUST_H
-+
-+#include <asm/ptrace.h>
-+
-+static __always_inline void __user *arm64_futex_robust_unlock_get_pop(struct pt_regs *regs)
-+{
-+	/*
-+	 * w3 stores the result of the stlxr instruction. If it's zero, the then
-+	 * the ll/sc cmpxchg succeeded and the pending op pointer needs to be cleared.
-+	 */
-+	return (regs->user_regs.regs[3]) ? NULL : (void __user *) regs->user_regs.regs[2];
-+}
-+
-+#define arch_futex_robust_unlock_get_pop(regs) \
-+	arm64_futex_robust_unlock_get_pop(regs)
-+
-+#endif /* _ASM_ARM64_FUTEX_ROBUST_H */
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index b3afe0688919..0582172811d9 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -221,6 +221,7 @@ config ARM64
+ 	select HAVE_RELIABLE_STACKTRACE
+ 	select HAVE_POSIX_CPU_TIMERS_TASK_WORK
+ 	select HAVE_FUNCTION_ARG_ACCESS_API
++	select HAVE_FUTEX_ROBUST_UNLOCK
+ 	select MMU_GATHER_RCU_TABLE_FREE
+ 	select HAVE_RSEQ
+ 	select HAVE_RUST if RUSTC_SUPPORTS_ARM64
 diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 592dd8668de4..3ef331b5b240 100644
+index 3ef331b5b240..1d1633e8339b 100644
 --- a/arch/arm64/kernel/vdso.c
 +++ b/arch/arm64/kernel/vdso.c
-@@ -11,6 +11,7 @@
- #include <linux/clocksource.h>
- #include <linux/elf.h>
- #include <linux/err.h>
-+#include <linux/futex.h>
- #include <linux/errno.h>
- #include <linux/gfp.h>
- #include <linux/kernel.h>
-@@ -57,6 +58,22 @@ static struct vdso_abi_info vdso_info[] __ro_after_init = {
- #endif /* CONFIG_COMPAT_VDSO */
- };
+@@ -74,11 +74,22 @@ static inline void __vdso_futex_update_ips(struct mm_struct *mm, bool is_32bit,
+ 					   void *endp)
+ #endif /* CONFIG_FUTEX_ROBUST_UNLOCK */
  
-+#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
-+static inline void __vdso_futex_update_ips(struct mm_struct *mm, bool is_32bit, void *startp,
-+					   void *endp)
++static inline void vdso_futex_update_ips(struct mm_struct *mm)
 +{
-+	unsigned long start = (unsigned long) startp;
-+	unsigned long end = (unsigned long) endp;
-+	struct futex_mm_data *fd = &mm->futex;
++	unsigned long vdso = (unsigned long) mm->context.vdso;
 +
-+	futex_set_vdso_cs_range(fd, is_32bit ? 1 : 0, start, end, is_32bit);
++	__vdso_futex_update_ips(mm, false,
++				VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_start),
++				VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_end));
 +}
-+
-+#else
-+static inline void __vdso_futex_update_ips(struct mm_struct *mm, bool is_32bit, void *startp,
-+					   void *endp)
-+#endif /* CONFIG_FUTEX_ROBUST_UNLOCK */
 +
  static int vdso_mremap(const struct vm_special_mapping *sm,
  		struct vm_area_struct *new_vma)
  {
-@@ -162,6 +179,14 @@ static int aarch32_sigpage_mremap(const struct vm_special_mapping *sm,
+ 	current->mm->context.vdso = (void *)new_vma->vm_start;
+ 
++	vdso_futex_update_ips(current->mm);
++
  	return 0;
  }
  
-+static int aarch32_mremap(const struct vm_special_mapping *sm,
-+		struct vm_area_struct *new_vma)
-+{
-+	current->mm->context.vdso = (void *)new_vma->vm_start;
-+
-+	return 0;
-+}
-+
- static struct vm_special_mapping aarch32_vdso_maps[] = {
- 	[AA32_MAP_VECTORS] = {
- 		.name	= "[vectors]", /* ABI */
-@@ -174,7 +199,7 @@ static struct vm_special_mapping aarch32_vdso_maps[] = {
- 	},
- 	[AA32_MAP_VDSO] = {
- 		.name = "[vdso]",
--		.mremap = vdso_mremap,
-+		.mremap = aarch32_mremap,
- 	},
- };
+@@ -366,5 +377,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	ret = __setup_additional_pages(VDSO_ABI_AA64, mm, bprm, uses_interp);
+ 	mmap_write_unlock(mm);
  
++	vdso_futex_update_ips(mm);
++
+ 	return ret;
+ }
+diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
+index 7dec05dd33b7..985346c7a0bb 100644
+--- a/arch/arm64/kernel/vdso/Makefile
++++ b/arch/arm64/kernel/vdso/Makefile
+@@ -11,6 +11,10 @@ include $(srctree)/lib/vdso/Makefile.include
+ 
+ obj-vdso := vgettimeofday.o note.o sigreturn.o vgetrandom.o vgetrandom-chacha.o
+ 
++ifdef CONFIG_FUTEX_ROBUST_UNLOCK
++  obj-vdso += vfutex.o
++endif
++
+ # Build rules
+ targets := $(obj-vdso) vdso.so vdso.so.dbg
+ obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
+@@ -45,9 +49,11 @@ CC_FLAGS_ADD_VDSO := -O2 -mcmodel=tiny -fasynchronous-unwind-tables
+ 
+ CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_REMOVE_VDSO)
+ CFLAGS_REMOVE_vgetrandom.o = $(CC_FLAGS_REMOVE_VDSO)
++CFLAGS_REMOVE_vfutex.o = $(CC_FLAGS_REMOVE_VDSO)
+ 
+ CFLAGS_vgettimeofday.o = $(CC_FLAGS_ADD_VDSO)
+ CFLAGS_vgetrandom.o = $(CC_FLAGS_ADD_VDSO)
++CFLAGS_vfutex.o = $(CC_FLAGS_ADD_VDSO)
+ 
+ ifneq ($(c-gettimeofday-y),)
+   CFLAGS_vgettimeofday.o += -include $(c-gettimeofday-y)
+@@ -57,6 +63,10 @@ ifneq ($(c-getrandom-y),)
+   CFLAGS_vgetrandom.o += -include $(c-getrandom-y)
+ endif
+ 
++ifneq ($(c-futex-y),)
++  CFLAGS_vfutex.o += -include $(c-futex-y)
++endif
++
+ targets += vdso.lds
+ CPPFLAGS_vdso.lds += -P -C -U$(ARCH)
+ 
+diff --git a/arch/arm64/kernel/vdso/vdso.lds.S b/arch/arm64/kernel/vdso/vdso.lds.S
+index 52314be29191..225f59bb81d1 100644
+--- a/arch/arm64/kernel/vdso/vdso.lds.S
++++ b/arch/arm64/kernel/vdso/vdso.lds.S
+@@ -104,6 +104,9 @@ VERSION
+ 		__kernel_clock_gettime;
+ 		__kernel_clock_getres;
+ 		__kernel_getrandom;
++#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
++		__vdso_futex_robust_list64_try_unlock;
++#endif
+ 	local: *;
+ 	};
+ }
+@@ -112,3 +115,9 @@ VERSION
+  * Make the sigreturn code visible to the kernel.
+  */
+ VDSO_sigtramp		= __kernel_rt_sigreturn;
++
++#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
++VDSO_futex_list64_try_unlock_cs_start = __futex_list64_try_unlock_cs_start;
++VDSO_futex_list64_try_unlock_cs_success = __futex_list64_try_unlock_cs_success;
++VDSO_futex_list64_try_unlock_cs_end = __futex_list64_try_unlock_cs_end;
++#endif
+diff --git a/arch/arm64/kernel/vdso/vfutex.c b/arch/arm64/kernel/vdso/vfutex.c
+new file mode 100644
+index 000000000000..83efd5e5896f
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/vfutex.c
+@@ -0,0 +1,35 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++#include <linux/stringify.h>
++#include <vdso/futex.h>
++
++__u32 __vdso_futex_robust_list64_try_unlock(__u32 *lock, __u32 tid, __u64 *pop)
++{
++	register __u64 *pop_reg asm("x2") = pop;
++	register __u32 result_reg asm("w3") = 0;
++	__u32 val;
++
++	asm volatile (
++		".globl						  "
++		"__futex_list64_try_unlock_cs_start,		  "
++		"__futex_list64_try_unlock_cs_success,		  "
++		"__futex_list64_try_unlock_cs_end		\n"
++
++		"	prfm pstl1strm, %[lock]			\n"
++		"retry:						\n"
++		"	ldxr %w[val], %[lock]			\n"
++		"	cmp %w[tid], %w[val]			\n"
++		"	bne __futex_list64_try_unlock_cs_end	\n"
++		"	stlxr %w[result], wzr, %[lock]		\n"
++		"__futex_list64_try_unlock_cs_start:		\n"
++		"	cbnz %w[result], retry			\n"
++		"__futex_list64_try_unlock_cs_success:		\n"
++		"	str xzr, %[pop_reg]			\n"
++		"__futex_list64_try_unlock_cs_end:		\n"
++
++		: [val] "=&r" (val), [result] "=&r" (result_reg)
++		: [tid] "r" (tid), [lock] "Q" (*lock), [pop_reg] "Q" (*pop_reg)
++		: "cc", "memory"
++	);
++
++	return val;
++}
 
 -- 
 2.55.0
