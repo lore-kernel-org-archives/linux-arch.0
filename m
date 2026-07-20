@@ -1,118 +1,187 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.20])
+Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 262FF348898;
-	Mon, 20 Jul 2026 13:05:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.20
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E403E400967;
+	Mon, 20 Jul 2026 16:03:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784552710; cv=none; b=htpY5U3hwc5hHXZJxMT4LwEOwJ0qVpn7mqd7+nNHu356uWO7tzM1tAKG9tyuUt6IN0aUL8ImcLcxeY886B9XpQkjVSH0lIAptOjzpSBxLQGEmqIrSjGvvjPkcVoCXZ4stNGXHYX6/vgVCWX5NnlWRPhBdKgpg4L+2nTCDxdcM08=
+	t=1784563420; cv=none; b=bhsGYT2qn9u97iMadfEaf4yOCw5iqC7kWiDTxIlPzmFMNyKTytA0wRe1BMhT2X5tADImrhBJslaiPISt9oiuBgvs1dTvvOLdMki3J+MnJdx369+NooFZIw2PR2tBo3Z0rtDCsUKG+buqdnx9Ryn8RwHXPktujr8ZS2ZdRcKMZms=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784552710; c=relaxed/simple;
-	bh=9iwk3+XNQYlbEmXDu592ICNgUwDwIp4s3EjQCPpt95w=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=QVZpw6WL7+xjilGQNG0v7p6jSjuenGppQ05Fe3t57sU579slPiOJ1jrSoFQCwE8/fHmcLESQO1cRR9f06ugY93nAvIXJw1Rf0n2uy9xXRNeBUw1ilv3AXyRu67hNKd5j6cz1GYzuzvDrm7l2j7uVlGxpMFlhosUkG9NARYbvmHg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=ClTsD+gU; arc=none smtp.client-ip=198.175.65.20
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1784563420; c=relaxed/simple;
+	bh=+T7csHINHcHFGCq5A5xDC1oiI6yT4G1aDR9CDDjMxwU=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=fuBXIp76nsN6GHEfwuVlvsPXW2CHaRtFlwBsbocuQkgW6Uhf3qQg+ByYKYjBDmYd4l4zXQyEchO7OnXN8WGHlzA6pzWBOtBbGYkbfgK7TOfvCO+MMwpUH4OuqDkha4oadUQBueCE6DJUdTlYFmXz31r2otiDDwbmisJTK5G/qoY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=DtlTktoG; arc=none smtp.client-ip=213.97.179.56
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="ClTsD+gU"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1784552709; x=1816088709;
-  h=message-id:date:mime-version:subject:to:cc:references:
-   from:in-reply-to:content-transfer-encoding;
-  bh=9iwk3+XNQYlbEmXDu592ICNgUwDwIp4s3EjQCPpt95w=;
-  b=ClTsD+gUlF/uu7cNnDR77XCBUnpgSUFeVqNfZyxmcqNuvxf2T72XIPyA
-   EpSGCYPpSqaRAxnBByQDMaj35nRUnX6+gKxBR7fb8hSX2ETZ43cNRoCHq
-   fWCjqEM0yqduMSZKcOqUZsEio4hA7Vdh2sXp1ns6mGE2cn9AefWJ8wCpB
-   J1hYaxKwTS4YZLIX0AHCK+kMr2cePcqGc+QT9RHJCJ58KYbGD3puuzs1F
-   BcedXJZXVu7RlulD4wB2cjFFzVO7D9yhoRVqdsnHTEXtWTGprd8yf6RoE
-   TL12qP4AaDStVH6doSGNQiiTVli+X09W9zUDuCgrh6LiOLVPcnrW6PnZ+
-   w==;
-X-CSE-ConnectionGUID: o026d4LcRFij9dOYZPHS0w==
-X-CSE-MsgGUID: 6iNNUzsXRx+lHGoTlJrZbw==
-X-IronPort-AV: E=McAfee;i="6800,10657,11852"; a="84898525"
-X-IronPort-AV: E=Sophos;i="6.25,174,1779174000"; 
-   d="scan'208";a="84898525"
-Received: from orviesa001.jf.intel.com ([10.64.159.141])
-  by orvoesa112.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Jul 2026 06:05:08 -0700
-X-CSE-ConnectionGUID: 9Eb9vpu/RaeFxpiW+w8L1Q==
-X-CSE-MsgGUID: TX930MbuTsSLX0njsjivxQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.25,174,1779174000"; 
-   d="scan'208";a="295658442"
-Received: from bradocaj-mobl.ger.corp.intel.com (HELO [10.125.109.156]) ([10.125.109.156])
-  by smtpauth.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Jul 2026 06:05:07 -0700
-Message-ID: <33fae97d-75db-4df7-9aa3-05a51f8747cd@intel.com>
-Date: Mon, 20 Jul 2026 06:05:06 -0700
+	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="DtlTktoG"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
+	s=20170329; h=Cc:To:Message-Id:Content-Transfer-Encoding:Content-Type:
+	MIME-Version:Subject:Date:From:From:Reply-To;
+	bh=ptmo/42mb6OleOo3WAUeI3RlL5iqmYR87B2SI/srVQA=; b=DtlTktoGxA4xxfCNOTNR6a6l6f
+	060S+NOEVJcElqK+SYGCubbQOzEBc8NLtgnldn6HyS9ZC1uLkoinR+WIsC6Ejk/bQBLbhDovxhz6N
+	/TePLTsXlo65/Hgy1DhZ3Z3CBoASWiuIjn2cVbYNU1NltmWveRR39YsfGWQwTD6Iluj/LbT8ASR0g
+	0x1NCo542IOoLZSjGi3zRcuOuOrWYpq5vU/V9BecDRsGoqPCwsVO8QvVMzsBao1Y9GKxTViUQsK6p
+	tC4eG5uy0EWnagyT0U8kMatOzX0Q0qB9eia876SUAecVnUbHU5fs/0G9+ZRBxXT+WtiKJax53BwmG
+	R882q27w==;
+Received: from [179.118.191.219] (helo=[192.168.15.100])
+	by fanzine2.igalia.com with esmtpsa 
+	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_256_GCM:256) (Exim)
+	id 1wlqSi-001CZ2-IS; Mon, 20 Jul 2026 18:03:24 +0200
+From: =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
+Date: Mon, 20 Jul 2026 13:03:01 -0300
+Subject: [PATCH v6 1/4] arm64: vdso: Prepare for robust futex unlock
+ support
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v7 0/9] mm: optimize zone-device memmap initialization
-To: Li Zhe <lizhe.67@bytedance.com>, akpm@linux-foundation.org,
- apopple@nvidia.com, arnd@arndb.de, balbirs@nvidia.com, bp@alien8.de,
- dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org,
- mingo@redhat.com, rppt@kernel.org, tglx@kernel.org, muchun.song@linux.dev
-Cc: linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
-References: <20260720120259.1545-1-lizhe.67@bytedance.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Content-Language: en-US
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- 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
-In-Reply-To: <20260720120259.1545-1-lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Message-Id: <20260720-tonyk-robust_arm-v6-1-7e68c122047e@igalia.com>
+References: <20260720-tonyk-robust_arm-v6-0-7e68c122047e@igalia.com>
+In-Reply-To: <20260720-tonyk-robust_arm-v6-0-7e68c122047e@igalia.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, 
+ Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
+ Mark Rutland <mark.rutland@arm.com>, 
+ Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+ Sebastian Andrzej Siewior <bigeasy@linutronix.de>, 
+ Peter Zijlstra <peterz@infradead.org>, Florian Weimer <fweimer@redhat.com>, 
+ Darren Hart <dvhart@infradead.org>, Ingo Molnar <mingo@kernel.org>, 
+ Davidlohr Bueso <dave@stgolabs.net>, Arnd Bergmann <arnd@arndb.de>, 
+ Uros Bizjak <ubizjak@gmail.com>, 
+ =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, 
+ linux-arch@vger.kernel.org, kernel-dev@igalia.com, 
+ LKML <linux-kernel@vger.kernel.org>, 
+ =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
+X-Mailer: b4 0.15.2
 
-On 7/20/26 05:02, Li Zhe wrote:
-> This reduces the average memmap initialization time measured during
-> rebind by about 60.4% for nd_pmem and 56.4% for dax_pmem.
+To solve the robust futex's list_pending_op clearing race condition,
+prepare for implement __vdso_futex_robust_try_unlock() for arm64 with the
+following steps:
 
-There are lots of things in the kernel we could optimize.
+- Create a helper function that sets the struct futex_mm_data with the
+VDSO's labels addresses. The robust futex fixup mechanism needs to
+compare the current instruction pointer to the VDSO instructions range.
 
-Why is this important?
+- Split vdso_mremap() in vdso_mremap() and aarch32_mremap(), this allows
+the VDSO to be setup correctly regarding the instructions addresses for
+both ABIs when a mremap happens.
+
+- Implement arch_futex_robust_unlock_get_pop() for arm64, checking for r2
+and r3 registers values for the fixup function. The role of this registers
+is explained in the commit that implement the assembly portion of the VDSO.
+
+Signed-off-by: André Almeida <andrealmeid@igalia.com>
+---
+v6:
+ - Restructured this commit. Move the arch bits away, kept just the
+ generic/helper functions.
+
+v4:
+- Guard symbols from vdso.lds.S with ifdef
+- drop update_ips() from sigpage remap function
+
+v3:
+ - Fix adding vdso base addr twice
+ - Call vdso_futex_robust_unlock_update_ips() on remap as well
+v2:
+ - Fixed linker not finding VDSO symbols
+---
+---
+ arch/arm64/include/asm/futex_robust.h | 19 +++++++++++++++++++
+ arch/arm64/kernel/vdso.c              | 27 ++++++++++++++++++++++++++-
+ 2 files changed, 45 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/include/asm/futex_robust.h b/arch/arm64/include/asm/futex_robust.h
+new file mode 100644
+index 000000000000..4ff783bb2dc3
+--- /dev/null
++++ b/arch/arm64/include/asm/futex_robust.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_ARM64_FUTEX_ROBUST_H
++#define _ASM_ARM64_FUTEX_ROBUST_H
++
++#include <asm/ptrace.h>
++
++static __always_inline void __user *arm64_futex_robust_unlock_get_pop(struct pt_regs *regs)
++{
++	/*
++	 * w3 stores the result of the stlxr instruction. If it's zero, the then
++	 * the ll/sc cmpxchg succeeded and the pending op pointer needs to be cleared.
++	 */
++	return (regs->user_regs.regs[3]) ? NULL : (void __user *) regs->user_regs.regs[2];
++}
++
++#define arch_futex_robust_unlock_get_pop(regs) \
++	arm64_futex_robust_unlock_get_pop(regs)
++
++#endif /* _ASM_ARM64_FUTEX_ROBUST_H */
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 592dd8668de4..3ef331b5b240 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -11,6 +11,7 @@
+ #include <linux/clocksource.h>
+ #include <linux/elf.h>
+ #include <linux/err.h>
++#include <linux/futex.h>
+ #include <linux/errno.h>
+ #include <linux/gfp.h>
+ #include <linux/kernel.h>
+@@ -57,6 +58,22 @@ static struct vdso_abi_info vdso_info[] __ro_after_init = {
+ #endif /* CONFIG_COMPAT_VDSO */
+ };
+ 
++#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
++static inline void __vdso_futex_update_ips(struct mm_struct *mm, bool is_32bit, void *startp,
++					   void *endp)
++{
++	unsigned long start = (unsigned long) startp;
++	unsigned long end = (unsigned long) endp;
++	struct futex_mm_data *fd = &mm->futex;
++
++	futex_set_vdso_cs_range(fd, is_32bit ? 1 : 0, start, end, is_32bit);
++}
++
++#else
++static inline void __vdso_futex_update_ips(struct mm_struct *mm, bool is_32bit, void *startp,
++					   void *endp)
++#endif /* CONFIG_FUTEX_ROBUST_UNLOCK */
++
+ static int vdso_mremap(const struct vm_special_mapping *sm,
+ 		struct vm_area_struct *new_vma)
+ {
+@@ -162,6 +179,14 @@ static int aarch32_sigpage_mremap(const struct vm_special_mapping *sm,
+ 	return 0;
+ }
+ 
++static int aarch32_mremap(const struct vm_special_mapping *sm,
++		struct vm_area_struct *new_vma)
++{
++	current->mm->context.vdso = (void *)new_vma->vm_start;
++
++	return 0;
++}
++
+ static struct vm_special_mapping aarch32_vdso_maps[] = {
+ 	[AA32_MAP_VECTORS] = {
+ 		.name	= "[vectors]", /* ABI */
+@@ -174,7 +199,7 @@ static struct vm_special_mapping aarch32_vdso_maps[] = {
+ 	},
+ 	[AA32_MAP_VDSO] = {
+ 		.name = "[vdso]",
+-		.mremap = vdso_mremap,
++		.mremap = aarch32_mremap,
+ 	},
+ };
+ 
+
+-- 
+2.55.0
+
