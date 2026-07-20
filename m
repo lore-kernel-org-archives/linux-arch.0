@@ -1,52 +1,55 @@
-Received: from va-2-113.ptr.blmpb.com (va-2-113.ptr.blmpb.com [209.127.231.113])
+Received: from va-2-112.ptr.blmpb.com (va-2-112.ptr.blmpb.com [209.127.231.112])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5C9BD3E16BD
-	for <linux-arch@vger.kernel.org>; Mon, 20 Jul 2026 12:03:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.113
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D9E2346AD6
+	for <linux-arch@vger.kernel.org>; Mon, 20 Jul 2026 12:04:10 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784549032; cv=none; b=bYwrOtwOvbyLG6ioORnWhhgnfo6NBeX4Gd/KS86PZhnncxSovQfTQrZhXJnVCn++5k8PlhJtA1BYyiDm7ExVzSwXkKf1oQyGF2A83LGowbCtvaka67uQbIfJHJg0cyTP+kLa7bl3IcWhcwNhQTmJEm6qkRlGYp1NQ/SQci+vkTA=
+	t=1784549053; cv=none; b=lzNCpE4Sc0kKLfa61LdbxZrNfFzFmDo0MC7nPyae3h0Q2w+te8umoLZ7Kvd22DV7ag/dzVlblcZKmyG10EOswWCT/Wo57OqlYXKtvjD9BZPgTwh1k+OA8KXuNjUKyhjKF6TCu40F/LD79AvtjVwfs5LYo66XgdmyRd097212fBY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784549032; c=relaxed/simple;
+	s=arc-20240116; t=1784549053; c=relaxed/simple;
 	bh=r+ngCif+2ZTM3dV/fDnTq3aN32vLGNDDPveNneeRZuY=;
-	h=Subject:Date:Message-Id:From:Mime-Version:Content-Type:To:Cc; b=LyhbpcKiOG3ilp6NxejAedQzSnSHK/D57QFb5T19t51yEbBZgkQo3mwQSw6MZ4DCeBRS70l+Izy6b8i/9IkzIg+/aGHOTO93ST4IGCCHyxv34dOjd+ImL10EGL7Mtf40fk9X8ym0AIz72XY1Nha9RC+0fl8Z1mNIIpj7+j8W18Y=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=gkCwPRf5; arc=none smtp.client-ip=209.127.231.113
+	h=Cc:Subject:References:Message-Id:Mime-Version:To:In-Reply-To:
+	 Content-Type:From:Date; b=UyGxWpWuTJldBslX9lhAFyNzWEnNbWLbegu6RmvHR8L6cF9hhX3UDywoSSEsE+rmde0vrUjEnX46TWnreJPsebq7/C4PDaeHCakD41LxKZ7QHabzZTTzviLXomV2CnPH7Ye90enU/9vZm17reiLoZAPdkLYt6MBKLzG7KXUnDt8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=R9LyQKxT; arc=none smtp.client-ip=209.127.231.112
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="gkCwPRf5"
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="R9LyQKxT"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1784549017; h=from:subject:
+ s=2212171451; d=bytedance.com; t=1784549040; h=from:subject:
  mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
  mime-version:in-reply-to:message-id;
  bh=YZqNbH2if8hUjJ9Tg0ji4lns0q8vnGSCzJjMbirHpIY=;
- b=gkCwPRf5OYelaxFVRtKt2pX6aAr6564lfQVdWzI/8u1zpF+AsHXRRIKPToXgWn98sN+/DA
- iYK5wbbtKeSe5lSuHiD5cUWQ1Vh/ojJmqoOoZTrfQXppfYLWjYf5fwQnIK3jmB61mLdZhF
- PnhLSlRBoVW/dt19LEKrvQPlDz3qOez/E1DYr1E2fbkwBW+B8ZbXcXQQj+G+VFNBSr/jHn
- b96y96OxdjRHVwUDBAcmnFB0pUq8hPCEsbRQfXVZ2BHUfDnmrS/ou/qz+oTIpU/2YYFyRN
- 47TyiJOUkhXGqT8FS2hNb08QIoB4r9RQea4uhn0GgAZ3I4JN5UsgTwArRfKDAA==
+ b=R9LyQKxTPN3H2L1JCHoN1dqj96A2F7ISe8vHbP3QT2+gy9T3DoxeIlj1osYxd+DlitoM5T
+ sqR/fDs/ZvPvlpTCqToTIhY6m1kuHP6+wdXRVbO7yUnw8NPxoelOPRslQODPLo2l7F3pcK
+ p0GJACLNfaThTkYnO053O8NklLD8U4Ag1MGtsQC3hqZ4GpCfe++yxiIaCGFB2QleQUudX0
+ yK5EV37qiyzAhzP7u9fSSaxg9vo4/iN2HNDE/h+tb/L9MSHStHrmNsZpze6E6G5YJKWPvR
+ AitjrMU3pUX5rOU1QI/7daI21aLvYGYBWIBEWAD1c8bhN9wUTDF4hJnOeYfifA==
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+X-Lms-Return-Path: <lba+26a5e0eae+71586d+vger.kernel.org+lizhe.67@bytedance.com>
+Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
+	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
+	<lizhe.67@bytedance.com>
 Subject: [PATCH v7 0/9] mm: optimize zone-device memmap initialization
-Date: Mon, 20 Jul 2026 20:02:49 +0800
-Message-Id: <20260720120259.1545-1-lizhe.67@bytedance.com>
-Content-Transfer-Encoding: 7bit
-From: "Li Zhe" <lizhe.67@bytedance.com>
+References: <20260720120259.1545-1-lizhe.67@bytedance.com>
+X-Mailer: git-send-email 2.45.2
+Message-Id: <20260720120259.1545-2-lizhe.67@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-X-Mailer: git-send-email 2.45.2
-X-Lms-Return-Path: <lba+26a5e0e98+589273+vger.kernel.org+lizhe.67@bytedance.com>
 To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
 	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
 	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
 	<rppt@kernel.org>, <tglx@kernel.org>, <muchun.song@linux.dev>
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	<lizhe.67@bytedance.com>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+Content-Transfer-Encoding: 7bit
+In-Reply-To: <20260720120259.1545-1-lizhe.67@bytedance.com>
+Content-Type: text/plain; charset=UTF-8
+From: "Li Zhe" <lizhe.67@bytedance.com>
+Date: Mon, 20 Jul 2026 20:02:50 +0800
 
 memmap_init_zone_device() can take a noticeable amount of time when large
 pmem namespaces are bound or rebound, because it initializes nearly
