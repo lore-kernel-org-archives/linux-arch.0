@@ -1,163 +1,118 @@
-Received: from va-1-113.ptr.blmpb.com (va-1-113.ptr.blmpb.com [209.127.230.113])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.20])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4A496369224
-	for <linux-arch@vger.kernel.org>; Mon, 20 Jul 2026 12:08:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.113
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 262FF348898;
+	Mon, 20 Jul 2026 13:05:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.20
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784549325; cv=none; b=bao7gOkCiaZTdnUvzib+SFnmvbu0hvreSzJN4UlT1CAFI7iGq0a1c0p88RO/PLRGzZhg0Mo/Hix3wGykd6dA2PUct0YHFSrZfnt/L2M05KDmkysfOg40nA9dmKrAQaeWj6i84e0b5TMeNkEm1F4tUg4iXvqdzQ7O6kNolSx8juI=
+	t=1784552710; cv=none; b=htpY5U3hwc5hHXZJxMT4LwEOwJ0qVpn7mqd7+nNHu356uWO7tzM1tAKG9tyuUt6IN0aUL8ImcLcxeY886B9XpQkjVSH0lIAptOjzpSBxLQGEmqIrSjGvvjPkcVoCXZ4stNGXHYX6/vgVCWX5NnlWRPhBdKgpg4L+2nTCDxdcM08=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784549325; c=relaxed/simple;
-	bh=B2lFffzW9abBCwheY0aePRqx8cZ0hJLWqOzMVlKY2nk=;
-	h=To:Subject:Date:Message-Id:From:Mime-Version:References:
-	 Content-Type:Cc:In-Reply-To; b=jRDdaerTpWt+q3QBox7Yi5vetVSEhrylD2INC0Ey7HMKFb9ZapcBCjnSy/UcqkJAzz+b3cgqr0Mh89IBKpDJIe/KQZuaB3L/G3/XFlKpVHKKC02dG7S1ubhmLpbtOtuf2dYTF/guZSTKLl39kKGtw0FVVccQmO+x6BltDyyyuWU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=Y3ADUwL8; arc=none smtp.client-ip=209.127.230.113
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1784552710; c=relaxed/simple;
+	bh=9iwk3+XNQYlbEmXDu592ICNgUwDwIp4s3EjQCPpt95w=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=QVZpw6WL7+xjilGQNG0v7p6jSjuenGppQ05Fe3t57sU579slPiOJ1jrSoFQCwE8/fHmcLESQO1cRR9f06ugY93nAvIXJw1Rf0n2uy9xXRNeBUw1ilv3AXyRu67hNKd5j6cz1GYzuzvDrm7l2j7uVlGxpMFlhosUkG9NARYbvmHg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=ClTsD+gU; arc=none smtp.client-ip=198.175.65.20
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="Y3ADUwL8"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1784549316; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=j8bUTrgrk6ymdv5ZLPK/ZcA1DiVAjVvBeifaSs352+I=;
- b=Y3ADUwL88UciMimN1WEiiFPPwgiVjrR2a0x2Eot/LtPBCXNdVcXDS3VBhUk/CFGzHOKs31
- 98vng044HT5FYxQThZvPtq7b3O981oiTiERtxdrogTEtn/cPcFr31izfOCBUTDDkHEssvD
- TWYGbzgZ2i/W4tcI3zKo/9mFl8sdlEKLwab+kVPUtWKhCh3Xw68bma7N1EBsR1yEsoHxa7
- juLhiNqsywhrNiH1bjMi2naKzdBUqNOC90rIcDH0ajpPANuZJnFYe/JRq8SQOPRkyBIfrw
- 3TSYvNJFg84seXQZXvXg9LFGg+jC9qP1d5S9k7Rg5VhDgBQHcn11ddbugSoPrg==
-To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
-	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
-	<rppt@kernel.org>, <tglx@kernel.org>, <muchun.song@linux.dev>
-Subject: [PATCH v7 9/9] mm: always use the zone-device template init path
-Date: Mon, 20 Jul 2026 20:02:59 +0800
-Message-Id: <20260720120259.1545-11-lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
-From: "Li Zhe" <lizhe.67@bytedance.com>
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="ClTsD+gU"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1784552709; x=1816088709;
+  h=message-id:date:mime-version:subject:to:cc:references:
+   from:in-reply-to:content-transfer-encoding;
+  bh=9iwk3+XNQYlbEmXDu592ICNgUwDwIp4s3EjQCPpt95w=;
+  b=ClTsD+gUlF/uu7cNnDR77XCBUnpgSUFeVqNfZyxmcqNuvxf2T72XIPyA
+   EpSGCYPpSqaRAxnBByQDMaj35nRUnX6+gKxBR7fb8hSX2ETZ43cNRoCHq
+   fWCjqEM0yqduMSZKcOqUZsEio4hA7Vdh2sXp1ns6mGE2cn9AefWJ8wCpB
+   J1hYaxKwTS4YZLIX0AHCK+kMr2cePcqGc+QT9RHJCJ58KYbGD3puuzs1F
+   BcedXJZXVu7RlulD4wB2cjFFzVO7D9yhoRVqdsnHTEXtWTGprd8yf6RoE
+   TL12qP4AaDStVH6doSGNQiiTVli+X09W9zUDuCgrh6LiOLVPcnrW6PnZ+
+   w==;
+X-CSE-ConnectionGUID: o026d4LcRFij9dOYZPHS0w==
+X-CSE-MsgGUID: 6iNNUzsXRx+lHGoTlJrZbw==
+X-IronPort-AV: E=McAfee;i="6800,10657,11852"; a="84898525"
+X-IronPort-AV: E=Sophos;i="6.25,174,1779174000"; 
+   d="scan'208";a="84898525"
+Received: from orviesa001.jf.intel.com ([10.64.159.141])
+  by orvoesa112.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Jul 2026 06:05:08 -0700
+X-CSE-ConnectionGUID: 9Eb9vpu/RaeFxpiW+w8L1Q==
+X-CSE-MsgGUID: TX930MbuTsSLX0njsjivxQ==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.25,174,1779174000"; 
+   d="scan'208";a="295658442"
+Received: from bradocaj-mobl.ger.corp.intel.com (HELO [10.125.109.156]) ([10.125.109.156])
+  by smtpauth.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Jul 2026 06:05:07 -0700
+Message-ID: <33fae97d-75db-4df7-9aa3-05a51f8747cd@intel.com>
+Date: Mon, 20 Jul 2026 06:05:06 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v7 0/9] mm: optimize zone-device memmap initialization
+To: Li Zhe <lizhe.67@bytedance.com>, akpm@linux-foundation.org,
+ apopple@nvidia.com, arnd@arndb.de, balbirs@nvidia.com, bp@alien8.de,
+ dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org,
+ mingo@redhat.com, rppt@kernel.org, tglx@kernel.org, muchun.song@linux.dev
+Cc: linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
 References: <20260720120259.1545-1-lizhe.67@bytedance.com>
-X-Lms-Return-Path: <lba+26a5e0fc2+d70c9f+vger.kernel.org+lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=UTF-8
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	<lizhe.67@bytedance.com>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Content-Language: en-US
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ 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
 In-Reply-To: <20260720120259.1545-1-lizhe.67@bytedance.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-The template path still has a local opt-out predicate for the
-page_ref_set tracepoint and keeps a non-template fallback path. This
-makes the code more complex without a strong reason to keep the
-separate path.
+On 7/20/26 05:02, Li Zhe wrote:
+> This reduces the average memmap initialization time measured during
+> rebind by about 60.4% for nd_pmem and 56.4% for dax_pmem.
 
-Use the template path unconditionally after the corresponding seed page
-has been initialized: the first head page seeds the head template, and
-the first tail page in each compound range seeds the tail template.
+There are lots of things in the kernel we could optimize.
 
-This keeps the first-page seeding logic unchanged, but removes the extra
-non-template fallback from the main loops.
-
-This also means sanitized builds no longer force this path back to the
-per-page initialization stores, and an enabled page_ref_set tracepoint
-will no longer observe every ZONE_DEVICE initialization-time refcount
-assignment. That tradeoff is intentional: this code is still initializing
-struct pages before they are handed out, and keeping those local debug
-special cases would preserve a separate initialization-only path while
-making the common code more complex.
-
-Suggested-by: Muchun Song <muchun.song@linux.dev>
-Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
----
- mm/mm_init.c | 36 ++++--------------------------------
- 1 file changed, 4 insertions(+), 32 deletions(-)
-
-diff --git a/mm/mm_init.c b/mm/mm_init.c
-index 2a723a518f41..ae42a1311e1d 100644
---- a/mm/mm_init.c
-+++ b/mm/mm_init.c
-@@ -1065,25 +1065,6 @@ static void __ref zone_device_page_init_slow(struct page *page,
- 		set_page_count(page, 0);
- }
- 
--static inline bool zone_device_page_init_optimization_enabled(void)
--{
--	/*
--	 * Keep sanitized builds on the slow path so their stores stay
--	 * instrumented.
--	 */
--	if (IS_ENABLED(CONFIG_KASAN) || IS_ENABLED(CONFIG_KMSAN))
--		return false;
--
--	/*
--	 * The template fast path copies a preinitialized struct page image.
--	 * Skip it when the page_ref_set tracepoint is enabled.
--	 */
--	if (page_ref_tracepoint_active(page_ref_set))
--		return false;
--
--	return true;
--}
--
- static inline void zone_device_tail_page_init(struct page *page,
- 		unsigned long pfn, unsigned long zone_idx, int nid,
- 		struct dev_pagemap *pgmap, const struct page *head,
-@@ -1151,8 +1132,7 @@ static void __ref memmap_init_compound(struct page *head,
- 				       unsigned long head_pfn,
- 				       unsigned long zone_idx, int nid,
- 				       struct dev_pagemap *pgmap,
--				       unsigned long nr_pages,
--				       bool use_template)
-+				       unsigned long nr_pages)
- {
- 	unsigned long pfn, end_pfn = head_pfn + nr_pages;
- 	unsigned int order = pgmap->vmemmap_shift;
-@@ -1169,10 +1149,7 @@ static void __ref memmap_init_compound(struct page *head,
- 	for (pfn = head_pfn + 1; pfn < end_pfn; pfn++) {
- 		struct page *page = pfn_to_page(pfn);
- 
--		if (!use_template) {
--			zone_device_tail_page_init(page, pfn, zone_idx, nid,
--						   pgmap, head, order);
--		} else if (pfn == head_pfn + 1) {
-+		if (pfn == head_pfn + 1) {
- 			/*
- 			 * All tails of the same compound page share the
- 			 * state established by prep_compound_tail(). Reuse
-@@ -1197,7 +1174,6 @@ void __ref memmap_init_zone_device(struct zone *zone,
- 				   unsigned long nr_pages,
- 				   struct dev_pagemap *pgmap)
- {
--	bool use_template = zone_device_page_init_optimization_enabled();
- 	unsigned long pfn, end_pfn = start_pfn + nr_pages;
- 	struct pglist_data *pgdat = zone->zone_pgdat;
- 	struct vmem_altmap *altmap = pgmap_altmap(pgmap);
-@@ -1223,10 +1199,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
- 	for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
- 		struct page *page = pfn_to_page(pfn);
- 
--		if (!use_template) {
--			zone_device_page_init_slow(page, pfn, zone_idx,
--						   nid, pgmap);
--		} else if (pfn == start_pfn) {
-+		if (pfn == start_pfn) {
- 			/*
- 			 * Seed the reusable head-page template from the
- 			 * first real struct page, because the existing
-@@ -1249,8 +1222,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
- 			continue;
- 
- 		memmap_init_compound(page, pfn, zone_idx, nid, pgmap,
--				     compound_nr_pages(pfn, altmap, pgmap),
--				     use_template);
-+				     compound_nr_pages(pfn, altmap, pgmap));
- 	}
- 
- 	pageblock_migratetype_init_range(start_pfn, nr_pages, MIGRATE_MOVABLE);
--- 
-2.20.1
+Why is this important?
