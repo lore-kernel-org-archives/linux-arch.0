@@ -1,137 +1,115 @@
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 5EDB546EC63;
-	Tue, 21 Jul 2026 18:43:59 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1DE8C46EF9C;
+	Tue, 21 Jul 2026 20:12:01 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784659440; cv=none; b=XykNgO//7EGBhqPblvOpwbEPfoZCd5szoKj/4P6mCSEe4ytLPmXEUoQ0cp0eclEAoKXKlwk/zQof8cbhdhjpn7bROKUwjkaSIDRVvnzf0k/2qs9WYkgxJkAWnywoZMDAEl0opauDxV5zAIAoOW/lxGOPXHWtQPC6PMru3m/mGIM=
+	t=1784664722; cv=none; b=rhcuJBEm6VrHssZOT8oYW/mHDT/NpY/wsiJtcQbocmwUh4KsUKMPOOaEBkL88ss+IZa/BVFdNEOVXJKn4LqKyuPknN6uKf+yL0bRnm/+qiUsZ6tVW/FHpLXZh+Q+HNifTiKPKOUgyrZoz9RVJAsjZBsGtF14ONXjKvDG9R1PcLs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784659440; c=relaxed/simple;
-	bh=M2wh6N7iaDHuYoflXitGnoC0cg73rHloT+IjrldxMYM=;
-	h=From:To:Cc:References:In-Reply-To:Subject:Date:Message-ID:
-	 MIME-Version:Content-Type; b=DN9wxaoFZYb3zkNhEkotTUup8rgG8pKx0QdMgUt8jGC+3dtQxweJSJr7MVmbm9V6Wv1bMkMDmEPfKk7kCS4XyRPXUpmBBr6+Vych9XSvmfoNV08DSR+RJD2p2MSZXWJDU52oBfRm+0NA/8zFuImeMKtUqdTmDmV7p6v5EJ/VoR8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=Ze/xJwIQ; arc=none smtp.client-ip=13.77.154.182
+	s=arc-20240116; t=1784664722; c=relaxed/simple;
+	bh=vPmI5INqBEYqNbww5bdFHBcxTExyQVzgtn6D8fBvRV4=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=CecbC5Wci1S2+6ZFdPhZqcZLzAqeStrTnA+EKvvixO1Mfuv77M+91ngM1PzwqqN8TVWIUAWXUAGGbskTnXwUPNO2ig0kYAGtGosnA3bDax2sICzIekylnYKF1+/0Lz8EUc7ybqKqE1CYN9WXI5OODjEreCDHO+0rBxiKq8ul5FQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=THw6yirl; arc=none smtp.client-ip=13.77.154.182
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="Ze/xJwIQ"
-Received: from DairyQueen (unknown [52.172.102.187])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 9C33020B7167;
-	Tue, 21 Jul 2026 11:43:38 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 9C33020B7167
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="THw6yirl"
+Received: from linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net (linux.microsoft.com [13.77.154.182])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 630B420B7167;
+	Tue, 21 Jul 2026 13:11:48 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 630B420B7167
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1784659426;
-	bh=Scv/WvO4zMFWVOy+23xBMZDHMzVQCUMVHduhnuFY7AY=;
-	h=From:To:Cc:References:In-Reply-To:Subject:Date:From;
-	b=Ze/xJwIQJ3o+lI39zFodcg8HyXEK27JBXvyXCZgvw3xD6hw/l/A2w99p4AepYJgkJ
-	 HocEGR7yEJxcstVzLB/ra6Fblf9cR5hLJUqC2hUAQKEYkUKSnUy2rRvGfG1dxO/u9+
-	 EX5L+k6bo815ht4nJ7SXew9Ypn0mzQKFzKkxcAuw=
-From: "Kameron Carr" <kameroncarr@linux.microsoft.com>
-To: "'Michael Kelley'" <mhklinux@outlook.com>,
-	<kys@microsoft.com>,
-	<haiyangz@microsoft.com>,
-	<wei.liu@kernel.org>,
-	<decui@microsoft.com>,
-	<longli@microsoft.com>
-Cc: <catalin.marinas@arm.com>,
-	<will@kernel.org>,
-	<mark.rutland@arm.com>,
-	<lpieralisi@kernel.org>,
-	<sudeep.holla@kernel.org>,
-	<arnd@arndb.de>,
-	<thuth@redhat.com>,
-	<linux-hyperv@vger.kernel.org>,
-	<linux-arm-kernel@lists.infradead.org>,
-	<linux-kernel@vger.kernel.org>,
-	<linux-arch@vger.kernel.org>
-References: <20260625173500.1995481-1-kameroncarr@linux.microsoft.com> <20260625173500.1995481-5-kameroncarr@linux.microsoft.com> <SN6PR02MB4157D5F94B5C5F35020FF047D4EC2@SN6PR02MB4157.namprd02.prod.outlook.com> <000801dd055c$2e375050$8aa5f0f0$@linux.microsoft.com> <SN6PR02MB41571AB004406F331E167203D4EB2@SN6PR02MB4157.namprd02.prod.outlook.com>
-In-Reply-To: <SN6PR02MB41571AB004406F331E167203D4EB2@SN6PR02MB4157.namprd02.prod.outlook.com>
-Subject: RE: [PATCH v2 4/6] Drivers: hv: Mark shared memory as decrypted for CCA Realms
-Date: Tue, 21 Jul 2026 11:43:45 -0700
-Message-ID: <000c01dd1940$e3e267d0$aba73770$@linux.microsoft.com>
+	s=default; t=1784664708;
+	bh=KvELOKnXweNAABsGu85MvPOUP6ZAsKveNW1hQG8kwQ4=;
+	h=From:To:Cc:Subject:Date:From;
+	b=THw6yirloThwygFAOBUVRn0KR+4/+r6OHOZBOFbETFfvSd4XcPJTTKk0OsA+tjgv0
+	 dKoCrTOV2FwHp/xtqpdwZV64gT0Q8fQYjeFKwx3JrDNTyBFrs4J9KTqSmrxPkt6Upv
+	 BhgGrhCfo4Sx456SG7kTMwEZOfxvnvgc7jOVsqUs=
+From: Kameron Carr <kameroncarr@linux.microsoft.com>
+To: kys@microsoft.com,
+	haiyangz@microsoft.com,
+	wei.liu@kernel.org,
+	decui@microsoft.com,
+	longli@microsoft.com,
+	mhklinux@outlook.com
+Cc: catalin.marinas@arm.com,
+	will@kernel.org,
+	mark.rutland@arm.com,
+	lpieralisi@kernel.org,
+	sudeep.holla@kernel.org,
+	arnd@arndb.de,
+	thuth@redhat.com,
+	linux-hyperv@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org,
+	linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Subject: [PATCH v3 0/6] arm64: hyperv: Add Realm support for Hyper-V
+Date: Tue, 21 Jul 2026 13:11:42 -0700
+Message-ID: <20260721201148.1441143-1-kameroncarr@linux.microsoft.com>
+X-Mailer: git-send-email 2.43.7
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-X-Mailer: Microsoft Outlook 16.0
-Content-Language: en-us
-Thread-Index: AQEAlq3oFwuiSVNoPj5kD0Q006gIdwI/GO7nAcdUdB4Bw4q3qAJrBVH4t++pW+A=
+Content-Transfer-Encoding: 8bit
 
-On Friday, June 26, 2026 8:04 AM, Michael Kelley wrote:
-> From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Friday, June
-> 26, 2026 4:09 AM
-> >
-> > On Thursday, June 25, 2026 11:59 AM, Michael Kelley wrote:
-> > > From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Thursday,
-> > > June 25, 2026 10:35 AM
-> > > > We need to round up the memory allocated for the input/output pages
-> to
-> > > > the nearest PAGE_SIZE, since set_memory_decrypted() requires the
-size
-> to
-> > > > be a multiple of PAGE_SIZE. This only has an effect on ARM VMs that
-> are
-> > > > using PAGE_SIZE larger than 4K.
-> > >
-> > > I think this change resulted from a Sashiko comment. My understanding
-is
-> > > that the ARM CCA architecture only supports CCA guests with 4 KiB page
-> > > size. Is that still the case, or has that restriction been lifted in a
-later
-> version
-> > > of the architecture? I'm in favor of handling the larger page sizes,
-if only
-> for
-> > > future proofing. But I wondered whether your intent is to always
-support
-> > > > 4 KiB page sizes even if CCA doesn't support them now. Another way
-to
-> > > put it: In reviewing code, should I flag issues related to page sizes
-> 4 KiB?
-> >
-> > I think you might be right. I'm looking at RMM spec 2.0 beta 2, and the
-RMI
-> > can have granule size 4KB, 16KB, 64KB, but the RSI is restricted to
-granule
-> size
-> > 4KB.
-> >
-> > I'm open to suggestion on best way to move forward.
-> 
-> The best approach probably depends on whether the 4 KiB restriction is
-> likely to be lifted in a future version of the CCA architecture, and I
-don't have
-> any insight into that.
-> 
-> If it is likely to be lifted, then doing the initial implementation to
-support
-> larger page sizes probably makes sense (which is what you've done here).
-> It's less work than going back and adding later. But the commit message
-> and/or code comments should indicate that the larger page size support
-> is future-proofing work, so that someone doesn't get the wrong idea that
-> it should work with larger page sizes now.
-> 
-> The alternate approach is to not do any larger page size support now,
-> and to explicitly state that the code is assuming the current restriction
-> of 4 KiB page size only.
-> 
-> Whichever approach is chosen should be used consistently so there's
-> not a mishmash.
+Realms (CoCo VMs on ARM) require host calls to be routed through the RMM
+(Realm Management Monitor) via the RSI (Realm Service Interface). This
+series implements most of the necessary changes to support Realms on
+Hyper-V.
 
-I talked with some people from ARM. My current understanding is that the
-4KB granule size for the RSI does not mean the guest is restricted to 4KB
-page size. The granule size is just the alignment requirement and larger
-page sizes will always be 4KB aligned.
+One required change is not included in this series. The two buffers
+allocated via vzalloc() in netvsc_init_buf() cannot be decrypted in
+vmbus_establish_gpadl(). Currently only linearly mapped memory can be
+decrypted.
 
-I tested 64KB page size on CCA Realm and it booted successfully.
+This patch series was tested by booting a Realm on Cobalt 200 running
+Windows. I tested 4KB and 64KB page size. I replaced vzalloc() in
+netvsc_init_buf() with alloc_pages_node() -> set_memory_decrypted() ->
+vmap() in my testing as a workaround for the issue mentioned above [1].
 
-I will be treating large page sizes as a valid scenario. Please flag any
-issues you spot related to page size > 4KB.
+Changes since v1 [2]:
+  Patch 1: Add explicit padding to the RSI host call structure
+  Patch 3: Change from a per-cpu pointer lazily allocated to an array
+             of host call structs indexed by cpu id
+  Patch 4: Align input_page + output_page allocation to PAGE_SIZE since
+             that is the smallest unit of memory that can be decrypted
+           ~Remove KASAN tags before passing address to
+             set_memory_decrypted() since __is_lm_address() does pointer
+             arithmetic.~
+  Patch 5: Add a helper function to reduce repetition
+           Check for NULL before indexing into host call array
 
-Regards,
-Kameron
+Changes since v2 [3]:
+  Patch 3: Remove hv_hostcall_free() and inline the logic for simplicity
+           Reorder edits to keep #include line at the end of the file
+  Patch 4: Remove kasan_reset_tag()
+
+[1] https://lore.kernel.org/all/20260721195633.1438361-1-kameroncarr@linux.microsoft.com/
+[2] https://lore.kernel.org/all/20260609181030.2378391-1-kameroncarr@linux.microsoft.com/
+[3] https://lore.kernel.org/all/20260625173500.1995481-1-kameroncarr@linux.microsoft.com/
+
+Kameron Carr (6):
+  arm64: rsi: Add RSI host call structure and helper function
+  firmware: smccc: Detect hypervisor via RSI host call in CCA Realms
+  arm64: hyperv: Add per-CPU RSI host call infrastructure for CCA Realms
+  Drivers: hv: Mark shared memory as decrypted for CCA Realms
+  arm64: hyperv: Route hypercalls through RSI host call in CCA Realms
+  arm64: hyperv: Implement hv_is_isolation_supported() for CCA Realms
+
+ arch/arm64/hyperv/hv_core.c       | 155 +++++++++++++++++++++++-------
+ arch/arm64/hyperv/mshyperv.c      |  38 +++++++-
+ arch/arm64/include/asm/mshyperv.h |   4 +
+ arch/arm64/include/asm/rsi_cmds.h |  22 +++++
+ arch/arm64/include/asm/rsi_smc.h  |   7 ++
+ drivers/firmware/smccc/smccc.c    |  41 +++++++-
+ drivers/hv/hv_common.c            |  17 +++-
+ include/asm-generic/mshyperv.h    |   1 +
+ 8 files changed, 244 insertions(+), 41 deletions(-)
+
+
+base-commit: a4ffc59238be84dd1c26bf1c001543e832674fc6
+-- 
+2.45.4
 
