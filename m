@@ -1,50 +1,50 @@
 Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 314C643847F;
-	Wed, 22 Jul 2026 20:20:42 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9339F36B908;
+	Wed, 22 Jul 2026 20:22:09 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784751644; cv=none; b=lcFYzEmrWCQmxvFD16pH/+qamKOADL3Tx/J/QpGFJkRrweJXxa8n/LBnbHGU0n+q/WoT4eVIJJBiO22uBtdmR88eigYr7yzscjvzg6FbXF9GzliZpTqU5ZDHvZP2JU1aZUjH7M+3pmo83jhPe7C5WYPlzlHZJhTxihe7WtBcOMQ=
+	t=1784751731; cv=none; b=Kx0CyJUSPlo1nPbUlgoG88c/mYjAY3Z172kMslVJcAvGDGF3tDEzir2ceMxqpFa4Zis/KBCSSjHpwdJFN1v7P42G07buoZ+s79f2xdEUsEQhyNykVz6pLxmLuVBRcUfpufcF+ZSycyIQfM3zolpZZzrxJMIwZHMzm2Mg+lFfutI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784751644; c=relaxed/simple;
-	bh=JGaQKmk/1f26nF/+nvxjfYdWz6Jdt3Ok7POmfjc1hRA=;
+	s=arc-20240116; t=1784751731; c=relaxed/simple;
+	bh=C07OTvTr7coVCVH6Y9d+rRwSbozP4VPBHbTE6ss77ds=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=JwDZN3wUkqGtkcF3Aja9HjPLrmqLgHiYpzr5GLYUiUaFyAWzPLaUIrnR5AeMkTKRkp9X87F1BJkhIlHpg/025N8UOR/KTxA0S2aSCZwr5EtPstmcXOgbMEq00FwEoLKaCvhAzuAEfLIrLbPKk9KiJQFb+jbXETGogmA3b+fRu68=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=oFDWBzxB; arc=none smtp.client-ip=198.175.65.18
+	 In-Reply-To:Content-Type; b=XAWAshYzSnqzy6jvIP59zrX9MODmxpRfg5oykEriuoA02hfcP8rNRPq1ztE3YpYgzpr3sNBZSahizeoKttPbFiou8pe8eNuO/QmkM0xUbOIDs47S/YE/8w5g7M4l38vBkIoXtaOjjh5lRTJsQPOqJ5DDnWOAiFxWIaZyvxhINck=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=kNdi5Sqs; arc=none smtp.client-ip=198.175.65.18
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="oFDWBzxB"
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="kNdi5Sqs"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1784751642; x=1816287642;
+  t=1784751729; x=1816287729;
   h=message-id:date:mime-version:subject:to:cc:references:
    from:in-reply-to:content-transfer-encoding;
-  bh=JGaQKmk/1f26nF/+nvxjfYdWz6Jdt3Ok7POmfjc1hRA=;
-  b=oFDWBzxBphjzJyV24BhuWeMGraB8A129Kv28bLlqBKjLgD1nauounry9
-   qRnCCFp+xjGLeFt5O6qYXQfo8MqLmF4r7DHmYU7NOczTuUMOM9KRpDGtk
-   KRREfzdJFDgni1VoxJa0HxDh2Ho6Fh7uqEbKyfntoeYLrTvcQW2Ku/CR1
-   jyBpuTqYol1vLIVLem80p+j2ZBIlf+CjmX5C7yDMP2Z0sQOGyG8VHBtmQ
-   Y+uaG2RSjLMpNjUgoAlwrH10eqoN6iRCYRyuhYYUxQrfZeeOlN6BJiVuh
-   EmyK6RWxwzZQYfX7xyKdDY7d65xv0ZUMXwoYsNl+DcdhIu/w0KwDciVMp
-   Q==;
-X-CSE-ConnectionGUID: B2sAxFEDSHO1dBhhlBMR6w==
-X-CSE-MsgGUID: kB20sNmhQdmf70UILVTV4g==
-X-IronPort-AV: E=McAfee;i="6800,10657,11854"; a="85488973"
+  bh=C07OTvTr7coVCVH6Y9d+rRwSbozP4VPBHbTE6ss77ds=;
+  b=kNdi5SqssyvZP0QxKwxYIfoH4n+87Wyh4WuT3puyWi9GHslh1ACPGZ97
+   J/U18MdRYpUT6jbpPh0/o8b1adLTQrSJLhw8SL2Y+kIIVGYB7UCyKXT0/
+   2TFrOnLrzfz1/exH4rOcRxM/9sgmzOF8rFXc+xeMwQsya98GIltabpja4
+   ltz6Dz8BSQQkvvaVK6nbYamYO7LD3R6a6o8IemTFRR/F2iH+8VjTILJd+
+   mqw5ystL30EvneUiwcq4JH4LbxkUKszNijjvdcDntXgU+jhLGIQGo7pQB
+   czX8bv2HnfV1hDAsGaBRD0W+dc4BOgSAlQf5qYeqGK/oe/6renvBu4Irn
+   g==;
+X-CSE-ConnectionGUID: /MZLRF6hRBGgfIbB4Vddng==
+X-CSE-MsgGUID: 9AlaMTbJS6i97izNyjlNUw==
+X-IronPort-AV: E=McAfee;i="6800,10657,11854"; a="85489097"
 X-IronPort-AV: E=Sophos;i="6.25,179,1779174000"; 
-   d="scan'208";a="85488973"
+   d="scan'208";a="85489097"
 Received: from orviesa001.jf.intel.com ([10.64.159.141])
-  by orvoesa110.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jul 2026 13:20:41 -0700
-X-CSE-ConnectionGUID: R4FecRX6TXioPL2/MbQm4Q==
-X-CSE-MsgGUID: Hfdmu0XVToqbSJhXxxcGdg==
+  by orvoesa110.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jul 2026 13:22:08 -0700
+X-CSE-ConnectionGUID: j/27Y88ERYO041Pa3i8rxQ==
+X-CSE-MsgGUID: whhMVyXKTNOu5lad8draKQ==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="6.25,179,1779174000"; 
-   d="scan'208";a="296397967"
+   d="scan'208";a="296398206"
 Received: from sghuge-mobl2.amr.corp.intel.com (HELO [10.125.110.58]) ([10.125.110.58])
-  by smtpauth.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jul 2026 13:20:40 -0700
-Message-ID: <33c774f6-2750-4831-8eee-e43dc471da32@intel.com>
-Date: Wed, 22 Jul 2026 13:20:39 -0700
+  by smtpauth.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jul 2026 13:22:07 -0700
+Message-ID: <3620750c-54d7-45a0-b067-bc813dd3cd9b@intel.com>
+Date: Wed, 22 Jul 2026 13:22:04 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -52,8 +52,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH RFC v2 13/20] x86: mm: carve out the generic compile-time
- folded pgtable case in effective_prot()
+Subject: Re: [PATCH RFC v2 14/20] x86: mm: skip pud setup when using generic
+ compile-time folded pagetable
 To: Yeoreum Yun <yeoreum.yun@arm.com>
 Cc: Russell King <linux@armlinux.org.uk>, Huacai Chen
  <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
@@ -78,15 +78,17 @@ Cc: Russell King <linux@armlinux.org.uk>, Huacai Chen
  Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
  Jonas Bonn <jonas@southpole.se>,
  Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
- Stafford Horne <shorne@gmail.com>, linux-kernel@vger.kernel.org,
- loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
- linux-openrisc@vger.kernel.org
+ Stafford Horne <shorne@gmail.com>, linux-arm-kernel@lists.infradead.org,
+ linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-mips@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ kvm@vger.kernel.org, kvm-riscv@lists.infradead.org,
+ linux-riscv@lists.infradead.org, linux-openrisc@vger.kernel.org
 References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
- <20260722-dummy_ptxp3-v2-13-d9e4bad31e0a@arm.com>
- <d16a8412-acee-4c21-a126-f570d6306983@intel.com>
- <amD_5r04mzMoZ0-r@e129823.arm.com>
+ <20260722-dummy_ptxp3-v2-14-d9e4bad31e0a@arm.com>
+ <0ea931f1-4801-4d32-b6ce-4787a8d3daa9@intel.com>
+ <amD7ab_KuJPdBQBh@e129823.arm.com>
+ <6f5060a7-0a64-49fc-81a3-ae88729ef794@intel.com>
+ <amElnEbvRTjv2hyU@e129823.arm.com>
 From: Dave Hansen <dave.hansen@intel.com>
 Content-Language: en-US
 Autocrypt: addr=dave.hansen@intel.com; keydata=
@@ -132,39 +134,16 @@ Autocrypt: addr=dave.hansen@intel.com; keydata=
  MTsCeQDdjpgHsj+P2ZDeEKCbma4m6Ez/YWs4+zDm1X8uZDkZcfQlD9NldbKDJEXLIjYWo1PH
  hYepSffIWPyvBMBTW2W5FRjJ4vLRrJSUoEfJuPQ3vW9Y73foyo/qFoURHO48AinGPZ7PC7TF
  vUaNOTjKedrqHkaOcqB185ahG2had0xnFsDPlx5y
-In-Reply-To: <amD_5r04mzMoZ0-r@e129823.arm.com>
+In-Reply-To: <amElnEbvRTjv2hyU@e129823.arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 7/22/26 10:37, Yeoreum Yun wrote:
->> On 7/22/26 08:30, Yeoreum Yun wrote:
->>>  struct pg_state {
->>>  	struct ptdump_state ptdump;
->>> +	int first_level;
->>>  	int level;
->>>  	pgprotval_t current_prot;
->>>  	pgprotval_t effective_prot;
->> There is zero reason on x86 to hold this value in a data structure. It
->> is 100% determined at boot time or earlier. Pre-5-level-paging it's a
->> compile-time constant.
->>
->> On x86, it never varies per-mm.
-> However, mm_pXd_folded() requires to mm for other architecture like
-> s390. might save the mm instead of first_level and calls the
-> ptdump_pt_level_first() with static inline version would make the
-> constant comparison. So it requires to save *mm* structure in here.
+On 7/22/26 13:18, Yeoreum Yun wrote:
+> Sorry. But do you mean check with cpu_feature_enabled() not with
+> boot_cpu_has()?
+> IIRC, the boot_cpu_has() doesn't use the DISABLE_MASK_BIT_SET() but
+> uses REQUIRED_MASK_BIT_SET() and I don't expect it wouldn't make
+> an optimisation to constant check which is contrast to DISABLE_MASK_BIT_SET().
 
-I'm having a really hard time parsing that.
-
-I think you're trying to say that the effective_prot_p*() functions need
-to know the first level but they don't (today) need the mm_struct. If
-they don't get the (calculated) first_level passed in, they need the
-mm_struct instead.
-
-I think you're arguing 'pg_state' needs a ->first_level or a ->mm.
-Having a pg_state->mm doesn't seem bad to me at all.
-
-But, it's also a little bit silly. It would not be rocket science to
-pass an mm_struct down to the effective_prot_p*() functions. It makes a
-whole lot of sense to me for a page table walking function to need
-metadata from the mm_struct to walk correctly.
+Ahh, yes. I forgot about that nuance! Moving to cpu_feature_enabled()
+would be great!
