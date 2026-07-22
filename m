@@ -1,326 +1,394 @@
-Received: from va-1-114.ptr.blmpb.com (va-1-114.ptr.blmpb.com [209.127.230.114])
+Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1CB073BB12A
-	for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2026 08:18:30 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.114
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 51C8234BA5A
+	for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2026 13:57:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784708314; cv=none; b=FcatbCAtJxFzOb59pRAy3QUewiDHdZVoEthdaSvhwJawzpoZYMOAZgrcPCQ6ltykyo0Fqx2UlpZjzRC0vhtoHATLkoge+u285ZFXfUx0Nf1aweZTXZDgNwK+YZoJw/1lT+8AeOSM39VWeOuKc5w9JOJ/+nbzH6RHY+MWz1RfPg0=
+	t=1784728680; cv=none; b=GeXLwyRB41t2nr45hJiltv4kLjFF6rJtWnrNlY0Bi7VdBofLcRu/IwCPjqBCrw1qjc1hyAKWZOAGIon3fjGw5khDk7aO3zUfg2IqieoIocX/Jrg2H7bd+LYstMYEIMBQjEZd0w9K5PBfSIB+S8XC1L5cN+8YiMgsZKfCmXuXDN4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784708314; c=relaxed/simple;
-	bh=ee0IWjEZEWN/EovOv69FRHdsiWgq1sqdUWEMKAVagjg=;
-	h=To:Cc:Subject:Date:In-Reply-To:Content-Type:From:Message-Id:
-	 Mime-Version:References; b=abs5KpmZ8zU/Rl9+rW+Ar/KzIm6lRupu10ybXB/+r7NRWyf7yaSWSE+zBEnBXkwTAZUmJ7f1YYCO6JQvOpeKViCWtPu0DMtrpxv1Xr+NYy3tqUqbDHmLOqLz+udvK5nns3gFW+SbFpn4fcGHrc3xLHDJyf64WXR1VpbLME1YqnY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=nfwC7Al0; arc=none smtp.client-ip=209.127.230.114
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1784728680; c=relaxed/simple;
+	bh=37pwSbanOfW/t9/S0tEcJAxSmzsiOsd5kHF/B3ALuIc=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=QuMDMuxeJkGznDgI5CqZLccm5v3ydoKMv0NULrgDrhTsDicyrkVpfQ6VIRPZZF3xOhMeQkVtDctfPSlhnAkl3LYslhakjT4UqwkyxUdtk6ooPo2cCZpaL63zL2NkfQhcF5EuIMv4HlyS4RR6sEiVzYUWjIFdeUNKO/+lEVfP5po=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=RdZwol4E; arc=none smtp.client-ip=209.85.128.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="nfwC7Al0"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1784708306; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=lyQy5e8Yk8Yma8inkohDBWXvAh7NYEWORA2vqInjmDo=;
- b=nfwC7Al04M6gy3YPgXZuEzUWtjF2HttJkosjXac9v0UOP7hnveiSWqnxAI5taH0Qm+XDmy
- EVVjWWlyvW92NZNJIm1TojBAlMv5zxZHe+4GDXnQy+78IQ6mav2MkR8KBFBgkFLc7K0uG3
- x87CAsY1N8FMlNr8tkO9ohk9sLFL1bPn8ouIcRXFWAhEi0v2uG3+RrVFGIZpX6x38EGmil
- IoGKT/gr+1E+sDmnaM1m1d+rjMjti1KFXcharRn/VFcFUKjam/zxhsArj9WSP5iRdVbjXr
- 5jaHYWxdOoK7CVRgXxCeC4OlvYecF+79sE+uyvgmZbiJTBJws4FGLx9RawBRQA==
-To: <akpm@linux-foundation.org>
-Cc: <apopple@nvidia.com>, <arnd@arndb.de>, <balbirs@nvidia.com>, 
-	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
-	<kees@kernel.org>, <linux-arch@vger.kernel.org>, 
-	<linux-hardening@vger.kernel.org>, <linux-kernel@vger.kernel.org>, 
-	<linux-mm@kvack.org>, <lizhe.67@bytedance.com>, <mingo@redhat.com>, 
-	<muchun.song@linux.dev>, <rppt@kernel.org>, <tglx@kernel.org>, 
-	<x86@kernel.org>
-Subject: Re: [PATCH v7 0/9] mm: optimize zone-device memmap initialization
-Date: Wed, 22 Jul 2026 16:18:00 +0800
-X-Lms-Return-Path: <lba+26a607cd0+cab1f8+vger.kernel.org+lizhe.67@bytedance.com>
-In-Reply-To: <20260720154334.b619e7b436d2dc2481b233ea@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Message-Id: <20260722081800.90085-1-lizhe.67@bytedance.com>
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="RdZwol4E"
+Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-4954afac04bso48749365e9.0
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2026 06:57:58 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1784728676; x=1785333476; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=P/qklng4hpP6/mtqoqkk+HCU4WExZ0+PbntZxvEgzaU=;
+        b=RdZwol4EolsukQVpk92KZRBnRQvllHD96WUTIPbl7Yhl9bGawyYISakRDxuEJPShXy
+         rOdbEQAf90iiQ63H6paaf73JfKWqu9mT/zYk1+vmf7v67+OUtPzgqL6+uNAnkL9bvQmU
+         +go+Gw5cfS6FWP9/RDvpdohFPfa6GlEDdZoCLd8bjDP95d14C0+9DffGExekY46nAeNF
+         KccSHIOdmO4Bybg+33zkJ2KQnvgQ5JQK2WHyPYwvieJgWvMa9MY+W3yuEOZ1ng/KXH/3
+         DGVBcvhN7K85QJoBjH09rBi6etCL7LwMm/Eg+HVTOgQ8Uth8W72HugL7OS9xbd/dILkL
+         PDgA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1784728676; x=1785333476;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=P/qklng4hpP6/mtqoqkk+HCU4WExZ0+PbntZxvEgzaU=;
+        b=SfYh876uCq6hwWf1718sJKtZB8FNt9AGVSOqZ7r+nuPP+5bKOZASe465ggwnKe9tOI
+         3RF5p4OQWRvdqKbk5mjV0OEJmtCVOBs9lGKOjjGlfdGw7umUyGse0ZLu35yUz6nMlJJK
+         EtR/jaU+29i5yuZMgQ0GAhd5oV9ET44qpadyZfqAGzgJzGVbq/jrj1VBHW7OkuHARU+H
+         ZuRDs9h9mkpfsNrBjKZwmgaPw+0KtEuZNAg/GAIpGB7GevQT52vMSypo+Si3PKJeHw6y
+         0aFS8MK7P2NslUxKruOFPYRTbBabVbVAuq8LbnmhnZEUISquVJRfB+b9jz5EqM5l/mOG
+         aUKA==
+X-Forwarded-Encrypted: i=1; AHgh+RqrU7HMuLT3AMpZ6ylCJKD7mpquYW3NqQZ2RxJ/T90OrE3ctE+UZRp0uO8FqHKCHrzAIImB/EGCujDq@vger.kernel.org
+X-Gm-Message-State: AOJu0Yzm79DicRQrzRBl2p3jV9Mzte3EeBSDFMl3cVPWRZcPQHyRu1Ir
+	vN381d6u2eNizUEQm+kgwmOQnE75Fhxd9de6/bTxJvV4kvN6PEQqFP9UUvgGSZjWTOc=
+X-Gm-Gg: AR+sD10s2k9iRgDUOiXJBTpSnMZ5KDTVdRB+2uOc8JmK8SQbQAM7ou3mMM0pb9GmYac
+	wWluniJd5WufYUFdtMo9w/cR2cbenoRmVjaZhFZnmDJQrUQ02S7sqocXGhAOACa8+Wn+xOSWhoN
+	QTZRriRUtEiPexQoakpAmuydngye03Czr/bZcWzjqqbGQTxkmbMENZbWgRoEzPwLpa60B1UWzaw
+	ld8imOfyhiqHaL1B7DE0FcI6AX/x0MPhU4cK71IQtxLro3/VkCyZbBWQNlzL1aDQIPvfKmdNs+h
+	jQSSpa7RlkzSDllmTWCFZAqSjTtq27cov3r03Aoi3DjlHSvzIb82XLQpJNPMP6x/UDttYG0CTQF
+	83yrTE6Bvyhm3I9xMkBctNTqsUsoMsjaqFkaywTUk6fccFe0l34nFAcpJmxvt6Cp9HlIqIuwuoj
+	GVHZ79WGScfVDd2C3Y8s9OxDMJ15UG0xVSpb/a2Jo=
+X-Received: by 2002:a7b:ce84:0:b0:495:4487:61af with SMTP id 5b1f17b1804b1-4954a51659emr183702725e9.36.1784728676403;
+        Wed, 22 Jul 2026 06:57:56 -0700 (PDT)
+Received: from ?IPV6:2a07:de40:8100:0:fc6c:f9a2:4a0a:6354? ([2001:af0:8000:1409:193:86:92:181])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4956a509901sm130525395e9.8.2026.07.22.06.57.55
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 22 Jul 2026 06:57:55 -0700 (PDT)
+Message-ID: <2cada244-171d-45cb-a6f0-46e6a09375c7@suse.com>
+Date: Wed, 22 Jul 2026 15:57:54 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20260720154334.b619e7b436d2dc2481b233ea@linux-foundation.org>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v6 1/2] module: Extend module_blacklist parameter to
+ built-in modules
+To: Aaron Tomlin <atomlin@atomlin.com>
+Cc: arnd@arndb.de, mcgrof@kernel.org, da.gomez@kernel.org,
+ samitolvanen@google.com, peterz@infradead.org, akpm@linux-foundation.org,
+ mhiramat@kernel.org, neelx@suse.com, da.anzani@gmail.com, sean@ashe.io,
+ chjohnst@mail.com, steve@abita.co, mproche@mail.com, nick.lane@mail.com,
+ linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+ linux-kernel@vger.kernel.org
+References: <20260718190121.378314-1-atomlin@atomlin.com>
+ <20260718190121.378314-2-atomlin@atomlin.com>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260718190121.378314-2-atomlin@atomlin.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Mon, 20 Jul 2026 15:43:34 -0700, akpm@linux-foundation.org wrote:
-
-> AI review might have found some things, one "critical":
-> 	https://sashiko.dev/#/patchset/20260720120259.1545-1-lizhe.67@bytedance.com
+On 7/18/26 9:01 PM, Aaron Tomlin wrote:
+> Currently, the "module_blacklist=" command-line parameter only applies
+> to loadable modules. If a module is built-in, the parameter is silently
+> ignored. This patch extends the blacklisting functionality to built-in
+> modules by intercepting their initialisation routines during early boot.
 > 
-> --- Patch [6]: [PATCH v7 6/9] string: introduce memcpy_nontemporal() ---
-> commit 48cf815dd31950a95bb4752e1e8e62594a090364
-> Author: Li Zhe <lizhe.67@bytedance.com>
-> string: introduce memcpy_nontemporal()
-> Introduce memcpy_nontemporal() for write-once copy sites that want a
-> named non-temporal copy primitive.
-> > diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
-> > index 4635616863f53..21ae515ae35a3 100644
-> > --- a/arch/x86/include/asm/string_64.h
-> > +++ b/arch/x86/include/asm/string_64.h
-> > @@ -100,6 +100,18 @@ static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t
-> >  	}
-> >  	__memcpy_flushcache(dst, src, cnt);
-> >  }
-> > +
-> > +#define memcpy_nontemporal memcpy_nontemporal
-> > +/*
-> > + * Reuse the existing x86 flushcache backend as the non-temporal copy
-> > + * primitive.
-> > + */
-> > +static __always_inline void memcpy_nontemporal(void *dst, const void *src,
-> > +		size_t cnt)
-> > +{
-> > +	memcpy_flushcache(dst, src, cnt);
-> > +}
-> Does this missing fencing introduce a memory ordering hazard on x86_64?
-> Because memcpy_flushcache() uses weakly-ordered movnti instructions, it
-> bypasses the x86 Total Store Order (TSO) guarantees. If generic code
-> follows memcpy_nontemporal() with smp_store_release() or smp_wmb(), it
-> could result in data corruption since those standard SMP barriers only
-> compile to compiler barriers on x86_64.
-> Is there a plan to add a built-in sfence here, or update the
-> documentation to warn callers that wmb() is strictly required?
-
-On x86 it intentionally follows the existing memcpy_flushcache() style:
-it performs the non-temporal copy, but it does not imply a drain or a
-publication barrier.
-
-Callers that use memcpy_nontemporal() as part of a producer-consumer or
-device-visible handoff must add the required ordering at the handoff
-point. On x86, that means a real write barrier such as wmb() or pmem_wmb();
-smp_wmb() and smp_store_release() are not sufficient for ordering
-non-temporal stores before such a handoff.
-
-This patchset does not need such a drain in the ZONE_DEVICE template-copy
-path. The copy is followed by more local struct page initialization on
-the same CPU, not by a publication store to another CPU or device.
-
-> Will this bypass KASAN memory safety instrumentation and FORTIFY_SOURCE
-> bounds checking on x86_64?
-> The inline wrapper doesn't use __FORTIFY_INLINE, and calling
-> memcpy_flushcache() directly skips the usual kasan_check_write() and
-> kasan_check_read() protections that the generic memcpy macro preserves.
-
-On x86, memcpy_nontemporal() is only a thin wrapper around the existing
-memcpy_flushcache() backend. I would prefer to keep the wrapper at that
-level and not add a separate FORTIFY_SOURCE layer here, since the backend
-it wraps does not provide one either.
-
-For this series, bypassing KASAN/KMSAN instrumentation in the final
-ZONE_DEVICE template-copy path is expected and is called out in the final
-cleanup patch.
-
+> To achieve this, we introduce a new ".initcall.modnames" memory section.
+> For each built-in module, we use a standard C structure (i.e., struct
+> initcall_modname) to map its initcall function pointer to its associated
+> KBUILD_MODNAME string. This mapping is restricted only to files implementing
+> built-in modules via module_init() to avoid mapping core kernel subsystems
+> and save memory.
 > 
-> > diff --git a/include/linux/string.h b/include/linux/string.h
-> > index 5702daca4326b..9815c08867d72 100644
-> > --- a/include/linux/string.h
-> > +++ b/include/linux/string.h
-> [ ... ]
-> > @@ -278,6 +278,18 @@ static inline void memcpy_flushcache(void *dst, const void *src, size_t cnt)
-> >  }
-> >  #endif
-> >  
-> > +#ifndef memcpy_nontemporal
-> > +/*
-> > + * memcpy_nontemporal() requests a non-temporal copy when the
-> > + * architecture has a suitable backend. Architectures without a
-> > + * specialized backend fall back to memcpy(). Keep this as a macro alias
-> > + * so the compiler can still see the original memcpy() call site and
-> > + * preserve the usual FORTIFY coverage when object sizes remain visible
-> > + * there.
-> > + */
-> > +#define memcpy_nontemporal memcpy
-> > +#endif
-> Could this macro definition cause build failures due to a return type
-> mismatch across architectures?
-> The generic fallback here aliases to memcpy, which implicitly returns
-> void *, while the x86_64 backend explicitly returns void. If a caller
-> attempts to use the return value on x86_64, the build will fail with a
-> void value error, whereas it will compile cleanly on fallback
-> architectures.
-> Should this macro cast the result to void to enforce a uniform API?
-> For example: #define memcpy_nontemporal(d, s, l) ((void)memcpy(d, s, l))
+> During boot, built-in initcalls are executed sequentially via
+> do_initcall_level() and do_pre_smp_initcalls(). We introduce a new
+> wrapper function, do_one_initcall_builtin(), to cross-reference the
+> initcall function pointer against the ".initcall.modnames" table. If
+> a match is found and the module is present in the blacklist, the
+> initcall is skipped.
+> 
+> To make the blacklist functional on monolithic kernels, the command-line
+> parameter parsing and the module_is_blacklisted() lookup function are
+> decoupled from the loadable module subsystem and moved to init/main.c.
+> This enables "module_blacklist=" to intercept built-in modules even on
+> kernels built with CONFIG_MODULES=n.
+> 
+> Design Considerations and Trade-offs:
+> 
+>     1.  LTO and CFI Compatibility vs. PREL32
+> 
+>         Previous iterations of this patch attempted to use top-level
+>         inline assembly to generate 32-bit relative offsets (PREL32) to
+>         save memory. However, raw inline assembly operates blindly
+>         outside of the C compiler's visibility. When compiled with
+>         CONFIG_LTO_CLANG or CONFIG_CFI_CLANG, the compiler applies
+>         symbol renaming and generates Control Flow Integrity stubs.
+>         The raw assembly string-matching fails to track these changes,
+>         resulting in undefined references or runtime address mismatches.
+> 
+>         To resolve this, we strictly use standard C structures to hold
+>         the function pointers. This natively allows the compiler to
+>         resolve LTO renaming and map CFI stubs correctly. We trade the
+>         minor spatial optimisation of PREL32 (using absolute 64-bit
+>         pointers instead) to guarantee architectural safety under modern
+>         compiler protections. Because this metadata is placed in an
+>         ".init" section and freed entirely after boot, the temporary
+>         memory overhead is negligible.
+> 
+>     2.  Architectural Safety and Elimination of Runtime Vulnerabilities:
+> 
+>         By embedding the boot-time blacklist check inside the
+>         do_one_initcall_builtin() __init wrapper function, we ensure
+>         the metadata lookup logic is exclusively invoked during early
+>         boot. This approach provides strict structural guarantees:
+>         - It inherently eliminates Use-After-Free (UAF) and race conditions
+>           since loadable modules (which execute post-boot and invoke
+>           do_one_initcall() directly) bypass this __init wrapper entirely.
+>         - It prevents modpost section mismatch warnings since the __init
+>           metadata is strictly accessed by other __init functions.
+>         - It mitigates Spectre v1 speculative execution vulnerabilities
+>           by guaranteeing the unprivileged runtime module loading path
+>           cannot speculatively branch into reclaimed .init.text instructions.
+> 
+> Signed-off-by: Aaron Tomlin <atomlin@atomlin.com>
+> ---
+>  include/asm-generic/vmlinux.lds.h |  4 ++-
+>  include/linux/init.h              | 23 ++++++++++++-
+>  include/linux/module.h            |  5 ++-
+>  init/main.c                       | 55 +++++++++++++++++++++++++++++--
+>  kernel/module/main.c              | 21 +-----------
+>  5 files changed, 83 insertions(+), 25 deletions(-)
+> 
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 5659f4b5a125..799d912dcbc0 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -734,7 +734,9 @@
+>  	EARLYCON_TABLE()						\
+>  	LSM_TABLE()							\
+>  	EARLY_LSM_TABLE()						\
+> -	KUNIT_INIT_TABLE()
+> +	KUNIT_INIT_TABLE()						\
+> +	STRUCT_ALIGN();							\
+> +	BOUNDED_SECTION_BY(.initcall.modnames, _initcall_modnames)
+>  
+>  #define INIT_TEXT							\
+>  	*(.init.text .init.text.*)					\
+> diff --git a/include/linux/init.h b/include/linux/init.h
+> index 40331923b9f4..1cf163715264 100644
+> --- a/include/linux/init.h
+> +++ b/include/linux/init.h
+> @@ -271,7 +271,28 @@ extern struct module __this_module;
+>  		__initcall_name(initcall, __iid, id),		\
+>  		__initcall_section(__sec, __iid))
+>  
+> -#define ___define_initcall(fn, id, __sec)			\
+> +#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+> +#define __initcall_fn_ptr(fn, __iid, id)	__initcall_stub(fn, __iid, id)
+> +#else
+> +#define __initcall_fn_ptr(fn, __iid, id)	fn
+> +#endif
 
-Agreed. The return value should not be part of the memcpy_nontemporal()
-API. I will make the generic fallback a void function-like macro. This
-keeps the API consistent with memcpy_flushcache(), which also returns
-void, and makes accidental use of a return value fail consistently
-across architectures.
+Nit: I suggest moving the __initcall_fn_ptr() definition into the
+existing '#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS' block that defines
+____define_initcall() to make the code shorter and group the related
+implementations.
 
-> --- Patch [7]: [PATCH v7 7/9] x86/string: extend memcpy_flushcache() fixed-size fastpaths ---
-> commit 882d29aec39f30f4e6b01548ec298e08ca1ab787
-> Author: Li Zhe <lizhe.67@bytedance.com>
-> x86/string: extend memcpy_flushcache() fixed-size fastpaths
-> This commit adds larger fixed-size fast paths (32 to 96 bytes) to
-> memcpy_flushcache() using inline movnti helpers. It also explicitly removes
-> the 8-byte destination alignment check for these sizes based on microbenchmark
-> results showing improved performance for unaligned copies.
-> > diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
-> > --- a/arch/x86/include/asm/string_64.h
-> > +++ b/arch/x86/include/asm/string_64.h
-> [ ... ]
-> > +static __always_inline void movnti_8(void *dst, const void *src)
-> > +{
-> > +	asm volatile("movntiq %1, %0"
-> > +		     : "=m"(*(u64 *)dst)
-> > +		     : "r"(*(const u64 *)src)
-> Does casting an unaligned void pointer to a strictly-aligned u64 pointer and
-> dereferencing it invoke undefined behavior here?
-> Since this fast path handles unaligned addresses, the compiler might assume the
-> memory operand is naturally 8-byte aligned based on the u64 type. Could this
-> allow the compiler to incorrectly optimize away subsequent alignment checks or
-> emit invalid aligned optimizations?
+> +
+> +struct initcall_modname {
+> +	initcall_t initcall_fn;
+> +	const char *modname;
+> +};
+> +
+> +#define ____define_initcall_modname(fn, id, __sec, __iid)		\
+> +	__unique_initcall(fn, id, __sec, __iid)				\
+> +	static const char __initstr_##fn[] __used __aligned(1)		\
+> +		__section(".init.rodata") = KBUILD_MODNAME;		\
+> +	static const struct initcall_modname __modname_##fn __used	\
+> +		__section(".initcall.modnames") = {			\
+> +			.initcall_fn = __initcall_fn_ptr(fn, __iid, id), \
+> +			.modname = __initstr_##fn			\
+> +		};
+> +
+> +#define ___define_initcall(fn, id, __sec)				\
+>  	__unique_initcall(fn, id, __sec, __initcall_id(fn))
+>  
+>  #define __define_initcall(fn, id) ___define_initcall(fn, id, .initcall##id)
+> diff --git a/include/linux/module.h b/include/linux/module.h
+> index 7566815fabbe..fc1525e8f63c 100644
+> --- a/include/linux/module.h
+> +++ b/include/linux/module.h
+> @@ -86,7 +86,8 @@ extern void cleanup_module(void);
+>   * builtin) or at module insertion time (if a module).  There can only
+>   * be one per module.
+>   */
+> -#define module_init(x)	__initcall(x);
+> +#define module_init(initfn)					\
+> +	____define_initcall_modname(initfn, 6, .initcall6, __initcall_id(initfn))
 
-I do not see an 8-byte alignment requirement for MOVNTI in the Intel SDM.
-This also matches the existing memcpy_flushcache() fixed-size cases: the
-8-byte and 16-byte cases already use MOVNTI without a separate alignment
-check.
+The initcall numbering and section naming should remain defined only in
+one place, in include/linux/init.h.
 
-So I do not think this series needs to add an alignment fallback for the
-new 32/48/64/80/96-byte fixed-size cases. Please correct me if I am wrong.
+Could something like the following work?
 
-> > +		     : "memory");
-> Is this global "memory" clobber necessary given the specific "=m" output
-> constraint?
-> When this helper is nested to create larger copies like movnti_64(), it
-> generates up to 8 consecutive full compiler memory barriers. Does this force
-> the compiler to unnecessarily spill and reload locally cached variables from
-> registers, preventing instruction scheduling across each 8-byte chunk?
+In include/linux/module.h:
 
-The "memory" clobber is intentional here. The goal is to keep the
-fixed-size copy as a compact sequence of MOVNTI stores and avoid the
-compiler moving other memory accesses into the middle of that streaming
-store sequence. The "=m" operand describes the destination memory
-operand, but it does not express that broader scheduling constraint.
+#define module_init(initfn) __builtin_module_initcall(initfn);
 
-The largest fixed-size copy added by this patch is still small, and the
-measured result for the final memcpy_flushcache() path is still favorable
-for the ZONE_DEVICE struct page copies that motivated this series. So I
-would prefer to keep the conservative clobber in this version unless
-there is a demonstrated code generation or performance regression from
-it. Please correct me if I am wrong.
+In include/linux/init.h:
 
-> > +}
-> [ ... ]
-> > +static __always_inline void memcpy_flushcache(void *dst, const void *src,
-> > +					      size_t cnt)
-> >  {
-> [ ... ]
-> > +			case 32:
-> > +				movnti_32(dst, src);
-> > +				return;
-> Does skipping the 8-byte alignment check here break the cache bypass guarantee
-> required for persistent memory (PMEM) durability?
-> The memcpy_flushcache() API guarantees that written data bypasses the CPU cache
-> so PMEM updates are durable without requiring manual clflush. On x86, unaligned
-> non-temporal stores (MOVNTI) crossing cache lines silently fall back to
-> temporal Read-For-Ownership cache allocations.
-> Because this inline fast path bypasses __memcpy_flushcache() (which correctly
-> aligns the destination using normal memcpy and clflushopt), will the unaligned
-> data silently sit in the CPU L1/L2 cache instead of reaching the PMEM module?
-> Is it possible that the microbenchmark speedup mentioned in the commit message
-> (0.410us vs 0.962us for unaligned offsets) was achieved precisely because the
-> stores hit the fast L1 cache instead of actually flushing to memory?
+#define __define_initcall_modname(fn, id)				\
+	__define_initcall(fn, id)					\
+	static const char __initstr_##fn[] __used __aligned(1)		\
+		__section(".init.rodata") = KBUILD_MODNAME;		\
+	static const struct initcall_modname __modname_##fn __used	\
+		__section(".initcall.modnames") = {			\
+			.initcall_fn = __initcall_fn_ptr(		\
+			    fn, .initcall##id, id),			\
+			.modname = __initstr_##fn			\
+		};
 
-I do not see anything in the Intel SDM saying that an unaligned
-non-temporal MOVNTI store that crosses a cache line silently falls back
-to temporal RFO cache allocations. The existing 4/8/16-byte
-memcpy_flushcache() fixed-size cases already use MOVNTI without such an
-alignment check. Please correct me if I am wrong.
+#define __builtin_module_initcall(fn)	__define_initcall_modname(fn, 6)
 
-The microbenchmark is only used as the performance motivation for keeping
-these small constant-size copies in the inline path. It is not intended
-as a durability proof.
+>  
+>  /**
+>   * module_exit() - driver exit entry point
+> @@ -883,6 +884,8 @@ static inline void module_for_each_mod(int(*func)(struct module *mod, void *data
+>  }
+>  #endif /* CONFIG_MODULES */
+>  
+> +bool module_is_blacklisted(const char *module_name);
+> +
+>  #ifdef CONFIG_SYSFS
+>  extern struct kset *module_kset;
+>  extern const struct kobj_type module_ktype;
+> diff --git a/init/main.c b/init/main.c
+> index e363232b428b..ee6d7db212d5 100644
+> --- a/init/main.c
+> +++ b/init/main.c
+> @@ -1334,6 +1334,57 @@ static inline void do_trace_initcall_level(const char *level)
+>  }
+>  #endif /* !TRACEPOINTS_ENABLED */
+>  
+> +extern struct initcall_modname __start_initcall_modnames[];
+> +extern struct initcall_modname __stop_initcall_modnames[];
+> +
+> +/* module_blacklist is a comma-separated list of module names */
+> +static char *module_blacklist;
+> +bool __init_or_module module_is_blacklisted(const char *module_name)
+> +{
+> +	const char *p;
+> +	size_t len;
+> +
+> +	if (!module_blacklist)
+> +		return false;
+> +
+> +	for (p = module_blacklist; *p; p += len) {
+> +		len = strcspn(p, ",");
+> +		if (strlen(module_name) == len && !memcmp(module_name, p, len))
+> +			return true;
+> +		if (p[len] == ',')
+> +			len++;
+> +	}
+> +	return false;
+> +}
+> +core_param(module_blacklist, module_blacklist, charp, 0400);
+> +
+> +static const char *__init get_builtin_modname(initcall_t fn)
+> +{
+> +	struct initcall_modname *p;
+> +
+> +	for (p = __start_initcall_modnames; p < __stop_initcall_modnames; p++) {
+> +		if (dereference_function_descriptor(p->initcall_fn) ==
+> +		    dereference_function_descriptor(fn))
 
-> --- Patch [8]: [PATCH v7 8/9] mm: use memcpy_nontemporal() in zone-device template copies ---
-> commit ebc6b81ea2e4b12a555515b9468c89fd0bdfe4f1
-> Author: Li Zhe <lizhe.67@bytedance.com>
-> mm: use memcpy_nontemporal() in zone-device template copies
-> The template fast path currently uses memcpy() for the actual struct page
-> copy. Switch zone_device_page_init_from_template() to memcpy_nontemporal()
-> to reduce write-allocate cache traffic.
-> > diff --git a/mm/mm_init.c b/mm/mm_init.c
-> > index 2668acef4fe60..2a723a518f413 100644
-> > --- a/mm/mm_init.c
-> > +++ b/mm/mm_init.c
-> [ ... ]
-> > @@ -1110,7 +1120,7 @@ static void zone_device_page_init_from_template(struct page *page,
-> >  	 * to the destination page.
-> >  	 */
-> >  	zone_device_page_update_template(template, pfn);
-> > -	memcpy(page, template, sizeof(*page));
-> > +	memcpy_nontemporal(page, template, sizeof(*page));
-> Could this mix of non-temporal and temporal stores to the same memory location
-> cause data corruption on x86?
-> During DAX device binding, memmap_init_zone_device() copies the template to
-> the head page using this memcpy_nontemporal() call, and then immediately
-> calls memmap_init_compound():
-> mm/mm_init.c:memmap_init_zone_device() {
->     ...
-> 		} else {
-> 			zone_device_page_init_from_template(page, pfn,
-> 							    &template);
-> 		}
->     ...
-> 		memmap_init_compound(page, pfn, zone_idx, nid, pgmap,
-> 				     compound_nr_pages(pfn, altmap, pgmap),
-> 				     use_template);
->     ...
-> }
-> Inside memmap_init_compound(), a normal temporal store is applied to the
-> head page:
-> mm/mm_init.c:memmap_init_compound() {
->     ...
-> 	/*
-> 	 * We have to initialize the pages, including setting up page links.
-> 	 * prep_compound_page() does not take care of that, so instead we
-> 	 * open-code prep_compound_page() so we can take care of initializing
-> 	 * the pages in the same go.
-> 	 */
-> 	__SetPageHead(head);
->     ...
-> }
-> The commit message states:
-> "The ordinary stores that follow in this path, such as compound-page setup,
-> are part of the same CPU's initialization sequence; they are not used as a
-> publication store that tells another CPU or device to consume data written
-> by the non-temporal copy. Therefore this call site does not need a helper-
-> level drain for correctness."
-> However, because x86 does not maintain coherency between write-combining (WC)
-> buffers and temporal cache lines for the same address, a pending WC buffer
-> flush can unpredictably overwrite the L1 cache updates from the same CPU. This
-> could cause the PG_head bit to be lost.
-> Does this path actually require an intervening memory barrier (like sfence)
-> before the temporal writes to guarantee correctness?
+Using dereference_function_descriptor() looks unnecessary.
 
-I do not think an sfence is required between the template copy and the
-following compound-page setup.
+> +			return p->modname;
+> +	}
+> +	return NULL;
+> +}
+> +
+> +static void __init do_one_initcall_builtin(initcall_t fn)
+> +{
+> +	const char *modname;
+> +
+> +	if (module_blacklist) {
+> +		modname = get_builtin_modname(fn);
+> +		if (modname && module_is_blacklisted(modname)) {
+> +			pr_info("Skipping initcall for blacklisted built-in module %s\n",
+> +				modname);
+> +			return;
+> +		}
+> +	}
+> +	do_one_initcall(fn);
+> +}
+> +
+>  int __init_or_module do_one_initcall(initcall_t fn)
+>  {
+>  	int count = preempt_count();
+> @@ -1406,7 +1457,7 @@ static void __init do_initcall_level(int level, char *command_line)
+>  
+>  	do_trace_initcall_level(initcall_level_names[level]);
+>  	for (fn = initcall_levels[level]; fn < initcall_levels[level+1]; fn++)
+> -		do_one_initcall(initcall_from_entry(fn));
+> +		do_one_initcall_builtin(initcall_from_entry(fn));
+>  }
+>  
+>  static void __init do_initcalls(void)
+> @@ -1451,7 +1502,7 @@ static void __init do_pre_smp_initcalls(void)
+>  
+>  	do_trace_initcall_level("early");
+>  	for (fn = __initcall_start; fn < __initcall0_start; fn++)
+> -		do_one_initcall(initcall_from_entry(fn));
+> +		do_one_initcall_builtin(initcall_from_entry(fn));
+>  }
+>  
+>  static int run_init_process(const char *init_filename)
+> diff --git a/kernel/module/main.c b/kernel/module/main.c
+> index 46dd8d25a605..a8021039d44b 100644
+> --- a/kernel/module/main.c
+> +++ b/kernel/module/main.c
+> @@ -2919,26 +2919,7 @@ int __weak module_frob_arch_sections(Elf_Ehdr *hdr,
+>  	return 0;
+>  }
+>  
+> -/* module_blacklist is a comma-separated list of module names */
+> -static char *module_blacklist;
+> -static bool blacklisted(const char *module_name)
+> -{
+> -	const char *p;
+> -	size_t len;
+> -
+> -	if (!module_blacklist)
+> -		return false;
+>  
+> -	for (p = module_blacklist; *p; p += len) {
+> -		len = strcspn(p, ",");
+> -		if (strlen(module_name) == len && !memcmp(module_name, p, len))
+> -			return true;
+> -		if (p[len] == ',')
+> -			len++;
+> -	}
+> -	return false;
+> -}
+> -core_param(module_blacklist, module_blacklist, charp, 0400);
 
-The weak-ordering concern for non-temporal stores is about when those
-stores become visible to other agents, and about ordering them before an
-external handoff. The following __SetPageHead() store is not such a
-handoff. It is still part of the same CPU's construction of the same
-struct page metadata.
+Nit: This hunk leaves three consecutive blank lines after
+module_frob_arch_sections().
 
-I do not think the x86 memory-ordering rules imply that a later
-same-CPU temporal update to the same struct page can be silently lost
-behind an earlier non-temporal store. The required fence is for ordering
-non-temporal stores before an external observer or handoff.
+>  
+>  static struct module *layout_and_allocate(struct load_info *info, int flags)
+>  {
+> @@ -3391,7 +3372,7 @@ static int early_mod_check(struct load_info *info, int flags)
+>  	 * Now that we know we have the correct module name, check
+>  	 * if it's blacklisted.
+>  	 */
+> -	if (blacklisted(info->name)) {
+> +	if (module_is_blacklisted(info->name)) {
+>  		pr_err("Module %s is blacklisted\n", info->name);
+>  		return -EPERM;
+>  	}
 
-So the relevant ordering point would be before publishing data written by
-non-temporal stores to another CPU or device. This path does not do that
-between the memcpy_nontemporal() call and the following compound-page
-stores. It is only continuing local initialization of the struct page.
-
+-- 
 Thanks,
-Zhe
+Petr
