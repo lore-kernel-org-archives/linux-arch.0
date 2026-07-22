@@ -1,35 +1,35 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 9D1BF4DB57D;
-	Wed, 22 Jul 2026 15:31:16 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1DEBF36B914;
+	Wed, 22 Jul 2026 15:31:23 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784734278; cv=none; b=A8IWnOIxcpy4yqtNYaB1hhAwZk1dAigJHafHKibSt0lQY1MfnTtgobp8GmIv4E8Z2m/YLSAgENwTT8KxTrNPkdyx9JkXctSyVtpRL38BGbjiULS6KrRLclBImSgdg36IIo1WO/dPGN35LVOxX+KduBanubM33JXPnTsRTcvtzdw=
+	t=1784734286; cv=none; b=LyzZEG/c3gxnkYqzlrXAwk+ZioSoBGkjef/+BMQQx4HhzfO9HIBvVKV3tEABDcJlf0JG8+tf96CTJ/XR+OUeqj83sG5wAs9gy4KuHdyfwBrYB9IponfL0w4eJvuhcghwFD6ktbSXdbb1r/2LH6+rDsT8Ho1TaJGsnWGC6onqqII=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784734278; c=relaxed/simple;
-	bh=hiWrXKZl3HSQimA2aMCTib+KVKF++dHLJJBYh+lph9o=;
+	s=arc-20240116; t=1784734286; c=relaxed/simple;
+	bh=E1LhS2d41pv7baaV3zaz0144dqW/PG1F+Ej5483Lbng=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=WuPt3cd0Hx8SWKS7W+d7Qyz1y0qT4ZucDJFF8hf6mfuChc27uOphMLXfA6NHE0Xd0Iw5TJ2DjcpSiyrx7b0R1oSHsROtVVEFgA7Maf48SWt81Lb0ufT4SOFTN29zDQWGbO7gwjjhW93Ux8cCrfaAppVqA4PFQDQIKK1R4rtenG0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=MPNrLQ+Y; arc=none smtp.client-ip=217.140.110.172
+	 In-Reply-To:To:Cc; b=FAlzauFT/AOBHX7k/2js+zsG1n6mtKijF3yND+xfKajkJgSPWyiQca/KV4OUF3kdjbMHDKHdj2I9hBLghpq1sKzwSy90JW/nqqw6sIbFvXhSHQMV+r5iJ0amtMcBaV1gptLH+sJFrSGzQ5gpAXu1rmHTgrU1mw7n8EU28LV9A3Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=lhoYvQT1; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="MPNrLQ+Y"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="lhoYvQT1"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id DF1B51691;
-	Wed, 22 Jul 2026 08:31:11 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id F38231595;
+	Wed, 22 Jul 2026 08:31:18 -0700 (PDT)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 43CC43F66F;
-	Wed, 22 Jul 2026 08:31:09 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 5B3493F66F;
+	Wed, 22 Jul 2026 08:31:16 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1784734276; bh=hiWrXKZl3HSQimA2aMCTib+KVKF++dHLJJBYh+lph9o=;
+	t=1784734283; bh=E1LhS2d41pv7baaV3zaz0144dqW/PG1F+Ej5483Lbng=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=MPNrLQ+YsrzFiOpSP9SWG7N/+MHgnknKNZkXq4aPF58fJCxXjdRe8DHJBZU1yH/gb
-	 Hz/yrfkTsAkIA/ai9FsVtwg3y7MKal7n0Ve6mdFNF8PditHoNSpER1jfZuPa1LaR0O
-	 RKS15ZaEJK8eMHTb91p12+ZneLnHBLh7wAv66T/M=
+	b=lhoYvQT1w/IrX0K4Mz20bVq5L/ka6VnXZofM/W5GYHE62WoUBEG5gc1856dbenu9h
+	 tVSS3WTWbWEzALvuaSp6JOD8Q7fVujcuj9iL3UuqVm6ykvFbUPP/kKNKoNRMXSQQxJ
+	 UMdqAjYwiKk84qvk257x6xz3Y6VBCAiksmdwCXwI=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Wed, 22 Jul 2026 16:30:13 +0100
-Subject: [PATCH RFC v2 05/20] MIPS: mm: define pud_leaf() only when PUD
- exists
+Date: Wed, 22 Jul 2026 16:30:14 +0100
+Subject: [PATCH RFC v2 06/20] mm/pgtable: define (pgd|p4d|pud)_leaf() for
+ folded page tables
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -38,7 +38,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260722-dummy_ptxp3-v2-5-d9e4bad31e0a@arm.com>
+Message-Id: <20260722-dummy_ptxp3-v2-6-d9e4bad31e0a@arm.com>
 References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
 In-Reply-To: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
 To: Russell King <linux@armlinux.org.uk>, 
@@ -71,49 +71,122 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
  linux-openrisc@vger.kernel.org
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=954; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=H+H/wmu4330VwmFZtb9J1sA2hSnEoaKRqGEvxUP6qx4=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBqYOIRWk1b7HFDPY1VFchgF5Cds4RBwgntIkDQd
- 5jEN4eIWxmJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCamDiEQAKCRBt1cPRWsUx
- M6wGDAC2lHq5x8fgh5N3V0oN64yuI0v5l4DrbkPQqL3r9rW2b0FNVBd8zIJiTJmI0CpqtAOemH4
- 07Hnd7BkZnZpKDbHohJSPnUdu086S156nZ5ujv4kOhoHf8KmNwkqeHp18R78FvRHCex06Ri81uu
- vfeUTcJSNH5iNsf9kMiwUlTIsfEcXZA4/xSPo54Qe2vfVKC28/Y9VXC4xeiT92Sx0XyUgD5cQdu
- 5sGaCdBzlMbyiAdTA4BA0bjCbVvtvdaz0mihbWktNtc5Ep0aa57zWF54tpr7+vdIp3Hl7AFudJz
- bf3BBQPe4rLdeg2tMCLgcXy2dUxCbFZJRH/oGKD8u59MwaVyGN5z4J01wLxQap/KzJi5ux9/KiP
- Mf4bjM2FpSXqbhPa479cy4ItfK3JCYLe+rXwrUEmg9zfiY2DG7BfXN3hY99ee4pjgVHIswn26Gy
- LkGQcigk9fzVC8V+gFi2TGvn5JttPDqyJr8QzSiXoSgwRxNuqZEx+nlFB5lY+w/pxZ7YA=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=4436; i=yeoreum.yun@arm.com;
+ h=from:subject:message-id; bh=DaldeU24DqLVpaLFh5jtkpxB6dgJTv3Nx5Huqygsqtk=;
+ b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBqYOISzCmr9D/oZBISBy2aPH6Y1owFEcVQbTYPE
+ FQQHENr0nCJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCamDiEgAKCRBt1cPRWsUx
+ M7BuC/9DOmwNzErpw4yUvDpTOEudVtnYd/d86z6Yy9oST/ZFBBZ5AqzTOb0jaNKYiVD8Eh9tC4R
+ cLuaipwND2meOmSwGJIAMr1UDpK1tzxMu9uOCCr/2v1689RWhx10vpLpS+ix07+j/bL+M8wPJce
+ WqnmfEHSBYlYv7iK4SUB/71eP1qm+82qoTB50mG3cqkX7OEzogIJ7oGSmPzHZ42iNeXLSzGUFOK
+ qQc20KG8ztyHSgEegHrB6ScTc+qDfAjIoy6skrSo5jcTYdFgcYixmHPKKpfDm8ETWq2/KUuxnC0
+ 3f/g5pYT/gBj9+bRvVuLVI94mC9MJajCdZbb5xUpVEMUI9wMnt+Lok3L6JkpXyhPBDGDzVTdWgr
+ jNiXTd45Es+1xfvezTd7aDh4Bf+UZMQbQ0up4DM3it7nHvHfdoDdmyn3RsBtr+P7ckeuJHA+nEk
+ KC1zwp9kX9NDF5dbuV3NvrKIz9KvhUxRqZUNqZGsjm44kk5cEgnPPU0i9/LfIDX/+9e6c=
 X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
  fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
 
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 
-In include/asm-generic/pgtable-nopmd.h, we do have a hard-coded
-pud_leaf()=false inline function, but we miss the "define pud_leaf
-pud_leaf" part.
+Let's define (pgd|p4d|pud)_leaf(), hard-coding it to "false". Note
+that we missed to define pud_leaf() before, allowing architectures to
+unknowingly overwrite it.
 
- To prepare for fixing that, define pud_leaf() only if we don't have
- __PAGETABLE_PMD_FOLDED.
+Still use static inline functions (type checking), and while at it, just
+use "bool" as a return value.
+
+We can now drop the arm64 custom variant that did that. As it documents:
+
+	Note: reusing the original pointer means that we may
+	dereference the same (live) page-table entry multiple times.
+	This is safe because it is still only loaded once in the
+	context of each level and the CPU guarantees same-address
+	read-after-read ordering.
+
+We now have the same situation. Don't document that, as we will be
+removing the double read next.
 
 Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 ---
- arch/mips/include/asm/pgtable.h | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/arm64/include/asm/pgtable.h    | 23 -----------------------
+ include/asm-generic/pgtable-nop4d.h |  2 ++
+ include/asm-generic/pgtable-nopmd.h |  3 ++-
+ include/asm-generic/pgtable-nopud.h |  2 ++
+ 4 files changed, 6 insertions(+), 24 deletions(-)
 
-diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
-index fa7b935f947c..151f4d15bd12 100644
---- a/arch/mips/include/asm/pgtable.h
-+++ b/arch/mips/include/asm/pgtable.h
-@@ -745,8 +745,10 @@ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index a2681d755358..6185fc291fd7 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -1188,29 +1188,6 @@ static inline bool pgtable_l5_enabled(void) { return false; }
+ #define p4d_clear_fixmap()
  
- #ifdef _PAGE_HUGE
- #define pmd_leaf(pmd)	((pmd_val(pmd) & _PAGE_HUGE) != 0)
-+#ifndef __PAGETABLE_PMD_FOLDED
- #define pud_leaf(pud)	((pud_val(pud) & _PAGE_HUGE) != 0)
- #endif
-+#endif
+ #define p4d_offset_kimg(dir,addr)	((p4d_t *)dir)
+-
+-static inline
+-p4d_t *p4d_offset_lockless_folded(pgd_t *pgdp, pgd_t pgd, unsigned long addr)
+-{
+-	/*
+-	 * With runtime folding of the pud, pud_offset_lockless() passes
+-	 * the 'pgd_t *' we return here to p4d_to_folded_pud(), which
+-	 * will offset the pointer assuming that it points into
+-	 * a page-table page. However, the fast GUP path passes us a
+-	 * pgd_t allocated on the stack and so we must use the original
+-	 * pointer in 'pgdp' to construct the p4d pointer instead of
+-	 * using the generic p4d_offset_lockless() implementation.
+-	 *
+-	 * Note: reusing the original pointer means that we may
+-	 * dereference the same (live) page-table entry multiple times.
+-	 * This is safe because it is still only loaded once in the
+-	 * context of each level and the CPU guarantees same-address
+-	 * read-after-read ordering.
+-	 */
+-	return p4d_offset(pgdp, addr);
+-}
+-#define p4d_offset_lockless p4d_offset_lockless_folded
+-
+ #endif  /* CONFIG_PGTABLE_LEVELS > 4 */
  
- #define gup_fast_permitted(start, end)	(!cpu_has_dc_aliases)
+ #define pgd_ERROR(e)	\
+diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
+index 89c21f84cffb..c6a5a43899b5 100644
+--- a/include/asm-generic/pgtable-nop4d.h
++++ b/include/asm-generic/pgtable-nop4d.h
+@@ -22,6 +22,8 @@ static inline int pgd_none(pgd_t pgd)		{ return 0; }
+ static inline int pgd_bad(pgd_t pgd)		{ return 0; }
+ static inline int pgd_present(pgd_t pgd)	{ return 1; }
+ static inline void pgd_clear(pgd_t *pgd)	{ }
++static inline bool pgd_leaf(pgd_t pgd)		{ return false; }
++#define pgd_leaf pgd_leaf
+ #define p4d_ERROR(p4d)				(pgd_ERROR((p4d).pgd))
  
+ #define pgd_populate(mm, pgd, p4d)		do { } while (0)
+diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
+index 36b6490ed180..dbd38b4c3a05 100644
+--- a/include/asm-generic/pgtable-nopmd.h
++++ b/include/asm-generic/pgtable-nopmd.h
+@@ -31,7 +31,8 @@ static inline int pud_none(pud_t pud)		{ return 0; }
+ static inline int pud_bad(pud_t pud)		{ return 0; }
+ static inline int pud_present(pud_t pud)	{ return 1; }
+ static inline int pud_user(pud_t pud)		{ return 0; }
+-static inline int pud_leaf(pud_t pud)		{ return 0; }
++static inline bool pud_leaf(pud_t pud)		{ return false; }
++#define pud_leaf pud_leaf
+ static inline void pud_clear(pud_t *pud)	{ }
+ #define pmd_ERROR(pmd)				(pud_ERROR((pmd).pud))
+ 
+diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
+index 356cbfbaab24..6c9bca78047c 100644
+--- a/include/asm-generic/pgtable-nopud.h
++++ b/include/asm-generic/pgtable-nopud.h
+@@ -29,6 +29,8 @@ static inline int p4d_none(p4d_t p4d)		{ return 0; }
+ static inline int p4d_bad(p4d_t p4d)		{ return 0; }
+ static inline int p4d_present(p4d_t p4d)	{ return 1; }
+ static inline void p4d_clear(p4d_t *p4d)	{ }
++static inline bool p4d_leaf(p4d_t p4d)		{ return false; }
++#define p4d_leaf p4d_leaf
+ #define pud_ERROR(pud)				(p4d_ERROR((pud).p4d))
+ 
+ #define p4d_populate(mm, p4d, pud)		do { } while (0)
 
 -- 
 2.43.0
