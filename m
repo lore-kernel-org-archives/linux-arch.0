@@ -1,222 +1,114 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 33E134F798C;
-	Wed, 22 Jul 2026 17:18:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8B9EA411F95;
+	Wed, 22 Jul 2026 17:21:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784740726; cv=none; b=HlZHV1kCJCmmaSyD2bpQ9/6Xl6ER1ilrzgd4oemJFR2aUzY4+ABjjipzv6iuZLpq0UvXDXQee+wTVoTipGQ69OTJJpBhFyYvToClabEGDhdYZZki5t0MMXjW5WYL8tPLZypigqqrhr/fU+B7sFyT1LIzU2L5ZIQB4xRIrcrgvX8=
+	t=1784740908; cv=none; b=DJq/BILDHgaUbw2cF0qnjXJcQ9o9WJZlqjNjtG7QUFSxy822VDhH6/sEAWI53DGTY3vgiii202NPnw9b9JKbY5gZBAcAtV5/IxUFCxRhpM6yicD55Ier/XwFc6kY/rlJD1sa7JjDLbhvzyVsS1xZdh5w8BOQ3tmUKhtIACNi6pM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784740726; c=relaxed/simple;
-	bh=2NDCcLKodqKCpw2t0NDotrWkpKm4cYytW7/B76Q9mwQ=;
+	s=arc-20240116; t=1784740908; c=relaxed/simple;
+	bh=AlcHC/s/YIEVyt0pCF8jhgsZAftRoNvQ7vNQm6sfZMg=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=UTgK1tdERTxfxiAIztX1+hufC4HsQTxSGz1uY+BcN6OlpNrxIwSUTgFWTlycqZML1aJpl5+SyY/11ysPymytbSDz0XAxsgTMA5fuUfP59LUBvn57GiMOHkFR0C15Tw+Yq8iCT5cFdsAOXSBOMT1fruCNU6fAyqs0AoMr+1w2CJ4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=Das3j0Am; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=LNYMqRI/HcpmO/Rr2I8NTmCYsm+A6iEGfIebrJaG0AahJ2IaHB+MTnrxONYs+TEhnc9+t9StSqRPyKgLECromww41LdQXIxYI3PRmTrh87NQ6sDOdYDOdKv+OE6rhrJt2X65vg/9zwaCyzoTIFvsuxJN4+IteKi96ucZxgSb2rI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=AHXpKMkO; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="Das3j0Am"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 5E7591595;
-	Wed, 22 Jul 2026 10:18:39 -0700 (PDT)
-Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 5F8683F66F;
-	Wed, 22 Jul 2026 10:18:36 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1784740723; bh=2NDCcLKodqKCpw2t0NDotrWkpKm4cYytW7/B76Q9mwQ=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=Das3j0AmK5wTaHG4tQV+vaD2IuCrxPRNwYvLASUFPiBuUVqMzxuym7Y9yOS6KG2Ei
-	 tTEwkxPYF7fgFUJ9zTix5YA8MAxyV/197dUq0IJrrTNTEeD+WwVVI2vp+T9s0F04m3
-	 cSuvOYeQfWsSA3qkTMWLNYwUi1xxvOwbv1FzSGdg=
-Date: Wed, 22 Jul 2026 18:18:33 +0100
-From: Yeoreum Yun <yeoreum.yun@arm.com>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="AHXpKMkO"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C30691F000E9;
+	Wed, 22 Jul 2026 17:21:42 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1784740907;
+	bh=n4+qE4ZoohVYF/j3isYgupSr93BAAzyHcaf7DgfjxBs=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=AHXpKMkO2HaiOLjQtij21gEqEeLylpNpBFJ5KyxuzWUbJsESp3qJ+AGg5XBVCzzcS
+	 CiLE8BAwjLbx4FNVDfE8IM1EQDFTS6VUv9AZSAlBoYae6xUcLLpZX0oUGpSmSpW/BN
+	 kxLInKY8s8iYTEqmEWlZDMBiWUMgbU6TawTUpKkEHJsJ8lSR0w4uo4yD7J9N9T7O8r
+	 nqg7isqUOL3kWu8OgnEN7EW1X42MVptnquDBqHtLfa+J+zXv/8Hn+EJjIIqfw0DGE/
+	 bMzHj40KOtPobKR5ISocxtNdU6XGTwGpvQzJnFyiXit1GzhhJkjMcrrRiluIqzfyUe
+	 4+Yn7UsdVn5nw==
+Date: Wed, 22 Jul 2026 10:21:40 -0700
+From: Nathan Chancellor <nathan@kernel.org>
+To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <thomas.weissschuh@linutronix.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Vincenzo Frascino <vincenzo.frascino@arm.com>,
+	Nicolas Schier <nsc@kernel.org>,
 	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
-	Shakeel Butt <shakeel.butt@linux.dev>,
-	Barry Song <baohua@kernel.org>,
-	Axel Rasmussen <axelrasmussen@google.com>,
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
-	Johannes Weiner <hannes@cmpxchg.org>,
-	David Hildenbrand <david@kernel.org>,
-	Michal Hocko <mhocko@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
-	Tianrui Zhao <zhaotianrui@loongson.cn>,
-	Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
-	Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
+	Daniel Lezcano <daniel.lezcano@kernel.org>,
+	Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
 	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	Andy Lutomirski <luto@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	"Liam R. Howlett" <liam@infradead.org>,
-	Vlastimil Babka <vbabka@kernel.org>,
-	Mike Rapoport <rppt@kernel.org>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Michal Hocko <mhocko@suse.com>, Jonas Bonn <jonas@southpole.se>,
-	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-	Stafford Horne <shorne@gmail.com>,
-	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
-	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
-	linux-openrisc@vger.kernel.org
-Subject: Re: [PATCH RFC v2 14/20] x86: mm: skip pud setup when using generic
- compile-time folded pagetable
-Message-ID: <amD7ab_KuJPdBQBh@e129823.arm.com>
-References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
- <20260722-dummy_ptxp3-v2-14-d9e4bad31e0a@arm.com>
- <0ea931f1-4801-4d32-b6ce-4787a8d3daa9@intel.com>
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>, linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
+	linux-mips@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	linux-riscv@lists.infradead.org, loongarch@lists.linux.dev
+Subject: Re: [PATCH v3 1/7] kbuild: support generated asm-headers in
+ subdirectories
+Message-ID: <20260722172140.GA2947455@ax162>
+References: <20260722-vdso-arch-clockmodes-v3-0-4c5753191cc4@linutronix.de>
+ <20260722-vdso-arch-clockmodes-v3-1-4c5753191cc4@linutronix.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <0ea931f1-4801-4d32-b6ce-4787a8d3daa9@intel.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260722-vdso-arch-clockmodes-v3-1-4c5753191cc4@linutronix.de>
 
-On Wed, Jul 22, 2026 at 09:33:55AM -0700, Dave Hansen wrote:
-> On 7/22/26 08:30, Yeoreum Yun wrote:
-> > We want to rework how set_pXd() behaves for generic compile-time folded
+On Wed, Jul 22, 2026 at 09:53:27AM +0200, Thomas Weiﬂschuh wrote:
+> Extend the asm-header stub generation to also handle subdirectories.
+> An upcoming vdso/ header refactoring requires this.
 > 
-> Please move this all to imperative voice. I think I asked for this
-> before, but perhaps I didn't. Either way, please fix the whole series.
+> Signed-off-by: Thomas Weiﬂschuh <thomas.weissschuh@linutronix.de>
+> ---
+>  scripts/Makefile.asm-headers | 11 +++++------
+>  1 file changed, 5 insertions(+), 6 deletions(-)
+> 
+> diff --git a/scripts/Makefile.asm-headers b/scripts/Makefile.asm-headers
+> index 8a4856e74180..772b53ffdeb4 100644
+> --- a/scripts/Makefile.asm-headers
+> +++ b/scripts/Makefile.asm-headers
+> @@ -48,14 +48,13 @@ syscall-y   := $(addprefix $(obj)/, $(syscall-y))
+>  generated-y := $(addprefix $(obj)/, $(generated-y))
+>  
+>  # Remove stale wrappers when the corresponding files are removed from generic-y
+> -old-headers := $(wildcard $(obj)/*.h)
+> +old-headers := $(shell test -d $(obj) && find $(obj) -name *.h)
+>  unwanted    := $(filter-out $(generic-y) $(generated-y) $(syscall-y),$(old-headers))
+>  
+> -quiet_cmd_wrap = WRAP    $@
+> -      cmd_wrap = echo "\#include <asm-generic/$*.h>" > $@
+> +filechk_wrap = echo "\#include <asm-generic/$*.h>"
+>  
+>  quiet_cmd_remove = REMOVE  $(unwanted)
+> -      cmd_remove = rm -f $(unwanted)
+> +      cmd_remove = rm -f $(unwanted); find $(obj) -type -d -empty -delete
 
-Oh. Sorry, I've forgotten to edit this commit message.
-I'll fix in next around.
+There appears to be a stray '-' in the find command ('-type -d' instead
+of '-type d').
 
+>  
+>  quiet_cmd_syshdr = SYSHDR  $@
+>        cmd_syshdr = $(CONFIG_SHELL) $(syshdr) \
+> @@ -74,8 +73,8 @@ all: $(generic-y) $(syscall-y)
+>  	$(if $(unwanted),$(call cmd,remove))
+>  	@:
+>  
+> -$(obj)/%.h: $(srctree)/$(generic)/%.h
+> -	$(call cmd,wrap)
+> +$(obj)/%.h: $(srctree)/$(generic)/%.h FORCE
+> +	$(call filechk,wrap)
+>  
+>  $(obj)/unistd_%.h: $(syscalltbl) $(syshdr) FORCE
+>  	$(call if_changed,syshdr)
 > 
-> > page tables by disallowing its use and triggering a compile-time error
-> > when it is used improperly, ensuring that the actual first-level set_pXd()
-> > function is used instead.
-> > 
-> > The behaviour of pXd_page() will change with generic compile-time folded
-> > page tables by disallowing its use and triggering a compile-time error
-> > when it's used improperly, ensuring that the actual.
-> > 
-> > To prepare fot that, skip collapse_pud_page() and populate_pud() according
-> > to CONFIG_PGTABLE_LEVELS.
-> > 
-> > There should be no functional change.
-> 
-> If this wasn't done, what would happen? There would be a compile error,
-> right?
-> 
-> Shouldn't that be said out loud somewhere?
-
-Yes compile error for using pud_page(). I'll shout out detail in the
-commit message.
-
-> 
-> > diff --git a/arch/x86/mm/pat/set_memory.c b/arch/x86/mm/pat/set_memory.c
-> > index 078689aa7206..91b33a265a43 100644
-> > --- a/arch/x86/mm/pat/set_memory.c
-> > +++ b/arch/x86/mm/pat/set_memory.c
-> > @@ -1346,7 +1346,7 @@ static int collapse_pud_page(pud_t *pud, unsigned long addr,
-> >  	pmd_t *pmd, first;
-> >  	int i;
-> >  
-> > -	if (!direct_gbpages)
-> > +	if (CONFIG_PGTABLE_LEVELS == 2 || !direct_gbpages)
-> >  		return 0;
-> 
-> This is subtly wrong. It probably shuts the compiler up, but it's subtly
-> wrong.
-> 
-> x86 has 4 paging modes. I'll use the SDM/Intel terminology:
-> 
-> 32-bit:
->  * 32-bit paging: 2-level
->  * PAE: 3-level
-> 64-bit:
->  * 4-level paging
->  * 5-level paging
-> 
-> But "gbpages" are not available in PAE paging. It's a hardware
-> limitation. This doesn't cause a functional problem because the pud
-> level is not folded. But it is confusing and not really an accurate way
-> to write this check.
-> 
-> The *right* way to do this is probably something like this in a header:
-> 
-> static inline bool direct_gbpages(void)
-> {
-> 	if (!IS_ENABLED(CONFIG_X86_DIRECT_GBPAGES))
-> 		return false;
-> 
-> 	return __direct_gbpages;
-> }
-> 
-> Which just happens to point readers over to this Kconfig nugget:
-> 
-> config X86_DIRECT_GBPAGES
->         def_bool y
->         depends on X86_64
-> 
-> which, combined with the knowledge that 32-bit has a 3-level mode, would
-> make the proposed check obviously wrong.
-> 
-> So I'll take this as a suitable alternative:
-> 
-> 	/* Avoid compiling the below code if PUD-level mappings are impossible: */
-> 	if (IS_ENABLED(CONFIG_X86_DIRECT_GBPAGES))
-> 		return 0;
-> 
-> 	if (!direct_gbpages)
-> 		return 0;
-> 
-> That will compile-time optimize the code away in the exact right
-> conditions *and* fix the (assumed by me) compile error that you were
-> chasing.
-
-I thought the same. but It seemed odd at the time since direct_gbpages is
-always 0 when !CONFIG_X86_DIRECT_GBPAGES.
-
-Howver, I've missed the X86_DIRECT_GBPAGES is for X86_64 only and It was
-wrong totally.
-
-I'll follow your suggestion.
-
-> > @@ -1730,7 +1730,8 @@ static int populate_pud(struct cpa_data *cpa, unsigned long start, p4d_t *p4d,
-> >  	/*
-> >  	 * Map everything starting from the Gb boundary, possibly with 1G pages
-> >  	 */
-> > -	while (boot_cpu_has(X86_FEATURE_GBPAGES) && end - start >= PUD_SIZE) {
-> > +	while (CONFIG_PGTABLE_LEVELS > 3 && boot_cpu_has(X86_FEATURE_GBPAGES) &&
-> > +	       end - start >= PUD_SIZE) {
-> >  		set_pud(pud, pud_mkhuge(pfn_pud(cpa->pfn,
-> >  				   canon_pgprot(pud_pgprot))));
-> 
-> This is an OK approach. But there's a way to fix this site *and*
-> optimize a non-zero amount of other code at the same time. Add this hunk
-> to arch/x86/Kconfig.cpufeatures:
-> 
-> config X86_DISABLED_FEATURE_GBPAGES
->         def_bool y
->         depends on X86_32
-> 
-> That will turn the boot_cpu_has() check in to something that can be
-> resolved at compile time. It has the added advantage of compiling out
-> all of the code under X86_FEATURE_GBPAGES everywhere else in the tree.
-
-Does it? when I glimpse check, this wouldn't be compiled since
-there is no bit for X86_DISABLED_FEATURE_GBPAGES and defining the
-DISABLED bit for FEATURE_GBPAGES seems odd since bit X86_FEATURE_GBPAGES
-is already defined.
-
-In stead of CONFIG_PGTABLE_LEVEL > 3, as above, would it be better to
-add check IS_ENABLED(CONFIG_X86_DIRECT_GBPAGES)?
-
-Thanks.
+> -- 
+> 2.55.0
 
 -- 
-Sincerely,
-Yeoreum Yun
+Cheers,
+Nathan
