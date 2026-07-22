@@ -1,32 +1,32 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id C1DD2368D4D;
-	Wed, 22 Jul 2026 17:31:02 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 87232305670;
+	Wed, 22 Jul 2026 17:37:51 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784741464; cv=none; b=hSRmAh1jkTThGuvTjPNLuTkqbxNG0vttbYTQQ6jBgZZWVtkeEiNSmqaHykuGb5CMTSiZQBmm/N5iHCll6XETkKxQq9pUy2fUqwagHWcz1akIXsHTZ20zdMaiyBbItrpWb9ih2a0V9nbT2L1UoG4VF6NKofebxEKyeELeQqma/50=
+	t=1784741872; cv=none; b=cdaKB0tUAuVTDZp6ZNg7lk4nWjn6K6FjnmlxBtf4HJGPfKaUPzLB7DMI2dVX/MkFuPT3OkrF4fHcuMC56dv5+spKWzuwgo0U4AXbtcSNo3Bdfaa65/7vtXzvFnLAo64qeKCAMfXBfNCWNxpXmLQF0wPw8+JCy/VSus7nT3dYI+c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784741464; c=relaxed/simple;
-	bh=24jF6AcUqs8OWEGAaLR69DLBQjR9hO+Rom+3K8DJQKo=;
+	s=arc-20240116; t=1784741872; c=relaxed/simple;
+	bh=JnKvBjo2fOfq9jvwV+JUrWEAgatydjsNYlPbheLKhxc=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=DrUPZX+HF7WQ9TaRZVwLMaRu5nRTeks742PZ8mdI8Vnq5MboVmAHs6OsjChy6+0eySjxxaPWZbF1wRlC6GbKErhw7OEQJFo4/LB2UmVVFbMUSNg7m8LgxRGijvPguIBL6dlyrjDoysUDiv3crcnDhRRVfQV5UW/kmFF+KkjQALI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=c73DPG7u; arc=none smtp.client-ip=217.140.110.172
+	 Content-Type:Content-Disposition:In-Reply-To; b=cNYrXI02SHdqfxTClsbEJ9LanewkDvt3FzimTHZVmLp6C+xbejll3mAuzATQl+doKsOC9DD7FDP5rDwzXmknJY0ESbtL183vRo8y1Yp80HGgeEQIbgcqWi5g3Z9OZhf+KvpYQD0MFZ+p5ZMJNexzRZQzfyFtTigPmMifPcW2eX4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=QAyoeG7P; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="c73DPG7u"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="QAyoeG7P"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id EC1E21595;
-	Wed, 22 Jul 2026 10:30:57 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id C4C9A168F;
+	Wed, 22 Jul 2026 10:37:46 -0700 (PDT)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 1CBCB3F66F;
-	Wed, 22 Jul 2026 10:30:54 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 074493F66F;
+	Wed, 22 Jul 2026 10:37:44 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1784741462; bh=24jF6AcUqs8OWEGAaLR69DLBQjR9hO+Rom+3K8DJQKo=;
+	t=1784741871; bh=JnKvBjo2fOfq9jvwV+JUrWEAgatydjsNYlPbheLKhxc=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=c73DPG7uUV5Fqsc83UkY57n5Qs0XXql23cCXWpZ2ZiqQ+ckAvgZYW4H6Qxd7IuEhg
-	 UpaREG+sGAYzR3v9TgE4TzXqEnrXG7rfKfeEIP65qzbz/5t2U9GCOzbaaUSYCknPsU
-	 WarfMW9lzNf8oKGScXg68Qq+UBElSke/y8/OuBEw=
-Date: Wed, 22 Jul 2026 18:30:52 +0100
+	b=QAyoeG7PKBAcoDg4Vx9aVKdN0VlATPEViq8WVRyZilegBBahIiktHRv2hfoEoCbzO
+	 UJkF9NKxVlB1ZkC22HyEA1xzj6R0ZAmD2eyyzrJ2PtRBpEmkwyyZGygxHNSHMhB+yJ
+	 cFBkNBXczoT10ntHra7/zJDISGpvjgKKjsxCrn3c=
+Date: Wed, 22 Jul 2026 18:37:42 +0100
 From: Yeoreum Yun <yeoreum.yun@arm.com>
 To: Dave Hansen <dave.hansen@intel.com>
 Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
@@ -61,16 +61,18 @@ Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
 	Suren Baghdasaryan <surenb@google.com>,
 	Michal Hocko <mhocko@suse.com>, Jonas Bonn <jonas@southpole.se>,
 	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-	Stafford Horne <shorne@gmail.com>, linux-kernel@vger.kernel.org,
+	Stafford Horne <shorne@gmail.com>,
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
 	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
 	linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
 	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
 	linux-openrisc@vger.kernel.org
-Subject: Re: [PATCH RFC v2 00/20] mm: optimize unnecessary loads due to
- ptep_get() and friends out
-Message-ID: <amD-TLGWGdMK2ItC@e129823.arm.com>
+Subject: Re: [PATCH RFC v2 13/20] x86: mm: carve out the generic compile-time
+ folded pgtable case in effective_prot()
+Message-ID: <amD_5r04mzMoZ0-r@e129823.arm.com>
 References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
- <0143b927-08c5-4e94-ae6e-2a0d7bfe950f@intel.com>
+ <20260722-dummy_ptxp3-v2-13-d9e4bad31e0a@arm.com>
+ <d16a8412-acee-4c21-a126-f570d6306983@intel.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -79,22 +81,28 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <0143b927-08c5-4e94-ae6e-2a0d7bfe950f@intel.com>
+In-Reply-To: <d16a8412-acee-4c21-a126-f570d6306983@intel.com>
 
-> One of my nits about v1 was that it didn't really frame the series
-> precisely. It talks about "optimization" instead of fundamentally
-> changing the way that the kernel deals with folded page table levels.
+> On 7/22/26 08:30, Yeoreum Yun wrote:
+> >  struct pg_state {
+> >  	struct ptdump_state ptdump;
+> > +	int first_level;
+> >  	int level;
+> >  	pgprotval_t current_prot;
+> >  	pgprotval_t effective_prot;
 > 
-> The optimization that this *wants* to talk about kinda falls out of that
-> refactoring. It's not really the core of the series, IMNHO.
+> There is zero reason on x86 to hold this value in a data structure. It
+> is 100% determined at boot time or earlier. Pre-5-level-paging it's a
+> compile-time constant.
 > 
-> This series effectively changes the rules about where and how folded
-> page table levels can be manipulated. In doing that, the door is opened
-> to optimizing out the unnecessary loads.
+> On x86, it never varies per-mm.
 
-I see. might the title and the cover letter should be reparsed.
-Thanks to remind it again :)
+However, mm_pXd_folded() requires to mm for other architecture like
+s390. might save the mm instead of first_level and calls the
+ptdump_pt_level_first() with static inline version would make the
+constant comparison. So it requires to save *mm* structure in here.
 
+[...]
 -- 
 Sincerely,
 Yeoreum Yun
