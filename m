@@ -1,114 +1,141 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8B9EA411F95;
-	Wed, 22 Jul 2026 17:21:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1528B345EA6;
+	Wed, 22 Jul 2026 17:27:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784740908; cv=none; b=DJq/BILDHgaUbw2cF0qnjXJcQ9o9WJZlqjNjtG7QUFSxy822VDhH6/sEAWI53DGTY3vgiii202NPnw9b9JKbY5gZBAcAtV5/IxUFCxRhpM6yicD55Ier/XwFc6kY/rlJD1sa7JjDLbhvzyVsS1xZdh5w8BOQ3tmUKhtIACNi6pM=
+	t=1784741272; cv=none; b=JVg+KO0Pp8xbD1F9rbU+t5xQzAskAp4JGzWG9rl34H4VnC2Qbe8C4PRfJND2Nwf95PoMaaGGKr4fv/7i666OGYtvQkX3W6O4R3QqiETU+QWH8wD+tKn7jl/Wz2589FV2HxW1O0PVUkRQiWPpSOFjEGRXi+Ej6kL/RT6/PMxqjYI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784740908; c=relaxed/simple;
-	bh=AlcHC/s/YIEVyt0pCF8jhgsZAftRoNvQ7vNQm6sfZMg=;
+	s=arc-20240116; t=1784741272; c=relaxed/simple;
+	bh=UJJJ6gDdFfQhPAspitY0ExVcYQKJakkmR/X3IOo4bZM=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=LNYMqRI/HcpmO/Rr2I8NTmCYsm+A6iEGfIebrJaG0AahJ2IaHB+MTnrxONYs+TEhnc9+t9StSqRPyKgLECromww41LdQXIxYI3PRmTrh87NQ6sDOdYDOdKv+OE6rhrJt2X65vg/9zwaCyzoTIFvsuxJN4+IteKi96ucZxgSb2rI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=AHXpKMkO; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=ILQJsubn1TrusxHcTLsOiyqePhYNZilyQFl1f7Z18+bZm0j71SiKTighZBIrX0vQUxAtYdwRxHfyIWt6JguUIYxg4+WDzlnJzut9LWUMlCukR8naFTt2RMJ2VSdQLfON0pL002lDCQ90YSqpArpv1jWH8yTHqJDc1tGz8mdFygA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=SoeZpZp+; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="AHXpKMkO"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C30691F000E9;
-	Wed, 22 Jul 2026 17:21:42 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1784740907;
-	bh=n4+qE4ZoohVYF/j3isYgupSr93BAAzyHcaf7DgfjxBs=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=AHXpKMkO2HaiOLjQtij21gEqEeLylpNpBFJ5KyxuzWUbJsESp3qJ+AGg5XBVCzzcS
-	 CiLE8BAwjLbx4FNVDfE8IM1EQDFTS6VUv9AZSAlBoYae6xUcLLpZX0oUGpSmSpW/BN
-	 kxLInKY8s8iYTEqmEWlZDMBiWUMgbU6TawTUpKkEHJsJ8lSR0w4uo4yD7J9N9T7O8r
-	 nqg7isqUOL3kWu8OgnEN7EW1X42MVptnquDBqHtLfa+J+zXv/8Hn+EJjIIqfw0DGE/
-	 bMzHj40KOtPobKR5ISocxtNdU6XGTwGpvQzJnFyiXit1GzhhJkjMcrrRiluIqzfyUe
-	 4+Yn7UsdVn5nw==
-Date: Wed, 22 Jul 2026 10:21:40 -0700
-From: Nathan Chancellor <nathan@kernel.org>
-To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <thomas.weissschuh@linutronix.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
-	Thomas Gleixner <tglx@kernel.org>,
-	Vincenzo Frascino <vincenzo.frascino@arm.com>,
-	Nicolas Schier <nsc@kernel.org>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Daniel Lezcano <daniel.lezcano@kernel.org>,
-	Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>,
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="SoeZpZp+"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id B2D7B1595;
+	Wed, 22 Jul 2026 10:27:41 -0700 (PDT)
+Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id B55B63F66F;
+	Wed, 22 Jul 2026 10:27:38 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1784741265; bh=UJJJ6gDdFfQhPAspitY0ExVcYQKJakkmR/X3IOo4bZM=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=SoeZpZp+wsxHy2IPoBPIESiHfIlciJelBcAUO0h9BaNgywgcLRKe59vGZr1KsfOtU
+	 zXqwnNHi8fnyFJ4Z4tV45RCq4+uQHINF4Mo8FApJ3gK1YQgEZ3tQYqJ6ysDA6eAPD+
+	 h3LKbzFF1zV5s5ibd/Q5KVSGVirnUpwJnXEtiFKM=
+Date: Wed, 22 Jul 2026 18:27:36 +0100
+From: Yeoreum Yun <yeoreum.yun@arm.com>
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
 	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
-	linux-mips@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-	linux-riscv@lists.infradead.org, loongarch@lists.linux.dev
-Subject: Re: [PATCH v3 1/7] kbuild: support generated asm-headers in
- subdirectories
-Message-ID: <20260722172140.GA2947455@ax162>
-References: <20260722-vdso-arch-clockmodes-v3-0-4c5753191cc4@linutronix.de>
- <20260722-vdso-arch-clockmodes-v3-1-4c5753191cc4@linutronix.de>
+	WANG Xuerui <kernel@xen0n.name>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
+	Shakeel Butt <shakeel.butt@linux.dev>,
+	Barry Song <baohua@kernel.org>,
+	Axel Rasmussen <axelrasmussen@google.com>,
+	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+	Johannes Weiner <hannes@cmpxchg.org>,
+	David Hildenbrand <david@kernel.org>,
+	Michal Hocko <mhocko@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+	Tianrui Zhao <zhaotianrui@loongson.cn>,
+	Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
+	Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	Andy Lutomirski <luto@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	"Liam R. Howlett" <liam@infradead.org>,
+	Vlastimil Babka <vbabka@kernel.org>,
+	Mike Rapoport <rppt@kernel.org>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Michal Hocko <mhocko@suse.com>, Jonas Bonn <jonas@southpole.se>,
+	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+	Stafford Horne <shorne@gmail.com>,
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
+	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
+	linux-openrisc@vger.kernel.org
+Subject: Re: [PATCH RFC v2 12/20] x86: mm: define pudp_set_access_flags()
+ when CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD is enabled only.
+Message-ID: <amD9iD7rjmU__9b6@e129823.arm.com>
+References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
+ <20260722-dummy_ptxp3-v2-12-d9e4bad31e0a@arm.com>
+ <188623a9-dba0-4229-a7ff-5feb2ef0c088@intel.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20260722-vdso-arch-clockmodes-v3-1-4c5753191cc4@linutronix.de>
+In-Reply-To: <188623a9-dba0-4229-a7ff-5feb2ef0c088@intel.com>
 
-On Wed, Jul 22, 2026 at 09:53:27AM +0200, Thomas Weiﬂschuh wrote:
-> Extend the asm-header stub generation to also handle subdirectories.
-> An upcoming vdso/ header refactoring requires this.
-> 
-> Signed-off-by: Thomas Weiﬂschuh <thomas.weissschuh@linutronix.de>
-> ---
->  scripts/Makefile.asm-headers | 11 +++++------
->  1 file changed, 5 insertions(+), 6 deletions(-)
-> 
-> diff --git a/scripts/Makefile.asm-headers b/scripts/Makefile.asm-headers
-> index 8a4856e74180..772b53ffdeb4 100644
-> --- a/scripts/Makefile.asm-headers
-> +++ b/scripts/Makefile.asm-headers
-> @@ -48,14 +48,13 @@ syscall-y   := $(addprefix $(obj)/, $(syscall-y))
->  generated-y := $(addprefix $(obj)/, $(generated-y))
->  
->  # Remove stale wrappers when the corresponding files are removed from generic-y
-> -old-headers := $(wildcard $(obj)/*.h)
-> +old-headers := $(shell test -d $(obj) && find $(obj) -name *.h)
->  unwanted    := $(filter-out $(generic-y) $(generated-y) $(syscall-y),$(old-headers))
->  
-> -quiet_cmd_wrap = WRAP    $@
-> -      cmd_wrap = echo "\#include <asm-generic/$*.h>" > $@
-> +filechk_wrap = echo "\#include <asm-generic/$*.h>"
->  
->  quiet_cmd_remove = REMOVE  $(unwanted)
-> -      cmd_remove = rm -f $(unwanted)
-> +      cmd_remove = rm -f $(unwanted); find $(obj) -type -d -empty -delete
+Hi Dave,
 
-There appears to be a stray '-' in the find command ('-type -d' instead
-of '-type d').
-
->  
->  quiet_cmd_syshdr = SYSHDR  $@
->        cmd_syshdr = $(CONFIG_SHELL) $(syshdr) \
-> @@ -74,8 +73,8 @@ all: $(generic-y) $(syscall-y)
->  	$(if $(unwanted),$(call cmd,remove))
->  	@:
->  
-> -$(obj)/%.h: $(srctree)/$(generic)/%.h
-> -	$(call cmd,wrap)
-> +$(obj)/%.h: $(srctree)/$(generic)/%.h FORCE
-> +	$(call filechk,wrap)
->  
->  $(obj)/unistd_%.h: $(syscalltbl) $(syshdr) FORCE
->  	$(call if_changed,syshdr)
+> > diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+> > index f32facdb3035..edad847a2ecd 100644
+> > --- a/arch/x86/mm/pgtable.c
+> > +++ b/arch/x86/mm/pgtable.c
+> > @@ -411,6 +411,7 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
+> >  	return changed;
+> >  }
+> >  
+> > +#ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
+> >  int pudp_set_access_flags(struct vm_area_struct *vma, unsigned long address,
+> >  			  pud_t *pudp, pud_t entry, int dirty)
+> >  {
+> > @@ -430,6 +431,7 @@ int pudp_set_access_flags(struct vm_area_struct *vma, unsigned long address,
+> >  
+> >  	return changed;
+> >  }
+> > +#endif /* CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD */
+> >  #endif
+> >  
+> >  bool ptep_test_and_clear_young(struct vm_area_struct *vma,
 > 
-> -- 
-> 2.55.0
+> #ifdefs in .c files are evil.
+> 
+> The changelog doesn't make a strong enough case for why this evil should
+> be tolerated.
+> 
+> These are also _precisely_ the kind of #ifdefs that cause compilation
+> problems. This one is:
+> 
+> #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> /// function here
+> #ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
+> /// another function here
+> #endif
+> #endif
+> 
+> So there end up being a couple of dependent config options in play. If
+> there are compile problems, this makes them harder to find.
+> 
+> What is the _actual_ goal here? Saving 50 bytes of kernel text?
+
+TBH, this came from for v1's change of behavior set_pud() where
+triggered compiliation problem with v2 this change wouldn't require.
+
+However, wrappering pudp_set_access_flags() with
+CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD seems reasonable for not only
+saving a kernel text but also keeping consistency with the other pattern
+like pudp_invalidate(), pudp_establish() and etc.
+
+Am I mising something?
 
 -- 
-Cheers,
-Nathan
+Sincerely,
+Yeoreum Yun
