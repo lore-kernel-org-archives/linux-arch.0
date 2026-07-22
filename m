@@ -1,50 +1,50 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.12])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4C6924749C6;
-	Wed, 22 Jul 2026 16:02:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.12
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 085873DAAA9;
+	Wed, 22 Jul 2026 16:11:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.17
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784736143; cv=none; b=HRyP3JOXhDWCoSQhMNxGZcWZU/DGwA/aSRXAgUep5ev3xEcUDqrWyGaYznNnQ9tJ/fcKMP2R7gmw4fXMOzZhghMTeg65naEaGHMr15MDJkVF41oDCWeKe8lsSPyA9cRvWxmgR6MoVYt9VXO5EtHwwkiVFz1//xPJZNKx9lkAB0M=
+	t=1784736668; cv=none; b=I9hLzZaFOr+Yhub7cPRqunVclL7Kr/ciqsnguZ3Y/ghGm6p3vbILHNFRBoxRd+DGcRHhW9bu2ZueQX/LS/AGp/c6AyJCXEtKjr0b5mE8POi8Tf1Y4O/6fIaRmJgP5+ofcXFnMsLJ17cX3UI4mgqQS3Husjoz0bHq0pIFxg4vhLo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784736143; c=relaxed/simple;
-	bh=3YntNmWvXbzd8ZFyw1hNGjXIdKkTKwZiDQdVND7+LZM=;
+	s=arc-20240116; t=1784736668; c=relaxed/simple;
+	bh=qWuqbOwT6QdK8lEmHgXNQloF3XL7yChGj+btYV69y50=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=kPpzxKxBN5P/dFwpaSXIVw6v4eBiMeBQUI1wX/YqArbqhzFPZK5nIKCApLHsoMTu5rDaBAZ8yAPlfd1vl3uGWMjVMmEmuJOabtW6zS6WXBsti57ApaLM2/sROiXS5GfZFSRL3BKlJqkiuwCwAPdeGh90k8bPr2jM6jQL5ecmizU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=lbdXVkzf; arc=none smtp.client-ip=198.175.65.12
+	 In-Reply-To:Content-Type; b=c0khJY9x7Q0uqXTJ5n+YyR3Hn5YgII+Fu6EAIsG7LEJ8baQKqukKyb+Z7s0NfOWmsC52SUL1JKNKqaubRU7uyYOEbTynj40NHiaemVOG8u9n9oIsteryNsbjanmyndoQXoqKzEYd4QO+jeMHiYm66dJcZqWf5Oep/cH7XgEE7Wg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=Nj7M+PEq; arc=none smtp.client-ip=192.198.163.17
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="lbdXVkzf"
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="Nj7M+PEq"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1784736141; x=1816272141;
+  t=1784736667; x=1816272667;
   h=message-id:date:mime-version:subject:to:cc:references:
    from:in-reply-to:content-transfer-encoding;
-  bh=3YntNmWvXbzd8ZFyw1hNGjXIdKkTKwZiDQdVND7+LZM=;
-  b=lbdXVkzfRWuwb0+zhSHMuY23LS4PhC0+KKEKSQVw1klW3a7cI+crAP6t
-   KcR9Boja0W0kzTLdy9KacTB4d9OdjE1MQx6BPwE8Y+GJiIIfrVx3175lj
-   uMDj/pRiNg01fk+OFhdWw3N5rMia+AxdfaU6oUKkNAOUpTmBIdgb3ua5l
-   scnVk26KzQDR+FriInQnyeN7LJCXVjUXkxdo5iyCMcDpSEo7eneBhLVDV
-   fE3k/QjNuqcZQFaWMVGpq+0tk1xCnXj/hE/Jk+hdkgZpeS/oa2CLbq2QB
-   H3lN3yIdKDtwzzQ+pDEEbz2T8yOmkNalWW8SguqEVFnSHnwMIqmQjOCtE
-   A==;
-X-CSE-ConnectionGUID: +Hiar9zkTMmY81beUn1iyg==
-X-CSE-MsgGUID: 0SZqEyaeTjKKPOk27ZVHAw==
-X-IronPort-AV: E=McAfee;i="6800,10657,11854"; a="96891725"
+  bh=qWuqbOwT6QdK8lEmHgXNQloF3XL7yChGj+btYV69y50=;
+  b=Nj7M+PEqUe8iAMhUxYJkZTZYgIIiiPcDx0Sj2NTR5zruEWY6rD5zudDb
+   xw3hT5mw4dQFTr0aRaMwvAIuGDpCpYu4Yo7ya3CCHbAqNygOsjIWFCeRG
+   suULjwkCqUDJod6CtwPEyLCiPNEuA12e/66rz14E/z7k6Zn1FLBd+Q2f0
+   MI6oZDxU22GkGklzZeLbkHN3SQPtqNYPvF9pTdMKiWqy1OreZwXGm8xkx
+   XasBC/ePGEl/yvEfrvNwEpZ/oA90mC8fG+r9443n1PWFEcJNkHECMe1aK
+   Pgk39CnzOVu0KapfZMywIbSXV4Y54mlf04vk6Sla4vdVs3PBMolL2T1M1
+   Q==;
+X-CSE-ConnectionGUID: be5TcAYiQtiimX1ah0DkRg==
+X-CSE-MsgGUID: mZn9Za6TRvO1qrmQwfuxag==
+X-IronPort-AV: E=McAfee;i="6800,10657,11854"; a="85249320"
 X-IronPort-AV: E=Sophos;i="6.25,178,1779174000"; 
-   d="scan'208";a="96891725"
-Received: from orviesa006.jf.intel.com ([10.64.159.146])
-  by orvoesa104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jul 2026 09:02:20 -0700
-X-CSE-ConnectionGUID: eltdkOwfQlattSuyxNW0nQ==
-X-CSE-MsgGUID: 2a6sP2ztS++09pdF9LpRxA==
+   d="scan'208";a="85249320"
+Received: from orviesa010.jf.intel.com ([10.64.159.150])
+  by fmvoesa111.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jul 2026 09:11:06 -0700
+X-CSE-ConnectionGUID: U5arYDlqQuq4dLkP6r70fQ==
+X-CSE-MsgGUID: /RBl1Ar4T1WRR1XwYHvZNw==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="6.25,178,1779174000"; 
-   d="scan'208";a="256344594"
+   d="scan'208";a="256900095"
 Received: from sghuge-mobl2.amr.corp.intel.com (HELO [10.125.110.58]) ([10.125.110.58])
-  by orviesa006-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jul 2026 09:02:19 -0700
-Message-ID: <188623a9-dba0-4229-a7ff-5feb2ef0c088@intel.com>
-Date: Wed, 22 Jul 2026 09:02:17 -0700
+  by orviesa010-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jul 2026 09:11:05 -0700
+Message-ID: <d16a8412-acee-4c21-a126-f570d6306983@intel.com>
+Date: Wed, 22 Jul 2026 09:11:04 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -52,8 +52,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH RFC v2 12/20] x86: mm: define pudp_set_access_flags() when
- CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD is enabled only.
+Subject: Re: [PATCH RFC v2 13/20] x86: mm: carve out the generic compile-time
+ folded pgtable case in effective_prot()
 To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
  Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
  Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
@@ -84,9 +84,9 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
  linux-openrisc@vger.kernel.org
 References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
- <20260722-dummy_ptxp3-v2-12-d9e4bad31e0a@arm.com>
-From: Dave Hansen <dave.hansen@intel.com>
+ <20260722-dummy_ptxp3-v2-13-d9e4bad31e0a@arm.com>
 Content-Language: en-US
+From: Dave Hansen <dave.hansen@intel.com>
 Autocrypt: addr=dave.hansen@intel.com; keydata=
  xsFNBE6HMP0BEADIMA3XYkQfF3dwHlj58Yjsc4E5y5G67cfbt8dvaUq2fx1lR0K9h1bOI6fC
  oAiUXvGAOxPDsB/P6UEOISPpLl5IuYsSwAeZGkdQ5g6m1xq7AlDJQZddhr/1DC/nMVa/2BoY
@@ -130,47 +130,57 @@ Autocrypt: addr=dave.hansen@intel.com; keydata=
  MTsCeQDdjpgHsj+P2ZDeEKCbma4m6Ez/YWs4+zDm1X8uZDkZcfQlD9NldbKDJEXLIjYWo1PH
  hYepSffIWPyvBMBTW2W5FRjJ4vLRrJSUoEfJuPQ3vW9Y73foyo/qFoURHO48AinGPZ7PC7TF
  vUaNOTjKedrqHkaOcqB185ahG2had0xnFsDPlx5y
-In-Reply-To: <20260722-dummy_ptxp3-v2-12-d9e4bad31e0a@arm.com>
+In-Reply-To: <20260722-dummy_ptxp3-v2-13-d9e4bad31e0a@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-> diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-> index f32facdb3035..edad847a2ecd 100644
-> --- a/arch/x86/mm/pgtable.c
-> +++ b/arch/x86/mm/pgtable.c
-> @@ -411,6 +411,7 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
->  	return changed;
+On 7/22/26 08:30, Yeoreum Yun wrote:
+>  struct pg_state {
+>  	struct ptdump_state ptdump;
+> +	int first_level;
+>  	int level;
+>  	pgprotval_t current_prot;
+>  	pgprotval_t effective_prot;
+
+There is zero reason on x86 to hold this value in a data structure. It
+is 100% determined at boot time or earlier. Pre-5-level-paging it's a
+compile-time constant.
+
+On x86, it never varies per-mm.
+
+> --- a/mm/ptdump.c
+> +++ b/mm/ptdump.c
+> @@ -197,6 +197,17 @@ void ptdump_walk_pgd(struct ptdump_state *st, struct mm_struct *mm, pgd_t *pgd)
+>  	st->note_page_flush(st);
 >  }
 >  
-> +#ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
->  int pudp_set_access_flags(struct vm_area_struct *vma, unsigned long address,
->  			  pud_t *pudp, pud_t entry, int dirty)
->  {
-> @@ -430,6 +431,7 @@ int pudp_set_access_flags(struct vm_area_struct *vma, unsigned long address,
->  
->  	return changed;
->  }
-> +#endif /* CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD */
->  #endif
->  
->  bool ptep_test_and_clear_young(struct vm_area_struct *vma,
+> +int ptdump_pt_level_first(struct mm_struct *mm)
+> +{
+> +	if (mm_pmd_folded(mm))
+> +		return 3;
+> +	if (mm_pud_folded(mm))
+> +		return 2;
+> +	if (mm_p4d_folded(mm))
+> +		return 1;
+> +	return 0;
+> +}
 
-#ifdefs in .c files are evil.
+Having this in a .c file may not be the best design decision. On a lot
+of architectures and configs, this is 100% a compile-time constant.
+Hiding it in a .c file and forcing a call is kinda silly.
 
-The changelog doesn't make a strong enough case for why this evil should
-be tolerated.
+In the worst-case scenario on x86, this ends up being an "ALTERNATIVES"
+patched check. So it's technically variable, but patched at boot-time to
+one possibility or the other.
 
-These are also _precisely_ the kind of #ifdefs that cause compilation
-problems. This one is:
+If something is making the function larger than a few instructions,
+something is wrong and needs to get fixed.
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-/// function here
-#ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
-/// another function here
-#endif
-#endif
+IOW, this should be a static inline in a header, not a full CALL'd
+function in a .c file. *That* will make the value visible to the
+compiler at all call sites and let it do all the smart things compilers
+can do with build time constants.
 
-So there end up being a couple of dependent config options in play. If
-there are compile problems, this makes them harder to find.
-
-What is the _actual_ goal here? Saving 50 bytes of kernel text?
+Also, my original objection was "this function has zero to do with x86".
+Well, it also really has zero to do with ptdump, either. I'd probably
+just stick it in one of the generic page table headers.
