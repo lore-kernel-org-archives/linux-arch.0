@@ -1,100 +1,108 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C5D983C65F0;
-	Fri, 24 Jul 2026 08:04:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 5B2D6423E91;
+	Fri, 24 Jul 2026 10:39:12 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784880271; cv=none; b=GqqKZs11Zzabjd7KzOeGy3XrMGewx9DcUZQFjBuzzhB8iYAMRVOnhg0gblTGayv3+2cpPswJYm7caFKMrbNVpJLRFt35uECGxY3qjUWCtm49IVAroYjO3d0KS7m8B2s8PEmize9wn7GB4UeoVV8kyofHLDftEO7jW2UqT/G0FvM=
+	t=1784889555; cv=none; b=JLWdp+yfLC2KhLIwzueuqqC5gDtcGgO+6444ohJLDLJlKEkpLebOm0t7r0hHB/RUrJTdXLM9j5lsMoQGsZIj7xQfY/uA2S1GOlv0G8Q/evvkQXBTzJowK7lQSjiPxqHXs1vgLsNjtpwryfM0+dUNSmoFJguFGO+D6bhU14Vda4A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784880271; c=relaxed/simple;
-	bh=9KjHpnjrQ11L763ns6b7q1nshB2M2ObqhvgJGHsHT74=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Wk1TW3ZCJFCutBTT7Q1fUpN0JojQY05WKVljM0+QoOqczpqYkzPPS/X18F944E0IaEBG/cAhc6y66Y+naYxuh9ku1bLsWzCJ0C8VShlWAQlfiSLtRK2CZzVL3QTh7X4M0rmD5OV0hKo12zzcgmH3FTf+6AEbt/gsgwzuM1FRMj0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Hg/dhdib; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1784889555; c=relaxed/simple;
+	bh=8ucxzJzKRncGbmLH/iEQkI2exC3zh2zSlJ8zSRx26rg=;
+	h=Message-ID:Date:MIME-Version:Cc:Subject:To:References:From:
+	 In-Reply-To:Content-Type; b=OTxLsZIssiZG+rs1k78NzjfeY6rGu5gaBsEOTEmgL7etjf4bb/ESJjxkB8IrsdnK2V4guC1rD+2pakdt6BRNtOgEd6PZ/jyxb/oNZVMHapTTJiUsdUwGc+/aYr97/HwuMdsaNFjPL8l17XXA9DdvvZQBHj2jpfStqZRj5SbP/4s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=nPz4q9Un; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Hg/dhdib"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 935DA1F00A3A;
-	Fri, 24 Jul 2026 08:04:24 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1784880269;
-	bh=NRTHZmJYuxwypVNAxCEvs71U+5naG8G0pnvyuh9pSf0=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=Hg/dhdibhxOrcsUScmSSll27l/p5+49N5w0BN0rX/Z/i+CfktexkZ38LBXXAlsKdV
-	 hKtOUUBAHtUcP8ZExxlbOyJ2oDsWOhbjYiCIYLMX6rFvaG3BuDMgM2F6DiY+bwqYv4
-	 S/xBiK4wzXxek+/xfVzQF2PJO/5jFLsm1EZa7K9Iw6WPJpLxcVBEFP5TadiFTJCcyu
-	 ihp600ZAxnoSGppeJt0jbvypVArTWpg4GwxffIWjyP9BVtpuPxRMyBnJJItoBh3DWE
-	 anzFX/RZrAwYp4FCKaO3mTjKo7lFbyVhswTD7XqGaBqdBetNTcoJpwcK7qMEKovr+U
-	 wuuUOFYh4d3Kg==
-Date: Fri, 24 Jul 2026 10:04:21 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Jann Horn <jannh@google.com>, John Ericson <mail@johnericson.me>, 
-	Li Chen <me@linux.beauty>, Cong Wang <cwang@multikernel.io>, linux-arch@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, 
-	Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
-	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Kees Cook <kees@kernel.org>, 
-	Sergei Zimmerman <sergei@zimmerman.foo>, Farid Zakaria <farid.m.zakaria@gmail.com>
-Subject: Re: [RFC] Null Namespaces
-Message-ID: <20260724-wagen-melden-gemieden-a45899cdbb7f@brauner>
-References: <a49ce818-f38d-41b0-bbf7-80b8aad998b1@app.fastmail.com>
- <20260629-hauer-erhitzen-sobald-96d3dff68707@brauner>
- <CALCETrVuh0-biOw=TgYN9ERTFAoiki57XeZ3S2T3dO2+hL54gA@mail.gmail.com>
- <20260702-entladen-farbkombinationen-klarheit-fe24cb608f23@brauner>
- <20260706-dabei-radeln-glitzer-71ecb835029c@brauner>
- <CALCETrVjDtBmB+boCUgd069UpZGUB1TCbEn3k1HZQex-_dPgbQ@mail.gmail.com>
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="nPz4q9Un"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 6E56B1477;
+	Fri, 24 Jul 2026 03:39:06 -0700 (PDT)
+Received: from [10.2.198.93] (unknown [10.2.198.93])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 5EF243F66F;
+	Fri, 24 Jul 2026 03:38:59 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1784889550; bh=8ucxzJzKRncGbmLH/iEQkI2exC3zh2zSlJ8zSRx26rg=;
+	h=Date:Cc:Subject:To:References:From:In-Reply-To:From;
+	b=nPz4q9UnTmIpC3f1IrnhhOXc+A/Z2VLc2MvO7S07Y0dMBj6vYrB5Dye4ym8oVNhXD
+	 BOcxcXhOs2SceDUmzESNakuvRw/Lz60Kb4I5oFZwEpDHzbiEUv3iW7H4ZPf9e+CZSj
+	 HrNea7YK425Wt8aVXd2zUUsc5hB2FRPkxg9XWQf4=
+Message-ID: <85146377-9c7a-43d9-a5af-b976d25cb93f@arm.com>
+Date: Fri, 24 Jul 2026 11:38:40 +0100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <CALCETrVjDtBmB+boCUgd069UpZGUB1TCbEn3k1HZQex-_dPgbQ@mail.gmail.com>
+User-Agent: Mozilla Thunderbird
+Cc: usama.anjum@arm.com, linux-arm-kernel@lists.infradead.org,
+ linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-mips@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ kvm@vger.kernel.org, kvm-riscv@lists.infradead.org,
+ linux-riscv@lists.infradead.org, linux-openrisc@vger.kernel.org
+Subject: Re: [PATCH RFC v2 08/20] mm: vmscan: remove stack copy address of pud
+ pass in wallk_pud_range()
+To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
+ Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>,
+ Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
+ Shakeel Butt <shakeel.butt@linux.dev>, Barry Song <baohua@kernel.org>,
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
+ Wei Xu <weixugc@google.com>, Johannes Weiner <hannes@cmpxchg.org>,
+ David Hildenbrand <david@kernel.org>, Michal Hocko <mhocko@kernel.org>,
+ Lorenzo Stoakes <ljs@kernel.org>, Tianrui Zhao <zhaotianrui@loongson.cn>,
+ Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
+ Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Alexandre Ghiti <alex@ghiti.fr>, Dave Hansen <dave.hansen@linux.intel.com>,
+ Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+ Stafford Horne <shorne@gmail.com>
+References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
+ <20260722-dummy_ptxp3-v2-8-d9e4bad31e0a@arm.com>
+From: Usama Anjum <usama.anjum@arm.com>
+Content-Language: en-US
+In-Reply-To: <20260722-dummy_ptxp3-v2-8-d9e4bad31e0a@arm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-> > > For my FD_FAILFS_ROOT proposal it would be enough if we make failfs
-> > > SB_KERNMOUNT which means it's logically distinct from every mount
-> > > namespace. I think that might be the right thing to do. I need to spend
-> > > one or more brain cycles on this though.
-> >
-> > I had to take a long drive on Sunday and I kept thinking about both
-> > FD_NULLFS_ROOT and FD_FAILFS_ROOT and ofc there are some things to
-> > consider/discuss.
-> >
-> > I think the straightforward solution to FD_NULLFS_ROOT would be to just:
-> >
-> > - make it always available
-> > - refer to the caller's mount namespace nullfs
-> > - work with fchroot()/fchdir()
-> >
-> > So I considered two chroot() use-cases for the sake of simplicity:
-> >
-> > (1) You want to isolate yourself for the sake of lookup
-> >
-> > (2) You want to isolate yourself to assemble a "private mount tree" but
-> >     not really be in a separate namespace (very odd use-case... but it
-> >     helps to make a point).
-> >
-> > The problem with this approach is that everyone who chroots into the
-> > nullfs root would suffer from the problem that any mount on top of it is
-> > still visible. So that kinda makes it pointless for both (1) and (2).
-> >
-> > Also all mounts that someone else would do would also be visible
-> > allowing multiple chroot()ers to affect each others state. That also
-> > would somewhat defeat the purpose of the chroot(). So I'm not convinced
-> > this is what we should do.
-> >
+On 22/07/2026 4:30 pm, Yeoreum Yun wrote:
+> The behaviour of pXdp_get() will change with generic compile-time folded
+> page tables. To prepare for that, replace passing the address of a stack
+> copy of a pXd to walk_pmd_range() with passing the pud pointer directly,
+> allowing folded entries to be ignored.
 > 
-> After some contemplation and a long place flight: are we talking about
-> nullfs or failfs?  Because I would expect that it's entirely
+> There should be no functional change.
+> 
+> Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
+Probably my reviewed-by tag was lost in previous version. Posting here again:
 
-nullfs
+Reviewed-by: Muhammad Usama Anjum <usama.anjum@arm.com>
 
-> impossible to mount anything on top of failfs.  So failfs would be
-> useless for #2 but would still solve #1.
+> ---
+>  mm/vmscan.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/mm/vmscan.c b/mm/vmscan.c
+> index 06e103f9781e..0c9c4ac89e09 100644
+> --- a/mm/vmscan.c
+> +++ b/mm/vmscan.c
+> @@ -3727,7 +3727,7 @@ static int walk_pud_range(p4d_t *p4d, unsigned long start, unsigned long end,
+>  		if (!pud_present(val) || WARN_ON_ONCE(pud_leaf(val)))
+>  			continue;
+>  
+> -		walk_pmd_range(&val, addr, next, args);
+> +		walk_pmd_range(pud + i, addr, next, args);
+>  
+>  		if (need_resched() || walk->batched >= MAX_LRU_BATCH) {
+>  			end = (addr | ~PUD_MASK) + 1;
+> 
 
-Yes, failfs can't be mounted on at all.
