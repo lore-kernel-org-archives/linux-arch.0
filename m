@@ -1,113 +1,123 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8A1C53F3277;
-	Fri, 24 Jul 2026 11:50:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9984D30C617;
+	Fri, 24 Jul 2026 13:38:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784893808; cv=none; b=MslVczY+4KM3zt9llfr7AoC0PTWpxlIfUYc0tnAG0W16OuvNwhhL08sOL4AT1oIIxCbY6Ra8iC9pq4fx20atRY4Xc3M+BZh498IBAXzKT2n4TlPNzXlJn/4+v+P960rQXPHezXfwRRa+HWolGtXMudA3Ku/vT1O3NcBu3Ab5yC8=
+	t=1784900290; cv=none; b=NSrdFysmLkQBo9gudcSDcw32JdGcfrBooAptGzi3oUVnBMClijz12uawrKFNGMIU3sWMyIezULyH0RkhZT+z9zGwUw+G3qMOPrfypx8woIqWVr4ILcAlEV4H6pJQnjRg1W1rfpMesaTd8+CzYY+vq3s0B/GjyOGvpPl4lmRn/GU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784893808; c=relaxed/simple;
-	bh=lSGi/T62Qz3zkTtfJoxDSfari9OyrmBQakjPywG4Wwg=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=iCYlX3jhN2tXei4LOb9g58TxuMs4F/4UptLpIxXsGuIqYW/fpdiePygVNfbtKONTT+WVTEHA8aaMz9Oa7IsPwYARnpGelN6Dq22QqPeIumZHYxC8JMgx0pWs5VrDKCBxs21JqLoL4jZ0srQ49SqEwUtFxrvTgJCESsGxISa947s=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=onlJqJS2; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1784900290; c=relaxed/simple;
+	bh=Zev+SfOmyEH9fuyzl0FmsV9VVq9RYb3UzolE/5lna3k=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=o6rXqEhNZrnfzOr1mB0d9GENbdxlir0AYXOxb6FcMYP4jtPx2cOOj5QUfje23bnupx2bkhrD41yuLC3cmez5rXsTmpGJATjIZOkWuOiumS5IBFTmhrOASZSvY1QfkkAnJAQzMviTZaLPibn2AORodXLnEtoh2Hgyte+ALO9ROmU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=BrLLO1tj; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=F1iGaQnC; arc=none smtp.client-ip=193.142.43.55
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="onlJqJS2"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id BA1941477;
-	Fri, 24 Jul 2026 04:49:55 -0700 (PDT)
-Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 0F2463F59E;
-	Fri, 24 Jul 2026 04:49:48 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1784893799; bh=lSGi/T62Qz3zkTtfJoxDSfari9OyrmBQakjPywG4Wwg=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=onlJqJS22YoDsKaG6SiKSkuKsNv+WmGR0K4ecfdNyqZf1u/+3JEGvSxKfGGrvm5nJ
-	 MXCh4HNavE1AO8qDTOoQLnL6W10waJKQJvwWm9dJxKiy7ypA0biilE7i0COMFUcgAZ
-	 cBx7VbhxE8imKHXZsbg7suIUPJzdyNKYFStD+n4k=
-Date: Fri, 24 Jul 2026 12:49:45 +0100
-From: Yeoreum Yun <yeoreum.yun@arm.com>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
-	Shakeel Butt <shakeel.butt@linux.dev>,
-	Barry Song <baohua@kernel.org>,
-	Axel Rasmussen <axelrasmussen@google.com>,
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
-	Johannes Weiner <hannes@cmpxchg.org>,
-	David Hildenbrand <david@kernel.org>,
-	Michal Hocko <mhocko@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
-	Tianrui Zhao <zhaotianrui@loongson.cn>,
-	Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
-	Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	Andy Lutomirski <luto@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	"Liam R. Howlett" <liam@infradead.org>,
-	Vlastimil Babka <vbabka@kernel.org>,
-	Mike Rapoport <rppt@kernel.org>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Michal Hocko <mhocko@suse.com>, Jonas Bonn <jonas@southpole.se>,
-	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-	Stafford Horne <shorne@gmail.com>,
-	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
-	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
-	linux-openrisc@vger.kernel.org
-Subject: Re: [PATCH RFC v2 14/20] x86: mm: skip pud setup when using generic
- compile-time folded pagetable
-Message-ID: <amNRWR-8BCBNU0sR@e129823.arm.com>
-References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
- <20260722-dummy_ptxp3-v2-14-d9e4bad31e0a@arm.com>
- <0ea931f1-4801-4d32-b6ce-4787a8d3daa9@intel.com>
- <amD7ab_KuJPdBQBh@e129823.arm.com>
- <6f5060a7-0a64-49fc-81a3-ae88729ef794@intel.com>
- <amElnEbvRTjv2hyU@e129823.arm.com>
- <3620750c-54d7-45a0-b067-bc813dd3cd9b@intel.com>
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="BrLLO1tj";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="F1iGaQnC"
+From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020; t=1784900288;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=k84lHI02AeLCB93IudPhY7UADh7YGZV8FCgpA+ZF7P0=;
+	b=BrLLO1tjYhSGwyDAWasIuyNQDXJsuyGklSui5fMZONsKkP1m5sXLh5TEhyFkEwKd5+m3y2
+	fzQAc+LlO7nGtNN0ss6VDCzqr3zg0hJjr2Pb7w/keysNILWib9LWJ+eidE8UnlW9VpDnX1
+	Qlo7ri+aLG1aKgl6IngIkvzrqz5IFXwm2KRokPKWktQh8+PtJvPs9uzn9+YtK/0Ft/hZpU
+	WfOxgGgAxQ1IT4euvdi9YJl9dB4bTtaD/+Z0FkT8cWxd5I2pKlHu1+YsXYRViVO0av0TZI
+	P7XUKIxnKoTfjDHLRTJqeanyw4JJw9dunvC8WU2/02aGdPKYQwDeBBCuaV/3nw==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020e; t=1784900288;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=k84lHI02AeLCB93IudPhY7UADh7YGZV8FCgpA+ZF7P0=;
+	b=F1iGaQnCRfR4UqHuVk9ZmdTRJMF80i+Fz/zJGdx/+NAq/m/Y/2SFARDiSyIpBG4x5Ncxup
+	Uxil6gsiEIbWfyDA==
+Date: Fri, 24 Jul 2026 15:36:18 +0200
+Subject: [PATCH v4 1/7] kbuild: support generated asm-headers in
+ subdirectories
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <3620750c-54d7-45a0-b067-bc813dd3cd9b@intel.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Message-Id: <20260724-vdso-arch-clockmodes-v4-1-ddbe447be860@linutronix.de>
+References: <20260724-vdso-arch-clockmodes-v4-0-ddbe447be860@linutronix.de>
+In-Reply-To: <20260724-vdso-arch-clockmodes-v4-0-ddbe447be860@linutronix.de>
+To: Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, 
+ Thomas Gleixner <tglx@kernel.org>, 
+ Vincenzo Frascino <vincenzo.frascino@arm.com>, 
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
+ Daniel Lezcano <daniel.lezcano@kernel.org>, 
+ Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, 
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+ Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
+ Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ linux-kbuild@vger.kernel.org, linux-mips@vger.kernel.org, 
+ linux-arm-kernel@lists.infradead.org, linux-riscv@lists.infradead.org, 
+ loongarch@lists.linux.dev, 
+ =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1784900286; l=1603;
+ i=thomas.weissschuh@linutronix.de; s=20240209; h=from:subject:message-id;
+ bh=Zev+SfOmyEH9fuyzl0FmsV9VVq9RYb3UzolE/5lna3k=;
+ b=7LSqC528B3expK5DAr0ccLIPXQLZl0CZ+lRD0g98zRXGLp+iYu3EIKcskmML7CJrbWN3Eagwj
+ y/hRMY88MKYAQn0vWRro12snAVO4gtR1Q/2LpUB8ZTb256tJSvFdE/x
+X-Developer-Key: i=thomas.weissschuh@linutronix.de; a=ed25519;
+ pk=pfvxvpFUDJV2h2nY0FidLUml22uGLSjByFbM6aqQQws=
 
-On Wed, Jul 22, 2026 at 01:22:04PM -0700, Dave Hansen wrote:
-> On 7/22/26 13:18, Yeoreum Yun wrote:
-> > Sorry. But do you mean check with cpu_feature_enabled() not with
-> > boot_cpu_has()?
-> > IIRC, the boot_cpu_has() doesn't use the DISABLE_MASK_BIT_SET() but
-> > uses REQUIRED_MASK_BIT_SET() and I don't expect it wouldn't make
-> > an optimisation to constant check which is contrast to DISABLE_MASK_BIT_SET().
-> 
-> Ahh, yes. I forgot about that nuance! Moving to cpu_feature_enabled()
-> would be great!
+Extend the asm-header stub generation to also handle subdirectories.
+An upcoming vdso/ header refactoring requires this.
 
-When I see again, using cpu_feature_enabled(), this would give a chance
-to optimisation when the feature disabled and there would be no harm for
-when feature enabled since cpu_feature_enabbled() also fallback to
-boot_cpu_has().
+Signed-off-by: Thomas Weißschuh <thomas.weissschuh@linutronix.de>
+---
+ scripts/Makefile.asm-headers | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
 
-So, it might be good to change with cpu_feature_enabled() as we
-discussed.
-
-@Dave, Should I send above change separately or include it in this patch?
+diff --git a/scripts/Makefile.asm-headers b/scripts/Makefile.asm-headers
+index 8a4856e74180..b38931314ad7 100644
+--- a/scripts/Makefile.asm-headers
++++ b/scripts/Makefile.asm-headers
+@@ -48,14 +48,13 @@ syscall-y   := $(addprefix $(obj)/, $(syscall-y))
+ generated-y := $(addprefix $(obj)/, $(generated-y))
+ 
+ # Remove stale wrappers when the corresponding files are removed from generic-y
+-old-headers := $(wildcard $(obj)/*.h)
++old-headers := $(shell test -d $(obj) && find $(obj) -name *.h)
+ unwanted    := $(filter-out $(generic-y) $(generated-y) $(syscall-y),$(old-headers))
+ 
+-quiet_cmd_wrap = WRAP    $@
+-      cmd_wrap = echo "\#include <asm-generic/$*.h>" > $@
++filechk_wrap = echo "\#include <asm-generic/$*.h>"
+ 
+ quiet_cmd_remove = REMOVE  $(unwanted)
+-      cmd_remove = rm -f $(unwanted)
++      cmd_remove = rm -f $(unwanted); find $(obj) -type d -empty -delete
+ 
+ quiet_cmd_syshdr = SYSHDR  $@
+       cmd_syshdr = $(CONFIG_SHELL) $(syshdr) \
+@@ -74,8 +73,8 @@ all: $(generic-y) $(syscall-y)
+ 	$(if $(unwanted),$(call cmd,remove))
+ 	@:
+ 
+-$(obj)/%.h: $(srctree)/$(generic)/%.h
+-	$(call cmd,wrap)
++$(obj)/%.h: $(srctree)/$(generic)/%.h FORCE
++	$(call filechk,wrap)
+ 
+ $(obj)/unistd_%.h: $(syscalltbl) $(syshdr) FORCE
+ 	$(call if_changed,syshdr)
 
 -- 
-Sincerely,
-Yeoreum Yun
+2.55.0
+
