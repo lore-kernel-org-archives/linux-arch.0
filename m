@@ -1,123 +1,85 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 2CB4E33439A;
-	Fri, 24 Jul 2026 16:31:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id DDBE044C51F;
+	Fri, 24 Jul 2026 17:20:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784910709; cv=none; b=bUIc4ADfhaUU2jVsvhdgTAb8zh+tysTYQtPjthJyJdCOQOhxcC3yqrNa1/CnB4LBYjC44E79pNVnt2PLlmmjIyXC/TXRMUiBvyZT/LBq+HROvz501AzAqadcrWt1POLpubIxSOttWd2fhhA765nzu4mg1Jg1nAqzVqCluBEr9Ug=
+	t=1784913634; cv=none; b=RdDEYDiNFx6AGo4FkyLeya4REEMg1pS69eQYDwIcFgj8vf356eTZo11aGQNOmW+ef3PleCSkmIL2u843DH/Nw2EFmwSywpkyrZc8UTFywwfNwCs4g9np7ztKUte7nAupuAj0Dr1+kJKCAi+nCOrHT2/txIexOM/08wTBhsKlX0k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784910709; c=relaxed/simple;
-	bh=NEwnT35D7tuzT3xeTQQMHkJEWGepfSu0cwMv30sxXLk=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=trB7VcuLSPvxptxp6Zb9oQRJBZu3Y3R+BcIQ8jRbXcIswDG/De66Vb5Frx1O7lEUS+QNcu/Vl+e79LJzLf9bp1/ydbQ8nw8W6Ocy+3FrQ+9HIHoKGDEKaSvN69OK5yJ1aHPoaOgBNeNST64MK+dVSJfFwWqPw3O5QHVoIJxDxjY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=rJ2DJJ7D; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1784913634; c=relaxed/simple;
+	bh=1XweS3MhAEKL8qL338oxMFBUaD+hC3sekT3IpM0WjGE=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=A3+rV3EQ5fxPbJrSmXSJB93htcmarO53zaY97YFUGq9KSTip4FU9EZPUvXWZyX7vBrxjYO4Eyj/E0W1YvenIxvHiTJDnq+hTtjHalItFDIC2CjKnyKcmGWUbvnlxgbtS+GZV1V5DMbT8oxbFWuIj0fy+fzGnRiv4ekqMwmm8qrk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=LPVPKdwC; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="rJ2DJJ7D"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 4DF711BC0;
-	Fri, 24 Jul 2026 09:31:43 -0700 (PDT)
-Received: from [10.57.0.90] (unknown [10.57.0.90])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id ACA703F66F;
-	Fri, 24 Jul 2026 09:31:35 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1784910707; bh=NEwnT35D7tuzT3xeTQQMHkJEWGepfSu0cwMv30sxXLk=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=rJ2DJJ7D9c7D1FVu9FvWF7Hq7v5HoLI/CdhriAp1fJ4dLBnD8EJRRWBa3d3TSeSRj
-	 y4giJ+zCCtRJVGca1Zy4119yCr4CT8kuPBEs9cPEAEswfrfTiiEZd9fOxFya5yiDAq
-	 5lH15CX22toaprtjLQyFDxQHqVRAyMvOmxdmryBU=
-Message-ID: <c17ccb0b-9f6b-4521-a992-bdc658b91597@arm.com>
-Date: Fri, 24 Jul 2026 18:31:32 +0200
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="LPVPKdwC"
+Received: from localhost (unknown [20.191.74.188])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 4F41A20B7167;
+	Fri, 24 Jul 2026 10:20:17 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 4F41A20B7167
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1784913618;
+	bh=exmV4vB4M1gvwqWEvEgVq2gXLar6JKNXr5Q6sujGD6I=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=LPVPKdwCejskD/VNR1D1+ofN6PNGB99acB9b+QRYrpvHoxZFPqi8E7cEFUxSGrbnW
+	 JY2Qb6p93S/PUf8RSTrF3O84CajD4bN5WSnzFZ1lzC8yJVLvpadIPEev0sczcpkUod
+	 48LuZzThKZE0aYtm+owPTc/WflhX7pwOvdmcLIuY=
+Date: Fri, 24 Jul 2026 10:20:29 -0700
+From: Jacob Pan <jacob.pan@linux.microsoft.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
+ wei.liu@kernel.org, mhklinux@outlook.com, muislam@microsoft.com,
+ namjain@linux.microsoft.com, magnuskulke@linux.microsoft.com,
+ anbelski@linux.microsoft.com, linux-kernel@vger.kernel.org,
+ linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
+ linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, kys@microsoft.com,
+ haiyangz@microsoft.com, decui@microsoft.com, longli@microsoft.com,
+ tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
+ dave.hansen@linux.intel.com, x86@kernel.org, joro@8bytes.org,
+ will@kernel.org, lpieralisi@kernel.org, kwilczynski@kernel.org,
+ bhelgaas@google.com, arnd@arndb.de, jacob.pan@linux.microsoft.com
+Subject: Re: [PATCH V4 4/9] mshv: Add ioctl support for MSHV-VFIO bridge
+ device
+Message-ID: <20260724102029.00001c54@linux.microsoft.com>
+In-Reply-To: <20260718021949.926306-5-mrathor@linux.microsoft.com>
+References: <20260718021949.926306-1-mrathor@linux.microsoft.com>
+	<20260718021949.926306-5-mrathor@linux.microsoft.com>
+Organization: LSG
+X-Mailer: Claws Mail 3.21.0 (GTK+ 2.24.33; x86_64-w64-mingw32)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 14/22] mm: set page table page type when allocated
-To: Vishal Moola <vishal.moola@gmail.com>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>,
- David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
- Russell King <linux@armlinux.org.uk>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org,
- Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev,
- "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
- Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org,
- Madhavan Srinivasan <maddy@linux.ibm.com>,
- Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org,
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
- Albert Ou <aou@eecs.berkeley.edu>, linux-riscv@lists.infradead.org,
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
- Alexander Gordeev <agordeev@linux.ibm.com>,
- Gerald Schaefer <gerald.schaefer@linux.ibm.com>, linux-s390@vger.kernel.org,
- "David S. Miller" <davem@davemloft.net>,
- Andreas Larsson <andreas@gaisler.com>, sparclinux@vger.kernel.org,
- Richard Weinberger <richard@nod.at>,
- Anton Ivanov <anton.ivanov@cambridgegreys.com>,
- Johannes Berg <johannes@sipsolutions.net>, linux-um@lists.infradead.org,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Ning Sun <ning.sun@intel.com>,
- x86@kernel.org, tboot-devel@lists.sourceforge.net,
- Ard Biesheuvel <ardb@kernel.org>,
- Ilias Apalodimas <ilias.apalodimas@linaro.org>, linux-efi@vger.kernel.org,
- Alistair Popple <apopple@nvidia.com>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20260714-remove_pgtable_cdtor-v1-0-44be8a7685d7@arm.com>
- <20260714-remove_pgtable_cdtor-v1-14-44be8a7685d7@arm.com>
- <alZSwAM4pwmMOeaD@fedora> <f3afa5df-73f3-49da-87a6-d75eb5f3610f@arm.com>
- <al5xZHiFwatn518I@fedora>
-From: Kevin Brodsky <kevin.brodsky@arm.com>
-Content-Language: en-GB
-In-Reply-To: <al5xZHiFwatn518I@fedora>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-On 20/07/2026 21:05, Vishal Moola wrote:
-> On Thu, Jul 16, 2026 at 11:49:31AM +0200, Kevin Brodsky wrote:
->>> We should switch over from __folio_set_pgtable() to __SetPagePgtable()
->>> in this patch. Ptdescs and folios should be treated as distinctly
->>> independent of each other.
->> I sure remember the previous discussion, but my reading of your comments
->> [1] is that we cannot really change this as long as pagetable_alloc()
->> can be called with order > 0, right? Multiple archs still rely on that.
-> Kinda...
->
-> The concern was about callers accessing tail pages directly for that
-> information. Using the folio API ensures that we always look into the
-> head page.
->
-> Since we're now doing it at allocation time, we know we always have the
-> head page, so it's fine.
+Hi Mukesh,
 
-Ah got it, that makes sense.
+On Fri, 17 Jul 2026 19:19:44 -0700
+Mukesh R <mrathor@linux.microsoft.com> wrote:
 
->
-> The dtor/free should be more questionable because the underlying api
-> uses virt_to_page() which could look at a tail page... oopsie. I
-> haven't seen any reports tied to it so its probably fine (the
-> setting/clearing has been using the folio API since ptdescs).
+> +	hlist_add_head(&mshv_dev->device_ptnode,
+> &partition->pt_devices); +
+> +	mshv_partition_get(partition);
+> +	rc = anon_inode_getfd(vfio_ops->device_name,
+> &mshv_device_fops,
+> +			      mshv_dev, O_RDWR | O_CLOEXEC);
+> +	if (rc < 0)
+> +		goto undo_out;
+> +
+> +	devargk.fd = rc;
+> +	if (copy_to_user(uarg, &devargk, sizeof(devargk)))
+> +		return -EFAULT;    /* cleanup in
+> mshv_device_fop_release() */ +
+In failure, user never gets the fd, so it never close it. We are leaking
+fd until process exit, right?
 
-Right, that should be fine - calling pagetable_free() on anything else
-than a ptdesc allocated by pagetable_alloc() is a bug, so if we get any
-crash because of this we should just go and fix the underlying issue.
-I'd still switch to __SetPagePgtable() in a separate commit to improve
-bisectability.
+Maybe we should do anon_inode_getfile(...) and do fd_install() only if
+copy_to_user succeeds.
 
-FWIW there are definitely cases where pagetable_free() and
-pagetable_alloc() calls aren't properly matched (see my reply to the
-cover letter), this needs to be addressed for this series anyway.
+Thanks,
 
-> We can say thats a happy accident that makes distinguishing ptdescs
-> and folios easier :)
-
-Indeed!
-
-- Kevin
+Jacob
