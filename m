@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E5554411FBF;
-	Mon, 27 Jul 2026 14:53:19 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AB8A941A766;
+	Mon, 27 Jul 2026 14:53:37 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785164001; cv=none; b=ugDT6AgZHidBzsjnrckUhvuhkUnE6dy/RaqunEsou+r4U9PeScnjGr+x93KHL/OZPZZOjn+x56hpwXFrYJMI70LBlubDxfwwfXtdAFzMgzyDL44pTYTBC/O06sIPnRhbXMzPoKofJ77T5OsQ9UY81ElW3bHsfF/xRCl0JvEd0is=
+	t=1785164018; cv=none; b=u/hozEsmTOXcT8+qKbAUNMrsX89cNBqfhVUFgvrV8i5sZtfolE/0t/+rnrw89DJq0Il/+g8RsNMKuysxB0+0xHrjANz+d6dYMTgHg2p26n87rAqERwxSbXQnGN5Q3+LUeEZVcPA4xZJjwdPEkLboiWcB1UmUWai/aq7CtvmegMI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785164001; c=relaxed/simple;
-	bh=0usoPYC1WDThKRmYN4EuxPKzAmm+62SWNuAQlPmfu6I=;
+	s=arc-20240116; t=1785164018; c=relaxed/simple;
+	bh=5DXFGm2OrC20VE/Ra4av6EtIxiqR5RdC4bymnFqWzP8=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=JW1ImdaLh7V4Yrue8WMjK4bIr7eD4Cpm/euLaRblKSgb8J4vlsC0zM7ZL9LUPll2GJx3MD9K8LepUPwWKCu+uHz2/JYh4EIJcNi63NjDcoj7WvZd1TyLJVWBhipOpmim6QyQTfdq29L67ZvVHE07MhGnEQ8x5eJalTHxjamFrBE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=EoFro7Fl; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=cdJKJS+82yLV68ahHFqGJI2UUgW812WSZInXSv2VZr06bCfaAULao5eHulZ8S5tY3ZOQcD5clxNNhrcA+EWChFEeIadUwc+u3hldxxrhKdziHAtEaD2BC92fxqS61v1+7iJcOCnKf1MMkw0Sf560hYe99D3YGoeiNWZNoKgmUxE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Zgu9IHyw; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="EoFro7Fl"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 269D91F000E9;
-	Mon, 27 Jul 2026 14:53:04 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Zgu9IHyw"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 516591F000E9;
+	Mon, 27 Jul 2026 14:53:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1785163999;
-	bh=KsPWWj7/VTaNMsY0Ly9AHV2InjiwaGth2AKqfNGyj+w=;
+	s=k20260515; t=1785164017;
+	bh=O0I3AbznuXO2mE0TFpsCIg9z38N+5sXNAYMvOlNx8ss=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=EoFro7FlP6DBJWBjJtDm0DgGwR0HEdBwb92smUr4Z9Hpfdye6lxhg0B0SHEdVI818
-	 cVUfjKOS4E2qpx3ZeSRB1CduYZuC80SzEGx5sVN/LoESnxN97vo9WDlJ51up0gXQxv
-	 qAUAjSod2KJ+lyoHGa0JTGuxU+LtgsgQbLOvBSUaw5/eJ15gfxgD9dEt2I9h70Pt66
-	 7o+8oRC62Vbj1WHQWht4OnK+nDKSH7zmIit5Up0mQIccfaW0OMKmFn1higp+x2gmzj
-	 lvswWjJFmL/Pr6s+GAZpy8YUNIjBSKJefvjpR4kPBzHJW947RU6K99Tz/wE0OJFHL/
-	 Zny76WM8E3voA==
-Message-ID: <f0826f69-bc21-4a96-bb71-6a616025a2a9@kernel.org>
-Date: Mon, 27 Jul 2026 16:53:03 +0200
+	b=Zgu9IHywQkl2KWenokXQBUF+jY0uFmmy17+h8GUQ5iFgZKLbCfdUzfpwqisSTfW5e
+	 p6FG3cFXLjkkFIiqLgoasU5ILijpG8E0yBJ81Dd9IcEdsEwLGkuABt+S3DUykaoGG/
+	 nw6SG+p/C0gxJjXFaUvl+h1m1/bpIGJias8e/PLtCM9J/IkAjtv0uL/p7i4zExwNYy
+	 xZOjdtcCcqfB0p8Qxmjiu8Yw9ofWtG7PrUMdNqISlK1Y+GA7wQV7yZAOeey4pohl35
+	 5MldWmxihWYvo4mcv3xTxeBkYnM4jZoy1DlD96sPOKpO12ADxz7VHiJwruDKAw1mLb
+	 WTDJPWv9rugZg==
+Message-ID: <ff769460-e6fa-43a4-8258-33abfe91c1b5@kernel.org>
+Date: Mon, 27 Jul 2026 16:53:20 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,8 +35,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH RFC v2 09/20] loongarch: kvm: remove stack copy address of
- pXd in pXd_offset()
+Subject: Re: [PATCH RFC v2 10/20] riscv: kvm: remove stack copy address of pXd
+ in pXd_offset()
 To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
  Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
  Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
@@ -67,7 +67,7 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
  linux-openrisc@vger.kernel.org
 References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
- <20260722-dummy_ptxp3-v2-9-d9e4bad31e0a@arm.com>
+ <20260722-dummy_ptxp3-v2-10-d9e4bad31e0a@arm.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -114,18 +114,18 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20260722-dummy_ptxp3-v2-9-d9e4bad31e0a@arm.com>
+In-Reply-To: <20260722-dummy_ptxp3-v2-10-d9e4bad31e0a@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 On 7/22/26 17:30, Yeoreum Yun wrote:
 > The behaviour of pXdp_get() will change with generic compile-time folded
-> page tables. To prepare for that,  rework host_pfn_mapping_level() to avoid
+> page tables. To prepare for that, rework get_hva_mapping_size() to avoid
 > use of a stack copy of a pXd and pass it as argument to pXd_offset() so that
 > the folded entries value is ignored.
 > 
-> Replace direct uses of stack-based pXd values with pXd_offset_lockless().
-> And there should be no functional change.
+> Replace direct uses of stack-based pXd values with pXd_offset_lockless()
+> and there should be no functional change.
 > 
 > Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
 > ---
