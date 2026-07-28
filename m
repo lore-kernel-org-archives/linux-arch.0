@@ -1,88 +1,124 @@
-Received: from va-1-115.ptr.blmpb.com (va-1-115.ptr.blmpb.com [209.127.230.115])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A03F13B895B
-	for <linux-arch@vger.kernel.org>; Tue, 28 Jul 2026 06:19:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.115
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D6EA83AEF4F;
+	Tue, 28 Jul 2026 10:47:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785219557; cv=none; b=IpB+SE6VlngjG4G3d27aQ0wmB/elmJuozDmmvq6bCfET3Qgu/YyJ1ttENGrOZzBBUVN0FDc1N5BKNKtyML2oLX4Z9R4NyZJz2ISRGYWFFpskANrZWLdV1d23kZf/79Ji5rjtE0iWWok9Rl2Dka+JR/wZczOiVVjLQAO+iw2hMJY=
+	t=1785235662; cv=none; b=GM70h0LpvikEveC5O77oPUKl48F6bgWEWuTt5G+LMTMzYnM/cBa/tNH4LN8VLW+hIWurImPVJv7JE6k+390BlJSGGJyN1VDjL0OFZhyf6jTWvV04fEKHiRYo74HwGNI3cll8yg42JbbFRoswH8kKDY7g6OaeqD6JkFrHfX+URYU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785219557; c=relaxed/simple;
-	bh=caf89WdQlAn88Zw6W4rdTABsOclOO1+8aovrt0TU80k=;
-	h=Message-Id:In-Reply-To:Subject:Mime-Version:Cc:From:References:
-	 Content-Type:To:Date; b=Dj0U6eMAVAffdJglaO7cT1akCWu1tMf6KPEkIoyGxFl7r00vKiEYEm1MpfMKweTv+0H275XiJt7Rn53KczQRwB/P3K3eWUhkBj7fcK1bPWr6/Cx2KX/sAccOo9uBiEFqxkiHcyehSArF8LC5SdYOpAvKPwlwxqVwnZUgYexzRBQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=lGjcRvGe; arc=none smtp.client-ip=209.127.230.115
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1785235662; c=relaxed/simple;
+	bh=AmSEF6HFZys6JjNZa2z9DCyGQ55biJYxxnaeAwaOQUs=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=B9KA+OsfGAiU/kDky0dPq1NLw+8A/BcTksVPDA2USRfE1UiBPyUyIeHWtB6rvH16n/wuxOTGXcL4XJo7b8TY8jfBp5bCf8JCALMd9SCaOACB3097P+e5VEGC2F7A0fZFiR3oohpa5JRJhaCnkjrqqz1tw2Xy191EYvHlOd1MvTc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=K8CCxGGr; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="lGjcRvGe"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="K8CCxGGr"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1785219548; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=uMSlAg4H80uRnLlzygyMggmh5xo1htbT7Gs4J7Mu4X0=;
- b=lGjcRvGeA4xjfWVtvy04vgeocGnG/m+Sng3Tr5trR4aV+URFh9SFcJc7/cJZGPWdXqs2S4
- 1HTUiqPAyGB7YrdXylVieFBCk4V6mQsdgSi3Qp7dHAaMuD6+CXz53JsNBGjtBCbzEMHMNk
- 8yV+YFtH+eHn8kkGM2qeoYOBxrDjvJbnAQZHa+uTVmUm8O59yPdXPsA+lcQbuTzITyNrWW
- dmOzgZTCHAWCLWM7AJzFYBMZT1lkeQSNRqdWJg2C3Ncb2audeaDBaZui4G28eZLb5wBAVg
- y1JnzgPS7JHEEy5Oan992vh2VxYRRLT+corWIERzo0PGBw9r2dNnkM2kyckKMg==
-Message-Id: <4d71dc0f-dce0-4d69-80ca-bdd8047eb9da@bytedance.com>
-In-Reply-To: <20260727135725.694139f5ecad67752b0985d0@linux-foundation.org>
-Subject: Re: [PATCH v8 0/9] mm: optimize zone-device memmap initialization
+	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=LrI5jV+9lXNAqZIXhKCOO60TpJjIaMeX3ChNxpBQxyE=; b=K8CCxGGrapIcqHInx/7kof6kca
+	HCFPPO5QU1klh4tiNTlKP3uNgbwrsSQDJ9nafWEGexokijPJ5vN+3+nL/JDn8Dk91aMNa7wPqJtyb
+	u1pWFl/Oax8LyTDsqOjYPlRtnq/H2aft7UIkh4zAET2xULeB5OEYbu9utOEVe9cJhicjY7cWNZc9Q
+	J3iJBOYIthtEVS0z6AAqdUEE+8rYWTv4TYZ1/5Auty0QflNhaxHrYJaPtHles362rX9/tB2ZrBebH
+	AcurUXuksS3zfrqTfO8Y/aDWsNPmn8kh8Ddi9dDI0UNfRMyNV15/dP+jZT081aEyUpe3rlYr/3kJp
+	t2nNPAnQ==;
+Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
+	by casper.infradead.org with esmtpsa (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wofKo-0000000CzEg-1C8e;
+	Tue, 28 Jul 2026 10:46:54 +0000
+Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
+	id BA9DB30093A; Tue, 28 Jul 2026 12:46:53 +0200 (CEST)
+Date: Tue, 28 Jul 2026 12:46:53 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+To: K Prateek Nayak <kprateek.nayak@amd.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	Charlie Jenkins <thecharlesjenkins@gmail.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Darren Hart <dvhart@infradead.org>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	=?iso-8859-1?Q?Andr=E9?= Almeida <andrealmeid@igalia.com>,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org,
+	linux-arm-kernel@lists.infradead.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Sean Christopherson <seanjc@google.com>,
+	Thomas Huth <thuth@redhat.com>, Jisheng Zhang <jszhang@kernel.org>,
+	Ben Dooks <ben.dooks@codethink.co.uk>,
+	Samuel Holland <samuel.holland@sifive.com>,
+	Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@ventanamicro.com>,
+	Guo Ren <guoren@kernel.org>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>
+Subject: Re: [PATCH v6 8/8] futex: Use runtime constants for __futex_hash()
+ hot path
+Message-ID: <20260728104653.GH49951@noisy.programming.kicks-ass.net>
+References: <20260728052540.4728-1-kprateek.nayak@amd.com>
+ <20260728052540.4728-9-kprateek.nayak@amd.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-X-Lms-Return-Path: <lba+26a6849da+ea34df+vger.kernel.org+lizhe.67@bytedance.com>
-User-Agent: Mozilla Thunderbird
-Cc: <apopple@nvidia.com>, <arnd@arndb.de>, <balbirs@nvidia.com>, 
-	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
-	<kees@kernel.org>, <mingo@redhat.com>, <muchun.song@linux.dev>, 
-	<rppt@kernel.org>, <tglx@kernel.org>, <linux-arch@vger.kernel.org>, 
-	<linux-hardening@vger.kernel.org>, <linux-kernel@vger.kernel.org>, 
-	<linux-mm@kvack.org>, <x86@kernel.org>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-References: <20260727123429.5673-1-lizhe.67@bytedance.com> <20260727135725.694139f5ecad67752b0985d0@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
-To: "Andrew Morton" <akpm@linux-foundation.org>
-Date: Tue, 28 Jul 2026 14:18:44 +0800
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260728052540.4728-9-kprateek.nayak@amd.com>
 
-On 7/28/26 4:57 AM, Andrew Morton wrote:
-> On Mon, 27 Jul 2026 20:34:20 +0800 "Li Zhe" <lizhe.67@bytedance.com> wrote:
->
->> memmap_init_zone_device() can take a noticeable amount of time when large
->> pmem namespaces are bound or rebound, because it initializes nearly
->> identical struct page descriptors one PFN at a time. This series reduces
->> that ZONE_DEVICE memmap initialization overhead by reusing prepared
->> struct page templates and, on x86, using memcpy_nontemporal() for the
->> template copy path.
-> Thanks.
->
-> Human review started out strong but petered out later in the series.
-> This often happens.  I'd prefer to wait until it fills out further.
->
-> AI review had things to say, as it often does:
-> 	https://sashiko.dev/#/patchset/20260727123429.5673-1-lizhe.67@bytedance.com
-Thanks for the review.
+On Tue, Jul 28, 2026 at 05:25:40AM +0000, K Prateek Nayak wrote:
+> From: Peter Zijlstra <peterz@infradead.org>
+> 
+> Runtime constify the read-only after init data  __futex_shift(shift_32),
+> __futex_mask(mask_32), and __futex_queues(ptr) used in __futex_hash()
+> hot path to avoid referencing global variable.
+> 
+> This also allows __futex_queues to be allocated dynamically to
+> "nr_node_ids" slots instead of reserving config dependent MAX_NUMNODES
+> (1 << CONFIG_NODES_SHIFT) worth of slots upfront.
+> 
+> Runtime constants are initialized before their first access and
+> runtime_const_init() provides necessary barrier to ensure subsequent
+> accesses are not reordered against their initialization.
+> 
+> No functional changes intended.
+> 
+>   [ prateek: Dynamically allocate __futex_queues, mark the global data
+>     __ro_after_init since they are constified after futex_init(). ]
+> 
+> Link: https://patch.msgid.link/20260227161841.GH606826@noisy.programming.kicks-ass.net
+> Reported-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de> # MAX_NUMNODES bloat
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> Reviewed-by: Charlie Jenkins <thecharlesjenkins@gmail.com>
+> Tested-by: Charlie Jenkins <thecharlesjenkins@gmail.com>
+> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
+> ---
+> changelog v5..v6:
+> 
+> o Picked up tags from Charlie. (Thanks a ton!)
+> 
+> o Picked up Peter's S-o-b from his tree.
 
-These comments seem to mostly cover the same memcpy_nontemporal(),
-MOVNTI alignment, helper-level drain, and sanitizer/tracepoint tradeoff
-topics that were discussed for v7.
+Right, so I also munged the Changelog in my tree to include those
+benchmark results. I failed to actually push out those patches before
+disappearing on holidays, but I recon I should refresh them patches and
+re-munge the changelog?
 
-The v8 changes keep the x86 non-temporal copy path unchanged, except for
-making the generic memcpy_nontemporal() fallback a void function-like
-macro. The remaining updates are clarifications in the cover letter and
-commit messages.
+> o Added a barrier after runtime_const_init() after to prevent compilers
+>   from re-ordering a later runtime const usage in the init function with
+>   their initialization. (Sashiko; Reported by Intel test robot with a
+>   GCC14 build).
+>   (https://lore.kernel.org/lkml/alNgNvhIkBfkGo1Y@xsang-OptiPlex-9020/)
 
-So I do not plan further code changes for these comments at this point,
-unless someone points out a problem in the previous discussion.
-
-For the previous discussion, please see:
-https://lore.kernel.org/all/20260722081800.90085-1-lizhe.67@bytedance.com/
-
-Thanks,
-Zhe
