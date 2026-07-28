@@ -1,31 +1,31 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3890E37E5E8;
-	Tue, 28 Jul 2026 16:48:48 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0449638F949;
+	Tue, 28 Jul 2026 16:48:53 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785257330; cv=none; b=pph5wLB744YPFLywwUJVptlNj/QxOMxMb5OOh14n5vzs8M2TGHbphm7rbYlSTxdu3dxa7IT6XKVPXar41+Cnbz9yB600kO78oi+fhFxY59DGw3mMrdsHTpGfmpKty/Q+Z/w7x2d4chvasloVfw4uqFrE3lXHd4ewFQc78QOqUao=
+	t=1785257335; cv=none; b=fTzHFKwxj1+WIei/SW5/a3l9twkUg1787Skqgh3iR5lCxuA9dpeg9wTKrCGbU4dbFzbcLuAlruLru7sHUtTydRTTXI4GQTkRKts/dHXO4AhYnowa4FxOuTP+rud0bog6xG7rbTotQmR00La6dzkn+/i2GOlwcphTOPDfxk1BTDI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785257330; c=relaxed/simple;
-	bh=47xlqcqs2MJWiyuu2bASLtb4amYESjB9bOCK37kVupU=;
+	s=arc-20240116; t=1785257335; c=relaxed/simple;
+	bh=IvY4kfy1p4o0GbHClrQiTmcKiCzYrwcqMhnje8wcIXE=;
 	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
-	 References:Date:Message-Id; b=ZgRwLWYB9HB0H5XV+1ffJ8eKYTk3AxVwtLOTqhc3wTyKnaXEO9w2wJ1FTIyvWzCqdT6JXcXQHOcHr/noz0QEhOpLKEplP2X/QyHE07zq5MCTj07dYR/1luLrysakgwyF33cWkSD0IzujONL2m5vVsqyukd4QA4fjttS8AWSUKVI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=OU/w7xJd; arc=none smtp.client-ip=100.103.45.18
+	 References:Date:Message-Id; b=gbgCZBrxgaczaJi6AUmRENJQdqmXCmfVkEXRZq1vc4f3zrYCbHRzaMIwYIpVqxq8RJ2Tq47ba9cCSCfZEEdEUEou/kUG7Jp4XQGOGE7h3ITKf9L+C4nVQ0+evqdMgS+EsgD+lqMGR0Sfy1kLyLL210+hy9oX8JtPbcEo/2d8MLI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=QRXc1Fsv; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="OU/w7xJd"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AFC8B1F000E9;
-	Tue, 28 Jul 2026 16:48:44 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="QRXc1Fsv"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4B42F1F00A3A;
+	Tue, 28 Jul 2026 16:48:49 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1785257328;
-	bh=pVL+sXQnyVqR4TfVrY7tpfQSsCbrXDrigHvOgIdAaTA=;
+	s=k20260515; t=1785257333;
+	bh=Mpr53o5xn048mORlTpkeftfNBVvFhPpp4N4joDXnfPw=;
 	h=Subject:From:To:Cc:In-Reply-To:References:Date;
-	b=OU/w7xJdlxyJSNUc0FqMdjjkG+oNvQi42NfaA5le51Kuoey4LT3p9PflQzQwrXptd
-	 oSOlQp2nlkSn9EKnVYCPs5HkKIbKvwaLAfDQUYg2bvSlfAzJEce67gOXjLGKH3zaVj
-	 K/V2br3ZtCRI/N5UE6xkd1b1T303H492jrOJ8CW0z8Vio4AVtqp5KXC88ezubfO1hF
-	 jEkAFCI2Ni6F5Ju/UbFYJCYsmOQrhE+Xh9eulgd+SwB45UDhbiQTQInFeG+jlOx7zC
-	 ag23g8quAGKt3xHRse50kt74RjzTceTkfgvxGKJbL7oKG4bN8p9Srs+wZnCUZ/OLij
-	 ffunIVRFbZY9Q==
+	b=QRXc1Fsv1U9VteDFxkII/v/v0DebIa0cUbezprpMeQqfxtvnDeOdUFlh3JyBE1BxJ
+	 wSjsa5zp2EyGBYVsNdL7yqXNRqKzc2pVnPZymvgmVEB8IJ17PGaY02rD9KsLAuMN6p
+	 TifWgkJ/6dzAemeOS8wXamIYZ38Y6JiO44hWFqx9kjec4m+GmnuWlqq/TKIsjXTnkk
+	 NJGNBRMeUMPzLof9Z+rrw7pddoJ6gxckrJm2pvEXo6wad7iP8n73PrjzpCgHL1alMi
+	 yVHcY2oeyGQUnNEz5/QMfcHTtQ08PG63y7klrk6zrM44b6x1QwCnhp5YXuG4l+szv6
+	 XjxWjIUFgwv/A==
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -34,7 +34,8 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v7 0/9] mm: optimize zone-device memmap initialization
+Subject: Re: [PATCH v7 9/9] mm: always use the zone-device template init
+ path
 From: Mike Rapoport <rppt@kernel.org>
 To: Li Zhe <lizhe.67@bytedance.com>
 Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de, 
@@ -43,25 +44,35 @@ Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
  tglx@kernel.org, muchun.song@linux.dev, linux-arch@vger.kernel.org, 
  linux-hardening@vger.kernel.org, linux-kernel@vger.kernel.org, 
  linux-mm@kvack.org, x86@kernel.org
-In-Reply-To: <20260720120259.1545-2-lizhe.67@bytedance.com>
+In-Reply-To: <20260720120259.1545-11-lizhe.67@bytedance.com>
 References: <20260720120259.1545-1-lizhe.67@bytedance.com>
- <20260720120259.1545-2-lizhe.67@bytedance.com>
+ <20260720120259.1545-11-lizhe.67@bytedance.com>
 Date: Tue, 28 Jul 2026 19:48:40 +0300
-Message-Id: <178525732062.1556190.314794914123127147.b4-review@b4>
+Message-Id: <178525732063.1556190.16834028754418994747.b4-review@b4>
 X-Mailer: b4 0.16-dev
 
+> The template path still has a local opt-out predicate for the
+> page_ref_set tracepoint and keeps a non-template fallback path. This
+> makes the code more complex without a strong reason to keep the
+> separate path.
 > 
-> The numbers below measure the time spent in memmap_init_zone_device()
-> during driver bind/rebind. They are not measurements of the full
-> nd_pmem or dax_pmem bind/rebind operation.
+> Use the template path unconditionally after the corresponding seed page
+> has been initialized: the first head page seeds the head template, and
+> the first tail page in each compound range seeds the tail template.
 > 
-> Tested in a VM with a 100 GB fsdax namespace device configured with
-> map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
-> server.
+> This keeps the first-page seeding logic unchanged, but removes the extra
+> non-template fallback from the main loops.
+> 
+> This also means sanitized builds no longer force this path back to the
+> per-page initialization stores, and an enabled page_ref_set tracepoint
+> will no longer observe every ZONE_DEVICE initialization-time refcount
+> assignment. That tradeoff is intentional: this code is still initializing
+> struct pages before they are handed out, and keeping those local debug
+> special cases would preserve a separate initialization-only path while
+> making the common code more complex.
 
-Since the first pathes touch the generic part of the memory map
-initialization, it would be nice to make sure they don't regress other
-architectures.
+Just fold this change into the relevant patches and don't introduce the
+opt-out at the first place.
 
 -- 
 Sincerely yours,
