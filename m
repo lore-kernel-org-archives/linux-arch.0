@@ -1,124 +1,188 @@
-Received: from mail-wr1-f46.google.com (mail-wr1-f46.google.com [209.85.221.46])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D6FCA3B6346
-	for <linux-arch@vger.kernel.org>; Thu, 30 Jul 2026 08:15:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.46
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B1593EA97B;
+	Thu, 30 Jul 2026 10:09:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.158.5
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785399307; cv=none; b=CpJRHVVQLEyXzM/yLcdeQjY7RL8TE1DCLsVzVVrxdd6DUQ0z2jAQFg3nQsNa15WrsQGv0g5EdE8zbuhMoZh+z37Sfm2FdGS5QTcW8BbPOY8vu5HO8f9LsrkS9yGG3+tw4PtUuhhEPF7ds39B2Q+RE6Y34PdXu6TtAptp0JUily8=
+	t=1785406195; cv=none; b=l9Gno9QpbvtwcA8ciyGhEW7iJRao9MxbgoY9dK50Nhd3V6Hd7RHu9UMY17qOjzuwYckZiplnQ3X5smhrWx6pMWcC3l/KQa6HaSA/oKZjjUP1P360Rwiv5q3j/gTSzGKrAlpsLT53qGF8pB7ajuPjtEpY6CJcJoXHyKBwao38UOw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785399307; c=relaxed/simple;
-	bh=zIgGXFhPhcmCwRhLNlAk+r8l30LriLi3g1dxUs263rc=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=EZ4n+p1vEeXMsAbH0PtNQ7WAkMOWxyEmdKKs2krmwkaVgRTvhc+yfIllWWvhlCZPtr5vI6llX+yuiL0aVDcUwq4XsUirrXIfkbs4YTX/7yQKIIMiDgvJ3UbYnaZ571u/yM4Em1IysSSuIdeF+LJR2Scnr9xXrIi3l5ymoXovGrs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=q8f/YB4Q; arc=none smtp.client-ip=209.85.221.46
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1785406195; c=relaxed/simple;
+	bh=e5hVGagBJwDFZRPGo3gprKptArnbYpCpTmxxKu9+8wQ=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=vGgJyOTmTRrXukx6jH5yh2Tko9+jbeYgoE8xNONQVTgPduXLXNpt3ldCfDq8ed9jIXyXBDR/TYz9DReCuc6SHh365uSF1rL7gqFzB8HyEBsx+OI5zM7ZhQOBnUBbyLPrBlucxo4zVtbJfOQIYcLhQLinTzR1zF5fyGJtksDFuZs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=mpgStl8w; arc=none smtp.client-ip=148.163.158.5
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="q8f/YB4Q"
-Received: by mail-wr1-f46.google.com with SMTP id ffacd0b85a97d-47f97d310caso1732557f8f.2
-        for <linux-arch@vger.kernel.org>; Thu, 30 Jul 2026 01:15:02 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1785399301; x=1786004101; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:mime-version:references
-         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=gU8t2nLiO6KyR9mHd5oQe5CKsSlNQJu7tk5IuJVGRSw=;
-        b=q8f/YB4Q2BvmLLnS3Mo3pHYQEvh9tBDhwsK0NjUV7UF+2N/jm19XI8Z8ux+RHZcLAI
-         8Z9AtOgv0EevMC7q+gL37iW236gJkxN0FKcKV1177/e6GsYjI0cnigY7OhoWb3cjMWZO
-         b8rioRaWei4mf8lFVNN4PuzNC/aNFyx6wSlCtX6CiJj6FZnw8OxZZYLs9TzFMcMzBa6x
-         0YTjyKo7GQMtEjAqUpXVubnpsJpPIHq7L+L8CZdfWFNSmlOwLHP4VeDeXE1JSB6yYIBY
-         qlZNf2G2rvEyzr4r5vWqMRhTazEvUllBRLMUbKsBmQN//o+c09vmx6waEwmWXeKgYrf7
-         yMPQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785399301; x=1786004101;
-        h=content-transfer-encoding:content-type:mime-version:references
-         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=gU8t2nLiO6KyR9mHd5oQe5CKsSlNQJu7tk5IuJVGRSw=;
-        b=KCzzS0CmmBlgloaL0SriO9bH59Cb0UnIoZibBKMn4SCzZr1EMgS5pKagAQJ0KsITFU
-         UHUTdEPsBNbUcxVOxsV2UO8BNqEF2e2Sx36eBdRdCsNQV5DF5C1yFTWCQKyYWEcMzqmk
-         2WdWa7cXB/j8P4OVrR46sXDrdoId9RcHL6UMePc3U8rJK/eEK4V7y7US0XF4ExnOqse3
-         9AO2tlfmmowpTDP3ivtn0r5oaQShkk1JsC8R/7u6GlRwmBHf/MTsimfB2KKq9oYfduiW
-         aFEyYVp8MIrHTkrHiHXs4tC4i+dcVdoheLg9ZE7BZaHvYcab0Ijl1kGQyJ6yfTyt/FFo
-         7ldA==
-X-Forwarded-Encrypted: i=1; AHgh+RoEJ89kvbMwjYKlsBtfDd7SJf2YLEqxp56dHs1/ep7p274pHtAYFtsZz+P0FnJzYjAgLa8ag3TqXjhO@vger.kernel.org
-X-Gm-Message-State: AOJu0YwjLeSIr2Qsd2bdQmv99DEzgjOk9KQqzVzCSXJ7SPIq/9HvI4tb
-	ZD4XBFTuF8ZIX9skqipREcUE9MixjJ6M3rmbsEhgTyzkjWZwWdbrVLsj
-X-Gm-Gg: AR+sD111mpD/xWSvrqJqdhj/U8VKyobRTnkJ8NDkpQHxDSChmYfUi0vdRi08BbIM3zA
-	5fmolZR1OweipdTWrcP9CD4kZRAp8oXp7XGqDSBIrXl24YEjtS/M5Qmrvv9/ts4JYv30j9gjqYH
-	aSXF1C6JuvyPiM2KQVsh7IyhqlcJY70TFbIoZjEBwRhUtYRxTknpEsCjjf6YPP68QnTrPyo+Wng
-	vomSH5OXyeDTff7vdGNiOV9EjVLgMt7hiWnn8HfwsUWLtkukdR9HQXhiRF3maE+4O/USuM0U+Ks
-	F5L0HH+4NoXVxEZGDod4eiDQdsb3Xsfsl9j7rwBR3SZTy0uF1vebCN+R6G7Hpsj3/X2DRC9O1Rk
-	oNPfdzJc1vEba+XkVP1leHNFs17ZYWWXhvYCWZgHGSOI15gpNb6vXxmlBBhs4XYawVSRVRFg9y8
-	Gs5POrnV+KPkw6Epd9VzeiAUqgWHH5eJxhyM+PSUsXvFbVV4+15KWmZgZQzIQAjdqs2vTbOAr3U
-	IfVcu4FX4a+miGf4FzZeD2ubA==
-X-Received: by 2002:a05:600c:154b:b0:495:78ea:2687 with SMTP id 5b1f17b1804b1-49800eae778mr19575005e9.29.1785399300682;
-        Thu, 30 Jul 2026 01:15:00 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49800f0ebfasm37683065e9.2.2026.07.30.01.14.59
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 30 Jul 2026 01:14:59 -0700 (PDT)
-Date: Thu, 30 Jul 2026 09:14:55 +0100
-From: David Laight <david.laight.linux@gmail.com>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Li Zhe <lizhe.67@bytedance.com>, akpm@linux-foundation.org,
- apopple@nvidia.com, arnd@arndb.de, balbirs@nvidia.com,
- dave.hansen@linux.intel.com, david@kernel.org, kees@kernel.org,
- mingo@redhat.com, muchun.song@linux.dev, rppt@kernel.org, tglx@kernel.org,
- linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
-Subject: Re: [PATCH v8 7/9] x86/string: extend memcpy_flushcache()
- fixed-size fastpaths
-Message-ID: <20260730091455.1242d01a@pumpkin>
-In-Reply-To: <20260729234842.GFamqRWva8h7X59ccN@fat_crate.local>
-References: <20260727123429.5673-1-lizhe.67@bytedance.com>
-	<20260727123429.5673-8-lizhe.67@bytedance.com>
-	<20260729234842.GFamqRWva8h7X59ccN@fat_crate.local>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="mpgStl8w"
+Received: from pps.filterd (m0360072.ppops.net [127.0.0.1])
+	by mx0a-001b2d01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 66U6m2hU2316588;
+	Thu, 30 Jul 2026 10:08:26 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
+	:content-type:date:from:in-reply-to:message-id:mime-version
+	:references:subject:to; s=pp1; bh=SyEKmgQDKWQNaqyjGD9/StXJGEDRDY
+	1U+s/7IVPb15Q=; b=mpgStl8w7nM9YhaejMlJKR3MpAZdEg3CMrKaAXvLKHr7vT
+	6VVwUWTv94MCyV0t0LoEvX4NTx8I4oV6Z0RyamfkVYt+l2AOdDneecdkibOEY1+b
+	fD9XwZ3K4X8hUfJXGoIotglUANfOJDNKrE0DS35mkwFOijc9A8vDRLcyW5rJpkQl
+	ZSz6TwC2s319vuPGylh8x/WmuWHPvwVDTCys8JeV+xWvLk555y/ELhHSpwIRUICY
+	YonccknjvF9P+MZBOhJqIBxdnhuPD4Gkn7+w9bgCc5mVY0U6J1Gm6Uc9d61V0Jez
+	zbYakob6m6/arpoFMao3y0RyGCx0NamVLgwru4iQ==
+Received: from ppma21.wdc07v.mail.ibm.com (5b.69.3da9.ip4.static.sl-reverse.com [169.61.105.91])
+	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4fmuwd6a7b-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+	Thu, 30 Jul 2026 10:08:25 +0000 (GMT)
+Received: from pps.filterd (ppma21.wdc07v.mail.ibm.com [127.0.0.1])
+	by ppma21.wdc07v.mail.ibm.com (8.18.1.7/8.18.1.7) with ESMTP id 66U9fHHZ004184;
+	Thu, 30 Jul 2026 10:08:25 GMT
+Received: from smtprelay03.fra02v.mail.ibm.com ([9.218.2.224])
+	by ppma21.wdc07v.mail.ibm.com (PPS) with ESMTPS id 4fn8fkatpu-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+	Thu, 30 Jul 2026 10:08:24 +0000 (GMT)
+Received: from smtpav03.fra02v.mail.ibm.com (smtpav03.fra02v.mail.ibm.com [10.20.54.102])
+	by smtprelay03.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 66UA8Mar34079042
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Thu, 30 Jul 2026 10:08:22 GMT
+Received: from smtpav03.fra02v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id 8C9E62004F;
+	Thu, 30 Jul 2026 10:08:22 +0000 (GMT)
+Received: from smtpav03.fra02v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id C8DEC20040;
+	Thu, 30 Jul 2026 10:08:21 +0000 (GMT)
+Received: from li-008a6a4c-3549-11b2-a85c-c5cc2836eea2.ibm.com (unknown [9.224.92.206])
+	by smtpav03.fra02v.mail.ibm.com (Postfix) with ESMTPS;
+	Thu, 30 Jul 2026 10:08:21 +0000 (GMT)
+Date: Thu, 30 Jul 2026 12:08:20 +0200
+From: Alexander Gordeev <agordeev@linux.ibm.com>
+To: Muhammad Usama Anjum <usama.anjum@arm.com>
+Cc: Jani Nikula <jani.nikula@linux.intel.com>,
+        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+        Rodrigo Vivi <rodrigo.vivi@intel.com>,
+        Tvrtko Ursulin <tursulin@ursulin.net>,
+        David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
+        Dimitri Sivanich <dimitri.sivanich@hpe.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
+        Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>,
+        Stefano Stabellini <sstabellini@kernel.org>,
+        Muchun Song <muchun.song@linux.dev>,
+        Oscar Salvador <osalvador@suse.de>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        "Liam R. Howlett" <liam@infradead.org>,
+        Lorenzo Stoakes <ljs@kernel.org>, Will Deacon <will@kernel.org>,
+        "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+        Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
+        Andrey Ryabinin <ryabinin.a.a@gmail.com>,
+        David Hildenbrand <david@kernel.org>,
+        Pasha Tatashin <pasha.tatashin@soleen.com>,
+        Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>,
+        Uladzislau Rezki <urezki@gmail.com>,
+        Steven Rostedt <rostedt@goodmis.org>,
+        Masami Hiramatsu <mhiramat@kernel.org>,
+        Alexei Starovoitov <ast@kernel.org>,
+        Daniel Borkmann <daniel@iogearbox.net>,
+        Andrii Nakryiko <andrii@kernel.org>,
+        Eduard Zingerman <eddyz87@gmail.com>,
+        Kumar Kartikeya Dwivedi <memxor@gmail.com>,
+        Ingo Molnar <mingo@redhat.com>,
+        Arnaldo Carvalho de Melo <acme@kernel.org>,
+        Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>,
+        "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+        Jan Kara <jack@suse.cz>, Jason Gunthorpe <jgg@ziepe.ca>,
+        Leon Romanovsky <leon@kernel.org>, Miaohe Lin <linmiaohe@huawei.com>,
+        Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+        Christoph Lameter <cl@gentwo.org>, Mike Rapoport <rppt@kernel.org>,
+        Johannes Weiner <hannes@cmpxchg.org>, ziy@nvidia.com, pfalcato@suse.de,
+        ryan.roberts@arm.com, linux-kernel@vger.kernel.org,
+        intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
+        linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org,
+        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, kasan-dev@googlegroups.com,
+        linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org,
+        linux-perf-users@vger.kernel.org, damon@lists.linux.dev
+Subject: Re: [PATCH RFC 05/11] mm: convert PTE table entries in ptep_get()
+Message-ID: <34eed5fd-c569-49d8-bc4d-a3d4b1207fbd-agordeev@linux.ibm.com>
+References: <20260727164715.2866609-1-usama.anjum@arm.com>
+ <20260727164715.2866609-6-usama.anjum@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260727164715.2866609-6-usama.anjum@arm.com>
+X-TM-AS-GCONF: 00
+X-Proofpoint-ORIG-GUID: o0rywYqMRb9-o-diVy_ik6hJzY7jXbKp
+X-Proofpoint-Spam-Info: AW1haW4tMjYwNzMwMDA3MiBTYWx0ZWRfX9YzlV5X9xylI
+ niwszbMcVKFzbqv5lB4+x3UMXHiu2Na/LX64PyF/7hm6373GBwUh9Nzp3rKvPU5zk189VQCofLr
+ rPG5w4Fu4iCy4m6kL6IwmlpOMbpH93Q=
+X-Authority-Analysis: v=2.4 cv=E/z9Y6dl c=1 sm=1 tr=0 ts=6a6b2299 cx=c_pps
+ a=GFwsV6G8L6GxiO2Y/PsHdQ==:117 a=GFwsV6G8L6GxiO2Y/PsHdQ==:17
+ a=kj9zAlcOel0A:10 a=RAioF0-LDSMA:10 a=VkNPw1HP01LnGYTKEx00:22
+ a=RnoormkPH1_aCDwRdu11:22 a=RzCfie-kr_QcCd8fBx8p:22 a=7CQSdrXTAAAA:8
+ a=rd7UzSewfSqtCNqF-5IA:9 a=CjuIK1q_8ugA:10 a=a-qgeE7W1pNrGK8U0ZQC:22
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwNzMwMDA3MiBTYWx0ZWRfX5SpBi0HAiQ/C
+ 9ni/l34t00qdV/3lkOyjkRQMHI/bzArsCFIkiciKZ8adXpzfTg+v45rnYJqhyhndiqeJpPiwNep
+ VZubCJTxxNPdh7fUODcM7dZfoUnpFjzvPK4ZEbfqEnIme5xp5/3dh/jC+Bz0wOnfq0jzNGqzp01
+ zPArarMM0ovv+hNUMHMW7KFO1ciq6TJyi7CqiLbDAikACDO4XCNopg90PkO7ZmmtnKQKZqCc3Iu
+ vjfATt8qU+7UDSj5FM+YWzMlFLtZ7yd+VsugakgEKb3nBJHhgB/c4j80i+hmodLARApOX/lUvJi
+ hIn4WaO+yfetcmUKLTaNKagXUiUaD1+XmWFrHFYPqNS0/OPuPyGwB/Il8okWMucK5lVYiKp9Avl
+ wy0uPYNZ2zKQHtwferVMHYGgVjDdrnJfKZLKq+RVgKww7RVJrU9y33ZnAADV+Y5aXFTSzYQrdU5
+ SYDEkUDGowOYGL7zbLg==
+X-Proofpoint-GUID: o0rywYqMRb9-o-diVy_ik6hJzY7jXbKp
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.134,FMLib:17.12.100.49
+ definitions=2026-07-30_02,2026-07-29_01,2025-10-01_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
+ adultscore=0 priorityscore=1501 spamscore=0 clxscore=1015 phishscore=0
+ lowpriorityscore=0 bulkscore=0 malwarescore=0 impostorscore=0 suspectscore=0
+ classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
+ reason=mlx scancount=1 engine=8.22.0-2606150000 definitions=main-2607300072
 
-On Wed, 29 Jul 2026 16:48:42 -0700
-Borislav Petkov <bp@alien8.de> wrote:
-
-...
-> at least the code is making a lot more sense now.
+On Mon, Jul 27, 2026 at 05:46:56PM +0100, Muhammad Usama Anjum wrote:
+> ptep_get() now accepts a pointer to hw_pte_t storage but must continue to
+> return a logical pte_t value. Add __pte_from_hw() as the conversion hook
+> and apply it in the generic ptep_get() implementation.
 > 
-> The fact that you had to axe off so much cruft off of it tells me that you
-> haven't really measured it right.
-
-Especially since if you do actually measure the clock counts (non-trivial)
-you'll find that loops are often completely free.
-The out-of-order execution unit will (effectively) execute the loop control
-instructions to generate a list of instructions that get executed at a
-later time.
-So provided the loop control doesn't use more clocks than the loop body
-(and there are spare ALU units - usually true) loops really make little
-difference.
-
-This also means that unrolling loops often doesn't make things faster.
-You do need to minimise the loop control instructions (and gcc doesn't
-like the best loop that uses negative offsets from the end), and
-intel cpu can't execute single clock loops (amd ones can).
-
-Inlining also increases the code size, the I-cache reads are actually
-likely to be significant.
-You need to time a single 'cold-cache' call not just loops for long
-enough that the result is also skewed by timer ticks (etc).
-
-	David 
-
+> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+> ---
+>  include/linux/pgtable.h       | 2 +-
+>  include/linux/pgtable_types.h | 1 +
+>  2 files changed, 2 insertions(+), 1 deletion(-)
 > 
-> So why do I really want your patch?
-> 
-> Thx.
-> 
+> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+> index dad80d264aac2..3003ac9cd81fe 100644
+> --- a/include/linux/pgtable.h
+> +++ b/include/linux/pgtable.h
+> @@ -493,7 +493,7 @@ static inline int pudp_set_access_flags(struct vm_area_struct *vma,
+>  #ifndef ptep_get
+>  static inline pte_t ptep_get(hw_pte_t *ptep)
+>  {
+> -	return READ_ONCE(*ptep);
+> +	return READ_ONCE(__pte_from_hw(*ptep));
 
+Should it be something like?
+
+	return __pte_from_hw(READ_ONCE(*ptep));
+
+>  }
+>  #endif
+>  
+> diff --git a/include/linux/pgtable_types.h b/include/linux/pgtable_types.h
+> index ed5dba42a4f8c..61afe27307ec2 100644
+> --- a/include/linux/pgtable_types.h
+> +++ b/include/linux/pgtable_types.h
+> @@ -6,6 +6,7 @@
+>  
+>  #ifndef __HAVE_ARCH_HW_PTE_T
+>  #define hw_pte_t pte_t
+> +#define __pte_from_hw(pte)	(pte)
+>  #endif
+>  
+>  #endif /* _LINUX_PGTABLE_TYPES_H */
+> -- 
+> 2.47.3
+> 
