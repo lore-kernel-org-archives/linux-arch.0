@@ -1,85 +1,162 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from CWXP265CU010.outbound.protection.outlook.com (mail-ukwestazon11022133.outbound.protection.outlook.com [52.101.101.133])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 70A3133D6F0;
-	Fri, 31 Jul 2026 13:53:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785506040; cv=none; b=czR+rRQozgrET5hK99ld3vRHNJS/Gn2SOjyBt1tmBNzFDl7SMb1nwNV6zPIKw2pHJ4WOm4t3VVWNoSuYf7Fxy6moMV0ahhSuxbKB9yzpnm7ojXPeAdq9ws76EO2Amb+j4wNabO2z4u8LWox/DtWN++Z8B82rmoG96UE5rWfyYbI=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785506040; c=relaxed/simple;
-	bh=FG8N11C0+jiKLPwJpHy1flun8dJKOaGO2lJvQ4F/oEk=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=kVW1McpPzxX9lIWH0cUY9aD7DVHodrISdDdF4HFPx0wcVEEIQhPwt4T6ysm+2IKnZI/3EwbhJvhf2WO+x8e/7LPXIdXxSys3H3Ddwoc82IIMVXjRX2PVpUPHCfHpZKWFo7p5aSQroqyXZaIR8VtfwAxAiHinCmishohWti/9y8Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=gVRoncqq; arc=none smtp.client-ip=100.103.45.18
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="gVRoncqq"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 353A11F000E9;
-	Fri, 31 Jul 2026 13:53:57 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1785506039;
-	bh=mKinHt4CQYseBYj97VnG+dAXqNLVV4EtTuhQU6aTeew=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=gVRoncqqLTEJ0UcuIUr8PUuADpda4kiZXR8albN5QKsLyDiutKwdu2SP81fviE9bP
-	 uvsL096r7EepMQNo3YdK9KRBkvh8pMamMTJNl/5GEl0DqSWrS83u+QNapExoJlNgaP
-	 +lLbDn7vb70p3kErg2cdSaQBu1kgO5Np1e5sfoTQ1dUaDGS9/QH7UAIw4oafahhpzb
-	 z1aiZy46/3iYoShjA7K0cUHz2bLDK0mqFIdwkz4FmmVPnRg7UyK1OUFvvIHrZq1HCe
-	 +HWKj4K8wsY9kE3f3KyE4U10+4obWHfS6sjN+zcdNk8zaHYJhBcZwbMv1Gynucw4tb
-	 72KIZ5A6AuO9A==
-Date: Fri, 31 Jul 2026 15:53:55 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Jori Koolstra <jkoolstra@xs4all.nl>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>, Arnd Bergmann <arnd@arndb.de>, 
-	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [PATCH] vfs: missing inode operation should return a consistent
- error code
-Message-ID: <20260731-erdball-fangruppen-pflicht-bc2db75ed1fb@brauner>
-References: <20260531104947.6142-1-jkoolstra@xs4all.nl>
- <20260702-forensik-unfertig-korpulent-56f199eb061a@brauner>
- <90228c39-04e7-41ef-ad91-84a8bb866650@sirena.org.uk>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2AFFD435EF0;
+	Fri, 31 Jul 2026 15:05:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.101.133
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1785510302; cv=fail; b=QriYBwV8GX6MVBo4YmdLgXY9hIU+0uzpM8EfSiPGlx2OrdF2DDyVjJuUkKWv9W/OHMATXQS61HG2GpjjKmuuTEa/Tmvu/Sbf0E0VH9fAtFTCRn8JWuPCZiHMuellurDTdAjYBkzzpDJIIGaYtpoL8VzoPvh9LSQIQY4Yis1bGmE=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1785510302; c=relaxed/simple;
+	bh=a10YCCyBGsbf/rzqb/EzBcjBj6AbB6uYD4UBUuUAa7c=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=n5Aes6RrRd71CYRmeXvZ5oK3R0EKUyOgkjPkgMN8fezgao/Z/Kho4BITIK+jWGJolk6KsPGb1QdSfNSRJ0NUtfwujhbR2JWhWoARGvjTIevH6Nr1uYD+pNBkyo0G1AFSU0mGP3UCj0LY3XuRKm+D4BgP2Ub1A/5IiWIjbNGlbCQ=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.101.133
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=fRD6ZvNKBnnsD6viZl1cIKNE64gLs41iNCOpYhBFmvinHSXTbcX8Dr+CPY9R4L8U7mkATjZw9WZ3iQmrkZq1SfGfuLctuBFsBVYbSd7oTMyhO78uDNg+chWYVgSQDWGcSTu2Cv8UOws2qk/RuevDEYcHENt4YIP3UW+EuiVKpOv+H40rkH3J87X46d2yu33ZcZ2iERH9nt3Ypy5y28jCffvgnxRe6NGqZSli0+0Z1j+9k9GivSndJ1leLMCDhQid0GoH/rJ2fWXXIc3yfmpTSFnZo9ZKLvwx9t8ujkSuPKKcHLmmKW2vkS/RqiyXGQuiXUqwI0SguTWYa5QenRSP8Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
+ bh=8M9NFlPHu3Bu/wruJiL0lHoH7d5Zm3ZbxPJVIMLi370=;
+ b=bn3nxgpJQx+U2G6lobbIoqMMtZ1qv21ksxIpJITFYs2dmYk1LRicg/w3I/8993DWdBGJMGxcZGkvijaVp9vdLGC3tXMX7T6tPVIlruL79VK9CjIPQIarUlydms9Eeg8FNIFeVaj0/HzCKPu7ufmooWsdV9WTfBdD6KvVUf7ZBvrpULkIwOxJKtARtCyJFRAzrv3xT41C7QOZ17r8hPc45OpkJk2YpAIiEWNmJ8tZOInYUNDjbFapo4xBZTKr+i/oArW8+0sv59gJlN9+jQPsf2WkkfE7sStYDdtNLkjQ3Z6icqHyussGNzbCg/I/YMdrD2rAXA2lOxtedLMqU1g/ig==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
+ dkim=pass header.d=atomlin.com; arc=none
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=atomlin.com;
+Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
+ by LOYP123MB3407.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:119::12) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.270.15; Fri, 31 Jul
+ 2026 15:04:56 +0000
+Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+ ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+ ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0270.012; Fri, 31 Jul 2026
+ 15:04:56 +0000
+Date: Fri, 31 Jul 2026 11:04:51 -0400
+From: Aaron Tomlin <atomlin@atomlin.com>
+To: arnd@arndb.de, mcgrof@kernel.org, petr.pavlu@suse.com, 
+	da.gomez@kernel.org, samitolvanen@google.com, peterz@infradead.org
+Cc: akpm@linux-foundation.org, mhiramat@kernel.org, neelx@suse.com, 
+	da.anzani@gmail.com, sean@ashe.io, chjohnst@mail.com, steve@abita.co, 
+	mproche@mail.com, nick.lane@mail.com, linux-arch@vger.kernel.org, 
+	linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v8 0/2] module: Rename module_blacklist to module_denylist
+Message-ID: <cdrr2r7j7auy4yxmapa4dn3e6xycs42hjjyff7lqgxs5ailcuz@kgpqnq4guu4s>
+References: <20260724024744.616286-1-atomlin@atomlin.com>
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20260724024744.616286-1-atomlin@atomlin.com>
+X-ClientProxiedBy: BL0PR05CA0030.namprd05.prod.outlook.com
+ (2603:10b6:208:91::40) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+ (2603:10a6:400:183::5)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <90228c39-04e7-41ef-ad91-84a8bb866650@sirena.org.uk>
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LOYP123MB3407:EE_
+X-MS-Office365-Filtering-Correlation-Id: 4213e8ee-68bb-406a-33e7-08deef1514f6
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|376014|23010399003|7416014|366016|1800799024|6133799003|10067099003|56012099006|18002099003|22082099003;
+X-Microsoft-Antispam-Message-Info:
+	83lwCbyRjD4tmsJ2mN/hzi85z3vLfQsq2Bh8tdKnIVgcsinI1j5/P1orqq99QvRZzjzHswOQR1Une/R5Uxz7XvsVpkJparjm/bTKZiOMuE1o4xj9i4ecM5wj24ZOK9LSjy/JPC+bKnJyKXU/UfhikSouqn/RGuFgXJg37WHcQ8ZI/cGUxcU9+mE5DkPBjv2yN1zZsPFCr0o8jXr+GO6ycdLxsMB8Lu7rI1qf0gPd6rImdqT0Wm2t8nqJMqZM3532zii+8ZF9Pp/yriuJIvRiRj7cxDYZAOs3ulf6tATmWhzYKaqREeDOh4bHwdzkdPmlv6u0J4en7wxSh+Sp6YFwIT0YpsqP71viboiLKKmkSql1jI2DtgflsJRYcelFG3J8Ib97VEZtNOs/+BY5fVkosvdDlqSuu1nRNpolyAWH+wKxQ72v7KKfh79blBxHW5itRyI0lmAduc66TNnkrXbdWsCmr7aTpRObWoFUffoH6Uz7N7iPo4ktSXElUJzPY1tJqejkwoBqTa2azfkmLNfm7nHXS/+9Qa04eP06kjp39NFKyouQdMHZkiq0ibfPprYDH698FXR7aOf8PdLiFFsEDZttQDOoFt3JJOCPB9gXymRyv5XqwGVMjNUf6m0jdoCeF1nPm5R8+BTR0xJP4qv4HF2Pd51y02BgUA7owxN7iI8=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(376014)(23010399003)(7416014)(366016)(1800799024)(6133799003)(10067099003)(56012099006)(18002099003)(22082099003);DIR:OUT;SFP:1102;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?utf-8?B?OE15bDN5bEVYYXhEZHNuQkcxSUlXNDIrL0plNGNsMFh2YzIwK0t4TFh4WHIz?=
+ =?utf-8?B?b2IyVnFYcWt4d0Y4enVWYlVqKzZOdnlCWk1VNDVQb0xlTG5UT2NrNTZ6Zm1q?=
+ =?utf-8?B?SHRVcEhySEM3YWsySHAwNy9PQ3JOTlljT0R1cy9VTkdkVXNMalJkTjdpWUtq?=
+ =?utf-8?B?dE05OWtycWg0RXpZZ2pYQnFlR3pVS1YwU3Z3SitlT28rSEs3ZGdhQTR4aThG?=
+ =?utf-8?B?QURJSnVDNWEwK0Y1bVFLVGw4a1FRbWZ1NEhRL0ozSnpvTXA4d0VLaUZWdlV4?=
+ =?utf-8?B?blNLR1FtMEhnMmM4UDQ0NkZwTTJYWlpYbUFna1p3KzNvRkd6KzRkbFdmMkdW?=
+ =?utf-8?B?Y1dpdCszM25jZjdtNS8xS2ZQeWgvUXhwZjZFWWpjRnYxU3h1Z3Mzay9tOHZP?=
+ =?utf-8?B?ek9PTTBPQzdxRDl4aWwwMklwaUd2dFRZa1NqOVd0QnFXY29UcWo0WForOHFR?=
+ =?utf-8?B?WEk1Zk9pcVlZMDhpcUxvRytLTnRKNVQrOUFuc1B3V1VjZDVVVHpWQm4vWFdJ?=
+ =?utf-8?B?dVQ5azhNZG5vZk9xR3VCcmlrcVllOTJuYy9ZUHpvRkpXbmNjWUlHaXl0Umxz?=
+ =?utf-8?B?T0FWbkcrQjZ2UWdXSUFkcGhpM21XOUZVeElCWWp3d3cweVc3NVRSNTVUVUR6?=
+ =?utf-8?B?eWFjYUp6V0NrQmtpWnBOaHlVUFZrdGg5N3ZRTXhFdXE3WEk5WVpaOGZKdGo1?=
+ =?utf-8?B?NzdwR29FeC9FNXJqWHo0d3EybE9PdDhqL3Y0cCsyZHI0MXA5THYzYVBMdjFF?=
+ =?utf-8?B?ZVVwMWMzcXNSUm0xS3pwR202KzBETXZYb0FKcDUxYis0TGZ1MVB4VnozUnU1?=
+ =?utf-8?B?ako0U0p3YnZ2MkpnVXRvdC9WVHFPNzZyVXR5UEo3N3BsOW5FQmJZZEk5RVZV?=
+ =?utf-8?B?blBZTjdsNGVNT0F5MlNxYjVxc0Ridi94a0JUZVlHMS9SRFFWUVJDekhIa3hC?=
+ =?utf-8?B?U2NHTkFoMjYxMU9wR044R2RNQWQ1cUVBeXV6MkMrRUkxMGJzT0RmSDZlYUdx?=
+ =?utf-8?B?RVFtaW52Tm1xdkJvbnZUR2F6clgyeHRSVVBweVhvU0Z0bVBPQ2daM3BtUzRy?=
+ =?utf-8?B?T3M1ZUM4SXlWVnQ1S3ZtbnRvNjludjRQcGdOY0o0M0VrZ0xjUk9XSjl3ZFZw?=
+ =?utf-8?B?eUVTOWtNNmlEVnBGbTFackEzTFZZSUFtNXhvd1pQS0JWdmJwTFJMN3JkQmhD?=
+ =?utf-8?B?aFFnS1l0VEIxZXFITi9idWZCcndxZFArMmc1aStqUnRUcmc0dGYyd0FOYTlI?=
+ =?utf-8?B?Y05VV0Z6Q040ajdLNDRsekVka2VGd0lueS9LRXVlZVZXc2I0Y2dmZDRwTU1h?=
+ =?utf-8?B?U3ZJOXczV3RIaFpDY3BJKzkwQnpkOGlKZ1piM2haZDkvVXIwYWI4aEYvNkdJ?=
+ =?utf-8?B?Q2M5UGc2UjVzZXJodlBZekxUTnFzN2hnMEJWOGZUZG80SEJpUTJkK3JSR0oy?=
+ =?utf-8?B?UE9DOFkwYVRTb1VFUmZjT1pPWVJkem1tdGtiaWYzbDA4WXE4RGJSUWZwdlMz?=
+ =?utf-8?B?MUI1eU5LRFA3bkpuQUJuekFJamxFc0hDMWFOcHdmU1Q5RDVrSGVUc3MrT2V5?=
+ =?utf-8?B?MmhHcE80THZEUlJlL0wzVjR2UkhnTm8raXdheFEySW8xMkNOWDRnVmlRUFAy?=
+ =?utf-8?B?cEYvVEFGRUE0R3JENHh5N2tJMCtlUFpRZVpMODJhSWpZeG1xSHVXWlNkQUlp?=
+ =?utf-8?B?OW5DeEZheDlWNDIwOHZvWmdibUpKQ2Nudy9SblVndG9SWTdLTXpGWHlEei9l?=
+ =?utf-8?B?cGhydnlIelNkSDl5cURYSHVBQVBUTHZwdmtkYi9Lc0xYWW1QVyt6K1dYc0NU?=
+ =?utf-8?B?NmZYVDBieWpGNUxqWUo2K09WOWdCSldsaXZpb2tBU2JuRmpJVXBpWmFrSVlC?=
+ =?utf-8?B?amZJbWVYR0lWWElRcmxzbTZPbkNReUlBQU9MczVBdW1JSTg1Z2JIbFBtOFRS?=
+ =?utf-8?B?SHR5M1ZyUGJJdkJldlFDSmk4Yi9CZTN0R20zVDlmdFkvQVhCWlNqd01uY3dP?=
+ =?utf-8?B?SXJMdy9rU25DQUxSekNOaWxkbUFBaWJEMXhHVzJLZ2tZbGp0bXVUaDdFRXMr?=
+ =?utf-8?B?TW94MGZQSlo2bGNmWVdiVU1Cb0pmS055WWdOQjFFdHRFdkhNOUczY0o4M0VY?=
+ =?utf-8?B?UFNWaGdjTVRSNWZHb1dnM1FIaWtmQU5ZZnluTlJ3UXRxOXBOMHI1VjZQSmMx?=
+ =?utf-8?B?cXY3NGprVDhJRWo4SHBDNGlFVjNSZjJNSnBuVHV5QkN6cTFXTnlKUU5NSXBy?=
+ =?utf-8?B?MWtsZjFqZjZ0dk10SG1NMHNuUkZ3N3QzeUdwM29wRU0ybkw2RjMwZ1BLbEdv?=
+ =?utf-8?B?K3l2WjIxM0ZVcHJ2L2tSSXFXeUh5TlI1WDZVcU12UEVaeUp5eHB6UT09?=
+X-OriginatorOrg: atomlin.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 4213e8ee-68bb-406a-33e7-08deef1514f6
+X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 31 Jul 2026 15:04:56.0368
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: X79n0DXwvxyJDoK4HDd4ZEbR9nGFfThib64Xb35l3dFIVIO+dxjlvg/TMv0aiws5op3BqLD/rW/mi/guYTNemA==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: LOYP123MB3407
 
-On Tue, Jul 07, 2026 at 03:27:07PM +0100, Mark Brown wrote:
-> On Thu, Jul 02, 2026 at 09:47:24AM +0200, Christian Brauner wrote:
-> > On Sun, 31 May 2026 12:49:46 +0200, Jori Koolstra wrote:
-> > > vfs: missing inode operation should return a consistent error code
-> > 
-> > I've stuffed this on a separate branch. Let's see whether we see any
-> > fallout.
+On Thu, Jul 23, 2026 at 10:47:42PM -0400, Aaron Tomlin wrote:
+> Currently, the "module_blacklist=" command-line parameter only applies to
+> loadable modules. If a module is built-in, the parameter is silently
+> ignored. This patch series extends the blacklisting functionality to
+> built-in modules by intercepting their initialisation routines during early
+> boot.
 > 
-> I'm seeing a failure in the chdir01 LTP test on arm64, everything seems
-> to work fine apart from vfat:
+> Following review feedback, the implementation has been split into two
+> separate changes to decouple the introduction of the new feature from the
+> terminology renaming:
 > 
-> tst_buffers.c:57: TINFO: Test is using guarded buffers
-> L5023tst_tmpdir.c:316: TINFO: Using /tmp/LTP_chdkVKCfH as tmpdir (tmpfs filesystem)
-> L5024tst_device.c:98: TINFO: Found free device 0 '/dev/loop0'
-> L5025tst_test.c:2047: TINFO: LTP version: 20260130
-> L5026tst_test.c:2050: TINFO: Tested kernel: 7.2.0-rc2-next-20260707 #1 SMP PREEMPT @1783429165 aarch64
-> L5027tst_kconfig.c:88: TINFO: Parsing kernel config '/proc/config.gz'
-> L5028tst_test.c:1875: TINFO: Overall timeout per run is 0h 00m 40s
+>     1.  The first patch extends the "module_blacklist=" parameter to
+>         built-in modules using the original blacklist terminology. It
+>         introduces the ".initcall.modnames" section to map initcall
+>         function pointers to their associated KBUILD_MODNAME strings
+>         (restricted only to module_init() invocations to save memory and
+>         avoid matching core kernel subsystems). It also restricts the check
+>         to a boot-time __init wrapper to eliminate Use-After-Free (UAF) and
+>         Spectre v1 vulnerability risks when loading dynamic modules at
+>         runtime, and adds a fast-path check to eliminate lookup overhead
+>         when the parameter is not in use
 > 
-> ...
-> 
-> tst_test.c:1985: TINFO: === Testing on vfat ===
-> L5158tst_test.c:1290: TINFO: Formatting /dev/loop0 with vfat opts='' extra opts=''
-> L5159tst_test.c:1302: TINFO: Mounting /dev/loop0 to /tmp/LTP_chdkVKCfH/mntpoint fstyp=vfat flags=0
-> L5160chdir01.c:85: TBROK: Cannot create symlinks: EOPNOTSUPP (95)
-> 
-> Looks like a changed the error code here has confused the test's feature
-> detection.  How many non-LTP applications have the same detection
-> algorithm is a separate question.
-> 
-> A full log may be visible at:
-> 
->   https://lava.sirena.org.uk/scheduler/job/2954697#L5157
+>     2.  The second patch renames the variables and helper functions to
+>         adopt the preferred "module_denylist=" and module_is_denylisted()
+>         terminology in the codebase. To preserve the existing user-space
+>         ABI, "module_blacklist=" is kept as a legacy alias pointing to the
+>         same module_denylist variable
 
-Dropped.
+Hi Petr,
+
+Please note that the subject of this cover letter should read: "module:
+Extend module_blacklist parameter to built-in modules". This iteration
+should address all of your concerns raised [1]. Thank you.
+
+[1]: https://lore.kernel.org/lkml/2cada244-171d-45cb-a6f0-46e6a09375c7@suse.com/
+
+Kind regards,
+-- 
+Aaron Tomlin
