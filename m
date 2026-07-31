@@ -1,162 +1,189 @@
-Received: from CWXP265CU010.outbound.protection.outlook.com (mail-ukwestazon11022133.outbound.protection.outlook.com [52.101.101.133])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2AFFD435EF0;
-	Fri, 31 Jul 2026 15:05:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.101.133
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785510302; cv=fail; b=QriYBwV8GX6MVBo4YmdLgXY9hIU+0uzpM8EfSiPGlx2OrdF2DDyVjJuUkKWv9W/OHMATXQS61HG2GpjjKmuuTEa/Tmvu/Sbf0E0VH9fAtFTCRn8JWuPCZiHMuellurDTdAjYBkzzpDJIIGaYtpoL8VzoPvh9LSQIQY4Yis1bGmE=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785510302; c=relaxed/simple;
-	bh=a10YCCyBGsbf/rzqb/EzBcjBj6AbB6uYD4UBUuUAa7c=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=n5Aes6RrRd71CYRmeXvZ5oK3R0EKUyOgkjPkgMN8fezgao/Z/Kho4BITIK+jWGJolk6KsPGb1QdSfNSRJ0NUtfwujhbR2JWhWoARGvjTIevH6Nr1uYD+pNBkyo0G1AFSU0mGP3UCj0LY3XuRKm+D4BgP2Ub1A/5IiWIjbNGlbCQ=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.101.133
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=fRD6ZvNKBnnsD6viZl1cIKNE64gLs41iNCOpYhBFmvinHSXTbcX8Dr+CPY9R4L8U7mkATjZw9WZ3iQmrkZq1SfGfuLctuBFsBVYbSd7oTMyhO78uDNg+chWYVgSQDWGcSTu2Cv8UOws2qk/RuevDEYcHENt4YIP3UW+EuiVKpOv+H40rkH3J87X46d2yu33ZcZ2iERH9nt3Ypy5y28jCffvgnxRe6NGqZSli0+0Z1j+9k9GivSndJ1leLMCDhQid0GoH/rJ2fWXXIc3yfmpTSFnZo9ZKLvwx9t8ujkSuPKKcHLmmKW2vkS/RqiyXGQuiXUqwI0SguTWYa5QenRSP8Q==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
- bh=8M9NFlPHu3Bu/wruJiL0lHoH7d5Zm3ZbxPJVIMLi370=;
- b=bn3nxgpJQx+U2G6lobbIoqMMtZ1qv21ksxIpJITFYs2dmYk1LRicg/w3I/8993DWdBGJMGxcZGkvijaVp9vdLGC3tXMX7T6tPVIlruL79VK9CjIPQIarUlydms9Eeg8FNIFeVaj0/HzCKPu7ufmooWsdV9WTfBdD6KvVUf7ZBvrpULkIwOxJKtARtCyJFRAzrv3xT41C7QOZ17r8hPc45OpkJk2YpAIiEWNmJ8tZOInYUNDjbFapo4xBZTKr+i/oArW8+0sv59gJlN9+jQPsf2WkkfE7sStYDdtNLkjQ3Z6icqHyussGNzbCg/I/YMdrD2rAXA2lOxtedLMqU1g/ig==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
- dkim=pass header.d=atomlin.com; arc=none
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=atomlin.com;
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
- by LOYP123MB3407.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:119::12) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.270.15; Fri, 31 Jul
- 2026 15:04:56 +0000
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0270.012; Fri, 31 Jul 2026
- 15:04:56 +0000
-Date: Fri, 31 Jul 2026 11:04:51 -0400
-From: Aaron Tomlin <atomlin@atomlin.com>
-To: arnd@arndb.de, mcgrof@kernel.org, petr.pavlu@suse.com, 
-	da.gomez@kernel.org, samitolvanen@google.com, peterz@infradead.org
-Cc: akpm@linux-foundation.org, mhiramat@kernel.org, neelx@suse.com, 
-	da.anzani@gmail.com, sean@ashe.io, chjohnst@mail.com, steve@abita.co, 
-	mproche@mail.com, nick.lane@mail.com, linux-arch@vger.kernel.org, 
-	linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v8 0/2] module: Rename module_blacklist to module_denylist
-Message-ID: <cdrr2r7j7auy4yxmapa4dn3e6xycs42hjjyff7lqgxs5ailcuz@kgpqnq4guu4s>
-References: <20260724024744.616286-1-atomlin@atomlin.com>
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20260724024744.616286-1-atomlin@atomlin.com>
-X-ClientProxiedBy: BL0PR05CA0030.namprd05.prod.outlook.com
- (2603:10b6:208:91::40) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- (2603:10a6:400:183::5)
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 6524226056C;
+	Fri, 31 Jul 2026 22:34:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1785537282; cv=none; b=R5Z3H3FqxPWgd7u6SZGIOb+SoLZqGM1pgb9a+kTkB8HpUUARTq1KDI8VvR0y+yzO2bTbmmrSL4xhl0MMUTtECMwzAmyFvq+MkPwZBKLGNwec14hpV8tSJfKtccxgOy1oMQQqGXTCGnqO00evAFLWNmOGe6hwkCSIga9CT5cuQTY=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1785537282; c=relaxed/simple;
+	bh=Go56wDtdxVSIjd60pcKnP/EUz+fKoX4bdkYeJ4wav/0=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=NwSIRIVYTR9HsPl17dgXOXQzbk7HrbNRPuVhOJXklkG2NXMfrQkRjYtg3o/0vjATkO0jVHaRceF3vm8cRQ1SWQpvh2b3w1YnSc9o/P0uUIYTBVDRESor+RCHIFH+SFDl2UZTLSstLCCeMRpNi//bqItnsYALoO7myE1Ms82MR/g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=ZGKvFfbb; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="ZGKvFfbb"
+Received: from mrdev.corp.microsoft.com (unknown [40.78.13.173])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 6DB1720B7166;
+	Fri, 31 Jul 2026 15:34:20 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 6DB1720B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1785537261;
+	bh=WF931toiOijalALrtjOOqmAvlDdB9X6QNv8FHrD3gKk=;
+	h=From:To:Cc:Subject:Date:From;
+	b=ZGKvFfbb1DSpuSsfU1MglpIIWkzzBtYpSTk9Xfl3sMFNMf+JKYIf15GlBtI+SZSFI
+	 y96U/cFJOFSe49ynWfnT8MH5czZJZ2iRctOup0v1ojddl/JnSfbG8bCyr79L3L398s
+	 3cQjtLaXhXd+S+pssxS80OwTPg8YINNn1LxyFy7c=
+From: Mukesh R <mrathor@linux.microsoft.com>
+To: hpa@zytor.com,
+	robin.murphy@arm.com,
+	robh@kernel.org,
+	wei.liu@kernel.org,
+	mrathor@linux.microsoft.com,
+	mhklinux@outlook.com,
+	muislam@microsoft.com,
+	namjain@linux.microsoft.com,
+	magnuskulke@linux.microsoft.com,
+	anbelski@linux.microsoft.com,
+	linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org,
+	iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Cc: jgg@nvidia.com,
+	kys@microsoft.com,
+	haiyangz@microsoft.com,
+	decui@microsoft.com,
+	longli@microsoft.com,
+	tglx@kernel.org,
+	mingo@redhat.com,
+	bp@alien8.de,
+	dave.hansen@linux.intel.com,
+	x86@kernel.org,
+	joro@8bytes.org,
+	will@kernel.org,
+	lpieralisi@kernel.org,
+	kwilczynski@kernel.org,
+	bhelgaas@google.com,
+	arnd@arndb.de,
+	jacob.pan@linux.microsoft.com
+Subject: [PATCH v5 0/9] PCI passthru on Hyper-V
+Date: Fri, 31 Jul 2026 15:34:18 -0700
+Message-ID: <20260731223427.2554388-1-mrathor@linux.microsoft.com>
+X-Mailer: git-send-email 2.51.2.vfs.0.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LOYP123MB3407:EE_
-X-MS-Office365-Filtering-Correlation-Id: 4213e8ee-68bb-406a-33e7-08deef1514f6
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|376014|23010399003|7416014|366016|1800799024|6133799003|10067099003|56012099006|18002099003|22082099003;
-X-Microsoft-Antispam-Message-Info:
-	83lwCbyRjD4tmsJ2mN/hzi85z3vLfQsq2Bh8tdKnIVgcsinI1j5/P1orqq99QvRZzjzHswOQR1Une/R5Uxz7XvsVpkJparjm/bTKZiOMuE1o4xj9i4ecM5wj24ZOK9LSjy/JPC+bKnJyKXU/UfhikSouqn/RGuFgXJg37WHcQ8ZI/cGUxcU9+mE5DkPBjv2yN1zZsPFCr0o8jXr+GO6ycdLxsMB8Lu7rI1qf0gPd6rImdqT0Wm2t8nqJMqZM3532zii+8ZF9Pp/yriuJIvRiRj7cxDYZAOs3ulf6tATmWhzYKaqREeDOh4bHwdzkdPmlv6u0J4en7wxSh+Sp6YFwIT0YpsqP71viboiLKKmkSql1jI2DtgflsJRYcelFG3J8Ib97VEZtNOs/+BY5fVkosvdDlqSuu1nRNpolyAWH+wKxQ72v7KKfh79blBxHW5itRyI0lmAduc66TNnkrXbdWsCmr7aTpRObWoFUffoH6Uz7N7iPo4ktSXElUJzPY1tJqejkwoBqTa2azfkmLNfm7nHXS/+9Qa04eP06kjp39NFKyouQdMHZkiq0ibfPprYDH698FXR7aOf8PdLiFFsEDZttQDOoFt3JJOCPB9gXymRyv5XqwGVMjNUf6m0jdoCeF1nPm5R8+BTR0xJP4qv4HF2Pd51y02BgUA7owxN7iI8=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(376014)(23010399003)(7416014)(366016)(1800799024)(6133799003)(10067099003)(56012099006)(18002099003)(22082099003);DIR:OUT;SFP:1102;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?OE15bDN5bEVYYXhEZHNuQkcxSUlXNDIrL0plNGNsMFh2YzIwK0t4TFh4WHIz?=
- =?utf-8?B?b2IyVnFYcWt4d0Y4enVWYlVqKzZOdnlCWk1VNDVQb0xlTG5UT2NrNTZ6Zm1q?=
- =?utf-8?B?SHRVcEhySEM3YWsySHAwNy9PQ3JOTlljT0R1cy9VTkdkVXNMalJkTjdpWUtq?=
- =?utf-8?B?dE05OWtycWg0RXpZZ2pYQnFlR3pVS1YwU3Z3SitlT28rSEs3ZGdhQTR4aThG?=
- =?utf-8?B?QURJSnVDNWEwK0Y1bVFLVGw4a1FRbWZ1NEhRL0ozSnpvTXA4d0VLaUZWdlV4?=
- =?utf-8?B?blNLR1FtMEhnMmM4UDQ0NkZwTTJYWlpYbUFna1p3KzNvRkd6KzRkbFdmMkdW?=
- =?utf-8?B?Y1dpdCszM25jZjdtNS8xS2ZQeWgvUXhwZjZFWWpjRnYxU3h1Z3Mzay9tOHZP?=
- =?utf-8?B?ek9PTTBPQzdxRDl4aWwwMklwaUd2dFRZa1NqOVd0QnFXY29UcWo0WForOHFR?=
- =?utf-8?B?WEk1Zk9pcVlZMDhpcUxvRytLTnRKNVQrOUFuc1B3V1VjZDVVVHpWQm4vWFdJ?=
- =?utf-8?B?dVQ5azhNZG5vZk9xR3VCcmlrcVllOTJuYy9ZUHpvRkpXbmNjWUlHaXl0Umxz?=
- =?utf-8?B?T0FWbkcrQjZ2UWdXSUFkcGhpM21XOUZVeElCWWp3d3cweVc3NVRSNTVUVUR6?=
- =?utf-8?B?eWFjYUp6V0NrQmtpWnBOaHlVUFZrdGg5N3ZRTXhFdXE3WEk5WVpaOGZKdGo1?=
- =?utf-8?B?NzdwR29FeC9FNXJqWHo0d3EybE9PdDhqL3Y0cCsyZHI0MXA5THYzYVBMdjFF?=
- =?utf-8?B?ZVVwMWMzcXNSUm0xS3pwR202KzBETXZYb0FKcDUxYis0TGZ1MVB4VnozUnU1?=
- =?utf-8?B?ako0U0p3YnZ2MkpnVXRvdC9WVHFPNzZyVXR5UEo3N3BsOW5FQmJZZEk5RVZV?=
- =?utf-8?B?blBZTjdsNGVNT0F5MlNxYjVxc0Ridi94a0JUZVlHMS9SRFFWUVJDekhIa3hC?=
- =?utf-8?B?U2NHTkFoMjYxMU9wR044R2RNQWQ1cUVBeXV6MkMrRUkxMGJzT0RmSDZlYUdx?=
- =?utf-8?B?RVFtaW52Tm1xdkJvbnZUR2F6clgyeHRSVVBweVhvU0Z0bVBPQ2daM3BtUzRy?=
- =?utf-8?B?T3M1ZUM4SXlWVnQ1S3ZtbnRvNjludjRQcGdOY0o0M0VrZ0xjUk9XSjl3ZFZw?=
- =?utf-8?B?eUVTOWtNNmlEVnBGbTFackEzTFZZSUFtNXhvd1pQS0JWdmJwTFJMN3JkQmhD?=
- =?utf-8?B?aFFnS1l0VEIxZXFITi9idWZCcndxZFArMmc1aStqUnRUcmc0dGYyd0FOYTlI?=
- =?utf-8?B?Y05VV0Z6Q040ajdLNDRsekVka2VGd0lueS9LRXVlZVZXc2I0Y2dmZDRwTU1h?=
- =?utf-8?B?U3ZJOXczV3RIaFpDY3BJKzkwQnpkOGlKZ1piM2haZDkvVXIwYWI4aEYvNkdJ?=
- =?utf-8?B?Q2M5UGc2UjVzZXJodlBZekxUTnFzN2hnMEJWOGZUZG80SEJpUTJkK3JSR0oy?=
- =?utf-8?B?UE9DOFkwYVRTb1VFUmZjT1pPWVJkem1tdGtiaWYzbDA4WXE4RGJSUWZwdlMz?=
- =?utf-8?B?MUI1eU5LRFA3bkpuQUJuekFJamxFc0hDMWFOcHdmU1Q5RDVrSGVUc3MrT2V5?=
- =?utf-8?B?MmhHcE80THZEUlJlL0wzVjR2UkhnTm8raXdheFEySW8xMkNOWDRnVmlRUFAy?=
- =?utf-8?B?cEYvVEFGRUE0R3JENHh5N2tJMCtlUFpRZVpMODJhSWpZeG1xSHVXWlNkQUlp?=
- =?utf-8?B?OW5DeEZheDlWNDIwOHZvWmdibUpKQ2Nudy9SblVndG9SWTdLTXpGWHlEei9l?=
- =?utf-8?B?cGhydnlIelNkSDl5cURYSHVBQVBUTHZwdmtkYi9Lc0xYWW1QVyt6K1dYc0NU?=
- =?utf-8?B?NmZYVDBieWpGNUxqWUo2K09WOWdCSldsaXZpb2tBU2JuRmpJVXBpWmFrSVlC?=
- =?utf-8?B?amZJbWVYR0lWWElRcmxzbTZPbkNReUlBQU9MczVBdW1JSTg1Z2JIbFBtOFRS?=
- =?utf-8?B?SHR5M1ZyUGJJdkJldlFDSmk4Yi9CZTN0R20zVDlmdFkvQVhCWlNqd01uY3dP?=
- =?utf-8?B?SXJMdy9rU25DQUxSekNOaWxkbUFBaWJEMXhHVzJLZ2tZbGp0bXVUaDdFRXMr?=
- =?utf-8?B?TW94MGZQSlo2bGNmWVdiVU1Cb0pmS055WWdOQjFFdHRFdkhNOUczY0o4M0VY?=
- =?utf-8?B?UFNWaGdjTVRSNWZHb1dnM1FIaWtmQU5ZZnluTlJ3UXRxOXBOMHI1VjZQSmMx?=
- =?utf-8?B?cXY3NGprVDhJRWo4SHBDNGlFVjNSZjJNSnBuVHV5QkN6cTFXTnlKUU5NSXBy?=
- =?utf-8?B?MWtsZjFqZjZ0dk10SG1NMHNuUkZ3N3QzeUdwM29wRU0ybkw2RjMwZ1BLbEdv?=
- =?utf-8?B?K3l2WjIxM0ZVcHJ2L2tSSXFXeUh5TlI1WDZVcU12UEVaeUp5eHB6UT09?=
-X-OriginatorOrg: atomlin.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 4213e8ee-68bb-406a-33e7-08deef1514f6
-X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 31 Jul 2026 15:04:56.0368
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: X79n0DXwvxyJDoK4HDd4ZEbR9nGFfThib64Xb35l3dFIVIO+dxjlvg/TMv0aiws5op3BqLD/rW/mi/guYTNemA==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: LOYP123MB3407
+Content-Transfer-Encoding: 8bit
 
-On Thu, Jul 23, 2026 at 10:47:42PM -0400, Aaron Tomlin wrote:
-> Currently, the "module_blacklist=" command-line parameter only applies to
-> loadable modules. If a module is built-in, the parameter is silently
-> ignored. This patch series extends the blacklisting functionality to
-> built-in modules by intercepting their initialisation routines during early
-> boot.
-> 
-> Following review feedback, the implementation has been split into two
-> separate changes to decouple the introduction of the new feature from the
-> terminology renaming:
-> 
->     1.  The first patch extends the "module_blacklist=" parameter to
->         built-in modules using the original blacklist terminology. It
->         introduces the ".initcall.modnames" section to map initcall
->         function pointers to their associated KBUILD_MODNAME strings
->         (restricted only to module_init() invocations to save memory and
->         avoid matching core kernel subsystems). It also restricts the check
->         to a boot-time __init wrapper to eliminate Use-After-Free (UAF) and
->         Spectre v1 vulnerability risks when loading dynamic modules at
->         runtime, and adds a fast-path check to eliminate lookup overhead
->         when the parameter is not in use
-> 
->     2.  The second patch renames the variables and helper functions to
->         adopt the preferred "module_denylist=" and module_is_denylisted()
->         terminology in the codebase. To preserve the existing user-space
->         ABI, "module_blacklist=" is kept as a legacy alias pointing to the
->         same module_denylist variable
+Implement passthru of PCI devices to unprivileged virtual machines
+(VMs) when Linux is running as a privileged VM on Microsoft Hyper-V
+hypervisor. This support is made to fit within the workings of VFIO
+framework. This supports both full device passthru and SR-IOV based VFs.
 
-Hi Petr,
+At a high level, the hypervisor supports traditional paging iommu domains
+that use explicit map and unmap hypercalls for mapping and unmapping
+guest RAM into the iommu subsystem. Hyper-V also has a concept of direct
+attach devices (DDA) whereby the iommu subsystem simply uses the guest
+HW page table (ept/npt/..). This series adds support for the former.
 
-Please note that the subject of this cover letter should read: "module:
-Extend module_blacklist parameter to built-in modules". This iteration
-should address all of your concerns raised [1]. Thank you.
+This series rebased to: a4ffc59238be (origin/hyperv-next)
 
-[1]: https://lore.kernel.org/lkml/2cada244-171d-45cb-a6f0-46e6a09375c7@suse.com/
+Testing:
+ o Most testing done on hyperv-next:a4ffc59238be using Cloud Hypervisor (51).
+ o All tests involved passthru of devices using MSIx.
+ o Tested on Baremetal dom0/root: 
+       test 1: Mellanox ConnectX-6 Lx passthru
+       test 2: NVIDIA Tesla Tesla T4 GPU.
+       test 3: Both of above simultaneous passthru
+ o VF: Mellanox ConnectX-6 Lx passthru 
 
-Kind regards,
+This series strives to establish a base line. Some pending work items:
+ o arm64 : some delta to make this work on arm64 (in progress).
+ o Qemu and OpenVMM support (in progress).
+ o device sleep/wakeup.
+ o More stress testing with high end GPUs
+
+Changes in V5:
+ o enforce no multiple vms per vmm instance
+ o make struct mshv_vfio_device_ops const
+ o add WARN to iommu call. delete mappings in domain free
+ o mmio_mfn++ in large page check in hv_map_mmio_pages()
+ o no need to pass gfn to hv_map_mmio_pages()
+ o use region access to make mmio mappings ro or rw
+
+Changes in V4:
+ o Completely remove direct device attach (DDA) support 
+ o Remove first two patches that were submitted separately and are
+   already merged.
+ o Change hv_iommu_unmap_pages() to unmap in batches of HV_REP_COUNT_MAX,
+   otherwise if a physical range happens to be larger than that, there would 
+   be errors from the hypercall.
+ o Use large page (2M) flag for mmio mappings as internal testing found
+   that to speed things up greatly.
+ o rename hv_no_movbl_pgs to hv_memreg in last patch.
+
+Changes in V3:
+ o patch #8: fix compiler issues incase of !CONFIG_HYPERV. Also, do forward
+   declaration of struct pci_dev instead of including pci.h.
+ o patch #9: minor changes to comments. Pass hv_domain instead of 
+   iommu_domain to hv_iommu_detach_dev() since that's what it needs. Set
+   device private to null if attach fails. Clam down number of PFNs passed
+   to hv_iommu_map_pgs().
+
+Changes in V2:
+ o rebase to 5170a82e8921
+ o minor fixes for arm64 build
+ o drop patch 03: "x86/hyperv: add insufficient memory support in irqdomain.c" 
+     as it that path is no longer used
+ o drop patch 08: "PCI: hv: rename hv_compose_msi_msg .. " and do it separately
+   outside this series.
+ o minor updates to commit messages
+
+Changes in V1:
+ o patch 1: Don't tie hyperv-irq.c to CONFIG_HYPERV_IOMMU.
+ o patch 4: Redesigned to address security vulnerability found by copilot 
+            with passing tgid as a parameter.  Also, do tgid setting right 
+            after setting pt_id.
+ o patch 5: Remove unused type parameter from mshv_device_ops.device_create
+ o patch 7: mshv_partition_ioctl_create_device cleanup on copy_to_user.
+ o patch 10: Add export of hv_build_devid_type_pci here to get rid of 
+             patch 11.
+ o patch 12: Move functions to build device ids from patch 11 here for
+             the benefit of arm64. Rename file to: hyperv-iommu-root.c.
+ o patch 13: removed to be made part of interrupt part II of this support.
+ o patch 14: get rid of fast path to reduce review noise.
+ o New (last) patch to pin ram regions if device passthru to a VM.
+
+Thanks,
+-Mukesh
+
+Mukesh R (9):
+  mshv: Provide a way to get partition ID if running in a VMM process
+  mshv: Add declarations and definitions for VFIO-MSHV bridge device
+  mshv: Introduce basic mshv bridge device for VFIO to build upon
+  mshv: Add ioctl support for MSHV-VFIO bridge device
+  mshv: Import data structs around device passthru from hyperv headers
+  PCI: hv: Export hv_build_devid_type_pci() and change return type
+  x86/hyperv: Implement Hyper-V virtual IOMMU
+  mshv: Populate mmio mappings for PCI passthru
+  mshv: Disable movable regions upfront if device passthru
+
+ arch/x86/hyperv/irqdomain.c          |   9 +-
+ arch/x86/include/asm/mshyperv.h      |   6 +
+ arch/x86/kernel/pci-dma.c            |   2 +
+ drivers/hv/Makefile                  |   3 +-
+ drivers/hv/mshv_root.h               |  24 +-
+ drivers/hv/mshv_root_hv_call.c       | 104 +++-
+ drivers/hv/mshv_root_main.c          | 287 ++++++++++-
+ drivers/hv/mshv_vfio.c               | 211 ++++++++
+ drivers/iommu/Kconfig                |   1 +
+ drivers/iommu/hyperv/Kconfig         |  15 +
+ drivers/iommu/hyperv/Makefile        |   1 +
+ drivers/iommu/hyperv/hv-iommu-root.c | 706 +++++++++++++++++++++++++++
+ include/asm-generic/mshyperv.h       |   8 +
+ include/hyperv/hvgdk_mini.h          |   8 +
+ include/hyperv/hvhdk_mini.h          |  67 +++
+ include/linux/hyperv.h               |   6 +
+ include/uapi/linux/mshv.h            |  31 ++
+ 17 files changed, 1440 insertions(+), 49 deletions(-)
+ create mode 100644 drivers/hv/mshv_vfio.c
+ create mode 100644 drivers/iommu/hyperv/Kconfig
+ create mode 100644 drivers/iommu/hyperv/hv-iommu-root.c
+
 -- 
-Aaron Tomlin
+2.51.2.vfs.0.1
+
