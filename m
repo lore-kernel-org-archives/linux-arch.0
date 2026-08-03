@@ -1,179 +1,132 @@
-Received: from va-2-115.ptr.blmpb.com (va-2-115.ptr.blmpb.com [209.127.231.115])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out-186.mta0.migadu.com (out-186.mta0.migadu.com [91.218.175.186])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2278039F168
-	for <linux-arch@vger.kernel.org>; Mon,  3 Aug 2026 07:13:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.115
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 00CA333A71B
+	for <linux-arch@vger.kernel.org>; Mon,  3 Aug 2026 08:39:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.186
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785741219; cv=none; b=k7ZPxn5YvVTKGg3d7TjGt+kmdMtZzuUup2PqV0Z1W3vSlpYlyMjiID7mLJBXhbmmZIfU2i3UF9ljv7XRZmOUzestjbQAw7vKdGCGWwneQUHNF7UR9bclFK4non49trXBcc0w00tH3ai47MKaAgObMgOUVfPLrg9sloQK7Mff1fQ=
+	t=1785746397; cv=none; b=QR2RXonnodGf9LwXDDy92J8sXrZD3DJ4XN6SdJemxq47B0SAYnV3h9bjk+WomlRwfjUDFpWUhOMNyiBcRhUndgasBinkYVHXDT+oVKxmW8jFgvjNMS7VbIh8V0GmDJ9lMmkAhqsy8Lf3QJ0ogV5Yag9JHB91leMF7Hw5TT6Zj8s=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785741219; c=relaxed/simple;
-	bh=TMtTGhhxZdFRxGsPHF5jJUnWLZuizSJM5R4OEVYMfjs=;
-	h=Content-Type:From:Message-Id:Mime-Version:In-Reply-To:References:
-	 To:Subject:Cc:Date; b=gTSubqYcQTQXhmkS/h0eRHOS89a7M6LJ8mtcuFsaWFvBV8dfU7urrMUCvUEuqmCYseVBg4kCueoSu98rHGEex0HGF9gLN0pvTKQi4mdpgklbGLaBfpjmzhOsxsb22n0MjwmKqrNW7S7MlY4CBrhE6N+4NpPpSsHR4fsDOmvjE4g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=codJXF7y; arc=none smtp.client-ip=209.127.231.115
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1785746397; c=relaxed/simple;
+	bh=i84saUSnhw4dvsL73qjIQ2iV2KAmszYV6bPiQqIQTao=;
+	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
+	 Message-Id:References:To; b=tEulU0SfTRBfG0wFECi9vkPaqwi4LHxnAJdEAS2BpSgb7fCw6hg6ObaumdPkqKB+vVLA/eHkusPNDjojOgkymBd72P8ut6lh/Ie0KqiAKmw/Al2RC/pxPMsl9R7DGnSANnrDxuYMUh/MCaS5vTW1xK9OOSXQ7yo3QIgjSzLosrU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=wdsCv7xa; arc=none smtp.client-ip=91.218.175.186
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="codJXF7y"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1785741205; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=/NdI+a5QV2PO1JVHqbHPiO12lvnhARSugrgjYx4LQKM=;
- b=codJXF7y65AkdNReRLLLe0+Haqt7xmpCtF1D14X9cofjoXsd8B37OkJK9od5YigNunGvXK
- 4xjGCBDBSb3KkPJTvLNYsU6EQ36Hhwaw9R1iKS4DsA/Mi41IRuqKXhpK2EnwAQaoXALC9T
- TTEJK1RsoxZ350Zzyet8W/NkYfTmotBWDJpc5/XRbu3Di9q7LqIS2A1+aYih0next75DJj
- bRrSgEDRKZZfk52WYpN8dT67ns/tvD4nJ1q9cX3VMTQ1WYRciMog5b32xzgzBtsrb4b3pl
- DnBNI5buM4XWWxXqv1WIgHOQOi/cvHRJf93f2UZMZOPL8yIXzo/6UhmAHrETgA==
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset=UTF-8
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Message-Id: <20260803070929.86075-9-lizhe.67@bytedance.com>
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="wdsCv7xa"
+Content-Type: text/plain;
+	charset=us-ascii
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1785746383;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=wxNx4GDWUihrljy6qO1iXM0vV/PzaZT1gUMrOo4agVk=;
+	b=wdsCv7xanZYH2lLaZyI3Sc9uLB26pn1JOIYwZ9hS4f3Niq4qYKa3hmPkDDPHMv9+KoyP+Y
+	1uDDNrgwUZtRohVsWHI7XXn084qZG9U++C08ZGVFIM4PqRpGXoUfSixe5S5F3oTiX181l+
+	AOf2bd5jSvafihaz7v81tiQb2XvwfhY=
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-X-Lms-Return-Path: <lba+26a703f93+495a21+vger.kernel.org+lizhe.67@bytedance.com>
-X-Mailer: git-send-email 2.45.2
-In-Reply-To: <20260803070929.86075-1-lizhe.67@bytedance.com>
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3864.600.51.1.1\))
+Subject: Re: [PATCH v9 4/8] mm: add a template-based fast path for zone-device
+ page init
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+From: Muchun Song <muchun.song@linux.dev>
+In-Reply-To: <20260803070929.86075-5-lizhe.67@bytedance.com>
+Date: Mon, 3 Aug 2026 16:39:22 +0800
+Cc: akpm@linux-foundation.org,
+ apopple@nvidia.com,
+ arnd@arndb.de,
+ balbirs@nvidia.com,
+ bp@alien8.de,
+ dave.hansen@linux.intel.com,
+ david@kernel.org,
+ kees@kernel.org,
+ mingo@redhat.com,
+ rppt@kernel.org,
+ tglx@kernel.org,
+ linux-arch@vger.kernel.org,
+ linux-hardening@vger.kernel.org,
+ linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org,
+ x86@kernel.org
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <CB22DBB6-0B52-46C2-9A19-4A18A6F6DEC1@linux.dev>
 References: <20260803070929.86075-1-lizhe.67@bytedance.com>
-To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
-	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
-	<muchun.song@linux.dev>, <rppt@kernel.org>, <tglx@kernel.org>
-Subject: [PATCH v9 8/8] x86/string: extend memcpy_flushcache() fixed-size fastpaths
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	<lizhe.67@bytedance.com>
-Date: Mon,  3 Aug 2026 15:09:29 +0800
+ <20260803070929.86075-5-lizhe.67@bytedance.com>
+To: Li Zhe <lizhe.67@bytedance.com>
+X-Migadu-Flow: FLOW_OUT
 
-The x86 memcpy_nontemporal() helper maps to memcpy_flushcache(), and the
-ZONE_DEVICE template-copy path uses it to copy one struct page at a
-time.
 
-The relevant copy size is sizeof(struct page). On x86_64, the base struct
-page layout is 64 bytes. Adding either the KMSAN metadata pointers or an
-out-of-flags last_cpupid field can make it 80 bytes after alignment, and
-enabling both can make it 96 bytes.
 
-memcpy_flushcache() currently only has inline fixed-size cases for 4, 8,
-and 16 bytes. As a result, these constant-sized struct page copies fall
-through to __memcpy_flushcache() even though the compiler knows the copy
-size at the call site.
+> On Aug 3, 2026, at 15:09, Li Zhe <lizhe.67@bytedance.com> wrote:
+>=20
+> memmap_init_zone_device() repeats nearly identical head-page
+> initialization for each PFN. Prepare one reusable ZONE_DEVICE =
+head-page
+> template through the existing slow path, refresh the PFN-dependent
+> fields in that template before each copy, and memcpy it into each
+> destination page.
+>=20
+> Use the template path unconditionally, as suggested by Muchun. The
+> page_ref_set tracepoint is primarily a debugging aid, while this code =
+is
+> still initializing struct pages before they are handed out. =46rom the
+> perspective of users of those pages, the initialization-time refcount
+> transitions are not part of the observable page lifetime.
+>=20
+> This means page_ref_set will no longer observe every =
+initialization-time
+> refcount assignment for copied ZONE_DEVICE head pages. The impact is
+> controlled because the final initialized struct page state is =
+unchanged,
+> and keeping a separate non-template path only for this local =
+tracepoint
+> observability would add complexity to the common path.
+>=20
+> This patch accelerates head-page initialization. The pfns_per_compound
+> =3D=3D 1 case gets the full benefit here, compound tails are handled =
+in the
+> next patch.
+>=20
+> Tested in a VM with a 100 GB fsdax namespace device configured with
+> map=3Ddev on Intel Ice Lake server. This test exercises the nd_pmem =
+rebind
+> path (pfns_per_compound =3D=3D 1).
+>=20
+> Test procedure:
+> Rebind the nd_pmem driver 30 times and collect the memmap =
+initialization
+> time from the pr_debug() output of memmap_init_zone_device().
+>=20
+> Base(v7.2-rc1):
+>  Average of rebinds for nd_pmem driver: 244.28 ms
+>=20
+> With this patch and its prerequisites applied:
+>  Average of rebinds for nd_pmem driver: 215.55 ms
+>=20
+> This reduces the average memmap initialization time measured during =
+rebind
+> from 244.28 ms to 215.55 ms, or about 11%.
+>=20
+> Suggested-by: Muchun Song <muchun.song@linux.dev>
 
-Add fixed-size MOVNTI cases up to 96 bytes so the ZONE_DEVICE
-template-copy path can keep these struct page copies in the inline
-memcpy_flushcache() path.
+I personally feel you might have used the wrong trailer here, because it
+implies that the overall design is based on someone's suggestion. But =
+for me,
+I think what you actually meant is that in a previous version, I made a
+suggestion about simplifying the code, rather than dictating the overall
+direction of this entire patch series. So I feel I shouldn't be credited =
+here.
+This information is already enough just appearing in the change log.
 
-This matters for ZONE_DEVICE memmap initialization because the copy
-happens once per initialized struct page. For a 100 GB fsdax namespace
-with map=dev, this is about 25 million struct page copies during nd_pmem
-binding or rebinding.
+Muchun,
+Thanks.
 
-Tested in a VM with a 100 GB fsdax namespace device configured with
-map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
-server.
 
-Test procedure:
-Rebind the nd_pmem and dax_pmem drivers 30 times and collect the memmap
-initialization time from the pr_debug() output of
-memmap_init_zone_device().
-
-With memcpy_nontemporal() used by the ZONE_DEVICE template-copy path:
-  Average of rebinds for nd_pmem driver: 150.83 ms
-  Average of rebinds for dax_pmem driver: 153.55 ms
-
-With this x86 fixed-size fastpath patch applied:
-  Average of rebinds for nd_pmem driver: 96.79 ms
-  Average of rebinds for dax_pmem driver: 119.04 ms
-
-This further reduces the average memmap initialization time measured
-during rebind by about 35.8% for nd_pmem and 22.5% for dax_pmem.
-
-Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
----
- arch/x86/include/asm/string_64.h | 56 +++++++++++++++++++++++++++++++-
- 1 file changed, 55 insertions(+), 1 deletion(-)
-
-diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
-index 21ae515ae35a..bc6a9f34b346 100644
---- a/arch/x86/include/asm/string_64.h
-+++ b/arch/x86/include/asm/string_64.h
-@@ -82,7 +82,35 @@ int strcmp(const char *cs, const char *ct);
- #ifdef CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE
- #define __HAVE_ARCH_MEMCPY_FLUSHCACHE 1
- void __memcpy_flushcache(void *dst, const void *src, size_t cnt);
--static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t cnt)
-+
-+static __always_inline void movnti_8(void *dst, const void *src)
-+{
-+	asm volatile("movntiq %1, %0"
-+		     : "=m"(*(u64 *)dst)
-+		     : "r"(*(const u64 *)src)
-+		     : "memory");
-+}
-+
-+static __always_inline void movnti_16(void *dst, const void *src)
-+{
-+	movnti_8(dst, src);
-+	movnti_8(dst + 8, src + 8);
-+}
-+
-+static __always_inline void movnti_32(void *dst, const void *src)
-+{
-+	movnti_16(dst, src);
-+	movnti_16(dst + 16, src + 16);
-+}
-+
-+static __always_inline void movnti_64(void *dst, const void *src)
-+{
-+	movnti_32(dst, src);
-+	movnti_32(dst + 32, src + 32);
-+}
-+
-+static __always_inline void memcpy_flushcache(void *dst, const void *src,
-+					      size_t cnt)
- {
- 	if (__builtin_constant_p(cnt)) {
- 		switch (cnt) {
-@@ -96,8 +124,34 @@ static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t
- 				asm ("movntiq %1, %0" : "=m"(*(u64 *)dst) : "r"(*(u64 *)src));
- 				asm ("movntiq %1, %0" : "=m"(*(u64 *)(dst + 8)) : "r"(*(u64 *)(src + 8)));
- 				return;
-+			/*
-+			 * The relevant fixed-size copies here are the
-+			 * x86_64 struct page sizes: 64, 80, and 96 bytes.
-+			 * Keep 32-byte and 48-byte copies inline as well
-+			 * instead of sending those nearby fixed-size
-+			 * cases back to __memcpy_flushcache().
-+			 */
-+			case 32:
-+				movnti_32(dst, src);
-+				return;
-+			case 48:
-+				movnti_32(dst, src);
-+				movnti_16(dst + 32, src + 32);
-+				return;
-+			case 64:
-+				movnti_64(dst, src);
-+				return;
-+			case 80:
-+				movnti_64(dst, src);
-+				movnti_16(dst + 64, src + 64);
-+				return;
-+			case 96:
-+				movnti_64(dst, src);
-+				movnti_32(dst + 64, src + 64);
-+				return;
- 		}
- 	}
-+
- 	__memcpy_flushcache(dst, src, cnt);
- }
- 
--- 
-2.20.1
