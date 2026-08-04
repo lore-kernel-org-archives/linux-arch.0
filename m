@@ -1,345 +1,271 @@
-Received: from mail-wm1-f43.google.com (mail-wm1-f43.google.com [209.85.128.43])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from fhigh-b7-smtp.messagingengine.com (fhigh-b7-smtp.messagingengine.com [202.12.124.158])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 25EC73A8384
-	for <linux-arch@vger.kernel.org>; Tue,  4 Aug 2026 07:57:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.43
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 455C6443AB3;
+	Tue,  4 Aug 2026 10:38:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.158
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785830249; cv=none; b=qkq10TMZCpZj9h7/Y2bOpGMTLH0KuXDGu3xRW1e06Jf1x6eaBXuGzjiDREkE34Lw9QdGwwzpMj3eXBgx0oqdRt8iWuBMqpjVBzzzUSOxfBnlrte5wnybZPknu1GGKYjSYRMr9zTfINaDwabaEW7f1jZ14YFWdi7MIn442wBC80k=
+	t=1785839882; cv=none; b=kXfXGInjVoVIi2yxIgIVCMlq6aaP1n2rCiudlf87IcqtMfO2fdzj6MX14hSpnvlIuAOz2wSYs0Zq2L9gOb/pKqTnRC4VrNVzkXTgoeZrrjvS4juLKg61tIjUbMR8xWtlhnDq5LCIVCqttYw/ZTXM39/SOEXt6wL2BM+6palac4w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785830249; c=relaxed/simple;
-	bh=qVb1MOqU1bZoDcbi0BZfBIW2AUDTbUQ2MWUzyPm0KVs=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=csTeZK4MohhjgNNgaikDCIn+jZh5AnTWu8ITwWNKiPPAgWRGiZujODTS7J77iu4RbJqyWcbgCCoYmdXBVD9k3hXhYIQCajArhQRT1lmBTgoYHNszWW7zCHfexK+1OjOI0ShJOu45Z+ZwniVJO3v5j18Pxxdq2wfDAbj6vJ8oHu4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=ExQYqZPh; arc=none smtp.client-ip=209.85.128.43
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1785839882; c=relaxed/simple;
+	bh=OrxO8UMvnRmqyE88a6CFXNXz3h4yiX9451oSEJ4OxQw=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=XViNcVYVQZT8YfcyYfsvKDueVmgEBDzxBPfsCfYhm3witt62h2b/UL9fXfteTNTWAGUCOTiOa8zcRBN7twAHfkhJ6EauzYoQ+RHDOg3FktAL1MmRAp2YxRW1+xUr24I7FYHVRH49AKLueowL+toHq11wq6FbVvnMtycQ/njYC4M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=hcOP2sL0; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=SKmh0jv1; arc=none smtp.client-ip=202.12.124.158
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="ExQYqZPh"
-Received: by mail-wm1-f43.google.com with SMTP id 5b1f17b1804b1-495590dde14so29168575e9.0
-        for <linux-arch@vger.kernel.org>; Tue, 04 Aug 2026 00:57:26 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1785830245; x=1786435045; darn=vger.kernel.org;
-        h=content-type:in-reply-to:autocrypt:from:content-language:references
-         :cc:to:subject:user-agent:mime-version:date:message-id:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=qVb1MOqU1bZoDcbi0BZfBIW2AUDTbUQ2MWUzyPm0KVs=;
-        b=ExQYqZPhyAKvRyHOTNi0qi+av770W39qLcKr00wXv/F1FzW9uAfqwoVfis/xSt+Nkl
-         CZx8z39fjmw/o//i3jxyYcIQz6/dHHF1OHnVT98O8ROh7KJwdpjRFHppuuLFw0dvm4e+
-         RRl9z8PVD0cPqmFOAXYaMKqoJjR5+rQam8UXq5/vFOUky3fQgfxQ9BUSxYgKawsqKNeR
-         rwMe9M0ZSNNxxlgsuUai2G2iWXI0h9wGWF0oVQ5gyhtqsy6MSqHuJrCG2STaaeuf+4e2
-         vegrXUjfyKhe8ja2u505J4J6TDOJfttzZd7CzFXA1qBJ/YzQt++eTMPX/bHunVqm05td
-         OtjA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785830245; x=1786435045;
-        h=content-type:in-reply-to:autocrypt:from:content-language:references
-         :cc:to:subject:user-agent:mime-version:date:message-id:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=qVb1MOqU1bZoDcbi0BZfBIW2AUDTbUQ2MWUzyPm0KVs=;
-        b=WWP034Uzx+9Wj9pMjZqZyA6UzEmuntAxTuPz9uu+hvPCvU+xx2ulQvXMzD8bHGuqO2
-         Ok5yVWYAt4wFkyBv4WeyXjqWsgbVkZIQvUsJUnztdDODlOVKKX4aI4Hg4WfbRshy3Rwq
-         eRb+Udg/Be2ENc2zedXqoipRwV07Le/VI7F2c//S0xN5DdowtYXx2fSb05/0+pV1svfF
-         K966yO+g+jY1fbF5JK7ue0phYwmhnEyojU25egKqVtWWWnuyY/GubdM/Lq1ePW5r9n8N
-         AeK2LqIWYurwUmne67gtk/Dfhw/g2fMdEh9FdDkI4rWUGzTfvpsm2CQuhRLYPY8/67XS
-         0ahw==
-X-Forwarded-Encrypted: i=1; AHgh+Ro06BCJN9/WHcLtGmu8n1hV65EzJQFh/o6Qk7RJlidA3mR0L21ZgTcnDeXn2t/HUQ8QuBC97b1T12c6@vger.kernel.org
-X-Gm-Message-State: AOJu0YwsBM8KTk+6sXk1pzr72UQM2infwSLLf5PJuPvU0dorpMEakkuQ
-	aIvZVjeNYzqIEQWYYBCGu3FOlbrTkMYn71gmbwt/LEPmZaWp4+s3aHYK+Ly+6biWefs=
-X-Gm-Gg: AR+sD13z7w82MFX82ISyxAoFQ1fM/+8b9hY4rZhPVFHvfepV6UO97r2u7GS9ppjDkPH
-	x8val60Zv5U+cc2T6/sQYl0jnB87G/KWV59zEnvdJiCWyN/obM8VUpVDusuXuOyI43RXcHzaqU9
-	4REl7QDgZBzVCOfTOfzIUpLJktKmEtiBXgEnC2Wpnj2njYTwll0/GGERlPPynPCFYi/3Ov6a75N
-	3xAWr6NtJpmd91G0aQyMmYSRTL9rtku741eeEH5I7G6U0TyuOzy/niH4MKFpaTdaciinL6CfZDl
-	6JJp//YlgV7MZzsNzlP940bJLjEb9Q2Rr60xo8a7eOfYNYlCuftW5qHW+o8hT2mZ8XbzHttxkM1
-	Qd2bA5BvTjzA7n1HFCsv79NB3ZjJ6I6dIX8m77etIS80W2XxcJUfdFgEdYyxdP05OWRobmJ4ntK
-	W6smE5WJD7oaB73u270dbZ4X6HF4Gojd/WO22bcmOCs3LlgQvF2Mnkg5qMpcRvYhR7s071p5Duw
-	tXXitRS5VqL0vHefyEErYX5Is8yykmnbK7CKIRembKMCBZHQEH8vOckYwUtDmPZyOTFARLyfjTR
-	IIreWtZAsL++Ezs=
-X-Received: by 2002:a05:600c:8b54:b0:495:4859:8f9b with SMTP id 5b1f17b1804b1-4980c674f25mr345983915e9.9.1785830245215;
-        Tue, 04 Aug 2026 00:57:25 -0700 (PDT)
-Received: from ?IPV6:2a00:12d0:af5d:ad01:5d3f:14e6:9bcb:5112? (2a00-12d0-af5d-ad01-5d3f-14e6-9bcb-5112.ip.tng.de. [2a00:12d0:af5d:ad01:5d3f:14e6:9bcb:5112])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4994a0f7b86sm64048765e9.10.2026.08.04.00.57.23
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 04 Aug 2026 00:57:24 -0700 (PDT)
-Message-ID: <627c59ee-54b1-4f37-b849-c331a9d01618@suse.com>
-Date: Tue, 4 Aug 2026 09:57:23 +0200
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="hcOP2sL0";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="SKmh0jv1"
+Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
+	by mailfhigh.stl.internal (Postfix) with ESMTP id BC34F7A015C;
+	Tue,  4 Aug 2026 06:37:56 -0400 (EDT)
+Received: from ams-imap-03 ([10.64.2.23])
+  by ams-compute-02.internal (MEProxy); Tue, 04 Aug 2026 06:37:59 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm2; t=1785839875;
+	 x=1785926275; bh=F4TNC91ioxOgNojCv765eiTbs22V5ZqIXXQg2UnPWNE=; b=
+	hcOP2sL0DOuM/T8+IQO1srl/9Nn67kOI+dItr5bYPEcLuZSANNE08vAxqgK9eHjY
+	UwQao2g7lLVrCooo6Xl8OeqM2BoC+o4cIdZL2245TOdMwV6hbNx1zkuah69qv4MR
+	mH2rlQBYkvHnrjfgwdBYoAUNGyIluknj2ts5wmjYhrdU+4Baphy1lEY5oM08z8/J
+	ddoERL9iCmKKgmQRrYzD0T8NUa83M2W5nngfD2pm14vMZcU/Htt1KZxH6RQXSZCM
+	xaHh3/eucDyfmQJQjwHHbnaSLBmb8nemkUq93tll/Q7wHx+hsJtdH/trWSNZLiWl
+	UzLVLFKwao9c4x24P3SBtQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1785839875; x=
+	1785926275; bh=F4TNC91ioxOgNojCv765eiTbs22V5ZqIXXQg2UnPWNE=; b=S
+	Kmh0jv1MklLUpLLqEGoqrZjKuNqLkvIoKPnSOlegZYxLQqDvkWDauKWD5uBJzGPN
+	rvGL9kpgSTVufehNl4m4Z39b2/zBbruMDWjy3smuqns0lo+OrqxQNopzeZIyaitK
+	4V4dI1BljoJBYmDFP+mfnIm683VF6sc/c3BaldHhV1gSi6Dk+u2nrK1QoinyvQL0
+	JCG0EzG1Xl7ESfFFMgLd9FGCyaHJM2KLD0PCWJT+0wnAH9u1fPvz1M8+GxyaTxTC
+	z/MFkWBvMLQbw6E53TAJwN2q2VCvp2Wrhqa8NrqKFzFCcKWEbU8GiAJGRarprxRJ
+	vDDx4OPp0GwC3ZMJqPV1A==
+X-ME-Sender: <xms:-8BxakgbdoVssp9VyX3satUcncJNssTNEXomIqjLhco0dTAt6aWqZw>
+    <xme:-8Bxan0hu2HwexDEIvVkKuVK6OylYAbt7eyPxH2MsmAYw_48FhqLZYjCGTK_5J5Vk
+    NV_Z1hMQlSMEaAPvZPieoARY0bibyzQ8bPfWIHDXKyPi4CoCvwYLfvI>
+X-ME-Proxy-Cause: dmFkZTEzWoc1rRS2QGP5Ror8Me2RezHRZNOW5bRyQijA6olHMpglaJSjZpBcJfpt9+aVy5
+    jGcl71RdlVGMk6ztaFwER71xCKHvpSFL9cN05e1ig2PrttXiQBvhIVkeErkqhZkHUXZkCD
+    dhbyCYQp+QnRXmFwTny8PbiSiD5NupnCAfSYA7dxRhuVRur+uM58cNjrL19FFTzQh/9Cc6
+    t+8uWbk9B5cP6x58jjTXywc1cFXLwuyhiDW7bBqTpnTj8s+kWRD3SvFx5qpAkVdVewVFhV
+    JbHle7kOIXw8iZYcKQFWZhE+3ccjjXIarD9OycjQXrO/Fa/DDPqDdSNHjp3BMpLYfvXfre
+    /Ejk+vIfIheLDjxxY1MSjLid1BuHvYydVEKMvJbYjYwd/XEoUO9Im1bmEmk9RRXOdhn0BU
+    9o7X+TNLmlMt/yCgSpr6uQh5R0fRBcNbX74Uy5ZkdXXufvlygdrBCc6KF06JTsO+O+poVP
+    /w50emSMTKMuSiaULLPQzrATJVSBMw/CdsKjSnK0U3kvwbit8qVSfIsXqS7QuG5hIfco3t
+    3Fs1SBjZo9bB7owVBvW74PVaMFAGUcgD6Bd0ON/S8Tp4dF/zQSbTsEXhxipsc2TFCcr4r0
+    AkmkZyPeqJdpCySz+iHzRODQ4Tg/JoDbR679E98or4vCcMrO2/PpveZVc4pg
+X-ME-Proxy: <xmx:_8BxanRcay9-nq3bb8ocIFDodOTaUUiaVIECPhc4wW23bbI5BC6iYg>
+    <xmx:AMFxamPbkMvnMXkKZYT4LrSvj8H1tqizoRrRe4IcLo11r8k7ANOVFg>
+    <xmx:AMFxaswWXQkWEYXGCUd4M9-7T7KyeLCOHPzhw9k1KEZs2Vm6eTCkPw>
+    <xmx:AMFxaoqVcvVwdwzk93aYwPlHvOH47D31aNL0J5YwAjDRB0_oZ6-25w>
+    <xmx:A8FxatSn_KNlSmS-NtACd7V5STkdfaaWCQ-C6aN2sg0wkGlEz9mNt_uG>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.ams.internal (Postfix, from userid 501)
+	id DFC5132A0065; Tue,  4 Aug 2026 06:37:47 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 0/5] locking/qspinlock: Add contended_release tracepoint
-To: Dmitry Ilvokhin <d@ilvokhin.com>, Peter Zijlstra <peterz@infradead.org>,
- Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
- Boqun Feng <boqun@kernel.org>, Waiman Long <longman@redhat.com>,
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
- "K. Y. Srinivasan" <kys@microsoft.com>,
- Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu <wei.liu@kernel.org>,
- Dexuan Cui <decui@microsoft.com>, Long Li <longli@microsoft.com>,
- Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
- Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
- "H. Peter Anvin" <hpa@zytor.com>, Ajay Kaher <ajay.kaher@broadcom.com>,
- Alexey Makhalov <alexey.makhalov@broadcom.com>,
- Broadcom internal kernel review list
- <bcm-kernel-feedback-list@broadcom.com>, Paolo Bonzini
- <pbonzini@redhat.com>, Vitaly Kuznetsov <vkuznets@redhat.com>,
- Josh Poimboeuf <jpoimboe@kernel.org>, Jason Baron <jbaron@akamai.com>,
- Alice Ryhl <aliceryhl@google.com>, Steven Rostedt <rostedt@goodmis.org>,
- Ard Biesheuvel <ardb@kernel.org>,
- Boris Ostrovsky <boris.ostrovsky@oracle.com>, Arnd Bergmann <arnd@arndb.de>,
- Masami Hiramatsu <mhiramat@kernel.org>,
- Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
- linux-hyperv@vger.kernel.org, virtualization@lists.linux.dev,
- kvm@vger.kernel.org, xen-devel@lists.xenproject.org,
- linux-arch@vger.kernel.org, linux-trace-kernel@vger.kernel.org,
- kernel-team@meta.com
-References: <cover.1785778551.git.d@ilvokhin.com>
-Content-Language: en-US
-From: Juergen Gross <jgross@suse.com>
-Autocrypt: addr=jgross@suse.com; keydata=
- xsBNBFOMcBYBCACgGjqjoGvbEouQZw/ToiBg9W98AlM2QHV+iNHsEs7kxWhKMjrioyspZKOB
- ycWxw3ie3j9uvg9EOB3aN4xiTv4qbnGiTr3oJhkB1gsb6ToJQZ8uxGq2kaV2KL9650I1SJve
- dYm8Of8Zd621lSmoKOwlNClALZNew72NjJLEzTalU1OdT7/i1TXkH09XSSI8mEQ/ouNcMvIJ
- NwQpd369y9bfIhWUiVXEK7MlRgUG6MvIj6Y3Am/BBLUVbDa4+gmzDC9ezlZkTZG2t14zWPvx
- XP3FAp2pkW0xqG7/377qptDmrk42GlSKN4z76ELnLxussxc7I2hx18NUcbP8+uty4bMxABEB
- AAHNH0p1ZXJnZW4gR3Jvc3MgPGpncm9zc0BzdXNlLmNvbT7CwHkEEwECACMFAlOMcK8CGwMH
- CwkIBwMCAQYVCAIJCgsEFgIDAQIeAQIXgAAKCRCw3p3WKL8TL8eZB/9G0juS/kDY9LhEXseh
- mE9U+iA1VsLhgDqVbsOtZ/S14LRFHczNd/Lqkn7souCSoyWsBs3/wO+OjPvxf7m+Ef+sMtr0
- G5lCWEWa9wa0IXx5HRPW/ScL+e4AVUbL7rurYMfwCzco+7TfjhMEOkC+va5gzi1KrErgNRHH
- kg3PhlnRY0Udyqx++UYkAsN4TQuEhNN32MvN0Np3WlBJOgKcuXpIElmMM5f1BBzJSKBkW0Jc
- Wy3h2Wy912vHKpPV/Xv7ZwVJ27v7KcuZcErtptDevAljxJtE7aJG6WiBzm+v9EswyWxwMCIO
- RoVBYuiocc51872tRGywc03xaQydB+9R7BHPzsBNBFOMcBYBCADLMfoA44MwGOB9YT1V4KCy
- vAfd7E0BTfaAurbG+Olacciz3yd09QOmejFZC6AnoykydyvTFLAWYcSCdISMr88COmmCbJzn
- sHAogjexXiif6ANUUlHpjxlHCCcELmZUzomNDnEOTxZFeWMTFF9Rf2k2F0Tl4E5kmsNGgtSa
- aMO0rNZoOEiD/7UfPP3dfh8JCQ1VtUUsQtT1sxos8Eb/HmriJhnaTZ7Hp3jtgTVkV0ybpgFg
- w6WMaRkrBh17mV0z2ajjmabB7SJxcouSkR0hcpNl4oM74d2/VqoW4BxxxOD1FcNCObCELfIS
- auZx+XT6s+CE7Qi/c44ibBMR7hyjdzWbABEBAAHCwF8EGAECAAkFAlOMcBYCGwwACgkQsN6d
- 1ii/Ey9D+Af/WFr3q+bg/8v5tCknCtn92d5lyYTBNt7xgWzDZX8G6/pngzKyWfedArllp0Pn
- fgIXtMNV+3t8Li1Tg843EXkP7+2+CQ98MB8XvvPLYAfW8nNDV85TyVgWlldNcgdv7nn1Sq8g
- HwB2BHdIAkYce3hEoDQXt/mKlgEGsLpzJcnLKimtPXQQy9TxUaLBe9PInPd+Ohix0XOlY+Uk
- QFEx50Ki3rSDl2Zt2tnkNYKUCvTJq7jvOlaPd6d/W0tZqpyy7KVay+K4aMobDsodB3dvEAs6
- ScCnh03dDAFgIq5nsB11j3KPKdVoPlfucX2c7kGNH+LUMbzqV6beIENfNexkOfxHfw==
-In-Reply-To: <cover.1785778551.git.d@ilvokhin.com>
-Content-Type: multipart/signed; micalg=pgp-sha256;
- protocol="application/pgp-signature";
- boundary="------------AEfGGk6p5V0hCBAWv3tcK3FA"
+X-ThreadId: Ag8nwV6tN_57
+Date: Tue, 04 Aug 2026 12:36:55 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Heiko Carstens" <hca@linux.ibm.com>,
+ "Danilo Krummrich" <dakr@kernel.org>,
+ "Niklas Schnelle" <schnelle@linux.ibm.com>,
+ "Gerd Bayer" <gbayer@linux.ibm.com>
+Cc: "Miguel Ojeda" <ojeda@kernel.org>, "Alice Ryhl" <aliceryhl@google.com>,
+ "Daniel Almeida" <daniel.almeida@collabora.com>,
+ "Vasily Gorbik" <gor@linux.ibm.com>,
+ "Alexander Gordeev" <agordeev@linux.ibm.com>, driver-core@lists.linux.dev,
+ "Christian Borntraeger" <borntraeger@linux.ibm.com>,
+ "Sven Schnelle" <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
+ Linux-Arch <linux-arch@vger.kernel.org>, "Boqun Feng" <boqun@kernel.org>,
+ "Gary Guo" <gary@garyguo.net>,
+ =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>,
+ "Benno Lossin" <lossin@kernel.org>,
+ "Andreas Hindborg" <a.hindborg@kernel.org>,
+ "Trevor Gross" <tmgross@umich.edu>, "Tamir Duberstein" <tamird@kernel.org>,
+ "Alexandre Courbot" <acourbot@nvidia.com>,
+ =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
+ rust-for-linux@vger.kernel.org
+Message-Id: <33ecacea-ed2a-409c-ab1c-a136e06b1b7a@app.fastmail.com>
+In-Reply-To: <20260804071330.24760Aaf-hca@linux.ibm.com>
+References: <20260803180931.97202-1-ojeda@kernel.org>
+ <fb2daae7-4eba-4ca1-95a5-60f8157eb66b@app.fastmail.com>
+ <DKFKXA6YWW8R.1NDZ44Q13XFQH@kernel.org>
+ <20260804071330.24760Aaf-hca@linux.ibm.com>
+Subject: Re: `io{re,un}map()` build error in s390 under `!CONFIG_HAS_IOMEM`
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---------------AEfGGk6p5V0hCBAWv3tcK3FA
-Content-Type: multipart/mixed; boundary="------------HRWVg0V4yc1LTGims01Et589";
- protected-headers="v1"
-From: Juergen Gross <jgross@suse.com>
-To: Dmitry Ilvokhin <d@ilvokhin.com>, Peter Zijlstra <peterz@infradead.org>,
- Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
- Boqun Feng <boqun@kernel.org>, Waiman Long <longman@redhat.com>,
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
- "K. Y. Srinivasan" <kys@microsoft.com>,
- Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu <wei.liu@kernel.org>,
- Dexuan Cui <decui@microsoft.com>, Long Li <longli@microsoft.com>,
- Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
- Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
- "H. Peter Anvin" <hpa@zytor.com>, Ajay Kaher <ajay.kaher@broadcom.com>,
- Alexey Makhalov <alexey.makhalov@broadcom.com>,
- Broadcom internal kernel review list
- <bcm-kernel-feedback-list@broadcom.com>, Paolo Bonzini
- <pbonzini@redhat.com>, Vitaly Kuznetsov <vkuznets@redhat.com>,
- Josh Poimboeuf <jpoimboe@kernel.org>, Jason Baron <jbaron@akamai.com>,
- Alice Ryhl <aliceryhl@google.com>, Steven Rostedt <rostedt@goodmis.org>,
- Ard Biesheuvel <ardb@kernel.org>,
- Boris Ostrovsky <boris.ostrovsky@oracle.com>, Arnd Bergmann <arnd@arndb.de>,
- Masami Hiramatsu <mhiramat@kernel.org>,
- Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
- linux-hyperv@vger.kernel.org, virtualization@lists.linux.dev,
- kvm@vger.kernel.org, xen-devel@lists.xenproject.org,
- linux-arch@vger.kernel.org, linux-trace-kernel@vger.kernel.org,
- kernel-team@meta.com
-Message-ID: <627c59ee-54b1-4f37-b849-c331a9d01618@suse.com>
-Subject: Re: [PATCH 0/5] locking/qspinlock: Add contended_release tracepoint
-References: <cover.1785778551.git.d@ilvokhin.com>
-In-Reply-To: <cover.1785778551.git.d@ilvokhin.com>
+On Tue, Aug 4, 2026, at 09:13, Heiko Carstens wrote:
+> On Mon, Aug 03, 2026 at 10:09:08PM +0200, Danilo Krummrich wrote:
+>> On Mon Aug 3, 2026 at 9:56 PM CEST, Arnd Bergmann wrote:
+>> > In theory you should be able to use rust code without PCI MMIO
+>> > support, but I can't see any practical downsides to making rust
+>> > 'depends on HAS_MMIO' to avoid having to add those #ifdef.
+>> 
+>> I think the implications should be minor without making Rust depend on
+>> CONFIG_HAS_IOMEM.
+>> 
+>> I just sent out a fix [1]; the only annoying part is [2], but we should change
+>> those doc-tests anyway. For the one in rust/kernel/io.rs we already did in
+>> driver-core-next.
+>> 
+>> [1] https://lore.kernel.org/driver-core/20260803200249.3494259-1-dakr@kernel.org/
 
---------------HRWVg0V4yc1LTGims01Et589
-Content-Type: multipart/mixed; boundary="------------33sYuJhXGYzE04xG2wTAikO4"
+This looks like you still provide the rust version of ioremap(),
+turning what is supposed to be a link failure into a runtime
+error.
 
---------------33sYuJhXGYzE04xG2wTAikO4
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: base64
+> I'm wondering if it would make sense to make HAS_IOMEM always available
+> on s390, even though it doesn't make too much sense without PCI.
+> But at least it would make s390 again a bit less special.
 
-T24gMDQuMDguMjYgMDk6MTUsIERtaXRyeSBJbHZva2hpbiB3cm90ZToNCj4gVGhlIGNvbnRl
-bmRlZF9yZWxlYXNlIHRyYWNlcG9pbnQgbGFuZGVkIGluIHY3LjItcmMyIGZvciBzbGVlcGlu
-ZyBsb2Nrcw0KPiAoNGYwNzBjY2I0ZGM0ICJsb2NraW5nOiBBZGQgY29udGVuZGVkX3JlbGVh
-c2UgdHJhY2Vwb2ludCB0byBzbGVlcGFibGUNCj4gbG9ja3MiKS4gU3BpbmxvY2sgc3VwcG9y
-dCB3YXMgZHJvcHBlZCBmcm9tIHRoYXQgc2VyaWVzLiBUaGlzIG9uZSBhZGRzIGl0DQo+IGZv
-ciBxdWV1ZWQgc3BpbmxvY2tzLg0KPiANCj4gVGhlIGV4aXN0aW5nIGNvbnRlbnRpb25fYmVn
-aW4vY29udGVudGlvbl9lbmQgdHJhY2Vwb2ludHMgZmlyZSBvbiB0aGUNCj4gd2FpdGVyIHNp
-ZGUuIFRoZSBob2xkZXIncyBpZGVudGl0eSBhbmQgc3RhY2sgY2FuIGJlIGNhcHR1cmVkIGF0
-DQo+IGNvbnRlbnRpb25fYmVnaW4gdGltZSAoZS5nLiBwZXJmIGxvY2sgY29udGVudGlvbiAt
-LWxvY2stb3duZXIpLCBidXQgb25seQ0KPiBmb3IgbG9ja3Mgd2l0aCBhbiBvd25lciBmaWVs
-ZCB0byByZWFkOiBtdXRleCBhbmQgcndzZW0uIHFzcGlubG9jayBoYXMNCj4gbm9uZSwgc28g
-YSBjb250ZW5kZWQgc3BpbmxvY2sgY2Fubm90IGJlIGF0dHJpYnV0ZWQgdG8gaXRzIGhvbGRl
-ciBhdCBhbGwuDQo+IEV2ZW4gd2hlcmUgdGhlIG93bmVyIGNhbiBiZSByZWFkLCBpdCByZWZs
-ZWN0cyB0aGUgaG9sZGVyJ3Mgc3RhdGUgd2hlbiBhDQo+IHdhaXRlciBhcnJpdmVzLCBub3Qg
-d2hlbiB0aGUgbG9jayBpcyByZWxlYXNlZC4NCj4gDQo+IFRoaXMgc2VyaWVzIGFkZHMgYSBj
-b250ZW5kZWRfcmVsZWFzZSB0cmFjZXBvaW50IHRvIHFzcGlubG9jayB0aGF0IGZpcmVzDQo+
-IG9uIHRoZSBob2xkZXIgc2lkZSB3aGVuIGEgbG9jayB3aXRoIHdhaXRlcnMgaXMgcmVsZWFz
-ZWQuIFRoaXMgcHJvdmlkZXM6DQo+IA0KPiAtIEhvbGQgdGltZSBlc3RpbWF0aW9uOiB3aGVu
-IHRoZSBob2xkZXIncyBvd24gYWNxdWlzaXRpb24gd2FzDQo+ICAgIGNvbnRlbmRlZCwgaXRz
-IGNvbnRlbnRpb25fZW5kIChhY3F1aXNpdGlvbikgYW5kIGNvbnRlbmRlZF9yZWxlYXNlDQo+
-ICAgIGNhbiBiZSBjb3JyZWxhdGVkIHRvIG1lYXN1cmUgaG93IGxvbmcgdGhlIGxvY2sgd2Fz
-IGhlbGQgdW5kZXINCj4gICAgY29udGVudGlvbi4NCj4gDQo+IC0gVGhlIGhvbGRlcidzIHN0
-YWNrIGF0IHJlbGVhc2UgdGltZSwgd2hpY2ggZm9yIHNwaW5sb2NrcyBpcyBub3QNCj4gICAg
-YXZhaWxhYmxlIGJ5IGFueSBvdGhlciBtZWFucy4NCj4gDQo+IFRoZSB1bmxvY2sgcGF0aCBt
-aWdodCBiZSBxdWl0ZSBob3QsIHNvIHRoZSB0cmFjZXBvaW50IGlzIG1hZGUgYXMgY2hlYXAN
-Cj4gYXMgcG9zc2libGUsIHRvIGtlZXAgaXQgdXNhYmxlIGluIHByb2R1Y3Rpb246DQo+IA0K
-PiAtIHg4NiB3aXRoIFBBUkFWSVJUX1NQSU5MT0NLUz15LCB3aGljaCBpcyB3aGF0IGRpc3Ry
-aWJ1dGlvbnMgc2hpcCwgc3dhcHMNCj4gICAgdGhlIHVubG9jayBpbXBsZW1lbnRhdGlvbiB2
-aWEgc3RhdGljX2NhbGwoKSB3aGVuIHRoZSB0cmFjZXBvaW50IGlzDQo+ICAgIGVuYWJsZWQu
-IFRoZSBkaXNhYmxlZCBwYXRoIGlzIGJ5dGUtaWRlbnRpY2FsIHRvIHRvZGF5J3M6IHRoZSBz
-YW1lDQo+ICAgIGlubGluZSBtb3ZiLCBubyBOT1AgYW5kIG5vIGNhbGwuDQo+IA0KPiAtIEV2
-ZXJ5d2hlcmUgZWxzZSBhIHN0YXRpYy1icmFuY2ggY2hlY2sgaXMgY29tcGlsZWQgaW50bw0K
-PiAgICBxdWV1ZWRfc3Bpbl91bmxvY2soKS4gT24geDg2XzY0IHRoYXQgaXMgYSBzaW5nbGUg
-Tk9QIG9uIHRoZSBleGVjdXRlZA0KPiAgICBwYXRoLCB3aXRoIHRoZSBjYWxsIHRvIHRoZSB0
-cmFjZWQgaGVscGVyIGVtaXR0ZWQgb3V0IG9mIGxpbmUgYW5kDQo+ICAgIHVucmVhY2hhYmxl
-IHdoaWxlIHRoZSB0cmFjZXBvaW50IGlzIG9mZi4gT24gb3RoZXIgYXJjaGl0ZWN0dXJlcyBh
-IGZldw0KPiAgICBtb3JlIGluc3RydWN0aW9ucyB0byBtYW5hZ2UgYSBzdGFjayBmcmFtZSBs
-YW5kIG9uIHRoZSBleGVjdXRlZCBwYXRoDQo+ICAgIHRvbywgc28gdGhlIGdlbmVyaWMgcGF0
-aCBzaXRzIGJlaGluZA0KPiAgICBDT05GSUdfUVVFVUVEX1NQSU5MT0NLU19UUkFDRV9DT05U
-RU5ERURfUkVMRUFTRSAoZGVmYXVsdCBuKS4NCj4gDQo+IENvc3RzIGFuZCBtZWFzdXJlbWVu
-dHMgYXJlIGluIHRoZSBpbmRpdmlkdWFsIGNoYW5nZWxvZ3MuIEJyaWVmbHksIG5vDQo+IHRo
-cm91Z2hwdXQgb3IgbGF0ZW5jeSBjaGFuZ2UgaXMgbWVhc3VyYWJsZSBvbiBlaXRoZXIgeDg2
-XzY0IG9yIGFybTY0DQo+IHdpdGggUVVFVUVEX1NQSU5MT0NLU19UUkFDRV9DT05URU5ERURf
-UkVMRUFTRT15Lg0KPiANCj4gVGVzdGVkOiB4ODZfNjQgd2l0aCBQQVJBVklSVF9TUElOTE9D
-S1M9eSBhbmQgPW4sIGFybTY0LCB0cmFjZXBvaW50IG9uDQo+IGFuZCBvZmYsIGRpc2Fzc2Vt
-Ymx5IGNoZWNrZWQgaW4gYm90aCBzdGF0ZXMsIGxvY2t0b3J0dXJlIHdpdGggdHJhY2Vwb2lu
-dA0KPiBvbiBhbmQgb2ZmLg0KPiANCj4gTm90IGNvdmVyZWQ6IHFyd2xvY2ssIGFuZCBhcmNo
-aXRlY3R1cmVzIHdpdGggZnVsbHkgY3VzdG9tIHFzcGlubG9jaw0KPiBpbXBsZW1lbnRhdGlv
-bnMgKGUuZy4gUG93ZXJQQykuIFRoZSBzdGFjayBmcmFtZSBtYW5hZ2luZyBpbnN0cnVjdGlv
-bnMgb24NCj4gYXJtNjQgc2hvdWxkIGJlIGF2b2lkYWJsZSwgYnV0IHRoYXQgaXMgbm90IGRv
-bmUgaW4gdGhpcyBwYXRjaHNldC4NCj4gDQo+IFBhdGNoIDEgaXMgUGV0ZXIncyBkcmFmdCBm
-cm9tIFsxXSBhbmQgaXMgbWlzc2luZyBoaXMgU2lnbmVkLW9mZi1ieS4NCj4gUGV0ZXIsIHBs
-ZWFzZSBhZGQgaXQgaWYgeW91IGFyZSBoYXBweSB3aXRoIHRoZSBwYXRjaC4NCj4gDQo+IFsx
-XTogaHR0cHM6Ly9sb3JlLmtlcm5lbC5vcmcvYWxsLzIwMjYwNjAzMTIwODExLkdXMzQ5MzA5
-MEBub2lzeS5wcm9ncmFtbWluZy5raWNrcy1hc3MubmV0Lw0KPiANCj4gRG1pdHJ5IElsdm9r
-aGluICg0KToNCj4gICAgbG9ja2luZzogRmFjdG9yIG91dCBxdWV1ZWRfc3Bpbl9yZWxlYXNl
-KCkNCj4gICAgbG9ja2luZy9xc3BpbmxvY2s6IEFkZCBjb250ZW5kZWRfcmVsZWFzZSB0cmFj
-ZXBvaW50DQo+ICAgIHRyYWNpbmcvbG9jazogVXNlIFRSQUNFX0VWRU5UX0ZOKCkgZm9yIGNv
-bnRlbmRlZF9yZWxlYXNlDQo+ICAgIHg4Ni9wYXJhdmlydDogVHJhY2UgY29udGVuZGVkX3Jl
-bGVhc2Ugb24gdW5sb2NrDQo+IA0KPiBQZXRlciBaaWpsc3RyYSAoMSk6DQo+ICAgIHg4Ni9w
-YXJhdmlydDogVXNlIHN0YXRpY19jYWxsKCkgZm9yIHRoZSBwYXJhdmlydCBzcGlubG9jayBv
-cHMNCj4gDQo+ICAgYXJjaC9taXBzL2luY2x1ZGUvYXNtL3NwaW5sb2NrLmggICAgICAgICB8
-ICA2ICstLQ0KPiAgIGFyY2gveDg2L2h5cGVydi9odl9zcGlubG9jay5jICAgICAgICAgICAg
-fCAgNCArLQ0KPiAgIGFyY2gveDg2L2luY2x1ZGUvYXNtL2NwdWZlYXR1cmVzLmggICAgICAg
-fCAgMSAtDQo+ICAgYXJjaC94ODYvaW5jbHVkZS9hc20vcGFyYXZpcnQtc3BpbmxvY2suaCB8
-IDIxICsrKysrLS0tDQo+ICAgYXJjaC94ODYva2VybmVsL2t2bS5jICAgICAgICAgICAgICAg
-ICAgICB8ICA1ICstDQo+ICAgYXJjaC94ODYva2VybmVsL3BhcmF2aXJ0LXNwaW5sb2Nrcy5j
-ICAgICB8IDYzICsrKysrKysrKysrKysrKysrKysrKy0tLQ0KPiAgIGFyY2gveDg2L2tlcm5l
-bC9zdGF0aWNfY2FsbC5jICAgICAgICAgICAgfCAyNyArKysrKysrKysrDQo+ICAgYXJjaC94
-ODYveGVuL3NwaW5sb2NrLmMgICAgICAgICAgICAgICAgICB8ICA1ICstDQo+ICAgaW5jbHVk
-ZS9hc20tZ2VuZXJpYy9xc3BpbmxvY2suaCAgICAgICAgICB8IDM4ICsrKysrKysrKysrKy0t
-DQo+ICAgaW5jbHVkZS90cmFjZS9ldmVudHMvbG9jay5oICAgICAgICAgICAgICB8IDEwICsr
-Ky0NCj4gICBrZXJuZWwvS2NvbmZpZy5sb2NrcyAgICAgICAgICAgICAgICAgICAgIHwgMjAg
-KysrKysrKysNCj4gICBrZXJuZWwvbG9ja2luZy9tdXRleC5jICAgICAgICAgICAgICAgICAg
-IHwgIDQgKysNCj4gICBrZXJuZWwvbG9ja2luZy9xc3BpbmxvY2suYyAgICAgICAgICAgICAg
-IHwgMjIgKysrKysrKysrDQo+ICAgdG9vbHMvYXJjaC94ODYvaW5jbHVkZS9hc20vY3B1ZmVh
-dHVyZXMuaCB8ICAxIC0NCj4gICAxNCBmaWxlcyBjaGFuZ2VkLCAxOTUgaW5zZXJ0aW9ucygr
-KSwgMzIgZGVsZXRpb25zKC0pDQo+IA0KPiANCj4gYmFzZS1jb21taXQ6IDVlNjAxYWIzNjE1
-Yzg2YmU3YzQwNjhjZTk5MmY5NDY1NDY5M2EwMzINCg0KRm9yIHRoZSB3aG9sZSBzZXJpZXM6
-DQoNCkFja2VkLWJ5OiBKdWVyZ2VuIEdyb3NzIDxqZ3Jvc3NAc3VzZS5jb20+DQoNCkknbSBj
-b25zaWRlcmluZyBzb21lIGZvbGxvd3VwIHBhdGNoZXMgcmVwbGFjaW5nIHRoZSByZW1haW5p
-bmcgcGFyYXZpcnQNCmNhc2VzIG5vdCBjb3ZlcmVkIGJ5IENPTkZJR19QQVJBVklSVF9YWEwg
-d2l0aCBzdGF0aWNfY2FsbCgpLCB0b28uDQoNClRoaXMgd2lsbCBhbGxvdyB0byBkcm9wIHRo
-ZSAzMi1iaXQgcGFyYXZpcnQgcGF0Y2hpbmcgY29tcGxldGVseS4gOi0pDQoNClRoZSBxdWV1
-ZWRfc3Bpbl91bmxvY2soKSBob29rIHdhcyB0aGUgbWFpbiByZWFzb24gSSBkaWRuJ3QgZG8g
-dGhhdCB5ZXQuDQoNCg0KSnVlcmdlbg0K
---------------33sYuJhXGYzE04xG2wTAikO4
-Content-Type: application/pgp-keys; name="OpenPGP_0xB0DE9DD628BF132F.asc"
-Content-Disposition: attachment; filename="OpenPGP_0xB0DE9DD628BF132F.asc"
-Content-Description: OpenPGP public key
-Content-Transfer-Encoding: quoted-printable
+I see that with CONFIG_PCI=y, s390 already falls back to
+generic_ioremap_prot() and just maps any phys_addr_t into the
+page table as PAGE_KERNEL, regardless of whether this is an MMIO
+address or not.
 
------BEGIN PGP PUBLIC KEY BLOCK-----
+The simple change below would just extend that behavior to !PCI
+and make that consistent with CONFIG_PCI=y on machines without
+actual PCI hardware. Of course any code that might rely on this
+is now a bug that likely never gets caught at build time.
 
-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
-kt+z4drzFUyEjLM1vVvIMjkUoJs=3D
-=3DeeAB
------END PGP PUBLIC KEY BLOCK-----
+This still relies on implementing the __raw_* helpers as nop
+to have the same behavior as the PCI=y version, as the generic
+version would just end up dereferencing the invalid pointers.
 
---------------33sYuJhXGYzE04xG2wTAikO4--
+     Arnd
 
---------------HRWVg0V4yc1LTGims01Et589--
-
---------------AEfGGk6p5V0hCBAWv3tcK3FA
-Content-Type: application/pgp-signature; name="OpenPGP_signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="OpenPGP_signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-wsB5BAABCAAjFiEEhRJncuj2BJSl0Jf3sN6d1ii/Ey8FAmpxm2MFAwAAAAAACgkQsN6d1ii/Ey+9
-Agf+IWx5eXJ7mO6oP+n4rxGw46J5o8kxhJQXckuPe4UqJ4KZp2eDhMwkS/QfmUPt+V4ojeOdZa1V
-t5qalPRfTCjVf4ZjarkTErmzJEGtvM5UFOPA1nJBFIGlV8VkDzRzYXof0c0ySuzecPKbh7pY3vUz
-VAUq0Q4EI6/WZY9jlKSQPoVjFFnIaWF5MoA2mGETIaZNXIBKSb/JmKfyRKxoY+u6IIeXrzl3wnIp
-VRnKsfQY36idWLXCtgq72WaTEl8HBUfpg0cTNGX0Fs6DZ4wH41e/KenwyCtV/RoC9vMyVKhvshqA
-JQOnAn0AVEbRYSsu6FmlqT/H4mCv6HrNanDhE76nUA==
-=gT7a
------END PGP SIGNATURE-----
-
---------------AEfGGk6p5V0hCBAWv3tcK3FA--
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 84404e6778d5..806782acf6f6 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -173,7 +173,7 @@ config S390
+ 	select GENERIC_ENTRY
+ 	select GENERIC_GETTIMEOFDAY
+ 	select GENERIC_SMP_IDLE_THREAD
+-	select GENERIC_IOREMAP if PCI
++	select GENERIC_IOREMAP
+ 	select GLOB
+ 	select HAVE_ALIGNED_STRUCT_PAGE
+ 	select HAVE_ARCH_AUDITSYSCALL
+@@ -756,9 +756,6 @@ config PCI_NR_FUNCTIONS
+ 
+ endif # PCI
+ 
+-config HAS_IOMEM
+-	def_bool PCI
+-
+ config CHSC_SCH
+ 	def_tristate m
+ 	prompt "Support for CHSC subchannels"
+diff --git a/arch/s390/include/asm/io.h b/arch/s390/include/asm/io.h
+index faddb9aef3b8..fa5a9dd1c47f 100644
+--- a/arch/s390/include/asm/io.h
++++ b/arch/s390/include/asm/io.h
+@@ -22,30 +22,16 @@ void *xlate_dev_mem_ptr(phys_addr_t phys);
+ #define kc_unxlate_dev_mem_ptr unxlate_dev_mem_ptr
+ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr);
+ 
+-#define IO_SPACE_LIMIT 0
+-
+-/*
+- * I/O memory mapping functions.
+- */
+-#define ioremap_prot ioremap_prot
+-#define iounmap iounmap
+-
+ #define _PAGE_IOREMAP pgprot_val(PAGE_KERNEL)
+ 
+ #define ioremap_wc(addr, size)  \
+ 	ioremap_prot((addr), (size), pgprot_writecombine(PAGE_KERNEL))
+ 
+-static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+-{
+-	return NULL;
+-}
+-
+-static inline void ioport_unmap(void __iomem *p)
+-{
+-}
+-
+ #ifdef CONFIG_PCI
+ 
++#define ioremap_prot ioremap_prot
++#define iounmap iounmap
++
+ /*
+  * s390 needs a private implementation of pci_iomap since ioremap with its
+  * offset parameter isn't sufficient. That's because BAR spaces are not
+@@ -88,6 +74,49 @@ static inline void __iowrite64_copy(void __iomem *to, const void *from,
+ }
+ #define __iowrite64_copy __iowrite64_copy
+ 
++#else
++/*
++ * ioremap_prot() without PCI behaves like memremap(),
++ * MMIO accessors do nothing
++ */
++#define ioremap_prot generic_ioremap_prot
++#define iounmap generic_iounmap
++static inline u8 __raw_readb(const volatile void __iomem *addr)
++{
++	return 0xff;
++}
++#define __raw_readb __raw_readb
++static inline u16 __raw_readw(const volatile void __iomem *addr)
++{
++	return 0xffff;
++}
++#define __raw_readw __raw_readw
++static inline u32 __raw_readl(const volatile void __iomem *addr)
++{
++	return 0xffffffffu;
++}
++#define __raw_readl __raw_readl
++static inline u64 __raw_readq(const volatile void __iomem *addr)
++{
++	return 0xffffffffffffffffull;
++}
++#define __raw_readq __raw_readq
++static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
++{
++}
++#define __raw_writeb __raw_writeb
++static inline void __raw_writew(u16 val, volatile void __iomem *addr)
++{
++}
++#define __raw_writew __raw_writew
++static inline void __raw_writel(u32 val, volatile void __iomem *addr)
++{
++}
++#define __raw_writel __raw_writel
++static inline void __raw_writeq(u64 val, volatile void __iomem *addr)
++{
++}
++#define __raw_writeq __raw_writeq
+ #endif /* CONFIG_PCI */
+ 
+ #include <asm-generic/io.h>
+diff --git a/init/Kconfig b/init/Kconfig
+index 5230d4879b1c..2a4e3ecbfddd 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -237,7 +237,6 @@ config INIT_ENV_ARG_LIMIT
+ 
+ config COMPILE_TEST
+ 	bool "Compile also drivers which will not load"
+-	depends on HAS_IOMEM
+ 	help
+ 	  Some drivers can be compiled on a different platform than they are
+ 	  intended to be run on. Despite they cannot be loaded there (or even
