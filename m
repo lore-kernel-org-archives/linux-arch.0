@@ -1,376 +1,203 @@
-Received: from mail-yw1-f182.google.com (mail-yw1-f182.google.com [209.85.128.182])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mail.alien8.de (mail.alien8.de [65.109.113.108])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 88EAD47CA84
-	for <linux-arch@vger.kernel.org>; Tue,  4 Aug 2026 20:25:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.182
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DA63D27FD49;
+	Tue,  4 Aug 2026 20:35:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=65.109.113.108
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785875139; cv=none; b=USmRp1n1zVLh1WGku/bmh7GwcQOymM0QabfNIoXAQym5lQHQaPxF3Jq9WHLJvscKeePpFmNXBP1Mh3TsFqbeqQCT8aF8XB7SI4rcwVRkmDEEYIyybOLtN5pRC+nwCGJRRIamQFkHRfjUt5AHyLN+LIgeBSl50JZHv0ZpSzbIDrw=
+	t=1785875746; cv=none; b=ODf3bd3MXzX2FKx6p8ctKgk5ZWrbZ7KNAa/kwiij6igmlRpS7QPEbbIKw9kX1KQg5HAqsN/MvdAzFDRZAeH0345y9zsdTe2O2TtyrvJZVj4bTBF2HeLMY7vxtXKhMNXVbLZyu7x5Cb/OZGQRoEkRxOUov93xYjwhF+ti/Z9ew+U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785875139; c=relaxed/simple;
-	bh=kTBXNB2tLJinmV+meWCRY/M/YjJPpZZg3idzCVatug8=;
+	s=arc-20240116; t=1785875746; c=relaxed/simple;
+	bh=wE6FBMr1PvpHwAUznElZyy9ISxtbbQPHswFljgCwFbA=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=qM1uh22sOyZQUcyO7OiLNfie+XRucCzK2qVQPMHkZlNWZLY3UvBvyAe4OGYvZFsxxb5EOB+Vch3dB8biSgnyZuf1eqdLk39mysbE3nQrIAnJv/GqT4fMj+xZTSGCfYM5PbDlYnZHV3OYoQwR6Es+nuhw7yw4RryIu12iFpTT4aA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ea8vt7xN; arc=none smtp.client-ip=209.85.128.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=ZpwDMmRbMIPtD2dk4CcIUDjE8fKZFFKfAopgBCX9ufRPge32iVfmr/Ap/DXQDoPiXEKPOGLYxui1DOucAjB4NKL6BcnvI0NHZr+P9umTI6d4/lZY0fD4ke85Tc9yAHOTYMDi5em0tJnsvoruITv7SUSW0NFS0ygU6mNi0WJcGOo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de; spf=pass smtp.mailfrom=alien8.de; dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b=HmEN5pZQ; arc=none smtp.client-ip=65.109.113.108
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=alien8.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ea8vt7xN"
-Received: by mail-yw1-f182.google.com with SMTP id 00721157ae682-81ed000b507so3270127b3.0
-        for <linux-arch@vger.kernel.org>; Tue, 04 Aug 2026 13:25:28 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1785875127; x=1786479927; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=NKkjXnnqGQF2M+u6ias5bB7wHPmpsm3RwoGuV3wwepg=;
-        b=ea8vt7xN8uO7pphq5f2uQ7z8YfDucEy8Bnwu5T3CJOI59VlETfagwcsYKboeXC0Awr
-         6ms+YL2vQZlxlawt+u1xgGefkxR5EtzqXyo1bt2dJQtLNf8gR38uZDQy7E8XpO43ZG/j
-         fJZoxurVIc6RTXqoqlH226Ki+kZ2FgLYyAnWtl19lYTLeNxKLCsLfwbFI+DZgRTWj6Hg
-         QsHJxUhzH1Yj1F3UvZhpsunhS29vrh1Enk66QET0qIaMN3yqhDaY0SZ5BUrgTqT8XVup
-         b6qNKyqDqDSj5+3PWGBjqWuM7Fyp5xRUYTZ6NjF442dF5JgOiteKfMJQdDVI8a24PL9z
-         FMlQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785875127; x=1786479927;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=NKkjXnnqGQF2M+u6ias5bB7wHPmpsm3RwoGuV3wwepg=;
-        b=LwlduHgeKGKNa2R99dKkDkVNEe1jW8fsVj8VMDmVxtA1F9nrzUUsGorl2AtopZkYCC
-         QjdBKcdeq1UF8vv7nf5CAgDm1MEjAhqD3c45rYPLZSxwqXMRRxLn58FAdIY8sAioo+YT
-         VEFAPRinJbK7z1J7C8hSWWb1IfJ1r4uhyryEnIjeTE2tJQvj6p/44cct1bKaKSbxTIJT
-         EVBRLH2eGwpbHD0mXyf0kY6QHWgdos5H3BFvPhV02DErFwLxS3WaUzZRGCXx0YdfsI/8
-         rTozJNjco5lqmswIld6aLqHJttGUs/Mj1o27RVzR1suoDfpIIk8VHaJjYMX/AK+9NA5R
-         DAAw==
-X-Forwarded-Encrypted: i=1; AHgh+Rp8sm0meRR1H2zg713f9VZpky7GoUc/IV59aAdEf5KlfgTDIr9OW/87rNtBJBbhas8o7xKL/ukSomlu@vger.kernel.org
-X-Gm-Message-State: AOJu0YxPyBpxey1K0xd7mL2HkNVwrrQzJMvfwwXjaLGddTDZGH9fnRoi
-	rDOQlBnbT0VGN50k37mCa4A5I59NeZi0oSW/MLIIGwD1b8jXMPBS/Y9U
-X-Gm-Gg: AR+sD125XNn6Ps7/lLwhnBA6TGc+YYTR4d4UyQ9Zh+rtNi/TNk05Ya8Br7U15Ffqm2T
-	NcLUsn6o5jmxNLLhFYTI87wEC457b9cZ1H7IDBj5jJXmtBHdHP8xa7Mayjvu7lxUPB4245xvtZU
-	vJCsidu+XBL6GD1p/DUATQrsYVJyhh+R+0wHZCawtzqI+KjiQbN4g3SN0YUQOtpRXR4sDcDB44t
-	uu3kMAls0wyISQzfJZ2J4S/rkqMGQmDV0dKyOC57E/0w+eHSx3DpBuIJdwk2nFV5bAhWrLvxrR9
-	SiEbdWMttMYYBV66W1/jgf/2QQnkY0T1Gh9L8uITxADpxZNzFKRy8IAnoCrJ87cXqZ/b94sTblZ
-	6NyfwM+p6M4X9ejV2/a7/R/fvj2HueLEekvOUqkc+k+dj1kLQNFlql9R3VsuGYzb+0e/9qmtvKB
-	lJbM9926dcIUFqxcZB26ImSGnwv0/bv1JgUGGGa6Hrxz3H2buO6Ewt6eQbuK3YkI6bajIZ8aCwv
-	+hZ3ySH/l8gHC83E5zerVk=
-X-Received: by 2002:a05:690c:6904:b0:80c:b92c:77a9 with SMTP id 00721157ae682-82022293d52mr7702217b3.6.1785875126957;
-        Tue, 04 Aug 2026 13:25:26 -0700 (PDT)
-Received: from zenbox ([2600:1700:18fb:6011:572c:6770:834b:60f2])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-820134ccc5csm11632827b3.43.2026.08.04.13.25.25
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 04 Aug 2026 13:25:26 -0700 (PDT)
-Date: Tue, 4 Aug 2026 16:25:25 -0400
-From: Justin Suess <utilityemal77@gmail.com>
-To: Li Chen <me@linux.beauty>
-Cc: Christian Brauner <brauner@kernel.org>, Kees Cook <kees@kernel.org>, 
-	Gabriel Krisman Bertazi <krisman@kernel.org>, Josh Triplett <josh@joshtriplett.org>, 
-	Mateusz Guzik <mjguzik@gmail.com>, Andy Lutomirski <luto@kernel.org>, 
-	John Ericson <mail@johnericson.me>, Jonathan Corbet <corbet@lwn.net>, Shuah Khan <shuah@kernel.org>, 
-	Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>, 
-	Andrew Morton <akpm@linux-foundation.org>, Paul Moore <paul@paul-moore.com>, Eric Paris <eparis@redhat.com>, 
-	=?utf-8?Q?Micka=C3=ABl_Sala=C3=BCn?= <mic@digikod.net>, =?utf-8?Q?G=C3=BCnther?= Noack <gnoack@google.com>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>, linux-api@vger.kernel.org, 
-	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, 
-	linux-doc@vger.kernel.org, audit@vger.kernel.org, linux-security-module@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-mm@kvack.org
-Subject: Re: [RFC PATCH 00/24] pidfd: add a minimal process spawn builder
-Message-ID: <anJE8SfBLtkh6QSa@zenbox>
-References: <cover.1784204592.git.me@linux.beauty>
+	dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b="HmEN5pZQ"
+Received: from localhost (localhost.localdomain [127.0.0.1])
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTP id 2942640E016E;
+	Tue,  4 Aug 2026 20:35:41 +0000 (UTC)
+X-Virus-Scanned: Debian amavisd-new at mail.alien8.de
+Authentication-Results: mail.alien8.de (amavisd-new); dkim=pass (4096-bit key)
+	header.d=alien8.de
+Received: from mail.alien8.de ([127.0.0.1])
+	by localhost (mail.alien8.de [127.0.0.1]) (amavisd-new, port 10026)
+	with ESMTP id G9xu28hJndJV; Tue,  4 Aug 2026 20:35:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=alien8;
+	t=1785875729; bh=DfPSIGNtSNCrYmnAjCAJSktSQDthCNJqrL3J4J7+FmE=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=HmEN5pZQO1cKYlPgMAo65EnTIgwNhdAim8xqmSG4ttbRFwy8V4QH31OiveIXudeHz
+	 lLQ2DBk62mVo4s5DRFi0K4KwxKTtllyenYtsO2ePAG59cJ0XTmWRt/fxJYqlCyzDRn
+	 Bqq93WIV6BLQlmZUoH+OwNIAjGrIkDtRtdKoEjgNbDr/6wpVRpvTxiN4RaN2Gd7s34
+	 ACmBPodoaYPhLKgx86l1TEty8mDHTSe496UMG02V3It8ayzdoJ1mur2Q6Jxw2g5bXF
+	 wqel4Euvgie89cJw5ANYmuCqBJLyVUkKKabFB0jMeFyhJhGcvxVw+JG7gO9g5zYy3e
+	 DlLU6aLhbbZ/VjQT7p2H/TuatxG4W6XMxFB3Jc0T8Xi+vODVNzn5hM8ejf8mWi/9ZL
+	 3/mnZxTldZZxcJKdUfgHeRRefjevS+7plphaeJCViSoUrHUj4uaJTAJvhdKNHuRRl3
+	 X3KnAHNz39CiACbbFAkhdPnNqIWnalVxKRrkYrHJwNNrcTciE9IHNXIaRmZSpDtH5w
+	 /yHtiw4nnoKLk1SZY9WCjAoXZ4UtHCk2g3Ujm+EjpNMXtnkLa2bhWWGVl47QUga4Pe
+	 03vn0uLw7tjwQNm/AHyG7AWe105MjvuAqYWIVTrut9R5oq/MT6+ytYyTnybnjAuFbj
+	 VCdtX2dFjL1b+Q2otoXv4sFc=
+Received: from stx.tnic (unknown [IPv6:2600:1700:38ca:c00::1b])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (P-256) server-signature ECDSA (P-256) server-digest SHA256)
+	(No client certificate requested)
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 3B33640E014A;
+	Tue,  4 Aug 2026 20:35:12 +0000 (UTC)
+Date: Tue, 4 Aug 2026 13:35:08 -0700
+From: Borislav Petkov <bp@alien8.de>
+To: Li Zhe <lizhe.67@bytedance.com>
+Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
+	balbirs@nvidia.com, dave.hansen@linux.intel.com, david@kernel.org,
+	kees@kernel.org, mingo@redhat.com, muchun.song@linux.dev,
+	rppt@kernel.org, tglx@kernel.org, linux-arch@vger.kernel.org,
+	linux-hardening@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-mm@kvack.org, x86@kernel.org
+Subject: Re: [PATCH v9 8/8] x86/string: extend memcpy_flushcache() fixed-size
+ fastpaths
+Message-ID: <20260804203508.GEanJM_LGXmItYhFKZ@fat_crate.local>
+References: <20260803070929.86075-1-lizhe.67@bytedance.com>
+ <20260803070929.86075-9-lizhe.67@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <cover.1784204592.git.me@linux.beauty>
+In-Reply-To: <20260803070929.86075-9-lizhe.67@bytedance.com>
 
-On Thu, Jul 16, 2026 at 10:31:26PM +0800, Li Chen wrote:
-> Hi,
+On Mon, Aug 03, 2026 at 03:09:29PM +0800, Li Zhe wrote:
+> Tested in a VM with a 100 GB fsdax namespace device configured with
+> map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
+> server.
 > 
-> This RFC follows feedback on my earlier spawn_template RFC [1]. That
-> proposal made caching the primary interface; this one starts with general
-> process construction. Christian suggested a pidfd/pidfs exec builder
-> modeled after fsconfig(), with enough semantics for userspace to implement
-> posix_spawn() [2], and Kees agreed [3].
+> Test procedure:
+> Rebind the nd_pmem and dax_pmem drivers 30 times and collect the memmap
+> initialization time from the pr_debug() output of
+> memmap_init_zone_device().
 > 
-> This RFC is based on linux-next next-20260710 and depends on two pidfs
-> fixes that I sent separately:
+> With memcpy_nontemporal() used by the ZONE_DEVICE template-copy path:
+>   Average of rebinds for nd_pmem driver: 150.83 ms
+>   Average of rebinds for dax_pmem driver: 153.55 ms
 > 
->   * pidfs: preserve thread pidfds reopened by file handle
->     https://lore.kernel.org/all/20260716052726.1032092-1-me@linux.beauty/
->   * pidfs: handle FS_IOC32_GETVERSION in compat ioctl
->     https://lore.kernel.org/all/20260716052822.1034228-1-me@linux.beauty/
+> With this x86 fixed-size fastpath patch applied:
+>   Average of rebinds for nd_pmem driver: 96.79 ms
+>   Average of rebinds for dax_pmem driver: 119.04 ms
 > 
-> The initial implementation is source-based. The executable path can be
-> provided with the final run request:
-> 
->     struct pidfd_spawn_run_args run = {
->         .path = (unsigned long)"/usr/bin/rg",
-This should probably be an FD for the path.
+> This further reduces the average memmap initialization time measured
+> during rebind by about 35.8% for nd_pmem and 22.5% for dax_pmem.
 
-This way it prevents race conditions over multiple configuration steps.
->         .argv = (unsigned long)argv,
->         .envp = (unsigned long)envp,
->     };
-> 
->     fd = pidfd_open(0, PIDFD_EMPTY);
->     pidfd_spawn_run(fd, &run, sizeof(run));
-> 
-> Alternatively, the path can be staged before the final run step:
-> 
->     struct pidfd_spawn_run_args run = {
->         .argv = (unsigned long)argv,
->         .envp = (unsigned long)envp,
->     };
-> 
->     fd = pidfd_open(0, PIDFD_EMPTY);
->     pidfd_config(fd, PIDFD_CONFIG_SET_STRING,
->                  PIDFD_CONFIG_KEY_PATH, "/usr/bin/rg", 0);
-Same here. Should probably be an FD to the binary instead.
+Testing methodology doesn't usually belong in the commit message but under the
+"---" lines below but this is important enough to keep it here.
 
->     pidfd_spawn_run(fd, &run, sizeof(run));
-I'm worried this pidfd_spawn_run just adds another varient to the existing
-myriad of exec* syscalls we already have. Would it be better to just have this
-work through execveat(fd, "", argv, envp, AT_EMPTY_PATH) instead?
+> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+> ---
+>  arch/x86/include/asm/string_64.h | 56 +++++++++++++++++++++++++++++++-
+>  1 file changed, 55 insertions(+), 1 deletion(-)
 
-(i.e have execveat take a pidfd directly).
+A quick and untested cleanup ontop with the potential for a bunch more
+unification. But later.
 
-Then you can get rid of pidfd_spawn_run which looks almost structurally
-identical to execveat (with the argv and envp collapsed).
+Note that you're inconsistent about the "memory" clobber. The current code
+doesn't have it, you're adding it to movnti_8(). I've added it now everywhere
+to be on the safe side - it would be interesting to know whether you see any
+perf difference with and without it in your use case.
 
-Justin
-> 
-> pidfd_open(0, PIDFD_EMPTY) creates a taskless future pidfd with a stable
-> pidfs inode, but no task, PID, or process-count charge. pidfd_spawn_run()
-> creates the task and PID; after publication the same fd is the child pidfd,
-> and a numeric pidfd resolves to the same inode. Live-task operations return
-> -ESRCH before publication. A terminal pre-task failure wakes poll/epoll
-> with POLLERR | POLLHUP.
-> 
-> Source-based mode follows posix_spawn-style defaults. At run time it
-> samples the caller's cwd, root, umask, fd table, signal dispositions and
-> blocked mask, and namespaces.
-> Non-FD_CLOEXEC descriptors remain unless an action changes them; file and
-> filesystem state are private child copies before actions. Configuration and
-> run stay bound to the creating mm_struct, exact credential object, and
-> child PID namespace, so SCM_RIGHTS does not delegate launch authority.
-> 
-> The first authorized run claims the builder before copying its payload, so
-> later failures are terminal. Pre-task failure leaves the fd taskless;
-> setup or exec failure leaves it as the child pidfd and exits the child with
-> status 127. PIDFD_GET_INFO with PIDFD_INFO_EXIT distinguishes them.
-> Success returns the positive child PID in the caller's PID namespace.
-> 
-> The RFC supports ordered DUP2, CLOSE_RANGE, and FCHDIR actions in
-> extensible UAPI records. This exercises child-private fd and cwd setup, but
-> is not the complete posix_spawn() action or attribute surface.
-> 
-> Between task publication and successful exec, the child is explicitly
-> embryonic and may not have a valid userspace register frame. Ptrace and
-> pidfd_getfd() are denied, procfs treats the PID as absent to other tasks,
-> and coredump information reports PIDFD_COREDUMP_SKIP. The child can use its
-> own proc entries during executable lookup. Setup runs as initial child task
-> work, and successful exec releases this state before exec events are
-> published.
-> 
-> Seccomp sees pidfd_spawn_run(), not separate file-action or exec syscalls,
-> and cannot inspect the path or action records behind the run pointer. An
-> exec-only denylist that allows unknown syscalls therefore does not block
-> this initial exec; policy must filter the builder syscall as a unit. Should
-> later expansion provide an immutable restriction profile or action mask
-> that seccomp can reason about, or is the coarse syscall boundary
-> preferable?
-> 
-> LSM exec checks and inherited seccomp state remain active. Child setup uses
-> a dedicated AUDIT_PIDFD_SPAWN transaction, not a synthetic AUDIT_SYSCALL.
-> Should it be selected through the source pidfd_spawn_run() exit rule? An
-> existing rule naming only execve() or execveat() does not select it.
-> For source/child correlation, could an auxiliary record carry
-> the source PID plus the stable pidfs inode? An already traced source is
-> rejected before the claim; ptrace auto-attach is not implemented.
-> 
-> The implementation still uses CLONE_VM | CLONE_VFORK plus exec internally.
-> Mateusz suggested that an initial implementation might start with vfork to
-> get the API off the ground [4]. That is what this RFC does. It does not yet
-> construct a pristine target process without first inheriting source state.
-> 
-> Missing posix_spawn() pieces include open and close file actions, resetids,
-> signal masks/defaults, process groups, sessions, scheduler attributes,
-> affinity, cgroup placement, PATH lookup/posix_spawnp(), and exec by fd. The
-> RFC also does not include pristine/no-source creation or the executable
-> metadata/template cache from my earlier work.
-> 
-> John Ericson described a real, partially initialized process that remains
-> unscheduled while callers install its state, and linked an exploratory
-> FreeBSD proc_new()/proc_setfd()/proc_start() refactoring [5]. This RFC
-> implements the source-based mode first; a lower-authority pristine/no-source
-> mode would be explicit follow-up work.
-> 
-> Direct process construction is not unprecedented. XNU's posix_spawn path
-> does not inherit the parent's address space [6], and Windows
-> CreateProcess() accepts explicit startup state [7]. Josh's io_uring_spawn
-> LPC slides list "set up process from scratch" as future work and provide
-> useful performance context [8]; I am not using those numbers as a claim for
-> this RFC.
-> 
-> If the direction is acceptable, I plan to continue toward:
-> 
->   * the complete file-action and attribute set needed by posix_spawn();
->   * pristine target-process construction and an explicit no-source mode;
->   * PATH/posix_spawnp support, if it belongs on the kernel side; and
->   * an optional executable/template layer for workloads such as agent tool
->     calling and compiler drivers.
-> 
-> The exposed UAPI surface is intentionally limited so the state model and
-> kernel/userspace boundary can be reviewed first. If maintainers would
-> prefer more posix_spawn semantics or backend work in this RFC, please say
-> so and I will adjust the split.
-> 
-> Codex GPT-5.5 and GPT-5.6-sol provided substantial assistance across design
-> conceptualization, implementation, patch splitting, code review, development
-> of self-test cases, and test planning and execution.
-> 
-> Thanks to Christian, Kees, Mateusz, Gabriel, Josh, Andy, John, and others
-> for the review and direction.
-> 
-> [1]: https://patchew.org/linux/20260528095235.2491226-1-me%40linux.beauty/
-> [2]: https://lore.kernel.org/all/20260528-madig-fachrichtung-fehlinformation-61117ba640da@brauner/
-> [3]: https://lore.kernel.org/all/202606011254.5FCBD65@keescook/
-> [4]: https://lore.kernel.org/all/vealb52tv5suireenkke4lul2l3wbnaul2rp3ea545ly5wa5ty@yk3aksvp7skt/
-> [5]: https://lore.kernel.org/all/ce71d6df-6851-4e4b-9603-1d55d8d522b8@app.fastmail.com/
-> [6]: https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/kern_exec.c#L4039
-> [7]: https://learn.microsoft.com/en-us/windows/win32/procthread/creating-processes
-> [8]: https://lpc.events/event/16/contributions/1213/attachments/1012/1945/io-uring-spawn.pdf
-> 
-> 
-> Li Chen (24):
->   pidfd: add spawn builder uapi
->   libfs: allow custom validation of stashed inode data
->   pidfs: add taskless future pidfd inodes
->   pidfd: create taskless spawn builders
->   pidfd: add spawn builder path configuration
->   exec: expose execveat internals to process builders
->   fork: expose vfork completion helper
->   pidfs: attach pids to future pidfd files
->   fork: let process builders supply preallocated pids
->   pidfs: publish future pidfd files
->   pidfd: add spawn builder state tracking
->   fork: let kernel callers create embryonic tasks
->   fork: let new tasks start with task work
->   pidfd: create and execute spawn builder tasks
->   fork: keep embryonic tasks hidden until exec completes
->   audit: add pidfd spawn child contexts
->   pidfd: audit child spawn execution
->   pidfd: make spawn builder execution signal-safe
->   file: expose spawn file-action helpers
->   pidfd: add initial spawn file actions
->   pidfd: consume spawn builders on the first run attempt
->   pidfd: expose spawn builder system calls
->   selftests/pidfd: cover pidfd spawn builders
->   Documentation: describe pidfd spawn builders
-> 
->  Documentation/userspace-api/index.rst         |    1 +
->  Documentation/userspace-api/pidfd_spawn.rst   |  247 ++++
->  MAINTAINERS                                   |    6 +
->  arch/alpha/kernel/syscalls/syscall.tbl        |    2 +
->  arch/arm/tools/syscall.tbl                    |    2 +
->  arch/arm64/tools/syscall_32.tbl               |    2 +
->  arch/m68k/kernel/syscalls/syscall.tbl         |    2 +
->  arch/microblaze/kernel/syscalls/syscall.tbl   |    2 +
->  arch/mips/kernel/syscalls/syscall_n32.tbl     |    2 +
->  arch/mips/kernel/syscalls/syscall_n64.tbl     |    2 +
->  arch/mips/kernel/syscalls/syscall_o32.tbl     |    2 +
->  arch/parisc/kernel/syscalls/syscall.tbl       |    2 +
->  arch/powerpc/kernel/syscalls/syscall.tbl      |    2 +
->  arch/s390/kernel/syscalls/syscall.tbl         |    2 +
->  arch/sh/kernel/syscalls/syscall.tbl           |    2 +
->  arch/sparc/kernel/syscalls/syscall.tbl        |    2 +
->  arch/x86/entry/syscalls/syscall_32.tbl        |    2 +
->  arch/x86/entry/syscalls/syscall_64.tbl        |    2 +
->  arch/xtensa/kernel/syscalls/syscall.tbl       |    2 +
->  fs/Makefile                                   |    2 +-
->  fs/coredump.c                                 |    4 +-
->  fs/exec.c                                     |   30 +-
->  fs/exec_internal.h                            |   40 +
->  fs/file.c                                     |   11 +-
->  fs/internal.h                                 |    3 +
->  fs/libfs.c                                    |    5 +-
->  fs/open.c                                     |    7 +-
->  fs/pidfd_spawn.c                              | 1095 +++++++++++++++
->  fs/pidfs.c                                    |  478 ++++++-
->  fs/proc/base.c                                |   11 +-
->  fs/proc/internal.h                            |   18 +-
->  include/linux/audit.h                         |   31 +
->  include/linux/pid.h                           |   13 +
->  include/linux/pidfd_spawn.h                   |    9 +
->  include/linux/pidfs.h                         |   28 +
->  include/linux/sched.h                         |   21 +
->  include/linux/sched/task.h                    |    6 +
->  include/linux/syscalls.h                      |    7 +
->  include/uapi/asm-generic/unistd.h             |    8 +-
->  include/uapi/linux/audit.h                    |    1 +
->  include/uapi/linux/pidfd.h                    |    1 +
->  include/uapi/linux/pidfd_spawn.h              |   49 +
->  kernel/audit.h                                |    1 +
->  kernel/auditsc.c                              |  105 +-
->  kernel/fork.c                                 |   26 +-
->  kernel/nsproxy.c                              |   11 +-
->  kernel/pid.c                                  |   41 +-
->  kernel/ptrace.c                               |    4 +
->  kernel/signal.c                               |    2 +-
->  scripts/syscall.tbl                           |    2 +
->  tools/include/uapi/asm-generic/unistd.h       |    8 +-
->  tools/include/uapi/linux/pidfd_spawn.h        |   49 +
->  .../arch/alpha/entry/syscalls/syscall.tbl     |    2 +
->  .../perf/arch/arm/entry/syscalls/syscall.tbl  |    2 +
->  .../arch/arm64/entry/syscalls/syscall_32.tbl  |   11 +
->  .../arch/mips/entry/syscalls/syscall_n64.tbl  |    2 +
->  .../arch/parisc/entry/syscalls/syscall.tbl    |    2 +
->  .../arch/powerpc/entry/syscalls/syscall.tbl   |    2 +
->  .../perf/arch/s390/entry/syscalls/syscall.tbl |    2 +
->  tools/perf/arch/sh/entry/syscalls/syscall.tbl |    2 +
->  .../arch/sparc/entry/syscalls/syscall.tbl     |    2 +
->  .../arch/x86/entry/syscalls/syscall_32.tbl    |    2 +
->  .../arch/x86/entry/syscalls/syscall_64.tbl    |    2 +
->  .../arch/xtensa/entry/syscalls/syscall.tbl    |    2 +
->  tools/scripts/syscall.tbl                     |    2 +
->  tools/testing/selftests/landlock/audit.h      |    6 +-
->  tools/testing/selftests/pidfd/.gitignore      |    9 +
->  tools/testing/selftests/pidfd/Makefile        |   25 +-
->  tools/testing/selftests/pidfd/config          |    6 +
->  .../pidfd/pidfd_spawn_accounting_test.c       |  428 ++++++
->  .../pidfd/pidfd_spawn_actions_test.c          |  474 +++++++
->  .../selftests/pidfd/pidfd_spawn_audit_test.c  |  521 +++++++
->  .../selftests/pidfd/pidfd_spawn_common.c      |  512 +++++++
->  .../selftests/pidfd/pidfd_spawn_common.h      |   59 +
->  .../selftests/pidfd/pidfd_spawn_compat.c      |  221 +++
->  .../selftests/pidfd/pidfd_spawn_exec_test.c   |  301 ++++
->  .../selftests/pidfd/pidfd_spawn_policy_test.c |  294 ++++
->  .../selftests/pidfd/pidfd_spawn_race_test.c   |  923 ++++++++++++
->  .../pidfd/pidfd_spawn_security_test.c         | 1242 +++++++++++++++++
->  .../selftests/pidfd/pidfd_spawn_test.c        |  550 ++++++++
->  80 files changed, 7938 insertions(+), 81 deletions(-)
->  create mode 100644 Documentation/userspace-api/pidfd_spawn.rst
->  create mode 100644 fs/exec_internal.h
->  create mode 100644 fs/pidfd_spawn.c
->  create mode 100644 include/linux/pidfd_spawn.h
->  create mode 100644 include/uapi/linux/pidfd_spawn.h
->  create mode 100644 tools/include/uapi/linux/pidfd_spawn.h
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_accounting_test.c
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_actions_test.c
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_audit_test.c
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_common.c
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_common.h
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_compat.c
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_exec_test.c
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_policy_test.c
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_race_test.c
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_security_test.c
->  create mode 100644 tools/testing/selftests/pidfd/pidfd_spawn_test.c
-> 
-> -- 
-> 2.52.0
-> 
+Thx.
+
+---
+diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
+index bc6a9f34b346..3a1e1f17431b 100644
+--- a/arch/x86/include/asm/string_64.h
++++ b/arch/x86/include/asm/string_64.h
+@@ -83,6 +83,14 @@ int strcmp(const char *cs, const char *ct);
+ #define __HAVE_ARCH_MEMCPY_FLUSHCACHE 1
+ void __memcpy_flushcache(void *dst, const void *src, size_t cnt);
+ 
++static __always_inline void movnti_4(void *dst, const void *src)
++{
++	asm volatile("movntil %1, %0"
++		     : "=m"(*(u32 *)dst)
++		     : "r"(*(u32 *)src)
++		     : "memory");
++}
++
+ static __always_inline void movnti_8(void *dst, const void *src)
+ {
+ 	asm volatile("movntiq %1, %0"
+@@ -112,47 +120,26 @@ static __always_inline void movnti_64(void *dst, const void *src)
+ static __always_inline void memcpy_flushcache(void *dst, const void *src,
+ 					      size_t cnt)
+ {
+-	if (__builtin_constant_p(cnt)) {
+-		switch (cnt) {
+-			case 4:
+-				asm ("movntil %1, %0" : "=m"(*(u32 *)dst) : "r"(*(u32 *)src));
+-				return;
+-			case 8:
+-				asm ("movntiq %1, %0" : "=m"(*(u64 *)dst) : "r"(*(u64 *)src));
+-				return;
+-			case 16:
+-				asm ("movntiq %1, %0" : "=m"(*(u64 *)dst) : "r"(*(u64 *)src));
+-				asm ("movntiq %1, %0" : "=m"(*(u64 *)(dst + 8)) : "r"(*(u64 *)(src + 8)));
+-				return;
+-			/*
+-			 * The relevant fixed-size copies here are the
+-			 * x86_64 struct page sizes: 64, 80, and 96 bytes.
+-			 * Keep 32-byte and 48-byte copies inline as well
+-			 * instead of sending those nearby fixed-size
+-			 * cases back to __memcpy_flushcache().
+-			 */
+-			case 32:
+-				movnti_32(dst, src);
+-				return;
+-			case 48:
+-				movnti_32(dst, src);
+-				movnti_16(dst + 32, src + 32);
+-				return;
+-			case 64:
+-				movnti_64(dst, src);
+-				return;
+-			case 80:
+-				movnti_64(dst, src);
+-				movnti_16(dst + 64, src + 64);
+-				return;
+-			case 96:
+-				movnti_64(dst, src);
+-				movnti_32(dst + 64, src + 64);
+-				return;
+-		}
++	if (!__builtin_constant_p(cnt))
++		return __memcpy_flushcache(dst, src, cnt);
++
++	/*
++	 * The relevant fixed-size copies here are the x86_64 struct page sizes:
++	 * 64, 80, and 96 bytes. Keep 32-byte and 48-byte copies inline as well
++	 * instead of sending those nearby fixed-size cases back to
++	 * __memcpy_flushcache().
++	 */
++	switch (cnt) {
++	case 4:  movnti_4(dst, src); break;
++	case 8:	 movnti_8(dst, src); break;
++	case 16: movnti_16(dst, src); break;
++	case 32: movnti_32(dst, src); break;
++	case 48: movnti_32(dst, src); movnti_16(dst + 32, src + 32); break;
++	case 64: movnti_64(dst, src); break;
++	case 80: movnti_64(dst, src); movnti_16(dst + 64, src + 64); break;
++	case 96: movnti_64(dst, src); movnti_32(dst + 64, src + 64); break;
++	default: __memcpy_flushcache(dst, src, cnt); break;
+ 	}
+-
+-	__memcpy_flushcache(dst, src, cnt);
+ }
+ 
+ #define memcpy_nontemporal memcpy_nontemporal
+
+-- 
+Regards/Gruss,
+    Boris.
+
+https://people.kernel.org/tglx/notes-about-netiquette
