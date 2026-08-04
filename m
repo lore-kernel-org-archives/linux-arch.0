@@ -1,95 +1,131 @@
-Received: from desiato.infradead.org (desiato.infradead.org [90.155.92.199])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 60FFE3CEBBB;
-	Tue,  4 Aug 2026 10:39:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.92.199
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4FF9343933F;
+	Tue,  4 Aug 2026 11:10:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785840004; cv=none; b=doS6DAf+g+F4cHtFHlBOBNp2CZXnMa3qq6phVRkp3QfUOKMdkGNLzZoWV5v2A2mkA1v0BOXuhIweuhb9ZML3iAKLEwhlVsmsdAVZT9W8xgyAuJciqslRkO1RnHEDoWq2oCLgzIpvuHndXG0/EMn19sC0yPXGUe0ehimTs3Mst64=
+	t=1785841843; cv=none; b=nXyJk3L3yDj+MKVGxtDdlDpgkA0aGDcvms9QyIdjj3FLmNen6kQshC/W25h8ed/g63bx6rEYF/7jUBy2HG5ugLXP5S/ryADhkXdmoHsohv7GDxHCzexAyipVkGFCuykjaU4a7+xH36aL0JvKn43cKNgOER/Y0lIR+uysoux8vjY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785840004; c=relaxed/simple;
-	bh=66Vr/fy3qYcTZO6v5sVMVw5Sihq2KQZzSp511oVKZTY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=rc8fvoV0GqzxsYPI/nxu3byilMi4MpAZ1lmLOGmCwCKF5BptU013ZmZE2sXaNh7aVWcw2uQwyJGUJ4qOWilTa9/z/2hUdKy8amylqLBuz20bz0sbopVWPtnHZ/6Fok0A5jQeYNRNiUwiKjFL4n+B9HRogZ4p+s+qTx43gIMNtuo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=LGA1lkkR; arc=none smtp.client-ip=90.155.92.199
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1785841843; c=relaxed/simple;
+	bh=doSlb3i9NB1iTOqLdWSB1tJl5muSITvRuZ3aYndBMVg=;
+	h=Mime-Version:Content-Type:Date:Message-Id:To:From:Subject:Cc:
+	 References:In-Reply-To; b=Z28Gs1okn7SCX3MU/XnU4KI5CqJN/f890QAYXHNkpESXgzK19L9w83iZKaeahuPlRUr6CHNKB+Zjdiajh1k6AJHerwjwJju5P2b/tpWDXq3WHhUuH06Wl1KBd+9MgrQR97OPIfe/5/pmoaU9y/evch4334cJfAKVYkPRG08e99g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=iO80srqO; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="LGA1lkkR"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=MsldYqnXOycsS4y2/7KD3GU//XDAu63pq55swDGd2xw=; b=LGA1lkkRQbVX1KW9YPvaAmrSjX
-	iVDDDoXj/8hc/CzXkHA5ffJ8pRRD8pKaS0GgylshFZGV1Gt51cxqLuoVgYiuV2+ASvLqawoyP37O2
-	ta0OHhxCiAPtEM7zdUElmcx4T8aqOOi6F0Y2q+lPdg8ionsZP3yHhQDAZ8wcCfqcYRJN5+hEbCGN8
-	sfZ+ukTa3ier64oRKtJsK+zhxdviWmRFE/G+2nNfwhkLzN58M0Lmk13/TM+rpL52AWovHxCh20cap
-	NFJT1Jbuiblfw8ziL76Tp7Ia//DA11YVN9uCIT6u7MxpE8hBCpXj1BKi8NhSEyEoqHzzQKtxscgCI
-	IVoTVISw==;
-Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
-	by desiato.infradead.org with esmtpsa (Exim 4.99.2 #2 (Red Hat Linux))
-	id 1wrCYe-00000009nOq-2bzw;
-	Tue, 04 Aug 2026 10:39:40 +0000
-Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
-	id 5984030045A; Tue, 04 Aug 2026 12:39:38 +0200 (CEST)
-Date: Tue, 4 Aug 2026 12:39:38 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-To: Dmitry Ilvokhin <d@ilvokhin.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
-	Boqun Feng <boqun@kernel.org>, Waiman Long <longman@redhat.com>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	"K. Y. Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
-	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Juergen Gross <jgross@suse.com>,
-	Ajay Kaher <ajay.kaher@broadcom.com>,
-	Alexey Makhalov <alexey.makhalov@broadcom.com>,
-	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
-	Paolo Bonzini <pbonzini@redhat.com>,
-	Vitaly Kuznetsov <vkuznets@redhat.com>,
-	Josh Poimboeuf <jpoimboe@kernel.org>,
-	Jason Baron <jbaron@akamai.com>, Alice Ryhl <aliceryhl@google.com>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	Ard Biesheuvel <ardb@kernel.org>,
-	Boris Ostrovsky <boris.ostrovsky@oracle.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
-	linux-hyperv@vger.kernel.org, virtualization@lists.linux.dev,
-	kvm@vger.kernel.org, xen-devel@lists.xenproject.org,
-	linux-arch@vger.kernel.org, linux-trace-kernel@vger.kernel.org,
-	kernel-team@meta.com
-Subject: Re: [PATCH 0/5] locking/qspinlock: Add contended_release tracepoint
-Message-ID: <20260804103938.GH776954@noisy.programming.kicks-ass.net>
-References: <cover.1785778551.git.d@ilvokhin.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="iO80srqO"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1F57A1F000E9;
+	Tue,  4 Aug 2026 11:10:36 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1785841841;
+	bh=doSlb3i9NB1iTOqLdWSB1tJl5muSITvRuZ3aYndBMVg=;
+	h=Date:To:From:Subject:Cc:References:In-Reply-To;
+	b=iO80srqOiGoKRX+2EA3QpCTyBGYsVfNupf/1X4qF3d810qvhg/aEErqqnUAEGaM7c
+	 qMW081vLHc/Veqx+i2RmcWvkbrE70QoKI7WxUdX7hxJbdy8pIFg4pUGqrXckriDVRv
+	 VHlFnpgvcBS68MsCJxgFx43FFFI5h6GfYx4h/NBceriYQ2bASB4WoVgqcpz1+3uPWr
+	 iLwwsNQkvGpTmSbNMXRkHlQoSfpsi+Nawef7hNhFVUZjYO7ZjSrnL8qhu+ev63dEj+
+	 HWH/VqeSUD0Xu9jb0gVvIQ49nfPRyxEnuZEN7Xk4LybtCMvwERlGaWoS76kLY5wGFv
+	 otfdZ2EBfJ8zw==
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <cover.1785778551.git.d@ilvokhin.com>
+Mime-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=UTF-8
+Date: Tue, 04 Aug 2026 13:10:35 +0200
+Message-Id: <DKG43HF7A2EN.PC1LBC0QUP93@kernel.org>
+To: "Arnd Bergmann" <arnd@arndb.de>
+From: "Danilo Krummrich" <dakr@kernel.org>
+Subject: Re: `io{re,un}map()` build error in s390 under `!CONFIG_HAS_IOMEM`
+Cc: "Heiko Carstens" <hca@linux.ibm.com>, "Niklas Schnelle"
+ <schnelle@linux.ibm.com>, "Gerd Bayer" <gbayer@linux.ibm.com>, "Miguel
+ Ojeda" <ojeda@kernel.org>, "Alice Ryhl" <aliceryhl@google.com>, "Daniel
+ Almeida" <daniel.almeida@collabora.com>, "Vasily Gorbik"
+ <gor@linux.ibm.com>, "Alexander Gordeev" <agordeev@linux.ibm.com>,
+ <driver-core@lists.linux.dev>, "Christian Borntraeger"
+ <borntraeger@linux.ibm.com>, "Sven Schnelle" <svens@linux.ibm.com>,
+ <linux-s390@vger.kernel.org>, "Linux-Arch" <linux-arch@vger.kernel.org>,
+ "Boqun Feng" <boqun@kernel.org>, "Gary Guo" <gary@garyguo.net>,
+ =?utf-8?q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, "Benno Lossin"
+ <lossin@kernel.org>, "Andreas Hindborg" <a.hindborg@kernel.org>, "Trevor
+ Gross" <tmgross@umich.edu>, "Tamir Duberstein" <tamird@kernel.org>,
+ "Alexandre Courbot" <acourbot@nvidia.com>, =?utf-8?q?Onur_=C3=96zkan?=
+ <work@onurozkan.dev>, <rust-for-linux@vger.kernel.org>
+References: <20260803180931.97202-1-ojeda@kernel.org>
+ <fb2daae7-4eba-4ca1-95a5-60f8157eb66b@app.fastmail.com>
+ <DKFKXA6YWW8R.1NDZ44Q13XFQH@kernel.org>
+ <20260804071330.24760Aaf-hca@linux.ibm.com>
+ <33ecacea-ed2a-409c-ab1c-a136e06b1b7a@app.fastmail.com>
+In-Reply-To: <33ecacea-ed2a-409c-ab1c-a136e06b1b7a@app.fastmail.com>
 
-On Tue, Aug 04, 2026 at 07:15:40AM +0000, Dmitry Ilvokhin wrote:
+On Tue Aug 4, 2026 at 12:36 PM CEST, Arnd Bergmann wrote:
+> On Tue, Aug 4, 2026, at 09:13, Heiko Carstens wrote:
+>> On Mon, Aug 03, 2026 at 10:09:08PM +0200, Danilo Krummrich wrote:
+>>> On Mon Aug 3, 2026 at 9:56 PM CEST, Arnd Bergmann wrote:
+>>> > In theory you should be able to use rust code without PCI MMIO
+>>> > support, but I can't see any practical downsides to making rust
+>>> > 'depends on HAS_MMIO' to avoid having to add those #ifdef.
+>>>=20
+>>> I think the implications should be minor without making Rust depend on
+>>> CONFIG_HAS_IOMEM.
+>>>=20
+>>> I just sent out a fix [1]; the only annoying part is [2], but we should=
+ change
+>>> those doc-tests anyway. For the one in rust/kernel/io.rs we already did=
+ in
+>>> driver-core-next.
+>>>=20
+>>> [1] https://lore.kernel.org/driver-core/20260803200249.3494259-1-dakr@k=
+ernel.org/
+>
+> This looks like you still provide the rust version of ioremap(),
+> turning what is supposed to be a link failure into a runtime
+> error.
 
-> Patch 1 is Peter's draft from [1] and is missing his Signed-off-by.
-> Peter, please add it if you are happy with the patch.
-> 
-> Dmitry Ilvokhin (4):
->   locking: Factor out queued_spin_release()
->   locking/qspinlock: Add contended_release tracepoint
->   tracing/lock: Use TRACE_EVENT_FN() for contended_release
->   x86/paravirt: Trace contended_release on unlock
-> 
-> Peter Zijlstra (1):
->   x86/paravirt: Use static_call() for the paravirt spinlock ops
+Which is the standard for many core APIs, such as [1]. However, I do agree =
+that
+in this case the correct fix would be to have all architectures provide the
+stubs rather than the Rust code.
 
-Right, this all looks nice. Let me go queue this for the robots.
+However, there's already a precedent for this in the kernel, e.g. in [2]. O=
+f
+course, it would be better to clean this up, but depending on whether there=
+'s
+more architectures having this issue (I didn't check) that's separate from =
+a
+fix.
 
-Thanks!
+[1] https://elixir.bootlin.com/linux/v7.1.5/source/include/linux/regmap.h#L=
+1809
+[2] https://elixir.bootlin.com/linux/v7.1.5/source/include/linux/device/dev=
+res.h#L115
+
+>> I'm wondering if it would make sense to make HAS_IOMEM always available
+>> on s390, even though it doesn't make too much sense without PCI.
+>> But at least it would make s390 again a bit less special.
+>
+> I see that with CONFIG_PCI=3Dy, s390 already falls back to
+> generic_ioremap_prot() and just maps any phys_addr_t into the
+> page table as PAGE_KERNEL, regardless of whether this is an MMIO
+> address or not.
+>
+> The simple change below would just extend that behavior to !PCI
+> and make that consistent with CONFIG_PCI=3Dy on machines without
+> actual PCI hardware. Of course any code that might rely on this
+> is now a bug that likely never gets caught at build time.
+>
+> This still relies on implementing the __raw_* helpers as nop
+> to have the same behavior as the PCI=3Dy version, as the generic
+> version would just end up dereferencing the invalid pointers.
+
+As mentioned, I didn't check, but if this is the only architecture causing =
+those
+issues that'd be the better fix of course.
+
+However, IIUC, your patch below would make ioremap() and friends silenty su=
+cceed
+and only the accessors would prevent undefined behavior?
+
+In this case I still think ioremap() should just fail.
