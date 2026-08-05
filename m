@@ -1,176 +1,303 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from DM5PR21CU001.outbound.protection.outlook.com (mail-centralusazon11011038.outbound.protection.outlook.com [52.101.62.38])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A65584519B7;
-	Wed,  5 Aug 2026 12:07:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785931639; cv=none; b=ZQHsR5sI80B/DqCbyzFe9ypLnTYUNY7iKoMydjx9OxzR52YYQxjIFLvX7VJh75Ksm0IedCKNEjVsIDMpXVpYhWkDvOvUGO4jNWV1kSoOyWEe6YGLhnh/2zoHBpxHR/oUEMT0UsBo3Pt9eVpWDgBTyqdDiNP6zVTN9BHiKDRK7dg=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785931639; c=relaxed/simple;
-	bh=YRcdc4mrunCunHDqvf/shzKd2lJSpl7S04iRZ8h15Oo=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=paIX2Ht6Q2Ukt4JV/EUayZmIsVq+UooYZmjMl2GjpTfgYxNljxLsU07+OViFEVfZbpVnVvXGhtQMC85F20zVMg2rGjY3iXdEpvw87fYny+Eq3CDCCsVsKSvJ3O9QLw+a4YgakE0PGPbgDp9k3WPh77q1mxSO3jLZe4h4KnGFLwQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=G08xuQ9v; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B5B933EFD07;
+	Wed,  5 Aug 2026 12:48:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.62.38
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1785934125; cv=fail; b=Mk10rOgjFheBUUetbMPBAgc0PxwTZtc+b1YhfXWZAVP+o+aLoP5zxzBRDYcUZXvcJ4f1AGjxZfV9xExQR0fb2l/drj9vYVrPg/RoTuvYIAiZYvCZWtBCCApGbHsN5VpQ7nvQrUIEHnu0aot7vX4TRNfPuxGwkcgeaZRzs/WywQ8=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1785934125; c=relaxed/simple;
+	bh=hcMuFzdX5cAzu8HlLbRqECTFtjYxf4tjVb2lkYzd98w=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=SbIaiAUQQAXymTIFiga0tQNo5CWLTerW3TNrgZW8EJlCObaFHnATriCd+j0vXce9sqQhpMf6wRD0YdBot+0Cii685IGzpch3ox/HGkuDikfhL8QxdM/snc04pqbaM9lPfwR2hWHJvA5rH09WI4WqXZAi3nHGTe8WjNfIvyLRzZM=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=FiOyoeiY; arc=fail smtp.client-ip=52.101.62.38
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="G08xuQ9v"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2A82F1F000E9;
-	Wed,  5 Aug 2026 12:07:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1785931638;
-	bh=aGl+2n0y8opMkIO+tIk0uV2YGP/4CHQ7NMUa3eVt6C8=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=G08xuQ9vztT8MWAY4GWQjNu0SA3oW0WrAzxB+WUMH6xTvVM4MnCCvAzMX4Y2bXu9/
-	 wMQarK/Q0WzmH8cJs2dytIclXaHZiQrRUQW2XaJHZZyivkVl4Hy24GBiNCN796Df+y
-	 2CzrddHZ/z5jmR+FqtxzKW00oGiX2uY3jNIgcnVBHu+JGJoYG6tUcNsk5lKbqM/zi4
-	 nvu4A4Z/uwi6godbKpH5dHpUVRyOLRICUQPbrtp8FehB8uI3y++d5t0FWhLzy/JTGh
-	 PJ9ozl262SzjHQNrxDhcJRvOBQJo4aA/7EyfOJtrMCFELMOATMaHl0coqmtItf6c/P
-	 aGqVAA3RBHoPw==
-Message-ID: <33fc9d31-2866-4315-9510-0004deb93994@kernel.org>
-Date: Wed, 5 Aug 2026 14:07:01 +0200
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="FiOyoeiY"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=C1eBLRUg1lhUuDcyibtOMoVPR5CBy6Ph46NOi667cRnquFZKzKPl99EkONT7PsYz4AHagFShFlCyba0cHjzr2/zyaNEngbF+kNvo2i0kO25Ne3b5/bKgWHvn/doYmhzSds7ptMz16IX088NrHKZPbC9jjYZ7frrvnmP2HM1wqCfGYsKWr7QnJB6MGO0dRnDx/Q8RY8ubprfcD4VRVqHw5j9RdtiG6xuylBc0zlcUEvMjNvVcCj0gt0/ZUYBVFULejyrtldws1JNqAumS5DJyBLZMnMuua29nkrYs8XPTwK2ei8+2HqJOCv5nJJk4qoUr/jI5MWW2ncEu8FB7vJkB8w==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=ycYvnxE/eOm6nqFDykATtT41QOY/J7JDOmwAeOSfjkc=;
+ b=eqkadu0pWNRAcovIgdgMuzTQsB+s+I+ReIJXJq1ccnZXEJJuDiY6ZYIg/CSTdF8esSBoJCWp4W1NMUXQ5jfVgE9VXcPvzuqPI9e32YZpmabU5juo7LeqBJ1XJhqmXSyEw/6ZtJTCuCURkyzJ+s79xU44f+3Tes7gO0f5+O11vfbYk1Z7XvJWEd0y0Y0U+AMmiD9ToL3ynsoLAQfysmmHQ5SMxtHfBd84Hf4NarXKsVcoaM1ORzVSV8XHq7OcQQIIZEEePc8kXp/1y7yhDS9VwxKQolJGsyh7nPtpN2f8DQTC/OEc29hgmPnrvpxDfq9bIoDy+IfXkKAwNWB0F29U0w==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=ycYvnxE/eOm6nqFDykATtT41QOY/J7JDOmwAeOSfjkc=;
+ b=FiOyoeiYyWmxDRNu9hZCxVRWh9UzAZmEN9u9BFOYI4iD+8lJJ/4ZB4v/q8IWZN76Boohe6ymecFrXAannc8qpzwu+dbuMO50kOT8RadSDPQjgg7ztyIbJtFnyIfuRXcAdx/Yuv+1ub78CxCW/TQtyKRaxlc3WrOAV5LvVM50bSczvnLM/qpAFD1ngtrPVMfOY2Ynb5O3AANa2ETAABfJBcrpZT9rb7AoWQQDjdXHQcz0KGrRhUcqODzC81qGPjnxo0oONeyzFtEOZhYXvzlNIh0QOAi9NWNHKq+bdth8P7Asm11Ok0O2qcekkuQj+FO2S/7RKwuBeuO24Ihy3Eu1VQ==
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from LV8PR12MB9620.namprd12.prod.outlook.com (2603:10b6:408:2a1::19)
+ by CY8PR12MB7682.namprd12.prod.outlook.com (2603:10b6:930:85::15) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.292.19; Wed, 5 Aug
+ 2026 12:48:39 +0000
+Received: from LV8PR12MB9620.namprd12.prod.outlook.com
+ ([fe80::299d:f5e0:3550:1528]) by LV8PR12MB9620.namprd12.prod.outlook.com
+ ([fe80::299d:f5e0:3550:1528%4]) with mapi id 15.21.0292.015; Wed, 5 Aug 2026
+ 12:48:39 +0000
+Date: Wed, 5 Aug 2026 09:48:38 -0300
+From: Jason Gunthorpe <jgg@nvidia.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
+	wei.liu@kernel.org, mhklinux@outlook.com, muislam@microsoft.com,
+	namjain@linux.microsoft.com, magnuskulke@linux.microsoft.com,
+	anbelski@linux.microsoft.com, linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
+	kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
+	longli@microsoft.com, tglx@kernel.org, mingo@redhat.com,
+	bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
+	joro@8bytes.org, will@kernel.org, lpieralisi@kernel.org,
+	kwilczynski@kernel.org, bhelgaas@google.com, arnd@arndb.de,
+	jacob.pan@linux.microsoft.com
+Subject: Re: [PATCH v5 7/9] x86/hyperv: Implement Hyper-V virtual IOMMU
+Message-ID: <20260805124838.GP27883@nvidia.com>
+References: <20260731223427.2554388-1-mrathor@linux.microsoft.com>
+ <20260731223427.2554388-8-mrathor@linux.microsoft.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260731223427.2554388-8-mrathor@linux.microsoft.com>
+X-ClientProxiedBy: YT4PR01CA0491.CANPRD01.PROD.OUTLOOK.COM
+ (2603:10b6:b01:10c::28) To LV8PR12MB9620.namprd12.prod.outlook.com
+ (2603:10b6:408:2a1::19)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 03/22] mm: introduce MMF_KERNEL flag and set it for
- init_mm
-To: "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
- Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>,
- Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- Pasha Tatashin <pasha.tatashin@soleen.com>,
- Russell King <linux@armlinux.org.uk>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org,
- Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev,
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
- Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org,
- Madhavan Srinivasan <maddy@linux.ibm.com>,
- Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org,
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
- Albert Ou <aou@eecs.berkeley.edu>, linux-riscv@lists.infradead.org,
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
- Alexander Gordeev <agordeev@linux.ibm.com>,
- Gerald Schaefer <gerald.schaefer@linux.ibm.com>, linux-s390@vger.kernel.org,
- "David S. Miller" <davem@davemloft.net>,
- Andreas Larsson <andreas@gaisler.com>, sparclinux@vger.kernel.org,
- Richard Weinberger <richard@nod.at>,
- Anton Ivanov <anton.ivanov@cambridgegreys.com>,
- Johannes Berg <johannes@sipsolutions.net>, linux-um@lists.infradead.org,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Ning Sun <ning.sun@intel.com>,
- x86@kernel.org, tboot-devel@lists.sourceforge.net,
- Ard Biesheuvel <ardb@kernel.org>,
- Ilias Apalodimas <ilias.apalodimas@linaro.org>, linux-efi@vger.kernel.org,
- Vishal Moola <vishal.moola@gmail.com>, Alistair Popple <apopple@nvidia.com>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20260714-remove_pgtable_cdtor-v1-0-44be8a7685d7@arm.com>
- <20260714-remove_pgtable_cdtor-v1-3-44be8a7685d7@arm.com>
- <01f07ea2-8bdd-4450-8a49-548f8b646cfd@kernel.org>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- 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
- qIws/H2t
-In-Reply-To: <01f07ea2-8bdd-4450-8a49-548f8b646cfd@kernel.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: LV8PR12MB9620:EE_|CY8PR12MB7682:EE_
+X-MS-Office365-Filtering-Correlation-Id: aa83bf02-51f1-4223-2d69-08def2efdf55
+X-LD-Processed: 43083d15-7273-40c1-b7db-39efd9ccc17a,ExtAddr
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|7416014|23010399003|376014|366016|1800799024|10067099003|5023799004|11063799006|56012099006|4143699003|22082099003|18002099003|3023799007;
+X-Microsoft-Antispam-Message-Info:
+	EnQ+ie4+EsF6YgdEN418pctYbDeLyrZVn7dIWrdp1FT4d2zcaqY7VktWiIJTV3iprUl8hJFB7pLcLcC1ZQk1h/GJxdDb+80leRlrLWJ4M/Uovyf1lJ8R5lhwWZz8+ZdYUiLb+rufHT9df32BOgWhfcgGl5AmT7n52uunWOhRQvT6dlo21hGCx2z7DD0wpTwf+kmY33+TbZ3vBHYOg7RwyiPxk9WXX2mRdfHiwGi+4zwBad8iYRChdjE9Okg8jDMoFGlblLMp2gwcWQ50lUOR3dJhXXMovw8w9TyTngXQtT1vdDUYSirJ0lHH63CMst2QD9lTspOePV/qMWUqynTmG08O3ljEyOL+fu8R4Hn9vLkCu68cBki7GpwA/fs7JvhdGP5j32xj8wUXymUy+sW54QJfTsqjPI9mqBzZWKlC/YOdMhKRp0gW4RvA+duxogIV1Hj4Wi5QceG2PDhYvUol3bLYmZXnvVZw8nhfPlRkWnNP5xMmll+1FIZ+Hsavx1Y6Eyp/nxJhD+ks8RTsnuSH6eI37Y0OyqoFi5kOvIEi81NT9Twz0LOPrRkv59uXHC42At0vmif2isFb/kUGkFLq+4aJNWO/d0iT+WVJoTunLojmqptxZcwQfVihDVQuF7YkAXrjeQVRBsD6Khq/5sae1V2Wp60uMD1cY+HfMScqOJQ=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:LV8PR12MB9620.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(7416014)(23010399003)(376014)(366016)(1800799024)(10067099003)(5023799004)(11063799006)(56012099006)(4143699003)(22082099003)(18002099003)(3023799007);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?7bIMdNG3ksBeVm7wITuJfzaGxczF9Io3E9Cknb3kXjR1Vwti38BKdIA/Pkyi?=
+ =?us-ascii?Q?WZ4eHTtlt+r5Knx81Q9XrSNa/Sl2zsC3feBNLOb57kglIjC9j0NR9UTAlKVA?=
+ =?us-ascii?Q?uH0a+FKbW0E5S5tVuFIo3f6S7fs8d+oXCN7SFg/hjsirtL5IrLZ47aIAcVNx?=
+ =?us-ascii?Q?k0VQmhCeRFIeuOBdw8mjTD1pLd37jpUUoG0A0EOL5Rfx10fQt2C8TPzn5ja3?=
+ =?us-ascii?Q?WGyF72zGbBFvUHKV98P9Ck0gycJ2iNfToXxShCip0/vbM/zovHBG8dg0+IjD?=
+ =?us-ascii?Q?1oyj//ZC+hMuIOxxZPvJhIZXgsdTs7cdRBJlwEpEQNC9tDwGOIsVXeyQPFFW?=
+ =?us-ascii?Q?91G7shoDeDx42Rd+bj+D887DufIZV42slNj8pOCEVYXTQANOsZlw0TaSiaZs?=
+ =?us-ascii?Q?7WWaQYqcOTM2FD5d66vO2+uekaD3nCiL9VL6Hm5Vm0xOvpimXf+3RyKMBK26?=
+ =?us-ascii?Q?UqCtKGBKzyYi39LZM0IhuHRcYgOpFsZX4AY3Nzjyvk2JTv3hCzJGAZG5vu4M?=
+ =?us-ascii?Q?OtWMv12fcH/059sVwJ/niSFSIKcsnf1r8zyWe5zCkYmvO8MZ/wxPkuTNEply?=
+ =?us-ascii?Q?8Yy/ONZ8OHIJY3mfKPS5L7RJe6d2iAEJPXH3TDEm00zpPUWTcb7G7yp0hWjh?=
+ =?us-ascii?Q?1T0dIcvAWOZoC5Lqy8Hljm8bYqd4D3h8KTCUTD4B7KzkMDZ4H3MZjRR8ZYyP?=
+ =?us-ascii?Q?voegasEgrOLICm5s48jaCxxOFgM+PWqTnGdyGGOjCFUdprrlH6kw5wMNFuwC?=
+ =?us-ascii?Q?4+AH91bQHD0/1PHApbLOqxyD8WD4BDhiYHVhuIGAAmJ1N3VjBK2VZrrJScz3?=
+ =?us-ascii?Q?RlkeN52T0zcpO0ASgbGaJ2lfAm89ydxWy4eIcYR1MYhEikfAL72c6m6gJwre?=
+ =?us-ascii?Q?FGGgXxLx02tJJ4kyEZj2EDt+CMpJpKBrbiNfcvdKVf25cfUY71ZFSSY8Y4Iu?=
+ =?us-ascii?Q?sCuFYpBTsD8/JtAfETSZZBgiXZHQeKahHrVDERU1Bdeb2TKMdKpkWXw1wYLA?=
+ =?us-ascii?Q?CpH+miRRJ/5r83tTHo8f7l05NCZY2TE3AqtfX4qLA0HKzDhdicit5A44VYuT?=
+ =?us-ascii?Q?TVTl97fhnuPtZ3/+jGuSO7EgfGyxifYR4Yvf3nOH6vIIrRviNl4JxpxlCdr1?=
+ =?us-ascii?Q?eSpHxk1F1YO5VjLSa/+rf/+yP+ucUAQGpURrFDY3GRAzwCW//c7KKp00cPdA?=
+ =?us-ascii?Q?pU9n5tAsZL2mESS2FSCwiaPBOP6EXXu3G6WNodROhx/YhO1XIQK5Dppme36J?=
+ =?us-ascii?Q?T+zPi2D6R8rDj51cSXmwnofvLVA3eIKMcq/BT7Su+L/lP2bTn2zMImck54GH?=
+ =?us-ascii?Q?9qniuhzZr1aZ3bs1tyrRK5fKdD6JaA3gyGMKYQxvzxib6ZCa5NgiNalq7jkZ?=
+ =?us-ascii?Q?Zo7+dQ+0YAMOf4Ap0rbGN72P4h6xf5tuQLpC1xDFb4pyic8W7PMOBzjQk+xf?=
+ =?us-ascii?Q?Fq+HEpPwgNrGaGsoxR4kbg9E7x7N7F/yeFXsrHYKFivhsjLBdDduRnQ8wL3U?=
+ =?us-ascii?Q?pR4RR1O8w7gkyMh94UQXXN6arMBopE23NJrvHBFyIcquu4N4p5w2/GU+9AbN?=
+ =?us-ascii?Q?3jvXqvXGMTYDG3ClucJHue5CrwsKqupXbsEiOwA3eQI51tAK9V/kRp1FQHGz?=
+ =?us-ascii?Q?b7VfpNpyETSDpq6M4FIMAKpphb1R9NgRxn6AT+WhXSqxDj788ja20NZN4Ts7?=
+ =?us-ascii?Q?/nXC2zSqxiRjtmWJNvF7e+zGxpiP+OUYtgr2ipTQMvjgubJe7/GcOa9xbxoD?=
+ =?us-ascii?Q?opbw02otkA=3D=3D?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: aa83bf02-51f1-4223-2d69-08def2efdf55
+X-MS-Exchange-CrossTenant-AuthSource: LV8PR12MB9620.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 05 Aug 2026 12:48:39.4634
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: zpdtwQlOJgugqzbLb80PHStx8gzIQBv3vHIqCMt+S/8mBR6poRkv83j6CcEPyEP3
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CY8PR12MB7682
 
-On 8/3/26 15:59, Christophe Leroy (CS GROUP) wrote:
-> 
-> 
-> Le 14/07/2026 à 16:03, Kevin Brodsky a écrit :
->> mm code often needs to know whether some mm represents a kernel or
->> user address space. This is currently done by comparing the mm
->> pointer with &init_mm; besides not being particularly elegant, this
->> ignores the fact that other mm's (e.g. efi_mm) may also represent
->> parts of the kernel address space.
->>
->> Introduce a new mm flag MMF_KERNEL and set it for init_mm.
->> Subsequent patches will use this flag to replace comparisons with
->> &init_mm. No functional change is introduced for now.
-> 
-> Did you consider performance impact ? This test is usually done in quite
-> critical memory handling functions.
-> 
-> init_mm is known at link time. Before your patch 08/22 there is just a
-> comparison of mm (r3) with a constant (loaded in r10):
-> 
-> c0014048 <assert_pte_locked>:
-> c0014048:    3d 40 c1 09     lis     r10,-16119
-> c001404c:    39 4a 03 98     addi    r10,r10,920
-> c0014050:    7c 03 50 00     cmpw    r3,r10
-> c0014054:    4d 82 00 20     beqlr
-> ...
-> 
-> After patch 08/22 we have, it first checks that mm is not 0, then it loads the
-> word located at mm+528 then AND it with 0x1. This load might be costly.
-> 
-> c0014048 <assert_pte_locked>:
-> c0014048:    2c 03 00 00     cmpwi   r3,0
-> c001404c:    7c 85 23 78     mr      r5,r4
-> c0014050:    41 82 00 10     beq     c0014060 <assert_pte_locked+0x18>
-> c0014054:    81 23 02 10     lwz     r9,528(r3)
-> c0014058:    71 29 00 01     andi.   r9,r9,1
-> c001405c:    4c 82 00 20     bnelr
+On Fri, Jul 31, 2026 at 03:34:25PM -0700, Mukesh R wrote:
+> +struct iommu_domain_geometry default_geometry = (struct iommu_domain_geometry) {
+> +	.aperture_start = 0,
+> +	.aperture_end = -1UL,
+> +	.force_aperture = true,
+> +};
 
-Is that a real problem, though?
+This should not exist
 
-What we could do is to just keep the == &init_mm check internally on configs
-where we know that there is only a single such MM context.
+> +/*
+> + * If the current thread is a VMM thread, return the partition id of the VM it
+> + * is managing, else return HV_PARTITION_ID_INVALID.
+> + */
+> +static u64 hv_get_current_partid(void)
+> +{
 
-Just a thought.
+No, you cannot transparently detect VMMs and link them like this. The
+VMM makes it self visible to the iommu driver via the viommu interface
+and you get a kvm FD to fish your partid out of. This is hackery not OK.
 
--- 
-Cheers,
+You should come with VMM support as a followup once you get a basic
+kernel-only iommu driver working.
 
-David
+> +static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
+> +{
+> +	struct hv_domain *hvdom;
+> +	int rc;
+> +	u32 unique_id;
+> +	u64 ptid = hv_get_current_partid();
+> +
+> +	if (ptid == HV_PARTITION_ID_INVALID)
+> +		return NULL;
+> +
+> +	hvdom = kzalloc_obj(struct hv_domain);
+> +	if (hvdom == NULL)
+> +		return NULL;
+> +
+> +	spin_lock_init(&hvdom->mappings_lock);
+> +	hvdom->mappings_tree = RB_ROOT_CACHED;
+> +
+> +	unique_id = (u32)atomic_inc_return(&hv_unique_id);
+> +	if (unique_id == HV_DEVICE_DOMAIN_ID_S2_NULL)	/* ie, UINTMAX */
+> +		goto out_err;
+> +
+> +	hvdom->domid_num = unique_id;
+> +	hvdom->partid = ptid;
+> +	hvdom->iommu_dom.geometry = default_geometry;
+> +	hvdom->iommu_dom.pgsize_bitmap = HV_IOMMU_PGSIZES;
+
+This is the only place that needs it, and I somehow doubt -1 is the
+right end value since that isn't supported by most HW.
+
+> +static int hv_iommu_attach_dev(struct iommu_domain *immdom, struct device *dev,
+> +			       struct iommu_domain *old)
+> +{
+> +	struct pci_dev *pdev;
+> +	int rc;
+> +	struct hv_domain *hvdom_new = to_hv_domain(immdom);
+> +	struct hv_domain *hvdom_prev = to_hv_domain(old);
+> +
+> +	/* Only allow PCI devices for now */
+> +	if (!dev_is_pci(dev))
+> +		return -EINVAL;
+> +
+> +	pdev = to_pci_dev(dev);
+> +
+> +	/* There are no explicit detach calls, hence check if we need to detach
+> +	 * first. Also, in case of guest shutdown, it's the VMM thread that
+> +	 * attaches it back to the hv_def_identity_dom, and hvdom_prev will not
+> +	 * be null then. It is null during boot.
+> +	 */
+> +	if (hvdom_prev && !hv_special_domain(hvdom_prev))
+> +		hv_iommu_detach_dev(hvdom_prev, dev);
+
+What translation does this set? If it is anything other than blocking
+it is security broken for VFIO.
+
+If it is blocking then why does  this:
+
+> +	rc = hv_iommu_att_dev2dom(hvdom_new, pdev);
+
+Attach HV_DEVICE_DOMAIN_ID_S2_NULL ?
+
+> +	if (rc == 0)
+> +		dev_iommu_priv_set(dev, hvdom_new);  /* sets "private" field */
+
+The only thing the priv is used for is release_device ?
+
+It would be better to have a 'detach domain' as the
+release_domain so you don't need this.
+
+> +static void hv_iommu_probe_finalize(struct device *dev)
+> +{
+> +	struct iommu_domain *immdom = iommu_get_domain_for_dev(dev);
+> +
+> +	if (immdom && immdom->type == IOMMU_DOMAIN_DMA)
+> +		iommu_setup_dma_ops(dev, immdom);
+> +	else
+> +		set_dma_ops(dev, NULL);
+> +}
+
+I've forgotten now, but I thought we had reached the point of getting
+rid of this from most drivers? amd and vtd do not implement this, why
+does this need it?
+
+> +static void hv_iommu_release_device(struct device *dev)
+> +{
+> +	struct hv_domain *hvdom = dev_iommu_priv_get(dev);
+> +
+> +	/* Need to detach device from device domain if necessary. */
+> +	if (hvdom)
+> +		hv_iommu_detach_dev(hvdom, dev);
+
+What does "detach" actually do? What translation will be in effect for
+the device?
+
+Ideally you should set the release_domain to blocking or identity and
+arrange things so that is enough to destroy the iommu attachment. But
+I see both blocking and identity do new attaches so IDK what this
+trying to do..
+
+> +static int hv_iommu_def_domain_type(struct device *dev)
+> +{
+> +	/* The hypervisor always creates this by default during boot */
+> +	return IOMMU_DOMAIN_IDENTITY;
+> +}
+
+That isn't what this does, it overrides the policy set by Linux. Fully
+functional HW should not implement this function, please remove it.
+
+> +static struct iommu_ops hv_iommu_ops = {
+> +	.capable	    = hv_iommu_capable,
+> +	.domain_alloc_paging	= hv_iommu_domain_alloc_paging,
+> +	.probe_device	    = hv_iommu_probe_device,
+> +	.probe_finalize     = hv_iommu_probe_finalize,
+> +	.release_device     = hv_iommu_release_device,
+> +	.def_domain_type    = hv_iommu_def_domain_type,
+> +	.device_group	    = hv_iommu_device_group,
+> +	.default_domain_ops = &(const struct iommu_domain_ops) {
+> +		.attach_dev   = hv_iommu_attach_dev,
+> +		.map_pages    = hv_iommu_map_pages,
+> +		.unmap_pages  = hv_iommu_unmap_pages,
+> +		.iova_to_phys = hv_iommu_iova_to_phys,
+> +		.free	      = hv_iommu_domain_free,
+> +	},
+
+Please don't use default_domain_ops, this should a new struct
+hv_paging_domain_ops
+
+> +	.owner		    = THIS_MODULE,
+> +	.identity_domain = &hv_def_identity_dom.iommu_dom,
+> +	.blocked_domain  = &hv_null_dom.iommu_dom,
+
+Can we call null dom blocked dom please?
+
+> +static void __init hv_initialize_special_domains(void)
+> +{
+> +	hv_def_identity_dom.iommu_dom.type = IOMMU_DOMAIN_IDENTITY;
+> +	hv_def_identity_dom.iommu_dom.ops = &hv_special_domain_ops;
+> +	hv_def_identity_dom.iommu_dom.owner = &hv_iommu_ops;
+> +	hv_def_identity_dom.iommu_dom.geometry = default_geometry;
+> +	hv_def_identity_dom.domid_num = HV_DEVICE_DOMAIN_ID_S2_DEFAULT; /* 0 */
+> +
+> +	hv_null_dom.iommu_dom.type = IOMMU_DOMAIN_BLOCKED;
+> +	hv_null_dom.iommu_dom.ops = &hv_special_domain_ops;
+> +	hv_null_dom.iommu_dom.owner = &hv_iommu_ops;
+> +	hv_null_dom.iommu_dom.geometry = default_geometry;
+> +	hv_null_dom.domid_num = HV_DEVICE_DOMAIN_ID_S2_NULL;  /* INTMAX */
+
+These ones don't use geometry. Didn't I say this once before?
+
+Jason
