@@ -1,145 +1,215 @@
-Received: from fhigh-b7-smtp.messagingengine.com (fhigh-b7-smtp.messagingengine.com [202.12.124.158])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 30250314D05;
-	Thu,  6 Aug 2026 13:44:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.158
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A56C0322B8F;
+	Thu,  6 Aug 2026 14:02:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786023890; cv=none; b=heNCn1KP792BCUgJz2rWGZgMWVSLFfLReOn/C88Lp5u+PnCQ+NaQKEs4DFAPvwhLaxmt5Up49BSHwSJfrmvXcV/IdwhwrkChVZw66zdAA5IHGnF0oYkfvJlbwJY9bjjRgW3HctH7eaYGXP9w5vNbRJCFPvv316Op/iwAKy6aaao=
+	t=1786024928; cv=none; b=apJJ7j+nwsaItWIy6QZH9uWD0wComDTM8lnPQFvj2WRD89xtXPxN+GVCTTuYXKGcvIPAJBleSo2C50IZp52eAugPD0Z2+khYMr8QMn4mcDymfR6ZUEkFg+9N3dNCJt3ezYfVdnS6JV4yYsgbUxoMmDxIdqT9HCu3scG0zp7tZRU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786023890; c=relaxed/simple;
-	bh=rvHfPVUPrp0Q1BvwdhU0hjfhSiYL2rHUnDCmQRbwAY0=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=TWKsTjb3zOuZ3kbJLbxWTPu4BPLSWXyxpwtqURfTB1qCKs2fb0mcMlONxdCvXQJM+AdGX/+cU5utf1qgZ+iDTOq0FdWmQRKbKDFQrBIDSVG6FI0lvoPb6dxmcRz6hWVo1Gu7tRLZcB/NVuLQ5x3VOPEFIVJ2Nm+S1YL0oHXv9hA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=CXVVo1gv; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=i4IV2er3; arc=none smtp.client-ip=202.12.124.158
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1786024928; c=relaxed/simple;
+	bh=7uikDqcUSON7uqNGM7h37lnEznB8FDrnFTV8wbSCGVo=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=HAYaG7ntA+nbyKKod600Kjfme+yaHLxXOorF+3AtSblGD3rWTC9ZkIUnSBstW6lYFfsIHvNdlLAHrSlEvKZQAMBYqmODSHCXJf58o9zz0UjhMvjg98Zh8DsYu1qud02eynsRUAnbTlc+Dx5S3J/kPusm1rOqjsLEzUljESNYsvY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=G3mH/ZAJ; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="CXVVo1gv";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="i4IV2er3"
-Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
-	by mailfhigh.stl.internal (Postfix) with ESMTP id 140DE7A0130;
-	Thu,  6 Aug 2026 09:44:42 -0400 (EDT)
-Received: from ams-imap-03 ([10.64.2.23])
-  by ams-compute-02.internal (MEProxy); Thu, 06 Aug 2026 09:44:45 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm2; t=1786023882;
-	 x=1786110282; bh=SffWfkAuC6IpPL//dChg3TjS6eFD6okWUDUROiR7ojo=; b=
-	CXVVo1gv4BnbINd+1Iopqu+oaSt+t6CVhbcEuJcsA6IJH4TQKlX3A+8fE9WP7HTD
-	hTXHmDdNNa8M16OgZtXuzyHHZwLPT6cj3+Vjz2vswRCn7XgMfLoOcUMS57Oun5m4
-	7XdTMrdIz/Nx6mhax0R83uI5rGPMlFRNgXPejtmO2xFOMScEvzvAjUIj2L3RSA1G
-	RgPH09/zraPvmr4RbqFLvuCH5JbCahJ0fxwSJqOK4DzXo5gLs7M/s3yfOp5DMWfS
-	0EUh1NcTzYLIwC84r0uvbQGywmRMUw2U5SnaRZrgz1JkXluLcF/1xAP84N/pGz68
-	DK+vkb0OrzetqY5Upi8akg==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1786023882; x=
-	1786110282; bh=SffWfkAuC6IpPL//dChg3TjS6eFD6okWUDUROiR7ojo=; b=i
-	4IV2er3OmQWRnVPmrcaOE7Nn7HjGT/dIyysjOqn6MuinYa2ikqy/dL1X6XvyQp4l
-	EawFVs3L21MfUk3kqwyBG/34cD7A9psxABHsOWW1hoT8RujXs9cMbwcs/pDttpMu
-	r3bRbwpr1S4yo0dxchD7YzTdDdKEXtrThW3Rur0H99y8V4YLx4HDJhXgY/ZkVpUX
-	4K23OtTma9i01MtViSt82svpIjqKGXbxo95YHd4QA0MnbNocxvGur84/Wxd4g3qn
-	CbQSzpajkymBqkzCsvoxQY96WBzaNtwJkyAPcETlqbjSJRjNk4xaABTXGN6r3WIX
-	2jc96u9FWEbDOMIDZNKgQ==
-X-ME-Sender: <xms:wo90aq28hrGZD57YGy8Q4hF6nmXOMDZztTGOFTa4QFY-i6836nQv_A>
-    <xme:wo90an6X7HRIKaO6IUD2BnJ1wpu-nkKxm14zVMJKt0W0bZ6Kw2jX1zAXM3mUbnMOf
-    PuIjWAL7lHNzKm1ZhP9ObpBAcQNtvj78qBdDyuCQTuEueK06foxLKaa>
-X-ME-Proxy-Cause: dmFkZTGpJof1sHKDxQr2kf6+faMHM8CHAoxoFGnmes9chtKSeqbShYa4XU6xJ13UK32Bhf
-    +ckyI8Cm082Y/29gK72eKQTeIHMjpaKvc+9pa30E7bsCqQldycyul4xHPPewbMfTeAAbWD
-    Z3R2PKC893jRDri041Jn8KmpLQ8YUsRBhF40vBgA0SKnUtK9Og4Sz/Yx3OB/i9Vu9kxLjx
-    S5e6nd7RVk6G+ux9CqsZ0/cHmCWniZeaZUYpFJwtQq6TDM+KppgJ/bzzr7sfsLeJwexp3K
-    i7DAliX+5oqzzU712NbWgJDkb7k+59fGUimNrzCYm7cuyFtsXVOJLWy3nZHvisHeimLZsr
-    UyWdYDOAJXrse+GJuXzsI9o7NRXeiAB1kmbOKvOqtjcOAO7L5sWGHBSrsCgNJ5fX/kNNq/
-    7YA952BmmSS2w+LPVjvX1dBoSqhj3Eo0Qgb8W4U17IEOsZBU2k5xvNZZjXEVSwBEbhPgMw
-    Fyuzd40eAT2U/iLeJQX10N+UqruaRRa+BvbOtsyCv96TABUSuw0ic1Dr2rXj2DtcoAn3Ys
-    LDG2hJZCZ8xQ/0msS+qS6au9WNZNcogcxTYaGsA9tSDK9xFaEEZJxMqeBGkYJEVP6gZs6k
-    UBNshwR5Prd/0fdcp+7tLedHneIfFh85N0NEyzCyEhWxbLbizzuiFi3GwGMQ
-X-ME-Proxy: <xmx:xo90agTncSz9OG5vtq73FR684m0XeWUfPvlF65yM5PEvYgcenNvmVg>
-    <xmx:xo90almwDdCqNIG6ckPJ8UE5qOEwiV5fFmwBCpe0lZCUypFiHvFdQw>
-    <xmx:xo90apOklAxX1APulT7yn_pHPPT9_l0yOWZT2MHutBj0O2ENqc1a3A>
-    <xmx:xo90at18bkM4KqCIjSN0v3po5B81a_i_xp1jfWZ_LODQOn3oRs7Xfg>
-    <xmx:yo90aoQVZq7VcpHkioG2xgXWgld19ltTC1xJNYj7172XhCG42rw2_gdq>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.ams.internal (Postfix, from userid 501)
-	id 5621F32A0065; Thu,  6 Aug 2026 09:44:34 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="G3mH/ZAJ"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 8D5371F000E9;
+	Thu,  6 Aug 2026 14:01:57 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1786024927;
+	bh=sj8CY+ONiryU5APtwGc/YgR+xr5XRUh8Uhoc/B/yfJM=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=G3mH/ZAJKCJgwvR/WrgftIJm0005B7WQFMvcWeCYDpwdVnLh7nNFwwWciAmB/E4Fc
+	 cvegeZcVis1f2q0QFmnlkIOgrIdHYQTUs3lBuIaFyetIg23BXmPc5dFGbcAssiZGOn
+	 9uaI9TV/EPRa9wHchr/EtZYg+s5birOeVhMfpVny0x7NFRC6TP9NbPV9rFFu3WZ86e
+	 SRArRbZedRs8ijk1OKnZQTg5Boe7IQVsAlpcgmM6tEZr8wmQipGDbpBuXvTEcuVard
+	 57/TDa5Wnq/eqrkTTHDUCrOMNmdtgmWwvrkaoY+stU6YUTGAAM9mLz0B7/1hYlhwFk
+	 wcKf4BErxoW+w==
+Message-ID: <8c763f1b-85ad-44b9-b36c-becd7598fe77@kernel.org>
+Date: Thu, 6 Aug 2026 16:01:55 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: Ag8nwV6tN_57
-Date: Thu, 06 Aug 2026 15:44:13 +0200
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Niklas Schnelle" <schnelle@linux.ibm.com>,
- "Heiko Carstens" <hca@linux.ibm.com>, "Danilo Krummrich" <dakr@kernel.org>,
- "Gerd Bayer" <gbayer@linux.ibm.com>
-Cc: "Miguel Ojeda" <ojeda@kernel.org>, "Alice Ryhl" <aliceryhl@google.com>,
- "Daniel Almeida" <daniel.almeida@collabora.com>,
- "Vasily Gorbik" <gor@linux.ibm.com>,
- "Alexander Gordeev" <agordeev@linux.ibm.com>, driver-core@lists.linux.dev,
- "Christian Borntraeger" <borntraeger@linux.ibm.com>,
- "Sven Schnelle" <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
- Linux-Arch <linux-arch@vger.kernel.org>, "Boqun Feng" <boqun@kernel.org>,
- "Gary Guo" <gary@garyguo.net>,
- =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>,
- "Benno Lossin" <lossin@kernel.org>,
- "Andreas Hindborg" <a.hindborg@kernel.org>,
- "Trevor Gross" <tmgross@umich.edu>, "Tamir Duberstein" <tamird@kernel.org>,
- "Alexandre Courbot" <acourbot@nvidia.com>,
- =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
- rust-for-linux@vger.kernel.org
-Message-Id: <f85a48cb-4ad9-412c-be00-a8227d6c8fb1@app.fastmail.com>
-In-Reply-To: <2aaf01a4417cea313ce0cce7cfdbec65d350a41f.camel@linux.ibm.com>
-References: <20260803180931.97202-1-ojeda@kernel.org>
- <fb2daae7-4eba-4ca1-95a5-60f8157eb66b@app.fastmail.com>
- <DKFKXA6YWW8R.1NDZ44Q13XFQH@kernel.org>
- <20260804071330.24760Aaf-hca@linux.ibm.com>
- <33ecacea-ed2a-409c-ab1c-a136e06b1b7a@app.fastmail.com>
- <1aac654b8d333cc058a345b03ae0f798f1724ced.camel@linux.ibm.com>
- <57ac7553-4034-49e2-b686-b7272591da00@app.fastmail.com>
- <94c3ebc645e80feae1044a57b8b5c82d4d4ff408.camel@linux.ibm.com>
- <f2002ee7-00a4-4a3f-a516-409886b724ab@app.fastmail.com>
- <2aaf01a4417cea313ce0cce7cfdbec65d350a41f.camel@linux.ibm.com>
-Subject: Re: `io{re,un}map()` build error in s390 under `!CONFIG_HAS_IOMEM`
-Content-Type: text/plain
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v6] coredump: Add bit 9 of coredump_filter for pre-exit
+ files before dumping
+To: Xin Zhao <jackzxcui1989@163.com>, brauner@kernel.org, ljs@kernel.org,
+ rppt@kernel.org, pfalcato@suse.de, viro@zeniv.linux.org.uk, corbet@lwn.net,
+ skhan@linuxfoundation.org, akpm@linux-foundation.org, liam@infradead.org,
+ vbabka@kernel.org, surenb@google.com, mhocko@suse.com, mingo@redhat.com,
+ peterz@infradead.org, juri.lelli@redhat.com, vincent.guittot@linaro.org,
+ mjguzik@gmail.com, ebiederm@xmission.com, jack@suse.cz, jlayton@kernel.org,
+ chuck.lever@oracle.com, alex.aring@gmail.com, arnd@arndb.de,
+ keescook@chromium.org, mcgrof@kernel.org, j.granados@samsung.com,
+ allen.lkml@gmail.com
+Cc: kuba@kernel.org, linux-fsdevel@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-mm@kvack.org, linux-doc@vger.kernel.org
+References: <20260804001703.1340667-1-jackzxcui1989@163.com>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ xsFNBFXLn5EBEAC+zYvAFJxCBY9Tr1xZgcESmxVNI/0ffzE/ZQOiHJl6mGkmA1R7/uUpiCjJ
+ dBrn+lhhOYjjNefFQou6478faXE6o2AhmebqT4KiQoUQFV4R7y1KMEKoSyy8hQaK1umALTdL
+ QZLQMzNE74ap+GDK0wnacPQFpcG1AE9RMq3aeErY5tujekBS32jfC/7AnH7I0v1v1TbbK3Gp
+ XNeiN4QroO+5qaSr0ID2sz5jtBLRb15RMre27E1ImpaIv2Jw8NJgW0k/D1RyKCwaTsgRdwuK
+ Kx/Y91XuSBdz0uOyU/S8kM1+ag0wvsGlpBVxRR/xw/E8M7TEwuCZQArqqTCmkG6HGcXFT0V9
+ PXFNNgV5jXMQRwU0O/ztJIQqsE5LsUomE//bLwzj9IVsaQpKDqW6TAPjcdBDPLHvriq7kGjt
+ WhVhdl0qEYB8lkBEU7V2Yb+SYhmhpDrti9Fq1EsmhiHSkxJcGREoMK/63r9WLZYI3+4W2rAc
+ UucZa4OT27U5ZISjNg3Ev0rxU5UH2/pT4wJCfxwocmqaRr6UYmrtZmND89X0KigoFD/XSeVv
+ jwBRNjPAubK9/k5NoRrYqztM9W6sJqrH8+UWZ1Idd/DdmogJh0gNC0+N42Za9yBRURfIdKSb
+ B3JfpUqcWwE7vUaYrHG1nw54pLUoPG6sAA7Mehl3nd4pZUALHwARAQABzS5EYXZpZCBIaWxk
+ ZW5icmFuZCAoQ3VycmVudCkgPGRhdmlkQGtlcm5lbC5vcmc+wsGQBBMBCAA6AhsDBQkmWAik
+ AgsJBBUKCQgCFgICHgUCF4AWIQQb2cqtc1xMOkYN/MpN3hD3AP+DWgUCaYJt/AIZAQAKCRBN
+ 3hD3AP+DWriiD/9BLGEKG+N8L2AXhikJg6YmXom9ytRwPqDgpHpVg2xdhopoWdMRXjzOrIKD
+ g4LSnFaKneQD0hZhoArEeamG5tyo32xoRsPwkbpIzL0OKSZ8G6mVbFGpjmyDLQCAxteXCLXz
+ ZI0VbsuJKelYnKcXWOIndOrNRvE5eoOfTt2XfBnAapxMYY2IsV+qaUXlO63GgfIOg8RBaj7x
+ 3NxkI3rV0SHhI4GU9K6jCvGghxeS1QX6L/XI9mfAYaIwGy5B68kF26piAVYv/QZDEVIpo3t7
+ /fjSpxKT8plJH6rhhR0epy8dWRHk3qT5tk2P85twasdloWtkMZ7FsCJRKWscm1BLpsDn6EQ4
+ jeMHECiY9kGKKi8dQpv3FRyo2QApZ49NNDbwcR0ZndK0XFo15iH708H5Qja/8TuXCwnPWAcJ
+ DQoNIDFyaxe26Rx3ZwUkRALa3iPcVjE0//TrQ4KnFf+lMBSrS33xDDBfevW9+Dk6IISmDH1R
+ HFq2jpkN+FX/PE8eVhV68B2DsAPZ5rUwyCKUXPTJ/irrCCmAAb5Jpv11S7hUSpqtM/6oVESC
+ 3z/7CzrVtRODzLtNgV4r5EI+wAv/3PgJLlMwgJM90Fb3CB2IgbxhjvmB1WNdvXACVydx55V7
+ LPPKodSTF29rlnQAf9HLgCphuuSrrPn5VQDaYZl4N/7zc2wcWM7BTQRVy5+RARAA59fefSDR
+ 9nMGCb9LbMX+TFAoIQo/wgP5XPyzLYakO+94GrgfZjfhdaxPXMsl2+o8jhp/hlIzG56taNdt
+ VZtPp3ih1AgbR8rHgXw1xwOpuAd5lE1qNd54ndHuADO9a9A0vPimIes78Hi1/yy+ZEEvRkHk
+ /kDa6F3AtTc1m4rbbOk2fiKzzsE9YXweFjQvl9p+AMw6qd/iC4lUk9g0+FQXNdRs+o4o6Qvy
+ iOQJfGQ4UcBuOy1IrkJrd8qq5jet1fcM2j4QvsW8CLDWZS1L7kZ5gT5EycMKxUWb8LuRjxzZ
+ 3QY1aQH2kkzn6acigU3HLtgFyV1gBNV44ehjgvJpRY2cC8VhanTx0dZ9mj1YKIky5N+C0f21
+ zvntBqcxV0+3p8MrxRRcgEtDZNav+xAoT3G0W4SahAaUTWXpsZoOecwtxi74CyneQNPTDjNg
+ azHmvpdBVEfj7k3p4dmJp5i0U66Onmf6mMFpArvBRSMOKU9DlAzMi4IvhiNWjKVaIE2Se9BY
+ FdKVAJaZq85P2y20ZBd08ILnKcj7XKZkLU5FkoA0udEBvQ0f9QLNyyy3DZMCQWcwRuj1m73D
+ sq8DEFBdZ5eEkj1dCyx+t/ga6x2rHyc8Sl86oK1tvAkwBNsfKou3v+jP/l14a7DGBvrmlYjO
+ 59o3t6inu6H7pt7OL6u6BQj7DoMAEQEAAcLBfAQYAQgAJgIbDBYhBBvZyq1zXEw6Rg38yk3e
+ EPcA/4NaBQJonNqrBQkmWAihAAoJEE3eEPcA/4NaKtMQALAJ8PzprBEXbXcEXwDKQu+P/vts
+ IfUb1UNMfMV76BicGa5NCZnJNQASDP/+bFg6O3gx5NbhHHPeaWz/VxlOmYHokHodOvtL0WCC
+ 8A5PEP8tOk6029Z+J+xUcMrJClNVFpzVvOpb1lCbhjwAV465Hy+NUSbbUiRxdzNQtLtgZzOV
+ Zw7jxUCs4UUZLQTCuBpFgb15bBxYZ/BL9MbzxPxvfUQIPbnzQMcqtpUs21CMK2PdfCh5c4gS
+ sDci6D5/ZIBw94UQWmGpM/O1ilGXde2ZzzGYl64glmccD8e87OnEgKnH3FbnJnT4iJchtSvx
+ yJNi1+t0+qDti4m88+/9IuPqCKb6Stl+s2dnLtJNrjXBGJtsQG/sRpqsJz5x1/2nPJSRMsx9
+ 5YfqbdrJSOFXDzZ8/r82HgQEtUvlSXNaXCa95ez0UkOG7+bDm2b3s0XahBQeLVCH0mw3RAQg
+ r7xDAYKIrAwfHHmMTnBQDPJwVqxJjVNr7yBic4yfzVWGCGNE4DnOW0vcIeoyhy9vnIa3w1uZ
+ 3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
+ CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
+ qIws/H2t
+In-Reply-To: <20260804001703.1340667-1-jackzxcui1989@163.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On Thu, Aug 6, 2026, at 15:25, Niklas Schnelle wrote:
-> On Wed, 2026-08-05 at 17:56 +0200, Arnd Bergmann wrote:
->> On Wed, Aug 5, 2026, at 17:36, Niklas Schnelle wrote:
->> Ok, so memremap() by definition cannot work on s390 for regular
->> PCI devices, since you are not allowed to use readl() etc on a
->> kernel pointer returned by memremap(), only on an __iomem
->> token returned by ioremap().
->> 
->> One important exception seems to be virtio_fs, which uses
->> devm_memremap_pages() to map a virtio_shm_region, which in
->> turn can come from a virtio-pci device but is backed by
->> actual cached memory in the host instead of an emulated
->> PCI memory BAR.
->
-> Interesting, do I see that right that devm_memremap_pages() and
-> memremap_pages() unlike plain memremap() does not utilize ioremap() and
-> thus isn't affected by our nopped ioreamp() when there is no-MIO?
+On 8/4/26 02:17, Xin Zhao wrote:
+> A coredump typically takes seconds or even longer to complete. If we
+> happen to hold a write lock with flock just before triggering the
+> coredump, that write lock will not be released during the entire coredump
+> process. As a result, other processes attempting to acquire the same write
+> lock may experience significant delays. Another typical scenario is that
+> some custom management modules for shared memory also need to release the
+> reference counts of the related buffers as soon as possible, rather than
+> waiting until the coredump is complete.
+> 
+> Add a new bit(9) of coredump_filter to tag whether need to dump fd list.
+> We set it by default because tools like systemd-coredump go through the
+> fds. Some other coredump pipe programs like minicoredump do not use fds by
+> default. If you are sure that your coredump backend does not use the fds,
+> you can clear bit 9, which will allow some file resources without VMA
+> references to be released earlier.
+> 
+> In fput(), check FP_DUMPCORE task flags to NOT release file by task work,
+> otherwise file put operation will NOT execute util coredump finish.
+> 
+> Test Case One - flock
+> Test program send signal SIGABRT to the program which owns the flock,
+> output the wait time(unit ms) to successfully attach the flock.
+> Test program malloc 500MB heap and memset it.
+> If NOT set bit9 of coredump_filter, waitms is 11280.
+> If set bit9 of coredump_filter, waitms is 0.
+> 
+> Test Case Two - ion buffer
+> Test programs include ion buffer publisher and ion buffer subscriber.
+> Ion buffer publisher output the ion buffer hold_time if the subscriber
+> NOT send ack to publisher and NOT release it. The subscriber will trig
+> coredump by itself in some time.
+> If NOT set bit9 of subscriber coredump_filter, max hold_time is 19591ms.
+> If set bit9 of subscriber coredump_filter, max hold_time is 320ms.
+> 
+> Signed-off-by: Xin Zhao <jackzxcui1989@163.com>
+> ---
+> 
+> Change in v6:
+> - Fix operator precedence in PF_KTHREAD/PF_DUMPCORE check.
+> 
+> Change in v5:
+> - Not add another bootargs for the feature,
+>   as suggested by Christian Brauner and Lorenzo Stoakes.
+>   Add bit9 of coredump_filter to tag whether need to dump fd list.
+>   Set bit9 to 1 as default.
+> - Al Viro, Christian Brauner and Lorenzo Stoakes point out so many
+>   problems of the code related to umap that was added in v4, delete all of
+>   it which is unnecessary. The management of reference counting for shared
+>   memory generally does not need to be released through the release
+>   operation of files that have VMA references. Traversing all the threads
+>   within the process and executing exit_files() is sufficient.
+> - Fulfill comments and commit log,
+>   as suggested by Pedro Falcato and Lorenzo Stoakes.
+> - Link to v5: https://lore.kernel.org/all/20260630075604.52533-1-jackzxcui1989@163.com/
+> 
+> Change in v4:
+> - Christian pointed out that the coredump process will traverse file
+>   descriptors (fd), so certain fds should not be closed by default.
+>   Rework the whole feature, add /proc/<pid>/coredump_pre_exit for user
+>   pre-exit resources selection, default is NOT pre-exit anything.
+> - Mateusz suggested that walking the fd table and release the file-lock is
+>   reasonable. No longer release all the fd(s). Based on user config, only
+>   the flock fd(s) and the fd(s) correspondent to file-backed shared memory
+>   will be released at most.
+> - Link to v4: https://lore.kernel.org/all/20260624145552.70143-1-jackzxcui1989@163.com/
+> 
+> Change in v3:
+> - Add comment and commit-log to explain why do the MMF_DUMP_MAPPED_SHARED
+>   mm_flags_test() check, note that memory mapped files keep their own
+>   separate references to the files. The case to work around is that early
+>   unlocking a flock on a file allows other processes to lock and modify
+>   the mapped data protected by the flock,
+>   as suggested by Pedro Falcato.
+> - Link to v3: https://lore.kernel.org/all/20260619122419.3954581-1-jackzxcui1989@163.com/
+> 
+> Change in v2:
+> - Get rid of the implement of adding new fcntl API, the issue does not
+>   worth inflicting the cost on everyone,
+>   as suggested by Al Viro.
+> - Call exit_files() in coredump_wait(),
+>   as suggested by Eric W. Biederman.
+>   Add MMF_DUMP_MAPPED_SHARED mm_flags_test() check to filter cases that
+>   need to dump file-backed shared memory.
+> - Link to v2: https://lore.kernel.org/lkml/20260618150301.3226517-1-jackzxcui1989@163.com/
+> 
+> v1:
+> - Link to v1: https://lore.kernel.org/all/20260618030700.2511668-1-jackzxcui1989@163.com/
+> ---
+>  Documentation/filesystems/proc.rst | 14 ++++++++++++--
+>  fs/coredump.c                      | 21 +++++++++++++++++++++
+>  fs/file_table.c                    |  7 ++++++-
+>  include/linux/mm_types.h           |  6 ++++--
+>  4 files changed, 43 insertions(+), 5 deletions(-)
+> 
+> diff --git a/Documentation/filesystems/proc.rst b/Documentation/filesystems/proc.rst
+> index db6167bef..d590a1dda 100644
+> --- a/Documentation/filesystems/proc.rst
+> +++ b/Documentation/filesystems/proc.rst
+> @@ -1939,6 +1939,7 @@ The following 9 memory types are supported:
+>    - (bit 6) hugetlb shared memory
+>    - (bit 7) DAX private memory
+>    - (bit 8) DAX shared memory
+> +  - (bit 9) fd list
 
-Indeed, I had not noticed that before, but you are right that
-this goes directly to the page tables while the other variants of
-memremap() go through architecture specific ioremap_prot(), which
-may or may not create page table entries.
+"The following 9 memory types are supported: ... fd list"
 
-I think the reason is that there are a couple of architectures
-(including non-MIO s390) that take a shortcut for normal
-ioremap() that avoids actually mapping anything, e.g. mips
-and related architectures have a fixed uncached mapping
-of all MMIO space visible to kernel, while some alpha, m68k
-powerpc, and s390 do something other than a pointer dereference
-for MMIO.
+What?
 
-     Arnd
+-- 
+Cheers,
+
+David
