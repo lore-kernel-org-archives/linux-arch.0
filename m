@@ -1,149 +1,365 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.14])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pf1-f200.google.com (mail-pf1-f200.google.com [209.85.210.200])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4FC403A9D8D;
-	Thu,  6 Aug 2026 02:16:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.14
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CF38F175A5
+	for <linux-arch@vger.kernel.org>; Thu,  6 Aug 2026 06:06:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.200
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785982567; cv=none; b=fOaWzPAXWYsUQfjJdPghxT3fH1Se1MNhaRvmdW8ozd3IXLS0t0jlqwMS6NmNdodkEApBld9KFEIR1Kp2VqJir7LekKViV9qk2HUtxEmOFFkJMobAWWLfAf17aHGeVeAZ+Ze1cF7jPF8Fqa0FsX7GRlUngqerK4g3B4KfL38ewQM=
+	t=1785996386; cv=none; b=L9VI6QycoimyL6hY8ZlsfTaTBuL9bi6c7xJEvagHlWur6K6/j8Y5eHAjWYF6uhOy7I9juDAOKaYwKP/yFaoJ9jh+rTT+VIEKrjTUmaWUm0DXgv8zU7yJkbr8TF/x1JlaDf35pJkuuQ3GZPTnWPqMmu3w31Go9IrYu+pFmVvHN4Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785982567; c=relaxed/simple;
-	bh=ii6BnmI3u2e2Ts9Te7XbGolgJuvo1wcTB1wefhdS7hU=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=kwuWBasYHZ0Nl6n6ArIKp2sEnC/FlTF+B89DjCcoaGm0CFmU8JEe+whRf2a6Zte0DQI9BuLRnbW0/qsMeGJTnbJzn7RTMr55tVUJuWAv6wD0KKHZ+hnT46SjbYnsRejCSVNPx4GAhz6V7Q4EIB2gPWXaQ+/R7DeAAqAWvRZZ9nY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=W9GCLU/R; arc=none smtp.client-ip=198.175.65.14
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1785996386; c=relaxed/simple;
+	bh=pHCAvs03OzSFVX+qIPqa6foOPR/K8ZFGe2uSb09lYXg=;
+	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
+	 To:Cc:Content-Type; b=CbzRPBtoc786dNlli8lRrdh+Wzn/bZz/rOc4o6UsbU5XVi8ZpQohBluxlsrAhdkcwzfzZmzAxG+xsTpaaefx6pF6xM0jl+10aVDHSArf4ZP2xJzdY3XxiIFqSC1VdJW6sF3trpDMe6VSbpuzjBViUhHw2kihUXcdu+x+8zHi5OU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--wfelipe.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=eBFlo68w; arc=none smtp.client-ip=209.85.210.200
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--wfelipe.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="W9GCLU/R"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1785982566; x=1817518566;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=ii6BnmI3u2e2Ts9Te7XbGolgJuvo1wcTB1wefhdS7hU=;
-  b=W9GCLU/R+sxLqRZAB5Lpc5R/g/3rYEip7+vfxe0Z9zjDnZ2TgWHfl7A0
-   yc9xc3cYuSJ14RycOa/QHnCysZOrEPsAzBSoFAhuA6sJPYl4A5eJJ/J04
-   I5sDOWmZk7w24hX4F71Tl+iJveVegAcrZTuesxB7Hd6DJZF3TnfUhBK/t
-   vQkMYioGt9/UwE6cw/WFnbw2VBnFs5gIMFq1638Nf7qGiUZdAPpl56CB2
-   DITHm0UfIj/kHGsdbxPV3lsQ/OeAbmeTRT1Hh+BExGTkE05yAiUWWVljo
-   rPLI00AOPKoc9ko5cABYtKHI9Uz91eThF3p5jau5EKBHXBQpq+NVte3RS
-   g==;
-X-CSE-ConnectionGUID: Fn/GAaxYQ0G4n+sUhdy12Q==
-X-CSE-MsgGUID: 7loO/4RWSFKAIaF5BTTOqA==
-X-IronPort-AV: E=McAfee;i="6800,10657,11866"; a="90452802"
-X-IronPort-AV: E=Sophos;i="6.25,207,1779174000"; 
-   d="scan'208";a="90452802"
-Received: from fmviesa005.fm.intel.com ([10.60.135.145])
-  by orvoesa106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 05 Aug 2026 19:16:05 -0700
-X-CSE-ConnectionGUID: z+EFbCglSZCfoFnaJH7/ow==
-X-CSE-MsgGUID: U/7fcUptSGup3rPW0pcMDA==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.25,207,1779174000"; 
-   d="scan'208";a="267107977"
-Received: from lkp-server01.sh.intel.com (HELO 6eda058d650d) ([10.239.97.150])
-  by fmviesa005.fm.intel.com with ESMTP; 05 Aug 2026 19:16:01 -0700
-Received: from kbuild by 6eda058d650d with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1wrneH-00000000DwD-3RtN;
-	Thu, 06 Aug 2026 02:15:57 +0000
-Date: Thu, 6 Aug 2026 10:15:24 +0800
-From: kernel test robot <lkp@intel.com>
-To: Aaron Tomlin <atomlin@atomlin.com>, arnd@arndb.de, mcgrof@kernel.org,
-	petr.pavlu@suse.com, da.gomez@kernel.org, samitolvanen@google.com,
-	peterz@infradead.org
-Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
-	mhiramat@kernel.org, atomlin@atomlin.com, neelx@suse.com,
-	da.anzani@gmail.com, sean@ashe.io, chjohnst@mail.com,
-	steve@abita.co, mproche@mail.com, nick.lane@mail.com,
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v2] module: Extend module_blacklist parameter to built-in
- modules
-Message-ID: <202608060957.II0PSh3B-lkp@intel.com>
-References: <20260622140259.2974-1-atomlin@atomlin.com>
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="eBFlo68w"
+Received: by mail-pf1-f200.google.com with SMTP id d2e1a72fcca58-84e0234967aso1657304b3a.3
+        for <linux-arch@vger.kernel.org>; Wed, 05 Aug 2026 23:06:24 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1785996384; x=1786601184; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:from:subject
+         :message-id:references:mime-version:in-reply-to:date:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=aF1RSvmX8B7rc4Kxz4SwFfxHIvmLzbvgGhhj59rMhOs=;
+        b=eBFlo68wEacs8ey3Kqj6qN9wfBUsgwYM4GYtzmC7D7GsK982/H1MV07dsxvj5mHPak
+         PRKAvXUTZsgtaqnkQpXo23vcRMefGudboybpH5p5gVoxDfGN9EvwbzZKqNHbAaJUbQOD
+         7QKMvcL5s6xegmokDUq0HdJVTxJHXA5wC4h2MFqCQtddDcOmca6GlqRJAb9LCwXepnzo
+         wqYaAxlM8yBwCGr5PRk+L1mFtlNO12fel7Lxr96SF2kzQZtXLNHj6ZIITjU9XucrMxDp
+         Q0zguIJtbtgmik34DwyjdoWE7mARihNb4yFl1VVHrKhe1zfTLjMFKSKjnG70y71AJQmY
+         3TDw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1785996384; x=1786601184;
+        h=content-transfer-encoding:content-type:cc:to:from:subject
+         :message-id:references:mime-version:in-reply-to:date
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=aF1RSvmX8B7rc4Kxz4SwFfxHIvmLzbvgGhhj59rMhOs=;
+        b=hP7u2Wqusn6ZhOlDi/6jBqvPUXETI43/Kp65Ykcx4BS4cQxn8S3buYkNwZTrjwy+sH
+         ZC88Ewseu2SzpzR57WPaCGYWxrI9dm3BhN7HB6Fn2ceziNs0J9dJAKMnQ1XJhrUxE3Vu
+         /lJmtgl/j/F46MDat2H1y9vJMo2OA1fsxPIKEFxA1nHQ0y1+eEhReomo7il1tPFfgq2w
+         ND+4WviRieBoS4ziYXukHhkk6WId2DhjX1g6v7LMeI0HcNCgXX41RyMIUzb7ttoQ8p1s
+         bJOV/00SMEbzKHxziDeJcjLzCLSh7qubUV0/xB25KVWLQP8o2dK8wsi6kleouZ2VTCed
+         8N9A==
+X-Forwarded-Encrypted: i=1; AHgh+RrQpCWQVqldntxHIj9mrMCLpsVNfPdvGqolAQI77s/ZgY79LibE2mxRBnlOlYeVy9JQhtf9VsPrXahQ@vger.kernel.org
+X-Gm-Message-State: AOJu0YyFRyeszsvGqhpfaQFDhn1sNPLIA7tyc4dt6LwvdhAyN/ZferFU
+	Jyr2RMo1qQT9rZoF26LUJO01UpFZTF529Y3faesuaiA/ApT66FN4wraJNfqnHRiMQ66N+2wHOaJ
+	LjGBzoVYtOg==
+X-Received: from pfst48.prod.google.com ([2002:aa7:8fb0:0:b0:847:8ffb:40ad])
+ (user=wfelipe job=prod-delivery.src-stubby-dispatcher) by 2002:a05:6a00:4392:b0:845:e8b5:8c49
+ with SMTP id d2e1a72fcca58-84f2e03173cmr14978781b3a.10.1785996383833; Wed, 05
+ Aug 2026 23:06:23 -0700 (PDT)
+Date: Thu,  6 Aug 2026 06:05:48 +0000
+In-Reply-To: <20260806060556.451370-1-wfelipe@google.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260622140259.2974-1-atomlin@atomlin.com>
+Mime-Version: 1.0
+References: <20260806060556.451370-1-wfelipe@google.com>
+X-Mailer: git-send-email 2.55.0.654.g21b8a5bc05-goog
+Message-ID: <20260806060556.451370-3-wfelipe@google.com>
+Subject: [PATCH 2/3] arch: use CONFIG_COMMAND_LINE_SIZE across all architectures
+From: Wilson Felipe Pereira <wfelipe@google.com>
+To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Yosry Ahmed <yosry@kernel.org>, Wilson Felipe Pereira <wfelipe@google.com>, 
+	"=?UTF-8?q?Maciej=20=C5=BBenczykowski?=" <maze@google.com>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, linux-riscv@lists.infradead.org, 
+	linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Hi Aaron,
+Now that CONFIG_COMMAND_LINE_SIZE is available in init/Kconfig for all
+architectures, update every architecture's setup.h header to define
+COMMAND_LINE_SIZE as CONFIG_COMMAND_LINE_SIZE.
 
-kernel test robot noticed the following build errors:
+For user-space API (uapi) headers, wrap the definition in an
+`#ifdef __KERNEL__` guard and retain the historical hardcoded default in
+the `#else` block. When user-space headers are installed via
+`make headers_install`, unifdef strips out the kernel section, ensuring
+same value as before for user-space applications including `<asm/setup.h>`.
 
-[auto build test ERROR on soc/for-next]
-[also build test ERROR on linus/master arnd-asm-generic/master v7.2-rc6 next-20260805]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+Originally-by: Maciej =C5=BBenczykowski <maze@google.com>
+Signed-off-by: Wilson Felipe Pereira <wfelipe@google.com>
+---
+ arch/alpha/include/uapi/asm/setup.h      |  4 ++++
+ arch/arc/include/asm/setup.h             |  2 +-
+ arch/arm/include/uapi/asm/setup.h        |  6 +++++-
+ arch/arm64/include/uapi/asm/setup.h      |  4 ++++
+ arch/loongarch/include/uapi/asm/setup.h  |  4 ++++
+ arch/m68k/include/uapi/asm/setup.h       |  6 +++++-
+ arch/microblaze/include/uapi/asm/setup.h |  4 ++++
+ arch/mips/include/uapi/asm/setup.h       |  4 ++++
+ arch/parisc/include/uapi/asm/setup.h     |  4 ++++
+ arch/powerpc/include/uapi/asm/setup.h    |  4 ++++
+ arch/riscv/include/uapi/asm/setup.h      |  4 ++++
+ arch/sparc/include/uapi/asm/setup.h      | 10 +++++++---
+ arch/um/include/asm/setup.h              |  2 +-
+ arch/x86/include/asm/setup.h             |  2 +-
+ arch/xtensa/include/uapi/asm/setup.h     |  4 ++++
+ include/uapi/asm-generic/setup.h         |  4 ++++
+ 16 files changed, 60 insertions(+), 8 deletions(-)
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Aaron-Tomlin/module-Extend-module_blacklist-parameter-to-built-in-modules/20260805-123559
-base:   https://git.kernel.org/pub/scm/linux/kernel/git/soc/soc.git for-next
-patch link:    https://lore.kernel.org/r/20260622140259.2974-1-atomlin%40atomlin.com
-patch subject: [PATCH v2] module: Extend module_blacklist parameter to built-in modules
-config: powerpc64-randconfig-002-20260806 (https://download.01.org/0day-ci/archive/20260806/202608060957.II0PSh3B-lkp@intel.com/config)
-compiler: clang version 22.1.3 (https://github.com/llvm/llvm-project e9846648fd6183ee6d8cbdb4502213fcf902a211)
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260806/202608060957.II0PSh3B-lkp@intel.com/reproduce)
+diff --git a/arch/alpha/include/uapi/asm/setup.h b/arch/alpha/include/uapi/=
+asm/setup.h
+index f881ea5947cbc..169f743ef7658 100644
+--- a/arch/alpha/include/uapi/asm/setup.h
++++ b/arch/alpha/include/uapi/asm/setup.h
+@@ -2,6 +2,10 @@
+ #ifndef _UAPI__ALPHA_SETUP_H
+ #define _UAPI__ALPHA_SETUP_H
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	256
++#endif
+=20
+ #endif /* _UAPI__ALPHA_SETUP_H */
+diff --git a/arch/arc/include/asm/setup.h b/arch/arc/include/asm/setup.h
+index 1c6db599e1fcc..60e158d58cec7 100644
+--- a/arch/arc/include/asm/setup.h
++++ b/arch/arc/include/asm/setup.h
+@@ -9,7 +9,7 @@
+ #include <linux/types.h>
+ #include <uapi/asm/setup.h>
+=20
+-#define COMMAND_LINE_SIZE 256
++#define COMMAND_LINE_SIZE CONFIG_COMMAND_LINE_SIZE
+=20
+ /*
+  * Data structure to map a ID to string
+diff --git a/arch/arm/include/uapi/asm/setup.h b/arch/arm/include/uapi/asm/=
+setup.h
+index 8e50e034fec73..4aa93558af1e7 100644
+--- a/arch/arm/include/uapi/asm/setup.h
++++ b/arch/arm/include/uapi/asm/setup.h
+@@ -17,7 +17,11 @@
+=20
+ #include <linux/types.h>
+=20
+-#define COMMAND_LINE_SIZE 1024
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
++#define COMMAND_LINE_SIZE	1024
++#endif
+=20
+ /* The list ends with an ATAG_NONE node. */
+ #define ATAG_NONE	0x00000000
+diff --git a/arch/arm64/include/uapi/asm/setup.h b/arch/arm64/include/uapi/=
+asm/setup.h
+index 5d703888f3511..2236890175a5a 100644
+--- a/arch/arm64/include/uapi/asm/setup.h
++++ b/arch/arm64/include/uapi/asm/setup.h
+@@ -22,6 +22,10 @@
+=20
+ #include <linux/types.h>
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	2048
++#endif
+=20
+ #endif
+diff --git a/arch/loongarch/include/uapi/asm/setup.h b/arch/loongarch/inclu=
+de/uapi/asm/setup.h
+index d46363ce3e024..03c7bfa1e5d9f 100644
+--- a/arch/loongarch/include/uapi/asm/setup.h
++++ b/arch/loongarch/include/uapi/asm/setup.h
+@@ -3,6 +3,10 @@
+ #ifndef _UAPI_ASM_LOONGARCH_SETUP_H
+ #define _UAPI_ASM_LOONGARCH_SETUP_H
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	4096
++#endif
+=20
+ #endif /* _UAPI_ASM_LOONGARCH_SETUP_H */
+diff --git a/arch/m68k/include/uapi/asm/setup.h b/arch/m68k/include/uapi/as=
+m/setup.h
+index 25fe26d5597cc..2d5b24a5345f9 100644
+--- a/arch/m68k/include/uapi/asm/setup.h
++++ b/arch/m68k/include/uapi/asm/setup.h
+@@ -12,6 +12,10 @@
+ #ifndef _UAPI_M68K_SETUP_H
+ #define _UAPI_M68K_SETUP_H
+=20
+-#define COMMAND_LINE_SIZE 256
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
++#define COMMAND_LINE_SIZE	256
++#endif
+=20
+ #endif /* _UAPI_M68K_SETUP_H */
+diff --git a/arch/microblaze/include/uapi/asm/setup.h b/arch/microblaze/inc=
+lude/uapi/asm/setup.h
+index 16c56807f86a2..e4b253064c7d9 100644
+--- a/arch/microblaze/include/uapi/asm/setup.h
++++ b/arch/microblaze/include/uapi/asm/setup.h
+@@ -12,6 +12,10 @@
+ #ifndef _UAPI_ASM_MICROBLAZE_SETUP_H
+ #define _UAPI_ASM_MICROBLAZE_SETUP_H
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	256
++#endif
+=20
+ #endif /* _UAPI_ASM_MICROBLAZE_SETUP_H */
+diff --git a/arch/mips/include/uapi/asm/setup.h b/arch/mips/include/uapi/as=
+m/setup.h
+index 7d48c433b0c27..8d6c474835aec 100644
+--- a/arch/mips/include/uapi/asm/setup.h
++++ b/arch/mips/include/uapi/asm/setup.h
+@@ -2,7 +2,11 @@
+ #ifndef _UAPI_MIPS_SETUP_H
+ #define _UAPI_MIPS_SETUP_H
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	4096
++#endif
+=20
+=20
+ #endif /* _UAPI_MIPS_SETUP_H */
+diff --git a/arch/parisc/include/uapi/asm/setup.h b/arch/parisc/include/uap=
+i/asm/setup.h
+index 78b2f4ec7d652..cfa77e84205dc 100644
+--- a/arch/parisc/include/uapi/asm/setup.h
++++ b/arch/parisc/include/uapi/asm/setup.h
+@@ -2,6 +2,10 @@
+ #ifndef _PARISC_SETUP_H
+ #define _PARISC_SETUP_H
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	1024
++#endif
+=20
+ #endif /* _PARISC_SETUP_H */
+diff --git a/arch/powerpc/include/uapi/asm/setup.h b/arch/powerpc/include/u=
+api/asm/setup.h
+index c54940b09d065..daa15ac4e94c6 100644
+--- a/arch/powerpc/include/uapi/asm/setup.h
++++ b/arch/powerpc/include/uapi/asm/setup.h
+@@ -2,6 +2,10 @@
+ #ifndef _UAPI_ASM_POWERPC_SETUP_H
+ #define _UAPI_ASM_POWERPC_SETUP_H
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	2048
++#endif
+=20
+ #endif /* _UAPI_ASM_POWERPC_SETUP_H */
+diff --git a/arch/riscv/include/uapi/asm/setup.h b/arch/riscv/include/uapi/=
+asm/setup.h
+index eb4f0209c6960..a6c1f4b0987e3 100644
+--- a/arch/riscv/include/uapi/asm/setup.h
++++ b/arch/riscv/include/uapi/asm/setup.h
+@@ -3,6 +3,10 @@
+ #ifndef _UAPI_ASM_RISCV_SETUP_H
+ #define _UAPI_ASM_RISCV_SETUP_H
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	2048
++#endif
+=20
+ #endif /* _UAPI_ASM_RISCV_SETUP_H */
+diff --git a/arch/sparc/include/uapi/asm/setup.h b/arch/sparc/include/uapi/=
+asm/setup.h
+index 3c208a4dd4640..7054f5249a3a6 100644
+--- a/arch/sparc/include/uapi/asm/setup.h
++++ b/arch/sparc/include/uapi/asm/setup.h
+@@ -6,10 +6,14 @@
+ #ifndef _UAPI_SPARC_SETUP_H
+ #define _UAPI_SPARC_SETUP_H
+=20
+-#if defined(__sparc__) && defined(__arch64__)
+-# define COMMAND_LINE_SIZE 2048
++#ifdef __KERNEL__
++# define COMMAND_LINE_SIZE CONFIG_COMMAND_LINE_SIZE
+ #else
+-# define COMMAND_LINE_SIZE 256
++# if defined(__sparc__) && defined(__arch64__)
++#  define COMMAND_LINE_SIZE 2048
++# else
++#  define COMMAND_LINE_SIZE 256
++# endif
+ #endif
+=20
+=20
+diff --git a/arch/um/include/asm/setup.h b/arch/um/include/asm/setup.h
+index 80ada899f2542..bc83dc4d467d3 100644
+--- a/arch/um/include/asm/setup.h
++++ b/arch/um/include/asm/setup.h
+@@ -6,6 +6,6 @@
+  * command line, so this choice is ok.
+  */
+=20
+-#define COMMAND_LINE_SIZE 4096
++#define COMMAND_LINE_SIZE CONFIG_COMMAND_LINE_SIZE
+=20
+ #endif		/* SETUP_H_INCLUDED */
+diff --git a/arch/x86/include/asm/setup.h b/arch/x86/include/asm/setup.h
+index 914eb32581c73..b73caf64f2199 100644
+--- a/arch/x86/include/asm/setup.h
++++ b/arch/x86/include/asm/setup.h
+@@ -4,7 +4,7 @@
+=20
+ #include <uapi/asm/setup.h>
+=20
+-#define COMMAND_LINE_SIZE 2048
++#define COMMAND_LINE_SIZE CONFIG_COMMAND_LINE_SIZE
+=20
+ #include <linux/linkage.h>
+ #include <asm/page_types.h>
+diff --git a/arch/xtensa/include/uapi/asm/setup.h b/arch/xtensa/include/uap=
+i/asm/setup.h
+index 5356a5fd4d173..dcf33a403527a 100644
+--- a/arch/xtensa/include/uapi/asm/setup.h
++++ b/arch/xtensa/include/uapi/asm/setup.h
+@@ -12,6 +12,10 @@
+ #ifndef _XTENSA_SETUP_H
+ #define _XTENSA_SETUP_H
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	256
++#endif
+=20
+ #endif
+diff --git a/include/uapi/asm-generic/setup.h b/include/uapi/asm-generic/se=
+tup.h
+index 88ac5100df359..b8d06e6d56bd7 100644
+--- a/include/uapi/asm-generic/setup.h
++++ b/include/uapi/asm-generic/setup.h
+@@ -2,6 +2,10 @@
+ #ifndef __ASM_GENERIC_SETUP_H
+ #define __ASM_GENERIC_SETUP_H
+=20
++#ifdef __KERNEL__
++#define COMMAND_LINE_SIZE	CONFIG_COMMAND_LINE_SIZE
++#else
+ #define COMMAND_LINE_SIZE	512
++#endif
+=20
+ #endif	/* __ASM_GENERIC_SETUP_H */
+--=20
+2.55.0.654.g21b8a5bc05-goog
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202608060957.II0PSh3B-lkp@intel.com/
-
-All errors (new ones prefixed by >>):
-
->> init/main.c:1364:17: error: call to undeclared function 'module_is_blacklisted'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
-    1364 |         if (modname && module_is_blacklisted(modname)) {
-         |                        ^
-   1 error generated.
-
-
-vim +/module_is_blacklisted +1364 init/main.c
-
-  1355	
-  1356	int __init_or_module do_one_initcall(initcall_t fn)
-  1357	{
-  1358		int count = preempt_count();
-  1359		char msgbuf[64];
-  1360		const char *modname;
-  1361		int ret;
-  1362	
-  1363		modname = initcall_get_modname(fn);
-> 1364		if (modname && module_is_blacklisted(modname)) {
-  1365			pr_info("Skipping initcall for blacklisted built-in module %s\n",
-  1366				modname);
-  1367			return 0;
-  1368		}
-  1369	
-  1370		if (initcall_blacklisted(fn))
-  1371			return -EPERM;
-  1372	
-  1373		do_trace_initcall_start(fn);
-  1374		ret = fn();
-  1375		do_trace_initcall_finish(fn, ret);
-  1376	
-  1377		msgbuf[0] = 0;
-  1378	
-  1379		if (preempt_count() != count) {
-  1380			sprintf(msgbuf, "preemption imbalance ");
-  1381			preempt_count_set(count);
-  1382		}
-  1383		if (irqs_disabled()) {
-  1384			strlcat(msgbuf, "disabled interrupts ", sizeof(msgbuf));
-  1385			local_irq_enable();
-  1386		}
-  1387		WARN(msgbuf[0], "initcall %pS returned with %s\n", fn, msgbuf);
-  1388	
-  1389		add_latent_entropy();
-  1390		return ret;
-  1391	}
-  1392	
-
---
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
