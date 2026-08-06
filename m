@@ -1,113 +1,124 @@
-Received: from mail-yw1-f177.google.com (mail-yw1-f177.google.com [209.85.128.177])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 59B39391E4E
-	for <linux-arch@vger.kernel.org>; Thu,  6 Aug 2026 15:28:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 252EC480DC9;
+	Thu,  6 Aug 2026 17:12:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786030115; cv=none; b=ez7t0Z07czl8iAB+hmeudX7FNQafVP9Junic0yKxjXHylfQhLsYL4sbDjcwGyES3tx87NKfrx76GR5LmqZjIvgEVPTuGjwCcI7k1Vr2pfgWV4kNRd6C0xcp9G9BwxvReIeYwXmmD6ytJOK3GgajW0l4G+V10uINIPUT7giijkEE=
+	t=1786036362; cv=none; b=k3hNH6uozU3WXLcvJCvIgfCTQZbTU4GfFZ9ksBfYoBIP77I/b4m/5T5hcacN/FSb45XDqkuaaNAQisZfS9bbHdXXUFAlfbLGMLL7Kfl41z2I3NPHSbIQBgE5sxDO6CPQHyg2bsFHZmYkfSavXh32KthmT/9e3VeCOD0YGC9LjX8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786030115; c=relaxed/simple;
-	bh=sSOMPBG4fiWze6IAdyKEgJOvNuDwNVHf2DlIvHsEtKk=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=tuUPr9vS92gYpw9Oia9X4qKMdF6YsvdyzV5+mZfpZLV3nnTTDR5/D4ldpoLPt0Ku0TDrJEOcwKQbNJ01ba0zkgQdf0tUHN9WnaVt9d14Xc9lShHUjGsMl3tZoXo0Bt70cUNrmg/hQOgyrFZ6baxfeeG5bZ4PXPL3zBDveqcrkIc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=gmail.com; arc=none smtp.client-ip=209.85.128.177
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Received: by mail-yw1-f177.google.com with SMTP id 00721157ae682-8201447e8cdso38599597b3.3
-        for <linux-arch@vger.kernel.org>; Thu, 06 Aug 2026 08:28:34 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786030113; x=1786634913;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=ohZ39jK4R7nHBsxWJDOlT0sMAW4jJSovzDHcfJTHmAg=;
-        b=A3b0YDxzV+j7ERZ+Jk4/b5M0REirirL2YNtV+4JE7lPtR+Zwyn4TPEEFj3Rj1xfd7X
-         a6IZurrovnER9oeFsMWYil3hisNWIE8ZjLuz8nQDmRcWnS/xLDc1qhfNrCTZ2k0+jFq0
-         DAx9lOdPvhT1s7BC/pxLFb4nHuHX0Gptl3//xlL6LExM7QJ0gzlS50eZL4Haz7KYuMlK
-         DUdhyLGOzlvM9UPu5kn+Gt5vN8NyO14eV+2B+myf1cbNgSblfPnv0Mo+mc08bl6CLfwl
-         zO0VFM3hMPSGyhBxE2m7xSIgOZe8UBgFNRWURotBPiZ+WgVQL9qf9uuCk3q/f1SWwMxc
-         bB6Q==
-X-Forwarded-Encrypted: i=1; AHgh+RqBYGLzyctTAEd4prAkPT0jPgls0cI2iUADZPBREDTRR+LkKStS9KTSJnOfU4t0HWpqkzx8hDf5TRH+@vger.kernel.org
-X-Gm-Message-State: AOJu0YxFQr0F8RneKiGSGHsyUu3pYLIzg4WhF+74/HXNdWplBe9TgOYQ
-	7/ye79NAvfA6+hA8QnN/6+3qy5tzW68tNsTUFuARSko2PI/5lCvEuybWvT/UlkVH
-X-Gm-Gg: AR+sD12niXpb0UPu+AVHVX5znp6D5xrEytnBPKtVDYYeE6b78iVzqH7uvjxMHHX5Klv
-	dCPYQLTjePBYFwRyEFLRKP+DCD4uBX+VwLbiJhfbib6b814m9MdgbylttKuxmBW/N2U5sefQVEt
-	PNNL6hutk+wMqsP2C4mbIukVXM2CRVF4GYC4C/qNhy59haEs75T/BCx3c8mBQbuvNpPWny7ycxC
-	8we4aANz6QEFR47wYyWKFoj8AJJ0M1B88SyugPavVcO9XlgVIwn+yB/X6FDFxE5RimQE9aa3TME
-	OOu4UZm2n/ROZBX7BEB99Pb0SQLr/mtzjZJ/OUdvrHmw39ZXaKvacvuppUXGRBDPAL8ROn6KSYT
-	ITOxd59j/rQHLlReOUFf4cxjiVT4B5HJoaocMSz96H3XV6cKK9E4MWstM5QGYIKXqwpwRq6i8Nw
-	aTqg6hhOEu8/VSQcqr6spmDrCyUGr5t+DpmWy4+7Me9Znn8pxQvdiqSBdEyiRkg5GwNXLPjZ8OF
-	4ngYDfDHpsmno3rOiy1tfyRMA==
-X-Received: by 2002:a05:690c:6209:b0:81e:7d90:5673 with SMTP id 00721157ae682-820224ace00mr97912237b3.26.1786030113148;
-        Thu, 06 Aug 2026 08:28:33 -0700 (PDT)
-Received: from mail-yx1-f45.google.com (mail-yx1-f45.google.com. [74.125.224.45])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-8218964f981sm9971657b3.19.2026.08.06.08.28.32
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 06 Aug 2026 08:28:32 -0700 (PDT)
-Received: by mail-yx1-f45.google.com with SMTP id 956f58d0204a3-664a09bc459so3747763d50.1
-        for <linux-arch@vger.kernel.org>; Thu, 06 Aug 2026 08:28:32 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AHgh+RoBx6f+PqfD/lMzo/PvCv++e+3HOyNCOwvXAPnyH2cIiOJNjRiDJC7+1v53paM2KbYiiNlC2A+yS2gX@vger.kernel.org
-X-Received: by 2002:a05:6102:2b83:b0:738:133f:8d5e with SMTP id
- ada2fe7eead31-760ea747b4emr4930162137.12.1786029696259; Thu, 06 Aug 2026
- 08:21:36 -0700 (PDT)
+	s=arc-20240116; t=1786036362; c=relaxed/simple;
+	bh=0CVtiwf8Rea49LMoUx7r0FaUR1c1SczGdyIe/liq/ho=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=KSHeGfzwUKXjUCWMgNJtBp2TqrjSZCORBSoqkbNJhuUhzZXm/Wq/3RqfBG4aBUkuZg/7uPYdmnjjPZfVB59/naMc83YCtUCYa8sp2fw3gBwPMSf1Dge9egcQIdo0bC8aQcPcZK7ybc0Y9ONzUTGGGbZDjyTR5InyyFXfZd4JAwA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=c8OYpXn/; arc=none smtp.client-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="c8OYpXn/"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 14BA71F000E9;
+	Thu,  6 Aug 2026 17:12:30 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1786036361;
+	bh=i2yjrrVc+H/dOZF8X/JCAszDBzatuRJpY6enVbVkXDU=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References;
+	b=c8OYpXn/lbymZWYNNGPbBk8+3HfighE8u/aLjR6Id3SpcMlVswuIxuoFT6i8+sJVG
+	 33bgpDZK07lgJdRnLMQQM5x5OHdfGvrUlwrg07n1Vrb5Uhrfcf7XF85qEDFGTpmbzJ
+	 qifqGwAx2bDkh0NXTIgleM+IkLM3PHw2BFHX6yZMbeRqljFQbSRqJcqKkhvmOKwx4y
+	 8hBZqfwDXrrUJpo3Surfw1/jC6G5IUWLTS95IreVfJCJJxrzmp1dOhdDQ+kcloC6rE
+	 eCHWu6iyOrudRbovBNdMtzXkfpZdjrLsc4CWBTA/u9nkgylUVc+I/jIl/BOLL8csMs
+	 892czlr7RY3TA==
+From: Will Deacon <will@kernel.org>
+To: Russell King <linux@armlinux.org.uk>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Kairui Song <kasong@tencent.com>,
+	Qi Zheng <qi.zheng@linux.dev>,
+	Shakeel Butt <shakeel.butt@linux.dev>,
+	Barry Song <baohua@kernel.org>,
+	Axel Rasmussen <axelrasmussen@google.com>,
+	Yuanchu Xie <yuanchu@google.com>,
+	Wei Xu <weixugc@google.com>,
+	Johannes Weiner <hannes@cmpxchg.org>,
+	David Hildenbrand <david@kernel.org>,
+	Michal Hocko <mhocko@kernel.org>,
+	Lorenzo Stoakes <ljs@kernel.org>,
+	Tianrui Zhao <zhaotianrui@loongson.cn>,
+	Bibo Mao <maobibo@loongson.cn>,
+	Anup Patel <anup@brainfault.org>,
+	Atish Patra <atish.patra@linux.dev>,
+	Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Alexandre Ghiti <alex@ghiti.fr>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	Andy Lutomirski <luto@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	"Liam R. Howlett" <liam@infradead.org>,
+	Vlastimil Babka <vbabka@kernel.org>,
+	Mike Rapoport <rppt@kernel.org>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Michal Hocko <mhocko@suse.com>,
+	Jonas Bonn <jonas@southpole.se>,
+	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+	Stafford Horne <shorne@gmail.com>,
+	Yeoreum Yun <yeoreum.yun@arm.com>
+Cc: kernel-team@android.com,
+	Will Deacon <will@kernel.org>,
+	linux-arm-kernel@lists.infradead.org,
+	linux-kernel@vger.kernel.org,
+	loongarch@lists.linux.dev,
+	linux-mips@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-mm@kvack.org,
+	kvm@vger.kernel.org,
+	kvm-riscv@lists.infradead.org,
+	linux-riscv@lists.infradead.org,
+	linux-openrisc@vger.kernel.org
+Subject: Re: [PATCH RFC v2 00/20] mm: optimize unnecessary loads due to ptep_get() and friends out
+Date: Thu,  6 Aug 2026 18:11:50 +0100
+Message-ID: <178601690203.388302.5785771709606318463.b4-ty@kernel.org>
+X-Mailer: git-send-email 2.47.3
+In-Reply-To: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
+References: <20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260803180931.97202-1-ojeda@kernel.org> <fb2daae7-4eba-4ca1-95a5-60f8157eb66b@app.fastmail.com>
- <DKFKXA6YWW8R.1NDZ44Q13XFQH@kernel.org> <20260804071330.24760Aaf-hca@linux.ibm.com>
- <33ecacea-ed2a-409c-ab1c-a136e06b1b7a@app.fastmail.com> <1aac654b8d333cc058a345b03ae0f798f1724ced.camel@linux.ibm.com>
- <57ac7553-4034-49e2-b686-b7272591da00@app.fastmail.com> <94c3ebc645e80feae1044a57b8b5c82d4d4ff408.camel@linux.ibm.com>
- <f2002ee7-00a4-4a3f-a516-409886b724ab@app.fastmail.com> <2aaf01a4417cea313ce0cce7cfdbec65d350a41f.camel@linux.ibm.com>
- <f85a48cb-4ad9-412c-be00-a8227d6c8fb1@app.fastmail.com>
-In-Reply-To: <f85a48cb-4ad9-412c-be00-a8227d6c8fb1@app.fastmail.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Thu, 6 Aug 2026 17:21:24 +0200
-X-Gmail-Original-Message-ID: <CAMuHMdWBiCA6+SWatmbB5bVdFd7_9CPNgR_eaTcOUpqAEA5J4w@mail.gmail.com>
-X-Gm-Features: AUfX_mytiRYZjGYX1aobVkgoZ5obof2d1lrRV5Gr1cwx_C_pvGoMLWUjStMFMZU
-Message-ID: <CAMuHMdWBiCA6+SWatmbB5bVdFd7_9CPNgR_eaTcOUpqAEA5J4w@mail.gmail.com>
-Subject: Re: `io{re,un}map()` build error in s390 under `!CONFIG_HAS_IOMEM`
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Niklas Schnelle <schnelle@linux.ibm.com>, Heiko Carstens <hca@linux.ibm.com>, 
-	Danilo Krummrich <dakr@kernel.org>, Gerd Bayer <gbayer@linux.ibm.com>, Miguel Ojeda <ojeda@kernel.org>, 
-	Alice Ryhl <aliceryhl@google.com>, Daniel Almeida <daniel.almeida@collabora.com>, 
-	Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, driver-core@lists.linux.dev, 
-	Christian Borntraeger <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>, 
-	linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, 
-	Boqun Feng <boqun@kernel.org>, Gary Guo <gary@garyguo.net>, 
-	=?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
-	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
-	Trevor Gross <tmgross@umich.edu>, Tamir Duberstein <tamird@kernel.org>, 
-	Alexandre Courbot <acourbot@nvidia.com>, =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
-	rust-for-linux@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
 
-Hi Arnd,
+On Wed, 22 Jul 2026 16:30:08 +0100, Yeoreum Yun wrote:
+> Using ptep_get() and its counterparts in common code is suboptimal on
+> kernel configurations with generic compile-time folded page tables.
+> By default, ptep_get() and its friends expands to READ_ONCE(),
+> forcing the compiler to emit a load even when the value is not used afterwards.
+> 
+> This issue was recently reported by Christophe Leroy [1] for ppc32
+> preventing futher code conversion to ptep_get()/pmdp_get()/... helper
+> and the same behavior can also be observed on arm64 when built with
+> 2- or 3-level page tables
+> 
+> [...]
 
-On Thu, 6 Aug 2026 at 15:51, Arnd Bergmann <arnd@arndb.de> wrote:
-> I think the reason is that there are a couple of architectures
-> (including non-MIO s390) that take a shortcut for normal
-> ioremap() that avoids actually mapping anything, e.g. mips
-> and related architectures have a fixed uncached mapping
-> of all MMIO space visible to kernel, while some alpha, m68k
-> powerpc, and s390 do something other than a pointer dereference
-> for MMIO.
+Applied the arm64 patch on the end to arm64 (for-next/mm), thanks!
 
-FTR, several m68k platforms use the transparent translation registers
-to set up a mapping to the main system's MMIO space (like MIPS,
-but programmable), and thus just need to add an offset.
+[20/20] arm64: pgtable: convert pte_present() from macro to static inline
+        https://git.kernel.org/arm64/c/3b56ebafecc4
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
+Cheers,
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Will
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+https://fixes.arm64.dev
+https://next.arm64.dev
+https://will.arm64.dev
