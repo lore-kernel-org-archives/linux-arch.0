@@ -1,119 +1,179 @@
-Received: from mail-pj1-f70.google.com (mail-pj1-f70.google.com [209.85.216.70])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 234D53BBFB3
-	for <linux-arch@vger.kernel.org>; Thu,  6 Aug 2026 06:14:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.70
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1530B4A35;
+	Thu,  6 Aug 2026 07:34:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785996886; cv=none; b=DpNQOIMuy5R1DacSZE/HECphw93u+DoH2T4160R21hgQzTOZNgi9+Cub8HZoum4jqb2f70wTi1tHF0irdgzofPVMP2xc3irhvBHVcOycA//Tb/2Evd5j8naPLzq/9dqdmrq/8+a06ea6A/+f4anJxOqnmJLGXUQDrIKKzuxDuaI=
+	t=1786001684; cv=none; b=TWQcyqfPZ2DCOWNPx+VF08t6Na5LiGyH9ShiUxgAyfmeXvZVCZ9FrYQ2N4IpSB7i9hTazXqwijNiJk/nz/EFkzLg5kqr73Av6O6pwS8MCJSz5eqw9/L5tHiC8AhSwIAUahsWBIu3+Av6vIomxksJTAtbWaScVq5nO8ZoxnbAS7M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785996886; c=relaxed/simple;
-	bh=zK0URDPVEXSMclZ8lWEXPCGPTT3zF/u5FRxlC8toxFI=;
-	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Cc:Content-Type; b=AMmVoQwhn6/su/WZkS4DQnzDIf0Sx2ohF4SuwUkeSKayJkue1LPMANOqatEB2fiW90YB4hzG21k8NUZKRErMZKGMNWfuekTcmvHGctvgAORoMb1HDJ4/fmbIRrT0JxnbJ2/km5/vhTczbHSu/VKnDfaxlCppvU260Ow2Q5ohLsA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--wfelipe.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=FygGjbUN; arc=none smtp.client-ip=209.85.216.70
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--wfelipe.bounces.google.com
+	s=arc-20240116; t=1786001684; c=relaxed/simple;
+	bh=wTPvBNOjeKHkAAraDoIpZqoXY/SNX7sFHQtH2Gv7yQ0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Rxv1HKshhuQuibtArhSdy/H9Dbxq52nqA2SFw8fg53oMvZIGmj7+XbDSqYTiJEKngsSPZADdfOjcRInMBxmJNDrgk5RmxPjE99x87nzV6O6seXrLZ3wqSpXXw0BlWjUfptgktW4/BnsbWexo3wR8tzC/w6dWy0bPlSPmOCaY8io=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=gRtWObil; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="FygGjbUN"
-Received: by mail-pj1-f70.google.com with SMTP id 98e67ed59e1d1-38e7b87ce77so1268964a91.0
-        for <linux-arch@vger.kernel.org>; Wed, 05 Aug 2026 23:14:45 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1785996884; x=1786601684; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:from:subject
-         :message-id:references:mime-version:in-reply-to:date:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=bFzqH4xCVi7VLSbp83LQR7Sy3Yjk2atQ5O9h+mavTgs=;
-        b=FygGjbUN+j4J9YWV0bZV9jVTaqH62kRHL9vZ08rPKJ+mUTXRm1fcYYeAW4aBCLKrkd
-         TZa5fNsVcA0ARTJK/jxd9ldvd/WJQmXS87QRSkxKE6A9n73FPODA3sWtslZbcaoujdpt
-         lKT6cYNkynj7aeYyY40JdidtRkok7Bn+wbgKawP+AL3cQxb3tHk6VJ9uTfMMQ731HRDV
-         ERvWMqeLHVLigz8TlzkeoVmdLGWeZ6jBfDnfYLYil61Fv7NS2c33MnuQPIjyLaKPQGRo
-         bRyDM8BwV7w/hivW58Ztb2ShvdECLLwjSv4DHM1cGkSziYbqqRFgOZdYkYQPV+GD4ORH
-         Nl1g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785996884; x=1786601684;
-        h=content-transfer-encoding:content-type:cc:to:from:subject
-         :message-id:references:mime-version:in-reply-to:date
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=bFzqH4xCVi7VLSbp83LQR7Sy3Yjk2atQ5O9h+mavTgs=;
-        b=PXPjI/KAwDPZJaVrX4T+Iy4Dr9MGFmUtsfLTWIgea19TTc3tYRp7pi00d5bh117fcE
-         l8QfqEj+3TH2MdRBibR1zBfS6PW+ZpDUX2QyancDY01iz9rIhdn1v19LKUF4k0acZHLu
-         h20t2Xapqh6eyCm2PAaBLiG+/3ZZ7vAoxoVj9anOClHXDzgx8CLevjRdU+nGTWg9SRbl
-         /BBr9pm2uvGIGA8adpt01kL+kTc99ysITMaY7hlPF1QJs3nwjdnQPeKUi/Am50xiLxh0
-         fwGOUbVfr46q+BFEWVgPIS5ilVbashiXWfgrQHCF0yCBdGRieYtma5Rv1ejj8x1hMolg
-         tApg==
-X-Forwarded-Encrypted: i=1; AHgh+RpED3PgXxqY8Ul94YRv0crUlA25TUV+C6DIUpHU8yF0y61LJG8FAxetQgBfUpv+DTgn+8B9I0ZrW8bi@vger.kernel.org
-X-Gm-Message-State: AOJu0YwjfAa+oVHyrYbahAcWRLyGTLW9rDNlPkmg2U6R9Th2o2G3kNZf
-	7mh0wMCE1Xc0su1Nir3+Gp2CLr6WjFUtwrUHHHipsf85KtrYuniAAV7hw/rOzFaXdBwRUdyZwLM
-	GUzCt5x43UQ==
-X-Received: from pjyx15.prod.google.com ([2002:a17:90a:e30f:b0:38d:d40a:d192])
- (user=wfelipe job=prod-delivery.src-stubby-dispatcher) by 2002:a17:90b:4b87:b0:37f:c2a8:ce45
- with SMTP id 98e67ed59e1d1-3903c537d5fmr11343222a91.4.1785996884273; Wed, 05
- Aug 2026 23:14:44 -0700 (PDT)
-Date: Thu,  6 Aug 2026 06:14:16 +0000
-In-Reply-To: <20260806061429.474992-1-wfelipe@google.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="gRtWObil"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7EA9D1F000E9;
+	Thu,  6 Aug 2026 07:34:37 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1786001682;
+	bh=y3wUW9A5onn8mXoBrGXcecd/b5GN4A+lRTgjr2p0JTI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=gRtWObilZ/zqY2xNJFCFGkSOxfW+x1vY1mLHvaVfFn3nCz/YO+ctLWfNTTs4szgnu
+	 yTVCVopxmFl5NcnYpG991e8Bt2Ezz8pE1lZATTWxE8x5kpf0Cga4wRPeWCS7E5HqWv
+	 XYFKlbUMhZXVnLOpWi/i+ZQVJSvS2hDlXe0DDN6dURjWleKZWV49tMZzt2Af3x0wCx
+	 girzSHfnN2fGQM3POEWVr+brhoQK6GI2hxA4PAd23gY3P1IVF+HqesJZch2/8pByI2
+	 /EHEMqZTbBwqX/8U8p+wI2vggLbJGqS41xPiSDTkTcAYl1PUWUd+oug/OamioWoiLi
+	 FVdw8NszJIKKQ==
+Date: Thu, 6 Aug 2026 08:34:22 +0100
+From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+To: Yunhui Cui <cuiyunhui@bytedance.com>
+Cc: linux-riscv@lists.infradead.org, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-riscv@lists.infradead.org, 
+	kvm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, 
+	linux-perf-users@vger.kernel.org, kasan-dev@googlegroups.com, 
+	Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <david@kernel.org>, 
+	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+	Michal Hocko <mhocko@suse.com>, Jason Gunthorpe <jgg@ziepe.ca>, 
+	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>
+Subject: Re: [PATCH v2 10/15] mm/gup: add fast-GUP specific lockless PTE
+ helpers
+Message-ID: <anQ2bW3JxraT6PFY@lucifer>
+References: <cover.1784201104.git.cuiyunhui@bytedance.com>
+ <138d74aa9863ae8ff445e16a2798d062895b75bc.1784201104.git.cuiyunhui@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20260806061429.474992-1-wfelipe@google.com>
-X-Mailer: git-send-email 2.55.0.654.g21b8a5bc05-goog
-Message-ID: <20260806061429.474992-4-wfelipe@google.com>
-Subject: [PATCH 3/3] init/Kconfig: make config INIT_ENV_ARG_LIMIT user-configurable
-From: Wilson Felipe Pereira <wfelipe@google.com>
-To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
-	Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
-	Alexander Gordeev <agordeev@linux.ibm.com>, Christian Borntraeger <borntraeger@linux.ibm.com>, 
-	Sven Schnelle <svens@linux.ibm.com>, linux-arch@vger.kernel.org, 
-	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, 
-	Wilson Felipe Pereira <wfelipe@google.com>, 
-	"=?UTF-8?q?Maciej=20=C5=BBenczykowski?=" <maze@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <138d74aa9863ae8ff445e16a2798d062895b75bc.1784201104.git.cuiyunhui@bytedance.com>
 
-INIT_ENV_ARG_LIMIT is defined without a prompt string (`int`), making it
-a hidden Kconfig symbol that defaults to 32 (or 128 for UML) and cannot
-be configured in `make menuconfig`.
++cc literally everybody you failed to contact...!
 
-Now that CONFIG_COMMAND_LINE_SIZE is configurable across all architectures,
-users who select larger kernel command lines (e.g., 4096 bytes) may pass
-more than 32 command-line arguments or environment variables (`foo=3Dbar`) =
-to
-`/sbin/init`. If INIT_ENV_ARG_LIMIT remains hardcoded at 32, any argument
-after the 32nd is silently dropped when the kernel executes init.
+Why on earth are you doing sending a series like this which changes core mm,
+non-RFC and at v2 to boot, without bothering to Cc relevant people?
 
-Add a prompt string ("Maximum number of kernel command line arguments") and
-a `range 32 4096` to `config INIT_ENV_ARG_LIMIT` so that users can
-configure their init argument and environment variable limit when needed,
-while preserving the existing default of 32 for standard builds.
+I am also very confused as to why you are sending an ostensible RISC-V series
+then changing how core mm works to fit it, that's not how that works.
 
-Originally-by: Maciej =C5=BBenczykowski <maze@google.com>
-Signed-off-by: Wilson Felipe Pereira <wfelipe@google.com>
----
- init/Kconfig | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+And if you're seeking to change core mm send it as an RFC!
 
-diff --git a/init/Kconfig b/init/Kconfig
-index d42bb55cb2152..28c0f1fb00ebb 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -231,9 +231,10 @@ config BROKEN_ON_SMP
- 	default y
-=20
- config INIT_ENV_ARG_LIMIT
--	int
-+	int "Maximum number of kernel command line arguments"
- 	default 32 if !UML
- 	default 128 if UML
-+	range 32 4096
- 	help
- 	  Maximum of each of the number of arguments and environment
- 	  variables passed to init from the kernel command line.
---=20
-2.55.0.654.g21b8a5bc05-goog
+On Thu, Jul 16, 2026 at 08:41:45PM +0800, Yunhui Cui wrote:
+> fast-GUP snapshots a PTE without holding the PTL, pins the page, and
+> then revalidates that the PTE did not change. Keep both reads under the
+> same lockless PTE semantics by defaulting the fast-GUP revalidation to
+> ptep_get_lockless().
 
+Why?...
+
+>
+> Introduce fast-GUP specific PTE snapshot and revalidation helpers. The
+> default implementation preserves the existing ptep_get_lockless()
+> semantics, while allowing architectures to override the helpers when the
+> public lockless getter provides extra semantics that fast-GUP does not
+> consume.
+>
+> Signed-off-by: Yunhui Cui <cuiyunhui@bytedance.com>
+> ---
+>  include/linux/pgtable.h | 18 ++++++++++++++++++
+>  mm/gup.c                |  6 ++++--
+>  2 files changed, 22 insertions(+), 2 deletions(-)
+>
+> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+> index da14328093a86..62943fcbf7046 100644
+> --- a/include/linux/pgtable.h
+> +++ b/include/linux/pgtable.h
+> @@ -813,6 +813,24 @@ static inline pte_t ptep_get_lockless(pte_t *ptep)
+>  }
+>  #endif
+>
+
+Of course, no comments, helpful!
+
+> +#ifndef gup_ptep_get_lockless
+> +static inline pte_t gup_ptep_get_lockless(pte_t *ptep, pte_t *rawp)
+
+rawp? This is terrible naming.
+
+And 'gup_ptep_get_lockless()' is worse. What on earth is this function meant to
+do? And why is 'gup lockless' considered different from lockless?
+
+And you return the value twice, because of course you do. Why? Who knows.
+
+> +{
+> +	pte_t pte = ptep_get_lockless(ptep);
+> +
+> +	*rawp = pte;
+> +
+> +	return pte;
+> +}
+> +#endif
+> +
+> +#ifndef gup_ptep_revalidate
+> +static inline bool gup_ptep_revalidate(pte_t *ptep, pte_t raw_pte)
+> +{
+> +	return pte_val(raw_pte) == pte_val(ptep_get_lockless(ptep));
+> +}
+
+Again this naming is utterly terrible and I'm at a loss as to why on earth
+you're doing this?
+
+We don't need to abstract equality checks?
+
+> +#endif
+> +
+>  #ifndef pmdp_get_lockless
+>  static inline pmd_t pmdp_get_lockless(pmd_t *pmdp)
+>  {
+> diff --git a/mm/gup.c b/mm/gup.c
+> index 99902c15703b0..72fb147193e55 100644
+> --- a/mm/gup.c
+> +++ b/mm/gup.c
+> @@ -2842,10 +2842,12 @@ static int gup_fast_pte_range(pmd_t pmd, pmd_t *pmdp, unsigned long addr,
+>  	if (!ptep)
+>  		return 0;
+>  	do {
+> -		pte_t pte = ptep_get_lockless(ptep);
+> +		pte_t raw_pte, pte;
+
+What on earth is a 'raw' PTE?
+
+>  		struct page *page;
+>  		struct folio *folio;
+>
+> +		pte = gup_ptep_get_lockless(ptep, &raw_pte);
+> +
+>  		/*
+>  		 * Always fallback to ordinary GUP on PROT_NONE-mapped pages:
+>  		 * pte_access_permitted() better should reject these pages
+> @@ -2871,7 +2873,7 @@ static int gup_fast_pte_range(pmd_t pmd, pmd_t *pmdp, unsigned long addr,
+>  			goto pte_unmap;
+>
+>  		if (unlikely(pmd_val(pmd) != pmd_val(pmdp_get_lockless(pmdp))) ||
+> -		    unlikely(pte_val(pte) != pte_val(ptep_get_lockless(ptep)))) {
+> +		    unlikely(!gup_ptep_revalidate(ptep, raw_pte))) {
+
+Why do we need to refadctor a comparison between a local variable and a lockless
+get?
+
+I'm just so confused by what on earth this patch is meant to be or why it's here...
+
+>  			gup_put_folio(folio, 1, flags);
+>  			goto pte_unmap;
+>  		}
+> --
+> 2.39.5
+>
+>
+> _______________________________________________
+> linux-riscv mailing list
+> linux-riscv@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-riscv
+
+--
+Cheers, Lorenzo
