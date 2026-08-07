@@ -1,234 +1,211 @@
-Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.15])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 028053A16AC;
-	Fri,  7 Aug 2026 07:10:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.158.5
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786086630; cv=none; b=gxPwTMLY/rqmN7ZDvruzLVb2mOxReXBE+MyHzN9i9/UqTP9uoSrhk71DfCvygYZhqQ8Lg8195jLGbry/cXUVRlG/IldRzmOm0ut17XPINZ6B+Wqtfp7AC9Lyw3/5RTMz8olFJpsNCUOJkORTJZ9Dcdsq39WNMVAmicMu+FUjPOY=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786086630; c=relaxed/simple;
-	bh=okUo/lBwawQ2ShVhicuL+c1RSgIwQ+JfXxkA9MP2fZc=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=FE5L4zROxtOVRfMO3knpYPG2EUUEnyuKDmTzxYzliNmppYWHKhhB9wDddfrpT+Wl92oV4Mh/zb5vTB5/bE2SHsLAsADHqtUUoNxwduxlNEVYZxFXS/YNxDCGGeQThN5EtT0NAgqjOWIX6vBG8U/HWVSruEHjXSfoNG1nQsqeCRk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=Qh6BCzQc; arc=none smtp.client-ip=148.163.158.5
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 03E394052CF;
+	Fri,  7 Aug 2026 08:51:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=192.198.163.15
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1786092666; cv=fail; b=ehZQVcq3W0M+sr3U/yZ8Rv4PCPjrEzgLZLgsDXLDdfPDefde/T+6n5gJkgBpEvEGgGNRUj96G028hWzORJuGhPv4DbXzapWG4JpQs9i+8LGm8zC4P5CbgGbpb/yFE90AHEvFMqapZ70Y8kuJxDBRuq9HAUtuuyw89kNlkubzLKE=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1786092666; c=relaxed/simple;
+	bh=Eo8ohsgNuKzdxbsF2jtk+kmdE4xcSkCRWGA2O8WvFQo=;
+	h=Date:From:To:CC:Subject:Message-ID:Content-Type:
+	 Content-Disposition:MIME-Version; b=bMg7n7fVOOrrSMtrlIQAchx88elBsj/n+3MgdByXkn+nzyaVuGAjiDTRHLP4f9BTaFOEEeWPOygajXdZZgHDcmHjpc2iY5gNrgOR93GglF956PbmGgePd9Bjax1CwGe7s6+O0uBVzLMuvdMEekaNw1Oi7kg1PEpMnI2gRO+qkQw=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=WIODc+oh; arc=fail smtp.client-ip=192.198.163.15
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="Qh6BCzQc"
-Received: from pps.filterd (m0353725.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 6770JZQv4064146;
-	Fri, 7 Aug 2026 07:09:19 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
-	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=pp1; bh=jpeOcxycXBTAlw8xEd8qyVhgpwcjWF
-	NB4soWtck85Pw=; b=Qh6BCzQcqD/AGOqi1hTQHgQVz6HuWuBJB87Gbu8R2QRIrL
-	ftEfzBmybSkNntrd41XE524cbuEjupU7byCqaB7YxW9kBgydkUCxBhrhTSiwT6H+
-	U4OKIllzATyLLGfNArjEOqj0akgLZ0asqOkSM0XKJyYYoIst8JvDseeB2sH706u4
-	hhs9ueI6JSC+Ld/f6qPFOuLXDpab+v18Jf4LeEQIr4j5+MFCFi1kjnwg8/MvRqx/
-	KhT+u3vzeF7qrRG7dH6ram2Pu9RQGcAByOzaawNWn2aii58OGSRM1hM7xmzHRjNe
-	Si5vdvDt7lOVvC8K31hkxayAWljo7JjlQf3ZTeQg==
-Received: from ppma23.wdc07v.mail.ibm.com (5d.69.3da9.ip4.static.sl-reverse.com [169.61.105.93])
-	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4fvy02anmy-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Fri, 07 Aug 2026 07:09:18 +0000 (GMT)
-Received: from pps.filterd (ppma23.wdc07v.mail.ibm.com [127.0.0.1])
-	by ppma23.wdc07v.mail.ibm.com (8.18.1.7/8.18.1.7) with ESMTP id 6776uIAD024920;
-	Fri, 7 Aug 2026 07:09:17 GMT
-Received: from smtprelay05.fra02v.mail.ibm.com ([9.218.2.225])
-	by ppma23.wdc07v.mail.ibm.com (PPS) with ESMTPS id 4fsvmhpmkb-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Fri, 07 Aug 2026 07:09:17 +0000 (GMT)
-Received: from smtpav03.fra02v.mail.ibm.com (smtpav03.fra02v.mail.ibm.com [10.20.54.102])
-	by smtprelay05.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 67779F7T51315084
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 7 Aug 2026 07:09:15 GMT
-Received: from smtpav03.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 668A020040;
-	Fri,  7 Aug 2026 07:09:15 +0000 (GMT)
-Received: from smtpav03.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id EA50320043;
-	Fri,  7 Aug 2026 07:09:12 +0000 (GMT)
-Received: from li-008a6a4c-3549-11b2-a85c-c5cc2836eea2.ibm.com (unknown [9.111.55.180])
-	by smtpav03.fra02v.mail.ibm.com (Postfix) with ESMTPS;
-	Fri,  7 Aug 2026 07:09:12 +0000 (GMT)
-Date: Fri, 7 Aug 2026 09:09:11 +0200
-From: Alexander Gordeev <agordeev@linux.ibm.com>
-To: Muhammad Usama Anjum <usama.anjum@arm.com>
-Cc: Jani Nikula <jani.nikula@linux.intel.com>,
-        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
-        Rodrigo Vivi <rodrigo.vivi@intel.com>,
-        Tvrtko Ursulin <tursulin@ursulin.net>,
-        David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
-        Dimitri Sivanich <dimitri.sivanich@hpe.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>,
-        Stefano Stabellini <sstabellini@kernel.org>,
-        Muchun Song <muchun.song@linux.dev>,
-        Oscar Salvador <osalvador@suse.de>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        "Liam R. Howlett" <liam@infradead.org>,
-        Lorenzo Stoakes <ljs@kernel.org>, Will Deacon <will@kernel.org>,
-        "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
-        Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
-        Andrey Ryabinin <ryabinin.a.a@gmail.com>,
-        David Hildenbrand <david@kernel.org>,
-        Pasha Tatashin <pasha.tatashin@soleen.com>,
-        Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>,
-        Uladzislau Rezki <urezki@gmail.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Masami Hiramatsu <mhiramat@kernel.org>,
-        Alexei Starovoitov <ast@kernel.org>,
-        Daniel Borkmann <daniel@iogearbox.net>,
-        Andrii Nakryiko <andrii@kernel.org>,
-        Eduard Zingerman <eddyz87@gmail.com>,
-        Kumar Kartikeya Dwivedi <memxor@gmail.com>,
-        Ingo Molnar <mingo@redhat.com>,
-        Arnaldo Carvalho de Melo <acme@kernel.org>,
-        Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>,
-        "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-        Jan Kara <jack@suse.cz>, Jason Gunthorpe <jgg@ziepe.ca>,
-        Leon Romanovsky <leon@kernel.org>, Miaohe Lin <linmiaohe@huawei.com>,
-        Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
-        Christoph Lameter <cl@gentwo.org>, Mike Rapoport <rppt@kernel.org>,
-        Johannes Weiner <hannes@cmpxchg.org>, ziy@nvidia.com, pfalcato@suse.de,
-        ryan.roberts@arm.com, linux-kernel@vger.kernel.org,
-        intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
-        linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org,
-        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, kasan-dev@googlegroups.com,
-        linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org,
-        linux-perf-users@vger.kernel.org, damon@lists.linux.dev
-Subject: Re: [PATCH 1/9] mm: introduce hw_pte_t for PTE table storage
-Message-ID: <3db8233c-3785-444e-b2eb-3e5fc5cb2f17-agordeev@linux.ibm.com>
-References: <20260806083926.1807279-1-usama.anjum@arm.com>
- <20260806083926.1807279-2-usama.anjum@arm.com>
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="WIODc+oh"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1786092664; x=1817628664;
+  h=date:from:to:cc:subject:message-id:mime-version;
+  bh=Eo8ohsgNuKzdxbsF2jtk+kmdE4xcSkCRWGA2O8WvFQo=;
+  b=WIODc+ohmKvudqBMHZ+3DHh+9V4KsqCAIORjdpHbimqb4rtz5rMhrLn1
+   CaJ2Wi55l+EthRpvZnqUvlDw8IVxQ9Id+WJoP4Dp9Oc8Bt6vpCgMeHkNj
+   AFcYL8y1RbCSzb+/sfttJjV3zfDCmT1UXXHFrOyc6yakl6y1jt2aDqn2r
+   7lzC2ZBmQP0nP1nDkuZm+lnqBVEaUIlVsneHo78NHTzVfdAY+31geyeO3
+   EU96T5Fzoz2tTI4fzITUIvcv61E7TcBySUJo9AE0S7KNhZ2+RThP1EjIM
+   2bpX18gtyDudLRGeQy1a37JRUEukX2a9z84UIHqpAYcUXFM106m0nvyg7
+   A==;
+X-CSE-ConnectionGUID: wUO6Z4CgRwCMo0gosO9/nQ==
+X-CSE-MsgGUID: 3andqQGNRZGZpCYlPyRC9Q==
+X-IronPort-AV: E=McAfee;i="6800,10657,11867"; a="86810271"
+X-IronPort-AV: E=Sophos;i="6.25,210,1779174000"; 
+   d="scan'208";a="86810271"
+Received: from orviesa008.jf.intel.com ([10.64.159.148])
+  by fmvoesa109.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 07 Aug 2026 01:51:03 -0700
+X-CSE-ConnectionGUID: ahIomiVhTKKiNveXGyVI4Q==
+X-CSE-MsgGUID: L5q+NM/SRnW+ZpigXnFwNA==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.25,210,1779174000"; 
+   d="scan'208";a="261827156"
+Received: from orsmsx902.amr.corp.intel.com ([10.22.229.24])
+  by orviesa008.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 07 Aug 2026 01:51:03 -0700
+Received: from ORSMSX902.amr.corp.intel.com (10.22.229.24) by
+ ORSMSX902.amr.corp.intel.com (10.22.229.24) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.45; Fri, 7 Aug 2026 01:51:02 -0700
+Received: from ORSEDG903.ED.cps.intel.com (10.7.248.13) by
+ ORSMSX902.amr.corp.intel.com (10.22.229.24) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.45 via Frontend Transport; Fri, 7 Aug 2026 01:51:02 -0700
+Received: from DM1PR04CU001.outbound.protection.outlook.com (52.101.61.30) by
+ edgegateway.intel.com (134.134.137.113) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.45; Fri, 7 Aug 2026 01:51:02 -0700
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=tFAEgErJt/MbKDeIHQy/BZEjGu3NKEY+vTa+RZLx90R4GlFKhp6rNGQkXPnld1FqRdUH79MXoOuYgPzdDNp6jjRWa6p378mwRMibT5DiOcffCwDLemMBhwzMd3HPhd1TZNW5ag2p/y+7ov+7kNkrgJdX8MweZTntQHc2f1RGVDYMkqkX1EaJJViNuoho3iqQeUMx3wAsGoUEM40SKcjBBeoGi14e6kCMX/QOr4knEzpoTtY7m5kHj9OArTKkWkQdMfDhYquIUpO93P+/ubDeSjOg8n8G0ZrUqqdGj4HFEVw5+8UQjF+JhPsaVVw+f+z1rmiG/3DH7fvG2EKTq/4peg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=/tDI1uxEU+gT9dEWdegZm6YWd7cGliao4qAxglRfnWA=;
+ b=jtxTrVcy+L01CmaUC8IXUXH9T3Fq85j3nx5Qxs5rSk24gY0KxxuOZ4+vHDHzlnDWlaDTQHHczvkmm7SPIho1dbbvi5qb9IOWFiuQtnAlmFVb4eQSwa0dQA8s7B20pPetiYIhM46pheGFka+JzpfpJAcePWh6B9NFR4Dwt4/9Tjbeot6Ocxzf4RCpqVFK6NpOG6SMBuDiWKZOsc6f/753NRPH11zrOD/dqNwCWsQLIJLQpN4QtMpatCdGVumDfJbC4p9c6ne1miXPTqBOMDTOF43unI5Ubgy8mxczzDSFRpglnrfuxGfdsFZ7FwUFqcu9Jr3iz1kCCpUhdv6HH7aNIA==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=intel.com; dmarc=pass action=none header.from=intel.com;
+ dkim=pass header.d=intel.com; arc=none
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=intel.com;
+Received: from PH0PR11MB5832.namprd11.prod.outlook.com (2603:10b6:510:141::7)
+ by SA0PR11MB4749.namprd11.prod.outlook.com (2603:10b6:806:9a::23) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.292.23; Fri, 7 Aug
+ 2026 08:50:59 +0000
+Received: from PH0PR11MB5832.namprd11.prod.outlook.com
+ ([fe80::106e:78dd:4c96:d707]) by PH0PR11MB5832.namprd11.prod.outlook.com
+ ([fe80::106e:78dd:4c96:d707%5]) with mapi id 15.21.0292.018; Fri, 7 Aug 2026
+ 08:50:58 +0000
+Date: Fri, 7 Aug 2026 16:50:48 +0800
+From: kernel test robot <oliver.sang@intel.com>
+To: Peter Zijlstra <peterz@infradead.org>
+CC: <oe-lkp@lists.linux.dev>, <lkp@intel.com>, <linux-kernel@vger.kernel.org>,
+	<x86@kernel.org>, K Prateek Nayak <kprateek.nayak@amd.com>, Charlie Jenkins
+	<thecharlesjenkins@gmail.com>, <linux-arch@vger.kernel.org>,
+	<oliver.sang@intel.com>
+Subject: [tip:locking/core] [futex]  b78b0b6582:
+ kselftests.damon.sysfs_memcg_path_leak.sh.fail
+Message-ID: <202608071053.6db6276e-lkp@intel.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+User-Agent: s-nail v14.9.25
+X-ClientProxiedBy: KL1PR02CA0023.apcprd02.prod.outlook.com
+ (2603:1096:820:d::10) To PH0PR11MB5832.namprd11.prod.outlook.com
+ (2603:10b6:510:141::7)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260806083926.1807279-2-usama.anjum@arm.com>
-X-TM-AS-GCONF: 00
-X-Authority-Analysis: v=2.4 cv=G6ws1dk5 c=1 sm=1 tr=0 ts=6a75849e cx=c_pps
- a=3Bg1Hr4SwmMryq2xdFQyZA==:117 a=3Bg1Hr4SwmMryq2xdFQyZA==:17
- a=kj9zAlcOel0A:10 a=Sv0fKeRqtYgA:10 a=VkNPw1HP01LnGYTKEx00:22
- a=RnoormkPH1_aCDwRdu11:22 a=V8glGbnc2Ofi9Qvn3v5h:22 a=7CQSdrXTAAAA:8
- a=knT6YJskkHJV9nTHl7IA:9 a=CjuIK1q_8ugA:10 a=a-qgeE7W1pNrGK8U0ZQC:22
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwODA3MDA0OSBTYWx0ZWRfX0nP+lx57+9VF
- 1gmEHMdPT9FDdcpiQyi8SmdcwszvdSJS7mABzCaLeNrHd5Sn8+sTGSPk7wgKar3hoAN1E4B/pVx
- bnXvboS9h3/hfmNoqiGrVCRZoMjtdCQHGGcTi/BUQBFwhU3T8reyBMtbDszvLlwmh+wtmaSZLqp
- yvHKwixzlq6G3K0WuaMTKb0rV/vx4p/+UD+c1HQ1XyaQGUDlAtP+qGdAxuohRKj+obB6JSz4pJf
- zR2/7yIz+BcCrmWWxRtyEAkQu5yJbla8dkOuZTNT+Te2QfvIou3iP7qEQNN4GRIU2Q5uHMR6b+I
- Dj47k0jZ1vEd4+qsmknTL/rQ5DO0GSFvsjQsVYtZ2xV19zVeKyvXq+fRINOYMQUEmIHFL/MkEMn
- a61cmrTNbkwX+us4u3c+MP3DMEixACEHjWeKrnFUAYotTcrys6EiCMj8gXkAJjhYM+ZfvANLuAs
- LDq51urlTaBYjwemYPw==
-X-Proofpoint-ORIG-GUID: 24rCQEgxgE9QBP75I4HmK7CgK28n9dSJ
-X-Proofpoint-Spam-Info: AW1haW4tMjYwODA3MDA0OSBTYWx0ZWRfX1i5aYO825ZYa
- TwQN6H3jwP2QZ+OLP/IGdT3C7Slc5GOjV5747KQtgAdatwi/16p60JYaM2efb4DysHgyipihWtH
- 8fPlfABrpBSxaw7p4kLOdK2+bYjkzog=
-X-Proofpoint-GUID: 24rCQEgxgE9QBP75I4HmK7CgK28n9dSJ
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1176,Hydra:6.1.134,FMLib:17.12.100.49
- definitions=2026-08-07_01,2026-08-06_01,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- impostorscore=0 spamscore=0 lowpriorityscore=0 suspectscore=0 malwarescore=0
- phishscore=0 priorityscore=1501 adultscore=0 bulkscore=0 clxscore=1015
- classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
- reason=mlx scancount=1 engine=8.22.0-2606150000 definitions=main-2608070049
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: PH0PR11MB5832:EE_|SA0PR11MB4749:EE_
+X-MS-Office365-Filtering-Correlation-Id: 920f1c2e-7434-44d7-d765-08def460ffad
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;ARA:13230040|23010399003|366016|1800799024|376014|18002099003|10067099003|6133799003|56012099006|3023799007|11063799006;
+X-Microsoft-Antispam-Message-Info: UHkGBw3WqjjpaGyktWebb2FbNIPaDuKjob38Urxh5slyUVguiNbNSS8qGPV6qO6cbywqVfq+K1mLx5Vv0kqNoUGZsrAzEDgUBJYlN63DKqRkbtaUfX7sBiUO73ne2nOPXIkK/UPEm3q3a9Ssi++Ny8zCsLCqBwAT6E5zu2c8JD9Txf9+jRWOz6kineJHj6CLynWRzkruHrZ1g8xbUQfSnwZMitVCEJGFwn7bhbezFyGsFUo7TlknxQmAnMcCMvIb2FXAG3HpmAcjpGQMFNGRNoboY/VnOGnWgG+NeYIzxKvq4QaSddSl0JX8591upXoVVjnh+e4KysJhvzYwm9sQ32WPmQUu5qMoK4zUWDJrYEZ/IXxaUnzYhtVjZQkHZRcFgYEqMzC/hNC9SaI6qGV0N9EeQX96Hm+iBTvj1gQEUX8dv2c03Z/adN8UJBc7YE5TJh9JCI+Hspndl8JXgclNGOT+c5NO6jTIxREFcES1Ah0Oq6Q2X2lxxVaeVt9RS1cFhiNRtyJjCJ+PDc7KaVaHt/ywaLdkH0FqzAxcG7zOx2UPHGMToMrNc8Bt1vjhdHwS1CIglQxklz502jnxVa3LbnPpxwjcqWGDWK0HAtxq7FAolPrGpHFUtmKYCmvyuEQMo2wTyuRAb7D0GLdo9Q3qR6AxScGNGJhcnU/SHrlGAHQ=
+X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:PH0PR11MB5832.namprd11.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(23010399003)(366016)(1800799024)(376014)(18002099003)(10067099003)(6133799003)(56012099006)(3023799007)(11063799006);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?yGMTbCyBZclOp16/lMklkc2gd5N+/bEYG1lvcTafDC56sXbvrSOEHrJCB1BB?=
+ =?us-ascii?Q?j7wjoX+CcAg9KoYpZukpaE9HmwpSnIkF4WP0VEaAwvc7h0Tczk5exxCuXpws?=
+ =?us-ascii?Q?nDsScJ5KvvK9c0WP+omTaFcXwB6jb9khhqMPuMnhcCep5M/LAfGQbTFN9BFI?=
+ =?us-ascii?Q?hnNbuwNCkNuNJM2utgDXGmTxjUIFfsesesYlR/JJUR2owJtvNizuSabFo/kc?=
+ =?us-ascii?Q?1NVa1D+2/KheUmuqH/ssdRVoNmB36Wm+8ki19f7KumRExgW/xKD998tTQtwa?=
+ =?us-ascii?Q?cUckimxu8/cnUuvdKh1OcCWidQj+kA4mQP6OhEKlKNgEdsmC2mPvH5bhcfEB?=
+ =?us-ascii?Q?WBJ5wUjygw6hodEyuisui9EzRiVtHdIhCfC1ATIVx0gRMLLCMfSoKkUcXZG6?=
+ =?us-ascii?Q?7jTLhg0Ag5zJD+5jOewQniJNuKmLhLukCLYESuQ71Ax3NWF5Vh5xoOBAEuiz?=
+ =?us-ascii?Q?IoqFwauzgs6glMzvwuy2Ep1C0T2pKitOirlO3HBmwrjmhKU3WrABqEX3SacR?=
+ =?us-ascii?Q?ctnYjN/efLIQbzZar6uIMRG+MPsklzY3wwG/WKjG81353M+aoxHPdmEP4tgc?=
+ =?us-ascii?Q?OUvcgkr2aK8NQoPPc6umpKjOGFHiXSVTHmIXz5rQtH83tb69mHV5nGY2tnfj?=
+ =?us-ascii?Q?xWm/WU1E7qFhrVaTfo4wSRrTF2O/Tj+KD1EU9Hm/9LXDkOvPztCx9sy6uBl/?=
+ =?us-ascii?Q?vsJgMe0H88RtoPllbDWDFRtHpgUGk46dHhhD29jV/Nq5VtMcD2hqznXIL4Ql?=
+ =?us-ascii?Q?XVcuP7caU7fwyZJ7c3r1sA/PveWdZAEL7z9MadgNb7jBYkjqjVc3LWUDiW9P?=
+ =?us-ascii?Q?MUzJrt52TbXkmXbbgTlrEhWDVl0T2ouFpRU9sRd73VVLv4zm9mxkHYeM+/+e?=
+ =?us-ascii?Q?jMIRz/79rFg4xc7JHbzsgibtxysimIv/l2owxkm4QIdtE9y6fN1hxGSk02fY?=
+ =?us-ascii?Q?J5va0MHL/sqc32zNRMwEwixPRhl9ETIP55EzUDzdNPQTfujx4399YZ4JTWxe?=
+ =?us-ascii?Q?edBaEmYuPD4xLKVTROrOI9J2fjB3ep1CpyjsTAR/vXko4bNnvg0vwR/Y+Oc8?=
+ =?us-ascii?Q?jvrZorRqHzGGo9hBK+aIBBF/oAOybPMzMlUS/LDv+WQNl67DBi7dY995AQjh?=
+ =?us-ascii?Q?rf1VHX8ZVBRxmrMSHPVeWtrrT+Xs6+/bS01+MkAysbfDb7v97EnZBFxYzx6I?=
+ =?us-ascii?Q?7iB/X/0j+0vQ455FMekGL7dAGeCJNCah02DZ8qxxso8Tay/QldYTCO39EDNP?=
+ =?us-ascii?Q?pmx2mjVHYAUXPFy1t9PdcMHWeKsX1T4DAZrvMy+zK6grZllMYDwUiu1cX9XL?=
+ =?us-ascii?Q?zFRaqoRyC+WhO5b1G7/CXeHOjyaEv5elkwvxGymgH4SqPPxWrikTiKOtxa1E?=
+ =?us-ascii?Q?wp9puW5LdwI4XLryEQu2LKL1AZjc8AytltkLkSwB0XRo8U8Aainl88HBcPbx?=
+ =?us-ascii?Q?j3K01nntvgaa/b/CqKnaAmoRB0HvJawOiLIORCrVK3CSLJYKv8agDW4gGijP?=
+ =?us-ascii?Q?V+wN4N9U4+O6lP38TZyWuay4KRWunu5h/K7qjlnbh+VQd8jriLze+C1VW6Z+?=
+ =?us-ascii?Q?9fCsFppRG1YwWrKfosmfTz+IIuD30nPynUD/xFOAfXyAW76yOWXc1fU/hDRk?=
+ =?us-ascii?Q?MRwKDNFey1uaSlWSHhLzNVwYINRpaTdipTk+s++JBTFDUhFRyxuLUpetoeDf?=
+ =?us-ascii?Q?9uLkLXAA6pILDHN00zMScBSdAfNLjvXrqrSeV1qUTH7G4ornWISwZx7OV7eC?=
+ =?us-ascii?Q?Qa0ECiiDDg=3D=3D?=
+X-Exchange-RoutingPolicyChecked: KPgiYZRWhHXo1zVYAIkwqhIWZI6MgN2kdaHB27s6IandFS9ogKay7uvoKdMSuZiscHY+gj/qIH6f7PytyYttZEGcRsV99kWGhYWp0hb9LDVuVf7F8+wodIDj3gR6HoSnWJ9rN8VJn0RAbpUF5lIgGisTkKObXkIRSaQG/gCYUNL/eO+WbsLwIaH5sYXkFbnMkJ3mnAOQsCVIoViewOuiIRYe4+hWDpSDwV4DMIIZY69JmdATGbGwTtz2UWugLVfAwIdbjLd9XhOiDimAtGQPuMI7mxMXU4A7/7pmxC5yjxyB6nFNSaHjKogWLCdGWdcNyDf6eDX3nBwDIGljwB/exg==
+X-MS-Exchange-CrossTenant-Network-Message-Id: 920f1c2e-7434-44d7-d765-08def460ffad
+X-MS-Exchange-CrossTenant-AuthSource: PH0PR11MB5832.namprd11.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Aug 2026 08:50:58.0729
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 46c98d88-e344-4ed4-8496-4ed7712e255d
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: SQ77VzpBJF0Esi30Ib1qIh7u1DCp42le7YUZF3aUh3Wvi1TMjQ5x5YKHE0GL5ZDIkxQN0noNjmyrqDKo6e4ogw==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SA0PR11MB4749
+X-OriginatorOrg: intel.com
 
-On Thu, Aug 06, 2026 at 09:38:39AM +0100, Muhammad Usama Anjum wrote:
-> pte_t is used both for logical PTE values and for entries stored in a PTE
-> table, so pte_t * does not distinguish a pointer to a copied value from a
-> pointer to table storage.
-> 
-> Introduce hw_pte_t as the generic name for a PTE table element. Define it
-> as a macro alias of pte_t by default. When an architecture selects
-> ARCH_HAS_HW_PTE_T, define it as a structure containing a pte_t instead.
-> This preserves the representation while allowing converted architectures
-> to enforce the distinction at compile time.
-> 
-> Keep the C type definitions behind an __ASSEMBLY__ check because
-> architecture assembly sources can include this header indirectly. Include
-> asm/page.h so consumers such as linux/vmalloc.h retain the page definitions
-> they previously obtained from that header.
-> 
-> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
-> ---
-> Changes since RFC v1:
-> - Add the ARCH_HAS_HW_PTE_T opt-in and generic wrapper definition.
-> - Exclude the C type definitions from assembly sources.
-> - Update the description for the new opt-in model.
-> ---
->  MAINTAINERS                   |  1 +
->  include/linux/pgtable_types.h | 17 +++++++++++++++++
->  mm/Kconfig                    |  3 +++
->  3 files changed, 21 insertions(+)
->  create mode 100644 include/linux/pgtable_types.h
-> 
-> diff --git a/MAINTAINERS b/MAINTAINERS
-> index e9c8567308a75..7169bea968cf5 100644
-> --- a/MAINTAINERS
-> +++ b/MAINTAINERS
-> @@ -16982,6 +16982,7 @@ F:	include/linux/mmu_notifier.h
->  F:	include/linux/pagewalk.h
->  F:	include/linux/pgalloc.h
->  F:	include/linux/pgtable.h
-> +F:	include/linux/pgtable_types.h
->  F:	include/linux/ptdump.h
->  F:	include/linux/vmpressure.h
->  F:	include/linux/vmstat.h
-> diff --git a/include/linux/pgtable_types.h b/include/linux/pgtable_types.h
-> new file mode 100644
-> index 0000000000000..70c3edd00a01b
-> --- /dev/null
-> +++ b/include/linux/pgtable_types.h
-> @@ -0,0 +1,17 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +#ifndef _LINUX_PGTABLE_TYPES_H
-> +#define _LINUX_PGTABLE_TYPES_H
-> +
-> +#include <asm/page.h>
-> +
-> +#ifndef __ASSEMBLY__
-> +
-> +#ifdef CONFIG_ARCH_HAS_HW_PTE_T
-> +typedef struct { pte_t __pte; } hw_pte_t;
 
-On s390 it fails to compile once we do typedef hw_pte_t *pgtable_t
-in asm/page.h. m68k, powerpc and sparc may also have such problem.
 
-The below declaration helps to resolve it using forward declaration
-and without meddling with headers, though I do not like it much:
+Hello,
 
-typedef struct __hw_pte_t { pte_t __pte; } hw_pte_t;
+kernel test robot noticed "kselftests.damon.sysfs_memcg_path_leak.sh.fail" on:
 
-> +#else
-> +#define hw_pte_t pte_t
-> +#endif
-> +
-> +#endif /* !__ASSEMBLY__ */
-> +
-> +#endif /* _LINUX_PGTABLE_TYPES_H */
-> diff --git a/mm/Kconfig b/mm/Kconfig
-> index 331daf7fcfab5..31ba9ebf4aafd 100644
-> --- a/mm/Kconfig
-> +++ b/mm/Kconfig
-> @@ -1316,6 +1316,9 @@ comment "GUP_TEST needs to have DEBUG_FS enabled"
->  config GUP_GET_PXX_LOW_HIGH
->  	bool
->  
-> +config ARCH_HAS_HW_PTE_T
-> +	bool
-> +
->  config DMAPOOL_TEST
->  	tristate "Enable a module to run time tests on dma_pool"
->  	depends on HAS_DMA
-> -- 
-> 2.47.3
-> 
+commit: b78b0b65825275f58336a43611a700de174be8c3 ("futex: Use runtime constants for __futex_hash() hot path")
+https://git.kernel.org/cgit/linux/kernel/git/tip/tip.git locking/core
+
+
+in testcase: kselftests
+version: kselftests-x86_64-f5098b6bae76-1_20260727
+with following parameters:
+
+	group: damon
+
+
+
+config: x86_64-rhel-9.4-kselftests
+compiler: gcc-14
+test machine: 16 threads Intel(R) Core(TM) i7-13620H (Raptor Lake) with 32G memory
+
+(please refer to attached dmesg/kmsg for entire log/backtrace)
+
+
+
+If you fix the issue in a separate patch/commit (i.e. not just a new version of
+the same patch/commit), kindly add following tags
+| Reported-by: kernel test robot <oliver.sang@intel.com>
+| Closes: https://lore.kernel.org/oe-lkp/202608071053.6db6276e-lkp@intel.com
+
+
+# timeout set to 300
+# selftests: damon: sysfs_memcg_path_leak.sh
+# unreferenced object 0xffff8881029e0ab8 (size 8):
+#   comm "swapper/0", pid 1, jiffies 4294668108
+#   hex dump (first 8 bytes):
+#     00 00 d0 02 81 88 ff ff                          ........
+#   backtrace (crc 6c1bc6d6):
+#     __kmalloc_noprof+0x56b/0x830
+#     futex_init+0x108/0x3c0
+#     do_one_initcall+0xc3/0x4b0
+#     do_initcalls+0x215/0x240
+#     kernel_init_freeable+0x4a1/0x530
+#     kernel_init+0x18/0x180
+#     ret_from_fork+0x547/0x870
+#     ret_from_fork_asm+0x1a/0x30
+not ok 13 selftests: damon: sysfs_memcg_path_leak.sh # exit=1
+
+
+
+The kernel config and materials to reproduce are available at:
+https://download.01.org/0day-ci/archive/20260807/202608071053.6db6276e-lkp@intel.com
+
+
+
+-- 
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests/wiki
+
