@@ -1,58 +1,58 @@
 Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CD24B12C534;
-	Sun,  9 Aug 2026 17:47:13 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AAD5835C1A6;
+	Mon, 10 Aug 2026 06:46:05 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.156.1
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786297635; cv=none; b=BthzJVCkpRQgNQmkCEuHqgekf6xCvmhIC8a5O+4Epcu0IGnfMOt6e8htGzKOQEeC6KVNbV1u8rfADE5F+yJYXYFkbDnuuieNaZtTh406sWtGTBs8OUZdQbi6W9dWPmjJGo4R31BYj46cgTTeg7cC4B5GG6QVCHIqMCAzaICA8iI=
+	t=1786344366; cv=none; b=aOkI5RfwEuxrH4BY5RonYEylSOE6qCk5nJ4Fs81S52zDVNkBJ2aUaxyNPkfCPGEVGmeK/037B4O0tDwsTZOX5uUzcuGL/WQOLzsws0dYjuYZeX8EWYSXI4XV5Px4Ff+KrMCuBFl4GRqV54NdpEhrSCjvZ4/7C+WhxZmpGq+lBYw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786297635; c=relaxed/simple;
-	bh=zl4SAJTSchEb9pA9X1DIKEcTq748jMN5xJObiLCmC9M=;
+	s=arc-20240116; t=1786344366; c=relaxed/simple;
+	bh=46c6vocBVce9Y/Apjkez7FMUK7jmFceu+6/gfgpl9AM=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=tXIoFp2fU8N9Vbo2puxZvR59XgjIKRWt94Jv32fHnP89Ct1jh6AXLgZScyovi6+OLJuAO5gdh+ZXi45gPn7WddG2HYFaBmkKJdmFUXS7zaKgYGxzZQYFYdaTpcft3Ci3HyWNYPovK0f3icA+OnJqFVkKmafaHjfrbnlIaXO9Hxg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=UabY2i2O; arc=none smtp.client-ip=148.163.156.1
+	 Content-Type:Content-Disposition:In-Reply-To; b=dPCY/YupmhqQcAbXv57O/NrpjAbB8DJ+pHIN0588486X1hVt2uetBzcPGdWrlLjypxTSSLD+6uq+mLIrYMUS7f7gez/PDZKz8PLubFRmyrP7ek+Pv76PPCkT4Fv44b/xECTvVI3zEOwb08HHnr4wV55IfHJZYmiIa0azVJ1xKVw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=cP2dX1rq; arc=none smtp.client-ip=148.163.156.1
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="UabY2i2O"
-Received: from pps.filterd (m0360083.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 679FW1sE3277678;
-	Sun, 9 Aug 2026 17:45:49 GMT
+	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="cP2dX1rq"
+Received: from pps.filterd (m0353729.ppops.net [127.0.0.1])
+	by mx0a-001b2d01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 67A5VYZX3085069;
+	Mon, 10 Aug 2026 06:44:38 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
 	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=pp1; bh=1V46XsJ2ASYOMqPQa9NRG149ty7O7K
-	B1wPG7dfwq0b8=; b=UabY2i2O0DFebgnB5Itk1pRi3/Htbxgsnj9zfMhYyXAq+k
-	yF4QkmQIRPAjVGN5n1TRYRA93L73U7SajNdDfI3dDHHhuVPIhOocLrBCQRPGo6fO
-	zRUesLej41tQv0v/OKC288JhXJxpOKbIav1Tz2cpvXyghY1uWfY3xJlpLdnQWSkO
-	g9By3jcVfZdNthUqy8R7s35WFAUQpmZ+ICuM5XKofi9TBR9lWHWDncMDr7e2p4Pd
-	ahAwkkpqBsFsqnU9UxNpc/YeN9/xorzOtztL+lqAorMkbJvqxaDn+ti/Ykb1NS4P
-	GkIfLBl2FlcgU/0FYB7OxhPqwp9WpNOjoazF1Vnw==
-Received: from ppma22.wdc07v.mail.ibm.com (5c.69.3da9.ip4.static.sl-reverse.com [169.61.105.92])
-	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4fwvq94twx-1
+	:references:subject:to; s=pp1; bh=vVPGPVZ23NsreeExE7+jGCM0ud2bcA
+	JA4ypv1DILR34=; b=cP2dX1rqRgJGyJQPsc4KFbE1PC99K1ErC8LoPBcJX/kDVk
+	D9Jo4Iz1SXdFchU8Ko5W4WB9COXrRcti5DpxhwdI5dfEePzz5UmgRzT8EYYyBi07
+	KU36zRJaFsP0Akw7apyJ4SCl4IAb1VRGvP8L0mKhwBZnn0XUkDZ2PW7t9oviZUQq
+	bN2tmVBhSWNgiSiSi7ymdtf6iKh4gNTCCXIweHK0Tg6HF6KYslOZj/J1AEcJVHnf
+	kWNlsq5fwLgQr2DlUZF0whZYM5XqlyiEV4xJgAR6wPkWOH+OEMcVL/bVHH8IYS6D
+	MxDe73qz6EXJrcPmB5P+oxGbZoA1keo68zERDcAg==
+Received: from ppma11.dal12v.mail.ibm.com (db.9e.1632.ip4.static.sl-reverse.com [50.22.158.219])
+	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4fwvjypkqg-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Sun, 09 Aug 2026 17:45:48 +0000 (GMT)
-Received: from pps.filterd (ppma22.wdc07v.mail.ibm.com [127.0.0.1])
-	by ppma22.wdc07v.mail.ibm.com (8.18.1.7/8.18.1.7) with ESMTP id 679HfJG7012053;
-	Sun, 9 Aug 2026 17:45:47 GMT
-Received: from smtprelay06.fra02v.mail.ibm.com ([9.218.2.230])
-	by ppma22.wdc07v.mail.ibm.com (PPS) with ESMTPS id 4fxf5vt2bb-1
+	Mon, 10 Aug 2026 06:44:37 +0000 (GMT)
+Received: from pps.filterd (ppma11.dal12v.mail.ibm.com [127.0.0.1])
+	by ppma11.dal12v.mail.ibm.com (8.18.1.7/8.18.1.7) with ESMTP id 67A6ffw0026503;
+	Mon, 10 Aug 2026 06:44:36 GMT
+Received: from smtprelay03.fra02v.mail.ibm.com ([9.218.2.224])
+	by ppma11.dal12v.mail.ibm.com (PPS) with ESMTPS id 4fxhfxueyp-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Sun, 09 Aug 2026 17:45:47 +0000 (GMT)
-Received: from smtpav05.fra02v.mail.ibm.com (smtpav05.fra02v.mail.ibm.com [10.20.54.104])
-	by smtprelay06.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 679HjjQR34275656
+	Mon, 10 Aug 2026 06:44:36 +0000 (GMT)
+Received: from smtpav02.fra02v.mail.ibm.com (smtpav02.fra02v.mail.ibm.com [10.20.54.101])
+	by smtprelay03.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 67A6iYQG34930976
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Sun, 9 Aug 2026 17:45:45 GMT
-Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 0842520040;
-	Sun,  9 Aug 2026 17:45:45 +0000 (GMT)
-Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 7C40720043;
-	Sun,  9 Aug 2026 17:45:42 +0000 (GMT)
+	Mon, 10 Aug 2026 06:44:34 GMT
+Received: from smtpav02.fra02v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id 17B532004B;
+	Mon, 10 Aug 2026 06:44:34 +0000 (GMT)
+Received: from smtpav02.fra02v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id 2335D20043;
+	Mon, 10 Aug 2026 06:44:31 +0000 (GMT)
 Received: from li-008a6a4c-3549-11b2-a85c-c5cc2836eea2.ibm.com (unknown [9.87.135.220])
-	by smtpav05.fra02v.mail.ibm.com (Postfix) with ESMTPS;
-	Sun,  9 Aug 2026 17:45:42 +0000 (GMT)
-Date: Sun, 9 Aug 2026 19:45:41 +0200
+	by smtpav02.fra02v.mail.ibm.com (Postfix) with ESMTPS;
+	Mon, 10 Aug 2026 06:44:31 +0000 (GMT)
+Date: Mon, 10 Aug 2026 08:44:29 +0200
 From: Alexander Gordeev <agordeev@linux.ibm.com>
 To: Muhammad Usama Anjum <usama.anjum@arm.com>
 Cc: Jani Nikula <jani.nikula@linux.intel.com>,
@@ -101,12 +101,12 @@ Cc: Jani Nikula <jani.nikula@linux.intel.com>,
         linux-arch@vger.kernel.org, kasan-dev@googlegroups.com,
         linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org,
         linux-perf-users@vger.kernel.org, damon@lists.linux.dev
-Subject: Re: [PATCH 1/9] mm: introduce hw_pte_t for PTE table storage
-Message-ID: <4a42c498-58ca-46f4-819f-da14cfba154f-agordeev@linux.ibm.com>
+Subject: Re: [PATCH 6/9] mm: convert PTE table entry to pte
+Message-ID: <2599c5b3-e8ac-4865-993b-d41e6f060d52-agordeev@linux.ibm.com>
 References: <20260806083926.1807279-1-usama.anjum@arm.com>
- <20260806083926.1807279-2-usama.anjum@arm.com>
- <3db8233c-3785-444e-b2eb-3e5fc5cb2f17-agordeev@linux.ibm.com>
- <eef14e97-20cd-4b08-ae22-7636af049b09@arm.com>
+ <20260806083926.1807279-7-usama.anjum@arm.com>
+ <fab9fc78-1e1d-4d5b-a9ca-92f3ebd04108-agordeev@linux.ibm.com>
+ <5c329236-7761-4e42-a549-b822e43b4358@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -115,142 +115,109 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <eef14e97-20cd-4b08-ae22-7636af049b09@arm.com>
+In-Reply-To: <5c329236-7761-4e42-a549-b822e43b4358@arm.com>
 X-TM-AS-GCONF: 00
-X-Proofpoint-GUID: ehRYw8QMBCJQ6XIfQUmc1xOZ8VBocr8y
-X-Authority-Analysis: v=2.4 cv=PbDPQChd c=1 sm=1 tr=0 ts=6a78bccc cx=c_pps
- a=5BHTudwdYE3Te8bg5FgnPg==:117 a=5BHTudwdYE3Te8bg5FgnPg==:17
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwODEwMDA1NCBTYWx0ZWRfXxI/cthX2D0Wc
+ iHPLS8hc2Kj/zk+XaKiAAFgipdFaX6yt5ULiZYFw9cMykKZhsGzYdz8Ozez/WjJFTxNxMxdlY+Z
+ xRKD8hb46fc3eq4T3zk/Ay2gFewaqBQyLERBaqjOrmguPqyfrY4V/sj3PMJQSwHxbC9gQ3JPdGp
+ nwoFQng/LWfi/b2CNXX0ejbyTRbXCpU6ISkPy5ReFIqwletsdYxZQh3JZdOlQrUjBCsND1GblNt
+ G/4DaSrhSqHIA4lB3PliH1JLOCq/gqtakESjF4VI9bapYhuQXt1SuBKOBQMvOtnuq4THGnpYdaA
+ 9DlU8ZKdg0fttjy6cWWMXxwJNMzsJQnfWACC9mQPG3O4x/cS3d0NgAmCjmdVYfXi8XGUV9/5PxJ
+ HdlkuRfRyvN/kE+SQ4EeTy+wa+g6t6URPTCSrkC11WsiBzyO9FuJFEs1QK/7K/rvQyfHrqCYbs4
+ iMEVrVdUzEx5zR0r21A==
+X-Proofpoint-Spam-Info: AW1haW4tMjYwODEwMDA1NCBTYWx0ZWRfX9Ko1NY31ilHb
+ y/krrlO5A2ANnAiXusNks5NMrWI4UvS7c1Y7yzgoGS6CxTGjDGRyAu8EHxJ1ITitPdxPjbMc8pe
+ lyb7xPyJDB1SIBriSbnTKYVPxMcf33w=
+X-Authority-Analysis: v=2.4 cv=RqD16imK c=1 sm=1 tr=0 ts=6a797355 cx=c_pps
+ a=aDMHemPKRhS1OARIsFnwRA==:117 a=aDMHemPKRhS1OARIsFnwRA==:17
  a=kj9zAlcOel0A:10 a=Sv0fKeRqtYgA:10 a=VkNPw1HP01LnGYTKEx00:22
- a=RnoormkPH1_aCDwRdu11:22 a=iQ6ETzBq9ecOQQE5vZCe:22 a=7CQSdrXTAAAA:8
- a=7ZejAh3qsUrew3BXsuMA:9 a=CjuIK1q_8ugA:10 a=a-qgeE7W1pNrGK8U0ZQC:22
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwODA5MDE1OCBTYWx0ZWRfX8PAJydAF9Sdz
- 7Q3LQNawdCCW5p3S9Cbrhno/+8i0akWT9oxXen6S0nUhBQsH880/7RsGl95VX21rT54x9YhFqi1
- 20KERD3HCbwvoqxx4T70j96cVKwA2YxlZ6l2xOFcmMWRehBEI40oNe5oKbokVHGzUV8t5ZkpMSK
- ns0C/90GTY6G7Afmg3i4iWKGKI/x2MSzhpkhUmia4LUS0tqD/uSG8uJudCOs75ncoAMtIyBtPts
- SBc2vAEfXkhI2UuaiCwcdAwFVnvK8EgubcrGc/SgeNggiVPjDgs5qWQ8+vOIPtcC9cEpr02poOB
- Lg7APmO3Rx8vA6tguusRIZ4Fs8vWJdm8vnK+m2H0UOB6WahoA26KXbJqrB0927hzkoKT62s0AOf
- RGde2c8tcj7xMXKNQULCZu1ZlHt1NIVwRcJ45XzbncbVNxXZWhcoK8gsn97hT6hSSx+Fo3N5VVF
- ELeKceQfHYIaUoeswKw==
-X-Proofpoint-ORIG-GUID: ehRYw8QMBCJQ6XIfQUmc1xOZ8VBocr8y
-X-Proofpoint-Spam-Info: AW1haW4tMjYwODA5MDE1OCBTYWx0ZWRfX40Jd01nPAYq/
- 0UVJDKsUAxNz/IYIJFjnAhSgQRETCQqeUcuCeVy3WJaqKm5o/wyOjpQIKh0TKZ3HawAxontKM5X
- Anm2JSFRi6CK3bLpHrJPHohn6MgFj5w=
+ a=RnoormkPH1_aCDwRdu11:22 a=uAbxVGIbfxUO_5tXvNgY:22 a=VwQbUJbxAAAA:8
+ a=7CQSdrXTAAAA:8 a=VnNF1IyMAAAA:8 a=2hzp2EkNZNX3k9pX5ccA:9 a=CjuIK1q_8ugA:10
+ a=a-qgeE7W1pNrGK8U0ZQC:22
+X-Proofpoint-GUID: YbHEwP5JTLZr3QYF8zr2RkJeozrhuIz7
+X-Proofpoint-ORIG-GUID: YbHEwP5JTLZr3QYF8zr2RkJeozrhuIz7
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.293,Aquarius:18.0.1176,Hydra:6.1.134,FMLib:17.12.100.49
- definitions=2026-08-09_05,2026-08-07_01,2025-10-01_01
+ definitions=2026-08-10_01,2026-08-07_01,2025-10-01_01
 X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- spamscore=0 bulkscore=0 impostorscore=0 malwarescore=0 adultscore=0
- clxscore=1015 priorityscore=1501 suspectscore=0 phishscore=0
- lowpriorityscore=0 classifier=typeunknown authscore=0 authtc= authcc=
- route=outbound adjust=0 reason=mlx scancount=1 engine=8.22.0-2606150000
- definitions=main-2608090158
+ phishscore=0 priorityscore=1501 suspectscore=0 lowpriorityscore=0
+ clxscore=1015 adultscore=0 bulkscore=0 malwarescore=0 impostorscore=0
+ spamscore=0 classifier=typeunknown authscore=0 authtc= authcc= route=outbound
+ adjust=0 reason=mlx scancount=1 engine=8.22.0-2606150000
+ definitions=main-2608100054
 
-On Fri, Aug 07, 2026 at 04:24:00PM +0100, Muhammad Usama Anjum wrote:
-> On 07/08/2026 8:09 am, Alexander Gordeev wrote:
-> > On Thu, Aug 06, 2026 at 09:38:39AM +0100, Muhammad Usama Anjum wrote:
-> >> pte_t is used both for logical PTE values and for entries stored in a PTE
-> >> table, so pte_t * does not distinguish a pointer to a copied value from a
-> >> pointer to table storage.
-> >>
-> >> Introduce hw_pte_t as the generic name for a PTE table element. Define it
-> >> as a macro alias of pte_t by default. When an architecture selects
-> >> ARCH_HAS_HW_PTE_T, define it as a structure containing a pte_t instead.
-> >> This preserves the representation while allowing converted architectures
-> >> to enforce the distinction at compile time.
-> >>
-> >> Keep the C type definitions behind an __ASSEMBLY__ check because
-> >> architecture assembly sources can include this header indirectly. Include
-> >> asm/page.h so consumers such as linux/vmalloc.h retain the page definitions
-> >> they previously obtained from that header.
+On Fri, Aug 07, 2026 at 05:26:04PM +0100, Muhammad Usama Anjum wrote:
+> On 07/08/2026 7:58 am, Alexander Gordeev wrote:
+> > On Thu, Aug 06, 2026 at 09:38:44AM +0100, Muhammad Usama Anjum wrote:
+> >> The non-MMU stub receives hw_pte_t but returns a logical pte_t
+> >> value. Convert the stored entry through __pte_from_hw() before
+> >> returning.
 > >>
 > >> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
 > >> ---
-> >> Changes since RFC v1:
-> >> - Add the ARCH_HAS_HW_PTE_T opt-in and generic wrapper definition.
-> >> - Exclude the C type definitions from assembly sources.
-> >> - Update the description for the new opt-in model.
-> >> ---
-> >>  MAINTAINERS                   |  1 +
-> >>  include/linux/pgtable_types.h | 17 +++++++++++++++++
-> >>  mm/Kconfig                    |  3 +++
-> >>  3 files changed, 21 insertions(+)
-> >>  create mode 100644 include/linux/pgtable_types.h
+> >>  include/linux/hugetlb.h | 2 +-
+> >>  1 file changed, 1 insertion(+), 1 deletion(-)
 > >>
-> >> diff --git a/MAINTAINERS b/MAINTAINERS
-> >> index e9c8567308a75..7169bea968cf5 100644
-> >> --- a/MAINTAINERS
-> >> +++ b/MAINTAINERS
-> >> @@ -16982,6 +16982,7 @@ F:	include/linux/mmu_notifier.h
-> >>  F:	include/linux/pagewalk.h
-> >>  F:	include/linux/pgalloc.h
-> >>  F:	include/linux/pgtable.h
-> >> +F:	include/linux/pgtable_types.h
-> >>  F:	include/linux/ptdump.h
-> >>  F:	include/linux/vmpressure.h
-> >>  F:	include/linux/vmstat.h
-> >> diff --git a/include/linux/pgtable_types.h b/include/linux/pgtable_types.h
-> >> new file mode 100644
-> >> index 0000000000000..70c3edd00a01b
-> >> --- /dev/null
-> >> +++ b/include/linux/pgtable_types.h
-> >> @@ -0,0 +1,17 @@
-> >> +/* SPDX-License-Identifier: GPL-2.0 */
-> >> +#ifndef _LINUX_PGTABLE_TYPES_H
-> >> +#define _LINUX_PGTABLE_TYPES_H
-> >> +
-> >> +#include <asm/page.h>
-> >> +
-> >> +#ifndef __ASSEMBLY__
-> >> +
-> >> +#ifdef CONFIG_ARCH_HAS_HW_PTE_T
-> >> +typedef struct { pte_t __pte; } hw_pte_t;
+> >> diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
+> >> index bc0b9c65aa1d0..9e8b391aa4bc9 100644
+> >> --- a/include/linux/hugetlb.h
+> >> +++ b/include/linux/hugetlb.h
+> >> @@ -1283,7 +1283,7 @@ static inline pte_t huge_ptep_clear_flush(struct vm_area_struct *vma,
+> >>  #ifdef CONFIG_MMU
+> >>  	return ptep_get(ptep);
+> >>  #else
+> >> -	return *ptep;
+> >> +	return __pte_from_hw(*ptep);
 > > 
-> > On s390 it fails to compile once we do typedef hw_pte_t *pgtable_t
-> > in asm/page.h. m68k, powerpc and sparc may also have such problem.
-> > 
-> > The below declaration helps to resolve it using forward declaration
-> > and without meddling with headers, though I do not like it much:
-> > 
-> > typedef struct __hw_pte_t { pte_t __pte; } hw_pte_t;
-> Thank you for testing it out on s390.
-> 
-> As __hw_pte_t isn't being used yet in this series, would s390 enablement
-> patches add __hw_pte_t to this definition?
+> > But this is a direct dereferencing, which breaks the whole point, isn't it?
+> Yes, this is particular line is for non MMU. In this case, CONIFG_ARCH_HAS_HW_PTE
+> would never be defined. Hence hw_pte_t is just pte_t and direct dereference is
+> allowed. I'd thought a lot about it; is better to leave direct dereference here
+> or use some helper. Then used __pte_from_hw() was already being used in generic
+> ptep_get().
 
-I hope there is a better solution. As I noted m68k, powerpc and sparc
-may also be affected, so I would suggest to look into those as well.
-I would prefer s390 to use the generic one rather than circumvent a
-compile error in a custom way.
+But in case CONIFG_ARCH_HAS_HW_PTE=n __pte_from_hw() is still gets called.
+That looks inconsistent to me. Why not just call ptep_deref() (see below)?
 
-> This could have been avoided if each architecture defined its own hw_pte_t.
-> But for now we are keeping the generic definition of hw_pte_t.
+> There are only two users of __pte_from_hw() at this time. 
 > 
 > > 
-> >> +#else
-> >> +#define hw_pte_t pte_t
-> >> +#endif
-> >> +
-> >> +#endif /* !__ASSEMBLY__ */
-> >> +
-> >> +#endif /* _LINUX_PGTABLE_TYPES_H */
-> >> diff --git a/mm/Kconfig b/mm/Kconfig
-> >> index 331daf7fcfab5..31ba9ebf4aafd 100644
-> >> --- a/mm/Kconfig
-> >> +++ b/mm/Kconfig
-> >> @@ -1316,6 +1316,9 @@ comment "GUP_TEST needs to have DEBUG_FS enabled"
-> >>  config GUP_GET_PXX_LOW_HIGH
-> >>  	bool
-> >>  
-> >> +config ARCH_HAS_HW_PTE_T
-> >> +	bool
-> >> +
-> >>  config DMAPOOL_TEST
-> >>  	tristate "Enable a module to run time tests on dma_pool"
-> >>  	depends on HAS_DMA
-> >> -- 
-> >> 2.47.3
-> >>
-> 
+> > What about introducing something like pte_t ptep_get_sw(hw_pte_t *ptep)
+> > to be used in exactly situations like this? With that the semantics of
+> > hw_pte_t pointers becomes straightforward and closes the still ongoing
+> > "storage vs lifetime" discussion:
+> > 
+> > hw_pte_t*     points to HW-formatted page table entries
+> > 
+> > ptep_get()    is used to obtain HW-linked/attached entries, and may wire
+> >               extra code like [1] or [2]
+> > 
+> > ptep_get_sw() is used to obtain HW-unlinked/unattached entries and in
+> >               most cases is just a direct dereference
+> ptep_get_sw() or ptep_get_deref() is better name here?
+
+ptep_deref() would be it.
+
+Do you agree to the suggested API requirements?
+
+> I thought __pte_from_hw() is ugly enough that if someone tries to use it
+> wrongly, it'll be noticed pretty easily. I'm fine with any other name.
+
+The name may be not perfect, but it is the way it is used above looks
+wrong to me.
+
+> > The caller should always know whether the entry is attached or not, so
+> > confusions like [3] are avoided.
+> > 
+> > 1. https://lore.kernel.org/linux-mm/20260526-kpkeys-v8-21-eaaacdacc67c@arm.com/
+> > 2. https://lore.kernel.org/linux-s390/650903a4-0dd9-4e6b-9d4b-3c32c5657236-agordeev@linux.ibm.com/
+> > 3. https://lore.kernel.org/linux-s390/b44e071d-7c9d-4e7e-a84d-4af3499a5a05@arm.com/
+> > 
+> >>  #endif
+> >>  }
+
+Thanks!
+
 > -- 
 > Thanks,
 > Usama
