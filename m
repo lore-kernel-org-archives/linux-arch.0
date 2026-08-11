@@ -1,140 +1,166 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 204904248A0;
-	Tue, 11 Aug 2026 09:00:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7893B41F7FD;
+	Tue, 11 Aug 2026 09:04:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786438833; cv=none; b=JxViAC1c+ipF73KIdfxeKF7BZRhznNY761u82UfJKgF64tdNWk8yMxQHMpZ5XkFF3+INThFBTRmDVsTUCCBGr9goUkJpOvu3JDM3rWlR0rcpfgl+gnKBLw9e/72Dwwrjid71aunV3O6StjL324S7tpfKve8uwqY944Udr7Y4Dyg=
+	t=1786439062; cv=none; b=au+EJ3IrAH9ixld6XS7B6K/9951yYXmVBxjmzHCHDmTVmq+4GoiUtbLw+MzBx4ceSGdq7nZWce1YL6Tx55ijk8ZDiFrhQXUXF/Lg2u3PUUKJFhg9nWY4iW9y9S/lJk9OfAMOU+Obhd1RDgVIAGUm6vtvCU+SETh/Cdwe8qA+JrI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786438833; c=relaxed/simple;
-	bh=tUiTGK9kLGJYJG38Hawj4v69yMlo3kmE+u/Tuup4Yg4=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=TQKLrLMbAUr2Hstvi/1Gj1oSG0NXcGveujmgm+igbfabPltutkw7VK9yVFcfNRc7Cgw1c4PnLDjIBDqQxbkslPQiIWV9i38KOnWCfTGwdAH/mxsJpvXiiwGe/cjqV5Bo2iEGuWH8m9GbFQ7Z+3M35yTbho/58TXuaR5DUiA92Iw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=p0EklLMH; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1786439062; c=relaxed/simple;
+	bh=waC/AdJISJeR6gHcI5Nkc4l+p8YrofY9kCJja8ll1rM=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=dxwltlHTSEaV/e7y5mUHECbySFhoVS7D8MCcj1xvOqxjrRShw6AyzrJc7D0PLy1VsBIJKWwRz+SBMwNLatL3YwlX05tcaCSNkXwO2mImaI128FL0jhsvO4/2WW9zLyHdmdVfL61zDmBfY+tX+g06jueMS91ANhtT4/Be9vL+mEo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DHxjSLAZ; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="p0EklLMH"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 781581682;
-	Tue, 11 Aug 2026 02:00:26 -0700 (PDT)
-Received: from [10.57.5.193] (unknown [10.57.5.193])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 3B19F3F86F;
-	Tue, 11 Aug 2026 02:00:13 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1786438830; bh=tUiTGK9kLGJYJG38Hawj4v69yMlo3kmE+u/Tuup4Yg4=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=p0EklLMHJGrKLnVqOINCl1ZfxhRZ+BNvpIRznN2rLsga1Dwdloi6U4xuE1VCQAm02
-	 kBFiXP3tqlA3ARY2zoYWjzb5WjBU+6w3Cb3dcRQRjE/0+/SN3iB10dvAMI84fhbPXQ
-	 52YnfLEkfwAxucsSI1ar27PS56iSCcvkFqLRrZM8=
-Message-ID: <643a624d-0106-44ed-a7f5-aaf9316f94fd@arm.com>
-Date: Tue, 11 Aug 2026 11:00:09 +0200
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DHxjSLAZ"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 267BA1F000E9;
+	Tue, 11 Aug 2026 09:04:13 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1786439061;
+	bh=bqd0jBYucjRBBUhQ/CcI4j1gic+E8ObUl1M7bAWuqvA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=DHxjSLAZxstCOZdlWaaelyCKBFtsdMcV2ge5KXIjA8vZ65GdLVQy+H8GIqOPLJFZW
+	 Da1rDvYNPw06du5swwJ7r0/NQbszmClZgdoff1tArrkF87WMAR10wknrraAmE6rbgN
+	 SZ4RBiAnvBqn2i6r1HBwy+AKmOkvUTd2DITf+Fg8u8nxC3agSFHVCsAi68JjPzdFPh
+	 /AZTX9D9GBoFatNuuNYjyqFo/dThjXpU7v6bFji6dwmz0z0pLEfbnJT9jQ0+g1LRB2
+	 V24q6/KCYtKJHuzgK5StDbdVSLjk+JD9IRKklOBpDSCS+occ+mU9I8A651lncFP0pL
+	 gxKMbkhkr3xgQ==
+Date: Tue, 11 Aug 2026 11:04:12 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: Xin Zhao <jackzxcui1989@163.com>, ljs@kernel.org, rppt@kernel.org, 
+	pfalcato@suse.de, viro@zeniv.linux.org.uk, corbet@lwn.net, 
+	skhan@linuxfoundation.org, akpm@linux-foundation.org, liam@infradead.org, vbabka@kernel.org, 
+	surenb@google.com, mhocko@suse.com, mingo@redhat.com, peterz@infradead.org, 
+	juri.lelli@redhat.com, vincent.guittot@linaro.org, mjguzik@gmail.com, 
+	ebiederm@xmission.com, jack@suse.cz, jlayton@kernel.org, chuck.lever@oracle.com, 
+	alex.aring@gmail.com, arnd@arndb.de, keescook@chromium.org, mcgrof@kernel.org, 
+	j.granados@samsung.com, allen.lkml@gmail.com, kuba@kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-mm@kvack.org, linux-doc@vger.kernel.org
+Subject: Re: [PATCH v6] coredump: Add bit 9 of coredump_filter for pre-exit
+ files before dumping
+Message-ID: <20260811-abzweigen-zukunft-einpacken-668f1aad2ed1@brauner>
+References: <20260804001703.1340667-1-jackzxcui1989@163.com>
+ <8c763f1b-85ad-44b9-b36c-becd7598fe77@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 03/22] mm: introduce MMF_KERNEL flag and set it for
- init_mm
-To: David Laight <david.laight.linux@gmail.com>,
- "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, linux-mm@kvack.org,
- Andrew Morton <akpm@linux-foundation.org>, Lorenzo Stoakes <ljs@kernel.org>,
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
- Russell King <linux@armlinux.org.uk>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org,
- Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev,
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
- Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org,
- Madhavan Srinivasan <maddy@linux.ibm.com>,
- Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org,
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
- Albert Ou <aou@eecs.berkeley.edu>, linux-riscv@lists.infradead.org,
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
- Alexander Gordeev <agordeev@linux.ibm.com>,
- Gerald Schaefer <gerald.schaefer@linux.ibm.com>, linux-s390@vger.kernel.org,
- "David S. Miller" <davem@davemloft.net>,
- Andreas Larsson <andreas@gaisler.com>, sparclinux@vger.kernel.org,
- Richard Weinberger <richard@nod.at>,
- Anton Ivanov <anton.ivanov@cambridgegreys.com>,
- Johannes Berg <johannes@sipsolutions.net>, linux-um@lists.infradead.org,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Ning Sun <ning.sun@intel.com>,
- x86@kernel.org, tboot-devel@lists.sourceforge.net,
- Ard Biesheuvel <ardb@kernel.org>,
- Ilias Apalodimas <ilias.apalodimas@linaro.org>, linux-efi@vger.kernel.org,
- Vishal Moola <vishal.moola@gmail.com>, Alistair Popple <apopple@nvidia.com>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20260714-remove_pgtable_cdtor-v1-0-44be8a7685d7@arm.com>
- <20260714-remove_pgtable_cdtor-v1-3-44be8a7685d7@arm.com>
- <01f07ea2-8bdd-4450-8a49-548f8b646cfd@kernel.org>
- <33fc9d31-2866-4315-9510-0004deb93994@kernel.org>
- <20260811091016.5ca67143@pumpkin>
-From: Kevin Brodsky <kevin.brodsky@arm.com>
-Content-Language: en-GB
-In-Reply-To: <20260811091016.5ca67143@pumpkin>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <8c763f1b-85ad-44b9-b36c-becd7598fe77@kernel.org>
 
-On 11/08/2026 10:10, David Laight wrote:
-> On Wed, 5 Aug 2026 14:07:01 +0200
-> "David Hildenbrand (Arm)" <david@kernel.org> wrote:
->
->> On 8/3/26 15:59, Christophe Leroy (CS GROUP) wrote:
->>>
->>> Le 14/07/2026 à 16:03, Kevin Brodsky a écrit :  
->>>> mm code often needs to know whether some mm represents a kernel or
->>>> user address space. This is currently done by comparing the mm
->>>> pointer with &init_mm; besides not being particularly elegant, this
->>>> ignores the fact that other mm's (e.g. efi_mm) may also represent
->>>> parts of the kernel address space.
->>>>
->>>> Introduce a new mm flag MMF_KERNEL and set it for init_mm.
->>>> Subsequent patches will use this flag to replace comparisons with
->>>> &init_mm. No functional change is introduced for now.  
->>> Did you consider performance impact ? This test is usually done in quite
->>> critical memory handling functions.
->>>
->>> init_mm is known at link time. Before your patch 08/22 there is just a
->>> comparison of mm (r3) with a constant (loaded in r10):
->>>
->>> c0014048 <assert_pte_locked>:
->>> c0014048:    3d 40 c1 09     lis     r10,-16119
->>> c001404c:    39 4a 03 98     addi    r10,r10,920
->>> c0014050:    7c 03 50 00     cmpw    r3,r10
->>> c0014054:    4d 82 00 20     beqlr
->>> ...
->>>
->>> After patch 08/22 we have, it first checks that mm is not 0, then it loads the
->>> word located at mm+528 then AND it with 0x1. This load might be costly.
->>>
->>> c0014048 <assert_pte_locked>:
->>> c0014048:    2c 03 00 00     cmpwi   r3,0
->>> c001404c:    7c 85 23 78     mr      r5,r4
->>> c0014050:    41 82 00 10     beq     c0014060 <assert_pte_locked+0x18>
->>> c0014054:    81 23 02 10     lwz     r9,528(r3)
->>> c0014058:    71 29 00 01     andi.   r9,r9,1
->>> c001405c:    4c 82 00 20     bnelr  
->> Is that a real problem, though?
-> The cost of the read is likely to matter most if the branch gets mispredicted.
-> I'd also guess the mm isn't usually NULL - so that branch needs to statically
-> predicted correctly as well.
-> I'd also not assume that the mm is in the cache (unless the surrounding code
-> has already accessed it), the L1 data caches are small.
+On Thu, Aug 06, 2026 at 04:01:55PM +0200, David Hildenbrand (Arm) wrote:
+> On 8/4/26 02:17, Xin Zhao wrote:
+> > A coredump typically takes seconds or even longer to complete. If we
+> > happen to hold a write lock with flock just before triggering the
+> > coredump, that write lock will not be released during the entire coredump
+> > process. As a result, other processes attempting to acquire the same write
+> > lock may experience significant delays. Another typical scenario is that
+> > some custom management modules for shared memory also need to release the
+> > reference counts of the related buffers as soon as possible, rather than
+> > waiting until the coredump is complete.
+> > 
+> > Add a new bit(9) of coredump_filter to tag whether need to dump fd list.
+> > We set it by default because tools like systemd-coredump go through the
+> > fds. Some other coredump pipe programs like minicoredump do not use fds by
+> > default. If you are sure that your coredump backend does not use the fds,
+> > you can clear bit 9, which will allow some file resources without VMA
+> > references to be released earlier.
+> > 
+> > In fput(), check FP_DUMPCORE task flags to NOT release file by task work,
+> > otherwise file put operation will NOT execute util coredump finish.
+> > 
+> > Test Case One - flock
+> > Test program send signal SIGABRT to the program which owns the flock,
+> > output the wait time(unit ms) to successfully attach the flock.
+> > Test program malloc 500MB heap and memset it.
+> > If NOT set bit9 of coredump_filter, waitms is 11280.
+> > If set bit9 of coredump_filter, waitms is 0.
+> > 
+> > Test Case Two - ion buffer
+> > Test programs include ion buffer publisher and ion buffer subscriber.
+> > Ion buffer publisher output the ion buffer hold_time if the subscriber
+> > NOT send ack to publisher and NOT release it. The subscriber will trig
+> > coredump by itself in some time.
+> > If NOT set bit9 of subscriber coredump_filter, max hold_time is 19591ms.
+> > If set bit9 of subscriber coredump_filter, max hold_time is 320ms.
+> > 
+> > Signed-off-by: Xin Zhao <jackzxcui1989@163.com>
+> > ---
+> > 
+> > Change in v6:
+> > - Fix operator precedence in PF_KTHREAD/PF_DUMPCORE check.
+> > 
+> > Change in v5:
+> > - Not add another bootargs for the feature,
+> >   as suggested by Christian Brauner and Lorenzo Stoakes.
+> >   Add bit9 of coredump_filter to tag whether need to dump fd list.
+> >   Set bit9 to 1 as default.
+> > - Al Viro, Christian Brauner and Lorenzo Stoakes point out so many
+> >   problems of the code related to umap that was added in v4, delete all of
+> >   it which is unnecessary. The management of reference counting for shared
+> >   memory generally does not need to be released through the release
+> >   operation of files that have VMA references. Traversing all the threads
+> >   within the process and executing exit_files() is sufficient.
+> > - Fulfill comments and commit log,
+> >   as suggested by Pedro Falcato and Lorenzo Stoakes.
+> > - Link to v5: https://lore.kernel.org/all/20260630075604.52533-1-jackzxcui1989@163.com/
+> > 
+> > Change in v4:
+> > - Christian pointed out that the coredump process will traverse file
+> >   descriptors (fd), so certain fds should not be closed by default.
+> >   Rework the whole feature, add /proc/<pid>/coredump_pre_exit for user
+> >   pre-exit resources selection, default is NOT pre-exit anything.
+> > - Mateusz suggested that walking the fd table and release the file-lock is
+> >   reasonable. No longer release all the fd(s). Based on user config, only
+> >   the flock fd(s) and the fd(s) correspondent to file-backed shared memory
+> >   will be released at most.
+> > - Link to v4: https://lore.kernel.org/all/20260624145552.70143-1-jackzxcui1989@163.com/
+> > 
+> > Change in v3:
+> > - Add comment and commit-log to explain why do the MMF_DUMP_MAPPED_SHARED
+> >   mm_flags_test() check, note that memory mapped files keep their own
+> >   separate references to the files. The case to work around is that early
+> >   unlocking a flock on a file allows other processes to lock and modify
+> >   the mapped data protected by the flock,
+> >   as suggested by Pedro Falcato.
+> > - Link to v3: https://lore.kernel.org/all/20260619122419.3954581-1-jackzxcui1989@163.com/
+> > 
+> > Change in v2:
+> > - Get rid of the implement of adding new fcntl API, the issue does not
+> >   worth inflicting the cost on everyone,
+> >   as suggested by Al Viro.
+> > - Call exit_files() in coredump_wait(),
+> >   as suggested by Eric W. Biederman.
+> >   Add MMF_DUMP_MAPPED_SHARED mm_flags_test() check to filter cases that
+> >   need to dump file-backed shared memory.
+> > - Link to v2: https://lore.kernel.org/lkml/20260618150301.3226517-1-jackzxcui1989@163.com/
+> > 
+> > v1:
+> > - Link to v1: https://lore.kernel.org/all/20260618030700.2511668-1-jackzxcui1989@163.com/
+> > ---
+> >  Documentation/filesystems/proc.rst | 14 ++++++++++++--
+> >  fs/coredump.c                      | 21 +++++++++++++++++++++
+> >  fs/file_table.c                    |  7 ++++++-
+> >  include/linux/mm_types.h           |  6 ++++--
+> >  4 files changed, 43 insertions(+), 5 deletions(-)
+> > 
+> > diff --git a/Documentation/filesystems/proc.rst b/Documentation/filesystems/proc.rst
+> > index db6167bef..d590a1dda 100644
+> > --- a/Documentation/filesystems/proc.rst
+> > +++ b/Documentation/filesystems/proc.rst
+> > @@ -1939,6 +1939,7 @@ The following 9 memory types are supported:
+> >    - (bit 6) hugetlb shared memory
+> >    - (bit 7) DAX private memory
+> >    - (bit 8) DAX shared memory
+> > +  - (bit 9) fd list
+> 
+> "The following 9 memory types are supported: ... fd list"
 
-You're right, I didn't think about this the right way round - in general
-it may not be easy to predict that mm points to init_mm, and an
-arbitrary user mm isn't guaranteed to be cached. Repeated calls to
-mm_is_kernel(mm) in the same function shouldn't cost much though.
-
-Would some (micro)benchmark be particularly relevant to measure the
-overhead, if any?
-
-- Kevin
+Fwiw, I still refuse this patch for the reasons I mentioned in the
+various other postings of this...
