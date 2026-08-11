@@ -1,322 +1,250 @@
-Received: from PA4PR04CU001.outbound.protection.outlook.com (mail-francecentralazon11013033.outbound.protection.outlook.com [40.107.162.33])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DE03E3AFCE9;
-	Tue, 11 Aug 2026 14:09:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.107.162.33
-ARC-Seal:i=3; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786457397; cv=fail; b=V3ICRPHsbGcSnnt+fRmsJ5RxYNGnWqUGFUWPKhY033+A5t3auwH83WOZmQwHURl2P9ZC0KDTn3rXjUI9q3PsHcAMpVMYep+oCbwW6qqTMJsX715/0ZfaGmVH6jHZw/ksgoamj7F8j00zP7jRli6htIcvC60TEnoLmDr/4CCeIjQ=
-ARC-Message-Signature:i=3; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786457397; c=relaxed/simple;
-	bh=KCTCRIDA+/2X3cH7JnYpxM6tngQgt6W0YqOS/2HDF/Q=;
-	h=Message-ID:Date:Cc:Subject:To:References:From:In-Reply-To:
-	 Content-Type:MIME-Version; b=PDvk3mhoyDqPCxk8sBRXCT/UgbZVyPdX/bRrhPFzkmEGgB3IQ6mrKfUj+/s8jcRDjj52kCMUNsxenkF5yVPxNBpzy7DpFuuiH4X1BpGqhiJFf+5nmLQIOdRSdr5HOuZEFJqZMQiF6QJI1xYtCTiJ/0nyrLQZ/05bEyUsOZ6wdW0=
-ARC-Authentication-Results:i=3; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=Of2zMK4A; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=Of2zMK4A; arc=fail smtp.client-ip=40.107.162.33
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 856273B7B97;
+	Tue, 11 Aug 2026 15:50:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1786463432; cv=none; b=HtYYQaDVkORUghvdLKkdqyGFT5axVJAMztqe7gdSfCzn64MEPNM0nE8lyvzuX82FUVvGe1tgoksgEMH5MOz3e4Wf0st0ZV/kCvL1D8ELP0gsSoiOnVcCDcjiHgXI4H3322E58hZBdEGIdWg3gm7fLnKOylVSDXZQS2W9BZRVF7s=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1786463432; c=relaxed/simple;
+	bh=JyX1R4rPrWQl9nmt0fY7d6xWzqLQIXHk/myT4/Hfvfc=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=lpBmbrBW2JbCPnbRto0dU4cYOxxVUroYbiZk8jwu7jHddoerx/ZAdMNzAKrEEXBD5kzP8zO7K/PQ5RlrwvwCxK+AgAWVB1jrXcrl52bVXeAgU/6ipB1OSzy6YUk26x7RE9lgJoVBOTgV2kR+Axze87xVP2tl+Dla0DPkFCli6WY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=i35QTZET; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="Of2zMK4A";
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="Of2zMK4A"
-ARC-Seal: i=2; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=pass;
- b=xcDPG0hVFOk0AUBj4C159DlzoaguQZmjigOLV2wlFCc1pdTt01jMQKGY/63LO/jOC85zG8fc5G4S/C6LkqRvQq8cGDjsCAp4G0jAx5M6heW70DQpUJHjiGaHTKnlqex+aOAtpgfSFkhVomSobgG26G6LQsP/rlLSbbT9biSftIQAxcHrOrhpc/0mz0VQw2WcUOSxlc7+nk02Fmg58AXbzUzfJrDdq58Wms8TkhdGIF914fbh+45YDgmPICpe3rEcmG8FNY3lmrlAVnxH+OvFs7B5Hh9XDmAxy7tKUofargAwaRLAuSv6YqFDrLtEJYGZ8P+hC53w/NpVCRzM9KBrRA==
-ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=spajHA6ointRyLw86RivlHQVOLc0loAJEJ1TlU4g/dk=;
- b=g44y70zFwMxf1rENbj2VFHwbaRyRQgZzGayNR9x0/8MrFLFhqCzljt7pZsMD14Mjeoa2oQINEuzzHsUleIeFCipLAFcZZipBxMdPXY8RPqw+AEb9AiUeIQRyTI3n0Z0036JBosn0LDw/M4rlkL4dFiRVhD7ioWXRsIwQYR5qraJe5t4h49ArxxFG1BIvRemUHWrQBPcUDcd7mf8bDwzF1TTDxCo6+MssXldmesRH7X/ERmExRfyQywBYtlefGWdousS3j0NG7cUg2zL/ozv12GzgfvtaDWsfIlMMLX7AsX1VHSM6P6EnHRFJZiFzUrSylcGJcmY98ej2nd68mQrJMA==
-ARC-Authentication-Results: i=2; mx.microsoft.com 1; spf=pass (sender ip is
- 4.158.2.129) smtp.rcpttodomain=linux.intel.com smtp.mailfrom=arm.com;
- dmarc=pass (p=none sp=none pct=100) action=none header.from=arm.com;
- dkim=pass (signature was verified) header.d=arm.com; arc=pass (0 oda=1 ltdi=1
- spf=[1,1,smtp.mailfrom=arm.com] dkim=[1,1,header.d=arm.com]
- dmarc=[1,1,header.from=arm.com])
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=spajHA6ointRyLw86RivlHQVOLc0loAJEJ1TlU4g/dk=;
- b=Of2zMK4AYCmnRWDmgZxXsjcqJPO31mxBQjUoXGVjTGfhVwp3SdIVVi7agOghu8iMGsMktBYOl3wqspqIPSdjK9UxF2eBDJ6bk6sX1c3OJggt0NuQA/Et5PtcevurQjrhzd+EKtrJjoGYBF7cOXsfD+VKGP1nFjdL2BwS8rzk/ik=
-Received: from AS9PR05CA0242.eurprd05.prod.outlook.com (2603:10a6:20b:493::26)
- by AS2PR08MB9713.eurprd08.prod.outlook.com (2603:10a6:20b:607::19) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.292.25; Tue, 11 Aug
- 2026 14:09:45 +0000
-Received: from AMS1EPF00000094.eurprd05.prod.outlook.com
- (2603:10a6:20b:493:cafe::41) by AS9PR05CA0242.outlook.office365.com
- (2603:10a6:20b:493::26) with Microsoft SMTP Server (version=TLS1_3,
- cipher=TLS_AES_256_GCM_SHA384) id 15.21.292.26 via Frontend Transport; Tue,
- 11 Aug 2026 14:09:45 +0000
-X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 4.158.2.129)
- smtp.mailfrom=arm.com; dkim=pass (signature was verified)
- header.d=arm.com;dmarc=pass action=none header.from=arm.com;
-Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
- 4.158.2.129 as permitted sender) receiver=protection.outlook.com;
- client-ip=4.158.2.129; helo=outbound-uk1.az.dlp.m.darktrace.com; pr=C
-Received: from outbound-uk1.az.dlp.m.darktrace.com (4.158.2.129) by
- AMS1EPF00000094.mail.protection.outlook.com (10.167.242.91) with Microsoft
- SMTP Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.21.315.6
- via Frontend Transport; Tue, 11 Aug 2026 14:09:44 +0000
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=HAp0D8fED4BIknp3JzrYjuhx/SQCyUUgLhlHQqssIAq2N6Zbn1so7sXZlziVHIj7d6R6PvF8Ffjtzn5GtAwxsJVYpCiC48lY1FRKuvfiZSsIjOzx5m0rzsNPepoiaPYMUz1G50y3QAq/T9sRgB7BwN9w9N/5R6Z/dvPN6jj2BvCi5es97DYocaURGfL86kcHhZ1Slwc/nSlmXR/BKN/XnrkkkH8IwV9gNY0TdJ1pp7/fHWC6RH/vdaAWVJV5U07z0j2Ijxbtr1LpePU5MZb1DHhnujJir1mlbvttFdbM6COV0mAusxSw6xvcW/kyWYKjFzABD7KH14UKtT0642548w==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=spajHA6ointRyLw86RivlHQVOLc0loAJEJ1TlU4g/dk=;
- b=iaBjCOaVhCrKf98DWl2iS/e0DsC7e2a2L3DMyqusEaofhJIZiVQsRraj6DPlUHWjukjnzf+AoDBXBd5Ox9PjTzzPv3+rGqnof+EKhq///cIsuJpOOu7gm5tcXvQs8wLkXbmtqZ/yG17mPwjxEksDitQGwZ3BuZrdYfyLesQWzPqWPhK7kueTmeaMsz7EK+6sUZMOSPcFkkNDWrBv25fa0YsWNMPqFyhGOArj1uD+rr+3ELIXOhc57Dz1C3xjDevg7ocWAmwbS63Ihia7vPkPc9ak4loMKc52jcciVQPoAiesWVhjMqiBGkrR2ZU76WKZ5dv12pZ7rzg4OvzuMYZSAQ==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
- header.d=arm.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=spajHA6ointRyLw86RivlHQVOLc0loAJEJ1TlU4g/dk=;
- b=Of2zMK4AYCmnRWDmgZxXsjcqJPO31mxBQjUoXGVjTGfhVwp3SdIVVi7agOghu8iMGsMktBYOl3wqspqIPSdjK9UxF2eBDJ6bk6sX1c3OJggt0NuQA/Et5PtcevurQjrhzd+EKtrJjoGYBF7cOXsfD+VKGP1nFjdL2BwS8rzk/ik=
-Authentication-Results-Original: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=arm.com;
-Received: from VI1PR08MB3421.eurprd08.prod.outlook.com (2603:10a6:803:80::16)
- by DB9PR08MB9730.eurprd08.prod.outlook.com (2603:10a6:10:462::21) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.292.25; Tue, 11 Aug
- 2026 14:09:11 +0000
-Received: from VI1PR08MB3421.eurprd08.prod.outlook.com
- ([fe80::e079:6bd:fbe0:89b4]) by VI1PR08MB3421.eurprd08.prod.outlook.com
- ([fe80::e079:6bd:fbe0:89b4%3]) with mapi id 15.21.0315.008; Tue, 11 Aug 2026
- 14:09:11 +0000
-Message-ID: <b21c4cc9-84a3-429e-8156-0b9967b2f133@arm.com>
-Date: Tue, 11 Aug 2026 15:09:07 +0100
-User-Agent: Mozilla Thunderbird
-Cc: usama.anjum@arm.com, Jani Nikula <jani.nikula@linux.intel.com>,
- Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
- Rodrigo Vivi <rodrigo.vivi@intel.com>, Tvrtko Ursulin
- <tursulin@ursulin.net>, David Airlie <airlied@gmail.com>,
- Simona Vetter <simona@ffwll.ch>, Dimitri Sivanich
- <dimitri.sivanich@hpe.com>, Arnd Bergmann <arnd@arndb.de>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
- Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>,
- Stefano Stabellini <sstabellini@kernel.org>,
- Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
- Andrew Morton <akpm@linux-foundation.org>,
- "Liam R. Howlett" <liam@infradead.org>, Lorenzo Stoakes <ljs@kernel.org>,
- Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
- Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Andrey Ryabinin <ryabinin.a.a@gmail.com>,
- David Hildenbrand <david@kernel.org>,
- Pasha Tatashin <pasha.tatashin@soleen.com>, Chris Li <chrisl@kernel.org>,
- Kairui Song <kasong@tencent.com>, Uladzislau Rezki <urezki@gmail.com>,
- Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu
- <mhiramat@kernel.org>, Alexei Starovoitov <ast@kernel.org>,
- Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
- Eduard Zingerman <eddyz87@gmail.com>,
- Kumar Kartikeya Dwivedi <memxor@gmail.com>, Ingo Molnar <mingo@redhat.com>,
- Arnaldo Carvalho de Melo <acme@kernel.org>,
- Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>,
- Miaohe Lin <linmiaohe@huawei.com>, Dennis Zhou <dennis@kernel.org>,
- Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>,
- Mike Rapoport <rppt@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>,
- ziy@nvidia.com, pfalcato@suse.de, agordeev@linux.ibm.com,
- ryan.roberts@arm.com, linux-kernel@vger.kernel.org,
- intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
- linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org,
- linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, kasan-dev@googlegroups.com,
- linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org,
- linux-perf-users@vger.kernel.org, damon@lists.linux.dev
-Subject: Re: [PATCH 3/9] mm: name pointers to copied PTE values ptentp
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-References: <20260806083926.1807279-1-usama.anjum@arm.com>
- <20260806083926.1807279-4-usama.anjum@arm.com>
- <e7osakog3yvdewhdlrk3bsp27pwt2nnhroeb7zihlfxyjotarb@rwxkcb25crh3>
-From: Muhammad Usama Anjum <usama.anjum@arm.com>
-Content-Language: en-US
-In-Reply-To: <e7osakog3yvdewhdlrk3bsp27pwt2nnhroeb7zihlfxyjotarb@rwxkcb25crh3>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-ClientProxiedBy: LO4P123CA0197.GBRP123.PROD.OUTLOOK.COM
- (2603:10a6:600:1a4::22) To VI1PR08MB3421.eurprd08.prod.outlook.com
- (2603:10a6:803:80::16)
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="i35QTZET"
+Received: from zhangyu-hyperv.mshome.net (unknown [167.220.233.38])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 51FB120B7167;
+	Tue, 11 Aug 2026 08:50:00 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 51FB120B7167
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1786463405;
+	bh=Lq+DaLRgzXCrrbPKI1cYJSz4DfcqtmnxwXOXuaTGWxo=;
+	h=From:To:Cc:Subject:Date:From;
+	b=i35QTZET7lGYil0vf6lc8D0zEDLNm+SFTXmyNmiEhfuU9HbH4T9wpiRoodMhoDI1G
+	 IO8Z2CPdNFIfodo2jgpGNsablaCJZJsrVCi2FswqDnRW8DNhQUIaktFCHKb51lcLLD
+	 ofYJKsfrr63sPKkTMdvoxtiUziLDm/sWMB5d704k=
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org,
+	iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	x86@kernel.org
+Cc: wei.liu@kernel.org,
+	kys@microsoft.com,
+	haiyangz@microsoft.com,
+	decui@microsoft.com,
+	longli@microsoft.com,
+	joro@8bytes.org,
+	will@kernel.org,
+	robin.murphy@arm.com,
+	bhelgaas@google.com,
+	kwilczynski@kernel.org,
+	lpieralisi@kernel.org,
+	mani@kernel.org,
+	robh@kernel.org,
+	arnd@arndb.de,
+	jgg@ziepe.ca,
+	mhklinux@outlook.com,
+	jacob.pan@linux.microsoft.com,
+	tgopinath@linux.microsoft.com,
+	easwar.hariharan@linux.microsoft.com,
+	mrathor@linux.microsoft.com,
+	baolu.lu@linux.intel.com,
+	suravee.suthikulpanit@amd.com,
+	vasant.hegde@amd.com
+Subject: [PATCH v3 0/5] Hyper-V: Add para-virtualized IOMMU support for Linux guests
+Date: Tue, 11 Aug 2026 23:50:16 +0800
+Message-ID: <20260811155022.108148-1-zhangyu1@linux.microsoft.com>
+X-Mailer: git-send-email 2.52.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-TrafficTypeDiagnostic:
-	VI1PR08MB3421:EE_|DB9PR08MB9730:EE_|AMS1EPF00000094:EE_|AS2PR08MB9713:EE_
-X-MS-Office365-Filtering-Correlation-Id: fff88c87-ef4e-46f1-d491-08def7b231fd
-x-checkrecipientrouted: true
-NoDisclaimer: true
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam-Untrusted:
- BCL:0;ARA:13230040|366016|23010399003|376014|7416014|1800799024|6133799003|10067099003|4143699003|56012099006|5023799004|11063799006|18002099003|22082099003|3023799007;
-X-Microsoft-Antispam-Message-Info-Original:
- X8qvVO1tGgOGc68Tj8e6uYIlEm61fj7Yc+rR2Ay/UJ31hxb3PHm/Vx9ayVx7BXhFCE26lvSj1FVRwdkt9qTwDUf03EfjHj5zTGh3lNmthZUPU0QqKoBPqNCZMmlIdwvntC0ETgEazcLBhiggaaU1oTVhVrF4zZNB+8zbzV+Jd4wX3kEhklK/JQF5PBzEsMQlnX/RA2nh2JKyOqzVqPIP0JRjHOvrNtwouMyn4EApYlEz54M5OIY1sJGVL2DhxYD3bw4zw1/+YIsp0Em0CEamCCEu6TYlPIaaPzdzbep4Q20xFGwIz/vtY0BuDXxxwaquypHlTctA+f8g9C3qAfi604tm9S5lbClK6rgQWc2C7gtm+k/RpQITOlu/8ySU8jRAuLryQLIaU07iwsnyadRcNDbGozKdXF53Sl5vfnr69T1lGLspteufAc2KPwXQegTPnGNpBa3XqVK3I0rj6mCz2fhoS5cgar40oNGDel28oFjLSHmTqLzlgfCXDa/SdbvfGw6kYd7pbX0X6Er0Yoa1pmDs1KkhBG+od3Lm2kLHvxMgPWvVu6+OGVUF/muODby0JcN0Z5kv6Rm9XFuwS+rujtHHfFG+S8WUrGIQGqc1z/gh7bAy38Lj79K19jGGQknUUaoEdzVxQEjI8Btl4hXMy1IFAn4QlZDRT18lnMFWkRU=
-X-Forefront-Antispam-Report-Untrusted:
- CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:VI1PR08MB3421.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(23010399003)(376014)(7416014)(1800799024)(6133799003)(10067099003)(4143699003)(56012099006)(5023799004)(11063799006)(18002099003)(22082099003)(3023799007);DIR:OUT;SFP:1101;
-X-Exchange-RoutingPolicyChecked:
- PoID+C9pr8SsNiZRZqrmEF20E8+VyYQrbmNS/atK0zw4H6xYhN8JDWaNyZcuAbKvDXx3md+N466b0729ETpNiHwGFoQQWHtr1wStuHk00WaD7R8uPTqjp9Pek556gM35mQe8FX1aL7Sp2zO09cPHEXYxt6UjkF20b/IyX2c8fU9p9FtV22m3Uikksqe9i+Rbf7inmIUq5CxSfVO/lt6nTQ/RZeCwOhVPzS6fqYMTUAmCwPYjztBlT9Knlw8LjChFicyl5+dVAtGMoyOikQxEQPeOpO5qwUVElOLqNbWdabbXkDPmBevoai7DCbgoVW7V/xraDV24EN08DFdilYcMzg==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DB9PR08MB9730
-X-EOPAttributedMessage: 0
-X-MS-Exchange-Transport-CrossTenantHeadersStripped:
- AMS1EPF00000094.eurprd05.prod.outlook.com
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id-Prvs:
-	685e73f2-e898-46f2-3da0-08def7b21dbb
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|7416014|376014|1800799024|23010399003|82310400026|14060799003|36860700016|35042699022|22082099003|18002099003|3023799007|56012099006|10067099003|4143699003|11063799006|6133799003|5023799004;
-X-Microsoft-Antispam-Message-Info:
-	QrDAuJ2AlDAgvei/zvkJkvfQWUZGGIE48wAeeS/YiIuKQGmvUJdnpoOGxcyZyGvL5v9YQDS11/dPPsMg2cg1TdIBKj/ZPGWerzgyXqYtwORlNDmgfnW1ufsTE6Dd8rVH5Y60KHRVB7gdGtwPo0QRPYxa+19gn2F9ZYAc7vEaMH7O/lMCMTdnVAeZpH3cffXgRvh0z4psptR+jLz5AOW2p95Mp7oEkWASyLHtxgupDKTGEedMTMvp//INjXGo2cWcA/e6GrBUxPqcX5kfCHlTW7LZJVVh7KoMepIb3kvntg0sZB7NL70Gfcia3025jrIEKnF4KqGPNa7L4Wq1HuGXv0mXVwxgNaXb4NK6wEqF20/zC2xOQ03ZEDkzIaO5E8EtDOmMHI3BTAJp19EjbxOnpsbjpZwiRMVYN8hTGfn+phsV7aF1B5A1fxxKzIWNT7TcyDZDNbDBy1fbQToFO5F+i4z/RQolLUS3Wn0ibbXuZ+MygZXiKYKpg6hE3qAiTq+5zd0g/bBOWtNab9jVgdTUMONzw2ZxDG0EgMOHwF0DiCsTueED+SeHwVgZU+GzrMz87g33N5tKbau+TbAQn2QXPF9MxQ6cHwA8s4U9bUxPnpTjQgHdHKTvFvU5aY7Ow1Ob1uTCPhu5ZMh43XcVPfVFoDWZh3bLL6721rPAVQi4Q0ZLIBz69rhhyWPreQ7jy1l9vvLbXjiKTroIq0PcnHoNqA==
-X-Forefront-Antispam-Report:
-	CIP:4.158.2.129;CTRY:GB;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:outbound-uk1.az.dlp.m.darktrace.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(7416014)(376014)(1800799024)(23010399003)(82310400026)(14060799003)(36860700016)(35042699022)(22082099003)(18002099003)(3023799007)(56012099006)(10067099003)(4143699003)(11063799006)(6133799003)(5023799004);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	vJDzeRb927ULnuNkJdCXMZlhivSk2C+D0uSOnJ7V3ytepBxLXm9FF/vHnPjZGBO8nF2u/+cRH8iKRjoTl1m5jFnoKyjflZUcWX7Uxbggm+eXM9hAPxwV4hQPwdlt4m0bJeyYkEMZjtJ+HCNEdOf49hoHllcfXObByHwyeCPEQEmfATo3YQAMseQqQ7nJkmgo6XalANWP4f+Hdn6/bPhbPvRs6gKRx7T3WlexdzGR2IR9A1t+EG24dcOLQcX1a9QiijX+f/ItEgCVcLa2WlN9xjjcH98InlLSbUc2rfQziuUojQeyl1c6FmjcOBGg5upE1sHsKJ1LCXjFA4h57R19kbwEWTeGr3YiuKif/ZnDswdLKZ+f+keUwx3sdcTyYKRVhOGkpjBK2wm3HgH+r5/JTrWf3YKzp7BzmT/1RjYxYw8ipU3vIF94I+n/8KtOtGbE
-X-OriginatorOrg: arm.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 11 Aug 2026 14:09:44.7531
- (UTC)
-X-MS-Exchange-CrossTenant-Network-Message-Id: fff88c87-ef4e-46f1-d491-08def7b231fd
-X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
-X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[4.158.2.129];Helo=[outbound-uk1.az.dlp.m.darktrace.com]
-X-MS-Exchange-CrossTenant-AuthSource:
-	AMS1EPF00000094.eurprd05.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Anonymous
-X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: AS2PR08MB9713
+Content-Transfer-Encoding: 8bit
 
-On 11/08/2026 11:58 am, Anshuman Khandual wrote:
-> Subject line is very confusing. Perhaps something like the following.
-> 
-> mm: Rename pointers to copied PTE values as ptentp
-> 
-> But even 'copied PTE values' is not very clear as well.
+This patch series introduces a para-virtualized IOMMU driver for
+Linux guests running on Microsoft Hyper-V. The driver enables two
+primary use cases:
+  1) In-kernel DMA protection for devices assigned to the guest.
+  2) Device assignment to guest user space (e.g., via VFIO).
 
-Something like:
+The driver implements the following core functionality:
+*   Hypercall-based Enumeration
+    Unlike traditional ACPI-based discovery (e.g., DMAR/IVRS),
+    this driver enumerates the Hyper-V IOMMU capabilities directly
+    via hypercalls. This approach allows the guest to discover
+    IOMMU presence and features without requiring specific virtual
+    firmware extensions or modifications.
 
-mm: rename pointers to logical PTE values as ptentp
+*   Domain Management
+    The driver manages IOMMU domains through a new set of Hyper-V
+    hypercall interfaces, handling domain allocation and attachment
+    for endpoint devices.
 
-or
+*   Nested Translation Support
+    This implementation leverages guest-managed stage-1 I/O page
+    tables nested with host stage-2 translations. It is built
+    upon the consolidated IOMMU page table framework (IOMMU_PT).
+    This design eliminates the need for emulating map operations.
+    Both Intel VT-d and AMD IOMMU platforms are supported.
 
-mm: rename pointers to software PTE values as ptentp
+*   IOTLB Invalidation
+    IOTLB invalidation requests are marshaled and issued to the
+    hypervisor through the same hypercall mechanism. Both domain-
+    selective and page-selective flushes are supported.
 
-> 
-> On Thu, Aug 06, 2026 at 09:38:41AM +0100, Muhammad Usama Anjum wrote:
->> The hw_pte_t conversion must retain pte_t * for pointers to standalone PTE
-> 
-> We need to explain what is `standalone PTE values` first.
-> 
->> values. Name the value parameters ptentp in the install_pte callback,
->> write_protect_page(), and guard_install_set_pte() so the later mechanical
->> conversion can distinguish them from pointers to PTE table storage.
->>
->> Some functions already use the ptentp name, including:
->> - madvise_folio_pte_batch()
->> - folio_pte_batch_flags()
->> No need to convert them.
->>
->> This is a naming-only change.
-> 
-> Small nit - s/naming-only/rename
+Implementation Notes:
+*   Platform Support
+    The current implementation targets x86 platforms with Intel
+    VT-d and AMD IOMMU hardware.
 
-I'll fix it.
+*   MSI Region Handling
+    The standard x86 MSI interrupt range
+    (0xfee00000 - 0xfeefffff) is reserved from normal IOVA mappings.
+    Future updates may allow this configuration to be queried via
+    hypercalls if new hardware platforms are to be supported.
 
-> 
-> The commit message needs rewrite clearly explaining the following details
-> 
-> - What are standalone PTE values
-Logical/software PTE is correct and better name here.
+*   Reserved Regions (RMRR)
+    There is currently no requirement to support assigned devices with
+    ACPI RMRR limitations. Consequently, this patch series does not
+    specify or query reserved memory regions.
 
-> - How these are different from HW pgtable pointers
-> - Change is just a rename for pointers into such 'standalone PTE'
-> - These renamed 'ptentp' here would be used for skip or replaced during
->   upcoming mechanical change via a script
-> - No functional changes intended
-I'll update message in more elaborate way.
+*   Guest Hibernation
+    Guest hibernation and resume are not supported by this initial
+    implementation. The current pvIOMMU interface does not define how
+    Hyper-V device-domain objects and device attachments are restored.
 
-> 
->>
->> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
->> ---
->> Changes since RFC v1:
->> - Update the description for the architecture opt-in conversion.
->> ---
->>  include/linux/pagewalk.h | 2 +-
->>  mm/ksm.c                 | 4 ++--
->>  mm/madvise.c             | 4 ++--
->>  3 files changed, 5 insertions(+), 5 deletions(-)
->>
->> diff --git a/include/linux/pagewalk.h b/include/linux/pagewalk.h
->> index b41d7265c01bc..c34d826c5e4a2 100644
->> --- a/include/linux/pagewalk.h
->> +++ b/include/linux/pagewalk.h
->> @@ -89,7 +89,7 @@ struct mm_walk_ops {
->>  		       struct mm_walk *walk);
->>  	void (*post_vma)(struct mm_walk *walk);
->>  	int (*install_pte)(unsigned long addr, unsigned long next,
->> -			   pte_t *ptep, struct mm_walk *walk);
->> +			   pte_t *ptentp, struct mm_walk *walk);
->>  	enum page_walk_lock walk_lock;
->>  };
->>  
->> diff --git a/mm/ksm.c b/mm/ksm.c
->> index ad05d7791307e..11d50518d02e9 100644
->> --- a/mm/ksm.c
->> +++ b/mm/ksm.c
->> @@ -1292,7 +1292,7 @@ static u32 calc_checksum(struct page *page)
->>  }
->>  
->>  static int write_protect_page(struct vm_area_struct *vma, struct folio *folio,
->> -			      pte_t *orig_pte)
->> +			      pte_t *ptentp)
->>  {
->>  	struct mm_struct *mm = vma->vm_mm;
->>  	DEFINE_FOLIO_VMA_WALK(pvmw, folio, vma, 0, 0);
->> @@ -1371,7 +1371,7 @@ static int write_protect_page(struct vm_area_struct *vma, struct folio *folio,
->>  
->>  		set_pte_at(mm, pvmw.address, pvmw.pte, entry);
->>  	}
->> -	*orig_pte = entry;
->> +	*ptentp = entry;
->>  	err = 0;
->>  
->>  out_unlock:
->> diff --git a/mm/madvise.c b/mm/madvise.c
->> index 07a21ca31bad4..c324cc991f841 100644
->> --- a/mm/madvise.c
->> +++ b/mm/madvise.c
->> @@ -1101,12 +1101,12 @@ static int guard_install_pte_entry(pte_t *pte, unsigned long addr,
->>  }
->>  
->>  static int guard_install_set_pte(unsigned long addr, unsigned long next,
->> -				 pte_t *ptep, struct mm_walk *walk)
->> +				 pte_t *ptentp, struct mm_walk *walk)
->>  {
->>  	unsigned long *nr_pages = (unsigned long *)walk->private;
->>  
->>  	/* Simply install a PTE marker, this causes segfault on access. */
->> -	*ptep = make_pte_marker(PTE_MARKER_GUARD);
->> +	*ptentp = make_pte_marker(PTE_MARKER_GUARD);
->>  	(*nr_pages)++;
->>  
->>  	return 0;
->> -- 
->> 2.47.3
->>
-> 
-> How did we ensure that the above changes are comprehensive and nothing
-> else got left in here ?
+Testing:
+Validated with the following configurations:
+- NVMe devices assigned to the guest on AMD platforms, tested
+  with fio.
+- Intel DSA devices assigned to the guest, tested with dmatest.
+- dma_map_benchmark for DMA mapping performance evaluation.
 
-The order of patches and even the code was found out after adding hw_pte_t
-structure. Then everything was converted, until some pte_t pointers were left
-which didn't require conversion.
+Changelog:
 
-If something is left, we'll get build errors when we build a converted architecture.
-So the branch mentioned in the cover letter when built, would produce build errors.
-(Those patches would be sent separately, after finalization of this series).
+v2[1] -> v3:
+- Added a separate patch defining the common x86 architectural MSI
+  reserved range and converted the Intel, AMD, and Hyper-V IOMMU
+  drivers to use it.
 
-Whenever I'm rebasing (on mm-new), I'm rerunning Coccinelle script to see if new code
-has arrived which requires conversion or renaming.
+- hyperv: hypercall interfaces:
+  - Used BIT_ULL() for 64-bit capability flags.
+  - Matched the create-device-domain input layout to the 32-byte
+    Hyper-V ABI.
+  - Corrected the page-selective flush range layout to 6/6/52 bits.
+
+- hv: logical device ID registry:
+  - Replaced the linear list with an rhashtable for the sparse PCI
+    domain number mapping.
+  - Used RCU-protected lookup and deferred freeing on removal.
+  - Simplified the registration and cleanup paths.
+
+- iommu/hyperv: para-virtualized IOMMU:
+  - Renamed the guest driver source to hv-iommu-guest.c.
+  - Enabled ATS only after a device-domain attachment succeeds, and
+    disabled ATS before attaching the blocking domain.
+  - Removed the obsolete deferred-flush capability, unused geometry,
+    and redundant device-private-data clearing.
+  - Made the Hyper-V domain settings explicit at each caller instead
+    of deriving them from the Linux domain type.
+  - Added transactional create/configure domain handling with rollback.
+  - Required only the base page size and masked the domain page-size
+    bitmap with the Hyper-V-supported bitmap.
+  - Silenced detection for unsupported hosts while retaining errors
+    for actual hypercall and capability failures.
+  - Clarified Kconfig support for assigned PCI devices and documented
+    the lack of guest hibernation/resume support.
+
+- iommu/hyperv: page-selective IOTLB flush:
+  - Removed the inclusive-end overflow and kept the range calculation
+    in byte addresses until the final page conversion.
+  - Cleared both the fixed hypercall header and the range entry.
+  - Warned on selective-flush failure before falling back to a
+    full-domain flush.
+
+v1[2] -> v2:
+- Dropped the "move to subdirectory" patch; the directory now exists
+  upstream.
+
+- hv: logical device ID registry:
+  - Moved the registry to hv_common.c so it can be shared, and derived
+    the prefix via a shared helper instead of caching it in pci-hyperv's
+    private struct.
+  - Moved the lookup out of the irq-disabled region (PREEMPT_RT).
+
+- iommu/hyperv: para-virtualized IOMMU:
+  - Removed the unused detach_dev op.
+  - Rejected a hypervisor not advertising x86 page sizes instead of
+    masking and warning.
+  - Statically initialized the identity and blocking domains.
+  - Gave the blocking domain its own attach op, which returns the hypercall
+    status and WARNs on failure.
+
+- iommu/hyperv: page-selective IOTLB flush:
+  - Used a single descriptor covering a slightly larger power-of-two
+    range, instead of splitting the range into multiple descriptors.
+  - Fixed the inclusive-end corner case in the flush range calculation.
+
+RFC v1[3] -> v1[2]:
+- Scoped platform support to x86 only (Intel VT-d and AMD IOMMU);
+  initialization now uses x86_init.iommu.iommu_init
+- Added page-selective IOTLB flush support
+- Disable device ATS in hv_iommu_release_device()
+- Addressed review comments from Michael Kelley:
+  - Reversed dependency: pvIOMMU exports registration API for
+    pci-hyperv to call, instead of pci-hyperv exporting
+    hv_build_logical_dev_id()
+  - Dropped separate output page allocation patch; hypercall input
+    and output now share the same per-CPU page
+  - Cleaned up Kconfig (removed PCI_HYPERV dependency, unnecessary
+    selects)
+  - Removed dev_list, per-domain spinlock, and syscore_ops
+  - Removed forward declarations by reordering functions
+  - Fixed typos, cleaned up Kconfig selects, improved pr_info
+    messages, etc.
+
+[1] v2:
+https://lore.kernel.org/linux-hyperv/20260702160518.311234-1-zhangyu1@linux.microsoft.com/
+[2] v1:
+https://lore.kernel.org/linux-hyperv/20260511162408.1180069-1-zhangyu1@linux.microsoft.com/
+[3] RFC v1:
+https://lore.kernel.org/linux-hyperv/20251209051128.76913-1-zhangyu1@linux.microsoft.com/
+
+
+Wei Liu (1):
+  hyperv: Introduce new hypercall interfaces used by Hyper-V guest IOMMU
+
+Yu Zhang (4):
+  Drivers: hv: Add logical device ID registry for vPCI devices
+  iommu/x86: Share the architectural MSI reserved range
+  iommu/hyperv: Add para-virtualized IOMMU support for Hyper-V guest
+  iommu/hyperv: Add page-selective IOTLB flush support
+
+ arch/x86/hyperv/hv_init.c             |   4 +
+ arch/x86/include/asm/iommu.h          |   3 +
+ arch/x86/include/asm/mshyperv.h       |   4 +
+ drivers/hv/hv_common.c                | 123 +++++
+ drivers/iommu/Kconfig                 |   1 +
+ drivers/iommu/amd/iommu.c             |   7 +-
+ drivers/iommu/hyperv/Kconfig          |  16 +
+ drivers/iommu/hyperv/Makefile         |   1 +
+ drivers/iommu/hyperv/hv-iommu-guest.c | 703 ++++++++++++++++++++++++++
+ drivers/iommu/hyperv/iommu.h          |  50 ++
+ drivers/iommu/intel/iommu.c           |   7 +-
+ drivers/pci/controller/pci-hyperv.c   |  21 +-
+ include/asm-generic/mshyperv.h        |  14 +
+ include/hyperv/hvgdk_mini.h           |   9 +
+ include/hyperv/hvhdk_mini.h           | 143 ++++++
+ include/linux/hyperv.h                |   8 +
+ 16 files changed, 1101 insertions(+), 13 deletions(-)
+ create mode 100644 drivers/iommu/hyperv/Kconfig
+ create mode 100644 drivers/iommu/hyperv/hv-iommu-guest.c
+ create mode 100644 drivers/iommu/hyperv/iommu.h
 
 -- 
-Thanks,
-Usama
-
+2.52.0
