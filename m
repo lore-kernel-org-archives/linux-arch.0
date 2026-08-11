@@ -1,232 +1,121 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id CB79D3FE344;
-	Tue, 11 Aug 2026 15:51:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mail-qt1-f176.google.com (mail-qt1-f176.google.com [209.85.160.176])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EE12339182C
+	for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2026 16:21:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.176
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786463466; cv=none; b=AA7BMMaaBrZZbplTqYg8QUXA0hcFy+BTaLO97Lp9l6qykF+uCF9DQ5dAr5H2im8iMG6aKUrReIp8syyRkMB/YzNgUFgwiLTcj3YJkEoGRb+2VA56JINwpi+BCIRLfOMpT/WHQBzLeh2OP1L/gzmWenYi0rXQ9PdJUvyQwRaeqZE=
+	t=1786465288; cv=none; b=mnedUSH2fRIK+1ORcUVCRg96CuE0xOKWV+bltRp7NxwR8RnoRu4InP9NcKaUn15b3ZlWFZD8FAZy3MolFW4kHoFeEJ4PkvMqg6M1P507Lk39CG8vvhZWezEUahI9LRskcj9sqhW9mJxaUhjUlkRPgDquTxMgVBcp4Srbuz7pnf8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786463466; c=relaxed/simple;
-	bh=IIRJpZnQ2YKlBDdK7hNOgMETEehkQiUJwHDT6UloCzw=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=Whavcq93Fi4xsRR63XnJEqwViPIEq6EXOvOgBU1VejncP5DatKpeaupKmpi7vWnZFWvGWlDK8EvtoH58tq3HpELEaStHJdCFANqcpETzsKUfTLRlKpLUvFd4g/1ZLyhaw64fSyHRsCEYv1fahbiKBOU+fm0t5aAnzikwSV//aTo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=Dib7XbFm; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1786465288; c=relaxed/simple;
+	bh=IzG7wcSnS0LX7TU2RQ1pHjEUVUk31vZgsIvwWciX868=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=oDgXcTY5MyqHwKflCyYiAIPIR+W24ZtwMXyA6KAm8Oe7kWienfdqalYxLWZhH3XYkEiFSf8GG2iso7z2jMWA2UTVslB2H7B4u+0QE25fbkU4XHg5rsEsBVMrAwS/H5soUyK3jHO92ui5MsVbo7peWZEMG3KsXvtJZ5xwfSw3kjo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=nKtf0pX2; arc=none smtp.client-ip=209.85.160.176
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="Dib7XbFm"
-Received: from zhangyu-hyperv.mshome.net (unknown [167.220.233.38])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 1F24320B7167;
-	Tue, 11 Aug 2026 08:50:32 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 1F24320B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1786463438;
-	bh=N0rrQd94vfRfeqmRKXBlOdsOuLvkUyRXe4we3nEX5Pg=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=Dib7XbFmHlzi6XeLNMJstM3uzMoBSC2X2SNRKiZCS0JRF4On+oQLpvbaGC60GbPto
-	 SYC3Ky1TANcWqJbejcdgrvJt2V70x1gA6rqnW1MoSZc/6WL2e6zhMMaZPWaLuCt/ik
-	 F73f1FFjsSLSRmzTwbpmVS3qJZi2VqX4LFdAP5vA=
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: linux-kernel@vger.kernel.org,
-	linux-hyperv@vger.kernel.org,
-	iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	x86@kernel.org
-Cc: wei.liu@kernel.org,
-	kys@microsoft.com,
-	haiyangz@microsoft.com,
-	decui@microsoft.com,
-	longli@microsoft.com,
-	joro@8bytes.org,
-	will@kernel.org,
-	robin.murphy@arm.com,
-	bhelgaas@google.com,
-	kwilczynski@kernel.org,
-	lpieralisi@kernel.org,
-	mani@kernel.org,
-	robh@kernel.org,
-	arnd@arndb.de,
-	jgg@ziepe.ca,
-	mhklinux@outlook.com,
-	jacob.pan@linux.microsoft.com,
-	tgopinath@linux.microsoft.com,
-	easwar.hariharan@linux.microsoft.com,
-	mrathor@linux.microsoft.com,
-	baolu.lu@linux.intel.com,
-	suravee.suthikulpanit@amd.com,
-	vasant.hegde@amd.com
-Subject: [PATCH v3 5/5] iommu/hyperv: Add page-selective IOTLB flush support
-Date: Tue, 11 Aug 2026 23:50:21 +0800
-Message-ID: <20260811155022.108148-6-zhangyu1@linux.microsoft.com>
-X-Mailer: git-send-email 2.52.0
-In-Reply-To: <20260811155022.108148-1-zhangyu1@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="nKtf0pX2"
+Received: by mail-qt1-f176.google.com with SMTP id d75a77b69052e-52b4e988c77so766821cf.3
+        for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2026 09:21:26 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=ziepe.ca; s=google; t=1786465286; x=1787070086; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=iF1EovNHXjlni8LKG7pfSf4Sk3EXbwMQtSznu/lYQFo=;
+        b=nKtf0pX21rLJ0eVwVhCstxfwpROMM6okWF4T39N426WVApG1snKiQYcVNMlTjzWUiK
+         dQ4wztoE2MzksS1pFar2VyvsLJswkX7iPZ5AZzuHFwgb2WTjOdx9YRSpIRLX4rxJWrsu
+         YPsf+XqLc0BJbFBdf9KhOocgnpGCtf0AkGRaOWh7keCi1hjHSdERTz7hS83x0SHoKW73
+         2LqtA4QB+V9kGibXx7zfQEBycSiiT2jKM+yker1PIy2aG65LqoNCaXLiojcXTPR958YS
+         YAXcS8DRmDsh6hxL5buDuQtTtV/mklBrh9hfwUZG9wVXk7oVYs4b8piOh/ir9Z87PCJO
+         GUQg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1786465286; x=1787070086;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=iF1EovNHXjlni8LKG7pfSf4Sk3EXbwMQtSznu/lYQFo=;
+        b=GWPVQsx/cjD4Z2yL9Cti3TRawGt7nEyPPzYjSjkkh6Ds8btbeklq2rfFEcIZydAWsm
+         kDOOt5xz3Tf1QRVafoAHPRekzDYy6n/a82Ku0BTBqAfBM4zkvikanbfsXkWa6yUVI5eM
+         CCQIA6lBanLspZ1MVB+UkgXZeL9xkS44b0i4I5c6xxdtCtAUKP6ywasSGumVIMuadTtq
+         6xBip7zC5ItiJaTUr66dyrd9+YejzGYfCLaeIWgcXFTpbBZdiFvIN5zq74dlc3qVhG2H
+         Fh+sq/O/PsNPR4Io3UmAe7bGouCr1vg/qX8zMPrJSsY75CFiy8p2Ipd+V1+KQGig4cp2
+         XIGA==
+X-Forwarded-Encrypted: i=1; AHgh+RqlsZQZMXqN6CEzzRp8ruaGIqg6Qb7DFI4/iugJcT4+o3ac7xh61Bad542x7Rg62dJHP34QVXa4egh/@vger.kernel.org
+X-Gm-Message-State: AOJu0Yx1heW7hLxJsiAimYIrbY+jJItQhAj6OTsZ2BlyUHC2xmgtdkJg
+	trUhGl8xUtiHB9knkz9AcfwzQ/5w/D4OKyTxageXSAof2vprMBzlkDA+pBiYNGHw7wk=
+X-Gm-Gg: AR+sD11t4Q9sF8dyuQhd/0v6KCLjAF2FRRA5fWMxWoaLR9SRoNzqMEwS+YNUswH348k
+	62KNt2bMP4sn1olE0HL2FmEQitDhiQkrBpsnzLwVrYJv6Mf2LxBPhP0CCrQPLTIqHtqIWUvSNOw
+	jht/AuuNhCekpb+0lBINeXyvrLk5ixpGnZzzM3vN5fLrKNS2lD2SAavKOKg0MsqihajfV91JT5N
+	2q73wmsbsz+rSsGq2xJOTexO+ywlhoqky4/lbzl5D43a3ysT/JL39O64iU/1cbgP+Gs016wWfLC
+	DrYmyLmEVBzfuX/y24yj0FnKvZujYy2ViagfSJ17lSg4SRFMg3fLdQzIHgQkCyB2C+4O0USmnBj
+	0AJkgmz8o3JnnZ/WT2qRBTZmK+9DxZzUTk29WV34BGmv25wtT+S5pz9UW6hDk8+GLeoPp1LqtNo
+	ltJ4opFFvNHyeQ356GsW4N7kolQ1nuLejDgTIaOw==
+X-Received: by 2002:a05:622a:4d43:b0:519:89b6:78b4 with SMTP id d75a77b69052e-52d5867e85amr44709981cf.40.1786465285899;
+        Tue, 11 Aug 2026 09:21:25 -0700 (PDT)
+Received: from ziepe.ca ([142.166.156.215])
+        by smtp.gmail.com with ESMTPSA id 6a1803df08f44-90a6c39254fsm2441146d6.23.2026.08.11.09.21.25
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 11 Aug 2026 09:21:25 -0700 (PDT)
+Received: from jgg by wakko with local (Exim 4.97)
+	(envelope-from <jgg@ziepe.ca>)
+	id 1wtpEC-00000002Y6b-1J1V;
+	Tue, 11 Aug 2026 13:21:24 -0300
+Date: Tue, 11 Aug 2026 13:21:24 -0300
+From: Jason Gunthorpe <jgg@ziepe.ca>
+To: Yu Zhang <zhangyu1@linux.microsoft.com>
+Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
+	linux-arch@vger.kernel.org, x86@kernel.org, wei.liu@kernel.org,
+	kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
+	longli@microsoft.com, joro@8bytes.org, will@kernel.org,
+	robin.murphy@arm.com, bhelgaas@google.com, kwilczynski@kernel.org,
+	lpieralisi@kernel.org, mani@kernel.org, robh@kernel.org,
+	arnd@arndb.de, mhklinux@outlook.com, jacob.pan@linux.microsoft.com,
+	tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com,
+	mrathor@linux.microsoft.com, baolu.lu@linux.intel.com,
+	suravee.suthikulpanit@amd.com, vasant.hegde@amd.com
+Subject: Re: [PATCH v3 3/5] iommu/x86: Share the architectural MSI reserved
+ range
+Message-ID: <20260811162124.GK544626@ziepe.ca>
 References: <20260811155022.108148-1-zhangyu1@linux.microsoft.com>
+ <20260811155022.108148-4-zhangyu1@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260811155022.108148-4-zhangyu1@linux.microsoft.com>
 
-Add page-selective IOTLB flush using HVCALL_FLUSH_DEVICE_DOMAIN_LIST.
-This hypercall accepts a list of (page_number, page_mask_shift) entries,
-enabling finer-grained IOTLB invalidation compared to the domain-wide
-HVCALL_FLUSH_DEVICE_DOMAIN used by hv_iommu_flush_iotlb_all().
+On Tue, Aug 11, 2026 at 11:50:19PM +0800, Yu Zhang wrote:
+> @@ -50,8 +50,6 @@
+>  #define CMD_SET_TYPE(cmd, t) ((cmd)->data[1] |= ((t) << 28))
+>  
+>  /* Reserved IOVA ranges */
+> -#define MSI_RANGE_START		(0xfee00000)
+> -#define MSI_RANGE_END		(0xfeefffff)
+>  #define HT_RANGE_START		(0xfd00000000ULL)
+>  #define HT_RANGE_END		(0xffffffffffULL)
+>  
+> @@ -3097,8 +3095,9 @@ static void amd_iommu_get_resv_regions(struct device *dev,
+>  		list_add_tail(&region->list, head);
+>  	}
+>  
+> -	region = iommu_alloc_resv_region(MSI_RANGE_START,
+> -					 MSI_RANGE_END - MSI_RANGE_START + 1,
+> +	region = iommu_alloc_resv_region(X86_IOMMU_MSI_RANGE_START,
+> +					 X86_IOMMU_MSI_RANGE_END -
+> +					 X86_IOMMU_MSI_RANGE_START + 1,
+>  					 0, IOMMU_RESV_MSI, GFP_KERNEL);
 
-hv_iommu_calc_flush_range() computes the smallest power-of-two aligned
-range that covers the target IOVA region, producing a single flush
-descriptor. This may over-flush when the range is not naturally aligned,
-matching the approach used by Intel VT-d PSI. If the page-selective
-flush fails, the code falls back to a full domain flush.
+Maybe instead of adding constants you should add a
+iommu_alloc_resv_x86_msi_region()
 
-Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
----
- drivers/iommu/hyperv/hv-iommu-guest.c | 73 ++++++++++++++++++++++++++-
- include/hyperv/hvgdk_mini.h           |  1 +
- include/hyperv/hvhdk_mini.h           | 17 +++++++
- 3 files changed, 90 insertions(+), 1 deletion(-)
+That is just an inline doing the above?
 
-diff --git a/drivers/iommu/hyperv/hv-iommu-guest.c b/drivers/iommu/hyperv/hv-iommu-guest.c
-index 2a00353ce733..060c2efd6bf0 100644
---- a/drivers/iommu/hyperv/hv-iommu-guest.c
-+++ b/drivers/iommu/hyperv/hv-iommu-guest.c
-@@ -9,6 +9,7 @@
- #define pr_fmt(fmt) "Hyper-V pvIOMMU: " fmt
- #define dev_fmt(fmt) pr_fmt(fmt)
- 
-+#include <linux/hyperv.h>
- #include <linux/iommu.h>
- #include <linux/pci.h>
- #include <linux/dma-map-ops.h>
-@@ -408,10 +409,79 @@ static void hv_iommu_flush_iotlb_all(struct iommu_domain *domain)
- 	hv_flush_device_domain(to_hv_iommu_domain(domain));
- }
- 
-+/*
-+ * Calculate the minimal power-of-two aligned range that covers [start, end]
-+ * (end is inclusive). Returns a single (page_number, page_mask_shift)
-+ * descriptor that may over-flush when the range is not naturally aligned.
-+ */
-+static void
-+hv_iommu_calc_flush_range(unsigned long start, unsigned long end,
-+			  union hv_iommu_flush_va *va)
-+{
-+	unsigned int sz_lg2;
-+
-+	sz_lg2 = fls_long(start ^ end);
-+	if (sz_lg2 < HV_HYP_PAGE_SHIFT)
-+		sz_lg2 = HV_HYP_PAGE_SHIFT;
-+
-+	/*
-+	 * A valid IOVA range shall not span bit 63. Use the maximum mask
-+	 * so the host can safely perform a full flush.
-+	 */
-+	if (WARN_ON_ONCE(sz_lg2 >= BITS_PER_LONG)) {
-+		va->as_uint64 = 0;
-+		va->page_mask_shift =
-+			BITS_PER_LONG - HV_HYP_PAGE_SHIFT;
-+		return;
-+	}
-+
-+	va->page_number =
-+		(start & GENMASK(BITS_PER_LONG - 1, sz_lg2)) >>
-+		HV_HYP_PAGE_SHIFT;
-+	va->page_mask_shift = sz_lg2 - HV_HYP_PAGE_SHIFT;
-+}
-+
-+static void hv_flush_device_domain_list(struct hv_iommu_domain *hv_domain,
-+					struct iommu_iotlb_gather *iotlb_gather)
-+{
-+	u64 status;
-+	unsigned long flags;
-+	struct hv_input_flush_device_domain_list *input;
-+
-+	local_irq_save(flags);
-+
-+	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-+	/* Clear the fixed header and the single range entry. */
-+	memset(input, 0, struct_size(input, iova_list, 1));
-+
-+	input->device_domain = hv_domain->device_domain;
-+	input->flags |= HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT;
-+	hv_iommu_calc_flush_range(iotlb_gather->start, iotlb_gather->end,
-+				  &input->iova_list[0]);
-+
-+	status = hv_do_rep_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN_LIST,
-+				     1, 0, input, NULL);
-+
-+	if (WARN_ON_ONCE(!hv_result_success(status))) {
-+		/* Page-selective flush failed, fall back to full flush. */
-+		struct hv_input_flush_device_domain *flush_all = (void *)input;
-+
-+		memset(flush_all, 0, sizeof(*flush_all));
-+		flush_all->device_domain = hv_domain->device_domain;
-+		status = hv_do_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN,
-+					 flush_all, NULL);
-+		WARN(!hv_result_success(status),
-+		     "HVCALL_FLUSH_DEVICE_DOMAIN fallback also failed: %lld\n",
-+		     status);
-+	}
-+
-+	local_irq_restore(flags);
-+}
-+
- static void hv_iommu_iotlb_sync(struct iommu_domain *domain,
- 				struct iommu_iotlb_gather *iotlb_gather)
- {
--	hv_flush_device_domain(to_hv_iommu_domain(domain));
-+	hv_flush_device_domain_list(to_hv_iommu_domain(domain), iotlb_gather);
- 
- 	iommu_put_pages_list(&iotlb_gather->freelist);
- }
-@@ -464,6 +534,7 @@ static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
- 
- 	cfg.common.hw_max_vasz_lg2 = hv_iommu_device->max_iova_width;
- 	cfg.common.hw_max_oasz_lg2 = 52;
-+	cfg.common.features |= BIT(PT_FEAT_FLUSH_RANGE);
- 	/*
- 	 * Hyper-V S1 domains use a 4-level root for IOVA widths up to
- 	 * 48 bits. A 5-level root is used only for wider apertures when
-diff --git a/include/hyperv/hvgdk_mini.h b/include/hyperv/hvgdk_mini.h
-index 5bdbb44da112..eaaf87171478 100644
---- a/include/hyperv/hvgdk_mini.h
-+++ b/include/hyperv/hvgdk_mini.h
-@@ -496,6 +496,7 @@ union hv_vp_assist_msr_contents {	 /* HV_REGISTER_VP_ASSIST_PAGE */
- #define HVCALL_GET_GPA_PAGES_ACCESS_STATES		0x00c9
- #define HVCALL_CONFIGURE_DEVICE_DOMAIN			0x00ce
- #define HVCALL_FLUSH_DEVICE_DOMAIN			0x00d0
-+#define HVCALL_FLUSH_DEVICE_DOMAIN_LIST			0x00d1
- #define HVCALL_ACQUIRE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d7
- #define HVCALL_RELEASE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d8
- #define HVCALL_MODIFY_SPARSE_GPA_PAGE_HOST_VISIBILITY	0x00db
-diff --git a/include/hyperv/hvhdk_mini.h b/include/hyperv/hvhdk_mini.h
-index 1e3eac99886a..25671ee7056d 100644
---- a/include/hyperv/hvhdk_mini.h
-+++ b/include/hyperv/hvhdk_mini.h
-@@ -674,4 +674,21 @@ struct hv_input_flush_device_domain {
- 	u32 reserved;
- } __packed;
- 
-+union hv_iommu_flush_va {
-+	u64 as_uint64;
-+	struct {
-+		u64 page_mask_shift : 6;
-+		u64 reserved : 6;
-+		u64 page_number : 52;
-+	};
-+} __packed;
-+
-+struct hv_input_flush_device_domain_list {
-+	struct hv_input_device_domain device_domain;
-+#define HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT BIT(0)
-+	u32 flags;
-+	u32 reserved;
-+	union hv_iommu_flush_va iova_list[];
-+} __packed;
-+
- #endif /* _HV_HVHDK_MINI_H */
--- 
-2.52.0
-
+Jason
