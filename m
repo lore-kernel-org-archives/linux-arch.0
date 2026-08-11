@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0A41B3B71B6;
-	Tue, 11 Aug 2026 12:11:49 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6A3EB440A2D;
+	Tue, 11 Aug 2026 12:13:39 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786450311; cv=none; b=qkf5rDq2L25ojW3JgZWbA7/eHDFNBuWyAXTUAjc5ECYnz5W89jBNCrMIN3Ub/Epn6QIsTBXkGTt2lKRgJD8xEzyPK7YNSYuP+7xuZN2CZ18bNi3z/jVn8XE7fncleGkw11E3BKH+GwJVIU+20TW7BJ9czFDWeHNGI60kVq6O23Y=
+	t=1786450420; cv=none; b=ibD9F6h2hq3hVm3GWsIhV1NsHm6QkV1ajYXKV67FzvLkZtMHEW42pYz1hxNQgf5fEAKXQbxJPJWrwrKEZq/biMRf0PCvC6awh7nnJ/zKjcrsLibCt4OemfZBRt3AxFY7Lrs7W9kOtsiaCSj86xOh8BVv9p3vvZduw3VjG6tmXRU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786450311; c=relaxed/simple;
-	bh=nInDi7/nGPIcNHx3XhP2r2B28pAKpq9pB70NVwqzbGE=;
+	s=arc-20240116; t=1786450420; c=relaxed/simple;
+	bh=iL6/GFG6s+t1x8jrnKd7ZiAEyqa22F98923kgA2GDMw=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=Gk32dfASBvrkSV3p/hImwynhbRzUr+HtWIXajxl1Ugawg3zjfRxOtkXgtyftpsFm1YpKug7I2Yav/RIeIAXkppO5Mvlv2SuAWWPyqoQC1ydgfiRE6/HOx5+hpW1LMK2rS/14o6xZNA5bnL5hTJm/v4xMD5Ec4xRzMsHk7a0/WOY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=oMzFJcn9; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=HFwXHTeuUhKkbu8UfLVDH4QlLunMUhjKtsBZYs7E2ePBr0qlCq9RyD/hSH5mmYtezNcR0ZGvpFO//i7MPSbAW4KtT/aAohvhX3NWrFFIjpQeT/t1hi4NmUsWeP2sZt4X7T1YK4++DrKQ5nIxhBXzmfHvEPbfEgdiQ6duqF1W25c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=RkcpAC+5; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="oMzFJcn9"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E88261F000E9;
-	Tue, 11 Aug 2026 12:11:33 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="RkcpAC+5"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9B71B1F000E9;
+	Tue, 11 Aug 2026 12:13:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1786450309;
-	bh=/fTG1Cghw/RG7+KE3x88oxH8TI74VawrjBf3qjRRniY=;
+	s=k20260515; t=1786450419;
+	bh=CGgWpN1i+NlUCQibsDxSg1wYekJ19m1pWqZNmrOKPiI=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=oMzFJcn9VOzkFaKMEx9vCYCdx1Pq7igNm3SDyOEjzrOpDudIApIUK8tbQWGyhMTA2
-	 t05Mkqhok9RLYIMUol0cpCiu3QthaSWyzaAoYQ2iTd1AckujJZDZf2+JmOHRJ0KvP7
-	 mcsYLS8a7sO8YaLXbyWEeOK99DFlaVD5L55J3MTekojG6h3FMWYgpjeoMH//X24lZs
-	 5lfWAxjxOdrK+/s8jDuKs0rLQeM8RFflAxNY1JPwZF3i/yhkf94kLkVqbTR4mmJWjo
-	 hK2SQwlx7kI/9C/spjKPKM5IkvDG9SLQ6RAQ5o7kkbgcPTchuBQb5gh+4ZPvUgW8mp
-	 IkyibBYe3lp/w==
-Message-ID: <e9de4158-b829-471b-980c-1999959bbc48@kernel.org>
-Date: Tue, 11 Aug 2026 14:11:31 +0200
+	b=RkcpAC+5i4iSwbVpCxb06SLXvRgB782ALB84/TQxbTDsFJxQ5DiaF6Bp9c8FvbA3M
+	 Hw6qFCNlrIk9kXEfnuVEQh1avOTlL5YZt9ow61jljcQsx/yrR5jqeslE5e045TlXgt
+	 L85v95miw9GM4em2SbtXJrE1VkcYIU4bcIS3RV8zKn3uTM4lWTlhOaj9NCX/p7MKOZ
+	 c4LPOrEL3PlyPY3jf82d4hs3KT1kwpDoGED4XKrRRwLgWsykwgAwdKPOCNr7iiF512
+	 QmNsLrUt6/McOxB2NV3VzFsNHVab6z1nwLZ42zMkRmvA+uLHQHuTnNUZ9lfMIgcJ7c
+	 NdAouu7sF6I0g==
+Message-ID: <16f37d27-657a-4dd3-8935-975fce5a82b2@kernel.org>
+Date: Tue, 11 Aug 2026 14:13:28 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,52 +35,22 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 6/9] mm: convert PTE table entry to pte
-To: Muhammad Usama Anjum <usama.anjum@arm.com>,
- Alexander Gordeev <agordeev@linux.ibm.com>
-Cc: Jani Nikula <jani.nikula@linux.intel.com>,
- Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
- Rodrigo Vivi <rodrigo.vivi@intel.com>, Tvrtko Ursulin
- <tursulin@ursulin.net>, David Airlie <airlied@gmail.com>,
- Simona Vetter <simona@ffwll.ch>, Dimitri Sivanich
- <dimitri.sivanich@hpe.com>, Arnd Bergmann <arnd@arndb.de>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
- Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>,
- Stefano Stabellini <sstabellini@kernel.org>,
- Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
- Andrew Morton <akpm@linux-foundation.org>,
- "Liam R. Howlett" <liam@infradead.org>, Lorenzo Stoakes <ljs@kernel.org>,
- Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
- Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Andrey Ryabinin <ryabinin.a.a@gmail.com>,
- Pasha Tatashin <pasha.tatashin@soleen.com>, Chris Li <chrisl@kernel.org>,
- Kairui Song <kasong@tencent.com>, Uladzislau Rezki <urezki@gmail.com>,
- Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu
- <mhiramat@kernel.org>, Alexei Starovoitov <ast@kernel.org>,
- Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
- Eduard Zingerman <eddyz87@gmail.com>,
- Kumar Kartikeya Dwivedi <memxor@gmail.com>, Ingo Molnar <mingo@redhat.com>,
- Arnaldo Carvalho de Melo <acme@kernel.org>,
- Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>,
- Miaohe Lin <linmiaohe@huawei.com>, Dennis Zhou <dennis@kernel.org>,
- Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>,
- Mike Rapoport <rppt@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>,
- ziy@nvidia.com, pfalcato@suse.de, ryan.roberts@arm.com,
- linux-kernel@vger.kernel.org, intel-gfx@lists.freedesktop.org,
- dri-devel@lists.freedesktop.org, linux-parisc@vger.kernel.org,
- xen-devel@lists.xenproject.org, linux-mm@kvack.org,
- linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- kasan-dev@googlegroups.com, linux-trace-kernel@vger.kernel.org,
- bpf@vger.kernel.org, linux-perf-users@vger.kernel.org, damon@lists.linux.dev
-References: <20260806083926.1807279-1-usama.anjum@arm.com>
- <20260806083926.1807279-7-usama.anjum@arm.com>
- <fab9fc78-1e1d-4d5b-a9ca-92f3ebd04108-agordeev@linux.ibm.com>
- <5c329236-7761-4e42-a549-b822e43b4358@arm.com>
- <2599c5b3-e8ac-4865-993b-d41e6f060d52-agordeev@linux.ibm.com>
- <f0b0dacb-fb83-4402-b0ea-30072727dfd7@arm.com>
+Subject: Re: [PATCH v6] coredump: Add bit 9 of coredump_filter for pre-exit
+ files before dumping
+To: Xin Zhao <jackzxcui1989@163.com>
+Cc: akpm@linux-foundation.org, alex.aring@gmail.com, allen.lkml@gmail.com,
+ arnd@arndb.de, brauner@kernel.org, chuck.lever@oracle.com, corbet@lwn.net,
+ ebiederm@xmission.com, j.granados@samsung.com, jack@suse.cz,
+ jlayton@kernel.org, juri.lelli@redhat.com, keescook@chromium.org,
+ kuba@kernel.org, liam@infradead.org, linux-arch@vger.kernel.org,
+ linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org, ljs@kernel.org,
+ mcgrof@kernel.org, mhocko@suse.com, mingo@redhat.com, mjguzik@gmail.com,
+ peterz@infradead.org, pfalcato@suse.de, rppt@kernel.org,
+ skhan@linuxfoundation.org, surenb@google.com, vbabka@kernel.org,
+ vincent.guittot@linaro.org, viro@zeniv.linux.org.uk
+References: <8c763f1b-85ad-44b9-b36c-becd7598fe77@kernel.org>
+ <20260806151232.1263773-1-jackzxcui1989@163.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -127,80 +97,34 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <f0b0dacb-fb83-4402-b0ea-30072727dfd7@arm.com>
+In-Reply-To: <20260806151232.1263773-1-jackzxcui1989@163.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 8/10/26 13:06, Muhammad Usama Anjum wrote:
-> On 10/08/2026 7:44 am, Alexander Gordeev wrote:
->> On Fri, Aug 07, 2026 at 05:26:04PM +0100, Muhammad Usama Anjum wrote:
->>> Yes, this is particular line is for non MMU. In this case, CONIFG_ARCH_HAS_HW_PTE
->>> would never be defined. Hence hw_pte_t is just pte_t and direct dereference is
->>> allowed. I'd thought a lot about it; is better to leave direct dereference here
->>> or use some helper. Then used __pte_from_hw() was already being used in generic
->>> ptep_get().
+On 8/6/26 17:12, Xin Zhao wrote:
+> On Thu, 6 Aug 2026 16:01:55 +0200 "David Hildenbrand (Arm)" <david@kernel.org> wrote:
+> 
+>>> diff --git a/Documentation/filesystems/proc.rst b/Documentation/filesystems/proc.rst
+>>> index db6167bef..d590a1dda 100644
+>>> --- a/Documentation/filesystems/proc.rst
+>>> +++ b/Documentation/filesystems/proc.rst
+>>> @@ -1939,6 +1939,7 @@ The following 9 memory types are supported:
+>>>    - (bit 6) hugetlb shared memory
+>>>    - (bit 7) DAX private memory
+>>>    - (bit 8) DAX shared memory
+>>> +  - (bit 9) fd list
 >>
->> But in case CONIFG_ARCH_HAS_HW_PTE=n __pte_from_hw() is still gets called.
->> That looks inconsistent to me. Why not just call ptep_deref() (see below)?
-> 
-> Agreed. Calling __pte_from_hw() directly exposes the representation
-> conversion at the call site. I will introduce ptep_deref() and use it
-> here.
-> 
+>> "The following 9 memory types are supported: ... fd list"
 >>
->>> There are only two users of __pte_from_hw() at this time. 
->>>
->>> ptep_get_sw() or ptep_get_deref() is better name here?
->>
->> ptep_deref() would be it.
->>
->> Do you agree to the suggested API requirements?
+>> What?
 > 
-> Yes. hw_pte_t * identifies storage containing hardware-formatted PTEs,
-> regardless of whether it is attached. ptep_get() is used for attached
-> entries and may provide additional architecture-specific handling.
-> ptep_deref() is used for unattached entries and performs only the raw
-> storage-to-value conversion.
-> 
-> For review, this patch would become:
-> 
-> diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
-> index bc0b9c65aa1d0..ce900d2652d91 100644
-> --- a/include/linux/hugetlb.h
-> +++ b/include/linux/hugetlb.h
-> @@ -1283,7 +1283,7 @@ static inline pte_t huge_ptep_clear_flush(struct vm_area_struct *vma,
->  #ifdef CONFIG_MMU
->  	return ptep_get(ptep);
->  #else
-> -	return *ptep;
-> +	return ptep_deref(ptep);
->  #endif
->  }
->  
-> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-> index 1768421755a9c..08613593f3320 100644
-> --- a/include/linux/pgtable.h
-> +++ b/include/linux/pgtable.h
-> @@ -490,6 +490,13 @@ static inline int pudp_set_access_flags(struct vm_area_struct *vma,
->  #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
->  #endif
->  
-> +#ifndef ptep_deref
-> +static inline pte_t ptep_deref(hw_pte_t *ptep)
-> +{
-> +	return __pte_from_hw(*ptep);
-> +}
-> +#endif
-> +
->  #ifndef ptep_get
->  static inline pte_t ptep_get(hw_pte_t *ptep)
->  {
-> 
+> Thank you. It is a silly mistake. I'll fix it.
 
-I mean, how many such users do we expect? 1? :)
+FWIW, that's not what I meant. We talk about "memory types" and then you throw
+in a fd list.
 
-Why have a helper for that then, that seems to encourage it's use, when really
-people should be using ptep_get() ?
+This all doesn't make sense, really. As Christian says, the whole approach is
+flawed. Sorry :)
 
 -- 
 Cheers,
