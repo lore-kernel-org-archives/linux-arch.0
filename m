@@ -1,178 +1,201 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id D732F3264F9;
-	Tue, 11 Aug 2026 10:58:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com [209.85.221.51])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 711573806D9
+	for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2026 11:19:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786445894; cv=none; b=sVCiqcT3bTvkB9v0o0ir78TJ2u9EZTARSt+CsV+7LC9LkwL5rsRb513l11dhHJsvqwirFd9fi68STvT793lgBxhOlkO971jUc+80qB92xvC2PtNIIeePbuXulvmCFuCXJ8yK5M994XSq8ZEhXcyvOZGXNBxSBydDqqHEV56YCrs=
+	t=1786447188; cv=none; b=ceb8WJn1kJVBnPz+vdwv5gJu+IntUVEq8wlun4bkZI6WA14QYIh4CgKbVqTLp10qyBiFPm7ZNmAlh6K7SWMjPJvUQorhgUm93yQAaSa98XOFJbQF4tUJ8dXEhzPk/rehJ7Upibw7vmir7Yb7G6EsyGOb1gp/dhjmEBRdXuJJfR0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786445894; c=relaxed/simple;
-	bh=E2Q5I65meboDct+4hfaKsQDzSd1S1/tsAKEVH3DzJwo=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=oD/4e6ytZCSAphAmmUHPkFfz5ytN/OqEjuAIM0jmRwttlAKncQfXahDYQciEQawFge8V5PR4LGsNepPUkUZs7DIDiWOaNJFtb/3LlHgJM3orPZxYE8hEhZaaxBY6Z3bGa5ZKPVCy5xXGkW8B/MeEZS/E1aeb3PWFCLf3kZ0D77k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=tKGjJivw; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1786447188; c=relaxed/simple;
+	bh=1SHCK5t3ErZgbkd5/bMFTQiVvMK8i5VxwUfjw14JCqE=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=kRIEq6deuRX4Eqlo0Dg/OiTsh71MHJTWpmusUuKrLM1hMAhuUPL2P5sSAaEVskD3Tc+xUC6VoRX14S81zhsIvejnRrx3Z3UCgjRRQbmHTQi+vESVQuO9RTZexzdk5lipTLWK53mPBBW/+bQHLxmEJaN7sXKJse7SbovUkXBSmjA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=S2rxrJaR; arc=none smtp.client-ip=209.85.221.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="tKGjJivw"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 424FA1516;
-	Tue, 11 Aug 2026 03:58:08 -0700 (PDT)
-Received: from localhost (a085714.arm.com [10.164.19.28])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 820043F86F;
-	Tue, 11 Aug 2026 03:58:11 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1786445892; bh=E2Q5I65meboDct+4hfaKsQDzSd1S1/tsAKEVH3DzJwo=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=tKGjJivwGyrqmHqJQhgHkKc1NYH5dpUS0DWnYV/mVHQACS1frf2TRd2UhTyMG8JvA
-	 Bw0BndUTcgOm1QZBl4JI/V5svJA1QNwOZVE/G2oL5rd2q44W5xc5apxl/s1/v2NISQ
-	 JQrQY7r9UAbIHixEwxX6nTsx2ykLpYcEoEZ681SE=
-Date: Tue, 11 Aug 2026 16:28:09 +0530
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-To: Muhammad Usama Anjum <usama.anjum@arm.com>
-Cc: Jani Nikula <jani.nikula@linux.intel.com>, 
-	Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, 
-	Tvrtko Ursulin <tursulin@ursulin.net>, David Airlie <airlied@gmail.com>, 
-	Simona Vetter <simona@ffwll.ch>, Dimitri Sivanich <dimitri.sivanich@hpe.com>, 
-	Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
-	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>, 
-	Stefano Stabellini <sstabellini@kernel.org>, Muchun Song <muchun.song@linux.dev>, 
-	Oscar Salvador <osalvador@suse.de>, Andrew Morton <akpm@linux-foundation.org>, 
-	"Liam R. Howlett" <liam@infradead.org>, Lorenzo Stoakes <ljs@kernel.org>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, 
-	David Hildenbrand <david@kernel.org>, Pasha Tatashin <pasha.tatashin@soleen.com>, 
-	Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
-	Uladzislau Rezki <urezki@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Alexei Starovoitov <ast@kernel.org>, 
-	Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>, 
-	Eduard Zingerman <eddyz87@gmail.com>, Kumar Kartikeya Dwivedi <memxor@gmail.com>, 
-	Ingo Molnar <mingo@redhat.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, 
-	Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>, 
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Jason Gunthorpe <jgg@ziepe.ca>, 
-	Leon Romanovsky <leon@kernel.org>, Miaohe Lin <linmiaohe@huawei.com>, 
-	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>, 
-	Mike Rapoport <rppt@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, ziy@nvidia.com, 
-	pfalcato@suse.de, agordeev@linux.ibm.com, ryan.roberts@arm.com, 
-	linux-kernel@vger.kernel.org, intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org, 
-	linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-mm@kvack.org, 
-	linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, 
-	linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org, linux-perf-users@vger.kernel.org, 
-	damon@lists.linux.dev
-Subject: Re: [PATCH 3/9] mm: name pointers to copied PTE values ptentp
-Message-ID: <e7osakog3yvdewhdlrk3bsp27pwt2nnhroeb7zihlfxyjotarb@rwxkcb25crh3>
-References: <20260806083926.1807279-1-usama.anjum@arm.com>
- <20260806083926.1807279-4-usama.anjum@arm.com>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="S2rxrJaR"
+Received: by mail-wr1-f51.google.com with SMTP id ffacd0b85a97d-47f71156e1aso1227537f8f.3
+        for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2026 04:19:46 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1786447185; x=1787051985; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=WpHpX3dMx1OmUziffO2NidzvFmW3rlX7MNbm6J/WhK0=;
+        b=S2rxrJaRRhZH/uITPBh/pasLsALBKQI5v8IfGdfU2m8kLw5IlGyZkMCp5cqNmfj1Wf
+         V3BFIXB9Hp5zY9kSwFgVLs0OLJ5t7yykxgN0dkg9GaW/vLqNaUl+USBmAkzqJlwT2eR9
+         nnrBYXAjqs1tZoqiHc5Pgbe/hct8/ZvtLC9K9csz7j80nRx8kjpczpY0mvKm090QdXl1
+         wmjiKAUVSj/I+tO0d3/WOUUtM8DFfhz8KzIzxBan+XGcUbRqV0A26M6ghh+DSGQx7cUg
+         bipk9Y6XuHKj9FF9Uzq1CEmtDxJ+h8f30elZkq4CINtLC6ULezdYmiwg02Wx0zrcZ5Va
+         6JiA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1786447185; x=1787051985;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=WpHpX3dMx1OmUziffO2NidzvFmW3rlX7MNbm6J/WhK0=;
+        b=eb2WCUc/WXXBylufyknoJz6Y9AvtxIStT1z/E8f/Zo/O3VW+bfTw8ZrBhJLSc3PP5A
+         bkcjr8NOd2Zr6y7b+Zcr1EuzSTlALJ+uRObC5hr39gqoXiqP6y2KbQV+Hjvd9rHVUo+G
+         3YYZr+WEt40bTzDBgEUXQR8HNMcjr47+8CKoavtDySnwFUB1mZ4yzzIHCu/3Yq03wA5I
+         XmhXKJ+DRt7KWyOla0PsuBkPd2HssZwv2RvFTd4qYlHx2sShTPrOzjXSwno1CnFan46E
+         7+5BYrfTM92iJJKoslO2dQEU6BiRZvE9SM2yxLq4RpOBI2BavAa9NcHePLX3CLBCQxyT
+         5LcQ==
+X-Forwarded-Encrypted: i=1; AHgh+RpktjOuGCIIJS2GqqtJTfDh2ThLw8lDoc0hFjQviUdIDL0IQ0/D0VxuvMGwl6kVFMlHI/TaH9PRA2lF@vger.kernel.org
+X-Gm-Message-State: AOJu0YyWnUgqHmd/MEj0p7QhaxRWE0B6JY8cj2gQ9xo/sazgnFQ1yoqn
+	sDxd8ZmO2RPD6ZGKHPI0QjEnIHbxbA0Qcfdztsdg3ZOVLuPHMQDH0pkH
+X-Gm-Gg: AR+sD11L0Th/SihysLL1vpFghCR/kOBoNE79uxLYnkk7am/xRx9xKJWZcoYjzpygsHd
+	f1uU89xQi2tuwi7BWubcTsfKqlsMcwA/K9SDTeuSeaaf4g3kDKqkbRAcg2AA8cRxSAiKHlEA69i
+	yMDM1R0FoEkM9l1iHICRq90KW80838VYqPay2efNLHnlU9SgpP1ejV5quWbgmf+x93zY7gTvDje
+	lk25Yp1DDYT9h1aBImTD/4QMT10VUl5dd9VvO500Y9D2tdSDeLDhMUJZfoQ/9pT4/SLEB6H/d0C
+	itOAjL5NQA4QDnvCUt0/5tJjvsgP+XOH8Tnxd1Quvsl1bwAcCRd0Zsyl8M//Ql3Cn6JbMo02roK
+	Llz5L3HPKO94kTkcK/rLkFypCnZwo/feHOcjCdRwD+yEz2wN9EkcyjIp2UcAjVNwKm1bDkMnI37
+	3FzMAQn8EZ6vP+h5Q+g8ZhS2tOlAFvvE8iEymOXr+DT7OpiPMwZHadmwof0MYw5bm60jgVhKYa6
+	T/aht5FVZHUYVoXfCx8xKa54w==
+X-Received: by 2002:a5d:5e8f:0:b0:47f:6f6a:6a7f with SMTP id ffacd0b85a97d-4814ad890fbmr4370323f8f.8.1786447184497;
+        Tue, 11 Aug 2026 04:19:44 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-4814a5ac75dsm3318120f8f.7.2026.08.11.04.19.42
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 11 Aug 2026 04:19:44 -0700 (PDT)
+Date: Tue, 11 Aug 2026 12:19:41 +0100
+From: David Laight <david.laight.linux@gmail.com>
+To: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: "David Hildenbrand (Arm)" <david@kernel.org>, "Christophe Leroy (CS
+ GROUP)" <chleroy@kernel.org>, linux-mm@kvack.org, Andrew Morton
+ <akpm@linux-foundation.org>, Lorenzo Stoakes <ljs@kernel.org>, "Liam R.
+ Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, Mike
+ Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, Michal
+ Hocko <mhocko@suse.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Russell King <linux@armlinux.org.uk>, Catalin Marinas
+ <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ryan Roberts
+ <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, Huacai Chen
+ <chenhuacai@kernel.org>, loongarch@lists.linux.dev, "James E.J. Bottomley"
+ <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>,
+ linux-parisc@vger.kernel.org, Madhavan Srinivasan <maddy@linux.ibm.com>,
+ Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Paul
+ Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
+ <aou@eecs.berkeley.edu>, linux-riscv@lists.infradead.org, Heiko Carstens
+ <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev
+ <agordeev@linux.ibm.com>, Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
+ linux-s390@vger.kernel.org, "David S. Miller" <davem@davemloft.net>,
+ Andreas Larsson <andreas@gaisler.com>, sparclinux@vger.kernel.org, Richard
+ Weinberger <richard@nod.at>, Anton Ivanov
+ <anton.ivanov@cambridgegreys.com>, Johannes Berg
+ <johannes@sipsolutions.net>, linux-um@lists.infradead.org, Thomas Gleixner
+ <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
+ <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin"
+ <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra
+ <peterz@infradead.org>, Ning Sun <ning.sun@intel.com>, x86@kernel.org,
+ tboot-devel@lists.sourceforge.net, Ard Biesheuvel <ardb@kernel.org>, Ilias
+ Apalodimas <ilias.apalodimas@linaro.org>, linux-efi@vger.kernel.org, Vishal
+ Moola <vishal.moola@gmail.com>, Alistair Popple <apopple@nvidia.com>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+ linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH 03/22] mm: introduce MMF_KERNEL flag and set it for
+ init_mm
+Message-ID: <20260811121941.4ca20b88@pumpkin>
+In-Reply-To: <643a624d-0106-44ed-a7f5-aaf9316f94fd@arm.com>
+References: <20260714-remove_pgtable_cdtor-v1-0-44be8a7685d7@arm.com>
+	<20260714-remove_pgtable_cdtor-v1-3-44be8a7685d7@arm.com>
+	<01f07ea2-8bdd-4450-8a49-548f8b646cfd@kernel.org>
+	<33fc9d31-2866-4315-9510-0004deb93994@kernel.org>
+	<20260811091016.5ca67143@pumpkin>
+	<643a624d-0106-44ed-a7f5-aaf9316f94fd@arm.com>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260806083926.1807279-4-usama.anjum@arm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 
-Subject line is very confusing. Perhaps something like the following.
+On Tue, 11 Aug 2026 11:00:09 +0200
+Kevin Brodsky <kevin.brodsky@arm.com> wrote:
 
-mm: Rename pointers to copied PTE values as ptentp
+> On 11/08/2026 10:10, David Laight wrote:
+> > On Wed, 5 Aug 2026 14:07:01 +0200
+> > "David Hildenbrand (Arm)" <david@kernel.org> wrote:
+> > =20
+> >> On 8/3/26 15:59, Christophe Leroy (CS GROUP) wrote: =20
+> >>>
+> >>> Le 14/07/2026 =C3=A0 16:03, Kevin Brodsky a =C3=A9crit=C2=A0:   =20
+> >>>> mm code often needs to know whether some mm represents a kernel or
+> >>>> user address space. This is currently done by comparing the mm
+> >>>> pointer with &init_mm; besides not being particularly elegant, this
+> >>>> ignores the fact that other mm's (e.g. efi_mm) may also represent
+> >>>> parts of the kernel address space.
+> >>>>
+> >>>> Introduce a new mm flag MMF_KERNEL and set it for init_mm.
+> >>>> Subsequent patches will use this flag to replace comparisons with
+> >>>> &init_mm. No functional change is introduced for now.   =20
+> >>> Did you consider performance impact ? This test is usually done in qu=
+ite
+> >>> critical memory handling functions.
+> >>>
+> >>> init_mm is known at link time. Before your patch 08/22 there is just a
+> >>> comparison of mm (r3) with a constant (loaded in r10):
+> >>>
+> >>> c0014048 <assert_pte_locked>:
+> >>> c0014048:=C2=A0=C2=A0=C2=A0 3d 40 c1 09=C2=A0=C2=A0=C2=A0=C2=A0 lis=
+=C2=A0=C2=A0=C2=A0=C2=A0 r10,-16119
+> >>> c001404c:=C2=A0=C2=A0=C2=A0 39 4a 03 98=C2=A0=C2=A0=C2=A0=C2=A0 addi=
+=C2=A0=C2=A0=C2=A0 r10,r10,920
+> >>> c0014050:=C2=A0=C2=A0=C2=A0 7c 03 50 00=C2=A0=C2=A0=C2=A0=C2=A0 cmpw=
+=C2=A0=C2=A0=C2=A0 r3,r10
+> >>> c0014054:=C2=A0=C2=A0=C2=A0 4d 82 00 20=C2=A0=C2=A0=C2=A0=C2=A0 beqlr
+> >>> ...
+> >>>
+> >>> After patch 08/22 we have, it first checks that mm is not 0, then it =
+loads the
+> >>> word located at mm+528 then AND it with 0x1. This load might be costl=
+y.
+> >>>
+> >>> c0014048 <assert_pte_locked>:
+> >>> c0014048:=C2=A0=C2=A0=C2=A0 2c 03 00 00=C2=A0=C2=A0=C2=A0=C2=A0 cmpwi=
+=C2=A0=C2=A0 r3,0
+> >>> c001404c:=C2=A0=C2=A0=C2=A0 7c 85 23 78=C2=A0=C2=A0=C2=A0=C2=A0 mr=C2=
+=A0=C2=A0=C2=A0=C2=A0=C2=A0 r5,r4
+> >>> c0014050:=C2=A0=C2=A0=C2=A0 41 82 00 10=C2=A0=C2=A0=C2=A0=C2=A0 beq=
+=C2=A0=C2=A0=C2=A0=C2=A0 c0014060 <assert_pte_locked+0x18>
+> >>> c0014054:=C2=A0=C2=A0=C2=A0 81 23 02 10=C2=A0=C2=A0=C2=A0=C2=A0 lwz=
+=C2=A0=C2=A0=C2=A0=C2=A0 r9,528(r3)
+> >>> c0014058:=C2=A0=C2=A0=C2=A0 71 29 00 01=C2=A0=C2=A0=C2=A0=C2=A0 andi.=
+=C2=A0=C2=A0 r9,r9,1
+> >>> c001405c:=C2=A0=C2=A0=C2=A0 4c 82 00 20=C2=A0=C2=A0=C2=A0=C2=A0 bnelr=
+   =20
+> >> Is that a real problem, though? =20
+> > The cost of the read is likely to matter most if the branch gets mispre=
+dicted.
+> > I'd also guess the mm isn't usually NULL - so that branch needs to stat=
+ically
+> > predicted correctly as well.
+> > I'd also not assume that the mm is in the cache (unless the surrounding=
+ code
+> > has already accessed it), the L1 data caches are small. =20
+>=20
+> You're right, I didn't think about this the right way round - in general
+> it may not be easy to predict that mm points to init_mm, and an
+> arbitrary user mm isn't guaranteed to be cached. Repeated calls to
+> mm_is_kernel(mm) in the same function shouldn't cost much though.
 
-But even 'copied PTE values' is not very clear as well.
+Depends.
+If it is real function call the code will be in the I-cache and is likely
+to get predicted correctly by the third call.
+OTOH if inlined you've all the I-cache loads and that static branch
+prediction might get them all wrong.
 
-On Thu, Aug 06, 2026 at 09:38:41AM +0100, Muhammad Usama Anjum wrote:
-> The hw_pte_t conversion must retain pte_t * for pointers to standalone PTE
+Oh, and saving the result in a local might cause a register spill.
 
-We need to explain what is `standalone PTE values` first.
+	David
 
-> values. Name the value parameters ptentp in the install_pte callback,
-> write_protect_page(), and guard_install_set_pte() so the later mechanical
-> conversion can distinguish them from pointers to PTE table storage.
-> 
-> Some functions already use the ptentp name, including:
-> - madvise_folio_pte_batch()
-> - folio_pte_batch_flags()
-> No need to convert them.
-> 
-> This is a naming-only change.
+>=20
+> Would some (micro)benchmark be particularly relevant to measure the
+> overhead, if any?
+>=20
+> - Kevin
 
-Small nit - s/naming-only/rename
-
-The commit message needs rewrite clearly explaining the following details
-
-- What are standalone PTE values
-- How these are different from HW pgtable pointers
-- Change is just a rename for pointers into such 'standalone PTE'
-- These renamed 'ptentp' here would be used for skip or replaced during
-  upcoming mechanical change via a script
-- No functional changes intended
-
-> 
-> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
-> ---
-> Changes since RFC v1:
-> - Update the description for the architecture opt-in conversion.
-> ---
->  include/linux/pagewalk.h | 2 +-
->  mm/ksm.c                 | 4 ++--
->  mm/madvise.c             | 4 ++--
->  3 files changed, 5 insertions(+), 5 deletions(-)
-> 
-> diff --git a/include/linux/pagewalk.h b/include/linux/pagewalk.h
-> index b41d7265c01bc..c34d826c5e4a2 100644
-> --- a/include/linux/pagewalk.h
-> +++ b/include/linux/pagewalk.h
-> @@ -89,7 +89,7 @@ struct mm_walk_ops {
->  		       struct mm_walk *walk);
->  	void (*post_vma)(struct mm_walk *walk);
->  	int (*install_pte)(unsigned long addr, unsigned long next,
-> -			   pte_t *ptep, struct mm_walk *walk);
-> +			   pte_t *ptentp, struct mm_walk *walk);
->  	enum page_walk_lock walk_lock;
->  };
->  
-> diff --git a/mm/ksm.c b/mm/ksm.c
-> index ad05d7791307e..11d50518d02e9 100644
-> --- a/mm/ksm.c
-> +++ b/mm/ksm.c
-> @@ -1292,7 +1292,7 @@ static u32 calc_checksum(struct page *page)
->  }
->  
->  static int write_protect_page(struct vm_area_struct *vma, struct folio *folio,
-> -			      pte_t *orig_pte)
-> +			      pte_t *ptentp)
->  {
->  	struct mm_struct *mm = vma->vm_mm;
->  	DEFINE_FOLIO_VMA_WALK(pvmw, folio, vma, 0, 0);
-> @@ -1371,7 +1371,7 @@ static int write_protect_page(struct vm_area_struct *vma, struct folio *folio,
->  
->  		set_pte_at(mm, pvmw.address, pvmw.pte, entry);
->  	}
-> -	*orig_pte = entry;
-> +	*ptentp = entry;
->  	err = 0;
->  
->  out_unlock:
-> diff --git a/mm/madvise.c b/mm/madvise.c
-> index 07a21ca31bad4..c324cc991f841 100644
-> --- a/mm/madvise.c
-> +++ b/mm/madvise.c
-> @@ -1101,12 +1101,12 @@ static int guard_install_pte_entry(pte_t *pte, unsigned long addr,
->  }
->  
->  static int guard_install_set_pte(unsigned long addr, unsigned long next,
-> -				 pte_t *ptep, struct mm_walk *walk)
-> +				 pte_t *ptentp, struct mm_walk *walk)
->  {
->  	unsigned long *nr_pages = (unsigned long *)walk->private;
->  
->  	/* Simply install a PTE marker, this causes segfault on access. */
-> -	*ptep = make_pte_marker(PTE_MARKER_GUARD);
-> +	*ptentp = make_pte_marker(PTE_MARKER_GUARD);
->  	(*nr_pages)++;
->  
->  	return 0;
-> -- 
-> 2.47.3
->
-
-How did we ensure that the above changes are comprehensive and nothing
-else got left in here ?
