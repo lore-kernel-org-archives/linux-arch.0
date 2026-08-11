@@ -1,201 +1,263 @@
-Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com [209.85.221.51])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from MRWPR03CU001.outbound.protection.outlook.com (mail-francesouthazon11011012.outbound.protection.outlook.com [40.107.130.12])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 711573806D9
-	for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2026 11:19:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.51
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786447188; cv=none; b=ceb8WJn1kJVBnPz+vdwv5gJu+IntUVEq8wlun4bkZI6WA14QYIh4CgKbVqTLp10qyBiFPm7ZNmAlh6K7SWMjPJvUQorhgUm93yQAaSa98XOFJbQF4tUJ8dXEhzPk/rehJ7Upibw7vmir7Yb7G6EsyGOb1gp/dhjmEBRdXuJJfR0=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786447188; c=relaxed/simple;
-	bh=1SHCK5t3ErZgbkd5/bMFTQiVvMK8i5VxwUfjw14JCqE=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=kRIEq6deuRX4Eqlo0Dg/OiTsh71MHJTWpmusUuKrLM1hMAhuUPL2P5sSAaEVskD3Tc+xUC6VoRX14S81zhsIvejnRrx3Z3UCgjRRQbmHTQi+vESVQuO9RTZexzdk5lipTLWK53mPBBW/+bQHLxmEJaN7sXKJse7SbovUkXBSmjA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=S2rxrJaR; arc=none smtp.client-ip=209.85.221.51
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9583F3B058E;
+	Tue, 11 Aug 2026 11:26:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.107.130.12
+ARC-Seal:i=3; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1786447567; cv=fail; b=LQcIhdnaA6bNnnSUoyVPI4FtJd7AuYqTC0uLQ4ZR0FD2YfxVy2or/n/ArVmz1gUZLv6GTqdRYTrZfR6p/b23UxH0vDpbIxLV6AUBj6inF9jB49ajJJ3MxT/S/ZxBovB9nCGiZlBRsmnZxKskgTHyWfN6MP3ddf/gSbQSXqXPAd4=
+ARC-Message-Signature:i=3; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1786447567; c=relaxed/simple;
+	bh=Rb6FDDcLLcUSL5xgsdgWtnCQY2VoZoavAvmLYFfEH1E=;
+	h=Message-ID:Date:Cc:Subject:To:References:From:In-Reply-To:
+	 Content-Type:MIME-Version; b=PPzu0OYy2kG7Wk4Gsr2ubwWwR+cd2ihR/Hf25PX48Oju0kifi5dO3OcJCrq+tY4NtGF9h8Dt4/bvYZfaB5t05zxVINPCly3Kkt2wyXaPJ0nhgdsT2y4Y9mCFrdLcptriTsT967MHv3YJ0yGmJVldXTPzHNnxOC8zEsw+2KloGwY=
+ARC-Authentication-Results:i=3; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=ZDqaLm7g; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=ZDqaLm7g; arc=fail smtp.client-ip=40.107.130.12
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="S2rxrJaR"
-Received: by mail-wr1-f51.google.com with SMTP id ffacd0b85a97d-47f71156e1aso1227537f8f.3
-        for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2026 04:19:46 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1786447185; x=1787051985; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:mime-version:references
-         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=WpHpX3dMx1OmUziffO2NidzvFmW3rlX7MNbm6J/WhK0=;
-        b=S2rxrJaRRhZH/uITPBh/pasLsALBKQI5v8IfGdfU2m8kLw5IlGyZkMCp5cqNmfj1Wf
-         V3BFIXB9Hp5zY9kSwFgVLs0OLJ5t7yykxgN0dkg9GaW/vLqNaUl+USBmAkzqJlwT2eR9
-         nnrBYXAjqs1tZoqiHc5Pgbe/hct8/ZvtLC9K9csz7j80nRx8kjpczpY0mvKm090QdXl1
-         wmjiKAUVSj/I+tO0d3/WOUUtM8DFfhz8KzIzxBan+XGcUbRqV0A26M6ghh+DSGQx7cUg
-         bipk9Y6XuHKj9FF9Uzq1CEmtDxJ+h8f30elZkq4CINtLC6ULezdYmiwg02Wx0zrcZ5Va
-         6JiA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786447185; x=1787051985;
-        h=content-transfer-encoding:content-type:mime-version:references
-         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=WpHpX3dMx1OmUziffO2NidzvFmW3rlX7MNbm6J/WhK0=;
-        b=eb2WCUc/WXXBylufyknoJz6Y9AvtxIStT1z/E8f/Zo/O3VW+bfTw8ZrBhJLSc3PP5A
-         bkcjr8NOd2Zr6y7b+Zcr1EuzSTlALJ+uRObC5hr39gqoXiqP6y2KbQV+Hjvd9rHVUo+G
-         3YYZr+WEt40bTzDBgEUXQR8HNMcjr47+8CKoavtDySnwFUB1mZ4yzzIHCu/3Yq03wA5I
-         XmhXKJ+DRt7KWyOla0PsuBkPd2HssZwv2RvFTd4qYlHx2sShTPrOzjXSwno1CnFan46E
-         7+5BYrfTM92iJJKoslO2dQEU6BiRZvE9SM2yxLq4RpOBI2BavAa9NcHePLX3CLBCQxyT
-         5LcQ==
-X-Forwarded-Encrypted: i=1; AHgh+RpktjOuGCIIJS2GqqtJTfDh2ThLw8lDoc0hFjQviUdIDL0IQ0/D0VxuvMGwl6kVFMlHI/TaH9PRA2lF@vger.kernel.org
-X-Gm-Message-State: AOJu0YyWnUgqHmd/MEj0p7QhaxRWE0B6JY8cj2gQ9xo/sazgnFQ1yoqn
-	sDxd8ZmO2RPD6ZGKHPI0QjEnIHbxbA0Qcfdztsdg3ZOVLuPHMQDH0pkH
-X-Gm-Gg: AR+sD11L0Th/SihysLL1vpFghCR/kOBoNE79uxLYnkk7am/xRx9xKJWZcoYjzpygsHd
-	f1uU89xQi2tuwi7BWubcTsfKqlsMcwA/K9SDTeuSeaaf4g3kDKqkbRAcg2AA8cRxSAiKHlEA69i
-	yMDM1R0FoEkM9l1iHICRq90KW80838VYqPay2efNLHnlU9SgpP1ejV5quWbgmf+x93zY7gTvDje
-	lk25Yp1DDYT9h1aBImTD/4QMT10VUl5dd9VvO500Y9D2tdSDeLDhMUJZfoQ/9pT4/SLEB6H/d0C
-	itOAjL5NQA4QDnvCUt0/5tJjvsgP+XOH8Tnxd1Quvsl1bwAcCRd0Zsyl8M//Ql3Cn6JbMo02roK
-	Llz5L3HPKO94kTkcK/rLkFypCnZwo/feHOcjCdRwD+yEz2wN9EkcyjIp2UcAjVNwKm1bDkMnI37
-	3FzMAQn8EZ6vP+h5Q+g8ZhS2tOlAFvvE8iEymOXr+DT7OpiPMwZHadmwof0MYw5bm60jgVhKYa6
-	T/aht5FVZHUYVoXfCx8xKa54w==
-X-Received: by 2002:a5d:5e8f:0:b0:47f:6f6a:6a7f with SMTP id ffacd0b85a97d-4814ad890fbmr4370323f8f.8.1786447184497;
-        Tue, 11 Aug 2026 04:19:44 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-4814a5ac75dsm3318120f8f.7.2026.08.11.04.19.42
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 11 Aug 2026 04:19:44 -0700 (PDT)
-Date: Tue, 11 Aug 2026 12:19:41 +0100
-From: David Laight <david.laight.linux@gmail.com>
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: "David Hildenbrand (Arm)" <david@kernel.org>, "Christophe Leroy (CS
- GROUP)" <chleroy@kernel.org>, linux-mm@kvack.org, Andrew Morton
- <akpm@linux-foundation.org>, Lorenzo Stoakes <ljs@kernel.org>, "Liam R.
- Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, Mike
- Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, Michal
- Hocko <mhocko@suse.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
- Russell King <linux@armlinux.org.uk>, Catalin Marinas
- <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ryan Roberts
- <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, Huacai Chen
- <chenhuacai@kernel.org>, loongarch@lists.linux.dev, "James E.J. Bottomley"
- <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>,
- linux-parisc@vger.kernel.org, Madhavan Srinivasan <maddy@linux.ibm.com>,
- Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Paul
- Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
- <aou@eecs.berkeley.edu>, linux-riscv@lists.infradead.org, Heiko Carstens
- <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev
- <agordeev@linux.ibm.com>, Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
- linux-s390@vger.kernel.org, "David S. Miller" <davem@davemloft.net>,
- Andreas Larsson <andreas@gaisler.com>, sparclinux@vger.kernel.org, Richard
- Weinberger <richard@nod.at>, Anton Ivanov
- <anton.ivanov@cambridgegreys.com>, Johannes Berg
- <johannes@sipsolutions.net>, linux-um@lists.infradead.org, Thomas Gleixner
- <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
- <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin"
- <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra
- <peterz@infradead.org>, Ning Sun <ning.sun@intel.com>, x86@kernel.org,
- tboot-devel@lists.sourceforge.net, Ard Biesheuvel <ardb@kernel.org>, Ilias
- Apalodimas <ilias.apalodimas@linaro.org>, linux-efi@vger.kernel.org, Vishal
- Moola <vishal.moola@gmail.com>, Alistair Popple <apopple@nvidia.com>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [PATCH 03/22] mm: introduce MMF_KERNEL flag and set it for
- init_mm
-Message-ID: <20260811121941.4ca20b88@pumpkin>
-In-Reply-To: <643a624d-0106-44ed-a7f5-aaf9316f94fd@arm.com>
-References: <20260714-remove_pgtable_cdtor-v1-0-44be8a7685d7@arm.com>
-	<20260714-remove_pgtable_cdtor-v1-3-44be8a7685d7@arm.com>
-	<01f07ea2-8bdd-4450-8a49-548f8b646cfd@kernel.org>
-	<33fc9d31-2866-4315-9510-0004deb93994@kernel.org>
-	<20260811091016.5ca67143@pumpkin>
-	<643a624d-0106-44ed-a7f5-aaf9316f94fd@arm.com>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="ZDqaLm7g";
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="ZDqaLm7g"
+ARC-Seal: i=2; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=pass;
+ b=LR8XLs2K7Av+AN8MFbA38rp+OtYJPybhHowexY5/w4ouSFJJ7P/yP3vj7Cm2IeTMlZUj1pQ0O/2xjCMBBxbLjGLOU55YHqcINNoh6I/SyXT2Vo8NviLhu9ja9UKLZ/MUPzP2Kz1b2WXJPpwW1Fxm68JpYbJBXvmvh3sW1r9D4hLkQDayxSjkruAHPxmAnkffcN1lRWpMdfWrzDgEFtzrarXmMiFXblxTSucUPpQetKHzyHdwmnPeiPOsTpNg73awK3ttMZ8tT/0KkdliCas5KKrRIIfbM4WvDorehZIAmpcMl1cijjZcpJUC9+61eQBB5En17HO8PVWcxM2YYaNCcA==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=2Upa8H8lYci2AEeo5pg4WAAxc+FTB6t5I5dTvHmgOG8=;
+ b=arhJojw6f6UGnxzfNGNedm3EQ31RL+LDDUtCFjgoxJgxH0RGYktGR8/+2qcqTfubb1JHgR8nHmVO9oOC4zjDWAJq81J1hXJ8TQRMZU/Xd+qMZVtX6Szi1NvtBpGif7CZRlZt06G5UJU3ijGMpdRGZRgKDjDJjDAV0achaWfQ8bXAMxQICwThYJ6+MhlbSbWpy5cT7ZXJ5iJz8Ql3kzozGUMZcYJbC09tm/1mI8nOia3fX5Ed/jQGw0p6HjBIJhV8g3q2fZIvxwKbDG0HTiroHKak2ZXnLMQ0iNBOJgkEXbBp42CIW9wEmUCx91ZFp/Y5npRVsUrr0W7dnu36MqtQ2A==
+ARC-Authentication-Results: i=2; mx.microsoft.com 1; spf=pass (sender ip is
+ 4.158.2.129) smtp.rcpttodomain=kernel.org smtp.mailfrom=arm.com; dmarc=pass
+ (p=none sp=none pct=100) action=none header.from=arm.com; dkim=pass
+ (signature was verified) header.d=arm.com; arc=pass (0 oda=1 ltdi=1
+ spf=[1,1,smtp.mailfrom=arm.com] dkim=[1,1,header.d=arm.com]
+ dmarc=[1,1,header.from=arm.com])
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=2Upa8H8lYci2AEeo5pg4WAAxc+FTB6t5I5dTvHmgOG8=;
+ b=ZDqaLm7gWhUITSg3PvlCRuHDeaF0jtytI9AB0HVCOFjQL41efiVP1AEJKscTP+JFRYc3f4vwBxX6ZAv4Y4PTsCJUFq4gLgyuAFM1k5WCHt84HzI07ZD2DqdbEand2v5A73ThSJ6I32hkVU7sgGurUuuZJ0gjrk4FBCJjr8mRbic=
+Received: from AS4P191CA0033.EURP191.PROD.OUTLOOK.COM (2603:10a6:20b:657::20)
+ by AS2PR08MB8747.eurprd08.prod.outlook.com (2603:10a6:20b:55f::22) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.292.25; Tue, 11 Aug
+ 2026 11:25:57 +0000
+Received: from AMS0EPF000001A9.eurprd05.prod.outlook.com
+ (2603:10a6:20b:657:cafe::7a) by AS4P191CA0033.outlook.office365.com
+ (2603:10a6:20b:657::20) with Microsoft SMTP Server (version=TLS1_3,
+ cipher=TLS_AES_256_GCM_SHA384) id 15.21.292.25 via Frontend Transport; Tue,
+ 11 Aug 2026 11:25:57 +0000
+X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 4.158.2.129)
+ smtp.mailfrom=arm.com; dkim=pass (signature was verified)
+ header.d=arm.com;dmarc=pass action=none header.from=arm.com;
+Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
+ 4.158.2.129 as permitted sender) receiver=protection.outlook.com;
+ client-ip=4.158.2.129; helo=outbound-uk1.az.dlp.m.darktrace.com; pr=C
+Received: from outbound-uk1.az.dlp.m.darktrace.com (4.158.2.129) by
+ AMS0EPF000001A9.mail.protection.outlook.com (10.167.16.149) with Microsoft
+ SMTP Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.21.315.6
+ via Frontend Transport; Tue, 11 Aug 2026 11:25:57 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=rfpSa1oKx33iClOdPa8JCMayv6kb2mS5cLSdASv8gqPN7G9jRNvNZr0BRV4nAn6sr7qPWueIE9ojHmSandXoWV6JVIpWCGw0mabIwDi3hHXaLXz/d09eY9YS/qmXGiad6Nx7LwvsP3kdsAo4tvgS/k3HhLmg2aGodcwlkU1qKK2+WtV5Z5feAlL1aVtakk4g/bMK/rfm4u6YKvP7XXcz9/i8d0vgwi39NfSQ1znyncgm9lObFdDx6hgSgY61WahCZgSNmpzHZZeo5EpCJhHGjpN3AhYm7QSKGEWktVwtPMb8mZ/r7AU9IqrFuiWeqKZGgdDb0JOBgfrWxcD4VVqDPw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=2Upa8H8lYci2AEeo5pg4WAAxc+FTB6t5I5dTvHmgOG8=;
+ b=wPp6P2gJ4yNQDU7fWUD1/g6d6JagwvLy15xCBXNctqNPVJNxT71iw0065K7P6c05Yufxg2vVpUuu1t5vH85kR7TRcPvqyfqE4PpXf6TAwLs89iK9hg0BqavgDwN8+AFGzg+osrO2SGItVo/uJYHvmGhmr1GRm5CljI++dqBRw+wB0W+Td9dzJ9gI8qkjy1cSs7hPwJtlQDELDD7lUnOQFut0LFcDCBf3Y/x99uqfZF2ujpT45Smb/nAIPnrxA1r7ex+SOUNkIqhY2cmz+HO2/YWS3qbYInruq9XQi0dBfnhbKn5vsoPQbFeEi7DmozIPRLvwFmokHwABpcYYEaWsiA==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
+ header.d=arm.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=2Upa8H8lYci2AEeo5pg4WAAxc+FTB6t5I5dTvHmgOG8=;
+ b=ZDqaLm7gWhUITSg3PvlCRuHDeaF0jtytI9AB0HVCOFjQL41efiVP1AEJKscTP+JFRYc3f4vwBxX6ZAv4Y4PTsCJUFq4gLgyuAFM1k5WCHt84HzI07ZD2DqdbEand2v5A73ThSJ6I32hkVU7sgGurUuuZJ0gjrk4FBCJjr8mRbic=
+Authentication-Results-Original: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=arm.com;
+Received: from VI1PR08MB3421.eurprd08.prod.outlook.com (2603:10a6:803:80::16)
+ by GV1PR08MB8033.eurprd08.prod.outlook.com (2603:10a6:150:9a::22) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.292.25; Tue, 11 Aug
+ 2026 11:25:13 +0000
+Received: from VI1PR08MB3421.eurprd08.prod.outlook.com
+ ([fe80::e079:6bd:fbe0:89b4]) by VI1PR08MB3421.eurprd08.prod.outlook.com
+ ([fe80::e079:6bd:fbe0:89b4%3]) with mapi id 15.21.0315.008; Tue, 11 Aug 2026
+ 11:25:11 +0000
+Message-ID: <85286df7-363a-4671-bce8-8157ae5c8f02@arm.com>
+Date: Tue, 11 Aug 2026 12:25:08 +0100
+User-Agent: Mozilla Thunderbird
+Cc: usama.anjum@arm.com, Jani Nikula <jani.nikula@linux.intel.com>,
+ Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+ Rodrigo Vivi <rodrigo.vivi@intel.com>, Tvrtko Ursulin
+ <tursulin@ursulin.net>, David Airlie <airlied@gmail.com>,
+ Simona Vetter <simona@ffwll.ch>, Dimitri Sivanich
+ <dimitri.sivanich@hpe.com>, Arnd Bergmann <arnd@arndb.de>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
+ Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>,
+ Stefano Stabellini <sstabellini@kernel.org>,
+ Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ "Liam R. Howlett" <liam@infradead.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
+ Andrey Ryabinin <ryabinin.a.a@gmail.com>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>, Chris Li <chrisl@kernel.org>,
+ Kairui Song <kasong@tencent.com>, Uladzislau Rezki <urezki@gmail.com>,
+ Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu
+ <mhiramat@kernel.org>, Alexei Starovoitov <ast@kernel.org>,
+ Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
+ Eduard Zingerman <eddyz87@gmail.com>,
+ Kumar Kartikeya Dwivedi <memxor@gmail.com>, Ingo Molnar <mingo@redhat.com>,
+ Arnaldo Carvalho de Melo <acme@kernel.org>,
+ Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>,
+ Miaohe Lin <linmiaohe@huawei.com>, Dennis Zhou <dennis@kernel.org>,
+ Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>,
+ Mike Rapoport <rppt@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>,
+ ziy@nvidia.com, pfalcato@suse.de, agordeev@linux.ibm.com,
+ ryan.roberts@arm.com, linux-kernel@vger.kernel.org,
+ intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
+ linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org,
+ linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
+ linux-arch@vger.kernel.org, kasan-dev@googlegroups.com,
+ linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org,
+ linux-perf-users@vger.kernel.org, damon@lists.linux.dev
+Subject: Re: [PATCH 2/9] mm: make hw_pte_t visible to generic PTE interfaces
+To: Anshuman Khandual <anshuman.khandual@arm.com>,
+ David Hildenbrand <david@kernel.org>
+References: <20260806083926.1807279-1-usama.anjum@arm.com>
+ <20260806083926.1807279-3-usama.anjum@arm.com>
+ <7xbai2nyu6nuyr6otqv556dnphpgwaqsmvwkqwoqwbh5nvj3ns@ddy5ezgvb7w3>
+From: Muhammad Usama Anjum <usama.anjum@arm.com>
+Content-Language: en-US
+In-Reply-To: <7xbai2nyu6nuyr6otqv556dnphpgwaqsmvwkqwoqwbh5nvj3ns@ddy5ezgvb7w3>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-ClientProxiedBy: LO4P265CA0164.GBRP265.PROD.OUTLOOK.COM
+ (2603:10a6:600:312::13) To VI1PR08MB3421.eurprd08.prod.outlook.com
+ (2603:10a6:803:80::16)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+X-MS-TrafficTypeDiagnostic:
+	VI1PR08MB3421:EE_|GV1PR08MB8033:EE_|AMS0EPF000001A9:EE_|AS2PR08MB8747:EE_
+X-MS-Office365-Filtering-Correlation-Id: b28951d4-3669-499f-4352-08def79b5085
+x-checkrecipientrouted: true
+NoDisclaimer: true
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam-Untrusted:
+ BCL:0;ARA:13230040|366016|1800799024|23010399003|376014|7416014|56012099006|10067099003|4143699003|11063799006|18002099003|22082099003;
+X-Microsoft-Antispam-Message-Info-Original:
+ S6S52yYdxtDtrbu3+R3LqA1hBff1nj/2rLzT9GQ0+Ov8ipkmk0O3mjgrS/DUQ1/AFHfZWm9IZqKqqBU43nupYPXdHctB4A1PEZb9VDmjzZVISz3QfTXgSdr/68htGFhRc/j48gtQ4l6+L4ZW1nZja24rc6nWlSCYCtCWwtrMSs9R7h+dNpcLi2YgHViFI9Py9PcceBHI2y1hbD3tgIm9e45D/TvCqL/DDHF12QMIcti8yIvgdyO09z7AYYF74iZeACzU7uBne+6EXxl5OTZFg6QDzYUP73s7GSAEpT8D0uC32vGvMHjG8m+SK/kgAzP+Nmx82vnMrK3xq8uA+VWijeEIKRH0QxmnSwYsuk1AtsGokPKiK6I6K7ncpwqGz621yibL1B1X/TtMxwipICwYVw/YV+fP2FF6t2BPeh9+LOL+/jJ5P4Q0nEQm8VGkWH7CqIW3RZfdDrfhmWwygRbb4FGuEulKGS0Zb9XSJgqJ/zyiqn5W4UNQbXYIOTge5Vv9t0ogYUJ+UEirnawh/Dtsl7J7crALwP6tP+AkARGX3R1W7ZcuiL99OIu2CO3DNYis4WRH+XIaGeh4GtZWlHcy/Q/iSOzNy8TKPbP6PMGBNW2rO6bfWb0+8p3gurQ1AfDE8vOseTc5WWE/ndAm09GMDOSotmNmMi7644PyBtk9BhE=
+X-Forefront-Antispam-Report-Untrusted:
+ CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:VI1PR08MB3421.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(1800799024)(23010399003)(376014)(7416014)(56012099006)(10067099003)(4143699003)(11063799006)(18002099003)(22082099003);DIR:OUT;SFP:1101;
+X-Exchange-RoutingPolicyChecked:
+ HcK3rNnbwnlUGSwsDidSABGG1HQSoO72TkmhaC28ctmrJg8jVmz1OTzbiHJyHscmR1RSZ/MVJf3UF+V1Dje2C1z7jQczHvpZZk9NqnA1pIaWUyQ0NJGWUP8OQZQ7BxNR+CvvvJU4JV3+pgE+pVX/LgqCg/GXYo9PNipkTyJMz9mRgXBJrvoOJFLveHRnnNj6ydDRiY+xZEs2n9JOMvPO5HLQY82ufTlmcOJ3FL9PskIALGq/04QKaGj1BuKnnTOeCwktvBeWr/VO5+ier2emXtvzMh/0Yd8zfkfTpnuAfv7qGuIggIUVnYNjisH2v/7Pxh+mGQifH9TryIJK1GhcFw==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: GV1PR08MB8033
+X-EOPAttributedMessage: 0
+X-MS-Exchange-Transport-CrossTenantHeadersStripped:
+ AMS0EPF000001A9.eurprd05.prod.outlook.com
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id-Prvs:
+	eedea4c3-0f48-4936-b2b9-08def79b350b
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|14060799003|36860700016|35042699022|23010399003|1800799024|82310400026|7416014|376014|10067099003|56012099006|11063799006|4143699003|22082099003|18002099003;
+X-Microsoft-Antispam-Message-Info:
+	6KeX0Y8hlJ6T8DzdMW1+mLWuzvKwSvsLtVaM1FZSBYQFe2/wJ9AM2jY6ZKYld4Xl2hdLlFmzsPGUB5r4A4gd7B3BDO7zfp+pOAwufqbeXfYmrHSUmyqnHgYGKQTtPxLxVvlkmrZV6SHU2W4jdHN5JitLujQKDD98cTOrNXmnw2rMrGNzhPel/sMCrrxUOwcDyNJzMhjNvTihybUfZEVVS6KX6L7TIuHg6Hrt5ougauduq1FrBUL+6J76wEjtl/xKDnxve5EXBb7d1FXkUSfEgNgAHCwP0vZIRt40S4BHfeSviAlN4pxqH2tUK41SRVj5I7A6f+xUG9WT0yFTvXowhCvXxrlE3eD+2PiLSAOujzLikwzfHMtN9knYkKcDtMFMcq+/iqei+pN0DkXdGTnlV5+aILrwkI5aQvTaP5+NzPWrhEmc3B+TO+4dcPLY1VlERE1j70QDf71kHs4R3st0+eZpsjxeFEOV3sxJo8/V+bdpg8iT81OrvEvWHFyrFBPyta3aIdfh0/WyiKDrN2Lp0d8WTKmHlQFnlvDseOO3dPGPLGROGxMiC/xqCne8h2QWiQKpjdh3pJipAoo3nL0btv/sUspBv1jsoWkKSEk8X3xlhoLcq4AWhm3rWFtoTS3eh1ZCxS7IbIcbzCEVnAAXUrXMliI1AAoko08NSYK6d4Fj3BLijKjNKhwfbDVCGGcgRmz0pcNOwhIIpwUuMdFgsg==
+X-Forefront-Antispam-Report:
+	CIP:4.158.2.129;CTRY:GB;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:outbound-uk1.az.dlp.m.darktrace.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(14060799003)(36860700016)(35042699022)(23010399003)(1800799024)(82310400026)(7416014)(376014)(10067099003)(56012099006)(11063799006)(4143699003)(22082099003)(18002099003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	PpJWUGBI0WXngUjmkkmjZ8b9gVABqPlGGdB9in5/n5SVZR/asrpHB7LtoHfG4dL4AjWVyKTXpsEwcsX+jvKJYl51kZwclhNMX8lZECOJjm1ho6qMO3JWlgYLZbH1Fq9uRoCjmRSkf89Wu5QQgQiJQn7NgXUp1gxZDG+bm7d6kU7ubZhtxXLe55hhalbMJFecFRP3KRfX1w+j6xBke2NFN/V2E7odXBw/sjlfrNmeBofeAKv/j7gH42MDjAGWfA8EQwUOF8zhAC42fhaPcfmtjCYKn4wJElqHNc37lF105kHubkPzm7VB2ryGNn/JgYeP0MlcOcYG1Dn5KUpILs7lTmk+Xjb5U9iSSjI4JApKKGTiYPMVqrcCIQYYHQEHa09ZjxJEZjARr7DDEpsYzqGq0xo6ca/UhZFYZtmedtQ2phr8KIsEK0Kbi9zCAxauV+9Z
+X-OriginatorOrg: arm.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 11 Aug 2026 11:25:57.5424
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: b28951d4-3669-499f-4352-08def79b5085
+X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[4.158.2.129];Helo=[outbound-uk1.az.dlp.m.darktrace.com]
+X-MS-Exchange-CrossTenant-AuthSource:
+	AMS0EPF000001A9.eurprd05.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: AS2PR08MB8747
 
-On Tue, 11 Aug 2026 11:00:09 +0200
-Kevin Brodsky <kevin.brodsky@arm.com> wrote:
+On 11/08/2026 11:15 am, Anshuman Khandual wrote:
+> On Thu, Aug 06, 2026 at 09:38:40AM +0100, Muhammad Usama Anjum wrote:
+>> Later conversions use hw_pte_t in page-table checking, generic page-table
+>> helpers, and vmalloc interfaces. Include linux/pgtable_types.h from the
+>> headers that declare those interfaces before changing their types.
+>>
+>> For vmalloc.h, replace the direct asm/page.h include with
+>> linux/pgtable_types.h. The latter includes asm/page.h, so pgprot_t remains
+>> available. It also provides either the default alias or the opted-in
+>> hw_pte_t wrapper.
+> 
+> Stand-alone header file updates are not ideal. Why cannot these changes be
+> folded in, where hw_pte_t gets used first time ever in the above mentioned
+> places.
+That's correct. This patch should be merged with the 3/9 patch. But that patch
+is already too much big as it was generated with the help of Coccinelle. So I
+kept it separate.
 
-> On 11/08/2026 10:10, David Laight wrote:
-> > On Wed, 5 Aug 2026 14:07:01 +0200
-> > "David Hildenbrand (Arm)" <david@kernel.org> wrote:
-> > =20
-> >> On 8/3/26 15:59, Christophe Leroy (CS GROUP) wrote: =20
-> >>>
-> >>> Le 14/07/2026 =C3=A0 16:03, Kevin Brodsky a =C3=A9crit=C2=A0:   =20
-> >>>> mm code often needs to know whether some mm represents a kernel or
-> >>>> user address space. This is currently done by comparing the mm
-> >>>> pointer with &init_mm; besides not being particularly elegant, this
-> >>>> ignores the fact that other mm's (e.g. efi_mm) may also represent
-> >>>> parts of the kernel address space.
-> >>>>
-> >>>> Introduce a new mm flag MMF_KERNEL and set it for init_mm.
-> >>>> Subsequent patches will use this flag to replace comparisons with
-> >>>> &init_mm. No functional change is introduced for now.   =20
-> >>> Did you consider performance impact ? This test is usually done in qu=
-ite
-> >>> critical memory handling functions.
-> >>>
-> >>> init_mm is known at link time. Before your patch 08/22 there is just a
-> >>> comparison of mm (r3) with a constant (loaded in r10):
-> >>>
-> >>> c0014048 <assert_pte_locked>:
-> >>> c0014048:=C2=A0=C2=A0=C2=A0 3d 40 c1 09=C2=A0=C2=A0=C2=A0=C2=A0 lis=
-=C2=A0=C2=A0=C2=A0=C2=A0 r10,-16119
-> >>> c001404c:=C2=A0=C2=A0=C2=A0 39 4a 03 98=C2=A0=C2=A0=C2=A0=C2=A0 addi=
-=C2=A0=C2=A0=C2=A0 r10,r10,920
-> >>> c0014050:=C2=A0=C2=A0=C2=A0 7c 03 50 00=C2=A0=C2=A0=C2=A0=C2=A0 cmpw=
-=C2=A0=C2=A0=C2=A0 r3,r10
-> >>> c0014054:=C2=A0=C2=A0=C2=A0 4d 82 00 20=C2=A0=C2=A0=C2=A0=C2=A0 beqlr
-> >>> ...
-> >>>
-> >>> After patch 08/22 we have, it first checks that mm is not 0, then it =
-loads the
-> >>> word located at mm+528 then AND it with 0x1. This load might be costl=
-y.
-> >>>
-> >>> c0014048 <assert_pte_locked>:
-> >>> c0014048:=C2=A0=C2=A0=C2=A0 2c 03 00 00=C2=A0=C2=A0=C2=A0=C2=A0 cmpwi=
-=C2=A0=C2=A0 r3,0
-> >>> c001404c:=C2=A0=C2=A0=C2=A0 7c 85 23 78=C2=A0=C2=A0=C2=A0=C2=A0 mr=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0 r5,r4
-> >>> c0014050:=C2=A0=C2=A0=C2=A0 41 82 00 10=C2=A0=C2=A0=C2=A0=C2=A0 beq=
-=C2=A0=C2=A0=C2=A0=C2=A0 c0014060 <assert_pte_locked+0x18>
-> >>> c0014054:=C2=A0=C2=A0=C2=A0 81 23 02 10=C2=A0=C2=A0=C2=A0=C2=A0 lwz=
-=C2=A0=C2=A0=C2=A0=C2=A0 r9,528(r3)
-> >>> c0014058:=C2=A0=C2=A0=C2=A0 71 29 00 01=C2=A0=C2=A0=C2=A0=C2=A0 andi.=
-=C2=A0=C2=A0 r9,r9,1
-> >>> c001405c:=C2=A0=C2=A0=C2=A0 4c 82 00 20=C2=A0=C2=A0=C2=A0=C2=A0 bnelr=
-   =20
-> >> Is that a real problem, though? =20
-> > The cost of the read is likely to matter most if the branch gets mispre=
-dicted.
-> > I'd also guess the mm isn't usually NULL - so that branch needs to stat=
-ically
-> > predicted correctly as well.
-> > I'd also not assume that the mm is in the cache (unless the surrounding=
- code
-> > has already accessed it), the L1 data caches are small. =20
->=20
-> You're right, I didn't think about this the right way round - in general
-> it may not be easy to predict that mm points to init_mm, and an
-> arbitrary user mm isn't guaranteed to be cached. Repeated calls to
-> mm_is_kernel(mm) in the same function shouldn't cost much though.
+Do you still think we should merge it as its a special case?
 
-Depends.
-If it is real function call the code will be in the I-cache and is likely
-to get predicted correctly by the third call.
-OTOH if inlined you've all the I-cache loads and that static branch
-prediction might get them all wrong.
+> 
+>>
+>> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+>> ---
+>> Changes since RFC v1:
+>> - Clarify that the header provides both generic hw_pte_t definitions.
+>> ---
+>>  include/linux/page_table_check.h | 2 ++
+>>  include/linux/pgtable.h          | 1 +
+>>  include/linux/vmalloc.h          | 2 +-
+>>  3 files changed, 4 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/include/linux/page_table_check.h b/include/linux/page_table_check.h
+>> index 12268a32e8be1..12ee6d16ad339 100644
+>> --- a/include/linux/page_table_check.h
+>> +++ b/include/linux/page_table_check.h
+>> @@ -7,6 +7,8 @@
+>>  #ifndef __LINUX_PAGE_TABLE_CHECK_H
+>>  #define __LINUX_PAGE_TABLE_CHECK_H
+>>  
+>> +#include <linux/pgtable_types.h>
+>> +
+>>  #ifdef CONFIG_PAGE_TABLE_CHECK
+>>  #include <linux/jump_label.h>
+>>  
+>> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+>> index 8c093c119e5a8..cf595608cc4c4 100644
+>> --- a/include/linux/pgtable.h
+>> +++ b/include/linux/pgtable.h
+>> @@ -4,6 +4,7 @@
+>>  
+>>  #include <linux/pfn.h>
+>>  #include <asm/pgtable.h>
+>> +#include <linux/pgtable_types.h>
+>>  
+>>  #define PMD_ORDER	(PMD_SHIFT - PAGE_SHIFT)
+>>  #define PUD_ORDER	(PUD_SHIFT - PAGE_SHIFT)
+>> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+>> index aed121d729b01..b068e6ade4207 100644
+>> --- a/include/linux/vmalloc.h
+>> +++ b/include/linux/vmalloc.h
+>> @@ -8,7 +8,7 @@
+>>  #include <linux/init.h>
+>>  #include <linux/list.h>
+>>  #include <linux/llist.h>
+>> -#include <asm/page.h>		/* pgprot_t */
+>> +#include <linux/pgtable_types.h>	/* pgprot_t, hw_pte_t */
+>>  #include <linux/rbtree.h>
+>>  #include <linux/overflow.h>
+>>  
+>> -- 
+>> 2.47.3
+>>
 
-Oh, and saving the result in a local might cause a register spill.
-
-	David
-
->=20
-> Would some (micro)benchmark be particularly relevant to measure the
-> overhead, if any?
->=20
-> - Kevin
+-- 
+Thanks,
+Usama
 
