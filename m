@@ -1,137 +1,128 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 11623233952;
-	Tue, 11 Aug 2026 16:47:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from mail.alien8.de (mail.alien8.de [65.109.113.108])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D735A396D1C;
+	Tue, 11 Aug 2026 19:47:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=65.109.113.108
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786466872; cv=none; b=d2EEHjLRLLoF5AeBaSTL7gYtAhel8UF97vu6tsNKOYo7CaO1cz+EYrCmi5U4j5wz3/TQci1Nbivffqx0RNd2mb2F5pBNKjI8nNmOadLZJB18Lsi9s8v2NnTXd1qSC/V8JCqrJ9FWfoKEjpTyoTMFz9T/jzbF6K7yp/Qe8aR0rwA=
+	t=1786477634; cv=none; b=hUuZmUB0BDKaZ4EVWsEmNEN7WfaXnzJ5AUnMlObCkkcFpfw82gJ3/VxnWhlQnKBJqxHt5lRK4U9fRio+jKt+pXa0j6VXc6E9LyHnuFh/NuKfj+/0/x+JzWwWW/lhzQ1SPptporzeMd4HzTxtLOl5pIuTwgUz13CQs0dvzKVSI3o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786466872; c=relaxed/simple;
-	bh=k6fuvdQDvEP8Vgz2PTv5lXUtwGGjwj2b08wkJAsWaVA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=YfUPD1IYz0bNQNXvClMEECCL2rIHqkJWQAqnD5JrPAyIzpB5Jlu3k9IYtoveD6fQjbAof90aUy/oZa4LBpAYzMadakfflRo1HyIvvM9ZDaQvVPjaskgvP1arWHeoAAaWBetfFCF5un0plDo5qeNh+brPT04zwODRQA/uubFt6Ys=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=gTV/2I8H; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1786477634; c=relaxed/simple;
+	bh=4rALHgNYPYNYyfuRdnoi21ZfIZSdZYk9GWsUFQCCJrg=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Hl0q3DXwI6BIpn3G/ZQWSOe5BZ5a2GDLdpT/pRc6K2eB5YH8ra93xhArXw23Wt75vprbEfHVMpxvajFLvGNGlI9bn9xU1fMxfeqXBl76JmrX5qxONXBUeZIxTgY5H/97m4mCqlz4RDYHbt4PsgFTtDo3+iL6R2Xh3mncThYhgqk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de; spf=pass smtp.mailfrom=alien8.de; dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b=lEWLx2DJ; arc=none smtp.client-ip=65.109.113.108
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=alien8.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="gTV/2I8H"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 3A29D1682;
-	Tue, 11 Aug 2026 09:47:45 -0700 (PDT)
-Received: from [10.57.5.246] (unknown [10.57.5.246])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id CAF723F86F;
-	Tue, 11 Aug 2026 09:47:38 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1786466869; bh=k6fuvdQDvEP8Vgz2PTv5lXUtwGGjwj2b08wkJAsWaVA=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=gTV/2I8He3BRcDFubFelv3SAtZiIJOlWDCGYb/PqwlMmSJRZUV+SfPlIf2y0trfly
-	 nKQsPwWsI+/aVoYR5dV3ihriAWJ5e9TgHciz8Ikf7zi44esgAkNV9YyJAGhPOgjzVd
-	 dWAjOsQ/MfHlSTn8IGEVVhT1EzNUwNUvSRhbFuk4=
-Message-ID: <ac24fe96-dbe2-419f-86eb-2d0f78912877@arm.com>
-Date: Tue, 11 Aug 2026 18:47:36 +0200
+	dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b="lEWLx2DJ"
+Received: from localhost (localhost.localdomain [127.0.0.1])
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTP id 06C9740E019C;
+	Tue, 11 Aug 2026 19:47:07 +0000 (UTC)
+X-Virus-Scanned: Debian amavisd-new at mail.alien8.de
+Authentication-Results: mail.alien8.de (amavisd-new); dkim=pass (4096-bit key)
+	header.d=alien8.de
+Received: from mail.alien8.de ([127.0.0.1])
+	by localhost (mail.alien8.de [127.0.0.1]) (amavisd-new, port 10026)
+	with ESMTP id faVIp7MZ5ZKS; Tue, 11 Aug 2026 19:46:57 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=alien8;
+	t=1786477615; bh=BlXSLUlIACbCo1CYAl6qQKtQGar/xLkA/Fwfj1CIbk0=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=lEWLx2DJlfcAE+5czMjnyrf2q0Awz3QSjJak0ELLkESNmzfDXZeAL5PjYk+p9cWfH
+	 oCfFz9JjsFiDrzBKGbjUkPpqSUZubOPIjb9nsLxUm8uVB/h+z/QHKjuSnNwz4jb0MM
+	 tDmJNncyp8c1TZJgw569dgnGERXhq2gFFmX9fLMWhOQ9i4D2jxDmSWkiJIKMzu3OBc
+	 /cttvTz4+FIAW/4d8x3b54YWoNE5Bn9asJE0JKcsP4bkkGfLAvjiN3mlXPv82DMVQo
+	 aRQUMNM5sRjPbzvdICyXdYVqyUg9FhnRW4veaqXAxj+tiLrWZUQVVMxuiiKAVajPSQ
+	 /2DLkSiqAfHNcJRbmYIm55GTg4phm/9H+XMvyxOYoLbpabte9F+gGqqqwuj0GpV/3Y
+	 +8jW/BNyqci/op26P4gB6kiN48jXY0WkpLgvvX+E2lbFrbaIHkiMJ6/fCAu1yfpwaz
+	 21uL+B563QVnJ0la3I5WiEVbB7C+zKx4nYu7fYxkB4SWtIm6eIWAsgyKfwjrzY+u7d
+	 C8gkGKPDNI8btG3UVcWGNvlFPhDkY5ZjemmQFEWlXF/Py1lhDQfZVPvIvOi0WIFZdD
+	 vNzuJtdOBfQZhW8fym4rlPJu90+aZIFHJFwSi/0BytlPM17V9lGLUQKQ0wiKSWL0DL
+	 Dna5N1+0oKeXM8XRb0JhYfQc=
+Received: from stx.tnic (unknown [IPv6:2600:1700:38ca:c00::1b])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (P-256) server-signature ECDSA (P-256) server-digest SHA256)
+	(No client certificate requested)
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 3CAB540E00E6;
+	Tue, 11 Aug 2026 19:46:38 +0000 (UTC)
+Date: Tue, 11 Aug 2026 12:46:34 -0700
+From: Borislav Petkov <bp@alien8.de>
+To: Li Zhe <lizhe.67@bytedance.com>
+Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
+	balbirs@nvidia.com, dave.hansen@linux.intel.com, david@kernel.org,
+	kees@kernel.org, mingo@redhat.com, muchun.song@linux.dev,
+	rppt@kernel.org, tglx@kernel.org, linux-arch@vger.kernel.org,
+	linux-hardening@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-mm@kvack.org, x86@kernel.org
+Subject: Re: [PATCH v10 8/8] x86/string: extend memcpy_flushcache()
+ fixed-size fastpaths
+Message-ID: <20260811194634.GBant8GqpdMeXP5GsO@fat_crate.local>
+References: <20260810122057.30447-1-lizhe.67@bytedance.com>
+ <20260810122057.30447-9-lizhe.67@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 03/22] mm: introduce MMF_KERNEL flag and set it for
- init_mm
-To: David Laight <david.laight.linux@gmail.com>,
- "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>,
- David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
- Russell King <linux@armlinux.org.uk>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org,
- Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev,
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
- Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org,
- Madhavan Srinivasan <maddy@linux.ibm.com>,
- Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org,
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
- Albert Ou <aou@eecs.berkeley.edu>, linux-riscv@lists.infradead.org,
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
- Alexander Gordeev <agordeev@linux.ibm.com>,
- Gerald Schaefer <gerald.schaefer@linux.ibm.com>, linux-s390@vger.kernel.org,
- "David S. Miller" <davem@davemloft.net>,
- Andreas Larsson <andreas@gaisler.com>, sparclinux@vger.kernel.org,
- Richard Weinberger <richard@nod.at>,
- Anton Ivanov <anton.ivanov@cambridgegreys.com>,
- Johannes Berg <johannes@sipsolutions.net>, linux-um@lists.infradead.org,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Ning Sun <ning.sun@intel.com>,
- x86@kernel.org, tboot-devel@lists.sourceforge.net,
- Ard Biesheuvel <ardb@kernel.org>,
- Ilias Apalodimas <ilias.apalodimas@linaro.org>, linux-efi@vger.kernel.org,
- Vishal Moola <vishal.moola@gmail.com>, Alistair Popple <apopple@nvidia.com>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20260714-remove_pgtable_cdtor-v1-0-44be8a7685d7@arm.com>
- <20260714-remove_pgtable_cdtor-v1-3-44be8a7685d7@arm.com>
- <01f07ea2-8bdd-4450-8a49-548f8b646cfd@kernel.org>
- <20260811142507.4c6c760f@pumpkin>
-From: Kevin Brodsky <kevin.brodsky@arm.com>
-Content-Language: en-GB
-In-Reply-To: <20260811142507.4c6c760f@pumpkin>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20260810122057.30447-9-lizhe.67@bytedance.com>
 
-On 11/08/2026 15:25, David Laight wrote:
-> On Mon, 3 Aug 2026 15:59:35 +0200
-> "Christophe Leroy (CS GROUP)" <chleroy@kernel.org> wrote:
->
->> Le 14/07/2026 à 16:03, Kevin Brodsky a écrit :
->>> mm code often needs to know whether some mm represents a kernel or
->>> user address space. This is currently done by comparing the mm
->>> pointer with &init_mm; besides not being particularly elegant, this
->>> ignores the fact that other mm's (e.g. efi_mm) may also represent
->>> parts of the kernel address space.
->>>
->>> Introduce a new mm flag MMF_KERNEL and set it for init_mm.
->>> Subsequent patches will use this flag to replace comparisons with
->>> &init_mm. No functional change is introduced for now.  
->> Did you consider performance impact ? This test is usually done in quite 
->> critical memory handling functions.
->>
->> init_mm is known at link time. Before your patch 08/22 there is just a 
->> comparison of mm (r3) with a constant (loaded in r10):
->>
->> c0014048 <assert_pte_locked>:
->> c0014048:	3d 40 c1 09 	lis     r10,-16119
->> c001404c:	39 4a 03 98 	addi    r10,r10,920
->> c0014050:	7c 03 50 00 	cmpw    r3,r10
->> c0014054:	4d 82 00 20 	beqlr
->> ...
->>
->> After patch 08/22 we have, it first checks that mm is not 0, then it 
->> loads the word located at mm+528 then AND it with 0x1. This load might 
->> be costly.
->>
->> c0014048 <assert_pte_locked>:
->> c0014048:	2c 03 00 00 	cmpwi   r3,0
->> c001404c:	7c 85 23 78 	mr      r5,r4
->> c0014050:	41 82 00 10 	beq     c0014060 <assert_pte_locked+0x18>
->> c0014054:	81 23 02 10 	lwz     r9,528(r3)
->> c0014058:	71 29 00 01 	andi.   r9,r9,1
->> c001405c:	4c 82 00 20 	bnelr
->> ...
-> Thought...
-> Could the check be replaced by one that checks for kernel static data?
-> That would require that other mm that represent part of the kernel
-> address space be static (and probably not in modules).
-> ISTR there is an address range check that can be used - and might be
-> cheaper than the explicit test for init_mm on many 64bit archs.
+On Mon, Aug 10, 2026 at 08:20:57PM +0800, Li Zhe wrote:
+> The x86 memcpy_nontemporal() helper maps to memcpy_flushcache(), and the
+> ZONE_DEVICE template-copy path uses it to copy one struct page at a
+> time.
+> 
+> The relevant copy size is sizeof(struct page). On x86_64, the base struct
+> page layout is 64 bytes. Adding either the KMSAN metadata pointers or an
+> out-of-flags last_cpupid field can make it 80 bytes after alignment, and
+> enabling both can make it 96 bytes.
+> 
+> memcpy_flushcache() currently only has inline fixed-size cases for 4, 8,
+> and 16 bytes. As a result, these constant-sized struct page copies fall
+> through to __memcpy_flushcache() even though the compiler knows the copy
+> size at the call site.
+> 
+> Add fixed-size MOVNTI cases up to 96 bytes so the ZONE_DEVICE
+> template-copy path can keep these struct page copies in the inline
+> memcpy_flushcache() path.
+> 
+> This matters for ZONE_DEVICE memmap initialization because the copy
+> happens once per initialized struct page. For a 100 GB fsdax namespace
+> with map=dev, this is about 25 million struct page copies during nd_pmem
+> binding or rebinding.
+> 
+> Tested in a VM with a 100 GB fsdax namespace device configured with
+> map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
+> server.
+> 
+> Test procedure:
+> Rebind the nd_pmem and dax_pmem drivers 30 times and collect the memmap
+> initialization time from the pr_debug() output of
+> memmap_init_zone_device().
+> 
+> With memcpy_nontemporal() used by the ZONE_DEVICE template-copy path:
+>   Average of rebinds for nd_pmem driver: 150.83 ms
+>   Average of rebinds for dax_pmem driver: 153.55 ms
+> 
+> With this x86 fixed-size fastpath patch applied:
+>   Average of rebinds for nd_pmem driver: 96.79 ms
+>   Average of rebinds for dax_pmem driver: 119.04 ms
+> 
+> This further reduces the average memmap initialization time measured
+> during rebind by about 35.8% for nd_pmem and 22.5% for dax_pmem.
+> 
+> Suggested-by: Borislav Petkov <bp@alien8.de>
+> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
+> ---
+>  arch/x86/include/asm/string_64.h | 71 +++++++++++++++++++++++++-------
+>  1 file changed, 56 insertions(+), 15 deletions(-)
 
-That is actually an interesting idea. Finding those "kernel mms" boils
-down to looking for global mm_struct, so checking if mm points to global
-data would achieve essentially the same thing without a flag (and likely
-faster). I'm not sure we want to bake in the assumption that "kernel mm"
-is equivalent to "mm is global" though.
+Acked-by: Borislav Petkov (AMD) <bp@alien8.de>
 
-- Kevin
+-- 
+Regards/Gruss,
+    Boris.
+
+https://people.kernel.org/tglx/notes-about-netiquette
