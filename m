@@ -1,162 +1,146 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from fhigh-a3-smtp.messagingengine.com (fhigh-a3-smtp.messagingengine.com [103.168.172.154])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 55ACA2773E4;
-	Wed, 12 Aug 2026 11:33:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 502092C0F6D;
+	Wed, 12 Aug 2026 11:47:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.154
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786534403; cv=none; b=dGuls35+gftsEDxcNwTQPWKRW9cu77+37YZu46/Rbxf0fnBVA/LN/YJDqc02OJ0abSvXbQfnGO52H2fG5RN2XxJRWq3a8+yrwpy+OjYNynfIjLu1iYIobQbSHM3kNggqK4lCmuNvd80D+ZPHu6wxA2Rd/v1Dr0JBuMt8/nj0kwE=
+	t=1786535245; cv=none; b=MWALKQOUCLiCVicsEeVdX33fdZ2knTQuaQITC0sndua/HFSEKPTXPonOJESXqxFoI+EdJcl2av2M7u9YbTHv2S+cWCNl7ziO3/9SXFmTt5+Cr5yaXNGGg8AED3Bp9eVdEJirIlG5Y/VP8ugo9TzD4YLVPa+lWsMDUE+74caAOxk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786534403; c=relaxed/simple;
-	bh=fvos1C9cOJcwwmel6uc8oHCYP87iaCD4jeFmR7XXDQM=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=u1VfwpRovi7hL7GPCXeNSkm9Syvw6Fs2XNL15vrMKJePqf6fY6/D+TSMH+KI48ZakfyF+r+e4w+to2Cvhwv8gq/+EvmkptdJPkvE36AgfJpxml/+QrB6amscVbqWLUuxF2ktVLs7Qek0WDct6hi6yD4tdjNhmGbMp+og2x8mAKE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=WAfmOkkk; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1786535245; c=relaxed/simple;
+	bh=jnxivYxViv0aHFjyB0ecnqcoMlW1GEceC++ncMLm8Is=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=bQFpBHDyJSkIYl5mJayaQ4NVdM/qKr6FAjw9klNJAVdYqUECpMNV5HFohDTbsraeENWBwwahtKeMdwsGSNQJzhzhhmxvIXmKHdI4XpUfsIQyj5R+Oas7kWggnGS5lUlmrjki72qH7WmwpPOmcihyU4RrDLddYug3bAW8fjYX0aU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=W1aBkcdd; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=P2JlU8iY; arc=none smtp.client-ip=103.168.172.154
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="WAfmOkkk"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 01A4B1F000E9;
-	Wed, 12 Aug 2026 11:33:15 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1786534402;
-	bh=KYWG47sp8qKZimjrJ8C8fF2yBpjkop0LZO2aPuIaAlo=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=WAfmOkkk8L6CsdaEyBcNrtXtVZNzObzW4S7aHcGWWKcuSHhZgMshz38NRWFsMIuro
-	 iQNzIOLVcCtVng/Y3s/5/8QQm7aRpslgEDM4EaOx+RrrhQu2QK6SJf1mYWLf0u+bIk
-	 mHgiI8kvImWzfFTKqNN3Q3uzw8gwmf2aEibx251l3EhnWebAqUXVi2yCauOG2EpYpk
-	 qT55BhQsRkzxVJJnOePDFfawyaPzcJ7biVmiXgaHLbICFQsgUR8tlkUIpE02A31EaL
-	 b2GxECR3H98e20PTqvhqig2eBGcYR+8QrQPpKISBdK8go4PyjRDC3+9XMOlZC8fnyy
-	 vp3RCZx1qSNlA==
-Message-ID: <1fb9ed88-67d0-4ac1-878d-0dc8e1135d19@kernel.org>
-Date: Wed, 12 Aug 2026 13:33:14 +0200
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="W1aBkcdd";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="P2JlU8iY"
+Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
+	by mailfhigh.phl.internal (Postfix) with ESMTP id 651AC14000FB;
+	Wed, 12 Aug 2026 07:47:20 -0400 (EDT)
+Received: from ams-imap-03 ([10.64.2.23])
+  by ams-compute-02.internal (MEProxy); Wed, 12 Aug 2026 07:47:22 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm2; t=1786535239;
+	 x=1786621639; bh=auPqy4hWqOWQzUYNHj1ppeU4j4CcIK3OlMDtI8AbMOE=; b=
+	W1aBkcddjTPpKlqX8JqYWHDW8u5ZTYQSOCyImwyoXupsh3XkLwrXyFtP+pmKUiY3
+	clUIKsH+AQWd/sETdNvIgiOTEutIJS2HiLCOx2q3TpcG9ZHEAqy+JH7aovQiUbfu
+	KpNjwTBVwLIYLvlHCupeGYmIkcH6QIhSbwKmT/+lhCZeZD3nc+ikejQfdwmkyD3h
+	4FhNx2bn+jnM/pgaF4XBdKBG56D+LEpw03a6aAZiFTj3pbZ+24sBuAW2lIBSivbT
+	QjBWhIIZu2TDyUBTQqynlAY7VCm50JCYYbITRPZqOOlDfPSF2++lv4dBaalPy+IV
+	Z8n6nKVbwFjgdbSz2Gksag==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1786535239; x=
+	1786621639; bh=auPqy4hWqOWQzUYNHj1ppeU4j4CcIK3OlMDtI8AbMOE=; b=P
+	2JlU8iYuc4NkzbJrWEsgMdz75m1yy/7TC3vtjFcDS59Ddqe2JlRKtrl2JEzoXi6/
+	77fmVAei5z1fI7kORgyVwRMp7YFPpbNQ7AtWzlyTMZqIcfbtUZZZ8f9X8LahajP9
+	9gOdmmN684frn5Q4J9DzKvbjnI4D9QiWAJ6Ep1bjn3KC/m+tJKtULRlN8qjdm8T4
+	ialzoGiGn+TSeY9G1r8uNqYDomjcsjUPWLsmV6qEdCHDF1giUe/SZC9jMFyt2qL9
+	5buB1lboaIgjMJy6i7WQ3uUUOD+URWNiwiAx1BuYTmdpFHY4hzZBL6iXH3nkKUZi
+	TYLMXwAk1m/SsDUjM8wVg==
+X-ME-Sender: <xms:Pl18as1QUWt3b1tzH_jlv0BVErLHe9l1H81R-YF1BgBHwBDxvoLfPA>
+    <xme:Pl18ah5pwt7LXZxDePedrXQqREuUFwvcJjHvUSRjNB-OfuY5Fqd68vjJpWRAFrTBq
+    2cskbzrIuGScToacTX8H2YyUqVPwBlFsa_TYcnsL2OZtVXByWmteT8>
+X-ME-Proxy-Cause: dmFkZTEwMyLj+YIpdMh9D13N5MOyTmf5E4tXtrYh5XsBywu5xKvrnx8kBAGbf8NR8m09b7
+    ludXZWYIJO4LcIafhsaQES+HJv6JFZiRfaGqCH/BaTmDY/nA4J6qOEPr3n6SW9409xAGLQ
+    ayXmK9zjKLW/9pgLqZdBF5U3DSjuGG3y8Vl2NMbLc0H/wAFD4Ew0SeTM9qfxS+KVrpadFp
+    cfZ/WJtu6521j0agBPVW4NDfWQ00OFnjGkREfpOP58lc8VLNABahSt0CvvoL3YbVG2EsSq
+    bDgBAgznIlETibeGcWwgGrDcFP31DoDE5bq8k4zT1kOYuM8BGIHWre+ZJ3yCRomoa7K7fF
+    qqN51Wjfe0zBHoX+JwVgi46bJ2JzCBdkHwK9/wG+dT0p7IxhaV0oW/ZhNxrZnVR3xjQbBR
+    uAs7bqOmja4U4ZrjTmyBGit6bschuOa2MqLqTYGqbuCh4E36B8xbNGT99SqaIt4gp5EwHV
+    igOwKzgMw6OzYiuQ0g8eK8o6TAKg872WF9GZiWken7bPooA9Hsl21C8n43tPnpVAy3P1e3
+    i90Cs5csORElUr4UzSvgqMVEBS0EEf6WUAMCbMnKxPA/rofuGRHBH/Ysm8QbxOdmWwYIYd
+    3pKxtxSgycKzPk/auXTpUn8aGt0ND1YipcDigYQTXgAzL6/i0kLffOU0ZGaA
+X-ME-Proxy: <xmx:Ql18atIIziyguunkHgKZ_k37KtFvCz1Vi0yV8Iri6ywHS6I6m_UNHw>
+    <xmx:Ql18agrFNSUSGwKJwqzVbNhqLrMB4s-cBRJL-CRLY_MgHXnowoDiig>
+    <xmx:Ql18arz3xwHalWjYgvKPV6LPCG8jABVpuwwjvNNN8Spj2NMtAW-ETg>
+    <xmx:Ql18asdsuCNiuIZSujGMBJpsri5LmUbauMQOK7DFCzAChDfxRCjlqQ>
+    <xmx:R118arYa8e6qMYrKN4zz2wskcZfMVp9u_w048Zv8xs53-MDtAeCPp_tx>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.ams.internal (Postfix, from userid 501)
+	id 5FD8F32A006E; Wed, 12 Aug 2026 07:47:10 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC V2 6/6] mm: Drop pxd_ERROR()
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org,
- akpm@linux-foundation.org
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker
- <dalias@libc.org>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
- Helge Deller <deller@gmx.de>, Huacai Chen <chenhuacai@kernel.org>,
- WANG Xuerui <kernel@xen0n.name>, linux-alpha@vger.kernel.org,
- linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
- linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
- loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
- linux-mips@vger.kernel.org, linux-openrisc@vger.kernel.org,
- linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
- linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
- linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
- linux-um@lists.infradead.org, linux-arch@vger.kernel.org,
- linux-kernel@vger.kernel.org
-References: <20260811042119.3652929-1-anshuman.khandual@arm.com>
- <20260811042119.3652929-7-anshuman.khandual@arm.com>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- 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
- qIws/H2t
-In-Reply-To: <20260811042119.3652929-7-anshuman.khandual@arm.com>
-Content-Type: text/plain; charset=UTF-8
+X-ThreadId: Ag8nwV6tN_57
+Date: Wed, 12 Aug 2026 13:46:30 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Maciej W. Rozycki" <macro@orcam.me.uk>
+Cc: "Danilo Krummrich" <dakr@kernel.org>,
+ "Heiko Carstens" <hca@linux.ibm.com>,
+ "Niklas Schnelle" <schnelle@linux.ibm.com>,
+ "Gerd Bayer" <gbayer@linux.ibm.com>, "Miguel Ojeda" <ojeda@kernel.org>,
+ "Alice Ryhl" <aliceryhl@google.com>,
+ "Daniel Almeida" <daniel.almeida@collabora.com>,
+ "Vasily Gorbik" <gor@linux.ibm.com>,
+ "Alexander Gordeev" <agordeev@linux.ibm.com>, driver-core@lists.linux.dev,
+ "Christian Borntraeger" <borntraeger@linux.ibm.com>,
+ "Sven Schnelle" <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
+ Linux-Arch <linux-arch@vger.kernel.org>, "Boqun Feng" <boqun@kernel.org>,
+ "Gary Guo" <gary@garyguo.net>,
+ =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>,
+ "Benno Lossin" <lossin@kernel.org>,
+ "Andreas Hindborg" <a.hindborg@kernel.org>,
+ "Trevor Gross" <tmgross@umich.edu>, "Tamir Duberstein" <tamird@kernel.org>,
+ "Alexandre Courbot" <acourbot@nvidia.com>,
+ =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
+ rust-for-linux@vger.kernel.org
+Message-Id: <3eeb0ece-42e9-49f2-9632-962793db8d4e@app.fastmail.com>
+In-Reply-To: <alpine.DEB.2.21.2608120349370.48788@angie.orcam.me.uk>
+References: <20260803180931.97202-1-ojeda@kernel.org>
+ <fb2daae7-4eba-4ca1-95a5-60f8157eb66b@app.fastmail.com>
+ <DKFKXA6YWW8R.1NDZ44Q13XFQH@kernel.org>
+ <20260804071330.24760Aaf-hca@linux.ibm.com>
+ <33ecacea-ed2a-409c-ab1c-a136e06b1b7a@app.fastmail.com>
+ <DKG43HF7A2EN.PC1LBC0QUP93@kernel.org>
+ <f0e0c069-23eb-443a-800d-267cfe4c2aa2@app.fastmail.com>
+ <alpine.DEB.2.21.2608120349370.48788@angie.orcam.me.uk>
+Subject: Re: `io{re,un}map()` build error in s390 under `!CONFIG_HAS_IOMEM`
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 
-On 8/11/26 06:21, Anshuman Khandual wrote:
-> pxd_ERROR() has been used in generic mm just to print the page table entry
-> in pxd_clear_bad() before clearing those out with pxd_clear() later. These
-> pxd_ERROR() macros have been provided by all platforms which basically did
-> the same thing.
-> 
-> Make pxd_clear_bad() use recently added ptval_to_str() instead for printing
-> page table entries thus completely dropping dependency on platform provided
-> pxd_ERROR() macros which can then be dropped off. First move all required
-> helpers in core MM into a header file which could then be used else where.
-> 
+On Wed, Aug 12, 2026, at 13:19, Maciej W. Rozycki wrote:
+> On Tue, 4 Aug 2026, Arnd Bergmann wrote:
+>
+>> arch/um is the only other one that does not always enable HAS_IOMEM,
+>> though most m68k targets don't have any support for ISA/PCI style
+>> MMIO or PIO and probably should not enable it in theory.
+>
+>  While HAS_IOPORT is indeed a feature that has propagated from Intel x86 
+> (or really 8080, etc.) to non-x86 systems through ISA/PCI what's been so 
+> special about ISA/PCI WRT HAS_IOMEM?
+>
+>  AFAICT HAS_IOMEM is all about just having peripherals located in the 
+> CPU's regular memory addressing space.  All the DEC MIPS platforms fall 
+> into this category, never seen PCI/ISA, some have no peripheral bus.
 
-It might make sense to split this patch further up to ease review:
+To me this is more about the driver model: On most architectures,
+you can use portable drivers that use IORESOURCE_MEM resources
+with ioremap() and the do readl()/writel() on those to access
+little-endian registers.
 
-Patch 1) provide ptval_to_str() a header.
+s390 and um only support this conceptually for PCI devices,
+and the HW implementation is different enough that the abstraction
+breaks down in some cases (like memremap()). m68k Amiga is
+similar to decstation I think, in that it has devices that are
+memory mapped, but they are always visible in the kernel address
+space and are accessed through their own abstraction instead of
+readl()/writel(). m68k q40 does have ISA devices with both
+port and memory accesses that can use portable drivers. I think
+other m68k platforms use a mix of ioremap()/readl()/writel() 
+and their own lower-level accessors based on the driver, but
+none of those drivers are shared with another platform.
 
-Patch 2) Stop using pxd_ERROR() and friends in common code, converting to
-pteval_to_str()
-
-Patch 3) Remove now unused pxd_ERROR() and friends from arch code.
-
-...
-> +static inline void
-> +ptval_bytes_to_hex_str(char *buf, size_t buf_size, const void *entry, size_t entry_size)
-> +{
-> +	if (WARN_ON_ONCE(buf_size < entry_size * 2 + 1)) {
-> +		snprintf(buf, buf_size, "overflow");
-> +		return;
-> +	}
-> +
-> +	switch (entry_size) {
-> +	case sizeof(u32):
-> +		snprintf(buf, buf_size, "%08x", *(const u32 *)entry);
-> +		break;
-> +	case sizeof(u64):
-> +		snprintf(buf, buf_size, "%016llx", *(const u64 *)entry);
-> +		break;
-> +#if defined(__SIZEOF_INT128__)
-> +	case sizeof(u128):
-> +		snprintf(buf, buf_size, "%016llx%016llx",
-> +			 (unsigned long long)(*(const u128 *)entry >> 64),
-> +			 (unsigned long long)*(const u128 *)entry);
-> +		break;
-> +#endif
-> +	default:
-> +		snprintf(buf, buf_size, "unsupported");
-> +		break;
-> +	}
-> +}
-
-Why not leave ptval_bytes_to_hex_str() in the C file for less churn for now?
-
--- 
-Cheers,
-
-David
+     Arnd
