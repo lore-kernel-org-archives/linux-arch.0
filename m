@@ -1,146 +1,113 @@
-Received: from fhigh-a3-smtp.messagingengine.com (fhigh-a3-smtp.messagingengine.com [103.168.172.154])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qk1-f173.google.com (mail-qk1-f173.google.com [209.85.222.173])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 502092C0F6D;
-	Wed, 12 Aug 2026 11:47:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.154
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 43C4D41F34E
+	for <linux-arch@vger.kernel.org>; Wed, 12 Aug 2026 12:30:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786535245; cv=none; b=MWALKQOUCLiCVicsEeVdX33fdZ2knTQuaQITC0sndua/HFSEKPTXPonOJESXqxFoI+EdJcl2av2M7u9YbTHv2S+cWCNl7ziO3/9SXFmTt5+Cr5yaXNGGg8AED3Bp9eVdEJirIlG5Y/VP8ugo9TzD4YLVPa+lWsMDUE+74caAOxk=
+	t=1786537840; cv=none; b=WGF/Tnw9qknN3x0FkwC0XmBbFYVbuo/SgkXLuwHph+6aaUjEOTnavx4wgljjiFum7c+3pdcnnx13XEAveseiiHmgJLsYSLURXSdwxUTwKrVOihGNBjW+2QCf54z3zPVnqB8FxHwC4T3E4s7maXrYYP5LfFzoggWJCab8QvaJOq0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786535245; c=relaxed/simple;
-	bh=jnxivYxViv0aHFjyB0ecnqcoMlW1GEceC++ncMLm8Is=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=bQFpBHDyJSkIYl5mJayaQ4NVdM/qKr6FAjw9klNJAVdYqUECpMNV5HFohDTbsraeENWBwwahtKeMdwsGSNQJzhzhhmxvIXmKHdI4XpUfsIQyj5R+Oas7kWggnGS5lUlmrjki72qH7WmwpPOmcihyU4RrDLddYug3bAW8fjYX0aU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=W1aBkcdd; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=P2JlU8iY; arc=none smtp.client-ip=103.168.172.154
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1786537840; c=relaxed/simple;
+	bh=oPx8rA1LxifIFXbFQU3CUDbGAZuvNtfeA5eTxK6h5cE=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=qX594rVIYX3a7/F//EOydbqq9P37UgczRMCv4O1MNsOtIYKGznFduLrcL899S/PjF/L6o0Cr8Rr7Sn3OcDEBOy7nIJylqQFWXL32xzBzGbHBXbleoI5ClsSAL8D3H4bjxCKtiornZ5jsLs6Z+eH1PYspuQKhbO15Ztwu2TYfG3M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=K1DObIFJ; arc=none smtp.client-ip=209.85.222.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="W1aBkcdd";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="P2JlU8iY"
-Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
-	by mailfhigh.phl.internal (Postfix) with ESMTP id 651AC14000FB;
-	Wed, 12 Aug 2026 07:47:20 -0400 (EDT)
-Received: from ams-imap-03 ([10.64.2.23])
-  by ams-compute-02.internal (MEProxy); Wed, 12 Aug 2026 07:47:22 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm2; t=1786535239;
-	 x=1786621639; bh=auPqy4hWqOWQzUYNHj1ppeU4j4CcIK3OlMDtI8AbMOE=; b=
-	W1aBkcddjTPpKlqX8JqYWHDW8u5ZTYQSOCyImwyoXupsh3XkLwrXyFtP+pmKUiY3
-	clUIKsH+AQWd/sETdNvIgiOTEutIJS2HiLCOx2q3TpcG9ZHEAqy+JH7aovQiUbfu
-	KpNjwTBVwLIYLvlHCupeGYmIkcH6QIhSbwKmT/+lhCZeZD3nc+ikejQfdwmkyD3h
-	4FhNx2bn+jnM/pgaF4XBdKBG56D+LEpw03a6aAZiFTj3pbZ+24sBuAW2lIBSivbT
-	QjBWhIIZu2TDyUBTQqynlAY7VCm50JCYYbITRPZqOOlDfPSF2++lv4dBaalPy+IV
-	Z8n6nKVbwFjgdbSz2Gksag==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1786535239; x=
-	1786621639; bh=auPqy4hWqOWQzUYNHj1ppeU4j4CcIK3OlMDtI8AbMOE=; b=P
-	2JlU8iYuc4NkzbJrWEsgMdz75m1yy/7TC3vtjFcDS59Ddqe2JlRKtrl2JEzoXi6/
-	77fmVAei5z1fI7kORgyVwRMp7YFPpbNQ7AtWzlyTMZqIcfbtUZZZ8f9X8LahajP9
-	9gOdmmN684frn5Q4J9DzKvbjnI4D9QiWAJ6Ep1bjn3KC/m+tJKtULRlN8qjdm8T4
-	ialzoGiGn+TSeY9G1r8uNqYDomjcsjUPWLsmV6qEdCHDF1giUe/SZC9jMFyt2qL9
-	5buB1lboaIgjMJy6i7WQ3uUUOD+URWNiwiAx1BuYTmdpFHY4hzZBL6iXH3nkKUZi
-	TYLMXwAk1m/SsDUjM8wVg==
-X-ME-Sender: <xms:Pl18as1QUWt3b1tzH_jlv0BVErLHe9l1H81R-YF1BgBHwBDxvoLfPA>
-    <xme:Pl18ah5pwt7LXZxDePedrXQqREuUFwvcJjHvUSRjNB-OfuY5Fqd68vjJpWRAFrTBq
-    2cskbzrIuGScToacTX8H2YyUqVPwBlFsa_TYcnsL2OZtVXByWmteT8>
-X-ME-Proxy-Cause: dmFkZTEwMyLj+YIpdMh9D13N5MOyTmf5E4tXtrYh5XsBywu5xKvrnx8kBAGbf8NR8m09b7
-    ludXZWYIJO4LcIafhsaQES+HJv6JFZiRfaGqCH/BaTmDY/nA4J6qOEPr3n6SW9409xAGLQ
-    ayXmK9zjKLW/9pgLqZdBF5U3DSjuGG3y8Vl2NMbLc0H/wAFD4Ew0SeTM9qfxS+KVrpadFp
-    cfZ/WJtu6521j0agBPVW4NDfWQ00OFnjGkREfpOP58lc8VLNABahSt0CvvoL3YbVG2EsSq
-    bDgBAgznIlETibeGcWwgGrDcFP31DoDE5bq8k4zT1kOYuM8BGIHWre+ZJ3yCRomoa7K7fF
-    qqN51Wjfe0zBHoX+JwVgi46bJ2JzCBdkHwK9/wG+dT0p7IxhaV0oW/ZhNxrZnVR3xjQbBR
-    uAs7bqOmja4U4ZrjTmyBGit6bschuOa2MqLqTYGqbuCh4E36B8xbNGT99SqaIt4gp5EwHV
-    igOwKzgMw6OzYiuQ0g8eK8o6TAKg872WF9GZiWken7bPooA9Hsl21C8n43tPnpVAy3P1e3
-    i90Cs5csORElUr4UzSvgqMVEBS0EEf6WUAMCbMnKxPA/rofuGRHBH/Ysm8QbxOdmWwYIYd
-    3pKxtxSgycKzPk/auXTpUn8aGt0ND1YipcDigYQTXgAzL6/i0kLffOU0ZGaA
-X-ME-Proxy: <xmx:Ql18atIIziyguunkHgKZ_k37KtFvCz1Vi0yV8Iri6ywHS6I6m_UNHw>
-    <xmx:Ql18agrFNSUSGwKJwqzVbNhqLrMB4s-cBRJL-CRLY_MgHXnowoDiig>
-    <xmx:Ql18arz3xwHalWjYgvKPV6LPCG8jABVpuwwjvNNN8Spj2NMtAW-ETg>
-    <xmx:Ql18asdsuCNiuIZSujGMBJpsri5LmUbauMQOK7DFCzAChDfxRCjlqQ>
-    <xmx:R118arYa8e6qMYrKN4zz2wskcZfMVp9u_w048Zv8xs53-MDtAeCPp_tx>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.ams.internal (Postfix, from userid 501)
-	id 5FD8F32A006E; Wed, 12 Aug 2026 07:47:10 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="K1DObIFJ"
+Received: by mail-qk1-f173.google.com with SMTP id af79cd13be357-934a3d14924so91538085a.2
+        for <linux-arch@vger.kernel.org>; Wed, 12 Aug 2026 05:30:36 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=ziepe.ca; s=google; t=1786537835; x=1787142635; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=xTId/AcxtpBf7EUq04FOwN+m2Ext7rtU8m+LVRU8E1E=;
+        b=K1DObIFJ02M62a8WH5OMJo0XF8ybEoV5IKOKtoneADLfcGcd6D13fy71m1wkEHHor2
+         TPme1C5Gi2840NobPWnm62GXfVqvTuoIJpbQG6LQabrmCciRAXa8JcuDN2FEBfb0i4RI
+         xIXCpHjhYiZhX9MRUesBGq7FdMC7env1mhQylwZ9AwtesKzAzUS3wQ3OqvdJI4d7XEmb
+         0jghcwKcPa1OOLlHbuiZ3yTkW737qSSlrmuAB6Lsf8/B4Nn9TeVJZ3e99eayK6NAGkNB
+         wv0JCbD6UAKa3rdSQH4C0Hd+jmFBTG86tQbpwlUoPCLGJtpLfaJbWUJ9bBUeiCYXG8He
+         sSug==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1786537835; x=1787142635;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=xTId/AcxtpBf7EUq04FOwN+m2Ext7rtU8m+LVRU8E1E=;
+        b=HzYrz8WM6E+2gR8Wke95PSC+vCL5O2FCCxuBU3DSHnFiiF/4wxUMTcZZQaE3yGa91k
+         u7/Sj9STQbiLSY9J5cZxsapuTFm8jCn0rbtF8S0WGenewaZxiba0NLwpTIQz8Bx4i2v4
+         AbmsX/RU5EHR4QfOfH9wh3Xvh7UhQKQtY3xz+Lj50Jb5OqDJG6tpTj4lCVcihXFAJ65N
+         L4sLxinTCOadlPHZAfmcmbr1sic1yV9yl+WcnkGwSOE2vjkXX58Fc3UVEjaFXdwwxkwm
+         yDThnkJDlXHsE3TqtIQjWRO00iqvjgffdZVljYcxPfWbeM9TxsJ4iNbdOfDqFSD3CCOb
+         zynw==
+X-Forwarded-Encrypted: i=1; AHgh+RqYiDgB8MU2iTCq9NmwdyJvtAl19A5jIxmDdUv1qDuAJc9hOKMX2ATNJWLByC4ph/PMd6T1VNunHk3/@vger.kernel.org
+X-Gm-Message-State: AOJu0YzkeouYVpn3KGzlR/XeHiPd0sGvFtsxzg6NgdeEYRaNnp+vZh/M
+	MSeOcWmOr3kkPwln2d/Sr5B/CRnbx3KV6xxK+wsK08yDCQkMeatkAicS3Z6DgsK96we1oh0nwpW
+	ZYwcB
+X-Gm-Gg: AR+sD11n7U86LIq1FR6gjJUHk5yWQ5NMUm/vlTC7bgKXvqPtDWEKw5B3lGQvC+tmWNM
+	RXISmTPs9WAZWuC/J5ROKDPfvt4li5hLjVHR2Iz5OS88hJZ7qSueifUPWusE44X6p91cxvYczKL
+	q2eiz1Vg1+GE7iB41DqNctQ+BkflH82yz47Oh7om0n7+n2QXxWGQYPzmrQT6gEfF0qRzLj5mAPl
+	KXj4VQgea28L0uribJoxTnQESm4Jjl2zkdrKdeQNhyPYl1G0gOj0SxtLnv9E7z19z/RJTmNTdvU
+	Rkke2VWdgl9uM1EddgCYf/OlCk+naSSMqXFBGTeVMsxgpETcaw1C87wYf2hQG49l3ozlL2J8+gS
+	rnITWnIX5LV+9Oub2tLn9iuhhS6+8B0KkVHfqDk/xeGhwWAC6kb2SNCcHWrc/iYh84Q6I8kXtb1
+	6DMJ5fJAxFHdeotqWQq4JTcv0qDOJcKxuojm/B1qETionna+fR
+X-Received: by 2002:a05:620a:4013:b0:930:e2ea:2881 with SMTP id af79cd13be357-936b3d940c1mr359405785a.36.1786537834756;
+        Wed, 12 Aug 2026 05:30:34 -0700 (PDT)
+Received: from ziepe.ca ([142.166.156.215])
+        by smtp.gmail.com with ESMTPSA id af79cd13be357-936b5f1388fsm117247585a.24.2026.08.12.05.30.33
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 12 Aug 2026 05:30:34 -0700 (PDT)
+Received: from jgg by wakko with local (Exim 4.97)
+	(envelope-from <jgg@ziepe.ca>)
+	id 1wu86L-000000030Ox-0KWD;
+	Wed, 12 Aug 2026 09:30:33 -0300
+Date: Wed, 12 Aug 2026 09:30:33 -0300
+From: Jason Gunthorpe <jgg@ziepe.ca>
+To: Yu Zhang <zhangyu1@linux.microsoft.com>
+Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
+	linux-arch@vger.kernel.org, x86@kernel.org, wei.liu@kernel.org,
+	kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
+	longli@microsoft.com, joro@8bytes.org, will@kernel.org,
+	robin.murphy@arm.com, bhelgaas@google.com, kwilczynski@kernel.org,
+	lpieralisi@kernel.org, mani@kernel.org, robh@kernel.org,
+	arnd@arndb.de, mhklinux@outlook.com, jacob.pan@linux.microsoft.com,
+	tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com,
+	mrathor@linux.microsoft.com, baolu.lu@linux.intel.com,
+	suravee.suthikulpanit@amd.com, vasant.hegde@amd.com
+Subject: Re: [PATCH v3 3/5] iommu/x86: Share the architectural MSI reserved
+ range
+Message-ID: <20260812123033.GB662699@ziepe.ca>
+References: <20260811155022.108148-1-zhangyu1@linux.microsoft.com>
+ <20260811155022.108148-4-zhangyu1@linux.microsoft.com>
+ <20260811162124.GK544626@ziepe.ca>
+ <obiixds667qdhv5upqdpxmgrvrvp3bl5gfbpingvog2vzbexhg@b7n4fpfbkff5>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: Ag8nwV6tN_57
-Date: Wed, 12 Aug 2026 13:46:30 +0200
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Maciej W. Rozycki" <macro@orcam.me.uk>
-Cc: "Danilo Krummrich" <dakr@kernel.org>,
- "Heiko Carstens" <hca@linux.ibm.com>,
- "Niklas Schnelle" <schnelle@linux.ibm.com>,
- "Gerd Bayer" <gbayer@linux.ibm.com>, "Miguel Ojeda" <ojeda@kernel.org>,
- "Alice Ryhl" <aliceryhl@google.com>,
- "Daniel Almeida" <daniel.almeida@collabora.com>,
- "Vasily Gorbik" <gor@linux.ibm.com>,
- "Alexander Gordeev" <agordeev@linux.ibm.com>, driver-core@lists.linux.dev,
- "Christian Borntraeger" <borntraeger@linux.ibm.com>,
- "Sven Schnelle" <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
- Linux-Arch <linux-arch@vger.kernel.org>, "Boqun Feng" <boqun@kernel.org>,
- "Gary Guo" <gary@garyguo.net>,
- =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>,
- "Benno Lossin" <lossin@kernel.org>,
- "Andreas Hindborg" <a.hindborg@kernel.org>,
- "Trevor Gross" <tmgross@umich.edu>, "Tamir Duberstein" <tamird@kernel.org>,
- "Alexandre Courbot" <acourbot@nvidia.com>,
- =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
- rust-for-linux@vger.kernel.org
-Message-Id: <3eeb0ece-42e9-49f2-9632-962793db8d4e@app.fastmail.com>
-In-Reply-To: <alpine.DEB.2.21.2608120349370.48788@angie.orcam.me.uk>
-References: <20260803180931.97202-1-ojeda@kernel.org>
- <fb2daae7-4eba-4ca1-95a5-60f8157eb66b@app.fastmail.com>
- <DKFKXA6YWW8R.1NDZ44Q13XFQH@kernel.org>
- <20260804071330.24760Aaf-hca@linux.ibm.com>
- <33ecacea-ed2a-409c-ab1c-a136e06b1b7a@app.fastmail.com>
- <DKG43HF7A2EN.PC1LBC0QUP93@kernel.org>
- <f0e0c069-23eb-443a-800d-267cfe4c2aa2@app.fastmail.com>
- <alpine.DEB.2.21.2608120349370.48788@angie.orcam.me.uk>
-Subject: Re: `io{re,un}map()` build error in s390 under `!CONFIG_HAS_IOMEM`
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <obiixds667qdhv5upqdpxmgrvrvp3bl5gfbpingvog2vzbexhg@b7n4fpfbkff5>
 
-On Wed, Aug 12, 2026, at 13:19, Maciej W. Rozycki wrote:
-> On Tue, 4 Aug 2026, Arnd Bergmann wrote:
->
->> arch/um is the only other one that does not always enable HAS_IOMEM,
->> though most m68k targets don't have any support for ISA/PCI style
->> MMIO or PIO and probably should not enable it in theory.
->
->  While HAS_IOPORT is indeed a feature that has propagated from Intel x86 
-> (or really 8080, etc.) to non-x86 systems through ISA/PCI what's been so 
-> special about ISA/PCI WRT HAS_IOMEM?
->
->  AFAICT HAS_IOMEM is all about just having peripherals located in the 
-> CPU's regular memory addressing space.  All the DEC MIPS platforms fall 
-> into this category, never seen PCI/ISA, some have no peripheral bus.
+On Wed, Aug 12, 2026 at 04:58:28PM +0800, Yu Zhang wrote:
+> Thank you, Jason!
+> Do you mean something like below?
+> 
+> -#define X86_IOMMU_MSI_RANGE_START        0xfee00000
+> -#define X86_IOMMU_MSI_RANGE_END          0xfeefffff
+> +static inline struct iommu_resv_region *
+> +iommu_alloc_resv_x86_msi_region(void)
+> +{
+> +       return iommu_alloc_resv_region(0xfee00000, SZ_1M, 0,
+> +                                      IOMMU_RESV_MSI, GFP_KERNEL);
+> +}
 
-To me this is more about the driver model: On most architectures,
-you can use portable drivers that use IORESOURCE_MEM resources
-with ioremap() and the do readl()/writel() on those to access
-little-endian registers.
+Yeah something like that.
 
-s390 and um only support this conceptually for PCI devices,
-and the HW implementation is different enough that the abstraction
-breaks down in some cases (like memremap()). m68k Amiga is
-similar to decstation I think, in that it has devices that are
-memory mapped, but they are always visible in the kernel address
-space and are accessed through their own abstraction instead of
-readl()/writel(). m68k q40 does have ISA devices with both
-port and memory accesses that can use portable drivers. I think
-other m68k platforms use a mix of ioremap()/readl()/writel() 
-and their own lower-level accessors based on the driver, but
-none of those drivers are shared with another platform.
-
-     Arnd
+Jason
