@@ -1,111 +1,159 @@
-Received: from mail-qk1-f180.google.com (mail-qk1-f180.google.com [209.85.222.180])
+Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40C4847AF6D
-	for <linux-arch@vger.kernel.org>; Thu, 13 Aug 2026 13:49:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.180
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 00F3D478E5E
+	for <linux-arch@vger.kernel.org>; Thu, 13 Aug 2026 14:15:10 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.41
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786628980; cv=none; b=I0EpvNOhRZiO8hiLRdFdLpYJhPQPWnORE7dazyP8ZiCVptKNZDRVZ/sczNuuzJrrqGc/IW5FYpoNYXXI31z5Ds/Hx2OD+tKdjvzwUCIYjqb7Z4eFbiRmVFt2DbeW7V8vh0/uB02GHC9SjhYLrrmeVxW3ZGMhD5KQglMYwrli5pA=
+	t=1786630513; cv=none; b=cN+7KhTQN97TWCtg/PBsi32ubWV2GHN8Z578FyxM7VKpopcRxa3pYXCUGzr4co2N47A2v8z1AH7BaunpFdXu/hz13QXoJQYhkS+aa9jWWytMRyTHMP1u7fRritPDb3C58Wn/3pM2lRAGM8YrPylC87rN+tQHpp28yrmrR3jHhFU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786628980; c=relaxed/simple;
-	bh=0/BIRfMphfS1OGwGGVzoT/+z7v+H5hzNBd1OvKLo6R0=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=u2AXSCJ1LvE8ql/gcDsEdh7dlkIZv9sgpTU7sNgT88tr0I7gX0TWke2KlplNN2x9HCaTDOa3IEL8o0uy37r62df4zD4A8w52IcIRWOSeuFHaHlIMH84S/BHhFxCUa+AVq2zJTLwIWGtlCw/amcvEmkWdf6GX6SrlyqLl+fyWrFU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=MkYOV5dD; arc=none smtp.client-ip=209.85.222.180
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
+	s=arc-20240116; t=1786630513; c=relaxed/simple;
+	bh=BJmgQ0xsWwLek3a34c+eZxt3ELWgWeEXeHtsjDuughU=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=ZXnWDWUsA5BHaMZ7LT6JmpOyqMA41qElUHIQV+rh95j7ndYqcBQ/UEwSPKfUl2a3AX0ZN4xfWqoDVXRAAdMduZ4FzSHnjRcGq5kadABkIfYyvO/d9Y6R86/N7XVT+VHloTJvgozMgvIBTVzzNIUOe/71BupM3bD5iq/Ax4K7g3k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=TNKwobiN; arc=none smtp.client-ip=209.85.128.41
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="MkYOV5dD"
-Received: by mail-qk1-f180.google.com with SMTP id af79cd13be357-92f03daaa97so40717985a.2
-        for <linux-arch@vger.kernel.org>; Thu, 13 Aug 2026 06:49:39 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="TNKwobiN"
+Received: by mail-wm1-f41.google.com with SMTP id 5b1f17b1804b1-4954d29264cso10975865e9.2
+        for <linux-arch@vger.kernel.org>; Thu, 13 Aug 2026 07:15:10 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=ziepe.ca; s=google; t=1786628978; x=1787233778; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=7Yi6QACY6Sk+pPvGX2LOJZA5tLUZ+nGsCUcFWjEbL98=;
-        b=MkYOV5dDeYB6Ka49dQF3qGymlcQNeahvXC657wTWSh5bc13cs3WKyp6KlUju2hOTLr
-         OZDQ1Jizl3VHXYlH/f+DXmDDjNpT6zDDhxHAnOFDZ2RmaDsVsazaihXqTcl0kXwsFhJp
-         N2MQeFqpiQICZqgOvaTA8pY69vWKBnHC7gulzwU0xfrjU01gbgEZRQR/BynJJIWwQ4nx
-         P6zkNCZv6DUjD78Nv4xeIHfmeBX4SQpaBB930lcXI0UKHxjsamNGqoIWuyqUqb6FyIOX
-         85aFuVThogCAOjIvihgEEQvnO49vpgCTXHOPDzwOyIPQxslnbrMkxoMPlqvRQo+gLzk8
-         Fzwg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786628978; x=1787233778;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+        d=suse.com; s=google; t=1786630509; x=1787235309; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=7Yi6QACY6Sk+pPvGX2LOJZA5tLUZ+nGsCUcFWjEbL98=;
-        b=P/e7F1PVDqRpQ25ORH7ZUBSeHhy5mDVAUGcU6mPLEFQB+PPc27KKiPsctVcZ/FaJsY
-         7U+nwpDsn7ohW3f+kdcur/koC8UoRgeINCCNZ9d2CsTgbyfoZvAvvtSOmQld/wa10d9s
-         gn3O5e49ARV0AMG3NlIBozI5/MCmPHHjnQafaUQe8cwesD4I9RcpA5agAiaHFk9OC8p7
-         CbRZMtwv5OJZFu/mf7sNOtf+tVOpHRVKicGi822hEaQb21IrU0F4XFu5c9cn6afMt2IP
-         bSTL0BbJ0XNjxWc10bLMY5WtDje/TIyRp79VG0NEuWohivczf9ocJefpUpUBlz8Fsn3B
-         DhYg==
-X-Forwarded-Encrypted: i=1; AHgh+RpO+Pf7rmMndwyisu0shH9cOZAPAbhXx5ap0Wgmof9OcjhaY0pm1le7Cyd5syFKhsmYyWQpEjaL5GrL@vger.kernel.org
-X-Gm-Message-State: AOJu0Yx1ox1DgemYULVdXIy2YdJ0ZO4s1nahvBwBwzeGrx2vV/PlYm4B
-	Yq7+cRj5VJVPvpi8xW/QjjDonUvjdBGiuVP2ibnr1P27WfyaOwpTVxN79tw4yt/zEjQ=
-X-Gm-Gg: AR+sD10ZqGgW7/UTem+IrqbfD8cwQXJnXwApfVMifx0dNFI011vis91c48Dr7rVFbhh
-	wdqUNtrJeUYBHX02spuFz655wDa/eZ37laAhxu/YG9LfvG/V1iIeYwHaX+A+2ZCyAYT6adyT73V
-	sR+jQZIQnnHvDkd69NPsYBT58vkj2bEBpjWN2kZclmi9OAh55Sc1ZAfedVdU1kIEGziErGtFXrp
-	o/jHC+2gp0vcLsbqY2Gk3zEr3o3+R/yPHfd6UCUVDa4tJs8sfiJ6Ja/eqd5qFYf49jkEsiz49Ud
-	XVqGM7nApbP5Fix54bIuwtNaDbfTKekmhRyM/yLgqt9as2lCd8dLMW+3mNox1ltctfDZba63o2o
-	ynB6138DLVLG3Q+KajuHVkH74HgEMgmHOQ2T0sWfY7sshD/yuY3hmb71WJbAm+N8/uwpbcepaf5
-	bM5L1yUVT4quJ06L59ZPXxW2yfTGGBhJg7i7dIfQ==
-X-Received: by 2002:a05:620a:1995:b0:936:bc78:791b with SMTP id af79cd13be357-936bf90b78cmr572103285a.15.1786628978075;
-        Thu, 13 Aug 2026 06:49:38 -0700 (PDT)
-Received: from ziepe.ca ([142.166.156.215])
-        by smtp.gmail.com with ESMTPSA id af79cd13be357-936c1b12344sm150528085a.29.2026.08.13.06.49.37
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 13 Aug 2026 06:49:37 -0700 (PDT)
-Received: from jgg by wakko with local (Exim 4.97)
-	(envelope-from <jgg@ziepe.ca>)
-	id 1wuVoO-00000003nYa-1b6m;
-	Thu, 13 Aug 2026 10:49:36 -0300
-Date: Thu, 13 Aug 2026 10:49:36 -0300
-From: Jason Gunthorpe <jgg@ziepe.ca>
-To: Yu Zhang <zhangyu1@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org, x86@kernel.org, wei.liu@kernel.org,
-	kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
-	longli@microsoft.com, joro@8bytes.org, will@kernel.org,
-	robin.murphy@arm.com, bhelgaas@google.com, kwilczynski@kernel.org,
-	lpieralisi@kernel.org, mani@kernel.org, robh@kernel.org,
-	arnd@arndb.de, mhklinux@outlook.com, jacob.pan@linux.microsoft.com,
-	tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com,
-	mrathor@linux.microsoft.com, baolu.lu@linux.intel.com,
-	suravee.suthikulpanit@amd.com, vasant.hegde@amd.com
-Subject: Re: [PATCH v3 4/5] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Message-ID: <20260813134936.GM662699@ziepe.ca>
-References: <20260811155022.108148-1-zhangyu1@linux.microsoft.com>
- <20260811155022.108148-5-zhangyu1@linux.microsoft.com>
+        bh=in6woJYFkc39bFtfodNqD0fkpoWFu5/eR61xqqy33mA=;
+        b=TNKwobiNDry3Jg29pIVwqvbGOSLRwhjctHlglRVHgFA+h1A4RzTLVpgDAXfIKopaHP
+         tubDpQuDDPFpTBWHmhwje9fX+uDhhch+AUD1KSzQ25xIwxTrXD8sr30mpaTGvnNVRIYm
+         dBvHdInLOtGbZY2t3UUaDftXbV5VjABV9/79tSmw1kWbcT3ngOR10XMtQmi0MowPGITA
+         TuEb+IeLRTv2nhdAuEUV9Uap9h7GJqQUu1/YxYWzo6IcuojhYKzYExWow6lPi/ccNK4v
+         4d+oI3VqBdKxJF9/6AyRp6jyUeMgOKpQKrQwsvJbt/YJgEevsxWKyRrJcYCds6sUBT8c
+         TZuA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1786630509; x=1787235309;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=in6woJYFkc39bFtfodNqD0fkpoWFu5/eR61xqqy33mA=;
+        b=bhFeBF0AZeMF0zSmmO/onbKlFG1drhABnR5eqJSLp8wecglKIhYIy0ymbXQoKgbJax
+         BqM0T153C6e6zTi8X1AQ16v6cIqCfFQ0yD4JUhBGQlfIUJWtukD5W6y0cxrJhrKgIBuH
+         Cfp1jx3/M3VVYN8+imI292eYtJd8/5ETGShjw1B30zMPLglUxZas/CiZeZgmwnvN2ZkY
+         kMjiLtD0bYhC53OrMk07WqPuBPSwIKwGeARpXazfAfnr7ip4ccobebR+ZH20vtcAvxFO
+         vX3NV48cSXvgfE33jNOG07Qb2ohHxxQVSDrJ5mSJ9pMCG9GSda3x1bTF8+tVDgmFL55Z
+         Xorg==
+X-Forwarded-Encrypted: i=1; AHgh+Rpi08RUGiZUmj41bCd2icduScydOJP1D7NQ5NlV1iQYlZv5tOWKryPIFPbYC+hkPPTM/lnWuuFnFHsc@vger.kernel.org
+X-Gm-Message-State: AOJu0YyWNdEnWxOprVJN1gl3FZdKuWklxSrz6nLFVbd0rnlLMEBqiR8Q
+	wkdxNIUcV871pGDdw0o8/Pagf2hqbh6I5yshFlg8SUcwhogcQMQuAiib4mr1l68wC+4=
+X-Gm-Gg: AR+sD12fv1pbuoNmAymWW73GRf0evauTWO9XiI1ItwAoCR1JJp9CrmJGm02hDvacOOS
+	2d/1tb5cFm+f9ytg7DWbEZsepn93D9cjkyNBy0yDu8SSDPogbpNmBbdlHYWRt6ywouH1ujmJ6pM
+	1m6xte0XEXJVZ3n3QC0h7wh42vOPcGWzTjOLqUGO8Ccvl00h742t4WuoiOjLVN59h2MsEiksiS5
+	OfENfnm0kiT2vHqQfGVJGRXkQxd7zAo+SXnlAXWQrq0/NnuQfb4U+ZBy8Icvgpk6uExp/37H9HS
+	UWe6ZNFWxI/jLkleuTFZbBe5olCkzlvQfFKFCWHDkAzZmg96ls3SB1io9Yj6C99OesoGO1OYDp3
+	Xpo5jg0Ln1ah2ZKv5fwm266vA9DrwxxzHgC7bXIEqqRor1yJtngFYfeXod9kaahaTYaezCnzhMR
+	ZgSyDkvPZ4tRCwOkrhPNb8jsWe0e6c/AzWsPqYmevUnicIPOR42ZRgZHCwyPnI9sJkhu1SPkXPt
+	5X2Yl5OtMidERdkr4UiFhpJZw==
+X-Received: by 2002:a05:600c:6995:b0:494:596e:e8c4 with SMTP id 5b1f17b1804b1-499821bdcadmr82447915e9.17.1786630508708;
+        Thu, 13 Aug 2026 07:15:08 -0700 (PDT)
+Received: from ?IPV6:2a07:de40:8100:0:fc6c:f9a2:4a0a:6354? ([2001:af0:8000:1409:193:86:92:181])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4998212a011sm62452805e9.5.2026.08.13.07.15.06
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 13 Aug 2026 07:15:08 -0700 (PDT)
+Message-ID: <af6aaa0a-03de-4175-84a5-7c253198d184@suse.com>
+Date: Thu, 13 Aug 2026 16:15:05 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260811155022.108148-5-zhangyu1@linux.microsoft.com>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v9 1/2] module: Extend module_blacklist parameter to
+ built-in modules
+To: Aaron Tomlin <atomlin@atomlin.com>
+Cc: arnd@arndb.de, mcgrof@kernel.org, da.gomez@kernel.org,
+ samitolvanen@google.com, peterz@infradead.org, ojeda@kernel.org,
+ akpm@linux-foundation.org, mhiramat@kernel.org, boqun@kernel.org,
+ neelx@suse.com, da.anzani@gmail.com, sean@ashe.io, chjohnst@mail.com,
+ steve@abita.co, mproche@mail.com, nick.lane@mail.com,
+ linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+ rust-for-linux@vger.kernel.org, linux-kernel@vger.kernel.org
+References: <20260807012601.360452-1-atomlin@atomlin.com>
+ <20260807012601.360452-2-atomlin@atomlin.com>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260807012601.360452-2-atomlin@atomlin.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Tue, Aug 11, 2026 at 11:50:20PM +0800, Yu Zhang wrote:
+On 8/7/26 3:26 AM, Aaron Tomlin wrote:
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 5659f4b5a125..799d912dcbc0 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -734,7 +734,9 @@
+>  	EARLYCON_TABLE()						\
+>  	LSM_TABLE()							\
+>  	EARLY_LSM_TABLE()						\
+> -	KUNIT_INIT_TABLE()
+> +	KUNIT_INIT_TABLE()						\
+> +	STRUCT_ALIGN();							\
+> +	BOUNDED_SECTION_BY(.initcall.modnames, _initcall_modnames)
+>  
+>  #define INIT_TEXT							\
+>  	*(.init.text .init.text.*)					\
 
-> +static void hv_iommu_release_device(struct device *dev)
-> +{
-> +	struct hv_iommu_endpoint *vdev = dev_iommu_priv_get(dev);
-> +	struct pci_dev *pdev = to_pci_dev(dev);
+I realized that instead of using STRUCT_ALIGN(), a cleaner and less
+wasteful approach is to prevent any potential over-alignment of
+individual .initcall.modnames sections by having
+____define_initcall_modname() define each `struct initcall_modname` with
+`__aligned(__alignof__(struct initcall_modname))`.
+
+> diff --git a/rust/macros/module.rs b/rust/macros/module.rs
+> index 06c18e207508..13353b43b38d 100644
+> --- a/rust/macros/module.rs
+> +++ b/rust/macros/module.rs
+> @@ -479,6 +479,7 @@ pub(crate) fn module(info: ModuleInfo) -> Result<TokenStream> {
+>      let ident_init = format_ident!("__{ident}_init");
+>      let ident_exit = format_ident!("__{ident}_exit");
+>      let ident_initcall = format_ident!("__{ident}_initcall");
+> +    let ident_modname = format_ident!("__{ident}_modname");
+>      let initcall_section = ".initcall6.init";
+>  
+>      let global_asm = format!(
+> @@ -590,6 +591,21 @@ pub extern "C" fn cleanup_module() {
+>                  #[cfg(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS)]
+>                  ::core::arch::global_asm!(#global_asm);
+>  
+> +                #[cfg(not(MODULE))]
+> +                #[repr(C)]
+> +                struct InitcallModname {
+> +                    initcall_fn: extern "C" fn() -> ::kernel::ffi::c_int,
+> +                    modname: *const ::kernel::ffi::c_char,
+> +                }
 > +
-> +	if (pdev->ats_enabled)
-> +		pci_disable_ats(pdev);
+> +                #[cfg(not(MODULE))]
+> +                #[used(compiler)]
+> +                #[link_section = ".initcall.modnames"]
+> +                static #ident_modname: InitcallModname = InitcallModname {
 
-Since attaching blocking does this and you set blocking as your
-release domain, this is redundant.
+Can Rust directly use the C definition of initcall_modname via
+::kernel::bindings::initcall_modname?
 
-The new flow looks alot better, removing the detach operation entirely
-makes sense if the HV can support attach on attach
+> +                    initcall_fn: #ident_init,
+> +                    modname: #name_cstr.as_ptr().cast(),
 
-Jason
+Can the modname string be placed in .init.rodata to match the behavior
+on the C side?
+
+> +                };
+> +
+>                  #[cfg(not(MODULE))]
+>                  #[no_mangle]
+>                  pub extern "C" fn #ident_init() -> ::kernel::ffi::c_int {
+
+-- 
+Thanks,
+Petr
