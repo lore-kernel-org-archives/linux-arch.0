@@ -1,269 +1,153 @@
-Received: from AM0PR02CU008.outbound.protection.outlook.com (mail-westeuropeazon11013000.outbound.protection.outlook.com [52.101.72.0])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f54.google.com (mail-wr1-f54.google.com [209.85.221.54])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 71B8942EEAB;
-	Fri, 14 Aug 2026 10:07:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.72.0
-ARC-Seal:i=3; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786702037; cv=fail; b=NuELOnAfT0BoKwQjBstIh7ZPGARs6Nu2+3HVIbn1C9aAWVJECQVoj7KhQt0UJbOI/6DIbag26t4FcLyn19Lz9ZesnNVbyj2nAgBSwBQtTvT1UQvK1YJmhf89wUsxfNlH/UnmFdF0qiWLNaKieExNBgyI2uWYdcnV8ma3BBxpFNY=
-ARC-Message-Signature:i=3; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786702037; c=relaxed/simple;
-	bh=nfStK3Pe70ZRRblEKj4btcPP/SQp5rNphn0OaMy4bbg=;
-	h=Message-ID:Date:Cc:Subject:To:References:From:In-Reply-To:
-	 Content-Type:MIME-Version; b=snS20mYqdWRu1nyvD+CD27QdnCMMn6pE2vW/RcVfkmviEWLb8bqpeRU5ae3cVWtMkB9BQShSBhoA5onRdVqwA2v9dfUf7VxjT8tdTgL1oIA91vCQqilAZ+p0GThlCiskZOQnFSWBMK4TIqpym9+DcHnAc5AzuxtGzWA2KHiXnn0=
-ARC-Authentication-Results:i=3; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=Xa73x8VO; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=Xa73x8VO; arc=fail smtp.client-ip=52.101.72.0
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CCB2645FFAC
+	for <linux-arch@vger.kernel.org>; Fri, 14 Aug 2026 11:16:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.54
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1786706170; cv=none; b=GKzT56F+z1FwoPWNR6Hg+S/rAdLQs6kkKPudiIDbqPURoe99vLyGScId5SBQA7OIYktlSclo53SRdDKe9FWSti1ZujtpCRaTNWLQbYs/W+uh0dGrrXhIX17o3RcBe0+HNo2uCGMCb8v4LSd8KL6sjoL4+QE7z8Ya4NJJMj2guNU=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1786706170; c=relaxed/simple;
+	bh=WC68mzM9vVdX5O4PVh43sBf4C00Yw06tw0d+DOenXm8=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=H+JFPd2TV/hvs030/vToc9E3KAVjSJjX4Rp44cwKTxBc2VzDFGkM19c3gGlDQ7gTCOc5vjL4fpoU7ozMeWCi2Ck9zMjnp33Y9SqmxznmdMJpmDMj1gG7oddFzKyglIwi7Tx7y4DquRrk/GMRDVfjia1IooyliE//0X+pha7ZBcI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=N1OOPHyS; arc=none smtp.client-ip=209.85.221.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="Xa73x8VO";
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="Xa73x8VO"
-ARC-Seal: i=2; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=pass;
- b=xDBuWPymd45tbtSJsM5zIQ7ovzGXD+AGiS6ED8icHhxGxVT76M6DstGxkVHkqZFrKZ985/4ylndA6OkpO7KApT4x8A9VoWXIUF7ol+hnVj8p9InHzAwMyVHfnKoHZOy0STBUIWB2yo7sa+gulPrTLvj9KR5/g+JJ0LaFg4m2WMV0GZnLHXfdLtAkTv04NadcewuXeVcvS9PxpcizH7DD2JNdWOxdpz8AUK4jC8UjZjjx2jVcWfCBmRMksbO7bq08/ZKY22a5fuJ7oHkIKekVik6zDgN9xwDX6CwML+4n1YKATCfnob9SNIv4bmxK1dOzh93tLos5zLU3l1hYIdSSUw==
-ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=T3KhvsxEoEP9z6JNj1aBx70Nx6X3XBZOUekklW3rbtQ=;
- b=PyqtN1JNJudVv4ZYrE1LAlvnCEJ9YizG8w2qpKARDgPno8P2z0qNluL59nw8K5h/EdPXXJbXfFM/fB8OTlRfbZl7GjRfyLD6A6TdNZOQSwunFyleIE1EpEkPcnVlUPybP0ZBxym/muZ7y1YnawaISEyunpHgL/KMMxwVE/c/1d/3m7cvTVqn1k2gjKXmUxoBejgFo/9KsetJjU27CUNrxDZ07lPKBtsGPSO/GGCkeNfCp4CT3XjBatR91gj25FKk9Bi9EADX8XUESx98U1/UZTUbc6MxXnJOSU0IbmcgLWItKlGVQFta2tayKA7kP9UXLCivv/rRKRUIo2Rt01oiPQ==
-ARC-Authentication-Results: i=2; mx.microsoft.com 1; spf=pass (sender ip is
- 4.158.2.129) smtp.rcpttodomain=kernel.org smtp.mailfrom=arm.com; dmarc=pass
- (p=none sp=none pct=100) action=none header.from=arm.com; dkim=pass
- (signature was verified) header.d=arm.com; arc=pass (0 oda=1 ltdi=1
- spf=[1,1,smtp.mailfrom=arm.com] dkim=[1,1,header.d=arm.com]
- dmarc=[1,1,header.from=arm.com])
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=T3KhvsxEoEP9z6JNj1aBx70Nx6X3XBZOUekklW3rbtQ=;
- b=Xa73x8VOqP9SORkdx0HmJjWkb3uz57kANXUAB9hdYEYAtYJmLeE2YabwJREVIDuEv1ACZhPpSmNzQNZDThV0g18zfFCpkViSg2f9AxMSAyzqyY06lO8Q2enl3N0PSPGUuhiDSwh7mZg8yBwj6DT6IUdeWHq5TOnreBTaN+Uj0Dg=
-Received: from DU7P250CA0018.EURP250.PROD.OUTLOOK.COM (2603:10a6:10:54f::31)
- by DU0PR08MB9420.eurprd08.prod.outlook.com (2603:10a6:10:423::20) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.315.13; Fri, 14 Aug
- 2026 10:06:56 +0000
-Received: from DB1PEPF00050A00.eurprd03.prod.outlook.com
- (2603:10a6:10:54f:cafe::5d) by DU7P250CA0018.outlook.office365.com
- (2603:10a6:10:54f::31) with Microsoft SMTP Server (version=TLS1_3,
- cipher=TLS_AES_256_GCM_SHA384) id 15.21.315.15 via Frontend Transport; Fri,
- 14 Aug 2026 10:06:56 +0000
-X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 4.158.2.129)
- smtp.mailfrom=arm.com; dkim=pass (signature was verified)
- header.d=arm.com;dmarc=pass action=none header.from=arm.com;
-Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
- 4.158.2.129 as permitted sender) receiver=protection.outlook.com;
- client-ip=4.158.2.129; helo=outbound-uk1.az.dlp.m.darktrace.com; pr=C
-Received: from outbound-uk1.az.dlp.m.darktrace.com (4.158.2.129) by
- DB1PEPF00050A00.mail.protection.outlook.com (10.167.242.42) with Microsoft
- SMTP Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.21.339.3
- via Frontend Transport; Fri, 14 Aug 2026 10:06:56 +0000
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=PHmEnvHlnGBw4IwdJs7esLlclPRGZD2862Rk8b9wsf+poJ2rYvaUBfHOPunvQWGY5sYkl8wYrAn/QYbHHAtQyGPCTEJkGD2TJ4WhFQsPsx33YtXlw1LwXYRwVz3fOWwJiquTf1z6MxUiF5BgTZHG98PEkygMOeAHsS1rt199eD6O+gDgJTLzIHiZPgDkLFGccCmeryNn/dgQ7ZvlIPEKY9Hak1474QAC75YTnYzI50qA4wALw96kqICvycaCYHRE7Z/nP5nk8K3GeAC9f+/2oCuJaTM0OlcH7BBFyvc9cJ9DlaqACd/QE3coMzFmhKVnDfFiUHlD5oT+MsOS2gJLgg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=T3KhvsxEoEP9z6JNj1aBx70Nx6X3XBZOUekklW3rbtQ=;
- b=HTDEjnorGVlYrFORYmJdgvFchCM37g7vDTzt/byP84USaAURmmENe49RTl34SlC1zzHl6D2b+A7QmIrit+m8GN3JvghoHHjvQor0ke8o0TdXvyBSlm9HFG2tZkamq4qtJb1+n5TSDY0Pl0Ufjg7M/usWMZGI68M2+vhuGQD+KDPyWTY4vuDbimg4VR9OHJH8h5o7vpz2F5ilzIcp3fP0qqbBtmqN81mvB9WWkMPMg0McxLex/XZ4Xx9Lw3JTJ9aehR62XBuqz0omqE/zj00Fvtc5jtGUquybb5+N2V/NwDpoZwFWI3zGsjUH34t+FLowH8NNpN8wIoaj+G0ZCKR0fg==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
- header.d=arm.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=T3KhvsxEoEP9z6JNj1aBx70Nx6X3XBZOUekklW3rbtQ=;
- b=Xa73x8VOqP9SORkdx0HmJjWkb3uz57kANXUAB9hdYEYAtYJmLeE2YabwJREVIDuEv1ACZhPpSmNzQNZDThV0g18zfFCpkViSg2f9AxMSAyzqyY06lO8Q2enl3N0PSPGUuhiDSwh7mZg8yBwj6DT6IUdeWHq5TOnreBTaN+Uj0Dg=
-Authentication-Results-Original: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=arm.com;
-Received: from AM6PR08MB3414.eurprd08.prod.outlook.com (2603:10a6:20b:49::10)
- by AS2PR08MB10111.eurprd08.prod.outlook.com (2603:10a6:20b:62d::22) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.315.15; Fri, 14 Aug
- 2026 10:06:22 +0000
-Received: from AM6PR08MB3414.eurprd08.prod.outlook.com
- ([fe80::dde8:bf0b:1dc:2a2]) by AM6PR08MB3414.eurprd08.prod.outlook.com
- ([fe80::dde8:bf0b:1dc:2a2%2]) with mapi id 15.21.0315.014; Fri, 14 Aug 2026
- 10:06:22 +0000
-Message-ID: <99eac5ca-d5c6-4777-b16c-5a20fae95f5d@arm.com>
-Date: Fri, 14 Aug 2026 11:06:20 +0100
-User-Agent: Mozilla Thunderbird
-Cc: usama.anjum@arm.com, Jani Nikula <jani.nikula@linux.intel.com>,
- Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
- Rodrigo Vivi <rodrigo.vivi@intel.com>, Tvrtko Ursulin
- <tursulin@ursulin.net>, David Airlie <airlied@gmail.com>,
- Simona Vetter <simona@ffwll.ch>, Dimitri Sivanich
- <dimitri.sivanich@hpe.com>, Arnd Bergmann <arnd@arndb.de>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
- Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>,
- Stefano Stabellini <sstabellini@kernel.org>,
- Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
- Andrew Morton <akpm@linux-foundation.org>,
- "Liam R. Howlett" <liam@infradead.org>, Lorenzo Stoakes <ljs@kernel.org>,
- Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
- Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Andrey Ryabinin <ryabinin.a.a@gmail.com>,
- Pasha Tatashin <pasha.tatashin@soleen.com>, Chris Li <chrisl@kernel.org>,
- Kairui Song <kasong@tencent.com>, Uladzislau Rezki <urezki@gmail.com>,
- Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu
- <mhiramat@kernel.org>, Alexei Starovoitov <ast@kernel.org>,
- Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
- Eduard Zingerman <eddyz87@gmail.com>,
- Kumar Kartikeya Dwivedi <memxor@gmail.com>, Ingo Molnar <mingo@redhat.com>,
- Arnaldo Carvalho de Melo <acme@kernel.org>,
- Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>,
- Miaohe Lin <linmiaohe@huawei.com>, Dennis Zhou <dennis@kernel.org>,
- Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>,
- Mike Rapoport <rppt@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>,
- ziy@nvidia.com, pfalcato@suse.de, ryan.roberts@arm.com,
- linux-kernel@vger.kernel.org, intel-gfx@lists.freedesktop.org,
- dri-devel@lists.freedesktop.org, linux-parisc@vger.kernel.org,
- xen-devel@lists.xenproject.org, linux-mm@kvack.org,
- linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- kasan-dev@googlegroups.com, linux-trace-kernel@vger.kernel.org,
- bpf@vger.kernel.org, linux-perf-users@vger.kernel.org, damon@lists.linux.dev
-Subject: Re: [PATCH 6/9] mm: convert PTE table entry to pte
-To: "David Hildenbrand (Arm)" <david@kernel.org>,
- Alexander Gordeev <agordeev@linux.ibm.com>
-References: <20260806083926.1807279-1-usama.anjum@arm.com>
- <20260806083926.1807279-7-usama.anjum@arm.com>
- <fab9fc78-1e1d-4d5b-a9ca-92f3ebd04108-agordeev@linux.ibm.com>
- <5c329236-7761-4e42-a549-b822e43b4358@arm.com>
- <2599c5b3-e8ac-4865-993b-d41e6f060d52-agordeev@linux.ibm.com>
- <f0b0dacb-fb83-4402-b0ea-30072727dfd7@arm.com>
- <e9de4158-b829-471b-980c-1999959bbc48@kernel.org>
-From: Muhammad Usama Anjum <usama.anjum@arm.com>
-Content-Language: en-US
-In-Reply-To: <e9de4158-b829-471b-980c-1999959bbc48@kernel.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-ClientProxiedBy: LO4P123CA0374.GBRP123.PROD.OUTLOOK.COM
- (2603:10a6:600:18e::19) To AM6PR08MB3414.eurprd08.prod.outlook.com
- (2603:10a6:20b:49::10)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="N1OOPHyS"
+Received: by mail-wr1-f54.google.com with SMTP id ffacd0b85a97d-47f92e3c14bso749056f8f.0
+        for <linux-arch@vger.kernel.org>; Fri, 14 Aug 2026 04:16:06 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1786706163; x=1787310963; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=ufDJ56SqV15sMOIVLhDYx7ZQ9UDhnRuzgS+xzCE8e40=;
+        b=N1OOPHyS45MXH3sccBAv2rnBqRxeeTdLcQ1simpHJDu8KuFsM/QMtbqrycyltEcYqb
+         9OwivpkDmJ0RtQF79WxIyobrV/6hJmlRd9HMf0+a0LrXXBhEMabsy4YcUBs/ZHZSJVZv
+         eaGy3tVg0ISGERycch4cng6STN052ctq+JUSkUpQtddL+0zDtIkbSeXwwcWI+3w3tkWv
+         GI3W6PBycL0xJRfXyRRrBj2T6tLjocDF0tMflPyOXoNffLZb4YovGP4FI3YMBB8Hb4En
+         m+oHCeS9MamwwlKftGAJFH7eghAj6T0ZhpkY+3JYXETrQJ/RGVoOfC7d9auSTD9WPpKt
+         ihUA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1786706163; x=1787310963;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=ufDJ56SqV15sMOIVLhDYx7ZQ9UDhnRuzgS+xzCE8e40=;
+        b=dgcNwHV1Eb1/VziY4LUb/gjW9QyBrBDXPie/J7NCQJ5ytrw299F22rPO6tu3XFEudN
+         HSFLsVaKbfkb9hLpXL5VClkwrdUid8xIPgH/22asrb8T731vMQTalYEHSfHM4QtDaO9P
+         pYT02Utu1CUXeod1fKlSB1+2/tBBQwsREpSftXGdPSaWBVV4D4rEdHCik/1Yi0NRbXZl
+         N3Kym+rhD8cuOIeU0jXh8ilAHdOrQaDuOugcsdGK+ZzYXmd0fLTjDifNk2Oh1CW7PEli
+         RrvPhS5KcjmjgeQcWR48cDFvU32WC1lzcEDFBNCHcYlx8YKZO8jwJZu1Pt+VMddtYe4A
+         XuaA==
+X-Forwarded-Encrypted: i=1; AHgh+RqUUIwU211Q9G6LFasYl/fpWQFbEm2O1Ifljbs9ME7b77IlQaXyf6cBmVLXma0guBdEPSfFnPsygutt@vger.kernel.org
+X-Gm-Message-State: AOJu0YwSXaRzSkC5fz/G11J2H2v5Jtf1h+4g7u8MqtzNXYSjf/OI7Ta+
+	UbvViZrsUyByVR3FJ9BwkrVogICsHxoOflyNKUQLZxi4ocHlZbRIYraR7Tq8QPmEoxg=
+X-Gm-Gg: AR+sD11yH4MmFTL3xDEFHOzAFRB4n2gOQ36C2guZJQk0XGb2CVQpiTLvwJEGNc77jCS
+	CxoP/gYFn19M1IAwBkwgF7mscUAnO98LVXkQRfT1NCfVzMhdAZEwZ1KxszQrilfWiPGjp8NyyFc
+	JcGS8KsTGdbREdkuwa/gFVwz+yuo/YmayCpRt7MNvnQqdi3vxsLxj2MB3oyNS2Zz+qpVjVfEHeu
+	RQlrrNiaJ+SbLUPVVUn/cV8fKXwjT45Of7bKetqhEwjBqMSUpiSzMO28Z/IHvqipX/rK4xGBH85
+	bixdGVe7xtc8II+0LDw8tu/KfcrHdIlp0wFa2PDyN7xpXl9+KcY5TszSWzOBgADQ4PQZEJtIzfS
+	j1JiY7i63hPAsVsncAWNQH4ML7qlxS8hoHZf0XapncpBBFfaig5fLO47xYDE1bo6VuLiyElvT8O
+	LC9HjgDzsJHZrnGh6X+caK25moTz3UhqTgCjck9O4KF0hCnkfzkIAkiENCp7hDkDcJEb1Dzknp6
+	AJ6BfSZYlgk1zCvRsMYJAE5oA==
+X-Received: by 2002:adf:ee84:0:b0:47f:eb37:fb7f with SMTP id ffacd0b85a97d-48160758e05mr5816291f8f.16.1786706163380;
+        Fri, 14 Aug 2026 04:16:03 -0700 (PDT)
+Received: from ?IPV6:2a07:de40:8100:0:fc6c:f9a2:4a0a:6354? ([2001:af0:8000:1409:193:86:92:181])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-4815f20059asm6805179f8f.5.2026.08.14.04.16.02
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 14 Aug 2026 04:16:02 -0700 (PDT)
+Message-ID: <9044355d-bff2-44fa-a8e2-ee3500aa1af0@suse.com>
+Date: Fri, 14 Aug 2026 13:16:01 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-TrafficTypeDiagnostic:
-	AM6PR08MB3414:EE_|AS2PR08MB10111:EE_|DB1PEPF00050A00:EE_|DU0PR08MB9420:EE_
-X-MS-Office365-Filtering-Correlation-Id: 63e47786-f4fc-4bc2-1a14-08def9ebc5eb
-x-checkrecipientrouted: true
-NoDisclaimer: true
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam-Untrusted:
- BCL:0;ARA:13230040|1800799024|366016|23010399003|7416014|376014|18002099003|22082099003|56012099006|3023799007|6133799003|10067099003|4143699003|11063799006;
-X-Microsoft-Antispam-Message-Info-Original:
- FdM+vYM//Rs5TUwEEHIcmgNLmFMgPcbIWudfucKOtLwbQHuQH4LsRsLWhZbhUHVwlsUZ2MW/QlqZEBRFZOotGFq9ElB1fBk0T2wDM9eJxSONOc0eBnNbJCrYXcdL413Ax+OyfkfEoxy+7p6xfO/Gp0ULezU0rryPMHDxdW+WSS5rUULaD/qtxpsaexe4gAKKlRwpoKiMYC0kk6mOSF6nV//6DKRqnn8jaUxss4Jb7rpTjNrDntvBromiOXkyH+u738mcKX2mQvUwgMLXPwSoUcHl2FYCYlRXOtzbXYvxFs4S2yuivsokOQ+SAGvWRCMRzXK/QnoVKcb0xUY8+gZ88apENk0piPBxngMRBECCAR61rRcrJLUNQtlEB8HBbq/YpCmGNjePl8g7rSF97nWWZn5uqDznbnx9lhon+2zPAyx5mE7R4B8g1+I/ayLySqAwyOQtrDcO7Utgw3QJ5V1LabHy5H4Zq+RZu+yoYeVUyWvQxqZvBXrOzp8rjCTsZcVr6KY7JAdQq4tl5Ps/qB9tRiPALRaFbOG7P370QXOXENe/wCCzLSQ1wcD8BOuVSU5Yk2Obd7lxvCHq2207TdfFyw6gpkOv+e49mmqVZhxXI356CRSby/7mB6IuGiTs4sLL6Lcof90Lpfy9gfrzTaZ12kmtz9OQ0y9Jt1KAXQnZMIU=
-X-Forefront-Antispam-Report-Untrusted:
- CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:AM6PR08MB3414.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(366016)(23010399003)(7416014)(376014)(18002099003)(22082099003)(56012099006)(3023799007)(6133799003)(10067099003)(4143699003)(11063799006);DIR:OUT;SFP:1101;
-X-Exchange-RoutingPolicyChecked:
- hg0VAWoj1GcWWsk+NJy5Vc8BjrpZSBqh8S30aINiN6NxTNaP4iTTkJ91o6iF1/+Zwjb+/AU1X6UV8XTM3bUxU3Q8BCdzlOCy7kOyF2/QY5swJ6ur7BBbFXmGFS6NpT/ac5AA3biozKgSIVWQ+BMglFcO2/q00U6bDY7FjrezA7vmmaMQsVLMPQbt67FGkKdB2XVwe9vKRY6AHj6SJA5C8LJnCN/kIC4nQUKWP63TP6aMafYf/b5odoc4YiM9oEHhWuIHKuJJWkzrwup6r5XiD7ifQ667mLFzrHqBBcKWLla6YAbKP70dp40wmHUcEMJMSgsfMU8tyCfetML6h6+siw==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: AS2PR08MB10111
-X-EOPAttributedMessage: 0
-X-MS-Exchange-Transport-CrossTenantHeadersStripped:
- DB1PEPF00050A00.eurprd03.prod.outlook.com
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id-Prvs:
-	330ecdb8-6c41-4eca-4e97-08def9ebb11e
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|376014|7416014|36860700016|35042699022|14060799003|1800799024|23010399003|82310400026|6133799003|4143699003|10067099003|11063799006|22082099003|18002099003|56012099006|3023799007;
-X-Microsoft-Antispam-Message-Info:
-	VjS2yHJRJ6FIIV5VKfG/RwNRqdqbt3Pw64Il+TSsQGYNJXdp7YbLVWSVHkDcN2Te0SodvhigFS0HUT6l/N+WF/VM69XgCun7ZWE5XvidEFCSmujGCh99x+s19goBj1LtThgEcHLltVEzVBAbA8a2qghQ5UbPjLZ44PJ1xqUu23wBz0wqTb8Axr4boImcWSCfUcvUav0HEwqkvKauBpWHGPIiwyxfB0y7TegHzWNbyVim5M7bkh68zoD/iXLJtn4r43vg2f7dSOHK4cfcCiLrA801zYhzAeRz7Rc4tfr5QNHdS43R6dQUZdKtzCyh2E3K09xHkaulD+pYhLi+JNGpNSQW31hV2HdAo7IrrejyTAkZXxrzkkv96tBOjZg1YD5xUj8cZ0UfG5oFSJUSCEMe/8MvRZBQT0tZztt40vP1eHgQJm1iufXi7qdatBrOu9RbHszUSbXrdutpLIdIE5l9zHhM3KQ9WMFXrktOuVW21AXgnz0oD4iEsVeh1SMGUl8U2pEIv01AsGyf2/ZS43Tez5ahziTbYoN5cLgwTyw66AIPPr6cG37TeG6HgK0IaRZlYnzqGHHMmR0fOdJWRCDPKzcuZqOe5zfLLL+OgRNQOl4GbgukmSyfZx/XWVRQclsPXRxxAVRh7CKFo8KKdCziEvaFeR+12MumIMvkJKrLf925bD5emz55ZgRWNJ7FDxyKDyVmMBJDeM4ilL+UWM7iAw==
-X-Forefront-Antispam-Report:
-	CIP:4.158.2.129;CTRY:GB;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:outbound-uk1.az.dlp.m.darktrace.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(376014)(7416014)(36860700016)(35042699022)(14060799003)(1800799024)(23010399003)(82310400026)(6133799003)(4143699003)(10067099003)(11063799006)(22082099003)(18002099003)(56012099006)(3023799007);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	pvMM/dJiD/B/1LdIJH1K8JbPFKXwEhVh9l8eVP26ZwENbQXm6ngpU4Rk/Ns4b3guGJ9Ivy86+rD/m4sStrCfxLyVcStcdW1pEMK2s5aLAyp3fn9xco2MbDSJqcAvvsvb1QZ4iiH048VUfUHvrclD1oVmg/CzcrAFnajPe8PToT6sJ61rWJdiYyi/vZNajaHBOfZAQeKx7dCJBHhLdm91fQ5+8DlZgBqyfxw4iAbVxkX0hpAylYE4/LSVaLMwPi0RRDg5i0liPY/VVuqNnL+DkB0KUp0zc+y/qtSu1z/okjH9xHPS2hFuB5+86KHOYYoemfOSDysVkP3fDshHDZ8RhJ/fvIsydMSzU0isAHIY5ZgtVINWQ73F6SrL1tpO8wqizQZ+ns4pFVtccu9gwAFH5rTwScC/HayBRHU0PAjukOwNT3Xhow54yht9ACpYav6T
-X-OriginatorOrg: arm.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 14 Aug 2026 10:06:56.5509
- (UTC)
-X-MS-Exchange-CrossTenant-Network-Message-Id: 63e47786-f4fc-4bc2-1a14-08def9ebc5eb
-X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
-X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[4.158.2.129];Helo=[outbound-uk1.az.dlp.m.darktrace.com]
-X-MS-Exchange-CrossTenant-AuthSource:
-	DB1PEPF00050A00.eurprd03.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Anonymous
-X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DU0PR08MB9420
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v9 0/2] module: Extend module_blacklist parameter to
+ built-in modules
+To: Gary Guo <gary@garyguo.net>, Aaron Tomlin <atomlin@atomlin.com>
+Cc: arnd@arndb.de, mcgrof@kernel.org, da.gomez@kernel.org,
+ samitolvanen@google.com, peterz@infradead.org, ojeda@kernel.org,
+ akpm@linux-foundation.org, mhiramat@kernel.org, boqun@kernel.org,
+ neelx@suse.com, da.anzani@gmail.com, sean@ashe.io, chjohnst@mail.com,
+ steve@abita.co, mproche@mail.com, nick.lane@mail.com,
+ linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+ rust-for-linux@vger.kernel.org, linux-kernel@vger.kernel.org
+References: <20260807012601.360452-1-atomlin@atomlin.com>
+ <DKNWEO3BOUOL.9COZBXZIGS6A@garyguo.net>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <DKNWEO3BOUOL.9COZBXZIGS6A@garyguo.net>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On 11/08/2026 1:11 pm, David Hildenbrand (Arm) wrote:
-> On 8/10/26 13:06, Muhammad Usama Anjum wrote:
->> On 10/08/2026 7:44 am, Alexander Gordeev wrote:
->>> On Fri, Aug 07, 2026 at 05:26:04PM +0100, Muhammad Usama Anjum wrote:
->>>> Yes, this is particular line is for non MMU. In this case, CONIFG_ARCH_HAS_HW_PTE
->>>> would never be defined. Hence hw_pte_t is just pte_t and direct dereference is
->>>> allowed. I'd thought a lot about it; is better to leave direct dereference here
->>>> or use some helper. Then used __pte_from_hw() was already being used in generic
->>>> ptep_get().
->>>
->>> But in case CONIFG_ARCH_HAS_HW_PTE=n __pte_from_hw() is still gets called.
->>> That looks inconsistent to me. Why not just call ptep_deref() (see below)?
+On 8/13/26 4:50 PM, Gary Guo wrote:
+> On Fri Aug 7, 2026 at 2:25 AM BST, Aaron Tomlin wrote:
+>> Currently, the "module_blacklist=" command-line parameter only applies to
+>> loadable modules. If a module is built-in, the parameter is silently
+>> ignored. This patch series extends the blacklisting functionality to
+>> built-in modules by intercepting their initialisation routines during early
+>> boot.
 >>
->> Agreed. Calling __pte_from_hw() directly exposes the representation
->> conversion at the call site. I will introduce ptep_deref() and use it
->> here.
+>> Following review feedback, the implementation has been split into two
+>> separate changes to decouple the introduction of the new feature from the
+>> terminology renaming:
 >>
->>>
->>>> There are only two users of __pte_from_hw() at this time. 
->>>>
->>>> ptep_get_sw() or ptep_get_deref() is better name here?
->>>
->>> ptep_deref() would be it.
->>>
->>> Do you agree to the suggested API requirements?
+>>     1.  The first patch extends the "module_blacklist=" parameter to
+>>         built-in modules using the original blacklist terminology. It
+>>         introduces the ".initcall.modnames" section to map initcall
+>>         function pointers to their associated KBUILD_MODNAME strings
+>>         (restricted only to module_init() invocations to save memory and
+>>         avoid matching core kernel subsystems). It also restricts the check
+>>         to a boot-time __init wrapper to eliminate Use-After-Free (UAF) and
+>>         Spectre v1 vulnerability risks when loading dynamic modules at
+>>         runtime, and adds a fast-path check to eliminate lookup overhead
+>>         when the parameter is not in use
 >>
->> Yes. hw_pte_t * identifies storage containing hardware-formatted PTEs,
->> regardless of whether it is attached. ptep_get() is used for attached
->> entries and may provide additional architecture-specific handling.
->> ptep_deref() is used for unattached entries and performs only the raw
->> storage-to-value conversion.
+>>     2.  The second patch renames the variables and helper functions to
+>>         adopt the preferred "module_denylist=" and module_is_denylisted()
+>>         terminology in the codebase. To preserve the existing user-space
+>>         ABI, "module_blacklist=" is kept as a legacy alias pointing to the
+>>         same module_denylist variable
 >>
->> For review, this patch would become:
->>
->> diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
->> index bc0b9c65aa1d0..ce900d2652d91 100644
->> --- a/include/linux/hugetlb.h
->> +++ b/include/linux/hugetlb.h
->> @@ -1283,7 +1283,7 @@ static inline pte_t huge_ptep_clear_flush(struct vm_area_struct *vma,
->>  #ifdef CONFIG_MMU
->>  	return ptep_get(ptep);
->>  #else
->> -	return *ptep;
->> +	return ptep_deref(ptep);
->>  #endif
->>  }
->>  
->> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
->> index 1768421755a9c..08613593f3320 100644
->> --- a/include/linux/pgtable.h
->> +++ b/include/linux/pgtable.h
->> @@ -490,6 +490,13 @@ static inline int pudp_set_access_flags(struct vm_area_struct *vma,
->>  #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
->>  #endif
->>  
->> +#ifndef ptep_deref
->> +static inline pte_t ptep_deref(hw_pte_t *ptep)
->> +{
->> +	return __pte_from_hw(*ptep);
->> +}
->> +#endif
->> +
->>  #ifndef ptep_get
->>  static inline pte_t ptep_get(hw_pte_t *ptep)
->>  {
->>
+>> Aaron Tomlin (2):
+>>   module: Extend module_blacklist parameter to built-in modules
+>>   module: Rename module_blacklist to module_denylist
 > 
-> I mean, how many such users do we expect? 1? :)
+> I feel with
+> https://lore.kernel.org/driver-core/20260421-acpi_mod_name-v2-0-e73f9310dad3@sony.com/
+> and this we're really making loadable module and builtin modules less different.
 > 
-> Why have a helper for that then, that seems to encourage it's use, when really
-> people should be using ptep_get() ?
+> I wonder if we should just somewhat unify these completly, so built-in modules
+> just behave identically to loadable modules, just without runtime relocations
+> and ability to unload.
 
-There is only 1 direct dereference case and even that is for non-MMU case.
-That's really good point. I'll keep using __pte_from_hw() and put a comment
-in huge_ptep_clear_flush() that use of this must be avoided at all cost. An
-API can be introduced in case more users arrive.
+I can imagine this being possible and potentially useful. For instance,
+a minimal `struct module` could be used for each built-in and loadable
+module. For the latter, it could be then extended to something like
+`struct loadable_module` containing all the fields currently needed for
+loadable modules.
+
+It could also help improve some C APIs. Functions currently cannot
+determine whether a NULL value passed as a module parameter indicates an
+invalid pointer or a built-in module [1].
+
+> 
+> Of course, that's quite a big change... And mostly likely people won't care
+> because almost everything is built as loadable modules in distros anyway.
+
+I agree this looks non-trivial. It would require proper investigation to
+see how it might actually turn out.
+
+[1] https://lore.kernel.org/linux-modules/610fc63b-f3dc-4824-99fd-907fc96f3194@oracle.com/
 
 -- 
-Thanks,
-Usama
-
+Cheers,
+Petr
