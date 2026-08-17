@@ -1,196 +1,210 @@
-Received: from va-1-112.ptr.blmpb.com (va-1-112.ptr.blmpb.com [209.127.230.112])
+Received: from va-1-114.ptr.blmpb.com (va-1-114.ptr.blmpb.com [209.127.230.114])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0AF8E3B47E3
-	for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 07:12:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.112
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CCC723B811F
+	for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 07:15:10 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.114
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786950754; cv=none; b=OZtMslX8+3DmZnqXtvXydEX6ZpoYyTxvEXj6aOx4JlmrHOy8rj6p1TPhvTevwsSrQx3+BPygCNiKUt716Gnrgl3U80l1seRV6Pwy9/pracjWHkGSjX76iP9CJfp0GSTNKQlS/ob0C6y4m/3peweHr684KwPYID/HyxU/2PrEdho=
+	t=1786950912; cv=none; b=kx2g2scf80/469NbSr0JIkymoue9yfAzjTnGmds5id0WbJXqK83cXyBPq788FvUhA/feEToDnDZNlTFA1BbM+QKkQKwgdsBNxsSqp/QVmBGXo1yqd8X/fmRr5srA9TmqVSTiEr3XeSgTaBkywa/XIWqfUme8y3aZrBWfodWBh0U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786950754; c=relaxed/simple;
-	bh=+oXPAAva5kvvjai0iPcqJOZa+kqlPBgXMgSAYtrukhw=;
-	h=Message-Id:Mime-Version:From:Date:Cc:References:Content-Type:
-	 Subject:In-Reply-To:To; b=QFR65x0g4Xo8iPKD3SUmfLX/ON5gGuaTiRwZBWuJwfhez2XzsyoaZFcn9sk7JEIX3lv4e6Dsx0mLsO5ANASZJjibvFCn4UcW041KsOP4UapnTu5RUnLiRhTlZUfyLY6YF6/Q5x2u6SA1mdwEpEQUp4K0aMHMn8+DZTnSfh8mccE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=RTog4FrE; arc=none smtp.client-ip=209.127.230.112
+	s=arc-20240116; t=1786950912; c=relaxed/simple;
+	bh=H0kpBdlqtkCs4mnVIQOsbkWYLGpiS9UuExJ8HPentao=;
+	h=References:From:Date:Subject:In-Reply-To:To:Cc:Message-Id:
+	 Content-Type:Mime-Version; b=Tia+SA7Zrf77l9626MV+5uykYGxsi7aHeq55rzYTOEVZqNdprlTkR7ieFKmNnusw9iGJ0/cMzxegqnsyeVrwV9SDgKhFRpx/6S5ZHCrw4eTYW6mY7zqF4CC/GNPg1Ufl2kRmZjzAwYYbnVvQMGhDGeKhFu/LwfS1Az7//jascVo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=X2YMVezb; arc=none smtp.client-ip=209.127.230.114
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="RTog4FrE"
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="X2YMVezb"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1786950741; h=from:subject:
+ s=2212171451; d=bytedance.com; t=1786950902; h=from:subject:
  mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
  mime-version:in-reply-to:message-id;
- bh=zEmC/EhsOQJ52Eiw8IEgOG+hTiA5mRLWdEfIjaGYqew=;
- b=RTog4FrEdFqXQN4hf79GJWgPqw+l52P3rPXcGGKIGLGuSurl2iiePNSZKSjgiV2JmrMOJN
- vYyCw635BkqbabmR76hXeHDRnXwWRVXdkPH4Yp9lXSXlRnlhKYqAFLJLrM8+Lo515MxNOB
- oSBetItuasYL2QqXxUuA87xabBsKOnH2tIEtSm8BszM8w88czHkniU7w9aRBIfHnQFZmML
- 5zYhboPmWTS7iU3tsWiNfX/f2r8cVTzOAoTByI63fcCHdzZtdtUTcGRZybo3g6Q06uLz7M
- bjwvi7vVDN20QqlmYxcJFOeeQD+6oGrk0I3eQGrW1Xt+Xg2FcAF/K5va956j3w==
-Message-Id: <050c317f-111e-4293-aee5-ac8e154ebc7e@bytedance.com>
-Precedence: bulk
-X-Mailing-List: linux-arch@vger.kernel.org
-List-Id: <linux-arch.vger.kernel.org>
-List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
-List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-X-Lms-Return-Path: <lba+26a82b453+a0bc5e+vger.kernel.org+lizhe.67@bytedance.com>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+ bh=N1LdzvO8YItiR+BdAiOLPMa7pHh1+EdgmMC0VPZv5PE=;
+ b=X2YMVezbEfr6weHo6U4VNjvJJpHkvj0OHP8qA0iUPlLj3qGpr5pr0qyOg9yN67oyz78yxC
+ rMCCxDJOT3XGg0yfzgbzhCFKskeqCmlJhQFJjwhx1cK01aXvppLGR0FPD9bXpeDw90b60L
+ t7cPj+u/kClDERT/mcGI3u5Jvtc89ZdNveabXOcxmVhzyEHN7G3A0etuabAls0EuFtnatN
+ x/8MjrJO9hrT0iMP1J3nmXuaVLzZ893h7vZSENxT06HtP3dxGy3kqhRiDEKxKy0F1WVeng
+ jzAZa0/RPhIgO/OFmhZTxav7QBA/ONS6ZK7ZpqrgQUwssRMu99Cxx+elp9d4fQ==
+References: <20260810122057.30447-1-lizhe.67@bytedance.com> <20260810122057.30447-5-lizhe.67@bytedance.com> <178688187038.2799959.7142225711373927632.b4-review@b4>
 From: "Li Zhe" <lizhe.67@bytedance.com>
-Date: Mon, 17 Aug 2026 15:11:56 +0800
-User-Agent: Mozilla Thunderbird
+Date: Mon, 17 Aug 2026 15:14:38 +0800
+Subject: Re: [PATCH v10 4/8] mm: add a template-based fast path for zone-device page init
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+In-Reply-To: <178688187038.2799959.7142225711373927632.b4-review@b4>
+To: "Mike Rapoport" <rppt@kernel.org>
 Cc: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
 	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
 	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
 	<muchun.song@linux.dev>, <tglx@kernel.org>, <linux-arch@vger.kernel.org>, 
 	<linux-hardening@vger.kernel.org>, <linux-kernel@vger.kernel.org>, 
 	<linux-mm@kvack.org>, <x86@kernel.org>
-Content-Transfer-Encoding: 7bit
-References: <20260810122057.30447-1-lizhe.67@bytedance.com> <20260810122057.30447-3-lizhe.67@bytedance.com> <178688187038.2799959.7900723270155108493.b4-review@b4>
+Message-Id: <0c23c111-bf5b-43f5-a541-0345f10db25d@bytedance.com>
+X-Lms-Return-Path: <lba+26a82b4f4+869ac8+vger.kernel.org+lizhe.67@bytedance.com>
 Content-Type: text/plain; charset=UTF-8
-Subject: Re: [PATCH v10 2/8] mm: factor zone-device page init helpers out of __init_zone_device_page
-In-Reply-To: <178688187038.2799959.7900723270155108493.b4-review@b4>
-To: "Mike Rapoport" <rppt@kernel.org>
+Content-Transfer-Encoding: 7bit
+Precedence: bulk
+X-Mailing-List: linux-arch@vger.kernel.org
+List-Id: <linux-arch.vger.kernel.org>
+List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
+List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
+Mime-Version: 1.0
+User-Agent: Mozilla Thunderbird
 
 On 8/16/26 8:04 PM, Mike Rapoport wrote:
 > Hi,
 >
->> memmap_init_zone_device() currently mixes refcount policy and core
->> ZONE_DEVICE page setup in a single helper.
+>> memmap_init_zone_device() repeats nearly identical head-page
+>> initialization for each PFN. Prepare one reusable ZONE_DEVICE head-page
+>> template through the existing slow path, refresh the PFN-dependent
+>> fields in that template before each copy, and memcpy it into each
+>> destination page.
 >>
->> Factor the refcount-reset predicate into pagemap_requires_refcount_reset(),
->> move the common page initialization into __zone_device_page_init(), and
->> wrap the existing slow path in zone_device_page_init_slow().
+>> Use the template path unconditionally. The page_ref_set tracepoint is
+>> primarily a debugging aid, while this code is still initializing struct
+>> pages before they are handed out. From the perspective of users of those
+>> pages, the initialization-time refcount transitions are not part of the
+>> observable page lifetime.
 >>
->> This keeps the slow-path behaviour unchanged and gives later patches
->> reusable helper boundaries.
+>> This means page_ref_set will no longer observe every initialization-time
+>> refcount assignment for copied ZONE_DEVICE head pages. The impact is
+>> controlled because the final initialized struct page state is unchanged,
+>> and keeping a separate non-template path only for this local tracepoint
+>> observability would add complexity to the common path.
 >>
->> No functional change intended.
+>> This patch accelerates head-page initialization. The pfns_per_compound
+>> == 1 case gets the full benefit here, compound tails are handled in the
+>> next patch.
+>>
+>> Tested in a VM with a 100 GB fsdax namespace device configured with
+>> map=dev on Intel Ice Lake server. This test exercises the nd_pmem rebind
+>> path (pfns_per_compound == 1).
+>>
+>> Test procedure:
+>> Rebind the nd_pmem driver 30 times and collect the memmap initialization
+>> time from the pr_debug() output of memmap_init_zone_device().
+>>
+>> Base(v7.2-rc1):
+>>    Average of rebinds for nd_pmem driver: 244.28 ms
+>>
+>> With this patch and its prerequisites applied:
+>>    Average of rebinds for nd_pmem driver: 215.55 ms
+>>
+>> This reduces the average memmap initialization time measured during rebind
+>> from 244.28 ms to 215.55 ms, or about 11%.
 >>
 >> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
->> Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
 >>
 >> diff --git a/mm/mm_init.c b/mm/mm_init.c
->> index 95808ab5cfdb..a70acb7431a6 100644
+>> index a70acb7431a6..56a36a71ba89 100644
 >> --- a/mm/mm_init.c
 >> +++ b/mm/mm_init.c
->> @@ -1005,11 +1005,37 @@ static void __init memmap_init(void)
+>> @@ -1065,6 +1065,35 @@ static void __ref zone_device_page_init_slow(struct page *page,
+>>   		set_page_count(page, 0);
 >>   }
 >>   
->>   #ifdef CONFIG_ZONE_DEVICE
->> -static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
 >> +/*
->> + * Return true when memmap_init_zone_device() must initialize the page
->> + * refcount to 0. MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in
->> + * the free path, while the remaining ZONE_DEVICE types start from 0 here
->> + * and raise the count again when the allocator or driver hands the page
->> + * out.
+>> + * 'template' is a reusable page prototype rather than a strictly immutable
+>> + * object. Most ZONE_DEVICE fields stay constant across the pages covered by
+>> + * the current template, but section bits and page->virtual may still depend
+>> + * on the PFN. Refresh those PFN-dependent fields in the template before
+>> + * copying it into @page.
 >> + */
->> +static inline bool pagemap_requires_refcount_reset(const struct dev_pagemap *pgmap)
+>> +static inline void zone_device_page_update_template(struct page *template,
+>> +		unsigned long pfn)
+>> +{
+>> +	set_page_section_from_pfn(template, pfn);
+>> +#ifdef WANT_PAGE_VIRTUAL
+>> +	if (!is_highmem_idx(ZONE_DEVICE))
+>> +		set_page_address(template, __va(pfn << PAGE_SHIFT));
+>> +#endif
+>> +}
+>> +
+>> +static void zone_device_page_init_from_template(struct page *page,
+>> +		unsigned long pfn, struct page *template)
 >> +{
 >> +	/*
->> +	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
->> +	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
->> +	 * the count again when the allocator or driver hands the page out.
+>> +	 * 'template' carries the invariant portion of a ZONE_DEVICE struct
+>> +	 * page. Update the PFN-dependent fields in place before copying it
+>> +	 * to the destination page.
 >> +	 */
->> +	switch (pgmap->type) {
->> +	case MEMORY_DEVICE_FS_DAX:
->> +	case MEMORY_DEVICE_PRIVATE:
->> +	case MEMORY_DEVICE_COHERENT:
->> +	case MEMORY_DEVICE_PCI_P2PDMA:
->> +		return true;
->> +	case MEMORY_DEVICE_GENERIC:
->> +		return false;
->> +	}
->> +
->> +	return false;
+>> +	zone_device_page_update_template(template, pfn);
+> Looks like it's the only user of zone_device_page_update_template().
+> I'd just fold it here and drop the comment.
+
+
+Thanks. I will fold zone_device_page_update_template() into
+zone_device_page_init_from_template() and drop the redundant comment.
+
+>
+>> +	memcpy(page, template, sizeof(*page));
 >> +}
 >> +
->> +static void __ref __zone_device_page_init(struct page *page, unsigned long pfn,
->>   					  unsigned long zone_idx, int nid,
->>   					  struct dev_pagemap *pgmap)
->>   {
->> -
->>   	__init_single_page(page, pfn, zone_idx, nid);
->>   
->>   	/*
->> @@ -1028,23 +1054,15 @@ static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
->>   	 */
->>   	page_folio(page)->pgmap = pgmap;
->>   	page->zone_device_data = NULL;
->> +}
->>   
->> -	/*
->> -	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
->> -	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
->> -	 * the count again when the allocator or driver hands the page out.
->> -	 */
->> -	switch (pgmap->type) {
->> -	case MEMORY_DEVICE_FS_DAX:
->> -	case MEMORY_DEVICE_PRIVATE:
->> -	case MEMORY_DEVICE_COHERENT:
->> -	case MEMORY_DEVICE_PCI_P2PDMA:
->> +static void __ref zone_device_page_init_slow(struct page *page,
->> +		unsigned long pfn, unsigned long zone_idx, int nid,
->> +		struct dev_pagemap *pgmap)
->> +{
->> +	__zone_device_page_init(page, pfn, zone_idx, nid, pgmap);
->> +	if (pagemap_requires_refcount_reset(pgmap))
->>   		set_page_count(page, 0);
->> -		break;
->> -
->> -	case MEMORY_DEVICE_GENERIC:
->> -		break;
->> -	}
->>   }
->>   
 >>   /*
->> @@ -1090,7 +1108,7 @@ static void __ref memmap_init_compound(struct page *head,
->>   	for (pfn = head_pfn + 1; pfn < end_pfn; pfn++) {
->>   		struct page *page = pfn_to_page(pfn);
+>>    * With compound page geometry and when struct pages are stored in ram most
+>>    * tail pages are reused. Consequently, the amount of unique struct pages to
+>> @@ -1127,6 +1156,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
+>>   	unsigned long zone_idx = zone_idx(zone);
+>>   	unsigned long start = jiffies;
+>>   	int nid = pgdat->node_id;
+>> +	struct page template;
 >>   
->> -		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
->> +		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
->>   		prep_compound_tail(page, head, order);
->>   		set_page_count(page, 0);
->>   	}
->> @@ -1126,7 +1144,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
+>>   	if (WARN_ON_ONCE(!pgmap || zone_idx != ZONE_DEVICE))
+>>   		return;
+>> @@ -1144,7 +1174,22 @@ void __ref memmap_init_zone_device(struct zone *zone,
 >>   	for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
 >>   		struct page *page = pfn_to_page(pfn);
 >>   
->> -		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
->> +		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
-> It looks like all callers of __init_zone_device_page() are now calling
-> zone_device_page_init_slow() that with series evolution became a thin
-> wrapper for __zone_device_page_init().
+>> -		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
+>> +		if (pfn == start_pfn) {
+>> +			/*
+>> +			 * Seed the reusable head-page template from the
+>> +			 * first real struct page. This initializes the
+>> +			 * first page through the existing slow path and
+>> +			 * then reuses that final state as the template
+>> +			 * for subsequent pages.
+>> +			 */
+>> +			zone_device_page_init_slow(page, pfn, zone_idx,
+>> +						   nid, pgmap);
+>> +			/* init template page */
+>> +			memcpy(&template, page, sizeof(*page));
+>> +		} else {
+>> +			zone_device_page_init_from_template(page, pfn,
+>> +							    &template);
+>> +		}
+> Why can't we init the template for the first page being initialized and
+> then call zone_device_page_init_from_template() unconditionally?
 >
-> Maybe we can just rename __init_zone_device_page() to
-> __zone_device_page_init() and replace the open coded setting of the page
-> count with the call to pagemap_requires_refcount_reset() an be done
-> here?
+> The same applies to the tail pages initialization.
 
 
-Yes, that would make patch 2 simpler.
+The concern is that this would initialize a stack-resident struct page
+template through the normal page-init and refcount helpers.
 
-The reason I kept the refcount policy outside __zone_device_page_init()
-is the compound-tail initialization added later in patch 5. Tail pages
-still need the same basic ZONE_DEVICE struct page initialization as head
-pages, including __init_single_page(), PageReserved, pgmap and
-zone_device_data setup. After that, the tail-page path calls
-prep_compound_tail() and sets the tail refcount to 0 unconditionally.
+An earlier version did initialize the template directly:
 
-Folding pagemap_requires_refcount_reset() into __zone_device_page_init()
-would make that helper include the head-page refcount policy even for
-callers that will immediately apply the tail-page refcount rule
-afterwards.
+https://lore.kernel.org/all/20260527033636.28231-5-lizhe.67@bytedance.com/
 
-That preserves the final state, but I was trying to keep the common
-ZONE_DEVICE page setup separate from the head-page refcount policy for
-this reason.
+but Sashiko pointed out that this is unsafe:
 
-Would you still prefer the simpler renamed helper here, or should I keep
-the common ZONE_DEVICE page setup separate from the refcount policy and
-make the naming clearer in v11?
+https://sashiko.dev/#/patchset/20260527033636.28231-1-lizhe.67@bytedance.com
+
+For example, set_page_count() may call into the page_ref_set tracepoint
+path when the tracepoint is enabled. That path can use helpers such as
+page_to_pfn(), which only make sense for real memmap pages. Passing a
+stack-resident struct page template there can produce a bogus PFN and may
+lead to a kernel panic.
+
+That is why the current version seeds the reusable template from the
+first real struct page instead of running the normal page-init helpers on
+the stack template.
+
+I also kept the first iteration inside the main loop because Alistair
+previously suggested avoiding an unrolled first-page path:
+
+https://lore.kernel.org/all/akxpS3WOP7oUBNKF@nvdebian.thelocal/
+
+The tail-page path follows the same pattern for the same reason.
 
 Thanks,
 Zhe
-
