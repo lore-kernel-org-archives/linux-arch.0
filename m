@@ -1,114 +1,169 @@
-Received: from mail-qk1-f169.google.com (mail-qk1-f169.google.com [209.85.222.169])
+Received: from mail-oo1-f66.google.com (mail-oo1-f66.google.com [209.85.161.66])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 79FA93FA5E7
-	for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 12:22:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.169
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786969340; cv=none; b=EwZNlP778otE/EwEr07v7Ao0OFI9wnRr8Ofocfwu6PP44f03jFDHBhic6ZnbqZlFakQKOMXDL6fuWuhriFbO0C4RbyRIc8S4ykinpH3pDTWfSDdk72ua5sxP+hpDHJVcZ305dBLFu7x6/5DFYoDn8iudJu9GZU94QSNv3bfxCV4=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786969340; c=relaxed/simple;
-	bh=I+UkeZQjqj3g0bJcjZoQjrVdpo8txWH3MfMsXY6UQ6c=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=pNGq/vyxX6D5gP2VQczeJcjCZdsa2HCfIJ+l2ouyO/E2JkmBq4FrtKjVW2enwlwfBz1/KyG/nm1gMbHvgKR+lNPjnz9irGd1Ku7KNBFNYiBQCfOIyLALUUfTDfb1tggePkOZdttT1M7WcuoLHYq2/34tBOxl8jIxNPfjETanwhA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=YA4a0nO0; arc=none smtp.client-ip=209.85.222.169
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 66F4C41B36A
+	for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 12:37:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.161.66
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1786970240; cv=pass; b=r8kvD4K34QOyHQuZDIXzohrwy4MVFxSwOHqZGQbvas9UL6nNjIYCEVydzAA7xAtqqvz0I01XVytgPh6qIGuPKHM6Yb5ycgkLoP4f07iN3zuSWp/YI65abzUJw0Zkwt5PjFFkmVXscvdHuTJ8ZEivB4XUK53PLkiLV9rfJEI53IU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1786970240; c=relaxed/simple;
+	bh=rHHs0j6a7I//fHT3pf82MG7KfJrjZR5YBmXSmcRKtjQ=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=Q/LhDYH/DiFbLi8n1UPw1KXW7XlWt6CJt8VKjZ5bs4HW3FcXLXxPLsM/9+JW5HiCQo0moD1YK4Gi/RKZdew27hxUU2FDB5Bm56R/HLiiN+QoTY4TIo9Ds3v5ny+pWQCFA5c9DCEjmwlKvZKb/StLDBz2Ru3L64HiY0jF+pp1xIA=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=EFedNq2j; arc=pass smtp.client-ip=209.85.161.66
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="YA4a0nO0"
-Received: by mail-qk1-f169.google.com with SMTP id af79cd13be357-92edb12cdf2so265524185a.3
-        for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 05:22:18 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="EFedNq2j"
+Received: by mail-oo1-f66.google.com with SMTP id 006d021491bc7-6ac83a09781so2695316eaf.1
+        for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 05:37:19 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1786970238; cv=none;
+        d=google.com; s=arc-20260327;
+        b=pMkv4YHm5GeSQA5Q9xLmVMyhTFJuIz+7rRlA2ltwO27ex3FWtXNYfqn/DHHlwng+k1
+         eh7dk3SuVG3IibnZ81yqD2bZr8nAk4side6GamVGAUK4ccaa5FA94cHuTintK35rKqwB
+         5bMleaxg9EZ8LelPonmMlmENrngadLq41dQihOmsfuYvz4YyLOS2tju2vbBnWewJobT1
+         jhVPJ4PfBPQho04jQo9eVLwS/EObE+Gx0weZcQpeqQLHkmwDobj410w0+k0QUmw3eJPP
+         5NwnYS31uFKiK17tatamqsIqoc3/dusVgE6j0828qgzmDzqjE28P563nGrvjKLclBUpC
+         TLjA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=Iu3ggfJ1dkbQD0vLChI5jeIdTaaa9fHYlWca2C1OoUM=;
+        fh=nLevxtvAVEGtloYZJUp0tPFJ4RTTg/SvnfbFux7d2ew=;
+        b=UiohSO6hLxEwyPzkSV9/PDt9i4jGdSjCNsht/9uWh8CE8yzCxip878WC/pUDh1NKbT
+         ivcg2w9rCzlQ4pOpn4Iy800JsbqSpL72gsi0/R4FTyd4QgD/nYfOU7rSqGa3dbsGr8TZ
+         ll7RmmtgZluOL+w4OEvBNi/PNXwPHTSbz2WC6LSPXgWmRP1Io829tVF4atCB6pzSEzyw
+         znBFbYC6lR6P0lBtYhvSYxUu7jG9fqnAWdCryXjtXmvq7hdtlgQcxKe/qFBaoa4YTL/F
+         TOACYWnum4HmNWUCa4mNk0RMcLIMNhHDsfcQp/0Htjde2X82I9MVA1vM1VIgwc6nVBqU
+         j2AA==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=ziepe.ca; s=google; t=1786969337; x=1787574137; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+        d=gmail.com; s=20251104; t=1786970238; x=1787575038; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=Fjc8YE85ySy/Tyy7fdL+qRRJqTW8oWeIB13unlKZzTU=;
-        b=YA4a0nO0nH4v84iv6elfrsvINBNSoFqqFooCYFt/cRuYftKq9UxSrecdC1bO8LxTmj
-         34iaCd1M6wxXfmSzn4njprKUhNyXxgNor+wdcMdW+oQ7bkKBdSqcvOIhfP1QPqH/MXdR
-         TBQlF7ijV7sLpk1nwy6HXvYVby0j3i7zTi6nGZJvRbKknPLga1un1MuRPNj/F89+8J8U
-         3R+UfBzK5j0qFbBD6gmKibLW/K3dsysN3qBHU3AgSIwz6pI0ebsRHBdAHESNHqtXoa+0
-         LkqS1kSLp7+n4aDiVSMigDPOBeLnNvNjrvp0z/Y80YXnNAriMzzHP38XdapZG3uHhgC5
-         s7Uw==
+        bh=Iu3ggfJ1dkbQD0vLChI5jeIdTaaa9fHYlWca2C1OoUM=;
+        b=EFedNq2jwy/fjmG839z/qeCVfHxgQvUHRlg/zNRvufflHz7dhDip+BzzQOFDFrtGbe
+         P13+IhpSvjFPeKqFmdFFy6KSt82mlRHDRHPvjNJECffXo8lhUU++xjB5nJ6r+sakp7yQ
+         eNVZtw2eXrBaS5MLV+IP5UEi9uexSf0/Qmtz92ITwBYtQbj0sfZgIWAGv2bfMss6vo7j
+         e2DGOgq0p6x06q5EOZ1ibYtyZbkfvjykImSLlsao+Qc+zGDo8BoGTT4QBmv9COyJukL6
+         3wPIrEKe0NqBpnVxvrdBXXTafMTdi+a/R3cNSsNNFg7kL3psLlOixdOWLpkvsgwVOBKz
+         L2nA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786969337; x=1787574137;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
+        d=1e100.net; s=20251104; t=1786970238; x=1787575038;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=Fjc8YE85ySy/Tyy7fdL+qRRJqTW8oWeIB13unlKZzTU=;
-        b=gEMHQWb9xAeo5tg3Y6aPzRyu49OPVNCbsvJFXAzBgm0xdqLYZ6DNuKfaur3BOWZ1Se
-         P1Ji3aZVyEZP5VdY5gzzAA1U8WZU0NRgwi996/mtSL90uEz1HpIBxkiVBPNl63A+gUiX
-         iz+SXpMBDvWSvP7uhOv/nTV2qKGivZHyb/TCIHkrkxL/XZwgw/xNAPydksG4VYxw8fHi
-         EmSVjLG4wInkt5oLEfZCu68HKEFSf2f2H/byvhnU2soMFXRd0LUFHtqxhiOmeBtz27KG
-         qyEdiMZrqzzARdi9RV/2KDPnzX69wvEmHeHU5CsLPmKihnnr/y6NY3uy/KUnPq9BOpC5
-         K3Ng==
-X-Forwarded-Encrypted: i=1; AHgh+Rr+zbjYrEgUBprq6wOoH2tlmjdlK8EKMXiEDkInLlDipc2y3hzpv7SwMN7sC3Wc0CAAUDnXGeVhKr42@vger.kernel.org
-X-Gm-Message-State: AOJu0YzfmCG6V1kwawS7hSElPiZHJilB+K1ZAl8q887gme5LHdXro1jf
-	lkSal85biYQd0KWA4Zt5TO1JhtAYrkcmEjpd9Epv/Mac5tiXp566ixGqYpR5mDAuXFA=
-X-Gm-Gg: AR+sD11aJowuYiwQuKe+wglZr+uJWT3DQ8ANaACeBsw9ymTPpd1lqYMzyNhArC2nzu5
-	0EaqANBUqcD5EaZEIEJlTZnZRJoeeeP4tYi5EeN8n4ajl7NlLeCzLHSP00nZ+5rzFwktHBqJ7oA
-	W4tqPk0ovD9MFw++pvy9W5xjm0GWgA9ubCBxBFkIJvcBE7vXoo8Vx6oSKPmog2mCDgylU9sTsS3
-	3N6j4mLuC48PNkI5FzfaSsMw73YKbzYEYoNDkAs7XcW7cI+gwg+2FagvIg+v6UEOnB7Kic8ETtR
-	p1ZpbmdGd/pKGF+GgZ/81SDDMqKp+ACnw/nEPd7HNrPgW+FCbsR+WKOouc0DffT6sBHvaWITvSm
-	FT01NgPGUVa3GsCkL3akmqu5X1dZMh/Fg3J0E7B+Aeqlt3/+HMo+1eRpGsYj0G/kQyJDFEWPmmH
-	bRkihrcaBj7KbK06Qj33wROdO0SfkjLC3Fx25JhoqNt/wTg/FO7g==
-X-Received: by 2002:a05:620a:2552:b0:92e:f3ca:2ec8 with SMTP id af79cd13be357-936d202b715mr2670485685a.19.1786969337333;
-        Mon, 17 Aug 2026 05:22:17 -0700 (PDT)
-Received: from ziepe.ca ([142.166.156.215])
-        by smtp.gmail.com with ESMTPSA id af79cd13be357-937033fad12sm31868985a.36.2026.08.17.05.22.16
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 17 Aug 2026 05:22:16 -0700 (PDT)
-Received: from jgg by wakko with local (Exim 4.97)
-	(envelope-from <jgg@ziepe.ca>)
-	id 1wvwM4-00000005tO2-0GS8;
-	Mon, 17 Aug 2026 09:22:16 -0300
-Date: Mon, 17 Aug 2026 09:22:16 -0300
-From: Jason Gunthorpe <jgg@ziepe.ca>
-To: Yu Zhang <zhangyu1@linux.microsoft.com>
-Cc: Jacob Pan <jacob.pan@linux.microsoft.com>, linux-kernel@vger.kernel.org,
-	linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-	x86@kernel.org, wei.liu@kernel.org, kys@microsoft.com,
-	haiyangz@microsoft.com, decui@microsoft.com, longli@microsoft.com,
-	joro@8bytes.org, will@kernel.org, robin.murphy@arm.com,
-	bhelgaas@google.com, kwilczynski@kernel.org, lpieralisi@kernel.org,
-	mani@kernel.org, robh@kernel.org, arnd@arndb.de,
-	mhklinux@outlook.com, tgopinath@linux.microsoft.com,
-	easwar.hariharan@linux.microsoft.com, mrathor@linux.microsoft.com,
-	baolu.lu@linux.intel.com, suravee.suthikulpanit@amd.com,
-	vasant.hegde@amd.com
-Subject: Re: [PATCH v3 4/5] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Message-ID: <20260817122216.GD933791@ziepe.ca>
-References: <20260811155022.108148-1-zhangyu1@linux.microsoft.com>
- <20260811155022.108148-5-zhangyu1@linux.microsoft.com>
- <20260813152913.00003d8a@linux.microsoft.com>
- <20260813224627.GA933791@ziepe.ca>
- <p7ts4y6lxt7k6ldzaa26v7rckmmp7o5js2gn2r3eantgzut2cc@xxsvso76nefj>
+        bh=Iu3ggfJ1dkbQD0vLChI5jeIdTaaa9fHYlWca2C1OoUM=;
+        b=fNdBUzNjWvlLEK0B+yBg0DxA3xTxn7IwRI7dtjl7Qv/FocY6P3bv8ztIHbmKtU8AWv
+         8+fknGTz7aYSHau39yNrf7Re0uhEI7CLtjBpa6BXgOLonkjnotev7aDZTuDcpE0F9rF+
+         QD+JA/5QHPlBbaASWRtpiYZV8fqGDMXafaye4crFpA9adx9IVkfqvFWyr/K6FTIw63zF
+         G5ctVNYb3h2RG4UhUmFlfGOWthMMnLvMK2f+0hc3R6VEY/10f3Y0EP3pIR1HhpdDeVtF
+         YICKTho1RfTfDICst2Oz6gGa3/G4h2cMVaunaoxW7OaToacVnwF0rGN4iEZWk8kzl0Er
+         OTAg==
+X-Forwarded-Encrypted: i=1; AHgh+Rr1RPS47Oy/wcxprw54V2osASQQf6DjMEW1lvzpoQCt7NWrm73KB7bkN3NQC2eZDZe6sbdCnwgGj0iw@vger.kernel.org
+X-Gm-Message-State: AOJu0YwHq85MKblBc15w0moN4MNyMezrKy2ZDqRxrpIg5BAhLd9RFJY5
+	1BujR45A8TowoPWTBGf00YlHAiebe5SGUEuW9F6j4tosmowO3LtYlXRXcZ671ksnxhfkl5ztrC5
+	vOeVZcYfL15oR1xX+ozcX+YfuuQXfwQc=
+X-Gm-Gg: AR+sD11Zh2ndlNFik2p6F/c2a7DZJzegOW+Ug1opqpVFEpojP64IS5JdQpvf4+DjpPl
+	1hyZtcIG6AXmifckmbgsp4GNjEV+nV+D6+gnrPsMhAMTAVMgmYgerh85jGmBOQP9tOTv8RhyajS
+	neLNLm4cqjxADUjHSRp+oU441RshkjHR9VlHgvplgdPS1KyN/5J5dtyIWNAHv9IEiLxY7q08X04
+	l5i76QX7ex+MkhWz4ZE4wa4onqdwx4n3P2SsNkOJcSCbbABpaUgeCp7Cblt89K8bF4oRM042NHr
+	LqHZbQ8gw6h+jVMygE54uKUsJOjeCeEgxjQ8AKM9G0v9G4AICj/8NgDlXSV+aSNajzo6/ty3ZtB
+	u5uD+twWQGGM3gg==
+X-Received: by 2002:a05:6820:1ca2:b0:6aa:da90:8bd1 with SMTP id
+ 006d021491bc7-6b0c5b8dc8amr18770508eaf.11.1786970238244; Mon, 17 Aug 2026
+ 05:37:18 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <p7ts4y6lxt7k6ldzaa26v7rckmmp7o5js2gn2r3eantgzut2cc@xxsvso76nefj>
+References: <20260816153811.1085261-1-mathura.kumar.tech@gmail.com>
+ <20260816153811.1085261-5-mathura.kumar.tech@gmail.com> <61e9bf07-78b5-4696-b467-4c0ff462fe75@infradead.org>
+In-Reply-To: <61e9bf07-78b5-4696-b467-4c0ff462fe75@infradead.org>
+From: Mathura kumar <mathura.kumar.tech@gmail.com>
+Date: Mon, 17 Aug 2026 18:07:05 +0530
+X-Gm-Features: AcwNN1VLtbvkxKepq4r-YbHCLxnfkYpICDgE7sKoAnnlIFx13jNqF7RarV2VfhA
+Message-ID: <CABSt=QTZPCWgwKfNgV4o0fq_qjMs19binm74eX8GApsKs7R09Q@mail.gmail.com>
+Subject: Re: [PATCH v3 4/4] Test: Added self-testing and documentation
+To: Randy Dunlap <rdunlap@infradead.org>
+Cc: brauner@kernel.org, linux-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, corbet@lwn.net
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Fri, Aug 14, 2026 at 05:37:48PM +0800, Yu Zhang wrote:
-> > Why check it at all? Is there an issue with attaching the same thing
-> > twice? Will it blip the DMA or something?
-> 
-> Actually, I do not think there should be any issue with attaching twice.
-> Hyper-V *should* be able to accept such attachment. But I do not want to
-> make such assumption just for a redundant hypercall.
-> 
-> Does this reasoning make sense, or would you prefer that I remove the
-> check?
+yeah, I have fixed the minor formatting and one unsequenced new sys
+number for microblaze in syscall.tbl
+Should I wait for a complete review for this or send an updated version,
+and one more thing sashiko show potential regression in core
+augmentation logic but i think it is false positive and i am pretty
+sure, as per my intuition i don't think it have any regression
+regrading propagating msg count after insertion and deletion of node.
 
-I would probably drop it. Having blocking always set blocking to the
-HW regardless of what the SW tracking state says feels more robust to
-me.
+Thanks,
+Mathura
 
-Jason
+
+On Sun, Aug 16, 2026 at 9:36=E2=80=AFPM Randy Dunlap <rdunlap@infradead.org=
+> wrote:
+>
+> Hi--
+>
+> On 8/16/26 8:34 AM, mathura kumar wrote:
+> > Add test coverage to verify system call behavior under
+> > different-different cases.
+> >
+> > Update index documentation to include two new doc.
+> >       1) mq_recvmmsg.rst
+> >       2) mq_sendmmsg.rst
+> >
+> > The tests validate:
+> >       1) Offset boundries.
+> >       2) Partial success behaviors.
+> >       3) Timeout behavior.
+> >
+> > Documentation changes include:
+> >       1) Updated implementation details.
+> >       2) Error handlings mechanism.
+> >       3) Tests details.
+> >
+> > Signed-off-by: mathura kumar <mathura.kumar.tech@gmail.com>
+> > ---
+> >  Documentation/userspace-api/index.rst       |   2 +
+> >  Documentation/userspace-api/mq_recvmmsg.rst | 205 ++++++++++
+> >  Documentation/userspace-api/mq_sendmmsg.rst | 168 +++++++++
+> >  tools/testing/selftests/ipc/Makefile        |   2 +-
+> >  tools/testing/selftests/ipc/mq_recvmmsg.c   | 392 ++++++++++++++++++++
+> >  tools/testing/selftests/ipc/mq_sendmmsg.c   | 360 ++++++++++++++++++
+> >  6 files changed, 1128 insertions(+), 1 deletion(-)
+> >  create mode 100644 Documentation/userspace-api/mq_recvmmsg.rst
+> >  create mode 100644 Documentation/userspace-api/mq_sendmmsg.rst
+> >  create mode 100644 tools/testing/selftests/ipc/mq_recvmmsg.c
+> >  create mode 100644 tools/testing/selftests/ipc/mq_sendmmsg.c
+>
+> Documentation build warnings (from 'make htmldocs'):
+>
+> Documentation/userspace-api/mq_recvmmsg.rst:96: WARNING: Bullet list ends=
+ without a blank line; unexpected unindent. [docutils]
+> /work/lnx/repo/linux-next/Documentation/userspace-api/mq_recvmmsg.rst:179=
+: WARNING: Title underline too short.
+>
+> 3.4 start_idx argument
+> ~~~~~~~~~~~~~~~~~~~ [docutils]
+> Documentation/userspace-api/mq_sendmmsg.rst:77: WARNING: Bullet list ends=
+ without a blank line; unexpected unindent. [docutils]
+> /work/lnx/repo/linux-next/Documentation/userspace-api/mq_sendmmsg.rst:146=
+: WARNING: Title underline too short.
+>
+> 3.3 start_idx argument
+> ~~~~~~~~~~~~~~~~~~~ [docutils]
+>
+>
+> --
+> ~Randy
+>
