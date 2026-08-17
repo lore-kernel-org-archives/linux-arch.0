@@ -1,169 +1,114 @@
-Received: from mail-oo1-f66.google.com (mail-oo1-f66.google.com [209.85.161.66])
+Received: from mail-qk1-f179.google.com (mail-qk1-f179.google.com [209.85.222.179])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 66F4C41B36A
-	for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 12:37:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.161.66
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786970240; cv=pass; b=r8kvD4K34QOyHQuZDIXzohrwy4MVFxSwOHqZGQbvas9UL6nNjIYCEVydzAA7xAtqqvz0I01XVytgPh6qIGuPKHM6Yb5ycgkLoP4f07iN3zuSWp/YI65abzUJw0Zkwt5PjFFkmVXscvdHuTJ8ZEivB4XUK53PLkiLV9rfJEI53IU=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786970240; c=relaxed/simple;
-	bh=rHHs0j6a7I//fHT3pf82MG7KfJrjZR5YBmXSmcRKtjQ=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=Q/LhDYH/DiFbLi8n1UPw1KXW7XlWt6CJt8VKjZ5bs4HW3FcXLXxPLsM/9+JW5HiCQo0moD1YK4Gi/RKZdew27hxUU2FDB5Bm56R/HLiiN+QoTY4TIo9Ds3v5ny+pWQCFA5c9DCEjmwlKvZKb/StLDBz2Ru3L64HiY0jF+pp1xIA=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=EFedNq2j; arc=pass smtp.client-ip=209.85.161.66
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 60BC03CDBC3
+	for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 14:42:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.179
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1786977726; cv=none; b=hILYrlbzX3sTK/G+b40cZviNRwiGV1rYcDK4aJqBWITDesb0xVd4TMTET9RyeifnjoQJbK2rnGkcLTae+Ca/2MDbv8b16zYE8SnmMYiRE269ym7cqErbXDoyvi1M+gCcrKiYVgEeqI/2U0TlxKpgz6jLsPXWXZp93lqwEmUAgyI=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1786977726; c=relaxed/simple;
+	bh=4LT/LIRjRHMnkDcg+Tj8gGxQchYEIeHSdbQ4U3jZKDQ=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Wzy2RnAI6eN3/kk7mv5reIjV7SaiRxrsg85LR/gvWj6p5kp9IxK0nZ3oc3MgvNnO8vejqdvX4RZs0DO2g/dyhYD1IW4YGyMInONEK9f8Vuo93Q8kdHOlcAD4a6hVan559PUPgfOxzTOxOreB8GEGBaY3K5mhIfoRUNzzuYJdUdQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net; spf=pass smtp.mailfrom=gourry.net; dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.b=RQYoB544; arc=none smtp.client-ip=209.85.222.179
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="EFedNq2j"
-Received: by mail-oo1-f66.google.com with SMTP id 006d021491bc7-6ac83a09781so2695316eaf.1
-        for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 05:37:19 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1786970238; cv=none;
-        d=google.com; s=arc-20260327;
-        b=pMkv4YHm5GeSQA5Q9xLmVMyhTFJuIz+7rRlA2ltwO27ex3FWtXNYfqn/DHHlwng+k1
-         eh7dk3SuVG3IibnZ81yqD2bZr8nAk4side6GamVGAUK4ccaa5FA94cHuTintK35rKqwB
-         5bMleaxg9EZ8LelPonmMlmENrngadLq41dQihOmsfuYvz4YyLOS2tju2vbBnWewJobT1
-         jhVPJ4PfBPQho04jQo9eVLwS/EObE+Gx0weZcQpeqQLHkmwDobj410w0+k0QUmw3eJPP
-         5NwnYS31uFKiK17tatamqsIqoc3/dusVgE6j0828qgzmDzqjE28P563nGrvjKLclBUpC
-         TLjA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=Iu3ggfJ1dkbQD0vLChI5jeIdTaaa9fHYlWca2C1OoUM=;
-        fh=nLevxtvAVEGtloYZJUp0tPFJ4RTTg/SvnfbFux7d2ew=;
-        b=UiohSO6hLxEwyPzkSV9/PDt9i4jGdSjCNsht/9uWh8CE8yzCxip878WC/pUDh1NKbT
-         ivcg2w9rCzlQ4pOpn4Iy800JsbqSpL72gsi0/R4FTyd4QgD/nYfOU7rSqGa3dbsGr8TZ
-         ll7RmmtgZluOL+w4OEvBNi/PNXwPHTSbz2WC6LSPXgWmRP1Io829tVF4atCB6pzSEzyw
-         znBFbYC6lR6P0lBtYhvSYxUu7jG9fqnAWdCryXjtXmvq7hdtlgQcxKe/qFBaoa4YTL/F
-         TOACYWnum4HmNWUCa4mNk0RMcLIMNhHDsfcQp/0Htjde2X82I9MVA1vM1VIgwc6nVBqU
-         j2AA==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.b="RQYoB544"
+Received: by mail-qk1-f179.google.com with SMTP id af79cd13be357-936d00181abso154652385a.2
+        for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 07:42:04 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1786970238; x=1787575038; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+        d=gourry.net; s=google; t=1786977723; x=1787582523; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=Iu3ggfJ1dkbQD0vLChI5jeIdTaaa9fHYlWca2C1OoUM=;
-        b=EFedNq2jwy/fjmG839z/qeCVfHxgQvUHRlg/zNRvufflHz7dhDip+BzzQOFDFrtGbe
-         P13+IhpSvjFPeKqFmdFFy6KSt82mlRHDRHPvjNJECffXo8lhUU++xjB5nJ6r+sakp7yQ
-         eNVZtw2eXrBaS5MLV+IP5UEi9uexSf0/Qmtz92ITwBYtQbj0sfZgIWAGv2bfMss6vo7j
-         e2DGOgq0p6x06q5EOZ1ibYtyZbkfvjykImSLlsao+Qc+zGDo8BoGTT4QBmv9COyJukL6
-         3wPIrEKe0NqBpnVxvrdBXXTafMTdi+a/R3cNSsNNFg7kL3psLlOixdOWLpkvsgwVOBKz
-         L2nA==
+        bh=BCd/GM+SB+20nc87cPYs8vSFqEi5EzWcz9k0G1zmxpg=;
+        b=RQYoB544a7KEGXjKAhS9P9piIOWlFMFM7c3DhTf3yjJDxJEn7ZET8T8fyPQljSvj1/
+         0B4HfglIlx7uCNdZXKXYXlIXFzzQ80xWrKMcgeBzFIiD/MpK08U3MpD+AvtLKMQj3G/i
+         GAWk5XaZh7Rbvx4O3+tsMzRO9y6Yjk2X8KD0nmqYZGyhgsQcqaMuw2lhWhINwlK86OKT
+         kOZxZg8cCeESC1+ejj57tezmjxvsUyKQsjdVV0DQ1514h6P+Ep2iNsZ/f7n3hixU6A+d
+         BtSjKCTMUfDFMSM/Xug8v5RWM+hefFFYUjj+dJWnAt8E3Q97nwe1UXfjkAnhtxTJvB1y
+         62uw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786970238; x=1787575038;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
+        d=1e100.net; s=20251104; t=1786977723; x=1787582523;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=Iu3ggfJ1dkbQD0vLChI5jeIdTaaa9fHYlWca2C1OoUM=;
-        b=fNdBUzNjWvlLEK0B+yBg0DxA3xTxn7IwRI7dtjl7Qv/FocY6P3bv8ztIHbmKtU8AWv
-         8+fknGTz7aYSHau39yNrf7Re0uhEI7CLtjBpa6BXgOLonkjnotev7aDZTuDcpE0F9rF+
-         QD+JA/5QHPlBbaASWRtpiYZV8fqGDMXafaye4crFpA9adx9IVkfqvFWyr/K6FTIw63zF
-         G5ctVNYb3h2RG4UhUmFlfGOWthMMnLvMK2f+0hc3R6VEY/10f3Y0EP3pIR1HhpdDeVtF
-         YICKTho1RfTfDICst2Oz6gGa3/G4h2cMVaunaoxW7OaToacVnwF0rGN4iEZWk8kzl0Er
-         OTAg==
-X-Forwarded-Encrypted: i=1; AHgh+Rr1RPS47Oy/wcxprw54V2osASQQf6DjMEW1lvzpoQCt7NWrm73KB7bkN3NQC2eZDZe6sbdCnwgGj0iw@vger.kernel.org
-X-Gm-Message-State: AOJu0YwHq85MKblBc15w0moN4MNyMezrKy2ZDqRxrpIg5BAhLd9RFJY5
-	1BujR45A8TowoPWTBGf00YlHAiebe5SGUEuW9F6j4tosmowO3LtYlXRXcZ671ksnxhfkl5ztrC5
-	vOeVZcYfL15oR1xX+ozcX+YfuuQXfwQc=
-X-Gm-Gg: AR+sD11Zh2ndlNFik2p6F/c2a7DZJzegOW+Ug1opqpVFEpojP64IS5JdQpvf4+DjpPl
-	1hyZtcIG6AXmifckmbgsp4GNjEV+nV+D6+gnrPsMhAMTAVMgmYgerh85jGmBOQP9tOTv8RhyajS
-	neLNLm4cqjxADUjHSRp+oU441RshkjHR9VlHgvplgdPS1KyN/5J5dtyIWNAHv9IEiLxY7q08X04
-	l5i76QX7ex+MkhWz4ZE4wa4onqdwx4n3P2SsNkOJcSCbbABpaUgeCp7Cblt89K8bF4oRM042NHr
-	LqHZbQ8gw6h+jVMygE54uKUsJOjeCeEgxjQ8AKM9G0v9G4AICj/8NgDlXSV+aSNajzo6/ty3ZtB
-	u5uD+twWQGGM3gg==
-X-Received: by 2002:a05:6820:1ca2:b0:6aa:da90:8bd1 with SMTP id
- 006d021491bc7-6b0c5b8dc8amr18770508eaf.11.1786970238244; Mon, 17 Aug 2026
- 05:37:18 -0700 (PDT)
+        bh=BCd/GM+SB+20nc87cPYs8vSFqEi5EzWcz9k0G1zmxpg=;
+        b=ZGEFdBU7k9V66+9NyGxZovAmo9XZx3LfCLpZif4pkb0TUBgktw7qSb8InYk88FPrFK
+         zqqQBO6i15dJVRCel3bmEPr6Pz6cDdp8wYe3HezSwFYH9BKF7bza1/U+LROmC4H7Q0X8
+         QLYOHe7My7dXsIAB3dxqegtihmvMP2oHA/Bc3ufotLSgTqEUDftSLib98slFI+TLoByB
+         yVt7ASKnD87mal4Udv86zS0Ss3Xj1Cyj6TmDf/GCKfiHmtfoyiD8iV1HNlShqVqu/6Wp
+         oodbouXibP8u3gnsVEHEb+87JbBFBV1oCqlajxAuMYJgQ+01zGDnj1oIyzWXHLa92B7m
+         QyAw==
+X-Forwarded-Encrypted: i=1; AHgh+Ro53kEcj3l0+u1rvdhH59YVP4noXEWHZeFSu9duz8XXkbI5hlkoy30djLeaOUkFeRiKjq4Fu/urh+lx@vger.kernel.org
+X-Gm-Message-State: AOJu0YzOwIsyPaiSf/WXPVSniMzHVskHacGBnZTxaJtxrXYLNK5VaM8F
+	aODg0cTSPO0vF+2T+Fqqq5PR4/G2/7ERtzGiF3cPJjD1HK9QjBEaNwHAdgQkn1JVXyU=
+X-Gm-Gg: AR+sD10xH16Cjn8Wzx/C+g3nyoHWhH9sNoAgn4qlkR/X3wkRrqfT6VIsqLZTIa0DVqq
+	EB3ZIizuAOTNtYBV7eYxP2Vnbq7yNYH0tVp5VCx2Ge56ryFnm4LVHFLIgS9SLAj7+Lo7zi5ZSXY
+	JwLHOLL93uM0a85NNVWpJRdgNty8OroekGcIspzAPBPOmnocLscwnIp0Rncn1tyywM07bnHe8Oj
+	EDanwe8tY9w3su7JBbaMoymmb+XT6Vc4Au4Zj7hnrtLwuUWMYbFrKjFon5yPMn3G30z/9984Jlk
+	ud5TFJJHyVFphZnZt73WLooS4PYd6RXg4uId6Jf0uha2O/W4myTqrdIExEHbQHhTYFKst4R33wx
+	uRGkoGtxh619TA304G8Qp+rWFHBrlWfh7mInjgF5M462ss9ZEvuTSBuW1Q+fa0I2ET6JyAsg2UB
+	I06lxVISkOxqnmuPvAoNvFNmLExCipqI01MFCIUn542s+L3BX/awJvWYcqNS+rP1g/jMhAiP6nm
+	Qi6uzFjxgKEkfytNClgoyQ26cwHH26lhnbbs50ctGHv
+X-Received: by 2002:a05:620a:2682:b0:92e:e695:d622 with SMTP id af79cd13be357-936d22ea6bfmr2612870085a.28.1786977723026;
+        Mon, 17 Aug 2026 07:42:03 -0700 (PDT)
+Received: from gourry-fedora-PF4VCD3F (pool-173-79-60-52.washdc.fios.verizon.net. [173.79.60.52])
+        by smtp.gmail.com with ESMTPSA id af79cd13be357-937010c3785sm100435385a.2.2026.08.17.07.42.02
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 17 Aug 2026 07:42:02 -0700 (PDT)
+Date: Mon, 17 Aug 2026 10:42:00 -0400
+From: Gregory Price <gourry@gourry.net>
+To: Pratyush Yadav <pratyush@kernel.org>
+Cc: Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Mike Rapoport <rppt@kernel.org>, 
+	Pasha Tatashin <pasha.tatashin@soleen.com>, Alexander Graf <graf@amazon.com>, 
+	Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <david@kernel.org>, 
+	Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>, 
+	Vlastimil Babka <vbabka@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+	Michal Hocko <mhocko@suse.com>, Thomas Gleixner <tglx@kernel.org>, 
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, 
+	Ard Biesheuvel <ardb@kernel.org>, Ilias Apalodimas <ilias.apalodimas@linaro.org>, 
+	Rob Herring <robh@kernel.org>, Saravana Kannan <saravanak@kernel.org>, 
+	Arnd Bergmann <arnd@arndb.de>, Baoquan He <baoquan.he@linux.dev>, x86@kernel.org, 
+	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, kexec@lists.infradead.org, 
+	linux-mm@kvack.org, linux-efi@vger.kernel.org, devicetree@vger.kernel.org, 
+	linux-arch@vger.kernel.org
+Subject: Re: [PATCH 0/4] kho: rename "scratch" to "bootmem"
+Message-ID: <aoMdJ7hpr1GonLz8@gourry-fedora-PF4VCD3F>
+References: <20260811162642.3504565-1-pratyush@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260816153811.1085261-1-mathura.kumar.tech@gmail.com>
- <20260816153811.1085261-5-mathura.kumar.tech@gmail.com> <61e9bf07-78b5-4696-b467-4c0ff462fe75@infradead.org>
-In-Reply-To: <61e9bf07-78b5-4696-b467-4c0ff462fe75@infradead.org>
-From: Mathura kumar <mathura.kumar.tech@gmail.com>
-Date: Mon, 17 Aug 2026 18:07:05 +0530
-X-Gm-Features: AcwNN1VLtbvkxKepq4r-YbHCLxnfkYpICDgE7sKoAnnlIFx13jNqF7RarV2VfhA
-Message-ID: <CABSt=QTZPCWgwKfNgV4o0fq_qjMs19binm74eX8GApsKs7R09Q@mail.gmail.com>
-Subject: Re: [PATCH v3 4/4] Test: Added self-testing and documentation
-To: Randy Dunlap <rdunlap@infradead.org>
-Cc: brauner@kernel.org, linux-kernel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, corbet@lwn.net
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260811162642.3504565-1-pratyush@kernel.org>
 
-yeah, I have fixed the minor formatting and one unsequenced new sys
-number for microblaze in syscall.tbl
-Should I wait for a complete review for this or send an updated version,
-and one more thing sashiko show potential regression in core
-augmentation logic but i think it is false positive and i am pretty
-sure, as per my intuition i don't think it have any regression
-regrading propagating msg count after insertion and deletion of node.
+On Tue, Aug 11, 2026 at 06:26:36PM +0200, Pratyush Yadav wrote:
+> From: "Pratyush Yadav (Google)" <pratyush@kernel.org>
+> 
+> The term "KHO scratch" is vague and overloaded. It does not accurately
+> describe what the memory is for. This was discussed previously at [0].
+> The conclusion was to rename "KHO scratch" to "KHO bootmem", since this
+> is memory passed by the previous kernel for early boot allocations.
+> 
 
-Thanks,
-Mathura
+This seems like a lot of churn to just rename some stuff, especially for
+a term "scratch" which is very much understood to mean "temporary
+working memory region" in common computing parlance.
 
+The boot param name change would also cause breakage for existing
+systems that update and depend on the scratch parameter.
 
-On Sun, Aug 16, 2026 at 9:36=E2=80=AFPM Randy Dunlap <rdunlap@infradead.org=
-> wrote:
->
-> Hi--
->
-> On 8/16/26 8:34 AM, mathura kumar wrote:
-> > Add test coverage to verify system call behavior under
-> > different-different cases.
-> >
-> > Update index documentation to include two new doc.
-> >       1) mq_recvmmsg.rst
-> >       2) mq_sendmmsg.rst
-> >
-> > The tests validate:
-> >       1) Offset boundries.
-> >       2) Partial success behaviors.
-> >       3) Timeout behavior.
-> >
-> > Documentation changes include:
-> >       1) Updated implementation details.
-> >       2) Error handlings mechanism.
-> >       3) Tests details.
-> >
-> > Signed-off-by: mathura kumar <mathura.kumar.tech@gmail.com>
-> > ---
-> >  Documentation/userspace-api/index.rst       |   2 +
-> >  Documentation/userspace-api/mq_recvmmsg.rst | 205 ++++++++++
-> >  Documentation/userspace-api/mq_sendmmsg.rst | 168 +++++++++
-> >  tools/testing/selftests/ipc/Makefile        |   2 +-
-> >  tools/testing/selftests/ipc/mq_recvmmsg.c   | 392 ++++++++++++++++++++
-> >  tools/testing/selftests/ipc/mq_sendmmsg.c   | 360 ++++++++++++++++++
-> >  6 files changed, 1128 insertions(+), 1 deletion(-)
-> >  create mode 100644 Documentation/userspace-api/mq_recvmmsg.rst
-> >  create mode 100644 Documentation/userspace-api/mq_sendmmsg.rst
-> >  create mode 100644 tools/testing/selftests/ipc/mq_recvmmsg.c
-> >  create mode 100644 tools/testing/selftests/ipc/mq_sendmmsg.c
->
-> Documentation build warnings (from 'make htmldocs'):
->
-> Documentation/userspace-api/mq_recvmmsg.rst:96: WARNING: Bullet list ends=
- without a blank line; unexpected unindent. [docutils]
-> /work/lnx/repo/linux-next/Documentation/userspace-api/mq_recvmmsg.rst:179=
-: WARNING: Title underline too short.
->
-> 3.4 start_idx argument
-> ~~~~~~~~~~~~~~~~~~~ [docutils]
-> Documentation/userspace-api/mq_sendmmsg.rst:77: WARNING: Bullet list ends=
- without a blank line; unexpected unindent. [docutils]
-> /work/lnx/repo/linux-next/Documentation/userspace-api/mq_sendmmsg.rst:146=
-: WARNING: Title underline too short.
->
-> 3.3 start_idx argument
-> ~~~~~~~~~~~~~~~~~~~ [docutils]
->
->
-> --
-> ~Randy
->
+Is there a non-verbiage reason to justify these changes?  Living with
+"scratch" seems better than potentially breaking folks.
+
+~Gregory
+
