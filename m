@@ -1,47 +1,91 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qk1-f169.google.com (mail-qk1-f169.google.com [209.85.222.169])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 274DE30E0E9;
-	Mon, 17 Aug 2026 11:16:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 79FA93FA5E7
+	for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 12:22:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.169
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786965368; cv=none; b=fomX0HGTwcOvkSw2WODVDr6x+LDzXepwDVZ3iPK4nHeGHNeS5+xBCEEsN1p6hy+aNIoIOtQnGaYYk/XUEItylzUXJ782gp+CeupEYzvFFkGIaU6P8YjdLNGkWXkJCEkso5zRHpBwNMsuwCyT6WFgcjwjFwWY77RCLPV+DTVMnLA=
+	t=1786969340; cv=none; b=EwZNlP778otE/EwEr07v7Ao0OFI9wnRr8Ofocfwu6PP44f03jFDHBhic6ZnbqZlFakQKOMXDL6fuWuhriFbO0C4RbyRIc8S4ykinpH3pDTWfSDdk72ua5sxP+hpDHJVcZ305dBLFu7x6/5DFYoDn8iudJu9GZU94QSNv3bfxCV4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786965368; c=relaxed/simple;
-	bh=RlBey3ICrIGs9TtvveUZmJ6NMHs8dDYLBZy4uyLNcuQ=;
+	s=arc-20240116; t=1786969340; c=relaxed/simple;
+	bh=I+UkeZQjqj3g0bJcjZoQjrVdpo8txWH3MfMsXY6UQ6c=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=m7A921S5RlB5hQ5tPvAh7k4cTmHeyvEIc+706wKXsBpVmtnwTgPcpkZ5m0t148z/4lNTHJ3FFZou3wGqdTnbYfiwUaMU/RNzx3ZLDGQXvJfFiZ0PvQnh/8nDGWjAlPkA3w2v58iRWNcpaf32QoTBwQJwT/mNrnfWaKNTyoZUGR0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=VUszP7iB; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=pNGq/vyxX6D5gP2VQczeJcjCZdsa2HCfIJ+l2ouyO/E2JkmBq4FrtKjVW2enwlwfBz1/KyG/nm1gMbHvgKR+lNPjnz9irGd1Ku7KNBFNYiBQCfOIyLALUUfTDfb1tggePkOZdttT1M7WcuoLHYq2/34tBOxl8jIxNPfjETanwhA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=YA4a0nO0; arc=none smtp.client-ip=209.85.222.169
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="VUszP7iB"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 274DB1F000E9;
-	Mon, 17 Aug 2026 11:16:00 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1786965366;
-	bh=pEiCzvWeUGYIvROwUcLdzkful8DGFhkVU5axYHnXzAU=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=VUszP7iBiEwWM7jmKtcc8MgMRH4a0eQSsEFEfoa70VpX1A6FvPSIknklIJi4I/AYh
-	 yfLB6G7kLoMzpjN3A60NMZNKJe1M+VKut9hayU38wkxmjVO60UTjO/GtNBHjbVjMhE
-	 b/MuzWASuTMIMAwN5TSoU3s0cu5U8paStGq5Q+ZtJSrsKAlhq6LWJZIgL/M7EzIgDy
-	 +LV01x9H3stNdokj7k88f8IVWJbk9zOcPGBaMocn0QhNSUn74vRB+fzjZ+9WFugzp7
-	 smSj05Avv6foZ3ei/8Za9Lld+hAfGQ6O5qvrU3/2FUP+AAr0D/+vtGRuHjNLDtZZsB
-	 dfJxAe+dtzX5w==
-Date: Mon, 17 Aug 2026 14:15:57 +0300
-From: Mike Rapoport <rppt@kernel.org>
-To: Li Zhe <lizhe.67@bytedance.com>
-Cc: akpm@linux-foundation.org, apopple@nvidia.com, arnd@arndb.de,
-	balbirs@nvidia.com, bp@alien8.de, dave.hansen@linux.intel.com,
-	david@kernel.org, kees@kernel.org, mingo@redhat.com,
-	muchun.song@linux.dev, tglx@kernel.org, linux-arch@vger.kernel.org,
-	linux-hardening@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-mm@kvack.org, x86@kernel.org
-Subject: Re: [PATCH v10 2/8] mm: factor zone-device page init helpers out of
- __init_zone_device_page
-Message-ID: <aoLtbbv5euE4H1xO@kernel.org>
-References: <20260810122057.30447-1-lizhe.67@bytedance.com>
- <20260810122057.30447-3-lizhe.67@bytedance.com>
- <178688187038.2799959.7900723270155108493.b4-review@b4>
- <050c317f-111e-4293-aee5-ac8e154ebc7e@bytedance.com>
+	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="YA4a0nO0"
+Received: by mail-qk1-f169.google.com with SMTP id af79cd13be357-92edb12cdf2so265524185a.3
+        for <linux-arch@vger.kernel.org>; Mon, 17 Aug 2026 05:22:18 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=ziepe.ca; s=google; t=1786969337; x=1787574137; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=Fjc8YE85ySy/Tyy7fdL+qRRJqTW8oWeIB13unlKZzTU=;
+        b=YA4a0nO0nH4v84iv6elfrsvINBNSoFqqFooCYFt/cRuYftKq9UxSrecdC1bO8LxTmj
+         34iaCd1M6wxXfmSzn4njprKUhNyXxgNor+wdcMdW+oQ7bkKBdSqcvOIhfP1QPqH/MXdR
+         TBQlF7ijV7sLpk1nwy6HXvYVby0j3i7zTi6nGZJvRbKknPLga1un1MuRPNj/F89+8J8U
+         3R+UfBzK5j0qFbBD6gmKibLW/K3dsysN3qBHU3AgSIwz6pI0ebsRHBdAHESNHqtXoa+0
+         LkqS1kSLp7+n4aDiVSMigDPOBeLnNvNjrvp0z/Y80YXnNAriMzzHP38XdapZG3uHhgC5
+         s7Uw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1786969337; x=1787574137;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=Fjc8YE85ySy/Tyy7fdL+qRRJqTW8oWeIB13unlKZzTU=;
+        b=gEMHQWb9xAeo5tg3Y6aPzRyu49OPVNCbsvJFXAzBgm0xdqLYZ6DNuKfaur3BOWZ1Se
+         P1Ji3aZVyEZP5VdY5gzzAA1U8WZU0NRgwi996/mtSL90uEz1HpIBxkiVBPNl63A+gUiX
+         iz+SXpMBDvWSvP7uhOv/nTV2qKGivZHyb/TCIHkrkxL/XZwgw/xNAPydksG4VYxw8fHi
+         EmSVjLG4wInkt5oLEfZCu68HKEFSf2f2H/byvhnU2soMFXRd0LUFHtqxhiOmeBtz27KG
+         qyEdiMZrqzzARdi9RV/2KDPnzX69wvEmHeHU5CsLPmKihnnr/y6NY3uy/KUnPq9BOpC5
+         K3Ng==
+X-Forwarded-Encrypted: i=1; AHgh+Rr+zbjYrEgUBprq6wOoH2tlmjdlK8EKMXiEDkInLlDipc2y3hzpv7SwMN7sC3Wc0CAAUDnXGeVhKr42@vger.kernel.org
+X-Gm-Message-State: AOJu0YzfmCG6V1kwawS7hSElPiZHJilB+K1ZAl8q887gme5LHdXro1jf
+	lkSal85biYQd0KWA4Zt5TO1JhtAYrkcmEjpd9Epv/Mac5tiXp566ixGqYpR5mDAuXFA=
+X-Gm-Gg: AR+sD11aJowuYiwQuKe+wglZr+uJWT3DQ8ANaACeBsw9ymTPpd1lqYMzyNhArC2nzu5
+	0EaqANBUqcD5EaZEIEJlTZnZRJoeeeP4tYi5EeN8n4ajl7NlLeCzLHSP00nZ+5rzFwktHBqJ7oA
+	W4tqPk0ovD9MFw++pvy9W5xjm0GWgA9ubCBxBFkIJvcBE7vXoo8Vx6oSKPmog2mCDgylU9sTsS3
+	3N6j4mLuC48PNkI5FzfaSsMw73YKbzYEYoNDkAs7XcW7cI+gwg+2FagvIg+v6UEOnB7Kic8ETtR
+	p1ZpbmdGd/pKGF+GgZ/81SDDMqKp+ACnw/nEPd7HNrPgW+FCbsR+WKOouc0DffT6sBHvaWITvSm
+	FT01NgPGUVa3GsCkL3akmqu5X1dZMh/Fg3J0E7B+Aeqlt3/+HMo+1eRpGsYj0G/kQyJDFEWPmmH
+	bRkihrcaBj7KbK06Qj33wROdO0SfkjLC3Fx25JhoqNt/wTg/FO7g==
+X-Received: by 2002:a05:620a:2552:b0:92e:f3ca:2ec8 with SMTP id af79cd13be357-936d202b715mr2670485685a.19.1786969337333;
+        Mon, 17 Aug 2026 05:22:17 -0700 (PDT)
+Received: from ziepe.ca ([142.166.156.215])
+        by smtp.gmail.com with ESMTPSA id af79cd13be357-937033fad12sm31868985a.36.2026.08.17.05.22.16
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 17 Aug 2026 05:22:16 -0700 (PDT)
+Received: from jgg by wakko with local (Exim 4.97)
+	(envelope-from <jgg@ziepe.ca>)
+	id 1wvwM4-00000005tO2-0GS8;
+	Mon, 17 Aug 2026 09:22:16 -0300
+Date: Mon, 17 Aug 2026 09:22:16 -0300
+From: Jason Gunthorpe <jgg@ziepe.ca>
+To: Yu Zhang <zhangyu1@linux.microsoft.com>
+Cc: Jacob Pan <jacob.pan@linux.microsoft.com>, linux-kernel@vger.kernel.org,
+	linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
+	x86@kernel.org, wei.liu@kernel.org, kys@microsoft.com,
+	haiyangz@microsoft.com, decui@microsoft.com, longli@microsoft.com,
+	joro@8bytes.org, will@kernel.org, robin.murphy@arm.com,
+	bhelgaas@google.com, kwilczynski@kernel.org, lpieralisi@kernel.org,
+	mani@kernel.org, robh@kernel.org, arnd@arndb.de,
+	mhklinux@outlook.com, tgopinath@linux.microsoft.com,
+	easwar.hariharan@linux.microsoft.com, mrathor@linux.microsoft.com,
+	baolu.lu@linux.intel.com, suravee.suthikulpanit@amd.com,
+	vasant.hegde@amd.com
+Subject: Re: [PATCH v3 4/5] iommu/hyperv: Add para-virtualized IOMMU support
+ for Hyper-V guest
+Message-ID: <20260817122216.GD933791@ziepe.ca>
+References: <20260811155022.108148-1-zhangyu1@linux.microsoft.com>
+ <20260811155022.108148-5-zhangyu1@linux.microsoft.com>
+ <20260813152913.00003d8a@linux.microsoft.com>
+ <20260813224627.GA933791@ziepe.ca>
+ <p7ts4y6lxt7k6ldzaa26v7rckmmp7o5js2gn2r3eantgzut2cc@xxsvso76nefj>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -50,164 +94,21 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <050c317f-111e-4293-aee5-ac8e154ebc7e@bytedance.com>
+In-Reply-To: <p7ts4y6lxt7k6ldzaa26v7rckmmp7o5js2gn2r3eantgzut2cc@xxsvso76nefj>
 
-On Mon, Aug 17, 2026 at 03:11:56PM +0800, Li Zhe wrote:
-> On 8/16/26 8:04 PM, Mike Rapoport wrote:
-> > Hi,
-> >
-> >> memmap_init_zone_device() currently mixes refcount policy and core
-> >> ZONE_DEVICE page setup in a single helper.
-> >>
-> >> Factor the refcount-reset predicate into pagemap_requires_refcount_reset(),
-> >> move the common page initialization into __zone_device_page_init(), and
-> >> wrap the existing slow path in zone_device_page_init_slow().
-> >>
-> >> This keeps the slow-path behaviour unchanged and gives later patches
-> >> reusable helper boundaries.
-> >>
-> >> No functional change intended.
-> >>
-> >> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-> >> Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
-> >>
-> >> diff --git a/mm/mm_init.c b/mm/mm_init.c
-> >> index 95808ab5cfdb..a70acb7431a6 100644
-> >> --- a/mm/mm_init.c
-> >> +++ b/mm/mm_init.c
-> >> @@ -1005,11 +1005,37 @@ static void __init memmap_init(void)
-> >>   }
-> >>   
-> >>   #ifdef CONFIG_ZONE_DEVICE
-> >> -static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
-> >> +/*
-> >> + * Return true when memmap_init_zone_device() must initialize the page
-> >> + * refcount to 0. MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in
-> >> + * the free path, while the remaining ZONE_DEVICE types start from 0 here
-> >> + * and raise the count again when the allocator or driver hands the page
-> >> + * out.
-> >> + */
-> >> +static inline bool pagemap_requires_refcount_reset(const struct dev_pagemap *pgmap)
-> >> +{
-> >> +	/*
-> >> +	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
-> >> +	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
-> >> +	 * the count again when the allocator or driver hands the page out.
-> >> +	 */
-> >> +	switch (pgmap->type) {
-> >> +	case MEMORY_DEVICE_FS_DAX:
-> >> +	case MEMORY_DEVICE_PRIVATE:
-> >> +	case MEMORY_DEVICE_COHERENT:
-> >> +	case MEMORY_DEVICE_PCI_P2PDMA:
-> >> +		return true;
-> >> +	case MEMORY_DEVICE_GENERIC:
-> >> +		return false;
-> >> +	}
-> >> +
-> >> +	return false;
-> >> +}
-> >> +
-> >> +static void __ref __zone_device_page_init(struct page *page, unsigned long pfn,
-> >>   					  unsigned long zone_idx, int nid,
-> >>   					  struct dev_pagemap *pgmap)
-> >>   {
-> >> -
-> >>   	__init_single_page(page, pfn, zone_idx, nid);
-> >>   
-> >>   	/*
-> >> @@ -1028,23 +1054,15 @@ static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
-> >>   	 */
-> >>   	page_folio(page)->pgmap = pgmap;
-> >>   	page->zone_device_data = NULL;
-> >> +}
-> >>   
-> >> -	/*
-> >> -	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
-> >> -	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
-> >> -	 * the count again when the allocator or driver hands the page out.
-> >> -	 */
-> >> -	switch (pgmap->type) {
-> >> -	case MEMORY_DEVICE_FS_DAX:
-> >> -	case MEMORY_DEVICE_PRIVATE:
-> >> -	case MEMORY_DEVICE_COHERENT:
-> >> -	case MEMORY_DEVICE_PCI_P2PDMA:
-> >> +static void __ref zone_device_page_init_slow(struct page *page,
-> >> +		unsigned long pfn, unsigned long zone_idx, int nid,
-> >> +		struct dev_pagemap *pgmap)
-> >> +{
-> >> +	__zone_device_page_init(page, pfn, zone_idx, nid, pgmap);
-> >> +	if (pagemap_requires_refcount_reset(pgmap))
-> >>   		set_page_count(page, 0);
-> >> -		break;
-> >> -
-> >> -	case MEMORY_DEVICE_GENERIC:
-> >> -		break;
-> >> -	}
-> >>   }
-> >>   
-> >>   /*
-> >> @@ -1090,7 +1108,7 @@ static void __ref memmap_init_compound(struct page *head,
-> >>   	for (pfn = head_pfn + 1; pfn < end_pfn; pfn++) {
-> >>   		struct page *page = pfn_to_page(pfn);
-> >>   
-> >> -		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
-> >> +		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
-> >>   		prep_compound_tail(page, head, order);
-> >>   		set_page_count(page, 0);
-> >>   	}
-> >> @@ -1126,7 +1144,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
-> >>   	for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
-> >>   		struct page *page = pfn_to_page(pfn);
-> >>   
-> >> -		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
-> >> +		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
-> > It looks like all callers of __init_zone_device_page() are now calling
-> > zone_device_page_init_slow() that with series evolution became a thin
-> > wrapper for __zone_device_page_init().
-> >
-> > Maybe we can just rename __init_zone_device_page() to
-> > __zone_device_page_init() and replace the open coded setting of the page
-> > count with the call to pagemap_requires_refcount_reset() an be done
-> > here?
+On Fri, Aug 14, 2026 at 05:37:48PM +0800, Yu Zhang wrote:
+> > Why check it at all? Is there an issue with attaching the same thing
+> > twice? Will it blip the DMA or something?
 > 
+> Actually, I do not think there should be any issue with attaching twice.
+> Hyper-V *should* be able to accept such attachment. But I do not want to
+> make such assumption just for a redundant hypercall.
 > 
-> Yes, that would make patch 2 simpler.
-> 
-> The reason I kept the refcount policy outside __zone_device_page_init()
-> is the compound-tail initialization added later in patch 5. Tail pages
-> still need the same basic ZONE_DEVICE struct page initialization as head
-> pages, including __init_single_page(), PageReserved, pgmap and
-> zone_device_data setup. After that, the tail-page path calls
-> prep_compound_tail() and sets the tail refcount to 0 unconditionally.
-> 
-> Folding pagemap_requires_refcount_reset() into __zone_device_page_init()
-> would make that helper include the head-page refcount policy even for
-> callers that will immediately apply the tail-page refcount rule
-> afterwards.
+> Does this reasoning make sense, or would you prefer that I remove the
+> check?
 
-But you still call zone_device_page_init_slow() from
-zone_device_tail_page_init() so it's anyway there.
+I would probably drop it. Having blocking always set blocking to the
+HW regardless of what the SW tracking state says feels more robust to
+me.
 
-I'd suggest combining this and the next patch into one, keeping
-__init_zone_device_page() name without renaming it at all and open-coding
-the initialization of the first head and the first tail page to properly
-set refcount and call other prep methods.
-
-I'd also pull the initialization of the first page in both cases out of the
-loop and make the loop only use the _template version.
- 
-> That preserves the final state, but I was trying to keep the common
-> ZONE_DEVICE page setup separate from the head-page refcount policy for
-> this reason.
-> 
-> Would you still prefer the simpler renamed helper here, or should I keep
-> the common ZONE_DEVICE page setup separate from the refcount policy and
-> make the naming clearer in v11?
-> 
-> Thanks,
-> Zhe
-> 
-
--- 
-Sincerely yours,
-Mike.
+Jason
