@@ -1,218 +1,188 @@
-Received: from va-2-111.ptr.blmpb.com (va-2-111.ptr.blmpb.com [209.127.231.111])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 05C9C377AB9
-	for <linux-arch@vger.kernel.org>; Tue, 18 Aug 2026 02:56:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.111
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id F39CA3AFB18;
+	Tue, 18 Aug 2026 04:00:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787021808; cv=none; b=poxDZXJPUNEaPpd1IjUSZxXAYjxHg03nWgXZKOAMmlkQH4i7cTpCQsGOOwqxQexra7J0rrTQ1fCFU9hwGf/vBJut41Lx0YooiCRh0U5vu3AZGAO7GuEifoE6Ikhrn9Et+YKY7yalllWCmS4KHpJvxy5yGk9aaLCplddj2YYzcV0=
+	t=1787025650; cv=none; b=Fib8xTYK3kGT1yqSalNS96kXUfDw1tP65gmiqhYdg4xRE7Eg9Pd7TO2+Rx0YwAWezpKLwu5Ian+lI460/j6tehk+xJZvFLV4+twn31DrEnL6uFqCTp/e8xxX76QSlFR6Iq+pSG2scj8Be0JIKcczaihftow72Z0irUbY4fQWcYA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787021808; c=relaxed/simple;
-	bh=Zuuyx425jd0Ev1tCIi7y/sh8sfTufvyG0prBkgLQF9E=;
-	h=From:Date:Content-Type:References:Subject:Mime-Version:
-	 In-Reply-To:To:Cc:Message-Id; b=EEFiYc3c4+Q8MGxjH8U0WIy2rW2dWSkMf+fxrAGKshhUXM3BwHYArOvR+UFLvmOSaDTDI7LnDXi1CboE/P1GNeZCMPJEu7nosgFkyecBJYRb7LVUQUKyK9XqJ6H41EuUGWQAThrNJhZz38gUrJ9czpra7qRDmsMOo7bPCb+zh3A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=G6t8z4aO; arc=none smtp.client-ip=209.127.231.111
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1787025650; c=relaxed/simple;
+	bh=LRR2JW96qzLG8uXgU1+MfoOsPimHhtCsmfw/iXX8kB4=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=E7BrJZ0DGKPsvdoknoe78OSNsuI3shVTMV/bj1XDXzkMOXRFLjVver7CwxlosaOQMTZwyni6M3DBER51LBhgQx/L20fhYN4joNAtdmPwPPCZfpYaXE1k321+U633VlHrOwlb6tIodRA/N3idWpR/Qw/kV3V+hF+gI298NbMEd9s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=NtFRXij4; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="G6t8z4aO"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1787021794; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=Mmzy2KRppiE9A8Y8ELPAoQZxfCoaZ+1Mf41Owvy1ldo=;
- b=G6t8z4aOiaCzjzAN2kz662NjpkK/owVRzHLTQhAZXx54Yi1Sg/N02PJ+48Rg9zDruutufI
- J6WcnvsV5ly2B+1/Eii501RlXt3ImOEXcUw/PbsT15f4+6F6nZ8nRCh5pmKC/k8iM5ITkh
- 71rQw74bCPphV3R6fxGOk7j5foh8qUZ4sTI3T7V/uJHDYYHro0ZbQ1jqifb8RCd7CtqM9L
- FzoKg1JMMqvpE0LF7hn3zorSAdJWVP3aCiD4yFjMtXqedwFgrSRlrT8pxlDqqf1T17rKgk
- PryGbnxPFVBVe8kAL0nRUk7lkKQICKoKzBbFUp1YojXUmxBYxDDjyx+Sbvyv5w==
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Date: Tue, 18 Aug 2026 10:56:10 +0800
-Content-Type: text/plain; charset=UTF-8
-References: <20260810122057.30447-1-lizhe.67@bytedance.com> <20260810122057.30447-3-lizhe.67@bytedance.com> <178688187038.2799959.7900723270155108493.b4-review@b4> <050c317f-111e-4293-aee5-ac8e154ebc7e@bytedance.com> <aoLtbbv5euE4H1xO@kernel.org>
-Subject: Re: [PATCH v10 2/8] mm: factor zone-device page init helpers out of __init_zone_device_page
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="NtFRXij4"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 46004153B;
+	Mon, 17 Aug 2026 21:00:41 -0700 (PDT)
+Received: from localhost (a085714.arm.com [10.164.19.28])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 6E5453F66F;
+	Mon, 17 Aug 2026 21:00:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1787025645; bh=LRR2JW96qzLG8uXgU1+MfoOsPimHhtCsmfw/iXX8kB4=;
+	h=From:To:Cc:Subject:Date:From;
+	b=NtFRXij4Uhwnlv72AF85fJYzj/aymvsPMmb1FV54uYlLFKg3t/C+cIPPz6W0jsHV1
+	 9J4gARXAWELXnskJwPs+BnDvgT6ZNx/a8ZwzPVKYIGTlZF5fGPZRP4qKo2lnT7Fr1w
+	 ur0UrDi2dMsXj4xyEnxA47CkAD4o6o2g2lJDsONI=
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+To: linux-mm@kvack.org,
+	akpm@linux-foundation.org,
+	david@kernel.org
+Cc: Anshuman Khandual <anshuman.khandual@arm.com>,
+	Yoshinori Sato <ysato@users.sourceforge.jp>,
+	Rich Felker <dalias@libc.org>,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+	"James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+	Helge Deller <deller@gmx.de>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	linux-alpha@vger.kernel.org,
+	linux-snps-arc@lists.infradead.org,
+	linux-arm-kernel@lists.infradead.org,
+	linux-csky@vger.kernel.org,
+	linux-hexagon@vger.kernel.org,
+	loongarch@lists.linux.dev,
+	linux-m68k@lists.linux-m68k.org,
+	linux-mips@vger.kernel.org,
+	linux-openrisc@vger.kernel.org,
+	linux-parisc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org,
+	linux-riscv@lists.infradead.org,
+	linux-s390@vger.kernel.org,
+	linux-sh@vger.kernel.org,
+	sparclinux@vger.kernel.org,
+	linux-um@lists.infradead.org,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: [RFC V3 0/8] mm: Drop pxd_ERROR()
+Date: Tue, 18 Aug 2026 09:30:33 +0530
+Message-ID: <20260818040041.1891769-1-anshuman.khandual@arm.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-In-Reply-To: <aoLtbbv5euE4H1xO@kernel.org>
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
-Content-Transfer-Encoding: 7bit
-User-Agent: Mozilla Thunderbird
-X-Lms-Return-Path: <lba+26a83c9e0+236816+vger.kernel.org+lizhe.67@bytedance.com>
-To: "Mike Rapoport" <rppt@kernel.org>
-Cc: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
-	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
-	<muchun.song@linux.dev>, <tglx@kernel.org>, <linux-arch@vger.kernel.org>, 
-	<linux-hardening@vger.kernel.org>, <linux-kernel@vger.kernel.org>, 
-	<linux-mm@kvack.org>, <x86@kernel.org>
-Message-Id: <6a066922-4528-4c4d-9bb5-bbdb2b6cd56f@bytedance.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 
-On 8/17/26 7:15 PM, Mike Rapoport wrote:
-> On Mon, Aug 17, 2026 at 03:11:56PM +0800, Li Zhe wrote:
->> On 8/16/26 8:04 PM, Mike Rapoport wrote:
->>> Hi,
->>>
->>>> memmap_init_zone_device() currently mixes refcount policy and core
->>>> ZONE_DEVICE page setup in a single helper.
->>>>
->>>> Factor the refcount-reset predicate into pagemap_requires_refcount_reset(),
->>>> move the common page initialization into __zone_device_page_init(), and
->>>> wrap the existing slow path in zone_device_page_init_slow().
->>>>
->>>> This keeps the slow-path behaviour unchanged and gives later patches
->>>> reusable helper boundaries.
->>>>
->>>> No functional change intended.
->>>>
->>>> Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
->>>> Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
->>>>
->>>> diff --git a/mm/mm_init.c b/mm/mm_init.c
->>>> index 95808ab5cfdb..a70acb7431a6 100644
->>>> --- a/mm/mm_init.c
->>>> +++ b/mm/mm_init.c
->>>> @@ -1005,11 +1005,37 @@ static void __init memmap_init(void)
->>>>    }
->>>>    
->>>>    #ifdef CONFIG_ZONE_DEVICE
->>>> -static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
->>>> +/*
->>>> + * Return true when memmap_init_zone_device() must initialize the page
->>>> + * refcount to 0. MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in
->>>> + * the free path, while the remaining ZONE_DEVICE types start from 0 here
->>>> + * and raise the count again when the allocator or driver hands the page
->>>> + * out.
->>>> + */
->>>> +static inline bool pagemap_requires_refcount_reset(const struct dev_pagemap *pgmap)
->>>> +{
->>>> +	/*
->>>> +	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
->>>> +	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
->>>> +	 * the count again when the allocator or driver hands the page out.
->>>> +	 */
->>>> +	switch (pgmap->type) {
->>>> +	case MEMORY_DEVICE_FS_DAX:
->>>> +	case MEMORY_DEVICE_PRIVATE:
->>>> +	case MEMORY_DEVICE_COHERENT:
->>>> +	case MEMORY_DEVICE_PCI_P2PDMA:
->>>> +		return true;
->>>> +	case MEMORY_DEVICE_GENERIC:
->>>> +		return false;
->>>> +	}
->>>> +
->>>> +	return false;
->>>> +}
->>>> +
->>>> +static void __ref __zone_device_page_init(struct page *page, unsigned long pfn,
->>>>    					  unsigned long zone_idx, int nid,
->>>>    					  struct dev_pagemap *pgmap)
->>>>    {
->>>> -
->>>>    	__init_single_page(page, pfn, zone_idx, nid);
->>>>    
->>>>    	/*
->>>> @@ -1028,23 +1054,15 @@ static void __ref __init_zone_device_page(struct page *page, unsigned long pfn,
->>>>    	 */
->>>>    	page_folio(page)->pgmap = pgmap;
->>>>    	page->zone_device_data = NULL;
->>>> +}
->>>>    
->>>> -	/*
->>>> -	 * MEMORY_DEVICE_GENERIC pages regain a refcount of 1 in the free
->>>> -	 * path. The remaining ZONE_DEVICE types start from 0 here and raise
->>>> -	 * the count again when the allocator or driver hands the page out.
->>>> -	 */
->>>> -	switch (pgmap->type) {
->>>> -	case MEMORY_DEVICE_FS_DAX:
->>>> -	case MEMORY_DEVICE_PRIVATE:
->>>> -	case MEMORY_DEVICE_COHERENT:
->>>> -	case MEMORY_DEVICE_PCI_P2PDMA:
->>>> +static void __ref zone_device_page_init_slow(struct page *page,
->>>> +		unsigned long pfn, unsigned long zone_idx, int nid,
->>>> +		struct dev_pagemap *pgmap)
->>>> +{
->>>> +	__zone_device_page_init(page, pfn, zone_idx, nid, pgmap);
->>>> +	if (pagemap_requires_refcount_reset(pgmap))
->>>>    		set_page_count(page, 0);
->>>> -		break;
->>>> -
->>>> -	case MEMORY_DEVICE_GENERIC:
->>>> -		break;
->>>> -	}
->>>>    }
->>>>    
->>>>    /*
->>>> @@ -1090,7 +1108,7 @@ static void __ref memmap_init_compound(struct page *head,
->>>>    	for (pfn = head_pfn + 1; pfn < end_pfn; pfn++) {
->>>>    		struct page *page = pfn_to_page(pfn);
->>>>    
->>>> -		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
->>>> +		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
->>>>    		prep_compound_tail(page, head, order);
->>>>    		set_page_count(page, 0);
->>>>    	}
->>>> @@ -1126,7 +1144,7 @@ void __ref memmap_init_zone_device(struct zone *zone,
->>>>    	for (pfn = start_pfn; pfn < end_pfn; pfn += pfns_per_compound) {
->>>>    		struct page *page = pfn_to_page(pfn);
->>>>    
->>>> -		__init_zone_device_page(page, pfn, zone_idx, nid, pgmap);
->>>> +		zone_device_page_init_slow(page, pfn, zone_idx, nid, pgmap);
->>> It looks like all callers of __init_zone_device_page() are now calling
->>> zone_device_page_init_slow() that with series evolution became a thin
->>> wrapper for __zone_device_page_init().
->>>
->>> Maybe we can just rename __init_zone_device_page() to
->>> __zone_device_page_init() and replace the open coded setting of the page
->>> count with the call to pagemap_requires_refcount_reset() an be done
->>> here?
->>
->> Yes, that would make patch 2 simpler.
->>
->> The reason I kept the refcount policy outside __zone_device_page_init()
->> is the compound-tail initialization added later in patch 5. Tail pages
->> still need the same basic ZONE_DEVICE struct page initialization as head
->> pages, including __init_single_page(), PageReserved, pgmap and
->> zone_device_data setup. After that, the tail-page path calls
->> prep_compound_tail() and sets the tail refcount to 0 unconditionally.
->>
->> Folding pagemap_requires_refcount_reset() into __zone_device_page_init()
->> would make that helper include the head-page refcount policy even for
->> callers that will immediately apply the tail-page refcount rule
->> afterwards.
-> But you still call zone_device_page_init_slow() from
-> zone_device_tail_page_init() so it's anyway there.
+pxd_ERROR() macros have been provided by all platforms, which are very much
+identical and can be dropped off completely if these pgtable printing could
+be moved to callers in generic MM aka all pxd_clear_bad().
 
+But first cleanups and re-organizations are required in some platforms that
+are using these macros internally. Afterwards [pte|pmd|pud|p4d|pgd]_ERROR()
+macros have been completely dropped from the entire tree.
 
-Thanks for pointing this out. I was mistaken about the current split.
+This series is based on v7.2 after the following patch and has also been
+built tested on multiple platforms.
 
->
-> I'd suggest combining this and the next patch into one, keeping
-> __init_zone_device_page() name without renaming it at all and open-coding
-> the initialization of the first head and the first tail page to properly
-> set refcount and call other prep methods.
->
-> I'd also pull the initialization of the first page in both cases out of the
-> loop and make the loop only use the _template version.
+https://lore.kernel.org/all/20260709044334.1741263-1-anshuman.khandual@arm.com/
 
+Changes in RFC V3:
 
-Thanks for the suggestion. This is indeed clearer. I will fix this in v11.
+- Moved ptrval_to_str() as header in a separate patch
+- Stopped using pxd_ERROR() in generic MM in a separate patch
+- Dropped pxd_ERRO() macros from all platforms in a separate patch
+- Dropped print_bad_pte() and also cleaned up set_pte_phys()
+- Added some pr_error() messages in __get_pte_phys()
+- Cleaned up error messages and used ptrval_to_str() in platforms
 
-Thanks,
-Zhe
+Changes in RFC V2:
 
->   
->> That preserves the final state, but I was trying to keep the common
->> ZONE_DEVICE page setup separate from the head-page refcount policy for
->> this reason.
->>
->> Would you still prefer the simpler renamed helper here, or should I keep
->> the common ZONE_DEVICE page setup separate from the refcount policy and
->> make the naming clearer in v11?
->>
->> Thanks,
->> Zhe
->>
+https://lore.kernel.org/all/20260811042119.3652929-1-anshuman.khandual@arm.com/
+
+- Added clean up patches for platforms with existing pxd_ERROR() usage
+- Dropped __FILE__ and __LINE__ from all print sections per David
+
+Changes in RFC V1:
+
+https://lore.kernel.org/all/20260806080639.1916749-1-anshuman.khandual@arm.com/
+
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
+Cc: Helge Deller <deller@gmx.de>
+Cc: Huacai Chen <chenhuacai@kernel.org>
+Cc: WANG Xuerui <kernel@xen0n.name>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-snps-arc@lists.infradead.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-csky@vger.kernel.org
+Cc: linux-hexagon@vger.kernel.org
+Cc: loongarch@lists.linux.dev
+Cc: linux-m68k@lists.linux-m68k.org
+Cc: linux-mips@vger.kernel.org
+Cc: linux-openrisc@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-riscv@lists.infradead.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-sh@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-um@lists.infradead.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org
+
+Anshuman Khandual (8):
+  mm: Make ptrval_to_str() generally available
+  mm: Stop using pxd_ERROR()
+  loongarch/mm: Stop using pte_ERROR()
+  parisc/mm: Directly use generic [pmd|pgd]_clear_bad()
+  sh/mm: Stop using pte_ERROR()
+  sh/mm: Stop using [p4d|pud|pmd]_ERROR()
+  sh/mm: Stop using pgd_ERROR()
+  mm: Drop pxd_ERROR()
+
+ arch/alpha/include/asm/pgtable.h              |  7 -------
+ arch/arc/include/asm/pgtable-levels.h         | 11 ----------
+ arch/arm/include/asm/pgtable.h                |  7 -------
+ arch/arm/kernel/traps.c                       | 17 ---------------
+ arch/arm64/include/asm/pgtable.h              | 15 -------------
+ arch/csky/include/asm/pgtable.h               |  4 ----
+ arch/hexagon/include/asm/pgtable.h            |  3 ---
+ arch/loongarch/include/asm/pgtable.h          | 13 ------------
+ arch/loongarch/mm/init.c                      |  4 +++-
+ arch/m68k/include/asm/mcf_pgtable.h           |  6 ------
+ arch/m68k/include/asm/motorola_pgtable.h      |  8 -------
+ arch/m68k/include/asm/sun3_pgtable.h          |  7 -------
+ arch/microblaze/include/asm/pgtable.h         |  7 -------
+ arch/mips/include/asm/pgtable-32.h            | 10 ---------
+ arch/mips/include/asm/pgtable-64.h            | 13 ------------
+ arch/nios2/include/asm/pgtable.h              |  7 -------
+ arch/openrisc/include/asm/pgtable.h           |  7 -------
+ arch/parisc/include/asm/pgtable.h             |  9 --------
+ arch/parisc/kernel/pci-dma.c                  |  6 ++----
+ arch/powerpc/include/asm/book3s/32/pgtable.h  |  2 --
+ arch/powerpc/include/asm/book3s/64/pgtable.h  |  7 -------
+ arch/powerpc/include/asm/nohash/32/pgtable.h  |  2 --
+ .../include/asm/nohash/64/pgtable-4k.h        |  3 ---
+ arch/powerpc/include/asm/nohash/64/pgtable.h  |  5 -----
+ arch/riscv/include/asm/pgtable-64.h           |  9 --------
+ arch/riscv/include/asm/pgtable.h              |  4 ----
+ arch/s390/include/asm/pgtable.h               | 11 ----------
+ arch/sh/include/asm/pgtable-3level.h          |  3 ---
+ arch/sh/include/asm/pgtable_32.h              | 13 ------------
+ arch/sh/mm/init.c                             | 16 +++++++-------
+ arch/sparc/include/asm/pgtable_32.h           |  3 ---
+ arch/sparc/include/asm/pgtable_64.h           | 10 ---------
+ arch/um/include/asm/pgtable-2level.h          |  7 -------
+ arch/um/include/asm/pgtable-4level.h          | 13 ------------
+ arch/x86/include/asm/pgtable-2level.h         |  5 -----
+ arch/x86/include/asm/pgtable-3level.h         | 11 ----------
+ arch/x86/include/asm/pgtable_64.h             | 18 ----------------
+ arch/xtensa/include/asm/pgtable.h             |  4 ----
+ include/asm-generic/pgtable-nop4d.h           |  1 -
+ include/asm-generic/pgtable-nopmd.h           |  1 -
+ include/asm-generic/pgtable-nopud.h           |  1 -
+ include/linux/mm_types.h                      | 15 +++++++++++++
+ mm/memory.c                                   | 16 ++------------
+ mm/pgtable-generic.c                          | 21 +++++++++++++++----
+ 44 files changed, 48 insertions(+), 314 deletions(-)
+
+-- 
+2.43.0
+
