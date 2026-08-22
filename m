@@ -1,124 +1,106 @@
-Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
+Received: from mail-out.m-online.net (mail-out.m-online.net [212.18.0.10])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C22503DAABD;
-	Fri, 21 Aug 2026 21:51:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1A0852E975E;
+	Sat, 22 Aug 2026 16:50:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.18.0.10
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787349093; cv=none; b=TcQtbZ/2ta1skfa/RXJQBfB+O1p4fXloySHCoCuaPTpl2XVM/7hC7YQ7he03tiZV+19VrFWP0ei3KrGHIyv1VgDHH3urKpMIdWkphX9mfNW4sHcdYMmvQOoRseGhvMtPjco4CtrV9d+mxPLZOPRZ4rbf7sAf1/LzlsrjrszGLNw=
+	t=1787417440; cv=none; b=XwMgjGcQUNIZBLqo9Q0Hbm7iAgbMYDhH+0xlVCj1SDM1C0gB+m6YowWnstRlmRoeW9Vh0xNzTLyHpw37dCiZ9CFbbOhCBBbqLbM8+Jc5hb+yYYl4YS+rZfcCnRqd7bZZFEMSHevN7GEgS+zNxQPx48NishQQxa5pdM7wRDej/Cg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787349093; c=relaxed/simple;
-	bh=poYqrUsi500s0fQyhLYCsmsHf0i//77QFNaIOGes8ek=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=FVpULjBBPXKy9nibtNZDgxbYR87rbSBER7yB4shm8syUHpSMi9TvlobyWI9tdpgjc0xJVsoRxVwaNoKWpSsYgoXtKnspZZGWuFr//fHfN7g0txyRc9UYlKKDCwTpDk4jg10FJBIs0zImmqy9R6vxNnrL9ojlvWLAHKbfzjnYS1s=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=TKnRsP7X; arc=none smtp.client-ip=213.97.179.56
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="TKnRsP7X"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
-	s=20170329; h=Cc:To:Message-Id:Content-Transfer-Encoding:Content-Type:
-	MIME-Version:Subject:Date:From:From:Reply-To;
-	bh=K8kjW1mgVYNAmXTDHsHgs1H1Tp7aKYu9ZJKgbwnVZzM=; b=TKnRsP7X7H3y02V8UmAz/WwPpX
-	17JcJivtbx3NC0va4VyxWitpgKW+kMDqCzPtRPqFYWvYeie9iGjDZlcpGvnc9zqViX1oJGBwigeHs
-	jd4L9fl6LfFgCsrDRat6oMjVtoSEbkn8Nq2cQsfX6YVHj7nKkDOfJvrmams4QxJTcpiGKEBkjkzXI
-	kfZRWdWIr526DFvhIc59RkmYQS99MmY3ur5po5gty6L2EOHv/DHK96ExuDseYJHjw9ZVDmVwO8lV5
-	5sQA8o8xorERN+kLqu621OLVlHzpUx5JFzLU966W6LnwX3FnPCF3fPBIz3otBVnMjRs86MqV744r0
-	m7Zh95eQ==;
-Received: from [177.139.22.20] (helo=[192.168.15.100])
-	by fanzine2.igalia.com with esmtpsa 
-	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_256_GCM:256) (Exim)
-	id 1wxX8j-007ErF-G8; Fri, 21 Aug 2026 23:51:05 +0200
-From: =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
-Date: Fri, 21 Aug 2026 18:50:44 -0300
-Subject: [PATCH v8 3/4] arm64: vdso32: Bring vdso32-offsets.h back
+	s=arc-20240116; t=1787417440; c=relaxed/simple;
+	bh=F/H70At36vqEAgxYft4pzZYGJt125sexAs1mQKFkzyI=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=vGo9sqbaXPLc20M5hOG6M+7iJn7A/Y64qpV/hPtEg/B7JmyrseHy51nZNTzi4T0KK86iSOW8AVlWoE+a+2+x5WA5aWuve7rUC03WDgAgZzeP6cJvwh+7+GrxKcDeKnh+tsUlo+RxdA2Z2gpjT6hzMBd1GeT29R4FZJ5xyf2boyw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=nefkom.net; arc=none smtp.client-ip=212.18.0.10
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=nefkom.net
+Received: from mail-out.m-online.net (mail-out.m-online.net [212.18.0.10])
+	by mail-out.m-online.net (Postfix) with ESMTP id 4hS3820Pw1z1sMfJ;
+	Sat, 22 Aug 2026 18:50:26 +0200 (CEST)
+Received: from frontend03.mail.m-online.net (unknown [192.168.6.182])
+	by mail-out.m-online.net (Postfix) with ESMTP id 4hS38138ywz1sMfH;
+	Sat, 22 Aug 2026 18:50:25 +0200 (CEST)
+Received: from localhost (dynscan3.mnet-online.de [192.168.6.87])
+	by mail.m-online.net (Postfix) with ESMTP id 4hS3804KRnz1qqlZ;
+	Sat, 22 Aug 2026 18:50:24 +0200 (CEST)
+X-Virus-Scanned: amavis at mnet-online.de
+Received: from mail.mnet-online.de ([192.168.6.182])
+ by localhost (dynscan3.mail.m-online.net [192.168.6.87]) (amavis, port 10024)
+ with ESMTP id Qz4Chty8sdOb; Sat, 22 Aug 2026 18:50:23 +0200 (CEST)
+X-Auth-Info: OL3cYjbU1r+qfm2QpDKq9gsFcdK7pEagtpeOPHg4Dj+AVcv3aYERNAi5TjJCOgP7
+Received: from igel.home (aftr-62-216-202-215.dynamic.mnet-online.de [62.216.202.215])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mail.mnet-online.de (Postfix) with ESMTPSA;
+	Sat, 22 Aug 2026 18:50:23 +0200 (CEST)
+Received: by igel.home (Postfix, from userid 1000)
+	id 349732C0AF8; Sat, 22 Aug 2026 18:50:22 +0200 (CEST)
+From: Andreas Schwab <schwab@linux-m68k.org>
+To: Deepak Gupta <debug@rivosinc.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>,  Deepak Gupta via B4 Relay
+ <devnull+debug.rivosinc.com@kernel.org>,  Thomas Gleixner
+ <tglx@linutronix.de>,  Ingo Molnar <mingo@redhat.com>,  Borislav Petkov
+ <bp@alien8.de>,  Dave Hansen <dave.hansen@linux.intel.com>,
+  x86@kernel.org,  "H. Peter Anvin" <hpa@zytor.com>,  Andrew Morton
+ <akpm@linux-foundation.org>,  "Liam R. Howlett" <Liam.Howlett@oracle.com>,
+  Vlastimil Babka <vbabka@suse.cz>,  Lorenzo Stoakes
+ <lorenzo.stoakes@oracle.com>,  Paul Walmsley <paul.walmsley@sifive.com>,
+  Palmer Dabbelt <palmer@dabbelt.com>,  Albert Ou <aou@eecs.berkeley.edu>,
+  Conor Dooley <conor@kernel.org>,  Rob Herring <robh@kernel.org>,
+  Krzysztof Kozlowski <krzk+dt@kernel.org>,  Arnd Bergmann <arnd@arndb.de>,
+  Christian Brauner <brauner@kernel.org>,  Peter Zijlstra
+ <peterz@infradead.org>,  Oleg Nesterov <oleg@redhat.com>,  Kees Cook
+ <kees@kernel.org>,  Jonathan Corbet <corbet@lwn.net>,  Shuah Khan
+ <shuah@kernel.org>,  Jann Horn <jannh@google.com>,  Conor Dooley
+ <conor+dt@kernel.org>,  Miguel Ojeda <ojeda@kernel.org>,  Alex Gaynor
+ <alex.gaynor@gmail.com>,  Boqun Feng <boqun.feng@gmail.com>,  Gary Guo
+ <gary@garyguo.net>,  =?utf-8?Q?Bj=C3=B6rn?= Roy Baron
+ <bjorn3_gh@protonmail.com>,  Andreas
+ Hindborg <a.hindborg@kernel.org>,  Alice Ryhl <aliceryhl@google.com>,
+  Trevor Gross <tmgross@umich.edu>,  Benno Lossin <lossin@kernel.org>,
+  linux-kernel@vger.kernel.org,  linux-fsdevel@vger.kernel.org,
+  linux-mm@kvack.org,  linux-riscv@lists.infradead.org,
+  devicetree@vger.kernel.org,  linux-arch@vger.kernel.org,
+  linux-doc@vger.kernel.org,  linux-kselftest@vger.kernel.org,
+  alistair.francis@wdc.com,  richard.henderson@linaro.org,
+  jim.shu@sifive.com,  andybnac@gmail.com,  kito.cheng@sifive.com,
+  charlie@rivosinc.com,  atishp@rivosinc.com,  evan@rivosinc.com,
+  cleger@rivosinc.com,  alexghiti@rivosinc.com,  samitolvanen@google.com,
+  broonie@kernel.org,  rick.p.edgecombe@intel.com,
+  rust-for-linux@vger.kernel.org,  Zong Li <zong.li@sifive.com>
+Subject: Re: [PATCH v23 06/28] riscv/mm : ensure PROT_WRITE leads to VM_READ
+ | VM_WRITE
+In-Reply-To: <CAKC1njRapOxS6ibQdCuES1E3aAjsA+yGz4yZ1xJAZHU2vkAm_A@mail.gmail.com>
+References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
+	<20251112-v5_user_cfi_series-v23-6-b55691eacf4f@rivosinc.com>
+	<87jyslndo4.fsf@igel.home>
+	<CAKC1njS=AHu6uHrH4ae8VxcdEbhgiPXYCAoN3F_mnppBd3SwOA@mail.gmail.com>
+	<875x44o9hj.fsf@igel.home>
+	<CAKC1njSn_rtCj8ii876PNQTk0nsCTfWsb4DzdymufHVthh1Rkg@mail.gmail.com>
+	<871peqgp9v.fsf@igel.home>
+	<CAKC1njR+dTdvp+BmLGPtgd8dufiUwBtkQ9a-qinELT_Fmi13sQ@mail.gmail.com>
+	<87wlwif04z.fsf@igel.home>
+	<87tsrli6lt.fsf@email.froward.int.ebiederm.org>
+	<CAKC1njRapOxS6ibQdCuES1E3aAjsA+yGz4yZ1xJAZHU2vkAm_A@mail.gmail.com>
+Date: Sat, 22 Aug 2026 18:50:22 +0200
+Message-ID: <878q5y6qwh.fsf@igel.home>
+User-Agent: Gnus/5.13 (Gnus v5.13)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
-Message-Id: <20260821-tonyk-robust_arm-v8-3-077707b6f1c7@igalia.com>
-References: <20260821-tonyk-robust_arm-v8-0-077707b6f1c7@igalia.com>
-In-Reply-To: <20260821-tonyk-robust_arm-v8-0-077707b6f1c7@igalia.com>
-To: Catalin Marinas <catalin.marinas@arm.com>, 
- Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
- Mark Rutland <mark.rutland@arm.com>, 
- Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
- Sebastian Andrzej Siewior <bigeasy@linutronix.de>, 
- Peter Zijlstra <peterz@infradead.org>, Florian Weimer <fweimer@redhat.com>, 
- Darren Hart <dvhart@infradead.org>, Ingo Molnar <mingo@kernel.org>, 
- Davidlohr Bueso <dave@stgolabs.net>, Arnd Bergmann <arnd@arndb.de>, 
- Uros Bizjak <ubizjak@gmail.com>, 
- =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, 
- linux-arch@vger.kernel.org, kernel-dev@igalia.com, 
- LKML <linux-kernel@vger.kernel.org>, 
- =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
-X-Mailer: b4 0.15.2
+Content-Type: text/plain
 
-Commit c7767f5c43df ("arm64: vdso32: Remove unused vdso32-offsets.h")
-removed vdso32-offsets.h because it was empty and therefore useless.
+On Jun 02 2026, Deepak Gupta wrote:
 
-With the introduction of __vdso_futex_robust_try_unlock(), there is the
-need to expose offsets again.
+> I'll send a patch. Thanks.
 
-Signed-off-by: André Almeida <andrealmeid@igalia.com>
----
- arch/arm64/Makefile               | 2 +-
- arch/arm64/include/asm/vdso.h     | 3 +++
- arch/arm64/kernel/vdso32/Makefile | 8 ++++++++
- 3 files changed, 12 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index 6b005c8fef70..265716644193 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -211,7 +211,7 @@ vdso_prepare: prepare0
- 	include/generated/vdso-offsets.h arch/arm64/kernel/vdso/vdso.so
- ifdef CONFIG_COMPAT_VDSO
- 	$(Q)$(MAKE) $(build)=arch/arm64/kernel/vdso32 \
--	arch/arm64/kernel/vdso32/vdso.so
-+	include/generated/vdso32-offsets.h arch/arm64/kernel/vdso32/vdso.so
- endif
- endif
- 
-diff --git a/arch/arm64/include/asm/vdso.h b/arch/arm64/include/asm/vdso.h
-index 232b46969088..43a214b93524 100644
---- a/arch/arm64/include/asm/vdso.h
-+++ b/arch/arm64/include/asm/vdso.h
-@@ -10,6 +10,9 @@
- #ifndef __ASSEMBLER__
- 
- #include <generated/vdso-offsets.h>
-+#ifdef CONFIG_COMPAT_VDSO
-+#include <generated/vdso32-offsets.h>
-+#endif
- 
- #define VDSO_SYMBOL(base, name)						   \
- ({									   \
-diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
-index bea3675fa668..4bd60f059f4a 100644
---- a/arch/arm64/kernel/vdso32/Makefile
-+++ b/arch/arm64/kernel/vdso32/Makefile
-@@ -135,6 +135,14 @@ $(c-obj-vdso-gettimeofday): %.o: %.c FORCE
- $(asm-obj-vdso): %.o: %.S FORCE
- 	$(call if_changed_dep,vdsoas)
- 
-+# Generate VDSO offsets using helper script
-+gen-vdsosym := $(src)/../vdso/gen_vdso_offsets.sh
-+quiet_cmd_vdsosym = VDSOSYM $@
-+      cmd_vdsosym = $(NM) $< | $(gen-vdsosym) | LC_ALL=C sort > $@
-+
-+include/generated/vdso32-offsets.h: $(obj)/vdso32.so.dbg FORCE
-+	$(call if_changed,vdsosym)
-+
- # Actual build commands
- quiet_cmd_vdsold_and_vdso_check = LD32    $@
-       cmd_vdsold_and_vdso_check = $(cmd_vdsold); $(cmd_vdso_check)
+Any news?  It's still broken in 7.2.
 
 -- 
-2.55.0
-
+Andreas Schwab, schwab@linux-m68k.org
+GPG Key fingerprint = 7578 EB47 D4E5 4D69 2510  2552 DF73 E780 A9DA AEC1
+"And now for something completely different."
