@@ -1,184 +1,130 @@
-Received: from mail-pf1-f176.google.com (mail-pf1-f176.google.com [209.85.210.176])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from helium.openadk.org (helium.openadk.org [89.238.66.15])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2151144E671
-	for <linux-arch@vger.kernel.org>; Mon, 24 Aug 2026 15:50:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.176
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 31D54376A0A;
+	Mon, 24 Aug 2026 17:53:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=89.238.66.15
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787586647; cv=none; b=dzGsWPK35M1BRHdCEJlS37vvCiNptVu4E2tww6YCGhjhIMDAu37PMJTHuNAeDS9sZfJ39PMUDfSXOBkPgAMdhVZzXPF0qdaplUDS3vjPX6b2MfYZKpERG2AQgLWuwp3qerBwcdOC3iZw1hOOnD6IwYsU+ka2r9g06gT3hwKHrgU=
+	t=1787593998; cv=none; b=Wvj6FscqUOciw3uP+e/ijLx8fcFn0Hjw8x/bNfK5gXUjJ1sSvHjR2kAHBiEJJ8su9NIlIjyIhjTexEh5dNRtmHLq9c+0A5Cq80deZTQ+cqhJAJJ5oCHn00iWwNukkOha2Rjq9tcDjvRJMmxkQ0Yp1PjpgtH7AqfKHYX6XA/5Pzg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787586647; c=relaxed/simple;
-	bh=O+UlH1d73+sx98gD+jonoek56k6WXXcHy6glAIcE6hw=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=mI6cEDGvry8SU23T85M4JGEIufw+ff1mSLyFK56poa4z+nSZl5gKofG6YLwJa+ACKBk0PgmdB+kWokqaI1mpbHytMdzX38dX0Cx7Ax2UBBMzHRdIs9zmscVPJV1S2P/BK33E/9/j+sabSalr5Gu4ujFmjVcYGGT7MMoNp5GFGdA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com; spf=pass smtp.mailfrom=sifive.com; dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b=gzpY5h5W; arc=none smtp.client-ip=209.85.210.176
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sifive.com
+	s=arc-20240116; t=1787593998; c=relaxed/simple;
+	bh=jEv+8LI+ZkKRobm78bUV3FxhnD8xjYOpuoWynCJulcI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Qj1mVDBjvNKYWMoG5Vwxx4dN73ZlTO2ttQdUz4ugMdPVrK9AEGh2mCPUArxkhFbC6ulhaAR2NBrEamriKvb0+zc/nyp0fJ+4IBLL/X1oq5ATRaPloHk6eGsBsM3xYx4VhLovfe7JakuTDyqheon4likVh/MKTuEAFLbG4ouDzYE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=openadk.org; spf=pass smtp.mailfrom=openadk.org; dkim=fail (0-bit key) header.d=openadk.org header.i=@openadk.org header.b=gXm3Az01 reason="key not found in DNS"; arc=none smtp.client-ip=89.238.66.15
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=openadk.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=openadk.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b="gzpY5h5W"
-Received: by mail-pf1-f176.google.com with SMTP id d2e1a72fcca58-84e04df8c46so4831355b3a.2
-        for <linux-arch@vger.kernel.org>; Mon, 24 Aug 2026 08:50:40 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=sifive.com; s=google; t=1787586639; x=1788191439; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:in-reply-to:content-language
-         :from:references:cc:to:subject:user-agent:mime-version:date
-         :message-id:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=8n2sUFyNkTeeyJ480adWKOU51gCub2/F4WE3r3BRNf0=;
-        b=gzpY5h5WE22LnAQ59IZ1aQ4RvBrfX1TLQn3SeYIVWwfWG6YEj9tCVYFWrUXI5/d3Fk
-         ILuo5xbw0dVb1q+vkio3LO2q1/7BYar7Kd5kiSrhH/zpU1K6ai1dgXhfcC2bU4BUgpP7
-         Q0N6hK6rjCO+W1AsSr1BhsqykjtQISFsHVj6HskgrREPOVxF0BlSLr54YV62XFF35Fe4
-         rHfJtt2Pm+mN20xIIEFapc1pnvYItHz7b3meyYbyZAgGU5QRDNt0yIj93oWX9aeRV0yW
-         v8tyoX1WzdbToiE2o68NzxuqsIcwGG6oMLnng9z/nrOw6AUsqUwGBuNpHV94z+vHBfbN
-         EZpg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1787586639; x=1788191439;
-        h=content-transfer-encoding:content-type:in-reply-to:content-language
-         :from:references:cc:to:subject:user-agent:mime-version:date
-         :message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=8n2sUFyNkTeeyJ480adWKOU51gCub2/F4WE3r3BRNf0=;
-        b=J6nrzlXSKItZplGpQZCmLEPbrIcxP0FU7TLl9xA0fc6q963/x/0EajXZJAHFqsvIfL
-         IRhi6itcrosEE3dF32p8WP8jdbfczOjKiwwrtE2ZL5P33AfeO8bwjMKzSgfUnxvjbhoA
-         ej6Lqk4eXY0UA3Td9j+TTKPiu5hIjf47drFePOtoi6bAIzMo3KQQcphQVugxlnvVS9kW
-         qVWs9huQWUALS3t5FoSZiNbtGRjdhGQtI9NHzWMjTFkUchm5UpCB0tE3wJbSdPuxTqjO
-         sGT7CvB3yjpwdNaUYwWvWMfjXs8VWNAa7ZV/oJBzRylVyIZwaL8Se8rQtfowzwDuJaWn
-         4Smw==
-X-Forwarded-Encrypted: i=1; AHgh+RorxppNUVbVY4i7BntYviOaQrlNAsYYZjHz6phk+tj+C/a5T3aLqikOud7jsDQkSetYFw2Jw+PEKjK2@vger.kernel.org
-X-Gm-Message-State: AFuF++l8QIAGmOcvKwaSEfmYr/oYvyf4YD0FuYYlh+yRhe2fyFYjY6IQ
-	NnlEn1W6s+pVAiH7QZ6ISe35MYE6oiRpFrEtMmx6U9xPAQjYwXjvp97i27qcwt9eK9w=
-X-Gm-Gg: AR+sD12Zw1VgIn2WbXvfBxXGEONBiDILuYQ8K8S/0jGspKQxl19e0JSKNXamj5xfMC2
-	D4L2KDgdBzz1sMwySRkVyYTWArguAqZvDPlQB7ftu/ljql5SET4+yPXc8s8V37HIITP0+s68OJn
-	KRe2I4oHQI3SpRqWjUttP3Y/jKrsdJdActOTYMuV2yft+/g/o9cZY7y+pRuzrcIHVJ9plj+0O+b
-	m1rPVu8NOgpOWKXKOaQ1Eq01X8Qhm0kkUrfjMoe+SXaGbf5DStttkgA6gG/BBTjJ/ivHxUH0d+B
-	MMJ0VEnQjNrjeEjlyMB3ww5OD9HA2FqCHtWJhXQta4RMjvV3rhxZw1XzTzAzUoveUTIu+IZuLyi
-	t261/CPXh2HmkvAv5DLSReaZEtYXeFqgo7nBzbT5eEF7HMtC6JE8Sga6jUnV1hel10hKeYJY9pg
-	qhLEhVNKYBXspAfJOdJIS1udD9O3a77bxpFpx0tUZ4KF+e5OIA0qvXUxVucLqbLyaf
-X-Received: by 2002:a05:6a00:10d1:b0:848:5540:2377 with SMTP id d2e1a72fcca58-851fa070c14mr40910400b3a.17.1787586639434;
-        Mon, 24 Aug 2026 08:50:39 -0700 (PDT)
-Received: from [100.64.0.1] ([165.225.242.163])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-8520ef36048sm2219670b3a.26.2026.08.24.08.50.37
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 24 Aug 2026 08:50:38 -0700 (PDT)
-Message-ID: <6dae9cae-9665-4dc8-9a49-d6e5acda221b@sifive.com>
-Date: Mon, 24 Aug 2026 10:50:37 -0500
+	dkim=fail reason="key not found in DNS" (0-bit key) header.d=openadk.org header.i=@openadk.org header.b="gXm3Az01"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=openadk.org; s=2022;
+	t=1787593989; bh=jEv+8LI+ZkKRobm78bUV3FxhnD8xjYOpuoWynCJulcI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=gXm3Az01wA/GjNsFXZNV/EpOjv5Mvl5u/O3DmVqJrV76q8V1rcE4pZZsaeORNmGaU
+	 b8hvKCM13PBfd2dz3kg+9QIGnZVnIhVTQTcqa4BzSLZ+RsX07tRdrH+TEbU/z7HcFb
+	 zvuADu2BqMKJcp1uLcLniyJX3qbc5ARRCVQA0IvFqoavcpho/p1xJAK68Zuh4OIESX
+	 6XoqtL08WznSQ3oD6L2UFwgrFBqtciR3RdQZYi8GmpZCu3AswZWsBJj92cbEda3m++
+	 Tbn5hlXp8dp2Ft9rszqBjZRzYmuCHfxVTnOay9jh5PmbK/c7FUQBJA7/mxhddXLbEE
+	 YhAJkV+Y82wHw==
+Received: by helium.openadk.org (Postfix, from userid 1000)
+	id 183B131E0CF9; Mon, 24 Aug 2026 19:53:09 +0200 (CEST)
+Date: Mon, 24 Aug 2026 19:53:09 +0200
+From: Waldemar Brodkorb <wbx@openadk.org>
+To: Ramin Moussavi <ramin.moussavi@yacoub.de>
+Cc: Michal Simek <monstr@monstr.eu>, Michal Simek <michal.simek@amd.com>,
+	linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
+	linux-arch@vger.kernel.org, Sam Price <thesamprice@gmail.com>,
+	Neal Frager <neal.frager@amd.com>,
+	Waldemar Brodkorb <wbx@openadk.org>,
+	Michael Eager <eager@eagercon.com>
+Subject: Re: [PATCH v3 0/5] microblaze: fix signal handling and the ABI
+ argument home area
+Message-ID: <aoyFBUZ8MT4-lWTL@waldemar-brodkorb.de>
+References: <20260821151809.1233057-1-ramin.moussavi@yacoub.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC V3 8/8] mm: Drop pxd_ERROR()
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker
- <dalias@libc.org>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
- Helge Deller <deller@gmx.de>, Huacai Chen <chenhuacai@kernel.org>,
- WANG Xuerui <kernel@xen0n.name>, linux-alpha@vger.kernel.org,
- linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
- linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
- loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
- linux-mips@vger.kernel.org, linux-openrisc@vger.kernel.org,
- linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
- linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
- linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
- linux-um@lists.infradead.org, linux-arch@vger.kernel.org,
- linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>,
- linux-mm@kvack.org, akpm@linux-foundation.org, david@kernel.org
-References: <20260818040041.1891769-1-anshuman.khandual@arm.com>
- <20260818040041.1891769-9-anshuman.khandual@arm.com>
-From: Samuel Holland <samuel.holland@sifive.com>
-Content-Language: en-US
-In-Reply-To: <20260818040041.1891769-9-anshuman.khandual@arm.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20260821151809.1233057-1-ramin.moussavi@yacoub.de>
+X-Operating-System: Linux 6.12.96+deb13-amd64 x86_64
 
-On 2026-08-17 11:00 PM, Anshuman Khandual wrote:
-> There are no more users left for any pxd_ERROR() either in generic MM or in
-> the platform MM. Hence all these platform macros along with their generic
-> fallback could be dropped across the tree.
+Hi Ramin, Hi all,
+Ramin Moussavi wrote,
+
+> Five fixes to the microblaze signal-delivery path, found while bringing the
+> uClibc-ng NPTL test suite up on microblazeel under qemu-system
+> (petalogix-s3adsp1800).
 > 
-> Cc: linux-alpha@vger.kernel.org
-> Cc: linux-snps-arc@lists.infradead.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linux-csky@vger.kernel.org
-> Cc: linux-hexagon@vger.kernel.org
-> Cc: loongarch@lists.linux.dev
-> Cc: linux-m68k@lists.linux-m68k.org
-> Cc: linux-mips@vger.kernel.org
-> Cc: linux-openrisc@vger.kernel.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-riscv@lists.infradead.org
-> Cc: linux-s390@vger.kernel.org
-> Cc: linux-sh@vger.kernel.org
-> Cc: sparclinux@vger.kernel.org
-> Cc: linux-um@lists.infradead.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Cc: linux-kernel@vger.kernel.org
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org> # m68k
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
-> ---
-> Changes in RFC V3
+> Patch 1 wires up sigaltstack(), which is routed to sys_ni_syscall even
+> though the signal code fully supports an alternate stack; microblaze is the
+> only architecture leaving it unimplemented.
 > 
-> - Moved ptrval_to_str() as header in a [PATCH 1/8]
-> - Stopped using pxd_ERROR() in generic MM in [PATCH 2/8]
-> - Dropped pxd_ERRO() macros from all platforms in this patch
+> Patch 2 reserves the ABI argument home area at the top of the signal frame.
+> A handler may store its incoming arguments r5..r10 into [r1+4]..[r1+24], and
+> r1 points at struct rt_sigframe on entry, so those stores land in
+> siginfo/ucontext and corrupt the signal state.
 > 
->  arch/alpha/include/asm/pgtable.h               |  7 -------
->  arch/arc/include/asm/pgtable-levels.h          | 11 -----------
->  arch/arm/include/asm/pgtable.h                 |  7 -------
->  arch/arm/kernel/traps.c                        | 17 -----------------
->  arch/arm64/include/asm/pgtable.h               | 15 ---------------
->  arch/csky/include/asm/pgtable.h                |  4 ----
->  arch/hexagon/include/asm/pgtable.h             |  3 ---
->  arch/loongarch/include/asm/pgtable.h           | 11 -----------
->  arch/m68k/include/asm/mcf_pgtable.h            |  6 ------
->  arch/m68k/include/asm/motorola_pgtable.h       |  8 --------
->  arch/m68k/include/asm/sun3_pgtable.h           |  7 -------
->  arch/microblaze/include/asm/pgtable.h          |  7 -------
->  arch/mips/include/asm/pgtable-32.h             | 10 ----------
->  arch/mips/include/asm/pgtable-64.h             | 13 -------------
->  arch/nios2/include/asm/pgtable.h               |  7 -------
->  arch/openrisc/include/asm/pgtable.h            |  7 -------
->  arch/parisc/include/asm/pgtable.h              |  9 ---------
->  arch/powerpc/include/asm/book3s/32/pgtable.h   |  2 --
->  arch/powerpc/include/asm/book3s/64/pgtable.h   |  7 -------
->  arch/powerpc/include/asm/nohash/32/pgtable.h   |  2 --
->  .../powerpc/include/asm/nohash/64/pgtable-4k.h |  3 ---
->  arch/powerpc/include/asm/nohash/64/pgtable.h   |  5 -----
->  arch/riscv/include/asm/pgtable-64.h            |  9 ---------
->  arch/riscv/include/asm/pgtable.h               |  4 ----
->  arch/s390/include/asm/pgtable.h                | 11 -----------
->  arch/sh/include/asm/pgtable-3level.h           |  3 ---
->  arch/sh/include/asm/pgtable_32.h               |  8 --------
->  arch/sparc/include/asm/pgtable_32.h            |  3 ---
->  arch/sparc/include/asm/pgtable_64.h            | 10 ----------
->  arch/um/include/asm/pgtable-2level.h           |  7 -------
->  arch/um/include/asm/pgtable-4level.h           | 13 -------------
->  arch/x86/include/asm/pgtable-2level.h          |  5 -----
->  arch/x86/include/asm/pgtable-3level.h          | 11 -----------
->  arch/x86/include/asm/pgtable_64.h              | 18 ------------------
->  arch/xtensa/include/asm/pgtable.h              |  4 ----
->  include/asm-generic/pgtable-nop4d.h            |  1 -
->  include/asm-generic/pgtable-nopmd.h            |  1 -
->  include/asm-generic/pgtable-nopud.h            |  1 -
->  38 files changed, 277 deletions(-)
-> ...
-> diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
-> index 5d5756bda82e..993a6505eb8f 100644
-> --- a/arch/riscv/include/asm/pgtable.h
-> +++ b/arch/riscv/include/asm/pgtable.h
-> @@ -559,10 +559,6 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
->  	return __pte((pte_val(pte) & _PAGE_CHG_MASK) | newprot_val);
->  }
->  
-> -#define pgd_ERROR(e) \
-> -	pr_err("%s:%d: bad pgd " PTE_FMT ".\n", __FILE__, __LINE__, pgd_val(e))
+> Patch 3 stops ret_from_trap from writing r3/r4 back into the saved pt_regs
+> after sys_rt_sigreturn() has restored the full register set.  Only r4 is
+> actually lost -- the usual *rval_p = regs->r3 idiom carries r3, but a C
+> function has no second return value for r4 -- which corrupts any register
+> live across a signal, e.g. the address held in an lwx/swx CAS loop.
+> 
+> Patch 4 restores the same reservation in the kernel's own frames.  The ABI
+> rule applies to the kernel's asm-to-C calls too: with r1 at the frame base a
+> callee may spill over the saved registers, and PT_R1 is the first slot it
+> hits.  This was latent until GCC 15 changed register allocation
+> (3b9b8d6cfdf5, "ira: Scale save/restore costs of callee save registers with
+> block frequency"); a kernel built with gcc >= 15 without the
+> TARGET_CALLEE_SAVE_COST workaround dies on init's first syscall.  The kernel
+> had this reservation until 2011, when commit 6e83557c38b4 removed it as
+> suspected v850 leftovers -- this brings it back, with 28 bytes rather than
+> the historic 24, which was one word short.
+> 
+> Patch 5 is Sam Price's: MSR is not round-tripped through the signal frame,
+> so the interrupted carry flag is lost across signal delivery -- the same
+> failure class as patch 3, through a different register.
+> 
+> Testing: v7.2 built with gcc 16.2.0, which carries no
+> TARGET_CALLEE_SAVE_COST workaround and so reproduces the allocator change,
+> userspace built with the same compiler.  The uClibc-ng test suite reports
+> 759 passed, 0 failed, 7 skipped, unchanged from a known-good reference
+> kernel; without patch 4 the same kernel panics on init's first syscall.
+> checkpatch --strict is clean on all five.
+> 
+> Tooling, per Documentation/process/generated-content.rst: patches 1-4 were
+> written with the help of an AI coding assistant (Claude, claude-opus-5) over
+> several sessions and carry an Assisted-by tag; patch 5 is Sam's, included
+> unchanged apart from a blank line checkpatch wanted.  The assistant was used
+> throughout -- reading the microblaze ABI out of the gcc backend, finding the
+> gcc change that made the bug visible, drafting the patches and changelogs,
+> and driving the qemu test runs.  Everything was reviewed and tested before
+> sending, and the numbers above come from real runs.  Two mistakes it made
+> were caught that way and are worth naming: patch 4 first used 32 bytes with
+> an alignment argument that does not hold (STACK_BOUNDARY is 32 bits, so 28
+> needs no rounding), and an early version of patch 2 was folded into patch 4,
+> which made the test suite blame the wrong change.
+> 
+> Changes since v2 [1]:
+>   - From: now matches Signed-off-by, and the series is sent standalone
+>     rather than as a reply to the previous version (both requested by
+>     Michal).
+>   - Rebased onto v7.2.
+>   - Added patches 3, 4 and 5.  Patch 3 was previously sent standalone on
+>     27 July 2026.
+>   - Patches 1 and 2 are unchanged.
+> 
+> [1] https://lore.kernel.org/all/cover.1780647609.git.lordrasmus@gmail.com/
 
-We can drop the PTE_FMT macro now too.
+Series successfully tested in Qemu System Emulation (little and big endian) 
+and on Numato Mimas A7 Mini.
+Also works fine on 6.18.x kernels.
 
-Regards,
-Samuel
+You can add:
+Tested-by: Waldemar Brodkorb <wbx@openadk.org>
 
+best regards
+ Waldemar
