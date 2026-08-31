@@ -1,189 +1,112 @@
-Received: from va-2-113.ptr.blmpb.com (va-2-113.ptr.blmpb.com [209.127.231.113])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mail.zytor.com (terminus.zytor.com [198.137.202.136])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3118A3AFAFF
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2026 11:20:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.231.113
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C6D532571DA;
+	Mon, 31 Aug 2026 20:01:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.136
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788175232; cv=none; b=tEWHK5EUWM0uyFdbtIG8ZnLMOKLJfAPQOHFJkmgyVhkIlFfvh0rznap0AKsH715eOoFxqmJyHry+xY30BDhWwpuZxF6ypnucZlVp+wB52dTh5XdRvF+aBd8AIBcsWiePuemftEpY6OAD2eE6CqKPm2//o3XBLhFl40jbdQ7w6nw=
+	t=1788206494; cv=none; b=BkdMh9+Qt7oGMHDByyQo1mw//S3wg/LhNsianOPXgB2JL8ujFIdhXgxqzlyjI36ESi494hFC/4beXN7HowDNB/A0scyM38c5pRDRQk3qpUI1KWuIR0ZA6QFeD9pdwPNi/eSbndzp1Zzfoc0NwTxTLq/IieRSogA8r+naDHQ3Vcs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788175232; c=relaxed/simple;
-	bh=xKWhxymsxv6nIhmLcK0gws/TUia/Ic5UXr9PVYBY7/s=;
-	h=In-Reply-To:Content-Type:To:From:Subject:Mime-Version:Cc:
-	 Message-Id:Date:References; b=DoO1GDFWW75wNFWFtiT6Js5nGEk/gQax0JwxfGZBp+IWkVOSMSMgFlIKSxcRPbzAHmeAQT0hWZZ0pXagfp297lpZtPfmdEEVamQzS2eynfkjCvY8IkZOnUTtsb1NPdcyujruYOSJ2N317q0G3ThHD/PPh1WofQZXZaklmRgZNTw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=qWbZE25+; arc=none smtp.client-ip=209.127.231.113
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1788206494; c=relaxed/simple;
+	bh=OeDDnqo1IRQEK4Js5nZgXclVX2MFMUyaSHTgtYCOrSo=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=njkYA1k+ZugF+FEXl7H41FdDK//v8WgsTMQu88pQDcZWzSDn3lJOgnkwH5QLJYed6ubNo9OJFvzD+JJEYecctOiGVSzp6O+7EHGyER2c1R45arb0xRwhryBI1yGZ4tcyHVpe6uAgv5L72yQtj2UFgX6GVzupetlhW4qRiAgctho=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com; spf=pass smtp.mailfrom=zytor.com; dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b=hRWHGA+w; arc=none smtp.client-ip=198.137.202.136
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=zytor.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="qWbZE25+"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1788175224; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=W3mTk0uO3fJ8loj8Vy9eCiD36YUSNCrm55bF0bJb8Z0=;
- b=qWbZE25+Fl/NO3nw9RCvnXO4dihmAdjyq8obIx9OzGhqChQoZCJxhpFItIo7yZKOHm8Dqp
- hn5MsrQa6e1Dn1qbScw3plQ6afOWl3995LkplFaD32gJ7kaBZP3vXXaiw3dlOaoRboNJot
- zzZxOH9zgKiUO5RU86qHZ/d0jaA/FyR3j1FiEfl/9qcZ7u9F3tmuCmTpttEONG6ftWx2y1
- /MjVpCSQg5dKcXUTuyIkDuf/vHItBM08K5AofmSqCAD3M+T9ZLIKUu1GJogzSztN3H/aMZ
- UnehlEqzfbyOLbimAK44vg9maKpRQXiJbhTLCLVG/srG/BloRX725Ad9XXfyxw==
-In-Reply-To: <20260831111638.76012-1-lizhe.67@bytedance.com>
-Content-Type: text/plain; charset=UTF-8
-To: <akpm@linux-foundation.org>, <apopple@nvidia.com>, <arnd@arndb.de>, 
-	<balbirs@nvidia.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>, 
-	<david@kernel.org>, <kees@kernel.org>, <mingo@redhat.com>, 
-	<muchun.song@linux.dev>, <rppt@kernel.org>, <tglx@kernel.org>
-From: "Li Zhe" <lizhe.67@bytedance.com>
-Subject: [PATCH v11 7/7] x86/string: extend memcpy_flushcache() fixed-size fastpaths
-X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+	dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b="hRWHGA+w"
+Received: from [IPV6:2601:646:8081:8d71:2faf:8150:30da:aafd] ([IPv6:2601:646:8081:8d71:2faf:8150:30da:aafd])
+	(authenticated bits=0)
+	by mail.zytor.com (8.18.1/8.17.1) with ESMTPSA id 67VJvbar3264483
+	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NO);
+	Mon, 31 Aug 2026 12:57:38 -0700
+DKIM-Filter: OpenDKIM Filter v2.11.0 mail.zytor.com 67VJvbar3264483
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zytor.com;
+	s=2026082801; t=1788206263;
+	bh=Lfk4Zm0mu1VaJNyCW+feQLM2PduJnrH08+Q8uKNAglM=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=hRWHGA+w8FeyeULwEDoEDUDPGkwf8JT2eZmPRRthmhsNz9HWOb7HiXCTZLLUmuztp
+	 lWRv7ug1Z+kxGR18u2FB1NAFu/6cVMaURG6BetJiHKBnIMtH9EfefRvmdaf5cQcfWS
+	 Iv6R5AMN9t7OAQ114p39WCAynQY5oir3FFMoBbYdgUDXZtV4B07Wsr3e2OhubFmvQs
+	 ktT4EOmqNjonvu8hUPE3i1g0T9wDBDboBsSqe9LwY819N+bvUhSesPS4zzwQuLkCru
+	 dSZCFGqC+rA/gs0WgODW7ZBr87rVZStGsxS6+U65Nf/RVAnAJDMEX94B5D/OKkRTEH
+	 BWNnKAFiy16zQ==
+Message-ID: <1238a07e-ce04-47d9-b8ac-8b7f557b401f@zytor.com>
+Date: Mon, 31 Aug 2026 12:57:32 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-X-Mailer: git-send-email 2.45.2
-Cc: <linux-arch@vger.kernel.org>, <linux-hardening@vger.kernel.org>, 
-	<linux-kernel@vger.kernel.org>, <linux-mm@kvack.org>, <x86@kernel.org>, 
-	<lizhe.67@bytedance.com>
-Message-Id: <20260831111638.76012-8-lizhe.67@bytedance.com>
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [patch 00/18] entry: Consolidate and rework syscall entry
+ handling
+To: Heiko Carstens <hca@linux.ibm.com>
+Cc: Thomas Gleixner <tglx@kernel.org>, LKML <linux-kernel@vger.kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Michael Ellerman
+ <mpe@ellerman.id.au>,
+        Shrikanth Hegde <sshegde@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org,
+        Kees Cook <kees@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+        loongarch@lists.linux.dev, Paul Walmsley <pjw@kernel.org>,
+        Palmer Dabbelt <palmer@dabbelt.com>, linux-riscv@lists.infradead.org,
+        Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
+        x86@kernel.org, Mark Rutland <mark.rutland@arm.com>,
+        Jinjie Ruan <ruanjinjie@huawei.com>, Andy Lutomirski <luto@kernel.org>,
+        Oleg Nesterov <oleg@redhat.com>,
+        Richard Henderson <richard.henderson@linaro.org>,
+        Russell King <linux@armlinux.org.uk>,
+        Catalin Marinas <catalin.marinas@arm.com>, Guo Ren <guoren@kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Helge Deller
+ <deller@gmx.de>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Richard Weinberger <richard@nod.at>, Chris Zankel <chris@zankel.net>,
+        linux-arm-kernel@lists.infradead.org, linux-alpha@vger.kernel.org,
+        linux-csky@vger.kernel.org, linux-m68k@vger.kernel.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
+        Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <vgupta@kernel.org>,
+        Will Deacon <will@kernel.org>, Brian Cain <bcain@kernel.org>,
+        Michal Simek <monstr@monstr.eu>, Dinh Nguyen <dinguyen@kernel.org>,
+        "David S. Miller" <davem@davemloft.net>,
+        Andreas Larsson <andreas@gaisler.com>,
+        linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org,
+        linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org,
+        linux-arch@vger.kernel.org,
+        =?UTF-8?Q?Michal_Such=C3=A1nek?= <msuchanek@suse.de>,
+        Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+References: <20260707181957.433213175@kernel.org>
+ <ed8b99e6-4d90-4622-9d43-451bf6a8db2c@zytor.com>
+ <20260831085056.34274A00-hca@linux.ibm.com>
+Content-Language: en-US, sv-SE
+From: "H. Peter Anvin" <hpa@zytor.com>
+In-Reply-To: <20260831085056.34274A00-hca@linux.ibm.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Date: Mon, 31 Aug 2026 19:16:38 +0800
-References: <20260831111638.76012-1-lizhe.67@bytedance.com>
-X-Lms-Return-Path: <lba+26a956377+1b0b11+vger.kernel.org+lizhe.67@bytedance.com>
 
-The x86 memcpy_nontemporal() helper maps to memcpy_flushcache(), and the
-ZONE_DEVICE template-copy path uses it to copy one struct page at a
-time.
+On 2026-08-31 01:50, Heiko Carstens wrote:
+> On Thu, Aug 27, 2026 at 03:22:35PM -0700, H. Peter Anvin wrote:
+>> This isn't a hard thing to solve in any way: replacing the pointer argument
+>> with a two-element structure return would do the trick. As far as I know,
+>> *all* architectures that support Linux support returning structures with two
+>> register-sized values in registers.
+> 
+> That is unfortunately not true. The s390 ABI defines that structures,
+> regardless of size, are returned in a return value buffer allocated by
+> the caller.
 
-The relevant copy size is sizeof(struct page). On x86_64, the base struct
-page layout is 64 bytes. Adding either the KMSAN metadata pointers or an
-out-of-flags last_cpupid field can make it 80 bytes after alignment, and
-enabling both can make it 96 bytes.
+*Groan*
 
-memcpy_flushcache() currently only has inline fixed-size cases for 4, 8,
-and 16 bytes. As a result, these constant-sized struct page copies fall
-through to __memcpy_flushcache() even though the compiler knows the copy
-size at the call site.
+You guys should use an improved ABI for the kernel like i386 does (different
+from the standard ABI used in user space)...
 
-Add fixed-size MOVNTI cases up to 96 bytes so the ZONE_DEVICE
-template-copy path can keep these struct page copies in the inline
-memcpy_flushcache() path.
+That being said, perhaps s390(x) isn't affected by the underlying problem, and
+passing a pointer to a structure isn't any more expensive than passing a
+pointer to a variable...
 
-This matters for ZONE_DEVICE memmap initialization because the copy
-happens once per initialized struct page. For a 100 GB fsdax namespace
-with map=dev, this is about 25 million struct page copies during nd_pmem
-binding or rebinding.
+	-hpa
 
-Tested in a VM with a 100 GB fsdax namespace device configured with
-map=dev and a 100 GB devdax namespace (align=2097152) on Intel Ice Lake
-server.
-
-Test procedure:
-Rebind the nd_pmem and dax_pmem drivers 30 times and collect the memmap
-initialization time from the pr_debug() output of
-memmap_init_zone_device().
-
-With memcpy_nontemporal() used by the ZONE_DEVICE template-copy path:
-  Average of rebinds for nd_pmem driver: 150.40 ms
-  Average of rebinds for dax_pmem driver: 161.83 ms
-
-With this x86 fixed-size fastpath patch applied:
-  Average of rebinds for nd_pmem driver: 71.93 ms
-  Average of rebinds for dax_pmem driver: 87.37 ms
-
-This further reduces the average memmap initialization time measured
-during rebind by about 52.2% for nd_pmem and 46.0% for dax_pmem.
-
-Suggested-by: Borislav Petkov <bp@alien8.de>
-Signed-off-by: Li Zhe <lizhe.67@bytedance.com>
-Acked-by: Borislav Petkov (AMD) <bp@alien8.de>
----
- arch/x86/include/asm/string_64.h | 71 +++++++++++++++++++++++++-------
- 1 file changed, 56 insertions(+), 15 deletions(-)
-
-diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
-index 21ae515ae35a..831d3dda3b38 100644
---- a/arch/x86/include/asm/string_64.h
-+++ b/arch/x86/include/asm/string_64.h
-@@ -82,23 +82,64 @@ int strcmp(const char *cs, const char *ct);
- #ifdef CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE
- #define __HAVE_ARCH_MEMCPY_FLUSHCACHE 1
- void __memcpy_flushcache(void *dst, const void *src, size_t cnt);
--static __always_inline void memcpy_flushcache(void *dst, const void *src, size_t cnt)
-+
-+static __always_inline void movnti_4(void *dst, const void *src)
-+{
-+	asm volatile("movntil %1, %0"
-+		     : "=m"(*(u32 *)dst)
-+		     : "r"(*(const u32 *)src)
-+		     : "memory");
-+}
-+
-+static __always_inline void movnti_8(void *dst, const void *src)
-+{
-+	asm volatile("movntiq %1, %0"
-+		     : "=m"(*(u64 *)dst)
-+		     : "r"(*(const u64 *)src)
-+		     : "memory");
-+}
-+
-+static __always_inline void movnti_16(void *dst, const void *src)
-+{
-+	movnti_8(dst, src);
-+	movnti_8(dst + 8, src + 8);
-+}
-+
-+static __always_inline void movnti_32(void *dst, const void *src)
-+{
-+	movnti_16(dst, src);
-+	movnti_16(dst + 16, src + 16);
-+}
-+
-+static __always_inline void movnti_64(void *dst, const void *src)
-+{
-+	movnti_32(dst, src);
-+	movnti_32(dst + 32, src + 32);
-+}
-+
-+static __always_inline void memcpy_flushcache(void *dst, const void *src,
-+					      size_t cnt)
- {
--	if (__builtin_constant_p(cnt)) {
--		switch (cnt) {
--			case 4:
--				asm ("movntil %1, %0" : "=m"(*(u32 *)dst) : "r"(*(u32 *)src));
--				return;
--			case 8:
--				asm ("movntiq %1, %0" : "=m"(*(u64 *)dst) : "r"(*(u64 *)src));
--				return;
--			case 16:
--				asm ("movntiq %1, %0" : "=m"(*(u64 *)dst) : "r"(*(u64 *)src));
--				asm ("movntiq %1, %0" : "=m"(*(u64 *)(dst + 8)) : "r"(*(u64 *)(src + 8)));
--				return;
--		}
-+	if (!__builtin_constant_p(cnt))
-+		return __memcpy_flushcache(dst, src, cnt);
-+
-+	/*
-+	 * The relevant fixed-size copies here are the x86_64 struct page sizes:
-+	 * 64, 80, and 96 bytes. Keep 32-byte and 48-byte copies inline as well
-+	 * instead of sending those nearby fixed-size cases back to
-+	 * __memcpy_flushcache().
-+	 */
-+	switch (cnt) {
-+	case 4:  movnti_4(dst, src); break;
-+	case 8:  movnti_8(dst, src); break;
-+	case 16: movnti_16(dst, src); break;
-+	case 32: movnti_32(dst, src); break;
-+	case 48: movnti_32(dst, src); movnti_16(dst + 32, src + 32); break;
-+	case 64: movnti_64(dst, src); break;
-+	case 80: movnti_64(dst, src); movnti_16(dst + 64, src + 64); break;
-+	case 96: movnti_64(dst, src); movnti_32(dst + 64, src + 64); break;
-+	default: __memcpy_flushcache(dst, src, cnt); break;
- 	}
--	__memcpy_flushcache(dst, src, cnt);
- }
- 
- #define memcpy_nontemporal memcpy_nontemporal
--- 
-2.20.1
