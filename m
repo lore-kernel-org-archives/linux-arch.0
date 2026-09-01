@@ -1,115 +1,104 @@
-Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E180E379EC4;
-	Tue,  1 Sep 2026 17:48:42 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.133
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7A00A4A441E;
+	Tue,  1 Sep 2026 23:07:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788284926; cv=none; b=nRw44fybFluxUpS3KRt7kSsW6w/OGu3GXPu0so8YF/A4/X3lm6b9C39uqwoNXw4jEEW+86ji667yiQbpG+uZ+enhEq+DbEbrIBESKCTPnQ8mcqz5Z+BKh/4f2zePlE6KiHfgx2gG7gqdM6YA8a/o77ucMvuFcyhvG/YwuFeEHqw=
+	t=1788304054; cv=none; b=cE6fzap5rECBCfoueYQ9CfbK6G2YG4UyX5qL/YnuKkZlACzQcLpCv9tn3d40DSFhjDsowhxaTDmf37Mj3pJUkz+GK49qEv9VqjqPEjp9Dz98V1qdEIddaXLkFJKF7RqMqdPkIMdw7lcO8w9nvLi5ye0UqZhLkjwCQ9EonGpQBeo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788284926; c=relaxed/simple;
-	bh=ILEgUta+XEN5A01rR7LjqPYu5e1vBHkVQXMhim+XKZM=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=QL2a4/xJJ7CEboRu8aaKbIpBEqV6TOOxxB3hZZ/7NAGEclplMo33/wpPsHIYDHA1WT5xAarWWJ/o5aIXFEnUrfOXXJ3PePT8RFhwXklDSjaR3b2k1sXfK9Bi0HX3JkV6ZhUcrGuzOkbRdJosmkTgIuNLCIvZ3MkE31VtWPbpDik=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=UVtis7e+; arc=none smtp.client-ip=198.137.202.133
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1788304054; c=relaxed/simple;
+	bh=JSCUYOd+oLTmiVORWjY6iYY3FH4mD1g53cDcO6D53UI=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=ZVSpTz7qYYFnAsr5wD5vvzW+jVxJ5s8mhHc/M/ZdPePDo+b8P6mj23V4HS0Sog9HHgsrHH667N2SWfmHTA04mywCJdCh9uKh4nuU8Lwuf+L73EnLFO12eI/i6j+TGDDVIlQW5DElZ1yabKLSKkD4Yg3tEJeiUk5+4wAnA6kOUE4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=kerGN5SB; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="UVtis7e+"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=bombadil.20210309; h=In-Reply-To:Content-Type:MIME-Version
-	:References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=PQNx8cP7/H92zG22iJw5UI7f9yq7f8zWrRV0yPrbUWI=; b=UVtis7e+r5/G27TIqfxZ+en6iD
-	ewP14Pe2h9SnqatfXnO6L1fC4qcBnFOELp+V8WjW5RT1xwY3uZi3XSEv9Vu+4qZ1jP6BGVn7PXBEA
-	4Uw0Phr831M7R4vLdI8REUIOdbiINbJ1LMU5Mje2MkkXTCbCEn9Xn2ArP+y9asBIjud478+zn1SSo
-	lebc9FLfrg1/y0a6m2dAyJLJ3yltmw6G3+vcRUXeO4yRAwAxeKznEDSHVJJRWpAMX3il8mcbEeTWo
-	3139sv5kbIIlk0Z/E868rddoQ5sSESOXVT4ZQj4kMrc2J++kPSB2h0IKqxPLn0UnyiWT6B5SeVd+c
-	852DOAfw==;
-Received: from [38.23.173.23] (helo=localhost)
-	by bombadil.infradead.org with esmtpsa (Exim 4.99.1 #2 (Red Hat Linux))
-	id 1x1SaY-0000000Crxj-16sr;
-	Tue, 01 Sep 2026 17:48:03 +0000
-Date: Tue, 1 Sep 2026 13:47:49 -0400
-From: "Liam R. Howlett" <liam@infradead.org>
-To: Kiryl Shutsemau <kas@kernel.org>
-Cc: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>, 
-	Jason Gunthorpe <jgg@ziepe.ca>, Andrew Morton <akpm@linux-foundation.org>, 
-	David Hildenbrand <david@kernel.org>, Zi Yan <ziy@nvidia.com>, 
-	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
-	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, Guo Ren <guoren@kernel.org>, 
-	Brian Cain <bcain@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, 
-	Dinh Nguyen <dinguyen@kernel.org>, Simon Schuster <schuster.simon@siemens-energy.com>, 
-	Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, 
-	Stafford Horne <shorne@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, 
-	Rich Felker <dalias@libc.org>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
-	Russell King <linux@armlinux.org.uk>, Vineet Gupta <vgupta@kernel.org>, 
-	Michal Simek <monstr@monstr.eu>, Chris Zankel <chris@zankel.net>, 
-	Max Filippov <jcmvbkbc@gmail.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, 
-	Andreas Larsson <andreas@gaisler.com>, Richard Henderson <richard.henderson@linaro.org>, 
-	Matt Turner <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, 
-	Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, 
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, 
-	Helge Deller <deller@gmx.de>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
-	Michael Ellerman <mpe@ellerman.id.au>, "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, 
-	Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
-	Alexander Gordeev <agordeev@linux.ibm.com>, Christian Borntraeger <borntraeger@linux.ibm.com>, 
-	Sven Schnelle <svens@linux.ibm.com>, Richard Weinberger <richard@nod.at>, 
-	Anton Ivanov <anton.ivanov@cambridgegreys.com>, Johannes Berg <johannes@sipsolutions.net>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Arnd Bergmann <arnd@arndb.de>, Vlastimil Babka <vbabka@kernel.org>, 
-	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
-	Michal Hocko <mhocko@suse.com>, John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
-	linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, 
-	linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org, 
-	linux-sh@vger.kernel.org, linux-riscv@lists.infradead.org, 
-	linux-arm-kernel@lists.infradead.org, linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, 
-	sparclinux@vger.kernel.org, linux-alpha@vger.kernel.org, loongarch@lists.linux.dev, 
-	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, 
-	linux-s390@vger.kernel.org, linux-um@lists.infradead.org, Hugh Dickins <hughd@google.com>, 
-	Qi Zheng <qi.zheng@linux.dev>
-Subject: Re: [PATCH 01/12] mm/huge_memory: zap deposited page tables after an
- RCU grace period
-Message-ID: <px4uwbuq4ixucmjzudxulldk5l2tbuymaoaheyc624jdznnac6@px5wkmxqjmfo>
-References: <20260901-rcu-pagetable-freeing-v1-0-5456a81c8212@kernel.org>
- <20260901-rcu-pagetable-freeing-v1-1-5456a81c8212@kernel.org>
- <apbOlyF77yDCV4cF@thinkstation>
- <apbcoMTVlL42G5tg@gremlin>
- <20260901142408.GA56830@ziepe.ca>
- <apbiB51hjm-9pRzf@gremlin>
- <apbuO_QveZNAz3ns@thinkstation>
- <kasi4mkjkt56wxsrmphm5o2qfg2lwsdxf3tlmzx5tq6t7uez74@kozleoavd6r2>
- <apcHiE7jDQaFYXOM@thinkstation>
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="kerGN5SB"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7B92E1F00A3A;
+	Tue,  1 Sep 2026 23:07:32 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux-foundation.org; s=korg; t=1788304053;
+	bh=7cQ19BHiyrucmJAw/pZFIQ4zM3ytepyEIFxxLDlatXE=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References;
+	b=kerGN5SBq3yKVTcKS9bVEW3P3myLlKw6ZtqPBgY7pUSSc2o83gl5duhZsYi7rr+tj
+	 LRBEWhA9KftnxV2h7SwVbVs+/D5ymVIUzWOU30LGP2lOSS8TzdQee7VrwCI3TtfO3R
+	 W8xeOMF2zlRU+87Iw/b+zQmf1KRK+y2fH94NeP50=
+Date: Tue, 1 Sep 2026 16:07:32 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: "Li Zhe" <lizhe.67@bytedance.com>
+Cc: <apopple@nvidia.com>, <arnd@arndb.de>, <balbirs@nvidia.com>,
+ <bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>,
+ <kees@kernel.org>, <mingo@redhat.com>, <muchun.song@linux.dev>,
+ <rppt@kernel.org>, <tglx@kernel.org>, <linux-arch@vger.kernel.org>,
+ <linux-hardening@vger.kernel.org>, <linux-kernel@vger.kernel.org>,
+ <linux-mm@kvack.org>, <x86@kernel.org>
+Subject: Re: [PATCH v11 0/7] mm: optimize zone-device memmap initialization
+Message-Id: <20260901160732.8098b853491008465ea81461@linux-foundation.org>
+In-Reply-To: <f7099580-870f-4cdf-84cc-a82cc47a42b0@bytedance.com>
+References: <20260831111638.76012-1-lizhe.67@bytedance.com>
+	<20260831164531.be5a8fa210401830e85eb974@linux-foundation.org>
+	<f7099580-870f-4cdf-84cc-a82cc47a42b0@bytedance.com>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <apcHiE7jDQaFYXOM@thinkstation>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On 26/09/01 06:13PM, Kiryl Shutsemau wrote:
-> On Tue, Sep 01, 2026 at 11:54:47AM -0400, Liam R. Howlett wrote:
-> > Do you have munmap() performance dependent workload that you are
-> > concerned about regressing?
+On Tue, 1 Sep 2026 10:58:09 +0800 "Li Zhe" <lizhe.67@bytedance.com> wrote:
+
+> On 9/1/26 7:45 AM, Andrew Morton wrote:
+> > On Mon, 31 Aug 2026 19:16:31 +0800 "Li Zhe" <lizhe.67@bytedance.com> wrote:
+> >
+> >> memmap_init_zone_device() can take a noticeable amount of time when large
+> >> pmem namespaces are bound or rebound, because it initializes nearly
+> >> identical struct page descriptors one PFN at a time. This series reduces
+> >> that ZONE_DEVICE memmap initialization overhead by reusing prepared
+> >> struct page templates and, on x86, using memcpy_nontemporal() for the
+> >> template copy path.
+> >>
+> >> ...
+> >>
+> >> This reduces the average memmap initialization time measured during
+> >> rebind by about 48.0% for nd_pmem and 41.6% for dax_pmem on that arm64
+> >> VM setup. Since this arm64 setup does not use the x86 MOVNTI fast paths,
+> >> the result also suggests that the generic template-copy optimization can
+> >> benefit architectures without an architecture-specific
+> >> memcpy_nontemporal() backend.
+> > Well that's nice.
+> >
+> > Sashiko seems to have found some new things to complain about:
+> > 	https://sashiko.dev/#/patchset/20260831111638.76012-1-lizhe.67@bytedance.com
+> >
+> Hi Andrew,
 > 
-> exit(2) path is performance critical for many workloads. Like, if you
-> need to restart VM.
+> Thanks for taking a look.
 > 
+> For the comment on patch 5 about the cnt == 0 case, I agree that
+> memcpy_flushcache() should preserve the usual zero-length memcpy
+> semantics. This is a pre-existing issue in the x86
+> memcpy_flushcache()/__memcpy_flushcache() implementation, not a bug
+> introduced by this series. The new ZONE_DEVICE call site added by this
+> series always copies sizeof(struct page), so it cannot hit the
+> zero-length case.
 
-That is not enough to see any impact, although less overall work would
-be done during the exit call.
+OK, thanks.
 
-It would be very difficult to come up with a scenario that this would
-have a measurable difference and an even harder time to come up with one
-that is slower.
+> Since this is a pre-existing issue and is independent of this patchset,
+> would you prefer me to send a separate standalone fix for the x86
+> memcpy_flushcache() zero-length case, rather than folding it into this
+> series?
 
+A standalone thing please.  It sounds like a candidate for the x86
+tree, as long as Sashiko is wrong in implying that your [5/7] could
+trigger this bug.
+
+> For the MOVNTI ordering concern in patch 6, this was discussed in the
+> previous round. Based on that discussion, I believe the current code is
+> correct, so I do not plan any additional code changes for these items.
+> 
+> Thanks,
+> Zhe
