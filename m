@@ -1,188 +1,199 @@
-Received: from mail-ed1-f43.google.com (mail-ed1-f43.google.com [209.85.208.43])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 77BF839A7E0
-	for <linux-arch@vger.kernel.org>; Tue,  1 Sep 2026 11:51:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.43
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6CE462253B0;
+	Tue,  1 Sep 2026 13:20:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788263501; cv=none; b=Umy4Tko/fhMCEgLgF7iJOMKu1/vUI1s5HXeKvV54zMSOdZXsgpHb8IFo/vuUbpLfzRWG7OCWmWu6LFUf8Nc3MEA3ZCiYKxPeGGHetkL7AXnGGya/N7hIba6oKlwH+deSd+DDvEPUygkJAKLuTsS3llKehs2tRxH5YCAvE8IwxRE=
+	t=1788268801; cv=none; b=IC23seYrJ7cyjgTFK8D01By6dZUfP6gMILtZDaYJNYkIiNO3KkoxWKZr0e75Ss7ZLEslw5V713gFBUE7k5x90IvqrnHe1itwGzr8nCN/aaW/IxcurfPTNY8BJAPIO+RCjcdSFujyYykb2MowMgvcqiLGgjTAAleFy+cAV/PRjso=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788263501; c=relaxed/simple;
-	bh=KUoF0djquNJoX9WdZcqAnWNO7Ly+uh4J2nhw9kk/jmM=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=iut//ZzCG6eKevaA+OyiuJa04CRiGDKsd3JPobeO6WWg6Rpr0e+x/GZ35kUqeEyGNvb6VunV/eIO9uu0GvasCnSZh+i+4twnswwa93GdjZBKjYAQm0uITJbIe4TLb3c8BotV6s2Xsl9mvlA/wIpsmE/ahNh7EEzyM+eOMZdEbV4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=monstr.eu; spf=none smtp.mailfrom=monstr.eu; dkim=pass (2048-bit key) header.d=monstr-eu.20251104.gappssmtp.com header.i=@monstr-eu.20251104.gappssmtp.com header.b=n2iX5pTt; arc=none smtp.client-ip=209.85.208.43
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=monstr.eu
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=monstr.eu
+	s=arc-20240116; t=1788268801; c=relaxed/simple;
+	bh=eT1V0pLUlVeZdaUVekYBHkCNyU6motoBz9FKZ1+NLWk=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=oCxTQTD/bLU0cQ3MKB+5qqrj12FKo+PDMFXMX5gs8vCxdqbZWALV9lA/VgamKpyjHh7QFc6/3UHqmweY6Ci1Z9X8Y8A7jnmxcjDHQQrbiWwqRAi0d4gONST3N0jsqghCkj17Hy0/QuPyg8TiJ4/S4jBzy3ad5XEUY8Ew/LNkmR4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=YqlxnTL4; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=monstr-eu.20251104.gappssmtp.com header.i=@monstr-eu.20251104.gappssmtp.com header.b="n2iX5pTt"
-Received: by mail-ed1-f43.google.com with SMTP id 4fb4d7f45d1cf-6a5ded53570so1159958a12.3
-        for <linux-arch@vger.kernel.org>; Tue, 01 Sep 2026 04:51:37 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=monstr-eu.20251104.gappssmtp.com; s=20251104; t=1788263496; x=1788868296; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=Cugye/pfcKYPPCeGDa7Vo+9AJhMGlAjboRgfu611ryw=;
-        b=n2iX5pTtLdvDT/88+fmZ3Lm6E1zHG4i0V9yl7EPXcszRHj4xnvxblbgS9t/9SW782u
-         YyYVqQUqYcqEQpZBVqyTn/18R0ZASa9tG1oywL3e1DST4DTrnlWvGPgtxg1g7h6XJ7Lr
-         LVrj/DG8LsQZXPTXSkxREtcNnTQqouhHXbVV5LL0qODLFzJS3OufIbBonPpOuEF0uYsu
-         qq9fjbbFEblju8HtUR06FB89tTHIMVmPoZvzthU/fY7nXTfvZpcD59E0k1xAGlIWLHKx
-         JdqPWJUCG6Zf+RmxdjUADxLVSwVUFnm3bSatsFuSc0HvoGFFkOlFBnEDWbKc5aRKV3dr
-         0Rnw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1788263496; x=1788868296;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=Cugye/pfcKYPPCeGDa7Vo+9AJhMGlAjboRgfu611ryw=;
-        b=C6+zBPQoPDxAlrEJKHx7ZI4odJOwcwG+xu5hsENqTq13VI8/FnSZL+hYbvYpkRbRf5
-         8iHDMNxeALqGQKFmBg1+yIhhYvW6ODO+AW1b2MIjOBZxOXVXGnN01VzvTBfQfdTBDlcL
-         qdKkqe//g5mL1FMiJqu/1Cn2O7frDNC49F5um5sVPJEbk9VISz6t/73N6vsgaUBK6jrO
-         xXApBsk5eNI0XTa2i7PzYyRXJ2QdMEMvEERrCg86xdQAqMu/Ph+hPcOOMKI5If8oqL/7
-         ZSNogDJZ5fUYjBKUW5MN5tg9kCg/yG0sNgZYej7l1gZ5HBJ1SGHJBwQ+gLmC+I5JP+XV
-         tUEQ==
-X-Forwarded-Encrypted: i=1; AKwUvBwPL/rEt+bFvH7hCSXmQu/Xgqu4gjJsINj7VFyWhquTxOVLrQVtjVZak6mHKzPb3tZkWEpoRkAXLIqt@vger.kernel.org
-X-Gm-Message-State: AFuF++nYt6E3Z536AiQ4UoZSfjyx5QaeSOSDJCzZ1f6/nfRSP7cC2Gzn
-	oeuQCm8QFR2ZAwi22jUdN86gFBBjFjNxpH21PJBYDpCIqVUSWjeYkPUS4/D7DiNRTw==
-X-Gm-Gg: AYBFou2vAD2IFoPM85xC/kdQ8XKFX5371Uf9fGzgdFtjpRRePSfw8SoBk38ySrHbwGN
-	w86IDdZIMxnsCVpPJkt+AA/KQ/Gb1ddgQkQvuAr5b1mh+lzsGF/o+JUdBZnpPftrP5LD2gXEnjl
-	TcrsB0BMJyXktKC7Cfr4nkCI/OSVxeZLUYsJTgmSWljCR0FIlNo8YGzym+m56sVdrNUvrFikmSt
-	0VymeL6RayUSt1l8qoRlzJl/PtL7Oe57kAkBO9yIx8fwEh4GjaxAr5lt7gBBW+dlh7DTuqyIAPm
-	8zT+/poHQjD/jt2jDLn2AfxnwIVWVYJ268jGYJ6TuDGnmjwq1+kBStevMcnfQkQgfOetkZuiW47
-	qa3Ai/a7YfS1Nlawc3ofb5NoeTlL6NHcaOv5HKditYI2a34eTGO6g2GcDMPThpH+2mcOfIkcFrz
-	2r0geeXz+Ur/w9e7imKDihF7QzAQumQyWAk8H7uB2Fm2SaoFVp3VT8hJOIC5nBJtNYkLgR14A/w
-	RpjGFbtZBNpCb6LN/LE9kRUgt4ITquqdOZk
-X-Received: by 2002:a05:6402:44d7:b0:6a3:87b7:b5a9 with SMTP id 4fb4d7f45d1cf-6a60d3b4e36mr16170100a12.12.1788263495726;
-        Tue, 01 Sep 2026 04:51:35 -0700 (PDT)
-Received: from [192.168.0.105] (nat-108f.starnet.cz. [109.164.53.108])
-        by smtp.gmail.com with ESMTPSA id 4fb4d7f45d1cf-6a66d16362fsm718430a12.29.2026.09.01.04.51.34
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 01 Sep 2026 04:51:35 -0700 (PDT)
-Message-ID: <1bea6e00-1917-4544-b8ea-f28415e21db7@monstr.eu>
-Date: Tue, 1 Sep 2026 13:51:33 +0200
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="YqlxnTL4"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 54EDE1F00ADB;
+	Tue,  1 Sep 2026 13:19:56 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1788268800;
+	bh=4K0ioKV5pbE4Ef4e+GKU9dV30pSsLWe3AR7B9Tx4qSs=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=YqlxnTL4ZXmobuSbpyRbXRaHmJXWSr3W9S3fcHAQ0A64HKpv85oM1qZK2+YmvUvmX
+	 F58x05VyzJYN/ehjx84LayGDjCm89bCZy9RfuLUb8NqUyxcbr9KSjAD7QTUHRx4NVA
+	 SoSOA+O7pMM4NVb6lwFVSiLVY7WqF93wNaiihVLU6y3nKc7QxUce7krnh8dgfvs94k
+	 0gP0OnpjgUfxjGix0oUv3ET+yBkangnR8aMbv/tXRBgHWmspAzwQj3ZBh6JGCuThDl
+	 /sHbYwK7it1rmRovUE4A3nUFyNfmYuPu4cSJld/l2Muk1ALJZosrerqCy7wX6bCqMt
+	 8INe4tGpbDM2Q==
+Received: from phl-compute-06.internal (phl-compute-06.internal [10.202.2.46])
+	by mailfauth.ams.internal (Postfix) with ESMTP id 2F80A1980077;
+	Tue,  1 Sep 2026 09:19:40 -0400 (EDT)
+Received: from phl-frontend-04 ([10.202.2.163])
+  by phl-compute-06.internal (MEProxy); Tue, 01 Sep 2026 09:19:54 -0400
+X-ME-Sender: <xms:69CWaij5CIKvTS9JuyLleD9s3d7G5S5Cj7oKCUXn13hGseHouuUSag>
+    <xme:69CWalGYd0dc4bcEB3etN9RaYjD7HYzO3v8zVyh93Vx39I_dw7XkZfKP4mbB2pf7a
+    yCC0ABYtDzS2RhTTaZ8dfYsqjhrn_rW7zK2cNPqftkFgUuGuUM2EbU>
+X-ME-Received: <xmr:69CWakpbzJqHJeJRbHpsk7ongNC4txO1ZIIt3gTXSf5VUVWH2Pd6FvJ1H9I>
+X-ME-Proxy-Cause: dmFkZTED3aWKojbGUYTqgDI4X4V0F1d+uDC9XUKSeGM5bAtqyf5WoNCcWI8qt7irq+Ycdg
+    bP5uMN9J8wue1zj+h4Z5VdmIt5CyC8BtMot40mK2bNoOWP05XNwub7F63HzCejIFCNIwU/
+    RwHR/oPnELuI/pgmRue+HPnpkTdxXI2tXXPwQ2XhlfjvZIyZNXMaGXgwL56LFN8ekEPBpX
+    QHxLvpjiYjeppSsNC9jkLgljlvJ1f2Rzug/Wzpp30FOzo3biGRK3SJKG4JlcSiSKZV9ApN
+    zrblGjeaDfaFoFocDCMSOSTBkwTuSjYQbyrO3U+OcC3IfSEQwCfo2jZutbaEZD8ORHkhOE
+    WPvmJHx9cOwRkRzLLHMzt61/y2dH4FBScykL+eQjNlgsUwsdGo8YayjIDE2cNUryQs77Zd
+    37yui7ur2Ub4PTGWPTH9vPA/z72KJMVvxVCmJnutZO95zEQmQXdIrYDwRwD/10g1bSXWZv
+    5p+rN+4d/l5/jwP9h6pMcwNHnHfrSrfKBvZnNqJN04rROPvVro5LWQHKMqJWCKH7KIqXhO
+    kz5cBC197p3oqrUj3bWQUgF9WsFamkEjWJi6OvK/8e1HSfRwBSOXnE0kOoNrxeox4eX16r
+    l1yAPWeATBw9u3K+ZxIBaBaFYwt+eQJwZRgzLVYgXvtgrAI3wFtXeAw7uu+A
+X-ME-Proxy: <xmx:69CWajFHifz_SIwkxD4BIVpzvuUpvQr-YiTHagPH4og2FD21YdNJgQ>
+    <xmx:69CWaoqTHEsNOtjshNsJ3CUngn2ZISAQFdZ45ashJ5fK9S2FYQS66w>
+    <xmx:69CWagU-DnjgEXTEnpw6CxzSrHONzOkLH3mSJLYWP1eBStWX0ICgLw>
+    <xmx:69CWaoLp9cwfEDd-J-UDdiyYEdkf-I-D6oSdqcqGEGBYulbHTZ9FeA>
+    <xmx:69CWap2dwNlx9UBv3N5Z9oAH2VG7dOj0tP6mz8BbcIQFsrC4b0Y4wIoG>
+Feedback-ID: i10464835:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Tue,
+ 1 Sep 2026 09:19:37 -0400 (EDT)
+Date: Tue, 1 Sep 2026 14:19:36 +0100
+From: Kiryl Shutsemau <kas@kernel.org>
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+ 	David Hildenbrand <david@kernel.org>, Zi Yan <ziy@nvidia.com>,
+ 	Baolin Wang <baolin.wang@linux.alibaba.com>,
+ "Liam R. Howlett" <liam@infradead.org>,
+ 	Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
+ Dev Jain <dev.jain@arm.com>, 	Barry Song <baohua@kernel.org>,
+ Lance Yang <lance.yang@linux.dev>, 	Usama Arif <usama.arif@linux.dev>,
+ Guo Ren <guoren@kernel.org>, Brian Cain <bcain@kernel.org>,
+ 	Geert Uytterhoeven <geert@linux-m68k.org>,
+ Dinh Nguyen <dinguyen@kernel.org>,
+ 	Simon Schuster <schuster.simon@siemens-energy.com>,
+ Jonas Bonn <jonas@southpole.se>,
+ 	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+ Stafford Horne <shorne@gmail.com>,
+ 	Yoshinori Sato <ysato@users.sourceforge.jp>,
+ Rich Felker <dalias@libc.org>,
+ 	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+ Paul Walmsley <pjw@kernel.org>, 	Palmer Dabbelt <palmer@dabbelt.com>,
+ Albert Ou <aou@eecs.berkeley.edu>, 	Alexandre Ghiti <alex@ghiti.fr>,
+ Russell King <linux@armlinux.org.uk>, 	Vineet Gupta <vgupta@kernel.org>,
+ Michal Simek <monstr@monstr.eu>, Chris Zankel <chris@zankel.net>,
+ 	Max Filippov <jcmvbkbc@gmail.com>, Will Deacon <will@kernel.org>,
+ 	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>, 	Peter Zijlstra <peterz@infradead.org>,
+ "David S. Miller" <davem@davemloft.net>,
+ 	Andreas Larsson <andreas@gaisler.com>,
+ Richard Henderson <richard.henderson@linaro.org>,
+ 	Matt Turner <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>,
+ 	Catalin Marinas <catalin.marinas@arm.com>,
+ Mark Rutland <mark.rutland@arm.com>,
+ 	Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
+ 	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
+ 	Helge Deller <deller@gmx.de>, Madhavan Srinivasan <maddy@linux.ibm.com>,
+ 	Michael Ellerman <mpe@ellerman.id.au>,
+ "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+ 	Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ 	Alexander Gordeev <agordeev@linux.ibm.com>,
+ Christian Borntraeger <borntraeger@linux.ibm.com>,
+ 	Sven Schnelle <svens@linux.ibm.com>,
+ Richard Weinberger <richard@nod.at>,
+ 	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+ Johannes Berg <johannes@sipsolutions.net>,
+ 	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>,
+ 	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, 	Arnd Bergmann <arnd@arndb.de>,
+ Vlastimil Babka <vbabka@kernel.org>, 	Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, 	Michal Hocko <mhocko@suse.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>, 	John Hubbard <jhubbard@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, linux-mm@kvack.org,
+ 	linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org,
+ linux-hexagon@vger.kernel.org, 	linux-m68k@lists.linux-m68k.org,
+ linux-openrisc@vger.kernel.org, linux-sh@vger.kernel.org,
+ 	linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ 	linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org,
+ sparclinux@vger.kernel.org, 	linux-alpha@vger.kernel.org,
+ loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+ 	linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+ linux-s390@vger.kernel.org, 	linux-um@lists.infradead.org,
+ Hugh Dickins <hughd@google.com>, Qi Zheng <qi.zheng@linux.dev>
+Subject: Re: [PATCH 01/12] mm/huge_memory: zap deposited page tables after an
+ RCU grace period
+Message-ID: <apbOlyF77yDCV4cF@thinkstation>
+References: <20260901-rcu-pagetable-freeing-v1-0-5456a81c8212@kernel.org>
+ <20260901-rcu-pagetable-freeing-v1-1-5456a81c8212@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 0/5] microblaze: fix signal handling and the ABI
- argument home area
-To: Ramin Moussavi <ramin.moussavi@yacoub.de>,
- Michal Simek <michal.simek@amd.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
- linux-arch@vger.kernel.org, Sam Price <thesamprice@gmail.com>,
- Neal Frager <neal.frager@amd.com>, Waldemar Brodkorb <wbx@openadk.org>,
- Michael Eager <eager@eagercon.com>
-References: <20260821151809.1233057-1-ramin.moussavi@yacoub.de>
-Content-Language: en-US
-From: Michal Simek <monstr@monstr.eu>
-In-Reply-To: <20260821151809.1233057-1-ramin.moussavi@yacoub.de>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260901-rcu-pagetable-freeing-v1-1-5456a81c8212@kernel.org>
 
+On Tue, Sep 01, 2026 at 12:01:21PM +0100, Lorenzo Stoakes (ARM) wrote:
+> When an anonymous mapping is collapsed for THP, a PTE page table is
+> 'deposited' with the installed PMD entry.
+> 
+> This is done in order that a split can be performed without needing to
+> allocate additional memory.
+> 
+> The freeing occurs in zap_deposited_table() and is done directly without
+> any delay via pte_free().
+> 
+> This is currently not a problem as existing page table walks are protected
+> by the mmap or anon rmap lock.
+> 
+> However this becomes problematic in a future where RCU-only page table
+> walkers exist, as there is nothing to prevent a page table walker that
+> started the walk prior to collapse having its PTE table freed underneath
+> it.
+> 
+> Commit 13cf577e6b66 ("mm/pgtable: add pte_free_defer() for pgtable as
+> page") already provides us the mechanism by which to solve this -
+> pte_free_defer().
+> 
+> Therefore, as a prerequisite to a future commit which will permit fully RCU
+> page table walks, update zap_deposited_table() to use pte_free_defer()
+> rather than pte_free().
+> 
+> Note that the IPI sync in collapse_huge_page() is still required to ensure
+> refcount correctness against a GUP-fast operation.
+> 
+> This is because GUP-fast might increment refcount, but
+> __collapse_huge_page_isolate() determines whether it is safe to proceed by
+> checking folio_ref_count() against folio_expected_ref_count(), so the two
+> must be mutually excluded.
+> 
+> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> ---
+>  mm/huge_memory.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+> index 54494c3fa983..505f7b62ff28 100644
+> --- a/mm/huge_memory.c
+> +++ b/mm/huge_memory.c
+> @@ -2476,7 +2476,7 @@ static inline void zap_deposited_table(struct mm_struct *mm, pmd_t *pmd)
+>  	pgtable_t pgtable;
+>  
+>  	pgtable = pgtable_trans_huge_withdraw(mm, pmd);
+> -	pte_free(mm, pgtable);
+> +	pte_free_defer(mm, pgtable);
 
+Hm. So it is call_rcu() on each PMD. It might be costly, especially for
+zap_huge_pmd() path: 512 call_rcu() per-GB of unmapped THPs.
 
-On 8/21/26 17:18, Ramin Moussavi wrote:
-> Five fixes to the microblaze signal-delivery path, found while bringing the
-> uClibc-ng NPTL test suite up on microblazeel under qemu-system
-> (petalogix-s3adsp1800).
-> 
-> Patch 1 wires up sigaltstack(), which is routed to sys_ni_syscall even
-> though the signal code fully supports an alternate stack; microblaze is the
-> only architecture leaving it unimplemented.
-> 
-> Patch 2 reserves the ABI argument home area at the top of the signal frame.
-> A handler may store its incoming arguments r5..r10 into [r1+4]..[r1+24], and
-> r1 points at struct rt_sigframe on entry, so those stores land in
-> siginfo/ucontext and corrupt the signal state.
-> 
-> Patch 3 stops ret_from_trap from writing r3/r4 back into the saved pt_regs
-> after sys_rt_sigreturn() has restored the full register set.  Only r4 is
-> actually lost -- the usual *rval_p = regs->r3 idiom carries r3, but a C
-> function has no second return value for r4 -- which corrupts any register
-> live across a signal, e.g. the address held in an lwx/swx CAS loop.
-> 
-> Patch 4 restores the same reservation in the kernel's own frames.  The ABI
-> rule applies to the kernel's asm-to-C calls too: with r1 at the frame base a
-> callee may spill over the saved registers, and PT_R1 is the first slot it
-> hits.  This was latent until GCC 15 changed register allocation
-> (3b9b8d6cfdf5, "ira: Scale save/restore costs of callee save registers with
-> block frequency"); a kernel built with gcc >= 15 without the
-> TARGET_CALLEE_SAVE_COST workaround dies on init's first syscall.  The kernel
-> had this reservation until 2011, when commit 6e83557c38b4 removed it as
-> suspected v850 leftovers -- this brings it back, with 28 bytes rather than
-> the historic 24, which was one word short.
-> 
-> Patch 5 is Sam Price's: MSR is not round-tripped through the signal frame,
-> so the interrupted carry flag is lost across signal delivery -- the same
-> failure class as patch 3, through a different register.
-> 
-> Testing: v7.2 built with gcc 16.2.0, which carries no
-> TARGET_CALLEE_SAVE_COST workaround and so reproduces the allocator change,
-> userspace built with the same compiler.  The uClibc-ng test suite reports
-> 759 passed, 0 failed, 7 skipped, unchanged from a known-good reference
-> kernel; without patch 4 the same kernel panics on init's first syscall.
-> checkpatch --strict is clean on all five.
-> 
-> Tooling, per Documentation/process/generated-content.rst: patches 1-4 were
-> written with the help of an AI coding assistant (Claude, claude-opus-5) over
-> several sessions and carry an Assisted-by tag; patch 5 is Sam's, included
-> unchanged apart from a blank line checkpatch wanted.  The assistant was used
-> throughout -- reading the microblaze ABI out of the gcc backend, finding the
-> gcc change that made the bug visible, drafting the patches and changelogs,
-> and driving the qemu test runs.  Everything was reviewed and tested before
-> sending, and the numbers above come from real runs.  Two mistakes it made
-> were caught that way and are worth naming: patch 4 first used 32 bytes with
-> an alignment argument that does not hold (STACK_BOUNDARY is 32 bits, so 28
-> needs no rounding), and an early version of patch 2 was folded into patch 4,
-> which made the test suite blame the wrong change.
-> 
-> Changes since v2 [1]:
->    - From: now matches Signed-off-by, and the series is sent standalone
->      rather than as a reply to the previous version (both requested by
->      Michal).
->    - Rebased onto v7.2.
->    - Added patches 3, 4 and 5.  Patch 3 was previously sent standalone on
->      27 July 2026.
->    - Patches 1 and 2 are unchanged.
-> 
-> [1] https://lore.kernel.org/all/cover.1780647609.git.lordrasmus@gmail.com/
-> 
-> Ramin Moussavi (4):
->    microblaze: wire up sigaltstack
->    microblaze: reserve the ABI argument-home area in the signal frame
->    microblaze: don't clobber r3/r4 restored by rt_sigreturn
->    microblaze: restore the ABI argument home area below pt_regs (PTO)
-> 
-> Sam Price (1):
->    microblaze: preserve the MSR carry flags across signals
-> 
->   arch/microblaze/include/asm/entry.h           |  13 +
->   arch/microblaze/include/asm/processor.h       |   2 +-
->   arch/microblaze/kernel/entry.S                | 346 +++++++++---------
->   arch/microblaze/kernel/hw_exception_handler.S |   5 +
->   arch/microblaze/kernel/process.c              |   5 +-
->   arch/microblaze/kernel/signal.c               |  26 ++
->   arch/microblaze/kernel/syscalls/syscall.tbl   |   2 +-
->   7 files changed, 232 insertions(+), 167 deletions(-)
-> 
-> 
-> base-commit: 8d3ae59288f1e7d58d76558a6ee96d533bc5019f
+Do we want leverage mmu_gather if caller has it?
 
-Applied.
-M
+>  	mm_dec_nr_ptes(mm);
+>  }
+>  
+> 
+> -- 
+> 2.55.0
+> 
 
 -- 
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP/Versal ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal/Versal NET SoCs
-TF-A maintainer - Xilinx ZynqMP/Versal/Versal NET SoCs
-
-
+  Kiryl Shutsemau / Kirill A. Shutemov
