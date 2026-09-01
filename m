@@ -1,86 +1,99 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id C05B439B4A3;
-	Tue,  1 Sep 2026 02:48:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from va-1-112.ptr.blmpb.com (va-1-112.ptr.blmpb.com [209.127.230.112])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1DEBC3B05AB
+	for <linux-arch@vger.kernel.org>; Tue,  1 Sep 2026 02:58:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.127.230.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788230927; cv=none; b=gBCboPMdcluAlMLwQJKnjuZVVtJe+WGY+TK5GsfiYifYDLlTddYc24q+4Eujx4Iqr3QONN3iJG/umPshdzrb+bHQ02SYpsWRF/VtTYcoxVcoalghQOWuwntjd2XXzfu7vggd81BiKJWoZFuL1tUvXb7X7BMrF/gXsnczg8MUB+A=
+	t=1788231519; cv=none; b=I0a+Nt8ywANr0+5bbs957QeeD8djwN/sEnFC1hbutZuwBeFXWYu1cE3YmLCQ3Akwb+NP/9tbm4daODAhsdN8FRX8fk8XGjuBrwao7b85eAdtbF8vS1RG4TKcuIHp/2yTyBzj47Wih0s0O5fVty+a466FEHccvFScXCcW6OgL9Nc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788230927; c=relaxed/simple;
-	bh=it2TzzIDYTIEJor+n+hAx7Y9VTg7srHvqDHPINLC58w=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=rDkRlmWBpS5U5jKg4zrJWBeDuEkeqH9qxWqI9sds8MG3FF3P0CuWeSlIv+8t9M/Jvf5v1BUZngswWb4SC4zmGUSvhgO0OsgMWYQLeEYiISaV7mZ9FYj/4GBcOLcR/dP2CmiimtLIDFm7wIuookHFqGPqmDnsqRAdbExty1Iy4qw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=usDt8rhj; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1788231519; c=relaxed/simple;
+	bh=l9BpW+9AQa5fio5skrVoXenJrvSLXLe4Yo9TabK2Mr4=;
+	h=Date:Message-Id:Content-Type:Subject:References:From:Mime-Version:
+	 To:In-Reply-To:Cc; b=bOEmVw/oQEPVPzgZq9rRimKPFlSCdw07gIJaE3MqRaQsQTNIMzhRbThQ14M+LiBmNV/n5oDf5ZrX7LpOwQzKxnVXnWolP3/JYCFLXHesWd6wObjcWehAjmLwYfVboZ4qzP9HWgM4+XawXGognMYEdEylU1xtjmW30fgxjTOMudQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=LWJSCW5s; arc=none smtp.client-ip=209.127.230.112
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="usDt8rhj"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 4CD931692;
-	Mon, 31 Aug 2026 19:48:28 -0700 (PDT)
-Received: from localhost (a085714.arm.com [10.164.19.28])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 5150C3F882;
-	Mon, 31 Aug 2026 19:48:31 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1788230912; bh=it2TzzIDYTIEJor+n+hAx7Y9VTg7srHvqDHPINLC58w=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=usDt8rhjPTPyhurOvXc8PdfuSoWH0nYsX72TOilRCeK51T4CARGkosyhwrLBvxyhc
-	 l9WrmE/Q4V575jMJywI4lXro08Z3FihKyE+sAH5OZKnsGdk8N6U5ibobJVe6+qJK5R
-	 M+KgzpkQ/xqu4+mMb5mvQGSArMljTWloMojjfQx4=
-Date: Tue, 1 Sep 2026 08:18:28 +0530
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, samuel.holland@sifive.com, 
-	David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
-	Lorenzo Stoakes <ljs@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, 
-	Rich Felker <dalias@libc.org>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 
-	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, 
-	Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, linux-alpha@vger.kernel.org, 
-	linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, 
-	linux-hexagon@vger.kernel.org, loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org, 
-	linux-mips@vger.kernel.org, linux-openrisc@vger.kernel.org, linux-parisc@vger.kernel.org, 
-	linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, 
-	linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, 
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH 0/8] mm: Drop pxd_ERROR()
-Message-ID: <44crgg3r7p2d26blmgq2ewqan3anfhdo73zxe52rvpcjsdhdvd@xztk7osntzhf>
-References: <20260831054331.625505-1-anshuman.khandual@arm.com>
- <20260831185519.66c6e6e83ce62d0fd9aee945@linux-foundation.org>
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="LWJSCW5s"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ s=2212171451; d=bytedance.com; t=1788231512; h=from:subject:
+ mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
+ mime-version:in-reply-to:message-id;
+ bh=IWe25f/V5EyAwZsvk6syK52ldRZujBuH0XXRF2BXP3E=;
+ b=LWJSCW5sQhVXmXof4ttwdazcl7KEK/Eh9LBMuGlIJFpZSg8Rdv5Fr45rvGb6ecFYO9p5z6
+ QAsH5YuYASuHVF3ow9f7mjbmsprWEPUq6kvlE4LEvuM1dcQBUeL/xAhAWG7aPnykwLHx0v
+ AAPb0si1N5TtrX+RW9UXWoIy/JkwY5cYMtzVbNzd+85bwpTNivZfQ+Fkva+l1yxSWqOv2A
+ l8dvueIjJqFUZHkT3BxZl4CHDOWRTP8Kh7xSblM2S63eHv6AkBr3xJTR7Q0g/txQR9g/jV
+ 16SzbYkZxIzn1JCXW2mL5RSMWjsQhGpqRozTHGYAeciVkgb7pyC364oHoKFc+w==
+Date: Tue, 1 Sep 2026 10:58:09 +0800
+Message-Id: <f7099580-870f-4cdf-84cc-a82cc47a42b0@bytedance.com>
+Content-Type: text/plain; charset=UTF-8
+X-Lms-Return-Path: <lba+26a963f56+68a3f2+vger.kernel.org+lizhe.67@bytedance.com>
+Subject: Re: [PATCH v11 0/7] mm: optimize zone-device memmap initialization
+User-Agent: Mozilla Thunderbird
+X-Original-From: Li Zhe <lizhe.67@bytedance.com>
+Content-Transfer-Encoding: 7bit
+References: <20260831111638.76012-1-lizhe.67@bytedance.com> <20260831164531.be5a8fa210401830e85eb974@linux-foundation.org>
+From: "Li Zhe" <lizhe.67@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260831185519.66c6e6e83ce62d0fd9aee945@linux-foundation.org>
+Mime-Version: 1.0
+To: "Andrew Morton" <akpm@linux-foundation.org>
+In-Reply-To: <20260831164531.be5a8fa210401830e85eb974@linux-foundation.org>
+Cc: <apopple@nvidia.com>, <arnd@arndb.de>, <balbirs@nvidia.com>, 
+	<bp@alien8.de>, <dave.hansen@linux.intel.com>, <david@kernel.org>, 
+	<kees@kernel.org>, <mingo@redhat.com>, <muchun.song@linux.dev>, 
+	<rppt@kernel.org>, <tglx@kernel.org>, <linux-arch@vger.kernel.org>, 
+	<linux-hardening@vger.kernel.org>, <linux-kernel@vger.kernel.org>, 
+	<linux-mm@kvack.org>, <x86@kernel.org>
 
-On Mon, Aug 31, 2026 at 06:55:19PM -0700, Andrew Morton wrote:
-> On Mon, 31 Aug 2026 11:13:22 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
-> 
-> > pxd_ERROR() macros have been provided by all platforms, which are very much
-> > identical and can be dropped off completely if these pgtable printing could
-> > be moved to callers in generic MM aka all pxd_clear_bad().
-> > 
-> > But first cleanups and re-organizations are required in some platforms that
-> > are using these macros internally. Afterwards [pte|pmd|pud|p4d|pgd]_ERROR()
-> > macros have been completely dropped from the entire tree.
-> 
-> All was going nicely until...
-> 
-> > This series is based on v7.3-rc1 after the following patch and has also been
-> > built tested on multiple platforms.
-> 
-> *what* following patch???
+On 9/1/26 7:45 AM, Andrew Morton wrote:
+> On Mon, 31 Aug 2026 19:16:31 +0800 "Li Zhe" <lizhe.67@bytedance.com> wrote:
+>
+>> memmap_init_zone_device() can take a noticeable amount of time when large
+>> pmem namespaces are bound or rebound, because it initializes nearly
+>> identical struct page descriptors one PFN at a time. This series reduces
+>> that ZONE_DEVICE memmap initialization overhead by reusing prepared
+>> struct page templates and, on x86, using memcpy_nontemporal() for the
+>> template copy path.
+>>
+>> ...
+>>
+>> This reduces the average memmap initialization time measured during
+>> rebind by about 48.0% for nd_pmem and 41.6% for dax_pmem on that arm64
+>> VM setup. Since this arm64 setup does not use the x86 MOVNTI fast paths,
+>> the result also suggests that the generic template-copy optimization can
+>> benefit architectures without an architecture-specific
+>> memcpy_nontemporal() backend.
+> Well that's nice.
+>
+> Sashiko seems to have found some new things to complain about:
+> 	https://sashiko.dev/#/patchset/20260831111638.76012-1-lizhe.67@bytedance.com
+>
+Hi Andrew,
 
-The dependency patch has already been merged upstream.
+Thanks for taking a look.
 
-092836fedd82 (mm: standardize printing for pgtable entries)
+For the comment on patch 5 about the cnt == 0 case, I agree that
+memcpy_flushcache() should preserve the usual zero-length memcpy
+semantics. This is a pre-existing issue in the x86
+memcpy_flushcache()/__memcpy_flushcache() implementation, not a bug
+introduced by this series. The new ZONE_DEVICE call site added by this
+series always copies sizeof(struct page), so it cannot hit the
+zero-length case.
 
-Please ignore this.
+Since this is a pre-existing issue and is independent of this patchset,
+would you prefer me to send a separate standalone fix for the x86
+memcpy_flushcache() zero-length case, rather than folding it into this
+series?
 
-> 
-> Oh well, I'll queue it all up and shall hope for the arch maintainer
-> acks to roll in.  Please.
+For the MOVNTI ordering concern in patch 6, this was discussed in the
+previous round. Based on that discussion, I believe the current code is
+correct, so I do not plan any additional code changes for these items.
 
-Thanks !
+Thanks,
+Zhe
