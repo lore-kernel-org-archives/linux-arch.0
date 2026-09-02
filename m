@@ -1,35 +1,35 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 71A32472093;
-	Wed,  2 Sep 2026 11:57:37 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id CCCBC472F93;
+	Wed,  2 Sep 2026 11:57:48 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788350269; cv=none; b=Z06hAXeflstYanM4PnDp6MPMld58gJQ828fFCdQnp2PL0Ir2S8+UXldKWsc5849h5cAb2jvxy1c5kWDjKdssFfAQl8KLfmS8Yf/Cd7e8LqeNyD6bbHFDZk/YY+mXXbElhAvBp05+2smjzr72cJRrxgkl+3u9Y597+HLJkVjFg2I=
+	t=1788350280; cv=none; b=ha3RmCTl1p8tpDwwIvzMX9t5CzP3J4V3SLSywms3Qjum28Mg9g/kb0memKl8giDffoDdSTKCeDr5a2MTEv3UAPYTp5+BRakpmSQVbffKWW3X1jppLXWTMz4cuIw0i0qvUeT5UUEXxH7HE2h/oUnQHfi1+gek0FIh5h4AZmw6eEA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788350269; c=relaxed/simple;
-	bh=hoNRRxOZ7Q1TQ3tPx9cyjNqGROvazqJ7TpP1oXJkYEo=;
+	s=arc-20240116; t=1788350280; c=relaxed/simple;
+	bh=0PR5oXIOKKN44EvqTmmgCdRAk0g+3zRMhCuigLr45iw=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=U+NUYWaM0luipnd3S6acmDUQNkFPlKm+rz5GcL3fbDs+3w/53Gn8EzGo2d/G2grPUms4YeIrV1sR9LYHNNrjJJHMG7MV9ekNKZS0awUN0wE6JcIaWSjL5WoEa1NFW51PMMk2vT9IV4WeGc823oTHb27XhzLjE9JdEklNhtAK5W8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=HQPs1WFX; arc=none smtp.client-ip=217.140.110.172
+	 In-Reply-To:To:Cc; b=smB+VUihJfIviGbrYbNeI6vW8B6ggpNi3UM831IwuoLKZ/nmojt+ZUmGbHn+c9CU0mtzInZAZbU9t6ea9ZYC/6tqjplSo/nC8kHGUbIBruTIxq5hEypJqicByGf4oEnZJT+Ru4ho8lAot4yHWYQT0AEkJGk19KophIPbk8Ct7d8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=Vq+BgO/b; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="HQPs1WFX"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="Vq+BgO/b"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 29AAE1684;
-	Wed,  2 Sep 2026 04:57:32 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id BA2151682;
+	Wed,  2 Sep 2026 04:57:39 -0700 (PDT)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 85EC13F85F;
-	Wed,  2 Sep 2026 04:57:28 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 4280E3F85F;
+	Wed,  2 Sep 2026 04:57:36 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1788350255; bh=hoNRRxOZ7Q1TQ3tPx9cyjNqGROvazqJ7TpP1oXJkYEo=;
+	t=1788350263; bh=0PR5oXIOKKN44EvqTmmgCdRAk0g+3zRMhCuigLr45iw=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=HQPs1WFXY9CW3alroELpjH318TftojKz/4UscrbJ2jzOFyxx3UatrpJLr33W9KNfE
-	 Asl/9rxAlMVPA9iigGjXVyLoAqrTCxfagAzzbKGU1vafeZPpNPJsLqD5plO8kJvIF7
-	 CaAYby5EXyJ2Sp3R2RxfIvknlwZ8d+mi2y2qcyb8=
+	b=Vq+BgO/b9aFK8A71JXNvBNBhfYac165FZEWsOyfDio4LQR5ETa+QDbn0KiaPLujHS
+	 uLoEkmt86nlYEJy4d97XbCJa5a/RrJAqeUxW3ZxGdtC9wL7x8/PwJ1wvuq/GRns9N7
+	 Th6snsDoMGFDvih9v1FYFDzHDNdr4HPtcJY6+7u4=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Wed, 02 Sep 2026 12:56:10 +0100
-Subject: [PATCH RFC v3 08/21] mm: vmscan: remove stack copy address of
- pud/pmd pass in walk_pud/pmd_range()
+Date: Wed, 02 Sep 2026 12:56:11 +0100
+Subject: [PATCH RFC v3 09/21] loongarch: kvm: remove stack copy address of
+ pXd in pXd_offset()
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -38,7 +38,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260902-dummy_ptxp3-v3-8-5d8f5b17c25c@arm.com>
+Message-Id: <20260902-dummy_ptxp3-v3-9-5d8f5b17c25c@arm.com>
 References: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
 In-Reply-To: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
 To: Russell King <linux@armlinux.org.uk>, 
@@ -69,60 +69,83 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, 
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
- linux-openrisc@vger.kernel.org, Muhammad Usama Anjum <usama.anjum@arm.com>, 
- Yeoreum Yun <yeoreum.yun@arm.com>
+ linux-openrisc@vger.kernel.org, Yeoreum Yun <yeoreum.yun@arm.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1414; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=hoNRRxOZ7Q1TQ3tPx9cyjNqGROvazqJ7TpP1oXJkYEo=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBqmA7lNaVBcsfB9ZliAXNxOQ6b9wJghPjcL8fDa
- uK2aRokBiGJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCapgO5QAKCRBt1cPRWsUx
- M7ySC/4oY0cDV4bfPbL9NxITYd9JIehHPFNxIAbq4GdJg2qXG5UDzoBj4Wg+TBEiBJtleT7fIh7
- V/SUCFBsSIOPfl21gAV4DsJqqIR2BI9tpisGacYX4mBzjdSVensar8f+n2/L+1HDi08QM7Jfab+
- vw/jd4OIcl5haxvZT1/9ckj2vzQjqGUNnVIQtu3cKR/zayGHnPRqXFeLj7Feqw64p3A05OQ2d3j
- z+koBd6eCH3o4f+a6JZkpt4dea7g7soIxmhTudXuzjnFdZ3j247H1g1jWvNpqX7WLUnUqXJes2M
- TgWOc1HdziiVK5q2kLYUiANmR9JGvyRR08qduHULn09JGSR4TYQBM97x7YeDQwLPSQ5wtU1BnNi
- MP/XV2imJviNZrvi/+xofZE/1KHQ6IchyObI70sbt1mEw24q8+T/I1AmCjW4cX/b7p7K6z6WT5c
- q898aoJd2V8gO2BB56t63O0drtKXzGoei518zBzrff8qAZoIk9QbxY+W21MH5ju9gxOd8=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2050; i=yeoreum.yun@arm.com;
+ h=from:subject:message-id; bh=0PR5oXIOKKN44EvqTmmgCdRAk0g+3zRMhCuigLr45iw=;
+ b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBqmA7mEvNM+bOE9I/iEnGFs4yU/Cp4f0fN/0Ksu
+ pte4JObv3SJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCapgO5gAKCRBt1cPRWsUx
+ MyqUDACMb1+lsAjXkT07U7jCymAJfazCLi+GO5DlCm+D+flCqcZOXldliTBCwRmzRj4Jqg7Lg38
+ AJyICWYXb6otlnlJHMXfPDwZu9oriA6Q74Im7EbN1oi2lrxIO9QuzLqZq9nopqL5fdnCkTBhLrY
+ LFbHTE9MMndjLMFADqfDsab4Esti4VfIpOU4zi3bRjfsrOW/Jo38w74rDrf6jIb6m06O5nKgY26
+ HUTG0A4hPkfkb16/8WvbC8Vx6of/7JJcOrFXcWSLZyFse+khfKtKwgfYvv0+thlQW4xRckUBLOQ
+ pCH/6ZzZ187+fClXG1Fd5ju+Cgwx8GJCKMzTd6LZHMDPjzeYPM/QGHiTnBdi1v7i7Go1hTjtNtS
+ 8xasNcaQ1mXrOPnuCYwf7yA4NDpzHk9ZqcO7oLb0fPGbHL+wRNcJglW9vAmoSFXEhlaV5BIFfOC
+ gqUa2a8dnHBQjWCVTTuiYqmSxJ6hfeym+A4VgyETaZD+WU4xI6McKP5byVyCs1DTCNe6Y=
 X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
  fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
 
 The behaviour of pXdp_get() will change with generic compile-time folded
-page tables. To prepare for that, replace passing the address of a stack
-copy of a pud/pmd to walk_pmd/pte_range() with passing the pud/pmd pointer
-directly so that  makes allowing folded entries to be ignored and
-check the concurrent access proeprly otherwise pXd_same() would return
-always true.
+page tables. To prepare for that,  rework host_pfn_mapping_level() to avoid
+use of a stack copy of a pXd and pass it as argument to pXd_offset() so that
+the folded entries value is ignored.
 
-There should be no functional change.
+Replace direct uses of stack-based pXd values with pXd_offset_lockless().
+And there should be no functional change.
 
-Reviewed-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
 Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
 ---
- mm/vmscan.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/loongarch/kvm/mmu.c | 20 ++++++++++++--------
+ 1 file changed, 12 insertions(+), 8 deletions(-)
 
-diff --git a/mm/vmscan.c b/mm/vmscan.c
-index 4d51b0d8e287..4e98088becab 100644
---- a/mm/vmscan.c
-+++ b/mm/vmscan.c
-@@ -3777,7 +3777,7 @@ static void walk_pmd_range(pud_t *pud, unsigned long start, unsigned long end,
+diff --git a/arch/loongarch/kvm/mmu.c b/arch/loongarch/kvm/mmu.c
+index e104897aa532..837b40bb694f 100644
+--- a/arch/loongarch/kvm/mmu.c
++++ b/arch/loongarch/kvm/mmu.c
+@@ -669,10 +669,10 @@ static int host_pfn_mapping_level(struct kvm *kvm, gfn_t gfn,
+ 	int level = 0;
+ 	unsigned long hva;
+ 	unsigned long flags;
+-	pgd_t pgd;
+-	p4d_t p4d;
+-	pud_t pud;
+-	pmd_t pmd;
++	pgd_t *pgdp, pgd;
++	p4d_t *p4dp, p4d;
++	pud_t *pudp, pud;
++	pmd_t *pmdp, pmd;
  
- 		walk->mm_stats[MM_NONLEAF_FOUND]++;
+ 	/*
+ 	 * Note, using the already-retrieved memslot and __gfn_to_hva_memslot()
+@@ -698,19 +698,23 @@ static int host_pfn_mapping_level(struct kvm *kvm, gfn_t gfn,
+ 	 * value) and then p*d_offset() walks into the target huge page instead
+ 	 * of the old page table (sees the new value).
+ 	 */
+-	pgd = pgdp_get(pgd_offset(kvm->mm, hva));
++	pgdp = pgd_offset(kvm->mm, hva);
++	pgd = pgdp_get(pgdp);
+ 	if (pgd_none(pgd))
+ 		goto out;
  
--		if (!walk_pte_range(&val, addr, next, args))
-+		if (!walk_pte_range(pmd + i, addr, next, args))
- 			continue;
+-	p4d = p4dp_get(p4d_offset(&pgd, hva));
++	p4dp = p4d_offset_lockless(pgdp, pgd, hva);
++	p4d = p4dp_get(p4dp);
+ 	if (p4d_none(p4d) || !p4d_present(p4d))
+ 		goto out;
  
- 		walk->mm_stats[MM_NONLEAF_ADDED]++;
-@@ -3813,7 +3813,7 @@ static int walk_pud_range(p4d_t *p4d, unsigned long start, unsigned long end,
- 		if (!pud_present(val) || WARN_ON_ONCE(pud_leaf(val)))
- 			continue;
+-	pud = pudp_get(pud_offset(&p4d, hva));
++	pudp = pud_offset_lockless(p4dp, p4d, hva);
++	pud = pudp_get(pudp);
+ 	if (pud_none(pud) || !pud_present(pud))
+ 		goto out;
  
--		walk_pmd_range(&val, addr, next, args);
-+		walk_pmd_range(pud + i, addr, next, args);
+-	pmd = pmdp_get(pmd_offset(&pud, hva));
++	pmdp = pmd_offset_lockless(pudp, pud, hva);
++	pmd = pmdp_get(pmdp);
+ 	if (pmd_none(pmd) || !pmd_present(pmd))
+ 		goto out;
  
- 		if (need_resched() || walk->batched >= MAX_LRU_BATCH) {
- 			end = (addr | ~PUD_MASK) + 1;
 
 -- 
 2.43.0
