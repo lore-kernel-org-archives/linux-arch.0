@@ -1,50 +1,50 @@
 Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.19])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2E1BB33A9FF;
-	Wed,  2 Sep 2026 20:46:06 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ECC6D37DE8D;
+	Wed,  2 Sep 2026 20:48:07 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.19
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788381969; cv=none; b=YCNjBdvtesgRkc88swXiovpbFD9Q2lPmifNkpp9FWvAPeYoWuyR5OD+g6+SkNxXyaM3sRcK5MQVZjvzbixjxZSPCxO2xYAU9c6yu7cUiclOE0jsS8HQW3zUhiUbTXZBrh7uRIn/oj862vRUnDtjG0eZNbNPfP4jZC31FrtZTjbQ=
+	t=1788382092; cv=none; b=rcvqF3m2q/v1wtqyhXaSzcbOxSe/XwSqqfjwcOa1g58BCY2K6QyFuaur1OKUikbKg+hLudA6yuoS84XYPRX79QBYHsLF7elbzhZq/NnbjvIbWmProII6BX2aATa95SEoAcqmSyU9H6pVuWSo8+O5Pntu9+TOVdaUwR5E4Qz1qQI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788381969; c=relaxed/simple;
-	bh=/vtCuOsydTOxETyWwFyCM3riLJvYW2UNVDOQEkh91GY=;
+	s=arc-20240116; t=1788382092; c=relaxed/simple;
+	bh=LsMn3/y0ByvC1uXtR6xF4fWxSc3am3y8Xh2THPJZMyg=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=VgQxN2VPEvwIN4rNEexw/UAbau3J7RagxPi+B0WQIdmVrF+KJX2qD0r2whIi7on8PHhf6smUs2WhzF7aYnXSErQBFw6hdt4V7ZqUIkXjGlm5geGEU4zkH84il9Z6doURxVijkG2pbukP6L21edTLwtA65zte6LuJqzhQMJARK00=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=B2PF410O; arc=none smtp.client-ip=198.175.65.19
+	 In-Reply-To:Content-Type; b=adNs9PzNxXm5GeIuGDyYXkWKzK/Qu48QXuCf0nll0oLMePTPmalvV71Y3UtrzURgC56PTrLKy+yzoCKMLK3cqaiNAF7tfpHkDBkqRWHCHozrlWBfTeTFJDL07oDuOr1LNiy+ey9vvwIldwmCmF9h+8k1HzuHbSV6iR05Qy1lUik=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=lVTvzitf; arc=none smtp.client-ip=198.175.65.19
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="B2PF410O"
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="lVTvzitf"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1788381967; x=1819917967;
+  t=1788382088; x=1819918088;
   h=message-id:date:mime-version:subject:to:cc:references:
    from:in-reply-to:content-transfer-encoding;
-  bh=/vtCuOsydTOxETyWwFyCM3riLJvYW2UNVDOQEkh91GY=;
-  b=B2PF410OJGKJLBmS/zHCPbPtF+4duCzDSyA6OrHq0iq2WmzovY3pPFlZ
-   c3JFVN7veugLOJFx8M4YI0qKvtHN4wJPKDYUK6GZ3wVzTuA/P5don9VE3
-   GQlxGQLGaejqrykPpyUp3u3Nk2MGjMl0v8nkFkpVJy7/Rz5QRn0crY3ps
-   ZDFbIcdIwbkxJddyi6Bjd23TOn+Nv/1sDOEUxp+UyCQg2m1AmCaLO3Q2k
-   NkC1CqbhxVWnBJOKHaqm+IDXLW2+VjrWg2UNQrTU4dmOqKMQKdCZBWBGp
-   OpgIuJ/W91a2khYTZjI4DlihPMgDw5+v6YRDOXt/GVW0wlmg5zcaY8yqG
-   w==;
-X-CSE-ConnectionGUID: FljH8xdBRV2O89uRizLVOw==
-X-CSE-MsgGUID: rWZ/GV7mQzieo/C2v/IqJg==
-X-IronPort-AV: E=McAfee;i="6800,10657,11894"; a="88776961"
+  bh=LsMn3/y0ByvC1uXtR6xF4fWxSc3am3y8Xh2THPJZMyg=;
+  b=lVTvzitf6yA4WGz+GCwf2sT22yRDCgxMPG8zYNuh+c19Uc63pZHxRwyD
+   ZjhTVHv7nzh9c/BEpNPXVllF1aXpVNVePJSY3ylYq0IWtpMqONxyXaQdv
+   r7gxeHwdnKU2D8ORqfiM1X1zCSaZBdVrbGjcgl5GSPyMArEkxoFss+VSG
+   Y2+8V6XJjnYQvxAHqFkAX7Oo66GyBFyy6Bk0gA8kkpEfBO9h5Ic9AsQcx
+   GujywoEGsnO+7IQh9KPRm7UHUzhTFFzy/AWpM6cWYq/oUDT8CyqaV+uTE
+   CZ61udMSuFOjYwcWPL2thcKcP/NuWNsEY1ji2Hm671sOFqvQpfsLN/AXv
+   Q==;
+X-CSE-ConnectionGUID: BuaKpK+wREyVX2kGklgkbg==
+X-CSE-MsgGUID: Pe44Wm1kQdeUdt+91KJtUA==
+X-IronPort-AV: E=McAfee;i="6800,10657,11894"; a="88777060"
 X-IronPort-AV: E=Sophos;i="6.25,258,1779174000"; 
-   d="scan'208";a="88776961"
+   d="scan'208";a="88777060"
 Received: from orviesa010.jf.intel.com ([10.64.159.150])
-  by orvoesa111.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Sep 2026 13:46:06 -0700
-X-CSE-ConnectionGUID: 3r1FCCkLSvyVJEfxycNp/A==
-X-CSE-MsgGUID: 0K90+9HKRkOQqWOJaR/iiA==
+  by orvoesa111.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Sep 2026 13:48:05 -0700
+X-CSE-ConnectionGUID: 7lG7cHPvSjGN3cya1Kgtcw==
+X-CSE-MsgGUID: iKbUXdDDS3i4/Eh3uQmPpw==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="6.25,258,1779174000"; 
-   d="scan'208";a="268191963"
+   d="scan'208";a="268192165"
 Received: from cjhill-mobl.amr.corp.intel.com (HELO [10.125.110.134]) ([10.125.110.134])
-  by orviesa010-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Sep 2026 13:46:05 -0700
-Message-ID: <09924551-558d-4c9b-afb7-1e592cb640a3@intel.com>
-Date: Wed, 2 Sep 2026 13:46:04 -0700
+  by orviesa010-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Sep 2026 13:48:04 -0700
+Message-ID: <8f3979a9-238a-4d7d-a040-6aa526fedec5@intel.com>
+Date: Wed, 2 Sep 2026 13:48:03 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -52,8 +52,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH RFC v3 14/21] x86: mm: carve out the generic compile-time
- folded pgtable case in effective_prot()
+Subject: Re: [PATCH RFC v3 13/21] x86: mm: use pgtable_level enum in
+ effective_prot_pXd()
 To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
  Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
  Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
@@ -84,7 +84,7 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
  linux-openrisc@vger.kernel.org
 References: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
- <20260902-dummy_ptxp3-v3-14-5d8f5b17c25c@arm.com>
+ <20260902-dummy_ptxp3-v3-13-5d8f5b17c25c@arm.com>
 From: Dave Hansen <dave.hansen@intel.com>
 Content-Language: en-US
 Autocrypt: addr=dave.hansen@intel.com; keydata=
@@ -130,10 +130,21 @@ Autocrypt: addr=dave.hansen@intel.com; keydata=
  MTsCeQDdjpgHsj+P2ZDeEKCbma4m6Ez/YWs4+zDm1X8uZDkZcfQlD9NldbKDJEXLIjYWo1PH
  hYepSffIWPyvBMBTW2W5FRjJ4vLRrJSUoEfJuPQ3vW9Y73foyo/qFoURHO48AinGPZ7PC7TF
  vUaNOTjKedrqHkaOcqB185ahG2had0xnFsDPlx5y
-In-Reply-To: <20260902-dummy_ptxp3-v3-14-5d8f5b17c25c@arm.com>
+In-Reply-To: <20260902-dummy_ptxp3-v3-13-5d8f5b17c25c@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-Thanks for making those changes and adding the helper to generic code.
+On 9/2/26 04:56, Yeoreum Yun wrote:
+> Instead of using hard-coded integer in effective_prot_pXd(), use
+> pgtable level enum.
+
+Does this actually *do* anything? ;)
+
+I guess it's nice to have a wee bit of type safety from the enum and it
+means that you don't have to *know* which level number a PUD is, for
+example.
+
+Either way:
 
 Acked-by: Dave Hansen <dave.hansen@linux.intel.com>
+
