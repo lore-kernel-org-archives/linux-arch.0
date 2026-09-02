@@ -1,35 +1,35 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 6F96548C3FF;
-	Wed,  2 Sep 2026 11:57:30 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 71A32472093;
+	Wed,  2 Sep 2026 11:57:37 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788350261; cv=none; b=tgIl5OYnmmCrdGQN7J7GuASJl2g9ADcFTp31uSE47+70QD86XQSpQUQfraPKKr0wiZiSn0+wWxeFKGm8XCIyh5lZmzrL3vBrPKB2lsJov82UXfJ2JXw5Pd5MsFwCVp2bbVWiXBHzYk//NjGVtuxkMbxdFATtAQqjTVMwEFDGR14=
+	t=1788350269; cv=none; b=Z06hAXeflstYanM4PnDp6MPMld58gJQ828fFCdQnp2PL0Ir2S8+UXldKWsc5849h5cAb2jvxy1c5kWDjKdssFfAQl8KLfmS8Yf/Cd7e8LqeNyD6bbHFDZk/YY+mXXbElhAvBp05+2smjzr72cJRrxgkl+3u9Y597+HLJkVjFg2I=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788350261; c=relaxed/simple;
-	bh=/uVVaZbANKTyQZBvzqokqiJ5S0l7q5Ev2Sa3zWB4nwQ=;
+	s=arc-20240116; t=1788350269; c=relaxed/simple;
+	bh=hoNRRxOZ7Q1TQ3tPx9cyjNqGROvazqJ7TpP1oXJkYEo=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=dawOSMYXc347wVJZjCt3/iXWCXYMc66SmbtK8ifFeJGI5we5A+LeSlf4oWLP5UhfLEW9aNHrQuj5OW+4uKMCuSYYY5cLEZQPiyC3o3/9sEbwc0ebyOp8cobKzvpSHrn0CtBUS16eRjPfpDalF5w7kLWv56CBEL1lLKf99Qi+Y/A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=jWEeau8t; arc=none smtp.client-ip=217.140.110.172
+	 In-Reply-To:To:Cc; b=U+NUYWaM0luipnd3S6acmDUQNkFPlKm+rz5GcL3fbDs+3w/53Gn8EzGo2d/G2grPUms4YeIrV1sR9LYHNNrjJJHMG7MV9ekNKZS0awUN0wE6JcIaWSjL5WoEa1NFW51PMMk2vT9IV4WeGc823oTHb27XhzLjE9JdEklNhtAK5W8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=HQPs1WFX; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="jWEeau8t"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="HQPs1WFX"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 6CE5A1D70;
-	Wed,  2 Sep 2026 04:57:24 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 29AAE1684;
+	Wed,  2 Sep 2026 04:57:32 -0700 (PDT)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 15A5D3F85F;
-	Wed,  2 Sep 2026 04:57:20 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 85EC13F85F;
+	Wed,  2 Sep 2026 04:57:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1788350248; bh=/uVVaZbANKTyQZBvzqokqiJ5S0l7q5Ev2Sa3zWB4nwQ=;
+	t=1788350255; bh=hoNRRxOZ7Q1TQ3tPx9cyjNqGROvazqJ7TpP1oXJkYEo=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=jWEeau8tzvvOEJXMajlw0s2Og1QbQrAamo2x7HYqtmKGW5bh/GYdN4OCHuQHZowYN
-	 TmKaih9bsJcgin/v5UhXkmHL/FyORMqpa6csnzF80NXkHtZQUA9VuB56RP2EVvumeQ
-	 M4gDZeFItRFdcWxnkaj++wrQeFU39j68RwDt1bvg=
+	b=HQPs1WFXY9CW3alroELpjH318TftojKz/4UscrbJ2jzOFyxx3UatrpJLr33W9KNfE
+	 Asl/9rxAlMVPA9iigGjXVyLoAqrTCxfagAzzbKGU1vafeZPpNPJsLqD5plO8kJvIF7
+	 CaAYby5EXyJ2Sp3R2RxfIvknlwZ8d+mi2y2qcyb8=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Wed, 02 Sep 2026 12:56:09 +0100
-Subject: [PATCH RFC v3 07/21] mm/pgtable: define
- (pgd|p4d|pud)_offset_lockless() for folded page tables
+Date: Wed, 02 Sep 2026 12:56:10 +0100
+Subject: [PATCH RFC v3 08/21] mm: vmscan: remove stack copy address of
+ pud/pmd pass in walk_pud/pmd_range()
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -38,7 +38,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260902-dummy_ptxp3-v3-7-5d8f5b17c25c@arm.com>
+Message-Id: <20260902-dummy_ptxp3-v3-8-5d8f5b17c25c@arm.com>
 References: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
 In-Reply-To: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
 To: Russell King <linux@armlinux.org.uk>, 
@@ -69,137 +69,60 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, 
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
- linux-openrisc@vger.kernel.org
+ linux-openrisc@vger.kernel.org, Muhammad Usama Anjum <usama.anjum@arm.com>, 
+ Yeoreum Yun <yeoreum.yun@arm.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=4358; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=0K77KUA2sW2O3loVo0xQJvE1O+c56uuIFMZeynwrGG8=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBqmA7lnvBstmPeoa+tQW6jXHQCdviCtwcFUASWP
- PwH1pn6cH6JAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCapgO5QAKCRBt1cPRWsUx
- M2EoC/4spxeicYhe0dGTJBcXGHGvIvetXBxvYCenurnv2K7/veM+Hixfu6V0L9cF33kWA78aSzf
- +ldUT24g+izjNf9DXOWjwMtW0cvqMzLAMSI+t6g8b42alZPRJhOk8LR0GdTww3EAbQXrglpcvqs
- Sv0yfLpVt9bEglmkJrbozEiK+WPhQ5tyqEELuq/yAH8TjnE2uZ7fvf13Kj5amZMbeZKG7k/IxQP
- CtxvwBUmgwlVmv3wYaGogz4sRZPEUjaYdrmeC1gNdaYx6j4IW6mjBY2LHpqeV9LwejE2GRX63OX
- TDhnYfZiH7LLWACLvTjUnxbvziGFz9gQ1tBpjGyuBmxRWG8kQpxz1lRq8qJ9+9d/FxwVz5BU7Wf
- 0jhfHnh95KL9JJ86YJ/+cq2H+uZJsZoSm3El/g83fGpqw5bqzDHu6TJODSjEvCbrTAPYynWqR1V
- QwdXl1hJ9cfSbbMxQJGhEQpCGDgEji8BP+ZQy7i+uIHtXdd2fJUd10EyagGmlCXLGttjs=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1414; i=yeoreum.yun@arm.com;
+ h=from:subject:message-id; bh=hoNRRxOZ7Q1TQ3tPx9cyjNqGROvazqJ7TpP1oXJkYEo=;
+ b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBqmA7lNaVBcsfB9ZliAXNxOQ6b9wJghPjcL8fDa
+ uK2aRokBiGJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCapgO5QAKCRBt1cPRWsUx
+ M7ySC/4oY0cDV4bfPbL9NxITYd9JIehHPFNxIAbq4GdJg2qXG5UDzoBj4Wg+TBEiBJtleT7fIh7
+ V/SUCFBsSIOPfl21gAV4DsJqqIR2BI9tpisGacYX4mBzjdSVensar8f+n2/L+1HDi08QM7Jfab+
+ vw/jd4OIcl5haxvZT1/9ckj2vzQjqGUNnVIQtu3cKR/zayGHnPRqXFeLj7Feqw64p3A05OQ2d3j
+ z+koBd6eCH3o4f+a6JZkpt4dea7g7soIxmhTudXuzjnFdZ3j247H1g1jWvNpqX7WLUnUqXJes2M
+ TgWOc1HdziiVK5q2kLYUiANmR9JGvyRR08qduHULn09JGSR4TYQBM97x7YeDQwLPSQ5wtU1BnNi
+ MP/XV2imJviNZrvi/+xofZE/1KHQ6IchyObI70sbt1mEw24q8+T/I1AmCjW4cX/b7p7K6z6WT5c
+ q898aoJd2V8gO2BB56t63O0drtKXzGoei518zBzrff8qAZoIk9QbxY+W21MH5ju9gxOd8=
 X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
  fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
 
-From: "David Hildenbrand (Arm)" <david@kernel.org>
+The behaviour of pXdp_get() will change with generic compile-time folded
+page tables. To prepare for that, replace passing the address of a stack
+copy of a pud/pmd to walk_pmd/pte_range() with passing the pud/pmd pointer
+directly so that  makes allowing folded entries to be ignored and
+check the concurrent access proeprly otherwise pXd_same() would return
+always true.
 
-The default helpers fallback to pud_offset(), passing a pointer to the
-stack value.
+There should be no functional change.
 
-Let's provide variants that do exactly what (pgd|p4d|pud)_offset() do,
-but ignore the passed pgd_t/p4d_t/pud_t, consequently not working on a
-pointer to the stack value like the default handlers would.
-
-With this patch, Drop the arm64 custom variant that did that. As it documents:
-
-	Note: reusing the original pointer means that it may be
-	dereferenced the same (live) page-table entry multiple times.
-	This is safe because it is still only loaded once in the
-	context of each level and the CPU guarantees same-address
-	read-after-read ordering.
-
-Do not document this, as the double read will be removed in the next patch.
-
-Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+Reviewed-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
 ---
- arch/arm64/include/asm/pgtable.h    | 23 -----------------------
- include/asm-generic/pgtable-nop4d.h |  7 +++++++
- include/asm-generic/pgtable-nopmd.h |  7 +++++++
- include/asm-generic/pgtable-nopud.h |  7 +++++++
- 4 files changed, 21 insertions(+), 23 deletions(-)
+ mm/vmscan.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index e89ec5f4787b..a3c882e46777 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -1180,29 +1180,6 @@ static inline bool pgtable_l5_enabled(void) { return false; }
- #define p4d_clear_fixmap()
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 4d51b0d8e287..4e98088becab 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -3777,7 +3777,7 @@ static void walk_pmd_range(pud_t *pud, unsigned long start, unsigned long end,
  
- #define p4d_offset_kimg(dir,addr)	((p4d_t *)dir)
--
--static inline
--p4d_t *p4d_offset_lockless_folded(pgd_t *pgdp, pgd_t pgd, unsigned long addr)
--{
--	/*
--	 * With runtime folding of the pud, pud_offset_lockless() passes
--	 * the 'pgd_t *' we return here to p4d_to_folded_pud(), which
--	 * will offset the pointer assuming that it points into
--	 * a page-table page. However, the fast GUP path passes us a
--	 * pgd_t allocated on the stack and so we must use the original
--	 * pointer in 'pgdp' to construct the p4d pointer instead of
--	 * using the generic p4d_offset_lockless() implementation.
--	 *
--	 * Note: reusing the original pointer means that we may
--	 * dereference the same (live) page-table entry multiple times.
--	 * This is safe because it is still only loaded once in the
--	 * context of each level and the CPU guarantees same-address
--	 * read-after-read ordering.
--	 */
--	return p4d_offset(pgdp, addr);
--}
--#define p4d_offset_lockless p4d_offset_lockless_folded
--
- #endif  /* CONFIG_PGTABLE_LEVELS > 4 */
+ 		walk->mm_stats[MM_NONLEAF_FOUND]++;
  
- #define pgd_set_fixmap(addr)	((pgd_t *)set_fixmap_offset(FIX_PGD, addr))
-diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
-index c6a5a43899b5..019c3f074b77 100644
---- a/include/asm-generic/pgtable-nop4d.h
-+++ b/include/asm-generic/pgtable-nop4d.h
-@@ -39,6 +39,13 @@ static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
- 	return (p4d_t *)pgd;
- }
+-		if (!walk_pte_range(&val, addr, next, args))
++		if (!walk_pte_range(pmd + i, addr, next, args))
+ 			continue;
  
-+static inline p4d_t *p4d_offset_lockless(pgd_t *pgdp, pgd_t pgd,
-+		unsigned long address)
-+{
-+	return (p4d_t *)pgdp;
-+}
-+#define p4d_offset_lockless p4d_offset_lockless
-+
- #define p4d_val(x)				(pgd_val((x).pgd))
- #define __p4d(x)				((p4d_t) { __pgd(x) })
+ 		walk->mm_stats[MM_NONLEAF_ADDED]++;
+@@ -3813,7 +3813,7 @@ static int walk_pud_range(p4d_t *p4d, unsigned long start, unsigned long end,
+ 		if (!pud_present(val) || WARN_ON_ONCE(pud_leaf(val)))
+ 			continue;
  
-diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
-index 4e5aaf253b6a..1dd5b165234b 100644
---- a/include/asm-generic/pgtable-nopmd.h
-+++ b/include/asm-generic/pgtable-nopmd.h
-@@ -49,6 +49,13 @@ static inline pmd_t * pmd_offset(pud_t * pud, unsigned long address)
- }
- #define pmd_offset pmd_offset
+-		walk_pmd_range(&val, addr, next, args);
++		walk_pmd_range(pud + i, addr, next, args);
  
-+static inline pmd_t *pmd_offset_lockless(pud_t *pudp, pud_t pud,
-+		unsigned long address)
-+{
-+	return (pmd_t *)pudp;
-+}
-+#define pmd_offset_lockless pmd_offset_lockless
-+
- #define pmd_val(x)				(pud_val((x).pud))
- #define __pmd(x)				((pmd_t) { __pud(x) } )
- 
-diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
-index 6c9bca78047c..5a2b0a81ae19 100644
---- a/include/asm-generic/pgtable-nopud.h
-+++ b/include/asm-generic/pgtable-nopud.h
-@@ -47,6 +47,13 @@ static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
- }
- #define pud_offset pud_offset
- 
-+static inline pud_t *pud_offset_lockless(p4d_t *p4dp, p4d_t p4d,
-+		unsigned long address)
-+{
-+	return (pud_t *)p4dp;
-+}
-+#define pud_offset_lockless pud_offset_lockless
-+
- #define pud_val(x)				(p4d_val((x).p4d))
- #define __pud(x)				((pud_t) { __p4d(x) })
- 
+ 		if (need_resched() || walk->batched >= MAX_LRU_BATCH) {
+ 			end = (addr | ~PUD_MASK) + 1;
 
 -- 
 2.43.0
