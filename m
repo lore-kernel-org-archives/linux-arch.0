@@ -1,338 +1,139 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 9330238A736;
-	Wed,  2 Sep 2026 18:19:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.19])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2E1BB33A9FF;
+	Wed,  2 Sep 2026 20:46:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.19
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788373149; cv=none; b=LWTlz0G7Og+h0Qcjf6ENoTtlIhdtzm27TmDHiUEhhOg+rw/dXRkDrlEltGjxnTNspkysSA4PV3ovxJ/oS1vCzwqWPTk65Upw2azZlKHqF7AqFliSIQONnSXpZbwtA/7cl9iDBl2rJxjJHU1BLAhFcsDKobw2+69/lQi1pzH7zSI=
+	t=1788381969; cv=none; b=YCNjBdvtesgRkc88swXiovpbFD9Q2lPmifNkpp9FWvAPeYoWuyR5OD+g6+SkNxXyaM3sRcK5MQVZjvzbixjxZSPCxO2xYAU9c6yu7cUiclOE0jsS8HQW3zUhiUbTXZBrh7uRIn/oj862vRUnDtjG0eZNbNPfP4jZC31FrtZTjbQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788373149; c=relaxed/simple;
-	bh=hbgQzV4TsDAypUVt+pVQPQwNL/J0nnyascedAv8GyCE=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=qKrz6RtjwbNVrdRIIzUxXVP/ySt9XXF6cwBCKHKyWqllBb+nwl93klepTTnwhnMrLspzZcTli8y2wHb6cd3xQsXS5aa5XJjVTBbafD4oCMPLHWz4aVRRcChS7LLnLq4bXDCLp5oJ/vzf+18IUXL4U0g8pOl/h+n/OXliX8X5px4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=MRvP+jmb; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1788381969; c=relaxed/simple;
+	bh=/vtCuOsydTOxETyWwFyCM3riLJvYW2UNVDOQEkh91GY=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=VgQxN2VPEvwIN4rNEexw/UAbau3J7RagxPi+B0WQIdmVrF+KJX2qD0r2whIi7on8PHhf6smUs2WhzF7aYnXSErQBFw6hdt4V7ZqUIkXjGlm5geGEU4zkH84il9Z6doURxVijkG2pbukP6L21edTLwtA65zte6LuJqzhQMJARK00=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=B2PF410O; arc=none smtp.client-ip=198.175.65.19
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="MRvP+jmb"
-Received: from localhost (unknown [20.236.11.69])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 788CA20B7129;
-	Wed,  2 Sep 2026 11:18:29 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 788CA20B7129
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1788373110;
-	bh=+S/srMXP148DJ3iow1AbhMmsg6NLcnBjUJW+9hsDjsM=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=MRvP+jmbcxjA1akLb6PZdjxYAno+m1CEsNlvjaABGK4UkOXZ3Uq4KcDSP4M4D0Sxs
-	 5qxACRfR2y1RFd89YdjcR6EEDDTyQ42NT8JOZ6pdrnBVg+Xj7TQBjXk3shjikZ2zcE
-	 tE5RGLu+9W1vsUNGJKTtWaIbxkR7ZpI/VXYDHc9I=
-Date: Wed, 2 Sep 2026 11:19:05 -0700
-From: Jacob Pan <jacob.pan@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>, Alex Williamson
- <alex@shazbot.org>
-Cc: hpa@zytor.com, robin.murphy@arm.com, robh@kernel.org,
- wei.liu@kernel.org, mhklinux@outlook.com, muislam@microsoft.com,
- namjain@linux.microsoft.com, magnuskulke@linux.microsoft.com,
- anbelski@linux.microsoft.com, linux-kernel@vger.kernel.org,
- linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
- linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, jgg@nvidia.com,
- kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
- longli@microsoft.com, tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
- dave.hansen@linux.intel.com, x86@kernel.org, joro@8bytes.org,
- will@kernel.org, lpieralisi@kernel.org, kwilczynski@kernel.org,
- bhelgaas@google.com, arnd@arndb.de, jacob.pan@linux.microsoft.com
-Subject: Re: [PATCH v5 3/9] mshv: Introduce basic mshv bridge device for
- VFIO to build upon
-Message-ID: <20260902111905.000079d4@linux.microsoft.com>
-In-Reply-To: <20260731223427.2554388-4-mrathor@linux.microsoft.com>
-References: <20260731223427.2554388-1-mrathor@linux.microsoft.com>
-	<20260731223427.2554388-4-mrathor@linux.microsoft.com>
-Organization: LSG
-X-Mailer: Claws Mail 3.21.0 (GTK+ 2.24.33; x86_64-w64-mingw32)
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="B2PF410O"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1788381967; x=1819917967;
+  h=message-id:date:mime-version:subject:to:cc:references:
+   from:in-reply-to:content-transfer-encoding;
+  bh=/vtCuOsydTOxETyWwFyCM3riLJvYW2UNVDOQEkh91GY=;
+  b=B2PF410OJGKJLBmS/zHCPbPtF+4duCzDSyA6OrHq0iq2WmzovY3pPFlZ
+   c3JFVN7veugLOJFx8M4YI0qKvtHN4wJPKDYUK6GZ3wVzTuA/P5don9VE3
+   GQlxGQLGaejqrykPpyUp3u3Nk2MGjMl0v8nkFkpVJy7/Rz5QRn0crY3ps
+   ZDFbIcdIwbkxJddyi6Bjd23TOn+Nv/1sDOEUxp+UyCQg2m1AmCaLO3Q2k
+   NkC1CqbhxVWnBJOKHaqm+IDXLW2+VjrWg2UNQrTU4dmOqKMQKdCZBWBGp
+   OpgIuJ/W91a2khYTZjI4DlihPMgDw5+v6YRDOXt/GVW0wlmg5zcaY8yqG
+   w==;
+X-CSE-ConnectionGUID: FljH8xdBRV2O89uRizLVOw==
+X-CSE-MsgGUID: rWZ/GV7mQzieo/C2v/IqJg==
+X-IronPort-AV: E=McAfee;i="6800,10657,11894"; a="88776961"
+X-IronPort-AV: E=Sophos;i="6.25,258,1779174000"; 
+   d="scan'208";a="88776961"
+Received: from orviesa010.jf.intel.com ([10.64.159.150])
+  by orvoesa111.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Sep 2026 13:46:06 -0700
+X-CSE-ConnectionGUID: 3r1FCCkLSvyVJEfxycNp/A==
+X-CSE-MsgGUID: 0K90+9HKRkOQqWOJaR/iiA==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.25,258,1779174000"; 
+   d="scan'208";a="268191963"
+Received: from cjhill-mobl.amr.corp.intel.com (HELO [10.125.110.134]) ([10.125.110.134])
+  by orviesa010-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Sep 2026 13:46:05 -0700
+Message-ID: <09924551-558d-4c9b-afb7-1e592cb640a3@intel.com>
+Date: Wed, 2 Sep 2026 13:46:04 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH RFC v3 14/21] x86: mm: carve out the generic compile-time
+ folded pgtable case in effective_prot()
+To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
+ Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>,
+ Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
+ Shakeel Butt <shakeel.butt@linux.dev>, Barry Song <baohua@kernel.org>,
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
+ Wei Xu <weixugc@google.com>, Johannes Weiner <hannes@cmpxchg.org>,
+ David Hildenbrand <david@kernel.org>, Michal Hocko <mhocko@kernel.org>,
+ Lorenzo Stoakes <ljs@kernel.org>, Tianrui Zhao <zhaotianrui@loongson.cn>,
+ Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
+ Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Alexandre Ghiti <alex@ghiti.fr>, Dave Hansen <dave.hansen@linux.intel.com>,
+ Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+ Stafford Horne <shorne@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+ loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
+ kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
+ linux-openrisc@vger.kernel.org
+References: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
+ <20260902-dummy_ptxp3-v3-14-5d8f5b17c25c@arm.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Content-Language: en-US
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ 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
+In-Reply-To: <20260902-dummy_ptxp3-v3-14-5d8f5b17c25c@arm.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-Hi Mukesh,
+Thanks for making those changes and adding the helper to generic code.
 
-On Fri, 31 Jul 2026 15:34:21 -0700
-Mukesh R <mrathor@linux.microsoft.com> wrote:
-
-> Add a new file to implement basic VFIO-MSHV bridge pseudo device.
-> These functions are called in the VFIO framework, and credits to
-> kvm/vfio.c as this file was adapted from it. This is a basic version
-> to build upon.
-> 
-> Co-developed-by: Wei Liu <wei.liu@kernel.org>
-> Signed-off-by: Wei Liu <wei.liu@kernel.org>
-> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
-> ---
->  drivers/hv/Makefile       |   3 +-
->  drivers/hv/mshv_vfio.c    | 211
-> ++++++++++++++++++++++++++++++++++++++ include/uapi/linux/mshv.h |
-> 1 + 3 files changed, 214 insertions(+), 1 deletion(-)
->  create mode 100644 drivers/hv/mshv_vfio.c
-> 
-> diff --git a/drivers/hv/Makefile b/drivers/hv/Makefile
-> index 888a748cc7cb..9ab6fc254c38 100644
-> --- a/drivers/hv/Makefile
-> +++ b/drivers/hv/Makefile
-> @@ -14,7 +14,8 @@ hv_vmbus-y := vmbus_drv.o \
->  hv_vmbus-$(CONFIG_HYPERV_TESTING)	+= hv_debugfs.o
->  hv_utils-y := hv_util.o hv_kvp.o hv_snapshot.o hv_utils_transport.o
->  mshv_root-y := mshv_root_main.o mshv_synic.o mshv_eventfd.o
-> mshv_irq.o \
-> -	       mshv_root_hv_call.o mshv_portid_table.o mshv_regions.o
-> +	       mshv_root_hv_call.o mshv_portid_table.o
-> mshv_regions.o  \
-> +               mshv_vfio.o
->  mshv_root-$(CONFIG_DEBUG_FS) += mshv_debugfs.o
->  mshv_root-$(CONFIG_TRACEPOINTS) += mshv_trace.o
->  mshv_vtl-y := mshv_vtl_main.o
-> diff --git a/drivers/hv/mshv_vfio.c b/drivers/hv/mshv_vfio.c
-> new file mode 100644
-> index 000000000000..92cfbaef0328
-> --- /dev/null
-> +++ b/drivers/hv/mshv_vfio.c
-> @@ -0,0 +1,211 @@
-> +// SPDX-License-Identifier: GPL-2.0-only
-> +/*
-> + * VFIO-MSHV bridge pseudo device
-> + *
-> + * Heavily inspired by the VFIO-KVM bridge pseudo device.
-> + */
-> +#include <linux/errno.h>
-> +#include <linux/file.h>
-> +#include <linux/list.h>
-> +#include <linux/module.h>
-> +#include <linux/mutex.h>
-> +#include <linux/slab.h>
-> +#include <linux/vfio.h>
-> +#include <asm/mshyperv.h>
-> +
-> +#include "mshv.h"
-> +#include "mshv_root.h"
-> +
-> +struct mshv_vfio_file {
-> +	struct list_head node;
-> +	struct file *file;	/* list of struct mshv_vfio_file */
-> +};
-> +
-> +struct mshv_vfio {
-> +	struct list_head file_list;
-> +	struct mutex lock;
-> +};
-> +
-> +static bool mshv_vfio_file_is_valid(struct file *file)
-> +{
-> +	bool (*fn)(struct file *file);
-> +	bool ret;
-> +
-> +	fn = symbol_get(vfio_file_is_valid);
-> +	if (!fn)
-> +		return false;
-> +
-> +	ret = fn(file);
-> +
-> +	symbol_put(vfio_file_is_valid);
-> +
-> +	return ret;
-> +}
-> +
-> +static long mshv_vfio_file_add(struct mshv_device *mshvdev, unsigned
-> int fd) +{
-> +	struct mshv_vfio *mshv_vfio = mshvdev->device_private;
-> +	struct mshv_vfio_file *mvf;
-> +	struct file *filp;
-> +	long ret = 0;
-> +
-> +	filp = fget(fd);
-> +	if (!filp)
-> +		return -EBADF;
-> +
-> +	/* Ensure the FD is a vfio FD. */
-> +	if (!mshv_vfio_file_is_valid(filp)) {
-> +		ret = -EINVAL;
-> +		goto out_fput;
-> +	}
-> +
-> +	mutex_lock(&mshv_vfio->lock);
-> +
-> +	list_for_each_entry(mvf, &mshv_vfio->file_list, node) {
-> +		if (mvf->file == filp) {
-> +			ret = -EEXIST;
-> +			goto out_unlock;
-> +		}
-> +	}
-> +
-> +	mvf = kzalloc(sizeof(*mvf), GFP_KERNEL_ACCOUNT);
-> +	if (!mvf) {
-> +		ret = -ENOMEM;
-> +		goto out_unlock;
-> +	}
-> +
-> +	mvf->file = get_file(filp);
-> +	list_add_tail(&mvf->node, &mshv_vfio->file_list);
-> +
-Why there is no vfio_device_file_set_kvm equivalent for mshv? since VFIO
-device open/bind path will do vfio_device/group_get_kvm_safe() to ensure
-lifetime alignment. Otherwise, vfio group/device can outlive mshv
-partition.
-
-If we do want to support this kvm-vfio bridge semantics beyond kvm,
-maybe this should be abstracted as a generic VFIO "hypervisor
-partition" association, with hypervisor-specific get/put callbacks,
-rather than adding an MSHV-only copy of the KVM hook.
-+Alex
-
-> +out_unlock:
-> +	mutex_unlock(&mshv_vfio->lock);
-> +out_fput:
-> +	fput(filp);
-> +	return ret;
-> +}
-> +
-> +static long mshv_vfio_file_del(struct mshv_device *mshvdev, unsigned
-> int fd) +{
-> +	struct mshv_vfio *mshv_vfio = mshvdev->device_private;
-> +	struct mshv_vfio_file *mvf;
-> +	long ret;
-> +
-> +	CLASS(fd, f)(fd);
-> +
-> +	if (fd_empty(f))
-> +		return -EBADF;
-> +
-> +	ret = -ENOENT;
-> +	mutex_lock(&mshv_vfio->lock);
-> +
-> +	list_for_each_entry(mvf, &mshv_vfio->file_list, node) {
-> +		if (mvf->file != fd_file(f))
-> +			continue;
-> +
-> +		list_del(&mvf->node);
-> +		fput(mvf->file);
-> +		kfree(mvf);
-> +		ret = 0;
-> +		break;
-> +	}
-> +
-> +	mutex_unlock(&mshv_vfio->lock);
-> +	return ret;
-> +}
-> +
-> +static long mshv_vfio_set_file(struct mshv_device *mshvdev, long
-> attr,
-> +			      void __user *arg)
-> +{
-> +	int32_t __user *argp = arg;
-> +	int32_t fd;
-> +
-> +	switch (attr) {
-> +	case MSHV_DEV_VFIO_FILE_ADD:
-> +		if (get_user(fd, argp))
-> +			return -EFAULT;
-> +		return mshv_vfio_file_add(mshvdev, fd);
-> +
-> +	case MSHV_DEV_VFIO_FILE_DEL:
-> +		if (get_user(fd, argp))
-> +			return -EFAULT;
-> +		return mshv_vfio_file_del(mshvdev, fd);
-> +	}
-> +
-> +	return -ENXIO;
-> +}
-> +
-> +static long mshv_vfio_set_attr(struct mshv_device *mshvdev,
-> +			      struct mshv_device_attr *attr)
-> +{
-> +	switch (attr->group) {
-> +	case MSHV_DEV_VFIO_FILE:
-> +		return mshv_vfio_set_file(mshvdev, attr->attr,
-> +
-> u64_to_user_ptr(attr->addr));
-> +	}
-> +
-> +	return -ENXIO;
-> +}
-> +
-> +static long mshv_vfio_has_attr(struct mshv_device *mshvdev,
-> +			      struct mshv_device_attr *attr)
-> +{
-> +	switch (attr->group) {
-> +	case MSHV_DEV_VFIO_FILE:
-> +		switch (attr->attr) {
-> +		case MSHV_DEV_VFIO_FILE_ADD:
-> +		case MSHV_DEV_VFIO_FILE_DEL:
-> +			return 0;
-> +		}
-> +
-> +		break;
-> +	}
-> +
-> +	return -ENXIO;
-> +}
-> +
-> +static long mshv_vfio_create_device(struct mshv_device *mshvdev)
-> +{
-> +	struct mshv_device *tmp;
-> +	struct mshv_vfio *mshv_vfio;
-> +
-> +	/* Only one VFIO "device" per VM */
-> +	hlist_for_each_entry(tmp, &mshvdev->device_pt->pt_devices,
-> +			     device_ptnode)
-> +		if (tmp->device_ops == &mshv_vfio_device_ops)
-> +			return -EBUSY;
-> +
-> +	mshv_vfio = kzalloc_obj(*mshv_vfio);
-> +	if (mshv_vfio == NULL)
-> +		return -ENOMEM;
-> +
-> +	INIT_LIST_HEAD(&mshv_vfio->file_list);
-> +	mutex_init(&mshv_vfio->lock);
-> +
-> +	mshvdev->device_private = mshv_vfio;
-> +
-> +	return 0;
-> +}
-> +
-> +/* This is called from mshv_device_fop_release() */
-> +static void mshv_vfio_release_device(struct mshv_device *mshvdev)
-> +{
-> +	struct mshv_vfio *mv = mshvdev->device_private;
-> +	struct mshv_vfio_file *mvf, *tmp;
-> +
-> +	list_for_each_entry_safe(mvf, tmp, &mv->file_list, node) {
-> +		fput(mvf->file);
-> +		list_del(&mvf->node);
-> +		kfree(mvf);
-> +	}
-> +
-> +	kfree(mv);
-> +	kfree(mshvdev);
-> +}
-> +
-> +const struct mshv_device_ops mshv_vfio_device_ops = {
-> +	.device_name = "mshv-vfio",
-> +	.device_create = mshv_vfio_create_device,
-> +	.device_release = mshv_vfio_release_device,
-> +	.device_set_attr = mshv_vfio_set_attr,
-> +	.device_has_attr = mshv_vfio_has_attr,
-> +};
-> diff --git a/include/uapi/linux/mshv.h b/include/uapi/linux/mshv.h
-> index be6fe3ee8707..b038a79786d2 100644
-> --- a/include/uapi/linux/mshv.h
-> +++ b/include/uapi/linux/mshv.h
-> @@ -254,6 +254,7 @@ struct mshv_root_hvcall {
->  #define MSHV_GET_GPAP_ACCESS_BITMAP	_IOWR(MSHV_IOCTL, 0x06,
-> struct mshv_gpap_access_bitmap) /* Generic hypercall */
->  #define MSHV_ROOT_HVCALL		_IOWR(MSHV_IOCTL, 0x07,
-> struct mshv_root_hvcall) +#define MSHV_CREATE_DEVICE
-> _IOWR(MSHV_IOCTL, 0x08, struct mshv_create_device) 
->  /*
->   ********************************
-
+Acked-by: Dave Hansen <dave.hansen@linux.intel.com>
