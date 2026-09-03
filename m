@@ -1,30 +1,31 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id E1E9923D7E3;
-	Thu,  3 Sep 2026 10:30:49 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id AA8523F4854;
+	Thu,  3 Sep 2026 10:31:07 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788431462; cv=none; b=fAQ1ica7pvy9pJJ+kK+l/T1ktf9JA1tA6b1CrSssrKpz/68CnEb0qvKRpg+jg9Hc/j49Z7E/s3t5isozmLtgw8IL45bmuq3WK4EXu4YwbXtCu3K0v+aEoIgjaNwXTHUAZW52lq0WkdUOQcPaD3d4lfa/V7XxsPqS/VVl8Aa6t3c=
+	t=1788431472; cv=none; b=nWHEyCxRigYI50pMlm9sG7s2W7XAXkEfMCY9gJ+Ewr4gxHO64VU87uaUlKfA+rggm9DhJz/jwHH0NRhzXA0EYoNgOXl9DZ7C3369Ln+4N1Qzu7amw7dP0XM90PTQM6nfpr839mies4MWg702FeJVIaW5SvUJtJxIUJMDi7gIbAQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788431462; c=relaxed/simple;
-	bh=aIJuznfc9+x+T9t6CWjU8riug4jWFHnV2Y3X1zCinUQ=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=iA97iUckAFp4OHEo9Tr4rbx6tHxXQcV4wuRDFMJzadBzjSJah6pcaM2cTY90AceoZJqey+LztvsQh+YJGN5JNplCWcnA2MUhhsmDjT8PMISnidt/hzvZvwcdeh+4VeE62moT9AHEzygCZv4Vu0Sbs5ZIzxdzTc1+tX+sYJd5ELg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=HcD41GFn; arc=none smtp.client-ip=217.140.110.172
+	s=arc-20240116; t=1788431472; c=relaxed/simple;
+	bh=iZ0UxDW+PGfZPY4n2x5quNoQFlhhWYff8wQolJj8CQc=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=Cpi4Sax1zoARl5S4keI9V4In2OTW2fFZFiH9gpjZM1NX19j/X2mY5CQHNea24B6onmA43f6tmuo5eHDhqc9k6HBy8C3MzGQBoQHTzJF2/zfQ9SCdDTKiG9QdMbFhZQIcknS0Kk6puMgMphZDkf7uIBkHUGxASfyMk1H2QZVoYzs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=aEI5eI1Z; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="HcD41GFn"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="aEI5eI1Z"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 26757165C;
-	Thu,  3 Sep 2026 03:30:43 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 22B77165C;
+	Thu,  3 Sep 2026 03:31:02 -0700 (PDT)
 Received: from e142334-100.cambridge.arm.com (e142334-100.cambridge.arm.com [10.2.198.93])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id B56423F673;
-	Thu,  3 Sep 2026 03:30:37 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id B04F83F673;
+	Thu,  3 Sep 2026 03:30:56 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1788431446; bh=aIJuznfc9+x+T9t6CWjU8riug4jWFHnV2Y3X1zCinUQ=;
-	h=From:To:Cc:Subject:Date:From;
-	b=HcD41GFnI7IENNpaP3GqDjy6DF37NZr132PK5kJfK9CtOM3S1qk9y+fcKN3SUV7fv
-	 CcM7MKiGKbgjlj33bjiNiW6EInEK8eNPJw+PJmDcxUdsa3kYv2xrBMuqJaCxXVXbPK
-	 8bCqsp/QujWMcuoR0Bd78MRtwtmH8W61WUnmuzNQ=
+	t=1788431465; bh=iZ0UxDW+PGfZPY4n2x5quNoQFlhhWYff8wQolJj8CQc=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=aEI5eI1ZDdVq2m64EA9ImU65GZFhZiL0ZK/lLsHlinaxtNpnT2nFBXA1JkEFJ2dA5
+	 GAImWCHFC6p4QBtqqRBlk66RPeHRj2Ei0OGOPqGAPPTqssaugxDn76YWiAfBhwdKz2
+	 oxnCSs2C9wVP4R71Kj0L4+hylcBhUUG7uFZhGTMI=
 From: Muhammad Usama Anjum <usama.anjum@arm.com>
 To: Jani Nikula <jani.nikula@linux.intel.com>,
 	Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
@@ -93,10 +94,12 @@ Cc: Muhammad Usama Anjum <usama.anjum@arm.com>,
 	bpf@vger.kernel.org,
 	linux-perf-users@vger.kernel.org,
 	damon@lists.linux.dev
-Subject: [PATCH v2 0/8] mm: distinguish PTE table storage from PTE values
-Date: Thu,  3 Sep 2026 11:29:52 +0100
-Message-ID: <20260903103002.1091859-1-usama.anjum@arm.com>
+Subject: [PATCH v2 2/8] mm: rename pointers to software PTE values as ptentp
+Date: Thu,  3 Sep 2026 11:29:54 +0100
+Message-ID: <20260903103002.1091859-3-usama.anjum@arm.com>
 X-Mailer: git-send-email 2.47.3
+In-Reply-To: <20260903103002.1091859-1-usama.anjum@arm.com>
+References: <20260903103002.1091859-1-usama.anjum@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -105,435 +108,90 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Hi,
+Some interfaces use pte_t * for a software PTE value rather than for an
+entry stored in a PTE table. These pointers must remain pte_t * when
+pointers to PTE table storage are converted to hw_pte_t *.
 
-pte_t currently describes both a software PTE value and an element stored
-in a PTE table. Consequently, pte_t * can point either to a software PTE
-value, often a stack copy, or to a PTE-table slot. The compiler cannot
-distinguish these cases. A value pointer can therefore be passed to an
-interface that expects table storage, while table storage can be read by
-direct dereference instead of the architecture accessor.
+Rename these parameters in the install_pte callback,
+write_protect_page(), and guard_install_set_pte() to ptentp. The later
+Coccinelle conversion skips pointers named ptentp, allowing it to convert
+the remaining PTE table pointers without changing these interfaces.
 
-This series begins a staged conversion at the PTE level. It introduces
-hw_pte_t as the element type for PTE-table storage and converts generic
-MM to use hw_pte_t *. Software PTE values remain pte_t. Interfaces that
-intentionally return a value through pte_t *, such as install_pte,
-remain value interfaces; the relevant parameters are named ptentp to
-make that distinction explicit.
+Some functions already use ptentp for such pointers, including:
+- madvise_folio_pte_batch()
+- folio_pte_batch_flags()
+No need to rename them.
 
-The generic definition aliases hw_pte_t to pte_t unless an architecture
-selects ARCH_HAS_HW_PTE_T, which enables a distinct generic wrapper named
-__hw_pte_t. Some architectures define pgtable_t in headers parsed before
-the generic hw_pte_t typedef is visible. The structure tag allows those
-headers to define pgtable_t as struct __hw_pte_t * without creating an
-include-order dependency. This is required when converting s390, m68k,
-powerpc and sparc.
+This patch only renames parameters and makes no functional change.
 
-No architecture selects ARCH_HAS_HW_PTE_T in this series, so the
-representation and behavior of every architecture are preserved. ptep_get()
-keeps its existing READ_ONCE() semantics and converts the stored element
-through __pte_from_hw(). An architecture can later select the option and
-convert its PTE interfaces to make the distinction compiler-enforced.
-Architecture PTE implementations and most architecture code are
-deliberately left for those later opt-in conversions.
-
-Here, hw_pte_t identifies PTE-table storage rather than table lifetime:
-complete PTE tables use hw_pte_t whether or not they are currently
-linked into a page-table hierarchy, while software PTE values use
-pte_t. The distinction between complete but unlinked tables and
-hardware-reachable tables was raised during discussion and remains an
-important point for review.
-
-PMD, PUD, P4D and PGD storage are deliberately out of scope. They can be
-converted in later series after the PTE boundary is agreed, avoiding the
-PMD-specific cases that made an all-level conversion difficult to
-review.
-
-Most mechanical pointer conversions were generated with the Coccinelle
-script included below, then audited and fixed by hand.
-
-This series does not add a second ptep_get_once() accessor and does not
-remove or replace STRICT_MM_TYPECHECKS.
-
-The design discussion is available at [1]; while the original idea came
-from [2].
-
-I've the patches here [3] for arm64 conversion which I used to find
-usages in generic code which I missed during development. These would be
-sent separately.
-
-[1] https://lore.kernel.org/all/6110202c-057b-4701-8c04-1a76ee7bb9ab@arm.com/
-[2] https://lore.kernel.org/all/a063f6c5-2785-4a9f-8079-25edb3e54cef@arm.com
-[3] https://gitlab.arm.com/linux-arm/linux-us/-/commits/pte0_arm
-
-Thanks,
-Usama
+Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
 ---
 Changes since v1:
-- Name the generic wrapper structure __hw_pte_t so architectures can
-  forward-declare it before the generic typedef is visible.
-- Use software PTE value terminology consistently
-- Fold the prerequisite header includes into the generic storage
-  conversion
-- Explain why the NOMMU stub converts the stored entry without
-  ptep_get().
-- Rebase onto mm-new and rerun the Coccinelle conversion.
+- Rewrite the subject and description to distinguish software PTE
+  values from PTE table storage.
 
 Changes since RFC v1:
-- Add ARCH_HAS_HW_PTE_T so architectures can opt in to a distinct
-  PTE-table storage type.
-- Define the distinct hw_pte_t wrapper and its conversion helpers in
-  generic code instead of requiring each architecture to define them.
-- Read hw_pte_t through READ_ONCE() before converting it to pte_t.
-- Drop the previous mremap patch in favour of [a]. Apply [a] first if
-  it is not already present.
-- Drop the previous two dead-code conversion patches; the affected
-  code was cleaned up separately in [b] and [c].
-
-[a] https://lore.kernel.org/linux-mm/20260720141633.501799-1-agordeev@linux.ibm.com/
-[b] https://lore.kernel.org/all/20260730111316.3672672-1-usama.anjum@arm.com
-[c] https://lore.kernel.org/all/20260730094501.3002718-1-usama.anjum@arm.com
-
+- Update the description for the architecture opt-in conversion.
 ---
-// SPDX-License-Identifier: GPL-2.0-only
-///
-/// Rename raw PTE pointer types to hardware PTE pointer types.
-///
-/// This is a mechanical type rename. It converts common declarations,
-/// function parameters, prototypes, return types and casts from "pte_t *"
-/// to "hw_pte_t *". Plain "pte_t" objects are intentionally left unchanged.
-/// Pointers named "ptentp" refer to temporary software PTE values and are
-/// intentionally ignored in all modes.
-/// Re-run in context mode afterwards to audit remaining raw pte_t pointers
-/// and cases that need hand conversion, such as trace macros and mixed
-/// declarations.
-///
-/// Confidence: Moderate
-// Options: --no-includes --include-headers
+ include/linux/pagewalk.h | 2 +-
+ mm/ksm.c                 | 4 ++--
+ mm/madvise.c             | 4 ++--
+ 3 files changed, 5 insertions(+), 5 deletions(-)
 
-virtual patch
-virtual report
-virtual context
-
-@local_decl depends on patch@
-identifier x != ptentp;
-@@
-- pte_t *x;
-+ hw_pte_t *x;
-
-@local_decl_init depends on patch@
-identifier x != ptentp;
-expression e;
-@@
-- pte_t *x = e;
-+ hw_pte_t *x = e;
-
-@param_proto depends on patch@
-identifier f;
-identifier x != ptentp;
-type R;
-@@
-R f(...,
-- pte_t *x
-+ hw_pte_t *x
-,...);
-
-@param_proto_unnamed depends on patch@
-identifier f;
-type R;
-@@
-R f(...,
-- pte_t *
-+ hw_pte_t *
-,...);
-
-@param_def depends on patch@
-identifier f;
-identifier x != ptentp;
-type R;
-@@
-R f(...,
-- pte_t *x
-+ hw_pte_t *x
-,...)
-{ ... }
-
-@ret_proto depends on patch@
-identifier f;
-parameter list ps;
-@@
-- pte_t *
-+ hw_pte_t *
-  f(ps);
-
-@ret_def depends on patch@
-identifier f;
-parameter list ps;
-@@
-- pte_t *
-+ hw_pte_t *
-  f(ps)
-{ ... }
-
-@struct_member depends on patch@
-identifier S;
-identifier x != ptentp;
-@@
-struct S {
-...
-- pte_t *x;
-+ hw_pte_t *x;
-...
-};
-
-@union_member depends on patch@
-identifier x != ptentp;
-@@
-union {
-...
-- pte_t *x;
-+ hw_pte_t *x;
-...
-};
-
-@union_member_in_struct depends on patch@
-identifier S;
-identifier x != ptentp;
-@@
-struct S {
-...
-union {
-...
-- pte_t *x;
-+ hw_pte_t *x;
-...
-};
-...
-};
-
-@fnptr_struct_member depends on patch@
-identifier S,f;
-identifier x != ptentp;
-type R;
-@@
-struct S {
-...
-R (*f)(...,
-- pte_t *x
-+ hw_pte_t *x
-,...);
-...
-};
-
-@fnptr_typedef_pte_fn_t depends on patch@
-identifier x != ptentp;
-@@
-typedef int (*pte_fn_t)(...,
-- pte_t *x
-+ hw_pte_t *x
-,...);
-
-@cast depends on patch@
-expression e;
-@@
-- (pte_t *)e
-+ (hw_pte_t *)e
-
-@remaining_decl depends on context || report@
-identifier x != ptentp;
-position p;
-@@
-* pte_t *x@p;
-
-@remaining_decl_init depends on context || report@
-identifier x != ptentp;
-expression e;
-position p;
-@@
-* pte_t *x@p = e;
-
-@remaining_param_proto depends on context || report@
-identifier f;
-identifier x != ptentp;
-type R;
-position p;
-@@
-R f(...,
-* pte_t *x@p
-,...);
-
-@remaining_param_proto_unnamed depends on context || report@
-identifier f;
-type R;
-position p;
-@@
-R f(...,
-* pte_t *@p
-,...);
-
-@remaining_param_def depends on context || report@
-identifier f;
-identifier x != ptentp;
-type R;
-position p;
-@@
-R f(...,
-* pte_t *x@p
-,...)
-{ ... }
-
-@remaining_ret_proto depends on context || report@
-identifier f;
-parameter list ps;
-position p;
-@@
-* pte_t *f@p(ps);
-
-@remaining_ret_def depends on context || report@
-identifier f;
-parameter list ps;
-position p;
-@@
-* pte_t *f@p(ps)
-{ ... }
-
-@remaining_struct_member depends on context || report@
-identifier S;
-identifier x != ptentp;
-position p;
-@@
-struct S {
-...
-* pte_t *x@p;
-...
-};
-
-@remaining_union_member depends on context || report@
-identifier x != ptentp;
-position p;
-@@
-union {
-...
-* pte_t *x@p;
-...
-};
-
-@remaining_union_member_in_struct depends on context || report@
-identifier S;
-identifier x != ptentp;
-position p;
-@@
-struct S {
-...
-union {
-...
-* pte_t *x@p;
-...
-};
-...
-};
-
-@remaining_fnptr_struct_member depends on context || report@
-identifier S,f;
-identifier x != ptentp;
-type R;
-position p;
-@@
-struct S {
-...
-R (*f)(...,
-* pte_t *x@p
-,...);
-...
-};
-
-@remaining_fnptr_typedef_pte_fn_t depends on context || report@
-identifier x != ptentp;
-position p;
-@@
-typedef int (*pte_fn_t)(...,
-* pte_t *x@p
-,...);
-
-Muhammad Usama Anjum (8):
-  mm: introduce hw_pte_t for PTE table storage
-  mm: rename pointers to software PTE values as ptentp
-  mm: use hw_pte_t for generic PTE table storage
-  mm: convert PTE table entries in ptep_get()
-  mm: convert PTE table entry to pte
-  mm/kasan: use hw_pte_t for the early shadow PTE table
-  drm/i915: use hw_pte_t for PTE range callbacks
-  xen: use hw_pte_t for PTE range callbacks
-
- MAINTAINERS                                   |  1 +
- .../drm/i915/gem/selftests/i915_gem_mman.c    |  4 +-
- drivers/gpu/drm/i915/i915_mm.c                |  4 +-
- drivers/xen/gntdev.c                          |  2 +-
- drivers/xen/privcmd.c                         |  2 +-
- drivers/xen/xenbus/xenbus_client.c            |  2 +-
- drivers/xen/xlate_mmu.c                       |  4 +-
- fs/hugetlbfs/inode.c                          |  3 +-
- fs/proc/task_mmu.c                            | 33 ++++----
- include/asm-generic/hugetlb.h                 | 15 ++--
- include/asm-generic/pgalloc.h                 |  6 +-
- include/asm-generic/tlb.h                     |  5 +-
- include/linux/hugetlb.h                       | 53 ++++++------
- include/linux/kasan.h                         |  2 +-
- include/linux/mm.h                            | 26 +++---
- include/linux/page_table_check.h              | 10 ++-
- include/linux/pagewalk.h                      | 10 +--
- include/linux/pgtable.h                       | 81 ++++++++++---------
- include/linux/pgtable_types.h                 | 19 +++++
- include/linux/rmap.h                          |  2 +-
- include/linux/swapops.h                       |  6 +-
- include/linux/vmalloc.h                       |  4 +-
- include/trace/events/xen.h                    | 10 +--
- kernel/bpf/arena.c                            |  9 ++-
- kernel/events/core.c                          |  3 +-
- mm/Kconfig                                    |  3 +
- mm/damon/ops-common.c                         |  2 +-
- mm/damon/ops-common.h                         |  2 +-
- mm/damon/vaddr.c                              | 20 ++---
- mm/debug_vm_pgtable.c                         |  2 +-
- mm/filemap.c                                  |  4 +-
- mm/gup.c                                      |  9 ++-
- mm/highmem.c                                  | 15 ++--
- mm/hmm.c                                      |  6 +-
- mm/huge_memory.c                              |  4 +-
- mm/hugetlb.c                                  | 60 +++++++-------
- mm/hugetlb_vmemmap.c                          | 13 +--
- mm/internal.h                                 | 16 ++--
- mm/kasan/init.c                               | 14 ++--
- mm/kasan/shadow.c                             |  6 +-
- mm/khugepaged.c                               | 50 +++++++-----
- mm/ksm.c                                      | 11 +--
- mm/madvise.c                                  | 18 +++--
- mm/mapping_dirty_helpers.c                    |  4 +-
- mm/memory-failure.c                           |  6 +-
- mm/memory.c                                   | 78 +++++++++---------
- mm/mempolicy.c                                |  4 +-
- mm/migrate.c                                  |  4 +-
- mm/migrate_device.c                           |  4 +-
- mm/mincore.c                                  |  4 +-
- mm/mlock.c                                    |  4 +-
- mm/mprotect.c                                 | 19 ++---
- mm/mremap.c                                   |  4 +-
- mm/page_table_check.c                         |  4 +-
- mm/pagewalk.c                                 |  9 ++-
- mm/percpu.c                                   |  2 +-
- mm/pgtable-generic.c                          | 20 ++---
- mm/ptdump.c                                   |  4 +-
- mm/rmap.c                                     |  6 +-
- mm/sparse-vmemmap.c                           | 22 ++---
- mm/swap_state.c                               |  3 +-
- mm/swapfile.c                                 |  5 +-
- mm/userfaultfd.c                              | 32 ++++----
- mm/util.c                                     |  2 +-
- mm/vmalloc.c                                  | 11 +--
- mm/vmscan.c                                   |  6 +-
- 66 files changed, 453 insertions(+), 375 deletions(-)
- create mode 100644 include/linux/pgtable_types.h
-
+diff --git a/include/linux/pagewalk.h b/include/linux/pagewalk.h
+index b41d7265c01bc..c34d826c5e4a2 100644
+--- a/include/linux/pagewalk.h
++++ b/include/linux/pagewalk.h
+@@ -89,7 +89,7 @@ struct mm_walk_ops {
+ 		       struct mm_walk *walk);
+ 	void (*post_vma)(struct mm_walk *walk);
+ 	int (*install_pte)(unsigned long addr, unsigned long next,
+-			   pte_t *ptep, struct mm_walk *walk);
++			   pte_t *ptentp, struct mm_walk *walk);
+ 	enum page_walk_lock walk_lock;
+ };
+ 
+diff --git a/mm/ksm.c b/mm/ksm.c
+index 624f37975e129..2a4f19fe0f696 100644
+--- a/mm/ksm.c
++++ b/mm/ksm.c
+@@ -1292,7 +1292,7 @@ static u32 calc_checksum(struct page *page)
+ }
+ 
+ static int write_protect_page(struct vm_area_struct *vma, struct folio *folio,
+-			      pte_t *orig_pte)
++			      pte_t *ptentp)
+ {
+ 	struct mm_struct *mm = vma->vm_mm;
+ 	DEFINE_FOLIO_VMA_WALK(pvmw, folio, vma, 0, 0);
+@@ -1371,7 +1371,7 @@ static int write_protect_page(struct vm_area_struct *vma, struct folio *folio,
+ 
+ 		set_pte_at(mm, pvmw.address, pvmw.pte, entry);
+ 	}
+-	*orig_pte = entry;
++	*ptentp = entry;
+ 	err = 0;
+ 
+ out_unlock:
+diff --git a/mm/madvise.c b/mm/madvise.c
+index 73c2901b9adbf..dd75a673e108f 100644
+--- a/mm/madvise.c
++++ b/mm/madvise.c
+@@ -1113,12 +1113,12 @@ static int guard_install_pte_entry(pte_t *pte, unsigned long addr,
+ }
+ 
+ static int guard_install_set_pte(unsigned long addr, unsigned long next,
+-				 pte_t *ptep, struct mm_walk *walk)
++				 pte_t *ptentp, struct mm_walk *walk)
+ {
+ 	unsigned long *nr_pages = (unsigned long *)walk->private;
+ 
+ 	/* Simply install a PTE marker, this causes segfault on access. */
+-	*ptep = make_pte_marker(PTE_MARKER_GUARD);
++	*ptentp = make_pte_marker(PTE_MARKER_GUARD);
+ 	(*nr_pages)++;
+ 
+ 	return 0;
 -- 
 2.47.3
 
