@@ -1,150 +1,141 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.19])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj1-f69.google.com (mail-pj1-f69.google.com [209.85.216.69])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ECC6D37DE8D;
-	Wed,  2 Sep 2026 20:48:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.19
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 578192E2840
+	for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2026 02:34:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.69
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788382092; cv=none; b=rcvqF3m2q/v1wtqyhXaSzcbOxSe/XwSqqfjwcOa1g58BCY2K6QyFuaur1OKUikbKg+hLudA6yuoS84XYPRX79QBYHsLF7elbzhZq/NnbjvIbWmProII6BX2aATa95SEoAcqmSyU9H6pVuWSo8+O5Pntu9+TOVdaUwR5E4Qz1qQI=
+	t=1788402902; cv=none; b=PkD+uYy2BOgmaHcaFH3rfuxz7dFiywEEVG37OTbC4mfnBm8oF2gfflPtP2kT5vUzky8f2+cvz3PEAuoUGbk3NQCqAbhpNtwLxoVjILXLa+WaZVupoY6Z3Q+Kdxspmox8pguV6QHGz2dmoTUS+xgg5g4hsnm+MqI1y6eRUbj/0ag=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788382092; c=relaxed/simple;
-	bh=LsMn3/y0ByvC1uXtR6xF4fWxSc3am3y8Xh2THPJZMyg=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=adNs9PzNxXm5GeIuGDyYXkWKzK/Qu48QXuCf0nll0oLMePTPmalvV71Y3UtrzURgC56PTrLKy+yzoCKMLK3cqaiNAF7tfpHkDBkqRWHCHozrlWBfTeTFJDL07oDuOr1LNiy+ey9vvwIldwmCmF9h+8k1HzuHbSV6iR05Qy1lUik=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=lVTvzitf; arc=none smtp.client-ip=198.175.65.19
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1788402902; c=relaxed/simple;
+	bh=KttI8yN3SEE9knj1xRs/FNrG5jE/gzLZlVVCanD/Yjg=;
+	h=Date:Mime-Version:Message-ID:Subject:From:To:Cc:Content-Type; b=MlUzXIi/oXLgbbG9pxtpLNb1KNmNnma9ywBDoLu94q1pZTVYHBN+/uZqj4XYdJm1XfKwZMuOHs6jwGVaUBPshlTUHNA9Ug1xW5euylBt+bFTVf9CHw4w58jO1zTlUYJIC/5k7ZrrpRRo2L4mewVaez8GZxZySjuUCDL//wO2uxQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--loganodell.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=JKRSKjDP; arc=none smtp.client-ip=209.85.216.69
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--loganodell.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="lVTvzitf"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1788382088; x=1819918088;
-  h=message-id:date:mime-version:subject:to:cc:references:
-   from:in-reply-to:content-transfer-encoding;
-  bh=LsMn3/y0ByvC1uXtR6xF4fWxSc3am3y8Xh2THPJZMyg=;
-  b=lVTvzitf6yA4WGz+GCwf2sT22yRDCgxMPG8zYNuh+c19Uc63pZHxRwyD
-   ZjhTVHv7nzh9c/BEpNPXVllF1aXpVNVePJSY3ylYq0IWtpMqONxyXaQdv
-   r7gxeHwdnKU2D8ORqfiM1X1zCSaZBdVrbGjcgl5GSPyMArEkxoFss+VSG
-   Y2+8V6XJjnYQvxAHqFkAX7Oo66GyBFyy6Bk0gA8kkpEfBO9h5Ic9AsQcx
-   GujywoEGsnO+7IQh9KPRm7UHUzhTFFzy/AWpM6cWYq/oUDT8CyqaV+uTE
-   CZ61udMSuFOjYwcWPL2thcKcP/NuWNsEY1ji2Hm671sOFqvQpfsLN/AXv
-   Q==;
-X-CSE-ConnectionGUID: BuaKpK+wREyVX2kGklgkbg==
-X-CSE-MsgGUID: Pe44Wm1kQdeUdt+91KJtUA==
-X-IronPort-AV: E=McAfee;i="6800,10657,11894"; a="88777060"
-X-IronPort-AV: E=Sophos;i="6.25,258,1779174000"; 
-   d="scan'208";a="88777060"
-Received: from orviesa010.jf.intel.com ([10.64.159.150])
-  by orvoesa111.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Sep 2026 13:48:05 -0700
-X-CSE-ConnectionGUID: 7lG7cHPvSjGN3cya1Kgtcw==
-X-CSE-MsgGUID: iKbUXdDDS3i4/Eh3uQmPpw==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.25,258,1779174000"; 
-   d="scan'208";a="268192165"
-Received: from cjhill-mobl.amr.corp.intel.com (HELO [10.125.110.134]) ([10.125.110.134])
-  by orviesa010-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Sep 2026 13:48:04 -0700
-Message-ID: <8f3979a9-238a-4d7d-a040-6aa526fedec5@intel.com>
-Date: Wed, 2 Sep 2026 13:48:03 -0700
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="JKRSKjDP"
+Received: by mail-pj1-f69.google.com with SMTP id 98e67ed59e1d1-396638f9a18so3182893a91.2
+        for <linux-arch@vger.kernel.org>; Wed, 02 Sep 2026 19:34:57 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1788402896; x=1789007696; darn=vger.kernel.org;
+        h=content-type:cc:to:from:subject:message-id:mime-version:date:from
+         :to:cc:subject:date:message-id:reply-to:content-type;
+        bh=Z/CUOTjDyaAxtZC1lTIYdZbcKOF2SIWxflbwVxpxItE=;
+        b=JKRSKjDPVk0FFsbYxUN8rh23atvO0BGLo2l3Ks8shrfBJHKyupH84uaTVmVhlhgbqC
+         18LH/IN4BB17i9S++NQrSkJeh9KO1YPa5D9KUQAK1/bpwfRSdiJx1MbpQ6k/L/uSr2At
+         4VILdEOzvdycnbiae+QyQaM1fYRQv74kqDgQufzjn3PnkJ8/34nk8O/sumZX0wLMYMES
+         YsNohw0fzbT0Ns4S60MeuyjFyAVFi+XdrvuMAw/xlJhvQtlN4y+0aA8p4tAVY7108Tjo
+         hUL9t8/h0MrjaL7b6p9PxycrKxAYjK0oI08YxCuv4conWs/RU7eIbr2a18cxuPWDlVtQ
+         5EPA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1788402896; x=1789007696;
+        h=content-type:cc:to:from:subject:message-id:mime-version:date
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=Z/CUOTjDyaAxtZC1lTIYdZbcKOF2SIWxflbwVxpxItE=;
+        b=KUluk+ToRd8vTEU8///tM7IngaekdX1t9CGbVHgt2BMvQtxy3u365fY4+4xRmZX6JI
+         NfG+6LXQzycGz5UGg1lcJUvB7Cjpk189bR9oDY8R9WJyL4r+/Pst/5sghJgCpbjgfBk5
+         0WUfK7bHD43XPKQo52p2JRNzcnvmW9or41c9pANA0YO5dkeaHOa3aJUCUw9g9iUnNWnq
+         Ug8aBBJwMmi28fkG/8qVoGgCns768oPnazzwVhMbABai3P8klrRhKOeQhi4Xv5QnSsHB
+         NvQb1smyM0PvY6SsS57pDnN24YFF7v9xalZIeds7HDmC1CTBt1u7lms0n39HiaNZGKTv
+         RR+w==
+X-Gm-Message-State: AFuF++lkDpxowaghd+2h1JYTXMUKIIL4S2KUjcI8k3dBDCLB/sVue402
+	29UU4Jv+InL61S8b3XN3IZLLveWqzwEuXSYpipzCVkdCPfwSn+F1aq/icTi9pwdNcYO0gZ2Q0oP
+	f4EgCfXvblSIfT2ClUhM9Yg==
+X-Received: from dysc26.prod.google.com ([2002:a05:7300:3b1a:b0:332:2edd:e13a])
+ (user=loganodell job=prod-delivery.src-stubby-dispatcher) by
+ 2002:a17:90b:2d85:b0:398:9c00:29f0 with SMTP id 98e67ed59e1d1-39aee249bd7mr14082963a91.24.1788402895806;
+ Wed, 02 Sep 2026 19:34:55 -0700 (PDT)
+Date: Wed,  2 Sep 2026 19:34:49 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH RFC v3 13/21] x86: mm: use pgtable_level enum in
- effective_prot_pXd()
-To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
- Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>,
- Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
- Shakeel Butt <shakeel.butt@linux.dev>, Barry Song <baohua@kernel.org>,
- Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
- Wei Xu <weixugc@google.com>, Johannes Weiner <hannes@cmpxchg.org>,
- David Hildenbrand <david@kernel.org>, Michal Hocko <mhocko@kernel.org>,
- Lorenzo Stoakes <ljs@kernel.org>, Tianrui Zhao <zhaotianrui@loongson.cn>,
- Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
- Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
- Alexandre Ghiti <alex@ghiti.fr>, Dave Hansen <dave.hansen@linux.intel.com>,
- Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, x86@kernel.org,
- "H. Peter Anvin" <hpa@zytor.com>, "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- Jonas Bonn <jonas@southpole.se>,
- Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
- Stafford Horne <shorne@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
- loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
- linux-openrisc@vger.kernel.org
-References: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
- <20260902-dummy_ptxp3-v3-13-5d8f5b17c25c@arm.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Content-Language: en-US
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- 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
-In-Reply-To: <20260902-dummy_ptxp3-v3-13-5d8f5b17c25c@arm.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
+X-Mailer: git-send-email 2.55.0.979.g7e5102b832-goog
+Message-ID: <20260903023452.721732-1-loganodell@google.com>
+Subject: [RFC PATCH 0/3] liveupdate: Move to feature flags for LUO and memfd
+ ABI compatibility
+From: Logan Odell <loganodell@google.com>
+To: arnd@arndb.de, pasha.tatashin@soleen.com, rppt@kernel.org, 
+	pratyush@kernel.org, graf@amazon.com, akpm@linux-foundation.org, 
+	pbonzini@redhat.com, maz@kernel.org, oupton@kernel.org, seanjc@google.com, 
+	bhelgaas@google.com, alex@shazbot.org, jgg@nvidia.com, kevin.tian@intel.com, 
+	dwmw2@infradead.org, baolu.lu@linux.intel.com, joro@8bytes.org, 
+	will@kernel.org, robin.murphy@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	kexec@lists.infradead.org, linux-mm@kvack.org, kvm@vger.kernel.org, 
+	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, 
+	linux-pci@vger.kernel.org, iommu@lists.linux.dev, 
+	Logan Odell <loganodell@google.com>
+Content-Type: text/plain; charset="UTF-8"
 
-On 9/2/26 04:56, Yeoreum Yun wrote:
-> Instead of using hard-coded integer in effective_prot_pXd(), use
-> pgtable level enum.
+We're including maintainers from all subsystems that currently is or
+will be expected to participate in live update to ensure alignment on
+the path forward for compatibility.
 
-Does this actually *do* anything? ;)
+Currently, Live Update Orchestrator (LUO) and its file handlers rely on
+monolithic compatibility strings (such as "luo-v5" and "memfd-v1") to
+validate ABI compatibility across kexec live updates. Any modification
+to serialized structures requires bumping the version string, which
+strictly breaks compatibility between adjacent kernels even when changes
+are additive, backwards-compatible, or optional.
 
-I guess it's nice to have a wee bit of type safety from the enum and it
-means that you don't have to *know* which level number a PUD is, for
-example.
+This RFC series transitions LUO and subsystem file handlers to use
+granular feature bitmasks instead of compatibility strings. We replace
+the compatibility string with a header structure that includes some
+reserved space to define the features that are included after the
+feature.
 
-Either way:
+We include 3 bits of data for each feature: supported, active, and
+required. When the supported bit is set in the next kernel, the previous
+kernel can serialize the feature and pass it to the next kernel. When
+the active bit is set, it means the previous occurred and the data for
+that feature is valid. When the required bit is set, it means that the
+next kernel must have the associated supported bit in order to be
+compatible.
 
-Acked-by: Dave Hansen <dave.hansen@linux.intel.com>
+If a feature is required in that it cannot live update to a kernel that
+does not support the feature, it is expected that the feature not be
+active or required initially. This allows for an intermediate upgrade
+path.
+
+Overview of Changes:
+1. Define feature header and migrate luo_ser (Patch 1):
+  - Introudce the feature header with the supported, active, and
+    required bits.
+  - Replace the luo compatibility string with this new header.
+  - Validate the preserved size is at least the size of the header. This
+    breaks compatibility with the old way.
+
+2. Export feature header information to vmlinux (Patch 2):
+  - Adds a .liveupdate_features section in vmlinux containing
+  - Adds helper macros to export feature information for a given
+    subsystem
+  - Export luo's feature information
+
+3. Memfd Handler Migration (Patch 3):
+  - Migrate memfd to use the feature header instead of compatibility
+    strings
+
+Logan Odell (3):
+  luo: Move to feature flags instead of compatibility strings
+  luo: Export feature support to vmlinux section
+  luo: memfd: Move to feature flags instead of compatibility strings
+
+ include/asm-generic/vmlinux.lds.h |  12 ++++
+ include/linux/kho/abi/luo.h       | 114 +++++++++++++++++++++++++-----
+ include/linux/kho/abi/memfd.h     |  41 +++++++----
+ include/linux/liveupdate.h        |  22 ++++--
+ kernel/liveupdate/luo_core.c      |  60 ++++++++++++----
+ kernel/liveupdate/luo_file.c      |  28 ++++----
+ kernel/liveupdate/luo_flb.c       |   2 +-
+ lib/tests/liveupdate.c            |   2 +-
+ mm/memfd_luo.c                    |  40 ++++++++---
+ 9 files changed, 246 insertions(+), 75 deletions(-)
+
+-- 
+2.55.0.979.g7e5102b832-goog
 
