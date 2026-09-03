@@ -1,182 +1,539 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id D1F2A34EF0C;
-	Thu,  3 Sep 2026 08:09:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id E1E9923D7E3;
+	Thu,  3 Sep 2026 10:30:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788422948; cv=none; b=T3ClXMgskTtVehJB/AWma0hUweHejoxi8TsuZAIrRVZ662oZbmQ5hueY+v3xREw8Fqm+x94emrhDx3ZdsnVKF0hKbUY85Cu9ASQFlupMGljxtKfySAnDZ50f8vENB8rEbji+CAmISSd5UggTEpH+6E6kAbCuZwdpfVdoaqCp8R8=
+	t=1788431462; cv=none; b=fAQ1ica7pvy9pJJ+kK+l/T1ktf9JA1tA6b1CrSssrKpz/68CnEb0qvKRpg+jg9Hc/j49Z7E/s3t5isozmLtgw8IL45bmuq3WK4EXu4YwbXtCu3K0v+aEoIgjaNwXTHUAZW52lq0WkdUOQcPaD3d4lfa/V7XxsPqS/VVl8Aa6t3c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788422948; c=relaxed/simple;
-	bh=PYugPtjDD1Mwk+el5B4K6YHEudIcSNGBIqf4q6MNBVE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=OUqynkyv8sg/GcWqNPI9cmESaQIaOMUpAz7/GabpNCSHipk+lP1EnhJqmSR94feXh5alwfh2LSrAJzwkmjPzgZTkTyNNEGcGhPcwWG/ut2jWdXlnvFOluuERV6s/OE3G8RRpQqWtaToaARvbL8eIlBAqoh9TQiKPkKG/SL4HN6U=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=f825k/uP; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1788431462; c=relaxed/simple;
+	bh=aIJuznfc9+x+T9t6CWjU8riug4jWFHnV2Y3X1zCinUQ=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=iA97iUckAFp4OHEo9Tr4rbx6tHxXQcV4wuRDFMJzadBzjSJah6pcaM2cTY90AceoZJqey+LztvsQh+YJGN5JNplCWcnA2MUhhsmDjT8PMISnidt/hzvZvwcdeh+4VeE62moT9AHEzygCZv4Vu0Sbs5ZIzxdzTc1+tX+sYJd5ELg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=HcD41GFn; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="f825k/uP"
-Received: from localhost (unknown [167.220.233.38])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 87D8520B712D;
-	Thu,  3 Sep 2026 01:08:28 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 87D8520B712D
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1788422909;
-	bh=d+Zmca6npV9UBXDa9I7AGekjWXpzMKRIXE0F48nBe/4=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=f825k/uPe3Egp/7Z97LpFknzMCZzxQIhFtaDudQErs7D6aob/qNvOFoJwbC4fXH7k
-	 6Kk+93xULpkmPlVHJZYVdbLk1s5qL5IANfV2NCHPs81Zbw+pS1XJrjGwYICQYxKzrO
-	 /oicEy561IhCPrvF6b4LnXqhTdHqRwGi2dnZW0Ns=
-Date: Thu, 3 Sep 2026 16:09:03 +0800
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: Michael Kelley <mhklinux@outlook.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
-	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "iommu@lists.linux.dev" <iommu@lists.linux.dev>, 
-	"linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 
-	"x86@kernel.org" <x86@kernel.org>, "wei.liu@kernel.org" <wei.liu@kernel.org>, 
-	"kys@microsoft.com" <kys@microsoft.com>, "haiyangz@microsoft.com" <haiyangz@microsoft.com>, 
-	"decui@microsoft.com" <decui@microsoft.com>, "longli@microsoft.com" <longli@microsoft.com>, 
-	"joro@8bytes.org" <joro@8bytes.org>, "will@kernel.org" <will@kernel.org>, 
-	"robin.murphy@arm.com" <robin.murphy@arm.com>, "bhelgaas@google.com" <bhelgaas@google.com>, 
-	"kwilczynski@kernel.org" <kwilczynski@kernel.org>, "lpieralisi@kernel.org" <lpieralisi@kernel.org>, 
-	"mani@kernel.org" <mani@kernel.org>, "robh@kernel.org" <robh@kernel.org>, 
-	"arnd@arndb.de" <arnd@arndb.de>, "jgg@ziepe.ca" <jgg@ziepe.ca>, 
-	"jacob.pan@linux.microsoft.com" <jacob.pan@linux.microsoft.com>, "tgopinath@linux.microsoft.com" <tgopinath@linux.microsoft.com>, 
-	"easwar.hariharan@linux.microsoft.com" <easwar.hariharan@linux.microsoft.com>, "mrathor@linux.microsoft.com" <mrathor@linux.microsoft.com>, 
-	"baolu.lu@linux.intel.com" <baolu.lu@linux.intel.com>, "suravee.suthikulpanit@amd.com" <suravee.suthikulpanit@amd.com>, 
-	"vasant.hegde@amd.com" <vasant.hegde@amd.com>
-Subject: Re: [PATCH v4 5/5] iommu/hyperv: Add page-selective IOTLB flush
- support
-Message-ID: <dtnop2zqoxjchln5g6jnaz36jnsximf7dxzpt3nkkndgmtdnc3@bhhctyj4dpf4>
-References: <20260821132654.211730-1-zhangyu1@linux.microsoft.com>
- <20260821132654.211730-6-zhangyu1@linux.microsoft.com>
- <BN7PR02MB41483DDDB70A211BC320BE03D4AC2@BN7PR02MB4148.namprd02.prod.outlook.com>
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="HcD41GFn"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 26757165C;
+	Thu,  3 Sep 2026 03:30:43 -0700 (PDT)
+Received: from e142334-100.cambridge.arm.com (e142334-100.cambridge.arm.com [10.2.198.93])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id B56423F673;
+	Thu,  3 Sep 2026 03:30:37 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1788431446; bh=aIJuznfc9+x+T9t6CWjU8riug4jWFHnV2Y3X1zCinUQ=;
+	h=From:To:Cc:Subject:Date:From;
+	b=HcD41GFnI7IENNpaP3GqDjy6DF37NZr132PK5kJfK9CtOM3S1qk9y+fcKN3SUV7fv
+	 CcM7MKiGKbgjlj33bjiNiW6EInEK8eNPJw+PJmDcxUdsa3kYv2xrBMuqJaCxXVXbPK
+	 8bCqsp/QujWMcuoR0Bd78MRtwtmH8W61WUnmuzNQ=
+From: Muhammad Usama Anjum <usama.anjum@arm.com>
+To: Jani Nikula <jani.nikula@linux.intel.com>,
+	Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+	Rodrigo Vivi <rodrigo.vivi@intel.com>,
+	Tvrtko Ursulin <tursulin@ursulin.net>,
+	David Airlie <airlied@gmail.com>,
+	Simona Vetter <simona@ffwll.ch>,
+	Dimitri Sivanich <dimitri.sivanich@hpe.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	"James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+	Helge Deller <deller@gmx.de>,
+	Juergen Gross <jgross@suse.com>,
+	Stefano Stabellini <sstabellini@kernel.org>,
+	Muchun Song <muchun.song@linux.dev>,
+	Oscar Salvador <osalvador@suse.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	"Liam R. Howlett" <liam@infradead.org>,
+	Lorenzo Stoakes <ljs@kernel.org>,
+	Will Deacon <will@kernel.org>,
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+	Nick Piggin <npiggin@gmail.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Andrey Ryabinin <ryabinin.a.a@gmail.com>,
+	David Hildenbrand <david@kernel.org>,
+	Pasha Tatashin <pasha.tatashin@soleen.com>,
+	Chris Li <chrisl@kernel.org>,
+	Kairui Song <kasong@tencent.com>,
+	Uladzislau Rezki <urezki@gmail.com>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Alexei Starovoitov <ast@kernel.org>,
+	Daniel Borkmann <daniel@iogearbox.net>,
+	Andrii Nakryiko <andrii@kernel.org>,
+	Eduard Zingerman <eddyz87@gmail.com>,
+	Kumar Kartikeya Dwivedi <memxor@gmail.com>,
+	Ingo Molnar <mingo@redhat.com>,
+	Arnaldo Carvalho de Melo <acme@kernel.org>,
+	Namhyung Kim <namhyung@kernel.org>,
+	SJ Park <sj@kernel.org>,
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>,
+	Jan Kara <jack@suse.cz>,
+	Jason Gunthorpe <jgg@ziepe.ca>,
+	Leon Romanovsky <leon@kernel.org>,
+	Miaohe Lin <linmiaohe@huawei.com>,
+	Dennis Zhou <dennis@kernel.org>,
+	Tejun Heo <tj@kernel.org>,
+	Christoph Lameter <cl@gentwo.org>,
+	Mike Rapoport <rppt@kernel.org>,
+	Johannes Weiner <hannes@cmpxchg.org>,
+	ziy@nvidia.com,
+	pfalcato@suse.de,
+	agordeev@linux.ibm.com,
+	ryan.roberts@arm.com
+Cc: Muhammad Usama Anjum <usama.anjum@arm.com>,
+	linux-kernel@vger.kernel.org,
+	intel-gfx@lists.freedesktop.org,
+	dri-devel@lists.freedesktop.org,
+	linux-parisc@vger.kernel.org,
+	xen-devel@lists.xenproject.org,
+	linux-mm@kvack.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	kasan-dev@googlegroups.com,
+	linux-trace-kernel@vger.kernel.org,
+	bpf@vger.kernel.org,
+	linux-perf-users@vger.kernel.org,
+	damon@lists.linux.dev
+Subject: [PATCH v2 0/8] mm: distinguish PTE table storage from PTE values
+Date: Thu,  3 Sep 2026 11:29:52 +0100
+Message-ID: <20260903103002.1091859-1-usama.anjum@arm.com>
+X-Mailer: git-send-email 2.47.3
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <BN7PR02MB41483DDDB70A211BC320BE03D4AC2@BN7PR02MB4148.namprd02.prod.outlook.com>
 
-On Fri, Aug 28, 2026 at 05:22:48PM +0000, Michael Kelley wrote:
-> From: Yu Zhang <zhangyu1@linux.microsoft.com> Sent: Friday, August 21, 2026 6:27 AM
-> > 
-> > Add page-selective IOTLB flush using HVCALL_FLUSH_DEVICE_DOMAIN_LIST.
-> > This hypercall accepts a list of (page_number, page_mask_shift) entries,
-> > enabling finer-grained IOTLB invalidation compared to the domain-wide
-> > HVCALL_FLUSH_DEVICE_DOMAIN used by hv_iommu_flush_iotlb_all().
-> > 
-> > hv_iommu_calc_flush_range() computes the smallest power-of-two aligned
-> > range that covers the target IOVA region, producing a single flush
-> > descriptor. This may over-flush when the range is not naturally aligned,
-> > matching the approach used by Intel VT-d PSI. If the page-selective
-> > flush fails, the code falls back to a full domain flush.
-> > 
-> > Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-> > Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
-> > Reviewed-by: Jacob Pan <jacob.pan@linux.microsoft.com>
-> > ---
-> >  drivers/iommu/hyperv/hv-iommu-guest.c | 76 ++++++++++++++++++++++++++-
-> >  include/hyperv/hvgdk_mini.h           |  1 +
-> >  include/hyperv/hvhdk_mini.h           | 18 +++++++
-> >  3 files changed, 94 insertions(+), 1 deletion(-)
-> > 
-> > diff --git a/drivers/iommu/hyperv/hv-iommu-guest.c b/drivers/iommu/hyperv/hv-iommu-guest.c
-> > index 2169333020f4..3e38046bd998 100644
-> > --- a/drivers/iommu/hyperv/hv-iommu-guest.c
-> > +++ b/drivers/iommu/hyperv/hv-iommu-guest.c
-> > @@ -396,11 +396,84 @@ static void hv_iommu_flush_iotlb_all(struct iommu_domain *domain)
-> >  	hv_flush_device_domain(to_hv_iommu_domain(domain));
-> >  }
-> > 
-> > +/*
-> > + * Calculate the minimal power-of-two aligned range that covers [start, end]
-> > + * (end is inclusive). Returns a single (page_number, page_mask_shift)
-> > + * descriptor that may over-flush when the range is not naturally aligned.
-> > + */
-> > +static void
-> > +hv_iommu_calc_flush_range(unsigned long start, unsigned long end,
-> > +			  union hv_iommu_flush_va *va)
-> > +{
-> > +	unsigned int sz_lg2;
-> > +
-> > +	sz_lg2 = fls_long(start ^ end);
-> > +	if (sz_lg2 < HV_HYP_PAGE_SHIFT)
-> > +		sz_lg2 = HV_HYP_PAGE_SHIFT;
-> 
-> Use the max() function here instead of open coding it?
-> 
-> 	sz_lg2 = max(fls_long(start ^ end), HV_HYP_PAGE_SHIFT);
-> 
-> But maybe that's just more obscure. Your call.
-> 
+Hi,
 
-The  max()  form looks clear to me. Thanks!
+pte_t currently describes both a software PTE value and an element stored
+in a PTE table. Consequently, pte_t * can point either to a software PTE
+value, often a stack copy, or to a PTE-table slot. The compiler cannot
+distinguish these cases. A value pointer can therefore be passed to an
+interface that expects table storage, while table storage can be read by
+direct dereference instead of the architecture accessor.
 
-> > +
-> > +	/*
-> > +	 * A valid IOVA range shall not span bit 63. Use the maximum mask
-> > +	 * so the host can safely perform a full flush.
-> > +	 */
-> > +	if (WARN_ON_ONCE(sz_lg2 >= BITS_PER_LONG)) {
-> > +		va->as_uint64 = 0;
-> > +		va->page_mask_shift =
-> > +			BITS_PER_LONG - HV_HYP_PAGE_SHIFT;
-> 
-> This case is handled slightly inconsistently with the main case.
-> Here the entire 64 bits are cleared, which implicitly sets the
-> page_number field to zero and also clears the reserved field.
-> The main case sets the page_number but doesn't clear the
-> reserved field. The memset() in hv_flush_device_domain_list()
-> assumes that the reserved field might not be zeroed. I'd just
-> suggest making everything consistent and not doing any
-> duplicate zero'ing.
-> 
-Agreed. The caller already clears the fixed header and the range entry.
-I'd like to remove the duplicate as_uint64 assignment and explicitly set
-page_number to 0 here(for the overflow case), leaving the reserved bits
-consistently initialized by the caller. 
+This series begins a staged conversion at the PTE level. It introduces
+hw_pte_t as the element type for PTE-table storage and converts generic
+MM to use hw_pte_t *. Software PTE values remain pte_t. Interfaces that
+intentionally return a value through pte_t *, such as install_pte,
+remain value interfaces; the relevant parameters are named ptentp to
+make that distinction explicit.
 
-> > +		return;
-> > +	}
-> > +
-> > +	va->page_number =
-> > +		(start & GENMASK(BITS_PER_LONG - 1, sz_lg2)) >>
-> > +		HV_HYP_PAGE_SHIFT;
-> > +	va->page_mask_shift = sz_lg2 - HV_HYP_PAGE_SHIFT;
-> > +}
-> > +
-> > +static void hv_flush_device_domain_list(struct hv_iommu_domain *hv_domain,
-> > +					struct iommu_iotlb_gather *iotlb_gather)
-> > +{
-> > +	u64 status;
-> > +	unsigned long flags;
-> > +	struct hv_input_flush_device_domain_list *input;
-> > +
-> > +	local_irq_save(flags);
-> > +
-> > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> > +	/* Clear the fixed header and the single range entry. */
-> > +	memset(input, 0, struct_size(input, iova_list, 1));
-> > +
-> > +	input->device_domain = hv_domain->device_domain;
-> > +	input->flags |= HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT;
-> > +	hv_iommu_calc_flush_range(iotlb_gather->start, iotlb_gather->end,
-> > +				  &input->iova_list[0]);
-> > +
-> > +	status = hv_do_rep_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN_LIST,
-> > +				     1, 0, input, NULL);
-> > +
-> > +	if (WARN_ON_ONCE(!hv_result_success(status))) {
-> 
-> I'd suggest having a message here with the status. The list flush really
-> should not be failing, so outputting the status might provide a clue
-> as to what's going on if it does fail.
-> 
+The generic definition aliases hw_pte_t to pte_t unless an architecture
+selects ARCH_HAS_HW_PTE_T, which enables a distinct generic wrapper named
+__hw_pte_t. Some architectures define pgtable_t in headers parsed before
+the generic hw_pte_t typedef is visible. The structure tag allows those
+headers to define pgtable_t as struct __hw_pte_t * without creating an
+include-order dependency. This is required when converting s390, m68k,
+powerpc and sparc.
 
-Sure. Thanks!
+No architecture selects ARCH_HAS_HW_PTE_T in this series, so the
+representation and behavior of every architecture are preserved. ptep_get()
+keeps its existing READ_ONCE() semantics and converts the stored element
+through __pte_from_hw(). An architecture can later select the option and
+convert its PTE interfaces to make the distinction compiler-enforced.
+Architecture PTE implementations and most architecture code are
+deliberately left for those later opt-in conversions.
 
-B.R.
-Yu
+Here, hw_pte_t identifies PTE-table storage rather than table lifetime:
+complete PTE tables use hw_pte_t whether or not they are currently
+linked into a page-table hierarchy, while software PTE values use
+pte_t. The distinction between complete but unlinked tables and
+hardware-reachable tables was raised during discussion and remains an
+important point for review.
+
+PMD, PUD, P4D and PGD storage are deliberately out of scope. They can be
+converted in later series after the PTE boundary is agreed, avoiding the
+PMD-specific cases that made an all-level conversion difficult to
+review.
+
+Most mechanical pointer conversions were generated with the Coccinelle
+script included below, then audited and fixed by hand.
+
+This series does not add a second ptep_get_once() accessor and does not
+remove or replace STRICT_MM_TYPECHECKS.
+
+The design discussion is available at [1]; while the original idea came
+from [2].
+
+I've the patches here [3] for arm64 conversion which I used to find
+usages in generic code which I missed during development. These would be
+sent separately.
+
+[1] https://lore.kernel.org/all/6110202c-057b-4701-8c04-1a76ee7bb9ab@arm.com/
+[2] https://lore.kernel.org/all/a063f6c5-2785-4a9f-8079-25edb3e54cef@arm.com
+[3] https://gitlab.arm.com/linux-arm/linux-us/-/commits/pte0_arm
+
+Thanks,
+Usama
+---
+Changes since v1:
+- Name the generic wrapper structure __hw_pte_t so architectures can
+  forward-declare it before the generic typedef is visible.
+- Use software PTE value terminology consistently
+- Fold the prerequisite header includes into the generic storage
+  conversion
+- Explain why the NOMMU stub converts the stored entry without
+  ptep_get().
+- Rebase onto mm-new and rerun the Coccinelle conversion.
+
+Changes since RFC v1:
+- Add ARCH_HAS_HW_PTE_T so architectures can opt in to a distinct
+  PTE-table storage type.
+- Define the distinct hw_pte_t wrapper and its conversion helpers in
+  generic code instead of requiring each architecture to define them.
+- Read hw_pte_t through READ_ONCE() before converting it to pte_t.
+- Drop the previous mremap patch in favour of [a]. Apply [a] first if
+  it is not already present.
+- Drop the previous two dead-code conversion patches; the affected
+  code was cleaned up separately in [b] and [c].
+
+[a] https://lore.kernel.org/linux-mm/20260720141633.501799-1-agordeev@linux.ibm.com/
+[b] https://lore.kernel.org/all/20260730111316.3672672-1-usama.anjum@arm.com
+[c] https://lore.kernel.org/all/20260730094501.3002718-1-usama.anjum@arm.com
+
+---
+// SPDX-License-Identifier: GPL-2.0-only
+///
+/// Rename raw PTE pointer types to hardware PTE pointer types.
+///
+/// This is a mechanical type rename. It converts common declarations,
+/// function parameters, prototypes, return types and casts from "pte_t *"
+/// to "hw_pte_t *". Plain "pte_t" objects are intentionally left unchanged.
+/// Pointers named "ptentp" refer to temporary software PTE values and are
+/// intentionally ignored in all modes.
+/// Re-run in context mode afterwards to audit remaining raw pte_t pointers
+/// and cases that need hand conversion, such as trace macros and mixed
+/// declarations.
+///
+/// Confidence: Moderate
+// Options: --no-includes --include-headers
+
+virtual patch
+virtual report
+virtual context
+
+@local_decl depends on patch@
+identifier x != ptentp;
+@@
+- pte_t *x;
++ hw_pte_t *x;
+
+@local_decl_init depends on patch@
+identifier x != ptentp;
+expression e;
+@@
+- pte_t *x = e;
++ hw_pte_t *x = e;
+
+@param_proto depends on patch@
+identifier f;
+identifier x != ptentp;
+type R;
+@@
+R f(...,
+- pte_t *x
++ hw_pte_t *x
+,...);
+
+@param_proto_unnamed depends on patch@
+identifier f;
+type R;
+@@
+R f(...,
+- pte_t *
++ hw_pte_t *
+,...);
+
+@param_def depends on patch@
+identifier f;
+identifier x != ptentp;
+type R;
+@@
+R f(...,
+- pte_t *x
++ hw_pte_t *x
+,...)
+{ ... }
+
+@ret_proto depends on patch@
+identifier f;
+parameter list ps;
+@@
+- pte_t *
++ hw_pte_t *
+  f(ps);
+
+@ret_def depends on patch@
+identifier f;
+parameter list ps;
+@@
+- pte_t *
++ hw_pte_t *
+  f(ps)
+{ ... }
+
+@struct_member depends on patch@
+identifier S;
+identifier x != ptentp;
+@@
+struct S {
+...
+- pte_t *x;
++ hw_pte_t *x;
+...
+};
+
+@union_member depends on patch@
+identifier x != ptentp;
+@@
+union {
+...
+- pte_t *x;
++ hw_pte_t *x;
+...
+};
+
+@union_member_in_struct depends on patch@
+identifier S;
+identifier x != ptentp;
+@@
+struct S {
+...
+union {
+...
+- pte_t *x;
++ hw_pte_t *x;
+...
+};
+...
+};
+
+@fnptr_struct_member depends on patch@
+identifier S,f;
+identifier x != ptentp;
+type R;
+@@
+struct S {
+...
+R (*f)(...,
+- pte_t *x
++ hw_pte_t *x
+,...);
+...
+};
+
+@fnptr_typedef_pte_fn_t depends on patch@
+identifier x != ptentp;
+@@
+typedef int (*pte_fn_t)(...,
+- pte_t *x
++ hw_pte_t *x
+,...);
+
+@cast depends on patch@
+expression e;
+@@
+- (pte_t *)e
++ (hw_pte_t *)e
+
+@remaining_decl depends on context || report@
+identifier x != ptentp;
+position p;
+@@
+* pte_t *x@p;
+
+@remaining_decl_init depends on context || report@
+identifier x != ptentp;
+expression e;
+position p;
+@@
+* pte_t *x@p = e;
+
+@remaining_param_proto depends on context || report@
+identifier f;
+identifier x != ptentp;
+type R;
+position p;
+@@
+R f(...,
+* pte_t *x@p
+,...);
+
+@remaining_param_proto_unnamed depends on context || report@
+identifier f;
+type R;
+position p;
+@@
+R f(...,
+* pte_t *@p
+,...);
+
+@remaining_param_def depends on context || report@
+identifier f;
+identifier x != ptentp;
+type R;
+position p;
+@@
+R f(...,
+* pte_t *x@p
+,...)
+{ ... }
+
+@remaining_ret_proto depends on context || report@
+identifier f;
+parameter list ps;
+position p;
+@@
+* pte_t *f@p(ps);
+
+@remaining_ret_def depends on context || report@
+identifier f;
+parameter list ps;
+position p;
+@@
+* pte_t *f@p(ps)
+{ ... }
+
+@remaining_struct_member depends on context || report@
+identifier S;
+identifier x != ptentp;
+position p;
+@@
+struct S {
+...
+* pte_t *x@p;
+...
+};
+
+@remaining_union_member depends on context || report@
+identifier x != ptentp;
+position p;
+@@
+union {
+...
+* pte_t *x@p;
+...
+};
+
+@remaining_union_member_in_struct depends on context || report@
+identifier S;
+identifier x != ptentp;
+position p;
+@@
+struct S {
+...
+union {
+...
+* pte_t *x@p;
+...
+};
+...
+};
+
+@remaining_fnptr_struct_member depends on context || report@
+identifier S,f;
+identifier x != ptentp;
+type R;
+position p;
+@@
+struct S {
+...
+R (*f)(...,
+* pte_t *x@p
+,...);
+...
+};
+
+@remaining_fnptr_typedef_pte_fn_t depends on context || report@
+identifier x != ptentp;
+position p;
+@@
+typedef int (*pte_fn_t)(...,
+* pte_t *x@p
+,...);
+
+Muhammad Usama Anjum (8):
+  mm: introduce hw_pte_t for PTE table storage
+  mm: rename pointers to software PTE values as ptentp
+  mm: use hw_pte_t for generic PTE table storage
+  mm: convert PTE table entries in ptep_get()
+  mm: convert PTE table entry to pte
+  mm/kasan: use hw_pte_t for the early shadow PTE table
+  drm/i915: use hw_pte_t for PTE range callbacks
+  xen: use hw_pte_t for PTE range callbacks
+
+ MAINTAINERS                                   |  1 +
+ .../drm/i915/gem/selftests/i915_gem_mman.c    |  4 +-
+ drivers/gpu/drm/i915/i915_mm.c                |  4 +-
+ drivers/xen/gntdev.c                          |  2 +-
+ drivers/xen/privcmd.c                         |  2 +-
+ drivers/xen/xenbus/xenbus_client.c            |  2 +-
+ drivers/xen/xlate_mmu.c                       |  4 +-
+ fs/hugetlbfs/inode.c                          |  3 +-
+ fs/proc/task_mmu.c                            | 33 ++++----
+ include/asm-generic/hugetlb.h                 | 15 ++--
+ include/asm-generic/pgalloc.h                 |  6 +-
+ include/asm-generic/tlb.h                     |  5 +-
+ include/linux/hugetlb.h                       | 53 ++++++------
+ include/linux/kasan.h                         |  2 +-
+ include/linux/mm.h                            | 26 +++---
+ include/linux/page_table_check.h              | 10 ++-
+ include/linux/pagewalk.h                      | 10 +--
+ include/linux/pgtable.h                       | 81 ++++++++++---------
+ include/linux/pgtable_types.h                 | 19 +++++
+ include/linux/rmap.h                          |  2 +-
+ include/linux/swapops.h                       |  6 +-
+ include/linux/vmalloc.h                       |  4 +-
+ include/trace/events/xen.h                    | 10 +--
+ kernel/bpf/arena.c                            |  9 ++-
+ kernel/events/core.c                          |  3 +-
+ mm/Kconfig                                    |  3 +
+ mm/damon/ops-common.c                         |  2 +-
+ mm/damon/ops-common.h                         |  2 +-
+ mm/damon/vaddr.c                              | 20 ++---
+ mm/debug_vm_pgtable.c                         |  2 +-
+ mm/filemap.c                                  |  4 +-
+ mm/gup.c                                      |  9 ++-
+ mm/highmem.c                                  | 15 ++--
+ mm/hmm.c                                      |  6 +-
+ mm/huge_memory.c                              |  4 +-
+ mm/hugetlb.c                                  | 60 +++++++-------
+ mm/hugetlb_vmemmap.c                          | 13 +--
+ mm/internal.h                                 | 16 ++--
+ mm/kasan/init.c                               | 14 ++--
+ mm/kasan/shadow.c                             |  6 +-
+ mm/khugepaged.c                               | 50 +++++++-----
+ mm/ksm.c                                      | 11 +--
+ mm/madvise.c                                  | 18 +++--
+ mm/mapping_dirty_helpers.c                    |  4 +-
+ mm/memory-failure.c                           |  6 +-
+ mm/memory.c                                   | 78 +++++++++---------
+ mm/mempolicy.c                                |  4 +-
+ mm/migrate.c                                  |  4 +-
+ mm/migrate_device.c                           |  4 +-
+ mm/mincore.c                                  |  4 +-
+ mm/mlock.c                                    |  4 +-
+ mm/mprotect.c                                 | 19 ++---
+ mm/mremap.c                                   |  4 +-
+ mm/page_table_check.c                         |  4 +-
+ mm/pagewalk.c                                 |  9 ++-
+ mm/percpu.c                                   |  2 +-
+ mm/pgtable-generic.c                          | 20 ++---
+ mm/ptdump.c                                   |  4 +-
+ mm/rmap.c                                     |  6 +-
+ mm/sparse-vmemmap.c                           | 22 ++---
+ mm/swap_state.c                               |  3 +-
+ mm/swapfile.c                                 |  5 +-
+ mm/userfaultfd.c                              | 32 ++++----
+ mm/util.c                                     |  2 +-
+ mm/vmalloc.c                                  | 11 +--
+ mm/vmscan.c                                   |  6 +-
+ 66 files changed, 453 insertions(+), 375 deletions(-)
+ create mode 100644 include/linux/pgtable_types.h
+
+-- 
+2.47.3
+
