@@ -1,59 +1,70 @@
-Received: from LO2P265CU024.outbound.protection.outlook.com (mail-uksouthazon11021119.outbound.protection.outlook.com [52.101.95.119])
+Received: from CY3PR05CU001.outbound.protection.outlook.com (mail-westcentralusazon11013016.outbound.protection.outlook.com [40.93.201.16])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D41714CB8BE;
-	Fri,  4 Sep 2026 14:59:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.95.119
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 39A8B258EE9;
+	Fri,  4 Sep 2026 16:00:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.93.201.16
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788533992; cv=fail; b=Uxp4jacGNzpvc2cHmggd2xmAZ+YOPTJfRl9X4HKseG67rc4tHqjfhlZPXJqGPqlspGJUAkLkunHAImGzJLOPgTjXfQ7uhseoOxys6dqraFQ4h8MHbEUM9ZocH47mKwCjo4EZz0T2E90wMU5mTifaiUa+8y0Z9uC5/f0d2SAZIFA=
+	t=1788537619; cv=fail; b=MTtP2sEuCBtQEaLeXS333Oxk9d7+341hMQrdaThc5knlRcbUW+INWh5905+LVzJFmViqRu8LF2feFHDz7wCS/Cwq06V2SnTozds0eocXkLfVmapMs+s0UbjA14cmzb662AJwinAtnNRf8hh1EJzmcj+euofv+rMldOLH/mJjuI8=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788533992; c=relaxed/simple;
-	bh=LQ32kJh/jtonzqAuDO4mpStgy0HG50EUgHLOnBUnwLk=;
+	s=arc-20240116; t=1788537619; c=relaxed/simple;
+	bh=vOiSTDdLGAyJPxgIBG/PZtee9QAtl0XR/rDovedb0pw=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=Q23II/0tTJihEtPZyocEp23NU3TXbuaQ6vkTdXt0q+qwWQYrjuoOrU/3VoJfdHDaIkzJwyNR8sD+J/e1koak0xoK2hN97gzp36A2cXujHxzoMuNwoJ1B3PJ1bHCvUyC0Y5YDPw8+yq2Bxc0mMgyVjDHXXY0rAm+XwiSF6d4IYoI=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.95.119
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
+	 Content-Disposition:In-Reply-To:MIME-Version; b=hDgMDfZQVVz9QBAbjXsAQb0eLZBfcv/xfH6A0c9tcFbFG++oRCW3G1u/00mdIjNN6ZavSO9l0sXik9eQE4I7Ppos4szgiafyHS5ujqI/AOn472LanXWIseTyXbG96zNkJ+Rp9yPm3lz36F2SNVDYAlGdjuZqbZV5+iOxNQ5DqQg=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=gvWW3BhI; arc=fail smtp.client-ip=40.93.201.16
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="gvWW3BhI"
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=E4bxAUXrdFfef3f02laTF2UVH+fIyxFvmuw/yUeB9rW4P9KO+7/BVJBPoVSAb49lW8cHR0S8NjOKFUSiCf7+7MUTZiunTabXmdWM32ueBFTpt6OgoZvhgxxJqGJaCocDzSmnJM3AXiWn34GKk+CIBm3Mow7RrBckC0e1rzauxCY8xF7EyGCrjd60yjDxIVPPVQsNafq3zhv1eAyIUcb7gunWHAulOGPn9qFYwr9z9xa7WvWXBJINa+MeInn7nGRxDOQ4gznHlyn0y6C5Wa06LO+K6nVTfjV0nFA5m6iP1xT9Wj7mw2q5YviPvA/qLlKmU/tX7bsAwxEquYM1paj30A==
+ b=P7zR96oJc1JwWXQbSclXfqcTceTTZa6mxDPVM+CZdkIqJ13Z7PGcWil7nXemsbieCmqGW35GU0U4/RHyikSYRUTLLlkqHv0U7DE19C/iC2o+NQtim/YbcKZG2tw5T3MnH6wIIBGsV7iIu4trg01H7sS1aIkaTi27jMpaGhPk6+Axj/vwjJz62YwAquQHKVb2ryWnCXpSsrrTqoHsAKzLTvu87sXMGonycNS/ctgpOnfQLGhSiktKko6AxU4q7Eg3ubgkblqVySQgfBpkBbH3OAM03Fupv2Osup1ip5upZDCjZIxfMfAC5tmKSv8mgQvAXJTSvfIa8mkeqrpanCoXKA==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
- bh=miZfiHemO8Mc3gM4CMJw0JTJc6uXHYg1lLGpx67IMXw=;
- b=oBefJiBkRBvUrwEe6Ye2hfxDwDtADSkuzSPAHUquYWHFZj/nsV64nBC+KqZc5/JFuQ1hy9dGjhLjfaLowiSD+mVnCMb3WTDKpvHE+T4JIh2/U/XtJm/s51uy4jHTMgLDLtghdX1YNMCm8lK2UtXrldfvU2B54Yvl9e7t9kdt2xu5VykSUJsQvwrOUPAwzsbEbR0Pp0Js6CoD4a/F2ossrJ2AO8ftlSlVvEH+3R7AuW704To7syYi8tkTGzOLf+c533WQSbbpJ1vjVArYIezAsK+wfC64Dy7QtwnNfQ+lr+dX9MJx2KNkapUibFlYFK0zC6fs3WR4zNnbh83bJGIumg==
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=WisfPxbQJQ7TDJJHqC8qQmgkAFnmwETL6QTYfMAUrN4=;
+ b=h+xMXZIpNxYSXA6TgDhUO7xEjthNu6WUYFduwHv0E9aTF8PgZ07F+dcUjoe8Iimx/x8J8mhtGp+G00XePpKdEmNvkO4z2rKggI/1ImWhQLePg37tK2xlbotmfCY2D1G4zo58/Vd2J/xhaboraW4II0J9GMcxWQ4IpL2J4HBSdMmlxfO1PlUPsUPI+gsEb8hHPci4sklfLNJK/kH6AzYwRM47KgD6yqiA3pentgWZobrd2PhzMcQvtcoYGAbpdBvDS3hhIsUVsxb19+ugoAlghz/5OFAl/j7OdS7t6NXg7Uym11T//PuQMCYlkyiorJPsc6NJcStibEGWHo4RmTI0VA==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
- dkim=pass header.d=atomlin.com; arc=none
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=WisfPxbQJQ7TDJJHqC8qQmgkAFnmwETL6QTYfMAUrN4=;
+ b=gvWW3BhICwoQ4/ReEXGlyVNT1C2iCeTmnDYNdlt2kFQe/4/0izgW4ksKo8cxOpE3NzjtFy6xP5K2KN4M0hlQ667WuWhgcI3BWkJ/EgQsHx597W74jrlQzKDJB8Evgy6S5Ojo/hzsK5oT4TbH1fmlG+cAf0uL6OZ0CrVtApWDiyFkQ797C5hLry8WkAB71ReXsDu9IOXET96E0ZiPV1zR/q7oeAAtTkfRFe0VhYTt+Wj4Tr/nBCh4d6pcP6urIOdeXNjihwCkqKyE18PFkpikwYPhaflcB90SNlFzrqoj9VtR0INuzHQaisbtYhtoW5nbm2t7IYhXl5k03dh3rZfraA==
 Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=atomlin.com;
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
- by LO9P123MB7690.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:3eb::8) with
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from LV8PR12MB9620.namprd12.prod.outlook.com (2603:10b6:408:2a1::19)
+ by PH8PR12MB6772.namprd12.prod.outlook.com (2603:10b6:510:1c7::7) with
  Microsoft SMTP Server (version=TLS1_2,
  cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.360.13; Fri, 4 Sep
- 2026 14:59:46 +0000
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0360.008; Fri, 4 Sep 2026
- 14:59:42 +0000
-Date: Fri, 4 Sep 2026 10:59:38 -0400
-From: Aaron Tomlin <atomlin@atomlin.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: arnd@arndb.de, mcgrof@kernel.org, petr.pavlu@suse.com, 
-	da.gomez@kernel.org, samitolvanen@google.com, peterz@infradead.org, ojeda@kernel.org, 
-	mhiramat@kernel.org, boqun@kernel.org, neelx@suse.com, da.anzani@gmail.com, 
-	sean@ashe.io, chjohnst@mail.com, steve@abita.co, mproche@mail.com, 
-	nick.lane@mail.com, rishil1999@outlook.com, linux-arch@vger.kernel.org, 
-	linux-modules@vger.kernel.org, rust-for-linux@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v10 0/2] module: Extend module_blacklist parameter to
- built-in modules
-Message-ID: <ultg4rym4phqwqrbuz3hqtlse2lgafxebx3un7s3tdht7rz5xy@3ckauomiwqsy>
-References: <20260903185557.183224-1-atomlin@atomlin.com>
- <20260903132924.7a4d1b84791d30c706b394a1@linux-foundation.org>
-Content-Type: text/plain; charset=utf-8
+ 2026 16:00:11 +0000
+Received: from LV8PR12MB9620.namprd12.prod.outlook.com
+ ([fe80::299d:f5e0:3550:1528]) by LV8PR12MB9620.namprd12.prod.outlook.com
+ ([fe80::299d:f5e0:3550:1528%4]) with mapi id 15.21.0360.008; Fri, 4 Sep 2026
+ 16:00:11 +0000
+Date: Fri, 4 Sep 2026 13:00:09 -0300
+From: Jason Gunthorpe <jgg@nvidia.com>
+To: Logan Odell <loganodell@google.com>
+Cc: arnd@arndb.de, pasha.tatashin@soleen.com, rppt@kernel.org,
+	pratyush@kernel.org, graf@amazon.com, akpm@linux-foundation.org,
+	pbonzini@redhat.com, maz@kernel.org, oupton@kernel.org,
+	seanjc@google.com, bhelgaas@google.com, alex@shazbot.org,
+	kevin.tian@intel.com, dwmw2@infradead.org, baolu.lu@linux.intel.com,
+	joro@8bytes.org, will@kernel.org, robin.murphy@arm.com,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	kexec@lists.infradead.org, linux-mm@kvack.org, kvm@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev,
+	linux-pci@vger.kernel.org, iommu@lists.linux.dev
+Subject: Re: [RFC PATCH 0/3] liveupdate: Move to feature flags for LUO and
+ memfd ABI compatibility
+Message-ID: <20260904160009.GV4157646@nvidia.com>
+References: <20260903023452.721732-1-loganodell@google.com>
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260903132924.7a4d1b84791d30c706b394a1@linux-foundation.org>
-X-ClientProxiedBy: BN9PR03CA0505.namprd03.prod.outlook.com
- (2603:10b6:408:130::30) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- (2603:10a6:400:183::5)
+In-Reply-To: <20260903023452.721732-1-loganodell@google.com>
+X-ClientProxiedBy: YT3PR01CA0126.CANPRD01.PROD.OUTLOOK.COM
+ (2603:10b6:b01:83::22) To LV8PR12MB9620.namprd12.prod.outlook.com
+ (2603:10b6:408:2a1::19)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -61,196 +72,85 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LO9P123MB7690:EE_
-X-MS-Office365-Filtering-Correlation-Id: f3fcca10-b044-4d8b-fa30-08df0a95269c
+X-MS-TrafficTypeDiagnostic: LV8PR12MB9620:EE_|PH8PR12MB6772:EE_
+X-MS-Office365-Filtering-Correlation-Id: cfa9b40b-c6ce-401b-5f7c-08df0a9d999a
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|7416014|376014|23010399003|1800799024|366016|5023799004|6133799003|10067099003|4143699003|18002099003|22082099003|56012099006;
+	BCL:0;ARA:13230040|1800799024|7416014|376014|23010399003|366016|11063799006|56012099006|10067099003|22082099003|18002099003;
 X-Microsoft-Antispam-Message-Info:
-	nlF1odgiiHtxKkUMBsRUrk/7fRPotvdyFBIrcHT6pnz9ZNYVhkknnqSMi+z5QvJ8yzkcWTyTECSk2mpT5/3Sclx2ii8yOo1RvRauTen0IspnqS2DYg21HviuBFh/aZg7lCK4dWpJP8LGNcZxrpYx8n6wKp0qsOtW8C1A+xU1eu7HP139UaDoE938HyEYfoeCFPCNfMTdzPCK4SoVqppazms8A6zfRaTmRa2omhAvsxHW8lq9GgRzyk32fsh4qvkcL59pYGQwaZdySDWQeIj+ZfEMaLC4//cIOywpOkBo4dI3pmbXmFnO3KwE57Q3TTb/2kX8kp5xpuvjAqDjzqxrkhY7gFVT4W4eyeKIvdB24CxVNuKg079kN7rTpfgoYdtBI4CN4khq36RU6vFIULGXFGSKtEqkEo5HBPFrmdXbO/h3OEyabbuvV0z1nH+voGa5j18soC6fCKR3C1gfeH7L14yuIwjdJPxHXUOQj2NMO8AEPU1az2x4RzXUcFZjS8TUEPh17KCAWzbxB5oN//s/xfPjPS0SHYC8nxHo5uGhnN7A5xyZoor0TIgL7fc9zcRL9EHudVpPZ1Y0HnhSjFJbnl71BvzqBP49rhkN7ZdwS9nykZUs8QeuWC5/ZCrVYcNzYVKXC2PsW5nB4PEU0pVoBDiHW3UHpG+CbBP2eDAHfYk=
+	c1F5s7/JCC6wWnKfOceMxpvxGfhciNBegPTQUfHiHL6vdTVr90mbs40Jt8X7/cTHsglFxz/pP/BQEKTV2d/QF/LCOjvspiPsYoh5PP7m8QcfmeNReKq+FLnbDU86YqC2/zqm0cryA9ITOrjfuVpr7k8HHbxEagx90XP/NbhO543i9Eaaf7o/O0CyTdVmYTMXZ5OqlS8hUjoGW9C9QkTYGnymAgZKR1KS62mbRzIRwPDPPnRTFHI5J9RVqDb9CIlpFuPZnEvLsC79xgAjgKU8+ITNb1zttBZWg25xmyXkeEKPBOZQHqJ+Ukm8XBnf5PLD/2PYeXKiw70fvVscdkXWP51e81kt8gh8cR8ADpuk+xSaL4+2kSEaiYLw/TT0GpDMgkhgbZ+hFdJDow8J06PtlY7O0ovGEZg7FQugPhDukqC7Kp2ZlJ0VuHsExxGxiJAlE2EnQAqykUiGg65Edvts7HO7C6lJZk1UUcKLTrN3t0PR8HeUqrMp0FVtf9VrOU8cSKROYzuGKsSUjRDTiVTA2QFj++QJZRNTmFfwlJ2o3PH0/JYySXxG7F4LTtWtozZstQqDmE4S6rdkBE6VwrXtjZ8aMxvUDBplspdLg/GcPx3mFCcFC4scHI6N9S5Gl5qN27j/HgqCkyaKZDyJvluPRjVHlocBbRJMR52+HJas1Zo=
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(7416014)(376014)(23010399003)(1800799024)(366016)(5023799004)(6133799003)(10067099003)(4143699003)(18002099003)(22082099003)(56012099006);DIR:OUT;SFP:1102;
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:LV8PR12MB9620.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(7416014)(376014)(23010399003)(366016)(11063799006)(56012099006)(10067099003)(22082099003)(18002099003);DIR:OUT;SFP:1101;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?TVJmM0pqcmZkZ0F2cjBtNDNGTTlmYWpXNVROaUZ4QUJacXdWanNsaSsyNEdh?=
- =?utf-8?B?ZTk4N1dSdnpGeWRZazl6TGZ2ek5vQkZHVEhScXpaQUU4VStlQ3N6aFBQNlI0?=
- =?utf-8?B?SEh5VEpwTjM0d05YNjFMdms2aWhwUWxmamZOQjJpcDcweE8rTEdCT3V5VUR6?=
- =?utf-8?B?YkNvVDZDMWMzQmNwcmRkZnBja2gwTzJtS0tVTGtzRUxPZ0U3dHJNVVVLMk14?=
- =?utf-8?B?bXFBNW5UOFB5MUQvR3haajhNcE01THRLTWM4cE1XWDl3RlRtUGdGUUt3N0ZW?=
- =?utf-8?B?ZCtHMFdycU5iMHZ4NFNOTVhPRXIyTmtRcW4yLy9CeTU2OGQzZDgzTXpKcVNa?=
- =?utf-8?B?SlBEYmgxcVZPUDhiUTJUNFZzRW43SnZGWmgra1BucmNZTDJoVnl5KzM4Mnls?=
- =?utf-8?B?NDRlajJNRmc3TnVmckVreXp2Q2t6YU16MlVqUTQvQnpmd0hic1pxTjZDY1E3?=
- =?utf-8?B?cmJWUlE3eXpRVHZXM0hqVEJQTlRVaVlKRXdWVkhmT2o5WnBidkxoZkV3Q3F6?=
- =?utf-8?B?NVFxZ2c0YjQ4VFg0ZG1UajYvejVuNWE1MUo1TW9kaVgzWkFmZHVISmRZbXE0?=
- =?utf-8?B?NUtsRGlycjZaOW1wc01VOWRibHdlOUVPTDdaS00wTDByejFzTTBlUHgwUmVX?=
- =?utf-8?B?RzB3ZDJSeEpZQmZFeDZZL1ZPUjBzZ2pNSnZZVzJFSW5pZWpOeW95Z21VUGZL?=
- =?utf-8?B?STBjVmhNOWZjN0VGaTdzUHdUY1FvcnFZaGFDa3N2TmcyNFpPaWYzWW96N2h0?=
- =?utf-8?B?dVcvNHRVY2VMTWJkVnkzU0lJM2ZJWmdBTGlmcDZLanpNZEpuWlVPRWdxY28x?=
- =?utf-8?B?MTNUeE1jMlhwTEhGRnFWRHJZcjlKRFREa09SQlR1UHdKTldod0NNVmhyemVX?=
- =?utf-8?B?MHVZNUpVZ2xMSTlsSmkwclVJSVVTdC9uS3p0MnFsQVY1LzU4UmZRbTJIVXVH?=
- =?utf-8?B?SjlWSU5TVDRsSmIwdmFEOXlSRGROT2Z5NW5GWjlQeHArVVQwaXZYdUgzZ0hD?=
- =?utf-8?B?dlVRcFZXUGVIdWlVK0dhNGcxb0Q0aFpTR2ZkV1hyaUh2cmxSYS9ud1ZDcm9L?=
- =?utf-8?B?Z1pObmVXL2c0SiswV3VhYURVRWU0K29OQWpoMktuZ29BYm1zNFVWR0FMNWho?=
- =?utf-8?B?ZkpnNFBVWEl5UGhCNEJKS0kxd25FV3VsUkdvRjdMTTVDTG9Gb29xS2JBRlZL?=
- =?utf-8?B?Z1pJMUhTUENseEpZOW03aHZwUFFhd2VrQXdaeitnNEVDaGJ2SUZzY0RYV2xW?=
- =?utf-8?B?dnhodG5nU3Q0R05LdTJ1V2lqNW5xMWRFaTJhSjRwMzFQcUxvY3NrMHVqYVYx?=
- =?utf-8?B?R3d5bjRyYkg4bSsvZVBQZDNIbHQ2bldYcHBnMlNoYXVQS0ZXV2oveW12OUEx?=
- =?utf-8?B?QktNM2c4Tjk2b0JyS1dBQnEyNzhLWjJ5c2xELzVzaFVjbU9XenlEczFsb2Iv?=
- =?utf-8?B?UFlWN2dtUmNPZDZyQUYyNGx3cGxYRW9wMURnbVRHLzZjeXgxWENjcWc3S2s1?=
- =?utf-8?B?cGVqTzNkQnJPY3FVbDFmOGdwQ1h2NTg2VmhRbHVSL1NIeGhyNkpDQTBIR1BR?=
- =?utf-8?B?NDE2TXRzYkRNRElsZEdWcHRIS3N1dmo2dWRnQk8wblZyY1pQczUxVTVOeXBF?=
- =?utf-8?B?enhpcXpBWXJPbkFaNGgzS3pwNE1VMXBTS3lReGErWlEzQy91c0hDVFV5VDlw?=
- =?utf-8?B?dExWSEQ5MDJvL2xnY05OZ1p2L0g4Y1VjRy9Cdi9RNjVJclJNQ0lzV1JVNFhk?=
- =?utf-8?B?VVFzSEdCcHFPWEJtQUxWMXcvakNUeWI4c002dTBSZzlaMmxTeDc4czdOUS9y?=
- =?utf-8?B?emw5S0U1ZXd2bHd3dFIrSVE4bTViZEVEQ05CRjlxWkRZZ0VrMTgzR2ovNjUx?=
- =?utf-8?B?UGRJNVJHL1YxNDBIcXM5bFBRR2x2L3U3cmZBQlc0NXJUUGlkQzJ3M3daU3Qr?=
- =?utf-8?B?Uit1Rll2SEoyNDZHWXRkeG45RFlSS0FhRTVFWW05RWxBcFB1ZmE2UUgxbGY5?=
- =?utf-8?B?UGdsV00vL2thNHpWSmw4TVhvd3RoazAzQnFMam1hcjhHNXFLaTcwUDVWVU13?=
- =?utf-8?B?QnVLb3NOeVB4QkY3dUdadWJGeC8ycXM0OW5nblk3M2tYOHZtN1B5U0pmNCto?=
- =?utf-8?B?Y3psM3FQNlg3cThaZkY3c2ZJTHhPam1RNHNjMS9aRXRHN0NYMGhsZkxaam9y?=
- =?utf-8?B?S29jbXc3NERZeExHTWRYMU10ajQwTUR2SnB0QlR0V01SQjFVeVpXTkNEQlFy?=
- =?utf-8?B?WGRDVHJUYTRKZVRyTHVadW5qcjZJUnFrQS9pQnhZMHUyT2ZhazFhODhiQkgy?=
- =?utf-8?B?dkZFVkxTb1l4aS9kNXd2UmZqWEw0dHpSOEVNS0R3VDBhTGVNSkZPdz09?=
-X-OriginatorOrg: atomlin.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: f3fcca10-b044-4d8b-fa30-08df0a95269c
-X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+	=?us-ascii?Q?xV5sl24cOng/+JXfKVV+LpvyukxPrPvydPS/6gUXIv8OPVUoFbSED6nAKr6U?=
+ =?us-ascii?Q?ig3NhsIPud/LTHR44SHYWQ5ezyu99GAzvgHT+5gItsXZ4n4P5hDrhhhSJjzw?=
+ =?us-ascii?Q?F5RM8icwxbLQequ1f3QXcU1t6OzwjfTBFkAGnUW31B76c7+rZ4BEjcqVJcCh?=
+ =?us-ascii?Q?MW+IjMKVBIdxC7J1XSccQEILKba4a51OhK6tFQqzJrwTR//HnvlBn42jkAxN?=
+ =?us-ascii?Q?se5C1kljO1CS/ZYW4SM3Z5xXXoDAJw2iwm0qrBFf/fuxRrPZ/lA7P5HFCWSs?=
+ =?us-ascii?Q?9kLaBl+Cz+KJT0WACsw/bmWlnome3lDytqxkXtekzoRY6SCb/wGxRqGByBGw?=
+ =?us-ascii?Q?cTOnLa1O30aJS6yCxkM4tVnOhi2r1Ks/p593fjRMUedZoiqesmKs0PuhgXY/?=
+ =?us-ascii?Q?TlNQ5ST9ohavmeStTg0C5P8gomlqmEGmbTx8GrR3pXt/YyCdtMNKjgsB3U2a?=
+ =?us-ascii?Q?Y/cySKJqYmPgx1VItcpP3WxnRv3rnyZgqiFHV9jtb/aaRM+cXFeJ2m/Iicb9?=
+ =?us-ascii?Q?eSeQHjcgf8Ho6q3zbh64P1dJMKMn8velA5hwJcsjSVtpKfossGjy6tQuH7Lp?=
+ =?us-ascii?Q?e2RPBeFOHzbkUjYEGRjr6g5n+KEMRLdc5VKr0TgejbNsfbZBkPhRzfTNASq9?=
+ =?us-ascii?Q?ZiLWAOutMFSXW/gIJXfxL8XaGQZ3eDhf9zImq2cUj2/4vM/yUfC7DK4uOASw?=
+ =?us-ascii?Q?UBovpc9VHielk5AJfJbvEJS0zLWGhi2g8Opvr3TUeVLgRJOIWHny72a8Vgfh?=
+ =?us-ascii?Q?VPDFJHvBXcYLYg92JlPKFWcTAqzoDg+o6f9o2OpyI1TZxegrvWYzjhsUuueL?=
+ =?us-ascii?Q?oYNJNup/qOt6iN1wvV3e+zZEHHykYKncqUflCs1YIfz1MS/ilkI+SbZ+iZna?=
+ =?us-ascii?Q?Ubh860vrgetZeYadBmidAG1oQ71QOQS5kdopI09ira3HzCk9We+QSHdX/nSm?=
+ =?us-ascii?Q?Uul62+VSfo4w8K3R+lj1oUYUvtn6GiKzGV9gvouWeVszdlQrJAO4BfnWWg1D?=
+ =?us-ascii?Q?C1wRBuzpAlrvMESJ39YwxXCUawHaHf2e/6Hql5Xh3eoMtlcR1sJRu6EH6Fhy?=
+ =?us-ascii?Q?HcYnOAI3zXHd3MiFZJsoePbtGGxrusaJd4S49TQKAEMGahwiy812+n+DfrHx?=
+ =?us-ascii?Q?XWevVpwJzTwcFDX1SE401Bcu4faYOgBZ73RtEzledDBSQ6KX8hVma02Wlo41?=
+ =?us-ascii?Q?C/x+v6qlKtOXXQ12pFspnTXiaN8uLX4w1yfD8KEm9yRkzstgp1TQbLprv/pi?=
+ =?us-ascii?Q?exScVHGVpT6/Qs1f9EsLKL3srJvW6qgSnzWJCshVHONBz4206BpmNGQV8sBb?=
+ =?us-ascii?Q?JZR01urlOqkuYrZdaiZYXXNXOpm3ey/xo5u92sY4q6eOh+psBzE3USq4+yU7?=
+ =?us-ascii?Q?wtBq/av3ZsecegOOAXwvop40IWxNfBV5S1E8W+gS6MENOvwcreVlsDndmPuu?=
+ =?us-ascii?Q?f7gRRoNA3lpA1qvVQk/pQUDimVo78OJVozp8gwY3/KwKALfH0vlcbSt4S1fI?=
+ =?us-ascii?Q?8b/GYswBpPg1b6UxEXFKd36fHveuP4/xLRHIsVvSwFzdu9qDEqyDpCScsaDP?=
+ =?us-ascii?Q?aTTNmYE9tyXQkzLgjVheELag0z+tyfHmzkwUIZV1hYljypL1MvKvv4o0PsAJ?=
+ =?us-ascii?Q?lWb7nSzA+12aiBGKlcBUDLl1iOhxP/eU96hmpK+6BuUgztKNUYmJ9J9u0f57?=
+ =?us-ascii?Q?xpbQfmtrnx4ZsHJKvTAiDs/ocsQ3wd8gd54iwLC5tw4EedA5?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: cfa9b40b-c6ce-401b-5f7c-08df0a9d999a
+X-MS-Exchange-CrossTenant-AuthSource: LV8PR12MB9620.namprd12.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Sep 2026 14:59:42.6935
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Sep 2026 16:00:11.5213
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: Rs3nYcNb9fhsDYVQkL6UHpI5OdTdeYmWw4XjhkDyhcT363/qD9WPZ/WqbUDaBYRyr3aBFS0LrunPR7XFqnna/w==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: LO9P123MB7690
+X-MS-Exchange-CrossTenant-UserPrincipalName: rWdojgZNSskNuyGNN+ISFbG6xbEC5yT8H16EoHvt4xWi+RHq5Wshm8JQxguaRiwy
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: PH8PR12MB6772
 
-On Thu, Sep 03, 2026 at 01:29:24PM -0700, Andrew Morton wrote:
-> On Thu,  3 Sep 2026 14:55:55 -0400 Aaron Tomlin <atomlin@atomlin.com> wrote:
+On Wed, Sep 02, 2026 at 07:34:49PM -0700, Logan Odell wrote:
+> We're including maintainers from all subsystems that currently is or
+> will be expected to participate in live update to ensure alignment on
+> the path forward for compatibility.
 > 
-> > Currently, the "module_blacklist=" command-line parameter only applies to
-> > loadable modules. If a module is built-in, the parameter is silently
-> > ignored. This patch series extends the blacklisting functionality to
-> > built-in modules by intercepting their initialisation routines during early
-> > boot.
-> 
-> Why?  What are the use-cases and what is the value of this change
-> to our users?
-> 
-> Important, so please don't skimp on the details.
+> Currently, Live Update Orchestrator (LUO) and its file handlers rely on
+> monolithic compatibility strings (such as "luo-v5" and "memfd-v1") to
+> validate ABI compatibility across kexec live updates. Any modification
+> to serialized structures requires bumping the version string, which
+> strictly breaks compatibility between adjacent kernels even when changes
+> are additive, backwards-compatible, or optional.
 
-Hi Andrew,
+That was the intention, I aruged strongly that upstream does not want
+to maintain a CSP matrix of endless kernel version combinations. That
+is far too much work to push on maintainers. Upstream would do much
+less, maybe only same-version, depending.
 
-Thanks for asking.
+> This RFC series transitions LUO and subsystem file handlers to use
+> granular feature bitmasks instead of compatibility strings. We replace
+> the compatibility string with a header structure that includes some
+> reserved space to define the features that are included after the
+> feature.
 
-Here is the rationale, concrete use cases, and the value this hopefully
-brings to users and administrators.
+The compatability string is only a small part of it, you also need a
+serializing ABI that can handle some random mixmash of these
+features. Ie the various TLV schemes that were all proposed. What is
+the plan here?
 
-1.  The Core Problem and User Experience Gap
-============================================
-
-Today, module_blacklist= works strictly on loadable modules. When a user or
-system administrator encounters a driver bug, hang during device probe, or
-hardware fault during boot, the natural and widely documented remedy is to
-pass module_blacklist=[driver] via the bootloader (GRUB, systemd-boot,
-etc.).
-
-However, if that driver is built into the kernel, the parameter is silently
-ignored. The kernel proceeds to run the driver's initialisation routine
-anyway, leading to the same panic, hang, or hardware misbehaviour.
-
-From the user's standpoint, whether a driver was packaged by their
-distribution or built by their provider as =m or =y is an internal
-implementation detail. Having module_blacklist= silently fail solely based
-on compilation configuration violates the principle of least surprise and
-complicates system recovery.
-
-2.  Why initcall_blacklist= is not an adequate substitute
-=========================================================
-
-The kernel does provide initcall_blacklist=, but it is impractical for
-general users, sysadmins, and automated fleet management tools for several
-reasons:
-
-    Obscure symbol names
-
-        - initcall_blacklist= requires the exact function name of the
-          initcall (e.g., snb_pci_uarch_init and e1000_init_module). Users
-          typically know the module name, not the internal function name.
-
-    Internal instability
-
-        - Initcall function names are internal kernel implementation
-          details. They change across kernel releases, refactors, or macro
-          rewrites, making it impossible to write stable bootloader
-          configurations or recovery documentation across multiple kernel
-          versions.
-
-    Mangled names (Rust)
-
-        - For modern drivers written in Rust, the initcall symbol names are
-          compiler-mangled symbols (e.g. "_RNvX"), making
-          initcall_blacklist= practically impossible for a human user to
-          specify manually at a boot prompt.
-
-module_blacklist= (or module_denylist=) resolves this by allowing users to
-specify the canonical, user-facing module name (KBUILD_MODNAME) that they
-already know.
-
-3.  Concrete use cases
-======================
-
-    A.  Disaster recovery and triage on production systems
-
-        When a kernel update introduces a regression in a built-in driver
-        (e.g., a storage controller), administrators need a way to bypass
-        that driver at boot time to get the system into a usable emergency
-        shell or collect diagnostic logs, without having to rebuild the
-        kernel on another machine.
-
-    B.  Monolithic/Hardened environments (CONFIG_MODULES=n)
-
-        In security-sensitive environments, kernels are frequently compiled
-        without loadable module support (CONFIG_MODULES=n) to eliminate
-        module loading attack vectors. On these systems, all drivers are
-        built-in. If a hardware erratum or firmware bug triggers a hang in
-        a built-in driver, administrators previously had no
-        module-name-based mechanism to disable the offending driver.
-
-    C. Hardware Errata and Conflicting Devices
-       On systems with buggy firmware or conflicting device IDs where two drivers
-       attempt to bind to the same hardware, users can prevent the conflicting
-       built-in driver from initializing without patching and recompiling the
-       entire kernel image.
-
-4. Implementation and Overhead Considerations
-=============================================
-
-We took great care to ensure this change introduces virtually zero runtime
-overhead:
-
-    Scoped to module_init():
-   
-        - Only built-in drivers that explicitly use module_init() are
-          tracked. Core kernel subsystems using core_initcall(),
-          subsys_initcall(), etc. are unaffected.
-
-    Zero Resident Memory:
-   
-        - The metadata table (.initcall.modnames) and the module name
-          strings (.init.rodata) are placed entirely in init sections and
-          are completely freed from memory after boot via free_initmem().
-
-    Fast Path:
-   
-        - During boot, if neither module_blacklist= nor module_denylist=
-          was supplied on the kernel command line, the lookup is bypassed
-          entirely.
-
-
-In summary, this patch brings parity between modular and built-in drivers,
-removes a pain point in boot-time disaster recovery, and provides users
-with a predictable, consistent interface.
-
-Thanks,
---
-Aaron Tomlin
+Jason
