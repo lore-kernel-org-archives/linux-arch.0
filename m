@@ -1,37 +1,37 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 953114F30E7;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B0AC24F4733;
 	Sat,  5 Sep 2026 18:13:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788632020; cv=none; b=flY2p843qTdhI1ZUwolm6ck4iPpVs0XSWGWgve9RmOz7gk10GthVRBhABlsvDBuctXiq83107H8/4LtaezWbUY80fDV+sXjn72abPgvHzpprh6+wvNNsri8lIa38X9aR0xl+K5E5ziMcTgpsYx/LiSaIN/oZRXCZih4YkIUQymA=
+	t=1788632020; cv=none; b=jf1jgsQz0xiaMC49od4V48QAjzbQWLfWiyRJkz6wgLPbdvoKXoQuY9y4Z833ZW5YTq13ZJmi6AskNLeCAG7mD4YjWc6b8l3IhC6Qam0LMS9IWO/Fz8QHwG79vhvfo8EjaGcz2mQ9bB4P6QGoKvxNk3e5u7xxxYxktos4X47aRqE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1788632020; c=relaxed/simple;
-	bh=pv9RuonqNYo3AzOvwPP3dOHmyzUbuqx9/doej0kXmOg=;
+	bh=/TSf4cfwRiWoLBn1QpiIpPf7eaHrbRpB7P6ajEP2eVw=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=odDd+f6GtMRBZ/3hBJDFJ8kdDlW7u21iFyXWzr5uhe6qHt41u36m1khgrJ5x2EWrZUNVq5ZE5Ez8z3LPWkCQsommGQ/3AipYP2JG9PKQSU8GaZjavtOf4j3pvAHeEXexLsiQ3pvrIWUUTXJHfzyQUePF/SRy++MznCq1m30/dvM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=HF+jxrxW; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=B7+/7Dfs8H7pQ40rIMh+RgMSBF5Zu+YgqHtF6fDK+2AHOkL6Xxn34EokEF4vXgDIjs1mu4dkMWvP1lXlJtocZKLHaQ5ey4xyRYWFrRE2+jogQ4sRx0ReNwhiyNP15ld96s0TfWd81FVd9L4tEU2IbmUPtbIbCu/lrrE2h28Z/F0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=p2pdoVI9; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="HF+jxrxW"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 709ACC4AF16;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="p2pdoVI9"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 8FE52C2BCB3;
 	Sat,  5 Sep 2026 18:13:40 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1788632020;
-	bh=pv9RuonqNYo3AzOvwPP3dOHmyzUbuqx9/doej0kXmOg=;
+	bh=/TSf4cfwRiWoLBn1QpiIpPf7eaHrbRpB7P6ajEP2eVw=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=HF+jxrxW8LO35awaHB6Bk9Gpko5Va9DrFbtnbKagONZGwlTsM9rmypuw8QvifE7YD
-	 t/Y55GI5P5Ds32t5FZmSM0YonaGMo69jpiH4w7K5nUtAZFxpO9DgPRDsieCD5fBanX
-	 sWCPCcRdWg1zr8FiPt8Lsr7IRxkQzw9Xnrv3SLkA+gVql2s6dGjNU2B2WAWohx5cS1
-	 C+v3SpoUobaocuURMZ4JR1GgjdSDhkLW9awOfS/boYlD6B49DrBocAycDl2zgDKsXG
-	 YKwpGtAQPXp6KrBOkSoyLnzP+sc8sqcjBnbI7nd1zxC3FgAjF3Qo1basvh7cjRZE4d
-	 yzSenoGZCTaNg==
+	b=p2pdoVI9BE+AUU4CUWAdlLUgwnicGyLNI6jVvR9TVcchxhsFEd972ZAwMR+V485PP
+	 Caa8NuYqdPconJAdf/zbjOowOLllzyELfvNFIgcfV3UX1uQ0bDMrXWelChOKjvoBsq
+	 OR+dtbqkvgfiAeyTFvwhQIIFkDn8ExPzkxMknnWSIbU86db/4pOJF4HUL0W327WGi7
+	 Qi3I3h7cEYWvGWN2jkPypcrbe695KuSvd3TQugl8qvDTosfRYElL62whHXVjothg/4
+	 +UxOMX/RDr0vBf1DI2Dx3dlZYYQv7f3o0AT9Yshd3ZuEHAC6O+ypHIQLoQ4pgjhpKX
+	 IDcDU03oZuViA==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5EAB9C79F91;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7E1BEC624D6;
 	Sat,  5 Sep 2026 18:13:40 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Sat, 05 Sep 2026 12:13:28 -0600
-Subject: [PATCH v8 14/43] dyndbg: drop NUM_TYPE_ARGS
+Date: Sat, 05 Sep 2026 12:13:30 -0600
+Subject: [PATCH v8 16/43] dyndbg: reduce verbose/debug clutter
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -40,7 +40,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260905-dd-cmap-part2-clean-v8-14-a4cc0674f6fd@gmail.com>
+Message-Id: <20260905-dd-cmap-part2-clean-v8-16-a4cc0674f6fd@gmail.com>
 References: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
 In-Reply-To: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -60,11 +60,11 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  linux-kbuild@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>, 
  Louis Chauvet <louis.chauvet@bootlin.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=1542;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=5249;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=xMZm/oO0FtfekjkxZIUS9OIoDKqTmliEkK4gwpH/mIw=;
- b=sEKYRhRglsX4mh7D02OUy9Gvcco2+KRCe9j9fIg0iG8SKZYisD96Ps+nFsc1csySQZHpwNX3d
- QUI8+a56jdWAnNXOeHZZqVOINb3xaDD9opKDJ7P2vyY3/bzOPEzOBEi
+ bh=t37j4WX9rmGZnaxWZRllxKHD7tuZeHqRl4wVkmg6M8Q=;
+ b=ye2bTc3Stss7Jjmq9Y6dE3edZ5bDFrOUZFaWMwdrDSd3KvVFBZSPn4LRMypoAa4x4govaZRTp
+ HJhVQv7NTkDBvCXyZAVjm18fSxD2FKWmiynpAtkMbMEWbmjuMGI3Aw7
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -74,48 +74,156 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-ARRAY_SIZE almost works here, since array decl is complete.
-But define it locally, named __DDEBUG_ARRAY_SIZE, to avoid
-include conflicts with  boot/<something> on some arch.
+currently, for verbose=3, these are logged (blank lines for clarity):
 
-no functional change
+ dyndbg: query 0: "class DRM_UT_CORE +p" mod:*
+ dyndbg: split into words: "class" "DRM_UT_CORE" "+p"
+
+ dyndbg: op='+'
+ dyndbg: flags=0x1
+ dyndbg: *flagsp=0x1 *maskp=0xffffffff
+
+ dyndbg: parsed: func="" file="" module="" format="" lineno=0-0 class=...
+ dyndbg: no matches for query
+ dyndbg: no-match: func="" file="" module="" format="" lineno=0-0 class=...
+ dyndbg: processed 1 queries, with 0 matches, 0 errs
+
+That is excessive, so this patch:
+ - shrinks 3 lines of 2nd stanza to single line
+ - drops 1st 2 lines of 3rd stanza
+   3rd line is like 1st, with result, not procedure.
+   2nd line is just status, retold in 4th, with more info.
+
+New output:
+
+ dyndbg: query 0: "class DRM_UT_CORE +p"
+ dyndbg: split into words: "class" "DRM_UT_CORE" "+p"
+ dyndbg: op='+' flags=0x1 maskp=0xffffffff
+ dyndbg: processed 1 queries, with 0 matches, 0 errs
+
+Also drop several verbose=3 messages in ddebug_add_module.  When
+modprobing a module, dyndbg currently logs/says "add-module", and then
+"skipping" if the module has no prdbgs.  Instead just check 1st and
+return quietly.
+
+Unmatched query diagnostics are intentionally restricted to verbose
+level 3 (v3pr_info_dq) to reduce dmesg output clutter on standard
+verbose levels (verbose=1 and verbose=2), aligning with the overall
+de-cluttering of dynamic debug logging.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
 ---
-v7: actually use macro
-v5: drop include, it causes redefined probs in /boot/* for some arch.
-v2: include linux/array_size.h, correct commit subject, review after sob
----
- include/linux/dynamic_debug.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+v7: update fingerprints of grammar-errs changed here
+v4: rename vpr_dq_info to v3pr_dq_info to tell its active logging level
+    adjust some vX levels per doc'd intentions
+v2: RvB after SoB
 
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 9607121c3072..baf5c0853f45 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -8,6 +8,8 @@
+trivial change to verbose-debug output line to output the actual
+"module" keyword rather than "mod:", and do so only when the module is
+constrained by the callchain (ie as part of a modprobe).
+
+ was:   query X: "(keyword value)* [+-=]flags" mod:*
+ now:   query X: "(keyword value)* [+-=]flags"
+   or   query X: module FOO "keyword value)* [+-=]flags"
+
+IOW, adjust output to reflect the input grammar more closely.
+---
+ lib/dynamic_debug.c | 24 ++++++++++--------------
+ 1 file changed, 10 insertions(+), 14 deletions(-)
+
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index 122c2c9a1254..b2892be2de36 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -128,7 +128,7 @@ do {								\
+ #define v3pr_info(fmt, ...)	vnpr_info(3, fmt, ##__VA_ARGS__)
+ #define v4pr_info(fmt, ...)	vnpr_info(4, fmt, ##__VA_ARGS__)
  
- #include <linux/build_bug.h>
- 
-+#define __DDEBUG_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-+
- /*
-  * An instance of this structure is created in a special
-  * ELF section at every dynamic debug callsite.  At runtime,
-@@ -122,11 +124,9 @@ struct ddebug_class_param {
- 		.mod_name = KBUILD_MODNAME,				\
- 		.base = _base,						\
- 		.map_type = _maptype,					\
--		.length = NUM_TYPE_ARGS(char*, __VA_ARGS__),		\
- 		.class_names = _var##_classnames,			\
-+		.length = __DDEBUG_ARRAY_SIZE(_var##_classnames),	\
+-static void vpr_info_dq(const struct ddebug_query *query, const char *msg)
++static void v3pr_info_dq(const struct ddebug_query *query, const char *msg)
+ {
+ 	/* trim any trailing newlines */
+ 	int fmtlen = 0;
+@@ -283,9 +283,6 @@ static int ddebug_change(const struct ddebug_query *query,
  	}
--#define NUM_TYPE_ARGS(eltype, ...)				\
--	(sizeof((eltype[]) {__VA_ARGS__}) / sizeof(eltype))
+ 	mutex_unlock(&ddebug_lock);
  
- extern __printf(2, 3)
- void __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...);
+-	if (!nfound && verbose)
+-		pr_info("no matches for query\n");
+-
+ 	return nfound;
+ }
+ 
+@@ -494,7 +491,6 @@ static int ddebug_parse_query(char *words[], int nwords,
+ 		 */
+ 		query->module = modname;
+ 
+-	vpr_info_dq(query, "parsed");
+ 	return 0;
+ }
+ 
+@@ -518,7 +514,6 @@ static int ddebug_parse_flags(const char *str, struct flag_settings *modifiers)
+ 		pr_err("bad flag-op %c, at start of %s\n", *str, str);
+ 		return -EINVAL;
+ 	}
+-	v3pr_info("op='%c'\n", op);
+ 
+ 	for (; *str ; ++str) {
+ 		for (i = ARRAY_SIZE(opt_array) - 1; i >= 0; i--) {
+@@ -532,7 +527,6 @@ static int ddebug_parse_flags(const char *str, struct flag_settings *modifiers)
+ 			return -EINVAL;
+ 		}
+ 	}
+-	v3pr_info("flags=0x%x\n", modifiers->flags);
+ 
+ 	/* calculate final flags, mask based upon op */
+ 	switch (op) {
+@@ -548,7 +542,7 @@ static int ddebug_parse_flags(const char *str, struct flag_settings *modifiers)
+ 		modifiers->flags = 0;
+ 		break;
+ 	}
+-	v3pr_info("*flagsp=0x%x *maskp=0x%x\n", modifiers->flags, modifiers->mask);
++	v3pr_info("op='%c' flags=0x%x maskp=0x%x\n", op, modifiers->flags, modifiers->mask);
+ 
+ 	return 0;
+ }
+@@ -577,7 +571,7 @@ static int ddebug_exec_query(char *query_string, const char *modname)
+ 	}
+ 	/* actually go and implement the change */
+ 	nfound = ddebug_change(&query, &modifiers);
+-	vpr_info_dq(&query, nfound ? "applied" : "no-match");
++	v3pr_info_dq(&query, nfound ? "applied" : "no-match");
+ 
+ 	return nfound;
+ }
+@@ -600,7 +594,10 @@ static int ddebug_exec_queries(char *query, const char *modname)
+ 		if (!query || !*query || *query == '#')
+ 			continue;
+ 
+-		vpr_info("query %d: \"%s\" mod:%s\n", i, query, modname ?: "*");
++		if (modname)
++			v2pr_info("query %d: module %s \"%s\"\n", i, modname, query);
++		else
++			v2pr_info("query %d: \"%s\"\n", i, query);
+ 
+ 		rc = ddebug_exec_query(query, modname);
+ 		if (rc < 0) {
+@@ -1167,11 +1164,10 @@ static int ddebug_add_module(struct _ddebug_info *di, const char *modname)
+ {
+ 	struct ddebug_table *dt;
+ 
+-	v3pr_info("add-module: %s.%d sites\n", modname, di->num_descs);
+-	if (!di->num_descs) {
+-		v3pr_info(" skip %s\n", modname);
++	if (!di->num_descs)
+ 		return 0;
+-	}
++
++	v3pr_info("add-module: %s %d sites\n", modname, di->num_descs);
+ 
+ 	dt = kzalloc_obj(*dt);
+ 	if (dt == NULL) {
 
 -- 
 2.55.0
