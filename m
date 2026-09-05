@@ -1,38 +1,37 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C285E4F4752;
-	Sat,  5 Sep 2026 18:13:40 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 25C234F7967;
+	Sat,  5 Sep 2026 18:13:41 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788632020; cv=none; b=Er+gMFnkhfK39W+XpjTARDAZM5KKp3B2O/Gw2nUilxv/ZMUsE6oCTfPx6XMH1i1EXARTtxQnsr/tarCjmwETewGFHwKBuwZwCRsMTikTy/VpJf2eTtrwZg/xt7dly27oS8A48479Z/5Vii8qOBEw0Cn0OzQrIEzOUgY6dBaek0s=
+	t=1788632021; cv=none; b=FO/sJpsFXDYHqYrAN2pSW05ruedp97jFvi2EOgkh16Xi5aPyrip1zXQbCv05RDt/iC6f8fjjgfKYAbKiG6CcjZZVOzUd2391IslipwZW06SPDkZZC3eU65qv9fpBJuTyjcUP5o9rInC+ipCruld+n+51SS6ebCEHAwIe6ALZVFs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788632020; c=relaxed/simple;
-	bh=039hD2i/u3Xzim3T+Y+Npe87/xD0kbnHfCWs5owZRF8=;
+	s=arc-20240116; t=1788632021; c=relaxed/simple;
+	bh=KHYyKCY/o2ucBdRre+GIwYV+OybylCVX1QE1D3owH2c=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=dGMZvRNa2hrxE/8t5RIMoZ85CBASfvfYtkkjjGMnk9c8hOImgrqK6xiDk8meJilHqG3Ew3zOZ25NIYF0v7OtFHKBegYj8QZpkfv0oC/qTNw8fxXoLmv/zbnR2H2bNskk/RII842UlpsHoSjnCr/jHcSWU3VPNEvF7tpM3t8uKOI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=dvRKTz6K; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=KQWwPrGSbJvQPkLTLA3dH1u6PwHraFJeH6FH7PYscpayzkekUKN/9G/XQOf6PI7H3SjzXvEhKxZyxxeoJdj9aUu2lG/dsUv2jI2oZTM+5PtIZ0lCRQPdc0Y/nH3e7vD2U5uRkEknXJKHyFCH8RgTYJLbmedf3a2S+qG3caouh00=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=jIycwSsH; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="dvRKTz6K"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id A2D16C2BCFC;
-	Sat,  5 Sep 2026 18:13:40 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="jIycwSsH"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 03DB5C2BCF4;
+	Sat,  5 Sep 2026 18:13:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1788632020;
-	bh=039hD2i/u3Xzim3T+Y+Npe87/xD0kbnHfCWs5owZRF8=;
+	s=k20201202; t=1788632021;
+	bh=KHYyKCY/o2ucBdRre+GIwYV+OybylCVX1QE1D3owH2c=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=dvRKTz6KcudoJS/UYzhqgyNZwgeeEqbWYlV4nm5wgvGsaSSsXpFLiawmwgJY6z4vy
-	 A/oB5waY5QDDTz68lAu4Ht4J99VdfO0y1BHD4z0E/23UTx9nwBCXvkWH0B2elvqtSQ
-	 26NX7ROY0VeYni5X8iLTjqOZ3csVNDVa6GZ2D04w2YuwU+FutfIN9Xf86U6K7a8nlk
-	 myp3f/tvR7E393fjAdeK70e6X2NyVGdwNOBnmsYCAo/0uRE66HB6JolINPJ841tlDe
-	 REl7R2o5NxMWVoagn3cKw5K1Xfokm56RvGvVd5JXpZAM5qZzsade15TzUK0RjTkTMt
-	 QlL83TIX4kpDQ==
+	b=jIycwSsHUQkBCrM1kOr9TQPpGWIhr0RTE+dRL4XeTIvrw1PkFeeVfhSEchz8glcbD
+	 k7c22MIYzUm2vge6tNC2/z9o7FsMTItofu5h2iII1hXwl6BTInrBW0lFp0TQ+ynoR5
+	 /TX1P78Gl2J88j1ur+nLk714kB1xzEqaTgFD7BtkC6+c8UVMnScfEP97goDGsgaxlO
+	 oIfAa+JCJC9fKq2KL4oIBp8iiN9/+m854Oj2gbRft0jusNgblSiUtRaO47pMOGmVLZ
+	 1r46XW8qh+0K1YQ7GC+25YF9sqn3Fci9qpjmxZmx2lkPTYgaCNIY8f691DN4gxF283
+	 YixN/SYQqMhAA==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8EB95C79F91;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E564BC624D6;
 	Sat,  5 Sep 2026 18:13:40 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Sat, 05 Sep 2026 12:13:31 -0600
-Subject: [PATCH v8 17/43] lib/parser: add match_wildcard_hyphen() for
- agnostic matching
+Date: Sat, 05 Sep 2026 12:13:36 -0600
+Subject: [PATCH v8 22/43] dyndbg: macrofy a 2-index for-loop pattern
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +40,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260905-dd-cmap-part2-clean-v8-17-a4cc0674f6fd@gmail.com>
+Message-Id: <20260905-dd-cmap-part2-clean-v8-22-a4cc0674f6fd@gmail.com>
 References: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
 In-Reply-To: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -58,13 +57,14 @@ To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>,
 Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, 
  dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
  linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
- linux-kbuild@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>
+ linux-kbuild@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>, 
+ Louis Chauvet <louis.chauvet@bootlin.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=4874;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=2812;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=ihDFqL0diDWV3lWPKWnxgngrFJlU5Ge2Bo6Sm1Qc/y4=;
- b=ITFzTkTlOK8gnfGL2YM3ijp8DCaJowlDsEzlcxJv2oxk0MNM1acuBr0vVQn8ZzwJTs13b0kJ6
- AmztAHB5R5HDw4V+U8rJiHVsLxRyvr75BSpqEgn4uTtTU/tvo7SEenB
+ bh=sL5jOuN4FaubTxOxUsnjoGZpS1Nyd8TM1PfZEvk+BmI=;
+ b=X0oh6TyKwBfQyeQbpPxDx9YDPt835rUL/72dleNHz4RzXC746QYr/0RqjHd1n69273hIyTwSc
+ RvJphmoI/EmD8OjnxsckuXD1ZPUApicrPeIdhpQlt63kZmmV8QdgoPK
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -74,140 +74,74 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-This commit introduces match_wildcard_hyphen() as a variant of the
-existing match_wildcard() function. It treats hyphens and underscores
-as identical characters during the matching process.
+dynamic-debug currently has 2 __sections (__dyndbg, __dyndb_classes),
+struct _ddebug_info keeps track of them both, with 2 members each:
+_vec and _vec#_len.
 
-This is necessary for subsystems like dynamic_debug that need to match
-module names provided by users (who often use underscores) against
-names stored in the kernel (which may use hyphens, especially when
-using KBUILD_MODFILE for built-ins).
+We need to loop over these sections, with index and record pointer,
+making ref to both _vec and _vec_len.  This is already fiddly and
+error-prone, and will get worse as we add a 3rd section.
 
-To avoid code duplication, the core logic is refactored into a private
-__match_wildcard() function marked as __always_inline. This allows the
-compiler to generate optimized versions for both the strict and agnostic
-callsites with zero runtime overhead.
+Lets instead embed/abstract the fiddly-ness in the `for_subvec()`
+macro, and avoid repeating it going forward.
+
+This is a for-loop macro expander, so it syntactically expects to
+precede either a single statement or a { block } of them, and the
+usual typeof or do-while-0 tricks are unavailable to fix the
+multiple-expansion warning.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
 ---
-v5: move ahead of array-slice patch to silence sashiko complaint about it
-v4: initial version
+v2: move RvB after SoB
 ---
- include/linux/parser.h                             |  1 +
- lib/parser.c                                       | 58 ++++++++++++++++------
- .../selftests/dynamic_debug/dyndbg_selftest.sh     |  2 +-
- 3 files changed, 45 insertions(+), 16 deletions(-)
+ lib/dynamic_debug.c | 19 ++++++++++++++++---
+ 1 file changed, 16 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/parser.h b/include/linux/parser.h
-index dd79f45a37b8..a3cc7bc5fb93 100644
---- a/include/linux/parser.h
-+++ b/include/linux/parser.h
-@@ -34,6 +34,7 @@ int match_u64(substring_t *, u64 *result);
- int match_octal(substring_t *, int *result);
- int match_hex(substring_t *, int *result);
- bool match_wildcard(const char *pattern, const char *str);
-+bool match_wildcard_hyphen(const char *pattern, const char *str);
- size_t match_strlcpy(char *, const substring_t *, size_t);
- char *match_strdup(const substring_t *);
- 
-diff --git a/lib/parser.c b/lib/parser.c
-index 62da0ac0d438..d5be01fa9adf 100644
---- a/lib/parser.c
-+++ b/lib/parser.c
-@@ -268,20 +268,13 @@ int match_hex(substring_t *s, int *result)
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index 470314e4810e..2cbac60569c7 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -149,6 +149,20 @@ static void v3pr_info_dq(const struct ddebug_query *query, const char *msg)
+ 		  query->first_lineno, query->last_lineno, query->class_string);
  }
- EXPORT_SYMBOL(match_hex);
  
--/**
-- * match_wildcard - parse if a string matches given wildcard pattern
-- * @pattern: wildcard pattern
-- * @str: the string to be parsed
-- *
-- * Description: Parse the string @str to check if matches wildcard
-- * pattern @pattern. The pattern may contain two types of wildcards:
-- *
-- * * '*' - matches zero or more characters
-- * * '?' - matches one character
-- *
-- * Return: If the @str matches the @pattern, return true, else return false.
-- */
--bool match_wildcard(const char *pattern, const char *str)
-+static inline char dash2underscore(char c)
-+{
-+	return (c == '-') ? '_' : c;
-+}
-+
-+static __always_inline bool __match_wildcard(const char *pattern, const char *str,
-+					     bool hyphen_agnostic)
- {
- 	const char *s = str;
- 	const char *p = pattern;
-@@ -301,7 +294,9 @@ bool match_wildcard(const char *pattern, const char *str)
- 			pattern = p;
- 			break;
- 		default:
--			if (*s == *p) {
-+			if (hyphen_agnostic ?
-+			    (dash2underscore(*s) == dash2underscore(*p)) :
-+			    (*s == *p)) {
- 				s++;
- 				p++;
- 			} else {
-@@ -319,8 +314,41 @@ bool match_wildcard(const char *pattern, const char *str)
- 		++p;
- 	return !*p;
- }
-+
-+/**
-+ * match_wildcard - parse if a string matches given wildcard pattern
-+ * @pattern: wildcard pattern
-+ * @str: the string to be parsed
-+ *
-+ * Description: Parse the string @str to check if matches wildcard
-+ * pattern @pattern. The pattern may contain two types of wildcards:
-+ *
-+ * * '*' - matches zero or more characters
-+ * * '?' - matches one character
-+ *
-+ * Return: If the @str matches the @pattern, return true, else return false.
++/*
++ * simplify a repeated for-loop pattern walking N steps in a T _vec
++ * member inside a struct _box.  It expects int i and T *_sp to be
++ * declared in the caller.
++ * @_i:  caller provided counter.
++ * @_sp: cursor into _vec, to examine each item.
++ * @_box: ptr to a struct containing @_vec member
++ * @_vec: name of a member in @_box
 + */
-+bool match_wildcard(const char *pattern, const char *str)
-+{
-+	return __match_wildcard(pattern, str, false);
-+}
- EXPORT_SYMBOL(match_wildcard);
- 
-+/**
-+ * match_wildcard_hyphen - parse if a string matches given wildcard pattern
-+ * @pattern: wildcard pattern
-+ * @str: the string to be parsed
-+ *
-+ * Description: Same as match_wildcard, but treats '-' and '_' as identical.
-+ *
-+ * Return: If the @str matches the @pattern, return true, else return false.
-+ */
-+bool match_wildcard_hyphen(const char *pattern, const char *str)
-+{
-+	return __match_wildcard(pattern, str, true);
-+}
-+EXPORT_SYMBOL(match_wildcard_hyphen);
++#define for_subvec(_i, _sp, _box, _vec)			\
++	for ((_i) = 0, (_sp) = (_box)->_vec;		\
++	     (_i) < (_box)->num_##_vec;			\
++	     (_i)++, (_sp)++)		/* { block } */
 +
- /**
-  * match_strlcpy - Copy the characters from a substring_t to a sized buffer
-  * @dest: where to copy to
-diff --git a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-index 67b568730acc..8e881b5c860c 100755
---- a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-+++ b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-@@ -593,7 +593,7 @@ builtin_tests=(
-     FT_grammar_errs
-     FT_basic_queries
-     #FT_path_module_queries
--    #FT_hyphen_underscore
-+    FT_hyphen_underscore
- )
+ static struct ddebug_class_map *ddebug_find_valid_class(struct ddebug_table const *dt,
+ 							const char *class_string,
+ 							int *class_id)
+@@ -156,7 +170,7 @@ static struct ddebug_class_map *ddebug_find_valid_class(struct ddebug_table cons
+ 	struct ddebug_class_map *map;
+ 	int i, idx;
  
- # Modular Feature Tests (Require CONFIG_MODULES=y and test_dynamic_debug*.ko available)
+-	for (map = dt->classes, i = 0; i < dt->num_classes; i++, map++) {
++	for_subvec(i, map, dt, classes) {
+ 		idx = match_string(map->class_names, map->length, class_string);
+ 		if (idx >= 0) {
+ 			*class_id = idx + map->base;
+@@ -1165,8 +1179,7 @@ static void ddebug_attach_module_classes(struct ddebug_table *dt, struct _ddebug
+ 	 * the builtin/modular classmap vector/section.  Save the start
+ 	 * and length of the subrange at its edges.
+ 	 */
+-	for (cm = di->classes, i = 0; i < di->num_classes; i++, cm++) {
+-
++	for_subvec(i, cm, di, classes) {
+ 		if (!strcmp(cm->mod_name, dt->mod_name)) {
+ 			if (!nc) {
+ 				v2pr_info("start subrange, class[%d]: module:%s base:%d len:%d ty:%d\n",
 
 -- 
 2.55.0
