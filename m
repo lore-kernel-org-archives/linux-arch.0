@@ -1,38 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D27785013AB;
-	Sat,  5 Sep 2026 18:13:41 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E38E501F36;
+	Sat,  5 Sep 2026 18:13:42 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788632021; cv=none; b=AStT48PCC1yH/ezDccjuV1/q0uX+oi07JWfiDnhJQXLQYH8UG/a1k8ywtwrCsNClj3fOAop+h68J5m01joLGGK/N0iKmHncs3JdGkdDQ9zu6LpBPMcR0oglEyA4U5tVc+Ciujf1lv+SpZ64IJhLuIqFvQ+BwMBX6k9F7Gi+wWVQ=
+	t=1788632022; cv=none; b=B8PDvu8rkqIRM5WjxZIhTt1LiMmTovdT84K4bqmv7w0kRbLmDEuwWUH+O801D5IYfrOvGlqYo9UhFUHP7TzTG3/gD2Df3SIVhQWT3IKVnlqaP+kPqQxAvzN0pePNoJdenerxwS89y6UnpRnUR+swu0u28HLEDbTQcdgPtJdWjc8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788632021; c=relaxed/simple;
-	bh=rB+PH6C+Z45NO+Tjea1PmwJuSfBqDtdnX5azAJNbI1I=;
+	s=arc-20240116; t=1788632022; c=relaxed/simple;
+	bh=ARNi4S+uEex5xlePdk5Ex3c0YsZJX/TIuckkQjZjMHo=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=JSN4QwO8qnGrVJKjBVHMZaZYcI+nORY+NZsbG9b+cB16i4MyDSu0yQXAm75VW47QidWVXIy17QNDOk3E19pME9HjUnmiq3A/JWcwAJrz6KsLl3UWB+x39tDohX8MGdMWf9zG1PfRBCvk9ig+mBlM519M0px+7RUTMjM6YqabB68=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=nGJC+6p6; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=lFoN0pZbxlymoZ6y/Xo9DUBdr3fYMMF95m7Pc5cPiXNE7PUe1i+WmIZ2psfLlPeBYahMmGRHGZVN4bukLvll1nfJmIXVJQFK8neE30U5j4lgd8dV8/0WG9MtGCbxB2URwfR2gAxxv4KO3kd6P7y6CAU7wcIBAhW94Pc+KU4UgPc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=hq4Z8xNt; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nGJC+6p6"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id A1529C2BD05;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="hq4Z8xNt"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id D808AC4AF19;
 	Sat,  5 Sep 2026 18:13:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1788632021;
-	bh=rB+PH6C+Z45NO+Tjea1PmwJuSfBqDtdnX5azAJNbI1I=;
+	bh=ARNi4S+uEex5xlePdk5Ex3c0YsZJX/TIuckkQjZjMHo=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=nGJC+6p68b78lHQUkJbCY6mTnZZ02DaXwWQ31Q3CvRFc6gpNFYvz8mDlsNamqXUgi
-	 sqYwbbRboIqFWFR6kN8xxutpOO6ojLc/Qu1W7zDZLPxzPmwvbUw56Tsu5Z9th8w+JP
-	 pWZ2PV41scDqkzLaSYqWucd4OOGg5YJk1X/jJw6VpX5RLGezccO2l4bvZ7APvXuCGN
-	 7a0vzgj/JNfz33l+qyMhdbkeclyhUq3+lLor6IfWEsPzcU+Focfb+lDf+b5bqs45q6
-	 gWS0S7ODLBsbwglvmChZ69Uq2LCpp0KjluesizER9YqoT9YJBjHqTzZH19BWuuMYPA
-	 Lt+DbnlYW3VWw==
+	b=hq4Z8xNtEJK+5UgNJbrrB7aJG1Ir/5myMQU6H9U7Mb2yzk9phMlrzrBnxGEG8EJW6
+	 e+gPyDOBmA0FeoFBwr4GMs8PFzhFHCNTKiAxrcwqinAOriZbR27bvNDtsoUpmwSD6E
+	 TJDlLZLBxUwI1JOmxwumHm01WfOE4rM0bDE8UsO+Lkj2GR29GxNVt6RxiX4FClx3RD
+	 Qd/8E/3hmZQCUhH5W8CwRYbL7fRsY6HHqEv7DsNxcQCfi9Odf+YJ6/d7rSZIACOoQd
+	 gpm1q7k5UZnCJmzLo6XHU+IMitGALwD4QtDhgqLDtS9645gXqT/EL4fYb3BiFqzGEg
+	 PZseGrCVOcNog==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8D9BAC79F8B;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C58BBC79F99;
 	Sat,  5 Sep 2026 18:13:41 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Sat, 05 Sep 2026 12:13:44 -0600
-Subject: [PATCH v8 30/43] dyndbg: check
- DYNAMIC_DEBUG_CLASSMAP_{DEFINE,USE_} args at compile-time
+Date: Sat, 05 Sep 2026 12:13:47 -0600
+Subject: [PATCH v8 33/43] dyndbg: control-parser: treat comma as a token
+ separator
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260905-dd-cmap-part2-clean-v8-30-a4cc0674f6fd@gmail.com>
+Message-Id: <20260905-dd-cmap-part2-clean-v8-33-a4cc0674f6fd@gmail.com>
 References: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
 In-Reply-To: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -60,11 +60,11 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
  linux-kbuild@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=5096;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=4422;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=VgTTD8eYDpf9gDBRtS+HNw/vwTQOr86etlW3SA01j8E=;
- b=LSUiedr+LTkYlMtktB0uOI6ikp5+WZiQriGGgtmIUQAd1jKwhq0zB5nfu9Trw9EURKPALupTH
- N9PepUKm/TNBQ863oik1kMBvI3ATxw+wUqBKh15Z3HbQJPo/nKd+Gtx
+ bh=AqWOhKhwT1qqcNMbgtjNtO/UdWN/bi2/n/ZQEvCe5AM=;
+ b=5D7lqrhFrdtA+q9X2TmwjIriLPVEaBU1KUYL50YTU1q+WTjoHtwo31ysuG2cZSgc8W/iuLqcb
+ 3KgBUbeQs06AEUsBt3uIsGelPcsEF/0zmR0fH/0rvdRk5zoZ3OeM9ka
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -74,144 +74,112 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-Add __DYNAMIC_DEBUG_CLASSMAP_CHECK to implement the following
-arg-checks at compile-time:
+Treat comma as a token terminator, just like a space. This allows a
+user to avoid quoting hassles when spaces are otherwise needed:
 
-	0 <= _base < 63
-	class_names is not empty
-	class_names[0] is a string
-	class_names.length <= 32
-	(class_names.length + _base) < 63
-	dd-map-type is known value
+ :#> modprobe drm dyndbg=class,DRM_UT_CORE,+p\;class,DRM_UT_KMS,+p
 
-These compile-time checks will prevent several simple misuses, issuing
-obvious errors if violated.
-
-several bad examples are ifdef DDD_MACRO_ARGCHECK qualified, into
-test_dynamic_debug_submod.ko, and will fail compilation if added to
-cflags.
+Add corresponding Strategy 2 control-file fingerprinting checks to
+verify the exact control-file state of kernel/params callsites after
+commas-as-spaces, ignored-commas, and quoted-commas queries.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
-v5: additional test: classes.length <= 32
+ Documentation/admin-guide/dynamic-debug-howto.rst       |  4 +++-
+ lib/dynamic_debug.c                                     | 17 +++++++++++++----
+ .../testing/selftests/dynamic_debug/dyndbg_selftest.sh  |  4 ++--
+ 3 files changed, 18 insertions(+), 7 deletions(-)
 
-old-v13
-
-reword 2 failing tests (active only when -DDD_MACRO_ARGCHECK is
-passed to cc) to better identify what error is being tested against
-
--v12
-
-check map-type at compile-time
-
-make base+len(classnames) check more explicit
-
-dyndbg-test: add more tests of compile-time CHECKs
-
-add 3 tests of static-asserts added to 2 macros:
-DYNAMIC_DEBUG_CLASSMAP_{DEFINE,USE_}
-
-_DEFINE():
-1- validates maptype,
-2- validate classmap.length + base-offset < 63
-_USE_():
-3- validate user-offset < 63
-
-As before, these tests fail when activated:
-
-make KCPPFLAGS="-DDD_MACRO_ARGCHECK" lib/test_dynamic_debug_submod.o
-
-NOTE: _USE_() cannot test classmap.length, since its a property of
-the referent, not the macro itself.
-
-dyndbg-test: verify DYNAMIC_DEBUG_CLASSMAP_USE_() compile-time CHECK
-
-Add another failing use-case, this time to verify that _USE properly
-rejects an offset > 62.  This is an incomplete test; the proper test
-is: classes.length + base + offset < 63, but the macro cannot test
-classes.length at compile-time.
-
-Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
----
- include/linux/dynamic_debug.h | 16 +++++++++++++++-
- lib/test_dynamic_debug.c      | 20 +++++++++++++++++---
- 2 files changed, 32 insertions(+), 4 deletions(-)
-
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 17fc3a29d97b..471b9891bd83 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -197,6 +197,19 @@ struct ddebug_class_param {
-  * __pr_debug_cls(22, "no such class"); compiles but is not reachable
-  */
+diff --git a/Documentation/admin-guide/dynamic-debug-howto.rst b/Documentation/admin-guide/dynamic-debug-howto.rst
+index 99bbae37d34e..fe86a9997ab5 100644
+--- a/Documentation/admin-guide/dynamic-debug-howto.rst
++++ b/Documentation/admin-guide/dynamic-debug-howto.rst
+@@ -78,11 +78,12 @@ Command Language Reference
+ ==========================
  
-+#define __DYNAMIC_DEBUG_CLASSMAP_CHECK(_clnames, _base, _mapty)		\
-+	static_assert(((_base) >= 0 && (_base) < _DPRINTK_CLASS_DFLT),	\
-+		      "_base must be in 0..62");			\
-+	static_assert(__DDEBUG_ARRAY_SIZE(_clnames) > 0,				\
-+		      "classnames array size must be > 0");		\
-+	static_assert(__DDEBUG_ARRAY_SIZE(_clnames) <= 32,			\
-+		      "classnames array size must be <= 32");		\
-+	static_assert((__DDEBUG_ARRAY_SIZE(_clnames) + (_base)) < _DPRINTK_CLASS_DFLT, \
-+		      "_base + classnames.length must be <= 62");	\
-+	static_assert(((_mapty) >= DD_CLASS_TYPE_DISJOINT_BITS) &&	\
-+		      ((_mapty) <= DD_CLASS_TYPE_LEVEL_NUM),		\
-+		      "unknown class_map_type")
+ At the basic lexical level, a command is a sequence of words separated
+-by spaces or tabs.  So these are all equivalent::
++by spaces, tabs, or commas.  So these are all equivalent::
+ 
+   :#> ddcmd file svcsock.c line 1603 +p
+   :#> ddcmd "file svcsock.c line 1603 +p"
+   :#> ddcmd '  file   svcsock.c     line  1603 +p  '
++  :#> ddcmd file,svcsock.c,line,1603,+p
+ 
+ Command submissions are bounded by a write() system call.
+ Multiple commands can be written together, separated by ``;`` or ``\n``::
+@@ -176,6 +177,7 @@ module
+ 	module */main	   # any subsystem ending in main
+         module main	   # simple modname, selects same as above
+ 	module drm*	   # both drm, drm_kms_helper
++	module,sunrpc	   # with ',' as token separator
+ 
+ format
+     The given string is searched for in the dynamic debug format
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index 3f9821f747d8..6f700de9738c 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -322,6 +322,14 @@ static int ddebug_change(const struct ddebug_query *query, struct flag_settings
+ 	return nfound;
+ }
+ 
++static char *skip_spaces_and_commas(const char *str)
++{
++	str = skip_spaces(str);
++	while (*str == ',')
++		str = skip_spaces(++str);
++	return (char *)str;
++}
 +
- /**
-  * DYNAMIC_DEBUG_CLASSMAP_DEFINE - define debug classes used by a module.
-  * @_var:   name of the classmap, exported for other modules coordinated use.
-@@ -210,6 +223,7 @@ struct ddebug_class_param {
-  */
- #define DYNAMIC_DEBUG_CLASSMAP_DEFINE(_var, _mapty, _base, ...)		\
- 	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
-+	__DYNAMIC_DEBUG_CLASSMAP_CHECK(_var##_classnames, (_base), (_mapty)); \
- 	extern struct ddebug_class_map _var;				\
- 	struct ddebug_class_map __aligned(8) __used			\
- 		__section("__dyndbg_class_maps") _var = {		\
-@@ -217,7 +231,7 @@ struct ddebug_class_param {
- 		.mod_name = DDEBUG_MODNAME,				\
- 		.base = (_base),					\
- 		.map_type = (_mapty),					\
--		.length = ARRAY_SIZE(_var##_classnames),		\
-+		.length = __DDEBUG_ARRAY_SIZE(_var##_classnames),	\
- 		.class_names = _var##_classnames,			\
- 	};								\
- 	EXPORT_SYMBOL(_var)
-diff --git a/lib/test_dynamic_debug.c b/lib/test_dynamic_debug.c
-index 3a69cc3cae6d..01ce07001d4c 100644
---- a/lib/test_dynamic_debug.c
-+++ b/lib/test_dynamic_debug.c
-@@ -148,12 +148,26 @@ DYNAMIC_DEBUG_CLASSMAP_USE_(map_level_num, 7);
- 
- enum cat_level_offset { Vu1 = V1 + 7, Vu2, Vu3, Vu4, Vu5, Vu6, Vu7 };
- 
--#endif
--
-+#if defined(DD_MACRO_ARGCHECK)
  /*
-- * now add the sysfs-params
-+ * Exersize compile-time arg-checks in DYNAMIC_DEBUG_CLASSMAP_DEFINE.
-+ * These will break compilation.
-  */
-+DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_base_neg, 0, -1, "NEGATIVE_BASE_ARG");
-+DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_base_big, 0, 100, "TOOBIG_BASE_ARG");
-+DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_str_type, 0, 0, 1 /* not a string */);
-+DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_emptyclass, 0, 0 /* ,empty */);
-+DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_maptype, 3, 10, "no such type");
-+DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_base_len, 0, 60,
-+			      "base", "plus", "classes", "length", "too-big");
-+DYNAMIC_DEBUG_CLASSMAP_USE_(fail_offset_big, 100);
-+#endif /* DD_MACRO_ARGCHECK */
+  * Split the buffer `buf' into space-separated words.
+  * Handles simple " and ' quoting, i.e. without nested,
+@@ -335,8 +343,8 @@ static int ddebug_tokenize(char *buf, char *words[], int maxwords)
+ 	while (*buf) {
+ 		char *end;
+ 
+-		/* Skip leading whitespace */
+-		buf = skip_spaces(buf);
++		/* Skip leading whitespace and comma */
++		buf = skip_spaces_and_commas(buf);
+ 		if (!*buf)
+ 			break;	/* oh, it was trailing whitespace */
+ 		if (*buf == '#')
+@@ -352,7 +360,7 @@ static int ddebug_tokenize(char *buf, char *words[], int maxwords)
+ 				return -EINVAL;	/* unclosed quote */
+ 			}
+ 		} else {
+-			for (end = buf; *end && !isspace(*end); end++)
++			for (end = buf; *end && !isspace(*end) && *end != ','; end++)
+ 				;
+ 			if (end == buf) {
+ 				pr_err("parse err after word:%d=%s\n", nwords,
+@@ -627,7 +635,8 @@ static int ddebug_exec_queries(char *query, const char *modname)
+ 		if (split)
+ 			*split++ = '\0';
+ 
+-		query = skip_spaces(query);
++		query = skip_spaces_and_commas(query);
 +
-+#endif /* TEST_DYNAMIC_DEBUG_SUBMOD */
+ 		if (!query || !*query || *query == '#')
+ 			continue;
  
-+/*
-+ * now add the sysfs-params to both sub/super-mods
-+ */
- DYNAMIC_DEBUG_CLASSMAP_PARAM(disjoint_bits, p);
- DYNAMIC_DEBUG_CLASSMAP_PARAM(level_num, p);
- 
+diff --git a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
+index 2018031f58b9..a9389a98de8b 100755
+--- a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
++++ b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
+@@ -649,8 +649,8 @@ function GOLDEN_RECORDS {
+ #K= bede904b02278e5648bb7a8243be8d98 FT_path_module_queries.2
+ #K= 4b902c159d7f08f91377bf0a353e0051 FT_path_module_queries.3
+ #K= bede904b02278e5648bb7a8243be8d98 FT_path_module_queries.4
+-#K= 5d38e4cca64da64a4d7f433398668836 FT_test_classes.1
+-#K= 5516e3d13cba7ea4197a7fb6c033887a FT_test_classes.2
++#K= d4923595eea382923aee64aed15c7c35 FT_test_classes.1
++#K= a15ec4843acd721fbdfddc0b512c8032 FT_test_classes.2
+ #K= 40a294034c886787960f4c751b196da9 FT_test_classes.3
+ #K= 38e813e9025107ac3e24226b8d487a92 FT_classmap_inheritance.1
+ #K= 9b82b12a35ad98ef26183db15071f70e FT_classmap_inheritance.2
 
 -- 
 2.55.0
