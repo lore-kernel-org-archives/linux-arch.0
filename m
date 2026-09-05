@@ -1,38 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DF551441606;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E1A3649CF56;
 	Sat,  5 Sep 2026 18:13:39 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788632020; cv=none; b=UXbcgVw4nPT4nIsBV3vIDS+Ga6R94ORpBc/Z4Fx9X7dq0BWT+BlRj+w4ufGF6+QiFzA30dpCV/T7OStLLqhxVDWyA2RlewcP20evWRRGx0C6/e+H5hfHypJWCeQpdJi++4nY0ymCJ49oDe/9JpkDmAlk6G2JuGOHYrgRzVU/PiY=
+	t=1788632020; cv=none; b=XePaKqkFlwIeBIbg2BmxHvfzuKrF4t27n5RXNXoZl8/ngbdI/ycFchtm5we5gzj7L/QAVmwxeWFBo59iAWufqLMYEnRmzwmNPM8KHy2B3E/izja3RMEQrsom8tINtMXK3BZQPu2m61WyI1VpF9q9JYR5/mMXH4mwMhW7WQ1PBKA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1788632020; c=relaxed/simple;
-	bh=M4k2IpIBGuD4cW1OZSGixEalubL/dRnvHok/5OiqB7w=;
-	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=aJpATTCNV5iuUvnNHJb5oiWrgITNijIqRBxKT1I6bUCPWlondoc/oNCfTWQsnsZM7Sru6fqRG2Jc63UoLXtK0Y9+hZZye6SRkzNwGeX5fhuHKfkG44w8fpWzrEk2x3tP4S/n4OMrQsvWbU45qbFTeEpSsk35UujALnUDgEFeCHk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=bIBz94eB; arc=none smtp.client-ip=10.30.226.201
+	bh=CB4Cm6/3E5wQ7JD6GaUGHHYvD9xBg9sCG6wREr87n4s=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=OIUFsf05FP5oR4AC4ohyVFYGi5Qba5vl4qMYfPg2qCg80L17zuzFGsdtW14gl4ro7/Z9IaDWsGhSoVv3sHFHBL6kwoDnXTcZTYNFYSKFqAiJlY5QYuk9PNvzAybgOkDrQg3S0ldnjm+t77OS5F2ad6FaMVDaEpzbw7JfT3waJdk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=IRhS4X2F; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="bIBz94eB"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 64A4BC2BCB3;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="IRhS4X2F"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 8822EC2BCFB;
 	Sat,  5 Sep 2026 18:13:39 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1788632019;
-	bh=M4k2IpIBGuD4cW1OZSGixEalubL/dRnvHok/5OiqB7w=;
-	h=From:Subject:Date:To:Cc:Reply-To:From;
-	b=bIBz94eBWK2yXmKpvtzhs/ttFr7OI+ApLhvub8D2JJB34Nit0CkLLxaMZXKmDxZU4
-	 o3egBSeYdB2J4q1cX5euoq2wHDSdKfbFlsH1m8uYuOrnJOcr0BieUgxKrhmG+ZV6TG
-	 VKH3No6g8lawJFEaRSxmXRPf/J30XqdMl7/Jb1rrinYQL3RYjuIiZAeywZlUZY4Tbj
-	 /tZcqWeBjY29ty3fkr3yWPPlXnFWYjHHLd0sn1boOQEKsQwy+R5U6qZJZmEPadEtZA
-	 JTLwlKo3W+k2c4heNjW7FzmbqAZzH4fk+kW/zXnM0wXyN0fyCKk07F8JZudupBNZxp
-	 hRMcbnyh5ho8Q==
+	bh=CB4Cm6/3E5wQ7JD6GaUGHHYvD9xBg9sCG6wREr87n4s=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
+	b=IRhS4X2F6xRCYin2Ddn9rl/PeKB2tXArBquUVxSuQO82dl/+oUPJ+QKj+Xk7kFYgw
+	 WDOc+WDVPyXSml61/l6ElsvhXma68pksBnBUz0AQKhVmC29fgrZD+gis0RO47JhMPM
+	 oMn+lCfuNRw5n1nDS3NJmLhRbrCf5uyG9VkEZbcdtFEmYHo2uVGTEnsDtCwLdaVY5K
+	 02GEMC7J44wzlo35pVZITj4s0GzEjt1FCSd1T5Ff9YsmuDx8THDxtDjEmReMI5KIWE
+	 jED3W9f7KPNwL3TPhCYO8CJ4a8Lbb810pDqQ/Ln91CN2NyfBBnICSut5RZE7+hDZzA
+	 wnRXjSIqnlqpA==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3DA4DC79F8B;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 69F37C624D6;
 	Sat,  5 Sep 2026 18:13:39 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Subject: [PATCH v8 00/43] dyndbg: fix classmaps API for DRM, query
- extensions, and selftests
-Date: Sat, 05 Sep 2026 12:13:14 -0600
-Message-Id: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
+Date: Sat, 05 Sep 2026 12:13:16 -0600
+Subject: [PATCH v8 02/43] drm: Fix incorrect ccflags-y spelling inside
+ Makefile
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,10 +41,9 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-X-B4-Tracking: v=1; b=H4sIAAAAAAAC/x3MQQqAIBBA0avErBswi8iuEi0GnWqgTDQiCO+et
- HyL/19IHIUTjNULkW9JcvqCoa7AbuRXRnHFoJXulVENOof2oICB4qXR7kwe296wbUzHHS1QyhB
- 5kee/TnPOHwtEmR1lAAAA
-X-Change-ID: 20260901-dd-cmap-part2-clean-369ec194e4af
+Message-Id: <20260905-dd-cmap-part2-clean-v8-2-a4cc0674f6fd@gmail.com>
+References: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
+In-Reply-To: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
  Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
  Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
@@ -59,15 +58,13 @@ To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>,
 Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, 
  dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
  linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
- linux-kbuild@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>, 
- Louis Chauvet <louis.chauvet@bootlin.com>, Philipp Hahn <phahn-oss@avm.de>, 
- kernel test robot <lkp@intel.com>
+ linux-kbuild@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=7904;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=1097;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=M4k2IpIBGuD4cW1OZSGixEalubL/dRnvHok/5OiqB7w=;
- b=zRYb95PXWXrcudOWEH+azUEqBIwHci3cXEUskesWlaNEkySWcW9F7+T8oSp4wSg/MCKDiav2X
- xDhMhkiQs01CRgLB2hGhCb4AokPshap72DlnPVZZUYX9Bsb/Z50iFo1
+ bh=AOvjwL7FEa1HOM3wBzBER2pp1VD4Y5qc6+YArN8CHNQ=;
+ b=fUEUk09ZYPTYWj4Qs/SeMtbTlvtGRdmB2IpJCCbvkbToK67w2HwG2pzV2BJZI3psHIBD2rE37
+ x9d5DQtN406DsJf0FjFkpfqobpJh8AM01Rxyn7hFoKrc92KovTYnGDu
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -75,168 +72,34 @@ X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
 X-Original-From: Jim Cromie <jim.cromie@gmail.com>
 Reply-To: jim.cromie@gmail.com
 
-This series fixes problems which broke CONFIG_DRM_USE_DYNAMIC_DEBUG=Y,
-then fixes a classmap section mis-alignment on 32-bit, adds ",@"
-token/cmd terminators to the query parser, and adds regression
-selftests.
+From: Jim Cromie <jim.cromie@gmail.com>
 
-The core bug was an initialization order mismatch: handling of
-`drm.debug` settings occurs when `drm.ko` initializes, long before DRM
-driver and helper modules are loaded. Consequently, drivers missed the
-initial parameter settings.  Test scripts modprobing with explicit
-options obscured the problem.
-
-The fix splits DECLARE_DYNDBG_CLASSMAP into a client-server model:
-- DRM core calls DYNAMIC_DEBUG_CLASSMAP_DEFINE()
-- Drivers call DYNAMIC_DEBUG_CLASSMAP_USE()
-
-When a driver is modprobed, dyndbg finds its _USE record, references
-the _DEFINE record in drm core, finds the `drm.debug` param wired to
-that classmap, and applies the current bitmap to the newly loaded
-driver.
-
-Series Breakdown (44 Patches):
-
-0. Selftest First:
-   - add tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-   - at series start, to validate and bisect every following commit
-   - recap 2-module bug scenario, prove its fixed.
-   - fingerprint-the-response based.
-
-1. 32-bit Linker Fixes:
-   - Fix ALIGN(8) omission causing crashes on i386.
-   - Refactor BOUNDED_SECTION_* macros from vmlinux.lds.h.
-
-2. DRM Setup
-   - ccflags fix
-   - Remove BROKEN on CONFIG_DRM_USE_DYNAMIC_DEBUG (maximize testing)
-   - probly defer these to drm-folk.
-   - drm drivers need 1-liner opt-ins, not included here.
-
-3. lots of cleanup patches
-
-4. Disambiguate Builtin Module Names:
-   - Use KBUILD_MODFILE to name builtin modules by path
-     (e.g., `[init/main]` vs `[kernel/power/main]`).
-   - Prevents classmap collision between distinct builtins named "main".
-   - Preserves legacy queries: `module main` still selects `[*/main]`.
-
-5. Classmap Core & Public API:
-   - Replace DECLARE_DYNDBG_CLASSMAP with explicit DEFINE/USE macros.
-   - Promote DYNAMIC_DEBUG_CLASSMAP_PARAM to public API.
-   - Shrink class parameter storage to u32.
-   - Add compile-time argument validation and detect class ID conflicts.
-
-6. Query Parser Extensions:
-   - Treat comma as a token separator.
-   - parse multi-query command submissions with '@' delimiter too.
-   - Bump max tokens per command from 9 to 15.
-   - Add hyphen-agnostic matching for module names. (kvm-intel == kvm_intel)
-
-7. User-Visible Changes:
-   - Error string on bad classmap changed to `class:_UNKNOWN_ id:1`.
-   - Reverted `__drm_debug` from `long int` back to `u32`.
-   - exposes chosen classnames in dynamic_debug/control
-
-Testing:
-
-Tested locally using virtme-ng and increasingly bare x86_64
-hardware. Selftests pass on ~8 builds/configs, including KASAN with
-zero KMEMLEAK warnings.
-
-Gitlab DRM-CI test runs show no regressions vs v7.2, but I need to
-look again to see if DRM_USE_DYNAMIC_DEUBUG=y was in effect.
-The kernel-under-test has the follow-on patchset for drm drivers, helpers.
-https://gitlab.freedesktop.org/jim.cromie/kernel-drm-next-dd/-/pipelines
+Fix a longstanding spelling error in the DRM Makefile by changing
+'CFLAGS-y' to 'ccflags-y'. This fixes CONFIG_DRM_USE_DYNAMIC_DEBUG
+dependent addition of -DDYNAMIC_DEBUG_MODULE, which is needed to enable
+dyndbg-does-drm-debug when only DYNAMIC_DEBUG_CORE is enabled.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
-Changes in v8:
-- Unified full 44-patch series (incorporating follow-on compile-time checks,
-  comma-token delimiters, '@' multi-query separator, and inheritance tests).
-- Rebased onto upstream v7.3-rc1 
-- passing on dyndbg_selftest.sh under KASAN + KMEMLEAK.
-- Link to v7: https://lore.kernel.org/r/20260721-dd-maint-2-v7-0-010fbe73b311@gmail.com
+ drivers/gpu/drm/Makefile | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
----
-Jim Cromie (42):
-      selftests/dyndbg: Add kselftest script to verify dynamic-debug
-      drm: Fix incorrect ccflags-y spelling inside Makefile
-      drm: fix config dependent unused variable warning.
-      drm: Mark CONFIG_DRM_USE_DYNAMIC_DEBUG as unBROKEN
-      vmlinux.lds.h: refactor BOUNDED_SECTION_* macros into bounded_sections.lds.h
-      vmlinux.lds.h: drop unused HEADERED_SECTION* macros
-      vmlinux.lds.h: Fix ALIGN(8) omission causing NULL ptr on i386
-      vmlinux.lds.h: remove redundant ALIGN(8) directives
-      dyndbg.lds.S: fix lost dyndbg sections in modules
-      dyndbg: factor ddebug_match_desc out from ddebug_change
-      dyndbg: add stub macro for DECLARE_DYNDBG_CLASSMAP
-      dyndbg: reword "class unknown," to "class:_UNKNOWN_"
-      dyndbg-API: remove DD_CLASS_TYPE_(DISJOINT|LEVEL)_NAMES and code
-      dyndbg: drop NUM_TYPE_ARGS
-      dyndbg: bump num-tokens in a query-cmd from 9 to 15
-      dyndbg: reduce verbose/debug clutter
-      lib/parser: add match_wildcard_hyphen() for agnostic matching
-      kbuild, dyndbg: clean up builtin module-name ambiguities
-      dyndbg: refactor param_set_dyndbg_classes and below
-      dyndbg: tighten fn-sig of ddebug_apply_class_bitmap
-      dyndbg: replace classmap list with an array-slice
-      dyndbg: macrofy a 2-index for-loop pattern
-      dyndbg: reduce class param storage to u32
-      dyndbg,module: make proper substructs in _ddebug_info
-      dyndbg: move mod_name down from struct ddebug_table to _ddebug_info
-      dyndbg: hoist classmap-filter-by-modname up to ddebug_add_module
-      dyndbg-API: replace DECLARE_DYNDBG_CLASSMAP
-      selftests/dyndbg: enable FT_classmap_inheritance
-      dyndbg: detect class_id reservation conflicts
-      dyndbg: check DYNAMIC_DEBUG_CLASSMAP_{DEFINE,USE_} args at compile-time
-      dyndbg-test: add do_bulk testpoint, rename do_prints to do_classes
-      dyndbg-API: promote DYNAMIC_DEBUG_CLASSMAP_PARAM to API
-      dyndbg: control-parser: treat comma as a token separator
-      selftests: enable comma-terminator tests
-      dyndbg: split multi-query strings with @
-      dyndbg: resolve "protection" of class'd pr_debug
-      dyndbg: harden classmap and descriptor validation
-      docs/dyndbg: add classmap info to howto
-      dyndbg: add epilogue to dynamic_debug/control file
-      dyndbg: add +c flag to count advantage of classmaps for DRM
-      dyndbg: add DEBUG-biased fallback stubs for _dynamic_func_call_cls
-      selftests/dynamic_debug: Prime params module with +p in FT_comma_terminators
+diff --git a/drivers/gpu/drm/Makefile b/drivers/gpu/drm/Makefile
+index e635fcffd379..c42884d84ad1 100644
+--- a/drivers/gpu/drm/Makefile
++++ b/drivers/gpu/drm/Makefile
+@@ -3,7 +3,8 @@
+ # Makefile for the drm device driver.  This driver provides support for the
+ # Direct Rendering Infrastructure (DRI) in XFree86 4.1.0 and higher.
+ 
+-CFLAGS-$(CONFIG_DRM_USE_DYNAMIC_DEBUG)	+= -DDYNAMIC_DEBUG_MODULE
++ccflags-$(CONFIG_DRM_USE_DYNAMIC_DEBUG)		+= -DDYNAMIC_DEBUG_MODULE
++subdir-ccflags-$(CONFIG_DRM_USE_DYNAMIC_DEBUG)	+= -DDYNAMIC_DEBUG_MODULE
+ 
+ # Unconditionally enable W=1 warnings locally
+ # --- begin copy-paste W=1 warnings from scripts/Makefile.warn
 
-Philipp Hahn (1):
-      dyndbg: Ignore additional arguments from pr_fmt
-
- Documentation/admin-guide/dynamic-debug-howto.rst  | 194 ++++-
- MAINTAINERS                                        |   2 +
- drivers/gpu/drm/Kconfig.debug                      |   3 +-
- drivers/gpu/drm/Makefile                           |   3 +-
- drivers/gpu/drm/drm_print.c                        |   7 +-
- include/asm-generic/bounded_sections.lds.h         |  32 +
- include/asm-generic/dyndbg.lds.h                   |  22 +
- include/asm-generic/vmlinux.lds.h                  |  68 +-
- include/drm/drm_print.h                            |   2 +-
- include/linux/dynamic_debug.h                      | 361 ++++++--
- include/linux/parser.h                             |   1 +
- kernel/module/main.c                               |  15 +-
- lib/Kconfig.debug                                  |  24 +-
- lib/Makefile                                       |   3 +
- lib/dynamic_debug.c                                | 924 +++++++++++++++------
- lib/parser.c                                       |  58 +-
- lib/test_dynamic_debug.c                           | 274 ++++--
- lib/test_dynamic_debug_submod.c                    |  21 +
- scripts/Makefile.lib                               |   9 +
- scripts/module.lds.S                               |   2 +
- tools/testing/selftests/dynamic_debug/Makefile     |  10 +
- tools/testing/selftests/dynamic_debug/config       |   8 +
- .../selftests/dynamic_debug/dyndbg_selftest.sh     | 831 ++++++++++++++++++
- .../dynamic_debug/syslog_hash_validation.sh        | 393 +++++++++
- 24 files changed, 2734 insertions(+), 533 deletions(-)
----
-base-commit: cee9395acd8043be0644b25c34bfa86623f2b935
-change-id: 20260901-dd-cmap-part2-clean-369ec194e4af
-
-Best regards,
 -- 
-Jim Cromie <jim.cromie@gmail.com>
+2.55.0
 
 
