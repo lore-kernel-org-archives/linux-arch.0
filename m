@@ -1,883 +1,1658 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id AA2443B7771;
-	Sat,  5 Sep 2026 02:15:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BFC76346FC8;
+	Sat,  5 Sep 2026 18:13:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788574540; cv=none; b=a0oBcGOsBqCvGJUxqFp1zm5tFdbLyN2CGCkCZXWCqxPGB2Yfi0buMKpHpKQqtdN0EbuK7zKg/TSnq/U6zmx+NS4Vs6bWg8klerTD4/+WDI9J6X9kG+zCAtk5SRszHo/LGaazipM7zsQzX4TUoiOWRimf3yiNm6eV1HuEHZ3AH9c=
+	t=1788632019; cv=none; b=Fda8oN2VsRe3gk0ungOxJlci2vSUxcp+nfr9Ulv4yRbNxhEaTwKOnr4HEGvHknmcB+eYkeyE2VqOY/fCGs2fCidOxQ0JuRZWK+tCOc9u0soREaqcGJBFyci8wKdptX5uc+W5c1iRfg3J8k5rsxzxvw+BD6H5TYSfplQlkc2hdiw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788574540; c=relaxed/simple;
-	bh=W17w5st04qhW3ZGbxvN1NWrn66srqb7YzKWp1rdbvGI=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=k6vT+vYD/ZGTj3xW4N6Q40MVQXe1A8mOcpXYkBJZjDIfk3mQsBXj9klSemAGkYSi86/b6ygY2YxlPd53rMeC3qyO0HdepbEwuKhQM+VYHPZuFWo92teabbOJqWoZmHhiuzoxp5iEJi1L0eZ0Jd6zsamYIXDeIlsULHGpRycX6pw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=tJFaoetM; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1788632019; c=relaxed/simple;
+	bh=k7SlDvjDqFWXDNg6cCg/KyFZmoBK5LXzPPtQl5wFVWU=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=iz4jumSKTdfG18ZWw7WWKdePhwJrL2mg3UGpn8ul08krDZ0lA9cLbNlRACML+ogDJF25mHP0HHs+X6lH3hDfy9pZUK+9SFY5+WYIuyTsHVErEEUX1BiLaqD4wr37ptq6ozhk6V+6JRXlREEXtXlRVd4c2hLaTc+1Gx1isYpPXvU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Mk3Sln7m; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="tJFaoetM"
-Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 4DC6A20B7167;
-	Fri,  4 Sep 2026 19:14:57 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 4DC6A20B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1788574498;
-	bh=vpYQnqEK+eWwUqOlj2riDWRZ62rLbic+cXoe2WqpGnM=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=tJFaoetMqSDAnYCzJNK2jMge3O841vwn19VFT/qP2F3zJLDssCo+98X9U/nZRtzG0
-	 gynb1K+6Daw/SbQMX6fnw3Z9N+VTpdb1/x1oFiD5z/236Zr6o5di+wvlCqEHiFioSx
-	 Wg46Hyt4aXUinlW4kU2INfaYAUe5iCLTc4ChqUFE=
-Message-ID: <af047ef8-91ef-7786-c230-25e28b1c8c04@linux.microsoft.com>
-Date: Fri, 4 Sep 2026 19:15:34 -0700
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Mk3Sln7m"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 72684C2BCF7;
+	Sat,  5 Sep 2026 18:13:39 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1788632019;
+	bh=k7SlDvjDqFWXDNg6cCg/KyFZmoBK5LXzPPtQl5wFVWU=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
+	b=Mk3Sln7m06hwoU4F3z1BOfy0sefgnY8H6VfDHlHYiyzQEs/A8sZbfICv9ZyyHUyxm
+	 vNdqm3nG4Rit3+GcdGfJYisA3vvkvrlzNzp1v2JPSV2p3gz8iRI17N2sUdXGGWr7tm
+	 SmqPa6aG1f/RxZC4UPXEBBlALLEjORIvuUVnBl3Wpkj0lsOB/WwIeu9CARk7XNJ6x9
+	 hdInfccPrfYfa5ZWmZExTKFYyfF+MM1UKRGy1Xe0/btixDiuy3umfxTvBOZFYPPeYG
+	 xZXboGSsOBfXp05pm0DRBz4HEbCxii5b9CLckml5HDUGshjbgTttQH7rUc8Ylt2Yvn
+	 LvawrTW26lnsg==
+Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 55A33C624DB;
+	Sat,  5 Sep 2026 18:13:39 +0000 (UTC)
+From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
+Date: Sat, 05 Sep 2026 12:13:15 -0600
+Subject: [PATCH v8 01/43] selftests/dyndbg: Add kselftest script to verify
+ dynamic-debug
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH v5 4/5] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Content-Language: en-US
-To: Yu Zhang <zhangyu1@linux.microsoft.com>, linux-kernel@vger.kernel.org,
- linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
- linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Cc: wei.liu@kernel.org, kys@microsoft.com, haiyangz@microsoft.com,
- decui@microsoft.com, longli@microsoft.com, joro@8bytes.org, will@kernel.org,
- robin.murphy@arm.com, bhelgaas@google.com, kwilczynski@kernel.org,
- lpieralisi@kernel.org, mani@kernel.org, robh@kernel.org, arnd@arndb.de,
- jgg@ziepe.ca, mhklinux@outlook.com, jacob.pan@linux.microsoft.com,
- tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com,
- baolu.lu@linux.intel.com, suravee.suthikulpanit@amd.com, vasant.hegde@amd.com
-References: <20260904075512.174154-1-zhangyu1@linux.microsoft.com>
- <20260904075512.174154-5-zhangyu1@linux.microsoft.com>
-From: Mukesh R <mrathor@linux.microsoft.com>
-In-Reply-To: <20260904075512.174154-5-zhangyu1@linux.microsoft.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Message-Id: <20260905-dd-cmap-part2-clean-v8-1-a4cc0674f6fd@gmail.com>
+References: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
+In-Reply-To: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
+To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+ Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>, 
+ Petr Pavlu <petr.pavlu@suse.com>, Daniel Gomez <da.gomez@kernel.org>, 
+ Sami Tolvanen <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>, 
+ Andrew Morton <akpm@linux-foundation.org>, Jonathan Corbet <corbet@lwn.net>, 
+ Shuah Khan <skhan@linuxfoundation.org>, 
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, 
+ dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
+ linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
+ linux-kbuild@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>
+X-Mailer: b4 0.14.3
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=61836;
+ i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
+ bh=op4rWxqZAWoh6lVj+L/ADc29HYdB+dd27befe49UtFE=;
+ b=tQv5BFYb42H/B0zpdKD4wFpwdMnxch7r9PjXsYG26jdegfwPbozkS1k5v3dl6hq8B9iwIqSrR
+ 9Kqj4LCh2rDB5xSicy2lWKlbm3Loi+k6b3ArAs7uIM9lMEzX1urNwrG
+X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
+ pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
+X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
+ auth_id=958
+X-Original-From: Jim Cromie <jim.cromie@gmail.com>
+Reply-To: jim.cromie@gmail.com
 
-On 9/4/26 00:55, Yu Zhang wrote:
-> Add a para-virtualized IOMMU driver for Linux guests running on Hyper-V.
-> This driver implements stage-1 IO translation within the guest OS.
-> It integrates with the Linux IOMMU core, utilizing Hyper-V hypercalls
-> for:
->   - Capability discovery
->   - Domain allocation, configuration, and deallocation
->   - Device attachment and detachment
->   - IOTLB invalidation
-> 
-> The driver constructs x86-compatible stage-1 IO page tables in the
-> guest memory using consolidated IO page table helpers. This allows
-> the guest to manage stage-1 translations independently of vendor-
-> specific drivers (like Intel VT-d or AMD IOMMU).
-> 
-> Hyper-V consumes this stage-1 IO page table when a device domain is
-> created and configured, and nests it with the host's stage-2 IO page
-> tables, therefore eliminating the VM exits for guest IOMMU mapping
-> operations. For unmapping operations, VM exits to perform the IOTLB
-> flush are still unavoidable.
-> 
-> Guest hibernation and resume are not supported by this initial
-> implementation. The guest-owned stage-1 page tables reside in guest
-> memory and are preserved in the hibernation image. However, the image
-> does not by itself preserve the Hyper-V device-domain objects or their
-> device attachments, and the current pvIOMMU interface does not define
-> whether or how Hyper-V restores that state.
-> 
-> To identify a device in its hypercall interface, the driver looks up the
-> logical device ID prefix registered for the device's PCI domain (see the
-> logical device ID registry in hv_common.c) and combines it with the PCI
-> function number of the endpoint device.
-> 
-> Co-developed-by: Wei Liu <wei.liu@kernel.org>
-> Signed-off-by: Wei Liu <wei.liu@kernel.org>
-> Co-developed-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-> Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-> Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
-> Reviewed-by: Jacob Pan <jacob.pan@linux.microsoft.com>
-> Reviewed-by: Michael Kelley <mhklinux@outlook.com>
-> ---
->   arch/x86/hyperv/hv_init.c             |   4 +
->   arch/x86/include/asm/mshyperv.h       |   4 +
->   drivers/iommu/Kconfig                 |   1 +
->   drivers/iommu/hyperv/Kconfig          |  16 +
->   drivers/iommu/hyperv/Makefile         |   1 +
->   drivers/iommu/hyperv/hv-iommu-guest.c | 607 ++++++++++++++++++++++++++
->   drivers/iommu/hyperv/iommu.h          |  44 ++
->   7 files changed, 677 insertions(+)
->   create mode 100644 drivers/iommu/hyperv/Kconfig
->   create mode 100644 drivers/iommu/hyperv/hv-iommu-guest.c
->   create mode 100644 drivers/iommu/hyperv/iommu.h
-> 
-> diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-> index 0b4a1c0b0b16..d5edc8530964 100644
-> --- a/arch/x86/hyperv/hv_init.c
-> +++ b/arch/x86/hyperv/hv_init.c
-> @@ -579,6 +579,10 @@ void __init hyperv_init(void)
->   	old_setup_percpu_clockev = x86_init.timers.setup_percpu_clockev;
->   	x86_init.timers.setup_percpu_clockev = hv_stimer_setup_percpu_clockev;
->   
-> +#ifdef CONFIG_HYPERV_PVIOMMU
-> +	x86_init.iommu.iommu_init = hv_iommu_init;
-> +#endif
-> +
->   	hv_apic_init();
->   
->   	x86_init.pci.arch_init = hv_pci_init;
-> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-> index f64393e853ee..20d947c2c758 100644
-> --- a/arch/x86/include/asm/mshyperv.h
-> +++ b/arch/x86/include/asm/mshyperv.h
-> @@ -313,6 +313,10 @@ static inline void mshv_vtl_return_hypercall(void) {}
->   static inline void __mshv_vtl_return_call(struct mshv_vtl_cpu_context *vtl0) {}
->   #endif
->   
-> +#ifdef CONFIG_HYPERV_PVIOMMU
-> +int __init hv_iommu_init(void);
-> +#endif
-> +
->   #include <asm-generic/mshyperv.h>
->   
->   #endif
-> diff --git a/drivers/iommu/Kconfig b/drivers/iommu/Kconfig
-> index 6e07bd69467a..0d128f377929 100644
-> --- a/drivers/iommu/Kconfig
-> +++ b/drivers/iommu/Kconfig
-> @@ -195,6 +195,7 @@ config MSM_IOMMU
->   source "drivers/iommu/amd/Kconfig"
->   source "drivers/iommu/arm/Kconfig"
->   source "drivers/iommu/intel/Kconfig"
-> +source "drivers/iommu/hyperv/Kconfig"
->   source "drivers/iommu/iommufd/Kconfig"
->   source "drivers/iommu/riscv/Kconfig"
->   
-> diff --git a/drivers/iommu/hyperv/Kconfig b/drivers/iommu/hyperv/Kconfig
-> new file mode 100644
-> index 000000000000..dd8900700b85
-> --- /dev/null
-> +++ b/drivers/iommu/hyperv/Kconfig
-> @@ -0,0 +1,16 @@
-> +# SPDX-License-Identifier: GPL-2.0-only
-> +# Hyper-V para-virtualized IOMMU driver for Linux guests
-> +config HYPERV_PVIOMMU
-> +	bool "Microsoft Hyper-V para-virtualized IOMMU driver for Linux guests"
-> +	depends on X86_64 && HYPERV
-> +	select IOMMU_API
-> +	select GENERIC_PT
-> +	select IOMMU_PT
-> +	select IOMMU_PT_X86_64
-> +	select IOMMU_IOVA
-> +	default HYPERV
-> +	help
-> +	  Para-virtualized IOMMU driver for Linux guests running on
-> +	  Microsoft Hyper-V. Provides DMA remapping and IOTLB
-> +	  flush support to enable DMA isolation for PCI devices
-> +	  assigned to the guest.
-> diff --git a/drivers/iommu/hyperv/Makefile b/drivers/iommu/hyperv/Makefile
-> index 6ef0ef97f3dd..d3b2a259439c 100644
-> --- a/drivers/iommu/hyperv/Makefile
-> +++ b/drivers/iommu/hyperv/Makefile
-> @@ -1,2 +1,3 @@
->   # SPDX-License-Identifier: GPL-2.0
->   obj-$(CONFIG_IRQ_REMAP) += hv-irq-remap-x86.o
-> +obj-$(CONFIG_HYPERV_PVIOMMU) += hv-iommu-guest.o
-> diff --git a/drivers/iommu/hyperv/hv-iommu-guest.c b/drivers/iommu/hyperv/hv-iommu-guest.c
-> new file mode 100644
-> index 000000000000..137f232d74fe
-> --- /dev/null
-> +++ b/drivers/iommu/hyperv/hv-iommu-guest.c
-> @@ -0,0 +1,607 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +
-> +/*
-> + * Hyper-V para-virtualized IOMMU driver for Linux guests.
-> + *
-> + * Copyright (C) 2024-2026 Microsoft, Inc.
-> + */
-> +
-> +#define pr_fmt(fmt) "Hyper-V pvIOMMU: " fmt
-> +#define dev_fmt(fmt) pr_fmt(fmt)
-> +
-> +#include <linux/iommu.h>
-> +#include <linux/pci.h>
-> +#include <linux/dma-map-ops.h>
-> +#include <linux/generic_pt/iommu.h>
-> +#include <linux/pci-ats.h>
-> +
-> +#include <asm/iommu.h>
-> +#include <asm/hypervisor.h>
-> +#include <asm/mshyperv.h>
-> +
-> +#include "iommu.h"
-> +#include "../iommu-pages.h"
-> +
-> +struct hv_iommu_dev *hv_iommu_device;
-> +
-> +/*
-> + * Identity and blocking domains are static singletons: identity is a 1:1
-> + * passthrough with no page table, blocking rejects all DMA. Neither holds
-> + * per-IOMMU state, so one instance suffices even with multiple vIOMMUs.
-> + */
-> +static const struct iommu_domain_ops hv_iommu_identity_domain_ops;
-> +static const struct iommu_domain_ops hv_iommu_blocking_domain_ops;
-> +static struct iommu_ops hv_iommu_ops;
-> +
-> +static struct hv_iommu_domain hv_identity_domain = {
-> +	.domain = {
-> +		.type	= IOMMU_DOMAIN_IDENTITY,
-> +		.ops	= &hv_iommu_identity_domain_ops,
-> +		.owner	= &hv_iommu_ops,
-> +	},
-> +};
-> +
-> +static struct hv_iommu_domain hv_blocking_domain = {
-> +	.domain = {
-> +		.type	= IOMMU_DOMAIN_BLOCKED,
-> +		.ops	= &hv_iommu_blocking_domain_ops,
-> +		.owner	= &hv_iommu_ops,
-> +	},
-> +};
-> +
-> +static inline bool hv_iommu_present(u64 cap)
-> +{
-> +	return cap & HV_IOMMU_CAP_PRESENT;
-> +}
-> +
-> +static inline bool hv_iommu_s1_domain_supported(u64 cap)
-> +{
-> +	return cap & HV_IOMMU_CAP_S1;
-> +}
-> +
-> +static inline bool hv_iommu_5lvl_supported(u64 cap)
-> +{
-> +	return cap & HV_IOMMU_CAP_S1_5LVL;
-> +}
-> +
-> +static inline bool hv_iommu_ats_supported(u64 cap)
-> +{
-> +	return cap & HV_IOMMU_CAP_ATS;
-> +}
-> +
-> +static int hv_create_device_domain(struct hv_iommu_domain *hv_domain)
-> +{
-> +	int ret;
-> +	u64 status;
-> +	unsigned long flags;
-> +	struct hv_input_create_device_domain *input;
-> +
-> +	ret = ida_alloc_range(&hv_iommu_device->domain_ids,
-> +			      hv_iommu_device->first_domain,
-> +			      hv_iommu_device->last_domain, GFP_KERNEL);
-> +	if (ret < 0)
-> +		return ret;
-> +
-> +	hv_domain->device_domain.partition_id = HV_PARTITION_ID_SELF;
-> +	hv_domain->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S1;
-> +	hv_domain->device_domain.domain_id.id = ret;
-> +	hv_domain->hv_iommu = hv_iommu_device;
-> +
-> +	local_irq_save(flags);
-> +
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +	input->device_domain = hv_domain->device_domain;
-> +	input->create_device_domain_flags.forward_progress_required = 1;
-> +	input->create_device_domain_flags.inherit_owning_vtl = 0;
-> +	status = hv_do_hypercall(HVCALL_CREATE_DEVICE_DOMAIN, input, NULL);
-> +
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status)) {
-> +		hv_status_err(status, "HVCALL_CREATE_DEVICE_DOMAIN failed\n");
-> +		ida_free(&hv_iommu_device->domain_ids,
-> +			 hv_domain->device_domain.domain_id.id);
-> +	}
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +static void hv_delete_device_domain(struct hv_iommu_domain *hv_domain)
-> +{
-> +	u64 status;
-> +	unsigned long flags;
-> +	struct hv_input_delete_device_domain *input;
-> +
-> +	local_irq_save(flags);
-> +
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +	input->device_domain = hv_domain->device_domain;
-> +	status = hv_do_hypercall(HVCALL_DELETE_DEVICE_DOMAIN, input, NULL);
-> +
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "HVCALL_DELETE_DEVICE_DOMAIN failed\n");
-> +
-> +	ida_free(&hv_domain->hv_iommu->domain_ids,
-> +		 hv_domain->device_domain.domain_id.id);
-> +}
-> +
-> +static int
-> +hv_configure_device_domain(struct hv_iommu_domain *hv_domain,
-> +			   const struct hv_device_domain_settings *settings)
-> +{
-> +	u64 status;
-> +	unsigned long flags;
-> +	struct hv_input_configure_device_domain *input;
-> +
-> +	local_irq_save(flags);
-> +
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +	input->device_domain = hv_domain->device_domain;
-> +	input->settings = *settings;
-> +	status = hv_do_hypercall(HVCALL_CONFIGURE_DEVICE_DOMAIN, input, NULL);
-> +
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status,
-> +			      "HVCALL_CONFIGURE_DEVICE_DOMAIN failed\n");
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +static int
-> +hv_create_configure_device_domain(struct hv_iommu_domain *hv_domain,
-> +				  const struct hv_device_domain_settings *settings)
-> +{
-> +	int ret;
-> +
-> +	ret = hv_create_device_domain(hv_domain);
-> +	if (ret)
-> +		return ret;
-> +
-> +	ret = hv_configure_device_domain(hv_domain, settings);
-> +	if (ret)
-> +		hv_delete_device_domain(hv_domain);
-> +
-> +	return ret;
-> +}
-> +
-> +static bool hv_iommu_capable(struct device *dev, enum iommu_cap cap)
-> +{
-> +	return cap == IOMMU_CAP_CACHE_COHERENCY;
-> +}
-> +
-> +static void hv_flush_device_domain(struct hv_iommu_domain *hv_domain)
-> +{
-> +	u64 status;
-> +	unsigned long flags;
-> +	struct hv_input_flush_device_domain *input;
-> +
-> +	local_irq_save(flags);
-> +
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +	input->device_domain = hv_domain->device_domain;
-> +	status = hv_do_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN, input, NULL);
-> +
-> +	local_irq_restore(flags);
-> +
-> +	WARN_ONCE(!hv_result_success(status),
-> +		  "HVCALL_FLUSH_DEVICE_DOMAIN failed: %#llx (%s)\n",
-> +		  status, hv_result_to_string(status));
-> +}
-> +
-> +static int hv_iommu_attach_dev(struct iommu_domain *domain, struct device *dev,
-> +			       struct iommu_domain *old)
-> +{
-> +	u64 status;
-> +	u32 prefix;
-> +	unsigned long flags;
-> +	struct pci_dev *pdev;
-> +	struct hv_input_attach_device_domain *input;
-> +	struct hv_iommu_domain *hv_domain = to_hv_iommu_domain(domain);
-> +	int pci_domain;
-> +	int ret;
-> +
-> +	pdev = to_pci_dev(dev);
-> +	dev_dbg(dev, "attaching to domain %d\n",
-> +		hv_domain->device_domain.domain_id.id);
-> +
-> +	pci_domain = pci_domain_nr(pdev->bus);
-> +	ret = hv_pci_lookup_dev_id(pci_domain, &prefix);
-> +	if (ret) {
-> +		dev_err(dev,
-> +			"no logical device ID registered for PCI domain %04x\n",
-> +			pci_domain);
-> +		return ret;
-> +	}
-> +
-> +	local_irq_save(flags);
-> +
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +	input->device_domain = hv_domain->device_domain;
-> +	input->device_id.as_uint64 = (u64)prefix | PCI_FUNC(pdev->devfn);
-> +	status = hv_do_hypercall(HVCALL_ATTACH_DEVICE_DOMAIN, input, NULL);
-> +
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status) &&
-> +	    hv_result(status) != HV_STATUS_DEVICE_ALREADY_IN_DOMAIN) {
-> +		hv_status_err(status, "HVCALL_ATTACH_DEVICE_DOMAIN failed\n");
-> +		return hv_result_to_errno(status);
-> +	}
-> +
-> +	if (domain != &hv_blocking_domain.domain &&
-> +	    !pdev->ats_enabled &&
-> +	    hv_iommu_ats_supported(hv_domain->hv_iommu->cap) &&
-> +	    pci_ats_supported(pdev))
-> +		pci_enable_ats(pdev, PAGE_SHIFT);
-> +
-> +	return 0;
-> +}
-> +
-> +static int hv_iommu_blocking_attach_dev(struct iommu_domain *domain,
-> +					struct device *dev,
-> +					struct iommu_domain *old)
-> +{
-> +	struct pci_dev *pdev = to_pci_dev(dev);
-> +	int ret;
-> +
-> +	if (pdev->ats_enabled)
-> +		pci_disable_ats(pdev);
-> +
-> +	ret = hv_iommu_attach_dev(domain, dev, old);
-> +
-> +	/*
-> +	 * Attaching to the blocking domain only asks the hypervisor to
-> +	 * disable translation and IOPF for the device, so it cannot fail
-> +	 * unless there is a driver or hypervisor bug. Return the hypercall
-> +	 * status rather than 0 so that a failure on the DMA ownership claim
-> +	 * path (VFIO/iommufd) fails the claim instead of leaving the device
-> +	 * unblocked. WARN since such a failure indicates a bug.
-> +	 */
-> +	WARN_ON(ret);
-> +	return ret;
-> +}
-> +
-> +static int
-> +hv_iommu_get_logical_device_property(struct device *dev, u32 code,
-> +				     struct hv_output_get_logical_device_property *property)
+From: Jim Cromie <jim.cromie@gmail.com>
 
-Please indent left a bit to avoid line wrap.
+Add a kselftest script to attempt full validation of dynamic-debug
+behavior. The script tests query grammar as documented, responses to
+bad input, and proper/expected effects on both the control-file
+display of current state, and on pr_debug logging behavior.
 
-> +{
-> +	u64 status;
-> +	u32 prefix;
-> +	unsigned long flags;
-> +	int ret;
-> +	struct pci_dev *pdev = to_pci_dev(dev);
-> +	struct hv_input_get_logical_device_property *input;
-> +	struct hv_output_get_logical_device_property *output;
-> +
-> +	ret = hv_pci_lookup_dev_id(pci_domain_nr(pdev->bus), &prefix);
-> +	if (ret)
-> +		return ret;
-> +
-> +	local_irq_save(flags);
-> +
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	output = (struct hv_output_get_logical_device_property *)(input + 1);
+NOTE: This script was finished last, then rebased to front; It gives
+an easy functional test thru the series, not just a does-it-boot.  It
+preserves but disables some tests to pass as a baseline; there are 3
+Basics: FT_grammar_ok(), FT_grammar_errs(), FT_basic_queries().
 
-Any reason for not using pcpu output arg like we do in all other places?
-If there is a technical reason, please document it, otherwise when revisited
-in future for re-design, anyone looking at this will be confused and
-waste time investigating if there is anything different about this hypercall.
+The Canonical Test:
 
+A naive dyndbg test might look like:
+   echo "module main +mfp" > /proc/dynamic_debug/control
+   local ct=$(grep -c " =pmf " /proc/dynamic_debug/control)
+   (( $ct == $expected)) || FAIL
 
-> +	memset(input, 0, sizeof(*input));
-> +	input->partition_id = HV_PARTITION_ID_SELF;
-> +	input->logical_device_id = (u64)prefix | PCI_FUNC(pdev->devfn);
-> +	input->code = code;
-> +	status = hv_do_hypercall(HVCALL_GET_LOGICAL_DEVICE_PROPERTY, input, output);
+But you'll find that you've changed 4 different modules, and your
+count is off.  Ad-hoc testing is hard, and fundamentally trades
+test clarity against thoroughness, precision and brittleness.
 
-Please break line here also.
+Here, the canonical test tries harder:
 
-> +	*property = *output;
-> +
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status,
-> +			      "HVCALL_GET_LOGICAL_DEVICE_PROPERTY failed\n");
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +static struct iommu_device *hv_iommu_probe_device(struct device *dev)
-> +{
-> +	struct hv_output_get_logical_device_property device_iommu_property = {0};
-> +
-> +	if (!dev_is_pci(dev))
-> +		return ERR_PTR(-ENODEV);
-> +
-> +	if (hv_iommu_get_logical_device_property(dev,
-> +						 HV_LOGICAL_DEVICE_PROPERTY_PVIOMMU,
-> +						 &device_iommu_property) ||
-> +	    !(device_iommu_property.device_iommu & HV_DEVICE_IOMMU_ENABLED))
+1. Observe the prior dyndbg state-of-interest.
+2. Send $cmd to change state-of-interest.
+   a: echo $cmd > control
+   b: echo 1 > "/sys/module/test_dynamic_debug/parameters/do_classes"
+3. Observe the results, in control-file or dmesg
 
-This is a little hard to read, perhaps indent HV_LOGICAL_DEVICE_PROPERTY_PVIOMMU
-left or how about :
-  
-         rc = hv_iommu_get_log_dev_property(dev,
-                                 HV_LOGICAL_DEVICE_PROPERTY_PVIOMMU,
-                                 &device_iommu_property);
-         if (rc ||
-             !(device_iommu_property.device_iommu & HV_DEVICE_IOMMU_ENABLED))
+The key here is 'observe' means `md5sum $state-of-interest`. This
+gives us total "checksum" precision, and with a little care,
+$state-of-interest mostly solves the brittleness.
 
-what do you think?
+If a test should cause logging:
+1. Sends a unique 'START_of_label' message directly to syslog/dmesg.
+2. Sends the command or parameter configuration, as in b: above.
+3. Sends a unique 'END_of_label' message directly to syslog/dmesg.
+4. read dmesg, extract START..END
 
-Thanks,
--Mukesh
+This bookended logging allows the script to isolate and reliably
+extract the precise dmesg/syslog slice between the markers, and
+fingerprint the state-of-interest cryptographically.  Its not truly
+isolated from busy-kernel messages, unless its a test-vm.
 
+Comprehensive Feature Test (FT_*) Script Mapping:
 
+The Feature Test (FT_*) functions test major aspects of dynamic-debug,
+they're in 3 categories:
 
-> +		return ERR_PTR(-ENODEV);
-> +
-> +	return &hv_iommu_device->iommu;
-> +}
-> +
-> +static struct iommu_group *hv_iommu_device_group(struct device *dev)
-> +{
-> +	if (!dev_is_pci(dev))
-> +		return ERR_PTR(-ENODEV);
-> +
-> +	return pci_device_group(dev);
-> +}
-> +
-> +static int __init hv_initialize_static_domains(void)
-> +{
-> +	/*
-> +	 * Clearing translation_enabled bypasses stage-1 translation, so DMA
-> +	 * addresses are used directly as GPAs. Hyper-V requires paging and
-> +	 * blocked domains to keep translation_enabled set.
-> +	 */
-> +	const struct hv_device_domain_settings identity_settings = {
-> +		.flags.translation_enabled = 0,
-> +	};
-> +	const struct hv_device_domain_settings blocked_settings = {
-> +		.flags = {
-> +			.translation_enabled = 1,
-> +			.blocked = 1,
-> +		},
-> +	};
-> +	int ret;
-> +
-> +	/* Default stage-1 identity domain */
-> +	ret = hv_create_configure_device_domain(&hv_identity_domain,
-> +						&identity_settings);
-> +	if (ret)
-> +		return ret;
-> +
-> +	/* Default stage-1 blocked domain */
-> +	ret = hv_create_configure_device_domain(&hv_blocking_domain,
-> +						&blocked_settings);
-> +	if (ret)
-> +		goto delete_identity_domain;
-> +
-> +	return 0;
-> +
-> +delete_identity_domain:
-> +	hv_delete_device_domain(&hv_identity_domain);
-> +	return ret;
-> +}
-> +
-> +static void hv_iommu_get_resv_regions(struct device *dev,
-> +				      struct list_head *head)
-> +{
-> +	struct iommu_resv_region *region;
-> +
-> +	region = iommu_alloc_resv_x86_msi_region();
-> +	if (!region)
-> +		return;
-> +
-> +	list_add_tail(&region->list, head);
+1: Zero-Dependency Grammar & Core Parser Tests
 
+These tests throw legal & illegal commands at the >control file, but
+don't attempt to select any real pr_debug callsite.
 
-extra tiny nit: you could just do :
+* FT_grammar_ok:
+  Verifies successful query grammar parses (exact line, open line
+  range, closed line range, and colon-delimited file:line/file:func
+  syntax) using side-effect-free empty placeholder flags ('+_').
 
-         if (region)
-                 list_add_tail(&region->list, head);
+* FT_grammar_errs:
+  Verifies core query parser error-handling and EINVAL paths across
+  multiple verbosity levels (0..3), catching even minor message drift.
 
-> +}
-> +
-> +static void hv_iommu_flush_iotlb_all(struct iommu_domain *domain)
-> +{
-> +	hv_flush_device_domain(to_hv_iommu_domain(domain));
-> +}
-> +
-> +static void hv_iommu_iotlb_sync(struct iommu_domain *domain,
-> +				struct iommu_iotlb_gather *iotlb_gather)
-> +{
-> +	hv_flush_device_domain(to_hv_iommu_domain(domain));
-> +
-> +	iommu_put_pages_list(&iotlb_gather->freelist);
-> +}
-> +
-> +static void hv_iommu_paging_domain_free(struct iommu_domain *domain)
-> +{
-> +	struct hv_iommu_domain *hv_domain = to_hv_iommu_domain(domain);
-> +
-> +	/* Free all remaining mappings */
-> +	pt_iommu_deinit(&hv_domain->pt_iommu);
-> +
-> +	hv_delete_device_domain(hv_domain);
-> +
-> +	kfree(hv_domain);
-> +}
-> +
-> +static const struct iommu_domain_ops hv_iommu_identity_domain_ops = {
-> +	.attach_dev	= hv_iommu_attach_dev,
-> +};
-> +
-> +static const struct iommu_domain_ops hv_iommu_blocking_domain_ops = {
-> +	.attach_dev	= hv_iommu_blocking_attach_dev,
-> +};
-> +
-> +static const struct iommu_domain_ops hv_iommu_paging_domain_ops = {
-> +	.attach_dev	= hv_iommu_attach_dev,
-> +	IOMMU_PT_DOMAIN_OPS(x86_64),
-> +	.flush_iotlb_all = hv_iommu_flush_iotlb_all,
-> +	.iotlb_sync = hv_iommu_iotlb_sync,
-> +	.free = hv_iommu_paging_domain_free,
-> +};
-> +
-> +static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
-> +{
-> +	int ret;
-> +	struct hv_iommu_domain *hv_domain;
-> +	struct pt_iommu_x86_64_hw_info pt_info;
-> +	struct pt_iommu_x86_64_cfg cfg = {};
-> +	struct hv_device_domain_settings settings = {
-> +		.flags = {
-> +			.translation_enabled = 1,
-> +		},
-> +	};
-> +
-> +	hv_domain = kzalloc_obj(*hv_domain, GFP_KERNEL);
-> +	if (!hv_domain)
-> +		return ERR_PTR(-ENOMEM);
-> +
-> +	hv_domain->pt_iommu.nid = dev_to_node(dev);
-> +
-> +	cfg.common.hw_max_vasz_lg2 = hv_iommu_device->max_iova_width;
-> +	cfg.common.hw_max_oasz_lg2 = 52;
-> +	/*
-> +	 * Hyper-V S1 domains use a 4-level root for IOVA widths up to
-> +	 * 48 bits. A 5-level root is used only for wider apertures when
-> +	 * HV_IOMMU_CAP_S1_5LVL is advertised.
-> +	 */
-> +	cfg.top_level = (hv_iommu_device->max_iova_width > 48) ? 4 : 3;
-> +
-> +	ret = pt_iommu_x86_64_init(&hv_domain->pt_iommu_x86_64, &cfg, GFP_KERNEL);
-> +	if (ret)
-> +		goto err_free;
-> +
-> +	/* Constrain to page sizes the hypervisor supports */
-> +	hv_domain->domain.pgsize_bitmap &= hv_iommu_device->pgsize_bitmap;
-> +
-> +	hv_domain->domain.ops = &hv_iommu_paging_domain_ops;
-> +
-> +	pt_iommu_x86_64_hw_info(&hv_domain->pt_iommu_x86_64, &pt_info);
-> +	settings.page_table_root = pt_info.gcr3_pt;
-> +	settings.flags.first_stage_paging_mode = pt_info.levels == 5;
-> +
-> +	ret = hv_create_configure_device_domain(hv_domain, &settings);
-> +	if (ret)
-> +		goto err_pt_deinit;
-> +
-> +	return &hv_domain->domain;
-> +
-> +err_pt_deinit:
-> +	pt_iommu_deinit(&hv_domain->pt_iommu);
-> +err_free:
-> +	kfree(hv_domain);
-> +	return ERR_PTR(ret);
-> +}
-> +
-> +static struct iommu_ops hv_iommu_ops = {
-> +	.capable		  = hv_iommu_capable,
-> +	.domain_alloc_paging	  = hv_iommu_domain_alloc_paging,
-> +	.probe_device		  = hv_iommu_probe_device,
-> +	.device_group		  = hv_iommu_device_group,
-> +	.get_resv_regions	  = hv_iommu_get_resv_regions,
-> +	.owner			  = THIS_MODULE,
-> +	.identity_domain	  = &hv_identity_domain.domain,
-> +	.blocked_domain		  = &hv_blocking_domain.domain,
-> +	.release_domain		  = &hv_blocking_domain.domain,
-> +};
-> +
-> +static u64 hv_iommu_detect(struct hv_output_get_iommu_capabilities *cap)
-> +{
-> +	u64 status;
-> +	unsigned long flags;
-> +	struct hv_input_get_iommu_capabilities *input;
-> +	struct hv_output_get_iommu_capabilities *output;
-> +
-> +	local_irq_save(flags);
-> +
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	output = (struct hv_output_get_iommu_capabilities *)(input + 1);
-> +	memset(input, 0, sizeof(*input));
-> +	input->partition_id = HV_PARTITION_ID_SELF;
-> +	status = hv_do_hypercall(HVCALL_GET_IOMMU_CAPABILITIES, input, output);
-> +	*cap = *output;
-> +
-> +	local_irq_restore(flags);
-> +
-> +	return status;
-> +}
-> +
-> +static void __init
-> +hv_init_iommu_device(struct hv_iommu_dev *hv_iommu,
-> +		     struct hv_output_get_iommu_capabilities *hv_iommu_cap)
-> +{
-> +	ida_init(&hv_iommu->domain_ids);
-> +
-> +	hv_iommu->cap = hv_iommu_cap->iommu_cap;
-> +	hv_iommu->max_iova_width = hv_iommu_cap->max_iova_width;
-> +	if (!hv_iommu_5lvl_supported(hv_iommu->cap) &&
-> +	    hv_iommu->max_iova_width > 48) {
-> +		pr_info("5-level paging not supported, limiting iova width to 48.\n");
-> +		hv_iommu->max_iova_width = 48;
-> +	}
-> +
-> +	hv_iommu->first_domain = HV_DEVICE_DOMAIN_ID_DEFAULT + 1;
-> +	hv_iommu->last_domain = HV_DEVICE_DOMAIN_ID_NULL - 1;
-> +	hv_iommu->pgsize_bitmap = hv_iommu_cap->pgsize_bitmap;
-> +	hv_iommu_device = hv_iommu;
-> +}
-> +
-> +int __init hv_iommu_init(void)
-> +{
-> +	u64 status;
-> +	int ret = 0;
-> +	struct hv_iommu_dev *hv_iommu = NULL;
-> +	struct hv_output_get_iommu_capabilities hv_iommu_cap = {0};
-> +
-> +	if (no_iommu || iommu_detected)
-> +		return -ENODEV;
-> +
-> +	if (!hv_is_hyperv_initialized())
-> +		return -ENODEV;
-> +
-> +	status = hv_iommu_detect(&hv_iommu_cap);
-> +	if (!hv_result_success(status)) {
-> +		if (hv_result(status) == HV_STATUS_INVALID_HYPERCALL_CODE)
-> +			return -ENODEV;
-> +
-> +		hv_status_err(status, "HVCALL_GET_IOMMU_CAPABILITIES failed\n");
-> +		return hv_result_to_errno(status);
-> +	}
-> +
-> +	if (!hv_iommu_present(hv_iommu_cap.iommu_cap))
-> +		return -ENODEV;
-> +
-> +	if (!hv_iommu_s1_domain_supported(hv_iommu_cap.iommu_cap)) {
-> +		pr_err("stage-1 translation not supported: cap=%#llx\n",
-> +		       hv_iommu_cap.iommu_cap);
-> +		return -ENODEV;
-> +	}
-> +
-> +	/*
-> +	 * Require the base page size. The domain page-size bitmap is later
-> +	 * restricted to the sizes supported by both iommupt and Hyper-V.
-> +	 */
-> +	if (!(hv_iommu_cap.pgsize_bitmap & PAGE_SIZE)) {
-> +		pr_err("unsupported page sizes: pgsize_bitmap=0x%llx\n",
-> +		       hv_iommu_cap.pgsize_bitmap);
-> +		return -ENODEV;
-> +	}
-> +
-> +	iommu_detected = 1;
-> +	pci_request_acs();
-> +
-> +	hv_iommu = kzalloc_obj(*hv_iommu, GFP_KERNEL);
-> +	if (!hv_iommu)
-> +		return -ENOMEM;
-> +
-> +	hv_init_iommu_device(hv_iommu, &hv_iommu_cap);
-> +
-> +	ret = hv_initialize_static_domains();
-> +	if (ret)
-> +		goto err_free;
-> +
-> +	ret = iommu_device_sysfs_add(&hv_iommu->iommu, NULL, NULL, "%s", "hv-iommu");
-> +	if (ret) {
-> +		pr_err("iommu_device_sysfs_add failed: %d\n", ret);
-> +		goto err_delete_static_domains;
-> +	}
-> +
-> +	ret = iommu_device_register(&hv_iommu->iommu, &hv_iommu_ops, NULL);
-> +	if (ret) {
-> +		pr_err("iommu_device_register failed: %d\n", ret);
-> +		goto err_sysfs_remove;
-> +	}
-> +
-> +	pr_info("initialized: %u-bit IOVA aperture, page-size bitmap %#llx\n",
-> +		hv_iommu->max_iova_width, hv_iommu->pgsize_bitmap);
-> +	return 0;
-> +
-> +err_sysfs_remove:
-> +	iommu_device_sysfs_remove(&hv_iommu->iommu);
-> +err_delete_static_domains:
-> +	hv_delete_device_domain(&hv_blocking_domain);
-> +	hv_delete_device_domain(&hv_identity_domain);
-> +err_free:
-> +	kfree(hv_iommu);
-> +	return ret;
-> +}
-> diff --git a/drivers/iommu/hyperv/iommu.h b/drivers/iommu/hyperv/iommu.h
-> new file mode 100644
-> index 000000000000..c412dc1fd037
-> --- /dev/null
-> +++ b/drivers/iommu/hyperv/iommu.h
-> @@ -0,0 +1,44 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +
-> +/*
-> + * Hyper-V IOMMU driver.
-> + *
-> + * Copyright (C) 2024-2026, Microsoft, Inc.
-> + *
-> + */
-> +
-> +#ifndef _HYPERV_IOMMU_H
-> +#define _HYPERV_IOMMU_H
-> +
-> +struct hv_iommu_dev {
-> +	struct iommu_device iommu;
-> +	struct ida domain_ids;
-> +
-> +	/* Device configuration */
-> +	u8  max_iova_width;
-> +	u8  max_pasid_width;
-> +	u64 cap;
-> +	u64 pgsize_bitmap;
-> +
-> +	u64 first_domain;
-> +	u64 last_domain;
-> +};
-> +
-> +struct hv_iommu_domain {
-> +	union {
-> +		struct iommu_domain    domain;
-> +		struct pt_iommu        pt_iommu;
-> +		struct pt_iommu_x86_64 pt_iommu_x86_64;
-> +	};
-> +	struct hv_iommu_dev *hv_iommu;
-> +	struct hv_input_device_domain device_domain;
-> +	u64		pgsize_bitmap;
-> +};
-> +
-> +PT_IOMMU_CHECK_DOMAIN(struct hv_iommu_domain, pt_iommu, domain);
-> +PT_IOMMU_CHECK_DOMAIN(struct hv_iommu_domain, pt_iommu_x86_64.iommu, domain);
-> +
-> +#define to_hv_iommu_domain(d) \
-> +	container_of(d, struct hv_iommu_domain, domain)
-> +
-> +#endif /* _HYPERV_IOMMU_H */
+2: Built-in Feature & Name Equivalence Tests (Kernel Core)
+
+These tests verify the core features compiled directly into the kernel
+image.  They validate "[main]" vs "[init/main]" resolution added recently.
+
+* FT_basic_queries:
+  Verifies basic, direct queries (module, func, format, and clear flags
+  '=_') targeting the builtin kernel/params engine.
+
+These tests are disabled until KBUILD_MODFILE:
+
+* FT_path_module_queries: Verifies path-based and wildcard module
+  query controls (such as module 'init/main', module '*/main')
+  targeting builtin startup callsites. This specifically validates the
+  back-compat resolution of the old 'module main' ambiguity (which
+  selects 5-6 different built-in modules).
+
+* FT_hyphen_underscore:
+  Verifies literal name versus kbasename hyphen/underscore equivalence
+  (e.g., kvm_intel vs. kvm-intel), proving that both queries select
+  identical ranges-of-interest. This validates recent kernel fixes
+  establishing name-normalization equivalence inside the query engine,
+  ensuring that character substitutions work as they do in modprobe.
+
+3: Tests which require test_dynamic_debug
+
+These tests verify complex classmap configurations, multi-module
+setups, and load-time/runtime parameter callback equivalence.
+
+* FT_test_classes:
+  Verifies classmap-based query enablers and class configurations on a
+  modular target, proving dynamic runtime class configurations via
+  /proc/dynamic_debug/control.
+
+* FT_classmap_inheritance:
+  Verifies multi-module classmap propagation and class inheritance
+  checks between a parent and submodule sharing a classmap. This
+  actively demonstrates a key systems distinction: one-time bare class
+  queries (dyndbg=class...) do NOT inherit at load-time, whereas
+  classmap module parameters (p_disjoint_bits, p_level_num) are
+  persistent and successfully propagate state to submodules upon loading.
+  These tests recapitulate the scenario where classmaps-v1 [1] hit
+  regressions and was marked BROKEN.
+
+* FT_modprobe_w_param:
+  Verifies load-time parameter callback initialization (via modprobe
+  $param=$val) and subsequent runtime sysfs-write unsetting callbacks
+  sequentially, by looping over verbose levels, and varying
+  (p_disjoint_bits, p_level_num) and (do_classes, do_bulk).
+
+NB: within each FT_, tests are numbered and cataloged. This isolates
+each FT_* test's sequence numbers from each other.
+
+Main Test Runner (dyndbg_selftest.sh) Support Functions:
+
+* ddcmd("$query", ["$range"], ["$action"]):
+  The core test primitive. Writes a query string to the control file.
+  - ["$range"]: Optional slice filter pattern (triggers transition
+    verification R1 on non-empty values).
+  - ["$action"]: Expected outcome action ('pass' default, 'fail' asserts
+    return code 1 and logs dmesg, 'log' asserts 0 and logs dmesg).
+
+* ddcmd_err("$query"):
+  Semantic error query wrapper. Invokes ddcmd expected to fail.
+
+* ddcmd_load("$query", "$range", "$param_path", "$val"):
+  Workload-driven syslog verification helper.
+  - "$param_path": Sysfs parameter path of workload trigger.
+  - "$val": Integer trigger value written to workload param.
+
+* verify_modprobe_param_logging("$param", "$val", "$tag"):
+  Dynamic parameter test primitive. Coordinates load-time modprobe and
+  runtime sysfs unsetting in a single sequence.
+  - "$param": Module parameter name to configure at load-time.
+  - "$val": Initial value or composite bitmask/level integer.
+  - "$tag": Suffix used to construct the dmesg golden record label.
+
+* slice_and_hash_ddctrl("$grep_pattern"):
+  Local control-file wrapper.
+
+* ifrmmod("$module"):
+  Defensive module unloader.
+
+* handle_exit_code("$lineno", "$func", "$exit_code", ["$expected_code"]):
+  Core exit code verifier.
+  - "$lineno": Caller line number ($BASH_LINENO).
+  - "$func": Caller function name ($FUNCNAME).
+  - ["$expected_code"]: Expected exit code, default 0.
+
+Verification Library (syslog_hash_validation.sh) Support Functions:
+
+* log_start() / log_stop():
+  Slicing syslog capture bookends. Marks the start and end of a
+  stimulus-triggered test execution by writing tags to /dev/kmsg.
+
+* rdi_resolve_label():
+  Active sequence resolver. Leverages Bash call-stack reflection
+  (FUNCNAME) to determine active FT_ test functions and automatically
+  re-index sequence numbers.
+
+* slice_by_grep("$pattern", ["$file"]):
+  Text slice extractor. Narrows the scope of a captured log or file.
+  - <pattern>: Regex pattern to narrow the capture scope.
+  - [file_path]: Target file path to slice (defaults to dmesg).
+
+* verify_file_slice(<slice_pattern>, [file_path], [extra_args]):
+  Standard file transition verifier. Captures a state slice, auto-
+  resolves the label, and verifies its cryptographic hash.
+  - <slice_pattern>: Regex pattern defining the capture scope.
+  - [file_path]: Target file to slice, defaulting to control-file.
+  - [extra_args]: Optional tag appended to the golden record.
+
+* verify_dmesg_slice(<label>, ["$start"], ["$end"], ["$filter"],
+  ["$extra_args"]):
+  Active dmesg syslog slice verifier.
+  - ["$start"]: Starting bookend marker, defaulting to START_of_label.
+  - ["$end"]: Ending bookend marker, defaulting to END_of_label.
+  - ["$filter"]: Optional filter grep regex to isolate target prints.
+  - ["$extra_args"]: Suffix tag, defaulting to "dmesg".
+
+* capture_before("$range_pattern", ["$file"]):
+  Pre-stimulus snapshot helper. Saves a snapshot of a target slice.
+  - ["$file"]: Target file to snapshot, defaulting to control-file.
+
+* verify_after_change(["$extra_args"]):
+  Post-stimulus delta verifier. Compares post-state slices to pre-state
+  snapshots, generating a portable, line-number-free unified diff.
+  - ["$extra_args"]: Optional tag, defaulting to the pre-state pattern.
+
+* verify_fingerprint("$label", "$extra_args", "$computed_hash", "$desc"):
+  Exact-label cryptographic matching engine.
+  - "$desc": Human-readable trace description type (e.g. "Dmesg Log").
+
+* audit_golden_records():
+  Self-auditing reporting utility. Called at the end of the script, it
+  identifies fingerprint/result entries that weren't encountered in the
+  run, and which are probably stale entries.
+
+What happens when tests fail/drift ?
+
+The script tests against kernel/params (params module) for several reasons;
+it is stable, it is always built-in, since a kernel can't read boot-options
+without it, and modprobes cause it to run enabled pr_debugs.
+
+Those tests left it enabled for the modprobe tests, which exposed a
+pr_debug("%p"...) latent in kernel/params.
+
+   -----------------------------------
+   : DRIFT for 'FT_basic_queries.6'
+     Range:     "\[kernel/params\]"
+     Stimulus:  module params =_                      # clear params
+         module params +ml                             # set flags
+         module params func parse_args +fs             # other flags
+     Expected:  'baea1247680e' (baea1247680e8151c121539f4b90a6d8)
+     Got:       '4b4d46577a1c' (4b4d46577a1cd930c7a6d5298f6ca24c)
+
+   Add or replace this line in GOLDEN_RECORDS():
+   #K= 4b4d46577a1cd930c7a6d5298f6ca24c FT_basic_queries.6 \
+       "\[kernel/params\]"
+
+   --- Captured Invariant File Change Diff Output ---
+   @@
+   -kernel/params.c:139 [kernel/params]parse_one =_ "handling %s with %p\n"
+   -kernel/params.c:152 [kernel/params]parse_one =_ "doing %s: %s='%s'\n"
+   -kernel/params.c:156 [kernel/params]parse_one =_ "Unknown argument '%s'\n"
+   -kernel/params.c:175 [kernel/params]parse_args =_ "doing %s, parsing ARGS: '%s'\n"
+   +kernel/params.c:139 [kernel/params]parse_one =ml "handling %s with %p\n"
+   +kernel/params.c:152 [kernel/params]parse_one =ml "doing %s: %s='%s'\n"
+   +kernel/params.c:156 [kernel/params]parse_one =ml "Unknown argument '%s'\n"
+   +kernel/params.c:175 [kernel/params]parse_args =mfsl "doing %s, parsing ARGS: '%s'\n"
+   -----------------------------------
+
+   Similarly, the engine catches dmesg syslog format drifts under the
+   load-time and runtime parameter interfaces (R2 capturing):
+
+   : DRIFT for 'FT_modprobe_w_param.7'
+     Range:     dmesg
+     Stimulus:  modprobe test_dynamic_debug p_level_num=3
+     Expected:  '6e811e3b169a' (6e811e3b169acf94410fbda0747b4e78)
+     Got:       '36c4f8b6363b' (36c4f8b6363b79ead3ab5a25e1795525)
+
+   Add or replace this line in GOLDEN_RECORDS():
+   #K= 36c4f8b6363b79ead3ab5a25e1795525 FT_modprobe_w_param.7    dmesg
+
+   --- Captured Invariant Dmesg Log Output ---
+   dyndbg:  34 debug prints in module test_dynamic_debug
+   kernel/params:parse_args: doing test_dynamic_debug, parsing ARGS: 'p_level_num=3'
+   kernel/params:parse_one: handling p_level_num with 000000005c252bc5
+   dyndbg: p_level_num: total matches: 2
+   test_dd: V1 msg
+   test_dd: V2 msg
+   -----------------------------------
+
+NOTES:
+
+By default script runs with V=0 envar, and runs silently on success.
+
+With V=1, script runs show status, like:
+
+ # BASIC_TESTS
+ ✔ Verified 'FT_basic_queries.1' (24d85e3b86f3) [via: 'module params +mf']
+ ✔ Verified 'FT_basic_queries.2' (958898bcd973) [via: 'module params +l']
+ ✔ Verified 'FT_basic_queries.3' (130118da5a29) [via: 'module params -m']
+ ✔ Verified 'FT_basic_queries.4' (da6bd1c6a299) [via: 'module params =_']
+ ✔ Verified 'FT_basic_queries.5' (82572e8d20c4) [via: 'module params +mf @ module params func parse_args +sl']
+ ✔ Verified 'FT_basic_queries.6' (baea1247680e) [via: 'module params =_                      # clear params
+      module params +ml                             # set flags
+      module params func parse_args +fs             # other flags']
+
+With V=2, script runs show full context, like:
+
+ ✔ Verified 'FT_grammar_errs.44' (2d3af67031a3) [via: 'module foobar +x']
+ --- Captured Invariant Dmesg Log Output (FT_grammar_errs.44) ---
+ dyndbg: read 17 bytes from userspace
+ dyndbg: query 0: "module foobar +x"
+ dyndbg: split into words: "module" "foobar" "+x"
+ dyndbg: unknown flag 'x'
+ dyndbg: flags parse failed
+ dyndbg: query parse failed
+ dyndbg: processed 1 queries, with 0 matches, 1 errs
+ -----------------------------------
+
+ # BASIC_TESTS
+ ✔ Verified 'FT_basic_queries.1' (24d85e3b86f3) [via: 'module params +mf']
+ --- Captured Invariant File Change Diff Output (FT_basic_queries.1) ---
+ @@
+ -kernel/params.c:139 [kernel/params]parse_one =_ "handling %s with value '%s'\n"
+ -kernel/params.c:152 [kernel/params]parse_one =_ "doing %s: %s='%s'\n"
+ -kernel/params.c:156 [kernel/params]parse_one =_ "Unknown argument '%s'\n"
+ -kernel/params.c:175 [kernel/params]parse_args =_ "doing %s, parsing ARGS: '%s'\n"
+ +kernel/params.c:139 [kernel/params]parse_one =mf "handling %s with value '%s'\n"
+ +kernel/params.c:152 [kernel/params]parse_one =mf "doing %s: %s='%s'\n"
+ +kernel/params.c:156 [kernel/params]parse_one =mf "Unknown argument '%s'\n"
+ +kernel/params.c:175 [kernel/params]parse_args =mf "doing %s, parsing ARGS: '%s'\n"
+ -----------------------------------
+
+Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+---
+
+- selftests/dyndbg: drop builtin enablements in FT_modprobe_w_param()
+- selftests/dyndbg: V=2 output needs #K=$fingerprint too
+
+ -----------------------------------
+ ✔ Proven Runtime Unset:  echo 0 > p_disjoint_bits successfully cleared callsites
+ ✔ Verified 'FT_modprobe_w_param.42'  (146a1294f452) [via: 'modprobe test_dynamic_debug p_level_num=3; echo 1 > /sys/module/test_dynamic_debug/parameters/do_prints']
+ --- Captured Invariant Dmesg Log Output (FT_modprobe_w_param.42) ---
+ #K= 146a1294f452e51c12837bbd3ea723fa FT_modprobe_w_param.42
+ kernel/params:parse_args: doing test_dynamic_debug, parsing ARGS: 'p_level_num=3'
+ kernel/params:parse_one: handling p_level_num with value '3'
+ test_dd: V1 msg
+ test_dd: V2 msg
+ test_dd: V1 msg
+ test_dd: V2 msg
+ -----------------------------------
+
+The new element/line above is the #K= record, which is the format used
+in the GOLDEN-RECORDS.  Having this captured output, with the #K=rec,
+saved off to a reference file somewhere, should help when dealing with
+a drift report:
+
+ -----------------------------------
+ : DRIFT for 'FT_modprobe_w_param.42'
+   Range:     dmesg
+   Stimulus:  modprobe test_dynamic_debug p_level_num=3; echo 1 > /sys/module/test_dynamic_debug/parameters/do_prints
+   Expected:  '146a1294f452' (146a1294f452e51c12837bbd3ea723fa)
+   Got:       '14cf091423c6' (14cf091423c69a188ba45cc39414c1b9)
+
+ Add or replace this line in GOLDEN_RECORDS():
+ #K= 14cf091423c69a188ba45cc39414c1b9 FT_modprobe_w_param.42   dmesg
+
+ --- Captured Invariant Dmesg Log Output ---
+ test_dd: V1 msg
+ test_dd: V2 msg
+ test_dd: V1 msg
+ test_dd: V2 msg
+ -----------------------------------
+
+NB: this drift report came from a CONFIG_DYNAMIC_DEBUG_CORE=y only
+build, where the GOLDEN_RECORDS were done on a CONFIG_DYNAMIC_DEBUG=y
+build, which had the builtin pr-debugs present and enabled.  This
+resulted in a commit to remove the enablement of those builtin
+pr_debugs.
+
+Signed-off-by Jim Cromie <jim.cromie@gmail.com>
+---
+v8: sashiko prompted cleanups
+. dont-skip-nomod-config - sashiko complaint vs some comment/statement somewhere
+. mktmp-in-test-script
+. fn-renames/cleanups: log_ddcmd, my_modname, set_param, verify_control_slice
+---
+ MAINTAINERS                                        |   1 +
+ tools/testing/selftests/dynamic_debug/Makefile     |  10 +
+ tools/testing/selftests/dynamic_debug/config       |   8 +
+ .../selftests/dynamic_debug/dyndbg_selftest.sh     | 770 +++++++++++++++++++++
+ .../dynamic_debug/syslog_hash_validation.sh        | 393 +++++++++++
+ 5 files changed, 1182 insertions(+)
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 3a19da74d00c..21797fee02a2 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9260,6 +9260,7 @@ S:	Maintained
+ F:	include/linux/dynamic_debug.h
+ F:	lib/dynamic_debug.c
+ F:	lib/test_dynamic_debug.c
++F:	tools/testing/selftests/dynamic_debug/
+ 
+ DYNAMIC INTERRUPT MODERATION
+ M:	Tal Gilboa <talgi@nvidia.com>
+diff --git a/tools/testing/selftests/dynamic_debug/Makefile b/tools/testing/selftests/dynamic_debug/Makefile
+new file mode 100644
+index 000000000000..d998f485a9bc
+--- /dev/null
++++ b/tools/testing/selftests/dynamic_debug/Makefile
+@@ -0,0 +1,10 @@
++# SPDX-License-Identifier: GPL-2.0-only
++# borrowed from Makefile for user memory selftests
++
++# No binaries, but make sure arg-less "make" doesn't trigger "run_tests"
++all:
++
++TEST_PROGS := dyndbg_selftest.sh
++TEST_FILES := syslog_hash_validation.sh
++
++include ../lib.mk
+diff --git a/tools/testing/selftests/dynamic_debug/config b/tools/testing/selftests/dynamic_debug/config
+new file mode 100644
+index 000000000000..ec478b17873d
+--- /dev/null
++++ b/tools/testing/selftests/dynamic_debug/config
+@@ -0,0 +1,8 @@
++
++# basic tests ref the builtin params module
++CONFIG_DYNAMIC_DEBUG=y
++
++# more testing is possible with these,
++# but insisting on them here skips testing entirely for such configs
++# CONFIG_TEST_DYNAMIC_DEBUG=m
++# CONFIG_TEST_DYNAMIC_DEBUG_SUBMOD=m
+diff --git a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
+new file mode 100755
+index 000000000000..67b568730acc
+--- /dev/null
++++ b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
+@@ -0,0 +1,770 @@
++#!/bin/bash
++# SPDX-License-Identifier: GPL-2.0-only
++
++# Standard kselftest exit codes
++ksft_pass=0
++ksft_fail=1
++ksft_skip=4
++
++ESC=$'\033'
++RED="${ESC}[0;31m"
++GREEN="${ESC}[0;32m"
++YELLOW="${ESC}[0;33m"
++BLUE="${ESC}[0;34m"
++MAGENTA="${ESC}[0;35m"
++CYAN="${ESC}[0;36m"
++NC="${ESC}[0;0m"
++# Environment Controls:
++#   V=0,1,2 : Verbosity (0=concise summary, 1=verified assertions, 2=full captured outputs)
++#   K=0     : Strict mode (fails with exit 1 on checksum drift or stale records)
++#   K=1     : Soft-pass mode (prints DRIFT/STALE diffs, exits 0 with 'fake success')
++#   K=2     : Silent soft-pass mode (suppresses DRIFT/STALE diffs, exits 0 with 'fake success')
++V=${V:=0}
++K=${K:=0}
++
++# Sanitize V to ensure it is a valid integer
++if [[ ! "$V" =~ ^[0-9]+$ ]]; then
++    V=0
++fi
++
++function v_echo {
++    [ "${V:-0}" -ge 1 ] && echo -e "$@"
++}
++
++[ -e /proc/dynamic_debug/control ] || {
++    echo -e "${RED}: this test requires CONFIG_DYNAMIC_DEBUG=y ${NC}"
++    exit $ksft_skip # nothing to test here, no good reason to fail.
++}
++
++lsmod >/dev/null 2>&1 || {
++    echo -e "${RED}: lsmod requires /proc/modules ${NC}"
++    # exit $ksft_skip # maybe later we can do more
++}
++
++# need info to avoid failures due to untestable configs
++
++[ -f "$KCONFIG_CONFIG" ] || KCONFIG_CONFIG=".config"
++if [ -f "$KCONFIG_CONFIG" ]; then
++    v_echo "# consulting KCONFIG_CONFIG: $KCONFIG_CONFIG"
++    grep -q "CONFIG_DYNAMIC_DEBUG=y" $KCONFIG_CONFIG ; LACK_DD_BUILTIN=$?
++    grep -q "CONFIG_TEST_DYNAMIC_DEBUG=m" $KCONFIG_CONFIG ; LACK_TMOD=$?
++else
++    # if no config, try runtime probes
++    modprobe -n test_dynamic_debug 2>/dev/null ; LACK_TMOD=$?
++    # assume builtin dyndbg if control exists (checked above)
++    LACK_DD_BUILTIN=0
++fi
++
++function ifrmmod {
++    [ "${LACK_TMOD:-0}" -eq 1 ] && return
++    grep -q "^$1 " /proc/modules 2>/dev/null && rmmod $1
++}
++
++# Clean up any leftover loaded test modules at initialization
++ifrmmod test_dynamic_debug_submod
++ifrmmod test_dynamic_debug
++
++# ===========================================================================
++# TESTING STRATEGY 1.
++#   Change and observe control-file settings:
++#     ddcmd: ie echo $dd_query_cmd > /proc/dynamic_debug/control
++#     read back control, count changes due to query_cmd
++# ===========================================================================
++DDCMD_LOG=""	# accumulate
++
++function log_ddcmd {
++    local cmd="$1"
++    if [ "${IN_BOOKEND:-0}" -eq 1 ] && [ -n "$DDCMD_LOG" ]; then
++        DDCMD_LOG="${DDCMD_LOG}; $cmd"
++    else
++        DDCMD_LOG="$cmd"
++    fi
++}
++
++function my_modprobe {
++    log_ddcmd "modprobe $*"
++    modprobe "$@"
++}
++
++function set_param {
++    local val="$1"
++    local path="$2"
++    log_ddcmd "echo $val > $path"
++    echo "$val" > "$path"
++}
++
++function ddcmd () {
++    # ddcmd <query_args> [range_pattern] [pass|fail|log]
++    local args="$1"
++    local range="$2"
++    local action="${3:-pass}"
++    local exp_exit=0
++
++    [ "$action" = "fail" ] && exp_exit=1
++    log_ddcmd "$args"
++
++    # Update cumulative state-machine lineage
++    if [[ "$args" == *"=_"* ]]; then
++        CUMULATIVE_DDCMDS="$args"
++    else
++        CUMULATIVE_DDCMDS="${CUMULATIVE_DDCMDS}; $args"
++    fi
++
++    [ "$action" != "pass" ] && log_start
++    [ -n "$range" ] && capture_before "$range"
++
++    output=$( (echo "$args" > /proc/dynamic_debug/control) 2>&1 )
++    handle_exit_code $BASH_LINENO $FUNCNAME $? $exp_exit
++
++    [ "$action" != "pass" ] && log_stop
++    [ -n "$range" ] && verify_after_change
++}
++
++function ddcmd_err () {
++    # ddcmd_err <query_args>
++    # Semantic wrapper for parser syntax & error validation
++    ddcmd "$1" "" fail
++}
++
++function ddcmd_load () {
++    # ddcmd_load <query_args> <range_pattern> <workload_param_path> <workload_val>
++    # Semantic wrapper for end-to-end filter setup and live workload logging
++    local query="$1"
++    local range="$2"
++    local param_path="$3"
++    local val="$4"
++
++    # 1. Setup the control filters (using positional ddcmd range-check)
++    echo  "$query" "$range"
++    ddcmd "$query" "$range"
++
++    # 2. Execute the workload and capture syslog prints
++    log_start
++    echo "$val" > "$param_path"
++    log_stop
++}
++
++function handle_exit_code() {
++    local exp_exit_code=0
++    [ $# == 4 ] && exp_exit_code=$4
++    if [ "$3" -ne $exp_exit_code ]; then
++        echo -e "${RED}: $BASH_SOURCE:$1 $2() " \
++            "expected to exit with code $exp_exit_code, got $3${NC}"
++	[ "$3" == 1 ] && echo "Error: '$error_msg'"
++        exit $ksft_fail
++    fi
++}
++
++# ==============================================================================
++# TESTING STRATEGY 2.
++#   do 1 to setup test expectations.
++#   run logging-workload
++#   capture output
++#   hash-validate it against GOLDEN_SAMPLE db (at file end)
++#
++# ==============================================================================
++# Source hash-based validation and state verification helper library
++DIR="$(dirname "$(readlink -f "$0")")"
++. "$DIR/syslog_hash_validation.sh"
++
++# Define target validation file path
++CONTROL_FILE="/proc/dynamic_debug/control"
++
++# App-specific wrappers mapping to generic library helpers
++function verify_control_slice {
++    # $1 - pattern to slice
++    # $2 - optional extra args
++    verify_file_slice "$1" $CONTROL_FILE "$2"
++}
++
++function slice_and_hash_ddctrl {
++    local slice=$(slice_by_grep "$1" "$CONTROL_FILE" | strip_control_linenos)
++    echo "$slice" | tr -d '\r' | md5sum | cut -d' ' -f1
++}
++
++function ifrmmod {
++    [ "${LACK_TMOD:-0}" -eq 1 ] && return
++    grep -q "^$1 " /proc/modules 2>/dev/null && rmmod $1
++}
++
++# ==============================================================================
++
++function verify_modprobe_param_logging {
++    # $1 - parameter name (e.g. do_classes)
++    # $2 - parameter value (e.g. 1)
++    local param="$1"
++    local val="$2"
++
++    # Make sure both modules are completely unloaded to trigger a fresh load
++    ifrmmod test_dynamic_debug_submod
++    ifrmmod test_dynamic_debug
++
++    # Capture and verify the load-time (modprobe) dmesg logs
++    log_start
++    my_modprobe test_dynamic_debug "${param}=${val}"
++    my_modprobe test_dynamic_debug_submod
++
++    # If it is a state-controlling parameter, trigger the
++    # print-workload 'do_prints=1' inside the same syslog dmesg
++    # capture bookends to verify their actual pr_debug logging!
++
++    if [ "$param" = "p_disjoint_bits" ] || [ "$param" = "p_level_num" ]; then
++        set_param 1 /sys/module/test_dynamic_debug/parameters/do_prints
++    fi
++
++    log_stop
++
++    # Verify param write by direct readback
++    if [ "$param" = "p_disjoint_bits" ] || [ "$param" = "p_level_num" ]; then
++        local readback=$(cat "/sys/module/test_dynamic_debug/parameters/${param}")
++        if (( readback != val )); then
++            echo -e "${RED}: param readback failed: ${param} ${val} != ${readback}${NC}"
++            exit $ksft_fail
++        else
++            [ "$V" -ge 1 ] && \
++		echo -e "${GREEN}✔ Parameter Readback Verified: ${param}=${readback}${NC}"
++        fi
++    fi
++
++    # verify runtime unsetting
++    if [ "$param" = "p_disjoint_bits" ] || [ "$param" = "p_level_num" ]; then
++
++        set_param 0 "/sys/module/test_dynamic_debug/parameters/${param}"
++	verify_control_slice '\[test_dynamic_debug\]'
++
++    fi
++}
++
++# ==============================================================================
++# FEATURE TESTS (FT_*)
++#
++# test legal queries which should execute and return 0 (success)
++# so we dont look for errors in dmesg
++function FT_grammar_ok {
++    v_echo "${GREEN}# GRAMMAR_OK_TESTS ${NC}"
++    ddcmd "+_"
++    ddcmd "-_"
++
++    # use 4 keywords (max 9 words inc flags)
++    ddcmd "module foo file bar.c func buz class D2_CORE +_"	# 4 keywords
++    #ddcmd "module foo file bar.c func buz class D2 line 100 +_" # 5 keywords
++
++    # 3. Dedicated lineno range grammar assertions (side-effect-free proofs)
++    ddcmd "line 42 +_"		# test exact line syntax
++    ddcmd "line 10- +_"		# test open-ended line range (starting at 10)
++    ddcmd "line -100 +_"	# test open-ended line range (ending at 100)
++    ddcmd "line 10-100 +_"	# test closed-interval line range
++
++    # 4. Dedicated colon-delimited file:line and file:func assertions
++    ddcmd "file a_file.c:1-100 +_"	# test file:linerange syntax
++    ddcmd "file b_file.c:30 +_"		# test file:exact_line syntax
++    ddcmd "file c_file.c:c_func +_"	# test file:function_name syntax
++    ddcmd "file c_file.c:start_* +_"	# test file:wildcard_function syntax
++
++    # 5. Advanced formatting and separator checks (side-effect-free proofs)
++    ddcmd "format \"space\\040here\" +_"	# test format query with octal escape
++    #ddcmd "module,foo +_"		# test comma token separator syntax
++    ddcmd "func *my_func* +_"		# test wildcard func syntax
++    ddcmd "file drivers/usb/* +_"	# test wildcard file path syntax
++}
++
++# test grammar, no actual sites chosen/changed
++# use dyndbg's embedded comments in queries
++function FT_grammar_errs {
++    v_echo "${GREEN}# GRAMMAR_ERROR_TESTS ${NC}"
++    ddcmd =_
++    local verbose
++
++    # Reset before loop
++    echo 0 > /sys/module/dynamic_debug/parameters/verbose
++
++    # Sequence verbose level 0..3 to verify error diagnostics across all verbosity states!
++    for verbose in 1 2 3; do
++	echo $verbose > /sys/module/dynamic_debug/parameters/verbose
++
++	ddcmd_err 'module foo format "parse +p'		# unclosed double quote
++
++	# comments in queries tell the error in the logs
++	ddcmd_err "module foo unknown_keyword value	# no flag err"
++	ddcmd_err "module foo %pm	# bad flag-op "
++	ddcmd_err "module foo +pfmHKDD	# bad flags after good "
++
++	ddcmd_err "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w 14 w15 w16 # too many tokens"
++	ddcmd_err "func w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 +p # bad keyword w3"
++	ddcmd_err "module foo line =_ # no line val"
++
++	#
++	ddcmd_err "func foo func bar =_		# func used 2x"
++	ddcmd_err "module foo module baz =_	# module used 2x"
++	ddcmd_err "class D2_CORE class D2_KMS +p # class used 2x"
++	ddcmd_err "module foo +x		# unrecognized flag character"
++
++	# line value errs
++	ddcmd_err "line 10 line 20 +l		# line used 2x"
++	ddcmd_err "line 10a +pl			# line value trailing garbage"
++	ddcmd_err "line 100-10 +pf		# line range error (last < 1st)"
++    done
++
++    # Reset to default verbose level 0 at the end of basic errors
++    echo 0 > /sys/module/dynamic_debug/parameters/verbose
++    ddcmd =_
++}
++
++# these queries run against the builtin module: params, and change
++# flags.  The control file state-of-interest is found by path,
++# kernel/params.c, to avoid module keyword entirely
++function FT_basic_queries {
++    v_echo "${GREEN}# BASIC_TESTS ${NC}"
++    if [ $LACK_DD_BUILTIN -eq 1 ]; then
++	echo "SKIP - test requires params, which is a builtin module"
++	return
++    fi
++    ddcmd =_ # zero everything
++
++    ddcmd "module params +mf" 'kernel/params.c'
++    ddcmd "module params +l"  'kernel/params.c'
++    ddcmd "module params -m"  'kernel/params.c'
++    ddcmd "module params =_"  'kernel/params.c'
++
++    # multi-query commands split on ; on a single line
++    ddcmd "module params +mf ; module params func parse_args +sl"  'kernel/params.c'
++
++    # verify multi-cmd input, newline separated, with embedded comments
++    ddcmd =_ # reset before multiline query to capture full transition
++    ddcmd "module params =_		# clear params
++      module params +ml			# set flags
++      module params func parse_args +fs # set other flags" \
++	  'kernel/params.c'
++
++    # clear flags and verify
++    ddcmd "module params =_"  'kernel/params.c'
++}
++
++function FT_path_module_queries {
++    v_echo "${GREEN}# TEST_PATH_MODULE_QUERIES ${NC}"
++    ddcmd =_
++
++    # Find how many 'main' modules we have in total (by basename)
++    # Use a precise OR pattern to match exactly [main] or [*/main] and avoid irqdomain
++    local total_main=$(grep -c "\[main\]\|\[[^]]*/main\]" /proc/dynamic_debug/control)
++    v_echo "# found $total_main total 'main' modules"
++
++    if [ $total_main -eq 0 ]; then
++        echo "SKIP - no 'main' modules found to test slashes"
++        return
++    fi
++
++    # Verify a robust, cross-query state-interaction handshake between
++    # narrow path and wide wildcard/basename queries. This dynamically
++    # proves they interact with the exact same underlying callsites!
++
++    # 1. Turn ON specific path, verified under '[init/main]' range
++    ddcmd "module 'init/main' +p" "init/main.c"
++
++    # 2. Turn OFF using wide wildcard query,
++    ddcmd "module '*/main' =_" "init/main.c"
++
++    # 3. Turn ON using wide unscoped basename,
++    ddcmd "module 'main' +p" "init/main.c"
++
++    # 4. Turn OFF using specific narrow path,
++    ddcmd "module 'init/main' =_" "init/main.c"
++}
++
++function FT_hyphen_underscore {
++    v_echo "${GREEN}# TEST_HYPHEN_UNDERSCORE ${NC}"
++    ddcmd =_
++
++    # Find a module with a hyphen in its name (e.g., from the control file)
++    local mod_with_hyphen
++    mod_with_hyphen=$(awk -F'[][]' \
++        '/^[^#:]+:[0-9]+/ { if ($2 ~ /-/) { print $2; exit } }' \
++        /proc/dynamic_debug/control)
++
++    if [ -z "$mod_with_hyphen" ]; then
++        echo "SKIP - no module with hyphen found in /proc/dynamic_debug/control"
++        return
++    fi
++
++    v_echo "# testing hyphen/underscore equivalence for module: $mod_with_hyphen"
++    local mod_with_underscore=$(echo "$mod_with_hyphen" | tr '-' '_')
++    local base_hyphen=$(basename "$mod_with_hyphen")
++    local slice_pattern="\[[^]]*$base_hyphen\]"
++
++    # 1. Enable using literal hyphen name, and record the state fingerprint
++    v_echo "#   trying hyphen name: $mod_with_hyphen"
++    ddcmd "module $mod_with_hyphen +p"
++    # verify_control_slice "$slice_pattern"
++    local hash_hyphen=$(slice_and_hash_ddctrl "$slice_pattern")
++
++    # 2. Disable and enable using underscore name, record the state fingerprint
++    ddcmd =_
++    v_echo "#   trying underscore name: $mod_with_underscore"
++    ddcmd "module $mod_with_underscore +p"
++    # verify_control_slice "$slice_pattern"
++    local hash_underscore=$(slice_and_hash_ddctrl "$slice_pattern")
++
++    # Real-time mathematical proof of hyphen/underscore name equivalence!
++    if [ "$hash_hyphen" != "$hash_underscore" ]; then
++        echo -e "${RED}: Hyphen/Underscore equivalence check failed! " \
++            "Fingerprints do not match.${NC}"
++        echo -e "Hyphen name state hash:     $hash_hyphen"
++        echo -e "Underscore name state hash: $hash_underscore"
++        exit $ksft_fail
++    else
++        v_echo "${GREEN}: Proven: Hyphen/Underscore literal name equivalence matches!${NC}"
++    fi
++
++        # Try kbasename with hyphen (if it has a path)
++    if [ "$base_hyphen" != "$mod_with_hyphen" ]; then
++        ddcmd =_
++        v_echo "#   trying hyphen kbasename: $base_hyphen"
++        ddcmd "module $base_hyphen +pmf"
++        # verify_control_slice "$slice_pattern" # omitted: slice contains dynamic
++        # module info which drifts across different targets
++        local hash_base_hyphen=$(slice_and_hash_ddctrl "$slice_pattern")
++
++        # Prove kbasename hyphen name matches literal path hyphen name (with different flags)!
++        v_echo "#   trying full path hyphen with pmf flags"
++        ddcmd =_
++        ddcmd "module $mod_with_hyphen +pmf"
++        local hash_path_pmf=$(slice_and_hash_ddctrl "$slice_pattern")
++        if [ "$hash_path_pmf" != "$hash_base_hyphen" ]; then
++            echo -e "${RED}: Hyphen kbasename check failed! " \
++                "Fingerprints do not match full-path hyphen enablement.${NC}"
++            exit $ksft_fail
++        else
++            v_echo "${GREEN}: Proven: Hyphen kbasename matches " \
++                "full-path hyphen enablement!${NC}"
++        fi
++    fi
++
++    # 4. Try kbasename with underscore
++    local base_underscore=$(echo "$base_hyphen" | tr '-' '_')
++    ddcmd =_
++    v_echo "#   trying underscore kbasename: $base_underscore"
++    ddcmd "module $base_underscore +pmf"
++    # verify_control_slice "$slice_pattern" # omitted: slice contains dynamic
++    # module info which drifts across different targets
++    local hash_base_underscore=$(slice_and_hash_ddctrl "$slice_pattern")
++
++    # Real-time mathematical proof of hyphen/underscore kbasename equivalence!
++    if [ "$hash_base_hyphen" != "$hash_base_underscore" ] && \
++       [ -n "$hash_base_hyphen" ]; then
++        echo -e "${RED}: Hyphen/Underscore kbasename equivalence check " \
++            "failed! Fingerprints do not match.${NC}"
++        exit $ksft_fail
++    elif [ -n "$hash_base_hyphen" ]; then
++        v_echo "${GREEN}: Proven: Hyphen/Underscore kbasename " \
++            "equivalence matches!${NC}"
++    fi
++
++    ddcmd =_
++}
++
++
++# testing classmap-based query enablers and class configurations
++function FT_test_classes {
++    v_echo "${GREEN}# TEST_CLASSES - classmap-based query enablers and class configs ${NC}"
++
++    ifrmmod test_dynamic_debug_submod
++    ifrmmod test_dynamic_debug
++    ddcmd =_
++
++    # 1. Verify initial multi-query enablement state via file slice
++    my_modprobe test_dynamic_debug \
++        dyndbg="class,D2_CORE,+pf;class,D2_KMS,+ps;class,D2_ATOMIC,+pm"
++    verify_control_slice '\[test_dynamic_debug\]'
++
++    # 2. Verify state transition and live-printing end-to-end via ddcmd_load!
++    ddcmd_load "class,D2_CORE,+pmf@class,D2_KMS,+pls@class,D2_ATOMIC,+pml" \
++        '\[test_dynamic_debug\]' \
++        "/sys/module/test_dynamic_debug/parameters/do_classes" "1"
++
++    ifrmmod test_dynamic_debug
++}
++
++function FT_classmap_inheritance {
++    v_echo "${GREEN}# TEST_MOD_SUBMOD ${NC}"
++
++    ifrmmod test_dynamic_debug_submod
++    ifrmmod test_dynamic_debug
++
++    # modprobe with plain-old +p & 3 class enablements
++    my_modprobe test_dynamic_debug \
++	"dyndbg=+p;class D2_CORE +pf;class D2_KMS +pt;class D2_ATOMIC +pm"
++    verify_control_slice '\[test_dynamic_debug\]'
++
++    # fresh start, to clear all above flags (test-fn limits)
++    ifrmmod test_dynamic_debug_submod
++    ifrmmod test_dynamic_debug
++
++    # act on submod, which loads supermod
++    my_modprobe test_dynamic_debug_submod \
++	"dyndbg=+p;class D2_CORE +pfs;class D2_KMS +pts;class D2_ATOMIC +pmf"
++
++    set_param 0x57 /sys/module/test_dynamic_debug/parameters/p_disjoint_bits
++    set_param 4 /sys/module/test_dynamic_debug/parameters/p_level_num
++    verify_control_slice 'test_dynamic_debug'
++
++    set_param 3 /sys/module/test_dynamic_debug/parameters/p_disjoint_bits
++    set_param 0 /sys/module/test_dynamic_debug/parameters/p_level_num
++    verify_control_slice 'test_dynamic_debug'
++
++    set_param 0x16 /sys/module/test_dynamic_debug/parameters/p_disjoint_bits
++    set_param 0 /sys/module/test_dynamic_debug/parameters/p_level_num
++    verify_control_slice 'test_dynamic_debug'
++
++    # recap DRM_USE_DYNAMIC_DEBUG regression
++    ifrmmod test_dynamic_debug_submod
++    ifrmmod test_dynamic_debug
++
++    # set super-mod params at load-time
++    my_modprobe test_dynamic_debug p_disjoint_bits=0x16 p_level_num=5
++    verify_control_slice '\[test_dynamic_debug\]'
++
++    # see them picked up by submod
++    my_modprobe test_dynamic_debug_submod
++    verify_control_slice 'test_dynamic_debug'
++
++    # Real-time mathematical proof that load-time (modprobe) parameter parsing
++    # and runtime (sysfs write) parameter configurations are perfectly equivalent!
++    local hash_modprobe=$(slice_and_hash_ddctrl '\[test_dynamic_debug\]')
++
++    # Fresh load with default parameters, then configure them dynamically at runtime
++    ifrmmod test_dynamic_debug_submod
++    ifrmmod test_dynamic_debug
++    my_modprobe test_dynamic_debug
++    my_modprobe test_dynamic_debug_submod
++    echo 0x16 > /sys/module/test_dynamic_debug/parameters/p_disjoint_bits
++    echo 5 > /sys/module/test_dynamic_debug/parameters/p_level_num
++
++    local hash_sysfs=$(slice_and_hash_ddctrl '\[test_dynamic_debug\]')
++    if [ "$hash_modprobe" != "$hash_sysfs" ]; then
++        echo -e "${RED}: Load-time vs runtime parameter equivalence check failed!${NC}"
++        exit $ksft_fail
++    else
++        v_echo "${GREEN}: Proven: parameter load-time (modprobe) " \
++            "and runtime (sysfs write) are equivalent!${NC}"
++    fi
++
++    # --- Live Content Fingerprinting Phase ---
++    log_start
++    echo 1 > /sys/module/test_dynamic_debug/parameters/do_classes
++    echo 1 > /sys/module/test_dynamic_debug_submod/parameters/do_classes
++    log_stop
++
++    ifrmmod test_dynamic_debug_submod
++    ifrmmod test_dynamic_debug
++}
++
++function FT_modprobe_w_param {
++    v_echo "${GREEN}# TEST_MODPROBES ${NC}"
++    local verbose
++
++    ifrmmod test_dynamic_debug_submod
++    ifrmmod test_dynamic_debug
++
++    for verbose in 1 2; do # 3 4 0; do
++	echo $verbose > /sys/module/dynamic_debug/parameters/verbose
++
++	# Verify each parameter load sequence with 100% DRY modularity
++	verify_modprobe_param_logging "do_prints" "1"
++
++	#verify_modprobe_param_logging "do_classes" "1"
++	#verify_modprobe_param_logging "do_bulk" "1"
++
++	# Sequence composite bitmasks to verify disjoint bit transitions
++	for mask in "0x05" "0x12" "0x1f" "0x00"; do
++            verify_modprobe_param_logging "p_disjoint_bits" "$mask"
++	done
++
++	# Sequence levels to verify both growing and shrinking verbose transitions
++	for lvl in "3" "5" "4" "0"; do
++            verify_modprobe_param_logging "p_level_num" "$lvl"
++	done
++    done
++    ddcmd =_
++}
++
++# Built-in Feature Tests (Can run on any CONFIG_DYNAMIC_DEBUG kernel, modular or monolithic)
++builtin_tests=(
++    FT_grammar_ok
++    FT_grammar_errs
++    FT_basic_queries
++    #FT_path_module_queries
++    #FT_hyphen_underscore
++)
++
++# Modular Feature Tests (Require CONFIG_MODULES=y and test_dynamic_debug*.ko available)
++modular_tests=(
++    #FT_test_classes
++    #FT_classmap_inheritance
++    #FT_modprobe_w_param
++)
++
++# ==============================================================================
++# GOLDEN_RECORDS (MD5 Fingerprint Verification Database)
++#
++# This database stores the expected invariant log content hashes for our tests.
++# Since the key has the line-number of the callsite, we dont yet
++# support looping over a test-call, maybe we'll need to address that
++# later.
++#
++# NB: records have lineno of the test in code above. table at bottom
++# means inserts dont shift test-lines.
++#
++# ==============================================================================
++function GOLDEN_RECORDS {
++    cat << 'EOF' | {
++#K= f3dbd5afb9aa1750f93275b634499e22 FT_grammar_errs.1
++#K= 200c01632c52a63f6d186da1c6460740 FT_grammar_errs.2
++#K= 7d7141900ce6e32f15c99202309c63a4 FT_grammar_errs.3
++#K= 1bb798a5831d0119789d424ef6cb55c4 FT_grammar_errs.4
++#K= 5edd66e308b2792d5694df86c07a3eaf FT_grammar_errs.5
++#K= 6f87d92ffe0812550f43287127c6f2b9 FT_grammar_errs.6
++#K= c0eb05b58a008c722e091e1ae74440ec FT_grammar_errs.7
++#K= 911929ec0e2ffc1f13822b479dec6805 FT_grammar_errs.8
++#K= c1407512376369d2e591a4b25a4b607a FT_grammar_errs.9
++#K= 2046abda72725ea06fe339d5f364f1c9 FT_grammar_errs.10
++#K= b72f7fccf76f8a5bee47a05d7bb545fb FT_grammar_errs.11
++#K= 98e2bd3e4f3da58536496a38ec3e6238 FT_grammar_errs.12
++#K= b371c6ba52503d037dbc43da788af8be FT_grammar_errs.13
++#K= cb8288d607b0c5282125852f3ab05107 FT_grammar_errs.14
++#K= 9346a310c4ad57cc3746afbace702c3e FT_grammar_errs.15
++#K= 533d27af85eed3c0fd2eaec961982a36 FT_grammar_errs.16
++#K= 114e0632585e205a3347c82bac7d79f2 FT_grammar_errs.17
++#K= 73f5c173bafdfb9674b5ecce77db3354 FT_grammar_errs.18
++#K= 0fc110d078f60eacdd389e5975ba18d9 FT_grammar_errs.19
++#K= 815a1c52f365510c644450bb80c07e72 FT_grammar_errs.20
++#K= 621e3cd81b553973cb40a935bb9298f1 FT_grammar_errs.21
++#K= 581222901232344ade18bbda58302c48 FT_grammar_errs.22
++#K= ea0aae3e01b3bb22eb8ad7acd327b371 FT_grammar_errs.23
++#K= 8f28189bff62a3d5ed16f537d41a725a FT_grammar_errs.24
++#K= 19c425e5d3a645b5dc5e23758ba0f4a1 FT_grammar_errs.25
++#K= 75415542333f2250f0e060a54dae50f8 FT_grammar_errs.26
++#K= 0955815c0e595ab2206e25aa31fe1ef2 FT_grammar_errs.27
++#K= 3ff4c0b60db33e44c3cd6f0e14f81e3e FT_grammar_errs.28
++#K= 9346a310c4ad57cc3746afbace702c3e FT_grammar_errs.29
++#K= 7aaf0a16c287e66b62e11298ee160b34 FT_grammar_errs.30
++#K= 06350c62105b537cdd0c67736b29727d FT_grammar_errs.31
++#K= 6ef0ec01805c8719d828553098f95377 FT_grammar_errs.32
++#K= 0fc110d078f60eacdd389e5975ba18d9 FT_grammar_errs.33
++#K= 72203b2d88d0617cd5c659d3b80e26f9 FT_grammar_errs.34
++#K= 6ecb03736d5cddb7ab2aaff49d561be9 FT_grammar_errs.35
++#K= eaa989336cb7c96c13ef4a3964fc6898 FT_grammar_errs.36
++#K= 5b624d9c133d7bb4f5370c3ce06929ed FT_grammar_errs.37
++#K= 127275739b1fe04c84eedad28ec154f6 FT_grammar_errs.38
++#K= 3e2fd15a7e8c0583bc5066524bc50508 FT_grammar_errs.39
++#K= 781995971d28f732a792522f3c56cdd3 FT_grammar_errs.40
++#K= 6614a677d9f9ac09d9825b4e989d2c42 FT_grammar_errs.41
++#K= 70de9afed457a6be9f9c3c81cbd6d4d5 FT_grammar_errs.42
++#K= 99985cce918eb5108ecb3658249f6bc7 FT_basic_queries.1
++#K= eb3bd35439cc289ef59ee967aad4d540 FT_basic_queries.2
++#K= 00359a9a05d439ec3a850a55e437fcbd FT_basic_queries.3
++#K= b24b1a8081d7514fa593cc28f6fb645b FT_basic_queries.4
++#K= de950a3e60669fdd58d0a8c2867a056d FT_basic_queries.5
++#K= 2ff49f0c4d18ec99bcb1c30840fe8afc FT_basic_queries.6
++#K= 9a1b13c32a15363dcf93913308edeea5 FT_basic_queries.7
++EOF
++        # Read the K-recs and skip those for tests that can't run
++        while read -r line; do
++            # Filter built-in if needed
++            if [ "${LACK_DD_BUILTIN:-0}" -eq 1 ]; then
++                # Extract pattern (4th field) from #K= line
++                local pattern=$(echo "$line" | awk '{print $4}')
++                if [[ "$pattern" == *params* || "$pattern" == *main* ]]; then
++                    continue
++                fi
++            fi
++            # Filter modular if needed
++            if [ "${LACK_TMOD:-0}" -eq 1 ]; then
++                # Extract label (3rd field) from #K= line
++                local label=$(echo "$line" | awk '{print $3}')
++                if [[ "$label" == FT_test_classes* \
++			  || "$label" == FT_classmap_inheritance* \
++			  || "$label" == FT_modprobe_w_param* ]]; then
++                    continue
++                fi
++            fi
++            echo "$line"
++        done
++    }
++}
++
++# ==============================================================================
++# Run tests
++
++# Clear any stale seen/unregistered/drifted hashes from previous runs
++rm -f "$SEEN_HASHES_FILE" "$UNREG_HASHES_FILE" "$DRIFT_HASHES_FILE"
++
++ifrmmod test_dynamic_debug
++
++# Check if loadable module support or our test modules are missing/builtin
++LACK_TMOD=0
++if [ -d "/sys/module/test_dynamic_debug" ]; then
++    # If module is present but not in /proc/modules,
++    # it is a builtin module (cannot unload/reload)
++    if ! grep -q "^test_dynamic_debug " /proc/modules 2>/dev/null; then
++        LACK_TMOD=1
++    fi
++else
++    # Check if we can modprobe it from disk
++    modprobe -q -n test_dynamic_debug || LACK_TMOD=1
++fi
++
++# 1. Run all Built-in Feature Tests
++v_echo "${GREEN}# RUNNING BUILT-IN FEATURE TESTS ${NC}"
++for test_func in "${builtin_tests[@]}"; do
++    $test_func
++    v_echo ""
++done
++
++# 2. Run Modular Feature Tests only if test modules are available
++if [ $LACK_TMOD -eq 0 ]; then
++    v_echo "${GREEN}# RUNNING MODULAR FEATURE TESTS ${NC}"
++    for test_func in "${modular_tests[@]}"; do
++        $test_func
++        v_echo ""
++    done
++else
++    v_echo "${YELLOW}# SKIPPING MODULAR TESTS: test_dynamic_debug.ko not available ${NC}"
++fi
++
++if [ "$V" -ge 1 ]; then
++    echo -en "${GREEN}# Done on: "
++    date
++    echo -en "${NC}"
++fi
++
++audit_golden_records
++
++# Output consolidated blocks of unregistered and drifted fingerprints
++failed=0
++
++if [ -s "$UNREG_HASHES_FILE" ]; then
++    echo -e "${YELLOW}\n# --- Unregistered Baselines ---"
++    cat "$UNREG_HASHES_FILE"
++    echo -e "# ------------------------------${NC}"
++    rm -f "$UNREG_HASHES_FILE"
++    failed=1
++fi
++
++if [ -s "$DRIFT_HASHES_FILE" ]; then
++    echo -e "${RED}\n# --- Drifted Baselines ---"
++    cat "$DRIFT_HASHES_FILE"
++    echo -e "# -------------------------${NC}"
++    rm -f "$DRIFT_HASHES_FILE"
++    failed=1
++fi
++
++# Cleanup
++rm -f "$UNREG_HASHES_FILE" "$DRIFT_HASHES_FILE"
++
++if [ $failed -eq 1 ]; then
++    [ "$K" -eq 1 ] && echo "fake success" && exit $ksft_pass
++    exit $ksft_fail
++fi
++
++exit $ksft_pass
++
+diff --git a/tools/testing/selftests/dynamic_debug/syslog_hash_validation.sh b/tools/testing/selftests/dynamic_debug/syslog_hash_validation.sh
+new file mode 100644
+index 000000000000..8c6e91f5d9c2
+--- /dev/null
++++ b/tools/testing/selftests/dynamic_debug/syslog_hash_validation.sh
+@@ -0,0 +1,393 @@
++#!/bin/bash
++# SPDX-License-Identifier: GPL-2.0-only
++#
++# Generic, zero-dependency syslog and file-slicing verification helper library.
++#
++# Provides 2 validation mechanisms:
++# 1. Spatial Control-File Slicing (State Checks & Transitions):
++#    - verify_file_slice: Hashes module state in /proc/.../control.
++#    - capture_before / verify_after_change: Hashes normalized diff between
++#      pre- and post-stimulus states. Strips line numbers and hunk headers,
++#      making the hash immune to upstream line churn in C source files.
++# 2. Temporal Syslog Slicing (Workload Logging Checks):
++#    - log_start / log_stop / verify_dmesg_slice: Emits bookend markers to
++#      /dev/kmsg, slicing exact dmesg prints produced during a workload while
++#      stripping multi-bracket timestamp/CPU/PID headers.
++
++# Default APP to DYNDBG if not already set
++APP="${APP:-DYNDBG}"
++APP_LOWER=$(echo "$APP" | tr '[:upper:]' '[:lower:]')
++
++# Global files for tracking seen, unregistered, and drifted hashes securely via mktemp
++SEEN_HASHES_FILE=$(mktemp -t "${APP_LOWER}_seen_hashes.XXXXXX")
++UNREG_HASHES_FILE=$(mktemp -t "${APP_LOWER}_unreg_hashes.XXXXXX")
++DRIFT_HASHES_FILE=$(mktemp -t "${APP_LOWER}_drift_hashes.XXXXXX")
++
++# Secure trap handler to clean up temp files on exit or interrupt
++trap 'rm -f "$SEEN_HASHES_FILE" "$UNREG_HASHES_FILE" "$DRIFT_HASHES_FILE"' EXIT INT TERM HUP
++
++# Global variables for tracking active function transitions and sequence resets
++LAST_FT_FUNC=""
++TEST_SEQ_CTR=0
++ACTIVE_RESOLVED_LABEL=""
++
++# Global variables for bookending state transitions and local stimulus tracking
++IN_BOOKEND=0
++DDCMD_LOG=""
++
++# Global variable to track the active dmesg block label
++ACTIVE_LOG_LABEL=""
++
++# Helper function to auto-resolve active FT_ test and sequence label
++function rdi_resolve_label {
++    local caller_fn=""
++    # Traverse the call stack to find the active Feature Test function (FT_*)
++    for fn in "${FUNCNAME[@]}"; do
++        if [[ "$fn" == FT_* ]]; then
++            caller_fn="$fn"
++            break
++        fi
++    done
++
++    # Fallback to the immediate caller if no FT_ is in the stack
++    if [ -z "$caller_fn" ]; then
++        caller_fn="${FUNCNAME[1]:-}"
++    fi
++
++    # Automatically reset sequence counter if the executing function has transitioned
++    if [ -n "$caller_fn" ] && [ "$caller_fn" != "$LAST_FT_FUNC" ]; then
++        TEST_SEQ_CTR=1
++        LAST_FT_FUNC="$caller_fn"
++    fi
++
++    if [ -n "$caller_fn" ]; then
++        ACTIVE_RESOLVED_LABEL="${caller_fn}.${TEST_SEQ_CTR}"
++    else
++        ACTIVE_RESOLVED_LABEL="${TEST_SEQ_CTR}"
++    fi
++}
++
++function log_start {
++    ((TEST_SEQ_CTR++))
++
++    rdi_resolve_label
++    ACTIVE_LOG_LABEL="$ACTIVE_RESOLVED_LABEL"
++
++    IN_BOOKEND=1
++
++    echo "${APP}_START_${ACTIVE_LOG_LABEL}_$$" > /dev/kmsg
++}
++
++function log_stop {
++    # Ends the dmesg capture block and verifies the slice
++    if [ -z "$ACTIVE_LOG_LABEL" ]; then
++        echo "Error: log_stop called without a matching log_start!" >&2
++        return 1
++    fi
++
++    echo "${APP}_END_${ACTIVE_LOG_LABEL}_$$" > /dev/kmsg
++
++    # Verify the dmesg slice
++    verify_dmesg_slice "$ACTIVE_LOG_LABEL"
++
++    # Reset active state, bookend flag, and command tracker at teardown
++    ACTIVE_LOG_LABEL=""
++    IN_BOOKEND=0
++    DDCMD_LOG=""
++}
++
++function verify_fingerprint {
++    # Verifies a calculated fingerprint against the GOLDEN_RECORDS database
++    # $1 - unique test key (e.g. normal_513)
++    # $2 - the calculated fingerprint hash to verify
++    # $3 - description of what was captured (e.g. "Dmesg Log" or "File Slice")
++    # $4 - the raw captured text block (to display in case of mismatch)
++
++    local label="$1"
++    local fingerprint="$2"
++    local capture_desc="$3"
++    local raw_capture="$4"
++
++    # Require GOLDEN_RECORDS to be defined in the caller script
++    if ! declare -f GOLDEN_RECORDS >/dev/null; then
++        echo "Error: GOLDEN_RECORDS() is not defined in the caller script." >&2
++        return 1
++    fi
++
++    # Resolve the expected hash specifically for this label
++    local expected_hash_field
++    expected_hash_field=$(GOLDEN_RECORDS | \
++        grep -E "[[:space:]]${label}([[:space:]]|$)" | head -n1 | awk '{print $2}')
++
++    local matched=0
++    local h
++    local OLD_IFS="$IFS"
++    IFS=","
++    for h in $expected_hash_field; do
++        if [ "$h" = "$fingerprint" ]; then
++            matched=1
++            break
++        fi
++    done
++    IFS="$OLD_IFS"
++
++    # Strictly verify that the computed fingerprint matches any
++    # expected hash for this label
++    if [ -n "$expected_hash_field" ] && [ $matched -eq 1 ]; then
++        local short_hash="${fingerprint:0:12}"
++        [ "$V" -ge 1 ] && echo -e "${GREEN}✔ Verified '${label}' " \
++            "(${short_hash}) [via: '${DDCMD_LOG}']${NC}"
++
++        if [ "$V" -ge 2 ]; then
++            echo -e "${CYAN}--- Captured Invariant ${capture_desc} Output ($label) ---"
++	    printf "#K= %-32s %-24s\n" "${fingerprint}" "${label}"
++            echo "$raw_capture"
++            echo -e "-----------------------------------${NC}"
++        fi
++        echo "$fingerprint" >> "$SEEN_HASHES_FILE"
++    else
++        # Failure path: display mismatch and append to corrections
++        local status_str="UNREGISTERED"
++        local stimulus="${DDCMD_LOG:-direct write to control}"
++        if [ -n "$expected_hash_field" ]; then
++            local short_expected="${expected_hash_field:0:12}"
++            local short_got="${fingerprint:0:12}"
++            if [ "${K:-0}" -ne 2 ]; then
++                echo -e "${RED}: DRIFT for '${label}'${NC}"
++                echo -e "  Stimulus:  ${stimulus}"
++                echo -e "  Expected:  '${short_expected}' (${expected_hash_field})"
++                echo -e "  Got:       '${short_got}' (${fingerprint})${NC}"
++            fi
++            status_str="DRIFTED"
++        else
++            if [ "${K:-0}" -ne 2 ]; then
++                echo -e "${YELLOW}: NO RECORD for '${label}'${NC}"
++                echo -e "  Stimulus:  ${stimulus}${NC}"
++            fi
++        fi
++
++        if [ "${K:-0}" -ne 2 ]; then
++            echo -e "\nAdd or replace this line in GOLDEN_RECORDS():"
++            printf "#K= %-32s %-24s\n" "${fingerprint}" "${label}"
++            echo -e "\n--- Captured Invariant ${capture_desc} Output ---"
++            if [ "$capture_desc" = "File Slice" ]; then
++                echo "$raw_capture" | \
++                    sed -E "s/ =([_a-z]*[a-z][_a-z]*) / ${YELLOW}=\1${NC} /g"
++            else
++                echo "$raw_capture"
++            fi
++            echo -e "-----------------------------------${NC}"
++        fi
++
++        if [ "$status_str" = "DRIFTED" ]; then
++            printf "#K= %-32s %s\n" \
++                "${fingerprint}" "${label}" \
++                >> "$DRIFT_HASHES_FILE"
++        else
++            printf "#K= %-32s %s\n" \
++                "${fingerprint}" "${label}" \
++                >> "$UNREG_HASHES_FILE"
++        fi
++    fi
++}
++
++function verify_dmesg_slice {
++    # Slices dmesg, computes its hash, and verifies it against the database.
++    # $1 - unique test key (e.g. normal_513)
++    # $2 - optional start marker (defaults to ${APP}_START_${label})
++    # $3 - optional end marker (defaults to ${APP}_END_${label})
++
++    local label="$1"
++    local app="${APP:-DYNDBG}"
++    local start_marker="${2:-${app}_START_${label}_$$}"
++    local end_marker="${3:-${app}_END_${label}_$$}"
++
++    # 1. Capture the log slice (exactly once!)
++    local log_slice=$(dmesg | sed -n "/$start_marker/,/$end_marker/p" | \
++	grep -E -v "$start_marker|$end_marker" | \
++        sed -E -e 's/^(\[[^]]*\][[:space:]]*)+//' )
++
++    # 2. Compute its fingerprint
++    local fingerprint=$(echo "$log_slice" | tr -d '\r' | md5sum | cut -d' ' -f1)
++
++    # 3. Verify
++    verify_fingerprint "$label" "$fingerprint" "Dmesg Log" "$log_slice"
++}
++
++function strip_control_linenos {
++    # Normalizes 'filename:123' to 'filename:0' for /proc/dynamic_debug/control output
++    sed -E 's/^([^:]+):[0-9]+/\1:0/'
++}
++
++function slice_by_grep {
++    # Isolate lines matching a pattern from a file
++    # $1 - pattern to grep (returns entire file if empty or "*")
++    # $2 - file path (reads $CONTROL_FILE if not provided)
++    local pattern="$1"
++    local file_path="${2:-$CONTROL_FILE}"
++
++    if [ -z "$pattern" ] || [ "$pattern" = "*" ]; then
++        cat "$file_path"
++    else
++        grep "$pattern" "$file_path"
++    fi
++}
++
++function verify_file_slice {
++    # Captures a file slice by pattern, computes its hash,
++    # and verifies it against the database.
++    # $1 - pattern to slice
++    # $2 - optional file path (defaults to $CONTROL_FILE)
++
++    local pattern="$1"
++    local file="${2:-$CONTROL_FILE}"
++
++    # Always auto-resolve label via call stack sequence resets!
++    ((TEST_SEQ_CTR++))
++    rdi_resolve_label
++    local label="$ACTIVE_RESOLVED_LABEL"
++
++    # 1. Capture the file slice (exactly once!)
++    local slice=$(slice_by_grep "$pattern" "$file")
++    if [ "$file" = "$CONTROL_FILE" ]; then
++        slice=$(echo "$slice" | strip_control_linenos)
++    fi
++
++    # 2. Compute its fingerprint
++    local fingerprint=$(echo "$slice" | tr -d '\r' | md5sum | cut -d' ' -f1)
++
++    # 3. Verify
++    verify_fingerprint "$label" "$fingerprint" "File Slice" "$slice"
++
++    # Reset state, bookend flag, and command tracker at teardown
++    IN_BOOKEND=0
++    DDCMD_LOG=""
++}
++
++# Global variables for bookending state transitions
++BEFORE_CAPTURE_SLICE=""
++BEFORE_CAPTURE_PATTERN=""
++BEFORE_CAPTURE_FILE=""
++
++function capture_before {
++    # Captures and stores the 'before' state for a file slice transition
++    # $1 - pattern to slice
++    # $2 - optional file path (defaults to $CONTROL_FILE)
++
++    BEFORE_CAPTURE_PATTERN="$1"
++    BEFORE_CAPTURE_FILE="${2:-$CONTROL_FILE}"
++    BEFORE_CAPTURE_SLICE=$(slice_by_grep "$BEFORE_CAPTURE_PATTERN" "$BEFORE_CAPTURE_FILE")
++    if [ "$BEFORE_CAPTURE_FILE" = "$CONTROL_FILE" ]; then
++        BEFORE_CAPTURE_SLICE=$(echo "$BEFORE_CAPTURE_SLICE" | strip_control_linenos)
++    fi
++
++    IN_BOOKEND=1
++}
++
++function verify_after_change {
++    # Verifies the transition between the stored 'before' state and the current state
++    # $1 - optional unique test key (resolved via stack if empty)
++
++    local label="$1"
++
++    if [ -z "$label" ]; then
++        ((TEST_SEQ_CTR++))
++        rdi_resolve_label
++        label="$ACTIVE_RESOLVED_LABEL"
++    fi
++
++    if [ -z "$BEFORE_CAPTURE_PATTERN" ]; then
++        echo "Error: verify_after_change called without a matching capture_before!" >&2
++        return 1
++    fi
++
++    # 1. Capture the 'after' state (exactly once!)
++    local after_slice=$(slice_by_grep "$BEFORE_CAPTURE_PATTERN" "$BEFORE_CAPTURE_FILE")
++    if [ "$BEFORE_CAPTURE_FILE" = "$CONTROL_FILE" ]; then
++        after_slice=$(echo "$after_slice" | strip_control_linenos)
++    fi
++
++    # 2. Generate the unified diff, stripped of volatile diff headers AND hunk line-numbers
++    local transition_diff=$(diff -u <(echo "$BEFORE_CAPTURE_SLICE") <(echo "$after_slice") | \
++        tail -n +3 | \
++        sed -E 's/^@@ -[0-9]+.* \+[0-9]+.* @@/@@/g')
++
++    # 3. Compute its fingerprint
++    local fingerprint=$(echo "$transition_diff" | tr -d '\r' | md5sum | cut -d' ' -f1)
++
++    # 4. Verify the diff as the captured text block
++    verify_fingerprint "$label" "$fingerprint" "File Change Diff" "$transition_diff"
++
++    # Reset state, bookend flag, and command tracker at teardown
++    BEFORE_CAPTURE_SLICE=""
++    BEFORE_CAPTURE_PATTERN=""
++    BEFORE_CAPTURE_FILE=""
++    IN_BOOKEND=0
++    DDCMD_LOG=""
++}
++
++function audit_golden_records {
++    local seen_file="$SEEN_HASHES_FILE"
++
++    if [ ! -f "$seen_file" ]; then
++        return
++    fi
++
++    # Require GOLDEN_RECORDS to be defined in the caller script
++    if ! declare -f GOLDEN_RECORDS >/dev/null; then
++        return
++    fi
++
++    [ "${V:-0}" -ge 1 ] && echo -e "${YELLOW}# --- GOLDEN_RECORDS Audit ---${NC}"
++    local stale_found=0
++    local total_records=$(GOLDEN_RECORDS | grep -c "^#K=")
++
++    # Read each active record line from GOLDEN_RECORDS
++    while read -r line; do
++        # Extract the hash/hashes (second word) from the #K= line
++        local hash_field=$(echo "$line" | awk '{print $2}')
++
++        # Check if at least one of the comma-separated hashes was seen
++        local hash_seen=0
++        local h
++        local OLD_IFS="$IFS"
++        IFS=","
++        for h in $hash_field; do
++            if grep -q "$h" "$seen_file" 2>/dev/null; then
++                hash_seen=1
++                break
++            fi
++        done
++        IFS="$OLD_IFS"
++
++        # Check if this hash field was seen during the run
++        if [ $hash_seen -eq 0 ]; then
++            if [ "${K:-0}" -ne 2 ]; then
++                if [ $stale_found -eq 0 ]; then
++                    # On first failure, print header if not already printed
++                    [ "${V:-0}" -eq 0 ] && \
++                        echo -e "${YELLOW}# --- GOLDEN_RECORDS Audit ---${NC}"
++                    echo -e "${YELLOW}# The following GOLDEN_RECORDS entries " \
++                        "were never hit and may be stale:${NC}"
++                fi
++                echo -e "${YELLOW}#K_STALE= $line${NC}"
++            fi
++            stale_found=1
++        fi
++    done < <(GOLDEN_RECORDS | grep "^#K=" | grep -v "<md5_hash>")
++
++    if [ $stale_found -eq 0 ] && [ "${V:-0}" -ge 1 ]; then
++        echo -e "${GREEN}# All $total_records GOLDEN_RECORDS entries " \
++            "were successfully hit!${NC}"
++    fi
++
++    # Detect duplicate labels in the database
++    local dupes=$(GOLDEN_RECORDS | grep "^#K=" | awk '{print $3}' | sort | uniq -d)
++    if [ -n "$dupes" ]; then
++        echo -e "\n${RED}# WARNING: Duplicate labels detected in GOLDEN_RECORDS():${NC}"
++        echo "$dupes" | sed 's/^/#   /'
++    fi
++
++    # Clean up
++    rm -f "$seen_file"
++}
+
+-- 
+2.55.0
+
 
