@@ -1,38 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EF5D64C041B;
-	Sat,  5 Sep 2026 18:13:39 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1E62F4EBAE1;
+	Sat,  5 Sep 2026 18:13:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788632020; cv=none; b=mXowA834O4P62qKOebB4ZKgt/K5toVBQMvTGtlJFgZnWfzO+AM6j1IbpZCnb6UNk3r9Ps+89gJdoCOE1Vn1rg3upzl1OTLLtOnoSnjGhyHyg7TU6HWP4D/8JvFg4B5M3JaetwK3//SvakxKAlgxY/xjvmq3Iz3jU3M6zb0BkT68=
+	t=1788632020; cv=none; b=tBC6pilcbtm+K/MZibRXZM2R6MBuqZmhTZfUKmJ6XBkt3QIxfnCX51SBaJ4cTi06O/YQq5tEXHKsq6ekfz8tKzfEXu6T1MLaiFLn0Bt87n8LQxXo4wUo6XlpyE+eHcUXu8IXwpOTarn/QO8JlyYR8L6VJmAC/XcF3DJ6DW6FcX0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1788632020; c=relaxed/simple;
-	bh=mFq7t8pPnW8tWgNRY0QIGMk5Lw7S9ptiEy3IfuGAgJ4=;
+	bh=GWkapSVvyFUFAgZ+6PHr+LM1u0ZhUP84bP/x3TY51II=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=hiexxDcNEjrpm8OA4f3yqrMryZPHsH4tT/6Kk0r1MkZsjKojntLC6N9+vY0GwWYvrTd3a8Nw63nCliKR2kizQpQj9PtYLOjldIZSxMqkrnW5vuj4GmWIbpWGr5iHB3SrtVMJgwfEoJPDfMGvmVc/BxuQGixCaDC+IsuQsakqqd8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=WFvNKc/s; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=RD+JrkAXQQ4K4SdZuL+JyR224kSdE8lKekvSMoosy+5QJlN0t+PfIuY7+NnyOcFGnnvyQ6EyRnihgA0RI549AUreQcQ05Udjb0hQXw+jOFmOIIqS4+2gCq6XN92aFJ0KNNEi5EO2soSUuvj61HEZ2UFT+TXWTx9x+ZWWvbGRSjw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=h7EA5GgX; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="WFvNKc/s"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 9555BC2BD00;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="h7EA5GgX"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id C1C3AC4AF1A;
 	Sat,  5 Sep 2026 18:13:39 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1788632019;
-	bh=mFq7t8pPnW8tWgNRY0QIGMk5Lw7S9ptiEy3IfuGAgJ4=;
+	bh=GWkapSVvyFUFAgZ+6PHr+LM1u0ZhUP84bP/x3TY51II=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=WFvNKc/sOsIMcTMDtfDLLYm8aoov+2ZmiCxqXnHDJMkHdj7QKoSkL2xtpcWG6Cxbe
-	 aTEHv7F7nlUWNuCSItLvknTOXJTBjGHrwj8DvgE9rGrGYFMHIH2As7NV/SQoa+Exeu
-	 UHmxqTV6FKyxIKamjNA6DVIaLE0p9jl9xBrV23/Md1rkSIaRFR3jgeDl7txAjn6DwX
-	 lPeBn0lCBZyLhmGAGI3MHZs/yG2ClKw85nXBAMFHEpFZbGoBt1U1w9+6rSVpqFEW+4
-	 CIMlVI5L4w/qm9MnK0w3rRGEgPKOr4DkQNLGcxiEW4rc7V0Bay+9By8U45h/tK3GZ2
-	 N+aGSQUlFPlZQ==
+	b=h7EA5GgXzxnCHQv42J3o7+3Z+VyguEzbUteLpMoQJ4HmvdnntS2/+JH1eOvhRYqNh
+	 jJMwaCaieKsdJpt8HBnUoZd2gMql1eapCDVuLguRJ843cAAMIHNtrpP9HgDM6U1YnI
+	 AdUVa6F7Fuo0Zib3ulnurWC8X0ZupscXA23RvnIk1XbPhjA5+GiSGVZk91GfPBFyOw
+	 5Mu5LBc+Jw/droMOoGBYHJcIrSOUfWdNdheH16Sqd/e6PqMmRS/R/MMtA9Y8sJfvKH
+	 gxGa+YgwhcJdENI5ta9klVEL3annV9+dosenD0xYlt0aOHVM2ZaYlK/y286TM4DH9d
+	 JA/Gthph1qcDw==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7AA5FC79F97;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AE8DDC624DB;
 	Sat,  5 Sep 2026 18:13:39 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Sat, 05 Sep 2026 12:13:17 -0600
-Subject: [PATCH v8 03/43] drm: fix config dependent unused variable
- warning.
+Date: Sat, 05 Sep 2026 12:13:20 -0600
+Subject: [PATCH v8 06/43] vmlinux.lds.h: drop unused HEADERED_SECTION*
+ macros
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260905-dd-cmap-part2-clean-v8-3-a4cc0674f6fd@gmail.com>
+Message-Id: <20260905-dd-cmap-part2-clean-v8-6-a4cc0674f6fd@gmail.com>
 References: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
 In-Reply-To: <20260905-dd-cmap-part2-clean-v8-0-a4cc0674f6fd@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -60,11 +60,11 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
  linux-kbuild@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=1088;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1788632017; l=1428;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=xTai6ZK4QmRgBE6pkfVWluR5fMfzn/IcxxIyts3OtoY=;
- b=RBwsUntnwDYlSQqJ+ZyEsskbyqGxP1QEVoTtffrk146DvlFwKAUWPOKh6P8PyLAl1PqJTQ9sG
- Xa33uXACXc6ApsZaPqViABTtQCiMsFm9pDrIX3A7V1/589VdcUQXOH8
+ bh=R+ywodY9/HEwLU1o/08HL92DtAFTrUi2XM/5yuI7Itk=;
+ b=x9U3vwhV1FBkXLQy3mZBL9S+oSv/aOLnCCEB1RapsEj7U+qbDlu2lpj0a/bkBspamLNH7aaHS
+ Ddv3MO/B3MvB6bzZjATDY8YmLzYh/D2R476vmfEnUC/JBity+ZRti/B
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -74,36 +74,41 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-__drm_printfn_dbg() does
-  int category = p->category;
-then does:
-  if (drm_debug_enabled(category))
+These macros are unused, no point in carrying them any more.
 
-When CONFIG_DRM_USE_DYNAMIC_DEBUG=y, that macro doesn't reference the
-category arg, because its optimized away, as not needed when dyndbg's
-static-key is under the callsite.  Silence the warning by passing
-p->category directly.
+NB: these macros were just moved to bounded_sections.lds.h, from
+vmlinux.lds.h, which is the known entity, and therefore more
+meaningful in the 1-line summary, so thats what I used as the topic.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- drivers/gpu/drm/drm_print.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ include/asm-generic/bounded_sections.lds.h | 15 ---------------
+ 1 file changed, 15 deletions(-)
 
-diff --git a/drivers/gpu/drm/drm_print.c b/drivers/gpu/drm/drm_print.c
-index 86cef1a37678..e5b900640300 100644
---- a/drivers/gpu/drm/drm_print.c
-+++ b/drivers/gpu/drm/drm_print.c
-@@ -218,9 +218,8 @@ void __drm_printfn_dbg(struct drm_printer *p, struct va_format *vaf)
- {
- 	const struct drm_device *drm = p->arg;
- 	const struct device *dev = drm ? drm->dev : NULL;
--	enum drm_debug_category category = p->category;
+diff --git a/include/asm-generic/bounded_sections.lds.h b/include/asm-generic/bounded_sections.lds.h
+index 8c29293ca7fb..268cdc34389b 100644
+--- a/include/asm-generic/bounded_sections.lds.h
++++ b/include/asm-generic/bounded_sections.lds.h
+@@ -18,19 +18,4 @@
  
--	if (!__drm_debug_enabled(category))
-+	if (!__drm_debug_enabled(p->category))
- 		return;
+ #define BOUNDED_SECTION(_sec)	 BOUNDED_SECTION_BY(_sec, _sec)
  
- 	__drm_dev_vprintk(dev, KERN_DEBUG, p->origin, p->prefix, vaf);
+-#define HEADERED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
+-	_HDR_##_label_	= .;						\
+-	KEEP(*(.gnu.linkonce.##_sec_))					\
+-	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)
+-
+-#define HEADERED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
+-	_label_##_HDR_ = .;						\
+-	KEEP(*(.gnu.linkonce.##_sec_))					\
+-	BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)
+-
+-#define HEADERED_SECTION_BY(_sec_, _label_)				\
+-	HEADERED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
+-
+-#define HEADERED_SECTION(_sec)	 HEADERED_SECTION_BY(_sec, _sec)
+-
+ #endif /* _ASM_GENERIC_BOUNDED_SECTIONS_H */
 
 -- 
 2.55.0
