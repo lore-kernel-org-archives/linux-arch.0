@@ -1,60 +1,63 @@
-Received: from LO0P265CU003.outbound.protection.outlook.com (mail-uksouthazon11022128.outbound.protection.outlook.com [52.101.96.128])
+Received: from CWXP265CU010.outbound.protection.outlook.com (mail-ukwestazon11022101.outbound.protection.outlook.com [52.101.101.101])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E4F982DF138;
-	Sun,  6 Sep 2026 13:15:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.96.128
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2573E39902D;
+	Sun,  6 Sep 2026 14:09:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.101.101
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788700529; cv=fail; b=O9fvO71essU2te1o32sEv9gp/Njr/attjOx9qOtOZgFsc+EoofCbpNq4tb2ebG4rR12viYCtRz5rvJYLfwTSxu99cAQgVJuE48Uh8kmWGwcYWnjwlti4VLr7P0y5wLG9LfPYW6cCdtlPvrMfMVQyzFengx/KedvjSrq15L6ZL5E=
+	t=1788703746; cv=fail; b=SH0aokpY89dE+ijGkeyrv0yyG+hI+VuXq4qJ7C1nfB+xPsMTq+y1FblA9akjFAHv7uYAkUsxIoYZP/2qYTi+YY1/5HXgCwTbDGY2He2yxJLAkvxWRexUAxaeOR2quM/nLa+MGi1NQeWiee/+P+m/NToPdYkWoHQ6Q7XGNRd+yYU=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788700529; c=relaxed/simple;
-	bh=csYH0kKga7G3mHIh88FMdLuLmQ3r9T04Ue6xwKcKDWk=;
+	s=arc-20240116; t=1788703746; c=relaxed/simple;
+	bh=kbqvZpGEL2WuYhVAPaoYGmK/31e1gC9Fg8dFxoT5414=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=EjKs5divDQ8yLGN3M90kqFgZ3iHLLaqOKfhKHhEvWEk2Ztjd8Z/R+3LG1xTGPKwXTIkIFV9sWDCJLrVynpgcss46VqOs32lVX3bNxxmuJxla4PsEEIeq+FS1pu6+p+zLcv/8boSJTz6w5JB7oOi8PCgLxy0sjJJYqapwjtTQbzw=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.96.128
+	 Content-Disposition:In-Reply-To:MIME-Version; b=T5FHmQNEe1OKQOdlFPAkeH5zyoqemLWqKHXOjlqotj/pxeQ4osVnyudUze5Y/lEJjoKCyH+x5fdz+ugm9Ijk/xVoUoLIbVTRiyDsmuwmi7ebqdvW5GlfjY/0tspyVCbauez5+O/Dg2BakwPtPgtXMi57k/201czVNHKi2MCl610=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.101.101
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=ykkZcAFAqsQKUZ+ckrKWiHL11zAhaAwTnqLfhsoJstZFeV64xLkpZuyOcYVF/ZbFA43N/c4lUfg5rdXYqkXU4ibu7+Iwe1WdHsxPu7eEo6RbwLhUyZHDNJ8OThFF00x8i2pF8qJuPNyYaq/9lOkjbY8aCqbZTeJXsdvfFUvmCHxXeKj6gHsT4D8164IIzBQi2e3EysY9O3/G1/k7kPPqsg6U5LnEFwROQAm61aAuobz4VS2/J9sK6+hzG18zz7ylVID9QJ5RXMHEV4L170BohZvuzZCpAJ/9dzCEH9N45cpJqFBMeYjTOuVRxK/Q8gl3fxraqvOssXEFb5qOn5Y0rw==
+ b=JVSXbLtmAkfC5FlNuzp8Mwi0SseAqXlyYL+pn43j+JZbiS5UFkJcDC3mqHJvtiuE0UcF6dVERbY0NPLYvjEZUxWWo1rDbsGTEgue1QdrLDfzDMCM1E7AFJ1Y7wcapIUxdwdZy4kviZgGFqLSS4V7W/qW+EdD7LryqygG5AFJqtr4hlfd6Bp5VunD9CDYPwrj0ypwR+qbmSDYZsyuYXKr8iaan/65VdZDV9bxiIAiZxRbXTRYZDl/vME2Cl67q1+DLV1XZWTyOLjI0DO1kOdZHj+CcGnlpANcEilSUwXezX6nx0k5qbsHUjKhH7tmOqtJRKF87ZZHeW5iq8ifcYoPVw==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
- bh=Tb0B4aSEKBji3BjLZufaHjoAJZjag/rQ+oSrMYhGVxA=;
- b=Wz8dA9TBqYytW/rOSrrOmzg3+T8TZewFL1XgCZ5F7IKU+1nC713PTMIs2A7atRs70SyPF9acgWyu7VlaqFlJpByWVpflSRUkF5POf2+HCHo5g5XkDAGi0ox7LiPIyNEml9zypXItJvXh7QrHXtjx841pUPLaU2cI+1rdGyRzxgfeNC6K4IYiHWoWI3fN9YsiUUNwm32yueVGyr1Rpn21eOVmFpvrehBc3l9vCPoRhpNWpvO+QG1ti+Adu9V7DWT95iZfWQrtCk7DF1eohNftKPwv+NJr2PdsUEx1Nv8EkDjsxbG2G7nyeuBlsvMWktzs1H5IxREly3htlc6FSmHetw==
+ bh=X9bLiTq2RUZVuo4ycwMHLscTIN1ONw7Uq/up2JtKV8Y=;
+ b=lgnBj72k6DJ0nhJ0lX/dr3Px/9ofABJCJeTPS63UsD3XVImC0vOBMuw/yR51YGJoZidTm2pyGmPjKp4L/1uHV0cFz12qPtCVOr6riABuP1xuXRn9phfnyKO/JlVVKXC6FdcW7qXGe4dfSDDZyCR90VLQTRUeMz3bavI1Z6oLUgJImpaLydD4pQS3fOF+voYJv85DbdDkxa5KL8+Djpj6jmAKn7t5WNg20guoUF0o6DbZMNnI5J5ccZtp5tYTDZfkwT5a3VLu8s1UJQ3bL6L2RsYeE/Qt4Extv851BGDlatVF+IaCx1GKwGnmt0xW5idjdpFvbSvfEtJhbs5tk8KuRg==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
  dkim=pass header.d=atomlin.com; arc=none
 Authentication-Results: dkim=none (message not signed)
  header.d=none;dmarc=none action=none header.from=atomlin.com;
 Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
- by LO0P123MB7829.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:429::13) with
+ by LO6P123MB7427.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:33d::9) with
  Microsoft SMTP Server (version=TLS1_2,
  cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.382.15; Sun, 6 Sep
- 2026 13:15:24 +0000
+ 2026 14:09:01 +0000
 Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
  ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
  ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0382.014; Sun, 6 Sep 2026
- 13:15:23 +0000
-Date: Sun, 6 Sep 2026 09:15:19 -0400
+ 14:09:01 +0000
+Date: Sun, 6 Sep 2026 10:08:57 -0400
 From: Aaron Tomlin <atomlin@atomlin.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: arnd@arndb.de, mcgrof@kernel.org, petr.pavlu@suse.com, 
-	da.gomez@kernel.org, samitolvanen@google.com, peterz@infradead.org, ojeda@kernel.org, 
-	mhiramat@kernel.org, boqun@kernel.org, neelx@suse.com, da.anzani@gmail.com, 
-	sean@ashe.io, chjohnst@mail.com, steve@abita.co, mproche@mail.com, 
-	nick.lane@mail.com, rishil1999@outlook.com, linux-arch@vger.kernel.org, 
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, da.gomez@kernel.org, 
+	Sami Tolvanen <samitolvanen@google.com>, Peter Zijlstra <peterz@infradead.org>, 
+	Miguel Ojeda <ojeda@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, 
+	Boqun Feng <boqun@kernel.org>, neelx@suse.com, da.anzani@gmail.com, sean@ashe.io, 
+	chjohnst@mail.com, steve@abita.co, mproche@mail.com, nick.lane@mail.com, 
+	rishil1999@outlook.com, Linux-Arch <linux-arch@vger.kernel.org>, 
 	linux-modules@vger.kernel.org, rust-for-linux@vger.kernel.org, linux-kernel@vger.kernel.org
 Subject: Re: [PATCH v10 0/2] module: Extend module_blacklist parameter to
  built-in modules
-Message-ID: <yo5ga35f2uaefjbq4tpk45u5nn4pqcp2gpbthzzxxpim72wj3n@dahra4yg4tej>
+Message-ID: <3gyxhudb5zwrrevc522qjpddnzxbsyxeeqair7tvii6jhfu6kl@f63vlxgftjpl>
 References: <20260903185557.183224-1-atomlin@atomlin.com>
  <20260903132924.7a4d1b84791d30c706b394a1@linux-foundation.org>
  <ultg4rym4phqwqrbuz3hqtlse2lgafxebx3un7s3tdht7rz5xy@3ckauomiwqsy>
  <20260905172817.e367c940d750ca3e8484fef9@linux-foundation.org>
+ <3cee4548-0ae7-46a7-b437-bf84e5c155ad@app.fastmail.com>
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20260905172817.e367c940d750ca3e8484fef9@linux-foundation.org>
-X-ClientProxiedBy: BN9PR03CA0970.namprd03.prod.outlook.com
- (2603:10b6:408:109::15) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
+In-Reply-To: <3cee4548-0ae7-46a7-b437-bf84e5c155ad@app.fastmail.com>
+X-ClientProxiedBy: BN9PR03CA0551.namprd03.prod.outlook.com
+ (2603:10b6:408:138::16) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
  (2603:10a6:400:183::5)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -63,127 +66,151 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LO0P123MB7829:EE_
-X-MS-Office365-Filtering-Correlation-Id: 15c10e85-6457-4a5f-9a72-08df0c18e8c3
+X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LO6P123MB7427:EE_
+X-MS-Office365-Filtering-Correlation-Id: c56899a1-d588-4eeb-9242-08df0c206672
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|7416014|376014|1800799024|23010399003|366016|10067099003|4143699003|56012099006|18002099003|22082099003;
+	BCL:0;ARA:13230040|23010399003|7416014|366016|1800799024|376014|10067099003|6133799003|3023799007|22082099003|18002099003|56012099006|4143699003;
 X-Microsoft-Antispam-Message-Info:
-	HTVzBPJJI7kWBp9jAPHLx2Wu/7wVque6oMNXc5sxMEE+qCUQtPSZsjZkzPLJ3UjH5yRqGedD78e0gUVU6ZXKjayvg5hTem2/5jJKh1xdnR/da2blckGnURAKkFqyAGKzVkOewofgetJ8N4WXdVdVJOAQgOu5mjRV8C7dXNUsnZROTF0CekkJMnVhYu+9E4AI+6ezV2Q0VHqyzsMVxDCQEgqzOQF8Uo8C2gA4KduEmJtKwdRLAfxUGVlkPIpBVDf0RuuBtF9Gy84GYE264QW9SGLITN1PN7fLB3iOMSOfj2gTZOh0HhPmpKQxr8c7SeQebt0Uym5C1Kq0ng3pV7BUNhpe2X+9o3xKwfi/odLXrbLgbilsuuVV+VW67cxGrqKVkiHWHBvAfXGr2+c5p+aXWpUIk+Qz4PtoNZhlTlZrhdRoQcHPru/wsch416ax+nd/w7KNLN/dumQZe9xQPYwENuNi37sWXLwscJuiVMNsOFCB/RQdZA6tbDDK/j4uhmMi6xX3KSop/e9amxSpeoeI5XQXzFOSmct7HWNabBplyGmTNADGdgWWZkJTJq90kmRjPeW/yxFd0Ntg0PEMCr36FSBmCEDdC1TDfav1p1y6/CZSCwKifKZRbsg7rbKG6TUGScshKkONga/96S2vhTdmAcLCulQ24LV0bwzvLSOQ1QE=
+	aV4oBb20Yv65xZ9DF7gNt0OkNT8Fw4oMm+LAIILBMcp8jV4fvtUBzG1jzUjzYcbtfUmJdq1TiN38hHcDojn0n8Oe0ftizyCT/UwYjscDQn9gWmGTCBUkNqiTTD5iAKlhTyJ2hNCD7CiVWQIt5gzwk+tmyDkaZzhhVFULyiwm6gU3LeUz1egHOs4zhN00POqXwKuns5M3v4QkVW36rGo7RQi60GG0t0HiTZjxzMQlXLz3I5CGGb79VF8T8lHX1tp3GVwRyaI6MSRZUtecswbbwUNx8Lq/BzDN+SOYdiLtYIpY0FiKI/Ne2FpZI1IMTmLiKlv3nJEnnYReBolHnGnlDa/t+Oll7hwPqgeimVzy4lioKxZeKMWuh1AYPzrRd1Re8hSBeGrIFRqIvZU7+8ZbYVg+W+YbnsPVWGeRGbrNpHnTq5HM5+p3wxuTENFqoT+nBqWwv6k6AHY0PKrF2EMXeC0SutxYeV6EGB2MRce/bguuC95Bu4R1wpywoT31ykBbQavtpMbSfRVudt2+lm7rsUxRQdk+dmfyQk0VWuM1VCIM9a32mALoelPRhX1DV35MSxucAElnW1Gl2QUZD/Q+N/cVtwl+kjYzW1dxOUCwbtcYl/E0mkTosCpKIKGElXEbKdXMl6EPAcEgJjg18TgPRebDTd5LG4OYzoYr6dbBjVs=
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(7416014)(376014)(1800799024)(23010399003)(366016)(10067099003)(4143699003)(56012099006)(18002099003)(22082099003);DIR:OUT;SFP:1102;
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(23010399003)(7416014)(366016)(1800799024)(376014)(10067099003)(6133799003)(3023799007)(22082099003)(18002099003)(56012099006)(4143699003);DIR:OUT;SFP:1102;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?L0E5ZU0yM1h1ZzJ0c0RUVDZXTVNGZm1XM3YydHMxR0lpc1hPQkl0K0lxV0JU?=
- =?utf-8?B?UWpYUGZNaHZQMFl5NE1tc0NzSTZ1SVV6eE5qTTJYWVR3SGFCdU8xVm1NcXZP?=
- =?utf-8?B?ZlJQditma3hHY0NXdnR0THQxVElrYkRFcW5OcUdoMWt3alRGcThwTXNBUjVs?=
- =?utf-8?B?QzBZMHU1WE1PQjdrYlkydE9lNzczTXlZanlpc1F3U2xHc3ZEODZkK1V0cVBH?=
- =?utf-8?B?ekZNZFlHL0FQYW9oRU9wUElZdHVCc3hBV2RKdFlCMHJuRHorRDZscXkrMysz?=
- =?utf-8?B?RUk5RG8vK0x2N0lCM3Q5K1laYi8wMzZBMGpjRVZYNmJLeXFPUWdlbHpsbXAz?=
- =?utf-8?B?bTZjam1PNlJTTHkvSmtDZDBPSGpUaHRxZ1VpMDE5d2lOSitwd2JWaFh5cjR5?=
- =?utf-8?B?V0hmcTU2dWNSZHIwcXFXQW1YWXFRTVdoTEVvZ2NZakpNb21FbHFlbmVpR1ZB?=
- =?utf-8?B?V0MrRmlYdE9JR3phQXdJQ1BlRHpBVkEzbmxJZVhlOVRqVXBCeTRHTUJLL291?=
- =?utf-8?B?d3JLNWZQNUQvekkvMzdJUlh6RzJWUGRZcWdmMjF6TmNobEJSaXBZdEQzdXBV?=
- =?utf-8?B?Zmx4ZDA4NWFqNGdxcGU4Y3NqL0FvUjJ5NkFUWE9jd0dHeEhwajUzWkxySW9u?=
- =?utf-8?B?Z05ORTN4UXZqdXhRRk5VaTBhWkdiSHlZcXkrZzIrS0NNT0l4K3RzL3RrbG9B?=
- =?utf-8?B?YzRJUEJ5TWljaTVyYjUvbU4vVFFCMEZCT05OUkRsKzJjTnF6WnJKSUx1ZWFY?=
- =?utf-8?B?cHdUZjFMZU9venFkZStiN2Jzc09rWW1yZ2VsbzFUczIyMEhPa3BoVjNPdmY4?=
- =?utf-8?B?RHFSdlE1Q2pzdkdRZmV0TTFLTW8zTFJLblNtalBHZGp4dzNpaFhReXRvSWFX?=
- =?utf-8?B?NWJVWVYwVkwxc01QMHhrYzlxdW9yNCtqTzYvenp0SHFENzlna1ZJWGYvekd1?=
- =?utf-8?B?VHMvMWwwUFl1SUhzNHY0YnUrbm5YUktwN3VYNkNpN2wvMUM5aGV2WHBvb3ZE?=
- =?utf-8?B?M0NOOCtRRFhnRjVTYmNhQUgvYk9aVXY5eEVLRlVsTHcrV1FoK3NCeHNvSzl2?=
- =?utf-8?B?NUl6V0lhUVd5VUJkOTdOeG8wVVFEdDdVTnBPcHZzWlh2d3ZyK25TSkJRendK?=
- =?utf-8?B?dGhCeit1NGVMcFpYbGdJeU1Ma3BvdHdYaTE5blorZ1RoR2xZd3RhZTJaZGQv?=
- =?utf-8?B?N3owWTFPZ2tTK1JaNzJORlRzclZ4U3BOWmhGQjRHY3k1TlVyVVdveXF6c3ZW?=
- =?utf-8?B?emdjN2Y5UnY4ZUZUaE5lc2JhOFR1d0pqdWJTZXJjY2ppdFo3STRBM3JtSnVJ?=
- =?utf-8?B?NjVYN0huMEZZczRuUWtESkNVK1JyVGs2VE82K05ETDlzaDJLWkhIKzlhT2lN?=
- =?utf-8?B?cEMrQ1JuSDVOakMxc0NMZHRkMGd5UzRhRkh2TTAzOFhSNDlpbEtmaGt1Z3Fx?=
- =?utf-8?B?UUJ1Um01VitGMnJpWmZWL2VQQnhPUEZXUzBxQlFUNUFOMStIOFlaaktyRHll?=
- =?utf-8?B?Wlc5VUk5a3IvY25WaU5SdGljZEcwTXFxRnYwUXowWnFPZEpmWk11VTNnSzRv?=
- =?utf-8?B?K080NC90dFpSUE85UCsxN1AyQXoyOFpBU29taDN3TERHTDZydThOQWNCU1lQ?=
- =?utf-8?B?QUxncFJwbW9pQ3hwTDFyNUJJOHRhRkgrcHh2SVlNVU9FdWZITThyN2gyNnFK?=
- =?utf-8?B?WG9hN2Vyc0QxM3I4Z3lTMWJxRkY3NUwrL3VZUFBCYnVHaS9LUEllZ3l4eGpy?=
- =?utf-8?B?MEJYbzVkc1RkbDBmTkdNYmFaZGlVMWF2ZkpxMmErTlJ4aHhDbXBKM1h2aUN0?=
- =?utf-8?B?QWhHbXNoamUrU095bTdiTDYvZi9XaUJpTGM4d1NTQnU1eDJwVjZYMm9Ib2Yx?=
- =?utf-8?B?eXh5RW1qMmhWVnR4VC9XaUVWQ1c4TnFqczlMQ1o4c0N1VjJOa2pQVUpNNm1G?=
- =?utf-8?B?dElwQmV2VXVDdzJzb1lKNVdzRHRTdG9PKzB3RDRsUU81OW5CRGM4dERiR09L?=
- =?utf-8?B?YndwN3FWRlN5NnE5dWVPT09FMFFxWThZZWpLUEZSNUh3RmR5WXdFUkJobkly?=
- =?utf-8?B?TlRtbVovVHBkMkE2TDNNRFovZmd5aENKWExqU2EyVndtbGR4OUtBSjYzbVZB?=
- =?utf-8?B?dmg0Z2tITDZnMk1lbERMQmowcnROSjlpQm4zY3lmTmF3SUhkSzNld1RQUlhQ?=
- =?utf-8?B?Y3Y5cmdweHBsSGQyRkZLRkcrU1ZsYVU3ajh2NzdvS1MyRGZwN29LMStiNUFj?=
- =?utf-8?B?OCtmdGhRclpaOXI3eEQrSGNhdEdBYnZ4NnIvZ25uS1A0MS90QjZkeUNmblBR?=
- =?utf-8?B?Zm1qREpWWGk5OGppVEZRVlMwZVhDZXlFb0Z4MWFSTS9TdjFOK3ltdz09?=
+	=?utf-8?B?SzU4eW9HYnZJakJpdzJkUXhWa0VWcmFFRFRQeUVnTnRVRWJ2RzNRcENHbE1G?=
+ =?utf-8?B?T21aT2NOQlp1cGo5L1VwbHhlR21HQVpDMVR0S0U2TTFVM2wzSElPSEdKcGhr?=
+ =?utf-8?B?Vmh5Wnk0S3RVL1htWlhscFRPWHJkZGJPeU0wZ1lsRFIrMkg4OHZ1ZWd5R0Nx?=
+ =?utf-8?B?R2Nudk00NTZRTXFBZ1BabmFBWkdnaHZWR3Z3SUhmcEFaUUFWb2lBcUhON1Bj?=
+ =?utf-8?B?cUQ4aE45dnEwbDFrQWpXZ0F6Ym42M0tmWjRUQUxDcy93YUV3VE42d3BFWG0z?=
+ =?utf-8?B?NERDUzF3OFI2UW9SMGxOREUvbGlvcHNFVEpoUEJLaHliYWprYk5pbnFZVlRh?=
+ =?utf-8?B?RkFISEdUSmw0OGhKSTlrUVRDMmlqdkVudUxCUVlTWGtHc0svQjhtUklmQnlX?=
+ =?utf-8?B?VTBSd3ZlMXNQWnBaZkhDZXphRTVZZXg0UUxJUnpZR0dLNkx0NThyelduL21V?=
+ =?utf-8?B?bFNJYkUwMHVBR3VBOHhFWWJmRnNhelc5OEo5OWZ5b1dQaGFtcTlETTdJbDZ1?=
+ =?utf-8?B?SitXN3hIUmF0MGNJakE3b0l0RStFblNxekcxMHdIWEtSNm0rNnJKajVXMVdz?=
+ =?utf-8?B?TnV4WDNSZVAveDlCNG52TEU1VlZ1QUVwMjJrZ09QZXBWRkFDY3VGUFJIN2N5?=
+ =?utf-8?B?SnBUSnByc3U0QTNPZmwxUWpaOGZLODlXb255WG04cDdWY05Sd0hlUFEyUUlK?=
+ =?utf-8?B?YlJML2xiR2ZHY3NSemxTc1Q0UW9EZ0xDWmpUenZTaWdQMjFLMERzUGFEaHZJ?=
+ =?utf-8?B?dWJaV2tsOVp0alVzZU5TYUhJM0hmUm5Cd2srVkMvUE00ZThwR0hJeUdVZTVI?=
+ =?utf-8?B?VkJnMjM2aHhDWkdaSWJSOWpLYXQ5dUh2dDZyRjhvbzQ4ZzQrWW9kb09kdTJx?=
+ =?utf-8?B?S01UTFUzMmU2OTdRQkJ4RFNRaS9tand5ZkY5bU00M2U1V050VUxjVUo0N2dQ?=
+ =?utf-8?B?Sk5GRGs4dWxaVlVnYUs5V3dDVlFkZFc3UWtuR1RRdkpMQzYxb0dLN0ZPZWxZ?=
+ =?utf-8?B?cVpzazZqVWhzTFMzTjdQcUZXUmR3cEdROCt2ejRMVk5rYlhuQW1EVmdLVlBH?=
+ =?utf-8?B?dzdUeitHNnF4QXFLSnZ6K1crcGFkVkM2dlcxcm12YTQ0TWg4RTRZVWdveS9h?=
+ =?utf-8?B?Tm45bHA3SVBIR2VFbFh3Zkt1R1JpVmhVYzBpcWNseHIzaXljVkFab0dFUEdR?=
+ =?utf-8?B?ZFpMTmJoRDZNT21xRGo4c1pZWi9JYVdNd3kzdWRVY0RDcDg4RHo3QjF6UDZh?=
+ =?utf-8?B?OUNEL1dPL0pCOVoxSWxQTDJZZXFPSnoxb0gzN2E4ai9KOGpnTGpLRVR3MFBM?=
+ =?utf-8?B?c2tmNnJoOFIrVHR3Smp0NW11NXdMMUkzSWE1NUZEM3Z4bjN3YTNDY3YzTDlV?=
+ =?utf-8?B?b2xqQWpGMm15RXB2TWxHb3N6SEJsckkrZDdVQjFKMFlIamhrdEhocGYzRVRB?=
+ =?utf-8?B?eXNlWE96L1ZUM1Z6dlFaS1pZRjczbmkrNGYrTi8rTmVtV2lGWDlUVld0Q2lO?=
+ =?utf-8?B?YytkMDYyK09yMUhYZENUb1MxWEJ4ZlFHT1MvR1hFdGlEeGtVUmpqWDFQMnJN?=
+ =?utf-8?B?YWVCM3l0SWI5QXZCcTdwZk8yZVd6UTVlN3lFQ2dpZ2ZuUnZDS0NVRTFaTDVz?=
+ =?utf-8?B?Zkw4eFBQVnVvZG1nTDkrVlNaR3RnNkJOcndsNFI1ZDQvMXZLS0ZHMlMwSU5m?=
+ =?utf-8?B?U3IwSExhOUwyclVDZ2M1OWxxblpncXFsc21wMUUrNExtU1hIb1JxMTl6VVlW?=
+ =?utf-8?B?RVJyTUlFamVjSWdiMzRXblVpeHpOUEdQaVdtdGlIMVFsUXljZXBveXVSZnho?=
+ =?utf-8?B?MGo3S0NHdnB2bm9NNGtiQnY1V0FRMVNiOFp3UURiTHRiSmdERGprcC9SSWJN?=
+ =?utf-8?B?UUt6bDhNYWdyOE15Q1lKK2hyVysrQ0pENVljODNEQmYrd3BITllxdXdLMUpW?=
+ =?utf-8?B?MXNiQnRLSzNWOCtXNHNCSWpiWm12YnNob3NORlRzWFpuZEZUOWF3T3FoaDdl?=
+ =?utf-8?B?MXJOeVlKbzZmK1ZjVzBOM2s0ck9pbkJTUFVnMkhxcmttbElCTTBXODNsMFhn?=
+ =?utf-8?B?aWhqMlltcjNodDZiWkhXbDZ3c1hjREozUGlEQXpEenJwOW4raW9BY0VQSXh3?=
+ =?utf-8?B?ZGhBdDdqam1RTk5LUXB5WHNjcWRhUHdiQ2VYOGVrdVhEclhJWVZpRS9TUnJI?=
+ =?utf-8?B?Mnp1cktYV3h0MGdqMnI1c1ZrZ05RdW1oQjkvZjdXNTZWb1U3MysvZUtmVXUx?=
+ =?utf-8?B?WWpGYnZjYW1qMXdGTG85OEVmang1K3JXQXhuOHBsRXhWNEFhYXlJaXU0bEsy?=
+ =?utf-8?B?OE5RMG5mVVU3VVdNeW5HbE1kR2xHaG5jNFE1L04yRTFMbTF5RHFZQT09?=
 X-OriginatorOrg: atomlin.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 15c10e85-6457-4a5f-9a72-08df0c18e8c3
+X-MS-Exchange-CrossTenant-Network-Message-Id: c56899a1-d588-4eeb-9242-08df0c206672
 X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 06 Sep 2026 13:15:23.5092
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 06 Sep 2026 14:09:00.9013
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: OFJc5q6UqIFq3jlmIhOXZzdvVW272+bU3ZySRWMgKb3TMPk5R0vu7Qn9MdC9hMjg5H2FvJm80wAGF2SrVQHdXA==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: LO0P123MB7829
+X-MS-Exchange-CrossTenant-UserPrincipalName: oCrM6ijfYhy+B6BeaCeiYomDDcvU7ddLWQ4sdSfSINlUMSTWFQS1b5hBaqI2zDqug1iktg38om2FsrVB5sK/xw==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: LO6P123MB7427
 
-On Sat, Sep 05, 2026 at 05:28:17PM -0700, Andrew Morton wrote:
-> On Fri, 4 Sep 2026 10:59:38 -0400 Aaron Tomlin <atomlin@atomlin.com> wrote:
-> 
-> > On Thu, Sep 03, 2026 at 01:29:24PM -0700, Andrew Morton wrote:
-> > > On Thu,  3 Sep 2026 14:55:55 -0400 Aaron Tomlin <atomlin@atomlin.com> wrote:
-> > > 
-> > > > Currently, the "module_blacklist=" command-line parameter only applies to
-> > > > loadable modules. If a module is built-in, the parameter is silently
-> > > > ignored. This patch series extends the blacklisting functionality to
-> > > > built-in modules by intercepting their initialisation routines during early
-> > > > boot.
-> > > 
-> > > Why?  What are the use-cases and what is the value of this change
-> > > to our users?
-> > > 
-> > > Important, so please don't skimp on the details.
-> > 
-> > Hi Andrew,
-> > 
-> > Thanks for asking.
-> > 
-> > Here is the rationale, concrete use cases, and the value this hopefully
-> > brings to users and administrators.
+On Sun, Sep 06, 2026 at 11:56:04AM +0200, Arnd Bergmann wrote:
+> On Sun, Sep 6, 2026, at 02:28, Andrew Morton wrote:
+> > On Fri, 4 Sep 2026 10:59:38 -0400 Aaron Tomlin <atomlin@atomlin.com> wrote:
+> >>
+> >> In summary, this patch brings parity between modular and built-in drivers,
+> >> removes a pain point in boot-time disaster recovery, and provides users
+> >> with a predictable, consistent interface.
 > >
-> > ...
+> > Really helpful, thanks.  Please add this to the [0/N] and maintain it.
 > >
-> > In summary, this patch brings parity between modular and built-in drivers,
-> > removes a pain point in boot-time disaster recovery, and provides users
-> > with a predictable, consistent interface.
+> > I don't really know who are the potential audience for this change, nor
+> > how to attract their attention.  Greg might have some insights but he
+> > wasn't cc'ed.
+> >
+> > Let's leave it a week to see if there's feedback then resend with these
+> > adjustments?
 > 
-> Really helpful, thanks.  Please add this to the [0/N] and maintain it.
+> FWIW, I previously asked the same question on this series
+> and still don't find the explanation lacking. Obviously,
+> consistency is good, but the added complexity doesn't feel
+> worth it here, given that this still has most of the same
+> problems as the existing "initcall_blacklist=" option [1].
 > 
-> I don't really know who are the potential audience for this change, nor
-> how to attract their attention.  Greg might have some insights but he
-> wasn't cc'ed.
+> I think patch 2/2 would be fine on its own, but for 1/2
+> I have yet to see a single example of a real-world problem
+> that could have been solved by this but not using
+> initcall_blacklist. In distro kernels, almost everything
+> is already a loadable module, while users with custom
+> kernels could easily turn off the drivers they don't want
+> or disable the initcall by name.
 > 
-> Let's leave it a week to see if there's feedback then resend with these
-> adjustments?
+>       Arnd
 > 
+> [1] https://lore.kernel.org/all/78ec1da5-11ae-4c35-a08e-cc88a5d083f4@app.fastmail.com/
 
-Hi Andrew,
+Hi Arnd,
 
-Sounds like a great plan.
+I understand your skepticism.
 
-I will incorporate the rationale, use cases, and value proposition into the
-cover letter and keep it maintained across future revisions.
+Let me provide more concrete context on the operational realities and why
+initcall_blacklist= does not solve this for users.
 
-I will also make sure Greg Kroah-Hartman is CC'd on the next iteration.
+First, regarding dependencies and undefined behavior, module_blacklist= is
+indeed not intended as a day-to-day configuration knob, but as a boot-time
+emergency recovery and triage tool. In terms of dependencies, built-in
+drivers face the exact same behavior as modular drivers: if a blacklisted
+driver provides resources to other drivers, those dependents fail their
+probe or defer cleanly via -EPROBE_DEFER. The Linux driver model handles
+missing devices without crashing the kernel. Moreover, this mechanism is
+strictly restricted to drivers using module_init(), leaving core kernel
+subsystems (e.g., sched and memory) completely untouched.
 
-Waiting a week gives us good time to collect any further input.
-When resending, I will also incorporate a few other refinements raised
-during review i.e., a prerequisite fix to treat hyphens and underscores
-interchangeably via parameqn() and as well as a Rust specific issue and
-linker alignment cleanups [1]).
+Second, regarding why initcall_blacklist= is impractical for users:
 
-Petr and Gary, when you have a moment, please let me know your thoughts on [1].
+    1.  Obscure and unstable symbols
 
-[1]: https://lore.kernel.org/sashiko-reviews/xuj6okhlofl4cboopwjzqe3jyfmaxgvdpf5a3ek7bubew4vcbk@nkfqgoe53533/
+        initcall_blacklist= requires the exact internal C function name of
+        the initcall (e.g., crypto_cmac_module_init). Typically,
+        administrators and users know the module name, not internal C
+        symbols. Furthermore, these function names are not stable and
+        frequently change across kernel changes.
+
+    2.  Mangled Names in Rust
+
+        For drivers written in Rust, initcall symbols are compiler-mangled,
+        which makes initcall_blacklist= virtually impossible for a user to
+        specify at a boot prompt.
+
+Consider a hardened appliance built with CONFIG_MODULES=n.
+Should a kernel update introduce a panic in a built-in driver, the
+administrator currently has no means of circumventing that driver using its
+documented module name. They are consequently compelled either to
+cross-compile a bespoke kernel on an auxiliary machine or to recover the
+system via external media. Extending module_blacklist= enables them to
+suppress the offending driver directly at the bootloader prompt, thereby
+reaching an emergency shell to gather logs and triage the fault.
+
+Andrew Morton suggested incorporating this detailed rationale into the
+cover letter and looping in Greg Kroah-Hartman for driver-core perspective,
+which I plan to do for the next revision.
+
+I hope this helps.
 
 Kind regards,
 -- 
