@@ -1,78 +1,48 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 30D1F431A50;
-	Mon,  7 Sep 2026 08:06:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id AA3C2439F86;
+	Mon,  7 Sep 2026 08:41:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788768396; cv=none; b=dHGG+VHNIornYVeP76dZCuMsrlfOJZDvEF+Bt7jcAIqgZAcz7YTdzk560sGbs9KUSOkoUd4ZgmiV4/JU0Nj69p6j3K/cXop7O44sUoczqdjZCN5NpnAke8Y/d3QvSA7oXJRtvW2CalFbXzfAqHUtGH9IOXerDFx0eooZJH/Wr0M=
+	t=1788770509; cv=none; b=e3Sb+iKNn2caUv2K62eJ2cDc4iDd449jhNDqYyRReCcqeUum7joDlK7q+hgDuRDzp2/2jbWgY9PubhpoMWxRzOzvx7WGYVWtzm9lr6JO10GS8BH43JeQnXjnKE3xQXKm7p6W0fuhX6+fsYe8zJV85+1mErpNdv4acwSc6Xubb4k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788768396; c=relaxed/simple;
-	bh=M02Zz7duqtLH9w5WcLt9dmTeIbG6UdWlqLh0VhnRN2c=;
+	s=arc-20240116; t=1788770509; c=relaxed/simple;
+	bh=E/UIgNpc25GUSWm1XbC00DjUtLL27lOf+DtKpkc4ypo=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=V07BUIOu0YwokM7WGJLCk63sdt2LOAiz1A7VaaF3l3OIall834L5kpklt3OFD2G91BtEUDYN2kkMW/rOfzKZ/mMp9z+dhjGhjCwcnVFI6QN980td4IWWBvajrtHHce5jFeX7zZcriJwS9UqL7T43xODRMgkir4F/rksvWeS+BF0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=vX9YEFxm; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=Xvxwddi8yo8hZLnzoMiF+3z2bO1H1fxGEvjPSQU4VsZthSnhf/+K2xeoSqvCznR1yMMEzas/0sBoOVjKgQMeHheAa2LAF09OMFt0R45qpxDogK5Nudg43Z6iX5xgbPjrHn+Fb+Dm6uYqpqOEmzn44nCoX2EIzk1DfR2Z+sNIwC8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=MLP/nXtF; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="vX9YEFxm"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id BB1BC1477;
-	Mon,  7 Sep 2026 01:06:29 -0700 (PDT)
-Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 18C753F7D8;
-	Mon,  7 Sep 2026 01:06:26 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1788768393; bh=M02Zz7duqtLH9w5WcLt9dmTeIbG6UdWlqLh0VhnRN2c=;
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="MLP/nXtF"
+Received: from localhost (unknown [167.220.233.38])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 3129620B710C;
+	Mon,  7 Sep 2026 01:41:07 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 3129620B710C
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1788770468;
+	bh=yR7782cSE2dRsdzPrK2mP3H/FNlWtg/vkjWXAGyEDv8=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=vX9YEFxmN++GHfkO2xxc2HRCAVQZnfcF+y1vVz4p+I67mwn/6aHZjc3V5wQk92028
-	 QjFA4Ff9sydSH7mdW6Ml8i/iDQuE/cqvG/ChPtrzIxW16rDWLljleu6TZ5iGFYY1Y2
-	 dWFeU1IDBLwdUjSKvUI2sIAZ7djSAJVGofJYXeo8=
-Date: Mon, 7 Sep 2026 09:06:24 +0100
-From: Yeoreum Yun <yeoreum.yun@arm.com>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
-	Shakeel Butt <shakeel.butt@linux.dev>,
-	Barry Song <baohua@kernel.org>,
-	Axel Rasmussen <axelrasmussen@google.com>,
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
-	Johannes Weiner <hannes@cmpxchg.org>,
-	David Hildenbrand <david@kernel.org>,
-	Michal Hocko <mhocko@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
-	Tianrui Zhao <zhaotianrui@loongson.cn>,
-	Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
-	Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	Andy Lutomirski <luto@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	"Liam R. Howlett" <liam@infradead.org>,
-	Vlastimil Babka <vbabka@kernel.org>,
-	Mike Rapoport <rppt@kernel.org>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Michal Hocko <mhocko@suse.com>, Jonas Bonn <jonas@southpole.se>,
-	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-	Stafford Horne <shorne@gmail.com>,
-	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
-	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
-	linux-openrisc@vger.kernel.org
-Subject: Re: [PATCH RFC v3 13/21] x86: mm: use pgtable_level enum in
- effective_prot_pXd()
-Message-ID: <ap5wgC-J6Byt7nPS@e129823.arm.com>
-References: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
- <20260902-dummy_ptxp3-v3-13-5d8f5b17c25c@arm.com>
- <8f3979a9-238a-4d7d-a040-6aa526fedec5@intel.com>
+	b=MLP/nXtFx6zptvpPxsuQkjgkNMf9ZbnuxXGcMf0KttNVVB8AegKCpYdovLm9pw/Z6
+	 nyopZuhkxGgJvCKTEYsIA2pqY5smdVh+kjIQK9ttwBD79+iw/V4ZKve/bD4uD2q2MM
+	 RO9lo9DzJfwMbQWy3Mj1BmrxLk6Sl3SW/dX8TX88=
+Date: Mon, 7 Sep 2026 16:41:44 +0800
+From: Yu Zhang <zhangyu1@linux.microsoft.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, 
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, 
+	x86@kernel.org, wei.liu@kernel.org, kys@microsoft.com, haiyangz@microsoft.com, 
+	decui@microsoft.com, longli@microsoft.com, joro@8bytes.org, will@kernel.org, 
+	robin.murphy@arm.com, bhelgaas@google.com, kwilczynski@kernel.org, 
+	lpieralisi@kernel.org, mani@kernel.org, robh@kernel.org, arnd@arndb.de, jgg@ziepe.ca, 
+	mhklinux@outlook.com, jacob.pan@linux.microsoft.com, tgopinath@linux.microsoft.com, 
+	easwar.hariharan@linux.microsoft.com, baolu.lu@linux.intel.com, suravee.suthikulpanit@amd.com, 
+	vasant.hegde@amd.com
+Subject: Re: [PATCH v5 4/5] iommu/hyperv: Add para-virtualized IOMMU support
+ for Hyper-V guest
+Message-ID: <re2lmz757bvtzbkylxtsj7zu2pjqz7ro752tcg7bpjaicuj6ml@mgsg6jnvgbyd>
+References: <20260904075512.174154-1-zhangyu1@linux.microsoft.com>
+ <20260904075512.174154-5-zhangyu1@linux.microsoft.com>
+ <af047ef8-91ef-7786-c230-25e28b1c8c04@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -81,25 +51,48 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <8f3979a9-238a-4d7d-a040-6aa526fedec5@intel.com>
+In-Reply-To: <af047ef8-91ef-7786-c230-25e28b1c8c04@linux.microsoft.com>
 
-On Wed, Sep 02, 2026 at 01:48:03PM -0700, Dave Hansen wrote:
-> On 9/2/26 04:56, Yeoreum Yun wrote:
-> > Instead of using hard-coded integer in effective_prot_pXd(), use
-> > pgtable level enum.
-> 
-> Does this actually *do* anything? ;)
-> 
-> I guess it's nice to have a wee bit of type safety from the enum and it
-> means that you don't have to *know* which level number a PUD is, for
-> example.
-> 
-> Either way:
-> 
-> Acked-by: Dave Hansen <dave.hansen@linux.intel.com>
+<snip>
 
-Thanks!
+> > +{
+> > +	u64 status;
+> > +	u32 prefix;
+> > +	unsigned long flags;
+> > +	int ret;
+> > +	struct pci_dev *pdev = to_pci_dev(dev);
+> > +	struct hv_input_get_logical_device_property *input;
+> > +	struct hv_output_get_logical_device_property *output;
+> > +
+> > +	ret = hv_pci_lookup_dev_id(pci_domain_nr(pdev->bus), &prefix);
+> > +	if (ret)
+> > +		return ret;
+> > +
+> > +	local_irq_save(flags);
+> > +
+> > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> > +	output = (struct hv_output_get_logical_device_property *)(input + 1);
+> 
+> Any reason for not using pcpu output arg like we do in all other places?
+> If there is a technical reason, please document it, otherwise when revisited
+> in future for re-design, anyone looking at this will be confused and
+> waste time investigating if there is anything different about this hypercall.
+> 
+> 
 
--- 
-Sincerely,
-Yeoreum Yun
+Thank you, Mukesh. I had also incorrectly assumed that output required
+a separate page, which is why the RFC included a separate output-page
+allocation patch. Michael clarified during that review [1] that input
+and output can share a page as long as their buffers do not overlap,
+so I dropped that patch latter.
+
+Actually, there's nothing specific to this hypercall here - it follows
+the existing usage. E.g., hv_pci_read_mmio() already uses such arrangement,
+as Michael noted in [2]. pvIOMMU queries fit within the existing per-CPU
+page, with output placed after input, avoiding an unnecessary allocation. 
+                                                                         
+[1] https://lore.kernel.org/all/SN6PR02MB4157C3EF6617A7BA4CA9E432D485A@SN6PR02MB4157.namprd02.prod.outlook.com/
+[2] https://lore.kernel.org/all/SN6PR02MB4157BF936EBDA23AD1EC5183D480A@SN6PR02MB4157.namprd02.prod.outlook.com/
+                                                                                                               
+B.R.                                                                                                           
+Yu 
