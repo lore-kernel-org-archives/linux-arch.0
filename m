@@ -1,144 +1,119 @@
-Received: from mail-pz2-f12.google.com (mail-pz2-f12.google.com [74.125.228.12])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8B76A3D7D8E
-	for <linux-arch@vger.kernel.org>; Tue,  8 Sep 2026 21:13:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.228.12
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788901999; cv=pass; b=Z7NmpfgocTTrPxtzw/jelm/iGKOzkPGjECWTblROrksuXLKHCJGbFjEEVZ0TPAwGQyWpY/7iedgXjayPjhwkj158aL8k+NMnnnqllmxlD3KZHMY+Rzfwa/qeafbSISNWCKuMtL2xisgk3QvwQZd4DhebT9o2moQokl0WPcC2vJ8=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788901999; c=relaxed/simple;
-	bh=ABcg7txfjreOEvrgYloSz7dmSAX99sKg32JTqnOhFhM=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=SfQSRYVfkfQ748zV0A/ckic4gS+J1Ln1OVnCpaHp9iUC+ARF2OUrA8j1wzULQHrp8RwWMCzWdJDY+rq+dDG3Ew3huqvkOUF6t3yY8vCr2Ut/wNXZ1k+P8jqF16ZJrojdPLDmunRJQoembCyF8XMlsZ6eWBTIuwNqZZYz9BnTRcg=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=kPf6ZmPD; arc=pass smtp.client-ip=74.125.228.12
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 835DD47142A;
+	Tue,  8 Sep 2026 21:15:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1788902149; cv=none; b=ek1TGR33pUB7SYyguri/IAehunStxepYD9RhAMNoGBaUbW7W7stGGj6epvA7HXURc9IpWjBLqxByFF92TvVVWLgrmX5ei3KT6J+6xOrjKUlfuuziQEhr75eAzjDr58q4jjpXG6LkKiYZc8A0nRBm0Tj4gXtd59+4+/++nNaUks0=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1788902149; c=relaxed/simple;
+	bh=zc0dRxXkAKZOT6fy9WXzVz+99ipKkrk9hWcPiEzdJAA=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=mCY7PWkUvP8KLIrcBlbWX34hx1AtDxKaheICrOpuYAM9k5mS9VUkn51BV84CWDhJzXQymStDdvsGMkfjTPVV/P/sG+PUKTODywU0iRIi4zmQqDZU11aIZL0Q09mdfFFvwW4RoWUg9Ud6/z87UInG0WJ8dHpJncb9AdJ40Hha47A=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=S61FQutZ; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="kPf6ZmPD"
-Received: by mail-pz2-f12.google.com with SMTP id 41be03b00d2f7-cc1ab16a9b0so215441a12.1
-        for <linux-arch@vger.kernel.org>; Tue, 08 Sep 2026 14:13:18 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1788901998; cv=none;
-        d=google.com; s=arc-20260327;
-        b=UcjwuB5BFXjqZ6IZAffkDQtCcf8hZ+eUYGkZKM431qSDxwcMBRptaw1RV1XnF/nkH3
-         9g4qY1emyPQLg9aB/gFNDeTI0r2QTwTIB3wgLJc3Eo/Xv4y6VZwOLrkJRlbFwMw+cWBD
-         QTY5eHMqv0MDPe2w37VtmqAK0L4dhNELL+J7J3hSGfWUMihGkJT9JwsedDctTiBfc3mi
-         RKQCvpaCf4FQQUK1N2Y3ApY6GuXdycDdss5kPxFCkamCpqFcVn9Gig6BCd2ixQ2sNH7N
-         TEVeStWFFOuxRfYq+QUM/W/I5KLdmNNyh980AiloJuivIWelu9x40Gjq0hCyZz0O1yWm
-         Bn2g==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=0fhQV0gw/THBej21ZRoleMpcrYInoRUuBgF9MHF69Ek=;
-        fh=fscDx7ZDfUnMne/2FYkisvZbbAzKZczxEx4uQfwoW0Q=;
-        b=D9ZNyZLrAl/Qro1RRjs2doxmLAiLXdcFiMW8CYz13+220HgzytHicrAwdP0xzuqlHD
-         KqxbwXoUfTa3CPGxsP33f6WBPeLacCM3iqeQAbqs6yd0jqOBlU2F2j4jV0PEEcUsOfx/
-         9ay5MEiQWR1dEcXcMXmkbADFvOYWG8xopjxGIzhYAXhZF4BU5WwVm3XirqyQ2HjECW4c
-         tMPfRq/AzOzby1UnNAN1d4wQipT9FfDsBhRyzk2zTd+ebAfgH8jiy97CQErlsaaK/wPX
-         C93PFLUbl/9hNLfw00Z3/SqKK5sXfjfBgD/R9K+hIw5pPJlH/nNFpTqLKySHljzhXekX
-         9S7Q==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="S61FQutZ"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5E1EB1F00A3A;
+	Tue,  8 Sep 2026 21:15:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1788901998; x=1789506798; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=0fhQV0gw/THBej21ZRoleMpcrYInoRUuBgF9MHF69Ek=;
-        b=kPf6ZmPD2v4AefzfbB96CY/1Ro8ul1IcFijnGdxXVXzXHHTesc60tRNbKo2R6qNiCV
-         COm6UKvfUu6Q7EJ03xDCsbtZZbD+boDtakiCuWcq39IiGKN4AWNMMaVstLpEFMUY9fs/
-         fA3Ai9ETukyNfyw4rNxQfgzC3yRmNdwLUvg5cs5n0LI7BG+oMLyNjugmjmLMSwmDxeii
-         iJ9ESmD+qArHzXwghsJnFKtjbvVeFcor+5i9UXIjBUduxGmJNTr6bn/S+Vu/qGuE5X55
-         I4+dUgYq6dDOehzn331667NXRaNpuSHWvSLVHlvtNcNxcI1Le57wdyswdbpjKOR//hsO
-         L2cA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1788901998; x=1789506798;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=0fhQV0gw/THBej21ZRoleMpcrYInoRUuBgF9MHF69Ek=;
-        b=rdOsAcBvDbpBbMdyyAJP/f9L/DIHqGSA2vry2TDkrblY42SEFOImupQYe2B5vtGgGc
-         fh0CJ/Upo7oxbdhEkxQBqrRlWpdAEyo5qnau3m0Jp46vqNrSieXJrkWyp9kRocXN0jpi
-         sKSi8OtMR7/f4Xbk3t6gf1DaqdKHzA1iN9ovWzWqLJE90sAYiTQTC63YU88RXcjsQXlf
-         Ty0uQ/APurqb1R10hY2b7PMKlzzfMSuS93CUBtfuX3IDiAKvfenarWGUwc4gI53K559x
-         w2u8UYEPRWKnkIqfUWX0OhlmoIZKZ94szd/PlynZL5844xgkn0h2RcRi1U9HBUAjYyQd
-         g37w==
-X-Forwarded-Encrypted: i=1; AKwUvByiRvPdYlUduE0CcAl6qGAEse0QdaahR4Fzm1SW+/krjEvG7Wj96CiAEv3VNYe/eK/TdOkMURBERBqY@vger.kernel.org
-X-Gm-Message-State: AFuF++kk27W1AUj9NgBWAzkku3usBNnGh7Z+UmzrCUdqmTcpSeM2Z8as
-	q9/W1mpjlncyiGX4/t1eIO48drelaliZRQEVFZ72UgsuCRmO5uhJas0Z3yosg/dZG8yw2iEpFJ6
-	DXPOBsqJ4dH54D0kPlqtspUncoLeOBPA=
-X-Gm-Gg: AYBFou0vy/BG6sbhr4qI0PrptNDTdqX2mf9wE7J7q61WzGN4zNJLVTCQe4uA7NeVXhY
-	yVyujRRyugWnNPpL427+yH+a/P/VsqNSE7OwBtp+FD4/jBm1iayRruJnCVaXUd2JeYTz4JbToT8
-	17hnr+8qe6vSREOUd8m8oc3rREYTjLsRyzy+o6GIKWcRNvwwknYEHK/fk4U+GoxFdT3RQoIklcu
-	koUyKr8d9uDfHjFxmz2sbqTxPFuBxe9pNh8HVb84Zs6a/OQUwRrMo+qz18oT1pTS5lVYuqLMjyJ
-	npvDIrJtm/D5bNf9CcQAAIizNJ6ALhBB6Wp+US2fqO0nRwC1tfdsPHEl5njU5XxMn23cpY3YyU1
-	CWM2HOpAXSOFsFCwrdyg3JJ6zydPuHUqo9Pxef6hTLyA3sb+NWvS4zM2o6EBTSXsN7DKaZcN6a0
-	IQOXquN7e3eIedbakUQZkTKPMj+UqPdrPYBDMBHeBqrMZ2c1IOkfg=
-X-Received: by 2002:a17:90b:3882:b0:396:a47f:d38f with SMTP id
- 98e67ed59e1d1-39b268ce386mr30178901a91.3.1788901997757; Tue, 08 Sep 2026
- 14:13:17 -0700 (PDT)
+	d=linux-foundation.org; s=korg; t=1788902147;
+	bh=eVg9GefJyoXHHA5a69mXqnQLyloUJ4YxIPGGpLvgyr0=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References;
+	b=S61FQutZ9GAkmusTuBm8tba1mRd5os9NdWI1OcYUdnUCilKfQqRFUpY9X0910S1CM
+	 WZ7yUO067yRvIkgkaa3uP271RNhAevtq90hMdQ5fuv0628aYooJ26Y2LotuEU39MiY
+	 QQuRFXCkF1Dzu+58mWFPPcGHJySDbzaovnewoTOY=
+Date: Tue, 8 Sep 2026 14:15:43 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: David Hildenbrand <david@kernel.org>, Zi Yan <ziy@nvidia.com>, Baolin
+ Wang <baolin.wang@linux.alibaba.com>, "Liam R. Howlett"
+ <liam@infradead.org>, Nico Pache <nico.pache@linux.dev>, Ryan Roberts
+ <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song
+ <baohua@kernel.org>, Lance Yang <lance.yang@linux.dev>, Usama Arif
+ <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, Guo Ren
+ <guoren@kernel.org>, Brian Cain <bcain@kernel.org>, Geert Uytterhoeven
+ <geert@linux-m68k.org>, Dinh Nguyen <dinguyen@kernel.org>, Simon Schuster
+ <schuster.simon@siemens-energy.com>, Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne
+ <shorne@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich
+ Felker <dalias@libc.org>, John Paul Adrian Glaubitz
+ <glaubitz@physik.fu-berlin.de>, Paul Walmsley <pjw@kernel.org>, Palmer
+ Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, Alexandre
+ Ghiti <alex@ghiti.fr>, Russell King <linux@armlinux.org.uk>, Vineet Gupta
+ <vgupta@kernel.org>, Michal Simek <monstr@monstr.eu>, Chris Zankel
+ <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Will Deacon
+ <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick
+ Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
+ "David S. Miller" <davem@davemloft.net>, Andreas Larsson
+ <andreas@gaisler.com>, Richard Henderson <richard.henderson@linaro.org>,
+ Matt Turner <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>,
+ Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland
+ <mark.rutland@arm.com>, Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui
+ <kernel@xen0n.name>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge
+ Deller <deller@gmx.de>, Madhavan Srinivasan <maddy@linux.ibm.com>, Michael
+ Ellerman <mpe@ellerman.id.au>, "Christophe Leroy (CS GROUP)"
+ <chleroy@kernel.org>, Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik
+ <gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, Christian
+ Borntraeger <borntraeger@linux.ibm.com>, Sven Schnelle
+ <svens@linux.ibm.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov
+ <anton.ivanov@cambridgegreys.com>, Johannes Berg
+ <johannes@sipsolutions.net>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
+ <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
+ <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
+ <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Vlastimil Babka
+ <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan
+ <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Jason Gunthorpe
+ <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>, Peter Xu
+ <peterx@redhat.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
+ linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org,
+ linux-sh@vger.kernel.org, linux-riscv@lists.infradead.org,
+ linux-arm-kernel@lists.infradead.org, linux-snps-arc@lists.infradead.org,
+ linux-arch@vger.kernel.org, sparclinux@vger.kernel.org,
+ linux-alpha@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+ linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
+ linux-um@lists.infradead.org, Hugh Dickins <hughd@google.com>, Qi Zheng
+ <qi.zheng@linux.dev>
+Subject: Re: [PATCH v2 00/12] mm: make userland page table freeing RCU-safe
+Message-Id: <20260908141543.8180b60400d38b70d249949b@linux-foundation.org>
+In-Reply-To: <20260908-rcu-pagetable-freeing-v2-0-1f60b64e878e@kernel.org>
+References: <20260908-rcu-pagetable-freeing-v2-0-1f60b64e878e@kernel.org>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org> <20260908-build-speedup-v1-20-5dc1ac01672d@kernel.org>
-In-Reply-To: <20260908-build-speedup-v1-20-5dc1ac01672d@kernel.org>
-From: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
-Date: Tue, 8 Sep 2026 23:13:04 +0200
-X-Gm-Features: AcwNN1U58TdOwuasMFef5tH_3N3xyJMe8mAu14nPZtzZCuWKC0n_7MgG3XQZVuw
-Message-ID: <CANiq72m5C5tNKUWTYYerBt81KtqRLgr-S4c5XLUN1uY5n7mqiQ@mail.gmail.com>
-Subject: Re: [PATCH 20/23] kbuild: rust: parallelise rustc front end
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nathan Chancellor <nathan@kernel.org>, 
-	Nicolas Schier <nsc@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, 
-	Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
-	Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
-	"H. Peter Anvin" <hpa@zytor.com>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Josh Poimboeuf <jpoimboe@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
-	Gary Guo <gary@garyguo.net>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
-	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
-	Danilo Krummrich <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, 
-	Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, 
-	=?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
-	Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, linux-kbuild@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, llvm@lists.linux.dev, 
-	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, 
-	rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org, 
-	Jens Axboe <axboe@kernel.dk>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Tue, Sep 8, 2026 at 10:59=E2=80=AFPM Lorenzo Stoakes (ARM) <ljs@kernel.o=
-rg> wrote:
->
-> A future -j/--jobs option is planned for
-> rustc:(rust-lang/compiler-team#1005), so check to see if this available a=
-nd
-> if so use it.
+On Tue, 08 Sep 2026 13:32:09 +0100 "Lorenzo Stoakes (ARM)" <ljs@kernel.org> wrote:
 
-This is already implemented in nightly as far as I can tell. If it
-weren't, we shouldn't add it, even if planned.
+> The majority of architectures in the kernel defer page table freeing until
+> an RCU grace period has elapsed, this series converts all remaining
+> architectures to do so too and eliminates CONFIG_MMU_GATHER_RCU_TABLE_FREE
+> altogether.
+> 
+> This is important because it enables safe lockless page table walking under
+> RCU alone.
+> 
+> Doing so allows for reduced lock contention, avoids lock ordering concerns
+> and enables fast, efficient and correct page table walking as a result.
+> 
+> Additionally it removes a bunch of code and architecture-specific behaviour
+> which is always a beneficial thing to do.
 
-(By the way, could you please add Link tags for those URLs?)
+Thanks.  It's early and unreviewed, but this is mainly an
+if-it-compiles-its-good thing, so I'll add it for exposure to the
+build/checker universe.
 
-> +config RUSTC_HAS_JOBS
-> +       def_bool $(rustc-option,-j8)
-> +
-> +config RUSTC_HAS_ZTHREADS
-> +       def_bool $(rustc-option,-Zthreads=3D8)
+> However some arches required extra attention - sh-X2, m68k-motorola and
+> sparc32.
 
-We can simplify using `RUSTC_VERSION` for these like we do elsewhere.
+OK.  Please lmk later if you think additional reviewer/tester attention
+is desirable in these areas.
 
-Cheers,
-Miguel
