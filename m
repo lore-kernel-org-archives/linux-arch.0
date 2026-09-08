@@ -1,132 +1,226 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id CD8C51D5174;
-	Tue,  8 Sep 2026 03:16:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 414F452ED31;
+	Tue,  8 Sep 2026 11:29:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788837383; cv=none; b=UhqaRzlSYWzy1sxzEmGdITzhov/HsoZ04MDp76cFEjNwt7cSo5wC2fPyHEHDfqpa+/7ggp+EWEKm+U6DEgknkVmX0EeyS1a/vyWwLtVxhCFPyLzapN2/woOuZNscxmLdZ+vOvibslyYVU1sug8wpA9AH+XroyFzqqZX6EUqcYdk=
+	t=1788866975; cv=none; b=tc+gz0jtlg6Qf6UeBN33QDGLsKOORffOLv8vNQWvu9D0vqM+pUzGkisiS0bJAc+UTFXjwS3g11oqjDa6G4AvsvZ5mnIssgz2RWArdkf25LIMqlVCO2zJXrO2aG8irWJsK8iSOxVkJqs2tVTuz/D5n4o3LyzEaR117y3ITNj8VVI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788837383; c=relaxed/simple;
-	bh=0SOAYylIn/iT32ZuhYhnLeMtvTFzELG1v5iufdQHD64=;
+	s=arc-20240116; t=1788866975; c=relaxed/simple;
+	bh=DJJ3y4HWUdHg21fDTQuBvRfNxO5F30ksapo9ZwKGzO4=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=NHTETcemSjCw33pqV45SwB+Fvhscm1odFAWcx4nFnTzCX1G6nuBXkV9pOT94QDnZW8fYxl1Zwiu8KWFjo+35ai1qZOfslwtw8Gp4TEpZyxnz5E7rQXHh5XCmJrEPEgv2KJKeLYzmWiK3o5msRcKo++msLD6lUc4GFhZn4AWxUlk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=OcCXQrlN; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=SgJ+qervmYWrMYxg0LJ+0/PFUi71RJiEwt0q8tua4P4MChlTsrSHfvA4h6j0iz/GjQqw5dgZKNYkrVU7DhbcMbMxMi+OdTC2uRT4ZvUfXMKCE9DxzGT6goJ4AxGfEdxlqAs/ciyHmuK5Xw9twTHqCdoLVzDIOHwn+2Y5nDfiLBU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=UaGEuylv; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="OcCXQrlN"
-Received: from localhost (unknown [124.126.141.200])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 2783020B710C;
-	Mon,  7 Sep 2026 20:15:41 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 2783020B710C
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1788837341;
-	bh=yvnPaMlJnV54aQ4efWfHMY4CmyOcsP8nXDCwg89Qi7k=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=OcCXQrlNmLed6XGcOcyyEBZFHQQFiBxldOuAfNWmipiP6CECpG25ktmX+0kCQMplh
-	 dzFU0zmKGMi29OZNXRpyMYKDp3d17h1apT545sGz6p2/xlSAkyVEfGpSzpGVh5iUQW
-	 GJQ/GAHarStjTlZ8rvbONrxofbGO1VleIc9fySHY=
-Date: Tue, 8 Sep 2026 11:16:18 +0800
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, 
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, 
-	x86@kernel.org, wei.liu@kernel.org, kys@microsoft.com, haiyangz@microsoft.com, 
-	decui@microsoft.com, longli@microsoft.com, joro@8bytes.org, will@kernel.org, 
-	robin.murphy@arm.com, bhelgaas@google.com, kwilczynski@kernel.org, 
-	lpieralisi@kernel.org, mani@kernel.org, robh@kernel.org, arnd@arndb.de, jgg@ziepe.ca, 
-	mhklinux@outlook.com, jacob.pan@linux.microsoft.com, tgopinath@linux.microsoft.com, 
-	easwar.hariharan@linux.microsoft.com, baolu.lu@linux.intel.com, suravee.suthikulpanit@amd.com, 
-	vasant.hegde@amd.com
-Subject: Re: [PATCH v5 4/5] iommu/hyperv: Add para-virtualized IOMMU support
- for Hyper-V guest
-Message-ID: <mjwk6raf75lpd3wjotii5lnxmnlt4c474tu55ezrwsvr2rbfmx@krnwg7yoifes>
-References: <20260904075512.174154-1-zhangyu1@linux.microsoft.com>
- <20260904075512.174154-5-zhangyu1@linux.microsoft.com>
- <af047ef8-91ef-7786-c230-25e28b1c8c04@linux.microsoft.com>
- <re2lmz757bvtzbkylxtsj7zu2pjqz7ro752tcg7bpjaicuj6ml@mgsg6jnvgbyd>
- <421b3805-5b90-dfc9-b84c-ee58969f5e36@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="UaGEuylv"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id DD8561F00A3A;
+	Tue,  8 Sep 2026 11:28:53 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1788866953;
+	bh=wrZchMHbuIO6XXck0lzWb4MFVBIJqfPNOjZp2CkiLAo=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=UaGEuylvnKTadsfjaS7bvwU33xN2v3VvG9wjjwlcHZzqg4jRyqMpEEdO03+MvqeIM
+	 0cduj0er10VqGiGsJx7yjqifKpSllSZ3vK2y8omgzwmD0GHCZufWGZlTXVUWUiJ1V9
+	 ryqufjLkVU0NIOGHntM/W5uaFdDur34HOl0mDF/iX8gW88SDJFV9ZGxssqTmrANwpQ
+	 ynMdPQCgyGQbU6JnCqU5u6mlf0Svv7YVwvZzUogSUfvbxLoYO7+FDhTi6mBmpO9DWp
+	 jokGL7RYOK/KgBIS1bsW+dwWJav2y/DtDFT7YQL4WN6vyefxcqOuYZ/U9v7ZU8r1QK
+	 2OBX8O/r781rA==
+Date: Tue, 8 Sep 2026 12:28:51 +0100
+From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+To: Suren Baghdasaryan <surenb@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	David Hildenbrand <david@kernel.org>, Zi Yan <ziy@nvidia.com>, 
+	Baolin Wang <baolin.wang@linux.alibaba.com>, "Liam R. Howlett" <liam@infradead.org>, 
+	Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
+	Barry Song <baohua@kernel.org>, Lance Yang <lance.yang@linux.dev>, 
+	Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, Guo Ren <guoren@kernel.org>, 
+	Brian Cain <bcain@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, 
+	Dinh Nguyen <dinguyen@kernel.org>, Simon Schuster <schuster.simon@siemens-energy.com>, 
+	Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, 
+	Stafford Horne <shorne@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, 
+	Rich Felker <dalias@libc.org>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
+	Russell King <linux@armlinux.org.uk>, Vineet Gupta <vgupta@kernel.org>, 
+	Michal Simek <monstr@monstr.eu>, Chris Zankel <chris@zankel.net>, 
+	Max Filippov <jcmvbkbc@gmail.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
+	Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, 
+	Andreas Larsson <andreas@gaisler.com>, Richard Henderson <richard.henderson@linaro.org>, 
+	Matt Turner <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>, 
+	Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, 
+	Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, 
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, 
+	Helge Deller <deller@gmx.de>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
+	Michael Ellerman <mpe@ellerman.id.au>, "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, 
+	Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
+	Alexander Gordeev <agordeev@linux.ibm.com>, Christian Borntraeger <borntraeger@linux.ibm.com>, 
+	Sven Schnelle <svens@linux.ibm.com>, Richard Weinberger <richard@nod.at>, 
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>, Johannes Berg <johannes@sipsolutions.net>, 
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
+	Arnd Bergmann <arnd@arndb.de>, Vlastimil Babka <vbabka@kernel.org>, 
+	Mike Rapoport <rppt@kernel.org>, Michal Hocko <mhocko@suse.com>, Jason Gunthorpe <jgg@ziepe.ca>, 
+	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, 
+	linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org, linux-sh@vger.kernel.org, 
+	linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, 
+	linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, 
+	linux-alpha@vger.kernel.org, loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
+	linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, 
+	linux-um@lists.infradead.org, Hugh Dickins <hughd@google.com>, Qi Zheng <qi.zheng@linux.dev>
+Subject: Re: [PATCH 05/12] mm: enable MMU_GATHER_RCU_TABLE_FREE for arc,
+ microblaze, xtensa
+Message-ID: <ap_xXoS5XDqJ0mgU@gremlin>
+References: <20260901-rcu-pagetable-freeing-v1-0-5456a81c8212@kernel.org>
+ <20260901-rcu-pagetable-freeing-v1-5-5456a81c8212@kernel.org>
+ <CAJuCfpESe_BXihJh-8FhjQVKzsSpnS4zdMgg3e59byJTc8QViA@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <421b3805-5b90-dfc9-b84c-ee58969f5e36@linux.microsoft.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAJuCfpESe_BXihJh-8FhjQVKzsSpnS4zdMgg3e59byJTc8QViA@mail.gmail.com>
 
-On Mon, Sep 07, 2026 at 02:08:35PM -0700, Mukesh R wrote:
-> On 9/7/26 01:41, Yu Zhang wrote:
-> > <snip>
-> > 
-> > > > +{
-> > > > +	u64 status;
-> > > > +	u32 prefix;
-> > > > +	unsigned long flags;
-> > > > +	int ret;
-> > > > +	struct pci_dev *pdev = to_pci_dev(dev);
-> > > > +	struct hv_input_get_logical_device_property *input;
-> > > > +	struct hv_output_get_logical_device_property *output;
-> > > > +
-> > > > +	ret = hv_pci_lookup_dev_id(pci_domain_nr(pdev->bus), &prefix);
-> > > > +	if (ret)
-> > > > +		return ret;
-> > > > +
-> > > > +	local_irq_save(flags);
-> > > > +
-> > > > +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> > > > +	output = (struct hv_output_get_logical_device_property *)(input + 1);
-> > > 
-> > > Any reason for not using pcpu output arg like we do in all other places?
-> > > If there is a technical reason, please document it, otherwise when revisited
-> > > in future for re-design, anyone looking at this will be confused and
-> > > waste time investigating if there is anything different about this hypercall.
-> > > 
-> > > 
-> > 
-> > Thank you, Mukesh. I had also incorrectly assumed that output required
-> > a separate page, which is why the RFC included a separate output-page
-> > allocation patch. Michael clarified during that review [1] that input
-> > and output can share a page as long as their buffers do not overlap,
-> > so I dropped that patch latter.
-> 
-> They can share a page, but we don't enforce the sizes combined do
-> not overflow a page, and that could be an issue in future. There is
+On Mon, Sep 07, 2026 at 02:07:37PM -0700, Suren Baghdasaryan wrote:
+> On Tue, Sep 1, 2026 at 4:06 AM Lorenzo Stoakes (ARM) <ljs@kernel.org> wrote:
+> >
+> > Each of these architectures directly free page tables without routing these
+> > changes through tlb_remove_ptdesc().
+> >
+> > The use of tlb_remove_ptdesc() is required for
+> > CONFIG_MMU_GATHER_RCU_TABLE_FREE to correctly free page tables under RCU,
+> > so simply update these architectures to use these functions.
+> >
+> > Since none of the architectures share page tables or do anything unusual,
+> > nothing complicated is required here.
+> >
+> > Therefore this is simply a mechanical change - convert __pud_free_tlb(),
+> > __pmd_free_tlb() and __pte_free_tlb() to use tlb_remove_ptdesc() as
+> > required.
+> >
+> > At the point this is in place, all mmu_gather page table freeing is
+> > performed under RCU, and thus MMU_GATHER_RCU_TABLE_FREE is selected for
+> > each architecture.
+> >
+> > This forms part of an overall effort to switch every architecture to this
+> > mode.
+> >
+> > Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> > ---
+> >  arch/arc/Kconfig                      | 1 +
+> >  arch/arc/include/asm/pgalloc.h        | 6 +++---
+> >  arch/microblaze/Kconfig               | 1 +
+> >  arch/microblaze/include/asm/pgalloc.h | 2 +-
+> >  arch/xtensa/Kconfig                   | 1 +
+> >  arch/xtensa/include/asm/tlb.h         | 2 +-
+> >  6 files changed, 8 insertions(+), 5 deletions(-)
+> >
+> > diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+> > index 2ed7186c81c5..7a7542b61823 100644
+> > --- a/arch/arc/Kconfig
+> > +++ b/arch/arc/Kconfig
+> > @@ -47,6 +47,7 @@ config ARC
+> >         select HAVE_SYSCALL_TRACEPOINTS
+> >         select IRQ_DOMAIN
+> >         select LOCK_MM_AND_FIND_VMA
+> > +       select MMU_GATHER_RCU_TABLE_FREE
+> >         select MODULES_USE_ELF_RELA
+> >         select OF
+> >         select OF_EARLY_FLATTREE
+> > diff --git a/arch/arc/include/asm/pgalloc.h b/arch/arc/include/asm/pgalloc.h
+> > index dfae070fe8d5..9b6c37f92e97 100644
+> > --- a/arch/arc/include/asm/pgalloc.h
+> > +++ b/arch/arc/include/asm/pgalloc.h
+> > @@ -72,7 +72,7 @@ static inline void p4d_populate(struct mm_struct *mm, p4d_t *p4dp, pud_t *pudp)
+> >         set_p4d(p4dp, __p4d((unsigned long)pudp));
+> >  }
+> >
+> > -#define __pud_free_tlb(tlb, pmd, addr)  pud_free((tlb)->mm, pmd)
+> > +#define __pud_free_tlb(tlb, pmd, addr)  tlb_remove_ptdesc((tlb), virt_to_ptdesc(pmd))
+> >
+> >  #endif
+> >
+> > @@ -83,10 +83,10 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmdp)
+> >         set_pud(pudp, __pud((unsigned long)pmdp));
+> >  }
+> >
+> > -#define __pmd_free_tlb(tlb, pmd, addr)  pmd_free((tlb)->mm, pmd)
+> > +#define __pmd_free_tlb(tlb, pmd, addr)  tlb_remove_ptdesc((tlb), virt_to_ptdesc(pmd))
+> >
+> >  #endif
+> >
+> > -#define __pte_free_tlb(tlb, pte, addr)  pte_free((tlb)->mm, pte)
+> > +#define __pte_free_tlb(tlb, pte, addr)  tlb_remove_ptdesc((tlb), page_ptdesc(pte))
+> >
+> >  #endif /* _ASM_ARC_PGALLOC_H */
+> > diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+> > index 484ebb3baedf..af7e821e96c1 100644
+> > --- a/arch/microblaze/Kconfig
+> > +++ b/arch/microblaze/Kconfig
+> > @@ -41,6 +41,7 @@ config MICROBLAZE
+> >         select PCI_SYSCALL if PCI
+> >         select CPU_NO_EFFICIENT_FFS
+> >         select MMU_GATHER_NO_RANGE
+> > +       select MMU_GATHER_RCU_TABLE_FREE
+> >         select SPARSE_IRQ
+> >         select ZONE_DMA
+> >         select TRACE_IRQFLAGS_SUPPORT
+> > diff --git a/arch/microblaze/include/asm/pgalloc.h b/arch/microblaze/include/asm/pgalloc.h
+> > index 084a8a0dc239..ffee6a009219 100644
+> > --- a/arch/microblaze/include/asm/pgalloc.h
+> > +++ b/arch/microblaze/include/asm/pgalloc.h
+> > @@ -25,7 +25,7 @@ extern void __bad_pte(pmd_t *pmd);
+> >
+> >  extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm);
+> >
+> > -#define __pte_free_tlb(tlb, pte, addr) pte_free((tlb)->mm, (pte))
+> > +#define __pte_free_tlb(tlb, pte, addr) tlb_remove_ptdesc((tlb), page_ptdesc(pte))
+> >
+> >  #define pmd_populate(mm, pmd, pte) \
+> >                         (pmd_val(*(pmd)) = (unsigned long)page_address(pte))
+> > diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+> > index f2f9cd9cde50..33c4caee30e2 100644
+> > --- a/arch/xtensa/Kconfig
+> > +++ b/arch/xtensa/Kconfig
+> > @@ -55,6 +55,7 @@ config XTENSA
+> >         select HAVE_VIRT_CPU_ACCOUNTING_GEN
+> >         select IRQ_DOMAIN
+> >         select LOCK_MM_AND_FIND_VMA
+> > +       select MMU_GATHER_RCU_TABLE_FREE if MMU
+>
+> And MMU is required because NOMMU does not perform mmu_gather
+> operations, same as in the previous patch? If so, maybe make a note of
+> it in the changelog?
 
-The two hypercalls (HVCALL_GET_IOMMU_CAPABILITIES and
-HVCALL_GET_LOGICAL_DEVICE_PROPERTY) each currently use only 40 bytes of
-combined input and output. No concrete requirement has been identified
-that would make either approach 4 KB. A hypothetical future expansion
-is not sufficient reason to allocate another per-CPU page now. 
+Right yup. Will update!
 
-> a tool on the hyp side i believe to check that input and output struct
-> sizes do not exceed page size.
-> 
-> Also, both the input and output pages are pre-allocated, so there is no
-> extra allocation (otherwise, we'd have changed all places by now). So
-> it's better to just follow the convention we've so far just to avoid
-> confusion during future redesign imo. We def need to revisit this in
-> near/medium future for all hypercalls.
-> 
+>
+> >         select MODULES_USE_ELF_RELA
+> >         select PERF_USE_VMALLOC
+> >         select TRACE_IRQFLAGS_SUPPORT
+> > diff --git a/arch/xtensa/include/asm/tlb.h b/arch/xtensa/include/asm/tlb.h
+> > index 8c3ceb427018..6fb7b78154f6 100644
+> > --- a/arch/xtensa/include/asm/tlb.h
+> > +++ b/arch/xtensa/include/asm/tlb.h
+> > @@ -16,7 +16,7 @@
+> >
+> >  #include <asm-generic/tlb.h>
+> >
+> > -#define __pte_free_tlb(tlb, pte, address)      pte_free((tlb)->mm, pte)
+> > +#define __pte_free_tlb(tlb, pte, address)      tlb_remove_ptdesc((tlb), page_ptdesc(pte))
+> >
+> >  void check_tlb_sanity(void);
+> >
+> >
+> > --
+> > 2.55.0
+> >
 
-Well, output page is NOT pre-allocated ordinary child partitions. Please
-see hv_output_page_exists() in hv_common.c.
-                                                                                                                                                        
-My RFC included a separate allocation because I had incorrectly assumed
-that output required its own page. Like I mentioned earlier, this was
-already discussed during the RFC review [1], and that allocation patch
-was dropped following the discussion.
-
-Using separate pages is NOT a *convention* either: hv_pci_read_mmio()
-already places input and output in non-overlapping regions of the same
-page.
-
-We can certainly reassess which hypercalls need separate output pages
-in a broader review. I would keep that separate from this series,
-rather than reopen the RFC discussion without a concrete issue in
-the current implementation.
-
-[1] https://lore.kernel.org/all/SN6PR02MB4157C3EF6617A7BA4CA9E432D485A@SN6PR02MB4157.namprd02.prod.outlook.com/
-
-B.R.
-Yu
+--
+Cheers, Lorenzo
