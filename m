@@ -1,248 +1,355 @@
-Received: from LO0P265CU003.outbound.protection.outlook.com (mail-uksouthazon11022131.outbound.protection.outlook.com [52.101.96.131])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 873373B8BBF;
-	Tue,  8 Sep 2026 20:32:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.96.131
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788899573; cv=fail; b=tD7aBK19f7NE/sm20tFYuhlR77fItDSjw5p50bxx6fGY9izrS3USdP35D67DqR/+pU0GHlWG/XdMkHbB2HMQtpwhNEXDW2BFiTRd6UrkOfPvWIVq+lV24rJv4EaFX8hstBTktomj+zWb+DkookqTtrpT8H/fFi+JT4yqrn9XZog=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788899573; c=relaxed/simple;
-	bh=tyF2Bjc51NZIe6k7mnwP81pviDAy1BucIJllUtKQGDo=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=ULuS9bA5AQJC8/VQMorj0IR/80Qt0B/ZLbeF63XO1QTog2+X45u7cg6X/ax2hNW2oqsGpQnoP048u54NtJm3Mz1nwOG/uPNGMF3LUxB9I4oCIhmBl7ZgA0AvO1a2DUP1TKBnEbBO3Hqfa5cOT7977myLZTz6u+5IpP5M5wS8Baw=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com; spf=pass smtp.mailfrom=atomlin.com; arc=fail smtp.client-ip=52.101.96.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=d8MJxS9QzLQbawI7o690I5LZR5nGM7KbZZZ7eOtmlDHxQl3J/O8sJiUApPT+SOcZ4NRyVxoJLwXjz3HY5dRU7MxeB1w+CmCm0gyzqdhMgyjFXXordXQ22Juc26ZEFsmN3X0f+YBkGOTQ56zow86WVGFWYjdGtYAR8Lp/XIXe/SmXihnsELfSxrYEABOftWXgPb/nzN7uj0esCKsWU2RNrP1AWwc3b3T91nIa8vazl+lhO4LhZtv5uAyoYjdnUk/gpjmuSEjOI15IKqERrN2ntNY/XHsQu8KKhgKkJgujfwJl+W9185FoRqOiKbd+gPfb0Nv00DV7s/1YHJzIGrsPmw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
- bh=vDN3Mv/ICYouKSOhaOfwsMY0CjSbDzBvFKaCtP3kvHI=;
- b=isCqK2iSdLub1YuyI36uHjSMV+rYibw3u90KY6wuu3d5L0qSd4B9XKuldxG5i+C2YZiEAfe5WI1tdOpW9aPV8HtIfAIZJteXpw4ToSBqv04EMhSmT4HwGTwUZX2gHiVKn2ROUw3zuxYXCWEMXPtWN3FwE/Zac6/+Gnteuz8F5jcoS7H+wumxrle5rX5IhgqxHFn3yw3qPIizTv2CMiOJnvauYhU3puxenXZH3qRgX941nv8f/mdizDvqGJ+n41sixylphAaSakfHp32aK0VaHBfdpkK3S0MlpSciKkVI4V4WWYI41IF+dMO6eDqEIQmiFIhDqyEr7ZJDbP3nxLBcng==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
- dkim=pass header.d=atomlin.com; arc=none
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=atomlin.com;
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:183::5)
- by LO6P123MB7126.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:341::7) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.406.7; Tue, 8 Sep 2026
- 20:32:46 +0000
-Received: from CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230]) by CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- ([fe80::cec4:77ab:262e:d230%4]) with mapi id 15.21.0406.005; Tue, 8 Sep 2026
- 20:32:46 +0000
-From: Aaron Tomlin <atomlin@atomlin.com>
-To: arnd@arndb.de,
-	mcgrof@kernel.org,
-	petr.pavlu@suse.com,
-	da.gomez@kernel.org,
-	samitolvanen@google.com,
-	peterz@infradead.org,
-	ojeda@kernel.org
-Cc: akpm@linux-foundation.org,
-	gregkh@linuxfoundation.org,
-	mhiramat@kernel.org,
-	boqun@kernel.org,
-	atomlin@atomlin.com,
-	neelx@suse.com,
-	da.anzani@gmail.com,
-	sean@ashe.io,
-	chjohnst@mail.com,
-	steve@abita.co,
-	mproche@mail.com,
-	nick.lane@mail.com,
-	linux-arch@vger.kernel.org,
-	linux-modules@vger.kernel.org,
-	rust-for-linux@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH v11 3/3] module: Rename module_blacklist to module_denylist
-Date: Tue,  8 Sep 2026 16:32:30 -0400
-Message-ID: <20260908203230.401020-4-atomlin@atomlin.com>
-X-Mailer: git-send-email 2.55.0
-In-Reply-To: <20260908203230.401020-1-atomlin@atomlin.com>
-References: <20260908203230.401020-1-atomlin@atomlin.com>
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-ClientProxiedBy: BLAPR03CA0007.namprd03.prod.outlook.com
- (2603:10b6:208:32b::12) To CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
- (2603:10a6:400:183::5)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 37FFA3BF69E;
+	Tue,  8 Sep 2026 20:55:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1788900934; cv=none; b=JABB2ssBNgCe3hr56v3Tin5xpH2Bb6mYjFI4wY5IVOn5Zeblytn+hSsNKPMhe8JInFGy/XpVDQj7OsC2M+IlSJJGkWjyRNNZJHcyVHiYOdGqa/DIahR2XpQO9b4k5CT2gcX94FB5U/pNhIDMox6bB5VRHoWlzLtp7NsX2n38+50=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1788900934; c=relaxed/simple;
+	bh=r4zxWZsjLq+o+qJdnXb/cjOXHX0h7zTZcMS+AZOh2Tk=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=js0MosJs3xzLDha8JKeV5y4rorv09L0phR5S1L4HSMQd1UF3D3dpHeKaypHjPy2w5PC7GKoHR7YQLkSlpvEK5ba8Db2Dv5mQOSngh5LxA9f9obuRYcsSY4RNA2Kn9so72riNrO05jvVYt4+Q/jeiaqLq//zskkXmV/FmDHKLkoQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=a/BqhTCR; arc=none smtp.client-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="a/BqhTCR"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D0A871F00A3A;
+	Tue,  8 Sep 2026 20:55:21 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1788900932;
+	bh=Z6TT9h2uKDtEtXIE4l9d0BFbIHokBD+KKytpOJVveCc=;
+	h=From:Subject:Date:To:Cc;
+	b=a/BqhTCRMBH0KeWJYnRy7w1fkn/s863I1L51dbSgriOFlxPSRJTy2/WN0L+jMICVz
+	 IsdWZvZ0Z0Y9ELHrBG8wYeF9Le4JKEqUhDTPUnw+Y7wgb3atyJD7fpCIg/iD/sUKa3
+	 XWgjIZ9O/nCi7kHaZRLvQcL0kDjsewi7pBi/oxinfHbypkTQW8WvMtKzF2cInGNrCU
+	 mPK4arybamW5Pp8VtL7+8gaU1AXjrQlEbqDf6yQ6SCnhtzDi0J77mmDHYO2g221b06
+	 JvlTq8QdlwOHgyv4eeBGuJwDFXo5AlLfK45cTg8keJlqfnEC4JuqI07JTB3csrHInN
+	 uWptR9RVl1guA==
+From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Subject: [PATCH 00/23] kbuild: significantly speed up kernel builds
+Date: Tue, 08 Sep 2026 21:55:00 +0100
+Message-Id: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CWLP123MB6607:EE_|LO6P123MB7126:EE_
-X-MS-Office365-Filtering-Correlation-Id: 9e501e68-b6e0-43a5-dc78-08df0de857c0
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|1800799024|366016|376014|7416014|23010399003|3023799007|10067099003|56012099006|5023799004|22082099003|18002099003;
-X-Microsoft-Antispam-Message-Info:
-	jBrEXcM+PcJLTmNsUZKav9Ylyr1d6JGCyV2LSJ/a3pWjLNOOeYEkkQs/mrINFsNm5NvPcznp3tw1eibKiUnFgB/U6W/v6tzat1MzVgyivDMHl+IKscSpSoWQIUpjzUB9ekmwtzwbNAQSr/CRFc6/RIwFr+eWOQJgtlk7OupHpHmIAlVtrnNDPTwg2gvtRyX0S5VIOfEG+LHebP7Ytvnzb6T7BXHLgv2WiMDhYX5fFBefOSPdeCpXfazyk7+CMGHsThDP5Yb6ROkEtYbhq32dkyyuII2dAlNIhXOoks8uAo5Aid7RBK1NOVI+LBlXrpRMruf3HWJSZEXIb++WNREyDXqI9kR+6kPsF+8CUZa2Rdep316x1I5/sTOon19dvdHn4h+KlPhxycwa4CfXS/Nc9JxczSwRpq7RzJqr8DWq9aPua7WYBmdmyQV5BLRbjXiydSpIxFZ3Cj9sxlQ5qBBWIghRSYTUUB5PMPY5O+TQUoZ1tVGJwZJWpYTb+vaBPVkXiHQ4RbBCeWGi7Prlde4yvLok2OiLz4U0j4HxN3sV/AmFkUUILGbS3lzYXuY0RCK2qGJNsvlwX1XeefxlV1Zxy8flvwOviXGdk+vgNi3LilHegv2f9o2KLYBpTiDrtSvgoG1kns+uVXZduP4lcQp9KF36daeoQFiXA1Hx10i4WQw=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(366016)(376014)(7416014)(23010399003)(3023799007)(10067099003)(56012099006)(5023799004)(22082099003)(18002099003);DIR:OUT;SFP:1102;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?IjD8/gWo30royto2cidsfeHyJ3N67kRce+0u0FnN6LWs28CO2DU/q0chTTyI?=
- =?us-ascii?Q?36Ym7lByH1WcBmgRkr/kjjTu8cPxMeEI03L9hG0RfL2vlsddc9JYQf+Z3iQS?=
- =?us-ascii?Q?DVto8E03sHCLpVybTaKG1C+30AASNk2kcmrKurGrm6uRrcWrc0i3wrYu5ICW?=
- =?us-ascii?Q?icJWBzBl7RVhHadgy9pHssoZd4Y/3AzK+ZNt3MzdCM2DLMxa1toFBZoMra8m?=
- =?us-ascii?Q?WqYv6VTz1QYeh/SET9rCfWmHu+zPKBFks6QV3IhlTndJlj+mFz33sgTG/NDU?=
- =?us-ascii?Q?mmmU7min+KCNpwZXInoU3ZDxa+L1OSbFPh+g6Dea5dgJBulDemdpDEvQQmAn?=
- =?us-ascii?Q?9hlQJqqxObUUE71D3CCB2AXTW7IEgWQfAPZBeTUPv0xrl92RPq5/nt4Huwqx?=
- =?us-ascii?Q?beYGRoBIFAumMEAUNL8Bb10DRODMkhkO06HC92Og6k4W9NzVgmUplLQvLvYj?=
- =?us-ascii?Q?yDjGnzhKelT+bWrZDkDW2lUTITejabrNS5S68y82VWNZPlnTwU/YhJvzT6ak?=
- =?us-ascii?Q?kO0RngahL3igVkxH3/Ti5QHYQwK4ug15f0dAx/R/h7jGdUHT4b+K+h5odXmn?=
- =?us-ascii?Q?SAcm6/VOPmqpwWdnECd+UM2vOQR9scVoMdl8Ixcr7NC8yJpvVqY4ejnQr9Ul?=
- =?us-ascii?Q?AyYJ1w96u1YgOdF/GhBGSKQoL/vO2LwVC17kZ6zgyKi0xpv1agul91190KDU?=
- =?us-ascii?Q?9oSKv0Hk4pYhxqXJosDUDksZHkh1/Dg8vasLUh2fVPmtLRE2c8DbJrJvHOAM?=
- =?us-ascii?Q?yX+k4ivc7uVJcp5XichTNclbamRV4jutRghKQ0dTujYnW6U5byllAwwxjQoX?=
- =?us-ascii?Q?xY7AIakm6wzMulMrT26yy3Afw7sRahkWxWtrpEBrNTiAmt4YLtDBDogykXxG?=
- =?us-ascii?Q?4o4OmmXXleK/KzwYt4D2QTIr1Pp0NAOODbrYRxm2EqVVqF1kDzjEtwnlctbW?=
- =?us-ascii?Q?KgxRJBrRzwqWcGaZ9SvAdRHcDlvrITNhr1a4L2jACsUB4/3nWkqi/cT25ciT?=
- =?us-ascii?Q?vf2gJ+33Fng79MBG4KxF4bNLgh0lV9OaKvLQryqpfrPbZP4ck6I4cbUfZxx6?=
- =?us-ascii?Q?kdupcnIt/N8mrUch20D+93No10CsLOnwflrYNJ88rP1J2CIstAmVdkomkEBo?=
- =?us-ascii?Q?mJZWSw4Skm1+kwblx7+OS2EefZzhzNdFxB0d5Ks9HgNvOgBxUHa+kURw7kmo?=
- =?us-ascii?Q?7+bNG1NYeyB9sRhMNUljZn36eaHVyFql3s9tFTsoa++c1OSMkD68YEEDqKUL?=
- =?us-ascii?Q?7hD9IurnYcCeqY8RB9cIx7ojtFd3/7s16mb/vkBpYYU01oFrX0j9aEVY1ZEj?=
- =?us-ascii?Q?pBk1hZStArWcMVIEThAox6z8eyKnBrSGx1Cts39Ttla3h2ExAH/u8r8df68O?=
- =?us-ascii?Q?aybN4ZwGb2zRRDKZINF2xK42hr2eNYw7V7GNQDORVZDPgoM/AIEkzn/AKVyU?=
- =?us-ascii?Q?6AUiyD2LGdCmFoKM7SEpf5bbuntQ6bRQFiEBcNAL1pnrF/NarFjAG9dBsQmt?=
- =?us-ascii?Q?EIayIpaN3AgjhoIelXLXgU/KBrR/Jd67GqKXhMQgJxv1/rk4IofRudmcINGW?=
- =?us-ascii?Q?nn2hgkW535v3s+LQR7JVUyxRqGRPWzSWDcNmPfuF+J1ox6eKxxB0X2DuVQYW?=
- =?us-ascii?Q?yGE8QGvnfZZfuzJG79ZN2+sBZo12tdKNI4PpcZmrmGzewrcuCEbWXS1ydIAJ?=
- =?us-ascii?Q?4rhgSK2uQUh/hvGR+vs82GwVDZyLna5UK4Pf5sZiY8gYN8UKPDn53GfI/cRx?=
- =?us-ascii?Q?QMCGkkbjhA=3D=3D?=
-X-OriginatorOrg: atomlin.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 9e501e68-b6e0-43a5-dc78-08df0de857c0
-X-MS-Exchange-CrossTenant-AuthSource: CWLP123MB6607.GBRP123.PROD.OUTLOOK.COM
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 08 Sep 2026 20:32:46.7453
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: efJm8iufArJIqNmzEB0GohRDTdVk62xuroh2Uds/sthCic1m99eVEVbpHqDatyiNQObk1vV7UZ9kaUkTb6pZJQ==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: LO6P123MB7126
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/yXMQQqDMBBG4avIrBuYRFuwVyldGPPbjhQNmaYI4
+ t2Ndvkt3ltJkQRK92qlhJ+ozFOBvVTUv7vpBSOhmBy7G7fcGJ/lE4xGIORo3BXWdsy+DkyliQm
+ DLOfv8fxbsx/Rf48JbdsOAJX9MHEAAAA=
+X-Change-ID: 20260904-build-speedup-25e11a00b3d0
+To: Linus Torvalds <torvalds@linux-foundation.org>, 
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
+ Nick Desaulniers <ndesaulniers@google.com>, 
+ Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
+ Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
+ x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+ Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
+ Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, 
+ Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
+ Ard Biesheuvel <ardb@kernel.org>, 
+ Ilias Apalodimas <ilias.apalodimas@linaro.org>, 
+ Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
+ Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
+ Gary Guo <gary@garyguo.net>, 
+ =?utf-8?q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
+ Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
+ Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
+ Danilo Krummrich <dakr@kernel.org>, 
+ Daniel Almeida <daniel.almeida@collabora.com>, 
+ Tamir Duberstein <tamird@kernel.org>, 
+ Alexandre Courbot <acourbot@nvidia.com>, 
+ =?utf-8?q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
+ Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>
+Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ llvm@lists.linux.dev, linux-riscv@lists.infradead.org, 
+ linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
+ linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
+ linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, 
+ "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+X-Mailer: b4 0.14.3
+X-Developer-Signature: v=1; a=openpgp-sha256; l=12226; i=ljs@kernel.org;
+ h=from:subject:message-id; bh=r4zxWZsjLq+o+qJdnXb/cjOXHX0h7zTZcMS+AZOh2Tk=;
+ b=owGbwMvMwCV2fu7ZrsZH9SKMp9WSGLIWlBntUPt6u8LBJW4V48k865+zckxe2Px/9usW94RjR
+ 3xMLqef6yhlYRDjYpAVU2R5/kV8f5BI2LzOC/5uMHNYmUCGMHBxCsBE/qcy/LM8Uv9mseEbOcF9
+ MnMDdyjOP/pnKlOPU/KksMe/Gpbfj4pkZNjqvvW0Ul6lak2G1Cl+teWmVW7tBUbbN5mmTW74GFw
+ jzQwA
+X-Developer-Key: i=ljs@kernel.org; a=openpgp;
+ fpr=E7F417BF5214569E89D04F46CF9DCD8A81E27F14
 
-To preserve the existing user-space ABI, "module_blacklist=" is kept
-as a legacy alias pointing to the same module_denylist variable.
+A typical kernel build consists of a frustratingly large amount of time
+spent stuck in single-threaded bottlenecks.
 
-This patch addresses the documentation by marking "module_blacklist="
-as deprecated in admin-guide/kernel-parameters.txt, and documents
-the new "module_denylist=" parameter. All internal symbols, such as
-module_is_blacklisted(), have been renamed to use "denylist" and all
-log messages now use "denylisted".
+It turns out that there's a lot we can do about this and doing so
+significantly impacts kernel build times.
 
-Signed-off-by: Aaron Tomlin <atomlin@atomlin.com>
+This series makes allmodconfig builds up to 36% faster, incremental builds
+up to ~70% faster, and noop builds up to ~90% faster.
+
+Builds are faster across the board on every device I tested.
+
+Machines used for perf testing:
+
+* Threadripper -   x86, AMD Threadripper 9980X, 64 cores, 128 threads
+* EPYC         -   x86, 2 socket EPYC 9754, 256 cores, 512 threads
+* M2           - arm64, 2022 M2 macbook pro, 8 cores, 8 threads
+                        (4 perf, 4 efficiency)
+
+Cutting to the chase:
+
+		== allmodconfig FULL build ==
+
+                        before    after     delta
+                      ----------------------------------
+Threadripper, gcc       345.3s   275.2s    -70.1s (-20%)
+Threadripper, clang     345.5s   265.7s    -79.8s (-23%)
+EPYC, gcc               188.6s   121.1s    -67.5s (-36%)
+EPYC, clang             261.7s   184.6s    -77.1s (-29%)
+
+		== allmodconfig INCREMENTAL build ==
+
+                        before    after     delta
+                      ----------------------------------
+Threadripper, gcc        46.4s    15.3s    -31.1s (-67%)
+Threadripper, clang      44.4s    15.2s    -29.1s (-66%)
+EPYC, gcc                82.0s    24.3s    -57.7s (-70%)
+EPYC, clang              77.6s    24.3s    -53.3s (-69%)
+
+		== allmodconfig NO-OP build ==
+
+                        before    after     delta
+                      ----------------------------------
+Threadripper, gcc       12.97s    1.18s   -11.79s (-91%)
+Threadripper, clang     13.84s    1.64s   -12.20s (-88%)
+EPYC, gcc               25.92s    1.52s   -24.40s (-94%)
+EPYC, clang             27.58s    2.17s   -25.41s (-92%)
+
+		== defconfig FULL build ==
+
+                        before    after     delta
+                      ----------------------------------
+Threadripper, gcc        35.3s    28.6s     -6.7s (-19%)
+Threadripper, clang      33.5s    26.1s     -7.4s (-22%)
+EPYC, gcc                31.2s    20.6s    -10.6s (-34%)
+EPYC, clang              38.6s    32.2s     -6.4s (-17%)
+M2, gcc                 564.0s   512.4s    -51.6s (-9%)
+M2, clang               616.1s   569.4s    -46.7s (-8%)
+
+		== defconfig INCREMENTAL build ==
+
+                        before    after     delta
+                      ----------------------------------
+Threadripper, gcc        11.6s     5.5s     -6.1s (-53%)
+Threadripper, clang      11.6s     5.0s     -6.6s (-57%)
+EPYC, gcc                19.3s     9.2s    -10.1s (-52%)
+EPYC, clang              20.1s     8.6s    -11.5s (-57%)
+M2, gcc                  18.6s     9.9s     -8.7s (-47%)
+M2, clang                18.6s     8.2s    -10.4s (-56%)
+
+		== defconfig NO-OP build ==
+
+                        before    after     delta
+                      ----------------------------------
+Threadripper, gcc        0.96s    0.47s    -0.49s (-51%)
+Threadripper, clang      1.21s    0.55s    -0.66s (-55%)
+EPYC, gcc                1.47s    0.66s    -0.81s (-55%)
+EPYC, clang              1.87s    0.80s    -1.07s (-57%)
+M2, gcc                  5.59s    1.69s    -3.90s (-70%)
+M2, clang                6.62s    1.74s    -4.88s (-74%)
+
+Further performance numbers are provided for each commit giving a sense of
+what each contributes to the final result.
+
+			== Testing ==
+
+Beyond x86, allmodconfig was built with the series for arm64, arm, riscv,
+powerpc64, s390 and loongarch, and for arm64, arm, s390 and loongarch the
+System.map is identical to what the previous shell mksysmap produces for
+the same vmlinux.
+
+Also tested were parisc64 and m68k build as far as mainline lets them
+(a driver's static assertion and an undefined-symbol check on parisc, gcc
+16 internal compiler errors on m68k, none of it from this series).
+
+Kernels for x86, arm64, arm, riscv, loongarch, powerpc64, s390, m68k and
+parisc64 all boot under qemu, every text symbol of System.map is in
+/proc/kallsyms at the relocated address, and a module loads and unloads.
+The s390, arm and loongarch kernels also pass the kallsyms selftest.
+
+An x86 kernel with CONFIG_MODVERSIONS, CONFIG_EXTENDED_MODVERSIONS and
+CONFIG_MODULE_SRCVERSION_ALL boots, loads and unloads modules. External
+modules build against both in-tree and O= builds, and every commit builds
+on x86 defconfig.
+
+Build times are the best of several runs, no unexpected errors or
+warnings were seen.
+
+While some aspects of the build process have been changed, all tooling
+should function identically to before.
+
+			== LLM usage ==
+
+An LLM was used to first determine where the bottlenecks were then to
+figure out how to improve them.
+
+It generated a lot of code, much of it hideous.
+
+I extensively audited and rewrote a lot of it, and heavily edited commit
+messages, the cover letter and comments.x
+
+The LLM has also orchestrated build runs, testing, debugging and analysis.
+
+I have manually checked for correctness in both build and running kernels
+generated with this series applied.
+
+Performance improvements were also verified manually.
+
+Since an LLM was used extensively, each commit carries an Assisted-by tag.
+
+			== What was changed? ==
+
+Fundamentally the series improves build times by parallelising
+single-threaded tasks as much as possible and improving the efficiency of
+code used in the build process.
+
+kbuild, kallsyms, modpost, objtool, mksysmap and the rust build system were
+all updated as part of this change.
+
+Nothing too controversial was included. There are further improvements that
+could be made, but they would either by very invasive (large scale C header
+changes) or generate diminishing returns.
+
+			== Patches ==
+
+   mksysmap (1, 2):  A couple of bugfixes the rest of the series relies
+                     upon.
+
+   kallsyms (3, 4):  Some efficiency improvements through use of a cache.
+
+   kbuild (5, 6):    Don't sort nm output unnecessarily, do not include
+                     relocations in the kallsyms trial links.
+
+   elf-parse (7):    Section flags, symbol binding and a read-only mapping,
+                     for the next patch.
+
+   kallsyms (8):     Don't use nm, read the ELF symbol table directly.
+
+   kbuild (9):       Make .modinfo an INFO section.
+
+   kbuild (10, 11):  Implement a cache to track objects, check dependency
+                     timestamps more efficiently.
+
+   kbuild (12):      Probe compiler, linker flags once at top of build.
+
+   modpost (13, 14): Hash module sources a file at a time not a byte at a
+                     time,  also improve performance through use of a
+		     cache.
+
+   modules (15, 16): Emit module descriptors as assembly (*.mod.S) rather
+                     than C (*.mod.c), reducing CPU seconds taken by 10x to
+                     perform the task. Also shard module finalisation
+                     rather than running 10's of thousands of tiny runs.
+
+   modpost (17):     Compute srcversions in parallel using a thread pool.
+
+   objtool (18, 19): Avoid polluting the reloc hash with millions of DWARF
+                     relocations. Remember dead-ends and decode large
+		     objects over multiple threads. Size instruction hash
+		     to the code rather than hard-code it.
+
+   rust (20-22):     Parallelise the frontend, set correct dependencies and
+                     build crates in parallel with C code, retaining the
+		     requirement that rust/ crates are built first.
+
+   kbuild (23):      Default to using a parallel implementation of gzip
+                     (pigz) if available on the system.
+
+Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 ---
- .../admin-guide/kernel-parameters.txt         |  6 +++++-
- include/linux/module.h                        |  2 +-
- init/main.c                                   | 19 ++++++++++---------
- kernel/module/main.c                          |  4 ++--
- 4 files changed, 18 insertions(+), 13 deletions(-)
+Lorenzo Stoakes (ARM) (23):
+      scripts/mksysmap: drop the MODULE_INFO() symbols from kallsyms
+      scripts/mksysmap: fix escape of '$' in the __pi_ pattern
+      kallsyms: index symbols by token to speed up table compression
+      kallsyms: output binary data to speed output and kallsyms assembly
+      kbuild: do not sort nm output where the order is irrelevant
+      kbuild: only emit vmlinux relocations when required
+      elf-parse: add section flags, symbol binding and a read-only mapping
+      kallsyms: reimplement mksysmap in C
+      kbuild: do not allocate .modinfo in vmlinux
+      kbuild: cache list, composite object state per object
+      kbuild: implement and use depcheck to check dependency timestamps
+      kbuild: avoid re-running compiler and linker probes
+      modpost: hash module source per-file, not per-byte
+      modpost: cache section relocation mismatch state
+      modpost: emit module descriptors as assembly
+      kbuild: batch module finalisation
+      modpost: perform srcversion hashing in parallel
+      objtool: cache relocations and function dead end state, do less work
+      objtool: decode instructions and resolve branch targets in parallel
+      kbuild: rust: parallelise rustc front end
+      rust: make exports.o depend on the headers generated for it
+      kbuild: build rust crates in parallel with the rest of the build
+      kbuild: use pigz for gzip compression if available
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 68647ff4bdd2..aae1da11a592 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -4232,7 +4232,11 @@ Kernel parameters
- 			Note that if CONFIG_MODULE_SIG_FORCE is set, that
- 			is always true, so this option does nothing.
- 
--	module_blacklist=  [KNL] Do not load a comma-separated list of
-+	module_blacklist=  [KNL] (deprecated)
-+			This parameter has been renamed to module_denylist=.
-+			Please use module_denylist= instead.
-+
-+	module_denylist=  [KNL] Do not load a comma-separated list of
- 			modules.  Useful for debugging problem modules.
- 
- 	mousedev.tap_time=
-diff --git a/include/linux/module.h b/include/linux/module.h
-index bcc54edbde7d..39386a18285b 100644
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -879,7 +879,7 @@ static inline void module_for_each_mod(int(*func)(struct module *mod, void *data
- }
- #endif /* CONFIG_MODULES */
- 
--bool module_is_blacklisted(const char *module_name);
-+bool module_is_denylisted(const char *module_name);
- 
- #ifdef CONFIG_SYSFS
- extern struct kset *module_kset;
-diff --git a/init/main.c b/init/main.c
-index accaa8418aa5..8602dce328d7 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -1347,17 +1347,17 @@ static inline void do_trace_initcall_level(const char *level)
- extern struct initcall_modname __start_initcall_modnames[];
- extern struct initcall_modname __stop_initcall_modnames[];
- 
--/* module_blacklist is a comma-separated list of module names */
--static char *module_blacklist;
--bool __init_or_module module_is_blacklisted(const char *module_name)
-+/* module_denylist is a comma-separated list of module names */
-+static char *module_denylist;
-+bool __init_or_module module_is_denylisted(const char *module_name)
- {
- 	const char *p;
- 	size_t len;
- 
--	if (!module_blacklist)
-+	if (!module_denylist)
- 		return false;
- 
--	for (p = module_blacklist; *p; p += len) {
-+	for (p = module_denylist; *p; p += len) {
- 		len = strcspn(p, ",");
- 		if (strlen(module_name) == len && parameqn(module_name, p, len))
- 			return true;
-@@ -1366,7 +1366,8 @@ bool __init_or_module module_is_blacklisted(const char *module_name)
- 	}
- 	return false;
- }
--core_param(module_blacklist, module_blacklist, charp, 0400);
-+core_param(module_denylist, module_denylist, charp, 0400);
-+core_param(module_blacklist, module_denylist, charp, 0400);
- 
- static const char *__init get_builtin_modname(initcall_t fn)
- {
-@@ -1383,10 +1384,10 @@ static void __init do_one_initcall_builtin(initcall_t fn)
- {
- 	const char *modname;
- 
--	if (module_blacklist) {
-+	if (module_denylist) {
- 		modname = get_builtin_modname(fn);
--		if (modname && module_is_blacklisted(modname)) {
--			pr_info("Skipping initcall for blacklisted built-in module %s\n",
-+		if (modname && module_is_denylisted(modname)) {
-+			pr_info("Skipping initcall for denylisted built-in module %s\n",
- 				modname);
- 			return;
- 		}
-diff --git a/kernel/module/main.c b/kernel/module/main.c
-index 0eb5700f9f73..9eb31dccef98 100644
---- a/kernel/module/main.c
-+++ b/kernel/module/main.c
-@@ -3382,8 +3382,8 @@ static int early_mod_check(struct load_info *info, int flags)
- 	 * Now that we know we have the correct module name, check
- 	 * if it's blacklisted.
- 	 */
--	if (module_is_blacklisted(info->name)) {
--		pr_err("Module %s is blacklisted\n", info->name);
-+	if (module_is_denylisted(info->name)) {
-+		pr_err("Module %s is denylisted\n", info->name);
- 		return -EPERM;
- 	}
- 
+ .gitignore                                   |   1 +
+ Documentation/kbuild/kbuild.rst              |  13 +
+ Documentation/kbuild/reproducible-builds.rst |  16 +
+ Kbuild                                       |   5 +
+ Makefile                                     |  49 +-
+ arch/arm64/kernel/pi/Makefile                |   2 +-
+ arch/riscv/kernel/pi/Makefile                |   2 +-
+ arch/x86/Kconfig                             |  17 +
+ arch/x86/Makefile                            |  12 +-
+ arch/x86/boot/Makefile                       |   2 +-
+ arch/x86/boot/compressed/Makefile            |   2 +-
+ drivers/firmware/efi/libstub/Makefile        |   2 +-
+ include/asm-generic/vmlinux.lds.h            |   2 +-
+ include/linux/vermagic.h                     |   2 +-
+ init/Kconfig                                 |  84 +++
+ rust/Makefile                                |   5 +
+ scripts/Makefile                             |   4 +-
+ scripts/Makefile.build                       |  27 +-
+ scripts/Makefile.lib                         |   7 +-
+ scripts/Makefile.modfinal                    |  36 +-
+ scripts/Makefile.modpost                     |   2 +-
+ scripts/Makefile.vmlinux                     |  27 +-
+ scripts/Makefile.warn                        |  28 +-
+ scripts/basic/.gitignore                     |   1 +
+ scripts/basic/Makefile                       |   2 +-
+ scripts/basic/depcheck.c                     | 442 +++++++++++++++
+ scripts/check-function-names.sh              |   3 +-
+ scripts/elf-parse.c                          |  48 +-
+ scripts/elf-parse.h                          |  19 +
+ scripts/kallsyms-sysmap.c                    | 269 ++++++++++
+ scripts/kallsyms.c                           | 387 ++++++++++----
+ scripts/kallsyms.h                           |  44 ++
+ scripts/link-vmlinux.sh                      |  25 +-
+ scripts/mksysmap                             |  94 ----
+ scripts/mod/.gitignore                       |   1 +
+ scripts/mod/Makefile                         |   9 +
+ scripts/mod/modpost.c                        | 757 ++++++++++++++++++++------
+ scripts/mod/modpost.h                        |   2 +
+ scripts/mod/module-offsets.c                 |  35 ++
+ scripts/mod/sumversion.c                     |  57 +-
+ scripts/tags.sh                              |   5 +-
+ tools/objtool/Makefile                       |   2 +-
+ tools/objtool/check.c                        | 767 ++++++++++++++++++++-------
+ tools/objtool/elf.c                          | 242 ++++++++-
+ tools/objtool/include/objtool/elf.h          |   4 +
+ tools/objtool/include/objtool/objtool.h      |   3 +-
+ tools/objtool/objtool.c                      |   1 -
+ 47 files changed, 2884 insertions(+), 682 deletions(-)
+---
+base-commit: 28924df2a08f440c73991b83028032c901de2ae4
+change-id: 20260904-build-speedup-25e11a00b3d0
+
+Best regards,
 -- 
-2.55.0
+Lorenzo Stoakes (ARM) <ljs@kernel.org>
 
