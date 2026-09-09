@@ -1,38 +1,37 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EF28B2D77F5;
-	Wed,  9 Sep 2026 00:55:02 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08CDD2DB780;
+	Wed,  9 Sep 2026 00:55:03 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788915303; cv=none; b=owp01UgJO8rjCgfoDTGkXUs9jKhRXZF0zoHUg6h7xZov0IFkGUd68NZxWdFzkFyHuY9zYg6u9/O91xyScXOFFLB4947gszhHtEPKY31Vf0/+vbh/9zoygutgEzFjIv88kI7PUEQEmNccQyu/CxWUGm/yB8ElxeimDvreEv7lrWo=
+	t=1788915303; cv=none; b=Pm+RK3AODnc309jmTc2rCUPtfI9NZ2p/dMkU6c11Uk72hhSHpWTWncFavPPTXxGJdO09gg9Sae32ptRQcvliRjsLfhtv7HIrxxfvWpHZmwlRP7K+xWGiUdunjtPCvYmc3FBFCgN5vIre04EGyJRIFsxjykTuABk3Ed68hAxiB88=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1788915303; c=relaxed/simple;
-	bh=cNiGErIulZKMDAbhqRkYA5lNr7vWOESlPNeVtrkWjAA=;
+	bh=pv9RuonqNYo3AzOvwPP3dOHmyzUbuqx9/doej0kXmOg=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=LcFAQaY/nMCxPxOhyL4LLTtIvLqMmppHkKEdjfEQfspV7XHW7tPrq2zQGduznsjgp/a1UHE2vMLeKr8nDs/niIBWyljEHx/QYfHAtPbDIy5pXg2mbvqivjGfKJvUC0Ai+juXQ2Z/YTD3J+shmI0IkFTcFzsX6jQXr6h5dVifLE0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=F4I+W8Kh; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=sIHKEkn+8sfJnknW6s6YqFjxnPnPZ/X6pvif61Vn1177I8f0TcE1xZERPe3BLj2ZZ/ZIaXd/imNbTmHp/KQjlTa+kXr+QDYbjMlJ36NCbfMADGUW607skfWAHja0FMIVxfkHqhHrbS3XBPPZTN6SnU9lDbTsxDaSecDAAolSEv4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=nXBJJ0sB; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="F4I+W8Kh"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 85779C32781;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nXBJJ0sB"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id B9386C4AF19;
 	Wed,  9 Sep 2026 00:55:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1788915302;
-	bh=cNiGErIulZKMDAbhqRkYA5lNr7vWOESlPNeVtrkWjAA=;
+	bh=pv9RuonqNYo3AzOvwPP3dOHmyzUbuqx9/doej0kXmOg=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=F4I+W8KhSFcN++hNU21FULAx2LObq/OUuuZN0AXUTA049t6Ti3DJTGJiJ0dHI+BMs
-	 eZXez7a59uepj47D6lYSlKafze3cj+iPma3StegT1nj3X0jQdMxphSC80Zk4OMbWxL
-	 C0F8Pqn+7+6jMg4Ug5TW+dhEWgbR3wCHkJe7zvAo2ImzhrPketx+utC7KjoGLM6VRT
-	 5LzxjavxmN5J47VRijzFDcJxeN6oPLSELAdDw4TjXV6CYdrzxGDNw6rK4xxoT5HVSO
-	 0qnSlgWq9IaHQSBbXijOCS1CBVcdr9w+s3IQxkhkoAxTgCME8vTTCjVw/ftvYPpcZZ
-	 DW6VWGQKXNVtQ==
+	b=nXBJJ0sBy/JMEqu2u1nlo9S5sc91Vzr7LscytYWSOk4soqjplwfWy0vy46k3PwZnM
+	 H7zNrITrZWKgiaSFjSfPpKS4thUW3kY10+oLU2wDcVCq9l0PHF+I6Ef+oAPu7/HABx
+	 5pwDxKZObq/f4/Sus+b5TCMvUguZR8x/fLi3r5iW+GVrxu0ZZhbrjRq0nl8ru2T6OC
+	 XAX4sgjTeeM4qcIIFtTVGKvPIJXmetVxyCMo2AqaN+VRvJ29qayhY2TXfB49rgVzFK
+	 3VSdh4y7dMwJtsk/4uykLDPOolzvTfYYFkkApXFq6gB7/xZwi5T1DB3u7owKbiVX+4
+	 Ly5pxp9IPpiLg==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 71B30C79F82;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A5123C79FB6;
 	Wed,  9 Sep 2026 00:55:02 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Tue, 08 Sep 2026 18:55:04 -0600
-Subject: [PATCH v9 08/39] dyndbg: add stub macro for
- DECLARE_DYNDBG_CLASSMAP
+Date: Tue, 08 Sep 2026 18:55:07 -0600
+Subject: [PATCH v9 11/39] dyndbg: drop NUM_TYPE_ARGS
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +40,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260908-dd-cmap-part2-clean-v9-8-3a3f621f4a10@gmail.com>
+Message-Id: <20260908-dd-cmap-part2-clean-v9-11-3a3f621f4a10@gmail.com>
 References: <20260908-dd-cmap-part2-clean-v9-0-3a3f621f4a10@gmail.com>
 In-Reply-To: <20260908-dd-cmap-part2-clean-v9-0-3a3f621f4a10@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -63,13 +62,14 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
  linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
  linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
- Jim Cromie <jim.cromie@gmail.com>
+ Jim Cromie <jim.cromie@gmail.com>, 
+ Louis Chauvet <louis.chauvet@bootlin.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1788915300; l=3163;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1788915300; l=1542;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=ZuzqA3zGt/j9kYmFGfFlaL94NbjSKGlzcBcWBUqAWbM=;
- b=MtxlZ3L3cDf6P7bxLp/l5Ghwr9pn/JbpliGesDc/pbwJQGP9cFRRnSVJgiEG+eKjt3pKt2QC4
- EgJprE6PAr8Ase8w5OuA6IpXAhUg5D0l32QwcsjrvZB7Q0eeaTZVhSv
+ bh=xMZm/oO0FtfekjkxZIUS9OIoDKqTmliEkK4gwpH/mIw=;
+ b=aqVAWrwbQ7paoxe5AbYm5VcF7X8dqCYg0MSOTP3Ni7CP/4a+mEQyXqwVD0soaQaETdDOJ77jc
+ sp2xNGuzBZGCC1ygi0CUN84f1nEuOHWcLD29ung0YMcbYc6g7NASBca
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -79,83 +79,48 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-Add the stub macro for !DYNAMIC_DEBUG builds, after moving the
-original macro-defn down under the big ifdef.  Do it now so future
-changes have a cleaner starting point.
+ARRAY_SIZE almost works here, since array decl is complete.
+But define it locally, named __DDEBUG_ARRAY_SIZE, to avoid
+include conflicts with  boot/<something> on some arch.
+
+no functional change
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
 ---
- include/linux/dynamic_debug.h | 43 ++++++++++++++++++++++---------------------
- 1 file changed, 22 insertions(+), 21 deletions(-)
+v7: actually use macro
+v5: drop include, it causes redefined probs in /boot/* for some arch.
+v2: include linux/array_size.h, correct commit subject, review after sob
+---
+ include/linux/dynamic_debug.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 05743900a116..a10adac8e8f0 100644
+index 9607121c3072..baf5c0853f45 100644
 --- a/include/linux/dynamic_debug.h
 +++ b/include/linux/dynamic_debug.h
-@@ -93,27 +93,6 @@ struct ddebug_class_map {
- 	enum class_map_type map_type;
- };
+@@ -8,6 +8,8 @@
  
--/**
-- * DECLARE_DYNDBG_CLASSMAP - declare classnames known by a module
-- * @_var:   a struct ddebug_class_map, passed to module_param_cb
-- * @_type:  enum class_map_type, chooses bits/verbose, numeric/symbolic
-- * @_base:  offset of 1st class-name. splits .class_id space
-- * @classes: class-names used to control class'd prdbgs
-- */
--#define DECLARE_DYNDBG_CLASSMAP(_var, _maptype, _base, ...)		\
--	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
--	static struct ddebug_class_map __aligned(8) __used		\
--		__section("__dyndbg_classes") _var = {			\
--		.mod = THIS_MODULE,					\
--		.mod_name = KBUILD_MODNAME,				\
--		.base = _base,						\
--		.map_type = _maptype,					\
--		.length = NUM_TYPE_ARGS(char*, __VA_ARGS__),		\
--		.class_names = _var##_classnames,			\
--	}
--#define NUM_TYPE_ARGS(eltype, ...)				\
--        (sizeof((eltype[]){__VA_ARGS__}) / sizeof(eltype))
--
- /* encapsulate linker provided built-in (or module) dyndbg data */
- struct _ddebug_info {
- 	struct _ddebug *descs;
-@@ -138,6 +117,27 @@ struct ddebug_class_param {
- #if defined(CONFIG_DYNAMIC_DEBUG) || \
- 	(defined(CONFIG_DYNAMIC_DEBUG_CORE) && defined(DYNAMIC_DEBUG_MODULE))
+ #include <linux/build_bug.h>
  
-+/**
-+ * DECLARE_DYNDBG_CLASSMAP - declare classnames known by a module
-+ * @_var:   a struct ddebug_class_map, passed to module_param_cb
-+ * @_type:  enum class_map_type, chooses bits/verbose, numeric/symbolic
-+ * @_base:  offset of 1st class-name. splits .class_id space
-+ * @classes: class-names used to control class'd prdbgs
-+ */
-+#define DECLARE_DYNDBG_CLASSMAP(_var, _maptype, _base, ...)		\
-+	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
-+	static struct ddebug_class_map __aligned(8) __used		\
-+		__section("__dyndbg_classes") _var = {			\
-+		.mod = THIS_MODULE,					\
-+		.mod_name = KBUILD_MODNAME,				\
-+		.base = _base,						\
-+		.map_type = _maptype,					\
-+		.length = NUM_TYPE_ARGS(char*, __VA_ARGS__),		\
-+		.class_names = _var##_classnames,			\
-+	}
-+#define NUM_TYPE_ARGS(eltype, ...)				\
-+	(sizeof((eltype[]) {__VA_ARGS__}) / sizeof(eltype))
++#define __DDEBUG_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 +
+ /*
+  * An instance of this structure is created in a special
+  * ELF section at every dynamic debug callsite.  At runtime,
+@@ -122,11 +124,9 @@ struct ddebug_class_param {
+ 		.mod_name = KBUILD_MODNAME,				\
+ 		.base = _base,						\
+ 		.map_type = _maptype,					\
+-		.length = NUM_TYPE_ARGS(char*, __VA_ARGS__),		\
+ 		.class_names = _var##_classnames,			\
++		.length = __DDEBUG_ARRAY_SIZE(_var##_classnames),	\
+ 	}
+-#define NUM_TYPE_ARGS(eltype, ...)				\
+-	(sizeof((eltype[]) {__VA_ARGS__}) / sizeof(eltype))
+ 
  extern __printf(2, 3)
  void __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...);
- 
-@@ -314,6 +314,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
- 
- #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt)
- #define DYNAMIC_DEBUG_BRANCH(descriptor) false
-+#define DECLARE_DYNDBG_CLASSMAP(...)
- 
- #define dynamic_pr_debug(fmt, ...)					\
- 	no_printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
 
 -- 
 2.55.0
