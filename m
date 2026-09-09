@@ -1,105 +1,140 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B56C33A7F49;
-	Wed,  9 Sep 2026 07:49:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7E94C3AA9EF;
+	Wed,  9 Sep 2026 08:51:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788940151; cv=none; b=fiCib80LkzclomqCOmlFSl5MDUl2ajD29C7ZwUEvTnMIocDZ1VQBCFWFgxo5v4TQ1zJcC1yIE5lFh0efTNWsGTyqiv/NHOyu4pqy15fblC+P0vbu6ILHLjHQL8cgPp5V3wgj2fIarceeb3P2m1zEgtT4IUvAZvwGfBcspxTAOMc=
+	t=1788943893; cv=none; b=amqI0QPZ2WjS65vtCoLiLdDg+fGldzHVv6X7G18n2BoDtlMPxMzV8As5Vzh42ufi5Kxsd6E4i0KxtMm4I8riF3CqMIJSDFV4UDAKAwqn9Qm/4koYJSm+YfCr9j7SN4qV+zYz4RAPFVyQS4BkjqiMJ9KSsV9wKMpoovw2wBV4YaY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788940151; c=relaxed/simple;
-	bh=n/YUHToCu4xFzFyURJPKym92O2SUcgsTqgNBRzWypyI=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=iXsRZIgnO1P0d1nfV/33F6YFH0ozf9NW0ua82K9No+wrt23LrAJm15cJDMPav6gQXRNIPtrK84wbsMQEmL90EPfH8sucVErjFHYZwNGcgjxgz5APHg/AS9L7EzMN7YtDTdDJ4pVGnZnRhLuoxM1c9ESS2Th2vG3u2qFDM3Tutzo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=lA4UvNb/; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1788943893; c=relaxed/simple;
+	bh=7BLVTFBp0ZEd00ydpjlDQmwAhB/KSP4xZMVY9pc9HOs=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=WZFRY7EvNoVff6oyxCicStdyy0GTiLAmgzTBAGBiTx/JGVPSARbD+JpGm1ui0sx4eowBJV6n1Bj4BWANfqyC+OpLZvsR+m8nNnGzY4gVh9/2WrqnAcHz7uqqHItxZfaVJ+htvtmN71qTocP7c2xrbgRdh7xlNFb6w7Tsap5nsW0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=k9vEQJ8w; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=1FCn8GUQ; arc=none smtp.client-ip=193.142.43.55
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="lA4UvNb/"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2679F1F00A3A;
-	Wed,  9 Sep 2026 07:49:06 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1788940149;
-	bh=CtjHw6tdgvoCt/S+ovgmKPDM4t7AdlJ2arISz/nBgmE=;
-	h=From:To:Cc:Subject:Date;
-	b=lA4UvNb/XirQdQKQbXONbFRB2eb+4zrQLcZBfjDDNtOPGEsANHBI1s7O2Y2uAx70v
-	 JPnnOfJPM67k6uDHnaxLhj+Ki9UlhWnUXOxMmacrwttqJrahibnlaGDvWXv02N8Zex
-	 fmKGpb6KscP4TgyvUPmPQXKb80X4b1Au0iThM2NzpDX9xwV1cIVTvwrw2NtdbJUGqR
-	 yPSPgEPYK6ccxCp6hl8za/wDfMY/pfnxuQyh2Wqf+vt1XppE6Vl4494heWBU3c1mjV
-	 mah8nkU7vSY8ZqD88xgVctnv3dSa/5p2GURY09O+i208oyJHOZZyle36SIOgSEU2YW
-	 Mjus+5bTMYSYg==
-From: Thorsten Blum <blum@kernel.org>
-To: Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	Arnd Bergmann <arnd@arndb.de>
-Cc: Thorsten Blum <blum@kernel.org>,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: [PATCH RESEND v2] x86/serial: Use generic BASE_BAUD in asm/serial.h
-Date: Wed,  9 Sep 2026 09:46:54 +0200
-Message-ID: <20260909074653.408945-4-blum@kernel.org>
-X-Mailer: git-send-email 2.55.0
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="k9vEQJ8w";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="1FCn8GUQ"
+From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020; t=1788943880;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=qBxNGRr7V0cZXnwM00gER/wx3P+kfpLfgDvX2l6pq3g=;
+	b=k9vEQJ8wTctywsO8hI1YZ6um9M/lNjs1S0m1fgpc08NdgIYbZov0Zkofq1AxPdfblwLPa7
+	4KmfcHeu6b2Yr+01ivvZ6xjUcjoYm3eAQ5TgjEPS7CKlSdWg/JDCIFLH8782o31SLgz6gd
+	OtPuQq0Sjy9sgdW0sWOoMBh3I8RgTIUi6zxLRszOk905I462f6xWyvSyMqAO006ybGNQdu
+	SGKHJOBw038XIG0FBCvj4tz2gBcwNTvJjmEFGFYE/BwAJM7xynzmQllAr8cj2jRLAhO1yH
+	cjh8vmeAx20BKowGWdN/9sqWAOfZypcjYsZemxfmare/Lp1o32YdrpkitPZpLA==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020e; t=1788943880;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=qBxNGRr7V0cZXnwM00gER/wx3P+kfpLfgDvX2l6pq3g=;
+	b=1FCn8GUQNiHI5qLn1sTrlANzuUZEkf5xuKf+VYLZdOJYxtaWZpt+V7r7Urvulh09pavhRF
+	dsm/084ewNnqYqDw==
+Subject: [PATCH 00/15] vdso: Clean up the vsyscall.h headers
+Date: Wed, 09 Sep 2026 10:51:13 +0200
+Message-Id: <20260909-vdso-asm-generic-vsyscall-h-v1-0-63ae856cc659@linutronix.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1895; i=blum@kernel.org; h=from:subject; bh=n/YUHToCu4xFzFyURJPKym92O2SUcgsTqgNBRzWypyI=; b=owGbwMvMwCUWt7pQ4caZUj3G02pJDFkL+d7+v8J52bh630KhNuXcgg27Ph8unJb+Wb/UeGXv0 ZZb/y6HdZSyMIhxMciKKbI8mPVjhm9pTeUmk4idMHNYmUCGMHBxCsBFnBn+8P398Pi3TIaC4r0T JU/jOjJbmV6dCbkhZ2C81PlweamtAiPDNekXy+vPiT15FsU9R8o2f5vWbrZdTlXXPGtfpN+XSf7 IAQA=
-X-Developer-Key: i=blum@kernel.org; a=openpgp; fpr=1D60735E8AEF3BE473B69D84733678FD8DFEEAD4
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/x3MQQqAIBBA0avErBswIamuEi1ExxooCwekkO6et
+ HyL/wsIJSaBqSmQKLPwGSu6tgG32bgSsq8GrbRRQ6cxeznRyoErxZo6zPKIs/uOG6pgTKB+tL5
+ 3UA9XosD3f5+X9/0APF61mm0AAAA=
+X-Change-ID: 20260812-vdso-asm-generic-vsyscall-h-0f66fe59ad5c
+To: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
+ Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, 
+ linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
+ loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
+ linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, 
+ sparclinux@vger.kernel.org, 
+ =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1788943875; l=3678;
+ i=thomas.weissschuh@linutronix.de; s=20240209; h=from:subject:message-id;
+ bh=7BLVTFBp0ZEd00ydpjlDQmwAhB/KSP4xZMVY9pc9HOs=;
+ b=uTe2i40O4/xeVZQd1jNjZ2OlErGJqBh1xMapRWODGY5Dal9y4CKYI8NBfBpyMTHddnVSWXGD4
+ N0TrnT9R60lBMxCVhZtCvdvXAnyBBfInKOtzLXA0tNQZs9VfRNj5zYY
+X-Developer-Key: i=thomas.weissschuh@linutronix.de; a=ed25519;
+ pk=pfvxvpFUDJV2h2nY0FidLUml22uGLSjByFbM6aqQQws=
 
-Include asm-generic/serial.h and use the generic BASE_BAUD definition
-instead of redefining it. Consolidate the comments accordingly.
+The vsyscall.h headers are a mess. Some of that was necessary back when
+some architectures where not using the generic vDSO infrastructure.
+Now that this is not necessary anymore, the headers can be cleaned up
+and many of the can be deleted altogether.
 
-Signed-off-by: Thorsten Blum <blum@kernel.org>
+The recipient list is trimmed to only the vDSO maintainers and the
+architecture lists.
+
+Signed-off-by: Thomas Weißschuh <thomas.weissschuh@linutronix.de>
 ---
-Changes in v2:
-- Preserve the note that BASE_BAUD should not be arch-specific (Arnd)
-- v1: https://lore.kernel.org/r/20260717073149.3622-3-thorsten.blum@linux.dev/
----
- arch/x86/include/asm/serial.h | 9 +--------
- include/asm-generic/serial.h  | 7 +++----
- 2 files changed, 4 insertions(+), 12 deletions(-)
+Thomas Weißschuh (15):
+      vdso: Move the kernel-side time update helpers to a new header
+      vdso/gettimeofday: Define fallback __arch_get_vdso_u_time_data() in gettimeofday.c
+      vdso/getrandom: Define fallback __arch_get_vdso_u_rng_data() in getrandom.c
+      vdso/vsyscall: Define fallback time synchronization functions in vsyscall.c
+      vdso: Delete asm-generic/vdso/vsyscall.h
+      x86/vdso: Move vDSO page definitions to asm/vdso.h
+      sparc/vdso: Move __VDSO_PAGES to asm/vdso.h
+      s390/vdso: Delete asm/vdso/vsyscall.h inclusions
+      sparc/vdso: Delete asm/vdso/vsyscall.h inclusion
+      x86/vdso: Delete asm/vdso/vsyscall.h inclusions
+      arm64/vdso: Delete asm/vdso/vsyscall.h inclusions
+      riscv/hwprobe: Include vdso/datapage.h
+      vdso: Remove unnecessary vdso/vsyscall.h includes
+      vdso: Add asm-generic/vdso/vsyscall.h
+      vdso: Remove __ASSEMBLER__ guards from vsyscall.h
 
-diff --git a/arch/x86/include/asm/serial.h b/arch/x86/include/asm/serial.h
-index ece8299d2695..b623f6d70f64 100644
---- a/arch/x86/include/asm/serial.h
-+++ b/arch/x86/include/asm/serial.h
-@@ -2,14 +2,7 @@
- #ifndef _ASM_X86_SERIAL_H
- #define _ASM_X86_SERIAL_H
- 
--/*
-- * This assumes you have a 1.8432 MHz clock for your UART.
-- *
-- * It'd be nice if someone built a serial card with a 24.576 MHz
-- * clock, since the 16550A is capable of handling a top speed of 1.5
-- * megabits/second; but this requires a faster clock.
-- */
--#define BASE_BAUD (1843200/16)
-+#include <asm-generic/serial.h>
- 
- /* Standard COM flags (except for COM4, because of the 8514 problem) */
- #ifdef CONFIG_SERIAL_8250_DETECT_IRQ
-diff --git a/include/asm-generic/serial.h b/include/asm-generic/serial.h
-index ca9f7b6be3f0..c06765a4f5f8 100644
---- a/include/asm-generic/serial.h
-+++ b/include/asm-generic/serial.h
-@@ -3,12 +3,11 @@
- #define __ASM_GENERIC_SERIAL_H
- 
- /*
-- * This should not be an architecture specific #define, oh well.
-+ * This should not be an architecture-specific definition.
-  *
-- * Traditionally, it just describes i8250 and related serial ports
-- * that have this clock rate.
-+ * Traditionally, it describes i8250 and related serial ports using
-+ * a 1.8432 MHz UART clock.
-  */
--
- #define BASE_BAUD (1843200 / 16)
- 
- #endif /* __ASM_GENERIC_SERIAL_H */
+ MAINTAINERS                                  |  2 +-
+ arch/arm/include/asm/vdso/vsyscall.h         |  7 ------
+ arch/arm/kernel/vdso.c                       |  1 -
+ arch/arm64/include/asm/vdso/getrandom.h      |  1 -
+ arch/arm64/include/asm/vdso/vsyscall.h       |  7 ------
+ arch/arm64/kernel/vdso.c                     |  1 -
+ arch/arm64/kernel/vdso/vdso.lds.S            |  1 -
+ arch/loongarch/include/asm/vdso/vsyscall.h   | 14 -----------
+ arch/loongarch/kernel/vdso.c                 |  1 -
+ arch/mips/include/asm/vdso/vsyscall.h        | 16 -------------
+ arch/mips/kernel/vdso.c                      |  1 -
+ arch/powerpc/include/asm/vdso/vsyscall.h     | 14 -----------
+ arch/riscv/include/asm/vdso/vsyscall.h       | 14 -----------
+ arch/riscv/kernel/sys_hwprobe.c              |  2 +-
+ arch/riscv/kernel/vdso.c                     |  1 -
+ arch/s390/include/asm/vdso/getrandom.h       |  1 -
+ arch/s390/include/asm/vdso/vsyscall.h        | 16 -------------
+ arch/s390/kernel/time.c                      |  6 ++---
+ arch/s390/kernel/vdso.c                      |  1 -
+ arch/s390/kernel/vdso/vdso.lds.S             |  1 -
+ arch/sparc/include/asm/vdso.h                |  6 +++++
+ arch/sparc/include/asm/vdso/vsyscall.h       | 10 --------
+ arch/sparc/vdso/vdso-layout.lds.S            |  2 +-
+ arch/sparc/vdso/vma.c                        |  1 -
+ arch/x86/entry/vdso/common/vdso-layout.lds.S |  1 -
+ arch/x86/entry/vdso/vma.c                    |  1 -
+ arch/x86/include/asm/vdso.h                  |  7 ++++++
+ arch/x86/include/asm/vdso/vsyscall.h         | 22 -----------------
+ include/asm-generic/Kbuild                   |  1 +
+ include/asm-generic/vdso/vsyscall.h          | 35 ----------------------------
+ include/linux/vdso_time.h                    |  8 +++++++
+ include/vdso/vsyscall.h                      |  7 ------
+ kernel/time/vsyscall.c                       | 25 +++++++++++++++-----
+ lib/vdso/getrandom.c                         |  8 +++++--
+ lib/vdso/gettimeofday.c                      | 10 +++++---
+ 35 files changed, 60 insertions(+), 192 deletions(-)
+---
+base-commit: 1c2a9f9d89050cd9f2b2280060a9442338a1e6fe
+change-id: 20260812-vdso-asm-generic-vsyscall-h-0f66fe59ad5c
+
+Best regards,
+--  
+Thomas Weißschuh <thomas.weissschuh@linutronix.de>
+
