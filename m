@@ -1,37 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 957783382C7;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D80B5349CD8;
 	Wed,  9 Sep 2026 00:55:04 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788915304; cv=none; b=SSbRhgGz+XTSlcMumVsj5CSSp/WeHVd2BiY0tdhgXMRQt0A8FGoN2fijxbMdjti0FTEYhwYOIWGGANWzLT3TX+3Qmley2yqbgcoJkb7+QyVOoD0p5puOWCDeXswEkVGi+OlNMS7EeQ4gCH2Amkex97g5U410XtaEegsjR+MW6c0=
+	t=1788915304; cv=none; b=ApDj1PigeF9cdJhty4kXHRZxgkUduEujFvLqA/7FFbXnoWsb1MVFTgVQ7kYbpsdNkGZ2hONKJhVLDdXxQRUGAMZGojzhmRfiPs4o5b0iHnwJR849Fscl1gyWsSodIicRibZ8AG72lWcguui8J8JvXTZIizTYfqFenjOrgdsw6Vw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1788915304; c=relaxed/simple;
-	bh=vlYLAoB5tcZ0qF1qWeff95ZfIKVdYHx5wOPp50GgCBw=;
+	bh=Pu4jFw/n2qmbKY5gxWu8WCu6XgpSwe1vy3HOi4Z4JJM=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=N0/hE7XdnUkCx5VQF2mXQ+n2FEY7/FucW5A2dV5nwMPrkZPCtv6z9lNg3fks5duN5s0i3Kup1N0C/okC2stZyimwDJC/pikSi1ubEGWueQO4JKttyhSn2dAbdzG9E5ki+lz0QQCwmL4t3JNZ01GI9fg+5LYiUKA0hrflW86Xpss=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=egJjetLS; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=ShG25gUXlY6RgXknY7XzUXUdFDpVx30beocihfItJYzDPDgon16YNFAJH3sC2arKObiF3mU5V0gRmH9yDzV2byfZTi1F/jZbJAGZCIL36V4EPNCY1qLJ56YSAmFrjcb4ty/S2xz2MjcIfznR3eiHCVuYBN79a63pvrDZk5G0Zck=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=bI1lAFB2; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="egJjetLS"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 73C20C2BCFB;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="bI1lAFB2"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id B9BD8C2BCFB;
 	Wed,  9 Sep 2026 00:55:04 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1788915304;
-	bh=vlYLAoB5tcZ0qF1qWeff95ZfIKVdYHx5wOPp50GgCBw=;
+	bh=Pu4jFw/n2qmbKY5gxWu8WCu6XgpSwe1vy3HOi4Z4JJM=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=egJjetLSC5jGpCsoAzCG+al5pDzKkWQ0UNx6eH6BTKKrZXniFI/WJtpxrw3Fp/Zy6
-	 ITy4IrATUCuUn3GOWLdA8zGB/EGym92Vi0g86RlNVXXNCzF/wkWx52QCb5PXtWEJwJ
-	 wl+p6f03CnXWKRJ1Bg7EdxBTKAstCa7TzuidVeJfQxTWv/HD1NZdbkZTvwgLUTbIR8
-	 lTQdjlnBwEMlED5T7b8oszA7sMbP++uDU0ICvlPpwEgAlD+wZYu2edkPxkBymobnnH
-	 KOnz6qpT3QkZJSAMpjmMcjwRrNc/vWyUy6063WH0h5tEfLa8UgLiBYy3rdIm5z2oZa
-	 4lXk5PHpkLvtg==
+	b=bI1lAFB2jyoLkpx2YPhyQlqT9X6P6MmuoQCAMpo+vmOoH0u3y8zDYS85XbNQj8RPa
+	 ddXPbk1H172MGmWsUJSDj1XlIZi5nVKyRonor3UUeW3pI3tesTEjvMAeoifdRNEkQ3
+	 lUmp5owSmRgOT7EgpiaE5oDFtWh8IhVTnljp9tj52holNFmUhBGPJm2mp5D9bPvR4a
+	 ydJWNNxnqScly3urjjhuKmuKDhAJvoXGzcO8DUcgImbmAUt4TO9jRYqGXfpnIrkYAJ
+	 C5sQ81fW/j2Omh1e9QL6DYnw0Lfmj5B9iBju1fu54vh4ufoM3WD5eZ8lyxyl7T60RR
+	 +WsWM7avPjsCg==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 61AE4C79F82;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A7EB9C79F82;
 	Wed,  9 Sep 2026 00:55:04 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Tue, 08 Sep 2026 18:55:29 -0600
-Subject: [PATCH v9 33/39] dyndbg: resolve "protection" of class'd pr_debug
+Date: Tue, 08 Sep 2026 18:55:33 -0600
+Subject: [PATCH v9 37/39] dyndbg: add epilogue to dynamic_debug/control
+ file
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -40,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260908-dd-cmap-part2-clean-v9-33-3a3f621f4a10@gmail.com>
+Message-Id: <20260908-dd-cmap-part2-clean-v9-37-3a3f621f4a10@gmail.com>
 References: <20260908-dd-cmap-part2-clean-v9-0-3a3f621f4a10@gmail.com>
 In-Reply-To: <20260908-dd-cmap-part2-clean-v9-0-3a3f621f4a10@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -62,14 +63,13 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
  linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
  linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
- Jim Cromie <jim.cromie@gmail.com>, 
- Louis Chauvet <louis.chauvet@bootlin.com>
+ Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1788915300; l=14096;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1788915300; l=2252;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=sX2y6vsBV51qlcg1+1+e+jLvlLn02BL8s3UYdvFZrn8=;
- b=1MdvntOBQSbctIsHqa9hcalPpXQ4o0vjCmAGgWGMx+9KsIiGiAVAhe+hMT+YV2vJN2BnVbIur
- kN9AJU25AvWBe/xjN3Mt5eHn42eW0ssuGxwUT2VHawpz76zFOvhdXKZ
+ bh=oYHWUJL7INC4Y/mX988tAYogU/OZy4J+TTkT4CPamL8=;
+ b=Q+FNT832FBcFf4Lw6LX8mDpUlmsZNcM7Jq9/wT7sgCRBuEXEHUeXKefbiDBE5GXI3iBtxZxDk
+ 0HvnuTmkEBsCGzyEfLqcMVgbEcaJo3OdrgkkGeCi8qxBu5hldwOiTzh
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -79,405 +79,80 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-classmap-v1 code protected class'd pr_debugs from unintended
-changes by unclassed/_DFLT queries:
+Add an epilogue to the control-file, to allow display of statistics
+etc, without disturbing the header.
 
-  # - to declutter examples:
-  alias ddcmd='echo $* > /proc/dynamic_debug/control'
-
-  # IOW, this should NOT alter drm.debug settings
-  ddcmd -p
-
-  # Instead, you must name the class to change it.
-  # Protective but tedious
-  ddcmd class DRM_UT_CORE +p
-
-  # Or do it the (old school) subsystem way
-  # This is ABI !!
-  echo 1 > /sys/module/drm/parameters/debug
-
-Since the debug sysfs-node is ABI, if dyndbg is going to implement it,
-it must also honor its settings; it must at least protect against
-accidental changes to its classes from legacy queries.
-
-The protection allows all previously conceived queries to work the way
-they always have; ie select the same set of pr_debugs, despite the
-inclusion of whole new classes of pr_debugs.
-
-But that choice has 2 downsides:
-
-1. "name the class to change it" makes a tedious long-winded
-interface, needing many commands to set DRM_UT_* one at a time.
-
-2. It makes the class keyword special in some sense; the other
-keywords skip only on query mismatch, otherwise the code falls thru to
-adjust the pr-debug site.
-
- Jason Baron	didn't like v1 on point 2.
- Louis Chauvet	didn't like recent rev on point 1 tedium.
-
-But that said: /sys/ is ABI, so this must be reliable:
-
-  #> echo 0x1f > /sys/module/drm/parameters/debug
-
-It 'just works' without dyndbg underneath; we must deliver that same
-stability.  Convenience is secondary.
-
-The new resolution:
-
-If ABI is the blocking issue, then no ABI means no blocking issue.
-IOW, if the classmap has no presence under /sys/*, ie no PARAM, there
-is no ABI to guard, and no reason to enforce a tedious interface.
-
-In the future, if DRM wants to alter this protection, that is
-practical, but I think default-on is the correct mode.
-
-So atm classes without a PARAM are unprotected at >control, allowing
-admins their shortcuts.  I think this could satisfy all viewpoints.
-
-That said, theres also a possibility of wildcard classes:
-
-   #> ddcmd class '*' +p
-
-Currently, the query-class is exact-matched against each module's
-classmaps.names.  This gives precise behavior, a good basis.
-
-But class wildcards are possible, they just did'nt appear useful for
-DRM, whose classmap names are a flat DRM_UT_* namespace.
-
-IOW, theres no useful selectivity there:
-
-   #> ddcmd class "DRM_*" +p		# these enable every DRM_* class
-   #> ddcmd class "DRM_UT_*" +p
-
-   #> ddcmd class "DRM_UT_V*" +p	# finally select just 1: DRM_UT_VBL
-   #> ddcmd class "DRM_UT_D*" +p	# but this gets 3
-
-   #> ddcmd class "D*V*" +p		# here be dragons
-
-But there is debatable utility in the feature.
-
-   #> ddcmd class __DEFAULT__ -p	# what about this ?
-   #> ddcmd -p				# thats what this does. automatically
-
-Anyway, this patch does:
-
-1. adds link field from _ddebug_class_map to the .controlling_param
-
-2. sets it in ddebug_match_apply_kparam(), during modprobe/init,
-   when options like drm.debug=VAL are handled.
-
-3. ddebug_class_has_param() now checks .controlling_param
-
-4. ddebug_class_wants_protection() macro renames 3.
-   this frames it as a separable policy decision
-
-5. ddebug_match_desc() gets the most attention:
-
-a. move classmap consideration to the bottom
-   this insures all other constraints act 1st.
-   allows simpler 'final' decisions.
-
-b. split class choices cleanly on query:
-   class FOO vs none, and class'd vs _DPRINTK_CLASS_DFLT site.
-
-c. calls 4 when applying a class-less query to a class'd pr_debug
-   here we need a new fn to find the classmap with this .class_id
-
-d. calls new ddebug_find_classmap_by_class_id().
-   when class-less query looks at a class'd pr_debug.
-   finds classmap, which can then decide, currently by PARAM existence.
-
-NOTES:
-
-protection is only against class-less queries, explicit "class FOO"
-adjustments are allowed (that is the mechanism).
-
-The drm.debug sysfs-node heavily under-specifies the class'd pr_debugs
-it controls; none of the +mfls prefixing flags have any effect, and
-each callsite remains individually controllable. drm.debug just
-toggles the +p flag for all the modules' class'd pr_debugs.
+NB: epilogue lines should start with "#: " to distinguish them from
+lines describing pr_debugs (and from the header line).  No new lines
+are added here, only the place to do so.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
-Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
 ---
 v9:
-. assign map->controlling_param = dcp in ddebug_match_apply_kparam()
-  to enforce protection on parameterized classmaps.
-v2: RvB after SoB
-
-old-v12
-
-minor fixup after squashing subsequent commits to previous ones
+. update ddebug_proc_start() to return EPILOGUE_TOKEN when seeking directly to epilogue.
 ---
- include/linux/dynamic_debug.h |  14 +++--
- lib/dynamic_debug.c           | 131 +++++++++++++++++++++++++++++++++++-------
- 2 files changed, 120 insertions(+), 25 deletions(-)
+ lib/dynamic_debug.c | 23 ++++++++++++++++++++---
+ 1 file changed, 20 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index cc203b6c1b56..32a34a80672b 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -94,6 +94,7 @@ enum ddebug_class_map_type {
-  * map @class_names 0..N to consecutive constants starting at @base.
-  */
- struct ddebug_class_map {
-+	struct ddebug_class_param *controlling_param;
- 	const struct module *mod;	/* NULL for builtins */
- 	const char *mod_name;		/* needed for builtins */
- 	const char **class_names;
-@@ -301,7 +302,12 @@ struct ddebug_class_param {
-  *
-  * Creates a sysfs-param to control the classes defined by the
-  * exported classmap, with bits 0..N-1 mapped to the classes named.
-- * This version keeps class-state in a private long int.
-+ *
-+ * Since sysfs-params are ABI, this also protects the classmap'd
-+ * pr_debugs from un-class'd `echo -p > /proc/dynamic_debug/control`
-+ * changes.
-+ *
-+ * This keeps class-state in a private long int.
-  */
- #define DYNAMIC_DEBUG_CLASSMAP_PARAM(_name, _var, _flags)		\
- 	static u32 _name##_bvec;					\
-@@ -314,10 +320,8 @@ struct ddebug_class_param {
-  * @_var:   name of the (exported) classmap var defining the classes/bits
-  * @_flags: flags to be toggled, typically just 'p'
-  *
-- * Creates a sysfs-param to control the classes defined by the
-- * exported clasmap, with bits 0..N-1 mapped to the classes named.
-- * This version keeps class-state in user @_bits.  This lets drm check
-- * __drm_debug elsewhere too.
-+ * Like DYNAMIC_DEBUG_CLASSMAP_PARAM, but maintains param-state in
-+ * extern @_bits.  This lets DRM check __drm_debug elsewhere too.
-  */
- #define DYNAMIC_DEBUG_CLASSMAP_PARAM_REF(_name, _bits, _var, _flags)	\
- 	__DYNAMIC_DEBUG_CLASSMAP_PARAM(_name, _bits, _var, _flags)
 diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index e6f5a524d63b..8c90b1e4cd33 100644
+index afde13a2121f..77976e7b264c 100644
 --- a/lib/dynamic_debug.c
 +++ b/lib/dynamic_debug.c
-@@ -71,6 +71,10 @@ struct flag_settings {
- 	unsigned int mask;
- };
- 
-+static bool ddebug_class_map_in_range(const int class_id,
-+				      const struct ddebug_class_map *map);
-+static bool ddebug_class_user_in_range(const int class_id,
-+				       const struct ddebug_class_user *user);
- static DEFINE_MUTEX(ddebug_lock);
- static LIST_HEAD(ddebug_tables);
- static int verbose;
-@@ -200,6 +204,46 @@ static struct ddebug_class_map *ddebug_find_valid_class(struct _ddebug_info cons
- 	return NULL;
- }
- 
-+
-+
-+static struct ddebug_class_map *
-+ddebug_find_map_by_class_id(struct _ddebug_info *di, int class_id)
-+{
-+	struct ddebug_class_map *map;
-+	struct ddebug_class_user *cli;
-+	int i;
-+
-+	for_subvec(i, map, di, maps)
-+		if (ddebug_class_map_in_range(class_id, map))
-+			return map;
-+
-+	for_subvec(i, cli, di, users)
-+		if (ddebug_class_user_in_range(class_id, cli))
-+			return cli->map;
-+
-+	return NULL;
-+}
-+
-+/*
-+ * classmaps-V1 protected classes from changes by legacy commands
-+ * (those selecting _DPRINTK_CLASS_DFLT by omission).  This had the
-+ * downside that saying "class FOO" for every change can get tedious.
-+ *
-+ * V2 is smarter, it protects class-maps if the defining module also
-+ * calls DYNAMIC_DEBUG_CLASSMAP_PARAM to create a sysfs parameter.
-+ * Since the author wants the knob, we should assume they intend to
-+ * use it (in preference to "class FOO +p" >control), and want to
-+ * trust its settings.  This gives protection when its useful, and not
-+ * when its just tedious.
-+ */
-+static inline bool ddebug_class_has_param(const struct ddebug_class_map *map)
-+{
-+	return !!(map->controlling_param);
-+}
-+
-+/* re-framed as a policy choice */
-+#define ddebug_class_wants_protection(map) (ddebug_class_has_param(map))
-+
- /*
-  * Search the tables for _ddebug's which match the given `query' and
-  * apply the `flags' and `mask' to them.  Returns number of matching
-@@ -208,11 +252,10 @@ static struct ddebug_class_map *ddebug_find_valid_class(struct _ddebug_info cons
+@@ -1159,6 +1159,9 @@ static struct _ddebug *ddebug_iter_next(struct ddebug_iter *iter)
+  * read() call from userspace.  Takes the ddebug_lock and
+  * seeks the seq_file's iterator to the given position.
   */
- static bool ddebug_match_desc(const struct ddebug_query *query,
- 			      struct _ddebug *dp,
--			      int valid_class)
-+			      struct _ddebug_info *di,
-+			      int selected_class)
++static char ddebug_epilogue_token;
++#define EPILOGUE_TOKEN (&ddebug_epilogue_token)
++
+ static void *ddebug_proc_start(struct seq_file *m, loff_t *pos)
  {
--	/* match site against query-class */
--	if (dp->class_id != valid_class)
--		return false;
-+	struct ddebug_class_map *site_map;
- 
- 	/* match against the source filename */
- 	if (query->filename &&
-@@ -256,7 +299,28 @@ static bool ddebug_match_desc(const struct ddebug_query *query,
- 	    dp->lineno > query->last_lineno)
- 		return false;
- 
--	return true;
-+	/*
-+	 * above are all satisfied, so we can make final decisions:
-+	 * 1- class FOO or implied class __DEFAULT__
-+	 * 2- site.is_classed or not
-+	 */
-+	if (query->class_string) {
-+		/* class FOO given, exact match required */
-+		return (dp->class_id == selected_class);
-+	}
-+	/* query class __DEFAULT__ by omission. */
-+	if (dp->class_id == _DPRINTK_CLASS_DFLT) {
-+		/* un-classed site */
-+		return true;
-+	}
-+	/* site is class'd */
-+	site_map = ddebug_find_map_by_class_id(di, dp->class_id);
-+	if (!site_map) {
-+		WARN_ONCE(1, "unknown class_id %d, check %s's CLASSMAP definitions", dp->class_id, di->mod_name);
-+		return false;
-+	}
-+	/* module(-param) decides protection */
-+	return !ddebug_class_wants_protection(site_map);
+ 	struct ddebug_iter *iter = m->private;
+@@ -1174,7 +1177,9 @@ static void *ddebug_proc_start(struct seq_file *m, loff_t *pos)
+ 	dp = ddebug_iter_first(iter);
+ 	while (dp != NULL && --n > 0)
+ 		dp = ddebug_iter_next(iter);
+-	return dp;
++	if (dp)
++		return dp;
++	return n == 0 ? EPILOGUE_TOKEN : NULL;
  }
  
- static int ddebug_change(const struct ddebug_query *query, struct flag_settings *modifiers)
-@@ -266,13 +330,13 @@ static int ddebug_change(const struct ddebug_query *query, struct flag_settings
- 	unsigned int newflags;
- 	unsigned int nfound = 0;
- 	struct flagsbuf fbuf, nbuf;
--	struct ddebug_class_map *map = NULL;
--	int valid_class;
-+	int selected_class;
+ /*
+@@ -1187,12 +1192,20 @@ static void *ddebug_proc_next(struct seq_file *m, void *p, loff_t *pos)
+ 	struct ddebug_iter *iter = m->private;
+ 	struct _ddebug *dp;
  
- 	/* search for matching ddebugs */
- 	mutex_lock(&ddebug_lock);
- 	list_for_each_entry(dt, &ddebug_tables, link) {
- 		struct _ddebug_info *di = &dt->info;
-+		struct ddebug_class_map *mods_map;
- 
- 		/* match against the module name */
- 		if (query->module &&
-@@ -280,20 +344,18 @@ static int ddebug_change(const struct ddebug_query *query, struct flag_settings
- 		    !match_wildcard_hyphen(query->module, kbasename(di->mod_name)))
- 			continue;
- 
-+		selected_class = _DPRINTK_CLASS_DFLT;
- 		if (query->class_string) {
--			map = ddebug_find_valid_class(&dt->info, query->class_string,
--						      &valid_class);
--			if (!map)
-+			mods_map = ddebug_find_valid_class(di, query->class_string,
-+							   &selected_class);
-+			if (!mods_map)
- 				continue;
--		} else {
--			/* constrain query, do not touch class'd callsites */
--			valid_class = _DPRINTK_CLASS_DFLT;
- 		}
- 
- 		for (i = 0; i < di->descs.len; i++) {
- 			struct _ddebug *dp = &di->descs.start[i];
- 
--			if (!ddebug_match_desc(query, dp, valid_class))
-+			if (!ddebug_match_desc(query, dp, di, selected_class))
- 				continue;
- 
- 			nfound++;
-@@ -1146,7 +1208,6 @@ static bool ddebug_class_user_in_range(const int class_id, const struct ddebug_c
- 		return false;
- 	return ddebug_class_map_in_range(class_id - user->offset, user->map);
- }
--
- static const char *ddebug_class_name(struct _ddebug_info *di, struct _ddebug *dp)
- {
- 	struct ddebug_class_map *map;
-@@ -1297,25 +1358,35 @@ static void ddebug_sync_classbits(const struct kernel_param *kp, const char *mod
- 	}
- }
- 
--static void ddebug_match_apply_kparam(const struct kernel_param *kp,
--				      const struct ddebug_class_map *map,
--				      const char *mod_name)
-+static struct ddebug_class_param *
-+ddebug_get_classmap_kparam(const struct kernel_param *kp,
-+			   const struct ddebug_class_map *map)
- {
- 	struct ddebug_class_param *dcp;
- 
- 	if (kp->ops != &param_ops_dyndbg_classes)
--		return;
++	(*pos)++;
++
++	if (p == EPILOGUE_TOKEN)
 +		return NULL;
- 
- 	dcp = (struct ddebug_class_param *)kp->arg;
-+	return (map == dcp->map)
-+		? dcp : (struct ddebug_class_param *)NULL;
-+}
 +
-+static void ddebug_match_apply_kparam(const struct kernel_param *kp,
-+				      struct ddebug_class_map *map,
-+				      const char *mod_name)
-+{
-+	struct ddebug_class_param *dcp = ddebug_get_classmap_kparam(kp, map);
- 
- 	if (dcp && dcp->map == map) {
-+		map->controlling_param = dcp;
- 		v2pr_info(" kp:%s.%s =0x%x", mod_name, kp->name, *dcp->bits);
- 		vpr_cm_info(map, " %s maps ", mod_name);
- 		ddebug_sync_classbits(kp, mod_name);
- 	}
+ 	if (p == SEQ_START_TOKEN)
+ 		dp = ddebug_iter_first(iter);
+ 	else
+ 		dp = ddebug_iter_next(iter);
+-	++*pos;
+-	return dp;
++
++	if (dp)
++		return dp;
++
++	return EPILOGUE_TOKEN;
  }
  
--static void ddebug_apply_params(const struct ddebug_class_map *cm, const char *mod_name)
-+static void ddebug_apply_params(struct ddebug_class_map *cm, const char *mod_name)
- {
- 	const struct kernel_param *kp;
- 
-@@ -1338,6 +1409,26 @@ static void ddebug_apply_params(const struct ddebug_class_map *cm, const char *m
+ static bool ddebug_class_map_in_range(const int class_id, const struct ddebug_class_map *map)
+@@ -1244,6 +1257,10 @@ static int ddebug_proc_show(struct seq_file *m, void *p)
+ 			 "# filename:lineno [module]function flags format\n");
+ 		return 0;
  	}
- }
++	if (p == EPILOGUE_TOKEN) {
++		/* use this soon */
++		return 0;
++	}
  
-+#if 0
-+/*
-+ * called from add_module, ie early. it can find controlling kparams,
-+ * which can/does? enable protection of this classmap from class-less
-+ * queries, on the grounds that the user created the kparam, means to
-+ * use it, and expects it to reflect reality.  We should oblige him,
-+ * and protect those classmaps from classless "-p" changes.
-+ */
-+static void ddebug_apply_class_maps(const struct _ddebug_info *di)
-+{
-+	struct ddebug_class_map *cm;
-+	int i;
-+
-+	for_subvec(i, cm, di, maps)
-+		ddebug_apply_params(cm, cm->mod_name);
-+
-+	v2pr_di_info(di, "attached %d class-maps to ", i);
-+}
-+#endif
-+
- static void ddebug_apply_class_users(const struct _ddebug_info *di)
- {
- 	struct ddebug_class_user *cli;
+ 	seq_printf(m, "%s:%u [%s]%s =%s \"",
+ 		   trim_prefix(dp->filename), dp->lineno,
 
 -- 
 2.55.0
