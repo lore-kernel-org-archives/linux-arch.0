@@ -1,226 +1,124 @@
-Received: from mail-oo2-f43.google.com (mail-oo2-f43.google.com [74.125.231.171])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7E4935678EB
-	for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 18:11:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.231.171
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789063895; cv=pass; b=RoKKNO50bNVAaq3KxIWtD6rOX28NTSPUSxwe97uzCr7lmztIgI06gkU6nuk2AiQvr0ghuuYi5yEbE8M2Phuh6352bN3l4VrOowaRWqYOjqUamCuH9R7TzVZ7BuBiTWTpdHfGWY7oGXvsFkCOrwH55SeihATkg4eaQWbFuIOsz4s=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789063895; c=relaxed/simple;
-	bh=NT0Z/LF1SMhtkavx81DR2GGYYK6aB7iX5ZVgmCMPgvQ=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=lKpO1BSIzXanHX4ajKDZSE6HacXj4ByF/Y8M6raJW30UmgHDCGpvXrvRaMRP7HNYG2cD1IwRxEdsZfsmY4qG1WKi9pLFnqdex1DkU+aM7UksFArlbOFE269RwpOgYpG5+BpV3Q9yswVsST7hP/UtbCNY6s4ySfoIdURRMYiD67U=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=FKybIG7v; arc=pass smtp.client-ip=74.125.231.171
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 97A65361670;
+	Thu, 10 Sep 2026 19:00:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1789066833; cv=none; b=gPLEmkigGFBZ3hnvfZ1HQ8g4Zm2DArjMTtYCOKTZ/HWZVTRR66bZQHnsoPsKamdwpe3vnV6p+eXhMQYjICdYFKc8FqB706LFnfIWNesu1C0Qn4wb/81nwsHA0ENMJAtOrH8Lx53kE59TdfLk3PnnQy1DRfBqZeKuiz3wegCGfUY=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1789066833; c=relaxed/simple;
+	bh=TqXpALvbDXvsA0sqSVnOHDQuA9LO48i8U28lTHA8Mb4=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=BgEUOsfkh1t0NLprf+8G6NNHiO4aEtACRW/n09Jn0KDI6ZFYWAtR4YODybsOtzcmhva9ci2LDktUy1UME6+KMMeHf5Xq4NNAwvPVD36o9LfLQZU7MWbU71nMbIJ8X7YnL4kgSuBNURGwH8ULEY7P1dVh3BwvaDmsG5bNU57aqtw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=fpt2DW2D; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="FKybIG7v"
-Received: by mail-oo2-f43.google.com with SMTP id 006d021491bc7-6b1ae71686cso88713eaf.1
-        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 11:11:31 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1789063890; cv=none;
-        d=google.com; s=arc-20260327;
-        b=Z2gcZlWyO/3ouOvZlJwdTh7K8OK/qS5pAN0zaWNzPqO2aqfFPZ7rrNq/5YuA6fkXCh
-         yM0tcSSBusoBMhXxMB/mFgGk3OpORhf7ggoR/bUXrnmZYv79jxb0qXWxQ2YQBee6+0q7
-         37xJWvUifGj64ZyPvtUIPLUcmqnQa6e6EITYCzfSLE8r7ZqG7n5VbzEB3a41UtkSO6Lg
-         0WSVMvh/636BMgd6NFsnBeH7tgT9l4DELGcXvNLRMHOU1ez02MTM+j7SSd2ahtssVjJO
-         ZMGZdk1LOWBARIqaeAFVeKjF9LbS1Se2f+mSB7L6mv4J0Fz+MfzURlkclcSPtTt/SoWp
-         vTnA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=gxuS67QpsgmiVo7SJODgVn7jNGL8PaTVeXELBYXj9Vc=;
-        fh=m4qAiB39y3IPXffTLmhYQCx4OdYodTQU34N0s15kfrI=;
-        b=UvWITMju4SKUKyaKaPxUdVM94ZuLPeSfbRO5yeEtUFqwaniernPElBbReCZQWv9+zJ
-         7Cgu/as4D7UDUUCSXJS9tz0FvgR/4gCis0n5SCGLhOHCrQi/0jB7kJcPitP2uCa2JD0c
-         mXM/7YruI0V9c206b/zeotNHrz2gSxgbb35fcNfDRRkPar2kZpwQCE8lW97345BkUpAY
-         /IXjgXbZqfBKGT2uMVEbg8TWUAOYyJOF2vJIdaOoWz2WSsDSyq8XtDKBJzi00BGI49e4
-         4mkdoezwLM/LItdxJHqRXJxWyxCn0JMA08ISzq+ISwcFiGdev7VYlyOioAvZs0ZdZLwW
-         U3rQ==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1789063890; x=1789668690; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=gxuS67QpsgmiVo7SJODgVn7jNGL8PaTVeXELBYXj9Vc=;
-        b=FKybIG7vbPrID6z1nHaj6kVvqnRQk9kvLUdCSO2+2ma9Rrzv9SNsMhpf6H6ntsMUds
-         JkyN3NfvnmjEM6fiuIEbDJ9ubreYKGMr4WB5YW+WP8daIgGmV93h2QhGZncGxUruNTVl
-         xb2WebfNbk637VrINs16GyzSfy6Udi4tcRoeH/5/HvD6JJC39vardYEfjksmVtn+eq90
-         6nNKA546KE5FFVTONnyAW7NH0ZI0JriDM3YVglc1gMZq/J8BylnjF7IuIBmBXSUxR5sk
-         pKWbcKzTldmYVXmq15a181+DQWmWqY+Hy9X3XmqX1apU7j5PpWG+JMXCx6tSMMlVkN1h
-         l9ew==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1789063890; x=1789668690;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=gxuS67QpsgmiVo7SJODgVn7jNGL8PaTVeXELBYXj9Vc=;
-        b=WY4ejynhb/dhFBGr2nzpl2UezRqkbrkVfrtxUhlonj/XnKkzDMmS17COW8Icc2xKt3
-         MoxuL+3qZmiuFOHSM7PyWHBuuWZiJV+7lL2W8wMAfw+DuF5NCjfJmpyHRzRDzSr99ANo
-         Abb5qbzhSoTrFjg33vEOJTNUOFaT6ibGuJRn5ZwaUk15aqGm08Rc306rKbRVwiLXWwoU
-         XtE8pvRy2yVvc8hXVoCLtY34/V6QSMSNRzlI6BbDk2633NuEc2ZM6khzzbxJsoY5Qrtb
-         iABVKldsgGMmJLfbmjhNAgbwnneU4ZExOla4Mq70d+u1mCt1mJ0I6zsJtERUR16u0uby
-         1WcA==
-X-Forwarded-Encrypted: i=1; AKwUvBzYLcugu3hkm5SL7yQqy4c9jLiy6+apKWZgpo5ntZ+391YtI9KMnzGzrJBovHS+PZhmBP/XvAl+IoDF@vger.kernel.org
-X-Gm-Message-State: AFuF++nH0wBvgY40hWkRXlWGLZzF/KBTkYiUA52C/E4R4D+jfG+9GPU6
-	EGsW06RxASCxQm6MZYihl22fSyQ9hELvpT84I5ZczaiyCa5r/qm4Up1k2iQ7JVxL4m2CZXxXvX5
-	+fZG960Qjn0irAQHTbEGxHxt9Nnlpo7Q=
-X-Gm-Gg: AYBFou0TLE4NQqTJMD9XqTf31iWe1VxT4b3If9tpbkN0G5SVUnRIms9DoDwXopJ3Tlc
-	8QAMRnXA4npTahqYH4fH7SwP3XR0q0n+2LLN8GTuAe7CGEafOM9d4jvyJdYD/k4FOCGUMnDafc1
-	/jQWUCtYUNgMuDTKw837P2DlfArBfkjVxYL8/i+vfaQRPIsT1xzmZ8xtKQUE/xgwL27XgxNR17s
-	d4bEqjCucMRqnOHZ/YOhHO1+be+r3Gj+ObMSyyx5TU46RsyZNTuIHspKDfw55IccjhSq31B2oOt
-	JKCs05KsMpSXXxS93Tt26IWqXIFtj7eze5yTLgm/Y/gjRkSFzaVCj7s=
-X-Received: by 2002:a05:6820:55d3:20b0:6b1:ac4f:f708 with SMTP id
- 006d021491bc7-6c0bc1d3ad3mr241038eaf.17.1789063890425; Thu, 10 Sep 2026
- 11:11:30 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="fpt2DW2D"
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id C19AF1F008A7;
+	Thu, 10 Sep 2026 19:00:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1789066832;
+	bh=qVLCzCol0ztHmPBF0fa8Jwjb86wBY4YsV5QLOxzKWYg=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References;
+	b=fpt2DW2DYha1MqdROAQMJuWiFYGP2IXkY29JJawBo8RZ6Ij4EMIJzWGzzTj8Fz9if
+	 fwvuecYFpKATLPy/E6JBQLSpVSg5fkTPerDXEl5QcC3WMZ1ExStoj3AKX2lAf3yBfy
+	 ohO/V2c3DDBc7QRsB4WqARy0H46e1HQjPK9yvegAcLogsjQFUHTyjrCOze21/9RJcF
+	 eoPJkrHBYKOtulGI2+dAKmgMwkVWoUWR1xs5RvxLdWYAvmSeC9oTy6tA5kmjNhu4aA
+	 9IZ47udxuU4aDKE+9Q2nPRPOuTqaTza60/Br216MGndlCKBlzO1A9KjVvaklnLHWFb
+	 rb81xbPcYsw1w==
+From: Nicolas Schier <nsc@kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Nick Desaulniers <ndesaulniers@google.com>,
+	Bill Wendling <morbo@google.com>,
+	Justin Stitt <justinstitt@google.com>,
+	Masahiro Yamada <masahiroy@kernel.org>,
+	Alexey Gladkov <legion@kernel.org>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Alexandre Ghiti <alex@ghiti.fr>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>,
+	Mark Rutland <mark.rutland@arm.com>,
+	Ard Biesheuvel <ardb@kernel.org>,
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
+	Josh Poimboeuf <jpoimboe@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Miguel Ojeda <ojeda@kernel.org>,
+	Boqun Feng <boqun@kernel.org>,
+	Gary Guo <gary@garyguo.net>,
+	=?UTF-8?q?Bj=C3=B6rn=20Roy=20Baron?= <bjorn3_gh@protonmail.com>,
+	Benno Lossin <lossin@kernel.org>,
+	Andreas Hindborg <a.hindborg@kernel.org>,
+	Alice Ryhl <aliceryhl@google.com>,
+	Trevor Gross <tmgross@umich.edu>,
+	Danilo Krummrich <dakr@kernel.org>,
+	Daniel Almeida <daniel.almeida@collabora.com>,
+	Tamir Duberstein <tamird@kernel.org>,
+	Alexandre Courbot <acourbot@nvidia.com>,
+	=?UTF-8?q?Onur=20=C3=96zkan?= <work@onurozkan.dev>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Randy Dunlap <rdunlap@infradead.org>,
+	"Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Nicolas Schier <nsc@kernel.org>,
+	linux-kbuild@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	llvm@lists.linux.dev,
+	linux-riscv@lists.infradead.org,
+	linux-arch@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org,
+	linux-efi@vger.kernel.org,
+	rust-for-linux@vger.kernel.org,
+	linux-doc@vger.kernel.org,
+	Jens Axboe <axboe@kernel.dk>
+Subject: Re: [PATCH 01/23] scripts/mksysmap: drop the MODULE_INFO() symbols from kallsyms
+Date: Thu, 10 Sep 2026 21:00:15 +0200
+Message-ID: <178906667516.724141.3737829890204628745.b4-ty@b4>
+X-Mailer: git-send-email 2.47.3
+In-Reply-To: <20260908-build-speedup-v1-1-5dc1ac01672d@kernel.org>
+References: <20260908-build-speedup-v1-1-5dc1ac01672d@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260908-b4-mmap-prepare-vma-flag-sanify-v1-0-dacf19cce22b@kernel.org>
- <20260908-b4-mmap-prepare-vma-flag-sanify-v1-11-dacf19cce22b@kernel.org>
-In-Reply-To: <20260908-b4-mmap-prepare-vma-flag-sanify-v1-11-dacf19cce22b@kernel.org>
-From: Stephen Smalley <stephen.smalley.work@gmail.com>
-Date: Thu, 10 Sep 2026 14:11:18 -0400
-X-Gm-Features: AcwNN1XLr_yN2lEzELD3PcXDse2cuW9BBHCwsQpnROCV_SxzPvFmiqhSaiK704I
-Message-ID: <CAEjxPJ7hXSi=oLtQPV+7GEvN+txfYwZ-u-v_EysNHM0gSGNrCw@mail.gmail.com>
-Subject: Re: [PATCH 11/39] selinux: reject writable opens of policy file, drop
- mmap shared/write check
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "Liam R. Howlett" <liam@infradead.org>, 
-	Vlastimil Babka <vbabka@kernel.org>, Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
-	David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
-	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Jonathan Corbet <corbet@lwn.net>, 
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
-	Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, Jason Gunthorpe <jgg@ziepe.ca>, 
-	Leon Romanovsky <leon@kernel.org>, Paul Moore <paul@paul-moore.com>, Jaroslav Kysela <perex@perex.cz>, 
-	Takashi Iwai <tiwai@suse.com>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
-	Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
-	Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
-	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
-	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
-	Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
-	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, 
-	"Martin K. Petersen" <mkp@kernel.org>, Jaya Kumar <jayalk@intworks.biz>, Simona Vetter <simona@ffwll.ch>, 
-	Helge Deller <deller@gmx.de>, Sebastian Reichel <sre@kernel.org>, John Hubbard <jhubbard@nvidia.com>, 
-	Peter Xu <peterx@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
-	Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
-	Arnaldo Carvalho de Melo <acme@kernel.org>, Namhyung Kim <namhyung@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
-	Juri Lelli <juri.lelli@redhat.com>, Vincent Guittot <vincent.guittot@linaro.org>, 
-	Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard <mripard@kernel.org>, 
-	Thomas Zimmermann <tzimmermann@suse.de>, David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Arnd Bergmann <arnd@arndb.de>, Muchun Song <muchun.song@linux.dev>, 
-	Oscar Salvador <osalvador@suse.de>, "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
-	Marc Zyngier <maz@kernel.org>, Oliver Upton <oupton@kernel.org>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
-	Anup Patel <anup@brainfault.org>, Paul Walmsley <pjw@kernel.org>, 
-	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
-	Christian Borntraeger <borntraeger@linux.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, 
-	Claudio Imbrenda <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
-	Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Heiko Carstens <hca@linux.ibm.com>, 
-	Vasily Gorbik <gor@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, 
-	Andreas Larsson <andreas@gaisler.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Christian Brauner <brauner@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
-	Byungchul Park <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, 
-	Ying Huang <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>, 
-	Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
-	Baoquan He <baoquan.he@linux.dev>, Youngjun Park <youngjun.park@lge.com>, 
-	Johannes Weiner <hannes@cmpxchg.org>, Qi Zheng <qi.zheng@linux.dev>, 
-	Shakeel Butt <shakeel.butt@linux.dev>, Axel Rasmussen <axelrasmussen@google.com>, 
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, Xu Xin <xu.xin16@zte.com.cn>, 
-	Chengming Zhou <chengming.zhou@linux.dev>, Michal Hocko <mhocko@kernel.org>, 
-	Miklos Szeredi <miklos@szeredi.hu>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
-	linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
-	linux-rdma@vger.kernel.org, selinux@vger.kernel.org, 
-	linux-sound@vger.kernel.org, bpf@vger.kernel.org, linux-scsi@vger.kernel.org, 
-	linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org, 
-	linux-trace-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, 
-	linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org, 
-	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
-	linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, 
-	fuse-devel@lists.linux.dev
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
 
-On Tue, Sep 8, 2026 at 4:07=E2=80=AFPM Lorenzo Stoakes (ARM) <ljs@kernel.or=
-g> wrote:
->
-> The policy file has no write method and is exposed read-only (S_IRUGO in
-> selinux_files[]), yet sel_open_policy() performs no open mode check, so a
-> CAP_DAC_OVERRIDE caller can open it O_RDWR. Reject FMODE_WRITE at open, a=
-s
-> kernfs does.
->
-> The file can then never be mapped with FMODE_WRITE, so do_mmap() always
-> clears VM_MAYWRITE and VM_SHARED for MAP_SHARED mappings and the VM_SHARE=
-D
-> check in sel_mmap_policy() cannot be reached. Remove it.
->
-> This also stops sel_mmap_policy() clearing VM_MAYWRITE on a mapping that =
-is
-> neither a PFN map nor a mixed map, ahead of the core enforcing that only
-> such mappings may do so.
->
-> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+On Tue, 08 Sep 2026 21:55:01 +0100, Lorenzo Stoakes (ARM) wrote:
+> Commit 3e86e4d74c04 ("kbuild: keep .modinfo section in vmlinux.unstripped")
+> keeps .modinfo symbols out of System.map and kallsyms, which assumes unique
+> IDs have a format like '__UNIQUE_ID_modinfo123'.
+> 
+> However, commit afb026b6d35c ("compiler: Tweak __UNIQUE_ID() naming"), sent
+> in the same cycle, changes this to '__UNIQUE_ID_modinfo_123'.
+> 
+> [...]
 
-We should likely do something similar for the other sel_open_*() and
-sel_mmap_*() functions too.
-In particular, truncation of the status file can bring down systemd
-since it is mapped by libselinux.
+Applied to kbuild/linux.git (kbuild-fixes-unstable), thanks!
 
-Acked-by: Stephen Smalley <stephen.smalley.work@gmail.com>
+[01/23] scripts/mksysmap: drop the MODULE_INFO() symbols from kallsyms
+        https://git.kernel.org/kbuild/c/3e2276de
 
-> ---
->  security/selinux/selinuxfs.c | 11 +++--------
->  1 file changed, 3 insertions(+), 8 deletions(-)
->
-> diff --git a/security/selinux/selinuxfs.c b/security/selinux/selinuxfs.c
-> index c7d91476971c..545a6f89f9e7 100644
-> --- a/security/selinux/selinuxfs.c
-> +++ b/security/selinux/selinuxfs.c
-> @@ -340,6 +340,9 @@ static int sel_open_policy(struct inode *inode, struc=
-t file *filp)
->         struct policy_load_memory *plm =3D NULL;
->         int rc;
->
-> +       if (filp->f_mode & FMODE_WRITE)
-> +               return -EACCES;
-> +
->         rc =3D avc_has_perm(current_sid(), SECINITSID_SECURITY,
->                           SECCLASS_SECURITY, SECURITY__READ_POLICY, NULL)=
-;
->         if (rc)
-> @@ -424,14 +427,6 @@ static const struct vm_operations_struct sel_mmap_po=
-licy_ops =3D {
->
->  static int sel_mmap_policy(struct file *filp, struct vm_area_struct *vma=
-)
->  {
-> -       if (vma->vm_flags & VM_SHARED) {
-> -               /* do not allow mprotect to make mapping writable */
-> -               vm_flags_clear(vma, VM_MAYWRITE);
-> -
-> -               if (vma->vm_flags & VM_WRITE)
-> -                       return -EACCES;
-> -       }
-> -
->         vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP);
->         vma->vm_ops =3D &sel_mmap_policy_ops;
->
->
-> --
-> 2.55.0
->
+Please look out for regression or issue reports or other follow up
+comments, as they may result in the patch/series getting dropped,
+reverted or modified (e.g. trailers).
+
+The patch is applied to the kbuild-fixes-unstable branch and accepted
+pending wider testing in linux-next and any post-commit review; it will
+generally be moved to the kbuild-fixes branch within about a week if no
+issues are found.
+
+Best regards,
+-- 
+Nicolas
+
