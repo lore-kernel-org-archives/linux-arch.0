@@ -1,154 +1,212 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f48.google.com (mail-wr1-f48.google.com [209.85.221.48])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AE96C3A75BD;
-	Thu, 10 Sep 2026 04:20:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4C8773C062C
+	for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 09:29:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.48
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789014061; cv=none; b=cl1UeyYBtESnwOmMvM3NEDRklqeyEAYUA5RUFSTjA1ZpQZkFc8QoHturLxsClRlOrBrEzUxao/IN0N9aVl0rQ1Fp+5TmgdfM3aDDxKBBtnJ0M0Yeyeppy57kHdFHhUoAg1ehVuoLe/Mww2a8mtJEQ68VXmE5btPpanWV+BCl9C8=
+	t=1789032550; cv=none; b=GOSNR+D7aSGWFwerK9jGn/zUOJxW+bBxn27y5rfkGGYmZiobh+psh0VbwiRyZm4xeXYb77lGUgP9Kij8iVXeCBofXx1w4G5JF0HrZUpVaJ812VpL8IIx5bKw+mIG2yuKNRTdAdKC4QDFK6CDGU2BQjZdgHw9YANafnrBOve4zoc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789014061; c=relaxed/simple;
-	bh=Q9fpS3QOis8VywAZ/qxPoy8tzjaMXYquN4IKUkvKQhc=;
-	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
-	 References:Date:Message-Id; b=fp5vCt3A/ZdoijE6m7BdwVwvTQ0HI+LP04ncpoAVPj8UTyykYoo0uU8Qin7upshKzJUrL5vwKjfBWVsNaZi/MvrIaenhccRxUsNGVNtXX/zU6zUVyU8jXr7lX0HkVTUTQn/mBD0FzU373gC8izCl2y87M2JwS7cpMaQkRIFcv2Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=LOau81+D; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789032550; c=relaxed/simple;
+	bh=YmZhILYI1Ap/QhHEbws/tgVKUcLX7+iRsfdsJ1tAFSs=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=hbMmciJ+pEPUPjQGlbgq2ykHuJi8IhvmanFJGDzn5LclsXnrs/5BJ+XV88mFMt1R673ekuqUt1TVjI/yeosp0g3HK7UYIusAYlfU7I5v4DyKhXIV6dWbGA3Sn1wL0J4ME3Ek39OB7BKQ4RnL9/yfBIxNrBiMKU2At/jifdFRRiU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=fl7rpEKW; arc=none smtp.client-ip=209.85.221.48
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="LOau81+D"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E21F11F00899;
-	Thu, 10 Sep 2026 04:20:49 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789014059;
-	bh=cMnHIsMT3Av8PvHpH9hpF6YHkNFuphcbfvagp11LhEI=;
-	h=Subject:From:To:Cc:In-Reply-To:References:Date;
-	b=LOau81+Dv/xKL32e2arFIbHaGoSgQpb+AI2gkMiaJCJaeihtQd5swFCINh0NS/fXY
-	 27Kt0zTV6Qx+rt+tNM7e3LiacUYitVE3VbDUYt4fK3CxkqLOWV8xMZnj9b0EZaaydq
-	 x0ITEU+kRT6oChGTaf5tWJyEVskqbznIU/K9ReMlsMJoT3+t8D3HQePN+NPTwG2FxI
-	 UlvQCa33hH+CiLDyMyotExom0wtrjvND/SnFBGLN8IV1HUDxDHY5+PXIS4qVzJlL8i
-	 oScYkSwU5i3KJoGevo7zXbKO++vOgA/m63IBuYnGKTZQPikQrdB4KNGx3nNtljAEQZ
-	 HAum+WwKel+ig==
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="fl7rpEKW"
+Received: by mail-wr1-f48.google.com with SMTP id ffacd0b85a97d-48436216a98so4737903f8f.0
+        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 02:29:08 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1789032546; x=1789637346; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=xKhavT2ReA2W483I2xKkmSEJ1FM7bdVhooTyy/B0hnc=;
+        b=fl7rpEKWOGJGTfMOVeV9QpCGl2mMK4Vehvs3dY8Rm+didzRH0gtOfiyzeoU8ALNMoM
+         cT2BPMjJbXV5gQ6sliYvSB0QZIjgDx8/CdX1PBfpXHGSWrpCsIwYqoddBYs/UedP0HG3
+         17GV1ku/mwl67dARTOxQ1Kpd06hZJ0r/c10p5zF0ehwV5FtS0mZnrdm99rFVd8Xtpjiz
+         6VD6yvQSxr2ssCUsOX9CqQ8e534WuIcxyEfYFBisMF9gWWhB//9kRq84KgudvGXGGI2G
+         7qfV7g8OkDajr/59MwtxDvgu3IQT3JAm7g/o50sPZ2s+6GE9ZKKNDlMGj5vUjZoPBa88
+         3WPw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1789032546; x=1789637346;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=xKhavT2ReA2W483I2xKkmSEJ1FM7bdVhooTyy/B0hnc=;
+        b=ACdcvI4iufNH5nFMoD5Wc74NUtDY/VCJS+pOsPdVCSZ7FJMCDmhnt6H+KWWkGcvMkl
+         huo5YBSEErL0J4Y4h9z85x8qMeEWAqhHX1oUmJQYXkHkgbtZF/scGvT1TNVYA9E1DiWk
+         NISavYroeQVYiKY02b1Ur1IBJg/Ej8Vk4aTJ1J8n2b+Sy4+svW8A+6lAeDz3vL2h58rO
+         QSmt2IFCbU1mEZic7OX5bch2vb41tFBsi31ZVp/RkX5dUd+BSVg2uS+fVyS4vdd/Ge7m
+         rM7N1EBdcHQx0vyfhREhnRbl+gfPMgeICO7ZRCYFRzhRIb6tPndYqdIzOZAPKqWCpFBk
+         7vOA==
+X-Forwarded-Encrypted: i=1; AKwUvBxDyrLuJYFwvbHfMGWZ2gDa19mKxQJD6jsCI4Lrh2ANNZX2Kz4ExDfv6CAdiTqWw2bqecCeKq/LO6Zm@vger.kernel.org
+X-Gm-Message-State: AFuF++mT04k8mEsXdUN/ZhFyYqtY63OIvuRZVyb0TFogIyiLfVq1fVkM
+	kNJFupi8Gt+W/kU2bSp/b/YX8rpirQgrkRwsHzhUJ/+luKEdwZGrbiIE
+X-Gm-Gg: AYBFou1QNowF0bYd2i87h1JddBdlUUrNivgFv1PpVAZ/uRtgfAdlx6y88o1/3/l0JQG
+	y5mQokMOYITjo1Szq0iutp8Y5QZMr1XS5q6Q7aFQFfK/U8JgLrXcb28yLQmZpW5g8L13UfV4gob
+	piWouK8GVyo9enXjWi2v8vSWo/LgG8MLA7h2j+xvCh3zK+cwJpJ6UhGCn1vnbnhAURUU7IMIwWx
+	qBTun4qlWEQEyRDMh5Ha+UXhY7F3GYIJzf8RGqzaDQjgfDhnhyda/KESCY0t7Dw9oRaAF8mpdw0
+	6yMRh+AzXSVmTHIbVKNU6D0rKxdvpXDbQdHGHdhBCb6oJbJkt2r0J1rQ8PNLJM3MtIpbJT3KQxa
+	s1H9/0fV27DxjmB5GxzL1gvJEOUwOQek1Rjhs8BwuZCsp+rh2IcJvqAhUfhb4vLH/TuPNmmdWdI
+	UKYTnPdSA2IYHupJM66HV+zo1k6uyGWBDSOcsiHyS5aQYIvACxuSc5UFFup8XXQmEw9oN+3lB1e
+	QfFW/MhSitFxAFD2C4Ha7LaTETfqCnhPfK0
+X-Received: by 2002:a05:600c:138b:b0:49e:2a61:a17b with SMTP id 5b1f17b1804b1-49e2a61a41emr9166915e9.5.1789032546119;
+        Thu, 10 Sep 2026 02:29:06 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49d20fc23fcsm106027125e9.3.2026.09.10.02.29.04
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 10 Sep 2026 02:29:05 -0700 (PDT)
+Date: Thu, 10 Sep 2026 10:29:03 +0100
+From: David Laight <david.laight.linux@gmail.com>
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nathan Chancellor
+ <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, Nick Desaulniers
+ <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, Justin Stitt
+ <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Alexey
+ Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
+ <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
+ <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
+ <hpa@zytor.com>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt
+ <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti
+ <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas
+ <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland
+ <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Ilias Apalodimas
+ <ilias.apalodimas@linaro.org>, Josh Poimboeuf <jpoimboe@kernel.org>, Peter
+ Zijlstra <peterz@infradead.org>, Miguel Ojeda <ojeda@kernel.org>, Boqun
+ Feng <boqun@kernel.org>, Gary Guo <gary@garyguo.net>, =?UTF-8?B?QmrDtnJu?=
+ Roy Baron <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>,
+ Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl
+ <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, Danilo Krummrich
+ <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, Tamir
+ Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>,
+ Onur =?UTF-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, Jonathan Corbet
+ <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>,
+ linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+ llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
+ linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+ linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
+ linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
+Subject: Re: [PATCH 04/23] kallsyms: output binary data to speed output and
+ kallsyms assembly
+Message-ID: <20260910102903.1b211f6b@pumpkin>
+In-Reply-To: <20260908-build-speedup-v1-4-5dc1ac01672d@kernel.org>
+References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
+	<20260908-build-speedup-v1-4-5dc1ac01672d@kernel.org>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH 23/23] kbuild: use pigz for gzip compression if
- available
-From: Nathan Chancellor <nathan@kernel.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
- Nick Desaulniers <ndesaulniers@google.com>, 
- Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
- Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
- Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
- Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, 
- Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
- Ard Biesheuvel <ardb@kernel.org>, 
- Ilias Apalodimas <ilias.apalodimas@linaro.org>, 
- Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
- Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
- Gary Guo <gary@garyguo.net>, 
- =?utf-8?q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
- Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
- Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
- Danilo Krummrich <dakr@kernel.org>, 
- Daniel Almeida <daniel.almeida@collabora.com>, 
- Tamir Duberstein <tamird@kernel.org>, 
- Alexandre Courbot <acourbot@nvidia.com>, 
- =?utf-8?q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
- Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, 
- linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
- llvm@lists.linux.dev, linux-riscv@lists.infradead.org, 
- linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
- linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
- linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
-In-Reply-To: <20260908-build-speedup-v1-23-5dc1ac01672d@kernel.org>
-References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <20260908-build-speedup-v1-23-5dc1ac01672d@kernel.org>
-Date: Wed, 09 Sep 2026 21:19:12 -0700
-Message-Id: <178901395293.3971858.15429964442902485180.b4-review@b4>
-X-Mailer: b4 0.17-dev
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2892; i=nathan@kernel.org;
- h=from:subject:message-id; bh=Q9fpS3QOis8VywAZ/qxPoy8tzjaMXYquN4IKUkvKQhc=;
- b=owGbwMvMwCUmm602sfCA1DTG02pJDFmL9I9/nfxO72ppzjS5mYt/nszesc/yM3fFVJtNm524b
- /7wEcje1VHKwiDGxSArpshS/Vj1uKHhnLOMN05NgpnDygQyhIGLUwAmEsnAyPDvwIes2Wk3VQ7X
- VDzfe5qnb6OioMqiD+w2Ts4O2huWrlBj+Gf3oltEibvv7B0LRkems/f6hV3mWe7U3JB5ZYXFtSs
- /DzEAAA==
-X-Developer-Key: i=nathan@kernel.org; a=openpgp;
- fpr=2437CB76E544CB6AB3D9DFD399739260CB6CB716
 
-> The gzip step of a kernel build is very lengthily, especially for larger
-> builds such as allmodconfig.
+On Tue, 08 Sep 2026 21:55:04 +0100
+"Lorenzo Stoakes (ARM)" <ljs@kernel.org> wrote:
+
+> kallsyms generates an assembly file that consists mostly of .byte entries
+> containing compressed names, token strings and name-sorted sequence
+> numbers.
 > 
-> gzip itself cannot be run in parallel, however an alternative tool exists
-> that can, providing the same feature set as gzip itself - pigz - which
-> works as a drop-in replacement.
+> For an x86-64 build with 158k symbols that is a 37 MiB .S file which takes
+> 0.57s to assemble each of the two to three times it is built over a kernel
+> build.
 > 
-> On a 128-core Threadripper, gzip -9 of a 36 MiB x86-64 vmlinux.bin takes
-> 1.6s, and with pigz it takes 0.09s, so the performance increase is
-> significant.
+> Each time it is generated it also takes kallsyms a similar amount of time
+> to output it.
 > 
-> It is already possible to specify the KGZIP environmental variable to make
-> use of pigz, however it seems sensible to make use of pigz if it is
-> available.
+> Avoid this overhead by instead outputting this data as binary and importing
+> it into the assembly using the .incbin directive.
 > 
-> Therefore default to using pigz if it is available on the system upon which
-> the kernel is being built, otherwise fall back to gzip.
+> Tables that are wider than a byte remain part of the assembly to ensure
+> endianness and relative relocations are performed correctly.
 > 
-> The output is byte-for-byte identical between pigz/gzip invocations, but
-> gzip and pigz do not produce the same stream as one another.
+> With this change, the output assembly file shrinks from 37 MiB to 9.8 MiB,
+> with a 2.6 MiB binary data file alongside it, and the object remains
+> identical.
 > 
-> Therefore, for reproducible builds, the same set of tools should be used.
+> The generated binary file is deleted correctly on build clean along with
+> all other ephemeral data.
 > 
-> This seems to already be an implicit requirement in any case, but update
-> the reproducible build documentation to make this clear.
+> On an x86-64 system with CONFIG_KALLSYMS_ALL set:
 > 
-> Also update the kbuild documentation to reflect the change.
+>                        before   after    delta
+>   scripts/kallsyms     0.24s    0.18s    0.06s
+>   assemble             0.57s    0.16s    0.41s
 > 
-> Every x86 build ends with the compression of vmlinux.bin, 36MB for
-> defconfig and over 200MB for allmodconfig, no-op builds are unchanged.
+> Per kallsyms invocation/assembly, for a total of 0.47s time saving upon
+> invocation.
+> 
+> An incremental build on the same system was reduced from 11.15s to 9.65s,
+> indicating a total of 1.5 seconds saved over the build.
+> 
+> The kallsyms runs and their assembly are on the serial tail of every build
+> that links vmlinux, no-op builds are unchanged.
 > 
 > Whole build, 128-thread Threadripper 9980X, best of N runs:
 > 
 >                                          before   after     delta
 >                                          -------------------------------
->   x86 defconfig, touch mm/vma.c, gcc        7.4s     5.4s     -2.0s (-27%)
->   x86 defconfig, touch mm/vma.c, clang      6.6s     4.9s     -1.7s (-26%)
->   x86 defconfig, clean, gcc                26.2s    24.4s     -1.8s (-7%)
->   x86 defconfig, clean, clang              25.8s    24.3s     -1.5s (-6%)
->   x86 allmodconfig, touch mm/vma.c, gcc    23.7s    15.3s     -8.4s (-35%)
->   x86 allmodconfig, touch mm/vma.c, clang  22.1s    15.2s     -6.9s (-31%)
->   x86 allmodconfig, clean, gcc            291.4s   275.2s     -16.2s (-6%)
->   x86 allmodconfig, clean, clang          278.3s   265.7s     -12.6s (-5%)
+>   x86 defconfig, touch mm/vma.c, gcc       10.8s     9.9s    -0.92s (-8%)
+>   x86 defconfig, touch mm/vma.c, clang     10.7s     9.5s     -1.2s (-11%)
+>   x86 defconfig, clean, gcc                29.5s    28.7s    -0.81s (-3%)
+>   x86 defconfig, clean, clang              29.7s    28.6s     -1.1s (-4%)
+>   x86 allmodconfig, touch mm/vma.c, gcc    45.3s    44.0s     -1.3s (-3%)
+>   x86 allmodconfig, touch mm/vma.c, clang  42.9s    40.2s     -2.7s (-6%)
 > 
-> Link: https://zlib.net/pigz/
 > Assisted-by: LLM
 > Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-...
-> diff --git a/Makefile b/Makefile
-> index a0d29dee81d7..efa6a2d77e6b 100644
-> --- a/Makefile
-> +++ b/Makefile
-> @@ -561,7 +561,7 @@ PERL		= perl
->  PYTHON3		= python3
->  CHECK		= sparse
->  BASH		= bash
-> -KGZIP		= gzip
-> +KGZIP		:= $(if $(shell command -v pigz 2>/dev/null),pigz,gzip)
+> ---
+>  scripts/kallsyms.c      | 97 ++++++++++++++++++++++++++++++++++++++-----------
+>  scripts/link-vmlinux.sh |  2 +-
+>  2 files changed, 77 insertions(+), 22 deletions(-)
+> 
+> diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
+> index 350d118c3b9e..61c5eb537ed4 100644
+> --- a/scripts/kallsyms.c
+> +++ b/scripts/kallsyms.c
+> @@ -5,7 +5,10 @@
+>   * This software may be used and distributed according to the terms
+>   * of the GNU General Public License, incorporated herein by reference.
+>   *
+> - * Usage: kallsyms [--all-symbols] in.map > out.S
+> + * Usage: kallsyms [--all-symbols] [--pc-relative] in.map out.bin > out.S
+> + *
+> + *      The byte tables go to out.bin and are pulled into out.S with .incbin;
+> + *  wider tables stay assembler source for endianness and relocations.
+>   *
+>   *      Table compression uses all the unused char codes on the symbols and
+>   *  maps these to the most used substrings (tokens). For instance, it might
+> @@ -102,7 +105,7 @@ static void sym_arr_free(struct sym_arr *arr)
+>  
+>  static void usage(void)
+>  {
+> -	fprintf(stderr, "Usage: kallsyms [--all-symbols] in.map > out.S\n");
+> +	fprintf(stderr, "Usage: kallsyms [--all-symbols] [--pc-relative] in.map out.bin > out.S\n");
+>  	exit(1);
+>  }
+>  
+> @@ -319,6 +322,40 @@ static void output_label(const char *label)
+>  	printf("%s:\n", label);
+>  }
+>  
+> +static void write_bin(FILE *file, const void *data, size_t len)
+> +{
+> +	if (fwrite(data, 1, len, file) == len)
+> +		return;
+> +
+> +	perror("kallsyms: write");
+> +	exit(EXIT_FAILURE);
+> +}
 
-This should be '?=', right? Sashiko also notes a concern around parallel
-module installation with gzip module compression since there is no
-thread limitation, which could bring a little risk to doing this by
-default? Might not be that big of a deal though?
+It is pretty pointless checking the return value from fwrite().
+Most of the time it is just doing a memcpy().
+Instead call fflush() and the ferror() prior to the fclose().
+(Or just rely on fclose() giving you that error status.)
 
--- 
-Cheers,
-Nathan
-
+David
