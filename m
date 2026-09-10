@@ -1,52 +1,52 @@
-Received: from pdx-out-005.esa.us-west-2.outbound.mail-perimeter.amazon.com (pdx-out-005.esa.us-west-2.outbound.mail-perimeter.amazon.com [52.13.214.179])
+Received: from pdx-out-012.esa.us-west-2.outbound.mail-perimeter.amazon.com (pdx-out-012.esa.us-west-2.outbound.mail-perimeter.amazon.com [35.162.73.231])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E2F583815DC;
-	Thu, 10 Sep 2026 23:04:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=52.13.214.179
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 95DCD38237F;
+	Thu, 10 Sep 2026 23:04:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=35.162.73.231
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789081497; cv=none; b=ipmpkMSaYTIQsv75me+ZXFtCjWbKotfoNDi5b2WjDbyk83qsLWXoLtXb7Af3eQLTE91nDRwFncUiFnpzzum1SEtgMDbDGwXb8cAvNVCfEHtC3y73WTkTUOA+znahE/kzdA7yl0QOO71uTATdu00ujxgyetlrh06xWoAYmjug+Fo=
+	t=1789081499; cv=none; b=XtjP+kFm8rk1qDGJJlYxEmeyth6JW+MtcpesURslJQGBUBEImJ51jOMsGTvw3/yVGxstUkPhM9pgKyv8jZbDAvExV4x8AsCdP1+z7JRmAZLYkEEg+Rcji9Nx5EbMALiAYcDvBdZhVOUII6+ewVxd/84J+kxIvO9VsB2V7Crv5GI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789081497; c=relaxed/simple;
-	bh=EFIlYbqZQybpssEIeswYV2aYYwyxhlUC9eUDefOseT8=;
+	s=arc-20240116; t=1789081499; c=relaxed/simple;
+	bh=jVUWsFjnTkxFQjWUlWXzsvWXAkzItBYf1BTO5E3F/7M=;
 	h=MIME-Version:Content-Type:Subject:From:To:CC:In-Reply-To:
-	 References:Date:Message-ID; b=d8qXPN9S5jG5D02R2A32+dcYc1tXozZKZMNhTMFDUm8RMPYAdtT/7dryyMcr0ULASWtRTFX7WEETNokreTxb5AexqmpVGt/3NiPRGjBZ4+oZBMA3ca7GcZxacnCeOmaBq/nDgEIs/RaiisdR8XZcBd5LGatm8S4SnYU5sL0jCGE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amazon.com; spf=pass smtp.mailfrom=amazon.com; dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b=gJSdwWRr; arc=none smtp.client-ip=52.13.214.179
+	 References:Date:Message-ID; b=kDBs/n7GtWgUfCAeOteKQBSKnJsP5ICtrmsz1WK8kVIg2nEImQqxj2XJltCi58KwFWUYrnAeLNyTZzzOaOiK02Kz/LuIP4NGvjBTYPWkw+rKqh59JuWijVB8tT21zRkhU1mcS5qbiRyS2Gd5PAjE/WOoFk8kZGbxDCt3KItw2Es=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amazon.com; spf=pass smtp.mailfrom=amazon.com; dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b=jEdYidEm; arc=none smtp.client-ip=35.162.73.231
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amazon.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=amazon.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b="gJSdwWRr"
+	dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b="jEdYidEm"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
   d=amazon.com; i=@amazon.com; q=dns/txt; s=amazoncorp2;
-  t=1789081495; x=1820617495;
+  t=1789081498; x=1820617498;
   h=mime-version:content-transfer-encoding:subject:from:to:
    cc:in-reply-to:references:date:message-id;
-  bh=j7l7z1mpmxbRfASwFkI/gOw9Q15D1cjZKLx46DX6Ups=;
-  b=gJSdwWRrtNINRPKNM0HQY0HwApEax7uSEmUf1tQgZ92qEjE+1q1ZuOCH
-   AdVL4HQe74LS1J1W4vHei33RV4roYXiaiWObhf1QGPFQp+95uun0ysS25
-   MINTPRv2hWP61cP2qqVipFWFLCSXEO55Psh21r1oE+k0Q3qtZjkBqH1Sk
-   ayV6QxPd5+VBvEKddCsvvtlXW/rmIWRLAwOIOe5JrRedzJ+NAmVZq+LMt
-   +q56ohnECtJzzv+DhAPRhfFbWuMEkS06bDBbXDamxHppZmmJ+2nyvcfVw
-   k/3ZL5CXzX3a5i5oRk4Ul6IrVrxjdMovz/xPiXb0ZSPvrdNGiXjdt7q/q
-   w==;
-X-CSE-ConnectionGUID: EaITWzvPTnqWhJn1j//q6Q==
-X-CSE-MsgGUID: uu1cUFSCQ+qcv21O108oPA==
+  bh=IOsxt71KzjuvZPnWRLz+Zt819tnVf/OX6nBy2DXTBZw=;
+  b=jEdYidEmEOAEAq64DH+3Fa2+cfIL2zj5db34V2I7PvZ6XqH20lNRM0/O
+   FdogPfwiIOQ+YH6/SwAVIbRqpW2g1EscU+o186zbOfTFPCH9VxwhHk9uY
+   eroGJJ9cFS/OtojRJkkAnIz6HEUWERCMGk1ePQANOLHsiMvbY2ql+SalX
+   OZFDhKItyVhadNC/nCiRj1ALIZq9mCeM5cOJjgYgu8kIant8jnKwdJCBj
+   fkHaJRMSqNNPZ5OC4JtmyX5kJyWsJyU4Z1+REEc6VW2RpPTFdyFKVmbCk
+   AaCEnTtrW429Lv3UyZPUhN+6duBj5cqriubG++6aeh+dPo6gP71lznUYk
+   A==;
+X-CSE-ConnectionGUID: b7E1F3vDSUuMCM84df39YQ==
+X-CSE-MsgGUID: 5KMnDUnCQjmoC2958yP+VA==
 X-IronPort-AV: E=Sophos;i="6.27,96,1787011200"; 
-   d="scan'208";a="28351480"
-Received: from ip-10-5-12-219.us-west-2.compute.internal (HELO smtpout.naws.us-west-2.prod.farcaster.email.amazon.dev) ([10.5.12.219])
-  by internal-pdx-out-005.esa.us-west-2.outbound.mail-perimeter.amazon.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Sep 2026 23:04:55 +0000
-Received: from EX19MTAUWA002.ant.amazon.com [205.251.233.234:7707]
- by smtpin.naws.us-west-2.prod.farcaster.email.amazon.dev [10.0.22.113:2525] with esmtp (Farcaster)
- id ba131792-6492-4a10-a6fc-dc6b9d93c693; Thu, 10 Sep 2026 23:04:55 +0000 (UTC)
-X-Farcaster-Flow-ID: ba131792-6492-4a10-a6fc-dc6b9d93c693
+   d="scan'208";a="28174146"
+Received: from ip-10-5-6-203.us-west-2.compute.internal (HELO smtpout.naws.us-west-2.prod.farcaster.email.amazon.dev) ([10.5.6.203])
+  by internal-pdx-out-012.esa.us-west-2.outbound.mail-perimeter.amazon.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Sep 2026 23:04:58 +0000
+Received: from EX19MTAUWB001.ant.amazon.com [205.251.233.51:6383]
+ by smtpin.naws.us-west-2.prod.farcaster.email.amazon.dev [10.0.37.160:2525] with esmtp (Farcaster)
+ id d5404f53-ad6a-4991-8fbd-b62fddfbd916; Thu, 10 Sep 2026 23:04:58 +0000 (UTC)
+X-Farcaster-Flow-ID: d5404f53-ad6a-4991-8fbd-b62fddfbd916
 Received: from EX19D001UWA001.ant.amazon.com (10.13.138.214) by
- EX19MTAUWA002.ant.amazon.com (10.250.64.202) with Microsoft SMTP Server
+ EX19MTAUWB001.ant.amazon.com (10.250.64.248) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA) id 15.2.2562.45;
- Thu, 10 Sep 2026 23:04:54 +0000
+ Thu, 10 Sep 2026 23:04:57 +0000
 Received: from u34cccd802f2d52.ant.amazon.com (10.106.178.32) by
  EX19D001UWA001.ant.amazon.com (10.13.138.214) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA) id 15.2.2562.46;
- Thu, 10 Sep 2026 23:04:51 +0000
+ Thu, 10 Sep 2026 23:04:54 +0000
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -55,8 +55,8 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v15 15/16] barrier: timeout validity checks for
- smp_cond_load_relaxed_timeout()
+Subject: Re: [PATCH v15 16/16] barrier: timeout validity checks for
+ smp_cond_load_acquire_timeout()
 From: Haris Okanovic <harisokn@amazon.com>
 To: Ankur Arora <ankur.a.arora@oracle.com>
 CC: <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
@@ -69,19 +69,24 @@ CC: <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
 	<rdunlap@infradead.org>, <david.laight.linux@gmail.com>,
 	<broonie@kernel.org>, <joao.m.martins@oracle.com>,
 	<boris.ostrovsky@oracle.com>, <konrad.wilk@oracle.com>, <ashok.bhat@arm.com>
-In-Reply-To: <20260831202251.305046-16-ankur.a.arora@oracle.com>
+In-Reply-To: <20260831202251.305046-17-ankur.a.arora@oracle.com>
 References: <20260831202251.305046-1-ankur.a.arora@oracle.com>
- <20260831202251.305046-16-ankur.a.arora@oracle.com>
+ <20260831202251.305046-17-ankur.a.arora@oracle.com>
 Date: Thu, 10 Sep 2026 18:04:27 -0500
-Message-ID: <178908146778.2725577.4108944992215893353.b4-review@b4>
+Message-ID: <178908146779.2725577.4332112514491271355.b4-review@b4>
 X-Mailer: b4 0.15.2
 X-ClientProxiedBy: EX19D033UWA002.ant.amazon.com (10.13.139.10) To
  EX19D001UWA001.ant.amazon.com (10.13.138.214)
 
-On Mon, 31 Aug 2026 13:22:50 -0700, Ankur Arora <ankur.a.arora@oracle.com> wrote:
-> Add timeout tests for smp_cond_load_relaxed_timeout().  These check
-> that the implementation returns early on invalid timeout values and
-> handles edge cases sanely.
+On Mon, 31 Aug 2026 13:22:51 -0700, Ankur Arora <ankur.a.arora@oracle.com> wrote:
+> Extend timeout tests in smp_cond_expiry_params to also test
+> smp_cond_load_acquire_timeout().
+> 
+> The interface supports clocks that can return error on timeout.
+> These are used by rqspinlock. Test that by using a similar clock
+> that starts returning error past timeout.
+> 
+> [...]
 
 Tested-by: Haris Okanovic <harisokn@amazon.com>
 
