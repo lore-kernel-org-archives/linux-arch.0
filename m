@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4AF4E2E764D;
-	Thu, 10 Sep 2026 11:05:34 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 66624421235;
+	Thu, 10 Sep 2026 11:06:28 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789038335; cv=none; b=iAkxIyhlZzT0a0ilHUuFFqHZDMB/NS9i/jbAE4nHwlxmShHRe0pasi3/5qrYu9dKSQEfQpwXCb8Ta0TZ1yNNrL7Xrbs5dTtriDHd8xVLL6IIiC+YQsWVa4fVYus9tiG4B1TZNoCyqFLMKQm+ckTXDlIxEnO3oCflkCOO/6dRlkU=
+	t=1789038389; cv=none; b=pSA23+F3JMlVkVmrjC9lhy4XrmSiqnzVazogfZWsWkVFUzf6zRlDmZ7PNaU0lovYhT2C3jM1VLPdeL6sio30KK/ZDYC9JS9HTQBo4+c07SbNx9yc++6LqpiE6lAxS3qIj81u7Dq9s1hfHKI+YlY3ts33DDk/09JiOeNe9Rd1SgQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789038335; c=relaxed/simple;
-	bh=OqOu8jEFjFy9Ac1SnBtcL16Dna7OAhyeGq+uf2zPY5E=;
+	s=arc-20240116; t=1789038389; c=relaxed/simple;
+	bh=uCjF3KMmxz1hWH4xPoI5SjC2oIbxT3fTN6ZJSKO5eFw=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=iUd6VY/LeuW30a3XK/PRvMErECFEq/fh8tuFd7v68Eb3AIHbmbpzFInK8bWkHBdsxHF65nCUPJerqiscqOWUGkKNaYJ72j2EryLGo2w5MaDTCH/A1xlWG/JRfmLQCHB3RFKYmtZ78xkZl5rim2tjVBRghUd5f4hfV15F/sqV9MY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=O9P4brTB; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=PMMBcyinrdtb+hyRQgD6O+UuYdHxBEGaiBXJAQJxK0JasmkBMVbgHQwBeoyk/ynU6QgDLW0YCuhirWe4DscYkNKvyL4Rq5lNb01b94XUpqrB+1vWvTciJnE/8T/z3+Yj2IwSKBD9v9n/Jo37QgAQP1ZMqejo115m6aBBpIUhzHA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=mQv2gG38; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="O9P4brTB"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9D0541F000FF;
-	Thu, 10 Sep 2026 11:05:20 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="mQv2gG38"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0A6A41F000FF;
+	Thu, 10 Sep 2026 11:06:14 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789038333;
-	bh=9YZk2wCzZD7ud7nbBKJ04FWJsPn8EDTK/gTOXxFQNOk=;
+	s=k20260515; t=1789038388;
+	bh=aSzot3DdFbH1bRFQSRCfhn2f59lhOlsZ9OER6ann7aY=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=O9P4brTBs+SaRO9GQMBGP55ozrj8eS/wvn34kbSVOVVvQGSv+4hQWqHtjF2Onz9AN
-	 /ZlxWsqUVNcxSq+6K2ChEbK2QSC0ahYV+IaDzTtpnV5KIEA34pSjHKM/7MiMMaRg4N
-	 6NGjbWhVcr++iGsRLdFZbdsf/hVDhqjrx8QWxMfTYgWBo7qhIU0H+PuySBwNV8ZW74
-	 Z7DtwGRBvklEoKCi+kEiUWK8uvvtvZFWP+zSaQfmwL4UlRv+cX3UlhBnZjUnzZtiEi
-	 0Jq8KHz8OyRyjw2fZOKgZ3v9cRudaLuE0woLzUhit0+rbKiNXIUYldYZPMLGJ25LzP
-	 fQeVdpHeQUxsA==
-Message-ID: <4b9f8ff1-8b9d-45f5-9012-b648d6e16689@kernel.org>
-Date: Thu, 10 Sep 2026 13:05:18 +0200
+	b=mQv2gG38DwhMioaZmlIihIcjXe1Of5Jx+44aRzTJ7yCvrfUER/jT5PGZkk3aEJsQz
+	 llwtEXey3grPl6cC3wlGm0pKh6qiIagIhA1kT8ncfBECmjszoV3jvYwo3C6HRpyKYJ
+	 IxzMP1ztXCx65ZtCGuluQ74gXB0ikTuy5CMNpTKt7Hj3lc7snpjLPDVvVz8o7RGfpK
+	 aMLsUAPj5Lib6dfiMXITwQJqBXtJOt5KnkAYdW/HPKreE6hr86GiEVwcrUvadtTDp0
+	 sgyMRboqSRuMrQQ78cLql5iy2T3CcddcS2Apy/HsfrlAkalTppILCGhN2j6p3nJWkH
+	 RwmkTeY7ro+aQ==
+Message-ID: <10eb16d9-df86-4116-9b54-4327bb1d55bd@kernel.org>
+Date: Thu, 10 Sep 2026 13:06:12 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,8 +35,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH RFC v3 12/21] mm/pgtable: redefine PGTABLE_LEVEL enum with
- ascend order from PGD
+Subject: Re: [PATCH RFC v3 14/21] x86: mm: carve out the generic compile-time
+ folded pgtable case in effective_prot()
 To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
  Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
  Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
@@ -67,7 +67,7 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
  linux-openrisc@vger.kernel.org
 References: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
- <20260902-dummy_ptxp3-v3-12-5d8f5b17c25c@arm.com>
+ <20260902-dummy_ptxp3-v3-14-5d8f5b17c25c@arm.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -114,25 +114,25 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20260902-dummy_ptxp3-v3-12-5d8f5b17c25c@arm.com>
+In-Reply-To: <20260902-dummy_ptxp3-v3-14-5d8f5b17c25c@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 On 9/2/26 13:56, Yeoreum Yun wrote:
-> The PGTABLE_LEVEL enum values appear to be ordered in the opposite direction
-> from their intended usage.
+> The behaviour of pXdp_get() will change with generic compile-time folded
+> page tables. To prepare for that, rework effective_prot() to ignore any
+> folded page tables entries, as it will unconditionally get called by
+> ptdump core with pXd_val(pXdp_get()), and the value for folded entries
+> really should be ignored.
 > 
-> Intuitively, higher page table levels should have smaller enum values,
-> but PTE is currently assigned 0.
+> For this, introduce mm_first_pgtable_level() to identify the first real
+> page-table level, move mm_pXd_folded() in !__ASSEMBLER__ and
+> update effective_prot with higher_prot only when the current entry is not
+> folded nor the first level.
 > 
-> For consistency and cleanup, reverse the enum value ordering.
-> 
-> Since there is no current user relies on these numbers to be ascending from
-> PTE->PGD, so it can be changed to be ascending from PGD->PTE, in the
-> direction of the page table walk.
+> There should be no functional change.
 > 
 > Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
-> ---
 
 Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
 
