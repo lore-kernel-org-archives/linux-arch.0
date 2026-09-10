@@ -1,66 +1,66 @@
-Received: from mail-wr1-f48.google.com (mail-wr1-f48.google.com [209.85.221.48])
+Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4C8773C062C
-	for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 09:29:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.48
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE80C3CF68E
+	for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 10:33:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789032550; cv=none; b=GOSNR+D7aSGWFwerK9jGn/zUOJxW+bBxn27y5rfkGGYmZiobh+psh0VbwiRyZm4xeXYb77lGUgP9Kij8iVXeCBofXx1w4G5JF0HrZUpVaJ812VpL8IIx5bKw+mIG2yuKNRTdAdKC4QDFK6CDGU2BQjZdgHw9YANafnrBOve4zoc=
+	t=1789036390; cv=none; b=e93vtWggoP4dD1cKcE4dLjd77Lib6nio1DT4R9EmbIWf+LeYYQmu2IrGJMjD7gKsccE1hL5ake0l+Mv2zelAw/YuzVWvd+78S6DdZ/6CcNrp0Mlb3O0gv0p6VDiwh5R0Hkq8Yvj/I7h0Emddo5x8h7qpj3t7QrXYC6H2JxG9qTE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789032550; c=relaxed/simple;
-	bh=YmZhILYI1Ap/QhHEbws/tgVKUcLX7+iRsfdsJ1tAFSs=;
+	s=arc-20240116; t=1789036390; c=relaxed/simple;
+	bh=JLYUPRgY3VU17t6D/KBuFz5KGU4hmck2Zh29/I5+qBM=;
 	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=hbMmciJ+pEPUPjQGlbgq2ykHuJi8IhvmanFJGDzn5LclsXnrs/5BJ+XV88mFMt1R673ekuqUt1TVjI/yeosp0g3HK7UYIusAYlfU7I5v4DyKhXIV6dWbGA3Sn1wL0J4ME3Ek39OB7BKQ4RnL9/yfBIxNrBiMKU2At/jifdFRRiU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=fl7rpEKW; arc=none smtp.client-ip=209.85.221.48
+	 MIME-Version:Content-Type; b=STTqyZgF5kcgJ6GqaidFn5E6AYJPo/D+KfzTki3dvP7IzXy/u3qaSGkBFR6xDRA1uQ/tn5KC7NFSDoXWGqUk91TdUA4pimkK5KMhihTtXDr+YGuacBurS6gSPMX2ePtvQLt7sYYlGzLPD+Cd+LlLtP2TQrUBgN/eWRS3TeLgP7M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ea/X5/ww; arc=none smtp.client-ip=209.85.128.51
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="fl7rpEKW"
-Received: by mail-wr1-f48.google.com with SMTP id ffacd0b85a97d-48436216a98so4737903f8f.0
-        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 02:29:08 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ea/X5/ww"
+Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-49cf4f81d86so53446765e9.2
+        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 03:33:04 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1789032546; x=1789637346; darn=vger.kernel.org;
+        d=gmail.com; s=20251104; t=1789036382; x=1789641182; darn=vger.kernel.org;
         h=content-transfer-encoding:content-type:mime-version:references
          :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=xKhavT2ReA2W483I2xKkmSEJ1FM7bdVhooTyy/B0hnc=;
-        b=fl7rpEKWOGJGTfMOVeV9QpCGl2mMK4Vehvs3dY8Rm+didzRH0gtOfiyzeoU8ALNMoM
-         cT2BPMjJbXV5gQ6sliYvSB0QZIjgDx8/CdX1PBfpXHGSWrpCsIwYqoddBYs/UedP0HG3
-         17GV1ku/mwl67dARTOxQ1Kpd06hZJ0r/c10p5zF0ehwV5FtS0mZnrdm99rFVd8Xtpjiz
-         6VD6yvQSxr2ssCUsOX9CqQ8e534WuIcxyEfYFBisMF9gWWhB//9kRq84KgudvGXGGI2G
-         7qfV7g8OkDajr/59MwtxDvgu3IQT3JAm7g/o50sPZ2s+6GE9ZKKNDlMGj5vUjZoPBa88
-         3WPw==
+        bh=mRawg4Z5mHetwl9Q1bHnfv9ACubJE6CgvdpEZZ5c2ZM=;
+        b=ea/X5/ww5FaU4VhPEnXhYVwwwm6cRfrZOBsy9YrO2dBe0VdGku1hFm0QZ/cUUXJFIn
+         2cXqaN/93kIR541V4hjAfpqo2Hmc+B/VzlXqBV9y/j+bw2RSSfp5zUVzjJhWBkoB/hgk
+         PEYGK36CidTRPDZZB8kzGZuDCdKxQVbP/b+buyxFLTQrVPTWDmeX4ngi8j7qohQ7NUGV
+         9aseNcbGv22MMu5meU9j6u7UrLjadmZ8UH9KrxkRLEigLxgGciWEstEmrwCtXkp1IELt
+         TSImCsnfm/dLwc2KtCfQ126rJkqX/sHDf2twwsHlieVeQuIpsdcmsUgKbi6MNYWbF7l5
+         Unrw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1789032546; x=1789637346;
+        d=1e100.net; s=20251104; t=1789036382; x=1789641182;
         h=content-transfer-encoding:content-type:mime-version:references
          :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=xKhavT2ReA2W483I2xKkmSEJ1FM7bdVhooTyy/B0hnc=;
-        b=ACdcvI4iufNH5nFMoD5Wc74NUtDY/VCJS+pOsPdVCSZ7FJMCDmhnt6H+KWWkGcvMkl
-         huo5YBSEErL0J4Y4h9z85x8qMeEWAqhHX1oUmJQYXkHkgbtZF/scGvT1TNVYA9E1DiWk
-         NISavYroeQVYiKY02b1Ur1IBJg/Ej8Vk4aTJ1J8n2b+Sy4+svW8A+6lAeDz3vL2h58rO
-         QSmt2IFCbU1mEZic7OX5bch2vb41tFBsi31ZVp/RkX5dUd+BSVg2uS+fVyS4vdd/Ge7m
-         rM7N1EBdcHQx0vyfhREhnRbl+gfPMgeICO7ZRCYFRzhRIb6tPndYqdIzOZAPKqWCpFBk
-         7vOA==
-X-Forwarded-Encrypted: i=1; AKwUvBxDyrLuJYFwvbHfMGWZ2gDa19mKxQJD6jsCI4Lrh2ANNZX2Kz4ExDfv6CAdiTqWw2bqecCeKq/LO6Zm@vger.kernel.org
-X-Gm-Message-State: AFuF++mT04k8mEsXdUN/ZhFyYqtY63OIvuRZVyb0TFogIyiLfVq1fVkM
-	kNJFupi8Gt+W/kU2bSp/b/YX8rpirQgrkRwsHzhUJ/+luKEdwZGrbiIE
-X-Gm-Gg: AYBFou1QNowF0bYd2i87h1JddBdlUUrNivgFv1PpVAZ/uRtgfAdlx6y88o1/3/l0JQG
-	y5mQokMOYITjo1Szq0iutp8Y5QZMr1XS5q6Q7aFQFfK/U8JgLrXcb28yLQmZpW5g8L13UfV4gob
-	piWouK8GVyo9enXjWi2v8vSWo/LgG8MLA7h2j+xvCh3zK+cwJpJ6UhGCn1vnbnhAURUU7IMIwWx
-	qBTun4qlWEQEyRDMh5Ha+UXhY7F3GYIJzf8RGqzaDQjgfDhnhyda/KESCY0t7Dw9oRaAF8mpdw0
-	6yMRh+AzXSVmTHIbVKNU6D0rKxdvpXDbQdHGHdhBCb6oJbJkt2r0J1rQ8PNLJM3MtIpbJT3KQxa
-	s1H9/0fV27DxjmB5GxzL1gvJEOUwOQek1Rjhs8BwuZCsp+rh2IcJvqAhUfhb4vLH/TuPNmmdWdI
-	UKYTnPdSA2IYHupJM66HV+zo1k6uyGWBDSOcsiHyS5aQYIvACxuSc5UFFup8XXQmEw9oN+3lB1e
-	QfFW/MhSitFxAFD2C4Ha7LaTETfqCnhPfK0
-X-Received: by 2002:a05:600c:138b:b0:49e:2a61:a17b with SMTP id 5b1f17b1804b1-49e2a61a41emr9166915e9.5.1789032546119;
-        Thu, 10 Sep 2026 02:29:06 -0700 (PDT)
+        bh=mRawg4Z5mHetwl9Q1bHnfv9ACubJE6CgvdpEZZ5c2ZM=;
+        b=TE0jNRKOCeKNqcihj6FED+plVvzLzor8/69ajYHW9v4z4uaciye54X99AE2+aWamZq
+         PZS0NN3v6wJ7uedVx1yGR64URcgh9PNwJj6p5qlXOCn/xQh2anouvztjdQuq81ia9f5z
+         gZ/qBDcPiMptjTIwxlazcxiEUgBTJVh680Zob1nMrDQd8tOlAiOK4fVzLlG/Pb7EsV5i
+         E4ztmSXI7I2rVIkNSDKMMYsN6plH1IuyFEnooeSRqzIbFyUlmv5ZLbRo3zKVDbaC2hKW
+         CxdGW2fqB6ER2dVZA1U3WKJeKRmm0Fe5chXcONcK0fZkcUjNeCh4W3fXB8qj4SLwMuoV
+         4mTg==
+X-Forwarded-Encrypted: i=1; AKwUvBwta3Iz6jZtgV6d+qYzZx38Nb+VC86R4gKkdmKh9HXI2mhq1oGeXOHIJ3x1buKXIbOmV4x59IdqtmVD@vger.kernel.org
+X-Gm-Message-State: AFuF++lOc3bIiXHTAJEWd3AvtGjbxBMZWbZNviu04IpNeEz8eh4rigdh
+	ULhCwpk5hKANNl4rh7i8s2aA9xHYMytuwEM4wxMNZNhTB/cDrFSST+Gf
+X-Gm-Gg: AYBFou0pq42PbX8cHrPUSS5Gp36f+vqop3a/ay1Ylj5PpNw94V2u5p4NGrNbJdHNwT/
+	O4WXg3lfVehRjDrf6KWAS5FCaJ6RmErI8D/GlQ7vhi1cECRlucgxqeGZnM2rTjXcEbKn8smO/ni
+	me1HdA8R2mdybnczIfJhXodOWjH9Rtt2ZQ7Hm9XmjgRohTX4Yf9MDHxZlc99Sc35eepGrm9TSal
+	Ugs+CcybmYuoIAziLvG7W8GLHQ5Mx343RsOA42VmdAD4nIAydsQWUbSpZO+DqH0c2ZWAeZ+zMGp
+	Nz9pdsVKGCyN+ktSo+1r0GtiiylF13wP3az8I1qPMlwW1Ovv4bMk+3JcgRQkM0sAgHSvzND4EZF
+	MQR3/ha897SbDw0mNqZ/xYhZd+e+MrfXGRzWlxAGPECVnmLDKXurQylx1nrCswvf1zb1lAejyLS
+	CtXpmkCwoKjauuQujpQi+3xbU1WE1310UGw6wqujkIFHAovSIbt7yjbY4bJbhv343xZCzW4bGu1
+	wA79W6ZvyaUVrNVcRvoCqlBHu01QePUGGGH
+X-Received: by 2002:a05:600c:4f43:b0:49c:fc6c:be0b with SMTP id 5b1f17b1804b1-49cffd457a4mr308628235e9.17.1789036382123;
+        Thu, 10 Sep 2026 03:33:02 -0700 (PDT)
 Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49d20fc23fcsm106027125e9.3.2026.09.10.02.29.04
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49d26bfd04fsm60049095e9.10.2026.09.10.03.33.00
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 10 Sep 2026 02:29:05 -0700 (PDT)
-Date: Thu, 10 Sep 2026 10:29:03 +0100
+        Thu, 10 Sep 2026 03:33:01 -0700 (PDT)
+Date: Thu, 10 Sep 2026 11:32:59 +0100
 From: David Laight <david.laight.linux@gmail.com>
 To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nathan Chancellor
@@ -90,12 +90,11 @@ Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nathan Chancellor
  linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
  linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
  linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 04/23] kallsyms: output binary data to speed output and
- kallsyms assembly
-Message-ID: <20260910102903.1b211f6b@pumpkin>
-In-Reply-To: <20260908-build-speedup-v1-4-5dc1ac01672d@kernel.org>
+Subject: Re: [PATCH 17/23] modpost: perform srcversion hashing in parallel
+Message-ID: <20260910113259.743b9686@pumpkin>
+In-Reply-To: <20260908-build-speedup-v1-17-5dc1ac01672d@kernel.org>
 References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
-	<20260908-build-speedup-v1-4-5dc1ac01672d@kernel.org>
+	<20260908-build-speedup-v1-17-5dc1ac01672d@kernel.org>
 X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -106,107 +105,219 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-On Tue, 08 Sep 2026 21:55:04 +0100
+On Tue, 08 Sep 2026 21:55:17 +0100
 "Lorenzo Stoakes (ARM)" <ljs@kernel.org> wrote:
 
-> kallsyms generates an assembly file that consists mostly of .byte entries
-> containing compressed names, token strings and name-sorted sequence
-> numbers.
+> modpost does a lot of single-threaded work hashing files from each object's
+> .cmd file.
 > 
-> For an x86-64 build with 158k symbols that is a 37 MiB .S file which takes
-> 0.57s to assemble each of the two to three times it is built over a kernel
-> build.
+> This makes the build slower than it needs to be, so do this work in
+> parallel.
 > 
-> Each time it is generated it also takes kallsyms a similar amount of time
-> to output it.
+> This is egregious for allmodconfig builds - for instance x86-64 can end up
+> opening 200,000 files individually and hashing them all serially.
 > 
-> Avoid this overhead by instead outputting this data as binary and importing
-> it into the assembly using the .incbin directive.
+> Parallelise this operation by maintaining a thread pool for the hashing
+> work.
 > 
-> Tables that are wider than a byte remain part of the assembly to ensure
-> endianness and relative relocations are performed correctly.
+> Combined with the per-file hashing commit this cuts modpost's run time
+> nearly in half for an allmodconfig build.
 > 
-> With this change, the output assembly file shrinks from 37 MiB to 9.8 MiB,
-> with a 2.6 MiB binary data file alongside it, and the object remains
-> identical.
+> Module.symvers and every *.mod.S are byte for byte the same.
 > 
-> The generated binary file is deleted correctly on build clean along with
-> all other ephemeral data.
-> 
-> On an x86-64 system with CONFIG_KALLSYMS_ALL set:
-> 
->                        before   after    delta
->   scripts/kallsyms     0.24s    0.18s    0.06s
->   assemble             0.57s    0.16s    0.41s
-> 
-> Per kallsyms invocation/assembly, for a total of 0.47s time saving upon
-> invocation.
-> 
-> An incremental build on the same system was reduced from 11.15s to 9.65s,
-> indicating a total of 1.5 seconds saved over the build.
-> 
-> The kallsyms runs and their assembly are on the serial tail of every build
-> that links vmlinux, no-op builds are unchanged.
+> modpost is on the serial tail of every allmodconfig build, however
+> defconfig does not set CONFIG_MODULE_SRCVERSION_ALL and is unchanged.
 > 
 > Whole build, 128-thread Threadripper 9980X, best of N runs:
 > 
 >                                          before   after     delta
 >                                          -------------------------------
->   x86 defconfig, touch mm/vma.c, gcc       10.8s     9.9s    -0.92s (-8%)
->   x86 defconfig, touch mm/vma.c, clang     10.7s     9.5s     -1.2s (-11%)
->   x86 defconfig, clean, gcc                29.5s    28.7s    -0.81s (-3%)
->   x86 defconfig, clean, clang              29.7s    28.6s     -1.1s (-4%)
->   x86 allmodconfig, touch mm/vma.c, gcc    45.3s    44.0s     -1.3s (-3%)
->   x86 allmodconfig, touch mm/vma.c, clang  42.9s    40.2s     -2.7s (-6%)
+>   x86 allmodconfig, touch mm/vma.c, gcc    33.4s    30.2s     -3.2s (-10%)
+>   x86 allmodconfig, touch mm/vma.c, clang  31.1s    28.1s     -3.0s (-10%)
 > 
 > Assisted-by: LLM
 > Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 > ---
->  scripts/kallsyms.c      | 97 ++++++++++++++++++++++++++++++++++++++-----------
->  scripts/link-vmlinux.sh |  2 +-
->  2 files changed, 77 insertions(+), 22 deletions(-)
+>  scripts/mod/Makefile     |  1 +
+>  scripts/mod/modpost.c    | 72 ++++++++++++++++++++++++++++++++++++++++++++++--
+>  scripts/mod/modpost.h    |  2 ++
+>  scripts/mod/sumversion.c |  3 +-
+>  4 files changed, 74 insertions(+), 4 deletions(-)
 > 
-> diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
-> index 350d118c3b9e..61c5eb537ed4 100644
-> --- a/scripts/kallsyms.c
-> +++ b/scripts/kallsyms.c
-> @@ -5,7 +5,10 @@
->   * This software may be used and distributed according to the terms
->   * of the GNU General Public License, incorporated herein by reference.
->   *
-> - * Usage: kallsyms [--all-symbols] in.map > out.S
-> + * Usage: kallsyms [--all-symbols] [--pc-relative] in.map out.bin > out.S
-> + *
-> + *      The byte tables go to out.bin and are pulled into out.S with .incbin;
-> + *  wider tables stay assembler source for endianness and relocations.
->   *
->   *      Table compression uses all the unused char codes on the symbols and
->   *  maps these to the most used substrings (tokens). For instance, it might
-> @@ -102,7 +105,7 @@ static void sym_arr_free(struct sym_arr *arr)
+> diff --git a/scripts/mod/Makefile b/scripts/mod/Makefile
+> index fbd5099e0441..fdd486184f9c 100644
+> --- a/scripts/mod/Makefile
+> +++ b/scripts/mod/Makefile
+> @@ -5,6 +5,7 @@ hostprogs-always-y	+= modpost mk_elfconfig
+>  always-y		+= empty.o
 >  
->  static void usage(void)
->  {
-> -	fprintf(stderr, "Usage: kallsyms [--all-symbols] in.map > out.S\n");
-> +	fprintf(stderr, "Usage: kallsyms [--all-symbols] [--pc-relative] in.map out.bin > out.S\n");
->  	exit(1);
+>  modpost-objs	:= modpost.o file2alias.o sumversion.o symsearch.o
+> +HOSTLDLIBS_modpost := -lpthread
+>  
+>  devicetable-offsets-file := devicetable-offsets.h
+>  
+> diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+> index 550ccd753ed8..882169e51851 100644
+> --- a/scripts/mod/modpost.c
+> +++ b/scripts/mod/modpost.c
+> @@ -16,6 +16,7 @@
+>  #include <fnmatch.h>
+>  #include <stdio.h>
+>  #include <ctype.h>
+> +#include <pthread.h>
+>  #include <string.h>
+>  #include <limits.h>
+>  #include <stdbool.h>
+> @@ -1717,8 +1718,7 @@ static void read_symbols(const char *modname)
+>  	if (!mod->is_vmlinux) {
+>  		version = get_modinfo(&info, "version");
+>  		if (version || all_versions)
+> -			get_src_version(mod->name, mod->srcversion,
+> -					sizeof(mod->srcversion) - 1);
+> +			mod->need_srcversion = true;
+>  	}
+>  
+>  	parse_elf_finish(&info);
+> @@ -1736,6 +1736,72 @@ static void read_symbols(const char *modname)
+>  	}
 >  }
 >  
-> @@ -319,6 +322,40 @@ static void output_label(const char *label)
->  	printf("%s:\n", label);
->  }
->  
-> +static void write_bin(FILE *file, const void *data, size_t len)
+> +static struct module **srcversion_mods;
+> +static unsigned int nr_srcversion_mods, next_srcversion_mod;
+> +
+> +static bool get_next_src_version(void)
 > +{
-> +	if (fwrite(data, 1, len, file) == len)
+> +	struct module *mod;
+> +	unsigned int idx;
+> +
+> +	idx = __sync_fetch_and_add(&next_srcversion_mod, 1);
+
+When I've done this is the past, adding 'a few' items was faster
+because it reduced the contention on the counter.
+(Although there were probably some very cheap 'actions'.)
+
+> +	if (idx >= nr_srcversion_mods)
+> +		return false;
+> +	mod = srcversion_mods[idx];
+> +
+> +	get_src_version(mod->name, mod->srcversion,
+> +			sizeof(mod->srcversion) - 1);
+> +	return true;
+> +}
+> +
+> +static void *srcversion_worker(void *arg)
+> +{
+> +	while (get_next_src_version())
+> +		;
+
+I don't think the extra function call helps.
+
+> +
+> +	return NULL;
+> +}
+> +
+> +static void hash_srcversions(void)
+> +{
+> +	unsigned int i = 0;
+> +	struct module *mod;
+> +	pthread_t *threads;
+> +	long nr_threads;
+> +
+> +	list_for_each_entry(mod, &modules, list)
+> +		if (mod->need_srcversion)
+> +			nr_srcversion_mods++;
+> +
+> +	if (!nr_srcversion_mods)
 > +		return;
 > +
-> +	perror("kallsyms: write");
-> +	exit(EXIT_FAILURE);
-> +}
+> +	srcversion_mods = xmalloc(nr_srcversion_mods * sizeof(*srcversion_mods));
+> +
+> +	list_for_each_entry(mod, &modules, list)
+> +		if (mod->need_srcversion)
+> +			srcversion_mods[i++] = mod;
+> +
+> +	nr_threads = sysconf(_SC_NPROCESSORS_ONLN);
 
-It is pretty pointless checking the return value from fwrite().
-Most of the time it is just doing a memcpy().
-Instead call fflush() and the ferror() prior to the fclose().
-(Or just rely on fclose() giving you that error status.)
+One thread per cpu is probably a few to many.
+It might be worth adding a command line parameter for the 'max threads'.
+Possibly with -n meaning 'all but n'.
+
+> +	nr_threads = nr_threads < 1 ? 1 : nr_threads; /* On error assume 1. */
+> +	if (nr_threads > nr_srcversion_mods)
+> +		nr_threads = nr_srcversion_mods;
+> +
+> +	sumversion_init();
+> +	threads = xmalloc(nr_threads * sizeof(*threads));
+> +	for (i = 0; i < nr_threads; i++) {
+> +		if (pthread_create(&threads[i], NULL, srcversion_worker, NULL)) {
+> +			perror("pthread_create");
+> +			exit(1);
+> +		}
+> +	}
+
+The main code can call srcversion_worker() here.
 
 David
+
+> +	for (i = 0; i < nr_threads; i++)
+> +		pthread_join(threads[i], NULL);
+> +
+> +	free(threads);
+> +	free(srcversion_mods);
+> +}
+> +
+>  static void read_symbols_from_files(const char *filename)
+>  {
+>  	FILE *in = stdin;
+> @@ -2729,6 +2795,8 @@ int main(int argc, char **argv)
+>  	if (files_source)
+>  		read_symbols_from_files(files_source);
+>  
+> +	hash_srcversions();
+> +
+>  	list_for_each_entry(mod, &modules, list) {
+>  		keep_no_trim_symbols(mod);
+>  
+> diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
+> index d5f6d82837d5..10d5f8f2f293 100644
+> --- a/scripts/mod/modpost.h
+> +++ b/scripts/mod/modpost.h
+> @@ -127,6 +127,7 @@ struct module {
+>  	bool has_init;
+>  	bool has_cleanup;
+>  	char	     srcversion[25];
+> +	bool need_srcversion;
+>  	// Missing namespace dependencies
+>  	struct list_head missing_namespaces;
+>  	// Actual imported namespaces
+> @@ -213,6 +214,7 @@ void handle_moddevtable(struct module *mod, struct elf_info *info,
+>  			Elf_Sym *sym, const char *symname);
+>  
+>  /* sumversion.c */
+> +void sumversion_init(void);
+>  void get_src_version(const char *modname, char sum[], unsigned sumlen);
+>  
+>  /* from modpost.c */
+> diff --git a/scripts/mod/sumversion.c b/scripts/mod/sumversion.c
+> index 5501d6aa0bea..4521b92ef868 100644
+> --- a/scripts/mod/sumversion.c
+> +++ b/scripts/mod/sumversion.c
+> @@ -249,7 +249,7 @@ static int parse_comment(const char *file, unsigned long len)
+>  /* FIXME: Handle .s files differently (eg. # starts comments) --RR */
+>  static bool stop_char[256];
+>  
+> -static void sumversion_init(void)
+> +void sumversion_init(void)
+>  {
+>  	static bool done;
+>  	int chr;
+> @@ -402,7 +402,6 @@ static int parse_source_files(const char *objfile, struct md4_ctx *md)
+>  				     line, strerror(errno));
+>  				goto out_file;
+>  			}
+> -
+>  		}
+>  
+>  	}
+> 
+
