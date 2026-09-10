@@ -1,211 +1,160 @@
-Received: from CY7PR03CU001.outbound.protection.outlook.com (mail-westcentralusazon11010022.outbound.protection.outlook.com [40.93.198.22])
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.10])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1B672484235;
-	Thu, 10 Sep 2026 14:35:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.93.198.22
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789050919; cv=fail; b=Tj9Snp/jjFzKjn+4ejWs8Q3fghLpzBbs6j1IGJc+7zj11B5iUEQLQBX8ApuN9nb3JU5TIIvt+6HjqK9pdVck7f98GU7/yLTAVX7gsVYaO09IMsRNsynT3h5lpOqqojXdtw56K5bQn+lxjCoJ7aQClMhxkroJF1z70RhjJByxJAs=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789050919; c=relaxed/simple;
-	bh=kjcrgnB/gaLCvNcFN+vkDu1BRe4ecmW6WUtgaZhNDmc=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=LxIQ376TG78Bd4L+tgtdi2ZtMSFjc+MT//ts8JwdSbYzvBxD1cFYk3PTB5yDelez+rTQjLBpfS84t8UDEvTftjs7PdUwHVV8bnOnkNL4quJU86SmUn1Xlmwd4eBcS8qZfRRmmn+/QclmRLRDMlJk2EgXCSPMZhxB/3/E3i1VB0o=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=f2OwnqIu; arc=fail smtp.client-ip=40.93.198.22
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E08893806AF;
+	Thu, 10 Sep 2026 15:29:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.10
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1789054187; cv=none; b=M1XJ9FVaeBcisLZFP+fm1cQU/NOHL8dlUxEEjss+Rl7Pa0Ow3u8/K/9bq17nR0zM6VnXFKYs91vou6aFsg7SFTZyjNQZKWiQHYsEWKFKtKjrVLz4vA0c4sKAaNpkT4ZdK5Gs2lf3Z4W+OUAolyoXmtXger5mwQHG9BSfStIO2Ck=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1789054187; c=relaxed/simple;
+	bh=SFcUASuvlDRtE2C4hK5s4ZmzjFE6/W3nNqwA+OR44zY=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=rmc76RlFZylNI5PGtlGvOb/xLMVsrVC/cpk5zkqURqSTC6zZlrW5tN3nVY+6Q8fAbNJ+fbyoGO/crPSlRZE5OBYXpqlKiqjZ9sTss57BpGfrBg5evlRCQXUQh4GJYTFxtAXUfqK6QMKx8OqBKqVHyYALr17N+PjNPSNTYi/cXWE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=k2egxiLI; arc=none smtp.client-ip=198.175.65.10
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="f2OwnqIu"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=Zjxtkdl8dYBTOYC0Z5F+08YPlVpRsXNrcCJPggS4lq+DcX5Upum93jGqBcyCYYHQbr9AsF9G6HH0mUQTFNNc1ypQrc5G8ZlGfeWWYvUuQFIrqPufOTyrc9gORiAvne4jIWzhdFxnH3f02sWsD9056k0YB2Ihd1jvg8tXM6hMgx2kB4zpuba8pWeqgvUcVnUjHZZTB0Bf8d2h2F1/dVvomaHoT3ngR/XZb8x87fXWkmFFMQjxK6xabtm1pYcwUrAVNhqVeqUoIq4HrbLCuN8J2+BqnVN51vE3b6JhDX72N/6j55nzy5tFEkv2rt4fwxO/K1p3F7A3KENrRhyq9YcHWw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=yGaDNeCAQw6LA8Ce6lgx49Gtju8XahkrrOV+TIgPgFg=;
- b=L16RLmjn5uvgFGRdyv3uFRkn8Y7mrMmypzjy2NxB70jX7I6b+77ZaA5iqEmkOQ4Qvx31VwC/kCjuwApTWc2C5I+Qi228eeCJMcWm7cqlOHTtvZuVxbhUHS+I3sYjM72KSCBXCOgK6kgmIN6vZEVA1cfG8Xu2+KHVpDfTdaBR/ZnwrH2Gi7st0Ku+zA3pvdkXv4ragy7PfjkDBy+JuPtdkHvJRJiR4fsbDATnvVmDdPWLb/xN1Y9nXKnyDmkumVhFD8kZM7+fYLjD/x8B5emVzAe/6a36mIaeMyOGFdPAlvNGwQwJ94RAaqud4drM1aLH5vUzb3olN0N3BcJIaZCjqA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
- dkim=pass header.d=nvidia.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=yGaDNeCAQw6LA8Ce6lgx49Gtju8XahkrrOV+TIgPgFg=;
- b=f2OwnqIup0agPSiuaOnj2H/Rsx+cgcZjn+ZI+yT0dTapY9bTv2dkS8JLEFlkXZE2hGORK1XU4QzRjptQQeHHpLTib0atyT9fG4n7YI5bM3Ai/HLUfQkAveFLYU+RuHAfZV8yGVg6tQPkkkI/iiDmvlDbaqfjW1s329yP9nmUULnAjLptG4BiKn7fhyM7hFM5nFHHci76O5WKrm1tQcjJ7x5mSIxrIY9nlgyZFldPhuJnm1hoXtJ1/YtOGc4Yv1okfY50ZvW2c86srbk2lR2OGRrHjPIOoX+wM0qCw6ZSzYPe0OCh5zIIyhGmAzWr/WXXbiixd+Ta6/CuARasGvcX4g==
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=nvidia.com;
-Received: from LV8PR12MB9620.namprd12.prod.outlook.com (2603:10b6:408:2a1::19)
- by CH3PR12MB7548.namprd12.prod.outlook.com (2603:10b6:610:144::12) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.406.9; Thu, 10 Sep
- 2026 14:34:50 +0000
-Received: from LV8PR12MB9620.namprd12.prod.outlook.com
- ([fe80::299d:f5e0:3550:1528]) by LV8PR12MB9620.namprd12.prod.outlook.com
- ([fe80::299d:f5e0:3550:1528%4]) with mapi id 15.21.0406.007; Thu, 10 Sep 2026
- 14:34:49 +0000
-Date: Thu, 10 Sep 2026 11:34:48 -0300
-From: Jason Gunthorpe <jgg@nvidia.com>
-To: Sean Christopherson <seanjc@google.com>
-Cc: David Matlack <dmatlack@google.com>,
-	Logan Odell <loganodell@google.com>, arnd@arndb.de,
-	pasha.tatashin@soleen.com, rppt@kernel.org, pratyush@kernel.org,
-	graf@amazon.com, akpm@linux-foundation.org, pbonzini@redhat.com,
-	maz@kernel.org, oupton@kernel.org, bhelgaas@google.com,
-	alex@shazbot.org, kevin.tian@intel.com, dwmw2@infradead.org,
-	baolu.lu@linux.intel.com, joro@8bytes.org, will@kernel.org,
-	robin.murphy@arm.com, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
-	linux-mm@kvack.org, kvm@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev,
-	linux-pci@vger.kernel.org, iommu@lists.linux.dev
-Subject: Re: [RFC PATCH 0/3] liveupdate: Move to feature flags for LUO and
- memfd ABI compatibility
-Message-ID: <20260910143448.GD3968357@nvidia.com>
-References: <20260903023452.721732-1-loganodell@google.com>
- <20260904160009.GV4157646@nvidia.com>
- <aptFFYqcSiBdMLE8@google.com>
- <20260905012403.GX4157646@nvidia.com>
- <aqIAtOoew-_6jw29@google.com>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aqIAtOoew-_6jw29@google.com>
-X-ClientProxiedBy: YT4PR01CA0382.CANPRD01.PROD.OUTLOOK.COM
- (2603:10b6:b01:fd::19) To LV8PR12MB9620.namprd12.prod.outlook.com
- (2603:10b6:408:2a1::19)
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="k2egxiLI"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1789054186; x=1820590186;
+  h=message-id:date:mime-version:subject:to:cc:references:
+   from:in-reply-to:content-transfer-encoding;
+  bh=SFcUASuvlDRtE2C4hK5s4ZmzjFE6/W3nNqwA+OR44zY=;
+  b=k2egxiLIxOiBR9RNUCG9keDbzF7F1l5fuFxQ3z3Z02qJkD4/wOzYyzku
+   KCm/TqJ+AEiK6ScBJNIzBUv/BSh4UBUp2cS53bU7Z38CQ4Wz+cq+s5Qwc
+   w14kqgDTHecTdD1fq5KczfU2BOY8Zh7BHbJ0UEsZ9aU+EhGOWnZBgtG5Z
+   DvpzYCdr6LJ0QNkHSx+uApj7858h1a0mIsONcQ7g6GonCPKRH/CxjGYXd
+   Tzc6nKpZRar23SUeTAZ8tWwEMceS0nKPoNWSf3+UEglKhq6gAupw5ijm4
+   hZLDkkCz/vcOFftFKz3I1737Qq7JzPoZGJkzaQl7PlItzUG0lPEUKIRei
+   w==;
+X-CSE-ConnectionGUID: aIlzWZoYTEqUr5khIt/Hrg==
+X-CSE-MsgGUID: Rv5+rNduS2SMx5Nk1q4XHQ==
+X-IronPort-AV: E=McAfee;i="6800,10657,11901"; a="106875847"
+X-IronPort-AV: E=Sophos;i="6.27,95,1787036400"; 
+   d="scan'208";a="106875847"
+Received: from orviesa010.jf.intel.com ([10.64.159.150])
+  by orvoesa102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Sep 2026 08:29:45 -0700
+X-CSE-ConnectionGUID: 8Dukv6vfSb2j1KuCmCzgkg==
+X-CSE-MsgGUID: XenJd8NISqWyB5sRR4Bqeg==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.27,95,1787036400"; 
+   d="scan'208";a="270317323"
+Received: from ssimmeri-mobl2.amr.corp.intel.com (HELO [10.125.111.208]) ([10.125.111.208])
+  by orviesa010-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Sep 2026 08:29:43 -0700
+Message-ID: <c1ce8e10-e190-45b4-b279-18f92aa4029d@intel.com>
+Date: Thu, 10 Sep 2026 08:29:39 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: LV8PR12MB9620:EE_|CH3PR12MB7548:EE_
-X-MS-Office365-Filtering-Correlation-Id: dd4d5558-fb52-4dc7-24fd-08df0f48ab01
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|366016|376014|7416014|1800799024|23010399003|56012099006|4143699003|10067099003|11063799006|18002099003|22082099003;
-X-Microsoft-Antispam-Message-Info:
-	W7fL3tR5Qv8XL0OnHzoPpp/xUPIdIJWtgtdh/PlG5QxJLUXiWqzzHcZzx3EvP1kjUMBwkHozof7b7gUKbd6i7yB7K/guW9mbLPeyrJGyC4l+gQoI6cpugJtgpNbmYr0gxAYluCtbpYe3Hllo6JED9MMu+xBRY46esjSKCAjQ/hYvYGBsO+sRbYksweQuHIIrgboxSkGWwG7OZ1rgiJhkNXsa0yLUMruhwLDUHwGWbwfuVoEq3M2boBelIhoZVfygtXiE7gCZVl2a4hYhh7uACEJajQitEED13ow9XPXDeX4YJkpWDRsCaNLoWB49Jy3Mihq9/lsLNm8vfzxypGYNjL1dax+se/vwWJeJ937uxJzPNGBFis7/jFoMc1Zo3kxX9ncEYXaiTCxvkvtVDkCp+jpZSPz56OCqatNX1PqNx7HWOLdh+5AX1P2hhRdn/aVH+gS1EI3xwYHmILXqMzl2mkCYNdmVtLbjZ/u9dGX4u3kJNCHolChEghGZDRoIaNPJ+tlkn7krYO0kUYjVAkyjkUnPx7Q55YUkiqnx1AoL9YSJAWRmlExQWXGF5Fgv3+2aohBrv1KH/afW3UaigKwE+5emk94kmrAuJqrC087ohxlLGgw1EzLfkfvylQJ3L52uXQBELSAunFOjFm0rPdwbwfTN5ccRRNCKhp0OR1eU+Uo=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:LV8PR12MB9620.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(376014)(7416014)(1800799024)(23010399003)(56012099006)(4143699003)(10067099003)(11063799006)(18002099003)(22082099003);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?BxUJYm/AyTtdf7nczxhFfvxNLJvX7diqQcOL/vzoaP5GqS8IFQko4pKWMEXr?=
- =?us-ascii?Q?Ue35tIN8XMV6uCTq12XPgbnqF5lONYa5EAEN6/AffHScg8Oz/6QmKffp8mgU?=
- =?us-ascii?Q?nGHH566LkPbREQau9pJvNxjFDz02RoLKQtBjqhMCVPudbwdum5AQiniww5yR?=
- =?us-ascii?Q?Gr1UQAM1MliXApgR8qc+gM6D4JWOg0pvFkJAsVYVvZRbp5XGKPuqYCuKj+5c?=
- =?us-ascii?Q?GIGq/yULbXW3SNuMGuUiZWyoL1+EP5yhHaOb/gjyCRojXSGKA2u4yIMgYQLP?=
- =?us-ascii?Q?Tirc6yX5G5jjPhJaNs8K0PgnoP4TxPulwBcI6IDCd5cPIT2zMKsKhkZX76fB?=
- =?us-ascii?Q?H0iJMr/KOMPsFdh0BNBtajCH6cq5giuHj2ST3+u5REgbQLMIDGJksP2PykoS?=
- =?us-ascii?Q?Zhgr5aPExVlPhkHohs4p47IAz0eYO/KrPBl/R7/+ODDCxwAdMBX7kRzl719D?=
- =?us-ascii?Q?PRpmtGd0oQNn6Fqr2K7MuI6KjwegOtecEIftF16Q/1oI6UdShvfiPbNP8s90?=
- =?us-ascii?Q?yifS+Bmt7nIo4Hn0owEP7KZEwkA40Sqaz85h12Fg8QUKOSg3c6ct/pz1uSHs?=
- =?us-ascii?Q?p+BxnQ+KtliecNRUD2YEKuFkLc51pmitqFpGW3dEbdNICRbKCeqU5L+SCh5o?=
- =?us-ascii?Q?bmh4vT8byQk0FGiHaEWZbvkvl+zcP7TfLJt9/O/E8rPGe8akq9g6lLkiTqDW?=
- =?us-ascii?Q?bTVYe4eQ03zpPzKaxAXSDnrpCuhABUZ8E0bamwiKyBVU7hstNFkXCfn/rUiY?=
- =?us-ascii?Q?GQP6S4owjIrZeOs2cH9lSAqDxpXCCV6pR/EmGKPjQr8KZK+38+ZVa2GXanVp?=
- =?us-ascii?Q?caZB4Xd2ZCzRQ8F4o+UEnt+5cN5CW1aEXmRGzScYdEjm1xT1wDy69srjw2ae?=
- =?us-ascii?Q?aHe2iQJUpAUnCDghZ53Bv3xF6TS8RI/GUW7q+tuhXZNlz/2J+PEA0uc3UmFo?=
- =?us-ascii?Q?8aC6I2hMP7baVdr7dngiHKg1xbLljrVsfgCZLvRK1CUfVuqOFVrHm7t3O4kU?=
- =?us-ascii?Q?0yRhMJLb/1MJCiHBJA5fK/LlH7tnfR6z43/8U/AHcNxb0IqEyuBSoSpe5SXq?=
- =?us-ascii?Q?8frwLewvQ9+STYb2HlnXY8QrSvmw7LuhXfAwkGpsm07D1nBzCagrpXpV89U2?=
- =?us-ascii?Q?xywDyyN3HSgK15q//5iz22wiEHnx2+3QKtrsdsAZRXnhdtxMg7Jpc8GCPrTk?=
- =?us-ascii?Q?eXW956Vmz4DdTtpmoPM0Hn7EbSzBMQA+y7ltUUzskVgMSeMwqmYd5U6S+J18?=
- =?us-ascii?Q?BlJzF3/ljYILJJtQBqJAEjTDftDJeI6fz+tKDTCnqafajK2OhBcOwWd5vdPK?=
- =?us-ascii?Q?gEikV4AC+8gvkO6HBMdPH5NCU4WuQWIaG76u+giwXAKRiK3Pba02cWLVrtK0?=
- =?us-ascii?Q?hEHCl/icuut9GthhlZ4Ifps6r1hHelgPnsky45IM5waFyIDP/USLzoEtQMjY?=
- =?us-ascii?Q?wCVaCNAUAwPA9lDWHI6e4P9AXHPi2wiejSt5LD01opWojWsGs4VhE39gUXj/?=
- =?us-ascii?Q?rKzGzy27HQ5sIRoSQSbyIraikdF1uW3wqYpdyyc8B/6HRCcP+Pt9ItO4tECi?=
- =?us-ascii?Q?R4LhM2+yxBFevidDjza1zWVkzEzm8BMCC5IUUoobw9FTsg6F0gvfMWqFWtnh?=
- =?us-ascii?Q?w02t1Dsu9OCa+xDOeQgJjDaC171gDzok+E7GGmFe8jR1Qj00T6P3Iq7Lmpye?=
- =?us-ascii?Q?eOSP/bKCudZX8to88/Zjsri66kVICplZYdX1mJZ9gNQrC1Hh?=
-X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: dd4d5558-fb52-4dc7-24fd-08df0f48ab01
-X-MS-Exchange-CrossTenant-AuthSource: LV8PR12MB9620.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 10 Sep 2026 14:34:49.2519
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: pYgWT/OJjholglhzIrpqy/VSfI610wP/Y5/Igt5bs4YpyBamFV68piYlehfnEUhz
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH3PR12MB7548
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH RFC v3 13/21] x86: mm: use pgtable_level enum in
+ effective_prot_pXd()
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+ Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
+ Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>,
+ Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
+ Shakeel Butt <shakeel.butt@linux.dev>, Barry Song <baohua@kernel.org>,
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
+ Wei Xu <weixugc@google.com>, Johannes Weiner <hannes@cmpxchg.org>,
+ Michal Hocko <mhocko@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ Tianrui Zhao <zhaotianrui@loongson.cn>, Bibo Mao <maobibo@loongson.cn>,
+ Anup Patel <anup@brainfault.org>, Atish Patra <atish.patra@linux.dev>,
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+ Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+ Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski
+ <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+ Stafford Horne <shorne@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+ loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
+ kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
+ linux-openrisc@vger.kernel.org
+References: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
+ <20260902-dummy_ptxp3-v3-13-5d8f5b17c25c@arm.com>
+ <8f3979a9-238a-4d7d-a040-6aa526fedec5@intel.com>
+ <aed03085-1d9c-4a26-be9e-196c3ea941d1@kernel.org>
+From: Dave Hansen <dave.hansen@intel.com>
+Content-Language: en-US
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ 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
+In-Reply-To: <aed03085-1d9c-4a26-be9e-196c3ea941d1@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On Wed, Sep 09, 2026 at 05:58:28PM -0700, Sean Christopherson wrote:
-> On Fri, Sep 04, 2026, Jason Gunthorpe wrote:
-> > On Fri, Sep 04, 2026 at 10:24:21PM +0000, David Matlack wrote:
-> > 
-> > > The proposal here (which is inspired by the KVM UAPI) is to ensure every
-> > > LUO ABI struct has 2 properties:
-> > > 
-> > >  1. A field to encode options/features (e.g. u64 flags).
-> > >  2. A way way to grow without breaking backward compatibility (e.g. so
-> > >     we can add new fields).
-> > > 
-> > > Each flag can mean whatever it needs to. e.g. It can indicate the
-> > > precence of one or more fields (i.e. new fields in the struct), or it
-> > > can mean a field now has a different meaning (i.e. union in the struct).
-> > > 
-> > > This would enable adding support for new features without breaking
-> > > backward compatibility. Downstream users would have to ensure their
-> > > kernel does not start using a new feature while it can still rollback to
-> > > a version that does not support the new feature.
-> > 
-> > This was never the biggest problem. The main issue was the functional
-> > behaviors of the kernel that cannot be represented simply as data in a
-> > struct with some flag bits.
-> > 
-> > Like for instance kernel A supports memfd folio sizes far larger than
-> > kernel B because we fixed MAX_ORDER. You can't fix that just with
-> > simplistic flags.
+On 9/10/26 04:02, David Hildenbrand (Arm) wrote:
+> On 9/2/26 22:48, Dave Hansen wrote:
+>> On 9/2/26 04:56, Yeoreum Yun wrote:
+>>> Instead of using hard-coded integer in effective_prot_pXd(), use
+>>> pgtable level enum.
+>> Does this actually *do* anything? 😉
+>>
+>> I guess it's nice to have a wee bit of type safety from the enum and it
+>> means that you don't have to *know* which level number a PUD is, for
+>> example.
+> The next patch passes the value to mm_first_pgtable_level(). Not sure what x86's
+> preference is to spell something like that out in the patch description.
 > 
-> Can you elaborate on why the folio sizes matter?  Honest question, because I don't
-> understand why the serialization format wouldn't express things as "N contiguous
-> pages starting at PFN X".  Then the implementation would rebuild its folios as
-> appropriate.
+> "Prepare for future code changes that will consume the generic enum
+> pgtable_level from inside effective_prot()."
 
-That's an idyllic view, yes, but my point is (IIRC) we didn't do
-exactly that for memfd.
+Yes, a little "prepare" blob would be great.
 
-Sometimes you can do more and more work to try and be more and more
-general but this is *alot* of work and even then eventually hits
-problematic limits. Like what do you do with the sealing flags? That's
-ABI breaking if the successor does not support them, and downgrades
-make exactly that possible.
-
-A CSPish user can do things like patch the new sealing flag into their
-current kernel (while preventing userspace from using it), ensure
-everything is updated to that, then jump ahead to a newer kernel and
-enjoy the new flag with full downgrade support. There is so much more
-control on their part that makes the problem far more managably simple
-that upstream does not get to have.
-
-This is why I think the very idea we can support any version pair is
-too much to ask for. We should focus on supporting a small set of
-version pairs and not making it too invasive or hard in the kernel or
-on the maintainers.
-
-Thus live update within a stable branch only is my proposal for
-upstream support.
-
-If it really succeeds at that and it becomes very popular, then let's
-discuss upstreaming doing additional version combinations.
-
-> I could see things like HugeTLB not working if someone booted the kernel with
-> support for only 1GiB pages and then tried to feed it payload with sub-1GiB ranges.
-> But to me, those sorts of things fall into the "well yeah, don't do that" category.
-
-Okay, how about worse, todays kernel has hugetlbfs and there are
-patches around to luo serialize that. Lots and lots of talks about a
-post-hugetlbfs world out there.
-
-Do we want to constrain what is possible to ensure we accomodate this
-hugetlbfs serialization? I vote no. 
-
-Do we want to reject the hugetlbfs serialization until we have a year
-of debate outlining every possible ABI scenario? I also vote no.
-
-Should we make a downgrade round trip a downstream problem? I think
-so!
-
-Jason
+Maybe even explain that generic mm code uses symbolic names for the page
+table levels, not integers and this makes the helper usable in this x86
+code.
