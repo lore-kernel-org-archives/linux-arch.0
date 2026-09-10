@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C8EE13F0A81;
-	Thu, 10 Sep 2026 11:03:00 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B26203DC4D9;
+	Thu, 10 Sep 2026 11:03:21 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789038181; cv=none; b=kBF4Rzn80lwVb1BY2gcOHSgvZ2iB7dk1LAmdeM6kvtWl+nJLKBjyyA9eFJZ1NbySysTD6WbQRlcbMtKK+RodJUlPRuZv6z4YwamtLzll7CBZxrPmPGuJzt2qhEYlRAbFfiHk+qeRggD/SDlo/IwX2awt5CDGIqFCjPRE0HkHYtk=
+	t=1789038202; cv=none; b=kslVXXdS7VMgJvxdz2EvZ9Lj4QZ4myKnpDPodRbnxRxKMpoDDpu+BSehJDjiiZvlKR5LkjSAXyLgLMCh3tiFk5+nfxQSx5AyBm9nGtcF4lXwGqPN72IoCgmTEXFIUnfB1ag2SYOJSFAF1wBk43i1wiVQfSbExZr9w8MUXaOCEZE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789038181; c=relaxed/simple;
-	bh=jASnsc6dNxauwc3Z1O7QKCL9cnFavy277c3yb+fosLc=;
+	s=arc-20240116; t=1789038202; c=relaxed/simple;
+	bh=IZTRXru46XGJodgZ4i1nYbI+G852sEiZ20pbi+8EX2I=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=Cxgei81PTmsAxhgaZdStRLwnVPMpTeCdRxPsv0vMb0g8zOt8aQLhxZ68FN5uf1tnmiZvKgBjBoh+J+p29nIBp+tXr9d8F1qXA7IVEg3PSBItk4Fqj7H/NS6itrcS2k5FNgzzwM1neBZJZi/Vmby7gQgw+1TdfS7Tw6BBtYB6kzA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=mzqBx2zP; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=sQYaR0yr5O0GG42l0UxOpmL+U+Km3qG90JW1l2LCaNjTthuc81KPbaoBtnZgUHYDX8dPXYLzX4PAa4k9NowlR4+fVnE+zD2rj0FfXyWPAd4jitDTawX3JJKeDO+e12S1ZwLmjDCgxCruTZIbCgXAd7oQgKlTLYDc8Sl1uSqe2RI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=dXMfGLih; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="mzqBx2zP"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A55F31F000FF;
-	Thu, 10 Sep 2026 11:02:47 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="dXMfGLih"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2B37C1F000FF;
+	Thu, 10 Sep 2026 11:03:08 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789038180;
-	bh=P32ieGJu3Afv0kkfEMjK/YLsgguxDMlrGHW+fqvIAaE=;
+	s=k20260515; t=1789038201;
+	bh=Xs5N6d4Q3VeK4CPw8sjumPscyGSXs4KBPkCsQSrD/Fg=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=mzqBx2zPfVH2uaOqGHJT+gorRxvbdB9Eu96N466UgnMc/0WaAuPusdTDE3e4SddEo
-	 oZEvVBu9/jzNKA1b4F+Fd/zt0Ue5fhsx6pWVwnjEzoEtfkHCqaECBf98JP/mtBJdKx
-	 jkJtRp37Kct1mkXbsdrbOygxZfFXYfUvPMKyUSV80GDQX7aUywvMFW23x4w0RhkWic
-	 veNENsZLVqikPST9m2zltfy+UwD7oK+w5XCZRY6eRnyLViMYHFjqJQwti6Rpznv1QE
-	 nQMOMg2uSi17MwlrDqZDBgY4oCPZ5751gua4DWnnpcb59v0nNHol5kgsOwYhuItgGM
-	 L0Uhy5a3RQsXA==
-Message-ID: <aed03085-1d9c-4a26-be9e-196c3ea941d1@kernel.org>
-Date: Thu, 10 Sep 2026 13:02:45 +0200
+	b=dXMfGLihXvyR0gahQ2AIkqMeQkGub8BMfOB+ZZ98l5ud+Ms7cAsxntVKUZ1utDJEM
+	 nQ4//pg74UjHHC8mPasRfMu8FSDkOatRrczqiiC3LaTIfHBHPmv858G9GISLwMrdX3
+	 5t3/073kFkvaDHBaTdhFkEOMDmGpUKKC4E2Cj0V1n40/0ffKbTF+hIGUn0USrigbVC
+	 D6iE/rxT2btCRdq9PqG7qeHgFtHMEe2GvT962NY0ILA2s/3pNyarm41S82N//cyR8P
+	 iMhJW8tTmz6rcSiviTtdveTTrlyb320BlmbnPfWLAUCYZfF23wyaCs92UlD0YEhg6S
+	 GHLaU697xvBxQ==
+Message-ID: <bc96d00c-f343-42d2-99fa-e1f5fb11a72e@kernel.org>
+Date: Thu, 10 Sep 2026 13:03:06 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -37,9 +37,8 @@ MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH RFC v3 13/21] x86: mm: use pgtable_level enum in
  effective_prot_pXd()
-To: Dave Hansen <dave.hansen@intel.com>, Yeoreum Yun <yeoreum.yun@arm.com>,
- Russell King <linux@armlinux.org.uk>, Huacai Chen <chenhuacai@kernel.org>,
- WANG Xuerui <kernel@xen0n.name>,
+To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
+ Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
  Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
  Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
  Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>,
@@ -69,7 +68,6 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  linux-openrisc@vger.kernel.org
 References: <20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com>
  <20260902-dummy_ptxp3-v3-13-5d8f5b17c25c@arm.com>
- <8f3979a9-238a-4d7d-a040-6aa526fedec5@intel.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -116,26 +114,20 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <8f3979a9-238a-4d7d-a040-6aa526fedec5@intel.com>
+In-Reply-To: <20260902-dummy_ptxp3-v3-13-5d8f5b17c25c@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 9/2/26 22:48, Dave Hansen wrote:
-> On 9/2/26 04:56, Yeoreum Yun wrote:
->> Instead of using hard-coded integer in effective_prot_pXd(), use
->> pgtable level enum.
+On 9/2/26 13:56, Yeoreum Yun wrote:
+> Instead of using hard-coded integer in effective_prot_pXd(), use
+> pgtable level enum.
 > 
-> Does this actually *do* anything? ;)
+> There should be no functional change.
 > 
-> I guess it's nice to have a wee bit of type safety from the enum and it
-> means that you don't have to *know* which level number a PUD is, for
-> example.
+> Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
+> ---
 
-The next patch passes the value to mm_first_pgtable_level(). Not sure what x86's
-preference is to spell something like that out in the patch description.
-
-"Prepare for future code changes that will consume the generic enum
-pgtable_level from inside effective_prot()."
+Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
 
 -- 
 Cheers,
