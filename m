@@ -1,52 +1,52 @@
-Received: from pdx-out-014.esa.us-west-2.outbound.mail-perimeter.amazon.com (pdx-out-014.esa.us-west-2.outbound.mail-perimeter.amazon.com [35.83.148.184])
+Received: from pdx-out-012.esa.us-west-2.outbound.mail-perimeter.amazon.com (pdx-out-012.esa.us-west-2.outbound.mail-perimeter.amazon.com [35.162.73.231])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D369237FF43;
-	Thu, 10 Sep 2026 23:04:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=35.83.148.184
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0C68638B14F;
+	Thu, 10 Sep 2026 23:04:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=35.162.73.231
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789081491; cv=none; b=Lyn+f9Dw4og0D8WHpand1VV/WJ8bHiaaqiU5mlC2TEjbDs2Q30m+sCY61t4bXH2dO2p63qKlkdHJlrz1mHSsI/BQvJF0XIkbegIQnFBoEOqVBM9KGj7nphMlObTskzGp3aR3GKMiy4tCADlqQPR7dwphPDqEsm762p25uEdRe4k=
+	t=1789081494; cv=none; b=RfNB+AiLMcAap7I+bvkMl+6PU2C6PwIpJGRMav0eiFeC+F1uLTZy3Jg7+bwZSa2vmMNe+/CBsurzDx4aF2uBLLg4BhyZ5Lurm5u54PQNxHsRGN5/xmAor6YF3d6thc9xZB6jnDFkDWhQWHZdKUWJJJDI97gTKbgDy1wI8CU7wTw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789081491; c=relaxed/simple;
-	bh=RYnKZzkKeQ7QHnjYCSAWgVSUvUc34WJD1tWKkdH1mss=;
+	s=arc-20240116; t=1789081494; c=relaxed/simple;
+	bh=1svIq8EWADIzQ0BF7HYEasYEMhCoi1F2lsUmrUJRKvA=;
 	h=MIME-Version:Content-Type:Subject:From:To:CC:In-Reply-To:
-	 References:Date:Message-ID; b=tbnJxWbDm2SBnLFx1FW2DvuS7GJvorYS09qylTNUBSxiAdK6U9d7z7GU3OSNXEwHk1hPxwNA6uaPorFzZgZMKpofqa8LxEQQuMAEgyo3BCzG6tdNjq7Ddc+uXUtb6YDrs+udeGrURMYG5uhpeDAnd1hLBTlNXTsDe/1HuOj+FOQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amazon.com; spf=pass smtp.mailfrom=amazon.com; dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b=ViU7V12a; arc=none smtp.client-ip=35.83.148.184
+	 References:Date:Message-ID; b=QZbffq7CZpb8Zbv/bxwKWWYE/4knc4AQmQmO50SkXOKiUwsZfXq4LFwKKqr/49hMOcVrLPvyaIxXe8kFMO6UlX/OCD+O1muZzHINNaMjGvc/Q5FQC/wQp1LS6L51TxJNlRzoy70ZUDnnlG17YkHFGPAXxYN9+PCX4c0KgJVGrYM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amazon.com; spf=pass smtp.mailfrom=amazon.com; dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b=Y1Oil3p7; arc=none smtp.client-ip=35.162.73.231
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amazon.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=amazon.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b="ViU7V12a"
+	dkim=pass (2048-bit key) header.d=amazon.com header.i=@amazon.com header.b="Y1Oil3p7"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
   d=amazon.com; i=@amazon.com; q=dns/txt; s=amazoncorp2;
-  t=1789081489; x=1820617489;
+  t=1789081493; x=1820617493;
   h=mime-version:content-transfer-encoding:subject:from:to:
    cc:in-reply-to:references:date:message-id;
-  bh=Cpm7fRwjhhvI0gL9ZWF/CWGjObI1IMCPM/5oBJgqSTI=;
-  b=ViU7V12a41Nio92O1KBAsjiUousx3oEtZcr8LS8ZEcrw8S8fQ568TXXm
-   anY8ygkrZGBP4ybqi+2OGUNQTzXrGIcd6tg6BNwppWO7DRdVLuiBgkWAf
-   6TDe6zmGFJ0XzRYoFAJTNL/gccQTg2jbyTEbEohtrYFRODEB/edhwcVjC
-   2A2Nee6N7aGfp53FG84s91tDEtQ/PnfNmyjyJz4uEsMCUAbFHW6+uRKuW
-   o2SVj+lRnX2ml5qDPVizjZZvQhlmJoTU+OTfOhE7bQPleTRA52LBLjITE
-   rMi0flkUOc2J+Xf8OXAoxrJRMGKxuLnIx6iSkn77U0qkc3y4xN2R20N7l
+  bh=zNgSNTNR480O9vDPDU7zC5Px0iicu4f1bsiOB9344YU=;
+  b=Y1Oil3p7zpm6MOKRvK6RZxMofcFEa/4cFbOytXqOZtszesPUnSGoltxp
+   aohJvfT2ga2zVyYhr9tlz0CuJ3bdwUTFIKAssJuMOX0mXyvEoMtYgW3xe
+   p5PZn8Om9D5qz0n2WNPQRDldQ/3DTBzuuq9eZTiL3Fr1Qa+zUnUI7QrES
+   bRID+twXjEKGKfOVr3WMOYzbvVLkGa+nIOFt+S4LPXb1BGG09tl2mMPKo
+   x6D4rWF9LwrHE8e4GZj+6ON5FEcZMesYwrUEr2BPbA60O2eKQ8+OxBXE/
+   2EgT5+T1L4pHNjPjLjd4qMh4kqBKzGRmydvcQnUWOGULhrJqWMVSYh2np
    Q==;
-X-CSE-ConnectionGUID: syaoVgMbQSW/3j6FV4MDug==
-X-CSE-MsgGUID: rGLszRc0RAmv4QW0+sJ8yA==
+X-CSE-ConnectionGUID: TbvrUZYeROSbPZZjBOSTuA==
+X-CSE-MsgGUID: CWtiIfh7SySJRPaM6/vy7Q==
 X-IronPort-AV: E=Sophos;i="6.27,96,1787011200"; 
-   d="scan'208";a="28168128"
-Received: from ip-10-5-12-219.us-west-2.compute.internal (HELO smtpout.naws.us-west-2.prod.farcaster.email.amazon.dev) ([10.5.12.219])
-  by internal-pdx-out-014.esa.us-west-2.outbound.mail-perimeter.amazon.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Sep 2026 23:04:49 +0000
-Received: from EX19MTAUWC001.ant.amazon.com [205.251.233.105:21450]
- by smtpin.naws.us-west-2.prod.farcaster.email.amazon.dev [10.0.10.49:2525] with esmtp (Farcaster)
- id 2a193d5d-bee9-42f9-b267-05771716733e; Thu, 10 Sep 2026 23:04:49 +0000 (UTC)
-X-Farcaster-Flow-ID: 2a193d5d-bee9-42f9-b267-05771716733e
+   d="scan'208";a="28174137"
+Received: from ip-10-5-6-203.us-west-2.compute.internal (HELO smtpout.naws.us-west-2.prod.farcaster.email.amazon.dev) ([10.5.6.203])
+  by internal-pdx-out-012.esa.us-west-2.outbound.mail-perimeter.amazon.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Sep 2026 23:04:52 +0000
+Received: from EX19MTAUWB002.ant.amazon.com [205.251.233.48:18934]
+ by smtpin.naws.us-west-2.prod.farcaster.email.amazon.dev [10.0.37.160:2525] with esmtp (Farcaster)
+ id 7a1acc50-bba7-4809-926f-d08daac21daa; Thu, 10 Sep 2026 23:04:52 +0000 (UTC)
+X-Farcaster-Flow-ID: 7a1acc50-bba7-4809-926f-d08daac21daa
 Received: from EX19D001UWA001.ant.amazon.com (10.13.138.214) by
- EX19MTAUWC001.ant.amazon.com (10.250.64.174) with Microsoft SMTP Server
+ EX19MTAUWB002.ant.amazon.com (10.250.64.231) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA) id 15.2.2562.45;
- Thu, 10 Sep 2026 23:04:48 +0000
+ Thu, 10 Sep 2026 23:04:51 +0000
 Received: from u34cccd802f2d52.ant.amazon.com (10.106.178.32) by
  EX19D001UWA001.ant.amazon.com (10.13.138.214) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA) id 15.2.2562.46;
- Thu, 10 Sep 2026 23:04:45 +0000
+ Thu, 10 Sep 2026 23:04:48 +0000
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -55,8 +55,8 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v15 12/16] cpuidle/poll_state: Wait for need-resched
- via tif_need_resched_relaxed_wait()
+Subject: Re: [PATCH v15 14/16] barrier: add tests for
+ smp_cond_load_*_timeout()
 From: Haris Okanovic <harisokn@amazon.com>
 To: Ankur Arora <ankur.a.arora@oracle.com>
 CC: <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
@@ -68,37 +68,26 @@ CC: <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
 	<memxor@gmail.com>, <zhenglifeng1@huawei.com>, <xueshuai@linux.alibaba.com>,
 	<rdunlap@infradead.org>, <david.laight.linux@gmail.com>,
 	<broonie@kernel.org>, <joao.m.martins@oracle.com>,
-	<boris.ostrovsky@oracle.com>, <konrad.wilk@oracle.com>, <ashok.bhat@arm.com>
-In-Reply-To: <20260831202251.305046-13-ankur.a.arora@oracle.com>
+	<boris.ostrovsky@oracle.com>, <konrad.wilk@oracle.com>, <ashok.bhat@arm.com>,
+	Julian Braha <julianbraha@gmail.com>
+In-Reply-To: <20260831202251.305046-15-ankur.a.arora@oracle.com>
 References: <20260831202251.305046-1-ankur.a.arora@oracle.com>
- <20260831202251.305046-13-ankur.a.arora@oracle.com>
+ <20260831202251.305046-15-ankur.a.arora@oracle.com>
 Date: Thu, 10 Sep 2026 18:04:27 -0500
-Message-ID: <178908146776.2725577.2613699832033292946.b4-review@b4>
+Message-ID: <178908146777.2725577.14495389857776220340.b4-review@b4>
 X-Mailer: b4 0.15.2
 X-ClientProxiedBy: EX19D033UWA002.ant.amazon.com (10.13.139.10) To
  EX19D001UWA001.ant.amazon.com (10.13.138.214)
 
-On Mon, 31 Aug 2026 13:22:47 -0700, Ankur Arora <ankur.a.arora@oracle.com> wrote:
-> diff --git a/drivers/cpuidle/poll_state.c b/drivers/cpuidle/poll_state.c
-> index c7524e4c522a2..7443b3e971baf 100644
-> --- a/drivers/cpuidle/poll_state.c
-> +++ b/drivers/cpuidle/poll_state.c
-> @@ -6,41 +6,22 @@
-> [ ... skip 36 lines ... ]
-> -			}
-> -		}
-> +		dev->poll_time_limit = !tif_need_resched_relaxed_wait(limit);
->  	}
->  	raw_local_irq_disable();
->  
-
-Tested again on AWS Graviton3/4/5 (ARM Neoverse V1/V2/V3) with haltpoll changes
-atop latest master 8ab1afb2e: still seeing average 6% improvement across various
-workloads (mysql, postgresql, cassandra, memcached) in latency sensitive configuration.
-
-The new unit tests all pass on both metal and virt variants of the same machines.
-
-I hope we can merge this soon.
+On Mon, 31 Aug 2026 13:22:49 -0700, Ankur Arora <ankur.a.arora@oracle.com> wrote:
+> Add success and failure case tests for smp_cond_load_*_timeout().
+> 
+> Success or failure cases depend on the expected bit being set (or not).
+> Additionally in failure cases smp_cond_load_*_timeout() cannot return
+> before timeout.
+> 
+> 
+> [...]
 
 Tested-by: Haris Okanovic <harisokn@amazon.com>
 
