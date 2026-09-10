@@ -1,212 +1,167 @@
-Received: from mail-pj1-f71.google.com (mail-pj1-f71.google.com [209.85.216.71])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mail.avm.de (mail.avm.de [212.42.244.94])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 28D123911C1
-	for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 15:35:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.71
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B7F9D47C0E6;
+	Thu, 10 Sep 2026 15:42:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.42.244.94
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789054557; cv=none; b=RQtzi+jtG5p7ye5C6q5ohWeZmLfX9Qz+EBb6CUMtHilN9GcsKR3e3SoxOgUtlYdyshNiftr/QLletuWJPdWifUHg/Msoq6nfNfwuIQXduE0AwpJfgSxz58SgcWEIF35evjgtowvpewQouXKGbaCPvGCfMGh3p9OIVFt1eOp8vM8=
+	t=1789054965; cv=none; b=uqZpHhWW4VhWb3IYUuUn0vlNNivFRNnFgYtKLdVf+qlml2jIDTPAS/tqp805UoR9gyXwDah9y62aBfUCPjFM1JTI6uTSgv32DbvidOvzz0QKq+qhkIck+okeqxtbyJV1lzQgTyCPCjC1MvWKQFV3hMy3q9QZIGq1tVKi2fZ5R9Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789054557; c=relaxed/simple;
-	bh=Xgcjqjf3P4MGGbQztdNdBHKpAHb0Y3bYS7ovsxn2/ek=;
-	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Cc:Content-Type; b=onPJretQhsmo7JQ3I+8EFNF1sagPZyoNXMPFlAXdH6LcesHwmWdW1+E3+Y4HqejW/CpxLRjDiJOkJ+jrsY001OlsyFQlw6SXswJmEH3RL1O3P/to92a9SDPiAEU2aaGYwuOJfsW7+2H1gm5h0VrYJtRw75VX1voEqIBXJ40z41U=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--seanjc.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=BghkDUfH; arc=none smtp.client-ip=209.85.216.71
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--seanjc.bounces.google.com
+	s=arc-20240116; t=1789054965; c=relaxed/simple;
+	bh=LK8bkV1Vz0floem0tDs4fowSkN+VH/bI8JorqlPfxFI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=vEhI2adnYKEjFaB2+xveoEcnm1S+SPsbE1Uz9LCU86YqeHWXdnnTHw21RWTjXLKf1N5Y8vJuBOuJjYv6HhJjzDQLqleeHV6ioNF47LrlwLAPTvUIWxJ4UlRqZPeVL81F9unhRwSSjy4rQdcpyB9WRSVG3eRdwXDjVwb4Kh3i6S0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=fritz.com; spf=pass smtp.mailfrom=fritz.com; dkim=pass (2048-bit key) header.d=fritz.com header.i=@fritz.com header.b=m2t/gCBQ; arc=none smtp.client-ip=212.42.244.94
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=fritz.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fritz.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="BghkDUfH"
-Received: by mail-pj1-f71.google.com with SMTP id 98e67ed59e1d1-38f57e31b6eso4367427a91.1
-        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2026 08:35:55 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1789054555; x=1789659355; darn=vger.kernel.org;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=2+MOwVd/hSplAvFbBk52yvKLS3w7cDWTRO3ieRL0csc=;
-        b=BghkDUfHl35Zy5Aj9pM+NUXZSvy4UZzmsejvbWmcOeeGxldnNvhElVIQniPQpEr4Co
-         JgRDcA1Gnu74gu97lzzZPSZ6V/9kxdf1zzGqXe0+5nB/L4necGvDv5W+nqyPM4Z+6YQg
-         RkKLWKpatoYGrBQcIFvfE7SgpCy27kyC26F//CaMDm9CC3Tdy2gAVD3pa8AoBLwEP4ju
-         ohtw5hItC160oQjP1zUv4rPmneaAQ7Dnoz/b0jMnjdAtaAJ7+zNep5IMPdj+FJQ8o3xU
-         Nu9Qjx3TgpDqhR9VihGRXKB2GlVTYGcUFqribcc6QRGDn7LiP0jJdHQhgh7bEo8CuLAj
-         Xm6g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1789054555; x=1789659355;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=2+MOwVd/hSplAvFbBk52yvKLS3w7cDWTRO3ieRL0csc=;
-        b=quDx/9PqJcYiuHcaeuJfLPeG39wXCh2616/q+Oxu24jVwF6zxV0ee7WbrDoFlwg6ON
-         m1Ss2BMmD3kB4DG4utxutPJJJbXnZZ30wRihCONS0zndiNsq1FsyvMrUHjSaR9T/hxVD
-         QqeGI2WCJWex5UltODTu9/rHyE1enbpHoG6UmFfq+Y0/Bw/q9TyWz1GIeVzlvRXs59tW
-         mrZncRWLMK1IKCTaNmpGianSRT/LDXWnNBhKTzCr9V1zNohYazeTn/D/Y3+Ehq843Pdw
-         jeEAjDLIC296Tz32IbVxe+f96ZN9vXj+fCs/i+02KKBdDu8peHJXy7EkgrOCs30MGljy
-         NLng==
-X-Forwarded-Encrypted: i=1; AKwUvBx9Sf7M2s6G33WD5R2j1IlUke9oi+8lljT7ju4umzaX8wn0zdMSquJ8OjJu/Ubw0cNuBnkhVqQNYwN9@vger.kernel.org
-X-Gm-Message-State: AFuF++kIbKj8Ho8llxHwqxuiXDiU48RFuz5u4gjx7DTciKg8YEutGE2L
-	70t/xhookT6o55q7QMdeli50BuGnuuV9hXqugzYQwNQTC/hlHlCO0J3oTciX5RLk+vcM84i8Usv
-	FkAxV5g==
-X-Received: from pjbdt17.prod.google.com ([2002:a17:90a:fa51:b0:39d:8f18:feb5])
- (user=seanjc job=prod-delivery.src-stubby-dispatcher) by 2002:a17:90a:6081:b0:39b:51cc:4586
- with SMTP id 98e67ed59e1d1-39b51cc65admr27199424a91.19.1789054554982; Thu, 10
- Sep 2026 08:35:54 -0700 (PDT)
-Date: Thu, 10 Sep 2026 08:35:54 -0700
-In-Reply-To: <20260910143448.GD3968357@nvidia.com>
+	dkim=pass (2048-bit key) header.d=fritz.com header.i=@fritz.com header.b="m2t/gCBQ"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=fritz.com; s=mail;
+	t=1789054956; bh=LK8bkV1Vz0floem0tDs4fowSkN+VH/bI8JorqlPfxFI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=m2t/gCBQ5Ji+klRB77okzADkIBpOjucABpFdn1joI6CGFroNQ2dok89iTW7zlsgDJ
+	 OhupApf9LKIRvcGE2XGbdgRc1L/Cyu778E8qiCt5Mx3N/HSwPKfTDWrLuQBULuYETh
+	 DEpZTMKIWNIB95kcOEYyM+KTdXBA1kly0af9dVc2J1yCQpvugpbSIq04iHmdW/EGZ3
+	 Y4A/qaU5/ks6TeFtBhGFS/mS3OdzSq+oJRGgjHfaRsaS82LquTqTSeUDZk3Yd/dQog
+	 lg48YsTm0IrzSWtTPbK8Ble4vH9U4bTyk8isOlH6ribTe1cTR6+aKHV2VGyYR9cK7K
+	 zTVgF+ct8Jfhw==
+Received: from [212.42.244.78] (helo=mail.avm.de)
+	by mail.avm.de with ESMTP (eXpurgate 4.57.1)
+	(envelope-from <n.schier@fritz.com>)
+	id 6aa2cfec-6dc7-7f0000032729-7f000001a7b2-1
+	for <multiple-recipients>; Thu, 10 Sep 2026 17:42:36 +0200
+Received: from mail-auth.fritz.com (unknown [212.42.244.78])
+	by mail.avm.de (Postfix) with ESMTPS;
+	Thu, 10 Sep 2026 17:42:36 +0200 (CEST)
+Date: Thu, 10 Sep 2026 17:42:35 +0200
+From: Nicolas Schier <n.schier@fritz.com>
+To: Nathan Chancellor <nathan@kernel.org>
+Cc: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>,
+	Linus Torvalds <torvalds@linux-foundation.org>,
+	Nick Desaulniers <ndesaulniers@google.com>,
+	Bill Wendling <morbo@google.com>,
+	Justin Stitt <justinstitt@google.com>,
+	Masahiro Yamada <masahiroy@kernel.org>,
+	Alexey Gladkov <legion@kernel.org>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
+	Ard Biesheuvel <ardb@kernel.org>,
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
+	Josh Poimboeuf <jpoimboe@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>,
+	Gary Guo <gary@garyguo.net>,
+	=?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>,
+	Benno Lossin <lossin@kernel.org>,
+	Andreas Hindborg <a.hindborg@kernel.org>,
+	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
+	Danilo Krummrich <dakr@kernel.org>,
+	Daniel Almeida <daniel.almeida@collabora.com>,
+	Tamir Duberstein <tamird@kernel.org>,
+	Alexandre Courbot <acourbot@nvidia.com>,
+	Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Randy Dunlap <rdunlap@infradead.org>, linux-kbuild@vger.kernel.org,
+	linux-kernel@vger.kernel.org, llvm@lists.linux.dev,
+	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org,
+	rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org,
+	Jens Axboe <axboe@kernel.dk>
+Subject: Re: [PATCH 12/23] kbuild: avoid re-running compiler and linker probes
+Message-ID: <20260910-translucent-sweet-sidewinder-7acacb@l-nschier-aarch64>
+References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
+ <20260908-build-speedup-v1-12-5dc1ac01672d@kernel.org>
+ <178901395292.3971858.13236774094648272066.b4-review@b4>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20260903023452.721732-1-loganodell@google.com>
- <20260904160009.GV4157646@nvidia.com> <aptFFYqcSiBdMLE8@google.com>
- <20260905012403.GX4157646@nvidia.com> <aqIAtOoew-_6jw29@google.com> <20260910143448.GD3968357@nvidia.com>
-Message-ID: <aqLOWkuVKccR-I7W@google.com>
-Subject: Re: [RFC PATCH 0/3] liveupdate: Move to feature flags for LUO and
- memfd ABI compatibility
-From: Sean Christopherson <seanjc@google.com>
-To: Jason Gunthorpe <jgg@nvidia.com>
-Cc: David Matlack <dmatlack@google.com>, Logan Odell <loganodell@google.com>, arnd@arndb.de, 
-	pasha.tatashin@soleen.com, rppt@kernel.org, pratyush@kernel.org, 
-	graf@amazon.com, akpm@linux-foundation.org, pbonzini@redhat.com, 
-	maz@kernel.org, oupton@kernel.org, bhelgaas@google.com, alex@shazbot.org, 
-	kevin.tian@intel.com, dwmw2@infradead.org, baolu.lu@linux.intel.com, 
-	joro@8bytes.org, will@kernel.org, robin.murphy@arm.com, 
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	kexec@lists.infradead.org, linux-mm@kvack.org, kvm@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, 
-	linux-pci@vger.kernel.org, iommu@lists.linux.dev
-Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="6NJv2EjhorC/TYUZ"
+Content-Disposition: inline
+In-Reply-To: <178901395292.3971858.13236774094648272066.b4-review@b4>
+Organization: FRITZ! Technology GmbH
+x-ms-reactions: disallow
+X-purgate-ID: 149429::1789054956-F1CDF0BC-4895A414/0/0
+X-purgate-type: clean
+X-purgate-size: 2705
+X-Notice: Whitelisted
+X-purgate: This mail is considered clean (visit https://www.eleven.de for further information)
+X-purgate: clean
+X-pfmilter: host: postfix-mx-03  mail-id: 9AB3CA045E  external: no
 
-On Thu, Sep 10, 2026, Jason Gunthorpe wrote:
-> On Wed, Sep 09, 2026 at 05:58:28PM -0700, Sean Christopherson wrote:
-> > On Fri, Sep 04, 2026, Jason Gunthorpe wrote:
-> > > On Fri, Sep 04, 2026 at 10:24:21PM +0000, David Matlack wrote:
-> > > 
-> > > > The proposal here (which is inspired by the KVM UAPI) is to ensure every
-> > > > LUO ABI struct has 2 properties:
-> > > > 
-> > > >  1. A field to encode options/features (e.g. u64 flags).
-> > > >  2. A way way to grow without breaking backward compatibility (e.g. so
-> > > >     we can add new fields).
-> > > > 
-> > > > Each flag can mean whatever it needs to. e.g. It can indicate the
-> > > > precence of one or more fields (i.e. new fields in the struct), or it
-> > > > can mean a field now has a different meaning (i.e. union in the struct).
-> > > > 
-> > > > This would enable adding support for new features without breaking
-> > > > backward compatibility. Downstream users would have to ensure their
-> > > > kernel does not start using a new feature while it can still rollback to
-> > > > a version that does not support the new feature.
-> > > 
-> > > This was never the biggest problem. The main issue was the functional
-> > > behaviors of the kernel that cannot be represented simply as data in a
-> > > struct with some flag bits.
-> > > 
-> > > Like for instance kernel A supports memfd folio sizes far larger than
-> > > kernel B because we fixed MAX_ORDER. You can't fix that just with
-> > > simplistic flags.
-> > 
-> > Can you elaborate on why the folio sizes matter?  Honest question, because I don't
-> > understand why the serialization format wouldn't express things as "N contiguous
-> > pages starting at PFN X".  Then the implementation would rebuild its folios as
-> > appropriate.
-> 
-> That's an idyllic view, yes, but my point is (IIRC) we didn't do
-> exactly that for memfd.
 
-Well, y'all screwed up then.  I don't see why past mistakes should force other
-subsystems to support a flawed implementation.  Learn from the mistakes, add v2
-of serialization for memfd, and move on.
+--6NJv2EjhorC/TYUZ
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> Sometimes you can do more and more work to try and be more and more
-> general but this is *alot* of work and even then eventually hits
-> problematic limits. Like what do you do with the sealing flags? That's
-> ABI breaking if the successor does not support them, and downgrades
-> make exactly that possible.
->
-> A CSPish user can do things like patch the new sealing flag into their
-> current kernel (while preventing userspace from using it), ensure
-> everything is updated to that, then jump ahead to a newer kernel and
-> enjoy the new flag with full downgrade support. There is so much more
-> control on their part that makes the problem far more managably simple
-> that upstream does not get to have.
+On Wed, Sep 09, 2026 at 09:19:12PM -0700, Nathan Chancellor wrote:
+> > diff --git a/init/Kconfig b/init/Kconfig
+> > index 8583d9f06c52..3c92c87254a3 100644
+> > --- a/init/Kconfig
+> > +++ b/init/Kconfig
+> > @@ -144,6 +144,44 @@ config CC_HAS_ASSUME
+> >  config CC_HAS_NO_PROFILE_FN_ATTR
+> >  	def_bool $(success,echo '__attribute__((no_profile_instrument_functio=
+n)) int x();' | $(CC) -x c - -c -o /dev/null -Werror)
+> > =20
+> > +config CC_HAS_ZERO_INIT_PADDING_BITS
+> > +	def_bool $(cc-option,-fzero-init-padding-bits=3Dall)
+> > +
+> > +config CC_HAS_NO_STACK_CLASH_PROTECTION
+> > +	def_bool $(cc-option,-fno-stack-clash-protection)
+> > +
+> > +config CC_HAS_NO_ADDRSIG
+> > +	def_bool $(cc-option,-fno-addrsig)
+>=20
+> I am generally in favor of this proposal since I think these checks
+> should be cached by Kconfig where possible to clear up running them
+> twice. That said, I wonder if we should pick a better dumping ground for
+> these checks other than init/Kconfig. Maybe init/Kconfig.tools or
+> scripts/Kconfig.tools or something?
 
-I guess maybe we have a different definition of ABI? 
+Yes, skimming through the patch, I thought about that, too.  Moving more=20
+cc option checks to Kconfig will make building out-of-tree kmods with a=20
+different compiler more dangerous.  Maybe we will have to make the=20
+warning in Makefile's prepare (external kmods) target a bit louder.
 
-I'm not saying that upstream has to be 100% forwards and backwards compatible.
-I'm saying the serialization payload itself should communicate what features are
-effectively required.  I.e. *if* there are incompatibilities, they should be
-naturally expressed in the serialization format, not communicated out-of-band
-through magic numbers.
+> I also worry about backsliding and growing cc-option checks. Should we
+> update the documentation to state that it is preferrable for these
+> checks to live in Kconfig so that they can be properly cached?
 
-The scenario you describe fits exactly with what I am proposing.  Until something
-actually starts using the new sealing flag, the CSP can downgrade to older kernels
-at will.  And if the user cares about downgrading, then they need to prevent the
-flag from being used until the new kernel is rollback-safe and deployed to enough
-hosts to prevent stockout.
+Sounds good, yes.
 
-> This is why I think the very idea we can support any version pair is
-> too much to ask for. We should focus on supporting a small set of
-> version pairs and not making it too invasive or hard in the kernel or
-> on the maintainers.
->
-> Thus live update within a stable branch only is my proposal for
-> upstream support.
-> 
-> If it really succeeds at that and it becomes very popular, then let's
-> discuss upstreaming doing additional version combinations.
+--=20
+Nicolas
 
-Why on earth would we have version numbers in the first place?  IMO, monotically
-increasing version numbers are flat out the worst way to communicate features.
+--6NJv2EjhorC/TYUZ
+Content-Type: application/pgp-signature; name="signature.asc"
 
-I am completely against supporting any scheme that relies on magic version numbers.
-It creates problems where none need exist, and checking for compatibility can't be
-sanely done in a programmatic way, because by definition it relies on magic numbers.
+-----BEGIN PGP SIGNATURE-----
 
-E.g. if the ABI for a given component hasn't changed, why should anyone care if
-the overall "version" of the kernel is ahead or behind by N kernels?
+iQIzBAABCAAdFiEEDv+Fiet06YHnC6RpiMa8nIiabbgFAmqiz+cACgkQiMa8nIia
+bbgNERAAgCLMWkWnCF5POqjQiZGkZbm/i9SwwH2BVVg0H8Bf+O6WGCZ4YiM0NOu7
+6d9EZV95NkDD36Y3vCEaq1/GclFeUn2ET6HEprS7tQsmYbcofxLYoQuMV/5Si/18
+jJBz3eksIZYRAnSFGG6K1+Hq3u63l3cV5TmRaquZg76LwJkTjCNsFmfT2wxHP40y
+LmkyOsw9NiHo2Bm75Bz8ds7EVqHU/wPxCAWBuiw6ervOrw4RR7PURz61DaBGIuOc
+9B/HnhACn44debha9z9dUTsDIsPsK2sftFLfgJvD8c1V8vj6D1uhX7Fx/hXRElRA
+srsyf2q67EuQ8hKIU8sch6rKkD9slQJd0/w2XNQsONffnO9RghF+Qu8dzo9mUusZ
+l1vYg30SglV5c7m1FlgCvvmvJSppryu6zZw4FgzOUTfcxt6l+VXTm9jaigCWPXbT
+KAYgvQqNVVgkIAg2WDqyiVTeWQxrxo9ctf3m/6srxI4/AkuGZV/XU2m1QiQJxQ5/
+rdm3WGYjD/gVrLPBr6oIoPWDSgP7C4U4kSuZGq1jWAhPeqaa691z+Z5WbRVoVDO/
+SEc1cIdDE88/z8QwIEsgmaXaVhnaCiW66Npfh9zP1J+/pQV3kvU4kf9CIEQ6QMDf
+MPfl1Si0rJA9thzauvNi6Mu6JsUi9FPz7+Oen1Y22eMfv2st6Sc=
+=TUj9
+-----END PGP SIGNATURE-----
 
-> > I could see things like HugeTLB not working if someone booted the kernel with
-> > support for only 1GiB pages and then tried to feed it payload with sub-1GiB ranges.
-> > But to me, those sorts of things fall into the "well yeah, don't do that" category.
-> 
-> Okay, how about worse, todays kernel has hugetlbfs and there are
-> patches around to luo serialize that. Lots and lots of talks about a
-> post-hugetlbfs world out there.
-
-And?  Adding a compatibility layer to a future kernel so that it understands an
-incoming HugeTLBFS payload should be trivial.  I can totally see not wanting to
-support serializing a post-HugeTBLFS kernel's memory representation into the "old"
-format, though even that probably wouldn't be all that difficult.
-
-> Do we want to constrain what is possible to ensure we accomodate this
-> hugetlbfs serialization? I vote no.
-
-In what way is providing strong ABI guarantees for individual components
-constraining HugeTBLFS serialization?
-
-> Do we want to reject the hugetlbfs serialization until we have a year
-> of debate outlining every possible ABI scenario? I also vote no.
-
-That's a bit of a strawman argument.  Is designing a forward-looking ABI easy?
-No, but IMO "a year" is a massive exaggeration of the effort required to come up
-with a scheme that can survive a variety of plausible upgrade/downgrade scenarios.
-
-And again, I'm not saying we have to support infinite compatibility.  If some
-future kernel drops HugeTLBFS, and we decide not to provide a shim to support
-downgrading (which IMO is totally reasonable), then it's on the user to understand
-that moving to that new kernel is a one-way street.  Given that dropping something
-like HugeTLBFS would require significant changes in the software stack, I think
-it's perfectly fine to put the burden of understanding the implications on the end
-user (though realistically, there would be a copious amount of documentation and
-deprecation warnings).
-
-> Should we make a downgrade round trip a downstream problem? I think
-> so!
-
-Hard NAK.  There will inevitably be boundaries that cannot be crossed, but I am
-not at all ok punting on downgrades.  To me, that's basically saying "we want to
-add just enough support upstream so that it's not too painful to carry full support
-out-of-tree".  That completely goes against the spirit of open source and upstream
-Linux, and I want no part of it.
+--6NJv2EjhorC/TYUZ--
