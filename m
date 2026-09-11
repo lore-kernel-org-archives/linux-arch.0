@@ -1,213 +1,238 @@
-Received: from mout.web.de (mout.web.de [212.227.17.11])
+Received: from mail.mainlining.org (mail.mainlining.org [5.75.144.95])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BA78C44839E;
-	Fri, 11 Sep 2026 19:16:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.227.17.11
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0C1854AE130;
+	Fri, 11 Sep 2026 19:25:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=5.75.144.95
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789154209; cv=none; b=NZWjD2twoHBOuzhpFqobka1TBgnWkVj/cfrGYBnoZsaL2bNGBCj+O+Jl/QBmrITTmQsWypJQXe2HWN7DUKFPkk1xySG8ARaq9XolLp58hId1MIJU4/6+sUA8DhMLyJhlfBe/j6LJiv5xGzTUnUu8TLkDvMoG6Anyk43l2G6xGEk=
+	t=1789154759; cv=none; b=k/VJ8BUut5IO2AQb93JLerrpoWyMnsb6epaWWWMElGGZLtUjP96i2nPdajX6uBIDN7NTiyvYBHKoKCd7+B6TqIRCT+kuJGfC19ctTYW19RSfVhbyMKAig9qDKVAWf5MsJahJQ3rsDwk87f/hPvcfdQmTnfoxqGCn+4KRmBOUm2U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789154209; c=relaxed/simple;
-	bh=/OPifpwNBBwCsqW4NVO3v9FiQUIof82RXBe74H8BPjU=;
-	h=Message-ID:Date:MIME-Version:To:Cc:References:Subject:From:
-	 In-Reply-To:Content-Type; b=VTjOoq27PouuSKLyBTFzkusMidq8pVFEazb+br/IvJin6U6CQ2VfZ1dXcqxdczX556wSgjc1HB9UCpeCVXUON4GdDN71rplY0GlqPLWvRgbvzYE1nE2uldL6zwVMp2tv8Sl+EQ58wdLEKEINqK+/WCkhkBRhZBjSPhj32TsjXIw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de; spf=pass smtp.mailfrom=web.de; dkim=pass (2048-bit key) header.d=web.de header.i=markus.elfring@web.de header.b=qaJn5ijU; arc=none smtp.client-ip=212.227.17.11
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=web.de
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=web.de header.i=markus.elfring@web.de header.b="qaJn5ijU"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=web.de;
-	s=s29768273; t=1789154127; x=1789758927; i=markus.elfring@web.de;
-	bh=crOTx8FOU7qIu5wbIdCS1jM6sx3HEoR0Ko592oa1O2g=;
-	h=X-UI-Sender-Class:Message-ID:Date:MIME-Version:To:Cc:References:
-	 Subject:From:In-Reply-To:Content-Type:Content-Transfer-Encoding:
-	 cc:content-transfer-encoding:content-type:date:from:message-id:
-	 mime-version:reply-to:subject:to;
-	b=qaJn5ijUKOFFT0F86RNGE8NmQMTa8UMZRAHa5GQ29pr6yvNNxjN37LiIvqIRo+3t
-	 EzuD4UrDDICuNNtqi1f0ZeKB0327FdIM1DiG8PiSiJg/CHt6f+vsu3z98mbOfjV5V
-	 xh2yex1IPYQSjal2pDMSMuDdtlTpJeApdjZEIpdBu8G1YyQOOThDomLz4L5Az/7rw
-	 RH9rVTZrTwk1p32aRGgMBCXNmWcdJdggDyPnFXQw5cJ+jMOOfmIRn71h6U/KBBYxO
-	 5gJC1qatwR58tEsBps/Y5eeDyAjpJX+6udND8M/4M1AdgwFtihVM/aQ8cqTojmvbH
-	 x3bqOIAvfVN1ZEfXoQ==
-X-UI-Sender-Class: 814a7b36-bfc1-4dae-8640-3722d8ec6cd6
-Received: from client.hidden.invalid by smtp.web.de (mrweb105
- [213.165.67.124]) with ESMTPSA (Nemesis) id 1Mr7am-1wR7LU3BNG-00iMoa; Fri, 11
- Sep 2026 21:15:27 +0200
-Message-ID: <12c3cc91-1809-4e32-9b2a-41eb692495df@web.de>
-Date: Fri, 11 Sep 2026 21:15:22 +0200
+	s=arc-20240116; t=1789154759; c=relaxed/simple;
+	bh=PCyYoxWXg7sOin+tmY8Fbun+nm8rOPLv4vut1yRslEM=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=GnIxBpoY0ci6vd+yaWRFTYsL/WOjSbnXBs+r6OBlxgzR7twpg/oCNY+DGg9WykMnzQB8OIGM6e/KeN774Yes7jABwJ/nYerHndtx0Cz/7p2KpG7RKCOxVjS9C5MPr3Cwtq2HqGkHSNv/fAc18bHQ6mhCnNiwHyafyxXARCGKrQ8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=mainlining.org; spf=pass smtp.helo=mail.mainlining.org; arc=none smtp.client-ip=5.75.144.95
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=mainlining.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.helo=mail.mainlining.org
+From: Bradley Morgan <brads@mainlining.org>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: frederic@kernel.org,
+	neeraj.upadhyay@kernel.org,
+	boqun@kernel.org,
+	joelagnelf@nvidia.com,
+	rcu@vger.kernel.org,
+	"Andrew Morton" <akpm@linux-foundation.org>,
+	"Arnd Bergmann" <arnd@arndb.de>,
+	linux-arch@vger.kernel.org,
+	"Vineet Gupta" <vgupta@kernel.org>,
+	linux-snps-arc@lists.infradead.org,
+	"Russell King" <linux@armlinux.org.uk>,
+	linux-arm-kernel@lists.infradead.org,
+	"Guo Ren" <guoren@kernel.org>,
+	linux-csky@vger.kernel.org,
+	"Yoshinori Sato" <ysato@users.sourceforge.jp>,
+	"Rich Felker" <dalias@libc.org>,
+	"John Paul Adrian Glaubitz" <glaubitz@physik.fu-berlin.de>,
+	linux-sh@vger.kernel.org,
+	"Chris Zankel" <chris@zankel.net>,
+	"Max Filippov" <jcmvbkbc@gmail.com>,
+	linux-kernel@vger.kernel.org,
+	brads@mainlining.org
+Subject: [PATCH 1/6] lib: Add two-byte cmpxchg emulation function
+Date: Fri, 11 Sep 2026 19:25:34 +0000
+Message-ID: <20260911192540.20983-2-brads@mainlining.org>
+X-Mailer: git-send-email 2.47.3
+In-Reply-To: <20260911192540.20983-1-brads@mainlining.org>
+References: <20260911192540.20983-1-brads@mainlining.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-To: Lorenzo Stoakes <ljs@kernel.org>, linux-kbuild@vger.kernel.org,
- x86@kernel.org, Albert Ou <aou@eecs.berkeley.edu>,
- Alexandre Courbot <acourbot@nvidia.com>, Alexandre Ghiti <alex@ghiti.fr>,
- Alexey Gladkov <legion@kernel.org>, Alice Ryhl <aliceryhl@google.com>,
- Andreas Hindborg <a.hindborg@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
- Arnd Bergmann <arnd@arndb.de>, Benno Lossin <lossin@kernel.org>,
- Bill Wendling <morbo@google.com>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?=
- <bjorn3_gh@protonmail.com>, Boqun Feng <boqun@kernel.org>,
- Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>,
- Daniel Almeida <daniel.almeida@collabora.com>,
- Danilo Krummrich <dakr@kernel.org>, Dave Hansen
- <dave.hansen@linux.intel.com>, Gary Guo <gary@garyguo.net>,
- "H. Peter Anvin" <hpa@zytor.com>,
- Ilias Apalodimas <ilias.apalodimas@linaro.org>,
- Ingo Molnar <mingo@redhat.com>, Jonathan Corbet <corbet@lwn.net>,
- Josh Poimboeuf <jpoimboe@kernel.org>, Justin Stitt <justinstitt@google.com>,
- Linus Torvalds <torvalds@linux-foundation.org>,
- Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <masahiroy@kernel.org>,
- Miguel Ojeda <ojeda@kernel.org>, Nathan Chancellor <nathan@kernel.org>,
- Nick Desaulniers <ndesaulniers@google.com>, Nicolas Schier <nsc@kernel.org>,
- =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
- Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <pjw@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>,
- Tamir Duberstein <tamird@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
- Trevor Gross <tmgross@umich.edu>, Will Deacon <will@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, kernel-janitors@vger.kernel.org,
- linux-doc@vger.kernel.org, linux-efi@vger.kernel.org,
- rust-for-linux@vger.kernel.org, linux-arch@vger.kernel.org,
- llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
- linux-arm-kernel@lists.infradead.org, Jens Axboe <axboe@kernel.dk>
-References: <20260908-build-speedup-v1-8-5dc1ac01672d@kernel.org>
-Subject: Re: [PATCH 08/23] kallsyms: reimplement mksysmap in C
-Content-Language: en-GB, de-DE
-From: Markus Elfring <Markus.Elfring@web.de>
-In-Reply-To: <20260908-build-speedup-v1-8-5dc1ac01672d@kernel.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-X-Provags-ID: V03:K1:/x+OsbmElVwf5Xr46t9ZEbCOBO3JA8QaryZZvSUZB7UYRmY8q/J
- ngNPu1O18XT4ijr15o/tTU5dy9vLzvBJM8EoqYrAS9DyeBt6Ur8Bk0Uln7pIUk+t032R0DD
- R+OPOh2Z6s8PSS1DT+X6NI5EkGMWXwNlVHgeOFBwkAWKY/qPSip+IHCAduR2no0eePXt0RV
- zB8K+3EuSvdH+1PbscbcQ==
-X-Spam-Flag: NO
-UI-OutboundReport: notjunk:1;M01:P0:I5utK3vWekU=;GG9Vm3PSSlEvthedOdYocq24T4r
- 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
- U=
+Content-Transfer-Encoding: 8bit
 
-=E2=80=A6
-> +++ b/scripts/kallsyms.c
-=E2=80=A6
-> @@ -852,13 +848,33 @@ int main(int argc, char **argv)
-=E2=80=A6
-> +	in =3D argv[optind];
-> +	if (sysmap) {
-> +		sysmap_out =3D fopen(sysmap, "w");
-> +		if (!sysmap_out) {
-> +			perror(sysmap);
-> +			exit(EXIT_FAILURE);
-> +		}
-> +	}
-> +
-> +	if (optind + 1 =3D=3D argc) {
-> +		read_elf(in, sysmap_out);
-> +		if (fclose(sysmap_out)) {
-> +			perror(sysmap);
-> +			exit(EXIT_FAILURE);
-> +		}
-> +		return 0;
-> +	}
-> +
->  	out_bin_name =3D argv[optind + 1];
->  	out_bin_file =3D fopen(out_bin_name, "w");
->  	if (!out_bin_file) {
-=E2=80=A6
+cmpxchg_emu_u8() emulates one-byte cmpxchg() in terms of four-byte
+cmpxchg() for the architectures lacking native one-byte atomics.
+The same architectures also lack native two-byte cmpxchg(), where
+such an operation is not supported and either fails to compile via
+BUILD_BUG() or fails to link, because the bad pointer sentinels
+these architectures declare are never defined.
 
+Add cmpxchg_emu_u16(), the two-byte sibling. It reads the enclosing
+word with READ_ONCE(), splices the two target bytes through a union
+and loops on cmpxchg() of the full word until the compare succeeds.
+Like cmpxchg_emu_u8() it is fully ordered.
 
+The Kconfig symbol gating this file is renamed from
+ARCH_NEED_CMPXCHG_1_EMU to ARCH_NEED_CMPXCHG_1_2_EMU, as it now
+selects both the one-byte and the two-byte emulation.
 
-How do you think about to avoid a bit duplicate source code
-by using a goto chain?
-https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Do=
-cumentation/process/coding-style.rst?h=3Dv7.3-rc2#n572
+Suggested-by: Paul E. McKenney <paulmck@kernel.org>
+Signed-off-by: Bradley Morgan <brads@mainlining.org>
+---
+ arch/Kconfig                |  2 +-
+ arch/arc/Kconfig            |  2 +-
+ arch/arm/Kconfig            |  2 +-
+ arch/csky/Kconfig           |  2 +-
+ arch/sh/Kconfig             |  2 +-
+ arch/xtensa/Kconfig         |  2 +-
+ include/linux/cmpxchg-emu.h |  1 +
+ lib/Makefile                |  2 +-
+ lib/cmpxchg-emu.c           | 35 ++++++++++++++++++++++++++++++++---
+ 9 files changed, 40 insertions(+), 10 deletions(-)
 
-Regards,
-Markus
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 3bb2e568f5b1..d56064797e09 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -1817,7 +1817,7 @@ config CC_HAS_SANE_FUNCTION_ALIGNMENT
+ 	# strict alignment always, even with -falign-functions.
+ 	def_bool CC_HAS_MIN_FUNCTION_ALIGNMENT || CC_IS_CLANG
+ 
+-config ARCH_NEED_CMPXCHG_1_EMU
++config ARCH_NEED_CMPXCHG_1_2_EMU
+ 	bool
+ 
+ config ARCH_WANTS_PRE_LINK_VMLINUX
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 80e61175bf52..0e91d254eccb 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -14,7 +14,7 @@ config ARC
+ 	select ARCH_HAS_SETUP_DMA_OPS
+ 	select ARCH_HAS_SYNC_DMA_FOR_CPU
+ 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+-	select ARCH_NEED_CMPXCHG_1_EMU
++	select ARCH_NEED_CMPXCHG_1_2_EMU
+ 	select ARCH_SUPPORTS_ATOMIC_RMW if ARC_HAS_LLSC
+ 	select ARCH_32BIT_OFF_T
+ 	select BUILDTIME_TABLE_SORT
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 408aa58a2a5b..8fef4238d411 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -38,7 +38,7 @@ config ARM
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_OPTIONAL_KERNEL_RWX if ARCH_HAS_STRICT_KERNEL_RWX
+ 	select ARCH_OPTIONAL_KERNEL_RWX_DEFAULT if CPU_V7
+-	select ARCH_NEED_CMPXCHG_1_EMU if CPU_V6
++	select ARCH_NEED_CMPXCHG_1_2_EMU if CPU_V6
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_SUPPORTS_CFI
+ 	select ARCH_SUPPORTS_HUGETLBFS if ARM_LPAE
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index 4331313a42ff..5f26e8615d7d 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -37,7 +37,7 @@ config CSKY
+ 	select ARCH_INLINE_SPIN_UNLOCK_BH if !PREEMPTION
+ 	select ARCH_INLINE_SPIN_UNLOCK_IRQ if !PREEMPTION
+ 	select ARCH_INLINE_SPIN_UNLOCK_IRQRESTORE if !PREEMPTION
+-	select ARCH_NEED_CMPXCHG_1_EMU
++	select ARCH_NEED_CMPXCHG_1_2_EMU
+ 	select ARCH_WANT_FRAME_POINTERS if !CPU_CK610 && $(cc-option,-mbacktrace)
+ 	select ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT
+ 	select COMMON_CLK
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index d60f1d5a94c0..09e556fced01 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -14,7 +14,7 @@ config SUPERH
+ 	select ARCH_HIBERNATION_POSSIBLE if MMU
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+-	select ARCH_NEED_CMPXCHG_1_EMU
++	select ARCH_NEED_CMPXCHG_1_2_EMU
+ 	select CPU_NO_EFFICIENT_FFS
+ 	select DMA_DECLARE_COHERENT
+ 	select GENERIC_ATOMIC64
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+index f2f9cd9cde50..62019fd444d4 100644
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -14,7 +14,7 @@ config XTENSA
+ 	select ARCH_HAS_DMA_SET_UNCACHED if MMU
+ 	select ARCH_HAS_STRNCPY_FROM_USER if !KASAN
+ 	select ARCH_HAS_STRNLEN_USER
+-	select ARCH_NEED_CMPXCHG_1_EMU
++	select ARCH_NEED_CMPXCHG_1_2_EMU
+ 	select ARCH_USE_MEMTEST
+ 	select ARCH_USE_QUEUED_RWLOCKS
+ 	select ARCH_USE_QUEUED_SPINLOCKS
+diff --git a/include/linux/cmpxchg-emu.h b/include/linux/cmpxchg-emu.h
+index 998deec67740..fee8171fa05e 100644
+--- a/include/linux/cmpxchg-emu.h
++++ b/include/linux/cmpxchg-emu.h
+@@ -11,5 +11,6 @@
+ #define __LINUX_CMPXCHG_EMU_H
+ 
+ uintptr_t cmpxchg_emu_u8(volatile u8 *p, uintptr_t old, uintptr_t new);
++uintptr_t cmpxchg_emu_u16(volatile u16 *p, uintptr_t old, uintptr_t new);
+ 
+ #endif /* __LINUX_CMPXCHG_EMU_H */
+diff --git a/lib/Makefile b/lib/Makefile
+index 43421c39d21b..d0e69312176a 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -202,7 +202,7 @@ obj-$(CONFIG_CODE_TAGGING) += codetag.o
+ lib-$(CONFIG_GENERIC_BUG) += bug.o
+ 
+ obj-$(CONFIG_HAVE_ARCH_TRACEHOOK) += syscall.o
+-obj-$(CONFIG_ARCH_NEED_CMPXCHG_1_EMU) += cmpxchg-emu.o
++obj-$(CONFIG_ARCH_NEED_CMPXCHG_1_2_EMU) += cmpxchg-emu.o
+ 
+ obj-$(CONFIG_DYNAMIC_DEBUG_CORE) += dynamic_debug.o
+ #ensure exported functions have prototypes
+diff --git a/lib/cmpxchg-emu.c b/lib/cmpxchg-emu.c
+index 27f6f97cb60d..991a5969f471 100644
+--- a/lib/cmpxchg-emu.c
++++ b/lib/cmpxchg-emu.c
+@@ -1,8 +1,8 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ /*
+- * Emulated 1-byte cmpxchg operation for architectures lacking direct
+- * support for this size.  This is implemented in terms of 4-byte cmpxchg
+- * operations.
++ * Emulated 1-byte and 2-byte cmpxchg operations for architectures lacking
++ * direct support for these sizes.  These are implemented in terms of
++ * 4-byte cmpxchg operations.
+  *
+  * Copyright (C) 2024 Paul E. McKenney.
+  */
+@@ -43,3 +43,32 @@ uintptr_t cmpxchg_emu_u8(volatile u8 *p, uintptr_t old, uintptr_t new)
+ 	return old;
+ }
+ EXPORT_SYMBOL_GPL(cmpxchg_emu_u8);
++
++union u16_32 {
++	u16 h[2];
++	u32 w;
++};
++
++/* Emulate two-byte cmpxchg() in terms of 4-byte cmpxchg. */
++uintptr_t cmpxchg_emu_u16(volatile u16 *p, uintptr_t old, uintptr_t new)
++{
++	u32 *p32 = (u32 *)(((uintptr_t)p) & ~0x3);
++	int i = (((uintptr_t)p) & 0x2) / 2;
++	union u16_32 old32;
++	union u16_32 new32;
++	u32 ret;
++
++	WARN_ON_ONCE(((uintptr_t)p) & 0x1);
++	ret = READ_ONCE(*p32);
++	do {
++		old32.w = ret;
++		if (old32.h[i] != old)
++			return old32.h[i];
++		new32.w = old32.w;
++		new32.h[i] = new;
++		instrument_atomic_read_write(p, 2);
++		ret = data_race(cmpxchg(p32, old32.w, new32.w)); // Overridden above.
++	} while (ret != old32.w);
++	return old;
++}
++EXPORT_SYMBOL_GPL(cmpxchg_emu_u16);
+-- 
+2.47.3
+
