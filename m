@@ -1,133 +1,141 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 739323CD8CC;
-	Fri, 11 Sep 2026 12:21:22 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3A09C2F3632;
+	Fri, 11 Sep 2026 12:54:11 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789129283; cv=none; b=nJgyNNREoBCE/7la1QF0ix/UUPgR3zRxLkTZJVU8WBWNB7Nh2I64cUVYrrDVRXWFQz7+qQ4wy7tGW8SBj+d+04sqQHuiTB/nC/fW/Ih+qi2BkhbsRJ9N0n6tk2VEFtV/jujZ4rXWgxBnKCymMEfG0vjRcT4Z4aTlg+ptZqEhK6c=
+	t=1789131253; cv=none; b=EohAHzRfjtdHWOY/U9TfjlftK5dncV1JU+B4njPVRoIv9TOcP2NRRB96ctxW9AConFIOwUT++5V/OC++Pqa2rSYSTLRMLl/aWPi/FHJ3xVaQnSCHnwpowIwwSJL0KBla+yrjdWi0lKevxmbiyomrxj/Ii8Pw2Kf8jHQw1cFY4LY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789129283; c=relaxed/simple;
-	bh=FHzI9tbNNnn2gk60g1nKRSJTyEfTYiT7lGk0OOdtU2o=;
+	s=arc-20240116; t=1789131253; c=relaxed/simple;
+	bh=vmU9Dno4g9w5n0bGOE1W0Dp7oYJdxcLp+RMsbZV0yKk=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=jo+AzDQDubrDSdT+SPgDIvRE2lYxI1qcq2GhzvCU2UsHTuAtga6QPu00WBqFciBnEstjrBHdgLPRSR0wsIGNJDiwtZm/GaHg+bonIj8Q9rh4Mt7LxVw/ZzGdwsXaqo8rVdROPHs1da3PzWDxX7o3xSzqe319Vri04cWzPKp/T3o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ndVZ4MDC; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=KMNV649TYiGxwhr+8fpQ1cRt7aaIJX0//Hj7ci9/5vfKD/mZdZFbzeeiSANhBTvZ+yN76wHz2E5cCaAsgtyaSv0l7ny8j2BnfKHBKINIiHPMgbkIHqxmWRLXetk5555jbC4AeGSU8pgwFQJsuAJ5NoApZBROpwm4hZJx0DExRjw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=iX9r7CT/; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ndVZ4MDC"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B3D011F000FF;
-	Fri, 11 Sep 2026 12:21:10 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="iX9r7CT/"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3361B1F00893;
+	Fri, 11 Sep 2026 12:54:10 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789129282;
-	bh=hnePd57k46g8WcHZfl1wWVKwVdeqIAgwxtC2vZYKUdg=;
+	s=k20260515; t=1789131251;
+	bh=Y12PtyNHuLG4wZ4glSRJ8LTvqHRVQ8wgV9JCM2xUR5k=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=ndVZ4MDCqLs/GzhtgETpCUyvZ+82B7fAggByjtHixVFrcizERuPRxskk1NHVZNBKs
-	 bxZfnWVNqMEftfP+Sb32Z/IbEGxID7WNTBZ1jXMAXDw1dkz2OClC64k6bYcDGxZq2M
-	 gdh5GLw5yjJwq87NLUkso8azBwnZZwoSNxUdBK4AKm6R+7gNW6SP+NU2+/cU6ND+op
-	 2+zI3K2MBzwTalCZGAUHD1F18+NX5y7N558dI5g81eLU2AvSqu5TYUA4+MNeTBclcj
-	 k0JauTicNKQUsktsU7FqCb4p00bZGNcBXWbZQIKX1KGeqvdCU5A2qOYmEgMwqgYjCr
-	 AaQpU/w8SiYow==
-Date: Fri, 11 Sep 2026 13:21:08 +0100
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Petr Pavlu <petr.pavlu@suse.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
-	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
-	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Josh Poimboeuf <jpoimboe@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
-	Gary Guo <gary@garyguo.net>, =?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, 
-	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
-	Danilo Krummrich <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, 
-	Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, 
-	Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, Jonathan Corbet <corbet@lwn.net>, 
-	Randy Dunlap <rdunlap@infradead.org>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	llvm@lists.linux.dev, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
-	linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 13/23] modpost: hash module source per-file, not per-byte
-Message-ID: <aqPyDa12niPgKJpe@gremlin>
-References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <20260908-build-speedup-v1-13-5dc1ac01672d@kernel.org>
- <434a7a10-d83e-4402-be91-816bbbc15bb7@suse.com>
- <aqPYvKR_eRsFlEd-@gremlin>
- <f24ddba6-b7fa-434a-8a2c-9f04af6969e6@suse.com>
+	b=iX9r7CT/1y8Q0LOcrodYBYyxXyv8NUTTNIFjXvcD2IBGfP/r53ijoKwzqXPuMM7Pt
+	 nHCtxeDYzzT9Ne2jeATiIvCv9pIrLHLf3FqDTOWyVTbLYAhC8fSA+TNQJqUBV121Ad
+	 T/VcoRtCYgwP7T3KBzfj1eFCCIXhNVyWqEqGW4Qgy5f+GfRwlxUbOXrJZ6fXSwvcyb
+	 0yI5u72cS/E02IX4R83bdDd4rXt+pps6y/W01uAnkGvkGZgjzRqGxsROp8mGMruP8y
+	 Ypz/wA1hhNw7M3QRXNvaq+EV6vmg7XgQpTKmtbVztr3tIS/86w2ckPQSJGuhQOe6Tb
+	 37Hmq3O+H0/CA==
+Date: Fri, 11 Sep 2026 14:54:08 +0200
+From: Alejandro Colomar <alx@kernel.org>
+To: linux-man@vger.kernel.org
+Cc: Alejandro Colomar <alx@kernel.org>, astian <astian@memeware.net>, 
+	Andreas Jaeger <aj@suse.de>, Linux-Arch <linux-arch@vger.kernel.org>, 
+	Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH v1] man/man2/outb.2: Remove obsolete note about optimizations
+Message-ID: <049db2a23b976fcef7fe1a667848724fa2067f07.1789131131.git.alx@kernel.org>
+X-Mailer: git-send-email 2.55.0
+References: <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="cdkydfbvltlv2dhm"
 Content-Disposition: inline
-In-Reply-To: <f24ddba6-b7fa-434a-8a2c-9f04af6969e6@suse.com>
+In-Reply-To: <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
 
-On Fri, Sep 11, 2026 at 01:57:34PM +0200, Petr Pavlu wrote:
-> On 9/11/26 12:41 PM, Lorenzo Stoakes (ARM) wrote:
-> > On Thu, Sep 10, 2026 at 02:52:50PM +0200, Petr Pavlu wrote:
-> >> On 9/8/26 10:55 PM, Lorenzo Stoakes (ARM) wrote:
-> >>> modpost spends a long time md4 hashing module source at a per-byte
-> >>> granularity.
-> >>>
-> >>> Fix this by doing this hashing per-file instead by accumulating a per-file
-> >>> buffer in parse_file().
-> >>>
-> >>> All 11,189 .mod.c files and Module.symvers were confirmed to be identical
-> >>> with this change applied.
-> >>>
-> >>> This is especially impactful for allmodconfig incremental builds (where
-> >>> CONFIG_MODULE_SRCVERSION_ALL is set).
-> >>>
-> >>> Whole build, 128-thread Threadripper 9980X, best of N runs:
-> >>>
-> >>>                                          before   after     delta
-> >>>                                          -------------------------------
-> >>>   x86 allmodconfig, touch mm/vma.c, gcc    40.6s    38.2s     -2.4s (-6%)
-> >>>   x86 allmodconfig, touch mm/vma.c, clang  36.2s    35.0s     -1.2s (-3%)
-> >>>
-> >>> Assisted-by: LLM
-> >>> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> >>> ---
-> >>>  scripts/mod/sumversion.c | 56 +++++++++++++++++++++++++++++++++++++-----------
-> >>>  1 file changed, 44 insertions(+), 12 deletions(-)
-> >>
-> >> Support for the module srcversion is being removed in "module: remove
-> >> MODULE_VERSION() and srcversion" [1] and scripts/mod/sumversion.c should
-> >> be gone completely.
-> >
-> > Hmm, that series doesn't remove the script though, is that planned as a follow up?
->
-> My reply to that series [1] notes that it should also remove
-> scripts/mod/sumversion.c. It should be done in the next version.
 
-Ack!
+--cdkydfbvltlv2dhm
+Content-Type: text/plain; protected-headers=v1; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+From: Alejandro Colomar <alx@kernel.org>
+To: linux-man@vger.kernel.org
+Cc: Alejandro Colomar <alx@kernel.org>, astian <astian@memeware.net>, 
+	Andreas Jaeger <aj@suse.de>, Linux-Arch <linux-arch@vger.kernel.org>, 
+	Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH v1] man/man2/outb.2: Remove obsolete note about optimizations
+Message-ID: <049db2a23b976fcef7fe1a667848724fa2067f07.1789131131.git.alx@kernel.org>
+References: <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
+MIME-Version: 1.0
+In-Reply-To: <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
 
->
-> >
-> > I guess I can drop this patch from the series then :) Also patch 17 I think?
->
-> I agree. The module srcversion is no longer needed since build IDs are
-> nowadays the standard mechanism for providing effectively the same
-> functionality. While I'm not sure when the mentioned removal will land,
-> reviewing and polishing this patch and patch 17 would IMO be wasteful at
-> this point.
+It seems this was necessary due to an old glibc bug, fixed in glibc.git
+994cc0ea88ce (2000-08-23; "(_EXTERN_INLINE): Remove. Use static __inline
+instead of _EXTERN_INLINE.").
 
-Ack, will drop them for v2 then and add a note to the cover clearly stating the
-dependency!
+Link: <https://sourceware.org/git/?p=3Dglibc.git;a=3Dcommitdiff;h=3D994cc0e=
+a88ce7a33d532b735c0723705742b1a7e>
+Reported-by: astian <astian@memeware.net>
+Reported-by: Alejandro Colomar <alx@kernel.org>
+Cc: Andreas Jaeger <aj@suse.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Message-ID: <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
+Signed-off-by: Alejandro Colomar <alx@kernel.org>
+---
 
->
-> [1] https://lore.kernel.org/linux-modules/4e321525-708c-4964-9937-d94ea27e8d85@suse.com/
->
-> --
-> Thanks,
-> Petr
+Hi Arnd,
 
---
-Cheers, Lorenzo
+Thanks for confirming!  I've taken that as an 'Acked-by'.
+
+I'll also prepare a commit for mentioning the non-portability, and the
+archs that support this.  Thanks for that suggestion!
+
+
+Have a lovely day!
+Alex
+
+ man/man2/outb.2 | 9 ---------
+ 1 file changed, 9 deletions(-)
+
+diff --git a/man/man2/outb.2 b/man/man2/outb.2
+index 98bd6bab4ffa..ba87455b121f 100644
+--- a/man/man2/outb.2
++++ b/man/man2/outb.2
+@@ -62,15 +62,6 @@ .SH DESCRIPTION
+ .\" in addition to that given in
+ .\" .BR outb (9).
+ .P
+-You must compile with
+-.B \-O
+-or
+-.B \-O2
+-or similar.
+-The functions
+-are defined as inline macros, and will not be substituted in without
+-optimization enabled, causing unresolved references at link time.
+-.P
+ You use
+ .BR ioperm (2)
+ or alternatively
+
+base-commit: bd51589ffe65f720d9618bffef5da00938e9842e
+--=20
+2.55.0
+
+
+--cdkydfbvltlv2dhm
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCgAdFiEES7Jt9u9GbmlWADAi64mZXMKQwqkFAmqj+fAACgkQ64mZXMKQ
+wqmR8A//RBm+MrVT9DrkbExfgyUqwuWYzyh4UpTAQbxhRJMC13l3TV+p2oENgfrF
+BzaVQnEr/X6G1TCLqTsqa+sJJ99XI6t7+rGT0VbpBpHvWaFGTR+hSMm6m9nqQ+w+
++weCcZkkk5fGm8qiZciJNE4aGM66m26thQoqTg6PQowBnIfhe+j8bMzrq9EnkIPo
+a3uEWMZgTxlvIIKPfO56Pny+xGcvEcQy0LSSREU0Bq3x2bwPY4gYkSJnpcrx1SZ3
+yIDTkXApAB6WCkLZYr7RjkL0pHk2MeII2tTunZafZ1GG6WvF3cRS1BGn5XuH/+Uo
+PKp4d4IK3zku43wEAumH9zyZMRTgi5R+r7GuqwNIWacV6xLp16BxZddwzH8yDW4q
+mmKsS605tyjYZSX/Ro1xFFcJHYejclrR0DI9xYh6SLWm4F3NxWh/0WgUUzIak0YQ
+drgMpf/ATAbNmtPDQ4dEpaSX9FMlQbdNZq/0gPOTdF0blCRXCTOD+n3OUH5iEZ8M
+DjZi9vlizYE5a89oQEBEM1bveSzwh9IQE1pahurvDr+M9cSlztv3HVX6UCJe8zJF
+5m+EXhQQ4tLtGhgdsITKVJyVmKY3W2Jinmw93w/hhd5TIfbJ9g5kTRKije3Z1ezu
+phGeLPCCnVN/rivRrb59FeIm5XpKwkyfl994HBedHpFA4IBkXfg=
+=uO01
+-----END PGP SIGNATURE-----
+
+--cdkydfbvltlv2dhm--
