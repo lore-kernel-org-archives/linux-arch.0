@@ -1,163 +1,150 @@
-Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com [209.85.221.51])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from fhigh-a1-smtp.messagingengine.com (fhigh-a1-smtp.messagingengine.com [103.168.172.152])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 35B35443C3C
-	for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2026 11:57:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.51
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 21E892E542C;
+	Fri, 11 Sep 2026 12:20:51 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.152
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789127860; cv=none; b=M5YveygFzy7kZIF7sD/MoBbKPPmF3RZLlm+niKpMT9ePbzbngVzPUl4i0ja6Wg0MjFYQsx9lNYit/sC48oEStTEFUZz2p6iNdTdwOWypbizsNlIUsoaGUd0coPEGIiqNvz5SADs3DDl3nqJjnABKlb7sV8L8MfnWq6GxT94ykFE=
+	t=1789129254; cv=none; b=bQLfE51HhXLBuYfeyDdoHoIoNfoGCaoL4wth9Q0BkqEjdb9Psdel6664xWxOvPgLd7hzQerP4TKVLMYUx9DhZFBwfV1cMQ2aTbqWPS3ZSdSbTzbLZPJapAC1Vns2pN1fktIFcTbUn2eXsVrW7c4VaAdlzJddOrsGYioxdk/xYWU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789127860; c=relaxed/simple;
-	bh=1lRC8ZGjaJk1CFMMkFB+zwt0ch81ggJd9O2XFlK/4VY=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=V3T6JyUhl1123WWWhhVSYVIwWzUYvDjbEoVoeRqzPjFQLHcnRRePqixi9nqaIH3SW73NNH6+MlBbd/hpcUPlh/suTX8jUTWGJVdLgBg0zeN/jAsMyIZ0wwCzD7gjvtSG9A2fzX0TF64TanTymD+kQbmvxmSWry00YYQd2S3GObA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=cUBzSOOU; arc=none smtp.client-ip=209.85.221.51
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1789129254; c=relaxed/simple;
+	bh=b+xEuspYkjMBmlRvZiWciiKYoR20PgwVVqxO8v7qS58=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=Im+3Fbw6MPCXYDDxgXnFlX/VRoQnBheTMS5QckJzmCfbVgVw6UoxRNv1bXrJ87o0WF8a7i/DksQ5PmUF100Zb2v0lQkIQqiegkQkeGGdQjhjY65Mko2dWmxehcgXKkBHwmak4McpVVSJJH987fNjD0FdsfLcGBQm4Kvk7BTG+oE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=B2KDladt; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=wxCbCG1v; arc=none smtp.client-ip=103.168.172.152
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="cUBzSOOU"
-Received: by mail-wr1-f51.google.com with SMTP id ffacd0b85a97d-4843f205a5bso549108f8f.1
-        for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2026 04:57:38 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1789127856; x=1789732656; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=wr7n2cO3L1gr9+vq7aPZsfQwfFiNJgEahYqoxuJotBY=;
-        b=cUBzSOOUwzzqxDC+vpZBsvPZyne0rSo5Iv2fNaVmgBjouOyMtE6UfB8G9bsZefMktB
-         dKs9pIMO+8B2F/GdHaOaMo+0h27j493jL7A9DkGlrh+J4/dzg7ykHEZC3tk9SY/s+s/I
-         PU7xVdgEwQl+Eub1RVsJ6h7b40tYHFZ348G5S6M87Y7vJtLwcIIMWc0xJPEnLSZqE5iA
-         pdnpef71I1Yn3dDf8LEQJ62R/6BKeuzVwbDmgxAlkDnt6eF0//hs6KPBH1FRNCgaNXRc
-         pHzjD/fabk+Jsz7S5C+O491YMjAc9M6HMloUkXdPBUWgTiodBv+UX9UObFCTEW7lv2vt
-         nkXQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1789127856; x=1789732656;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=wr7n2cO3L1gr9+vq7aPZsfQwfFiNJgEahYqoxuJotBY=;
-        b=kODQygZ1X6qYXMpdG/GlqFxCRZGs7x6D4fgpezriNY55KYA3ke7uaGUcsLN7W8b73b
-         +/EAJEmT7fIl5Ne/1iGTkL9Av/hGyg4EoFj4fhCabdqDnSD/oFhQUhQ85CQJGjdSyXN6
-         8+YLVlkGyW0HLsSIuPMBykqEgRTpEN6b1ngE4UjhCezKMfYug+3RQRzs4KbjOr+8CR1H
-         mpkyOo8ULgaeAhaJUfyx0RgB8UZM4SL/uKuKh3wmOnnUAyzLPStMFFiFmiI89URW93OU
-         IbzDjceCtqkgyVeniV9SSqzfFyCc0QLJVQRx5NH+c1pzNffwNTJCFNt42ezsdOVoPiWh
-         NLuw==
-X-Forwarded-Encrypted: i=1; AKwUvBy2aj6zN4lJG/4+Rg/8xS6NZgG92ddtVVxlPfSXb6x1EE5e/IPuM0e0UNdfEhmuvkXL9VhPVA0C+99G@vger.kernel.org
-X-Gm-Message-State: AFuF++nwopobzjF539jyuX/QFEEZf/VVRtmN4SuuO3Eo/ATJI9Vswp7e
-	j7Ku2eIKHqbk7dYL6ZHIs+NWZlQYYBybyqTmHZo9Vq0kEHRraYUpXt7KMVxrsKwQmOo=
-X-Gm-Gg: AYBFou0XTg2oiObRjhMbL+fzYOaEnKwejPI2t79d+s5wcBnOU2ai4Uj2D4Cgl1/1+RC
-	j5VQUQArXxKhgYzBIsBsF0YOGFUXpa37lwMZwM1kQ230MPBlOsjYNSzJkgLBkmxN7ONUC0RfJrj
-	hA2GMlsN3u3oGlkKRtmG81wDqrdxuLEu2iD2570btzyNah91+C5DVbb9TpfKUTMUBnExg03Nnax
-	zcAMbfukELjtC1d2+DmGhyfgL6j8KY6fEp/nwcG7SXwHiVb7i3TlmuICixYmS4Yn/VW+3Sx8ZYI
-	j3eXh83palvtErLug1MXZtXqIRTOUXHPf71u7Y0VHdBdee1qke0eH/GmLHILjLSvdzRYdr73gfX
-	ej3L3xrB5UJ8YYxWe4dn6VF93ZS1BwXXNqW7uRV4TXTxK3+xLPqHCopsojhNE91+fD0o2oggeGN
-	KaPxHttis2/TLXgsdPnKia9GDou23vqufFa/Ve5B6SpizfPojj4kv9+2lTu+C2JreymglgZAlTh
-	5QUsYlZ3s0zYbq4ok2urOcSqtdtJJKETS97
-X-Received: by 2002:a05:600d:8496:20b0:499:8aff:59b6 with SMTP id 5b1f17b1804b1-49e6199234amr30006585e9.14.1789127856324;
-        Fri, 11 Sep 2026 04:57:36 -0700 (PDT)
-Received: from ?IPV6:2a07:de40:8100:0:89a9:fd0e:583d:4a53? ([2001:af0:8000:1409:193:86:92:181])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49d26c300e2sm164777985e9.8.2026.09.11.04.57.34
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 11 Sep 2026 04:57:35 -0700 (PDT)
-Message-ID: <f24ddba6-b7fa-434a-8a2c-9f04af6969e6@suse.com>
-Date: Fri, 11 Sep 2026 13:57:34 +0200
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="B2KDladt";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="wxCbCG1v"
+Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
+	by mailfhigh.phl.internal (Postfix) with ESMTP id 4B05C1400138;
+	Fri, 11 Sep 2026 08:20:50 -0400 (EDT)
+Received: from ams-imap-03 ([10.64.2.23])
+  by ams-compute-02.internal (MEProxy); Fri, 11 Sep 2026 08:20:50 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1789129249;
+	 x=1789215649; bh=Qxwnp7cGJ3b921bADKRcDRkcwsc3OksxRmgtXyUmX4o=; b=
+	B2KDladtytUV6B9K9q+d/+XuTXRbe9I/58nyIhRrbSWWSto6FdHsHY71UrfKIRxZ
+	pgFdYhk014mEd1akvf12a7Ve1Ui+0ATSaAiz30IcIKLLIh2FoTm9jyL5B4OZRv9D
+	xMyUq9v8RtDCfmADdCrVrXm10FXM/5BAyahdAzQVYqf7/01qmXyr02rvcR9ps4Ez
+	bT03ukStOXZ/PGxt6lbvqKdbeBapuT0w0ICvGAxEoUntwhJb4ruVc3uJKxq5raBx
+	D+8vZwf90Gs6jc71zFC4A5q6UiY6+ri1Ud4Z85SBXoiPpB6sSStBmjN7pXCrqKHL
+	Dv9vXbr9th4K8h73EaiCLw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1789129249; x=
+	1789215649; bh=Qxwnp7cGJ3b921bADKRcDRkcwsc3OksxRmgtXyUmX4o=; b=w
+	xCbCG1vhKurLxQvvyE+vT7VXv+obopeqCCWeJzpAmbmKh6h8C/1phgVj922BmlWk
+	pfEkgB3Yd6tgznhup6TaYDSEuXfj0rZ3LH/YDkBemsLSAGL6WRtJfmYEni2agbx7
+	WKErSEuTdhaUJHPa5NdZ/94jOS9y1OTn5u57oRrbNRvAioONMRyfcrK7cL/5+uu4
+	ZRFwEpbXk0ayUImxcB3aaFm6BCkG56L6DKaEGmBcSH++/ED1dJLVQudydDCubLVM
+	+xG5BJQoxn4X5jRk6aZHossqJ5DC9PwJPqxlnnMSlj5kZI63p8i4lC6SRFyARq0d
+	tAcN7O11YP4nVtlf3nEVw==
+X-ME-Sender: <xms:HvKjanPto3C4_jsxzTav2yHkDo4lrhqDmiBLBfKE-qfMDq1zdHtVZw>
+    <xme:HvKjasw_tLiSdx7iWRgK1jCggeq-azQTSHT7kwfyhklIx45jfbC-E0SQZkWOqceDm
+    zpQJmlMpyiaAZvgSmKIHvL90rf6UjTldDIAXUjjb6ZAyKou_SZU6Mus>
+X-ME-Proxy-Cause: dmFkZTE+aWhMJrI4VcIq6qA0bOlxL9vSGDXREwkDOiNOAVBF3rW97fRO4nJd1BaPKmWyRM
+    Bn1GcYBnAMye6B8fYVCwe/0UsjTHBNtoYtfG/YmehIpzKwa7wNI2hIwuSl8PUeMu6wi06X
+    2x2IkK+8kzLYj3yBu6jItjeF1B4JQeLTn4Ci4TCrVBKgMAGJQEXuszTynIk3woBRZizJQr
+    4FUqL2xk7OfWp1+tTy5aHqOzPPNMfCingWOOVrwyL2wjNvRrsgNpDd2nOlVWL9cLuqpUsK
+    5y73zZ1FVcvBVDcde2sv/yGyu85NYF+aZZhPjRab74EP3GlQ7XrGkCjNTHkL2ab5jakxRR
+    CzYh5c+KGAOh1OYVs08CRMI3SurCOJEzsRMJKMVmHHPQlsu0wZna/hyjXd0IXQaLcpQ0mV
+    HD5ZcmJIItcOzrOwA4AN24TJUC+PKbIRx5yJ1fXH1YNhTFjQrggwItUqUAttKSLrpmmTOk
+    hUU/Y3ac1eKfP88kDzb/8oFcM/2y/JKNcrjylmeuPbDDxAicHuBkyl2r75fm3OVQNxOe9+
+    DbTwR+9CfCLPhaGqySXrPBI0FdZ+kRO5oEUubU2iV8vI/IVRRYOLwTDBx88mJTE8sz0OSi
+    4jkeibAxl/5IuDEuVDEVK5Id8X1D2er12ghDuYGfCqcBVb9PqJVh/oG8JlOg
+X-ME-Proxy: <xmx:H_KjapZgPViIFE8R53TkjqzWsGr6TvO39QdJ0haZmRhxx9Ep9n_CeQ>
+    <xmx:H_KjapU9Ldl7sCFR-anNxFxhN8bYh9C2hdwoHKI61V0MxCVWHnnXZw>
+    <xmx:H_KjanheLG_qcVDV6XK1Lg3e9tjKJeLRl-qHwNB0q5aoNfV5u4ReHQ>
+    <xmx:H_KjantK1VCjjXJUKw9nYfBmZZa4MG41e4G29trAx0gp-9xRdJlnZQ>
+    <xmx:IfKjakylIO8S3Eq9VpX3gbXJ60wWt-6X16SxWIquHRueaKAbc5yqx208>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.ams.internal (Postfix, from userid 501)
+	id 3EA9D32A0081; Fri, 11 Sep 2026 08:20:46 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 13/23] modpost: hash module source per-file, not per-byte
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>,
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
- Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling
- <morbo@google.com>, Justin Stitt <justinstitt@google.com>,
- Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
- Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
- Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>,
- Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
- Ard Biesheuvel <ardb@kernel.org>,
- Ilias Apalodimas <ilias.apalodimas@linaro.org>,
- Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>,
- Gary Guo <gary@garyguo.net>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?=
- <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>,
- Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>,
- Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>,
- Daniel Almeida <daniel.almeida@collabora.com>,
- Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot
- <acourbot@nvidia.com>, =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
- Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>,
- linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
- llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
- linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
- linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
- linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
-References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <20260908-build-speedup-v1-13-5dc1ac01672d@kernel.org>
- <434a7a10-d83e-4402-be91-816bbbc15bb7@suse.com> <aqPYvKR_eRsFlEd-@gremlin>
-Content-Language: en-US
-From: Petr Pavlu <petr.pavlu@suse.com>
-In-Reply-To: <aqPYvKR_eRsFlEd-@gremlin>
-Content-Type: text/plain; charset=UTF-8
+X-ThreadId: ATCgFu_bFIfN
+Date: Fri, 11 Sep 2026 14:20:05 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Alejandro Colomar" <alx@kernel.org>, astian <astian@memeware.net>,
+ "Andreas Jaeger" <aj@suse.de>
+Cc: linux-man <linux-man@vger.kernel.org>,
+ Linux-Arch <linux-arch@vger.kernel.org>
+Message-Id: <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
+In-Reply-To: <aqPmNKbqjBILjoqw@devuan>
+References: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
+ <aqPmNKbqjBILjoqw@devuan>
+Subject: Re: outb(2): terminology correction
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 
-On 9/11/26 12:41 PM, Lorenzo Stoakes (ARM) wrote:
-> On Thu, Sep 10, 2026 at 02:52:50PM +0200, Petr Pavlu wrote:
->> On 9/8/26 10:55 PM, Lorenzo Stoakes (ARM) wrote:
->>> modpost spends a long time md4 hashing module source at a per-byte
->>> granularity.
->>>
->>> Fix this by doing this hashing per-file instead by accumulating a per-file
->>> buffer in parse_file().
->>>
->>> All 11,189 .mod.c files and Module.symvers were confirmed to be identical
->>> with this change applied.
->>>
->>> This is especially impactful for allmodconfig incremental builds (where
->>> CONFIG_MODULE_SRCVERSION_ALL is set).
->>>
->>> Whole build, 128-thread Threadripper 9980X, best of N runs:
->>>
->>>                                          before   after     delta
->>>                                          -------------------------------
->>>   x86 allmodconfig, touch mm/vma.c, gcc    40.6s    38.2s     -2.4s (-6%)
->>>   x86 allmodconfig, touch mm/vma.c, clang  36.2s    35.0s     -1.2s (-3%)
->>>
->>> Assisted-by: LLM
->>> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
->>> ---
->>>  scripts/mod/sumversion.c | 56 +++++++++++++++++++++++++++++++++++++-----------
->>>  1 file changed, 44 insertions(+), 12 deletions(-)
->>
->> Support for the module srcversion is being removed in "module: remove
->> MODULE_VERSION() and srcversion" [1] and scripts/mod/sumversion.c should
->> be gone completely.
-> 
-> Hmm, that series doesn't remove the script though, is that planned as a follow up?
+On Fri, Sep 11, 2026, at 13:36, Alejandro Colomar wrote:
+>> Date: 2026-08-31 09:09:46+0000
+>> From: astian <astian@memeware.net>
 
-My reply to that series [1] notes that it should also remove
-scripts/mod/sumversion.c. It should be done in the next version.
+> Yes, 'inline functions' seems more appropriate than 'inline macros' (all
+> macros are inlined, due to how the preprocessor works, so they'd be just
+> macros, and as you showed, these are not even macros --except maybe in
+> some architectures--).
+>
+> However, I doubt the entire paragraph.  I don't know why inline
+> functions would produce unresolved references at link time _even if they
+> were not substituted_.  The point of inline functions is that they are
+> sometimes inlined, and sometimes not, and the compiler does the right
+> thing in both cases.
+>
+> This seems like paranoia from decades ago, when inline functions were
+> less known (and maybe compilers were more buggy than they are now).
 
-> 
-> I guess I can drop this patch from the series then :) Also patch 17 I think?
+My best guess is that this described a bug in glibc that was fixed in
+https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=994cc0ea88ce7a33d532b735c0723705742b1a7e
 
-I agree. The module srcversion is no longer needed since build IDs are
-nowadays the standard mechanism for providing effectively the same
-functionality. While I'm not sure when the mentioned removal will land,
-reviewing and polishing this patch and patch 17 would IMO be wasteful at
-this point.
+commit 994cc0ea88ce7a33d532b735c0723705742b1a7e
+Author: Andreas Jaeger <aj@suse.de>
+Date:   Wed Aug 23 16:57:31 2000 +0000
 
-[1] https://lore.kernel.org/linux-modules/4e321525-708c-4964-9937-d94ea27e8d85@suse.com/
+    (_EXTERN_INLINE): Remove. Use static __inline instead of _EXTERN_INLINE.
 
--- 
-Thanks,
-Petr
+--- a/sysdeps/unix/sysv/linux/i386/sys/io.h
++++ b/sysdeps/unix/sysv/linux/i386/sys/io.h
+@@ -40,12 +40,7 @@ extern int iopl (int __level) __THROW;
+ 
+ #if defined __GNUC__ && __GNUC__ >= 2
+ 
+-# ifndef _EXTERN_INLINE
+-#  define _EXTERN_INLINE extern __inline
+-# endif
+-
+-
+-_EXTERN_INLINE unsigned char
++static __inline unsigned char
+ inb (unsigned short int port)
+ {
+   unsigned char _v;
+...
+
+Using 'extern __inline' without optimization in --std=gnu89 would lead to
+the compiler using an 'extern' reference rather than emitting a static
+version, the 'static __inline' variant works as intended in both gnu
+and standard c99.
+
+> Arnd, should we remove the paragraph entirely?  Or is there any obscure
+> reason why optimizations are required?
+
+Yes, removing it seems best to me. If you're changing the file, I would
+suggest also adding a note that the interfaces are nonportable and only
+work on x86 and alpha. 32-bit arm has an empty stub implementation for
+sys/io.h, everything else doesn't seem to have anything in glibc here.
+
+       Arnd
