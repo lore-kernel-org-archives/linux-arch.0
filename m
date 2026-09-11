@@ -1,99 +1,153 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C93D53C10A0;
-	Fri, 11 Sep 2026 11:28:55 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 327AB44780F;
+	Fri, 11 Sep 2026 11:36:29 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789126153; cv=none; b=EwYrbwGMbCTigbYckgYyO4OW2KXdqZ+K3pJZjxIiBPUgDJt7MVnkB5w1V6pbR7iO1E4OdyDtXcO9xCgzjEUQhaM2ISPEnXMnJqOL24M+WAxrulFE9SvhKRWqKR2koEi9wVYxGeP/fOkNjvwDnDUKXFWhXvOUN4IwAWJXzhGO1tA=
+	t=1789126591; cv=none; b=MiQgDRQtRiZ9pLYBjwLWJN2CMZvkkSVlAdwBxCois+YOULna3yQ5sUJeTiL1me0e8UgyMtsPSGfKfMF1qmK2n8Dm5RH4TQMSeOhFt0YlEcuiX3mrSUOQ57ZS8iVGsDOXHWOY9dZq9Ju6Q/DQ5Z5jtACFqODzyPvVnbvnKzCEum0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789126153; c=relaxed/simple;
-	bh=XMxz3xWwdRk7Fg5cORCddjoeCBzF69+zQWbsu3cN3+Q=;
+	s=arc-20240116; t=1789126591; c=relaxed/simple;
+	bh=+qMKPziVfnt8c6WfBGKva66n05dt49W+4h7uHkDbGLk=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=N9kham9cd21ryJ0Z5kbp27mzinT0xRW93AScn1EDUX0V2BDLD3PZkVoXwenRKMYtDVetBwBqjPQ8kmA1lcqExuorLy2Gj8jnuU6UGq730M+IKMjW/zk0WescWo9IkTnfoj7J/NOVr3Z+OvLG3QzNqxCX5PB94aYz2fh9XyG1UTM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=XcaafniE; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=jqlQDYDbZ1nAyAik+18PekwKkkTuqhJbSudw3NfYke8jDYDEdtMvSfzEvibbaLNta2keEb911FCCZewBcesQNtkVy7bJlOma81nMTUuicmdwGhdVTMx9QiumO4sdAd4Pd5YOLBnFoUmjcYiFUJ3TIbJ1o/nOFywQ+xXMAsZ981k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=WFJ9fDLF; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="XcaafniE"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 41AB41F00893;
-	Fri, 11 Sep 2026 11:28:37 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="WFJ9fDLF"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id A72FA1F000FF;
+	Fri, 11 Sep 2026 11:36:28 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789126128;
-	bh=TdwEh7wUoEZtB1Tewr8qRCnFQlC7xBSTZiMIf5U/rjY=;
+	s=k20260515; t=1789126589;
+	bh=AQU6MWJbRrhREm5QDygJms8/XqL/d2LFpfFIMzUS2Ow=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=XcaafniETDZ2wSKshYLr6RtM3Sy36Vvk9x/PRAb7U5Vsd5tHji8Y5MUvTIcmc6tXq
-	 43fsW07NSMowcy2CrrI6dSrbNTz4TevR+A9k/LA5KmAmkrf8lxCwnKmxc/M+aNiWS4
-	 2OxL8+5hczzpmlY07cIZ9csCmNw9hGd934G1GxWVY6Uc9NpWxYoM+y27Ufsh8MqTkS
-	 YHWkS9RKL7qg1Hfhlo3MZPpecwBlKy6O8hFerGRfFlGex5bH9O0EzMCuoBG5z+YTez
-	 JT7aoNeua+A+sFXxwhF2OKCeUdt2ixwEaGX96dYDlPPBkDkLgL9XEGI3L09PlHhW5Z
-	 2hH322CB8yvTA==
-Date: Fri, 11 Sep 2026 12:28:34 +0100
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Florian Fainelli <florian.fainelli@broadcom.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
-	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
-	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Josh Poimboeuf <jpoimboe@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
-	Gary Guo <gary@garyguo.net>, =?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, 
-	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
-	Danilo Krummrich <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, 
-	Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, 
-	Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, Jonathan Corbet <corbet@lwn.net>, 
-	Randy Dunlap <rdunlap@infradead.org>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	llvm@lists.linux.dev, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
-	linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 00/23] kbuild: significantly speed up kernel builds
-Message-ID: <aqPlUt6aIvof2LcM@gremlin>
-References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <a4167b18-f1ea-48bb-9287-210bdd4f35eb@broadcom.com>
+	b=WFJ9fDLFfExcrcsOi01Azg7y+L2qnUf73SY1fmYUk2LGghPJrjb76xE0D4TF6IXBV
+	 G4PxXK0muB3d8E2Tdr1/YWdhUeFxFBknjL0M/X41D0xazM1XGCO4rSAVKsoy3iQbBt
+	 FfUiZwyUowTnMh2nVnZGrGctmxsqUjqTqhBIvMEZx6zmRHnb3cQy9ttcqksUhMGAVs
+	 h0R1CrsWwA7A9UzkEodI+ZDVwYI9WK/xWdOSt1KJo30G49cMorWJjcWVFi9qwuCRUF
+	 qnKW7iOxpTTzMjRyidVN12I+QIK4VK45CAq/zRUsMF1XzqzwTBBivpiSYSXv9xwhBl
+	 NWIphGwJ9/Atg==
+Date: Fri, 11 Sep 2026 13:36:26 +0200
+From: Alejandro Colomar <alx@kernel.org>
+To: astian <astian@memeware.net>
+Cc: linux-man <linux-man@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
+	linux-arch@vger.kernel.org
+Subject: Re: outb(2): terminology correction
+Message-ID: <aqPmNKbqjBILjoqw@devuan>
+References: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="eu7bcqr4hwqoophm"
 Content-Disposition: inline
-In-Reply-To: <a4167b18-f1ea-48bb-9287-210bdd4f35eb@broadcom.com>
+In-Reply-To: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
 
-On Wed, Sep 09, 2026 at 02:58:59PM -0700, Florian Fainelli wrote:
-> On 9/8/26 13:55, Lorenzo Stoakes (ARM) wrote:
-> > A typical kernel build consists of a frustratingly large amount of time
-> > spent stuck in single-threaded bottlenecks.
-> >
-> > It turns out that there's a lot we can do about this and doing so
-> > significantly impacts kernel build times.
-> >
-> > This series makes allmodconfig builds up to 36% faster, incremental builds
-> > up to ~70% faster, and noop builds up to ~90% faster.
-> >
-> > Builds are faster across the board on every device I tested.
-> >
-> > Machines used for perf testing:
-> >
-> > * Threadripper -   x86, AMD Threadripper 9980X, 64 cores, 128 threads
-> > * EPYC         -   x86, 2 socket EPYC 9754, 256 cores, 512 threads
-> > * M2           - arm64, 2022 M2 macbook pro, 8 cores, 8 threads
-> >                          (4 perf, 4 efficiency)
+
+--eu7bcqr4hwqoophm
+Content-Type: text/plain; protected-headers=v1; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+From: Alejandro Colomar <alx@kernel.org>
+To: astian <astian@memeware.net>
+Cc: linux-man <linux-man@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
+	linux-arch@vger.kernel.org
+Subject: Re: outb(2): terminology correction
+Message-ID: <aqPmNKbqjBILjoqw@devuan>
+References: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
+MIME-Version: 1.0
+In-Reply-To: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
+
+[CC +=3D GENERIC INCLUDE/ASM HEADER FILES maintainers]
+
+Hi astian, Arnd,
+
+> Date: 2026-08-31 09:09:46+0000
+> From: astian <astian@memeware.net>
 >
-> My AMD EPYC 9454P server shows an improvement in the order of 13% using the
-> arm64's defconfig and make -j97. Thanks for doing this!
+> outb(2) says:
+>=20
+>   You must compile with -O or -O2 or similar.  The functions are defined
+>   as inline macros, and will not be substituted in without optimization
+>   enabled, causing unresolved references at link time.
+>=20
+> "inline macros [...] not substituted in without optimization" doesn't
+> make any sense.  C pre-processor macros cannot be inline or not inline.
+> Indeed these are inline *functions* (at least in this system) with
+> embedded assembly apparently referencing parameters (which, I surmise,
+> is why the functions need to be inlined by the compiler or the assembly
+> will not work).
+>=20
+> From /usr/include/x86_64-linux-gnu/sys/io.h (glibc 2.43):
+>=20
+>   [...]
+>   #if defined __GNUC__ && __GNUC__ >=3D 2
+>=20
+>   static __inline unsigned char
+>   inb (unsigned short int __port)
+>   {
+>     unsigned char _v;
+>=20
+>     __asm__ __volatile__ ("inb %w1,%0":"=3Da" (_v):"Nd" (__port));
+>     return _v;
+>   }
+>=20
+>   [...]
+>=20
+>   static __inline void
+>   outb (unsigned char __value, unsigned short int __port)
+>   {
+>     __asm__ __volatile__ ("outb %b0,%w1": :"a" (__value), "Nd" (__port));
+>   }
+>=20
+>   [...]
+>=20
+> So I would say just s/inline macros/inline functions/g.
 
-Nice thanks! Good to confirm others are seeing the benefits :)
+Yes, 'inline functions' seems more appropriate than 'inline macros' (all
+macros are inlined, due to how the preprocessor works, so they'd be just
+macros, and as you showed, these are not even macros --except maybe in
+some architectures--).
 
-> --
-> Florian
->
+However, I doubt the entire paragraph.  I don't know why inline
+functions would produce unresolved references at link time _even if they
+were not substituted_.  The point of inline functions is that they are
+sometimes inlined, and sometimes not, and the compiler does the right
+thing in both cases.
 
---
-Cheers, Lorenzo
+This seems like paranoia from decades ago, when inline functions were
+less known (and maybe compilers were more buggy than they are now).
+
+Arnd, should we remove the paragraph entirely?  Or is there any obscure
+reason why optimizations are required?
+
+
+Have a lovely day!
+Alex=20
+
+--=20
+<https://www.alejandro-colomar.es>
+
+--eu7bcqr4hwqoophm
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCgAdFiEES7Jt9u9GbmlWADAi64mZXMKQwqkFAmqj57EACgkQ64mZXMKQ
+wqnfuA/5ATYh1GqbR0ESbOWRXNIRo++ceelL3P+WLa9UUFoad4OCn1jZmptqp7V6
+aUF4U+SVdfLFSuYC/xCa+i+Y5Hq7SOX3ybFRNqbKECTXSzrW9Wa6IuXuxHCyUdSh
+M87zj/l0jnPeucdKn8XDetqiEQmVGIOiP4AmI+dPHh5/uWGnx06T5TEFatIR4is/
+AsfsFinrLc6SgWpOIYNFywqY4ccXK9un1iIYKva8fxXW/GmiA+MjZdiXSsZyNP8f
+hS939LzSnvm6rRqLF6+fnw9gbqTIKGcifuQuMwgxLJz/y+BZ5RqSaLlX9AMNnq4H
+EphIKQyG1TGPtc+psDVikavx1kq9s7oMDbSBYLlpQDLvRKTM/tuKn7po/GdVGMqH
+JA2meWJ7aD8GUkmzG1XdTAiFP2+lZ3KxbKjv1R8GEdhTVOL2GfGKyrz42BM7djLH
+F/bX7D8ZgbuCcF90kUWsV5HKuKlstNQNof3FGxds0TtJ5VWK7vfFu5jXbomS9oU7
+vX5OV5xf7A3HPOE9UOHMQkWW15Ajecz2EaTiVAxlYiMHcjSxgZK/78iEd9g0hotS
+A3d/saj+pOpEVq546FaIk5bNHoAMdkotYHCBjUOUG0uR4WksZvPOnk8TJ1kSMw/J
+dYrP2CU/wMoCVUrTUj528IvglPUEKPadXX+ruSK91sLOFUwPa7I=
+=0FlB
+-----END PGP SIGNATURE-----
+
+--eu7bcqr4hwqoophm--
