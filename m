@@ -1,33 +1,49 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 374F3457E55;
-	Fri, 11 Sep 2026 17:10:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8B3238C2C3
+	for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2026 17:16:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789146618; cv=none; b=p356PQGYvqEam5Lp4u7QHZpZ8y0sQBa2RKPBgTddGbdwsr6zGmX73LhyaHT/KoKQ8nnIOiEaFobu3ebdrDoUwd8JvXM5edGAN/QqtWa0DX4sYRKpE8nMmARxNV1z8MBs7atSAudqF7S1VgxxxucBGOonA3hvIWpq2PGyGrA8TRI=
+	t=1789147010; cv=none; b=YR1QzPBfXVPo8/FVr9pTpbWXbpZUNgRj1bzMa/LDsw3N4b+7IOu/DLD4tWYYW8McY57FxHs0U/2zibXFjL+efo8LcyM3marnt9kFxq01Ix+jC6Q63G06py1Ug2JboJ4aQPiVCd5hvY88l9SLyiR6gELqEjojll31hJH5nuJUR8w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789146618; c=relaxed/simple;
-	bh=70mmmfYxx5aDBfb3A3A64dexxI6qP8wxu39hdOEJ1aE=;
+	s=arc-20240116; t=1789147010; c=relaxed/simple;
+	bh=GMwpKaQo+b1xj3kxl72UkiN0737lUQVYesuUiulsvUs=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=BvwgrWqQjO0e00cuX07PdfLVFgq5LyjZDm+9ETeFwbRDJ+PvEQ5xx1+Kqe9aEh99Rtj4kncKTcrCsSDVDSyCxdpEOhH/XAfkfa27mW/raBpEX4GVFEG4r3ld+RwVZUGPE22VqIQLiffkNwQHhoJKu34nbI3LoQta0GkE6BUBSIg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ijM28yeS; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=Dzu6aUO4zY9+sbOidjmtdTIDal4bsXsAl2etAQ2uFL+bE4zea9PcJ4cKMJ1jseNxB60gMdv3vIGlonbm2Z7SJFEk1G41HbWET/KAfSE/ldLEjI1r2i5Ae3FGC1HYTFZQ8k9SJ+HH/uKma8SGFaevFk3J8wniCv4OwwYgTtsfOWM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=Jegzyb6w; arc=none smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ijM28yeS"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CF04C1F00893;
-	Fri, 11 Sep 2026 17:10:00 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789146616;
-	bh=s9/6KbXsN5PKvzZs2esn/AhPtSfdFVVRLNXzVuGAieA=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=ijM28yeSeyX61csI7of/aYV6Iu23+fQwE2+XMHuORDOd9Q58+YKhljzXl+IBz4Fum
-	 GTMuOS39dD0b/3zG27EdOqjAkusXj6vqwIKDQom13aNYWLtWjARY8yD4Fc6x0WSfAd
-	 5HAYNkwusAIKERa3WHgLnp9dbK4wyC6PAL6LjnODK0XIQGto7t/yd8GJT72smbQhyu
-	 OzZ3q1/AtOHdfG+oKc4RjaNN9Ctxu4fwIB3/CiLYKdFCtFfw3NRb+woAMvc191s+Fq
-	 6WOJgh4F2SXLfO/k1FpUXsN9xExTqEQkHaoouynhFq/HctD3ifs1J/7Tb6gKYO0V6p
-	 uNN1MzB53btqw==
-Message-ID: <0a4fd9e1-3e7d-4910-99ee-6f6f89b5ca93@kernel.org>
-Date: Fri, 11 Sep 2026 19:09:41 +0200
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="Jegzyb6w"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1789147005;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references:autocrypt:autocrypt;
+	bh=2gLJ161dkwsq964nEcXmxhgBhqu8XXJwXX0byV6GR0o=;
+	b=Jegzyb6w1GOcwCA2AdjYkBa4u/Wnuzmo6D8KOb7fTvyDaBRKIKoF5h4LbjhGpVp/p0cvxa
+	SAVkRzJS90PIeF/4T12HWT/rCvgaWWjhResUmsYuSXsyMs7WZkTMELhTa0RZTcS9/4sAQI
+	DCYPX4LssLJdhMmBGisTXWb6M11k1NY=
+Received: from mx-prod-mc-08.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-648-Rj-cvUwGMAyGPQnZAnD2Fw-1; Fri,
+ 11 Sep 2026 13:16:39 -0400
+X-MC-Unique: Rj-cvUwGMAyGPQnZAnD2Fw-1
+X-Mimecast-MFC-AGG-ID: Rj-cvUwGMAyGPQnZAnD2Fw_1789146996
+Received: from mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.17])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mx-prod-mc-08.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 3F1851801366;
+	Fri, 11 Sep 2026 17:16:35 +0000 (UTC)
+Received: from [100.90.56.12] (headnet05.pony-001.prod.iad2.dc.redhat.com [10.2.32.117])
+	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id 21D561956095;
+	Fri, 11 Sep 2026 17:16:26 +0000 (UTC)
+Message-ID: <a3c2d0f6-a7b5-4344-b837-434aeac5dbc0@redhat.com>
+Date: Fri, 11 Sep 2026 19:16:23 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,233 +51,103 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 3/8] mm: use hw_pte_t for generic PTE table storage
-To: Muhammad Usama Anjum <usama.anjum@arm.com>,
- Jani Nikula <jani.nikula@linux.intel.com>,
- Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
- Rodrigo Vivi <rodrigo.vivi@intel.com>, Tvrtko Ursulin
- <tursulin@ursulin.net>, David Airlie <airlied@gmail.com>,
- Simona Vetter <simona@ffwll.ch>, Dimitri Sivanich
- <dimitri.sivanich@hpe.com>, Arnd Bergmann <arnd@arndb.de>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
- Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>,
- Stefano Stabellini <sstabellini@kernel.org>,
- Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
- Andrew Morton <akpm@linux-foundation.org>,
- "Liam R. Howlett" <liam@infradead.org>, Lorenzo Stoakes <ljs@kernel.org>,
- Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
- Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Andrey Ryabinin <ryabinin.a.a@gmail.com>,
- Pasha Tatashin <pasha.tatashin@soleen.com>, Chris Li <chrisl@kernel.org>,
- Kairui Song <kasong@tencent.com>, Uladzislau Rezki <urezki@gmail.com>,
- Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu
- <mhiramat@kernel.org>, Alexei Starovoitov <ast@kernel.org>,
- Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
- Eduard Zingerman <eddyz87@gmail.com>,
- Kumar Kartikeya Dwivedi <memxor@gmail.com>, Ingo Molnar <mingo@redhat.com>,
- Arnaldo Carvalho de Melo <acme@kernel.org>,
- Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>,
- Miaohe Lin <linmiaohe@huawei.com>, Dennis Zhou <dennis@kernel.org>,
- Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>,
- Mike Rapoport <rppt@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>,
- ziy@nvidia.com, pfalcato@suse.de, agordeev@linux.ibm.com,
- ryan.roberts@arm.com
-Cc: linux-kernel@vger.kernel.org, intel-gfx@lists.freedesktop.org,
- dri-devel@lists.freedesktop.org, linux-parisc@vger.kernel.org,
- xen-devel@lists.xenproject.org, linux-mm@kvack.org,
- linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- kasan-dev@googlegroups.com, linux-trace-kernel@vger.kernel.org,
- bpf@vger.kernel.org, linux-perf-users@vger.kernel.org, damon@lists.linux.dev
-References: <20260903103002.1091859-1-usama.anjum@arm.com>
- <20260903103002.1091859-4-usama.anjum@arm.com>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
+Subject: Re: [RFC PATCH 0/3] liveupdate: Move to feature flags for LUO and
+ memfd ABI compatibility
+To: Jason Gunthorpe <jgg@nvidia.com>, Sean Christopherson <seanjc@google.com>
+Cc: David Matlack <dmatlack@google.com>, Logan Odell <loganodell@google.com>,
+ arnd@arndb.de, pasha.tatashin@soleen.com, rppt@kernel.org,
+ pratyush@kernel.org, graf@amazon.com, akpm@linux-foundation.org,
+ maz@kernel.org, oupton@kernel.org, bhelgaas@google.com, alex@shazbot.org,
+ kevin.tian@intel.com, dwmw2@infradead.org, baolu.lu@linux.intel.com,
+ joro@8bytes.org, will@kernel.org, robin.murphy@arm.com,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ kexec@lists.infradead.org, linux-mm@kvack.org, kvm@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev,
+ linux-pci@vger.kernel.org, iommu@lists.linux.dev
+References: <20260903023452.721732-1-loganodell@google.com>
+ <20260904160009.GV4157646@nvidia.com> <aptFFYqcSiBdMLE8@google.com>
+ <20260905012403.GX4157646@nvidia.com> <aqIAtOoew-_6jw29@google.com>
+ <20260910143448.GD3968357@nvidia.com> <aqLOWkuVKccR-I7W@google.com>
+ <20260910171210.GF3968357@nvidia.com>
+From: Paolo Bonzini <pbonzini@redhat.com>
 Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- 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
- qIws/H2t
-In-Reply-To: <20260903103002.1091859-4-usama.anjum@arm.com>
-Content-Type: text/plain; charset=UTF-8
+Autocrypt: addr=pbonzini@redhat.com; keydata=
+ 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
+In-Reply-To: <20260910171210.GF3968357@nvidia.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
+X-Scanned-By: MIMEDefang 3.0 on 10.30.177.17
 
-On 9/3/26 12:29, Muhammad Usama Anjum wrote:
-> Generic page-table interfaces use pte_t * for both pointers to PTE table
-> storage and pointers to software PTE values. Convert the generic
-> declarations and their MM, fs, and kernel users together so parameters,
-> return types, callbacks, and local pointers that designate table storage
-> use hw_pte_t *.
+On 9/10/26 19:12, Jason Gunthorpe wrote:
+> Keep in mind the actual goal here. Someone has kernel A and they need
+> to blind kexec into kernel B and NOT have the machine explode, or all
+> the VMs sitting on it lost.
 > 
-> Include linux/pgtable_types.h from headers that expose the converted
-> interfaces. It continues to provide pgprot_t to vmalloc.h through
-> asm/page.h.
-> 
-> Keep software PTE values as pte_t and retain pte_t * for value interfaces.
-> 
-> No architecture selects ARCH_HAS_HW_PTE_T at this point, so hw_pte_t
-> remains an alias of pte_t and this changes the interface vocabulary without
-> changing representation or behavior.
-> 
-> Most of this mechanical conversion was generated with the Coccinelle script
-> included in the cover letter. The script deliberately ignores pte_t *
-> pointers named ptentp because they designate software PTE values. The
-> result was then audited, and sites the script could not convert were
-> updated by hand.
-> 
-> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
-> ---
-> Changes since v1:
-> - Fold the header includes into their first user instead of keeping a
->   stand-alone preparation patch.
-> - Rebase onto mm-new and rerun the Coccinelle script.
-> - Use software PTE value terminology.
-> 
-> Changes since RFC v1:
-> - Clarify that linux/pgtable_types.h provides both generic hw_pte_t
->   definitions.
-> - Clarify that the distinct generic definition is activated by an
->   architecture opt-in.
-> ---
->  fs/hugetlbfs/inode.c             |  3 +-
->  fs/proc/task_mmu.c               | 33 ++++++-------
->  include/asm-generic/hugetlb.h    | 15 +++---
->  include/asm-generic/pgalloc.h    |  6 +--
->  include/asm-generic/tlb.h        |  5 +-
->  include/linux/hugetlb.h          | 50 +++++++++++---------
->  include/linux/mm.h               | 26 +++++------
->  include/linux/page_table_check.h | 10 ++--
->  include/linux/pagewalk.h         |  8 ++--
->  include/linux/pgtable.h          | 79 +++++++++++++++++---------------
->  include/linux/rmap.h             |  2 +-
->  include/linux/swapops.h          |  6 ++-
->  include/linux/vmalloc.h          |  4 +-
->  include/trace/events/xen.h       | 10 ++--
->  kernel/bpf/arena.c               |  9 ++--
->  kernel/events/core.c             |  3 +-
->  mm/damon/ops-common.c            |  2 +-
->  mm/damon/ops-common.h            |  2 +-
->  mm/damon/vaddr.c                 | 20 ++++----
->  mm/debug_vm_pgtable.c            |  2 +-
->  mm/filemap.c                     |  4 +-
->  mm/gup.c                         |  9 ++--
->  mm/highmem.c                     | 15 +++---
->  mm/hmm.c                         |  6 +--
->  mm/huge_memory.c                 |  4 +-
->  mm/hugetlb.c                     | 60 ++++++++++++------------
->  mm/hugetlb_vmemmap.c             | 13 +++---
->  mm/internal.h                    | 16 +++----
->  mm/kasan/init.c                  | 12 ++---
->  mm/kasan/shadow.c                |  6 +--
->  mm/khugepaged.c                  | 50 ++++++++++++--------
->  mm/ksm.c                         |  7 +--
->  mm/madvise.c                     | 14 +++---
->  mm/mapping_dirty_helpers.c       |  4 +-
->  mm/memory-failure.c              |  6 +--
->  mm/memory.c                      | 78 ++++++++++++++++---------------
->  mm/mempolicy.c                   |  4 +-
->  mm/migrate.c                     |  4 +-
->  mm/migrate_device.c              |  4 +-
->  mm/mincore.c                     |  4 +-
->  mm/mlock.c                       |  4 +-
->  mm/mprotect.c                    | 19 ++++----
->  mm/mremap.c                      |  4 +-
->  mm/page_table_check.c            |  4 +-
->  mm/pagewalk.c                    |  9 ++--
->  mm/percpu.c                      |  2 +-
->  mm/pgtable-generic.c             | 20 ++++----
->  mm/ptdump.c                      |  2 +-
->  mm/rmap.c                        |  6 +--
->  mm/sparse-vmemmap.c              | 22 ++++-----
->  mm/swap_state.c                  |  3 +-
->  mm/swapfile.c                    |  5 +-
->  mm/userfaultfd.c                 | 32 +++++++------
->  mm/util.c                        |  2 +-
->  mm/vmalloc.c                     | 11 +++--
->  mm/vmscan.c                      |  6 +--
->  56 files changed, 410 insertions(+), 356 deletions(-)
-> 
-> diff --git a/fs/hugetlbfs/inode.c b/fs/hugetlbfs/inode.c
-> index 7611a8470ea26..ddaab714c3e02 100644
-> --- a/fs/hugetlbfs/inode.c
-> +++ b/fs/hugetlbfs/inode.c
-> @@ -328,7 +328,8 @@ static void hugetlb_delete_from_page_cache(struct folio *folio)
->  static bool hugetlb_vma_maps_pfn(struct vm_area_struct *vma,
->  				unsigned long addr, unsigned long pfn)
->  {
-> -	pte_t *ptep, pte;
-> +	hw_pte_t *ptep;
-> +	pte_t pte;
->  
->  	ptep = hugetlb_walk(vma, addr, huge_page_size(hstate_vma(vma)));
->  	if (!ptep)
+> Meaning you must have a way to determine before the kexec if kernel A
+> is producing something B will *accept*. Accept is not "parse and fail
+> with EOPNOTSUPP" like most uapi schems. Aceept means bring in and
+> actually fully support and use.
+>
+> So how do you solve this problem? You MUST declare in some kind of
+> manifest exactly what ABIs are supported, in some way.
 
-This is interesting.
+You still have to pass out of band what B will accept.  Passing a string 
+or a bitvector doesn't change much.
 
-Assuming we'd had a hugetlb_hw_pte_t, we be able tojust naturally catch things
-like using
+The problem, again is that memfd is the easy case.  KVM would bump the 
+version number on every other release, as even a new serialized MSR will 
+be an incompatibility.
 
-	ptep_get()
+Rather, forwards kexec *must* work (again, that's nothing but a variant 
+of "we don't break userspace") and for backwards kexec, well, you must 
+know what you're doing.  QEMU has been doing backwards live migration 
+forever, and QEMU is a gnarly C program that has grown by accretion as 
+we were learning all this stuff, so it's not impossible at all.
 
-instead of
+> Yeah, CSP broadly has to do exactly this across a wide range of
+> topics. It is a further reason why this feature is not exactly usable
+> by a "mainstream" user :\
+It's not easy, but you aren't even trying to do it right in the kernel. 
+You are starting from *a* solution and saying that it makes the feature 
+hard to use.
 
-	huge_ptep_get()
+And I'm not saying to dismiss your work or ability, quite the contrary 
+in fact!  It's just that you're solving for the wrong complexity, and 
+only partially so because (if I'm not wrong) there's still the question 
+of how to bring the manifest of kernel B into kernel A.
 
-That caused bugs and headakes before.
+Paolo
 
-But I'm not actually proposing that at this point, because it would make messed
-up infrastructure where we hacked in hugetlb, like page_vma_mapped_walk() harder
-to use.
-
-
-Regarding this patch, I guess we'll regenerate it when the time comes. We
-*might* have to do this stepwise.
-
-E.g., merge patch #1 first, to then convert individual MM components. But we can
-discuss that once the time comes.
-
--- 
-Cheers,
-
-David
