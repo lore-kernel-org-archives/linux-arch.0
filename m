@@ -1,172 +1,163 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com [209.85.221.51])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 618ED2E92BA;
-	Fri, 11 Sep 2026 11:43:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 35B35443C3C
+	for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2026 11:57:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789127019; cv=none; b=tsEQSuyPrPcG9n7sDpckJIKrm7J2zdf/SjHj1Xk+Mm+C6nuESRrcayXvGbmcioGYNRyMtM8LnmrsfIOPtpexyQe62GGFeLqkqUEcmrcBo0tudAXTlE0xu4DbvyxusSOBmgkf9LlHohBqG5tg1+pYY184NJImKv3+eMNp8DSY5TM=
+	t=1789127860; cv=none; b=M5YveygFzy7kZIF7sD/MoBbKPPmF3RZLlm+niKpMT9ePbzbngVzPUl4i0ja6Wg0MjFYQsx9lNYit/sC48oEStTEFUZz2p6iNdTdwOWypbizsNlIUsoaGUd0coPEGIiqNvz5SADs3DDl3nqJjnABKlb7sV8L8MfnWq6GxT94ykFE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789127019; c=relaxed/simple;
-	bh=e3YOIiwGt3cgjmHRWB+RtXrSlL305mlQvYlfAb1lp5Q=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=MC+Bnr8NMc1zR41ybzGeD0x7GLBXPGLRlwN44V5/hLFmyUHGWZA7tfx642U9YNrTw5yqSeoPKEZ8RYAs+kNA+LOgHpOUb2QqvXJIAOoQTMXCXMHDRi25Xl1YPTuQiKZQOwFPeBcFZJER7pCp3eu6W8IoyhSctxUNug+HZx/GJTA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=nGLQK1oI; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789127860; c=relaxed/simple;
+	bh=1lRC8ZGjaJk1CFMMkFB+zwt0ch81ggJd9O2XFlK/4VY=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=V3T6JyUhl1123WWWhhVSYVIwWzUYvDjbEoVoeRqzPjFQLHcnRRePqixi9nqaIH3SW73NNH6+MlBbd/hpcUPlh/suTX8jUTWGJVdLgBg0zeN/jAsMyIZ0wwCzD7gjvtSG9A2fzX0TF64TanTymD+kQbmvxmSWry00YYQd2S3GObA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=cUBzSOOU; arc=none smtp.client-ip=209.85.221.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nGLQK1oI"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3A1E91F000FF;
-	Fri, 11 Sep 2026 11:43:37 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789127018;
-	bh=+/EgM/tA+vXq24JmJMyx4qJZTVGVARPGFHT4/5zGdU8=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=nGLQK1oIDgahtv16mUKFB6LsqT+q3DRPQTjQ1qvEebGKz4pt/xnKQsXn69ApZoV5w
-	 ZzM44ewbyqCCgB3qBLIOz/EcdjuU9C9FgkegyAPU5DZf2nS8oAluI3v1Dy6b73bNUJ
-	 d8vIvAnzEmsqe6ZDmbhEViL4JPnkk2AI8GdPWWa9bymOnfCjqejZCM+9YNdMY5CEDt
-	 ZNKcrHsOCmpWtOOMeAR4wXD0OW5KpcSdszJngPoIR6MUFFVQjQ4j9pLY2a+izuMaWS
-	 BLZLDewedS9Wnt4rJ8ptgUKCEyLqAdCLsx632Q7TP2cslLNHUwoKlWqIDje+3kRhs6
-	 NH6AGDt7mUP6Q==
-Date: Fri, 11 Sep 2026 13:43:35 +0200
-From: Alejandro Colomar <alx@kernel.org>
-To: astian <astian@memeware.net>
-Cc: linux-man <linux-man@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
-	linux-arch@vger.kernel.org
-Subject: Re: outb(2): terminology correction
-Message-ID: <aqPpPQlEtyrIm42d@devuan>
-References: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
- <aqPmNKbqjBILjoqw@devuan>
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="cUBzSOOU"
+Received: by mail-wr1-f51.google.com with SMTP id ffacd0b85a97d-4843f205a5bso549108f8f.1
+        for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2026 04:57:38 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1789127856; x=1789732656; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=wr7n2cO3L1gr9+vq7aPZsfQwfFiNJgEahYqoxuJotBY=;
+        b=cUBzSOOUwzzqxDC+vpZBsvPZyne0rSo5Iv2fNaVmgBjouOyMtE6UfB8G9bsZefMktB
+         dKs9pIMO+8B2F/GdHaOaMo+0h27j493jL7A9DkGlrh+J4/dzg7ykHEZC3tk9SY/s+s/I
+         PU7xVdgEwQl+Eub1RVsJ6h7b40tYHFZ348G5S6M87Y7vJtLwcIIMWc0xJPEnLSZqE5iA
+         pdnpef71I1Yn3dDf8LEQJ62R/6BKeuzVwbDmgxAlkDnt6eF0//hs6KPBH1FRNCgaNXRc
+         pHzjD/fabk+Jsz7S5C+O491YMjAc9M6HMloUkXdPBUWgTiodBv+UX9UObFCTEW7lv2vt
+         nkXQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1789127856; x=1789732656;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=wr7n2cO3L1gr9+vq7aPZsfQwfFiNJgEahYqoxuJotBY=;
+        b=kODQygZ1X6qYXMpdG/GlqFxCRZGs7x6D4fgpezriNY55KYA3ke7uaGUcsLN7W8b73b
+         +/EAJEmT7fIl5Ne/1iGTkL9Av/hGyg4EoFj4fhCabdqDnSD/oFhQUhQ85CQJGjdSyXN6
+         8+YLVlkGyW0HLsSIuPMBykqEgRTpEN6b1ngE4UjhCezKMfYug+3RQRzs4KbjOr+8CR1H
+         mpkyOo8ULgaeAhaJUfyx0RgB8UZM4SL/uKuKh3wmOnnUAyzLPStMFFiFmiI89URW93OU
+         IbzDjceCtqkgyVeniV9SSqzfFyCc0QLJVQRx5NH+c1pzNffwNTJCFNt42ezsdOVoPiWh
+         NLuw==
+X-Forwarded-Encrypted: i=1; AKwUvBy2aj6zN4lJG/4+Rg/8xS6NZgG92ddtVVxlPfSXb6x1EE5e/IPuM0e0UNdfEhmuvkXL9VhPVA0C+99G@vger.kernel.org
+X-Gm-Message-State: AFuF++nwopobzjF539jyuX/QFEEZf/VVRtmN4SuuO3Eo/ATJI9Vswp7e
+	j7Ku2eIKHqbk7dYL6ZHIs+NWZlQYYBybyqTmHZo9Vq0kEHRraYUpXt7KMVxrsKwQmOo=
+X-Gm-Gg: AYBFou0XTg2oiObRjhMbL+fzYOaEnKwejPI2t79d+s5wcBnOU2ai4Uj2D4Cgl1/1+RC
+	j5VQUQArXxKhgYzBIsBsF0YOGFUXpa37lwMZwM1kQ230MPBlOsjYNSzJkgLBkmxN7ONUC0RfJrj
+	hA2GMlsN3u3oGlkKRtmG81wDqrdxuLEu2iD2570btzyNah91+C5DVbb9TpfKUTMUBnExg03Nnax
+	zcAMbfukELjtC1d2+DmGhyfgL6j8KY6fEp/nwcG7SXwHiVb7i3TlmuICixYmS4Yn/VW+3Sx8ZYI
+	j3eXh83palvtErLug1MXZtXqIRTOUXHPf71u7Y0VHdBdee1qke0eH/GmLHILjLSvdzRYdr73gfX
+	ej3L3xrB5UJ8YYxWe4dn6VF93ZS1BwXXNqW7uRV4TXTxK3+xLPqHCopsojhNE91+fD0o2oggeGN
+	KaPxHttis2/TLXgsdPnKia9GDou23vqufFa/Ve5B6SpizfPojj4kv9+2lTu+C2JreymglgZAlTh
+	5QUsYlZ3s0zYbq4ok2urOcSqtdtJJKETS97
+X-Received: by 2002:a05:600d:8496:20b0:499:8aff:59b6 with SMTP id 5b1f17b1804b1-49e6199234amr30006585e9.14.1789127856324;
+        Fri, 11 Sep 2026 04:57:36 -0700 (PDT)
+Received: from ?IPV6:2a07:de40:8100:0:89a9:fd0e:583d:4a53? ([2001:af0:8000:1409:193:86:92:181])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49d26c300e2sm164777985e9.8.2026.09.11.04.57.34
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 11 Sep 2026 04:57:35 -0700 (PDT)
+Message-ID: <f24ddba6-b7fa-434a-8a2c-9f04af6969e6@suse.com>
+Date: Fri, 11 Sep 2026 13:57:34 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="b7jix4lwmaqlkmqt"
-Content-Disposition: inline
-In-Reply-To: <aqPmNKbqjBILjoqw@devuan>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 13/23] modpost: hash module source per-file, not per-byte
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>,
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
+ Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling
+ <morbo@google.com>, Justin Stitt <justinstitt@google.com>,
+ Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
+ x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+ Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+ Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>,
+ Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
+ Ard Biesheuvel <ardb@kernel.org>,
+ Ilias Apalodimas <ilias.apalodimas@linaro.org>,
+ Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>,
+ Gary Guo <gary@garyguo.net>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?=
+ <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>,
+ Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>,
+ Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>,
+ Daniel Almeida <daniel.almeida@collabora.com>,
+ Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot
+ <acourbot@nvidia.com>, =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
+ Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>,
+ linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+ llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
+ linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+ linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
+ linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
+References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
+ <20260908-build-speedup-v1-13-5dc1ac01672d@kernel.org>
+ <434a7a10-d83e-4402-be91-816bbbc15bb7@suse.com> <aqPYvKR_eRsFlEd-@gremlin>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <aqPYvKR_eRsFlEd-@gremlin>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
+On 9/11/26 12:41 PM, Lorenzo Stoakes (ARM) wrote:
+> On Thu, Sep 10, 2026 at 02:52:50PM +0200, Petr Pavlu wrote:
+>> On 9/8/26 10:55 PM, Lorenzo Stoakes (ARM) wrote:
+>>> modpost spends a long time md4 hashing module source at a per-byte
+>>> granularity.
+>>>
+>>> Fix this by doing this hashing per-file instead by accumulating a per-file
+>>> buffer in parse_file().
+>>>
+>>> All 11,189 .mod.c files and Module.symvers were confirmed to be identical
+>>> with this change applied.
+>>>
+>>> This is especially impactful for allmodconfig incremental builds (where
+>>> CONFIG_MODULE_SRCVERSION_ALL is set).
+>>>
+>>> Whole build, 128-thread Threadripper 9980X, best of N runs:
+>>>
+>>>                                          before   after     delta
+>>>                                          -------------------------------
+>>>   x86 allmodconfig, touch mm/vma.c, gcc    40.6s    38.2s     -2.4s (-6%)
+>>>   x86 allmodconfig, touch mm/vma.c, clang  36.2s    35.0s     -1.2s (-3%)
+>>>
+>>> Assisted-by: LLM
+>>> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+>>> ---
+>>>  scripts/mod/sumversion.c | 56 +++++++++++++++++++++++++++++++++++++-----------
+>>>  1 file changed, 44 insertions(+), 12 deletions(-)
+>>
+>> Support for the module srcversion is being removed in "module: remove
+>> MODULE_VERSION() and srcversion" [1] and scripts/mod/sumversion.c should
+>> be gone completely.
+> 
+> Hmm, that series doesn't remove the script though, is that planned as a follow up?
 
---b7jix4lwmaqlkmqt
-Content-Type: text/plain; protected-headers=v1; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-From: Alejandro Colomar <alx@kernel.org>
-To: astian <astian@memeware.net>
-Cc: linux-man <linux-man@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
-	linux-arch@vger.kernel.org
-Subject: Re: outb(2): terminology correction
-Message-ID: <aqPpPQlEtyrIm42d@devuan>
-References: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
- <aqPmNKbqjBILjoqw@devuan>
-MIME-Version: 1.0
-In-Reply-To: <aqPmNKbqjBILjoqw@devuan>
+My reply to that series [1] notes that it should also remove
+scripts/mod/sumversion.c. It should be done in the next version.
 
-> Date: 2026-09-11 13:36:29+0200
-> From: Alejandro Colomar <alx@kernel.org>
->
-> [CC +=3D GENERIC INCLUDE/ASM HEADER FILES maintainers]
->=20
-> Hi astian, Arnd,
->=20
-> > Date: 2026-08-31 09:09:46+0000
-> > From: astian <astian@memeware.net>
-> >
-> > outb(2) says:
-> >=20
-> >   You must compile with -O or -O2 or similar.  The functions are defined
-> >   as inline macros, and will not be substituted in without optimization
-> >   enabled, causing unresolved references at link time.
-> >=20
-> > "inline macros [...] not substituted in without optimization" doesn't
-> > make any sense.  C pre-processor macros cannot be inline or not inline.
-> > Indeed these are inline *functions* (at least in this system) with
-> > embedded assembly apparently referencing parameters (which, I surmise,
-> > is why the functions need to be inlined by the compiler or the assembly
-> > will not work).
-> >=20
-> > From /usr/include/x86_64-linux-gnu/sys/io.h (glibc 2.43):
-> >=20
-> >   [...]
-> >   #if defined __GNUC__ && __GNUC__ >=3D 2
-> >=20
-> >   static __inline unsigned char
-> >   inb (unsigned short int __port)
-> >   {
-> >     unsigned char _v;
-> >=20
-> >     __asm__ __volatile__ ("inb %w1,%0":"=3Da" (_v):"Nd" (__port));
-> >     return _v;
-> >   }
-> >=20
-> >   [...]
-> >=20
-> >   static __inline void
-> >   outb (unsigned char __value, unsigned short int __port)
-> >   {
-> >     __asm__ __volatile__ ("outb %b0,%w1": :"a" (__value), "Nd" (__port)=
-);
-> >   }
-> >=20
-> >   [...]
-> >=20
-> > So I would say just s/inline macros/inline functions/g.
->=20
-> Yes, 'inline functions' seems more appropriate than 'inline macros' (all
-> macros are inlined, due to how the preprocessor works, so they'd be just
-> macros, and as you showed, these are not even macros --except maybe in
-> some architectures--).
->=20
-> However, I doubt the entire paragraph.  I don't know why inline
-> functions would produce unresolved references at link time _even if they
-> were not substituted_.  The point of inline functions is that they are
-> sometimes inlined, and sometimes not, and the compiler does the right
-> thing in both cases.
->=20
-> This seems like paranoia from decades ago, when inline functions were
-> less known (and maybe compilers were more buggy than they are now).
->=20
-> Arnd, should we remove the paragraph entirely?  Or is there any obscure
-> reason why optimizations are required?
+> 
+> I guess I can drop this patch from the series then :) Also patch 17 I think?
 
-Or maybe those assembly instructions are what causes the linker issues?
-If so, we should probably say something about that.
+I agree. The module srcversion is no longer needed since build IDs are
+nowadays the standard mechanism for providing effectively the same
+functionality. While I'm not sure when the mentioned removal will land,
+reviewing and polishing this patch and patch 17 would IMO be wasteful at
+this point.
 
+[1] https://lore.kernel.org/linux-modules/4e321525-708c-4964-9937-d94ea27e8d85@suse.com/
 
-Cheers,
-Alex
-
->=20
->=20
-> Have a lovely day!
-> Alex=20
->=20
-> --=20
-> <https://www.alejandro-colomar.es>
-
-
-
---=20
-<https://www.alejandro-colomar.es>
-
---b7jix4lwmaqlkmqt
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCgAdFiEES7Jt9u9GbmlWADAi64mZXMKQwqkFAmqj6WYACgkQ64mZXMKQ
-wqnD+hAArTjG5sTsS7pehGF4CDxQk0NbtPzQ3O6dG3h3Qe5z0dKjLeSv/5DwE1Be
-y4UUD40IXErimRqkWOHYEWL5QSuk0BvsICM6Ibb59o082npIAOMLq26AwPQnrfuw
-wn6+Zw7V9bdj/wYDScjd71weIOj6cK5AyGn91ZhS1f+hIwH3h8P33ssb/VxE75dC
-x9FgnhgRrgkaEMq33DFkkQb2rBqSfEWNEWiZIFT44qis6slhIyK6qlBuvWnKU1oh
-55uts6zes0St+VW4PKz3o9QBYMELTxtaTWDlbsBYiJ2dTIaw3PZukPdXwmQG5qxx
-oXY12FTX54z5cAhsPhZTFT/VOvqAwyK5xXKJo9gaPJpKqL+V4Flv9RZhJKF0nmtI
-4FwN8wQNV2xMvjLfFBX0JryvKy4ZJgm2h2mklVaD+IOsEJFFZQhvhlqlwC+LDbuH
-ZR3pgXEA34OdTHAzHCpUyHKtnE+W+eauLHFb16v/sw6iE0ezPqUHGsIaKEnwaIBb
-BKj4Oc87ExUcYuTlDPD5DnHh0nKU5zvop9juNtcKXhVB2DG1taZxNFq/uMPAZKOk
-9E0Z4AO3Z5UETLGD6Zx6KdoyitNHIVCK33ubbs6IivywkmyaIKaN/I6w8EZnfvPb
-zZfmtEkPE9tpjjErznebJUDBBo++Qn00EKsVkPbcsS2TIj0L9z4=
-=zEs9
------END PGP SIGNATURE-----
-
---b7jix4lwmaqlkmqt--
+-- 
+Thanks,
+Petr
