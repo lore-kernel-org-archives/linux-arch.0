@@ -1,132 +1,195 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from DM1PR04CU001.outbound.protection.outlook.com (mail-centralusazon11010028.outbound.protection.outlook.com [52.101.61.28])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 609A535C6B2;
-	Fri, 11 Sep 2026 18:25:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789151146; cv=none; b=hTR3n1TJ8FfMDKFfzwQjvt/hDDCzKPQlNrZ20Ogw87FoCpy/60lc9+R/7odPCTBWNpvOR5TRuPuRY8Nedb9LMhM5WX3j5mUaA5EAphxE+4scI88NmCRomNRJ5Y4KvseBufWIWXjUkb0zIcKdhy4bBd7fKSAPDIfHhINgcm3OZ8o=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789151146; c=relaxed/simple;
-	bh=GkMDfaiKqcg6wNo9HFZUrY6MjHcj3UzMmujQXp5hqko=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=SiUkCpdmak0tfokiKYwROW7ftkNbslPFxzNMcH/ihJrLKYbayWONul5P6IntXmsdottqROsbMFAoDauPFc38oz42UXA8/kLomXBsVqoQDRNHA1uQm+EZr2JDu9kbl6N5dKNBssu5p+/mNaIObaCGXa9kI1rAGO19T1HEinDa1RE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=V/QuD7RK; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0CAE037C0F6;
+	Fri, 11 Sep 2026 18:26:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.61.28
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1789151192; cv=fail; b=sJ+ZX4gcOuXslCQ45MIEM9ewmkEFCNGLxOp2rNC1YO1BPX6R+C3O5haV097TkKZNvOTqdVk8v+1KJdP6xnstDFqATGTiBmbNhcMeNXc2hSZjNgHMhvWx4PxOKHRS+Vo4InKDR6xajq/6R9CUscOYXaKPqEnwQD1tNKLwVe/dr2s=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1789151192; c=relaxed/simple;
+	bh=/SHhAsa7lIR8IYSX06C9u59VChPNTvf7/tK3OIetCNg=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=mvb/y58geafDwlwao9urhZl7omp7bCJdYurnpEdMDOnWh0kxACUtkags4U0DxBqlJMhlkf9F1c3PAEXKQXE8TOOP8XP30jND3LGTee8aeBzF8WXR07EpTUeqPFJZP+TG6A7mZYV+byzMqrgKR2xckrbNM6h7/r1Ed3Cvs+FGAZ4=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=Dt95SPf4; arc=fail smtp.client-ip=52.101.61.28
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="V/QuD7RK"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 8FF181F000FF;
-	Fri, 11 Sep 2026 18:25:34 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789151145;
-	bh=McB2i4WG3qj3jgvtyEEzwZVFRWbrW+2vNGQO4jJcnEw=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=V/QuD7RKHTWhky3dgb6PVRJNvxWnkze0kt4kkrpUnCYoPR2W7r5F4K2sjrh7TCfss
-	 3ahJS7dH3z937W49lrR506NxxwHhwI7zdRL6r32SGdlPGna39Rpd+/8rNoR29ffA/j
-	 UVSXzAGjyvuBP1ddhf9lUq9UVY9KejS9z7yop3ddDfhfsHmy2ebKxvWsoDTbtYtpPH
-	 2EQmQxGv0R8uinJ5AuwYTYO0/VrdPdDWzjtZjDh4ANe9EnGlPpC3NQn91JHsCLyMS4
-	 p/V7dx1LnhW4eNnz1YJP70OKAqj3ALNE8aIfNZa1yGBV5DzFRtttI6lrWcB+hRAAH0
-	 T3mOd8cIXS22A==
-Date: Fri, 11 Sep 2026 19:25:32 +0100
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Nicolas Schier <n.schier@fritz.com>
-Cc: Nathan Chancellor <nathan@kernel.org>, 
-	Linus Torvalds <torvalds@linux-foundation.org>, Nick Desaulniers <ndesaulniers@google.com>, 
-	Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
-	Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Josh Poimboeuf <jpoimboe@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
-	Gary Guo <gary@garyguo.net>, =?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, 
-	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
-	Danilo Krummrich <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, 
-	Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, 
-	Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, Jonathan Corbet <corbet@lwn.net>, 
-	Randy Dunlap <rdunlap@infradead.org>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	llvm@lists.linux.dev, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
-	linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 12/23] kbuild: avoid re-running compiler and linker probes
-Message-ID: <aqRHk6WtdLz0cpVU@gremlin>
-References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <20260908-build-speedup-v1-12-5dc1ac01672d@kernel.org>
- <178901395292.3971858.13236774094648272066.b4-review@b4>
- <20260910-translucent-sweet-sidewinder-7acacb@l-nschier-aarch64>
- <aqPXj1nDQ06KRhf4@gremlin>
- <20260911-mottled-gerbil-of-abracadabra-bacb17@l-nschier-aarch64>
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="Dt95SPf4"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=EkfVsPBbQip6rpJChrreAmrkwdUe1fdtSI2CMcryfEPtthJ00toP1Zh30WctfmCEU5ZOK2XjJPo3XSi5+XqJoGY2l2Zr5hU55MQ29YeCpSFTN9gF8crpvy/eEYBNXVRym7RifAsU5EG8pgBoJ2tYPjlW/vEBv0WfVpVYIJivrP9uu9fU1wgiefGn/H0ZKCQK6x9Mv7HXjm9P3fArb6xbbomvSicOSKQZ2q5j/TFlyRRk+ZGmWKXtb+9TNdRmKxL7kyf1aiDvuJcNrdN1PdqWbGbOJeGTcwHq9m+y/07pnOF9vFBMKNbDkmw0DMpTR8Y4MOR8MB3UObFSi9dAetXIHQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=LMRtlUR7sTdG76/BNIXgqLjAi2QN6gfhfMxJdpzKhxA=;
+ b=OT/ycauYXu4LUvWXgn0/tRpX9K8O2m+ofxXm0qqGEZVsionY2y4WlgbW+NH7uSKs9qJQoLHqx390WcmHs6xccPsDJlp7dexyDc8xvfJFZ1LSBElbpzpJa/0eV6Wr1KRocxYTHEQWijMwI6h9eDa/NHOyvMaVawM01OFQ1G0DdNp9XxBilhPx3SWVl1aj06qwroumGIN6OEfiM11ebBbmsBQxpXtz8JZMrYQ9L/ON6pjkO5mPwe9BuiOLkyyou/7Gz7aqwU7HuAt4GWw90Tn1XGODiEufs9dI0RYdCLGAYlvn6Ai+k+8ggB42TN8Q5Uns6oDkMe8/1i4VklGVq2larA==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=LMRtlUR7sTdG76/BNIXgqLjAi2QN6gfhfMxJdpzKhxA=;
+ b=Dt95SPf4qj4IgwYKyKRnLtoEJU8HxZ9AidymuxIxWDhyORKD3oZbq4lnI2O9AJTCFwqLL+4qFLr4fLs17wA/f6u/I7LdOZJoHFzseaOLtygdqNP4ZNne6gIUjF1SD+BdaR9IWbKTJNUX3LfpmmL1jwAwtbJuxnWf4/NNIpSGUYVDXDWge/nDVELCwqcQJaAe1HyXcZvw7ucR3nduPIo6a1TP4d8eZ5z80w+NGx+yTCbNSUG0Sa3CrxEuM6Y2zqizm+Cu8kNvGynKBfi44AL2eibHy2kmc6UmlGH1Iin7CrTB49BGcdVtYP0T/yArfYP+2gXru4PAS2Qjt5YUZw5Zng==
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from CHBPR12MB731189.namprd12.prod.outlook.com
+ (2603:10b6:610:33d::12) by BL3PR12MB6401.namprd12.prod.outlook.com
+ (2603:10b6:208:3b1::8) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.406.10; Fri, 11 Sep
+ 2026 18:26:13 +0000
+Received: from CHBPR12MB731189.namprd12.prod.outlook.com
+ ([fe80::b0e5:123d:fe06:e10d]) by CHBPR12MB731189.namprd12.prod.outlook.com
+ ([fe80::b0e5:123d:fe06:e10d%6]) with mapi id 15.21.0406.007; Fri, 11 Sep 2026
+ 18:26:13 +0000
+Date: Fri, 11 Sep 2026 15:26:12 -0300
+From: Jason Gunthorpe <jgg@nvidia.com>
+To: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Sean Christopherson <seanjc@google.com>,
+	David Matlack <dmatlack@google.com>,
+	Logan Odell <loganodell@google.com>, arnd@arndb.de,
+	pasha.tatashin@soleen.com, rppt@kernel.org, pratyush@kernel.org,
+	graf@amazon.com, akpm@linux-foundation.org, maz@kernel.org,
+	oupton@kernel.org, bhelgaas@google.com, alex@shazbot.org,
+	kevin.tian@intel.com, dwmw2@infradead.org, baolu.lu@linux.intel.com,
+	joro@8bytes.org, will@kernel.org, robin.murphy@arm.com,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	kexec@lists.infradead.org, linux-mm@kvack.org, kvm@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev,
+	linux-pci@vger.kernel.org, iommu@lists.linux.dev
+Subject: Re: [RFC PATCH 0/3] liveupdate: Move to feature flags for LUO and
+ memfd ABI compatibility
+Message-ID: <20260911182612.GK3968357@nvidia.com>
+References: <20260903023452.721732-1-loganodell@google.com>
+ <20260904160009.GV4157646@nvidia.com>
+ <aptFFYqcSiBdMLE8@google.com>
+ <20260905012403.GX4157646@nvidia.com>
+ <aqIAtOoew-_6jw29@google.com>
+ <20260910143448.GD3968357@nvidia.com>
+ <aqLOWkuVKccR-I7W@google.com>
+ <20260910171210.GF3968357@nvidia.com>
+ <a3c2d0f6-a7b5-4344-b837-434aeac5dbc0@redhat.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <a3c2d0f6-a7b5-4344-b837-434aeac5dbc0@redhat.com>
+X-ClientProxiedBy: YT4PR01CA0122.CANPRD01.PROD.OUTLOOK.COM
+ (2603:10b6:b01:d5::13) To CHBPR12MB731189.namprd12.prod.outlook.com
+ (2603:10b6:610:33d::12)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260911-mottled-gerbil-of-abracadabra-bacb17@l-nschier-aarch64>
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CHBPR12MB731189:EE_|BL3PR12MB6401:EE_
+X-MS-Office365-Filtering-Correlation-Id: b5d33c9a-8abf-494a-227c-08df103228f3
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|1800799024|23010399003|376014|7416014|366016|18002099003|22082099003|3023799007|10067099003|5023799004|11063799006|4143699003|56012099006;
+X-Microsoft-Antispam-Message-Info:
+	Fd58NVEkaYYab7sm/5nz/kjdl/HOVcpsGGNZyUJT/MIVL0RkQEmpmmQUVRdwRTPOR8cZkVGLQ5JAeyIpp1T/A6ZZY6qxYu9kdA6TdNAAJiko+sSQAhLi1xBBDL4VJc/uXudWvMVgwdIywyBCkp1VpASaH6oGNEBO93jJBOOY0abg/rczSr0k3b/3vY8OVEedQkKvr6J7KqHFxmWlGhzyMmhtuj6hDKJHun8H963iX/H2uzL4nLr1X0ZPgtxhJPKvCkYVCajl6dLtYrE6Ncws9sYk2MzeeqQcNH8IEQhAdz068OztosQjn0vl5jkjz5M8+TdVD5+aGOyudb0xk2YuYh+kJTt8gbAR8abAoJrDck5GRCPilNEmN3liNpJDIJ/XiknQ8reBWs6kxXgRDvvHMHeGO61pTOyWPx04LFD3P/bjGpBIlfxm6/OS45aAUN0o+9DVXZRJAj8O8m0iKmj5xqCxy2t7F/z4g5UiU4rHe3lDtVA6DrMq3AEwAklWlQbTb/kpg8pYdrcnLyQ0fAeRe8PPX8OIjUqQrGfLszu4DwDy8w799waUFaXmWsPFZMWu2kULnoBfNOKqUxA8XD58r95n4vodyQIQRHEsHCKskeqwr8YmatABgqvlWCHWWURUK258f4YJC9pTVt3Ugp1BmwDD5NveKeAHyFpyGji0Tpg=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CHBPR12MB731189.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(23010399003)(376014)(7416014)(366016)(18002099003)(22082099003)(3023799007)(10067099003)(5023799004)(11063799006)(4143699003)(56012099006);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?N7REO+16Fir73RvcGyKMFm7GqOJZe2m3rzU1/aocxo6KCaFYcpuhdlQaokrF?=
+ =?us-ascii?Q?E/ozWD+yRlqxP0XMcP+CFy3a3X0Zle1AHtEuynfPMwOG/CeV5hT9i3TWkA3A?=
+ =?us-ascii?Q?rC7igiGVMcCtH6gkVxi6hRPUgqy2qmo94PuvOfX91w2kgwBHa2x917WoxYpt?=
+ =?us-ascii?Q?vREx6WZYkimEEClDWYXLWBnjwmBsBD+Grq3iipi2h640qal7S2TscBJX4g5m?=
+ =?us-ascii?Q?Bq03bx2Htwt39K2MkUaNOSzsRpMFUWsg6lo3QCjnseywXmoJQVAj5ABWG289?=
+ =?us-ascii?Q?VLk+4zCKhvU2zRItL+gcQSASdM5JK0nVUg9Cm3u9twkkCTveP1Rp1LgB7hJA?=
+ =?us-ascii?Q?kLLYtYysy51Ktw2ZDlPbKbQpsCVHe63/3dbpaMLxKuUcSZwclEWUU7G0C7Fq?=
+ =?us-ascii?Q?LrlrbjMgMEKA0RW3cQy1sHmjPfeTVm78zTiTCGoMidoEKupkAW2pVp/hsfJi?=
+ =?us-ascii?Q?oLZ9rHgEc9LzI7Ef5+/6tZhInJK7y2JkN1NGw3LzO/7iiWD2+E5m5gDdqAgg?=
+ =?us-ascii?Q?QAq70YnpaCikJ2EvPeS5Vv6qky/YIMUfz6G+cuoJ7G4FaJwAbqs3q/QnK8K3?=
+ =?us-ascii?Q?ChOILjKTbW/r1OLCUnuuCHv1LGYPD/5fqkZwCR88AppYhts7iBWXsWVgm8R5?=
+ =?us-ascii?Q?jwFVxXqOb8/ABY6NshfqsQML6aWMd2JIc07zRflUCEZme2/n9uCAFU0MGa/S?=
+ =?us-ascii?Q?4Mc2yO5XQKqSFqWKdyQm/72NYvTLEq8O6VL3oHhjMVxy+fsGsrtdKBHxqEIx?=
+ =?us-ascii?Q?88GzCHHxX2Xi9dXkz1bA32AR7ErQoq5S24gtnQe+xrTDSNODBqk9gQq/08V8?=
+ =?us-ascii?Q?3kg4UpV4NebcFzesPzl+aZz8i4TAfTIwJKVNm1p1VNo/tfzxdda+Ccp3MkVT?=
+ =?us-ascii?Q?dEcRpLViH4z2JS7gSDpVbEn031hMYAswM7SZYZ8PIJgIWsS8SM+Za8Mr2smr?=
+ =?us-ascii?Q?EGvA4oXbXm5ZVsmWeixT1SBnStlmZm9rqn4WPxn5BAmt20S6ohJ3KRRooGsx?=
+ =?us-ascii?Q?rJB1S/1OcYeyOhiq2y3HlJ1ARe3f+n3Ag0PQuRFDuUyq8wlcpbmbf668l0c2?=
+ =?us-ascii?Q?Erk4lQQ10IXPwcBF7axY8Epw2fcw36hd2p8mtF8JC6x6TQU3cWNJE9pIVdg2?=
+ =?us-ascii?Q?Ao0RP1Gvg+asyUldyEJODnzmPa+MGC9njJ/49g8uA68vWYHsVswymTfNypwR?=
+ =?us-ascii?Q?KuiGrbtvspr9nbYGiMxfhiJRQ2q3e3J4Z2H9bXX6XiSfmAB10CS6r0/k0WQq?=
+ =?us-ascii?Q?hHPHZiCCBWFv6aCsP9Jh2D4tQ9HAKfYOzfxqwby+0ou1ee4P8j8QULhpnItj?=
+ =?us-ascii?Q?e+XAG5xXV+c1HEVBaqfbRF0qqGanG7VRuRevjhD7i21uuhYSJwFpct0WGS+i?=
+ =?us-ascii?Q?5pViM7blszTrkdrwAC4sOTVM9QcvWLy8SMlkgp6li+eyXZG7FlAHdRtXeY/W?=
+ =?us-ascii?Q?6Czyas/DgGY246FGFO9xXUOG4Lpfq7rfPMR6ixcnLVA+Ud4nulqPMfLbYlc9?=
+ =?us-ascii?Q?qcBDF6TC8VJwLMYqkhqAiMpCxNJrifW/EQo9X/CdhGi9VbMzYemEqlivSKau?=
+ =?us-ascii?Q?ktlo+UOmFmp62oKmTeD7+VCybCAOOl/2q6gckrmmyMkHQW3v+QPy4ImW0bph?=
+ =?us-ascii?Q?orSlAmSInz9AjCv5X0jQHBoMnLwy9RGZFCinTac6K3HJ66sPxpIi5T+ihlg3?=
+ =?us-ascii?Q?NqJfQOT5HuxrupoIUcJGJgkQrkhb8u85rE4DcuYcrqcr80m3?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: b5d33c9a-8abf-494a-227c-08df103228f3
+X-MS-Exchange-CrossTenant-AuthSource: CHBPR12MB731189.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 11 Sep 2026 18:26:13.2562
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: /SU46+jkJoGaKXtrsG/TdpjfkeuedhcIZtSchcwh7yB7bCwKBycw51AAmYcf5CST
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: BL3PR12MB6401
 
-On Fri, Sep 11, 2026 at 08:10:26PM +0200, Nicolas Schier wrote:
-> On Fri, Sep 11, 2026 at 11:30:12AM +0100, Lorenzo Stoakes (ARM) wrote:
-> > On Thu, Sep 10, 2026 at 05:42:35PM +0200, Nicolas Schier wrote:
-> > > On Wed, Sep 09, 2026 at 09:19:12PM -0700, Nathan Chancellor wrote:
-> > > > > diff --git a/init/Kconfig b/init/Kconfig
-> > > > > index 8583d9f06c52..3c92c87254a3 100644
-> > > > > --- a/init/Kconfig
-> > > > > +++ b/init/Kconfig
-> > > > > @@ -144,6 +144,44 @@ config CC_HAS_ASSUME
-> > > > >  config CC_HAS_NO_PROFILE_FN_ATTR
-> > > > >  	def_bool $(success,echo '__attribute__((no_profile_instrument_function)) int x();' | $(CC) -x c - -c -o /dev/null -Werror)
-> > > > >
-> > > > > +config CC_HAS_ZERO_INIT_PADDING_BITS
-> > > > > +	def_bool $(cc-option,-fzero-init-padding-bits=all)
-> > > > > +
-> > > > > +config CC_HAS_NO_STACK_CLASH_PROTECTION
-> > > > > +	def_bool $(cc-option,-fno-stack-clash-protection)
-> > > > > +
-> > > > > +config CC_HAS_NO_ADDRSIG
-> > > > > +	def_bool $(cc-option,-fno-addrsig)
-> > > >
-> > > > I am generally in favor of this proposal since I think these checks
-> > > > should be cached by Kconfig where possible to clear up running them
-> > > > twice. That said, I wonder if we should pick a better dumping ground for
-> > > > these checks other than init/Kconfig. Maybe init/Kconfig.tools or
-> > > > scripts/Kconfig.tools or something?
-> > >
-> >
-> > (Sorry hadn't seen you'd replied also!)
-> >
-> > > Yes, skimming through the patch, I thought about that, too.  Moving more
-> > > cc option checks to Kconfig will make building out-of-tree kmods with a
-> > > different compiler more dangerous.  Maybe we will have to make the
-> > > warning in Makefile's prepare (external kmods) target a bit louder.
-> >
-> > I guess this bit can be a follow up potentially?
->
-> yes, sure.
->
-> > >
-> > > > I also worry about backsliding and growing cc-option checks. Should we
-> > > > update the documentation to state that it is preferrable for these
-> > > > checks to live in Kconfig so that they can be properly cached?
-> > >
-> > > Sounds good, yes.
-> >
-> > I can add a doc update as part of this series, unless you guys want to handle
-> > separately?
->
-> I don't think it has to be part of the series, it's long enough already.
-> But if you want to prepare some docmentation about the preference of
-> cc-option checks, feel free to go ahead or not.
+On Fri, Sep 11, 2026 at 07:16:23PM +0200, Paolo Bonzini wrote:
 
-Ack, thanks!
+> Rather, forwards kexec *must* work (again, that's nothing but a variant of
+> "we don't break userspace") and for backwards kexec, well, you must know
+> what you're doing.
 
->
-> Kind regards
-> Nicolas
+Again, I strongly disagree with this MUST. This is not a variant of
+"we don't break userspace". It is internal kabi and the kernel gets to
+decide which versions it supports. There are no promises here. It is
+not a breaking change to say we won't support A->B.
 
---
-Cheers, Lorenzo
+Community needs to agree on what these parameters are. I've been clear
+my stake in the ground is same stable version only as a starting point.
+
+This is typical in the industry, nobody does live update where you can
+jump ahead multiple years of versions. Sequential releases only is
+very normal.
+
+> QEMU has been doing backwards live migration forever, and QEMU is a
+> gnarly C program that has grown by accretion as we were learning all
+> this stuff, so it's not impossible at all.
+
+I agree it is not impossible, you can always make things harder and
+more complicated to keep it working. I don't want the kernel to turn
+into a "gnarly C program" because we over engineered this.
+
+> It's not easy, but you aren't even trying to do it right in the kernel. You
+
+Right, I've been pretty clear about this, I want to start with
+same-stable-version only and if that works out then consider if we
+want to do more.
+
+I am not doing this for any sort of technical reason. Not because it
+is impossible, but because it is HARD. I do not want to force anyone
+to take on hard and difficult projects like this for a niche feature
+only a few CSPs are likely to use. If we take this approach LUO will
+fail because maintainers will be scared to take on this extra work and
+simply won't merge LUO patches.
+
+There needs to be some balance that we can try this out and see if a
+broader use case develops before we commit to doing the hardest
+possible version of it.
+
+A niche feature only for CSPs like live update must not become a boat
+anchor on kernel progress!
+
+> fact!  It's just that you're solving for the wrong complexity, and only
+> partially so because (if I'm not wrong) there's still the question of how to
+> bring the manifest of kernel B into kernel A.
+
+There is a proposal to encode information into ELF sections. Feature
+flags should flow through there just fine, I think.
+
+I have not seen a proposal to re-inject this information back into the
+A kernel as a 'restriction' so it fails luo instead of producing
+something unsupported.
+
+Jason
