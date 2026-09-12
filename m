@@ -1,163 +1,150 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 13FFD372691;
-	Sat, 12 Sep 2026 22:10:03 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA829353EF7;
+	Sat, 12 Sep 2026 22:47:37 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789251005; cv=none; b=Z8OB9kmbDiqhrwVRmh2oNU5AwuD6VDijt2gs0Qfxx/7QzIzRMDtHLxFaPdXui41J+cVsDhLFqTJ6/+DOB1LczeTcQwRy2OT7LIjX3MFQQt4MSl01q+vMnYXGV0hsNLfH+2lgfJJ8CEK/Lt6Ma5lTx2ctOGmWEgcxIJ7O6cd9h2c=
+	t=1789253259; cv=none; b=LhY/6Di1ShqkCJwmKe2njc2UivAZfq2bqrgyqrGg9zd0D1jE+3AR2BujVulhflqwxLYOH35nCUzY/YqSi8T1775lZlIWgV7fbf+Yjk+6jpRvGZGaKRZFnWlkLQByDxqzZpxOLSi3jXF5+zgPZV3chvp02Ndt2CP3n35ofv1KfY0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789251005; c=relaxed/simple;
-	bh=SX1hZjzmYPaZSWp9Fj08OOTlpfhY0F08YMWHEdU/Hjc=;
+	s=arc-20240116; t=1789253259; c=relaxed/simple;
+	bh=WhpKhnaimmiDMo+7z3TyZxw7aAekk9TUYm3OZVPStwM=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=N/ieWXJHPUgO3l8bfPhk2Ch5lDDDOG1avuZedUauEyNLkeseuaR6FdmXMF35d4u58DPCjl852vi99EOAusvPMCPqzZ1+v6S5tIzSru++tRCTuGMyAW4RU5uQbSRM7b07y2LTeDHDmGY3Eq9r0d8nnLMDILfYF5lMWLOIgCuy7hU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=NcmQ8WF+; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=RdxGMy4M6iEisGH3D5UO+INk8CTO8YCVD9/oh/YnLcdogOCTdCReZXvnK5zfuIlMEelYL/LsCggsIP65tFE6LoORuqAiGexI50V1rTt2bkSDSXp8X5l+VAHNCN1nrmeWd46R9Cwt33brImFoFP1AqL36pu+G+s1+N+A4DTDpMd0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=e4ZfcMFm; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="NcmQ8WF+"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 237EF1F000FF;
-	Sat, 12 Sep 2026 22:10:01 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="e4ZfcMFm"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7215B1F000FF;
+	Sat, 12 Sep 2026 22:47:35 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789251003;
-	bh=UiQmtbNHXTX6DxeJ3CSlfjwZMgJtMc33BKSDGJvfKlc=;
+	s=k20260515; t=1789253257;
+	bh=YTs0RHzOBARO9Zxd/72JxEwAoUlFgRlD7PJM9ViCXyc=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=NcmQ8WF+NTXPv4xGimWA0+ROZqDMY2u9S10pQehZ7cMVxuU1VW7VteQm2b5H6zAet
-	 kwz6Y6wWaGvNvq+BzISNYOouE0mxaK9924XCxJ4IXy0XTiUynJjAhXqbU8ePJ+zk/A
-	 E+brzqFg4zLdCiboHir53DxLvXBWarTtLdjY90uCqNdEM3zxfacv+7xN+67FwhDlrz
-	 lcOz01hsykUXQy7ezbTIfwqQgpz/yjl4PrczlVEy+qAW9SxJiYWhwEtMOpFYW00GIq
-	 SBmzDjMpIylGK+SA3NElUM+VcZ8/foKuGxqPfwqy76ltNbomw/jowTJ3b3WTxIfxmK
-	 vEZscnAE2Qgeg==
-Date: Sun, 13 Sep 2026 00:09:59 +0200
-From: Alejandro Colomar <alx@kernel.org>
-To: astian <astian@memeware.net>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andreas Jaeger <aj@suse.de>, 
-	linux-man <linux-man@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Subject: Re: outb(2): terminology correction
-Message-ID: <aqXNK3qkcOZNwWOZ@devuan>
-References: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
- <aqPmNKbqjBILjoqw@devuan>
- <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
- <DLDOAQWX9IIH.E1ZNJ3O80VQ@memeware.net>
+	b=e4ZfcMFmvfYKUh71LAPoMcJrwB+EauX2idSlHvlrc7/TcwWF4y4so18J/fbY5lXYi
+	 R7U55xnaXLAON7/zdmlPVdNgwj6zPMq1L2fBY8yKvOCgRckwkR0KzQNa2gxGw7uFfA
+	 wm2T2BsSDlRNJ4H1wIXuFyyLsOUX42JzfBTZ57ZX668HEN5yhgzUyOYlE/vi9rRF1e
+	 wxNzTDgBlwyw4kYH+U2DPdRNeBPA1JL+8gr8GbujAgHSSmzPofsMXi7mlmK5MX4lQM
+	 Q9YMH4vqdH97Z9EK53Aaj452z+/sBIpyi8GFKK13J3KjBc/JY1me3oHi5xO3iHRUE4
+	 jKTcBOzWYivwQ==
+Date: Sat, 12 Sep 2026 15:47:33 -0700
+From: Josh Poimboeuf <jpoimboe@kernel.org>
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
+	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
+	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
+	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
+	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
+	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
+	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Peter Zijlstra <peterz@infradead.org>, 
+	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, Gary Guo <gary@garyguo.net>, 
+	=?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>, 
+	Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>, 
+	Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>, 
+	Daniel Almeida <daniel.almeida@collabora.com>, Tamir Duberstein <tamird@kernel.org>, 
+	Alexandre Courbot <acourbot@nvidia.com>, Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, 
+	Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, 
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, llvm@lists.linux.dev, 
+	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
+	linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org, 
+	Jens Axboe <axboe@kernel.dk>
+Subject: Re: [PATCH 18/23] objtool: cache relocations and function dead end
+ state, do less work
+Message-ID: <aqW4klkDI2P0aUn5@jpoimboe>
+References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
+ <20260908-build-speedup-v1-18-5dc1ac01672d@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="qkilby5ylueyqgll"
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <DLDOAQWX9IIH.E1ZNJ3O80VQ@memeware.net>
+In-Reply-To: <20260908-build-speedup-v1-18-5dc1ac01672d@kernel.org>
 
+On Tue, Sep 08, 2026 at 09:55:18PM +0100, Lorenzo Stoakes (ARM) wrote:
+> Whole build, 128-thread Threadripper 9980X, best of N runs:
+> 
+>                                          before   after     delta
+>                                          -------------------------------
+>   x86 defconfig, touch mm/vma.c, gcc        8.4s     8.1s    -0.28s (-3%)
+>   x86 defconfig, touch mm/vma.c, clang      7.5s     7.1s    -0.41s (-5%)
+>   x86 defconfig, clean, gcc                27.1s    26.8s    -0.34s (-1%)
+>   x86 defconfig, clean, clang              26.6s    26.2s    -0.40s (-1%)
+>   x86 allmodconfig, touch mm/vma.c, gcc    30.2s    28.4s     -1.8s (-6%)
+>   x86 allmodconfig, touch mm/vma.c, clang  28.1s    26.0s     -2.1s (-7%)
 
---qkilby5ylueyqgll
-Content-Type: text/plain; protected-headers=v1; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-From: Alejandro Colomar <alx@kernel.org>
-To: astian <astian@memeware.net>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andreas Jaeger <aj@suse.de>, 
-	linux-man <linux-man@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Subject: Re: outb(2): terminology correction
-Message-ID: <aqXNK3qkcOZNwWOZ@devuan>
-References: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
- <aqPmNKbqjBILjoqw@devuan>
- <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
- <DLDOAQWX9IIH.E1ZNJ3O80VQ@memeware.net>
-MIME-Version: 1.0
-In-Reply-To: <DLDOAQWX9IIH.E1ZNJ3O80VQ@memeware.net>
+Nice!
 
-Hi astian,
+> @@ -305,7 +305,15 @@ static bool __dead_end_function(struct objtool_file *file, struct symbol *func,
+>  
+>  static bool dead_end_function(struct objtool_file *file, struct symbol *func)
+>  {
+> -	return __dead_end_function(file, func, 0);
+> +	if (!func)
+> +		return false;
+> +
+> +	if (!func->dead_end_known) {
+> +		func->dead_end = __dead_end_function(file, func, 0);
+> +		func->dead_end_known = 1;
+> +	}
+> +
+> +	return func->dead_end;
+>  }
 
-> Date: 2026-09-12 21:58:26+0000
-> From: astian <astian@memeware.net>
->
-[...]
-> >> Arnd, should we remove the paragraph entirely?  Or is there any obscure
-> >> reason why optimizations are required?
-> >
-> > Or maybe those assembly instructions are what causes the linker issues?
-> > If so, we should probably say something about that.
->=20
-> I had a closer look and I now think that's not the case.  These
-> instructions work fine even if the function is not inlined.  See more
-> below.
+This bit seems like it should be a separate patch.  Though actually, it
+can just be dropped as I have something similar brewing:
 
-Thanks!
+  https://lore.kernel.org/9d4b8ccfed745ac47a954aa2e1de62a85197122d.1788899473.git.jpoimboe@kernel.org
 
-> On 11 Sep 2026 14:20 +0200, Arnd Bergmann wrote:
-[...]
-> > Using 'extern __inline' without optimization in --std=3Dgnu89 would lea=
-d to
-> > the compiler using an 'extern' reference rather than emitting a static
-> > version,
->=20
-> This seems to be the original reason for the optimisation requirement.
+> -struct reloc *find_reloc_by_dest(const struct elf *elf, struct section *sec, unsigned long offset)
+> +/* Should never be invoked, provided as a backstop. */
+> +static struct reloc *find_reloc_linear(struct section *rsec,
+> +				       unsigned long offset, unsigned int len)
+>  {
+> -	return find_reloc_by_dest_range(elf, sec, offset, 1);
+> +	struct reloc *reloc, *first = NULL;
+> +
+> +	WARN("%s: linear scan for sec %s with %u relocs at offset %lu len %u",
+> +	     __func__, rsec->name, sec_num_entries(rsec), offset, len);
 
-Agree.
+Won't this be triggered for sections created with
+elf_create_rela_section()?  I don't see where they set rsec->hashed.
 
-> The manual says [0]:
->=20
->   GCC does not inline any functions when not optimizing unless you
->   specify the =E2=80=98always_inline=E2=80=99 attribute for the function =
-[...]
->=20
->   [...]
->=20
->   If you specify both inline and extern in the function definition, then
->   the definition is used only for inlining.  In no case is the function
->   compiled on its own, not even if you refer to its address explicitly.
->   Such an address becomes an external reference, as if you had only
->   declared the function, and had not defined it.
->=20
->   This combination of inline and extern has almost the effect of a
->   macro. [...]
->=20
->   0: https://gcc.gnu.org/onlinedocs/gcc/Inline.html
->=20
-> Thus, using "extern inline" but not enabling optimisations (and not
-> providing a separate definition in some other object) would have
-> produced a linker error.
+> @@ -1147,6 +1307,28 @@ static int read_relocs(struct elf *elf)
+>  
+>  		rsec->base->rsec = rsec;
+>  
+> +		/* DWARF relocs are never looked up. */
+> +		if (is_dwarf_section(rsec->base))
+> +			continue;
+> +		if (reloc_sec_in_order(rsec)) {
+> +			rsec->sorted = true;
+> +			continue;
+> +		}
+> +
+> +		rsec->hashed = true;
+> +		nr_hashed += sec_num_entries(rsec);
+> +	}
 
-Indeed.
+Hm, I'm not sure whether hashing is even still needed, as compilers
+generally emit sorted relocs.
 
-> > the 'static __inline' variant works as intended in both gnu
-> > and standard c99.
->=20
-> That "__inline" keyword (yes, it's a keyword, regardless of eponymous
-> macros) is odd.  Apparently an old non-standard import from MSVC.
->=20
-> Are standard/newer keywords (inline/__inline__) not used for reasons of
-> backward compatibility (with old compiler or C language versions)?
+> @@ -1592,6 +1799,7 @@ static int elf_alloc_reloc(struct elf *elf, struct section *rsec)
+>  	}
+>  
+>  	rsec->nr_alloc_relocs = nr_alloc;
+> +	copy_reloc_cache_to_hash(elf, rsec, nr_relocs_old);
 
-Yes, glibc needs to be compatible with C89, which doesn't have 'inline'.
-Since users of C89 could be defining 'inline' for anything, glibc has to
-use something in the implementation namespace.
+Not all relocation appends go through this allocation code path.
+It can return earlier in this function if the space has already been
+allocated previously.  So this call probably belongs in
+elf_create_reloc().
 
-
-Have a lovely night!
-Alex
-
---=20
-<https://www.alejandro-colomar.es>
-
---qkilby5ylueyqgll
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCgAdFiEES7Jt9u9GbmlWADAi64mZXMKQwqkFAmqlzbEACgkQ64mZXMKQ
-wqm9+hAAkG+t+GYoNt2EegfuK+h2e5Gd7vg1ZfPlhKU+TywLdamDqlSwKOaf0v3B
-jevC2HVGWF5DDhkdf3PPbG8cgeDO9qDGrJ6v8ak9J4mnjOAGGJPX0tWFyGYXQQDw
-Kt7PV+mwMvP84PnvFKvYDpeWfVYoe9Hp09s+lPOwzUj6SjFnEgR/yqR03ZKYYZDf
-9MYtM+gk+Y3d8xC6YeZ7tmjaBRf1wHE4vczuzfv6M91KpmKp0HMh4nZjvNnMqoDK
-M8VeowJrIoTxYbnsDEWufq1w0eQGs7usqsYpgdlWnKZ/FD0f+MdAAZ99GN91zUYb
-Vjv7N7MohxCl3FcWpoIetrNquMQLl30a3GPIwNDXIy/v0J0XaxoUR09ti2ivrMLi
-49wGOicwlyYWyHt5wdRNYCRpD1ZFFKmunYyPZz9iByGOLqGYBAgYPGkOaKgjUnKQ
-CJoYN08iJlw49OHFktd39NmRYIz563Rez9Zha5NLo8mKBtWKkzwr5DV4HV07qUlw
-3cuk22avcmHYks0owLWqfDM2dlrd1sZQcxdk2wogwOmWJqwYep9CRL2Uk8AjijiN
-WmXQpOPy0+mBsZirMBHqf2jwDTgAIgopPNC5UyOD1i71GKSk4BMaiSX2UurJj6V2
-ptL87IP6yBHNg5kxArCYbF31lac/Yk4K/X6sEj3QBuWJRp2lQ9I=
-=+csA
------END PGP SIGNATURE-----
-
---qkilby5ylueyqgll--
+-- 
+Josh
