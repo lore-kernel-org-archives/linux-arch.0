@@ -1,117 +1,147 @@
-Received: from smtpfb2-g21.free.fr (smtpfb2-g21.free.fr [212.27.42.10])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 26FC23BFAF7;
-	Sat, 12 Sep 2026 11:59:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.27.42.10
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5AD8E2C08D0;
+	Sat, 12 Sep 2026 18:58:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789214383; cv=none; b=hEasJhjos1573PwDPczV4MM6Gq1MYXLYd8FvUbxWBAfES0et1XUtzOhwjvio8bBRLcVa4EcS41ODxuTo5fmM7QqfUjZSKYyOT4e9wD+110WsEwoxsJfJWIPEkjz6oAgDnqYa6rXTitzqCOsD4F+zTq5CMblVs3mdj3mztUXnCNQ=
+	t=1789239484; cv=none; b=W+jqHYHvIOKsB4iGlTCmGPU5KyQsow8KyBAJjbTJrWBLh+61wJUWM2+V0mrNF5Q6W0hwcpljD8aBnPbpmCx9pw9eyDhPxEQ4Qk6cPNHIuFbEdVINwJkzDK4nqrFoLm9Vm6TyHLEPZcIotByL8pZ90cenocqEG9Gr+X3r46JlmEg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789214383; c=relaxed/simple;
-	bh=G6mmFANjJXAB8RQFP1tL/aszZQhBPwFQSG9j5/5FQWk=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=Sy01wun/Rs0sXrSEA+CJ6IcASXf0R7a21q9o+NpU6c1eYcXYgKhmMmAKPDXQ9eWl/YvIOjH5Gila9NbmAdEjoKqwPQe396ebyF7B14GvqqMjdyaYXnvvUbDFvU22p233lTgPwdfw8ee/24/cH2wfTcpGdk8zupXU8EUJmsZ0LTM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=droneaud.fr; spf=pass smtp.mailfrom=droneaud.fr; arc=none smtp.client-ip=212.27.42.10
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=droneaud.fr
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=droneaud.fr
-Received: from smtp5-g21.free.fr (smtp5-g21.free.fr [212.27.42.5])
-	by smtpfb2-g21.free.fr (Postfix) with ESMTP id 707924281F2;
-	Sat, 12 Sep 2026 13:51:15 +0200 (CEST)
-Received: from [IPV6:2a01:e0a:125c:c670:72c:339f:43cb:52bb] (unknown [IPv6:2a01:e0a:125c:c670:72c:339f:43cb:52bb])
-	(Authenticated sender: ydroneaud@free.fr)
-	by smtp5-g21.free.fr (Postfix) with ESMTPSA id E93ED6012F;
-	Sat, 12 Sep 2026 13:50:01 +0200 (CEST)
-Message-ID: <4e447b33-574e-425e-bc92-2b728128cf18@droneaud.fr>
-Date: Sat, 12 Sep 2026 13:50:00 +0200
+	s=arc-20240116; t=1789239484; c=relaxed/simple;
+	bh=y3CQirMNKJQfcwKc4KuXVIcD4nkiaw5eX7+nHt9Rmz8=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=UgeCRQjhdX9Ukol/KJx6HNLGQ3iLu6hp0DzahC/Ak8+AxYz1CDscCsvZh18twz+KmI/60QkiLb1qr6MqNkc72p/K3mKqvb1uTtjUO49mIf1+QnDadyLxi3VcEygYd3DReB8V++kxuFAN+6yIm/72L1GZCQ3eUqnZvhCj4wSmTls=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=b129hE7D; arc=none smtp.client-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="b129hE7D"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3B3411F000FF;
+	Sat, 12 Sep 2026 18:58:03 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1789239483;
+	bh=6BluU+mCWJjFo1z+n6s87f5KoVwieJ3DCesot+22iUM=;
+	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To;
+	b=b129hE7DRPv2I9AH7m/fRZZ/wUraKivazDVqrrdnPPQTFkC4bOPRxSFQ921pq+u1x
+	 cGQkMb6MKHfzBNpFFu9GL8/4I146UwIzNCQt+WAS7CsRsoRRUfAPNubcl71S8L93/T
+	 M4BxXA2lx75Yt6sFb7qTFJM3fkyQTG7/VCGedhz8RGzs5iM0+wGZ6iy3eDAI/3jJhb
+	 HBXihJbQv+/HFP/CY31Aq+Ze+g0B0G+g5Nr9EsIqty/z7SMqrf6FAQQndY7tYg6Nv2
+	 Tughn9iBXX5fCq4stHOZiAfKrE2zDe1NEUpSQS1R739nv5jL0eK4meZvyKZABMuXt1
+	 T4Ysbtv5zQTRA==
+Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
+	id 01B51CE1578; Sat, 12 Sep 2026 11:58:02 -0700 (PDT)
+Date: Sat, 12 Sep 2026 11:58:02 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+To: David Laight <david.laight.linux@gmail.com>
+Cc: Bradley Morgan <brads@mainlining.org>, frederic@kernel.org,
+	neeraj.upadhyay@kernel.org, boqun@kernel.org, joelagnelf@nvidia.com,
+	rcu@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>,
+	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
+	Vineet Gupta <vgupta@kernel.org>,
+	linux-snps-arc@lists.infradead.org,
+	Russell King <linux@armlinux.org.uk>,
+	linux-arm-kernel@lists.infradead.org, Guo Ren <guoren@kernel.org>,
+	linux-csky@vger.kernel.org,
+	Yoshinori Sato <ysato@users.sourceforge.jp>,
+	Rich Felker <dalias@libc.org>,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+	linux-sh@vger.kernel.org, Chris Zankel <chris@zankel.net>,
+	Max Filippov <jcmvbkbc@gmail.com>, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH 1/6] lib: Add two-byte cmpxchg emulation function
+Message-ID: <17a92c0b-8062-48ae-b5fa-f61a3e0ff24c@paulmck-laptop>
+Reply-To: paulmck@kernel.org
+References: <20260911192540.20983-1-brads@mainlining.org>
+ <20260911192540.20983-2-brads@mainlining.org>
+ <20260911231017.550f8cd1@pumpkin>
+ <d0ef7beb-6952-49cc-9b33-e7542e831ba6@paulmck-laptop>
+ <20260912103047.1b95bb03@pumpkin>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 17/23] modpost: perform srcversion hashing in parallel
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>,
- Linus Torvalds <torvalds@linux-foundation.org>,
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
- Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling
- <morbo@google.com>, Justin Stitt <justinstitt@google.com>,
- Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
- Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
- Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>,
- Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
- Ard Biesheuvel <ardb@kernel.org>,
- Ilias Apalodimas <ilias.apalodimas@linaro.org>,
- Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>,
- Gary Guo <gary@garyguo.net>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?=
- <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>,
- Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>,
- Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>,
- Daniel Almeida <daniel.almeida@collabora.com>,
- Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot
- <acourbot@nvidia.com>, =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
- Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>
-Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
- llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
- linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
- linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
- linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
-References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <20260908-build-speedup-v1-17-5dc1ac01672d@kernel.org>
-Content-Language: fr-FR, en-US, en-GB
-From: Yann Droneaud <yann@droneaud.fr>
-In-Reply-To: <20260908-build-speedup-v1-17-5dc1ac01672d@kernel.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260912103047.1b95bb03@pumpkin>
 
-Hi,
+On Sat, Sep 12, 2026 at 10:30:47AM +0100, David Laight wrote:
+> On Fri, 11 Sep 2026 16:09:16 -0700
+> "Paul E. McKenney" <paulmck@kernel.org> wrote:
+> 
+> > On Fri, Sep 11, 2026 at 11:10:17PM +0100, David Laight wrote:
+> > > On Fri, 11 Sep 2026 19:25:34 +0000
+> > > Bradley Morgan <brads@mainlining.org> wrote:
+> > >   
+> > > > cmpxchg_emu_u8() emulates one-byte cmpxchg() in terms of four-byte
+> > > > cmpxchg() for the architectures lacking native one-byte atomics.
+> > > > The same architectures also lack native two-byte cmpxchg(), where
+> > > > such an operation is not supported and either fails to compile via
+> > > > BUILD_BUG() or fails to link, because the bad pointer sentinels
+> > > > these architectures declare are never defined.
+> > > > 
+> > > > Add cmpxchg_emu_u16(), the two-byte sibling. It reads the enclosing
+> > > > word with READ_ONCE(), splices the two target bytes through a union
+> > > > and loops on cmpxchg() of the full word until the compare succeeds.
+> > > > Like cmpxchg_emu_u8() it is fully ordered.
+> > > > 
+> > > > The Kconfig symbol gating this file is renamed from
+> > > > ARCH_NEED_CMPXCHG_1_EMU to ARCH_NEED_CMPXCHG_1_2_EMU, as it now
+> > > > selects both the one-byte and the two-byte emulation.
+> > > > 
+> > > > Suggested-by: Paul E. McKenney <paulmck@kernel.org>
+> > > > Signed-off-by: Bradley Morgan <brads@mainlining.org>
+> > > > ---
+> > > >  arch/Kconfig                |  2 +-
+> > > >  arch/arc/Kconfig            |  2 +-
+> > > >  arch/arm/Kconfig            |  2 +-
+> > > >  arch/csky/Kconfig           |  2 +-
+> > > >  arch/sh/Kconfig             |  2 +-
+> > > >  arch/xtensa/Kconfig         |  2 +-
+> > > >  include/linux/cmpxchg-emu.h |  1 +
+> > > >  lib/Makefile                |  2 +-
+> > > >  lib/cmpxchg-emu.c           | 35 ++++++++++++++++++++++++++++++++---
+> > > >  9 files changed, 40 insertions(+), 10 deletions(-)
+> > > >   
+> > > ...  
+> > > > diff --git a/include/linux/cmpxchg-emu.h b/include/linux/cmpxchg-emu.h
+> > > > index 998deec67740..fee8171fa05e 100644
+> > > > --- a/include/linux/cmpxchg-emu.h
+> > > > +++ b/include/linux/cmpxchg-emu.h
+> > > > @@ -11,5 +11,6 @@
+> > > >  #define __LINUX_CMPXCHG_EMU_H
+> > > >  
+> > > >  uintptr_t cmpxchg_emu_u8(volatile u8 *p, uintptr_t old, uintptr_t new);
+> > > > +uintptr_t cmpxchg_emu_u16(volatile u16 *p, uintptr_t old, uintptr_t new);  
+> > > 
+> > > Why uintptr_t? Shouldn't it just be u16?
+> > > (Which probably means the code would better if it was just 'unsigned int')  
+> > 
+> > I suspect that Bradley is just following my cmpxchg_emu_u8() example,
+> > which also returns uintptr_t.
+> > 
+> > I remember that *something* broke when I made this be u8, but I cannot
+> > recall what the problem was.
+> > 
+> > Bradley, could you please try making it be u16 as David suggests just to
+> > see what happens?  Who knows?  Maybe it was a compiler issue that has
+> > since been fixed.  Or maybe the macros and asms using cmpxchg_emu_u8()
+> > need that uintptr_t for some reason.
+> 
+> I think the uintptr (unsigned long) cast is needed to stop a compile
+> error when exchanging pointers.
+> But that is an issue with the #define not the called functions.
+> 
+> Possibly changing the #define to have:
+> 	unsigned long ul_old = (unsigned long)(old);
+> Or even, with the type check from:
+> 	unsigned long ul_old = (unsigned long)(0 ? *(ptr) : (old));
+> (with the same for 'new')
+> and the removing all the casts where the value are used might be better.
 
-Le 08/09/2026 à 22:55, Lorenzo Stoakes (ARM) a écrit :
-> modpost does a lot of single-threaded work hashing files from each object's
-> .cmd file.
->
-> This makes the build slower than it needs to be, so do this work in
-> parallel.
+It does sound worth a try, especially since we have the uintptr_t version
+to fall back on should that fail, or in case it somehow makes things
+more complicated.
 
+But we have been living with uintptr_t for some years with the 8-bit
+code, so this should be able to be a follow-on patch.
 
-If you're going parallel, it would be nicer to do it under make's 
-jobserver supervision.
-
-
-> This is egregious for allmodconfig builds - for instance x86-64 can end up
-> opening 200,000 files individually and hashing them all serially.
->
-> Parallelise this operation by maintaining a thread pool for the hashing
-> work.
->
-> Combined with the per-file hashing commit this cuts modpost's run time
-> nearly in half for an allmodconfig build.
->
-> Module.symvers and every *.mod.S are byte for byte the same.
->
-> modpost is on the serial tail of every allmodconfig build, however
-> defconfig does not set CONFIG_MODULE_SRCVERSION_ALL and is unchanged.
->
-> Whole build, 128-thread Threadripper 9980X, best of N runs:
->
->                                           before   after     delta
->                                           -------------------------------
->    x86 allmodconfig, touch mm/vma.c, gcc    33.4s    30.2s     -3.2s (-10%)
->    x86 allmodconfig, touch mm/vma.c, clang  31.1s    28.1s     -3.0s (-10%)
->
-> Assisted-by: LLM
-> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> ---
->   scripts/mod/Makefile     |  1 +
->   scripts/mod/modpost.c    | 72 ++++++++++++++++++++++++++++++++++++++++++++++--
->   scripts/mod/modpost.h    |  2 ++
->   scripts/mod/sumversion.c |  3 +-
->   4 files changed, 74 insertions(+), 4 deletions(-)
->
-
-Regards.
-
-
+							Thanx, Paul
