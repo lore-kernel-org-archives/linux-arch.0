@@ -1,123 +1,128 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj2-f13.google.com (mail-pj2-f13.google.com [74.125.227.141])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0BC253D7D6B;
-	Fri, 11 Sep 2026 23:09:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7E63B1FBEA6
+	for <linux-arch@vger.kernel.org>; Sat, 12 Sep 2026 02:42:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789168158; cv=none; b=Qa+3/WdYUl0eEajbyQL9GyPs50qpXBzIGX0ut5uJVRk34CHCdxv78NRElorwhe/wSmKfwJOy7B0WTMTy4mnA/VHgseOQPFBa1TKqWdBdX4AV7Q1cOMbKdVmzobYn9phv/JVzvXb9jCX/NKWYQGKiX/laNWCDu3SLyejBK0GgVhU=
+	t=1789180969; cv=none; b=CKIxke8MZSAREvnJgFGBzrXNm8UEfuTDiAVzRDGrhmbpey7HIy8MiJeWnHEx7wWWMPk6qwFfq7cq+3JcJRN0+diQync+ONrywFlzugKSOeChkPp7mP6k/iLY0uDlGX+8N18lXWZfMYr5/lpCEppovtBaCPNagHTaubntNnj/YQI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789168158; c=relaxed/simple;
-	bh=pC7AIvEJJm6ZfxFcBnHb+CxDZdVDzV91L+8BHnUO87s=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=MbkUzneanilTAK+FSPuTtXRUbw+XVsqmeOfettx62FZdDM7Yr+6Vu+OBu6ssP/CEj2MX9s3C1t70HOMo7U8J0/2Bq50F85hXfm6LSvFN1+iSprXLXrQ+5sGIn40ykr7BxTE5H8mUctXMK9WHiqZu3swvBLeeIkLKS4mNk9FjEyU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=PaDhcCeJ; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789180969; c=relaxed/simple;
+	bh=9f7h9PLAGNr5QREiP4rXwCLceZZ+OvQlKMgj7JBEccA=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=rsHFYAdcuXGoPbNpKi/gBJYERf/8JOwcWBZ//L+xf9NUHt6CvVWvjBVVsjgWfpOPbVEzxbP9e1eJGwgZbxlbmTxRcZ5m8Oo5TMhcH4r0RZnBtHqwnNNdhNnqm+ONqVqjmPidKC+mnbKx6UN+yDeLasmbiCMlHN/x71N0x9UDwNo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=PklKXUbH; arc=none smtp.client-ip=74.125.227.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="PaDhcCeJ"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DF35C1F00899;
-	Fri, 11 Sep 2026 23:09:16 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789168156;
-	bh=PU36CAMH0As/+hgtL4nBfeMCbZVDxdToFschpTypMpk=;
-	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To;
-	b=PaDhcCeJrRmyZVEHXfccDKlvdH4Yuxb/QOXqXlQycswXlFl28NI27ccPXuXxRArHT
-	 yM5NU+4/gMXCPAcMhMIzs9mmSbPBZf5HXfkmd5Y20oNzaOEgHJiV7l7EKgq5rtkJPs
-	 IkaAHoU5iSvKmShAPGc8nW8gG/N2LgMXnP8Etgw2+xIKW/oq5UHszgY6DgNY7JlPip
-	 XO3HrjW1agQaIQHri/He2ow5r6gNKazbTo0cr5dfBrR6SMwDeNCos7JOD6mRKZmZBo
-	 0s4OE+q+SnJ86WtiwiagG0K76s/MkPJubu16vNILQXzhCOgALZOZry16bcI0xbhxBA
-	 xCgBdxqC6pDdg==
-Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id A3C83CE09DD; Fri, 11 Sep 2026 16:09:16 -0700 (PDT)
-Date: Fri, 11 Sep 2026 16:09:16 -0700
-From: "Paul E. McKenney" <paulmck@kernel.org>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: Bradley Morgan <brads@mainlining.org>, frederic@kernel.org,
-	neeraj.upadhyay@kernel.org, boqun@kernel.org, joelagnelf@nvidia.com,
-	rcu@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>,
-	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
-	Vineet Gupta <vgupta@kernel.org>,
-	linux-snps-arc@lists.infradead.org,
-	Russell King <linux@armlinux.org.uk>,
-	linux-arm-kernel@lists.infradead.org, Guo Ren <guoren@kernel.org>,
-	linux-csky@vger.kernel.org,
-	Yoshinori Sato <ysato@users.sourceforge.jp>,
-	Rich Felker <dalias@libc.org>,
-	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-	linux-sh@vger.kernel.org, Chris Zankel <chris@zankel.net>,
-	Max Filippov <jcmvbkbc@gmail.com>, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH 1/6] lib: Add two-byte cmpxchg emulation function
-Message-ID: <d0ef7beb-6952-49cc-9b33-e7542e831ba6@paulmck-laptop>
-Reply-To: paulmck@kernel.org
-References: <20260911192540.20983-1-brads@mainlining.org>
- <20260911192540.20983-2-brads@mainlining.org>
- <20260911231017.550f8cd1@pumpkin>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="PklKXUbH"
+Received: by mail-pj2-f13.google.com with SMTP id 98e67ed59e1d1-396ccd66bb4so165735a91.1
+        for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2026 19:42:46 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1789180966; x=1789785766; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=KsxAOkX7Z0gktBYPmfGgeg8Ie2GzO8n+hdt9t2tFXNY=;
+        b=PklKXUbHrl0mESqR6cCz+z1uSVCL/gU9evRoA+t0HTJ5g2+6IN+gQk6SRzR51PcG84
+         4002eTU4pfv3+VCXOFlDjL7Lhu23TUl5pjvlrWc4IzDelmIA+KCiZSI+sZv3udFhC5bZ
+         64W7dC9js1bAqW5Q5Trfg6lsqco8XFiofhwDGEp9FYHBdz/3mJ5BPY1eGfJHgdr6JBds
+         YBWoVrAdFpAOgcK322tiy7YDkP40ncS9Wjvgd15OHI4TkDoVzOkHfETd1zBIcSl1bDa8
+         tYfcfV5bUiDXBG9scdFCWHimShA3Z65iTE/6GK5r1awOxvDDsZ0P3Qk9gHkdlftd2R0K
+         RUHw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1789180966; x=1789785766;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=KsxAOkX7Z0gktBYPmfGgeg8Ie2GzO8n+hdt9t2tFXNY=;
+        b=l4+Fv8X7nLjTyz2Ki3JWZ1fF6D6EEhJhQk9WT+kaBpEGPmnUkxWpM7eGiHX0tZjNiM
+         PsILIHQUd70F+xz7F9tcd7rrCz4KpD8WRW6fkYpwEhXkcCvbUFGK4vT86s6nxaZRz2aI
+         JezeOIa6n3t75EEaGfmNOmzF06/z5KeEuTSVfYoUYA5rLoBW9DrcP0+jO2ji2DvtTnAm
+         JHiFtNJrunjLfmjtwkEAVMiPvXsfxuGNeH2xCKT+M845pv3k9a/oFLwZwZXSsvXdTItv
+         mux67M+pVz+Y6sJuWKYKMLsnL74kWKYMkxTgLc2a98/0HvAz/aO7X2TSz1+7DnbboAaU
+         bj8A==
+X-Forwarded-Encrypted: i=1; AKwUvBxS3tCAKG8sEdV9/6ZGXaWxXmWscho7JvLMccADua+yHSQznYe0OOnxdfHvJ1QsmCDC4pJ16Apa8a1L@vger.kernel.org
+X-Gm-Message-State: AFuF++m+TfwmPFz1T9TaMgEdJ5kpXyB1tO2PPSvAAZM3J4J0yIqHcGgP
+	Y0kJ3ZTKayAuZvO6fIF0b/rUTrjyrXXnf8cpp2U2h8E4i2B6PEB6vVve
+X-Gm-Gg: AYBFou1/Z5Gp6gSQJ6cytRbezZJBlYjUIRAmu70HIiaRcNpQne1jOwwEmRgTR/yKlCw
+	i3nwUpyi9R3C5Bn1Hke3qDsm7glXM8x8/DZ45Haj9rJVH/82qyZVZ1TDvdKdcT/WdSOq/+g96QN
+	zgCoJu8AiTlAafBvyZ2gNlmy3DbR64QQgt6BEmD69KlYLgEP3LE94hrlCFAeXqod9PLMPqXD1u7
+	P4XRiqch1KlflJg8X08JycOIDHImrg78bLBPfuen4Wbr88rRJ/6EpkZGIOOfrooMxZvTXOvGTPM
+	+vu8K8JOtXSPWiubAPbbJwrP45qdQmykzScyW9AnEN37ihzI30C7G4lNTVYqo8tpgROUxCNH64K
+	SSmVrp3Tp+w1iqc+mzleD2iBceFi9UL2CqcG91tjwzy+bJsOew6tuWzFzNimtQ+eVbG57FkVmFm
+	d9EYsoPgZp3sbcw7tRjW3VhrWA+YrIgCx7Ink1NINmxubg+3k30bJIYgspeEMEwfOxwXuBlbpcq
+	m1M93k+CmhgukTXNw==
+X-Received: by 2002:a17:90b:2588:b0:36a:5d1f:7b6 with SMTP id 98e67ed59e1d1-39dbbe87b09mr1694147a91.2.1789180965146;
+        Fri, 11 Sep 2026 19:42:45 -0700 (PDT)
+Received: from kernel.tail6741c6.ts.net ([185.220.238.35])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-39d950913a6sm7879099a91.6.2026.09.11.19.42.38
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 11 Sep 2026 19:42:44 -0700 (PDT)
+From: Kunwu Chan <kunwu.chan@gmail.com>
+To: paulmck@kernel.org,
+	dlustig@nvidia.com,
+	joelagnelf@nvidia.com,
+	corbet@lwn.net,
+	akiyks@gmail.com,
+	luc.maranget@inria.fr,
+	j.alglave@ucl.ac.uk,
+	dhowells@redhat.com,
+	npiggin@gmail.com,
+	boqun@kernel.org,
+	peterz@infradead.org,
+	will@kernel.org,
+	parri.andrea@gmail.com,
+	stern@rowland.harvard.edu
+Cc: linux-doc@vger.kernel.org,
+	lkmm@lists.linux.dev,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	rdunlap@infradead.org,
+	skhan@linuxfoundation.org,
+	Kunwu Chan <kunwu.chan@gmail.com>
+Subject: [PATCH v2 0/2] Documentation/litmus-tests: Add SRCU fastpath litmus tests
+Date: Sat, 12 Sep 2026 10:42:23 +0800
+Message-ID: <20260912024225.2872265-1-kunwu.chan@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260911231017.550f8cd1@pumpkin>
+Content-Transfer-Encoding: 8bit
 
-On Fri, Sep 11, 2026 at 11:10:17PM +0100, David Laight wrote:
-> On Fri, 11 Sep 2026 19:25:34 +0000
-> Bradley Morgan <brads@mainlining.org> wrote:
-> 
-> > cmpxchg_emu_u8() emulates one-byte cmpxchg() in terms of four-byte
-> > cmpxchg() for the architectures lacking native one-byte atomics.
-> > The same architectures also lack native two-byte cmpxchg(), where
-> > such an operation is not supported and either fails to compile via
-> > BUILD_BUG() or fails to link, because the bad pointer sentinels
-> > these architectures declare are never defined.
-> > 
-> > Add cmpxchg_emu_u16(), the two-byte sibling. It reads the enclosing
-> > word with READ_ONCE(), splices the two target bytes through a union
-> > and loops on cmpxchg() of the full word until the compare succeeds.
-> > Like cmpxchg_emu_u8() it is fully ordered.
-> > 
-> > The Kconfig symbol gating this file is renamed from
-> > ARCH_NEED_CMPXCHG_1_EMU to ARCH_NEED_CMPXCHG_1_2_EMU, as it now
-> > selects both the one-byte and the two-byte emulation.
-> > 
-> > Suggested-by: Paul E. McKenney <paulmck@kernel.org>
-> > Signed-off-by: Bradley Morgan <brads@mainlining.org>
-> > ---
-> >  arch/Kconfig                |  2 +-
-> >  arch/arc/Kconfig            |  2 +-
-> >  arch/arm/Kconfig            |  2 +-
-> >  arch/csky/Kconfig           |  2 +-
-> >  arch/sh/Kconfig             |  2 +-
-> >  arch/xtensa/Kconfig         |  2 +-
-> >  include/linux/cmpxchg-emu.h |  1 +
-> >  lib/Makefile                |  2 +-
-> >  lib/cmpxchg-emu.c           | 35 ++++++++++++++++++++++++++++++++---
-> >  9 files changed, 40 insertions(+), 10 deletions(-)
-> > 
-> ...
-> > diff --git a/include/linux/cmpxchg-emu.h b/include/linux/cmpxchg-emu.h
-> > index 998deec67740..fee8171fa05e 100644
-> > --- a/include/linux/cmpxchg-emu.h
-> > +++ b/include/linux/cmpxchg-emu.h
-> > @@ -11,5 +11,6 @@
-> >  #define __LINUX_CMPXCHG_EMU_H
-> >  
-> >  uintptr_t cmpxchg_emu_u8(volatile u8 *p, uintptr_t old, uintptr_t new);
-> > +uintptr_t cmpxchg_emu_u16(volatile u16 *p, uintptr_t old, uintptr_t new);
-> 
-> Why uintptr_t? Shouldn't it just be u16?
-> (Which probably means the code would better if it was just 'unsigned int')
+This series moves the SRCU fastpath litmus tests from
+tools/memory-model/litmus-tests/ to Documentation/litmus-tests/srcu/,
+as suggested by Paul McKenney.
 
-I suspect that Bradley is just following my cmpxchg_emu_u8() example,
-which also returns uintptr_t.
+This series splits the two litmus-test patches from the earlier
+[PATCH 00/13] srcu: Round out atomic SRCU support series:
+https://lore.kernel.org/rcu/20260907075829.2073224-1-kunwu.chan@linux.dev/
 
-I remember that *something* broke when I made this be u8, but I cannot
-recall what the problem was.
+The two tests verify the memory ordering required by the reader-free
+synchronize_srcu_atomic() fastpath: the grace-period anchor must be
+ordered before the per-CPU lock-counter scan.
 
-Bradley, could you please try making it be u16 as David suggests just to
-see what happens?  Who knows?  Maybe it was a compiler issue that has
-since been fixed.  Or maybe the macros and asms using cmpxchg_emu_u8()
-need that uintptr_t for some reason.
+Patch 1 verifies that the anchor-before-scan ordering forbids a reader
+from being missed by the scan, while patch 2 shows that reversing the
+ordering permits the problematic outcome.
 
-							Thanx, Paul
+Changes in v2:
+- Use a filter for the P0 scan result, as suggested by Paul McKenney.
+
+Tested with herd7 7.58 using linux-kernel.cfg.
+
+Kunwu Chan (2):
+  Documentation/litmus-tests: Add SRCU fastpath anchor-before-scan test
+  Documentation/litmus-tests: Add SRCU fastpath scan-before-anchor test
+
+ Documentation/litmus-tests/README             | 21 +++++++
+ .../SRCU-fastpath-anchor-before-scan.litmus   | 57 +++++++++++++++++++
+ .../SRCU-fastpath-scan-before-anchor.litmus   | 54 ++++++++++++++++++
+ 3 files changed, 132 insertions(+)
+ create mode 100644 Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
+ create mode 100644 Documentation/litmus-tests/srcu/SRCU-fastpath-scan-before-anchor.litmus
+
+-- 
+2.43.0
+
