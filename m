@@ -1,127 +1,171 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm2-f12.google.com (mail-wm2-f12.google.com [74.125.225.140])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 028E637204A;
-	Sat, 12 Sep 2026 07:11:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F1DBD35C6A4
+	for <linux-arch@vger.kernel.org>; Sat, 12 Sep 2026 09:30:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789197101; cv=none; b=MXMzX/ttIah7wdSp9F+CSPQUCGd4VB93rvJMrFogLQg6BAt0pJO5uAIGp913hSXQLuJ93oMPhVvlf1EaivkQrmwDNX/FNf7sv/fXdWMuOmGfV2+sqgeapLVev1gpitxrTnaKYtmDCVwyH5RfeHPe8juDA333DvO5i0+7UFTMl2Y=
+	t=1789205453; cv=none; b=sAJ2UhdJaZO54Wg1MsI1GM80tgOZFoRLW1xe0o+jyPEf9OkvUXo+LGmVlVeKnowXOIdxSgV/HPEQKxOiVcrJf3HmeP1tOlF+PFiMwyWw2z3hEXJ3G1pqWmF4ux+M6JW+htuD+6+TwnUf8xPK3Mrj3gNkPg61Z3CKdtqWu53FKi8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789197101; c=relaxed/simple;
-	bh=Mw/2FuMBzyRbpnBdDwqyc0WoQo+XQ75T+sKeuIrxxWI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=VI9IScGGtikWtgv0awfbG+L/7Go7baQAr5O6U3lojL2uzbdM1ru3wc6EXxrGFx41RDELiFe+hxvS8n4PS8aIpx+XVNa1vAukvH1nQUOE2/Lc4e9lKx/UxGoUuG5R/sKSJSPsCryrZIcopyAKRqRqSLDrb9uMQcxiXcnbdMVwM1o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=eFWkhuVd; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789205453; c=relaxed/simple;
+	bh=JFkNJfIWl4JBPhtIiMKJsDFXpmdvhj7ZI5ApqqlkfAs=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=DyQOfTddZE/BttTr0mvxNjKc9Q8CiPEZxik5AU/NTAYBtzHzPu+uOnqkQ/ZYFfyfc+oIMB7ATZewHYn0cIeeq6A8FLybpzN0oGaJFByZdwo3q5LWiIaSXNNFl6WsuoKmAssRCes2iuf6RQ5Zzbb/1AvMlf8XCQNdXFgvvc4kZuo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Q2fsXHiu; arc=none smtp.client-ip=74.125.225.140
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="eFWkhuVd"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 744F31F00893;
-	Sat, 12 Sep 2026 07:11:30 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789197099;
-	bh=4/WwgIbj2JMFSxLBJaTQNiKL//gze4K2SPN+E9vGKnc=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=eFWkhuVdsLkYkirfy95jHDEmcj/iqcwLeOP2AYho268voIwJ7tppVk54oT9Pqaw7/
-	 UbBk+Y5+6aO4UN8SVP5qsv+q9Oc8y4oxgCWc9xe9hOKC6TDKfGnf8Z95DLdbu/SMvg
-	 pD1N5hre4CopVGJaKrTfyHoPMiS27zD9jBfCjawuTS8HCCS7y4Av0jQpUwNvp/86Vy
-	 eHcMQbOwt2VuTSGRTCOvMZx6PbSNAUjNo3ckHBRAivHVzuTmgvftg5LZVSgfeTfVfC
-	 +raEmQN52zFlbmq/l9cIs3x5uorPACERQ0byHB6VSAgijLL7sRQpxk+VUBVhtH9gON
-	 EKnbCFfiMLxcg==
-Date: Sat, 12 Sep 2026 00:11:28 -0700
-From: Nathan Chancellor <nathan@kernel.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Nicolas Schier <n.schier@fritz.com>,
-	David Laight <david.laight.linux@gmail.com>,
-	Linus Torvalds <torvalds@linux-foundation.org>,
-	Nick Desaulniers <ndesaulniers@google.com>,
-	Bill Wendling <morbo@google.com>,
-	Justin Stitt <justinstitt@google.com>,
-	Masahiro Yamada <masahiroy@kernel.org>,
-	Alexey Gladkov <legion@kernel.org>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
-	Ard Biesheuvel <ardb@kernel.org>,
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
-	Josh Poimboeuf <jpoimboe@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>,
-	Gary Guo <gary@garyguo.net>,
-	=?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
-	Benno Lossin <lossin@kernel.org>,
-	Andreas Hindborg <a.hindborg@kernel.org>,
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
-	Danilo Krummrich <dakr@kernel.org>,
-	Daniel Almeida <daniel.almeida@collabora.com>,
-	Tamir Duberstein <tamird@kernel.org>,
-	Alexandre Courbot <acourbot@nvidia.com>,
-	Onur =?iso-8859-1?Q?=D6zkan?= <work@onurozkan.dev>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Randy Dunlap <rdunlap@infradead.org>, linux-kbuild@vger.kernel.org,
-	linux-kernel@vger.kernel.org, llvm@lists.linux.dev,
-	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org,
-	rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org,
-	Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 12/23] kbuild: avoid re-running compiler and linker probes
-Message-ID: <20260912071128.GD2002951@ax162>
-References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <20260908-build-speedup-v1-12-5dc1ac01672d@kernel.org>
- <178901395292.3971858.13236774094648272066.b4-review@b4>
- <20260910-translucent-sweet-sidewinder-7acacb@l-nschier-aarch64>
- <20260911183333.1df0f2e2@pumpkin>
- <20260911-invaluable-indigo-seal-e31aec@l-nschier-aarch64>
- <aqRGYXKDzXZMXmmp@gremlin>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Q2fsXHiu"
+Received: by mail-wm2-f12.google.com with SMTP id 5b1f17b1804b1-49cd38e0e5dso7742305e9.2
+        for <linux-arch@vger.kernel.org>; Sat, 12 Sep 2026 02:30:50 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1789205449; x=1789810249; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=wIDaovYKooHqH78d/6XZ6tf1fVeqSDWOw5EQD+FAKCk=;
+        b=Q2fsXHiukvnErotvdp8NVy6d8RV4/YZJCAqJyxu5qGJKDuzNNe5rPzUCLU8QT7RZs2
+         bF+3ujmUnzXiDykLXUCDstyPmSpP+oBVos8pcXz7O9GbCq768nQE8CWTaiDLFUEvMOPq
+         k5q2Bk0flpD8RBEd1ahQan5JvbOS3/mMRquT8BujuAOltom+uAMLwKh9/hWxdgpSr2nC
+         biptUkQmVq90XJGr7q4rVjCME9FAAOnmx3dWcq9rywP51Cx8qKjUKp2j4p1WhTgGMXED
+         Oz9gLam4h1S2cPxHZZXko/2MMEJ/azzGRey9y46+U1TB3pjCeT9w/wHx0zK8mJfr/Yih
+         s/rQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1789205449; x=1789810249;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=wIDaovYKooHqH78d/6XZ6tf1fVeqSDWOw5EQD+FAKCk=;
+        b=CctVLSz9peG2pGrlGNs/OmyivAHXHlVp+c1cw7tPhTXX/dQGBMOhWmyUIbwIT4nvSK
+         YwRwL1t36TKY2mf5zuX483ng6O/LDK3UZwgWdGsnpmMSk21OsSVXoMYx2HmPOCq2IE+1
+         ecqinfnjBYRw2TOypVNsOlVbwpgsiVZIp8fnE+sWeYwEXuSu9j+zvtk/ePsfEJxJtM7n
+         sfaj5hatVOnpG1BjyXGUCbcaURVHRnuocoQjH+HE3rG91mp6UoGbuv/kClfGDFgZyfx8
+         qjxBX7ZK/zjXjKSFHXiktR9vebTJr7IWAR1jICT/7eWAfc1v+pMqXncfDTUp67q8Wu9y
+         B3Iw==
+X-Forwarded-Encrypted: i=1; AKwUvBzVu4uC2v7NoUnRaVMmB4V+ZZD0WJoEhIQkXTU8PaVrNNNJSsZwmOk/Ctz27cgaS04gZq8M8VIfgqXj@vger.kernel.org
+X-Gm-Message-State: AFuF++lQxAzRUb6AvVOlUUS85em7bzRJtNGOq/Yn9Q2IqfdTkoSxUE6w
+	+gbEk7i5bdbw8bwsO+C4oTwk+nhqhmosMMkSCeF05JfKpQL39/Qx/IJa
+X-Gm-Gg: AYBFou2DVSfSJwsdeWLWHzTaRbcxoco2UR3dm5cQk1mcpswwnoOheRF6T7dcBhdZ8yb
+	tGuYbsygn08U7im3J6hGwmgryhiEUHxbpE3hGp+iv/VvZZA3V0eEHSdf7aD6agNVXE/iEKZzVaf
+	Anj6Q0qtBi7Ptr+gV23r8+lxV0BNpFILEKW+UHQRuuGxv2arrlSQtsQHrlIrFGGL+DxlWxfFOMX
+	Ubb1zEHM8B5qGAUjWNUmGv6K+MFiTffSvIrkPzrCRfy1mQ5pn7tviDxvL/wE2ZXfTaKcM0iJFqQ
+	Pm03hNz7X1LJOKJYS+y5HhLUrBbKZiy3SqiNAQ16DNztlvxLGXpRwZt3KhsMmAanvKvuLCBScVS
+	JjdCzo3UHyp1Sp9QgCzLG4lyDy5xeFvWsp1wruPjI5Y59LXDX6Zs5x6AReqw8LwlskLCUm9+r14
+	yV5wC54F9pjVvVRN4z8FWptICX5JPUA2tF6lnxdsHYQeA//C5uNNdWw8sIBHSagJn7RN/RxzdCc
+	skAGoZjm28x0sKZOMMDX9MXVj5xHm++Tsmy
+X-Received: by 2002:a05:600c:8411:b0:49d:1e09:694a with SMTP id 5b1f17b1804b1-49e619f5049mr195258665e9.11.1789205448684;
+        Sat, 12 Sep 2026 02:30:48 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49e706d0c1fsm26523335e9.1.2026.09.12.02.30.48
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 12 Sep 2026 02:30:48 -0700 (PDT)
+Date: Sat, 12 Sep 2026 10:30:47 +0100
+From: David Laight <david.laight.linux@gmail.com>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Bradley Morgan <brads@mainlining.org>, frederic@kernel.org,
+ neeraj.upadhyay@kernel.org, boqun@kernel.org, joelagnelf@nvidia.com,
+ rcu@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd
+ Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Vineet Gupta
+ <vgupta@kernel.org>, linux-snps-arc@lists.infradead.org, Russell King
+ <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org, Guo Ren
+ <guoren@kernel.org>, linux-csky@vger.kernel.org, Yoshinori Sato
+ <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, John Paul
+ Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, linux-sh@vger.kernel.org,
+ Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>,
+ linux-kernel@vger.kernel.org
+Subject: Re: [PATCH 1/6] lib: Add two-byte cmpxchg emulation function
+Message-ID: <20260912103047.1b95bb03@pumpkin>
+In-Reply-To: <d0ef7beb-6952-49cc-9b33-e7542e831ba6@paulmck-laptop>
+References: <20260911192540.20983-1-brads@mainlining.org>
+	<20260911192540.20983-2-brads@mainlining.org>
+	<20260911231017.550f8cd1@pumpkin>
+	<d0ef7beb-6952-49cc-9b33-e7542e831ba6@paulmck-laptop>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aqRGYXKDzXZMXmmp@gremlin>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Fri, Sep 11, 2026 at 07:24:50PM +0100, Lorenzo Stoakes (ARM) wrote:
-> I mean this is a problem that already exists for any flags already specified in
-> Kconfig.
+On Fri, 11 Sep 2026 16:09:16 -0700
+"Paul E. McKenney" <paulmck@kernel.org> wrote:
+
+> On Fri, Sep 11, 2026 at 11:10:17PM +0100, David Laight wrote:
+> > On Fri, 11 Sep 2026 19:25:34 +0000
+> > Bradley Morgan <brads@mainlining.org> wrote:
+> >   
+> > > cmpxchg_emu_u8() emulates one-byte cmpxchg() in terms of four-byte
+> > > cmpxchg() for the architectures lacking native one-byte atomics.
+> > > The same architectures also lack native two-byte cmpxchg(), where
+> > > such an operation is not supported and either fails to compile via
+> > > BUILD_BUG() or fails to link, because the bad pointer sentinels
+> > > these architectures declare are never defined.
+> > > 
+> > > Add cmpxchg_emu_u16(), the two-byte sibling. It reads the enclosing
+> > > word with READ_ONCE(), splices the two target bytes through a union
+> > > and loops on cmpxchg() of the full word until the compare succeeds.
+> > > Like cmpxchg_emu_u8() it is fully ordered.
+> > > 
+> > > The Kconfig symbol gating this file is renamed from
+> > > ARCH_NEED_CMPXCHG_1_EMU to ARCH_NEED_CMPXCHG_1_2_EMU, as it now
+> > > selects both the one-byte and the two-byte emulation.
+> > > 
+> > > Suggested-by: Paul E. McKenney <paulmck@kernel.org>
+> > > Signed-off-by: Bradley Morgan <brads@mainlining.org>
+> > > ---
+> > >  arch/Kconfig                |  2 +-
+> > >  arch/arc/Kconfig            |  2 +-
+> > >  arch/arm/Kconfig            |  2 +-
+> > >  arch/csky/Kconfig           |  2 +-
+> > >  arch/sh/Kconfig             |  2 +-
+> > >  arch/xtensa/Kconfig         |  2 +-
+> > >  include/linux/cmpxchg-emu.h |  1 +
+> > >  lib/Makefile                |  2 +-
+> > >  lib/cmpxchg-emu.c           | 35 ++++++++++++++++++++++++++++++++---
+> > >  9 files changed, 40 insertions(+), 10 deletions(-)
+> > >   
+> > ...  
+> > > diff --git a/include/linux/cmpxchg-emu.h b/include/linux/cmpxchg-emu.h
+> > > index 998deec67740..fee8171fa05e 100644
+> > > --- a/include/linux/cmpxchg-emu.h
+> > > +++ b/include/linux/cmpxchg-emu.h
+> > > @@ -11,5 +11,6 @@
+> > >  #define __LINUX_CMPXCHG_EMU_H
+> > >  
+> > >  uintptr_t cmpxchg_emu_u8(volatile u8 *p, uintptr_t old, uintptr_t new);
+> > > +uintptr_t cmpxchg_emu_u16(volatile u16 *p, uintptr_t old, uintptr_t new);  
+> > 
+> > Why uintptr_t? Shouldn't it just be u16?
+> > (Which probably means the code would better if it was just 'unsigned int')  
 > 
-> Out-of-tree modules are historically something that we don't go to great lengths
-> to support and haven't historically worried about breaking, either.
+> I suspect that Bradley is just following my cmpxchg_emu_u8() example,
+> which also returns uintptr_t.
 > 
-> I'm sure distros can find ways around this if a problem were to arise. But I
-> don't think it's something to worry about all that much.
+> I remember that *something* broke when I made this be u8, but I cannot
+> recall what the problem was.
 > 
-> I expect a _lot_ of these, in any case, would only require the compilers to be
-> within a fair few major versions of one another anyway.
+> Bradley, could you please try making it be u16 as David suggests just to
+> see what happens?  Who knows?  Maybe it was a compiler issue that has
+> since been fixed.  Or maybe the macros and asms using cmpxchg_emu_u8()
+> need that uintptr_t for some reason.
 
-Yeah, while I know distributions will try to maintain a stable kernel
-ABI to allow updating modules without updating the main kernel, I would
-be very very surprised if they guaranteed compatability when building
-external modules with a compiler different from the main kernel. If so,
-I think they get to pick up the pieces :)
+I think the uintptr (unsigned long) cast is needed to stop a compile
+error when exchanging pointers.
+But that is an issue with the #define not the called functions.
 
-One issue that I found with my test matrix building with LLVM is that
-cc-option in Kconfig does not guarantee use of either '-m32' / '-m64' or
-'-mbig-endian' / '-mlittle-endian' to properly flip these options, which
-could result in a flag being set (or not set) when it should be. For
-example, building ARCH=powerpc pmac32_defconfig results in
+Possibly changing the #define to have:
+	unsigned long ul_old = (unsigned long)(old);
+Or even, with the type check from:
+	unsigned long ul_old = (unsigned long)(0 ? *(ptr) : (old));
+(with the same for 'new')
+and the removing all the casts where the value are used might be better.
 
-  clang: error: argument unused during compilation: '-fno-stack-clash-protection' [-Werror,-Wunused-command-line-argument]
-  make[4]: *** [scripts/Makefile.build:193: kernel/bounds.s] Error 1
+David
 
-because the 64-bit PowerPC little endian target supports this flag in
-the PowerPC LLVM backend but the 32-bit big endian target does not.
+> 
+> 							Thanx, Paul
 
-I am not really sure what the best way to avoid this would be off the
-top of my head... it might be safer to start with moving only the
-warning flags to Kconfig since that is a truly frontend query.
-
--- 
-Cheers,
-Nathan
