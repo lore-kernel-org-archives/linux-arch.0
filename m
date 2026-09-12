@@ -1,141 +1,194 @@
-Received: from mail.mainlining.org (mail.mainlining.org [5.75.144.95])
+Received: from mail.cock.li (mail.cock.li [37.120.193.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BAFA739FCCA;
-	Sat, 12 Sep 2026 21:14:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=5.75.144.95
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5AA3B314A73;
+	Sat, 12 Sep 2026 21:59:05 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=37.120.193.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789247668; cv=none; b=UQpdZKH7PJrnurbkov8N6Bxg4vsqf5A9eIgmv+7uEo79Pv9jea97Zbrv+jpsQipFO0bockzKUR3gABZtKTHKY0PcMPTDQQZCND3lHTzGm8cgg1fS0dOeCRHpDvdYpX1NE1yA0NhTfwv9EB+ueDc2A8qyZnKohFV16MAn+Ni2mFA=
+	t=1789250352; cv=none; b=OKd+nr66xVYnTIRMbeo6hk3Y2rhS4N2ka7lR63zs4n6MeuJcaROX+tbBOy7ZICtIwTYe6fVOvHCaoZfd2FjFAgJ8F34YlHjJH2TNPexZjuwdyPPgZ+99XSK3ISUqlumANh4YQS/tnMqtI1za/T6ZLK6Id3+KIO1VYnkJfnUp+uI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789247668; c=relaxed/simple;
-	bh=HO87r9mgs61dhwtUbn1a1DZMPkYcXRvxOba7oeZ7ukQ=;
-	h=Date:From:To:CC:Subject:In-Reply-To:References:Message-ID:
-	 MIME-Version:Content-Type; b=cTH82/Vpf/mdk2tQOCYQoqH/RecEBEHOk9Z5GQJDUXFBGkN1dVt5E+0sIN+P6qXHeDT0znw/sXt8our1f7x+xjlXQUVFV5z3HDmn1//MUcEOgvpuvnOPexbQC2WWTPM53BWgwi0WgjiBb9wvttsxTOK02uhmYuJWcSddkD6QZ4o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=mainlining.org; spf=pass smtp.helo=mail.mainlining.org; arc=none smtp.client-ip=5.75.144.95
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=mainlining.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.helo=mail.mainlining.org
-Date: Sat, 12 Sep 2026 22:11:56 +0100
-From: Bradley Morgan <brads@mainlining.org>
-To: paulmck@kernel.org, "Paul E. McKenney" <paulmck@kernel.org>,
- David Laight <david.laight.linux@gmail.com>
-CC: frederic@kernel.org, neeraj.upadhyay@kernel.org, boqun@kernel.org,
- joelagnelf@nvidia.com, rcu@vger.kernel.org,
- Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>,
- linux-arch@vger.kernel.org, Vineet Gupta <vgupta@kernel.org>,
- linux-snps-arc@lists.infradead.org, Russell King <linux@armlinux.org.uk>,
- linux-arm-kernel@lists.infradead.org, Guo Ren <guoren@kernel.org>,
- linux-csky@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>,
- Rich Felker <dalias@libc.org>,
- John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
- linux-sh@vger.kernel.org, Chris Zankel <chris@zankel.net>,
- Max Filippov <jcmvbkbc@gmail.com>, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH 1/6] lib: Add two-byte cmpxchg emulation function
-In-Reply-To: <17a92c0b-8062-48ae-b5fa-f61a3e0ff24c@paulmck-laptop>
-References: <20260911192540.20983-1-brads@mainlining.org> <20260911192540.20983-2-brads@mainlining.org> <20260911231017.550f8cd1@pumpkin> <d0ef7beb-6952-49cc-9b33-e7542e831ba6@paulmck-laptop> <20260912103047.1b95bb03@pumpkin> <17a92c0b-8062-48ae-b5fa-f61a3e0ff24c@paulmck-laptop>
-Message-ID: <4B2AAF0A-0467-4AC7-B206-29178F653AE8@mainlining.org>
+	s=arc-20240116; t=1789250352; c=relaxed/simple;
+	bh=VW8F22p449+zFSEUhbHDye81XIvDVNO4ILh6KfBONlg=;
+	h=Content-Type:Date:Message-Id:Cc:Subject:From:To:Mime-Version:
+	 References:In-Reply-To; b=L6UBLrkrONk0Pmfk3pGFUSIIYFJYDWj/6E0YNK0LNNLk9bDsrfoBHaYyfvirtZbTG9kdWX4FobGYA8baZ4uSe9bl3qDBQb7Ola743mCA4bETbL21s40w0jDyTqrUkfbl0h/6RTJGCrEZRHoHKlhxEUaMQm8f/k25ZSM40Xs6ffU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=memeware.net; spf=pass smtp.mailfrom=memeware.net; dkim=pass (2048-bit key) header.d=memeware.net header.i=@memeware.net header.b=jSVkUtBg; arc=none smtp.client-ip=37.120.193.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=memeware.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=memeware.net
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=memeware.net header.i=@memeware.net header.b="jSVkUtBg"
+Content-Type: text/plain; charset=UTF-8
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=memeware.net; s=mail;
+	t=1789250337; bh=VW8F22p449+zFSEUhbHDye81XIvDVNO4ILh6KfBONlg=;
+	h=Date:Cc:Subject:From:To:References:In-Reply-To:From;
+	b=jSVkUtBguRH87GGSf6sQNCcStV1EWnJaPEDTidC7r4Y1HOSze+1pGDZ1zAL7qYsAE
+	 BP2X/+PahERzwMZ+HVrs5GBM+UJzD8fBnPiGTUhVDTt4j6PrkDYO1r7onYWPl+yalo
+	 Xg+7alpWCY3K4SoimUeFARkd++UAjea6PsSFNMKqltuscCk8HC0cP4+/uJszzLKvWl
+	 E0zsywTY+U8MRV6e6HWO5a0syQDkZxrVP7mKSq3Z1ejuvGrq6utxp0prQURxYnIVxi
+	 h2w78Rw7rOlSmmUXlTQoGDwgdYZCX/HQ29peBJbCtKgXW/j80qUHhFuxqL59JYoRpO
+	 s0MS7EGAM8MGw==
+Date: Sat, 12 Sep 2026 21:58:26 +0000
+Message-Id: <DLDOAQWX9IIH.E1ZNJ3O80VQ@memeware.net>
+Cc: "linux-man" <linux-man@vger.kernel.org>, "Linux-Arch"
+ <linux-arch@vger.kernel.org>
+Subject: Re: outb(2): terminology correction
+From: "astian" <astian@memeware.net>
+To: "Arnd Bergmann" <arnd@arndb.de>, "Alejandro Colomar" <alx@kernel.org>,
+ "Andreas Jaeger" <aj@suse.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
- charset=utf-8
-Content-Transfer-Encoding: 8bit
+Mime-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+References: <DL30FONT5B6G.1ETPJ04T023RU@memeware.net>
+ <aqPmNKbqjBILjoqw@devuan>
+ <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
+In-Reply-To: <b6258140-1ece-4113-bcb4-025302ef59cc@app.fastmail.com>
 
-On 12 September 2026 19:58:02 BST, "Paul E. McKenney" <paulmck@kernel.org>
-wrote:
->On Sat, Sep 12, 2026 at 10:30:47AM +0100, David Laight wrote:
->> On Fri, 11 Sep 2026 16:09:16 -0700
->> "Paul E. McKenney" <paulmck@kernel.org> wrote:
->> 
->> > On Fri, Sep 11, 2026 at 11:10:17PM +0100, David Laight wrote:
->> > > On Fri, 11 Sep 2026 19:25:34 +0000
->> > > Bradley Morgan <brads@mainlining.org> wrote:
->> > >   
->> > > > cmpxchg_emu_u8() emulates one-byte cmpxchg() in terms of four-byte
->> > > > cmpxchg() for the architectures lacking native one-byte atomics.
->> > > > The same architectures also lack native two-byte cmpxchg(), where
->> > > > such an operation is not supported and either fails to compile via
->> > > > BUILD_BUG() or fails to link, because the bad pointer sentinels
->> > > > these architectures declare are never defined.
->> > > > 
->> > > > Add cmpxchg_emu_u16(), the two-byte sibling. It reads the
->enclosing
->> > > > word with READ_ONCE(), splices the two target bytes through a
->union
->> > > > and loops on cmpxchg() of the full word until the compare
->succeeds.
->> > > > Like cmpxchg_emu_u8() it is fully ordered.
->> > > > 
->> > > > The Kconfig symbol gating this file is renamed from
->> > > > ARCH_NEED_CMPXCHG_1_EMU to ARCH_NEED_CMPXCHG_1_2_EMU, as it now
->> > > > selects both the one-byte and the two-byte emulation.
->> > > > 
->> > > > Suggested-by: Paul E. McKenney <paulmck@kernel.org>
->> > > > Signed-off-by: Bradley Morgan <brads@mainlining.org>
->> > > > ---
->> > > >  arch/Kconfig                |  2 +-
->> > > >  arch/arc/Kconfig            |  2 +-
->> > > >  arch/arm/Kconfig            |  2 +-
->> > > >  arch/csky/Kconfig           |  2 +-
->> > > >  arch/sh/Kconfig             |  2 +-
->> > > >  arch/xtensa/Kconfig         |  2 +-
->> > > >  include/linux/cmpxchg-emu.h |  1 +
->> > > >  lib/Makefile                |  2 +-
->> > > >  lib/cmpxchg-emu.c           | 35
->++++++++++++++++++++++++++++++++---
->> > > >  9 files changed, 40 insertions(+), 10 deletions(-)
->> > > >   
->> > > ...  
->> > > > diff --git a/include/linux/cmpxchg-emu.h
->b/include/linux/cmpxchg-emu.h
->> > > > index 998deec67740..fee8171fa05e 100644
->> > > > --- a/include/linux/cmpxchg-emu.h
->> > > > +++ b/include/linux/cmpxchg-emu.h
->> > > > @@ -11,5 +11,6 @@
->> > > >  #define __LINUX_CMPXCHG_EMU_H
->> > > >  
->> > > >  uintptr_t cmpxchg_emu_u8(volatile u8 *p, uintptr_t old, uintptr_t
->new);
->> > > > +uintptr_t cmpxchg_emu_u16(volatile u16 *p, uintptr_t old,
->uintptr_t new);  
->> > > 
->> > > Why uintptr_t? Shouldn't it just be u16?
->> > > (Which probably means the code would better if it was just 'unsigned
->int')  
->> > 
->> > I suspect that Bradley is just following my cmpxchg_emu_u8() example,
->> > which also returns uintptr_t.
->> > 
->> > I remember that *something* broke when I made this be u8, but I cannot
->> > recall what the problem was.
->> > 
->> > Bradley, could you please try making it be u16 as David suggests just
->to
->> > see what happens?  Who knows?  Maybe it was a compiler issue that has
->> > since been fixed.  Or maybe the macros and asms using cmpxchg_emu_u8()
->> > need that uintptr_t for some reason.
->> 
->> I think the uintptr (unsigned long) cast is needed to stop a compile
->> error when exchanging pointers.
->> But that is an issue with the #define not the called functions.
->> 
->> Possibly changing the #define to have:
->> 	unsigned long ul_old = (unsigned long)(old);
->> Or even, with the type check from:
->> 	unsigned long ul_old = (unsigned long)(0 ? *(ptr) : (old));
->> (with the same for 'new')
->> and the removing all the casts where the value are used might be better.
+On 11 Sep 2026 13:43 +0200, Alejandro Colomar wrote:
+>> Date: 2026-09-11 13:36:29+0200
+>> From: Alejandro Colomar <alx@kernel.org>
+>>
+>> [CC +=3D GENERIC INCLUDE/ASM HEADER FILES maintainers]
+>>=20
+>> Hi astian, Arnd,
+>>=20
+>> > Date: 2026-08-31 09:09:46+0000
+>> > From: astian <astian@memeware.net>
+>> >
+>> > outb(2) says:
+>> >
+>> >   You must compile with -O or -O2 or similar.  The functions are defin=
+ed
+>> >   as inline macros, and will not be substituted in without optimizatio=
+n
+>> >   enabled, causing unresolved references at link time.
+>> >
+>> > "inline macros [...] not substituted in without optimization" doesn't
+>> > make any sense.  C pre-processor macros cannot be inline or not inline=
+.
+>> > Indeed these are inline *functions* (at least in this system) with
+>> > embedded assembly apparently referencing parameters (which, I surmise,
+>> > is why the functions need to be inlined by the compiler or the assembl=
+y
+>> > will not work).
+>> >
+>> > From /usr/include/x86_64-linux-gnu/sys/io.h (glibc 2.43):
+>> >
+>> >   [...]
+>> >   #if defined __GNUC__ && __GNUC__ >=3D 2
+>> >
+>> >   static __inline unsigned char
+>> >   inb (unsigned short int __port)
+>> >   {
+>> >     unsigned char _v;
+>> >
+>> >     __asm__ __volatile__ ("inb %w1,%0":"=3Da" (_v):"Nd" (__port));
+>> >     return _v;
+>> >   }
+>> >
+>> >   [...]
+>> >
+>> >   static __inline void
+>> >   outb (unsigned char __value, unsigned short int __port)
+>> >   {
+>> >     __asm__ __volatile__ ("outb %b0,%w1": :"a" (__value), "Nd" (__port=
+));
+>> >   }
+>> >
+>> >   [...]
+>> >
+>> > So I would say just s/inline macros/inline functions/g.
+>>
+>> Yes, 'inline functions' seems more appropriate than 'inline macros' (all
+>> macros are inlined, due to how the preprocessor works, so they'd be just
+>> macros, and as you showed, these are not even macros --except maybe in
+>> some architectures--).
+>>
+>> However, I doubt the entire paragraph.  I don't know why inline
+>> functions would produce unresolved references at link time _even if they
+>> were not substituted_.  The point of inline functions is that they are
+>> sometimes inlined, and sometimes not, and the compiler does the right
+>> thing in both cases.
+>>
+>> This seems like paranoia from decades ago, when inline functions were
+>> less known (and maybe compilers were more buggy than they are now).
+>>
+>> Arnd, should we remove the paragraph entirely?  Or is there any obscure
+>> reason why optimizations are required?
 >
->It does sound worth a try, especially since we have the uintptr_t version
->to fall back on should that fail, or in case it somehow makes things
->more complicated.
+> Or maybe those assembly instructions are what causes the linker issues?
+> If so, we should probably say something about that.
+
+I had a closer look and I now think that's not the case.  These
+instructions work fine even if the function is not inlined.  See more
+below.
+
+On 11 Sep 2026 14:20 +0200, Arnd Bergmann wrote:
+> My best guess is that this described a bug in glibc that was fixed in
+> https://sourceware.org/git/?p=3Dglibc.git;a=3Dcommitdiff;h=3D994cc0ea88ce=
+7a33d532b735c0723705742b1a7e
 >
->But we have been living with uintptr_t for some years with the 8-bit
->code, so this should be able to be a follow-on patch.
+> commit 994cc0ea88ce7a33d532b735c0723705742b1a7e
+> Author: Andreas Jaeger <aj@suse.de>
+> Date:   Wed Aug 23 16:57:31 2000 +0000
 >
->							Thanx, Paul
-I'll try u16 and then add another patch tryna fix the issue.
---- Thanks!
-https://lore.kernel.org/all/EE579805-42F2-4C58-B752-F28779EEB717@grrlz.net/
+>     (_EXTERN_INLINE): Remove. Use static __inline instead of _EXTERN_INLI=
+NE.
+>
+> --- a/sysdeps/unix/sysv/linux/i386/sys/io.h
+> +++ b/sysdeps/unix/sysv/linux/i386/sys/io.h
+> @@ -40,12 +40,7 @@ extern int iopl (int __level) __THROW;
+> =20
+>  #if defined __GNUC__ && __GNUC__ >=3D 2
+> =20
+> -# ifndef _EXTERN_INLINE
+> -#  define _EXTERN_INLINE extern __inline
+> -# endif
+> -
+> -
+> -_EXTERN_INLINE unsigned char
+> +static __inline unsigned char
+>  inb (unsigned short int port)
+>  {
+>    unsigned char _v;
+> ...
+>
+> Using 'extern __inline' without optimization in --std=3Dgnu89 would lead =
+to
+> the compiler using an 'extern' reference rather than emitting a static
+> version,
+
+This seems to be the original reason for the optimisation requirement.
+The manual says [0]:
+
+  GCC does not inline any functions when not optimizing unless you
+  specify the =E2=80=98always_inline=E2=80=99 attribute for the function [.=
+..]
+
+  [...]
+
+  If you specify both inline and extern in the function definition, then
+  the definition is used only for inlining.  In no case is the function
+  compiled on its own, not even if you refer to its address explicitly.
+  Such an address becomes an external reference, as if you had only
+  declared the function, and had not defined it.
+
+  This combination of inline and extern has almost the effect of a
+  macro. [...]
+
+  0: https://gcc.gnu.org/onlinedocs/gcc/Inline.html
+
+Thus, using "extern inline" but not enabling optimisations (and not
+providing a separate definition in some other object) would have
+produced a linker error.
+
+> the 'static __inline' variant works as intended in both gnu
+> and standard c99.
+
+That "__inline" keyword (yes, it's a keyword, regardless of eponymous
+macros) is odd.  Apparently an old non-standard import from MSVC.
+
+Are standard/newer keywords (inline/__inline__) not used for reasons of
+backward compatibility (with old compiler or C language versions)?
