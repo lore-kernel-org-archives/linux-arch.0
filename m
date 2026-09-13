@@ -1,36 +1,36 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 43BAF31E858;
-	Sun, 13 Sep 2026 16:27:40 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3B3EB361943;
+	Sun, 13 Sep 2026 16:36:53 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789316861; cv=none; b=XMRAPv0pwjs3hZyd4AKCJoq/+Nz+PRIM4+u0BKXLFzPPnXIqycmcLtX0bfEWUA04BFqSCxToklijdCvXRQLlcE1zJnBseG1U3L5K46iwnJsRhsJwiH9U6lHXJCwmQNXgVDGX0VMaGBj3mNOUlRQMprhyYOS5RKXd785F2fx6oyI=
+	t=1789317414; cv=none; b=s+cQzpMS4Rxy0vmtGg62nCgYWnk0mQ2XWjhP0E3XyOR/W116v1pKkZWO8YJl/n7ZISQj2bzXxXmgsMjJOFDfZJHmU9SdxJblRSUSlnlo2OT63qt7ogkJAcLNd/g4HK0hHuPDo9PIPHFsY1QzX0ZM42evp51sauicxZas6zJRUnM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789316861; c=relaxed/simple;
-	bh=O/e6CfAS9RNEQqaHGYKaIdIIqALc4dIkdCyGZZYAd/M=;
+	s=arc-20240116; t=1789317414; c=relaxed/simple;
+	bh=3cetiHmsplFWJ+S96Qjna0YXLC/+Qhfff+MJkaGC2AU=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=kfKHsjgqdZ7hANXu4s2o/+LGrxSwEo6Ibj4OWrYH5OAvzn/FEDbznzC/8iHNsO5I8bX1IyDNdfMGrVsYZ/V/s7iZEbouoDtGJDvI3ZRMH8Vpi0R/+gTD+tugM/VusEy+Telv1f0U7onnXg8zfLLfumztaBILax1BXys1nwgWS2Y=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=S1T5EvtI; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=EpmnLeEtkx4/mzmFJyM+n0YBQKZFTs77RculjMXbDdW+rBFE2a5m/jWK+H1rWdtBtO+JjkEdBsSG2E0A/j49G4+Ku/g4rsFc4UU8h8H3VEOKDqmmIto68cMEMvQfbAAbNLQK8k18cGajLhB8YtX6YpDtpdSk/CRXGjeoRnUuJxQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=VMRn/4Gg; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="S1T5EvtI"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 049D11F000FF;
-	Sun, 13 Sep 2026 16:27:27 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="VMRn/4Gg"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2B2A71F000FF;
+	Sun, 13 Sep 2026 16:36:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789316859;
-	bh=A34XyoS7noGhiNdA0/AU98h7WFkZVbNZsRjK3AbUsrc=;
+	s=k20260515; t=1789317413;
+	bh=4B9lPYJZx2WtDB/f5GYcYiGdJjQEGc2VffrdMkBYbGc=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=S1T5EvtIkopSpnh+GD+zu8g4AJduDGp4esWSo99SyJNqgNpcU1UVbfy4cZhHMNB0i
-	 LHSz2WYMWir3RbcYjKe/iPRdEa+j0hhJUnM/Y2wcjhDmtHgIgTt+SMBRaE+EKNHur3
-	 tISbPphKo+YKH1t2eW+TWtim9ts6B0icsa2UF204ftWrTdf6+U35adxnq+u1RGPUgE
-	 6+NK6KcfQtUATUK4NjWOw4HkQ4OuKPR6xoMhT8hU+MSm/FZJUMH6cEFCc/BLLAKkax
-	 hFL/+6sEynaqO3hN0xSh2fX2eW7avxvzNLOpeFKX5TxXn2w7A57CIRGSGoV88TZ2qI
-	 B5QZhmpvaMAEQ==
-Date: Sun, 13 Sep 2026 17:27:25 +0100
+	b=VMRn/4Ggw0dXaUy1jNqG3n3Y3lFltR1JKKPxPddcpiouSI90FL6bJhQ0xjuXhlNvp
+	 QO1eJQCBNg+tmWZk87cuALgFzNb/l7wfaiANKKcLbSXgtVUrkWdkNh64DthcliwB3k
+	 0oxm7Ms59/P2/kAKOj9iBsmBiBTunJMFV80yf35hbkPAs4+FIHmmbL3vZJD6FpvmxZ
+	 mHQ7218RLoe2DdnCFuFPUqEz4+gu0Hl6ff15ZY13jwu8GRfFcoVd5HkF51bunsZjp/
+	 xGN3TJ3cymEhnAkRu8EhgLboTMnYMtazjxkrpjpzHNudJWLJHnoXfwaiSJEJt+1Gbn
+	 Meb3psVdxKrCA==
+Date: Sun, 13 Sep 2026 17:36:39 +0100
 From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Nathan Chancellor <nathan@kernel.org>
-Cc: Florian Fainelli <florian.fainelli@broadcom.com>, 
-	Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Schier <nsc@kernel.org>, 
+To: Yann Droneaud <yann@droneaud.fr>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
+	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
 	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
 	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
 	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
@@ -52,66 +52,75 @@ Cc: Florian Fainelli <florian.fainelli@broadcom.com>,
 	llvm@lists.linux.dev, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
 	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
 	linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 00/23] kbuild: significantly speed up kernel builds
-Message-ID: <aqbO2wNPeBiLDwAB@gremlin>
+Subject: Re: [PATCH 17/23] modpost: perform srcversion hashing in parallel
+Message-ID: <aqbP9ewBMAGAXbQB@gremlin>
 References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <a4167b18-f1ea-48bb-9287-210bdd4f35eb@broadcom.com>
- <aqPlUt6aIvof2LcM@gremlin>
- <20260912064437.GB2002951@ax162>
+ <20260908-build-speedup-v1-17-5dc1ac01672d@kernel.org>
+ <4e447b33-574e-425e-bc92-2b728128cf18@droneaud.fr>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <20260912064437.GB2002951@ax162>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <4e447b33-574e-425e-bc92-2b728128cf18@droneaud.fr>
 
-On Fri, Sep 11, 2026 at 11:44:37PM -0700, Nathan Chancellor wrote:
-> On Fri, Sep 11, 2026 at 12:28:34PM +0100, Lorenzo Stoakes (ARM) wrote:
-> > On Wed, Sep 09, 2026 at 02:58:59PM -0700, Florian Fainelli wrote:
-> > > On 9/8/26 13:55, Lorenzo Stoakes (ARM) wrote:
-> > > > A typical kernel build consists of a frustratingly large amount of time
-> > > > spent stuck in single-threaded bottlenecks.
-> > > >
-> > > > It turns out that there's a lot we can do about this and doing so
-> > > > significantly impacts kernel build times.
-> > > >
-> > > > This series makes allmodconfig builds up to 36% faster, incremental builds
-> > > > up to ~70% faster, and noop builds up to ~90% faster.
-> > > >
-> > > > Builds are faster across the board on every device I tested.
-> > > >
-> > > > Machines used for perf testing:
-> > > >
-> > > > * Threadripper -   x86, AMD Threadripper 9980X, 64 cores, 128 threads
-> > > > * EPYC         -   x86, 2 socket EPYC 9754, 256 cores, 512 threads
-> > > > * M2           - arm64, 2022 M2 macbook pro, 8 cores, 8 threads
-> > > >                          (4 perf, 4 efficiency)
-> > >
-> > > My AMD EPYC 9454P server shows an improvement in the order of 13% using the
-> > > arm64's defconfig and make -j97. Thanks for doing this!
+On Sat, Sep 12, 2026 at 01:50:00PM +0200, Yann Droneaud wrote:
+> Hi,
+>
+> Le 08/09/2026 à 22:55, Lorenzo Stoakes (ARM) a écrit :
+> > modpost does a lot of single-threaded work hashing files from each object's
+> > .cmd file.
 > >
-> > Nice thanks! Good to confirm others are seeing the benefits :)
+> > This makes the build slower than it needs to be, so do this work in
+> > parallel.
 >
-> I see similar gains on an 80-core Ampere Altra system
 >
->   6h 21m 42s -> 5h 31m 15s (-13.22%)
->
-> and a 32-core AMD system.
->
->   3h 38m 55s -> 3h 13m 18s (-11.7%)
->
-> The build matrices were different between machines but it is good to see
-> similar numbers across different environments.
+> If you're going parallel, it would be nicer to do it under make's jobserver
+> supervision.
 
-Nice, yes for sure!
+Ack, though this patch is going to be dropped due to mod versions being removed
+upstream.
 
 >
-> --
-> Cheers,
-> Nathan
+>
+> > This is egregious for allmodconfig builds - for instance x86-64 can end up
+> > opening 200,000 files individually and hashing them all serially.
+> >
+> > Parallelise this operation by maintaining a thread pool for the hashing
+> > work.
+> >
+> > Combined with the per-file hashing commit this cuts modpost's run time
+> > nearly in half for an allmodconfig build.
+> >
+> > Module.symvers and every *.mod.S are byte for byte the same.
+> >
+> > modpost is on the serial tail of every allmodconfig build, however
+> > defconfig does not set CONFIG_MODULE_SRCVERSION_ALL and is unchanged.
+> >
+> > Whole build, 128-thread Threadripper 9980X, best of N runs:
+> >
+> >                                           before   after     delta
+> >                                           -------------------------------
+> >    x86 allmodconfig, touch mm/vma.c, gcc    33.4s    30.2s     -3.2s (-10%)
+> >    x86 allmodconfig, touch mm/vma.c, clang  31.1s    28.1s     -3.0s (-10%)
+> >
+> > Assisted-by: LLM
+> > Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> > ---
+> >   scripts/mod/Makefile     |  1 +
+> >   scripts/mod/modpost.c    | 72 ++++++++++++++++++++++++++++++++++++++++++++++--
+> >   scripts/mod/modpost.h    |  2 ++
+> >   scripts/mod/sumversion.c |  3 +-
+> >   4 files changed, 74 insertions(+), 4 deletions(-)
+> >
+>
+> Regards.
+>
+>
 
 --
 Cheers, Lorenzo
