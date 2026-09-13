@@ -1,125 +1,200 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj2-f12.google.com (mail-pj2-f12.google.com [74.125.227.140])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 770013264F9;
-	Sat, 12 Sep 2026 23:39:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ED86238552C
+	for <linux-arch@vger.kernel.org>; Sun, 13 Sep 2026 09:48:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789256394; cv=none; b=DDE2Vkdh1Nx5sBDqCXUc8yzSZ8dJ+dTBE2iU5bxUO1UdJWmBYPrI2YJ5qao6sOCzt+f3cAOXSsgju7qdNabBePXwoItWGdxvkaJ09IYG5QPa6yWwJYOLKpTSji8PJ5xkxZViYcBWJoPlMrmxzPBikPnpYWxwC/1vb4BjiuT3A0E=
+	t=1789292903; cv=none; b=hTEQ4puY47c+PzgA2Kea8WyX0wvoSgHJwOLM60RfzWDXgVVkdiCZfW0SKX/RTLwH9vw1FBa4gL1wYM51Qgufj8QZMReQ+tupBtbPXCXtNSZaAi5DjvmjPSXa7BR9hZz+RYnecqOIlXcIgaTbduA7VLGWJC8cGjhL08OUaFwSUbA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789256394; c=relaxed/simple;
-	bh=mXXWEvTL6/Escqe9caEb/Ml6MTF6C3+TLVT95QNVseM=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=dtfJKRlRwx9JTZrytaWHZAlWlMXtWE83VGvk6hTxK8maE48D4EPcW26uOXtb0Pfpd1/v38B6roXN5/wJB0MOPKLoUK7vusVowdj/LOfiPyCeg/YiIr/aM9D3EXNK9YpFHQi3S4HzbLPTscUbkv9qUnb7ttkdhEKxJ8+SVbC2n1E=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=TFwkGY+G; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789292903; c=relaxed/simple;
+	bh=owsxUV26+TugNfbC4Bz0+KGKiRcbdSBwVMp6oIjgyi0=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=FGUuUbsLKGwgc9vFIvNtESLrKbKpgrd4bF2JndxKkkwgbkb4974P7c/COmlvitLqZC3udHWqUanK2Q08fvl3lZbn/SF0d1Wc5hwOzDYPjlr9IaN4QZrjDX5Nd8dyB1j02beYiH9SEiXczuS8cw9u1zutxFLa9lDAFjgxNCTWcEo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ERyJEzhx; arc=none smtp.client-ip=74.125.227.140
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="TFwkGY+G"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1F43D1F000FF;
-	Sat, 12 Sep 2026 23:39:51 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789256393;
-	bh=IwGn1I+rAy33y7oqaqvyvQbpwgIGskjqTBVWKdDUb9w=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=TFwkGY+GHCJrSxsgOvjVPO4RtJHqXtY6NmWLDm51LwYQ61/GgP9YWvhSmINFXEMdP
-	 GMN5nuq9/1oJNcIfvA0sK5kouCUnAKf3af81PiqZukOojdg1bLGQjQc+Ed/8Mt31Th
-	 jAL7jF5k9P0Kv4FKPk8MNtZEhOFdyJEAMrUUQUa7KPl0OrltmB7H1H+Y845mJps4IB
-	 OcJhLmKUZEJblr7IYgkdp35SMbUDqAiqtNxT9W6hklmhwzbALX1KGR7RHoA67+ndyO
-	 ZYVcADiRjh3JK+nRFFh1roZJYSjp9Cyh/eG1OHlRjW6frqE4YLALy+cR48xc2ZtUP8
-	 VPCgchE2iZZiw==
-Date: Sat, 12 Sep 2026 16:39:49 -0700
-From: Josh Poimboeuf <jpoimboe@kernel.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
-	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
-	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Peter Zijlstra <peterz@infradead.org>, 
-	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, Gary Guo <gary@garyguo.net>, 
-	=?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>, 
-	Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>, 
-	Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>, 
-	Daniel Almeida <daniel.almeida@collabora.com>, Tamir Duberstein <tamird@kernel.org>, 
-	Alexandre Courbot <acourbot@nvidia.com>, Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, 
-	Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, 
-	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, llvm@lists.linux.dev, 
-	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
-	linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org, 
-	Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 19/23] objtool: decode instructions and resolve branch
- targets in parallel
-Message-ID: <aqXXF6otLbLtnhWw@jpoimboe>
-References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <20260908-build-speedup-v1-19-5dc1ac01672d@kernel.org>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ERyJEzhx"
+Received: by mail-pj2-f12.google.com with SMTP id 98e67ed59e1d1-396ccb652d7so664225a91.0
+        for <linux-arch@vger.kernel.org>; Sun, 13 Sep 2026 02:48:21 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1789292901; x=1789897701; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=V6u+Sjb8r7xjY6JptTsujS7yPcyjNk7vFPdDqkz69nM=;
+        b=ERyJEzhxiwVFNLLVAKtsqa3XQSYbhWLnwT8ROTveg+9z9uD7AhHl3NebFlLVHyN/ZL
+         VPIloOBQn12QjLehJfrwLlrwHjD4btGVXax96vlyioanACf3EdN3qNWORuyE91FIb2qX
+         YhyI1QT36C7vBgXEYWhSQ/brx0Qr1yt2StoF7nxSNKwQs/4GazhqdjRY9lB8oTO3xmIC
+         rGlB3VJylrSIrTn9IfIwSlJRgsxl+kdGtEfFvOyeYWn9OpAqFYWujhGiho5bP8WZl9BV
+         Ta5/JmyHjIjS4CREBTawY8c45Mzagat6pNVZZlR84uuKTcOjslJ+fWzLdSFBSD3qjaG4
+         n25g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1789292901; x=1789897701;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=V6u+Sjb8r7xjY6JptTsujS7yPcyjNk7vFPdDqkz69nM=;
+        b=mPQaFOLpls2373/raybv5gQ0AvwAa/duhkKW+5ot+p6ZcWtVZQseIOF5pcDdXb+pi4
+         uPEbiHrlzSW8ej06Lk6BCVWNEbjh7Kiq6gtTHZDZLyIB7X3kjX4y0Z/G7+pOJiBEDCND
+         BLW0FmkjLaLI0ixhA/dPNz+cH2s6f7ao08yTWSCWubUtF3B7nMT+KfZZlSqvrfNed6Ur
+         0TQ7tz4Ez9C32eVf7rHB02gMUJmSvs7DeizglA6HLskMYSytQp3fImMvx8reeXsPLEFN
+         jquf68lF9n2RxBzoD2HT855/MT1g2myWbOhX1MmMS4wN9IJss/FTQ0b4uUEphWNDzRqZ
+         nP+Q==
+X-Forwarded-Encrypted: i=1; AKwUvBwvKgbiVOGDupE6N8v9kkpGE9FX+EMlWxGieMwMdzpKz/RQSmZwmfF5OaNloHJwCjkDKhJSFJQS0kOg@vger.kernel.org
+X-Gm-Message-State: AFuF++kta+LIOwHc5hiRrsZfw7iUJIEyMcLKxYjRRHvNmNx6ynzxsGcD
+	rQCdkrzye26N5sIRayV9/HfX9hq/GTZvcNisrN/34eSCGGojrVMQ5LyF
+X-Gm-Gg: AYBFou2iyFtKJ6LBCd7lAYFaIrdzaZMdmQz4OKRw+hg1b0A+WFa5HmW56HNKoypP0Ml
+	pm81GA4HO/te+7xTzvEAZJvG2fhXLKj08iNMQKZLgfATLyJeq/Vu+DYcQWj9WTrdkZQIZp9+8LF
+	JHtJOZqnMqn8QbAP2Zl8OUZhp47dAmHm/m+ANbCU4xnQCvnOdtjs8jicBLD6S9n60kXv/EBhosF
+	Tnk72UWGtwOIyQKyCDyuRUtiC54s27Kb1Vt+mwUOGd4FZr1/V1QDRsyrjFlk0uTBy6lNaCc8Oha
+	0lBmGjmFPvl9V9QClb6Cs+d9EQXNqei8KAYTFV36OKXOUpqxFuvOHn9Oeg6P4MlR1MIOSxA3Xn9
+	J41zFOAn+LURM1RO6XU9eX5ug0TNBFLQHa0zxwZu3n6p71nT0bDBYWmcLeWwKzf51zeM66EJMjw
+	ZwFxfpI62ItvkUgv6ImvzQa7lyc5xOqusXlxNuvceHh2ao960qJALdV/DhP4DGf3ulN5aQQ+WlJ
+	BJBb9Tq5yp/V5CvpbpAy4/FG38aebfZ7MbXTmoA46Vt
+X-Received: by 2002:a17:90b:53cf:b0:380:540:d499 with SMTP id 98e67ed59e1d1-39dbbeb3c67mr11040631a91.6.1789292901241;
+        Sun, 13 Sep 2026 02:48:21 -0700 (PDT)
+Received: from [10.0.2.15] (KD106167137155.ppp-bb.dion.ne.jp. [106.167.137.155])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-39d994cf9a6sm14389647a91.10.2026.09.13.02.48.17
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 13 Sep 2026 02:48:20 -0700 (PDT)
+Message-ID: <892d82bf-aff4-4b0c-9585-8438280b45b1@gmail.com>
+Date: Sun, 13 Sep 2026 18:48:18 +0900
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20260908-build-speedup-v1-19-5dc1ac01672d@kernel.org>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 1/2] Documentation/litmus-tests: Add SRCU fastpath
+ anchor-before-scan test
+To: Kunwu Chan <kunwu.chan@gmail.com>
+Cc: linux-doc@vger.kernel.org, lkmm@lists.linux.dev,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ rdunlap@infradead.org, skhan@linuxfoundation.org, paulmck@kernel.org,
+ dlustig@nvidia.com, joelagnelf@nvidia.com, corbet@lwn.net,
+ luc.maranget@inria.fr, j.alglave@ucl.ac.uk, dhowells@redhat.com,
+ npiggin@gmail.com, boqun@kernel.org, peterz@infradead.org, will@kernel.org,
+ parri.andrea@gmail.com, stern@rowland.harvard.edu
+References: <20260912024225.2872265-1-kunwu.chan@gmail.com>
+ <20260912024225.2872265-2-kunwu.chan@gmail.com>
+Content-Language: en-US
+From: Akira Yokosawa <akiyks@gmail.com>
+In-Reply-To: <20260912024225.2872265-2-kunwu.chan@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Tue, Sep 08, 2026 at 09:55:19PM +0100, Lorenzo Stoakes (ARM) wrote:
-> +/* Only an object this large, e.g. vmlinux.o, is decoded on several threads. */
-> +#define DECODE_THREADED_MIN_TEXT	SZ_8M
-> +/* Only decoding and the branch passes are threaded, so more gains nothing. */
-> +#define DECODE_MAX_THREADS		16
-> +#define DECODE_RANGES_PER_THREAD	4
+Hi,
+
+This is more of a knee-jerk reaction, but
+
+On Sat, 12 Sep 2026 10:42:24 +0800, Kunwu Chan wrote:
+> synchronize_srcu_atomic() may end its grace period immediately when
+> its scan of the per-CPU lock counters finds no readers.  Correctness
+> requires the grace-period anchor written by srcu_gp_start() to precede
+> the smp_mb() ordering the lock scan.  This ordering ensures that any
+> reader whose lock increment is missed by the scan cannot have
+> incremented its lock counter before the grace-period anchor, and
+> therefore cannot be a pre-existing reader of this grace period.
+> 
+> This litmus test models the key ordering between the grace-period
+> anchor and the lock counter scan, where "seq" models the
+> grace-period anchor in ->srcu_gp_seq and "ctr" models the per-CPU
+> ->srcu_ctrs[].srcu_locks counter.  P0 writes the anchor before the
+> smp_mb() and the lock scan.  P1 models the reader-side counter
+> increment, with the smp_mb() of __srcu_read_lock() following the
+> increment.  P2 models an observer that sees the reader's increment
+> before seeing the anchor.
+> 
+> The outcome is forbidden by LKMM, and herd7 reports "Never".  See
+> SRCU-fastpath-scan-before-anchor.litmus for the reversed ordering,
+> which permits this outcome.
+> 
+> Tested with herd7 7.58 using linux-kernel.cfg.
+> 
+> Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
+> ---
+>  .../SRCU-fastpath-anchor-before-scan.litmus   | 57 +++++++++++++++++++
+>  1 file changed, 57 insertions(+)
+>  create mode 100644 Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
+> 
+> diff --git a/Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus b/Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
+> new file mode 100644
+> index 000000000000..efa9c0c4e047
+> --- /dev/null
+> +++ b/Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
+> @@ -0,0 +1,57 @@
+> +C SRCU-fastpath-anchor-before-scan
 > +
-> +/*
-> + * sec_offset_hash() keys on OFFSET_STRIDE windows, so the instructions of a
-> + * window share a chain and buckets beyond one per window would sit empty.
-> + */
-> +#define INSN_HASH_BYTES_PER_BUCKET	OFFSET_STRIDE
-> +#define INSN_HASH_MIN_BITS		10
+> +(*
+> + * Result: Never
+> + *
+> + * The synchronize_srcu_atomic() fastpath may end its grace period
+> + * immediately when its scan of the per-CPU lock counters finds no
+> + * readers.  Correctness requires the grace-period anchor written by
+> + * srcu_gp_start() to precede the smp_mb() ordering the lock scan.
+> + * This ordering ensures that any reader whose lock increment is missed
+> + * by the scan cannot have incremented its lock counter before the
+> + * grace-period anchor, and therefore cannot be a pre-existing reader
+> + * of this grace period.
+> + *
+> + * This litmus test models the key ordering between the grace-period
+> + * anchor and the lock counter scan, where "seq" models the
+> + * grace-period anchor in ->srcu_gp_seq and "ctr" models the per-CPU
+> + * ->srcu_ctrs[].srcu_locks counter.  P0 writes the anchor before the
+> + * smp_mb() and the lock scan.  P1 models the reader-side counter
+> + * increment, with the smp_mb() of __srcu_read_lock() following the
+> + * increment.  P2 models an observer that sees the reader's increment
+> + * before seeing the anchor.
+> + *
+> + * The outcome is forbidden by LKMM, and herd7 reports "Never".  See
+> + * SRCU-fastpath-scan-before-anchor.litmus for the reversed ordering,
+> + * which permits this outcome.
+> + *)
 > +
-> +static unsigned long total_text_size(struct objtool_file *file)
+> +{}
+> +
+> +P0(int *seq, int *ctr)
 > +{
-> +	unsigned long size = 0;
-> +	struct section *sec;
+> +	int r2;
 > +
-> +	for_each_sec(file->elf, sec)
-> +		if (is_text_sec(sec))
-> +			size += sec_size(sec);
-> +
-> +	return size;
+> +	WRITE_ONCE(*seq, 1);
+> +	smp_mb();
+> +	r2 = READ_ONCE(*ctr);
 > +}
 > +
-> +static int alloc_insn_hash(struct objtool_file *file, unsigned long text_size)
+> +P1(int *ctr)
 > +{
-> +	const unsigned long nr_buckets = text_size / INSN_HASH_BYTES_PER_BUCKET;
-> +	const int bits = ilog2(nr_buckets);
-> +
-> +	file->insn_hash_bits = max(INSN_HASH_MIN_BITS, bits);
-> +	file->insn_hash = calloc(1UL << file->insn_hash_bits,
-> +				 sizeof(*file->insn_hash));
-> +	if (!file->insn_hash) {
-> +		ERROR_GLIBC("calloc");
-> +		return -1;
-> +	}
-> +
-> +	if (opts.stats)
-> +		printf("insn_hash_bits: %d\n", file->insn_hash_bits);
-> +
-> +	return 0;
+> +	WRITE_ONCE(*ctr, 1);
+> +	smp_mb();
 > +}
 
-The dynamic insn hash sizing should probably be its own patch.  It's a
-standalone improvement, and much more obviously correct compared to the
-rest of patch.  I suspect it will make a big difference on allyesconfig.
+As P1() has a single memory access, this smp_mb() can't have any
+effect on the outcome.
 
-The rest of the patch looks ok to me, though it needs to be reviewed
-very carefully (which I haven't done yet).  I'd like to see a Sashiko
-review (I wasn't able to find these patches on sashiko.dev for some
-reason).
+The one you see in "__srcu_read_lock() following the increment" is
+there for other ordering requirements, I guess.
 
--- 
-Josh
+Ditto smp_mb() in P1() of 2/2.
+
+Thanks, Akira
+
+> +
+> +P2(int *seq, int *ctr)
+> +{
+> +	int r3;
+> +	int r4;
+> +
+> +	r3 = READ_ONCE(*ctr);
+> +	smp_mb();
+> +	r4 = READ_ONCE(*seq);
+> +}
+> +
+> +filter (0:r2 = 0)
+> +exists (2:r3 = 1 /\ 2:r4 = 0)
+> -- 
+> 2.43.0
