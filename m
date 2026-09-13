@@ -1,40 +1,39 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3B3EB361943;
-	Sun, 13 Sep 2026 16:36:53 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 659A737E304;
+	Sun, 13 Sep 2026 19:31:14 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789317414; cv=none; b=s+cQzpMS4Rxy0vmtGg62nCgYWnk0mQ2XWjhP0E3XyOR/W116v1pKkZWO8YJl/n7ZISQj2bzXxXmgsMjJOFDfZJHmU9SdxJblRSUSlnlo2OT63qt7ogkJAcLNd/g4HK0hHuPDo9PIPHFsY1QzX0ZM42evp51sauicxZas6zJRUnM=
+	t=1789327875; cv=none; b=D6nJdn2PX9bSywEzJkMBDVKRCi6qkwduRyN88OadvNfkUgKVOqOa+mTaASk+dmzuVST0EHJyDaTIk7ZyPv9EzueyCFz7cX7hc3d4OBydDlLvVG3pDDPFzqLYpITrWnjgTjdcnogysj11RYVdidN+8jwo63nioPV5nRsqSZsyKEY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789317414; c=relaxed/simple;
-	bh=3cetiHmsplFWJ+S96Qjna0YXLC/+Qhfff+MJkaGC2AU=;
+	s=arc-20240116; t=1789327875; c=relaxed/simple;
+	bh=rr13TkHZbL+ldb0nKaKTxHEakLfgTDRH/kuczdJfGBw=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=EpmnLeEtkx4/mzmFJyM+n0YBQKZFTs77RculjMXbDdW+rBFE2a5m/jWK+H1rWdtBtO+JjkEdBsSG2E0A/j49G4+Ku/g4rsFc4UU8h8H3VEOKDqmmIto68cMEMvQfbAAbNLQK8k18cGajLhB8YtX6YpDtpdSk/CRXGjeoRnUuJxQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=VMRn/4Gg; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=P6pMDYRGYfcwOhd0qFz05fVuqcGMdIGccSpoKNBdOZka5LtY2jh0qtkuFdfaE0SiIknlETMAPOVrxok8zms8p0WqkKiVzpFKsn1ZDPRAmW/iVjW6tKMqYyqCr14L3vJrewLah9S0T3rumtBKp1+E9VWYbTqFZ3RGkC74sfcKuIg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=R1b0+diD; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="VMRn/4Gg"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2B2A71F000FF;
-	Sun, 13 Sep 2026 16:36:41 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="R1b0+diD"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id F2B371F000FF;
+	Sun, 13 Sep 2026 19:31:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789317413;
-	bh=4B9lPYJZx2WtDB/f5GYcYiGdJjQEGc2VffrdMkBYbGc=;
+	s=k20260515; t=1789327873;
+	bh=rr13TkHZbL+ldb0nKaKTxHEakLfgTDRH/kuczdJfGBw=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=VMRn/4Ggw0dXaUy1jNqG3n3Y3lFltR1JKKPxPddcpiouSI90FL6bJhQ0xjuXhlNvp
-	 QO1eJQCBNg+tmWZk87cuALgFzNb/l7wfaiANKKcLbSXgtVUrkWdkNh64DthcliwB3k
-	 0oxm7Ms59/P2/kAKOj9iBsmBiBTunJMFV80yf35hbkPAs4+FIHmmbL3vZJD6FpvmxZ
-	 mHQ7218RLoe2DdnCFuFPUqEz4+gu0Hl6ff15ZY13jwu8GRfFcoVd5HkF51bunsZjp/
-	 xGN3TJ3cymEhnAkRu8EhgLboTMnYMtazjxkrpjpzHNudJWLJHnoXfwaiSJEJt+1Gbn
-	 Meb3psVdxKrCA==
-Date: Sun, 13 Sep 2026 17:36:39 +0100
+	b=R1b0+diD7lxfHcPKqbPTo/SFC1cctdEtdFH+R74FwSTC5XlCdna70LwTQQaHy2XNU
+	 dMnJp/LBuyuVEkyZmtOG2myPc7/nu5717JrPIelrdjByI55ps9Vw0Bi+UG/cTPso+z
+	 gNxS0Qmtap1DH08ZsH88HCZkKblQ1qSlPoE64MUmXLxLop7fvSbOgNNUvJGaa60gB9
+	 V0mP0W+nFWlsFSA4FtbxiuIjFH8AtbX2NGRBxmfUFe0nF2LNaj/Z/6LH/HGiXNSzWV
+	 X36Tx9nz2McE/FE1Xd99zgzIfOzx0u6I8DgPRQ12RTRBbsdnFBeXikqXFadoBjIoIl
+	 rwjQ3pCYuGh6w==
+Date: Sun, 13 Sep 2026 20:31:00 +0100
 From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Yann Droneaud <yann@droneaud.fr>
+To: Nathan Chancellor <nathan@kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
-	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
-	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Nicolas Schier <nsc@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, 
+	Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
+	Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
 	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
 	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
 	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
@@ -52,75 +51,45 @@ Cc: Linus Torvalds <torvalds@linux-foundation.org>,
 	llvm@lists.linux.dev, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
 	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
 	linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 17/23] modpost: perform srcversion hashing in parallel
-Message-ID: <aqbP9ewBMAGAXbQB@gremlin>
+Subject: Re: [PATCH 23/23] kbuild: use pigz for gzip compression if available
+Message-ID: <aqb4fos8X3eDX_jD@gremlin>
 References: <20260908-build-speedup-v1-0-5dc1ac01672d@kernel.org>
- <20260908-build-speedup-v1-17-5dc1ac01672d@kernel.org>
- <4e447b33-574e-425e-bc92-2b728128cf18@droneaud.fr>
+ <20260908-build-speedup-v1-23-5dc1ac01672d@kernel.org>
+ <178901395293.3971858.15429964442902485180.b4-review@b4>
+ <aqPdP_0eh0OYY6gZ@gremlin>
+ <20260912063811.GA2002951@ax162>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <4e447b33-574e-425e-bc92-2b728128cf18@droneaud.fr>
+In-Reply-To: <20260912063811.GA2002951@ax162>
 
-On Sat, Sep 12, 2026 at 01:50:00PM +0200, Yann Droneaud wrote:
-> Hi,
->
-> Le 08/09/2026 à 22:55, Lorenzo Stoakes (ARM) a écrit :
-> > modpost does a lot of single-threaded work hashing files from each object's
-> > .cmd file.
+On Fri, Sep 11, 2026 at 11:38:11PM -0700, Nathan Chancellor wrote:
+> On Fri, Sep 11, 2026 at 12:03:51PM +0100, Lorenzo Stoakes (ARM) wrote:
+> > Actually make KGZIP=foo will override this still. But it doesn't take an
+> > environment variable for make -e.
 > >
-> > This makes the build slower than it needs to be, so do this work in
-> > parallel.
+> > However, that's consistent with other variables there like KBZIP2 etc.
+> >
+> > Probably the wording in the docs should be tweaked!
 >
->
-> If you're going parallel, it would be nicer to do it under make's jobserver
-> supervision.
+> Hmmm, TIL, I thought := always overrode a value specified on the command
+> line but I guess not! I don't think there is anything that needs to be
+> clarified.
 
-Ack, though this patch is going to be dropped due to mod versions being removed
-upstream.
+Yeah, news to me too :))
+
+I did slightly tweak the doc so I didn't make a claim that wasn't valid on
+KGZIP re: env vars :)
 
 >
->
-> > This is egregious for allmodconfig builds - for instance x86-64 can end up
-> > opening 200,000 files individually and hashing them all serially.
-> >
-> > Parallelise this operation by maintaining a thread pool for the hashing
-> > work.
-> >
-> > Combined with the per-file hashing commit this cuts modpost's run time
-> > nearly in half for an allmodconfig build.
-> >
-> > Module.symvers and every *.mod.S are byte for byte the same.
-> >
-> > modpost is on the serial tail of every allmodconfig build, however
-> > defconfig does not set CONFIG_MODULE_SRCVERSION_ALL and is unchanged.
-> >
-> > Whole build, 128-thread Threadripper 9980X, best of N runs:
-> >
-> >                                           before   after     delta
-> >                                           -------------------------------
-> >    x86 allmodconfig, touch mm/vma.c, gcc    33.4s    30.2s     -3.2s (-10%)
-> >    x86 allmodconfig, touch mm/vma.c, clang  31.1s    28.1s     -3.0s (-10%)
-> >
-> > Assisted-by: LLM
-> > Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> > ---
-> >   scripts/mod/Makefile     |  1 +
-> >   scripts/mod/modpost.c    | 72 ++++++++++++++++++++++++++++++++++++++++++++++--
-> >   scripts/mod/modpost.h    |  2 ++
-> >   scripts/mod/sumversion.c |  3 +-
-> >   4 files changed, 74 insertions(+), 4 deletions(-)
-> >
->
-> Regards.
->
->
+> --
+> Cheers,
+> Nathan
 
 --
 Cheers, Lorenzo
