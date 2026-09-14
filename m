@@ -1,240 +1,200 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 0BC7544470A;
-	Mon, 14 Sep 2026 11:46:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789386385; cv=none; b=WzP3nwSvaAADydIV60voXa4JUD14ldKg/FXv9mOcn1X+PXNeTJEI9CuGICgelGpJ62EmLabtfzeCMH4u/k0/YN2buyJI80Su44YOTXxA4uYjm41g6cZUZC9OLmqlHPBMHXUNUp7QhgzcrcX9XcQAimI0V6syLkWEdeJICezMwIA=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789386385; c=relaxed/simple;
-	bh=bTE5MXIvqSiIZe5i+49lO4aoO1UQoLMV88Vli15QSPg=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=kXhKNKFZsFjj04c+MQ2jHtquGd4FNU3L0lM6Yy+QxJVCpdRUx5v/IL/CDOAzXdONBofmRADWiAGjPbxtlBw77Qs/9w+gXduqPM9sdhwFLIwF8Rb9e4sQ5UmiztRQw2RFGdIma325CgDnhGhjjI5DXRgoaBdmILSsvUUWLBnk2I8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=RlWcAYlz; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Received: from AS8PR04CU009.outbound.protection.outlook.com (mail-westeuropeazon11011012.outbound.protection.outlook.com [52.101.70.12])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C45E647F3AD;
+	Mon, 14 Sep 2026 14:21:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.70.12
+ARC-Seal:i=3; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1789395694; cv=fail; b=Nu4Dbn+ph4I7vSa1epK+7Jm4bFRSod9FOfjtAze4lM/AexCWYVxX7R7ZSpL+rkZ5kXcl0QefUSoEqQfco0nNIMmVBWjFRkgsN/GF+Ef4e+tILnAGZCxwg2vrGe1Pw5ge7P2Yn83oJI75Yj1a7kMTFcL+hf2QrWvqMCHT75lGOYA=
+ARC-Message-Signature:i=3; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1789395694; c=relaxed/simple;
+	bh=1GA9OlayR1KTGWD9ZI0AHeLEDvcbYVpxgHAekGA/NKA=;
+	h=Message-ID:Date:Cc:Subject:To:References:From:In-Reply-To:
+	 Content-Type:MIME-Version; b=petlQUmHU4uW76idkr6lhC5UuxBH2vbABIkrOcL9q6k1umignJoUacepXYVK0XSoiaQ/XirkFJYamJdhUMgwasMiUSRhGh5ezUvLc7xeu164y0whScLjFtI/iOuz/ZLjuedyY0q9SzO3tCNoRnTycdbIGsAlnAdU3dp01c7Mfes=
+ARC-Authentication-Results:i=3; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=A1gWcfxg; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=A1gWcfxg; arc=fail smtp.client-ip=52.101.70.12
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="RlWcAYlz"
-Received: from DESKTOP-TUU1E5L.localdomain (unknown [167.220.208.69])
-	by linux.microsoft.com (Postfix) with ESMTPSA id ACB6B20B7168;
-	Mon, 14 Sep 2026 04:45:37 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com ACB6B20B7168
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1789386340;
-	bh=79zZtpmo8YK6M8lOBOuuMDodxRd5Y13bD5Fuxjb9XZ4=;
-	h=From:To:Cc:Subject:Date:From;
-	b=RlWcAYlzSS1vrigLLKTk9VqMycQPw3r+6pkBLogzRLzKxNAwaimWjfroOlGH+uZCe
-	 e/xERgpSPiYlIF9LWerAL29wAPrE+ArpA3Bcr7cdXq7bNYdsBHjH5CckMwLayYl26R
-	 IqIxRirYQIBDvNfMR22IozMmUVb4UTH5y2/vamso=
-From: Magnus Kulke <magnuskulke@linux.microsoft.com>
-To: linux-hyperv@vger.kernel.org
-Cc: "K. Y. Srinivasan" <kys@microsoft.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Dexuan Cui <decui@microsoft.com>,
-	Wei Liu <liuwe@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Anirudh Rayabharam <Anirudh.Rayabharam@microsoft.com>,
-	Souradeep Chakrabarti <schakrabarti@microsoft.com>,
-	Paolo Bonzini <pbonzini@redhat.com>,
-	Long Li <longli@microsoft.com>
-Subject: [RFC PATCH] drivers/hv: remove deposited pages from direct map
-Date: Mon, 14 Sep 2026 13:46:17 +0200
-Message-Id: <20260914114617.27628-1-magnuskulke@linux.microsoft.com>
-X-Mailer: git-send-email 2.34.1
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="A1gWcfxg";
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="A1gWcfxg"
+ARC-Seal: i=2; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=pass;
+ b=XR3MzMMsCLfi1h+dESjG8KtWgGQUHqk8UtKIE8R4AiOvLRkE0U1KQZGxBIj0IDBckU2LDtuzrlySXOSUm7hjhPRBSa3FeqB1gtg+BTFlIYRBUtGiotclj3FfVg/ApT6RvT7QHr0eGmbNef7V3YyC1GOWc6FNWDn94f6IbttzS7eKJRlKC+qVG6jiPmSGyolcixwior6bFun2W+bAOaYRFDEfgZpm4bWrJQeLXlXQpn6ZgTGNKeppFEUjVu7vDEnGGYBj06UQZnPSPaOz3qO1/hAaH5MPiejLy2tWzOSBJr90DsnkzzX426d2gNAH2Z1oGFSYShAxZamwiUk1VMHtVQ==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=zkgII8j+B/QTCnrNsKIPJFbW+bzzcbLKy2xc45UpZ5E=;
+ b=NE2r53R9U9WHfM2TlDGRGwfu9ibzwpG7AlAtMUprXzJN9LWMh1Ongti1DcG1YzJUnmN1SE17q9G/r0wxNMDhjiv30YXz5EkHYySQCDyjdgmUK5fphME+pSG2r8BbR/ZBZiznA+iR2BxHGIhV0ej1iwpbNSJ7m2/i28h/ZXhspMPEgGGTIA8MM9309hLslmYbv2ZORvKOBJ8QAsNfBzgyIA3DpDAwp5hfX/zNsMN3FBGGl4oUZD9+xjnxOJJCWarZzNNePaQkS6J1baroDV0+mzP7hOfyGxpcnZr/uxNIknTvndbwe/HsAOp8zT/HmiQk0W7qZ1FJ9xsBczR5j5amNQ==
+ARC-Authentication-Results: i=2; mx.microsoft.com 1; spf=pass (sender ip is
+ 4.158.2.129) smtp.rcpttodomain=kernel.org smtp.mailfrom=arm.com; dmarc=pass
+ (p=none sp=none pct=100) action=none header.from=arm.com; dkim=pass
+ (signature was verified) header.d=arm.com; arc=pass (0 oda=1 ltdi=1
+ spf=[1,1,smtp.mailfrom=arm.com] dkim=[1,1,header.d=arm.com]
+ dmarc=[1,1,header.from=arm.com])
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=zkgII8j+B/QTCnrNsKIPJFbW+bzzcbLKy2xc45UpZ5E=;
+ b=A1gWcfxgzuTR97Fz99KaJWYhe9KQYmnZ7qVDQ4OZ+7MmqLG/tavH5JbSEezpwV0LJyGwmry8N0DAtqasHpVZedb6mJ11sngGsEdfCURti3vF/k93I0/RHIAvJlH3vmLfFnuA4Lq8tXN/RD5V8zxlR4M3dcq0ZWyt0BIx19teA1c=
+Received: from PA7P264CA0143.FRAP264.PROD.OUTLOOK.COM (2603:10a6:102:377::16)
+ by GV2PR08MB8193.eurprd08.prod.outlook.com (2603:10a6:150:78::10) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.428.7; Mon, 14 Sep
+ 2026 14:21:25 +0000
+Received: from ZR1PEPF0000E6AE.eurprd05.prod.outlook.com
+ (2603:10a6:102:377:cafe::84) by PA7P264CA0143.outlook.office365.com
+ (2603:10a6:102:377::16) with Microsoft SMTP Server (version=TLS1_3,
+ cipher=TLS_AES_256_GCM_SHA384) id 15.21.406.12 via Frontend Transport; Mon,
+ 14 Sep 2026 14:21:24 +0000
+X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 4.158.2.129)
+ smtp.mailfrom=arm.com; dkim=pass (signature was verified)
+ header.d=arm.com;dmarc=pass action=none header.from=arm.com;
+Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
+ 4.158.2.129 as permitted sender) receiver=protection.outlook.com;
+ client-ip=4.158.2.129; helo=outbound-uk1.az.dlp.m.darktrace.com; pr=C
+Received: from outbound-uk1.az.dlp.m.darktrace.com (4.158.2.129) by
+ ZR1PEPF0000E6AE.mail.protection.outlook.com (10.167.241.85) with Microsoft
+ SMTP Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.21.428.7
+ via Frontend Transport; Mon, 14 Sep 2026 14:21:23 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=BtZEPMsAQEu7Q2aR8kjGAqorM/H7o26fZY4gOl9ETXpEKQxpTLoBEbGepH22GKEPrcM26qxEV36jVCYsvmQxflGWAJuipOppMsXtyhveiaPgJh1lcsCT0r0+ND8TOKqOlB2mFTNAXrW0XB9066235SO6fbYjchYTRr4TpeQgy5h/Mm6XMHqeXKKTIK7hc65jL+ba7WmSb95QDeKSwBOmvKm4m4MasqEXpVzEJwbCkYCI1RnNUrvXA8xchasAEKb3cOJD/AgJZ86CHPTBCGF02aLOR9PRKP3hvDlsey2h/PeVFIDUC6K1bx2if5WJnEJxe+OdXqbv23ah3V/4pmdPHA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=zkgII8j+B/QTCnrNsKIPJFbW+bzzcbLKy2xc45UpZ5E=;
+ b=SLQNf00nX/qGALisM7+0893bPJYE1HCLB1A2ixREYKLCPVdjyz/Jdyor6hHv5VYeh6DvFYAxv9yDXaAzWgem3kitKrC9DSYjG8AdcE3xNB6wmaZ/Mv2sMFs60mt1LFAZLd8D72xkULjx1YVW5+E5TWScbcxZKLzXqoP6nezCAmDm6xdaP66CHeRW4NxMzXigDZ1u042u2EKhSdMIlPrN0MqaaNzPHPCdHZOc1SRWojMeY35ZBpoHfiUFSZo22eUIwPb8CVPX92jJ7+94TI8w3IzuAJIHuoyVONT1av7jq1JR8p175RaWcsbbilKGdLoHtYO+OtirbpaePKKA4Ui9Aw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
+ header.d=arm.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=zkgII8j+B/QTCnrNsKIPJFbW+bzzcbLKy2xc45UpZ5E=;
+ b=A1gWcfxgzuTR97Fz99KaJWYhe9KQYmnZ7qVDQ4OZ+7MmqLG/tavH5JbSEezpwV0LJyGwmry8N0DAtqasHpVZedb6mJ11sngGsEdfCURti3vF/k93I0/RHIAvJlH3vmLfFnuA4Lq8tXN/RD5V8zxlR4M3dcq0ZWyt0BIx19teA1c=
+Authentication-Results-Original: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=arm.com;
+Received: from VI1PR08MB3421.eurprd08.prod.outlook.com (2603:10a6:803:80::16)
+ by AS8PR08MB5941.eurprd08.prod.outlook.com (2603:10a6:20b:296::11) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.428.8; Mon, 14 Sep
+ 2026 14:20:47 +0000
+Received: from VI1PR08MB3421.eurprd08.prod.outlook.com
+ ([fe80::e079:6bd:fbe0:89b4]) by VI1PR08MB3421.eurprd08.prod.outlook.com
+ ([fe80::e079:6bd:fbe0:89b4%3]) with mapi id 15.21.0428.004; Mon, 14 Sep 2026
+ 14:20:47 +0000
+Message-ID: <5f9279ef-2386-482f-b0bc-76a52b52d676@arm.com>
+Date: Mon, 14 Sep 2026 15:20:44 +0100
+User-Agent: Mozilla Thunderbird
+Cc: usama.anjum@arm.com, linux-kernel@vger.kernel.org,
+ intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
+ linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org,
+ linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
+ linux-arch@vger.kernel.org, kasan-dev@googlegroups.com,
+ linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org,
+ linux-perf-users@vger.kernel.org, damon@lists.linux.dev
+Subject: Re: [PATCH v2 0/8] mm: distinguish PTE table storage from PTE values
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+ Jani Nikula <jani.nikula@linux.intel.com>,
+ Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+ Rodrigo Vivi <rodrigo.vivi@intel.com>, Tvrtko Ursulin
+ <tursulin@ursulin.net>, David Airlie <airlied@gmail.com>,
+ Simona Vetter <simona@ffwll.ch>, Dimitri Sivanich
+ <dimitri.sivanich@hpe.com>, Arnd Bergmann <arnd@arndb.de>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+ Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>,
+ Stefano Stabellini <sstabellini@kernel.org>,
+ Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ "Liam R. Howlett" <liam@infradead.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
+ Andrey Ryabinin <ryabinin.a.a@gmail.com>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>, Chris Li <chrisl@kernel.org>,
+ Kairui Song <kasong@tencent.com>, Uladzislau Rezki <urezki@gmail.com>,
+ Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu
+ <mhiramat@kernel.org>, Alexei Starovoitov <ast@kernel.org>,
+ Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
+ Eduard Zingerman <eddyz87@gmail.com>,
+ Kumar Kartikeya Dwivedi <memxor@gmail.com>, Ingo Molnar <mingo@redhat.com>,
+ Arnaldo Carvalho de Melo <acme@kernel.org>,
+ Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>,
+ Miaohe Lin <linmiaohe@huawei.com>, Dennis Zhou <dennis@kernel.org>,
+ Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>,
+ Mike Rapoport <rppt@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>,
+ ziy@nvidia.com, pfalcato@suse.de, agordeev@linux.ibm.com,
+ ryan.roberts@arm.com
+References: <20260903103002.1091859-1-usama.anjum@arm.com>
+ <d5093fa7-d057-471d-9c50-f53e6fe267df@kernel.org>
+From: Muhammad Usama Anjum <usama.anjum@arm.com>
+Content-Language: en-US
+In-Reply-To: <d5093fa7-d057-471d-9c50-f53e6fe267df@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-ClientProxiedBy: LO4P123CA0364.GBRP123.PROD.OUTLOOK.COM
+ (2603:10a6:600:18e::9) To VI1PR08MB3421.eurprd08.prod.outlook.com
+ (2603:10a6:803:80::16)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-MS-TrafficTypeDiagnostic:
+	VI1PR08MB3421:EE_|AS8PR08MB5941:EE_|ZR1PEPF0000E6AE:EE_|GV2PR08MB8193:EE_
+X-MS-Office365-Filtering-Correlation-Id: 317cca55-8395-46dc-9dcd-08df126b74a6
+x-checkrecipientrouted: true
+NoDisclaimer: true
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam-Untrusted:
+ BCL:0;ARA:13230040|366016|7416014|376014|23010399003|1800799024|921020|11063799006|56012099006|4143699003|10067099003|22082099003|18002099003;
+X-Microsoft-Antispam-Message-Info-Original:
+ nHqdZi896xslxpr5bFTsP7Cr5Iu5XTgM2rD0wnDOqRt++y+UelQPkjR6Q93St8VtNPwXSmDJY5Wjo9ONs/+6vxESuzyGfIua1LpeoMBX1Qa+1mpEXoKKEcXwRc9CdBMgGGSLGmNih+sIjYUHjUk7u/X67P10YO1hzxoe0TpayMRQqyTgIKxd8yskXYARn1vLyNJEd8GIvtgV3p4SDAzy7izD0zorHUNMmNIWNbK0NEft6dDMmQrX6RDTfQ97FUgBYURGPme+fPOIGqpdXU++Tv0rrDsWUE4cc/ruX9Pk/D57Yu7K/VqfsLU+3HVLQAvyuoT/gMqcgm6B3ersq5BQqoTudAOYHvgd2Xbqi5vUuPC/EMJxs9w/RqgKNo4toGq46GeUqpG1t8Gsl7q0dzhvd3OlwhITOxUsy9HkBgMs/+ZjdcH7mIzmU8COfLvQrV6SAUPVRDk5VD7u2hvyFNocnr7FEFTaroZV1rFWTYEIS0+hcOQ7Kh0K9fOPSUgTCa/L4q4yx9Jzq8bTF40gPUnIT9p0XciJ1j2UjQ8xQIFCgn7Xzo0y1WdvZ/SKrwdcji04LmGV6ZwEGneS6d7Ev75IExh8tD3DbwRGkGD2eqa6yVFZ92hB9SeRwBygVbHtmhd4zWArLyfAjWsYNjGnJS4len/dRwagvg1JoK8p3TiWlC/wmB6vFo8l1hhXiqgQZ46e1maj7XIemcwE4UD4NBs3Rw==
+X-Forefront-Antispam-Report-Untrusted:
+ CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:VI1PR08MB3421.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(7416014)(376014)(23010399003)(1800799024)(921020)(11063799006)(56012099006)(4143699003)(10067099003)(22082099003)(18002099003);DIR:OUT;SFP:1101;
+X-Exchange-RoutingPolicyChecked:
+ x6jc8Ibf6nj8zYdsacdPlIriRr5eXndO8f3rVZKtJOglXFytmmpAAYQxI0LC37aEYFHWsK9V/PZU5BtFtWu+DbRMWo4KVBfka1dv0iR1eD0glezqHnmgs3DMsaR3uBUc+zZMuGI8VL6ocwrUpEGsgvECPI0dBL4Ezw5uE/J5cHxbQnXyRouW/cxhx1JNaUr+axWxy1pusRABAMv9TVJzqnW7tE9Qbv+lB+LUAa+KSfgtszliTTvCv/fGmDK4eEtF0Nn87fKeMtw6FrFmlvbSq9PJ9UNyIxmzfysXBfDb5BSlNUIGm/RD7uvrK42NUS/mRnBhC1KU/bxU6UBqIR9juQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: AS8PR08MB5941
+X-EOPAttributedMessage: 0
+X-MS-Exchange-Transport-CrossTenantHeadersStripped:
+ ZR1PEPF0000E6AE.eurprd05.prod.outlook.com
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id-Prvs:
+	07a6a9c2-9204-4db3-3804-08df126b5ecd
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|82310400026|1800799024|35042699022|23010399003|14060799003|36860700016|376014|7416014|18002099003|22082099003|921020|11063799006|10067099003|56012099006|4143699003;
+X-Microsoft-Antispam-Message-Info:
+	0PXH/drgR7Qs700WRE0lczL+BOSRU5MmIevTqtxAkEL/PNBX2UcMsCw9dv+9Iwtq7BUpJXlo9zNsyoWKeGORjpbX3Zd8gcqWSGiqnkrVtMIkR9T7Ughh3Br2SS3keIgA6O0OK39SNIj+YclOcMlRkM8ulLQaUo/h2x1HFwGbhV4HPgpGIkLYE4F25tPCsFLD+Agof2Nr/bh2V67skHeBUjUo1sYL4+xoMA+bH7FLpzieganEQ+V/RBBQ3msyDquBlWE4staCsdTPtAzWuns8GJKJtw/jQDdUyRYmszxWGmN4CNynxaEr06ARdZkUroKjeDspnOaAoYyqNd749aanVHo9a7ddojMJrKQeEPyN4/EsEO+wZM94guHAaefiO7B6yVJ6jFPmjG4ZqjGQnQ9o1ya1OQNqZ8q7UNm5lWtKl4A3Ccd03u8x3tJtC0jlAp3lNnt1UTzIK+GQ+reC3szeHULLhjZZ+stcFFLdhASH+w2yWPCDhDoIegw7EDpiendUlxtiC6tWSNcevp9UUAPIWUDOllo+9KHdWOxzi7v7f7RsV0NJkjrK+fvHwV7/dP8NnWKqs40tEqIk5jr9W0BMWTW0iT+rgk9Sz4RivcU6U3+krHhnKXRynpRGzgX4/2HIqaLmwsqQMhJiM8fQXOe6SSCKzR8vj5qeig/KYC1gwvgmu415tsGAMkO93UqDUc2KXi7ij/esa0dSrfd04awG4mn84rRpWi1PgRUNbJWMeCWASuuCCGJt7eISr7blj7Eo
+X-Forefront-Antispam-Report:
+	CIP:4.158.2.129;CTRY:GB;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:outbound-uk1.az.dlp.m.darktrace.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(82310400026)(1800799024)(35042699022)(23010399003)(14060799003)(36860700016)(376014)(7416014)(18002099003)(22082099003)(921020)(11063799006)(10067099003)(56012099006)(4143699003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	YXJdNj1/QTlxWRnwQfr+R2yeVCbxkX48HaqnlyNfPiSGwrzopUJg9UX7IpRpDu0afxOXCX4e7Ut6XzDdapR2/QN896aeTojj8wz2kEkWlUKRIWz5yjYL8+0NRU+ido4gY5yQ0bme9TaZYd/dxicLNs0KJB8f5susEVehPNXu5y1pCFg0DaOwc3XbB0vL19aqIOJPn/Ny/Kt/eP4xnxwvrjh6UxojWmAfQ84wWoueJ+7SpIl/zYV54xVVjg0fA0g7qwQ8hB5+AWjoDK0hlOz89HorhY3oRLJGYRWEXvoI+Za2uxkHM3Cj0xnFfvHfRH/EGykho518dPSmP9e6djoNadPfn1PREOyiI/pExGn3U4ATqT1xDsn1dz/DQrH7pcgr3dG8yrxYsUgRPTleKzZXVtRu4lilQ5LDvKc6np9SnKwUIk9b9ku/iZ1lCOhUxyu+
+X-OriginatorOrg: arm.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 14 Sep 2026 14:21:23.6584
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: 317cca55-8395-46dc-9dcd-08df126b74a6
+X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[4.158.2.129];Helo=[outbound-uk1.az.dlp.m.darktrace.com]
+X-MS-Exchange-CrossTenant-AuthSource:
+	ZR1PEPF0000E6AE.eurprd05.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: GV2PR08MB8193
 
-(RFC b/c feedback from arm64 maintainers to access the impact is
-pending)
+On 11/09/2026 5:59 pm, David Hildenbrand (Arm) wrote:
+> On 9/3/26 12:29, Muhammad Usama Anjum wrote:
+>> Hi,
+> 
+> Btw, I was wonder whether the subject would be better as
+> 
+> "mm: distinguish HW PTE pointers from SW PTE value pointers"
+> 
+> or sth. like that.
+> 
 
-hv_call_deposit_pages() donates pages (deposit) to hypervisor for L2
-guest on L1VH systems via HVCALL_DEPOSIT_MEMORY. The hypervisor takes
-ownership of those pages and per contract revokes root partition
-access to them, raising a #GP on access from the L1VH root partition.
+Seems good. I'll update.
 
-However, the pages remain mapped in the kernel direct map, so kernel
-code may still access them even though the hypervisor has revoked
-access.
-
-Helpers such as "load_unaligned_zeropad()" deliberately read past the
-end of a buffer and across page boundaries. A read into an unmapped
-page is tolerated and triggers a #PF, for which the kernel executed
-a fixup in the exception table.
-
-If such a call steps into a page that has been deposited, the access
-raises a #GP by the hypervisor from which the above handler cannot
-recover and the kernel panics:
-
-  Oops: general protection fault, maybe for address 0xff1100941a3dfffc
-  RIP: 0010:csum_partial+0xe5/0x110
-
-This condition will appear on L1VH system that have created L2
-partitions (and hence deposited pages) and exercise networking code
-paths such as csum_partial() can trigger this condition when a buffer
-ends close to a page boundary (e.g fffc in the above example).
-
-The fix is to remove the deposited pages from the direct map before
-they are passed to the hypervisor, and restore them when the hypervisor
-returns them again.
-
-We want to avoid flushing the TLB in the loop, so we use the _noflush()
-variant of set_direct_map_valid() when marking a deposited page invalid
-and flush the affected page ranges in one go ourselves. In the opposite
-direction this is not required:
-
-  > If a paging-structure entry is modified to change the P flag from
-  > 0 to 1, no invalidation is necessary. This is because no TLB entry
-  > or paging-structure cache entry is created with information from a
-  > paging-structure entry in which the P flag is 0.
-
-(Intel SDM Vol. 3, 4.10.4.3)
-
-Signed-off-by: Magnus Kulke <magnuskulke@linux.microsoft.com>
----
- drivers/hv/hv_proc.c           | 53 +++++++++++++++++++++++++++++++++-
- drivers/hv/mshv_root_hv_call.c |  2 ++
- include/asm-generic/mshyperv.h |  4 +++
- 3 files changed, 58 insertions(+), 1 deletion(-)
-
-diff --git a/drivers/hv/hv_proc.c b/drivers/hv/hv_proc.c
-index 57b2c64197cb..3ab02adf7efb 100644
---- a/drivers/hv/hv_proc.c
-+++ b/drivers/hv/hv_proc.c
-@@ -7,7 +7,9 @@
- #include <linux/cpuhotplug.h>
- #include <linux/minmax.h>
- #include <linux/export.h>
-+#include <linux/set_memory.h>
- #include <asm/mshyperv.h>
-+#include <asm/tlbflush.h>
- 
- /*
-  * See struct hv_deposit_memory. The first u64 is partition ID, the rest
-@@ -15,6 +17,35 @@
-  */
- #define HV_DEPOSIT_MAX (HV_HYP_PAGE_SIZE / sizeof(u64) - 1)
- 
-+/*
-+ * Add or remove a set of physically contiguous page runs from the kernel
-+ * direct map. Once a page has been deposited the hypervisor owns it and
-+ * revokes root partition access to it.
-+ */
-+static int hv_deposit_update_direct_map(struct page **pages, int *counts,
-+					int num_allocations, bool valid)
-+{
-+	int i, err, ret = 0;
-+
-+	for (i = 0; i < num_allocations; ++i) {
-+		err = set_direct_map_valid_noflush(pages[i], counts[i], valid);
-+		if (err && !ret)
-+			ret = err;
-+	}
-+
-+	if (valid)
-+		return ret;
-+
-+	for (i = 0; i < num_allocations; ++i) {
-+		unsigned long addr = (unsigned long)page_address(pages[i]);
-+		unsigned long size = (unsigned long)counts[i] << PAGE_SHIFT;
-+
-+		flush_tlb_kernel_range(addr, addr + size);
-+	}
-+
-+	return ret;
-+}
-+
- /* Deposits exact number of pages. Must be called with interrupts enabled.  */
- int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
- {
-@@ -72,6 +103,10 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
- 	}
- 	num_allocations = i;
- 
-+	ret = hv_deposit_update_direct_map(pages, counts, num_allocations, false);
-+	if (ret)
-+		goto err_restore_direct_map;
-+
- 	local_irq_save(flags);
- 
- 	input_page = *this_cpu_ptr(hyperv_pcpu_input_arg);
-@@ -90,12 +125,15 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
- 	if (!hv_result_success(status)) {
- 		hv_status_err(status, "\n");
- 		ret = hv_result_to_errno(status);
--		goto err_free_allocations;
-+		goto err_restore_direct_map;
- 	}
- 
- 	ret = 0;
- 	goto free_buf;
- 
-+err_restore_direct_map:
-+	hv_deposit_update_direct_map(pages, counts, num_allocations, true);
-+
- err_free_allocations:
- 	for (i = 0; i < num_allocations; ++i) {
- 		base_pfn = page_to_pfn(pages[i]);
-@@ -110,6 +148,19 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
- }
- EXPORT_SYMBOL_GPL(hv_call_deposit_pages);
- 
-+/*
-+ * Put withdrawn pages back in the direct map. Counterpart to the direct map
-+ * removal done by hv_call_deposit_pages().
-+ */
-+void hv_restore_withdrawn_pages(const u64 *pfns, int count)
-+{
-+	int i;
-+
-+	for (i = 0; i < count; ++i)
-+		set_direct_map_valid_noflush(pfn_to_page(pfns[i]), 1, true);
-+}
-+EXPORT_SYMBOL_GPL(hv_restore_withdrawn_pages);
-+
- int hv_deposit_memory_node(int node, u64 partition_id,
- 			   u64 hv_status)
- {
-diff --git a/drivers/hv/mshv_root_hv_call.c b/drivers/hv/mshv_root_hv_call.c
-index cb55d4d4be2e..8c21ad4ba3b0 100644
---- a/drivers/hv/mshv_root_hv_call.c
-+++ b/drivers/hv/mshv_root_hv_call.c
-@@ -69,6 +69,8 @@ int hv_call_withdraw_memory(u64 count, int node, u64 partition_id)
- 
- 		completed = hv_repcomp(status);
- 
-+		hv_restore_withdrawn_pages(output_page->gpa_page_list, completed);
-+
- 		for (i = 0; i < completed; i++)
- 			__free_page(pfn_to_page(output_page->gpa_page_list[i]));
- 
-diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index bf601d67cecb..397c8ec0ce9a 100644
---- a/include/asm-generic/mshyperv.h
-+++ b/include/asm-generic/mshyperv.h
-@@ -346,6 +346,7 @@ static inline bool hv_parent_partition(void)
- bool hv_result_needs_memory(u64 status);
- int hv_deposit_memory_node(int node, u64 partition_id, u64 status);
- int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages);
-+void hv_restore_withdrawn_pages(const u64 *pfns, int count);
- int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id);
- int hv_call_notify_all_processors_started(void);
- bool hv_lp_exists(u32 lp_index);
-@@ -364,6 +365,9 @@ static inline int hv_call_deposit_pages(int node, u64 partition_id, u32 num_page
- {
- 	return -EOPNOTSUPP;
- }
-+
-+static inline void hv_restore_withdrawn_pages(const u64 *pfns, int count) { }
-+
- static inline int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id)
- {
- 	return -EOPNOTSUPP;
 -- 
-2.34.1
-
+Thanks,
+Usama
