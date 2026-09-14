@@ -1,133 +1,135 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ej2-f12.google.com (mail-ej2-f12.google.com [74.125.228.140])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8298741A91E;
-	Mon, 14 Sep 2026 22:23:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 26B9A415B6E
+	for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 22:38:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789424594; cv=none; b=UTcnC1gRCVhcBVyF/0Swyjth2jXdiImXWY57Cd8M8zWfecc2FgLrFYrmplwDi2w7A8TQYDINuPK8RGELwKt9kLPZCH2f9/5TSiqwzhyIKxKMMmBLxUbmVRyutK/dOcOntX2fFrTHL/lI8hO0FikFO9wIKZ6pO8xnfUsQZbG3hso=
+	t=1789425499; cv=none; b=N41GfIsIulCkyWFVJRBSuyOlhzr0RxgCIx4MdAhGu9rLVPvcCilJowpv0ak84wFag3iIiyrOOcUYTua0OtgAK+D3nGT/ZylM2YigbG/85g4h6OZ9pfraFy3tK0xkBtqYkxVUtRaca332iNWqhYAmoineCKGNI88b2+H2zy0Twn8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789424594; c=relaxed/simple;
-	bh=Bi89MHYHOLYWpNpNJwfRbRBytm+OSTO/mUdD0V17mFM=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=ryyRpnIITpjo09QcKhD3aZQXR3Lpn3wh2/UVELQIbwJBUQSxCdRvFojliE0sfhQEM78FGialjEPvXEu7H+rjv4098U1rOrk6lbSJ6FysDi91w+VN24faq6ezSHDWXLfSEx9o1LeLPld0CcqL3nwE6761XpdHKM8+U/jLk8JqZD4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=mhzzpIjt; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789425499; c=relaxed/simple;
+	bh=3pbB/cdA2n+mw9ojxn7xAJ0JjyYJsv3yomOKFEBUOog=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=uAbFK5Hr7jYr6BrdE7JtCL8NxgVsY4gyMleKav5qIdFAiAUxRq+tDvIIEFsZjlzOjwwRQXYmdrCt7lW0YxzOnriYEq7yqIKMSBHAMZOJCpTfRJjsxT2NYXOHGUWJGKh9rFieRPfAUqiDD+PSd9HGU52Iu1ScR81m28h71IIqgTA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org; spf=pass smtp.mailfrom=linuxfoundation.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=WNIzDr7d; arc=none smtp.client-ip=74.125.228.140
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linuxfoundation.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="mhzzpIjt"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 63F201F00893;
-	Mon, 14 Sep 2026 22:23:11 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789424593;
-	bh=RRU+yJML1OMM4sdrHKCW6nAyxyoRhK5ooyzt6zbz5EA=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=mhzzpIjt8ICc0v+9pwXJLGyUo6/4W86Z9Rd1H/nQJGbazdtLE1Dircqquu9iu2efd
-	 FnFEeSd8Y2RIPZ43wFwVrX43cYp0Sv0pszmycH5HIWO/hHXzN2FQTBI+CgVh2fEhcA
-	 cUizGTL1e5OKK9RyZcUuVM/i59uYEOlNvO23SwXcgW0vdOz7OPrXqcIdhhOxvIGRhW
-	 LW1F5LwtIFv6MXdFHdRieN3hkXyESVONyHVUaDYgtKSVnwmy7eQOpON9jAxZSjHiQV
-	 s+POBLypUYfj7pp2JnzJxWrCGyqwD5qAJWYkgMf0hOCyAO/85IzEZcyDiU9jgtmViX
-	 DSFJ+F+2XszCA==
-Date: Mon, 14 Sep 2026 15:23:09 -0700
-From: Josh Poimboeuf <jpoimboe@kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>, 
-	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
-	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Peter Zijlstra <peterz@infradead.org>, 
-	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, Gary Guo <gary@garyguo.net>, 
-	=?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>, 
-	Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>, 
-	Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>, 
-	Daniel Almeida <daniel.almeida@collabora.com>, Tamir Duberstein <tamird@kernel.org>, 
-	Alexandre Courbot <acourbot@nvidia.com>, Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, 
-	Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, 
-	Kees Cook <kees@kernel.org>, "Gustavo A. R. Silva" <gustavoars@kernel.org>, 
-	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, llvm@lists.linux.dev, 
-	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
-	linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org, 
-	Jens Axboe <axboe@kernel.dk>, linux-hardening@vger.kernel.org
-Subject: Re: [PATCH v2 15/21] objtool: cache relocations, do less work
-Message-ID: <aqhmhmgrnN3Mw8yG@jpoimboe>
-References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
- <20260914-build-speedup-v2-15-39817ec5db23@kernel.org>
- <aqhLhVMkNzf_4oJw@jpoimboe>
- <CAHk-=wiB9MX7vBDQ+WHTUVfSYubLhR-PbABewscqTsxRhg-LbQ@mail.gmail.com>
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="WNIzDr7d"
+Received: by mail-ej2-f12.google.com with SMTP id a640c23a62f3a-c294496989aso460351866b.3
+        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 15:38:17 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google; t=1789425496; x=1790030296; darn=vger.kernel.org;
+        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
+         :references:mime-version:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=doHeCbdvroV7mGBSmqv1XRXXxfYTXe+sNzLZzLwqdyM=;
+        b=WNIzDr7dHVS605wIbL9JqvX6v6vvi6Uf1AEkziiBH2gHB2LMe50iQh0KgU9+sj7S4A
+         9//ygVb+brb98v+TUilmT4tacVl+fN0isMGxkyQESu+xtWKBkOA1W6rqQrnrOVgzdD7y
+         taGyHa/zECvj+9gdQ1mroq3FhgAaI2l632Vdc=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1789425496; x=1790030296;
+        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
+         :references:mime-version:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=doHeCbdvroV7mGBSmqv1XRXXxfYTXe+sNzLZzLwqdyM=;
+        b=i2hRNh1mjO0zDyKeiK3M/AsUTB4AZMRnrG3VWgvyzqAm7cDsIFMYYcCynFVHzLSahH
+         EZoYENCjv5CMSaZK2K/ICcAISB2G/Nxv1Z4BxaczViO+YBBtEG+rrUWHwwWrvYHsUbLC
+         LwMJuGwdWVhhjrHtmlXMKlZCBZqrtiTZ/J8sh9miZc/hbUDyoLQ7WIbAtKleOFzEXoC1
+         DIcMjZW6u7aZH4HwxMnTzUciZBg0zNFdb4TJvFrtlfeDd3qb8wbBgUHM1Tfo1kXyde8I
+         ycHVF7Uq5wE6Wc/t6hveXzdN0Fda05AaiV9BbTKQgSa9cbjIi66i/Ffl2f6s6lL5jLBO
+         WIkw==
+X-Forwarded-Encrypted: i=1; AKwUvBwW69DHRdmux6HsTKvB52oTTgnir2UT8PBAiPBNJGsPe7GbdBYwbCqN6UHoIeaP+H7ismKTusXc1SZx@vger.kernel.org
+X-Gm-Message-State: AFuF++l084v9UHj/p5zMvP0vhTvP5HIMVMb2mNZleaVIBGzGNdLgmNvZ
+	8HqchT2tt2Efs1fnz0MfHtelTfj7iLSBR5GDUHDqAhoJLuDCl+oUhckbtSt3eTLalvMWaj1sOWo
+	nSuSOqaoZEg==
+X-Gm-Gg: AYBFou03+qg8L928UURqfgb8YkbqTXzjtEmdu/t/xfVV+M+MtIovHRczdi0/7RE8Bd3
+	6/NRWA/QNQ1dQzmUkmdmN2yXoYt63wx/WeOyfdlyi7FL3MPto3zv6lefbC97m5TNFrcjQtErziJ
+	JhQDoaH+pcogKlfgRlePoFpb6QRpMhE4TyCMc905bNL94oWP48J7AeqFgGrnrUlPbhq7WdRMrK5
+	niWgv6ovcdmsPHWYciCC9hioFlLIKnYZXH3eZTAFW+BtMHU9sl2RXpyA+w3OXN6W5MRwARAqKJZ
+	vyvJYAVC69yf4xwprA5aP/8Oybxn/BMS7CU679UfcO7a2xn2OD6Ya09KNFuTC2sH2/h0quOxGJp
+	/2XJ1Dupbf6aOjs0Gfqqsy/ydeYvffcC2LpjoypQKDPZooQAZl/rwZjZ9s1mjPPsXRGwVtvramM
+	ypN152jAeUZNFBWyq+smgknpqs67CDfWNVE9McwYy54jwNasEe3wLI25rf+QZeJljnqOwmFrk45
+	5J3Wevm5u3Z3yM+G3TGi/rK7JCcj29ggRj/hbZ5aKxXTBJJSQ==
+X-Received: by 2002:a17:907:3e8c:b0:c26:1648:a075 with SMTP id a640c23a62f3a-c29b87d8638mr297895566b.48.1789425496362;
+        Mon, 14 Sep 2026 15:38:16 -0700 (PDT)
+Received: from mail-ej2-f12.google.com (mail-ej2-f12.google.com. [74.125.228.140])
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-c2966066b6asm477805266b.34.2026.09.14.15.38.16
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 14 Sep 2026 15:38:16 -0700 (PDT)
+Received: by mail-ej2-f12.google.com with SMTP id a640c23a62f3a-c294496989aso460349966b.3
+        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 15:38:16 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AKwUvBw0bWOuydBqd43zwySBw+Uq323g9hIWkRkTNz7bAPms0f/npZ817pWYd2N2/KlHSEn3YFcwZYqFC9Pu@vger.kernel.org
+X-Received: by 2002:a17:907:97c9:b0:c29:4415:2ebb with SMTP id
+ a640c23a62f3a-c29b860109bmr315536666b.8.1789425035842; Mon, 14 Sep 2026
+ 15:30:35 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wiB9MX7vBDQ+WHTUVfSYubLhR-PbABewscqTsxRhg-LbQ@mail.gmail.com>
+References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
+ <20260914-build-speedup-v2-15-39817ec5db23@kernel.org> <aqhLhVMkNzf_4oJw@jpoimboe>
+ <CAHk-=wiB9MX7vBDQ+WHTUVfSYubLhR-PbABewscqTsxRhg-LbQ@mail.gmail.com> <aqhmhmgrnN3Mw8yG@jpoimboe>
+In-Reply-To: <aqhmhmgrnN3Mw8yG@jpoimboe>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 14 Sep 2026 15:30:19 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wj3BKkCYtmfs5sORF_+Oumv2Gc8D+YxkMp9W2-mvLS=Ug@mail.gmail.com>
+X-Gm-Features: AcwNN1UnWAKTndckmaJ94decAtfrWRGA6P58dk0oXtHcS9ajgGc6O7ZKSXjYJOY
+Message-ID: <CAHk-=wj3BKkCYtmfs5sORF_+Oumv2Gc8D+YxkMp9W2-mvLS=Ug@mail.gmail.com>
+Subject: Re: [PATCH v2 15/21] objtool: cache relocations, do less work
+To: Josh Poimboeuf <jpoimboe@kernel.org>
+Cc: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>, Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
+	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
+	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
+	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
+	Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
+	"H. Peter Anvin" <hpa@zytor.com>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
+	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
+	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Peter Zijlstra <peterz@infradead.org>, 
+	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, Gary Guo <gary@garyguo.net>, 
+	=?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
+	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
+	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
+	Danilo Krummrich <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, 
+	Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, 
+	=?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
+	Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, Kees Cook <kees@kernel.org>, 
+	"Gustavo A. R. Silva" <gustavoars@kernel.org>, linux-kbuild@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, llvm@lists.linux.dev, 
+	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
+	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, 
+	rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org, 
+	Jens Axboe <axboe@kernel.dk>, linux-hardening@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 
-On Mon, Sep 14, 2026 at 01:06:37PM -0700, Linus Torvalds wrote:
-> Talking about "getting rid of the hashing": the instruction hashing is
-> obviously a big deal judging by the hash size expansion in that other
-> patch.
-> 
-> Do we actually look up all instructions by hash in the first place?
-> From a quick glance, it looks like almost every user of "find_insn()"
-> is looking for just certain *kinds* of instructions: calls, branches,
-> returns, endbr.  And branch targets.
-> 
-> Maybe stack updates? I didn't check.
-> 
-> Yet we seem to hash them all - even if they are just some random
-> ALU-only instruction that is in the middle of a function and never a
-> target of anything and has no impact on any code flow.
-> 
-> So the question becomes: do we actually need to hash those
-> instructions at all? Are they ever actually looked up?
-> 
-> I don't know this codebase at all, so maybe that's just a really
-> stupid question. Feel free to look at me condescendinly, shake your
-> head and say "Poor Linus has lost the plot".
-> 
-> [ And yes, I see that whole "next_insn_same_sec()" thing, which
-> obviously *does* look up all the instructions when you iterate over
-> that function, but it strikes me that using a hash table for that is a
-> bit strange when the natural way to do it would be with juyst a
-> "struct instruction *next" field instead.. ]
-> 
-> So if hashing was such a big deal that it showed up clearly on
-> profiles, maybe the answer isn't just a "make the hash table larger".
-> If a "next" field were to not only make the hash table much smaller,
-> but also mean that next_insn_same_{func,sec}() would become a "follow
-> one pointer", mayeb hashing would become rather cheaper?
-> 
-> Stupid? Or maybe "not completely stupid, but too painful to change"?
+On Mon, 14 Sept 2026 at 15:23, Josh Poimboeuf <jpoimboe@kernel.org> wrote:
+>
+> There might be more efficient ways to structure the considerable amount
+> of data, like replacing "struct instruction" with "struct basic_block"
+> or so, but it's hard to know whether that would be a net positive.
 
-The find_insn() in next_insn_same_sec() is a bit odd, that was itself
-part of a performance optimization, but yes, a 'next' pointer could be
-used instead.  Though, IIRC, that instruction struct is the biggest
-overall user of memory, and it just barely fits inside a cache line
-boundary, which we do take advantage of by putting them in adjacent
-blocks.
+Yeah, I was thinking that you'd only hash instructions as you find
+them if they are obvious "I need this instruction", and then try to
+hash them *again* if they are branch targets (and just have a "already
+hashed" flag).
 
-But as you alluded to, find_insn() has a lot more users beyond just
-next_insn_same_sec(), like finding jump targets, alternatives, annotated
-instructions, and quite a bit more.  Determining in advance which subset
-of instructions need to be hashed is likely somewhere between "too
-painful to change" and "not feasible" IMO.
+That way random number instructions would not be on the hash - unless
+they become branch targets.
 
-There might be more efficient ways to structure the considerable amount
-of data, like replacing "struct instruction" with "struct basic_block"
-or so, but it's hard to know whether that would be a net positive.
+And you wouldn't ever really have to track any complicated decisions
+(like that whole "basic block" thing - I agree that it's painful,
+because the shape of a basic block will change over time as you find
+branch targets).
 
-At least the current design is a somewhat tolerable balance of
-CPU/memory usage and maintainability.  Peter and I already fixed most of
-the major performance issues, so I'm not overly motivated to squeeze the
-last remaining juice of performance, especially if it's going to hurt
-maintainability (maintainer bandwidth is also a precious resource).
+But not a big deal. More an idle thought brought on by that other
+patch that changed the hash table size, and this discussion that was
+talking about the hashing - or not hashing - of sections.
 
--- 
-Josh
+So more of a "if it is easy and straightforward" kind of thing.
+
+             Linus
