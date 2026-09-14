@@ -1,32 +1,32 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2674713C9C4;
-	Mon, 14 Sep 2026 18:37:55 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CE49B38C421;
+	Mon, 14 Sep 2026 18:43:51 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789411079; cv=none; b=MsepIHyGGc1X6itoL0pk+vKs5PiW/QYKQ2uO/hYTXTXfHoJ4/l8VIqJPxUnL89iuVdiOcUPCdqsjY0Qwvwb19OOU3gVpmFpdeGiOy+OoqVSqNuh0TPLITWhtjuf6oDLpKobeWpUFHsWZKS+avvt668cWdSJ698/IboVZaAsv+OE=
+	t=1789411434; cv=none; b=YpTF9zIZ1XLYLLF4ms5CWCJFa1CCpVZfUIph0jEM7a+T/t+7UstYFk8ww4CZZ9sO4wKAl9nbLp4531tMjYbR+GaLdJ3H+VzsWcRrg3AeNMb9/B956vvV4AQuvCx3PsVGOYIb2VdK4th+UkFmumwXVbKPX8gtdZWxVGAQBI7BA/Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789411079; c=relaxed/simple;
-	bh=SjZhDK0nqC8Zf70N+lOhNCSuAoux/KPPcpOxFpCchJE=;
+	s=arc-20240116; t=1789411434; c=relaxed/simple;
+	bh=zy03KGEW1YeeekDBJmyUfQNa60AVoG7T/gD0XbgBOzw=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=kvle6ksgH74A8km/lXKkQsMEmSVqH5QaJ2pJCfhAU88gdv2di/gF+4L2InDsBgMgdLF/i8AUr7T7ML64p5YGqUJjbzCWsBzO6lc5WcCjDcN3E2jvkzNGEbmv5NHjo9u5vFIGnLi2P/etOItPpL434ABnf5rVgLuaTwLkq6twGIY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=fG+V7yzl; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=D4rLH0S4YaTtqNBbt7XKh1/6zL7hHuxhR78X5X5+WVBir4yd2IcTG15ZqRgcUCQski4VAVWTLnACyhl0DH/3I+tc6w9ZhvWLB+vyKVUxzOU83kYSUYI1vrwc/+TP6dmLSBcJt3uUQJw9UQk1wiK88PfCBoV9Cq+16VskWfW9fUc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=G0/xHYvA; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="fG+V7yzl"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BC2811F000FF;
-	Mon, 14 Sep 2026 18:37:54 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="G0/xHYvA"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id BCFB61F000FF;
+	Mon, 14 Sep 2026 18:43:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789411074;
-	bh=TOeAKXfv/9Zy/Vfek9QqwXZIIUS3I0SElaU0l07Cf5U=;
+	s=k20260515; t=1789411430;
+	bh=bo6GJLiDf9mVwm6AXXi7iuVJHoavl3dsdCOXGh6V4XE=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=fG+V7yzlO/w0vfzga+Er1Im9w2nHQjGIE6fv/TcE9yZN36AcVaiP2eUfJDKBas6On
-	 RFQ/MFy1HF88siOyqxgZmP7n353ap4t60XaHQhej2n7EEy0y8CU1JCQ4YVVihSjaDC
-	 Bfi9nJWUmjg/GkyX4dXIEssOZ4wsxkyBjZzeiIIJIEy34FGa4X8vievIYjeAOaij/p
-	 Jwt8bVmiMB/Mbdant7+aLCkTFR32BG08p1eflMNYApfK35ofOF+o5rgQ67xfqHu607
-	 Prx2UzuIbDPwMzgAqVndZnJMOen14O0sM1o80y2ItrBJL/QPa++KMVODvol6LUxWey
-	 Bw8hYleVDBFsg==
-Date: Mon, 14 Sep 2026 11:37:54 -0700
+	b=G0/xHYvAtQ4HOxtFGJbJlA22cMjDZl+N56G9hsoC0tQv8qT6/15zEdvADlDxeYuQh
+	 ae8Q6N4X+AKq3TVZGTbZs+4oj+vIEXo4zgpz9hevYG1TM/+/i/QF6MM11pZBxxyVq0
+	 vraPPnQ7ZUCWXbPqXPeQbWc8N1vmP5oiVA5uoJav1ICknNtIaaUdkQaW70pDvAs5vE
+	 974HTKmZo3bFjISiUMqs3buCdhMg059Qh11CETtTBafCHxBYrVccHqoUfj37NZD6rk
+	 zB9+I7SuAegOhvn9/uOVYU9JJ+Kw272HbWhBcTsqzySDRKTHj2bpbmSHp8inaUBp/U
+	 YZD68D5G/qndA==
+Date: Mon, 14 Sep 2026 11:43:50 -0700
 From: Kees Cook <kees@kernel.org>
 To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>,
@@ -70,11 +70,11 @@ Cc: Linus Torvalds <torvalds@linux-foundation.org>,
 	linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
 	linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>,
 	linux-hardening@vger.kernel.org
-Subject: Re: [PATCH v2 20/21] kbuild: build rust crates in parallel with the
- rest of the build
-Message-ID: <202609141133.7CA979C89@keescook>
+Subject: Re: [PATCH v2 00/21] kbuild: significantly speed up kernel builds
+Message-ID: <202609141139.AEF875252@keescook>
 References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
- <20260914-build-speedup-v2-20-39817ec5db23@kernel.org>
+ <202609140833.88C0E16E50@keescook>
+ <aqg5nvRy9nuvC78L@gremlin>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -83,53 +83,48 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260914-build-speedup-v2-20-39817ec5db23@kernel.org>
+In-Reply-To: <aqg5nvRy9nuvC78L@gremlin>
 
-On Mon, Sep 14, 2026 at 10:22:19AM +0100, Lorenzo Stoakes (ARM) wrote:
-> Care is taken to ensure that external rust modules can still be built
-> against the tree - make modules_prepare ... (where ... are other goals)
-> will build rust/ first.
-> [...]
->  prepare: prepare0
->  ifdef CONFIG_RUST
->  	+$(Q)$(CONFIG_SHELL) $(srctree)/scripts/rust_is_available.sh
-> -	$(Q)$(MAKE) $(build)=rust
->  endif
->  
->  PHONY += remove-stale-files
-> @@ -1760,6 +1763,12 @@ modules: modules_prepare
->  # Target to prepare building external modules
->  modules_prepare: prepare
->  	$(Q)$(MAKE) $(build)=scripts scripts/module.lds
-> +ifdef CONFIG_RUST
-> +# Ensure rust/ is built before any external rust module which will rely upon it.
-> +ifneq ($(filter modules_prepare,$(MAKECMDGOALS)),)
-> +	$(Q)$(MAKE) $(build)=rust
-> +endif
-> +endif
+On Mon, Sep 14, 2026 at 07:25:28PM +0100, Lorenzo Stoakes (ARM) wrote:
+> On Mon, Sep 14, 2026 at 08:41:39AM -0700, Kees Cook wrote:
+> > Did you try Clang CONFIG_LTO=y builds?
+> 
+> I tried a CONFIG_LTO_CLANG_THIN in order to check that the *.mod.S stuff
+> worked correctly, all working correctly.
 
-As far as I can see, nothing orders this recipe against the tree build,
-which also descends into rust/ through "obj-$(CONFIG_RUST) += rust/"
-in Kbuild, while $(build-dir) only depends on prepare. Before this
-patch that was fine, because prepare had already built rust/ by the
-time either of them ran. Now "make -jN modules_prepare all" can have
-two make processes building rust/ at the same time, and so can
-"make -jN rustdoc all" or "make -jN rusttest all", whose recipes also
-run "$(MAKE) $(build)=rust". That means two rustc runs writing the same
-objects in rust/ ...
+Okay, thanks! I did the same just now too. It seems to be just fine.
 
-> +# Rust code elsewhere in the tree depends upon rust/.
-> +ifdef CONFIG_RUST
-> +$(KBUILD_RUST_DIRS): | rust
-> +endif
-> [...]
-> +export KBUILD_RUST_DIRS := drivers lib mm samples
+> I can try to get some profiling numbers for thin and full if you want?
 
-Doesn't this make all of drivers/, lib/, mm/ and samples/ wait for rust/?
-That's a lot of stall: drivers/ is most of the tree. I think then a
-CONFIG_RUST build has most of its C work waiting on the rust chain;
-only the other top-level directories start early? This didn't create new
-build delays for those configurations?
+Mostly I wanted to know if it worked still, and I guess for profiling,
+I'd want to make sure it didn't regress how long it took to build. :)
+
+> Well I rewrote the majority of them, so this is a stinging critique of my
+> commit message writing I guess :)
+
+Oops! Sorry. I'll go through them again, but I felt like the objtool
+commit logs were very long, but perhaps it is justified. ;)
+
+> (N.B. I have had feedback like that on a fair few human-written commit
+> messages of mine lately so there might be some validity to that ;)
+
+And as I said, I get told I'm often too terse, so perhaps my sensing
+here is broken. :P
+
+> > One area I think might solved via an LLM is the 3-pass kallsyms stuff.
+> > If we could get a deterministic kallsyms build in 1 pass, that would be
+> > very nice. A lot of people have tried, but it has eluded upstreaming.
+> 
+> "going from three passes to one would save around 8s on an allmodconfig
+> build and 2 to 3s on defconfig, out of tails that are currently roughly 25s
+> and 8s." says the LLM :) so that actually does seem worthwhile.
+
+It's what I'm always staring at when I do incrementals. ;)
+
+> But I think best as a follow up?
+
+Yeah, I would imagine it'd be separate. (I think a few of these sets of
+changes could be landed separately too, like the pigz work.)
 
 -- 
 Kees Cook
