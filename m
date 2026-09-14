@@ -1,143 +1,188 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pz2-f12.google.com (mail-pz2-f12.google.com [74.125.228.12])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7DA6337DEB5;
-	Mon, 14 Sep 2026 19:44:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789415062; cv=none; b=FJ/89jlq8QuVwqsewigpzRc6lsFiY51+e/BStOxmiLbX6kAmUBb9jIwQzbQnpyaX/SZuAbqdjx/HN6Ol+XqREJXZ8CK5NYJya5BkPaXr4yfWuvYiFMIJdN0gv8DfTlvGG6XmW/UWytvb1DBm5qFdTpNJfCV/4aiO8Hlx7eqIXo4=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789415062; c=relaxed/simple;
-	bh=ti730hswioEnORd+T1M71+ijIsAXicoqvmkG3id3SrY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=n7Re57Vvhn1gH3IuNvTpkSKu1SQzkmP9PTucNCdjwuNF/D6ong0DGCEpjzFjibDpej/gTI2uZr9IIf5kaRno68adtWnj6/mJFFh7INxyP3tRrhBKA/m3DgTHJDDXCyowWi71I3bQyNnCCJSiIP94MqlEzR9I2CPvBKP9TMMdsSo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=MSVXXg/q; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 00CD449AA48
+	for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 19:57:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.228.12
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1789415867; cv=pass; b=gmMR76CSeMVx1agYvkEARefj0q1pUJs+U+aI5XNIhOsVG+MpjDAdga+oH64t0ebpC+kw/5mS8Fn5QFLmBsz0tfes7fDujJJlHjzcGZIesuilWvmNkHHv6hJnGOKYH1EMwjgFl8vgkHv1ijC9w/+aoWejga3mzdkZKJLdDcuAXl8=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1789415867; c=relaxed/simple;
+	bh=rm+zdLu0LlzNfMP/vZrBYvi966p9ISS8d4XEb3JQ094=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=hCI4CD4SO8Cx85Hp0sGrYCOEAnG7eH+CYVM/eD7+SvtVHHbOF/jmokU3pC5wrjkb0Rov3nvtg95WLOvZ/Bd0H9KP/l6QsUA9G+ExHHeAVlJ4hu6cQbNpnm7I3HfMqqaBu20vYdiflKalJVrJThjgKxnJk2Cs5R7C9eYKUQx4EpY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=paul-moore.com; spf=pass smtp.mailfrom=paul-moore.com; dkim=pass (2048-bit key) header.d=paul-moore.com header.i=@paul-moore.com header.b=VBYIS+ru; arc=pass smtp.client-ip=74.125.228.12
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=paul-moore.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=paul-moore.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="MSVXXg/q"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 606951F000FF;
-	Mon, 14 Sep 2026 19:44:15 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789415057;
-	bh=dEVqT/wbNr31VyaEi+ztvayta7Xn2Rd4Y437aZNZCvc=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=MSVXXg/qNgC9jq49BVmWZXFQh+9kpMKjQO+QRQUfSbv6WEMmHAyi1VR8/qhBIc5Mk
-	 FfzjtS+MXmB1xdh0Yyyh/Fjgp0ghmpwSXzQ0HEfDW+auxGwVSYmxpW4HB3r7VPvk5x
-	 ErOLy9eT8sBkMrdbsQGLv17beikH75L4sttmQL+HW5l2DD14MHccpS79cnl93N3Kgj
-	 YcoOTrNJBTL7kKo32pNKgOEHALdfPOmaxCkbBoOVpON2WHEvSq+bZqYcfQk2AIBKMG
-	 u5i84u03A14NXZUXVTa7uw2gHUp7GtggszhR53KXX6mdi43GlMuW9bZTSp2IMAiwQt
-	 MtZMVAIfFDB2g==
-Date: Mon, 14 Sep 2026 12:44:13 -0700
-From: Josh Poimboeuf <jpoimboe@kernel.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
-	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
-	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Peter Zijlstra <peterz@infradead.org>, 
-	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, Gary Guo <gary@garyguo.net>, 
-	=?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>, 
-	Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>, 
-	Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>, 
-	Daniel Almeida <daniel.almeida@collabora.com>, Tamir Duberstein <tamird@kernel.org>, 
-	Alexandre Courbot <acourbot@nvidia.com>, Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, 
-	Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, 
-	Kees Cook <kees@kernel.org>, "Gustavo A. R. Silva" <gustavoars@kernel.org>, 
-	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, llvm@lists.linux.dev, 
-	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
-	linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org, 
-	Jens Axboe <axboe@kernel.dk>, linux-hardening@vger.kernel.org
-Subject: Re: [PATCH v2 15/21] objtool: cache relocations, do less work
-Message-ID: <aqhLhVMkNzf_4oJw@jpoimboe>
-References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
- <20260914-build-speedup-v2-15-39817ec5db23@kernel.org>
+	dkim=pass (2048-bit key) header.d=paul-moore.com header.i=@paul-moore.com header.b="VBYIS+ru"
+Received: by mail-pz2-f12.google.com with SMTP id d2e1a72fcca58-868cfc5c244so1534442b3a.3
+        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 12:57:42 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1789415862; cv=none;
+        d=google.com; s=arc-20260327;
+        b=A5ikf71YrYPYbtdyS01zyw5TeQqEqqNVzA8AmmaqFJxfds/I95rdPRw32XxRSxc+IQ
+         /2pnV6efFM8X6qvqYHKasDp2C5fslFdHm1zSNCb1U4fMJKmr1JvE/TMl9gS90gytok9g
+         Eq3OQQSf5fFMGzJAT/j0La09cFS10PgKIq/qdyKD7rwWN5FbHz/7DojuxCt2sqAirXi/
+         vZdwn63DNYLYBLxonwGiAJ41odcQVnRJQIFLqjwFW59nYeHOkmf4/vsFlcS3nbaOkP1G
+         jdOPNvXfJ+0N0zQPh5EigGJNN02A+5BwDUeQH4QstFYfmSXFq0oSJUrattZbVRyNCnpd
+         pJtg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=iEa5EIpxI31VfZhRCWTdUVuFxMmPcLfnD5/j1cH2Le4=;
+        fh=YX1gNXteXkh82oXRpzSvz5eZkeSTs4IYYE2K3hAr5WY=;
+        b=WXxvbVC13KJeC/RmQaBYhoONW9/6YKFd85YdAgaVQjOLI33PsNaCCMG8xrZ9Vtzffe
+         vvRrufTzEW9Z6bHy4lE3l18iVfj3quFm65Yy0QiYG/3+8GCLcfryOV6oScXLWUuf+hNo
+         kUjxRHHJLO0PO5Ui7cCvjYGdWHf4wOe2Cags1qbYmWltDgDYudfe6yPll0sWaPSRszPa
+         w1dR7PnkKcb+vU7k/89PbNsbVdJPPocRKz656Z29bMOQxGUXEZ2zq8lGNrqrGjDjEHd9
+         uWU0VeCALnI5rBpiutLGQrLv1Mb82yuK38Z6mE/gvlBO4E8Z482a0JARIedylbQ2cM20
+         IGsw==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=paul-moore.com; s=google; t=1789415862; x=1790020662; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=iEa5EIpxI31VfZhRCWTdUVuFxMmPcLfnD5/j1cH2Le4=;
+        b=VBYIS+ruvec/YQ7NPDSavrBqZkup3jtMUSf2x9fg2vR4Q/ZYGnptCqM7UF9GBEk6Kb
+         pwYbAK2sJEZFDjRFht2ALhGnWfzEgxLd1W4Nqjf3iOyc3C9CQVwNzR9p52/m8eg00t3y
+         i3INHp65zySvAJlrkN0SKQiamBOPK/2OeoXHbM/ieIzmZObIDK9PzOChSRrcM8YAyS56
+         Wpk2JsgEsfietAppzsrHDi7c7Qi8vepD85wgaha++Drvrzfs42k7ryFVO4ohzIir1SFu
+         Dz5Af79neP1/ODat12UTHwq79Ug1vrjKu97+aj6V0fudJlIrOVtfB5xkOELTreMhvqOw
+         VVNw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1789415862; x=1790020662;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=iEa5EIpxI31VfZhRCWTdUVuFxMmPcLfnD5/j1cH2Le4=;
+        b=VH4k5Z3z2EEx7TMqB71jPQx9EucxKC22/ligbSMh66q2EaesD5XeeCdZFleHDT9PkP
+         FOAC8xx2eyOKNWVXsRvg8fVZn8uDyEFAoj2dGQN+AxhFGKLDsS40y6Eee52M4eNNJy3x
+         wpc+oCrH/DubmrzYfsiZShds9+3SfdUQGk/li/9UYJMUNmFXCLs6qDYw5fcKnCDEEPzb
+         sRuS4RT89StPLYulwdbc6mEyYxr97mrwpIzbkmtvXk7WC/D/hg/GBV69OMJTypZP+06k
+         WyXlIy5f63Hh/iDLE3L9v7+SlH8oRqwbTrSlwwliWmgHGHmLqMVMT80DV7+HpJwaxsUa
+         SmYA==
+X-Forwarded-Encrypted: i=1; AKwUvBy2oMfUx5gy3m7E4NPVqfgWdFB2XUmB6OlM/2SJHEdluFdH7enOnchjPJroiSxIymz0gHzOJwQPIohO@vger.kernel.org
+X-Gm-Message-State: AFuF++l2S8ceh+BaiOzrRPlr4/38fzHV7SuwSKD1e9r6uPp/7NL0DU69
+	0n4BAZdxOWd3qIt8QLpd4jjsPHosTco4gr5ZEMLNGqXTnlgOGYYq6kuWfD29N7dpnzzZFOX+Ksr
+	my3BwmIM4ku4j7bSp832RPVJKFvAhuVcbB2Xc3Ozc
+X-Gm-Gg: AYBFou0ZhOFRj3VuHolzgQy0zHFkvzQZGZrLV0ULBq0ZZdYhnGh941TODoXNz8H6kL5
+	cz0EMnRG6h3LjIRM+ZNvKVzvj5ni0llzf2agBHtgSccVe7wZALb3bFc//cw3wsxNF+Gx3H6qDY2
+	VoVqu2uJ6aVmvW7NosaKxDHeBZar8LTlihzxQWVKZCGdMWbXrtDDC9CykUg0HU5JGqjiKodEmJR
+	uMIMbLV5uBjlKz1Q+7sDJSKlJsi7eq3XQztQFNGeeC0e30l3dFxJgziihTUo7O39iJkc/tOBKYJ
+	2ce3TYPsvS8xfekEXmRnIw4I3LxS1MRX85dLjwk9eoAf+wWIhbZNREIrMhNC7ExdX0Vei6pJDkk
+	CmNbvLJ7BkQc=
+X-Received: by 2002:a05:6a00:18a9:b0:858:b809:6ec0 with SMTP id
+ d2e1a72fcca58-86f869a920dmr8896742b3a.23.1789415862342; Mon, 14 Sep 2026
+ 12:57:42 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20260914-build-speedup-v2-15-39817ec5db23@kernel.org>
+References: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-0-7d9781ed5361@kernel.org>
+ <20260914-b4-mmap-prepare-vma-flag-sanify-v2-12-7d9781ed5361@kernel.org>
+In-Reply-To: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-12-7d9781ed5361@kernel.org>
+From: Paul Moore <paul@paul-moore.com>
+Date: Mon, 14 Sep 2026 15:57:29 -0400
+X-Gm-Features: AcwNN1XaLRK0KaZAmfcRvdaBSkZOdh14LF1fb-xWULoFVhBfqyRklsdKoWBmLag
+Message-ID: <CAHC9VhQ3TwdGGH6YtVyMqJX4avJwsadcRvRhAoUhCvJEHk=i=g@mail.gmail.com>
+Subject: Re: [PATCH v2 12/40] selinux: reject writable opens of policy file,
+ drop mmap shared/write check
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Liam R. Howlett" <liam@infradead.org>, 
+	Vlastimil Babka <vbabka@kernel.org>, Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
+	David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Jonathan Corbet <corbet@lwn.net>, 
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
+	Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, Jason Gunthorpe <jgg@ziepe.ca>, 
+	Leon Romanovsky <leon@kernel.org>, Stephen Smalley <stephen.smalley.work@gmail.com>, 
+	Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, Alexei Starovoitov <ast@kernel.org>, 
+	Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>, 
+	Eduard Zingerman <eddyz87@gmail.com>, Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
+	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
+	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
+	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
+	Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
+	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, 
+	"Martin K. Petersen" <mkp@kernel.org>, Jaya Kumar <jayalk@intworks.biz>, Simona Vetter <simona@ffwll.ch>, 
+	Helge Deller <deller@gmx.de>, Sebastian Reichel <sre@kernel.org>, John Hubbard <jhubbard@nvidia.com>, 
+	Peter Xu <peterx@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, 
+	Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
+	Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
+	Arnaldo Carvalho de Melo <acme@kernel.org>, Namhyung Kim <namhyung@kernel.org>, 
+	Mark Rutland <mark.rutland@arm.com>, Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
+	Juri Lelli <juri.lelli@redhat.com>, Vincent Guittot <vincent.guittot@linaro.org>, 
+	Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard <mripard@kernel.org>, 
+	Thomas Zimmermann <tzimmermann@suse.de>, David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
+	Arnd Bergmann <arnd@arndb.de>, Muchun Song <muchun.song@linux.dev>, 
+	Oscar Salvador <osalvador@suse.de>, "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
+	Marc Zyngier <maz@kernel.org>, Oliver Upton <oupton@kernel.org>, 
+	Catalin Marinas <catalin.marinas@arm.com>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
+	Anup Patel <anup@brainfault.org>, Paul Walmsley <pjw@kernel.org>, 
+	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Christian Borntraeger <borntraeger@linux.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, 
+	Claudio Imbrenda <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
+	Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Heiko Carstens <hca@linux.ibm.com>, 
+	Vasily Gorbik <gor@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, 
+	Andreas Larsson <andreas@gaisler.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Christian Brauner <brauner@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
+	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
+	Byungchul Park <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, 
+	Ying Huang <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>, 
+	Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
+	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
+	Baoquan He <baoquan.he@linux.dev>, Youngjun Park <youngjun.park@lge.com>, 
+	Johannes Weiner <hannes@cmpxchg.org>, Qi Zheng <qi.zheng@linux.dev>, 
+	Shakeel Butt <shakeel.butt@linux.dev>, Axel Rasmussen <axelrasmussen@google.com>, 
+	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
+	Chengming Zhou <chengming.zhou@linux.dev>, Michal Hocko <mhocko@kernel.org>, 
+	Miklos Szeredi <miklos@szeredi.hu>, Xu Xin <xu.xin@linux.dev>, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, 
+	linux-usb@vger.kernel.org, linux-rdma@vger.kernel.org, 
+	selinux@vger.kernel.org, linux-sound@vger.kernel.org, bpf@vger.kernel.org, 
+	linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
+	dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
+	linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
+	kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org, 
+	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
+	linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, 
+	fuse-devel@lists.linux.dev
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Mon, Sep 14, 2026 at 10:22:14AM +0100, Lorenzo Stoakes (ARM) wrote:
-> +static struct reloc *find_reloc_sorted(struct section *rsec,
->  				       unsigned long offset, unsigned int len)
->  {
-> -	struct reloc *reloc, *r = NULL;
-> -	struct section *rsec;
-> -	unsigned long o;
-> +	struct reloc *relocs = rsec->relocs;
-> +	const unsigned int nr_relocs = sec_num_entries(rsec);
-> +	const unsigned long cache_idx = reloc_cache_index(offset);
-> +	unsigned int reloc_idx, i;
->  
-> -	rsec = sec->rsec;
-> -	if (!rsec)
-> +	if (cache_idx >= reloc_cache_nr_windows(rsec))
-> +		return NULL;
-> +
-> +	reloc_idx = rsec->reloc_cache[cache_idx];
-> +
-> +	/*
-> +	 * Scan through all relocations covered by cache entry to find the
-> +	 * first at or after offset. Relocations are sorted by offset.
-> +	 */
-> +	for (i = reloc_idx; i < nr_relocs; i++) {
-> +		struct reloc *reloc = &relocs[i];
-> +		const unsigned long curr_offset = reloc_offset(reloc);
-> +
-> +		if (curr_offset >= offset)
-> +			break;
-> +
-> +		reloc_idx++;
-> +	}
-> +
-> +	/* Nothing found, or the first candidate lies beyond the range. */
-> +	if (reloc_idx >= nr_relocs ||
-> +	    reloc_offset(&relocs[reloc_idx]) >= offset + len)
->  		return NULL;
->  
-> +	/* If there are duplicate entries, return the last. */
+On Mon, Sep 14, 2026 at 11:05=E2=80=AFAM Lorenzo Stoakes (ARM) <ljs@kernel.=
+org> wrote:
+>
+> The policy file has no write method and is exposed read-only (S_IRUGO in
+> selinux_files[]), yet sel_open_policy() performs no open mode check, so a
+> CAP_DAC_OVERRIDE caller can open it O_RDWR. Reject FMODE_WRITE at open, a=
+s
+> kernfs does.
+>
+> The file can then never be mapped with FMODE_WRITE, so do_mmap() always
+> clears VM_MAYWRITE and VM_SHARED for MAP_SHARED mappings and the VM_SHARE=
+D
+> check in sel_mmap_policy() cannot be reached. Remove it.
+>
+> This also stops sel_mmap_policy() clearing VM_MAYWRITE on a mapping that =
+is
+> neither a PFN map nor a mixed map, ahead of the core enforcing that only
+> such mappings may do so.
+>
+> Acked-by: Stephen Smalley <stephen.smalley.work@gmail.com>
+> Reviewed-by: Jann Horn <jannh@google.com>
+> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> ---
+>  security/selinux/selinuxfs.c | 11 +++--------
+>  1 file changed, 3 insertions(+), 8 deletions(-)
 
-Hm, for consistency with the others, shouldn't this be returning the
-*first* match?
+Acked-by: Paul Moore <paul@paul-moore.com>
 
-> +/* If there are multiple matches, return the first one in the range. */
-> +struct reloc *find_reloc_by_dest_range(const struct elf *elf, struct section *sec,
-> +				       unsigned long offset, unsigned int len)
->  {
-> -	return !strncmp(sec->name, ".debug_", 7);
-> +	struct section *rsec = sec->rsec;
-> +
-> +	if (!rsec)
-> +		return NULL;
-> +
-> +	if (rsec->sorted)
-> +		return find_reloc_sorted(rsec, offset, len);
-> +
-> +	if (rsec->hashed)
-> +		return find_reloc_hash(elf, rsec, offset, len);
-> +
-> +	return find_reloc_linear(rsec, offset, len);
-
-I'm not sure there's much benefit in having two fallbacks (hashed +
-linear) instead of one.  If the vast majority of reloc sections are
-sorted, then hopefully a single (linear) fallback would be fine,
-assuming no major performance regressions.  That would help contain the
-complexity.
-
-BTW, I found another initialization bug: klp-post-link.c uses
-elf_create_section() to create a reloc section, so it missing the
-initialization of rsec->hashed in elf_create_rela_section().  But that's
-moot if we just get rid of the hashing.
-
--- 
-Josh
+--=20
+paul-moore.com
