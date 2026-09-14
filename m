@@ -1,154 +1,174 @@
-Received: from mail.stoffel.org (mail.stoffel.org [172.104.24.175])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C5CE33DA7D9;
-	Mon, 14 Sep 2026 15:09:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=172.104.24.175
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 46B7149B5DC;
+	Mon, 14 Sep 2026 15:09:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789398546; cv=none; b=YgaFOHTuTg46lG4ZF+7WuWXTjcg7d5X9Nq9+szKBKOcm3l+vyY7iCGPw4xdADQrDumpqhNXJNfq2hE89dyXKzfrfxxzMTmTYvWMZrFlkMwwJo3hKe+7V87mgthPJRI6vg8MWYQs5tbOL/c1YGKfoHzMIOF1AE7NAxOhrMDhxD9s=
+	t=1789398549; cv=none; b=H5B022N1/jliY/nnMHd/mBhFSd9KSl9pAzFm69hkN3z71PX0cOoQYoB78bhlPfH4LbOB2t7iDlyBlBliL8S/7PXvP1cFHW9o6qrv3NIMpy1svIvifjRl5b+ud3BB83Rw//AXrD/EVraleiW+sBIth0sVQS+SQWHtFudSXhUX41U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789398546; c=relaxed/simple;
-	bh=oMblGF1PmYRaqle4YPaaEqUlpIDejeN8jfSd3IyEo/E=;
-	h=MIME-Version:Content-Type:Message-ID:Date:From:To:Cc:Subject:
-	 In-Reply-To:References; b=eYjYu1MUzO4PmOsxppvIPenLg5LLgy4ERwzumqrNdICBWgDIw/OMKxDDznnGOltGH917kF8lQYSzUQKnGRfgAK+eYWv0vwbqjRWVrRRc8f4hBzRznArTVFrjBSJ8bEj4LLgINAdU1BmuHgkwejOhyMb7pQ/dvCCJhXhLqskOfWE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=stoffel.org; spf=pass smtp.mailfrom=stoffel.org; dkim=pass (2048-bit key) header.d=stoffel.org header.i=@stoffel.org header.b=AlmtH9ST; arc=none smtp.client-ip=172.104.24.175
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=stoffel.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=stoffel.org
+	s=arc-20240116; t=1789398549; c=relaxed/simple;
+	bh=NwkWQQ7fmwzL5QGJDJ/xCgQWUhs8DQGRd4wM7Vj8ofA=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=knY9LLtmS6TaHHzwTrwSsHILBfsGD96vngDiYlIBWdPjuVfhjhghaNL0TmMttNe6AIInqYAkdX8QxoCqQQsAC4cQQmfryTLCxTQ9DYpNgG9F2GPXqwFglIEVIOabqdSdc6E4ydn7BmI7YSoImCjTIVkcmPiUrxARIZffv5exEPY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=L7mvUocc; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=stoffel.org header.i=@stoffel.org header.b="AlmtH9ST"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=stoffel.org;
- i=@stoffel.org; q=dns/txt; s=20250308; t=1789398143; h=mime-version :
- content-type : content-transfer-encoding : message-id : date : from :
- to : cc : subject : in-reply-to : references : from;
- bh=oMblGF1PmYRaqle4YPaaEqUlpIDejeN8jfSd3IyEo/E=;
- b=AlmtH9STTB3sBPP31THd4Ukf5Z6t561oZCkY6InocAjV6FJV0GlJpESrVaoEiZ4A2uvYj
- gSessr0w8EU13qxN0B+jYQ20yXsLhCqUZutbGy7AcGcD5CFenB+bVoo/1m8Bw/R1ZtoWetF
- sBmKOUI3nx0KxE7wUcDCF+5n4994xds9o7lSQH/T2399oBGJXN2k3kZ8PCGsCP8feOVSZt7
- E2jqE9cJAeF1HOKpro5FXdEZy3YI3ScbXELaBw6grc9sla2gt2x7VXc0k45gBGa5H3OmWN9
- QSHUKS/Lr8CJN8h1E+WssVpWqEPHuNKBoEAReWkV8A5H3NgyUYydzjMKYCNw==
-Received: from quad.stoffel.org (unknown [24.177.6.168])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by mail.stoffel.org (Postfix) with ESMTPSA id 96A101EC77;
-	Mon, 14 Sep 2026 11:02:23 -0400 (EDT)
-Received: by quad.stoffel.org (Postfix, from userid 1000)
-	id E573BA3288; Mon, 14 Sep 2026 11:02:22 -0400 (EDT)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="L7mvUocc"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C5A3C1F00893;
+	Mon, 14 Sep 2026 15:08:40 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1789398547;
+	bh=rtYEyCC7VKqkqWelOuwt2okny02CJhbQpnc+ekNFEso=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc;
+	b=L7mvUocc07dvv4gNRBD8FIWMRw7VSN7mZvf6vuvnYrejYxLoZ3JQAGznHWhHn3hPA
+	 2PiUTFskJ2XtBWABty1VWW1V7Pb/ZwQ3hwijjQiJTWJxu3PbQMoWTLTHJG3w3UxY2t
+	 q4tvQVRUmvdYzcG7cEjBUqL/GgjULYotnn0bklOa8SqIVfHw/4Oe7cGpeqcOk/f56H
+	 kZnbdU2P3VZTSfuidrq48vWeO3Vqfjywr3cgsJsfQNdp6Kmq8KDDFsgJTxKTYrCSsx
+	 KY/d5zQgTuZMRlHJAEFa2kS77Esqf2EVcl4XRAYg+l/+glQcIQjHPAWR0icTcJgUE+
+	 RI/ZcB7u1K4ag==
+From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Date: Mon, 14 Sep 2026 15:57:41 +0100
+Subject: [PATCH v2 21/40] mm/gup: error out early on !VMA_MAYREAD_BIT VMAs
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-ID: <27304.3198.867048.379684@quad.stoffel.home>
-Date: Mon, 14 Sep 2026 11:02:22 -0400
-From: "John Stoffel" <john@stoffel.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>,
-    Nathan Chancellor <nathan@kernel.org>,
-    Nicolas Schier <nsc@kernel.org>,
-    Nick Desaulniers <ndesaulniers@google.com>,
-    Bill Wendling <morbo@google.com>,
-    Justin Stitt <justinstitt@google.com>,
-    Masahiro Yamada <masahiroy@kernel.org>,
-    Alexey Gladkov <legion@kernel.org>,
-    Thomas Gleixner <tglx@kernel.org>,
-    Ingo Molnar <mingo@redhat.com>,
-    Borislav Petkov <bp@alien8.de>,
-    Dave Hansen <dave.hansen@linux.intel.com>,
-    x86@kernel.org,
-    "H. Peter Anvin" <hpa@zytor.com>,
-    Paul Walmsley <pjw@kernel.org>,
-    Palmer Dabbelt <palmer@dabbelt.com>,
-    Albert Ou <aou@eecs.berkeley.edu>,
-    Alexandre Ghiti <alex@ghiti.fr>,
-    Arnd Bergmann <arnd@arndb.de>,
-    Catalin Marinas <catalin.marinas@arm.com>,
-    Will Deacon <will@kernel.org>,
-    Mark Rutland <mark.rutland@arm.com>,
-    Ard Biesheuvel <ardb@kernel.org>,
-    Ilias Apalodimas <ilias.apalodimas@linaro.org>,
-    Josh Poimboeuf <jpoimboe@kernel.org>,
-    Peter Zijlstra <peterz@infradead.org>,
-    Miguel Ojeda <ojeda@kernel.org>,
-    Boqun Feng <boqun@kernel.org>,
-    Gary Guo <gary@garyguo.net>,
-    =?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
-    Benno Lossin <lossin@kernel.org>,
-    Andreas Hindborg <a.hindborg@kernel.org>,
-    Alice Ryhl <aliceryhl@google.com>,
-    Trevor Gross <tmgross@umich.edu>,
-    Danilo Krummrich <dakr@kernel.org>,
-    Daniel Almeida <daniel.almeida@collabora.com>,
-    Tamir Duberstein <tamird@kernel.org>,
-    Alexandre Courbot <acourbot@nvidia.com>,
-    Onur =?iso-8859-1?Q?=D6zkan?= <work@onurozkan.dev>,
-    Jonathan Corbet <corbet@lwn.net>,
-    Randy Dunlap <rdunlap@infradead.org>,
-    Kees Cook <kees@kernel.org>,
-    "Gustavo A. R. Silva" <gustavoars@kernel.org>,
-    linux-kbuild@vger.kernel.org,
-    linux-kernel@vger.kernel.org,
-    llvm@lists.linux.dev,
-    linux-riscv@lists.infradead.org,
-    linux-arch@vger.kernel.org,
-    linux-arm-kernel@lists.infradead.org,
-    linux-efi@vger.kernel.org,
-    rust-for-linux@vger.kernel.org,
-    linux-doc@vger.kernel.org,
-    Jens Axboe <axboe@kernel.dk>,
-    linux-hardening@vger.kernel.org
-X-Clacks-Overhead: GNU Terry Pratchett
-Subject: Re: [PATCH v2 11/21] kbuild: avoid re-running compiler and linker
- probes
-In-Reply-To: <20260914-build-speedup-v2-11-39817ec5db23@kernel.org>
-References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
-	<20260914-build-speedup-v2-11-39817ec5db23@kernel.org>
-X-Mailer: VM 8.3.3snapshot under GNU Emacs 28.2 (x86_64-pc-linux-gnu)
+Message-Id: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-21-7d9781ed5361@kernel.org>
+References: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-0-7d9781ed5361@kernel.org>
+In-Reply-To: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-0-7d9781ed5361@kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, 
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+ Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
+ David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
+ Jonathan Corbet <corbet@lwn.net>, 
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
+ Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, 
+ Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
+ Paul Moore <paul@paul-moore.com>, 
+ Stephen Smalley <stephen.smalley.work@gmail.com>, 
+ Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, 
+ Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
+ Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
+ Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
+ Baolin Wang <baolin.wang@linux.alibaba.com>, 
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, 
+ Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
+ Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
+ Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, 
+ "Martin K. Petersen" <mkp@kernel.org>, Jaya Kumar <jayalk@intworks.biz>, 
+ Simona Vetter <simona@ffwll.ch>, Helge Deller <deller@gmx.de>, 
+ Sebastian Reichel <sre@kernel.org>, John Hubbard <jhubbard@nvidia.com>, 
+ Peter Xu <peterx@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, 
+ Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, 
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
+ x86@kernel.org, Arnaldo Carvalho de Melo <acme@kernel.org>, 
+ Namhyung Kim <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
+ Juri Lelli <juri.lelli@redhat.com>, 
+ Vincent Guittot <vincent.guittot@linaro.org>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
+ Nick Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, 
+ Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
+ Marc Zyngier <maz@kernel.org>, Oliver Upton <oupton@kernel.org>, 
+ Catalin Marinas <catalin.marinas@arm.com>, 
+ Madhavan Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, 
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+ Albert Ou <aou@eecs.berkeley.edu>, 
+ Christian Borntraeger <borntraeger@linux.ibm.com>, 
+ Janosch Frank <frankja@linux.ibm.com>, 
+ Claudio Imbrenda <imbrenda@linux.ibm.com>, 
+ Alexander Gordeev <agordeev@linux.ibm.com>, 
+ Gerald Schaefer <gerald.schaefer@linux.ibm.com>, 
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
+ "David S. Miller" <davem@davemloft.net>, 
+ Andreas Larsson <andreas@gaisler.com>, 
+ Alexander Viro <viro@zeniv.linux.org.uk>, 
+ Christian Brauner <brauner@kernel.org>, 
+ Matthew Brost <matthew.brost@intel.com>, 
+ Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
+ Byungchul Park <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, 
+ Ying Huang <ying.huang@linux.alibaba.com>, 
+ Alistair Popple <apopple@nvidia.com>, Chris Li <chrisl@kernel.org>, 
+ Kairui Song <kasong@tencent.com>, Kemeng Shi <shikemeng@huaweicloud.com>, 
+ Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
+ Youngjun Park <youngjun.park@lge.com>, Johannes Weiner <hannes@cmpxchg.org>, 
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, 
+ Wei Xu <weixugc@google.com>, Chengming Zhou <chengming.zhou@linux.dev>, 
+ Michal Hocko <mhocko@kernel.org>, Miklos Szeredi <miklos@szeredi.hu>, 
+ Xu Xin <xu.xin@linux.dev>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+ linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
+ linux-rdma@vger.kernel.org, selinux@vger.kernel.org, 
+ linux-sound@vger.kernel.org, bpf@vger.kernel.org, 
+ linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
+ dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
+ linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, 
+ linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
+ kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org, 
+ kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
+ linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, 
+ fuse-devel@lists.linux.dev, "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+X-Mailer: b4 0.14.3
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1289; i=ljs@kernel.org;
+ h=from:subject:message-id; bh=NwkWQQ7fmwzL5QGJDJ/xCgQWUhs8DQGRd4wM7Vj8ofA=;
+ b=owGbwMvMwCV2fu7ZrsZH9SKMp9WSGLJWcG/k+RBscrhhwTaTCRnnfC5YPbGVstvt9UpAnv1zz
+ /41fH6zO0pZGMS4GGTFFFmefxHfHyQSNq/zgr8bzBxWJpAhDFycAjARRT1Ghjv+HGs7lZ2Cn/31
+ 1J75MPmTf3vV879Pb9ybfkn6N2PP3csM/10eP7h+eX/5fBV+hikawu4sc27YW+zalf3t6WHvwqN
+ x7zkB
+X-Developer-Key: i=ljs@kernel.org; a=openpgp;
+ fpr=E7F417BF5214569E89D04F46CF9DCD8A81E27F14
 
->>>>> "Lorenzo" == Lorenzo Stoakes (ARM) <ljs@kernel.org> writes:
+When populating a VMA range via the aptly named populate_vma_page_range()
+an unreadable VMA will always eventually fail with -EFAULT.
 
-> Each kernel make invocation begins with ~30 compiler and linker runs each
-> of which performs duplicate probe for a number of compiler and linker
-> options.
+That a VMA is accessible is always checked, however VMA_MAYREAD_BIT is not.
 
-> This is useless work - the compiler and its version is known, so use these
-> to determine which options are available, once.
+All user mappings always have VMA_MAYREAD_BIT set, so this check only
+impacts kernel mappings.
 
-> A convention already exists for this - CC_HAS_xxx, LD_HAS_xxx in Kconfig
-> files (for example, CC_HAS_COUNTED_BY), so convert these probes to Kconfig
-> options where appropriate.
+It is implemented specifically to disallow population of uprobes XOL
+mappings which are exec-only.
 
-> This change avoids a sublte issue with ppc32 (big endian) - clang doesn't
-                       ^^^^^^
+A nasty interaction with these mappings may occur if they are mlocked, so
+actively disallow this early.
 
-subtle
+This allows a subsequent commit to remove the VM_IO check in
+__mm_populate() which otherwise requires non-MMIO mappings to be wrongly
+flagged simply as a workaround.
 
-> accept -fno-stack-clash-protection on this sub-target, so keep this option
-> in the Makefile.
+Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+---
+ mm/gup.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-> With gcc and clang, defconfig and allmodconfig, the recorded command
-> lines are unchanged, a build with nothing to do rebuilds nothing and W=1
-> continues to function correctly.
+diff --git a/mm/gup.c b/mm/gup.c
+index c2dfcb4744bc..e6310a7cc05b 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1836,6 +1836,10 @@ long populate_vma_page_range(struct vm_area_struct *vma,
+ 	if (!vma_is_accessible(vma))
+ 		return -EFAULT;
+ 
++	/* Unreadable VMAs also cannot be faulted in. */
++	if (!vma_test(vma, VMA_MAYREAD_BIT))
++		return -EFAULT;
++
+ 	gup_flags = FOLL_TOUCH;
+ 	/*
+ 	 * We want to touch writable mappings with a write fault in order
 
-> Doing this improves all builds, but has a particularly positive impact on
-> no-op builds (builds where nothing has changed).
-
-> Whole build, 128-thread Threadripper 9980X, best of N runs:
-
->                                          before   after     delta
->                                          -------------------------------
->   x86 defconfig, no-op make, gcc           0.78s    0.60s    -0.18s (-23%)
->   x86 defconfig, no-op make, clang         0.94s    0.66s    -0.28s (-30%)
->   x86 defconfig, touch mm/vma.c, gcc        8.6s     8.5s    -0.16s (-2%)
->   x86 defconfig, touch mm/vma.c, clang      8.0s     7.7s    -0.24s (-3%)
->   x86 defconfig, clean, clang              29.8s    29.4s    -0.37s (-1%)
->   x86 allmodconfig, no-op make, gcc        12.9s    12.7s    -0.23s (-2%)
->   x86 allmodconfig, no-op make, clang      14.2s    13.9s    -0.29s (-2%)
->   x86 allmodconfig, touch mm/vma.c, clang  32.2s    31.9s    -0.30s (-1%)
-
-Are these deltas just per-patch, but cumulative with all the previous
-patches applied?   
+-- 
+2.55.0
 
