@@ -1,135 +1,201 @@
-Received: from mail-ej2-f12.google.com (mail-ej2-f12.google.com [74.125.228.140])
+Received: from mail-yx1-f50.google.com (mail-yx1-f50.google.com [74.125.224.50])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 26B9A415B6E
-	for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 22:38:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.140
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789425499; cv=none; b=N41GfIsIulCkyWFVJRBSuyOlhzr0RxgCIx4MdAhGu9rLVPvcCilJowpv0ak84wFag3iIiyrOOcUYTua0OtgAK+D3nGT/ZylM2YigbG/85g4h6OZ9pfraFy3tK0xkBtqYkxVUtRaca332iNWqhYAmoineCKGNI88b2+H2zy0Twn8=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789425499; c=relaxed/simple;
-	bh=3pbB/cdA2n+mw9ojxn7xAJ0JjyYJsv3yomOKFEBUOog=;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C5E7137188A
+	for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 23:17:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.224.50
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1789427841; cv=pass; b=OYJ5xlvN7c8Ps+y0MWh8HXCI7fZgepn9eaAATCMm+DcLdjDsjO7uem2c7ibaw6sjSC84dk8dF/lcTMyT6cizUg2dr7iL5BLeby1UMgZ09Cz3S0DHyUL0feIsHNRJE1go19kwOzFoAQCLtSU4NFq/e7GP4e4dWopZ597gm8fuHvw=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1789427841; c=relaxed/simple;
+	bh=RZ7AYDpwif8OjK59BGFRZwWIVN2HIHDHT/0jIXTGwRk=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=uAbFK5Hr7jYr6BrdE7JtCL8NxgVsY4gyMleKav5qIdFAiAUxRq+tDvIIEFsZjlzOjwwRQXYmdrCt7lW0YxzOnriYEq7yqIKMSBHAMZOJCpTfRJjsxT2NYXOHGUWJGKh9rFieRPfAUqiDD+PSd9HGU52Iu1ScR81m28h71IIqgTA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org; spf=pass smtp.mailfrom=linuxfoundation.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=WNIzDr7d; arc=none smtp.client-ip=74.125.228.140
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linuxfoundation.org
+	 To:Cc:Content-Type; b=g6T0DkVXrk0lzX0kTIHKbDl60qQfodk0UCbmou7jL4b/mWYxi51lwKFP1BIZqZ3mYRjj8vqHph4QDB9jth8c54NlwYmFMecnIy6lN9mryQTyPszlNsSLGzzGhcT8uEUKBsKtpqzdrSvdZuVNA9Ltd6oN8yKfnO0qRxY4xCq83wM=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=etsalapatis.com; spf=pass smtp.mailfrom=etsalapatis.com; dkim=pass (2048-bit key) header.d=etsalapatis-com.20251104.gappssmtp.com header.i=@etsalapatis-com.20251104.gappssmtp.com header.b=TDdrvu7I; arc=pass smtp.client-ip=74.125.224.50
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=etsalapatis.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=etsalapatis.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="WNIzDr7d"
-Received: by mail-ej2-f12.google.com with SMTP id a640c23a62f3a-c294496989aso460351866b.3
-        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 15:38:17 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=etsalapatis-com.20251104.gappssmtp.com header.i=@etsalapatis-com.20251104.gappssmtp.com header.b="TDdrvu7I"
+Received: by mail-yx1-f50.google.com with SMTP id 956f58d0204a3-66fca0709caso3747883d50.1
+        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 16:17:19 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1789427839; cv=none;
+        d=google.com; s=arc-20260327;
+        b=sundfzb27Q4W1Y+QdfGBElqOVZGcgFFi7POqA/E9kSW9E5MOQakzNMIkTf5R2SNQ+y
+         4knS/oVAgyXSJsQizUHDw5tuB9fQCKLWPzYyUlRfKiMEtiUJzoLb6WgwV2I3f1adVlA7
+         sW3FuDnZOoF0WsWSZ4sXFoLP7I8e2joYlbH1DIJH6e1nO1nAdnWQaBhKAphLK3LPlKGp
+         bBupSLIzrv1KPy9vL5BuuB9Iu+bRi36BMR8lc17zO3v4b1DvMdco1GXTw8T+nTbbmA5U
+         TaYh1Epgalm2C+XrB+C8yFU0UOqxuZIS5m7M68HfANj0A8aYaRfA0Rvd79gJZOCuP144
+         DocA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=rPKM73fBOFsSjy59aqqxc7UWTKxXfj0ZC9NrA+w1XGc=;
+        fh=MjmPCjkWarzj3nHROeE4rr9Wr/LQvUtVzeteFpNar+E=;
+        b=LTwEUSmrPJSHEAdNmV1n91XziCow6WXDtV+uYI4m1WfMmbFzdg3H0E5zK1QpU8JIcz
+         vpgKXjBLdsxlL33P8PH+eWjunN9caVaCAAYCzmIpAauEaB6lJgsFD4Ozz2VQOd8VUNac
+         olMNrFaviDLj6QF2HF2wM+032SAnwjYmOtQfRiKBcOWgbns/eYRUT05r5vOVvUn4GApK
+         EgJON0xHUi3JOtbTS90rqo5WmVR6eFMhYv1JvOoI87E0EeHlGxaVpABQe535klnR+EqS
+         IixnBWOfp1kCEagIFIizE+18K9PfzpMLnX4k2p7S+ORX/HgsqhUTUH0ZFLsvopEY2iVJ
+         HktA==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google; t=1789425496; x=1790030296; darn=vger.kernel.org;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=doHeCbdvroV7mGBSmqv1XRXXxfYTXe+sNzLZzLwqdyM=;
-        b=WNIzDr7dHVS605wIbL9JqvX6v6vvi6Uf1AEkziiBH2gHB2LMe50iQh0KgU9+sj7S4A
-         9//ygVb+brb98v+TUilmT4tacVl+fN0isMGxkyQESu+xtWKBkOA1W6rqQrnrOVgzdD7y
-         taGyHa/zECvj+9gdQ1mroq3FhgAaI2l632Vdc=
+        d=etsalapatis-com.20251104.gappssmtp.com; s=20251104; t=1789427839; x=1790032639; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=rPKM73fBOFsSjy59aqqxc7UWTKxXfj0ZC9NrA+w1XGc=;
+        b=TDdrvu7I6xP8ue4aZyYuDD3Vy7IabwSB+obL2XSnOOLrOTUypnXSd150I+gvIvYP3E
+         w4TaoWi+oRpM6yNgCHg6I9t8gJ+gxn6S8sVzfNsP+eeNOp0U9RhQAk/iVBGCWp+fSXjv
+         bNPF7H39nPGiQzvliPngqj/xyIZ1vYexLvrMre+4FEfg/2RsNZpxpI/WE8g5xQC5hGNR
+         kRWHnFqakCCJgIbw+VeA7AjjrVpNHgxM+K1nUYdM4pte+MySOOS9HJbn+8HvhyxQQGFr
+         VvwVCuQjiKWhx5WHGNENNjYZztKDWS7ScFTLWuWTaUc1KE/Ix7mcpo1oLVgviwiq4uUR
+         lG8g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789425496; x=1790030296;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=doHeCbdvroV7mGBSmqv1XRXXxfYTXe+sNzLZzLwqdyM=;
-        b=i2hRNh1mjO0zDyKeiK3M/AsUTB4AZMRnrG3VWgvyzqAm7cDsIFMYYcCynFVHzLSahH
-         EZoYENCjv5CMSaZK2K/ICcAISB2G/Nxv1Z4BxaczViO+YBBtEG+rrUWHwwWrvYHsUbLC
-         LwMJuGwdWVhhjrHtmlXMKlZCBZqrtiTZ/J8sh9miZc/hbUDyoLQ7WIbAtKleOFzEXoC1
-         DIcMjZW6u7aZH4HwxMnTzUciZBg0zNFdb4TJvFrtlfeDd3qb8wbBgUHM1Tfo1kXyde8I
-         ycHVF7Uq5wE6Wc/t6hveXzdN0Fda05AaiV9BbTKQgSa9cbjIi66i/Ffl2f6s6lL5jLBO
-         WIkw==
-X-Forwarded-Encrypted: i=1; AKwUvBwW69DHRdmux6HsTKvB52oTTgnir2UT8PBAiPBNJGsPe7GbdBYwbCqN6UHoIeaP+H7ismKTusXc1SZx@vger.kernel.org
-X-Gm-Message-State: AFuF++l084v9UHj/p5zMvP0vhTvP5HIMVMb2mNZleaVIBGzGNdLgmNvZ
-	8HqchT2tt2Efs1fnz0MfHtelTfj7iLSBR5GDUHDqAhoJLuDCl+oUhckbtSt3eTLalvMWaj1sOWo
-	nSuSOqaoZEg==
-X-Gm-Gg: AYBFou03+qg8L928UURqfgb8YkbqTXzjtEmdu/t/xfVV+M+MtIovHRczdi0/7RE8Bd3
-	6/NRWA/QNQ1dQzmUkmdmN2yXoYt63wx/WeOyfdlyi7FL3MPto3zv6lefbC97m5TNFrcjQtErziJ
-	JhQDoaH+pcogKlfgRlePoFpb6QRpMhE4TyCMc905bNL94oWP48J7AeqFgGrnrUlPbhq7WdRMrK5
-	niWgv6ovcdmsPHWYciCC9hioFlLIKnYZXH3eZTAFW+BtMHU9sl2RXpyA+w3OXN6W5MRwARAqKJZ
-	vyvJYAVC69yf4xwprA5aP/8Oybxn/BMS7CU679UfcO7a2xn2OD6Ya09KNFuTC2sH2/h0quOxGJp
-	/2XJ1Dupbf6aOjs0Gfqqsy/ydeYvffcC2LpjoypQKDPZooQAZl/rwZjZ9s1mjPPsXRGwVtvramM
-	ypN152jAeUZNFBWyq+smgknpqs67CDfWNVE9McwYy54jwNasEe3wLI25rf+QZeJljnqOwmFrk45
-	5J3Wevm5u3Z3yM+G3TGi/rK7JCcj29ggRj/hbZ5aKxXTBJJSQ==
-X-Received: by 2002:a17:907:3e8c:b0:c26:1648:a075 with SMTP id a640c23a62f3a-c29b87d8638mr297895566b.48.1789425496362;
-        Mon, 14 Sep 2026 15:38:16 -0700 (PDT)
-Received: from mail-ej2-f12.google.com (mail-ej2-f12.google.com. [74.125.228.140])
-        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-c2966066b6asm477805266b.34.2026.09.14.15.38.16
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 14 Sep 2026 15:38:16 -0700 (PDT)
-Received: by mail-ej2-f12.google.com with SMTP id a640c23a62f3a-c294496989aso460349966b.3
-        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 15:38:16 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AKwUvBw0bWOuydBqd43zwySBw+Uq323g9hIWkRkTNz7bAPms0f/npZ817pWYd2N2/KlHSEn3YFcwZYqFC9Pu@vger.kernel.org
-X-Received: by 2002:a17:907:97c9:b0:c29:4415:2ebb with SMTP id
- a640c23a62f3a-c29b860109bmr315536666b.8.1789425035842; Mon, 14 Sep 2026
- 15:30:35 -0700 (PDT)
+        d=1e100.net; s=20260707; t=1789427839; x=1790032639;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=rPKM73fBOFsSjy59aqqxc7UWTKxXfj0ZC9NrA+w1XGc=;
+        b=H7E0vSCKrU3FLaVIO0YJ1QT4HFyBSlpYlOqQblePpcUOhIKCqDT0B0pVI4L9QHNUDS
+         89LEOJSaNbZCopvfWdfoHCLyn2xD3aZACmEDA9wj24Crb0BCcWVal2EOqHZItmhov5HN
+         oKHEpfrqZdmqHkoEELO+m+qZR008Uy0/dLVakKWWUBU5/lN8O7uZxxuWrAlJnXrW3/U2
+         6sPYtjJRrKz6YLlpAZEO+u3tRMfjCnwIcMZ0n2gT4yyBjrDqPYZUmfqXJhBFCakyDsqt
+         nz9qvRVmB5VuLWFFTLsu6ecm6VFZme/hbxBrIfI8gUUkPKI0vkCdN99sFfUJq6xqDllf
+         44jQ==
+X-Forwarded-Encrypted: i=1; AKwUvBw1B9BPbXLfcmuXuL6I6MzDjppOW9pKknKg/3/sv7CabCsLcJkjPQNKw9X88Qjn17PN3Oo5Eh+Yj8hu@vger.kernel.org
+X-Gm-Message-State: AFuF++nXT18TVa1oziQH/OarEh4wqSPh9ltDfo7mRwOHjymfs8Ozcry6
+	y6mEHWglYQS01k6p571s63kgdOm/duauv4fOTC9P9GCbQJrN4cUKN8ylk4w6MPrWM/H3HVQ1Vp1
+	N57H2Ib6QxkHRN9uYN8Czpg4d++1BzZ7gT+/wkYWfNw==
+X-Gm-Gg: AYBFou3o+aVws+igLKS8+Ib4uMMnPW1CNajgXxgGZJf9cBX1qi3K2KcX1oq6vzfBfVT
+	WznIRhtLYzCef1pROQXxyqy6pPqz9qGS7l7co4DXFF2rQqF33v+i/aD9FOY2/no0q5zVZ9B6FuS
+	AhYGfdkTIsOJ/d3jDnJ9PuZca07orlw0Gc1BTiXHNOpktvauEQRspXMnyVfusoHsUEUaAx/NDsh
+	HFQGREMD3iOa9n2SScUGPh4jY1pmc9doU4f4utXzs5qgHCS5DhI3+BXWkwK2NcNOaF5S4+VmYzb
+	a95FdmuDIK//vDN9jmQ6MpQJTWBXtl8FXYxzsEpluo25ILkTn+dBfg4=
+X-Received: by 2002:a05:690e:d0a:b0:671:2382:d57b with SMTP id
+ 956f58d0204a3-6714e00a7efmr1347187d50.44.1789427834988; Mon, 14 Sep 2026
+ 16:17:14 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
- <20260914-build-speedup-v2-15-39817ec5db23@kernel.org> <aqhLhVMkNzf_4oJw@jpoimboe>
- <CAHk-=wiB9MX7vBDQ+WHTUVfSYubLhR-PbABewscqTsxRhg-LbQ@mail.gmail.com> <aqhmhmgrnN3Mw8yG@jpoimboe>
-In-Reply-To: <aqhmhmgrnN3Mw8yG@jpoimboe>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 14 Sep 2026 15:30:19 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wj3BKkCYtmfs5sORF_+Oumv2Gc8D+YxkMp9W2-mvLS=Ug@mail.gmail.com>
-X-Gm-Features: AcwNN1UnWAKTndckmaJ94decAtfrWRGA6P58dk0oXtHcS9ajgGc6O7ZKSXjYJOY
-Message-ID: <CAHk-=wj3BKkCYtmfs5sORF_+Oumv2Gc8D+YxkMp9W2-mvLS=Ug@mail.gmail.com>
-Subject: Re: [PATCH v2 15/21] objtool: cache relocations, do less work
-To: Josh Poimboeuf <jpoimboe@kernel.org>
-Cc: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>, Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
-	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
-	Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
-	"H. Peter Anvin" <hpa@zytor.com>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Peter Zijlstra <peterz@infradead.org>, 
-	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, Gary Guo <gary@garyguo.net>, 
-	=?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
-	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
-	Danilo Krummrich <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, 
-	Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, 
-	=?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
-	Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, Kees Cook <kees@kernel.org>, 
-	"Gustavo A. R. Silva" <gustavoars@kernel.org>, linux-kbuild@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, llvm@lists.linux.dev, 
-	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, 
-	rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org, 
-	Jens Axboe <axboe@kernel.dk>, linux-hardening@vger.kernel.org
+References: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-0-7d9781ed5361@kernel.org>
+ <20260914-b4-mmap-prepare-vma-flag-sanify-v2-14-7d9781ed5361@kernel.org>
+In-Reply-To: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-14-7d9781ed5361@kernel.org>
+From: Emil Tsalapatis <linux-lists@etsalapatis.com>
+Date: Mon, 14 Sep 2026 23:17:04 +0000
+X-Gm-Features: AcwNN1UnQs5y9ap_T4Dsaa6llmYZN4_govFYy7UyV78s5E1rt3VhMagl8qfkC_o
+Message-ID: <CABFh=a7Sa0zMKssts1TVZ+u_x3roWcYVSmJF34K-W++oHEsbEA@mail.gmail.com>
+Subject: Re: [PATCH v2 14/40] bpf: arena: mark arena_map_mmap() mappings VM_MIXEDMAP
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Liam R. Howlett" <liam@infradead.org>, 
+	Vlastimil Babka <vbabka@kernel.org>, Jann Horn <jannh@google.com>, 
+	David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jason Gunthorpe <jgg@ziepe.ca>, 
+	Paul Moore <paul@paul-moore.com>, Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, 
+	Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
+	Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
+	Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
+	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
+	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
+	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
+	Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
+	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Peter Xu <peterx@redhat.com>, 
+	Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Thomas Gleixner <tglx@kernel.org>, 
+	Ingo Molnar <mingo@redhat.com>, Dave Hansen <dave.hansen@linux.intel.com>, 
+	Arnaldo Carvalho de Melo <acme@kernel.org>, Namhyung Kim <namhyung@kernel.org>, 
+	Mark Rutland <mark.rutland@arm.com>, Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
+	Vincent Guittot <vincent.guittot@linaro.org>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Marc Zyngier <maz@kernel.org>, 
+	Oliver Upton <oupton@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, 
+	Madhavan Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, 
+	Paul Walmsley <pjw@kernel.org>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Christian Borntraeger <borntraeger@linux.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, 
+	Claudio Imbrenda <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, Joshua Hahn <joshua.hahnjy@gmail.com>, 
+	Byungchul Park <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, 
+	Ying Huang <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>, 
+	Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
+	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
+	Baoquan He <baoquan.he@linux.dev>, Youngjun Park <youngjun.park@lge.com>, 
+	Johannes Weiner <hannes@cmpxchg.org>, Qi Zheng <qi.zheng@linux.dev>, 
+	Shakeel Butt <shakeel.butt@linux.dev>, Axel Rasmussen <axelrasmussen@google.com>, 
+	Yuanchu Xie <yuanchu@google.com>, Michal Hocko <mhocko@kernel.org>, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, bpf@vger.kernel.org, linux-arch@vger.kernel.org, 
+	kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Mon, 14 Sept 2026 at 15:23, Josh Poimboeuf <jpoimboe@kernel.org> wrote:
+On Mon, Sep 14, 2026 at 3:21=E2=80=AFPM Lorenzo Stoakes (ARM) <ljs@kernel.o=
+rg> wrote:
 >
-> There might be more efficient ways to structure the considerable amount
-> of data, like replacing "struct instruction" with "struct basic_block"
-> or so, but it's hard to know whether that would be a net positive.
+> The bpf_map->ops->map_mmap callback invoked by bpf_map_mmap() can be set =
+to
+> one of ringbuf_map_mmap_kern(), ringbuf_map_mmap_user(), array_map_mmap()
+> or arena_map_mmap().
+>
+> It is convention in mm to mark mappings whose pages the kernel manages
+> itself with VM_MIXEDMAP, so the core mm knows not to treat them as ordina=
+ry
+> page cache or anonymous memory.
+>
+> The map_mmap callbacks ringbuf_map_mmap_kern() and ringbuf_map_mmap_user(=
+)
+> use remap_vmalloc_range(), which ultimately invokes vm_insert_page() and =
+so
+> marks the ranges VM_MIXEDMAP, and array_map_mmap() sets VM_MIXEDMAP
+> explicitly.
+>
+> However, the exception to this is arena_map_mmap(), which doesn't set the
+> flag.
+>
+> This patch corrects this and updates the comment to reflect it.
+>
+> The pages are refcounted and vm_normal_page() finds them regardless of th=
+e
+> flag, and VM_DONTEXPAND remains set (marking the memory as VM_SPECIAL and
+> thus unmergeable). The one effect is that NUMA balancing now skips these
+> VMAs, as it already does for the other bpf map mappings, which is the
+> reason array_map_mmap() gives for setting the flag.
+>
+> The intent of this patch is to be able to establish the invariant that on=
+ly
+> PFN-mapped or mixed map ranges may clear the VM_MAYWRITE flag, as is done
+> in bpf_map_mmap().
+>
+> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> ---
 
-Yeah, I was thinking that you'd only hash instructions as you find
-them if they are obvious "I need this instruction", and then try to
-hash them *again* if they are branch targets (and just have a "already
-hashed" flag).
+Reviewed-by: Emil Tsalapatis <emil@etsalapatis.com>
 
-That way random number instructions would not be on the hash - unless
-they become branch targets.
+Dropped some CC's as Gmail is refusing to retain them in the response.
 
-And you wouldn't ever really have to track any complicated decisions
-(like that whole "basic block" thing - I agree that it's painful,
-because the shape of a basic block will change over time as you find
-branch targets).
-
-But not a big deal. More an idle thought brought on by that other
-patch that changed the hash table size, and this discussion that was
-talking about the hashing - or not hashing - of sections.
-
-So more of a "if it is easy and straightforward" kind of thing.
-
-             Linus
+>  kernel/bpf/arena.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
+>
+> diff --git a/kernel/bpf/arena.c b/kernel/bpf/arena.c
+> index 7b6847200b43..b69fe5e34339 100644
+> --- a/kernel/bpf/arena.c
+> +++ b/kernel/bpf/arena.c
+> @@ -620,8 +620,9 @@ static int arena_map_mmap(struct bpf_map *map, struct=
+ vm_area_struct *vma)
+>          * clears VM_MAYEXEC. Set VM_DONTEXPAND to avoid potential change
+>          * of user_vm_start. Set VM_DONTCOPY to prevent arena VMA from
+>          * being copied into the child process on fork.
+> +        * This is a kernel page so set VM_MIXEDMAP.
+>          */
+> -       vm_flags_set(vma, VM_DONTEXPAND | VM_DONTCOPY);
+> +       vm_flags_set(vma, VM_MIXEDMAP | VM_DONTEXPAND | VM_DONTCOPY);
+>         vma->vm_ops =3D &arena_vm_ops;
+>         return 0;
+>  }
+>
+> --
+> 2.55.0
+>
+>
