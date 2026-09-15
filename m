@@ -1,212 +1,159 @@
-Received: from mail-pj2-f13.google.com (mail-pj2-f13.google.com [74.125.227.141])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from flow-a6-smtp.messagingengine.com (flow-a6-smtp.messagingengine.com [103.168.172.141])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8475E39A7F4
-	for <linux-arch@vger.kernel.org>; Tue, 15 Sep 2026 08:34:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.141
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 352003DAAD0;
+	Tue, 15 Sep 2026 08:54:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789461245; cv=none; b=uYJn5dBc8lmYcMPaE5IM6suEI+pSm6dZNUj2uA9KpxRId8Y++xzsUOmSjOL4FYmb7ngIgqc6SiPTS0hO2Bf7d5ARTZE45ndd5I2hp28+ZowfWtckkSNgkdDtKuI4J0yo4LmElvd9IlsdlC2SoCZXjv3bjQBUsrmA9ZmPA0K7RLc=
+	t=1789462482; cv=none; b=gSgCI4rHVlYLvzPdGp9TlhB2Iql1KlMASpv/fEDF7wFcyakvDZLSqH/vAt0hvt73CJfvj6xwVZr87UWdX5Ir1tzwgdlSkKfXAqy+eHXNGHDGwFb1xj9n+Za9LmGDXjHPadP5SNisjgwAme7y94+LON2MNZms6wyK6jKM/csp0pU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789461245; c=relaxed/simple;
-	bh=6oazE5lyXKugirOnKSHAnIRQytAaJZ5lnjV8psy6s3o=;
-	h=Message-ID:Date:MIME-Version:From:Subject:To:Cc:References:
-	 In-Reply-To:Content-Type; b=E3UTZusMuFZAHhUn/QePXWLWbxU5FzuZ+aEZ+heYwXEzy13xD4GgpuXUhg5Lib15qQ0kJVD0nOC2dHkEt5PyQtVfvLyEyOuc4uY7yLOh7PPG0cyNE6PEjvlYTO9zZ5irs6X4+IPC/KA6+RUrI6OsSaRI8RXTfnotQ7LkSsvP7nc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Lv9HSILP; arc=none smtp.client-ip=74.125.227.141
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1789462482; c=relaxed/simple;
+	bh=TrFy84WFLihamQ2UtPEIp9cWrnbixhLsx/cx/JOsURw=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=Gwt4J9BJ21kueYZ6sw8cWxnQruGt+nMmD0NCOT9JiWGooP9zDApwclP9IhjwmMEwiL0geGEbIr2MUOYCwgsgPOItY2qj0on2lHENyGJ++QchgU/uUtSaMOgdRsGdp4ZdVnq4UR4jZtKfa819jIQQqCt7PlXVRnjP/T6JeVLkSkI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=Xody1oJN; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=Fr6fJyQZ; arc=none smtp.client-ip=103.168.172.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Lv9HSILP"
-Received: by mail-pj2-f13.google.com with SMTP id 98e67ed59e1d1-396ccd5cf02so14324a91.3
-        for <linux-arch@vger.kernel.org>; Tue, 15 Sep 2026 01:34:03 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1789461243; x=1790066043; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:in-reply-to:content-language
-         :references:cc:to:subject:from:user-agent:mime-version:date
-         :message-id:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=hpbLL6EWSOuJK30L0ZNRx6vvSYbzSqSPnWalwqYVt2E=;
-        b=Lv9HSILPLnHuKbxt6mga2pl32QOF55q2Kqi4InTfgt5dc2LKcxHM2kMp6pD/bufxGR
-         IYNErJ6dWYlED2qwNRyK2xzX6jcdK0cFXoDCHeMXqR6WNUQWFc+0A3QRp/mdmDjzqPip
-         etwN04Z4Vu7EGQzWZswRS1GXXixhQme3U/an0cpeEzBPAl0xolIlH0d4IiRlwDzJMP34
-         EmmTX+5VAZCeRMe7hPRcET+WbjYqbZdhxJJcHnyz28h/ZlkA4b4ca/qS2v9QmDgZbbnf
-         oPsWUTwbjJqnzMu03wFKec+PhZ2nJOsoRiWTFS7tWrKAyIXe4YzMNFxEBfjH4NIZziX0
-         evPA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789461243; x=1790066043;
-        h=content-transfer-encoding:content-type:in-reply-to:content-language
-         :references:cc:to:subject:from:user-agent:mime-version:date
-         :message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=hpbLL6EWSOuJK30L0ZNRx6vvSYbzSqSPnWalwqYVt2E=;
-        b=P1okH4yDaq/j+Auchzp4Z3+THwZipQmQxyx6i5V/dHAX03RdzsxwIcmY8CaEsY4fv7
-         gKz1Er20eP53cj8bwClsL4K0U3lVPor8Xvn1xpgNj7gt9qjChuM+rU41M7DxaEK40nEo
-         5ci5zqUGJHDiCo6mugwJLmBhpeEO8tSbltqCbGV+SnEXPjjBkv26Jn6KSmUJOjbsvNSG
-         0XUUzUqxvea3H+vnPbbDoURhzYCXdUOmyf2jacRPrRkjikuhTrWwhFzHXZJMby60ki0u
-         eT+cfHh+ihnZfSyGwsEnEnuSN6zXCmqLyLmzPxslyhI02VrF7dLvCRASvzKkWOhVzHiC
-         iymQ==
-X-Forwarded-Encrypted: i=1; AKwUvBzabUPV6w+yYqSvLvomPb7aKBTQlQnCL4sE0+QUzZtZ1FiJOixy7K4Q8swC7dWgUlAGq4MnetQigNHK@vger.kernel.org
-X-Gm-Message-State: AFuF++nMS8w7HioK4Rxt/suSl5QwEE6+nhTnyD/1NBEG0CrK7pQj4EVQ
-	nv5PLRW+INvYUyky9kPQ3vXW8zB0I8PO67RInD3fJbLUkBmveomT7zNf
-X-Gm-Gg: AYBFou075rceD1gvK/5mM+KQmbfey/zKAi336E5t48liPVv/PBCQefTWNoIeUZOdRQT
-	hzAI20RSghF3iz03HxVVgvo5pvIdzYcNJv+DVj7OtcpG1iwvUZMq4oxfLiFVXKVFXRb6l0C4zz+
-	avpf91WjtOCcBHBMH3l+kFfPFTm9fdGhpED+WKwevUCWf9r72X9Ul4Buo/Gv25jZ+IpRn5uZhXT
-	a/tSgUQ47xb3+VjDwLH51fItTMNf0BbD5d+5GEgJPcL/fcFTOq5yq+XQFpWn/VELR83FOc9HSYO
-	q39zJQkNxIPMu15qUnUesI+2vl2JqSI82+2XcaVyNv8ASl+V03wIGQbivhJ8lmvWvcUBhI1b2ZU
-	Wak9mOQsnGu9xCFBNy3OlZnbq2m0dBJIIuwbukrvzAkw7n44oRyMcmpaRUOc4Uj5iVQIvwq9bKG
-	TXRmbaw7zXAb6vEby13VAuYh90Or7WD9aeL0hc1ueyfG1LLW96C+BfFnYZTmnxiuJBkTd3ZtDFA
-	BlnU73KsC3O2hGaFxDqiFscn6uy3Ig4Ji5GBwL7BpLQIg==
-X-Received: by 2002:a17:903:b88:b0:2da:e967:7953 with SMTP id d9443c01a7336-2dd8384d004mr1520765ad.12.1789461242775;
-        Tue, 15 Sep 2026 01:34:02 -0700 (PDT)
-Received: from [10.0.2.15] (KD106167137155.ppp-bb.dion.ne.jp. [106.167.137.155])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-33ba4fa50e3sm34165946eec.29.2026.09.15.01.33.59
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 15 Sep 2026 01:34:02 -0700 (PDT)
-Message-ID: <9106d07e-a8e5-4379-bec6-eb4ee9f0df5c@gmail.com>
-Date: Tue, 15 Sep 2026 17:33:59 +0900
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="Xody1oJN";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="Fr6fJyQZ"
+Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
+	by mailflow.phl.internal (Postfix) with ESMTP id 0CFA21380347;
+	Tue, 15 Sep 2026 04:54:35 -0400 (EDT)
+Received: from ams-imap-03 ([10.64.2.23])
+  by ams-compute-02.internal (MEProxy); Tue, 15 Sep 2026 04:54:40 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1789462475;
+	 x=1789469675; bh=l+Dca6AU7f0s7A11m75QKiePhth6dKEUN646ZUyOcxw=; b=
+	Xody1oJNWEMViAMOHPbGMbFFJWDXAlekhcwJV2SoNNjV3Itz044FXU72K/NOTqui
+	dGNVaAbLlZulA5UBbJ7XisJ4/Tvb8vxRSHZgr1rg86rZaW2N6A20pRXX6CjuJFzZ
+	qN4XhD+zqJj7G6GzdewHzc9Ub5bvOnhXRm5+AIgWAw6aKT926nad1Knuxbpc675A
+	AzTOl0hJn/NZF15+dJYlH0kXOE9oaDD1dkmsAcj8fBTRb96rHKlGhQLyQSuMNDH/
+	4VAddWv+NRh+YnPkx2GOowIODOGAueKi2AxYNKtoPrv0OBaFTazekFo9yS6tBLOp
+	1Q82whhHv8fjGkGI4JpxpA==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1789462475; x=
+	1789469675; bh=l+Dca6AU7f0s7A11m75QKiePhth6dKEUN646ZUyOcxw=; b=F
+	r6fJyQZ3B1K5YtWjMoTp/fRKQnkOGDNwUteDe4nSuymkyvq2WsfTel5mLEsiIniB
+	Q8Mg3SaUa+hsdJwDYad3RVOHqY6wVuGBbRMXj+q0YdMMGPUOsGRVwT87zBxsoxES
+	RO9e/Kk1iPvbMNYiJPlnyVnmhvk9iZJMC0Hl8RMrWAZ2w+CFpRVPeszShBh7jyY4
+	8pafu94pmoPvJ37O6z8ACe0BUJ66rCCYt+VIRpYGoi+zNkUwBU0gu7mu7AArH7H1
+	kfhRzCurvSNdhnOouyFcmOZ/aEYZowpWKOguKfCcIqTeATR2Y52GrsDRnY4YlRT8
+	4mvRCMtRoq3C+WpdMDmrA==
+X-ME-Sender: <xms:vgepagxIogvlk792euZsMnA2AD-07upm7o1gQScllFz15_5556isuA>
+    <xme:vgepavFIcm_1MvsAOmz2-JbwyBuNZNrMJpYsNzJOlp3FsY8ocFhn_i6RRbVtbI_xh
+    1ZW5w582V70b24GHPa0lC4s3Vi_hKlkZoAkL5CnvbECiIVQRZ2bC7IS>
+X-ME-Proxy-Cause: dmFkZTFl07Cd2pNoRIcz+Y9DRXa9I+CAUbyY73IeYUKFyinqRYJWqvWva9WPMlSrUtrXXQ
+    4Ce7uDNbLSoFWkhxcsl23fov82rHUN8DJQrUSxcE/UGH5WEDUUFVVGsxSlX9y1C16y1ikq
+    1Hzd/K8lu3qfyVrj+2Esn9a+9urCLgaUn1/Hd12DOGJvXPGzYSt8nJENaQptMkY/jEyE+u
+    S9faTEM6ZNXS1Rhf+11JTufpU/muQclYTOYI+iNfCTdQIpuxlsrqU2hRdRCR3my42gTIci
+    foRjjuFQi3I4plLW/2yjK9qsVn6rhO1nfI17QxL4uXxeeZVrN1VwQjZE4ge9q8fo1rM0X9
+    rhiOoth3vgfsKc6+FhKiMgmD69qMeWJU5dx0D71/c9CvyFGUfnl5G7No2fZi2vJmcmsWv/
+    +UST0qDeQsCHTDbJGGyedoSdHZ7/3mF5Q1wzNjHqpNnUUAF7MF/RhXwaQA8Qj3bpXpRWZk
+    WM2pUx2qPAmh1y6xmTh8nd0xCpzZHILt4JYJprl0AWZ62t80PI4UgOxCQLgGPoRTb8KlzB
+    7SSwnrEvKdcy0NSaAHG069l+OP4bVIt5jLLqs+Vt+azYtoLHe7W+0DYJTzaj831I7mO2gR
+    af3uM0A9HNtxo2qLYSmTeYYtjD/xXjNAVQ8rRDyPxRvaGwqUBq2NMVTlab5g
+X-ME-Proxy: <xmx:xAepagJ83hBWhUGi-qVtm002tZ6nTUV_OQ9QV71wb8cZ5sDkjqBMPA>
+    <xmx:xAeparBNN9LUMZgDPwhes7U75oqanecICHjUTVaE1k1UIFiw3-JoVg>
+    <xmx:xAepajlQfJFGq9Ujz61CsXpfe6X8ZyU-XYpSbmHIXAFjLrnSj5AGjA>
+    <xmx:xAepanETL89xwgdJrVvqYbWpq6B3LGj8dODqxwt8wrzrZnsIIpowVw>
+    <xmx:ywepaiFG3kexiM5eVna2DP0CZbgBhmkObpO3qC-5-C8A-WnmgHPjeTq->
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.ams.internal (Postfix, from userid 501)
+	id 268F432A0081; Tue, 15 Sep 2026 04:54:22 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-From: Akira Yokosawa <akiyks@gmail.com>
-Subject: Re: [PATCH v3 1/2] Documentation/litmus-tests: Add SRCU fastpath
- anchor-before-scan test
-To: Kunwu Chan <kunwu.chan@gmail.com>
-Cc: linux-doc@vger.kernel.org, lkmm@lists.linux.dev,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- rdunlap@infradead.org, skhan@linuxfoundation.org, paulmck@kernel.org,
- dlustig@nvidia.com, joelagnelf@nvidia.com, corbet@lwn.net,
- luc.maranget@inria.fr, j.alglave@ucl.ac.uk, dhowells@redhat.com,
- npiggin@gmail.com, boqun@kernel.org, peterz@infradead.org, will@kernel.org,
- parri.andrea@gmail.com, stern@rowland.harvard.edu
-References: <20260914143943.1503066-1-kunwu.chan@gmail.com>
- <20260914143943.1503066-2-kunwu.chan@gmail.com>
-Content-Language: en-US
-In-Reply-To: <20260914143943.1503066-2-kunwu.chan@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+X-ThreadId: AGrkui6Nx9zw
+Date: Tue, 15 Sep 2026 10:53:51 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Linus Torvalds" <torvalds@linux-foundation.org>,
+ "Kees Cook" <kees@kernel.org>
+Cc: "Lorenzo Stoakes" <ljs@kernel.org>,
+ "Nathan Chancellor" <nathan@kernel.org>,
+ "Nicolas Schier" <nsc@kernel.org>,
+ "Nick Desaulniers" <ndesaulniers@google.com>,
+ "Bill Wendling" <morbo@google.com>,
+ "Justin Stitt" <justinstitt@google.com>,
+ "Masahiro Yamada" <masahiroy@kernel.org>,
+ "Alexey Gladkov" <legion@kernel.org>,
+ "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
+ "Borislav Petkov" <bp@alien8.de>,
+ "Dave Hansen" <dave.hansen@linux.intel.com>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, "Paul Walmsley" <pjw@kernel.org>,
+ "Palmer Dabbelt" <palmer@dabbelt.com>,
+ "Albert Ou" <aou@eecs.berkeley.edu>, "Alexandre Ghiti" <alex@ghiti.fr>,
+ "Catalin Marinas" <catalin.marinas@arm.com>,
+ "Will Deacon" <will@kernel.org>, "Mark Rutland" <mark.rutland@arm.com>,
+ "Ard Biesheuvel" <ardb@kernel.org>,
+ "Ilias Apalodimas" <ilias.apalodimas@linaro.org>,
+ "Josh Poimboeuf" <jpoimboe@kernel.org>,
+ "Peter Zijlstra" <peterz@infradead.org>,
+ "Miguel Ojeda" <ojeda@kernel.org>, "Boqun Feng" <boqun@kernel.org>,
+ "Gary Guo" <gary@garyguo.net>,
+ =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>,
+ "Benno Lossin" <lossin@kernel.org>,
+ "Andreas Hindborg" <a.hindborg@kernel.org>,
+ "Alice Ryhl" <aliceryhl@google.com>, "Trevor Gross" <tmgross@umich.edu>,
+ "Danilo Krummrich" <dakr@kernel.org>,
+ "Daniel Almeida" <daniel.almeida@collabora.com>,
+ "Tamir Duberstein" <tamird@kernel.org>,
+ "Alexandre Courbot" <acourbot@nvidia.com>,
+ =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
+ "Jonathan Corbet" <corbet@lwn.net>,
+ "Randy Dunlap" <rdunlap@infradead.org>,
+ "Gustavo A. R. Silva" <gustavoars@kernel.org>,
+ linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+ llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
+ Linux-Arch <linux-arch@vger.kernel.org>,
+ linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org,
+ rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org,
+ "Jens Axboe" <axboe@kernel.dk>, linux-hardening@vger.kernel.org
+Message-Id: <7646eb0c-7c4a-4ec2-9562-66a74c4d9858@app.fastmail.com>
+In-Reply-To: 
+ <CAHk-=whB0X28MNAg71it=1SfFyV7rB+PK3qajpRyWoxXHW81fw@mail.gmail.com>
+References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
+ <202609140833.88C0E16E50@keescook>
+ <CAHk-=whB0X28MNAg71it=1SfFyV7rB+PK3qajpRyWoxXHW81fw@mail.gmail.com>
+Subject: Re: [PATCH v2 00/21] kbuild: significantly speed up kernel builds
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 
-Hi,
+On Mon, Sep 14, 2026, at 17:53, Linus Torvalds wrote:
+> On Mon, 14 Sept 2026 at 08:41, Kees Cook <kees@kernel.org> wrote:
+>>
+>> One area I think might solved via an LLM is the 3-pass kallsyms stuff.
+>> If we could get a deterministic kallsyms build in 1 pass, that would be
+>> very nice. A lot of people have tried, but it has eluded upstreaming.
+>
+> Even the three-pass one hasn't apparently always been entirely
+> deterministic. We've had random reports over the years of it failing
+> in some circumstances.
 
-On 9/14/26 23:39, Kunwu Chan wrote:
-> synchronize_srcu_atomic() may end its grace period immediately when
-> its scan of the per-CPU lock counters finds no readers.  Correctness
-> requires the grace-period anchor written by srcu_gp_start() to precede
-> the smp_mb() ordering the lock scan.  This ordering ensures that any
-> reader whose lock increment is missed by the scan cannot have
-> incremented its lock counter before the grace-period anchor, and
-> therefore cannot be a pre-existing reader of this grace period.
-> 
-> This litmus test models the key ordering between the grace-period
-> anchor and the lock counter scan, where "seq" models the
-> grace-period anchor in ->srcu_gp_seq and "ctr" models the per-CPU
-> ->srcu_ctrs[].srcu_locks counter.  P0 writes the anchor before the
-> smp_mb() and the lock scan.  P1 models the reader-side counter
-> increment and its smp_mb() from __srcu_read_lock(), which orders
-> the increment against subsequent critical-section access.  P2 models
-> an observer that sees the reader's increment before seeing the
-> anchor.
-> 
-> The outcome is forbidden by LKMM, and herd7 reports "Never".  See
-> SRCU-fastpath-scan-before-anchor.litmus for the reversed ordering,
-> which permits this outcome.
-> 
-> Tested with herd7 7.58 using linux-kernel.cfg.
-> 
-> Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
-> ---
->  .../SRCU-fastpath-anchor-before-scan.litmus   | 58 +++++++++++++++++++
->  1 file changed, 58 insertions(+)
->  create mode 100644 Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
-> 
-> diff --git a/Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus b/Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
-> new file mode 100644
-> index 000000000000..e0492a4d8e07
-> --- /dev/null
-> +++ b/Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
-> @@ -0,0 +1,58 @@
-> +C SRCU-fastpath-anchor-before-scan
-> +
-> +(*
-> + * Result: Never
-> + *
-> + * The synchronize_srcu_atomic() fastpath may end its grace period
-> + * immediately when its scan of the per-CPU lock counters finds no
-> + * readers.  Correctness requires the grace-period anchor written by
-> + * srcu_gp_start() to precede the smp_mb() ordering the lock scan.
-> + * This ordering ensures that any reader whose lock increment is missed
-> + * by the scan cannot have incremented its lock counter before the
-> + * grace-period anchor, and therefore cannot be a pre-existing reader
-> + * of this grace period.
-> + *
-> + * This litmus test models the key ordering between the grace-period
-> + * anchor and the lock counter scan, where "seq" models the
-> + * grace-period anchor in ->srcu_gp_seq and "ctr" models the per-CPU
-> + * ->srcu_ctrs[].srcu_locks counter.  P0 writes the anchor before the
-> + * smp_mb() and the lock scan.  P1 models the reader-side counter
-> + * increment and its smp_mb() from __srcu_read_lock(), which orders the
-> + * increment against subsequent critical-section access.  P2 models an
-> + * observer that sees the reader's increment before seeing the anchor.
-> + *
-> + * The outcome is forbidden by LKMM, and herd7 reports "Never".  See
-> + * SRCU-fastpath-scan-before-anchor.litmus for the reversed ordering,
-> + * which permits this outcome.
-> + *)
-> +
-> +{}
-> +
-> +P0(int *seq, int *ctr)
-> +{
-> +	int r2;
-> +
-> +	WRITE_ONCE(*seq, 1);
-> +	smp_mb();
-> +	r2 = READ_ONCE(*ctr);
-> +}
-> +
-> +P1(int *ctr, int *x)
-> +{
-> +	WRITE_ONCE(*ctr, 1);
-> +	smp_mb();
-> +	WRITE_ONCE(*x, 1);
-> +}
-> +
-> +P2(int *seq, int *ctr)
-> +{
-> +	int r3;
-> +	int r4;
-> +
-> +	r3 = READ_ONCE(*ctr);
-> +	smp_mb();
-> +	r4 = READ_ONCE(*seq);
-> +}
-> +
-> +filter (0:r2 = 0)
-> +exists (2:r3 = 1 /\ 2:r4 = 0)
+This tends to break whenever a linker (rather than the compiler) starts
+creating a new type of symbols that show up in pass 2.
 
-Another knee-jerk reaction with exaggeration  :-)
+> Maybe we've fixed it all, or maybe the failures just go imperceptibly
+> rare. Regardless, it has definitely been fragile.
 
-Why does P1() have an access to an un-shared variable x ?
-smp_mb() in P1() can't pair with any of other thread's smp_mb().
-This doesn't make sense!
+The rate seems to be once every few years, looking at the list
+of exceptions added to scripts/kallsyms.c (now scripts/mksysmap):
 
-Let me rephrase.
+efe6e3068067 ("kallsyms: fix nonconverging kallsyms table with lld")
+516d980f8541 ("scripts/kallsyms: skip ppc compiler stub *.long_branch.* / *.plt_branch.*")
+b9b74be163a2 ("ARM: 8555/1: kallsyms: ignore ARM mode switching veneers")
 
-Litmus tests is supposed to be minimal.
-Every memory access and memory barrier is expected to
-have some effect in the outcome of the test. 
+I'm sure there are other instances on architectures that get less
+build coverage.
 
-In this case,
-
-P1(int *ctr)
-{
-	WRITE_ONCE(*ctr, 1);
-}
-
-should be good enough, I guess.
-
-(That is, IF I understand what you are testing here...)
-
-Regards, Akira
-
+     Arnd
