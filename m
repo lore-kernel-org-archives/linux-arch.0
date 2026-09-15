@@ -1,41 +1,67 @@
-Received: from mout.web.de (mout.web.de [212.227.15.4])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj2-f13.google.com (mail-pj2-f13.google.com [74.125.227.141])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C61B13DA7D9;
-	Tue, 15 Sep 2026 07:11:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.227.15.4
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8475E39A7F4
+	for <linux-arch@vger.kernel.org>; Tue, 15 Sep 2026 08:34:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789456274; cv=none; b=UamB+Zh7Z1QF99IaEIg9Xbrw2Uj9syzy/yI0XR94vG0eHi6aMNjGov+topOKVFYSxNKNk+G/p5qMVBcMfOlA6CkLR+HR2h/Jy0k0VaIiDLXnOtpMmeiNJlbR323GLzNq9QqfK1Sw7mOFYOEzR41LfXSNVf5fP6Vv8csVK4AxexY=
+	t=1789461245; cv=none; b=uYJn5dBc8lmYcMPaE5IM6suEI+pSm6dZNUj2uA9KpxRId8Y++xzsUOmSjOL4FYmb7ngIgqc6SiPTS0hO2Bf7d5ARTZE45ndd5I2hp28+ZowfWtckkSNgkdDtKuI4J0yo4LmElvd9IlsdlC2SoCZXjv3bjQBUsrmA9ZmPA0K7RLc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789456274; c=relaxed/simple;
-	bh=6i4/RL05AsH0u8lSSfOYmVcdaEig/sADLhJUw3fG/kQ=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=UCrRTci0jFRpY6kZ1qUgZEFVzCGwJTCEiB89sc6n3kyQmyOls9RAC6QXXOXEENnhxUXvJYjIFXAjfouMdxasgfHY0HlX2+gxS/KDzDwSu0SQEQrBTb26RNC8foV/0zaOciGozkieODrX329iF6pgk9RdNtQONRa1u4WOQ8Qhru0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de; spf=pass smtp.mailfrom=web.de; dkim=pass (2048-bit key) header.d=web.de header.i=markus.elfring@web.de header.b=JuuGrPJz; arc=none smtp.client-ip=212.227.15.4
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=web.de
+	s=arc-20240116; t=1789461245; c=relaxed/simple;
+	bh=6oazE5lyXKugirOnKSHAnIRQytAaJZ5lnjV8psy6s3o=;
+	h=Message-ID:Date:MIME-Version:From:Subject:To:Cc:References:
+	 In-Reply-To:Content-Type; b=E3UTZusMuFZAHhUn/QePXWLWbxU5FzuZ+aEZ+heYwXEzy13xD4GgpuXUhg5Lib15qQ0kJVD0nOC2dHkEt5PyQtVfvLyEyOuc4uY7yLOh7PPG0cyNE6PEjvlYTO9zZ5irs6X4+IPC/KA6+RUrI6OsSaRI8RXTfnotQ7LkSsvP7nc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Lv9HSILP; arc=none smtp.client-ip=74.125.227.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=web.de header.i=markus.elfring@web.de header.b="JuuGrPJz"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=web.de;
-	s=s29768273; t=1789456226; x=1790061026; i=markus.elfring@web.de;
-	bh=6i4/RL05AsH0u8lSSfOYmVcdaEig/sADLhJUw3fG/kQ=;
-	h=X-UI-Sender-Class:Message-ID:Date:MIME-Version:Subject:To:Cc:
-	 References:From:In-Reply-To:Content-Type:
-	 Content-Transfer-Encoding:cc:content-transfer-encoding:
-	 content-type:date:from:message-id:mime-version:reply-to:subject:
-	 to;
-	b=JuuGrPJzd97qqbQdO2Ezk7sxB+6OXf4M07QJfz4umUXP/7o97LrF7WsXYv/P0Ftd
-	 wbKiS4yj2B2z4dxjLIh6mHks5oHjaOgiuu/kynTRXO+gDjuGvcqQMSWChvm3Xx8Pm
-	 iWPXcx35/NkDbh91BODPQn8yz6FknQ38pYeNtIMUcCfvbyJ9o9k05mahHoqauwhxb
-	 8u3k5zucMkcJ4R07U/8Oygh0EOziZOLUyd/Fpc5fhh6uXJWlaPdsQIiMriCD1q+7w
-	 oKFilLlH1FtDU9jyx70nnnuLamn4/70JtQUA7/aiGC7/TVUG0VKURufOUe279XvrO
-	 Ck4OiHlZnZibXPn3Bw==
-X-UI-Sender-Class: 814a7b36-bfc1-4dae-8640-3722d8ec6cd6
-Received: from client.hidden.invalid by smtp.web.de (mrweb006
- [213.165.67.108]) with ESMTPSA (Nemesis) id 1MsrhU-1wmMUE0WU4-011EVF; Tue, 15
- Sep 2026 09:10:26 +0200
-Message-ID: <381ad17b-72e6-4368-8876-29495f4b423e@web.de>
-Date: Tue, 15 Sep 2026 09:10:06 +0200
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Lv9HSILP"
+Received: by mail-pj2-f13.google.com with SMTP id 98e67ed59e1d1-396ccd5cf02so14324a91.3
+        for <linux-arch@vger.kernel.org>; Tue, 15 Sep 2026 01:34:03 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1789461243; x=1790066043; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:content-language
+         :references:cc:to:subject:from:user-agent:mime-version:date
+         :message-id:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=hpbLL6EWSOuJK30L0ZNRx6vvSYbzSqSPnWalwqYVt2E=;
+        b=Lv9HSILPLnHuKbxt6mga2pl32QOF55q2Kqi4InTfgt5dc2LKcxHM2kMp6pD/bufxGR
+         IYNErJ6dWYlED2qwNRyK2xzX6jcdK0cFXoDCHeMXqR6WNUQWFc+0A3QRp/mdmDjzqPip
+         etwN04Z4Vu7EGQzWZswRS1GXXixhQme3U/an0cpeEzBPAl0xolIlH0d4IiRlwDzJMP34
+         EmmTX+5VAZCeRMe7hPRcET+WbjYqbZdhxJJcHnyz28h/ZlkA4b4ca/qS2v9QmDgZbbnf
+         oPsWUTwbjJqnzMu03wFKec+PhZ2nJOsoRiWTFS7tWrKAyIXe4YzMNFxEBfjH4NIZziX0
+         evPA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1789461243; x=1790066043;
+        h=content-transfer-encoding:content-type:in-reply-to:content-language
+         :references:cc:to:subject:from:user-agent:mime-version:date
+         :message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=hpbLL6EWSOuJK30L0ZNRx6vvSYbzSqSPnWalwqYVt2E=;
+        b=P1okH4yDaq/j+Auchzp4Z3+THwZipQmQxyx6i5V/dHAX03RdzsxwIcmY8CaEsY4fv7
+         gKz1Er20eP53cj8bwClsL4K0U3lVPor8Xvn1xpgNj7gt9qjChuM+rU41M7DxaEK40nEo
+         5ci5zqUGJHDiCo6mugwJLmBhpeEO8tSbltqCbGV+SnEXPjjBkv26Jn6KSmUJOjbsvNSG
+         0XUUzUqxvea3H+vnPbbDoURhzYCXdUOmyf2jacRPrRkjikuhTrWwhFzHXZJMby60ki0u
+         eT+cfHh+ihnZfSyGwsEnEnuSN6zXCmqLyLmzPxslyhI02VrF7dLvCRASvzKkWOhVzHiC
+         iymQ==
+X-Forwarded-Encrypted: i=1; AKwUvBzabUPV6w+yYqSvLvomPb7aKBTQlQnCL4sE0+QUzZtZ1FiJOixy7K4Q8swC7dWgUlAGq4MnetQigNHK@vger.kernel.org
+X-Gm-Message-State: AFuF++nMS8w7HioK4Rxt/suSl5QwEE6+nhTnyD/1NBEG0CrK7pQj4EVQ
+	nv5PLRW+INvYUyky9kPQ3vXW8zB0I8PO67RInD3fJbLUkBmveomT7zNf
+X-Gm-Gg: AYBFou075rceD1gvK/5mM+KQmbfey/zKAi336E5t48liPVv/PBCQefTWNoIeUZOdRQT
+	hzAI20RSghF3iz03HxVVgvo5pvIdzYcNJv+DVj7OtcpG1iwvUZMq4oxfLiFVXKVFXRb6l0C4zz+
+	avpf91WjtOCcBHBMH3l+kFfPFTm9fdGhpED+WKwevUCWf9r72X9Ul4Buo/Gv25jZ+IpRn5uZhXT
+	a/tSgUQ47xb3+VjDwLH51fItTMNf0BbD5d+5GEgJPcL/fcFTOq5yq+XQFpWn/VELR83FOc9HSYO
+	q39zJQkNxIPMu15qUnUesI+2vl2JqSI82+2XcaVyNv8ASl+V03wIGQbivhJ8lmvWvcUBhI1b2ZU
+	Wak9mOQsnGu9xCFBNy3OlZnbq2m0dBJIIuwbukrvzAkw7n44oRyMcmpaRUOc4Uj5iVQIvwq9bKG
+	TXRmbaw7zXAb6vEby13VAuYh90Or7WD9aeL0hc1ueyfG1LLW96C+BfFnYZTmnxiuJBkTd3ZtDFA
+	BlnU73KsC3O2hGaFxDqiFscn6uy3Ig4Ji5GBwL7BpLQIg==
+X-Received: by 2002:a17:903:b88:b0:2da:e967:7953 with SMTP id d9443c01a7336-2dd8384d004mr1520765ad.12.1789461242775;
+        Tue, 15 Sep 2026 01:34:02 -0700 (PDT)
+Received: from [10.0.2.15] (KD106167137155.ppp-bb.dion.ne.jp. [106.167.137.155])
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-33ba4fa50e3sm34165946eec.29.2026.09.15.01.33.59
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 15 Sep 2026 01:34:02 -0700 (PDT)
+Message-ID: <9106d07e-a8e5-4379-bec6-eb4ee9f0df5c@gmail.com>
+Date: Tue, 15 Sep 2026 17:33:59 +0900
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -43,166 +69,144 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [v2 03/21] kallsyms: output binary data to speed output and
- kallsyms assembly
-To: David Laight <david.laight.linux@gmail.com>,
- Lorenzo Stoakes <ljs@kernel.org>, linux-kbuild@vger.kernel.org
-Cc: x86@kernel.org, Albert Ou <aou@eecs.berkeley.edu>,
- Alexandre Courbot <acourbot@nvidia.com>, Alexandre Ghiti <alex@ghiti.fr>,
- Alexey Gladkov <legion@kernel.org>, Alice Ryhl <aliceryhl@google.com>,
- Andreas Hindborg <a.hindborg@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
- Arnd Bergmann <arnd@arndb.de>, Benno Lossin <lossin@kernel.org>,
- Bill Wendling <morbo@google.com>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?=
- <bjorn3_gh@protonmail.com>, Boqun Feng <boqun@kernel.org>,
- Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>,
- Daniel Almeida <daniel.almeida@collabora.com>,
- Danilo Krummrich <dakr@kernel.org>, Dave Hansen
- <dave.hansen@linux.intel.com>, Gary Guo <gary@garyguo.net>,
- "Gustavo A. R. Silva" <gustavoars@kernel.org>, "H. Peter Anvin"
- <hpa@zytor.com>, Ilias Apalodimas <ilias.apalodimas@linaro.org>,
- Ingo Molnar <mingo@redhat.com>, Jonathan Corbet <corbet@lwn.net>,
- Josh Poimboeuf <jpoimboe@kernel.org>, Justin Stitt <justinstitt@google.com>,
- Kees Cook <kees@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>,
- Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <masahiroy@kernel.org>,
- Miguel Ojeda <ojeda@kernel.org>, Nathan Chancellor <nathan@kernel.org>,
- Nick Desaulniers <ndesaulniers@google.com>, Nicolas Schier <nsc@kernel.org>,
- =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
- Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <pjw@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>,
- Tamir Duberstein <tamird@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
- Trevor Gross <tmgross@umich.edu>, Will Deacon <will@kernel.org>,
- LKML <linux-kernel@vger.kernel.org>, kernel-janitors@vger.kernel.org,
- linux-hardening@vger.kernel.org, linux-doc@vger.kernel.org,
- linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
- linux-arch@vger.kernel.org, llvm@lists.linux.dev,
- linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
- Jens Axboe <axboe@kernel.dk>
-References: <20260914-build-speedup-v2-3-39817ec5db23@kernel.org>
- <cda4d320-599d-41c8-a37f-827688b552f9@web.de>
- <20260914224432.7ed40d48@pumpkin>
-Content-Language: en-GB, de-DE
-From: Markus Elfring <Markus.Elfring@web.de>
-In-Reply-To: <20260914224432.7ed40d48@pumpkin>
+From: Akira Yokosawa <akiyks@gmail.com>
+Subject: Re: [PATCH v3 1/2] Documentation/litmus-tests: Add SRCU fastpath
+ anchor-before-scan test
+To: Kunwu Chan <kunwu.chan@gmail.com>
+Cc: linux-doc@vger.kernel.org, lkmm@lists.linux.dev,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ rdunlap@infradead.org, skhan@linuxfoundation.org, paulmck@kernel.org,
+ dlustig@nvidia.com, joelagnelf@nvidia.com, corbet@lwn.net,
+ luc.maranget@inria.fr, j.alglave@ucl.ac.uk, dhowells@redhat.com,
+ npiggin@gmail.com, boqun@kernel.org, peterz@infradead.org, will@kernel.org,
+ parri.andrea@gmail.com, stern@rowland.harvard.edu
+References: <20260914143943.1503066-1-kunwu.chan@gmail.com>
+ <20260914143943.1503066-2-kunwu.chan@gmail.com>
+Content-Language: en-US
+In-Reply-To: <20260914143943.1503066-2-kunwu.chan@gmail.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-X-Provags-ID: V03:K1:z9QsGsd064Uaid2dUAwEK/Gc8rGYeRnLz9MLfvAMTSbhw+M8uKw
- 4y3MBC02CYo8KNID/LyixydftWnhIHnQ1LXK/L1nGPT2Go5Z58+PcZZJzwzKcilkhBFFVHW
- ff1gjZqSuE2zy1cOY7OcVqsHgluaJg+Mjgbe2a2V5Fj97DxgVABZ4LOtouJxOnux5HRUMl+
- NGqE4hiTEAAnupsDTbMXg==
-X-Spam-Flag: NO
-UI-OutboundReport: notjunk:1;M01:P0:vX1ImXBe8w8=;prPyxlMg8EeUTeIzMX/la0ABKWc
- 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
- COp4leFAhxaGu08CbA5NjV
+Content-Transfer-Encoding: 7bit
 
->> I suggest to avoid return value ignorance a bit more.
->> https://cmu-sei.github.io/secure-coding-standards/sei-cert-c-coding-sta=
-ndard/rules/error-handling-err/err33-c/
->> https://cwe.mitre.org/data/definitions/252.html
->=20
-> And I suggest you do some real coding...
-> The error is sticky and can be checked using ferror().
+Hi,
 
-Are there further warnings to reconsider also according to unchecked and u=
-nused return values?
+On 9/14/26 23:39, Kunwu Chan wrote:
+> synchronize_srcu_atomic() may end its grace period immediately when
+> its scan of the per-CPU lock counters finds no readers.  Correctness
+> requires the grace-period anchor written by srcu_gp_start() to precede
+> the smp_mb() ordering the lock scan.  This ordering ensures that any
+> reader whose lock increment is missed by the scan cannot have
+> incremented its lock counter before the grace-period anchor, and
+> therefore cannot be a pre-existing reader of this grace period.
+> 
+> This litmus test models the key ordering between the grace-period
+> anchor and the lock counter scan, where "seq" models the
+> grace-period anchor in ->srcu_gp_seq and "ctr" models the per-CPU
+> ->srcu_ctrs[].srcu_locks counter.  P0 writes the anchor before the
+> smp_mb() and the lock scan.  P1 models the reader-side counter
+> increment and its smp_mb() from __srcu_read_lock(), which orders
+> the increment against subsequent critical-section access.  P2 models
+> an observer that sees the reader's increment before seeing the
+> anchor.
+> 
+> The outcome is forbidden by LKMM, and herd7 reports "Never".  See
+> SRCU-fastpath-scan-before-anchor.litmus for the reversed ordering,
+> which permits this outcome.
+> 
+> Tested with herd7 7.58 using linux-kernel.cfg.
+> 
+> Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
+> ---
+>  .../SRCU-fastpath-anchor-before-scan.litmus   | 58 +++++++++++++++++++
+>  1 file changed, 58 insertions(+)
+>  create mode 100644 Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
+> 
+> diff --git a/Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus b/Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
+> new file mode 100644
+> index 000000000000..e0492a4d8e07
+> --- /dev/null
+> +++ b/Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
+> @@ -0,0 +1,58 @@
+> +C SRCU-fastpath-anchor-before-scan
+> +
+> +(*
+> + * Result: Never
+> + *
+> + * The synchronize_srcu_atomic() fastpath may end its grace period
+> + * immediately when its scan of the per-CPU lock counters finds no
+> + * readers.  Correctness requires the grace-period anchor written by
+> + * srcu_gp_start() to precede the smp_mb() ordering the lock scan.
+> + * This ordering ensures that any reader whose lock increment is missed
+> + * by the scan cannot have incremented its lock counter before the
+> + * grace-period anchor, and therefore cannot be a pre-existing reader
+> + * of this grace period.
+> + *
+> + * This litmus test models the key ordering between the grace-period
+> + * anchor and the lock counter scan, where "seq" models the
+> + * grace-period anchor in ->srcu_gp_seq and "ctr" models the per-CPU
+> + * ->srcu_ctrs[].srcu_locks counter.  P0 writes the anchor before the
+> + * smp_mb() and the lock scan.  P1 models the reader-side counter
+> + * increment and its smp_mb() from __srcu_read_lock(), which orders the
+> + * increment against subsequent critical-section access.  P2 models an
+> + * observer that sees the reader's increment before seeing the anchor.
+> + *
+> + * The outcome is forbidden by LKMM, and herd7 reports "Never".  See
+> + * SRCU-fastpath-scan-before-anchor.litmus for the reversed ordering,
+> + * which permits this outcome.
+> + *)
+> +
+> +{}
+> +
+> +P0(int *seq, int *ctr)
+> +{
+> +	int r2;
+> +
+> +	WRITE_ONCE(*seq, 1);
+> +	smp_mb();
+> +	r2 = READ_ONCE(*ctr);
+> +}
+> +
+> +P1(int *ctr, int *x)
+> +{
+> +	WRITE_ONCE(*ctr, 1);
+> +	smp_mb();
+> +	WRITE_ONCE(*x, 1);
+> +}
+> +
+> +P2(int *seq, int *ctr)
+> +{
+> +	int r3;
+> +	int r4;
+> +
+> +	r3 = READ_ONCE(*ctr);
+> +	smp_mb();
+> +	r4 = READ_ONCE(*seq);
+> +}
+> +
+> +filter (0:r2 = 0)
+> +exists (2:r3 = 1 /\ 2:r4 = 0)
 
+Another knee-jerk reaction with exaggeration  :-)
 
-> Code that looks at the return value from fprintf() fwrite() etc is very
-> often broken because the only time they can actual fail is when the
-> buffer is flushed during close.
+Why does P1() have an access to an un-shared variable x ?
+smp_mb() in P1() can't pair with any of other thread's smp_mb().
+This doesn't make sense!
 
-Is this a special implementation detail?
+Let me rephrase.
 
+Litmus tests is supposed to be minimal.
+Every memory access and memory barrier is expected to
+have some effect in the outcome of the test. 
 
-> Adding error checks to every call just make the code unreadable.
-Some developers got used to corresponding programming possibilities.
-Interests might grow also for aspect-oriented software development,
-doesn't it?
+In this case,
 
-Regards,
-Markus
+P1(int *ctr)
+{
+	WRITE_ONCE(*ctr, 1);
+}
+
+should be good enough, I guess.
+
+(That is, IF I understand what you are testing here...)
+
+Regards, Akira
+
