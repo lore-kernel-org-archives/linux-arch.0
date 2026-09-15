@@ -1,139 +1,92 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.13])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A3CDA23909C;
-	Tue, 15 Sep 2026 01:08:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52FE135DA79
+	for <linux-arch@vger.kernel.org>; Tue, 15 Sep 2026 02:34:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.13
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789434498; cv=none; b=eAeXtVci/shNTXsJXqUOSi2SH8Re4gVFXeQd7Rmm3Gc7A1/m/QMbzE46bcO28hcVA2Ye/BZZpv/Wz7zVqjU63MMHs7ArCobcKQ4YgjEsl1dvDTHbZ9bkY3pa498g7+UvAc3tRB2xET9UNh0/VGlyDPgVc/0mmOsvtJy4npGKorA=
+	t=1789439678; cv=none; b=FQUhtqmItjhYf4v5uiuYIb+hrCkDkLEQ8eCcyyaaZLZD+atnr1E1BtULmCznBRuMAHmX5cEvv/G/WzCG5Abjsj7axCSjHfl+GvDGTE4il5t/KDa2qTqjlZOIfCFsB3dOx11UkaxsDEqlQBhIia4pPH8MNJgMMAnTieM2oDR0kZM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789434498; c=relaxed/simple;
-	bh=mUsymsCuQS3SvFkPbdMe4P0yrNvNhFRlUiTaViL3wpk=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=B+Hb5mZVOoyryXHDedn9vFejF6KS/VIgSsh5bFueoD3v3vHA0BWkO0DfTUdusxYSterbKN4JMClimR8dVXE8vM1fVZIvKomCfGyUaTFYscoYGQkDKraZCm3BNSwFN+55joc3xBQI8Upi0lX/SCDYjw+zKb2HU7qIFjgaO6DQVpo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=JlZVB02S; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789439678; c=relaxed/simple;
+	bh=6CFH/hg1Ov1WfGfDWpFTvm7ZV97MeuSSfnzyWhkMwFc=;
+	h=Date:From:To:Cc:Subject:Message-ID:MIME-Version:Content-Type; b=OxGSlYXclUZ2IIK3p2IVuFJg3DKrECpmLwl3G29M+1cOv2IyUWe33cTYbDnX0ApHxwD+AgbgK9AtEr8BY0r+JUv3svEA1tIlVF0HM0iLM/lRyzytLUGDJEvOe5dQUIB6XTm47Nj8DwRDwhH3srGD9Og/RQ0yewl/uwhwoA5c49s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=gobDzRPp; arc=none smtp.client-ip=192.198.163.13
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="JlZVB02S"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 648761F000FF;
-	Tue, 15 Sep 2026 01:08:12 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1789434496;
-	bh=1++7fS8iWKOMzhlKxfG6KZTpRByEnFekp/pb13YE7fg=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=JlZVB02SRB8SlrjnhgKRH7erLp6/lF0bjE2LaEmvv4g/ygzNEN9Df4GzyzKOq1GRm
-	 MXZBeGQXDG+eEGW474o2elhJDXFweuH5LsbgShtKZ8tWHgw7BwYQ9PSDiWCSrWxS8a
-	 XDSL8c0/AB3jDnSpmNCqPc3psNggeGWzB7Ii5XXU=
-Date: Mon, 14 Sep 2026 18:08:11 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka
- <vbabka@kernel.org>, Jann Horn <jannh@google.com>, Pedro Falcato
- <pfalcato@suse.de>, David Hildenbrand <david@kernel.org>, Mike Rapoport
- <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, Michal Hocko
- <mhocko@suse.com>, Jonathan Corbet <corbet@lwn.net>, Greg Kroah-Hartman
- <gregkh@linuxfoundation.org>, Dennis Dalessandro
- <dennis.dalessandro@cornelisnetworks.com>, Jason Gunthorpe <jgg@ziepe.ca>,
- Leon Romanovsky <leon@kernel.org>, Paul Moore <paul@paul-moore.com>,
- Stephen Smalley <stephen.smalley.work@gmail.com>, Jaroslav Kysela
- <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, Alexei Starovoitov
- <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko
- <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, Kumar Kartikeya
- Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, Baolin Wang
- <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, Ryan
- Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song
- <baohua@kernel.org>, Lance Yang <lance.yang@linux.dev>, Usama Arif
- <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert
- <dgilbert@interlog.com>, "James E.J. Bottomley"
- <James.Bottomley@HansenPartnership.com>, "Martin K. Petersen"
- <mkp@kernel.org>, Jaya Kumar <jayalk@intworks.biz>, Simona Vetter
- <simona@ffwll.ch>, Helge Deller <deller@gmx.de>, Sebastian Reichel
- <sre@kernel.org>, John Hubbard <jhubbard@nvidia.com>, Peter Xu
- <peterx@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov
- <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner
- <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
- <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
- Arnaldo Carvalho de Melo <acme@kernel.org>, Namhyung Kim
- <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Rik van Riel
- <riel@surriel.com>, Harry Yoo <harry@kernel.org>, Juri Lelli
- <juri.lelli@redhat.com>, Vincent Guittot <vincent.guittot@linaro.org>,
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard
- <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, David Airlie
- <airlied@gmail.com>, Will Deacon <will@kernel.org>, "Aneesh Kumar K.V"
- <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, Arnd Bergmann
- <arnd@arndb.de>, Muchun Song <muchun.song@linux.dev>, Oscar Salvador
- <osalvador@suse.de>, "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan
- Kara <jack@suse.cz>, Marc Zyngier <maz@kernel.org>, Oliver Upton
- <oupton@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Madhavan
- Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, Paul
- Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
- <aou@eecs.berkeley.edu>, Christian Borntraeger <borntraeger@linux.ibm.com>,
- Janosch Frank <frankja@linux.ibm.com>, Claudio Imbrenda
- <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>,
- Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Heiko Carstens
- <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, "David S. Miller"
- <davem@davemloft.net>, Andreas Larsson <andreas@gaisler.com>, Alexander
- Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>,
- Matthew Brost <matthew.brost@intel.com>, Joshua Hahn
- <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, Byungchul Park
- <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, Ying Huang
- <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>, Chris
- Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, Kemeng Shi
- <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He
- <baoquan.he@linux.dev>, Youngjun Park <youngjun.park@lge.com>, Johannes
- Weiner <hannes@cmpxchg.org>, Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt
- <shakeel.butt@linux.dev>, Axel Rasmussen <axelrasmussen@google.com>,
- Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, Chengming
- Zhou <chengming.zhou@linux.dev>, Michal Hocko <mhocko@kernel.org>, Miklos
- Szeredi <miklos@szeredi.hu>, Xu Xin <xu.xin@linux.dev>, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org,
- linux-usb@vger.kernel.org, linux-rdma@vger.kernel.org,
- selinux@vger.kernel.org, linux-sound@vger.kernel.org, bpf@vger.kernel.org,
- linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org,
- dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org,
- linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
- kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org,
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
- linux-s390@vger.kernel.org, sparclinux@vger.kernel.org,
- fuse-devel@lists.linux.dev, Takashi Iwai <tiwai@suse.de>
-Subject: Re: [PATCH v2 00/40] mm: make VMA flag semantics explicit,
- eliminate VM_SPECIAL
-Message-Id: <20260914180811.057cba8fcc48d6e0b53a2683@linux-foundation.org>
-In-Reply-To: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-0-7d9781ed5361@kernel.org>
-References: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-0-7d9781ed5361@kernel.org>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="gobDzRPp"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1789439674; x=1820975674;
+  h=date:from:to:cc:subject:message-id:mime-version;
+  bh=6CFH/hg1Ov1WfGfDWpFTvm7ZV97MeuSSfnzyWhkMwFc=;
+  b=gobDzRPpKALqs6pwt/kCBFPwleiD+MlXozeMWPpiFy0Q79RkaPQYrLZu
+   +Crs9Wd2te3jZJAlb1rUqxBbKX8xF/TSVLIy9F/Pq4WWeOz+LFCzSRKo1
+   uTDCxdz7RoHJA5yzz40teS02nQxJU1VRMf95kGQ7YOno0eNqNuV9lrCqw
+   0j2lcOmQlt4vpH6GQOlClATXPkzr7/vWTyE240ycxhcNe7Jso5FM4oZ47
+   1wDlfU59R4cPVmcYkHdRrA4t4PSNYOOjgSR0qlFpvDmDE04EJE/bP5N20
+   mI74Ek4q8Y/nIrZRpUy2+6/Rtc3akVSVRVyODMfNMXSOKmzIjUnNJZIz3
+   g==;
+X-CSE-ConnectionGUID: uhDGuVsvS/2vd1KSVvzlQw==
+X-CSE-MsgGUID: UTIzwxEETRCmw24Hdrfrow==
+X-IronPort-AV: E=McAfee;i="6800,10657,11905"; a="92304630"
+X-IronPort-AV: E=Sophos;i="6.27,103,1787036400"; 
+   d="scan'208";a="92304630"
+Received: from fmviesa006.fm.intel.com ([10.60.135.146])
+  by fmvoesa107.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Sep 2026 19:34:30 -0700
+X-CSE-ConnectionGUID: BssNTp6vS/C2kWKGTpwHrQ==
+X-CSE-MsgGUID: ODChjbPcT4i1iXHNg+4FvA==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.27,103,1787036400"; 
+   d="scan'208";a="268528034"
+Received: from igk-lkp-server01.igk.intel.com (HELO 71151d66d536) ([10.211.93.152])
+  by fmviesa006.fm.intel.com with ESMTP; 14 Sep 2026 19:34:29 -0700
+Received: from kbuild by 71151d66d536 with local (Exim 4.98.2)
+	(envelope-from <lkp@intel.com>)
+	id 1x6J06-000000000Sx-3UWS;
+	Tue, 15 Sep 2026 02:34:26 +0000
+Date: Tue, 15 Sep 2026 04:33:37 +0200
+From: kernel test robot <lkp@intel.com>
+To: =?utf-8?Q?"Andr=C3=A9?= Almeida" <andrealmeid@igalia.com>
+Cc: oe-kbuild-all@lists.linux.dev, linux-arch@vger.kernel.org,
+ Arnd Bergmann <arnd@arndb.de>
+Subject: [arnd-asm-generic:asm-generic 9/13] make[3]: *** No rule to
+ make target 'arch/mips/include/generated/uapi/asm/unistd_n64.h', needed by
+ 'all'.
+Message-ID: <202609150414.DqgSFy2C-lkp@intel.com>
+User-Agent: s-nail v14.9.25
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 
-On Mon, 14 Sep 2026 15:57:20 +0100 "Lorenzo Stoakes (ARM)" <ljs@kernel.org> wrote:
+tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git asm-generic
+head:   bc3f9642aa608f557a37a97d6c4f73a223fb35e3
+commit: f01e296ac213455eacb228e75c7fe04f529757bb [9/13] mips: Use the common syscall table
+config: mips-randconfig-r064-20260915 (https://download.01.org/0day-ci/archive/20260915/202609150414.DqgSFy2C-lkp@intel.com/config)
+compiler: mips-linux-gcc (GCC) 8.5.0
+reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260915/202609150414.DqgSFy2C-lkp@intel.com/reproduce)
 
-> The VM_SPECIAL / VMA_SPECIAL_FLAGS mask conflates several unrelated
-> properties:
-> 
-> ...
-> 
-> It's all rather a mess.
-> 
-> This series brings some order to things by both limiting what drivers can
-> do with VMA flags and switching to using predicates that describe
-> behaviour, not arbitrary flags.
+If you fix the issue in a separate patch/commit (i.e. not just a new version of
+the same patch/commit), kindly add following tags
+| Reported-by: kernel test robot <lkp@intel.com>
+| Closes: https://lore.kernel.org/oe-kbuild-all/202609150414.DqgSFy2C-lkp@intel.com/
 
-That's a lot of patches.
+All errors (new ones prefixed by >>):
 
-Review is thin and I expect this won't improve a lot.  Lots of "no
-functional changes" changes.
+>> make[3]: *** No rule to make target 'arch/mips/include/generated/uapi/asm/unistd_n64.h', needed by 'all'.
+>> make[3]: *** No rule to make target 'arch/mips/include/generated/uapi/asm/unistd_n32.h', needed by 'all'.
+   make[3]: Target 'all' not remade because of errors.
+   make[2]: *** [arch/mips/Makefile:437: archheaders] Error 2 shuffle=2927363064
+   make[2]: Target 'prepare' not remade because of errors.
+   make[1]: *** [Makefile:248: __sub-make] Error 2 shuffle=2927363064
+   make[1]: Target 'prepare' not remade because of errors.
+   make: *** [Makefile:248: __sub-make] Error 2 shuffle=2927363064
+   make: Target 'prepare' not remade because of errors.
 
-Perhaps it would be helpful if you were to identify those patches which
-you'd like to see reviewers focus on?
-
->  1153 insertions(+), 582 deletions(-)
-
-It's funny how often cleanup patches do this.
-
-All queued up, thanks.
+--
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests/wiki
