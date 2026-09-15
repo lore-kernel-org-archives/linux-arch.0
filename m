@@ -1,92 +1,185 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.13])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj2-f13.google.com (mail-pj2-f13.google.com [74.125.227.141])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52FE135DA79
-	for <linux-arch@vger.kernel.org>; Tue, 15 Sep 2026 02:34:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.13
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789439678; cv=none; b=FQUhtqmItjhYf4v5uiuYIb+hrCkDkLEQ8eCcyyaaZLZD+atnr1E1BtULmCznBRuMAHmX5cEvv/G/WzCG5Abjsj7axCSjHfl+GvDGTE4il5t/KDa2qTqjlZOIfCFsB3dOx11UkaxsDEqlQBhIia4pPH8MNJgMMAnTieM2oDR0kZM=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789439678; c=relaxed/simple;
-	bh=6CFH/hg1Ov1WfGfDWpFTvm7ZV97MeuSSfnzyWhkMwFc=;
-	h=Date:From:To:Cc:Subject:Message-ID:MIME-Version:Content-Type; b=OxGSlYXclUZ2IIK3p2IVuFJg3DKrECpmLwl3G29M+1cOv2IyUWe33cTYbDnX0ApHxwD+AgbgK9AtEr8BY0r+JUv3svEA1tIlVF0HM0iLM/lRyzytLUGDJEvOe5dQUIB6XTm47Nj8DwRDwhH3srGD9Og/RQ0yewl/uwhwoA5c49s=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=gobDzRPp; arc=none smtp.client-ip=192.198.163.13
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E236384CD1
+	for <linux-arch@vger.kernel.org>; Tue, 15 Sep 2026 06:32:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.227.141
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1789453938; cv=pass; b=V1C15RfeCj8e5QRJ9fPHlJnbvTChEeH4oAcDxH7j45EFFcdkne4AbFiRwV1cBsTGiud6oMO9+F6y5yLPhVHKe5LNPnFVZ6uFxumTZfOlEp8wdvtw5C0IlXlKfqI8PCedgISm1mnmWZSoRZDZVjzFh+pvakb9d/mgh6l6QoSYhvE=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1789453938; c=relaxed/simple;
+	bh=kmDAMC6MFeucn2qpBg3Klhb1ZEFA9BC3craQuU4rvac=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=hixPeLJxXhCslZwtWLeiv1zJRtLxmOxTv5cPG3SUXM4LK4hDDDpICWGQZW6Jg88na4huwjTxYkVWWHPz0Y2uLEx14Ap6EOz9tA32iGhTcOaqhKPCnfcgViakzyCUX3PJ9yw+ZFUPdD6lFHZVGp0FfJfttBj0P5s3fQ7LiuCYt6Y=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=G5CRJ9r3; arc=pass smtp.client-ip=74.125.227.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="gobDzRPp"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1789439674; x=1820975674;
-  h=date:from:to:cc:subject:message-id:mime-version;
-  bh=6CFH/hg1Ov1WfGfDWpFTvm7ZV97MeuSSfnzyWhkMwFc=;
-  b=gobDzRPpKALqs6pwt/kCBFPwleiD+MlXozeMWPpiFy0Q79RkaPQYrLZu
-   +Crs9Wd2te3jZJAlb1rUqxBbKX8xF/TSVLIy9F/Pq4WWeOz+LFCzSRKo1
-   uTDCxdz7RoHJA5yzz40teS02nQxJU1VRMf95kGQ7YOno0eNqNuV9lrCqw
-   0j2lcOmQlt4vpH6GQOlClATXPkzr7/vWTyE240ycxhcNe7Jso5FM4oZ47
-   1wDlfU59R4cPVmcYkHdRrA4t4PSNYOOjgSR0qlFpvDmDE04EJE/bP5N20
-   mI74Ek4q8Y/nIrZRpUy2+6/Rtc3akVSVRVyODMfNMXSOKmzIjUnNJZIz3
-   g==;
-X-CSE-ConnectionGUID: uhDGuVsvS/2vd1KSVvzlQw==
-X-CSE-MsgGUID: UTIzwxEETRCmw24Hdrfrow==
-X-IronPort-AV: E=McAfee;i="6800,10657,11905"; a="92304630"
-X-IronPort-AV: E=Sophos;i="6.27,103,1787036400"; 
-   d="scan'208";a="92304630"
-Received: from fmviesa006.fm.intel.com ([10.60.135.146])
-  by fmvoesa107.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Sep 2026 19:34:30 -0700
-X-CSE-ConnectionGUID: BssNTp6vS/C2kWKGTpwHrQ==
-X-CSE-MsgGUID: ODChjbPcT4i1iXHNg+4FvA==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.27,103,1787036400"; 
-   d="scan'208";a="268528034"
-Received: from igk-lkp-server01.igk.intel.com (HELO 71151d66d536) ([10.211.93.152])
-  by fmviesa006.fm.intel.com with ESMTP; 14 Sep 2026 19:34:29 -0700
-Received: from kbuild by 71151d66d536 with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1x6J06-000000000Sx-3UWS;
-	Tue, 15 Sep 2026 02:34:26 +0000
-Date: Tue, 15 Sep 2026 04:33:37 +0200
-From: kernel test robot <lkp@intel.com>
-To: =?utf-8?Q?"Andr=C3=A9?= Almeida" <andrealmeid@igalia.com>
-Cc: oe-kbuild-all@lists.linux.dev, linux-arch@vger.kernel.org,
- Arnd Bergmann <arnd@arndb.de>
-Subject: [arnd-asm-generic:asm-generic 9/13] make[3]: *** No rule to
- make target 'arch/mips/include/generated/uapi/asm/unistd_n64.h', needed by
- 'all'.
-Message-ID: <202609150414.DqgSFy2C-lkp@intel.com>
-User-Agent: s-nail v14.9.25
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="G5CRJ9r3"
+Received: by mail-pj2-f13.google.com with SMTP id 98e67ed59e1d1-39da614ab21so476003a91.2
+        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2026 23:32:16 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1789453936; cv=none;
+        d=google.com; s=arc-20260327;
+        b=b8FWnhsNAn2qq+bvQOiz9tGRMv4BkERn2Im9EP1UaR4ZoGtx7MC1kDVM1g26kweS9u
+         KOEe1BHXSTcu9v5YFQxvGzsklC4IYWRnhoaeUEvBBdrqdAClN+osCQ0jEJRx5vXmaQ30
+         xxzFm8vAuhTCcOKYdU360u+GueYhnZIbPAHbxBLvMHOv68rTrYioqk7c4KI2WMo5OoMK
+         NHQ6nIvDVBp6zZ+xrXDvLFg9MR4ZD4mcs2f8nyUXkgGRXuaGBCNoHwp9OAJQgANjneZd
+         gqGG/0pBX/sPTusImAKvG1PEBFNFfY3iS1NbfHnII5cGVjXfbmguGA5aeqaNBubKFh1j
+         kDnQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=kmDAMC6MFeucn2qpBg3Klhb1ZEFA9BC3craQuU4rvac=;
+        fh=5s94sKf5ZiGmyb2N3XuigYrZXZMrbUIQiYKNHhUeub0=;
+        b=cUUVHo4hMlbj1kxNgdbC30RQbLxVvVoodLuDf5mWUK5KhGznbf9im/E6WscC2t7Pho
+         TYH/7N78ouWNZpOVTqzBdaIhOk4atQGr/yjxclAppPVVA958AVXoJhmeetMx2j61j3RS
+         hnOjdpbqnPhG3zUCNTeU8+qBjhCvEK7sT4II1GC0qlMP/uV/zUG86iLgYUHyocu+vXLT
+         a7Fzn2i6bCCqG66xow1HBlUNOBCZgdtqcs3l7VYyGXSFFSXuFCZ1YZcg/efmUl0B1PBo
+         bM2pK1VY8vCC1TLPkPyXizc+1XDm0r7b6MtMQkovcmsvosCmS+0KvC56qlIVUJnvNLkq
+         oBOQ==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1789453936; x=1790058736; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=kmDAMC6MFeucn2qpBg3Klhb1ZEFA9BC3craQuU4rvac=;
+        b=G5CRJ9r3yU+mY0l+N74B7S/Mjb6TnQqtFCT50TddgkDTFjmeAX7LKtouzxIblxQu7Z
+         h7Z4cg9OQsXlODWiJ4sgVavpB9ZRE2A1fqvhWaI1/oMaUm3ZJIy6GIsgazv3vqM5McEt
+         xGkXdE0pqihCwZshnRy0aSMMIslo+uYXDX7ueQ3LEQJU48Z96j4JVTpAVHnxfBhXKjop
+         mbYpAvHUDnqE3aI2WoyhirXJaLKHJWQBpEM8NK0EDDeCtbvcdTvgNOOCPFFavZBqhcMf
+         Bups1FuNo0+Wrg5gZmFapMkMsrAxt8m5jDvfLJ8SCIT13V3atN0IADBmd6R01ATsyRkn
+         s+hQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1789453936; x=1790058736;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=kmDAMC6MFeucn2qpBg3Klhb1ZEFA9BC3craQuU4rvac=;
+        b=qMNDStPg2/ysv4AlOSeLLCb6y3YHulZ5N4K9Hvw8LqoymJi4paWRS7yOPTAquCZoMc
+         0zMC+BCU2xkTsgEAeFPgTAKG+EtpeSfnLLgTXYQms9JR9arVNNHNgps9dtuw9sVQCRCf
+         BxQUMZviMXtHFNUgOLN2YUAHjCGMcYF2wJCkfn5BQ3EuRoUxb/I93JPdjNX/rf5+BWr1
+         Xt0iOxVWgFEdDP7+lxMpW7ok1V9PA5ErBVCdb+AmcCzm99GUsQWGhCzf+FHbdTHM/yGe
+         ZrjQC+66NtPTggB2oUwNgl/wnyAcsTB7JudxxQSmoEmSQ5IbCpsbBTYPRKIxI/pZF/HO
+         4n6g==
+X-Forwarded-Encrypted: i=1; AKwUvBxm9ABtQV739hj0e+vROmbboViOxDj0rPgpB7VBa0HwjUCsZziPx0ADMW1+sUTe63YfSG13xlrvFUh0@vger.kernel.org
+X-Gm-Message-State: AFuF++mwq48YU+anxu3HVQhpUhkz/B7ylhevzFbwZGX61Q8igtuJToKy
+	QDWenhy0y1SAjFlEpeLd6KHj7KBBHmGz3eOVETt4JR6S+PdJMYfqU6rIAyCtgHx8zo3ycr8kyhO
+	tYxxOrIavXtsk7WuhMqEMceC75IFeYpo=
+X-Gm-Gg: AYBFou19ZC4BLXZraoFzkQUIx25CRIGnzE96nGRBYOWubma4OrcIghjn0mQHpX8wugG
+	Dh/YZAXp/KVULQoG/oPSlmVNhFZO9TR43sin5yQBBjkUjNX7owVgJMPksQmd9Zpxkq1Z4ABZIvG
+	NPEmJg6hPL+Dk8etILLim5bH1QC4GrjpwM6dnwEo8dZZdXmjQjPR3OLdEMmtqQlnZVYj2hHWt0q
+	8+MrXQRl3KL36/V3x1k9EuGuifXhMTGI1yFqVnfCZi8PLWj1Hdq6emxu2m/v8fzv36NVZjnmei6
+	O43wbWvjosejafkXFiiMSyrxNB1EGQGugr8LzEls1L0mqHfYYPUC4mCXdrGoqg8see8snIBgotx
+	ls5biIYOUHNiGKBrJi9iX9R3OpSFIKMlI4eY3ojlLdslvjvDItuXE7DsLFhsAOnlFSkJuwvUY5t
+	OJRrDOwuFm3V+LOLxSPKgbtjNxSYdLN6rS0BS2ph+LgrzaVEfvBQ==
+X-Received: by 2002:a17:90b:390d:b0:396:d27b:86a4 with SMTP id
+ 98e67ed59e1d1-39dec02ca06mr8212249a91.2.1789453935885; Mon, 14 Sep 2026
+ 23:32:15 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org> <20260914-build-speedup-v2-18-39817ec5db23@kernel.org>
+In-Reply-To: <20260914-build-speedup-v2-18-39817ec5db23@kernel.org>
+From: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
+Date: Tue, 15 Sep 2026 07:32:02 +0100
+X-Gm-Features: AcwNN1XuX4yn0GdoJd77RsJx70W4snllWWAl7hBlEl0V9VQzhH3zC86aEhQjx38
+Message-ID: <CANiq72naY0=iBaxfbWQaPv_06X4SjFSix4NybDQdht33+Tcs0g@mail.gmail.com>
+Subject: Re: [PATCH v2 18/21] kbuild: rust: optionally parallelise rustc front end
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nathan Chancellor <nathan@kernel.org>, 
+	Nicolas Schier <nsc@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, 
+	Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
+	Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
+	"H. Peter Anvin" <hpa@zytor.com>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
+	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
+	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Josh Poimboeuf <jpoimboe@kernel.org>, 
+	Peter Zijlstra <peterz@infradead.org>, Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
+	Gary Guo <gary@garyguo.net>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
+	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
+	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
+	Danilo Krummrich <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, 
+	Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, 
+	=?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
+	Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, Kees Cook <kees@kernel.org>, 
+	"Gustavo A. R. Silva" <gustavoars@kernel.org>, linux-kbuild@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, llvm@lists.linux.dev, 
+	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
+	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, 
+	rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org, 
+	Jens Axboe <axboe@kernel.dk>, linux-hardening@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git asm-generic
-head:   bc3f9642aa608f557a37a97d6c4f73a223fb35e3
-commit: f01e296ac213455eacb228e75c7fe04f529757bb [9/13] mips: Use the common syscall table
-config: mips-randconfig-r064-20260915 (https://download.01.org/0day-ci/archive/20260915/202609150414.DqgSFy2C-lkp@intel.com/config)
-compiler: mips-linux-gcc (GCC) 8.5.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260915/202609150414.DqgSFy2C-lkp@intel.com/reproduce)
+On Mon, Sep 14, 2026 at 10:24=E2=80=AFAM Lorenzo Stoakes (ARM) <ljs@kernel.=
+org> wrote:
+>
+> Rust crates are compiled in a serial chain on the critical path - core,
+> bindings, kernel crates and then the drivers - each a rustc invocation.
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202609150414.DqgSFy2C-lkp@intel.com/
+This confused the LWN article... :)
 
-All errors (new ones prefixed by >>):
+There is a critical path in the graph, indeed, and doing it in
+`prepare` is painful, but to clarify: each crate is already built in
+parallel with others where possible, and the fact that each crate is
+built by one `rustc` is unrelated, plus the flag this patch proposes
+is also unrelated to that.
 
->> make[3]: *** No rule to make target 'arch/mips/include/generated/uapi/asm/unistd_n64.h', needed by 'all'.
->> make[3]: *** No rule to make target 'arch/mips/include/generated/uapi/asm/unistd_n32.h', needed by 'all'.
-   make[3]: Target 'all' not remade because of errors.
-   make[2]: *** [arch/mips/Makefile:437: archheaders] Error 2 shuffle=2927363064
-   make[2]: Target 'prepare' not remade because of errors.
-   make[1]: *** [Makefile:248: __sub-make] Error 2 shuffle=2927363064
-   make[1]: Target 'prepare' not remade because of errors.
-   make: *** [Makefile:248: __sub-make] Error 2 shuffle=2927363064
-   make: Target 'prepare' not remade because of errors.
+I guess the LLM was trying to add context to the numbers below, but it
+looks like it will easily confuse readers.
 
---
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+> Each time a change is made to any of the bindings, it triggers a rebuild.
+
+This seems oddly focused (i.e. not sure why `bindings` is mentioned in
+particular). It is also at least independent of this patch, i.e. it
+will remain true regardless of the patch.
+
+> rustc has a parallel front end, enabled with -Zthreads, available since
+> rust 1.84 [0] and therefore on every rustc the kernel supports.
+>
+> It is not yet stable and its output is not reproducible, so it cannot be
+> used by default - stabilisation is being worked on [1].
+
+Not sure what it means by "by default". In any case, the main issue
+with the flag is that it has had issues recently, not so much the fact
+that it is unstable.
+
+> Add optional build parameter KBUILD_RUST_THREADS, which when set passes
+> that many threads to rustc.
+>
+> Observed build time changes with KBUILD_RUST_THREADS=3D8 (rustc 1.98, cla=
+ng):
+
+I assume the improvements are most notable due to the work being on
+`prepare`, i.e. there is no other work available. When that is
+relaxed, this should be way less needed. Though it will be still very
+nice to have for full Rust rebuilds, like when changing the compiler
+versions often, due to `core` mainly (e.g. I have to do that often, so
+I would like it :).
+
+In any case, I am not sure about adding a Kbuild variable already for
+this at the moment, especially with that name, i.e. it is not really
+"threads" but "frontend jobs" and the flag will not be called that in
+the future anyway.
+
+And if someone wants to risk their kernel builds, then they can
+already pass the flag today...
+
+(We probably also want to know what the flag will finally do before
+committing to particular names, e.g. whether it affects
+codegen/reproducibility in any way. But perhaps Kbuild doesn't mind
+having new variables that may be replaced soon.)
+
+Thanks!
+
+Cheers,
+Miguel
