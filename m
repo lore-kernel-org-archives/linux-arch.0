@@ -1,38 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9A73853359F;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 91D265328C8;
 	Wed, 16 Sep 2026 15:33:03 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789572783; cv=none; b=qjwuUSP4ecZIvZPJuM6YSnhbqTM+hiiMhyrHV1nArVoCcLPikNUi0exL4B41wTAECuBKIxH8W5HrYGxxz4Wtw+hJ+JaS5sXoWKuoMha/7pboBd+D+JuE/LQmTv7pw7sOXSyxzl3Sa1op+fy/xiiqCqTyv6HwLBIKL4bu1xit24A=
+	t=1789572783; cv=none; b=p+sHJwwX+m55SuJcPLrAa9+za8MQEV1/xFL217JRze43mJ84hLWNjP9xllwV656WfGEeJlHHmoI4vJPtrYL5tBhGFqiXj1RVm2O5rZ4+GD9RwHWl8fFbcvB/wgmQIoKHBxh+3IREZ0/QA0EuT+oBVMBMOafV7TqZAYOuR7ZzmRI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1789572783; c=relaxed/simple;
-	bh=g327Lt1Wa7i5zRuwpE68v025f5tdq+5vIvxaHeUZQ4s=;
+	bh=cNiGErIulZKMDAbhqRkYA5lNr7vWOESlPNeVtrkWjAA=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=UvXVVul6DMjQCEVHtRmgk7J7rkL1IaXviOeWA90aOtpUFztI0IbfksFABEM4F+149oETfNVck/SPNDsF37y3RGb7o/oJ25gs0ywlszNE8Xlu49d9FFlp5+VcQoi8V8gJ7qL5srlo0HRIFRPAgU2LG1M0PZ8++JJPODv77pIWgak=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=LUfbySdY; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=MBiZQ9dENLl5ukTxBufCtaGbSNjEOfTMUwQ0A/Fn5e1xljAsbjWkxOzR6XQsNmpti8jX4VhkvByahj9XeANG3BVhpyQ8cGdkCg4ilhwlrRb95B6I+l7x5987z1C+NNpmC1lNChK2C1w9Wfzs1LJMCNGNQFnhA5bBNw7Pug1+TAI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=tqUR8fxK; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="LUfbySdY"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id DA6E9C2BD04;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="tqUR8fxK"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 599DDC2BCFC;
 	Wed, 16 Sep 2026 15:33:00 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1789572780;
-	bh=g327Lt1Wa7i5zRuwpE68v025f5tdq+5vIvxaHeUZQ4s=;
+	bh=cNiGErIulZKMDAbhqRkYA5lNr7vWOESlPNeVtrkWjAA=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=LUfbySdYCtXC82qRA2oGqfhf1GIUbmlEhiv441NSy9sLwFjk3GUtYFmvH09YeYN19
-	 oLjnLvgF/OMoAv5DtSzkLu8DmQdgqxOUPMYnz35QVRM1ftw1L1VhkSO3DVzFTdW+2q
-	 hxJRDCHyB5pqVZYFFkfrYSe2mlCeZhsA0fpByhIWbpEMgCQFdFEsqphCU10tx/imJo
-	 kRvUGey6MBYPMidJeP7sVleBRRqZDlNHl5UUBK7Qk0rePCliS0ffhbLO64gA2wCH+d
-	 9I//qJDKbr1U8cuGMzAMT6QGQJPlSzqXRopWfYNe2D7yALuLXZYVfwlO/WP6FTSd+L
-	 5kGTttuVftsyA==
+	b=tqUR8fxKwHEAv103ZSLj0EC2uau/KHK3tAcfxAnNgM1Dwrz2FtZ5VcIQwOIFNKr18
+	 lR/w7cRrkyQP0ONFjqUWxxLkWPyzyTm+8cnignT7XBHkj6pYNsh4m+0vQmUTmyvm1I
+	 uC4ddJjsiaApvTosIn/hGF5Wo20Po+I6orWWMQprNpFcIzfpleVo55q7JwVohaSv75
+	 R0Sc4hoFaufvv1tKnywfyZjzcArudX3eavfFIzSLabzs44GEaPenJM+SWOuGAkDSMG
+	 2PzFA0/qzpe8bpdCDwZYgzwiXyDk+HIbtD6zCUqzyGZZsxX0eg6tTR2Wpt6lddBJ9e
+	 Vxw29Gkp108Uw==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C5178C982C4;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 36E6BC982C4;
 	Wed, 16 Sep 2026 15:33:00 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Wed, 16 Sep 2026 09:33:06 -0600
-Subject: [PATCH v10 14/38] dyndbg: Bind callsites and classmaps to
- DDEBUG_MODNAME
+Date: Wed, 16 Sep 2026 09:33:00 -0600
+Subject: [PATCH v10 08/38] dyndbg: add stub macro for
+ DECLARE_DYNDBG_CLASSMAP
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260916-dd-cmap-part2-clean-v10-14-af4cf4767707@gmail.com>
+Message-Id: <20260916-dd-cmap-part2-clean-v10-8-af4cf4767707@gmail.com>
 References: <20260916-dd-cmap-part2-clean-v10-0-af4cf4767707@gmail.com>
 In-Reply-To: <20260916-dd-cmap-part2-clean-v10-0-af4cf4767707@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -65,11 +65,11 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
  Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1789572777; l=5456;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1789572777; l=3163;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=QBYHFOAGtPUZQ0XtQfqknu+wV/y2/uE7ShWvPiZO9qg=;
- b=UBn3jzJiK8zgbFC+xg1+b0mfu0MV0P6ogZrSO9KhMbgJN3fmX3t1Ckby9SBoVGQbUb2xySmUT
- wPCVCh19BSuABrXQCh6w3mrUrd0KkNkohzY3imdW5yTotY8VgOllM9c
+ bh=ZuzqA3zGt/j9kYmFGfFlaL94NbjSKGlzcBcWBUqAWbM=;
+ b=zpzVNPNi6BirL5+75bfaSRvtlmosMixzbPIKy1tA129ywzf/p4Yd9f16XTi6UOc1kG+Pggzso
+ DTEHXTD53ZZBX8XcMvmq/4MW5cE+qiTZ7Lp4wlIABNsjMCgeePStJC2
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -79,134 +79,83 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-Currently, dyndbg binds KBUILD_MODNAME directly into callsite and
-classmap declarator macros.
-
-For built-ins, KBUILD_MODNAME defaults to the basename of the source
-file. For many subsystems, this fragments what should be a single
-module into separate file basenames: kernel/power/ produces "main",
-"suspend", "hibernate", "snapshot", and "swap" when all should be
-"power". Conversely, multiple unrelated built-in files across the tree
-(init/main.c, kernel/power/main.c) all collide under "main".
-
-While consolidating these fragments into unified subsystem names is
-desirable for query targeting and classmaps, attempting a bulk heuristic
-renaming across Kbuild introduces broad churn and disrupts control file
-output across the kernel. Module naming should remain under explicit
-maintainer control instead.
-
-Define DDEBUG_MODNAME in include/linux/dynamic_debug.h guarded with
-#ifndef, defaulting cleanly to KBUILD_MODNAME. Bind DDEBUG_MODNAME into
-callsite and classmap declarator macros instead of hardcoding
-KBUILD_MODNAME.
-
-This establishes an opt-in hook allowing subsystem maintainers to
-consolidate their module fragments if desired (e.g. via
-ccflags-y += -DDDEBUG_MODNAME='"power"' in a subsystem Makefile)
-while preserving existing module-name invariants by default.
-
-What's Unchanged:
-- Default module names remain strictly identical to KBUILD_MODNAME.
-- Zero callsite memory overhead or layout changes in struct _ddebug.
-- dynamic_debug/control output remains unchanged across the tree.
+Add the stub macro for !DYNAMIC_DEBUG builds, after moving the
+original macro-defn down under the big ifdef.  Do it now so future
+changes have a cleaner starting point.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- include/linux/dynamic_debug.h                      | 12 +++++++--
- .../selftests/dynamic_debug/dyndbg_selftest.sh     | 29 +++++++++++-----------
- 2 files changed, 25 insertions(+), 16 deletions(-)
+ include/linux/dynamic_debug.h | 43 ++++++++++++++++++++++---------------------
+ 1 file changed, 22 insertions(+), 21 deletions(-)
 
 diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index baf5c0853f45..85863e24ad13 100644
+index 05743900a116..a10adac8e8f0 100644
 --- a/include/linux/dynamic_debug.h
 +++ b/include/linux/dynamic_debug.h
-@@ -10,6 +10,14 @@
+@@ -93,27 +93,6 @@ struct ddebug_class_map {
+ 	enum class_map_type map_type;
+ };
  
- #define __DDEBUG_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
- 
-+/*
-+ * DDEBUG_MODNAME: Subsystem/module name hook for callsites and classmaps.
-+ * Defaults to KBUILD_MODNAME.
-+ */
-+#ifndef DDEBUG_MODNAME
-+#define DDEBUG_MODNAME KBUILD_MODNAME
-+#endif
-+
- /*
-  * An instance of this structure is created in a special
-  * ELF section at every dynamic debug callsite.  At runtime,
-@@ -121,7 +129,7 @@ struct ddebug_class_param {
- 	static struct ddebug_class_map __aligned(8) __used		\
- 		__section("__dyndbg_classes") _var = {			\
- 		.mod = THIS_MODULE,					\
+-/**
+- * DECLARE_DYNDBG_CLASSMAP - declare classnames known by a module
+- * @_var:   a struct ddebug_class_map, passed to module_param_cb
+- * @_type:  enum class_map_type, chooses bits/verbose, numeric/symbolic
+- * @_base:  offset of 1st class-name. splits .class_id space
+- * @classes: class-names used to control class'd prdbgs
+- */
+-#define DECLARE_DYNDBG_CLASSMAP(_var, _maptype, _base, ...)		\
+-	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
+-	static struct ddebug_class_map __aligned(8) __used		\
+-		__section("__dyndbg_classes") _var = {			\
+-		.mod = THIS_MODULE,					\
 -		.mod_name = KBUILD_MODNAME,				\
-+		.mod_name = DDEBUG_MODNAME,				\
- 		.base = _base,						\
- 		.map_type = _maptype,					\
- 		.class_names = _var##_classnames,			\
-@@ -160,7 +168,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
- #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)	\
- 	static struct _ddebug  __aligned(8)			\
- 	__section("__dyndbg") name = {				\
--		.modname = KBUILD_MODNAME,			\
-+		.modname = DDEBUG_MODNAME,			\
- 		.function = __func__,				\
- 		.filename = __FILE__,				\
- 		.format = (fmt),				\
-diff --git a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-index 972f12c70a8e..09a8dbf239dc 100755
---- a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-+++ b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-@@ -267,34 +267,35 @@ function FT_grammar_errs {
-     ddcmd =_
- }
+-		.base = _base,						\
+-		.map_type = _maptype,					\
+-		.length = NUM_TYPE_ARGS(char*, __VA_ARGS__),		\
+-		.class_names = _var##_classnames,			\
+-	}
+-#define NUM_TYPE_ARGS(eltype, ...)				\
+-        (sizeof((eltype[]){__VA_ARGS__}) / sizeof(eltype))
+-
+ /* encapsulate linker provided built-in (or module) dyndbg data */
+ struct _ddebug_info {
+ 	struct _ddebug *descs;
+@@ -138,6 +117,27 @@ struct ddebug_class_param {
+ #if defined(CONFIG_DYNAMIC_DEBUG) || \
+ 	(defined(CONFIG_DYNAMIC_DEBUG_CORE) && defined(DYNAMIC_DEBUG_MODULE))
  
--# these queries run against the builtin module: params, and change
--# flags.  The control file state-of-interest is found by path,
--# kernel/params.c, to avoid module keyword entirely
-+# these queries run against the builtin file: kernel/params.c, and change
-+# flags.  The control file state-of-interest is found by path $f,
-+# perfectly binding the stimulus scope to the observation slice.
- function FT_basic_queries {
-     v_echo "${GREEN}# BASIC_TESTS ${NC}"
-     if [ $LACK_DD_BUILTIN -eq 1 ]; then
--	echo "SKIP - test requires params, which is a builtin module"
-+	echo "SKIP - test requires dynamic_debug built into kernel"
- 	return
-     fi
-+    local f='kernel/params.c'
-     ddcmd =_ # zero everything
++/**
++ * DECLARE_DYNDBG_CLASSMAP - declare classnames known by a module
++ * @_var:   a struct ddebug_class_map, passed to module_param_cb
++ * @_type:  enum class_map_type, chooses bits/verbose, numeric/symbolic
++ * @_base:  offset of 1st class-name. splits .class_id space
++ * @classes: class-names used to control class'd prdbgs
++ */
++#define DECLARE_DYNDBG_CLASSMAP(_var, _maptype, _base, ...)		\
++	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
++	static struct ddebug_class_map __aligned(8) __used		\
++		__section("__dyndbg_classes") _var = {			\
++		.mod = THIS_MODULE,					\
++		.mod_name = KBUILD_MODNAME,				\
++		.base = _base,						\
++		.map_type = _maptype,					\
++		.length = NUM_TYPE_ARGS(char*, __VA_ARGS__),		\
++		.class_names = _var##_classnames,			\
++	}
++#define NUM_TYPE_ARGS(eltype, ...)				\
++	(sizeof((eltype[]) {__VA_ARGS__}) / sizeof(eltype))
++
+ extern __printf(2, 3)
+ void __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...);
  
--    ddcmd "module params +mf" 'kernel/params.c'
--    ddcmd "module params +l"  'kernel/params.c'
--    ddcmd "module params -m"  'kernel/params.c'
--    ddcmd "module params =_"  'kernel/params.c'
-+    ddcmd "file $f +mf" "$f"
-+    ddcmd "file $f +l"  "$f"
-+    ddcmd "file $f -m"  "$f"
-+    ddcmd "file $f =_"  "$f"
+@@ -314,6 +314,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
  
-     # multi-query commands split on ; on a single line
--    ddcmd "module params +mf ; module params func parse_args +sl"  'kernel/params.c'
-+    ddcmd "file $f +mf ; file $f func parse_args +sl" "$f"
+ #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt)
+ #define DYNAMIC_DEBUG_BRANCH(descriptor) false
++#define DECLARE_DYNDBG_CLASSMAP(...)
  
-     # verify multi-cmd input, newline separated, with embedded comments
-     ddcmd =_ # reset before multiline query to capture full transition
--    ddcmd "module params =_		# clear params
--      module params +ml			# set flags
--      module params func parse_args +fs # set other flags" \
--	  'kernel/params.c'
-+    ddcmd "file $f =_		# clear params
-+      file $f +ml		# set flags
-+      file $f func parse_args +fs # set other flags" \
-+	  "$f"
- 
-     # clear flags and verify
--    ddcmd "module params =_"  'kernel/params.c'
-+    ddcmd "file $f =_" "$f"
- }
- 
- # Built-in Feature Tests (Can run on any CONFIG_DYNAMIC_DEBUG kernel, modular or monolithic)
+ #define dynamic_pr_debug(fmt, ...)					\
+ 	no_printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
 
 -- 
 2.55.0
