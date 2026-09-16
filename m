@@ -1,38 +1,37 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 97D4F5328DD;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 97EDC533587;
 	Wed, 16 Sep 2026 15:33:03 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789572783; cv=none; b=LoIgIJJp/ZAXmAC8XOe7zn+h5jlpcdr+Gf+OF6BCkB7R42jhfV7sb5IWi/FK5S08Gc5gMrXAL8IfilopDr+rcrL401Oxu8R57Sk6PHoJzPcOfnQ3UgW0IS11RGhwfem+b5dlplwcmWBuTjKQ5pm8y001fZLl09YSruVpcR7LHyI=
+	t=1789572783; cv=none; b=av2yOqQ0zA4laecbcHXpiShO6zym6ebdvzaC+N9BAaaoUoYHVZac8T7o104l9scSc7guf9irQHKYSjg91SR3lEA/RJpiXN+vHz8iVgb7cSsoklidjW3/57j/cdRXGbHwQUARfFQ50NRbThOEIIx34CF0ChAbY8ZzwBbH+6JKBYE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1789572783; c=relaxed/simple;
-	bh=glf6GvR7NBPCbYbbUUvjVhae1qwaU/+22fD70PopBQA=;
+	bh=pv9RuonqNYo3AzOvwPP3dOHmyzUbuqx9/doej0kXmOg=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=c8dn4J4TuxHocOd7hf6nZdYxEcu+PAERoXdOQhrNZwnbuawkjfiRpt7silzbRTm8Y4V41D43BGZvUu0nbA2NhXpFtJGMXmtdC6/BXa/V2B87mTnO+umMaLdQgiL7ETQGMWjgN+WJhZqBYLjk1criuChsiUF3vFY6VrNIvTEgMMU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=PEGFcVRC; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=b5NnTvxiJuVvKyA0G22drJR6o+kgLrBi2Z1u6YYOiMxDCoftwmyF7kI/6EN8+6NxjV53a+tYE+B9ul1S2RAIIO5sv7/EhvTOhPlB2O57qwBZuMuOHP6u2gqPgXPDAL7cgUyI3dC2kvfZGrpiE7q/3Shkw4Zv2MKpr5LWHmq4xuM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ChUPmIGK; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="PEGFcVRC"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id AAD98C2BD01;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ChUPmIGK"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 93EF1C2BCFD;
 	Wed, 16 Sep 2026 15:33:00 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1789572780;
-	bh=glf6GvR7NBPCbYbbUUvjVhae1qwaU/+22fD70PopBQA=;
+	bh=pv9RuonqNYo3AzOvwPP3dOHmyzUbuqx9/doej0kXmOg=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=PEGFcVRCM3+v1UNKHx+cnsharKXbNrIsiiO43uqcz1PpqZqU54+gCOXYUOq1h8g2O
-	 G0WBhoEzQpGCk5ua98zxxDVO/4bP8StoKemD0inuRbPJ2bda/+61S120aAw5k0yfwX
-	 FBIkNH5vI6/vlzVgaOFVbsmGnwgyY2OUV+bZSAGMOzUrus4Om8PKTnB6g7R8mTPzcV
-	 3ytPQZUDZ6H7zgAUfgC1alOgo90wTVlzNxzxKzVcLqNVieizYtbmS0Tb10i4g5amKm
-	 pVHxc8mYlBTGaYhNuo4KMc2s7HWESw8gzuUZXHCl+jN6Y7rFZOwaxGz9r7R6mLq7NJ
-	 i7dTKCmfcmuKw==
+	b=ChUPmIGKVomfPOVwkZfin5dy6QLWIZR7l9jUG8DoUL7dN6hxcPDKGcoJAm0PDYuUV
+	 jdAQDasXQx7vCSrh7xUNAnW0CrvyJGmDx1//urZGMtK71cCGshtGXZx+UPc0y7Pawz
+	 KgtwF/M4r/TFHlOa2hZ5PfGeWVtYXGKw3S2dT3hyoOT+XpCRS84NCMqGYenKTZqDtS
+	 KbFKhFkh/zIT/U1beBYel937enV64GzMx8FlLNO70UyRCsZEN3rq0zm+Bk9es4zLYx
+	 VaFfOT3Hnpbj8QQtHNdCa4rTkJFiTIrX5jx4omVDAZj14RFStge19QlEzqQdXhWlRa
+	 Ud9/hvfruDCLQ==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 962F5C982C5;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7F8C1C982CA;
 	Wed, 16 Sep 2026 15:33:00 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Wed, 16 Sep 2026 09:33:04 -0600
-Subject: [PATCH v10 12/38] dyndbg: bump num-tokens in a query-cmd from 9 to
- 15
+Date: Wed, 16 Sep 2026 09:33:03 -0600
+Subject: [PATCH v10 11/38] dyndbg: drop NUM_TYPE_ARGS
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +40,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260916-dd-cmap-part2-clean-v10-12-af4cf4767707@gmail.com>
+Message-Id: <20260916-dd-cmap-part2-clean-v10-11-af4cf4767707@gmail.com>
 References: <20260916-dd-cmap-part2-clean-v10-0-af4cf4767707@gmail.com>
 In-Reply-To: <20260916-dd-cmap-part2-clean-v10-0-af4cf4767707@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -63,13 +62,14 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
  linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
  linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
- Jim Cromie <jim.cromie@gmail.com>
+ Jim Cromie <jim.cromie@gmail.com>, 
+ Louis Chauvet <louis.chauvet@bootlin.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1789572777; l=3086;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1789572777; l=1542;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=ZGemRpU3viZV1yyWNrUvp83bn0nizPoTEiNG6+9byRk=;
- b=U11SX80pKnjEiP9L+ni/xIVpnJ0qf6b63AUzYMQGC8xqR+eZWUXymkZ+KVoSZ7Fm7lGn3baEP
- emhNvZv5MzFAtb/0qv/NrLW/ayPRmHZ303QZx0oHngbc9shpedhCENb
+ bh=xMZm/oO0FtfekjkxZIUS9OIoDKqTmliEkK4gwpH/mIw=;
+ b=QAdmd7OnyByqB+vshsCQgOUhwUJReQUtQy5E0MMQNfuys3qoOjW8MKWrkHPL69EPT7LGBl0fe
+ 7iCE7S/LKwgA7ttanS2UZzPl7Ln06Kohe6CyF0zRKvADbWiyKk6reIZ
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -79,67 +79,48 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-Current MAXWORDS in ddebug_exec_query() is too small to accept a legal
-query-command using all 6 keywords.  We *need* 13, but this adds a few
-extra to allow certain errors to fail on subsequent, more meaningful
-grammar checks.
+ARRAY_SIZE almost works here, since array decl is complete.
+But define it locally, named __DDEBUG_ARRAY_SIZE, to avoid
+include conflicts with  boot/<something> on some arch.
+
+no functional change
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
 ---
- lib/dynamic_debug.c                                      |  2 +-
- tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh | 12 ++++++------
- 2 files changed, 7 insertions(+), 7 deletions(-)
+v7: actually use macro
+v5: drop include, it causes redefined probs in /boot/* for some arch.
+v2: include linux/array_size.h, correct commit subject, review after sob
+---
+ include/linux/dynamic_debug.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index b4617c57dcec..83983b261bf8 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -558,7 +558,7 @@ static int ddebug_exec_query(char *query_string, const char *modname)
- {
- 	struct flag_settings modifiers = {};
- 	struct ddebug_query query = {};
--#define MAXWORDS 9
-+#define MAXWORDS 15
- 	int nwords, nfound;
- 	char *words[MAXWORDS];
+diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
+index 9607121c3072..baf5c0853f45 100644
+--- a/include/linux/dynamic_debug.h
++++ b/include/linux/dynamic_debug.h
+@@ -8,6 +8,8 @@
  
-diff --git a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-index 73c2a4b07bd3..04c1d9254ca9 100755
---- a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-+++ b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-@@ -326,8 +326,8 @@ function GOLDEN_RECORDS {
- #K= b9a397e807148d13ba07da7db7e69817 FT_grammar_errs.2
- #K= 5abefa504937a329f974504f1896e368 FT_grammar_errs.3
- #K= 1d94d0f239bf40bf51280caeab499de0 FT_grammar_errs.4
--#K= 135035c8a17ae100cc4ec954c4d75b2f FT_grammar_errs.5
--#K= a9cc14244f91a12d3174ad1314144a8e FT_grammar_errs.6
-+#K= 9a5e1c1856f1ebbe57a4afdfc4c9703a FT_grammar_errs.5
-+#K= b3809a6f9f643f049f1ef30827d4b001 FT_grammar_errs.6
- #K= 5d400aad1a7d71f548b6b81274d00a55 FT_grammar_errs.7
- #K= 61cd359b10f9051862d3745eda07a295 FT_grammar_errs.8
- #K= 567379f4f4d099f00f37d1469d9370bd FT_grammar_errs.9
-@@ -346,8 +346,8 @@ function GOLDEN_RECORDS {
- #K= 1f6fedfe222af475211b3bfc6d08bc63 FT_grammar_errs.22
- #K= c67dfeca97697b707acdd70672816dff FT_grammar_errs.23
- #K= 9574dbfdac063409b41a44e6251fbcd9 FT_grammar_errs.24
--#K= 644b81753949ac1285e38ac995eeba46 FT_grammar_errs.25
--#K= 1bf2a93a39961f40e0c2dd4c5e2edc6d FT_grammar_errs.26
-+#K= 3c694a0ee2cf3a1d39f2ca8a9f3b9094 FT_grammar_errs.25
-+#K= c23be05426c8727be833ff055944aa96 FT_grammar_errs.26
- #K= cdddf4ffd7fde3c12eb0c73770b872bf FT_grammar_errs.27
- #K= cdf7a2e2740ec007efbd29feda478420 FT_grammar_errs.28
- #K= f6650d69963cef433c50e1f2acb899fc FT_grammar_errs.29
-@@ -366,8 +366,8 @@ function GOLDEN_RECORDS {
- #K= 1a402ada248d0d50cec13a1af150ea33 FT_grammar_errs.42
- #K= 5b46a8eb0d74009462f74cf7553e3228 FT_grammar_errs.43
- #K= 546e440044828d86135dd63f1eb9ed17 FT_grammar_errs.44
--#K= 644b81753949ac1285e38ac995eeba46 FT_grammar_errs.45
--#K= 1bf2a93a39961f40e0c2dd4c5e2edc6d FT_grammar_errs.46
-+#K= 3c694a0ee2cf3a1d39f2ca8a9f3b9094 FT_grammar_errs.45
-+#K= 37b7ab754e579683a28ce086c470cdc9 FT_grammar_errs.46
- #K= 3e3acfb800cfb1bcb0cc07f33b75830a FT_grammar_errs.47
- #K= 42dc6cb4fe938bb82b64c82924ef28d8 FT_grammar_errs.48
- #K= cf9320d2188f5b48d508d610d95298b2 FT_grammar_errs.49
+ #include <linux/build_bug.h>
+ 
++#define __DDEBUG_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
++
+ /*
+  * An instance of this structure is created in a special
+  * ELF section at every dynamic debug callsite.  At runtime,
+@@ -122,11 +124,9 @@ struct ddebug_class_param {
+ 		.mod_name = KBUILD_MODNAME,				\
+ 		.base = _base,						\
+ 		.map_type = _maptype,					\
+-		.length = NUM_TYPE_ARGS(char*, __VA_ARGS__),		\
+ 		.class_names = _var##_classnames,			\
++		.length = __DDEBUG_ARRAY_SIZE(_var##_classnames),	\
+ 	}
+-#define NUM_TYPE_ARGS(eltype, ...)				\
+-	(sizeof((eltype[]) {__VA_ARGS__}) / sizeof(eltype))
+ 
+ extern __printf(2, 3)
+ void __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...);
 
 -- 
 2.55.0
