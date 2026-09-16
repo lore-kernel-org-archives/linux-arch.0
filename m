@@ -1,32 +1,32 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 737184A2E2E;
-	Wed, 16 Sep 2026 14:24:33 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 823D753D0BC;
+	Wed, 16 Sep 2026 14:27:23 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789568675; cv=none; b=rqWmXUy9y8y7L6ylrCwiytUpwBtFY/BLpqa/b6QJ4fp5k5djkpbLwHHfi2wAYViU2ihf475aQQOIvDgHu9lh+LuRmHkwvICzx70w8cLOs5o4JobXEmkn7TBNOwaT8dmDi9yl6B4A0fflVDD6Yc3Jfti+JVA9S7EffsUuJApB30A=
+	t=1789568845; cv=none; b=hAiYpaRYf11lK6NIx1p1fABpfmZd3C+VwxluxFurwRAIugpMdH1yFFin0CbXlCpQrVcm6cSK7YTEd1/Duq+2GeYTY2ST/OQ8VR/8ZtojHXSoA+owXO6DM/PXA3cm0/Lk5vv48eJKQlXg+DktbyVxeoV4o5V0/31uUitpYXfq+HI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789568675; c=relaxed/simple;
-	bh=y5EcF/bDhZcEM0MZ71FZRncO8e+ADBprizKCsXz5T/4=;
+	s=arc-20240116; t=1789568845; c=relaxed/simple;
+	bh=kNIvL+nIWNr0wurdCoZif5oJnH852ZRM+p4L+qRjfqU=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=o0inzK9LSkPwrdF/xPjW5DhpbNRAAWX3eKYp9xEcHZ88sRXVuXMKfJ1XTAfGGQH2AFZRwYP8QrYKW281ZvdrkKhvgAkL5Pgu+fLDr+Df+hLydyak9EEOGf+wjqcnwBETZG1mZq+BMUKP4nvEpB5O2NnuqNfBmVHVCpXiSVwN6/I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=XFwGhLhd; arc=none smtp.client-ip=217.140.110.172
+	 Content-Type:Content-Disposition:In-Reply-To; b=n6Zxinr1JrNJ+FZ4PMudou/hhDj5cwSJyU3eFdzDqhZIZdAOOvx7HVAbUgLEuid+5jsNyGzHyR+5XKdZDFAyCNZNWeY3YMpjwwZfArgH44PZT3F+pqZjTqFGplbgnu45y5zBE+f4gb99lH9RvDusuZC4w15Oc0tPeMQsSEiSexI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=UGmFTW7s; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="XFwGhLhd"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="UGmFTW7s"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id E627C143D;
-	Wed, 16 Sep 2026 07:24:28 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 59227176A;
+	Wed, 16 Sep 2026 07:27:19 -0700 (PDT)
 Received: from J2N7QTR9R3 (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 49B2F3F7B4;
-	Wed, 16 Sep 2026 07:24:30 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 430213F7B4;
+	Wed, 16 Sep 2026 07:27:20 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1789568672; bh=y5EcF/bDhZcEM0MZ71FZRncO8e+ADBprizKCsXz5T/4=;
+	t=1789568842; bh=kNIvL+nIWNr0wurdCoZif5oJnH852ZRM+p4L+qRjfqU=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=XFwGhLhdM0FUDVlGeDxONnYI05qsWbPanwiPxV7rUn1ovngADP+E+OqTp0JTNNG9u
-	 IhD4negOLdgD55P0ZSDuKVRdVawQbCJ+TX+t/bCkZBtuigg7fOj6WvbtHalrJHIunz
-	 PVs5cThOhvok9bST1s7Hk6X1unFr6OdbAAHwDidM=
-Date: Wed, 16 Sep 2026 15:24:24 +0100
+	b=UGmFTW7sn4XYhLhfxLemYUWKFqqyqor+Cx+FpVBNW9BMVrfNjysMoRrLxbazariuc
+	 2qVtvOwGtrzkBNG0o4mbvCQeLQFzSBnkgEasNR8CZ5ZlpElZk/6bE088+e529o0cqB
+	 YAN48wWAwTvOuhl952SbNTYnWX+otfGBTzkN/PfM=
+Date: Wed, 16 Sep 2026 15:27:17 +0100
 From: Mark Rutland <mark.rutland@arm.com>
 To: =?utf-8?B?QW5kcsOp?= Almeida <andrealmeid@igalia.com>
 Cc: Catalin Marinas <catalin.marinas@arm.com>,
@@ -41,11 +41,11 @@ Cc: Catalin Marinas <catalin.marinas@arm.com>,
 	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>,
 	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
 	linux-arch@vger.kernel.org, kernel-dev@igalia.com
-Subject: Re: [PATCH v8 1/4] arm64: vdso: Prepare for robust futex unlock
- support
-Message-ID: <aqqmmNTDnzT5d-ZT@J2N7QTR9R3>
+Subject: Re: [PATCH v8 2/4] arm64: vdso: Implement
+ __vdso_futex_robust_try_unlock()
+Message-ID: <aqqkX8GyxgdtoOmc@J2N7QTR9R3>
 References: <20260821-tonyk-robust_arm-v8-0-077707b6f1c7@igalia.com>
- <20260821-tonyk-robust_arm-v8-1-077707b6f1c7@igalia.com>
+ <20260821-tonyk-robust_arm-v8-2-077707b6f1c7@igalia.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -55,249 +55,365 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <20260821-tonyk-robust_arm-v8-1-077707b6f1c7@igalia.com>
+In-Reply-To: <20260821-tonyk-robust_arm-v8-2-077707b6f1c7@igalia.com>
 
 Hi André,
 
-I have a few comments here; mostly minor nits.
+I have a few comments below. I'm not sure what the plan is for 32-bit
+robust lists, and I think there are a few problems with the assembly.
 
-On Fri, Aug 21, 2026 at 06:50:42PM -0300, André Almeida wrote:
-> To solve the robust futex's list_pending_op clearing race condition,
-> prepare for implement __vdso_futex_robust_try_unlock() for arm64 with the
-> following steps:
+On Fri, Aug 21, 2026 at 06:50:43PM -0300, André Almeida wrote:
+> The futex's robust list uAPI has a struct robust_list_head::list_op_pending
+> pointer used by userspace as a temporary variable while the mutex unlock is
+> happening. User sets it to the futex address that's about to be released
+> and removed from the robust list, and list_op_pending is cleared after.
+> After a thread dies, the kernel checks it's list_op_pending and wakes the
+> mutex in that address, to prevent starvation, and flip a bit in the mutex
+> word (FUTEX_OWNER_DIED).
 > 
-> - Create a helper function that sets the struct futex_mm_data with the
-> VDSO's labels addresses. The robust futex fixup mechanism needs to
-> compare the current instruction pointer to the VDSO instructions range.
+> However, there's a critical section where the user thread dies after the
+> mutex is released but before list_op_pending is cleared. If that happens,
+> another thread can wake up, use the lock, release it, and free its
+> memory. Now, if the robust list cleanup happens after this, the
+> killed thread's list_op_pending becomes a dandling pointer. The
+> kernel wrongly treats this address as a mutex, calls a futex_wake()
+> on it and flips a bit, causing a memory corruption.
 > 
-> - Split vdso_mremap() in vdso_mremap() and aarch32_mremap(), this allows
-> the VDSO to be setup correctly regarding the instructions addresses for
-> both ABIs when a mremap happens.
-
-When I commented back on v5, I'd meant that the mremap changes should be
-a separate patch. I've included a patch for that below; are you're happy
-to take that as a prefix of this series?
-
-> - Implement arch_futex_robust_unlock_get_pop() for arm64, checking for r2
-> and r3 registers values for the fixup function. The role of this registers
-> is explained in the commit that implement the assembly portion of the VDSO.
+> To avoid using the dangling pointer, implement
+> __vdso_futex_robust_try_unlock() for arm64. Make the VDSO release the mutex
+> and clear the list_op_pending fields, just as is done in userspace right
+> now. But having it in a VDSO means that, in the case of a killed user
+> thread, the kernel can know exactly in which part of the release process
+> the thread was interrupt, check the registers for the operation success and
+> clears the list_op_pending on behalf of the user thread to prevent the
+> use-after-free bug.
+> 
+> The need for checking the instructions addresses and the register makes
+> this mechanism arch-dependent. Implement it using LL/SC semantics. If the
+> user instruction pointer is between the labels
+> __futex_list64_try_unlock_cs_start and __futex_list64_try_unlock_cs_end,
+> the critical section was interrupted. The kernel checks for the result
+> register (always w3) of the stlxr instruction used for atomically releasing
+> the mutex. If it's 0, the release happened and the kernel should clear the
+> list_op_pending field (always stored at x2).
 > 
 > Signed-off-by: André Almeida <andrealmeid@igalia.com>
 > ---
+> v7:
+>  - Typo in message: success result for stlex is 0, not 1
+>  - pop_reg is read afterwards so define it as an output parameter "+Q"
+> 
 > v6:
->  - Restructured this commit. Move the arch bits away, kept just the
->  generic/helper functions.
+>  - Complete reword of commit message to make it clear
+>  - Better commit split, only the specific aarch64 things here
+>  - Use explicity labels instead of macros
 > 
 > v4:
-> - Guard symbols from vdso.lds.S with ifdef
-> - drop update_ips() from sigpage remap function
+>  - Guard makefile for vfutex.o with ifdef
+>  - Moved _start label one instruction above
+>  - Use results register (w3) to check for store success instead of using zero
+>    flag
 > 
 > v3:
->  - Fix adding vdso base addr twice
->  - Call vdso_futex_robust_unlock_update_ips() on remap as well
-> v2:
->  - Fixed linker not finding VDSO symbols
+>  - Managed to get pop to always be stored at x2
 > ---
-> ---
->  arch/arm64/include/asm/futex_robust.h | 19 +++++++++++++++++++
->  arch/arm64/kernel/vdso.c              | 27 ++++++++++++++++++++++++++-
->  2 files changed, 45 insertions(+), 1 deletion(-)
+>  arch/arm64/Kconfig                |  1 +
+>  arch/arm64/kernel/vdso.c          | 17 +++++++++++++++--
+>  arch/arm64/kernel/vdso/Makefile   | 10 ++++++++++
+>  arch/arm64/kernel/vdso/vdso.lds.S |  9 +++++++++
+>  arch/arm64/kernel/vdso/vfutex.c   | 35 +++++++++++++++++++++++++++++++++++
+>  5 files changed, 70 insertions(+), 2 deletions(-)
 > 
-> diff --git a/arch/arm64/include/asm/futex_robust.h b/arch/arm64/include/asm/futex_robust.h
-> new file mode 100644
-> index 000000000000..4ff783bb2dc3
-> --- /dev/null
-> +++ b/arch/arm64/include/asm/futex_robust.h
-> @@ -0,0 +1,19 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +#ifndef _ASM_ARM64_FUTEX_ROBUST_H
-> +#define _ASM_ARM64_FUTEX_ROBUST_H
-> +
-> +#include <asm/ptrace.h>
-> +
-> +static __always_inline void __user *arm64_futex_robust_unlock_get_pop(struct pt_regs *regs)
-> +{
-> +	/*
-> +	 * w3 stores the result of the stlxr instruction. If it's zero, the then
-> +	 * the ll/sc cmpxchg succeeded and the pending op pointer needs to be cleared.
-> +	 */
-
-It would be good if the comment could refer to the functions with the
-critical sections, e.g.
-
-	/*
-	 * In the asm for __vdso_futex_robust_list{64,32}_try_unlock(), ...
-	 */
-
-That way it will be easier for folk to cross-reference this later.
-
-> +	return (regs->user_regs.regs[3]) ? NULL : (void __user *) regs->user_regs.regs[2];
-
-You can use 'regs->regs[n]' in place of 'regs->user_regs.regs[n]' here,
-which will make this a bit shorter and easier to read.
-
-I reckon this might also be clearer as:
-
-| 	if (regs->regs[3])
-| 		return NULL;
-| 	
-| 	return (void __user *)regs->regs[2];
-
-Do we need a __force cast here, or is sparse happy without that?
-
-> +}
-> +
-> +#define arch_futex_robust_unlock_get_pop(regs) \
-> +	arm64_futex_robust_unlock_get_pop(regs)
-> +
-> +#endif /* _ASM_ARM64_FUTEX_ROBUST_H */
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index a269f73b7653..55932c0cd109 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -222,6 +222,7 @@ config ARM64
+>  	select HAVE_RELIABLE_STACKTRACE
+>  	select HAVE_POSIX_CPU_TIMERS_TASK_WORK
+>  	select HAVE_FUNCTION_ARG_ACCESS_API
+> +	select HAVE_FUTEX_ROBUST_UNLOCK
+>  	select MMU_GATHER_RCU_TABLE_FREE
+>  	select HAVE_RSEQ
+>  	select HAVE_RUST if RUSTC_SUPPORTS_ARM64
 > diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-> index 592dd8668de4..3ef331b5b240 100644
+> index 3ef331b5b240..dc6b582736d0 100644
 > --- a/arch/arm64/kernel/vdso.c
 > +++ b/arch/arm64/kernel/vdso.c
-> @@ -11,6 +11,7 @@
->  #include <linux/clocksource.h>
->  #include <linux/elf.h>
->  #include <linux/err.h>
-> +#include <linux/futex.h>
->  #include <linux/errno.h>
->  #include <linux/gfp.h>
->  #include <linux/kernel.h>
-> @@ -57,6 +58,22 @@ static struct vdso_abi_info vdso_info[] __ro_after_init = {
->  #endif /* CONFIG_COMPAT_VDSO */
->  };
+> @@ -69,16 +69,27 @@ static inline void __vdso_futex_update_ips(struct mm_struct *mm, bool is_32bit,
+>  	futex_set_vdso_cs_range(fd, is_32bit ? 1 : 0, start, end, is_32bit);
+>  }
 >  
-> +#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
-> +static inline void __vdso_futex_update_ips(struct mm_struct *mm, bool is_32bit, void *startp,
-> +					   void *endp)
+> +static inline void vdso_futex_update_ips(struct mm_struct *mm)
 > +{
-> +	unsigned long start = (unsigned long) startp;
-> +	unsigned long end = (unsigned long) endp;
+> +	unsigned long vdso = (unsigned long) mm->context.vdso;
 
-Nit: there shouldn't be a space between the cast and the expression:
+Nit: no space for the cast, please.
 
-	unsigned long start = (unsigned long)startp;
-	unsigned long end = (unsigned long)endp;
-
-> +	struct futex_mm_data *fd = &mm->futex;
 > +
-> +	futex_set_vdso_cs_range(fd, is_32bit ? 1 : 0, start, end, is_32bit);
-
-On arm64 (and every architecture other than x86, AFAICT), the
-native/compat VDSOs are mutually exclusive, and a single mm can only
-have one of them.
-
-Given that, I think we can make this:
-
-	futex_set_vdso_cs_range(fd, 0, start, end, is_32bit);
-
-That way we'll avoid confusing/bikesheeding over 'is_32bit ? 1 : 0',
-without having to add mnemnonics for the native/compat CS indices.
-
-That said, what's the plan for 32-bit robust lists on a 64-bit host?
-IIUC you wanted that for emulation, and AFAICT you have no way to call
-__vdso_futex_robust_list32_try_unlock() from a native task.
-
+> +	__vdso_futex_update_ips(mm, false,
+> +				VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_start),
+> +				VDSO_SYMBOL(vdso, futex_list64_try_unlock_cs_end));
 > +}
 > +
-> +#else
-> +static inline void __vdso_futex_update_ips(struct mm_struct *mm, bool is_32bit, void *startp,
-> +					   void *endp)
-> +#endif /* CONFIG_FUTEX_ROBUST_UNLOCK */
+>  #else
+> -static inline void __vdso_futex_update_ips(struct mm_struct *mm, bool is_32bit, void *startp,
+> -					   void *endp)
+> +static inline void vdso_futex_update_ips(struct mm_struct *mm) {}
+>  #endif /* CONFIG_FUTEX_ROBUST_UNLOCK */
+>  
 > +
 >  static int vdso_mremap(const struct vm_special_mapping *sm,
 >  		struct vm_area_struct *new_vma)
 >  {
-> @@ -162,6 +179,14 @@ static int aarch32_sigpage_mremap(const struct vm_special_mapping *sm,
+>  	current->mm->context.vdso = (void *)new_vma->vm_start;
+>  
+> +	vdso_futex_update_ips(current->mm);
+> +
 >  	return 0;
 >  }
 >  
-> +static int aarch32_mremap(const struct vm_special_mapping *sm,
-> +		struct vm_area_struct *new_vma)
-> +{
-> +	current->mm->context.vdso = (void *)new_vma->vm_start;
+> @@ -366,5 +377,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+>  	ret = __setup_additional_pages(VDSO_ABI_AA64, mm, bprm, uses_interp);
+>  	mmap_write_unlock(mm);
+>  
+> +	vdso_futex_update_ips(mm);
 > +
-> +	return 0;
-> +}
+>  	return ret;
+>  }
+> diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
+> index 7dec05dd33b7..985346c7a0bb 100644
+> --- a/arch/arm64/kernel/vdso/Makefile
+> +++ b/arch/arm64/kernel/vdso/Makefile
+> @@ -11,6 +11,10 @@ include $(srctree)/lib/vdso/Makefile.include
+>  
+>  obj-vdso := vgettimeofday.o note.o sigreturn.o vgetrandom.o vgetrandom-chacha.o
+>  
+> +ifdef CONFIG_FUTEX_ROBUST_UNLOCK
+> +  obj-vdso += vfutex.o
+> +endif
 > +
->  static struct vm_special_mapping aarch32_vdso_maps[] = {
->  	[AA32_MAP_VECTORS] = {
->  		.name	= "[vectors]", /* ABI */
-> @@ -174,7 +199,7 @@ static struct vm_special_mapping aarch32_vdso_maps[] = {
->  	},
->  	[AA32_MAP_VDSO] = {
->  		.name = "[vdso]",
-> -		.mremap = vdso_mremap,
-> +		.mremap = aarch32_mremap,
->  	},
->  };
+>  # Build rules
+>  targets := $(obj-vdso) vdso.so vdso.so.dbg
+>  obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
+> @@ -45,9 +49,11 @@ CC_FLAGS_ADD_VDSO := -O2 -mcmodel=tiny -fasynchronous-unwind-tables
+>  
+>  CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_REMOVE_VDSO)
+>  CFLAGS_REMOVE_vgetrandom.o = $(CC_FLAGS_REMOVE_VDSO)
+> +CFLAGS_REMOVE_vfutex.o = $(CC_FLAGS_REMOVE_VDSO)
+>  
+>  CFLAGS_vgettimeofday.o = $(CC_FLAGS_ADD_VDSO)
+>  CFLAGS_vgetrandom.o = $(CC_FLAGS_ADD_VDSO)
+> +CFLAGS_vfutex.o = $(CC_FLAGS_ADD_VDSO)
+>  
+>  ifneq ($(c-gettimeofday-y),)
+>    CFLAGS_vgettimeofday.o += -include $(c-gettimeofday-y)
+> @@ -57,6 +63,10 @@ ifneq ($(c-getrandom-y),)
+>    CFLAGS_vgetrandom.o += -include $(c-getrandom-y)
+>  endif
+>  
+> +ifneq ($(c-futex-y),)
+> +  CFLAGS_vfutex.o += -include $(c-futex-y)
+> +endif
+> +
+>  targets += vdso.lds
+>  CPPFLAGS_vdso.lds += -P -C -U$(ARCH)
+>  
+> diff --git a/arch/arm64/kernel/vdso/vdso.lds.S b/arch/arm64/kernel/vdso/vdso.lds.S
+> index 52314be29191..225f59bb81d1 100644
+> --- a/arch/arm64/kernel/vdso/vdso.lds.S
+ +++ b/arch/arm64/kernel/vdso/vdso.lds.S
+> @@ -104,6 +104,9 @@ VERSION
+>  		__kernel_clock_gettime;
+>  		__kernel_clock_getres;
+>  		__kernel_getrandom;
+> +#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
+> +		__vdso_futex_robust_list64_try_unlock;
+> +#endif
+>  	local: *;
+>  	};
+>  }
+> @@ -112,3 +115,9 @@ VERSION
+>   * Make the sigreturn code visible to the kernel.
+>   */
+>  VDSO_sigtramp		= __kernel_rt_sigreturn;
+> +
+> +#ifdef CONFIG_FUTEX_ROBUST_UNLOCK
+> +VDSO_futex_list64_try_unlock_cs_start = __futex_list64_try_unlock_cs_start;
+> +VDSO_futex_list64_try_unlock_cs_success = __futex_list64_try_unlock_cs_success;
+> +VDSO_futex_list64_try_unlock_cs_end = __futex_list64_try_unlock_cs_end;
+> +#endif
 
-As above, I'd prefer if the mremap changes were a separate patch, e.g.
-as below.
+I was under the impression that you wanted to be able to use a 32-bit
+list on arm64 for emulated 32-bit code. Am I mistaken, or missing
+something? On arm64, you won't be able to call the 32-bit VDSO as you
+could on x86-64.
+
+> diff --git a/arch/arm64/kernel/vdso/vfutex.c b/arch/arm64/kernel/vdso/vfutex.c
+> new file mode 100644
+> index 000000000000..ae7b653c1554
+> --- /dev/null
+> +++ b/arch/arm64/kernel/vdso/vfutex.c
+> @@ -0,0 +1,35 @@
+> +// SPDX-License-Identifier: GPL-2.0-or-later
+> +#include <linux/stringify.h>
+> +#include <vdso/futex.h>
+> +
+> +__u32 __vdso_futex_robust_list64_try_unlock(__u32 *lock, __u32 tid, __u64 *pop)
+> +{
+
+It would be good to have a comment here saying that
+arm64_futex_robust_unlock_get_pop() depends on these register
+allocations.
+
+> +	register __u64 *pop_reg asm("x2") = pop;
+> +	register __u32 result_reg asm("w3") = 0;
+> +	__u32 val;
+> +
+> +	asm volatile (
+> +		".globl						  "
+> +		"__futex_list64_try_unlock_cs_start,		  "
+> +		"__futex_list64_try_unlock_cs_success,		  "
+> +		"__futex_list64_try_unlock_cs_end		\n"
+
+Sorry, when I mentioned putting these within the assembly, I meant doing
+something like:
+
+| #define LABEL(l)						\
+| 	"	.globl " #l "\n"				\
+| 	#l ":\n"
+
+... and within the asssembly, having:
+
+| 	"	insn1					\n"
+| 	"	insn2					\n"
+| 	LABEL(__futex_list64_try_unlock_cs_start)
+| 	"	insn2					\n"
+| 	LABEL(__futex_list64_try_unlock_cs_start)
+| 	"	insn4					\n"
+| 	LABEL(__futex_list64_try_unlock_cs_success)
+| 	"	insn5					\n"
+
+That way we use the full strings, which are easy to grep for, and we
+only have to define each label string once.
+
+> +
+> +		"	prfm pstl1strm, %[lock]			\n"
+> +		"retry:						\n"
+> +		"	ldxr %w[val], %[lock]			\n"
+> +		"	cmp %w[tid], %w[val]			\n"
+> +		"	bne __futex_list64_try_unlock_cs_end	\n"
+
+The 'bne' here should be 'b.ne'. IIUC assemblers accept the former by
+historical accident, and 'b.<cond>' is the architecturally defined
+mnemonic.
+
+As general thing, we format assembly with a tab between the instruction
+and first operand, so the above should be:
+
+| 	"	prfm	pstl1strm, %[lock]			\n"
+| 	"retry:							\n"
+| 	"	ldxr	%w[val], %[lock]			\n"
+| 	"	cmp	%w[tid], %w[val]			\n"
+| 	"	b.ne	__futex_list64_try_unlock_cs_end	\n"
+
+> +		"	stlxr %w[result], wzr, %[lock]		\n"
+> +		"__futex_list64_try_unlock_cs_start:		\n"
+> +		"	cbnz %w[result], retry			\n"
+> +		"__futex_list64_try_unlock_cs_success:		\n"
+> +		"	str xzr, %[pop_reg]			\n"
+> +		"__futex_list64_try_unlock_cs_end:		\n"
+> +
+> +		: [val] "=&r" (val), [result] "=&r" (result_reg), [pop_reg] "+Q" (*pop_reg)
+> +		: [tid] "r" (tid), [lock] "Q" (*lock)
+> +		: "cc", "memory"
+> +	);
+
+As a general note, for assembly constaints, please put each constraint
+on its own line, e.g.
+
+	: [val] "=&r" (val),
+	  [result] "=&r" (result_reg),
+	  [pop_reg] "+Q" (*pop_reg)
+	: [tid] "r" (tid),
+	  [lock] "Q" (*lock)
+	: "cc", "memory"
+
+That formatting makes it much easier to read each constraint
+individually, and it makes it easier to review changes to individual
+constaints.
+
+Generally, for asm we have a preferred style:
+
+	asm volatile(
+	"	// string starts aligned with 'asm'	\n"
+	"	// with 1 tab indend within that.	\n"
+	"						\n"
+	"	insn	operand1, operand2		\n"
+	"label:						\n"
+	"	insn	operand1, operand2		\n"
+	: [output1] "=r" (...),
+	  [output2] "=r" (...)
+	: [input1] "r" (...).
+	  [input2] "r" (...)
+	: "clobbers"
+	);
+
+I see a couple of problems with the constraints as-is.
+
+Firstly, the constraints for [pop_reg] doesn't guarantee that x2 is
+used. The "+Q" constraint takes a memory operand (in this case the
+location pointed to by 'pop_reg', and limits the addressing mode to a
+single base register with no offset. The operand is the memroy location,
+not the register holding the memory location, so this constraint won't
+necessarily use x2. Unless 'pop_reg' itself is passed into a register
+constraint, the compiler might not ensure that 'x2' is populated.
+
+For example:
+
+| [mark@gravadlaks:~/tests/asm-operands-q-reg]% cat test.c
+| unsigned long foo(unsigned long *ptr)
+| {
+|         register unsigned long *ptr_reg asm("x2") = ptr;
+|         unsigned long val;
+| 
+|         asm volatile(
+|         "       ldr     %[val], %[qptr]\n"
+|         : [val] "=&r" (val)
+|         : [qptr] "Q" (*ptr_reg)
+|         );
+| 
+|         return val;
+| }
+| [mark@gravadlaks:~/tests/asm-operands-q-reg]% usekorg 16.2.0 aarch64-linux-gcc -c test.c -O2
+| [mark@gravadlaks:~/tests/asm-operands-q-reg]% usekorg 16.2.0 aarch64-linux-objdump -d test.o
+| 
+| test.o:     file format elf64-littleaarch64
+| 
+| 
+| Disassembly of section .text:
+| 
+| 0000000000000000 <foo>:
+|    0:   f9400001        ldr     x1, [x0]
+|    4:   aa0103e0        mov     x0, x1
+|    8:   d65f03c0        ret
+
+We will need an "r" input constraint for 'pop_reg' to ensure that x2 is
+allocated. Either in addition to an "=Q" output constraint for the
+actual memory write, or we rely on the memory clobber to hazaard against
+other memory accesses.
+
+Secondly, the "Q" input constaint for 'lock' looks inaccurate, given
+that we both read and write to 'lock'. Either that should be a "+Q"
+output constraint, or we rely on the memory clobber to hazard against
+other memory accesses.
 
 Mark.
 
----->8----
-From 39029dfea82a54bd7b511cc036d10ef8e8ee4ccd Mon Sep 17 00:00:00 2001
-From: Mark Rutland <mark.rutland@arm.com>
-Date: Wed, 16 Sep 2026 11:03:32 +0100
-Subject: [PATCH] arm64: vdso: Split native/compat mremap callbacks
-
-Currently the native and compat VDSOs share a common vdso_mremap()
-function which is used as their vm_special_mapping::mremap callback.
-
-In subsequent patches the native and compat VDSOs will need distinct
-mremap logic, which will be easier to manage with separate functions.
-
-Give the compat VDSO its own aarch32_vdso_mremap() function. For now
-this is identical to vdso_mremap().
-
-At the same time, fix the odd whitespace in the vdso_mremap() prototype.
-
-There should be no functional change as a result of this patch.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
----
- arch/arm64/kernel/vdso.c | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
-
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 592dd8668de46..089a70d962204 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -58,7 +58,7 @@ static struct vdso_abi_info vdso_info[] __ro_after_init = {
- };
- 
- static int vdso_mremap(const struct vm_special_mapping *sm,
--		struct vm_area_struct *new_vma)
-+		       struct vm_area_struct *new_vma)
- {
- 	current->mm->context.vdso = (void *)new_vma->vm_start;
- 
-@@ -162,6 +162,14 @@ static int aarch32_sigpage_mremap(const struct vm_special_mapping *sm,
- 	return 0;
- }
- 
-+static int aarch32_vdso_mremap(const struct vm_special_mapping *sm,
-+			       struct vm_area_struct *new_vma)
-+{
-+	current->mm->context.vdso = (void *)new_vma->vm_start;
-+
-+	return 0;
-+}
-+
- static struct vm_special_mapping aarch32_vdso_maps[] = {
- 	[AA32_MAP_VECTORS] = {
- 		.name	= "[vectors]", /* ABI */
-@@ -174,7 +182,7 @@ static struct vm_special_mapping aarch32_vdso_maps[] = {
- 	},
- 	[AA32_MAP_VDSO] = {
- 		.name = "[vdso]",
--		.mremap = vdso_mremap,
-+		.mremap = aarch32_vdso_mremap,
- 	},
- };
- 
--- 
-2.30.2
-
+> +
+> +	return val;
+> +}
+> 
+> -- 
+> 2.55.0
+> 
