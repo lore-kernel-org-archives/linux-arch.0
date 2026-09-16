@@ -1,227 +1,187 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CA88F37AA83;
-	Wed, 16 Sep 2026 14:40:16 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CF82D53FD3C;
+	Wed, 16 Sep 2026 14:42:24 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789569618; cv=none; b=j8yteKoff4AJ54a9TSzORfOIa01OEu1jcXipIdaQKlCm58tVmdYpGfiHhrY3jwIqZWkj3YuMVI7jhVrISaeMhdm71F3KaPvP+FPpcbuk1Fb8To8BNPnM2xwTAtyaMtlx10A3KjPs3lcJo6E8ndcRsfjkZMi1yJ79jsmvDkzesEU=
+	t=1789569746; cv=none; b=KaudY7ID+k79xB3fglJLgJ6boGCsjz+fosZQJI99KKnWi/AJiyqNRGColScmcx1vy9WjGKxTlb+RRqN3e7DIoyY/0SjVib2UvMJwEwCuS2Sqh6BkoxtM+iy1UCzrRprEMpp4qEcIKKI1z8IhI5rx7TecRZQFWJzVevExQ13f1IQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789569618; c=relaxed/simple;
-	bh=C6w+GzIt7txqTC9jLSWAFz1X88rbaR5OrUf0AekqJWA=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=POyHmvA5S01VnHGDb1FNS6Xzn5Pdxul6OGdsbj0Dec1AQ/2yWhU545Bbh0DPBxUwt2e7owgoR8s7nuKNx0nxxdSqwO38aMDXTu44J1n3Ey3YhV2juVZqzPWdlrdM8ra9v3dv1UNts/gvWaFaDXpTAPUAqOS6bWr29b3bdRsq820=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ivXZVu9l; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789569746; c=relaxed/simple;
+	bh=qp2nsScayoOxBYFYPJJEqlXeOPmuAbhUM7u0kwUDTAM=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=k7IMk5kxNSXmTIbNu8DmKF3/bN7Yh6dHCbIDV465PcAlUnKh3EieFhr85nXshguivIZZPQY3dEIlPrXqmg0peZxuOg+USyX+THlZtwbTRF+CP/G/3I1O05GyLa+G1S75jkAEOmDSyauucfwZyRFkS8xEBCCOTfaFUVEQXJ1oAfA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=GImUOcTT; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ivXZVu9l"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 701451F000FF;
-	Wed, 16 Sep 2026 14:40:04 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="GImUOcTT"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 67C741F000FF;
+	Wed, 16 Sep 2026 14:42:07 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789569616;
-	bh=WVezKAbdpjiJy/+Hx0xq2+pq04gpzdt4BxILI2ordk8=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=ivXZVu9luWu6E+lU/3CJM5ULkUy8R5oVFsS1OFXx3keqcFidn8fsX/QKKu2sClGEf
-	 4Bhk1VDn3aU7DELtvVbfOqkv2T61/drhZag8bXv/9N5ZVPylQ6v1hIMpbprrrWM7GM
-	 rDYKrKU0uadpz7ZMpGv3xctF0I9r1fxj6YaYZWdWoYbksv05s5JxOGtOADes52ws7D
-	 nP7pm7i8R2ZhiSBjHmuP3qd0gagDjdKk1Uhd2omrac0dpJfZtHYlJn8R3uQKkQyW94
-	 HtRxy8gLa3S4UxVXlxw+d+bsxLWyDmd0cqgKBJwdjB23lTpK9Yu62JAcklDfXA8Tub
-	 MjCgk7EEAsPkQ==
-Date: Wed, 16 Sep 2026 15:40:01 +0100
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Kees Cook <kees@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
-	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
-	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Josh Poimboeuf <jpoimboe@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
-	Gary Guo <gary@garyguo.net>, =?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, 
-	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
-	Danilo Krummrich <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, 
-	Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, 
-	Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, Jonathan Corbet <corbet@lwn.net>, 
-	Randy Dunlap <rdunlap@infradead.org>, "Gustavo A. R. Silva" <gustavoars@kernel.org>, 
-	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, llvm@lists.linux.dev, 
-	linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
-	linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, linux-doc@vger.kernel.org, 
-	Jens Axboe <axboe@kernel.dk>, linux-hardening@vger.kernel.org
-Subject: Re: [PATCH v2 21/21] kbuild: use pigz for gzip compression if
- available
-Message-ID: <aqqowKg8F6wi61Zf@gremlin>
-References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
- <20260914-build-speedup-v2-21-39817ec5db23@kernel.org>
- <202609140844.FA7E848A@keescook>
- <aqk9gakQhxToLnDI@gremlin>
- <202609150955.A51C9F7A20@keescook>
+	s=k20260515; t=1789569744;
+	bh=7lxpzvQmeX+96TUN7SXRVShfKK7cd6FDDcRBR2QQvHQ=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=GImUOcTTdmH73GV6FMfXBPrOqOLW1yjuitOSO0V6zZ2x0EYo2GFZFMR9b9lWkq8D4
+	 hlXJGDQoPPR2UJEl6c/tfNBffI9QQ5D+QSSkbXNa6567WuZcSo198YNjX//6OzOw0e
+	 Xn5OcVrm+mB7wAEae2yUTyzEUEGYmbw/29oD0y+KAPDpkLhbva8Aamrs8lYHuMKrhO
+	 1xW7tx3iDrgtUF+ghZ/Uz0TN3xlpLKEkusaB7KoXII0FU9+McLkvZ+ESICm86Vco8s
+	 nU7zkTPR3Hnx8Z/HYomH+8Mh4VcQAiC6CxoTCWb9G6lF1DS9BSs2f9zAhRdCfe/Ltv
+	 FD4W/mVXjFk0g==
+Message-ID: <467b6599-b73a-4f58-a29a-b6c6d1ffc3a5@kernel.org>
+Date: Wed, 16 Sep 2026 16:42:04 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <202609150955.A51C9F7A20@keescook>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3 01/12] mm/huge_memory: zap deposited page tables after
+ an RCU grace period
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>,
+ Andrew Morton <akpm@linux-foundation.org>, Zi Yan <ziy@nvidia.com>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ "Liam R. Howlett" <liam@infradead.org>, Nico Pache <nico.pache@linux.dev>,
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
+ Barry Song <baohua@kernel.org>, Lance Yang <lance.yang@linux.dev>,
+ Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
+ Guo Ren <guoren@kernel.org>, Brian Cain <bcain@kernel.org>,
+ Geert Uytterhoeven <geert@linux-m68k.org>, Dinh Nguyen
+ <dinguyen@kernel.org>, Simon Schuster <schuster.simon@siemens-energy.com>,
+ Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+ Stafford Horne <shorne@gmail.com>,
+ Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>,
+ John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+ Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+ Russell King <linux@armlinux.org.uk>, Vineet Gupta <vgupta@kernel.org>,
+ Michal Simek <monstr@monstr.eu>, Chris Zankel <chris@zankel.net>,
+ Max Filippov <jcmvbkbc@gmail.com>, Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
+ <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
+ "David S. Miller" <davem@davemloft.net>,
+ Andreas Larsson <andreas@gaisler.com>,
+ Richard Henderson <richard.henderson@linaro.org>,
+ Matt Turner <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>,
+ Catalin Marinas <catalin.marinas@arm.com>,
+ Mark Rutland <mark.rutland@arm.com>, Huacai Chen <chenhuacai@kernel.org>,
+ WANG Xuerui <kernel@xen0n.name>,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+ Helge Deller <deller@gmx.de>, Madhavan Srinivasan <maddy@linux.ibm.com>,
+ Michael Ellerman <mpe@ellerman.id.au>,
+ "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>,
+ Christian Borntraeger <borntraeger@linux.ibm.com>,
+ Sven Schnelle <svens@linux.ibm.com>, Richard Weinberger <richard@nod.at>,
+ Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+ Johannes Berg <johannes@sipsolutions.net>, Thomas Gleixner
+ <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
+ x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+ Arnd Bergmann <arnd@arndb.de>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Jason Gunthorpe <jgg@ziepe.ca>,
+ John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
+ linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org,
+ linux-sh@vger.kernel.org, linux-riscv@lists.infradead.org,
+ linux-arm-kernel@lists.infradead.org, linux-snps-arc@lists.infradead.org,
+ linux-arch@vger.kernel.org, sparclinux@vger.kernel.org,
+ linux-alpha@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+ linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
+ linux-um@lists.infradead.org, Hugh Dickins <hughd@google.com>,
+ Qi Zheng <qi.zheng@linux.dev>
+References: <20260911-rcu-pagetable-freeing-v3-0-7b8c86103821@kernel.org>
+ <20260911-rcu-pagetable-freeing-v3-1-7b8c86103821@kernel.org>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <20260911-rcu-pagetable-freeing-v3-1-7b8c86103821@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Tue, Sep 15, 2026 at 10:31:20AM -0700, Kees Cook wrote:
-> On Tue, Sep 15, 2026 at 03:30:43PM +0100, Lorenzo Stoakes (ARM) wrote:
-> > On Mon, Sep 14, 2026 at 09:39:07AM -0700, Kees Cook wrote:
-> > > On Mon, Sep 14, 2026 at 10:22:20AM +0100, Lorenzo Stoakes (ARM) wrote:
-> > > > On a 128-core Threadripper, gzip -9 of a 36 MiB x86-64 vmlinux.bin takes
-> > > > 1.6s, and with pigz it takes 0.09s, so the performance increase is
-> > > > significant.
-> > >
-> > > Neat! I wanna go learn how pigz accomplishes this -- I thought the
-> > > problem with gzip was a common lookup table. Anyway...
-> >
-> > Yeah not sure on the details :)
->
-> Things I have now learned about a DEFLATE stream (RFC 1951):
->
-> - The Huffman tables are per-block, so emitting multiple tables in a
->   single stream is already required. (I only just knew about ZIP indexes
->   being singular, but I was confused: that's about the container not
->   the compression.)
-> - Each pigz thread keeps a 32K back-reference window for its tables so
->   it isn't starting a fresh table each block.
->
-> Very cool! The first makes parallelism possible at all, and the second
-> makes it work well: it's not just restarting the compression at every
-> block boundary.
+On 9/11/26 21:36, Lorenzo Stoakes (ARM) wrote:
+> When an anonymous mapping is collapsed for THP, a PTE page table is
+> 'deposited' with the installed PMD entry.
 
-Nice!
+Right. Or when we allocate an anon THP.
 
->
-> > > I think the more idiomatic way to do this is:
-> > >
-> > > KGZIP := $(call try-run,command -v pigz,pigz,gzip)
-> >
-> > try-run is defined in scripts/Makefile.compiler which is only included ~200
-> > lines after KGZIP is set.
-> >
-> > That'll also set up and tear down a temp dir for a probe that doesn't need
-> > that, so I think it's fine as it is.
->
-> Yeah, good points. What you have is quite simple.
->
-> > > However, parallelism needs to be set. We can't let it eat all CPUs: it
-> > > needs to respect the -j make option (and make its CPU reservation known
-> > > to "make"), which we already have a solution for in
-> > > scripts/jobserver-exec.
-> >
-> > The only place where it's invoked is vmlinux.bin at the end of the serial
-> > tail, where all the tokens would be free anyway.
-> >
-> > So I don't think it really buys anything at all?
->
-> There are 2 things I'm thinking about:
->
-> a)
-> My main concern is the lack of respecting the -j make argument. In my
-> mind, this is a blocker, because it means a build will now _always_ spin
-> up max CPUs (not what -j has limited it to), and for CIs, shared compute
-> systems, or whatever, this violates the requested parallelism level. For
-> example, if I'm doing a long-running Coccinelle replacement in one tree
-> (which uses half the CPUs), any builds I launch I'm asking for the other
-> half of my CPUs to be used so they don't thrash my cache.
->
-> This is the kind of "why are all the CPUs spinning up?" question I
-> helped track down with commit 51e46c7a4007 ("docs, parallelism: Rearrange
-> how jobserver reservations are made") forever ago.
+> 
+> This is done in order that a split can be performed without needing to
+> allocate additional memory.
+> 
+> The freeing occurs in zap_deposited_table() and is done directly without
+> any delay via pte_free().
+> 
+> This is currently not a problem as existing page table walks are protected
+> by the mmap or anon rmap lock.
 
-Yeah that's fair enough and Arnd makes a good point about O(n^2) too.
+Or VMA lock?
 
->
-> The next is kind of a special-case version of the above concern:
->
-> b)
-> There's nothing that ties KGZIP to only being used for final images
-> (and in fact, it also does modules, as you show), and it's defined as
-> part of "cmd_gzip", so it could be used at any moment in the build:
->
-> $ git grep call.*,gzip | wc -l
-> 23
->
-> And it does have one use outside of the (presumed) final image build in
-> the per-arch /boot/ rules besides modules, for config_data:
->
-> $ git grep call.*,gzip | grep -v /boot/
-> Documentation/kbuild/makefiles.rst:            $(call if_changed,gzip)
-> kernel/Makefile:        $(call if_changed,gzip)
-> scripts/Makefile.modinst:       $(call cmd,gzip)
->
-> So I'm nervous about a general-purpose tool and Kbuild infrastructure
-> suddenly going max parallel in the middle of a build some day when
-> another gzip use is added.
+> 
+> However this becomes problematic in a future where RCU-only page table
+> walkers exist, as there is nothing to prevent a page table walker that
+> started the walk prior to collapse having its PTE table freed underneath
+> it.
 
-Hmm yeah. Splitting this off seems sensible then. As you suggest in your
-other reply which I shall reply to (it seems the right way forward tbh!).
 
->
-> > Using jobserver-exec would also put python3 and two wrapper scripts in
-> > front of every gzip in the build including tar -I "$(KGZIP)" when packaging
-> > and some arm and m68k scripts too.
->
-> Does that impact wall-clock results meaningfully? I'd really like to
-> avoid losing correctness in favor of speed here, especially when we
-> already have a solution at hand for exactly this problem.
+Wait, but wouldn't it be really problematic to punch a page table that is still
+being walked into the deposited list where it can just be allocated from another
+PMD->PTE split?
 
-No (LLM says ~.01s per build for jobserve-exec, once) so actually that big
-of a deal.
+Note that pgtable_trans_huge_withdraw() just dequeues *some* PTE page table in
+the list attached to the PMD table.
 
->
-> > Overall I think it's less complexity and really no delta to just invoke it
-> > as normal.
-> >
-> > It's designed as drop-in so it makes sense to use it as that.
->
-> It is possible that it is so fast no one will notice, but I really worry
-> that there are going to be many sysadmins driven to figuring out why
-> their build systems suddenly spike the CPU use, and then waste their
-> time tracking it down and reporting it to us, but we can solve it today.
+Something is odd here.
 
-Yeah that's a fair point also.
+-- 
+Cheers,
 
->
-> > > Only RHEL appears a little glitchy, but likely they would trivially move
-> > > it to base since it's already packaged, but off in EPEL.
-> >
-> > Definitely not something for this series, the fallback is one invocation of
-> > command -v and I don't really want to break RHEL either :)
-> >
-> > If, once this has landed, we want to go that way then it's simple enough
-> > for us to change it.
->
-> Fair enough, though I do worry that this is vaguely "undiscoverable" in
-> the sense that if you happen to have pigz installed, suddenly it gets
-> used. (We have other such "try to use this other tool first" logic,
-
-Yup that's a thing but I think this is a very worthwhile case!
-
-> really; we have Kconfig stuff for detecting all sorts of capabilities,
-> but I couldn't find examples like this one. Maybe I missed it.)
->
-> So the "make it the default" suggestion is more about having better
-> determinism in the build requirements. Perhaps add pigz to changes.rst
-> and/or ver_linux so it is seen/recorded somewhere?
-
-Ack!
-
-(Will reply on your suggestion separately ofc)
-
->
-> -Kees
->
-> --
-> Kees Cook
-
---
-Cheers, Lorenzo
+David
