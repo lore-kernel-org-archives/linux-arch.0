@@ -1,38 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8F8EB511180;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 91A915328AC;
 	Wed, 16 Sep 2026 15:33:03 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789572783; cv=none; b=cPNhWJahCW9AGqTxDZOOVuu4jPcedeKRfHSww63BV/JBYc8Gz33pMS+d2/GgGvEjZPe2lvUHrHzMAqPj7k4AEznFAM5nXkHLcJHm4RkiAqZE5rXYcUIP2KDoLMw69v7kEvgEI6I5BYCqobXNRUVcjRnG+aSzt8fMm7aooYqeWho=
+	t=1789572783; cv=none; b=VSwouM+BqHAc1wiDyRrmujH0OvjMraJP9ELN46FO98Cr28CZR1RFz8l84YU0DJwExdhKhK4144yWK8QGs0fBFdv/gjZFvjx2HHrybg9O1CgZ7VyeWjwUodFgNcmTeY7LHCSN84AybN891Mwf5Llvd8M/inwpUTROr6Ls0+lcoCQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1789572783; c=relaxed/simple;
-	bh=oYK6blO7F6plBbHXnQ3FHlcmqrRnRoAREkrF1chFxd4=;
+	bh=o4ErHrpACX+NN+qnYzcHo//NVgcI3D2Bv/q8WoohIdw=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=eE/YHi50pYstWAHLbE5QKM2pmWuHjCk2BqXniOhAie0BhRdM7+VVYPp3/CH9y0l6SZAeJp83ffzd3/INxw8MW1dyNtj0VSg1eH3fAOlG0UNPCSzrLfHgQSoOCQ3UUJAHm9xoPpWveyIBdeAmvi0HOxjvmT7JlEwiimDM2DAMdyo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=BUpGEwU4; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=BbiJrpXO8R94aAZ9GwnWkmL9dAeNfpqCqiFRgBWiTzzG6G4Fz8iTZiPE3FTHiWxMv+Spj4bYBG+qGYl13sSK/pX6zMLrw66/872aShPL3TkAIWyjViIi1fWiPQdFN1I4m6FEgRX6FRl7N+pNkSiHuHKBkpviKlPlakKXKm6Xeko=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=cIqRnXVJ; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="BUpGEwU4"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 73B7CC4AF13;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="cIqRnXVJ"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 35540C2BCFA;
 	Wed, 16 Sep 2026 15:33:00 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1789572780;
-	bh=oYK6blO7F6plBbHXnQ3FHlcmqrRnRoAREkrF1chFxd4=;
+	bh=o4ErHrpACX+NN+qnYzcHo//NVgcI3D2Bv/q8WoohIdw=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=BUpGEwU4yKlgbOudlGfGgpBPDJrjY7riC/UfezUp/6AsuwSBs/k1afPJbR8y78Bby
-	 3A9F1H/2D3ZU+HoitoQKYG0KxbN+5h/qH7TftR4cSM/6lW20Qx5JPXv2HN6XQz4Iw9
-	 +Rh5FHmidVuvT1A8BMWagJkya6KXAIlokuZGBheUSY/W60AFtOEGau39C+yS9SfU0Q
-	 nWAAGSEGRQOuEtbCcn9jj5I2tjFDSxnt0yUsRc5rZHmADKMcet8EQ4DAn5hGibJoq7
-	 /CQcj0q76xDIOcGqW4692KYf/0lWrAtK4mO1WwLGuZvWy569jZyuHWCvAwtTdXplfK
-	 TBVBgHUIwpTlA==
+	b=cIqRnXVJtBKIAKL6bMZ85OM3SJpRtC9WyzFeijxVOBWNPMHAmczL0zvG7hMqwSE7b
+	 46Jzb+pdd/ghqaSey4NNDhoF2bQjhvfrtBPzc48h4jMfYJHQvpJloq8kvP4l/oc7/H
+	 5kOl8CfsntvF050eEkoeY0ouKl/kRhFrwcuFgWmMsFpPuFLj40QM2JA0Qd9k2CrHXQ
+	 Ji8l9DWwaCa5s+K3KYhPr0zNi0oZYz7ifcLEe1Xe7HBEn0AM3LFV5Unt4JPA3IGn8m
+	 glnM1uj8GqUu/fzvmTE+kh8dToXR+wgraljRwuAAMKG/+P1ghxl3ODsev9MxskGdIP
+	 cTEgoSXF7c9ZA==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4F76AC982CB;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1FE30C982C5;
 	Wed, 16 Sep 2026 15:33:00 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Wed, 16 Sep 2026 09:33:01 -0600
-Subject: [PATCH v10 09/38] dyndbg: reword "class unknown," to
- "class:_UNKNOWN_"
+Date: Wed, 16 Sep 2026 09:32:59 -0600
+Subject: [PATCH v10 07/38] dyndbg: factor ddebug_match_desc out from
+ ddebug_change
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260916-dd-cmap-part2-clean-v10-9-af4cf4767707@gmail.com>
+Message-Id: <20260916-dd-cmap-part2-clean-v10-7-af4cf4767707@gmail.com>
 References: <20260916-dd-cmap-part2-clean-v10-0-af4cf4767707@gmail.com>
 In-Reply-To: <20260916-dd-cmap-part2-clean-v10-0-af4cf4767707@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -66,11 +66,11 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  Jim Cromie <jim.cromie@gmail.com>, 
  Louis Chauvet <louis.chauvet@bootlin.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1789572777; l=1375;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1789572777; l=4731;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=csqO3nNcbjzgMPxkjWfqE3DZm4hxNgITA915Yd69aPA=;
- b=7ADwEfXu+vb3PCq2NEl1CNxzwsWxZKKMLDSu9U7PwWa2x9bFQ8wfb3R0hxR7Or+rXJOQI1Pta
- w6s5TByVQ5VCZfxdIr7D+x8zVgW90biqEZd3dgaIM4ZcFOo0zd02wTT
+ bh=NI1Y/NrLVd6WAGaD5x4xLazpESkvbiaOFoHiq156bNc=;
+ b=GRbHZRY/3eY7Mid6kygcNw0saYbnfSu0bvftUTlPFtbw4h6dfaHpUJIsvHKFE7wMO7DeJPvih
+ rUV1gqpifJNCi+kWkx+pKtk0u1ppODTcjpC3JcbupDQgivAEZoqWPpO
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -80,41 +80,146 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-When a dyndbg classname is unknown to a kernel module, the callsite is
-un-addressable via >control queries, and therefore uncontrollable.
+ddebug_change() is a big (~100 lines) function with a nested for loop.
 
-The control-file displays this condition as "class unknown, _id:N"
-currently.  That spelling is sub-optimal/too-generic, so change it to
-"class:_UNKNOWN_ _id:N" to loudly announce the erroneous situation,
-and to make it uniquely greppable.
+The outer loop walks the per-module ddebug_tables list, and does
+module stuff: it filters on a query's "module FOO*" and "class BAR",
+failures here skip the entire inner loop.
 
-NB: while this might be seen as a user-visible change, this shouldn't
-disqualify the change:
+The inner loop (60 lines) scans a module's descriptors.  It starts
+with a long block of filters on function, line, format, and the
+validated "BAR" class (or the legacy/_DPRINTK_CLASS_DFLT).
 
-a- it reports a classmap coding error condition, which should be
-   detected in (or before) review.
-b- SHOUTING the error makes it more visible, uniquely greppable.
-c- the classmap feature is marked BROKEN for its only current user.
+These filters "continue" past pr_debugs that don't match the query
+criteria, before it falls through the code below that counts matches,
+then adjusts the flags and static-keys.  This is unnecessarily hard to
+think about.
+
+So move the per-descriptor filter-block into a boolean function:
+ddebug_match_desc(desc), and change each "continue" to "return false".
+This puts a clear interface in place, so any future changes are either
+inside, outside, or across this interface.
+
+also fix checkpatch complaints about spaces and braces.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
 ---
- lib/dynamic_debug.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+v5: check for null format in callsite. shouldnt happen, but pr_debug() isnt illegal
+v7: elevate null format to pr_err adding filename, function, lineno.
+---
+ lib/dynamic_debug.c | 91 ++++++++++++++++++++++++++++++++---------------------
+ 1 file changed, 55 insertions(+), 36 deletions(-)
 
 diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index 5187516c57a9..2269166763cc 100644
+index 49334d1aa4b3..5187516c57a9 100644
 --- a/lib/dynamic_debug.c
 +++ b/lib/dynamic_debug.c
-@@ -1174,7 +1174,7 @@ static int ddebug_proc_show(struct seq_file *m, void *p)
- 		if (class)
- 			seq_printf(m, " class:%s", class);
- 		else
--			seq_printf(m, " class unknown, _id:%d", dp->class_id);
-+			seq_printf(m, " class:_UNKNOWN_ _id:%d", dp->class_id);
- 	}
- 	seq_putc(m, '\n');
+@@ -172,6 +172,60 @@ static struct ddebug_class_map *ddebug_find_valid_class(struct ddebug_table cons
+  * callsites, normally the same as number of changes.  If verbose,
+  * logs the changes.  Takes ddebug_lock.
+  */
++static bool ddebug_match_desc(const struct ddebug_query *query,
++			      struct _ddebug *dp,
++			      int valid_class)
++{
++	/* match site against query-class */
++	if (dp->class_id != valid_class)
++		return false;
++
++	if (!dp->format) {
++		pr_err_ratelimited("ddebug: NULL format string at %s:%s:%u\n",
++				   dp->filename ? dp->filename : "?",
++				   dp->function ? dp->function : "?",
++				   dp->lineno);
++		return false;
++	}
++
++	/* match against the source filename */
++	if (query->filename &&
++	    !match_wildcard(query->filename, dp->filename) &&
++	    !match_wildcard(query->filename,
++			    kbasename(dp->filename)) &&
++	    !match_wildcard(query->filename,
++			    trim_prefix(dp->filename)))
++		return false;
++
++	/* match against the function */
++	if (query->function &&
++	    !match_wildcard(query->function, dp->function))
++		return false;
++
++	/* match against the format */
++	if (query->format) {
++		if (*query->format == '^') {
++			char *p;
++			/* anchored search. match must be at beginning */
++			p = strstr(dp->format, query->format + 1);
++			if (p != dp->format)
++				return false;
++		} else if (!strstr(dp->format, query->format)) {
++			return false;
++		}
++	}
++
++	/* match against the line number range */
++	if (query->first_lineno &&
++	    dp->lineno < query->first_lineno)
++		return false;
++	if (query->last_lineno &&
++	    dp->lineno > query->last_lineno)
++		return false;
++
++	return true;
++}
++
+ static int ddebug_change(const struct ddebug_query *query,
+ 			 struct flag_settings *modifiers)
+ {
+@@ -204,42 +258,7 @@ static int ddebug_change(const struct ddebug_query *query,
+ 		for (i = 0; i < dt->num_ddebugs; i++) {
+ 			struct _ddebug *dp = &dt->ddebugs[i];
  
+-			/* match site against query-class */
+-			if (dp->class_id != valid_class)
+-				continue;
+-
+-			/* match against the source filename */
+-			if (query->filename &&
+-			    !match_wildcard(query->filename, dp->filename) &&
+-			    !match_wildcard(query->filename,
+-					   kbasename(dp->filename)) &&
+-			    !match_wildcard(query->filename,
+-					   trim_prefix(dp->filename)))
+-				continue;
+-
+-			/* match against the function */
+-			if (query->function &&
+-			    !match_wildcard(query->function, dp->function))
+-				continue;
+-
+-			/* match against the format */
+-			if (query->format) {
+-				if (*query->format == '^') {
+-					char *p;
+-					/* anchored search. match must be at beginning */
+-					p = strstr(dp->format, query->format+1);
+-					if (p != dp->format)
+-						continue;
+-				} else if (!strstr(dp->format, query->format))
+-					continue;
+-			}
+-
+-			/* match against the line number range */
+-			if (query->first_lineno &&
+-			    dp->lineno < query->first_lineno)
+-				continue;
+-			if (query->last_lineno &&
+-			    dp->lineno > query->last_lineno)
++			if (!ddebug_match_desc(query, dp, valid_class))
+ 				continue;
+ 
+ 			nfound++;
 
 -- 
 2.55.0
