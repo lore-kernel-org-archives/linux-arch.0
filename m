@@ -1,38 +1,37 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 989DE53FD5F;
-	Wed, 16 Sep 2026 15:33:05 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 13A61538D68;
+	Wed, 16 Sep 2026 15:33:04 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789572785; cv=none; b=r6/23aT/3WWesJJw7uBjemXwlxbqjwnIJQTnFr4hiioYNk8X953S0Qn9G6a3pJFuMic4thXW1R/hjpokKAnfTkSHhh9PGc40PEyyT4B/aTVpERYehpJZBF71gVMQndE14MZ/L/cEMBsiPShO7dvkRu00GnrXkIQpt+uCd66LyEc=
+	t=1789572784; cv=none; b=ss/m6ZXiz6F1f6fVVv8iPJ7FDern06ugmx1jHmyD7FF7BMPC92qHL03WCOauytgcCMpvUym6vRaM2xaPxaZMmZ5kPewMBNoX1H8vIjx6ix/yXli4Ed4DVGbbilGyBbf36yvK7s7CYRGywO5WgFP8wHGU7VKmDhZkiV25ajVsCdo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789572785; c=relaxed/simple;
-	bh=ufuFG0iiH0uwGCxs91FJfxbzCjh6T7uJduBJ12vONwI=;
+	s=arc-20240116; t=1789572784; c=relaxed/simple;
+	bh=J2wtgx08J+zXoVVYsLkh+9kBTJrKAzmGOYGyO9x2vtg=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=pvWT+KQFnqS76wv2oPQFs4OxEkASbx4LxRzICb+YUB705F9PxgkiFiB9UYdUQGF+HRJwLEnOdJKmSqUGhpQyz3OOvOwE/IhEPvHFTpgrQiAOjjG0GfqR5oPNu6mHgpiZtXQ4IXi79dcW1gk3T2Vf7hvrNJNtWelbqnDwChyR1WU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=GYNVUZxH; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=qMZVJGDzR0/V6u5XvGWwKAFuL2g7aU+DI7XHNvJ4eckAqVsU4oMmvWfI9o+p1Vkavnb7+2F1bSKoUKGDcXo/cbCzGHcR9zyuiM7X52gItionLaEUJj0NlYEF1Z65tkiWWmIN1gn8cJcQq8KOgCL8wSFjHlXrLa8v7fKfAANNtZU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=bfD492ly; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="GYNVUZxH"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 365F8C4AF09;
-	Wed, 16 Sep 2026 15:33:01 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="bfD492ly"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 4E32CC4AF19;
+	Wed, 16 Sep 2026 15:33:03 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1789572781;
-	bh=ufuFG0iiH0uwGCxs91FJfxbzCjh6T7uJduBJ12vONwI=;
+	s=k20201202; t=1789572783;
+	bh=J2wtgx08J+zXoVVYsLkh+9kBTJrKAzmGOYGyO9x2vtg=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=GYNVUZxHOVlL67Go5xQzuKi6qhn9aDhp0Tson+xkkl3oDITPu/+f6Z/vtNSvSzjod
-	 ujCxtvkv2gdJW1t/h9FW4A5xPfCAL//qWlXPGOj0lG2ICCC0fMy8eNMJREdktimF/y
-	 FxdXhHOpntQKFsmN6TQEpYj4/OccNniA2VcIsuaBcIN/Vrr17BDa3IwAPFJsSbXFRb
-	 kYQRd8GJqIMGV9WSQFJDngeTY99BVi69PF0+HOfeyiU7eZ51paFjbJU5dysDkAdCmF
-	 HXKHKBXeIiz53KuDb8A3mXpv+YpFMHBIPnb+RI4TZ1b3LRc/YuHODTxRc8xmMlTIpW
-	 XsBkh+EC9tBlQ==
+	b=bfD492lyQUsxNpkz4ZB6Tdv1B2+imAm6I5c/AtrJxGr92ivi83qaf98/dH+k3B9F5
+	 qP/2PKSrGnEyUxqihgBEHBbAue1J+0790BO+GfbEz6l9oxJLuJ6nYpt5sB8ki7oIMm
+	 kpjdPXEpghzvw8z1ZzcCbDS7f4XjXT4tXl1AR7PJdfNCliJrdUvCXTkSY4uD5rV2QN
+	 EdKqwnD8IS+oJ3Zxbtd51dRM+uBdRrfeuNuo+dFU8zTh64KU5OscnY+JlCwZrVLjEJ
+	 M/iWfytW/YnrCBrek+xd0m5uPD8EQId19eaW/xGV/ON9+mtrgbSE6uAJ35zR/qfH0n
+	 NOqtu8yYACLCQ==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1E0A8C982C9;
-	Wed, 16 Sep 2026 15:33:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3AD01C982C3;
+	Wed, 16 Sep 2026 15:33:03 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Wed, 16 Sep 2026 09:33:09 -0600
-Subject: [PATCH v10 17/38] dyndbg: replace classmap list with an
- array-slice
+Date: Wed, 16 Sep 2026 09:33:27 -0600
+Subject: [PATCH v10 35/38] dyndbg: Ignore additional arguments from pr_fmt
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -40,8 +39,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20260916-dd-cmap-part2-clean-v10-17-af4cf4767707@gmail.com>
+Content-Transfer-Encoding: 8bit
+Message-Id: <20260916-dd-cmap-part2-clean-v10-35-af4cf4767707@gmail.com>
 References: <20260916-dd-cmap-part2-clean-v10-0-af4cf4767707@gmail.com>
 In-Reply-To: <20260916-dd-cmap-part2-clean-v10-0-af4cf4767707@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -63,14 +62,13 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
  linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
  linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
- Jim Cromie <jim.cromie@gmail.com>, 
- Louis Chauvet <louis.chauvet@bootlin.com>
+ Jim Cromie <jim.cromie@gmail.com>, Philipp Hahn <phahn-oss@avm.de>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1789572777; l=6080;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1789572777; l=7234;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=ebOnxqx5VuWa0/VzpF9spz3mGGSlrx2PW3HTN1h9Z9w=;
- b=L8/tSDJjcAeP8cqebes6zXTMHbLaoitoYimMV42+gXwsdZVmlwNTGjGzwKpLlaRuAbjXm3W9R
- vcse85vmRoECrjpNLC02b9SfK7UKpDboTU86znVzPptp6Yz9OaA4WHJ
+ bh=fSTkq3e+fagqoGSvxLT4HO/f6Eg0KGNZD7VBMflSa78=;
+ b=YHRlv0h8KOwHcw0A6fQsfKidK8rYUsNmqIr+JVedrugUbIhnqA85LdxgVj9cKZT5HlkJUTXRI
+ mlD6p6YNfMCA0fowmCUdrJmoGFieL4uRKiNKSwrh5PT1OI5VsxKX0Fo
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -78,183 +76,150 @@ X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
 X-Original-From: Jim Cromie <jim.cromie@gmail.com>
 Reply-To: jim.cromie@gmail.com
 
-From: Jim Cromie <jim.cromie@gmail.com>
+From: Philipp Hahn <phahn-oss@avm.de>
 
-Classmaps are stored in an elf section/array, but currently are
-individually list-linked onto dyndbg's per-module ddebug_table for
-operation. This is unnecessary.
+pr_fmt can be used to add a common prefix to any output from a module:
+	#define pr_fmt(fmt) KBUILD_MODNAME ".%s " fmt, __func__
 
-Just like dyndbg's descriptors, classmaps are packed in compile order;
-so even with many builtin modules employing multiple classmaps, each
-modules' maps are packed contiguously, and can be treated as a
-array-start-address & array-length.
+But adding additional arguments breaks dynamic debug:
+> error: macro "DEFINE_DYNAMIC_DEBUG_METADATA_CLS" passed 4 arguments, but takes just 3
+> |         pr_debug_ratelimited("%s", "Hello world!");
+> |                                                  ^
+> note: macro "DEFINE_DYNAMIC_DEBUG_METADATA_CLS" defined here
+> | #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)       \
+> |
+> error: ‘DEFINE_DYNAMIC_DEBUG_METADATA_CLS’ undeclared (first use in this function)
+> |         DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_DFLT, fmt)
+> |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> note: in expansion of macro ‘DEFINE_DYNAMIC_DEBUG_METADATA’
+> |         DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, pr_fmt(fmt));         \
+> |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> note: in expansion of macro ‘pr_debug_ratelimited’
+> |         pr_debug_ratelimited("%s", "Hello world!");
+> |         ^~~~~~~~~~~~~~~~~~~~
 
-So this drops the whole list building operation done in
-ddebug_attach_module_classes(), and removes the list-head members of
-the classmap structs.  The "select-by-modname" condition is reused to
-find the start,end of the subrange of classmaps belonging to the module.
+Add an additional ', ...' to DEFINE_DYNAMIC_DEBUG_METADATA_CLS to slurp
+any additional argument, which `pr_fmt` might add.
 
-Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
-Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
+Signed-off-by: Philipp Hahn <phahn-oss@avm.de>
+[pr_fmt change on test_dynamic_debug_submod instead of parent]
+Reviewed-by: Jim Cromie <jim.cromie@gmail.com>
 ---
-v2: RvB after SoB
+v10:
+. pass raw fmt to DEFINE_DYNAMIC_DEBUG_METADATA in pr_debug_ratelimited().
 ---
- include/linux/dynamic_debug.h |  1 -
- lib/dynamic_debug.c           | 65 +++++++++++++++++++++++--------------------
- 2 files changed, 35 insertions(+), 31 deletions(-)
+ include/linux/dynamic_debug.h                      |  2 +-
+ include/linux/printk.h                             |  2 +-
+ lib/test_dynamic_debug.c                           |  4 ++--
+ .../selftests/dynamic_debug/dyndbg_selftest.sh     | 26 +++++++++++-----------
+ 4 files changed, 17 insertions(+), 17 deletions(-)
 
 diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 85863e24ad13..02a1abdc5b3f 100644
+index 2542d7c41b3e..d94ad3a2018a 100644
 --- a/include/linux/dynamic_debug.h
 +++ b/include/linux/dynamic_debug.h
-@@ -84,7 +84,6 @@ enum ddebug_class_map_type {
- };
- 
- struct ddebug_class_map {
--	struct list_head link;
- 	struct module *mod;
- 	const char *mod_name;	/* needed for builtins */
- 	const char **class_names;
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index 9d3e3cad8056..d2d3213061d2 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -45,10 +45,11 @@ extern struct ddebug_class_map __start___dyndbg_classes[];
- extern struct ddebug_class_map __stop___dyndbg_classes[];
- 
- struct ddebug_table {
--	struct list_head link, maps;
-+	struct list_head link;
- 	const char *mod_name;
--	unsigned int num_ddebugs;
- 	struct _ddebug *ddebugs;
-+	struct ddebug_class_map *classes;
-+	unsigned int num_ddebugs, num_classes;
- };
- 
- struct ddebug_query {
-@@ -149,12 +150,13 @@ static void v3pr_info_dq(const struct ddebug_query *query, const char *msg)
+@@ -359,7 +359,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+ 		dump_stack();					\
  }
  
- static struct ddebug_class_map *ddebug_find_valid_class(struct ddebug_table const *dt,
--							  const char *class_string, int *class_id)
-+							const char *class_string,
-+							int *class_id)
- {
- 	struct ddebug_class_map *map;
--	int idx;
-+	int i, idx;
+-#define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)	\
++#define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt, ...)	\
+ 	static struct _ddebug  __aligned(8)			\
+ 	__section("__dyndbg_descs") name = {			\
+ 		.modname = DDEBUG_MODNAME,			\
+diff --git a/include/linux/printk.h b/include/linux/printk.h
+index f594c1266bfd..5d701952e739 100644
+--- a/include/linux/printk.h
++++ b/include/linux/printk.h
+@@ -742,7 +742,7 @@ do {									\
+ 	static DEFINE_RATELIMIT_STATE(_rs,				\
+ 				      DEFAULT_RATELIMIT_INTERVAL,	\
+ 				      DEFAULT_RATELIMIT_BURST);		\
+-	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, pr_fmt(fmt));		\
++	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, fmt);		\
+ 	if (DYNAMIC_DEBUG_BRANCH(descriptor) &&				\
+ 	    __ratelimit(&_rs))						\
+ 		__dynamic_pr_debug(&descriptor, pr_fmt(fmt), ##__VA_ARGS__);	\
+diff --git a/lib/test_dynamic_debug.c b/lib/test_dynamic_debug.c
+index fe5b885398f3..2710c4ea39a0 100644
+--- a/lib/test_dynamic_debug.c
++++ b/lib/test_dynamic_debug.c
+@@ -23,7 +23,7 @@
+  * the usage clearer.
+  */
+ #if defined(TEST_DYNAMIC_DEBUG_SUBMOD)
+-  #define pr_fmt(fmt) "test_dd_submod: " fmt
++  #define pr_fmt(fmt) "test_dd_submod: %s " fmt, __func__
+ #else
+   #define pr_fmt(fmt) "test_dd: " fmt
+ #endif
+@@ -272,7 +272,7 @@ static int __init test_dynamic_debug_init(void)
  
--	list_for_each_entry(map, &dt->maps, link) {
-+	for (map = dt->classes, i = 0; i < dt->num_classes; i++, map++) {
- 		idx = match_string(map->class_names, map->length, class_string);
- 		if (idx >= 0) {
- 			*class_id = idx + map->base;
-@@ -165,7 +167,6 @@ static struct ddebug_class_map *ddebug_find_valid_class(struct ddebug_table cons
- 	return NULL;
+ static void __exit test_dynamic_debug_exit(void)
+ {
+-	pr_debug("exited\n");
++	pr_debug_ratelimited("exited\n");
  }
  
--#define __outvar /* filled by callee */
- /*
-  * Search the tables for _ddebug's which match the given `query' and
-  * apply the `flags' and `mask' to them.  Returns number of matching
-@@ -235,7 +236,7 @@ static int ddebug_change(const struct ddebug_query *query,
- 	unsigned int nfound = 0;
- 	struct flagsbuf fbuf, nbuf;
- 	struct ddebug_class_map *map = NULL;
--	int __outvar valid_class;
-+	int valid_class;
- 
- 	/* search for matching ddebugs */
- 	mutex_lock(&ddebug_lock);
-@@ -1067,9 +1068,10 @@ static void *ddebug_proc_next(struct seq_file *m, void *p, loff_t *pos)
- 
- static const char *ddebug_class_name(struct ddebug_iter *iter, struct _ddebug *dp)
- {
--	struct ddebug_class_map *map;
-+	struct ddebug_class_map *map = iter->table->classes;
-+	int i, nc = iter->table->num_classes;
- 
--	list_for_each_entry(map, &iter->table->maps, link)
-+	for (i = 0; i < nc; i++, map++)
- 		if (class_in_range(dp->class_id, map))
- 			return map->class_names[dp->class_id - map->base];
- 
-@@ -1153,30 +1155,34 @@ static const struct proc_ops proc_fops = {
- 	.proc_write = ddebug_proc_write
- };
- 
--static void ddebug_attach_module_classes(struct ddebug_table *dt,
--					 struct ddebug_class_map *classes,
--					 int num_classes)
-+static void ddebug_attach_module_classes(struct ddebug_table *dt, struct _ddebug_info *di)
- {
- 	struct ddebug_class_map *cm;
--	int i, j, ct = 0;
-+	int i, nc = 0;
- 
--	for (cm = classes, i = 0; i < num_classes; i++, cm++) {
-+	/*
-+	 * Find this module's classmaps in a subrange/wholerange of
-+	 * the builtin/modular classmap vector/section.  Save the start
-+	 * and length of the subrange at its edges.
-+	 */
-+	for (cm = di->classes, i = 0; i < di->num_classes; i++, cm++) {
- 
- 		if (!strcmp(cm->mod_name, dt->mod_name)) {
--
--			v2pr_info("class[%d]: module:%s base:%d len:%d ty:%d\n", i,
--				  cm->mod_name, cm->base, cm->length, cm->map_type);
--
--			for (j = 0; j < cm->length; j++)
--				v3pr_info(" %d: %d %s\n", j + cm->base, j,
--					  cm->class_names[j]);
--
--			list_add(&cm->link, &dt->maps);
--			ct++;
-+			if (!nc) {
-+				v2pr_info("start subrange, class[%d]: module:%s base:%d len:%d ty:%d\n",
-+					  i, cm->mod_name, cm->base, cm->length, cm->map_type);
-+				dt->classes = cm;
-+			}
-+			nc++;
-+		} else if (nc) {
-+			/* end of matching classmaps */
-+			break;
- 		}
- 	}
--	if (ct)
--		vpr_info("module:%s attached %d classes\n", dt->mod_name, ct);
-+	if (nc) {
-+		dt->num_classes = nc;
-+		vpr_info("module:%s attached %d classes\n", dt->mod_name, nc);
-+	}
- }
- 
- /*
-@@ -1208,10 +1214,9 @@ static int ddebug_add_module(struct _ddebug_info *di, const char *modname)
- 	dt->num_ddebugs = di->num_descs;
- 
- 	INIT_LIST_HEAD(&dt->link);
--	INIT_LIST_HEAD(&dt->maps);
- 
- 	if (di->classes && di->num_classes)
--		ddebug_attach_module_classes(dt, di->classes, di->num_classes);
-+		ddebug_attach_module_classes(dt, di);
- 
- 	mutex_lock(&ddebug_lock);
- 	list_add_tail(&dt->link, &ddebug_tables);
-@@ -1324,8 +1329,8 @@ static void ddebug_remove_all_tables(void)
- 	mutex_lock(&ddebug_lock);
- 	while (!list_empty(&ddebug_tables)) {
- 		struct ddebug_table *dt = list_entry(ddebug_tables.next,
--						      struct ddebug_table,
--						      link);
-+						     struct ddebug_table,
-+						     link);
- 		ddebug_table_free(dt);
- 	}
- 	mutex_unlock(&ddebug_lock);
+ module_init(test_dynamic_debug_init);
+diff --git a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
+index ef5f41ca7f7d..5eae762d6f78 100755
+--- a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
++++ b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
+@@ -588,40 +588,40 @@ function GOLDEN_RECORDS {
+ #K= 1d43471dca765597d88a1be25d776c92 FT_classmap_inheritance.2
+ #K= 0708a283f0f1959135c797e36119e4af FT_classmap_inheritance.3
+ #K= a0b9a8a9530706b85c4f8bf911607db0 FT_classmap_inheritance.4
+-#K= f43e0aff8a4b38435b73d90ed8100d1b FT_classmap_inheritance.5
++#K= 62b6803edf43519186d6185bebf34352 FT_classmap_inheritance.5
+ #K= 53d1b6875b65c79cfd759e209ae50b11 FT_modprobe_w_param.1
+ #K= 53d1b6875b65c79cfd759e209ae50b11 FT_modprobe_w_param.2
+-#K= 79d912e2aeb04dea70f9c7e701333f0a FT_modprobe_w_param.3
++#K= 117ebf415c886c14b22e473d9b49886b FT_modprobe_w_param.3
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.4
+-#K= 7cd75277388a6e7cf9c849442388f4af FT_modprobe_w_param.5
++#K= 23bf93d8d91b2e033f91caf2e5d2df2c FT_modprobe_w_param.5
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.6
+-#K= 9196c43693f5e6059f3512e4d87e7347 FT_modprobe_w_param.7
++#K= 7090bc68365ad55564c54b1ba7355c73 FT_modprobe_w_param.7
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.8
+ #K= f9cee4512e5604603e0262fba4bea223 FT_modprobe_w_param.9
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.10
+-#K= 7c645692e3e3796d4d3b8604c49583f7 FT_modprobe_w_param.11
++#K= 076874eb43826e97586f034f4d2786e6 FT_modprobe_w_param.11
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.12
+-#K= e995f70c0509334a33aec40ada9e6e6c FT_modprobe_w_param.13
++#K= 872dbd5d067953e34cd5a88db3a3b5e4 FT_modprobe_w_param.13
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.14
+-#K= 72f97ca3e8f4c3e7f34fbe91de62e223 FT_modprobe_w_param.15
++#K= dce720419939a1baadaae27e98ceabea FT_modprobe_w_param.15
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.16
+ #K= 1aacb7c196a8354c46c60c73d78c6bf2 FT_modprobe_w_param.17
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.18
+ #K= e62014acf5ab6a76dfbfbcf67b2ca0e8 FT_modprobe_w_param.19
+ #K= e62014acf5ab6a76dfbfbcf67b2ca0e8 FT_modprobe_w_param.20
+-#K= 58c009cb287fa5df3f8c1c72c832cb42 FT_modprobe_w_param.21
++#K= 4bfcf87a67b1a5a5a56212deac36c20a FT_modprobe_w_param.21
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.22
+-#K= e7831be2aac4a82daba43966b9d31e19 FT_modprobe_w_param.23
++#K= f0d3016e22d88ee9f810b81235c6acdc FT_modprobe_w_param.23
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.24
+-#K= 4df2fbc0cae329debb14bedb5e7d86c0 FT_modprobe_w_param.25
++#K= da3e0531675fc96503a7077ef8fa5eeb FT_modprobe_w_param.25
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.26
+ #K= 7fa4c84490c42c750986614c3539d56a FT_modprobe_w_param.27
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.28
+-#K= fc098897aa3e1472a536e7ae8069c84f FT_modprobe_w_param.29
++#K= 923ca0e8a24d3e365b9dc89624062708 FT_modprobe_w_param.29
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.30
+-#K= 38ea63fed62a0308241325e57020b28e FT_modprobe_w_param.31
++#K= 7eb76bdeb6e42f46e9c16b5932db79e1 FT_modprobe_w_param.31
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.32
+-#K= 4b896adb5e7cfcc79f9ffa879d791f37 FT_modprobe_w_param.33
++#K= 5aaa5a8e367ec2871785f0c64853e243 FT_modprobe_w_param.33
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.34
+ #K= 7f961a7d3facd89bdd4b9d8e7b5541e9 FT_modprobe_w_param.35
+ #K= 6a320774e2b535ceb89d6cdde6f5d0fb FT_modprobe_w_param.36
 
 -- 
 2.55.0
