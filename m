@@ -1,140 +1,363 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.16])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 370393EFFC9;
-	Wed, 16 Sep 2026 12:18:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8FFBC309EE6
+	for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2026 12:21:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.16
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789561138; cv=none; b=kyMv/Jv8PXj+N4/L/Neof8HPNEEXAa460ZjChpv3e9fjD6qge2l4EJcIqhiqhrl5M9+6I7U3NjZIuNsvrg8+J0DoIGjZr802s4jh5OVUjSNOndWZ2LBLKzwpDBzRXDJFIdK2+RHRU3oVtO4WZGIqv6jkHtJb6sqc4mvx1nS2ImU=
+	t=1789561294; cv=none; b=i+pfwyedULmHi4w8g2fNQ8iIz6YB9DgjYsIMSneFA7GVI7txLaW+iKn4Jcq5Q/NnZCrWcQOpMG8inod65Wg1ggyBAfy5pFnHWzXjEJTEAgfuG4+E9ofiG91JCTjEj0Qfmq2e5vmWnMRBItPUxULLvTZx6SmCYj2nbUlZbm2TRG8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789561138; c=relaxed/simple;
-	bh=6WWXK1YEgeNBV054WxjBb7B9Vj75OABXRc5yXZlGHSU=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=u+QPIXwjJG/vGBvWvNs5Ft5VQqt/OJ6N350J86VymNqdqe8Q1XzzQHPaeSZvzVaH7LKNucDCr96RtsgzA0cUZXzcxuRHy6CKW1raAE9jsy3Kbn7KM602SoXFQaZy8+wC2gGg4P8MNPWDEEH02S6KY8VLT9OilSQZl+EzNZT+tv4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=D4f3aphR; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789561294; c=relaxed/simple;
+	bh=GG4i9E2vmGWWDPNHoGPr9xKas6o74KgLRzp6e71iNYA=;
+	h=Date:From:To:Cc:Subject:Message-ID; b=QHHSEASBtJK8NKao7qVCqcDUuLP+Qu4i8jlUjr6Cj7OyaGFkW9xmmtp2HGgKkki/YKcym4IDAdB54GmK/BkzXYyuaIgcE2JDpYms+hhcUuqDWevVZxskvU/nHfHC95jzhwH+lqaipGzMbAHPMYo+TObVXAnBDRzsLi9KwINo1IU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=YEQEP0MX; arc=none smtp.client-ip=198.175.65.16
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="D4f3aphR"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C55A61F00893;
-	Wed, 16 Sep 2026 12:18:54 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789561136;
-	bh=g3nJkuOIIREUaA/BODadsUt0oMvW89mcTSVk+TBxQTM=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=D4f3aphRbKTCYsr2/YdXXnNmP/c0zn+7f5CJPLOJU5Ag2ihsF9YAuf/mxPe5qbWft
-	 RuJi+8IW2fqsg2OF0+gmzWHc2BZ4j4PTjyLzOz6AXC/PLF6S9HdJruYCs9q1aBBa08
-	 8ZHvdqKz4yosb2VOnkK+Ge5a3oc1M8xppXnjlaquXG9GOt81jNxcjCCBLr3Ao5sI/6
-	 BahavSPx3iHj0YFmmT9k2mAHR+8Qz/8CGxdMyrpN7ANNhao26Bl05UJf0Ue5Rfo74u
-	 /bJEB1hlV/SynllZ7gk30FFmaNk7xpCzcneGOvAY4XI56CwUaA/YCw+pHaapShTTsS
-	 Z2H/oC/TGFtGw==
-Received: from phl-compute-03.internal (phl-compute-03.internal [10.202.2.43])
-	by mailfauth.ams.internal (Postfix) with ESMTP id 9C3EF1980047;
-	Wed, 16 Sep 2026 08:18:49 -0400 (EDT)
-Received: from phl-frontend-04 ([10.202.2.163])
-  by phl-compute-03.internal (MEProxy); Wed, 16 Sep 2026 08:18:53 -0400
-X-ME-Sender: <xms:KYmqalRLUKQ46xVHQNAqn_SpMCWEJPEnVGHPtE9pzFa946VuffulsQ>
-    <xme:KYmqasdqqQzLLGbURN2ksP1011QzixMMfmpF8lNUTzKITQDDUxPPxIKCHfuAtHzHK
-    HePpXZVWutif9vuPFKO5v9KU79xJFks9D-SgyH4nfh2k-fblP6MxBcb-Q>
-X-ME-Received: <xmr:KYmqai4oFAoRIup95gPn3oxV9GZR0bmPcVh4y3t-o5HV8Kj-6Zg9KNTuehc>
-X-ME-Proxy-Cause: dmFkZTF/htPXCt3Vp5AMDzX4aViluNR37AwoAasTR8iHLjBZ9vB+37s09E5FAj3fIBktXf
-    wD7jyU9p9m8acEr6Ra3scjJrTilVkEufiTVp8kg6W1u05cirw+hDmrgiY3yqIDsNCGGy4Z
-    NhlL2XmoVVdXSi7pWEyIFPv29lkrmEA3vKS966LaOo5Roq203cNGaURFEmJuo4rr3dx3pl
-    zRvPBAEFOPc4BaV8VgR4olkNsATDKNUJ2aL3kSE+ZeDgohHMV8NuWlBUr1Y7gSpUtMk43S
-    pHxrvHb6UYaqOu5IrjHeg8msBZNq9Ws0Y9sYF6moF2neMeMXhIcDUsNMr5TA/1SnWdrbnv
-    krg8yzA58Iyw1wZU0OAObVQ8m4UiYc1907t7mzYhwQjpudg0+8QPH1YgpeY0d8JMVdr0rE
-    I5cdBJmZizSGHOliBIKAT49rDuCWkjlzVhcGpA/FSylhtI2vOZ35amP2Bpu/ffULhom6KK
-    mAFZrnyuq/2DovcPoXQKkstvBgE4kd6res0YrZ3TPJzPbjo01wcRbJyjyMarV3bBWIRJ2U
-    /nfjKeUYZx8uSLHmxv0YkpN2OTgeBBvRg8w5ox13JY97RAKWHu1XAFS+AJFTFFrgA3BMc9
-    4qUEfpEZPGPotDW9vPvWAQY4X3sf4al6PYefswJLQwFlMv/gcWohOVdYNR3w
-X-ME-Proxy: <xmx:KYmqalZSh5ALRNUk-yGxJZtajzA-EP-yYLtuDHVayGKZTkMcKh7jSg>
-    <xmx:KYmqalt_kssyM3YMu8dwBID1pt4VvyP-Mkj4cux8cj19ZAJNXpj0Vg>
-    <xmx:KYmqamtGLQwsCpo5AynCQsRx8Mzfx9LtL8HamC26SVKkpQEEcWC-6A>
-    <xmx:KYmqauptDI-qdtg3rUZiebczKcGTquH5dulg1Jd6BPm1F5o5OVxSfQ>
-    <xmx:KYmqat4kHc5k7IM1jrC0PaSyoI4CLHsuMRGImK3xFqk2X2jADcQ2D4xX>
-Feedback-ID: i10464835:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Wed,
- 16 Sep 2026 08:18:48 -0400 (EDT)
-Date: Wed, 16 Sep 2026 13:18:46 +0100
-From: Kiryl Shutsemau <kas@kernel.org>
-To: Zack Rusin <zack.rusin@broadcom.com>
-Cc: Borislav Petkov <bp@alien8.de>, Ajay Kaher <ajay.kaher@broadcom.com>, 
-	Alexey Makhalov <alexey.makhalov@broadcom.com>, x86@kernel.org, Dennis Zhou <dennis@kernel.org>, 
-	Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
-	Rick Edgecombe <rick.p.edgecombe@intel.com>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Dave Hansen <dave.hansen@linux.intel.com>, 
-	"H . Peter Anvin" <hpa@zytor.com>, virtualization@lists.linux.dev, 
-	bcm-kernel-feedback-list@broadcom.com, linux-kernel@vger.kernel.org, Christoph Lameter <cl@gentwo.org>, 
-	Andrew Morton <akpm@linux-foundation.org>, Tom Lendacky <thomas.lendacky@amd.com>, 
-	Bo Gan <bo.gan@broadcom.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, 
-	linux-coco@lists.linux.dev, kvm@vger.kernel.org
-Subject: Re: [PATCH v1 0/2] x86/vmware: Share steal-time storage in encrypted
- guests
-Message-ID: <aqqGUAX65s4LdJkr@thinkstation>
-References: <cover.1789488039.git.zack.rusin@broadcom.com>
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="YEQEP0MX"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1789561292; x=1821097292;
+  h=date:from:to:cc:subject:message-id;
+  bh=GG4i9E2vmGWWDPNHoGPr9xKas6o74KgLRzp6e71iNYA=;
+  b=YEQEP0MX7blBMjrG2BDJwi3lFDCcfiatlcQs8t2nKgcUTDUBaWtDl0by
+   z7C3HHQy4fxOJyIGySGPzXegZrzSHdvW+hiyxZJwRHuux2ufgGV6DeRN6
+   ZJQxEjgaNo06GExo5KwtHiDKHkPQCFw4o1X4KrV6K6ZxO1PXApRcGTRCP
+   RZuRxIDdIcQ7modgPvPRi4Z0qqLaU5okp7evU2MxF/qk6wwNuqaMz4QyC
+   Nf/ae4LxN331QEGRwBzoFeqFxQ/gdsyJ7HKoMK0GbO+6PpA1AsiSleKYh
+   0DoRjVMKvGqnX3mr0VJ6c/xk83yBj/qFgjKLCzCIRX1i2vmeZg3Z/aWZM
+   g==;
+X-CSE-ConnectionGUID: OKxTcJb7RG6Qtn31vBtPuA==
+X-CSE-MsgGUID: LqC3Jk3FTI2MX562t39cfA==
+X-IronPort-AV: E=McAfee;i="6800,10657,11905"; a="90145509"
+X-IronPort-AV: E=Sophos;i="6.27,103,1787036400"; 
+   d="scan'208";a="90145509"
+Received: from orviesa003.jf.intel.com ([10.64.159.143])
+  by orvoesa108.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 16 Sep 2026 05:21:31 -0700
+X-CSE-ConnectionGUID: PDz0NEcaTzKahoEi2Hs+ww==
+X-CSE-MsgGUID: P78D3VBGQ3WiZ3G5/5kTXw==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.27,103,1787036400"; 
+   d="scan'208";a="276854766"
+Received: from lkp-server01.sh.intel.com (HELO 462990a40a85) ([10.239.97.150])
+  by orviesa003.jf.intel.com with ESMTP; 16 Sep 2026 05:21:30 -0700
+Received: from kbuild by 462990a40a85 with local (Exim 4.98.2)
+	(envelope-from <lkp@intel.com>)
+	id 1x6odj-0000000063t-2wHG;
+	Wed, 16 Sep 2026 12:21:27 +0000
+Date: Wed, 16 Sep 2026 20:21:01 +0800
+From: kernel test robot <lkp@intel.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Subject: [arnd-asm-generic:asm-generic] BUILD SUCCESS
+ 7194d1e9b86287ec7f3b60ea042cf57d028d6169
+Message-ID: <202609162058.ZgPxn8RD-lkp@intel.com>
+User-Agent: s-nail v14.9.25
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <cover.1789488039.git.zack.rusin@broadcom.com>
 
-On Wed, Sep 16, 2026 at 01:05:38AM -0400, Zack Rusin wrote:
-> VMware registers each per-CPU steal-time GPA with the host. An encrypted
-> guest must first convert that storage to shared memory, but the existing
-> setup publishes the address without conversion.
-> 
-> Patch 1 makes the decrypted per-CPU section available with
-> CONFIG_X86_MEM_ENCRYPT, including TDX-only configurations. Patch 2 defers
-> encrypted-guest setup until allocator-backed page-table splitting is
-> available, converts every possible CPU's storage before publishing any
-> GPA, and attempts to roll back all conversions on failure.
+tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git asm-generic
+branch HEAD: 7194d1e9b86287ec7f3b60ea042cf57d028d6169  mips: fix up syscall table changes
 
-I acked 1/2, but I don't like where 2/2 does the conversion.
+elapsed time: 1489m
 
-A variable declared with DEFINE_PER_CPU_DECRYPTED() ends up in a
-dedicated, page-aligned linker section. The point of the section is that
-one place converts it. Instead every user does it itself: KVM in
-sev_map_percpu_data(), and now VMware in vmware_decrypt_steal_time(),
-each with its own vendor checks and failure handling. The macro today
-only buys page isolation, not the shared mapping its name promises.
+configs tested: 286
+configs skipped: 5
 
-The underlying problem is that the whole "decrypted section"
-infrastructure is built around SME/SEV and was never generalized.
-__bss_decrypted, early_set_memory_decrypted() and
-mem_encrypt_free_decrypted_mem() are all under CONFIG_AMD_MEM_ENCRYPT
-and implemented in mem_encrypt_amd.c. sme_postprocess_startup() converts
-.bss..decrypted only if sme_get_me_mask() is set, so a TDX guest never
-shares it. 1/2 moves the per-CPU linker section to X86_MEM_ENCRYPT, but
-nothing that would act on that section follows.
+The following configs have been built successfully.
+More configs may be tested in the coming days.
 
-Rather than have every TDX user reinvent the conversion, I would rather
-see the infrastructure made vendor-neutral: boundary symbols for the
-per-CPU decrypted section like the ones .bss..decrypted has, an early
-conversion primitive that works on TDX as well as SEV, and a single
-conversion of both sections at boot. Then sev_map_percpu_data() and
-this driver's loop go away.
+tested configs:
+alpha                             allnoconfig    gcc-16.1.0
+alpha                            allyesconfig    gcc-16.1.0
+alpha                               defconfig    gcc-16.1.0
+alpha                randconfig-r063-20260915    gcc-13.4.0
+alpha                randconfig-r063-20260915    gcc-8.5.0
+arc                              allmodconfig    clang-24
+arc                               allnoconfig    gcc-16.1.0
+arc                              allyesconfig    clang-24
+arc                                 defconfig    gcc-16.1.0
+arc                 nsimosci_hs_smp_defconfig    clang-20
+arc                   randconfig-001-20260916    clang-24
+arc                   randconfig-002-20260916    clang-24
+arc                  randconfig-r062-20260915    gcc-8.5.0
+arm                               allnoconfig    gcc-16.1.0
+arm                              allyesconfig    clang-24
+arm                                 defconfig    gcc-16.1.0
+arm                           h3600_defconfig    gcc-16.1.0
+arm                      integrator_defconfig    gcc-16.1.0
+arm                         lpc32xx_defconfig    gcc-16.1.0
+arm                   randconfig-001-20260916    clang-24
+arm                   randconfig-002-20260916    clang-24
+arm                   randconfig-003-20260916    clang-24
+arm                   randconfig-004-20260916    clang-24
+arm                  randconfig-r071-20260916    clang-19
+arm                  randconfig-r072-20260915    clang-17
+arm                  randconfig-r133-20260916    gcc-16.1.0 sparse
+arm                           tegra_defconfig    clang-20
+arm64                            allmodconfig    clang-24
+arm64                             allnoconfig    gcc-16.1.0
+arm64                               defconfig    gcc-16.1.0
+arm64                 randconfig-001-20260916    gcc-16.1.0
+arm64                 randconfig-002-20260916    gcc-16.1.0
+arm64                 randconfig-003-20260916    gcc-16.1.0
+arm64                 randconfig-004-20260916    gcc-16.1.0
+arm64                randconfig-r053-20260916    clang-24
+arm64                randconfig-r062-20260915    gcc-8.5.0
+arm64                randconfig-r072-20260915    gcc-11.5.0
+csky                             allmodconfig    gcc-16.1.0
+csky                              allnoconfig    gcc-16.1.0
+csky                                defconfig    gcc-16.1.0
+csky                  randconfig-001-20260916    gcc-16.1.0
+csky                  randconfig-002-20260916    gcc-16.1.0
+csky                 randconfig-r062-20260915    gcc-13.4.0
+csky                 randconfig-r111-20260916    clang-24 sparse
+hexagon                          allmodconfig    gcc-16.1.0
+hexagon                           allnoconfig    gcc-16.1.0
+hexagon                             defconfig    gcc-16.1.0
+hexagon               randconfig-001-20260916    gcc-16.1.0
+hexagon               randconfig-002-20260916    gcc-16.1.0
+hexagon              randconfig-r052-20260916    clang-24
+hexagon              randconfig-r054-20260915    clang-17
+i386                             allmodconfig    clang-22
+i386                              allnoconfig    gcc-16.1.0
+i386                             allyesconfig    clang-22
+i386        buildonly-randconfig-001-20260916    clang-22
+i386        buildonly-randconfig-002-20260916    clang-22
+i386        buildonly-randconfig-003-20260916    clang-22
+i386        buildonly-randconfig-004-20260916    clang-22
+i386        buildonly-randconfig-005-20260916    clang-22
+i386        buildonly-randconfig-006-20260916    clang-22
+i386                                defconfig    gcc-16.1.0
+i386                  randconfig-001-20260916    gcc-14
+i386                  randconfig-002-20260916    gcc-14
+i386                  randconfig-003-20260916    gcc-14
+i386                  randconfig-004-20260916    gcc-14
+i386                  randconfig-005-20260916    gcc-14
+i386                  randconfig-006-20260916    gcc-14
+i386                  randconfig-007-20260916    gcc-14
+i386                  randconfig-011-20260916    clang-22
+i386                  randconfig-012-20260916    clang-22
+i386                  randconfig-013-20260916    clang-22
+i386                  randconfig-014-20260916    clang-22
+i386                  randconfig-015-20260916    clang-22
+i386                  randconfig-016-20260916    clang-22
+i386                  randconfig-017-20260916    clang-22
+i386                  randconfig-051-20260915    clang-22
+i386                  randconfig-051-20260916    gcc-14
+i386                  randconfig-052-20260915    clang-22
+i386                  randconfig-052-20260916    gcc-14
+i386                  randconfig-053-20260915    clang-22
+i386                  randconfig-053-20260916    gcc-14
+i386                  randconfig-054-20260915    clang-22
+i386                  randconfig-054-20260916    gcc-14
+i386                  randconfig-061-20260916    clang-22 sparse
+i386                  randconfig-062-20260916    clang-22 sparse
+i386                  randconfig-063-20260916    clang-22 sparse
+i386                  randconfig-141-20260915    clang-22
+i386                  randconfig-141-20260916    gcc-14
+i386                 randconfig-r051-20260915    clang-17
+i386                 randconfig-r112-20260916    clang-24 sparse
+i386                 randconfig-r131-20260916    gcc-16.1.0 sparse
+loongarch                        allmodconfig    clang-24
+loongarch                         allnoconfig    gcc-16.1.0
+loongarch                           defconfig    clang-24
+loongarch             randconfig-001-20260916    gcc-16.1.0
+loongarch             randconfig-002-20260916    gcc-16.1.0
+loongarch            randconfig-r072-20260915    gcc-16.1.0
+loongarch            randconfig-r111-20260916    gcc-12.5.0 sparse
+loongarch            randconfig-r121-20260916    gcc-12.5.0 sparse
+m68k                             allmodconfig    gcc-16.1.0
+m68k                              allnoconfig    gcc-16.1.0
+m68k                             allyesconfig    clang-24
+m68k                                defconfig    clang-24
+m68k                          hp300_defconfig    gcc-16.1.0
+m68k                       m5329evb_defconfig    clang-20
+m68k                 randconfig-r051-20260915    gcc-8.5.0
+m68k                 randconfig-r053-20260915    gcc-8.5.0
+m68k                 randconfig-r064-20260916    gcc-8.5.0
+m68k                 randconfig-r072-20260916    gcc-14.3.0
+microblaze                        allnoconfig    gcc-16.1.0
+microblaze                       allyesconfig    gcc-16.1.0
+microblaze                          defconfig    clang-24
+microblaze           randconfig-r054-20260916    clang-24
+microblaze           randconfig-r073-20260915    gcc-8.5.0
+microblaze           randconfig-r121-20260916    clang-24 sparse
+mips                             allmodconfig    gcc-16.1.0
+mips                              allnoconfig    gcc-16.1.0
+mips                             allyesconfig    gcc-16.1.0
+mips                         cobalt_defconfig    gcc-16.1.0
+mips                           ip22_defconfig    gcc-16.1.0
+mips                 randconfig-r063-20260915    gcc-8.5.0
+mips                 randconfig-r073-20260915    gcc-16.1.0
+mips                 randconfig-r113-20260916    clang-24 sparse
+mips                 randconfig-r123-20260916    gcc-12.5.0 sparse
+mips                           rs90_defconfig    gcc-16.1.0
+mips                        vocore2_defconfig    clang-20
+nios2                            allmodconfig    clang-20
+nios2                             allnoconfig    clang-24
+nios2                               defconfig    clang-24
+nios2                 randconfig-001-20260916    gcc-16.1.0
+nios2                 randconfig-002-20260916    gcc-16.1.0
+nios2                randconfig-r053-20260915    clang-17
+openrisc                         allmodconfig    clang-20
+openrisc                          allnoconfig    clang-24
+openrisc                            defconfig    gcc-16.1.0
+openrisc             randconfig-r071-20260915    gcc-14.3.0
+openrisc             randconfig-r123-20260916    clang-24 sparse
+openrisc             randconfig-r134-20260916    gcc-16.1.0 sparse
+parisc                           allmodconfig    gcc-16.1.0
+parisc                            allnoconfig    clang-24
+parisc                           allyesconfig    clang-17
+parisc                              defconfig    gcc-16.1.0
+parisc                randconfig-001-20260916    clang-24
+parisc                randconfig-002-20260916    clang-24
+parisc               randconfig-r052-20260915    clang-17
+parisc               randconfig-r052-20260915    gcc-8.5.0
+parisc               randconfig-r054-20260915    gcc-8.5.0
+parisc               randconfig-r062-20260916    gcc-8.5.0
+parisc               randconfig-r122-20260916    gcc-12.5.0 sparse
+parisc               randconfig-r132-20260916    gcc-11.5.0 sparse
+parisc64                         alldefconfig    clang-20
+parisc64                            defconfig    clang-24
+powerpc                          allmodconfig    gcc-16.1.0
+powerpc                           allnoconfig    clang-24
+powerpc                        cell_defconfig    gcc-16.1.0
+powerpc                   currituck_defconfig    clang-20
+powerpc                     ksi8560_defconfig    gcc-16.1.0
+powerpc                 linkstation_defconfig    gcc-16.1.0
+powerpc                     mpc512x_defconfig    clang-20
+powerpc               randconfig-001-20260916    clang-24
+powerpc               randconfig-002-20260916    clang-24
+powerpc              randconfig-r113-20260916    clang-24 sparse
+powerpc              randconfig-r113-20260916    gcc-12.5.0 sparse
+powerpc              randconfig-r122-20260916    clang-24 sparse
+powerpc                         wii_defconfig    gcc-16.1.0
+powerpc64             randconfig-001-20260916    clang-24
+powerpc64             randconfig-002-20260916    clang-24
+powerpc64            randconfig-r073-20260916    gcc-10.5.0
+powerpc64            randconfig-r112-20260916    gcc-12.5.0 sparse
+powerpc64            randconfig-r122-20260916    clang-24 sparse
+riscv                            allmodconfig    clang-24
+riscv                             allnoconfig    clang-24
+riscv                            allyesconfig    clang-24
+riscv                               defconfig    gcc-16.1.0
+riscv                 randconfig-001-20260916    gcc-16.1.0
+riscv                 randconfig-002-20260916    gcc-16.1.0
+riscv                randconfig-r064-20260915    gcc-8.5.0
+s390                             allmodconfig    clang-17
+s390                              allnoconfig    clang-24
+s390                             allyesconfig    gcc-16.1.0
+s390                                defconfig    gcc-16.1.0
+s390                  randconfig-001-20260916    gcc-16.1.0
+s390                  randconfig-002-20260916    gcc-16.1.0
+s390                 randconfig-r063-20260916    gcc-8.5.0
+s390                 randconfig-r064-20260915    gcc-8.5.0
+s390                 randconfig-r133-20260916    gcc-11.5.0 sparse
+sh                               allmodconfig    gcc-16.1.0
+sh                                allnoconfig    clang-24
+sh                               allyesconfig    clang-17
+sh                                  defconfig    gcc-14
+sh                ecovec24-romimage_defconfig    gcc-16.1.0
+sh                          kfr2r09_defconfig    gcc-16.1.0
+sh                          lboxre2_defconfig    gcc-16.1.0
+sh                    randconfig-001-20260916    gcc-16.1.0
+sh                    randconfig-002-20260916    gcc-16.1.0
+sh                   randconfig-r061-20260915    gcc-13.4.0
+sh                   randconfig-r123-20260916    clang-24 sparse
+sh                          sdk7786_defconfig    clang-20
+sh                           se7751_defconfig    gcc-16.1.0
+sparc                             allnoconfig    clang-24
+sparc                               defconfig    gcc-16.1.0
+sparc                 randconfig-001-20260916    gcc-14.3.0
+sparc                 randconfig-002-20260916    gcc-14.3.0
+sparc                randconfig-r051-20260916    clang-24
+sparc                randconfig-r061-20260915    gcc-8.5.0
+sparc64                          allmodconfig    clang-20
+sparc64                             defconfig    gcc-14
+sparc64               randconfig-001-20260916    gcc-14.3.0
+sparc64               randconfig-002-20260916    gcc-14.3.0
+sparc64              randconfig-r061-20260915    gcc-8.5.0
+sparc64              randconfig-r071-20260915    gcc-15.2.0
+sparc64              randconfig-r112-20260916    clang-24 sparse
+sparc64              randconfig-r134-20260916    gcc-11.5.0 sparse
+um                               allmodconfig    clang-17
+um                                allnoconfig    clang-24
+um                               allyesconfig    gcc-16.1.0
+um                                  defconfig    gcc-14
+um                             i386_defconfig    gcc-14
+um                    randconfig-001-20260916    gcc-14.3.0
+um                    randconfig-002-20260916    gcc-14.3.0
+um                   randconfig-r061-20260916    gcc-8.5.0
+um                   randconfig-r121-20260916    clang-24 sparse
+um                   randconfig-r132-20260916    gcc-16.1.0 sparse
+um                           x86_64_defconfig    gcc-14
+x86_64                            allnoconfig    clang-24
+x86_64      buildonly-randconfig-001-20260916    clang-22
+x86_64      buildonly-randconfig-002-20260916    clang-22
+x86_64      buildonly-randconfig-003-20260916    clang-22
+x86_64      buildonly-randconfig-004-20260916    clang-22
+x86_64      buildonly-randconfig-005-20260916    clang-22
+x86_64      buildonly-randconfig-006-20260916    clang-22
+x86_64                              defconfig    gcc-14
+x86_64                                  kexec    clang-22
+x86_64                randconfig-001-20260916    clang-22
+x86_64                randconfig-002-20260916    clang-22
+x86_64                randconfig-003-20260916    clang-22
+x86_64                randconfig-004-20260916    clang-22
+x86_64                randconfig-005-20260916    clang-22
+x86_64                randconfig-006-20260916    clang-22
+x86_64                randconfig-011-20260916    gcc-14
+x86_64                randconfig-012-20260916    gcc-14
+x86_64                randconfig-013-20260916    gcc-14
+x86_64                randconfig-014-20260916    gcc-14
+x86_64                randconfig-015-20260916    gcc-14
+x86_64                randconfig-016-20260916    gcc-14
+x86_64                randconfig-071-20260916    gcc-14
+x86_64                randconfig-072-20260916    gcc-14
+x86_64                randconfig-073-20260916    gcc-14
+x86_64                randconfig-074-20260916    gcc-14
+x86_64                randconfig-075-20260916    gcc-14
+x86_64                randconfig-076-20260916    gcc-14
+x86_64                randconfig-101-20260915    clang-22
+x86_64                randconfig-101-20260916    clang-22
+x86_64                randconfig-102-20260915    clang-22
+x86_64                randconfig-102-20260915    gcc-14
+x86_64                randconfig-102-20260916    clang-22
+x86_64                randconfig-103-20260915    clang-22
+x86_64                randconfig-103-20260916    clang-22
+x86_64                randconfig-104-20260915    clang-22
+x86_64                randconfig-104-20260915    gcc-14
+x86_64                randconfig-104-20260916    clang-22
+x86_64                randconfig-121-20260916    clang-22 sparse
+x86_64                randconfig-122-20260916    clang-22 sparse
+x86_64                randconfig-123-20260916    clang-22 sparse
+x86_64                randconfig-161-20260915    clang-22
+x86_64                randconfig-161-20260916    gcc-14
+x86_64               randconfig-r064-20260915    gcc-13.4.0
+x86_64               randconfig-r071-20260915    clang-22
+x86_64                               rhel-9.4    clang-22
+x86_64                           rhel-9.4-bpf    clang-22
+x86_64                           rhel-9.4-bpf    gcc-14
+x86_64                          rhel-9.4-func    clang-22
+x86_64                    rhel-9.4-kselftests    clang-22
+x86_64                         rhel-9.4-kunit    clang-22
+x86_64                         rhel-9.4-kunit    gcc-14
+x86_64                           rhel-9.4-ltp    clang-22
+x86_64                           rhel-9.4-ltp    gcc-14
+x86_64                          rhel-9.4-rust    clang-22
+x86_64                          rhel-9.4-rust    clang-22
+xtensa                            allnoconfig    clang-24
+xtensa                           allyesconfig    clang-20
+xtensa                randconfig-001-20260916    gcc-14.3.0
+xtensa                randconfig-002-20260916    gcc-14.3.0
+xtensa               randconfig-r111-20260916    clang-24 sparse
+xtensa               randconfig-r131-20260916    gcc-11.5.0 sparse
+xtensa                    smp_lx200_defconfig    gcc-16.1.0
 
-> TDX's conversion callback uses __pa(), so patch 2 preflights every possible
-> CPU and leaves steal time disabled if a TDX guest uses vmalloc-backed
-> per-CPU storage. This covers percpu_alloc=page and automatic allocator
-> fallback. AMD encrypted guests support those mappings and are not rejected.
-> Supporting them in TDX would require a separate conversion-API change.
-
-Refusing vmalloc-backed storage on TDX is the right call, and not because
-of the __pa() in the callback. Converting a vmalloc alias means either
-fracturing the direct map or leaving a private direct-map alias to a
-shared page, and the latter is a guest shutdown the moment
-load_unaligned_zeropad() steps into it. See the comment in
-tdx_early_init() and the earlier discussion of the same idea:
-
-https://lore.kernel.org/all/xqi2bkulnhen2vax5msbzczlaywx3dsc7ezpn7oo5qn7u7xzap@xmaseinov7tf/
-
-But that decision belongs in the same central place as the conversion.
-If the first per-CPU chunk is vmalloc-backed on TDX, the decrypted
-section is simply not shared, and users see that, instead of every
-driver re-deriving it.
-
--- 
-  Kiryl Shutsemau / Kirill A. Shutemov
+--
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests/wiki
