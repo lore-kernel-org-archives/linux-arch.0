@@ -1,32 +1,32 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1FA9B3EDAA8;
-	Thu, 17 Sep 2026 10:01:21 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id BE5873CB57F;
+	Thu, 17 Sep 2026 10:45:49 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789639289; cv=none; b=KEPyWGQ+NGtYuZQL8fJPhlzaXk3wfgz3BRCeOl66WejgUGCUoTgO+p9sfx6CyOm/JD3nDcNfFM3bZLXFho9Vc9NcJKq6lvL0UeV4SwBed5Sayjfs2/u9ISBn5PisTorPMQxfCr/RqKw7sUrQWsaZhA0UUR3Ay9VpOdLmSDkP2L4=
+	t=1789641951; cv=none; b=ax0vqHT9YoJzxu6UKGJs1Lgucvx3kd2G52PaDudEj77GYMhkNO+xr0YP2uRGxHCmwjzHGLyfPnD5AjrmeTs/XllyuClzaQ7mz+n5ZkqXw9eaO9ureEANg72h2YSlCHiGzv/Li+YhCtaPG8P71sPnBYaEphcvBMNnsRvD7Tcv7kA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789639289; c=relaxed/simple;
-	bh=7f+DyO0aVahV3yaG3OLFFC7DhrsBd/PbfzSn6AGTRdY=;
+	s=arc-20240116; t=1789641951; c=relaxed/simple;
+	bh=A1qJUzoEx4MjxX5KJ5zP6XztKc5+3XRYmk3SylEfKJg=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=kVxSDZG3osmO7LYI7rMo9FwrwTKN5dx0aB7yhzH9N8aQVx9yEeCk7ccnk8XZdlFahypFoCtOZU2aJGBW+vgLr4mjKHJhWUV204AY/ZyaAgM1fWgg4lcTUOq7bMwH+L3CVzD09L3wF7MteVOCVqupFb6mrHKYWPaTp3PpEkk9f1A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=SxuwVEPb; arc=none smtp.client-ip=217.140.110.172
+	 Content-Type:Content-Disposition:In-Reply-To; b=AbEWxWtgK65LhlP8rWd6ILVo1d9FP2VU43dm7CW7cCgROz5MQx/P8gRpszYlaCkZm+5Hfy5QIG5u/Wts7/WcucD43k0LIAor3OilKatQkfp9OHgXD+OBb783GqQ/qID2QhuQLsMRb5ezVsQM+JXYVyMDX0R0HTZlHBia6uNxcWE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=n3EKRXU7; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="SxuwVEPb"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="n3EKRXU7"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id E27B01476;
-	Thu, 17 Sep 2026 03:01:13 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 77CEF1476;
+	Thu, 17 Sep 2026 03:45:45 -0700 (PDT)
 Received: from J2N7QTR9R3 (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id EE3AE3F7B4;
-	Thu, 17 Sep 2026 03:01:14 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 830FF3F882;
+	Thu, 17 Sep 2026 03:45:46 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1789639277; bh=7f+DyO0aVahV3yaG3OLFFC7DhrsBd/PbfzSn6AGTRdY=;
+	t=1789641949; bh=A1qJUzoEx4MjxX5KJ5zP6XztKc5+3XRYmk3SylEfKJg=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=SxuwVEPbRV5U3eLO+R05qilnaeyPOUDhkohdjK8kwFZQ1ZIjBxktQXqSgkqeSE5bi
-	 3TdfbpaF58mTm/Xn8gtbzBpUQpQ7VXFT0ZRhad6GgRHd1cni/47NHIP0g0L8MCniPj
-	 AWiENNa0WnZzGglRA/JUz39uETLtCRrpUy8NWJqc=
-Date: Thu, 17 Sep 2026 11:01:11 +0100
+	b=n3EKRXU7Cq0DBTHyOGTTXwg29ME9vRYoBg/Zu9Qo8a/ZRg4WR/J/U0BVm+v1OMi4g
+	 HNkWPW0bXHN9fcTqmsv5rJx7nhcBoRmjzGf42teEOckKeKZ3kfBaAjMrxSeXMoZqoc
+	 j6309z9kZ3G1alSAYIaABBDQGB2YjpiPXZfdXtnw=
+Date: Thu, 17 Sep 2026 11:45:43 +0100
 From: Mark Rutland <mark.rutland@arm.com>
 To: =?utf-8?B?QW5kcsOp?= Almeida <andrealmeid@igalia.com>
 Cc: Catalin Marinas <catalin.marinas@arm.com>,
@@ -41,13 +41,13 @@ Cc: Catalin Marinas <catalin.marinas@arm.com>,
 	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>,
 	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
 	linux-arch@vger.kernel.org, kernel-dev@igalia.com
-Subject: Re: [PATCH v8 1/4] arm64: vdso: Prepare for robust futex unlock
- support
-Message-ID: <aqu6ZzMpunlKDIwm@J2N7QTR9R3>
+Subject: Re: [PATCH v8 2/4] arm64: vdso: Implement
+ __vdso_futex_robust_try_unlock()
+Message-ID: <aqvE1w1-FQPD4AoM@J2N7QTR9R3>
 References: <20260821-tonyk-robust_arm-v8-0-077707b6f1c7@igalia.com>
- <20260821-tonyk-robust_arm-v8-1-077707b6f1c7@igalia.com>
- <aqqmmNTDnzT5d-ZT@J2N7QTR9R3>
- <4cc1a199-8917-4a93-91f8-138ca1511cff@igalia.com>
+ <20260821-tonyk-robust_arm-v8-2-077707b6f1c7@igalia.com>
+ <aqqkX8GyxgdtoOmc@J2N7QTR9R3>
+ <9d9a804f-c1f3-4c0c-b12a-975206f6c34c@igalia.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -57,73 +57,37 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <4cc1a199-8917-4a93-91f8-138ca1511cff@igalia.com>
+In-Reply-To: <9d9a804f-c1f3-4c0c-b12a-975206f6c34c@igalia.com>
 
-On Wed, Sep 16, 2026 at 10:05:38PM -0300, André Almeida wrote:
-> Em 16/09/2026 11:24, Mark Rutland escreveu:
-> > I reckon this might also be clearer as:
-> > 
-> > | 	if (regs->regs[3])
-> > | 		return NULL;
-> > | 	
-> > | 	return (void __user *)regs->regs[2];
-> > 
-> > Do we need a __force cast here, or is sparse happy without that?
+On Wed, Sep 16, 2026 at 10:06:25PM -0300, André Almeida wrote:
+> If I understood correctly, the correct approach here would be to use pop_reg
+> as an input operand, making sure that we store the address hold by *pop on
+> x2 register right? So something along the lines:
 > 
-> I've just re-compiled those patches with C=1, and didn't find any warning
-> for this.
-
-Perfect, thanks for confirming!
-
-[...]
-
-> > > +	futex_set_vdso_cs_range(fd, is_32bit ? 1 : 0, start, end, is_32bit);
-> > 
-> > On arm64 (and every architecture other than x86, AFAICT), the
-> > native/compat VDSOs are mutually exclusive, and a single mm can only
-> > have one of them.
-> > 
-> > Given that, I think we can make this:
-> > 
-> > 	futex_set_vdso_cs_range(fd, 0, start, end, is_32bit);
-> > 
-> > That way we'll avoid confusing/bikesheeding over 'is_32bit ? 1 : 0',
-> > without having to add mnemnonics for the native/compat CS indices.
+> __u32 __vdso_futex_robust_list64_try_unlock(__u32 *lock, __u32 tid, __u64
+> *pop)
+> {
+> 	register __u64 pop_reg asm("x2") = (__u64) pop;
 > 
-> Perfect, I will simplify that then.
+> ...
 > 
-> > That said, what's the plan for 32-bit robust lists on a 64-bit host?
-> > IIUC you wanted that for emulation, and AFAICT you have no way to call
-> > __vdso_futex_robust_list32_try_unlock() from a native task.
+> 		"	str 	xzr, [%x[pop_reg]]		\n"
+> ...
 > 
-> Yes, the plan is to be able to use the 32-bit robust lists on a 64-bit
-> hosts, with a new interface (set/get_robust_list2[1]). That means that a
-> 64-bit kernel will be able to process an user robust list made of 32-bit
-> pointers. So the emulator will call set_robust_list2() one time for it's own
-> list, and another time for the emulated app list.
+> 		: [val] "=&r" (val),
+> 		  [result] "=&r" (result_reg),
+> 		  [lock] "+Q" (*lock)
+> 		: [tid] "r" (tid),
+> 		  [pop_reg] "r" (pop_reg)
+> 		: "cc", "memory"
 > 
-> However, what we have agreed for the moment is that, while there's no
-> support for that, we will not expose the 32-bit functions yet [2]:
+> Does that looks right?
 
-Ah, thanks for the pointer! I had mistakenly assumed that some of
-that had already happened.
+Yep; that should work!
 
-I guess the common logic for futex_set_vdso_cs_range() will need to
-change at that point I guess if/when that happens, you'd expect to add
-__vdso_futex_robust_list32_try_unlock() into the 64-bit VDSO, regardless
-of compat?
+Just for completeness: another option would be to drop the memory
+clobber, and have separate constraints for the "pop" memory location and
+the "pop_reg" register. I think your suggestion above is simpler, so
+let's go with that.
 
 Mark.
-
-> "...that requires also the ability to register a 32-bit robust list for a
-> 64-bit process, which is not supported right now. So no, we are not exposing
-> something half functional..."
-> 
-> So yes, in the near future I will need to expose
-> __vdso_futex_robust_list32_try_unlock() to 64-bit apps as well, to be able
-> to do this handling with 32-bit pointers, but we are not doing it right now.
-> 
-> [1] https://lore.kernel.org/lkml/20251122-tonyk-robust_futex-v6-0-05fea005a0fd@igalia.com/
-> 
-> [2] https://lore.kernel.org/lkml/878q9vwote.ffs@tglx/
-> 
