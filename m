@@ -1,171 +1,292 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC6223DAAA5;
-	Thu, 17 Sep 2026 18:42:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id C2102386568;
+	Thu, 17 Sep 2026 18:44:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789670572; cv=none; b=ZciwI1B7kj/+FcCaghtSWWiZJcVWa8YGIJKP99F0OswIvoC1FmB5ayya13vukOcTioBjgwH/xdhg5L/zgScrMIdWy6OvjK1mE2ZSGje0cj5kRPME4KsBv77n4pOzBNvAseGFhqfmFiDP/89vWdC+NGYCVOy5htxnoQZ5UcylL2E=
+	t=1789670664; cv=none; b=PW/8S56tzm0kO8/xAPrzN31ZhtsrfqgJtT6LETumAvYMnSp30ZmkS9UyBG+Vm/2RYQSBV/E0kqKmthX9fJDR57hZ69yvUurK0quH9Sn0SlikM+or5GzPq7d2DguQifvE2S6BCk2x0oLNCgxTOZojrKYc5t0N89/jP+VClZuTX48=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789670572; c=relaxed/simple;
-	bh=//QxEsMx/pYZ431r9fzN1SDLLR1Ocaz/1SqtQ/FHGu8=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=BglY3YX6LshCQ/gLyh4CP3qjwrK8k0rYsnmNRc8esMkfjW6mQ5jOBnEGnziwE+HbZSgmEeVp6ISdsdtL6YbGSv4EVcbmwH9IbhRwHI3pbZq1rUFwCu6eYWSZycka3aSNxU7VOD68bVI/SMczIozz2QUwzfdJVLqhwm6ywMkHkAM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=JeRYA7rh; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789670664; c=relaxed/simple;
+	bh=5sEXQ/TVqr6DaEgRRknTczm78ae9lTtT8E2T816euuM=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Bh9Jko1/GuW52SDdzC2Oq9wwGvI9K91QTH1vT4DYNrQOMBFU18K8OdsS7RXO0muBTwKG1BZcDzVz/oQX+9jx+pY8mGLIt5eTC9MfG233S4TGDsfyiIXBpK6vyXHun85iIc1DJd3Xnouq5oBUzDlIc79LoKJfi+fNVZ+aBSvtvxo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=E0YDd7yu; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="JeRYA7rh"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 70B9F1F00899;
-	Thu, 17 Sep 2026 18:42:50 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789670570;
-	bh=G9OjC0DvXbYSXJMCvKYfaBrtdLJ3dmS1MuuNFWcE17Y=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=JeRYA7rh2zFrLoDrvkT3tOXHVvhkH6bjWJLZn/UYBnyI/ZxTQuMpD4weCvEGIZTcG
-	 owAKqMoYSujslwmt67lCRILKcm1QQujCJnXPf9/zFmbeLalGQAj9uGlImhcFU8hi4n
-	 K5fVxPWxyFUEls6aBpw9ShMjMfl0WOH2r8XGMGht2rzxe0kiJEE6YuSbCY/NjwgLsw
-	 VKkhwQcTAK+r8jPrWsADcjEs6fEvUkheY+IZbuY6sLFh7iES+AX9CDJ+9svfBn0z4N
-	 LehTASVD2b0Yx5mbf1rARYwQS+8jA7iPbWlZbnr+Ck6iM4NNpf/iX7gAOh6RGVhvN2
-	 0V/NpIFtEHFjw==
-Date: Thu, 17 Sep 2026 11:42:50 -0700
-From: Kees Cook <kees@kernel.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>,
-	Nathan Chancellor <nathan@kernel.org>,
-	Nicolas Schier <nsc@kernel.org>,
-	Nick Desaulniers <ndesaulniers@google.com>,
-	Bill Wendling <morbo@google.com>,
-	Justin Stitt <justinstitt@google.com>,
-	Masahiro Yamada <masahiroy@kernel.org>,
-	Alexey Gladkov <legion@kernel.org>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
-	Ard Biesheuvel <ardb@kernel.org>,
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
-	Josh Poimboeuf <jpoimboe@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>,
-	Gary Guo <gary@garyguo.net>,
-	=?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
-	Benno Lossin <lossin@kernel.org>,
-	Andreas Hindborg <a.hindborg@kernel.org>,
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
-	Danilo Krummrich <dakr@kernel.org>,
-	Daniel Almeida <daniel.almeida@collabora.com>,
-	Tamir Duberstein <tamird@kernel.org>,
-	Alexandre Courbot <acourbot@nvidia.com>,
-	Onur =?iso-8859-1?Q?=D6zkan?= <work@onurozkan.dev>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Randy Dunlap <rdunlap@infradead.org>,
-	"Gustavo A. R. Silva" <gustavoars@kernel.org>,
-	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
-	llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
-	linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-	linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
-	linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>,
-	linux-hardening@vger.kernel.org
-Subject: Re: [PATCH v3 09/20] kbuild: implement and use depcheck to check
- dependency timestamps
-Message-ID: <202609171117.35BFDCC13@keescook>
-References: <20260917-build-speedup-v3-0-9ecf4163ff36@kernel.org>
- <20260917-build-speedup-v3-9-9ecf4163ff36@kernel.org>
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="E0YDd7yu"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id A35621476;
+	Thu, 17 Sep 2026 11:44:18 -0700 (PDT)
+Received: from [10.57.7.135] (unknown [10.57.7.135])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 851983F86F;
+	Thu, 17 Sep 2026 11:44:19 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1789670662; bh=5sEXQ/TVqr6DaEgRRknTczm78ae9lTtT8E2T816euuM=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=E0YDd7yuyfeafuBJmywYnkQq1vipHbvrEQ8RIdc4YF05U9+jNo+zI3jT+MUoYMCFJ
+	 b2lckqmq9hm8UJswVBa7bb2bdz553UGHL+2u5LhVi+NltWwgVTz6jFqlsqj/fkPOO+
+	 7rciS+Dx5sX5kfXcuhkrAbQsjC2j9cBCCyK707VQ=
+Message-ID: <2817ca55-cf04-4874-bed6-8408606e1a41@arm.com>
+Date: Thu, 17 Sep 2026 20:44:17 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260917-build-speedup-v3-9-9ecf4163ff36@kernel.org>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] docs/mm: describe set_memory() and set_direct_map() APIs
+To: "Mike Rapoport (Microsoft)" <rppt@kernel.org>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ David Hildenbrand <david@kernel.org>, Jonathan Corbet <corbet@lwn.net>
+Cc: "Liam R. Howlett" <liam@infradead.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ Michal Hocko <mhocko@suse.com>, Randy Dunlap <rdunlap@infradead.org>,
+ Shuah Khan <skhan@linuxfoundation.org>,
+ Suren Baghdasaryan <surenb@google.com>, Vlastimil Babka <vbabka@kernel.org>,
+ linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org
+References: <20260909-set-memory-docs-v1-1-6065d3f208e4@kernel.org>
+From: Kevin Brodsky <kevin.brodsky@arm.com>
+Content-Language: en-GB
+In-Reply-To: <20260909-set-memory-docs-v1-1-6065d3f208e4@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On Thu, Sep 17, 2026 at 05:06:19PM +0100, Lorenzo Stoakes (ARM) wrote:
-> This can be done faster in C, so implement scripts/basic/depcheck to do so.
-> 
-> It does as little work as possible, reading the .cmd files from a
-> directory's targets and running stat on each dependency only a single time.
+On 09/09/2026 11:45, Mike Rapoport (Microsoft) wrote:
+> The set_memory() and set_direct_map() APIs change permissions of existing
+> kernel mappings, but their semantics are only described by the code, and
+> that code differs from architecture to architecture.
+>
+> Add Documentation/mm/kernel-page-tables.rst that briefly describes what the
+> kernel page tables consist of, defines the semantics both APIs have in
+> common, including the parts that are easy to get wrong, and lists the
+> differences between the architecture implementations.
+>
+> Add kernel-doc comments for the generic set_memory() and set_direct_map()
+> stubs and link them into Documentation/core-api/mm-api.rst.
+>
+> Assisted-by: copilot:claude-opus
+> Signed-off-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
 
-Doesn't this run the risk of missing transitive deps?
+Thanks for doing this Mike, I wish there had been such a document when I
+started using those APIs!
 
-C.cmd:	C.o depends on A.c and B.c and B.h
-B.cmd:	B.h depends on B.data and B.script
+Much of that document feels like an excruciating FIXME list... which is
+exactly the state of set_memory/set_direct_map, and better to have it
+documented than letting every new user stumble upon the same gotchas.
 
-depcheck looks at C.o and B.h's times and is happy so it drops C.cmd file,
-but then see B.script has changed compared to B.h, so it keeps B.cmd,
-and then the build runs and doesn't have the C.o dep list any more,
-and C.o goes unbuilt?
-
-Also, I don't think this handles if_changed commands at all? The kbuild
-rebuild condition is timestamps plus if_changed's command-line check.
-
-> diff --git a/scripts/basic/depcheck.c b/scripts/basic/depcheck.c
-> new file mode 100644
-> index 000000000000..622101c33650
-> --- /dev/null
-> +++ b/scripts/basic/depcheck.c
-> @@ -0,0 +1,441 @@
-> [...]
-> +/* What fixdep writes, see above. */
-> +#define DEPS_PREFIX		"deps_"
-> +#define DEPS_RULE_PREFIX	"$(" DEPS_PREFIX
-> +#define RULE_SUFFIX		":"
-> +#define LINE_CONTINUATION	" \\"
-> +#define WILDCARD_OPEN		"$(wildcard "
-> +#define WILDCARD_CLOSE		")"
-> +#define CMD_SUFFIX		".cmd"
-> [...]
-> +static bool is_blank(char chr)
-> [...]
-> +static bool str_ends_with(const char *str, const char *suffix)
-> [...]
-> +static bool line_starts_with(const struct line *line, const char *prefix)
-> [...]
-> +static bool line_ends_with(const struct line *line, const char *suffix)
-> [...]
-> +static bool line_is_blank(const struct line *line)
-> [...]
-> +static bool line_is_continued(const struct line *line)
-> [...]
-> +static void line_strip_continuation(struct line *line)
-> [...]
-> +static void line_trim(struct line *line)
-> [...]
-> +static bool next_line(const char **pos, const char *end, struct line *line)
-
-There is a lot of sting handling in here. I know you're going for speed,
-but it just feels like a python script doing all this would be much more
-readable without wrecking speed compared to C much. Yes, C will win out,
-but the maintainability of this helper does not fill me with joy. :P
+Overall looks good to me, some minor comments below.
 
 > [...]
-> +static const struct dep *lookup_dep(const char *path)
-> +{
-> +	const unsigned int key = hash_str(path);
-> +	struct dep *dep;
-> +	struct stat st;
+>
+> +Modifying the kernel page tables
+> +================================
 > +
-> +	hash_for_each_possible(dep_table, dep, hnode, key) {
-> +		if (!strcmp(dep->path, path))
-> +			return dep;
-> +	}
+> +Except for the vmalloc area, the kernel page tables are mostly static. Still,
+> +there are cases when the permissions of existing kernel mappings have to be
+> +updated, for instance when a module is loaded and its text becomes read-only
+> +and executable, or when a page is temporarily removed from the direct map to
+> +reduce its exposure.
 > +
-> +	dep = xmalloc(sizeof(*dep) + strlen(path) + 1);
-> +	strcpy(dep->path, path);
-> +	dep->exists = !stat(path, &st);
-> +	if (dep->exists)
-> +		dep->mtime = st.st_mtim;
+> +There are two families of functions for this, both declared in
+> +`include/linux/set_memory.h`:
+> +
+> +* `set_memory_*()` change permissions of an arbitrary kernel mapping. They
+> +  take a kernel virtual address and the number of pages.
+> +
+> +* `set_direct_map_*()` change permissions of the direct map alias of a
+> +  `struct page`. They take a `struct page` pointer and the number of
+> +  pages.
 
-I realize you only check "mtime" after an "exists" check, but I bristle
-at leaving a time-stamp uninitialized. Can we just add an "else
-dep->mtime = 0" here?
+"direct map alias of a struct page" is rather confusing, are we talking
+about the mapping of struct page itself?
 
--Kees
+> +
+> +Architectures that implement `set_memory()` select `CONFIG_ARCH_HAS_SET_MEMORY`
+> +
+> +Architectures that implement `set_direct_map()` select
+> +`CONFIG_ARCH_HAS_SET_DIRECT_MAP`.
+> [...]
+>
+> +Architecture specific differences
+> +=================================
+> +
+> +The APIs are implemented by seven architectures and, beyond the common
+> +semantics described above, their behaviour differs in several respects.
+> +
+> +Which of the APIs are implemented:
+> +
+> +=========  =====================  =========================
+> +Arch       `ARCH_HAS_SET_MEMORY`  `ARCH_HAS_SET_DIRECT_MAP`
+> +=========  =====================  =========================
+> +arm        yes                    no
+> +arm64      yes                    yes
+> +loongarch  yes                    yes
+> +powerpc    yes                    no
+> +riscv      yes (MMU only)         yes (MMU only)
+> +s390       yes                    yes
+> +x86        yes                    yes
+> +=========  =====================  =========================
+> +
+> +Only set_memory_ro(), set_memory_rw(), set_memory_x() and set_memory_nx() are
+> +available everywhere, and even these are not universal: some architectures do
+> +not implement any of them for the direct map, and the architectures that may
 
--- 
-Kees Cook
+"do not implement any of them for the direct map" feels ambiguous - I
+think what we really mean is that they reject direct map addresses, e.g.
+what arm64 does (only accept addresses to kernel VMAs)?
+
+> +run on hardware without an execute permission bit, like x86 and s390, silently
+> +skip the update of the executable bit there.
+> +
+> +set_memory_rox() has a generic implementation that calls set_memory_ro() and
+> +set_memory_x() in turn; PowerPC, s390 and x86 override it with a single-pass
+> +version.
+> +
+> +Making a mapping present or not present is spelled differently: set_memory_p()
+> +and set_memory_np() on x86 and PowerPC, set_memory_valid() on arm64 and arm.
+
+I'm not sure we should even document set_memory_valid(). It doesn't at
+all behave like the other set_memory_* on amr64 (no check whatsoever, no
+handling of aliases) and is (fortunately) only used from arch code. I've
+been meaning to make its name scarier (__set_memory_valid?) for that reason.
+
+> +
+> +The direct map and the kernel image are normally mapped with the largest
+> +possible pages, and changing the permissions of a single page inside such a
+> +mapping requires splitting it, which not every architecture can do.
+> +
+> +arm
+> +---
+> +
+> +* Does not implement `set_direct_map()`.
+> +* Provides set_memory_valid().
+> +* set_memory_ro(), set_memory_rw(), set_memory_x() and set_memory_nx() accept
+> +  only vmalloc and module addresses.
+> +* set_memory_valid() accepts any address.
+> +* Does not update mapping aliases.
+> +
+> +arm64
+> +-----
+> +
+> +* Provides set_memory_valid().
+> +* Provides the memory encryption helpers, which are effective only when the
+> +  kernel runs as a confidential guest.
+> +* set_memory_ro(), set_memory_rw(), set_memory_x() and set_memory_nx() accept
+> +  only vmalloc and module addresses:
+> +
+> +  - the range must fit in the VM area that contains its start
+> +  - the VM area must have `VM_ALLOC` set and `VM_ALLOW_HUGE_VMAP` clear
+> +
+> +* set_memory_valid() accepts any address.
+> +* The encryption helpers accept only the direct map addresses.
+
+s/the//
+
+> +* Propagates the read-only and the read-write changes to the direct map alias
+> +  when `rodata=full` is in effect.
+
+That is, set_memory_<perms> propagate those changes.
+
+> +* Splits leaf mappings before the update on the hardware that supports it.
+> +  Without such support an update that covers a leaf entry only partially fails
+> +  with a WARN()ing and `-EINVAL`.
+
+What does "partially fails" mean?  The splitting may be partial, but no
+permission change should occur.
+
+> +* The `set_direct_map()` functions return 0 without doing anything when the
+> +  direct map cannot be modified, see can_set_direct_map().
+> +* Skips the TLB flush in `set_memory()` when the update only turns an invalid
+> +  mapping into a valid one.
+> +* Does not flush TLB in `set_direct_map()`.
+> +
+> +LoongArch
+> +---------
+> +
+> +* Accepts only the addresses above the hardware window and silently returns
+> +  success for the rest, see `Direct map`_.
+> +* Does not update mapping aliases.
+> +* Does not split anything: a leaf entry is updated as a whole, which changes
+> +  the permissions of the entire large mapping.
+
+Ouch!
+
+> +* Flushes the TLB in `set_direct_map()`.
+> +
+> +PowerPC
+> +-------
+> +
+> +* Does not implement `set_direct_map()`.
+> +* Provides set_memory_np() and set_memory_p().
+> +* Rejects huge vmalloc mappings.
+> +* With the hash MMU on 64-bit systems accepts nothing but the vmalloc and the
+> +  I/O regions.
+> +* With the radix MMU accepts direct map addresses, but still cannot split a
+> +  large mapping.
+> +* Does not update mapping aliases.
+> +
+> +riscv
+> +-----
+> +
+> +* Implements both APIs only when the MMU is enabled.
+> +* Provides set_memory_rw_nx().
+> +* The `set_memory()` functions accept any mapped kernel address, including the
+> +  direct map, but a vmalloc range must have the `pages` array of its VM area
+> +  populated, which rules out vmap() and ioremap() mappings.
+> +* On 64-bit systems updates the direct map alias of a vmalloc range, including
+> +  the executable bit.
+> +* Does not split vmalloc ranges: a leaf entry is updated as a whole, which
+> +  changes the permissions of the entire large mapping.
+> +* Splits the direct map on 64-bit systems.
+> +* Flushes the TLB in `set_direct_map()`.
+> +
+> +s390
+> +----
+> +
+> +* Provides set_memory_4k(), set_memory_rwnx() and the
+> +  `__set_memory_*(start, end)` variants that take a range rather than a page
+> +  count.
+> +* The `set_memory()` functions accept any mapped kernel address, including the
+> +  direct map.
+> +* Skips the update of the executable bit when the hardware has no support for
+> +  it.
+> +* Propagates only the read-only and read-write changes to the direct map alias
+> +  of a `VM_ALLOC` area, and deliberately not the executable bit.
+> +* Splits leaf PUD and PMD entries when the range is not aligned to them or when
+> +  set_memory_4k() is requested.
+> +* Updates the page table entries with instructions that invalidate the
+> +  corresponding TLB entries, so no separate flush is needed anywhere.
+> +
+> +x86
+> +---
+> +
+> +* Provides the largest set of operations on top of the common ones:
+> +
+> +  - the cache attribute helpers: set_memory_uc(), set_memory_wc(),
+> +    set_memory_wb()
+> +  - presence control: set_memory_np() and set_memory_p()
+> +  - set_memory_4k()
+> +  - set_memory_global() and set_memory_nonglobal()
+> +  - the array variants that operate on `struct page` arrays or arrays of
+> +    virtual addresses
+> +  - memory encryption: set_memory_encrypted() and set_memory_decrypted()
+> +
+> +* The `set_memory()` functions accept any mapped kernel address, including the
+> +  direct map, and silently succeed for the unmapped holes inside it.
+> +* Does nothing in set_memory_x() and set_memory_nx() when the CPU has no
+> +  execute permission bit.
+> +* Applies the change to the direct map alias and, for the kernel image, to the
+> +  high kernel mapping. The NX bit is never propagated, so that the direct map
+> +  stays non-executable.
+
+Same as above, bettermake the subject explicit (set_memory()?).
+
+- Kevin
+
+> +* Splits large mappings on demand and can collapse them back when the
+> +  permissions become uniform again.
+> +* Does not flush the TLB in `set_direct_map()`, but splitting a large
+> +  mapping flushes it anyway.
+>
+> [...]
