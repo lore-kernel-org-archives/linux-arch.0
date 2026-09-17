@@ -1,91 +1,130 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 9FEA64BD0FD;
-	Thu, 17 Sep 2026 10:51:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 472D138F638;
+	Thu, 17 Sep 2026 11:40:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789642273; cv=none; b=Uu4Z/eum4cGcUBp8odg6i0dOwhvIWnvSmMq0fBpzAYMftaY3E3qO7IkDDDDAgbsSaYVWv78dw64oKUwmSrlKNWNf7qTHk2Gm7qDMRtbduMYEjgmtJ2LWYRDxyxzRVTkLgBTbgz+Ky8pgtubk0sclklPUtKSCRCzSF5JnLpeYzb8=
+	t=1789645249; cv=none; b=gz16T8rTcOUVnnehN6bLPd9B+f5WeU6E8gMfZGS4E8TWhA2ueWM2eYvIliaJoVDnNKys3539tLjSqBXRWDO8OhnX3bs3qh/1PW2P6ukJa4aF8/f19zfy/LvNs2Y6GKY3bJn1w8KUejyQbZ6pjz73IeKSZ1y32/3Rgk1HJR1kydo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789642273; c=relaxed/simple;
-	bh=XihqMbgiW7kyP3lfZhBkDWHC5GYJp5plq+bKZoZZO64=;
+	s=arc-20240116; t=1789645249; c=relaxed/simple;
+	bh=BApzGHIqAjiErWcRlmmivBGBfFVBONt4ktRgWMUzDCk=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=WM/TIbBt//p/lZ6Z2zx9PIMx1zNIczarLqmyd8LHHRAaWfvO5iWMOPglwxPFtcroxmtb7+fQRxGt0kTTdDngx24N7+kPgSsqi2ZFV4A6peiE9/16yJfrsBJnOgyEyDgV4WQkXBEHSabLdbaWeCgZbvqL3kObqQiPgZFrWX8RD9A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=RtNfF25a; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=ksfZ0YXW8SbGflRHkz7BYirbdjoKwlsZnAW1q/kIU3Pht6wmvE9yQWOekEj0U9v/MWeaO+0DP52RO7BQ47DkE+FrRZqg5n1GZCqJN6NHBVZ3HGIbMrvlwIZUNMbbI2vFphAAeFld2nyUAzzocVZP7GKADOyZ7z0ZtFZsSO8c9RI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=mDBBHK/I; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="RtNfF25a"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 97B191476;
-	Thu, 17 Sep 2026 03:50:59 -0700 (PDT)
-Received: from J2N7QTR9R3 (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id B2D533F882;
-	Thu, 17 Sep 2026 03:51:00 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1789642263; bh=XihqMbgiW7kyP3lfZhBkDWHC5GYJp5plq+bKZoZZO64=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=RtNfF25amyqFFOwy8f7Iwf2XNcgtv+nIar7eBklFC+H7xAzdIEqMy9x0nlPGgqPRB
-	 cJk9SAnVOKw5yit88ub9YsR0jRng8wnZMYVoikwQM+HrvrznRNZAqoMaF/uTPYGa02
-	 tQe/QcLuEmF28RDLit3va2X5NLtfgxw0mBTlrlP8=
-Date: Thu, 17 Sep 2026 11:50:58 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-To: =?utf-8?B?QW5kcsOp?= Almeida <andrealmeid@igalia.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Florian Weimer <fweimer@redhat.com>,
-	Darren Hart <dvhart@infradead.org>, Ingo Molnar <mingo@kernel.org>,
-	Davidlohr Bueso <dave@stgolabs.net>, Arnd Bergmann <arnd@arndb.de>,
-	Uros Bizjak <ubizjak@gmail.com>,
-	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>,
-	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org, kernel-dev@igalia.com
-Subject: Re: [PATCH v8 4/4] arm64: vdso32: Implement
- __vdso_futex_robust_try_unlock()
-Message-ID: <aqvGEiZEtZFEWvjL@J2N7QTR9R3>
-References: <20260821-tonyk-robust_arm-v8-0-077707b6f1c7@igalia.com>
- <20260821-tonyk-robust_arm-v8-4-077707b6f1c7@igalia.com>
- <aqqngEKC_CsrS62n@J2N7QTR9R3>
- <d0c5ada8-929f-4d39-9f8e-32860fa5b853@igalia.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="mDBBHK/I"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id A09061F000FF;
+	Thu, 17 Sep 2026 11:40:11 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1789645243;
+	bh=BApzGHIqAjiErWcRlmmivBGBfFVBONt4ktRgWMUzDCk=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=mDBBHK/IhHEPd17SZQYudlv622AFtJid39i0LAeTPe5KX2n4jjfEibNrHMdEGP/lt
+	 eUgQ97JZr9jtSS+gOZV9ctH5mVpR5Wezp3sekSSbMJ5cOeo6kdk0KT15/6B49AIGEy
+	 W3xTRN8TOmbFo/L3aM1LzCnmwuDCeyPl4is4tqU7CxU3Ioxbh6x+wbfLlNfNi4Nbut
+	 a7/lNdUCvCwU4aCE2PFX04HuH+W5hEeEwQfpeBZl00atZiv1MQM4dBxsjASoERsnQh
+	 U2zQOve9t2ri7i6jgJuS/I7mx5ZPVMsb+fxhyacjpxeRyQ3wCmjEdg7jvg80HHafvW
+	 7dUndTZsEPJPw==
+Date: Thu, 17 Sep 2026 12:40:08 +0100
+From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+	Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
+	David Hildenbrand <david@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+	Michal Hocko <mhocko@suse.com>, Jonathan Corbet <corbet@lwn.net>, 
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, 
+	Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
+	Paul Moore <paul@paul-moore.com>, Stephen Smalley <stephen.smalley.work@gmail.com>, 
+	Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, 
+	Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
+	Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
+	Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
+	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
+	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
+	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
+	Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
+	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, "Martin K. Petersen" <mkp@kernel.org>, 
+	Jaya Kumar <jayalk@intworks.biz>, Simona Vetter <simona@ffwll.ch>, Helge Deller <deller@gmx.de>, 
+	Sebastian Reichel <sre@kernel.org>, John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
+	Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, 
+	Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@kernel.org>, 
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Arnaldo Carvalho de Melo <acme@kernel.org>, 
+	Namhyung Kim <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
+	Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, Juri Lelli <juri.lelli@redhat.com>, 
+	Vincent Guittot <vincent.guittot@linaro.org>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+	Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+	David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, 
+	Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Marc Zyngier <maz@kernel.org>, 
+	Oliver Upton <oupton@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, 
+	Madhavan Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, Paul Walmsley <pjw@kernel.org>, 
+	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Christian Borntraeger <borntraeger@linux.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, 
+	Claudio Imbrenda <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
+	Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Heiko Carstens <hca@linux.ibm.com>, 
+	Vasily Gorbik <gor@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, 
+	Andreas Larsson <andreas@gaisler.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Christian Brauner <brauner@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
+	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, Byungchul Park <byungchul@sk.com>, 
+	Gregory Price <gourry@gourry.net>, Ying Huang <ying.huang@linux.alibaba.com>, 
+	Alistair Popple <apopple@nvidia.com>, Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
+	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
+	Youngjun Park <youngjun.park@lge.com>, Johannes Weiner <hannes@cmpxchg.org>, 
+	Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
+	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
+	Chengming Zhou <chengming.zhou@linux.dev>, Michal Hocko <mhocko@kernel.org>, 
+	Miklos Szeredi <miklos@szeredi.hu>, Xu Xin <xu.xin@linux.dev>, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
+	linux-rdma@vger.kernel.org, selinux@vger.kernel.org, linux-sound@vger.kernel.org, 
+	bpf@vger.kernel.org, linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
+	dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
+	linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, 
+	kvm@vger.kernel.org, kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
+	linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, fuse-devel@lists.linux.dev
+Subject: Re: [PATCH v2 01/40] mm/vma: fix mmap_prepare file handling, remove
+ file_doesnt_need_get
+Message-ID: <aqvRKarObW1Zy-QD@gremlin>
+References: <20260914-b4-mmap-prepare-vma-flag-sanify-v2-0-7d9781ed5361@kernel.org>
+ <20260914-b4-mmap-prepare-vma-flag-sanify-v2-1-7d9781ed5361@kernel.org>
+ <aquz9Z9JrK_H_E0g@kernel.org>
+ <aqu5jtMV2gyZFrSe@gremlin>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <d0c5ada8-929f-4d39-9f8e-32860fa5b853@igalia.com>
+In-Reply-To: <aqu5jtMV2gyZFrSe@gremlin>
 
-On Wed, Sep 16, 2026 at 10:11:01PM -0300, André Almeida wrote:
-> Em 16/09/2026 11:28, Mark Rutland escreveu:
-> > On Fri, Aug 21, 2026 at 06:50:45PM -0300, André Almeida wrote:
-> > > Based on aarch64 implementation, provide a 32 bit entry point for
-> > > this vDSO.
-> > > 
-> > > In order to keep compatibility with arm64_futex_robust_unlock_get_pop(),
-> > > make sure to store the pop address at r2 and the compare result value
-> > > at r3.
-> > 
-> > Before we add this to the compat vdso, we'll need to implement this on
-> > arch/arm/.
-> > 
-> > Otherwise, my comments on the patch for the native vdso functions apply
-> > here too.
-> 
-> Right, and the compat entry point at arch/arm64/ would point to the
-> __vdso_futex_robust_list32_try_unlock implementation at arch/arm/?
+On Thu, Sep 17, 2026 at 10:57:57AM +0100, Lorenzo Stoakes (ARM) wrote:
+> On Thu, Sep 17, 2026 at 12:33:41PM +0300, Mike Rapoport wrote:
+> > But the patch iteslf needs to be fixed :)
+> >
+> > It seems to be the change that broke the CI.
+> >
+> > The rest is from LLM, take it with a grain of salt :)
+>
+> Ack will assess + respin
 
-So far we've had arm64 provide its own copy (which e.g. might use
-sequences relying on ARMv8+ instructions), so I think we'd do the same
-here.
+Apologies to everybody's inbox but this will need a respin to resolve a conflict
+in a subsequent commit.
 
-The key thing is that 32-bit tasks on arm64 should see the same ABI as
-native tasks on 32-bit arm. As there's a risk that 32-bit arm might have
-some ABI quirks (e.g. due to older processors), we don't want to enable
-features for compat tasks on arm64 before that's been implemented on
-32-bit arm.
+This was to fix a sashiko report (not a bug anywhere in production, but could
+lead to bugs in future by accident), and got sashiko + [another AI]-reviewed
+before sending all of which missed it :)) the robot overloads are not quite in
+charge yet ;)
 
-Mark.
+Fix is simple - update flags at the right time. The error was pre-empting
+setting everything rather than just map->vm_file.
+
+Will look through other sashiko stuff then respin a bit later.
+
+--
+Cheers, Lorenzo
