@@ -1,35 +1,35 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4064250E5B5;
-	Thu, 17 Sep 2026 16:11:01 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 709E83845AC;
+	Thu, 17 Sep 2026 16:23:00 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789661463; cv=none; b=jyqUa6gpDs+Ei1+tNCbKGIzaLve/TjABHzUmb+MTcgtPKWAoafziMIys2xWTDOjrOwGsZht39wYmxbzyDnAT5Q95C2/bW7S15FSwaMs3+/qIMPk0UQQjXlOyIxW/MiP5stM+ztKK7OMQQVZSpp/X4PZ75RiBfnCp5H9EY1+CAwM=
+	t=1789662182; cv=none; b=KWnnnMhL1fiZV3KvbjQldirouZD8FoFhstIbZX39yq4OIqqn/uE6qR3oANowrzKcN5eEZLlCmZ6visKRKXrsgDIUQ++U1QsyOoJpZQhQ6StmFVb2dWn5Kmikmy/x2VG2GuDlDPGCV2yqHXmCqxOzAEjImf+FkE8755dwd4FDqm8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789661463; c=relaxed/simple;
-	bh=oEqv26NNp6DC+I1JyUl1cIrGQ+RyNw07N7F7X92kUw8=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=MzHg4ZzYSPJD3grSota+1p2xobjHyJzvKe1Qze7LtRZCsBnOyCU4GZYxlXLt0Vrd5CzGdbNGzZwQ/79Sunj3nXlffXgxUCksKzLgBrZnAjL++FlopZ2J95S64AVauXazGbhBHzM5kseVS4UJjVxo75M6/MBuY1yDI5VFdThVulI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=F1E2m9xP; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789662182; c=relaxed/simple;
+	bh=YNjr0dSPuiW39zPd8bCRpyQ2Yk06eE4geGojrPPpuO4=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=EIhmFxpMmkZptcetXks5Xh8vVkZ/k5dMG8imtCl/TxI4DXyjwVY01pn8mbo3gurf3nuxJUFo1G8EThEmxebhj6z5/NrCnMcqOctJJhstjpA64+EwpAmdqaRuDQxHf1zyF5DgPFcRQXKKovQwLCFlpZT8BCpm4jbGuAWC2b1vkLQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=QG6IR++p; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="F1E2m9xP"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 202C21F000FF;
-	Thu, 17 Sep 2026 16:10:48 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="QG6IR++p"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D5EEA1F00893;
+	Thu, 17 Sep 2026 16:22:29 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789661461;
-	bh=zRS8A68HtauULKqM669Tk32r1+W1FP4YJiATZSr8tbY=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=F1E2m9xPSuxmyz+NzAE+hfwooNNJ6UWahNsEskV3Vi7ws3jsEMKSCxCEVXCHESlr7
-	 inIqCePqowrK38M9njm6VSZGSl1stDGpAf2J3nZI1FCvkxyPVH7SYEaPMZMKbMbsdZ
-	 HmPM4F35utA4agtvqryVuZYZalKb7yFdnsYXMZlWtkZgl5FCS8Brml6QSTXwhVXrzu
-	 RNr/7hwpw1dxi8CXQkyy/rzRA1/FxyVbXCsGjKYaZgaJ9Z2Oo1MYE1LEozZxSH/UU2
-	 jvIi8mwqk3lwDaTSp9uaxGhd8bDwo1tPfeQ+Fbo6G3A/7OUJXD3LKyhkVqqL9kEnC9
-	 e6LMEu4cMPLMQ==
+	s=k20260515; t=1789662180;
+	bh=F4kEMmAg44kGI5Z/hj5D62xPoebkB5YfSHvmHRVRhVw=;
+	h=From:Subject:Date:To:Cc;
+	b=QG6IR++pHUedJ4hUhehmQ9Bd4OPmk0i80X2hhTOHD0yM4lq8ID96oSl6v1+zVT4zt
+	 08eTS4DYkoXao6VlCfVF54bnwA1qZoUY2AwpBVxsHNvUrPY8nZ1/twR7SCoIySEC5+
+	 VE6iZpCT8zpF++4vmMZJhAzx19Lrx2EvTn8lmxt7WYCmZfgEpQhjz5O9pN9wES62lD
+	 3U1pUwOJltggJ1jgZ37NwNXsBLgVO6pq6vhb/7JrI6laXqiqFTF6UaarlHD7x2K2kA
+	 A37PrYVnMLkOJ+9KvlkxAJXvhz0Tjw+WXd1UZVAD3Q7+8nMujPCTWbFhGBB0W5EwY5
+	 bWM8HgeunGWBw==
 From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Date: Thu, 17 Sep 2026 17:06:30 +0100
-Subject: [PATCH v3 20/20] kbuild: compress the kernel with pigz if
- available
+Subject: [PATCH v3 00/40] mm: make VMA flag semantics explicit, eliminate
+ VM_SPECIAL
+Date: Thu, 17 Sep 2026 17:22:09 +0100
+Message-Id: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-0-4583d8a23bca@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -38,292 +38,331 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260917-build-speedup-v3-20-9ecf4163ff36@kernel.org>
-References: <20260917-build-speedup-v3-0-9ecf4163ff36@kernel.org>
-In-Reply-To: <20260917-build-speedup-v3-0-9ecf4163ff36@kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, 
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
- Nick Desaulniers <ndesaulniers@google.com>, 
- Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
- Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/4WOOw7CMBAFr4Jcs8heEkKouAei2NjrYCAf2WARR
+ bk7TmigohzpaeaNIrB3HMRhNQrP0QXXtQm265XQF2prBmcSC5S4kwUqqDJoGuqh99yTZ4gNgb1
+ TDYFaZwdAJWWGubE5kUiWtLPutRRO5w+HZ3Vl/Zi18+LiwqPzw3Ihqnn3qZVy/7cWFUgwpK0qt
+ WbE6nhj3/J90/lazLmIX0KV/RdiEhamLPaKTb7dqR/hNE1vCaV4STIBAAA=
+X-Change-ID: 20260721-b4-mmap-prepare-vma-flag-sanify-2100425df5aa
+To: Andrew Morton <akpm@linux-foundation.org>, 
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+ Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
+ David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
+ Jonathan Corbet <corbet@lwn.net>, 
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
+ Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, 
+ Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
+ Paul Moore <paul@paul-moore.com>, 
+ Stephen Smalley <stephen.smalley.work@gmail.com>, 
+ Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, 
+ Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
+ Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
+ Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
+ Baolin Wang <baolin.wang@linux.alibaba.com>, 
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, 
+ Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
+ Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
+ Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, 
+ "Martin K. Petersen" <mkp@kernel.org>, Jaya Kumar <jayalk@intworks.biz>, 
+ Simona Vetter <simona@ffwll.ch>, Helge Deller <deller@gmx.de>, 
+ Sebastian Reichel <sre@kernel.org>, John Hubbard <jhubbard@nvidia.com>, 
+ Peter Xu <peterx@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, 
+ Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, 
  Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
  Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
+ x86@kernel.org, Arnaldo Carvalho de Melo <acme@kernel.org>, 
+ Namhyung Kim <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
+ Juri Lelli <juri.lelli@redhat.com>, 
+ Vincent Guittot <vincent.guittot@linaro.org>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
+ Nick Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, 
+ Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
+ Marc Zyngier <maz@kernel.org>, Oliver Upton <oupton@kernel.org>, 
+ Catalin Marinas <catalin.marinas@arm.com>, 
+ Madhavan Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, 
  Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
- Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
- Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, 
- Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
- Ard Biesheuvel <ardb@kernel.org>, 
- Ilias Apalodimas <ilias.apalodimas@linaro.org>, 
- Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
- Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
- Gary Guo <gary@garyguo.net>, 
- =?utf-8?q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
- Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
- Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
- Danilo Krummrich <dakr@kernel.org>, 
- Daniel Almeida <daniel.almeida@collabora.com>, 
- Tamir Duberstein <tamird@kernel.org>, 
- Alexandre Courbot <acourbot@nvidia.com>, 
- =?utf-8?q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
- Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, 
- Kees Cook <kees@kernel.org>, "Gustavo A. R. Silva" <gustavoars@kernel.org>
-Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
- llvm@lists.linux.dev, linux-riscv@lists.infradead.org, 
- linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
- linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
- linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, 
- linux-hardening@vger.kernel.org, "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+ Albert Ou <aou@eecs.berkeley.edu>, 
+ Christian Borntraeger <borntraeger@linux.ibm.com>, 
+ Janosch Frank <frankja@linux.ibm.com>, 
+ Claudio Imbrenda <imbrenda@linux.ibm.com>, 
+ Alexander Gordeev <agordeev@linux.ibm.com>, 
+ Gerald Schaefer <gerald.schaefer@linux.ibm.com>, 
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
+ "David S. Miller" <davem@davemloft.net>, 
+ Andreas Larsson <andreas@gaisler.com>, 
+ Alexander Viro <viro@zeniv.linux.org.uk>, 
+ Christian Brauner <brauner@kernel.org>, 
+ Matthew Brost <matthew.brost@intel.com>, 
+ Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
+ Byungchul Park <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, 
+ Ying Huang <ying.huang@linux.alibaba.com>, 
+ Alistair Popple <apopple@nvidia.com>, Chris Li <chrisl@kernel.org>, 
+ Kairui Song <kasong@tencent.com>, Kemeng Shi <shikemeng@huaweicloud.com>, 
+ Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
+ Youngjun Park <youngjun.park@lge.com>, Johannes Weiner <hannes@cmpxchg.org>, 
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, 
+ Wei Xu <weixugc@google.com>, Chengming Zhou <chengming.zhou@linux.dev>, 
+ Michal Hocko <mhocko@kernel.org>, Miklos Szeredi <miklos@szeredi.hu>, 
+ Xu Xin <xu.xin@linux.dev>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+ linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
+ linux-rdma@vger.kernel.org, selinux@vger.kernel.org, 
+ linux-sound@vger.kernel.org, bpf@vger.kernel.org, 
+ linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
+ dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
+ linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, 
+ linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
+ kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org, 
+ kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
+ linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, 
+ fuse-devel@lists.linux.dev, "Lorenzo Stoakes (ARM)" <ljs@kernel.org>, 
+ Takashi Iwai <tiwai@suse.de>, Emil Tsalapatis <emil@etsalapatis.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=openpgp-sha256; l=10146; i=ljs@kernel.org;
- h=from:subject:message-id; bh=oEqv26NNp6DC+I1JyUl1cIrGQ+RyNw07N7F7X92kUw8=;
- b=owGbwMvMwCV2fu7ZrsZH9SKMp9WSGLLWCDBMKzOziPy24eti9mPTj2yKdPhg87fcUNzAa1aIy
- doLhkuZO0pZGMS4GGTFFFmefxHfHyQSNq/zgr8bzBxWJpAhDFycAjCRqnuMDB+ab8/ULXUUV+OL
- /HmyTLBM9WLX7o2sx+ueMmcXsD9mq2H4K6Dgvin1+uutN2xflfTpbKyVC/2zpUj3iEGYvm+HvlE
- jJwA=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=11656; i=ljs@kernel.org;
+ h=from:subject:message-id; bh=YNjr0dSPuiW39zPd8bCRpyQ2Yk06eE4geGojrPPpuO4=;
+ b=owGbwMvMwCV2fu7ZrsZH9SKMp9WSGLLWCO+euVXoocmrxU83681y3RLp+yupiPdLvWLn/29La
+ uNY/G+rdJSyMIhxMciKKbI8/yK+P0gkbF7nBX83mDmsTCBDGLg4BWAiLSYM/5QSpH07fzvOcpB+
+ carukvfxuRs/Ldz++bqlY1HPj+w/JqsY/sfaHHGYKfd4Y9F2+eu3vQ8/3sHl3HBoRsyzDy86i3X
+ e+LIDAA==
 X-Developer-Key: i=ljs@kernel.org; a=openpgp;
  fpr=E7F417BF5214569E89D04F46CF9DCD8A81E27F14
 
-The gzip step of a kernel build is very lengthy, especially for larger
-builds such as allmodconfig.
+The VM_SPECIAL / VMA_SPECIAL_FLAGS mask conflates several unrelated
+properties:
 
-gzip itself cannot be run in parallel, however an alternative tool exists
-that can, providing the same feature set as gzip itself - pigz - which
-works as a drop-in replacement.
+* Is this kernel-owned, whether MMIO, kernel-allocated pages, or ordinary
+  pages a driver maps itself?
+* Can it be expanded or merged?
+* Is this a 'weird' case like mlock where migration might race and we
+  'have' to set invalid flags to notify?
+* Is it another 'weird' case where we just want to stop GUP from touching
+  it?
 
-On a 128-core Threadripper, gzip -9 of a 36 MiB x86-64 vmlinux.bin takes
-1.6s, and with pigz it takes 0.09s, so the performance increase is
-significant.
+Driver writers have often been confused about this, and who can blame them?
 
-Therefore introduce the KPGZIP build variable which specifies the
-compressor to use for the kernel image and default it to pigz if available,
-or KGZIP otherwise (which itself defaults to gzip).
+It also interacts badly with the eternal edgecase known as hugetlb - which
+sets VMA_DONTEXPAND_BIT but doesn't also want to be treated like a
+'special' flag.
 
-Modules, packaging and the embedded kernel configuration (CONFIG_IKCONFIG)
-continue to use KGZIP which defaults to a single-threaded gzip instance.
+Another issue is that we cannot make sensible assumptions about flag
+use. It's not possible to assume VMA_IO_BIT means iommu because drivers
+abuse it and mlock abuses it.
 
-Module compression is run in parallel by make, so pigz offers no benefit
-there, packaging sits outside the build and the embedded configuration is
-too small to matter.
+Special is also an overloaded term in mm. VDSO and VVAR mappings are also
+called 'special' but they're special in a... special way.
 
-pigz is executed using scripts/jobserver-exec, which reserves the job slots
-make has free - necessary, as otherwise pigz would just grab unbounded
-CPUs.
+Sometimes things are called special that are a subset of
+VMA_SPECIAL_FLAGS (VMA_PFNMAP_BIT and VMA_MIXEDMAP_BIT for instance when it
+comes to zapping or vm_normal_folio()).
 
-The kernel image compression step is always performed at the end of the
-build so should typically have all job slots available.
+There's a specific kind of special for THP too, which considers
+PFN map, mixed map 'special' but DAX not.
 
-pigz always provides byte-for-byte identical output across runs regardless
-of thread count, but pigz and gzip are not guaranteed to generate the same
-binary output, so reproducible builds must use the same tools consistently.
+It's all rather a mess.
 
-Also update Documentation/kbuild/kbuild.rst to describe KPGZIP and
-Documentation/process/changes.rst to list the optional pigz dependency.
+This series brings some order to things by both limiting what drivers can
+do with VMA flags and switching to using predicates that describe
+behaviour, not arbitrary flags.
 
-While there, add entries for the other compressor programs.
+It establishes the invariant that only kernel-owned mappings may set
+VMA_IO_BIT or clear VMA_MAYWRITE_BIT in an mmap hook, enforcing this by
+validating VMA state after every mmap and mmap_prepare hook.
 
-Every x86 build ends with the compression of vmlinux.bin, 36MB for
-defconfig and over 200MB for allmodconfig, no-op builds are unchanged.
+It updates usbmon and sg to mmap_prepare in order to do so, adding a new
+mmap action for mapping discontiguous kernel pages, and has hfi1 and the
+ALSA PCM status page map their pages eagerly instead.
 
-Whole build, 128-thread Threadripper 9980X, best of N runs:
+It also establishes the invariant that VMA_MIXEDMAP_BIT be set when mapping
+kernel memory, something that is usually the case but happens not to be for
+some users - specifically defio, cmt_speech, uprobes and the bpf arena, all
+of which are updated to do the right thing.
 
-                                         before   after     delta
-                                         -------------------------------
-  x86 defconfig, touch mm/vma.c, gcc        7.7s     6.0s     -1.7s (-22%)
-  x86 defconfig, touch mm/vma.c, clang      6.9s     5.4s     -1.5s (-21%)
-  x86 defconfig, clean, gcc                28.2s    26.3s     -1.8s (-6%)
-  x86 defconfig, clean, clang              28.7s    27.2s     -1.5s (-5%)
-  x86 allmodconfig, touch mm/vma.c, gcc    23.7s    15.4s     -8.3s (-35%)
-  x86 allmodconfig, touch mm/vma.c, clang  22.5s    15.6s     -7.0s (-31%)
-  x86 allmodconfig, clean, gcc            294.1s   278.6s     -15.5s (-5%)
-  x86 allmodconfig, clean, clang          283.9s   266.8s     -17.1s (-6%)
+It replaces VM_SPECIAL and arbitrary flag tests with predicates that say
+what is actually being tested:
 
-Suggested-by: Kees Cook <kees@kernel.org>
-Link: https://zlib.net/pigz/
-Assisted-by: LLM
+   vma_is_kernel_owned()   Does a driver or kernel code manage a VMA's
+                           life cycle?
+
+  vma_is_fixed_mapping()   Is the VMA not permitted to be expanded or
+                           merged?
+
+     vma_is_persistent()   Do bytes written to the VMA stay written, and
+                           bytes read stay the same unless userland changes
+                           them?
+
+         vma_can_merge()   Can the VMA be merged with a compatible
+                           neighbour?
+
+           vma_can_gup()   Can GUP obtain pages from the VMA, i.e. is it
+                           neither a PFN map nor memory-mapped I/O?
+
+Remaining raw VMA_IO_BIT, VMA_PFNMAP_BIT and VMA_MIXEDMAP_BIT tests
+scattered across mm are also converted to predicates where it makes sense
+to do so.
+
+And also the opportunity is taken to eliminate THP's vma_is_special_huge()
+which was an existing source of confusion.
+
 Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 ---
- Documentation/kbuild/kbuild.rst   | 17 +++++++++++++++++
- Documentation/process/changes.rst |  8 ++++++++
- Makefile                          |  5 ++++-
- kernel/Makefile                   |  6 +++++-
- scripts/Makefile.lib              |  4 ++--
- scripts/jobserver-exec            |  3 ++-
- tools/lib/python/jobserver.py     | 13 +++++++++++++
- 7 files changed, 51 insertions(+), 5 deletions(-)
+v3:
+* Fixed up bug in patch 1 as reported by Mike - have to delay setting
+  map->vma_flags until after action prepare, though map->vm_file needs to
+  be set before for correct reference count management.
+* Updated 4/40 to add a symmetric vm_end check as well as vm_start in case
+  of a dangerously insane driver, as per Sashiko.
+* Updated 8/40 to check if a driver did something REALLY stupid like having
+  a NULL discontig_kernel_page_ops ptr, as per Sashiko.
+* Updated 15/40 to trivially synchronise userland test comments.
+* Updated 17/40 to correctly duplicate code to the userland VMA tests as
+  per Sashiko.
 
-diff --git a/Documentation/kbuild/kbuild.rst b/Documentation/kbuild/kbuild.rst
-index 5a9013bacfb7..e71a692a559a 100644
---- a/Documentation/kbuild/kbuild.rst
-+++ b/Documentation/kbuild/kbuild.rst
-@@ -110,6 +110,23 @@ HOSTLDLIBS
- ----------
- Additional libraries to link against when building host programs.
- 
-+KGZIP
-+-----
-+The gzip program used for compressed modules, packaging and the embedded
-+kernel configuration. Defaults to gzip.
-+
-+KPGZIP
-+------
-+The gzip program used for the compressed kernel image. Defaults to pigz (a
-+parallel implementation of gzip), run under scripts/jobserver-exec so that it
-+uses the job slots make has free, if pigz is installed, otherwise to
-+``KGZIP``. Set ``KPGZIP=`` on the make command line to use another program.
-+
-+KBZIP2, KLZOP, LZMA, LZ4, XZ, ZSTD
-+----------------------------------
-+The compressor programs for the other formats. Each defaults to the program
-+of the same name.
-+
- .. _userkbuildflags:
- 
- USERCFLAGS
-diff --git a/Documentation/process/changes.rst b/Documentation/process/changes.rst
-index 0aa232b117b5..28f2ca63318e 100644
---- a/Documentation/process/changes.rst
-+++ b/Documentation/process/changes.rst
-@@ -55,6 +55,7 @@ nfs-utils              1.0.5            showmount --version
- openssl & libcrypto    1.0.0            openssl version
- pahole                 1.26             pahole --version
- pcmciautils            004              pccardctl -V
-+pigz (optional)        2.4              pigz --version
- PPP                    2.4.0            pppd --version
- procps                 3.2.0            ps --version
- Python                 3.9.x            python3 --version
-@@ -206,6 +207,13 @@ GNU AWK
- GNU AWK is needed if you want kernel builds to generate address range data for
- builtin modules (CONFIG_BUILTIN_MODULE_RANGES).
- 
-+pigz (optional)
-+---------------
-+
-+pigz is a parallel implementation of gzip. If it is installed the compressed
-+kernel image is produced with it rather than with gzip, see ``KPGZIP`` in
-+Documentation/kbuild/kbuild.rst.
-+
- System utilities
- ****************
- 
-diff --git a/Makefile b/Makefile
-index ede9cfeffd56..d50bcb480134 100644
---- a/Makefile
-+++ b/Makefile
-@@ -568,6 +568,9 @@ LZMA		= lzma
- LZ4		= lz4
- XZ		= xz
- ZSTD		= zstd
-+# The kernel image is compressed with pigz, on the job slots make has free,
-+# if it is installed. Everything else uses KGZIP.
-+KPGZIP		:= $(if $(shell command -v pigz 2>/dev/null),$(PYTHON3) $(abs_srctree)/scripts/jobserver-exec pigz -p %PARALLELISM%,$(KGZIP))
- TAR		= tar
- 
- CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
-@@ -648,7 +651,7 @@ export RUSTC RUSTDOC RUSTFMT RUSTC_OR_CLIPPY_QUIET RUSTC_OR_CLIPPY BINDGEN LLVM_
- export HOSTRUSTC KBUILD_HOSTRUSTFLAGS
- export CPP AR NM STRIP OBJCOPY OBJDUMP READELF PAHOLE RESOLVE_BTFIDS LEX YACC AWK INSTALLKERNEL
- export PERL PYTHON3 CHECK CHECKFLAGS MAKE UTS_MACHINE HOSTCXX
--export KGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD TAR
-+export KGZIP KPGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD TAR
- export KBUILD_HOSTCXXFLAGS KBUILD_HOSTLDFLAGS KBUILD_HOSTLDLIBS KBUILD_PROCMACROLDFLAGS LDFLAGS_MODULE
- export KBUILD_USERCFLAGS KBUILD_USERLDFLAGS
- 
-diff --git a/kernel/Makefile b/kernel/Makefile
-index 1e1a31673577..c64c82c96b40 100644
---- a/kernel/Makefile
-+++ b/kernel/Makefile
-@@ -153,9 +153,13 @@ obj-$(CONFIG_SCF_TORTURE_TEST) += scftorture.o
- 
- $(obj)/configs.o: $(obj)/config_data.gz
- 
-+# .config is small, so it is compressed with gzip rather than the image compressor.
-+quiet_cmd_gzip_config = GZIP    $@
-+      cmd_gzip_config = cat $(real-prereqs) | $(KGZIP) -n -f -9 > $@
-+
- targets += config_data config_data.gz
- $(obj)/config_data.gz: $(obj)/config_data FORCE
--	$(call if_changed,gzip)
-+	$(call if_changed,gzip_config)
- 
- filechk_cat = cat $<
- 
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 2f447bc25e7b..8936925d4d50 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -332,11 +332,11 @@ quiet_cmd_ar = AR      $@
- quiet_cmd_objcopy = OBJCOPY $@
- cmd_objcopy = $(OBJCOPY) $(OBJCOPYFLAGS) $(OBJCOPYFLAGS_$(@F)) $< $@
- 
--# Gzip
-+# Gzip, for the kernel image
- # ---------------------------------------------------------------------------
- 
- quiet_cmd_gzip = GZIP    $@
--      cmd_gzip = cat $(real-prereqs) | $(KGZIP) -n -f -9 > $@
-+      cmd_gzip = cat $(real-prereqs) | $(KPGZIP) -n -f -9 > $@
- 
- # Bzip2
- # ---------------------------------------------------------------------------
-diff --git a/scripts/jobserver-exec b/scripts/jobserver-exec
-index 21b319e6c9a5..89119acb1b9e 100755
---- a/scripts/jobserver-exec
-+++ b/scripts/jobserver-exec
-@@ -4,7 +4,8 @@
- """
- Determines how many parallel tasks "make" is expecting, as it is
- not exposed via any special variables, reserves them all, runs a subprocess
--with PARALLELISM environment variable set, and releases the jobs back again.
-+with PARALLELISM environment variable set and any %PARALLELISM% in its
-+arguments replaced by the count, and releases the jobs back again.
- 
- See:
-     https://www.gnu.org/software/make/manual/html_node/POSIX-Jobserver.html#POSIX-Jobserver
-diff --git a/tools/lib/python/jobserver.py b/tools/lib/python/jobserver.py
-index 0b1ffdf9f7a3..7e94635bf7d9 100755
---- a/tools/lib/python/jobserver.py
-+++ b/tools/lib/python/jobserver.py
-@@ -29,6 +29,10 @@ $claim child to do the actual work.
- The end goal here is to keep the total number of build tasks under the
- limit established by the initial ``make -j$n_proc`` call.
- 
-+A command that takes its thread count on the command line rather than from
-+the environment can use the ``%PARALLELISM%`` token in its arguments, which
-+is replaced by the count, or by 1 when there is no jobserver.
-+
- See:
-     https://www.gnu.org/software/make/manual/html_node/POSIX-Jobserver.html#POSIX-Jobserver
- """
-@@ -38,6 +42,8 @@ import os
- import subprocess
- import sys
- 
-+PARALLELISM_TOKEN = "%PARALLELISM%"
-+
- def warn(text, *args):
-     print(f'WARNING: {text}', *args, file = sys.stderr)
- 
-@@ -182,6 +188,9 @@ class JobserverExec:
-         Run a command setting PARALLELISM env variable to the number of
-         available job slots (claim) + 1, e.g. it will reserve claim slots
-         to do the actual build work, plus one to monitor its children.
-+
-+        Any %PARALLELISM% in the command's arguments is replaced by the same
-+        number, or by 1 when there is no jobserver.
-         """
-         self.open()             # Ensure that self.claim is set
- 
-@@ -192,4 +201,8 @@ class JobserverExec:
-         if self.claim:
-             os.environ["PARALLELISM"] = str(self.claim)
- 
-+        if not isinstance(cmd, str):
-+            parallelism = str(self.claim or 1)
-+            cmd = [arg.replace(PARALLELISM_TOKEN, parallelism) for arg in cmd]
-+
-         return subprocess.call(cmd, *args, **pwargs)
+v2:
+* Rebased on mm-unstable.
+* Introduced new patch to fix various mmap_prepare and file interactions
+  that weren't quite right as per Sashiko. None impact anything upstream
+  yet so it doesn't need to be a fix.
+* Restore vma->vm_start if an mmap hook has moved it before tearing the
+  VMA down, so we unmap the range we established rather than the one the
+  hook invented, as per Sashiko.
+* Reject a discontiguous kernel page batch of zero pages rather than
+  looping forever, and bound batches by the pages remaining in the VMA,
+  as per Sashiko.
+* Add the missing map_kernel_discontig member to the userland VMA tests'
+  copy of struct mmap_action as per Sashiko.
+* Set VM_DONTEXPAND on hfi1's RCV_HDRQ, RCV_EGRBUF and RTAIL mappings, as
+  dma_mmap_coherent() doesn't on the IOMMU-DMA path, as per Sashiko.
+* Recompute vma->vm_page_prot in snd_pcm_mmap_status() after clearing
+  VM_WRITE, as vm_insert_page() uses it immediately rather than at fault
+  time, as per Sashiko.
+* munlock_vma_folio() now tests VMA_LOCKED_MASK so an unmap racing the
+  mlock walk still munlocks folios the walk has already counted, as per
+  Sashiko.
+https://lore.kernel.org/r/20260914-b4-mmap-prepare-vma-flag-sanify-v2-0-7d9781ed5361@kernel.org
 
+v1:
+https://lore.kernel.org/r/20260908-b4-mmap-prepare-vma-flag-sanify-v1-0-dacf19cce22b@kernel.org
+
+---
+Lorenzo Stoakes (ARM) (40):
+      mm/vma: fix mmap_prepare file handling, remove file_doesnt_need_get
+      mm/vma: predicate setting mmap_prepare VMA fields on new vma alloc
+      mm/vma: introduce and use vma_[flags_]can_merge()
+      mm: consistently validate VMA state after mmap[_prepare] hooks
+      mm/vma: ensure mmap_prepare doesn't set actions on a mergeable vma
+      mm: make map_kernel_pages_[prepare,complete] internal and unexported
+      mm/vma: tidy up map kernel pages enum values
+      mm: add mmap action for discontiguous kernel page mapping
+      docs: filesystems: update mmap_prepare docs for discontig kernel pgs
+      drivers/usb/mon: update to use mmap_prepare + map kernel pages
+      infiniband: update hfi1 to use remap_vmalloc_range()
+      selinux: reject writable opens of policy file, drop mmap shared/write check
+      ALSA: pcm: use vm_insert_page() to map PCM status page
+      bpf: arena: mark arena_map_mmap() mappings VM_MIXEDMAP
+      mm/vma: add vma[_flags]_is_kernel_owned() predicates
+      mm/vma: only allow mmap to clear VMA_MAYWRITE_BIT if kernel-owned
+      mm/vma: add and use vma_[flags]_is_fixed_mapping
+      scsi: sg: convert mmap hook to mmap_prepare and rework
+      fbdev: defio: assert FBINFO_VIRTFB, drop VM_IO, add VM_MIXEDMAP
+      HSI: cmt_speech: convert mmap hook to mmap_prepare, refactor
+      mm/gup: error out early on !VMA_MAYREAD_BIT VMAs
+      uprobes: remove VM_IO, set VM_MIXEDMAP for mapped kernel pages
+      mm/mlock: clear VMA_LOCKED_MASK over mmap callback
+      mm/mlock: eliminate weird VMA_IO_BIT abuse and simplify
+      mm/vma: enforce that only kernel-owned mappings may set VMA_IO_BIT
+      mm: remove VMA_IO_BIT check in vma[_flags]_is_kernel_owned()
+      mm: remove hugetlb_inline.h
+      mm: rename is_vm_hugetlb_page() to vma_is_hugetlb()
+      mm: drop some redundant checks around hugetlb VMAs
+      mm/madvise: update is_valid_guard_vma() to use vma_can_merge()
+      mm/vma: introduce vma[_flags]_is_persistent()
+      mm/uffd: use predicates for userfaultfd checks
+      mm/madvise: use predicates for madvise(..., MADV_DOFORK)
+      mm: eliminate VMA_SPECIAL_FLAGS usage when hugetlb explicitly tested
+      mm: eliminate VMA_SPECIAL_FLAGS check in lru_gen_look_around()
+      mm: avoid use of VMA_SPECIAL_FLAGS in migrate_vma_setup()
+      mm: eliminate VM_SPECIAL, VMA_SPECIAL_FLAGS
+      fuse: dax: do not set VM_MIXEDMAP
+      mm/huge_memory: remove vma_is_special_huge()
+      mm/vma: introduce and use vma[_flags]_can_gup()
+
+ Documentation/filesystems/mmap_prepare.rst |  81 +++++++++
+ arch/arm64/kvm/mmu.c                       |   4 +-
+ arch/powerpc/mm/book3s64/radix_tlb.c       |   6 +-
+ arch/powerpc/mm/nohash/e500_hugetlbpage.c  |   2 +-
+ arch/powerpc/mm/nohash/tlb.c               |   2 +-
+ arch/riscv/kvm/mmu.c                       |   2 +-
+ arch/riscv/mm/tlbflush.c                   |   2 +-
+ arch/s390/mm/gmap_helpers.c                |   6 +-
+ arch/sparc/mm/init_64.c                    |   2 +-
+ arch/x86/kernel/uprobes.c                  |   2 +-
+ drivers/gpu/drm/drm_gpusvm.c               |   5 +-
+ drivers/hsi/clients/cmt_speech.c           |  33 +---
+ drivers/infiniband/hw/hfi1/file_ops.c      |  83 +++------
+ drivers/scsi/sg.c                          | 115 ++++++-------
+ drivers/usb/mon/mon_bin.c                  |  82 +++++----
+ drivers/video/fbdev/core/fb_defio.c        |   6 +-
+ drivers/video/fbdev/ssd1307fb.c            |   2 +
+ fs/coredump.c                              |   6 +-
+ fs/fuse/dax.c                              |   2 +-
+ fs/hugetlbfs/inode.c                       |   2 +-
+ fs/proc/task_mmu.c                         |   8 +-
+ include/asm-generic/tlb.h                  |   4 +-
+ include/linux/hugetlb.h                    |   5 +-
+ include/linux/hugetlb_inline.h             |  28 ---
+ include/linux/mm.h                         | 266 +++++++++++++++++++++++++++--
+ include/linux/mm_types.h                   |  50 +++++-
+ include/linux/pagemap.h                    |   1 -
+ include/linux/rmap.h                       |   2 +-
+ include/linux/userfaultfd_k.h              |   1 -
+ kernel/bpf/arena.c                         |   3 +-
+ kernel/events/core.c                       |   2 +-
+ kernel/events/uprobes.c                    |   4 +-
+ kernel/sched/fair.c                        |   3 +-
+ mm/folio.c                                 |   2 +-
+ mm/gup.c                                   |  15 +-
+ mm/hmm.c                                   |   3 +-
+ mm/huge_memory.c                           |  31 ++--
+ mm/hugetlb.c                               |  14 +-
+ mm/internal.h                              |  81 +++++----
+ mm/ksm.c                                   |   4 +-
+ mm/madvise.c                               |  28 +--
+ mm/memory.c                                | 142 ++++++++++++---
+ mm/mempolicy.c                             |   5 +-
+ mm/migrate_device.c                        |  12 +-
+ mm/mlock.c                                 |  51 +++---
+ mm/mmap.c                                  |   2 +-
+ mm/mmu_gather.c                            |   2 +-
+ mm/mprotect.c                              |   5 +-
+ mm/mremap.c                                |  11 +-
+ mm/page_vma_mapped.c                       |   4 +-
+ mm/pagewalk.c                              |   2 +-
+ mm/rmap.c                                  |   4 +-
+ mm/swapfile.c                              |   2 +-
+ mm/userfaultfd.c                           |  45 +++--
+ mm/util.c                                  |  29 +++-
+ mm/vma.c                                   | 246 +++++++++++++++++++-------
+ mm/vma.h                                   |  31 +++-
+ mm/vma_internal.h                          |   1 -
+ mm/vmscan.c                                |   9 +-
+ security/selinux/selinuxfs.c               |  11 +-
+ sound/core/pcm_native.c                    |  38 ++---
+ tools/testing/vma/include/dup.h            |  80 +++++++--
+ tools/testing/vma/include/stubs.h          |   2 +-
+ tools/testing/vma/tests/merge.c            |  10 +-
+ 64 files changed, 1169 insertions(+), 575 deletions(-)
+---
+base-commit: 6b41451631cabf9ea3b384c2a099088e1598f963
+change-id: 20260721-b4-mmap-prepare-vma-flag-sanify-2100425df5aa
+
+Best regards,
 -- 
-2.55.0
+Lorenzo Stoakes (ARM) <ljs@kernel.org>
 
