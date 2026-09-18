@@ -1,344 +1,290 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A07AE372EE4;
-	Thu, 17 Sep 2026 21:23:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 69A5E30CD95;
+	Fri, 18 Sep 2026 00:23:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789680216; cv=none; b=g2bgpnAi/Vv5ixUWGSG0TYXrtqSobRkAou/zvGOIOf77JoZPMxRxAySaehDpgk/7M+OCOq7xFFpXobOZBgrOyj+j6S/nL/P+IHI6rx022qm2r7mTTzuan0Dxmhc5hEES8awYujd0+hzxA1iKvn1N7lqt7AOSJqZ3C5wTATAAd8w=
+	t=1789691015; cv=none; b=iijRnuoPkmctgH4LGv7fJ2lBjdQAQQCdn6AOEIE8LspJBwLbHnWqBeDzmRcwNxoyz4hmBDavnySjRq1Q6hdgSCvklD63Gtocq9wl1059xNfXM4wnyWkWWkeWIhH+8bNX7Fs0wTzvaPne4P0Gn2d6X8zIqSrV1TUOrmKUfuTVLJw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789680216; c=relaxed/simple;
-	bh=A7lL4KAfhIJBbzpbVryrOoEGdPkviEAu9tdoSX0n4Ds=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=N40tQlDZP0IAp0gSzyUzDVp4y7zAOsnximH2X5/zqZunIP/f4p48s+2mp9LtyMP5xxoe5IOZOmRmsFVw6bjyda3UParxu5zf9KQ0MGPmGgWrFGy0saesl/w26ge+OU+eieRdAZoTEa76Y4tQXwqEvoEaAxacJqfxGhvXcJQzIJI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=VUF866Xg; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789691015; c=relaxed/simple;
+	bh=vXt4acI2Ujxwaqt0AyyoWLQdwN4CAzDmUsMFlrEGp2Q=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=FIsq4uNXCx6z47P/C3rdN+LxlcYj6RrzVzL/hewZJJAI05bAErSS8vJb3NzlkyWRAcALkXb4QxF7PIxmGzPXVdzYQkbYd2EgauL3Jw7ZquT27JIQmVJnXukiZNRBxtpH6SQjGHeVMFlWDvmCC6/GR83jA0M+vC0reuO00X7JrYQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=S+G3oogJ; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="VUF866Xg"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5062D1F000FF;
-	Thu, 17 Sep 2026 21:23:30 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1789680214;
-	bh=NUNrBmtamoGTZdnjr2/yL2y2w6DcpJMvTMICnOHXcqc=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=VUF866Xg25rkEYuIAeRh8+Jby3Nsgi0QqQgf+tcoe0C7lFWZo2kW07wobdbQTXONa
-	 IrDTi0vtFdOje+nXofZ7qVIuq8UFrLKFeRBPgY0JvevdHLKjcg92+cAb0Z4/yQgheh
-	 XekOEPMPEkzPT/6xM5Mwlpf+y3YNL1+GloA5Mf1w=
-Date: Thu, 17 Sep 2026 14:23:29 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka
- <vbabka@kernel.org>, Jann Horn <jannh@google.com>, Pedro Falcato
- <pfalcato@suse.de>, David Hildenbrand <david@kernel.org>, Mike Rapoport
- <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, Michal Hocko
- <mhocko@suse.com>, Jonathan Corbet <corbet@lwn.net>, Greg Kroah-Hartman
- <gregkh@linuxfoundation.org>, Dennis Dalessandro
- <dennis.dalessandro@cornelisnetworks.com>, Jason Gunthorpe <jgg@ziepe.ca>,
- Leon Romanovsky <leon@kernel.org>, Paul Moore <paul@paul-moore.com>,
- Stephen Smalley <stephen.smalley.work@gmail.com>, Jaroslav Kysela
- <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, Alexei Starovoitov
- <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko
- <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, Kumar Kartikeya
- Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, Baolin Wang
- <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, Ryan
- Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song
- <baohua@kernel.org>, Lance Yang <lance.yang@linux.dev>, Usama Arif
- <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert
- <dgilbert@interlog.com>, "James E.J. Bottomley"
- <James.Bottomley@HansenPartnership.com>, "Martin K. Petersen"
- <mkp@kernel.org>, Jaya Kumar <jayalk@intworks.biz>, Simona Vetter
- <simona@ffwll.ch>, Helge Deller <deller@gmx.de>, Sebastian Reichel
- <sre@kernel.org>, John Hubbard <jhubbard@nvidia.com>, Peter Xu
- <peterx@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov
- <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner
- <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
- <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
- Arnaldo Carvalho de Melo <acme@kernel.org>, Namhyung Kim
- <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Rik van Riel
- <riel@surriel.com>, Harry Yoo <harry@kernel.org>, Juri Lelli
- <juri.lelli@redhat.com>, Vincent Guittot <vincent.guittot@linaro.org>,
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard
- <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, David Airlie
- <airlied@gmail.com>, Will Deacon <will@kernel.org>, "Aneesh Kumar K.V"
- <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, Arnd Bergmann
- <arnd@arndb.de>, Muchun Song <muchun.song@linux.dev>, Oscar Salvador
- <osalvador@suse.de>, "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan
- Kara <jack@suse.cz>, Marc Zyngier <maz@kernel.org>, Oliver Upton
- <oupton@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Madhavan
- Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, Paul
- Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
- <aou@eecs.berkeley.edu>, Christian Borntraeger <borntraeger@linux.ibm.com>,
- Janosch Frank <frankja@linux.ibm.com>, Claudio Imbrenda
- <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>,
- Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Heiko Carstens
- <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, "David S. Miller"
- <davem@davemloft.net>, Andreas Larsson <andreas@gaisler.com>, Alexander
- Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>,
- Matthew Brost <matthew.brost@intel.com>, Joshua Hahn
- <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, Byungchul Park
- <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, Ying Huang
- <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>, Chris
- Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, Kemeng Shi
- <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He
- <baoquan.he@linux.dev>, Youngjun Park <youngjun.park@lge.com>, Johannes
- Weiner <hannes@cmpxchg.org>, Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt
- <shakeel.butt@linux.dev>, Axel Rasmussen <axelrasmussen@google.com>,
- Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, Chengming
- Zhou <chengming.zhou@linux.dev>, Michal Hocko <mhocko@kernel.org>, Miklos
- Szeredi <miklos@szeredi.hu>, Xu Xin <xu.xin@linux.dev>, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org,
- linux-usb@vger.kernel.org, linux-rdma@vger.kernel.org,
- selinux@vger.kernel.org, linux-sound@vger.kernel.org, bpf@vger.kernel.org,
- linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org,
- dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org,
- linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
- kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org,
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
- linux-s390@vger.kernel.org, sparclinux@vger.kernel.org,
- fuse-devel@lists.linux.dev, Takashi Iwai <tiwai@suse.de>, Emil Tsalapatis
- <emil@etsalapatis.com>
-Subject: Re: [PATCH v3 00/40] mm: make VMA flag semantics explicit,
- eliminate VM_SPECIAL
-Message-Id: <20260917142329.369cd6539261d590600ce7ec@linux-foundation.org>
-In-Reply-To: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-0-4583d8a23bca@kernel.org>
-References: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-0-4583d8a23bca@kernel.org>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="S+G3oogJ"
+Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 05C3420B7166;
+	Thu, 17 Sep 2026 17:22:30 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 05C3420B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1789690951;
+	bh=KBLJ6ENP6Y4QHoAUWzXw1y+G5BLgQ3PaZNdFIhc9hEM=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=S+G3oogJzOF1/lB3LsOu0xqUOaudAiSrlXS03YhCWcRkrETWo4FgN4VcTkgDB1vc8
+	 94chqOJpuwOBMZxxR/scqPbWmh1FY4NgLJpqkyaMjgMMToKk6/pFJAaWlkQLX9ywTq
+	 zppCeucTi78aN2e6MZ4kYpRltOCU2JDmAN/OC6iY=
+Message-ID: <a543145c-4503-bdd8-bd73-a2cbcce1e06e@linux.microsoft.com>
+Date: Thu, 17 Sep 2026 17:23:15 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH v3] drivers/hv: remove deposited pages from direct map
+Content-Language: en-US
+To: Magnus Kulke <magnuskulke@linux.microsoft.com>,
+ linux-hyperv@vger.kernel.org
+Cc: Paolo Bonzini <pbonzini@redhat.com>,
+ Souradeep Chakrabarti <schakrabarti@microsoft.com>,
+ Wei Liu <liuwe@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>,
+ Dexuan Cui <decui@microsoft.com>, Magnus Kulke <magnuskulke@microsoft.com>,
+ Long Li <longli@microsoft.com>, linux-arch@vger.kernel.org,
+ "K. Y. Srinivasan" <kys@microsoft.com>,
+ Anirudh Rayabharam <Anirudh.Rayabharam@microsoft.com>,
+ Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
+ Wei Liu <wei.liu@kernel.org>
+References: <20260917201052.2123701-1-magnuskulke@linux.microsoft.com>
+From: Mukesh R <mrathor@linux.microsoft.com>
+In-Reply-To: <20260917201052.2123701-1-magnuskulke@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 
-On Thu, 17 Sep 2026 17:22:09 +0100 "Lorenzo Stoakes (ARM)" <ljs@kernel.org> wrote:
-
-> The VM_SPECIAL / VMA_SPECIAL_FLAGS mask conflates several unrelated
-> properties:
+On 9/17/26 13:10, Magnus Kulke wrote:
+> hv_call_deposit_pages() donates pages (deposit) to hypervisor for L2
+> guest on L1VH systems via HVCALL_DEPOSIT_MEMORY. The hypervisor takes
+> ownership of those pages and per contract revokes root partition
+> access to them, raising a #GP on access from the L1VH root partition.
 > 
-> * Is this kernel-owned, whether MMIO, kernel-allocated pages, or ordinary
->   pages a driver maps itself?
-> * Can it be expanded or merged?
-> * Is this a 'weird' case like mlock where migration might race and we
->   'have' to set invalid flags to notify?
-> * Is it another 'weird' case where we just want to stop GUP from touching
->   it?
+> However, the pages remain mapped in the kernel direct map, so kernel
+> code may still access them even though the hypervisor has revoked
+> access.
 > 
-> ...
+> Helpers such as "load_unaligned_zeropad()" deliberately read past the
+> end of a buffer and across page boundaries. A read into an unmapped
+> page is tolerated and triggers a #PF, for which the kernel executed
+> a fixup in the exception table.
 > 
-> This series brings some order to things by both limiting what drivers can
-> do with VMA flags and switching to using predicates that describe
-> behaviour, not arbitrary flags.
+> If such a call steps into a page that has been deposited, the access
+> raises a #GP by the hypervisor from which the above handler cannot
+> recover and the kernel panics:
+> 
+>    Oops: general protection fault, maybe for address 0xff1100941a3dfffc
+>    RIP: 0010:csum_partial+0xe5/0x110
+> 
+> This condition will appear on L1VH system that have created L2
+> partitions (and hence deposited pages) and exercise networking code
+> paths such as csum_partial() can trigger this condition when a buffer
+> ends close to a page boundary (e.g fffc in the above example).
+> 
+> The fix is to remove the deposited pages from the direct map before
+> they are passed to the hypervisor, and restore them when the hypervisor
+> returns them again.
+> 
+> We want to avoid flushing the TLB in the loop, so we use the _noflush()
+> variant of set_direct_map_valid() when marking a deposited page invalid
+> and flush the affected page ranges in one go ourselves. In the opposite
+> direction this is not required:
+> 
+>    > If a paging-structure entry is modified to change the P flag from
+>    > 0 to 1, no invalidation is necessary. This is because no TLB entry
+>    > or paging-structure cache entry is created with information from a
+>    > paging-structure entry in which the P flag is 0.
+> 
+> (Intel SDM Vol. 3, 4.10.4.3)
+> 
+> Signed-off-by: Magnus Kulke <magnuskulke@linux.microsoft.com>
 
-Thanks, I've updated mm.git's mm-unstable branch to this version.
+FYI:
 
-> v3:
-> * Fixed up bug in patch 1 as reported by Mike - have to delay setting
->   map->vma_flags until after action prepare, though map->vm_file needs to
->   be set before for correct reference count management.
-> * Updated 4/40 to add a symmetric vm_end check as well as vm_start in case
->   of a dangerously insane driver, as per Sashiko.
-> * Updated 8/40 to check if a driver did something REALLY stupid like having
->   a NULL discontig_kernel_page_ops ptr, as per Sashiko.
-> * Updated 15/40 to trivially synchronise userland test comments.
-> * Updated 17/40 to correctly duplicate code to the userland VMA tests as
->   per Sashiko.
+https://lore.kernel.org/linux-hyperv/20260912000318.2959621-1-mrathor@linux.microsoft.com/
 
-Here's how v3 altered mm.git:
+Thanks,
+-Mukesh
 
 
- mm/internal.h                   |    4 ++-
- mm/memory.c                     |    2 -
- mm/vma.c                        |   34 +++++++++++++++++-------------
- mm/vma.h                        |    3 +-
- tools/testing/vma/include/dup.h |   24 ++++++++++++++++-----
- 5 files changed, 45 insertions(+), 22 deletions(-)
-
---- a/mm/internal.h~b
-+++ a/mm/internal.h
-@@ -244,6 +244,7 @@ static inline void vma_close(struct vm_a
- static inline int mmap_file(struct file *file, struct vm_area_struct *vma)
- {
- 	const unsigned long prev_start = vma->vm_start;
-+	const unsigned long prev_end = vma->vm_end;
- 	const vma_flags_t prev_flags = vma->flags;
- 	int err;
- 
-@@ -263,9 +264,10 @@ static inline int mmap_file(struct file
- 	if (unlikely(err))
- 		return err;
- 
--	err = mmap_hook_validate(prev_start, &prev_flags, vma);
-+	err = mmap_hook_validate(prev_start, prev_end, &prev_flags, vma);
- 	if (unlikely(err)) {
- 		vma->vm_start = prev_start;
-+		vma->vm_end = prev_end;
- 		vma_close(vma);
- 	}
- 
---- a/mm/memory.c~b
-+++ a/mm/memory.c
-@@ -2653,7 +2653,7 @@ int map_discontig_kernel_pages_prepare(s
- 		action->map_kernel_discontig.ops;
- 
- 	/* At minimum need to be able to get pages. */
--	if (WARN_ON_ONCE(!ops->get))
-+	if (WARN_ON_ONCE(!ops || !ops->get))
- 		return -EINVAL;
- 
- 	__map_kernel_pages_prepare(desc);
---- a/mm/vma.c~b
-+++ a/mm/vma.c
-@@ -2797,15 +2797,15 @@ static int mmap_validate_vma_flags(const
- }
- 
- /* Check to ensure a driver hasn't done something crazy. */
--static int mmap_validate(unsigned long prev_start,
--			 unsigned long curr_start,
-+static int mmap_validate(unsigned long prev_start, unsigned long prev_end,
-+			 unsigned long curr_start, unsigned long curr_end,
- 			 const vma_flags_t *prev_flags,
- 			 const vma_flags_t *curr_flags)
- {
- 	bool was_maywrite, is_maywrite;
- 
--	/* Drivers cannot alter the address of the VMA. */
--	if (WARN_ON_ONCE(prev_start != curr_start))
-+	/* Drivers cannot alter the range of the VMA. */
-+	if (WARN_ON_ONCE(prev_start != curr_start || prev_end != curr_end))
- 		return -EINVAL;
- 
- 	was_maywrite = vma_flags_test(prev_flags, VMA_MAYWRITE_BIT);
-@@ -2843,7 +2843,8 @@ int mmap_prepare_validate(const struct v
- 	    WARN_ON_ONCE(desc->action.type != MMAP_NOTHING))
- 		return -EINVAL;
- 
--	return mmap_validate(prev_desc->start, desc->start,
-+	return mmap_validate(prev_desc->start, prev_desc->end,
-+			     desc->start, desc->end,
- 			     &prev_desc->vma_flags, &desc->vma_flags);
- }
- 
-@@ -2851,19 +2852,22 @@ int mmap_prepare_validate(const struct v
-  * mmap_hook_validate() - Ensure the driver hasn't violated invariants in
-  * its f_op->mmap hook.
-  * @prev_start: The start of the mapping prior to the mmap hook.
-+ * @prev_end: The end of the mapping prior to the mmap hook.
-  * @prev_flags: The VMA flags set for the VMA prior to the mmap hook.
-  * @vma: The VMA after the hook has been applied.
-  *
-  * Returns: 0 on success, otherwise an error.
-  */
--int mmap_hook_validate(unsigned long prev_start,
-+int mmap_hook_validate(unsigned long prev_start, unsigned long prev_end,
- 		       const vma_flags_t *prev_flags,
- 		       const struct vm_area_struct *vma)
- {
- 	const unsigned long start = vma->vm_start;
-+	const unsigned long end = vma->vm_end;
- 	const vma_flags_t *flags = &vma->flags;
- 
--	return mmap_validate(prev_start, start, prev_flags, flags);
-+	return mmap_validate(prev_start, prev_end, start, end, prev_flags,
-+			     flags);
- }
- 
- static int call_action_prepare(struct mmap_state *map,
-@@ -2900,15 +2904,9 @@ static int call_mmap_prepare(struct mmap
- 	if (err)
- 		return err;
- 
--	/* Update fields permitted to be changed. */
--	map->pgoff = desc->pgoff;
-+	/* Update first so file refcount tracked correctly. */
- 	if (desc->vm_file != map->vm_file)
- 		map->vm_file = desc->vm_file;
--	map->vma_flags = desc->vma_flags;
--	map->page_prot = desc->page_prot;
--	/* User-defined fields. */
--	map->vm_ops = desc->vm_ops;
--	map->vm_private_data = desc->private_data;
- 
- 	/* It's invalid for mmap_prepare hooks to clear vm_ops. */
- 	if (!desc->vm_ops)
-@@ -2923,6 +2921,14 @@ static int call_mmap_prepare(struct mmap
- 	if (err)
- 		return err;
- 
-+	/* Update fields permitted to be changed. */
-+	map->pgoff = desc->pgoff;
-+	map->vma_flags = desc->vma_flags;
-+	map->page_prot = desc->page_prot;
-+	/* User-defined fields. */
-+	map->vm_ops = desc->vm_ops;
-+	map->vm_private_data = desc->private_data;
-+
- 	/*
- 	 * MAP_PRIVATE-/dev/zero mappings are an ancient way of getting
- 	 * anonymous mappings. Rather than allowing these mappings to be odd
---- a/mm/vma.h~b
-+++ a/mm/vma.h
-@@ -786,7 +786,7 @@ void vm_area_free(struct vm_area_struct
- int mmap_prepare_validate(const struct vm_area_desc *prev_desc,
- 			  const struct vm_area_desc *desc);
- 
--int mmap_hook_validate(unsigned long prev_start,
-+int mmap_hook_validate(unsigned long prev_start, unsigned long prev_end,
- 		       const vma_flags_t *prev_flags,
- 		       const struct vm_area_struct *vma);
- 
-@@ -851,6 +851,7 @@ static inline int mmap_prepare_validate(
- }
- 
- static inline int mmap_hook_validate(unsigned long prev_start,
-+				     unsigned long prev_end,
- 				     const vma_flags_t *prev_flags,
- 				     const struct vm_area_struct *vma)
- {
---- a/tools/testing/vma/include/dup.h~b
-+++ a/tools/testing/vma/include/dup.h
-@@ -1667,22 +1667,36 @@ static inline bool vma_is_kernel_owned(c
- 	return vma_flags_is_kernel_owned(&vma->flags);
- }
- 
-+static inline bool vma_flags_is_fixed_mapping(const vma_flags_t *flags)
-+{
-+	/*
-+	 * VMA_PFNMAP_BIT should imply VMA_DONTEXPAND_BIT, but some callers set
-+	 * only the former.
-+	 */
-+	return vma_flags_test_any(flags, VMA_PFNMAP_BIT, VMA_DONTEXPAND_BIT);
-+}
-+
-+static inline bool vma_is_fixed_mapping(const struct vm_area_struct *vma)
-+{
-+	return vma_flags_is_fixed_mapping(&vma->flags);
-+}
-+
- static inline bool vma_flags_can_merge(const vma_flags_t *flags)
- {
- 	/*
--	 * VMA merging assumes that the properties of a VMA completely describe
--	 * the properties of that VMA.
-+	 * VMA merging assumes that a VMA's flags and fields completely describe
-+	 * its state.
- 	 *
- 	 * However, kernel-owned mappings may have established state upon mapping
- 	 * not embodied in any attribute of the VMA.
- 	 *
--	 * Additionally, PFN maps encode the source PFN of the range in
--	 * vma->vm_pgoff, which may otherwise cause spurious merges.
-+	 * Additionally, private (CoW) PFN maps encode the source PFN of the
-+	 * range in vma->vm_pgoff, which may otherwise cause spurious merges.
- 	 */
- 	if (vma_flags_is_kernel_owned(flags))
- 		return false;
- 	/* VMA explicitly marked as being unmergeable. */
--	if (vma_flags_test(flags, VMA_DONTEXPAND_BIT))
-+	if (vma_flags_is_fixed_mapping(flags))
- 		return false;
- 
- 	return true;
-_
+> ---
+> Changes since v2:
+> - Checkpatch format fix
+> 
+> Changes since RFC:
+> - Handle direct-map restoration failures without returning unmapped
+>    pages to the allocator.
+> - Move freeing of withdrawn pages into the restoration helper.
+> ---
+>   drivers/hv/hv_proc.c           | 77 +++++++++++++++++++++++++++++++++-
+>   drivers/hv/mshv_root_hv_call.c |  4 +-
+>   include/asm-generic/mshyperv.h |  4 ++
+>   3 files changed, 81 insertions(+), 4 deletions(-)
+> 
+> diff --git a/drivers/hv/hv_proc.c b/drivers/hv/hv_proc.c
+> index 57b2c64197cb..2a392b45205d 100644
+> --- a/drivers/hv/hv_proc.c
+> +++ b/drivers/hv/hv_proc.c
+> @@ -7,7 +7,9 @@
+>   #include <linux/cpuhotplug.h>
+>   #include <linux/minmax.h>
+>   #include <linux/export.h>
+> +#include <linux/set_memory.h>
+>   #include <asm/mshyperv.h>
+> +#include <asm/tlbflush.h>
+>   
+>   /*
+>    * See struct hv_deposit_memory. The first u64 is partition ID, the rest
+> @@ -15,6 +17,35 @@
+>    */
+>   #define HV_DEPOSIT_MAX (HV_HYP_PAGE_SIZE / sizeof(u64) - 1)
+>   
+> +/*
+> + * Add or remove a set of physically contiguous page runs from the kernel
+> + * direct map. Once a page has been deposited the hypervisor owns it and
+> + * revokes root partition access to it.
+> + */
+> +static int hv_deposit_update_direct_map(struct page **pages, int *counts,
+> +					int num_allocations, bool valid)
+> +{
+> +	int i, err, ret = 0;
+> +
+> +	for (i = 0; i < num_allocations; ++i) {
+> +		err = set_direct_map_valid_noflush(pages[i], counts[i], valid);
+> +		if (err && !ret)
+> +			ret = err;
+> +	}
+> +
+> +	if (valid)
+> +		return ret;
+> +
+> +	for (i = 0; i < num_allocations; ++i) {
+> +		unsigned long addr = (unsigned long)page_address(pages[i]);
+> +		unsigned long size = (unsigned long)counts[i] << PAGE_SHIFT;
+> +
+> +		flush_tlb_kernel_range(addr, addr + size);
+> +	}
+> +
+> +	return ret;
+> +}
+> +
+>   /* Deposits exact number of pages. Must be called with interrupts enabled.  */
+>   int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
+>   {
+> @@ -72,6 +103,10 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
+>   	}
+>   	num_allocations = i;
+>   
+> +	ret = hv_deposit_update_direct_map(pages, counts, num_allocations, false);
+> +	if (ret)
+> +		goto err_restore_direct_map;
+> +
+>   	local_irq_save(flags);
+>   
+>   	input_page = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> @@ -90,12 +125,23 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
+>   	if (!hv_result_success(status)) {
+>   		hv_status_err(status, "\n");
+>   		ret = hv_result_to_errno(status);
+> -		goto err_free_allocations;
+> +		goto err_restore_direct_map;
+>   	}
+>   
+>   	ret = 0;
+>   	goto free_buf;
+>   
+> +err_restore_direct_map:
+> +	/*
+> +	 * We don't want to return pages to the allocator if weren't able to
+> +	 * mark them valid in the direct map.
+> +	 */
+> +	if (hv_deposit_update_direct_map(pages, counts, num_allocations, true)) {
+> +		WARN(1, "leaking %d page block(s) that could not be set to valid\n",
+> +		     num_allocations);
+> +		goto free_buf;
+> +	}
+> +
+>   err_free_allocations:
+>   	for (i = 0; i < num_allocations; ++i) {
+>   		base_pfn = page_to_pfn(pages[i]);
+> @@ -110,6 +156,35 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
+>   }
+>   EXPORT_SYMBOL_GPL(hv_call_deposit_pages);
+>   
+> +/*
+> + * Put withdrawn pages back in the direct map. Counterpart to the direct map
+> + * removal done by hv_call_deposit_pages().
+> + */
+> +void hv_restore_withdrawn_pages(const u64 *pfns, int count)
+> +{
+> +	int i, ret = 0;
+> +	struct page *page;
+> +
+> +	for (i = 0; i < count; ++i) {
+> +		page = pfn_to_page(pfns[i]);
+> +		ret = set_direct_map_valid_noflush(page, 1, true);
+> +		/*
+> +		 * HV_DEPOSIT_MAX is capped at 511, so a deposit range cannot cover
+> +		 * a 2MiB page, so deposited pages are of 4k granularity and cannot
+> +		 * be collapses into a 2MiB page, which would require an allocation
+> +		 * and can potentially fail.
+> +		 *
+> +		 * Should it fail anyway we leak the page, if we would hand it
+> +		 * back to the allocator we would introduce faults into random other
+> +		 * parts.
+> +		 */
+> +		if (WARN_ON_ONCE(ret))
+> +			continue;
+> +		__free_page(page);
+> +	}
+> +}
+> +EXPORT_SYMBOL_GPL(hv_restore_withdrawn_pages);
+> +
+>   int hv_deposit_memory_node(int node, u64 partition_id,
+>   			   u64 hv_status)
+>   {
+> diff --git a/drivers/hv/mshv_root_hv_call.c b/drivers/hv/mshv_root_hv_call.c
+> index cb55d4d4be2e..150a0c63ebc8 100644
+> --- a/drivers/hv/mshv_root_hv_call.c
+> +++ b/drivers/hv/mshv_root_hv_call.c
+> @@ -46,7 +46,6 @@ int hv_call_withdraw_memory(u64 count, int node, u64 partition_id)
+>   	struct page *page;
+>   	u16 completed;
+>   	u64 status, withdrawn = 0;
+> -	int i;
+>   	unsigned long flags;
+>   
+>   	page = alloc_page(GFP_KERNEL);
+> @@ -69,8 +68,7 @@ int hv_call_withdraw_memory(u64 count, int node, u64 partition_id)
+>   
+>   		completed = hv_repcomp(status);
+>   
+> -		for (i = 0; i < completed; i++)
+> -			__free_page(pfn_to_page(output_page->gpa_page_list[i]));
+> +		hv_restore_withdrawn_pages(output_page->gpa_page_list, completed);
+>   
+>   		if (!hv_result_success(status)) {
+>   			if (hv_result(status) == HV_STATUS_NO_RESOURCES)
+> diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+> index bf601d67cecb..397c8ec0ce9a 100644
+> --- a/include/asm-generic/mshyperv.h
+> +++ b/include/asm-generic/mshyperv.h
+> @@ -346,6 +346,7 @@ static inline bool hv_parent_partition(void)
+>   bool hv_result_needs_memory(u64 status);
+>   int hv_deposit_memory_node(int node, u64 partition_id, u64 status);
+>   int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages);
+> +void hv_restore_withdrawn_pages(const u64 *pfns, int count);
+>   int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id);
+>   int hv_call_notify_all_processors_started(void);
+>   bool hv_lp_exists(u32 lp_index);
+> @@ -364,6 +365,9 @@ static inline int hv_call_deposit_pages(int node, u64 partition_id, u32 num_page
+>   {
+>   	return -EOPNOTSUPP;
+>   }
+> +
+> +static inline void hv_restore_withdrawn_pages(const u64 *pfns, int count) { }
+> +
+>   static inline int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id)
+>   {
+>   	return -EOPNOTSUPP;
 
