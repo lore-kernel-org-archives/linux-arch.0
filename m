@@ -1,65 +1,65 @@
-Received: from mail-yx2-f43.google.com (mail-yx2-f43.google.com [74.125.224.171])
+Received: from mail-yx2-f12.google.com (mail-yx2-f12.google.com [74.125.224.140])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3E490472520
-	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 19:37:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4F60B471CE7
+	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 19:37:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789933024; cv=none; b=Gr8aVAzxQ+gTma70fLsWLU5UnE/lxBvq9wAn8zZzlbMC6QIhJGVc+2Ia0wQXavCI95qJaWBnXRxrX3gryjF8qL3Q+MwNgzC3Z0kzBJtpjXPFPOUAjqGLWB1f2Axs+gDPQIIbW4R5Wxp5E67+wMnHXCgoGL/2y797aSauvxWQgm0=
+	t=1789933031; cv=none; b=P/jYLV8n80NbKImAPWFtVEKqox1FgVyYsDXvHXV5M7CZs5IzEvBl3fj3ype9oySDrASe9jyPFSm7A2yVKzNEay9CUdwtmPmWPfo4ugeUXQjr4rqsvh9ZEuIKjJ68hklfTMB/tsOjHsU562usCh3a9df66Wb4xbZtoGi/+L/oXQ0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789933024; c=relaxed/simple;
-	bh=VA+J8gVgQJjXgqa1KyYAn5D2Rm8bdS8GTWaA8o/nJp0=;
+	s=arc-20240116; t=1789933031; c=relaxed/simple;
+	bh=wQ3ou0OMG8Kvrev6k20Um/PDy/0+0e9DtH56kTKSrbo=;
 	h=From:To:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=nWFtK6zb1POUMCk/sZEeJsAqgUpA0CHGHjEL7dmtLrwnb0fOX75Eo/0ZZst6wc+5Qdcp9F9gfha5UqMWlCAUOs4N/wYxIItOC8Hmu3CqwDyLAaaW3yrv+RXL9SWimtUJiiJ15THpJ9D9BAOPYqx4vnSqkFrfamkRyJI/T4YtLb0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com; spf=pass smtp.mailfrom=soleen.com; dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b=OnxKCQgg; arc=none smtp.client-ip=74.125.224.171
+	 MIME-Version; b=WjK4ThfwQl9bGy4fNFB8hIaD0FQSgmmlm8ZLUPKWdZnhNB9AtxD61UNBHObNLEtT3Ek40sfvKeLLEftmy+exObpR+9ku8EWN3dJZNrHSPf1DqKqJWu2zn9g0kN3ozsHZF7gIzl62rQeN94GdZ2Ay3QwosGZTY7gbtdek4kZgs9s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com; spf=pass smtp.mailfrom=soleen.com; dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b=QAtDUqnm; arc=none smtp.client-ip=74.125.224.140
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=soleen.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b="OnxKCQgg"
-Received: by mail-yx2-f43.google.com with SMTP id 956f58d0204a3-66e4aae314aso1691048d50.3
-        for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 12:37:02 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b="QAtDUqnm"
+Received: by mail-yx2-f12.google.com with SMTP id 00721157ae682-85d4ddd179eso17249557b3.3
+        for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 12:37:08 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=soleen.com; s=google; t=1789933021; x=1790537821; darn=vger.kernel.org;
+        d=soleen.com; s=google; t=1789933027; x=1790537827; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:from:to:cc:subject:date:message-id
          :reply-to:content-type;
-        bh=S731x7B1q5+LU0uMImlSdu51MYq8nznsZeZCtyZbDcY=;
-        b=OnxKCQggUjQqoznbKxu09+qRorCvxffDk3SmFn527NA55cWPRdy/PScEVe9s3Buus3
-         1Jp5qS6lg0T4urvb21OzMTgXlVebEkisSXt9ByokhpX+VL5ENTLCQCnV+afhh872YCQw
-         exl+pBgBaT2deItwcBfgubRkxvt3F9703kqhFLXEZfcT3C9tijVHKNkG3fm63QrTtKnv
-         f6CDvHmUdT6CxWdcoZthyBd1tKjoEN9lj+kDjEj/SQ7A6B32L6mVp4MeAUUB9BlqZtpZ
-         Knzj/BwL0Et3K8nbwFbktaEpI9/e12TFDd96oXXQLFDJCb4pfXWN+55ehtaNEk0OvuIQ
-         EQtA==
+        bh=wVwJQFyVies0sN36ZwALD03xlxJgg7HjR5Oz9PMtlp0=;
+        b=QAtDUqnm1pdUpy0LvuTn7ixIxtXtoZSUO9RJdHF/Wu2wm+XYY+PwunsSpuz2RFWMlk
+         ZWA1l46JZBsV2Hy4a+iYd+Mb1yFmwOjYR5dMmzjDk0QjH+eoMYL4ZSpAOXjoYqKCnKTo
+         oHB+hpxwVtBu4J3oXU7JLd9Rw8Xl9x7TW9+fEyHCfBCiXLQrOAAXWposAEJF5fdE3sXS
+         GmkNx/yp1GJefQbF1vBDrNCd8IE/+L47FkiRL1nYjWE71OErHUbpet8Bs1OBuTTxdzHn
+         1o1HiShtVlApI9bUFovfd5GKK1oLBpw3h8AD07SY9q2VFzUJYOf4Sp5e+p3RFBBko2L4
+         zSvA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789933021; x=1790537821;
+        d=1e100.net; s=20260707; t=1789933027; x=1790537827;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:x-gm-gg:x-gm-message-state:from:to
          :cc:subject:date:message-id:reply-to:content-type;
-        bh=S731x7B1q5+LU0uMImlSdu51MYq8nznsZeZCtyZbDcY=;
-        b=nZu0T5Ct3wnZlaHFcT8OgT0GP5tp3KqJ4z5SOqdIvOZMRd676uL/fq1bysXiq1bPRZ
-         cyyDpYwsQzXicR79uAJ2of4QX1vUmt1bRIT+AMnY8sSnbgKe5m2/3UULqwsutbnsMdMm
-         wpPHmmyabRDoykw6WT130N+1Wfa3xAo0HHxCSJKEsGtNu47YTAlpE2vhyZLXwwg/EuhW
-         qBM5LXs3JX68/+UgOBQvYA5ne98bp2/SyU1IZxaF1/+hEskRvyHu2eGiGN25lNMZrx42
-         BEpi73d+bO6/1rlHyRyGPSkPp/9XhI7PWS2MV/R3w9g8CQBfLUCOXWHDPm26bAP5pu5c
-         bZBQ==
-X-Forwarded-Encrypted: i=1; AKwUvBxeoGSM/TDqguVOAn6JMuwAng0cE94nsZHKGub1QlAVOerKvHwqjzG8jDwKC8WrhPacYC2t2xyBOlwo@vger.kernel.org
-X-Gm-Message-State: AFuF++luWkaFw0H2ZGsebuZO6XF4g3396pFc3iVRQ0neU7kdjok0+sUk
-	Mz9F0UUpiSBWBeS4sHXa7NoLIMpAGjfUgGX2vVzTRLLZA5BUcLCMqA/SxSUcErTDfAc=
-X-Gm-Gg: AYBFou2fGpX3wVbRrF1llf0uAyEddJDs1SCBH2mFd8vLyYoDJUlByeZcuO3x0B1Vb9X
-	j+iXCYCr9I4uGAZzNHlnLizn5xrrtjioIOFG2aUhuBjdnrToJq0bL1zPyaAcDiPw1XxB+xwoJEc
-	wypsAQeXUtbKKwsjoqWqqf7+dzuOU6hZio34qUPtWUCQ1jlMljrBm25KTApkI/SuzMo76Kb1AIb
-	fu7rXv8clz6oskXg4GRURXNwqrxyTLGBpX3OeojLr9v127LfPcHxaYRnXnUHlMjH0UL0p2Z1YVn
-	6yCCfDVYFGWZGC+10qZ5dm5B3Y2fDDUvfb6AYjEVLM6H9XLzfA4psXN+hKaOpmHI31rdQQukoHg
-	uHzJC/dxvYI5P+mDjXId3+pkAEWleen3fBI29jQ0ZZNhL6MM1iy6uEEUpCRZ1hAdPwz2ANfKBN3
-	biwzTQLVg7TgVgaxx39XACz6Q6YmMLmcwSPXn72+8J1tSykSI0BPAq3zM04g6XaR7HslXRdZpN8
-	/V+gtKjudatItGQmlVTEQjabI8VQ8novqrOg4yEBVwTwp4WpxwSChCy/rOfnwf61ororEP/lXQS
-	jDWGHhPT5JZqIopbFUs=
-X-Received: by 2002:a05:690e:11c7:b0:672:a2ee:6155 with SMTP id 956f58d0204a3-672a2ee6b7cmr1008959d50.45.1789933021253;
-        Sun, 20 Sep 2026 12:37:01 -0700 (PDT)
+        bh=wVwJQFyVies0sN36ZwALD03xlxJgg7HjR5Oz9PMtlp0=;
+        b=UXYbJJGpHOBiI3j2qns3IFR/AhiBipGpQoOPoIQRzjqN6eBI4OLcEvSd9HP9i0Thdc
+         tZSvV0BUIy0ydLTRLL3EWuVa82og8cr+50tBCMUcOhWH0JMQSuMpbuiKA2kf4dL8Wqvc
+         IxPEP1/YWSir8dGw7mqI6lee1gyYPuzeUZqsOKqAzHKaNfJZuhGBCinQwKoDxl+6ed5R
+         QRvolN1bg7BK+yUZio2HuC9+XMudSSGzFCzMSn0ujJ2APa+pij6UBsvB1r7ZBmQLRfBR
+         L4XLtko57noONyy/ZvcBXiZIF50sRG1pCxVq9RM8jcJM6b1hlh9YZLMRsfEz6NaVBkBd
+         CLOA==
+X-Forwarded-Encrypted: i=1; AKwUvBx3/qLFCw7EojaP7lGzyuIKPId6JjKfptpTHnJnInNYJEOobiAU8Dnv3kMP0Gr97x33QO3o5DTw1uUd@vger.kernel.org
+X-Gm-Message-State: AFuF++mrT6fHIq1g8mheRVSFWDawo6Q2EL3ObV/vbSKt1yOYV7Q5dL8r
+	Bis7ClnquIzRQdxMwTpl3P1VfwFEIGK5bx66ukfNn4uqMmVW4f/1qgbZIwUb6JhSspo=
+X-Gm-Gg: AYBFou39ita2LXm/5pg9F/1C9jUfhXNj68XnvPCdTKymCPEopUYw5JamG+L+gbX4FZV
+	Z5Lty339ueh9XBFrYUXk3clXs1xWcJhuwjrHfF8ip8zyuKl2nu9bqkZCvvheuPTxi77yybjaQlf
+	x6xgo1urQBBvoPBpLr8OhXM0LGGsl1bpo+fQsx/g9QL0EMJj23bvvzWBK8V3q2b/FEoZw6t2zK8
+	5E2OH3/cLEEvzTFrJdNSuzwvPSlPOlNQxT4MdG8cISPkuFTZXv9Dw2T+cbSivKWOoQRqYC2lIC2
+	vXFw0iq/tGlKFnDZTMKf+YGW/dyO52kNiHjzI+KtwfKOZs/j5b/MVB8pc4cNcjl1j5AT/VTGzKr
+	Ha2kR+zdN4ywwuNfaUqDeNBcPmVUeQyRMwhyyivcmZMo8Xm1q3J6I6GxebPG0cv3AYW/Ucr+LZk
+	IUnBgo5RYe40l5oKZdhXSz0RPqXbWCKAr9cGGoCgAb66hLtI+RSFkbXGp0Cw9gWP006e3LmWmtM
+	V7a8X7FUNdZ4FqrUg1gY/hIYpXRnH2H6R9Fr0ktCXQbx7UKJiAXFP2mgEoR/vBWnvq1HL2wMo01
+	OmeaVmFnIjAkpPopjqo=
+X-Received: by 2002:a05:690c:89:b0:89a:63da:cbe1 with SMTP id 00721157ae682-89a63dacc8fmr20430637b3.39.1789933027324;
+        Sun, 20 Sep 2026 12:37:07 -0700 (PDT)
 Received: from soleen.c.googlers.com.com (16.49.199.35.bc.googleusercontent.com. [35.199.49.16])
-        by smtp.gmail.com with ESMTPSA id 956f58d0204a3-67299146eb0sm2607555d50.21.2026.09.20.12.36.59
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-89a47139db2sm18450487b3.26.2026.09.20.12.37.04
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 20 Sep 2026 12:37:00 -0700 (PDT)
+        Sun, 20 Sep 2026 12:37:06 -0700 (PDT)
 From: Pasha Tatashin <pasha.tatashin@soleen.com>
 To: linux-kselftest@vger.kernel.org,
 	legion@kernel.org,
@@ -137,9 +137,9 @@ To: linux-kselftest@vger.kernel.org,
 	linux-arm-kernel@lists.infradead.org,
 	vladimir.murzin@arm.com,
 	kas@kernel.org
-Subject: [RFC PATCH 01/46] KVM: luo: Delegate VM creation type to kvm_arch_vm_luo_preserve
-Date: Sun, 20 Sep 2026 15:36:05 -0400
-Message-ID: <20260920193650.3373435-2-pasha.tatashin@soleen.com>
+Subject: [RFC PATCH 02/46] KVM: arm64: Split demux_c15_{get,set}_val from userspace accessors
+Date: Sun, 20 Sep 2026 15:36:06 -0400
+Message-ID: <20260920193650.3373435-3-pasha.tatashin@soleen.com>
 X-Mailer: git-send-email 2.55.0.1082.g2b9226bbc0-goog
 In-Reply-To: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
 References: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
@@ -151,65 +151,107 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Remove the architecture-specific #ifdef ladder setting ser->type in
-kvm_luo_preserve(). Leaving ser->type zero by default allows
-kvm_arch_vm_luo_preserve() to populate the architecture-defined VM
-creation flags without referencing unexported architecture symbols in
-generic KVM code.
+Factor demux_c15_get_val() and demux_c15_set_val() out of demux_c15_get()
+and demux_c15_set() so kernel callers can read and write demultiplexed
+coprocessor registers without going through userspace pointers.
 
 Signed-off-by: Pasha Tatashin <pasha.tatashin@soleen.com>
 ---
- virt/kvm/kvm_luo.c | 22 +++++++---------------
- 1 file changed, 7 insertions(+), 15 deletions(-)
+ arch/arm64/kvm/sys_regs.c | 48 +++++++++++++++++++++++++++------------
+ 1 file changed, 34 insertions(+), 14 deletions(-)
 
-diff --git a/virt/kvm/kvm_luo.c b/virt/kvm/kvm_luo.c
-index 025b53151b6a..b3bd9bebe17a 100644
---- a/virt/kvm/kvm_luo.c
-+++ b/virt/kvm/kvm_luo.c
-@@ -73,16 +73,13 @@ static int kvm_luo_preserve(struct liveupdate_file_op_args *args)
- 	if (IS_ERR(ser))
- 		return PTR_ERR(ser);
+diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
+index 44aae52c473d..b873ccf1ab14 100644
+--- a/arch/arm64/kvm/sys_regs.c
++++ b/arch/arm64/kvm/sys_regs.c
+@@ -5496,10 +5496,9 @@ id_to_sys_reg_desc(struct kvm_vcpu *vcpu, u64 id,
+ 	return r;
+ }
  
--#if defined(CONFIG_X86)
--	ser->type = kvm->arch.vm_type;
--#elif defined(CONFIG_ARM64)
--	ser->type = kvm_phys_shift(&kvm->arch.mmu);
--	if (kvm_vm_is_protected(kvm))
--		ser->type |= KVM_VM_TYPE_ARM_PROTECTED;
--
--#else
-+	/*
-+	 * @type is the argument the new kernel will pass to KVM_CREATE_VM, and
-+	 * only the architecture knows how to spell it.  kvm_arch_vm_luo_preserve()
-+	 * fills it in; leaving it zero here is the right answer for an
-+	 * architecture that does not implement the hook.
-+	 */
- 	ser->type = 0;
--#endif
- 
- 	args->serialized_data = virt_to_phys(ser);
- 	return 0;
-@@ -115,7 +112,6 @@ static int kvm_luo_retrieve(struct liveupdate_file_op_args *args)
- 	kvm = file->private_data;
- 
- 	args->file = file;
--	kho_restore_free(ser);
- 
- 	kvm_uevent_notify_vm_create(kvm);
- 	return 0;
-@@ -147,11 +143,7 @@ static void kvm_luo_finish(struct liveupdate_file_op_args *args)
+-static int demux_c15_get(struct kvm_vcpu *vcpu, u64 id, void __user *uaddr)
++static int demux_c15_get_val(struct kvm_vcpu *vcpu, u64 id, u32 *val)
  {
- 	struct kvm_luo_ser *ser;
+-	u32 val;
+-	u32 __user *uval = uaddr;
++	u32 idx;
  
--	/*
--	 * If retrieve_status is true or set to error, nothing to do here.
--	 * Already cleaned up in kvm_luo_retrieve().
--	 */
--	if (args->retrieve_status)
-+	if (args->retrieve_status < 0)
- 		return;
+ 	/* Fail if we have unknown bits set. */
+ 	if (id & ~(KVM_REG_ARCH_MASK|KVM_REG_SIZE_MASK|KVM_REG_ARM_COPROC_MASK
+@@ -5510,21 +5509,34 @@ static int demux_c15_get(struct kvm_vcpu *vcpu, u64 id, void __user *uaddr)
+ 	case KVM_REG_ARM_DEMUX_ID_CCSIDR:
+ 		if (KVM_REG_SIZE(id) != 4)
+ 			return -ENOENT;
+-		val = (id & KVM_REG_ARM_DEMUX_VAL_MASK)
++		idx = (id & KVM_REG_ARM_DEMUX_VAL_MASK)
+ 			>> KVM_REG_ARM_DEMUX_VAL_SHIFT;
+-		if (val >= CSSELR_MAX)
++		if (idx >= CSSELR_MAX)
+ 			return -ENOENT;
  
- 	if (!args->serialized_data)
+-		return put_user(get_ccsidr(vcpu, val), uval);
++		*val = get_ccsidr(vcpu, idx);
++		return 0;
+ 	default:
+ 		return -ENOENT;
+ 	}
+ }
+ 
+-static int demux_c15_set(struct kvm_vcpu *vcpu, u64 id, void __user *uaddr)
++static int demux_c15_get(struct kvm_vcpu *vcpu, u64 id, void __user *uaddr)
+ {
+-	u32 val, newval;
+ 	u32 __user *uval = uaddr;
++	u32 val;
++	int ret;
++
++	ret = demux_c15_get_val(vcpu, id, &val);
++	if (!ret)
++		ret = put_user(val, uval);
++
++	return ret;
++}
++
++static int demux_c15_set_val(struct kvm_vcpu *vcpu, u64 id, u32 newval)
++{
++	u32 idx;
+ 
+ 	/* Fail if we have unknown bits set. */
+ 	if (id & ~(KVM_REG_ARCH_MASK|KVM_REG_SIZE_MASK|KVM_REG_ARM_COPROC_MASK
+@@ -5535,20 +5547,28 @@ static int demux_c15_set(struct kvm_vcpu *vcpu, u64 id, void __user *uaddr)
+ 	case KVM_REG_ARM_DEMUX_ID_CCSIDR:
+ 		if (KVM_REG_SIZE(id) != 4)
+ 			return -ENOENT;
+-		val = (id & KVM_REG_ARM_DEMUX_VAL_MASK)
++		idx = (id & KVM_REG_ARM_DEMUX_VAL_MASK)
+ 			>> KVM_REG_ARM_DEMUX_VAL_SHIFT;
+-		if (val >= CSSELR_MAX)
++		if (idx >= CSSELR_MAX)
+ 			return -ENOENT;
+ 
+-		if (get_user(newval, uval))
+-			return -EFAULT;
+-
+-		return set_ccsidr(vcpu, val, newval);
++		return set_ccsidr(vcpu, idx, newval);
+ 	default:
+ 		return -ENOENT;
+ 	}
+ }
+ 
++static int demux_c15_set(struct kvm_vcpu *vcpu, u64 id, void __user *uaddr)
++{
++	u32 __user *uval = uaddr;
++	u32 newval;
++
++	if (get_user(newval, uval))
++		return -EFAULT;
++
++	return demux_c15_set_val(vcpu, id, newval);
++}
++
+ static u64 kvm_one_reg_to_id(const struct kvm_one_reg *reg)
+ {
+ 	switch(reg->id) {
 -- 
 2.55.0.1082.g2b9226bbc0-goog
 
