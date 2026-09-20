@@ -1,63 +1,65 @@
-Received: from mail-yx2-f12.google.com (mail-yx2-f12.google.com [74.125.224.140])
+Received: from mail-yx2-f43.google.com (mail-yx2-f43.google.com [74.125.224.171])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16C4744E675
-	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 19:36:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.140
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3E490472520
+	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 19:37:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.171
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789933020; cv=none; b=IlN/YW20bfWMd4UuMbOpiHtUfi+Tmr2J/xlOW0QbHusLowIppcdQatbnKBokKsAH52zDdsmMegLoIQOqDMdreJhHs5k5tkVq7IjrahpOn+L3zW+4aAsGi/w27vAwPOWHYtVVHQdVsrZVWnIT80FeS7MIwdZIT3CNmZLfcFU5XcU=
+	t=1789933024; cv=none; b=Gr8aVAzxQ+gTma70fLsWLU5UnE/lxBvq9wAn8zZzlbMC6QIhJGVc+2Ia0wQXavCI95qJaWBnXRxrX3gryjF8qL3Q+MwNgzC3Z0kzBJtpjXPFPOUAjqGLWB1f2Axs+gDPQIIbW4R5Wxp5E67+wMnHXCgoGL/2y797aSauvxWQgm0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789933020; c=relaxed/simple;
-	bh=5/jzvqe0BI1q/7sUFWqbU0QbLDpwftKxNlY814+z1KU=;
-	h=From:To:Subject:Date:Message-ID:MIME-Version; b=TZu1r1mjhq241GqiLYKdwJ7jjFAFGPAsWdAnO1K3rDAfn62xrzeSBnc2r2+TZiVllUaNsHOBy8LhjIGyh3pgxYmKGgZ/rS4EB3xKB+PlS0rbyNO30QaGRfjy38MzXv4cyAofv6/keZ6NA4Ghdf2ucJ/vulo5qSAF94S99pmxMf0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com; spf=pass smtp.mailfrom=soleen.com; dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b=AvImfVfI; arc=none smtp.client-ip=74.125.224.140
+	s=arc-20240116; t=1789933024; c=relaxed/simple;
+	bh=VA+J8gVgQJjXgqa1KyYAn5D2Rm8bdS8GTWaA8o/nJp0=;
+	h=From:To:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=nWFtK6zb1POUMCk/sZEeJsAqgUpA0CHGHjEL7dmtLrwnb0fOX75Eo/0ZZst6wc+5Qdcp9F9gfha5UqMWlCAUOs4N/wYxIItOC8Hmu3CqwDyLAaaW3yrv+RXL9SWimtUJiiJ15THpJ9D9BAOPYqx4vnSqkFrfamkRyJI/T4YtLb0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com; spf=pass smtp.mailfrom=soleen.com; dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b=OnxKCQgg; arc=none smtp.client-ip=74.125.224.171
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=soleen.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b="AvImfVfI"
-Received: by mail-yx2-f12.google.com with SMTP id 00721157ae682-85d43da99easo18599757b3.1
-        for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 12:36:56 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b="OnxKCQgg"
+Received: by mail-yx2-f43.google.com with SMTP id 956f58d0204a3-66e4aae314aso1691048d50.3
+        for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 12:37:02 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=soleen.com; s=google; t=1789933016; x=1790537816; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:to
-         :from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=SWKz/8OeAkiGFbZLGJoBxcLgC1DzN7WUJVOWNvZAQ8A=;
-        b=AvImfVfIdCW/Dfk4XZaI7UWuEdRsKmVEuFU8ofYzauV0Hxs/2CA35OLQp5t9Ue21SX
-         Tfkbh3jo93YySvVWu2FBgbkBNYu4IICj3XdsmU8NHtsHa716NMybJhp8pG6SSFx60rJA
-         11ehw9r5wtePfHkWu811BKn30QJ5DFzPTiVlF46sVXdCFltbPvD/GQj8bAxv8QqPjX84
-         lRrX+IdH6IAfmThiqwupUP2gKpTYl7W3n1stAR7e3Q+PIRDCPWLeNGigBK9z8S/NyoWF
-         cGRLygFSsiu4jZprClJUTaj7eZ9X7I9tscTNU8+E1wN5/W/9d1ew97uMoT08V+gN8QjZ
-         8GwA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789933016; x=1790537816;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:to
-         :from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+        d=soleen.com; s=google; t=1789933021; x=1790537821; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:to:from:from:to:cc:subject:date:message-id
          :reply-to:content-type;
-        bh=SWKz/8OeAkiGFbZLGJoBxcLgC1DzN7WUJVOWNvZAQ8A=;
-        b=pRlOmW6ST17UL5IO7nFY8Z3esa9PIlpmqkcCC2eNuoARdfcVHaI6AYuPBHFAocmmIV
-         rS/+iP6RZWotbxjJ/b5A6I/YNktKH6/0gi2XOnkAobr01EvtkZhqe7cw+QjP6++zKKoY
-         rx2ZShf7IYvzpgYcF7YDD6ax9TsHxAjBYCuZoA/fW8YBFCpRNd9F27h0LgpczJ/6tyZS
-         0qwXnM7d2g7AFdjLWjy9I8WPXYlQ1Aaam59aGgmN5uQwtS2d5DT65i469DrK8rd7Q493
-         f0d+s74BvL2r//yNW0hgyatcumij7fu70ZeYBDYlN4U9R+e3I7DtNTfBUAA5Jh1RPqM0
-         YTFQ==
-X-Forwarded-Encrypted: i=1; AKwUvBw1VgHPV1tq56Z4gwnnM+wOMbHpgLRv7pIrsX9jDUQzl5pVqAQ+ROGiB7hBKCxfmwWclkyVMEdX8WUq@vger.kernel.org
-X-Gm-Message-State: AFuF++lkZ5TG58hAc0O0VdXQy/40tGrWXOkqC+6jkeW2opY08CRcrM8u
-	AgKE+ineLahHg4xosqHILBedS3RD8EKIKofRWJva6XgIanaTU6TjRVTpInc4mmrSbEA=
-X-Gm-Gg: AYBFou1QolK0jkGmaoxAnKgjx3dex2dZh54NDHZPYxEuLlcUFUUMzLhGpfysyf3+Lm8
-	7/V/fSx5C7LuV0MeKQD13tL/+MWTrk3oOvYYl5vMTufGlMePaDxXjAc/6jMOCC+c0Wm8PNxXSXh
-	Yr3poTBZJ4NGFgW+w9/4U5nUU4Qtk7ECWmdYIBjE+GI9GZfhbpRudqBwpe1R4yIx1Jq3efH0eKt
-	yyyn3b00cTzYY8RyTGsTfVdBkfjJVF/E4thd6S2raqQ96FXIfV2EIcLwUgjqnBBXuT0+aBXMPeT
-	lG7xxTPjMrlJbAhEFiwixQnZgyRDYQhubrLATBbg0mNpigxZiPC2oH722da3x9ZUNObwSSWC4YO
-	XzXT5LZceZcaZ6njy4IemR+RJukw9QnKt3ns+LOay+1DlcIvq4RDkwwlOv3J66hb8QofmmQMEXL
-	GtZHDqkjbvK9yI1MEgjryIt5XubUDFw2IrpnhsCTxXsSSEekKo+Ih62uTezdGjRCWIGArgc6qcN
-	8Fj1YFqgDong4lme6vfA7UWO6iGFStrDdadABMoh3OkDXcV8UgQSUbJdjT5ocT0a+yFCJldqbD+
-	kyADjJEoIgfNy6CsBYI=
-X-Received: by 2002:a05:690c:c6d2:b0:873:5bd1:98cf with SMTP id 00721157ae682-89738781626mr20406527b3.65.1789933015865;
-        Sun, 20 Sep 2026 12:36:55 -0700 (PDT)
+        bh=S731x7B1q5+LU0uMImlSdu51MYq8nznsZeZCtyZbDcY=;
+        b=OnxKCQggUjQqoznbKxu09+qRorCvxffDk3SmFn527NA55cWPRdy/PScEVe9s3Buus3
+         1Jp5qS6lg0T4urvb21OzMTgXlVebEkisSXt9ByokhpX+VL5ENTLCQCnV+afhh872YCQw
+         exl+pBgBaT2deItwcBfgubRkxvt3F9703kqhFLXEZfcT3C9tijVHKNkG3fm63QrTtKnv
+         f6CDvHmUdT6CxWdcoZthyBd1tKjoEN9lj+kDjEj/SQ7A6B32L6mVp4MeAUUB9BlqZtpZ
+         Knzj/BwL0Et3K8nbwFbktaEpI9/e12TFDd96oXXQLFDJCb4pfXWN+55ehtaNEk0OvuIQ
+         EQtA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1789933021; x=1790537821;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:to:from:x-gm-gg:x-gm-message-state:from:to
+         :cc:subject:date:message-id:reply-to:content-type;
+        bh=S731x7B1q5+LU0uMImlSdu51MYq8nznsZeZCtyZbDcY=;
+        b=nZu0T5Ct3wnZlaHFcT8OgT0GP5tp3KqJ4z5SOqdIvOZMRd676uL/fq1bysXiq1bPRZ
+         cyyDpYwsQzXicR79uAJ2of4QX1vUmt1bRIT+AMnY8sSnbgKe5m2/3UULqwsutbnsMdMm
+         wpPHmmyabRDoykw6WT130N+1Wfa3xAo0HHxCSJKEsGtNu47YTAlpE2vhyZLXwwg/EuhW
+         qBM5LXs3JX68/+UgOBQvYA5ne98bp2/SyU1IZxaF1/+hEskRvyHu2eGiGN25lNMZrx42
+         BEpi73d+bO6/1rlHyRyGPSkPp/9XhI7PWS2MV/R3w9g8CQBfLUCOXWHDPm26bAP5pu5c
+         bZBQ==
+X-Forwarded-Encrypted: i=1; AKwUvBxeoGSM/TDqguVOAn6JMuwAng0cE94nsZHKGub1QlAVOerKvHwqjzG8jDwKC8WrhPacYC2t2xyBOlwo@vger.kernel.org
+X-Gm-Message-State: AFuF++luWkaFw0H2ZGsebuZO6XF4g3396pFc3iVRQ0neU7kdjok0+sUk
+	Mz9F0UUpiSBWBeS4sHXa7NoLIMpAGjfUgGX2vVzTRLLZA5BUcLCMqA/SxSUcErTDfAc=
+X-Gm-Gg: AYBFou2fGpX3wVbRrF1llf0uAyEddJDs1SCBH2mFd8vLyYoDJUlByeZcuO3x0B1Vb9X
+	j+iXCYCr9I4uGAZzNHlnLizn5xrrtjioIOFG2aUhuBjdnrToJq0bL1zPyaAcDiPw1XxB+xwoJEc
+	wypsAQeXUtbKKwsjoqWqqf7+dzuOU6hZio34qUPtWUCQ1jlMljrBm25KTApkI/SuzMo76Kb1AIb
+	fu7rXv8clz6oskXg4GRURXNwqrxyTLGBpX3OeojLr9v127LfPcHxaYRnXnUHlMjH0UL0p2Z1YVn
+	6yCCfDVYFGWZGC+10qZ5dm5B3Y2fDDUvfb6AYjEVLM6H9XLzfA4psXN+hKaOpmHI31rdQQukoHg
+	uHzJC/dxvYI5P+mDjXId3+pkAEWleen3fBI29jQ0ZZNhL6MM1iy6uEEUpCRZ1hAdPwz2ANfKBN3
+	biwzTQLVg7TgVgaxx39XACz6Q6YmMLmcwSPXn72+8J1tSykSI0BPAq3zM04g6XaR7HslXRdZpN8
+	/V+gtKjudatItGQmlVTEQjabI8VQ8novqrOg4yEBVwTwp4WpxwSChCy/rOfnwf61ororEP/lXQS
+	jDWGHhPT5JZqIopbFUs=
+X-Received: by 2002:a05:690e:11c7:b0:672:a2ee:6155 with SMTP id 956f58d0204a3-672a2ee6b7cmr1008959d50.45.1789933021253;
+        Sun, 20 Sep 2026 12:37:01 -0700 (PDT)
 Received: from soleen.c.googlers.com.com (16.49.199.35.bc.googleusercontent.com. [35.199.49.16])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-89a415208bfsm19230137b3.3.2026.09.20.12.36.53
+        by smtp.gmail.com with ESMTPSA id 956f58d0204a3-67299146eb0sm2607555d50.21.2026.09.20.12.36.59
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 20 Sep 2026 12:36:55 -0700 (PDT)
+        Sun, 20 Sep 2026 12:37:00 -0700 (PDT)
 From: Pasha Tatashin <pasha.tatashin@soleen.com>
 To: linux-kselftest@vger.kernel.org,
 	legion@kernel.org,
@@ -135,10 +137,12 @@ To: linux-kselftest@vger.kernel.org,
 	linux-arm-kernel@lists.infradead.org,
 	vladimir.murzin@arm.com,
 	kas@kernel.org
-Subject: [RFC PATCH 00/46] Orphaned Virtual Machines
-Date: Sun, 20 Sep 2026 15:36:04 -0400
-Message-ID: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
+Subject: [RFC PATCH 01/46] KVM: luo: Delegate VM creation type to kvm_arch_vm_luo_preserve
+Date: Sun, 20 Sep 2026 15:36:05 -0400
+Message-ID: <20260920193650.3373435-2-pasha.tatashin@soleen.com>
 X-Mailer: git-send-email 2.55.0.1082.g2b9226bbc0-goog
+In-Reply-To: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
+References: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -147,472 +151,65 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-This RFC series is a PoC intended to showcase e2e working OrphanVMs
-uninterrupted continuing execution on preserved physical CPUs across a
-host kernel live update, prepared for the LPC'26 presentation at the
-KVM Microconf [1].
+Remove the architecture-specific #ifdef ladder setting ser->type in
+kvm_luo_preserve(). Leaving ser->type zero by default allows
+kvm_arch_vm_luo_preserve() to populate the architecture-defined VM
+creation flags without referencing unexported architecture symbols in
+generic KVM code.
 
-The original design proposal discussion can be found at [2].
+Signed-off-by: Pasha Tatashin <pasha.tatashin@soleen.com>
+---
+ virt/kvm/kvm_luo.c | 22 +++++++---------------
+ 1 file changed, 7 insertions(+), 15 deletions(-)
 
-This series is applied on top of v7.3-rc1 + the "[PATCH v4 00/11]
-liveupdate: kvm: Guest_memfd preservation" series [3]. The whole branch
-can be accessed at [4].
-
-It was tested on Intel Xeon Granite Rapids-AP, AMD EPYC Turin, and ARM
-Neoverse V2, as well as in emulation on QEMU and Intel Simics. However,
-it is still very early WIP, and is not anywhere near being production
-ready.
-
-Overview & Submission Strategy
-==============================
-While this RFC bundles the e2e stack, it is NOT intended to be merged as
-a single series, the goal of this series is to have a discussion about
-the technical layers, and the challenges that need to be solved in order
-to have full Caretaker support within the kernel.
-
-Some of the arch/* changes duplicate small helpers (such as GICv3 list
-register accessors or low-level VMCS/VMCB/sysreg helpers) that could be
-shared with existing KVM/arch code if those routines and their callees
-are moved to static inlines or annotated with __cpu_preserved_text (and
-built without ftrace/KASAN/per-CPU references, as enforced by objtool
-and modpost). To avoid sprinkling __cpu_preserved_text annotations
-across core arch/* files in this PoC, those helpers are kept local to
-caretaker.c for now and can be consolidated when individual platform
-support is upstreamed.
-
-The series is structured into at least 8 workstreams that will be
-discussed and worked on separately:
-
-1. Workstream 1: Preparation Patches (Patches 01-06)
-   Architecture-neutral and arch-specific preparatory cleanups (in
-   future these could be bundled with the workstreams that require these
-   changes):
-     01. KVM: luo: Delegate VM creation type to kvm_arch_vm_luo_preserve
-     02. KVM: arm64: Split demux_c15_{get,set}_val from userspace
-         accessors
-     03. KVM: arm64: Split kvm_sys_reg_{get,set}_user from kernel
-         accessors
-     04. x86/mm/ident_map: Add force_pte to support 4K PTE identity
-         mappings
-     05. arm64: mm: Add trans_pgd_map_range() support
-     06. x86/smp: Skip offline CPUs for REBOOT_VECTOR in
-         native_stop_other_cpus()
-
-2. Workstream 2: In-Kernel In-RAM vCPU State Preservation via LUO
-   (Patches 07-10)
-   Allows performing suspend/resume-type preservation across kexec
-   without carrying the vCPU internal state in the VMM in userspace,
-   keeping all vCPU state in-kernel:
-     07. KVM: luo: Support vCPU file preservation across live updates
-     08. KVM: x86: Add x86 vCPU LUO preservation ABI and register
-         helpers
-     09. KVM: x86: Implement architectural vCPU state preservation via
-         LUO
-     10. KVM: arm64: Implement architectural vCPU state preservation via
-         LUO
-
-3. Workstream 3: Physical CPU Preservation Core & x86 Support
-   (Patches 11-24)
-   Introduces the physical CPU preservation subsystem (cpu_preserve),
-   linker sections (.text.cpu_preserved, .data.cpu_preserved) with
-   build-time section isolation checks in modpost and objtool, isolated
-   transition page table management (struct cpu_preserved_as), and sysfs
-   interfaces. Allows booting the machine with some CPUs removed from
-   the OS scheduler, and provides infrastructure for executing orphaned
-   jobs on such CPUs:
-     11. liveupdate: Define CPU preservation linker sections
-     12. liveupdate: Add liveupdate_session_name() helper
-     13. cpu_preserve: Add physical CPU preservation ABI and core API
-         headers
-     14. cpu_preserve: Add core physical CPU preservation state and park
-         loop
-     15. cpu_preserve: Add physical CPU preservation lifecycle and build
-         rules
-     16. liveupdate: cpu_preserve: Add sysfs interface
-     17. liveupdate: cpu_preserve: Add isolated address space management
-         API
-     18. liveupdate: cpu_preserve: Add LUO file handler for preserved
-         physical CPUs
-     19. x86: liveupdate: Add low-level physical CPU preservation
-         assembly
-     20. x86: liveupdate: Add physical CPU preservation context and page
-         table support
-     21. selftests: liveupdate: Add physical CPU preservation unit tests
-     22. selftests: liveupdate: Add physical CPU preservation live
-         update tests
-     23. Documentation: liveupdate: Add physical CPU preservation
-         documentation
-     24. MAINTAINERS: Add entry for KVM Caretaker
-
-4. Workstream 4: ARM64 Support for Physical CPU Preservation (Patch 25)
-   Enables physical CPU preservation on ARM64 using isolated transition
-   page tables (trans_pgd_map_range()), cache maintenance to PoC, and
-   GICv3 redistributor SGI wake helpers:
-     25. arm64: liveupdate: Add support for physical CPU preservation
-
-5. Workstream 5: On-Core Scheduling Framework (oncore) (Patches 26-27)
-   (Note: This layer sits between cpu_preserve and the KVM Caretaker and
-   Kernel Caretaker (Future Work for Orphaned Processes))
-   Provides a runqueue and time-slice scheduling framework
-   (kernel/liveupdate/oncore.c) that multiplexes preserved workloads
-   onto preserved physical CPUs during the kexec blackout window:
-     26. oncore: Add on-core KHO ABI and public framework headers
-     27. oncore: Implement on-core session lifecycle and scheduling loop
-
-6. Workstream 6: KVM Caretaker Core & Intel VMX Support
-   (Patches 28-39)
-   Introduces the KVM Caretaker execution engine (virt/kvm/caretaker.c),
-   vCPU detach/attach/cancel lifecycle, optional cross-kexec execution
-   telemetry and debugfs reporting, x86 TDP MMU KHO page table
-   preservation, x86 common Caretaker runtime (LAPIC timer injection,
-   VM-exit dispatch, instruction decoding), and the Intel VMX Caretaker
-   backend:
-     28. KVM: caretaker: Add Caretaker control block and architecture
-         ops headers
-     29. KVM: caretaker: Implement Caretaker session memory mapping
-         helpers
-     30. KVM: caretaker: Integrate Caretaker vCPU detach, attach, and
-         cancel with KVM
-     31. KVM: caretaker: Add generic KHO ABI telemetry and debugfs
-         reporting
-     32. KVM: x86: Add TDP MMU KHO preservation helpers
-     33. KVM: x86: Add Caretaker x86 KHO ABI and runtime context headers
-     34. KVM: x86: Implement Caretaker LAPIC timer and interrupt
-         injection
-     35. KVM: x86: Implement Caretaker VM-exit dispatch and instruction
-         decoders
-     36. KVM: x86: Implement Caretaker run loop and LUO detach/attach
-         lifecycle
-     37. KVM: VMX: Add Caretaker VMX assembly guest entry/exit routine
-         and helpers
-     38. KVM: VMX: Implement Caretaker VMX VMCS lifecycle and exit
-         dispatch
-     39. KVM: VMX: Integrate Caretaker VMX detach serialization and KVM
-         registration
-
-7. Workstream 7: KVM Caretaker for AMD SVM (Patches 40-41)
-   Implements the AMD SVM Caretaker backend (caretaker_vmenter.S, VMCB
-   lifecycle, exit decoding, and next-RIP sync):
-     40. KVM: SVM: Add Caretaker SVM assembly guest entry/exit routine
-     41. KVM: SVM: Implement Caretaker SVM VMCB lifecycle and exit
-         dispatch
-
-8. Workstream 8: KVM Caretaker for ARM64 (Patches 42-46)
-   Implements the ARM64 VHE Caretaker backend (caretaker_vmenter.S,
-   EL2 exception vectors, GICv3 CPU interface & arch timer emulation,
-   system register trap handling, and Stage-2 fault handling):
-     42. KVM: arm64: Add Caretaker arm64 KHO ABI and runtime context
-         headers
-     43. KVM: arm64: Add Caretaker EL2 exception vectors and guest
-         entry/exit assembly
-     44. KVM: arm64: Implement Caretaker GICv3 CPU interface and arch
-         timer emulation
-     45. KVM: arm64: Implement Caretaker system register trap and
-         exception handlers
-     46. KVM: arm64: Implement Caretaker vCPU run loop and LUO
-         detach/attach lifecycle
-
-Architectural Design Layers
-===========================
-The OrphanVM architecture is layered so that each subsystem has zero
-upward symbol dependencies:
-
-  +--------------------------------------------------------------------+
-  | Layer 4: KVM Caretaker Engine (virt/kvm/caretaker.c + arch/kvm/*)  |
-  |   - VMENTER/VMRUN/ERET guest execution loop                        |
-  |   - Handling of timer preemption, HLT/WFI, MSR/sysreg traps        |
-  |   - Yield on unhandled I/O or Stage-2 MMIO faults                  |
-  +--------------------------------------------------------------------+
-                                    |
-                                    v (registers oncore jobs)
-  +--------------------------------------------------------------------+
-  | Layer 3: On-Core Scheduler Framework (kernel/liveupdate/oncore.c)  |
-  |   - Runqueue and time-slice scheduler on preserved cores           |
-  |   - Architecture-neutral counter frequency deadline calculation    |
-  |   - Session memory mapping into isolated address spaces            |
-  +--------------------------------------------------------------------+
-                                    |
-                                    v (attaches cpu_preserve workload)
-  +--------------------------------------------------------------------+
-  | Layer 2: Physical CPU Preservation (kernel/liveupdate/cpu_preserve)|
-  |   - Offlines CPUs into preserved park loop (.text.cpu_preserved)   |
-  |   - Switches CR3/TTBR to isolated transition page tables           |
-  |   - Manages cpu_present state across kexec and hotplug reclaim     |
-  +--------------------------------------------------------------------+
-                                    |
-                                    v (persists state via KHO / LUO)
-  +--------------------------------------------------------------------+
-  | Layer 1: KHO & LUO                                                 |
-  |   - Preserves guest_memfd RAM, TDP/Stage-2 MMU, and vCPU state     |
-  |   - Cross-kexec ABI (include/linux/kho/abi/*)                      |
-  +--------------------------------------------------------------------+
-
-1. Layer 1: KHO & LUO In-RAM Preservation (kvm_luo)
-   Preserves VM and vCPU file descriptors across kexec using KHO memory
-   preservation. Guest memory (guest_memfd) and secondary MMU page
-   tables remain in place in physical RAM. Architectural vCPU state is
-   serialized into struct kvm_vcpu_arch_luo_state buffers.
-
-2. Layer 2: Physical CPU Preservation (cpu_preserve)
-   Before kexec, selected physical CPUs are taken offline and
-   transitioned into a park loop compiled into .text.cpu_preserved and
-   copied into KHO-preserved pages outside KHO scratch memory. Each
-   preserved CPU switches to an isolated address space (struct
-   cpu_preserved_as) that maps ONLY the preserved text/data, per-CPU
-   stack, and mapped workload buffers. Build-time section checks in
-   modpost and objtool enforce that .text.cpu_preserved and
-   .data.cpu_preserved do not reference unmapped host kernel symbols.
-   Because preserved CPUs are marked !cpu_present(cpu) while preserved,
-   the host kernel's SMP stop routines and incoming kernel's SMP boot
-   bringup skip them without hotplug workarounds.
-
-3. Layer 3: On-Core Scheduling Framework (oncore)
-   Provides a runqueue and session scheduler (kernel/liveupdate/oncore.c)
-   that runs inside the cpu_preserve park loop. Multiple preserved
-   workloads (such as vCPUs) can be scheduled across one or more
-   preserved physical CPUs using hardware counter deadlines (TSC on x86,
-   CNTPCT_EL0 on ARM64).
-
-4. Layer 4: KVM Caretaker Execution Engine (caretaker)
-   Attaches preserved KVM vCPUs to oncore jobs. During the kexec
-   blackout window, the Caretaker enters the guest directly from
-   preserved text with baseline speculative execution mitigations
-   (VERW CPU buffer clearing on x86 VM-entry, RSB stuffing on x86
-   VM-exit, and Spectre-BHB loop clearing on ARM64 EL2 guest exit):
-   - On Intel VMX (vmx/caretaker.c), executes VMLAUNCH/VMRESUME against
-     a preserved VMCS page and handles VMX preemption timer / physical
-     LAPIC timer, HLT, PAUSE, CPUID, RDTSC, COM1 UART, and basic MSR
-     exits. Software emulation of x2APIC ICR IPIs is intentionally
-     omitted (trapped ICR writes park the vCPU until the incoming kernel
-     reclaims it); instead, the Caretaker KHO-preserves the virtual APIC
-     page and the VM's Posted-Interrupt Descriptor pointer table
-     (pid_table), allowing hardware with APICv and Intel IPIv to deliver
-     inter-vCPU IPIs without VM-exits.
-   - On AMD SVM (svm/caretaker.c), executes VMRUN with a preserved VMCB,
-     preserved MSR/IO permission bitmaps (msrpm/iopm), and host save
-     area (MSR_VM_HSAVE_PA), sharing the common x86 Caretaker exit and
-     timer handlers.
-   - On ARM64 VHE (arm64/kvm/caretaker.c), switches EL2 exception
-     vectors (VBAR_EL2) to Caretaker vectors, emulates the GICv3 CPU
-     interface (including inter-vCPU SGI delivery via ICC_SGI1R_EL1
-     trapping and GICv3 List Register injection) and arch timer, and
-     handles WFI/WFE and system register traps.
-   - Note that the set of supported VM-exits can be adjusted as needed;
-     initial upstreaming can start by not supporting any VM-exits at
-     all, waiting in the Caretaker loop if a vCPU exits until the
-     incoming host kernel finishes booting and reclaims the vCPU.
-   - Cross-Kexec Re-Attachment: When the incoming kernel boots and
-     retrieves the preserved VM, it signals detach via the Caretaker
-     control block. The Caretaker serializes live hardware state on the
-     preserved core into struct kvm_vcpu_arch_luo_state before yielding,
-     exits the park loop, and allows the incoming kernel to reclaim the
-     physical CPU and resume KVM execution. Optional execution telemetry
-     (runs, exits, stalls, exit reasons, and last RIP) is preserved via
-     the KHO ABI and exposed in dmesg and per-vCPU debugfs
-     (caretaker_telemetry), both live during detached execution and upon
-     re-attachment.
-
-Links
-=====
-[1] https://lpc.events/event/20/contributions/2553/
-[2] https://lore.kernel.org/all/afEwWZksU0Fw61oT@plex/
-[3] https://lore.kernel.org/all/20260728121138.1103610-1-tarunsahu@google.com/#r
-[4] https://github.com/soleen/linux/tree/ovm/rfc/v1
-
-Pasha Tatashin (46):
-  KVM: luo: Delegate VM creation type to kvm_arch_vm_luo_preserve
-  KVM: arm64: Split demux_c15_{get,set}_val from userspace accessors
-  KVM: arm64: Split kvm_sys_reg_{get,set}_user from kernel accessors
-  x86/mm/ident_map: Add force_pte to support 4K PTE identity mappings
-  arm64: mm: Add trans_pgd_map_range() support
-  x86/smp: Skip offline CPUs for REBOOT_VECTOR in
-    native_stop_other_cpus()
-  KVM: luo: Support vCPU file preservation across live updates
-  KVM: x86: Add x86 vCPU LUO preservation ABI and register helpers
-  KVM: x86: Implement architectural vCPU state preservation via LUO
-  KVM: arm64: Implement architectural vCPU state preservation via LUO
-  liveupdate: Define CPU preservation linker sections
-  liveupdate: Add liveupdate_session_name() helper
-  cpu_preserve: Add physical CPU preservation ABI and core API headers
-  cpu_preserve: Add core physical CPU preservation state and park loop
-  cpu_preserve: Add physical CPU preservation lifecycle and build rules
-  liveupdate: cpu_preserve: Add sysfs interface
-  liveupdate: cpu_preserve: Add isolated address space management API
-  liveupdate: cpu_preserve: Add LUO file handler for preserved physical
-    CPUs
-  x86: liveupdate: Add low-level physical CPU preservation assembly
-  x86: liveupdate: Add physical CPU preservation context and page table
-    support
-  selftests: liveupdate: Add physical CPU preservation unit tests
-  selftests: liveupdate: Add physical CPU preservation live update tests
-  Documentation: liveupdate: Add physical CPU preservation documentation
-  MAINTAINERS: Add entry for KVM Caretaker
-  arm64: liveupdate: Add support for physical CPU preservation
-  oncore: Add on-core KHO ABI and public framework headers
-  oncore: Implement on-core session lifecycle and scheduling loop
-  KVM: caretaker: Add Caretaker control block and architecture ops
-    headers
-  KVM: caretaker: Implement Caretaker session memory mapping helpers
-  KVM: caretaker: Integrate Caretaker vCPU detach, attach, and cancel
-    with KVM
-  KVM: caretaker: Add generic KHO ABI telemetry and debugfs reporting
-  KVM: x86: Add TDP MMU KHO preservation helpers
-  KVM: x86: Add Caretaker x86 KHO ABI and runtime context headers
-  KVM: x86: Implement Caretaker LAPIC timer and interrupt injection
-  KVM: x86: Implement Caretaker VM-exit dispatch and instruction
-    decoders
-  KVM: x86: Implement Caretaker run loop and LUO detach/attach lifecycle
-  KVM: VMX: Add Caretaker VMX assembly guest entry/exit routine and
-    helpers
-  KVM: VMX: Implement Caretaker VMX VMCS lifecycle and exit dispatch
-  KVM: VMX: Integrate Caretaker VMX detach serialization and KVM
-    registration
-  KVM: SVM: Add Caretaker SVM assembly guest entry/exit routine
-  KVM: SVM: Implement Caretaker SVM VMCB lifecycle and exit dispatch
-  KVM: arm64: Add Caretaker arm64 KHO ABI and runtime context headers
-  KVM: arm64: Add Caretaker EL2 exception vectors and guest entry/exit
-    assembly
-  KVM: arm64: Implement Caretaker GICv3 CPU interface and arch timer
-    emulation
-  KVM: arm64: Implement Caretaker system register trap and exception
-    handlers
-  KVM: arm64: Implement Caretaker vCPU run loop and LUO detach/attach
-    lifecycle
-
- .../ABI/testing/sysfs-devices-system-cpu      |   20 +
- Documentation/liveupdate/cpu_preservation.rst |   48 +
- Documentation/liveupdate/index.rst            |   11 +
- Documentation/liveupdate/vmm.rst              |   15 +
- Documentation/virt/kvm/api.rst                |   16 +
- MAINTAINERS                                   |   11 +
- arch/arm64/Kconfig                            |    1 +
- arch/arm64/include/asm/caretaker.h            |   56 +
- arch/arm64/include/asm/cpu_preserve.h         |   44 +
- arch/arm64/include/asm/oncore.h               |   24 +
- arch/arm64/include/asm/trans_pgd.h            |    4 +
- arch/arm64/kernel/Makefile                    |    7 +
- arch/arm64/kernel/cpu_preserve.c              |  674 ++++++
- arch/arm64/kernel/preserve_cpu.S              |   44 +
- arch/arm64/kernel/smp.c                       |    8 +-
- arch/arm64/kernel/vmlinux.lds.S               |    1 +
- arch/arm64/kvm/Kconfig                        |    2 +
- arch/arm64/kvm/Makefile                       |   14 +
- arch/arm64/kvm/caretaker.c                    | 1162 +++++++++++
- arch/arm64/kvm/caretaker.h                    |  130 ++
- arch/arm64/kvm/caretaker_vmenter.S            |  248 +++
- arch/arm64/kvm/kvm_luo.c                      |  304 +++
- arch/arm64/kvm/sys_regs.c                     |  247 ++-
- arch/arm64/kvm/sys_regs.h                     |    4 +
- arch/arm64/mm/trans_pgd.c                     |   70 +
- arch/x86/Kconfig                              |    1 +
- arch/x86/include/asm/cpu_preserve.h           |   34 +
- arch/x86/include/asm/init.h                   |    3 +-
- arch/x86/include/asm/oncore.h                 |   25 +
- arch/x86/kernel/Makefile                      |    7 +
- arch/x86/kernel/cpu_preserve.c                |  432 ++++
- arch/x86/kernel/preserve_cpu.S                |   62 +
- arch/x86/kernel/smp.c                         |    2 +-
- arch/x86/kernel/vmlinux.lds.S                 |    2 +
- arch/x86/kvm/Kconfig                          |    2 +
- arch/x86/kvm/Makefile                         |   32 +
- arch/x86/kvm/caretaker.c                      | 1129 ++++++++++
- arch/x86/kvm/caretaker.h                      |  238 +++
- arch/x86/kvm/caretaker_asm.h                  |  117 ++
- arch/x86/kvm/cpuid.c                          |    4 +-
- arch/x86/kvm/cpuid.h                          |    1 +
- arch/x86/kvm/kvm-asm-offsets.c                |   32 +
- arch/x86/kvm/kvm_luo.c                        |  368 ++++
- arch/x86/kvm/mmu.h                            |    7 +
- arch/x86/kvm/mmu/kho.c                        |  193 ++
- arch/x86/kvm/msrs.c                           |   17 +
- arch/x86/kvm/msrs.h                           |    2 +
- arch/x86/kvm/regs.c                           |    8 +-
- arch/x86/kvm/regs.h                           |    4 +
- arch/x86/kvm/svm/caretaker.c                  |  467 +++++
- arch/x86/kvm/svm/caretaker.h                  |   63 +
- arch/x86/kvm/svm/caretaker_vmenter.S          |   91 +
- arch/x86/kvm/svm/svm.c                        |   11 +-
- arch/x86/kvm/vmx/caretaker.c                  |  658 ++++++
- arch/x86/kvm/vmx/caretaker.h                  |   78 +
- arch/x86/kvm/vmx/caretaker_vmenter.S          |  110 +
- arch/x86/kvm/vmx/vmx.c                        |    6 +-
- arch/x86/kvm/vmx/vmx.h                        |    1 +
- arch/x86/kvm/x86.c                            |    8 +-
- arch/x86/kvm/x86.h                            |    4 +
- arch/x86/mm/ident_map.c                       |   72 +-
- include/asm-generic/vmlinux.lds.h             |   29 +
- include/linux/cpu_preserve.h                  |  464 +++++
- include/linux/kho/abi/cpu.h                   |  151 ++
- include/linux/kho/abi/kvm.h                   |  137 +-
- include/linux/kho/abi/kvm_arm64.h             |   93 +
- include/linux/kho/abi/kvm_x86.h               |  106 +
- include/linux/kvm_caretaker.h                 |  439 ++++
- include/linux/kvm_host.h                      |   63 +
- include/linux/liveupdate.h                    |    6 +
- include/linux/oncore.h                        |  129 ++
- include/uapi/linux/kvm.h                      |    2 +
- kernel/cpu.c                                  |    2 +
- kernel/liveupdate/Kconfig                     |   45 +
- kernel/liveupdate/Makefile                    |   15 +
- kernel/liveupdate/cpu_preserve.c              | 1811 +++++++++++++++++
- kernel/liveupdate/luo_session.c               |   14 +
- kernel/liveupdate/oncore.c                    |  947 +++++++++
- scripts/mod/modpost.c                         |   32 +-
- tools/objtool/check.c                         |   35 +-
- tools/objtool/include/objtool/check.h         |    1 +
- tools/objtool/include/objtool/elf.h           |    2 +-
- tools/testing/selftests/liveupdate/Makefile   |    1 +
- tools/testing/selftests/liveupdate/config     |    6 +
- tools/testing/selftests/liveupdate/init.c     |   27 +-
- .../testing/selftests/liveupdate/liveupdate.c |  251 +++
- .../selftests/liveupdate/luo_cpu_preserve.c   |  145 ++
- .../selftests/liveupdate/run-vmtests.sh       |    1 +
- tools/testing/selftests/liveupdate/vmtest.sh  |    4 +-
- virt/kvm/Kconfig                              |   41 +
- virt/kvm/Makefile.kvm                         |    8 +
- virt/kvm/caretaker.c                          |  639 ++++++
- virt/kvm/caretaker_debug.c                    |  120 ++
- virt/kvm/kvm_luo.c                            |  249 ++-
- virt/kvm/kvm_main.c                           |   66 +-
- 95 files changed, 13415 insertions(+), 122 deletions(-)
- create mode 100644 Documentation/liveupdate/cpu_preservation.rst
- create mode 100644 Documentation/liveupdate/index.rst
- create mode 100644 arch/arm64/include/asm/caretaker.h
- create mode 100644 arch/arm64/include/asm/cpu_preserve.h
- create mode 100644 arch/arm64/include/asm/oncore.h
- create mode 100644 arch/arm64/kernel/cpu_preserve.c
- create mode 100644 arch/arm64/kernel/preserve_cpu.S
- create mode 100644 arch/arm64/kvm/caretaker.c
- create mode 100644 arch/arm64/kvm/caretaker.h
- create mode 100644 arch/arm64/kvm/caretaker_vmenter.S
- create mode 100644 arch/arm64/kvm/kvm_luo.c
- create mode 100644 arch/x86/include/asm/cpu_preserve.h
- create mode 100644 arch/x86/include/asm/oncore.h
- create mode 100644 arch/x86/kernel/cpu_preserve.c
- create mode 100644 arch/x86/kernel/preserve_cpu.S
- create mode 100644 arch/x86/kvm/caretaker.c
- create mode 100644 arch/x86/kvm/caretaker.h
- create mode 100644 arch/x86/kvm/caretaker_asm.h
- create mode 100644 arch/x86/kvm/kvm_luo.c
- create mode 100644 arch/x86/kvm/mmu/kho.c
- create mode 100644 arch/x86/kvm/svm/caretaker.c
- create mode 100644 arch/x86/kvm/svm/caretaker.h
- create mode 100644 arch/x86/kvm/svm/caretaker_vmenter.S
- create mode 100644 arch/x86/kvm/vmx/caretaker.c
- create mode 100644 arch/x86/kvm/vmx/caretaker.h
- create mode 100644 arch/x86/kvm/vmx/caretaker_vmenter.S
- create mode 100644 include/linux/cpu_preserve.h
- create mode 100644 include/linux/kho/abi/cpu.h
- create mode 100644 include/linux/kho/abi/kvm_arm64.h
- create mode 100644 include/linux/kho/abi/kvm_x86.h
- create mode 100644 include/linux/kvm_caretaker.h
- create mode 100644 include/linux/oncore.h
- create mode 100644 kernel/liveupdate/cpu_preserve.c
- create mode 100644 kernel/liveupdate/oncore.c
- create mode 100644 tools/testing/selftests/liveupdate/luo_cpu_preserve.c
- create mode 100644 virt/kvm/caretaker.c
- create mode 100644 virt/kvm/caretaker_debug.c
-
+diff --git a/virt/kvm/kvm_luo.c b/virt/kvm/kvm_luo.c
+index 025b53151b6a..b3bd9bebe17a 100644
+--- a/virt/kvm/kvm_luo.c
++++ b/virt/kvm/kvm_luo.c
+@@ -73,16 +73,13 @@ static int kvm_luo_preserve(struct liveupdate_file_op_args *args)
+ 	if (IS_ERR(ser))
+ 		return PTR_ERR(ser);
+ 
+-#if defined(CONFIG_X86)
+-	ser->type = kvm->arch.vm_type;
+-#elif defined(CONFIG_ARM64)
+-	ser->type = kvm_phys_shift(&kvm->arch.mmu);
+-	if (kvm_vm_is_protected(kvm))
+-		ser->type |= KVM_VM_TYPE_ARM_PROTECTED;
+-
+-#else
++	/*
++	 * @type is the argument the new kernel will pass to KVM_CREATE_VM, and
++	 * only the architecture knows how to spell it.  kvm_arch_vm_luo_preserve()
++	 * fills it in; leaving it zero here is the right answer for an
++	 * architecture that does not implement the hook.
++	 */
+ 	ser->type = 0;
+-#endif
+ 
+ 	args->serialized_data = virt_to_phys(ser);
+ 	return 0;
+@@ -115,7 +112,6 @@ static int kvm_luo_retrieve(struct liveupdate_file_op_args *args)
+ 	kvm = file->private_data;
+ 
+ 	args->file = file;
+-	kho_restore_free(ser);
+ 
+ 	kvm_uevent_notify_vm_create(kvm);
+ 	return 0;
+@@ -147,11 +143,7 @@ static void kvm_luo_finish(struct liveupdate_file_op_args *args)
+ {
+ 	struct kvm_luo_ser *ser;
+ 
+-	/*
+-	 * If retrieve_status is true or set to error, nothing to do here.
+-	 * Already cleaned up in kvm_luo_retrieve().
+-	 */
+-	if (args->retrieve_status)
++	if (args->retrieve_status < 0)
+ 		return;
+ 
+ 	if (!args->serialized_data)
 -- 
 2.55.0.1082.g2b9226bbc0-goog
 
