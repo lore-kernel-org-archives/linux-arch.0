@@ -1,65 +1,65 @@
-Received: from mail-yx2-f43.google.com (mail-yx2-f43.google.com [74.125.224.171])
+Received: from mail-yx2-f12.google.com (mail-yx2-f12.google.com [74.125.224.140])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E07147D468
-	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 19:39:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CACDC47F794
+	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 19:39:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789933153; cv=none; b=AcFKHlONI6giXgPwC1ij5MPdyXPzV7O+WCuyRhlndkLmlR9RyMvNtrsMSUd8ntn9gBAKoKbDeKmMJkm6eaZq/ItuOXkLUihcWEPmFE1PPi4e220dcUHhnuFRQKS/T+qlp76u6dDTYJKJrvlkLCblhHdVOF9Mb549zgYUHGF1Cec=
+	t=1789933160; cv=none; b=ks3sSEHPPxTJG3ZNbTXCkQoR1GUgHwpNT7kieDHr89XUIKJsHwrlKTeHeZFr6whwKD2PjjU9ulZYcoiE+M4YaBpsne8qiAHl5J4SCZm07UJc6JflNRYKpX8K7TX0xFv3674da3ilEMKnKnAwp4dVSeTfI+dw+NGNwxCJ0OsyT5c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789933153; c=relaxed/simple;
-	bh=Y1uk7z81ukhofe/vSmwFM2Y0N/XlaFoNJ7JURZkhshM=;
+	s=arc-20240116; t=1789933160; c=relaxed/simple;
+	bh=ecMTvF3y9YX9wt5R/rOdU59+hWMsUmT0QbE/UEYrczY=;
 	h=From:To:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=tIwTALdqZJy0FOhegyMFNjfbw2JH502SB4hUbQoV+Mqy5wam5AC/xjL1oQyOMi/eYfFwhzlty695/Tl/uP0PUY19PbxqU8WRdpCbmAXPGqH1fY+Im9Tna9WoCC+O1L8BBx0Usx07CEbeU+yjfLmaeoyk78Hb5pX0K+yz+sTtC/Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com; spf=pass smtp.mailfrom=soleen.com; dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b=aVOeOsCo; arc=none smtp.client-ip=74.125.224.171
+	 MIME-Version; b=ibIFv8jhs1HZZPs33RrNCbTMzSRckTa7TJAg/fdP9tuOekAYNPZSP9A0YPnGgy91etMzvtrIcstUhTa/sPOKR4XQhJHb63+BURqE5E6CF5EP1omDMT3pjaCF6LmTWFKaVJ4bpVtNeJLTTc5Vm+ogSdX0dv8yjnZWcXOLPw0XRZY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com; spf=pass smtp.mailfrom=soleen.com; dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b=TW8caZte; arc=none smtp.client-ip=74.125.224.140
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=soleen.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b="aVOeOsCo"
-Received: by mail-yx2-f43.google.com with SMTP id 00721157ae682-895353e9051so18822017b3.0
-        for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 12:39:11 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b="TW8caZte"
+Received: by mail-yx2-f12.google.com with SMTP id 00721157ae682-85d440939f0so15991907b3.2
+        for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 12:39:17 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=soleen.com; s=google; t=1789933150; x=1790537950; darn=vger.kernel.org;
+        d=soleen.com; s=google; t=1789933157; x=1790537957; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:from:to:cc:subject:date:message-id
          :reply-to:content-type;
-        bh=8DswF+PpHLQLFXIsTsYB07zyWStQD5M14yzCJNkAmPg=;
-        b=aVOeOsCopIIqdi4yQt/etLZ4BcuH7f5M+OwW3kE3buEUPCunK71i6cYnubYSkU1G5N
-         1wj/vTZ2Uqaz2UiIGKrWmFhuTuwnkMzgzneibPSjSmYP1d4AUVyFjYQ4Odw8oAn4R/aU
-         ewv/DDlVxieiiQnelh8G67XpfMZ2VDHllPuchUr00o4RObsfInDy8fEtUy35ss3F+Eg4
-         hu78SkHhWQWf7UU/1N7fsX3vd8cYvArSEYcLl9yIEGEQQzYGosTWYKZ/0EWjtCMncMNn
-         QKEJIbP7YuY/ezChgBgghwUsWWpfHG3f/p8QYQhaEmPZyUjedjdphtnIxPwAS2C9iTxE
-         zwiQ==
+        bh=GOyD94xneAEU7+yzaxi3P4vCBB/CkWgVuLYMi+o49fI=;
+        b=TW8caZte+uentNlNiIUgcIPNJ5uG6Cc6Crp834ckEcz7g7LD9NK7GzNe9yo6YV/SU5
+         yDJgHg2Yo3IMX0Y0jnXZjcKL65l8Xaha6fgt79Kb9NBkJH1GaKYd6CFTSrAN5IHXqKYS
+         xedgK4h8Mvb3Wl1x4DlT9M7qnFUQ30DXSV4hLAAx+edJW+1ObpcgTYB4OUTRFq3q/ZeS
+         8SZ9Y8C4+yARAFWl/0liVXdl7TmyIeo1pRgHd5qi92IbizWSEJ5QFTVgNh5DCRkBcyYQ
+         dIvXOzhjRMANr0dxZReK3zhUvwV9GYenAZh+sqLeSRT24/nDM77BNXDQi4ugq0hm5daq
+         gBgw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789933150; x=1790537950;
+        d=1e100.net; s=20260707; t=1789933157; x=1790537957;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:x-gm-gg:x-gm-message-state:from:to
          :cc:subject:date:message-id:reply-to:content-type;
-        bh=8DswF+PpHLQLFXIsTsYB07zyWStQD5M14yzCJNkAmPg=;
-        b=tzz7OMvA0LEOh4RS+6nqBp+xM+Y+YdTX0TGLxYgF2hYzP6Hu9HJhVKZSESW8Zigb44
-         u3hOVs4XZtbSWSBkp6s/FVo+tBwok5xtDtJYyQyZCREmoq6bYAbr01U8lOe6u9jQ42Gy
-         XpxJKW2g111F5nWzEd2/vmd8Eb8AfOOtJmD8Qb9BSSDqPXj/Ru13zcV7vv+rdlX0QEfW
-         wWkdImxq77XdjuAFHrxmEuXt8gOtn172fFlDmjFTMoEnh4u2WNC4KZRWKcVXen+8423Q
-         IEkR0wA+Hp8hBHVcsYx9B8lR9I6T39AtXPEXLN733mk5F0ISdN9c+mAEyXi1+3Qcp1cC
-         2lFQ==
-X-Forwarded-Encrypted: i=1; AKwUvBwoiNLvzzJMmChY71j3vJvMW5gErPIkgZv6VFHjo84XgR0UJ136NBnP73Tu/bH2ARcAWM0QQBt6f2OD@vger.kernel.org
-X-Gm-Message-State: AFuF++mqfogk7vWppON1WlrNFamNedZsMA9Eft6IVcPP0iHTh0GhRtUV
-	feyOnX50lpic1CMwLzt/CHx9T+0XO1EuXueFgM5JoZore0GFuCFMTElQhi/XlzwC17A=
-X-Gm-Gg: AYBFou0JG0ir2dQCPMzjJmg6yFtYGtNVKx/DWl2DgXCvocL4j07xSnh5MGtU0AxCmG8
-	TCuN0opcH8ca3bX3btXo/u4NXqCekIZnmewQoWcVMFVq6WqnJNbGbmrLO9vqgVDxx0IBMqFHhbJ
-	mXN9qCAHiXMr/QU0mlaEBjsHn/3Sr2LErcErHhvHX8LYeMMpvigcyTc8rUJjWaSpgajd3Ce8Jzk
-	JLV8ZRRCDsJrMAfBoG7EOqtIN1Q0JKhggndHtdrpbQoEAbGZ2lFmHb63etPIjb6flI7ctYEBinr
-	pzOq4JEK49OrMK0jjfLNLCk5pO7CnqiWDAkvHY6m57EVwPcV/PTigJfm2N3yfrYieCibPuShu7U
-	pGlL7e6K0P6P9ye4G6xHziBNhU5g7L49rGXm1Fn/7zngNRZ55O6FcnvppyhTTb+7y+GoVh65V78
-	Bga30pBUlxWR8da/eTamFH+23ooYVhPrQ70tN22lfh6TIUsJNaNaaf5A81+oFeQOQYa9Qsqqi6t
-	Pd8+yXUpYG80H0gbOboKwWdVhpxdwm8iVhuMdA+7AsG4ajiNhfQGA3+FeiCj8RjfIPntTIVfKkT
-	XVEDkCVRFRCWwf3nqmE=
-X-Received: by 2002:a05:690c:39d:b0:89b:6b8c:8edf with SMTP id 00721157ae682-89b6b8c9360mr12390877b3.50.1789933150155;
-        Sun, 20 Sep 2026 12:39:10 -0700 (PDT)
+        bh=GOyD94xneAEU7+yzaxi3P4vCBB/CkWgVuLYMi+o49fI=;
+        b=kv05I+pVO6Cz3MInkeUaDsdBTWiZS+WkUhKuMRfXagxCAiMddAA0fJobx2krxeQGN0
+         EhpON9lqiKHxvIaVOMIRF7SqrHOShYedFHs9/aT6qtpnJT12dasfcyzUrS6ddaSpcs7P
+         fZOv0QaNsn+2YN+BDK2XQIdT14Fq5xdAJuxVccmXJAQoqSwu5SrZI8DRH8MPMOAlAqVx
+         yg8mq9mnDuHJFt24eP9FEJGegdeqMX8UJoX1y/brWP3pqw+r/iXy/MCNqhzWozx13Khn
+         t+0y0WEV0qyPO18x6JT5yK6ODIAlhge1nWmp6NQn+98qf6RZdFOQMmAHTDQh0GpsXLFW
+         JZvQ==
+X-Forwarded-Encrypted: i=1; AKwUvByarLDVgF9UM1tS+R5+/JU1dnumW7UcHEtMcYeq7CbCDYg3DPXREndWWu3ayhE2sYpVeIAoLqnlBkjP@vger.kernel.org
+X-Gm-Message-State: AFuF++kqOuzKPs/PDlcCkgeZL8Cn9tv7hRgtoycpsTitTD2v1wBujDlJ
+	Q8NU2wqhu+Ha7scW3TUuxWVcreoXrn4/qpzbjSb1VuNM5Ed2kYxaou71oCuFSs8reak=
+X-Gm-Gg: AYBFou1hd8mrUrj+WAibqyi3nd46sR8k+1huSHV4+jaAS2Yy/ZC++WF8LhHMMuO6qTU
+	czlzFyZhIH5+X7qcW7Ynq7Enk401hnI7BEIvW5oOKKQIuwGxnYubxsnEoYex3kd004xlttIL3Mn
+	+sOCU3mj8+s1vgMaTBiZBQVrqI1iSwUiBlhK0UTWrJvf025H5QSjHcfZJUg3YRtahM7Fs+paWzZ
+	2rqSEdkgZjLVw7+tSPJ3hNFJ+pcYWOrfKaKo7lTXz0YLKXQO/jZkxAnc3Tx4ORCmDCQH/LdzvnO
+	8LlVw00DXl6K6J1kxqr7eIdclgyajGKD59zgtv9Egxlz1Hob/qMlcONB40IWvx/SV7T5mVwkwvd
+	PoNY6M3HhzCPZxo6+JkknauDpkK1XEb+5jSmNA7YBQri/E7eRrsl1kJ8IAiDiyuVB/SmRPiIuoG
+	OOEfzDfm1Nwji4Oha8mqeRNshJkX1MkoRvcemXnj95MsVsxBqJp8zVj/Y4q2umPuqz7te2Km5AT
+	rIO1wxtU8h7wy9Mp1u59EOK7Cq2e1kI5R+H0OeHbwnWh+y43pk7tEocshljbS9A2/7/1iNLu+rF
+	XKH+34Q6M/mf7wCiB60=
+X-Received: by 2002:a05:690c:e3cf:b0:845:ddf4:a399 with SMTP id 00721157ae682-897308f89e5mr31680887b3.11.1789933156801;
+        Sun, 20 Sep 2026 12:39:16 -0700 (PDT)
 Received: from soleen.c.googlers.com.com (16.49.199.35.bc.googleusercontent.com. [35.199.49.16])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-89a41521471sm19169577b3.6.2026.09.20.12.39.07
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-89a4761747asm18686667b3.30.2026.09.20.12.39.13
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 20 Sep 2026 12:39:09 -0700 (PDT)
+        Sun, 20 Sep 2026 12:39:15 -0700 (PDT)
 From: Pasha Tatashin <pasha.tatashin@soleen.com>
 To: linux-kselftest@vger.kernel.org,
 	legion@kernel.org,
@@ -137,9 +137,9 @@ To: linux-kselftest@vger.kernel.org,
 	linux-arm-kernel@lists.infradead.org,
 	vladimir.murzin@arm.com,
 	kas@kernel.org
-Subject: [RFC PATCH 23/46] Documentation: liveupdate: Add physical CPU preservation documentation
-Date: Sun, 20 Sep 2026 15:36:27 -0400
-Message-ID: <20260920193650.3373435-24-pasha.tatashin@soleen.com>
+Subject: [RFC PATCH 24/46] MAINTAINERS: Add entry for KVM Caretaker
+Date: Sun, 20 Sep 2026 15:36:28 -0400
+Message-ID: <20260920193650.3373435-25-pasha.tatashin@soleen.com>
 X-Mailer: git-send-email 2.55.0.1082.g2b9226bbc0-goog
 In-Reply-To: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
 References: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
@@ -151,74 +151,36 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Add documentation for physical CPU preservation subsystem, workload
-attachment API, architecture backend hooks, and KHO serialization ABI.
+Add KERNEL VIRTUAL MACHINE CARETAKER section in MAINTAINERS covering
+Caretaker headers, architecture backends, and core execution files.
 
 Signed-off-by: Pasha Tatashin <pasha.tatashin@soleen.com>
 ---
- Documentation/liveupdate/cpu_preservation.rst | 34 +++++++++++++++++++
- Documentation/liveupdate/index.rst            | 11 ++++++
- 2 files changed, 45 insertions(+)
- create mode 100644 Documentation/liveupdate/cpu_preservation.rst
- create mode 100644 Documentation/liveupdate/index.rst
+ MAINTAINERS | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/Documentation/liveupdate/cpu_preservation.rst b/Documentation/liveupdate/cpu_preservation.rst
-new file mode 100644
-index 000000000000..a7a534188685
---- /dev/null
-+++ b/Documentation/liveupdate/cpu_preservation.rst
-@@ -0,0 +1,34 @@
-+.. SPDX-License-Identifier: GPL-2.0-or-later
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 23f332cfbd16..86806245041e 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -14296,6 +14296,17 @@ F:	tools/kvm/
+ F:	tools/testing/selftests/kvm/
+ F:	virt/kvm/*
+ 
++KERNEL VIRTUAL MACHINE CARETAKER
++M:	Pasha Tatashin <pasha.tatashin@soleen.com>
++L:	kvm@vger.kernel.org
++L:	kexec@lists.infradead.org
++S:	Maintained
++F:	arch/*/include/asm/kvm_caretaker*
++F:	arch/*/kvm/*caretaker*
++F:	arch/x86/kvm/mmu/kho.c
++F:	include/linux/kvm_caretaker.h
++F:	virt/kvm/caretaker*.c
 +
-+=========================
-+Physical CPU Preservation
-+=========================
-+
-+.. kernel-doc:: kernel/liveupdate/cpu_preserve.c
-+   :doc: Preserved CPU Subsystem
-+
-+CPU Preservation Workload API
-+=============================
-+
-+.. kernel-doc:: kernel/liveupdate/cpu_preserve.c
-+   :export:
-+
-+Architecture Backend Interface
-+==============================
-+
-+.. kernel-doc:: include/linux/cpu_preserve.h
-+
-+CPU Preservation ABI
-+====================
-+
-+.. kernel-doc:: include/linux/kho/abi/cpu.h
-+   :doc: CPU Preservation Live Update ABI
-+
-+.. kernel-doc:: include/linux/kho/abi/cpu.h
-+
-+See Also
-+========
-+
-+- :doc:`/core-api/liveupdate`
-+- :doc:`/liveupdate/vmm`
-+- :doc:`/mm/memfd_preservation`
-diff --git a/Documentation/liveupdate/index.rst b/Documentation/liveupdate/index.rst
-new file mode 100644
-index 000000000000..415ac748c9f7
---- /dev/null
-+++ b/Documentation/liveupdate/index.rst
-@@ -0,0 +1,11 @@
-+.. SPDX-License-Identifier: GPL-2.0
-+
-+===========
-+Live Update
-+===========
-+
-+.. toctree::
-+   :maxdepth: 1
-+
-+   vmm
-+   cpu_preservation
+ KERNEL VIRTUAL MACHINE FOR ARM64 (KVM/arm64)
+ M:	Marc Zyngier <maz@kernel.org>
+ M:	Oliver Upton <oupton@kernel.org>
 -- 
 2.55.0.1082.g2b9226bbc0-goog
 
