@@ -1,140 +1,114 @@
-Received: from mta1.migadu.com (out-63.mta1.migadu.com [95.215.58.63])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7000535200A
-	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 01:44:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.63
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9485C2E266C;
+	Sun, 20 Sep 2026 03:46:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789868657; cv=none; b=H1ZFDZNXCzdQeEJaSCR7RDR3xKNRZX3Le2R0kiK5mTfpdUD2BiFBC64CmnEffpzl6CAjBwiDCdgpsJRl2Tbx3YYwRWIG2UeujgIPm7HpWnDZn0cI0oZEm5sfUyJ9bdRU25nBiCerejgbFG2CZx47wwNwZD8R+Lzlu/6wXEsOhNw=
+	t=1789876003; cv=none; b=JozroZQhK+jNCY7AbZ/Xw3QYkcVChe79P54u+1xtvg5IvytOjtTzmGGfc13l+6dYPBavQaDCm5M63/7ziAeZKKtWsr2r2Btd06eFgOiG+w2E3lYZ3D4nSP/ZksmgOAutot94KtGBeVwpD1pPOlefQNFzbIez572/6+l7gb0l1h4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789868657; c=relaxed/simple;
-	bh=uhFrnOJQrVcts7+mbJYO8uPHkN/h18B5/Sljmky4Xtw=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=nk+KpiyTIDewALYsupmj5DlqBLF2HJFIUby29GPru1n/tGS64jputO7IiyI9NRZndM1BZDxnult+wDHKIKQaAF22UGLJibsAXJUFXXjdZKkTtq+AWbAuQgB3i4rMR8QpFQkjBW+w6LrYk31alSaeQTdqwNJ2oVv41NvhtkVpcX8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=thC3MB5F; arc=none smtp.client-ip=95.215.58.63
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	s=arc-20240116; t=1789876003; c=relaxed/simple;
+	bh=ZbWAqJRTY3VosimGz01P04wQqhvs31GplZgQSEgfbFw=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=pFQCSaknNLTw92BKf+9EYPPu8NPFsrDG4Rg75OjW8VyWPgf6N3Gv1jpBEo5PPHRl1UCE9128nhralT6yjjYTLHmLLOPoa2DZSlSwq+3+4fn2cqXtVqXajaCBuzDBsT/GHc7tioHzcLR0szWuScLtkx2IMTMYvvDVLO1pYVYHjj4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Pq1c/x2e; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="thC3MB5F"
-X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=uhFrnOJQrVcts7+mbJYO8uPHkN/h18B5/Sljmky4Xtw=;
- c=simple/simple; d=linux.dev;
- h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1789868653; v=1; x=1790473453;
- b=thC3MB5FexUQeXCx24/aOCBMWfBAk6ZXzPtDtB3ZhFRnbSFE17wMC2A8Lp20gmKwpmmLj750
- AL8hQtOL1H67KF5vFmA52/qzzFiWtT4/u/FFInoM8TH78fbGwbOqcj4Sog1lh4G7rIRHN1ZDqf8
- LRusZ7hG4dcimMwakUyFhXDk=
-X-Envelope-To: linux-arch@vger.kernel.org
-Received: by smtp.migadu.com with ESMTPS id 6661032fce2597bd;
-	Sun, 20 Sep 2026 01:44:13 +0000
-X-Mizu-Trace-ID: 6661032fce2597bd
-X-Migadu-Flow: FLOW_OUT
-From: Qingfang Deng <qingfang.deng@linux.dev>
-To: Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>,
-	Mark Rutland <mark.rutland@arm.com>,
-	Anshuman Khandual <anshuman.khandual@arm.com>,
-	Vikram Sethi <vsethi@nvidia.com>,
-	"Mike Rapoport (Microsoft)" <rppt@kernel.org>,
-	Shanker Donthineni <sdonthineni@nvidia.com>,
-	Qingfang Deng <qingfang.deng@linux.dev>,
-	linux-arm-kernel@lists.infradead.org,
-	linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Subject: [PATCH v2 3/3] arm64: use generic MMIO accessors
-Date: Sun, 20 Sep 2026 09:43:51 +0800
-Message-ID: <20260920014357.7069-3-qingfang.deng@linux.dev>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20260920014357.7069-1-qingfang.deng@linux.dev>
-References: <20260920014357.7069-1-qingfang.deng@linux.dev>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Pq1c/x2e"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3F2021F000FF;
+	Sun, 20 Sep 2026 03:46:42 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1789876002;
+	bh=RAgjdNuY0GHwXBswA5NShTSJab25cAeZ2wGxG0I/vUo=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=Pq1c/x2eNDaaA3FhHkOhGuCnsEwXECeh01hVEHOpDv8HFPU3D8PLxh2wVU0nylDaJ
+	 7EaPp5slBBZUiOqsjhzEs7IgscKJPgdM3bXnpCs8IVuHJRaG5hD0rrtfwkhInaUah2
+	 UEwXWAbH8m3JDS27foafZhT7dYncShEItD34AqEMdXClbdFXPJauYFWvvxe4hWYd96
+	 N8ZnwsnLY9Xqn+sIDhK7K9lW5wcmPeM+9vJTKsXnZtJMmVVGCpp7vNL+wlt5H2W4zk
+	 L6Y0Pud3rjcJlvf9NtFTivJRz4pQVpslkC4pi8p+/DINuR9TeguqodaZGqQrIxp572
+	 Ic8aE8TCrC2FA==
+Date: Sat, 19 Sep 2026 20:46:42 -0700
+From: Kees Cook <kees@kernel.org>
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Nicolas Schier <nsc@kernel.org>,
+	Nick Desaulniers <ndesaulniers@google.com>,
+	Bill Wendling <morbo@google.com>,
+	Justin Stitt <justinstitt@google.com>,
+	Masahiro Yamada <masahiroy@kernel.org>,
+	Alexey Gladkov <legion@kernel.org>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
+	Ard Biesheuvel <ardb@kernel.org>,
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
+	Josh Poimboeuf <jpoimboe@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>,
+	Gary Guo <gary@garyguo.net>,
+	=?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
+	Benno Lossin <lossin@kernel.org>,
+	Andreas Hindborg <a.hindborg@kernel.org>,
+	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
+	Danilo Krummrich <dakr@kernel.org>,
+	Daniel Almeida <daniel.almeida@collabora.com>,
+	Tamir Duberstein <tamird@kernel.org>,
+	Alexandre Courbot <acourbot@nvidia.com>,
+	Onur =?iso-8859-1?Q?=D6zkan?= <work@onurozkan.dev>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Randy Dunlap <rdunlap@infradead.org>,
+	"Gustavo A. R. Silva" <gustavoars@kernel.org>,
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+	llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
+	linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
+	linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>,
+	linux-hardening@vger.kernel.org
+Subject: Re: [PATCH v3 09/20] kbuild: implement and use depcheck to check
+ dependency timestamps
+Message-ID: <202609192045.24A5A4E876@keescook>
+References: <20260917-build-speedup-v3-0-9ecf4163ff36@kernel.org>
+ <20260917-build-speedup-v3-9-9ecf4163ff36@kernel.org>
+ <202609171117.35BFDCC13@keescook>
+ <202609171229.31BB336E1@keescook>
+ <aq6_JcIy6gOsN4oa@gremlin>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aq6_JcIy6gOsN4oa@gremlin>
 
-Use the generic raw write accessors in place of the inline assembly
-stores. Include asm-generic/mmio.h after the arm64 ordering hooks so
-these accessors are also available to the write-combining helpers
-before asm-generic/io.h is included.
+On Sat, Sep 19, 2026 at 06:02:46PM +0100, Lorenzo Stoakes (ARM) wrote:
+> On Thu, Sep 17, 2026 at 01:59:26PM -0700, Kees Cook wrote:
+> > So, yeah, it makes me nervous, and it may make incremental builds less
+> > idempotent. But I can't really find extant problems and the demo is
+> > slightly contrived, but not exactly an impossible situation.
+> 
+> Ack thanks for this!
+> 
+> There is definitely an issue here, your example is fine in the stock kernel
+> but one run late in v3.
+> 
+> Solution is to have depcheck treat any dependency that is itself a target
+> of the same run as never being 'fresh' (it already reads every .cmd file in
+> the directory so has all the dependency information it needs), so that's
+> fixed in v4.
+> 
+> Confirmed that it fixes the demo'd bug here, that touching a header
+> rebuilds exactly the same objects as it did before and that noop build perf
+> was not harmed by the change.
 
-Retain the raw read overrides when either the Cortex-A57 erratum 832075
-or NVIDIA Olympus erratum 1027 workaround is configured. This preserves
-the alternative-patched load-acquire instructions and pre-load barriers.
-Use generic raw reads when neither workaround is enabled.
+Oh very nice! Thank you for finding a solution there. :)
 
-Assisted-by: Codex:gpt-6-astra
-Signed-off-by: Qingfang Deng <qingfang.deng@linux.dev>
----
-v2: new patch
----
- arch/arm64/include/asm/io.h | 37 ++++++-------------------------------
- 1 file changed, 6 insertions(+), 31 deletions(-)
-
-diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
-index 49a7002661a9..2fdac25bc31b 100644
---- a/arch/arm64/include/asm/io.h
-+++ b/arch/arm64/include/asm/io.h
-@@ -19,37 +19,9 @@
- #include <asm/cpufeature.h>
- #include <asm/rsi.h>
- 
--/*
-- * Generic IO read/write.  These perform native-endian accesses.
-- */
--#define __raw_writeb __raw_writeb
--static __always_inline void __raw_writeb(u8 val, volatile void __iomem *addr)
--{
--	volatile u8 __iomem *ptr = addr;
--	asm volatile("strb %w0, %1" : : "rZ" (val), "Qo" (*ptr));
--}
--
--#define __raw_writew __raw_writew
--static __always_inline void __raw_writew(u16 val, volatile void __iomem *addr)
--{
--	volatile u16 __iomem *ptr = addr;
--	asm volatile("strh %w0, %1" : : "rZ" (val), "Qo" (*ptr));
--}
--
--#define __raw_writel __raw_writel
--static __always_inline void __raw_writel(u32 val, volatile void __iomem *addr)
--{
--	volatile u32 __iomem *ptr = addr;
--	asm volatile("str %w0, %1" : : "rZ" (val), "Qo" (*ptr));
--}
--
--#define __raw_writeq __raw_writeq
--static __always_inline void __raw_writeq(u64 val, volatile void __iomem *addr)
--{
--	volatile u64 __iomem *ptr = addr;
--	asm volatile("str %x0, %1" : : "rZ" (val), "Qo" (*ptr));
--}
--
-+#if defined(CONFIG_ARM64_ERRATUM_832075) || \
-+	defined(CONFIG_NVIDIA_OLYMPUS_1027_ERRATUM)
-+/* Keep the raw read overrides for the device-load erratum alternatives. */
- #define __raw_readb __raw_readb
- static __always_inline u8 __raw_readb(const volatile void __iomem *addr)
- {
-@@ -102,6 +74,7 @@ static __always_inline u64 __raw_readq(const volatile void __iomem *addr)
- 		     : "=r" (val) : "r" (addr));
- 	return val;
- }
-+#endif
- 
- /* IO barriers */
- #define __io_ar(v)							\
-@@ -125,6 +98,8 @@ static __always_inline u64 __raw_readq(const volatile void __iomem *addr)
- #define __io_br(v)
- #define __io_aw(v)
- 
-+#include <asm-generic/mmio.h>
-+
- /* arm64-specific, don't use in portable drivers */
- #define __iormb(v)		__io_ar(v)
- #define __iowmb()		__io_bw()
 -- 
-2.43.0
-
+Kees Cook
