@@ -1,65 +1,65 @@
-Received: from mail-yx2-f12.google.com (mail-yx2-f12.google.com [74.125.224.140])
+Received: from mail-yx2-f13.google.com (mail-yx2-f13.google.com [74.125.224.141])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 02529481244
-	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 19:39:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.140
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1A0494772AC
+	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 19:39:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789933166; cv=none; b=MlYiLlQ4c9qbZACQZKyecFf6GzkSjYa+N93eMa4f08wySTrMa85q9jp78AbOPTbbvFby7bYYE+N7eznnVlNOeLwxYHmuZs7euzo4TCUcr6FOjdvhY1s4GBPPOwTDxE5uzCvHd1hQ9Hal0qy1PgFuOz/xPgDuov+R54Z+MBSVHdk=
+	t=1789933172; cv=none; b=hQ2TwUtYLzsTsJlPSrSK5HP2U5qzb7BeafizaakiTqZ+7PD9pzp65/5HLDczMTkayKW/lBtAIDvygnw/djt1yA3rTmBTqyuPj/CsllZIlmx3jLyGeFJDV5Lm1ef3EzMW3x4dWOlO5C/TV57lhgkCo3qc1wxCvpeNXkjiGMjaBoM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789933166; c=relaxed/simple;
-	bh=1dGfuKt7fofYNW4Qi1s9T49DlB1/tUBSSVg6v1aZEZs=;
+	s=arc-20240116; t=1789933172; c=relaxed/simple;
+	bh=qRNHXWlci/rQvdt90FXyJyigyU178/f4pMIV0+EUJDM=;
 	h=From:To:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=siOIyYxbHkRi0HSZhOohPojkM0KzLvE5E/tTtVPshFEm3kNzMkbv7CIrvI4a8UAEJsvIUsWD/8UkEQrklHpaTY+MEKNR+3/DrcuiKuCfX/0A0KS5PhtHiYCSkJPG32GTw/XYA4c9kCMZX8xGQKiiHRVrAx8MQg329U0Z/A4fPFo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com; spf=pass smtp.mailfrom=soleen.com; dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b=LCMWKAjZ; arc=none smtp.client-ip=74.125.224.140
+	 MIME-Version; b=bQ+eLSeCiSoQKJHmr9OwnvwW6IHAihSu0PE9Rg+JxqXsVQWP8rLPXz/Jt4HpZlT8YkwQqpHlwQsY8ZzcFEplpgxusrHqj6om58o1/dIseoOh6PggA/boVAu2SBSPmdsvhTBu38MPfiiiximnIHPzp16YgVCOXal6gKjtg44FRX4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com; spf=pass smtp.mailfrom=soleen.com; dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b=RjvtxU/e; arc=none smtp.client-ip=74.125.224.141
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=soleen.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b="LCMWKAjZ"
-Received: by mail-yx2-f12.google.com with SMTP id 00721157ae682-85d43ac8d1dso14790197b3.3
-        for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 12:39:23 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b="RjvtxU/e"
+Received: by mail-yx2-f13.google.com with SMTP id 00721157ae682-85d440939e3so14292187b3.0
+        for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 12:39:30 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=soleen.com; s=google; t=1789933163; x=1790537963; darn=vger.kernel.org;
+        d=soleen.com; s=google; t=1789933169; x=1790537969; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:from:to:cc:subject:date:message-id
          :reply-to:content-type;
-        bh=2ibDJILDIEWvBMPoTlKij96smUhkgzpAH7q+zsoMbGI=;
-        b=LCMWKAjZBLLKgOhcKC/ePoJkPm/6BRH6ipxrSOvwZNyVQnBa9yuODOtf4/JpPKhNCV
-         CMunxl5drySPxxxT8fdLVflVUQLr4hbLTVA2o5HF1NRuEHxzKEDIjcgf/S5frRF9ev2t
-         y9CmpPZT3tNb2E/wbN7t8T/s9R4uLQWmyPLVhWfZuVqhFy8lN0JJtWE0Y02AnJ72hoZo
-         HYYkU1mCSqQMMT+6cB2DGoJvxVHD8h5/iAZOiKzLuYR1VfmBtRgQ4VSLpc8LYtFGVegX
-         G6nL4dZHFvvXLEkbNbnvFlpHToJZjAVi2WuSgZeHA6iARivmj+hIEK83zjUkDBK6k7Hp
-         a4cg==
+        bh=k5EaTmFX7UEEJKbougudGcIFK6qUIRFfVy3dwTjeVQg=;
+        b=RjvtxU/eNNlEerEdLBpqJVY5J9a5Nr0xw5KKzQrLx0KhnJuspD9wJu+17DYEtVJ1Ul
+         e/7B9Ac4iZl1mza76u1M980ppPVbgK9+f8RVZt1bMtc2vWqzcserKO+7/jh04O9gpioR
+         Rtxl561M5HKfgece8JQ2dk8K0S50YHZDCvz8VeWHMRMnSR44IqbEQvml2TDXIi769BVb
+         P6NgY/fsWVHTXDadZ07caRN8Is2TSpx7QUHJSsU6lguqf4sxuMbN6qCfMYCkC/5JrVdN
+         HSY9AYhgbnFAjfKCe0hxo74FfhIMIv+dqQngjisZDkTxNLndbh+fMVq8ZiGZuHhB5Egl
+         Xj7w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789933163; x=1790537963;
+        d=1e100.net; s=20260707; t=1789933169; x=1790537969;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:x-gm-gg:x-gm-message-state:from:to
          :cc:subject:date:message-id:reply-to:content-type;
-        bh=2ibDJILDIEWvBMPoTlKij96smUhkgzpAH7q+zsoMbGI=;
-        b=eBTdznGpMtycGymrwz2dp8YTPWHGZD83XepsWcYBEx2QZLNqLzXyal27Gnr0Hi1PHE
-         LfxL7MptImsSXEDxiLG61FNKzy+HNXR3soqhiPwfe0m0Gr6JZFT2TvBRdUf/26EnXUK5
-         zZf6tG4+5FmcdTydE9S31Homn8LHEPb+m8uEGf6I6U0tfzVrijKJo3vWG+3+bOlHKcZP
-         d1RqIOWYCtoC2iW/UmkW6xmQmgbf6/CbKYJp4n8d2xWiNGugPREN1cKs6tvjbHZbcdyq
-         apjdn/XNvUT2WEeQHi2QcqsbRU/5TbiBuPxmT7GPCrNfi7cXo+nuvYcXpeGSvGucmpbz
-         ukeg==
-X-Forwarded-Encrypted: i=1; AKwUvBwkd8d+kv9ASP66zdrKge/5vYfe0P1e6hBCwasb44hn3bXc8hFlme2j8XUQxTsd4EvXbD6a2N88NQrD@vger.kernel.org
-X-Gm-Message-State: AFuF++mqigqS4kYSwcsDzYLY4Bdyj3hjXIviWqq8yUOrk6QXaOyd9Jbg
-	C3VYyLHKf+abTbENGVeApRi/harX+NS7xgXqDFf9VD8S4xjToHLtQUxhPmGYfHAxlm8=
-X-Gm-Gg: AYBFou31ZZZaF+Y8sF4xmkx43eAdRxFmpXlPV7zDwOuBTiRvz9cJdF8KW91oYHdB8zX
-	4WPWHH6ILSVuXhCRsD8JFTOt8BrqO0bKusSPjDfJdewNHzfYySFiw4aRWVU85qMi9twRUKnU387
-	XqhAUYYTikiPthpLxtuOiwO1SeKiMKlkgSZ9kbfapbPMYIlehqqkyUuUBNrP20q1U5QnpctX+Rt
-	vMu91cbC/DcCLdzeOsKHBHtr5XM9xIbTI1oT3Ic5ggOzRrKulKF2zICZCtfYyy+2HR/JP0Y16jL
-	XS4FLg1FLhAFs2Jej8po14oHwpWJI78Fmt6kEAUbI8AlbOpn818UCezSRmHgFuDFpfSjDrjq+RG
-	0Zm05kiIxu191iV0InvzOx5dTCAB66nrNZCxUZkbYcE0n2ZP6Yrnimv+sS+QIQEU6ReyCHcH26F
-	8rImvb883xp9Ezxv//NPJdwI3+4Y2Owa59+dVSe87Z+vfUrJocblfRXzCwJOySoY/85/8aDfSAs
-	xOk/RsDTUM9ybYQT0B2q+msvak3mtB4c1XsmYIq2og3U66cKr2MENA8NN4oqsRnugzWxlDoLEXW
-	u9Q8Kts2Q5pOPBEVT9XU/EVyy1vSzQ==
-X-Received: by 2002:a05:690c:e1dc:10b0:873:5c0f:27d with SMTP id 00721157ae682-89735f6eb39mr22894817b3.39.1789933162976;
-        Sun, 20 Sep 2026 12:39:22 -0700 (PDT)
+        bh=k5EaTmFX7UEEJKbougudGcIFK6qUIRFfVy3dwTjeVQg=;
+        b=bp1lJt/7Si4StM2Ix8Xz9m6sEPKm1ma/OzbS35kxMKSZPKltIUcn8X1ppUxv9Dgs8u
+         +Zhv37P4imDqwiHpwykLbGPs8k98R+D9UX4kcG8BkH99w0Vvv7UmTeK9WEuA08urCYbp
+         cAln5Okcg1ZHCWEL/un0ulSV1GDafgxpjI+B/5G29maZlB0GEaPhtwhmeYUzquzlD+G9
+         xQBaKxSH7MLHMHL56YlwiIb4tVix0RSoReEx5NJEaHZxPCq7V+qyk0MX3hXhXtHs8cwQ
+         V1rH6tiig6GVOIZtLLzKz9ppOdghRcFv5J/N7v2eCZcsiBMVc9LuXCbAvQ9PMlhPXjUm
+         dMGw==
+X-Forwarded-Encrypted: i=1; AKwUvByGKQMffZ0cGL9veOfN1nY0O06HnxYbPJUo5DtcAdzYll5BsoEIGjF18no8XXt3RnJciqTZ1lDbh0/1@vger.kernel.org
+X-Gm-Message-State: AFuF++nMYOListDwYx62NC21ZwxAQVOweSRTLmxUgKI8luOgf0x7ST++
+	AxbDc+9i9qZMAY0uKLF4jlQSxYreTQrge8Ga0GrXCQ0edMGKQED5wL6Ym/Owh4cu8MY=
+X-Gm-Gg: AYBFou1xWPjHEaEotQSops8uNxB6NgNQYckz6rsAiR5yP4Wue107GC4xn6W3rsR6NfT
+	puIOynOhL/P9AOL8SVkkXNB4+bv/aiqW5UdXiFVNvvEMu8Udvs7uJ4CbNBL2N+QBqi6REGqXVT2
+	gXD/q5HvQeolpDVNfobZKyTwGjlqZ27NW1pzCJvX+hFXSTJOb+gEucsZi8uhRwhb/8lkBMPPKKg
+	HmVnC7VNJ+PvNOvcqRPeK8z9x3RwXMRA/SEavsO4LTrBBPR3ZwpsB4kYYgTz2AAeTnVzRvG5mO5
+	1ynVg4yuy71sMIN2L01UVSLc6LvOUS3mX/3l9iqdr6fYlv69cr0rk8RJhHMGfTxDpsroc66FStS
+	Qcv+EM6EqpZk2ccEY8fqqh9iKS9XU/T1W9GDRCgIaXk+xfLwqj2QCL8xuxCM8XPQIxFs+6sYg1j
+	7C3a2SyEyJ9CYGCTwtLyAAC2bnDSnMde2Qm5E4WN6OfPu4K6CBz5M3GqeupXv5n7GINmgmU/3GR
+	Zn1VcHHYb4cnPLq0Ply4Yfri7Wnvm17npKTPiXHKzdV0vvS8pdZXM3PVEA2hB5qPAGhzooOLMIW
+	u6UKKsSmxFfxsbK2ES4=
+X-Received: by 2002:a05:690c:6:b0:88c:b8ef:4fb9 with SMTP id 00721157ae682-89736848436mr28151587b3.66.1789933169160;
+        Sun, 20 Sep 2026 12:39:29 -0700 (PDT)
 Received: from soleen.c.googlers.com.com (16.49.199.35.bc.googleusercontent.com. [35.199.49.16])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-89a47af7bfbsm18840877b3.33.2026.09.20.12.39.20
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-89a46e4dd4fsm18636037b3.25.2026.09.20.12.39.26
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 20 Sep 2026 12:39:21 -0700 (PDT)
+        Sun, 20 Sep 2026 12:39:28 -0700 (PDT)
 From: Pasha Tatashin <pasha.tatashin@soleen.com>
 To: linux-kselftest@vger.kernel.org,
 	legion@kernel.org,
@@ -137,9 +137,9 @@ To: linux-kselftest@vger.kernel.org,
 	linux-arm-kernel@lists.infradead.org,
 	vladimir.murzin@arm.com,
 	kas@kernel.org
-Subject: [RFC PATCH 25/46] arm64: liveupdate: Add support for physical CPU preservation
-Date: Sun, 20 Sep 2026 15:36:29 -0400
-Message-ID: <20260920193650.3373435-26-pasha.tatashin@soleen.com>
+Subject: [RFC PATCH 26/46] oncore: Add on-core KHO ABI and public framework headers
+Date: Sun, 20 Sep 2026 15:36:30 -0400
+Message-ID: <20260920193650.3373435-27-pasha.tatashin@soleen.com>
 X-Mailer: git-send-email 2.55.0.1082.g2b9226bbc0-goog
 In-Reply-To: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
 References: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
@@ -151,576 +151,248 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Enable physical CPU preservation on arm64 by selecting
-ARCH_SUPPORTS_LIVEUPDATE_CPU.
-
-Integrate preserved CPU handling into the arm64 SMP and CPU hotplug
-paths with isolated transition page tables:
-- Build isolated transition page tables mapping exclusively preserved
-  text/rodata (ROX), data (RW), stacks (RW), and preserved buffers.
-- Completely eliminate bulk cloning of the kernel linear direct map.
-- Limit KHO page table memory footprint to < 10 pages total.
-- Include CPU_PRESERVED_TEXT in arm64 vmlinux.lds.S.
-- Compile cpu_preserve.o with -mbranch-protection=none and
-  -fno-stack-protector to prevent PAC key mismatch aborts.
-- In __cpu_disable(), avoid tearing down IPIs for preserved CPUs.
-- In op_cpu_kill(), skip waiting for the CPU to die if preserved.
-- In smp_send_stop(), exclude preserved CPUs from stop IPIs.
-- Add cache maintenance to PoC for secondary boot data and page tables.
+Define the On-Core KHO serialization ABI (include/linux/kho/abi/cpu.h)
+and public session and job management APIs (include/linux/oncore.h).
 
 Signed-off-by: Pasha Tatashin <pasha.tatashin@soleen.com>
 ---
- arch/arm64/Kconfig                    |   1 +
- arch/arm64/include/asm/cpu_preserve.h |  44 ++++
- arch/arm64/kernel/Makefile            |   7 +
- arch/arm64/kernel/cpu_preserve.c      | 365 ++++++++++++++++++++++++++
- arch/arm64/kernel/preserve_cpu.S      |  44 ++++
- arch/arm64/kernel/smp.c               |   8 +-
- arch/arm64/kernel/vmlinux.lds.S       |   1 +
- 7 files changed, 469 insertions(+), 1 deletion(-)
- create mode 100644 arch/arm64/include/asm/cpu_preserve.h
- create mode 100644 arch/arm64/kernel/cpu_preserve.c
- create mode 100644 arch/arm64/kernel/preserve_cpu.S
+ arch/arm64/include/asm/oncore.h |  24 ++++++
+ arch/x86/include/asm/oncore.h   |  25 +++++++
+ include/linux/kho/abi/cpu.h     |   1 +
+ include/linux/oncore.h          | 129 ++++++++++++++++++++++++++++++++
+ kernel/liveupdate/Kconfig       |  10 +++
+ 5 files changed, 189 insertions(+)
+ create mode 100644 arch/arm64/include/asm/oncore.h
+ create mode 100644 arch/x86/include/asm/oncore.h
+ create mode 100644 include/linux/oncore.h
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index b5a51b0ef944..957ec38a9680 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -38,6 +38,7 @@ config ARM64
- 	select ARCH_HAS_MEMBARRIER_SYNC_CORE
- 	select ARCH_HAS_MEM_ENCRYPT
- 	select ARCH_SUPPORTS_MSEAL_SYSTEM_MAPPINGS
-+	select ARCH_SUPPORTS_LIVEUPDATE_CPU if LIVEUPDATE
- 	select ARCH_HAS_NMI_SAFE_THIS_CPU_OPS
- 	select ARCH_HAS_NON_OVERLAPPING_ADDRESS_SPACE
- 	select ARCH_HAS_NONLEAF_PMD_YOUNG if ARM64_HAFT
-diff --git a/arch/arm64/include/asm/cpu_preserve.h b/arch/arm64/include/asm/cpu_preserve.h
+diff --git a/arch/arm64/include/asm/oncore.h b/arch/arm64/include/asm/oncore.h
 new file mode 100644
-index 000000000000..7c7c94f21ccc
+index 000000000000..fbd0f218d867
 --- /dev/null
-+++ b/arch/arm64/include/asm/cpu_preserve.h
-@@ -0,0 +1,44 @@
++++ b/arch/arm64/include/asm/oncore.h
+@@ -0,0 +1,24 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Copyright (c) 2026, Google LLC.
 + * Pasha Tatashin <pasha.tatashin@soleen.com>
++ *
++ * ARM64 architecture hooks for On-Core execution.
 + */
-+#ifndef __ASM_ARM64_CPU_PRESERVE_H
-+#define __ASM_ARM64_CPU_PRESERVE_H
++#ifndef _ASM_ARM64_ONCORE_H
++#define _ASM_ARM64_ONCORE_H
 +
-+#include <asm/memory.h>
-+#include <asm/tlbflush.h>
-+#include <asm/virt.h>
++#include <linux/types.h>
++#include <asm/arch_timer.h>
 +
-+#define ARCH_CPU_PRESERVED_STACK_ORDER	(THREAD_SIZE_ORDER + 1)
-+
-+bool arch_cpu_preserved_is_active(void);
-+asmlinkage void __arch_cpu_preserved_dcache_clean(unsigned long start, unsigned long end);
-+asmlinkage void arch_cpu_preserved_dcache_clean(unsigned long start, unsigned long end);
-+asmlinkage void arch_cpu_preserved_dcache_inval(unsigned long start, unsigned long end);
-+
-+static inline void arm64_flush_host_tlb_local(void)
++static inline u64 __cpu_preserved_text arch_oncore_read_counter(void)
 +{
-+	dsb(nshst);
-+	if (is_kernel_in_hyp_mode()) {
-+		asm volatile("tlbi alle2\n"
-+			     "dsb nsh\n"
-+			     "isb\n" ::: "memory");
-+	} else {
-+		local_flush_tlb_all();
-+	}
++	return __arch_counter_get_cntpct();
 +}
 +
-+static inline void arm64_flush_host_tlb_all(void)
++static inline u64 arch_oncore_counter_freq_hz(void)
 +{
-+	dsb(ishst);
-+	if (is_kernel_in_hyp_mode()) {
-+		asm volatile("tlbi alle2is\n"
-+			     "dsb ish\n"
-+			     "isb\n" ::: "memory");
-+	} else {
-+		flush_tlb_all();
-+	}
++	return arch_timer_get_cntfrq();
 +}
 +
-+#endif /* __ASM_ARM64_CPU_PRESERVE_H */
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index d2690c3ec528..151513a5350b 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -70,6 +70,13 @@ obj-$(CONFIG_ARM_SDE_INTERFACE)		+= sdei.o
- obj-$(CONFIG_ARM64_PTR_AUTH)		+= pointer_auth.o
- obj-$(CONFIG_ARM64_MPAM)		+= mpam.o
- obj-$(CONFIG_ARM64_MTE)			+= mte.o
-+obj-$(CONFIG_LIVEUPDATE_CPU)		+= cpu_preserve.o preserve_cpu.o
-+KASAN_SANITIZE_cpu_preserve.o := n
-+KCSAN_SANITIZE_cpu_preserve.o := n
-+UBSAN_SANITIZE_cpu_preserve.o := n
-+KCOV_INSTRUMENT_cpu_preserve.o := n
-+CFLAGS_REMOVE_cpu_preserve.o = $(CC_FLAGS_FTRACE)
-+CFLAGS_cpu_preserve.o += $(call cc-option,-mbranch-protection=none) -fno-stack-protector $(call cc-option,-ftrivial-auto-var-init=uninitialized) $(call cc-option,-fno-jump-tables)
- obj-y					+= vdso-wrap.o
- obj-$(CONFIG_COMPAT_VDSO)		+= vdso32-wrap.o
- 
-diff --git a/arch/arm64/kernel/cpu_preserve.c b/arch/arm64/kernel/cpu_preserve.c
++#endif /* _ASM_ARM64_ONCORE_H */
+diff --git a/arch/x86/include/asm/oncore.h b/arch/x86/include/asm/oncore.h
 new file mode 100644
-index 000000000000..15de1ca09062
+index 000000000000..f64697a95d6a
 --- /dev/null
-+++ b/arch/arm64/kernel/cpu_preserve.c
-@@ -0,0 +1,365 @@
-+// SPDX-License-Identifier: GPL-2.0
++++ b/arch/x86/include/asm/oncore.h
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Copyright (c) 2026, Google LLC.
 + * Pasha Tatashin <pasha.tatashin@soleen.com>
 + *
-+ * Architecture specific CPU preservation support for ARM64.
++ * x86 architecture hooks for On-Core execution.
 + */
-+#include <linux/arm-smccc.h>
++#ifndef _ASM_X86_ONCORE_H
++#define _ASM_X86_ONCORE_H
++
++#include <linux/types.h>
++#include <asm/msr.h>
++#include <asm/tsc.h>
++
++static inline u64 __cpu_preserved_text arch_oncore_read_counter(void)
++{
++	return rdtsc();
++}
++
++static inline u64 arch_oncore_counter_freq_hz(void)
++{
++	return (u64)tsc_khz * 1000ULL;
++}
++
++#endif /* _ASM_X86_ONCORE_H */
+diff --git a/include/linux/kho/abi/cpu.h b/include/linux/kho/abi/cpu.h
+index f75bfb4c6161..4d63e623f162 100644
+--- a/include/linux/kho/abi/cpu.h
++++ b/include/linux/kho/abi/cpu.h
+@@ -145,6 +145,7 @@ struct cpu_preserved_file_ser {
+ 	u32 cpu;
+ 	u32 reserved;
+ 	u64 stack_pa;
++	DECLARE_KHOSER_PTR(oncore, struct oncore_session_ser *);
+ } __packed;
+ 
+ #endif /* _LINUX_KHO_ABI_CPU_H */
+diff --git a/include/linux/oncore.h b/include/linux/oncore.h
+new file mode 100644
+index 000000000000..2817b0282a32
+--- /dev/null
++++ b/include/linux/oncore.h
+@@ -0,0 +1,129 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2026, Google LLC.
++ * Pasha Tatashin <pasha.tatashin@soleen.com>
++ *
++ * On-Core Session and Scheduling Framework for Live Update
++ */
++#ifndef __LINUX_ONCORE_H
++#define __LINUX_ONCORE_H
++
 +#include <linux/cpu_preserve.h>
-+#include <linux/irqchip/arm-gic-v3.h>
-+#include <linux/kexec_handover.h>
-+#include <linux/kho/abi/cpu.h>
-+#include <linux/mm.h>
-+#include <linux/psci.h>
-+#include <linux/sched/mm.h>
-+#include <uapi/linux/psci.h>
-+
-+#include <asm/barrier.h>
-+#include <linux/cacheflush.h>
-+#include <asm/cpu_ops.h>
-+#include <asm/daifflags.h>
-+#include <asm/kernel-pgtable.h>
-+#include <asm/kvm_asm.h>
-+#include <linux/pgtable.h>
-+#include <asm/sysreg.h>
-+#include <asm/tlbflush.h>
-+#include <asm/trans_pgd.h>
-+#include <asm/virt.h>
-+
-+static enum arm_smccc_conduit arm64_psci_conduit __cpu_preserved_data;
-+phys_addr_t arm64_caretaker_pgd_pa __cpu_preserved_data;
-+static u64 arm64_cpu_mpidr[NR_CPUS] __cpu_preserved_data;
++#include <linux/types.h>
 +
 +/*
-+ * Signal or wake up a preserved physical CPU via SEV.
++ * Only ever used as an opaque handle here, so do not include
++ * <linux/liveupdate.h>: this header is reached from <linux/kvm_host.h> via
++ * <linux/kvm_caretaker.h>, and including it would drag the entire LUO header
++ * stack into every KVM translation unit on every architecture.
 + */
-+void __cpu_preserved_text arch_cpu_preserved_kick(int cpu)
-+{
-+	dsb(ishst);
-+	sev();
-+	isb();
-+}
++struct liveupdate_session;
++struct oncore_session;
++struct oncore_session_ser;
++struct oncore_job;
 +
-+/*
-+ * Low-power wait in parking loop.
-+ */
-+void __cpu_preserved_text arch_cpu_preserved_park_wait(void)
-+{
-+	wfe();
-+}
-+
-+int __cpu_preserved_text arch_cpu_preserved_mpidr_to_cpu(u64 mpidr)
-+{
-+	int c;
-+
-+	for (c = 0; c < ARRAY_SIZE(arm64_cpu_mpidr); c++) {
-+		if ((arm64_cpu_mpidr[c] & MPIDR_HWID_BITMASK) == (mpidr & MPIDR_HWID_BITMASK))
-+			return c;
-+	}
-+	return -EINVAL;
-+}
-+EXPORT_SYMBOL_GPL(arch_cpu_preserved_mpidr_to_cpu);
-+
-+bool __cpu_preserved_text arch_cpu_preserved_is_active(void)
-+{
-+	struct cpu_preserved_stack_context *sctx = cpu_preserved_get_stack_context();
-+	u64 ttbr1 = read_sysreg(ttbr1_el1);
-+
-+	if (sctx && sctx->session_pgd_pa && ttbr1 == sctx->session_pgd_pa)
-+		return true;
-+
-+	if (arm64_caretaker_pgd_pa)
-+		return ttbr1 == arm64_caretaker_pgd_pa;
-+
-+	return false;
-+}
-+EXPORT_SYMBOL_GPL(arch_cpu_preserved_is_active);
-+
-+void __cpu_preserved_text arch_cpu_preserved_switch_pgd(phys_addr_t pgd_pa)
-+{
-+	if (pgd_pa && read_sysreg(ttbr1_el1) != pgd_pa) {
-+		write_sysreg(pgd_pa, ttbr1_el1);
-+		isb();
-+		arm64_flush_host_tlb_local();
-+	}
-+}
-+EXPORT_SYMBOL_GPL(arch_cpu_preserved_switch_pgd);
-+
-+static pte_t *arm64_get_kernel_pte(unsigned long addr)
-+{
-+	pgd_t *pgdp = pgd_offset_k(addr);
-+	p4d_t *p4dp;
-+	pud_t *pudp;
-+	pmd_t *pmdp;
-+
-+	if (pgd_none(READ_ONCE(*pgdp)))
-+		return NULL;
-+
-+	p4dp = p4d_offset(pgdp, addr);
-+	if (p4d_none(READ_ONCE(*p4dp)))
-+		return NULL;
-+
-+	pudp = pud_offset(p4dp, addr);
-+	if (pud_none(READ_ONCE(*pudp)) || pud_leaf(READ_ONCE(*pudp)))
-+		return NULL;
-+
-+	pmdp = pmd_offset(pudp, addr);
-+	if (pmd_none(READ_ONCE(*pmdp)) || pmd_leaf(READ_ONCE(*pmdp)))
-+		return NULL;
-+
-+	return pte_offset_kernel(pmdp, addr);
-+}
++#include <asm/oncore.h>
 +
 +/**
-+ * arch_cpu_preserved_as_map - Populate an isolated page table on arm64
-+ * @as: Address space to map into.
-+ * @pa: Physical address of the range.
-+ * @va: Virtual address the range must appear at.
-+ * @size: Size of the range in bytes.
-+ * @prot: Protection to apply.
-+ *
-+ * Return: 0 on success, or a negative errno on failure.
++ * enum oncore_exit_reason - Why an on-core job returned to the scheduler
++ * @ONCORE_EXIT_QUANTUM_EXPIRED: Time slice elapsed; the job is still runnable.
++ * @ONCORE_EXIT_ATTACH_SIGNALED: The incoming kernel asked for the CPU back.
++ * @ONCORE_EXIT_YIELD_IDLE: The job has no work right now (guest HLT/WFI).
++ * @ONCORE_EXIT_ERROR: The job hit an unrecoverable error and must be dropped.
++ * @ONCORE_EXIT_STALL: The job hit something it cannot handle on-core and
++ *                     cannot make forward progress until the incoming kernel
++ *                     reclaims it.  Unlike %ONCORE_EXIT_QUANTUM_EXPIRED, an
++ *                     immediate re-run is guaranteed to hit the same wall, so
++ *                     the scheduler backs off instead of spinning.
 + */
-+int arch_cpu_preserved_as_map(struct cpu_preserved_as *as, phys_addr_t pa,
-+			      unsigned long va, size_t size, pgprot_t prot)
-+{
-+	struct trans_pgd_info info = {
-+		.trans_alloc_page = cpu_preserved_as_alloc_page,
-+		.trans_alloc_arg = as,
-+	};
-+	unsigned long offset = va & ~PAGE_MASK;
-+	size_t page_size = PAGE_ALIGN(offset + size);
-+	unsigned long page_va = va & PAGE_MASK;
-+	phys_addr_t page_pa = (pa & PAGE_MASK);
++enum oncore_exit_reason {
++	ONCORE_EXIT_QUANTUM_EXPIRED = 0,
++	ONCORE_EXIT_ATTACH_SIGNALED,
++	ONCORE_EXIT_YIELD_IDLE,
++	ONCORE_EXIT_ERROR,
++	ONCORE_EXIT_STALL,
++};
 +
-+	return trans_pgd_map_range(&info, as->pgd, page_pa,
-+				   page_va, page_size, prot);
++typedef enum oncore_exit_reason (*oncore_job_fn)(void *data,
++						 u64 deadline_ticks);
++
++#ifdef CONFIG_LIVEUPDATE_ONCORE
++int oncore_session_add_cpu(struct liveupdate_session *s, int cpu);
++void oncore_session_remove_cpu(struct liveupdate_session *s, int cpu);
++struct oncore_session_ser *oncore_session_get_ser(struct liveupdate_session *s);
++void oncore_session_restore(struct liveupdate_session *s,
++			    struct oncore_session_ser *ser);
++phys_addr_t oncore_session_get_pgd_pa(struct oncore_session *sess);
++struct oncore_job *oncore_session_submit_job(struct liveupdate_session *s,
++					     oncore_job_fn run_fn,
++					     void *data);
++int oncore_session_activate_job(struct liveupdate_session *s,
++				struct oncore_job *job);
++void oncore_job_set_data(struct oncore_job *job, void *data);
++int oncore_job_cpu(const struct oncore_job *job);
++struct oncore_session *oncore_job_session(const struct oncore_job *job);
++int oncore_session_cancel_job(struct liveupdate_session *s,
++			      struct oncore_job *job);
++int oncore_session_map_range(struct oncore_session *sess, phys_addr_t pa,
++			     unsigned long va, size_t size, pgprot_t prot);
++int oncore_session_map_buffer(struct oncore_session *sess, void *va,
++			      size_t size);
++#else
++static inline int oncore_session_add_cpu(struct liveupdate_session *s, int cpu) { return 0; }
++
++static inline void oncore_session_remove_cpu(struct liveupdate_session *s, int cpu) {}
++
++static inline struct oncore_session_ser *
++oncore_session_get_ser(struct liveupdate_session *s)
++{
++	return NULL;
 +}
 +
-+void arch_cpu_preserved_as_flush_tlb(void)
++static inline void oncore_session_restore(struct liveupdate_session *s,
++					  struct oncore_session_ser *ser) {}
++
++static inline phys_addr_t oncore_session_get_pgd_pa(struct oncore_session *sess) { return 0; }
++
++static inline struct oncore_job *oncore_session_submit_job(struct liveupdate_session *s,
++							   oncore_job_fn run_fn,
++							   void *data)
 +{
-+	arm64_flush_host_tlb_all();
++	return NULL;
 +}
 +
-+void arch_cpu_preserved_set_transition_as(struct cpu_preserved_as *as)
++static inline int oncore_session_activate_job(struct liveupdate_session *s,
++					      struct oncore_job *job)
 +{
-+	arm64_caretaker_pgd_pa = as ? as->pgd_pa : 0;
-+	cpu_preserved_clean(&arm64_caretaker_pgd_pa);
++	return -EOPNOTSUPP;
 +}
 +
-+/**
-+ * arch_cpu_preserved_setup_buffer - Set up runtime buffer and page tables
-+ * @text_page: Runtime-allocated physical page backing preserved text
-+ * @text_nr_pages: Number of pages in text buffer
-+ * @data_page: Runtime-allocated physical page backing preserved data
-+ * @data_nr_pages: Number of pages in data buffer
-+ *
-+ * Remap init_mm kernel mappings for __cpu_preserved_text and
-+ * __cpu_preserved_data to point to the runtime-allocated pages outside
-+ * Scratch.
-+ *
-+ * Return: 0 on success, or -ENOMEM on failure.
-+ */
-+static void arm64_split_contpte_range(unsigned long start, unsigned long end)
++static inline void oncore_job_set_data(struct oncore_job *job, void *data) {}
++
++static inline int oncore_job_cpu(const struct oncore_job *job) { return -1; }
++
++static inline struct oncore_session *
++oncore_job_session(const struct oncore_job *job)
 +{
-+	unsigned long addr;
-+
-+	if (start >= end)
-+		return;
-+
-+	for (addr = ALIGN_DOWN(start, CONT_PTE_SIZE); addr < end; addr += CONT_PTE_SIZE) {
-+		pte_t *ptep = arm64_get_kernel_pte(addr);
-+		int i;
-+
-+		if (!ptep)
-+			continue;
-+
-+		ptep = PTR_ALIGN_DOWN(ptep, sizeof(*ptep) * CONT_PTES);
-+
-+		for (i = 0; i < CONT_PTES; i++) {
-+			pte_t pte = __ptep_get(&ptep[i]);
-+
-+			if (pte_valid_cont(pte))
-+				__set_pte(&ptep[i], pte_mknoncont(pte));
-+		}
-+	}
-+
-+	flush_tlb_kernel_range(ALIGN_DOWN(start, CONT_PTE_SIZE),
-+			       ALIGN(end, CONT_PTE_SIZE));
-+	arm64_flush_host_tlb_all();
++	return NULL;
 +}
 +
-+int arch_cpu_preserved_setup_buffer(struct page *text_page,
-+				    unsigned int text_nr_pages,
-+				    struct page *data_page,
-+				    unsigned int data_nr_pages)
++static inline int oncore_session_cancel_job(struct liveupdate_session *s,
++					    struct oncore_job *job)
 +{
-+	unsigned long text_start = (unsigned long)__cpu_preserved_text_start;
-+	unsigned long data_start = (unsigned long)__cpu_preserved_data_start;
-+	unsigned int i;
-+
-+	/* Split any contiguous 64KB mappings before replacing individual PTEs */
-+	arm64_split_contpte_range(text_start, text_start + text_nr_pages * PAGE_SIZE);
-+	arm64_split_contpte_range(data_start, data_start + data_nr_pages * PAGE_SIZE);
-+
-+	/* Clean old mappings before switching PTEs */
-+	__arch_cpu_preserved_dcache_clean(text_start, text_start + text_nr_pages * PAGE_SIZE);
-+	__arch_cpu_preserved_dcache_clean(data_start, data_start + data_nr_pages * PAGE_SIZE);
-+
-+	/* Remap init_mm kernel mappings to point to allocated buffer pages */
-+	for (i = 0; i < text_nr_pages; i++) {
-+		unsigned long va = text_start + i * PAGE_SIZE;
-+		pte_t *ptep = arm64_get_kernel_pte(va);
-+
-+		if (!ptep)
-+			return -EINVAL;
-+
-+		pgprot_t prot = __pgprot(pgprot_val(pte_pgprot(*ptep)) & ~PTE_CONT);
-+		phys_addr_t pa = page_to_phys(text_page) + i * PAGE_SIZE;
-+
-+		set_pte_at(&init_mm, va, ptep, pfn_pte(PHYS_PFN(pa), prot));
-+	}
-+
-+	for (i = 0; i < data_nr_pages; i++) {
-+		unsigned long va = data_start + i * PAGE_SIZE;
-+		pte_t *ptep = arm64_get_kernel_pte(va);
-+
-+		if (!ptep)
-+			return -EINVAL;
-+
-+		pgprot_t prot = __pgprot(pgprot_val(pte_pgprot(*ptep)) & ~PTE_CONT);
-+		phys_addr_t pa = page_to_phys(data_page) + i * PAGE_SIZE;
-+
-+		set_pte_at(&init_mm, va, ptep, pfn_pte(PHYS_PFN(pa), prot));
-+	}
-+
-+	arm64_flush_host_tlb_all();
-+	flush_icache_range(text_start, text_start + (text_nr_pages * PAGE_SIZE));
-+
-+	for (i = 0; i < nr_cpu_ids; i++)
-+		arm64_cpu_mpidr[i] = cpu_logical_map(i);
-+	cpu_preserved_clean(&arm64_cpu_mpidr);
-+
 +	return 0;
 +}
 +
-+/*
-+ * Masks DAIF interrupts and enables GIC CPU interface for WFx wakeups.
-+ */
-+void __cpu_preserved_text arch_cpu_preserved_park_init(int cpu)
++static inline int oncore_session_map_range(struct oncore_session *sess, phys_addr_t pa,
++					   unsigned long va, size_t size, pgprot_t prot)
 +{
-+	struct cpu_preserved_stack_context *sctx = cpu_preserved_get_stack_context();
-+	phys_addr_t pgd_pa = 0;
-+
-+	if (sctx && sctx->session_pgd_pa)
-+		pgd_pa = sctx->session_pgd_pa;
-+	else
-+		pgd_pa = cpu_preserved_get_pgd(cpu);
-+
-+	local_daif_mask();
-+	cpu_preserved_inval(&arm64_psci_conduit);
-+	cpu_preserved_inval(&arm64_cpu_mpidr);
-+	if (!pgd_pa) {
-+		cpu_preserved_inval(&arm64_caretaker_pgd_pa);
-+		pgd_pa = READ_ONCE(arm64_caretaker_pgd_pa);
-+	}
-+
-+	write_sysreg(0, ttbr0_el1);
-+	if (pgd_pa)
-+		write_sysreg(pgd_pa, ttbr1_el1);
-+	isb();
-+	arm64_flush_host_tlb_local();
-+
-+	write_sysreg_s(0xff, SYS_ICC_PMR_EL1);
-+	write_sysreg_s(1, SYS_ICC_IGRPEN1_EL1);
-+	isb();
++	return 0;
 +}
 +
-+void arch_cpu_preserved_early_init(void)
++static inline int oncore_session_map_buffer(struct oncore_session *sess, void *va,
++					    size_t size)
 +{
-+	int c;
-+
-+	for (c = 0; c < ARRAY_SIZE(arm64_cpu_mpidr); c++)
-+		arm64_cpu_mpidr[c] = cpu_logical_map(c);
-+	cpu_preserved_clean(&arm64_cpu_mpidr);
-+
-+	cpu_preserved_inval(&arm64_psci_conduit);
-+	if (arm64_psci_conduit == SMCCC_CONDUIT_NONE) {
-+		arm64_psci_conduit = arm_smccc_1_1_get_conduit();
-+		cpu_preserved_clean(&arm64_psci_conduit);
-+	}
++	return 0;
 +}
-+EXPORT_SYMBOL_GPL(arch_cpu_preserved_early_init);
++#endif /* CONFIG_LIVEUPDATE_ONCORE */
 +
-+void __cpu_preserved_text arch_cpu_preserved_park_finish(int cpu)
-+{
-+	u32 el = (read_sysreg(CurrentEL) >> 2) & 3;
-+	enum arm_smccc_conduit conduit;
-+
-+	cpu_preserved_inval(&arm64_psci_conduit);
-+	conduit = READ_ONCE(arm64_psci_conduit);
-+
-+	local_daif_mask();
-+	write_sysreg_s(0, SYS_ICC_PMR_EL1);
-+	write_sysreg_s(0, SYS_ICC_IGRPEN1_EL1);
-+	isb();
-+
-+	if (el == 2 || conduit == SMCCC_CONDUIT_NONE)
-+		conduit = (el == 2) ? SMCCC_CONDUIT_SMC : SMCCC_CONDUIT_HVC;
-+
-+	cpu_preserved_set_dead(cpu);
-+
-+	/*
-+	 * Direct PSCI CPU_OFF call in preserved text without relying on
-+	 * unpreserved kernel data structures or function pointers.
-+	 *
-+	 * x0: PSCI_0_2_FN_CPU_OFF (0x84000002)
-+	 * x1: Power down state (0x00010000)
-+	 */
-+	if (conduit == SMCCC_CONDUIT_HVC) {
-+		asm volatile("mov	x0, #0x0002\n"
-+			"movk	x0, #0x8400, lsl #16\n"
-+			"mov	x1, #0\n"
-+			"mov	x2, #0\n"
-+			"mov	x3, #0\n"
-+			"mov	x4, #0\n"
-+			"mov	x5, #0\n"
-+			"mov	x6, #0\n"
-+			"mov	x7, #0\n"
-+			"hvc	#0\n"
-+			:
-+			:
-+			: "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "memory"
-+		);
-+	} else {
-+		asm volatile("mov	x0, #0x0002\n"
-+			"movk	x0, #0x8400, lsl #16\n"
-+			"mov	x1, #0\n"
-+			"mov	x2, #0\n"
-+			"mov	x3, #0\n"
-+			"mov	x4, #0\n"
-+			"mov	x5, #0\n"
-+			"mov	x6, #0\n"
-+			"mov	x7, #0\n"
-+			"smc	#0\n"
-+			:
-+			:
-+			: "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "memory"
-+		);
-+	}
-+
-+	while (1) {
-+		wfi();
-+		wfe();
-+	}
-+}
-+
-+void arch_cpu_preserved_wait_dead(int cpu)
-+{
-+	const struct cpu_operations *ops = get_cpu_ops(cpu);
-+
-+	if (ops && ops->cpu_kill)
-+		ops->cpu_kill(cpu);
-+}
-+
-diff --git a/arch/arm64/kernel/preserve_cpu.S b/arch/arm64/kernel/preserve_cpu.S
-new file mode 100644
-index 000000000000..c7e3cd8133f0
---- /dev/null
-+++ b/arch/arm64/kernel/preserve_cpu.S
-@@ -0,0 +1,44 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Low-level assembly routines for ARM64 physical CPU preservation.
-+ *
-+ * Copyright (c) 2026, Google LLC.
-+ * Pasha Tatashin <pasha.tatashin@soleen.com>
-+ */
-+#include <linux/linkage.h>
-+#include <asm/assembler.h>
-+
-+	.section .text.cpu_preserved, "ax"
-+
-+/*
-+ * arch_cpu_preserved_park_on_stack - Switch stack and enter park loop
-+ * @cpu: Logical CPU identifier (x0)
-+ * @stack_top: Top of runtime allocated stack (x1)
-+ */
-+SYM_FUNC_START(arch_cpu_preserved_park_on_stack)
-+	mov	sp, x1
-+	mov	x19, x0
-+	bl	cpu_preserved_park_loop
-+	mov	x0, x19
-+	bl	arch_cpu_preserved_park_finish
-+	b	.
-+SYM_FUNC_END(arch_cpu_preserved_park_on_stack)
-+EXPORT_SYMBOL(arch_cpu_preserved_park_on_stack)
-+
-+/*
-+ * __arch_cpu_preserved_dcache_clean - Clean and invalidate data cache to PoC
-+ * @start: Virtual start address (x0)
-+ * @end: Virtual end address (x1)
-+ */
-+SYM_FUNC_START(__arch_cpu_preserved_dcache_clean)
-+	dsb	sy
-+	raw_dcache_line_size x2, x3
-+	dcache_by_myline_op_nosync civac, x0, x1, x2, x3
-+	dsb	sy
-+	ret
-+SYM_FUNC_END(__arch_cpu_preserved_dcache_clean)
-+SYM_FUNC_ALIAS(arch_cpu_preserved_dcache_clean, __arch_cpu_preserved_dcache_clean)
-+SYM_FUNC_ALIAS(arch_cpu_preserved_dcache_inval, __arch_cpu_preserved_dcache_clean)
-+EXPORT_SYMBOL(__arch_cpu_preserved_dcache_clean)
-+EXPORT_SYMBOL(arch_cpu_preserved_dcache_clean)
-+EXPORT_SYMBOL(arch_cpu_preserved_dcache_inval)
-diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
-index a61dc3016a11..43651eceb09c 100644
---- a/arch/arm64/kernel/smp.c
-+++ b/arch/arm64/kernel/smp.c
-@@ -21,6 +21,7 @@
- #include <linux/mm.h>
- #include <linux/err.h>
- #include <linux/cpu.h>
-+#include <linux/cpu_preserve.h>
- #include <linux/smp.h>
- #include <linux/seq_file.h>
- #include <linux/irq.h>
-@@ -327,7 +328,12 @@ int __cpu_disable(void)
++#endif /* __LINUX_ONCORE_H */
+diff --git a/kernel/liveupdate/Kconfig b/kernel/liveupdate/Kconfig
+index 52c5fd7a620b..0e1f72de2a48 100644
+--- a/kernel/liveupdate/Kconfig
++++ b/kernel/liveupdate/Kconfig
+@@ -136,4 +136,14 @@ config LIVEUPDATE_CPU
  
- static int op_cpu_kill(unsigned int cpu)
- {
--	const struct cpu_operations *ops = get_cpu_ops(cpu);
-+	const struct cpu_operations *ops;
-+
-+	if (cpu_is_preserved(cpu))
-+		return 0;
-+
-+	ops = get_cpu_ops(cpu);
+ 	  If unsure, say N.
  
- 	/*
- 	 * If we have no means of synchronising with the dying CPU, then assume
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index af1d72020976..9e809b6908a1 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -197,6 +197,7 @@ SECTIONS
- 			IRQENTRY_TEXT
- 			SOFTIRQENTRY_TEXT
- 			ENTRY_TEXT
-+			CPU_PRESERVED_TEXT
- 			TEXT_TEXT
- 			SCHED_TEXT
- 			LOCK_TEXT
++config LIVEUPDATE_ONCORE
++	bool "On-core execution framework"
++	depends on LIVEUPDATE_CPU
++	default LIVEUPDATE_CPU
++	help
++	  Provide the on-core execution session and job scheduling framework
++	  for workloads running on preserved physical CPUs across a host
++	  live update (kexec handover). This allows subsystems such as KVM
++	  Caretaker to bind jobs to isolated physical cores during kexec.
++
+ endmenu
 -- 
 2.55.0.1082.g2b9226bbc0-goog
 
