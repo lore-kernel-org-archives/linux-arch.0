@@ -1,72 +1,72 @@
-Received: from fout-b1-smtp.messagingengine.com (fout-b1-smtp.messagingengine.com [202.12.124.144])
+Received: from fhigh-b8-smtp.messagingengine.com (fhigh-b8-smtp.messagingengine.com [202.12.124.159])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4230A3EDAAE;
-	Sun, 20 Sep 2026 09:32:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.144
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6EC6D227EA4;
+	Sun, 20 Sep 2026 09:36:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.159
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789896751; cv=none; b=tI8dRO8d1r8L/7SCv6fQ3KKUNi49qVPdUYY6Kl+QGPaOPDOqp71CDOoXRgv4+Ve01R7i4gGzk+WhlYzMAecatoB+/MzDkgSCSoJWKVawjc4SderlBjetQFW/c1uvXTeM8l2mro4a+cPUUUv/e5rXkc8LIxpy25C5Pj2EnADHx/k=
+	t=1789896964; cv=none; b=NUba1MYsv3++/p45ooUaifTSftaDZvGcuOXorLcAFXoVcLj2a9oQwhiXLS3OOod56VMvZzdoKngQ5i/ZilOOQWs8cQtgNH3vasFld8yR5utf0GML2Eg8IA3drK3+1IK4Y07OMxTdoqWRHiTQq303PsIM6Y6omplWp6TCDIUe/nk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789896751; c=relaxed/simple;
-	bh=fmwVf9a917sr5U9ONxBdoO4IvhN694a41HxbT8IES5c=;
+	s=arc-20240116; t=1789896964; c=relaxed/simple;
+	bh=biLUgl/0AclVyOqHd/FvWLds2ne/X4/8guAYviy8blU=;
 	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=SSnIDQo8Y71oKYafgQw04cfmQnGXQmrKDQJtIhzINPVtFOckGHTsrizho9DZG8bLxlKd/yrf+l5ms9R8nFon445zQGTBYKXR7VQUxqFd68RgTmfGqSuDlEVoAVkDq7I/bBHPJ8yhNvwh4/C29rwVLRi/G60eMO6N3mcZENZXMbc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=W0D53KwZ; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=rYxQRbi1; arc=none smtp.client-ip=202.12.124.144
+	 Subject:Content-Type; b=lAHsXxyh8N2FfDkZg+MiNyZNEqs9zkcV9Egvm2jpyHyPfcK61/gQK5qE10hrff/d8q28umPGcT4biPiojZXjYnuTQvYkt4wEMPj3k+6wtZLrSHTu0NBRr0vC0DmE2lS7+jLyvRR5H50x6Nkk0+Rl9PcgqN2r6nYpZOFlortMwlE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=X8eEgeYW; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=nuwZMD6I; arc=none smtp.client-ip=202.12.124.159
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="W0D53KwZ";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="rYxQRbi1"
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="X8eEgeYW";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="nuwZMD6I"
 Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
-	by mailfout.stl.internal (Postfix) with ESMTP id E02521D000B8;
-	Sun, 20 Sep 2026 05:32:26 -0400 (EDT)
+	by mailfhigh.stl.internal (Postfix) with ESMTP id 42C4B7A00E4;
+	Sun, 20 Sep 2026 05:36:01 -0400 (EDT)
 Received: from ams-imap-03 ([10.64.2.23])
-  by ams-compute-02.internal (MEProxy); Sun, 20 Sep 2026 05:32:28 -0400
+  by ams-compute-02.internal (MEProxy); Sun, 20 Sep 2026 05:36:02 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
 	:cc:content-transfer-encoding:content-type:content-type:date
 	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm3; t=1789896746;
-	 x=1789983146; bh=Ho3i2ZEne3XWeE0sZzsIJ9CaxZDAGSyO5hDwEJ0am2M=; b=
-	W0D53KwZ9zARRHvFEMKWf1d7HAYdfdoHw3qpZvwsYsSaMmF1lzmFwD1WCt7e68EB
-	kXBp0SDj3qMwKFCf0dWDijJTLrlTgcbx8lljQsQDOajBiuKJJ7671cNKQYvJMG6a
-	c8Moy2BFFAi9/m2E8BA0l4Uc2UPQzBDDxGIgp/6r2HtoyE5Kek7rTNBztI2hPm7m
-	og03655buJg9GlFuip5HopC87SSZBZlhxAmRoerGDCP2OaSMht4P/vQgMrnV/VIm
-	V4AxZ0AOenduZ0KPfc3EI3nbV/0EFM+SgAnL9H8IOufLgDZwa2nN0CHg8CvR1VbK
-	KZtzA65yXtNQyjnWJkUlhA==
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1789896960;
+	 x=1789983360; bh=aXZQlewp3FOudGIFjI5+q8McIea7iBI7OR1Mj7pdUdI=; b=
+	X8eEgeYWvqI6Gz3Mppm1U4dW5q1DMr2LTy37xMxnlPR7CKhysNGQGckS4jLY/HlG
+	fXgwVqJKgRVe30UyOGeRLMLCEd9G05AGfuGopNitt5fHtw3NVtfizSbFZDH+4gVb
+	TVEagoYxMxH3LHzEo/vYzMhV7f75F7z8VwVoCSWEzAMUX20RZwBjT6cCt1YIxHdX
+	ssDWb6GMJbly1JP4eNkH4VM3mueNGcn9C8uYDmNcI8+hsvFKH0mpXEV96ofoPoNL
+	x9YinC6Hs1rBJS7TM1p9nt862ChRMFfiWcBI5bUoHfdUPkIo+DyrzQMNqUvtA5QP
+	Kt8abo8wtudVfYByClIe8A==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
 	messagingengine.com; h=cc:cc:content-transfer-encoding
 	:content-type:content-type:date:date:feedback-id:feedback-id
 	:from:from:in-reply-to:in-reply-to:message-id:mime-version
 	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1789896746; x=
-	1789983146; bh=Ho3i2ZEne3XWeE0sZzsIJ9CaxZDAGSyO5hDwEJ0am2M=; b=r
-	YxQRbi139+6siV9qRXDW3NMfleFDAnAYgDDi+SB0GKrzjKxsXv/39WEooXpyjY8r
-	kybEHRrGGf7WWo9EmkcuWDzLzfRaAvXcEey/Pzz02xd/d9JTOFEBOhYDZppH92+T
-	xLZG5i2p6hcx3BBhABk7P68AWoYag62ub9kamymzyMPNVIP49Z6DJGr22oQM4EhP
-	U1dcJD5WvtBtNQgSt7lt7sZOQq8vLRcE6CW0qPA/fioWWJ+MLFo3fn3HCKn2zpRi
-	jK0zztNP3M/O/B6LPofRTKP8zHiBsMbHql4i6XqyZsyKyKV/CMqedZLDde6yW0cZ
-	On2ygYt8pL/5Nu4VVR5yA==
-X-ME-Sender: <xms:JqivaiMSjhSG2el-vlZXeFvCN_Dc9vs7XlsbVy4M8Uk3imScOlSlew>
-    <xme:Jqivarz-m1KGJ0vH7-jeXAEMFTGXPuqNDwVlAP4qwidxo7Rctz8bIPKs-QS3D5eUK
-    -hOYrQR_f7SOUORHgtFw-1GbQHq_z_tN_X9hTn3QnzlYV_lGUgQbLBS>
-X-ME-Proxy-Cause: dmFkZTFDpxq9iaqfbx8D3WimXx4MB7M1g9g4zfB2+5uGFNXZ3AFJ8stXvDfhV1FH+PHZ+E
-    70MyuhtqrHrHhZ3QZM/LzCLzeROFzqwf+/QChzQjs4tJUzIAY7adhEro5EkjLolniLj9el
-    EgHzDiwDWXuinVt+ilVgF167crSLL+PIRk1w3kwf2DAK6fJ+AeYiPJ4+lbl0TscyMR6J1r
-    HYFCjyAQVFqegv1FmiR1/kZKl5fcUBvQDMen2ikVSHQnGQYyL0FUrcl58fBPregIZTDDSz
-    6n1x+XBtiCrXxHF17+cxZWTsdcC3hqfBaOX5h7fIVng7n0vQAF4ruBnI3WnBx16KjNyKCp
-    uWLIGGhB++czTT+BauSjxGDI5JoZ4dBka5ywsbs4hlapg4mOuGvmmG/WzFKcJvwnYmg88s
-    zIZE3UXrp1/JcAGga2ZTyeJNT7QSubCaWnwRlFVjDTpx4x0df+ScJNEsmZLf2yyuR6ZCRT
-    pMMhslJucNB7mwQyMECZfsOOqdPylJUh1iGYRG8gHPjkYrW4TIwToVcfl/jbyA2k1Y/wbi
-    78/pLUCFem/mLRrZXqXblvSkqmf/Nk3utSQ+qeZTACOojmuk+OhZLtuHODejlbNObtth1t
-    aLTlGZ5xLE81DJRhA7is5aK2GZpt3qavUTSpy77q3t9rg31Te+6VFf4C4T8A
-X-ME-Proxy: <xmx:J6ivasVL0T3M6Z19788okk3oMUUZNCnjPJ7YYDZ1C3XJwdM0cK3S4A>
-    <xmx:J6ivasar_cjXg88wp5zzLPyPC1TcaKO4ujUMg_nTby_EjB51mukc4g>
-    <xmx:J6ivarxAL1M65LVDpToqTBu1wpl6s64Kw8xaZvX2zxreR7cNVCFB_g>
-    <xmx:J6ivak21RceGHH2d2CSFtOz6YVKYQyKnz0eOPc7ZTAkPz4_8Lt5Tsw>
-    <xmx:Kqivai_TDlhLY7OXRBHdss6zS0AfoxD_i2sc33ugElktGooAmJ9HGHnT>
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1789896960; x=
+	1789983360; bh=aXZQlewp3FOudGIFjI5+q8McIea7iBI7OR1Mj7pdUdI=; b=n
+	uwZMD6IR4D2eRcWgvCF2Ii8WpMfbKogtFU3azvB5cPBy4+7yojvGjqIll/xOlBP2
+	cX4ligbLSX6Guoegofxz/4XMS+m7U+SCzXd+M6YWMUC03wbXSCX434Qjp6aOG1H/
+	tPzwg64Bjv0TMM/kCGm0pmKlKoZtIdYN2Mu+5VXRYEe/p3nE6n2C/53Y8Jhf9Uf0
+	IYNGMkOWzmhpE2BfrNahNkB6hmUZ9IN2ew2GO8VNk+Ku8c+Usnzqu3hBadByxL+N
+	mcnX0KV3ZFIKjXwOknjAadIOfsug7s0IQQj8xZoNfY2A+xDpxE5Qn5kGd+WsZGbY
+	LJfcXtJfNu5fmNbeXd5uQ==
+X-ME-Sender: <xms:_Kivaqtq_eaxvj9KGZdD-QY7PY7CGsbV1Rm-bxlF9CB9gkDDy59lfQ>
+    <xme:_KivaqTg7oIFi5Am-BwOqDp3yFtxWl1hXhtH7Ci3SG6Zq2uxaJ2hjlz3_BypnH4Or
+    nGXZNRnfSG02BXrdnvF6ah_9wv8A9E1aBgG0C2rFFQpBoJ1Kmn2nY2v>
+X-ME-Proxy-Cause: dmFkZTGAtlQUANsN4AJ36NuNRpiQFwnrUyDrYaEaCjWHJ8dyNwtmvUDEVzz9POWYXNQ4vW
+    gJJBuj7MZoqG3ALb4GB/LQOL0pWQ91HxOqZZmF7chtv/HQpnrqFGiaAnh/kCWMBG12oDyc
+    bEe3Cm1JP4ciwNh8X/ZM9YBw28mCWSc3di1IxBfBoPi29msQVvj2Ph7mmfVumIGvwdVVMy
+    hZhafsdI/bdWFeMegt5xyB9rIwwyRiDtBcYbcCCFJYC+T4ILJ+V+srW6sOcFrHbaV2d4H6
+    CvLZJ/HA8LDCbAv29wPnBFKl/oAgazO2xpkeUnJPqnXw49q670kR9iLAicqVVxlqmWRzgv
+    /DC7wZRrgl77YQEyFyXwaCfA3SbAmqgEbHE53t3VEFgI0IOeCVcPa5OzCfGpqzWrlg7Srh
+    AYez4PHceQxw9yHGLvUt1RIPgYX4aPI6ycjQiYt703DuSWosFncZNQunayd53/9iXzxqGf
+    +yvmhkVoJ9oeZx2IPPU3tf962y7Ueh5PuYTIHt9RYLwPWkjREU5dGFo7TPF1j/5s9mgQe/
+    pHrv7N4lkzFB2rILc85tQ+7IXDOXAemJNkw3gVaM6NHb1fxWxnLHPtkImnzjBOJGLoB4rP
+    Gk2P0VOr2EbDV/M2ASgkKYXrs2hIjvQTPKlPQK0wDr7flY15zcDMaee5FSKw
+X-ME-Proxy: <xmx:_qivao0kPcpfr1cR-qsjcVeBZTUtoJGS7CjenDmRkoUuN_3i0Yu2Tw>
+    <xmx:_qivau6oDMDfMJgcaXD98ocWmxB-KTtF8M3hL6DUoo2HRS_ox90hSg>
+    <xmx:_qivasT64gwXfQwxkz3cjvIhmK1_lOTdRTc98K-5oRHd_BDhqIXceg>
+    <xmx:_qivarUaT8GUxteAT51fLiXeJPNovWas2cppYTMWvL5RCqqgsDArqQ>
+    <xmx:AKmvareo9nTawTgUSvYVsQ68HqJEacgAm8nkrAo6awF0snBgiBua9ODF>
 Feedback-ID: i56a14606:Fastmail
 Received: by mailuser.ams.internal (Postfix, from userid 501)
-	id EC6D732A0087; Sun, 20 Sep 2026 05:32:21 -0400 (EDT)
+	id CB68632A0087; Sun, 20 Sep 2026 05:35:56 -0400 (EDT)
 X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -75,7 +75,7 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-ThreadId: AzgOxjlYMeWB
-Date: Sun, 20 Sep 2026 11:30:34 +0200
+Date: Sun, 20 Sep 2026 11:35:36 +0200
 From: "Arnd Bergmann" <arnd@arndb.de>
 To: "Qingfang Deng" <qingfang.deng@linux.dev>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>,
@@ -85,31 +85,32 @@ Cc: Linux-Arch <linux-arch@vger.kernel.org>,
  "Vikram Sethi" <vsethi@nvidia.com>, "Mike Rapoport" <rppt@kernel.org>,
  "Shanker Donthineni" <sdonthineni@nvidia.com>,
  linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-Id: <3250a625-7900-40a9-8f3c-612d333122dc@app.fastmail.com>
-In-Reply-To: <9895e60c-6a3c-40c8-b188-51891ee6b216@linux.dev>
+Message-Id: <114d7d69-dd0a-499a-8cd5-732baa21c74c@app.fastmail.com>
+In-Reply-To: <3250a625-7900-40a9-8f3c-612d333122dc@app.fastmail.com>
 References: <20260920014357.7069-1-qingfang.deng@linux.dev>
  <20260920014357.7069-3-qingfang.deng@linux.dev>
  <5847c824-8d69-4d02-af2f-896bf47f0732@app.fastmail.com>
  <9895e60c-6a3c-40c8-b188-51891ee6b216@linux.dev>
+ <3250a625-7900-40a9-8f3c-612d333122dc@app.fastmail.com>
 Subject: Re: [PATCH v2 3/3] arm64: use generic MMIO accessors
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 
-On Sun, Sep 20, 2026, at 11:24, Qingfang Deng wrote:
+On Sun, Sep 20, 2026, at 11:30, Arnd Bergmann wrote:
+> On Sun, Sep 20, 2026, at 11:24, Qingfang Deng wrote:
+>>
+>> Regarding unaligned accesses, the splitting can only happen when the 
+>> address is known to be unaligned at compile-time. Do these accessors 
+>> need to support unaligned MMIO? If so, I could add 
+>> OPTIMIZER_HIDE_VAR(addr) to the generic accessors.
 >
-> Regarding unaligned accesses, the splitting can only happen when the 
-> address is known to be unaligned at compile-time. Do these accessors 
-> need to support unaligned MMIO? If so, I could add 
-> OPTIMIZER_HIDE_VAR(addr) to the generic accessors.
+> I think all architectures that have had this problem just started
+> using the inline asm variant, and I'd probably try to encourage
+> that more.
 
-I think all architectures that have had this problem just started
-using the inline asm variant, and I'd probably try to encourage
-that more.
-
-What might be helpful here would be to split out the __raw_* helpers
-into a separate header that is explicitly included on architectures
-without their own definitions, and an updated comment that explains
-that architectures are encouraged to implement these as inline asm
-instead of using the volatile load/store.
+Also, I have only seen this problem in combination with driver bugs
+that define their MMIO registers as a __packed data structure
+instead of the usual 'void __iomem*' with constant offset or a
+normal structure without packing.
 
      Arnd
