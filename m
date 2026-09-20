@@ -1,42 +1,49 @@
-Received: from mta1.migadu.com (out-52.mta1.migadu.com [95.215.58.52])
+Received: from mta0.migadu.com (out-18.mta0.migadu.com [91.218.175.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BF6013515D6
-	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 01:44:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.52
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 096B6352037
+	for <linux-arch@vger.kernel.org>; Sun, 20 Sep 2026 01:44:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789868648; cv=none; b=Pi8DdSyCYRnNT2N/hk7Hv4pbeumwgCe8Etr52BQsw7GCqWunlGg4fE0Ed7USLtd+CRvGhrobYIZ0hEk275809uKVsTBivJYNEomLEVASXN/l9Qp4rSBVuGG9NeBmW3G4qadckFYRd2c5VvmbqMuIRuFzJy4dXZcvCWGPPPpvm+E=
+	t=1789868651; cv=none; b=Dkwh5sNWgRz0okpdHN1tyA264upEqLlfWBN+c+DHIwNZNyQhffNoNyDJq3VbMMTNl8rMHYbtfjAi9l94aqWC4vTwKz4Mi6TrnzI+C42wGijIU5ggFmY4nTWJiHLP91yV+pUH6XTo8+zc6Qkx07bCL3ZGt5e/HrJv474xoF3mG00=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789868648; c=relaxed/simple;
-	bh=E/sHQy6mL06lwRwR7QNcYotaMnIbA+rEDHBpY+FOTLg=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=QFKycc4UNtG1jeai9Ey3Va5YIrQzVhDczcXt8UzZEYiz9p/sg553JhMazDAkhAnWQgCid2PHZYMsuoMpPq2lT0u764JATu3hQaV8lGauoKxzl5Xvf+qC5XrMqeJbWegKeAZwcegjgw6lhztzM3ohB23GnHn6KVfm/FjZorJD8fc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=JcHP6bZv; arc=none smtp.client-ip=95.215.58.52
+	s=arc-20240116; t=1789868651; c=relaxed/simple;
+	bh=hMzUJFmtAt/DEQg8/nIuJR2E2yIQzqBmNStsr9v2FW0=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=Qs0AWHbeTInpkbqFD7FeLQAXUuodf3QV71Y37Tt6XfY09nYJdxw9tWxQsinsKAqZkSeOYF5MOnoLp8o7muZRwWlvrcCY+PseVvRwVNPRLKlnfanKKJVjEhjNmD6nHj85lSxoGAu9G+YHDgal6Vqw0grn4hp4RwBkbSS8kWroGTI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=fVW8QFVc; arc=none smtp.client-ip=91.218.175.18
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="JcHP6bZv"
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="fVW8QFVc"
 X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=E/sHQy6mL06lwRwR7QNcYotaMnIbA+rEDHBpY+FOTLg=;
+DKIM-Signature: a=rsa-sha256; bh=hMzUJFmtAt/DEQg8/nIuJR2E2yIQzqBmNStsr9v2FW0=;
  c=simple/simple; d=linux.dev;
  h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1789868642; v=1; x=1790473442;
- b=JcHP6bZvNcaWb7qpeHQKKw0fJuRWCUZuBX9jLIFEmk+wIOm88wkc2uazyexiXbBog3kOdDu6
- 0o0Gwa+jV2o8S3S/ZwJW+uvcYTc+JyGN4WHewf7Jy6VeN76vjS3Ew7HCsded9Z2qK1C1jxy8z9e
- qU6vvFHc/UPXa7RA/rlsJPxo=
+ t=1789868647; v=1; x=1790473447;
+ b=fVW8QFVcpcjx1uT9H2pAlIY7rSGcd+kEWp4902AMYYthYtG+Jvvy8yuXeSmOWgAHPnfb66z1
+ j120FZXbLfuUf3j4nXzTpPh6YBNhTrpylCQJ4b8ptmA/JPPZZAdgTTbx6G72Vlgcx+1bCSGVpkI
+ U219+tJIVacGcmAX32zN2wjQ=
 X-Envelope-To: linux-arch@vger.kernel.org
-Received: by smtp.migadu.com with ESMTPS id cb2278283f0f2d30;
-	Sun, 20 Sep 2026 01:44:02 +0000
-X-Mizu-Trace-ID: cb2278283f0f2d30
+Received: by smtp.migadu.com with ESMTPS id 1c465c973ef91055;
+	Sun, 20 Sep 2026 01:44:07 +0000
+X-Mizu-Trace-ID: 1c465c973ef91055
 X-Migadu-Flow: FLOW_OUT
 From: Qingfang Deng <qingfang.deng@linux.dev>
-To: Arnd Bergmann <arnd@arndb.de>,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Cc: Qingfang Deng <qingfang.deng@linux.dev>
-Subject: [PATCH v2 1/3] asm-generic: split MMIO accessors out of io.h
-Date: Sun, 20 Sep 2026 09:43:49 +0800
-Message-ID: <20260920014357.7069-1-qingfang.deng@linux.dev>
+To: Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Alexandre Ghiti <alex@ghiti.fr>,
+	Qingfang Deng <qingfang.deng@linux.dev>,
+	linux-riscv@lists.infradead.org,
+	linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Subject: [PATCH v2 2/3] riscv: use generic MMIO accessors
+Date: Sun, 20 Sep 2026 09:43:50 +0800
+Message-ID: <20260920014357.7069-2-qingfang.deng@linux.dev>
 X-Mailer: git-send-email 2.43.0
+In-Reply-To: <20260920014357.7069-1-qingfang.deng@linux.dev>
+References: <20260920014357.7069-1-qingfang.deng@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -45,856 +52,177 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Low-level architecture headers can need MMIO accessors without the page
-and I/O mapping dependencies pulled in by asm-generic/io.h. RISC-V keeps
-a separate MMIO header for this reason, including for M-mode timer reads.
+RISC-V implements its raw MMIO loads and stores in inline assembly and
+duplicates the generic ordered and relaxed accessors.
 
-Move the raw, ordered and relaxed scalar accessors, their barrier hooks
-and MMIO tracing support into asm-generic/mmio.h. Include the new header
-from asm-generic/io.h and provide the byte-order and MMIOWB dependencies
-needed when it is included directly.
+Use asm-generic/mmio.h for these accessors and retain the RISC-V barrier
+hooks. This preserves the ordering and MMIOWB tracking while allowing
+the compiler to emit the native-width loads and stores.
 
 Assisted-by: Codex:gpt-6-astra
 Signed-off-by: Qingfang Deng <qingfang.deng@linux.dev>
 ---
-v2: new patch
----
- include/asm-generic/io.h   | 393 +----------------------------------
- include/asm-generic/mmio.h | 407 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 408 insertions(+), 392 deletions(-)
- create mode 100644 include/asm-generic/mmio.h
+v2: split asm-generic/io.h to fix M-mode build
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index ca5a1ce6f0f8..f6244e649db1 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -11,42 +11,14 @@
- #include <linux/string.h> /* for memset() and memcpy() */
- #include <linux/sizes.h>
- #include <linux/types.h>
--#include <linux/instruction_pointer.h>
+v1: https://lore.kernel.org/linux-riscv/20250530032252.3092502-1-dqfext@gmail.com/
+---
+ arch/riscv/include/asm/mmio.h | 123 +---------------------------------
+ 1 file changed, 3 insertions(+), 120 deletions(-)
+
+diff --git a/arch/riscv/include/asm/mmio.h b/arch/riscv/include/asm/mmio.h
+index 06cadfd7a237..715470551c42 100644
+--- a/arch/riscv/include/asm/mmio.h
++++ b/arch/riscv/include/asm/mmio.h
+@@ -1,7 +1,6 @@
+ /* SPDX-License-Identifier: GPL-2.0-only */
+ /*
+- * {read,write}{b,w,l,q} based on arch/arm64/include/asm/io.h
+- *   which was based on arch/arm/include/io.h
++ * RISC-V memory-mapped I/O ordering.
+  *
+  * Copyright (C) 1996-2000 Russell King
+  * Copyright (C) 2012 ARM Ltd.
+@@ -11,92 +10,7 @@
+ #ifndef _ASM_RISCV_MMIO_H
+ #define _ASM_RISCV_MMIO_H
  
- #ifdef CONFIG_GENERIC_IOMAP
- #include <asm-generic/iomap.h>
- #endif
- 
+-#include <linux/types.h>
+ #include <asm/fence.h>
 -#include <asm/mmiowb.h>
-+#include <asm-generic/mmio.h>
- #include <asm-generic/pci_iomap.h>
- 
--#ifndef __io_br
--#define __io_br()      barrier()
+-
+-/* Generic IO read/write.  These perform native-endian accesses. */
+-#define __raw_writeb __raw_writeb
+-static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
+-{
+-	asm volatile("sb %0, 0(%1)" : : "r" (val), "r" (addr));
+-}
+-
+-#define __raw_writew __raw_writew
+-static inline void __raw_writew(u16 val, volatile void __iomem *addr)
+-{
+-	asm volatile("sh %0, 0(%1)" : : "r" (val), "r" (addr));
+-}
+-
+-#define __raw_writel __raw_writel
+-static inline void __raw_writel(u32 val, volatile void __iomem *addr)
+-{
+-	asm volatile("sw %0, 0(%1)" : : "r" (val), "r" (addr));
+-}
+-
+-#ifdef CONFIG_64BIT
+-#define __raw_writeq __raw_writeq
+-static inline void __raw_writeq(u64 val, volatile void __iomem *addr)
+-{
+-	asm volatile("sd %0, 0(%1)" : : "r" (val), "r" (addr));
+-}
 -#endif
 -
--/* prevent prefetching of coherent DMA data ahead of a dma-complete */
--#ifndef __io_ar
--#ifdef rmb
--#define __io_ar(v)      rmb()
--#else
--#define __io_ar(v)      barrier()
--#endif
--#endif
--
--/* flush writes to coherent DMA data before possibly triggering a DMA read */
--#ifndef __io_bw
--#ifdef wmb
--#define __io_bw()      wmb()
--#else
--#define __io_bw()      barrier()
--#endif
--#endif
--
--/* serialize device access against a spin_unlock, usually handled there. */
--#ifndef __io_aw
--#define __io_aw()      mmiowb_set_pending()
--#endif
--
- #ifndef __io_pbw
- #define __io_pbw()     __io_bw()
- #endif
-@@ -63,369 +35,6 @@
- #define __io_par(v)     __io_ar(v)
- #endif
- 
--/*
-- * "__DISABLE_TRACE_MMIO__" flag can be used to disable MMIO tracing for
-- * specific kernel drivers in case of excessive/unwanted logging.
-- *
-- * Usage: Add a #define flag at the beginning of the driver file.
-- * Ex: #define __DISABLE_TRACE_MMIO__
-- *     #include <...>
-- *     ...
-- */
--#if IS_ENABLED(CONFIG_TRACE_MMIO_ACCESS) && !(defined(__DISABLE_TRACE_MMIO__))
--#include <linux/tracepoint-defs.h>
--
--#define rwmmio_tracepoint_enabled(tracepoint) tracepoint_enabled(tracepoint)
--DECLARE_TRACEPOINT(rwmmio_write);
--DECLARE_TRACEPOINT(rwmmio_post_write);
--DECLARE_TRACEPOINT(rwmmio_read);
--DECLARE_TRACEPOINT(rwmmio_post_read);
--
--void log_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
--		    unsigned long caller_addr, unsigned long caller_addr0);
--void log_post_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
--			 unsigned long caller_addr, unsigned long caller_addr0);
--void log_read_mmio(u8 width, const volatile void __iomem *addr,
--		   unsigned long caller_addr, unsigned long caller_addr0);
--void log_post_read_mmio(u64 val, u8 width, const volatile void __iomem *addr,
--			unsigned long caller_addr, unsigned long caller_addr0);
--
--#else
--
--#define rwmmio_tracepoint_enabled(tracepoint) false
--static inline void log_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
--				  unsigned long caller_addr, unsigned long caller_addr0) {}
--static inline void log_post_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
--				       unsigned long caller_addr, unsigned long caller_addr0) {}
--static inline void log_read_mmio(u8 width, const volatile void __iomem *addr,
--				 unsigned long caller_addr, unsigned long caller_addr0) {}
--static inline void log_post_read_mmio(u64 val, u8 width, const volatile void __iomem *addr,
--				      unsigned long caller_addr, unsigned long caller_addr0) {}
--
--#endif /* CONFIG_TRACE_MMIO_ACCESS */
--
--/*
-- * __raw_{read,write}{b,w,l,q}() access memory in native endianness.
-- *
-- * On some architectures memory mapped IO needs to be accessed differently.
-- * On the simple architectures, we just read/write the memory location
-- * directly.
-- */
--
--#ifndef __raw_readb
 -#define __raw_readb __raw_readb
 -static inline u8 __raw_readb(const volatile void __iomem *addr)
 -{
--	return *(const volatile u8 __force *)addr;
--}
--#endif
+-	u8 val;
 -
--#ifndef __raw_readw
+-	asm volatile("lb %0, 0(%1)" : "=r" (val) : "r" (addr));
+-	return val;
+-}
+-
 -#define __raw_readw __raw_readw
 -static inline u16 __raw_readw(const volatile void __iomem *addr)
 -{
--	return *(const volatile u16 __force *)addr;
--}
--#endif
+-	u16 val;
 -
--#ifndef __raw_readl
+-	asm volatile("lh %0, 0(%1)" : "=r" (val) : "r" (addr));
+-	return val;
+-}
+-
 -#define __raw_readl __raw_readl
 -static inline u32 __raw_readl(const volatile void __iomem *addr)
 -{
--	return *(const volatile u32 __force *)addr;
+-	u32 val;
+-
+-	asm volatile("lw %0, 0(%1)" : "=r" (val) : "r" (addr));
+-	return val;
 -}
--#endif
 -
 -#ifdef CONFIG_64BIT
--#ifndef __raw_readq
 -#define __raw_readq __raw_readq
 -static inline u64 __raw_readq(const volatile void __iomem *addr)
 -{
--	return *(const volatile u64 __force *)addr;
--}
--#endif
--#endif /* CONFIG_64BIT */
--
--#ifndef __raw_writeb
--#define __raw_writeb __raw_writeb
--static inline void __raw_writeb(u8 value, volatile void __iomem *addr)
--{
--	*(volatile u8 __force *)addr = value;
--}
--#endif
--
--#ifndef __raw_writew
--#define __raw_writew __raw_writew
--static inline void __raw_writew(u16 value, volatile void __iomem *addr)
--{
--	*(volatile u16 __force *)addr = value;
--}
--#endif
--
--#ifndef __raw_writel
--#define __raw_writel __raw_writel
--static inline void __raw_writel(u32 value, volatile void __iomem *addr)
--{
--	*(volatile u32 __force *)addr = value;
--}
--#endif
--
--#ifdef CONFIG_64BIT
--#ifndef __raw_writeq
--#define __raw_writeq __raw_writeq
--static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
--{
--	*(volatile u64 __force *)addr = value;
--}
--#endif
--#endif /* CONFIG_64BIT */
--
--/*
-- * {read,write}{b,w,l,q}() access little endian memory and return result in
-- * native endianness.
-- */
--
--#ifndef readb
--#define readb readb
--static inline u8 readb(const volatile void __iomem *addr)
--{
--	u8 val;
--
--	if (rwmmio_tracepoint_enabled(rwmmio_read))
--		log_read_mmio(8, addr, _THIS_IP_, _RET_IP_);
--	__io_br();
--	val = __raw_readb(addr);
--	__io_ar(val);
--	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
--		log_post_read_mmio(val, 8, addr, _THIS_IP_, _RET_IP_);
--	return val;
--}
--#endif
--
--#ifndef readw
--#define readw readw
--static inline u16 readw(const volatile void __iomem *addr)
--{
--	u16 val;
--
--	if (rwmmio_tracepoint_enabled(rwmmio_read))
--		log_read_mmio(16, addr, _THIS_IP_, _RET_IP_);
--	__io_br();
--	val = __le16_to_cpu((__le16 __force)__raw_readw(addr));
--	__io_ar(val);
--	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
--		log_post_read_mmio(val, 16, addr, _THIS_IP_, _RET_IP_);
--	return val;
--}
--#endif
--
--#ifndef readl
--#define readl readl
--static inline u32 readl(const volatile void __iomem *addr)
--{
--	u32 val;
--
--	if (rwmmio_tracepoint_enabled(rwmmio_read))
--		log_read_mmio(32, addr, _THIS_IP_, _RET_IP_);
--	__io_br();
--	val = __le32_to_cpu((__le32 __force)__raw_readl(addr));
--	__io_ar(val);
--	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
--		log_post_read_mmio(val, 32, addr, _THIS_IP_, _RET_IP_);
--	return val;
--}
--#endif
--
--#ifdef CONFIG_64BIT
--#ifndef readq
--#define readq readq
--static inline u64 readq(const volatile void __iomem *addr)
--{
 -	u64 val;
 -
--	if (rwmmio_tracepoint_enabled(rwmmio_read))
--		log_read_mmio(64, addr, _THIS_IP_, _RET_IP_);
--	__io_br();
--	val = __le64_to_cpu((__le64 __force)__raw_readq(addr));
--	__io_ar(val);
--	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
--		log_post_read_mmio(val, 64, addr, _THIS_IP_, _RET_IP_);
+-	asm volatile("ld %0, 0(%1)" : "=r" (val) : "r" (addr));
 -	return val;
 -}
 -#endif
--#endif /* CONFIG_64BIT */
--
--#ifndef writeb
--#define writeb writeb
--static inline void writeb(u8 value, volatile void __iomem *addr)
--{
--	if (rwmmio_tracepoint_enabled(rwmmio_write))
--		log_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
--	__io_bw();
--	__raw_writeb(value, addr);
--	__io_aw();
--	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
--		log_post_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
--}
--#endif
--
--#ifndef writew
--#define writew writew
--static inline void writew(u16 value, volatile void __iomem *addr)
--{
--	if (rwmmio_tracepoint_enabled(rwmmio_write))
--		log_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
--	__io_bw();
--	__raw_writew((u16 __force)cpu_to_le16(value), addr);
--	__io_aw();
--	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
--		log_post_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
--}
--#endif
--
--#ifndef writel
--#define writel writel
--static inline void writel(u32 value, volatile void __iomem *addr)
--{
--	if (rwmmio_tracepoint_enabled(rwmmio_write))
--		log_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
--	__io_bw();
--	__raw_writel((u32 __force)__cpu_to_le32(value), addr);
--	__io_aw();
--	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
--		log_post_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
--}
--#endif
--
--#ifdef CONFIG_64BIT
--#ifndef writeq
--#define writeq writeq
--static inline void writeq(u64 value, volatile void __iomem *addr)
--{
--	if (rwmmio_tracepoint_enabled(rwmmio_write))
--		log_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
--	__io_bw();
--	__raw_writeq((u64 __force)__cpu_to_le64(value), addr);
--	__io_aw();
--	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
--		log_post_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
--}
--#endif
--#endif /* CONFIG_64BIT */
 -
 -/*
-- * {read,write}{b,w,l,q}_relaxed() are like the regular version, but
-- * are not guaranteed to provide ordering against spinlocks or memory
-- * accesses.
+- * Unordered I/O memory access primitives.  These are even more relaxed than
+- * the relaxed versions, as they don't even order accesses between successive
+- * operations to the I/O regions.
 - */
--#ifndef readb_relaxed
--#define readb_relaxed readb_relaxed
--static inline u8 readb_relaxed(const volatile void __iomem *addr)
--{
--	u8 val;
+-#define readb_cpu(c)		({ u8  __r = __raw_readb(c); __r; })
+-#define readw_cpu(c)		({ u16 __r = le16_to_cpu((__force __le16)__raw_readw(c)); __r; })
+-#define readl_cpu(c)		({ u32 __r = le32_to_cpu((__force __le32)__raw_readl(c)); __r; })
 -
--	if (rwmmio_tracepoint_enabled(rwmmio_read))
--		log_read_mmio(8, addr, _THIS_IP_, _RET_IP_);
--	val = __raw_readb(addr);
--	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
--		log_post_read_mmio(val, 8, addr, _THIS_IP_, _RET_IP_);
--	return val;
--}
+-#define writeb_cpu(v, c)	((void)__raw_writeb((v), (c)))
+-#define writew_cpu(v, c)	((void)__raw_writew((__force u16)cpu_to_le16(v), (c)))
+-#define writel_cpu(v, c)	((void)__raw_writel((__force u32)cpu_to_le32(v), (c)))
+-
+-#ifdef CONFIG_64BIT
+-#define readq_cpu(c)		({ u64 __r = le64_to_cpu((__force __le64)__raw_readq(c)); __r; })
+-#define writeq_cpu(v, c)	((void)__raw_writeq((__force u64)cpu_to_le64(v), (c)))
 -#endif
--
--#ifndef readw_relaxed
--#define readw_relaxed readw_relaxed
--static inline u16 readw_relaxed(const volatile void __iomem *addr)
--{
--	u16 val;
--
--	if (rwmmio_tracepoint_enabled(rwmmio_read))
--		log_read_mmio(16, addr, _THIS_IP_, _RET_IP_);
--	val = __le16_to_cpu((__le16 __force)__raw_readw(addr));
--	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
--		log_post_read_mmio(val, 16, addr, _THIS_IP_, _RET_IP_);
--	return val;
--}
--#endif
--
--#ifndef readl_relaxed
--#define readl_relaxed readl_relaxed
--static inline u32 readl_relaxed(const volatile void __iomem *addr)
--{
--	u32 val;
--
--	if (rwmmio_tracepoint_enabled(rwmmio_read))
--		log_read_mmio(32, addr, _THIS_IP_, _RET_IP_);
--	val = __le32_to_cpu((__le32 __force)__raw_readl(addr));
--	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
--		log_post_read_mmio(val, 32, addr, _THIS_IP_, _RET_IP_);
--	return val;
--}
--#endif
--
--#if defined(readq) && !defined(readq_relaxed)
--#define readq_relaxed readq_relaxed
--static inline u64 readq_relaxed(const volatile void __iomem *addr)
--{
--	u64 val;
--
--	if (rwmmio_tracepoint_enabled(rwmmio_read))
--		log_read_mmio(64, addr, _THIS_IP_, _RET_IP_);
--	val = __le64_to_cpu((__le64 __force)__raw_readq(addr));
--	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
--		log_post_read_mmio(val, 64, addr, _THIS_IP_, _RET_IP_);
--	return val;
--}
--#endif
--
--#ifndef writeb_relaxed
--#define writeb_relaxed writeb_relaxed
--static inline void writeb_relaxed(u8 value, volatile void __iomem *addr)
--{
--	if (rwmmio_tracepoint_enabled(rwmmio_write))
--		log_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
--	__raw_writeb(value, addr);
--	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
--		log_post_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
--}
--#endif
--
--#ifndef writew_relaxed
--#define writew_relaxed writew_relaxed
--static inline void writew_relaxed(u16 value, volatile void __iomem *addr)
--{
--	if (rwmmio_tracepoint_enabled(rwmmio_write))
--		log_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
--	__raw_writew((u16 __force)cpu_to_le16(value), addr);
--	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
--		log_post_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
--}
--#endif
--
--#ifndef writel_relaxed
--#define writel_relaxed writel_relaxed
--static inline void writel_relaxed(u32 value, volatile void __iomem *addr)
--{
--	if (rwmmio_tracepoint_enabled(rwmmio_write))
--		log_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
--	__raw_writel((u32 __force)__cpu_to_le32(value), addr);
--	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
--		log_post_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
--}
--#endif
--
--#if defined(writeq) && !defined(writeq_relaxed)
--#define writeq_relaxed writeq_relaxed
--static inline void writeq_relaxed(u64 value, volatile void __iomem *addr)
--{
--	if (rwmmio_tracepoint_enabled(rwmmio_write))
--		log_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
--	__raw_writeq((u64 __force)__cpu_to_le64(value), addr);
--	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
--		log_post_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
--}
--#endif
--
+ 
  /*
-  * {read,write}s{b,w,l,q}() repeatedly access the same memory address in
-  * native endianness in 8-, 16-, 32- or 64-bit chunks (@count times).
-diff --git a/include/asm-generic/mmio.h b/include/asm-generic/mmio.h
-new file mode 100644
-index 000000000000..7a79aa16376f
---- /dev/null
-+++ b/include/asm-generic/mmio.h
-@@ -0,0 +1,407 @@
-+/* SPDX-License-Identifier: GPL-2.0-or-later */
-+/*
-+ * Generic memory-mapped I/O accessors.
+  * Relaxed I/O memory access primitives. These follow the Device memory
+@@ -105,27 +19,7 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
+  * write) with all other I/O memory accesses to the same peripheral. Since the
+  * platform specification defines that all I/O regions are strongly ordered on
+  * channel 0, no explicit fences are required to enforce this ordering.
+- */
+-/* FIXME: These are now the same as asm-generic */
+-#define __io_rbr()		do {} while (0)
+-#define __io_rar()		do {} while (0)
+-#define __io_rbw()		do {} while (0)
+-#define __io_raw()		do {} while (0)
+-
+-#define readb_relaxed(c)	({ u8  __v; __io_rbr(); __v = readb_cpu(c); __io_rar(); __v; })
+-#define readw_relaxed(c)	({ u16 __v; __io_rbr(); __v = readw_cpu(c); __io_rar(); __v; })
+-#define readl_relaxed(c)	({ u32 __v; __io_rbr(); __v = readl_cpu(c); __io_rar(); __v; })
+-
+-#define writeb_relaxed(v, c)	({ __io_rbw(); writeb_cpu((v), (c)); __io_raw(); })
+-#define writew_relaxed(v, c)	({ __io_rbw(); writew_cpu((v), (c)); __io_raw(); })
+-#define writel_relaxed(v, c)	({ __io_rbw(); writel_cpu((v), (c)); __io_raw(); })
+-
+-#ifdef CONFIG_64BIT
+-#define readq_relaxed(c)	({ u64 __v; __io_rbr(); __v = readq_cpu(c); __io_rar(); __v; })
+-#define writeq_relaxed(v, c)	({ __io_rbw(); writeq_cpu((v), (c)); __io_raw(); })
+-#endif
+-
+-/*
 + *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ */
-+#ifndef __ASM_GENERIC_MMIO_H
-+#define __ASM_GENERIC_MMIO_H
-+
-+#include <linux/instruction_pointer.h>
-+#include <linux/types.h>
-+
-+#include <asm/byteorder.h>
-+#include <asm/mmiowb.h>
-+
-+#ifndef __io_br
-+#define __io_br()      barrier()
-+#endif
-+
-+/* prevent prefetching of coherent DMA data ahead of a dma-complete */
-+#ifndef __io_ar
-+#ifdef rmb
-+#define __io_ar(v)      rmb()
-+#else
-+#define __io_ar(v)      barrier()
-+#endif
-+#endif
-+
-+/* flush writes to coherent DMA data before possibly triggering a DMA read */
-+#ifndef __io_bw
-+#ifdef wmb
-+#define __io_bw()      wmb()
-+#else
-+#define __io_bw()      barrier()
-+#endif
-+#endif
-+
-+/* serialize device access against a spin_unlock, usually handled there. */
-+#ifndef __io_aw
-+#define __io_aw()      mmiowb_set_pending()
-+#endif
-+
-+/*
-+ * "__DISABLE_TRACE_MMIO__" flag can be used to disable MMIO tracing for
-+ * specific kernel drivers in case of excessive/unwanted logging.
-+ *
-+ * Usage: Add a #define flag at the beginning of the driver file.
-+ * Ex: #define __DISABLE_TRACE_MMIO__
-+ *     #include <...>
-+ *     ...
-+ */
-+#if IS_ENABLED(CONFIG_TRACE_MMIO_ACCESS) && !(defined(__DISABLE_TRACE_MMIO__))
-+#include <linux/tracepoint-defs.h>
-+
-+#define rwmmio_tracepoint_enabled(tracepoint) tracepoint_enabled(tracepoint)
-+DECLARE_TRACEPOINT(rwmmio_write);
-+DECLARE_TRACEPOINT(rwmmio_post_write);
-+DECLARE_TRACEPOINT(rwmmio_read);
-+DECLARE_TRACEPOINT(rwmmio_post_read);
-+
-+void log_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
-+		    unsigned long caller_addr, unsigned long caller_addr0);
-+void log_post_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
-+			 unsigned long caller_addr, unsigned long caller_addr0);
-+void log_read_mmio(u8 width, const volatile void __iomem *addr,
-+		   unsigned long caller_addr, unsigned long caller_addr0);
-+void log_post_read_mmio(u64 val, u8 width, const volatile void __iomem *addr,
-+			unsigned long caller_addr, unsigned long caller_addr0);
-+
-+#else
-+
-+#define rwmmio_tracepoint_enabled(tracepoint) false
-+static inline void log_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
-+				  unsigned long caller_addr, unsigned long caller_addr0) {}
-+static inline void log_post_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
-+				       unsigned long caller_addr, unsigned long caller_addr0) {}
-+static inline void log_read_mmio(u8 width, const volatile void __iomem *addr,
-+				 unsigned long caller_addr, unsigned long caller_addr0) {}
-+static inline void log_post_read_mmio(u64 val, u8 width, const volatile void __iomem *addr,
-+				      unsigned long caller_addr, unsigned long caller_addr0) {}
-+
-+#endif /* CONFIG_TRACE_MMIO_ACCESS */
-+
-+/*
-+ * __raw_{read,write}{b,w,l,q}() access memory in native endianness.
-+ *
-+ * On some architectures memory mapped IO needs to be accessed differently.
-+ * On the simple architectures, we just read/write the memory location
-+ * directly.
-+ */
-+
-+#ifndef __raw_readb
-+#define __raw_readb __raw_readb
-+static inline u8 __raw_readb(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u8 __force *)addr;
-+}
-+#endif
-+
-+#ifndef __raw_readw
-+#define __raw_readw __raw_readw
-+static inline u16 __raw_readw(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u16 __force *)addr;
-+}
-+#endif
-+
-+#ifndef __raw_readl
-+#define __raw_readl __raw_readl
-+static inline u32 __raw_readl(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u32 __force *)addr;
-+}
-+#endif
-+
-+#ifdef CONFIG_64BIT
-+#ifndef __raw_readq
-+#define __raw_readq __raw_readq
-+static inline u64 __raw_readq(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u64 __force *)addr;
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
-+
-+#ifndef __raw_writeb
-+#define __raw_writeb __raw_writeb
-+static inline void __raw_writeb(u8 value, volatile void __iomem *addr)
-+{
-+	*(volatile u8 __force *)addr = value;
-+}
-+#endif
-+
-+#ifndef __raw_writew
-+#define __raw_writew __raw_writew
-+static inline void __raw_writew(u16 value, volatile void __iomem *addr)
-+{
-+	*(volatile u16 __force *)addr = value;
-+}
-+#endif
-+
-+#ifndef __raw_writel
-+#define __raw_writel __raw_writel
-+static inline void __raw_writel(u32 value, volatile void __iomem *addr)
-+{
-+	*(volatile u32 __force *)addr = value;
-+}
-+#endif
-+
-+#ifdef CONFIG_64BIT
-+#ifndef __raw_writeq
-+#define __raw_writeq __raw_writeq
-+static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
-+{
-+	*(volatile u64 __force *)addr = value;
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
-+
-+/*
-+ * {read,write}{b,w,l,q}() access little endian memory and return result in
-+ * native endianness.
-+ */
-+
-+#ifndef readb
-+#define readb readb
-+static inline u8 readb(const volatile void __iomem *addr)
-+{
-+	u8 val;
-+
-+	if (rwmmio_tracepoint_enabled(rwmmio_read))
-+		log_read_mmio(8, addr, _THIS_IP_, _RET_IP_);
-+	__io_br();
-+	val = __raw_readb(addr);
-+	__io_ar(val);
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
-+		log_post_read_mmio(val, 8, addr, _THIS_IP_, _RET_IP_);
-+	return val;
-+}
-+#endif
-+
-+#ifndef readw
-+#define readw readw
-+static inline u16 readw(const volatile void __iomem *addr)
-+{
-+	u16 val;
-+
-+	if (rwmmio_tracepoint_enabled(rwmmio_read))
-+		log_read_mmio(16, addr, _THIS_IP_, _RET_IP_);
-+	__io_br();
-+	val = __le16_to_cpu((__le16 __force)__raw_readw(addr));
-+	__io_ar(val);
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
-+		log_post_read_mmio(val, 16, addr, _THIS_IP_, _RET_IP_);
-+	return val;
-+}
-+#endif
-+
-+#ifndef readl
-+#define readl readl
-+static inline u32 readl(const volatile void __iomem *addr)
-+{
-+	u32 val;
-+
-+	if (rwmmio_tracepoint_enabled(rwmmio_read))
-+		log_read_mmio(32, addr, _THIS_IP_, _RET_IP_);
-+	__io_br();
-+	val = __le32_to_cpu((__le32 __force)__raw_readl(addr));
-+	__io_ar(val);
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
-+		log_post_read_mmio(val, 32, addr, _THIS_IP_, _RET_IP_);
-+	return val;
-+}
-+#endif
-+
-+#ifdef CONFIG_64BIT
-+#ifndef readq
-+#define readq readq
-+static inline u64 readq(const volatile void __iomem *addr)
-+{
-+	u64 val;
-+
-+	if (rwmmio_tracepoint_enabled(rwmmio_read))
-+		log_read_mmio(64, addr, _THIS_IP_, _RET_IP_);
-+	__io_br();
-+	val = __le64_to_cpu((__le64 __force)__raw_readq(addr));
-+	__io_ar(val);
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
-+		log_post_read_mmio(val, 64, addr, _THIS_IP_, _RET_IP_);
-+	return val;
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
-+
-+#ifndef writeb
-+#define writeb writeb
-+static inline void writeb(u8 value, volatile void __iomem *addr)
-+{
-+	if (rwmmio_tracepoint_enabled(rwmmio_write))
-+		log_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
-+	__io_bw();
-+	__raw_writeb(value, addr);
-+	__io_aw();
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
-+		log_post_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
-+}
-+#endif
-+
-+#ifndef writew
-+#define writew writew
-+static inline void writew(u16 value, volatile void __iomem *addr)
-+{
-+	if (rwmmio_tracepoint_enabled(rwmmio_write))
-+		log_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
-+	__io_bw();
-+	__raw_writew((u16 __force)cpu_to_le16(value), addr);
-+	__io_aw();
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
-+		log_post_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
-+}
-+#endif
-+
-+#ifndef writel
-+#define writel writel
-+static inline void writel(u32 value, volatile void __iomem *addr)
-+{
-+	if (rwmmio_tracepoint_enabled(rwmmio_write))
-+		log_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
-+	__io_bw();
-+	__raw_writel((u32 __force)__cpu_to_le32(value), addr);
-+	__io_aw();
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
-+		log_post_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
-+}
-+#endif
-+
-+#ifdef CONFIG_64BIT
-+#ifndef writeq
-+#define writeq writeq
-+static inline void writeq(u64 value, volatile void __iomem *addr)
-+{
-+	if (rwmmio_tracepoint_enabled(rwmmio_write))
-+		log_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
-+	__io_bw();
-+	__raw_writeq((u64 __force)__cpu_to_le64(value), addr);
-+	__io_aw();
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
-+		log_post_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
-+
-+/*
-+ * {read,write}{b,w,l,q}_relaxed() are like the regular version, but
-+ * are not guaranteed to provide ordering against spinlocks or memory
-+ * accesses.
-+ */
-+#ifndef readb_relaxed
-+#define readb_relaxed readb_relaxed
-+static inline u8 readb_relaxed(const volatile void __iomem *addr)
-+{
-+	u8 val;
-+
-+	if (rwmmio_tracepoint_enabled(rwmmio_read))
-+		log_read_mmio(8, addr, _THIS_IP_, _RET_IP_);
-+	val = __raw_readb(addr);
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
-+		log_post_read_mmio(val, 8, addr, _THIS_IP_, _RET_IP_);
-+	return val;
-+}
-+#endif
-+
-+#ifndef readw_relaxed
-+#define readw_relaxed readw_relaxed
-+static inline u16 readw_relaxed(const volatile void __iomem *addr)
-+{
-+	u16 val;
-+
-+	if (rwmmio_tracepoint_enabled(rwmmio_read))
-+		log_read_mmio(16, addr, _THIS_IP_, _RET_IP_);
-+	val = __le16_to_cpu((__le16 __force)__raw_readw(addr));
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
-+		log_post_read_mmio(val, 16, addr, _THIS_IP_, _RET_IP_);
-+	return val;
-+}
-+#endif
-+
-+#ifndef readl_relaxed
-+#define readl_relaxed readl_relaxed
-+static inline u32 readl_relaxed(const volatile void __iomem *addr)
-+{
-+	u32 val;
-+
-+	if (rwmmio_tracepoint_enabled(rwmmio_read))
-+		log_read_mmio(32, addr, _THIS_IP_, _RET_IP_);
-+	val = __le32_to_cpu((__le32 __force)__raw_readl(addr));
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
-+		log_post_read_mmio(val, 32, addr, _THIS_IP_, _RET_IP_);
-+	return val;
-+}
-+#endif
-+
-+#if defined(readq) && !defined(readq_relaxed)
-+#define readq_relaxed readq_relaxed
-+static inline u64 readq_relaxed(const volatile void __iomem *addr)
-+{
-+	u64 val;
-+
-+	if (rwmmio_tracepoint_enabled(rwmmio_read))
-+		log_read_mmio(64, addr, _THIS_IP_, _RET_IP_);
-+	val = __le64_to_cpu((__le64 __force)__raw_readq(addr));
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_read))
-+		log_post_read_mmio(val, 64, addr, _THIS_IP_, _RET_IP_);
-+	return val;
-+}
-+#endif
-+
-+#ifndef writeb_relaxed
-+#define writeb_relaxed writeb_relaxed
-+static inline void writeb_relaxed(u8 value, volatile void __iomem *addr)
-+{
-+	if (rwmmio_tracepoint_enabled(rwmmio_write))
-+		log_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
-+	__raw_writeb(value, addr);
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
-+		log_post_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
-+}
-+#endif
-+
-+#ifndef writew_relaxed
-+#define writew_relaxed writew_relaxed
-+static inline void writew_relaxed(u16 value, volatile void __iomem *addr)
-+{
-+	if (rwmmio_tracepoint_enabled(rwmmio_write))
-+		log_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
-+	__raw_writew((u16 __force)cpu_to_le16(value), addr);
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
-+		log_post_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
-+}
-+#endif
-+
-+#ifndef writel_relaxed
-+#define writel_relaxed writel_relaxed
-+static inline void writel_relaxed(u32 value, volatile void __iomem *addr)
-+{
-+	if (rwmmio_tracepoint_enabled(rwmmio_write))
-+		log_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
-+	__raw_writel((u32 __force)__cpu_to_le32(value), addr);
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
-+		log_post_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
-+}
-+#endif
-+
-+#if defined(writeq) && !defined(writeq_relaxed)
-+#define writeq_relaxed writeq_relaxed
-+static inline void writeq_relaxed(u64 value, volatile void __iomem *addr)
-+{
-+	if (rwmmio_tracepoint_enabled(rwmmio_write))
-+		log_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
-+	__raw_writeq((u64 __force)__cpu_to_le64(value), addr);
-+	if (rwmmio_tracepoint_enabled(rwmmio_post_write))
-+		log_post_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
-+}
-+#endif
-+
-+#endif /* __ASM_GENERIC_MMIO_H */
+  * I/O memory access primitives.  Reads are ordered relative to any following
+  * Normal memory read and delay() loop.  Writes are ordered relative to any
+  * prior Normal memory write.  The memory barriers here are necessary as RISC-V
+@@ -136,17 +30,6 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
+ #define __io_bw()	RISCV_FENCE(w, o)
+ #define __io_aw()	mmiowb_set_pending()
+ 
+-#define readb(c)	({ u8  __v; __io_br(); __v = readb_cpu(c); __io_ar(__v); __v; })
+-#define readw(c)	({ u16 __v; __io_br(); __v = readw_cpu(c); __io_ar(__v); __v; })
+-#define readl(c)	({ u32 __v; __io_br(); __v = readl_cpu(c); __io_ar(__v); __v; })
+-
+-#define writeb(v, c)	({ __io_bw(); writeb_cpu((v), (c)); __io_aw(); })
+-#define writew(v, c)	({ __io_bw(); writew_cpu((v), (c)); __io_aw(); })
+-#define writel(v, c)	({ __io_bw(); writel_cpu((v), (c)); __io_aw(); })
+-
+-#ifdef CONFIG_64BIT
+-#define readq(c)	({ u64 __v; __io_br(); __v = readq_cpu(c); __io_ar(__v); __v; })
+-#define writeq(v, c)	({ __io_bw(); writeq_cpu((v), (c)); __io_aw(); })
+-#endif
++#include <asm-generic/mmio.h>
+ 
+ #endif /* _ASM_RISCV_MMIO_H */
 -- 
 2.43.0
 
