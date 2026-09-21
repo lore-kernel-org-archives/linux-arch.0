@@ -1,35 +1,35 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id D675A486E69;
-	Mon, 21 Sep 2026 10:57:44 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 68E66486E69;
+	Mon, 21 Sep 2026 10:57:52 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789988266; cv=none; b=unT1wzjdcbJ+tOZxRbpbMM5qg+Pa8d8XcUFqQaO5AnlLhm232PDhxzb57nUkv3aloiOPrbGnK0KvrdqJUm2ZqqEts4+aumOi0wgQStIv2ge4CQ9+xUEF0pG2W/CdFaIdgACX2G+0B9WmbumZd0ZYd38FHxAhHFUtgR7B72Lmx44=
+	t=1789988274; cv=none; b=SupWfdB47aJdmv2OjDNuL3ouk8lbTI+iTKf05AXXwArci7HDdLaHFoU+wp3oXfY3h1TYEtLH8SQmLSNjKpfPPHNdA4nHt9MblCFfmvtjW5WZy9WQL5+3r5e7reCtbIbzaK9R4+jmCqt2Rc7m1fH5Knq1dH8liNIPTIHpjfEKawo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789988266; c=relaxed/simple;
-	bh=KiXQHGuhfMlh69+vDPC8O/k2WRfNJbgSm7Gu8QYG2aY=;
+	s=arc-20240116; t=1789988274; c=relaxed/simple;
+	bh=uF4DfWzXa9EkGf1I0Bn2aL3RfBnTbP81TBjbavbJ8QQ=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=JLc3Lv4vABtAuksXz/i4l+KE7oEJO8mGp5jVPMrHYB/dV0nLdd+0+fsJQFzxIfK5RrkZdUE2JH3yYIxk9grmEppJ9wW5SI9Z+89kbA851excbJj8884BbincOZpDE1nqNMFd5/gs86h7oRaqoz05vlXHAFR9XTcii+jnHgQFPso=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=acOOrhxG; arc=none smtp.client-ip=217.140.110.172
+	 In-Reply-To:To:Cc; b=AqG870ZGWuoberLWRxO6fJvuViEE1STdWLLkFKm3LrU8cqrNR5SDg6Y5s6XgOmtQUnzVUnkMMqOo6dDPF73XlGFBWVeYPUO92SnoX3rDTT2wRB40QXAzphL9JrsoQJLiq73+/dMQVKMvIrBQVcI/EEIiUBsFESvw5ZuO20ksFB4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=b2oxv8G3; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="acOOrhxG"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="b2oxv8G3"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id BBDEA1D13;
-	Mon, 21 Sep 2026 03:57:40 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 589AC1CE0;
+	Mon, 21 Sep 2026 03:57:48 -0700 (PDT)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 091B03F86C;
-	Mon, 21 Sep 2026 03:57:36 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 98F113F9AB;
+	Mon, 21 Sep 2026 03:57:44 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1789988264; bh=KiXQHGuhfMlh69+vDPC8O/k2WRfNJbgSm7Gu8QYG2aY=;
+	t=1789988271; bh=uF4DfWzXa9EkGf1I0Bn2aL3RfBnTbP81TBjbavbJ8QQ=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=acOOrhxGt24gm0TRAbQDXTQ9bBBp3Bj56XEBgnVOotqP+qiG7YJVhkcGW+xrwcb2a
-	 USmOAWcGi1YbzXXz+GFEN3it02D0/yYErePOTiGnto1f4lTnlkzD119S+FRZwhYPnm
-	 tRzn3ffsctlJfSwSOqlNejAXL1s2WdK0ogZ6I3bk=
+	b=b2oxv8G3acXR+b4U8Ke9KSVZQ8NqKzHIB8Xl/ycl/nGOLEQlcX18PIjAeIg7B3tpb
+	 7HmCy4J3ydk3qZfbtrFLpV4tABhoN+2/B17S+yQ+WsYgwEYTPLCQRkt0ZeSX/hLPMx
+	 Aa+nRIFl1reImGlNGptnuq9oq9dvqnppsyrc+NyE=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Mon, 21 Sep 2026 11:55:32 +0100
-Subject: [PATCH 10/21] riscv: kvm: remove stack copy address of pXd in
- pXd_offset()
+Date: Mon, 21 Sep 2026 11:55:33 +0100
+Subject: [PATCH 11/21] riscv: mm: use proper set_pXd() for generic
+ compile-time folded patable in vmalloc_fault()
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -38,7 +38,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260921-dummy_ptxp3-v1-10-cd40cf68242e@arm.com>
+Message-Id: <20260921-dummy_ptxp3-v1-11-cd40cf68242e@arm.com>
 References: <20260921-dummy_ptxp3-v1-0-cd40cf68242e@arm.com>
 In-Reply-To: <20260921-dummy_ptxp3-v1-0-cd40cf68242e@arm.com>
 To: Russell King <linux@armlinux.org.uk>, 
@@ -71,85 +71,141 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
  linux-openrisc@vger.kernel.org, Yeoreum Yun <yeoreum.yun@arm.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2080; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=KiXQHGuhfMlh69+vDPC8O/k2WRfNJbgSm7Gu8QYG2aY=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBqsQ1P/lW6m6B1mTpRP6bpmebttNlScQQ9pFLGp
- +TLi5+fe6mJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCarENTwAKCRBt1cPRWsUx
- MzRxDACbWH4JATwoeni8FvpOIlAtj13UB3cW+c35hpt9oGzmcDZ+kjukMqctT6h2L2N5pHpsDgV
- vmayApcPPlarU6k8ZQpvBb7KJ1cYGUNPU474TxmX2vBVITXF3mbHMgRoEbIqhbltrGT8uBoVyCo
- KgDVi+KDgkbOrzeKUfL6m7D9VLVgLaNDamzt7DvVVqiCTUJRUSmv5DxuOqilRyUUWgRg66cEh0f
- fNgaSTYxDBBBOqd6xi9vA+7R/D8gaYslxHah31gen9zR/KRiSCVO8oSWE7qao685EtRbhlF8C/w
- 3me3Bkz4+kVb6rnCMuV0mt4yG2kuNCmzvgORQC8TBdutWp1pmcamhxcvxqCjL3WpVuFoo+iztFK
- qrF8TVoPbY7wwUVBdeD8kZ/Lg3FUZf4niWpEI3+/yEQZqeiImeTuLoEd2uelVxIt79PiLiF5ED/
- 4IEDN1fi5/NH35mcjNFuUFg9VZ1c9qX2muen0gS+XMIvV6EzYFJk5Fv4kXIUQGEyvngIk=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=3753; i=yeoreum.yun@arm.com;
+ h=from:subject:message-id; bh=uF4DfWzXa9EkGf1I0Bn2aL3RfBnTbP81TBjbavbJ8QQ=;
+ b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBqsQ1QAg31Sog0FCjc3kuChuSeE5nwlfWLMD4sT
+ IBC+fegfX2JAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCarENUAAKCRBt1cPRWsUx
+ Mx8TDACfGiY1tFbMNuqJzhqG74lnH8gGDp7+4K0KfmvivFAxuHooIWaalWIlCiXzXZGwXVbHHwy
+ EPxRgkJ1uw1jlH3gDOGxNETf15cT+KdPWxc2IPcZjimn44GpN/tHq3ie/ILysREci576iJCfLl4
+ hZhn/31gf80m5wAoruCFpkdOoDK9vI2gDH1iAE7dcktlPtXovnfLAUzOVfzwDk1sJuYI3BsByOn
+ l1dM0H6rX2RhzKIfJT02RA3stLjqjS4aqMUOuIEyQ7uCm/vePyl/toLHSfNlXeAFt+vkDA1BaNk
+ G2Mqub8YtbPcYMJILsZALUoZGulrUViemuEn1MQuFSk3xeW6LvdIps5z0pgD/hyMDOQMsf9zlaq
+ 43upc2P7Di2WqF1BalL1zetYzreAC4iO8Ass4iBh3zl5KSk4v4cizRvztC13VZGm8bZN2nr/A/H
+ LW9L0Tf5m0dkB2RXOoknui/VOBmrN6PvMrEVqP3go7fwbJPESPNAgPLiosUQHnJ16thBo=
 X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
  fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
 
 The behaviour of pXdp_get() will change with generic compile-time folded
-page tables. To prepare for that, rework get_hva_mapping_size() to avoid
-use of a stack copy of a pXd and pass it as argument to pXd_offset() so that
-the folded entries value is ignored.
+page tables, making it invalid to use set_pXd() with the result of
+pXdp_get(). Instead, the appropriate first-level set_pXd() must be paired
+with the corresponding pXdp_get().
 
-Replace direct uses of stack-based pXd values with pXd_offset_lockless()
-and there should be no functional change.
+Therefore, call the appropriate set_pXd() for generic compile-time folded
+page tables so that vmalloc_fault() continues to handle folded entries
+correctly when checking pXd_present().
 
-Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
+There should be no functional change.
+
+Since most architectures use a similar pattern to handle vmalloc fault
+by syncing the faulted entry, it would be worth cleaning this up by
+introducing a common helper in the near future.
+
 Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
 ---
- arch/riscv/kvm/mmu.c | 20 ++++++++++++--------
- 1 file changed, 12 insertions(+), 8 deletions(-)
+ arch/riscv/mm/fault.c | 52 ++++++++++++++++++++++++++++++++-------------------
+ 1 file changed, 33 insertions(+), 19 deletions(-)
 
-diff --git a/arch/riscv/kvm/mmu.c b/arch/riscv/kvm/mmu.c
-index 5c5c77f98bf0f..b97224e14fc16 100644
---- a/arch/riscv/kvm/mmu.c
-+++ b/arch/riscv/kvm/mmu.c
-@@ -450,10 +450,10 @@ static int get_hva_mapping_size(struct kvm *kvm,
+diff --git a/arch/riscv/mm/fault.c b/arch/riscv/mm/fault.c
+index 04ed6f8acae4f..b2bcaf10d13f1 100644
+--- a/arch/riscv/mm/fault.c
++++ b/arch/riscv/mm/fault.c
+@@ -167,14 +167,16 @@ bad_area(struct pt_regs *regs, struct mm_struct *mm, int code,
+ 
+ static inline void vmalloc_fault(struct pt_regs *regs, int code, unsigned long addr)
  {
- 	int size = PAGE_SIZE;
- 	unsigned long flags;
--	pgd_t pgd;
--	p4d_t p4d;
--	pud_t pud;
--	pmd_t pmd;
-+	pgd_t *pgdp, pgd;
-+	p4d_t *p4dp, p4d;
-+	pud_t *pudp, pud;
-+	pmd_t *pmdp, pmd;
+-	pgd_t *pgd, *pgd_k;
+-	pud_t *pud_k;
+-	p4d_t *p4d_k;
+-	pmd_t *pmd_k;
+-	pte_t *pte_k;
++	pgd_t *pgdp_k, *pgdp, pgd_k;
++	p4d_t *p4dp_k, *p4dp;
++	pud_t *pudp_k, *pudp, pud_k;
++	pmd_t *pmdp_k, *pmdp, pmd_k;
++	pte_t *ptep_k;
+ 	int index;
+ 	unsigned long pfn;
  
- 	/*
- 	 * Disable IRQs to prevent concurrent tear down of host page tables,
-@@ -469,15 +469,18 @@ static int get_hva_mapping_size(struct kvm *kvm,
- 	 * value) and then p*d_offset() walks into the target huge page instead
- 	 * of the old page table (sees the new value).
++	BUILD_BUG_ON(CONFIG_PGTABLE_LEVELS != 5 && CONFIG_PGTABLE_LEVELS != 2);
++
+ 	/* User mode accesses just cause a SIGSEGV */
+ 	if (user_mode(regs))
+ 		return do_trap(regs, SIGSEGV, code, addr);
+@@ -189,39 +191,51 @@ static inline void vmalloc_fault(struct pt_regs *regs, int code, unsigned long a
  	 */
--	pgd = pgdp_get(pgd_offset(kvm->mm, hva));
-+	pgdp = pgd_offset(kvm->mm, hva);
-+	pgd = pgdp_get(pgdp);
- 	if (pgd_none(pgd))
- 		goto out;
+ 	index = pgd_index(addr);
+ 	pfn = csr_read(CSR_SATP) & SATP_PPN;
+-	pgd = (pgd_t *)pfn_to_virt(pfn) + index;
+-	pgd_k = init_mm.pgd + index;
  
--	p4d = p4dp_get(p4d_offset(&pgd, hva));
-+	p4dp = p4d_offset_lockless(pgdp, pgd, hva);
-+	p4d = p4dp_get(p4dp);
- 	if (p4d_none(p4d) || !p4d_present(p4d))
- 		goto out;
+-	if (!pgd_present(pgdp_get(pgd_k))) {
++	pgdp = (pgd_t *)pfn_to_virt(pfn) + index;
++	pgdp_k = init_mm.pgd + index;
++
++	pgd_k = pgdp_get(pgdp_k);
++	if (!pgd_present(pgd_k)) {
+ 		no_context(regs, addr);
+ 		return;
+ 	}
+-	set_pgd(pgd, pgdp_get(pgd_k));
++	if (CONFIG_PGTABLE_LEVELS == 5)
++		set_pgd(pgdp, pgd_k);
  
--	pud = pudp_get(pud_offset(&p4d, hva));
-+	pudp = pud_offset_lockless(p4dp, p4d, hva);
-+	pud = pudp_get(pudp);
- 	if (pud_none(pud) || !pud_present(pud))
- 		goto out;
- 
-@@ -486,7 +489,8 @@ static int get_hva_mapping_size(struct kvm *kvm,
- 		goto out;
+-	p4d_k = p4d_offset(pgd_k, addr);
+-	if (!p4d_present(p4dp_get(p4d_k))) {
++	p4dp = p4d_offset(pgdp, addr);
++	p4dp_k = p4d_offset(pgdp_k, addr);
++	if (!p4d_present(p4dp_get(p4dp_k))) {
+ 		no_context(regs, addr);
+ 		return;
  	}
  
--	pmd = pmdp_get(pmd_offset(&pud, hva));
-+	pmdp = pmd_offset_lockless(pudp, pud, hva);
-+	pmd = pmdp_get(pmdp);
- 	if (pmd_none(pmd) || !pmd_present(pmd))
- 		goto out;
+-	pud_k = pud_offset(p4d_k, addr);
+-	if (!pud_present(pudp_get(pud_k))) {
++	pudp = pud_offset(p4dp, addr);
++	pudp_k = pud_offset(p4dp_k, addr);
++
++	pud_k = pudp_get(pudp_k);
++	if (!pud_present(pud_k)) {
+ 		no_context(regs, addr);
+ 		return;
+ 	}
+-	if (pud_leaf(pudp_get(pud_k)))
++	if (pud_leaf(pud_k))
+ 		goto flush_tlb;
  
+ 	/*
+ 	 * Since the vmalloc area is global, it is unnecessary
+ 	 * to copy individual PTEs
+ 	 */
+-	pmd_k = pmd_offset(pud_k, addr);
+-	if (!pmd_present(pmdp_get(pmd_k))) {
++	pmdp = pmd_offset(pudp, addr);
++	pmdp_k = pmd_offset(pudp_k, addr);
++
++	pmd_k = pmdp_get(pmdp_k);
++	if (!pmd_present(pmd_k)) {
+ 		no_context(regs, addr);
+ 		return;
+ 	}
+-	if (pmd_leaf(pmdp_get(pmd_k)))
++	if (CONFIG_PGTABLE_LEVELS == 2)
++		set_pmd(pmdp, pmd_k);
++	if (pmd_leaf(pmd_k))
+ 		goto flush_tlb;
+ 
+ 	/*
+@@ -230,8 +244,8 @@ static inline void vmalloc_fault(struct pt_regs *regs, int code, unsigned long a
+ 	 * addresses. If we don't do this, this will just
+ 	 * silently loop forever.
+ 	 */
+-	pte_k = pte_offset_kernel(pmd_k, addr);
+-	if (!pte_present(ptep_get(pte_k))) {
++	ptep_k = pte_offset_kernel(pmdp_k, addr);
++	if (!pte_present(ptep_get(ptep_k))) {
+ 		no_context(regs, addr);
+ 		return;
+ 	}
 
 -- 
 2.43.0
