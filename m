@@ -1,626 +1,390 @@
-Received: from mail-yx2-f43.google.com (mail-yx2-f43.google.com [74.125.224.171])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from DUZPR83CU001.outbound.protection.outlook.com (mail-northeuropeazon11012047.outbound.protection.outlook.com [52.101.66.47])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 28A7F51476B
-	for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2026 21:00:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.171
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790024462; cv=none; b=PM0dY+9nmdbBWqc2Zbh2v13hJV3mpaBlOeAJc9sen/dDTb76V6Y13r2Q+O9F/Y7bO8dCD/Qe4pJkNbmwxcdoJdxEc7o2f2hmFDSw3xzCfNJVGEPTRVUhRwpR9yGBHhtBkTjP72y3LIwzc6iD+nPGa99ekpDOjLTm6Baqp/EgNLo=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790024462; c=relaxed/simple;
-	bh=6bOqs+StLJsPQ5uvaJoGvsHyNvBMdSSKxiU4ObsOTiE=;
-	h=From:To:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=dTT50fOqg40RxvPCmqls+imre8My80Y/lrHPU21RSOH4AF1tpeHpwvQZFTM9/Qt/RLraBkF3BgCh2Nv8IczvAQ1xGmOF7bv3w55YiQzdegpgIuWe+O8mOTDjKNOuN0FMYH7YcW0f8n7Q9i+LxGg9Kz5ZP9weGM4RYYP3DD6lr1c=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com; spf=pass smtp.mailfrom=soleen.com; dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b=H9CM+S6w; arc=none smtp.client-ip=74.125.224.171
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=soleen.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E50C140F72D;
+	Mon, 21 Sep 2026 21:12:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.66.47
+ARC-Seal:i=3; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1790025129; cv=fail; b=B829g3+PqN5plFAMduaUm7VGEt+1mWh6sLzd0xfnQoEQs5oCj6P2q7+n9x9NhiPwwNLIqxKCohpoXHlruNYmBqYNhU/UxVnpH2ODWM3RXwxgO/pLe07XxTvvrRt1xu0EAvmzC/8DleJ6neWIY8hPnZoj9A10hDxJMtp3feMZ47o=
+ARC-Message-Signature:i=3; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1790025129; c=relaxed/simple;
+	bh=VRmIoWzAq8tN9/Tw/idytSZNv7Yg66ION06ZdKSx7wA=;
+	h=Message-ID:Date:Cc:Subject:To:References:From:In-Reply-To:
+	 Content-Type:MIME-Version; b=VNyb0o6pg16buoR6ICy3++anq/lNhOItyOixzDvdsNXKcOWfpCOTyz1/EcIrcG3XJahm2Uo/FiXyCVWyFVtnjMUkSsOJHy/baJLxNmdeX2IbnvauJnnCchxiJKYB44FPJGYSNO6qCaVZ1qxMhBWgFXC4AK/HL7k7ccRSw4wiboI=
+ARC-Authentication-Results:i=3; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=hxbskqef; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=hxbskqef; arc=fail smtp.client-ip=52.101.66.47
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.b="H9CM+S6w"
-Received: by mail-yx2-f43.google.com with SMTP id 00721157ae682-895eaf30817so37545987b3.0
-        for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2026 14:00:57 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=soleen.com; s=google; t=1790024456; x=1790629256; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:to:from:from:to:cc:subject:date:message-id
-         :reply-to:content-type;
-        bh=R9yjuK1GvA7WV81vpr4lLFMgvL9Udfn1vNj/C/kFbiw=;
-        b=H9CM+S6weOxJY6aBr8fhpYgBysQRQzCHTGYOu6dn8RumdAm2MHA2q4jqxrxdH+1hHF
-         ZuzLstYOJKGQ0LyyLnUhRLFpLsIScYeLD9UOKnpuKIhfSAmSypguiIDdX9NVirGiqHvw
-         zS4UH9m8ndGVMt3hRl0No7S44dkFAWzbZ+QCCDIWIvd80TSKWGjZ1iZrM9HeNWx0Rms1
-         sajFmietps/JGqiP7AOC2ImaN24pa0NDSS7FKzfBaqVngFFKVVM4Y6tYUblerR7ansun
-         sGrrYeErX3/P0b03d7EZzbkQ51Wyqz42n8BbjIpjF8v70KTINXK3v/5y3rJUcAgEYXEy
-         Pbtg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790024456; x=1790629256;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:to:from:x-gm-gg:x-gm-message-state:from:to
-         :cc:subject:date:message-id:reply-to:content-type;
-        bh=R9yjuK1GvA7WV81vpr4lLFMgvL9Udfn1vNj/C/kFbiw=;
-        b=VS62IgwtsVW5xYtEOpV+d9PBR7Z0Qy0MhtRfeG01qFxbqQ++G7L32xs68Y5gOILttK
-         NjJPnEGoY6zR5gfzpE5yKTdjO7PrGT3GISutzzvHtODZIhjZ39J7Sa8kYd7NvVm8vilV
-         6rL7/2l6jHYGUwm2LPTAM5qYlau4IaqH2bJwKHundWgTGaUm46x+J1Peu/L9lr8PkFaf
-         wEf2bOMwZ0HzsmYvkq4fiWehtQ4iCacvnUs8xluywrY2RXjhVIz+TeBXwCKFq3zMOo3H
-         yVkzvEHpihWiThpvqy4YbkJNaKbEmU1ExEvaXJ5OH3uAVbPZYIHVreLzQwlYDOFdqoNq
-         SqSQ==
-X-Forwarded-Encrypted: i=1; AKwUvByCRJsRxQRKpHyurqgAnYIgbLnLctgyu/jQDM8+j8VFScGLlcvOHUCcO+iggaMOnTTlzX07ZzMDMTVl@vger.kernel.org
-X-Gm-Message-State: AFuF++nWPzoHfpAWqXTjJbiV0n5LKOrTiRm/cVartJcugenp3O+o0E2L
-	sS6v86BMi+LOmpmu3r++jKFjaszVhcHSbbO+oYZLJzHVYBKwP0T9UAMuC2OEv+d6vAU=
-X-Gm-Gg: AYBFou20FvZZU4ilLC+IRs5FN4smh1UwyWMchvDtEThbbpzQe9okHppIm+b6va6vwoV
-	G18w7J6+QAXZqt2bIpYNjuzLsr9XP2T9KQzWXf6cXPtES9OOx9V/ZhOlNA+TXPnA61jXOpbrMcy
-	E09M0DGWIRcVpGpQGNTQqV86et0VbVVXKCiUO41qG/x/GS9vvlLSZaXOBvtyOMobHjzxPkTSB6k
-	qV32fB33k+/dEXHiZJ1ExWlhjWF5RrbaVTLDhq1cRHgnzeuP0Py3geibwLScME07VPsof0kPZiD
-	Cy/GB1JLYmdfPw6zzp1d3tM7q3ilsSDjoWMUnJZ/PcEQsIUV1tJzwsrfaL0jQentr4zrIEJGSlc
-	SDLpqv/hUFnkq5gs+RzIF2p2lO6uIuT/Fsfx+vrYzljO9elnM9f3HD21KMPXAoHDO2ku7iF5jzw
-	fw/gF+SmyIyHDutFMzBtmrg5ZSWZsMG4gj0sfxljXo5o3CaoIj8jiKctRLBC8ureJ5mIW0e1OKr
-	lgviNIiATzEDk7LzdzJGADCP7QFiT44mC8oY9LyTRBeVPJOO/rmBdUdrIJR9lfkHQX3p6neI2cY
-	CHYH8dpLIQ39/XN8IEs=
-X-Received: by 2002:a05:690c:60c7:b0:873:5bd1:98bc with SMTP id 00721157ae682-89737319ab8mr34742607b3.46.1790024456175;
-        Mon, 21 Sep 2026 14:00:56 -0700 (PDT)
-Received: from soleen.c.googlers.com.com (16.49.199.35.bc.googleusercontent.com. [35.199.49.16])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-8a23c738bdfsm1445297b3.11.2026.09.21.14.00.54
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 21 Sep 2026 14:00:55 -0700 (PDT)
-From: Pasha Tatashin <pasha.tatashin@soleen.com>
-To: linux-kselftest@vger.kernel.org,
-	legion@kernel.org,
-	kees@kernel.org,
-	will@kernel.org,
-	ruanjinjie@huawei.com,
-	atomlin@atomlin.com,
-	rppt@kernel.org,
-	jani.nikula@intel.com,
-	hamzamahfooz@linux.microsoft.com,
-	joey.gouly@arm.com,
-	tglx@kernel.org,
-	nsc@kernel.org,
-	alexandre.chartre@oracle.com,
-	james.morse@arm.com,
-	dianders@chromium.org,
-	bp@alien8.de,
-	jpoimboe@kernel.org,
-	shuah@kernel.org,
-	catalin.marinas@arm.com,
-	linux-kbuild@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	kvmarm@lists.linux.dev,
-	jaredwhite@microsoft.com,
-	johan@kernel.org,
-	pbonzini@redhat.com,
-	mingo@redhat.com,
-	linux-mm@kvack.org,
-	seanjc@google.com,
-	mark.rutland@arm.com,
-	vdonnefort@google.com,
-	tarunsahu@google.com,
-	gshan@redhat.com,
-	skhan@linuxfoundation.org,
-	linux-doc@vger.kernel.org,
-	xur@google.com,
-	djbw@kernel.org,
-	oupton@kernel.org,
-	nogikh@google.com,
-	sumitg@nvidia.com,
-	linux-kernel@vger.kernel.org,
-	zengheng4@huawei.com,
-	peterz@infradead.org,
-	corbet@lwn.net,
-	suzuki.poulose@arm.com,
-	luto@kernel.org,
-	hpa@zytor.com,
-	zhangpengjie2@huawei.com,
-	x86@kernel.org,
-	yuzenghui@huawei.com,
-	jic23@kernel.org,
-	ardb@kernel.org,
-	pasha.tatashin@soleen.com,
-	petr.pavlu@suse.com,
-	ryan.roberts@arm.com,
-	kexec@lists.infradead.org,
-	pratyush@kernel.org,
-	dave.hansen@linux.intel.com,
-	rdunlap@infradead.org,
-	kvm@vger.kernel.org,
-	fuad.tabba@linux.dev,
-	maz@kernel.org,
-	mbenes@suse.cz,
-	jgross@suse.com,
-	seiden@linux.ibm.com,
-	pierre.gondois@arm.com,
-	song@kernel.org,
-	nathan@kernel.org,
-	pmladek@suse.com,
-	graf@amazon.com,
-	chao.gao@intel.com,
-	zhenglifeng1@huawei.com,
-	arnd@arndb.de,
-	sidnayyar@google.com,
-	linux-arm-kernel@lists.infradead.org,
-	vladimir.murzin@arm.com,
-	kas@kernel.org
-Subject: [RFC PATCH 46/46] KVM: arm64: Implement Caretaker vCPU run loop and LUO detach/attach lifecycle
-Date: Mon, 21 Sep 2026 17:00:34 -0400
-Message-ID: <20260921210034.180424-8-pasha.tatashin@soleen.com>
-X-Mailer: git-send-email 2.55.0.1082.g2b9226bbc0-goog
-In-Reply-To: <20260921210034.180424-1-pasha.tatashin@soleen.com>
-References: <20260920193650.3373435-1-pasha.tatashin@soleen.com>
- <20260921210034.180424-1-pasha.tatashin@soleen.com>
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="hxbskqef";
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="hxbskqef"
+ARC-Seal: i=2; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=pass;
+ b=At501vIPK0D95G0+5oa/eAvo/gs55DrnspX3Um15Ya6IKN6EilFTrm15lF3Qr+n9JAA8Oibda88xF1rmecFEY5CL3Orp7gmMxD6tcv2RB6MweQvcS/gUVzXd0ZduMApAe+HUbkvbXbt6RR4eFyEpOKv2aoqkoG7FIUP6YKUgzw4j6tyFciteY1d8BTtH9rQZxpp3RWofzNDPIWy/VGUzNDkrzK6yI/hdA+xutqCm4MUXNMMOq7o4h8DmwZRA2AxFZgKRttDwDeBmd8DnSf2SaWoWfaySD8tTjMHcPiikzKL5/FB2u3crduEMeAFJlDSmqsgHjzmybnURsDAD4zZ46A==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=fssjnakAwX4Aot0ReFg0roa8e4/oDQDWx8US/n+1cwI=;
+ b=yc4HOZlYGB0pxaO8vW7ebsErhUSkFdzqO/zwNjrgx+eY7+C5Hu6HQ/Bcb3vtqUzKV1dGhqoy1Ic0HJe4cMMfoQup5QgE7/qhxOjHdIuJksVAWC13UqT0tj9XjjlL08U8W6Lpifu/s3pYCof3hcJwdGpEE+KYRn9vXeYR/Yqc51Lzv+eTTeVj4RN425BYzCh0T2ivYGMiNjR9Eff2zrDoBmqZ0MQOPk5g2cY7Ac7DMI7piMZupiKnDxFjuopBiuASD28bdTcpX0nTTjQJc4wuSpuwj0lNUv4cpItlEiyekOr22I+Oxdh09fjQlC2T5puMWKsZfht4cqIHVuUERCeUYw==
+ARC-Authentication-Results: i=2; mx.microsoft.com 1; spf=pass (sender ip is
+ 4.158.2.129) smtp.rcpttodomain=lists.infradead.org smtp.mailfrom=arm.com;
+ dmarc=pass (p=none sp=none pct=100) action=none header.from=arm.com;
+ dkim=pass (signature was verified) header.d=arm.com; arc=pass (0 oda=1 ltdi=1
+ spf=[1,1,smtp.mailfrom=arm.com] dkim=[1,1,header.d=arm.com]
+ dmarc=[1,1,header.from=arm.com])
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=fssjnakAwX4Aot0ReFg0roa8e4/oDQDWx8US/n+1cwI=;
+ b=hxbskqefDT+K8DvxSO/ArBHoTe3NZIxbUDGs+sy9ObdlbwYXYPbYv2HfKwl/Jh9Nz5O2QTJEgU3tx4EoQYWHOdUG0vxyOF7rgfxTuq/Voxb04Ptqm1bkJBaVr5mieZAZIz0yxhISVzkd5XhBCFZyjK7CdyZSlwzEvBMpFxlLvIc=
+Received: from AS4P250CA0016.EURP250.PROD.OUTLOOK.COM (2603:10a6:20b:5e3::8)
+ by GV2PR08MB9376.eurprd08.prod.outlook.com (2603:10a6:150:d0::21) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.451.13; Mon, 21 Sep
+ 2026 21:11:59 +0000
+Received: from CPH1EPF0000052A.eurprd05.prod.outlook.com
+ (2603:10a6:20b:5e3:cafe::20) by AS4P250CA0016.outlook.office365.com
+ (2603:10a6:20b:5e3::8) with Microsoft SMTP Server (version=TLS1_3,
+ cipher=TLS_AES_256_GCM_SHA384) id 15.21.428.16 via Frontend Transport; Mon,
+ 21 Sep 2026 21:11:59 +0000
+X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 4.158.2.129)
+ smtp.mailfrom=arm.com; dkim=pass (signature was verified)
+ header.d=arm.com;dmarc=pass action=none header.from=arm.com;
+Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
+ 4.158.2.129 as permitted sender) receiver=protection.outlook.com;
+ client-ip=4.158.2.129; helo=outbound-uk1.az.dlp.m.darktrace.com; pr=C
+Received: from outbound-uk1.az.dlp.m.darktrace.com (4.158.2.129) by
+ CPH1EPF0000052A.mail.protection.outlook.com (10.167.241.165) with Microsoft
+ SMTP Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.21.451.8
+ via Frontend Transport; Mon, 21 Sep 2026 21:11:58 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=yh/L8IkuQ9fdNcJn27UMo85nIp6FumR0rJZajvV2yW62VRe0CzPEhhhlx+LnlgP39TGJmegDZ7XDxf7Rd+zEkQ6yay6nLeXg8r/QFz7PTtbYK3DDHL4EcmEYH0I2nnXyPWFoG8VNxA9ptv3pHbGHwQpfBsd/igpOEt714pHp6Zyi56YsnL0RFPKT1//Fv7Djrd6tsyuw6UWOkHV7yT1+xWwmEwu3YsCSP6nCoqrslylbSbLBeMcXTCBUNdogBappB7+wsYTgcvg0FpKF5DUDbT782j6SdgZBxWIVMx7/202VMi9im6TDCZ/+WTjHsWOm6N3yEKkcZ9lrdqIhVzErmQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=fssjnakAwX4Aot0ReFg0roa8e4/oDQDWx8US/n+1cwI=;
+ b=NC5bg//OTzh0+VL7CE+SHIjlW5gztg+ayC7augPAFpeP1ychSjJy2h9aq4f4nxd5gTu2VCn5alfzg1PiX24mBkWqK7ZjN9gxhVlL06rHCw5DgEw5BuMEIOLTBTWG7vN4EO3pLneHGeoX9IE8BBGg0fonoA5MO/uLDslwu9IFxQSUNCoT9QOXjdLWfW/Iw1GZyt58EO//Hh0M31qXZCdzdLK3jDKUez0UyZjHhE8VIRZnurdpBjJ47gK3y+h8/v5PSd7EpGhogBudaTFuVPVWp94m28IWZEJqAWjjlF5b8MVXtIPqb2UwHEs0WZQZpbXOPUYjeRpJoXhRW2uPp/cT5g==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
+ header.d=arm.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=fssjnakAwX4Aot0ReFg0roa8e4/oDQDWx8US/n+1cwI=;
+ b=hxbskqefDT+K8DvxSO/ArBHoTe3NZIxbUDGs+sy9ObdlbwYXYPbYv2HfKwl/Jh9Nz5O2QTJEgU3tx4EoQYWHOdUG0vxyOF7rgfxTuq/Voxb04Ptqm1bkJBaVr5mieZAZIz0yxhISVzkd5XhBCFZyjK7CdyZSlwzEvBMpFxlLvIc=
+Authentication-Results-Original: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=arm.com;
+Received: from AM6PR08MB3414.eurprd08.prod.outlook.com (2603:10a6:20b:49::10)
+ by DBAPR08MB5782.eurprd08.prod.outlook.com (2603:10a6:10:1b2::23) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.451.13; Mon, 21 Sep
+ 2026 21:11:23 +0000
+Received: from AM6PR08MB3414.eurprd08.prod.outlook.com
+ ([fe80::dde8:bf0b:1dc:2a2]) by AM6PR08MB3414.eurprd08.prod.outlook.com
+ ([fe80::dde8:bf0b:1dc:2a2%5]) with mapi id 15.21.0451.012; Mon, 21 Sep 2026
+ 21:11:21 +0000
+Message-ID: <81b1fec1-3b5e-43ed-a5b3-1a73c80201d8@arm.com>
+Date: Mon, 21 Sep 2026 22:11:04 +0100
+User-Agent: Mozilla Thunderbird
+Cc: usama.anjum@arm.com, linux-arm-kernel@lists.infradead.org,
+ linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-mips@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ kvm@vger.kernel.org, kvm-riscv@lists.infradead.org,
+ linux-riscv@lists.infradead.org, linux-openrisc@vger.kernel.org,
+ Sohil Mehta <sohil.mehta@intel.com>, Russell King <linux@armlinux.org.uk>,
+ Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>,
+ Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
+ Shakeel Butt <shakeel.butt@linux.dev>, Barry Song <baohua@kernel.org>,
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
+ Wei Xu <weixugc@google.com>, Johannes Weiner <hannes@cmpxchg.org>,
+ David Hildenbrand <david@kernel.org>, Michal Hocko <mhocko@kernel.org>,
+ Lorenzo Stoakes <ljs@kernel.org>, Tianrui Zhao <zhaotianrui@loongson.cn>,
+ Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
+ Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Alexandre Ghiti <alex@ghiti.fr>, Dave Hansen <dave.hansen@linux.intel.com>,
+ Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+ Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH 00/21] mm: change behavior of pXdp_get()/pXd_page() in
+ compile-time folded pgtable
+To: Yeoreum Yun <yeoreum.yun@arm.com>
+References: <20260921-dummy_ptxp3-v1-0-cd40cf68242e@arm.com>
+From: Muhammad Usama Anjum <usama.anjum@arm.com>
+Content-Language: en-US
+In-Reply-To: <20260921-dummy_ptxp3-v1-0-cd40cf68242e@arm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-ClientProxiedBy: PR3P189CA0087.EURP189.PROD.OUTLOOK.COM
+ (2603:10a6:102:b4::32) To AM6PR08MB3414.eurprd08.prod.outlook.com
+ (2603:10a6:20b:49::10)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-MS-TrafficTypeDiagnostic:
+	AM6PR08MB3414:EE_|DBAPR08MB5782:EE_|CPH1EPF0000052A:EE_|GV2PR08MB9376:EE_
+X-MS-Office365-Filtering-Correlation-Id: a8c65256-2298-46f2-2c61-08df1824f908
+x-checkrecipientrouted: true
+NoDisclaimer: true
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam-Untrusted:
+ BCL:0;ARA:13230040|376014|7416014|1800799024|366016|23010399003|3023799007|6133799003|10067099003|56012099006|11063799006|18002099003|22082099003;
+X-Microsoft-Antispam-Message-Info-Original:
+ p2oDKWs+FEtkXEk/rhmMKOX2JqsVABKRRmgnUJBXP8+q5UHXMA3h1Kawyarg5G2d4lmnKXe6/lbPWbTRyvtZdQQ7bnahGip+88eTMSnnDZT/x/KlpWcHsQ5L5nsElVtFTD8QYKT2wk13FfQiXiGB+XYsRvW1YPN+gastoU4MpOKo1pYl3MlRQh5sUfSheCo7aOiljin8RScTGDpc+KL0w2+9lkpCgg/dt8iOPbScSWq+zM9AbEGXT6XUzs/JG4C2gQ9L5H9oelVVF81PrhRuZQE52k4YtrCfbU5xXoaC7JkPKdGEtWEMMZb3gVp7eWQ38O+P+605uqZKr1oeZ+b4mQj2RIhUIf60Y2exPChbw0mFF1c/WHZDXXCBmXPmzcIfshiyingzOF3GJDuzSd1uhV+40iim/W9Zh10bDyik9zXGf7Fs7iv9oV0pYOnUB8J4CugUZB9s/sJVXRlHJ9P4JPs3KGB4gnUY1MO5mr1GcKVFdcTk90IOqFCnON5hSFSoNNEDL/FQhBniIFOrxwtvPmTydAdMUvUo7F8EoLwGsSgvMiiJNCFNos9IfUg3NLvCcVBw7zHEJuAgdBcpY3nYem3Nf3nivS6Ay5jGWNkOIoUah7xG12xORFo5cCWjWbLS
+X-Forefront-Antispam-Report-Untrusted:
+ CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:AM6PR08MB3414.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(376014)(7416014)(1800799024)(366016)(23010399003)(3023799007)(6133799003)(10067099003)(56012099006)(11063799006)(18002099003)(22082099003);DIR:OUT;SFP:1101;
+X-Exchange-RoutingPolicyChecked:
+ MN4fXV7rjyz1upSoyRduzOkezfp0p/LvCjoQxKTX/SX9IbSysCl0nKOGcBWIb50fZWzzWpJD6e4pVkzQrXlZyicYjb4PPnjtCNtc+PtzJ6W3to8hpSjIm9EFhDYTxNKpS+dQF59bTjWZJFzSscdhYZoAcF25v9qBWGQM8jIIA6QeW/tNdSA6QQmpGq3Lohf913dr3Gt/QdFVdwi98GHZhA6D9rBfuWXPRFo7/uUAKXp1Yby52wU3ManutuyhN1hfCPHqMRueRnXy1z5ezPx9IM3N85gjpNf3dppzRS1zr7oHhqAqqcHuL419DuXBHZgj0KhoUUKxXIwEmXAmCYqJyA==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DBAPR08MB5782
+X-EOPAttributedMessage: 0
+X-MS-Exchange-Transport-CrossTenantHeadersStripped:
+ CPH1EPF0000052A.eurprd05.prod.outlook.com
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id-Prvs:
+	c6d20812-e8ad-4f65-c345-08df1824da1d
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|23010399003|35042699022|7416014|14060799003|1800799024|82310400026|36860700016|376014|13003099007|3023799007|6133799003|11063799006|10067099003|56012099006|18002099003|22082099003;
+X-Microsoft-Antispam-Message-Info:
+	AWC1PFfT5KfqXNMUOjVgVZ7xgjnxueEK+PS6Pt0n55MoYqjY8PpZpoWxUeltRfPwjlZdty1jK//VDJjOhdoavPycXMp46gjN9wrt6MxmLnYS0tl0H7hlgFRpfctkNK9vGrosnJm4Uzl7rAFZMCR9595ro42rpGfPUJdjIY+T0jFQr7aO8Wnz8rgREEe6pDmAtvX+JUwzp9tNGFME4tcURUFKZDg7C9h87hSbqG5uyhNDqUFZhl3RjYZefcFTt/ABz4S8eauU0N6MBcSxG+YPPTp539xK/JnNkYf4Xqfx4dopYENsvclNl8ZdkRWI5GGv670YxNmEW3Bj/fS5shk5a8AezgPEZaKcf0z89ReJtlmtw+IVMV3sXEfKxZwnX1kQlFyc2vosf7dg0CZSUcAPp/QxKLltX/bbOdv4euwkqNbf8Z8FcQawY82K4YQB1aaeNQQtu3Eva5++h4r9JTuYCpzTe3FJgwvVt6CwmOIKMQd6kQi7oCjoRavTiHDc9goi1SofK3IBw66Sck/A+mNwRPX2STGfJCixYTd4NtJ8ucuY8wdop5OZCkdjNb7mpKe2SMn+VROvm+SCQYexcxf6MDVUnhZtp+HgfKBWoHtArK9L+pX/SyDzxfGfFo2eJDBAe8fl40daLteJbK6UqO8xTXQjbCNmTUkKmmKdd7ho64s=
+X-Forefront-Antispam-Report:
+	CIP:4.158.2.129;CTRY:GB;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:outbound-uk1.az.dlp.m.darktrace.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(23010399003)(35042699022)(7416014)(14060799003)(1800799024)(82310400026)(36860700016)(376014)(13003099007)(3023799007)(6133799003)(11063799006)(10067099003)(56012099006)(18002099003)(22082099003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	+14LHJ1xGwhQZYcCuxNcd+vJokl8LMpUlaa9qmTyP8ggEjcxBGY6rGMEWobJULEEpq2RP53YM8TBQ1gox7jyXnw2bBlbBxR2z/MvyLdrPymMNd88U9i/8Vb3Fal/2xRFhra6V2gnrZ67muTE0t3b/vW6thavz8jhQ1I16V73uIRaxcx/f7jPXpPWTlF1tq3D5YOigljJSHq8XjmjaUlyCDo9LkpTbGQyd2TJwUMeuYU7SBWYveHagzcjiFThYYvZsCsdgK0czExhsCdYKdFJUqy43rvw28VGBTjzPINDrO/FzpKp3iUBF4xAmeFNhJcZ9O8KIqNREowFP7b9Yqo3ZzexzdME1ejtcmL1bnHthnU6IHxI2XBffXAe6/syZHb3sVjSl6CLaMB6Al1puLoqYUHCo97lPnf75j4hxEoF92vFx6L6QREEO33sMurUmAaU
+X-OriginatorOrg: arm.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 21 Sep 2026 21:11:58.4641
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: a8c65256-2298-46f2-2c61-08df1824f908
+X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[4.158.2.129];Helo=[outbound-uk1.az.dlp.m.darktrace.com]
+X-MS-Exchange-CrossTenant-AuthSource:
+	CPH1EPF0000052A.eurprd05.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: GV2PR08MB9376
 
-Complete ARM64 Caretaker vCPU execution loop, detach-time state
-serialization, and LUO integration in arch/arm64/kvm/caretaker.c.
+On 21/09/2026 11:55 am, Yeoreum Yun wrote:
+> Using ptep_get() and its counterparts in common code is suboptimal on
+> kernel configurations with generic compile-time folded page tables.
+> By default, ptep_get() and its friends expands to READ_ONCE(),
+> forcing the compiler to emit a load even when the value is not used afterwards.
+> 
+> This issue was recently reported by Christophe Leroy [1] for ppc32
+> preventing futher code conversion to ptep_get()/pmdp_get()/... helper
+> and the same behavior can also be observed on arm64 when built with
+> 2- or 3-level page tables
+> 
+> e.g) perf_get_page_size() in arm64 with CONFIG_PGTABLE_LEVEL=3:
+> 
+> 00000000000052a0 <perf_get_page_size>:
+>     ...
+>     52dc: d53b4234     	mrs	x20, DAIF
+>     52e0: d50343df     	msr	DAIFSet, #0x3
+>     ...
+>     52fc: d35e9a69     	ubfx	x9, x19, #30, #9        /* pud_offset_lockless() */
+>     5300: f9403508     	ldr	x8, [x8, #0x68]
+>     5304: f869790a     	ldr	x10, [x8, x9, lsl #3]   /* pudp_get() */
+>     5308: f90007ea     	str	x10, [sp, #0x8]
+>     530c: f8697908     	ldr	x8, [x8, x9, lsl #3]    /* pudp_get() */
+>     ...
+>     5360: 90000009     	adrp	x9, 0x5000 <perf_prepare_sample+0x548>
+>     5364: 92746908     	and	x8, x8, #0x7ffffff000
+>     5368: d3557675     	ubfx	x21, x19, #21, #9       /* pmd_offset_lockless() */
+>     ...
+>     5394: f8757ac8     	ldr	x8, [x22, x21, lsl #3]  /* pmdp_get() */
+> 
+> Though PGTABLE_LEVEL=3, since the pudp_get() still remain with
+> READ_ONCE(), there's redundant load for the pud which is folded.
+> 
+> To prevent generating suboptimal code, make pXdp_get() return a dummy
+> entry for compile-time folded page tables, make the helpers such as
+> pXd_offset()/pXd_offset_lockless(), set_pXd() validate dummy entries
+> at compile time to catch the wrong usage and prohibit calls to
+> pXd_page() in pgtable-nopXd.h.
+> 
+> This series does not change the behaviour of existing code that directly
+> manipulates folded page-table levels using set_pgd(), pgd_page_vaddr(), and
+> related helpers. Those helpers continue to behave as before.
+> 
+> The new restrictions only apply to code that adopts the pXdp_get()-based
+> access model for compile-time folded page tables.
+> 
+> As the pXdp_get() can return *dummy* entry, some of code using
+> the stack value where saves the pXdp_get() could be a problematic:
+> 
+>   1. Passing address of stack value where saves the pXdp_get() result
+>      to pXd_offset() for example:
+> 
+>        pud_t *pudp, pud;
+>        pmd_t *pmdp;
+> 
+>        pud = pudp_get(pudp, address);
+>        pmdp = pmd_offset(&pud, pud, address);
+> 
+>      (e.g. host_pfn_mapping_level() in loongarch).
+> 
+>   2. Using the pXdp_get() result to use as argument of pXd_val() and
+>      to check prot without checking pgtable is folded.
+>      for example, x86's effective_prot().
+> 
+>   3. Using set_pXd() with pXdp_get() will set problematic dummy entry
+>      in folded page table like:
+> 
+>        set_pXd(pxdp, pXdp_get(pxdp_k));
+> 
+>   4. Using pgd_page_vaddr() to get the first-level pgtable.
+>      passing dummy pxdp_get() for pgd_page_vaddr() will return wrong
+>      address. Therefore, make pgd_page_vaddr() and pXd_pgtable() to
+>      trigger the error for improper usage with folded dummy entry in the
+>      generic compile-time folded pgtable.
+> 
+> Thanksfully, above cases are rare since (1) most of usage using
+> pXd_offset() with result of upper pXd_offset(), (2) it's extreamely
+> rare to use pXd_val() for non-leaf entry in the kernel,
+> (3) is to handle the vmalloc_fault or set the first level of page table
+> and (4) to setup early page table and etc.
+> 
+> Therefore, properly handle this uncommon and problematic pattern, and
+> document the current design of compile-time folded page tables.
+> 
+> This patch is based on mm-unstable.
+> 
+> Future work
+> ===========
+>  - print_bad_page_map() and show_pte() still prints dummy values
+>    instead of printing the same content for all generic compile-time
+>    folded page tables. We might want to skip printing dummy values later.
+> 
+>  - We currently catch abuse of dummy values on the stack at compile-time by
+>    relying on constant propagation by the compiler. Usama's work [3] on using
+>    distinct types for sw vs. hw PTEs could help here as well."
+> 
+>  - Clean up vmalloc fault handling by synchronizing the vmalloc entry on
+>    32-bit architectures. This code is almost identical across architectures.
+> 
+>  - Unfortunately, the current design of compile-time folded page tables appears
+>    to be internally consistent but confusing. For example,
+>    when CONFIG_PGTABLE_LEVELS is 2, p4d, pud, and pmd are expected to
+>    be folded into pgd. However, the architecture code uses set_pmd()
+>    to update the top-level page-table entry, even though it includes pgtable-nopmd.h.
+> 
+>    In the future, it would be good to eliminate this source of confusion,
+>    possibly by treating all folded upper levels consistently as dummy wrappers
+>    around the highest real page-table level:
+> 
+>          NOPGD
+>    --> +------+           P4D
+>        | ptr0 |-------> +------+           PUD
+>        +------+         | ptr0 |-------> +-----+
+>                         | ptr1 |-        | ptr | -------> ...
+>                         | ptr2 | \       | ptr |
+>                         | ptr3 |  \        ...
+>                           ...      \
+>                                     \        PUD
+>                                      +----> +-----+
+>                                             | ptr | -------> ...
+>                                             | ptr |
+>                                               ...
+> 
+> Link: [1] https://lore.kernel.org/all/0019d675-ce3d-4a5c-89ed-f126c45145c9@kernel.org/
+> Link: [2] https://lore.kernel.org/all/20251113014656.2605447-1-samuel.holland@sifive.com/
+> Link: [3] https://lore.kernel.org/r/74182e50-b54f-4d2d-a27f-3a59a538d6bc@arm.com
 
-Signed-off-by: Pasha Tatashin <pasha.tatashin@soleen.com>
----
- arch/arm64/kvm/Kconfig     |   1 +
- arch/arm64/kvm/Makefile    |  12 ++
- arch/arm64/kvm/caretaker.c | 243 ++++++++++++++++++++++++++++++++++++-
- arch/arm64/kvm/kvm_luo.c   | 103 ++++++++++++++++
- 4 files changed, 357 insertions(+), 2 deletions(-)
+I applied all 21 patches to the declared base and built and booted the
+kernels before and after on x86_64 and arm64 using virtme-ng.
 
-diff --git a/arch/arm64/kvm/Kconfig b/arch/arm64/kvm/Kconfig
-index fd25b3c0d8ca..9c43010873a3 100644
---- a/arch/arm64/kvm/Kconfig
-+++ b/arch/arm64/kvm/Kconfig
-@@ -38,6 +38,7 @@ menuconfig KVM
- 	select GUEST_PERF_EVENTS if PERF_EVENTS
- 	select KVM_GUEST_MEMFD
- 	select HAVE_KVM_ARCH_VCPU_PRESERVE
-+	select HAVE_KVM_ARCH_CARETAKER
- 	help
- 	  Support hosting virtualized guest machines.
- 
-diff --git a/arch/arm64/kvm/Makefile b/arch/arm64/kvm/Makefile
-index d5e888d1bd50..58550a0a8160 100644
---- a/arch/arm64/kvm/Makefile
-+++ b/arch/arm64/kvm/Makefile
-@@ -12,6 +12,18 @@ obj-$(CONFIG_KVM) += hyp/
- 
- CFLAGS_sys_regs.o += -Wno-override-init
- CFLAGS_handle_exit.o += -Wno-override-init
-+KASAN_SANITIZE_caretaker.o := n
-+KCSAN_SANITIZE_caretaker.o := n
-+UBSAN_SANITIZE_caretaker.o := n
-+KCOV_INSTRUMENT_caretaker.o := n
-+CFLAGS_REMOVE_caretaker.o = $(CC_FLAGS_FTRACE)
-+CFLAGS_caretaker.o += $(call cc-option,-mbranch-protection=none) \
-+		      -fno-stack-protector \
-+		      $(call cc-option,-ftrivial-auto-var-init=uninitialized) \
-+		      $(call cc-option,-fno-jump-tables)
-+AFLAGS_caretaker_vmenter.o += -D__KVM_VHE_HYPERVISOR__
-+
-+kvm-$(CONFIG_KVM_CARETAKER) += caretaker.o caretaker_vmenter.o
- 
- kvm-y += arm.o mmu.o mmio.o psci.o hypercalls.o pvtime.o \
- 	 inject_fault.o va_layout.o handle_exit.o config.o \
-diff --git a/arch/arm64/kvm/caretaker.c b/arch/arm64/kvm/caretaker.c
-index 6980c1f6b998..8cd73099a60a 100644
---- a/arch/arm64/kvm/caretaker.c
-+++ b/arch/arm64/kvm/caretaker.c
-@@ -193,6 +193,9 @@ int arm64_kvm_caretaker_preserve(struct kvm_vcpu *vcpu,
- 	cap->ctx.vtcr_el2 = mmu->vtcr;
- 	cap->ctx.vttbr_el2 = kvm_get_vttbr(mmu);
- 
-+	if (irqchip_in_kernel(vcpu->kvm) && !vgic_initialized(vcpu->kvm))
-+		kvm_vgic_map_resources(vcpu->kvm);
-+
- 	if (vgic_initialized(vcpu->kvm)) {
- 		int i;
- 
-@@ -504,8 +507,8 @@ __caretaker_text static void caretaker_vgic_v3_save(struct vgic_v3_cpu_if *cpu_i
- 	used_lrs = min3(used_lrs, max_lrs, (unsigned int)VGIC_V3_MAX_LRS);
- 
- 	for (i = 0; i < used_lrs; i++) {
--		cpu_if->vgic_lr[i] = __gic_v3_get_lr(i);
--		__gic_v3_set_lr(0, i);
-+		cpu_if->vgic_lr[i] = caretaker_gic_v3_get_lr(i);
-+		caretaker_gic_v3_set_lr(0, i);
- 	}
- 
- 	cpu_if->vgic_vmcr = read_sysreg_s(SYS_ICH_VMCR_EL2);
-@@ -921,3 +924,239 @@ static void arm64_caretaker_sync_vcpu(struct kvm_vcpu *vcpu,
- 	kvm_make_request(KVM_REQ_IRQ_PENDING, vcpu);
- }
- 
-+static __caretaker_text void
-+arm64_caretaker_op_pre_run(void *data)
-+{
-+	struct caretaker_arm64_page *cap = data;
-+
-+	local_daif_mask();
-+	arm64_caretaker_save_ptrauth(&cap->ptrauth_keys);
-+
-+	/* Pre-job: load guest context */
-+	cpu_preserved_inval(cap);
-+
-+	arm64_caretaker_load_sysregs(&cap->ctx.ctxt);
-+
-+	if (cap->ctx.vgic_initialized)
-+		caretaker_vgic_v3_restore(cap);
-+
-+	write_sysreg(cap->ctx.cntvoff_el2, cntvoff_el2);
-+	write_sysreg_el0(cap->ctx.cntv_cval_el0, SYS_CNTV_CVAL);
-+	write_sysreg_el0(cap->ctx.cntv_ctl_el0, SYS_CNTV_CTL);
-+	isb();
-+
-+	if (cap->ctx.vtcr_el2 && cap->ctx.vttbr_el2) {
-+		write_sysreg(cap->ctx.vtcr_el2, vtcr_el2);
-+		write_sysreg(cap->ctx.vttbr_el2, vttbr_el2);
-+		asm(ALTERNATIVE("nop", "isb", ARM64_WORKAROUND_SPECULATIVE_AT));
-+		__tlbi(vmalle1);
-+		asm volatile("ic iallu");
-+		dsb(nsh);
-+		isb();
-+	}
-+
-+	write_sysreg(CPACR_EL1_FPEN_EL0EN | CPACR_EL1_FPEN_EL1EN |
-+		     CPACR_EL1_ZEN_EL0EN | CPACR_EL1_ZEN_EL1EN,
-+		     cpacr_el1);
-+	isb();
-+
-+	fpsimd_load_state(&cap->ctx.ctxt.fp_regs);
-+
-+	gicv3_caretaker_enable_sgi();
-+	write_sysreg_s(ICC_CTLR_EL1_EOImode_drop, SYS_ICC_CTLR_EL1);
-+	write_sysreg_s(ICC_SRE_EL1_SRE, SYS_ICC_SRE_EL1);
-+	write_sysreg_s(0, SYS_ICC_BPR1_EL1);
-+	gicv3_caretaker_clear_active_priorities();
-+	write_sysreg_s(ICC_PMR_EL1_MASK, SYS_ICC_PMR_EL1);
-+	write_sysreg_s(ICC_IGRPEN1_EL1_MASK, SYS_ICC_IGRPEN1_EL1);
-+	caretaker_gic_drain_iar();
-+	dsb(sy);
-+	isb();
-+}
-+
-+static __caretaker_text void
-+arm64_caretaker_op_post_run(void *data)
-+{
-+	struct cpu_preserved_stack_context *sctx;
-+	struct caretaker_arm64_page *cap = data;
-+	int cpu = cap->abi.cb.pcpu_id;
-+	phys_addr_t pgd_pa;
-+
-+	/* Post-run: restore host hypervisor mode then save guest context */
-+	write_sysreg_s(0, SYS_CNTHP_CTL_EL2);
-+	caretaker_restore_host_el2();
-+
-+	fpsimd_save_state(&cap->ctx.ctxt.fp_regs);
-+
-+	cap->ctx.cntv_cval_el0 = read_sysreg_el0(SYS_CNTV_CVAL);
-+	cap->ctx.cntv_ctl_el0 = read_sysreg_el0(SYS_CNTV_CTL);
-+
-+	if (cap->ctx.vgic_initialized)
-+		caretaker_vgic_v3_save(&cap->ctx.vgic_v3);
-+
-+	arm64_caretaker_save_sysregs(&cap->ctx.ctxt);
-+
-+	sctx = cpu_preserved_get_stack_context();
-+	if (sctx && sctx->session_pgd_pa)
-+		pgd_pa = sctx->session_pgd_pa;
-+	else
-+		pgd_pa = cpu_preserved_get_pgd(cpu);
-+
-+	if (!pgd_pa)
-+		pgd_pa = READ_ONCE(arm64_caretaker_pgd_pa);
-+
-+	write_sysreg(0, ttbr0_el1);
-+	if (pgd_pa && read_sysreg(ttbr1_el1) != pgd_pa) {
-+		write_sysreg(pgd_pa, ttbr1_el1);
-+		isb();
-+		arm64_flush_host_tlb_local();
-+	}
-+
-+	cpu_preserved_clean(cap);
-+
-+	if (smp_load_acquire(&cap->abi.cb.state) >= KVM_CARETAKER_STOPPING ||
-+	    kvm_caretaker_should_exit(&cap->vcpu)) {
-+		local_daif_mask();
-+		isb();
-+
-+		caretaker_gic_drain_iar();
-+		gicv3_caretaker_clear_active_priorities();
-+		write_sysreg_s(0, SYS_ICC_IGRPEN1_EL1);
-+		write_sysreg_s(0, SYS_ICC_PMR_EL1);
-+		write_sysreg_s(0, SYS_ICC_BPR1_EL1);
-+		gicv3_caretaker_clear_sgi();
-+		dsb(sy);
-+		isb();
-+	}
-+
-+	arm64_caretaker_detach_serialize(cap);
-+
-+	arm64_caretaker_restore_ptrauth(&cap->ptrauth_keys);
-+	caretaker_restore_host_el2();
-+}
-+
-+static struct kvm_caretaker_ops arm64_caretaker_ops __cpu_preserved_data = {
-+	.enter_guest = arm64_caretaker_op_enter,
-+	.decode_exit = arm64_caretaker_op_decode_exit,
-+	.handle_arch_exit = arm64_caretaker_op_handle_exit,
-+	.advance_rip = arm64_caretaker_op_advance_rip,
-+	.arm_timer = arm64_caretaker_op_arm_timer,
-+	.disarm_timer = arm64_caretaker_op_disarm_timer,
-+	.pre_run = arm64_caretaker_op_pre_run,
-+	.post_run = arm64_caretaker_op_post_run,
-+};
-+
-+static __caretaker_text enum oncore_exit_reason
-+caretaker_arch_run_page(struct caretaker_arm64_page *cap, u64 deadline_ticks)
-+{
-+	enum oncore_exit_reason reason;
-+	int cpu;
-+
-+	if (!cap)
-+		return ONCORE_EXIT_ERROR;
-+
-+	cpu_preserved_inval(&cap->abi.cb);
-+	cpu = cap->abi.cb.pcpu_id;
-+	if (cpu < 0 || cpu >= ARRAY_SIZE(arm64_caretaker_faults))
-+		cpu = arm64_caretaker_get_pcpu();
-+
-+	cap->abi.cb.pcpu_id = cpu;
-+	if (cmpxchg(&cap->abi.cb.state, KVM_CARETAKER_PAUSED,
-+		    KVM_CARETAKER_RUNNING) != KVM_CARETAKER_PAUSED ||
-+	    cpu_preserved_should_exit(cpu)) {
-+		arm64_caretaker_detach_serialize(cap);
-+		smp_store_release(&cap->abi.cb.state, KVM_CARETAKER_STOPPED);
-+		cpu_preserved_clean(&cap->abi.cb);
-+		return ONCORE_EXIT_ATTACH_SIGNALED;
-+	}
-+	cpu_preserved_clean(&cap->abi.cb);
-+
-+	cap->vcpu.ops = &arm64_caretaker_ops;
-+
-+	reason = kvm_caretaker_vcpu_run(&cap->vcpu, deadline_ticks);
-+
-+	cpu_preserved_inval(&cap->abi.cb);
-+	if (reason == ONCORE_EXIT_ATTACH_SIGNALED ||
-+	    reason == ONCORE_EXIT_ERROR ||
-+	    cpu_preserved_should_exit(cpu) ||
-+	    cmpxchg(&cap->abi.cb.state, KVM_CARETAKER_RUNNING,
-+		    KVM_CARETAKER_PAUSED) != KVM_CARETAKER_RUNNING) {
-+		reason = ONCORE_EXIT_ATTACH_SIGNALED;
-+		arm64_caretaker_detach_serialize(cap);
-+		smp_store_release(&cap->abi.cb.state, KVM_CARETAKER_STOPPED);
-+		cpu_preserved_clean(&cap->abi.cb);
-+	} else {
-+		cpu_preserved_clean(&cap->abi.cb);
-+	}
-+
-+	return reason;
-+}
-+
-+__caretaker_text enum oncore_exit_reason
-+kvm_arch_vcpu_caretaker_run(void *data, u64 deadline_ticks)
-+{
-+	struct kvm_caretaker_cb_ser *cb = data;
-+
-+	/*
-+	 * @data is always a struct kvm_caretaker_cb_ser: kvm_caretaker_vcpu_preserve()
-+	 * installs it with oncore_job_set_data() before activating the job.
-+	 */
-+	if (!cb)
-+		return ONCORE_EXIT_ERROR;
-+
-+	return caretaker_arch_run_page(container_of(cb,
-+						    struct caretaker_arm64_page,
-+						    abi.cb),
-+				       deadline_ticks);
-+}
-+
-+void kvm_arch_vcpu_luo_pre_retrieve_caretaker(struct kvm_vcpu *vcpu,
-+					      struct kvm_vcpu_ser *ser)
-+{
-+	if ((ser->flags & KVM_VCPU_LUO_FLAG_CARETAKER) && ser->cb.phys) {
-+		struct kvm_caretaker_arch_ser *abi = phys_to_virt(ser->cb.phys);
-+		int pcpu = abi->cb.pcpu_id;
-+
-+		if (pcpu >= 0) {
-+			kvm_caretaker_wait_for_attach(&abi->cb, pcpu);
-+			cpu_preserved_inval(abi);
-+			if (ser->arch_state.phys) {
-+				struct kvm_vcpu_arch_ser *state =
-+					phys_to_virt(ser->arch_state.phys);
-+
-+				cpu_preserved_inval(state);
-+				cpu_preserved_inval_sz(state,
-+						       struct_size(state, sysregs,
-+								   state->num_sysregs));
-+			}
-+		}
-+	}
-+}
-+
-+void kvm_arch_vcpu_luo_attach_caretaker(struct kvm_vcpu *vcpu,
-+					struct kvm_vcpu_ser *ser)
-+{
-+	if ((ser->flags & KVM_VCPU_LUO_FLAG_CARETAKER) && ser->cb.phys) {
-+		struct kvm_caretaker_arch_ser *abi = phys_to_virt(ser->cb.phys);
-+
-+		arm64_caretaker_sync_vcpu(vcpu, abi);
-+	}
-+
-+	kvm_caretaker_post_attach_vcpu(vcpu);
-+}
-+
-+void arm64_kvm_caretaker_unpreserve(struct kvm_vcpu_ser *ser)
-+{
-+	if (ser->cb.phys) {
-+		kho_unpreserve_free(phys_to_virt(ser->cb.phys));
-+		ser->cb.phys = 0;
-+	}
-+}
-+
-+void arm64_kvm_caretaker_finish(struct kvm_vcpu_ser *ser)
-+{
-+	if (ser->cb.phys) {
-+		kho_restore_free(phys_to_virt(ser->cb.phys));
-+		ser->cb.phys = 0;
-+	}
-+}
-diff --git a/arch/arm64/kvm/kvm_luo.c b/arch/arm64/kvm/kvm_luo.c
-index 59c56836cda8..ae8baef49f97 100644
---- a/arch/arm64/kvm/kvm_luo.c
-+++ b/arch/arm64/kvm/kvm_luo.c
-@@ -6,6 +6,7 @@
-  * ARM64 KVM LUO preservation and retrieval handlers.
-  */
- 
-+#include <linux/cpu_preserve.h>
- #include <linux/kexec_handover.h>
- #include <linux/kho/abi/kvm_arm64.h>
- #include <linux/kvm_host.h>
-@@ -17,15 +18,100 @@
- #include <kvm/arm_arch_timer.h>
- #include <kvm/arm_vgic.h>
- 
-+#include "caretaker.h"
- #include "sys_regs.h"
- #include "vgic/vgic.h"
- 
-+#ifdef CONFIG_KVM_CARETAKER
-+struct arm64_stage2_kho_walk {
-+	struct kvm_kho_folios_ser *kp;
-+	unsigned int count;
-+};
-+
-+static int stage2_kho_visitor(const struct kvm_pgtable_visit_ctx *ctx,
-+			      enum kvm_pgtable_walk_flags visit)
-+{
-+	struct arm64_stage2_kho_walk *w = ctx->arg;
-+
-+	if (kvm_pte_valid(ctx->old) && ctx->level != KVM_PGTABLE_LAST_LEVEL &&
-+	    FIELD_GET(KVM_PTE_TYPE, ctx->old) == KVM_PTE_TYPE_TABLE) {
-+		u64 phys = kvm_pte_to_phys(ctx->old);
-+		struct page *p = phys_to_page(phys);
-+
-+		if (!p)
-+			return 0;
-+
-+		if (!w->kp) {
-+			w->count++;
-+			return 0;
-+		}
-+
-+		if (w->kp->nr_folios >= w->count)
-+			return -ENOSPC;
-+
-+		if (kho_preserve_folio(page_folio(p)))
-+			return -ENOMEM;
-+
-+		w->kp->folios_pa[w->kp->nr_folios++] = phys;
-+	}
-+	return 0;
-+}
-+#endif
-+
- int kvm_arch_vm_luo_preserve(struct kvm *kvm, struct kvm_luo_ser *ser)
- {
-+#ifdef CONFIG_KVM_CARETAKER
-+	struct kvm_s2_mmu *mmu = &kvm->arch.mmu;
-+	struct arm64_stage2_kho_walk walk = {};
-+	struct kvm_pgtable_walker walker = {
-+		.cb = stage2_kho_visitor,
-+		.flags = KVM_PGTABLE_WALK_TABLE_PRE,
-+		.arg = &walk,
-+	};
-+	struct kvm_kho_folios_ser *kp;
-+	int ret;
-+#endif
-+
- 	ser->type = kvm_phys_shift(&kvm->arch.mmu);
- 	if (kvm_vm_is_protected(kvm))
- 		ser->type |= KVM_VM_TYPE_ARM_PROTECTED;
- 
-+#ifdef CONFIG_KVM_CARETAKER
-+	kvm->caretaker_vm = NULL;
-+
-+	if (mmu->pgd_phys)
-+		walk.count++;
-+	if (mmu->pgt) {
-+		ret = kvm_pgtable_walk(mmu->pgt, 0, BIT(mmu->pgt->ia_bits), &walker);
-+		if (ret)
-+			return ret;
-+	}
-+
-+	kp = kvm_kho_folios_alloc(walk.count);
-+	if (IS_ERR(kp))
-+		return PTR_ERR(kp);
-+	walk.kp = kp;
-+
-+	if (mmu->pgd_phys) {
-+		ret = kho_preserve_folio(page_folio(phys_to_page(mmu->pgd_phys)));
-+		if (ret) {
-+			kvm_kho_folios_unpreserve(kp);
-+			return ret;
-+		}
-+		kp->folios_pa[kp->nr_folios++] = mmu->pgd_phys;
-+	}
-+
-+	if (mmu->pgt) {
-+		ret = kvm_pgtable_walk(mmu->pgt, 0, BIT(mmu->pgt->ia_bits), &walker);
-+		if (ret) {
-+			kvm_kho_folios_unpreserve(kp);
-+			return ret;
-+		}
-+	}
-+
-+	kvm->kho_folios = kp;
-+	KHOSER_STORE_PTR(ser->kho_folios, kp);
-+#endif
- 	return 0;
- }
- 
-@@ -36,6 +122,10 @@ int kvm_arch_vm_luo_retrieve(struct kvm *kvm, struct kvm_luo_ser *ser)
- 
- void kvm_arch_vm_luo_unpreserve(struct kvm *kvm, struct kvm_luo_ser *ser)
- {
-+#ifdef CONFIG_KVM_CARETAKER
-+	if (kvm)
-+		kvm->caretaker_vm = NULL;
-+#endif
- }
- 
- void kvm_arch_vm_luo_finish(struct kvm_luo_ser *ser)
-@@ -119,6 +209,17 @@ int kvm_arch_vcpu_luo_preserve(struct kvm_vcpu *vcpu, struct kvm_vcpu_ser *ser)
- 	kfree(indices);
- 
- 	KHOSER_STORE_PTR(ser->arch_state, state);
-+
-+	if (ser->flags & KVM_VCPU_LUO_FLAG_CARETAKER) {
-+		int ret = arm64_kvm_caretaker_preserve(vcpu, ser);
-+
-+		if (ret) {
-+			kho_unpreserve_free(state);
-+			ser->arch_state.phys = 0;
-+			return ret;
-+		}
-+	}
-+
- 	return 0;
- }
- 
-@@ -186,6 +287,7 @@ int kvm_arch_vcpu_luo_retrieve(struct kvm_vcpu *vcpu, struct kvm_vcpu_ser *ser)
- 
- void kvm_arch_vcpu_luo_unpreserve(struct kvm_vcpu_ser *ser)
- {
-+	arm64_kvm_caretaker_unpreserve(ser);
- 	if (ser->arch_state.phys) {
- 		kho_unpreserve_free(phys_to_virt(ser->arch_state.phys));
- 		ser->arch_state.phys = 0;
-@@ -194,6 +296,7 @@ void kvm_arch_vcpu_luo_unpreserve(struct kvm_vcpu_ser *ser)
- 
- void kvm_arch_vcpu_luo_finish(struct kvm_vcpu_ser *ser)
- {
-+	arm64_kvm_caretaker_finish(ser);
- 	if (ser->arch_state.phys) {
- 		kho_restore_free(phys_to_virt(ser->arch_state.phys));
- 		ser->arch_state.phys = 0;
+Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+
+> 
+> Patch History
+> =============
+> from RFC v3 to v1:
+>   - Drop and rebase for CONFIG_X86_DIRECT_GBPAGES and use the Dave's
+>     patch (https://lore.kernel.org/all/20260902194718.E1FF3041@davehans-spike.ostc.intel.com/)
+>   - Link to RFC v3: https://lore.kernel.org/r/20260902-dummy_ptxp3-v3-0-5d8f5b17c25c@arm.com
+> 
+> from RFC v2 to RFC v3:
+>   - repasre commit message
+>   - move ptdump_pgtable_first_level() into pgalloc.h
+>   - skip the huge pud operation when CONFIG_X86_DIRECT_GBPAGES is disabled
+>   - docuemtns compile-time folded page table
+>   - drop the applied patch.
+>   - Link to RFC v2: https://lore.kernel.org/all/20260722-dummy_ptxp3-v2-0-d9e4bad31e0a@arm.com/
+> 
+> from RFC v1 to RFC v2:
+>   - Restore slient fallback to next pXd in set_pXd() and pXd_pgtable()
+>     and add check whether they're called with dummy entry.
+>   - Add some comment for returning first entry of pgd in arm with
+>     2 pgtable-level
+>   - Link to RFC v1: https://lore.kernel.org/all/20260713135614.1618183-1-yeoreum.yun@arm.com/
+> 
+> ---
+> Dave Hansen (1):
+>       x86/mm: Introduce helper for checking direct map 1G page support
+> 
+> David Hildenbrand (Arm) (13):
+>       ARM: mm: make nommu pgd_t a scalar
+>       ARM: mm: make 2-level pgd_t a scalar
+>       ARM: mm: remove custom pgdp_get()
+>       LoongArch: mm: define pud_leaf() only when PUD exists
+>       MIPS: mm: define pud_leaf() only when PUD exists
+>       mm/pgtable: define (pgd|p4d|pud)_leaf() for folded page tables
+>       mm/pgtable: define (pgd|p4d|pud)_offset_lockless() for folded page tables
+>       openrisc/pgtable: drop __pmd_offset()
+>       mm/pgtable: optimize pmdp_get() and friends for folded pagetable levels
+>       mm/pgtable: catch abuse of folded dummy pgd_t/p4d_t/pud_t
+>       mm/pgtable: disallow calling (pgd|p4d|pud)_page, pgd_page_vaddr() and (p4d|pud)_pgtable with dummy
+>       mm/pgtable: disallow calling folded set_pgd/set_p4d/set_pud with dummy
+>       Documentation: mm: clarify behaviour of compile-time folded page tables
+> 
+> Yeoreum Yun (7):
+>       mm: vmscan: remove stack copy address of pud/pmd pass in walk_pud/pmd_range()
+>       loongarch: kvm: remove stack copy address of pXd in pXd_offset()
+>       riscv: kvm: remove stack copy address of pXd in pXd_offset()
+>       riscv: mm: use proper set_pXd() for generic compile-time folded patable in vmalloc_fault()
+>       mm/pgtable: redefine PGTABLE_LEVEL enum with ascend order from PGD
+>       x86: mm: use pgtable_level enum in effective_prot_pXd()
+>       x86: mm: carve out the generic compile-time folded pgtable case in effective_prot()
+> 
+>  Documentation/mm/page_tables.rst            | 84 +++++++++++++++++++++++++----
+>  arch/arm/include/asm/page-nommu.h           |  4 +-
+>  arch/arm/include/asm/pgtable-2level-types.h | 20 +++++--
+>  arch/arm/include/asm/pgtable.h              |  2 -
+>  arch/arm64/include/asm/pgtable.h            | 23 --------
+>  arch/loongarch/include/asm/pgtable.h        |  2 +
+>  arch/loongarch/kvm/mmu.c                    | 20 ++++---
+>  arch/mips/include/asm/pgtable.h             |  2 +
+>  arch/openrisc/include/asm/pgtable.h         |  3 --
+>  arch/riscv/kvm/mmu.c                        | 20 ++++---
+>  arch/riscv/mm/fault.c                       | 52 +++++++++++-------
+>  arch/x86/include/asm/pgtable.h              | 14 +++++
+>  arch/x86/kernel/cpu/common.c                |  2 +-
+>  arch/x86/kernel/machine_kexec_64.c          |  2 +-
+>  arch/x86/mm/dump_pagetables.c               | 18 ++++---
+>  arch/x86/mm/init.c                          |  2 +-
+>  arch/x86/mm/pat/set_memory.c                |  6 +--
+>  include/asm-generic/pgtable-nop4d.h         | 54 +++++++++++++++----
+>  include/asm-generic/pgtable-nopmd.h         | 54 +++++++++++++++----
+>  include/asm-generic/pgtable-nopud.h         | 56 +++++++++++++++----
+>  include/linux/pgtable.h                     | 69 +++++++++++++++++-------
+>  mm/vmscan.c                                 |  4 +-
+>  22 files changed, 371 insertions(+), 142 deletions(-)
+> ---
+> base-commit: 8d61431ed2607386b427752505379536eb634ce8
+> change-id: 20260722-dummy_ptxp3-3741d78cc70f
+> 
+> Best regards,
+
+
 -- 
-2.55.0.1082.g2b9226bbc0-goog
-
+Thanks,
+Usama
