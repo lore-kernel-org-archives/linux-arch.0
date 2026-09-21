@@ -1,200 +1,571 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id EBCA8499F3D;
-	Mon, 21 Sep 2026 10:59:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from mail-wm2-f13.google.com (mail-wm2-f13.google.com [74.125.225.141])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3DAFB48A2AF
+	for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2026 11:25:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789988350; cv=none; b=nFJJ2SO5CTPA+LIm6UfMJ9+ly7mKyhBzDWgLMIrRxYpNgeqdj5tNsII8LO9H1Z3UZHfsb78TdFdo9YUkbfFlA6Vb9dykOfoewhj4gJvbCd84Gs5geRlHngHpYwUVhkfCnh/XI5oE3dhpo+gVP9CbfY77/UyyK463Icqv/Ltg6Jg=
+	t=1789989922; cv=none; b=UT83a5e3no3n9MdYeQ+/BfTH5YKO9HaSRMuCb76OIRU3F4HV0Xe9g/58PKBUwa1H3NCwiGrTl5ltrVAlanCU9u+yFmU5aMapFi6Dkp3BBSVJVlIikbagSOOonju0hfsKZTCLF2iG+XGc1Vnqj9rU1JE4xi3hMmP3lw/xF3Fti3c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789988350; c=relaxed/simple;
-	bh=Or+pfL3PXEcPJdOW4W+xPfx8ylyd8tpn0CA0i+cQDx8=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=X54mlD/38lpOMYdu0BpI9LhOd0xDK7SutXpuTB5vuF98TwKNoGCiwwQXzRWj8n+Ud4O/JQYQQwTfnq1992LLI7tAEW68PJjux+Qw8N4zLUAMbU7q2hOOpkQO+WoRI8Bx9KilKKxYfAzYSe2yp2rK4kqXjridRx+nCkgOkplIei8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=OTPGWQ3V; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1789989922; c=relaxed/simple;
+	bh=vL7H9bUFob8ldX6kiSUwQbR/mxtlpznZdS9IX5wHg4g=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=SIDwCbFbu9Q3/QEDRML+Z6e+6t1hT01Gcds/GtNr9FDHjCnDG4O/zD2VM971gbYi4bPaaMCuKxL2+Ode8Ithrce+GPJgxVhVyhX0cyCCNEz/im84A7E9QtudLGXguyyUL5ms12wxQDDTnAn/wPp1EsDyMn8uz/uwgczsmU3wkwY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Vhw7aLhr; arc=none smtp.client-ip=74.125.225.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="OTPGWQ3V"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id D0D821CE0;
-	Mon, 21 Sep 2026 03:59:03 -0700 (PDT)
-Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 3E11E3F86C;
-	Mon, 21 Sep 2026 03:59:00 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1789988347; bh=Or+pfL3PXEcPJdOW4W+xPfx8ylyd8tpn0CA0i+cQDx8=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=OTPGWQ3V/YIEMLtO7u2Mynqz++o5RPwLMFLlzIT4rgUlbfJz02BoKMgw4RXvRuSNj
-	 deUYqvEpMQchecaubbKtyAiqcrqDJ3rG98HSWlUBFWHIGiqs9ocWbZVbfPkkrmm/D7
-	 ncRtII6dpeDQJvydmvJhhhL2Snuaf1u6HEPcx7TY=
-From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Mon, 21 Sep 2026 11:55:43 +0100
-Subject: [PATCH 21/21] Documentation: mm: clarify behaviour of compile-time
- folded page tables
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Vhw7aLhr"
+Received: by mail-wm2-f13.google.com with SMTP id 5b1f17b1804b1-49e6c0fce17so14439125e9.1
+        for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2026 04:25:14 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1789989912; x=1790594712; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=kLlCULrw1v/vSqZnviB/Cu2fC1Y7qRZoJjKlQFtW/cc=;
+        b=Vhw7aLhr2hs5mUDvFtaiWafzn0SQAB1KRD3UcypFgjyciceWezvD3sAcaZGlpKQf6W
+         1Pkq0qMMKHYM5Rd2B08kzj+uihssv08doCjawZjeQluEFwn+egW/I5Bx/1xkA0HW+f+X
+         vz39sSyQ+YoStFTF/niNt3RR3eGt9q/kamO/OBff7CdspOx1OC07psQyi2ANOQ/hk4Qu
+         IYXDiJ2YW9IVbqOOYm4EGJHnIxDaezKxS9oDyHdnKSsWxCDjNXdag62eGIuOUJQQOV8B
+         oaipJI8lf17IzDe+9hOp2CWXSS0kHWR+gCvGw0TzZd5MPj541wzj/ilXlfAsnpQ//tSC
+         U/iQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1789989912; x=1790594712;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=kLlCULrw1v/vSqZnviB/Cu2fC1Y7qRZoJjKlQFtW/cc=;
+        b=Jx1H+r2jT+26xRo4KHy+hXKgTseoMLmtM9o2uUZvBY+7lcux6XQ0pzk1dTw8lz9zNq
+         oDz/MI5i8XPiaahdHPQUe3Is2oTJAa7MLn7zYhJdj/3RnQNn5EbPGvQpu0jUIsuZeF/E
+         QfsPe/hHXmXJ08mi0hmyB48Rk7pRxfblc5ylvoITucIj3EPhunymbBCQcNiyyM+jKxLi
+         1qUOAyPXRIF8ir/TEEcUF++gDr76GWd2FotYmHHoXDdtpn7+K+fy/bz25+/X/eVByODh
+         4+q9KtnoyL0vJzTa7PJKdt116VxUnIaTc3ig7s0TPZusvmgfkPAZQmvaHr4a4Gq41uhk
+         lB6A==
+X-Forwarded-Encrypted: i=1; AKwUvBzEhQLu8JtzwgOBIwog56T3U7XHuPIhHKqaSNllT51E7rnJeMpvYgxf8XtwPX7RZCfZ3/VcYhAVdg7A@vger.kernel.org
+X-Gm-Message-State: AFuF++mEgIRc9e++ZM+LdYfP1hYmsgGulhEe9E3j6d/WsQei+chgAQCW
+	4hDxGDfQD+/Erz+agtuZFq6pA5jASgrL3OjEwoLucJuRiszqYXYuEVd4SueDi32n5aQ=
+X-Gm-Gg: AYBFou2a5wyT2V+xetjyDXyT5C2/tfBSCdXZB2rzIdUYpbT5V1Y+b6Zst4F24Tb+rpB
+	jrf5ko7qd6Pgg3JIxIRMImGKW7c8KORXuD31KVGTCVjYEW0JwsPFCwvp5VWGu5VHaJ8yeHabrdj
+	gORDxUaqrby3e4UzqzQjxs5K8ogSIZMG9pY48woApjl0hw2QZ8bFE0xuRmbJqOqm+0PyUIZBfWz
+	UFwx5vdSYwTds8zg1qm/2CI/MaP6PW7D5nny92O6J3d/3FaJ5nKVZ/Tr4C/yBv50G/O3/FJ4nhG
+	/Pu4wsgiVzjszkdMBhXEiVS3ZjG+ddHb6rINtijzhSMf8YdBQG8c1hCzlwphAEWZcg6D4A3C3H8
+	ZjqBqP35dsuY6Eo/QgUO2ZE2K2BpNGlSsna9xOpH0zpLX0X81K+eXcdKov4t46ZvO0vpxa/aY3W
+	roQnywUHXYRA3o4fjfdBcB6U4OvD1Jyb9q6A+84zXPyIeVxmO0WcgCtnNJnaiJyf4iQSLjXQG4p
+	+r1wUy2fOLGzm+p2xu1S9YtVuiOUvLtJzHN
+X-Received: by 2002:a05:600c:4f44:b0:49f:ce73:7a9 with SMTP id 5b1f17b1804b1-49fce730888mr97408375e9.34.1789989911838;
+        Mon, 21 Sep 2026 04:25:11 -0700 (PDT)
+Received: from ?IPV6:2a07:de40:8100:0:89a9:fd0e:583d:4a53? ([2001:af0:8000:1409:193:86:92:181])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49fd757e97esm7376075e9.8.2026.09.21.04.25.10
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 21 Sep 2026 04:25:11 -0700 (PDT)
+Message-ID: <95baacfb-d8d9-4d2f-bc89-592df6f6f8e3@suse.com>
+Date: Mon, 21 Sep 2026 13:25:09 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 13/21] modpost: emit module descriptors as assembly
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>,
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
+ Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling
+ <morbo@google.com>, Justin Stitt <justinstitt@google.com>,
+ Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
+ x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+ Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+ Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>,
+ Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
+ Ard Biesheuvel <ardb@kernel.org>,
+ Ilias Apalodimas <ilias.apalodimas@linaro.org>,
+ Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>,
+ Gary Guo <gary@garyguo.net>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?=
+ <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>,
+ Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>,
+ Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>,
+ Daniel Almeida <daniel.almeida@collabora.com>,
+ Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot
+ <acourbot@nvidia.com>, =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
+ Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>,
+ Kees Cook <kees@kernel.org>, "Gustavo A. R. Silva" <gustavoars@kernel.org>,
+ linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+ llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
+ linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+ linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
+ linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>,
+ linux-hardening@vger.kernel.org
+References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
+ <20260914-build-speedup-v2-13-39817ec5db23@kernel.org>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260914-build-speedup-v2-13-39817ec5db23@kernel.org>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260921-dummy_ptxp3-v1-21-cd40cf68242e@arm.com>
-References: <20260921-dummy_ptxp3-v1-0-cd40cf68242e@arm.com>
-In-Reply-To: <20260921-dummy_ptxp3-v1-0-cd40cf68242e@arm.com>
-To: Russell King <linux@armlinux.org.uk>, 
- Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, 
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
- Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, 
- Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>, 
- Shakeel Butt <shakeel.butt@linux.dev>, Barry Song <baohua@kernel.org>, 
- Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, 
- Wei Xu <weixugc@google.com>, Johannes Weiner <hannes@cmpxchg.org>, 
- David Hildenbrand <david@kernel.org>, Michal Hocko <mhocko@kernel.org>, 
- Lorenzo Stoakes <ljs@kernel.org>, Tianrui Zhao <zhaotianrui@loongson.cn>, 
- Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>, 
- Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>, 
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
- Alexandre Ghiti <alex@ghiti.fr>, Dave Hansen <dave.hansen@linux.intel.com>, 
- Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
- Borislav Petkov <bp@alien8.de>, x86@kernel.org, 
- "H. Peter Anvin" <hpa@zytor.com>, "Liam R. Howlett" <liam@infradead.org>, 
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
- Jonas Bonn <jonas@southpole.se>, 
- Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, 
- Stafford Horne <shorne@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, 
- loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
- linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, 
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
- linux-openrisc@vger.kernel.org
-X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=5249; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=WkUI9iV+4tWIf8gUL0eT1d3WqVW3xHozxqWVF9c3f4k=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBqsQ1UvQaI/DbnQhSon1cfVb2lmVIAgB8pZa9xc
- x4itcv3wn+JAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCarENVAAKCRBt1cPRWsUx
- M3wVC/9HHxJ8te9GEbS6FYmVPJFsAKbIOicXI24Ln9gqlvTZxuy4kNJc4ab1vnjPxk64m8Rg+x2
- Mge3H0r3HnaL+quWGc5hhXjVijIFzCG8gpQvS3TAos58QC0AOllXSljJJW+I6bPGRHEfZbrplmH
- MSpeBY8ZsvhMVxoa7rzCNDxLL9FQI0Cc3PXqn84Rx9aaobgkmEtYiN7CNHsRZU3ng64fu67dco/
- 9XO55oYTMY5NC0dEQSGNn31KsfpblVBRsW5um+k73FHlpD7vrNWPHSDKjsItM4o3qlBwTsCwCl1
- Z7zy/Eg/ZygXnmH8QOhMc7fglKOXMvcG/maDLM9eOF/8KD3LCcwyTzCpuv5EoxT7vOhxogj2kut
- s/VQGR4ui3uesYjCw/PuXgA7Ampck2ZMBsmMmPI1k93NpLLOG4Y529M4WW6uqqGb5xddwPmnW5l
- apVpiy9rUjEUxGjRGHepEQpg+BUzcWhj6iVaP8sd5tNs9WaHGtTaNtG9oqCr4rfrjLXkY=
-X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
- fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
 
-From: "David Hildenbrand (Arm)" <david@kernel.org>
+On 9/14/26 11:22 AM, Lorenzo Stoakes (ARM) wrote:
+> modpost generates a descriptor for every module in the form of a
+> <module>.mod.c file with .modinfo strings, the __this_module descriptor,
+> exported symbol tables and (with CONFIG_MODVERSIONS set), the CRC of
+> imported symbols.
+> 
+> These files are compiled like any other kernel C file with all of the
+> -include preamble, as well as including linux/module.h, header dependencies
+> generated by fixdep of a few hundred headers, an objtool run and if LTO is
+> being performed, a link is performed to generate native code.
 
-Compile-time folded page tables are not necessarily easy to understand, and even
-people the were once familiar with the concept might need to refresh their memory.
+As a side note, I'm currently working on cleaning up what linux/module.h
+includes. This was also originally motivated by an effort to reduce the
+compilation time of .mod.c files, though cleaning up that header makes
+sense in general, since it is the most explicitly included file in the
+kernel.
 
-Add proper documentation, including a nice diagram, for the current design.
-Mention details about dummy functions, including the recently changed pXdp_get()
-helpers.
+> 
+> On an x86-64 allmodconfig build 11,189 *.mod.c files are built, each
+> taking ~0.24s of CPU time to compile, and module finalisation as a whole
+> 6,300 CPU seconds, or 64 seconds of wall time when run over 128 threads.
+> 
+> It also generates ~1.3 GiB of *.mod.o.cmd files that every subsequent build
+> has to read back.
+> 
+> Avoid all this by emitting the descriptors as assembly instead.
+> 
+> The layout required (size and alignment of struct module, struct
+> modversion_info, the module's name offsets, init, and exit fields and
+> whether the architecture uses PREL32 ksymtab references) can all be derived
+> from scripts/mod/module-offsets.h.
+> 
+> The fields of __this_module are emitted in offset order rather than
+> declaration order, as CONFIG_RANDSTRUCT shuffles struct module so the name,
+> init and exit fields can land anywhere.
+> 
+> An assembly file avoids all of the issues previously mentioned so this
+> conversion results in a very significant performance win on kernel build.
+> 
+> As a consequence of this change, since module-offsets.c includes
+> linux/module.h, scripts/mod is now built after the generated headers in
+> prepare0, rather than before.
+> 
+> Also update .gitignore and make clean to handle .mod.S files, but keep
+> .mod.c files there to ensure that users do not end up with untracked
+> changes/dirty trees after the change takes effect.
+> 
+> The sections were confirmed to be byte-for-byte identical to the C version
+> produced - each of .modinfo, .gnu.linkonce.this_module, __ksymtab*,
+> __ksymtab_strings, __kcrctab*, __kflagstab*, __versions,
+> __version_ext_crcs, __version_ext_names and their relocations - for all
+> 8,135 modules of a clang allmodconfig build with CONFIG_COMPILE_TEST off
+> and CONFIG_MODVERSIONS, CONFIG_EXTENDED_MODVERSIONS and
+> CONFIG_MODULE_SRCVERSION_ALL on, and for a sample built with gcc.
 
-Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
----
- Documentation/mm/page_tables.rst | 84 +++++++++++++++++++++++++++++++++++-----
- 1 file changed, 75 insertions(+), 9 deletions(-)
+Lowering the data to assembly loses debug information for __this_module,
+specifically that it has type `struct module`. It might be worth
+restoring that information in same way. A small hack would be to add
+something like the following to scripts/module-common.c:
 
-diff --git a/Documentation/mm/page_tables.rst b/Documentation/mm/page_tables.rst
-index 126c876282509..84f2715c7de0a 100644
---- a/Documentation/mm/page_tables.rst
-+++ b/Documentation/mm/page_tables.rst
-@@ -143,15 +143,81 @@ pointers on each level is architecture-defined.::
- Page Table Folding
- ==================
- 
--If the architecture does not use all the page table levels, they can be *folded*
--which means skipped, and all operations performed on page tables will be
--compile-time augmented to just skip a level when accessing the next lower
--level.
--
--Page table handling code that wishes to be architecture-neutral, such as the
--virtual memory manager, will need to be written so that it traverses all of the
--currently five levels. This style should also be preferred for
--architecture-specific code, so as to be robust to future changes.
-+Not all architectures support 5-level page tables; while for some of them
-+the exact number of supported page table levels is known at compile time,
-+others can determine the number of page table levels at runtime based on
-+hardware support and address space sizes.
-+
-+Generic page table walking code always assumes that 5 levels of page table
-+exist. To make page table walking code not have to worry about that,
-+`compile-time folding` and `runtime folding` of page tables are used.
-+Compile-time folding is mostly handled in common code, whereas runtime folding
-+is exclusively handled in architecture code.
-+
-+This description focuses on generic compile-time folded page tables; for
-+architecture-specific variants, some details can vary, however, without
-+affecting common page table walkers.
-+
-+When walking folded page tables, all upper page table levels up to the supported
-+level are skipped in page table walkers: this is achieved by (a) treating
-+entries in upper page table levels as present and pointing at a page table; and
-+(b) having page table walkers cast the entry pointer to the next-level entry
-+instead of dereferencing that table. From the perspective of a page table
-+walker, the entry points at itself.
-+
-+Assuming compile-time folded 4-level page tables, to achieve (a), pgd_present()
-+and pgd_leaf() are hard-coded to indicate a present page table entry that
-+points at a page table, and to achieve (b) p4d_offset() and
-+p4d_offset_lockless() simply cast the page table entry pointer to the next
-+lower level.
-+
-+In the current design, this is further modeled by having the P4D have a
-+single page table entry::
-+
-+        PGD
-+  --> +------+          NOP4D
-+      | ptr0 |-------> +------+           PUD
-+      | ptr1 |-        | ptr0 |-------> +-----+
-+      | ptr2 | \       +------+         | ptr |-------> ...
-+      | ptr3 |  \                       | ptr |
-+        ...      \                        ..
-+                  \        NOP4D
-+                   +----> +------+           PUD
-+                          | ptr1 |-------> +-----+
-+                          +------+         | ptr |-------> ...
-+                                           | ptr |
-+                                             ...
-+
-+Note that the arrows from PGD to NOP4D represent page-table-walker
-+transitions, not pointers stored in the pgd entries.
-+
-+Using p4d as an example, `nop4d`/`p4d folded` translates to the following:
-+
-+- p4d is considered folded into pgd; both are operating on the same page
-+ table.
-+
-+- Most pgd_* helpers are hard-coded dummy functions that ignore the passed
-+  pgd_t values entirely. Exceptions are pgd_val() and low-level helpers
-+  set_pgd() + pgd_page_vaddr(), which effectively translate to set_p4d()/
-+  p4d_pgtable() to keep existing arch code working.
-+
-+  Architectures must provide p4d_* helpers (unless further common
-+  compile-time folding applies).
-+
-+- PTRS_PER_P4D is hard-coded to 1. Architectures must define PTRS_PER_PGD.
-+
-+To avoid reading a value that will never be used but cannot be entirely
-+optimized out, compile-time folded page table code also makes pXdp_get()
-+return a constant dummy value.
-+
-+In common code, this only affects pXd_val() when used for printing page
-+table entries for debugging purposes. As we don't want architecture code
-+that uses set_pXd(), pgd_page_vaddr() or pXd_pgtable() to accidentally
-+operate on dummy values, the compiler will error out if it detects that the
-+helpers are used with dummy values. For a folded level, pXd_page() must not
-+be used and unconditionally triggers a compiler error. Architecture code must
-+instead call the helpers on the proper first page table level: e.g., set_p4d()
-+instead of set_pgd().
- 
- 
- MMU, TLB, and Page Faults
+__weak __section(".discard.this_module") struct module __this_module;
+
+> diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
+> index 01a37ec872b9..75e9effdf02c 100644
+> --- a/scripts/Makefile.modfinal
+> +++ b/scripts/Makefile.modfinal
+> @@ -20,10 +20,14 @@ __modfinal: $(modules:%.o=%.ko)
+>  modname = $(notdir $(@:.mod.o=))
+>  part-of-module = y
+>  GCOV_PROFILE := n
+> -ccflags-remove-y := $(CC_FLAGS_CFI)
+>  
+> -%.mod.o: %.mod.c FORCE
+> -	$(call if_changed_rule,cc_o_c)
+> +# modpost lays the <module>.mod.S out completely (write_mod_S_file()), so it
+> +# needs only the assembler and no dependency tracking.
+> +quiet_cmd_as_mod_o = AS [M]  $@
+> +      cmd_as_mod_o = $(CC) $(_a_flags) $(modkern_aflags) -c -o $@ $<
+> +
+> +%.mod.o: %.mod.S FORCE
+> +	$(call if_changed,as_mod_o)
+>  
+>  .module-common.o: $(srctree)/scripts/module-common.c FORCE
+>  	$(call if_changed_rule,cc_o_c)
+
+If the <module>.mod.S files are fully self-contained and do not even use
+something like KBUILD_MODNAME, would it be possible to name them
+<module>.mod.s and skip the C preprocessor as well?
+
+> diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+> index 0fd43c8a89ea..b4550b545330 100644
+> --- a/scripts/mod/modpost.c
+> +++ b/scripts/mod/modpost.c
+> @@ -2191,30 +2042,483 @@ static void write_vmlinux_export_c_file(struct module *mod)
+>  	free(buf.p);
+>  }
+>  
+> -/* do sanity checks, and generate *.mod.c file */
+> -static void write_mod_c_file(struct module *mod)
+> +#if MOD_SIZEOF_LONG == 8
+> +#define MOD_PTR_DIRECTIVE	".quad"
+> +#else
+> +#define MOD_PTR_DIRECTIVE	".long"
+> +#endif
+> +
+> +/* See KSYM_FUNC() in include/linux/export-internal.h. */
+> +#if MOD_FUNC_PLABEL
+> +#define MOD_FUNC_PREFIX		"P%"
+> +#else
+> +#define MOD_FUNC_PREFIX		""
+> +#endif
+> +
+> +/* See __KSYM_ALIGN in include/linux/export-internal.h. */
+> +#if MOD_PREL32_RELOCATIONS || MOD_SIZEOF_LONG == 4
+> +#define KSYM_ALIGN		4
+> +#else
+> +#define KSYM_ALIGN		8
+> +#endif
+> +
+> +/* Append the body of an assembler string literal, escaped as needed. */
+> +static void buf_escaped(struct buffer *buf, const char *str)
+> +{
+> +	unsigned char chr;
+> +
+> +	while ((chr = *str++)) {
+> +		if (chr == '"' || chr == '\\')
+> +			buf_printf(buf, "\\%c", chr);
+> +		else if (isprint(chr))
+> +			buf_printf(buf, "%c", chr);
+> +		else
+> +			buf_printf(buf, "\\%03o", chr);
+> +	}
+> +}
+> +
+> +static void buf_asciz(struct buffer *buf, const char *str)
+>  {
+> -	struct buffer buf = { };
+> -	struct module_alias *alias, *next;
+> -	char fname[PATH_MAX];
+> -	int ret;
+> +	buf_printf(buf, "\t.asciz \"");
+> +	buf_escaped(buf, str);
+> +	buf_printf(buf, "\"\n");
+> +}
+>  
+> -	add_header(&buf, mod);
+> -	add_exported_symbols(&buf, mod);
+> -	add_versions(&buf, mod);
+> -	add_extended_versions(&buf, mod);
+> -	add_depends(&buf, mod);
+> +/* The equivalent of MODULE_INFO(tag, info). */
+> +static void add_asm_modinfo(struct buffer *buf, const char *tag,
+> +			    const char *info)
+> +{
+> +	buf_printf(buf, "\t.section .modinfo,\"a\",%%progbits\n");
+> +	buf_printf(buf, "\t.asciz \"%s=", tag);
+> +	buf_escaped(buf, info);
+> +	buf_printf(buf, "\"\n");
+> +}
+>  
+> -	buf_printf(&buf, "\n");
+> +/* See __KSYM_REF() in include/linux/export-internal.h. */
+> +static void add_asm_ksym_ref(struct buffer *buf, const char *prefix,
+> +			     const char *sym)
+> +{
+> +#if MOD_PREL32_RELOCATIONS
+> +	buf_printf(buf, "\t.long %s%s - .\n", prefix, sym);
+> +#else
+> +	buf_printf(buf, "\t" MOD_PTR_DIRECTIVE " %s%s\n", prefix, sym);
+> +#endif
+> +}
+> +
+> +/* The name and namespace strings a ksymtab entry refers to. */
+> +static void add_asm_kstrtab(struct buffer *buf, const struct symbol *sym)
+> +{
+> +	buf_printf(buf, "\t.section \"__ksymtab_strings\",\"aMS\",%%progbits,1\n");
+> +	buf_printf(buf, "__kstrtab_%s:\n", sym->name);
+> +	buf_asciz(buf, sym->name);
+> +	buf_printf(buf, "__kstrtabns_%s:\n", sym->name);
+> +	buf_asciz(buf, sym->namespace);
+> +	buf_printf(buf, "\t.previous\n");
+> +}
+> +
+> +/* The equivalent of SYMBOL_FLAGS(). */
+> +static void add_asm_kflagstab(struct buffer *buf, const struct symbol *sym)
+> +{
+> +	buf_printf(buf, "\t.section \"___kflagstab+%s\", \"a\"\n", sym->name);
+> +	buf_printf(buf, "__flags_%s:\n", sym->name);
+> +	buf_printf(buf, "\t.byte 0x%02x\n", get_symbol_flags(sym));
+> +	buf_printf(buf, "\t.previous\n");
+> +}
+> +
+> +/* The equivalent of KSYMTAB_FUNC()/KSYMTAB_DATA(). */
+> +static void add_asm_ksymtab(struct buffer *buf, const struct symbol *sym)
+> +{
+> +	const char *name = sym->name;
+> +
+> +	add_asm_kstrtab(buf, sym);
+> +
+> +	buf_printf(buf, "\t.section \"___ksymtab+%s\", \"a\"\n", name);
+> +	buf_printf(buf, "\t.balign %d\n", KSYM_ALIGN);
+> +	buf_printf(buf, "__ksymtab_%s:\n", name);
+> +	add_asm_ksym_ref(buf, sym->is_func ? MOD_FUNC_PREFIX : "", name);
+> +	add_asm_ksym_ref(buf, "__kstrtab_", name);
+> +	add_asm_ksym_ref(buf, "__kstrtabns_", name);
+> +	buf_printf(buf, "\t.previous\n");
+> +
+> +	add_asm_kflagstab(buf, sym);
+> +}
+> +
+> +/* The equivalent of SYMBOL_CRC(). */
+> +static void add_asm_crc(struct buffer *buf, const struct symbol *sym)
+> +{
+> +	buf_printf(buf, "\t.section \"___kcrctab+%s\",\"a\"\n", sym->name);
+> +	buf_printf(buf, "\t.balign 4\n");
+> +	buf_printf(buf, "__crc_%s:\n", sym->name);
+> +	buf_printf(buf, "\t.long 0x%08x\n", sym->crc);
+> +	buf_printf(buf, "\t.previous\n");
+> +}
+
+It would be good to avoid duplicating these symbol-related
+implementations in include/linux/export-internal.h and
+scripts/mod/modpost.c. Perhaps .vmlinux.export.c could also be lowered
+to assembly, so the implementation in include/linux/export-internal.h
+can be removed and scripts/mod/modpost.c becomes the only source of
+truth.
+
+> +
+> +static bool export_is_kept(const struct symbol *sym)
+> +{
+> +	return !trim_unused_exports || sym->used;
+> +}
+> +
+> +/* Record the CRCs of the exported symbols. */
+> +static void add_asm_crcs(struct buffer *buf, struct module *mod)
+> +{
+> +	struct symbol *sym;
+> +
+> +	list_for_each_entry(sym, &mod->exported_symbols, list) {
+> +		if (!export_is_kept(sym))
+> +			continue;
+> +
+> +		if (!sym->crc_valid)
+> +			mod_warn(mod, "EXPORT symbol '%s' version generation failed, symbol will not be versioned.\n"
+> +				 "Is '%s' prototyped in <asm/asm-prototypes.h>?\n",
+> +				 sym->name, sym->name);
+> +		add_asm_crc(buf, sym);
+> +	}
+> +}
+> +
+> +static void add_asm_exported_symbols(struct buffer *buf, struct module *mod)
+> +{
+> +	struct symbol *sym;
+> +
+> +	list_for_each_entry(sym, &mod->exported_symbols, list) {
+> +		if (export_is_kept(sym))
+> +			add_asm_ksymtab(buf, sym);
+> +	}
+> +
+> +	if (modversions)
+> +		add_asm_crcs(buf, mod);
+> +}
+
+Nit: This could be kept shorter as a single function, similarly to how
+the original C version was implemented solely as add_exported_symbols().
+
+static void add_asm_exported_symbols(struct buffer *buf, struct module *mod)
+{
+	struct symbol *sym;
+
+	list_for_each_entry(sym, &mod->exported_symbols, list) {
+		if (trim_unused_exports && !sym->used)
+			continue;
+
+		add_asm_ksymtab(buf, sym);
+
+		if (!modversions)
+			continue;
+
+		if (!sym->crc_valid)
+			mod_warn(mod, "EXPORT symbol '%s' version generation failed, symbol will not be versioned.\n"
+				 "Is '%s' prototyped in <asm/asm-prototypes.h>?\n",
+				 sym->name, sym->name);
+		add_asm_crc(buf, sym);
+	}
+}
+
+> +/*
+> + * An unresolved symbol without a module is not versioned; one without a CRC
+> + * cannot be, so warn about it.
+> + */
+> +static bool skip_unversioned(struct module *mod, const struct symbol *sym)
+> +{
+> +	if (!sym->module)
+> +		return true;
+> +	if (sym->crc_valid)
+> +		return false;
+> +
+> +	mod_warn(mod, "symbol '%s' has no CRC!\n", sym->name);
+> +	return true;
+> +}
+> +
+> +/* One struct modversion_info: the CRC, then the name padded to the end. */
+> +static void add_asm_version(struct buffer *buf, const struct symbol *sym)
+> +{
+> +	buf_printf(buf, "\t" MOD_PTR_DIRECTIVE " 0x%08x\n", sym->crc);
+> +	buf_printf(buf, "\t.ascii \"%s\"\n", sym->name);
+> +	buf_printf(buf, "\t.skip %zu\n", MOD_SIZEOF_struct_modversion_info -
+> +		   MOD_OFF_modversion_info_name - strlen(sym->name));
+> +}
+> +
+> +/*
+> + * The equivalent of:
+> + *
+> + *	static const struct modversion_info ____versions[]
+> + *	__used __section("__versions") = { { crc, "name" }, ... };
+> + *
+> + * for unresolved symbols.
+> + */
+> +static void add_asm_versions(struct buffer *buf, struct module *mod)
+> +{
+> +	struct symbol *sym;
+> +
+> +	if (!basic_modversions)
+> +		return;
+> +
+> +	buf_printf(buf, "\n\t.section __versions,\"a\",%%progbits\n");
+> +	buf_printf(buf, "\t.balign %d\n", MOD_ALIGNOF_struct_modversion_info);
+> +	list_for_each_entry(sym, &mod->unresolved_symbols, list) {
+> +		if (skip_unversioned(mod, sym))
+> +			continue;
+> +
+> +		if (strlen(sym->name) >= MOD_NAME_LEN) {
+> +			/* Only the extended table can hold it. */
+> +			if (extended_modversions)
+> +				continue;
+> +
+> +			mod_error(mod, "too long symbol '%s'\n", sym->name);
+> +			break;
+> +		}
+> +
+> +		add_asm_version(buf, sym);
+> +	}
+> +}
+> +
+> +static void add_asm_version_ext_crcs(struct buffer *buf, struct module *mod)
+> +{
+> +	struct symbol *sym;
+> +
+> +	buf_printf(buf, "\n\t.section __version_ext_crcs,\"a\",%%progbits\n");
+> +	buf_printf(buf, "\t.balign 4\n");
+> +	list_for_each_entry(sym, &mod->unresolved_symbols, list) {
+> +		if (skip_unversioned(mod, sym))
+> +			continue;
+> +
+> +		buf_printf(buf, "\t.long 0x%08x\n", sym->crc);
+> +	}
+> +}
+> +
+> +/*
+> + * A symbol without a CRC was warned about with the CRCs, and is skipped here
+> + * too so that the names line up with them.
+> + */
+> +static void add_asm_version_ext_names(struct buffer *buf, struct module *mod)
+> +{
+> +	struct symbol *sym;
+> +
+> +	buf_printf(buf, "\t.section __version_ext_names,\"a\",%%progbits\n");
+> +	list_for_each_entry(sym, &mod->unresolved_symbols, list) {
+> +		if (!sym->module || !sym->crc_valid)
+> +			continue;
+> +
+> +		buf_asciz(buf, sym->name);
+> +	}
+> +	/* The terminator of the string literal this used to be. */
+> +	buf_printf(buf, "\t.byte 0\n");
+
+This is ok since the conversion aims to be byte-identical. In the
+future, I believe the extra NUL byte should be removed and
+elf_validity_cache_index_versions() also be updated to report when
+__version_ext_names contains more names than there are CRCs in
+__version_ext_crcs.
+
+> +}
+> +
+> +/*
+> + * The equivalent of:
+> + *	static const u32 ____version_ext_crcs[] __section("__version_ext_crcs") = { crc, ... };
+> + *	static const char ____version_ext_names[] __section("__version_ext_names") = "name\0" ...;
+> + *
+> + * for unresolved symbols.
+> + */
+> +static void add_asm_extended_versions(struct buffer *buf, struct module *mod)
+> +{
+> +	if (!extended_modversions)
+> +		return;
+> +
+> +	add_asm_version_ext_crcs(buf, mod);
+> +	add_asm_version_ext_names(buf, mod);
+> +}
+
+Nit: add_asm_version_ext_crcs() and add_asm_version_ext_names() are both
+fairly short and are called only from add_asm_extended_versions(), so
+I think they could be inlined into that function. This would be similar
+to the original implementation, which does all the work in
+add_extended_versions().
+
+> +
+> +/* Clear ->seen of the modules that own symbols this one needs. */
+> +static void clear_seen_dependencies(struct module *mod)
+> +{
+> +	struct symbol *sym;
+> +
+> +	list_for_each_entry(sym, &mod->unresolved_symbols, list) {
+> +		if (sym->module)
+> +			sym->module->seen = sym->module->is_vmlinux;
+> +	}
+> +}
+> +
+> +/* The modules this one depends on, each once, comma separated. */
+> +static void collect_dependencies(struct module *mod, struct buffer *deps)
+> +{
+> +	struct symbol *sym;
+> +	bool first = true;
+> +
+> +	clear_seen_dependencies(mod);
+> +
+> +	list_for_each_entry(sym, &mod->unresolved_symbols, list) {
+> +		struct module *owner = sym->module;
+> +
+> +		if (!owner || owner->seen)
+> +			continue;
+> +
+> +		owner->seen = true;
+> +		buf_printf(deps, "%s%s", first ? "" : ",",
+> +			   get_basename(owner->name));
+> +		first = false;
+> +	}
+> +	buf_write(deps, "", 1);
+> +}
+> +
+> +static void add_asm_depends(struct buffer *buf, struct module *mod)
+> +{
+> +	struct buffer deps = { };
+> +
+> +	collect_dependencies(mod, &deps);
+> +	buf_printf(buf, "\n");
+> +	add_asm_modinfo(buf, "depends", deps.p);
+> +	free(deps.p);
+> +}
+
+Nit: Same here. I think this would be more straightforward if
+collect_dependencies() and clear_seen_dependencies() were inlined into
+add_asm_depends(), matching the original add_depends().
 
 -- 
-2.43.0
-
+Thanks,
+Petr
