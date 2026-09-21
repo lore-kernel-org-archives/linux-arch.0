@@ -1,152 +1,206 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7D7C04A0929;
-	Mon, 21 Sep 2026 14:05:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5BF684BF941;
+	Mon, 21 Sep 2026 16:21:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.133
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789999554; cv=none; b=LJ/EzATviVlBlRbciUHOsBzrz/m4bk/qy2rxrmgBAJ8n/Q3NkbyJ3lDwThLNanGMBfefliaExaHg+zfuvbF3UyTb+2HtgZpjsQNljjm31n+FIdD77DGAhNTSnNraoKpMoZ8UXdIqC2jPxJHT3c4AEtMOLFlb4VRVlrfLtPJ7fiY=
+	t=1790007681; cv=none; b=WtN7u9yR5/gmhwCaIIZghF15XiVyxGETZ3Pz0S2klyT0ydOJaBlbi81F0h5hmE9WERPSlfsFxIDae1YX+qI5WfE8b6g921cIgPEP76wCpoKlYpvAwF2t5DuujFpKVminVgS5qsGIdsuN+cys5yMz3PZ0Ywy6PC7uGaUmEBYLHhw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789999554; c=relaxed/simple;
-	bh=LItPg0eEICI8licPO1z3Hy7+q6MSXIvcWWOYjosZBio=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=j0thoj9HybI9JVzZQa9Yp/LQQwvkEhk7SfJCrNbh9vfnzvTnZ/miTL+PvPsn15O8VRy/LItz4rsvvJ2BFed+9emFSbAFQAGfuNvQtG1ZpYAEEFdbJyQz0JnlbMoQ04Lg7++K4aFeNHbD1+worYCrco9XiZENol8fo4twvLfYo9w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=R2JSulfR; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1790007681; c=relaxed/simple;
+	bh=oGrCEH101JYJ0TwgVUxNMjImKrJahWj0BvTmscqgBZ8=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Tb0peq0Q/dwMLkrjlTv3DbfBIYdIyKKyoavgHH5JcG69s7baHNhxmxeHyFe+H+DZhf6J/odPIxyBn647gcjbBaHwtNjPHtW8hlT187KwSMJPNKHBVZOw3JxNp1SoPa59VoeO7OxKa+rwYfBURahz/Xs0fGSDEAI/Ms637ksKAXY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=pUf8M6np; arc=none smtp.client-ip=198.137.202.133
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="R2JSulfR"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CE4001F000FF;
-	Mon, 21 Sep 2026 14:05:44 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1789999553;
-	bh=LItPg0eEICI8licPO1z3Hy7+q6MSXIvcWWOYjosZBio=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=R2JSulfRRKgDq4nWYVx/wIl9Lk3SBwlo74AheX2WFPr9LmiHUdQD371FGOawu1ayx
-	 1fov8PWMy0WOGRmQcskYgxZbJk35Tc5V7ux+XrFi4gSBZZGAvJBe2cCFYnG8UQPF42
-	 YXwi24ZQSEppcHTJI1jeGhhs+HQAhBDKTtRrZkVKjHluGrJPJOj9cPZjTsKqAB/Tvr
-	 87EOuvi/P9sN43dlUwvDL2CSpwkyz5FdnjjK2kgrZjTrOTApEU3eVFvoZyZ4SXbId+
-	 G/Nj72pOen1eumCXhi5oR3Xg6vDHRyeYQ5Slwdil1v1QqYwZoqeNaSKVci4EGpUnhG
-	 WSoq5DaspTNkg==
-Date: Mon, 21 Sep 2026 15:05:42 +0100
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Petr Pavlu <petr.pavlu@suse.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
-	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Masahiro Yamada <masahiroy@kernel.org>, 
-	Alexey Gladkov <legion@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Arnd Bergmann <arnd@arndb.de>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Josh Poimboeuf <jpoimboe@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
-	Gary Guo <gary@garyguo.net>, =?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>, 
-	Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
-	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
-	Danilo Krummrich <dakr@kernel.org>, Daniel Almeida <daniel.almeida@collabora.com>, 
-	Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, 
-	Onur =?utf-8?B?w5Z6a2Fu?= <work@onurozkan.dev>, Jonathan Corbet <corbet@lwn.net>, 
-	Randy Dunlap <rdunlap@infradead.org>, Kees Cook <kees@kernel.org>, 
-	"Gustavo A. R. Silva" <gustavoars@kernel.org>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	llvm@lists.linux.dev, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
-	linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, linux-hardening@vger.kernel.org
-Subject: Re: [PATCH v2 13/21] modpost: emit module descriptors as assembly
-Message-ID: <arE5dDlwgEJxvjKn@gremlin>
-References: <20260914-build-speedup-v2-0-39817ec5db23@kernel.org>
- <20260914-build-speedup-v2-13-39817ec5db23@kernel.org>
- <95baacfb-d8d9-4d2f-bc89-592df6f6f8e3@suse.com>
- <arEZrFmXeCO4hZpP@gremlin>
- <2b27bb4b-47e3-45ed-a26a-4b9de2b20542@suse.com>
- <arEnCzzQa9XDd4LT@gremlin>
- <58605613-8a43-40e7-a00a-b0d09f089ec8@suse.com>
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="pUf8M6np"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+	Content-Type:In-Reply-To:From:References:Cc:To:Subject:MIME-Version:Date:
+	Message-ID:Sender:Reply-To:Content-ID:Content-Description;
+	bh=/p/wcPtAYiIR16GkUrLsbGWfaNUG1APNWwlFrFY+MPk=; b=pUf8M6npYUllN36pF1Jjui7cUH
+	0cJnXOLLz8IMSoZFJYPgc5lro6QvvcAllD8kT8yvE2oXFQprRQN7QLqZcTyDV+/8rFVjXMhuvVI4c
+	mWHFSIlZyvQAbCSPpjRnrW7h03Dt13F+2Qa/Di9V411h9xwD421wQBb0B8hrQkPwEnoZSwLlA8b3c
+	Kfkv8In7DpmocmZwhpAHIvZc9azVaZuBZ7uGZh5Y7LrzlnECHlH4ORj71wjsVVkvIkxXQY7w3Ow7z
+	53Tv7T57hxQw+gODKEoIK9DtM5Pxbl1EDRuIQGHtUrD4gv23z7yDTkKGm1qzW6a6kZ4r/O3ZyUV15
+	Yc6W3yIg==;
+Received: from [50.53.43.113] (helo=[192.168.254.34])
+	by bombadil.infradead.org with esmtpsa (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1x8gl0-00000002oNa-486R;
+	Mon, 21 Sep 2026 16:20:43 +0000
+Message-ID: <c0c67459-6b75-4bcd-b068-3752e23afbf6@infradead.org>
+Date: Mon, 21 Sep 2026 09:20:40 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <58605613-8a43-40e7-a00a-b0d09f089ec8@suse.com>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 21/21] Documentation: mm: clarify behaviour of
+ compile-time folded page tables
+To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
+ Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>,
+ Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
+ Shakeel Butt <shakeel.butt@linux.dev>, Barry Song <baohua@kernel.org>,
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
+ Wei Xu <weixugc@google.com>, Johannes Weiner <hannes@cmpxchg.org>,
+ David Hildenbrand <david@kernel.org>, Michal Hocko <mhocko@kernel.org>,
+ Lorenzo Stoakes <ljs@kernel.org>, Tianrui Zhao <zhaotianrui@loongson.cn>,
+ Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
+ Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Alexandre Ghiti <alex@ghiti.fr>, Dave Hansen <dave.hansen@linux.intel.com>,
+ Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+ Stafford Horne <shorne@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+ loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
+ kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
+ linux-openrisc@vger.kernel.org
+References: <20260921-dummy_ptxp3-v1-0-cd40cf68242e@arm.com>
+ <20260921-dummy_ptxp3-v1-21-cd40cf68242e@arm.com>
+Content-Language: en-US
+From: Randy Dunlap <rdunlap@infradead.org>
+In-Reply-To: <20260921-dummy_ptxp3-v1-21-cd40cf68242e@arm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Mon, Sep 21, 2026 at 03:50:06PM +0200, Petr Pavlu wrote:
-> On 9/21/26 2:48 PM, Lorenzo Stoakes (ARM) wrote:
-> > On Mon, Sep 21, 2026 at 02:36:30PM +0200, Petr Pavlu wrote:
-> >> On 9/21/26 1:57 PM, Lorenzo Stoakes (ARM) wrote:
-> >>> (note there's a v3 see [0])
-> >>>
-> >>> [0]: https://lore.kernel.org/linux-kbuild/20260917-build-speedup-v3-0-9ecf4163ff36@kernel.org/
-> >>
-> >> Thanks, I missed it.
-> >>
-> >>> On Mon, Sep 21, 2026 at 01:25:09PM +0200, Petr Pavlu wrote:
-> >>>> On 9/14/26 11:22 AM, Lorenzo Stoakes (ARM) wrote:
-> >>>>> The sections were confirmed to be byte-for-byte identical to the C version
-> >>>>> produced - each of .modinfo, .gnu.linkonce.this_module, __ksymtab*,
-> >>>>> __ksymtab_strings, __kcrctab*, __kflagstab*, __versions,
-> >>>>> __version_ext_crcs, __version_ext_names and their relocations - for all
-> >>>>> 8,135 modules of a clang allmodconfig build with CONFIG_COMPILE_TEST off
-> >>>>> and CONFIG_MODVERSIONS, CONFIG_EXTENDED_MODVERSIONS and
-> >>>>> CONFIG_MODULE_SRCVERSION_ALL on, and for a sample built with gcc.
-> >>>>
-> >>>> Lowering the data to assembly loses debug information for __this_module,
-> >>>> specifically that it has type `struct module`. It might be worth
-> >>>
-> >>> No, it keeps it - every module includes linux/module.h, and the extern
-> >>> declaration of __this_module carries the type, so all of the stuff gdb
-> >>> needs (e.g. ptype, p & field access), DWARF etc. is all there in the same
-> >>> way as with .mod.c.
-> >>>
-> >>> Have confirmed locally.
-> >>
-> >> An extern declaration alone shouldn't cause its name and type to be
-> >> included in debug information. They should appear only when the variable
-> >> is referenced by some code.
-> >
-> > Ack yeah sorry my mistake, I had the LLM check that and should have known
-> > better than to trust it without reviewing what it said (as I have done for
-> > the most part for everything in this series).
-> >
-> >>
-> >> Testing with a simple module that previously referenced __this_module
-> >> only in .mod.c and in no other file, such as lib/test_module.c, shows
-> >> that the .ko no longer contains debug information for this variable.
-> >>
-> >> I've verified this behavior with GCC 16 and Clang 19.
-> >
-> > Ack confirmed locally.
-> >
-> > Can put a fix in module-common.c.
-> >
-> > The LLM came up with a reference as an alternative:
-> >
-> > static struct module *const __this_module_dbg __used __section(".discard.this_module") = &__this_module;
-> >
-> > Would that work? Or should we go with your original suggestion? -
-> >
-> > __weak __section(".discard.this_module") struct module __this_module;
->
-> With GCC, the LLM's suggestion produces debug information for both
-> __this_module_dbg and __this_module. However, Clang only generates debug
-> information for __this_module_dbg, so it is not quite what is needed.
 
-Ack will go with your suggestion then, thanks! Will be applied to v4.
 
-I am aiming for ~midweek for sending that that out to give people a chance to
-respond and because it'll be based on other pending commits that need a bit of
-time before they're in-tree.
+On 9/21/26 3:55 AM, Yeoreum Yun wrote:
+> From: "David Hildenbrand (Arm)" <david@kernel.org>
+> 
+> Compile-time folded page tables are not necessarily easy to understand, and even
+> people the were once familiar with the concept might need to refresh their memory.
+> 
+> Add proper documentation, including a nice diagram, for the current design.
+> Mention details about dummy functions, including the recently changed pXdp_get()
+> helpers.
+> 
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-I have added you to the cc-list so you should get mailed when I send it out!
+Documentation/mm/page_tables.rst:197: WARNING: Bullet list ends without a blank line; unexpected unindent. [docutils]
 
-Thanks for the feedback :)
+See below for a fix.
 
->
-> --
-> Thanks,
-> Petr
+> ---
+>  Documentation/mm/page_tables.rst | 84 +++++++++++++++++++++++++++++++++++-----
+>  1 file changed, 75 insertions(+), 9 deletions(-)
+> 
+> diff --git a/Documentation/mm/page_tables.rst b/Documentation/mm/page_tables.rst
+> index 126c876282509..84f2715c7de0a 100644
+> --- a/Documentation/mm/page_tables.rst
+> +++ b/Documentation/mm/page_tables.rst
+> @@ -143,15 +143,81 @@ pointers on each level is architecture-defined.::
+>  Page Table Folding
+>  ==================
+>  
+> -If the architecture does not use all the page table levels, they can be *folded*
+> -which means skipped, and all operations performed on page tables will be
+> -compile-time augmented to just skip a level when accessing the next lower
+> -level.
+> -
+> -Page table handling code that wishes to be architecture-neutral, such as the
+> -virtual memory manager, will need to be written so that it traverses all of the
+> -currently five levels. This style should also be preferred for
+> -architecture-specific code, so as to be robust to future changes.
+> +Not all architectures support 5-level page tables; while for some of them
+> +the exact number of supported page table levels is known at compile time,
+> +others can determine the number of page table levels at runtime based on
+> +hardware support and address space sizes.
+> +
+> +Generic page table walking code always assumes that 5 levels of page table
+> +exist. To make page table walking code not have to worry about that,
+> +`compile-time folding` and `runtime folding` of page tables are used.
+> +Compile-time folding is mostly handled in common code, whereas runtime folding
+> +is exclusively handled in architecture code.
+> +
+> +This description focuses on generic compile-time folded page tables; for
+> +architecture-specific variants, some details can vary, however, without
+> +affecting common page table walkers.
+> +
+> +When walking folded page tables, all upper page table levels up to the supported
+> +level are skipped in page table walkers: this is achieved by (a) treating
+> +entries in upper page table levels as present and pointing at a page table; and
+> +(b) having page table walkers cast the entry pointer to the next-level entry
+> +instead of dereferencing that table. From the perspective of a page table
+> +walker, the entry points at itself.
+> +
+> +Assuming compile-time folded 4-level page tables, to achieve (a), pgd_present()
+> +and pgd_leaf() are hard-coded to indicate a present page table entry that
+> +points at a page table, and to achieve (b) p4d_offset() and
+> +p4d_offset_lockless() simply cast the page table entry pointer to the next
+> +lower level.
+> +
+> +In the current design, this is further modeled by having the P4D have a
+> +single page table entry::
+> +
+> +        PGD
+> +  --> +------+          NOP4D
+> +      | ptr0 |-------> +------+           PUD
+> +      | ptr1 |-        | ptr0 |-------> +-----+
+> +      | ptr2 | \       +------+         | ptr |-------> ...
+> +      | ptr3 |  \                       | ptr |
+> +        ...      \                        ..
+> +                  \        NOP4D
+> +                   +----> +------+           PUD
+> +                          | ptr1 |-------> +-----+
+> +                          +------+         | ptr |-------> ...
+> +                                           | ptr |
+> +                                             ...
+> +
+> +Note that the arrows from PGD to NOP4D represent page-table-walker
+> +transitions, not pointers stored in the pgd entries.
+> +
+> +Using p4d as an example, `nop4d`/`p4d folded` translates to the following:
+> +
+> +- p4d is considered folded into pgd; both are operating on the same page
+> + table.
 
---
-Cheers, Lorenzo
+     table.
+(add one more prefix space to align the indentation)
+
+> +
+> +- Most pgd_* helpers are hard-coded dummy functions that ignore the passed
+> +  pgd_t values entirely. Exceptions are pgd_val() and low-level helpers
+> +  set_pgd() + pgd_page_vaddr(), which effectively translate to set_p4d()/
+> +  p4d_pgtable() to keep existing arch code working.
+> +
+> +  Architectures must provide p4d_* helpers (unless further common
+> +  compile-time folding applies).
+> +
+> +- PTRS_PER_P4D is hard-coded to 1. Architectures must define PTRS_PER_PGD.
+> +
+> +To avoid reading a value that will never be used but cannot be entirely
+> +optimized out, compile-time folded page table code also makes pXdp_get()
+> +return a constant dummy value.
+> +
+> +In common code, this only affects pXd_val() when used for printing page
+> +table entries for debugging purposes. As we don't want architecture code
+> +that uses set_pXd(), pgd_page_vaddr() or pXd_pgtable() to accidentally
+> +operate on dummy values, the compiler will error out if it detects that the
+> +helpers are used with dummy values. For a folded level, pXd_page() must not
+> +be used and unconditionally triggers a compiler error. Architecture code must
+> +instead call the helpers on the proper first page table level: e.g., set_p4d()
+> +instead of set_pgd().
+>  
+>  
+>  MMU, TLB, and Page Faults
+> 
+
+-- 
+~Randy
+
