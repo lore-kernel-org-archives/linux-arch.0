@@ -1,115 +1,218 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 22186576ECF;
-	Tue, 22 Sep 2026 17:22:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 3274A3F58D7;
+	Tue, 22 Sep 2026 17:48:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790097760; cv=none; b=SOTLpooKItpBkAnzoknjMc/4jJDbojORtztu1HA/AS1A+yZjCiIc/4dGeqfSeMjyYeABv7jx69vH28ZOnb3ujLAdMEug5O945+7uMfqE6bDtxu4HpQzRItyViz14PIl6/ng0F8iF39NkC9dzokg6BTAGrAJhyiluR2FlvQcLsvU=
+	t=1790099319; cv=none; b=uT5h6cd48UCgLN7s3xKvB5S0lNsbZDXfFb8Qo/5HRUTQlE4eL7bNQlIoP/7QBZeCwC1DRKr6WqSQJZUXNeBs2jW5ePSBFVzB85lhHSaWLfcrEYeNJexKT8az6ZXZLOAPVR6XtvY/vpiabAu5+HtcgtuP8PcQeXGqalBbwQUOJQc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790097760; c=relaxed/simple;
-	bh=ykI6bqtAnan0fCwbd3pxLqU3hmd3EO2QMgG3+lJljBA=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Rewz76oSQUhK9nCr7nCOtqHAT+mY8thdl3CR8IY9CNIL+jIbF7JZ6D+yznecVBA9/yAaMAKPwKITxRGfs++wCi1/LVaW2Q8xtEgBhDLHcnf0MfzHSfPpd2YqmbEWXy81uqb24GeEYehQAUyyT2bfK1UCM0v4dMDsiqMf5UTQ/I8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=F9l/h2sg; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1790099319; c=relaxed/simple;
+	bh=kTMLjMI+3oMuAoDSiZMej474ZxKZI3kbzbymSlScGsM=;
+	h=Message-ID:Date:MIME-Version:Cc:Subject:To:References:From:
+	 In-Reply-To:Content-Type; b=DLgAsu+tQ1VDzkxRlyP/6iAjScyUtjNHL0Uycd69/byUR34rbPzjeRReMnjZDu/P6FOQw++wSSfSfwiLFdjnXwZvgulhZOwZR/cw5+kBiWUFr2rAtcqzN0j2BElf/mi3u4ZnhvgMhMYnfOZQCTpwc3GsyuHIwO0Iq7hwI1Z+Os8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=KxMELhnc; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="F9l/h2sg"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 04DCD1F000FF;
-	Tue, 22 Sep 2026 17:22:17 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1790097759;
-	bh=UNh8IajC2C7W4xAVN/5A4Te3DbNvUnFRUUUmja4mmRU=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=F9l/h2sgeG6pItIpsl4UOUD5LPuOPYalAOj3lX7iN1SKQRQx/7vSe8Y8wJYuJaFa9
-	 tegjTwQVFA9hXGIt+1oJvFwKspvEmTZEeRl/rL3Z+1/vMB7N90Y9ljH8EiqVFiWGMa
-	 llb7G+u8p4G82Y3NfZpa4T6VyMnit/o1genoOGjAzyku0OZj1fvAIP0nPa5BRjaZ1s
-	 0LsiYA1bWAjQ698sUHV9gBhPhcHOkUs5jCvX2Aqi8QkSHyLlAciZyH7C9FEowKSWF8
-	 GvrRJLzG6nhqL2FhCQxRW0vNDBGCdIskECu8iSBeB5zhpcl0fRPI9Q5+bVasWrDLde
-	 t0gfKdsjFaNOA==
-Date: Tue, 22 Sep 2026 18:22:15 +0100
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	David Hildenbrand <david@kernel.org>, Zi Yan <ziy@nvidia.com>, 
-	Baolin Wang <baolin.wang@linux.alibaba.com>, "Liam R. Howlett" <liam@infradead.org>, 
-	Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
-	Barry Song <baohua@kernel.org>, Lance Yang <lance.yang@linux.dev>, 
-	Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, Guo Ren <guoren@kernel.org>, 
-	Brian Cain <bcain@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, 
-	Dinh Nguyen <dinguyen@kernel.org>, Simon Schuster <schuster.simon@siemens-energy.com>, 
-	Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, 
-	Stafford Horne <shorne@gmail.com>, Rich Felker <dalias@libc.org>, 
-	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Paul Walmsley <pjw@kernel.org>, 
-	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
-	Alexandre Ghiti <alex@ghiti.fr>, Russell King <linux@armlinux.org.uk>, 
-	Vineet Gupta <vgupta@kernel.org>, Michal Simek <monstr@monstr.eu>, Chris Zankel <chris@zankel.net>, 
-	Max Filippov <jcmvbkbc@gmail.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, 
-	Andreas Larsson <andreas@gaisler.com>, Richard Henderson <richard.henderson@linaro.org>, 
-	Matt Turner <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, 
-	Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, 
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, 
-	Helge Deller <deller@gmx.de>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
-	Michael Ellerman <mpe@ellerman.id.au>, "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, 
-	Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
-	Alexander Gordeev <agordeev@linux.ibm.com>, Christian Borntraeger <borntraeger@linux.ibm.com>, 
-	Sven Schnelle <svens@linux.ibm.com>, Richard Weinberger <richard@nod.at>, 
-	Anton Ivanov <anton.ivanov@cambridgegreys.com>, Johannes Berg <johannes@sipsolutions.net>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Arnd Bergmann <arnd@arndb.de>, Vlastimil Babka <vbabka@kernel.org>, 
-	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
-	Michal Hocko <mhocko@suse.com>, Jason Gunthorpe <jgg@ziepe.ca>, 
-	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
-	Yoshinori Sato <ysato@users.sourceforge.jp>, Shakeel Butt <shakeel.butt@linux.dev>, 
-	Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, linux-mm@kvack.org, 
-	linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, 
-	linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org, linux-sh@vger.kernel.org, 
-	linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, 
-	linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, 
-	linux-alpha@vger.kernel.org, loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
-	linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, 
-	linux-um@lists.infradead.org, Hugh Dickins <hughd@google.com>, Qi Zheng <qi.zheng@linux.dev>, 
-	linux-doc@vger.kernel.org
-Subject: Re: [PATCH v4 00/12] mm: make userland page table freeing RCU-safe
-Message-ID: <arK4XnDTuFpwPV38@gremlin>
-References: <20260922-rcu-pagetable-freeing-v4-0-fe1ad1f1e303@kernel.org>
- <arKv4qbF04KB2WxQ@casper.infradead.org>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="KxMELhnc"
+Received: from [100.64.33.11] (unknown [52.148.140.42])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 5FD1D20B7168;
+	Tue, 22 Sep 2026 10:47:49 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 5FD1D20B7168
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1790099269;
+	bh=wsgw9fWrjcXbBDbnqUOexzVuRcPNKuwRNMM/Jpa/tZ0=;
+	h=Date:Cc:Subject:To:References:From:In-Reply-To:From;
+	b=KxMELhncJzXbLhooDXbbKXhkD6UEFuwfgozmzuvWomrQKtpw0PAVPn+v+CfEsEMyH
+	 RvQ4YmHtEnAhrKgIMWH8KcWad/pxWNHaFxWxknl1p8tg5MW35pawt9mX0XYSu/07TB
+	 gcuXyrJ4CmF/uBm3AbJjm3yfkfBBTz52vEO7Bm1Y=
+Message-ID: <5b292db7-1d55-4aef-9053-be2156c6e886@linux.microsoft.com>
+Date: Tue, 22 Sep 2026 10:48:36 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <arKv4qbF04KB2WxQ@casper.infradead.org>
+User-Agent: Mozilla Thunderbird
+Cc: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+ iommu@lists.linux.dev, linux-arch@vger.kernel.org,
+ easwar.hariharan@linux.microsoft.com, jgg@nvidia.com,
+ jacob.pan@linux.microsoft.com, kys@microsoft.com, haiyangz@microsoft.com,
+ wei.liu@kernel.org, decui@microsoft.com, tglx@kernel.org, mingo@redhat.com,
+ bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
+ joro@8bytes.org, will@kernel.org, robin.murphy@arm.com, arnd@arndb.de
+Subject: Re: [PATCH V0 2/3] mshv: Import data structs around device domains
+ from hyperv headers
+To: Mukesh R <mrathor@linux.microsoft.com>
+References: <20260921225028.4007330-1-mrathor@linux.microsoft.com>
+ <20260921225028.4007330-3-mrathor@linux.microsoft.com>
+From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+Content-Language: en-US
+In-Reply-To: <20260921225028.4007330-3-mrathor@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Tue, Sep 22, 2026 at 05:42:10PM +0100, Matthew Wilcox wrote:
-> On Tue, Sep 22, 2026 at 04:35:31PM +0100, Lorenzo Stoakes (ARM) wrote:
-> > m68k-motorola required the biggest change - since RCU page table freeing
-> > uses call_rcu(), this means page table freeing can arise from softirq
-> > context.
-> >
-> > This was fixed with an IRQ-safe spin lock used in both get_pointer_table()
-> > and free_pointer_table().
->
-> You don't need to use an irq-safe spinlock for softirqs.  It does work,
-> but it's overkill since it disables hardirqs.  If you use spin_lock_bh(),
-> only softirqs are prevented from running (and it's safe to call
-> spin_lock_bh() when in softirq context, just like it's safe to call
-> spin_lock_irqsave() in hardirq or softirq context).
+On 9/21/2026 15:50, Mukesh R wrote:
+> Copy/import from Hyper-V public headers, definitions and declarations that
+> are related to creating iommu domains in the hypervisor, attaching devices
+> to them, doing the reverse, etc.
+> 
+> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+> ---
+>  include/hyperv/hvgdk_mini.h |  9 ++++
+>  include/hyperv/hvhdk_mini.h | 90 +++++++++++++++++++++++++++++++++++++
+>  2 files changed, 99 insertions(+)
+> 
+> diff --git a/include/hyperv/hvgdk_mini.h b/include/hyperv/hvgdk_mini.h
+> index 6a4e8b9d570f..3b74f3c0229d 100644
+> --- a/include/hyperv/hvgdk_mini.h
+> +++ b/include/hyperv/hvgdk_mini.h
+> @@ -326,6 +326,8 @@ union hv_hypervisor_version_info {
+>  /* stimer Direct Mode is available */
+>  #define HV_STIMER_DIRECT_MODE_AVAILABLE			BIT(19)
+>  
+> +#define HV_DEVICE_DOMAIN_AVAILABLE			BIT(24)
+> +
 
-Right yup, I know _bh() is fine for softirq, I think this was being overly
-cautious (for sparc32 you do actually need irq saving).
+For my understanding, how is ms_hyperv.misc_features.HV_DEVICE_DOMAIN_AVAILABLE = 1
+different from HV_IOMMU_CAP_PRESENT = 1 combined with HV_IOMMU_CAP_S2 = 1?
+It seems like there is room to combine forces with the guest driver and just go with
+the latter.
 
-But this is m68k :) functionally there's really not that much difference, and
-it's over very few instrucitons so the delta here is likely to be functionally
-little to nothing.
+>  /*
+>   * Implementation recommendations. Indicates which behaviors the hypervisor
+>   * recommends the OS implement for optimal performance.
+> @@ -486,9 +488,15 @@ union hv_vp_assist_msr_contents {	 /* HV_REGISTER_VP_ASSIST_PAGE */
+>  #define HVCALL_GET_VP_INDEX_FROM_APIC_ID		0x009a
+>  #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE	0x00af
+>  #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_LIST	0x00b0
+> +#define HVCALL_CREATE_DEVICE_DOMAIN                     0x00b1
+> +#define HVCALL_ATTACH_DEVICE_DOMAIN                     0x00b2
+> +#define HVCALL_MAP_DEVICE_GPA_PAGES                     0x00b3
+> +#define HVCALL_UNMAP_DEVICE_GPA_PAGES                   0x00b4
+>  #define HVCALL_SIGNAL_EVENT_DIRECT			0x00c0
+>  #define HVCALL_POST_MESSAGE_DIRECT			0x00c1
+>  #define HVCALL_DISPATCH_VP				0x00c2
+> +#define HVCALL_DETACH_DEVICE_DOMAIN                     0x00c4
+> +#define HVCALL_DELETE_DEVICE_DOMAIN                     0x00c5
+>  #define HVCALL_GET_GPA_PAGES_ACCESS_STATES		0x00c9
+>  #define HVCALL_ACQUIRE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d7
+>  #define HVCALL_RELEASE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d8
+> @@ -502,6 +510,7 @@ union hv_vp_assist_msr_contents {	 /* HV_REGISTER_VP_ASSIST_PAGE */
+>  #define HVCALL_MMIO_READ				0x0106
+>  #define HVCALL_MMIO_WRITE				0x0107
+>  #define HVCALL_DISABLE_HYP_EX                           0x010f
+> +#define HVCALL_GET_IOMMU_CAPABILITIES			0x0125
+>  #define HVCALL_MAP_STATS_PAGE2				0x0131
+>  
+>  /* HV_HYPERCALL_INPUT */
+> diff --git a/include/hyperv/hvhdk_mini.h b/include/hyperv/hvhdk_mini.h
+> index 035ba20870f7..3bb052fd6e06 100644
+> --- a/include/hyperv/hvhdk_mini.h
+> +++ b/include/hyperv/hvhdk_mini.h
+> @@ -548,4 +548,94 @@ union hv_device_id {		/* HV_DEVICE_ID */
+>  	} acpi;
+>  } __packed;
+>  
+> +/* 3 domain types: stage 1, stage 2, and SOC */
+> +#define HV_DEVICE_DOMAIN_TYPE_S2  0 /* HV_DEVICE_DOMAIN_ID_TYPE_S2 */
+> +#define HV_DEVICE_DOMAIN_TYPE_S1  1 /* HV_DEVICE_DOMAIN_ID_TYPE_S1 */
 
-If I need to respin again I'll fix it up!
 
---
-Cheers, Lorenzo
+> +#define HV_DEVICE_DOMAIN_TYPE_SOC 2 /* HV_DEVICE_DOMAIN_ID_TYPE_SOC */
+
+I don't think this domain type is used in patch 3, perhaps we bring it in when needed?
+
+> +
+> +/* ID for stage 2 default domain and NULL domain */
+
+I think this comment would be more useful if it related the MSHV default and NULL domains to
+the Linux equivalents of identity and blocking respectively. As it stands, it just repeats the
+names of the defines it is a comment for.
+
+> +#define HV_DEVICE_DOMAIN_ID_S2_DEFAULT 0
+> +#define HV_DEVICE_DOMAIN_ID_S2_NULL    0xFFFFFFFFULL
+> +
+> +union hv_device_domain_id {
+> +	u64 as_uint64;
+> +	struct {
+> +		u32 type : 4;
+> +		u32 reserved : 28;
+> +		u32 id;
+> +	};
+> +} __packed;
+> +
+> +struct hv_input_device_domain { /* HV_INPUT_DEVICE_DOMAIN */
+> +	u64 partition_id;
+> +	union hv_input_vtl owner_vtl;
+> +	u8 padding[7];
+> +	union hv_device_domain_id domain_id;
+> +} __packed;
+> +
+> +union hv_create_device_domain_flags {	/* HV_CREATE_DEVICE_DOMAIN_FLAGS */
+> +	u32 as_uint32;
+> +	struct {
+> +		u32 forward_progress_required : 1;
+> +		u32 inherit_owning_vtl : 1;
+> +		u32 reserved : 30;
+> +	} __packed;
+> +} __packed;
+> +
+> +struct hv_input_create_device_domain {	/* HV_INPUT_CREATE_DEVICE_DOMAIN */
+> +	struct hv_input_device_domain device_domain;
+> +	union hv_create_device_domain_flags create_device_domain_flags;
+> +} __packed;
+> +
+> +struct hv_input_delete_device_domain {	/* HV_INPUT_DELETE_DEVICE_DOMAIN */
+> +	struct hv_input_device_domain device_domain;
+> +} __packed;
+> +
+> +struct hv_input_attach_device_domain {	/* HV_INPUT_ATTACH_DEVICE_DOMAIN */
+> +	struct hv_input_device_domain device_domain;
+> +	union hv_device_id device_id;
+> +} __packed;
+> +
+> +struct hv_input_detach_device_domain {	/* HV_INPUT_DETACH_DEVICE_DOMAIN */
+> +	u64 partition_id;
+> +	union hv_device_id device_id;
+> +} __packed;
+> +
+> +/* HV_INPUT_GET_IOMMU_CAPABILITIES */
+> +struct hv_input_get_iommu_capabilities {
+> +	u64 partition_id;
+> +	u64 reserved;
+> +} __packed;
+> +
+> +#define HV_IOMMU_CAP_PRESENT    BIT_ULL(0)
+> +#define HV_IOMMU_CAP_S2         BIT_ULL(1)
+> +#define HV_IOMMU_CAP_S1         BIT_ULL(2)
+> +#define HV_IOMMU_CAP_S1_5LVL    BIT_ULL(3)
+> +#define HV_IOMMU_CAP_PASID      BIT_ULL(4)
+> +#define HV_IOMMU_CAP_ATS        BIT_ULL(5)
+> +#define HV_IOMMU_CAP_PRI        BIT_ULL(6)
+> +
+> +struct hv_output_get_iommu_capabilities { /* HV_OUTPUT_GET_IOMMU_CAPABILITIES */
+> +	u32 size;
+> +	u16 reserved;
+> +	u8  max_iova_width;
+> +	u8  max_pasid_width;
+> +	u64 iommu_cap;          /* HV_IOMMU_CAP_* above */
+> +	u64 pgsize_bitmap;
+> +} __packed;
+> +
+> +struct hv_input_map_device_gpa_pages {	/* HV_INPUT_MAP_DEVICE_GPA_PAGES */
+> +	struct hv_input_device_domain device_domain;
+> +	union hv_input_vtl target_vtl;
+> +	u8 padding[3];
+> +	u32 map_flags;
+> +	u64 target_device_va_base;
+> +	u64 gpa_page_list[];
+> +} __packed;
+> +
+> +struct hv_input_unmap_device_gpa_pages {  /* HV_INPUT_UNMAP_DEVICE_GPA_PAGES */
+> +	struct hv_input_device_domain device_domain;
+> +	u64 target_device_va_base;
+> +} __packed;
+> +
+>  #endif /* _HV_HVHDK_MINI_H */
+
