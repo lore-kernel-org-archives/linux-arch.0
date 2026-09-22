@@ -1,85 +1,84 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 38F494A0F13
-	for <linux-arch@vger.kernel.org>; Tue, 22 Sep 2026 06:13:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E0454A6885
+	for <linux-arch@vger.kernel.org>; Tue, 22 Sep 2026 06:14:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790057637; cv=none; b=W4KL4eKRBWxo1Uw789gJErdQPPmAtsChIhRHJKNeQi8wfSn5rY4zgIWsj9XN+Qcod/PzSXGNt+19zKVrY9U/PPgJ2qqCSy3LDctBbFaFgi9PmaAoSMzJrYnMowOtRArC96Vl8Ciy5TV9JeduNt9PoXrmTNx2+FPMWpxNJ59TT/Q=
+	t=1790057674; cv=none; b=aCa+6Zc5UZQHyaumniqxgksP4MM7l90oyF25vyDygeer4OLnn/VjN2xRD5rZ7+wR2dlk3vdU2WKUVpfmStKR1S3mq4J057qkLbvQxuxHoPAutDNCzdFSbxWuWOoSbtBiqcblEO7JE3feW5AVsaL7VUAjAyRTKZ/i7iZz4/FvpmI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790057637; c=relaxed/simple;
-	bh=Gy9j0KWVr9kj0RgfLoDoTPlP1LTZnQQ7E4VrzUe2ipI=;
+	s=arc-20240116; t=1790057674; c=relaxed/simple;
+	bh=FCH/9o4E9MuvSWidio/A1XpbpWB1BgwKfBc1t05V7tg=;
 	h=Message-ID:Date:MIME-Version:Subject:From:To:Cc:References:
-	 In-Reply-To:Content-Type; b=NCSvxvtqBt7oBIwI3XR4Zd9Fr91GJGaZBPxWuS1kEQiXh8G69X/Cndjaw9XUWzH8TrI89krHMUSPPGHrVyx3e43rZsQPWn3sGj94cgzkhKq5PilopqAfKFzPFtxL7QLdGupobuHoethGCScUN/KOkNwcX/RP1h/frvgh7KSkktc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=O/hTK+Ph; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=GWYyJnp0; arc=none smtp.client-ip=170.10.129.124
+	 In-Reply-To:Content-Type; b=m+Hyl/mPbk4WesozBwJJBCR6PXTx8i/X08wyuzMGkI0Od5NSaUdZx15wwlFOfi7p5F9KBJQddiO/xXJR1I7/16vSdX9iWNoVtVvkf05tM8S28ocTfKvrCNnaPAokijnrpgx1Hc/9rnm2hHl4THE9VuGB/tAxSJe4GQV8VhXnPs8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=J3Jrimo5; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=No5jGA1b; arc=none smtp.client-ip=170.10.133.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="O/hTK+Ph";
-	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="GWYyJnp0"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="J3Jrimo5";
+	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="No5jGA1b"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1790057635;
+	s=mimecast20190719; t=1790057672;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references:autocrypt:autocrypt;
-	bh=9uMkpjF0ezR0L1Wb7g2yTnDlyybFBCPha3UfYWx1qZ8=;
-	b=O/hTK+Ph5isZDW7fd1wK8fcNxr8QbPljDLQsPVfwenrFA18YYd23b7noVQN6+v3Z1VDC8N
-	ZF0NYwgW1tLOnH5XN0rElh5W1ThFzBbXz+xHo88uuDSfPzv+YmelY3Hi/ixDGioPkzLPlI
-	O/hI5i/hOZml+uWWuzNj4UHsksgnnr8=
-Received: from mail-wm1-f69.google.com (mail-wm1-f69.google.com
- [209.85.128.69]) by relay.mimecast.com with ESMTP with STARTTLS
+	bh=uEea0f/ypnCyJEnI6MX9Td8H4D5CU9RYE7N1wN1TJiM=;
+	b=J3Jrimo5zIGARVvQ2HV9D6Mw0lp4QDyKyL7gu4KXBMJLzdYOCUz/Fwf+iazviirgevKRnR
+	+q0cGUoYLz/Fdgr7ONF1TKkNE8i8sD48Wpd9sAt5LkDD8JGmhu8C6qW44eweWUOVbEFINR
+	YpPQtu9ekKoMesstjSFN1r3rnNxDY3I=
+Received: from mail-wm1-f70.google.com (mail-wm1-f70.google.com
+ [209.85.128.70]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-501-hY2eg-aiOOuzbG2tGuG-WQ-1; Tue, 22 Sep 2026 02:13:53 -0400
-X-MC-Unique: hY2eg-aiOOuzbG2tGuG-WQ-1
-X-Mimecast-MFC-AGG-ID: hY2eg-aiOOuzbG2tGuG-WQ_1790057632
-Received: by mail-wm1-f69.google.com with SMTP id 5b1f17b1804b1-49e635a6002so44172995e9.0
-        for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2026 23:13:53 -0700 (PDT)
+ us-mta-658-D89kAzunMOua0aWzCse_BA-1; Tue, 22 Sep 2026 02:14:30 -0400
+X-MC-Unique: D89kAzunMOua0aWzCse_BA-1
+X-Mimecast-MFC-AGG-ID: D89kAzunMOua0aWzCse_BA_1790057670
+Received: by mail-wm1-f70.google.com with SMTP id 5b1f17b1804b1-49e73659ac5so52770835e9.2
+        for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2026 23:14:30 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=redhat.com; s=google; t=1790057632; x=1790662432; darn=vger.kernel.org;
+        d=redhat.com; s=google; t=1790057669; x=1790662469; darn=vger.kernel.org;
         h=content-transfer-encoding:content-type:in-reply-to:autocrypt
          :content-language:references:cc:to:from:subject:user-agent
          :mime-version:date:message-id:from:to:cc:subject:date:message-id
          :reply-to:content-type;
-        bh=9uMkpjF0ezR0L1Wb7g2yTnDlyybFBCPha3UfYWx1qZ8=;
-        b=GWYyJnp0suzxGPsGeVyJHqQNLisW8oYLM3vQFl+uVNACFwp+/oazXOddDEGKRPoQOH
-         3OdJzbayq7YBDMYvtZCOgTPyri7ec+JjKj57i94TX7q+NX5Rpf5ClJSnFUV9i/TmBfn9
-         SuF7eQZWybmamggyoGEXNzYHC0qe6Phxl1lg+InYrqLdkFVyPmWGKHnLZ7bcu35kITiu
-         x+VtfCFKeugRB3SrZD1fzlFrCsfB9pyoaQlE4vbYgGZCx/aiaCvhr2EHgwCQFU7MMVwh
-         +9nMLV3qtTxP2osn1leZOs+wuiQiYDNxD/yGP8067rZ9X5I5uUe6MjxqoANZOlZ3ubiq
-         N4KQ==
+        bh=uEea0f/ypnCyJEnI6MX9Td8H4D5CU9RYE7N1wN1TJiM=;
+        b=No5jGA1bi3sVxprE9RfWhiN1wmJZPlmCPLSBL79b2GcL4+DIaAbV53AmVXqtwwGVaW
+         Dx4VGR1F+WtiRoC1PDf+B62FxbbvmvsEqoWQ7Ll1eJJsuhsXMQasadvjSO/Sax2vwf0J
+         0G1VcLk6zGQ+bHaQUlNp3ITNtYCjETzBoPdRzJpRwVo2OLwTxd8ejQIJgohHNppFvHFk
+         o+7ljmTWw3ifwEAe4PZpaLsRRPd1XaSVG1HbshoG7HXXJ61w15No66kfhBqd9MTVNpQO
+         l0ttVI4SZlGakj9AUzMqbDz+IxSYoqX40QY8czMAge0/L4zIXPizKyi2hXk0IawssZOq
+         qOow==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790057632; x=1790662432;
+        d=1e100.net; s=20260707; t=1790057670; x=1790662470;
         h=content-transfer-encoding:content-type:in-reply-to:autocrypt
          :content-language:references:cc:to:from:subject:user-agent
          :mime-version:date:message-id:x-gm-gg:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to:content-type;
-        bh=9uMkpjF0ezR0L1Wb7g2yTnDlyybFBCPha3UfYWx1qZ8=;
-        b=WOifxCHdUh9JlFZWbAyvgHGyUuobslNjh8kMkvbRZYVLhi/b9K11UZmoJSX0RH8ELy
-         BN6ACwQQQeNqD0gz9PhSWtlIqNJbJzf72lRPAKXTfpQcK3OjTQfvSisD0uYeR5A7450W
-         W8MyjDiQ10dCyNYkrxdfrJ5w5ELkdxkJtZR22WLdrIQtL49asBeYw1cjRF+5paFNvb0O
-         tfSq4fZcxdPygUkBYu4NrCVR23hv9cHWfSmDf+Qz1RSt5Owdb7Qz1j6iDQiEVsrXf0C0
-         6HHYhJXSVaJFII7HXhJ8zPkGwNGqdzr85GdSOLo6IQCISa5DjHlxboRMkV75bbY4P7LQ
-         /Ssw==
-X-Gm-Message-State: AFuF++n9crWFGR+G2G+nGT7KwrKncR2Hef013cA/wRbw2qlUzUIeBheP
-	AqNqMrzE2j4RtbFxYN0fQiaIpNdYrEVga666NTdnjOshhE9OVUl0MzN9jFf74tdb+bB4NyMP7fs
-	cGOtfdID6+eTJlPaBOnNgn9N7AI2fLGv0tDUP8sZ3LvMvFIeDzf78oOv/iXVDrt4=
-X-Gm-Gg: AYBFou17Pr8c+mDIzVgCH7QPl5GwUOUMEzcPmK7PX9+hstPZrRZ4Nu4dFr9/oZwOKFo
-	Xkoul4kstRVLmaCR41TmRMicPl2Of5STJ2ql+SFMS1+FRFpS+6/j7A9kKeUHOdaTfAuFkejI5O4
-	zDdU6qlVfqolLYHqnexUOV1TZN91pCiPnBjdJPQEoJ88o+3zCj3cHXwMFnvd3N+9t58fk0tDXIA
-	ctMDNtDf/ldTF+DKdVfxR8+OO6hhXqJA9kyQD1p/lM92WPL5hydp6oz39JolwdMeYIqlF4TEhC9
-	C9v1ImKSXg0B5aCZR22BiIAcKMF5bk1yS7YFeR+p+5Dpd2dVW5vDy4wHTdsQ/qEqOCtT+St4tQ=
-	=
-X-Received: by 2002:a05:600c:19cb:b0:49c:fc6c:be13 with SMTP id 5b1f17b1804b1-49fc5740216mr183368205e9.25.1790057632313;
-        Mon, 21 Sep 2026 23:13:52 -0700 (PDT)
-X-Received: by 2002:a05:600c:19cb:b0:49c:fc6c:be13 with SMTP id 5b1f17b1804b1-49fc5740216mr183367955e9.25.1790057631830;
-        Mon, 21 Sep 2026 23:13:51 -0700 (PDT)
+        bh=uEea0f/ypnCyJEnI6MX9Td8H4D5CU9RYE7N1wN1TJiM=;
+        b=XBpE8Fdd+QmF9mlyqHKYnxQm5NS2xrfPuFjSYPWcM8FCJgFRLHLfiuPOOfMDUGc+G2
+         uHOWJQllNDFEj3BYKhEJjTTfz/F/rqtp4K+U+X6A97eSgFg2T3EC8fZaq0Bc+Szsrygb
+         ncCk1BPOvfSYi2hzzaYSOobw+y26CHotnn3Z2/TrKznGqaJZh6YNPz7qk6KCWkM4gjXr
+         psGgA4aFWT6zKtgVFpuS5/t+wo8tjfafjJWrm53zKfowg18AfvJl8Wu3vXGaY2LS3o7Q
+         +PMpamb9kRkWa4yJ1mRiUI2yG80Od74oTwTCFfd1fwGThhe7ObT7jUm53OQ8VfnvM/M2
+         7/Ew==
+X-Gm-Message-State: AFuF++lrAEAyN0nBDWQH7QR0Nx36wcon0t1sUnKaQST0QFsMQcG2lu/O
+	WGCg0di6YTnNcliVlI6xHChEleNkn+tEYq/9hCwsA4FuIKkMoQwAW2cTx/C7UvIbIJIPfHoKL2L
+	2gs/S5Unrwfcf6O4wNJIPIduO0V3EQkhwsLQrewJynWtIR6yY9v4Dv7pcU0xl9Ng=
+X-Gm-Gg: AYBFou0V4O8PtgmfL350mCNFSRG85br0dTUxB+r4QGqMTXuQyg9J9WzKO88NPF6vXwV
+	NuyPb9BIQW6WmsTIcMWPR2SvpfKwKMu6/Edy7Q0ccLG3f0mfnYh17GRzYn31oa0qJM+v8L/6wlU
+	bE4RFhZ5HZfyV0GtLEmJhC4ta3HWswWuSBtE2jSMTAZoLjXRB0jF2EUCOZntGzAH+6pRqKjbAL6
+	LHDq8DDZlJ4aOFh3S5rydMz2zCWZVKpOczvVZ5TGdg7M6oE/+vP1JUgYnNTDTMx++WlqT/RN29e
+	3PcS5vdVVTRA2BaHjI2LtIciHUgzXHuZXafmbxBeDyUAY6xDX3xkDz+XYFCbUbYaqj3u/YpO
+X-Received: by 2002:a05:600c:1d29:b0:49e:7c8c:361d with SMTP id 5b1f17b1804b1-49fc572b7afmr203197715e9.22.1790057669539;
+        Mon, 21 Sep 2026 23:14:29 -0700 (PDT)
+X-Received: by 2002:a05:600c:1d29:b0:49e:7c8c:361d with SMTP id 5b1f17b1804b1-49fc572b7afmr203197485e9.22.1790057669192;
+        Mon, 21 Sep 2026 23:14:29 -0700 (PDT)
 Received: from [192.168.0.9] ([47.64.113.141])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49fdab8ae6dsm53367615e9.0.2026.09.21.23.13.50
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49fdad53c7dsm22533805e9.12.2026.09.21.23.14.28
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 21 Sep 2026 23:13:50 -0700 (PDT)
-Message-ID: <990c48e8-7604-455f-a2eb-915b1af352b0@redhat.com>
-Date: Tue, 22 Sep 2026 08:13:49 +0200
+        Mon, 21 Sep 2026 23:14:28 -0700 (PDT)
+Message-ID: <d6bda4dd-7055-47a6-85b8-9e2afb70614f@redhat.com>
+Date: Tue, 22 Sep 2026 08:14:27 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -88,11 +87,11 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH] asm-generic: Replace __ASSEMBLY__ with __ASSEMBLER__ in
- non-uapi headers
+ uapi headers
 From: Thomas Huth <thuth@redhat.com>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-References: <20260821085201.226650-1-thuth@redhat.com>
+References: <20260821103425.246901-1-thuth@redhat.com>
 Content-Language: en-US
 Autocrypt: addr=thuth@redhat.com; keydata=
  xsFNBFH7eUwBEACzyOXKU+5Pcs6wNpKzrlJwzRl3VGZt95VCdb+FgoU9g11m7FWcOafrVRwU
@@ -136,167 +135,106 @@ Autocrypt: addr=thuth@redhat.com; keydata=
  oiT+z+/E59qj/EKfyce3sbC9XLjXv3mHMrq1tKX4G7IJGnS989E/fg6crv6NHae9Ckm7+lSs
  IQu4bBP2GxiRQ+NV3iV/KU3ebMRzqIC//DCOxzQNFNJAKldPe/bKZMCxEqtVoRkuJtNdp/5a
  yXFZ6TfE1hGKrDBYAm4vrnZ4CXFSBDllL59cFFOJCkn4Xboj/aVxxJxF30bn
-In-Reply-To: <20260821085201.226650-1-thuth@redhat.com>
+In-Reply-To: <20260821103425.246901-1-thuth@redhat.com>
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 
-On 21/08/2026 10.52, Thomas Huth wrote:
-> While the GCC and Clang compilers already define __ASSEMBLER__ auto-
-> matically when compiling assembly code, __ASSEMBLY__ is a macro that
-> only gets defined by the Makefiles in the kernel. This can be very
-> confusing when switching between userspace and kernelspace coding, or
-> when dealing with uapi headers that rather should use __ASSEMBLER__
-> instead. Let's standardize now on the __ASSEMBLER__ macro to avoid
-> this confusion.
+On 21/08/2026 12.34, Thomas Huth wrote:
+> __ASSEMBLY__ is only defined by the Makefile of the kernel, so
+> this is not really useful for uapi headers (unless the userspace
+> Makefile defines it, too). Let's switch to __ASSEMBLER__ which
+> gets set automatically by the compiler when compiling assembly
+> code.
 > 
 > Signed-off-by: Thomas Huth <thuth@redhat.com>
 > ---
 >   Note: This has been split from an earlier bigger patch of mine into
 >         this separate patch to ease reviewing
 > 
->   include/asm-generic/barrier.h         | 4 ++--
->   include/asm-generic/bug.h             | 4 ++--
->   include/asm-generic/current.h         | 2 +-
->   include/asm-generic/error-injection.h | 2 +-
->   include/asm-generic/int-ll64.h        | 6 +++---
->   include/asm-generic/rwonce.h          | 4 ++--
->   include/asm-generic/signal.h          | 4 ++--
->   7 files changed, 13 insertions(+), 13 deletions(-)
+>   include/uapi/asm-generic/int-l64.h     | 4 ++--
+>   include/uapi/asm-generic/int-ll64.h    | 4 ++--
+>   include/uapi/asm-generic/signal-defs.h | 2 +-
+>   include/uapi/asm-generic/signal.h      | 4 ++--
+>   4 files changed, 7 insertions(+), 7 deletions(-)
 
 Friendly ping?
 
-> diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-> index b99cb57dfcccc..c029b1e1854c4 100644
-> --- a/include/asm-generic/barrier.h
-> +++ b/include/asm-generic/barrier.h
+> diff --git a/include/uapi/asm-generic/int-l64.h b/include/uapi/asm-generic/int-l64.h
+> index ed8bcd99c34d7..f840806bbe7e9 100644
+> --- a/include/uapi/asm-generic/int-l64.h
+> +++ b/include/uapi/asm-generic/int-l64.h
 > @@ -11,7 +11,7 @@
->   #ifndef __ASM_GENERIC_BARRIER_H
->   #define __ASM_GENERIC_BARRIER_H
+>   
+>   #include <asm/bitsperlong.h>
 >   
 > -#ifndef __ASSEMBLY__
 > +#ifndef __ASSEMBLER__
->   
->   #include <linux/compiler.h>
->   #include <linux/kcsan-checks.h>
-> @@ -302,5 +302,5 @@ do {									\
->   # define smp_mb__after_switch_mm()	smp_mb()
->   #endif
->   
-> -#endif /* !__ASSEMBLY__ */
-> +#endif /* !__ASSEMBLER__ */
->   #endif /* __ASM_GENERIC_BARRIER_H */
-> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-> index 09e8eccee8ed9..044ebc96f373c 100644
-> --- a/include/asm-generic/bug.h
-> +++ b/include/asm-generic/bug.h
-> @@ -26,7 +26,7 @@
->   #endif
->   #endif /* WARN_CONDITION_STR */
->   
-> -#ifndef __ASSEMBLY__
-> +#ifndef __ASSEMBLER__
->   #include <linux/panic.h>
->   #include <linux/printk.h>
->   
-> @@ -258,6 +258,6 @@ extern __printf(1, 2) void __warn_printk(const char *fmt, ...);
->   # define WARN_ON_SMP(x)			({0;})
->   #endif
+>   /*
+>    * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+>    * header files exported to user space
+> @@ -29,7 +29,7 @@ typedef unsigned int __u32;
+>   typedef __signed__ long __s64;
+>   typedef unsigned long __u64;
 >   
 > -#endif /* __ASSEMBLY__ */
 > +#endif /* __ASSEMBLER__ */
 >   
->   #endif
-> diff --git a/include/asm-generic/current.h b/include/asm-generic/current.h
-> index 9c2aeecbd05a6..8e7d8f019377f 100644
-> --- a/include/asm-generic/current.h
-> +++ b/include/asm-generic/current.h
-> @@ -2,7 +2,7 @@
->   #ifndef __ASM_GENERIC_CURRENT_H
->   #define __ASM_GENERIC_CURRENT_H
 >   
-> -#ifndef __ASSEMBLY__
-> +#ifndef __ASSEMBLER__
->   #include <linux/thread_info.h>
->   
->   #define get_current() (current_thread_info()->task)
-> diff --git a/include/asm-generic/error-injection.h b/include/asm-generic/error-injection.h
-> index b05253f68eaa5..0a9ec33fa8f20 100644
-> --- a/include/asm-generic/error-injection.h
-> +++ b/include/asm-generic/error-injection.h
-> @@ -2,7 +2,7 @@
->   #ifndef _ASM_GENERIC_ERROR_INJECTION_H
->   #define _ASM_GENERIC_ERROR_INJECTION_H
->   
-> -#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
-> +#if defined(__KERNEL__) && !defined(__ASSEMBLER__)
->   enum {
->   	EI_ETYPE_NULL,		/* Return NULL if failure */
->   	EI_ETYPE_ERRNO,		/* Return -ERRNO if failure */
-> diff --git a/include/asm-generic/int-ll64.h b/include/asm-generic/int-ll64.h
-> index a248545f1e18c..58974e8abbfae 100644
-> --- a/include/asm-generic/int-ll64.h
-> +++ b/include/asm-generic/int-ll64.h
+>   #endif /* _UAPI_ASM_GENERIC_INT_L64_H */
+> diff --git a/include/uapi/asm-generic/int-ll64.h b/include/uapi/asm-generic/int-ll64.h
+> index 1ed06964257c3..4fc3e882bcff9 100644
+> --- a/include/uapi/asm-generic/int-ll64.h
+> +++ b/include/uapi/asm-generic/int-ll64.h
 > @@ -11,7 +11,7 @@
->   #include <uapi/asm-generic/int-ll64.h>
 >   
+>   #include <asm/bitsperlong.h>
 >   
 > -#ifndef __ASSEMBLY__
 > +#ifndef __ASSEMBLER__
->   
->   typedef __s8  s8;
->   typedef __u8  u8;
-> @@ -31,7 +31,7 @@ typedef __u64 u64;
->   #define S64_C(x) x ## LL
->   #define U64_C(x) x ## ULL
->   
-> -#else /* __ASSEMBLY__ */
-> +#else /* __ASSEMBLER__ */
->   
->   #define S8_C(x)  x
->   #define U8_C(x)  x
-> @@ -42,6 +42,6 @@ typedef __u64 u64;
->   #define S64_C(x) x
->   #define U64_C(x) x
+>   /*
+>    * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+>    * header files exported to user space
+> @@ -34,7 +34,7 @@ typedef __signed__ long long __s64;
+>   typedef unsigned long long __u64;
+>   #endif
 >   
 > -#endif /* __ASSEMBLY__ */
 > +#endif /* __ASSEMBLER__ */
 >   
->   #endif /* _ASM_GENERIC_INT_LL64_H */
-> diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.h
-> index 52b969c7cef93..c35b262ee4223 100644
-> --- a/include/asm-generic/rwonce.h
-> +++ b/include/asm-generic/rwonce.h
-> @@ -20,7 +20,7 @@
->   #ifndef __ASM_GENERIC_RWONCE_H
->   #define __ASM_GENERIC_RWONCE_H
+>   
+>   #endif /* _UAPI_ASM_GENERIC_INT_LL64_H */
+> diff --git a/include/uapi/asm-generic/signal-defs.h b/include/uapi/asm-generic/signal-defs.h
+> index 7572f2f46ee89..4073143fa3dae 100644
+> --- a/include/uapi/asm-generic/signal-defs.h
+> +++ b/include/uapi/asm-generic/signal-defs.h
+> @@ -78,7 +78,7 @@
+>   #define SIG_SETMASK        2	/* for setting the signal mask */
+>   #endif
 >   
 > -#ifndef __ASSEMBLY__
 > +#ifndef __ASSEMBLER__
+>   typedef void __signalfn_t(int);
+>   typedef __signalfn_t __user *__sighandler_t;
 >   
->   #include <linux/compiler_types.h>
->   #include <linux/kasan-checks.h>
-> @@ -94,5 +94,5 @@ unsigned long read_word_at_a_time(const void *addr)
->   	return *(unsigned long *)addr;
->   }
->   
-> -#endif /* __ASSEMBLY__ */
-> +#endif /* __ASSEMBLER__ */
->   #endif	/* __ASM_GENERIC_RWONCE_H */
-> diff --git a/include/asm-generic/signal.h b/include/asm-generic/signal.h
-> index 663dd6d0795dc..392e59fd3d8b9 100644
-> --- a/include/asm-generic/signal.h
-> +++ b/include/asm-generic/signal.h
-> @@ -4,10 +4,10 @@
->   
->   #include <uapi/asm-generic/signal.h>
+> diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
+> index 0eb69dc8e5722..6b089d4b2965b 100644
+> --- a/include/uapi/asm-generic/signal.h
+> +++ b/include/uapi/asm-generic/signal.h
+> @@ -57,7 +57,7 @@
+>   #define SIGSTKSZ	8192
+>   #endif
 >   
 > -#ifndef __ASSEMBLY__
 > +#ifndef __ASSEMBLER__
->   
->   #include <asm/sigcontext.h>
->   #undef __HAVE_ARCH_SIG_BITOPS
+>   typedef struct {
+>   	unsigned long sig[_NSIG_WORDS];
+>   } sigset_t;
+> @@ -88,6 +88,6 @@ typedef struct sigaltstack {
+>   	__kernel_size_t ss_size;
+>   } stack_t;
 >   
 > -#endif /* __ASSEMBLY__ */
 > +#endif /* __ASSEMBLER__ */
->   #endif /* _ASM_GENERIC_SIGNAL_H */
+>   
+>   #endif /* _UAPI__ASM_GENERIC_SIGNAL_H */
 
