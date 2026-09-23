@@ -1,166 +1,206 @@
-Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mta0.migadu.com (out-197.mta0.migadu.com [91.218.175.197])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DAEFA40DB20;
-	Wed, 23 Sep 2026 12:27:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.156.1
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 852273C5827
+	for <linux-arch@vger.kernel.org>; Wed, 23 Sep 2026 13:16:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.197
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790166428; cv=none; b=qxEKpc56vGvw0uoBmcj7CwFuvjePrFcyMF/6AoNUKggMtbmIP7LI7GKZ80n3KUeXdilvVjLo3Plo2i0wZDnbzBKnz780L+9YzLChKCyE2VAiBNVW8IP99l0X6JGNPo0Bq8Db86d9eXHHaDk3FZ8zQJVxbaFG9mn6l0bxR6G+nHQ=
+	t=1790169409; cv=none; b=ObrnXdt0oaR93puDS8N1yClsqGn7U4K21PQbG7zMm9f9GlePQrhYVTmiSkUDKR+pJxV94lYyeMwyd3z5tyA2CdZPrdyx4QIEn8VtQGn8IZuynMBguYGkdiP5APs6ODtdcXcDUkhvaBIrgOYCCiHi2ZvzIu58zjrEdLiP0k0L/IE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790166428; c=relaxed/simple;
-	bh=G5pLTY5y5LED+aMKXjMwPNRlGqafxWZLRXYkcSCDyEE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=OrYqne+unj+qGsjS1+PT3tgNkDHWQAqdZwp4Z7gwzNa30MCrGbD5oc12syb+zfOUtp9AMGGqm7lssnXgtdrt2loH4OWqgXnMGPSHz0vftqtqpGzcEeEdG5eHwL12uh/89pX4vcXen7DLabwKv5tUPhIT4TcJlEvCjOHfyGNtbHM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=DymJK7xH; arc=none smtp.client-ip=148.163.156.1
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
+	s=arc-20240116; t=1790169409; c=relaxed/simple;
+	bh=Oo904kmsf5S8wAGGf7/FG6FAeaEtExRT7Jk7mDgjtow=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=cOcdI6HGCLNaJHEt+5orcZSgejrcVWAGr0d0nm0ve0SaWPdzHRo3ydNQwBOXylhV2vfbX/JB4FivD6QgP/lg/3AyXqhmwcCjRMx0URW3bwXYEC2a71eyk6s3fsjKNS6nKfpHh83E5MFxjRGC0t5rQo/XJsixrh6DQCyLmTe1JFE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=R+Vt7VKY; arc=none smtp.client-ip=91.218.175.197
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="DymJK7xH"
-Received: from pps.filterd (m0356517.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 68N8ZPkk2906895;
-	Wed, 23 Sep 2026 12:25:42 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
-	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=pp1; bh=v0X+Rs8szhHkgnuPcIWhAyZce3EkTz
-	TtRBKQqHEj2SY=; b=DymJK7xH6KCGN1aWSDi8yE3JeZCCm0hQdInjvaYZRKitNb
-	sl2yDuJWYD4cPHPK0u4r0N9hStfA3omtniXxpaEHynRZ9NUZdggQ7y4v9nOzT7U9
-	XpO+PxL7oe/Fbh6/+YhooIKtXBG55sR4NiT2ToMHAWFRENr3oHFXFkwslZyhFWbI
-	1B334HuWzXx4hpfNYekKa9xlmXk6cYQIBC2BCsfeLJ0OBkoaCBbxWf7H/z4Lv2mB
-	P/Lqle8a9fS6YnXCc6Y1u7OGYFyusCvin01zNALgGbVb6TQ9tmxXkOZ3MjLGdEdC
-	M/ha62xE0Fq3/RrtNVNmohrqAIQ4+aJYTAup8uSA==
-Received: from ppma22.wdc07v.mail.ibm.com (5c.69.3da9.ip4.static.sl-reverse.com [169.61.105.92])
-	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4gskgsb5ap-1
-	(version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-	Wed, 23 Sep 2026 12:25:42 +0000 (GMT)
-Received: from pps.filterd (ppma22.wdc07v.mail.ibm.com [127.0.0.1])
-	by ppma22.wdc07v.mail.ibm.com (8.18.1.11/8.18.1.11) with ESMTP id 68N95f8S005144;
-	Wed, 23 Sep 2026 12:25:41 GMT
-Received: from smtprelay05.fra02v.mail.ibm.com ([9.218.2.225])
-	by ppma22.wdc07v.mail.ibm.com (PPS) with ESMTPS id 4gvbu8rrf7-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Wed, 23 Sep 2026 12:25:41 +0000 (GMT)
-Received: from smtpav01.fra02v.mail.ibm.com (smtpav01.fra02v.mail.ibm.com [10.20.54.100])
-	by smtprelay05.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 68NCPd4t38732190
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 23 Sep 2026 12:25:39 GMT
-Received: from smtpav01.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id EC5CD20065;
-	Wed, 23 Sep 2026 12:25:38 +0000 (GMT)
-Received: from smtpav01.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 3B95620043;
-	Wed, 23 Sep 2026 12:25:38 +0000 (GMT)
-Received: from li-008a6a4c-3549-11b2-a85c-c5cc2836eea2.ibm.com (unknown [9.224.92.206])
-	by smtpav01.fra02v.mail.ibm.com (Postfix) with ESMTPS;
-	Wed, 23 Sep 2026 12:25:38 +0000 (GMT)
-Date: Wed, 23 Sep 2026 14:25:37 +0200
-From: Alexander Gordeev <agordeev@linux.ibm.com>
-To: Muhammad Usama Anjum <usama.anjum@arm.com>
-Cc: Jani Nikula <jani.nikula@linux.intel.com>,
-        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
-        Rodrigo Vivi <rodrigo.vivi@intel.com>,
-        Tvrtko Ursulin <tursulin@ursulin.net>,
-        David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
-        Dimitri Sivanich <dimitri.sivanich@hpe.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Helge Deller <deller@gmx.de>, Juergen Gross <jgross@suse.com>,
-        Stefano Stabellini <sstabellini@kernel.org>,
-        Muchun Song <muchun.song@linux.dev>,
-        Oscar Salvador <osalvador@suse.de>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        "Liam R. Howlett" <liam@infradead.org>,
-        Lorenzo Stoakes <ljs@kernel.org>, Will Deacon <will@kernel.org>,
-        "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
-        Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
-        Andrey Ryabinin <ryabinin.a.a@gmail.com>,
-        David Hildenbrand <david@kernel.org>,
-        Pasha Tatashin <pasha.tatashin@soleen.com>,
-        Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>,
-        Uladzislau Rezki <urezki@gmail.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Masami Hiramatsu <mhiramat@kernel.org>,
-        Alexei Starovoitov <ast@kernel.org>,
-        Daniel Borkmann <daniel@iogearbox.net>,
-        Andrii Nakryiko <andrii@kernel.org>,
-        Eduard Zingerman <eddyz87@gmail.com>,
-        Kumar Kartikeya Dwivedi <memxor@gmail.com>,
-        Ingo Molnar <mingo@redhat.com>,
-        Arnaldo Carvalho de Melo <acme@kernel.org>,
-        Namhyung Kim <namhyung@kernel.org>, SJ Park <sj@kernel.org>,
-        "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-        Jan Kara <jack@suse.cz>, Jason Gunthorpe <jgg@ziepe.ca>,
-        Leon Romanovsky <leon@kernel.org>, Miaohe Lin <linmiaohe@huawei.com>,
-        Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
-        Christoph Lameter <cl@gentwo.org>, Mike Rapoport <rppt@kernel.org>,
-        Johannes Weiner <hannes@cmpxchg.org>, ziy@nvidia.com, pfalcato@suse.de,
-        ryan.roberts@arm.com, linux-kernel@vger.kernel.org,
-        intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
-        linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org,
-        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, kasan-dev@googlegroups.com,
-        linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org,
-        linux-perf-users@vger.kernel.org, damon@lists.linux.dev
-Subject: Re: [PATCH v2 0/8] mm: distinguish PTE table storage from PTE values
-Message-ID: <1401e907-04ff-4ee5-ad03-00d88531a091-agordeev@linux.ibm.com>
-References: <20260903103002.1091859-1-usama.anjum@arm.com>
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="R+Vt7VKY"
+X-Envelope-To: linux-arch@vger.kernel.org
+DKIM-Signature: a=rsa-sha256; bh=Oo904kmsf5S8wAGGf7/FG6FAeaEtExRT7Jk7mDgjtow=;
+ c=simple/simple; d=linux.dev;
+ h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
+ t=1790169404; v=1; x=1790774204;
+ b=R+Vt7VKYQ6Z6CnIF0Eghz5I7R/+ugag7Aunz3sd2gZveys399bQFeSb1YCVCCXeuNz7jxa37
+ fR+ZJBx2QZ4T6EQAoywLElJG7bK8WPX5c2c7ag3JVpTGS3iEoDuR3IwCKjQhRx0Yl/5NhF5zp4m
+ lAlRbSUtpkfWnXHknys8Ra4A=
+X-Envelope-To: linux-arch@vger.kernel.org
+Received: by smtp.migadu.com with ESMTPS id acd8da373ac6bf50;
+	Wed, 23 Sep 2026 13:16:40 +0000
+X-Mizu-Trace-ID: acd8da373ac6bf50
+X-Migadu-Flow: FLOW_OUT
+From: Lance Yang <lance.yang@linux.dev>
+To: ljs@kernel.org
+Cc: akpm@linux-foundation.org,
+	david@kernel.org,
+	ziy@nvidia.com,
+	baolin.wang@linux.alibaba.com,
+	liam@infradead.org,
+	nico.pache@linux.dev,
+	ryan.roberts@arm.com,
+	dev.jain@arm.com,
+	baohua@kernel.org,
+	lance.yang@linux.dev,
+	usama.arif@linux.dev,
+	kas@kernel.org,
+	guoren@kernel.org,
+	bcain@kernel.org,
+	geert@linux-m68k.org,
+	dinguyen@kernel.org,
+	schuster.simon@siemens-energy.com,
+	jonas@southpole.se,
+	stefan.kristiansson@saunalahti.fi,
+	shorne@gmail.com,
+	dalias@libc.org,
+	glaubitz@physik.fu-berlin.de,
+	pjw@kernel.org,
+	palmer@dabbelt.com,
+	aou@eecs.berkeley.edu,
+	alex@ghiti.fr,
+	linux@armlinux.org.uk,
+	vgupta@kernel.org,
+	monstr@monstr.eu,
+	chris@zankel.net,
+	jcmvbkbc@gmail.com,
+	will@kernel.org,
+	aneesh.kumar@kernel.org,
+	npiggin@gmail.com,
+	peterz@infradead.org,
+	davem@davemloft.net,
+	andreas@gaisler.com,
+	richard.henderson@linaro.org,
+	mattst88@gmail.com,
+	linmag7@gmail.com,
+	catalin.marinas@arm.com,
+	mark.rutland@arm.com,
+	chenhuacai@kernel.org,
+	kernel@xen0n.name,
+	tsbogend@alpha.franken.de,
+	James.Bottomley@HansenPartnership.com,
+	deller@gmx.de,
+	maddy@linux.ibm.com,
+	mpe@ellerman.id.au,
+	chleroy@kernel.org,
+	hca@linux.ibm.com,
+	gor@linux.ibm.com,
+	agordeev@linux.ibm.com,
+	borntraeger@linux.ibm.com,
+	svens@linux.ibm.com,
+	richard@nod.at,
+	anton.ivanov@cambridgegreys.com,
+	johannes@sipsolutions.net,
+	tglx@kernel.org,
+	mingo@redhat.com,
+	bp@alien8.de,
+	dave.hansen@linux.intel.com,
+	x86@kernel.org,
+	hpa@zytor.com,
+	arnd@arndb.de,
+	vbabka@kernel.org,
+	rppt@kernel.org,
+	surenb@google.com,
+	mhocko@suse.com,
+	jgg@ziepe.ca,
+	jhubbard@nvidia.com,
+	peterx@redhat.com,
+	ysato@users.sourceforge.jp,
+	shakeel.butt@linux.dev,
+	corbet@lwn.net,
+	rdunlap@infradead.org,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	linux-csky@vger.kernel.org,
+	linux-hexagon@vger.kernel.org,
+	linux-m68k@lists.linux-m68k.org,
+	linux-openrisc@vger.kernel.org,
+	linux-sh@vger.kernel.org,
+	linux-riscv@lists.infradead.org,
+	linux-arm-kernel@lists.infradead.org,
+	linux-snps-arc@lists.infradead.org,
+	linux-arch@vger.kernel.org,
+	sparclinux@vger.kernel.org,
+	linux-alpha@vger.kernel.org,
+	loongarch@lists.linux.dev,
+	linux-mips@vger.kernel.org,
+	linux-parisc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org,
+	linux-s390@vger.kernel.org,
+	linux-um@lists.infradead.org,
+	hughd@google.com,
+	qi.zheng@linux.dev,
+	linux-doc@vger.kernel.org
+Subject: Re: [PATCH v4 09/12] mm: enable MMU_GATHER_RCU_TABLE_FREE for m68k-motorola
+Date: Wed, 23 Sep 2026 21:16:34 +0800
+Message-ID: <20260923131634.47896-1-lance.yang@linux.dev>
+X-Mailer: git-send-email 2.49.0
+In-Reply-To: <20260922-rcu-pagetable-freeing-v4-9-fe1ad1f1e303@kernel.org>
+References: <20260922-rcu-pagetable-freeing-v4-9-fe1ad1f1e303@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260903103002.1091859-1-usama.anjum@arm.com>
-X-TM-AS-GCONF: 00
-X-Authority-Analysis: v=2.4 cv=V/XoQuni c=1 sm=1 tr=0 ts=6ab3c546 cx=c_pps
- a=5BHTudwdYE3Te8bg5FgnPg==:117 a=5BHTudwdYE3Te8bg5FgnPg==:17
- a=kj9zAlcOel0A:10 a=VdqzKS8jKosA:10 a=VkNPw1HP01LnGYTKEx00:22
- a=RnoormkPH1_aCDwRdu11:22 a=U7nrCbtTmkRpXpFmAIza:22 a=VwQbUJbxAAAA:8
- a=7CQSdrXTAAAA:8 a=vUGUDSKChvK0ha46Ui4A:9 a=CjuIK1q_8ugA:10
- a=a-qgeE7W1pNrGK8U0ZQC:22
-X-Proofpoint-ORIG-GUID: ev-_JLyQr-pwEqNhXTXIZA7T8jABJbLj
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwOTIzMDA0OCBTYWx0ZWRfX3jBRFLFxLXRH
- 41gkMIIRJm9VbqiK2YtOcXDOIZwYjrCdxtSZOW/HeORsfhOxpmJhhPEWSN2wE9YBL2VRhW6O7D2
- Qr3To+xxPwlTw7GeQ2a8zIO36T51bHxKzdyp7yFXdKF3rEFGszcZBbYQEl+zv+QLSQa5BvzpNIK
- C5R4wcWrvwWHRZRXWHAwBTIUpPG8PzVJkpsQifRmwR8LgilnDa74f2xP/hyPClmLnKPerI1e3/s
- fJyE7zMlic6Rx/76z/RtAMNkCr6xtVVE5VeRNLbRnsmDb4KohBKbvJQ4ax0IiGSsSTYf9dF9DDW
- Go51ekYyr1d3O9vLChpz5abCQojIKm+DNY8HzWZzpMyAQ8VmaL5ufL6oddQ5mv/Q189e6iBxqs6
- q8d6mtePYNjZn9b5/f57l92H+6h3S1U9nREt1LclL5Eqc+yXvnOU5Bwtr8lGfdC+FyC20VRDqr5
- yvBcPkksv7DCdMzUVog==
-X-Proofpoint-Spam-Info: AW1haW4tMjYwOTIzMDA0OCBTYWx0ZWRfX46m1QpM8dmIH
- lg16GCvD6ONwEeOosozSD2m/9N5Zt+i3zavCwk/jFQmzNEO3Hlv1PgshihWpld67QkuM0YD1grS
- xDTdsyKVkLQulaYB1Dcv4/OHkUvJzFM=
-X-Proofpoint-GUID: ev-_JLyQr-pwEqNhXTXIZA7T8jABJbLj
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1176,Hydra:6.1.134,FMLib:17.12.100.49
- definitions=2026-09-23_04,2026-09-21_02,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- priorityscore=1501 spamscore=0 malwarescore=0 clxscore=1015 phishscore=0
- bulkscore=0 adultscore=0 lowpriorityscore=0 impostorscore=0 suspectscore=0
- classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
- reason=mlx scancount=1 engine=8.22.0-2609040000 definitions=main-2609230048
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On Thu, Sep 03, 2026 at 11:29:52AM +0100, Muhammad Usama Anjum wrote:
 
-Hi Muhammad,
+On Tue, Sep 22, 2026 at 04:35:40PM +0100, Lorenzo Stoakes (ARM) wrote:
+>sun3 and coldfire are already supported, however motorola requires a little
+>more care.
+>
+>Here, custom table removal logic is required, so
+>CONFIG_HAVE_ARCH_TLB_REMOVE_TABLE is enabled for m68k-motorola.
+>
+>Firstly as part of this change, the page table level must be communicated
+>to the underlying __tlb_remove_table() implementation.
+>
+>Take advantage of the fact that page tables are aligned by more than enough
+>to permit setting TABLE_PTE or TABLE_PMD in the low bits of the pointer,
+>and store this there.
+>
+>Then update __pte_free_tlb() and __pmd_free_tlb() to pass this through,
+>then have __tlb_remove_table() decode this and pass it to
+>free_pointer_table().
+>
+>The page table freeing is performed via call_rcu(), so free_pointer_table()
+>now will be invoked from softirq context, and as such may be re-entrant.
+>
+>Introduce an irq save/restore spinlock to handle this, and hold it over the
+>time a given ptable entry is being referenced in both get_pointer_table()
+>and free_pointer_table().
+>
+>In order to make things a little easier in this respect, separate out the
+>logic for adding a new ptable entry into add_pointer_table() and only hold
+>the lock during ptable entry insertion in this case.
+>
+>Note that original list_add_tail(new, dp) added new prior to dp, which is
+>ptable_list[type].next, i.e. after ptable_list[type].
+>
+>The equivalent therefore is list_add(new, &ptable_list[type]), which adds
+>new after ptable_list[type], only without needing to make reference to dp.
+>
+>Note that, as m68k-motorola specifies CONFIG_HAVE_ARCH_TLB_REMOVE_TABLE, it
+>does not enable CONFIG_PT_RECLAIM. This isn't meaningfully impactful.
+>
+>With this applied, all of m68k implements CONFIG_MMU_GATHER_RCU_TABLE_FREE.
+>
+>This forms part of an overall effort to switch every architecture to this
+>mode.
+>
+>Acked-by: Kiryl Shutsemau (Meta) <kas@kernel.org>
+>Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+>---
 
-> I've the patches here [3] for arm64 conversion which I used to find
-> usages in generic code which I missed during development. These would be
-> sent separately.
-> 
-> [1] https://lore.kernel.org/all/6110202c-057b-4701-8c04-1a76ee7bb9ab@arm.com/
-> [2] https://lore.kernel.org/all/a063f6c5-2785-4a9f-8079-25edb3e54cef@arm.com
-> [3] https://gitlab.arm.com/linux-arm/linux-us/-/commits/pte0_arm
+I wondered about slot reuse during the RCU wait, but that can't happen :)
 
-I checked [3] with s390 and also against our lazy mmu implementation and it
-looks okay.
+The slot stays marked busy until free_pointer_table() runs after RCU, and
+the last free unlinks the page under ptable_lock.
 
-However, is there a particular reason this series is against mm-new?
-Should it be against the master, it would be easier for me to try it in our CI.
+Also ran page-table teardown stress and fork/exec churn on
+qemu-system-m68k (virt, m68040, CONFIG_MMU_MOTOROLA=y). All 40 rounds ran
+cleanly :D
 
-> Thanks,
-> Usama
+Acked-by: Lance Yang <lance.yang@linux.dev>
 
-Thanks!
+Tested-by: Lance Yang <lance.yang@linux.dev>
