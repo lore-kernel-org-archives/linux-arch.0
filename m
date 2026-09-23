@@ -1,69 +1,69 @@
-Received: from mail-oa2-f12.google.com (mail-oa2-f12.google.com [74.125.231.76])
+Received: from mail-oa2-f15.google.com (mail-oa2-f15.google.com [74.125.231.79])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7FEB4592209
-	for <linux-arch@vger.kernel.org>; Wed, 23 Sep 2026 22:35:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.231.76
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CC5CA582BBD
+	for <linux-arch@vger.kernel.org>; Wed, 23 Sep 2026 22:35:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.231.79
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790202954; cv=none; b=FcourVeWq7+ur7sAaItWWo+Z/Z5ElOKfg4EKP0l0+0ATGFhy1burFjbiCBPpKa8IyzasTmp8PbGXzJVtCZJ8d8AcykXc/osAY773QRljsMFvXheakeYgxCfQFYBCivhXJcRBSHfAkArdeQIb7DQIsVdE4Eda6NyEqxdwprVqquk=
+	t=1790202958; cv=none; b=KUuDnpR9M05uMyoLZIrM9bYVVWk6vaGq1SV63sYs2ddtjjkCHbfv7M0LQU56RP1byxtLK9zShzHFdjKTQcBOEBsOLqqUqQk0SStSo36nXDnlvNiDuSSDKaCzadGemRDeCLz6LyhtxT5gEB7eNDVyNEECTg8P7BiPNaXiOBNGpm4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790202954; c=relaxed/simple;
-	bh=IsDXQ51HtE2Lt8zOvABFQGLczubwVPutni/gf4j8v54=;
+	s=arc-20240116; t=1790202958; c=relaxed/simple;
+	bh=6TBAmiHCtB5fpzdMTL1ow+9ih2uNA2uzKln5Ep7Ev54=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=dkORrS+m6O67xhvcPHEGdcgywmq9PxSl9aYOr74JQHLeS5qKFz4Pfjs1KzvqvWO9H4R+mTK4lu3ov7AAcz6Vb//DYpHVePwLVHX0uPnqRt8BCsIpwEfTsbjcEHWdZFdMONOsNT9nd+cbmHAOWhpx1s5xl91V5P8OdrWBDIznfnk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=GI3sqNjp; arc=none smtp.client-ip=74.125.231.76
+	 In-Reply-To:To:Cc; b=eNyqJW5YNjBfYmbFjPkFBSCiu5JluoQxttkY/rwVtbwpZxkaEFCBjBAeM9ZAiQ4i5jfQ+JkNR06mT4msHCAE21ACY3/nCh8abiz9SCRlyjIMgKXWXpAS6hmvCDp6n+QdO3S8G7tx77qWulFGzWf02HXaxlfKpW9+h+WjpkzcyZE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=JSX0Sz6h; arc=none smtp.client-ip=74.125.231.79
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="GI3sqNjp"
-Received: by mail-oa2-f12.google.com with SMTP id 586e51a60fabf-466ccde2a99so1040920fac.3
-        for <linux-arch@vger.kernel.org>; Wed, 23 Sep 2026 15:35:49 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="JSX0Sz6h"
+Received: by mail-oa2-f15.google.com with SMTP id 586e51a60fabf-478cbd5b48aso1022493fac.2
+        for <linux-arch@vger.kernel.org>; Wed, 23 Sep 2026 15:35:51 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1790202947; x=1790807747; darn=vger.kernel.org;
+        d=gmail.com; s=20251104; t=1790202950; x=1790807750; darn=vger.kernel.org;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :content-type:mime-version:subject:date:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=RXncrwbb2UVrJg7WTg8/Ke8Z7Op+ef4vNpxgWS01GpY=;
-        b=GI3sqNjplEszy1QgBcLLnd0Ax61pgQE5VXRJmRPpSaYpXxVBZSa836AmxUCG6PMxpp
-         GnNohYtXHDPziPE9WeUjbwXGk8w8OAplCpuqxaTlSxbk0GbstL25zsUTLCdeeKFCPq5u
-         CQJxIwbCbNJIVIgXbkh9DAgN6+qkoO/X2m7dCRJj+hHwn6bjZLUQBETrA9fPb+8OELVN
-         0qggxiwkjpCWKV6I9tRyIVzLDX/7GRhBZ45oucpNpdvHGGh3E0ApPjM/VPYIXVpGSAyr
-         6c0cJZOSuInBLHTqZqu/b8+bVwyd7EOmL3Wd+OYrJmMRtuqlyxmWlbxvz+dGKCOcFq8q
-         ap5A==
+        bh=Xm/XMC3AJjUqvFpfyiarvKOfClEqtr8r0NFkssiD5nA=;
+        b=JSX0Sz6h11x52jJ9loIZLRQw50OpvBpXlqSPBC22+1ay/sMOsB5FSD8YEq5sV20i/e
+         UPwGHu7HYauVd0fGdeG2Gt/YLZnu4LqcNj1xfM+QSX7BxmppMTukTDGkt0MkqMD8pgRc
+         gk/zzZwZSbYop5IJtM/hritKOhkKQT9+xLTI2hZGSpWGRs/93/OQ+g3INjnHuAAzSZR7
+         PNKIaQ8jTDX3EnBEMW4NqwCaIvYi76MbPE9B37fW5wVBh0VKHfqnSwc2goOY0Okh1Vf8
+         gS1GsVYBYMVXexwx/JBnAiMfPiCM/mRblkhJkL3lzkh8x3zyH4Y0l1eW404weG5VZM2O
+         /MQg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790202947; x=1790807747;
+        d=1e100.net; s=20260707; t=1790202950; x=1790807750;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :content-type:mime-version:subject:date:from:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=RXncrwbb2UVrJg7WTg8/Ke8Z7Op+ef4vNpxgWS01GpY=;
-        b=FaZXAGjV3Tgu/PHONROA7/DsoAQBegt3vmy94Zje24myod9AqTWEO5H0qSDE1MI1B4
-         KlUk9XcSN0+qH59/ENpZ+7cGh0wpV2h47S7Z7I8Mn59V6FtqT2E4+aKBTFp/p/ljcICL
-         SF9Hm9uY8NJeuA2ihPRiYO/UiCV3f6JmAqA6qhr2hH81addBJYt01uXXx66Vh5D3ncFQ
-         IOjL6iOBSKtxmI47tDwlX80L2uLoAJr0ntSyNEwmj/MkyDYwyUduavpsr0zIu0BdEVwj
-         0tLZEL2APimQdRe8Sl/3IajyJQdq47a0VvLW7xCZqnlBc9wYVd7s/Na3rvfGMOij9+MZ
-         YzOQ==
-X-Forwarded-Encrypted: i=1; AKwUvBzbuUpqxnXB6vpPR7B1UpTj8kB0jinl487qjnrCHnBO8GyprKMV9ltL8mTicgdrS961w75Fz0foTHC7@vger.kernel.org
-X-Gm-Message-State: AFuF++n/ffi0u5VNK2L2UVlmDHxQAMUD8ogo+iaQiWsRCZ/qKL+r1Y8k
-	uEUX13TSGfjDtOC37Ih95yu5knL4E6OSZKlSTG0ImZg6JO/DozsS8TlP
-X-Gm-Gg: AYBFou1n62Q5GaD5lsVzu7hVlR58/qG0Uq2KPu92/KDeUFwZ2k2Q/Qbi/TPjy/8XUVG
-	y7a23tT+IDclFz605T0PN/85xw3pxSGfdFeRnNO6SHC+XeR+yCOKHTlB8Fb34Xun9rYlg8nGj+o
-	GLWJwntXY2pITMG9NhQjU+mMxkC7544URhJnPmN2pNPWpaezLQAI4jYYBXzIVgJKOHjon9Q2Zx4
-	hBdSiFN9DBIq8aCJRdoRHm6U4TyORY90zYeaTl/sTlAe5AP69vJsSG2gB6shN94D6p7dHlHZcVN
-	jeRq9bXkriH2WLaFZUE5FxCuLwaMBz4KkX3nfwAMYI0Vkys+czGy175OwsX6mSAFvlfGnFsWcAx
-	YzpQ3EO9F7xIACA3FdZuXN7zgvhJNfEW2OOG6fa5lgxjBYeu7onBWjqtcs+A7PkM4eD3gSMZY7z
-	mLoxPve15RPo8QbXOzHOuGut2R9qP9cUhNMWkNRuixUQ1BJdA1GEHHt0YGSAu8aFmJRM5JNpCsu
-	9AkZPri2N9ZCMnz250PXOTDL/y/7XR5b+6UGWJ3wMkmyy9gRn4dwLZF76bvslknOOQtoJmcuazs
-	WuYQN+g35kQXf5J1rSc=
-X-Received: by 2002:a05:6870:828d:b0:478:b8d8:2d60 with SMTP id 586e51a60fabf-491e493dee4mr689572fac.7.1790202947523;
-        Wed, 23 Sep 2026 15:35:47 -0700 (PDT)
+        bh=Xm/XMC3AJjUqvFpfyiarvKOfClEqtr8r0NFkssiD5nA=;
+        b=n85SFf7GPk6EtAVZU5GmIyY15UcUOQdb0RuOa7v5A6f1HX3rzTZwXWvBxqu8+jIo9+
+         l9CatV/Y/9xwgrP1uKI4GRpPIgSY6MbBOapP9Y16/O0++N/cZrYcvcAVx0VFVhtY6Msc
+         m51mjHiQfXo2fF+JMy+WM3E6BZ3x2RuwRQ/d0bAzR56qdCHietqRzxjscsNF/gZAd6xl
+         FNUDqUgc6yY88jQAef3U+KbSvVZrWLwz9BDqvoFPLifVNQ6jBBjz3EwqRSVafNoWykgP
+         GSM6B/HaTOBPpN32+F/s2w5uPGagRnqlW/cfLI6Gs0a7DWloyKWyorH8XjE5WF5fPIro
+         3Alw==
+X-Forwarded-Encrypted: i=1; AKwUvBwaYSZVtT9u5qSLbuCs+cOcjXbXm0+SJCJRZrsk5+EUXmbe51w9XHgg1TxyAUntV9MGLkNYKEeVDgdw@vger.kernel.org
+X-Gm-Message-State: AFuF++mSx2is7a9AVJk3inZR1ApNHWuGcYDFuGq0R7H2ZBvgfY9D8DRF
+	O9ug5Uwx1XA3fsfXf+22g5OuISqVTG/wa9LgHwd5O0+QfDWTCJmWSAvf
+X-Gm-Gg: AYBFou0n+TRjWtGWSOPULd6kSVoTNhPOpUipnQJJ3ugjO9kjch1Pc0SPS+HdrS9D/dP
+	IDQxzVbvVwqr5h/01iLvaaOgVeSwJmQhP88WXvVOWZoq0dX1/msYJfh3eOXsJp47Dh8fG8a/O1t
+	7dNagKofasM2kvqt1E52Pz6smS/6JmZIbHiQD+LARbkS3+1z/vvOdF+GDY8ZVoix3Du070F2PvY
+	iy/AM01xXOBma8gKN3vVYpqv8pSOgjun7XDnjLy+EzJzPwdHEHXbZEMdEaKIHZEmdGXlUAmu+Ts
+	78tXWNMmraEICa+ICQOHtRMyYfSnlEDKCGEY6ZbeIpWKEOmkysdTl9I914Zvc/bVL1LBiz5qELx
+	X91xcF24cQzfXU8XE5aSyp+SnaxdOMmEdjayhhH6j9FsxP1l2u7CtDVgA/GB4Je0GIAPJ2RpJEN
+	XqX5KzDBzA7rN+i9TV4yMN91njufNxE9ROPEONfLFqSVzPDpxY8CNgNDnisWpWZ76qgnuJNNgNV
+	1zGuwmifJ87we+oZ0umcVM4/MZY6+WCFBqMzReI3RINqkAsnRV3NWEo0Eut7bKIDBA27YuHmL7Q
+	A8kMayClmjgOGew+grA=
+X-Received: by 2002:a05:6870:392b:b0:48f:e0e5:a1ee with SMTP id 586e51a60fabf-491ebc9a1c3mr580278fac.51.1790202949783;
+        Wed, 23 Sep 2026 15:35:49 -0700 (PDT)
 Received: from [100.82.231.29] (c-98-38-17-99.hsd1.co.comcast.net. [98.38.17.99])
-        by smtp.googlemail.com with ESMTPSA id 586e51a60fabf-491ee1ac486sm559401fac.16.2026.09.23.15.35.45
+        by smtp.googlemail.com with ESMTPSA id 586e51a60fabf-491ee1ac486sm559401fac.16.2026.09.23.15.35.47
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 23 Sep 2026 15:35:46 -0700 (PDT)
+        Wed, 23 Sep 2026 15:35:49 -0700 (PDT)
 From: Jim Cromie <jim.cromie@gmail.com>
-Date: Wed, 23 Sep 2026 16:34:54 -0600
-Subject: [PATCH v11 30/38] selftests: enable comma-terminator tests
+Date: Wed, 23 Sep 2026 16:34:55 -0600
+Subject: [PATCH v11 31/38] dyndbg: split multi-query strings with @
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -72,7 +72,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260923-dd-cmap-part2-clean-v11-30-9b6c217fdf2f@gmail.com>
+Message-Id: <20260923-dd-cmap-part2-clean-v11-31-9b6c217fdf2f@gmail.com>
 References: <20260923-dd-cmap-part2-clean-v11-0-9b6c217fdf2f@gmail.com>
 In-Reply-To: <20260923-dd-cmap-part2-clean-v11-0-9b6c217fdf2f@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -99,103 +99,233 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
  Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1790202874; l=3975;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1790202874; l=9157;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=IsDXQ51HtE2Lt8zOvABFQGLczubwVPutni/gf4j8v54=;
- b=QRuVQyfvzDBhAJsqoYl0A/dp2j7k0bh5SmNjCVII0pNlDD0QHSD+Snr+bJpyQ/Z5RyH0sts5l
- l9aW+v5TsOyClLMW75DZo29Na8icJBgzZvh8+yjQR7PB3T8Bk67+M04
+ bh=6TBAmiHCtB5fpzdMTL1ow+9ih2uNA2uzKln5Ep7Ev54=;
+ b=Cohi7mDWaxVk/fWHB0BzyinZrBLvKjmIbwszsw79+7vTmnAJxZKJlPqcc2109HWGSzof8aoDO
+ 8nsiXBCk5KhAKUl9OJM5KRv95wUWewq5JRJIEUafRxhXY3mLQJ+1b8c
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 
-Enable the FT_comma_terminators test block in dyndbg_selftest.sh to
-verify control query parsing when queries are terminated by commas.
+Since
+commit 85f7f6c0edb8 ("dynamic_debug: process multiple debug-queries on a line")
+
+Multi-query commands have been allowed:
+
+  modprobe drm dyndbg="class DRM_UT_CORE +p; class DRM_UT_KMS +p"
+  modprobe drm dyndbg=<<EOX
+     class DRM_UT_CORE +p
+     class DRM_UT_KMS +p
+  EOX
+
+More recently, the need for quoting was avoided by treating a comma
+like a space/token-terminator:
+
+  modprobe drm dyndbg=class,DRM_UT_CORE,+p\;class,DRM_UT_KMS,+p
+
+That works, but it needs the escaped semicolon, which is a shell
+special-char (one of the bash control operators), so it is brittle
+when passed in/down/around scripts.
+
+So this patch adds '@' to the existing ';' and '\n' multi-command
+separators, which is more shell-friendly, so you can more fully avoid
+quoting and escaping hassles.
+
+Update selftests script, adding a multi-query split on @
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
-v11:
-. convert modprobe dyndbg parameters in FT_test_classes and
-  FT_classmap_inheritance to use comma separators
-  ("class,D2_CORE,+pf;...").
-  Sashiko review complaint (patch 24):
-  "Are these load-time parameters truncated during module load due to
-  how the shell handles quotes? When bash evaluates and strips the
-  double quotes before executing modprobe, modprobe constructs the
-  kernel options string without adding quotes around the parameters.
-  The kernel's parse_args() function (using next_arg() in lib/cmdline.c)
-  splits module parameters at unquoted spaces... treats D2_CORE and +pf
-  as separate unknown parameters."
----
- .../selftests/dynamic_debug/dyndbg_selftest.sh     | 29 ++++++++++++++++++++--
- 1 file changed, 27 insertions(+), 2 deletions(-)
+v10:
+. replace strpbrk() with quote-aware ddebug_find_delimiter() to ignore '@' inside quotes.
 
-diff --git a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-index a357905e3606..133ab32aa175 100755
---- a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-+++ b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
-@@ -340,6 +340,25 @@ function FT_basic_queries {
-     ddcmd "file $f =_" "$f"
+v9:
+. update FT_multi_query command in dyndbg_selftest.sh to actively test @ delimiter.
+v5: avoid +t flag in content tests - pid is not predictable.
+    remove Reviewed-by: <louis.chauvet@bootlin.com> - too many changes
+
+v2:
+
+replace '%' with '@' as multi-query splitter, as it is:
+ - not a sshell special cahr
+ - allows matching on format strings with format specifiers
+---
+ Documentation/admin-guide/dynamic-debug-howto.rst  |  8 +++--
+ lib/dynamic_debug.c                                | 26 ++++++++++++++++-
+ .../selftests/dynamic_debug/dyndbg_selftest.sh     | 34 +++++++++++++++-------
+ 3 files changed, 53 insertions(+), 15 deletions(-)
+
+diff --git a/Documentation/admin-guide/dynamic-debug-howto.rst b/Documentation/admin-guide/dynamic-debug-howto.rst
+index b9fbb2a12955..a8962ab22aaf 100644
+--- a/Documentation/admin-guide/dynamic-debug-howto.rst
++++ b/Documentation/admin-guide/dynamic-debug-howto.rst
+@@ -85,10 +85,12 @@ by spaces, tabs, or commas.  So these are all equivalent::
+   :#> ddcmd '  file   svcsock.c     line  1603 +p  '
+   :#> ddcmd file,svcsock.c,line,1603,+p
+ 
+-Command submissions are bounded by a write() system call.
+-Multiple commands can be written together, separated by ``;`` or ``\n``::
++Command submissions are bounded by a write() system call.  Multiple
++commands can be written together, separated by ``@``, ``;`` or ``\n``::
+ 
+-  :#> ddcmd "func pnpacpi_get_resources +p; func pnp_assign_mem +p"
++  :#> ddcmd func foo +p @ func bar +p
++  :#> ddcmd func foo +p \; func bar +p
++  :#> ddcmd "func foo +p ; func bar +p"
+   :#> ddcmd <<"EOC"
+   func pnpacpi_get_resources +p
+   func pnp_assign_mem +p
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index 6482fd28def4..636a88994a77 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -622,6 +622,30 @@ static int ddebug_exec_query(char *query_string, const char *modname)
+ 	return nfound;
  }
  
-+# test parsing on spaces, commas. testing against builtin file kernel/params.c
-+function FT_comma_terminators {
-+    v_echo "${GREEN}# COMMA_TERMINATOR_TESTS ${NC}"
++/*
++ * Split multi-query string on delimiters (@, ;, \n), ignoring delimiters
++ * that appear inside single or double quoted strings.
++ */
++static char *ddebug_find_delimiter(char *str, const char *delims)
++{
++	bool in_quote = false;
++	char quote_char = 0;
++
++	for (; *str; str++) {
++		if (*str == '"' || *str == '\'') {
++			if (!in_quote) {
++				in_quote = true;
++				quote_char = *str;
++			} else if (*str == quote_char) {
++				in_quote = false;
++			}
++		} else if (!in_quote && strchr(delims, *str)) {
++			return str;
++		}
++	}
++	return NULL;
++}
++
+ /* handle multiple queries in query string, continue on error, return
+    last error or number of matching callsites.  Module name is either
+    in the modname arg (for boot args) or perhaps in query string.
+@@ -632,7 +656,7 @@ static int ddebug_exec_queries(char *query, const char *modname)
+ 	int i, errs = 0, exitcode = 0, rc, nfound = 0;
+ 
+ 	for (i = 0; query; query = split) {
+-		split = strpbrk(query, ";\n");
++		split = ddebug_find_delimiter(query, "@;\n");
+ 		if (split)
+ 			*split++ = '\0';
+ 
+diff --git a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
+index 133ab32aa175..0478ef59dd0f 100755
+--- a/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
++++ b/tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh
+@@ -131,7 +131,6 @@ function ddcmd_load () {
+     local val="$4"
+ 
+     # 1. Setup the control filters (using positional ddcmd range-check)
+-    echo  "$query" "$range"
+     ddcmd "$query" "$range"
+ 
+     # 2. Execute the workload and capture syslog prints
+@@ -325,9 +324,20 @@ function FT_basic_queries {
+     ddcmd "file $f +l"  "$f"
+     ddcmd "file $f -m"  "$f"
+     ddcmd "file $f =_"  "$f"
++}
++
++function FT_multi_query {
++    v_echo "${GREEN}# MULTI_QUERY_TESTS ${NC}"
 +    if [ $LACK_DD_BUILTIN -eq 1 ]; then
 +	echo "SKIP - test requires dynamic_debug built into kernel"
 +	return
 +    fi
 +    local f='kernel/params.c'
-+    ddcmd =_
-+    ddcmd "file $f +p" "$f"
-+
-+    ddcmd "file,$f,=_" "$f"
-+    ddcmd "file,$f,+mf" "$f"
-+    # ignore empty tokens
-+    ddcmd ",file ,, ,  $f, -p" "$f"
-+    ddcmd " , file ,,, ,  $f, -m" "$f"
-+
-+    ddcmd =_
-+}
- # testing classmap-based query enablers and class configurations
- function FT_test_classes {
-     v_echo "${GREEN}# TEST_CLASSES - classmap-based query enablers and class configs ${NC}"
-@@ -350,7 +369,7 @@ function FT_test_classes {
++    ddcmd =_ # zero everything
  
-     # 1. Verify initial multi-query enablement state via file slice
-     my_modprobe test_dynamic_debug \
--        dyndbg="class D2_CORE,+pf;class D2_KMS,+ps;class D2_ATOMIC +pm"
-+        dyndbg="class,D2_CORE,+pf;class,D2_KMS,+ps;class,D2_ATOMIC,+pm"
+-    # multi-query commands split on ; on a single line
++    # multi-query commands on a single line, split on ;/@ respectively
+     ddcmd "file $f +mf ; file $f func parse_args +sl" "$f"
++    ddcmd "file $f -f @ file $f func parse_args -l"   "$f"
+ 
+     # verify multi-cmd input, newline separated, with embedded comments
+     ddcmd =_ # reset before multiline query to capture full transition
+@@ -373,7 +383,7 @@ function FT_test_classes {
      verify_control_slice '\[test_dynamic_debug\]'
  
      # 2. Verify state transition and live-printing end-to-end via ddcmd_load!
-@@ -368,7 +387,7 @@ function FT_classmap_inheritance {
+-    ddcmd_load "class D2_CORE +pmf;class D2_KMS +pls;class D2_ATOMIC +pml" \
++    ddcmd_load "class,D2_CORE,+pmf;class,D2_KMS,+pls;class,D2_ATOMIC,+pml" \
+         '\[test_dynamic_debug\]' \
+         "/sys/module/test_dynamic_debug/parameters/do_classes" "1"
  
-     # 1. Load submod directly (which auto-loads supermod with default parameters)
-     my_modprobe test_dynamic_debug_submod \
--	"dyndbg=+p;class D2_CORE +pfs;class D2_KMS +pts;class D2_ATOMIC +pmf"
-+	"dyndbg=+p;class,D2_CORE,+pfs;class,D2_KMS,+pts;class,D2_ATOMIC,+pmf"
-     verify_control_slice 'test_dynamic_debug'
- 
-     # 2. Runtime parameter changes to supermod propagate to submod descriptors
-@@ -447,6 +466,7 @@ builtin_tests=(
-     FT_grammar_ok
+@@ -467,6 +477,7 @@ builtin_tests=(
      FT_grammar_errs
      FT_basic_queries
-+    FT_comma_terminators
+     FT_comma_terminators
++    FT_multi_query
  )
  
  # Modular Feature Tests (Require CONFIG_MODULES=y and test_dynamic_debug*.ko available)
-@@ -537,6 +557,11 @@ function GOLDEN_RECORDS {
- #K= 02e4fd94602e108cb89bfc70d47a5dad FT_basic_queries.5
- #K= f03a7ca7316e8db4c0e16523dc41e75d FT_basic_queries.6
- #K= c518a50ba30ba8099d0dc874a27ecf16 FT_basic_queries.7
-+#K= c8bbbac639f244ed9088208ebb7d83a6 FT_comma_terminators.1
-+#K= bed6350f058f600910837dae83a12f56 FT_comma_terminators.2
-+#K= 6e8599556a312200fb6d484565b6c52f FT_comma_terminators.3
-+#K= 68b329da9893e34099c7d8ad5cb9c940 FT_comma_terminators.4
-+#K= adc1ef04304c861c87fe294a8ba4e402 FT_comma_terminators.5
+@@ -489,8 +500,8 @@ modular_tests=(
+ #
+ # ==============================================================================
+ function GOLDEN_RECORDS {
+-    cat << 'EOF' | {
+-#K= 26fd1565f209b383d9f2fbf0b54cd5fc FT_grammar_errs.1
++    cat << 'EO_DYNDBG_GOLDEN_REFS' | {
++#K= 95b249c7ec2cbd5a436f96060b2bee37 FT_grammar_errs.1
+ #K= 200c01632c52a63f6d186da1c6460740 FT_grammar_errs.2
+ #K= 7d7141900ce6e32f15c99202309c63a4 FT_grammar_errs.3
+ #K= 1bb798a5831d0119789d424ef6cb55c4 FT_grammar_errs.4
+@@ -510,7 +521,7 @@ function GOLDEN_RECORDS {
+ #K= cb8288d607b0c5282125852f3ab05107 FT_grammar_errs.18
+ #K= b371c6ba52503d037dbc43da788af8be FT_grammar_errs.19
+ #K= 98e2bd3e4f3da58536496a38ec3e6238 FT_grammar_errs.20
+-#K= 02b210b2646aceb68f3d6d2876a3d57a FT_grammar_errs.21
++#K= c4e8b7261811e9fdf0c80fa9e374a29e FT_grammar_errs.21
+ #K= 51030cd01ed601a68dd48356902954b1 FT_grammar_errs.22
+ #K= af8818de076407d4e7f4e384ba110ac5 FT_grammar_errs.23
+ #K= 023ba04ffced833b4776fb4fcaae7755 FT_grammar_errs.24
+@@ -530,7 +541,7 @@ function GOLDEN_RECORDS {
+ #K= 130bf64b92a5e34d1c4cce98899084e1 FT_grammar_errs.38
+ #K= 9681a05658f1a50e3434aa991b5ce992 FT_grammar_errs.39
+ #K= 38506317363a188fbb7a417ff50457a9 FT_grammar_errs.40
+-#K= 02b210b2646aceb68f3d6d2876a3d57a FT_grammar_errs.41
++#K= c4e8b7261811e9fdf0c80fa9e374a29e FT_grammar_errs.41
+ #K= 8c08a8b5cacbf885d022360ed856e7a1 FT_grammar_errs.42
+ #K= f0f4d894a49bd2c1856cf4f013f83e54 FT_grammar_errs.43
+ #K= 25b92d52cb299fa8d84c5584e490bd97 FT_grammar_errs.44
+@@ -554,14 +565,15 @@ function GOLDEN_RECORDS {
+ #K= db17180b59444e5e34a8fc20c40e4530 FT_basic_queries.2
+ #K= f7bd56bd407ff255ef2e3b5fb093ae6a FT_basic_queries.3
+ #K= 4ce44468b3b5f80ae42ade1f261b952f FT_basic_queries.4
+-#K= 02e4fd94602e108cb89bfc70d47a5dad FT_basic_queries.5
+-#K= f03a7ca7316e8db4c0e16523dc41e75d FT_basic_queries.6
+-#K= c518a50ba30ba8099d0dc874a27ecf16 FT_basic_queries.7
+ #K= c8bbbac639f244ed9088208ebb7d83a6 FT_comma_terminators.1
+ #K= bed6350f058f600910837dae83a12f56 FT_comma_terminators.2
+ #K= 6e8599556a312200fb6d484565b6c52f FT_comma_terminators.3
+ #K= 68b329da9893e34099c7d8ad5cb9c940 FT_comma_terminators.4
+ #K= adc1ef04304c861c87fe294a8ba4e402 FT_comma_terminators.5
++#K= 02e4fd94602e108cb89bfc70d47a5dad FT_multi_query.1
++#K= c0fc482bbf18b9d5ffd6743b18bc34f7 FT_multi_query.2
++#K= f03a7ca7316e8db4c0e16523dc41e75d FT_multi_query.3
++#K= c518a50ba30ba8099d0dc874a27ecf16 FT_multi_query.4
  #K= 91838b4012c50a1dc1d9e210ba8d68f8 FT_test_classes.1
  #K= a15ec4843acd721fbdfddc0b512c8032 FT_test_classes.2
  #K= 2cee6842c9cdee5cb3bf50b2e3914813 FT_test_classes.3
+@@ -606,7 +618,7 @@ function GOLDEN_RECORDS {
+ #K= 0239d8c0808eef396782362613f675b0 FT_modprobe_w_param.34
+ #K= 4819f715ba485c493afb455542f7ab8c FT_modprobe_w_param.35
+ #K= 0239d8c0808eef396782362613f675b0 FT_modprobe_w_param.36
+-EOF
++EO_DYNDBG_GOLDEN_REFS
+         # Read the K-recs and skip those for tests that can't run
+         while read -r line; do
+             # Filter built-in if needed
 
 -- 
 2.55.0
