@@ -1,348 +1,108 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 511A33E765A;
-	Wed, 23 Sep 2026 17:23:01 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E18DC40B11A;
+	Wed, 23 Sep 2026 17:34:09 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790184182; cv=none; b=pRdZ0QyEsJ55ZnVy0gfHVqEq3E6LQgEmkYtjE0hlCxJ6a1Li+kBzZQ+ZzrBvE7MMDA++Ki6gEVKrX38CSVdFphXrzdyDW0dmA+yG7LbLvbPXDKR4rC3AUMAjUWPLEsYFVAAY//SFblftV1sfelhvYqP8+pb1UKtYuURvCY2ZFaU=
+	t=1790184851; cv=none; b=OvrCg9QRtCNP5VVucGnbdPpUmUEak6jNzi6BClclV4USFZU+733FDCc4cZr1OwruFoGZoJyR/4Z6ULWVOUcBm43Qn3mNZMf6SKzXR17q2GFDrbUgCAhIfq4ITr3i0z2+HAJOOfG5I4/seJ+aCilOqmdJYlAITCKYgi/jbRrOFYQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790184182; c=relaxed/simple;
-	bh=1zmsc9ZHF8+CoyT22YKQnfv42K05Raj82AafGLUVoSU=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=EWkh55CVFzRpWePuAGod207nqTMkTL84zB8yvmcEBDP64zArc4YD58xLx0n13lfIhLSG8OGlL4tbBUpsjwzRr3LGm0HEOmUBo+CkMrJEXyIxRtS0xlVuUnPOTfdVm5QUZbCFBXEVUZLsUpwMxQUBS6FQvQkwCAO2gfET8WykR38=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=HjH3hQsw; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1790184851; c=relaxed/simple;
+	bh=kPlu2H6XNVNAm+eyKaf+KNtcUOLDMiz/SdRoD9k3csw=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=ELTwYuIr+aAzPO3Hku+6VyqsXqOKOKD1EIfW+ic5GBH106PoueFufjSLK4ocKA+S1f8ZgH6FPFCLquTAhVLU/XH4YblZio1C1JoFS0yTp1AiNSFzhR52X+8SEOO3HiK1ROETyoc50x9caOSqo9fF+F0TwV3srI3g+IAoCcmGPr0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=oIPXhDnn; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="HjH3hQsw"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B6C4D1F000FF;
-	Wed, 23 Sep 2026 17:22:48 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="oIPXhDnn"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7578A1F00898;
+	Wed, 23 Sep 2026 17:33:40 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1790184181;
-	bh=7TYGk1JizHGrlBrKc7yi6wYeMXYeC/fB2mICtyHAjKk=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=HjH3hQswPOEhNyh+0EJsK+8lvQLgcr3wY90IiS4ycWSZkKP4z3Hz+F195NNzsn+5H
-	 DOCkRcOHx0XQmfWCxL0x2y7voJVSjw3iitplwzqupe10mATAJ94nar2ZrZLegTO4JS
-	 ETtXjajIE2KLsZcE7sBFgxZBdNXyA1Ui0aXWQOwgkE1w/tZITBr7PoBhDuwFP74eUc
-	 WozytBVTBGoOUfLjCdhu0GJ4gkB/LxwycdUHuH4s++EAWyVpU4ahOzUm5ZmQo5G+RK
-	 1kvSqlb7dOOveB0AuROR0K/Kr/FbInyTO+eq9TdAUubQQtYWoivr4mLpirXiuhGEUN
-	 uOG9C8cUl0w/A==
+	s=k20260515; t=1790184849;
+	bh=kPlu2H6XNVNAm+eyKaf+KNtcUOLDMiz/SdRoD9k3csw=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=oIPXhDnn6KrbHUdB8J3HtxFj0acE8ktVqJkOruOhJCvNG5tAAVxIsyoHMYMRieHKt
+	 Is5+S1MolM3HFRsMb1jGHJLJBKDKhutQW6ZfXT/uIcKRR1r6PUVXazNarmpYGmlPd0
+	 DrVxZDA5/RDFBx7/03GL1IZtxQpOt/AyuqUyDXzSfV+fX36mqbt0ecrQoeMZoKoF4P
+	 +Cw4hzzM0pyksIgfNEY/yt9LZw5XVPHz+WoNZuUa2xzYl1ssIwnutkaiQTvVstnnbO
+	 sloaQyC80Sym14M1BLGJIqAR7U69u/36OLTFb2LZOlo2vRK66xJr47KsIDUd4H3N/u
+	 MIh65qBa71P4g==
+Date: Wed, 23 Sep 2026 18:33:37 +0100
 From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Date: Wed, 23 Sep 2026 18:18:11 +0100
-Subject: [PATCH v4 22/22] kbuild: compress the kernel with pigz if
- available
+To: Andrew Morton <akpm@linux-foundation.org>, 
+	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+	Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
+	David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Jonathan Corbet <corbet@lwn.net>, 
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, 
+	Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
+	Paul Moore <paul@paul-moore.com>, Stephen Smalley <stephen.smalley.work@gmail.com>, 
+	Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, 
+	Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
+	Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
+	Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
+	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
+	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
+	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
+	Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
+	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, "Martin K. Petersen" <mkp@kernel.org>, 
+	Jaya Kumar <jayalk@intworks.biz>, Simona Vetter <simona@ffwll.ch>, Helge Deller <deller@gmx.de>, 
+	Sebastian Reichel <sre@kernel.org>, John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
+	Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, 
+	Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@kernel.org>, 
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Arnaldo Carvalho de Melo <acme@kernel.org>, 
+	Namhyung Kim <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
+	Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, Juri Lelli <juri.lelli@redhat.com>, 
+	Vincent Guittot <vincent.guittot@linaro.org>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+	Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+	David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, 
+	Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Marc Zyngier <maz@kernel.org>, 
+	Oliver Upton <oupton@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, 
+	Madhavan Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, Paul Walmsley <pjw@kernel.org>, 
+	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Christian Borntraeger <borntraeger@linux.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, 
+	Claudio Imbrenda <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
+	Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Heiko Carstens <hca@linux.ibm.com>, 
+	Vasily Gorbik <gor@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, 
+	Andreas Larsson <andreas@gaisler.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Christian Brauner <brauner@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
+	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, Byungchul Park <byungchul@sk.com>, 
+	Gregory Price <gourry@gourry.net>, Ying Huang <ying.huang@linux.alibaba.com>, 
+	Alistair Popple <apopple@nvidia.com>, Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
+	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
+	Youngjun Park <youngjun.park@lge.com>, Johannes Weiner <hannes@cmpxchg.org>, 
+	Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
+	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
+	Chengming Zhou <chengming.zhou@linux.dev>, Michal Hocko <mhocko@kernel.org>, 
+	Miklos Szeredi <miklos@szeredi.hu>, Xu Xin <xu.xin@linux.dev>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+	linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, linux-rdma@vger.kernel.org, 
+	selinux@vger.kernel.org, linux-sound@vger.kernel.org, bpf@vger.kernel.org, 
+	linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org, 
+	linux-trace-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, 
+	linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org, kvm-riscv@lists.infradead.org, 
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, 
+	fuse-devel@lists.linux.dev
+Subject: Re: [PATCH v3 02/40] mm/vma: predicate setting mmap_prepare VMA
+ fields on new vma alloc
+Message-ID: <arQNTibMdh6x_T04@gremlin>
+References: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-0-4583d8a23bca@kernel.org>
+ <20260917-b4-mmap-prepare-vma-flag-sanify-v3-2-4583d8a23bca@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20260923-build-speedup-v4-22-73128809a4a4@kernel.org>
-References: <20260923-build-speedup-v4-0-73128809a4a4@kernel.org>
-In-Reply-To: <20260923-build-speedup-v4-0-73128809a4a4@kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, 
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
- Nick Desaulniers <ndesaulniers@google.com>, 
- Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
- Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
- Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
- Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, 
- Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
- Ard Biesheuvel <ardb@kernel.org>, 
- Ilias Apalodimas <ilias.apalodimas@linaro.org>, 
- Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
- Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
- Gary Guo <gary@garyguo.net>, 
- =?utf-8?q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
- Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
- Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
- Danilo Krummrich <dakr@kernel.org>, 
- Daniel Almeida <daniel.almeida@collabora.com>, 
- Tamir Duberstein <tamird@kernel.org>, 
- Alexandre Courbot <acourbot@nvidia.com>, 
- =?utf-8?q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
- Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, 
- Kees Cook <kees@kernel.org>, "Gustavo A. R. Silva" <gustavoars@kernel.org>
-Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
- llvm@lists.linux.dev, linux-riscv@lists.infradead.org, 
- linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
- linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
- linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, 
- linux-hardening@vger.kernel.org, Petr Pavlu <petr.pavlu@suse.com>, 
- "Lorenzo Stoakes (ARM)" <ljs@kernel.org>, 
- Manuel Ebner <manuelebnerli@mailbox.org>
-X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=openpgp-sha256; l=10892; i=ljs@kernel.org;
- h=from:subject:message-id; bh=1zmsc9ZHF8+CoyT22YKQnfv42K05Raj82AafGLUVoSU=;
- b=owGbwMvMwCV2fu7ZrsZH9SKMp9WSGLK2cF5V+qM6cZ+XtAW/Br/evglRvqvu6e0zclxt91O6Y
- amPfU9PRykLgxgXg6yYIsvzL+L7g0TC5nVe8HeDmcPKBDKEgYtTACbyi5vhv+d/B+Uu/+nK57e4
- nd2/yvm3zewtAVnVk7TF4gzeHOM+JcnwP/6o3UdeXaZzG7hDLTxuVGcyNE/nLWEp03YunaVyTfg
- kPwA=
-X-Developer-Key: i=ljs@kernel.org; a=openpgp;
- fpr=E7F417BF5214569E89D04F46CF9DCD8A81E27F14
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-2-4583d8a23bca@kernel.org>
 
-The gzip step of a kernel build is very lengthy, especially for larger
-builds such as allmodconfig.
+Andrew - please drop this patch from the series, I will send a separate fix for
+this to go into an RC.
 
-gzip itself cannot be run in parallel, however an alternative tool exists
-that can, providing the same feature set as gzip itself - pigz - which
-works as a drop-in replacement.
-
-On a 128-core Threadripper, gzip -9 of a 36 MiB x86-64 vmlinux.bin takes
-1.6s, and with pigz it takes 0.09s, so the performance increase is
-significant.
-
-Therefore introduce the KPGZIP build variable which specifies the
-compressor to use for the kernel image and default it to pigz if available,
-or KGZIP otherwise (which itself defaults to gzip).
-
-Modules, packaging and the embedded kernel configuration (CONFIG_IKCONFIG)
-continue to use KGZIP which defaults to a single-threaded gzip instance.
-
-Module compression is run in parallel by make, so pigz offers no benefit
-there, packaging sits outside the build and the embedded configuration is
-too small to matter.
-
-pigz is executed using scripts/jobserver-exec, which reserves the job slots
-make has free - necessary, as otherwise pigz would just grab unbounded
-CPUs.
-
-The kernel image compression step is always performed at the end of the
-build so should typically have all job slots available.
-
-pigz always provides byte-for-byte identical output across runs regardless
-of thread count, but pigz and gzip are not guaranteed to generate the same
-binary output, so reproducible builds must use the same tools consistently.
-
-Also update Documentation/kbuild/kbuild.rst to describe KPGZIP and
-Documentation/process/changes.rst to list the optional pigz dependency.
-
-While there, add entries for the other compressor programs.
-
-Finally, update scripts/ver_linux to include the pigz version there.
-
-Every x86 build ends with the compression of vmlinux.bin, 36MB for
-defconfig and over 200MB for allmodconfig, no-op builds are unchanged.
-
-Whole build, 128-thread Threadripper 9980X, best of N runs:
-
-                                         before   after     delta
-                                         -------------------------------
-  x86 defconfig, touch mm/vma.c, gcc        7.7s     6.0s     -1.7s (-22%)
-  x86 defconfig, touch mm/vma.c, clang      6.9s     5.4s     -1.5s (-21%)
-  x86 defconfig, clean, gcc                28.2s    26.3s     -1.8s (-6%)
-  x86 defconfig, clean, clang              28.7s    27.2s     -1.5s (-5%)
-  x86 allmodconfig, touch mm/vma.c, gcc    23.7s    15.4s     -8.3s (-35%)
-  x86 allmodconfig, touch mm/vma.c, clang  22.5s    15.6s     -7.0s (-31%)
-  x86 allmodconfig, clean, gcc            294.1s   278.6s     -15.5s (-5%)
-  x86 allmodconfig, clean, clang          283.9s   266.8s     -17.1s (-6%)
-
-Suggested-by: Kees Cook <kees@kernel.org>
-Link: https://zlib.net/pigz/
-Assisted-by: LLM
-Reviewed-by: Manuel Ebner <manuelebnerli@mailbox.org>
-Reviewed-by: Kees Cook <kees@kernel.org>
-Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
----
- Documentation/kbuild/kbuild.rst   | 17 +++++++++++++++++
- Documentation/process/changes.rst |  8 ++++++++
- Makefile                          |  5 ++++-
- kernel/Makefile                   |  6 +++++-
- scripts/Makefile.lib              |  4 ++--
- scripts/jobserver-exec            |  3 ++-
- scripts/ver_linux                 |  1 +
- tools/lib/python/jobserver.py     | 13 +++++++++++++
- 8 files changed, 52 insertions(+), 5 deletions(-)
-
-diff --git a/Documentation/kbuild/kbuild.rst b/Documentation/kbuild/kbuild.rst
-index 5a9013bacfb7..e71a692a559a 100644
---- a/Documentation/kbuild/kbuild.rst
-+++ b/Documentation/kbuild/kbuild.rst
-@@ -110,6 +110,23 @@ HOSTLDLIBS
- ----------
- Additional libraries to link against when building host programs.
- 
-+KGZIP
-+-----
-+The gzip program used for compressed modules, packaging and the embedded
-+kernel configuration. Defaults to gzip.
-+
-+KPGZIP
-+------
-+The gzip program used for the compressed kernel image. Defaults to pigz (a
-+parallel implementation of gzip), run under scripts/jobserver-exec so that it
-+uses the job slots make has free, if pigz is installed, otherwise to
-+``KGZIP``. Set ``KPGZIP=`` on the make command line to use another program.
-+
-+KBZIP2, KLZOP, LZMA, LZ4, XZ, ZSTD
-+----------------------------------
-+The compressor programs for the other formats. Each defaults to the program
-+of the same name.
-+
- .. _userkbuildflags:
- 
- USERCFLAGS
-diff --git a/Documentation/process/changes.rst b/Documentation/process/changes.rst
-index 0aa232b117b5..28f2ca63318e 100644
---- a/Documentation/process/changes.rst
-+++ b/Documentation/process/changes.rst
-@@ -55,6 +55,7 @@ nfs-utils              1.0.5            showmount --version
- openssl & libcrypto    1.0.0            openssl version
- pahole                 1.26             pahole --version
- pcmciautils            004              pccardctl -V
-+pigz (optional)        2.4              pigz --version
- PPP                    2.4.0            pppd --version
- procps                 3.2.0            ps --version
- Python                 3.9.x            python3 --version
-@@ -206,6 +207,13 @@ GNU AWK
- GNU AWK is needed if you want kernel builds to generate address range data for
- builtin modules (CONFIG_BUILTIN_MODULE_RANGES).
- 
-+pigz (optional)
-+---------------
-+
-+pigz is a parallel implementation of gzip. If it is installed the compressed
-+kernel image is produced with it rather than with gzip, see ``KPGZIP`` in
-+Documentation/kbuild/kbuild.rst.
-+
- System utilities
- ****************
- 
-diff --git a/Makefile b/Makefile
-index f0502b02408f..ba71483f7f14 100644
---- a/Makefile
-+++ b/Makefile
-@@ -568,6 +568,9 @@ LZMA		= lzma
- LZ4		= lz4
- XZ		= xz
- ZSTD		= zstd
-+# The kernel image is compressed with pigz, on the job slots make has free,
-+# if it is installed. Everything else uses KGZIP.
-+KPGZIP		:= $(if $(shell command -v pigz 2>/dev/null),$(PYTHON3) $(abs_srctree)/scripts/jobserver-exec pigz -p %PARALLELISM%,$(KGZIP))
- TAR		= tar
- 
- CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
-@@ -648,7 +651,7 @@ export RUSTC RUSTDOC RUSTFMT RUSTC_OR_CLIPPY_QUIET RUSTC_OR_CLIPPY BINDGEN LLVM_
- export HOSTRUSTC KBUILD_HOSTRUSTFLAGS
- export CPP AR NM STRIP OBJCOPY OBJDUMP READELF PAHOLE RESOLVE_BTFIDS LEX YACC AWK INSTALLKERNEL
- export PERL PYTHON3 CHECK CHECKFLAGS MAKE UTS_MACHINE HOSTCXX
--export KGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD TAR
-+export KGZIP KPGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD TAR
- export KBUILD_HOSTCXXFLAGS KBUILD_HOSTLDFLAGS KBUILD_HOSTLDLIBS KBUILD_PROCMACROLDFLAGS LDFLAGS_MODULE
- export KBUILD_USERCFLAGS KBUILD_USERLDFLAGS
- 
-diff --git a/kernel/Makefile b/kernel/Makefile
-index 1e1a31673577..c64c82c96b40 100644
---- a/kernel/Makefile
-+++ b/kernel/Makefile
-@@ -153,9 +153,13 @@ obj-$(CONFIG_SCF_TORTURE_TEST) += scftorture.o
- 
- $(obj)/configs.o: $(obj)/config_data.gz
- 
-+# .config is small, so it is compressed with gzip rather than the image compressor.
-+quiet_cmd_gzip_config = GZIP    $@
-+      cmd_gzip_config = cat $(real-prereqs) | $(KGZIP) -n -f -9 > $@
-+
- targets += config_data config_data.gz
- $(obj)/config_data.gz: $(obj)/config_data FORCE
--	$(call if_changed,gzip)
-+	$(call if_changed,gzip_config)
- 
- filechk_cat = cat $<
- 
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 2f447bc25e7b..8936925d4d50 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -332,11 +332,11 @@ quiet_cmd_ar = AR      $@
- quiet_cmd_objcopy = OBJCOPY $@
- cmd_objcopy = $(OBJCOPY) $(OBJCOPYFLAGS) $(OBJCOPYFLAGS_$(@F)) $< $@
- 
--# Gzip
-+# Gzip, for the kernel image
- # ---------------------------------------------------------------------------
- 
- quiet_cmd_gzip = GZIP    $@
--      cmd_gzip = cat $(real-prereqs) | $(KGZIP) -n -f -9 > $@
-+      cmd_gzip = cat $(real-prereqs) | $(KPGZIP) -n -f -9 > $@
- 
- # Bzip2
- # ---------------------------------------------------------------------------
-diff --git a/scripts/jobserver-exec b/scripts/jobserver-exec
-index 21b319e6c9a5..89119acb1b9e 100755
---- a/scripts/jobserver-exec
-+++ b/scripts/jobserver-exec
-@@ -4,7 +4,8 @@
- """
- Determines how many parallel tasks "make" is expecting, as it is
- not exposed via any special variables, reserves them all, runs a subprocess
--with PARALLELISM environment variable set, and releases the jobs back again.
-+with PARALLELISM environment variable set and any %PARALLELISM% in its
-+arguments replaced by the count, and releases the jobs back again.
- 
- See:
-     https://www.gnu.org/software/make/manual/html_node/POSIX-Jobserver.html#POSIX-Jobserver
-diff --git a/scripts/ver_linux b/scripts/ver_linux
-index 00bdaf30d590..e06d7c650710 100755
---- a/scripts/ver_linux
-+++ b/scripts/ver_linux
-@@ -57,6 +57,7 @@ BEGIN {
- 	printversion("pahole", version("pahole --version"))
- 	printversion("Pcmcia-cs", version("cardmgr -V"))
- 	printversion("pcmciautils", version("pccardctl -V"))
-+	printversion("pigz", version("pigz --version"))
- 	printversion("PPP", version("pppd --version"))
- 	printversion("procps", version("ps --version"))
- 	printversion("Python", version("python3 -V"))
-diff --git a/tools/lib/python/jobserver.py b/tools/lib/python/jobserver.py
-index 0b1ffdf9f7a3..7e94635bf7d9 100755
---- a/tools/lib/python/jobserver.py
-+++ b/tools/lib/python/jobserver.py
-@@ -29,6 +29,10 @@ $claim child to do the actual work.
- The end goal here is to keep the total number of build tasks under the
- limit established by the initial ``make -j$n_proc`` call.
- 
-+A command that takes its thread count on the command line rather than from
-+the environment can use the ``%PARALLELISM%`` token in its arguments, which
-+is replaced by the count, or by 1 when there is no jobserver.
-+
- See:
-     https://www.gnu.org/software/make/manual/html_node/POSIX-Jobserver.html#POSIX-Jobserver
- """
-@@ -38,6 +42,8 @@ import os
- import subprocess
- import sys
- 
-+PARALLELISM_TOKEN = "%PARALLELISM%"
-+
- def warn(text, *args):
-     print(f'WARNING: {text}', *args, file = sys.stderr)
- 
-@@ -182,6 +188,9 @@ class JobserverExec:
-         Run a command setting PARALLELISM env variable to the number of
-         available job slots (claim) + 1, e.g. it will reserve claim slots
-         to do the actual build work, plus one to monitor its children.
-+
-+        Any %PARALLELISM% in the command's arguments is replaced by the same
-+        number, or by 1 when there is no jobserver.
-         """
-         self.open()             # Ensure that self.claim is set
- 
-@@ -192,4 +201,8 @@ class JobserverExec:
-         if self.claim:
-             os.environ["PARALLELISM"] = str(self.claim)
- 
-+        if not isinstance(cmd, str):
-+            parallelism = str(self.claim or 1)
-+            cmd = [arg.replace(PARALLELISM_TOKEN, parallelism) for arg in cmd]
-+
-         return subprocess.call(cmd, *args, **pwargs)
-
--- 
-2.55.0
-
+--
+Cheers, Lorenzo
