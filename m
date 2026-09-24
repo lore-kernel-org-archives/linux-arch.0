@@ -1,33 +1,33 @@
-Received: from mta1.migadu.com (out-103.mta1.migadu.com [95.215.58.103])
+Received: from mta1.migadu.com (out-195.mta1.migadu.com [95.215.58.195])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0693D36164D
-	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 02:56:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.103
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D852F3DAAD6
+	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 03:26:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.195
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790218568; cv=none; b=ewTuA84KWBg6btvgxIdzcXTF6xHbK1rcDzC+m38y3A7P0ZTRo7wYDHbFjj2Z/4HM0MNGy+PPUIvkuSVOz04GZqXchkZadPwdUq6jGzvDnsWm0ZeQ7hPaxAEgPI5LPuD72TuvMrrzuvJBrXKmsa1umC5epFWRFuNyqIZObjT5EGo=
+	t=1790220397; cv=none; b=Gn1U5RCa7kJro1gAGJbdrVOGqrmyCZ3Krukx6vPD8qUBxlovz/ej1uH7w1t1RkSMYDVYY9B8PcsNEq+QFvb03qXLWKwKj/ve7jPk4IfOMwY5IEZiqzHLyAtJagcbEP7oIYmL2L1N6Q1uD4YTGiMrTM8hWAHV+lPTGRKhlFC757c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790218568; c=relaxed/simple;
-	bh=i3rUJrOssAsIlzaIbpG4p7ewG7Kkt+KPljgikjsMoRc=;
+	s=arc-20240116; t=1790220397; c=relaxed/simple;
+	bh=2yvE0h+QEBEUSGV14adujKMIHz+x1ZjAZUB9qMU3ScA=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=i+HnjXM4Nogbq4XAQt1p1bawZTJWzdKboJEP5tpOaLMJkjv9iPcnhjLBXzW32GAZffpIsrNFJaSIsGWfWEKnJaIpNPQeDy98NanbSbF6oYymxUYe/PCVdCgelIizqg39qe4dPCiTIBngjFkkulDxKvLZyybF1LXcOnCaAMahFcw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=Ckaz0wTr; arc=none smtp.client-ip=95.215.58.103
+	 MIME-Version:Content-Type; b=reCWSFY7+EfftMq7gD6hEtrvZbfhbEjRLOk6whzUIJ9+CeFbZyem/83INi2tFWGdiBWk/YAKizItFGtUKE25pPzlUbCXa9cbsC1WW167nOA5BM7kdtV1/thkzh8ZNGZAtkjBW4xrWfNykS5tse5+Pe7ePeagFzj972cd9V/NR8A=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=boaSQqLh; arc=none smtp.client-ip=95.215.58.195
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="Ckaz0wTr"
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="boaSQqLh"
 X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=i3rUJrOssAsIlzaIbpG4p7ewG7Kkt+KPljgikjsMoRc=;
+DKIM-Signature: a=rsa-sha256; bh=2yvE0h+QEBEUSGV14adujKMIHz+x1ZjAZUB9qMU3ScA=;
  c=simple/simple; d=linux.dev;
  h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1790218564; v=1; x=1790823364;
- b=Ckaz0wTrb9WChEDMMPZoMKsoiASMuXtYD8MXij4Z2VX4tIx/LPQbi9RurLmV+G1NQPuqZ7HX
- 6BtLv7sqNe1i5pdNXYy4OvwUj0j3eDqS0R+KFbEIgrQHGJl0yU3C+8Nim9/vhFkwvGufgxCiSe+
- otzbitNzcSXs2oJ1DxiUQs6Y=
+ t=1790220393; v=1; x=1790825193;
+ b=boaSQqLhxWeav01vI/cRBCmj7Imq76eq9HXWt4jpqNRTGVWvv1DKDO6hzjOSa2/B+6hzS9pR
+ hTEcd2srgXUitB5PEXuEljSVGpA1n3oTYxPYD5EKtwaZavRbLqQlLy6uudJITOQBTKMDIsndvpp
+ S2hSvZe7P62W2fl2POGh/rao=
 X-Envelope-To: linux-arch@vger.kernel.org
-Received: by smtp.migadu.com with ESMTPS id 9cade30b803883cf;
-	Thu, 24 Sep 2026 02:56:02 +0000
-X-Mizu-Trace-ID: 9cade30b803883cf
+Received: by smtp.migadu.com with ESMTPS id ae8cc7886785f523;
+	Thu, 24 Sep 2026 03:26:31 +0000
+X-Mizu-Trace-ID: ae8cc7886785f523
 X-Migadu-Flow: FLOW_OUT
 From: Lance Yang <lance.yang@linux.dev>
 To: ljs@kernel.org
@@ -129,12 +129,12 @@ Cc: akpm@linux-foundation.org,
 	hughd@google.com,
 	qi.zheng@linux.dev,
 	linux-doc@vger.kernel.org
-Subject: Re: [PATCH v4 11/12] mm: make userland page table freeing RCU-safe
-Date: Thu, 24 Sep 2026 10:55:56 +0800
-Message-ID: <20260924025556.18719-1-lance.yang@linux.dev>
+Subject: Re: [PATCH v4 12/12] mm: change the contract for free_pgtables(), update docs
+Date: Thu, 24 Sep 2026 11:26:25 +0800
+Message-ID: <20260924032625.28555-1-lance.yang@linux.dev>
 X-Mailer: git-send-email 2.49.0
-In-Reply-To: <20260922-rcu-pagetable-freeing-v4-11-fe1ad1f1e303@kernel.org>
-References: <20260922-rcu-pagetable-freeing-v4-11-fe1ad1f1e303@kernel.org>
+In-Reply-To: <20260922-rcu-pagetable-freeing-v4-12-fe1ad1f1e303@kernel.org>
+References: <20260922-rcu-pagetable-freeing-v4-12-fe1ad1f1e303@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -145,47 +145,76 @@ Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 
-On Tue, Sep 22, 2026 at 04:35:42PM +0100, Lorenzo Stoakes (ARM) wrote:
->Now every architecture has been converted to support
->CONFIG_MMU_GATHER_RCU_TABLE_FREE, this configuration option no longer makes
->any sense to keep around.
+On Tue, Sep 22, 2026 at 04:35:43PM +0100, Lorenzo Stoakes (ARM) wrote:
+>Now that page tables are freed after an RCU grace period, it is safe for
+>read-only page table walkers to walk page table ranges that are being
+>concurrently torn down, provided the mm is kept alive via mmgrab().
 >
->Therefore remove it, and remove all the dead code that existed for
->!CONFIG_MMU_GATHER_RCU_TABLE_FREE architectures previously.
+>It is however unsafe for writers to do so, as they must obtain an
+>appropriate lock to do so safely.
 >
->Additionally, CONFIG_MMU_GATHER_TABLE_FREE is no longer necessary, as all
->architectures instead use CONFIG_HAVE_ARCH_TLB_REMOVE_TABLE when a custom
->__tlb_remove_table() is required, so remove this too.
+>Update the pte_offset_map_lock()'s comment block to reflect this.
 >
->A number of architectures only enabled CONFIG_MMU_GATHER_RCU_TABLE_FREE if
->CONFIG_MMU was set, however the mmu_gather logic only actually does
->something meaningful if CONFIG_MMU is set (mmu_gather.c is only compiled in
->this case, for instance).
->
->As a result, there's no need to gate any of this logic on CONFIG_MMU
->explicitly.
->
->CONFIG_PT_RECLAIM however does have a strict dependency on CONFIG_MMU, so
->make this dependency explicit.
->
->Additionally, correct comments to remove references to non-RCU page table
->gathering and make it clear that this is not 'semi-RCU', nor has it been
->since commit 1fb3d8c20bfa ("mm/mmu_gather: replace IPI with
->synchronize_rcu() when batch allocation fails").
->
->With this change in place the kernel policy is now that userspace page
->tables are freed after an RCU grace period, and thus it is now safe to
->unconditionally perform page table walks under RCU, safe in the knowledge
->that page tables will not be freed underneath the walker.
->
->This is all that is guaranteed, however, so naturally it is still incumbent
->upon page table walkers to ensure that the page table entries are as
->expected.
+>Similarly update the process addresses documentation.
 >
 >Acked-by: Kiryl Shutsemau (Meta) <kas@kernel.org>
 >Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 >---
+> Documentation/mm/process_addrs.rst |  6 ++++++
+> mm/pgtable-generic.c               | 15 +++++++++++----
+> 2 files changed, 17 insertions(+), 4 deletions(-)
+>
+>diff --git a/Documentation/mm/process_addrs.rst b/Documentation/mm/process_addrs.rst
+>index a7296f251799..b1f4f44d75eb 100644
+>--- a/Documentation/mm/process_addrs.rst
+>+++ b/Documentation/mm/process_addrs.rst
+>@@ -537,6 +537,12 @@ We establish basic locking rules when interacting with page tables:
+> * When changing a page table entry the page table lock for that page table
+>   **must** be held, except if you can safely assume nobody can access the page
+>   tables concurrently (such as on invocation of :c:func:`!free_pgtables`).
+>+* Page tables may be *walked* under RCU alone, as page tables are freed only
+>+  after an RCU grace period has elapsed. However, any entry found must be
+>+  revalidated after the page table lock is taken (such as the
+>+  :c:func:`!pmd_same` recheck performed by :c:func:`!pte_offset_map_lock`)
+>+  before it is acted upon. Changing an entry requires the page table
+>+  lock and one of the locks that excludes teardown (mmap or VMA lock).
 
-with David's feedback folded in, LGTM!
+What about rmap walkers? try_to_unmap() clears PTEs under the rmap lock
+and PTL, without an mmap or VMA lock.
 
-Reviewed-by: Lance Yang <lance.yang@linux.dev>
+Cheers, Lance
+
+> * Reads from and writes to page table entries must be *appropriately*
+>   atomic. See the section on atomicity below for details.
+> * Populating previously empty entries requires that the mmap or VMA locks are
+>diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+>index b91b1a98029c..a127e3e8f9b9 100644
+>--- a/mm/pgtable-generic.c
+>+++ b/mm/pgtable-generic.c
+>@@ -385,10 +385,17 @@ pte_t *pte_offset_map_rw_nolock(struct mm_struct *mm, pmd_t *pmd,
+>  * Note: "RO" / "RW" expresses the intended semantics, not that the *kmap* will
+>  * be read-only/read-write protected.
+>  *
+>- * Note that free_pgtables(), used after unmapping detached vmas, or when
+>- * exiting the whole mm, does not take page table lock before freeing a page
+>- * table, and may not use RCU at all: "outsiders" like khugepaged should avoid
+>- * pte_offset_map() and co once the vma is detached from mm or mm_users is zero.
+>+ * Note that free_pgtables(), used after unmapping detached vmas or when exiting
+>+ * the whole mm, does not take a page table lock before freeing a page table.
+>+ *
+>+ * As page table freeing itself is RCU-safe, page table readers can safely run
+>+ * concurrently with page table teardown.
+>+ *
+>+ * However, writers CANNOT as, without a lock being held, nothing prevents
+>+ * concurrent teardown.
+>+ *
+>+ * Also note that the PGD itself is freed at mmdrop() time, not under RCU - so
+>+ * the walker must keep the mm alive either by pinning the mm or the VMA.
+>  */
+> pte_t *pte_offset_map_lock(struct mm_struct *mm, pmd_t *pmd,
+> 			   unsigned long addr, spinlock_t **ptlp)
+>
+>-- 
+>2.55.0
+>
+>
