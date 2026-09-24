@@ -1,85 +1,85 @@
 Received: from mx0b-0031df01.pphosted.com (mx0b-0031df01.pphosted.com [205.220.180.131])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81FBC4446E3
-	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 22:53:17 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8F9A3EDAD2
+	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 22:57:29 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.180.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790290401; cv=none; b=u3OMuNv7fUN/FSjqBhc7G8+bLLvNJpTGUx2BLEaGtxYqvhtlvCWBNRxtv4XHhdZHY1GLIbHOF8KqGiLWzLiZ31k+QbMZBnT40p2TARMCZpsLpwkGNNvrhsuSVpYUGz/ExgxDHtGRUYgdu4ospX6Kg/XajnLmaEc5prrHXj2irvI=
+	t=1790290651; cv=none; b=Yqk1uhKjX4694TfuUOmssnt+9zu8OOzHu4A6Lxu//1M3gGEqabfuAL71JSQ+6hAvGUaIR/XHYIcjaNoUVeCFNB8H2Vaf9fLwgR1rZE//uZMoQNqyQdHaoAKwx7BFu6jOQSUD/GZBYDvSqzCq2T97nA9SpPpVFs+oLijiYsYX5D0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790290401; c=relaxed/simple;
-	bh=kqsES4KHoZs1msV6+8Gynms+M5zjnX0qZVcy11wRno0=;
+	s=arc-20240116; t=1790290651; c=relaxed/simple;
+	bh=fpfPQgsOtOc9WLlVwD3MxGuJHzdHkV63pmZ7ZwBuyzg=;
 	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=f8qK8EtdBePq7x+K+SDKv41mEXVSd3FUEa8wozi20tiNL4xWDKzZkAFUPju/RJDitUhE6xlEihS8I7aejmSYwBwKzrimGJ4bSnezESypIa5O2oDEOdo1tjfQkUInYYVUKdVnKYBRj9OYPNqlZE4NdxLoDMVF1H9y+QGxvO2HodI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com; spf=pass smtp.mailfrom=oss.qualcomm.com; dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b=ezYnMi7m; dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b=aElVfA5I; arc=none smtp.client-ip=205.220.180.131
+	 MIME-Version:Content-Type; b=ZXJyQJ7cyuEJmuTTnSLU7DaABCm2Wgtt9YQ6VLXilRWkWDueVeqmQu+ZkhfMD9ghOfs8o0fC79i2Ou3gsISqtKYqfwmbWAqrnwcm+WhIX6EMgNSYDVTInkcdOYKQAFSeAF0RoszFAoLhQD8ggWjkNFB9VFdQVlqbtHfJwIQHbMo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com; spf=pass smtp.mailfrom=oss.qualcomm.com; dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b=BI2Gayz/; dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b=JFg2BY/l; arc=none smtp.client-ip=205.220.180.131
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oss.qualcomm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b="ezYnMi7m";
-	dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b="aElVfA5I"
-Received: from pps.filterd (m0279873.ppops.net [127.0.0.1])
-	by mx0a-0031df01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 68OMP4h13467177
-	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 22:53:14 GMT
+	dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b="BI2Gayz/";
+	dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b="JFg2BY/l"
+Received: from pps.filterd (m0279870.ppops.net [127.0.0.1])
+	by mx0a-0031df01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 68OMP7Jk3718217
+	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 22:57:28 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qualcomm.com; h=
 	cc:content-transfer-encoding:content-type:date:from:in-reply-to
 	:message-id:mime-version:references:subject:to; s=qcppdkim1; bh=
-	26IKywfxXF+ovz3cISEJ2vKRNs4eRXW7AlvCnEjLpWg=; b=ezYnMi7mMpeuODcw
-	+WiLkeryjucsr3GUsliA6Q/qo9TCIvd1SSF+jrBzrQsbydlvqplcNShv16zQgQxI
-	MZGRtlLbh1SH7v/AkrkJ4rsQTrubeuk55FyS3UYZA3e7Vb0jZYtOfaHJsc0CxZih
-	etk7fMNAWWFGjHVbtpCZkh0C3smj0TUga8KPoHo0DhbMcC5s48nWQxTTlwwPM23X
-	QjeAe/CIUE+1ffljI8bI50OGKNhfgBFjYbh7Tg1yB5i7NO5Vh63G1a/eoj//OtUr
-	RfEUshvbHxlSjE1ljTH7HJPpxS/ad+gFcAm607wb7wN25GasXfj7gfZwpl42yLDA
-	g5fLXw==
+	WdAcd3jJW9o4oT6W8Pd28WqwPKx89e7FKJveLvjxmTM=; b=BI2Gayz/LjxSc6mE
+	Kg+MLNOusLPeYnOxYOG9xy/G6ynTgm5i8HXcMPcVaie12keAjyA2Oz1Cf0fyIkw2
+	1iPHcxBnFcP9qOOkZ07f07f5aQw1qPFKV8ApXthFNkR53KsFmNN+apNakWPmF9KB
+	GZ4On06jpyBc5aTWoomkmhaScQbrjk2k5yn95Es0ViLT4dyJ6vNbt0gJYJ4jce1c
+	XIv1evwdRyzJbK4ev5ygZd0QRpNzogYF0Tn6LwzUygOtjjPo7wa0hzGZ8ulMQwj8
+	1Dwm44i8PH1iR4SnWFtv/Stn36RWYL43Nv8n7mH5JL14F6v+yiIOppzxFkJgDYi0
+	2R3TpQ==
 Received: from mail-dy1-f197.google.com (mail-dy1-f197.google.com [74.125.82.197])
-	by mx0a-0031df01.pphosted.com (PPS) with ESMTPS id 4gw4652bfx-1
+	by mx0a-0031df01.pphosted.com (PPS) with ESMTPS id 4gw881s5dq-1
 	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 22:53:14 +0000 (GMT)
-Received: by mail-dy1-f197.google.com with SMTP id 5a478bee46e88-32b8c2b30c4so442748eec.1
-        for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 15:53:14 -0700 (PDT)
+	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 22:57:28 +0000 (GMT)
+Received: by mail-dy1-f197.google.com with SMTP id 5a478bee46e88-32861f5448cso965615eec.0
+        for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 15:57:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=oss.qualcomm.com; s=google; t=1790290393; x=1790895193; darn=vger.kernel.org;
+        d=oss.qualcomm.com; s=google; t=1790290648; x=1790895448; darn=vger.kernel.org;
         h=content-transfer-encoding:content-type:mime-version:organization
          :references:in-reply-to:message-id:subject:cc:to:from:date:from:to
          :cc:subject:date:message-id:reply-to:content-type;
-        bh=26IKywfxXF+ovz3cISEJ2vKRNs4eRXW7AlvCnEjLpWg=;
-        b=aElVfA5IOp5m5q0tBLNHGdQ2rLquTLl9ymIfsoNV1aNMeXp9wXN0iufjTq6bcnKfgi
-         JhoiG0KqA3kxIVAq6/vcvWHrBtuu3s8beMC+FANcVJjKyTchozP/QZEYGag/jX6qmdO+
-         5K9lwMtb7yojufM81zHGaXNaKZIBb/L5YkDI4W6oMKYQuRZBTDnsSfffsykSZDffVJbO
-         qtVd22vY8V3IaiyIHUuAvon8y4jycmKWnUA7SBWy1Y34jPyG0YkYBHqa+4CNtkTjglny
-         mNc4RT+NMvGfiSkpb1sgFng3ZJ3vMty1Wof7SiJqvNemfo1wm4qViWdwIGTg7PzMoBAf
-         9AXw==
+        bh=WdAcd3jJW9o4oT6W8Pd28WqwPKx89e7FKJveLvjxmTM=;
+        b=JFg2BY/lxuAu5jy1YajhRoDl2AglObRJGzaW5Q4zGg0qujD/P6pBhA5nuf35UMYjMh
+         HSeTj1SDLOso48DVdhcy5CXFBUeICzX22Bk4KaKt29KNnHS5nT2m2Xhhj1drWAxleTcW
+         RZzK4hH9EcIHpNph73V8H+w6F9DyDowEYlK8SfRlqEYrypJu/142rSxWTgd9/xBtzrtc
+         MWwF1v31xrM4hHUbb9Q5fR/ssZVCvEsqxHBHV+KfkE7R/vNep7jxC7XHe0czZ52BVeUs
+         hR9bOy6k4GdC94M6id/e3dm2ywoa8Qq7+biKmc5+IAck3Ve4vKW2eN3oV/29RO3UGJWh
+         eoeg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790290393; x=1790895193;
+        d=1e100.net; s=20260707; t=1790290648; x=1790895448;
         h=content-transfer-encoding:content-type:mime-version:organization
          :references:in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=26IKywfxXF+ovz3cISEJ2vKRNs4eRXW7AlvCnEjLpWg=;
-        b=gtc/buhRCqa5Izq52/AkdaVcMNiwcIu+FQmtBrjI6e7B+eG5d6mOvpoUfTQumuY7I9
-         uOnUIJVi2/6ZanHLMkT9F2SkecucvhsNRWk3HG5aNfIfC/ibXmBN+2SOS6zl7Zi9RzeP
-         sbDXOMha2RniIN1U79RsWoXq789uxM3rTY3C3paFotQwOBLeOeYT1yebNf7XhYP6Ghwo
-         WKX1uqA0Mpk3JWAu+89ar+noEdSU+u2cutYWkTQJBlMvlL1wqwO7C7VrTreqXahckvdU
-         ej31dmkyHo7rynEMQocbhsYKkqJVvvkYeyHnbJvPHxfI7rUXtvLi6mQ5O8NXQEE68N0T
-         eDnQ==
-X-Forwarded-Encrypted: i=1; AKwUvBzXOFng3A+RMOtNtqY+bEOsPATSHnU5oGIeDxaj/uWCLcdgtpOrmNgAOMoB81VI5HbZMbKiPTx77YZC@vger.kernel.org
-X-Gm-Message-State: AFuF++mlivEsdaHmHo0ndEcjp0WOgtRn7CJJ0blWXum1hFPcEPm96jYT
-	xXY/yqKwO7H4M6QI1GhiBSgUzY5zBNRE4gyn069ozI6QW8vOtlklzMyf82d9ltaYfNrSuunMPUc
-	6OuFtbAl/ypiK7sWuL21gik++QMi+yMOmsGi/kiOi+uv/5QiI8Y17+FLMoZVkoF6r
-X-Gm-Gg: AYBFou210N4DaeMNEUe4bjRdjesPu3v5zJT+kPWgIXzkqO4eloRt7GwBsV70ASp+tbD
-	BVFbuDo6u32spFSGJ+cTFHYk/uqpaj2SPND88HhRQW6RJxnKjDB46obzoU8BhpKYjs+ueyMfbvx
-	dNDwhj791G51mmLxMNdfUv/lFyk5TQYKI6tue5zd7PYdGEH2wTGxggnzpR7DeRJFA/DmJCERQln
-	ipZoPc/9J1PzoydI2cURfK8wY2BR1VqC1oDLJGgfqnV9c/+qaC88F2q+9ZeQnQFAukid6Fce/PB
-	UDbFeRn4WX7yzZtRi8FpGRcvmGz/bisoa79ivhf94MEeu0a2u/NlhshIumyXxhU5roy4DQ7OU9G
-	X5JofVIACvqfPLXE7EoLKesdrOoAn2k2QIHdQPppwxZ0ioIjniJoGAw==
-X-Received: by 2002:a05:701b:204f:20b0:13b:3132:6e99 with SMTP id a92af1059eb24-14503f966ecmr3398049c88.20.1790290393092;
-        Thu, 24 Sep 2026 15:53:13 -0700 (PDT)
-X-Received: by 2002:a05:701b:204f:20b0:13b:3132:6e99 with SMTP id a92af1059eb24-14503f966ecmr3398015c88.20.1790290392489;
-        Thu, 24 Sep 2026 15:53:12 -0700 (PDT)
+        bh=WdAcd3jJW9o4oT6W8Pd28WqwPKx89e7FKJveLvjxmTM=;
+        b=tGPMdtqDYWhEaXJVRv4CfjbI2l0h5AMGku0ZBJvlt8EiY5/oqvWWGFSitugqvm5IL6
+         h7eWBbmd/FHLjH4cXezNSxuGlWg1BYmgd/M0qV8Mv12zqYgqQeDx/o1+r2XPmddJrihS
+         uZSwshbtkEznHF72og096TmgJpJBZH02sHZTkRM2A5abzcklvvRpas53NSs8lfYGBOPz
+         Xl1bppIPM500Me7PTuE/wZIW7xOOVkZjmIiwTnKJ/jnAdcslm4EQlEQsaG/7pFRKY+gY
+         kPuJX3WmNdAOjerw6lkTfPd9i8cNIRQ0P1/JLa9BtNxF+fYi9+mH0xFybkcQdQ1UaMXp
+         ru5w==
+X-Forwarded-Encrypted: i=1; AKwUvBwVGpQSy5LhZN+WWY648nIRc86nH/q3+bT/OXRrxn6mocCZkavofDX4O1AYxLOemfnC6W8/hnhsxfYs@vger.kernel.org
+X-Gm-Message-State: AFuF++nOCeL2YjGpskS5p1WaDVMriuwc4+CyzamXOGV19hs8mUw6W8kn
+	1HG3erOdKqV3tTSw4J7qSlotQDOq6Mxnjv5kOTWBtuZ8iwUHFQouyP7mm0huci5iJtmjOP6q6BK
+	PiYUa5R2b//9iUWUATcojL0MsXlpNa7tOtQkaAt8Yj7EYvoYrpeOFOeFxOKSIrB6d
+X-Gm-Gg: AYBFou13ZFvPiccOr9MVzLLGrTr0W9dlCQPqi81Ns9sHHJ0Ww9P1Y0P7tY6hb3Ib3pV
+	BFafAVfbEuUWbxMdLvO0vPPMjSEkRloaRYI6zh03R3yVWQ6hdq7FXLXlA4fz8F+bYIIonvAPzZb
+	YmuaDucogV+A9Rwcnbq1VDyP9gCKhV54Lp8oJOWOhZbgjyVzaBLiV/6s98rFGWp5ekvpO7b5/mj
+	ZCMCNzIvL7Wx+WK4K4ZgnWzg0XziBfRma1riQ+NfsJioxkwABiNtk7zjRlIcZuZ7AHLu8+4ZAUA
+	lVILqM53UYygpWOWRKU2HdpoC3XiQOexBLW5VA9ZK385LHu4kyU7QONWAQdcsWO3pGbjsZpiJV9
+	YxDmwx94wNzOWauri9ls/Umd7991v61VmXb8TEFXRKVL6uKnT2NHziw==
+X-Received: by 2002:a05:693c:621a:b0:33c:e61:e201 with SMTP id 5a478bee46e88-34002edee42mr4033415eec.22.1790290647514;
+        Thu, 24 Sep 2026 15:57:27 -0700 (PDT)
+X-Received: by 2002:a05:693c:621a:b0:33c:e61:e201 with SMTP id 5a478bee46e88-34002edee42mr4033386eec.22.1790290646954;
+        Thu, 24 Sep 2026 15:57:26 -0700 (PDT)
 Received: from localhost (i-global254.qualcomm.com. [199.106.103.254])
-        by smtp.gmail.com with ESMTPSA id a92af1059eb24-145ad8e43d2sm1524306c88.12.2026.09.24.15.53.09
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-34144757f31sm2046484eec.14.2026.09.24.15.57.24
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 24 Sep 2026 15:53:12 -0700 (PDT)
-Date: Thu, 24 Sep 2026 15:53:07 -0700
+        Thu, 24 Sep 2026 15:57:26 -0700 (PDT)
+Date: Thu, 24 Sep 2026 15:57:21 -0700
 From: Jonathan Cameron <jonathan.cameron@oss.qualcomm.com>
 To: Jason Gunthorpe <jgg@nvidia.com>
 Cc: Alexandre Ghiti <alex@ghiti.fr>, Albert Ou <aou@eecs.berkeley.edu>,
@@ -109,14 +109,13 @@ Cc: Alexandre Ghiti <alex@ghiti.fr>, Albert Ou <aou@eecs.berkeley.edu>,
  <ross.philipson@gmail.com>,
         Sami Tolvanen <samitolvanen@google.com>,
         Song
- Shuai <songshuaishuai@tinylab.org>,
-        Will Deacon <will@kernel.org>
-Subject: Re: [PATCH 04/16] vmlinux.lds: Move DATA_LE32() from arm64 to the
- common linker script
-Message-ID: <20260924155307.00007dfc@oss.qualcomm.com>
-In-Reply-To: <4-v1-27d06b313981+8b-arm64_drtm_jgg@nvidia.com>
+ Shuai <songshuaishuai@tinylab.org>
+Subject: Re: [PATCH 07/16] efi/zboot: Lift efi_cache_sync_image() from
+ efi_zboot_decompress()
+Message-ID: <20260924155721.000016a9@oss.qualcomm.com>
+In-Reply-To: <7-v1-27d06b313981+8b-arm64_drtm_jgg@nvidia.com>
 References: <0-v1-27d06b313981+8b-arm64_drtm_jgg@nvidia.com>
-	<4-v1-27d06b313981+8b-arm64_drtm_jgg@nvidia.com>
+	<7-v1-27d06b313981+8b-arm64_drtm_jgg@nvidia.com>
 Organization: Qualcomm
 X-Mailer: Claws Mail 4.4.0 (GTK 3.24.51; x86_64-w64-mingw32)
 Precedence: bulk
@@ -127,107 +126,63 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-X-Authority-Analysis: v=2.4 cv=Wrq+otfv c=1 sm=1 tr=0 ts=6ab5a9da cx=c_pps
+X-Authority-Analysis: v=2.4 cv=TptzFzXh c=1 sm=1 tr=0 ts=6ab5aad8 cx=c_pps
  a=Uww141gWH0fZj/3QKPojxA==:117 a=JYp8KDb2vCoCEuGobkYCKw==:17
  a=kj9zAlcOel0A:10 a=VdqzKS8jKosA:10 a=s4-Qcg_JpJYA:10
- a=VkNPw1HP01LnGYTKEx00:22 a=u7WPNUs3qKkmUXheDGA7:22 a=rJkE3RaqiGZ5pbrm-msn:22
- a=VwQbUJbxAAAA:8 a=Ikd4Dj_1AAAA:8 a=Qd5iYfxjV735tpeAhwAA:9 a=CjuIK1q_8ugA:10
+ a=VkNPw1HP01LnGYTKEx00:22 a=u7WPNUs3qKkmUXheDGA7:22 a=gowsoOTTUOVcmtlkKump:22
+ a=Ikd4Dj_1AAAA:8 a=gav0J8kFgDfseqtY68YA:9 a=CjuIK1q_8ugA:10
  a=PxkB5W3o20Ba91AHUih5:22
-X-Proofpoint-ORIG-GUID: m3BYAJAaALrHE6j8shSIMAeOlcxb45PP
-X-Proofpoint-GUID: m3BYAJAaALrHE6j8shSIMAeOlcxb45PP
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwOTI0MDA5MyBTYWx0ZWRfX9Hl0cdGSLWd+
- BRsq96LrJIKXxPbfNpgmVz69QzzT9BCfJokdKZKZwAF4a6ZOMnPDuO30ERpFGEq4qykGNtdIVy+
- vtRPLvQhryUdALTaw7J3d7RUjR7iVsLs+X5UxcMsc/+mb6xIB7MkmcBjnEWNpcxpl7tlL/cOCYf
- QcoFKAdfIN/fLdSWAjLA3u3SBhqN4S9UCoibIrK8r37Phay5ebs4ACtbHZpQu7TymAbwUDbGixq
- l5vfX/JhFiTcQJ5kJfG83KFCW7rgxRqnOmNMI7h15xD1OGltXJgOMq4lqSlqSs3K8dBswv+W5GU
- vR+LFf4Czp4gP/6+JXCuyxTQBvBoTBL6ZMDi0qNR3sWoIA5TkloOXB/yKj8yICgc0PScW8gZz/J
- CH+dse2+mc9wPvxxwo7GXe1+OVdU+KI0EArkYYfMMOgoFqZkTCJ3aWcOhJMyqbDApUDvuVYk0dq
- vIdOEA4dIUl+hnscFUw==
-X-Proofpoint-Spam-Info: AW1haW4tMjYwOTI0MDA5MyBTYWx0ZWRfX0+TzJrg/qZzy
- ci9ouv9B/1n9HSbvxjAxMrSBMUkcJv+JCExQ8I3gYDTqJFnXra5K3hA3cUs/k7Ygl1FA1Dofwjy
- ucAgeCQZWpfOUURHtJC2BnqmhGTAuok=
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwOTI0MDA5MyBTYWx0ZWRfX4wW1AMi5UpKY
+ XPkJ7YBH41Uwf588d9MC9LzEH4mHe16CEv5q8+j5EaBF+8KHs4PC9dk4bigvpCaqbs+5U2INgt1
+ w0oU3NdfhWkRK3m6Ci8RCgeICZYPeTa+PkWa54T1vonXvi4riOoXA/PxATsq575fatiF1aIFoBa
+ Pxq8+CbH09CWWwcDbUw8GXpAwh1KY7QVo7e5O1B7yHYENpP3ya1A7MN8FonjSC6ng9fCcHsI9pQ
+ bceRYxgdZr89J83fYHt1ULSzjKF209L9xdU4UuXn4GUXSsCzJ5X5edVYQoHcwbQrMIPmNnlwTWO
+ brwQropetYM9O8wvUx1l17n/qyIiAbg4BHw0CFR5Gl6zac9AsVBrZSBnhKxknWznEcDfQfrNGha
+ nQsnUOrUL95KVWeWS3qGltE/xCdI0dNNl6z4u+uShTU1RjeObGUQQyGQHZJ3e1rhJNRS8Jb7qAC
+ +tkmyH8Bz4x3XW7NXMQ==
+X-Proofpoint-ORIG-GUID: GQ1EXnBOLavSHF3BbVDfCiA33NyTcdi_
+X-Proofpoint-Spam-Info: AW1haW4tMjYwOTI0MDA5MyBTYWx0ZWRfX0KNROegmTZFw
+ 7OSerfdk3gANgrsLqWpDnXiGoOHv5KZuIbgAiHALtXyrg+r9nmtZ/O0hKyMfnaCXiJiGbib6tT1
+ SNHqAXxckRbTQjbiqqrTHnKBQHG62Vw=
+X-Proofpoint-GUID: GQ1EXnBOLavSHF3BbVDfCiA33NyTcdi_
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.293,Aquarius:18.0.1176,Hydra:6.1.134,FMLib:17.12.100.49
  definitions=2026-09-24_06,2026-09-21_02,2025-10-01_01
 X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- spamscore=0 lowpriorityscore=0 adultscore=0 impostorscore=0 bulkscore=0
- suspectscore=0 priorityscore=1501 clxscore=1015 malwarescore=0 phishscore=0
+ spamscore=0 phishscore=0 clxscore=1015 priorityscore=1501 impostorscore=0
+ malwarescore=0 suspectscore=0 lowpriorityscore=0 adultscore=0 bulkscore=0
  classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
  reason=mlx scancount=1 engine=8.22.0-2609040000 definitions=main-2609240093
 
-On Thu, 24 Sep 2026 10:53:07 -0300
+On Thu, 24 Sep 2026 10:53:10 -0300
 Jason Gunthorpe <jgg@nvidia.com> wrote:
 
-> Other arches may want to use this to get consistent fixed endian output.
-
-You will have to grab it quickly!
-https://lore.kernel.org/all/20260918145217.1669-10-will@kernel.org/#Z31arch:arm64:kernel:image.h
-drops that definition as part of ripping out arm64 big endian support.
-
-+CC Will for awareness.
-
+> The two decompressors duplicate this call and the next patch needs to
+> change the argument. Hoist it up to remove the duplication.
 > 
 > Signed-off-by: Jason Gunthorpe <jgg@nvidia.com>
-> ---
->  arch/arm64/kernel/image.h         | 14 --------------
->  include/asm-generic/vmlinux.lds.h | 15 +++++++++++++++
->  2 files changed, 15 insertions(+), 14 deletions(-)
-> 
-> diff --git a/arch/arm64/kernel/image.h b/arch/arm64/kernel/image.h
-> index 7bc3ba89790191..1bff6b061b6cab 100644
-> --- a/arch/arm64/kernel/image.h
-> +++ b/arch/arm64/kernel/image.h
-> @@ -14,26 +14,12 @@
->  #include <asm/image.h>
+
+> diff --git a/drivers/firmware/efi/libstub/zboot.c b/drivers/firmware/efi/libstub/zboot.c
+> index 4b76f74c56dae0..960a542881d875 100644
+> --- a/drivers/firmware/efi/libstub/zboot.c
+> +++ b/drivers/firmware/efi/libstub/zboot.c
+> @@ -92,9 +92,12 @@ efi_zboot_entry(efi_handle_t handle, efi_system_table_t *systab)
+>  	}
 >  
->  /*
-> - * There aren't any ELF relocations we can use to endian-swap values known only
-> - * at link time (e.g. the subtraction of two symbol addresses), so we must get
-> - * the linker to endian-swap certain values before emitting them.
-> - *
->   * Note that, in order for this to work when building the ELF64 PIE executable
->   * (for KASLR), these values should not be referenced via R_AARCH64_ABS64
->   * relocations, since these are fixed up at runtime rather than at build time
->   * when PIE is in effect. So we need to split them up in 32-bit high and low
->   * words.
->   */
-> -#ifdef CONFIG_CPU_BIG_ENDIAN
-> -#define DATA_LE32(data)				\
-> -	((((data) & 0x000000ff) << 24) |	\
-> -	 (((data) & 0x0000ff00) << 8)  |	\
-> -	 (((data) & 0x00ff0000) >> 8)  |	\
-> -	 (((data) & 0xff000000) >> 24))
-> -#else
-> -#define DATA_LE32(data) ((data) & 0xffffffff)
-> -#endif
+>  	// Decompress the payload into the newly allocated buffer
+> -	status = efi_zboot_decompress((void *)image_base, alloc_size) ?:
+> -	         efi_stub_common(handle, image, image_base, cmdline_ptr);
 > -
->  #define DEFINE_IMAGE_LE64(sym, data)				\
->  	sym##_lo32 = DATA_LE32((data) & 0xffffffff);		\
->  	sym##_hi32 = DATA_LE32((data) >> 32)
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index b2988aa12f6645..1786a8e4323b9f 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -56,6 +56,21 @@
->  #define LOAD_OFFSET 0
->  #endif
->  
-> +/*
-> + * There aren't any ELF relocations we can use to endian-swap values known only
-> + * at link time (e.g. the subtraction of two symbol addresses), so we must get
-> + * the linker to endian-swap certain values before emitting them.
-> + */
-> +#ifdef CONFIG_CPU_BIG_ENDIAN
-> +#define DATA_LE32(data)				\
-> +	((((data) & 0x000000ff) << 24) |	\
-> +	 (((data) & 0x0000ff00) << 8)  |	\
-> +	 (((data) & 0x00ff0000) >> 8)  |	\
-> +	 (((data) & 0xff000000) >> 24))
-> +#else
-> +#define DATA_LE32(data) ((data) & 0xffffffff)
-> +#endif
-> +
->  /*
->   * Only some architectures want to have the .notes segment visible in
->   * a separate PT_NOTE ELF Program Header. When this happens, it needs
+> +	status = efi_zboot_decompress((void *)image_base, alloc_size);
+> +	if (status == EFI_SUCCESS) {
+> +		efi_cache_sync_image(image_base, alloc_size);
+> +		status =
+> +			efi_stub_common(handle, image, image_base, cmdline_ptr);
+
+Just go one character longer!
+
+> +	}
+>  	efi_free(alloc_size, image_base);
+>  	return status;
+>  }
 
