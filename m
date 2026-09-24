@@ -1,147 +1,66 @@
-Received: from mail-qk2-f13.google.com (mail-qk2-f13.google.com [74.125.230.205])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AAF3041D626
-	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 17:17:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.230.205
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 24F284A92FA;
+	Thu, 24 Sep 2026 17:48:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790270258; cv=none; b=cNLe2DJE3dz9o2kwh8i3FS429SEsXDBsFuWm8YvKifI1BHxYAAREgXB18LMrZkZFSuf/R41PrOQ175KxGGvait9l0wqSk90F4BnIHuaX+/R00rnmFUphVT6xuwpc/3XNnjeUD7xY3v/BsruZAW0hkFhCs4vWiyci6jhOvvJEEvM=
+	t=1790272100; cv=none; b=Bl/eDe+4D6k3c+FbntUtaIJtKiDmVuTM62TRigDjiWz3mrDdsVI84npk53Vm+vK9so0EJxIiBgVvQqxGxca5W19Z22hs1XW4Svx/1Ms4bXqD7hQ2pWd5SYDCoUZMzGxV6sgE3/0yPXUdKbvD/kiKpVExldVKdL1/VsjLT63FYUQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790270258; c=relaxed/simple;
-	bh=N9G2xDWLJkhjpVHjPudlC9eB56JQvy0Q3UFpvQ70GnM=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=fJbGifjFORpdfG70pEPqgpLw0z3fe9NUVErcii4JvoxQ0hwcBv2AD9cUd4TXTeexC2nHVsjRDYtCc4xYOgRXf/BjxJpknpLdwstehHwwn8shXfaU5e3yiFDKZxmuHBEe47OwFBYmRyaKh6xNyskPpbzahaBtRcwTRlSZbtT2mGQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net; spf=pass smtp.mailfrom=gourry.net; dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.b=Bkncun5e; arc=none smtp.client-ip=74.125.230.205
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
+	s=arc-20240116; t=1790272100; c=relaxed/simple;
+	bh=gJTu2GKU6GBN9Ent8nfP/3LDprR16DIyQDpia6hxA0Y=;
+	h=Message-ID:Date:MIME-Version:Cc:Subject:To:References:From:
+	 In-Reply-To:Content-Type; b=B2a1akGPtwe2yEegrODfzo9QPbKUw9hd2OhlgWof0EF7DM0ROkju17Bv3VSh4EcagxvCUUiQV+HCIg1o+v1/VSNXPtldAM5cPD2JvCg/WOF1nWInO0k4VSsvGqPmRbu2M/++wmm19sJRKlGWji8gXKWPLKP2pz3bCq/vfeNv8PQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=i9n0hfl4; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.b="Bkncun5e"
-Received: by mail-qk2-f13.google.com with SMTP id d75a77b69052e-530e28a62abso912171cf.1
-        for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 10:17:36 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gourry.net; s=google; t=1790270255; x=1790875055; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=feTLx7y3sxZ57LB+c+M8YbdddVhljMzyHzPRAu6TpA4=;
-        b=Bkncun5eo3wl/7Y/isVO3bqxSzKIHwv+JLNdR47oTH14bT62A0MCT8JkCQCcFZrvAn
-         PSPLIyCnJ9BWquLDsfgF8+LfRG6BCav2aK8+G00i6xlpMa0+2PzNrMwAUzYcuDo3bSA6
-         CyUOQ75R8JX3RZrLRIVcpwG56hxUarQoJ0boL0eCO3tPnpC4IETOjcIqbrQcKvWT1JTC
-         KMGPIZ7u+N/xqcWFh83VuY/jJ8AzYfG2QrgbuHTh+Qp8vEMelJkVCl70mj1+hxzSAc6E
-         ZMvT8A24gmcm4N5MH/QWtadFG9RrBd7NwCFywN0TuDSt9IaOIn/5tcDduKbUH/ovedjo
-         QnjA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790270255; x=1790875055;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=feTLx7y3sxZ57LB+c+M8YbdddVhljMzyHzPRAu6TpA4=;
-        b=Resy/jivCJIOxJLWlf6imGSfAJcMUPdqS+rFQSTmZxeBC6/xPmXWHV4tOgn8g8eA/O
-         LGnH2KOoY71SfErXbfazRCLb8WcU9lBZN6JD6UV9bVVSGAI+ZN1eKtYoHoPbqbfE+XYF
-         QGCMtQn+gjTM731y2fw30IIhezNmgzwTSOmzlAVbiOdEwS35TWoXeYn68PRU0v43+Kzl
-         dTQsWSPhY/irw0GotGccNWVr6QE0YTwk8RRdz3XiTpr0wKo5uX+W01wfXoPFDnI46tTy
-         WQbFNg9sMWv23Xf7DRoexxfezRHbHUkI7ssSHp2tC3Gz6jt9fO7+nvJh1wfDqswf+MhF
-         feng==
-X-Forwarded-Encrypted: i=1; AKwUvBwCifE5BiKH1X099HPVf4bNP6JS6Mq3wJTLJnjaFh/DlhBVsXQw2zLmqk5HRJhojoDTZbJ4YTvaqodN@vger.kernel.org
-X-Gm-Message-State: AFuF++lZeGK54ypSs0TfF66ZjLsqIsRoSR067dFP0+XjMNAHTKqc3xmg
-	X33m08GaSZhzq0+NHVTyKjokMOLja6WzAARMW8o6fhGU/r6nbSlzX1z3TNKL6ARBdjE=
-X-Gm-Gg: AYBFou0BBZckieWkJxncVAnUrtpmnR6sOxyz2U4MrTCRtpbrmxZSw9PGMBCqr8o7WBM
-	ZGguZrX1J3OwgJw5pfkOnax+4xNWkbcmft66xKzwSHzjYb+UFk/URGe5rXFmq5jwsKUBW1gUY3d
-	WbxRcLg3C4GD1r8PKuE6zscEiYBrQVNK0DgSIY5mVx251h/0Kh857De8NGhiZcpEGzJY53gyCvp
-	GyeQoYwYH5r69XngRTVsujFqxRQPi3HlDIGmCYwJbX+vL7cSUXeOdnnTIJ8ROOYk4habIeT34RX
-	DVufDayp2U3RBg+GVyrbVPkJxOYMu5dZte9UiaK6s3oD3zv78uagumW1ntjc2u56PJOWDSWjhmQ
-	t42hG6IP+njz1CMgmoZluHZwmkklArSI+yteGsxcxyE/UZYofU5aMnx/NrHPtdUFPGVYpaWXYL2
-	BhVBPUYGlhKaccqrPsGlvEhsxliQOVksON6GQY5aBQy7WXeYZlxfvOoaKRLxDPadNhKzOwcb4G7
-	7xU7ipbZSfgFb9MVMkAVBgJmft6TBu+Ghjl3rFwJS2KVCx7W1R+hBw=
-X-Received: by 2002:a05:622a:2b05:b0:530:42e4:f001 with SMTP id d75a77b69052e-532feb3025amr31555731cf.46.1790270250746;
-        Thu, 24 Sep 2026 10:17:30 -0700 (PDT)
-Received: from gourry-fedora-PF4VCD3F (pool-173-79-60-52.washdc.fios.verizon.net. [173.79.60.52])
-        by smtp.gmail.com with ESMTPSA id d75a77b69052e-532f8b7174asm25743881cf.14.2026.09.24.10.17.29
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 24 Sep 2026 10:17:30 -0700 (PDT)
-Date: Thu, 24 Sep 2026 13:17:28 -0400
-From: Gregory Price <gourry@gourry.net>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
-	linux-rdma@vger.kernel.org, selinux@vger.kernel.org, linux-sound@vger.kernel.org, 
-	bpf@vger.kernel.org, linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
-	dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
-	linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, 
-	kvm@vger.kernel.org, kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
-	linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, fuse-devel@lists.linux.dev
-Subject: Re: [PATCH v3 04/40] mm: consistently validate VMA state after
- mmap[_prepare] hooks
-Message-ID: <arVW5i8pvySq6Co2@gourry-fedora-PF4VCD3F>
-References: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-0-4583d8a23bca@kernel.org>
- <20260917-b4-mmap-prepare-vma-flag-sanify-v3-4-4583d8a23bca@kernel.org>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="i9n0hfl4"
+Received: from [100.65.161.51] (unknown [20.236.11.185])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 26E9120B7168;
+	Thu, 24 Sep 2026 10:47:29 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 26E9120B7168
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1790272049;
+	bh=dDnGDmx5A+LgnNNVIQ49CJjfmce0lnemjO1LvEOr3mA=;
+	h=Date:Cc:Subject:To:References:From:In-Reply-To:From;
+	b=i9n0hfl4dqFez8rBG7yagyv08/eLYAhZ+PrwGXhSENTLA1m/g85tYweM3QgoQyCKb
+	 ZiREM61/dwGIDuFQsoLQIoNHfmKg85wsWixVh32bSYEHh7OfIw0IMDnxanmjCGE8WA
+	 6HC7QCrL+nFkxNO/96hPN+9gbxpiZNG/a0rrKIwE=
+Message-ID: <4072da50-4c3f-4df9-aef9-789f2431e33c@linux.microsoft.com>
+Date: Thu, 24 Sep 2026 10:48:17 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-4-4583d8a23bca@kernel.org>
+User-Agent: Mozilla Thunderbird
+Cc: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+ iommu@lists.linux.dev, linux-arch@vger.kernel.org,
+ easwar.hariharan@linux.microsoft.com, jgg@nvidia.com,
+ jacob.pan@linux.microsoft.com, kys@microsoft.com, haiyangz@microsoft.com,
+ wei.liu@kernel.org, decui@microsoft.com, tglx@kernel.org, mingo@redhat.com,
+ bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
+ joro@8bytes.org, will@kernel.org, robin.murphy@arm.com, arnd@arndb.de
+Subject: Re: [PATCH V1 2/3] mshv: Import data structs around device domains
+ from hyperv headers
+To: Mukesh R <mrathor@linux.microsoft.com>
+References: <20260924020221.128762-1-mrathor@linux.microsoft.com>
+ <20260924020221.128762-3-mrathor@linux.microsoft.com>
+From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+Content-Language: en-US
+In-Reply-To: <20260924020221.128762-3-mrathor@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Thu, Sep 17, 2026 at 05:22:13PM +0100, Lorenzo Stoakes (ARM) wrote:
->  static inline int mmap_file(struct file *file, struct vm_area_struct *vma)
->  {
-...
-> +	err = mmap_hook_validate(prev_start, prev_end, &prev_flags, vma);
-> +	if (unlikely(err)) {
-> +		vma->vm_start = prev_start;
-> +		vma->vm_end = prev_end;
-> +		vma_close(vma);
->  	}
-> +
-> +	return err;
->  }
->  
-
-I indepdeantly validated the sashiko report on this chunk.  Seems like
-close() should be deferred until after __map_new_file_vma() calls
-unmap_region().
-
-suggested fix is to drop vma_close() from mmap_file()  and update the
-cleanup in __mmap_new_file_vma() 
-
-if (error) {
-	UNMAP_STATE(unmap, vmi, vma, vma->vm_start, vma->vm_end,
-		    map->prev, map->next);
-	vma_iter_set(vmi, vma->vm_end);
-	unmap_region(&unmap);
-
-	/* Release driver state only after its mappings are gone. */
-	vma_close(vma);
-
-	if (map_same_file(map))
-		fput(map->vm_file);
-	vma->vm_file = NULL;
-
-	return error;
-}
-
-Example race:
-
-  Thread A                              Thread B
-
-  mmap(MAP_FIXED, address A)
-    driver remap_pfn_range(A, page P)
-                                         load/store at known address A
-                                         hardware finds the new present PTE
-    validation fails
-    ->close() frees page P
-                                         UAF
-    unmap_region()
-    TLB shootdown
-
-With that fix
-
-Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
-
-~Gregory
-
+On 9/23/2026 19:02, Mukesh R wrote:
+> Copy/import from Hyper-V public headers, definitions and declarations that
+> are related to creating iommu domains in the hypervisor, attaching devices
+> to them, doing the reverse, etc.
+> 
+> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+> ---
+>  include/hyperv/hvgdk_mini.h |  9 ++++
+>  include/hyperv/hvhdk_mini.h | 87 +++++++++++++++++++++++++++++++++++++
+>  2 files changed, 96 insertions(+)
+> 
+Reviewed-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
