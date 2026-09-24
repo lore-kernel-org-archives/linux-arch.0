@@ -1,124 +1,279 @@
-Received: from mail.avm.de (mail.avm.de [212.42.244.120])
-	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from sender6-of-o54.zoho.com (sender6-of-o54.zoho.com [165.173.180.54])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 847BA48F82A;
-	Thu, 24 Sep 2026 13:44:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.42.244.120
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790257505; cv=none; b=es+eCdGu52iYgwNJL2vK/82au0xMWPyndePy4NikJb+1uTKfPh8gMEdY2rwZu8rY9YeUd4TTPxyKtNpJBQViX5ai7Zs4w0+1NEcdtca9cTBf5dKCK3IuAP0JfK5kXpLxWuZeLJD8yIlLgK6GBGwUiUD9stRgoCimNnt4cyoGw6o=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790257505; c=relaxed/simple;
-	bh=gBLnS3+lAYmZ5kf9JL3anFiz4fYL1hWDBsQwL263l/k=;
-	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
-	 References:Date:Message-Id; b=oeibMymZ2W2JkTTmSlZ78RdaUNhOr0tPA5TKKf9cqLpKH7uLkvlJKEoooX1h/9zSAXaAkWXSYftCUSrLtEnLxbGOD7qkYPDN4TX4oYTnYTqLOPmvQodUBBplFH9ERrexzWsim2c4VQE8vryAMEz25rtyffCEbQFwBCE+ZEubMiU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=fritz.com; spf=pass smtp.mailfrom=fritz.com; dkim=pass (2048-bit key) header.d=fritz.com header.i=@fritz.com header.b=RLDQjDdg; arc=none smtp.client-ip=212.42.244.120
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=fritz.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fritz.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8FEB9363C60;
+	Thu, 24 Sep 2026 13:51:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=165.173.180.54
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1790257897; cv=pass; b=Ib+milg/CTV1SD26vOLe1dx9bKFzjMBmoJR7fsJbGuPQ0aRzBM+qu3laQ8P0fIg4FxZBBnnIgfHoQDuczFx6SKDs6mu8I0vXZUGo1aQOWGD3wdZWi/2U0f+cWdtoVbeu9XTDuxMMeT6pvMDhXzmvfjymEdW5HLiSLbQFVfVEZwA=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1790257897; c=relaxed/simple;
+	bh=9jAAzu7L0V4Hl0qdlVZ+whEkE+bLweLZhkFpmH6ZgdA=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=cWV7A4sop/faC2qIm8OriTy5cwiHjmSMmhvPblwPJoKWNt8sn3lpuUijiEOXIjs1mZd3JdTC3rYup7rV3xXzivDYJBGN5Kngo3M2NjcZ7aEL33jtR2GFt2A3VIuomLZ1gTaGh02jWuaLChQae05YoeWP9+0mD8nWc1P7g6HnKXo=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com; spf=pass smtp.mailfrom=anirudhrb.com; dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b=eASH3Dyc; arc=pass smtp.client-ip=165.173.180.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=anirudhrb.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=anirudhrb.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=fritz.com header.i=@fritz.com header.b="RLDQjDdg"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=fritz.com; s=mail;
-	t=1790257491; bh=gBLnS3+lAYmZ5kf9JL3anFiz4fYL1hWDBsQwL263l/k=;
-	h=Subject:From:To:Cc:In-Reply-To:References:Date:From;
-	b=RLDQjDdgt7QOeFzsZ1IJ2gV5fSFGRDLdlg9Hg8hOOmyV2EaUYEmylWQZ+FbmamP+k
-	 9HV4NH3s+lyQW3I1h2631oEqX8jsiRLLD+NeiEvAFJwIds6LhMkPngiC4DpAZuF148
-	 rF8+PXMx1S4BlGmJPKxfsSC27sAmhA+jZcky1JOxYk1sBk3xrK7mx2nFDVlwP6F7a9
-	 VgAG9vpt9fe4xngdnRoKfDHjNcHMMJSMi9YcdfKQ8wgcK8uOam+rSvOIKBH30ANQIb
-	 8qGgu2WsXMnMirt/Gjxf56SfoRE6dGwBEetgfAZn8UcOpCXThvHk37EgDli1ofMjMS
-	 Uslygc98EPwNA==
-Received: from [2001:bf0:244:244::78] (helo=mail.avm.de)
-	by mail.avm.de with ESMTP (eXpurgate 4.57.1)
-	(envelope-from <n.schier@fritz.com>)
-	id 6ab52953-0449-7f0000032729-7f000001dcc8-1
-	for <multiple-recipients>; Thu, 24 Sep 2026 15:44:51 +0200
-Received: from mail-auth.fritz.com (unknown [IPv6:2001:bf0:244:244::78])
-	by mail.avm.de (Postfix) with ESMTPS;
-	Thu, 24 Sep 2026 15:44:51 +0200 (CEST)
+	dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b="eASH3Dyc"
+ARC-Seal: i=1; a=rsa-sha256; t=1790257880; cv=none; 
+	d=zohomail.com; s=zohoarc; 
+	b=RFKin86g6YNcdDjG5B8xDXfnwI9u5RxfnOGduSugOsUM2fcREBR/IWN2Kd0XHu870QVWcCekeZEIM9LDRchHFgVFxn6GcF5ixdum9PGzlfM0HECo1Wu4CCGuoIBenPVXFfaZvwrhpOE/9zbu7DaqJphAtGgc2ccgSGsZ2K59w08=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
+	t=1790257880; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=7AgugibO/MEoHQ8Kikz2u61NnM8OGtvR9wPH8In7gDU=; 
+	b=DE9gLtJmKU8qQY6+4BqiOWEM5UDb0mgoko/iDW5Vrt0keEcJqVxD6Ps725Sgv2w0ILsAdORysUwv+fHdfA+Wp2jWOlPGa4LRKFn7cvo6ol8DuHARuKBFPJlsCPYN2c0HoWlyKKnuAdDtEi4uPGeQRU1O0JYLsTRj2xqXG3+2Ax4=
+ARC-Authentication-Results: i=1; mx.zohomail.com;
+	dkim=pass  header.i=anirudhrb.com;
+	spf=pass  smtp.mailfrom=anirudh@anirudhrb.com;
+	dmarc=pass header.from=<anirudh@anirudhrb.com>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1790257880;
+	s=zoho; d=anirudhrb.com; i=anirudh@anirudhrb.com;
+	h=Date:Date:From:From:To:To:Cc:Cc:Subject:Subject:Message-ID:MIME-Version:Content-Type:In-Reply-To:Message-Id:Reply-To;
+	bh=7AgugibO/MEoHQ8Kikz2u61NnM8OGtvR9wPH8In7gDU=;
+	b=eASH3DycQVpf7S4eUIcpJ2wkCZUAZL0W8yws7/JEHRGeY0pU5+CL5bGK+LRp+Xv0
+	6dbp88Uay3W5vrCXXA3lFEQJLLiQMTxV/KVgdvHPorp+AzCkqUtAhbMhYL67y9LJgY4
+	AsM05uZlAdq7JLP+0/7SlbTnBCsjtC3focg/rjgE=
+Received: by smtp.zohomail.com with SMTPS id 1790257876818699.7771668051361;
+	Thu, 24 Sep 2026 06:51:16 -0700 (PDT)
+Date: Thu, 24 Sep 2026 13:51:10 +0000
+From: Anirudh Rayabharam <anirudh@anirudhrb.com>
+To: Magnus Kulke <magnuskulke@linux.microsoft.com>
+Cc: linux-hyperv@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>,
+	Souradeep Chakrabarti <schakrabarti@microsoft.com>,
+	Wei Liu <liuwe@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Dexuan Cui <decui@microsoft.com>,
+	Magnus Kulke <magnuskulke@microsoft.com>,
+	Long Li <longli@microsoft.com>, linux-arch@vger.kernel.org,
+	"K. Y. Srinivasan" <kys@microsoft.com>,
+	Anirudh Rayabharam <Anirudh.Rayabharam@microsoft.com>,
+	Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
+	Wei Liu <wei.liu@kernel.org>
+Subject: Re: [PATCH v3] drivers/hv: remove deposited pages from direct map
+Message-ID: <20260924-outrageous-nebulous-spaniel-7bf6f7@anirudhrb>
+References: <20260917201052.2123701-1-magnuskulke@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v4 20/22] rust: make exports.o depend on the headers
- generated for it
-From: Nicolas Schier <n.schier@fritz.com>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
- Nick Desaulniers <ndesaulniers@google.com>, 
- Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
- Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
- Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
- Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, 
- Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
- Ard Biesheuvel <ardb@kernel.org>, 
- Ilias Apalodimas <ilias.apalodimas@linaro.org>, 
- Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
- Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
- Gary Guo <gary@garyguo.net>, 
- =?utf-8?q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
- Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
- Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
- Danilo Krummrich <dakr@kernel.org>, 
- Daniel Almeida <daniel.almeida@collabora.com>, 
- Tamir Duberstein <tamird@kernel.org>, 
- Alexandre Courbot <acourbot@nvidia.com>, 
- =?utf-8?q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
- Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, 
- Kees Cook <kees@kernel.org>, "Gustavo A. R. Silva" <gustavoars@kernel.org>, 
- linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
- llvm@lists.linux.dev, linux-riscv@lists.infradead.org, 
- linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
- linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
- linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, 
- linux-hardening@vger.kernel.org, Petr Pavlu <petr.pavlu@suse.com>
-In-Reply-To: <20260923-build-speedup-v4-20-73128809a4a4@kernel.org>
-References: <20260923-build-speedup-v4-0-73128809a4a4@kernel.org>
- <20260923-build-speedup-v4-20-73128809a4a4@kernel.org>
-Date: Thu, 24 Sep 2026 15:44:48 +0200
-Message-Id: <179025748880.4172706.14868306891021608350.b4-review@b4>
-X-Developer-Signature: v=1; a=openpgp-sha256; l=501; i=n.schier@fritz.com;
- h=from:subject:message-id; bh=gBLnS3+lAYmZ5kf9JL3anFiz4fYL1hWDBsQwL263l/k=;
- b=owEBbQKS/ZANAwAIAYjGvJyImm24AcsmYgBqtSlTKzAsNb3KAlPLj0QSENJsIHfwnQ8yLJWIb
- PdD13zZvHGJAjMEAAEIAB0WIQQO/4WJ63TpgecLpGmIxryciJptuAUCarUpUwAKCRCIxryciJpt
- uGGjD/9ODbOePpr2xjRjWb+mk2Bw35BUrXu5KQ8FyIBaOJfC8LNl3dAG0h/epaiw6+gGCUcqCoV
- Q3pj0r8gWUPb7IFUdyND0fm4NnmizKDSAj1aS/iM+1qF6+KcxebfwTqo6pUukhTKO/1bMk+Nc1h
- sxfRc0hHg8cVc1pw7RfGOYc7/hX0Tdowv6YHivIL+uGvlxZeBMEa0y/udNcjq2yEMWD25XvLqbm
- WKEKwqlOVh/F5nd9/WWCSrQhON7emYprPSD5ecZo8Ymjf9C+IeoxHXELJ/sWNx70XKXS0iDS0xg
- zaThLEGoO3SyycErqFEmC3tU0LcMH9KqgikPrJxgApXyuVZVa43I1zjt2hOPv9Za2Y0nMQz+7NQ
- fDMa084Q7RznP4sbTzAQcMAvEFc2WUAx9FSB/oalarygzJGNR+mK1+IN0jv/Cbso0x/oX5jHNbR
- EA1hTotxHDeyJtcvuvfirQLaLikWABqnJux/0r5MU72ClcJN9WRrxx+/ASsOYEHDCOfI1Xfx3R9
- 9UjWiL09yC83csxRGUckCg5Dhi7uDpyAoYEgT4fNNs/H75VgKww6qTGQEHcCHUzIKb4RMu1aT1d
- IQyAZppEid3lBMbaABGYBnrFdZOecoKo06mlo7eC+6mz4OhpE4KG/v+UgiRn2DKgmYHNnizchn4
- J8E8QdflQiGphBA==
-X-Developer-Key: i=n.schier@fritz.com; a=openpgp;
- fpr=7CF67EF8868721AFE53D73FDBDE3A6CC4E333CC8
-X-purgate-ID: 149429::1790257491-3AFDB965-3EF13F3A/0/0
-X-purgate-type: clean
-X-purgate-size: 503
-X-purgate: This mail is considered clean (visit https://www.eleven.de for further information)
-X-purgate: clean
-X-pfmilter: host: postfix-mx-01  mail-id: 863FEA07EC  external: no
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260917201052.2123701-1-magnuskulke@linux.microsoft.com>
+X-Zoho-Virus-Status: 1
+X-Zoho-AV-Stamp: zmail-av-0.2.13.1.5.4/290.230.26
+X-ZohoMailClient: External
 
-On Wed, 23 Sep 2026 18:18:09 +0100, Lorenzo Stoakes (ARM) <ljs@kernel.org> wrote:
-> rust/exports.c includes the exports_*_generated.h listing the symbols of
-> the core, bindings, kernel and helpers objects, but this is not expressed
-> in its Makefile.
+On Thu, Sep 17, 2026 at 10:10:52PM +0200, Magnus Kulke wrote:
+> hv_call_deposit_pages() donates pages (deposit) to hypervisor for L2
+> guest on L1VH systems via HVCALL_DEPOSIT_MEMORY. The hypervisor takes
+> ownership of those pages and per contract revokes root partition
+> access to them, raising a #GP on access from the L1VH root partition.
 > 
-> This worked previously because the headers are always-y targets, and make
-> prepare built all of the rust crates first, which is an implicit
-> dependency.
+> However, the pages remain mapped in the kernel direct map, so kernel
+> code may still access them even though the hypervisor has revoked
+> access.
 > 
-> [...]
+> Helpers such as "load_unaligned_zeropad()" deliberately read past the
+> end of a buffer and across page boundaries. A read into an unmapped
+> page is tolerated and triggers a #PF, for which the kernel executed
+> a fixup in the exception table.
+> 
+> If such a call steps into a page that has been deposited, the access
+> raises a #GP by the hypervisor from which the above handler cannot
+> recover and the kernel panics:
+> 
+>   Oops: general protection fault, maybe for address 0xff1100941a3dfffc
+>   RIP: 0010:csum_partial+0xe5/0x110
+> 
+> This condition will appear on L1VH system that have created L2
+> partitions (and hence deposited pages) and exercise networking code
+> paths such as csum_partial() can trigger this condition when a buffer
+> ends close to a page boundary (e.g fffc in the above example).
+> 
+> The fix is to remove the deposited pages from the direct map before
+> they are passed to the hypervisor, and restore them when the hypervisor
+> returns them again.
+> 
+> We want to avoid flushing the TLB in the loop, so we use the _noflush()
+> variant of set_direct_map_valid() when marking a deposited page invalid
+> and flush the affected page ranges in one go ourselves. In the opposite
+> direction this is not required:
+> 
+>   > If a paging-structure entry is modified to change the P flag from
+>   > 0 to 1, no invalidation is necessary. This is because no TLB entry
+>   > or paging-structure cache entry is created with information from a
+>   > paging-structure entry in which the P flag is 0.
+> 
+> (Intel SDM Vol. 3, 4.10.4.3)
+> 
+> Signed-off-by: Magnus Kulke <magnuskulke@linux.microsoft.com>
+> ---
+> Changes since v2:
+> - Checkpatch format fix
+> 
+> Changes since RFC:
+> - Handle direct-map restoration failures without returning unmapped
+>   pages to the allocator.
+> - Move freeing of withdrawn pages into the restoration helper.
+> ---
+>  drivers/hv/hv_proc.c           | 77 +++++++++++++++++++++++++++++++++-
+>  drivers/hv/mshv_root_hv_call.c |  4 +-
+>  include/asm-generic/mshyperv.h |  4 ++
+>  3 files changed, 81 insertions(+), 4 deletions(-)
+> 
+> diff --git a/drivers/hv/hv_proc.c b/drivers/hv/hv_proc.c
+> index 57b2c64197cb..2a392b45205d 100644
+> --- a/drivers/hv/hv_proc.c
+> +++ b/drivers/hv/hv_proc.c
+> @@ -7,7 +7,9 @@
+>  #include <linux/cpuhotplug.h>
+>  #include <linux/minmax.h>
+>  #include <linux/export.h>
+> +#include <linux/set_memory.h>
+>  #include <asm/mshyperv.h>
+> +#include <asm/tlbflush.h>
+>  
+>  /*
+>   * See struct hv_deposit_memory. The first u64 is partition ID, the rest
+> @@ -15,6 +17,35 @@
+>   */
+>  #define HV_DEPOSIT_MAX (HV_HYP_PAGE_SIZE / sizeof(u64) - 1)
+>  
+> +/*
+> + * Add or remove a set of physically contiguous page runs from the kernel
+> + * direct map. Once a page has been deposited the hypervisor owns it and
+> + * revokes root partition access to it.
+> + */
+> +static int hv_deposit_update_direct_map(struct page **pages, int *counts,
+> +					int num_allocations, bool valid)
+> +{
+> +	int i, err, ret = 0;
+> +
+> +	for (i = 0; i < num_allocations; ++i) {
+> +		err = set_direct_map_valid_noflush(pages[i], counts[i], valid);
 
-Reviewed-by: Nicolas Schier <n.schier@fritz.com>
+On arm64 can_set_direct_map() can return false making the
+set_direct_map_valid_noflush() call a no-op.
 
--- 
-Nicolas
+	bool can_set_direct_map(void)
+	{
+		/*
+		 * rodata_full, DEBUG_PAGEALLOC and a Realm guest all require linear
+		 * map to be mapped at page granularity, so that it is possible to
+		 * protect/unprotect single pages.
+		 *
+		 * KFENCE pool requires page-granular mapping if initialized late.
+		 *
+		 * Realms need to make pages shared/protected at page granularity.
+		 */
+		return rodata_full || debug_pagealloc_enabled() ||
+			arm64_kfence_can_set_direct_map() || is_realm_world();
+	}
+
+So, there could be some scenarios where this patch doesn't solve the
+problem. It is definitely an improvement over what's currently in the
+tree though.
+
+> +		if (err && !ret)
+> +			ret = err;
+> +	}
+> +
+> +	if (valid)
+> +		return ret;
+> +
+> +	for (i = 0; i < num_allocations; ++i) {
+> +		unsigned long addr = (unsigned long)page_address(pages[i]);
+> +		unsigned long size = (unsigned long)counts[i] << PAGE_SHIFT;
+> +
+> +		flush_tlb_kernel_range(addr, addr + size);
+> +	}
+> +
+> +	return ret;
+> +}
+> +
+>  /* Deposits exact number of pages. Must be called with interrupts enabled.  */
+>  int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
+>  {
+> @@ -72,6 +103,10 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
+>  	}
+>  	num_allocations = i;
+>  
+> +	ret = hv_deposit_update_direct_map(pages, counts, num_allocations, false);
+> +	if (ret)
+> +		goto err_restore_direct_map;
+> +
+>  	local_irq_save(flags);
+>  
+>  	input_page = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> @@ -90,12 +125,23 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
+>  	if (!hv_result_success(status)) {
+>  		hv_status_err(status, "\n");
+>  		ret = hv_result_to_errno(status);
+> -		goto err_free_allocations;
+> +		goto err_restore_direct_map;
+>  	}
+>  
+>  	ret = 0;
+>  	goto free_buf;
+>  
+> +err_restore_direct_map:
+> +	/*
+> +	 * We don't want to return pages to the allocator if weren't able to
+> +	 * mark them valid in the direct map.
+> +	 */
+> +	if (hv_deposit_update_direct_map(pages, counts, num_allocations, true)) {
+> +		WARN(1, "leaking %d page block(s) that could not be set to valid\n",
+> +		     num_allocations);
+> +		goto free_buf;
+> +	}
+> +
+>  err_free_allocations:
+>  	for (i = 0; i < num_allocations; ++i) {
+>  		base_pfn = page_to_pfn(pages[i]);
+> @@ -110,6 +156,35 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
+>  }
+>  EXPORT_SYMBOL_GPL(hv_call_deposit_pages);
+>  
+> +/*
+> + * Put withdrawn pages back in the direct map. Counterpart to the direct map
+> + * removal done by hv_call_deposit_pages().
+> + */
+> +void hv_restore_withdrawn_pages(const u64 *pfns, int count)
+> +{
+> +	int i, ret = 0;
+> +	struct page *page;
+> +
+> +	for (i = 0; i < count; ++i) {
+> +		page = pfn_to_page(pfns[i]);
+> +		ret = set_direct_map_valid_noflush(page, 1, true);
+
+Should we batch this? (i.e. collect a batch of contiguous PFNs and restore them
+at once)
+
+> +		/*
+> +		 * HV_DEPOSIT_MAX is capped at 511, so a deposit range cannot cover
+> +		 * a 2MiB page, so deposited pages are of 4k granularity and cannot
+> +		 * be collapses into a 2MiB page, which would require an allocation
+
+511 is the limit for one deposit call. But after multiple deposit calls,
+a deposited range can cover a 2 MiB page.
+
+> +		 * and can potentially fail.
+
+It is unclear to me what requires an allocation and can potentially
+fail. Could you please clarify?
+
+> +		 *
+> +		 * Should it fail anyway we leak the page, if we would hand it
+> +		 * back to the allocator we would introduce faults into random other
+> +		 * parts.
+
+I agree this is what we should do. I just don't understand what the
+first part of this comment block is talking about.
+
+Thanks,
+Anirudh.
 
