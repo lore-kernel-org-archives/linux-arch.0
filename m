@@ -1,139 +1,123 @@
-Received: from mail.8bytes.org (mail.8bytes.org [85.214.250.239])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 3705748094D;
-	Thu, 24 Sep 2026 13:35:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=85.214.250.239
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790256964; cv=none; b=Th7ZFLojxUgvxfhUOXjO4imzkG2YaLE5zF2Uf2kc5z2i1CZzcKWO7KmfgQwplltpVdrhA5a6Cbkw9bkZbZj1z3apRrs6Lc3jU8moFL6PHkyDwNKqJSVSNu/vUrJQniX1xvFW25tVA4ptM1WBc836Yrx/VQwY/MNakUqON+dqlI0=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790256964; c=relaxed/simple;
-	bh=5U72Wm7yfEWJHFOYCiJL/eGjgoxMt4uzqoM5WeTeix0=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=VAkxsbuMCZNof/PARubBaOUDZl5q1ZZ7jHTV7hhZt5nLxS0qpGtA2WFQN4TjIKr32FOPGZndi/5jAHeslsT/G9LJt37ElRJloZybutYVh3uTdWmgYU1e45YMMGqe/d2I5qEdEyzY+JdlhAH01qrlCdmMwCThET6GIWQW6geI65s=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=8bytes.org; spf=pass smtp.mailfrom=8bytes.org; arc=none smtp.client-ip=85.214.250.239
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=8bytes.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=8bytes.org
-Received: from 8bytes.org (p200300f6af404a00e4ccc4fdbbd66590.dip0.t-ipconnect.de [IPv6:2003:f6:af40:4a00:e4cc:c4fd:bbd6:6590])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (prime256v1) server-signature RSA-PSS (2048 bits) server-digest SHA256)
+Received: from mail.avm.de (mail.avm.de [212.42.244.119])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.8bytes.org (Postfix) with ESMTPSA id 2F7E41C7465;
-	Thu, 24 Sep 2026 15:35:55 +0200 (CEST)
-Date: Thu, 24 Sep 2026 15:35:54 +0200
-From: =?utf-8?B?SsO2cmcgUsO2ZGVs?= <joro@8bytes.org>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	iommu@lists.linux.dev, linux-arch@vger.kernel.org, jgg@nvidia.com, 
-	jacob.pan@linux.microsoft.com, kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org, 
-	decui@microsoft.com, tglx@kernel.org, mingo@redhat.com, bp@alien8.de, 
-	dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com, will@kernel.org, 
-	robin.murphy@arm.com, arnd@arndb.de
-Subject: Re: [PATCH V1 3/3] x86/hyperv: Implement root VM IOMMU kernel only
- driver
-Message-ID: <arUkaFhYGxaYwL0L@8bytes.org>
-References: <20260924020221.128762-1-mrathor@linux.microsoft.com>
- <20260924020221.128762-4-mrathor@linux.microsoft.com>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 55EEA4908DC;
+	Thu, 24 Sep 2026 13:44:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.42.244.119
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1790257503; cv=none; b=txUJ+Qn2h/e54WY4773OODv0j9yyvXTamTpV7h267QnSMP7Zx+3Vun7bBgBqFKa8MsQHvnsjd1MLm0vqx91eC1a6/Gv54hu47f5Z2xh6ufUelwiHzHyPD4bjBnjv81HH9DYs8KOzCCTREpp4uv6l35L3bhpkZB0Qce/uXsJhIvg=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1790257503; c=relaxed/simple;
+	bh=RNrHlkedPxi+Seo64aiciiC5cKPNZrA+d4i/PipmIlg=;
+	h=MIME-Version:Content-Type:Subject:From:To:Cc:In-Reply-To:
+	 References:Date:Message-Id; b=IK4yItQ+r4hea+nmp0cMksf4dIGJW1cB3gWmDogxIrdoZSttnq4v5ddDKCMV5z+yRw850AMgEfqZh0BYhXXQdVd2gmRbN4bzv7oCIsoJCE3YzP29VEEpXs9em91MBNhvnjNgGEGfZFvqs73Q9Me17zNjCfbInsbCdxOx2bSngDI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=fritz.com; spf=pass smtp.mailfrom=fritz.com; dkim=pass (2048-bit key) header.d=fritz.com header.i=@fritz.com header.b=Zqlo3F7I; arc=none smtp.client-ip=212.42.244.119
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=fritz.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fritz.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=fritz.com header.i=@fritz.com header.b="Zqlo3F7I"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=fritz.com; s=mail;
+	t=1790257492; bh=RNrHlkedPxi+Seo64aiciiC5cKPNZrA+d4i/PipmIlg=;
+	h=Subject:From:To:Cc:In-Reply-To:References:Date:From;
+	b=Zqlo3F7I9z6odqeWj380ltc1L8l1Y1OdMFIQ8fJGCcL0godj+AMTyZAdgeBzcvddy
+	 visMApYsWZFHUl+du/8beS1mqhyyK8ENoIV/CWxsvsCyh4cXW9xX5/jgMeBjt7Okbx
+	 0/ooMNq4gemCVy7fVq7GcIWAcjUgfeWkAadYPLTG/JWW8pKKwCcMOYLk1qQeJgLrW8
+	 b4tI9uek01mHErbJsLDhOWmma86ZwUu/kuFk/UO41MVhGaC3RTdij6ogY0d2ej8cFn
+	 orJV7gvvJ+I19L2+qoEA4l9czaoqgjfie6TZI2lVsYdMBW0eMfXwm6+6RMe9tD03QH
+	 luFchOl1IwK2w==
+Received: from [212.42.244.78] (helo=mail.avm.de)
+	by mail.avm.de with ESMTP (eXpurgate 4.57.1)
+	(envelope-from <n.schier@fritz.com>)
+	id 6ab52954-03d5-7f0000032729-7f000001b242-1
+	for <multiple-recipients>; Thu, 24 Sep 2026 15:44:52 +0200
+Received: from mail-auth.fritz.com (unknown [212.42.244.78])
+	by mail.avm.de (Postfix) with ESMTPS;
+	Thu, 24 Sep 2026 15:44:52 +0200 (CEST)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260924020221.128762-4-mrathor@linux.microsoft.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH v4 01/22] kbuild: do not allocate .modinfo in vmlinux
+From: Nicolas Schier <n.schier@fritz.com>
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, 
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, 
+ Nick Desaulniers <ndesaulniers@google.com>, 
+ Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
+ Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
+ Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
+ x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
+ Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
+ Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, 
+ Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
+ Ard Biesheuvel <ardb@kernel.org>, 
+ Ilias Apalodimas <ilias.apalodimas@linaro.org>, 
+ Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
+ Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>, 
+ Gary Guo <gary@garyguo.net>, 
+ =?utf-8?q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
+ Benno Lossin <lossin@kernel.org>, Andreas Hindborg <a.hindborg@kernel.org>, 
+ Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>, 
+ Danilo Krummrich <dakr@kernel.org>, 
+ Daniel Almeida <daniel.almeida@collabora.com>, 
+ Tamir Duberstein <tamird@kernel.org>, 
+ Alexandre Courbot <acourbot@nvidia.com>, 
+ =?utf-8?q?Onur_=C3=96zkan?= <work@onurozkan.dev>, 
+ Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>, 
+ Kees Cook <kees@kernel.org>, "Gustavo A. R. Silva" <gustavoars@kernel.org>, 
+ linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ llvm@lists.linux.dev, linux-riscv@lists.infradead.org, 
+ linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
+ linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org, 
+ linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, 
+ linux-hardening@vger.kernel.org, Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260923-build-speedup-v4-1-73128809a4a4@kernel.org>
+References: <20260923-build-speedup-v4-0-73128809a4a4@kernel.org>
+ <20260923-build-speedup-v4-1-73128809a4a4@kernel.org>
+Date: Thu, 24 Sep 2026 15:44:48 +0200
+Message-Id: <179025748878.4172706.1928342214472255763.b4-review@b4>
+X-Developer-Signature: v=1; a=openpgp-sha256; l=529; i=n.schier@fritz.com;
+ h=from:subject:message-id; bh=RNrHlkedPxi+Seo64aiciiC5cKPNZrA+d4i/PipmIlg=;
+ b=owEBbQKS/ZANAwAIAYjGvJyImm24AcsmYgBqtSlSAaAHZSpwz+agR7A4nUL/f+UeSeo3MVlM+
+ g0GySzoXvKJAjMEAAEIAB0WIQQO/4WJ63TpgecLpGmIxryciJptuAUCarUpUgAKCRCIxryciJpt
+ uLpFD/4jbTD/m855zQY2oXD/P7gI5rKS0e2JEo4CFs/WQ1q0+MoV/WJx2zzT4SnAM6QXyzOFdL8
+ N4GjNg6r/k+K/apkYq+ibSeq8HUHeSxbO4sdJRWjLXWSReqCL5kxhgvKohauiasWosm4pin+gdR
+ RIwZVezT7eufa+MunXFc3rYHUcBkRsAk5RV5GV/lc9FQdBwdynEkTt0nWX4CiMH/iJh7dYLIYvp
+ 1DkwLdomrF1bURPaP3rgb3sMMNwDGcgH/51PYGy1Cf7MRvdgqCZcW/HRqcEYzFMZPdCjsJgvkhw
+ RUuROmOPYRqcKgbzduQ+SH1njzB9AJeTo5LqhHb7StHjZLRBkVm0tODdImmjW383URt3/Y20UQd
+ wjXVi/xxqIrtsJt78RpFk68LZO82/G3bm1fE3d1JDLJmo0l3W+sR7WVzxKK2SH/AK30LuUXRXUJ
+ 1SaSkqrau/qQNnQ2DyGm2l2l6Wu/gouZrGp1d2hhapMb8D9257v2CnrUEDhBcOh5xYcMlsorNx+
+ S9sQuzuLiqpFAu9Wh/aFc04x+KPDGg2QDWA2KG5wWx8FcTJfAFCWTQfQJrEAD7ZcfQichDLYv1+
+ r9/isWvL4j22ulU2/eqIEx2pPHPPDl5q61LJm6gQhc9gb53OoYIphIXTYZFxQdVLz+W0FuNgXmW
+ 64JXl+x4hWlDQJg==
+X-Developer-Key: i=n.schier@fritz.com; a=openpgp;
+ fpr=7CF67EF8868721AFE53D73FDBDE3A6CC4E333CC8
+X-purgate-ID: 149429::1790257492-1CC5EEF9-18159528/0/0
+X-purgate-type: clean
+X-purgate-size: 531
+X-Notice: Whitelisted
+X-purgate: This mail is considered clean (visit https://www.eleven.de for further information)
+X-purgate: clean
+X-pfmilter: host: postfix-mx-02  mail-id: 76E62A085A  external: no
 
-On Wed, Sep 23, 2026 at 07:02:21PM -0700, Mukesh R wrote:
-> +static int hv_iommu_map_pages(struct iommu_domain *immdom, ulong iova,
-> +			      phys_addr_t paddr, size_t pgsize, size_t pgcount,
-> +			      int prot, gfp_t gfp, size_t *mapped)
-> +{
-> +	u32 map_flags;
-> +	int ret;
-> +	u64 status = 0;
-> +	ulong npages, sav_iova = iova, done = 0;
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +	phys_addr_t sav_paddr = paddr;
-> +	size_t done_size, size = pgsize * pgcount;
-> +
-> +	map_flags = HV_MAP_GPA_READABLE;	/* required */
-> +	map_flags |= prot & IOMMU_WRITE ? HV_MAP_GPA_WRITABLE : 0;
-> +
-> +	npages = size >> HV_HYP_PAGE_SHIFT;
-> +	while (done < npages) {
-> +		ulong completed, remain = npages - done;
-> +
-> +		remain = min(remain, HV_MAP_DEVICE_GPA_BATCH_SIZE);
-> +
-> +		status = hv_iommu_map_pgs(hvdom, iova, paddr, remain,
-> +					  map_flags);
-> +
-> +		completed = hv_repcomp(status);
-> +		done = done + completed;
-> +		iova = iova + (completed << HV_HYP_PAGE_SHIFT);
-> +		paddr = paddr + (completed << HV_HYP_PAGE_SHIFT);
-> +
-> +		if (hv_result_needs_memory(status)) {
-> +			ret = hv_call_deposit_pages(NUMA_NO_NODE,
-> +						    hv_current_partition_id,
-> +						    256);
+On Wed, 23 Sep 2026 18:17:50 +0100, Lorenzo Stoakes (ARM) <ljs@kernel.org> wrote:
+> Commit 3e86e4d74c04 ("kbuild: keep .modinfo section in vmlinux.unstripped")
+> placed MODULE_INFO() strings in the .modinfo section in vmlinux.unstripped,
+> however it left the section allocatable, so it gets assigned an address and
+> on arm64, arm and riscv, the section is tagged as PT_LOAD.
+> 
+> This is useless as the data is ultimately stripped anyway.
+> 
+> [...]
 
-hv_call_deposit_pages() can sleep and must not be called when gfp == GFP_ATOMIC.
+Reviewed-by: Nicolas Schier <n.schier@fritz.com>
 
-> +			if (ret)
-> +				break;
-> +			continue;
-> +		}
-> +		if (!hv_result_success(status))
-> +			break;
-> +	}
-> +
-> +	done_size = done << HV_HYP_PAGE_SHIFT;
-> +
-> +	if (mapped)
-> +		*mapped = done_size;
-> +
-> +	if (done_size == 0)
-> +		return hv_result_to_errno(status);
-> +
-> +	ret = hv_iommu_add_tree_mapping(hvdom, sav_iova, sav_paddr, done_size,
-> +					map_flags);
-> +	if (ret) {
-> +		size = hv_iommu_hyp_unmap_pages(immdom, sav_iova, done_size);
-> +		if (size != done_size)
-> +			WARN(1, "Failed to unmap exact sizes(%lx/%lx)\n",
-> +			     done_size, size);
-> +		if (mapped)
-> +			*mapped = done_size - size;
-> +
-> +		return ret;
-> +	}
-
-A general question: Why is the tree mapping added after the hypervisor mappings
-are established. It seems easier and more robust the other way around.  Same on
-the unmap path which should use strictly the reverse order.
-
-With this order, if adding a tree entry fails and the unmap only partially
-succeeds, it ends up with a partial mapping which can not be unmapped anymore
-because there is no tree entry.
-
-> +static int __init hv_iommu_init(void)
-> +{
-> +	int rc;
-> +	struct iommu_device *iommup = &hv_virt_iommu;
-> +	struct hv_output_get_iommu_capabilities caps;
-> +
-> +	if (!hv_is_hyperv_initialized())
-> +		return -ENODEV;
-> +
-> +	rc = hv_iommu_get_caps(&caps);
-> +	if (rc)
-> +		return rc;
-> +
-
-The capabilities returned need more checking. I think at least it needs a check
-for HV_IOMMU_CAP_PRESENT and that PAGE_SIZE is set in the pgsize_bitmap.
-
-> +	hv_iommu_max_iova = ((ulong)1 << caps.max_iova_width) - 1;
-
-This is undefined behavior if caps.max_iova_width == 64. Better use DMA_BIT_MASK().
+-- 
+Nicolas
 
