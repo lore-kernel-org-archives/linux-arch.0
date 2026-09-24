@@ -1,124 +1,108 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 50F1F46D2B9;
-	Thu, 24 Sep 2026 16:30:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mail-qk2-f41.google.com (mail-qk2-f41.google.com [74.125.230.233])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 36FA245DF77
+	for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 16:38:12 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.230.233
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790267428; cv=none; b=XmvnXfuqwYaqz/6AhHvi2o5+XxGnl2Nj8wBHMVb6fCxc4egZ6Zb0c/wnJjlP1+XGNAaf8JoRKPn4NT+5TQeZGzgvRoNhdFW6IIKdaIQzQwcQbZdbBrrLSPa7gqpknvo/Vlf/jgmqWSjqMS20NedatY4PjjlAuM9voDx5L7TPVYU=
+	t=1790267895; cv=none; b=WSYgOIxnL1bUTcNnR/stiRreT0YJTdf1khdB5jqQ99AucEuikY+/6ahcF2uYdle1/eyN/HuG1t4zMJXK2LSAfaeM0C1RcgeEU9oINGOwXbIdjiOLXmwU7x2B8oqKJ8pbdLTKKsExiPyrTp+GUDiaVdr1eoskz9P9uEhvKqwWWWE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790267428; c=relaxed/simple;
-	bh=EFKLPxpD51REhXuM89skqdof7tnyOIh62qPAGdowEO0=;
-	h=Message-ID:Date:MIME-Version:Cc:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=CMlPR3ci4dkDfsemCqfFBQFQCBsmxMQUlVJT/E2RQpZTPPUvlm3GXt2Oq6+rx5bjManOpiNieKSINsB+BTSyk8rnE03xx/FJvFpbYM1x5Zntu8phke7cIJuwmQXrukKeIkrMO+SeCbXfBleaV2vE/ieoogVLgFpbFsS3NocKHys=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=jlksxfma; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1790267895; c=relaxed/simple;
+	bh=Y6dfgoDu9ENyHz35342iESy0PYqePxl/sIn9jSurkUk=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=JG6ZzNHm5zW1jgrquJE3ip6+u6Fl87Pcms7URa7RnRqDmby87opdW+fnXW5hzmzT3DUQO+XeEdRGFmB5CID5EZFk4OQfqlpqVw7Fn3nvNnWLJyhOhsgp/0cKWdWxNRPdpBqOL40gQ+JB9SQ42+vuu6x7+tgw5rg3onkwSPczeys=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net; spf=pass smtp.mailfrom=gourry.net; dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.b=DELaQ6H+; arc=none smtp.client-ip=74.125.230.233
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="jlksxfma"
-Received: from [10.20.15.95] (unknown [131.107.147.223])
-	by linux.microsoft.com (Postfix) with ESMTPSA id F0DCB20B7167;
-	Thu, 24 Sep 2026 09:29:31 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com F0DCB20B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1790267372;
-	bh=JhcaBYYEuGfLjImrY8WW5mtbj+RiNCHHNq56dHK1JZg=;
-	h=Date:Cc:Subject:To:References:From:In-Reply-To:From;
-	b=jlksxfmabBlOA3OftkrPoGLR8MgLPhRy3ctctCesvA9v7jzkpMcENrpVCQeISJ35I
-	 ep0tT9xK8zX4SnZT2zvTDqj3AZ2S6N/apNv2Uq1ibD6WJsNaBvy9cQwL+ZzxcPPgnZ
-	 EkF9qcWNV268TNi28pJ3Lwh6y5eq+buKp75gr0rc=
-Message-ID: <dca62265-c75a-4ea9-9540-7a9da833b83e@linux.microsoft.com>
-Date: Thu, 24 Sep 2026 09:30:20 -0700
+	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.b="DELaQ6H+"
+Received: by mail-qk2-f41.google.com with SMTP id d75a77b69052e-532e91a3687so105081cf.1
+        for <linux-arch@vger.kernel.org>; Thu, 24 Sep 2026 09:38:12 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gourry.net; s=google; t=1790267891; x=1790872691; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=LuPrvXBzY5FQ+f/5fzbveR9yF272P1V2+jsIcGJNdC0=;
+        b=DELaQ6H+GoqYKhSPbbw83I2UghjOPLUKt/HJzwYXOl5vd4By1b/ewKsZIbd9ahXhZb
+         TJDLBT2drAnq8j1D4gtZjKdZE54vfhHIW07z7SMjyhNrpJZ88lIXL27llafwJKgt7Hvw
+         zeqWn52o1fsiwmzoo4rrDQZv3h3IiFJnFO2iuBnkUsGA3ktjvtFHA3Jr6K2ZEcGMg8M1
+         1di2ZTIAJ2yTB2V6zmlctv6zG6tcG5IvMF9RkWmI06r7tX+skZxDuVThBB0MSr3NZe3S
+         B2+XxiOTA95Xk/3/+mlBZ2rpvQSIcAx9lD43yFxhcrOBvTesr5mE416XkZK5Fw1vsdLx
+         5Q7g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1790267891; x=1790872691;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=LuPrvXBzY5FQ+f/5fzbveR9yF272P1V2+jsIcGJNdC0=;
+        b=JrcTH5MeWI2CqHCNKr3XWSaokW8e2Ny9N+9OyNcSjaP8t/CqgrWn+hoS4z50nbQjh2
+         r4FvG7jl+ow2xDaq4HujuWBdAyZGh8/uiqodVC9fOsVpC0D1qB10MABah/WpGeswT9bR
+         PUvaVTWoGtk8etcwU+apV0BQ7GxOEn0ERNugpTX66gsmrE/LRQlmg348DzAt1VNfkNbO
+         U6LTUWE0EklJOkt4X3DsXCptzW/cc+Tt3A4wm47w0VTPIblSsMSk0B/aXRQEyjC2Eme7
+         hP27zIeKSxjMV79QybJA3LScbhmuglYOGOUGZUIYTi3pdOL/Katu4yCyzlcaQSAEWf9j
+         j4Ig==
+X-Forwarded-Encrypted: i=1; AKwUvByF6Exk3AjONXzVDY1NLyreUoXFxw7Htl1liRuywJXc+FneoPkdeWJ9spCfPKlpHo5nRs1uX0g3vqwU@vger.kernel.org
+X-Gm-Message-State: AFuF++noqLCvFyK6q11P0gvhiNUPsw1Me8H/xVhBfOWhmiri8XTJ3Lji
+	nRhMIsVL1nloZ94I/jWWKynrKBljlEvYqAkCpVdZ090DLXf3u7yxayGDhvuwA1sn6WU=
+X-Gm-Gg: AYBFou3YKMZPo/HINVeu4C/LGXq9Jb0A7BYVxDYlOnSFqRDORZNEzDn8g6miThNsBOA
+	WhF5rkuwSB8yHcrS26AQ0Buez0Zbo6FGC16GpLWPBp26wdQZLyUsu0tc4aj2bDYaJABpU79sErV
+	/aZPifvHjNdL6902Jcm0kSuI+PU3JbWlZPUjUreDltBLfxAY6arVGKW5vydWLvR3enzPvU4Rdik
+	LLyAGVbkAKtH0gSbub1uwt2worgp2SbE3NoJAz7/7vqSw07gMLA8FR+6ydwcFR5/5arZeywqsNy
+	K5urp44xLqyi9lJ2iffvxP/REC72E7H+hNOARGmg8aNycN2Dgn+mXFs9GOIEDYvGanKYLd6WGoy
+	x/3cwxLVJKBt40yfK1FGV/E+k9FvrXUatcOb5KQWStLRSqrNQUU/EhMbAUPK/GWrLfNIIQiJcDF
+	2E4gAVxmyDcCeVtgJdunQLquRCzd55STkzCGTB0hmsQMEPKm+6+n6ZS2ASjU8NpCpirVMBNia1/
+	91anqUht6DjveJRUIYWTbj+9y4wQtbPQzXTupIK/O6o3oWqVU3GyDY=
+X-Received: by 2002:ac8:5743:0:b0:530:d860:ffba with SMTP id d75a77b69052e-532fe9f05bamr29797891cf.6.1790267890993;
+        Thu, 24 Sep 2026 09:38:10 -0700 (PDT)
+Received: from gourry-fedora-PF4VCD3F (pool-173-79-60-52.washdc.fios.verizon.net. [173.79.60.52])
+        by smtp.gmail.com with ESMTPSA id d75a77b69052e-532eb32f6aasm45064551cf.16.2026.09.24.09.38.09
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 24 Sep 2026 09:38:10 -0700 (PDT)
+Date: Thu, 24 Sep 2026 12:38:08 -0400
+From: Gregory Price <gourry@gourry.net>
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
+	linux-rdma@vger.kernel.org, selinux@vger.kernel.org, linux-sound@vger.kernel.org, 
+	bpf@vger.kernel.org, linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
+	dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
+	linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, 
+	kvm@vger.kernel.org, kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
+	linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, fuse-devel@lists.linux.dev
+Subject: Re: [PATCH v3 03/40] mm/vma: introduce and use
+ vma_[flags_]can_merge()
+Message-ID: <arVRqJZkql6sGunt@gourry-fedora-PF4VCD3F>
+References: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-0-4583d8a23bca@kernel.org>
+ <20260917-b4-mmap-prepare-vma-flag-sanify-v3-3-4583d8a23bca@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Cc: easwar.hariharan@linux.microsoft.com, linux-hyperv@vger.kernel.org,
- linux-kernel@vger.kernel.org, iommu@lists.linux.dev,
- linux-arch@vger.kernel.org, jgg@nvidia.com, jacob.pan@linux.microsoft.com,
- kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
- decui@microsoft.com, tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
- dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com, joro@8bytes.org,
- will@kernel.org, robin.murphy@arm.com, arnd@arndb.de
-Subject: Re: [PATCH V0 3/3] x86/hyperv: Implement root VM IOMMU kernel only
- driver
-To: Mukesh R <mrathor@linux.microsoft.com>
-References: <20260921225028.4007330-1-mrathor@linux.microsoft.com>
- <20260921225028.4007330-4-mrathor@linux.microsoft.com>
- <4f7cadc5-817c-4163-bac8-1c02a7c6a862@linux.microsoft.com>
- <21f8bbbc-0298-2e31-c165-0db660ae5208@linux.microsoft.com>
-From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-Content-Language: en-US
-In-Reply-To: <21f8bbbc-0298-2e31-c165-0db660ae5208@linux.microsoft.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-3-4583d8a23bca@kernel.org>
 
-On 9/22/2026 14:42, Mukesh R wrote:
-> On 9/22/26 10:49, Easwar Hariharan wrote:
->> On 9/21/2026 15:50, Mukesh R wrote:
->>> Add a new file to implement a kernel only virtual IOMMU that works
->>> with Microsoft Hyper-V hypervisor on privileged VMs aka root VMs. The
->>> hypervisor claims the IOMMU upon boot, and this driver communicates with
->>> it for creating and deleting paging domains, attaching of devices, mapping
->>> and unmapping of pages, etc. During boot, hypervisor automatically creates
->>> identity and blocked domains, so there is no need to do hypercalls to
->>> create them.  This is a kernel only driver and only supported on baremetal
->>> root (and not L1VH root) without any guest passthru support. Support
->>> for guest device passthru will be added incrementally.
->>>
->>> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
->>> ---
->>>   arch/x86/kernel/pci-dma.c            |   2 +
->>>   drivers/iommu/Kconfig                |   1 +
->>>   drivers/iommu/hyperv/Kconfig         |  15 +
->>>   drivers/iommu/hyperv/Makefile        |   1 +
->>>   drivers/iommu/hyperv/hv-iommu-root.c | 645 +++++++++++++++++++++++++++
->>>   include/asm-generic/mshyperv.h       |   3 +
->>>   include/linux/hyperv.h               |   6 +
->>>   7 files changed, 673 insertions(+)
->>>   create mode 100644 drivers/iommu/hyperv/Kconfig
->>>   create mode 100644 drivers/iommu/hyperv/hv-iommu-root.c
->>>
-
-<snip>
-
->>> diff --git a/drivers/iommu/hyperv/hv-iommu-root.c b/drivers/iommu/hyperv/hv-iommu-root.c
->>> new file mode 100644
->>> index 000000000000..a5268e0e52cc
->>> --- /dev/null
->>> +++ b/drivers/iommu/hyperv/hv-iommu-root.c
->>> @@ -0,0 +1,645 @@
->>> +// SPDX-License-Identifier: GPL-2.0
->>> +/*
->>> + * Hyper-V root vIOMMU driver.
->>> + * Copyright (C) 2026, Microsoft, Inc.
->>> + */
-
-<snip>
-
->>> +
->>> +/*
->>> + * Currently, hypervisor does not provide list of devices it is using
->>> + * dynamically. So use this to allow users to manually specify devices that
->>> + * should be skipped. (eg. hypervisor debugger using some network device).
->>> + */
->>
->> Maybe a flag, say OwnedByHyp = 1 returned for the root equivalent of the guest driver's
->> GetLogicalDeviceProperty hypercall can solve this.
+On Thu, Sep 17, 2026 at 05:22:12PM +0100, Lorenzo Stoakes (ARM) wrote:
+> Replace the open-coded VMA_SPECIAL_FLAGS check in the VMA merge logic with
+> two new functions vma_flags_can_merge() and vma_can_merge() and update the
+> merge logic to use the former.
 > 
-> "hypervisor does not provide list of devices it is using dynamically"
-
-Sorry, can you be more verbose? When I read this response yesterday, I thought by dynamically, you
-meant at runtime, but on thinking this through, the current scheme doesn't help with that either.
-You have to pass the kernel command-line parameter at boot because the IOMMU driver is built-in, and
-so if a debugger is attached to the hypervisor "at runtime", your current scheme, just like my suggestion
-for a flag returned by GetPhysicalDeviceProperty above, requires a reboot of the root partition.
-
+> This abstracts the check and expresses it in terms of the desired behaviour
+> rather than an arbitrary and confusing VMA flag.
 > 
-
-<snip>
-
->>>   #endif /* _HYPERV_H */
+> This also lays the groundwork for making further improvements in VMA flag
+> usage.
 > 
+> Also update the userland VMA tests to reflect the change.
+> 
+> No functional change intended.
+> 
+> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+
+Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
 
