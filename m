@@ -1,50 +1,49 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 20AF236495F;
-	Fri, 25 Sep 2026 12:01:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 49765470E84;
+	Fri, 25 Sep 2026 12:51:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790337683; cv=none; b=rAkjDny8XWfkHOMI5kkLTMdJxtk+f3q8Eot6Xe9UyeFqdRF9mUDq1DPGaDkRBnWyWfkq4BmBbu/9WrPxvkOz1MzXm6lt6ytAOXRMu+D4zTMuBfFNDCDepBVW7NofqBou+x6RMSW6YK+rhkv7+eag7Ku+RJM+VVXgExvPOuRcbVI=
+	t=1790340679; cv=none; b=cbxUAt+Bj52HXNmqJdDpnNAZRsjj5Dgd/O161WRAo+DMTGbQdVXlm8ejnc2WCCOLb4Gapqz4iG/ciFfmYUzH3Fb6yyHLPlRKR4mLVMmSNvjuKwgfA7TJfhpfmucvwIfQFGEHOxwGkHf1IfITQQUtKPLI/jwraTzFblbmRySvdxY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790337683; c=relaxed/simple;
-	bh=KoNA8IEmw6rVgjEzh4iM8tmfecTPznSgVl3B3cV9W/c=;
+	s=arc-20240116; t=1790340679; c=relaxed/simple;
+	bh=KO2TEy9loU8QK2IS8vmNyCcNin1HMfXr4zTewREYrSQ=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=fxxDLzaLqUcOzAzIniLY0sFAmsE593RxUQ7vPxsI0l8q2HCZFWbxCuYOevAcdQ4VFQofcMxnB5JYgk59vybxRlT27X97zW50K0MEujCnsX8SbAFmNc1jz5r7j2SAThhiiaMkg0t8xihPv16dqK5SmZheC6xrARW9ougMurtL+Ek=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=gubDwn+5; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=na5ry8jNWA+1ZLoi1PtEmAHCFLXpUmeM9lbYdrEhjxGX2OMefczwPmCcKo4Fg/FErgUc9yy27ZLUMGenMb6leAUGwCQ45L2mdjgn34/0FLQS58ub8XJ49V55pFXdiCPQknizWltOxPMGh53WPKJfH1lYSckFVWoQphxnrWQKeFI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Y53djdWl; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="gubDwn+5"
-Received: from example.com (p3e9c0608.dip0.t-ipconnect.de [62.156.6.8])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 737A320B7167;
-	Fri, 25 Sep 2026 05:00:25 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 737A320B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1790337628;
-	bh=TocEik8U291QYRdj8rPVWjwxtpenn4POATH1+GDEMZY=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=gubDwn+5BoxNQdqp4PH59FRHBW7Hvv5uJ43xDImUI587BMSCVdAAI0sYEtV6AhMi6
-	 5gTldkV6fUwzFPd2AGyl6azaKgfL2IOv+QIEm9f9TmGGEXkUBPuR7+RCW9+b4O+UCH
-	 UoQqRws18Vjx9yIycL6xiRhb7kYk5eRWmmMxuMxo=
-Date: Fri, 25 Sep 2026 14:01:11 +0200
-From: Magnus Kulke <magnuskulke@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: linux-hyperv@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>,
-	Souradeep Chakrabarti <schakrabarti@microsoft.com>,
-	Wei Liu <liuwe@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Dexuan Cui <decui@microsoft.com>,
-	Magnus Kulke <magnuskulke@microsoft.com>,
-	Long Li <longli@microsoft.com>, linux-arch@vger.kernel.org,
-	"K. Y. Srinivasan" <kys@microsoft.com>,
-	Anirudh Rayabharam <Anirudh.Rayabharam@microsoft.com>,
-	Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
-	Wei Liu <wei.liu@kernel.org>
-Subject: Re: [PATCH v3] drivers/hv: remove deposited pages from direct map
-Message-ID: <arZih4nPb80EUt9n@example.com>
-References: <20260917201052.2123701-1-magnuskulke@linux.microsoft.com>
- <a543145c-4503-bdd8-bd73-a2cbcce1e06e@linux.microsoft.com>
- <aq0W/c9SKCympVHE@example.com>
- <7363cfd4-31f0-451f-0cf5-879e878b30ef@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Y53djdWl"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 47E621F00898;
+	Fri, 25 Sep 2026 12:51:12 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1790340678;
+	bh=D3elFlAcGaZH0VbYl18NIe5+45MZxJu3tV5JyNgmc1k=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=Y53djdWlLd4diT/AvrOcXi2GrVkUMfZOD6dmk5wrBuqGrapZjitCvRDfrBfg9d5x0
+	 BnTKh4bxCfiX0tMKCdrW8JtFurhbBTQYO3LW88thuG01Cb/ZYE7hw59evarzLYTO38
+	 7wZU6lEFZdgk6ZZ7hHn/Dp2Lao89/ocNv/c66cAQXdIQWZDLRciBbhbYw+b5WFshwd
+	 SgfnG/v9weC791zQC+pDBEFG7GNZuzILu4ouO1eex0u514XgRGL7lU1F1WRmmHIXhs
+	 yqzMlC0qHyJaHLn+n3KPUNM1XrW75NKKVif7jm3AOyuuULaCC+82pdP6bc1SuqvtsJ
+	 b7HBLAWBmeiCg==
+Date: Fri, 25 Sep 2026 13:51:09 +0100
+From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+To: Gregory Price <gourry@gourry.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
+	linux-rdma@vger.kernel.org, selinux@vger.kernel.org, linux-sound@vger.kernel.org, 
+	bpf@vger.kernel.org, linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
+	dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
+	linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, 
+	kvm@vger.kernel.org, kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
+	linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, fuse-devel@lists.linux.dev
+Subject: Re: [PATCH v3 04/40] mm: consistently validate VMA state after
+ mmap[_prepare] hooks
+Message-ID: <arZriK1tyOC7DjBw@gremlin>
+References: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-0-4583d8a23bca@kernel.org>
+ <20260917-b4-mmap-prepare-vma-flag-sanify-v3-4-4583d8a23bca@kernel.org>
+ <arVW5i8pvySq6Co2@gourry-fedora-PF4VCD3F>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -53,26 +52,80 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <7363cfd4-31f0-451f-0cf5-879e878b30ef@linux.microsoft.com>
+In-Reply-To: <arVW5i8pvySq6Co2@gourry-fedora-PF4VCD3F>
 
-On Thu, Sep 24, 2026 at 05:30:02PM -0700, Mukesh R wrote:
-> On 9/18/26 03:48, Magnus Kulke wrote:
-> > On Thu, Sep 17, 2026 at 05:23:15PM -0700, Mukesh R wrote:
-> no, we need to backport deposit-pages also (it is already in the
-> internal 6.18) as not only it enhances the deposit, but also fixes
-> couple bugs, so best to keep this separate. the deposit patch does
-> address your comment:
-> 
->  +     HV_DEPOSIT_MAX is capped at 511, so a deposit range cannot cover
->  +    * a 2MiB page, so deposited pages are of 4k granularity and cannot
->  +    * be collapses into a 2MiB page, which would require an allocation
->  +    * and can potentially fail.
-> 
-> IOW, as soon as it's merged, above will not be true always.
+On Thu, Sep 24, 2026 at 01:17:28PM -0400, Gregory Price wrote:
+> On Thu, Sep 17, 2026 at 05:22:13PM +0100, Lorenzo Stoakes (ARM) wrote:
+> >  static inline int mmap_file(struct file *file, struct vm_area_struct *vma)
+> >  {
+> ...
+> > +	err = mmap_hook_validate(prev_start, prev_end, &prev_flags, vma);
+> > +	if (unlikely(err)) {
+> > +		vma->vm_start = prev_start;
+> > +		vma->vm_end = prev_end;
+> > +		vma_close(vma);
+> >  	}
+> > +
+> > +	return err;
+> >  }
+> >
+>
+> I indepdeantly validated the sashiko report on this chunk.  Seems like
+> close() should be deferred until after __map_new_file_vma() calls
+> unmap_region().
 
-understood, so we'll drop that comment. but we can keep the logic?
-(leaking the page should the  make-valid call fail)
+Ack perhaps too quickly dismissed that one...!
 
-best,
+>
+> suggested fix is to drop vma_close() from mmap_file()  and update the
+> cleanup in __mmap_new_file_vma()
+>
+> if (error) {
+> 	UNMAP_STATE(unmap, vmi, vma, vma->vm_start, vma->vm_end,
+> 		    map->prev, map->next);
+> 	vma_iter_set(vmi, vma->vm_end);
+> 	unmap_region(&unmap);
+>
+> 	/* Release driver state only after its mappings are gone. */
+> 	vma_close(vma);
+>
+> 	if (map_same_file(map))
+> 		fput(map->vm_file);
+> 	vma->vm_file = NULL;
+>
+> 	return error;
+> }
+>
+> Example race:
+>
+>   Thread A                              Thread B
+>
+>   mmap(MAP_FIXED, address A)
+>     driver remap_pfn_range(A, page P)
+>                                          load/store at known address A
+>                                          hardware finds the new present PTE
+>     validation fails
+>     ->close() frees page P
+>                                          UAF
+>     unmap_region()
+>     TLB shootdown
+>
+> With that fix
 
-magnus
+Ack, yeah. It's kind of a situation that should never happen, but if validation
+is supposed to actually be run against things then we should keep the kernel
+stable when we do it :)
+
+Will apply for the respin.
+
+>
+> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
+
+Thanks!
+
+>
+> ~Gregory
+>
+
+--
+Cheers, Lorenzo
