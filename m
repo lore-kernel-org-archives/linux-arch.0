@@ -1,185 +1,218 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-yx2-f12.google.com (mail-yx2-f12.google.com [74.125.224.140])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CBB533D647E;
-	Fri, 25 Sep 2026 20:14:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790367260; cv=none; b=T3LJKI1uKV9tKN6TZLFibM4Co3klJoxvegRnMEqVkknVdW7PL3+C54wc0x8AE1BOwcVZ1cM0oVgGp6JTXg8BGnbhnB5RIWv8cr1j/9a6ZfhCrxd/zc2wrxAqbbpMzlpx2LK+Oiaw20ZWuvfuRg/TKk8XeyPXnY3WextlXF11oL4=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790367260; c=relaxed/simple;
-	bh=PnRbJJLEs7BWuuMfKr3yc/Hi0NQ6wkh885+GUnZfEK0=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=IG6HzX4SQ7GWRM28DEvwFXtqhEn/wWDzMLdEB/7+9u+b5xaMCYbqKei/0gPUU7G5LwBILfPxUbhabYUTofnQu88/gHy9BeIgi9whZfQWl2eDNthsLJtBjh1mLxUVIWEMkMWMhJJRs4gpVsJgstzGlBSTvehiZ1yxS+wySpOP/mE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Tu8dpede; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D5B9B4F475D
+	for <linux-arch@vger.kernel.org>; Fri, 25 Sep 2026 20:31:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.224.140
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1790368287; cv=pass; b=OATDo3vjYQWi0FTobutJD6OTFpv9ka6AxACYFfrkfRaLXi4pxOBT3uIy0Y6WOiDe8GVxXbpELtU4sIIEUH7luXQW4e2hgcQxoCSXycfpbhbKoyqOJ01Tlmg4mzhVN+BhDMtabU3q2A74mowhHz0le6BpJnf6O+ZhnPF4yGRQINc=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1790368287; c=relaxed/simple;
+	bh=i8K2V7iauqRYBnywpRsfGwdqYCZfWv4UWx7sJDax4N8=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=B2XnTbfLaiKR/uuFOuDbOP47kuk5HE42GoVaR3XFZHbXimS2lqaE3MSCOFgGWH+Hk5ZwjZgzhjHw2EuSMFkfcLYoCmV7K8V5UMpfj5tF7BdWLKjh6bGiPpYnB3ycUJ5vB8sZFl2ACaQmzuVhSfsKXi//bVOKLNSpTaEdOk7WUMw=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=TjpNXmLz; arc=pass smtp.client-ip=74.125.224.140
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Tu8dpede"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2B7DC1F000FF;
-	Fri, 25 Sep 2026 20:13:57 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1790367258;
-	bh=EF8OyDut2rayuYx4pymsb162cHu8KROP/4zU982aGoA=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=Tu8dpedeUynCnlq7Wxf4f9JCPrda0/Y0Tmaz1KTS9GhPwPBdedBTQWw3UhI8XcXMN
-	 qrjOjBi+3lRlLTda3X+1K4Kudkf8/gcJhM/wzaAhMXThsSmK+fW9duXf2WLFxNYtWb
-	 89EFQ+Pb3CZgoB8haOE2CvuTiR0Fx3WHrIzKr1daiy+pKbIyD9KemfkSgwf+ftcchJ
-	 1ZDRuI+H747LYk47f0YOz+UoLOH+bqQ55biVx1Y75rv6aIuCzcus4e6lAz/qjtmRor
-	 x0R3nx7I6Xd2o0CoRbj1AuDam9d9DcnDUvzaGWQfs+CUpemegdemifjfX7ZQcmzWhq
-	 APU1v55lYeH5A==
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Date: Fri, 25 Sep 2026 21:09:47 +0100
-Subject: [PATCH v5 12/12] mm: change the contract for free_pgtables(),
- update docs
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="TjpNXmLz"
+Received: by mail-yx2-f12.google.com with SMTP id 956f58d0204a3-66e56a1b327so1182157d50.0
+        for <linux-arch@vger.kernel.org>; Fri, 25 Sep 2026 13:31:23 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1790368282; cv=none;
+        d=google.com; s=arc-20260327;
+        b=sljHSOHRDTQuuCMUDcjCxJGwJHYSL37XFR1yBffPTBuilVVlW0b0lDSksWKw1mKoun
+         DH63Nr6PPbhR+3FU/pKTz4D37dyITaWzfthz0IixQsHP/h+u+eEP5/78lOVrAcPyUksi
+         EH1icRQRIrC2pLXaP6HNwP7naZYaSj8vmwyV+9kKDmgekfPJQRH7UfbdZjpG/Xiu7OIM
+         zAlPI3NwHay8QsB3XBfrHqdG3FOmDVUg3Df9kXtkbwo9mO49vcu6LWpWeAKDD/zJqrXS
+         vStYQem+y/txOuSEluu810cyjj+jqL7wWjQUrw5LspD4CaPKYXb/bi+XzTIlcvN7GbKJ
+         QFCg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=noxPgsc3ymzPUXdD7j20u0RQJiwVbYzVMSbEnyT4ByQ=;
+        fh=qsKvxmtqt7H1YmhbwKV7Xl3FTj8VR+swURNrVDweU/s=;
+        b=qHnpU0n2DdsEph1PvR/iFXmOta+rJyil4IfkAHwjM441US8c0FccKYaA2ecXe/jiZP
+         v5ahTiSGdhF9vVEGKfsUT6IbIAxDRg1BsBY4q/ETaqF2M9l9I2KWldDbu+co2IRyT85e
+         wMZzWkYb/71fWI9qMxpQf8GWyEeCknfyAN9sZqGqpzFAK/pUY1iWF6aLkME+Gh6jvkN0
+         K2d0r4zPbjDrMqN+hnCtIARzjVKJZJGJ+y+yqMlPV+fQGK8vKd6p/lpnSAc296b33D+c
+         XVTOrmOeA6AeQtyOgjtDBMsUBYDf8LNTPHZt3EWS7k3Z2vdQ/LND63oEYieIjwmNUaqF
+         flbA==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1790368282; x=1790973082; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=noxPgsc3ymzPUXdD7j20u0RQJiwVbYzVMSbEnyT4ByQ=;
+        b=TjpNXmLzBaIdJEpWXZQ+rE33LSI7Ijg4oqvYvQ8zcO1X4TIybbM9R7tW+Rx6PJ94e6
+         VL9xrMXYP5AoQ+b2+Lvexr8ZUqvzm5VAO32nn5LsfFgf7KyxWMiL3fwwKV2VAF44BJ25
+         /3ZuVluFlCo490TVbBuLDq0x7fEwGBek7zym35Z9sHhXJ9/aIGj0NNK5WaxUMLABOtuy
+         PaTWKoHMvq8svAdwg2t14P+TNeADlcXCbREq4dN0mDj/eq7kE8QdAwzMSbdAT13vDivf
+         VrMILSLZSdZiBeMumuRGXPqK2VGB8kzp4kE3GIGtqSkT407KGvLiHAm/oVl/92qqPuzP
+         cVww==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1790368282; x=1790973082;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=noxPgsc3ymzPUXdD7j20u0RQJiwVbYzVMSbEnyT4ByQ=;
+        b=oqUohJ2trkNST8+jEcEpaZq5eLtOEXzMDcSzt5m7ciLIkBqsnXig5JIxt2vOjAUXCk
+         1ocBOrOcwi7VPwkUvE2b7tOK+7Bu57adu1jLhKWx2UqOXFp6PPkIcn8pVWvBKLov+KGV
+         N40/ec3OjewHPHmzACVd9/kT9wtE2F4/hLlXmMJzyWdZYAKO2dGv2XAqnYfyxW8D3c+K
+         0Y3W3lrNJb7vgAPGPE7fQWkFf3x7d0a2VzK8nZefZegAGCLThaImdI6Arb/L6PtjcAWF
+         dJRpN4P7JiZ9fyYZkd5a6++AKt6xgtCn+xBSNJlk/nc4v76G95SnPFucl3bSd8x6Errj
+         1VRw==
+X-Forwarded-Encrypted: i=1; AKwUvBzsz/qpA6KGfChVxUAQ6uDPsHs/ZIE1XmXHGdh8f0phqD8+azy2Y4KmD1oe6ww3fJP12eccG/nfcMlG@vger.kernel.org
+X-Gm-Message-State: AFuF++nm1uOWPz/s8RvZp19eqwa1P7hE2eN5OZ7nheRPK9bzL6PU1G2S
+	ri2YAqzrgm9ZgUNs99IHrdpwhQ5LOrhbMrwvl6V3DSVhMcKIT484Lwn79CypA4VdokLvhTO2OEa
+	cDYmm3klemtm1/5SenflQPJ3SR6P0Bd4=
+X-Gm-Gg: AYBFou0HgXx+J2qE/D6wG1EtAG4zJhCnr/RtxtF8cZ2WULPswyiSDszPnzrM2DxlV8a
+	YePqTEzCQCY39DvlayukSsaQ3Vu6PMWqN5Xe8l1h9SZI0TDGDzmn/T4l8kdd8petfp/m69szDdJ
+	HI+ogmYDxdKbM9xPuny5AvML2eW601IA84LseDCuaLmFDf6dzAooZ3RAiKugVRNv9qDojk1nRl3
+	2z/VV+Nfp/AxcOJq8rFx0iy7Cf0jYEEcNrjDrelosKwdzR2o3BAx2aNvZnx4AuSm/2OsiXadY9x
+	FAvQQtCeBfUvieAW74V93spMR5/HR/gCFaCXDBFmOJcjo3rfmomQMqDA+s59DG8vUWmFLznLwin
+	T0/GCj599rLIpOPRoIhg6wyjlEqOiOP5/Hg==
+X-Received: by 2002:a05:690e:1382:b0:672:a289:7b0 with SMTP id
+ 956f58d0204a3-672ed93a88emr3463724d50.76.1790368282266; Fri, 25 Sep 2026
+ 13:31:22 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20260925-rcu-pagetable-freeing-v5-12-31e91065fea4@kernel.org>
-References: <20260925-rcu-pagetable-freeing-v5-0-31e91065fea4@kernel.org>
-In-Reply-To: <20260925-rcu-pagetable-freeing-v5-0-31e91065fea4@kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, 
- David Hildenbrand <david@kernel.org>, Zi Yan <ziy@nvidia.com>, 
- Baolin Wang <baolin.wang@linux.alibaba.com>, 
- "Liam R. Howlett" <liam@infradead.org>, Nico Pache <nico.pache@linux.dev>, 
- Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
- Barry Song <baohua@kernel.org>, Lance Yang <lance.yang@linux.dev>, 
- Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
- Guo Ren <guoren@kernel.org>, Brian Cain <bcain@kernel.org>, 
- Geert Uytterhoeven <geert@linux-m68k.org>, 
- Dinh Nguyen <dinguyen@kernel.org>, 
- Simon Schuster <schuster.simon@siemens-energy.com>, 
- Jonas Bonn <jonas@southpole.se>, 
- Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, 
- Stafford Horne <shorne@gmail.com>, Rich Felker <dalias@libc.org>, 
- John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
- Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
- Russell King <linux@armlinux.org.uk>, Vineet Gupta <vgupta@kernel.org>, 
- Michal Simek <monstr@monstr.eu>, Chris Zankel <chris@zankel.net>, 
- Max Filippov <jcmvbkbc@gmail.com>, Will Deacon <will@kernel.org>, 
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
- Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
- "David S. Miller" <davem@davemloft.net>, 
- Andreas Larsson <andreas@gaisler.com>, 
- Richard Henderson <richard.henderson@linaro.org>, 
- Matt Turner <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>, 
- Catalin Marinas <catalin.marinas@arm.com>, 
- Mark Rutland <mark.rutland@arm.com>, Huacai Chen <chenhuacai@kernel.org>, 
- WANG Xuerui <kernel@xen0n.name>, 
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, 
- Helge Deller <deller@gmx.de>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
- Michael Ellerman <mpe@ellerman.id.au>, 
- "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, 
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
- Alexander Gordeev <agordeev@linux.ibm.com>, 
- Christian Borntraeger <borntraeger@linux.ibm.com>, 
- Sven Schnelle <svens@linux.ibm.com>, Richard Weinberger <richard@nod.at>, 
- Anton Ivanov <anton.ivanov@cambridgegreys.com>, 
- Johannes Berg <johannes@sipsolutions.net>, 
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
- Arnd Bergmann <arnd@arndb.de>, Vlastimil Babka <vbabka@kernel.org>, 
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
- Michal Hocko <mhocko@suse.com>, Jason Gunthorpe <jgg@ziepe.ca>, 
- John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
- Yoshinori Sato <ysato@users.sourceforge.jp>, 
- Shakeel Butt <shakeel.butt@linux.dev>, Jonathan Corbet <corbet@lwn.net>, 
- Randy Dunlap <rdunlap@infradead.org>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
- linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, 
- linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org, 
- linux-sh@vger.kernel.org, linux-riscv@lists.infradead.org, 
- linux-arm-kernel@lists.infradead.org, linux-snps-arc@lists.infradead.org, 
- linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, 
- linux-alpha@vger.kernel.org, loongarch@lists.linux.dev, 
- linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, 
- linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, 
- linux-um@lists.infradead.org, Hugh Dickins <hughd@google.com>, 
- Qi Zheng <qi.zheng@linux.dev>, linux-doc@vger.kernel.org, 
- "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3600; i=ljs@kernel.org;
- h=from:subject:message-id; bh=PnRbJJLEs7BWuuMfKr3yc/Hi0NQ6wkh885+GUnZfEK0=;
- b=owGbwMvMwCV2fu7ZrsZH9SKMp9WSGLK2XeWINjBRU37zm32Wbs8P7izmFYt4L0/ebb5Vs/hB2
- tO/W64wdZSyMIhxMciKKbI8/yK+P0gkbF7nBX83mDmsTCBDGLg4BWAifF6MDJePGHHv6hU8Ze44
- 1fzZijY7DVWGH3IB127aH/2f7sG2wYThN6uth35MleD6POFM1mvnpzi7vDeUYklY/u9rioI45/d
- 9/AA=
-X-Developer-Key: i=ljs@kernel.org; a=openpgp;
- fpr=E7F417BF5214569E89D04F46CF9DCD8A81E27F14
+References: <20260923-dd-cmap-part2-clean-v11-0-9b6c217fdf2f@gmail.com> <20260923155339.bdc677e8e688611bcf190ad9@linux-foundation.org>
+In-Reply-To: <20260923155339.bdc677e8e688611bcf190ad9@linux-foundation.org>
+From: jim.cromie@gmail.com
+Date: Fri, 25 Sep 2026 14:30:54 -0600
+X-Gm-Features: AclHuK81aQy7pcphOyoCN0Cv4efDR1k93Uxkj909m52hc-_PgnQGdKhUE2sknH8
+Message-ID: <CAJfuBxxd8hMf0OcnOK+w-QyizaKY=WA4VL+fyoD3y6EsHW1+og@mail.gmail.com>
+Subject: Re: [PATCH v11 00/38] dyndbg: Fix classmaps API for subsystems, query
+ extensions, selftests
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
+	Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard <mripard@kernel.org>, 
+	Thomas Zimmermann <tzimmermann@suse.de>, David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+	Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
+	Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, 
+	Aaron Tomlin <atomlin@atomlin.com>, Jonathan Corbet <corbet@net.net>, 
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Nathan Chancellor <nathan@kernel.org>, 
+	Nicolas Schier <nsc@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, 
+	Randy Dunlap <rdunlap@infradead.org>, "Rafael J. Wysocki" <rafael@kernel.org>, 
+	Pavel Machek <pavel@kernel.org>, Len Brown <lenb@kernel.org>, Jonathan Corbet <corbet@lwn.net>, 
+	Petr Mladek <pmladek@suse.com>, Steven Rostedt <rostedt@goodmis.org>, 
+	John Ogness <john.ogness@linutronix.de>, Sergey Senozhatsky <senozhatsky@chromium.org>, 
+	linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, 
+	dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, 
+	linux-modules@vger.kernel.org, linux-doc@vger.kernel.org, 
+	linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
+	Louis Chauvet <louis.chauvet@bootlin.com>, Philipp Hahn <phahn-oss@avm.de>, 
+	kernel test robot <lkp@intel.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Now that page tables are freed after an RCU grace period, it is safe for
-read-only page table walkers to walk page table ranges that are being
-concurrently torn down, provided the mm is kept alive via mmgrab().
+On Wed, Sep 23, 2026 at 4:53=E2=80=AFPM Andrew Morton <akpm@linux-foundatio=
+n.org> wrote:
+>
+> On Wed, 23 Sep 2026 16:34:24 -0600 Jim Cromie <jim.cromie@gmail.com> wrot=
+e:
+>
+> > The drm subsystem has *lots* of debug statements, in 11 categories:
+> >
+> >  $> git grep '\w*_dbg' drivers/gpu/drm/ | wc
+> >    5663   30159  542864
+>
+> Methinks this regexp was overly promiscuous, but point taken.
+>
+> >  $> git grep 'DRM_DEBUG\w*' drivers/gpu/drm/ | wc
+> >    2206   12834  202332
+> >
+> > All of these are bit-tests on __drm_debug, exposed to users as
+> > /sys/module/drm/parameters/debug. Many of these are done often;
+> > vblank is done ~100/sec for some displays. Over the uptime of many
+> > boxes, this is a lot of cpu cycles on bits that are almost always off.
+>
+> A __test_bit (or |) every 10ms sounds quite negligible?
+>
+> Especially if __drm_debug is __read_mostly.  Which it isn't, afaict.
+> Um, low-hanging fruit?
+>
 
-It is however unsafe for writers to do so, as they must obtain an
-appropriate lock to do so safely.
+__drm_debug certainly qualifies.
+I will send the patch, separately.
 
-Update the pte_offset_map_lock()'s comment block to reflect this.
+patch 37 adds a +c flag, to count invocations of flagged callsites
+it counted 5M calls in 60 sec.  or 83 KHz.
+That seems "fast-ish" at least,
+perhaps worthy of a static-key over a __read_mostly
 
-Similarly update the process addresses documentation.
 
-Acked-by: Kiryl Shutsemau (Meta) <kas@kernel.org>
-Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
----
- Documentation/mm/process_addrs.rst | 11 +++++++++++
- mm/pgtable-generic.c               | 15 +++++++++++----
- 2 files changed, 22 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/mm/process_addrs.rst b/Documentation/mm/process_addrs.rst
-index a7296f251799..78231995e490 100644
---- a/Documentation/mm/process_addrs.rst
-+++ b/Documentation/mm/process_addrs.rst
-@@ -537,6 +537,17 @@ We establish basic locking rules when interacting with page tables:
- * When changing a page table entry the page table lock for that page table
-   **must** be held, except if you can safely assume nobody can access the page
-   tables concurrently (such as on invocation of :c:func:`!free_pgtables`).
-+* Page tables may be *walked* under RCU alone, as page tables are freed only
-+  after an RCU grace period has elapsed. However, any entry found must be
-+  revalidated after the page table lock is taken (such as the
-+  :c:func:`!pmd_same` recheck performed by :c:func:`!pte_offset_map_lock`)
-+  before it is acted upon. Changing an entry requires the page table lock
-+  and one of the locks that excludes teardown (any one of the mmap, VMA or
-+  rmap locks).
-+* When traversing page tables under RCU alone it is important to take care
-+  when operating upon leaf entries - if the value is operated upon (for
-+  instance getting the folio associated with a PTE) an appropriate lock must
-+  be taken to prevent concurrent modification.
- * Reads from and writes to page table entries must be *appropriately*
-   atomic. See the section on atomicity below for details.
- * Populating previously empty entries requires that the mmap or VMA locks are
-diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index b91b1a98029c..a127e3e8f9b9 100644
---- a/mm/pgtable-generic.c
-+++ b/mm/pgtable-generic.c
-@@ -385,10 +385,17 @@ pte_t *pte_offset_map_rw_nolock(struct mm_struct *mm, pmd_t *pmd,
-  * Note: "RO" / "RW" expresses the intended semantics, not that the *kmap* will
-  * be read-only/read-write protected.
-  *
-- * Note that free_pgtables(), used after unmapping detached vmas, or when
-- * exiting the whole mm, does not take page table lock before freeing a page
-- * table, and may not use RCU at all: "outsiders" like khugepaged should avoid
-- * pte_offset_map() and co once the vma is detached from mm or mm_users is zero.
-+ * Note that free_pgtables(), used after unmapping detached vmas or when exiting
-+ * the whole mm, does not take a page table lock before freeing a page table.
-+ *
-+ * As page table freeing itself is RCU-safe, page table readers can safely run
-+ * concurrently with page table teardown.
-+ *
-+ * However, writers CANNOT as, without a lock being held, nothing prevents
-+ * concurrent teardown.
-+ *
-+ * Also note that the PGD itself is freed at mmdrop() time, not under RCU - so
-+ * the walker must keep the mm alive either by pinning the mm or the VMA.
-  */
- pte_t *pte_offset_map_lock(struct mm_struct *mm, pmd_t *pmd,
- 			   unsigned long addr, spinlock_t **ptlp)
+> > Dynamic-debug excels at replacing such tests with NOOPs (via static
+> > keys). Classmaps was devised to bring that 0-off-cost to drm's
+> > categories.
+> >
+> > Classmaps-v1 went into the kernel in Sept 2022, in 2 chunks:
+> >   b7b4eebdba7b..6ea3bf466ac6    # core dyndbg changes
+> >   0406faf25fb1..ee7d633f2dfb    # drm adoption
+> >
+> > Sadly DRM-CI found a regression during init with drm.debug=3D<initval>;
+> > the static-keys underneath the drm-dbgs in drm.ko got enabled, but
+> > those in drivers & helpers did not.
+> >
+> > So in Feb 2023, it got pulled:
+> > commit bb2ff6c27bc9 ("drm: Disable dynamic debug as broken")
+> >
+> > Root Problem:
+> >
+> > DECLARE_DYNDBG_CLASSMAP defined the classmap, but its repeated use in
+> > both core and drivers violated a K&R rule "define once, refer
+> > afterwards". This flaw resulted in a regression; with drm.debug=3D0xFF
+> > boot arg, drm-core got enabled, but drivers/helpers did not.
+> >
+> > This patchset replaces DECLARE_DYNDBG_CLASSMAP with:
+> > - DYNAMIC_DEBUG_CLASSMAP_DEFINE (invoked once in the exporting module)
+> > - DYNAMIC_DEBUG_CLASSMAP_USE (invoked repeatedly in drivers & helpers)
+> >
+> > _DEFINE exports the classmap it creates (in drm.ko), and other modules
+> > _USE the classmap. The _USE adds a record referencing the _DEFINEd (&
+> > exported) classmap in a 2nd __dyndbg_class_users section.
+> >
+> > At modprobe, dyndbg scans the new section after __dyndbg_class_maps,
+> > follows the linkage to the _DEFINEr module, finds the (optional)
+> > kernel-param controlling the classmap, examines its drm.debug=3D<initva=
+l>,
+> > and applies it to the module being initialized.
+> >
+> > To recapitulate the multi-module problem wo DRM involvement, we add:
+> >
+> > - tools/testing/selftests/dynamic_debug/dyndbg_selftest.sh:
+> >   Alters pr_debugs in builtins and test modules,
+> >   checks results against checksums of expected results
+> >
+> > - lib/test_dynamic_debug.c & test_dynamic_debug_submod.c:
+> >   Builds parent & _submod modules with _DEFINE and _USE inside #if/#els=
+e
+> >   blocks, reproducing the 2-module scenario under selftests.
+>
+> So what I'm understanding is that this series presently has no effect
+> upon DRM?
 
--- 
-2.55.0
+I have 2-3 DRM adaptation patches,
+then a single 1-liner patch per driver,
+to get DRM using the new API.
 
+39 patches seemed big enough for now,
+if you'd like the rest tacked on, Im happy to do so.
+
+
+> What subsystems *does* it affect?
+
+
+
+>
+> Sashiko had quite a bit to say.  It hasn't quite completed at present.
+>         https://sashiko.dev/#/patchset/20260923-dd-cmap-part2-clean-v11-0=
+-9b6c217fdf2f@gmail.com
