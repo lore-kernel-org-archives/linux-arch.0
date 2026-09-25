@@ -1,271 +1,162 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm2-f12.google.com (mail-wm2-f12.google.com [74.125.225.140])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B473C47C10B;
-	Fri, 25 Sep 2026 09:13:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D13F8481233
+	for <linux-arch@vger.kernel.org>; Fri, 25 Sep 2026 09:28:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790327603; cv=none; b=ufAi36bI2WKzbCs9M2pYVB9XZy3C7k5gRxmjHgMUAZoiCxXM0/6R84sYnllDGSUq5TzZi3ow5dZK4TSlWNjJdnC5Mk0SL5fVJ0k7VEglVHEt6Vr1ehWFEe8TrWo/+hXFjYHiuxS8Ap3HRe69asyX3WA1BC44T6EPC8mS3N3Muuw=
+	t=1790328492; cv=none; b=bOQvR99EPZ+WZghOUyr2BcAqQS6gicjLytDop7KnNZahNuRaqsh62LSMcZLGRVukLssdc53LLaDgs4gcrtH108TPk7yvxTlcuZ2qDF04BhLGLun02wXl+vMUgqg0nKvz9cJCqMljoFSyvNIpjDMJjqE2stKyKldyJGdalm9xz+M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790327603; c=relaxed/simple;
-	bh=Tk8lnLCIykMhwm4FM62K4d7d7QJOAD1dpQSl1O/g2h4=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=BMuTZigNeyXY/MMRlXWwpVhOMZOOi8C7EA4/h615K5aeMjPdPGqKPC+T/5cryzp/VTJ9d0VGzrgfBuMgfLPrLYRWHn9B5xbeyD+F14wIWdlIXLTBnsVxYVZFMjgzHcjBtbeSH9e4cj/51QQprRD4r4+8O+qccaR/RWw2zv10Pbw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=K2qi0Whp; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1790328492; c=relaxed/simple;
+	bh=RyhPOU+vvqd3rl1UlRjckMuKAfbjLaCIW52sS+yfk0s=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=ag7AHQe9+M25v6N0Y1ieoP5mLNz+iDaJuaN3bfdZynyXFKzDfSB/ZDO+pOcZ+ALI8YFSsJlppN11QORTTbpojVnmPPky/5KkB+GZtda5ZLgWeIt2tBKBFAnAiSMt3hMWeFIv+Qwo6T6UDYSVSXDe3tWQIh6hpeHSncBkJGpUMvw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=YCaa5B8/; arc=none smtp.client-ip=74.125.225.140
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="K2qi0Whp"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 00A0E1F000FF;
-	Fri, 25 Sep 2026 09:12:52 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1790327601;
-	bh=yfSL2ku4OKsR1ZwNLU9aq+Cv4BSlDAV3gm6yCuANvXg=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=K2qi0Whp5/6TRdhA6MhlGYRilQhTQ8jPlG08QvTUUmQwkWOHWgmSx5AdhFTFi0qw/
-	 r4+3OumzOouGc7txXhbbk80xasHy05dho7/yw8n5cfGkWIhweFLORuSQD6wUTgF3bF
-	 dlK10/x8cBD+DlIEYdpY/JpYJifQA5N4twHg7jDXzl6B1XyEXIXzNDQx16+MJsnNtN
-	 sTXe6Jh9EmnWLdP4R1YQtEnnOP8lnDSORnscuubhZoG/xGcNI3ROCCX9s0YjPIJIxI
-	 MdK5fq25MLwiukRwd6j6BdAO4Z4mjaXg/lCXJQXPIaGguKLjAmtHiggDOa9mUzFR4Z
-	 ur0MJU3/gDHOA==
-Date: Fri, 25 Sep 2026 10:12:50 +0100
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: "Liam R. Howlett" <liam@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	Vlastimil Babka <vbabka@kernel.org>, Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
-	David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
-	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Jonathan Corbet <corbet@lwn.net>, 
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, 
-	Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
-	Paul Moore <paul@paul-moore.com>, Stephen Smalley <stephen.smalley.work@gmail.com>, 
-	Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, 
-	Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
-	Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
-	Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
-	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
-	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
-	Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
-	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, "Martin K. Petersen" <mkp@kernel.org>, 
-	Jaya Kumar <jayalk@intworks.biz>, Simona Vetter <simona@ffwll.ch>, Helge Deller <deller@gmx.de>, 
-	Sebastian Reichel <sre@kernel.org>, John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Arnaldo Carvalho de Melo <acme@kernel.org>, 
-	Namhyung Kim <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
-	Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, Juri Lelli <juri.lelli@redhat.com>, 
-	Vincent Guittot <vincent.guittot@linaro.org>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
-	Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
-	David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, 
-	Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Marc Zyngier <maz@kernel.org>, 
-	Oliver Upton <oupton@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, 
-	Madhavan Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, Paul Walmsley <pjw@kernel.org>, 
-	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
-	Christian Borntraeger <borntraeger@linux.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, 
-	Claudio Imbrenda <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
-	Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Heiko Carstens <hca@linux.ibm.com>, 
-	Vasily Gorbik <gor@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, 
-	Andreas Larsson <andreas@gaisler.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Christian Brauner <brauner@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, Byungchul Park <byungchul@sk.com>, 
-	Gregory Price <gourry@gourry.net>, Ying Huang <ying.huang@linux.alibaba.com>, 
-	Alistair Popple <apopple@nvidia.com>, Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
-	Youngjun Park <youngjun.park@lge.com>, Johannes Weiner <hannes@cmpxchg.org>, 
-	Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
-	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
-	Chengming Zhou <chengming.zhou@linux.dev>, Michal Hocko <mhocko@kernel.org>, 
-	Miklos Szeredi <miklos@szeredi.hu>, Xu Xin <xu.xin@linux.dev>, linux-mm@kvack.org, 
-	linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
-	linux-rdma@vger.kernel.org, selinux@vger.kernel.org, linux-sound@vger.kernel.org, 
-	bpf@vger.kernel.org, linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
-	dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
-	linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, 
-	kvm@vger.kernel.org, kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
-	linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, fuse-devel@lists.linux.dev
-Subject: Re: [PATCH v3 01/40] mm/vma: fix mmap_prepare file handling, remove
- file_doesnt_need_get
-Message-ID: <arY3xqkPCgZj3IVD@gremlin>
-References: <20260917-b4-mmap-prepare-vma-flag-sanify-v3-0-4583d8a23bca@kernel.org>
- <20260917-b4-mmap-prepare-vma-flag-sanify-v3-1-4583d8a23bca@kernel.org>
- <qpkcjtl5jbip46zxcpyogsk4phmhetfvrvgftxhsxlbxjhucnn@h3a64dfoxcmj>
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="YCaa5B8/"
+Received: by mail-wm2-f12.google.com with SMTP id 5b1f17b1804b1-49e66390995so3959665e9.2
+        for <linux-arch@vger.kernel.org>; Fri, 25 Sep 2026 02:28:09 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1790328488; x=1790933288; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=GuAasn6M17RraKJz85D0VGepUYYLmKKd6LjzFHjVWiA=;
+        b=YCaa5B8/bbraaj9MXbfcKga+R1L3Oy53Dlm+QLJ9PluOw2HJuSZ4RD0OUgpEKjEDys
+         1iIjGIzlaLXJl+fJzhD4jsJKpX5ftjb/LWFjKjNSvN0uwzojBFSmYZYw1vDOyCInGbUe
+         d5kHIKVqyg3wLnQ6C0VSNz7g/+iaP/c5K3E5bSPY0TEFeHNVg4IhHe4Q2p8E6MzsC8dT
+         n8na7+M39OVdS6Nak1AG1EpnfI6rPQBVhwmwML6M8v349eGyR3HHS2N8OshqSNp6V+WE
+         IUEAemD4YTNyORvF5Su0LA+6HBShR5Rw8n06UjjwBYuJSJyZ6FP2VmqYggRcG9WSYKNN
+         nCKg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1790328488; x=1790933288;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=GuAasn6M17RraKJz85D0VGepUYYLmKKd6LjzFHjVWiA=;
+        b=o+q4ga8WcZxpVmSIHtchBrdAzu3fsi83Gi1UfQZM541aOZJYHOgijEcgeESMl1SZkX
+         HIHSC/ueXkn0vHmPg9DMUqK3eYI7HeZUanNjNDYDSAuqAVEY+ebLWiGN6ZyAOzUtqh60
+         D1v3ISyNO7DudPJ0T+DPHPH/DZi2nTfJZI9pW5CV7/gHkVVH3TLr/1EdyoBdxx6bZKDk
+         hFNJ6jiKD1iirMeFCvBar2xB1sWMRXqrwpEm0D2wEyhDyykJzGgkkFnpYAfyNjzeS8bb
+         G5UVG+8NKg3dje8WApSD9IuEpXe1oNPBAPWCPftm6vlrZXTlV094L114HOyEZPneSCys
+         w6aQ==
+X-Forwarded-Encrypted: i=1; AKwUvBw4Yf3Uk8/F34wyIWNoM/+rgbXkMS6xLG7MzIAno6xu8ZG61mgfKOJmL7kiviDT26yTNfKFmtxQA0/a@vger.kernel.org
+X-Gm-Message-State: AFuF++mAfMo+eu4NGtA5xSjWke73pcFEr+gNdSddMgjvmT9AVtfC8kfl
+	JxJGu/U9WfrQ1kukUESSh0BnI4VNMs978D16AtrzZ592qRi9uC87V8llHDD2YCkGejY=
+X-Gm-Gg: AYBFou1ZzgFp0VeMrev/GUzV4QQpZOuAiG+rkeJcWMw8tTljvGvNCYzxgGtZmJUMeI1
+	lfPMc4/HJSlBZU3s+YxWlQZTIFi8TdOHNiXnZOFCk7Eq9r4Cf2vw3OjbB8+rI1/ieLrLebdagB2
+	Tysgs4uyk5H11IGUWfEmApnOrZ91Tx5KjRr7h5m83ukaezfTnn6PAMc1NvSEaM8Qcnq0WVm1Je8
+	7RN30TJdZKo7N6zDL/74B9e6h2UREPSzS0s3t1f/myFPkpmpzRNClb2YkU0GjMrjS4LtZ1Snm79
+	Mt6KPIKU74rpu8eGS18UGMv6tI+9/72yT229Y0hMvKyp8/xedtn7QaLPpT5I7IEiTfIb8+7kurP
+	mycWtm2R8SLDTqnZm/Z1H7IIhT++pwPJKXEq/AnqckhfnAyQhYNm5LnC+VWXGlFSCbjDiU6rBJa
+	AN0EvpkAne823SMqEB8IMKRO2d158LkpFwPeU2xM2L/7VpE2LTLBDQmgoNSyqsmoi0J+KR2z5eK
+	WDL3zc0SaFpScDweB0rg0magLUbxJn42MjYZ3XV6Zpuhg==
+X-Received: by 2002:a05:600c:19cd:b0:49d:2536:402e with SMTP id 5b1f17b1804b1-49ff06f7a45mr28683465e9.30.1790328488006;
+        Fri, 25 Sep 2026 02:28:08 -0700 (PDT)
+Received: from ?IPV6:2a07:de40:8100:0:89a9:fd0e:583d:4a53? ([2001:af0:8000:1409:193:86:92:181])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49fee6ced69sm37140085e9.0.2026.09.25.02.28.06
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 25 Sep 2026 02:28:07 -0700 (PDT)
+Message-ID: <f1d25d13-4adb-428a-805d-d3e19cf1013b@suse.com>
+Date: Fri, 25 Sep 2026 11:28:06 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <qpkcjtl5jbip46zxcpyogsk4phmhetfvrvgftxhsxlbxjhucnn@h3a64dfoxcmj>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v11 20/38] dyndbg,module: make proper substructs in
+ _ddebug_info
+To: Jim Cromie <jim.cromie@gmail.com>
+Cc: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>,
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>,
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
+ Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
+ Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>,
+ Aaron Tomlin <atomlin@atomlin.com>, Jonathan Corbet <corbet@net.net>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
+ Shuah Khan <skhan@linuxfoundation.org>, Randy Dunlap
+ <rdunlap@infradead.org>, "Rafael J. Wysocki" <rafael@kernel.org>,
+ Pavel Machek <pavel@kernel.org>, Len Brown <lenb@kernel.org>,
+ Jonathan Corbet <corbet@lwn.net>, Petr Mladek <pmladek@suse.com>,
+ Steven Rostedt <rostedt@goodmis.org>, John Ogness
+ <john.ogness@linutronix.de>, Sergey Senozhatsky <senozhatsky@chromium.org>,
+ linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org,
+ linux-modules@vger.kernel.org, linux-doc@vger.kernel.org,
+ linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org,
+ Louis Chauvet <louis.chauvet@bootlin.com>
+References: <20260923-dd-cmap-part2-clean-v11-0-9b6c217fdf2f@gmail.com>
+ <20260923-dd-cmap-part2-clean-v11-20-9b6c217fdf2f@gmail.com>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260923-dd-cmap-part2-clean-v11-20-9b6c217fdf2f@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-(forgive my possibly semi-broken efforts to trim the mail)
+On 9/24/26 12:34 AM, Jim Cromie wrote:
+> recompose struct _ddebug_info, inserting proper sub-structs.
+> 
+> The struct _ddebug_info has 2 pairs of _vec, num_##_vec fields, for
+> descs and classes respectively.  for_subvec() makes walking these
+> vectors less cumbersome, now lets move those field pairs into their
+> own "vec" structs: _ddebug_descs & _ddebug_class_maps, and re-compose
+> struct _ddebug_info to contain them cleanly.  This also lets us get
+> rid of for_subvec()'s num_##_vec paste-up.
+> 
+> Also recompose struct ddebug_table to contain a _ddebug_info.  This
+> reinforces _ddebug_info's use as a cursor into relevant data for a
+> builtin module, and access to the full _ddebug state for modules.
+> 
+> NOTES:
+> 
+> rename section:__dyndbg_classes to _class_maps, to better align with
+> struct _ddebug_class_maps.
+> 
+> names together, for more obvious name pairing.
+> 
+> Invariant: These vectors ref a contiguous subrange of __section memory
+> in builtin/DATA or in loadable modules via mod->dyndbg_info; with
+> guaranteed life-time for us.
+> 
+> struct module contains a _ddebug_info field and module/main.c sets it
+> up, so that gets adjusted rather obviously.
+> 
+> Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+> Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
+> ---
+> v8: set maps.len = nc unconditionally
+> v3: squash in section name changes.
+> 
+> v2:
+> 
+> Move RvB after SoB
+> In structs _ddebug_descs & _ddebug_class_maps, change int length to unsigned int
+> No use of <0 vals is contemplated.
+> 
+> dyndbg: improve section names
+> 
+> change __dyndbg to __dyndbg_descs
+> change __dyndbg_classes to __dyndbg_class_maps
+> 
+> this sets up for adding __dyndbg_class_users
+> 
+> fixup-drmprint
+> ---
+>  include/asm-generic/dyndbg.lds.h |  14 +++---
+>  include/linux/dynamic_debug.h    |  34 ++++++++-----
+>  kernel/module/main.c             |  12 ++---
+>  lib/dynamic_debug.c              | 101 +++++++++++++++++++--------------------
+>  4 files changed, 86 insertions(+), 75 deletions(-)
 
-On Thu, Sep 24, 2026 at 03:00:44PM -0400, Liam R. Howlett wrote:
-> On 26/09/17 05:22PM, Lorenzo Stoakes (ARM) wrote:
+Acked-by: Petr Pavlu <petr.pavlu@suse.com> # modules
 
-> > diff --git a/mm/internal.h b/mm/internal.h
-> > index 0dca33db068f..fe576d468af4 100644
-> > --- a/mm/internal.h
-> > +++ b/mm/internal.h
-> > @@ -7,6 +7,7 @@
-> >  #ifndef __MM_INTERNAL_H
-> >  #define __MM_INTERNAL_H
-> >
-> > +#include <linux/file.h>
-> >  #include <linux/fs.h>
-> >  #include <linux/khugepaged.h>
-> >  #include <linux/mm.h>
-> > diff --git a/mm/util.c b/mm/util.c
-> > index bf0513d1d3d0..016932780925 100644
-> > --- a/mm/util.c
-> > +++ b/mm/util.c
-> > @@ -1228,8 +1228,11 @@ int __compat_vma_mmap(struct vm_area_desc *desc,
-> >
-> >  	/* Perform any preparatory tasks for mmap action. */
-> >  	err = mmap_action_prepare(desc);
-> > -	if (err)
-> > +	if (err) {
-> > +		if (desc->vm_file != vma->vm_file)
-> > +			fput(desc->vm_file);
-> >  		return err;
-> > +	}
-> >  	/* Update the VMA from the descriptor. */
-> >  	compat_set_vma_from_desc(vma, desc);
-> >  	/* Complete any specified mmap actions. */
-> > diff --git a/mm/vma.c b/mm/vma.c
-> > index 55917d097933..fa784f069da4 100644
-> > --- a/mm/vma.c
-> > +++ b/mm/vma.c
-> > @@ -24,7 +24,8 @@ struct mmap_state {
-> >  		vm_flags_t vm_flags;
-> >  		vma_flags_t vma_flags;
-> >  	};
-> > -	struct file *file;
-> > +	struct file *file;	/* mmap()-specified file. */
->
-> I guess renaming file to mmaped_file would be a lot more changes.
-
-Yeah :) and want to keep things sync'd with vm_area_desc.
-
-Can always obviously follow up later with renames sync'd across both.
-
-<snip>
-
-> >  static int __mmap_new_file_vma(struct mmap_state *map,
-> >  			       struct vm_area_struct *vma)
-> > @@ -2593,20 +2597,23 @@ static int __mmap_new_file_vma(struct mmap_state *map,
-> >  	struct vma_iterator *vmi = map->vmi;
-> >  	int error;
-> >
-> > -	vma->vm_file = map->file;
-> > -	if (!map->file_doesnt_need_get)
-> > -		get_file(map->file);
-> > +	vma->vm_file = map->vm_file;
-> > +	if (map_same_file(map))
-> > +		get_file(map->vm_file);
-> >
-> > -	if (!map->file->f_op->mmap)
-> > +	if (!map->vm_file->f_op->mmap)
-> >  		return 0;
-> >
-> >  	error = mmap_file(vma->vm_file, vma);
-> > +	map->vm_file = vma->vm_file;
-> > +
->
-> You set vma->vm_file to map->vm_file unconditionally above, is this
-> necessary?
-
-Yeah, because the mmap hook can change vma->vm_file, and this is necessary
-for the correct file refcount accounting.
-
-The accounting is actually very tricky, because the file that was passed
-via mmap() is fput() after the operation is done but if its swapped then
-you have to make sure everything works out correctly on both error and
-success paths.
-
-Which this patch does (with a lot of AI review checking to make sure it's
-not broken! FWIW)
-
-<snip>
-
-> > @@ -2688,7 +2694,7 @@ static int __mmap_new_vma(struct mmap_state *map, struct vm_area_struct **vmap,
-> >  	}
-> >
-> >  	/* Invoke callbacks. */
-> > -	if (map->file)
-> > +	if (map->vm_file)
-> >  		error = __mmap_new_file_vma(map, vma);
-> >  	else if (!is_anon)
-> >  		error = shmem_zero_setup(vma);
-> > @@ -2797,11 +2803,15 @@ static int call_mmap_prepare(struct mmap_state *map,
-> >  	int err;
-> >
-> >  	/* Invoke the hook. */
-> > -	err = vfs_mmap_prepare(map->file, desc);
-> > +	err = vfs_mmap_prepare(map->vm_file, desc);
-> >  	if (err)
-> >  		return err;
-> >
-> > -	/* It's invalid for mmap_preprare hooks to clear vm_ops. */
-> > +	/* Update first so file refcount tracked correctly. */
-> > +	if (desc->vm_file != map->vm_file)
-> > +		map->vm_file = desc->vm_file;
-> > +
-> > +	/* It's invalid for mmap_prepare hooks to clear vm_ops. */
->
-> The less rare of prepare ;)
-
-Haha 'It's a rare prepare that would dare' is what I'd LIKE to put here as a
-comment but probably can't :P
-
-<snip>
-
-> > +static void put_map(struct mmap_state *map)
->
->
-> I like the put_map_file() instead, like Suren suggested.. but maybe
-> put_map_vm_file(), especially since it could be read as put to the file
-> pointer instead of vm_file.
-
-Ack, and of course to bikeshed it a bit :P maybe map_put_vm_file() so the
-'put vm_file' bit is clearer?
-
-<snip>
-
-> > diff --git a/mm/vma.h b/mm/vma.h
-> > index e97bd2dfa786..f15faa83f3d6 100644
-> > --- a/mm/vma.h
-> > +++ b/mm/vma.h
-> > @@ -394,8 +394,10 @@ static inline void compat_set_vma_from_desc(struct vm_area_struct *vma,
-> >
-> >  	/* Mutable fields. Populated with initial state. */
-> >  	vma_set_pgoff(vma, desc->pgoff);
-> > -	if (desc->vm_file != vma->vm_file)
-> > -		vma_set_file(vma, desc->vm_file);
-> > +	if (desc->vm_file != vma->vm_file) {
-> > +		fput(vma->vm_file);
-> > +		vma->vm_file = desc->vm_file;
->
-> This isn't going to be racy somehow, right?
-
-No, at this point the VMA write lock is held and everything should be
-pinned correctly.
-
-The vma_set_file() dance was the problematic bit here as it didn't
-handle the file refcount properly.
-
->
-> > +	}
-> >  	vma->flags = desc->vma_flags;
-> >  	vma->vm_page_prot = desc->page_prot;
-> >
-> >
-> > --
-> > 2.55.0
-> >
-
---
-Cheers, Lorenzo
+-- Petr
