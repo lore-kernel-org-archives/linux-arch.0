@@ -1,237 +1,268 @@
-Received: from flow-a3-smtp.messagingengine.com (flow-a3-smtp.messagingengine.com [103.168.172.138])
+Received: from SJ2PR03CU001.outbound.protection.outlook.com (mail-westusazon11012027.outbound.protection.outlook.com [52.101.43.27])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1996A31E85B;
-	Sat, 26 Sep 2026 17:14:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.138
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790442891; cv=none; b=ikGqtDyotU4vLW1m0H2ZSA90ZHJD4lX/4QPHjebIl7PvkbNsltWobnO0xDyiheF4kGEEYviUQZNc0Sy9be9HZUD62SgxEM2GyMIJSCjlwL1rkYtI0myf3PkDl4SQkYERH1b7c0SofCRPFC8Ydnxc760/9pLbl1CPRwt1Y8Bd5Z4=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790442891; c=relaxed/simple;
-	bh=gojmdYDsD3StNnB/hDyqo1gXIHc8O8nZybk73It5oqU=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=nAA/WlIzbixDsH7/i+ccnmt0/NrHTEngYwj2+yPDdK2pqxFX41f+CdQ6dgIGCk0WoW+DK/WA/1QXux5IV93FXwqfilQbgWIHjWqi9pLE7dj/5aZrgTYV6Oh/zy3xlxursqdHeGkiOUugMQzB3Ewlbvq+0m8sgX9n5ZM3o7Zws/A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=ZVIK9Hxi; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=mwp84TFY; arc=none smtp.client-ip=103.168.172.138
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9BBD6392C3A;
+	Sat, 26 Sep 2026 18:27:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.43.27
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1790447264; cv=fail; b=agf/L1i93kYsTAmWBdvWjHaX2bcizLjPcR1RFTPfR50QfhwQvU84GeClEXjhPOdt/FwYYZmLJ1ShrpJoqg50PAWMnvhkp+Cxg2lUUqCHzCypuHyCXhjLKLHJEil0/SaFheddpIuuUQiPNB4+AYhUxA70xVrSJwQWRFolIddbsNU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1790447264; c=relaxed/simple;
+	bh=wq8/kwI/k6y6JYjcG2DndgCEdz4tPU/yxoOZR+ovrHk=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=GMZZl1OM7NbWWEf1T0N7tUJwL3DR3Pe4e1iTw3GkcGOKSzb7lu/QQylk1IP6OXggQfo5obYPkwfAOF3z3ZyzL1Wp517HTZJoP6PuLJdNRT1BaJrUD7PzQcP7HU8L2jFK3zCAB0zSqNbZbKiUm7iiXl1Rre7JG4bTpCQ7iZtAkDY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=C/3QEAyL; arc=fail smtp.client-ip=52.101.43.27
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="ZVIK9Hxi";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="mwp84TFY"
-Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
-	by mailflow.phl.internal (Postfix) with ESMTP id E9CEB13800A4;
-	Sat, 26 Sep 2026 13:14:44 -0400 (EDT)
-Received: from ams-imap-03 ([10.64.2.23])
-  by ams-compute-02.internal (MEProxy); Sat, 26 Sep 2026 13:14:47 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm1; t=1790442884;
-	 x=1790450084; bh=tGTq2YiYGuZgWk5ZY7JZMyWu45IuuL1ykMMcgPEJafg=; b=
-	ZVIK9Hxi8OmBYJD8gSQZXTgvlZ4ULwofUd3eHILARMayF90oSThQLlm5pu0l5+wO
-	EnQNPrQtmiNIZnGIwOhafr8jMDFrP3Dl7gTfjveAGlyclXfQN3BLKbYH82TnwGGE
-	LDHz+61nEQdNJ7Mm5sWNWenepLPKzpbtqHutP61oa4S7+XoKGpYriUTGoU0AgYuQ
-	9OTwRwbhibVgycEtR2pOCeqTs4FUfvkkls84aK/T+ibf6XDH5w7vKSNIGM7Ns4Te
-	135M6wCurb5eGsyT4wJmj9eSmNADUwntt12lTP3+ewZFA5Y2rk4HTFGRVv8Gm5J4
-	FYdUPsr/YYOVOuEmK403CA==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1790442884; x=
-	1790450084; bh=tGTq2YiYGuZgWk5ZY7JZMyWu45IuuL1ykMMcgPEJafg=; b=m
-	wp84TFYHlBmHy48WpU0OJv+UejeKBnb6WEhb5BMBbjPw/UCY7uqA+43EKIRDaLxu
-	G1ME4E65zZTTM83OGQxFYEaX8IjFcTplRfJNXnDCcf7M4LwptgYoomz5Pd8yjegu
-	vxxY9CLa8ktV+zIhtoRoAiwaeH8imBZgq5qItAjTqRNlGb0cSk9vAwm0npDwQJxc
-	ZBSOWP/LIH26Up0NfHDTJ2s5vjKd+KXmqqu3dQNyzUjNXLWwkQPUdw7wFwNq/2No
-	YsWwT9G3+rtA9dRodWihaGIftDwTqZDbktrxc69FY4uf2b4Ufj3bOnrmH4U90eCu
-	jkII0jgJplt+Ho3eCclLA==
-X-ME-Sender: <xms:ev23aphDb-V-DzcUvq0g2j4uWxVUXz288eL2VWYqofNWUqazGf5cSw>
-    <xme:ev23ao0ryaKlcNAnhIKgzAZfizI5zRmS9PD6pqUF6Jaoul6FnnmXFYB6KvX02iUGz
-    BZmE3RTt53azeiOlRWmgUZqFjlCoYZMFa8ew0yOEJBlTMonzQebK2g>
-X-ME-Proxy-Cause: dmFkZTFhx2cFFtNhkULYuqPvl8gGeJkM2fhMBUUfWVg74H8MxuoOHs6J8LEQB/SWwobSXF
-    cN3Bm393pJVl8n+wel7ooQQNi4RqB/GFQKqP4KFWek4N9ELRDdYFOjuVinSGdMSTiVarKs
-    4rOSnFGMqI3VdSxqJCmbjwz8JsjadS6g8WVg1FSsOASQL9qnvW06scsM7DdiXuQXSRvbp0
-    oc1rMfdDSdXjZDuQ4Flc3WgW80v1q7p36oNIX1c572OX8QvM44FF244YDOCuvYk1zcB+Fz
-    OcU5GlcEjMBRQT8ozzGGB17lMhu1hmoOmo2ETYbYqG7qYCuz/Gp8fIl3AA5CvGes553OYH
-    zOP0t/bzfIhWaCPZjluKxSSoXuDxxjcXX/Q8DMMxmDbQWJ9Fr5WThqDq2FLaU+SqnaJuCL
-    pkYbhniVBzMm7pvuYCl/qtichaoaEjJr59rIk6FGTSg9hy5MSJhlHhPKI2TiyHW60MEHdl
-    JWno9EOAuEBSzEKX+LMbGzYracPdYAHxU3uanBYFvpgh22w5H+sisOsx1bppU4jaCs1GSb
-    qD7s7IdOD1fMrVJxaXNIjxEhMdeQ0eT9oEzd23eeqQJ6pu7bYb2KG7Sxf3YtlsvQWzwwTb
-    DVHLWbQk3RKB8mG01KIcI+VKbYDfnxSRmys1tgvRg1CtY/krP0JQij7af/2Q
-X-ME-Proxy: <xmx:f_23asArcTC-7Q3MDdhePBo8lXV8z6QvAKpe9Ibzmll_nWXelxFyFw>
-    <xmx:f_23aqWfoDFHKQGVk2R1--3tsFeyYyFnrcejyjSEGK5MWrduS9Wguw>
-    <xmx:f_23am5ly-0659jMdrdtd-Lr7Biq-i6-UFjxRj9juHeAU_T69iDw6A>
-    <xmx:f_23amDnrd_P6v0UUP--vOzaHh9I4PDmquAxe_V0QS1vx9j31Ee7Dg>
-    <xmx:hP23akAE2wZVF6psZ3xKJ1lvcUYpihdEVBPR2JzpRxVK20H4-2HGjT2V>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.ams.internal (Postfix, from userid 501)
-	id 7CCAA32A0087; Sat, 26 Sep 2026 13:14:34 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="C/3QEAyL"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=nosdLy8nRUby5Ns2d3DeOrfyeQE9v42k0EeYwi3sxA6bNHOIy63raEhII3ZPTuzG2ASWQpIXWjASsA5UmkL+dpC2jtCo8UrZLy9OO4dwzB3Kd5kGESw4vXx+SkaFjpgb6j9CBV1eYq2CVRjJBmAX7qOlHLV9oS5NhlBzeAJ2SGr3lRF5W31vRxqXxHcx04dhw9c7gB7P4E4gLgIps1KuBG+sEvhqd4umccEeKb8RjQ3/wwtGGqYZvzHkGRqsIWs/osijajrPRGtIJx4do7T0V8immCEAE8NRhPHVbz3C0VODLgH/jeM9Skw0Yr77ThvzDMp1/QUYXeXy/z2/9HmT6w==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=aJsRb1/nw4q/dpsi/IT2Cexb4DylEARhC1JgpVcCMuA=;
+ b=HxOJu63San3DCKeC3TVCWUDFPrrJxRMqF0PlzH/esCG1OKkDI2FrvzfHZkJlb0WVT5F3KblaEECSDKkzewBlmavBAsSAFDUNPl9UiXsfNaa8O8Lf8PrB7PqKnWwgFelQAQNv4klTuoOSMyDQHxuJeJo6eI7eCHEKDUkZiyDEF7Am+uBx6VW7qppQb6PFjl6NcVktA/HHATf03PlU5nIBIdAqrnZpLDP/W4HTbcgPZ5JiZBCak/AyFzUzq3NmbFrTUeCBfKKQKV7cVtD61dDL2W9Y91XajeWx3Kl0cTd6HgUfe/dtsCJs9cIu/kV2mLV5TCL9ucb0SMcFkPzH5AauPw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=aJsRb1/nw4q/dpsi/IT2Cexb4DylEARhC1JgpVcCMuA=;
+ b=C/3QEAyLw7YN3p4mjp158Mo3XEDA6ZWcHsfOc63EdDbV2JR1FZLsCyBLqCIKYKRaWHWvJTH6RK7+s8bTLfQsXtTn7fLsSO2Of+pWa6oQ22itZr5Sg23sK9nEz591V49kC8lSN9vRTyLYkjwLnauhaUv9nI3CG11T/K1wwdqMJCyRWgz4gsdKxVVSQPHxT6jZd5X5mK27VKJd7OTUjyHwwG2Tqg9/xNgWKyVegv1nu2oE3I6sj38eZLERQuSAyh/y9xaC6clncTqRPvNNNL+7fjmKoG1qbL6wuq9Hgyb73BObFqbXF0XczqUopjQJY6FibAGFTLGzx1aeImTHo3iEkA==
+Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from CHBPR12MB731189.namprd12.prod.outlook.com
+ (2603:10b6:610:33d::12) by MW6PR12MB8868.namprd12.prod.outlook.com
+ (2603:10b6:303:242::20) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.451.18; Sat, 26 Sep
+ 2026 18:27:38 +0000
+Received: from CHBPR12MB731189.namprd12.prod.outlook.com
+ ([fe80::b0e5:123d:fe06:e10d]) by CHBPR12MB731189.namprd12.prod.outlook.com
+ ([fe80::b0e5:123d:fe06:e10d%6]) with mapi id 15.21.0451.014; Sat, 26 Sep 2026
+ 18:27:38 +0000
+Date: Sat, 26 Sep 2026 15:27:36 -0300
+From: Jason Gunthorpe <jgg@nvidia.com>
+To: Jonathan Cameron <jonathan.cameron@oss.qualcomm.com>
+Cc: Alexandre Ghiti <alex@ghiti.fr>, Albert Ou <aou@eecs.berkeley.edu>,
+	Ard Biesheuvel <ardb@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Jonathan Corbet <corbet@lwn.net>, David Sterba <dsterba@suse.com>,
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
+	linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	linux-doc@vger.kernel.org, linux-efi@vger.kernel.org,
+	linux-riscv@lists.infradead.org,
+	Mark Rutland <mark.rutland@arm.com>,
+	Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <pjw@kernel.org>,
+	Randy Dunlap <rdunlap@infradead.org>,
+	Simon Glass <sjg@chromium.org>,
+	Shuah Khan <skhan@linuxfoundation.org>,
+	Nick Terrell <terrelln@fb.com>, Will Deacon <will@kernel.org>,
+	Alexandre Ghiti <alexghiti@rivosinc.com>,
+	Conor Dooley <conor.dooley@microchip.com>,
+	linux-integrity@vger.kernel.org,
+	Palmer Dabbelt <palmer@rivosinc.com>, patches@lists.linux.dev,
+	Ross Philipson <ross.philipson@gmail.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Song Shuai <songshuaishuai@tinylab.org>,
+	Suzuki K Poulose <suzuki.poulose@arm.com>
+Subject: Re: [PATCH 12/16] arm64: drtm: Add macro definitions for DEN0113
+Message-ID: <20260926182736.GA473004@nvidia.com>
+References: <0-v1-27d06b313981+8b-arm64_drtm_jgg@nvidia.com>
+ <12-v1-27d06b313981+8b-arm64_drtm_jgg@nvidia.com>
+ <20260924172952.0000527e@oss.qualcomm.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260924172952.0000527e@oss.qualcomm.com>
+X-ClientProxiedBy: YT4P288CA0023.CANP288.PROD.OUTLOOK.COM
+ (2603:10b6:b01:d4::24) To CHBPR12MB731189.namprd12.prod.outlook.com
+ (2603:10b6:610:33d::12)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: AJwEWD5WPnhk
-Date: Sat, 26 Sep 2026 19:14:14 +0200
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Lorenzo Stoakes" <ljs@kernel.org>
-Cc: "Andrew Morton" <akpm@linux-foundation.org>,
- "Liam R. Howlett" <liam@infradead.org>,
- "Vlastimil Babka (SUSE)" <vbabka@kernel.org>,
- "Jann Horn" <jannh@google.com>, "Pedro Falcato" <pfalcato@suse.de>,
- "David Hildenbrand (Red Hat)" <david@kernel.org>,
- "Mike Rapoport" <rppt@kernel.org>,
- "Suren Baghdasaryan" <surenb@google.com>,
- "Michal Hocko" <mhocko@suse.com>, "Jonathan Corbet" <corbet@lwn.net>,
- "Greg Kroah-Hartman" <gregkh@linuxfoundation.org>,
- "Dennis Dalessandro" <dennis.dalessandro@cornelisnetworks.com>,
- "Jason Gunthorpe" <jgg@ziepe.ca>, "Leon Romanovsky" <leon@kernel.org>,
- "Paul Moore" <paul@paul-moore.com>,
- "Stephen Smalley" <stephen.smalley.work@gmail.com>,
- "Jaroslav Kysela" <perex@perex.cz>, "Takashi Iwai" <tiwai@suse.com>,
- "Alexei Starovoitov" <ast@kernel.org>,
- "Daniel Borkmann" <daniel@iogearbox.net>,
- "Andrii Nakryiko" <andrii@kernel.org>,
- "Eduard Zingerman" <eddyz87@gmail.com>,
- "Kumar Kartikeya Dwivedi" <memxor@gmail.com>, "Zi Yan" <ziy@nvidia.com>,
- "Baolin Wang" <baolin.wang@linux.alibaba.com>,
- "Nico Pache" <nico.pache@linux.dev>,
- "Ryan Roberts" <ryan.roberts@arm.com>, "Dev Jain" <dev.jain@arm.com>,
- "Barry Song" <baohua@kernel.org>, "Lance Yang" <lance.yang@linux.dev>,
- "Usama Arif" <usama.arif@linux.dev>,
- "Kirill A. Shutemov" <kas@kernel.org>,
- "Doug Gilbert" <dgilbert@interlog.com>,
- "James E . J . Bottomley" <James.Bottomley@hansenpartnership.com>,
- "Martin K. Petersen" <mkp@kernel.org>,
- "Jaya Kumar" <jayalk@intworks.biz>, "Simona Vetter" <simona@ffwll.ch>,
- "Helge Deller" <deller@gmx.de>, "Sebastian Reichel" <sre@kernel.org>,
- "John Hubbard" <jhubbard@nvidia.com>, peterx <peterx@redhat.com>,
- "Masami Hiramatsu" <mhiramat@kernel.org>,
- "Oleg Nesterov" <oleg@redhat.com>,
- "Peter Zijlstra" <peterz@infradead.org>,
- "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
- "Borislav Petkov" <bp@alien8.de>,
- "Dave Hansen" <dave.hansen@linux.intel.com>, x86@kernel.org,
- "Arnaldo Carvalho de Melo" <acme@kernel.org>,
- "Namhyung Kim" <namhyung@kernel.org>,
- "Mark Rutland" <mark.rutland@arm.com>, "Rik van Riel" <riel@surriel.com>,
- "Harry Yoo" <harry@kernel.org>, "Juri Lelli" <juri.lelli@redhat.com>,
- "Vincent Guittot" <vincent.guittot@linaro.org>,
- "Maarten Lankhorst" <maarten.lankhorst@linux.intel.com>,
- "Maxime Ripard" <mripard@kernel.org>,
- "Thomas Zimmermann" <tzimmermann@suse.de>,
- "Dave Airlie" <airlied@gmail.com>, "Will Deacon" <will@kernel.org>,
- "Aneesh Kumar K.V (Arm)" <aneesh.kumar@kernel.org>,
- "Nicholas Piggin" <npiggin@gmail.com>,
- "Muchun Song" <muchun.song@linux.dev>,
- "Oscar Salvador" <osalvador@suse.de>,
- "Matthew Wilcox" <willy@infradead.org>, "Jan Kara" <jack@suse.cz>,
- "Marc Zyngier" <maz@kernel.org>, "Oliver Upton" <oupton@kernel.org>,
- "Catalin Marinas" <catalin.marinas@arm.com>,
- "Madhavan Srinivasan" <maddy@linux.ibm.com>,
- "Anup Patel" <anup@brainfault.org>, "Paul Walmsley" <pjw@kernel.org>,
- "Palmer Dabbelt" <palmer@dabbelt.com>,
- "Albert Ou" <aou@eecs.berkeley.edu>,
- "Christian Borntraeger" <borntraeger@linux.ibm.com>,
- "Janosch Frank" <frankja@linux.ibm.com>,
- "Claudio Imbrenda" <imbrenda@linux.ibm.com>,
- "Alexander Gordeev" <agordeev@linux.ibm.com>,
- "Gerald Schaefer" <gerald.schaefer@linux.ibm.com>,
- "Heiko Carstens" <hca@linux.ibm.com>,
- "Vasily Gorbik" <gor@linux.ibm.com>,
- "David S . Miller" <davem@davemloft.net>,
- "Andreas Larsson" <andreas@gaisler.com>,
- "Alexander Viro" <viro@zeniv.linux.org.uk>,
- "Christian Brauner" <brauner@kernel.org>,
- "Matthew Brost" <matthew.brost@intel.com>,
- "Joshua Hahn" <joshua.hahnjy@gmail.com>, "Rakie Kim" <rakie.kim@sk.com>,
- "Byungchul Park" <byungchul@sk.com>, "Gregory Price" <gourry@gourry.net>,
- "Ying Huang" <ying.huang@linux.alibaba.com>,
- "Alistair Popple" <apopple@nvidia.com>, "Chris Li" <chrisl@kernel.org>,
- "Kairui Song" <kasong@tencent.com>,
- "Kemeng Shi" <shikemeng@huaweicloud.com>,
- "Nhat Pham" <nphamcs@gmail.com>, "Baoquan He" <baoquan.he@linux.dev>,
- "Youngjun Park" <youngjun.park@lge.com>,
- "Johannes Weiner" <hannes@cmpxchg.org>, "Qi Zheng" <qi.zheng@linux.dev>,
- "Shakeel Butt" <shakeel.butt@linux.dev>,
- "Axel Rasmussen" <axelrasmussen@google.com>,
- "Yuanchu Xie" <yuanchu@google.com>, "Wei Xu" <weixugc@google.com>,
- "Chengming Zhou" <chengming.zhou@linux.dev>,
- "Michal Hocko" <mhocko@kernel.org>, "Miklos Szeredi" <miklos@szeredi.hu>,
- "Xu Xin" <xu.xin@linux.dev>, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org,
- linux-usb@vger.kernel.org, linux-rdma@vger.kernel.org,
- selinux@vger.kernel.org, linux-sound@vger.kernel.org,
- bpf@vger.kernel.org, linux-scsi@vger.kernel.org,
- linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org,
- linux-trace-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org,
- Linux-Arch <linux-arch@vger.kernel.org>, linux-fsdevel@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev,
- linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org,
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
- linux-s390@vger.kernel.org, sparclinux@vger.kernel.org,
- fuse-devel@lists.linux.dev, "Takashi Iwai" <tiwai@suse.de>,
- "Emil Tsalapatis" <emil@etsalapatis.com>
-Message-Id: <4a3a089c-3ade-494d-8f83-f9cb710e9ad1@app.fastmail.com>
-In-Reply-To: <arfGmNiEngnO3JKm@gremlin>
-References: 
- <20260917-b4-mmap-prepare-vma-flag-sanify-v3-0-4583d8a23bca@kernel.org>
- <d4d7d4c2-a1d5-41d0-b1c8-8ea0cc5a0397@app.fastmail.com>
- <areSEI5pWBadkqIe@gremlin>
- <408aef6e-5b0a-482f-8ba8-f8c20ee870e5@app.fastmail.com>
- <arfGmNiEngnO3JKm@gremlin>
-Subject: Re: [PATCH v3 00/40] mm: make VMA flag semantics explicit, eliminate
- VM_SPECIAL
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CHBPR12MB731189:EE_|MW6PR12MB8868:EE_
+X-MS-Office365-Filtering-Correlation-Id: eede5eb7-558e-4978-4183-08df1bfbd7e2
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|366016|23010399003|1800799024|376014|7416014|3023799007|6133799003|10067099003|11063799006|4143699003|56012099006|22082099003|18002099003;
+X-Microsoft-Antispam-Message-Info:
+	UA+sCkz5pHrUIm2WiWp0NTTEu0/ziz1MYhhlIhK3UyJlLeFUiagSpQxvrmFJYnbQsxity7uqDDKtyt2NKod6lOuJ8m3bM0hbdX7k9rIBXdOkvb12UYNkWN0n5NhpxfaTCavMPhpbUB0edxCGx8eg+k2GIcsTSaP54lb1WE9EsTj/SCBhw3VFukUdczUn8IM+RZLi9QS5XUJ16RGq/et4KdaNrWNWzWyTmQ6azAmfeNXgqlu2dzetfH8+n0M9352Lo+EyYb8/e7jm1ouJR6zoNt7bXcpxGH5QKolCM9/JDkkzXX+3/+FVSv16FbCyWMw8m74F5zG/EpeSFkuBjJ5lF9FfhFwGw1azS0AJh5HtkeBYQpVByWzv+Krcm3vDvHPMFyYe3lnDbnBnqMkagj38AB39rVPDf+gCjqgwzRsc0VYOznHS4iS1lchzBf7NANAbZnHQGpNyDAfoEx23XFyDsHRrUQr+5B4NG8F2d6NxdM5425FUV7bCoratt8Br/B6JVS+Em+wD74xl65SbwlfJ/TzvITr9Wk4gmGBfhRkJ+CNUCoF/3G7aDa/dd+0l9G7+o5KIM+vm0Q/rE+HD/GE8ppG9ZYXD8cVPG2pwanCALZ5HfTm+20hmUXxE32YHXhC9NoS6xdlET1c2AZvvbZYdkPITSo5AjgfhyWWmNhXCwr0=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CHBPR12MB731189.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(23010399003)(1800799024)(376014)(7416014)(3023799007)(6133799003)(10067099003)(11063799006)(4143699003)(56012099006)(22082099003)(18002099003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?D+hMZDL5GTVRnJXhX1ycnCQKro2VyOEevI/a0FU7AAg28ujiSf+rHIhhO12m?=
+ =?us-ascii?Q?k4QQ9yzrDo+oELqawOVMREAnHiJR5NFinC3U2xcGDFq673x7w5VZS/at7Raj?=
+ =?us-ascii?Q?0J+c0p9WC4nE8hJH0jnM5ERRStnlE0nUKVXSwMZ5exij8mUwbwqzI5hCGa+m?=
+ =?us-ascii?Q?Bg015eaqX2VgtIePU8gIYGgxmGiFExRLd6Uc2wLCAhDXiAi9NKmy7XJBnTRv?=
+ =?us-ascii?Q?GGZo0+hy6qGNEiGmcwCHC4vf65QgK6D62nQ4MGhltAPriahvYpBplDOv1uaU?=
+ =?us-ascii?Q?ozv5SkiwEkfrhYwnbUKFP0P6xHCKKFrH/Yl+5bHitWBCAyQ8jH5HiWWDoPZp?=
+ =?us-ascii?Q?zGoF3critkIlrvNjLKqX6u84q4giDV9sMQF2jeA/+O6gBW7IjJbCnT6FOLop?=
+ =?us-ascii?Q?v0CcFtVDNMJJ+vPVApe4Ys7aSLXLrqMghOFdTMCNEcSKlnzSEiovJ0mHaa1W?=
+ =?us-ascii?Q?MItcwDCKoFJ/6cFwyRAQ+uZx2f3j9GJuf6RKMiDVsdCpeJbKeTuXspl8OMm3?=
+ =?us-ascii?Q?IaHKbwPdPoTmToFdnxI2NSf17mtzs9fa6XmpQpH8W0Fs8qV+fXF7YJYwgVDr?=
+ =?us-ascii?Q?BEJSSsNXUk9ZE3rtO5N7YxBm5DMrAYlgnbkkrQqFj4KZOXQ0EqDNkQVGSdE/?=
+ =?us-ascii?Q?NnAtXd8Hnw36E8iW4quo8bO0qDrDTOaju73R3EqUw8Xv1q8oS+8bH6IApzaC?=
+ =?us-ascii?Q?VGTpYt4nDjsyzLxvjYBWVI5gyA3QfT2UV6uFkl9M2Kp9AQmrCfJj6g6LPn8f?=
+ =?us-ascii?Q?89Ocn5Qh6ALlVH+QAalVUfabKUMT8Q7tAN8i/QRBkNurisbILo2/aWpLPUNM?=
+ =?us-ascii?Q?uVky9WDRqqQ7Vcy1H3FcMQv9FFyyd2TDqmNKEREh9EOXOuCHKXy2oumCHkTD?=
+ =?us-ascii?Q?TbzLGP/regQaBHa0oGpc2t+48aMa2meAeuAvgYaC0aGf25tGmgZoGff4cx5b?=
+ =?us-ascii?Q?TQHMBcx84NLpV15YBDnxcS2h6p3IHmI26OsV2WdmmBxGnPXA9+nXC+w6BN2O?=
+ =?us-ascii?Q?jhBVsgq8MDTc3ytMMW5d7BT84vZa2UJPUjWs9WOYBb3erhmKWm990o/ljjpR?=
+ =?us-ascii?Q?8Y38CuOIy/8aNlDO5FVdbbO1JrTlTLYW23gl+AF9v9HwVP1Bbz3gmxQ6GKlg?=
+ =?us-ascii?Q?8PXCltQczsne/uBFFmgZmLQqqxDBz/OGFJ9aXGCOWbKZFTdnGqtkuhgRKSAh?=
+ =?us-ascii?Q?tvPo+pXMX2HE5Fow6d5qN617leVavFOuEVfFA56AP7ZXLnczDarPnzMN4VDo?=
+ =?us-ascii?Q?sbnC3Xew2EaQvoW6YIlimQgqpG/J3Y3xC4TrkHDSZBqjWHpzFrs9BuuS1RN8?=
+ =?us-ascii?Q?aA7DRE19LJmt58DiI9fPo1Y6Y3zm8NG4MaJxkQVUi1pBiriAijhyPVuEpafG?=
+ =?us-ascii?Q?VgBw+X3Wq5lekPbkP2/RygtNhSfMIsPHUCPjDiiH+ImbD8Q+/3poNBmx/j7M?=
+ =?us-ascii?Q?tUtB2rP4cgCNXqxXk4E7fSJHcA5R1iU8cPL5FAju27US1F/hDtZq5hKWUtP+?=
+ =?us-ascii?Q?P7UXGDIeJTeuBA10sJK2B2h5qXlJbLfCoZ4/0UJ4UMxJZPI7i8OOTgoD5yXB?=
+ =?us-ascii?Q?ELgQDvmMz/jI8YGWWobLSeEii5waOIl8pwclhMyju0214ku/67ZSGVL8LIbm?=
+ =?us-ascii?Q?jQEOqIs58IjIPIv9VPhB7TQxoj0KfMJkR+KPehLdgxlqYdzaPjZtda+nysm1?=
+ =?us-ascii?Q?vtNrgp1rrcYJXrD5D2up/cDZoFHnjvi9jL8tdRv2118OYZmu?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: eede5eb7-558e-4978-4183-08df1bfbd7e2
+X-MS-Exchange-CrossTenant-AuthSource: CHBPR12MB731189.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 26 Sep 2026 18:27:38.3404
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: 4WkVDWy9d1m2jBxVXSVCgjtHKEoJtN8zmy/AWLWcfFFM9j7383msZvR4xirS9tTG
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MW6PR12MB8868
 
-On Sat, Sep 26, 2026, at 15:22, Lorenzo Stoakes (ARM) wrote:
-> On Sat, Sep 26, 2026 at 03:06:33PM +0200, Arnd Bergmann wrote:
->>
->> It's a Kconfig setting upstream, but the way I'm doing it is to have
->> patch that calculates a sensible default based on other options that
->> is a little smaller than the default (currently 2048 bytes) on x86-64
->> to catch more cases where something sticks out.
+On Thu, Sep 24, 2026 at 05:29:52PM -0700, Jonathan Cameron wrote:
+> This one at least does it via base and sum.  But that then separates it from
+> the spec?   That is sort of the case anyway because the spec has the full
+> number.  0xC400_0110 so I guess not too bad.
+
+I wasn't sure what to do with this since the spec had the full hex and
+we have these helper macros.. I made it look more like something else
+with the offset style instead of the function call style:
+
+> > +#define ARM_DRTM_SMC_VERSION			(ARM_DRTM_SMC_FN_BASE + 0x00)
+
+IDK, maybe ARM_DRTM_SMC_FN_BASE(0x110) is more connected to the spec,
+but I'm used to doing it like this from ioctl land which is very
+similar.
+
+
+> > +#define ARM_DRTM_FEATURE_SELECTOR	BIT_U64(63)
+> > +#define ARM_DRTM_FEATURE_TPM		0x01
+> > +#define ARM_DRTM_FEATURE_MIN_MEMORY	0x02
+> > +#define ARM_DRTM_FEATURE_DMA_PROTECTION	0x03
+> > +#define ARM_DRTM_FEATURE_BOOT_PE	0x04
+> > +#define ARM_DRTM_FEATURE_TCB_HASH	0x05
+> > +#define ARM_DRTM_FEATURE_IMAGE_AUTH	0x06
 >
-> So this is an early warning more or less :)
+> Nice to have a mask for the 8 bits of the feature field.
 
-Yes, a surprising number of these just point to stupid mistakes
-where the developer had no they were adding a large object to
-the stack. This instance here is unfortunately not an obvious
-case.
+OK
 
->> There are many ways the call chain can go of course, but the actual
->> stack overflows do tend to follow this pattern where you are at a
->> function with high stack usage and call kmalloc() during low memory
->> condition and that ends up waiting for a block I/O down the line.
->> (you normally don't go through swap and nfs, I was just looking
->> for the worst case I could easily see in the code)
->
-> You certainly found quite the example haha.
+> Also nice to keep order the same as the SMC defines which would put this after
+> version.  That also puts it next to the values returned for each feature.
 
-I have previously toyed around with using VMALLOC_STACK on a reduced
-stack size and syzcaller, so I knew roughly where the worst offenders
-lie, but the list was from looking through the code just today.
+I reorganized everything
 
->> > If I can do it as a follow-up that'd be ideal!
->>
->> What I was hoping for is that as you are already deep into the
->> exact code that caused the warning and you can already see something
->> in there that may help.
->>
->> I don't think it's urgent, I just don't want it to be forgotten.
->
-> It won't be, it's now on my TODO and I see it as a relatively high priority
-> thing to follow up with.
->
-> Will likely send a patch for it next cycle (this is about the worst cycle I've
-> seen workload-size for mm so I don't really want to send anything more this time
-> around).
+> > +#define ARM_DRTM_TPM_ALG_MASK		GENMASK_U64(15, 0)
+> > +#define ARM_DRTM_TPM_HASHING		BIT_U64(32)
+> > +#define ARM_DRTM_PCR_SCHEMA_MASK	GENMASK_U64(36, 33)
+> > +#define ARM_DRTM_PCR_SCHEMA_DEFAULT	BIT_U64(33)
+> > +#define ARM_DRTM_PCR_SCHEMA_AUTHORITIES	BIT_U64(34)
+> 
+> Ah.  Always love a field made up of a bunch of bits. Hard to define
+> cleanly.   Do you actually need the PCR_SCHEMA_MASK?  
 
-Sounds good, I'll keep the local hack to mark functions as noinline for the
-moment then. Thanks,
+I did it with a field content which gets reused in the launch struct:
 
-      Arnd
+/*
+ * PCR schema numbers. ARM_DRTM_PCR_SCHEMA_MASK is a bitmap indexed by these,
+ * and the Launch Features ARM_DRTM_LAUNCH_PCR_SCHEMA_MASK field holds one.
+ */
+#define ARM_DRTM_PCR_SCHEMA_DEFAULT		0
+#define ARM_DRTM_PCR_SCHEMA_AUTHORITIES		1
+
+/*
+ * DMA protection types. ARM_DRTM_DMA_PROTECTION_MASK is a bitmap indexed by
+ * these, and the Launch Features ARM_DRTM_LAUNCH_DMA_PROTECTION_MASK field
+ * holds one.
+ */
+#define ARM_DRTM_DMA_PROTECTION_COMPLETE	0
+#define ARM_DRTM_DMA_PROTECTION_REGION		1
+
+Have to use BIT() to get the bitmap encoding.
+
+> Same here.  I vaguely wonder if it is worth adding something
+> reflecting the relevant feature ID to each of these defines
+> so we know what the are referring to?
+
+I added comments and spec references for everything
+
+> > +#define ARM_DRTM_LAUNCH_HASH_FIRMWARE	0
+> > +#define ARM_DRTM_LAUNCH_HASH_TPM	BIT_U32(0)
+> 
+> I'd rather see them as fields and field value pairs but
+> can see that is going to get a bit verbose.
+
+I think that would be too verbose in this case, and the usage is very
+limited.
+
+
+> > +static inline s64 arm_drtm_features(u64 function_or_feature, u64 *value)
+> > +{
+> > +	struct arm_smccc_res res;
+> > +	s64 status;
+> > +
+> > +	arm_smccc_1_1_smc(ARM_DRTM_SMC_FEATURES, function_or_feature,
+> > +			  0, 0, 0, 0, 0, 0, &res);
+> > +	status = res.a0;
+> > +	if (status >= 0 && value)
+> > +		*value = res.a1;
+> If status == 0, is res.a1 useful?
+> You have a helpful comment at the call site in the final patch but none
+> the less I have read the spec section a couple of times and have no idea.
+
+I read the spec as 0 is not allowed.
+
+I changed this around to have two wrapper functions, which works a bit
+better.
+
+static inline s64 arm_drtm_query_function(u64 function_id)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_1_1_smc(ARM_DRTM_SMC_FEATURES, function_id, 0, 0, 0, 0, 0, 0,
+			  &res);
+	return res.a0;
+}
+
+/*
+ * v1.4b Section 3.3.1 says:
+ *   A return value of greater than 0 means the feature ID is
+ *   implemented, and there are other feature-specific
+ *   feature or capability bits available in other return value
+ *   registers.
+ * And for FEATURE_SELECTOR all defined features return data in other
+ * registers, so 0 is not an allowed return.
+ */
+static inline s64 arm_drtm_query_feature(u64 feature, u64 *value)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_1_1_smc(ARM_DRTM_SMC_FEATURES,
+			  ARM_DRTM_FEATURE_SELECTOR |
+				  FIELD_PREP(ARM_DRTM_FEATURE_ID_MASK, feature),
+			  0, 0, 0, 0, 0, 0, &res);
+	*value = res.a1;
+	return res.a0;
+}
+
+Thanks,
+Jason
