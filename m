@@ -1,110 +1,185 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40C583FC5AE;
-	Mon, 28 Sep 2026 23:08:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 56ECA47DF86;
+	Mon, 28 Sep 2026 23:33:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790636927; cv=none; b=BXBsWF/24t+EhpKKrKWwDQefUIPUGeJN2zGfbk/rpzJXi1k4cdzk8zqMxicRUG4Qg2nXOm010D6etBk6tIGi+rwgjmQmXbOyhNSccLOU5WE83WZAnEw++DePxvRFsxUPPe3t02VmC++NXIYd4bDWimdcm9VQ4CH9v9AUm8Dj1n0=
+	t=1790638418; cv=none; b=A12Lk/7RUoNUYyJwlRteKlxGGPiURKOrNgYbp0xM5/Mn2Erftjso9A+Vas/CkZ6e3CLQ4/pTqoCDru/jnXQQK/xsJ3JY81vzxjqS6EL7cwKII88o48yNbccbb1uwVJWLJ9mU7zrN1fB4I3wiQLN+vbtgat3EMp6NBM6L6QHPJI0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790636927; c=relaxed/simple;
-	bh=KBIWzjGvGBYDOPtvw0F6mbVx/DXbgCJUaC62yKd2cCs=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=W9xfIiLceUDMcRNYsqD5+ONVnavQjeGo6UJ1SY5HdILBunlMRHIAUXki/ZclrkU/8krrDCbToUclpWtEudS7c4qM7v6+xjGtqdhnTHZAX+ZCwpA/ssi42/IXYh2BMvh2NPtpMytzmyTk41Q18+9nfclKikZfegISSL7uXNWtXyo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Ke7UcsGk; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1790638418; c=relaxed/simple;
+	bh=yLZ5jE+aOYjf/2iecgD8Qy20xu8jO95uvRKQarsAfC0=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=lJSZBTKu+m97lgePlH5hxz8Xbm99vAZfvzC7UFWgYRW9c7csL5W25pkgmgVnwBsdu11tNYyu/uknjbvZy+xjaWzRet/nHTvNs0GELlW3FsF7hFc/WjEZcvqafSiZCYQcozAUe9GlatdTj+kMRIbWK2jOhyhGXlHnm150viWS63U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=hzoSdV1b; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Ke7UcsGk"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B2E761F000FF;
-	Mon, 28 Sep 2026 23:08:45 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1790636925;
-	bh=FJiVO1xFKoNP3L1n5Q0K7gyKgPYwYYjio8HDA9W0yec=;
-	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To;
-	b=Ke7UcsGkP28N7rE/l7MN+sL/r6ybN7Z4w30dfBlQWsy4Y0WhgzvAYOTMUorswLwnD
-	 tyYPn94Nrzp6hDpeMa8jEr/2aI+gj9WVygWgD0y0uXQXgTGtSt8acRuttJdJ8pmeSE
-	 AetqovlDJkZuiPhTpNi7h+bvEStZSCdKLXn9U4KBxs1GrhEVXlKIjUEqc8qqDMw/6W
-	 HGjQK46AfwCH2JG9lhqTlfz8GMF1pOK2XO/GH8Os3QRdrDK29d+vN/qS3E1inKjy3r
-	 pmYTePDExBPvqVPm9wvt02HsJk9assMTRMTbQ4zLMRcqPK4EKlCXXq/rhSCvq5oCgE
-	 6koxdDJ6X7maQ==
-Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 6C41ECE10F4; Mon, 28 Sep 2026 16:08:45 -0700 (PDT)
-Date: Mon, 28 Sep 2026 16:08:45 -0700
-From: "Paul E. McKenney" <paulmck@kernel.org>
-To: Kunwu Chan <kunwu.chan@gmail.com>
-Cc: dlustig@nvidia.com, joelagnelf@nvidia.com, corbet@lwn.net,
-	akiyks@gmail.com, luc.maranget@inria.fr, j.alglave@ucl.ac.uk,
-	dhowells@redhat.com, npiggin@gmail.com, boqun@kernel.org,
-	peterz@infradead.org, will@kernel.org, parri.andrea@gmail.com,
-	stern@rowland.harvard.edu, linux-doc@vger.kernel.org,
-	lkmm@lists.linux.dev, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org, rdunlap@infradead.org,
-	skhan@linuxfoundation.org
-Subject: Re: [PATCH v4 0/2] Documentation/litmus-tests: Add SRCU fastpath
- litmus tests
-Message-ID: <1c555323-fa67-4742-8959-0bb92f21b0d2@paulmck-laptop>
-Reply-To: paulmck@kernel.org
-References: <20260916091613.78352-1-kunwu.chan@gmail.com>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="hzoSdV1b"
+Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 5D5DF20B7166;
+	Mon, 28 Sep 2026 16:32:44 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 5D5DF20B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1790638365;
+	bh=sMT8EN3O9tuZdfIltXdYrhZ4ASeGIOHvmQ803a27Hig=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=hzoSdV1bTQdVLgm3l4rjKxwYbxUvS6O4VpN5wLn6eLdTGCgrlnIZL9E/q7HnO27sd
+	 jeUi4wsWQ+nO9S3EOKqfOPf0jyO79FcsGV6I5wXswo2aXZCmjoCVcn1ES8S89vqghQ
+	 i6EEK485kEqZHSwXiP8DstRWwl0Tt8u1nUU7J+qo=
+Message-ID: <28ef0634-24ed-2cc7-89c8-48c8615a9691@linux.microsoft.com>
+Date: Mon, 28 Sep 2026 16:33:35 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260916091613.78352-1-kunwu.chan@gmail.com>
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH V1 3/3] x86/hyperv: Implement root VM IOMMU kernel only
+ driver
+Content-Language: en-US
+To: Jason Gunthorpe <jgg@nvidia.com>
+Cc: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+ iommu@lists.linux.dev, linux-arch@vger.kernel.org,
+ jacob.pan@linux.microsoft.com, kys@microsoft.com, haiyangz@microsoft.com,
+ wei.liu@kernel.org, decui@microsoft.com, tglx@kernel.org, mingo@redhat.com,
+ bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
+ joro@8bytes.org, will@kernel.org, robin.murphy@arm.com, arnd@arndb.de
+References: <20260924020221.128762-1-mrathor@linux.microsoft.com>
+ <20260924020221.128762-4-mrathor@linux.microsoft.com>
+ <179060271395.122959.9162511491972155683.b4-review@b4>
+From: Mukesh R <mrathor@linux.microsoft.com>
+In-Reply-To: <179060271395.122959.9162511491972155683.b4-review@b4>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-On Wed, Sep 16, 2026 at 05:16:11PM +0800, Kunwu Chan wrote:
-> This series moves the SRCU fastpath litmus tests from
-> tools/memory-model/litmus-tests/ to Documentation/litmus-tests/srcu/,
-> as suggested by Paul McKenney.
+On 9/28/26 06:38, Jason Gunthorpe wrote:
+>> [ ... 103 lines skipped ... ]
+>> +/*
+>> + * We will not claim these PCI devices. Eg hypervisor debugger is using it
+>> + * for a dynamic debug session. They cannot be enumerated under static ACPI
+>> + * device scope.
+>> + */
+>> +static char *hv_skip_pci_devs;
+>> +static int __init hv_iommu_setup_skip(char *str)
+>> +{
+>> +	hv_skip_pci_devs = str;
+>> +	return 1;
+>> +}
+>> +/* Eg: hv_iommu_skip=(SSSS:BB:DD.F)(SSSS:BB:DD.F) */
+>> +__setup("hv_iommu_skip=", hv_iommu_setup_skip);
 > 
-> This series splits the two litmus-test patches from the earlier
-> [PATCH 00/13] srcu: Round out atomic SRCU support series:
-> https://lore.kernel.org/rcu/20260907075829.2073224-1-kunwu.chan@linux.dev/
-> 
-> The two tests verify the memory ordering required by the reader-free
-> synchronize_srcu_atomic() fastpath: the grace-period anchor must be
-> ordered before the per-CPU lock-counter scan.
-> 
-> Patch 1 verifies that the anchor-before-scan ordering forbids a reader
-> from being missed by the scan, while patch 2 shows that reversing the
-> ordering permits the problematic outcome.
+> I don't like this in a driver. This isn't really skipping anything, it
+> is just leaving some devices in an identity mode.
 
-Queued for testing and further review, thank you!
+Ok. I talked to the original author of that and i can just remove
+it. It's mostly for running hyp debugger and we can just carry
+the patch internally, at least for now.
 
-							Thanx, Paul
 
-> Changes in v4:
-> - Remove the smp_mb() and critical-section write from P1, 
->   keep litmus tests minimal, as pointed out by Akira Yokosawa.
-> - v3: https://lore.kernel.org/all/20260912024225.2872265-1-kunwu.chan@gmail.com/
+> If you have a use case for this as a general command line policy then
+> come with a core code enhacmenet so everyone can choose per-device
+> their boot time mode.
 > 
-> Changes in v3:
-> - Add a critical-section write after the smp_mb() in P1 of both
->   litmus tests, so the barrier properly models the lock-increment
->   to critical-section ordering in __srcu_read_lock().  The smp_mb()
->   was previously vacuous because P1 had no subsequent memory access.
->   Suggested by Akira Yokosawa.
-> - Adjust indentation of the SRCU entries in litmus-tests/README.
-> -v2: https://lore.kernel.org/all/20260912024225.2872265-1-kunwu.chan@gmail.com/
+>> [ ... 7 lines skipped ... ]
+>> +struct hv_domain {
+>> +	struct iommu_domain iommu_dom;
+>> +	u32 domid_num;			      /* as opposed to domain_id.type */
+>> +	spinlock_t mappings_lock;	      /* protects mappings_tree */
+>> +	struct rb_root_cached mappings_tree;  /* iova to pa lookup tree */
 > 
-> Changes in v2:
-> - Use a filter for the P0 scan result, as suggested by Paul McKenney.
+> This seems basically identical to what virtio-iommu is doing, can you
+> consider sharing its code?
+
+yeah, the tree part is somewhat identical, but virtio-iommu has extra
+fields that we don't need. overall, i don't think there is enough here
+to refactor, just few lines of code around add/remove calling kernel
+interval tree apis. moreover, if hyp can provide the lookup in future,
+i'd like to just remove it from here.
+
+>> [ ... 26 lines skipped ... ]
+>> +static bool hv_special_domain(struct hv_domain *hvdom)
+>> +{
+>> +	return hvdom == &hv_def_identity_dom || hvdom == &hv_def_blocked_dom;
+>> +}
 > 
-> Tested with herd7 7.58 using linux-kernel.cfg.
+> This is only called by hv_iommu_domain_free() which is only linked to
+> hv_paging_domain_ops(), so it should be dead code
 > 
-> Kunwu Chan (2):
->   Documentation/litmus-tests: Add SRCU fastpath anchor-before-scan test
->   Documentation/litmus-tests: Add SRCU fastpath scan-before-anchor test
+>> [ ... 204 lines skipped ... ]
+>> +static int hv_iommu_attach_dev(struct iommu_domain *immdom, struct device *dev,
+>> +			       struct iommu_domain *old)
+>> +{
+>> +	struct pci_dev *pdev;
+>> +	int rc;
+>> +	struct hv_domain *hvdom_new = to_hv_domain(immdom);
 > 
->  Documentation/litmus-tests/README             | 19 +++++++
->  .../SRCU-fastpath-anchor-before-scan.litmus   | 55 +++++++++++++++++++
->  .../SRCU-fastpath-scan-before-anchor.litmus   | 52 ++++++++++++++++++
->  3 files changed, 126 insertions(+)
->  create mode 100644 Documentation/litmus-tests/srcu/SRCU-fastpath-anchor-before-scan.litmus
->  create mode 100644 Documentation/litmus-tests/srcu/SRCU-fastpath-scan-before-anchor.litmus
+> 'new' is an odd variable name here
+
+'current' is passed as 'old', so we are moving from old to new i
+thought. please tell me what would you like it called, thx.
+
+>> [ ... 246 lines skipped ... ]
+>> +static struct iommu_group *hv_iommu_device_group(struct device *dev)
+>> +{
+>> +	return pci_device_group(dev);
+>> +}
 > 
-> -- 
-> 2.43.0
+> No need for a wrapper, use the function directly in the ops
+
+it helps with quick debug... just set breakpoint in hv_iommu_device_group
+or add a printk here at the cost of one jmp instruction. but whatever..
+i can remove it if it helps move this forward.
+
+>> +
+>> +static void hv_iommu_get_resv_regions(struct device *dev,
+>> +				      struct list_head *head)
+>> +{
+>> +	struct iommu_resv_region *reg;
+>> +
+>> +	/* reserve the entire LAPIC region */
+>> +	reg = iommu_alloc_resv_region(0xfee00000, SZ_1M, 0, IOMMU_RESV_MSI,
+>> +				      GFP_KERNEL);
 > 
+> There was some discussion to make a helper for this, I don't see it
+> merged yet..
+
+we are both waiting on each other, whoever goes first will leave
+the follower to address it i guess. i cannot test without this and
+i am not sure if that series will merge first or this.
+
+>> [ ... 65 lines skipped ... ]
+>> +static int __init hv_iommu_init(void)
+>> +{
+>> +	int rc;
+>> +	struct iommu_device *iommup = &hv_virt_iommu;
+>> +	struct hv_output_get_iommu_capabilities caps;
+>> +
+>> +	if (!hv_is_hyperv_initialized())
+>> +		return -ENODEV;
+>> +
+>> +	rc = hv_iommu_get_caps(&caps);
+>> +	if (rc)
+>> +		return rc;
+>> +
+>> +	hv_iommu_max_iova = ((ulong)1 << caps.max_iova_width) - 1;
+>> +
+>> +	rc = iommu_device_sysfs_add(iommup, NULL, NULL, "%s", "hyperv-iommu");
+>> +	if (rc) {
+>> +		pr_err("Hyper-V: iommu_device_sysfs_add failed: %d\n", rc);
+>> +		return rc;
+>> +	}
+>> +
+>> +	/* This must come before iommu_device_register() because the latter
+>> +	 * calls into the hooks.
+>> +	 */
+>> +	hv_initialize_special_domains();
+> 
+> This probably should be before doing anything with sysfs.
+
+ok.
+
+Thanks,
+-Mukesh
+
+
