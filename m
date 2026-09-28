@@ -1,44 +1,46 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EDD26434E35;
-	Mon, 28 Sep 2026 11:15:52 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2BBCA4B7A38;
+	Mon, 28 Sep 2026 11:56:34 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790594154; cv=none; b=mVuFE/AGJ0flGjc/A7/wJcAhZhRi4SsCFK6QkWym6c5atuo8xpAV3dd9p6Xrq7Zy5EwX5YHguSLrtzg5qWhdFjtbb2btrd2eZtcTbi7SVfIh777NBu3s1efBSRla0LngSY9/SvfgvmvuzjdYkrtXV9WUOFlCyWlKmimkyMSeqng=
+	t=1790596595; cv=none; b=QzzDq38UTOvspuCZ80TDEafikdKNLDmP/tgWZwafURKRa2LVzjZZCW9aglwOcbz3hm1PpD7MwLQgI1qO1cWrOYsKCLR86RiJRBzGnPzqUz8cOQ+OvXXMcZGAYP5b2UjIsvaq9OLfX11Eh8J9j/ceBneXdoKXlcLMsAteYzHSdWA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790594154; c=relaxed/simple;
-	bh=/rEQ5tR0s7tCO9TBNoWnBlkcTDT0Tbc/AZQQ+6eJ3YE=;
+	s=arc-20240116; t=1790596595; c=relaxed/simple;
+	bh=GvWYWpCCeFvIak39RmgGJI45zZfVnXWHBGVhiM1YW/k=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=FOE59PU7uoe1aRzqFL/1dqjA2zS21thWkYHXSisgkcmOCWxKMSiRrQ2r6PUfo/21dXQ+eMgBefu3MumC5R5g8+4QEioothJtFxyenGxfsRufu2dGACbaA36eTlg00eRn3LDmDPTsnW0ygb/S7bBTOzqYKmr7r8/FRAGRZRKMxZY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=QIOuwvHj; arc=none smtp.client-ip=100.103.45.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=UZh75QO+TeNNQEoQeZ2eRKlzRA9GcCovKUX2ENKQhM6ImY95EHmgaKQPziI9QHeQ1Lo8bqNJQCeZ0eVRR9KRqLTVH9woG+ShaufF9lsZT09qoW9eby7EW27pG8sqNdbJR001QB+tsVqVw/mRt7zUR/DVVNVaobA1G97inv9JS1k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=lIYWDQih; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="QIOuwvHj"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 8C4B01F000FF;
-	Mon, 28 Sep 2026 11:15:49 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="lIYWDQih"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 82CCF1F000FF;
+	Mon, 28 Sep 2026 11:56:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1790594152;
-	bh=qKgEuv9CkeatwMaEoVWwIZzAsZrjAYsxRirMIYaZdag=;
+	s=k20260515; t=1790596594;
+	bh=KLJDpGd1SnpOinp5Or+qY1V3tuorX8/dmLV5l0L135k=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=QIOuwvHjPRav9eT8nF7YfNLLqJ8z0AQt1yewPmRegf+oH5eRgNJIhbn1v1/Q+2o0X
-	 nPUarDfalGrAaN9D1k51LHg6iQRCc0U2OaF7tkOiq7GrZXB87kSf/U3dIi5r8P3+rn
-	 K4uoZoDZlBzDBtSl8TkWII13sSk5xAuw4ybHFFNxjLwfjnZOW8l3gk3uavcQ03fYzt
-	 A4jwuaoPWpccsxO+V5Jbp/p027RhnKRzkXX9yS9xIvLtvDf0Q3eMqXghDMs3mwv4Ro
-	 IGj0LRAD7WdzX30gEYUznsFq9Xa01QdmuiuaDgt/y1aEojl6qc2wscTH1JvBMYmBkD
-	 N9uS42sU1xGSA==
-Date: Mon, 28 Sep 2026 12:15:46 +0100
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Sasha Levin <sashal@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Nathan Chancellor <nathan@kernel.org>, 
-	Nicolas Schier <nsc@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
-	Masahiro Yamada <masahiroy@kernel.org>, Kees Cook <kees@kernel.org>, 
-	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	llvm@lists.linux.dev
+	b=lIYWDQihtpb00kxulAGFmbwu/emGV2/zoaibT5CHsSNqEgy2MX3XwKDXsr+k2tLhB
+	 5Wv/YH56JrT+0a74/krsK50nF1uZFD2Lc8rpGMB8Ag5mb90tiU6zLv31mwgg2vfQxj
+	 fbMbcgHE5MjVB13fV6Xg+LsA3JsnSL77Tw0mZriVt+CNyc+NuqUfULORY1NBxo7Z/W
+	 CKEbgzoHyxYdDsLfytGEvkGGRKh3NlyZ6tje0/NEasZxjqaSDd1qwGOUtTg6Esh31b
+	 KPahOKyKeDUNG4N7CWTEtToSuPCTa9i2vqX4TbptPvaL4ol7w09LiZniFWBq67Q/F0
+	 wkUX5BRrWL/oQ==
+Date: Mon, 28 Sep 2026 13:56:28 +0200
+From: Nathan Chancellor <nathan@kernel.org>
+To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+Cc: Sasha Levin <sashal@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Nicolas Schier <nsc@kernel.org>, Alexey Gladkov <legion@kernel.org>,
+	Masahiro Yamada <masahiroy@kernel.org>, Kees Cook <kees@kernel.org>,
+	Nick Desaulniers <ndesaulniers@google.com>,
+	Bill Wendling <morbo@google.com>,
+	Justin Stitt <justinstitt@google.com>, linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org, llvm@lists.linux.dev
 Subject: Re: [PATCH] kbuild: keep .modinfo when vmlinux is linked with
  --gc-sections
-Message-ID: <arpLoeLVATRCXm5E@gremlin>
+Message-ID: <20260928115628.GA964114@ax162>
 References: <20260927161227.1179863-1-sashal@kernel.org>
+ <arpLoeLVATRCXm5E@gremlin>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -47,75 +49,24 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260927161227.1179863-1-sashal@kernel.org>
+In-Reply-To: <arpLoeLVATRCXm5E@gremlin>
 
-On Sun, Sep 27, 2026 at 12:12:27PM -0400, Sasha Levin wrote:
-> Builds with CONFIG_LD_DEAD_CODE_DATA_ELIMINATION=y, such as arm
-> allmodconfig, now fail while extracting modules.builtin.modinfo:
->
->   arm-linux-gnueabihf-objcopy: vmlinux.unstripped: can't dump section
->   '.modinfo' - it does not exist: file format not recognized
->   /bin/sh: 1: cannot open modules.builtin.modinfo: No such file
->
-> or, with LLVM:
->
->   llvm-objcopy: error: 'vmlinux.unstripped': section '.modinfo' not
->   found
->
-> Nothing references the MODULE_INFO() strings, so --gc-sections
-> discards every .modinfo input section and vmlinux.unstripped ends up
-> with no .modinfo data. This is not new: ever since
-> modules.builtin.modinfo started being extracted from
-> vmlinux.unstripped, these builds have silently produced an empty
-> file, losing the modinfo of every built-in module. An arm
-> multi_v7_defconfig build with LD_DEAD_CODE_DATA_ELIMINATION on current
-> mainline yields a 0 byte modules.builtin.modinfo. The switch to
-> --dump-section only turned that into a build error.
+On Mon, Sep 28, 2026 at 12:15:46PM +0100, Lorenzo Stoakes (ARM) wrote:
+> Nathan - do you want me to fold this into the 1st patch of my series on respin
+> or fine to treat separately?
 
-Yikes, so an existing bug but now exposed by my series.
+Let's keep it separate since it is an existing issue and might want
+to be backported in its own right.
 
->
-> Wrap the input section in KEEP() so that the linker retains it. The
-> output section is still (INFO), so nothing is allocated for it. With
-> the same arm config, modules.builtin.modinfo now has 14119 entries,
-> and on x86_64 defconfig, where nothing is garbage collected, it is
-> byte-identical before and after this change.
+I applied a subset of your series to kbuild-next-speedups to begin
+exposing the "ready to go" (IMO at least) bits to -next (good thing
+since it found this). You should be able to rebase on that for
+subsequent versions, although maybe we still want to include those
+changes for
+others to continue to review but *shrug*. If there are follow up review
+comments, just send delta patches and I will decide if I want to keep
+them separate or squash them.
 
-Sounds reasonable.
-
->
-> Found by KernelCI builds of the linus-next tree.
->
-> Fixes: 39cfd5b12160 ("kbuild: extract modules.builtin.modinfo from vmlinux.unstripped")
-> Fixes: 5fe4dd596641 ("kbuild: do not allocate .modinfo in vmlinux")
-> Assisted-by: LLM
-> Signed-off-by: Sasha Levin <sashal@kernel.org>
-
-Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-
-Nathan - do you want me to fold this into the 1st patch of my series on respin
-or fine to treat separately?
-
-> ---
->  include/asm-generic/vmlinux.lds.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index a6730d34e8c67..7a3e9f00d6283 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -855,7 +855,7 @@
->  		KLP_SYMID
->
->  #define MODINFO								\
-> -		.modinfo (INFO) : { *(.modinfo) }
-> +		.modinfo (INFO) : { KEEP(*(.modinfo)) }
->
->  #ifdef CONFIG_GENERIC_BUG
->  #define BUG_TABLE							\
-> --
-> 2.53.0
->
-
---
-Cheers, Lorenzo
+-- 
+Cheers,
+Nathan
