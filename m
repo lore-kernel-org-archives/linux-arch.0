@@ -1,91 +1,91 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9D2E6471CE4;
-	Tue, 29 Sep 2026 20:14:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id B4A7C4E13EF;
+	Tue, 29 Sep 2026 21:25:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790712849; cv=none; b=Ttpr7VlunAguaf0OE7nttR091ztlC0VBUqSmgI9mCfHdWtVafojuW30Y+RdJ/RkPIViQn0JP90txO0cFPB9yx7BP3CHjCoOohhrajpOdaINgNWTfIHjrct0rUqojbArjIAezdxjKgzP1/nOAV89kFHcaXlRcTyjPm23NwC7/3js=
+	t=1790717146; cv=none; b=oyuZWXC/qse7sjLocT7oDcryzvVpHNoFfGF8/uYgGFAjFdeRxzXkW2Bw9O0fEAYBsCwE3x8sVV004ulh0tXA0ARbFZnqLBuz2jBOI0ZwfFbFKuHdCnKst2HORWJQjZBPV+WTriTYP2/eHTLUEArG2TwmTZRdCAf9fI+WODEsAkk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790712849; c=relaxed/simple;
-	bh=pJgAkGVpb06G4bjjisNl5B/YTyd6nhhXpuwgFTFxoew=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=LA9KtpnJKnftlFJRT9nbvxsqGdfCBtmczEJBGSR1NMGrvw4FdPje5lvz8poJNPh1o2134Pu0BFKkvYcU3m/uR3JU/J/0xMCYfwvsg7hKS0cj/IE/jPp+mrk3vpB7NvpaE5onjADQkDPpthV4ItOQFRWINvCD1umJcDnFz98zKkI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=iT1/hmjr; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1790717146; c=relaxed/simple;
+	bh=J3aoHidNLwIQXT4rllO1lG2m2ABVYl/SETOziV8bip8=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=EcQuBQIitOkrzEFe/hIyizMF29AhZK1HwK5jwhxVvzp7Ea5CF+Yvi9Q8dXsaZtmFTOmGEBLay44qFUGJ7nx6bMLtr1S80LQs67Y3GZMiEl7mzdubYdYWEGdc/aNKMU0OBCSu7e5udiydc1ZmjkY5CRp53rPpoI5hgnHnlsNX1g8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=HuQPKTIa; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="iT1/hmjr"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 69D811F000FF;
-	Tue, 29 Sep 2026 20:14:05 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1790712848;
-	bh=2nVgir3haWfJ+c55LCOHSd9HsRw6ZEDkQLl5SSlu5rQ=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=iT1/hmjrU7kNo4Jl1kQnOBzaYjQEEob/LiVTqh+ReAbxTRk+b/MqwVw9XO/UNmVVW
-	 SJ7+kizT1dmVwL4Vj8rOgNZs1k+ExawjHUEIL4UTw32UDXrWjzld+a4B5y0+isWO4C
-	 v35Wbe8imD+dDNPuQ6sm2lmPKq1vt3/rq36ncO6PET22NhN7J0zsnCbX1WF31Kn06p
-	 BBrSeR3Ge24gz8ndMQ2NNTgfSC55IHpjqwkmDwi65xnM6+HYDxswcnt1P0FiabxATN
-	 lvNKKJnyE8ECuPOEU30JBbSrJN0wBJeZ2ju4h0MktJ1WtxVpXlhafDKP4zKYKUuC7P
-	 KImda8SAApEug==
-Date: Tue, 29 Sep 2026 22:14:02 +0200
-From: Nathan Chancellor <nathan@kernel.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Sasha Levin <sashal@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Nicolas Schier <nsc@kernel.org>, Alexey Gladkov <legion@kernel.org>,
-	Masahiro Yamada <masahiroy@kernel.org>, Kees Cook <kees@kernel.org>,
-	Nick Desaulniers <ndesaulniers@google.com>,
-	Bill Wendling <morbo@google.com>,
-	Justin Stitt <justinstitt@google.com>, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org, llvm@lists.linux.dev
-Subject: Re: [PATCH] kbuild: keep .modinfo when vmlinux is linked with
- --gc-sections
-Message-ID: <20260929201402.GA3237201@ax162>
-References: <20260927161227.1179863-1-sashal@kernel.org>
- <arpLoeLVATRCXm5E@gremlin>
- <20260928115628.GA964114@ax162>
- <arpXd4ZEYnP6qR4j@gremlin>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="HuQPKTIa"
+Received: from localhost (unknown [40.65.108.177])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 5465E20B7166;
+	Tue, 29 Sep 2026 14:24:51 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 5465E20B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1790717092;
+	bh=qWV/+kwDScxqWsdgmvbejHverx+0lYJpag1/QdsRBs8=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=HuQPKTIaFJGP4PMRVWOu5L9lsJbCNytzk2oZd3QqTnRFBTocZxb8MLXDaRbM6G2Kh
+	 KG9JI4yMM83Cr3VygrrxK3oIPy8lnZsK/A06v10LMHVU/QKClNy/7+6MvvqD5Z2B9r
+	 Gcf5dqXDbgrJM0C+vcIN7W9dTs7oSU9Wchqmhj0o=
+Date: Tue, 29 Sep 2026 14:25:42 -0700
+From: Jacob Pan <jacob.pan@linux.microsoft.com>
+To: Jason Gunthorpe <jgg@nvidia.com>, baolu.lu@linux.intel.com
+Cc: Yu Zhang <zhangyu1@linux.microsoft.com>, linux-kernel@vger.kernel.org,
+ linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
+ linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org,
+ wei.liu@kernel.org, kys@microsoft.com, haiyangz@microsoft.com,
+ decui@microsoft.com, longli@microsoft.com, joro@8bytes.org,
+ will@kernel.org, robin.murphy@arm.com, bhelgaas@google.com,
+ kwilczynski@kernel.org, lpieralisi@kernel.org, mani@kernel.org,
+ robh@kernel.org, arnd@arndb.de, jgg@ziepe.ca, mhklinux@outlook.com,
+ tgopinath@linux.microsoft.com, easwar.hariharan@linux.microsoft.com,
+ mrathor@linux.microsoft.com, suravee.suthikulpanit@amd.com,
+ vasant.hegde@amd.com, jacob.pan@linux.microsoft.com
+Subject: Re: [PATCH v5 4/5] iommu/hyperv: Add para-virtualized IOMMU support
+ for Hyper-V guest
+Message-ID: <20260929142542.0000575e@linux.microsoft.com>
+In-Reply-To: <179071228738.122959.14326374887826159868.b4-review@b4>
+References: <20260904075512.174154-1-zhangyu1@linux.microsoft.com>
+	<20260904075512.174154-5-zhangyu1@linux.microsoft.com>
+	<179071228738.122959.14326374887826159868.b4-review@b4>
+Organization: LSG
+X-Mailer: Claws Mail 3.21.0 (GTK+ 2.24.33; x86_64-w64-mingw32)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <arpXd4ZEYnP6qR4j@gremlin>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Mon, Sep 28, 2026 at 01:16:27PM +0100, Lorenzo Stoakes (ARM) wrote:
-> Ack, will rebase on that and send deltas from here on out on those.
+Hi Jason,
+
+On Tue, 29 Sep 2026 17:04:47 -0300
+Jason Gunthorpe <jgg@nvidia.com> wrote:
+
+> > +config HYPERV_PVIOMMU
+> > +	bool "Microsoft Hyper-V para-virtualized IOMMU driver for
+> > Linux guests"
+> > +	depends on X86_64 && HYPERV
+> > +	select IOMMU_API
+> > +	select GENERIC_PT
+> > +	select IOMMU_PT
+> > +	select IOMMU_PT_X86_64
+> > +	select IOMMU_IOVA  
 > 
-> Easiest to keep things straight on my side would be to stop sending those
-> patches, I can list them in the cover letter with links to the originals
-> for any further review?
+> Should this be IOMMU_DMA ?
 
-Sure, that sounds totally reasonable to me.
+I agree. I guess we should also delete "select IOMMU_API", since
+IOMMU_DMA selects both.
 
-> As for what remains, is there anything else I need to do?
-> 
-> I think timing this week is less than ideal with LPC next week so people
-> have less time to go through it but it does feel like things are
-> stabilising (despite the large changelog for v4 ;)
+Noticed vt-d driver has the same option, maybe it should also
+be changed. Baolu, is that due to historical reasons?
 
-Yeah, I have been spread quite thin between trying to keep the current
-ClangBuiltLinux continuous integration setup green, developing a new one
-due to changing constraints elsewhere, updating my own personal testing
-framework to be quicker for more efficient local testing (especially for
-stuff like this), and my Kbuild maintainer duties, in addition to some
-personal time off for my wife's birthday before Plumbers.
-
-All that to say, I am not sure how much else I will want to take for 7.4
-at this point, as I would like to have the kbuild tree basically
-finalized by 7.3-rc7, which is the weekend right after Plumbers if my
-calendar is correct. I would like to study these patches to make sure I
-understand everything well and I don't think I will have the time to do
-that until after the 7.4 merge window opens.
-
-> Thanks for all your help with this! Is much appreciated.
-
-Absolutely, thanks for engaging and trying to make Kbuild better :)
-
--- 
-Cheers,
-Nathan
+config INTEL_IOMMU
+	bool "Support for Intel IOMMU using DMA Remapping Devices"
+	depends on PCI_MSI && ACPI && X86
+	select IOMMU_API
+	select GENERIC_PT
+	select IOMMU_PT
+	select IOMMU_PT_X86_64
+	select IOMMU_PT_VTDSS
+	select IOMMU_IOVA
