@@ -1,78 +1,78 @@
-Received: from mail-qt1-f227.google.com (mail-qt1-f227.google.com [209.85.160.227])
+Received: from mail-vs1-f97.google.com (mail-vs1-f97.google.com [209.85.217.97])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 665AF4AEEF
-	for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2026 04:03:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.227
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 85F083E3176
+	for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2026 04:03:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.217.97
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790654613; cv=none; b=VPlOJG6PXo8l/86AfK8PCFnTptwQgqC2KmI0/OvhhUzRs0S6+yrFrJ4Y1gsf4I1KZUGk1v6i48SZ32yePC4bGjdnm0N5r6XKOhgXoPVMvExU2EC6uymrpQ1epVXDzegrLU0el6i/E+NFnJ3UX7bQGGRiToqXeCueMlJBN190f1s=
+	t=1790654619; cv=none; b=enEKI24JUNR+GeZ6q0jo016h8zs3wgNwj3M4YF668dBrk8zz6LiPVj4y6RJm6ckSIiAthCzJqyUkEx4UqQyAUjKeAA1gn+u78sVr54V+sW24PFoy59/CpDFnOVU3sRf8TQhRFVOH5hcpRIifcXdn3X7nQRQBvIQ24mxCqhwgZyg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790654613; c=relaxed/simple;
-	bh=hX3+I2l4g4gGBI7+Ch5YSUvuVd6yStdKXgzA8mhRgZA=;
+	s=arc-20240116; t=1790654619; c=relaxed/simple;
+	bh=rUzQo5KHgL8B6Zt2JDNYEUTyvIMbiqzpi4ZnuUlZBBY=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=j4xd0EYrINSNSBsBqrjYD2nQhCFNx6D+kKiH5b1vMLs71q88XQMisKKSmkRQBqiKyoD8mYrW0QWeVDAUYxLr68hTXBAtn72VKNEQPpZUdafhdXtSDW0xdzIaTvAaNoig0GY2/2NMd8bZlkgPib2QV6G/zMV0ltPvL7Rts15hZYM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=broadcom.com; spf=fail smtp.mailfrom=broadcom.com; dkim=pass (1024-bit key) header.d=broadcom.com header.i=@broadcom.com header.b=GNycfjyX; arc=none smtp.client-ip=209.85.160.227
+	 MIME-Version; b=h3z0+hxvyGSgjbubzRCvat6jAItzu7HjBJdiDLOTuII5vCWlXIOWiII9id5P+jJEbEihE4C4/GQIAbvcVAIb+k3kpcyx/avbEhCD9AS3Dfs6fktCSCvVh9PfPjyCsSL4a75xSBoleOhF4gn0rfNLmPZP5bSmhSKbTLEr8wA5wT0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=broadcom.com; spf=fail smtp.mailfrom=broadcom.com; dkim=pass (1024-bit key) header.d=broadcom.com header.i=@broadcom.com header.b=bjNTJ6w2; arc=none smtp.client-ip=209.85.217.97
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=broadcom.com
 Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=broadcom.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=broadcom.com header.i=@broadcom.com header.b="GNycfjyX"
-Received: by mail-qt1-f227.google.com with SMTP id d75a77b69052e-5332b5e3847so598591cf.2
-        for <linux-arch@vger.kernel.org>; Mon, 28 Sep 2026 21:03:31 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=broadcom.com header.i=@broadcom.com header.b="bjNTJ6w2"
+Received: by mail-vs1-f97.google.com with SMTP id ada2fe7eead31-77bf892b496so95561137.0
+        for <linux-arch@vger.kernel.org>; Mon, 28 Sep 2026 21:03:35 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790654610; x=1791259410;
+        d=1e100.net; s=20260707; t=1790654615; x=1791259415;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:dkim-signature:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=VLpMQWp4oIwCSrdCkDjUFbSbG4amFgJT1I1bhegO2zs=;
-        b=MxbbfJfouWsaswA6IIvIX3+RGE/R+8ucCSQRsfgAThJgYcoJMpw7oJhtLw2fM1otGJ
-         4zqsbJB+i0hyv4PFIFAQWNPOWzvb2Upq0fAey2OclkbGynHhoDxf1HwhajTAkwVaDgNl
-         kSWBHksMlNabbkws6msx0mDrIfwevng9C42lu4NJHQmIb9EKrsXuEtWPvoDIsS2WTihv
-         BOR5iYOFQzuzwf529SF3BsaYypDQOrY8w974JJT0uB+V0kSh+eJPvvptphHPcB74HBsG
-         Sf3ypsJ7rsrOUyc3DG+3lzYucozWbQs21JGu1871mdYj4c9xb8+N/kY2us0KE/LTUBRz
-         waIw==
-X-Forwarded-Encrypted: i=1; AKwUvBxp7cK9B4YglrMl5wUknoEgM/8FZFCcBIM5elpCFjPgi8zZqBGmWIRwQl4vpNhQV5n35PVlYOD6DaQb@vger.kernel.org
-X-Gm-Message-State: AFuF++nbHBGeXQsmJoq9Goza/qNn/Ig/uvkh8cGrT5t7HxY40qpp0hgh
-	rz8eMji6dqGdZALUQFvc5OOk8syAv1OeVOo213f8mRyJkWnBOoEzWv2SI3ZD+s6F5wb2oHcAgPG
-	BjILt2xafkto4eHBrMlPKTH8jnIbzjbHDQAKIOrr0OwKPzvUP3lVkyC8UYC9kJe/OshHwt6mbsR
-	SClw+Ha4DB5w3R+DAx0uGMDAS5S9E/U/X2Sq5NbhwQYMyhqoHlfcQO8x7tQAIKMCNq/aWIO7zmH
-	wnzjy2qq7bfJg==
-X-Gm-Gg: AYBFou0QPx3Xm+iLx+shV69uXQk1Unz5dyajyTs8LBya8GMrBRJAjoY9NDZUQjbu97g
-	ZyLoNoNvPXljjIeMbvaM7pqEPxa4n+KmUeqQmbnYNTPeaVXdevPqbMn0HTQlaG4Zoyygn3fsW1p
-	yeMRg7BrGtMt34rqZGGUOnRxKyi2jpFVKTKVu0niTSVCUb2P5k6dvpnZgSJgTfVKBf3muhMGOAC
-	WAHb32cwzUXKkqBGuIdgDpqWKui/iP7Ji2rci1AEOWpqt28WHZGuvJPaVQeHu3Eq9fPt0ATfvhL
-	sRpq0z/+17nc4XE4dTRVgNPp5p50B86UYb4mRLlcDd2BtUCEGi/5NavVU7Mfic12/yaicrvH4di
-	hGNDci8kehemcpX6OqZJPGc0Qq0Kt5Hmq2b+plmpFBM5r4Zm5Kyfae7EfKfwnFKN8OjtGKQHwXu
-	q6eCtshzQ/ip8wasy5MW7JGRs0S5e59sYOwt0=
-X-Received: by 2002:a05:620a:3190:b0:93b:d7a2:dd2e with SMTP id af79cd13be357-93c43d34647mr2374900885a.62.1790654609598;
-        Mon, 28 Sep 2026 21:03:29 -0700 (PDT)
-Received: from smtp-us-east1-p01-i01-si01.dlp.protect.broadcom.com (address-144-49-247-120.dlp.protect.broadcom.com. [144.49.247.120])
-        by smtp-relay.gmail.com with ESMTPS id af79cd13be357-93c8125a760sm110144585a.2.2026.09.28.21.03.28
+        bh=CV8TEMBP6IF+2lIlzYCpg42JpAwpPVBphnZX2jCaOFA=;
+        b=Hvmpp2tRqYGjvCLJ9nsVk03nU8dtbDuvq8+SAHmWdUsgekLrz32KEQ2ZhcEwcNGvLY
+         j2yuY9vwlRzaLIe9FLNoEXgkN3MkUoXsQZYqTPHE9v2UrlLHDAUkmLjaiaaNjP+Boxnj
+         x3XRmiZpcIJbkez35vnrgO0z9cmaebe2nkOAvq6FGntd+OC3vk2hlcPIN27bGLvuMuCa
+         OaqGiHT3HDGaA+ZAA76jVgc8wmmQJYtdWx9WqI/I7JqsH+HaHsqV9zK7yBf6fPs06Q5J
+         B+KcdPU0xGPUzk0OOWz+/Qn8QLg9Kdk7jKIJPNB+1kMbPMIT723BFyFZMAP5iQvxSXG4
+         l5Xw==
+X-Forwarded-Encrypted: i=1; AKwUvBx9ix0x/VIskQhMSbIpI1vMMzxoEC91be3pNAoYcERTur/mXC09pmhIVW4h1Sc83OMWp12f5zNNcpTi@vger.kernel.org
+X-Gm-Message-State: AFq9FYKfAZU+6s9o6b53cfhc3FKUWU6dtelOsFGINEzEeQcwBlr+gFAM
+	M9nbBpmNoDzcYckxcIWmimS7/pefs0SLHrYAse1diLQRUd4Fnc+yLe1gBhx1w6isG+BlMAaHc1o
+	nlrbJT9/hlDOUobmB+5Jz8PnujS/yhAev3fFtqw9Esj6wKc2YwX/0QW9fgkaT0KI8P3mAszLXuX
+	vEdPk9/8Vxs1F82q0R3AmpJ0X7tcU3J3xvGHMJx1RCyX0RA0tb20gMYqFnEx+ozcl2aguO8/QrS
+	QRSGa7JWw7sIA==
+X-Gm-Gg: AYBFou08W9E1x9DjZcPU7Fj835gqJdu9TVpl8t8iTNJevJ1yui6pYFH0Fi0npeyotcf
+	kbsi+uO7gsIp6yDfOCaFTEQuAc4o0sg7XfC9S37/szB1cEJP3p0qbXL3helsY1cUcRstnKNWJKj
+	mFhtNjwEgaHi4BrNgtJl838poxVvt52Y99EWCEywvMdY55D35QEtsg6SyTX6TtqXpKvWa/bcxYt
+	SYXIHwRzpTaBLf1tXnWkfq9ZbQKIqoTXoKbrmNTWQ+08xjv5b/zVJQhx5LFXHYubGaBeFWQdwFH
+	e9pWT1tQWHI00AolpLbKege4Qg+MXbyXzBWk83Ez+jmhqBjyyvaxX0um7tg9uLCiJxt9oXjvdyb
+	OH8eke+HhrxyuZb/nAkoEKp52IL5oqwr27O6cU+F9uWdfF860lvaIuHe46WiVECBDkgMUV/dzQM
+	S4FOn6y/fY0wZ9kog6Wd0+xim81u4mj3Ws7jY=
+X-Received: by 2002:a05:6102:5806:b0:7b4:bdf5:9307 with SMTP id ada2fe7eead31-7b4bdf5940cmr1627684137.30.1790654614565;
+        Mon, 28 Sep 2026 21:03:34 -0700 (PDT)
+Received: from smtp-us-east1-p01-i01-si01.dlp.protect.broadcom.com (address-144-49-247-125.dlp.protect.broadcom.com. [144.49.247.125])
+        by smtp-relay.gmail.com with ESMTPS id a1e0cc1a2514c-986f069cb69sm641516241.10.2026.09.28.21.03.33
         for <linux-arch@vger.kernel.org>
         (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
-        Mon, 28 Sep 2026 21:03:29 -0700 (PDT)
+        Mon, 28 Sep 2026 21:03:34 -0700 (PDT)
 X-Relaying-Domain: broadcom.com
 X-CFilter-Loop: Reflected
-Received: by mail-dy1-f199.google.com with SMTP id 5a478bee46e88-3437d0cc8c7so1533838eec.0
-        for <linux-arch@vger.kernel.org>; Mon, 28 Sep 2026 21:03:28 -0700 (PDT)
+Received: by mail-dy1-f197.google.com with SMTP id 5a478bee46e88-33baaba6371so14197681eec.1
+        for <linux-arch@vger.kernel.org>; Mon, 28 Sep 2026 21:03:33 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=broadcom.com; s=google; t=1790654607; x=1791259407; darn=vger.kernel.org;
+        d=broadcom.com; s=google; t=1790654613; x=1791259413; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=VLpMQWp4oIwCSrdCkDjUFbSbG4amFgJT1I1bhegO2zs=;
-        b=GNycfjyX60B4qt8x1fTozl+FCUsevGhLVbo2y/juTVF/PU+S5sssLGKtDYXbjBgOAo
-         B5Xi0buSNdNtAnLYGbg4A59h3LycMyXekLKSufCH6V/DUOVDUXecBRuEGMWX7DkejJ4Z
-         CQKPBvcKrZTzMGcIW316bj94e2snf5qPm8CXc=
-X-Forwarded-Encrypted: i=1; AKwUvBzHvRlf/74dAfgPqqY3sCVL8FpLTTk89OApFQkFegpWN8IfMbYMfXJ/qcjQpB7FUqZHDut1sAkqLiUQ@vger.kernel.org
-X-Received: by 2002:a05:7301:152a:b0:339:7c91:21f4 with SMTP id 5a478bee46e88-34273252770mr13517034eec.34.1790654607142;
-        Mon, 28 Sep 2026 21:03:27 -0700 (PDT)
-X-Received: by 2002:a05:7301:152a:b0:339:7c91:21f4 with SMTP id 5a478bee46e88-34273252770mr13516961eec.34.1790654606151;
-        Mon, 28 Sep 2026 21:03:26 -0700 (PDT)
+        bh=CV8TEMBP6IF+2lIlzYCpg42JpAwpPVBphnZX2jCaOFA=;
+        b=bjNTJ6w2pB+RY4tIwDLWRoyh1TKrkkXYnJifKxI+xNDRyGSYEEyzU0N9RA+k3C96ay
+         vaJH3Uc2C7BTr+aeuOpbnzDtG1rLZuoXoQ9TZEm3yZzzX+cYXeIlE51x0XqJMlI+lXq0
+         upWhIuZH+I939ODjwf+SW6xGOiFUHEmKFwSeY=
+X-Forwarded-Encrypted: i=1; AKwUvBw2/52iIVxOPS5fUBQuFK8gCeJJI4bCDUgILwNT5yrSGPT375nw2yXFgicaFwIgPscZymdzU73ozxrW@vger.kernel.org
+X-Received: by 2002:a05:7301:4d0b:b0:341:d191:b838 with SMTP id 5a478bee46e88-34272562bc0mr12611767eec.31.1790654612912;
+        Mon, 28 Sep 2026 21:03:32 -0700 (PDT)
+X-Received: by 2002:a05:7301:4d0b:b0:341:d191:b838 with SMTP id 5a478bee46e88-34272562bc0mr12611727eec.31.1790654612252;
+        Mon, 28 Sep 2026 21:03:32 -0700 (PDT)
 Received: from vertex.localdomain ([192.19.144.250])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-347323f5a7esm10952571eec.15.2026.09.28.21.03.21
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-347323f5a7esm10952571eec.15.2026.09.28.21.03.26
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 28 Sep 2026 21:03:24 -0700 (PDT)
+        Mon, 28 Sep 2026 21:03:29 -0700 (PDT)
 From: Zack Rusin <zack.rusin@broadcom.com>
 To: Kiryl Shutsemau <kas@kernel.org>,
 	Borislav Petkov <bp@alien8.de>,
@@ -113,9 +113,9 @@ Cc: Ajay Kaher <ajay.kaher@broadcom.com>,
 	Nathan Chancellor <nathan@kernel.org>,
 	Kees Cook <kees@kernel.org>,
 	Ashish Kalra <ashish.kalra@amd.com>
-Subject: [PATCH v2 4/6] x86/mm: Provide common early memory decryption
-Date: Tue, 29 Sep 2026 00:02:53 -0400
-Message-ID: <20260929040256.543767-5-zack.rusin@broadcom.com>
+Subject: [PATCH v2 5/6] x86/tdx: Support early sharing of kernel data
+Date: Tue, 29 Sep 2026 00:02:54 -0400
+Message-ID: <20260929040256.543767-6-zack.rusin@broadcom.com>
 X-Mailer: git-send-email 2.53.0
 In-Reply-To: <20260929040256.543767-1-zack.rusin@broadcom.com>
 References: <20260929040256.543767-1-zack.rusin@broadcom.com>
@@ -128,272 +128,92 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-DetectorID-Processed: b00c1d49-9d2e-4205-b15f-d015386d3d5e
 
-Static per-CPU buffers must be shared before the page allocator is ready.
-Provide a page conversion callback with common early page-table splitting,
-including the kernel-image alias used by UP data. Flush large translations
-before changing attributes and retain the AMD content and SNP transitions.
-Drop UP image aliases before SNP kexec makes the backing pages private.
+Share pages before the page allocator is available, after both their
+direct-map and kernel-image mappings have been made shared. Preserve
+initial contents in a private scratch page, matching the AMD early helper,
+and use the existing MapGPA path and shared-page accounting.
+
+UP per-CPU data has an image alias. Drop shared image mappings before
+kexec converts their backing pages to private through the direct map.
 
 Suggested-by: Kiryl Shutsemau <kas@kernel.org>
 Link: https://lore.kernel.org/r/aqqGUAX65s4LdJkr@thinkstation
 Signed-off-by: Zack Rusin <zack.rusin@broadcom.com>
 ---
- arch/x86/coco/sev/core.c           |  16 +++++
- arch/x86/include/asm/mem_encrypt.h |   7 ++-
- arch/x86/include/asm/x86_init.h    |   2 +
- arch/x86/mm/mem_encrypt.c          | 117 +++++++++++++++++++++++++++++++++++++
- arch/x86/mm/mem_encrypt_amd.c      |  12 +++-
- 5 files changed, 149 insertions(+), 5 deletions(-)
+ arch/x86/coco/tdx/tdx.c | 32 ++++++++++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
 
-diff --git a/arch/x86/coco/sev/core.c b/arch/x86/coco/sev/core.c
-index cc292d7c6fd1..bc1afa366c33 100644
---- a/arch/x86/coco/sev/core.c
-+++ b/arch/x86/coco/sev/core.c
-@@ -541,6 +541,10 @@ static void set_pte_enc(pte_t *kpte, int level, void *va)
- 	set_pte_enc_mask(kpte, d.pfn, d.new_pgprot);
+diff --git a/arch/x86/coco/tdx/tdx.c b/arch/x86/coco/tdx/tdx.c
+index f904a636d449..4a683e9eafc3 100644
+--- a/arch/x86/coco/tdx/tdx.c
++++ b/arch/x86/coco/tdx/tdx.c
+@@ -4,6 +4,7 @@
+ #undef pr_fmt
+ #define pr_fmt(fmt)     "tdx: " fmt
+ 
++#include <linux/cacheflush.h>
+ #include <linux/cpufeature.h>
+ #include <linux/export.h>
+ #include <linux/io.h>
+@@ -18,6 +19,7 @@
+ #include <asm/paravirt_types.h>
+ #include <asm/pgtable.h>
++#include <asm/sections.h>
+ #include <asm/set_memory.h>
+ #include <asm/traps.h>
+ 
+ /* MMIO direction */
+@@ -1006,6 +1008,23 @@ static int tdx_enc_status_change_finish(unsigned long vaddr, int numpages,
+ 	return 0;
  }
  
-+#ifndef CONFIG_SMP
-+extern char __start_percpu_decrypted[], __end_percpu_decrypted[];
-+#endif
++static char tdx_early_buffer[PAGE_SIZE] __initdata __aligned(PAGE_SIZE);
 +
- static void unshare_all_memory(void)
- {
- 	unsigned long addr, end, size, ghcb;
-@@ -550,6 +554,18 @@ static void unshare_all_memory(void)
- 	pte_t *pte;
- 	int cpu;
- 
-+#ifndef CONFIG_SMP
-+	/* Drop image aliases before the direct-map walk makes pages private. */
-+	addr = (unsigned long)__start_percpu_decrypted;
-+	end = (unsigned long)__end_percpu_decrypted;
-+	for (; addr < end; addr += PAGE_SIZE) {
-+		pte = lookup_address(addr, &level);
-+		if (pte && pte_decrypted(*pte))
-+			set_pte(pte, __pte(0));
-+	}
-+	__flush_tlb_all();
-+#endif
-+
- 	/* Unshare the direct mapping. */
- 	addr = PAGE_OFFSET;
- 	end  = PAGE_OFFSET + get_max_mapped();
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index ea6494628cb0..4d81f693b1d3 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -21,9 +21,13 @@ struct boot_params;
- #ifdef CONFIG_X86_MEM_ENCRYPT
- void __init mem_encrypt_init(void);
- void __init mem_encrypt_setup_arch(void);
-+int __init early_set_memory_decrypted(unsigned long vaddr, unsigned long size);
-+void __init early_set_page_decrypted(unsigned long addr, unsigned long alias);
- #else
- static inline void mem_encrypt_init(void) { }
- static inline void __init mem_encrypt_setup_arch(void) { }
-+static inline int __init
-+early_set_memory_decrypted(unsigned long vaddr, unsigned long size) { return 0; }
- #endif
- 
- #ifdef CONFIG_AMD_MEM_ENCRYPT
-@@ -50,7 +54,6 @@ void __init sme_early_init(void);
- void sme_encrypt_kernel(struct boot_params *bp);
- void sme_enable(struct boot_params *bp);
- 
--int __init early_set_memory_decrypted(unsigned long vaddr, unsigned long size);
- int __init early_set_memory_encrypted(unsigned long vaddr, unsigned long size);
- void __init early_set_mem_enc_dec_hypercall(unsigned long vaddr,
- 					    unsigned long size, bool enc);
-@@ -86,8 +89,6 @@ static inline void sme_enable(struct boot_params *bp) { }
- 
- static inline void sev_es_init_vc_handling(void) { }
- 
--static inline int __init
--early_set_memory_decrypted(unsigned long vaddr, unsigned long size) { return 0; }
- static inline int __init
- early_set_memory_encrypted(unsigned long vaddr, unsigned long size) { return 0; }
- static inline void __init
-diff --git a/arch/x86/include/asm/x86_init.h b/arch/x86/include/asm/x86_init.h
-index 953d3199408a..e4131402c783 100644
---- a/arch/x86/include/asm/x86_init.h
-+++ b/arch/x86/include/asm/x86_init.h
-@@ -75,9 +75,11 @@ struct x86_init_oem {
-  *			the kernel pagetables and prepare accessors functions.
-  *			Callback must call paging_init(). Called once after the
-  *			direct mapping for phys memory is available.
-+ * @early_decrypt_page:	Share a direct-mapped page and its optional image alias
-  */
- struct x86_init_paging {
- 	void (*pagetable_init)(void);
-+	int (*early_decrypt_page)(unsigned long addr, unsigned long alias);
- };
- 
- /**
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index 3aefdef5bcb0..c3e239a47b66 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -12,10 +12,127 @@
- #include <linux/swiotlb.h>
- #include <linux/cc_platform.h>
- #include <linux/mem_encrypt.h>
-+#include <linux/pgalloc.h>
- #include <linux/virtio_anchor.h>
- #include <linux/iommu-dma.h>
- 
-+#include <asm/sections.h>
-+#include <asm/set_memory.h>
- #include <asm/sev.h>
-+#include <asm/tlbflush.h>
-+#include <asm/x86_init.h>
-+
-+#include "mm_internal.h"
-+
-+static pte_t * __init early_lookup_pte(unsigned long addr)
++static int __init tdx_early_decrypt_page(unsigned long addr, unsigned long alias)
 +{
-+	unsigned long pfn, step;
-+	unsigned int level, i;
-+	pgprot_t prot;
-+	pte_t *pte, *table;
-+
-+	for (;;) {
-+		pte = lookup_address(addr, &level);
-+		if (!pte || !pte_present(*pte))
-+			return NULL;
-+		if (level == PG_LEVEL_4K)
-+			return pte;
-+
-+		if (level == PG_LEVEL_2M) {
-+			pfn = pmd_pfn(*(pmd_t *)pte);
-+			prot = pgprot_large_2_4k(pmd_pgprot(*(pmd_t *)pte));
-+			step = 1;
-+		} else if (level == PG_LEVEL_1G) {
-+			pfn = pud_pfn(*(pud_t *)pte);
-+			prot = pud_pgprot(*(pud_t *)pte);
-+			step = PMD_SIZE >> PAGE_SHIFT;
-+		} else {
-+			return NULL;
-+		}
-+
-+		table = alloc_low_page();
-+		if (!table)
-+			return NULL;
-+		for (i = 0; i < PTRS_PER_PTE; i++, pfn += step)
-+			set_pte(&table[i], pfn_pte(pfn, prot));
-+
-+		if (level == PG_LEVEL_2M)
-+			pmd_populate_kernel(&init_mm, (pmd_t *)pte, table);
-+		else
-+			pud_populate(&init_mm, (pud_t *)pte, (pmd_t *)table);
-+
-+		if (addr - PAGE_OFFSET < get_max_mapped()) {
-+			update_page_count(level, -1);
-+			update_page_count(level - 1, PTRS_PER_PTE);
-+		}
-+
-+		/* Flush the large translation before changing any attributes. */
-+		__flush_tlb_all();
-+	}
-+}
-+
-+/* The caller has split both mappings before starting the page transition. */
-+void __init early_set_page_decrypted(unsigned long addr, unsigned long alias)
-+{
-+	unsigned int level;
-+	pte_t *pte;
-+
-+	pte = lookup_address(addr, &level);
-+	set_pte(pte, __pte(cc_mkdec(pte_val(*pte))));
-+	if (alias) {
-+		pte = lookup_address(alias, &level);
-+		set_pte(pte, __pte(cc_mkdec(pte_val(*pte))));
-+	}
-+	__flush_tlb_all();
-+}
-+
-+/* Boot CPU only; size is in bytes and the contents are preserved. */
-+int __init early_set_memory_decrypted(unsigned long vaddr, unsigned long size)
-+{
-+	unsigned long end, addr, alias, pa;
-+	pte_t *pte;
++	void *buffer = __va(__pa_symbol(tdx_early_buffer));
 +	int ret;
 +
-+	if (!size || !cc_platform_has(CC_ATTR_MEM_ENCRYPT))
-+		return 0;
-+	if (!x86_init.paging.early_decrypt_page)
-+		return -EOPNOTSUPP;
-+	if (size > ULONG_MAX - vaddr)
-+		return -EINVAL;
-+	end = PAGE_ALIGN(vaddr + size);
-+	if (end < vaddr)
-+		return -EINVAL;
-+
-+	for (vaddr &= PAGE_MASK; vaddr < end; vaddr += PAGE_SIZE) {
-+		if (vaddr - PAGE_OFFSET >= get_max_mapped() &&
-+		    (vaddr < (unsigned long)_text || vaddr >= _brk_end))
-+			return -EINVAL;
-+
-+		pa = __pa(vaddr);
-+		addr = (unsigned long)__va(pa);
-+		pte = early_lookup_pte(addr);
-+		if (!pte || pte_pfn(*pte) != PHYS_PFN(pa))
-+			return -EFAULT;
-+
-+		alias = 0;
-+		if (pa >= __pa_symbol(_text) &&
-+		    pa <= __pa_symbol(roundup(_brk_end, PMD_SIZE) - 1)) {
-+			alias = (unsigned long)_text + pa - __pa_symbol(_text);
-+			if (!early_lookup_pte(alias))
-+				return -EFAULT;
-+		}
-+
-+		if (pte_decrypted(*pte)) {
-+			early_set_page_decrypted(addr, alias);
-+			continue;
-+		}
-+		ret = x86_init.paging.early_decrypt_page(addr, alias);
-+		if (ret)
-+			return ret;
-+	}
-+
++	memcpy(buffer, (void *)addr, PAGE_SIZE);
++	clflush_cache_range((void *)addr, PAGE_SIZE);
++	early_set_page_decrypted(addr, alias);
++	ret = tdx_enc_status_change_finish(addr, 1, false);
++	if (ret)
++		return ret;
++	memcpy((void *)addr, buffer, PAGE_SIZE);
 +	return 0;
 +}
- 
- /* Override for DMA direct allocation check - ARCH_HAS_FORCE_DMA_UNENCRYPTED */
- bool force_dma_unencrypted(struct device *dev)
-diff --git a/arch/x86/mm/mem_encrypt_amd.c b/arch/x86/mm/mem_encrypt_amd.c
-index 2f8c32173972..e854f3a039f7 100644
---- a/arch/x86/mm/mem_encrypt_amd.c
-+++ b/arch/x86/mm/mem_encrypt_amd.c
-@@ -459,9 +459,15 @@ static int __init early_set_memory_enc_dec(unsigned long vaddr,
- 	return ret;
- }
- 
--int __init early_set_memory_decrypted(unsigned long vaddr, unsigned long size)
-+static int __init amd_early_decrypt_page(unsigned long addr, unsigned long alias)
++
+ /* Stop new private<->shared conversions */
+ static void tdx_kexec_begin(void)
  {
--	return early_set_memory_enc_dec(vaddr, size, false);
-+	unsigned int level;
-+	pte_t *pte = lookup_address(addr, &level);
+@@ -1033,6 +1052,18 @@ static void tdx_kexec_finish(void)
+ 
+ 	lockdep_assert_irqs_disabled();
+ 
++	/* Drop image aliases before the direct-map walk makes pages private. */
++	addr = (unsigned long)_text;
++	while (addr < _brk_end) {
++		unsigned int level;
++		pte_t *pte = lookup_address(addr, &level);
 +
-+	__set_clr_pte_enc(pte, PG_LEVEL_4K, false);
-+	early_set_page_decrypted(addr, alias);
-+	early_set_mem_enc_dec_hypercall(addr, PAGE_SIZE, false);
-+	return 0;
- }
- 
- int __init early_set_memory_encrypted(unsigned long vaddr, unsigned long size)
-@@ -479,6 +485,8 @@ void __init sme_early_init(void)
- 	if (!sme_me_mask)
- 		return;
- 
-+	x86_init.paging.early_decrypt_page = amd_early_decrypt_page;
++		if (pte && pte_decrypted(*pte))
++			set_pte(pte, __pte(0));
++		addr = (addr & page_level_mask(level)) + page_level_size(level);
++	}
++	__flush_tlb_all();
 +
- 	early_pmd_flags = __sme_set(early_pmd_flags);
+ 	addr = PAGE_OFFSET;
+ 	end  = PAGE_OFFSET + get_max_mapped();
  
- 	__supported_pte_mask = __sme_set(__supported_pte_mask);
-
+@@ -1160,6 +1191,7 @@ void __init tdx_early_init(void)
+ 	 */
+ 	x86_platform.guest.enc_status_change_prepare = tdx_enc_status_change_prepare;
+ 	x86_platform.guest.enc_status_change_finish  = tdx_enc_status_change_finish;
++	x86_init.paging.early_decrypt_page = tdx_early_decrypt_page;
+ 
+ 	x86_platform.guest.enc_cache_flush_required  = tdx_cache_flush_required;
+ 	x86_platform.guest.enc_tlb_flush_required    = tdx_tlb_flush_required;
 -- 
 2.53.0
 
