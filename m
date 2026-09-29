@@ -1,78 +1,78 @@
-Received: from mail-vs1-f97.google.com (mail-vs1-f97.google.com [209.85.217.97])
+Received: from mail-pl1-f227.google.com (mail-pl1-f227.google.com [209.85.214.227])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 85F083E3176
-	for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2026 04:03:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.217.97
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AA7593E9C1A
+	for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2026 04:03:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.227
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790654619; cv=none; b=enEKI24JUNR+GeZ6q0jo016h8zs3wgNwj3M4YF668dBrk8zz6LiPVj4y6RJm6ckSIiAthCzJqyUkEx4UqQyAUjKeAA1gn+u78sVr54V+sW24PFoy59/CpDFnOVU3sRf8TQhRFVOH5hcpRIifcXdn3X7nQRQBvIQ24mxCqhwgZyg=
+	t=1790654624; cv=none; b=EOSNmVVdqcpMQ6HiVP2vznJ1HM9jdJi/qRDLQxOzrG3rMJ8DEgOlT/u+3JCW4lul4vtgPYFlGhTNsRNMAntDp6nLaTh9NjXWK/kNmHyAhIfKgNErWytBqMbrHYJ/Bt6eaYrjDB/oR7Qp7kF6t1uX6DExytNsS5iT02/9yndoFS4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790654619; c=relaxed/simple;
-	bh=rUzQo5KHgL8B6Zt2JDNYEUTyvIMbiqzpi4ZnuUlZBBY=;
+	s=arc-20240116; t=1790654624; c=relaxed/simple;
+	bh=4EnzBo94/wogs9p6WBG49DkcMOj39XOA58Mgzmbfhqc=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=h3z0+hxvyGSgjbubzRCvat6jAItzu7HjBJdiDLOTuII5vCWlXIOWiII9id5P+jJEbEihE4C4/GQIAbvcVAIb+k3kpcyx/avbEhCD9AS3Dfs6fktCSCvVh9PfPjyCsSL4a75xSBoleOhF4gn0rfNLmPZP5bSmhSKbTLEr8wA5wT0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=broadcom.com; spf=fail smtp.mailfrom=broadcom.com; dkim=pass (1024-bit key) header.d=broadcom.com header.i=@broadcom.com header.b=bjNTJ6w2; arc=none smtp.client-ip=209.85.217.97
+	 MIME-Version; b=dE0rgDURxjVa9CMH6cHdhszLzCUldp3GpMor02pwtshrRO/aaL2AIz5EgWVM8wbVxGRMF7NI7PCBXrEjNEHmlJP7+CJCVkfgf1j3T4eqCoZGB/HpdaXobjnNb17SyyNkuPaKbGfNagzbRVpFfb+mWfj35dPUU4kn5bBHjeDhnUY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=broadcom.com; spf=fail smtp.mailfrom=broadcom.com; dkim=pass (1024-bit key) header.d=broadcom.com header.i=@broadcom.com header.b=T/dGjq5H; arc=none smtp.client-ip=209.85.214.227
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=broadcom.com
 Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=broadcom.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=broadcom.com header.i=@broadcom.com header.b="bjNTJ6w2"
-Received: by mail-vs1-f97.google.com with SMTP id ada2fe7eead31-77bf892b496so95561137.0
-        for <linux-arch@vger.kernel.org>; Mon, 28 Sep 2026 21:03:35 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=broadcom.com header.i=@broadcom.com header.b="T/dGjq5H"
+Received: by mail-pl1-f227.google.com with SMTP id d9443c01a7336-2df982e04c1so8768525ad.2
+        for <linux-arch@vger.kernel.org>; Mon, 28 Sep 2026 21:03:41 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790654615; x=1791259415;
+        d=1e100.net; s=20260707; t=1790654621; x=1791259421;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:dkim-signature:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=CV8TEMBP6IF+2lIlzYCpg42JpAwpPVBphnZX2jCaOFA=;
-        b=Hvmpp2tRqYGjvCLJ9nsVk03nU8dtbDuvq8+SAHmWdUsgekLrz32KEQ2ZhcEwcNGvLY
-         j2yuY9vwlRzaLIe9FLNoEXgkN3MkUoXsQZYqTPHE9v2UrlLHDAUkmLjaiaaNjP+Boxnj
-         x3XRmiZpcIJbkez35vnrgO0z9cmaebe2nkOAvq6FGntd+OC3vk2hlcPIN27bGLvuMuCa
-         OaqGiHT3HDGaA+ZAA76jVgc8wmmQJYtdWx9WqI/I7JqsH+HaHsqV9zK7yBf6fPs06Q5J
-         B+KcdPU0xGPUzk0OOWz+/Qn8QLg9Kdk7jKIJPNB+1kMbPMIT723BFyFZMAP5iQvxSXG4
-         l5Xw==
-X-Forwarded-Encrypted: i=1; AKwUvBx9ix0x/VIskQhMSbIpI1vMMzxoEC91be3pNAoYcERTur/mXC09pmhIVW4h1Sc83OMWp12f5zNNcpTi@vger.kernel.org
-X-Gm-Message-State: AFq9FYKfAZU+6s9o6b53cfhc3FKUWU6dtelOsFGINEzEeQcwBlr+gFAM
-	M9nbBpmNoDzcYckxcIWmimS7/pefs0SLHrYAse1diLQRUd4Fnc+yLe1gBhx1w6isG+BlMAaHc1o
-	nlrbJT9/hlDOUobmB+5Jz8PnujS/yhAev3fFtqw9Esj6wKc2YwX/0QW9fgkaT0KI8P3mAszLXuX
-	vEdPk9/8Vxs1F82q0R3AmpJ0X7tcU3J3xvGHMJx1RCyX0RA0tb20gMYqFnEx+ozcl2aguO8/QrS
-	QRSGa7JWw7sIA==
-X-Gm-Gg: AYBFou08W9E1x9DjZcPU7Fj835gqJdu9TVpl8t8iTNJevJ1yui6pYFH0Fi0npeyotcf
-	kbsi+uO7gsIp6yDfOCaFTEQuAc4o0sg7XfC9S37/szB1cEJP3p0qbXL3helsY1cUcRstnKNWJKj
-	mFhtNjwEgaHi4BrNgtJl838poxVvt52Y99EWCEywvMdY55D35QEtsg6SyTX6TtqXpKvWa/bcxYt
-	SYXIHwRzpTaBLf1tXnWkfq9ZbQKIqoTXoKbrmNTWQ+08xjv5b/zVJQhx5LFXHYubGaBeFWQdwFH
-	e9pWT1tQWHI00AolpLbKege4Qg+MXbyXzBWk83Ez+jmhqBjyyvaxX0um7tg9uLCiJxt9oXjvdyb
-	OH8eke+HhrxyuZb/nAkoEKp52IL5oqwr27O6cU+F9uWdfF860lvaIuHe46WiVECBDkgMUV/dzQM
-	S4FOn6y/fY0wZ9kog6Wd0+xim81u4mj3Ws7jY=
-X-Received: by 2002:a05:6102:5806:b0:7b4:bdf5:9307 with SMTP id ada2fe7eead31-7b4bdf5940cmr1627684137.30.1790654614565;
-        Mon, 28 Sep 2026 21:03:34 -0700 (PDT)
-Received: from smtp-us-east1-p01-i01-si01.dlp.protect.broadcom.com (address-144-49-247-125.dlp.protect.broadcom.com. [144.49.247.125])
-        by smtp-relay.gmail.com with ESMTPS id a1e0cc1a2514c-986f069cb69sm641516241.10.2026.09.28.21.03.33
+        bh=QwnEpUDfw+7fPie+mcX7kjJEU0lPRR1jdyRNDD8g1m0=;
+        b=QqSLiey+YkCBJm+xt9tVi8d57m/pDwESTzaDaxtg6W5YcRigBGY0X5Zge0LjIqq/M5
+         qvTB0ja/H8THaJAtJYvLvNch9So8uqKpVUJT1Z5/GoGfkJER04Or6lVxYjBm1AlejE2L
+         3HiIQdjUUhJvnRIn8jK9XFSNDX+CU6n689qMzePfpOlpBnFWp8nw/vZ1J8OW2eCZty2c
+         lSFlpqz2fzCkZu97+iLOrPOzYb+3CTdwl7ZpikNM475X0aXQ4c4ecmUXpDezCpKWWFBL
+         +HBOkHlionTAu9bz+YFDoGRQOlFTXYujzzIhGMGoflbNzQ7MwlMmd3ceLg4FjbrlUqyC
+         mqCA==
+X-Forwarded-Encrypted: i=1; AKwUvBykZsgYeyFOfz3Ch8fLOFEV8tdk/Q6kyj19+xQCgOBhCkS1cC1NkXZisYj1wH+BkJ0sRhfuBPtzIJNB@vger.kernel.org
+X-Gm-Message-State: AFq9FYIvlsMg+mCllM7utxelKavXN2wl5KHLVqrbNHdpAjEZgh/Mgi/N
+	TnYCXDeAWAOr7ZT1B17Vq5trChN22g+V9hJsCgzUWNt91icEoEbI+1tpOUFXdlE0vwfj9RNBHVr
+	vv1rh5HCOwWiJvwIs3CwozXha2LqhAIgr91ZjPtq0Q5Y0ryW4TMMntXYUksNexuSc+gHBtYtvQf
+	FXVcsGc306nvoAjXgaIMGV+c4rW0JnOw4xFmiiljJ0oASbEGIunYh3prJmX5qFUSYwdm2afMpa3
+	Ysobr+lJw9WNg==
+X-Gm-Gg: AYBFou04auq5tuWiyYaqpzCYWGFFiOw1ObnCKqeBn2QBfXcG84PhROc2I5uepGNAtd5
+	gDL6y+lFYP6V2YnN2hlsNp//KNE7s4ahLSVXKToNwf80WCzNDLCZHxgNDyv3XNiuCWauQCcRVbJ
+	ZWSbxPdb5o/35bkSr9rKpSGBHcsGjDCJINXD7UCZPvNk+FaFaUnzYJmxaG0yuze0fS0BYvabxCm
+	l1WWl0AhHgGRmzaiLCZ7BwvKmxdTMsRc+j5OtnFVTzPSfwW6Pp/RHeW3urpE54kU6TEUxuuKeST
+	b2W6jNXXLduBCfTW4qlD+SLXNe99W+NpJNQBsTQabnhYG5JfYPLohEgpmrN4zS+dH+sYJDWgxLt
+	j4d6CdWLpx7cJBR6Wdasjxk8yTilaOkBPIf2EVjNyv2Ywglgw9/Ba8S3vDmnyL2zYUgFO3HHnox
+	CGipA3RgQDqIc0UjnAiu0axi0kpJYFSWgh
+X-Received: by 2002:a17:903:f8b:b0:2dd:ad73:c98d with SMTP id d9443c01a7336-2df7deb7776mr117578905ad.37.1790654620598;
+        Mon, 28 Sep 2026 21:03:40 -0700 (PDT)
+Received: from smtp-us-east1-p01-i01-si01.dlp.protect.broadcom.com (address-144-49-247-18.dlp.protect.broadcom.com. [144.49.247.18])
+        by smtp-relay.gmail.com with ESMTPS id 41be03b00d2f7-cc7877ddf15sm7458265a12.11.2026.09.28.21.03.40
         for <linux-arch@vger.kernel.org>
         (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
-        Mon, 28 Sep 2026 21:03:34 -0700 (PDT)
+        Mon, 28 Sep 2026 21:03:40 -0700 (PDT)
 X-Relaying-Domain: broadcom.com
 X-CFilter-Loop: Reflected
-Received: by mail-dy1-f197.google.com with SMTP id 5a478bee46e88-33baaba6371so14197681eec.1
-        for <linux-arch@vger.kernel.org>; Mon, 28 Sep 2026 21:03:33 -0700 (PDT)
+Received: by mail-dy1-f199.google.com with SMTP id 5a478bee46e88-30c0d568830so7722581eec.1
+        for <linux-arch@vger.kernel.org>; Mon, 28 Sep 2026 21:03:39 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=broadcom.com; s=google; t=1790654613; x=1791259413; darn=vger.kernel.org;
+        d=broadcom.com; s=google; t=1790654619; x=1791259419; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=CV8TEMBP6IF+2lIlzYCpg42JpAwpPVBphnZX2jCaOFA=;
-        b=bjNTJ6w2pB+RY4tIwDLWRoyh1TKrkkXYnJifKxI+xNDRyGSYEEyzU0N9RA+k3C96ay
-         vaJH3Uc2C7BTr+aeuOpbnzDtG1rLZuoXoQ9TZEm3yZzzX+cYXeIlE51x0XqJMlI+lXq0
-         upWhIuZH+I939ODjwf+SW6xGOiFUHEmKFwSeY=
-X-Forwarded-Encrypted: i=1; AKwUvBw2/52iIVxOPS5fUBQuFK8gCeJJI4bCDUgILwNT5yrSGPT375nw2yXFgicaFwIgPscZymdzU73ozxrW@vger.kernel.org
-X-Received: by 2002:a05:7301:4d0b:b0:341:d191:b838 with SMTP id 5a478bee46e88-34272562bc0mr12611767eec.31.1790654612912;
-        Mon, 28 Sep 2026 21:03:32 -0700 (PDT)
-X-Received: by 2002:a05:7301:4d0b:b0:341:d191:b838 with SMTP id 5a478bee46e88-34272562bc0mr12611727eec.31.1790654612252;
-        Mon, 28 Sep 2026 21:03:32 -0700 (PDT)
+        bh=QwnEpUDfw+7fPie+mcX7kjJEU0lPRR1jdyRNDD8g1m0=;
+        b=T/dGjq5HcMIlyrYN5+v2ok7uaMhfD8rneLiONiGUW/oOM8kjP7i/J8w2Fkpuf+5yGo
+         /6+t2N9Gf7WTzAyjcZHp+24q4/oySwticeUn0BO1TDigePqwo2//wFV0wAOrDGq/oZOO
+         T62Bqq6gYTMTFn348JwL44tH6PYCt5XoLoyqQ=
+X-Forwarded-Encrypted: i=1; AKwUvByydMOwBGikeu4fP5WbzhAcMAwhjcVq03xDGMyl1VV71WduHFxBfqyFncYVAir8myVG+ZVw4t5NK9FD@vger.kernel.org
+X-Received: by 2002:a05:7301:b05:b0:340:7202:d7fc with SMTP id 5a478bee46e88-342713a2732mr10393736eec.17.1790654618379;
+        Mon, 28 Sep 2026 21:03:38 -0700 (PDT)
+X-Received: by 2002:a05:7301:b05:b0:340:7202:d7fc with SMTP id 5a478bee46e88-342713a2732mr10393671eec.17.1790654617422;
+        Mon, 28 Sep 2026 21:03:37 -0700 (PDT)
 Received: from vertex.localdomain ([192.19.144.250])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-347323f5a7esm10952571eec.15.2026.09.28.21.03.26
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-347323f5a7esm10952571eec.15.2026.09.28.21.03.32
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 28 Sep 2026 21:03:29 -0700 (PDT)
+        Mon, 28 Sep 2026 21:03:36 -0700 (PDT)
 From: Zack Rusin <zack.rusin@broadcom.com>
 To: Kiryl Shutsemau <kas@kernel.org>,
 	Borislav Petkov <bp@alien8.de>,
@@ -113,9 +113,9 @@ Cc: Ajay Kaher <ajay.kaher@broadcom.com>,
 	Nathan Chancellor <nathan@kernel.org>,
 	Kees Cook <kees@kernel.org>,
 	Ashish Kalra <ashish.kalra@amd.com>
-Subject: [PATCH v2 5/6] x86/tdx: Support early sharing of kernel data
-Date: Tue, 29 Sep 2026 00:02:54 -0400
-Message-ID: <20260929040256.543767-6-zack.rusin@broadcom.com>
+Subject: [PATCH v2 6/6] x86/percpu: Share decrypted storage before guest CPU setup
+Date: Tue, 29 Sep 2026 00:02:55 -0400
+Message-ID: <20260929040256.543767-7-zack.rusin@broadcom.com>
 X-Mailer: git-send-email 2.53.0
 In-Reply-To: <20260929040256.543767-1-zack.rusin@broadcom.com>
 References: <20260929040256.543767-1-zack.rusin@broadcom.com>
@@ -128,92 +128,235 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-DetectorID-Processed: b00c1d49-9d2e-4205-b15f-d015386d3d5e
 
-Share pages before the page allocator is available, after both their
-direct-map and kernel-image mappings have been made shared. Preserve
-initial contents in a private scratch page, matching the AMD early helper,
-and use the existing MapGPA path and shared-page accounting.
+Convert every possible CPU's decrypted section after per-CPU setup and
+before the boot CPU registers its buffers. This replaces KVM's object
+loop and shares VMware steal-time storage without a driver conversion
+path or readiness state.
 
-UP per-CPU data has an image alias. Drop shared image mappings before
-kexec converts their backing pages to private through the direct map.
+UP KVM registers inside setup_arch(), so convert before guest_late_init()
+there and move VMware's UP registration to that hook. Stop boot on a
+conversion failure: inconsistent page state must not be published to the
+hypervisor. Host SME keeps its existing mappings. Skip Hyper-V vTOM
+per-CPU storage: its visibility callbacks require later Hyper-V
+initialization.
 
 Suggested-by: Kiryl Shutsemau <kas@kernel.org>
 Link: https://lore.kernel.org/r/aqqGUAX65s4LdJkr@thinkstation
+Link: https://lore.kernel.org/r/aqvxQoIoYhJTZpAC@thinkstation
 Signed-off-by: Zack Rusin <zack.rusin@broadcom.com>
 ---
- arch/x86/coco/tdx/tdx.c | 32 ++++++++++++++++++++++++++++++++
- 1 file changed, 32 insertions(+)
+ arch/x86/hyperv/ivm.c              |  4 ++++
+ arch/x86/include/asm/mem_encrypt.h |  2 ++
+ arch/x86/include/asm/x86_init.h    |  2 ++
+ arch/x86/kernel/cpu/vmware.c       |  2 +-
+ arch/x86/kernel/kvm.c              | 35 -----------------------------------
+ arch/x86/kernel/setup.c            |  2 ++
+ arch/x86/kernel/setup_percpu.c     |  2 ++
+ arch/x86/mm/mem_encrypt.c          | 22 ++++++++++++++++++++++
+ 8 files changed, 35 insertions(+), 36 deletions(-)
 
-diff --git a/arch/x86/coco/tdx/tdx.c b/arch/x86/coco/tdx/tdx.c
-index f904a636d449..4a683e9eafc3 100644
---- a/arch/x86/coco/tdx/tdx.c
-+++ b/arch/x86/coco/tdx/tdx.c
-@@ -4,6 +4,7 @@
- #undef pr_fmt
- #define pr_fmt(fmt)     "tdx: " fmt
+diff --git a/arch/x86/hyperv/ivm.c b/arch/x86/hyperv/ivm.c
+index 2ce4dfe53472..4a5c735c9c52 100644
+--- a/arch/x86/hyperv/ivm.c
++++ b/arch/x86/hyperv/ivm.c
+@@ -887,6 +887,10 @@ void __init hv_vtom_init(void)
+ 	cc_set_mask(ms_hyperv.shared_gpa_boundary);
+ 	physical_mask &= ms_hyperv.shared_gpa_boundary - 1;
  
-+#include <linux/cacheflush.h>
- #include <linux/cpufeature.h>
++	/* vTOM has no early per-CPU consumers and needs the Hyper-V setup. */
++	x86_init.paging.skip_percpu_decryption = true;
++	x86_init.paging.early_decrypt_page = NULL;
++
+ 	x86_platform.hyper.is_private_mmio = hv_is_private_mmio;
+ 	x86_platform.guest.enc_cache_flush_required = hv_vtom_cache_flush_required;
+ 	x86_platform.guest.enc_tlb_flush_required = hv_vtom_tlb_flush_required;
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index 4d81f693b1d3..05cf395407ef 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -21,11 +21,13 @@ struct boot_params;
+ #ifdef CONFIG_X86_MEM_ENCRYPT
+ void __init mem_encrypt_init(void);
+ void __init mem_encrypt_setup_arch(void);
++void __init mem_encrypt_init_percpu(void);
+ int __init early_set_memory_decrypted(unsigned long vaddr, unsigned long size);
+ void __init early_set_page_decrypted(unsigned long addr, unsigned long alias);
+ #else
+ static inline void mem_encrypt_init(void) { }
+ static inline void __init mem_encrypt_setup_arch(void) { }
++static inline void __init mem_encrypt_init_percpu(void) { }
+ static inline int __init
+ early_set_memory_decrypted(unsigned long vaddr, unsigned long size) { return 0; }
+ #endif
+diff --git a/arch/x86/include/asm/x86_init.h b/arch/x86/include/asm/x86_init.h
+index e4131402c783..8d1597372eb6 100644
+--- a/arch/x86/include/asm/x86_init.h
++++ b/arch/x86/include/asm/x86_init.h
+@@ -76,10 +76,12 @@ struct x86_init_oem {
+  *			Callback must call paging_init(). Called once after the
+  *			direct mapping for phys memory is available.
+  * @early_decrypt_page:	Share a direct-mapped page and its optional image alias
++ * @skip_percpu_decryption: Platform does not use early shared per-CPU data
+  */
+ struct x86_init_paging {
+ 	void (*pagetable_init)(void);
+ 	int (*early_decrypt_page)(unsigned long addr, unsigned long alias);
++	bool skip_percpu_decryption;
+ };
+ 
+ /**
+diff --git a/arch/x86/kernel/cpu/vmware.c b/arch/x86/kernel/cpu/vmware.c
+index 34b73573b108..b477cc027b18 100644
+--- a/arch/x86/kernel/cpu/vmware.c
++++ b/arch/x86/kernel/cpu/vmware.c
+@@ -366,7 +366,7 @@ static void __init vmware_paravirt_ops_setup(void)
+ 					      vmware_cpu_down_prepare) < 0)
+ 			pr_err("vmware_guest: Failed to install cpu hotplug callbacks\n");
+ #else
+-		vmware_guest_cpu_init();
++		x86_init.hyper.guest_late_init = vmware_guest_cpu_init;
+ #endif
+ 	}
+ }
+diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+index 6b0a5861ccb8..acb3b7b18ebe 100644
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -429,34 +429,6 @@ static u64 kvm_steal_clock(int cpu)
+ 	return steal;
+ }
+ 
+-static inline __init void __set_percpu_decrypted(void *ptr, unsigned long size)
+-{
+-	early_set_memory_decrypted((unsigned long) ptr, size);
+-}
+-
+-/*
+- * Iterate through all possible CPUs and map the memory region pointed
+- * by apf_reason, steal_time and kvm_apic_eoi as decrypted at once.
+- *
+- * Note: we iterate through all possible CPUs to ensure that CPUs
+- * hotplugged will have their per-cpu variable already mapped as
+- * decrypted.
+- */
+-static void __init sev_map_percpu_data(void)
+-{
+-	int cpu;
+-
+-	if (cc_vendor != CC_VENDOR_AMD ||
+-	    !cc_platform_has(CC_ATTR_GUEST_MEM_ENCRYPT))
+-		return;
+-
+-	for_each_possible_cpu(cpu) {
+-		__set_percpu_decrypted(&per_cpu(apf_reason, cpu), sizeof(apf_reason));
+-		__set_percpu_decrypted(&per_cpu(steal_time, cpu), sizeof(steal_time));
+-		__set_percpu_decrypted(&per_cpu(kvm_apic_eoi, cpu), sizeof(kvm_apic_eoi));
+-	}
+-}
+-
+ static void kvm_guest_cpu_offline(bool shutdown)
+ {
+ 	kvm_disable_steal_time();
+@@ -709,12 +681,6 @@ arch_initcall(kvm_alloc_cpumask);
+ 
+ static void __init kvm_smp_prepare_boot_cpu(void)
+ {
+-	/*
+-	 * Map the per-cpu variables as decrypted before kvm_guest_cpu_init()
+-	 * shares the guest physical address with the hypervisor.
+-	 */
+-	sev_map_percpu_data();
+-
+ 	kvm_guest_cpu_init();
+ 	native_smp_prepare_boot_cpu();
+ 	kvm_spinlock_init();
+@@ -868,7 +834,6 @@ static void __init kvm_guest_init(void)
+ 				      kvm_cpu_online, kvm_cpu_down_prepare) < 0)
+ 		pr_err("failed to install cpu hotplug callbacks\n");
+ #else
+-	sev_map_percpu_data();
+ 	kvm_guest_cpu_init();
+ #endif
+ 
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index cda6adb9f69c..8eebd85e59af 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -1251,6 +1251,8 @@ void __init setup_arch(char **cmdline_p)
+ 
+ 	io_apic_init_mappings();
+ 
++	if (!IS_ENABLED(CONFIG_SMP))
++		mem_encrypt_init_percpu();
+ 	x86_init.hyper.guest_late_init();
+ 
+ 	e820__reserve_resources();
+diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
+index c83c61e0b20a..8526ad37a81b 100644
+--- a/arch/x86/kernel/setup_percpu.c
++++ b/arch/x86/kernel/setup_percpu.c
+@@ -5,6 +5,7 @@
  #include <linux/export.h>
- #include <linux/io.h>
-@@ -18,6 +19,7 @@
- #include <asm/paravirt_types.h>
- #include <asm/pgtable.h>
-+#include <asm/sections.h>
- #include <asm/set_memory.h>
- #include <asm/traps.h>
+ #include <linux/init.h>
+ #include <linux/memblock.h>
++#include <linux/mem_encrypt.h>
+ #include <linux/percpu.h>
+ #include <linux/kexec.h>
+ #include <linux/crash_dump.h>
+@@ -234,4 +235,5 @@ void __init setup_per_cpu_areas(void)
+ 	 * this call?
+ 	 */
+ 	sync_initial_page_table();
++	mem_encrypt_init_percpu();
+ }
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+index c3e239a47b66..d3224607170d 100644
+--- a/arch/x86/mm/mem_encrypt.c
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -13,6 +13,7 @@
+ #include <linux/cc_platform.h>
+ #include <linux/mem_encrypt.h>
+ #include <linux/pgalloc.h>
++#include <linux/percpu.h>
+ #include <linux/virtio_anchor.h>
+ #include <linux/iommu-dma.h>
  
- /* MMIO direction */
-@@ -1006,6 +1008,23 @@ static int tdx_enc_status_change_finish(unsigned long vaddr, int numpages,
+@@ -24,6 +25,8 @@
+ 
+ #include "mm_internal.h"
+ 
++extern char __percpu __start_percpu_decrypted[], __end_percpu_decrypted[];
++
+ static pte_t * __init early_lookup_pte(unsigned long addr)
+ {
+ 	unsigned long pfn, step;
+@@ -134,6 +137,25 @@ int __init early_set_memory_decrypted(unsigned long vaddr, unsigned long size)
  	return 0;
  }
  
-+static char tdx_early_buffer[PAGE_SIZE] __initdata __aligned(PAGE_SIZE);
-+
-+static int __init tdx_early_decrypt_page(unsigned long addr, unsigned long alias)
++void __init mem_encrypt_init_percpu(void)
 +{
-+	void *buffer = __va(__pa_symbol(tdx_early_buffer));
-+	int ret;
++	unsigned long size = __end_percpu_decrypted - __start_percpu_decrypted;
++	int cpu, ret;
 +
-+	memcpy(buffer, (void *)addr, PAGE_SIZE);
-+	clflush_cache_range((void *)addr, PAGE_SIZE);
-+	early_set_page_decrypted(addr, alias);
-+	ret = tdx_enc_status_change_finish(addr, 1, false);
-+	if (ret)
-+		return ret;
-+	memcpy((void *)addr, buffer, PAGE_SIZE);
-+	return 0;
++	if (!cc_platform_has(CC_ATTR_GUEST_MEM_ENCRYPT) ||
++	    x86_init.paging.skip_percpu_decryption)
++		return;
++
++	for_each_possible_cpu(cpu) {
++		unsigned long addr = (unsigned long)
++			per_cpu_ptr(__start_percpu_decrypted, cpu);
++
++		ret = early_set_memory_decrypted(addr, size);
++		if (ret)
++			panic("Cannot share CPU %d per-CPU data (err=%d)", cpu, ret);
++	}
 +}
 +
- /* Stop new private<->shared conversions */
- static void tdx_kexec_begin(void)
+ /* Override for DMA direct allocation check - ARCH_HAS_FORCE_DMA_UNENCRYPTED */
+ bool force_dma_unencrypted(struct device *dev)
  {
-@@ -1033,6 +1052,18 @@ static void tdx_kexec_finish(void)
- 
- 	lockdep_assert_irqs_disabled();
- 
-+	/* Drop image aliases before the direct-map walk makes pages private. */
-+	addr = (unsigned long)_text;
-+	while (addr < _brk_end) {
-+		unsigned int level;
-+		pte_t *pte = lookup_address(addr, &level);
-+
-+		if (pte && pte_decrypted(*pte))
-+			set_pte(pte, __pte(0));
-+		addr = (addr & page_level_mask(level)) + page_level_size(level);
-+	}
-+	__flush_tlb_all();
-+
- 	addr = PAGE_OFFSET;
- 	end  = PAGE_OFFSET + get_max_mapped();
- 
-@@ -1160,6 +1191,7 @@ void __init tdx_early_init(void)
- 	 */
- 	x86_platform.guest.enc_status_change_prepare = tdx_enc_status_change_prepare;
- 	x86_platform.guest.enc_status_change_finish  = tdx_enc_status_change_finish;
-+	x86_init.paging.early_decrypt_page = tdx_early_decrypt_page;
- 
- 	x86_platform.guest.enc_cache_flush_required  = tdx_cache_flush_required;
- 	x86_platform.guest.enc_tlb_flush_required    = tdx_tlb_flush_required;
+
 -- 
 2.53.0
 
