@@ -1,149 +1,201 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 17E0A3AEF4E;
-	Wed, 30 Sep 2026 05:10:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790745040; cv=none; b=WbRPdVWzd4gz8W8Vhy+TEkneampBm3RGGx0dY/eP+UXwLbf41uaC+Q5UXJGzOqci/DoR04sJXt0b5RfsVboA8iyGuQV6lnmNnHYJlSIrQyjFUPxKI9lpYv/K+QcJvl3TOZGcTauHRnSxmzDHYQcd7M9brl9ua9Fqlk9jSjAK8Qo=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790745040; c=relaxed/simple;
-	bh=HBnOiO4lKi56PuSH4xu/j4eJs0RVLoWx4P6ztp2ydZk=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=t8/47SSWUyinnfu8KlPj+boy3lL9RJjiUmCm5DiVtVxN+AWEHgsKSnN+KSiCQpcSZYYMaMHIdpoz8mrIB6SO1+Z70vmktwQNZY8pTxX4IEMOOxV5OyVVgUZqz98Bb7eHH5x7/pFY8RI8aCwTHEFalZR/+z6txXUnhACjmJPIFl0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=XyyFJBwu; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+Received: from CH4PR04CU002.outbound.protection.outlook.com (mail-northcentralusazon11013056.outbound.protection.outlook.com [40.107.201.56])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA295EEC3;
+	Wed, 30 Sep 2026 07:18:10 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.107.201.56
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1790752692; cv=fail; b=lnosW4Vusm82+iHqE2sM+pTBTloPgDnGuR1hjl7cLPKyuT665VFUMx4N660NK/aO2OgGD0gsgP30WbvCPnfjR1Qot+6TJyZ8+KQCHDmonhWyEbaaj0BOa9ixmBOxfJLZWEwtfAHs5w0YsM7S6AYKJsNheGGUoCrgyNcYFYJxvqw=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1790752692; c=relaxed/simple;
+	bh=zI2jXXXeW0aSycYYuJRkgHlDzDYAX77nHr+HI/EceKM=;
+	h=Message-ID:Date:Subject:To:Cc:References:From:In-Reply-To:
+	 Content-Type:MIME-Version; b=UxLomzEgdW5Kz0UugTATug/0/wHi4IA/zDdbAjiCgTS/HeJTDBh6hU+3KJt2s78LCd4PiMXVpBEHlwGz6+qypDTd9cXtGIUzDY/MI9xkgJ9hqjB/kOuZ4Mli09gbkGDuFhdCzreblEacoJNPSMBeTK8Ebi3A8QVhMdo9jD77VKQ=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com; spf=fail smtp.mailfrom=amd.com; dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b=1iXJVQ2c; arc=fail smtp.client-ip=40.107.201.56
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=amd.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="XyyFJBwu"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id DFF7F1516;
-	Tue, 29 Sep 2026 22:10:33 -0700 (PDT)
-Received: from localhost (a085714.arm.com [10.164.19.28])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id CBBB73F763;
-	Tue, 29 Sep 2026 22:10:35 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1790745037; bh=HBnOiO4lKi56PuSH4xu/j4eJs0RVLoWx4P6ztp2ydZk=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=XyyFJBwudHElfeviZ00ITo1a6Xr9Q3NyTSeWfTWp8zjFH4KJEZuFNbQ9z9esgxx36
-	 t4IFgPHmQLaWxfB8mibALu5LHDRYKETtddlKsa/mrM3VuXEUZdR5WzTLOHscsAE3WY
-	 77cVlx5yRsj+dQ5Rtn3DsHPDmyL7aOM2T6haf/KA=
-Date: Wed, 30 Sep 2026 10:40:33 +0530
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-To: Muhammad Usama Anjum <usama.anjum@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>, 
-	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
-	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
-	Michal Hocko <mhocko@suse.com>, Xu Xin <xu.xin16@zte.com.cn>, 
-	Chengming Zhou <chengming.zhou@linux.dev>, Jann Horn <jannh@google.com>, 
-	Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
-	Pedro Falcato <pfalcato@suse.de>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Pasha Tatashin <pasha.tatashin@soleen.com>, 
-	Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, Lance Yang <lance.yang@linux.dev>, 
-	Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
-	Barry Song <baohua@kernel.org>, Youngjun Park <youngjun.park@lge.com>, 
-	Uladzislau Rezki <urezki@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
-	Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
-	Kumar Kartikeya Dwivedi <memxor@gmail.com>, Martin KaFai Lau <martin.lau@linux.dev>, 
-	Song Liu <song@kernel.org>, Yonghong Song <yonghong.song@linux.dev>, 
-	Jiri Olsa <jolsa@kernel.org>, Emil Tsalapatis <emil@etsalapatis.com>, 
-	Ihor Solodrai <ihor.solodrai@linux.dev>, Ingo Molnar <mingo@redhat.com>, 
-	Arnaldo Carvalho de Melo <acme@kernel.org>, Namhyung Kim <namhyung@kernel.org>, 
-	Mark Rutland <mark.rutland@arm.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, 
-	Ian Rogers <irogers@google.com>, Adrian Hunter <adrian.hunter@intel.com>, 
-	James Clark <james.clark@linaro.org>, SJ Park <sj@kernel.org>, 
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Jason Gunthorpe <jgg@ziepe.ca>, 
-	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, Leon Romanovsky <leon@kernel.org>, 
-	Zi Yan <ziy@nvidia.com>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
-	Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
-	Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
-	Andrey Ryabinin <ryabinin.a.a@gmail.com>, Alexander Potapenko <glider@google.com>, 
-	Andrey Konovalov <andreyknvl@gmail.com>, Dmitry Vyukov <dvyukov@google.com>, 
-	Vincenzo Frascino <vincenzo.frascino@arm.com>, Miaohe Lin <linmiaohe@huawei.com>, 
-	Naoya Horiguchi <nao.horiguchi@gmail.com>, Matthew Brost <matthew.brost@intel.com>, 
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, Byungchul Park <byungchul@sk.com>, 
-	Gregory Price <gourry@gourry.net>, Ying Huang <ying.huang@linux.alibaba.com>, 
-	Alistair Popple <apopple@nvidia.com>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, 
-	Christoph Lameter <cl@gentwo.org>, Johannes Weiner <hannes@cmpxchg.org>, 
-	Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
-	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
-	Jani Nikula <jani.nikula@linux.intel.com>, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, 
-	Rodrigo Vivi <rodrigo.vivi@intel.com>, Tvrtko Ursulin <tursulin@ursulin.net>, 
-	David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, Juergen Gross <jgross@suse.com>, 
-	Stefano Stabellini <sstabellini@kernel.org>, Oleksandr Tyshchenko <oleksandr_tyshchenko@epam.com>, 
-	linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-fsdevel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org, 
-	linux-perf-users@vger.kernel.org, damon@lists.linux.dev, kasan-dev@googlegroups.com, 
-	intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org, xen-devel@lists.xenproject.org
-Subject: Re: [PATCH v3 4/9] mm: convert PTE table entries in ptep_get()
-Message-ID: <dhokijjou3rh3poqnqqpyoyac7wrqeprl4vlhzqokvh4lgjyya@g5hwn7sve3uw>
-References: <20260922-pte0-v3-0-5670b8cb9059@arm.com>
- <20260922-pte0-v3-4-5670b8cb9059@arm.com>
+	dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b="1iXJVQ2c"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=e+n0krD9DFyHVeqTCWQA76Be4NSC8bB/cS6I/LQUpcrFzixW+lN4AsFEsBm0IwW1tRiVJfJcs36CdFpLbFtRxONGK0b2IDvmJtlM/B1shC4b3oZt5OL+t0kE94yVfWddiu0g9m4NQJrl6+blrwx7pyLC3ufN6++I2n8c3YCXUZ1PX2e7L7gb4wdLT7HwP8iJzUZQJ5iwL8x9qM51YvV3I2n662lo6Xedyu5Xd7Vhi+ZYcg/haKumydkw/tEURX+Pgx8ZN0VBG7KsUGTnTi+s2TTcX4EpEScV/Fct+VNYRnGvcll5NHHGMBOWnpIzQ59EPQk1z95uQS5wXrBbwEeMEQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=H/AIdNpPQKPuxsE7ffU5YealWJe9ET2Q5UTLf3GgZeM=;
+ b=rMxXBDs4QFYLE7GrJ/8AAb7vvXSZDulDCtWNZQ3PkBjmpCbC1falChf92uJcjn9SyNHBOLE2hBSur9b+JwZdU/6122LbAIz7oEvu6jhF1HlpicxaTUDuHt5uw9A9AkgYO5OnOiPDE813ktGNjsdfMF8DYgIKyY8UO8kwu5EZNUQxkGqacxdWNCnD3iubNYOIIgiBMHupyvA3VwaDInNTG5bDr8SnFFelajGXLg3ryXReui4Js5s9bp6QuIkz9/kN4Ljizx5nAXlxTapqTzQRV6euiMVGu+uTAEXIez4HYYzlvsouePMN5DDGmajGQElEXl2l2xhUUzf0G04K2Qt02Q==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=amd.com; dmarc=pass action=none header.from=amd.com; dkim=pass
+ header.d=amd.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=H/AIdNpPQKPuxsE7ffU5YealWJe9ET2Q5UTLf3GgZeM=;
+ b=1iXJVQ2cGx0XJJoiZX+j0Z1uSMwHMba4Us3Vy6PVBa4g+zPgo84Uj5oXwNiPhWEBV6SdNX7DvmVsGisX4vaSPQclTmoFAdDxNb6QasJq1IEULbs68fHJkkBooJ49xZpsVWoxcjrAdCmmKwWPz9Vgl870RcgNeyZtAyLzfTv64E4=
+Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=amd.com;
+Received: from BL4PR12MB9505.namprd12.prod.outlook.com (2603:10b6:208:591::16)
+ by SA0PR12MB4429.namprd12.prod.outlook.com (2603:10b6:806:73::20) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.472.15; Wed, 30 Sep
+ 2026 07:18:06 +0000
+Received: from BL4PR12MB9505.namprd12.prod.outlook.com
+ ([fe80::73aa:eb8c:a86b:5a83]) by BL4PR12MB9505.namprd12.prod.outlook.com
+ ([fe80::73aa:eb8c:a86b:5a83%5]) with mapi id 15.21.0451.022; Wed, 30 Sep 2026
+ 07:18:06 +0000
+Message-ID: <4e08d7ae-d591-4cb4-a269-4e56b1aa5f55@amd.com>
+Date: Wed, 30 Sep 2026 12:47:36 +0530
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v5 4/5] iommu/hyperv: Add para-virtualized IOMMU support
+ for Hyper-V guest
+To: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>,
+ Jacob Pan <jacob.pan@linux.microsoft.com>
+Cc: Jason Gunthorpe <jgg@nvidia.com>, baolu.lu@linux.intel.com,
+ Yu Zhang <zhangyu1@linux.microsoft.com>, linux-kernel@vger.kernel.org,
+ linux-hyperv@vger.kernel.org, iommu@lists.linux.dev,
+ linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org,
+ wei.liu@kernel.org, kys@microsoft.com, haiyangz@microsoft.com,
+ decui@microsoft.com, longli@microsoft.com, joro@8bytes.org, will@kernel.org,
+ robin.murphy@arm.com, bhelgaas@google.com, kwilczynski@kernel.org,
+ lpieralisi@kernel.org, mani@kernel.org, robh@kernel.org, arnd@arndb.de,
+ jgg@ziepe.ca, mhklinux@outlook.com, tgopinath@linux.microsoft.com,
+ mrathor@linux.microsoft.com, suravee.suthikulpanit@amd.com
+References: <20260904075512.174154-1-zhangyu1@linux.microsoft.com>
+ <20260904075512.174154-5-zhangyu1@linux.microsoft.com>
+ <179071228738.122959.14326374887826159868.b4-review@b4>
+ <20260929142542.0000575e@linux.microsoft.com>
+ <30c45240-3dd4-43d5-8512-6f3e7e839f51@linux.microsoft.com>
+Content-Language: en-US
+From: Vasant Hegde <vasant.hegde@amd.com>
+In-Reply-To: <30c45240-3dd4-43d5-8512-6f3e7e839f51@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-ClientProxiedBy: PN2PR01CA0218.INDPRD01.PROD.OUTLOOK.COM
+ (2603:1096:c01:ea::10) To BL4PR12MB9505.namprd12.prod.outlook.com
+ (2603:10b6:208:591::16)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260922-pte0-v3-4-5670b8cb9059@arm.com>
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: BL4PR12MB9505:EE_|SA0PR12MB4429:EE_
+X-MS-Office365-Filtering-Correlation-Id: f8beab34-9ce7-4542-2a63-08df1ec2f936
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|23010399003|366016|1800799024|7416014|376014|4143699003|10067099003|56012099006|11063799006|22082099003|18002099003;
+X-Microsoft-Antispam-Message-Info:
+	Xz4D5I/nlRYDtOgCPeqaXwyDVnNUO/C1yJuEE4h0zuFaBcCkcaGan+ee/JkcVFYSBHghrv5XuIHS/ySGFLKdPtWZVz5saAFG7Cqq0V7/ztGNBBy84eZu9WHJxg17R01uS4ERelO8AmQD4jS11fMZc+x7ellJQlSSgdGQrGUro4tQG/Zwbfm2FmNglWxiDQ4cIWJO8e79s1aZ2JtGEJ9HlFHNt6+8+7eWS+0qb0mE5ZUpA4i+RX1dge8P3445tHsaT2+00dXf/jCwVXv07vQ4VvPaSoLt4ZH1d1vn0UkTc75x+xYgnIYGYaCBnrd2X7JLTGxw1q1dxEHHwuUd/rjRHeW1cjH7fHN+eJPeGLm7HmQNJPEtdpoOu1TqdgknXKyHdQF0zrKBRHt3+s9xGxyq7SXAwUivH54BtRGXpMMJzG+96m4B9ToUwWwVZh2FqWJrkR1LNP4C/vCmMdddzpZBKWbDm5R246qfW99aaL1CUfBlDr4sXGFG5155cKfqAxUGbq5pzdPfL5gsjA8RFzqZNWbkTyB5HMgewf6cjYWQ5+fGvncgWcf9vMrdxEvr8lfnsNKjJIH86YxMP1ehtmn0s7itlipnghME1xNINmmG2EshV3shicyDAAThCbQATCeeBlPpUzP/KSJbfpxYjbr/pA==
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:BL4PR12MB9505.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(23010399003)(366016)(1800799024)(7416014)(376014)(4143699003)(10067099003)(56012099006)(11063799006)(22082099003)(18002099003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?utf-8?B?TFNxbytpVHlXUnd4clhPWkVTQTNhb3A1VVFoVUpUYzRzVHpadVBmdzBiNUlV?=
+ =?utf-8?B?M2RVN3hNaU1HakRrbmdCVTFoUHE4bnhxN3FiOXpNeDV0Z0lvVzhlV3laZlQ2?=
+ =?utf-8?B?Y2Q2MnM4ZDhCTUtVTUQwU0huNU9hb0hqcWZuMjY5dEV3T2w3ajN1NlZRc3lV?=
+ =?utf-8?B?RFFzajFLUXFxM2dLS3ZZUWlYaE5KbXFWREZwaksvdVB2VWNxSzB2OE9ORjQ1?=
+ =?utf-8?B?ck1IaDVJTW83RlZmU0tSMGtKNzk5clBENTFCMkNvTGVlSkVmRE9hbHZjNmU0?=
+ =?utf-8?B?NVNOeHlnci8rVFJCVDV2MU1SRHo3VU55Zi9hY1JMT09tVVFsUWRCeGQvWGhH?=
+ =?utf-8?B?MEc3SnZ2eDdSVVN4YjRremdaTXdkRm1BaU94S0kyVmpXVUkzU2JuNFpUdklI?=
+ =?utf-8?B?UUlvR2NSeWQ5TzB6S0RuY1NtYUpZallYclNpcDk0MnJGbXFoNXI3bUFXSVkx?=
+ =?utf-8?B?NjNLUnBwOUJwU3BmbjlRaSs4SjlvVHVtNG9CUUlyTUxMOUI2cnJsR2RJVHUz?=
+ =?utf-8?B?SnZDRGNYSVZqTDM2b2sxLzNCZTBVZzJEME5vc3VHQ294SmM2bWtBM1hYT3pK?=
+ =?utf-8?B?R3d6dmdNYS9sdFdEQWZ0a0hIallGcld0TDlWT2w1MW40cXZSbnVjMnY0MWh0?=
+ =?utf-8?B?aEkzNGVWRjJibitYcjFYYU1MNk9oTU1BQ2NGbEZXY25qWGtueUpFMGZjU0dp?=
+ =?utf-8?B?ZjZveW5HVnpna1lWTG9zTEhzM1JSeW4vUC8reTB4ZTNlcjFpUis5Z053cVBZ?=
+ =?utf-8?B?T1MrbHVqL3F6L3ZWRWZIOS9JdUtWVEdZTHpQSWFtaDdQSW1yNGJWZEhxQjA1?=
+ =?utf-8?B?MHYzZDBEMkRjc3FqaE90TklkVW56djBkNkZnZmE2WEp6WU9KMDN2WTZCLzhG?=
+ =?utf-8?B?b1RQUjJZVk9zOVNldzVFZCt3dWVOSEhnV0RpTU9IeCtTcGhOSUJhS0NZR280?=
+ =?utf-8?B?c254ZkxGTFFLR3M5Wk5Id2lKK2JxZzhXbmZBVkxESFYrWjhhazdpWjZLc1Fq?=
+ =?utf-8?B?NE0yN0oramlSN2VGSGt2WEJibkRKelpzSXFrVkFFamI5VDZJbm1DdEh5RzVv?=
+ =?utf-8?B?bURKblg3eDIyUkdPVFIwOXpLTFlrOW5uNG1nMVE2ZkRFUzZPek1TT05mSVZI?=
+ =?utf-8?B?VkFJbk4wMlJRRUlObEhTQWt3VnVmRUlkWkpacjlDRmMzb0prWFQyNmhSS2dx?=
+ =?utf-8?B?SEdHVXY3ckFIY1g2KzlNTW9YbTVLZlJXQVJRd3RRQTdrczE0R20vWkpyN0pG?=
+ =?utf-8?B?cmg5WFdlY0R2NktvYzNCUmFRNk5ualJaRVNUbVRkemx2eG5peUhMRVM1NXgx?=
+ =?utf-8?B?aG93bHVxVHZBNEVCdFFOWEU2czJ6S3RZSndMYXZoVEhXZSs3RzNmWXJEM3J0?=
+ =?utf-8?B?NDhVNTFXdFJVd3c0aHNua3AySjU5dHdBYUkzMkl3TFYxYTN6L2J3NFVCZDAr?=
+ =?utf-8?B?cTBydHhqdmRtS21RSVR2OEdOaHpTUWtGUTNtcU1GR2pNaGYvdFB5N3dSQXNj?=
+ =?utf-8?B?TjFIb05Cc0JYdjZSWkJURDk5TjR1NmE4cFdmdHpFVVpxeW44SnN2b2xsbmR4?=
+ =?utf-8?B?bFN1MkUvazhxNm44NCtDUDZSRlRicUZJblhOVzJ5a1JEMXgxSVlzbE5IbGZR?=
+ =?utf-8?B?Mms4b2RhNFE0RExxcWRnNnltYTRsRzczWlc3Nnc5ejI4NjhveUppOXBuWmVs?=
+ =?utf-8?B?cEVOUGdiZWM5bGlzODJacTRCZ1JrT0o2ZVN6aU9DNWVvTEVXMS9RTVlqc1FP?=
+ =?utf-8?B?eFhuSXp6TTIzQkhkYWNVTWwzU3JEYmhLY0haYXhBSVdzM3FyYWFET2ZoVkxJ?=
+ =?utf-8?B?RFZRNnRKcUdRM2FzcGViZE10Mko2LzN2NXhBMnA3NWJDUE5JMFVJdzZPTG51?=
+ =?utf-8?B?K2xXUjhiZkdjR1ZOY2h5VE9WQWdUS0xZaWtscE5zYk43SGJpMlBrYTQrc0dK?=
+ =?utf-8?B?Q2hLcytXUjBKSE85cWthTDVaeVk0S1g5Mnp3ZTFTZ0JzQ0RaRGhaZnRLK3pu?=
+ =?utf-8?B?K01sUWtOV3BuZGRsTXRwb3Y3ZUhyczFTQTFpNlhVa28wWmZyNjEzSzIvOHNZ?=
+ =?utf-8?B?Yi9VMUdqRXdkbERtaGZUd3NvUEUwR2VaeGFtbUxDdVI2Zmt6UlU4K3lyWnJB?=
+ =?utf-8?B?QkZKRklNdnlyeWxObUZWdUp1aG53VlFoUU1Hc2xiWXFyd0NoZE5tY0JpbjBi?=
+ =?utf-8?B?RnZySVJFL0hZZ3cxVXdtZ0hBT3lhaGtDcXBCK1pNMmpUM0VQa0hzNS9hRWdu?=
+ =?utf-8?B?aCsxSzdVSXJHOVdtZTBGUE5TbmJsb09ueVhBNDJzUWVWcS92cFd3MThpUGdN?=
+ =?utf-8?B?cW9pdzV4SHBvVmRrZWVxb3F2TDluN1dEV0cyalR5QjVMb0wxR2hyQT09?=
+X-OriginatorOrg: amd.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: f8beab34-9ce7-4542-2a63-08df1ec2f936
+X-MS-Exchange-CrossTenant-AuthSource: BL4PR12MB9505.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 30 Sep 2026 07:18:06.5198
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: w8p8sEm+agYxNKzYxAokFbEOuEdjC9Tek2HFoSswo92KJXW/+801kEem/0xNQG76KyTvThs2D7B0m9knWTYArA==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SA0PR12MB4429
 
-On Tue, Sep 22, 2026 at 06:12:32PM +0100, Muhammad Usama Anjum wrote:
-> ptep_get() now accepts a pointer to hw_pte_t storage but must continue to
-> return a software PTE value. Add __pte_from_hw for both generic hw_pte_t
-> definitions. Read the hw_pte_t table element atomically before converting
-> it to pte_t.
-> 
-> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
-> ---
-> Changes since v1:
-> - Use software PTE value terminology.
-> 
-> Changes since RFC v1:
-> - Define __pte_from_hw for the opted-in generic wrapper.
-> - Apply READ_ONCE() to hw_pte_t before converting it to pte_t.
-> ---
->  include/linux/pgtable.h       | 2 +-
->  include/linux/pgtable_types.h | 2 ++
->  2 files changed, 3 insertions(+), 1 deletion(-)
-> 
-> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-> index 19098e302b75a..41337da0d65aa 100644
-> --- a/include/linux/pgtable.h
-> +++ b/include/linux/pgtable.h
-> @@ -493,7 +493,7 @@ static inline int pudp_set_access_flags(struct vm_area_struct *vma,
->  #ifndef ptep_get
->  static inline pte_t ptep_get(hw_pte_t *ptep)
->  {
-> -	return READ_ONCE(*ptep);
-> +	return __pte_from_hw(READ_ONCE(*ptep));
->  }
 
-Just curious - when would other pgtable levels (PMD, PUD, P4D and PGD) be converted
-in this format as well ?
 
->  #endif
->  
-> diff --git a/include/linux/pgtable_types.h b/include/linux/pgtable_types.h
-> index 07da05d375c2c..d6c5a7548550b 100644
-> --- a/include/linux/pgtable_types.h
-> +++ b/include/linux/pgtable_types.h
-> @@ -8,8 +8,10 @@
->  
->  #ifdef CONFIG_ARCH_HAS_HW_PTE_T
->  typedef struct __hw_pte_t { pte_t __pte; } hw_pte_t;
-> +#define __pte_from_hw(pte)	((pte).__pte)
->  #else
->  #define hw_pte_t pte_t
-> +#define __pte_from_hw(pte)	(pte)
->  #endif
->  
->  #endif /* !__ASSEMBLY__ */
+On 9/30/2026 3:04 AM, Easwar Hariharan wrote:
+> On 9/29/2026 14:25, Jacob Pan wrote:
+>> Hi Jason,
+>>
+>> On Tue, 29 Sep 2026 17:04:47 -0300
+>> Jason Gunthorpe <jgg@nvidia.com> wrote:
+>>
+>>>> +config HYPERV_PVIOMMU
+>>>> +	bool "Microsoft Hyper-V para-virtualized IOMMU driver for
+>>>> Linux guests"
+>>>> +	depends on X86_64 && HYPERV
+>>>> +	select IOMMU_API
+>>>> +	select GENERIC_PT
+>>>> +	select IOMMU_PT
+>>>> +	select IOMMU_PT_X86_64
+>>>> +	select IOMMU_IOVA  
+>>>
+>>> Should this be IOMMU_DMA ?
+>>
+>> I agree. I guess we should also delete "select IOMMU_API", since
+>> IOMMU_DMA selects both.
+>>
+>> Noticed vt-d driver has the same option, maybe it should also
+>> be changed. Baolu, is that due to historical reasons?
+>>
+>> config INTEL_IOMMU
+>> 	bool "Support for Intel IOMMU using DMA Remapping Devices"
+>> 	depends on PCI_MSI && ACPI && X86
+>> 	select IOMMU_API
+>> 	select GENERIC_PT
+>> 	select IOMMU_PT
+>> 	select IOMMU_PT_X86_64
+>> 	select IOMMU_PT_VTDSS
+>> 	select IOMMU_IOVA
 > 
-> -- 
-> 2.47.3
+> FWIW, AMD also has the same...
 > 
+> config AMD_IOMMU
+>         bool "AMD IOMMU support"
+>         select SWIOTLB
+>         select PCI_MSI
+>         select PCI_ATS
+>         select PCI_PRI
+>         select PCI_PASID
+>         select IRQ_MSI_LIB
+>         select MMU_NOTIFIER
+>         select IOMMU_API
+>         select IOMMU_IOVA
+
+We should replace IOMMU_API And IOMMU_IOVA with IOMMU_DMA.
+
+also probably we should move PCI_ATS, PCI_PRI, PCI_PASID to CONFIG_IOMMU_SVA and
+remove it from amd/intel driver code.
+
+-Vasant
+
