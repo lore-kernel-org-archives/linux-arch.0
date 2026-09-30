@@ -1,32 +1,32 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 0C53A38D3E2;
-	Wed, 30 Sep 2026 04:20:59 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id E71E6399000;
+	Wed, 30 Sep 2026 04:35:18 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790742062; cv=none; b=lQLtQAvNfCK3uF8G8ZMnhpvLNPZ+PzRUPqWN1GmTV0SJl4121+FTBtaMTjFPL7ebBmgpA4XnAfY3Qf3hTTqcjlZURQr0rmTz/Q7JQoXQD2PVoo8WptVOG8gArhL1fh1y7bLtVPH6bugb0k8n1tN1pimQYQ6kkWE0WgkaXTBe9nM=
+	t=1790742921; cv=none; b=L3JidtZhdTN05mJGg6tak4M7UkQGtBrzniRXsR86ZfgTMZUm59uWQfdZ4yfZsJu6S+bqAeZ3DEkq2U2mAgUV6/ytMrDgQhElhuoHRDQgJtDpG3HUYh01XTaw/qeQlif/yhtbo5P6ZJ/wjaf3onPX8ZNstk+s6Z2NV4ZdMNN3H9I=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790742062; c=relaxed/simple;
-	bh=UxlHUYv22rgyq7ZVxruY0QE2y0GtfTw2R9yOES+jmXc=;
+	s=arc-20240116; t=1790742921; c=relaxed/simple;
+	bh=JkHtlPokOn2BvzhlFVjlfx9DCaqfOaYocdfBH7PqihI=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=CV0H1v8xarG78X70LuN7sylUxDuEtbkZxvEIMN71aplOBMtw0TaVh47QAWKYbH+wHX50zLUYEN7Jlo6VXTTBh7bPlVfCrrGNxHaobaMB519tlOplwEgQTjs8WVoH1GOOjWHjNpPtNmbyL9dGL8LeoJB63qj/4FXHRPpMrILCZLw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=iiXj3sGk; arc=none smtp.client-ip=217.140.110.172
+	 Content-Type:Content-Disposition:In-Reply-To; b=Dtj2G8o3xfhGNLgYcmHvKQPP8GBUF4yIqU0mHUoenM8sRRDpEVfsJ+8usip0G7eXIoWQ7NZHju23v/9KhL432iUozK/Q4qA569lAqPJVx774kTy9iv+jyyrl84+yGWAdx1quPgCqvs/2AyLoxRaxcrsEZwKce8c7+oA0xCihma0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=lgC6/g+m; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="iiXj3sGk"
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="lgC6/g+m"
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id DD02B16F3;
-	Tue, 29 Sep 2026 21:20:55 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 9D6AF16F3;
+	Tue, 29 Sep 2026 21:35:14 -0700 (PDT)
 Received: from localhost (a085714.arm.com [10.164.19.28])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id D13163F85F;
-	Tue, 29 Sep 2026 21:20:57 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 957183F85F;
+	Tue, 29 Sep 2026 21:35:16 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1790742059; bh=UxlHUYv22rgyq7ZVxruY0QE2y0GtfTw2R9yOES+jmXc=;
+	t=1790742918; bh=JkHtlPokOn2BvzhlFVjlfx9DCaqfOaYocdfBH7PqihI=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=iiXj3sGkrhMAurjVuvisN1wyrF4L5DGjA9KvALcFVE4OmoxhVrf+/REwA/xaRN5Yk
-	 5me6wieFhJOwAoyLIoLbXtSHLf2oRy3WVoldA0+46lHll1bRbjR+OrUDdKJOwbDcUR
-	 LpuyMIJJwxFQf9usQsgGIu9RHfEsZZyZAGi0LfSg=
-Date: Wed, 30 Sep 2026 09:50:55 +0530
+	b=lgC6/g+mujq1Di8KZWt65mHC5uA/Qzc5xT80jreFuxXslxLv02NzQrV6JYjehoAuH
+	 2P1nYefRlxZyTLzAxT6VXMQKFBlCuTP7bT5bKmsIoL0fufhFfULbvB17Y8MsgFrD5W
+	 iGRIG26gVobM8X7tH+/OJ4uUJIzt6YNGzZ9HwqE0=
+Date: Wed, 30 Sep 2026 10:05:14 +0530
 From: Anshuman Khandual <anshuman.khandual@arm.com>
 To: Muhammad Usama Anjum <usama.anjum@arm.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
@@ -78,11 +78,10 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
 	linux-arch@vger.kernel.org, linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org, 
 	linux-perf-users@vger.kernel.org, damon@lists.linux.dev, kasan-dev@googlegroups.com, 
 	intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org, xen-devel@lists.xenproject.org
-Subject: Re: [PATCH v3 2/9] mm: rename pointers to software PTE values as
- ptentp
-Message-ID: <ch63uaxr36anablz2sra57huiud2gxjtpmilwk4je2qkm5hb7j@eiun5t4erg2l>
+Subject: Re: [PATCH v3 3/9] mm: use hw_pte_t for generic PTE table storage
+Message-ID: <xzlxdkrjilskjcagnl33eed7ijxrgfhoalmmmq5ks3wgjmkkhi@zchtxpr2amff>
 References: <20260922-pte0-v3-0-5670b8cb9059@arm.com>
- <20260922-pte0-v3-2-5670b8cb9059@arm.com>
+ <20260922-pte0-v3-3-5670b8cb9059@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -91,98 +90,27 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260922-pte0-v3-2-5670b8cb9059@arm.com>
+In-Reply-To: <20260922-pte0-v3-3-5670b8cb9059@arm.com>
 
-On Tue, Sep 22, 2026 at 06:12:30PM +0100, Muhammad Usama Anjum wrote:
-> Some interfaces use pte_t * for a software PTE value rather than for an
-> entry stored in a PTE table. These pointers must remain pte_t * when
-> pointers to PTE table storage are converted to hw_pte_t *.
+On Tue, Sep 22, 2026 at 06:12:31PM +0100, Muhammad Usama Anjum wrote:
+> Generic page-table interfaces use pte_t * for both pointers to PTE table
+> storage and pointers to software PTE values. Convert the generic
+> declarations and their MM, fs, and kernel users together so parameters,
+> return types, callbacks, and local pointers that designate table storage
+> use hw_pte_t *.
 > 
-> Rename these parameters in the install_pte callback,
-> write_protect_page(), and guard_install_set_pte() to ptentp. The later
-> Coccinelle conversion skips pointers named ptentp, allowing it to convert
-> the remaining PTE table pointers without changing these interfaces.
+> Include linux/pgtable_types.h from headers that expose the converted
+> interfaces. It continues to provide pgprot_t to vmalloc.h through
+> asm/page.h.
 > 
-> Some functions already use ptentp for such pointers, including:
-> - madvise_folio_pte_batch()
-> - folio_pte_batch_flags()
-> No need to rename them.
+> Keep software PTE values as pte_t and retain pte_t * for value interfaces.
 > 
-> This patch only renames parameters and makes no functional change.
+> No architecture selects ARCH_HAS_HW_PTE_T at this point, so hw_pte_t
+> remains an alias of pte_t and this changes the interface vocabulary without
+> changing representation or behavior.
 > 
-> Acked-by: David Hildenbrand (Arm) <david@kernel.org>
-> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+> Most of this mechanical conversion was generated with the Coccinelle script
+> included in the cover letter. The script deliberately ignores pte_t *
 
-Reviewed-by: Anshuman Khandual <anshuman.khandual@arm.com>
-
-> ---
-> Changes since v1:
-> - Rewrite the subject and description to distinguish software PTE
->   values from PTE table storage.
-> 
-> Changes since RFC v1:
-> - Update the description for the architecture opt-in conversion.
-> ---
->  include/linux/pagewalk.h | 2 +-
->  mm/ksm.c                 | 4 ++--
->  mm/madvise.c             | 4 ++--
->  3 files changed, 5 insertions(+), 5 deletions(-)
-> 
-> diff --git a/include/linux/pagewalk.h b/include/linux/pagewalk.h
-> index b41d7265c01bc..c34d826c5e4a2 100644
-> --- a/include/linux/pagewalk.h
-> +++ b/include/linux/pagewalk.h
-> @@ -89,7 +89,7 @@ struct mm_walk_ops {
->  		       struct mm_walk *walk);
->  	void (*post_vma)(struct mm_walk *walk);
->  	int (*install_pte)(unsigned long addr, unsigned long next,
-> -			   pte_t *ptep, struct mm_walk *walk);
-> +			   pte_t *ptentp, struct mm_walk *walk);
->  	enum page_walk_lock walk_lock;
->  };
->  
-> diff --git a/mm/ksm.c b/mm/ksm.c
-> index 624f37975e129..2a4f19fe0f696 100644
-> --- a/mm/ksm.c
-> +++ b/mm/ksm.c
-> @@ -1292,7 +1292,7 @@ static u32 calc_checksum(struct page *page)
->  }
->  
->  static int write_protect_page(struct vm_area_struct *vma, struct folio *folio,
-> -			      pte_t *orig_pte)
-> +			      pte_t *ptentp)
->  {
->  	struct mm_struct *mm = vma->vm_mm;
->  	DEFINE_FOLIO_VMA_WALK(pvmw, folio, vma, 0, 0);
-> @@ -1371,7 +1371,7 @@ static int write_protect_page(struct vm_area_struct *vma, struct folio *folio,
->  
->  		set_pte_at(mm, pvmw.address, pvmw.pte, entry);
->  	}
-> -	*orig_pte = entry;
-> +	*ptentp = entry;
->  	err = 0;
->  
->  out_unlock:
-> diff --git a/mm/madvise.c b/mm/madvise.c
-> index 73c2901b9adbf..dd75a673e108f 100644
-> --- a/mm/madvise.c
-> +++ b/mm/madvise.c
-> @@ -1113,12 +1113,12 @@ static int guard_install_pte_entry(pte_t *pte, unsigned long addr,
->  }
->  
->  static int guard_install_set_pte(unsigned long addr, unsigned long next,
-> -				 pte_t *ptep, struct mm_walk *walk)
-> +				 pte_t *ptentp, struct mm_walk *walk)
->  {
->  	unsigned long *nr_pages = (unsigned long *)walk->private;
->  
->  	/* Simply install a PTE marker, this causes segfault on access. */
-> -	*ptep = make_pte_marker(PTE_MARKER_GUARD);
-> +	*ptentp = make_pte_marker(PTE_MARKER_GUARD);
->  	(*nr_pages)++;
->  
->  	return 0;
-> 
-> -- 
-> 2.47.3
-> 
+Just wondering - should this Coccinelle script that converted all these
+instances be saved inside ./scripts/coccinelle/ for future referene.
