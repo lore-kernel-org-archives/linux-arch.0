@@ -1,230 +1,225 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 56E27511E6F;
-	Wed, 30 Sep 2026 14:14:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790777698; cv=none; b=tc3GSmNJjwR2UiqE2B85+l6VIV7K79uedXy/4JLC2uRSVT3l9Rw5N38AwGJrCeCNdciTKWHxTS8pjfHvLFuXcXzhSXU5koUp02BpjB/BUp/kEW38t3XBpx5sNjmW8udVRV76vO7jVUjR9s5NWB+HTfGYfGrGsdxPAToMN8zGKKo=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790777698; c=relaxed/simple;
-	bh=7/RbzMPdI1aD2EV6LbUCW/HmRrdqWGkyGILrSE+j0TY=;
+Received: from BN8PR05CU002.outbound.protection.outlook.com (mail-eastus2azon11011014.outbound.protection.outlook.com [52.101.57.14])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C47804F85AB;
+	Wed, 30 Sep 2026 15:28:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.57.14
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1790782119; cv=fail; b=A73yTFuOXp33nZ47reN6uaiSVeCPX9QPgQu4klTRM9P+7l7zuBu8+bYdydo7KPGDycFJesdmhGXq+7b+P4sVs6eoSl+MKqgPUn88HnOhieNK8gEPUFWcXOStEY2bTJgglrHXNA0OcYgeH/X7oG8kueggWcE75J1Jhg7zpf0YMM4=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1790782119; c=relaxed/simple;
+	bh=mrR2p5hMKgCRApuAlcdwULmrCPEieDj5CYrcRy2szig=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=IXe4s8YUza1E9XJt9ZkBj2KuDcnCwrprTsIOJAZotpcRys4Oj2C2Fmw5EFUuwU9DkNLb4MHXxAM378HHRTcPuTUJL8CVOymRldjFIFtq9+cbvKsWnZP24yYqb215D/viu6l9eAH/ecGoa79WO78S/JZkOSE03eX5ONmnOLtCM/w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=EtKT6bvk; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	 Content-Type:MIME-Version; b=qIFHqLGXjZSfBGf1cAV4IV3GmjawTkChxkoQPGJKHFSrYg749GtD1EIrOaFbcWrqXLrK7TjRb5DPa6TlQB3sHM04Vzh9nUAguVCbgA3jDmG5tL3gpZFQrsp7zWwWMxztxxP9rN7CswiqLLpCNQ2U1U2AEt9CUyt9LiamD51vrGc=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=D1N0qPH6; arc=fail smtp.client-ip=52.101.57.14
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="EtKT6bvk"
-Received: from zhangyu-hyperv.mshome.net (unknown [167.220.233.38])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 8A81320B716A;
-	Wed, 30 Sep 2026 07:13:46 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 8A81320B716A
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1790777630;
-	bh=Q99fMk2gfkWw/fV2k2A1SwgVJLDV1ZFs/sYum8UpDr0=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=EtKT6bvk6UjmldcTFOqLqfOfENOZZVel6sogTssrCWn2YBozzKPeZS+03Y/WVJAKW
-	 Xo1ovrbYXkcb/nzbFWU7F7DtvKnxyeQtA7zR8q+f2+QyZwiSvMJZwxLydci8G6OUIB
-	 WG6ECzSJHj0+dmaVg/9nSFhYvmU9hkLkYZ/Z6UVk=
-From: Yu Zhang <zhangyu1@linux.microsoft.com>
-To: linux-kernel@vger.kernel.org,
-	linux-hyperv@vger.kernel.org,
-	iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	x86@kernel.org
-Cc: wei.liu@kernel.org,
-	kys@microsoft.com,
-	haiyangz@microsoft.com,
-	decui@microsoft.com,
-	joro@8bytes.org,
-	will@kernel.org,
-	robin.murphy@arm.com,
-	bhelgaas@google.com,
-	kwilczynski@kernel.org,
-	lpieralisi@kernel.org,
-	mani@kernel.org,
-	robh@kernel.org,
-	arnd@arndb.de,
-	jgg@ziepe.ca,
-	mhklinux@outlook.com,
-	jacob.pan@linux.microsoft.com,
-	tgopinath@linux.microsoft.com,
-	easwar.hariharan@linux.microsoft.com,
-	mrathor@linux.microsoft.com,
-	baolu.lu@linux.intel.com,
-	suravee.suthikulpanit@amd.com,
-	vasant.hegde@amd.com
-Subject: [PATCH v6 5/5] iommu/hyperv: Add page-selective IOTLB flush support
-Date: Wed, 30 Sep 2026 22:14:09 +0800
-Message-ID: <20260930141409.437904-6-zhangyu1@linux.microsoft.com>
-X-Mailer: git-send-email 2.52.0
-In-Reply-To: <20260930141409.437904-1-zhangyu1@linux.microsoft.com>
-References: <20260930141409.437904-1-zhangyu1@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="D1N0qPH6"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=s8uTyHY6ca0S0gFpYdWeYhmt2qrfVim81f/ez5gEyTG7rnWCcA8/efKeY19pYTwnxwABRHXRKolDwQi2UhO6Qz7e2tw2LtkJhsBVye4eWtkujwDZZ27NbV2cskWBD4nzj1Dd3LmiOn4W3u3obhqoFQUlgEbfAT/rGvrdzux+FUcMcTWhIntHiV95U798sZ0k9HBVZ5bIWiu68czDL62rHBAnmeLn4IK07kBZs/ig5ErqAxPLXbvEKipxMPC6OIyzO6xtuBjjFcSmzsvMHjYPfjA5yanrW4EaKx+lblQaKX1kfhoTPznH15l3TzT35GNhWLmss4FkNHGG6SvIvUG8mQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=j8w1jBnA80+jx0tcZGoqUFaJ5onaLQirx/OFTHfw1Is=;
+ b=JtWj3321OWFasox9ZMgOhmSAZPBdcjqPps/So50HJ7tSj2RIaFzWfVwmg056K6Itl7SlkJcHCMMvQbbJTMO79OGYAlUlJuGtRtdVkL6sMFAexi7rnPCZHLYdW5ylCqSCWp9Tbtmwyu09O7a/B+uMNCtRv6iEaMwjKiTLORhoRLOqV/0Taa1tt9sChnpupDPn3t2atSyDikEKWBFyLPz6ExmCk3P8/RraolNwzkaYCWDAWdQNlhDsDztRxk7p+U8gIFWQke2ge3GUrf5TMVmjVdk8i+weC5bxjqn4edtnPcOmAcvjaRYdEw7K/USJ6WkTMuC5RDb/DfHvcDWyW50Ymw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=j8w1jBnA80+jx0tcZGoqUFaJ5onaLQirx/OFTHfw1Is=;
+ b=D1N0qPH6GDpjju4aIZpuxd1dhaa2+ullhx2NmCdQEzl3PVKYtQiHUacX80CpSDdjg0S1R5ugLiFraR2ypmUMTxGd3LzzhmR/rTewwQlyA92Mi3NJk3EQlxFcyrFGanZDy1OGzsQAUD7urm32U1uSNCKFWM7dEF8VvyJRYcckG81trDtDoXM+IP/gyS2UIZcfmNG4Lwk6NQHtbSLnUzilm8CMps9VuTI1+77XdaqWXsdqZUz2hwiQ3NL+9v2iT0+9kWqOl5A7DD0o3HbuAv6X5Y5zR2uE1C2tjPAIc1EOJrtUqptRVP22RCCLNS8C4ohXmhwm7eqoEgGQhlD+OCe9zQ==
+Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from IA0PR12MB8374.namprd12.prod.outlook.com (2603:10b6:208:40e::7)
+ by DM4PR12MB5724.namprd12.prod.outlook.com (2603:10b6:8:5f::9) with Microsoft
+ SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.21.451.26; Wed, 30 Sep 2026 15:27:57 +0000
+Received: from IA0PR12MB8374.namprd12.prod.outlook.com
+ ([fe80::d85f:4c87:ae84:3f16]) by IA0PR12MB8374.namprd12.prod.outlook.com
+ ([fe80::d85f:4c87:ae84:3f16%6]) with mapi id 15.21.0472.015; Wed, 30 Sep 2026
+ 15:27:57 +0000
+From: Zi Yan <ziy@nvidia.com>
+To: Muhammad Usama Anjum <usama.anjum@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+ David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Xu Xin <xu.xin16@zte.com.cn>,
+ Chengming Zhou <chengming.zhou@linux.dev>, Jann Horn <jannh@google.com>,
+ Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
+ Pedro Falcato <pfalcato@suse.de>, Arnd Bergmann <arnd@arndb.de>,
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>, Rik van Riel <riel@surriel.com>,
+ Harry Yoo <harry@kernel.org>, Lance Yang <lance.yang@linux.dev>,
+ Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>,
+ Baoquan He <baoquan.he@linux.dev>, Barry Song <baohua@kernel.org>,
+ Youngjun Park <youngjun.park@lge.com>, Uladzislau Rezki <urezki@gmail.com>,
+ Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>,
+ Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+ Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>,
+ Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>,
+ Kumar Kartikeya Dwivedi <memxor@gmail.com>,
+ Martin KaFai Lau <martin.lau@linux.dev>, Song Liu <song@kernel.org>,
+ Yonghong Song <yonghong.song@linux.dev>, Jiri Olsa <jolsa@kernel.org>,
+ Emil Tsalapatis <emil@etsalapatis.com>,
+ Ihor Solodrai <ihor.solodrai@linux.dev>, Ingo Molnar <mingo@redhat.com>,
+ Arnaldo Carvalho de Melo <acme@kernel.org>,
+ Namhyung Kim <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
+ Alexander Shishkin <alexander.shishkin@linux.intel.com>,
+ Ian Rogers <irogers@google.com>, Adrian Hunter <adrian.hunter@intel.com>,
+ James Clark <james.clark@linaro.org>, SJ Park <sj@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, Leon Romanovsky <leon@kernel.org>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
+ Dev Jain <dev.jain@arm.com>, Usama Arif <usama.arif@linux.dev>,
+ Kiryl Shutsemau <kas@kernel.org>, Andrey Ryabinin <ryabinin.a.a@gmail.com>,
+ Alexander Potapenko <glider@google.com>,
+ Andrey Konovalov <andreyknvl@gmail.com>, Dmitry Vyukov <dvyukov@google.com>,
+ Vincenzo Frascino <vincenzo.frascino@arm.com>,
+ Miaohe Lin <linmiaohe@huawei.com>, Naoya Horiguchi <nao.horiguchi@gmail.com>,
+ Matthew Brost <matthew.brost@intel.com>,
+ Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>,
+ Byungchul Park <byungchul@sk.com>, Gregory Price <gourry@gourry.net>,
+ Ying Huang <ying.huang@linux.alibaba.com>,
+ Alistair Popple <apopple@nvidia.com>, Dennis Zhou <dennis@kernel.org>,
+ Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Qi Zheng <qi.zheng@linux.dev>,
+ Shakeel Butt <shakeel.butt@linux.dev>,
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
+ Wei Xu <weixugc@google.com>, Jani Nikula <jani.nikula@linux.intel.com>,
+ Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+ Rodrigo Vivi <rodrigo.vivi@intel.com>, Tvrtko Ursulin <tursulin@ursulin.net>,
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
+ Juergen Gross <jgross@suse.com>, Stefano Stabellini <sstabellini@kernel.org>,
+ Oleksandr Tyshchenko <oleksandr_tyshchenko@epam.com>,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+ linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-trace-kernel@vger.kernel.org, bpf@vger.kernel.org,
+ linux-perf-users@vger.kernel.org, damon@lists.linux.dev,
+ kasan-dev@googlegroups.com, intel-gfx@lists.freedesktop.org,
+ dri-devel@lists.freedesktop.org, xen-devel@lists.xenproject.org
+Subject: Re: [PATCH v3 1/9] mm: introduce hw_pte_t for PTE table storage
+Date: Wed, 30 Sep 2026 11:27:53 -0400
+X-Mailer: MailMate (3.0r7032)
+Message-ID: <51D02557-E9CC-4806-917E-279C6E66AF1A@nvidia.com>
+In-Reply-To: <20260922-pte0-v3-1-5670b8cb9059@arm.com>
+References: <20260922-pte0-v3-0-5670b8cb9059@arm.com>
+ <20260922-pte0-v3-1-5670b8cb9059@arm.com>
+Content-Type: text/plain
+X-MS-Reactions: disallow
+X-ClientProxiedBy: BL1PR13CA0112.namprd13.prod.outlook.com
+ (2603:10b6:208:2b9::27) To IA0PR12MB8374.namprd12.prod.outlook.com
+ (2603:10b6:208:40e::7)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: IA0PR12MB8374:EE_|DM4PR12MB5724:EE_
+X-MS-Office365-Filtering-Correlation-Id: d214dff4-b381-4957-d09d-08df1f07674d
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|7416014|376014|1800799024|23010399003|366016|10067099003|4143699003|11063799006|56012099006|10063799003|22082099003|18002099003;
+X-Microsoft-Antispam-Message-Info:
+	NTMS7w3pkwbdyX8kXLQQPd6bmp7vgxhsw8wWUgoxv0BrTrWoioXQwXj9y2sXwxqK/qp94qzNdh/w34dJBNSvbrkk9mQbv2eUPT1dCR5tZ1ctxQM8bgU8kBHD7llfqbs2uDuPa0FCmoZMt4aJnvieWCKHKxci7qcqJAuMjkWfrFU8R5RZ0Pp+gWd6vaVst+KGOu7iQzlS6ZiiLCyEHCFhE5UTWJFFq6SPOOfeik7Z0B1OXZ2zH9V2SuK02wJNgjSYLbszkIqi50F10i5CEUJ3ZGuCkyo3DM/MwDsQAmHM8Bp6vKunIh4HqtMQOnv7zekcp+FzN5RAzsi0FWBm5ZLmamnACbJ3ID8Uhc2HbeBvXNONVsFjYpykdaOuaDLwRN1/WB3MpYmtTWpOhyqq8LIb7VFs6nvId/Ccql4GAZZPIAqWvI0kj6zudAav0tOCf5ocPxPGvqv0srNHGzljQMohQkc5knSeLiz0T7I3twibdB+LZUKnkqS4g6gZxOLx8jHHOrM7CcIMBFvSVOy124A+psloR+Sir++O4fteJpkRLIH2eo2XV3ANbGLdqlMLl7bvZevXSVQuXGwtEFUG0PQnGs49YCqwB44rR9hCbCcjSPAnPCpAXVR+pJ987rdeYw2WIN+jnl6TeeNBBReTpntyPBD6DV97FUla1GcpMqCM9h8=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:IA0PR12MB8374.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(7416014)(376014)(1800799024)(23010399003)(366016)(10067099003)(4143699003)(11063799006)(56012099006)(10063799003)(22082099003)(18002099003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?MXu4eQniVxMuLf/9bfDbC7QY5S/GZmk+BEhdZPsCpb2Fwvz+snepEPRv42qo?=
+ =?us-ascii?Q?J+fGc6zIpN2r69MH3j1NbAw+66SPKNJSbZWhUSOYSaWDRf4WysG/w2mdz+cN?=
+ =?us-ascii?Q?vp3KKbYKM8MhsCZWkFB42OashkTTgzj6OZ6vq7YylqGondij1VlWCYNmcP8S?=
+ =?us-ascii?Q?6CXUVF1CZY8gLz31yQcOyjXSX5r+5W5adH8GV43S5daPLgy1FP1pch3Vqrlf?=
+ =?us-ascii?Q?LydlKNFlFcd6CQvLAmRZRg5f+x5EGG7YhPBj+3BMbN4LI/lNWXYIpqiHqL7j?=
+ =?us-ascii?Q?oXhMMivi1j3CAIyHtKjnBqsGsncsD9Df+DEDyitdDfZE5i1G5UrNPgcatcz/?=
+ =?us-ascii?Q?mOfTjD8IZ8ZR2rMuwlWGM7cKyWdpZ5SlTiRxY5CJuWwlCSWlWhK7Mn9edgn9?=
+ =?us-ascii?Q?Abtswnt7rCImfHaCNvjLM8bxzr2VL0lWfaOQoi0ZkND6Uxjx80xWYDeDdcLy?=
+ =?us-ascii?Q?E2M4AQSakyvohHmvNmzUGfYvmOf5UofkU4avmkfn0FAKO3HBNZ84eu6/qB0/?=
+ =?us-ascii?Q?BZkh42wfg4Tpp5AzexqE0YlzTTYdsEhTlxyMDpY0dY/493VkD3G3VmmenLvc?=
+ =?us-ascii?Q?rOsNrznL3Ai/WSC9dPAJ2ZVp4YFIfEewJtaYthUYeM1mHNwkHM57C3jhqJZE?=
+ =?us-ascii?Q?oE/mixWkz2wHs5AScj9awqrTKdoG+D2+UP55curGBCATRmTl/m7GNbhLI8DD?=
+ =?us-ascii?Q?/LpUx+iBAnEP2/sP4eK6DpVctibX9lPiiKkUQDwfqPwHb4HWHRBFrm7hyvbb?=
+ =?us-ascii?Q?1q0FRxmMe40oskj/VcMiMnLOYQolAHPLNrau928odO+HIqfP4yZRqOG4dD0h?=
+ =?us-ascii?Q?PwtkEzoBxPv+ezIzGXMVj6vnzZHj9k+INQcrtqClIA1ORalRBd8jzvtlji5b?=
+ =?us-ascii?Q?/2qlXjfsInReKmjefmVeIOG1K/qzZ5l/6e/Lwvopa6VTFuL+SrhYv9N/Yoc5?=
+ =?us-ascii?Q?j8+pg/TPURR8FqRiO5nzmXCWudtk9pQowrK1N1/noRFW++Oxh5J6KEGxWoBg?=
+ =?us-ascii?Q?bPvscNfCLhlUpVRhJ/HlU6qHXIHRVZT2ops9BEj/kj5gQGfI4gKjYUo8q2wm?=
+ =?us-ascii?Q?EnQA7IeJ2rTYpUTpOztbqVoqKIAugvcp5LpMgIaQJgYyR90PdeQk8rB206pU?=
+ =?us-ascii?Q?OEevidn/mt07l+4qXT8oBb9a22pTAX5Oz0iY9j1ManvQYZpzc2pC2r3XI/7w?=
+ =?us-ascii?Q?yFS4ZzYI7p519xaiDGAOAL210+5azfqWPKAg6FPBqpqqUj4RH+MzvfU0VjFl?=
+ =?us-ascii?Q?OmpY5RRcLDE94Cy1REYNVkR0ntXfbZovloDW2XYuRh1PRBAplbFbVz1CF6j5?=
+ =?us-ascii?Q?HNbo0gHXo8t5IB4239rfrJjNIMAv2hWLBuATBn9RDSclotP3/WVbOlTrrAcA?=
+ =?us-ascii?Q?alpY8++184I9GbRwPtp9oFf7AqX1so53T0aej11fWXSkDCa1pQAAGqrwk30V?=
+ =?us-ascii?Q?IMeN5jH8ijdgbAThHaaerWzyh9CUxr0uM5fjHYLb6lohDLNnl+7gCzQlXXVU?=
+ =?us-ascii?Q?kknZDCREfrCBcTH4jTRN6YVj+UUrdNs44QUakpZEqj9lZJvG3tCBCjQ5tiLa?=
+ =?us-ascii?Q?YWv8bBtBYiNnp4zT2e28zycu04Xl/sgRPaac3E0Vo5JfjdtnbDUBYehX0WWg?=
+ =?us-ascii?Q?lEcYH+QxwZlpE3cj0tzisjeSTXu2N+jw3p9Iel/2Fl9/zZx2i9uYQxMkEDjn?=
+ =?us-ascii?Q?GS3vsX2AB2EzWefPjnuPPbP5XqaqtZOHwLXLZGiQl5NHkVEOqH+nMbTsJp/E?=
+ =?us-ascii?Q?7DP2WO6Skg=3D=3D?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: d214dff4-b381-4957-d09d-08df1f07674d
+X-MS-Exchange-CrossTenant-AuthSource: IA0PR12MB8374.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 30 Sep 2026 15:27:56.9730
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: YLttr6nZbAZEgLwiA1BQTWtmyJC4gk3s+HBEIV2F7pIcz4C++d3nVT6aZtPTmkRN
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM4PR12MB5724
 
-Add page-selective IOTLB flush using HVCALL_FLUSH_DEVICE_DOMAIN_LIST.
-This hypercall accepts a list of (page_number, page_mask_shift) entries,
-enabling finer-grained IOTLB invalidation compared to the domain-wide
-HVCALL_FLUSH_DEVICE_DOMAIN used by hv_iommu_flush_iotlb_all().
+On 22 Sep 2026, at 13:12, Muhammad Usama Anjum wrote:
 
-hv_iommu_calc_flush_range() computes the smallest power-of-two aligned
-range that covers the target IOVA region, producing a single flush
-descriptor. This may over-flush when the range is not naturally aligned,
-matching the approach used by Intel VT-d PSI. If the page-selective
-flush fails, the code falls back to a full domain flush.
+> pte_t is used both for software PTE values and for entries stored in a PTE
+> table, so pte_t * does not distinguish a pointer to a software PTE
+> value from a pointer to table storage.
+>
+> Introduce hw_pte_t as the generic name for a PTE table element. Define it
+> as a macro alias of pte_t by default. When an architecture selects
+> ARCH_HAS_HW_PTE_T, define it as a structure containing a pte_t instead.
+> This preserves the representation while allowing converted architectures
+> to enforce the distinction at compile time.
+>
+> Name the generic wrapper structure __hw_pte_t so architectures can
+> forward-declare it when pgtable_t must be defined before the generic
+> hw_pte_t typedef is visible. This avoids header-order dependencies.
+>
+> Keep the C type definitions behind an __ASSEMBLY__ check because
+> architecture assembly sources can include this header indirectly. Include
+> asm/page.h so consumers such as linux/vmalloc.h retain the page definitions
+> they previously obtained from that header.
+>
+> Acked-by: David Hildenbrand (Arm) <david@kernel.org>
+> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+> ---
+> Changes since v1:
+> - Name the generic wrapper structure __hw_pte_t so architectures can
+>   forward-declare it, and explain why this is required.
+> - Use software PTE value terminology.
+>
+> Changes since RFC v1:
+> - Add the ARCH_HAS_HW_PTE_T opt-in and generic wrapper definition.
+> - Exclude the C type definitions from assembly sources.
+> - Update the description for the new opt-in model.
+> ---
+>  MAINTAINERS                   |  1 +
+>  include/linux/pgtable_types.h | 17 +++++++++++++++++
+>  mm/Kconfig                    |  3 +++
+>  3 files changed, 21 insertions(+)
+>
+LGTM.
 
-Signed-off-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
-Signed-off-by: Yu Zhang <zhangyu1@linux.microsoft.com>
-Reviewed-by: Jacob Pan <jacob.pan@linux.microsoft.com>
-Reviewed-by: Michael Kelley <mhklinux@outlook.com>
-Reviewed-by: Jason Gunthorpe <jgg@nvidia.com>
----
- drivers/iommu/hyperv/hv-iommu-guest.c | 74 ++++++++++++++++++++++++++-
- include/hyperv/hvgdk_mini.h           |  1 +
- include/hyperv/hvhdk_mini.h           | 18 +++++++
- 3 files changed, 92 insertions(+), 1 deletion(-)
+Acked-by: Zi Yan <ziy@nvidia.com>
 
-diff --git a/drivers/iommu/hyperv/hv-iommu-guest.c b/drivers/iommu/hyperv/hv-iommu-guest.c
-index 341d70eed592..fe06bd970621 100644
---- a/drivers/iommu/hyperv/hv-iommu-guest.c
-+++ b/drivers/iommu/hyperv/hv-iommu-guest.c
-@@ -383,11 +383,82 @@ static void hv_iommu_flush_iotlb_all(struct iommu_domain *domain)
- 	hv_flush_device_domain(to_hv_iommu_domain(domain));
- }
- 
-+/*
-+ * Calculate the minimal power-of-two aligned range that covers [start, end]
-+ * (end is inclusive). Returns a single (page_number, page_mask_shift)
-+ * descriptor that may over-flush when the range is not naturally aligned.
-+ */
-+static void
-+hv_iommu_calc_flush_range(unsigned long start, unsigned long end,
-+			  union hv_iommu_flush_va *va)
-+{
-+	unsigned long aligned_start;
-+	unsigned int sz_lg2;
-+
-+	sz_lg2 = max(fls_long(start ^ end), HV_HYP_PAGE_SHIFT);
-+
-+	/*
-+	 * A valid IOVA range shall not span bit 63. Use the maximum mask
-+	 * so the host can safely perform a full flush.
-+	 */
-+	if (WARN_ON_ONCE(sz_lg2 == BITS_PER_LONG))
-+		aligned_start = 0;
-+	else
-+		aligned_start =
-+			start & GENMASK(BITS_PER_LONG - 1, sz_lg2);
-+
-+	va->page_number = aligned_start >> HV_HYP_PAGE_SHIFT;
-+	va->page_mask_shift = sz_lg2 - HV_HYP_PAGE_SHIFT;
-+}
-+
-+static void hv_flush_device_domain_list(struct hv_iommu_domain *hv_domain,
-+					struct iommu_iotlb_gather *iotlb_gather)
-+{
-+	u64 status;
-+	unsigned long flags;
-+	struct hv_input_flush_device_domain_list *input;
-+
-+	local_irq_save(flags);
-+
-+	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-+	/* Clear the fixed header and the single range entry. */
-+	memset(input, 0, struct_size(input, iova_list, 1));
-+
-+	input->device_domain = hv_domain->device_domain;
-+	input->flags |= HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT;
-+	hv_iommu_calc_flush_range(iotlb_gather->start, iotlb_gather->end,
-+				  &input->iova_list[0]);
-+
-+	status = hv_do_rep_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN_LIST,
-+				     1, 0, input, NULL);
-+
-+	if (WARN_ONCE(!hv_result_success(status),
-+		      "HVCALL_FLUSH_DEVICE_DOMAIN_LIST failed: %#llx (%s)\n",
-+		      status, hv_result_to_string(status))) {
-+		/* Page-selective flush failed, fall back to full flush. */
-+		struct hv_input_flush_device_domain *flush_all = (void *)input;
-+
-+		memset(flush_all, 0, sizeof(*flush_all));
-+		flush_all->device_domain = hv_domain->device_domain;
-+		status = hv_do_hypercall(HVCALL_FLUSH_DEVICE_DOMAIN,
-+					 flush_all, NULL);
-+		WARN(!hv_result_success(status),
-+		     "HVCALL_FLUSH_DEVICE_DOMAIN fallback also failed: %#llx (%s)\n",
-+		     status, hv_result_to_string(status));
-+	}
-+
-+	local_irq_restore(flags);
-+}
-+
- static void hv_iommu_iotlb_sync(struct iommu_domain *domain,
- 				struct iommu_iotlb_gather *iotlb_gather)
- {
--	hv_flush_device_domain(to_hv_iommu_domain(domain));
-+	hv_flush_device_domain_list(to_hv_iommu_domain(domain), iotlb_gather);
- 
-+	/*
-+	 * The hypercall also invalidates non-leaf page-walk caches, so
-+	 * detached page-table pages can now be freed.
-+	 */
- 	iommu_put_pages_list(&iotlb_gather->freelist);
- }
- 
-@@ -439,6 +510,7 @@ static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
- 
- 	cfg.common.hw_max_vasz_lg2 = hv_iommu_device->max_iova_width;
- 	cfg.common.hw_max_oasz_lg2 = 52;
-+	cfg.common.features |= BIT(PT_FEAT_FLUSH_RANGE);
- 	/*
- 	 * Hyper-V S1 domains use a 4-level root for IOVA widths up to
- 	 * 48 bits. A 5-level root is used only for wider apertures when
-diff --git a/include/hyperv/hvgdk_mini.h b/include/hyperv/hvgdk_mini.h
-index 5d1338197eee..966945f0504f 100644
---- a/include/hyperv/hvgdk_mini.h
-+++ b/include/hyperv/hvgdk_mini.h
-@@ -497,6 +497,7 @@ union hv_vp_assist_msr_contents {	 /* HV_REGISTER_VP_ASSIST_PAGE */
- #define HVCALL_GET_GPA_PAGES_ACCESS_STATES		0x00c9
- #define HVCALL_CONFIGURE_DEVICE_DOMAIN			0x00ce
- #define HVCALL_FLUSH_DEVICE_DOMAIN			0x00d0
-+#define HVCALL_FLUSH_DEVICE_DOMAIN_LIST			0x00d1
- #define HVCALL_ACQUIRE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d7
- #define HVCALL_RELEASE_SPARSE_SPA_PAGE_HOST_ACCESS	0x00d8
- #define HVCALL_MODIFY_SPARSE_GPA_PAGE_HOST_VISIBILITY	0x00db
-diff --git a/include/hyperv/hvhdk_mini.h b/include/hyperv/hvhdk_mini.h
-index 7b9f43b320cd..57b70efe60d4 100644
---- a/include/hyperv/hvhdk_mini.h
-+++ b/include/hyperv/hvhdk_mini.h
-@@ -685,4 +685,22 @@ struct hv_input_flush_device_domain {
- 	u32 reserved;
- } __packed;
- 
-+union hv_iommu_flush_va {	/* HV_IOMMU_GVA_RANGE */
-+	u64 as_uint64;
-+	struct {
-+		u64 page_mask_shift : 6;
-+		u64 reserved : 6;
-+		u64 page_number : 52;
-+	};
-+} __packed;
-+
-+/* HV_INPUT_FLUSH_DEVICE_DOMAIN_LIST */
-+struct hv_input_flush_device_domain_list {
-+	struct hv_input_device_domain device_domain;
-+#define HV_FLUSH_DEVICE_DOMAIN_LIST_IOMMU_FORMAT BIT(0)
-+	u32 flags;
-+	u32 reserved;
-+	union hv_iommu_flush_va iova_list[];
-+} __packed;
-+
- #endif /* _HV_HVHDK_MINI_H */
--- 
-2.52.0
-
+Best Regards,
+Yan, Zi
