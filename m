@@ -1,152 +1,117 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CFFBF3B47E1;
-	Wed, 30 Sep 2026 08:54:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 49116357D0F;
+	Wed, 30 Sep 2026 09:04:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790758468; cv=none; b=mnEgI5YW+Klq7I2iK+jJruQM65Z25U8OM8xACXk6vNTR43HPW6jrJtZwAnsclWZzJPDq+aS7ssbp47UZwmgJlZ7tJTZej9CiLb/cqgUiLWn2+DeJak/tGZF0ThAFHn613L/+h7OQSf0A/0IiYPmCvVdWFJBnPTUx9W5jGfGlYqs=
+	t=1790759099; cv=none; b=ZkVoPmwuOx/vi6nu/aaHkLOM7Vl6Zea+0r+gAAz1pHFHjao7yCA7imlTzXRhtb2Hkwhgg2cvce0GJT8fT3qEHIVS9mrW94Geqy769PBDPPBK2dw6spKXEiyuKnUTyYD99VwPuXufF/TW1w69jNaB3uaNeMf8wONf8oB1oSr/dlM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790758468; c=relaxed/simple;
-	bh=/bg6wWvn3UxxefOMsl8JIomiL9mMcf6RS3vUGzzxCZM=;
+	s=arc-20240116; t=1790759099; c=relaxed/simple;
+	bh=4b4PoC2MDlGQEqzNFllcavuDzC9ftUjcfDAI5iF/3QY=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=LsbuHRseMrk9O3C6HL/bKNM5qdpL+C7j9HHIq22WaMu8FEztCP1wZOtyhNdyiVB/Rf703m/DuzCVKj/6MvAXWxTEGwA/jmtDxQAQ4LYdC9BTaStEFCFycOV1ZQK/d+Pv0TB099yHVFbCp7thgXd2O5iS2q8Xu6avBjP+wxbiqYc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=aJzc5jIL; arc=none smtp.client-ip=90.155.50.34
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
+	 Content-Type:Content-Disposition:In-Reply-To; b=hGNcQZz/D+2C1H20df2Lbtb93hquhHNuLEPH0YecHEsM7bX8uUyoj5kOLOuP3Vnn2ONF/Gv1OI6t1Jr0CB7PyAR/VjZSRzL1HxFvR71cWV7jwpSbX+XZ4Vl/baMVDl877CKvq+2SJkRo1VvFCB/pt1L5H9FYSYmohH+FuVJ5MWs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=MMjCikqi; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="aJzc5jIL"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Transfer-Encoding:
-	Content-Type:MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:
-	Sender:Reply-To:Content-ID:Content-Description;
-	bh=0UFYYKBUewXLJbGJZ9BEDna7/dDF99emZQefLuG6AWg=; b=aJzc5jIL6ZEo+riFOwoxR1oSNm
-	C2hf1HPOb9+KTK8px2ooi5YPLIeRFxTZoinR6pVkeYDaZKn09QeR00yhVqRRjAPKdAPRJkoIrT7S/
-	hRxVygx6bLPrPlKZSnQKreIhSWLLbwZnFvcJlIoRpu0zHhaZDBm7i980rS/vK3fK3nujDtN/6z8l8
-	fLgOlnTOkOldZJL6u6dcGPuFYD8IOAfYYLYx7hVPjXkwkJJiUSDbMGWUxsizvsvnVwzDCw78nf0AV
-	IzzNDXK6Hdr8Iec9g2P2seZ7jfrgAs9zrZtJEFt/4RzEbuMhSVTPiYHQJ3yrkx4qqkpIjr6CULMaD
-	pmozWVDw==;
-Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
-	by casper.infradead.org with esmtpsa (Exim 4.99.1 #2 (Red Hat Linux))
-	id 1xBq4s-0000000B7se-1SQm;
-	Wed, 30 Sep 2026 08:54:14 +0000
-Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
-	id D9DFA300673; Wed, 30 Sep 2026 10:54:13 +0200 (CEST)
-Date: Wed, 30 Sep 2026 10:54:13 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-To: Zack Rusin <zack.rusin@broadcom.com>
-Cc: Kiryl Shutsemau <kas@kernel.org>, Borislav Petkov <bp@alien8.de>,
-	x86@kernel.org, Dennis Zhou <dennis@kernel.org>,
-	Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Rick Edgecombe <rick.p.edgecombe@intel.com>,
-	Tom Lendacky <thomas.lendacky@amd.com>,
-	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
-	Paolo Bonzini <pbonzini@redhat.com>,
-	Vitaly Kuznetsov <vkuznets@redhat.com>,
-	Ajay Kaher <ajay.kaher@broadcom.com>,
-	Alexey Makhalov <alexey.makhalov@broadcom.com>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	"H. Peter Anvin" <hpa@zytor.com>, virtualization@lists.linux.dev,
-	bcm-kernel-feedback-list@broadcom.com, linux-kernel@vger.kernel.org,
-	Christoph Lameter <cl@gentwo.org>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Bo Gan <bo.gan@broadcom.com>, linux-mm@kvack.org,
-	linux-arch@vger.kernel.org, linux-coco@lists.linux.dev,
-	kvm@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>,
-	"K. Y. Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Long Li <longli@microsoft.com>, Andy Lutomirski <luto@kernel.org>,
-	linux-doc@vger.kernel.org, linux-hyperv@vger.kernel.org,
-	Nathan Chancellor <nathan@kernel.org>, Kees Cook <kees@kernel.org>,
-	Ashish Kalra <ashish.kalra@amd.com>
-Subject: Re: [PATCH v2 2/6] percpu: Bound decrypted storage for all x86
- encrypted guests
-Message-ID: <20260930085413.GH88198@noisy.programming.kicks-ass.net>
-References: <20260929040256.543767-1-zack.rusin@broadcom.com>
- <20260929040256.543767-3-zack.rusin@broadcom.com>
- <20260929075426.GQ4120091@noisy.programming.kicks-ass.net>
- <CABQX2QP0+Jr6gG0nZkDggvyGWCSHMNVKPPavZTYBqH+wg7rdMg@mail.gmail.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="MMjCikqi"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9BB271F000FF;
+	Wed, 30 Sep 2026 09:04:54 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1790759097;
+	bh=4b4PoC2MDlGQEqzNFllcavuDzC9ftUjcfDAI5iF/3QY=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=MMjCikqi1RcCdlBKwU0UEEfQq/X8b/+UxYRVG5M/yhbmi/hMa9RbLwzlYeAiZfPib
+	 l7/8mw8FqihaBr+qxqJZniE3Ml6vYo9+jatuWC3Ke5ynehbvNxih7pvHBaVWJEWR98
+	 3WfGPZYiefIl1GiTZhYEexmHeChuy8o3eGqiLFDhBGubS64/1PiD6Io/j7cJmYganT
+	 y0kFMklv4KC17SyV42WBZrN0bZLGdJgZIwR6Me/TU9RjYJFpAB/g6agnSl6iAui+/f
+	 kecY/l5O+22c97eHRAbSFzidfTxBW8b5SyQgQHQnljHKn3fCPYgTXOJC7aNWu0dazU
+	 KqEIr9OGdS6VA==
+Date: Wed, 30 Sep 2026 10:04:51 +0100
+From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+To: Nathan Chancellor <nathan@kernel.org>
+Cc: Sasha Levin <sashal@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
+	Nicolas Schier <nsc@kernel.org>, Alexey Gladkov <legion@kernel.org>, 
+	Masahiro Yamada <masahiroy@kernel.org>, Kees Cook <kees@kernel.org>, 
+	Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, 
+	Justin Stitt <justinstitt@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	llvm@lists.linux.dev
+Subject: Re: [PATCH] kbuild: keep .modinfo when vmlinux is linked with
+ --gc-sections
+Message-ID: <arzOxTQhvWwcqdDU@gremlin>
+References: <20260927161227.1179863-1-sashal@kernel.org>
+ <arpLoeLVATRCXm5E@gremlin>
+ <20260928115628.GA964114@ax162>
+ <arpXd4ZEYnP6qR4j@gremlin>
+ <20260929201402.GA3237201@ax162>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-In-Reply-To: <CABQX2QP0+Jr6gG0nZkDggvyGWCSHMNVKPPavZTYBqH+wg7rdMg@mail.gmail.com>
+In-Reply-To: <20260929201402.GA3237201@ax162>
 
-On Tue, Sep 29, 2026 at 01:12:45PM -0400, Zack Rusin wrote:
-> On Tue, Sep 29, 2026 at 3:54=E2=80=AFAM Peter Zijlstra <peterz@infradead.=
-org> wrote:
-> > On Tue, Sep 29, 2026 at 12:02:51AM -0400, Zack Rusin wrote:
-> > > @@ -1022,11 +1024,13 @@
-> > >   * Note: We use a separate section so that only this section gets
-> > >   * decrypted to avoid exposing more than we wish.
-> > >   */
-> > > -#ifdef CONFIG_AMD_MEM_ENCRYPT
-> > > +#if defined(CONFIG_X86_MEM_ENCRYPT) && defined(CONFIG_SMP)
-> > >  #define PERCPU_DECRYPTED_SECTION                                    =
- \
-> > >       . =3D ALIGN(PAGE_SIZE);                                        =
-   \
-> > > +     __start_percpu_decrypted =3D .;                                =
-   \
-> > >       *(.data..percpu..decrypted)                                    =
- \
-> > > -     . =3D ALIGN(PAGE_SIZE);
-> > > +     . =3D ALIGN(PAGE_SIZE);                                        =
-   \
-> > > +     __end_percpu_decrypted =3D .;
-> > >  #else
-> > >  #define PERCPU_DECRYPTED_SECTION
-> > >  #endif
+On Tue, Sep 29, 2026 at 10:14:02PM +0200, Nathan Chancellor wrote:
+> On Mon, Sep 28, 2026 at 01:16:27PM +0100, Lorenzo Stoakes (ARM) wrote:
+> > Ack, will rebase on that and send deltas from here on out on those.
 > >
-> > So you're page aligning something that will get different protection and
-> > will thus shatter large pages?
+> > Easiest to keep things straight on my side would be to stop sending those
+> > patches, I can list them in the cover letter with links to the originals
+> > for any further review?
+>
+> Sure, that sounds totally reasonable to me.
+
+Thanks!
+
+>
+> > As for what remains, is there anything else I need to do?
 > >
-> > That is somewhat uncool. We like large pages, large pages are good.
->=20
-> I'm a huge large pages fan too. I have a poster in my office and
-> everything... And I never do things that are uncool. I have a wwcdd
-> (what would cool dude do) bracelet and I look at it every time I make
-> a decision, which given that I'm old gets on my wife's nerves a lot.
-> That is to say I'm handsome and innocent.
+> > I think timing this week is less than ideal with LPC next week so people
+> > have less time to go through it but it does feel like things are
+> > stabilising (despite the large changelog for v4 ;)
+>
+> Yeah, I have been spread quite thin between trying to keep the current
+> ClangBuiltLinux continuous integration setup green, developing a new one
+> due to changing constraints elsewhere, updating my own personal testing
+> framework to be quicker for more efficient local testing (especially for
+> stuff like this), and my Kbuild maintainer duties, in addition to some
+> personal time off for my wife's birthday before Plumbers.
 
-:-)
+Yeah indeed, totally understood. And I hope you enjoy your time off :)
 
-> The alignment isn't new. It has been there since ac26963a1175
-> ("percpu: Introduce DEFINE_PER_CPU_DECRYPTED") under AMD_MEM_ENCRYPT,
-> which common distro kernels enable. This patch extends it to TDX-only
-> builds and adds the boundary symbols. On bare metal and in ordinary
-> guests nothing changes protection, so no large pages are split.
+This cycle has been crazy (2x baseline for 2025 and it seems that way
+across many subsystems), and the LPC timing is unfortunate, so I can fully
+understand why people have had less time for this series.
 
-Right, I saw it is pre-existing, but you made me notice ;-)
+(I also have a personal interest in clang working for the kernel also as
+all my builds are clang-by-default now and have been for a while!)
 
-Anyway, the thing that wasn't immediately obvious was that we only
-really change the protection for (sekjoer) guests. This means I mostly
-don't care.
+>
+> All that to say, I am not sure how much else I will want to take for 7.4
+> at this point, as I would like to have the kbuild tree basically
+> finalized by 7.3-rc7, which is the weekend right after Plumbers if my
+> calendar is correct. I would like to study these patches to make sure I
+> understand everything well and I don't think I will have the time to do
+> that until after the 7.4 merge window opens.
 
-> In confidential guests, yes, converting each CPU's page splits the
-> direct map around it. The alignment doesn't cause that: a large
+Sure, fully understood!
 
-Nit you could 2M align, so alignment is somewhat related.
+Stripping the stuff you have queued up from the series (+ sending deltas if
+needed) will make it easier to send the rest post-merge window anyway.
 
-> mapping can't be part private and part shared, so a converted page
-> can't stay inside one. The alignment only keeps unrelated per-CPU data
-> out of the shared page. Because that page sits in every CPU's per-CPU
-> unit, each 2M mapping that holds one of them becomes 4K mappings,
-> including the ordinary per-CPU data around it. In the layouts we've
-> tested that's most of the first per-CPU chunk.
+>
+> > Thanks for all your help with this! Is much appreciated.
+>
+> Absolutely, thanks for engaging and trying to make Kbuild better :)
 
-So perhaps a little more invasive would be poking at the per-cpu
-allocator and having a whole 'decrypted' pcpu_chunk which is 2M aligned
-or something.
+No worries :)
 
+>
+> --
+> Cheers,
+> Nathan
 
-Anyway, as long as this is sekjoer guests only, I really could not be
-bothered much. Proceed, but perhaps put on a comment in the
-vmlinux.lds.h to clarify this, for those of us who do not live in
-coconut land?
+--
+Cheers, Lorenzo
