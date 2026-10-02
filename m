@@ -1,285 +1,243 @@
-Received: from mail-pj2-f12.google.com (mail-pj2-f12.google.com [74.125.227.140])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mail.mainlining.org (mail.mainlining.org [5.75.144.95])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 36AB64FE2C9
-	for <linux-arch@vger.kernel.org>; Fri,  2 Oct 2026 17:12:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.140
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DB0024E13E8;
+	Fri,  2 Oct 2026 17:13:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=5.75.144.95
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790961129; cv=none; b=q+5WuQ4KznEeRYYGQeaI1+dn+S9QxQqUoMC9rZv6iC9zo4DrCAi6baH33JcvMtNZaYzhq2+Gr+um05IP6frjKJQcJuxHV8Yd5UOAYGkzDHwyex47tTtwdYqq0Ky3PvxUq4zSa4tXzENZRXPeGoGHJyxQLrGLEA+7Bb0+3fpWQYc=
+	t=1790961184; cv=none; b=nHdlCZYw2Jt8MtgUr4kHmEELbGMqsAYUABS/Cu5yvMVyQUw07m+RhQg/3hHVwvksl9JX77id7ojvWGM2+GcNnW/coG2v9tA8DPPUkkWRoc6WUvSsyn+p9sjpisFL0CZUTVXBSP/AFczNQtkY4kj5Y0Ils1wYBvPQpIsBSVF4Byo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790961129; c=relaxed/simple;
-	bh=DSy90Vi1pYW2azdUTwrc0TT6kW6QsQGO8Rlo/8MHFWI=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=B+Rhv+cTxmEOzKZAbvtNMDztblJh3T0JotLZbXBMCfRnQ8OxquMXxW/X26oM4aZRj06lx6JjjjvAKd6R0x8OxW51Nkh8+PeXL96RgMKh1SJJus0FqSSXe0A8OVGbUnMa7IzRNCF51Wk+dLWqgeudKaemZON6yf9rwqOB+e1sg1U=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=O0t2PPF2; arc=none smtp.client-ip=74.125.227.140
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1790961184; c=relaxed/simple;
+	bh=bMOormtD/BysD5q/X8WDjYCKDuOENgwnylEY69wimnU=;
+	h=Date:From:To:CC:Subject:In-Reply-To:References:Message-ID:
+	 MIME-Version:Content-Type; b=aBQ84H34DkgrFpwqFWws1bEASLhZwJw0xlzAxzKx7+XA9faPBCicS96G5QSCpN7vVmXqrWZIgh+7tNweM6D0iQqKbGa785YD/i+bxEf1r9T9JTSjgpfSI9LwjcpN7cOoVFL2EvX08qBaDDpTsnfOCtjmZ6oWlbw7F8jbzHf55dI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=mainlining.org; spf=pass smtp.mailfrom=mainlining.org; dkim=pass (2048-bit key) header.d=mainlining.org header.i=@mainlining.org header.b=k3cOqoXT; dkim=permerror (0-bit key) header.d=mainlining.org header.i=@mainlining.org header.b=CmtFmN6j; arc=none smtp.client-ip=5.75.144.95
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=mainlining.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mainlining.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="O0t2PPF2"
-Received: by mail-pj2-f12.google.com with SMTP id 98e67ed59e1d1-396ccc09d65so118291a91.3
-        for <linux-arch@vger.kernel.org>; Fri, 02 Oct 2026 10:11:59 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1790961118; x=1791565918; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=j4yfFb6320kdlQ6cch251gfqYxfn4Y6pwvS8rFGl1n0=;
-        b=O0t2PPF2FE7EvdxKkZqB/mE4moJ0mkddf9b+J0zYRcsRh3u8oGV4BJHxw2H+96fxJZ
-         meG4z0Y6SaWKEbBvpAQR+OuJ6sUlksJaB5XwEGdnO+NzKO0dE/MAfQ1lMdUUg9qOK64r
-         bxHFemm3XR+QWV2XQn+vJM8IM0cWb4hMn8Mxzieti0jnZs1LN3tOBMYw4im6tVK89/EG
-         ChKgFqQU31ziRSDlUS6YQ8eNQJaIqLYFi+vRMKGqsl8CF5Ipqh0wvCpDMM+9LqP7/sAb
-         bhOQPqlHpsK/ERNaPgqq27d5SyXZ5BKmIagtPiWbqemicdRtAK+qyq8tjPSIibOiHb2v
-         WHEg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790961118; x=1791565918;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=j4yfFb6320kdlQ6cch251gfqYxfn4Y6pwvS8rFGl1n0=;
-        b=ej4xy0XpD8C9m95RO1PdDHG/jYGVLgh+Ys4Ihz20nuZ3wisj/icqEADqni7SsOX2xV
-         8QXaYqKREtIuoditiNqVfWwVANuGoUivxcHjtbR9YH4VkG/m53alRDnMgHbdex6HuR3U
-         4vShLLN0C1217QfCoFzGdjANsm3HBccbwsdtgZ2tj8+IkiPnZ7GJZXXGXAp4LaMiUHou
-         c+6+2er2A3cxzJ1KyPEU6jdsEtO97RzsrDi2D3McT8wbN1bYLZI0ailikbewLsbqYOy1
-         9sWpufKWeHIW9FsvT95hKaYZG3O5DRMiN48BOMPESMEUwgNdid4MdZl4Mjvh+g75y4Al
-         uPqg==
-X-Forwarded-Encrypted: i=1; AKwUvBzv7XEzdzyZxwmWm33zne5qLhvFMO+Np+yBHoomWGTD7y24ZkBg5rLv7yAscqR9j7kZwsRLgjlDw2Ek@vger.kernel.org
-X-Gm-Message-State: AFq9FYLzhozrwMUPuAeEuLxz7dEMnuUhqEWAtHKU1u5fgLHEvhiaaX9h
-	706Ob+WlRp6OIRaza0ROcFsRvm+d/FCVgSrrScUYtOeMcUKUvhOktJ+c
-X-Gm-Gg: AYBFou1jLUZ+GKL55NMIcarmU4z4C0+Noy7kPD26Xc7hyU7dLZF/DBTv8bRI5pkZmOR
-	K21l3neFOFCI6SMErN65/hba85Fn0AZuInV00piJluL2lJwlaqB40Fnu8pJ+SEAEFl9m3VLpB+q
-	Tg2a6XfqCqq2qIIVMNrU32F1Ce4H2QX/vA7CYQY5npzhhqytpE3Gvgh89VuZbF0u1s+yJMnNLsy
-	Y6Fx20t8o3SA6uV4/VOV2xMcSG9llSJDoQnr+b0AHQT3mVd+LBxAhfS4uW9nfdArprKw+tywUqP
-	4YUYsqPQrGyMD69Fe/RR4P2n+j+L3fQsui3vLMiAbO5+Ix7UTBxcWaRvlpofReBMCYgJrRuwG5C
-	3m5Uxq6SlGlImE7y1Au8oPp8RWK+w3KNiRTB4YvJMMPkbf23Nd7v76eJAWBVlFF9kgZofROYibs
-	p9ZZO+L9WoTO2gCm3U8Rkae0K8KY9DQ85tw5LLYfYtvEUvkUWd2cDEzXgxIi3uFUK6I31L5izT3
-	tuBC3tSDmtIUxbtLg==
-X-Received: by 2002:a17:90b:586e:b0:3a5:147a:3b63 with SMTP id 98e67ed59e1d1-3a6ce3a97bemr2829709a91.8.1790961117352;
-        Fri, 02 Oct 2026 10:11:57 -0700 (PDT)
-Received: from kernel.tail6741c6.ts.net ([185.220.238.43])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3a7024d0f5fsm1597719a91.0.2026.10.02.10.11.45
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 02 Oct 2026 10:11:56 -0700 (PDT)
-From: Kunwu Chan <kunwu.chan@gmail.com>
-To: paulmck@kernel.org,
-	corbet@lwn.net,
-	mingo@redhat.com,
-	frederic@kernel.org,
-	neeraj.upadhyay@kernel.org,
-	josh@joshtriplett.org,
-	urezki@gmail.com,
-	dave@stgolabs.net,
-	lianux.mm@gmail.com
-Cc: stern@rowland.harvard.edu,
-	parri.andrea@gmail.com,
-	will@kernel.org,
-	peterz@infradead.org,
-	boqun@kernel.org,
-	npiggin@gmail.com,
-	dhowells@redhat.com,
-	j.alglave@ucl.ac.uk,
-	luc.maranget@inria.fr,
-	akiyks@gmail.com,
-	dlustig@nvidia.com,
-	joelagnelf@nvidia.com,
-	skhan@linuxfoundation.org,
-	rdunlap@infradead.org,
-	longman@redhat.com,
-	rostedt@goodmis.org,
-	mathieu.desnoyers@efficios.com,
-	jiangshanlai@gmail.com,
-	qiang.zhang@linux.dev,
-	kunwu.chan@gmail.com,
-	brads@mainlining.org,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	lkmm@lists.linux.dev,
-	linux-doc@vger.kernel.org,
-	rcu@vger.kernel.org,
-	linux-kselftest@vger.kernel.org
-Subject: [PATCH RFC v2 15/15] selftests/rcutorture: add hazptr torture test script
-Date: Sat,  3 Oct 2026 01:08:47 +0800
-Message-ID: <20261002170847.3653663-16-kunwu.chan@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	dkim=pass (2048-bit key) header.d=mainlining.org header.i=@mainlining.org header.b="k3cOqoXT";
+	dkim=permerror (0-bit key) header.d=mainlining.org header.i=@mainlining.org header.b="CmtFmN6j"
+DKIM-Signature: v=1; a=rsa-sha256; s=202507r; d=mainlining.org; c=relaxed/relaxed;
+	h=Message-ID:Subject:To:From:Date; t=1790961152; bh=b9Q0i239fHVl2Kmz77y2hqJ
+	hKMRp0ccS9+F9KIK0Jhk=; b=k3cOqoXT7iyuu9IwI3dU6iCnI6VAlceY9g/2speCBBovG+d5lm
+	+8fyy0pebrjEp1MDWDVxLM7103M7XPWEMzwwTBeOxQ4xu3GVRLOmmDBrDzRJ8dvNWF7LxgfLheu
+	xalcN3D8SdgKogqpDG/LdRabowqU0Zswkj3NYeARcKkZDfmTuotP/T0N9IwFAsv2ARks9bzha7y
+	Ia9oBlbaEtoi7V6wGyl4vHUUDH41mQLZHW52FKgh43g/xrZ3+R7p8VnjXozqCmMmZFulXuE5bR4
+	Gzomkm56TsgL/i+VWr1AhKy9VZB9n6sqtN7sU7h7J0XCG/CW2exlPPym7Kb37LzTlpg==;
+DKIM-Signature: v=1; a=ed25519-sha256; s=202507e; d=mainlining.org; c=relaxed/relaxed;
+	h=Message-ID:Subject:To:From:Date; t=1790961152; bh=b9Q0i239fHVl2Kmz77y2hqJ
+	hKMRp0ccS9+F9KIK0Jhk=; b=CmtFmN6jO7CuOtkqUNxQF+NndeulGQxjo9ai9gJ3chl4yCFwcB
+	NtHWgsC4OciGaHrxIKTkj6M518iY0qxAIaDg==;
+Date: Fri, 02 Oct 2026 18:12:32 +0100
+From: Bradley Morgan <brads@mainlining.org>
+To: Kunwu Chan <kunwu.chan@gmail.com>, paulmck@kernel.org, corbet@lwn.net,
+ mingo@redhat.com, frederic@kernel.org, neeraj.upadhyay@kernel.org,
+ josh@joshtriplett.org, urezki@gmail.com, dave@stgolabs.net,
+ lianux.mm@gmail.com
+CC: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
+ peterz@infradead.org, boqun@kernel.org, npiggin@gmail.com,
+ dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
+ akiyks@gmail.com, dlustig@nvidia.com, joelagnelf@nvidia.com,
+ skhan@linuxfoundation.org, rdunlap@infradead.org, longman@redhat.com,
+ rostedt@goodmis.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com,
+ qiang.zhang@linux.dev, kunwu.chan@gmail.com, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, lkmm@lists.linux.dev, linux-doc@vger.kernel.org,
+ rcu@vger.kernel.org, linux-kselftest@vger.kernel.org
+Subject: =?US-ASCII?Q?Re=3A_=5BPATCH_RFC_v2_00/15=5D_hazptr=3A_batch_sy?=
+ =?US-ASCII?Q?nchronize_operations_through_a_shared_scan?=
 In-Reply-To: <20261002170847.3653663-1-kunwu.chan@gmail.com>
 References: <20261002170847.3653663-1-kunwu.chan@gmail.com>
+Message-ID: <06F49954-C343-4894-931D-9B2F50F644DE@mainlining.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+Content-Type: text/plain;
+ charset=utf-8
 Content-Transfer-Encoding: 8bit
 
-Add hazptr.sh as a one-command regression test for the hazptr
-torture configs.
+On 2 October 2026 18:08:32 BST, Kunwu Chan <kunwu.chan@gmail.com> wrote:
+>This series extends Paul McKenney's v3 hazptr implementation [1]
+>with a shared scan path for concurrent hazptr_synchronize() callers,
+>and adapts the lockdep dynamic-key hashlist use case from Boqun
+>Feng's 2025 shazptr series [2] to the current hazptr API.
+>
+>The series also adds rcuscale support and torture coverage for
+>the hazptr implementation.
+>
+>The lockdep conversion replaces the expedited RCU wait in
+>lockdep_unregister_key() with hazptr_synchronize().  This limits
+>the wait to hazard pointers protecting the target hash bucket
+>instead of waiting for a system-wide expedited RCU grace period.
+>
+>[1]
+>https://lore.kernel.org/all/20260919000056.3132131-26-paulmck@kernel.org/
+>[2]
+>https://lore.kernel.org/lkml/20250625031101.12555-1-boqun.feng@gmail.com/
+>
 
-Run NOPREEMPT, PREEMPT, READERS0, and READERS4, followed by
-LOCKDEP with wq_churn and SLOWPATH with CONFIG_PROVE_LOCKING=y.
-The latter two also check the console for lockdep warnings.
 
-With --allcpus, repeat the PREEMPT test at CPU counts 8, 16, 32,
-and so on up to 256.
+This is well needed. Thanks for the patch, I'll maybe review maybe test if
+I have time, cough cough, school!
 
-Follow the pattern of the existing srcu_lockdep.sh script.
+>Performance data
+>================
+>
+>All measurements are on an ARM64 KVM guest with
+>HAZPTR_SCALE_NR_OBJS=8 and round-robin updater selection; unless
+>noted otherwise, nreaders=0.  Scale tests run with
+>PROVE_LOCKING=n.
+>
+>rcuscale synchronize latency (96 CPUs, nw=1):
+>
+>              nreaders=0      nreaders=1       nreaders=4      nreaders=96
+>    scale       avg              avg             avg              avg
+>    --------------------------------------------------------------------
+>    hazptr     46 us            47 us          102 us            106 ms
+>    RCU       8.3 ms           8.5 ms         16.6 ms         54.4 ms
+>    SRCU      8.2 ms           8.0 ms         11.7 ms         11.8 ms
+>
+>Hazptr single-writer latency remains below 110 us with up to
+>four readers on this 96-CPU guest, but rises to 106 ms when
+>all 96 CPUs hold hazard pointers.
+>
+>Under 16 concurrent synchronize callers (nw=16), per-writer
+>latency at four CPU counts:
+>
+>              hazptr nw=16      RCU nw=16     SRCU nw=16
+>    CPUs       avg               avg             avg
+>    -----------------------------------------------------------
+>      24       8.0 ms          13.6 ms          9.2 ms
+>      96       8.0 ms          13.3 ms          8.6 ms
+>     128       7.9 ms          13.0 ms         11.7 ms
+>     256       8.0 ms          20.8 ms          9.6 ms
+>
+>Hazptr remains around 8.0 ms across these CPU counts, with the
+>scan-kthread retry interval contributing to the latency.
+>RCU rises to ~21 ms at 256 CPUs while SRCU stays around 9-12 ms.
+>
+>Reader-side overhead (refscale, 96 readers on the 96-CPU guest,
+>3 runs each):
+>
+>    hazptr     25.7 ns/op
+>    RCU        96.7 ns/op
+>    SRCU      134.6 ns/op
+>
+>lockdep workload -- tc qdisc mq x100, ARM64 KVM, PROVE_LOCKING=y,
+>96 background hazptr readers, function-call IPIs per 100 ops:
+>
+>    CPUs       hazptr              exp RCU            reduction
+>    ------------------------------------------------------------
+>      24       196                 207                 5%
+>      96       189                 265                29%
+>     128       193                 266                27%
+>     256       222                 384                42%
+>
+>Hazptr issues fewer function-call IPIs at each CPU count, with
+>the difference reaching 42% at 256 CPUs.
+>
+>The hazptr.sh test suite passes, including the lockdep scenarios
+>and the 8-to-256 CPU sweep, with no lockdep warnings, deadlocks,
+>or crashes.
+>Additional x86 server testing with Lian Wang is planned(maybe after
+>LPC).
+>
+>Changes since RFC/WIP
+>=====================
+>
+>- RFC/WIP: https://lore.kernel.org/all/20260922070950.4173245-1-kunwu.chan@gmail.com/
+>
+>- Split the original 4-patch RFC/WIP into smaller commits covering
+>  shared scanning, correctness, API support, lockdep, scaling, and
+>  torture testing.
+>
+>- Incorporated Boqun Feng's review feedback: use a Bloom filter to
+>  avoid per-waiter allocation, add scoped_guard() support, and add
+>  a debug option to force the hazptr acquire slow path.
+>
+>- Fixed scan ordering around backup-slot promotion by scanning all
+>  per-CPU slots before the overflow lists, with a separate
+>  overflow-list phase.
+>
+>- Simplified the scan cycle to flip first and drain only the old
+>  wildcard generation, with herd7-verified LKMM tests for both the
+>  in-flight and resolved publication cases.
+>
+>- Extended rcuscale and hazptrtorture coverage, added a selftest
+>  script for the torture configurations, and fixed the
+>  hazptr_release() kernel-doc.
+>
+>Kunwu Chan (15):
+>  hazptr: add shared scan kthread
+>  hazptr: use Bloom filter for shared scan waiters
+>  hazptr: scan all per-CPU slots before overflow lists
+>  hazptr: add scoped_guard() support
+>  hazptr: add debug option to force the acquire slow path
+>  hazptr: elide redundant first drain pass
+>  Documentation/litmus-tests: add hazptr wildcard-flip escape test
+>  locking/lockdep: use hazptr to wait for dynamic key lookups
+>  rcuscale: add hazptr scale type
+>  hazptr: fix kernel-doc of hazptr_release()
+>  Documentation/litmus-tests: add hazptr acquire-before-scan test
+>  hazptrtorture: add slowpath and lockdep scenarios
+>  hazptrtorture: add READERS4 and READERS0 torture configs
+>  hazptrtorture: add 128- and 256-CPU configs
+>  selftests/rcutorture: add hazptr torture test script
+>
+> Documentation/litmus-tests/README             |  13 +
+> .../hazptr/hazptr-acquire-before-scan.litmus  |  45 +++
+> .../hazptr/hazptr-wildcard-flip-escape.litmus |  46 +++
+> include/linux/hazptr.h                        |  56 ++-
+> kernel/hazptr.c                               | 336 +++++++++++++++++-
+> kernel/locking/lockdep.c                      |  25 +-
+> kernel/rcu/Kconfig.debug                      |  10 +
+> kernel/rcu/hazptrtorture.c                    |  57 ++-
+> kernel/rcu/rcuscale.c                         |  70 +++-
+> .../selftests/rcutorture/bin/hazptr.sh        | 146 ++++++++
+> .../rcutorture/configs/hazptr/CFLIST          |   6 +
+> .../rcutorture/configs/hazptr/CPU128          |  16 +
+> .../rcutorture/configs/hazptr/CPU128.boot     |   1 +
+> .../rcutorture/configs/hazptr/CPU256          |  16 +
+> .../rcutorture/configs/hazptr/CPU256.boot     |   1 +
+> .../rcutorture/configs/hazptr/LOCKDEP         |  17 +
+> .../rcutorture/configs/hazptr/LOCKDEP.boot    |   1 +
+> .../rcutorture/configs/hazptr/READERS0        |  16 +
+> .../rcutorture/configs/hazptr/READERS0.boot   |   2 +
+> .../rcutorture/configs/hazptr/READERS4        |  16 +
+> .../rcutorture/configs/hazptr/READERS4.boot   |   2 +
+> .../rcutorture/configs/hazptr/SLOWPATH        |  16 +
+> 22 files changed, 881 insertions(+), 33 deletions(-)
+> create mode 100644
+> Documentation/litmus-tests/hazptr/hazptr-acquire-before-scan.litmus
+> create mode 100644
+> Documentation/litmus-tests/hazptr/hazptr-wildcard-flip-escape.litmus
+> create mode 100755 tools/testing/selftests/rcutorture/bin/hazptr.sh
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/CPU128
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/CPU128.boot
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/CPU256
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/CPU256.boot
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/LOCKDEP
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/LOCKDEP.boot
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/READERS0
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/READERS0.boot
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/READERS4
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/READERS4.boot
+> create mode 100644
+> tools/testing/selftests/rcutorture/configs/hazptr/SLOWPATH
+>
+>
 
-Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
----
- .../selftests/rcutorture/bin/hazptr.sh        | 146 ++++++++++++++++++
- 1 file changed, 146 insertions(+)
- create mode 100755 tools/testing/selftests/rcutorture/bin/hazptr.sh
-
-diff --git a/tools/testing/selftests/rcutorture/bin/hazptr.sh b/tools/testing/selftests/rcutorture/bin/hazptr.sh
-new file mode 100755
-index 000000000000..ef636e519a55
---- /dev/null
-+++ b/tools/testing/selftests/rcutorture/bin/hazptr.sh
-@@ -0,0 +1,146 @@
-+#!/bin/bash
-+# SPDX-License-Identifier: GPL-2.0+
-+#
-+# Run hazptr torture tests and report any that fail.
-+#
-+# Usage: hazptr.sh [ --cpus N ] [ --allcpus ] [ --datestamp string ]
-+#
-+# Copyright (C) 2026 Kunwu Chan
-+#
-+# Authors: Kunwu Chan <kunwu.chan@gmail.com>
-+
-+usage () {
-+	echo "Usage: $scriptname optional arguments:"
-+	echo "       --cpus N       override CPU count (default: auto-detect)"
-+	echo "       --allcpus      test at CPU counts 8,16,32,...,256"
-+	echo "       --datestamp string"
-+	exit 1
-+}
-+
-+ds=`date +%Y.%m.%d-%H.%M.%S`-hazptr
-+scriptname="$0"
-+
-+RCUTORTURE="`pwd`/tools/testing/selftests/rcutorture"; export RCUTORTURE
-+PATH=${RCUTORTURE}/bin:$PATH; export PATH
-+. functions.sh
-+
-+cpus=""		# empty = let kvm.sh auto-detect
-+allcpus=0
-+
-+while test $# -gt 0
-+do
-+	case "$1" in
-+	--datestamp)
-+		checkarg --datestamp "(relative pathname)" "$#" "$2" '^[a-zA-Z0-9._/-]*$' '^--'
-+		ds=$2
-+		shift
-+		;;
-+	--cpus)
-+		checkarg --cpus "(number)" "$#" "$2" '^[0-9]\+$' '^--'
-+		cpus="$2"
-+		shift
-+		;;
-+	--allcpus)
-+		allcpus=1
-+		;;
-+	*)
-+		echo Unknown argument $1
-+		usage
-+		;;
-+	esac
-+	shift
-+done
-+
-+nerrs=0
-+
-+run_kvm () {
-+	local ds_suffix="$1"
-+	local configs="$2"
-+	local cpu_arg="$3"
-+	local kconfig="$4"
-+	local resdir="$RCUTORTURE/res/$ds/$ds_suffix"
-+
-+	mkdir -p "$resdir"
-+
-+	tools/testing/selftests/rcutorture/bin/kvm.sh \
-+		--torture hazptr \
-+		--duration 5s \
-+		--configs "$configs" \
-+		${cpu_arg:+--cpus "$cpu_arg"} \
-+		${kconfig:+--kconfig "$kconfig"} \
-+		--trust-make \
-+		--datestamp "$ds/$ds_suffix" > "$resdir/kvm.sh.out" 2>&1
-+	return $?
-+}
-+
-+check_lockdep () {
-+	local ds_suffix="$1" config_dir="$2" label="$3"
-+	local resdir="$RCUTORTURE/res/$ds/$ds_suffix"
-+	local console="$resdir/$config_dir/console.log"
-+
-+	if ! test -f "$console"
-+	then
-+		echo "Missing console.log for $label ($ds_suffix)" > "$resdir/kvm.sh.err"
-+		return 1
-+	fi
-+	if grep -qE "WARNING: possible (recursive locking|circular locking dependency)" "$console"
-+	then
-+		echo "Lockdep warning in $label" > "$resdir/kvm.sh.err"
-+		return 1
-+	fi
-+	return 0
-+}
-+
-+# Basic torture: all hazptr configs, CPU count auto-detected
-+
-+echo "--- hazptr basic torture${cpus:+ ($cpus CPUs)} ---"
-+run_kvm basic "NOPREEMPT PREEMPT READERS0 READERS4" "$cpus" || nerrs=$((nerrs+1))
-+
-+# LOCKDEP: verify no lockdep splats with PROVE_LOCKING + wq_churn
-+
-+echo "--- hazptr lockdep + wq_churn ---"
-+if run_kvm lockdep-wq LOCKDEP "$cpus"
-+then
-+	check_lockdep lockdep-wq LOCKDEP "LOCKDEP wq_churn" ||
-+		nerrs=$((nerrs+1))
-+else
-+	nerrs=$((nerrs+1))
-+fi
-+
-+# SLOWPATH + PROVE_LOCKING: verify forced-slowpath does not deadlock
-+
-+echo "--- hazptr SLOWPATH + lockdep ---"
-+if run_kvm slowpath-lockdep SLOWPATH "$cpus" \
-+	"CONFIG_PROVE_LOCKING=y"
-+then
-+	check_lockdep slowpath-lockdep SLOWPATH \
-+		"SLOWPATH+PROVE_LOCKING" ||
-+		nerrs=$((nerrs+1))
-+else
-+	nerrs=$((nerrs+1))
-+fi
-+
-+# CPU scaling: optionally test at multiple CPU counts
-+
-+if test "$allcpus" -ne 0
-+then
-+	max_cpus=`grep '^processor' /proc/cpuinfo 2>/dev/null | wc -l`
-+	for n in 8 16 32 64 128 256
-+	do
-+		if test "$n" -le "$max_cpus"
-+		then
-+		echo "--- hazptr CPU=$n ---"
-+		run_kvm "cpu$n" "PREEMPT" "$n" "CONFIG_NR_CPUS=$n" || nerrs=$((nerrs+1))
-+		fi
-+	done
-+fi
-+
-+# Report
-+
-+if test "$nerrs" -ne 0
-+then
-+	echo "hazptr.sh: $nerrs test(s) failed"
-+	exit 1
-+fi
-+echo "hazptr.sh: all tests passed"
-+exit 0
--- 
-2.43.0
-
+--- Thanks!
+"I'm not a very positive person" - Linus torvalds
