@@ -1,64 +1,64 @@
-Received: from mail-pj2-f37.google.com (mail-pj2-f37.google.com [74.125.227.165])
+Received: from mail-pz2-f21.google.com (mail-pz2-f21.google.com [74.125.228.21])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F204B4FDA59
-	for <linux-arch@vger.kernel.org>; Fri,  2 Oct 2026 17:10:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.165
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3C83F4FE2FA
+	for <linux-arch@vger.kernel.org>; Fri,  2 Oct 2026 17:10:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.21
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790961006; cv=none; b=nkekIerwrliyQv4YpY+f7Cp8tckDJGzAcA03SXGwDtujy0MjOehaknUjYSOI16vF/DInDFTNaoJ4VFUVFyJUIZOqHXxnVMcpvZzPbdMGRtxgrdZpizuXfpFHAckZX8z5bD/tDz15hlsCwLL+OLGs4kgfML539XZzFr92yCblOXE=
+	t=1790961018; cv=none; b=Ze5NnnGCTCa781Nx3rD98/oqmU43zHTLLhenPPNjiqNm5pMo7blQQ1QTO9PwuqwLbh5c6T3qM4855oSeO5tGaR+OsQaEJxXQPitSvTJdp/8D8emOUYx/vI36db0JP0G4AUCJ3lbQd2xXk251t4Z0UurCm9EuEXYGLswb0os5JDo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790961006; c=relaxed/simple;
-	bh=9wEbN2n5LQFaWEnfgc/fjcdj12CgL82mEepIN/jxNKo=;
+	s=arc-20240116; t=1790961018; c=relaxed/simple;
+	bh=qSkRi8XlT4WUuuM/Vrnlxa70Aiw5xHXCcH5kKxR3bV0=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=rAlmhceu3OWHrP0LvTKG7IjCIwvxnXVORJ7Q6YQ35XyyQvKE3BlxsB5QJpQSPCgVgEe/IU4tqX4HYAUjc2d0hfgXDeWA/ia64pSxeeiwyDS2JDyjlSj/I4ep097q1ingyKMf3wQxa1IzH3USBAZ3uBPmUHNgVDUEzQQoqlwggpM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=dalPDMRq; arc=none smtp.client-ip=74.125.227.165
+	 MIME-Version; b=QgH1W336A7BCQcAZhDGoJIK3D0f42TBcx1MZS5bAplwtlAZwgkICH/OKhOuStGKVqgJUeuDNY5AD6wc7RfB+O5qGBash6EyqD5vCwUiElHhfjYPRq2zg6xgNijFQLaN/OMcjQnPKElRQu3mAusYQfIPPe/4uL7lCfTPjOjY2r24=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=MNNhhxi+; arc=none smtp.client-ip=74.125.228.21
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="dalPDMRq"
-Received: by mail-pj2-f37.google.com with SMTP id d9443c01a7336-2e2c7eb3b8cso21293825ad.1
-        for <linux-arch@vger.kernel.org>; Fri, 02 Oct 2026 10:09:59 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="MNNhhxi+"
+Received: by mail-pz2-f21.google.com with SMTP id 41be03b00d2f7-cc4cacd3409so4722077a12.2
+        for <linux-arch@vger.kernel.org>; Fri, 02 Oct 2026 10:10:11 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1790960998; x=1791565798; darn=vger.kernel.org;
+        d=gmail.com; s=20251104; t=1790961008; x=1791565808; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=InVY38nfxVAqb/WmgYkdpIBcCwx01OQ8UJwYgwWPio4=;
-        b=dalPDMRqF/pTMZKC7gM+vbuuHhe+AzE9gT3Z6UtI20aEydFwMb2S3ppM8uHDc4kq67
-         H/5HHerSCV+pGQ6iNfXLUDLrmLvI9zQHbE+D8F14nVDrMeZZ76mjeF4RYasyIGFuyHjc
-         bJZ1eRwSeTr09fQyXxUTfGaW9GEcX6NrqQb7BXe9o/VWo1heh6veKHTWuc+bb6y1XWeT
-         7ieFI9GptxE5VYBmWMT3+gdABLWqRDSPcE3jmT4m/e1sxCTm8dgYz59rAb3+fi01bSTh
-         4/1sIBX8Mogz+e84NsEJZy107IZm5s5lIh0jrd5wCH0gpKTXZ4JHAut6q0afhEaOaJdZ
-         +ynw==
+        bh=Qdf2Dycggm4mT6sPheIXdhrke0YZJhuYFMLF05Xnp3s=;
+        b=MNNhhxi+/9V9cBpSzrQ9rBUps92aDYFjhe4ajkPoz7rBNWRHx9SUVUM3Jjl3EmknDE
+         LJArFrEOqpNWBD3gNM3u1083or6Oy6Ufp4YeZ628XudtUIri2nxGwONHW3Rr7eXQlAH8
+         7IlasPHjm52GV1ylWvkeeYMKId4daxOgHLoIg80h2sMdS6RuTxGGXGYvw2hbi3De4o3S
+         I1C2UdEdHgUcw0pWoMTfvIN5l312iBEkfZE8ju/MFTEvCkKk7O8oDsr9vuknlxKCmRok
+         bl/M19KGiCWwnqfwKTKvtJBNLCEaUyApH2vR2vHcMP4Fx3hYnk5Sp6z/y2zPaTFNAloZ
+         LLqA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790960998; x=1791565798;
+        d=1e100.net; s=20260707; t=1790961008; x=1791565808;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=InVY38nfxVAqb/WmgYkdpIBcCwx01OQ8UJwYgwWPio4=;
-        b=vgpodRNwuHo+1a0vCRlbVNAs0dOHMZ5WETzGcuAdI8kh2cGyEB/TGJeyC4JtyHAm5e
-         A+4CgrZKRtMbhvqNodLdwExMzgy7KnUM244BGxEOSSCCnLG69+46Uratf5Lf83Ukc87G
-         rI1Cw194LNzpZQl5O8m5fzYyjAmbd5T5Q9CZU6K3N4AAa6l4+mH5EtYlazqjVk9wnb6/
-         JiiFiH0OES7yaoqKbRgXgMJoV4uW0+WAvTbiEGFZANa5mjbusB3VpeootXi0Iy/mQ1BO
-         8n7LCFPzjavtfY0fWtFdyCiMwDk8WgNgXY2LFgFX/8N8y3hxN/IN4WcvOKbbC9pskAQl
-         QGsg==
-X-Forwarded-Encrypted: i=1; AKwUvBzAHSczAQd+RAtWBKoMZSJBz1vlYAw6Oaco6npljJsXy19cdZZFa+onTkvvwM1ddl8ElXcN8HUKes/n@vger.kernel.org
-X-Gm-Message-State: AFq9FYKsggoAmVT7BL0bdtWe4WTao3gmrycfwk3DJA+3/G7rGSiyPYiu
-	IpbzJgkFe61yZ013eOH2uhNChRDrfyqW/+dPz884/mejrVA8dF0oUIbT
-X-Gm-Gg: AYBFou3g+fOXNWArAlsH4GO0/O6mcKI32adKBBAgO0yECcOPbJBuQt4yuM+SIHf+Jin
-	PP7zXoOC+pyTI6Itra+kYtheimnnre/vjSSV/NHk9ZTgS2Nv1gf0Z6JB69arLC7kzV9H8tDLAHL
-	rWVd8X7Lm3RFtr5Zqwe5kWAnQZkZKWGWawnuKdz4Nvt0aTZZM2PCvqam2AXEpYfKKbfwn1V/X0X
-	feprA7IBkslmPX/hRzcpiVhkdYp2KnpljeHo/MpTsmHSwO82rAufO78M9hF2XyxAR3ACrwGiCSb
-	3Rf5HplJNNSwyrRqu7bnnTF75k8WqskT1bWbgINb6hs2w1Bk9PLqQx2/bqvyYP1rGbazCOG1uxw
-	OCJoSNVHdCZtuxZgiMdCR4uWtFUaY62+4fjfBsAeU3KuGPsZjvrDH4ZQhSbv+2BtOqmmuAi9pym
-	4aHqXEola29lqLoWseHsM+PCb5EBPK4ZbddQAo/lY9qtk8ACQ7tKVBAFPdkXPJaUbIcU63PqRHw
-	wyWATr9QDjVmngRVw==
-X-Received: by 2002:a17:90b:39ac:b0:3a4:a7eb:1da7 with SMTP id 98e67ed59e1d1-3a6ce7f8bcbmr2920094a91.42.1790960997498;
-        Fri, 02 Oct 2026 10:09:57 -0700 (PDT)
+        bh=Qdf2Dycggm4mT6sPheIXdhrke0YZJhuYFMLF05Xnp3s=;
+        b=uwzocMuZLGH1wNc8QyOS7356pbjkQ6F0L0w0/1lklmTqwc4rdEKzf8iO279lsO56fN
+         uWb0jsDWhK9ly1oZhSnr3/V+hKSFTQ2FjsaydVtlonQXObS/WIlQ3op+MbvteZYinKVY
+         mUXh27Vm1myFLPJSpDRqo3J8LncAbIVhkaTw9kVYJ5TKyQtcllb0UMi7XTy0MfvkamSu
+         pnnGb4egmfDIn/mZ4CsWfN8BtBQMYHq4wEgTmMdAJCauvkf1fZ3f4XasAWCFaaReXGd0
+         DIyJv6qbgaISspInR/g3rZMwMixMXnCT55J3XrC6g1lHsvtT+MVnpdUz1tVLE1O6NBKm
+         qXVw==
+X-Forwarded-Encrypted: i=1; AKwUvBxb0yXcDCGnTqVrJ18LZBcgW9Cbo+5eNOcWAoTRDYSIUhnP9HcAImGD6FN8c/X0Xbchhs6To2UZaKPb@vger.kernel.org
+X-Gm-Message-State: AFq9FYLuDhh4Iz05dU39+JEDIuucMLU/DOE7nMEmoK6/8yjZI6N+DsoV
+	T5Nv2SzbTBMZiWcR2ny5xa8FA0CgLxeTK+Yn2h7I5cDZjd6FdcOFcpwu
+X-Gm-Gg: AYBFou3dzSiwsstSE14QQCCjv5XhpH5N3P9600dA/Y82SrgshaoBhpOT8PvTM51qpmW
+	9Aq3px1ttljGo0o1Se2ImIWiJkKyDIC4i2wh26lo1CfujQNlFwz3mVapD6Cs5N4eR7jCg7yOD9Y
+	nU1WLpujc/Kk2yERvfa4whbPv7E9j7W2++zVzGuVoSHJU+Cqfj5gf9MqpP26zAv0VPFqJwAWG1M
+	mRPpFeTtAsbod2qK8JZD7qt4DRdkqp+rZgP7nep9qmLgpR3jaCvabbstHq2UJw5wi2i5XHh/TsO
+	g4JeFmvWHM//0kWZq7CEmCM5F20SarojYSjOez2CfLrMZW/dPDBKnBhtk6rNdnSbzFIX1E3YAPL
+	7mylUqWm3Yc93uzCbe24S7aXKQ54lLPxiP0w+mq2LT24U0eTGhonLU9zNib0mnYBtOEBzizUH1G
+	ANjMVJFvXm4K9w6iTSx3jcyj7+Qujd69qPVXKThzzUfFrBDfc/Kd4Bm1tAj4PmWIBxIbIfbs6vA
+	q5DTRcu3LAwLbT9yQ==
+X-Received: by 2002:a17:90b:134e:b0:3a4:aa26:21c7 with SMTP id 98e67ed59e1d1-3a6ceae5a45mr3036272a91.25.1790961007656;
+        Fri, 02 Oct 2026 10:10:07 -0700 (PDT)
 Received: from kernel.tail6741c6.ts.net ([185.220.238.43])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3a7024d0f5fsm1597719a91.0.2026.10.02.10.09.47
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3a7024d0f5fsm1597719a91.0.2026.10.02.10.09.57
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 02 Oct 2026 10:09:57 -0700 (PDT)
+        Fri, 02 Oct 2026 10:10:07 -0700 (PDT)
 From: Kunwu Chan <kunwu.chan@gmail.com>
 To: paulmck@kernel.org,
 	corbet@lwn.net,
@@ -96,9 +96,9 @@ Cc: stern@rowland.harvard.edu,
 	linux-doc@vger.kernel.org,
 	rcu@vger.kernel.org,
 	linux-kselftest@vger.kernel.org
-Subject: [PATCH RFC v2 05/15] hazptr: add debug option to force the acquire slow path
-Date: Sat,  3 Oct 2026 01:08:37 +0800
-Message-ID: <20261002170847.3653663-6-kunwu.chan@gmail.com>
+Subject: [PATCH RFC v2 06/15] hazptr: elide redundant first drain pass
+Date: Sat,  3 Oct 2026 01:08:38 +0800
+Message-ID: <20261002170847.3653663-7-kunwu.chan@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20261002170847.3653663-1-kunwu.chan@gmail.com>
 References: <20261002170847.3653663-1-kunwu.chan@gmail.com>
@@ -110,54 +110,81 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Add a debug option that makes hazptr_acquire() always enter
-__hazptr_acquire(), even when a per-CPU slot is available.
+Each scan cycle drained both wildcard generations: the
+unpublished "other" generation (pass 1) and the pre-flip current
+generation (pass 2).  Pass 1 is not needed for correctness, so
+flip the wildcard first and drain only the old generation while
+building the Bloom filter.
 
-This allows the slow path, including its lock acquisition, to be
-exercised by lockdep-heavy workloads.  It also lets hazptrtorture
-exercise the slow path without requiring the per-CPU slots to be
-exhausted.
+An acquire that read the old wildcard before the flip may publish
+it into its slot after the drain has passed that slot.  Such a
+straggling acquire cannot have loaded the pre-unpublish pointer;
+see the following LKMM test for the ordering argument.
 
-Suggested-by: Boqun Feng <boqun@kernel.org>
 Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
 ---
- include/linux/hazptr.h   |  3 ++-
- kernel/rcu/Kconfig.debug | 10 ++++++++++
- 2 files changed, 12 insertions(+), 1 deletion(-)
+ kernel/hazptr.c | 36 +++++++++++++-----------------------
+ 1 file changed, 13 insertions(+), 23 deletions(-)
 
-diff --git a/include/linux/hazptr.h b/include/linux/hazptr.h
-index 275cbe54b075..4ee02d23abc9 100644
---- a/include/linux/hazptr.h
-+++ b/include/linux/hazptr.h
-@@ -245,7 +245,8 @@ void *hazptr_acquire(struct hazptr_ctx *ctx, void * const *addr_p)
- 	ctx->acquire_cpu = smp_processor_id();
- 	ctx->acquire_caller = _THIS_IP_;
- #endif
--	if (unlikely(slot->addr))
-+	if (IS_ENABLED(CONFIG_HAZPTR_ACQUIRE_FORCE_SLOWPATH) ||
-+	    unlikely(slot->addr))
- 		return __hazptr_acquire(ctx, addr_p);
- 	WRITE_ONCE(slot->addr, READ_ONCE(hazptr_wildcard));	/* Store B */
+diff --git a/kernel/hazptr.c b/kernel/hazptr.c
+index 799784f698ed..86336f229f57 100644
+--- a/kernel/hazptr.c
++++ b/kernel/hazptr.c
+@@ -365,24 +365,19 @@ static bool hazptr_scan_walk(void *watch, struct hazptr_bloom *bloom)
+ }
  
-diff --git a/kernel/rcu/Kconfig.debug b/kernel/rcu/Kconfig.debug
-index 7c3c6017b266..3a2e9d7f58f8 100644
---- a/kernel/rcu/Kconfig.debug
-+++ b/kernel/rcu/Kconfig.debug
-@@ -265,4 +265,14 @@ config HAZPTR_DEBUG
+ /*
+- * Wait until no per-CPU slot or overflow-list slot holds @wc.
+- * Callers must ensure that the wildcard value in use by new acquires
+- * differs from @wc, so that the set of slots holding @wc only
+- * shrinks, which guarantees forward progress.
+- */
+-static void hazptr_drain_wildcard(void *wc)
+-{
+-	while (hazptr_scan_walk(wc, NULL))
+-		cond_resched();
+-}
+-
+-/*
+- * Move pending waiters to ->scanning and perform a two-phase
+- * wildcard scan shared by all waiters.
++ * Move pending waiters to ->scanning, flip the wildcard, then
++ * drain the old generation while collecting observed addresses
++ * into the Bloom filter.  New acquires use the new generation,
++ * so old-generation slots normally only drain.
++ *
++ * An acquire that read the old wildcard before the flip may
++ * publish it after the scanner has passed its slot, but cannot
++ * have loaded the pre-unpublish pointer.  See
++ * Documentation/litmus-tests/hazptr/hazptr-wildcard-flip-escape.litmus.
+  */
+ static void hazptr_scan_do_cycle(void)
+ {
+-	void *scan_wildcard, *old_wildcard;
++	void *old_wildcard;
+ 	struct hazptr_waiter *w, *n;
+ 	LIST_HEAD(done);
  
- 	  Say Y here if you want to enable those assert, N otherwise.
+@@ -397,16 +392,11 @@ static void hazptr_scan_do_cycle(void)
+ 		return;
+ 	}
  
-+config HAZPTR_ACQUIRE_FORCE_SLOWPATH
-+	bool "Force hazard-pointer acquire into the slow path"
-+	depends on DEBUG_KERNEL
-+	default n
-+	help
-+	  Make hazptr_acquire() always enter __hazptr_acquire().
-+	  This is useful for testing slow-path locking, especially
-+	  with lockdep.  It also lets hazptrtorture exercise the slow
-+	  path without filling the per-CPU slots.
-+
- endmenu # "RCU Debugging"
+-	/* Pass 1: drain the unpublished wildcard. */
+-	scan_wildcard = flip_wildcard(READ_ONCE(hazptr_wildcard));
+-	hazptr_drain_wildcard(scan_wildcard);
+-
+-	/* Flip so new acquires use the new generation. */
+-	WRITE_ONCE(hazptr_wildcard, scan_wildcard);
+-	old_wildcard = flip_wildcard(scan_wildcard);
++	old_wildcard = READ_ONCE(hazptr_wildcard);
++	WRITE_ONCE(hazptr_wildcard, flip_wildcard(old_wildcard));
+ 
+ 	/*
+-	 * Pass 2: drain the old wildcard while collecting observed
++	 * Drain the old wildcard while collecting observed
+ 	 * addresses into the Bloom filter.
+ 	 */
+ 	while (hazptr_scan_walk(old_wildcard, &hazptr_scan.bloom))
 -- 
 2.43.0
 
