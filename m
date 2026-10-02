@@ -1,64 +1,64 @@
-Received: from mail-pj2-f13.google.com (mail-pj2-f13.google.com [74.125.227.141])
+Received: from mail-pj2-f12.google.com (mail-pj2-f12.google.com [74.125.227.140])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B542835A38C
-	for <linux-arch@vger.kernel.org>; Fri,  2 Oct 2026 17:11:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.141
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 36AB64FE2C9
+	for <linux-arch@vger.kernel.org>; Fri,  2 Oct 2026 17:12:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790961117; cv=none; b=pUO/A5o7e4Nh66FATng9gKRAPecM1dHpgQ/IRKl/OS3/+SBCrAEGYPyfQpqCG/7SZqayz/1fSrfUS00UaVvlM9iIeAcbWCeml5OSahnBqWMRhH7CqlEC/4KgXb1BeYYyTMUEnoV5pH28tLytcxWWb0HMRtfkX1joAj45wXf6j9M=
+	t=1790961129; cv=none; b=q+5WuQ4KznEeRYYGQeaI1+dn+S9QxQqUoMC9rZv6iC9zo4DrCAi6baH33JcvMtNZaYzhq2+Gr+um05IP6frjKJQcJuxHV8Yd5UOAYGkzDHwyex47tTtwdYqq0Ky3PvxUq4zSa4tXzENZRXPeGoGHJyxQLrGLEA+7Bb0+3fpWQYc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790961117; c=relaxed/simple;
-	bh=c7ckEYnsoc8lY6bepSRx0MX3kspdeIxVPo6r8T3T7fY=;
+	s=arc-20240116; t=1790961129; c=relaxed/simple;
+	bh=DSy90Vi1pYW2azdUTwrc0TT6kW6QsQGO8Rlo/8MHFWI=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=i9dhEz0HLFf0o+IOuEn6foAIFwzfUaAiVSLh1CfIQKuQUQ/koiDhDgdMafbp87Tbd/jTMmttxaZtRAcAD1mk7fCpQjoFdgK4IoBEbw4YtxUIctWxPxYVNwFaL2OBP4OBlJYBPtxgQmg24XBcLI/INnQEG/vvGC0rxzKOH5HAdmw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=et5jNYEn; arc=none smtp.client-ip=74.125.227.141
+	 MIME-Version; b=B+Rhv+cTxmEOzKZAbvtNMDztblJh3T0JotLZbXBMCfRnQ8OxquMXxW/X26oM4aZRj06lx6JjjjvAKd6R0x8OxW51Nkh8+PeXL96RgMKh1SJJus0FqSSXe0A8OVGbUnMa7IzRNCF51Wk+dLWqgeudKaemZON6yf9rwqOB+e1sg1U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=O0t2PPF2; arc=none smtp.client-ip=74.125.227.140
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="et5jNYEn"
-Received: by mail-pj2-f13.google.com with SMTP id 98e67ed59e1d1-398b3b189e0so112740a91.2
-        for <linux-arch@vger.kernel.org>; Fri, 02 Oct 2026 10:11:51 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="O0t2PPF2"
+Received: by mail-pj2-f12.google.com with SMTP id 98e67ed59e1d1-396ccc09d65so118291a91.3
+        for <linux-arch@vger.kernel.org>; Fri, 02 Oct 2026 10:11:59 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1790961105; x=1791565905; darn=vger.kernel.org;
+        d=gmail.com; s=20251104; t=1790961118; x=1791565918; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=bU/Grob0sdS1Fvpq0qkYiAVVEirXYMwyKGEgxNCUeKM=;
-        b=et5jNYEnRjFgMtTgxmbQKLyPtRY6+zKJzAnn+F/zA7U5sJ/MODnWgoIGviLqzly2o3
-         IccUsYTT7Jf0u5LsoSlm/gL/LX6zgMD4ZaN+YW1wFLq2m05UwrWCJzpqLywP8+51ieoH
-         sKuHC73BiU+9GzZGD39y1cCmxIcBxlpJp8DDpp/Ot5lDGHGnzgSAjZ3FZ+lVIvrPfgVh
-         +inTzZggE/DtWmkS5J0mez4GQC1kWVsqpppwu3kztgArWRkh6bZDmwz151sAHiI1dFGZ
-         RyjjvDKG2iJIlf2V7z+ITXU8Yeaf8BtfbjsAEOC5zQbQSCqSoKviRefuWBB3VYIeaTpv
-         UP+Q==
+        bh=j4yfFb6320kdlQ6cch251gfqYxfn4Y6pwvS8rFGl1n0=;
+        b=O0t2PPF2FE7EvdxKkZqB/mE4moJ0mkddf9b+J0zYRcsRh3u8oGV4BJHxw2H+96fxJZ
+         meG4z0Y6SaWKEbBvpAQR+OuJ6sUlksJaB5XwEGdnO+NzKO0dE/MAfQ1lMdUUg9qOK64r
+         bxHFemm3XR+QWV2XQn+vJM8IM0cWb4hMn8Mxzieti0jnZs1LN3tOBMYw4im6tVK89/EG
+         ChKgFqQU31ziRSDlUS6YQ8eNQJaIqLYFi+vRMKGqsl8CF5Ipqh0wvCpDMM+9LqP7/sAb
+         bhOQPqlHpsK/ERNaPgqq27d5SyXZ5BKmIagtPiWbqemicdRtAK+qyq8tjPSIibOiHb2v
+         WHEg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790961105; x=1791565905;
+        d=1e100.net; s=20260707; t=1790961118; x=1791565918;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=bU/Grob0sdS1Fvpq0qkYiAVVEirXYMwyKGEgxNCUeKM=;
-        b=wZRjuAfFs3uTGfVsm1HHiLeRwQwBIXHxCse6twoU5aqAji3dm0e3YRo22dRKo0xvZt
-         VcvW98dHfaEgP1EWS3tw0YZcE08PLbikoXVBgqqTgeqBw8BK5SCSiF18uhn3v0kctUrv
-         82st+IyCv3rjJZhzjssdBz3+VaKu4bb2xEOsqqdVfPe0Rejwe5qawwfA2NGjU0Rnu9QZ
-         xFMlsEywnThaP5yFKFixhQdCTx8CYQEiEsRUHNMUxKCTxsTUarnPiMt8FiE+s47f9ONs
-         IiH27ICSw/8C0ivcxlDMvGzq5G3yXfBGbvtOZI7skRQ+eVeaDRAHzWuyNi2vmRBguFpA
-         uL9w==
-X-Forwarded-Encrypted: i=1; AKwUvBzD6evKA2fpjgoOiNpAyEcvpRZOeWxLj3e6fcOdIDlYk7tdK5s/4yB8LDd1OushqsZMb7JDBQ6JEGJt@vger.kernel.org
-X-Gm-Message-State: AFq9FYKEXKFWskuXVrZzrigqImut46Bz66Z+uxuvUXyXMXFV/Ia6vNps
-	6QsH/ubzm3JwN4UgIToHutGtw24xTgfwMgeYnzvS9CfNRd3UJezJPufq
-X-Gm-Gg: AYBFou2XRzH0GGRlzCG4eMYyI87Y1vEu3nEw53NhsC3rgpfq0HZ9z+MvQxel+trhRN4
-	JeW6douvvDtmsb1oXgkNAIh1H+uzoPsCjJYBGBVCHPKfuOHplumdwrhkNLRZOY5hJ4KXSTr6tCQ
-	pgX2vvU3PtaWThpHjGhVIQXXILQgJSJ4GTiXxtF9FOKvvqVsuab71SuXDQaX8ihZQuhTQce8Ixp
-	Q856Sjt7uRFxRCKlX2SpENmCUGCZRxlE+iSi91QcNN4yXmcoWSWSnasvrQkCnprLjfyo1Rd9rED
-	5/R3HwV7N7Gdo7FsPrFa6Hrb5g1ym+6+6kYRpvl/jlbi1g3GMLiFG0/WbpuiVAKwlQh6CGVHj1f
-	2wuu3S9mOKJHUlFZC0HuwAbidnxz/pN0hdotHVypNCXmj2C86oLsjIkre+iPYCBrjpUYSF1z/zZ
-	Ju14iGUbrTSIHq/QVetG5epzBXzBWS/+b5zMRaUqkW69Sjsp+XFcEu3hiGGNk75xqhZaw6YIxHC
-	+UsnmkejBJvM45QHwYdEjyihQ7G
-X-Received: by 2002:a17:90b:3d84:b0:3a6:c7e8:1e3f with SMTP id 98e67ed59e1d1-3a6ce34d7edmr3083622a91.3.1790961104965;
-        Fri, 02 Oct 2026 10:11:44 -0700 (PDT)
+        bh=j4yfFb6320kdlQ6cch251gfqYxfn4Y6pwvS8rFGl1n0=;
+        b=ej4xy0XpD8C9m95RO1PdDHG/jYGVLgh+Ys4Ihz20nuZ3wisj/icqEADqni7SsOX2xV
+         8QXaYqKREtIuoditiNqVfWwVANuGoUivxcHjtbR9YH4VkG/m53alRDnMgHbdex6HuR3U
+         4vShLLN0C1217QfCoFzGdjANsm3HBccbwsdtgZ2tj8+IkiPnZ7GJZXXGXAp4LaMiUHou
+         c+6+2er2A3cxzJ1KyPEU6jdsEtO97RzsrDi2D3McT8wbN1bYLZI0ailikbewLsbqYOy1
+         9sWpufKWeHIW9FsvT95hKaYZG3O5DRMiN48BOMPESMEUwgNdid4MdZl4Mjvh+g75y4Al
+         uPqg==
+X-Forwarded-Encrypted: i=1; AKwUvBzv7XEzdzyZxwmWm33zne5qLhvFMO+Np+yBHoomWGTD7y24ZkBg5rLv7yAscqR9j7kZwsRLgjlDw2Ek@vger.kernel.org
+X-Gm-Message-State: AFq9FYLzhozrwMUPuAeEuLxz7dEMnuUhqEWAtHKU1u5fgLHEvhiaaX9h
+	706Ob+WlRp6OIRaza0ROcFsRvm+d/FCVgSrrScUYtOeMcUKUvhOktJ+c
+X-Gm-Gg: AYBFou1jLUZ+GKL55NMIcarmU4z4C0+Noy7kPD26Xc7hyU7dLZF/DBTv8bRI5pkZmOR
+	K21l3neFOFCI6SMErN65/hba85Fn0AZuInV00piJluL2lJwlaqB40Fnu8pJ+SEAEFl9m3VLpB+q
+	Tg2a6XfqCqq2qIIVMNrU32F1Ce4H2QX/vA7CYQY5npzhhqytpE3Gvgh89VuZbF0u1s+yJMnNLsy
+	Y6Fx20t8o3SA6uV4/VOV2xMcSG9llSJDoQnr+b0AHQT3mVd+LBxAhfS4uW9nfdArprKw+tywUqP
+	4YUYsqPQrGyMD69Fe/RR4P2n+j+L3fQsui3vLMiAbO5+Ix7UTBxcWaRvlpofReBMCYgJrRuwG5C
+	3m5Uxq6SlGlImE7y1Au8oPp8RWK+w3KNiRTB4YvJMMPkbf23Nd7v76eJAWBVlFF9kgZofROYibs
+	p9ZZO+L9WoTO2gCm3U8Rkae0K8KY9DQ85tw5LLYfYtvEUvkUWd2cDEzXgxIi3uFUK6I31L5izT3
+	tuBC3tSDmtIUxbtLg==
+X-Received: by 2002:a17:90b:586e:b0:3a5:147a:3b63 with SMTP id 98e67ed59e1d1-3a6ce3a97bemr2829709a91.8.1790961117352;
+        Fri, 02 Oct 2026 10:11:57 -0700 (PDT)
 Received: from kernel.tail6741c6.ts.net ([185.220.238.43])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3a7024d0f5fsm1597719a91.0.2026.10.02.10.11.34
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3a7024d0f5fsm1597719a91.0.2026.10.02.10.11.45
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 02 Oct 2026 10:11:44 -0700 (PDT)
+        Fri, 02 Oct 2026 10:11:56 -0700 (PDT)
 From: Kunwu Chan <kunwu.chan@gmail.com>
 To: paulmck@kernel.org,
 	corbet@lwn.net,
@@ -96,9 +96,9 @@ Cc: stern@rowland.harvard.edu,
 	linux-doc@vger.kernel.org,
 	rcu@vger.kernel.org,
 	linux-kselftest@vger.kernel.org
-Subject: [PATCH RFC v2 14/15] hazptrtorture: add 128- and 256-CPU configs
-Date: Sat,  3 Oct 2026 01:08:46 +0800
-Message-ID: <20261002170847.3653663-15-kunwu.chan@gmail.com>
+Subject: [PATCH RFC v2 15/15] selftests/rcutorture: add hazptr torture test script
+Date: Sat,  3 Oct 2026 01:08:47 +0800
+Message-ID: <20261002170847.3653663-16-kunwu.chan@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20261002170847.3653663-1-kunwu.chan@gmail.com>
 References: <20261002170847.3653663-1-kunwu.chan@gmail.com>
@@ -110,91 +110,176 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Add CPU128 and CPU256 configs for hazptr-stack torture testing.
+Add hazptr.sh as a one-command regression test for the hazptr
+torture configs.
 
-These configs exercise the shared-scan path at larger CPU counts.
+Run NOPREEMPT, PREEMPT, READERS0, and READERS4, followed by
+LOCKDEP with wq_churn and SLOWPATH with CONFIG_PROVE_LOCKING=y.
+The latter two also check the console for lockdep warnings.
+
+With --allcpus, repeat the PREEMPT test at CPU counts 8, 16, 32,
+and so on up to 256.
+
+Follow the pattern of the existing srcu_lockdep.sh script.
 
 Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
 ---
- .../selftests/rcutorture/configs/hazptr/CFLIST   |  2 ++
- .../selftests/rcutorture/configs/hazptr/CPU128   | 16 ++++++++++++++++
- .../rcutorture/configs/hazptr/CPU128.boot        |  1 +
- .../selftests/rcutorture/configs/hazptr/CPU256   | 16 ++++++++++++++++
- .../rcutorture/configs/hazptr/CPU256.boot        |  1 +
- 5 files changed, 36 insertions(+)
- create mode 100644 tools/testing/selftests/rcutorture/configs/hazptr/CPU128
- create mode 100644 tools/testing/selftests/rcutorture/configs/hazptr/CPU128.boot
- create mode 100644 tools/testing/selftests/rcutorture/configs/hazptr/CPU256
- create mode 100644 tools/testing/selftests/rcutorture/configs/hazptr/CPU256.boot
+ .../selftests/rcutorture/bin/hazptr.sh        | 146 ++++++++++++++++++
+ 1 file changed, 146 insertions(+)
+ create mode 100755 tools/testing/selftests/rcutorture/bin/hazptr.sh
 
-diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST b/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST
-index 1826be30c066..90ef09b0e654 100644
---- a/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST
-+++ b/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST
-@@ -4,3 +4,5 @@ READERS0
- READERS4
- SLOWPATH
- LOCKDEP
-+CPU128
-+CPU256
-diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/CPU128 b/tools/testing/selftests/rcutorture/configs/hazptr/CPU128
-new file mode 100644
-index 000000000000..079b463607e8
+diff --git a/tools/testing/selftests/rcutorture/bin/hazptr.sh b/tools/testing/selftests/rcutorture/bin/hazptr.sh
+new file mode 100755
+index 000000000000..ef636e519a55
 --- /dev/null
-+++ b/tools/testing/selftests/rcutorture/configs/hazptr/CPU128
-@@ -0,0 +1,16 @@
-+CONFIG_SMP=y
-+CONFIG_NR_CPUS=128
-+CONFIG_PREEMPT_NONE=n
-+CONFIG_PREEMPT_VOLUNTARY=n
-+CONFIG_PREEMPT=y
-+CONFIG_HZ_PERIODIC=n
-+CONFIG_NO_HZ_IDLE=y
-+CONFIG_NO_HZ_FULL=n
-+CONFIG_HOTPLUG_CPU=y
-+CONFIG_SUSPEND=n
-+CONFIG_HIBERNATION=n
-+CONFIG_DEBUG_LOCK_ALLOC=n
-+CONFIG_PROVE_LOCKING=n
-+CONFIG_DEBUG_OBJECTS_RCU_HEAD=n
-+CONFIG_DEBUG_KERNEL=y
-+CONFIG_HAZPTR_DEBUG=y
-diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/CPU128.boot b/tools/testing/selftests/rcutorture/configs/hazptr/CPU128.boot
-new file mode 100644
-index 000000000000..1d09a6446080
---- /dev/null
-+++ b/tools/testing/selftests/rcutorture/configs/hazptr/CPU128.boot
-@@ -0,0 +1 @@
-+hazptrtorture.torture_type=hazptr-stack
-diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/CPU256 b/tools/testing/selftests/rcutorture/configs/hazptr/CPU256
-new file mode 100644
-index 000000000000..b00a984977f3
---- /dev/null
-+++ b/tools/testing/selftests/rcutorture/configs/hazptr/CPU256
-@@ -0,0 +1,16 @@
-+CONFIG_SMP=y
-+CONFIG_NR_CPUS=256
-+CONFIG_PREEMPT_NONE=n
-+CONFIG_PREEMPT_VOLUNTARY=n
-+CONFIG_PREEMPT=y
-+CONFIG_HZ_PERIODIC=n
-+CONFIG_NO_HZ_IDLE=y
-+CONFIG_NO_HZ_FULL=n
-+CONFIG_HOTPLUG_CPU=y
-+CONFIG_SUSPEND=n
-+CONFIG_HIBERNATION=n
-+CONFIG_DEBUG_LOCK_ALLOC=n
-+CONFIG_PROVE_LOCKING=n
-+CONFIG_DEBUG_OBJECTS_RCU_HEAD=n
-+CONFIG_DEBUG_KERNEL=y
-+CONFIG_HAZPTR_DEBUG=y
-diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/CPU256.boot b/tools/testing/selftests/rcutorture/configs/hazptr/CPU256.boot
-new file mode 100644
-index 000000000000..1d09a6446080
---- /dev/null
-+++ b/tools/testing/selftests/rcutorture/configs/hazptr/CPU256.boot
-@@ -0,0 +1 @@
-+hazptrtorture.torture_type=hazptr-stack
++++ b/tools/testing/selftests/rcutorture/bin/hazptr.sh
+@@ -0,0 +1,146 @@
++#!/bin/bash
++# SPDX-License-Identifier: GPL-2.0+
++#
++# Run hazptr torture tests and report any that fail.
++#
++# Usage: hazptr.sh [ --cpus N ] [ --allcpus ] [ --datestamp string ]
++#
++# Copyright (C) 2026 Kunwu Chan
++#
++# Authors: Kunwu Chan <kunwu.chan@gmail.com>
++
++usage () {
++	echo "Usage: $scriptname optional arguments:"
++	echo "       --cpus N       override CPU count (default: auto-detect)"
++	echo "       --allcpus      test at CPU counts 8,16,32,...,256"
++	echo "       --datestamp string"
++	exit 1
++}
++
++ds=`date +%Y.%m.%d-%H.%M.%S`-hazptr
++scriptname="$0"
++
++RCUTORTURE="`pwd`/tools/testing/selftests/rcutorture"; export RCUTORTURE
++PATH=${RCUTORTURE}/bin:$PATH; export PATH
++. functions.sh
++
++cpus=""		# empty = let kvm.sh auto-detect
++allcpus=0
++
++while test $# -gt 0
++do
++	case "$1" in
++	--datestamp)
++		checkarg --datestamp "(relative pathname)" "$#" "$2" '^[a-zA-Z0-9._/-]*$' '^--'
++		ds=$2
++		shift
++		;;
++	--cpus)
++		checkarg --cpus "(number)" "$#" "$2" '^[0-9]\+$' '^--'
++		cpus="$2"
++		shift
++		;;
++	--allcpus)
++		allcpus=1
++		;;
++	*)
++		echo Unknown argument $1
++		usage
++		;;
++	esac
++	shift
++done
++
++nerrs=0
++
++run_kvm () {
++	local ds_suffix="$1"
++	local configs="$2"
++	local cpu_arg="$3"
++	local kconfig="$4"
++	local resdir="$RCUTORTURE/res/$ds/$ds_suffix"
++
++	mkdir -p "$resdir"
++
++	tools/testing/selftests/rcutorture/bin/kvm.sh \
++		--torture hazptr \
++		--duration 5s \
++		--configs "$configs" \
++		${cpu_arg:+--cpus "$cpu_arg"} \
++		${kconfig:+--kconfig "$kconfig"} \
++		--trust-make \
++		--datestamp "$ds/$ds_suffix" > "$resdir/kvm.sh.out" 2>&1
++	return $?
++}
++
++check_lockdep () {
++	local ds_suffix="$1" config_dir="$2" label="$3"
++	local resdir="$RCUTORTURE/res/$ds/$ds_suffix"
++	local console="$resdir/$config_dir/console.log"
++
++	if ! test -f "$console"
++	then
++		echo "Missing console.log for $label ($ds_suffix)" > "$resdir/kvm.sh.err"
++		return 1
++	fi
++	if grep -qE "WARNING: possible (recursive locking|circular locking dependency)" "$console"
++	then
++		echo "Lockdep warning in $label" > "$resdir/kvm.sh.err"
++		return 1
++	fi
++	return 0
++}
++
++# Basic torture: all hazptr configs, CPU count auto-detected
++
++echo "--- hazptr basic torture${cpus:+ ($cpus CPUs)} ---"
++run_kvm basic "NOPREEMPT PREEMPT READERS0 READERS4" "$cpus" || nerrs=$((nerrs+1))
++
++# LOCKDEP: verify no lockdep splats with PROVE_LOCKING + wq_churn
++
++echo "--- hazptr lockdep + wq_churn ---"
++if run_kvm lockdep-wq LOCKDEP "$cpus"
++then
++	check_lockdep lockdep-wq LOCKDEP "LOCKDEP wq_churn" ||
++		nerrs=$((nerrs+1))
++else
++	nerrs=$((nerrs+1))
++fi
++
++# SLOWPATH + PROVE_LOCKING: verify forced-slowpath does not deadlock
++
++echo "--- hazptr SLOWPATH + lockdep ---"
++if run_kvm slowpath-lockdep SLOWPATH "$cpus" \
++	"CONFIG_PROVE_LOCKING=y"
++then
++	check_lockdep slowpath-lockdep SLOWPATH \
++		"SLOWPATH+PROVE_LOCKING" ||
++		nerrs=$((nerrs+1))
++else
++	nerrs=$((nerrs+1))
++fi
++
++# CPU scaling: optionally test at multiple CPU counts
++
++if test "$allcpus" -ne 0
++then
++	max_cpus=`grep '^processor' /proc/cpuinfo 2>/dev/null | wc -l`
++	for n in 8 16 32 64 128 256
++	do
++		if test "$n" -le "$max_cpus"
++		then
++		echo "--- hazptr CPU=$n ---"
++		run_kvm "cpu$n" "PREEMPT" "$n" "CONFIG_NR_CPUS=$n" || nerrs=$((nerrs+1))
++		fi
++	done
++fi
++
++# Report
++
++if test "$nerrs" -ne 0
++then
++	echo "hazptr.sh: $nerrs test(s) failed"
++	exit 1
++fi
++echo "hazptr.sh: all tests passed"
++exit 0
 -- 
 2.43.0
 
