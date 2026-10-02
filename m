@@ -1,64 +1,64 @@
-Received: from mail-pz2-f42.google.com (mail-pz2-f42.google.com [74.125.228.42])
+Received: from mail-pj2-f43.google.com (mail-pj2-f43.google.com [74.125.227.171])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 774014E323C
-	for <linux-arch@vger.kernel.org>; Fri,  2 Oct 2026 17:10:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.42
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 79BBC502795
+	for <linux-arch@vger.kernel.org>; Fri,  2 Oct 2026 17:10:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.171
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790961050; cv=none; b=txksGKmgGLIU+1fQN24lIXg1WWU1na1dllONBNaQb8pv/PJ7J196R3usvqZcqOdGrq+9dT7a5jd+tMI5MvNKBub7QXrUU0Gk/yCPk1IicMmuNKcH+YdR8tqYbvedaHMWiNYynmfYh7Oe6Ym/P/PWkOul4y+8WwrHKNY+Nl9VWbg=
+	t=1790961060; cv=none; b=Xt7k/Yq8p+x+4Gl2b87PO+kd7e5ltIQ7ktdNNDxDjomeSu/jHjqrP/O3vtD5feRryvfw6T7vHCJVwzEU/6f4Xt37dhkjGb8bnxXeyn2Xh++/Wdoeawo268HuCzqo1lvxGbHfIVIKDVKZcJ37pMONE+UoZ5iRbruOL9yMO6XuCGE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790961050; c=relaxed/simple;
-	bh=9oP9VQ+JM/9PdWJ+5+ZGbwB85sJAY1eTAyp/fwZIqqc=;
+	s=arc-20240116; t=1790961060; c=relaxed/simple;
+	bh=bKK6Ka9Gp+vtwgFDDZYR/jwqeinj7CuEjE6r7sAsMFE=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=AuUmqUM+Mr9zvhHYy9b6dtms+qnhQHM/8SEBow/r1mx3yCA8XL/G4guiCfYuzmd+Aw5+VmM6URn/ONOLdtsO1JAn6nflWZ+9JU3lRiSC0WD1L4LerWX61T0QWjzcg8Be91P8pwTBt7C8ZFSQsr5dcYLV4/aCKDL7iCfLTytvb7g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=PTDS2njE; arc=none smtp.client-ip=74.125.228.42
+	 MIME-Version; b=M3nSodqhk+gQ90vgLumb/SQoah0q1l8ymEVEVlYyKytzKBtrkh6Idx0Wrr0G0gSpjLzvWFsAb9J1jJAXJBVWISSPvUfwpT3ajsUsOd+EBnzcgnoywmUDvxC5BGqaH0GRlUd4mD6ezowRH8+msqhw4dxn3DAZ5ctU0V/DuZJMoT8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=PT5MgHF4; arc=none smtp.client-ip=74.125.227.171
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="PTDS2njE"
-Received: by mail-pz2-f42.google.com with SMTP id 41be03b00d2f7-cc4aa0f1a94so2898670a12.2
-        for <linux-arch@vger.kernel.org>; Fri, 02 Oct 2026 10:10:41 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="PT5MgHF4"
+Received: by mail-pj2-f43.google.com with SMTP id 98e67ed59e1d1-3a49573b8bdso120526a91.2
+        for <linux-arch@vger.kernel.org>; Fri, 02 Oct 2026 10:10:52 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1790961040; x=1791565840; darn=vger.kernel.org;
+        d=gmail.com; s=20251104; t=1790961050; x=1791565850; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=mAD1Y95K173b5qZp91CTYZls79sZInjIuGPu7Lg5CCM=;
-        b=PTDS2njECMv+y9/XkEXZ6VHGXO75v/cXAKGDvLPQ3OIMWMWqN2J5Fd90x7GynHc3nA
-         ExjVbNYyrKMAhrxfagH3HkdTxXi/nBzMjIgilDoQ2/x+EU1Z6iXAINhQZXcWspJ2oY0T
-         roNzx4v7YvKcvYhoh4KRItOGOcHZPsq8PivWf26b9fNH/Wso8Hdpxm/Szm20MtwOBcyw
-         4nbXxNYZrTygmZ+79VwtpMm3rWOXl7F69yvXjxP+B7yinvFbs/eD8YVtGvA2bMIcGPyH
-         PFlIETNnA7UdDtKRuQ+dCpbTBFjBLimJzRcQogBmd+LBfECMPdDkZjG6iEGr3OTF63+G
-         hPWg==
+        bh=cJpC50bJQ46wh7HHA0CogRCPQLVQ5kdzi3EXJci6E9Q=;
+        b=PT5MgHF4yyEUUQ+6sF7B7UQBFmhWMgpeWvlxpmjhS5yqEywN50roF1rRY+bflK48kp
+         7uoFyOQWZk3RRJpObvmHVnDzjkkwFCeAKSyawrdXj4dSbIESpMBR/PkMEw4m7YiQe2Cm
+         7bnm01mMLCCRkjMe/2qkkmRJ2XofwwtFbI2Zo2DtOAL1OVPfanUPZ9KWKJ7Y+bP/Fmlg
+         qJxCc/bqWmjrPs3Q/v5KIWa1oW0mvS7fpdJUb3SKpw5eFuf1LsXxBNnXulikuWI68E7r
+         mv674X7M255u41gG2lp710eyVDqLkb21cuqu3LfBXDZaSFQM05CGMkgu1bCDb4EIkHLU
+         p2Ig==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790961040; x=1791565840;
+        d=1e100.net; s=20260707; t=1790961050; x=1791565850;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=mAD1Y95K173b5qZp91CTYZls79sZInjIuGPu7Lg5CCM=;
-        b=YDbX/g40VzvMQuN+PJbJCwA6eM1kwrCsUssI7Sjpt6i/N91iCl4ATvXC20qd2dSQCw
-         SII0DG++E6NNxrNDUqpieHPezwufWqpuGZ4m+x+/TXiJcaxLfHqDpYRvc7CYHvJVDkVL
-         H/pg16WR+zYBHD4EQd7UHZdY3ctBZEn/Xn3JSTQEWnWtjYw/v3QRK8l6Ug69lyC0Nlkr
-         TxRVBEg/hHMdszibz6UWVKp3dC89LgQHtLUdu6cTJzCFXQS1Djx4yOoB+zIMIDUWVTNO
-         4Y6JCUIo4b2F6Hl5i6FIgz2+8AWaFGgZZVBFLWhibRR6DDyl2Bal95tpoO3+9ii0KfR8
-         Z+NQ==
-X-Forwarded-Encrypted: i=1; AKwUvByu2eqrIDW4/fm0OchmHAYQL1FCC8wC2TuSqnZgAJ+8F37yuOKusjW80Mk0B4S+kO17Vib6oKC2ZeqS@vger.kernel.org
-X-Gm-Message-State: AFq9FYIq+4GkVwUZfQvoIZKnaqrCXgO8aKZwOBM/X49qJGbYBobLFfTK
-	Wzp9zKU1aykmFRATxuAmZLgrdhOu1tafJ7JryQ5PRxDdeiCX3a3EqPSd
-X-Gm-Gg: AYBFou3jVYTG5shDawkJQRh5YF3uGlW5UCW6WeJOSYpjNGo0Kw382C7XBD+Pz0IOXRC
-	9FVzscNVXrOJEGiN12qCjAEynzHPeJrg0pIoBKUrYKgU0bqIxklOjXFbbwXDoBXAUHZDEA1Exap
-	eBFi9O+FMbwDQ5KIsbcaB3dqyq+OmY/JI7hp6QW92n8c3ufh4do8bwJiWJsxlul2dbc3C8NUNHn
-	8OIOG2ATzRDXC8Q1BnfiVAsKxdAFtb11icr9+HKRDhLn1uvdJ6qHq089tDaB9zFN+mai2J9d2C3
-	LeGlKWjGcEJA3RZnDdSvj/I+ZnyU5nRVDK1W4bEGGkksR9uLsIZfU1jcJciqbRmWW2LgCbkg2ya
-	Ba2D2Y16aeXaB9XOmpQsXhTKrELMNQmPeCD2Utvix7wQrw0KqbnHNthln9phU6dGk+7vQhudRXG
-	HY7BRYWF+xJYpD06EL8UXPNgkmdj+smiUbHPw8p4q8j+IjsvDmZXtTUnR6EMOn5/KjaFWNbW9ly
-	IrvKKf8ysNQ+3RWqVM=
-X-Received: by 2002:a17:90b:2fcb:b0:3a7:f45:5cc8 with SMTP id 98e67ed59e1d1-3a70f456851mr373445a91.25.1790961039819;
-        Fri, 02 Oct 2026 10:10:39 -0700 (PDT)
+        bh=cJpC50bJQ46wh7HHA0CogRCPQLVQ5kdzi3EXJci6E9Q=;
+        b=hScPcFgcLZiOiGzwoXhAtpcLI0Sdz6lHg8POLppntXBtbFvpgr4E96R3GpWShqM8fD
+         +yflNORKJPA/acbrlB8KkSVIbmw+KJHRLaEe023fH3VR4vI/fplxzLsj2y+7mtDsxUuW
+         RNNfKehy/zIf1/Bll4qotXT9mPgYXhHhb1TkQKY1AEg3W/ntCzi0FlzBuLwA4VZqNcOE
+         OdV/i/EkBwRCbaT5Wu9tBT71HuYyKmGjpCXslxceJmdAnebKcpmijeUnFdZfYp9kL5+w
+         Jn4GVs0P1WFY8Qu7d0qnvYJQfKgsDlDGn5f+3NWziNnnDFdLpAj2AT+D8S2SohW0ZunD
+         D2eA==
+X-Forwarded-Encrypted: i=1; AKwUvBydpyHdIAjn4l37PiqxQObvrjW78uxCekNLerkw85F+SySIrSr0EHhtpEn0GcUdJbH0+0T6RwMUJgHf@vger.kernel.org
+X-Gm-Message-State: AFq9FYKtFpS2SXdf3lMLJsplBXrKPLptlVx8PTlQekSQTamgra/Wl6cL
+	cEg9j7wSZimqlUAK3HDoLKt6eaRdqWXQpco4sFzDucK8z21VDp+KPrtE
+X-Gm-Gg: AYBFou3ThcahAGimi954xQaVOTMKmh98gP1c2Z7TCz7SXzpP6MskuZjB+oDqHVRfLt+
+	Rlzg5gRagg5RMHLKyZydR1P/F9c/goFWl3F7rqvCvx4pq4E80D3AYFbBRt8gyRXdjBWvmqy/O+1
+	QGU7gSfE1OnM1L5tHrcML73bE7R5/4sYBj3zJkcw3atF950j9652BJzc05Yi0BO05TPGgVKK7KS
+	l7DOtLaSUXwebe16xfaqmpC4e1d+gdcxtpMhW4ncrciFvMfDaYWIG4soEqLaEX1bYvPfipq7b0C
+	1Q8Z/03WqvNOs53R55C2JDz9ZqivZ5X9ZKEpM/9MW5m9x9AbW1g2F/o2qEkm89mg4L/byhGv+CC
+	RVewFxFfhRlnLtn29sizJuU/dgZFgpP8R10s3yvcOs6HzgQjZaoThLhLCyK7ItgjbA5m6spRuIG
+	Fu2V72vFPoBsQi+dDbd6ylyAXOUTcVlSlDoIrnM+i0DkbDzaD0+oL/vu1Fho9M0E03jbKgVXcRC
+	1nCvLnrbhMjd2CCxhyW6JMFKPuD
+X-Received: by 2002:a17:90b:28c4:b0:3a4:97ea:f0d6 with SMTP id 98e67ed59e1d1-3a6cecb5167mr2765857a91.42.1790961050063;
+        Fri, 02 Oct 2026 10:10:50 -0700 (PDT)
 Received: from kernel.tail6741c6.ts.net ([185.220.238.43])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3a7024d0f5fsm1597719a91.0.2026.10.02.10.10.29
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3a7024d0f5fsm1597719a91.0.2026.10.02.10.10.40
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 02 Oct 2026 10:10:39 -0700 (PDT)
+        Fri, 02 Oct 2026 10:10:49 -0700 (PDT)
 From: Kunwu Chan <kunwu.chan@gmail.com>
 To: paulmck@kernel.org,
 	corbet@lwn.net,
@@ -96,9 +96,9 @@ Cc: stern@rowland.harvard.edu,
 	linux-doc@vger.kernel.org,
 	rcu@vger.kernel.org,
 	linux-kselftest@vger.kernel.org
-Subject: [PATCH RFC v2 09/15] rcuscale: add hazptr scale type
-Date: Sat,  3 Oct 2026 01:08:41 +0800
-Message-ID: <20261002170847.3653663-10-kunwu.chan@gmail.com>
+Subject: [PATCH RFC v2 10/15] hazptr: fix kernel-doc of hazptr_release()
+Date: Sat,  3 Oct 2026 01:08:42 +0800
+Message-ID: <20261002170847.3653663-11-kunwu.chan@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20261002170847.3653663-1-kunwu.chan@gmail.com>
 References: <20261002170847.3653663-1-kunwu.chan@gmail.com>
@@ -110,117 +110,31 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Add hazptr reader and synchronize operations so that synchronize
-latency can be measured alongside RCU and SRCU.
+The second parameter of hazptr_release() is named @addr, not
+@addr_p.  It is the address passed to the matching
+hazptr_acquire().
 
-Use a small set of objects so readers do not always protect the
-same target.  Each reader protects the object selected by its CPU,
-while the updater round-robins through the objects.
+Fix the kernel-doc header to match the API.
 
-Use hazptr_synchronize() for both normal and expedited scale
-operations, since hazptr has no separate expedited operation.
-
-Link: https://lore.kernel.org/lkml/20250625031101.12555-1-boqun.feng@gmail.com/
+Fixes: 17969a0e7f7e ("hazptr: Upgrade kernel-doc headers")
 Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
 ---
- kernel/rcu/rcuscale.c | 70 ++++++++++++++++++++++++++++++++++++++++++-
- 1 file changed, 69 insertions(+), 1 deletion(-)
+ include/linux/hazptr.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/kernel/rcu/rcuscale.c b/kernel/rcu/rcuscale.c
-index 1097ec15879c..5aca31c3c01d 100644
---- a/kernel/rcu/rcuscale.c
-+++ b/kernel/rcu/rcuscale.c
-@@ -39,6 +39,7 @@
- #include <linux/torture.h>
- #include <linux/vmalloc.h>
- #include <linux/rcupdate_trace.h>
-+#include <linux/hazptr.h>
- #include <linux/sched/debug.h>
- 
- #include "rcu.h"
-@@ -418,6 +419,71 @@ static struct rcu_scale_ops tasks_tracing_ops = {
- 
- #endif // #else // #ifdef CONFIG_TASKS_TRACE_RCU
- 
-+#if IS_ENABLED(CONFIG_HAZPTR_TORTURE_TEST)
-+
-+#define HAZPTR_SCALE_NR_OBJS 8
-+static int hazptr_scale_obj[HAZPTR_SCALE_NR_OBJS];
-+static atomic_t hazptr_scale_sync_idx = ATOMIC_INIT(0);
-+
-+struct hazptr_scale_state {
-+	struct hazptr_ctx ctx;
-+	void *addr;
-+};
-+static DEFINE_PER_CPU(struct hazptr_scale_state, hazptr_scale_state);
-+
-+static int hazptr_scale_read_lock(void)
-+{
-+	struct hazptr_scale_state *state = this_cpu_ptr(&hazptr_scale_state);
-+	int idx = smp_processor_id() % HAZPTR_SCALE_NR_OBJS;
-+	void *ptr = &hazptr_scale_obj[idx];
-+
-+	state->addr = hazptr_acquire(&state->ctx, &ptr);
-+	return 0;
-+}
-+
-+static void hazptr_scale_read_unlock(int idx)
-+{
-+	struct hazptr_scale_state *state = this_cpu_ptr(&hazptr_scale_state);
-+
-+	hazptr_release(&state->ctx, state->addr);
-+}
-+
-+static unsigned long hazptr_scale_completed(void)
-+{
-+	return 0;
-+}
-+
-+static void hazptr_scale_sync(void)
-+{
-+	int idx = atomic_fetch_inc(&hazptr_scale_sync_idx) % HAZPTR_SCALE_NR_OBJS;
-+
-+	hazptr_synchronize(&hazptr_scale_obj[idx]);
-+}
-+
-+static void hazptr_scale_sync_exp(void)
-+{
-+	int idx = atomic_fetch_inc(&hazptr_scale_sync_idx) % HAZPTR_SCALE_NR_OBJS;
-+
-+	hazptr_synchronize(&hazptr_scale_obj[idx]);
-+}
-+
-+static struct rcu_scale_ops hazptr_scale_ops = {
-+	.ptype		= 0,
-+	.readlock	= hazptr_scale_read_lock,
-+	.readunlock	= hazptr_scale_read_unlock,
-+	.get_gp_seq	= hazptr_scale_completed,
-+	.gp_diff	= NULL,
-+	.exp_completed	= hazptr_scale_completed,
-+	.sync		= hazptr_scale_sync,
-+	.exp_sync	= hazptr_scale_sync_exp,
-+	.name		= "hazptr",
-+};
-+
-+#define HAZPTR_SCALE_OPS &hazptr_scale_ops,
-+#else
-+#define HAZPTR_SCALE_OPS
-+#endif
-+
- static unsigned long rcuscale_seq_diff(unsigned long new, unsigned long old)
- {
- 	if (!cur_ops->gp_diff)
-@@ -1110,7 +1176,9 @@ rcu_scale_init(void)
- 	long i;
- 	long j;
- 	static struct rcu_scale_ops *scale_ops[] = {
--		&rcu_ops, &srcu_ops, &srcud_ops, TASKS_OPS TASKS_RUDE_OPS TASKS_TRACING_OPS
-+		&rcu_ops, &srcu_ops, &srcud_ops,
-+		TASKS_OPS TASKS_RUDE_OPS TASKS_TRACING_OPS
-+		HAZPTR_SCALE_OPS
- 	};
- 
- 	if (!torture_init_begin(scale_type, verbose))
+diff --git a/include/linux/hazptr.h b/include/linux/hazptr.h
+index 4ee02d23abc9..07f5d9ef5a6d 100644
+--- a/include/linux/hazptr.h
++++ b/include/linux/hazptr.h
+@@ -293,7 +293,7 @@ static inline void hazptr_release_debug(struct hazptr_ctx *ctx, void *addr) { }
+  * hazptr_release - Release the specified hazard pointer
+  *
+  * @ctx: The hazard-pointer context that was passed to hazptr_acquire().
+- * @addr_p: The pointer that is to be hazard-pointer unprotected.
++ * @addr: The address passed to the matching hazptr_acquire().
+  *
+  * Release the protected hazard pointer recorded in @ctx.
+  *
 -- 
 2.43.0
 
