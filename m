@@ -1,81 +1,81 @@
-Received: from mail-qt1-f173.google.com (mail-qt1-f173.google.com [209.85.160.173])
+Received: from mail-qt1-f179.google.com (mail-qt1-f179.google.com [209.85.160.179])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EE4523EC2E3
-	for <linux-arch@vger.kernel.org>; Sun,  4 Oct 2026 17:43:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 26496473C65
+	for <linux-arch@vger.kernel.org>; Sun,  4 Oct 2026 17:52:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.179
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791135814; cv=pass; b=KQrrnTkeEiQbFvibUPsYYVgG13007EtyYfSuRmaXxjJ28XyrKedas/SVRJnbPs7AQiHcxd5+ORopl7leKTFQBPMUiMV7jmfwLDYOtu97+Opsx2WFG5P8Mir2USiBAYH4/gvUD6WUL2A6SivQ13gxTJYuHtxuMKZofoF22DG6EjY=
+	t=1791136372; cv=pass; b=TtModUTmEXgqHtzmAgN6EDmCYbw93/tzvzgnwVKVB+SiZfCkKntjQaTIn1cwd8cxjg0QhPzExJOPdgwWXDSKs+wKwluBJX2O5ixZBjhYFBl/ArWSfWLwzEmau2rVWWQE0O9YH8EZRMD6GMOFdD9cq8/RODVDys+bfgCPnEp3vbk=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791135814; c=relaxed/simple;
-	bh=kLTbSagc0N48D5iLz2IHv2jwZa7qPxl4pR47fwwH0D8=;
+	s=arc-20240116; t=1791136372; c=relaxed/simple;
+	bh=eeYCgGHTFzo+FfXl1bPEgHkObEBq9XqafHlu3/JsXdI=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=WKlgw9QSnCng01agqh76crPE5YeSwag+WO6l/+jWwbZpYPxTNoeqQ1UsvCVksJamOXDGrnfh981XT2aWQNHYkdNL7Gwee+HpCjKx8UVBTNXGbqkc06zFoif/ZnljEkLoxk6uuDZNF6kloi+ErlmiZNYBrS8EEULnNovj/UCK/kM=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=ES7oeIxC; arc=pass smtp.client-ip=209.85.160.173
+	 To:Cc:Content-Type; b=MCuXDfERBKzVg2R3qj/egl0vTbXJTinKDIBk+uzOI9WbjFFqxMS5QPlZIeIyFrP6VpCIKphiZ7yFWQ0tizbwo1uLXQjFkifJpesF66H6fgbNI3WLsBIvFOyPrQTxxZLr/OWrtLILKUtJ8miVVaWoBB8yJh9sOMpvUNPncGU7C44=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=kzwMZD3k; arc=pass smtp.client-ip=209.85.160.179
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="ES7oeIxC"
-Received: by mail-qt1-f173.google.com with SMTP id d75a77b69052e-5351f9dbfe0so95641cf.1
-        for <linux-arch@vger.kernel.org>; Sun, 04 Oct 2026 10:43:31 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1791135811; cv=none;
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="kzwMZD3k"
+Received: by mail-qt1-f179.google.com with SMTP id d75a77b69052e-5351f9dbfe0so97241cf.1
+        for <linux-arch@vger.kernel.org>; Sun, 04 Oct 2026 10:52:48 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1791136366; cv=none;
         d=google.com; s=arc-20260327;
-        b=Jxg9Upe0kQ3N0OZzcT33BTrP3l5sfNiePdIMzzBnnFTrZ9//g0VDOOnbs7L7FH7K/Z
-         E86OOQs5Qp1o+KY+eKfvAGcV8606ZnlR0KWAWw/ltTDGXa3k4MdYg3elUANGN1pLBXFS
-         pX3iXhRJOr5WbR0nT2RVTfWuRe353rAQ1R7qo3hJgDDP0H9prZd0KXpuK5ndc0FNHpVS
-         Wa8jvi/4m1txMSZxrJoyRtlVH1mCuOlNYSUyiCfgZIyxnJ0jk5OeLYGmYBwtVnBPZoZ0
-         LRqpENoE08wwemX/b0uCh9Xo4X+Avmof1+q5aSH66fX8FXHCjmQ31dmtaOopXKnyGCj5
-         6lyw==
+        b=sv2/R0gxqmnx/aRzzuVMOfN+nYi+7GhIpD23hzWOdrDsSPZcSVt+Xqh0jtVd0PihRK
+         umOMCR8w7oMq6EniQ3skBC2qecyayhFHtGAMWJceJM4y8DnzHQuE5cgAd3PGS1cyNrZR
+         KIIKG3mDvTDWHtXtriuld0/SR6tr4YdSu/Y04TFYoEe2t6+uHWAMflTq1kBmAL0dnhMm
+         2YRX3zqmDTB1LNSAT17g2OtHy12rsXLHqJq5ks8PUJ3vbQMlYd1l7Ki6K9gEcn7rym/z
+         OLkJVO9lrVhXG3G22x7BWrMW+Vfcs5cmiq4JVnqck5QfKMcYKnNxzI3iT+PxDn6XvqXH
+         CwaQ==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:dkim-signature;
-        bh=vMNQ59LV7QrrLF0PW8JXbsDZwLj1dza/KEaeRbY4SzE=;
-        fh=3068VdnT/Q1akl8v7q3UbZs2TI7ykTDLRP3V3qHqEVM=;
-        b=FBTRp3yajS3+mN3bwJ3K8K78NShKfdj8L+VtwdTe0rdy3GdOsdWKWhNOMAnl6sCH8G
-         if2ivOXDgscne/oLOWYrGfE7q90drKNbZjEM8u+Fk7ecb4wGrC58lVZmNXmAQlsMPhl4
-         yfbLQ7dpKhzi57OLZ+0cs7VM94myGXJks4S4egJVv7ZQsNQIA1JtkSuO5/MgYhTM9E7G
-         hbPQqmfV29YggH5E0qVs+ui8NqxNhsE6Hb60luCXSRh945/jX/2DbQ3m7fPsCi0kQ+1I
-         MtRfN0RdT0Nm/snkcu9bt7iu4kyghCq3SAKDNzVK/0eTxtP3ANUqXmKLgWsWeKInFWt/
-         XYyw==;
+        bh=hGuGLrOvm4LeUyfXJ5B4JaitM98XinzaQN/wjAvVcwQ=;
+        fh=rNPQBFB6HhElmjk+Y2ba4xGLuXzwU+N2szmF7cqTHZw=;
+        b=cA5A/LZkCqM4vgIrvaiWmGZvg8h5xg9yjbhj76Sk3HbSGbf0hxIEex783DVTlqTq5l
+         PzRhOaTvmDrk8/p2RuLnSkhMCX+gLSzT2Q4ytGK2ARtt58iSqMuvIz4+DKh3/oZSmcvi
+         SS0/mTTBjxsR5sSDEI0GiJ8hAEIcMkEpsVT3k8NE1TglSUAKEigSroWHh/xRbK+JSM8A
+         OCfNbtowCX0lrTJoYBEVuL+scQVE1JdPVGw/mpYkmcoW81oaylkmrZRmJwJ1PSUjtYPR
+         qXKk6eulwFosDYquz3QNETsYgyIK+6b7h4blbH8YaDT968a+TYqx/NEtGapdGOdmADnm
+         0kAw==;
         darn=vger.kernel.org
 ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1791135811; x=1791740611; darn=vger.kernel.org;
+        d=google.com; s=20251104; t=1791136366; x=1791741166; darn=vger.kernel.org;
         h=content-transfer-encoding:content-type:cc:to:subject:message-id
          :date:from:in-reply-to:references:mime-version:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=vMNQ59LV7QrrLF0PW8JXbsDZwLj1dza/KEaeRbY4SzE=;
-        b=ES7oeIxCMYXbczDPyt7XA5z9Ij09lL8c9BgmtjQHX7E6P05QmIToK3BjkYWQ3J1BQa
-         48d5ZTQ6DeFif/PpVJrUI09VigAaByshX9zzR3ydSnkd0ygjDAEoKVQ3lwQj6Np+vE2V
-         7o3qsyF8B9o1uIjDgkLuoFXfmERglrgcWVcE4/OLuYVkBRXTAiq0+nqwOfrw90uvohou
-         5bP7mWJawSf2U5SqaD/zJX9f/NZjTfkuUScECR7+9IJ6mbR72egFT/Qr4VmmGQw1lLoc
-         FVXDmh9dBk4PP5Ny2hxAh9HpcWryBUIVm7PSxJREWa0Y79YDMJCRFzw3EbSxQVSNdYOg
-         Nvqg==
+        bh=hGuGLrOvm4LeUyfXJ5B4JaitM98XinzaQN/wjAvVcwQ=;
+        b=kzwMZD3kfc4fIYHOruKXdKxO9jRjUjuKordjpj1PZF9jSbHJ5Ak/XWrWDguvla/xlM
+         XNFM4sINFOvo+P0U1Xy9oatg/8C0iscWBPVbNpHiz/ErzUkz0SNjs8K/shPl0hbk4DQ+
+         JWHbY3W8aB73mg5QT2DweBFkB6GPY6R8jbgx68ibnPnboUgk2FXOqi5cakvtvjI0OHM4
+         2rELFRuWPvrUn/QeEgexG+8vqgvd2n/T2CGQ+g2g399H50imBV8T7QUS+GS04KCfT0SA
+         6IEVS6skP+YyL2qhxAIVMVq+epcJr1WHuuQg7pra0aHkHO2DAY/mktRMTMNJmsjmOeOA
+         NWDw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791135811; x=1791740611;
+        d=1e100.net; s=20260707; t=1791136366; x=1791741166;
         h=content-transfer-encoding:content-type:cc:to:subject:message-id
          :date:from:in-reply-to:references:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=vMNQ59LV7QrrLF0PW8JXbsDZwLj1dza/KEaeRbY4SzE=;
-        b=v84uKyfT2Ld/GI8YKNl5VeiaOpsPio8jVYqtqsRkf6ytLe69/1+ONweu0Jvqsj6cOl
-         JgbjYjDefQYfFAoHVsfWfgIWo842wSUWUWR2IkfM3i6h0VqjFqZvRfeqgj3yFcdWeRTP
-         remo9w7eE2BQuIS94ik8oZNOi/WzQJaqJ2QvYVT+H+0Mpr2lYKiRrf91c4BxurTAlnti
-         NJLJmuoWE/TL1goa3bbs7VYvwlzYg/rRuey2OFtBZUIvODDBh7+FTBvqY7PlzMEqkw2p
-         q+KzoomeT5q1KzLnhsEGJkrwoHe7SFn5/5ZmJV6QBgrD69ly4+HomDA7V4U3a9tANbed
-         ke7A==
-X-Forwarded-Encrypted: i=1; AKwUvBw493fpwsmcNlSziVJgPMIC5eBjCtL7cIXggXESIGvGcAUG01+CUxsCNEfSxdnqjJw3VDXPGZh8kKkA@vger.kernel.org
-X-Gm-Message-State: AFuF++n0gOVVasQhamYbiX1I3HdfTAbAZkvho3YaQK7o3EudS6c9oqMr
-	lAzBu7JOhMGaLQfjZnA3MD7SOgfypaG3CKcIe6SBTHv15Mifv/yF5p/R0W8KzBrFYnaNoV8omPg
-	BghkCRfqr5BZ4/TX/jFbr0sNaqkdqZaaZ4+LtN53m
-X-Gm-Gg: AYBFou1y9+PIRy9qcDuFW0p/1Td9XjcL5kWXx+HKEzysVC59dewbks4bYafd5A0GgGm
-	1EM3u/7JayaFbzkkjlGL3zB2+VYJxvpmD8Za2k89NBydvriZ6h1GwU5x7SBjs4GWDnmZBwatuJR
-	ZhEAisIUJb9s7suEPJIIbKnbDM9ImyfPYmCn3FQR6BhoBuI3saWuPROdZQAXXrI//riffoU5eIl
-	aEbtxyABW/6ZKv5ghg6ZY29m5KN2BKfkeVjFj3yroMTG718R0J9UhzzBMBhjas6sKIBeH4cDmSW
-	BkyXPGtzIPYsDLzBs3nj5CsYTLLu5v8oJjD2pY5TDW46wLv79621Uj70
-X-Received: by 2002:a05:622a:5c09:b0:532:eff8:3491 with SMTP id
- d75a77b69052e-5351497bae9mr16844861cf.14.1791135809929; Sun, 04 Oct 2026
- 10:43:29 -0700 (PDT)
+        bh=hGuGLrOvm4LeUyfXJ5B4JaitM98XinzaQN/wjAvVcwQ=;
+        b=RLYls32bpU6yKvK6Q70azp+ZqdjEgB8XeWwvUlScjadcggsMIRjLnbN2fofX6t2z2r
+         0aiofwhpJHb7e8N1QvzvAahCDSC8vEbfM53a8FHH83dlFHx0qWQIR5jOBvO9DnXp/0zu
+         lhfo/UbVfhw5rK8izptYfzy676EtjiVfQLsPawsTCLxKFKeMwl8Fo7K2JeUylAkINpdy
+         QjcQ1/N0sMJkvX9moEwbmElRNfwkekPxvR7wrh2HDtwTw2S9LLXEb7nySZeXoeEJ+6vk
+         xN4mByGsGcIc8DBAwUpvqUwoqKdQsCQ8UQ5GEZyCe/wM7lxIdXCZF8zIGBT2eEWdXp+v
+         hScg==
+X-Forwarded-Encrypted: i=1; AKwUvBxyOhVapRn7S3cwnr5JufTekWGhDxX5I9vcoOqYUxtPFORU6STo5RGyvshhod6fhGlwPI+xuRvdggwz@vger.kernel.org
+X-Gm-Message-State: AFuF++mK82pKPPPl66BvBhd0sV66QL3PyI39WcuI3y0HgkpWjVybp3nh
+	WNglC/RgPhEXrrxEKU/JOtc+5pmBVbdhbaCf6LjM0QFv/9yAltxyzLwZw+0V02IEjJpiINNyuAc
+	RGHN+0j2wFRLcYsMX5HGnSFKJGFjPJNdoVmsMxT10
+X-Gm-Gg: AYBFou1Qi/hapbCN5mThAh2nnMDMnTEvVhfGNArF3HxttbDL0S9dwcPn5adutgCBCmv
+	lHe8GqEPFT0A7A01UBG+dZI/C7BLMevdkdM/ahme9aQfmnF/01aqqyF6L4//f96Xysp2kojut6K
+	iyHbcBVrYbxM7sr9CGqkX8CvkbDzQkDjGtUTn1EzdBaALlFb7fUHnmtTNcY0VHvP8mu5m0GGLpW
+	KLqY2h3eAEfa206rXHEtCG7BANqL+Od0YvV/TL9byGd08ZghNyI/qH/UneQgC3sLUrm0H0LURLz
+	aZa/B89mnetXnW6Cjii8ZGv9Q5MVGvZ7DA9tN7gkGG15Um4DpPfrVjSetg==
+X-Received: by 2002:ac8:7fd1:0:b0:530:e00f:7768 with SMTP id
+ d75a77b69052e-535143a7ee5mr16757211cf.0.1791136364655; Sun, 04 Oct 2026
+ 10:52:44 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -83,13 +83,13 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 References: <20261003-b4-mmap-prepare-vma-flag-sanify-v4-0-a1f052500fd7@kernel.org>
- <20261003-b4-mmap-prepare-vma-flag-sanify-v4-14-a1f052500fd7@kernel.org>
-In-Reply-To: <20261003-b4-mmap-prepare-vma-flag-sanify-v4-14-a1f052500fd7@kernel.org>
+ <20261003-b4-mmap-prepare-vma-flag-sanify-v4-16-a1f052500fd7@kernel.org>
+In-Reply-To: <20261003-b4-mmap-prepare-vma-flag-sanify-v4-16-a1f052500fd7@kernel.org>
 From: Suren Baghdasaryan <surenb@google.com>
-Date: Sun, 4 Oct 2026 10:43:17 -0700
-X-Gm-Features: AclHuK-Z2ieyqrFQLh5f1D20FCqfsVRqEWMyJIzhNXdOxd9iUhJDwyyLAY8lrcs
-Message-ID: <CAJuCfpFounkD97p9iJ8zUunAMoOv+h8Tnxf2NOkp7qs3cfqs7w@mail.gmail.com>
-Subject: Re: [PATCH v4 14/38] mm/vma: add vma[_flags]_is_mm_managed() predicates
+Date: Sun, 4 Oct 2026 10:52:33 -0700
+X-Gm-Features: AclHuK97kMRDYoB6lQW3TrcrLHtwyxFXHppfod8Uz1hqyRH7vKfp8a9EoRVxxRQ
+Message-ID: <CAJuCfpHQwLZiXqsC2BsC6tUACJOMFfyLp9KC2w22NnzM5Ncrmg@mail.gmail.com>
+Subject: Re: [PATCH v4 16/38] mm/vma: add and use vma_[flags]_is_fixed_mapping
 To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, "Liam R. Howlett" <liam@infradead.org>, 
 	Vlastimil Babka <vbabka@kernel.org>, Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
@@ -157,35 +157,31 @@ Content-Transfer-Encoding: quoted-printable
 On Sat, Oct 3, 2026 at 6:38=E2=80=AFPM Lorenzo Stoakes (ARM) <ljs@kernel.or=
 g> wrote:
 >
-> Rather than referring to VMA flags with uncertain meaning, add a new
-> predicate that explicitly describes what absence of the VMA_PFNMAP_BIT an=
-d
-> VMA_MIXEDMAP_BIT flags means, and then refer to that function for
-> determining VMA mergeability.
+> This determines whether a VMA cannot be expanded or merged because what
+> they mapped was determined to be a set size at mmap time.
 >
-> If neither of these flags are set, that means the contents of the mapping
-> are managed by core mm.
+> This typically refers to mappings not managed by core mm, however
+> VMA_DONTEXPAND_BIT
+> is not reliably set alongside VMA_PFNMAP_BIT or VMA_MIXEDMAP_BIT, so we
+> must explicitly test for this for now.
 >
-> Otherwise they are instead owned by some other kernel component, usually =
-a
-> driver: the memory may be MMIO, kernel-allocated pages or even ordinary
-> pages the driver maps itself, but core mm must not populate, reclaim,
-> migrate, copy-on-write or merge the range itself.
+> We also explicitly test for VMA_PFNMAP_BIT as VMA_DONTEXPAND_BIT may not =
+be
+> set for VMA_PFNMAP_BIT's despite the one implying the other.
 >
-> We initially also treat VMA_IO_BIT as implying a mapping is not mm-manage=
-d,
-> as by implication it cannot be. (mlock() also sets VMA_IO_BIT transiently
-> on ordinary VMAs while locking them, which is addressed later in this
-> series.)
+> Use this predicate in vma_flags_can_merge() and in check_prep_vma() in th=
+e
+> mremap logic testing to see if mremap() can expand the VMA. The criteria
+> for khugepaged and MADV_COLLAPSE eligibility in
+> __thp_vma_allowable_orders() are precisely those for mergeability, so use
+> vma_can_merge() there (with an expanded comment).
 >
-> However the intent is to in future remove this, as no mapping should be
-> marked as an I/O mapping without also being marked with VMA_PFNMAP_BIT.
+> This obviates the need for the VM_NO_KHUGEPAGED mask, so remove it.
 >
-> This forms the basis of further work intended to improve how we express V=
-MA
-> properties such as this.
+> Hugetlb VMAs remain excluded from khugepaged as hugetlbfs always sets
+> VMA_DONTEXPAND_BIT.
 >
-> Also update the VMA userland tests to reflect the change.
+> Also update the userland VMA tests to reflect the change.
 >
 > No functional change intended.
 >
@@ -196,140 +192,180 @@ Reviewed-by: Suren Baghdasaryan <surenb@google.com>
 
 
 > ---
->  include/linux/mm.h              | 53 +++++++++++++++++++++++++++++++++++=
-+++++-
->  tools/testing/vma/include/dup.h | 29 +++++++++++++++++++++-
->  2 files changed, 80 insertions(+), 2 deletions(-)
+>  include/linux/mm.h              | 39 +++++++++++++++++++++++++++++++++++=
+----
+>  mm/huge_memory.c                | 11 +++++++----
+>  mm/mremap.c                     |  5 ++---
+>  tools/testing/vma/include/dup.h | 16 +++++++++++++++-
+>  4 files changed, 59 insertions(+), 12 deletions(-)
 >
 > diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index 97e1eb4fe3a4..83953757735a 100644
+> index 83953757735a..6b5f06cd174a 100644
 > --- a/include/linux/mm.h
 > +++ b/include/linux/mm.h
-> @@ -1612,6 +1612,41 @@ static inline bool vma_is_shared_maywrite(const st=
-ruct vm_area_struct *vma)
->         return is_shared_maywrite(&vma->flags);
+> @@ -600,9 +600,6 @@ enum {
+>  #define VMA_REMAP_FLAGS mk_vma_flags(VMA_IO_BIT, VMA_PFNMAP_BIT,       \
+>                                      VMA_DONTEXPAND_BIT, VMA_DONTDUMP_BIT=
+)
+>
+> -/* This mask prevents VMA from being scanned with khugepaged */
+> -#define VM_NO_KHUGEPAGED (VM_SPECIAL | VM_HUGETLB)
+> -
+>  /* This mask defines which mm->def_flags a process can inherit its paren=
+t */
+>  #define VM_INIT_DEF_MASK       VM_NOHUGEPAGE
+>
+> @@ -1647,6 +1644,40 @@ static inline bool vma_is_mm_managed(const struct =
+vm_area_struct *vma)
+>         return vma_flags_is_mm_managed(&vma->flags);
 >  }
 >
 > +/**
-> + * vma_flags_is_mm_managed() - Do the specified VMA flags indicate that =
-the
-> + * contents of the VMA are managed by core mm?
+> + * vma_flags_is_fixed_mapping() - Do the specified VMA flags indicate th=
+at this
+> + * is a fixed mapping that cannot be expanded or merged?
 > + * @flags: The VMA flags to test.
 > + *
-> + * Such a mapping is one established by a simple mmap() or brk() with no=
- driver
-> + * or other kernel component involved.
+> + * Fixed mappings are those whose size is set at the point of mmap (for
+> + * instance, a mapping of a fixed range of memory established by a drive=
+r),
+> + * and thus cannot be expanded or merged.
 > + *
-> + * They are rmappable, and core mm services rmap operations including re=
-claim,
-> + * as well as population, CoW and merge/split (if eligible).
-> + *
-> + * Mappings which fail this test are those where this is not the case -
-> + * e.g. MMIO, user-mapped kernel pages, udmabuf (pfnmap shmem), etc.
-> + *
-> + * Returns: true if the flags indicate an mm-managed mapping.
+> + * Returns: true if the flags indicate a fixed mapping.
 > + */
-> +static inline bool vma_flags_is_mm_managed(const vma_flags_t *flags)
+> +static inline bool vma_flags_is_fixed_mapping(const vma_flags_t *flags)
 > +{
-> +       return !vma_flags_test_any(flags, VMA_PFNMAP_BIT, VMA_MIXEDMAP_BI=
-T,
-> +                                  VMA_IO_BIT);
+> +       /*
+> +        * VMA_PFNMAP_BIT should imply VMA_DONTEXPAND_BIT, but some calle=
+rs set
+> +        * only the former.
+> +        */
+> +       return vma_flags_test_any(flags, VMA_PFNMAP_BIT, VMA_DONTEXPAND_B=
+IT);
 > +}
 > +
 > +/**
-> + * vma_is_mm_managed() - Are the contents of @vma managed by core mm?
+> + * vma_is_fixed_mapping() - Is this VMA a fixed mapping that cannot be
+> + * expanded or merged?
 > + * @vma: The VMA to test.
 > + *
-> + * See vma_flags_is_mm_managed() for a description of this property.
+> + * See vma_flags_is_fixed_mapping() for a description of this property.
 > + *
-> + * Returns: true if the VMA is mm-managed.
+> + * Returns: true if the VMA maps a fixed mapping.
 > + */
-> +static inline bool vma_is_mm_managed(const struct vm_area_struct *vma)
+> +static inline bool vma_is_fixed_mapping(const struct vm_area_struct *vma=
+)
 > +{
-> +       return vma_flags_is_mm_managed(&vma->flags);
+> +       return vma_flags_is_fixed_mapping(&vma->flags);
 > +}
 > +
 >  /**
 >   * vma_flags_can_merge() - Do the specified VMA flags permit the VMA to =
 be
 >   * merged with another?
-> @@ -1620,7 +1655,23 @@ static inline bool vma_is_shared_maywrite(const st=
-ruct vm_area_struct *vma)
->   */
->  static inline bool vma_flags_can_merge(const vma_flags_t *flags)
->  {
-> -       return !vma_flags_test_any_mask(flags, VMA_SPECIAL_FLAGS);
-> +       /*
-> +        * VMA merging assumes that a VMA's flags and fields completely d=
-escribe
-> +        * its state.
-> +        *
-> +        * However, mappings which are not mm-managed may have establishe=
-d state
-> +        * upon mapping not embodied in any attribute of the VMA.
-> +        *
-> +        * Additionally, private (CoW) PFN maps encode the source PFN of =
-the
-> +        * range in vma->vm_pgoff, which may otherwise cause spurious mer=
-ges.
-> +        */
-> +       if (!vma_flags_is_mm_managed(flags))
-> +               return false;
-> +       /* VMA explicitly marked as being unmergeable. */
-> +       if (vma_flags_test(flags, VMA_DONTEXPAND_BIT))
-> +               return false;
-> +
-> +       return true;
->  }
+> @@ -1668,7 +1699,7 @@ static inline bool vma_flags_can_merge(const vma_fl=
+ags_t *flags)
+>         if (!vma_flags_is_mm_managed(flags))
+>                 return false;
+>         /* VMA explicitly marked as being unmergeable. */
+> -       if (vma_flags_test(flags, VMA_DONTEXPAND_BIT))
+> +       if (vma_flags_is_fixed_mapping(flags))
+>                 return false;
 >
->  /**
+>         return true;
+> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+> index 4cd917f77f3f..87e8bf8029ab 100644
+> --- a/mm/huge_memory.c
+> +++ b/mm/huge_memory.c
+> @@ -212,11 +212,14 @@ unsigned long __thp_vma_allowable_orders(struct vm_=
+area_struct *vma,
+>                 return in_pf ? orders : 0;
+>
+>         /*
+> -        * khugepaged special VMA and hugetlb VMA.
+> -        * Must be checked after dax since some dax mappings may have
+> -        * VM_MIXEDMAP set.
+> +        * khugepaged moves data from VMAs once collapsed, after they hav=
+e been
+> +        * faulted in, relying on refaulting for file-backed memory.
+> +        *
+> +        * Mappings not managed by core mm cannot be reliably reconstruct=
+ed from
+> +        * page faults, and fixed mappings (including hugetlb) may well b=
+e
+> +        * mm-managed - precisely the mappings which cannot be merged.
+>          */
+> -       if (!in_pf && !smaps && (vm_flags & VM_NO_KHUGEPAGED))
+> +       if (!in_pf && !smaps && !vma_can_merge(vma))
+>                 return 0;
+>
+>         /*
+> diff --git a/mm/mremap.c b/mm/mremap.c
+> index 7c368440fafe..ed19b47c2caf 100644
+> --- a/mm/mremap.c
+> +++ b/mm/mremap.c
+> @@ -1788,8 +1788,7 @@ static int check_prep_vma(struct vma_remap_struct *=
+vrm)
+>                 return -EINVAL;
+>         }
+>
+> -       if ((vrm->flags & MREMAP_DONTUNMAP) &&
+> -           vma_test_any(vma, VMA_DONTEXPAND_BIT, VMA_PFNMAP_BIT))
+> +       if ((vrm->flags & MREMAP_DONTUNMAP) && vma_is_fixed_mapping(vma))
+>                 return -EINVAL;
+>
+>         /*
+> @@ -1827,7 +1826,7 @@ static int check_prep_vma(struct vma_remap_struct *=
+vrm)
+>         if (pgoff + (new_len >> PAGE_SHIFT) < pgoff)
+>                 return -EINVAL;
+>
+> -       if (vma_test_any(vma, VMA_DONTEXPAND_BIT, VMA_PFNMAP_BIT))
+> +       if (vma_is_fixed_mapping(vma))
+>                 return -EFAULT;
+>
+>         if (!mlock_future_ok(mm, vma_test(vma, VMA_LOCKED_BIT), vrm->delt=
+a))
 > diff --git a/tools/testing/vma/include/dup.h b/tools/testing/vma/include/=
 dup.h
-> index a6a8e53c4b38..89c645a6ad60 100644
+> index 89c645a6ad60..442ea9eb098d 100644
 > --- a/tools/testing/vma/include/dup.h
 > +++ b/tools/testing/vma/include/dup.h
-> @@ -1665,7 +1665,34 @@ static inline bool file_is_dev_zero(const struct f=
-ile *file)
->         return file && file->f_op =3D=3D &zero_fops;
+> @@ -1676,6 +1676,20 @@ static inline bool vma_is_mm_managed(const struct =
+vm_area_struct *vma)
+>         return vma_flags_is_mm_managed(&vma->flags);
 >  }
 >
-> +static inline bool vma_flags_is_mm_managed(const vma_flags_t *flags)
+> +static inline bool vma_flags_is_fixed_mapping(const vma_flags_t *flags)
 > +{
-> +       return !vma_flags_test_any(flags, VMA_PFNMAP_BIT, VMA_MIXEDMAP_BI=
-T,
-> +                                  VMA_IO_BIT);
+> +       /*
+> +        * VMA_PFNMAP_BIT should imply VMA_DONTEXPAND_BIT, but some calle=
+rs set
+> +        * only the former.
+> +        */
+> +       return vma_flags_test_any(flags, VMA_PFNMAP_BIT, VMA_DONTEXPAND_B=
+IT);
 > +}
 > +
-> +static inline bool vma_is_mm_managed(const struct vm_area_struct *vma)
+> +static inline bool vma_is_fixed_mapping(const struct vm_area_struct *vma=
+)
 > +{
-> +       return vma_flags_is_mm_managed(&vma->flags);
+> +       return vma_flags_is_fixed_mapping(&vma->flags);
 > +}
 > +
 >  static inline bool vma_flags_can_merge(const vma_flags_t *flags)
 >  {
-> -       return !vma_flags_test_any_mask(flags, VMA_SPECIAL_FLAGS);
-> +       /*
-> +        * VMA merging assumes that a VMA's flags and fields completely d=
-escribe
-> +        * its state.
-> +        *
-> +        * However, mappings which are not mm-managed may have establishe=
-d state
-> +        * upon mapping not embodied in any attribute of the VMA.
-> +        *
-> +        * Additionally, private (CoW) PFN maps encode the source PFN of =
-the
-> +        * range in vma->vm_pgoff, which may otherwise cause spurious mer=
-ges.
-> +        */
-> +       if (!vma_flags_is_mm_managed(flags))
-> +               return false;
-> +       /* VMA explicitly marked as being unmergeable. */
-> +       if (vma_flags_test(flags, VMA_DONTEXPAND_BIT))
-> +               return false;
-> +
-> +       return true;
->  }
+>         /*
+> @@ -1691,7 +1705,7 @@ static inline bool vma_flags_can_merge(const vma_fl=
+ags_t *flags)
+>         if (!vma_flags_is_mm_managed(flags))
+>                 return false;
+>         /* VMA explicitly marked as being unmergeable. */
+> -       if (vma_flags_test(flags, VMA_DONTEXPAND_BIT))
+> +       if (vma_flags_is_fixed_mapping(flags))
+>                 return false;
+>
+>         return true;
 >
 > --
 > 2.55.0
