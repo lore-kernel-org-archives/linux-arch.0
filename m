@@ -1,94 +1,114 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 9E10943E9FC;
-	Mon,  5 Oct 2026 10:58:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 713EC4B1276;
+	Mon,  5 Oct 2026 14:47:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791197935; cv=none; b=aHaFlZkTmKVDa5yLVLF8An64xDPuEZlr8X9gOSHLNmUCu8nWOLqbcfyX9ewUWfyi0OHDEZD97v8N8QvnsnRfxZtiKr+HFluhwtvu9vs2la+/7fv74V/cCvpNgWgRqniX2YLRth+SHlkYn3lm55k+87HrK4t/lQza9B6gP2gh1uQ=
+	t=1791211649; cv=none; b=RKQ9G1vWC1/nrFZ4KdlMfAnGXbSWt7ERTb8o4D/WOf2jrK0ltFn/T64XM7plz6Mxue4H6VLh9iUFUQoKsFdyULXLpVCJVpVZ6Lup2Jc7Ze1uBcnKSD/en6vjxKRJi1OijjpeOBHZiJxF01ehwGq3xZybilEBs5yYDfCoaecyaeg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791197935; c=relaxed/simple;
-	bh=XKivEEfqJ1Loxg/zjvRlcQxbdujmDiM0i6o6RGWb0X0=;
+	s=arc-20240116; t=1791211649; c=relaxed/simple;
+	bh=uMIu5Sox4TMYjmLgYpIkKpT2uwe5NQio8rVoWWq/45o=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=sy6oM5o478XnI4EZrKO1EHE3hYb6N4aG2PNOH9hI6L6Kdp3KIVP2OimPW2LYls8BDgVZWEbpJ7wvkivNm79fbs0b8Hy3lwLLbREyDdjhwyfgrcL1kBReRMcbedebIR2Xwv98tf67uQbqb8rwnj1hLH5qHs9Jwr+N+4BtzI34OmI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=Z7J/MNr0; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=t7tAIAWFl5dYYO+kb2bV6QbUSHMO6fW93cdlBvpWmRRhgypwnWRSMMt3x/xS/Y/PznV18Xb2SN9BzkN6Gcossxm6tVVixDfuZWB7pZ6CYBEYLd63QY4csp93qyXLv81wdey1WOWtCs9XAtAkmjocy72zqHNYHJT+UxSLm09NmU8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=K7KBvG7h; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="Z7J/MNr0"
-Received: from example.com (unknown [167.220.208.46])
-	by linux.microsoft.com (Postfix) with ESMTPSA id C2BD820B7166;
-	Mon,  5 Oct 2026 03:48:57 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com C2BD820B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1791197340;
-	bh=bOV1KkbqIPodySJYR8HJdIIEeWJmHDi+JcH9/BuX10U=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=Z7J/MNr0Z+/8N6JcXho3uzFWfTC8ak5iHhEr/WXHDfYyB7OKrmrNPjGig6cPjHQed
-	 wJf9dq0hEYjlpStr10GQg6Oes0mW9u2acxH7FP4SgWVzooYRdt2SAPWdVfSUalNj6j
-	 3J0I7gap/hd01KLpVeLYmG4C76lOBl3LFZ+0kwTs=
-Date: Mon, 5 Oct 2026 12:49:49 +0200
-From: Magnus Kulke <magnuskulke@linux.microsoft.com>
-To: Michael Kelley <mhklinux@outlook.com>
-Cc: "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
-	Paolo Bonzini <pbonzini@redhat.com>,
-	Souradeep Chakrabarti <schakrabarti@microsoft.com>,
-	Wei Liu <liuwe@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Dexuan Cui <decui@microsoft.com>,
-	Magnus Kulke <magnuskulke@microsoft.com>,
-	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-	"K. Y. Srinivasan" <kys@microsoft.com>,
-	Anirudh Rayabharam <Anirudh.Rayabharam@microsoft.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-	Wei Liu <wei.liu@kernel.org>
-Subject: Re: [PATCH v3] drivers/hv: remove deposited pages from direct map
-Message-ID: <asOAzTuyT3XxeRK4@example.com>
-References: <20260917201052.2123701-1-magnuskulke@linux.microsoft.com>
- <SN6PR02MB4157B2D3C47289305C6E487CD4802@SN6PR02MB4157.namprd02.prod.outlook.com>
- <arzzghes/vN/1WSf@example.com>
- <SN6PR02MB41576BE36A94FC74D3C4687ED48A2@SN6PR02MB4157.namprd02.prod.outlook.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="K7KBvG7h"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id BE4001F00893;
+	Mon,  5 Oct 2026 14:47:25 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1791211646;
+	bh=yd1SAc+Z/SeLtWDgli/OkIE3mIO8q60HpOea3gbr0Nk=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=K7KBvG7hmH2BPO9UY6c1HcDy6VC2GYcJjqnA/VxqhuIF+S+Cm79NDBl8hSDM7ZI3y
+	 u+kZ09nJVS+2Ts/Qf7gPzK6Rx55W/1CN8Ojft5IU/YiWH/aKCS3Q7MrUo/vsa+84ox
+	 ui8K1gez8Car+EGnXNdE8KSAxF/1ZmLICYsQwvRDIyAnpz2J9INjtLemOXIEaTBWOE
+	 IFAvi0KgHQ4/WIqZLbdyL6JQdDGhNTdtBaZJdtJ7oTywFws9azkSHqu5JJGeFgPjgA
+	 eC9m/b9crzrB2tkHO/6AMdrcBvKYdhAoFXEwu6IGIk3eOOhKng22ne8gE6xlT/Hdun
+	 4mK06hCecKAWg==
+Date: Mon, 5 Oct 2026 16:47:23 +0200
+From: Frederic Weisbecker <frederic@kernel.org>
+To: Kunwu Chan <kunwu.chan@gmail.com>
+Cc: arnd@arndb.de, anna-maria@linutronix.de, mingo@kernel.org,
+	tglx@kernel.org, linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	"Paul E . McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v2 1/2] rwonce: Add READ_ONCE_THIS_CPU() and
+ WRITE_ONCE_THIS_CPU()
+Message-ID: <asO4ey3X6JK0IzlY@localhost.localdomain>
+References: <20261002151757.3605081-1-kunwu.chan@gmail.com>
+ <20261002151757.3605081-2-kunwu.chan@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <SN6PR02MB41576BE36A94FC74D3C4687ED48A2@SN6PR02MB4157.namprd02.prod.outlook.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20261002151757.3605081-2-kunwu.chan@gmail.com>
 
-On Thu, Oct 01, 2026 at 05:10:14AM +0000, Michael Kelley wrote:
-> From: Magnus Kulke <magnuskulke@linux.microsoft.com> Sent: Wednesday, September 30, 2026 4:33 AM
+Le Fri, Oct 02, 2026 at 11:17:55PM +0800, Kunwu Chan a écrit :
+> Per-CPU variables are sometimes accessed from different execution
+> contexts on the same CPU, typically task context and an interrupt or
+> NMI handler.
 > 
-> I went back and refreshed my memory on the discussion from July
-> 2023. At least on x86, the faulting address is used only as a sanity
-> check in ex_handler_zeropad(). The #GP exception handler already
-> calls fixup_exception(), but it calls with fault_addr set to zero, so
-> ex_handler_zeropad() always returns false (i.e., it says it can't do the
-> fixup). From looking at the code, it appears the deposited pages case
-> would "just work" if the sanity test against fault_addr was removed in
-> ex_handler_zeropad(). There was a past discussion about removing
-> the sanity test [1], but at the time there wasn't a strong reason for
-> or against, so it was left in (having been added relatively recently in
-> c4e34dd99f2e). An option for the deposited pages problem would
-> be to make the case now for removing the sanity test.
+> A plain READ_ONCE() or WRITE_ONCE() marks such an access as an
+> intentional race but does not express where the racing accesses are
+> expected to come from. This distinction allows concurrency tools such
+> as KCSAN to tell an intentional same-CPU context race apart from an
+> access that may race across CPUs.
 > 
-> I haven't looked at the situation on arm64.
+> Add READ_ONCE_THIS_CPU() and WRITE_ONCE_THIS_CPU() to identify accesses
+> to a per-CPU variable which are intended to race only with accesses
+> from other execution contexts on the same CPU. For now, they are
+> simple wrappers around READ_ONCE() and WRITE_ONCE(), so generated code
+> and tool behaviour are unchanged.
+
+But there is a plan to handle that with KSCAN, right?
+
+If so:
+
+Acked-by: Frederic Weisbecker <frederic@kernel.org>
+
+Thanks.
+
+
 > 
-> It's your call on how to proceed -- I just wanted to make sure the
-> full context is available to you.
+> Suggested-by: Thomas Gleixner <tglx@kernel.org>
+> Suggested-by: Paul E. McKenney <paulmck@kernel.org>
+> Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
+> ---
+>  include/asm-generic/rwonce.h | 11 +++++++++++
+>  1 file changed, 11 insertions(+)
 > 
-> Michael
+> diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.h
+> index 52b969c7cef9..4d4e009a4489 100644
+> --- a/include/asm-generic/rwonce.h
+> +++ b/include/asm-generic/rwonce.h
+> @@ -61,6 +61,17 @@ do {									\
+>  	__WRITE_ONCE(x, val);						\
+>  } while (0)
+>  
+> +/*
+> + * {READ,WRITE}_ONCE_THIS_CPU() identify accesses to a per-CPU variable
+> + * which are intended to race only with accesses from other execution
+> + * contexts on the same CPU, e.g. task and interrupt context.
+> + *
+> + * For now, these are simple wrappers around READ_ONCE() and
+> + * WRITE_ONCE().
+> + */
+> +#define READ_ONCE_THIS_CPU(x)		READ_ONCE(x)
+> +#define WRITE_ONCE_THIS_CPU(x, val)	WRITE_ONCE(x, val)
+> +
+>  static __no_sanitize_or_inline
+>  unsigned long __read_once_word_nocheck(const void *addr)
+>  {
+> -- 
+> 2.43.0
 > 
 
-Thanks for the context, that's indeed helpful. I'll discuss this with
-the mshv team. I'm still leaning towards disabling deposited pages from
-the direct map because this seems semantically the right thing, but
-Linus' statement gives some confidence that we can make the fixup work
-for #GPs.
-
-best,
-
-magnus
-
-> [1] https://lore.kernel.org/lkml/CAHk-=wipev18s9sErt+iNO_rzgyvGTce38fr1CYO0U_hGVGy2Q@mail.gmail.com/
+-- 
+Frederic Weisbecker
+SUSE Labs
