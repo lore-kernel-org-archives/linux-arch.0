@@ -1,142 +1,318 @@
-Received: from fout-a5-smtp.messagingengine.com (fout-a5-smtp.messagingengine.com [103.168.172.148])
+Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 89E7B4A2E2E
-	for <linux-arch@vger.kernel.org>; Wed,  7 Oct 2026 10:50:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.148
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 39B523F54A4;
+	Wed,  7 Oct 2026 14:44:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.156.1
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791370280; cv=none; b=sl9kTebBBi37tC4ky+GkiqxS5OM8njRrJLNBRD2ziGAxEyw69WSUNWy5wJtedS/9tKkMmfHFe9Oi1Lgcj9PcSOv4MS08fDt4AvYefrCyeuhGbX5g72g3DAL/qDtfcxXMPi+Cq+5xK+/p+iktzhoQlKgLe5rNqm95A3/BsMy1eYQ=
+	t=1791384295; cv=none; b=rtZfp6sPruQE2VgrD/RqGsrYg3W+e0C67TETPUsik01/MXShQOCY0wQ4A4b9Jshg6fhIVjyAyLGWvqVbXCkycGKWQCIdwcm7kM04L7fW3+Pn7BwF8IwYP2KSVnEvrQlXX5cSg7u4MHq5eMNuvP9pZ2YA0j4uGa825oJQILHpJVI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791370280; c=relaxed/simple;
-	bh=tUvTRzVcNc49ZvK3Xd4e3G3ohTQ2V8/eGQTEBw6pJ40=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=buC4pLiSNCal/YBoen8vHwESpAqa2EZfRt7alRn8KaxCS0UTgeTN5LMU44rP02PXnwKJkLOvoCps42gCBb/oxBSg3RlTemg6TV02WDNkc57XsC83f9w2ZU7UPymE51IoFxaK54Po9Fw+5V86k0jro06yEP+AoSpry50rI1e/+Eg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=luxpz+JK; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=BpBVawMx; arc=none smtp.client-ip=103.168.172.148
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1791384295; c=relaxed/simple;
+	bh=IaO0sEB2/gLfkTleDFEQK4E5yAMzvgvmlQJCsjdz4X4=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=JUcEWXhNzFtJ+BvK9RRiQkBadFi8ns2weBQoPVr4R9EKGQ4Ij67mRnrIks1WJvBv9JoOw+xL65LMnHYSFC755jncgDoAYdQZwi69CBPXF+bNLo19ZSWMWAgRXs4VPqMnI6iQZVRr5IB83aN8hOOx5z94IAhmc8QjK5vv+6eX3LM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=HHNMGaeg; arc=none smtp.client-ip=148.163.156.1
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="luxpz+JK";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="BpBVawMx"
-Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
-	by mailfout.phl.internal (Postfix) with ESMTP id D6A83EC03BF
-	for <linux-arch@vger.kernel.org>; Wed,  7 Oct 2026 06:50:45 -0400 (EDT)
-Received: from ams-imap-03 ([10.64.2.23])
-  by ams-compute-02.internal (MEProxy); Wed, 07 Oct 2026 06:50:45 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm1; t=1791370242;
-	 x=1791456642; bh=tUvTRzVcNc49ZvK3Xd4e3G3ohTQ2V8/eGQTEBw6pJ40=; b=
-	luxpz+JK/so1T4nu5eVbt+zi5bbCWMXh7XfVsjY+pEIkTmttnuG2eHDakOcyI1hS
-	5OS3e5I4EiWEq5pWFubWi83IOGZhIPLLupLiyPbggpB/r1LxNuoTJsnosIfN0spj
-	yIvXLpQ9GS5/b486K0wRIXIGEolat52MujsVWStlbKxm8bTf30StkHHj/knj9Kp7
-	w8AO5gFkEH6nv2a2jU/OA2PUGUzXsIAjzexWD6OjnCBcW3w22FSnKCmapmWnuL6g
-	D6Us7/tmpJgGSSQho3BvLTa9KB4ZWI+zEg5pSU4Z18zPp/EzNUw6zI2dYe+yBljc
-	sZ1mQGY97s/3PPqJCQwAGg==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1791370242; x=
-	1791456642; bh=tUvTRzVcNc49ZvK3Xd4e3G3ohTQ2V8/eGQTEBw6pJ40=; b=B
-	pBVawMxj7pQn0MOAGXjomdjs4Upd0nXrOLr2Xw6e327Dq43F9G8w5nGB6vjrGPuf
-	IS1nMz/dTpK7E8Z5HM3mkySkEl+XAUW805eYmGK42dMtr6gSF2KauNll2ZB9MmHI
-	NIq/no/AP0s6pLsObf2HtGzFbJEM8wY67VAKM+uLgSffbxECf5ny/2l4B9xKUdA+
-	6zlBlT7+FosxJ77oUHMkdgszH4FAyHVaCAYZpCGm9VMAnhqow7Jvg/BPtjsuh+lz
-	nmlZBQg8wePjhl44FwOq74othf9oAvvqXkk1aoba8Yt+M6cPSmEEv9EcVKrrZB8S
-	sZJgIufs/3+RVLxElOHbA==
-X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
-	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
-	action=sign d=arndb.de a=rsa-sha256;
-DKIM2-Signature: i=1; m=1; t=1791370242; d=arndb.de;
-	mf=PGFybmRAYXJuZGIuZGU+;
-	rt=PGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnPg==;
-	s=fm1:rsa-sha256:iL3a7I9inS84ovJhnKhZxiCfe0H+9kxQd7CxuDYYv2iUHTX
-	XWa3lLsgI1RJJ4p8+VttGZnoq7jbf4rV7OZEEB2KZFrpPUMoahC0VQ2IPOX8E5j8
-	AFEv4nb4Cf4OBs+ydTUOIfsVpi1BvePYOKuN5Jb6yFGmNtOmrHwA95AUhGHbpNDL
-	CQWSQRKlfC+PAvFaMoCJyNWM+NYlPAaa3aWf3y+5fEiiJZpCf62+TCuR2RLm7QEd
-	ZFQnvuSzKtv6sQVrE9t3YoO+CWhrAMxnrmGt/v9rYImVStryyytrvKn0pg6Aq8JD
-	B565EDSOarPJc1di8cUlpArDJH8FlYnuwlCLpPQ==;
-X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
-	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
-	action=mi-m=1; hc=12;
-	hn=cc,content-transfer-encoding,content-type,date,feedback-id,
-	from,in-reply-to,message-id,mime-version,references,subject,to;
-Message-Instance: m=1; h=sha256:nd24rqhvMwr6YzhdLjP9PgBHBvlm6O2Q6PbWisaeCY4=:tUvTRzVcNc49ZvK3Xd4e3G3ohTQ2V8/eGQTEBw6pJ40=;
-X-ME-Sender: <xms:_yPGatu7HrdFc6uxI1K-ZwjUIsEx59CiUXODR-AweqoAvTJsieAGZg>
-    <xme:_yPGahSST4h6fmscfkV81xV4YxKGAD57U1TmYZNDXRsrXY9isk3zfuThUtn3LkQUl
-    O8p05otqlpBw7KyWqC3HulwEM1YgfvkqhFT5wfGEUVkkKB3m_ibB6g>
-X-ME-Proxy-Cause: dmFkZTGRqXlOKiOoDNay6f9ANtWsHoTGY+XwXgCCKh9gl3enreMC84wkqMt99EzViSemkP
-    f5ODRap5IDJUixiJdxjgKS1q8T+wTFM4ZKUK8Ym2GdQa+ZzJWidwn0WVVRzf8mAK0rRLim
-    DN3+sSy4M3BCbOagBm90WzMDH/p41rnf9QH7x4VHabUq/pN0qo1wPwsILS+Ggbn7Lko7I5
-    WnpKUE4mRZIcYGd5xYzbr9n4apO6jh7PyhucM3qwYQKJBp59KOPtJZ+4b+cn3mF3FPJPZy
-    Y8VbmbX43AkBSHFMt+fxNmlHXVFDp+PV1frtvEINe3dHG6zmd7DCzzkd2x6O+NTblPt5tP
-    NbPea+Fn4c85gW8592lRLC1KYTG10wbsSyu8v4KNUsqiz+dpnR+6TWfTPSfFL98in2k1qH
-    cnDS95RvWknhOVUccMvy7Tc7HFtQly5KuxdIwXeTcUnlIvNgGeumq18/gxdzp4NnY47SQc
-    H56ufF9wPjRTMgN1Jve3uY0mjPNpmQUIaha/vzoLWKbaQLMuMXmDlRcDnHRB0t51XUkO4+
-    LJ6tHiTITG3O4OnKW8ChQ/wg3jgZdzFO05ePlx+PoTApBBXvsk8WLwZpy5fGsQQlW7jd7f
-    dae/G+MvGK6MNVp5YN1phNQdVGHmewdLXB+813nh3rJcN6GOCc0ca/OoDYzg
-X-ME-Proxy: <xmx:ACTGahOpBMJGAKDZ5a-BeysouPXRJgxeDkR0coSpRrbVUA-zAQMxFA>
-    <xmx:ACTGav8MHwSXI-fA_-GbGx2A4mxmmR2nvdvpjE364MppycIyAB4gaQ>
-    <xmx:ACTGaifzvEaaYiiwuVStMMCGpj7OcYDpLXh2RPgZwA5Jtq1CvYreiA>
-    <xmx:ACTGauxxkA3eodhaHcg_tfrv7CdrcZz3XO9BQ4QCKJTItJqZOdC4rg>
-    <xmx:AiTGarX01y-UF7xY2LNEQPV_1PlP1OEtWdx3TEb5zTD2XbNEBREEE34a>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.ams.internal (Postfix, from userid 501)
-	id 79C8132A0093; Wed,  7 Oct 2026 06:50:39 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="HHNMGaeg"
+Received: from pps.filterd (m0353729.ppops.net [127.0.0.1])
+	by mx0a-001b2d01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 697BZudY596972;
+	Wed, 7 Oct 2026 14:43:45 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
+	:content-transfer-encoding:content-type:date:from:in-reply-to
+	:message-id:mime-version:references:subject:to; s=pp1; bh=ybxBxT
+	W/b9UGnnvaf11PygeEajkZnxqfAob0DPzPA6o=; b=HHNMGaegvwb/jZA1S/qMlx
+	LZVh8AGURn1u1rbUjubxEJHQz5p4dzeVJvMJddHcREOSZrau0DrblKmNOsC8YbLV
+	KTz7Hfbe3lqYLsqSOl0G0GlsZ6EJ78N4Q/x1IaMPjmagjm+ZyG1dU+IvZbDJEHrh
+	FR24UnEmvgZvg4NTBbLerYo8AfCCcnuzGTP0LJFDrERA0YEEmZ+JVfHAPVMfEpbB
+	Z6lqs682VUUVXPVdOtPNl0laeKeUF0B0zBMRIcqfqpMwOlfoNQsaUZhcsuiig195
+	bNfbZPosJqsSAPa7fjFw/Cf4SAtGHBjcSR8xaPDziPCy8UAp+SJ0pIoeW9yqiHlg
+	==
+Received: from ppma22.wdc07v.mail.ibm.com (5c.69.3da9.ip4.static.sl-reverse.com [169.61.105.92])
+	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4h2scrnyqq-1
+	(version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
+	Wed, 07 Oct 2026 14:43:44 +0000 (GMT)
+Received: from pps.filterd (ppma22.wdc07v.mail.ibm.com [127.0.0.1])
+	by ppma22.wdc07v.mail.ibm.com (8.18.1.11/8.18.1.11) with ESMTP id 697Blf0Z1808496;
+	Wed, 7 Oct 2026 14:43:43 GMT
+Received: from smtprelay04.fra02v.mail.ibm.com ([9.218.2.228])
+	by ppma22.wdc07v.mail.ibm.com (PPS) with ESMTPS id 4h3cdvy396-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+	Wed, 07 Oct 2026 14:43:43 +0000 (GMT)
+Received: from smtpav02.fra02v.mail.ibm.com (smtpav02.fra02v.mail.ibm.com [10.20.54.101])
+	by smtprelay04.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 697Ehdwr31916698
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Wed, 7 Oct 2026 14:43:39 GMT
+Received: from smtpav02.fra02v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id 8D7E42004B;
+	Wed,  7 Oct 2026 14:43:39 +0000 (GMT)
+Received: from smtpav02.fra02v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id AC4DD20043;
+	Wed,  7 Oct 2026 14:43:29 +0000 (GMT)
+Received: from [9.39.25.200] (unknown [9.39.25.200])
+	by smtpav02.fra02v.mail.ibm.com (Postfix) with ESMTP;
+	Wed,  7 Oct 2026 14:43:29 +0000 (GMT)
+Message-ID: <61b01870-ddcf-4c4f-8604-dd63aa4a07a3@linux.ibm.com>
+Date: Wed, 7 Oct 2026 20:13:28 +0530
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: A2-lVq8nTGlc
-Date: Wed, 07 Oct 2026 12:50:18 +0200
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Kunwu Chan" <kunwu.chan@gmail.com>,
- "Anna-Maria Gleixner" <anna-maria@linutronix.de>,
- "Frederic Weisbecker" <frederic@kernel.org>,
- "Ingo Molnar" <mingo@kernel.org>, "Thomas Gleixner" <tglx@kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org,
- "Paul E. McKenney" <paulmck@kernel.org>
-Message-Id: <66d8d340-ff50-4fcb-bf19-05fa68c27238@app.fastmail.com>
-In-Reply-To: <20261007022859.60101-2-kunwu.chan@gmail.com>
-References: <20261007022859.60101-1-kunwu.chan@gmail.com>
- <20261007022859.60101-2-kunwu.chan@gmail.com>
-Subject: Re: [PATCH v3 1/2] rwonce: Add READ_ONCE_THIS_CPU() and WRITE_ONCE_THIS_CPU()
-Content-Type: text/plain
+User-Agent: Mozilla Thunderbird
+Subject: Re: [RFC PATCH v3 06/13] powerpc/setup: Initialize sbm topology based
+ on coregroup / NUMA topology
+To: K Prateek Nayak <kprateek.nayak@amd.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Michael Ellerman
+ <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org,
+        Madhavan Srinivasan <maddy@linux.ibm.com>,
+        Thomas Gleixner <tglx@linutronix.de>
+Cc: Dietmar Eggemann <dietmar.eggemann@arm.com>,
+        Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>,
+        Mel Gorman <mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Christophe Leroy <chleroy@kernel.org>, Chen Yu <yu.c.chen@intel.com>,
+        Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@redhat.com>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
+        linux-mips@vger.kernel.org, loongarch@lists.linux.dev,
+        driver-core@lists.linux.dev, Ritesh Harjani <ritesh.list@gmail.com>,
+        Srikar Dronamraju <srikar@linux.ibm.com>
+References: <20261001192849.74788-1-kprateek.nayak@amd.com>
+ <20261001192849.74788-7-kprateek.nayak@amd.com>
+Content-Language: en-US
+From: Shrikanth Hegde <sshegde@linux.ibm.com>
+In-Reply-To: <20261001192849.74788-7-kprateek.nayak@amd.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
+X-TM-AS-GCONF: 00
+X-Proofpoint-Reinject: loops=2 maxloops=12
+X-Proofpoint-Spam-Info: AW1haW4tMjYxMDA3MDA1OCBTYWx0ZWRfX5FGpZUbb+JPz
+ BHJgYCk2JcRqqYX6PtLJNa5oWRLui92CaJzh+kk+cJYYtsL9DvVbnTPi2oVWKb8TDyIAEm8hOmD
+ FGKjQpoXlK7m115eLETI1vF9AYUCs7I=
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYxMDA3MDA1OCBTYWx0ZWRfX5ukkGIuMRNwg
+ S9ll+KBqsDVsWpue+RzZexXhXGs+9sGoeFG/u4Wu6A+E6OyYZ71mOCd2Q20F1QVNdakPxGjaiEy
+ ptwMnYDKm7R4U/GUs542r3EdUul1gMA3IKyVQys8a23qWFelENdYgZzE7U1nhsl7s9LXYRVJLXR
+ Cf8t5X+1SnkgPcoucNQXw7rjLGJMV3PnIVWcRpgyXhwijDKuAE4oXzod/WCNxBHA/TCBK2L4+9B
+ MIHUbR8tauqQlD87KArJYmj1xACotXtqp6RYpywTrvxtDL8quiPu3o6vB0d4xcDiPDO9pLRoe+j
+ kAYUZkV4YgDjJGVA8MLMbXqbS7EdU1t4JIxa18Mrkn1aVtvUx8mm+WbOGh+Ho6ngA3lu0E4s1Qf
+ vv/arXwuAVmAiVz9rJU4Ed93Zp1NaXaqT6ZEpLDXvu717FtECJ5JGjAsWeBBNoLo+lFt/WM4tHi
+ tyemFiieRzYpCge4Zfw==
+X-Proofpoint-GUID: kbjAw6at_gYi9kpW5NW2eW_Z3iPlVUmR
+X-Proofpoint-ORIG-GUID: RniLqba5eNFPG8ZKN9kokCpHs0UviAPN
+X-Authority-Analysis: v=2.4 cv=B7osQ+tM c=1 sm=1 tr=0 ts=6ac65aa1 cx=c_pps
+ a=5BHTudwdYE3Te8bg5FgnPg==:117 a=5BHTudwdYE3Te8bg5FgnPg==:17
+ a=IkcTkHD0fZMA:10 a=660iZSQnnn4A:10 a=VkNPw1HP01LnGYTKEx00:22
+ a=RnoormkPH1_aCDwRdu11:22 a=uAbxVGIbfxUO_5tXvNgY:22 a=ID6ng7r3AAAA:8
+ a=zd2uoN0lAAAA:8 a=5-s5fGl8rxULNuXv-HYA:9 a=QEXdDO2ut3YA:10
+ a=AkheI1RvQwOzcTXhi5f4:22
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1176,Hydra:6.1.134,FMLib:17.12.100.49
+ definitions=2026-10-07_04,2026-10-06_03,2025-10-01_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
+ priorityscore=1501 bulkscore=0 malwarescore=0 impostorscore=0 phishscore=0
+ clxscore=1015 spamscore=0 adultscore=0 lowpriorityscore=0 suspectscore=0
+ classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
+ reason=mlx scancount=1 engine=8.22.0-2609040000 definitions=main-2610070058
 
-On Wed, Oct 7, 2026, at 04:28, Kunwu Chan wrote:
-> Per-CPU variables are sometimes accessed from different execution
-> contexts on the same CPU, typically task context and an interrupt or
-> NMI handler.
->
-> A plain READ_ONCE() or WRITE_ONCE() marks such an access as an
-> intentional race but does not express where the racing accesses are
-> expected to come from. This distinction allows concurrency tools such
-> as KCSAN to tell an intentional same-CPU context race apart from an
-> access that may race across CPUs.
->
-> Add READ_ONCE_THIS_CPU() and WRITE_ONCE_THIS_CPU() to identify accesses
-> to a per-CPU variable which are intended to race only with accesses
-> from other execution contexts on the same CPU. For now, they are
-> simple wrappers around READ_ONCE() and WRITE_ONCE(), so generated code
-> and tool behaviour are unchanged.
->
-> Suggested-by: Thomas Gleixner <tglx@kernel.org>
-> Suggested-by: Paul E. McKenney <paulmck@kernel.org>
-> Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
-> Acked-by: Frederic Weisbecker <frederic@kernel.org>
-> Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
+Hi Prateek.
 
-No objections here, but since I missed the background, I don't
-see what a future implementation of the new macros might do
-that is different from the existing macros, maybe you can still
-clarify that.
+On 10/2/26 12:58 AM, K Prateek Nayak wrote:
+> Initialize sparsebitmap (sbm) topology based on the coregroup
+> information. Each coregorup gets its own sparsemask leaf.
+> 
+> pSeries and memory hotplug are interesting since a hotplug can place a
+> newly added CPU on any online node. This requires special care to allow
+> estimating bitmask size considering the worst case scenarios - each CPU
+> onlined is on a separate node, and this is a new N_CPU node.
+> 
+> Platform may enforce a stricter standards for the CPUs being online and
+> what nodes they can be mapped to but the current implementations makes
+> no assumptions and considers each CPU can be onlined on a unique node.
+> 
 
-For taking this through something other than my asm-generic tree:
+I think this suffers the same fate as structures which are allocated at boot
+time such as runqueues.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+So your fallback option of putting all the disabled into singleton node may be
+sensible option. (If you are not doing that already)
+
+But yhea, will see more into it, this changing node stuff is new for me too.
+Also i need to read your patch series too :)
+
+> pSeries systems that can hotplug CPUs (detected using smp_ops) use the
+> NUMA topology instead for sbm initialization. arch_sbm_cpu_instance_id()
+> on these systems use cpu_to_node() mappings to match CPUs to sbm
+> instances.
+> 
+> XXX: This requires further optimizations to shorten sparsemask
+> traversals by keeping the number of leaf nodes to a minimum. If there
+> are nuances I'm not aware of, please reach out.
+> 
+> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
+> ---
+> Tested on ppc64le_defconfig with:
+> 
+>    qemu-system-ppc64 \
+>    -M pseries \
+>    -cpu power10 \
+>    -smp sockets=2,cores=2,threads=4 \
+>    -m 10G -nographic \
+>    -kernel vmlinux \
+>    -append "root=/dev/ram sched_debug"
+> 
+> and also on ppce500 VM based on instructions in
+> https://www.qemu.org/docs/master/system/ppc/ppce500.html
+> ---
+>   arch/powerpc/kernel/setup-common.c           | 88 ++++++++++++++++++++
+>   arch/powerpc/platforms/pseries/hotplug-cpu.c | 10 +++
+>   2 files changed, 98 insertions(+)
+> 
+> diff --git a/arch/powerpc/kernel/setup-common.c b/arch/powerpc/kernel/setup-common.c
+> index 4afaba19b586..4b57ad553172 100644
+> --- a/arch/powerpc/kernel/setup-common.c
+> +++ b/arch/powerpc/kernel/setup-common.c
+> @@ -11,6 +11,7 @@
+>   #include <linux/export.h>
+>   #include <linux/panic_notifier.h>
+>   #include <linux/string.h>
+> +#include <linux/sbm.h>
+>   #include <linux/sched.h>
+>   #include <linux/init.h>
+>   #include <linux/kernel.h>
+> @@ -602,6 +603,87 @@ static __init int add_pcspkr(void)
+>   device_initcall(add_pcspkr);
+>   #endif	/* CONFIG_PCSPKR_PLATFORM */
+>   
+> +int arch_sbm_cpu_instance_id(int cpu)
+> +{
+> +	/*
+> +	 * In case of pSeries processors, sbm masks are
+> +	 * grouped by nodes where the cpuhotplug
+> +	 * operations can remove and re-add same logical
+> +	 * CPUs on different nodes.
+> +	 *
+> +	 * See comment in pseries_cpu_hotplug_init().
+> +	 */
+> +	if (smp_ops->cpu_disable)
+> +		return cpu_to_node(cpu);
+> +
+> +	return cpu_to_coregroup_id(cpu);
+> +}
+> +
+> +static void __init setup_sbm_topology(void)
+> +{
+> +	int num_sbm_instances, max_threads_per_instance = 1;
+> +	struct cpumask *cpu_sbm_setup_map;
+> +	int i, *__node_thread_count;
+> +	int disabled_cpus = 0;
+> +
+> +	cpu_sbm_setup_map = memblock_alloc_or_panic(cpumask_size(), __alignof__(long));
+> +	__node_thread_count = memblock_alloc_or_panic(nr_cpu_ids * sizeof(int),
+> +						      __alignof__(int));
+> +
+> +	memset(__node_thread_count, 0, nr_cpu_ids * sizeof(int));
+> +	memset(cpu_sbm_setup_map, 0, cpumask_size());
+> +
+> +	for_each_possible_cpu(i) {
+> +		bool found = false;
+> +		int j;
+> +
+> +		if (!cpu_present(i)) {
+> +			disabled_cpus += 1;
+> +			continue;
+> +		}
+> +
+> +		for_each_cpu(j, cpu_sbm_setup_map) {
+> +			if (cpu_to_coregroup_id(i) == cpu_to_coregroup_id(j)) {
+> +				found = true;
+> +				break;
+> +			}
+> +		}
+> +
+> +		if (!found) {
+> +			cpumask_set_cpu(i, cpu_sbm_setup_map);
+> +			__node_thread_count[i] = 1;
+> +			continue;
+> +		}
+> +
+> +		__node_thread_count[j] += 1;
+> +		max_threads_per_instance = max(max_threads_per_instance,
+> +					       __node_thread_count[j]);
+> +	}
+> +
+> +	/*
+> +	 * If CPUs are disabled, they may pop up on any online node.
+> +	 *
+> +	 * XXX: Any implementation nuances that can help this?
+> +	 * pSeries says only online nodes can be extended.
+> +	 */
+> +	if (disabled_cpus) {
+> +		num_sbm_instances = num_sbm_instances + disabled_cpus;
+> +	} else {
+> +		num_sbm_instances = cpumask_weight(cpu_sbm_setup_map);
+> +	}
+> +
+> +	/*
+> +	 * If disabled threads exists, assume the maximum threads per
+> +	 * instance can extend by the number of disabled threads if they
+> +	 * are all added to the same node.
+> +	 */
+> +	sbm_set_topology(num_sbm_instances,
+> +			 max_threads_per_instance + disabled_cpus);
+> +
+> +	memblock_free(__node_thread_count, nr_cpu_ids * sizeof(int));
+> +	memblock_free(cpu_sbm_setup_map, cpumask_size());
+> +}
+> +
+>   static char ppc_hw_desc_buf[128] __initdata;
+>   
+>   struct seq_buf ppc_hw_desc __initdata = {
+> @@ -1006,6 +1088,12 @@ void __init setup_arch(char **cmdline_p)
+>   
+>   	early_memtest(min_low_pfn << PAGE_SHIFT, max_low_pfn << PAGE_SHIFT);
+>   
+> +	/*
+> +	 * setup_arch() below can override topology for
+> +	 * pSeries platforms as a result of hotplug nuances.
+> +	 */
+> +	setup_sbm_topology();
+> +
+>   	if (ppc_md.setup_arch)
+>   		ppc_md.setup_arch();
+>   
+> diff --git a/arch/powerpc/platforms/pseries/hotplug-cpu.c b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+> index bc6926dbf148..7c1c1ac3efde 100644
+> --- a/arch/powerpc/platforms/pseries/hotplug-cpu.c
+> +++ b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+> @@ -19,6 +19,7 @@
+>   #include <linux/kernel.h>
+>   #include <linux/interrupt.h>
+>   #include <linux/delay.h>
+> +#include <linux/sbm.h>
+>   #include <linux/sched.h>	/* for idle_task_exit */
+>   #include <linux/sched/hotplug.h>
+>   #include <linux/cpu.h>
+> @@ -870,6 +871,15 @@ void __init pseries_cpu_hotplug_init(void)
+>   		return;
+>   	}
+>   
+> +	/*
+> +	 * find_cpu_id_range() only looks at online nodes.
+> +	 *
+> +	 * XXX: Is it possible for a CPU attached memory node to come
+> +	 * online after this point? May need num_possbile_nodes() then
+> +	 * unless there are platform nuances that can help optimize.
+> +	 */
+> +	sbm_set_topology(num_online_nodes(), num_possible_cpus());
+> +
+>   	smp_ops->cpu_offline_self = pseries_cpu_offline_self;
+>   	smp_ops->cpu_disable = pseries_cpu_disable;
+>   	smp_ops->cpu_die = pseries_cpu_die;
+
