@@ -1,208 +1,176 @@
-Received: from flow-b6-smtp.messagingengine.com (flow-b6-smtp.messagingengine.com [202.12.124.141])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D5C0C49CF57
-	for <linux-arch@vger.kernel.org>; Tue,  6 Oct 2026 16:27:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.141
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791304063; cv=none; b=P8CRBg+x6+qrKRe3MPNR84tqdJ+fsnvAWBNn2qUpm7kC0yGkUoZcMgSaLa0KdzEUFkbfA+q+OmJnZF9JI26ICa84EKP91nn/HTEF5bGPgMBZKO7ZRfuUQrchQ51rWxzKfG34+dyqNhDKw2GWkeUjj3teX13c60yg7PsujQvIDF0=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791304063; c=relaxed/simple;
-	bh=JaOT2qccNi/eJCcGFKpQPyFgrQUtWBfNjazKR4huGJc=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=fkW+OGL8FWyxcgwqWs1AP51JWfYj2uN7MOWYuT/nDSu5/OOrCUM0i1DFX9O2Lgn+rk4LT89N8q7cFFoEGsQRqeDHKlgQcJoem0Vtvm1x57AVDT2iHCwUMpuTGSFQ+NgA4ryrjAyrvvYmeyEt0jtxlw/aHKO2bjamKzXli9tpz1M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=wolber.net; spf=pass smtp.mailfrom=wolber.net; dkim=pass (2048-bit key) header.d=wolber.net header.i=@wolber.net header.b=aDJ0OTHC; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=fBLlzhf/; arc=none smtp.client-ip=202.12.124.141
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=wolber.net
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=wolber.net
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8CBD71E5B70
+	for <linux-arch@vger.kernel.org>; Wed,  7 Oct 2026 02:18:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.128.41
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1791339484; cv=pass; b=mDorDaiWPXO5N3+NNrcqzt+4EzrYeIPNvBDnbnheEtqIpKTW3j8b3YNpK5c44RGR493f99pxiEmXTjqbldGBMBrJu6d/1LDRrlPI73VRc295X6Dc63B7QEM6Z32uR1mbH3MSN9gs3sU97lfROZrt7Dv8jYu6JxDp2qvVeZyfsTk=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1791339484; c=relaxed/simple;
+	bh=VIu9IqjAGNeJ5CxJ1aJYgp/RLiXbBj4etI3szwtdgyg=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=EAtdPu1HL2cH9KfPHUplvGbqdsqM5RngAy0FC+33DVToXpDxtp5Q6rh2a4NzOEQ0RIR64c3hPVxzkzxxV0220yY4LkqqWHe8yuc0RKg1QDz2BDPdJk2JWYxpC5yKHivDYJCT4TmhpniVjOKaPUADROBvaHjFB7jsnmYZs6Ml2ZY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=VofLcoyb; arc=pass smtp.client-ip=209.85.128.41
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=wolber.net header.i=@wolber.net header.b="aDJ0OTHC";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="fBLlzhf/"
-Received: from phl-compute-03.internal (phl-compute-03.internal [10.202.2.43])
-	by mailflow.stl.internal (Postfix) with ESMTP id 37DD51300987
-	for <linux-arch@vger.kernel.org>; Tue,  6 Oct 2026 12:27:41 -0400 (EDT)
-Received: from phl-imap-03 ([10.202.2.93])
-  by phl-compute-03.internal (MEProxy); Tue, 06 Oct 2026 12:27:41 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=wolber.net; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm3; t=1791304054;
-	 x=1791311254; bh=JaOT2qccNi/eJCcGFKpQPyFgrQUtWBfNjazKR4huGJc=; b=
-	aDJ0OTHCchnO4w6/CsJuj3/fyrPyNJFY4ttnZJ32SPYQ1baaTFGfKMO9PA/8DtHV
-	AsNd8Xsu84MUJmBFv5/ll9m+VcCPPgxqsSJT2n+TmbcmG6fD4QNVtpqhPT7Q4TOz
-	WTiDe6Lq4M1G6UjTKlQhaXAb09dBds0JAgfMd2zBhDs0nAwWOhjrNyhvGleNZe7y
-	gv2D+1qn6q4ZhtNXKj2Gf9bd1/cucl15+nnvNYNbFIeG1Ityus3JxcU9s/6Yq09B
-	rvUaskoGk8zZ/9UluAUKyH887JgkJ3AgCu3mmn5Pz+2uAheFZUt1bGNnsWBTrI8s
-	esQMOdnFBRIRZ0x2NygQJg==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1791304054; x=
-	1791311254; bh=JaOT2qccNi/eJCcGFKpQPyFgrQUtWBfNjazKR4huGJc=; b=f
-	BLlzhf/ACw2DnbRA/f0NFj/mSJdBV3nRoBDnYx0ZhOUCdVHCeVj6hFriIZUcll4y
-	HYVAhQJ/gnOC0Ye0ISQTWcG5vtU1Gkw0/1cJzG3YGxWj7mVmOmZpFzfFtgmSSU4p
-	2zIlVn2Awy7dvBu4dEzk7gpDC2IH/Ui8fad90Cn/5T8/cQz0sRwoyQhl/c3WT6vM
-	QeSUVmdTUYmyh1pgv5fkCka+NPaQY8yY1pDNukujWG1DBBmMXRhQ3cmPJx7egwpQ
-	5SSKHDSGFhca+orYJ6al39eGSm4jB6wPvueYsX8/+8FVKGO1vL/ruK2ntGDv4w4k
-	SihsKkwdF/NX3cIJy9R1A==
-X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
-	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
-	action=sign d=wolber.net a=rsa-sha256;
-DKIM2-Signature: i=1; m=1; t=1791304054; d=wolber.net;
-	mf=PGNodWNrQHdvbGJlci5uZXQ+;
-	rt=PGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnPg==;
-	s=fm3:rsa-sha256:UOpiZAbSOQzNhD7Xh3Qj9coEwmgJGnLm1eP/VG3t9jp11xh
-	znOV6/oBLQRn+lwegaYla31pSdSIftd6MO3iFqPpKAqx5w20phfL86b4w5SlzxXM
-	iUhzGZHy2ihVqtC/TY1I+nn5Pzi1Dq32Xg/7COeZZIU0L2GdPyJf91NBOuI6xUK5
-	VCf4Aj7T497+0ujIgiJLYXtfzYi3Lp7oItzcWPkVRagFuKP2d9wQvRxsgHMEV3Uz
-	K36om84ubEdGnCjQnZnPxjjNqNlricCcI0KouY5FqAg0lqX4nP3BIn+3R0rhERMq
-	Mthaa3TpRjw1TtStypCaUl0StNr6YF9hpHYyxGg==;
-X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
-	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
-	action=mi-m=1; hc=12;
-	hn=cc,content-transfer-encoding,content-type,date,feedback-id,
-	from,in-reply-to,message-id,mime-version,references,subject,to;
-Message-Instance: m=1; h=sha256:9OT84S2nU/0nZ1U64BlOetYjb+/mK3i5jm+AZt7+BvI=:JaOT2qccNi/eJCcGFKpQPyFgrQUtWBfNjazKR4huGJc=;
-X-ME-Sender: <xms:cyHFav2-FXDCSQuCl4UvdwZDw3DXvUGCTqrIBXFwQjqh8CIUBrV_ag>
-    <xme:cyHFao5zpJVZ_b_VN1729xUOenCfieF6CzFcNFgMSngnQ20-3uZ_0r7V7QV9GBhep
-    oO-9X6fCh-9B98DlBKwcYnQwcjIoa_CrHgVs_8OaTQKpi1fe8iciKA>
-X-ME-Proxy-Cause: dmFkZTFmiYJcPEGs0A/qYvq8C4MVW3CyXeGEtkOmNDhmCvIFflxFleW7ny57bnBIuQlD59
-    cWped2LiQiXafwA6rH6Ez7xNTRfmFYqjWZDEOCaTaZ+Z4syI7a6O9pxCiwEuqUzZdAJDx0
-    9cWIwLNy/t9fQal6PAMxVsKLkQvvtnsbOBBlUQGL+vOqAn4RFaEl2GHR2b4L1cq9s/UcOt
-    fSVio0w3i/g32nR140kVw61B5rztlTHebHqHKh60OEO7PQ5ZJXf+jeu/CrVryWbHaULU5f
-    OwU38sNMeIhs7opS8zYCEwfGqY1WbgnZ0lsOM1x7qOw1aVGpBTx6LXlr7kO60t15lxjcJQ
-    Xoz6jr0j4pjIR+O+PZ9nKQoFOT41zfg/kPlJYxlgE0wkci+XoTiX+ZZ4/HdymIYC0wObkn
-    HaaEWy6CzVlyLPwlfBUMXcf7/ewqCKLgGcnZKpY7u8A8P13E+O9DUKSqLvkXaNFv3Ep0lA
-    8lCIbxA7dKgreq3nvVhgNUZmHcJ62jED4uvNreTSgAxMWJyV4LIJjvEg+Tau6puOkMEW+Q
-    yF3ikUrkFhHlmZykAc1jvQujIO8vFRGIPKWU9ZIhTUDXcVDmBiqvVDBuwrsYHt6OcsEW9k
-    jBh0wc2IwF7idYt+Gc1PXZUsdyXHFZGint2G86631DLv8ttt/eLnmgSc73pQ
-X-ME-Proxy: <xmx:cyHFalRulfrI0gOe5n2wt8jZZ03L3H4VPYS_luBEHa_EpwUN4qkbtA>
-    <xmx:dCHFaoRUoLvWxDt5tWh7AqecATopVRbeseTkPnbfbMcmvQLU5qEIMw>
-    <xmx:dCHFavHAlYNEcqam7lbTPA14JbY0ZXtQKXHVkmiSR5gfzrc-urkg9Q>
-    <xmx:dCHFakn3xNzhke-YnOSwSFwDAIfvsCGSwfRjOky3Yk59ZEtY7qv9iw>
-    <xmx:diHFapqJCieSCu-f8Lh0CzmaIrjuMtsndrKAb-WlzuewQeP1weUcPRy1>
-Feedback-ID: i5cf64821:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id D087518E0071; Tue,  6 Oct 2026 12:27:31 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="VofLcoyb"
+Received: by mail-wm1-f41.google.com with SMTP id 5b1f17b1804b1-4a168355946so11903275e9.0
+        for <linux-arch@vger.kernel.org>; Tue, 06 Oct 2026 19:18:02 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1791339480; cv=none;
+        d=google.com; s=arc-20260327;
+        b=LC5o5YdOASz6OI4FFe8lMZpXikEqaWlzzAu7+KmCgSCKeY2rbuj1+Cg1JZVi0LBcQ9
+         ZRc/jCed3fkMN5HRmL6R8DHYJaxk2Swi9uI7F1mfax/rTq73XNnOvqx8+Q/x1K+sRHtv
+         /QfTVxOLC1PFVSWTUz9M/C09ARpvKUiGJfUIE4kkZYVpwVumU+IYZeba226a7oYmHNWv
+         SskpZtz9LEWwxbSYshptmU4ScvbV9PQQ2zWvfJ9RgWJUDgcjmYtxxh7SAcmpZMthaV3Y
+         AH7hBIWX04/8wr1SQ9o9g4hkIaTdk3ENAlm4c4zGPbTLZSfKrZOR/UeLN4LUOEmdWhvN
+         QcLw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=GXQll5yKwAszJJzdt/Gj5gkr0StYojizfaIPuW3tx5I=;
+        fh=uuA4LcjbzB+uSxwbHajQwP/mb7GaX4g00AmGKl8RSMQ=;
+        b=W5XDVUtCdfH6NyEmH+u/KvNny5w0hhcu/LOaaLV3ky6z/mdduEQdIruiNUvp9qndO4
+         uX6v+3HCfMFllnk/TnIofPqLAqjJIsNtD+7s/3JdCP08v2yHCPCRR72WtXkAAyPknV+/
+         9pEQiqHg++EYhr4DVWFMeRrFxdsw6evW8yZQQNtDVOQd7v2dU+q862S27jQKs0gPnMZY
+         eieOdFUbd79kF4dKG+b9RoJQ0N3EmggReExDilkt++AvXqFkmtcjkrfr8s2qyC27LEW7
+         W2A8JA6OdS7PdpWI2xkqOt3xlvxOmDdJFbtVjp2sQFKCpHW7M5m+tvSoiXJoMWnwuHzE
+         0Hlg==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1791339480; x=1791944280; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=GXQll5yKwAszJJzdt/Gj5gkr0StYojizfaIPuW3tx5I=;
+        b=VofLcoybAjP8tljDjf4cOLqPDw3Olb8lls7AxLzkbmAmq337C0Fwn3glCmVFCxV/R2
+         2O5HkTC6wWAto/92mXbeagm0Mxe+0YQqkof2eLKij0s4I7S3Na5ramc/JJ0PC8/14hvb
+         9eXVuTYtDSFsh+0cz7zVyrpXwaYgkVN5n4nW20TOi9NqcYLtDPxJjeMdgMa65KaSWbPX
+         OuH66l3liaHcoUJK65tjyym43pFC27su8itKQx3iLA2920d7DveZ6Iw9XY9eyAbNNqhu
+         LG1vpIVy4Wk11rZvoCM+iLWIKGPdS1a1ck927312PFY/a/FZCZfN4cYRhMqHpD+nmCOF
+         Pq1g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1791339480; x=1791944280;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=GXQll5yKwAszJJzdt/Gj5gkr0StYojizfaIPuW3tx5I=;
+        b=2jeiWns+GoA6ppRbhsyscgvJYTE3IZpgAWTLj41n0PzarTY1B+yX+ZnZrJO+t3NYUr
+         F0Yt6IKX/1kdDuaUMA3dl6o2ffUdGWkBA3brwWC0jYeq3LhUu5NA6n5sR3vvQORtfhr/
+         1EyewxK0IQ7sx2yn9a+2UUmrLTuRNVj96J0rG9fLRUnkKyHgrbAWaI+VhP3N9ztL+ljc
+         CNcD+3z2W9lR/v7Vngkk9r14U9+bwaOM1tKuOJkA1TpC9+hkBPQYkHcGjjykMaU/St27
+         4IJqSsUmDzYIS/an5Wk9vIkMl2bZkH1QUONA0xLYR6vMGtImX0wvlHRDZc6PF2180S4N
+         3MoA==
+X-Forwarded-Encrypted: i=1; AKwUvBzl3bmjUDSpdK/7RdzW2xV0KfqalISKqPPUnf5AOaj+8KsXHOLA53PcWo26MtNJihieGURDCNGRsBPy@vger.kernel.org
+X-Gm-Message-State: AFuF++nyZO3/XIIsnQYu/iefvyYr0KNzH3LrmMetFZ4Ovtn7RBcBcgyp
+	d/n3V22m0wN65bL9jGnH1xBLkU5E39iTkFK0Fos9kPIP2fthm4vN2R/qNXAglgo37od/GsUg46F
+	BrePhxMwJFXHuAoozWbbcaQ0XJt0hEDw=
+X-Gm-Gg: AYBFou14brZvxzECtx6pMJgaW3XtTh2AoSD8dBoj9QuNvD9XkO30l39wFMGHR/FyOoO
+	IMOIziNHFxmvOxwp9yUqddkMgrOjmGyZTT/snJDJtGL0yAkJRPuDbFEGP3fnvYAUUrlfPq1i5c/
+	TbkPHRcbF1ke0EKl3YP1Uhf1qHd/ScXeCQeoZoFT+Nid9TywDHdj4eQyu9vMyptThyTFw42ImZM
+	YYYFu1Ydb4u9hbQwd1n/RSZcH15FwjFAd3GEZC+5dqptwBFUDxocA0VOjMTinknfbmnRYFntpZP
+	5uAbGCbwTcijwrYmqOhy5H1HxiXMSsZXMl1K8D54k5tFGebM4QTBYV322Q==
+X-Received: by 2002:a05:600c:19cd:b0:4a0:62d:4424 with SMTP id
+ 5b1f17b1804b1-4a180311245mr8251415e9.8.1791339479862; Tue, 06 Oct 2026
+ 19:17:59 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: A8p1gvDKPv03
-Date: Tue, 06 Oct 2026 16:27:11 +0000
-From: "Chuck Wolber" <chuck@wolber.net>
-To: "Marco Elver" <elver@google.com>
-Cc: kasan-dev@googlegroups.com, nathan@kernel.org, akpm@linux-foundation.org,
- anton.ivanov@cambridgegreys.com, oberpar@linux.ibm.com, ardb@kernel.org,
- arnd@arndb.de, bhelgaas@google.com, bp@alien8.de,
- dave.hansen@linux.intel.com, dvyukov@google.com, hpa@zytor.com,
- jinghao7@illinois.edu, johannes@sipsolutions.net, jpoimboe@kernel.org,
- justinstitt@google.com, kees@kernel.org, kent.overstreet@linux.dev,
- linux-arch@vger.kernel.org, linux-efi@vger.kernel.org,
- linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-trace-kernel@vger.kernel.org, linux-um@lists.infradead.org,
- llvm@lists.linux.dev, luto@kernel.org, marinov@illinois.edu,
- masahiroy@kernel.org, maskray@google.com, mathieu.desnoyers@efficios.com,
- mhiramat@kernel.org, mingo@redhat.com, morbo@google.com,
- "Nick Desaulniers" <ndesaulniers@google.com>,
- "Paul E. McKenney" <paulmck@kernel.org>, richard@nod.at,
- "Steven Rostedt" <rostedt@goodmis.org>, samitolvanen@google.com,
- tglx@linutronix.de, tingxur@illinois.edu, tyxu@illinois.edu,
- wentaoz5@illinois.edu, x86@kernel.org, peterz@infradead.org,
- "Sasha Levin" <sashal@kernel.org>,
- "Aleksandr Nogikh" <nogikh@google.com>,
- "Taras Madan" <tarasmadan@google.com>,
- "Alexander Potapenko" <glider@google.com>
-Message-Id: <41913a77-5c57-4967-8166-765dd5dde1bf@app.fastmail.com>
-In-Reply-To: 
- <CANpmjNOaykC4McAj=gZghqPSQc9aGBP_CjgKmp3n2yjeJTxDSA@mail.gmail.com>
-References: <00ed0b57-ad05-4c5d-b152-7c81df94b23a@app.fastmail.com>
- <CANpmjNOaykC4McAj=gZghqPSQc9aGBP_CjgKmp3n2yjeJTxDSA@mail.gmail.com>
-Subject: Re: [PROPOSAL] Replace gcov and kcov with llvm-cov
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+References: <20261002151757.3605081-1-kunwu.chan@gmail.com>
+ <20261002151757.3605081-2-kunwu.chan@gmail.com> <asO4ey3X6JK0IzlY@localhost.localdomain>
+In-Reply-To: <asO4ey3X6JK0IzlY@localhost.localdomain>
+From: KunWu Chan <kunwu.chan@gmail.com>
+Date: Wed, 7 Oct 2026 10:17:48 +0800
+X-Gm-Features: AclHuK-tHY6YeG6Ua4SUi-gCDEbMeVVo3yQ2NB_FnxZ7-i_GlcPQuqP0AElsGHs
+Message-ID: <CAN_Opa8NjWEpz1wbsBEmyCQ=q3nqrUaYiVa-nbsiOEXPdAwWRg@mail.gmail.com>
+Subject: Re: [PATCH v2 1/2] rwonce: Add READ_ONCE_THIS_CPU() and WRITE_ONCE_THIS_CPU()
+To: Frederic Weisbecker <frederic@kernel.org>
+Cc: arnd@arndb.de, anna-maria@linutronix.de, mingo@kernel.org, tglx@kernel.org, 
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	"Paul E . McKenney" <paulmck@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Tue, Oct 6, 2026, at 4:10 PM, Marco Elver wrote:
-> On Tue, 6 Oct 2026 at 17:14, Chuck Wolber <chuck@wolber.net> wrote:
->>
->> Stemming from some hallway track conversations with maintainers at LPC
->> 2026, I propose replacing gcov and kcov in the kernel with llvm-cov.
+On Mon, Oct 5, 2026 at 10:47=E2=80=AFPM Frederic Weisbecker <frederic@kerne=
+l.org> wrote:
 >
-> I know the origin of the discussion, and wanted to chat, but I guess
-> that didn't happen and instead we get this proposal. It would have
-> been good to understand the requirements of users of gcov and kcov
-> (more below).
-
-No problem, I still plan to seek you out to discuss this further. I just
-wanted to get the discussion going in case there was a broader set of
-opinions on this matter.
-
-
->> We have a set of patches [1] that implements kernel based llvm-cov.
->> They need to be updated and some additional patches are required to
->> address some stubs that are missing noinstr annotation. But otherwise
->> I should be able to send a full set of patches (including taking on
->> the maintainer role) to remove gcov and kcov and replace it with
->> llvm-cov in fairly short order.
+> Le Fri, Oct 02, 2026 at 11:17:55PM +0800, Kunwu Chan a =C3=A9crit :
+> > Per-CPU variables are sometimes accessed from different execution
+> > contexts on the same CPU, typically task context and an interrupt or
+> > NMI handler.
+> >
+> > A plain READ_ONCE() or WRITE_ONCE() marks such an access as an
+> > intentional race but does not express where the racing accesses are
+> > expected to come from. This distinction allows concurrency tools such
+> > as KCSAN to tell an intentional same-CPU context race apart from an
+> > access that may race across CPUs.
+> >
+> > Add READ_ONCE_THIS_CPU() and WRITE_ONCE_THIS_CPU() to identify accesses
+> > to a per-CPU variable which are intended to race only with accesses
+> > from other execution contexts on the same CPU. For now, they are
+> > simple wrappers around READ_ONCE() and WRITE_ONCE(), so generated code
+> > and tool behaviour are unchanged.
 >
-> The hallway chat was supposed to figure out if there's a way to bridge
-> some of the gaps, but jumping the gun like this without having
-> addressed the requirements of kcov users does not make any sense at
-> all.
-
-I totally agree, and I am still up for that discussion.
-
-
->> If there is a desire to take this in pieces or implement other
->> intermediate steps, let me know. Otherwise I can generate a
->> monolithic set all at once.
->>
->> [1] https://lore.kernel.org/lkml/20240905043245.1389509-1-wentaoz5@illinois.edu/
+> But there is a plan to handle that with KSCAN, right?
 >
-> llvm-cov is generally useful to have; llvm-cov is closest to gcov, so
-> that might make sense to replace.
-
-Swapping llvm-cov for gcov to start with is pretty straightforward, so I
-can aim my initial patch set there.
-
-
-> KCOV, however, cannot be replaced by llvm-cov. KCOV isn't a coverage
-> reporting tool for users, it's a low-overhead interface for fuzzers
-> (syzkaller/syzbot and many others). llvm-cov has no equivalent of:
+> If so:
 >
-> - per-task and remote (kthread/softirq/USB/vhost) coverage collection
-> (to avoid polluting coverage with concurrent tasks);
-> llvm-cov counters are global and polluted by everything else running;
-
-Correct, and I have pondered some ideas for doing exactly that, but they
-would be quite experimental at this time. The patches come with the
-ability to clear the counters so that specific tests can be run, but
-that is still monolithic. I would love to discuss the potential for
-other methods of masking coverage so we can get granular results.
-
-
-> - ordered PC traces (edge signal) and comparison operands (TRACE_CMP);
+> Acked-by: Frederic Weisbecker <frederic@kernel.org>
 >
-> - performance: a per-task mmap'd buffer reset with one store, vs.
-> reading/resetting
-> megabytes of global counters after every program;
->
-> - GCC support (we may want to keep at least one GCC-supported coverage tool).
->
-> It's also UAPI (include/uapi/linux/kcov.h), with existing users.
-> syzkaller heavily relies on KCOV's features above to achieve good
-> performance and coverage; there's no reasonable way today to migrate
-> to anything else.
->
-> As-is, NAK on removing KCOV. Consider replacing gcov with it.
 
-Understood. I will focus on replacing gcov for now, and I am interested
-in exploring what else is possible.
+Hi Frederic,
 
-Thank you,
+Yes, that's the plan. Thanks for the Ack!
 
-..Ch:W..
+Best,
+Kunwu
+
+> Thanks.
+>
+>
+> >
+> > Suggested-by: Thomas Gleixner <tglx@kernel.org>
+> > Suggested-by: Paul E. McKenney <paulmck@kernel.org>
+> > Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
+> > ---
+> >  include/asm-generic/rwonce.h | 11 +++++++++++
+> >  1 file changed, 11 insertions(+)
+> >
+> > diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.=
+h
+> > index 52b969c7cef9..4d4e009a4489 100644
+> > --- a/include/asm-generic/rwonce.h
+> > +++ b/include/asm-generic/rwonce.h
+> > @@ -61,6 +61,17 @@ do {                                                =
+                       \
+> >       __WRITE_ONCE(x, val);                                           \
+> >  } while (0)
+> >
+> > +/*
+> > + * {READ,WRITE}_ONCE_THIS_CPU() identify accesses to a per-CPU variabl=
+e
+> > + * which are intended to race only with accesses from other execution
+> > + * contexts on the same CPU, e.g. task and interrupt context.
+> > + *
+> > + * For now, these are simple wrappers around READ_ONCE() and
+> > + * WRITE_ONCE().
+> > + */
+> > +#define READ_ONCE_THIS_CPU(x)                READ_ONCE(x)
+> > +#define WRITE_ONCE_THIS_CPU(x, val)  WRITE_ONCE(x, val)
+> > +
+> >  static __no_sanitize_or_inline
+> >  unsigned long __read_once_word_nocheck(const void *addr)
+> >  {
+> > --
+> > 2.43.0
+> >
+>
+> --
+> Frederic Weisbecker
+> SUSE Labs
