@@ -1,179 +1,142 @@
-Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
+Received: from fout-a5-smtp.messagingengine.com (fout-a5-smtp.messagingengine.com [103.168.172.148])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 766644734E2;
-	Wed,  7 Oct 2026 10:20:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.156.1
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 89E7B4A2E2E
+	for <linux-arch@vger.kernel.org>; Wed,  7 Oct 2026 10:50:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.148
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791368448; cv=none; b=aiFcoR1siB8K98D3FnnYIdxWecaWMloZySPMgnpICxn2wmesu5iRGC5pHvwYdY4iG50TaAjLMaNZg2semfiHeqj1YPL6LWbzqFADvdYtH3FccRJXrJFecfHTYDPNLHKnOrM6sw8BBM7wpn+NjMXBm78/0O2G26GPJfyfbpE8kfE=
+	t=1791370280; cv=none; b=sl9kTebBBi37tC4ky+GkiqxS5OM8njRrJLNBRD2ziGAxEyw69WSUNWy5wJtedS/9tKkMmfHFe9Oi1Lgcj9PcSOv4MS08fDt4AvYefrCyeuhGbX5g72g3DAL/qDtfcxXMPi+Cq+5xK+/p+iktzhoQlKgLe5rNqm95A3/BsMy1eYQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791368448; c=relaxed/simple;
-	bh=oHOJ6V3AzctG/+9MGXJ3TR6/jLfcvNp5QEjrWq9t0v0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=FuVikIch8e6tlDfxjHNK/Dnofg8klDBvgV6ENdSDi7leC936AXmkUcyIR0jTijaF93zOjqPlJjxhoR+NVwjiJujxEbLQyViHa1S3OojwAe9RGH+TamrhLT9gBEXPuShFXBRvfmA+q+N7DaZ/v5ekBPaAQYpyOZfDMuD1MuYNJpE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=GSgrkL4l; arc=none smtp.client-ip=148.163.156.1
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
+	s=arc-20240116; t=1791370280; c=relaxed/simple;
+	bh=tUvTRzVcNc49ZvK3Xd4e3G3ohTQ2V8/eGQTEBw6pJ40=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=buC4pLiSNCal/YBoen8vHwESpAqa2EZfRt7alRn8KaxCS0UTgeTN5LMU44rP02PXnwKJkLOvoCps42gCBb/oxBSg3RlTemg6TV02WDNkc57XsC83f9w2ZU7UPymE51IoFxaK54Po9Fw+5V86k0jro06yEP+AoSpry50rI1e/+Eg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=luxpz+JK; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=BpBVawMx; arc=none smtp.client-ip=103.168.172.148
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="GSgrkL4l"
-Received: from pps.filterd (m0360083.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 69785tAo2036290;
-	Wed, 7 Oct 2026 10:19:59 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
-	:content-transfer-encoding:content-type:date:from:in-reply-to
-	:message-id:mime-version:references:subject:to; s=pp1; bh=YY+zk0
-	nU+A0l4J58B95lMyurynE62aQZxet1k0dyhyM=; b=GSgrkL4lWrvc6pmaE8+y72
-	3rpOyQcQeaVotBo7WrK/DrqQfjwXJ5TllkjGaYOdB4XPQ4RLqVpuUv0K/WIVCAS4
-	tQleEDKfRPZuE6Y6ATBMqDnfi/oKfczpmPseqIvTNJV/M0NADUh0L5gsgoMpjh8Y
-	PdwpaUOB/h/NiFWwq2ttDRgTIntSkTJ9xNm255OvEzwJ5smyoRjI/XsgtrRsloqX
-	0Yel3xPiwqa7Mx2/nisA8+LH8eUdeQSvLRXRm5WiOrb63ISvkF0bVkjPq7lvWEix
-	QaKbmYWjHR0vwU0KVT4K9+suPp+m60MLIZj0AC3zJy0IF4vyMBcyXUsMoNu+F1CQ
-	==
-Received: from ppma13.dal12v.mail.ibm.com (dd.9e.1632.ip4.static.sl-reverse.com [50.22.158.221])
-	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4h2s74vwqv-1
-	(version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-	Wed, 07 Oct 2026 10:19:58 +0000 (GMT)
-Received: from pps.filterd (ppma13.dal12v.mail.ibm.com [127.0.0.1])
-	by ppma13.dal12v.mail.ibm.com (8.18.1.11/8.18.1.11) with ESMTP id 6977lV5s317050;
-	Wed, 7 Oct 2026 10:19:57 GMT
-Received: from smtprelay07.fra02v.mail.ibm.com ([9.218.2.229])
-	by ppma13.dal12v.mail.ibm.com (PPS) with ESMTPS id 4h5f3ts2yv-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Wed, 07 Oct 2026 10:19:57 +0000 (GMT)
-Received: from smtpav05.fra02v.mail.ibm.com (smtpav05.fra02v.mail.ibm.com [10.20.54.104])
-	by smtprelay07.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 697AJqSW48431502
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 7 Oct 2026 10:19:53 GMT
-Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id DA0BF2005A;
-	Wed,  7 Oct 2026 10:19:52 +0000 (GMT)
-Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 0E54D20040;
-	Wed,  7 Oct 2026 10:19:52 +0000 (GMT)
-Received: from [9.111.61.139] (unknown [9.111.61.139])
-	by smtpav05.fra02v.mail.ibm.com (Postfix) with ESMTP;
-	Wed,  7 Oct 2026 10:19:51 +0000 (GMT)
-Message-ID: <bd5201d9-19bb-410e-8954-6c53a5aeb753@linux.ibm.com>
-Date: Wed, 7 Oct 2026 12:19:51 +0200
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="luxpz+JK";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="BpBVawMx"
+Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
+	by mailfout.phl.internal (Postfix) with ESMTP id D6A83EC03BF
+	for <linux-arch@vger.kernel.org>; Wed,  7 Oct 2026 06:50:45 -0400 (EDT)
+Received: from ams-imap-03 ([10.64.2.23])
+  by ams-compute-02.internal (MEProxy); Wed, 07 Oct 2026 06:50:45 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm1; t=1791370242;
+	 x=1791456642; bh=tUvTRzVcNc49ZvK3Xd4e3G3ohTQ2V8/eGQTEBw6pJ40=; b=
+	luxpz+JK/so1T4nu5eVbt+zi5bbCWMXh7XfVsjY+pEIkTmttnuG2eHDakOcyI1hS
+	5OS3e5I4EiWEq5pWFubWi83IOGZhIPLLupLiyPbggpB/r1LxNuoTJsnosIfN0spj
+	yIvXLpQ9GS5/b486K0wRIXIGEolat52MujsVWStlbKxm8bTf30StkHHj/knj9Kp7
+	w8AO5gFkEH6nv2a2jU/OA2PUGUzXsIAjzexWD6OjnCBcW3w22FSnKCmapmWnuL6g
+	D6Us7/tmpJgGSSQho3BvLTa9KB4ZWI+zEg5pSU4Z18zPp/EzNUw6zI2dYe+yBljc
+	sZ1mQGY97s/3PPqJCQwAGg==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1791370242; x=
+	1791456642; bh=tUvTRzVcNc49ZvK3Xd4e3G3ohTQ2V8/eGQTEBw6pJ40=; b=B
+	pBVawMxj7pQn0MOAGXjomdjs4Upd0nXrOLr2Xw6e327Dq43F9G8w5nGB6vjrGPuf
+	IS1nMz/dTpK7E8Z5HM3mkySkEl+XAUW805eYmGK42dMtr6gSF2KauNll2ZB9MmHI
+	NIq/no/AP0s6pLsObf2HtGzFbJEM8wY67VAKM+uLgSffbxECf5ny/2l4B9xKUdA+
+	6zlBlT7+FosxJ77oUHMkdgszH4FAyHVaCAYZpCGm9VMAnhqow7Jvg/BPtjsuh+lz
+	nmlZBQg8wePjhl44FwOq74othf9oAvvqXkk1aoba8Yt+M6cPSmEEv9EcVKrrZB8S
+	sZJgIufs/3+RVLxElOHbA==
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
+	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
+	action=sign d=arndb.de a=rsa-sha256;
+DKIM2-Signature: i=1; m=1; t=1791370242; d=arndb.de;
+	mf=PGFybmRAYXJuZGIuZGU+;
+	rt=PGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnPg==;
+	s=fm1:rsa-sha256:iL3a7I9inS84ovJhnKhZxiCfe0H+9kxQd7CxuDYYv2iUHTX
+	XWa3lLsgI1RJJ4p8+VttGZnoq7jbf4rV7OZEEB2KZFrpPUMoahC0VQ2IPOX8E5j8
+	AFEv4nb4Cf4OBs+ydTUOIfsVpi1BvePYOKuN5Jb6yFGmNtOmrHwA95AUhGHbpNDL
+	CQWSQRKlfC+PAvFaMoCJyNWM+NYlPAaa3aWf3y+5fEiiJZpCf62+TCuR2RLm7QEd
+	ZFQnvuSzKtv6sQVrE9t3YoO+CWhrAMxnrmGt/v9rYImVStryyytrvKn0pg6Aq8JD
+	B565EDSOarPJc1di8cUlpArDJH8FlYnuwlCLpPQ==;
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
+	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
+	action=mi-m=1; hc=12;
+	hn=cc,content-transfer-encoding,content-type,date,feedback-id,
+	from,in-reply-to,message-id,mime-version,references,subject,to;
+Message-Instance: m=1; h=sha256:nd24rqhvMwr6YzhdLjP9PgBHBvlm6O2Q6PbWisaeCY4=:tUvTRzVcNc49ZvK3Xd4e3G3ohTQ2V8/eGQTEBw6pJ40=;
+X-ME-Sender: <xms:_yPGatu7HrdFc6uxI1K-ZwjUIsEx59CiUXODR-AweqoAvTJsieAGZg>
+    <xme:_yPGahSST4h6fmscfkV81xV4YxKGAD57U1TmYZNDXRsrXY9isk3zfuThUtn3LkQUl
+    O8p05otqlpBw7KyWqC3HulwEM1YgfvkqhFT5wfGEUVkkKB3m_ibB6g>
+X-ME-Proxy-Cause: dmFkZTGRqXlOKiOoDNay6f9ANtWsHoTGY+XwXgCCKh9gl3enreMC84wkqMt99EzViSemkP
+    f5ODRap5IDJUixiJdxjgKS1q8T+wTFM4ZKUK8Ym2GdQa+ZzJWidwn0WVVRzf8mAK0rRLim
+    DN3+sSy4M3BCbOagBm90WzMDH/p41rnf9QH7x4VHabUq/pN0qo1wPwsILS+Ggbn7Lko7I5
+    WnpKUE4mRZIcYGd5xYzbr9n4apO6jh7PyhucM3qwYQKJBp59KOPtJZ+4b+cn3mF3FPJPZy
+    Y8VbmbX43AkBSHFMt+fxNmlHXVFDp+PV1frtvEINe3dHG6zmd7DCzzkd2x6O+NTblPt5tP
+    NbPea+Fn4c85gW8592lRLC1KYTG10wbsSyu8v4KNUsqiz+dpnR+6TWfTPSfFL98in2k1qH
+    cnDS95RvWknhOVUccMvy7Tc7HFtQly5KuxdIwXeTcUnlIvNgGeumq18/gxdzp4NnY47SQc
+    H56ufF9wPjRTMgN1Jve3uY0mjPNpmQUIaha/vzoLWKbaQLMuMXmDlRcDnHRB0t51XUkO4+
+    LJ6tHiTITG3O4OnKW8ChQ/wg3jgZdzFO05ePlx+PoTApBBXvsk8WLwZpy5fGsQQlW7jd7f
+    dae/G+MvGK6MNVp5YN1phNQdVGHmewdLXB+813nh3rJcN6GOCc0ca/OoDYzg
+X-ME-Proxy: <xmx:ACTGahOpBMJGAKDZ5a-BeysouPXRJgxeDkR0coSpRrbVUA-zAQMxFA>
+    <xmx:ACTGav8MHwSXI-fA_-GbGx2A4mxmmR2nvdvpjE364MppycIyAB4gaQ>
+    <xmx:ACTGaifzvEaaYiiwuVStMMCGpj7OcYDpLXh2RPgZwA5Jtq1CvYreiA>
+    <xmx:ACTGauxxkA3eodhaHcg_tfrv7CdrcZz3XO9BQ4QCKJTItJqZOdC4rg>
+    <xmx:AiTGarX01y-UF7xY2LNEQPV_1PlP1OEtWdx3TEb5zTD2XbNEBREEE34a>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.ams.internal (Postfix, from userid 501)
+	id 79C8132A0093; Wed,  7 Oct 2026 06:50:39 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH v3 07/13] s390/topology: Initialize sbm topology
- during topology_init_early()
-To: K Prateek Nayak <kprateek.nayak@amd.com>,
-        Peter Zijlstra <peterz@infradead.org>, Chen Yu <yu.c.chen@intel.com>,
-        Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@redhat.com>,
-        Juri Lelli <juri.lelli@redhat.com>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, linux-mips@vger.kernel.org,
-        loongarch@lists.linux.dev, driver-core@lists.linux.dev,
-        Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
-        Alexander Gordeev <agordeev@linux.ibm.com>
-Cc: Dietmar Eggemann <dietmar.eggemann@arm.com>,
-        Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>,
-        Mel Gorman <mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>,
-        Shrikanth Hegde <sshegde@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@linux.ibm.com>,
-        Sven Schnelle <svens@linux.ibm.com>
-References: <20261001192849.74788-1-kprateek.nayak@amd.com>
- <20261001192849.74788-8-kprateek.nayak@amd.com>
-Content-Language: en-US
-From: Mete Durlu <meted@linux.ibm.com>
-In-Reply-To: <20261001192849.74788-8-kprateek.nayak@amd.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
+X-ThreadId: A2-lVq8nTGlc
+Date: Wed, 07 Oct 2026 12:50:18 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Kunwu Chan" <kunwu.chan@gmail.com>,
+ "Anna-Maria Gleixner" <anna-maria@linutronix.de>,
+ "Frederic Weisbecker" <frederic@kernel.org>,
+ "Ingo Molnar" <mingo@kernel.org>, "Thomas Gleixner" <tglx@kernel.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org,
+ "Paul E. McKenney" <paulmck@kernel.org>
+Message-Id: <66d8d340-ff50-4fcb-bf19-05fa68c27238@app.fastmail.com>
+In-Reply-To: <20261007022859.60101-2-kunwu.chan@gmail.com>
+References: <20261007022859.60101-1-kunwu.chan@gmail.com>
+ <20261007022859.60101-2-kunwu.chan@gmail.com>
+Subject: Re: [PATCH v3 1/2] rwonce: Add READ_ONCE_THIS_CPU() and WRITE_ONCE_THIS_CPU()
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-X-TM-AS-GCONF: 00
-X-Proofpoint-Reinject: loops=2 maxloops=12
-X-Proofpoint-ORIG-GUID: ffY6TLKTpffrTfFwXFbRf4wLqXGAb6-j
-X-Proofpoint-Spam-Info: AW1haW4tMjYxMDA3MDA0MCBTYWx0ZWRfX5YvUepf/U6OC
- FaGTWFpY1HrJave3vicTixr+fQ++9GqfU+3Zs3xMBvOA7U18g4ewllijqqjZRqTNSafqGvYfSI2
- wa/wcMb0rojmjOsrymp/srPPFUVCpHo=
-X-Proofpoint-GUID: Tbz9hU4FADE_uXqR6VBUuc00GL4SXDgo
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYxMDA3MDA0MCBTYWx0ZWRfX00U2nwqsffsr
- JT1pX+wU2mYPlMFpB5UhX49I2QLaW5KljBowrcfIidPfJZKyN4kjMviAR0tjoJkpFtkF41hfR9F
- zHKylZ85W09CAFxl4I4ZwkQ3ueJld+uJTg1Cf6nvaHLesQoDB8D3fyDo7MoGFk0MU8QFYUVAdSu
- rk3wneyhGtd1rYsppgxJdu0ZSVI5aajd3Mw4ENg1EKDyProGlZnJHzWvmSW+25C8XbWCGdDaf80
- NTOYWtoXZVr86oeSKRXt+xAjChyINKVjCo0RF6l3mnXf1LxrLO1es0XbzuO/AFx6CyoEG1PHzpF
- kEZ4pNc1nIWQYG8GltklzFwzSwCVVZ72cr5pbYOPMAm36ByfzqkjvyVFUTWrpPMgjV0wRc3eZl/
- zqwbfDUzbowD3vBO5g8qeQ2jwDePDt5xS9f1lNMq5FJN0/U52QHOTKwggp6lmJ5oVq9w6kkzyLG
- yVMV1dy1jBmPwuMLWfw==
-X-Authority-Analysis: v=2.4 cv=fM2sTpae c=1 sm=1 tr=0 ts=6ac61ccf cx=c_pps
- a=AfN7/Ok6k8XGzOShvHwTGQ==:117 a=AfN7/Ok6k8XGzOShvHwTGQ==:17
- a=IkcTkHD0fZMA:10 a=660iZSQnnn4A:10 a=VkNPw1HP01LnGYTKEx00:22
- a=RnoormkPH1_aCDwRdu11:22 a=iQ6ETzBq9ecOQQE5vZCe:22 a=zd2uoN0lAAAA:8
- a=Ljveq5rUL1csS5QuFncA:9 a=QEXdDO2ut3YA:10
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1176,Hydra:6.1.134,FMLib:17.12.100.49
- definitions=2026-10-07_03,2026-10-06_03,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- impostorscore=0 bulkscore=0 priorityscore=1501 spamscore=0 lowpriorityscore=0
- phishscore=0 adultscore=0 malwarescore=0 clxscore=1011 suspectscore=0
- classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
- reason=mlx scancount=1 engine=8.22.0-2609040000 definitions=main-2610070040
 
-On 01/10/2026 21:28, K Prateek Nayak wrote:
-> When the topology mode is TOPOLOGY_MODE_HW, topology_init_early()
-> already parses the set of socket present on the system.
-> 
-> Use the socket_info to configure the sparsebitmask (sbm) properties for
-> the system - namely the number of sockets and maximum threads in a
-> socket instance.
-> 
-> arch_sbm_cpu_instance_id() traverses all socket instances to find
-> a matching CPU which is not optimal but instance ID is only checked
-> when the CPU is coming online. Since this is a rare event, the
-> inefficiency is tolerable.
-> 
-> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
-> ---
-> Build tested with LKP's s390 randconfig with QEMU cmdline:
-> 
->    qemu-system-s390x \
->    -cpu max \
->    -smp 2 \
->    -m 2048 \
->    -kernel ./arch/s390/boot/vmlinux  \
->    -append "console=ttyAMA0 earlycon ignore_loglevel log_buf_len=10M print_fatal_signals=1 LOGLEVEL=8 sched_debug" \
->    -nographic
-> 
-> Note: Since ctop needs KVM acceleration to emulate TOPOLOGY_MODE_HW, the
-> actual spasemask setting is only build tested at the moment.
-> 
-> XXX: Any way around this using cross-compile and QEMU?
-> ---
->   arch/s390/kernel/topology.c | 52 +++++++++++++++++++++++++++++++++++++
->   1 file changed, 52 insertions(+)
-> 
-> diff --git a/arch/s390/kernel/topology.c b/arch/s390/kernel/topology.c
-> index 1377c6f3f670..80dc51f5ce6f 100644
-> --- a/arch/s390/kernel/topology.c
-> +++ b/arch/s390/kernel/topology.c
-> @@ -20,6 +20,7 @@
->   #include <linux/init.h>
->   #include <linux/slab.h>
->   #include <linux/cpu.h>
-> +#include <linux/sbm.h>
->   #include <linux/smp.h>
->   #include <linux/mm.h>
->   #include <linux/nodemask.h>
-> @@ -561,6 +562,55 @@ static int __init detect_polarization(union topology_entry *tle)
->   	return tl_core->pp != POLARIZATION_HRZ;
->   }
+On Wed, Oct 7, 2026, at 04:28, Kunwu Chan wrote:
+> Per-CPU variables are sometimes accessed from different execution
+> contexts on the same CPU, typically task context and an interrupt or
+> NMI handler.
+>
+> A plain READ_ONCE() or WRITE_ONCE() marks such an access as an
+> intentional race but does not express where the racing accesses are
+> expected to come from. This distinction allows concurrency tools such
+> as KCSAN to tell an intentional same-CPU context race apart from an
+> access that may race across CPUs.
+>
+> Add READ_ONCE_THIS_CPU() and WRITE_ONCE_THIS_CPU() to identify accesses
+> to a per-CPU variable which are intended to race only with accesses
+> from other execution contexts on the same CPU. For now, they are
+> simple wrappers around READ_ONCE() and WRITE_ONCE(), so generated code
+> and tool behaviour are unchanged.
+>
+> Suggested-by: Thomas Gleixner <tglx@kernel.org>
+> Suggested-by: Paul E. McKenney <paulmck@kernel.org>
+> Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
+> Acked-by: Frederic Weisbecker <frederic@kernel.org>
+> Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
 
-topology_init_early() is called once during early boot and never again.
-Considering that s390's topology can change during runtime this
-implementation won't work as sbm won't be able to adapt.
-On s390 max_threads_per_instance can change during runtime.
+No objections here, but since I missed the background, I don't
+see what a future implementation of the new macros might do
+that is different from the existing macros, maybe you can still
+clarify that.
 
-Like sashiko pointed out, this approach also does not consider
-any newly added cpus.
+For taking this through something other than my asm-generic tree:
 
-IMHO, there is a slight redesign required so that smb_set_topology()
-and smb_init() can be called each time a topology rebuild is necessary.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
