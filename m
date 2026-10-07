@@ -1,239 +1,192 @@
-Received: from SN4PR2101CU001.outbound.protection.outlook.com (mail-southcentralusazon11012021.outbound.protection.outlook.com [40.93.195.21])
+Received: from flow-a6-smtp.messagingengine.com (flow-a6-smtp.messagingengine.com [103.168.172.141])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1DF3A3B3C1F;
-	Wed,  7 Oct 2026 03:52:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.93.195.21
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791345162; cv=fail; b=rQBpmlqK+NZFTUKhQVZNInRdLEoOq2EyKM8wuu1OgOCNiJFuCm6cAkECTF/3Gk9bRbrJw4Lo8KgDJgGOnVu8EUS7pI1NbPGYLw/Q1Y3y1bYH8jzUbKrfSkA7Lo2rNcGb2n4OFBjzJNuqFDsgHYbz1xmUmHVsSsRYcQiDpQHLcLE=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791345162; c=relaxed/simple;
-	bh=eyDP2anxbMtdTWAl4YEruceABPhuTc6vpoa81p1GlWY=;
-	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=k5XZ3+h6PRyG5WsY0nouVXVtvEN6HDgoxdKhGJBntSNuCbkjQFGYiOau1pyn3ps61b2QU8We09e+G/cJTy7DCPx9a9htzx7WVjYWixKRxiBzGVh5DiT9LFRpoQnsLAsCxWR/+a0GVmOqt43mS5kswBz6EGgjSu6QAWnRUUtxxX8=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com; spf=fail smtp.mailfrom=amd.com; dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b=2FwSWsTa; arc=fail smtp.client-ip=40.93.195.21
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=amd.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 613DF3546C4
+	for <linux-arch@vger.kernel.org>; Wed,  7 Oct 2026 04:18:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.141
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1791346688; cv=none; b=q6vzbVBWP4DaH+UIbzvvntaBdNBcqnMePW2DzPeX8VuDsZ9fesTplvNn3IJnw6YKwk1ZB8Dc7fU4B5tdQK+xCdLje7AeoDgkuW9oCqE7jaeOy86/rblhOhs1VXe06eTTZrKjfQZ51qDiCi3QQ+4YRNf6WnM4CAJB4sXW5ONI89I=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1791346688; c=relaxed/simple;
+	bh=9S5NccjG3n1fFQc9t/+Xwyj0iezJs8kEGC0cyk8cO98=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=e7a2qeuwVreJYJR39+SLlNHhfth1u8Dwg7l6TuqucqARtarr1l8H+cVdCn+SLjpptqdu/DMKt42YU6bhcMdTwefZRts6Qh86WyiU/C665nEybPnkIeh8ewCIT0+oE1Y6G12LHHoCdGVvbn9mG2dzmQD4aOs2Bk08LBktBFMA5ZI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=wolber.net; spf=pass smtp.mailfrom=wolber.net; dkim=pass (2048-bit key) header.d=wolber.net header.i=@wolber.net header.b=IQZA88iK; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=OBqaJc0A; arc=none smtp.client-ip=103.168.172.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=wolber.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=wolber.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b="2FwSWsTa"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=GZTnOVKyULysHXNBNvFNxESFhlOP+uAqJvzPc6aCDoofF56bgvOXU+M8ziSje4TxGt6/9qVs1dKxyOt9a7V+Ljn18xlNAVRJ2ob8IpH9l6HprM/EvmZRCPR3tx0lQkgTRl005lckhzAYT1wfo04V0Tn5fJrcYlfM+zlUOHn+MmvWi3mA2WE9Q1aEl42kJ1skJji89xDdagFfOG7UVEkiiMXUn2d9uPgPqyFg0bY55HpaYc0qFLfKNIMM9qASKyFhybMLWIzn56ceTZndgh1xEmCytFiwCOMJSAsBJu9kmJ8hmbfQ2aM2eegC30PG6mUW2A14EeykNh/EKUeiRJKNug==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=pYfQh2Jwli8K+8LsrUYCpg/4zOqOaeKX4H9VfuHYIu0=;
- b=uLK/+HKbx3Q14gkKIIEpNeItv51RcfwZwOhH3HFLX3r0lVMPtfJvvnq4OAnsALHEUAM+3ATJ4vHuvIm8TYZ9zRLcINoyTAosF/8Ac+HkXol4Iam/8tSdI5CnfTvESpHK38ktqay0vLZ0XVmp7FS7yqByDvxA3zkMU46UOS7u9hx1HSibW5JAZoz2s8G2Xt5Rov8X51QETvQn3ZNkZiaISVc1TNbuCUVQGLf5Aj5i+j2f2Iqzl+ooEqcJJhGBeQsazyle+HDmpgFyFKe+oGQObShe5bTvHkDN1tSnPhBOyGrkThAfSxI28aAVF3ntMzXP16kTeCBLS5JUk5gkrT1u+Q==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass (sender ip is
- 165.204.84.17) smtp.rcpttodomain=infradead.org smtp.mailfrom=amd.com;
- dmarc=pass (p=quarantine sp=quarantine pct=100) action=none
- header.from=amd.com; dkim=none (message not signed); arc=none (0)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=pYfQh2Jwli8K+8LsrUYCpg/4zOqOaeKX4H9VfuHYIu0=;
- b=2FwSWsTaV4G7H6U+akEMDgOPGrQ01xXnFgPYX/2TS4shSxNvf6ahByexTFgO+MUDLiA4d0y1l5rkYwJfvWN4zxRAU+lBnfrBRE1FBjexGtxNGaqyVwdbuTE9r+Wrrekohx0omfqBbypNdR5nrES5OEHaC08OZMkHfdc4YMipl3A=
-Received: from BN0PR04CA0069.namprd04.prod.outlook.com (2603:10b6:408:ea::14)
- by SA1PR12MB9003.namprd12.prod.outlook.com (2603:10b6:806:389::16) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.451.24; Wed, 7 Oct
- 2026 03:52:34 +0000
-Received: from BN1PEPF00018074.namprd04.prod.outlook.com
- (2603:10b6:408:ea:cafe::2a) by BN0PR04CA0069.outlook.office365.com
- (2603:10b6:408:ea::14) with Microsoft SMTP Server (version=TLS1_3,
- cipher=TLS_AES_256_GCM_SHA384) id 15.21.472.20 via Frontend Transport; Wed, 7
- Oct 2026 03:52:34 +0000
-X-MS-Exchange-Authentication-Results: mx.microsoft.com 1; spf=pass (sender IP
- is 165.204.84.17) smtp.mailfrom=amd.com; dkim=none (message not signed)
- header.d=none;dmarc=pass action=none header.from=amd.com;
-Received-SPF: Pass (protection.outlook.com: domain of amd.com designates
- 165.204.84.17 as permitted sender) receiver=protection.outlook.com;
- client-ip=165.204.84.17; helo=satlexmb07.amd.com; pr=C
-Received: from satlexmb07.amd.com (165.204.84.17) by
- BN1PEPF00018074.mail.protection.outlook.com (10.167.245.202) with Microsoft
- SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.21.496.14 via Frontend Transport; Wed, 7 Oct 2026 03:52:34 +0000
-Received: from BLRKPRNAYAK.amd.com (10.180.168.240) by satlexmb07.amd.com
- (10.181.42.216) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.2562.49; Tue, 6 Oct
- 2026 22:52:29 -0500
-From: K Prateek Nayak <kprateek.nayak@amd.com>
-To: Peter Zijlstra <peterz@infradead.org>, Chen Yu <yu.c.chen@intel.com>, "Tim
- Chen" <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Juri
- Lelli <juri.lelli@redhat.com>, Vincent Guittot <vincent.guittot@linaro.org>,
-	"Andrew Morton" <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>,
-	<linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
-	<linux-s390@vger.kernel.org>, <linuxppc-dev@lists.ozlabs.org>,
-	<linux-mips@vger.kernel.org>, <loongarch@lists.linux.dev>,
-	<driver-core@lists.linux.dev>, Thomas Gleixner <tglx@kernel.org>, "Borislav
- Petkov" <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
-	<x86@kernel.org>
-CC: Dietmar Eggemann <dietmar.eggemann@arm.com>, Steven Rostedt
-	<rostedt@goodmis.org>, Ben Segall <bsegall@google.com>, Mel Gorman
-	<mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>, Shrikanth Hegde
-	<sshegde@linux.ibm.com>, K Prateek Nayak <kprateek.nayak@amd.com>, "H. Peter
- Anvin" <hpa@zytor.com>
-Subject: [RFC PATCH v3.1 09/13] x86/cpu/topology: Initialize sbm topology after topology parsing
-Date: Wed, 7 Oct 2026 03:52:20 +0000
-Message-ID: <20261007035220.3839-1-kprateek.nayak@amd.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20261001192849.74788-10-kprateek.nayak@amd.com>
-References: <20261001192849.74788-10-kprateek.nayak@amd.com>
+	dkim=pass (2048-bit key) header.d=wolber.net header.i=@wolber.net header.b="IQZA88iK";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="OBqaJc0A"
+Received: from phl-compute-03.internal (phl-compute-03.internal [10.202.2.43])
+	by mailflow.phl.internal (Postfix) with ESMTP id 851CE1380413
+	for <linux-arch@vger.kernel.org>; Wed,  7 Oct 2026 00:18:05 -0400 (EDT)
+Received: from phl-imap-03 ([10.202.2.93])
+  by phl-compute-03.internal (MEProxy); Wed, 07 Oct 2026 00:18:05 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=wolber.net; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1791346685;
+	 x=1791353885; bh=9S5NccjG3n1fFQc9t/+Xwyj0iezJs8kEGC0cyk8cO98=; b=
+	IQZA88iK7AJYt5pzO6v4OKlxB3zQGobNkO7OIHqiX0niMzVRTeE15KVD7DwHdhm1
+	T3hBM2Guz9u/tqjqQ07x9VU3Y/njy5jetotWs8uJZzcUFYiG9NCTgVA8/RiIovrD
+	x/gAoeKpTtuRHaAhb6qMBxMHOkNCnvd7+9IfWvKpillkzcdHW6pf/pQV3mbawk9r
+	rDrlamaA0yKnZPHZBED087B4lbSvZDyGStLi9VJ+sobUyguSNc+zEIUb+db9eDQR
+	8l7fU9lR06hYhSJITZPxvuoWEFczbVQfGS0iLr0rEb5apEhUffLfVFepmJ51JSXJ
+	0VsXCAY4xXjLdLupZPS49Q==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1791346685; x=
+	1791353885; bh=9S5NccjG3n1fFQc9t/+Xwyj0iezJs8kEGC0cyk8cO98=; b=O
+	BqaJc0AxDCjGpknaYYzeKKbnfIkl50X1+ZQBb60RCaPciCQtFpBBRu42u9/seknA
+	246dvLoNBUIPtHPCJE2SnUPA6zr0i7qmjp/XcS85wRcqBBRohJ3nWiEYakLe7wDy
+	GkIBMxHS1P3gvF76xpM6edc+7jqcrhRVUCnJYdw6eX/i5ObvLhRXNs8GJzKpLpJa
+	7ZZ+T+773L2DXaBLaQqyXPwwsMaBQgWy+lcXd2aU6FQoeu08kPgFmpAYcpvr7Opi
+	QSPRfLpoE8pV4+mBPXHIF25nYhxHofGRgt0UyzAy46jc8K/3DNfsgKi0FmNGah4e
+	PyzQy0wRu7aWDswkueJXw==
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
+	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
+	action=sign d=wolber.net a=rsa-sha256;
+DKIM2-Signature: i=1; m=1; t=1791346685; d=wolber.net;
+	mf=PGNodWNrQHdvbGJlci5uZXQ+;
+	rt=PGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnPg==;
+	s=fm3:rsa-sha256:PxfvAUcTp1Agz3GP5HK3ay7t42BT6Ciw2k5LQlBJ9obik0Z
+	jFKzOLL1pgPxrYVYHDIou18QWwi/5pyTn4D4IhElHoGzCuDp8fZyT+Z2UB1MZtL0
+	zhrA/JSsNcnlP8SOjZ1DcituLmniyKy4cV2Pd46x/ws+ZiOhdxgWvY70/t7NpWnY
+	S7ua7YUBAcGooF88QZYipSM8DJwvs26Rydd9LNzql6l/VLRhCNOQBmtf7s7uQs51
+	lfxDpmYkBVfxvfocaLwV79GnsEJRD0b4GoMRAuq89uNta1vDW9jiTebn6JFqU2k6
+	gmiUWQ/ppJ405dYmrko5vfucCR4IfUBqFRB+uDg==;
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
+	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
+	action=mi-m=1; hc=12;
+	hn=cc,content-transfer-encoding,content-type,date,feedback-id,
+	from,in-reply-to,message-id,mime-version,references,subject,to;
+Message-Instance: m=1; h=sha256:69WtHAdzzGt++L0dmN+dpT9JdF3kbS7Kh70yb3qik2c=:9S5NccjG3n1fFQc9t/+Xwyj0iezJs8kEGC0cyk8cO98=;
+X-ME-Sender: <xms:-sfFankfTAViNMv3UaVgC4c0bF7lgovEdmDD_sRDZXzkQMDkyDLGqQ>
+    <xme:-sfFalrwynIQj1LZPsQuJfCtOgQDOh3qGJL5Ht1D6bxg3tkZmYGYqz8Wls_ixoI4W
+    yOq9NoxMqduXWAUvGFM9Q1Oez4If0imMVPLeXkTdr2Q-0pt4Z7WhNUE>
+X-ME-Proxy-Cause: dmFkZTGMWFIAehxsmdq4ynFlrmrbbKja5RPgzcPokhGUAyn4XwkA+/i+RzCPcfSVyyv1sF
+    pvH5x0fdtSQTSOL1Ie1RGCryBqw4p8+JTrlkCzXTJjeB2LTHc2y/IhYfsZc/v7gKPn1GgF
+    LOpV9hAc96CGDI3kIaAH2g4lcCJ8eJO8UaW8jQygRRjRzdD50EOOrRpyv399w60Bpma9hG
+    dbJ/PQRa6wxx5LBjtxjhrUYNvUmb1w23fhUz343gRmuzl0ey4+vwOyNSWO5QE2Gbxpeim3
+    chPU/Ad1oAucTj/8Ox4TZLoFR9dmZED//6gQojakDPoH3DJ6dB4s/Zn7buUz1WHEl0ItdQ
+    jTXho14WghAZB50Nxe0TxBDRIEJ/JOXdG4tdfo59QeG5vvEZmcpCDhr1AGb4rJEVoiKbRA
+    M0C8QvLxZ1tHd8P6Va810oBmIt53Kpqwt31IOTWoV3VKEJR7OshUBbuXxpPJHEcKKeAdR9
+    PMIE1XUDGOXkuBoLXxrnR/Yu7d9M2SJhsr0vP+BEBtSODX6lrEZXZ9fkj4pnyAbFaEtA2k
+    5jZ3Jz2FekmPVGRVXixhFSNiw1uZUCuk6ZD1oj8kcaWlofoxAQzrwvVhsALXOoqfYYXmm9
+    tjR8Q2NiaTcJkwEjLnuU9tBRlaZk8a0X45tOls3RbVeE1JQX1mky/6o+kELg
+X-ME-Proxy: <xmx:-sfFarCebjcIJ7C8C31f800cCyhpG0g0wAfK8PHBEUXN3qDPePrWsw>
+    <xmx:-sfFaq3dnhm_VNN38CWghMHp1GOfYjtWJ93pIek88XAgz6KQD2XU9g>
+    <xmx:-sfFalUbx3PLJSGF---EunyZ0kdq-Sf0NkmApNCdzh0FQlay8lnzmQ>
+    <xmx:-sfFaoxRjhTrC2EHqQUkWimeN4LBGAmXHVrYSa1EOoATTC8ALNDmKQ>
+    <xmx:_cfFajZ_NsPKILnROCJCcMFnrB-e_Q_hRFyKz_eQdfYJutKOPj4EfuIp>
+Feedback-ID: i5cf64821:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id 6407D18E006C; Wed,  7 Oct 2026 00:18:02 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-ThreadId: A8p1gvDKPv03
+Date: Wed, 07 Oct 2026 04:17:42 +0000
+From: "Chuck Wolber" <chuck@wolber.net>
+To: "Masami Hiramatsu" <mhiramat@kernel.org>
+Cc: "Marco Elver" <elver@google.com>, kasan-dev@googlegroups.com,
+ nathan@kernel.org, akpm@linux-foundation.org,
+ anton.ivanov@cambridgegreys.com, oberpar@linux.ibm.com, ardb@kernel.org,
+ arnd@arndb.de, bhelgaas@google.com, bp@alien8.de,
+ dave.hansen@linux.intel.com, dvyukov@google.com, hpa@zytor.com,
+ jinghao7@illinois.edu, johannes@sipsolutions.net, jpoimboe@kernel.org,
+ justinstitt@google.com, kees@kernel.org, kent.overstreet@linux.dev,
+ linux-arch@vger.kernel.org, linux-efi@vger.kernel.org,
+ linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-trace-kernel@vger.kernel.org, linux-um@lists.infradead.org,
+ llvm@lists.linux.dev, luto@kernel.org, marinov@illinois.edu,
+ masahiroy@kernel.org, maskray@google.com, mathieu.desnoyers@efficios.com,
+ mingo@redhat.com, morbo@google.com,
+ "Nick Desaulniers" <ndesaulniers@google.com>,
+ "Paul E. McKenney" <paulmck@kernel.org>, richard@nod.at,
+ "Steven Rostedt" <rostedt@goodmis.org>, samitolvanen@google.com,
+ tglx@linutronix.de, tingxur@illinois.edu, tyxu@illinois.edu,
+ wentaoz5@illinois.edu, x86@kernel.org, peterz@infradead.org,
+ "Sasha Levin" <sashal@kernel.org>,
+ "Aleksandr Nogikh" <nogikh@google.com>,
+ "Taras Madan" <tarasmadan@google.com>,
+ "Alexander Potapenko" <glider@google.com>
+Message-Id: <c84149c4-26c3-476e-93d5-4fe72f7c708b@app.fastmail.com>
+In-Reply-To: <20261007023045.04BD71F0089B@smtp.kernel.org>
+References: 
+ <00ed0b57-ad05-4c5d-b152-7c81df94b23a@app.fastmail.comCANpmjNOaykC4McAj=gZghqPSQc9aGBP_CjgKmp3n2yjeJTxDSA@mail.gmail.com<41913a77-5c57-4967-8166-765dd5dde1bf@app.fastmail.com>>
+ <20261007023045.04BD71F0089B@smtp.kernel.org>
+Subject: Re: [PROPOSAL] Replace gcov and kcov with llvm-cov
 Content-Type: text/plain
-X-ClientProxiedBy: satlexmb08.amd.com (10.181.42.217) To satlexmb07.amd.com
- (10.181.42.216)
-X-EOPAttributedMessage: 0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: BN1PEPF00018074:EE_|SA1PR12MB9003:EE_
-X-MS-Office365-Filtering-Correlation-Id: 480ed2fe-573a-4e0d-12dc-08df24266bb8
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|23010399003|1800799024|82310400026|376014|7416014|36860700016|56012099006|10067099003|6133799003|921020|11063799006|22082099003|18002099003;
-X-Microsoft-Antispam-Message-Info:
-	V+wvNzIUBPxBcE/ZFNIhFTI61gprKRLE9NN4kNFeP7Ecjp8okonTSZnOut6JCuGv5BrNn1lskYR+oTkaY5qk9aWG9den/AcZ1UIXhSG8A3NeqhalSPfF551F8PMtFr2Gkdpz1ysLuDiQ5fUpoDfD8Vpg8lnw8PTb9DF2ttOToPwjvLKDbMHcuy9p1BsDAbvqT95HHH+2cwZtyxjDmgN+BOkkodamQpF54vWNOlfnpeoYgkZeYtUuGZE50LRKQzY7zQdClOkg9DPctjHLzPD28dtulTb8TOh0BL1Jx2UoJD+3UE7K6AT4M6hzzrQD4BbVTe1k/aBiqZ/dFnmrIgtUFR3pqCnxfJffhJh7xnYjcWVmX/2WnWwAEC7OOpRLfsiGSHZGIyDFsGy89vNEWgIm3xLf2OL7gQsI/yjfCfCtFJ1/z0vwcIMS8hfGxw62FPPQPesE+yMRo2qtm7slk4nJnpPkrPU5xDppVRzWCTRq91RbGDq0kCxXBuwf6B7dLh0fEBAzKRX8otv99zHeUfucKcIJAzAdKw0zvtlI3nPjmeRR3DO5l9ufhQcCIYkxCBk8Dxi30lUb5576OMmJbOqCezJvcac6ad5uHuXNYab66GnfgBJcrpDsWJw4zaVrXx5zA1UWtfgvARXc7KbiA4FAR7GlDpywgnpPLFcADMdcDGnZ9CkLydW/NGF2H55nLC9OkqviiAomH6+JYGz62Cn5a55YqrUfqKhkbAs4nGVcYy/Od5YinMgjJ+Uk3mBxnJjg
-X-Forefront-Antispam-Report:
-	CIP:165.204.84.17;CTRY:US;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:satlexmb07.amd.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(23010399003)(1800799024)(82310400026)(376014)(7416014)(36860700016)(56012099006)(10067099003)(6133799003)(921020)(11063799006)(22082099003)(18002099003);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	DA2H36uuTtaDgT+CWCukY6nWRqBEcQMXKOk9N5jLq8ZbzppwF2Y8I3AZ554Qh/WBiKXLHfC8c0Y5TEr+oyCh5yvraxLC2Lljaqb5QuPW4i5N6SSavb/nEzYdErCxq5G26uNoxJ9o0cC2WFAZpiNgnjzJax5K7qvXWaU+oME57KBPb10sSiNadiRKsnfVLnKviNIB2PWNtrTmIJlsfk0AzMyPTlOb9HFeWGBOFgAfLyFlgYpTU36TiApPFxZCc16AgU389OmHU6TE0pua88G4HvRJl572JT+tOjuketzA74RFL7XGbeI22y9f6iz5pnPKhr8C2IxSigTEkNbMDzzkX/f4zJgWf2zfPRgpQtXvI6O7lWBMXoLu8EcjUR7zdAIYzfi830klVsKncZUI4EmN5ZTCqHN9i/l8j2CjB/2ONuDE0Oj5xlIJUf9a3vqQUAgT
-X-OriginatorOrg: amd.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Oct 2026 03:52:34.4180
- (UTC)
-X-MS-Exchange-CrossTenant-Network-Message-Id: 480ed2fe-573a-4e0d-12dc-08df24266bb8
-X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
-X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=3dd8961f-e488-4e60-8e11-a82d994e183d;Ip=[165.204.84.17];Helo=[satlexmb07.amd.com]
-X-MS-Exchange-CrossTenant-AuthSource:
-	BN1PEPF00018074.namprd04.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Anonymous
-X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: SA1PR12MB9003
+Content-Transfer-Encoding: 7bit
 
-From: Peter Zijlstra <peterz@infradead.org>
+On Wed, Oct 7, 2026, at 2:30 AM, Masami Hiramatsu wrote:
+> On Tue, 06 Oct 2026 16:27:11 +0000, Chuck Wolber <chuck@wolber.net> wrote:
+>> On Tue, Oct 6, 2026, at 4:10 PM, Marco Elver wrote:
+>> > On Tue, 6 Oct 2026 at 17:14, Chuck Wolber <chuck@wolber.net> wrote:
+>
+>> >> If there is a desire to take this in pieces or implement other
+>> >> intermediate steps, let me know. Otherwise I can generate a
+>> >> monolithic set all at once.
+>> >>
+>> >> [1] https://lore.kernel.org/lkml/20240905043245.1389509-1-wentaoz5@illinois.edu/
+>> >>
+>> > >> > llvm-cov is generally useful to have; llvm-cov is closest to
+>> > >> > gcov, so that might make sense to replace.
+>>
+>> Swapping llvm-cov for gcov to start with is pretty straightforward,
+>> so I can aim my initial patch set there.
+>
+> Hmm, is it necessary to remove gcov? Would it be difficult to simply
+> add support for llvm-cov and enable (make kconfig selectable) one or
+> the other depending on the compiler?
 
-Once the topology is parsed, the APICIDs of all present CPUs and topology
-shifts are available for use.
+Not strictly necessary, no. And what you are describing is what our
+original patches do.
 
-Use the max APICID encountered during traversal and TOPO_TILE_DOMAIN /
-TOPO_MODULE_DOMAIN shift to determine the maximum number of CPUs that
-can be associated with a single LLC instance and the maximum number of
-LLC instances that can exist on a the processor to initialize
-sparsebitmap (sbm) topology.
+The concern was why we would want to have three separate code coverage
+tools in the kernel. Each has their own way of doing things, and they
+can all live together in the kernel harmoniously.
 
-On AMD heterogeneous processors, the Cache Identifier leaf CPUID
-0x8000001d field "NumSharingCache" give true value of threads sharing
-the cache instance and not the number of bits reserved for a cache
-instance in APICID.
+But the concern was raised so I am trying to find a way forward.
 
-To avoid incorrect calculations, shifts from extended topology leaf
-0x80000026 on AMD and Hygon systems are used to derive the domain
-shifts.
+The llvm-cov approach gives results that are reliably tied to actual
+lines of source, so that is the one I reflexively reach for any time I
+need code coverage. I am at a loss (but definitely willing to be
+educated) as to what value gcov style coverage provides in comparison.
 
-  [ tim.c.chen: TOPO_TILE_DOMAIN / TOPO_MODULE_DOMAIN based
-    initialization. ]
+I also found some interesting possibilities using intrinsics to enable
+boot time tracing with llvm-cov. That is, of course, experimental and
+not something I am considering for the intial patch-set. But it got me
+thinking about broader configurability that supports more granular forms
+of coverage that _may_ address kcov needs in the long term.
 
-  [ kprateek: Commit message. Adapting to new sbm helper. ]
+I have been working on this off-and on for a few years and still really
+want to see this idea succeed. Any guidance on a workable path forward
+would be greatly appreciated.
 
-(Not-yet-)Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-(Not-yet-)Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
-Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
----
-Changelog rfc v3 .. rfc v3.1:
+Another option, proposed by Sasha Levin[1], was to use a single
+/sys/kernel/debug/coverage interface, quoting him here:
 
-o Fix incorrect shifts derivation by using
-  "dom_shifts[TOPO_TILE_DOMAIN - 1]" instead of
-  "dom_shifts[TOPO_TILE_DOMAIN] - 1" (Chenyu, Sashiko).
----
- arch/x86/kernel/cpu/topology.c | 40 +++++++++++++++++++++++++++++++++-
- 1 file changed, 39 insertions(+), 1 deletion(-)
+"To clarify, are you suggesting that we'll have something like a single
+ /sys/kernel/debug/coverage interface that is producing the same structured
+ output whether we use gcov or llvm?"
 
-diff --git a/arch/x86/kernel/cpu/topology.c b/arch/x86/kernel/cpu/topology.c
-index 4913b64ec592..7467fa90b879 100644
---- a/arch/x86/kernel/cpu/topology.c
-+++ b/arch/x86/kernel/cpu/topology.c
-@@ -23,6 +23,7 @@
-  */
- #define pr_fmt(fmt) "CPU topo: " fmt
- #include <linux/cpu.h>
-+#include <linux/sbm.h>
- 
- #include <xen/xen.h>
- 
-@@ -449,13 +450,45 @@ static __init bool restrict_to_up(void)
- 	return apic_is_disabled;
- }
- 
-+int arch_sbm_cpu_instance_id(int cpu)
-+{
-+	u32 sbm_shift = x86_topo_system.dom_shifts[TOPO_DIE_DOMAIN - 1];
-+	u32 apicid = cpuid_to_apicid[cpu];
-+
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		sbm_shift = x86_topo_system.dom_shifts[TOPO_TILE_DOMAIN - 1];
-+
-+	return (apicid >> sbm_shift);
-+}
-+
-+static __init void init_sbm_topology(u32 max_apicid)
-+{
-+	u32 sbm_shift = x86_topo_system.dom_shifts[TOPO_DIE_DOMAIN - 1];
-+	int num_sbm_instances, max_threads_per_instance;
-+
-+	/*
-+	 * On Intel systems, memory controllers are present at TOPO_DIE_DOMAIN.
-+	 * On newer AMD and Hygon systems, LLC is at TOPO_TILE_DOMAIN so use
-+	 * that instead.
-+	 */
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		sbm_shift = x86_topo_system.dom_shifts[TOPO_TILE_DOMAIN - 1];
-+
-+	num_sbm_instances = 1 + (max_apicid >> sbm_shift);
-+	max_threads_per_instance = (1 << sbm_shift);
-+
-+	sbm_set_topology(num_sbm_instances, max_threads_per_instance);
-+}
-+
- void __init topology_init_possible_cpus(void)
- {
- 	unsigned int assigned = topo_info.nr_assigned_cpus;
- 	unsigned int disabled = topo_info.nr_disabled_cpus;
- 	unsigned int cnta, cntb, cpu, allowed = 1;
- 	unsigned int total = assigned + disabled;
--	u32 apicid, firstid;
-+	u32 apicid, firstid, maxid;
- 
- 	/*
- 	 * If there was no APIC registered, then fake one so that the
-@@ -536,10 +569,13 @@ void __init topology_init_possible_cpus(void)
- 		cpuid_to_apicid[topo_info.nr_assigned_cpus++] = apicid;
- 	}
- 
-+	maxid = topo_info.boot_cpu_apic_id;
-+
- 	for (cpu = 0; cpu < allowed; cpu++) {
- 		apicid = cpuid_to_apicid[cpu];
- 
- 		set_cpu_possible(cpu, true);
-+		maxid = max(maxid, apicid);
- 
- 		if (apicid == BAD_APICID)
- 			continue;
-@@ -547,6 +583,8 @@ void __init topology_init_possible_cpus(void)
- 		cpu_mark_primary_thread(cpu, apicid);
- 		set_cpu_present(cpu, test_bit(apicid, phys_cpu_present_map));
- 	}
-+
-+	init_sbm_topology(maxid);
- }
- 
- /*
--- 
-2.34.1
+I am not sure it is feasible to use the same structured ouput, but it
+would isolate things down to a single interface with KConfig knobs being
+used to select which coverage data one can expect to find there.
 
+
+[1] https://lore.kernel.org/lkml/aba_HgSbzLGm6VBQ@laps/
+
+
+Thank you,
+
+..Ch:W..
