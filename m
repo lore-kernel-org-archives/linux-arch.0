@@ -1,149 +1,231 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1B0547404E;
-	Wed,  7 Oct 2026 04:51:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E996B3C73D9;
+	Wed,  7 Oct 2026 05:44:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.158.5
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791348665; cv=none; b=JcbQCC79l17AZgA+vvTIikUAGncJmf8m2M97AtWm98BgvBas3aG7mpOhH/Y760ZCI3rUYckra3dn9zfM9zsACAOF03kCY3G4o9QAa0eVAxHLlw4dbrBFkOlNsN3Z7sT75sQWX5XO0b6umm9MUQzp+xfsz129uaASSPs6fXLrQ+w=
+	t=1791351896; cv=none; b=jEmObrmCiWoN7X4YHIzLQsj9kgXyY3mC1g1CFh389fFqv9n/fdezKBg3rHo6QyHMbCw4lRykolsGT+1tSOcaviF1WlUiQB87xdYyJO2Ptvpquc9kHZW5VLHb401ZFb77RQlR2pI1omgfnt589HDT7BI38mjn18RImN5cKm3KbiM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791348665; c=relaxed/simple;
-	bh=SRXAnyoTwVbaKw5DdyoF0nZjfpXM9Peq19YZng+OWAo=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:Content-Type:
-	 MIME-Version:Message-Id; b=svzFNZC34s8IVz3UJgv0pNTsXSeRvJ96wA/wB2c8AOymXacm9pbLoUHBetf1TslpScXjYdpjXFCRkxDUq3js0KV/ulADg5abB33pHxbhQmHutiNmpqxXVYpXZxOSID/A+8v6V54+3tR0dtj5LHXSf4tuRHmGGW2Hqc97kA2qW+Y=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=lRq/cv3J; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1791351896; c=relaxed/simple;
+	bh=J/2Onj7V0dCNt1OC5RVVVBIM5Bm0bM1Pvp7qNP3PQ7c=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=rLqVQVXtHm9CF8jPJa+22t2CFdHFkyVESun7ppAWCzFhPelAXhOaycCaRgD7pmtfcg1rpUBqIbhqc1ayRUuVrj+vZQFP/UnIZn+erChgFgr08CftbXxEbZpjET0cqK4z7nOKz6xV561tKHbANwY/uWqxtRLeuQJNGqUH+01iozc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=Lg9gZRDv; arc=none smtp.client-ip=148.163.158.5
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="lRq/cv3J"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 601511F0089B;
-	Wed,  7 Oct 2026 04:50:50 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1791348663;
-	bh=YfZUOyUfb3wd5BZD5cwO1pIKgms+v7U6RGWL1mBY3dE=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=lRq/cv3JeDXOU7UAotnpyWzkc5IyRNKfUTmp/K9D+Lvv0ReiYLI3VHi2G6fPb9Fe6
-	 7hMSRWZiJzioAzkgYeQ4OZlo46uV7DUJzNK2T/BSEGGy8WuhUDq7EGYxcz6mf1AzO1
-	 edgEZI5EJtHT2BuB0W6X9LHDsshHEijdDUpm+qzeHYEQ4f4TLLsoDqqregETx9niGK
-	 6VutLbFMjj+zfDEKx43onqPWM3GpcsQStQG0HYQ6GlJQkLLe7R88X2ck4BZu+ONvqc
-	 7eCfuniZGMkIRBclQDfx2EL8TK1Cidt28FtIWDSMXLSMYWKmrELbdvaeU+ORXcvP6L
-	 uzWlvJbA5sDeA==
-From: Masami Hiramatsu (Google) <mhiramat@kernel.org>
-To: chuck@wolber.net
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Marco Elver <elver@google.com>,
- kasan-dev@googlegroups.com, nathan@kernel.org, akpm@linux-foundation.org,
- anton.ivanov@cambridgegreys.com, oberpar@linux.ibm.com, ardb@kernel.org,
- arnd@arndb.de, bhelgaas@google.com, bp@alien8.de, dave.hansen@linux.intel.com,
- dvyukov@google.com, hpa@zytor.com, jinghao7@illinois.edu,
- johannes@sipsolutions.net, jpoimboe@kernel.org, justinstitt@google.com,
- kees@kernel.org, kent.overstreet@linux.dev, linux-arch@vger.kernel.org,
- linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-trace-kernel@vger.kernel.org,
- linux-um@lists.infradead.org, llvm@lists.linux.dev, luto@kernel.org,
- marinov@illinois.edu, masahiroy@kernel.org, maskray@google.com,
- mathieu.desnoyers@efficios.com, mingo@redhat.com, morbo@google.com,
- Nick Desaulniers <ndesaulniers@google.com>,
- "Paul E. McKenney" <paulmck@kernel.org>, richard@nod.at,
- Steven Rostedt <rostedt@goodmis.org>, samitolvanen@google.com,
- tglx@linutronix.de, tingxur@illinois.edu, tyxu@illinois.edu,
- wentaoz5@illinois.edu, x86@kernel.org, peterz@infradead.org,
- Sasha Levin <sashal@kernel.org>, Aleksandr Nogikh <nogikh@google.com>,
- Taras Madan <tarasmadan@google.com>, Alexander Potapenko <glider@google.com>
-Subject: Re: [PROPOSAL] Replace gcov and kcov with llvm-cov
-Date: Wed, 07 Oct 2026 04:50:47 +0000
-In-Reply-To: <c84149c4-26c3-476e-93d5-4fe72f7c708b@app.fastmail.com>
-References:
- 00ed0b57-ad05-4c5d-b152-7c81df94b23a@app.fastmail.comCANpmjNOaykC4McAj=gZghqPSQc9aGBP_CjgKmp3n2yjeJTxDSA>@mail.gmail.com<41913a77-5c57-4967-8166-765dd5dde1bf@app.fastmail.com
- 20261007023045.04BD71F0089B@smtp.kernel.org
- <c84149c4-26c3-476e-93d5-4fe72f7c708b@app.fastmail.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
+	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="Lg9gZRDv"
+Received: from pps.filterd (m0356516.ppops.net [127.0.0.1])
+	by mx0a-001b2d01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 6974aRBi1409397;
+	Wed, 7 Oct 2026 05:43:44 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
+	:content-transfer-encoding:content-type:date:from:in-reply-to
+	:message-id:mime-version:references:subject:to; s=pp1; bh=v7L/Is
+	haQTpFkZXyxWFqEsTIV8AsMHyaRbeSGHo8YfA=; b=Lg9gZRDv/AHcQhkK/ClVn8
+	F7Z087kOG8Oqv6jFqCO1Y29YjeCsU0/Vw+AGbjUO/rdEfzmGEf7Oe0uvkcqX2x/A
+	dYe0tQ7/oBLop+5HaqG5vnGDLubnYIgjSWBloU8AHWuWVuTsSZWzTWBPgLT0v+6T
+	Of4tkObUBhrHZDhmS5D/RGbKgEdpQQSdEZbub841mF6ZfUOJJOiQzjg1HGr5zZis
+	qXZmS7tJYBFc3qpXPifsMHYoCleyno+zTpYsIUIZ39Ei1LFayBILCYG77FUpx39R
+	z1Po0XMCA/LyfcaPx5UfdNSwd/SoBe7q7zQsXPir93A6CDms6uLbJB1yexP6aWfw
+	==
+Received: from ppma11.dal12v.mail.ibm.com (db.9e.1632.ip4.static.sl-reverse.com [50.22.158.219])
+	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4h2q4ju8ym-1
+	(version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
+	Wed, 07 Oct 2026 05:43:43 +0000 (GMT)
+Received: from pps.filterd (ppma11.dal12v.mail.ibm.com [127.0.0.1])
+	by ppma11.dal12v.mail.ibm.com (8.18.1.11/8.18.1.11) with ESMTP id 6974WZAa1376982;
+	Wed, 7 Oct 2026 05:43:43 GMT
+Received: from smtprelay06.fra02v.mail.ibm.com ([9.218.2.230])
+	by ppma11.dal12v.mail.ibm.com (PPS) with ESMTPS id 4h5a6dh4tx-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+	Wed, 07 Oct 2026 05:43:42 +0000 (GMT)
+Received: from smtpav02.fra02v.mail.ibm.com (smtpav02.fra02v.mail.ibm.com [10.20.54.101])
+	by smtprelay06.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 6975hdCp53346648
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Wed, 7 Oct 2026 05:43:39 GMT
+Received: from smtpav02.fra02v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id 091E120043;
+	Wed,  7 Oct 2026 05:43:39 +0000 (GMT)
+Received: from smtpav02.fra02v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id 44B6E20040;
+	Wed,  7 Oct 2026 05:43:24 +0000 (GMT)
+Received: from [9.39.25.200] (unknown [9.39.25.200])
+	by smtpav02.fra02v.mail.ibm.com (Postfix) with ESMTP;
+	Wed,  7 Oct 2026 05:43:23 +0000 (GMT)
+Message-ID: <bebd59dc-9932-41fe-9fa6-4d2cc8d15080@linux.ibm.com>
+Date: Wed, 7 Oct 2026 11:13:22 +0530
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Message-Id: <20261007045050.601511F0089B@smtp.kernel.org>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [RFC PATCH v3 01/13] lib/sbm: Introduce helpers for architectures
+ to configure LLC properties
+To: K Prateek Nayak <kprateek.nayak@amd.com>
+Cc: Dietmar Eggemann <dietmar.eggemann@arm.com>,
+        Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>,
+        Mel Gorman <mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>,
+        WANG Xuerui <kernel@xen0n.name>, Michael Ellerman <mpe@ellerman.id.au>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Christophe Leroy <chleroy@kernel.org>,
+        Christian Borntraeger <borntraeger@linux.ibm.com>,
+        Sven Schnelle <svens@linux.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>,
+        Peter Zijlstra <peterz@infradead.org>, Chen Yu <yu.c.chen@intel.com>,
+        Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@redhat.com>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-mips@vger.kernel.org,
+        loongarch@lists.linux.dev, driver-core@lists.linux.dev,
+        Sudeep Holla <sudeep.holla@kernel.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        "Rafael J. Wysocki" <rafael@kernel.org>,
+        Danilo Krummrich <dakr@kernel.org>,
+        Huacai Chen <chenhuacai@kernel.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Madhavan Srinivasan <maddy@linux.ibm.com>,
+        Heiko Carstens
+ <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        "David S. Miller" <davem@davemloft.net>,
+        Andreas Larsson <andreas@gaisler.com>,
+        Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org
+References: <20261001192849.74788-1-kprateek.nayak@amd.com>
+ <20261001192849.74788-2-kprateek.nayak@amd.com>
+Content-Language: en-US
+From: Shrikanth Hegde <sshegde@linux.ibm.com>
+In-Reply-To: <20261001192849.74788-2-kprateek.nayak@amd.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+X-TM-AS-GCONF: 00
+X-Proofpoint-Reinject: loops=2 maxloops=12
+X-Proofpoint-ORIG-GUID: vXOs2a9YsPxXPDWlk_fQyGt8XKTYkFF0
+X-Proofpoint-GUID: 2WtIRldL-8sD5UVml5UoIOzm4QtQsPt2
+X-Proofpoint-Spam-Info: AW1haW4tMjYxMDA3MDAyMiBTYWx0ZWRfX4mmsO4sZrzgh
+ Mnz82Xsy9mtTsApcqK0EAgEkzT4QpnInFmT6PSo9P+6m7GNW3kllHyAFrEHvN8jteYJUtvpuHQj
+ El1nV5BdZCUVdPS8R8bOCCO0l8cdcDs=
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYxMDA3MDAyMiBTYWx0ZWRfXz5bhW5BOP3yo
+ AXAKxpdMGdB9WPsPxUav3ccKlkRMSPMiL1DdhZ/aaocq9pBD5owUvsjp7UwsLADW+LfHCXgHXOV
+ ICGHlnq44UE3Wn3keBJD7fz/SzRvqaVtLPF6iUY5SeMSpB/xn1nSNa9jbZSH45cW99+vJoKuWQv
+ MCGXoYLJ+vbML8Yo03KebUPu3SEePbQlxMlqfB0nBozsITzDNYz4sab2NN13tJLUE6QaCKS5XOB
+ lqR1d167/luKGtIMXXtHrSvyP4QyawZIixwl88x3raFUxxSqX45J1mrcbPY/3gmp8yvqgx/hKVE
+ itpSyPUNRseZXLG5uA+3p8F8CA7g9XihfRSltNw4fYtBqPV7qtzIUT+bo3QR5kBBxf3ZxMPexG6
+ Q4gjmHEvySzZMPerQ11VZS0GwUj1hSAI9DhooY2dnKV5223VIfs4ozYNRv1VhGSZpk8+kfNaL0K
+ Kt0sBNcLkTQefrFM9OQ==
+X-Authority-Analysis: v=2.4 cv=eYeo7LEH c=1 sm=1 tr=0 ts=6ac5dc10 cx=c_pps
+ a=aDMHemPKRhS1OARIsFnwRA==:117 a=aDMHemPKRhS1OARIsFnwRA==:17
+ a=IkcTkHD0fZMA:10 a=660iZSQnnn4A:10 a=VkNPw1HP01LnGYTKEx00:22
+ a=RnoormkPH1_aCDwRdu11:22 a=Y2IxJ9c9Rs8Kov3niI8_:22 a=zd2uoN0lAAAA:8
+ a=H_lJn1gU1r1qM_BORgYA:9 a=QEXdDO2ut3YA:10
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1176,Hydra:6.1.134,FMLib:17.12.100.49
+ definitions=2026-10-07_02,2026-10-06_03,2025-10-01_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
+ adultscore=0 lowpriorityscore=0 phishscore=0 bulkscore=0 clxscore=1011
+ spamscore=0 malwarescore=0 priorityscore=1501 impostorscore=0 suspectscore=0
+ classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
+ reason=mlx scancount=1 engine=8.22.0-2609040000 definitions=main-2610070022
 
-On Wed, 07 Oct 2026 04:17:42 +0000, Chuck Wolber <chuck@wolber.net> wrote:
-> On Wed, Oct 7, 2026, at 2:30 AM, Masami Hiramatsu wrote:
-> > On Tue, 06 Oct 2026 16:27:11 +0000, Chuck Wolber <chuck@wolber.net> wrote:
-> >> On Tue, Oct 6, 2026, at 4:10 PM, Marco Elver wrote:
-> >> > On Tue, 6 Oct 2026 at 17:14, Chuck Wolber <chuck@wolber.net> wrote:
-> >
-> >> >> If there is a desire to take this in pieces or implement other
-> >> >> intermediate steps, let me know. Otherwise I can generate a
-> >> >> monolithic set all at once.
-> >> >>
-> >> >> [1] https://lore.kernel.org/lkml/20240905043245.1389509-1-wentaoz5@illinois.edu/
-> >> >>
-> >> > >> > llvm-cov is generally useful to have; llvm-cov is closest to
-> >> > >> > gcov, so that might make sense to replace.
-> >>
-> >> Swapping llvm-cov for gcov to start with is pretty straightforward,
-> >> so I can aim my initial patch set there.
-> >
-> > Hmm, is it necessary to remove gcov? Would it be difficult to simply
-> > add support for llvm-cov and enable (make kconfig selectable) one or
-> > the other depending on the compiler?
->
-> Not strictly necessary, no. And what you are describing is what our
-> original patches do.
+Hi Prateek.
 
-OK, let me check it.
+I ran the series on 320 CPU power11 system today.
+hackbench shows high regression across the different number of groups and
+it is more severe at lower number of groups. I haven't run anything else yet.
 
->
-> The concern was why we would want to have three separate code coverage
-> tools in the kernel. Each has their own way of doing things, and they
-> can all live together in the kernel harmoniously.
->
-> But the concern was raised so I am trying to find a way forward.
->
-> The llvm-cov approach gives results that are reliably tied to actual
-> lines of source, so that is the one I reflexively reach for any time I
-> need code coverage. I am at a loss (but definitely willing to be
-> educated) as to what value gcov style coverage provides in comparison.
->
+I haven't taken a look at the patches yet. Post your talk today will try to
+go through and see if i can spot something.
 
-I agree with llvm-cov is better than GCOV. But since gcc users can
-NOT use this feature, for checking code coverage in the kernel,
-we still need to keep it for gcc users.
+On 10/2/26 12:58 AM, K Prateek Nayak wrote:
+> Subsequent commits will add arch/ hooks to configure the sparsebitmask
+> (sbm) topology - number of sbm instance and the maximum CPUs that a
+> single instance can represent.
+> 
+> Introduce sbm_set_topology() that helps architectures configure the sbm
+> topology. Also add arch_sbm_cpu_instance_id() which will be used to map
+> CPUs to the sbm instances during init to keep CPUs on the same instance
+> on the same sbm leaf.
+> 
+> Individual arch/ users will be added one at a time in the subsequent
+> commits.
+> 
+> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
+> ---
+>   include/linux/sbm.h |  8 ++++++++
+>   lib/Makefile        |  2 +-
+>   lib/sbm.c           | 27 +++++++++++++++++++++++++++
+>   3 files changed, 36 insertions(+), 1 deletion(-)
+>   create mode 100644 include/linux/sbm.h
+>   create mode 100644 lib/sbm.c
+> 
+> diff --git a/include/linux/sbm.h b/include/linux/sbm.h
+> new file mode 100644
+> index 000000000000..adac12ed233a
+> --- /dev/null
+> +++ b/include/linux/sbm.h
+> @@ -0,0 +1,8 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef _LINUX_SBM_H
+> +#define _LINUX_SBM_H
+> +
+> +int arch_sbm_cpu_instance_id(int cpu);
+> +void sbm_set_topology(int num_instances, int max_threads_per_instance);
+> +
+> +#endif /* _LINUX_SBM_H */
+> diff --git a/lib/Makefile b/lib/Makefile
+> index dfab958327c5..7776330f5b25 100644
+> --- a/lib/Makefile
+> +++ b/lib/Makefile
+> @@ -40,7 +40,7 @@ lib-y := ctype.o string.o vsprintf.o cmdline.o \
+>   	 is_single_threaded.o plist.o decompress.o kobject_uevent.o \
+>   	 earlycpio.o seq_buf.o siphash.o dec_and_lock.o \
+>   	 nmi_backtrace.o win_minmax.o memcat_p.o \
+> -	 buildid.o objpool.o iomem_copy.o sys_info.o
+> +	 buildid.o objpool.o iomem_copy.o sys_info.o sbm.o
+>   
+>   lib-$(CONFIG_UNION_FIND) += union_find.o
+>   lib-$(CONFIG_PRINTK) += dump_stack.o
+> diff --git a/lib/sbm.c b/lib/sbm.c
+> new file mode 100644
+> index 000000000000..82280e3306de
+> --- /dev/null
+> +++ b/lib/sbm.c
+> @@ -0,0 +1,27 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#include <linux/sbm.h>
+> +#include <linux/init.h>
+> +#include <linux/printk.h>
+> +
+> +static int sbm_max_threads_per_instance = -1;
+> +static int sbm_num_instance = -1;
+> +
+> +/*
+> + * In absence of an arch definition, consider all CPUs to
+> + * belong to the same sbm instance.
+> + */
+> +int __weak arch_sbm_cpu_instance_id(int cpu)
+> +{
+> +	return 0;
+> +}
+> +
+> +void __init sbm_set_topology(int num_instances, int max_threads_per_instance)
+> +{
+> +	sbm_max_threads_per_instance = max_threads_per_instance;
+> +	sbm_num_instance = num_instances;
+> +
+> +	pr_info("sbm topology set to %d instance(s) with a maximum of %d thread(s) per instance\n",
+> +		sbm_num_instance,
+> +		sbm_max_threads_per_instance);
+> +}
 
-> I also found some interesting possibilities using intrinsics to enable
-> boot time tracing with llvm-cov. That is, of course, experimental and
-> not something I am considering for the intial patch-set. But it got me
-> thinking about broader configurability that supports more granular forms
-> of coverage that _may_ address kcov needs in the long term.
+nit: Stray empty line at the end.
 
-Ah, that's an interesting idea :)
+> +
 
->
-> I have been working on this off-and on for a few years and still really
-> want to see this idea succeed. Any guidance on a workable path forward
-> would be greatly appreciated.
->
-> Another option, proposed by Sasha Levin[1], was to use a single
-> /sys/kernel/debug/coverage interface, quoting him here:
->
-> "To clarify, are you suggesting that we'll have something like a single
->  /sys/kernel/debug/coverage interface that is producing the same structured
->  output whether we use gcov or llvm?"
->
-> I am not sure it is feasible to use the same structured ouput, but it
-> would isolate things down to a single interface with KConfig knobs being
-> used to select which coverage data one can expect to find there.
 
-Yeah, that soulds reasonable for me.
-
-Thank you,
-
->
->
-> [1] https://lore.kernel.org/lkml/aba_HgSbzLGm6VBQ@laps/
->
->
-> Thank you,
->
-> ..Ch:W..
-
--- 
-Masami Hiramatsu (Google) <mhiramat@kernel.org>
