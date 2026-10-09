@@ -1,250 +1,146 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1E6C645D913;
-	Fri,  9 Oct 2026 06:49:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 06F9438E8B2
+	for <linux-arch@vger.kernel.org>; Fri,  9 Oct 2026 08:22:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791528558; cv=none; b=aLOGmpnAtO7bMxsEP3h8rlW2DCywdQ0cFdo/sL4z/VbTfqvuD0PsAPwNabWbEUwrp2s6nTEVhEvvGkxLOf7l3BeZbbh2DGyAGt1i6IasVLnDa2gDXk1qR6kDxCIy5U5fTOpnfvJozB4Uj6UyyTkjlofyLZXfnziaO0BdOEdLJPc=
+	t=1791534158; cv=none; b=MYQff4hxHQ0pOyxTGLmAX4AEhf3s93WeblJPzESWSZHRdYc6sxzYbs4rndNOxXv41MBlQpLHlxDtdpNMsbYcTsvC0PtC5+2bd3rEsbqnN1Eyx/JI/n5DNepVrN5H4Ma+BAcWSJzbmYIgpSnTqUlVT5/rpZX/k34zi+gsj0oDIt8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791528558; c=relaxed/simple;
-	bh=ZwMAWTFJYGtX33ZE5VYxldtOiJLOSRokfSpsQZuLMEc=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=kGxbzJNJUv6FT3/uA9PIJYC78Ewi28xghnfnzyL2HcqUBiyxqRhlrZbPhWEQZekB2L8KJpovBtajNN2BeRnboeyi29j18RifyG0M7519QHE8stTGvRW7Dwap26xYOOT1IQlezbwX7CjaAAEtL5FuDB/Oz35IuhY856FvRjIMU7U=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=GQ+T8GQ1; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1791534158; c=relaxed/simple;
+	bh=AmPAlSohTFt+K5YyTCswin1xWvttAea2QIBo3K30gng=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=nn/ZMmRG3i36GjdWN4ESwLGsBYm6jNwapPDFyI6pVTO3gCenJxE/Gsw5olgxOhSmM+i5YBlSEKsGtjHpuHKKcwx8maz+C6qqTZoCS9sU5/FEpBDDpN1K0vfJCv9YPwY4gEVB7mTfjXshKbfG7hIbtQ320euAKOrDCFBIT5ehaNQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=rOG/ZhkU; arc=none smtp.client-ip=209.85.128.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="GQ+T8GQ1"
-Received: by linux.microsoft.com (Postfix, from userid 1134)
-	id E7C6420B7168; Thu,  8 Oct 2026 23:49:14 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com E7C6420B7168
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1791528554;
-	bh=IacDB8kE1Y5p15IdTpzM9DnFobde8u0e9G28Ics5ljU=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=GQ+T8GQ1PK5mh53r6J31cm1RnkoJeZjY06SfczULboNMqK+GOwi/qj8y0OcWO1o10
-	 4XlP3ONPQFOQoaRr6kGQDZ9/AhSAAodBD3LbimtUfy/YJMrgaoQFmQrZ5Fp7aacsTi
-	 /Q+JFp4SUg5Xmpwipz2YkbJUHxS711qUc665jjfo=
-Date: Thu, 8 Oct 2026 23:49:14 -0700
-From: Shradha Gupta <shradhagupta@linux.microsoft.com>
-To: Mike Rapoport <rppt@kernel.org>
-Cc: "K. Y. Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
-	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Marc Zyngier <maz@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
-	Michael Kelley <mhklinux@outlook.com>, linux-hyperv@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [PATCH v3 2/2] Drivers: hv: Run VMBus kexec cleanup from syscore
- shutdown
-Message-ID: <asiOauj+H+c3zu2S@linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net>
-References: <20261001132128.1703511-1-shradhagupta@linux.microsoft.com>
- <20261001132205.1703683-1-shradhagupta@linux.microsoft.com>
- <asdL4VbXcCeeme8m@kernel.org>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="rOG/ZhkU"
+Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-4a166199820so9170085e9.1
+        for <linux-arch@vger.kernel.org>; Fri, 09 Oct 2026 01:22:36 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1791534155; x=1792138955; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=iqp5RhRnr40+lLsW/0GeJg1Yf3xCkEgMP6LPH/ArdaU=;
+        b=rOG/ZhkU4oOyLTTAtP90Co11VMBO3yb/spQqiuq472jhOjv2p6CghfHOkc9XOQ9Lk8
+         67da4ZRIYYeYxPMaq0UMe60TzHhFbN5N5ZKJXkXXmnZZ+bw8DSvB0j2+GaJZcN8sPvPc
+         SEM7TlltOwhOOwEoQ/Ktu6LNHLyOUQgZ/cAbyjGT3LXN4/8D7nbL7ur06374fTVVJhyF
+         IeH/WF/o7KKpGERPtaKhaSzHzYoWnQsB12xCfE57vg3k07iAWjpe3mAB34GmvWZlJ6zm
+         lzIHeazWM5smlM0s1WwusvCOkHvwOMuYzblZanDpwpbv/gHisznfDVAUA9TcNXWzpSrg
+         Ny3w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1791534155; x=1792138955;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=iqp5RhRnr40+lLsW/0GeJg1Yf3xCkEgMP6LPH/ArdaU=;
+        b=kgMPl6kf1Ng7gWvI28Bmv8fmthyeNEx+a/O2HntwzZxip0hP2TSsQLV9ALd5awxpYv
+         djJDFAM52VC5wVDnsAgXHXWXSZUSz2TkSn5a7ZCa6iXjmRjiIy/kVaWFLlsSdfsfv4r0
+         g5+cfYgp4rWL0Ek0EkGuNSMjH/RVNXcngUN7byQuj97dZnuxi6xyzBbI6cdbqvh8E93Q
+         3a3RJ8R+JDzC0DZk5cawvD0WRAkatGlEdIyc1EzD/3gA782C/DLCu+N1xjW2qiljl9Tt
+         wn+mzGAsfAvaWPerdfm43B3b2pwTrDiFEmthV7p15HKL4KMwWnglrIxoiQS6Kg+/6IwM
+         zO+g==
+X-Forwarded-Encrypted: i=1; AKwUvBz3BIHkuS7zD3LwXZnrghT6bED42m9R07sIyxBHEpgvUP7cNUhpB3V9cAPULzYhy6Nq2dejEcaVJnCy@vger.kernel.org
+X-Gm-Message-State: AFuF++kBKPMHIcQ5iY30UQzFiip/9tJdfcJGUT5eUm/INGx4WiEM9kKA
+	BZq8vjRDfjMJXvYD7t5bTP1QooKGuO3CtrG7tKFnkJW1SJCDvPmi3M+Q
+X-Gm-Gg: AYBFou1Y+p9GB+mgO/XfOiBuhg/C+D7VFkeRzJQALK9x2xKoDaGz4DLKOX+POO0yifQ
+	FF3ncvhWFFbOBehWqXiKEHZeAr7k+YWN3wuP/z9qAxahAB5vww7EJK/5vsuew6P+IYzagi/+U7P
+	H+kqJoFpYAtyoPPAiqwbL+Ik3y7pIHv1gGQtg40McSiGj/UMLDgpkOByvwIeOhNt8QHPbwjELxi
+	1Pt4dMfVvijVR1T9BWQtDs36NYADsmgwD0dllDsY4vM83b8zHm4VKw5uMJW+EeK9IoHKvxzVhT0
+	CRdpNJPEideSbTJE1s2qrGAHdkQR5t3Vf9kNnuEJJxiBwINWE2pRQY2C+NzfTF8oQrMX1g6Q9yf
+	/x0gpaNwuINfUVw/N9AcXle9SrNA+euusQJGPQNIpUDiztTgXEX8s9SSpNRGzoQsqeBVedpKpiW
+	0KLmXgkYsznvYRz6BbTq58uWF1JCSQ2wWrx5dylTnHCh/31dTSZ71GRdBKWO3AKj5TKmFRU5zko
+	jYZ9iO6/Wr669EhJFsfwORlzoQgKK2uhWq1wUyhrwmCGKCUN7J4qCtcMytMvBHzIuOpipfDSFxM
+	w0WJb39hktxAmDC34stJXoNoF87uNxxcf6pK36LQtdy7Qh3W//ExkFR6g5siRTuPznmQYup1cCy
+	KLg==
+X-Received: by 2002:a05:600c:4708:b0:4a1:88df:8a2a with SMTP id 5b1f17b1804b1-4a18e4a6ea5mr20042355e9.13.1791534154867;
+        Fri, 09 Oct 2026 01:22:34 -0700 (PDT)
+Received: from localhost.localdomain (dynamic-2a02-3100-a128-aa01-297a-7094-853e-a20c.310.pool.telefonica.de. [2a02:3100:a128:aa01:297a:7094:853e:a20c])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4a18ee9bd19sm19659975e9.1.2026.10.09.01.22.33
+        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
+        Fri, 09 Oct 2026 01:22:34 -0700 (PDT)
+From: Karl Mehltretter <kmehltretter@gmail.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Karl Mehltretter <kmehltretter@gmail.com>,
+	Gary Guo <gary@garyguo.net>,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH] asm-generic: cmpxchg: always inline __generic_cmpxchg_local()
+Date: Fri,  9 Oct 2026 10:22:23 +0200
+Message-Id: <20261009082223.40760-1-kmehltretter@gmail.com>
+X-Mailer: git-send-email 2.39.5 (Apple Git-154)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <asdL4VbXcCeeme8m@kernel.org>
+Content-Transfer-Encoding: 8bit
 
-On Thu, Oct 08, 2026 at 09:53:05AM +0200, Mike Rapoport wrote:
-> On Thu, Oct 01, 2026 at 06:22:02AM -0700, Shradha Gupta wrote:
-> > ARM64 Hyper-V guests do not run the VMBus kexec cleanup before
-> > secondary CPUs are stopped. Consequently, the old VMBus connection
-> > and SynIC state remain active when the kexec kernel starts.
-> > 
-> > Run the VMBus kexec handler from the existing VMBus syscore shutdown
-> > callback. syscore_shutdown() runs after device shutdown and before
-> > machine shutdown, while all CPUs needed by the SynIC CPU hotplug
-> > teardown are still available. Guard the callback with
-> > kexec_is_in_progress() so normal restart, halt, and poweroff paths are
-> > unchanged.
-> > 
-> > Use the same path on x86 and remove the architecture-specific handler
-> > pointer and the weak setup/remove interfaces. VMBus teardown now
-> > precedes hv_stimer_global_cleanup() on x86.
-> > 
-> > The new x86 ordering relies on commit be0cfab740e5 ("clocksource:
-> > hyper-v: Remove support for stimer interrupts in message mode"), which
-> > removed the synthetic timer's dependency on VMBus message delivery.
-> > Older kernels that retain message-mode stimer interrupts must preserve
-> > the existing x86 ordering and therefore require an ARM64-specific
-> > backport.
-> > 
-> > Fixes: 9bbb888824e3 ("arm64: hyperv: Initialize hypervisor on boot")
-> > Link: https://lore.kernel.org/all/20260814093133.3191250-1-shradhagupta@linux.microsoft.com/
-> > Suggested-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Suggested-by: Michael Kelley <mhklinux@outlook.com>
-> > Signed-off-by: Shradha Gupta <shradhagupta@linux.microsoft.com>
-> > ---
-> >  arch/x86/kernel/cpu/mshyperv.c | 17 +----------------
-> >  drivers/hv/hv_common.c         | 10 ----------
-> >  drivers/hv/vmbus_drv.c         | 22 ++++++++++++++--------
-> >  include/asm-generic/mshyperv.h |  2 --
-> 
-> It seems you missed Documentation/virt/hyperv/overview.rst ;)
->
+With gcc 8.1.0 and CC_OPTIMIZE_FOR_SIZE, an ARMv5 test module with
+24 cmpxchg_local() callers for 1-, 2- and 4-byte values fails at
+modpost with an undefined wrong_size_cmpxchg.
 
-Thanks Mike, I'll address this in the next version. :)
+__generic_cmpxchg_local() uses that undefined symbol to reject
+unsupported sizes. ARM used to force inlining of functions marked
+inline. With compiler-controlled inlining, gcc can emit an
+out-of-line copy that retains the call even for valid callers.
+
+Mark it __always_inline so the compiler can fold each caller's
+constant size and remove the unsupported-size path.
+
+Fixes: 9012d011660e ("compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING")
+Assisted-by: LLM
+Signed-off-by: Karl Mehltretter <kmehltretter@gmail.com>
+---
+
+Notes:
+    Sashiko noted that the generic helper still used plain inline while
+    reviewing the cmpxchg inlining fix in my Rust ARM support series [1].
+    This is a separate fix against v7.3-rc1. No in-tree build failure is
+    known.
+    
+    With gcc 8.1.0, versatile_defconfig and CC_OPTIMIZE_FOR_SIZE,
+    zImage and modules build without warnings before and after.
+    
+    External test modules built through Kbuild:
+    
+                                before    after
+    12 valid callers            builds    builds
+    24 or 96 valid callers      fails     builds
+    Invalid 8-byte caller        fails     fails
+    
+    Valid callers use 1-, 2- and 4-byte values. The failures are modpost
+    errors for undefined wrong_size_cmpxchg. The modules were built,
+    not run.
+    
+    With clang 22.1.8 and CC_OPTIMIZE_FOR_SIZE, the patched
+    versatile_defconfig kernel builds without warnings and boots to the
+    initramfs shell in QEMU versatilepb (ARM926EJ-S).
+    
+    [1] https://lore.kernel.org/rust-for-linux/asg-nSs2cg7O-znd@gmail.com/
+
+ include/asm-generic/cmpxchg-local.h | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
+index f27d66fdc00a..083f6688f137 100644
+--- a/include/asm-generic/cmpxchg-local.h
++++ b/include/asm-generic/cmpxchg-local.h
+@@ -12,8 +12,9 @@ extern unsigned long wrong_size_cmpxchg(volatile void *ptr)
+  * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
+  * long parameter, supporting various types of architectures.
+  */
+-static inline unsigned long __generic_cmpxchg_local(volatile void *ptr,
+-		unsigned long old, unsigned long new, int size)
++static __always_inline unsigned long
++__generic_cmpxchg_local(volatile void *ptr, unsigned long old,
++			unsigned long new, int size)
+ {
+ 	unsigned long flags, prev;
  
-> >  4 files changed, 15 insertions(+), 36 deletions(-)
-> > 
-> > diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
-> > index b4af7c0a70ac..263f7e7acac0 100644
-> > --- a/arch/x86/kernel/cpu/mshyperv.c
-> > +++ b/arch/x86/kernel/cpu/mshyperv.c
-> > @@ -148,7 +148,6 @@ EXPORT_SYMBOL_GPL(hv_set_msr);
-> >  static void (*mshv_handler)(void);
-> >  static void (*vmbus_handler)(void);
-> >  static void (*hv_stimer0_handler)(void);
-> > -static void (*hv_kexec_handler)(void);
-> >  static void (*hv_crash_handler)(struct pt_regs *regs);
-> >  
-> >  DEFINE_IDTENTRY_SYSVEC(sysvec_hyperv_callback)
-> > @@ -215,16 +214,6 @@ void hv_remove_stimer0_handler(void)
-> >  	hv_stimer0_handler = NULL;
-> >  }
-> >  
-> > -void hv_setup_kexec_handler(void (*handler)(void))
-> > -{
-> > -	hv_kexec_handler = handler;
-> > -}
-> > -
-> > -void hv_remove_kexec_handler(void)
-> > -{
-> > -	hv_kexec_handler = NULL;
-> > -}
-> > -
-> >  void hv_setup_crash_handler(void (*handler)(struct pt_regs *regs))
-> >  {
-> >  	hv_crash_handler = handler;
-> > @@ -238,13 +227,9 @@ void hv_remove_crash_handler(void)
-> >  #ifdef CONFIG_KEXEC_CORE
-> >  static void hv_machine_shutdown(void)
-> >  {
-> > -	if (kexec_in_progress) {
-> > +	if (kexec_in_progress)
-> >  		hv_stimer_global_cleanup();
-> >  
-> > -		if (hv_kexec_handler)
-> > -			hv_kexec_handler();
-> > -	}
-> > -
-> >  	/*
-> >  	 * Call hv_cpu_die() on all the CPUs, otherwise later the hypervisor
-> >  	 * corrupts the old VP Assist Pages and can crash the kexec kernel.
-> > diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
-> > index 31256cb22b39..bb290a5eaf1d 100644
-> > --- a/drivers/hv/hv_common.c
-> > +++ b/drivers/hv/hv_common.c
-> > @@ -681,16 +681,6 @@ void __weak hv_setup_mshv_handler(void (*handler)(void))
-> >  }
-> >  EXPORT_SYMBOL_GPL(hv_setup_mshv_handler);
-> >  
-> > -void __weak hv_setup_kexec_handler(void (*handler)(void))
-> > -{
-> > -}
-> > -EXPORT_SYMBOL_GPL(hv_setup_kexec_handler);
-> > -
-> > -void __weak hv_remove_kexec_handler(void)
-> > -{
-> > -}
-> > -EXPORT_SYMBOL_GPL(hv_remove_kexec_handler);
-> > -
-> >  void __weak hv_setup_crash_handler(void (*handler)(struct pt_regs *regs))
-> >  {
-> >  }
-> > diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
-> > index 5ebdbe24b5a1..3532ea779d34 100644
-> > --- a/drivers/hv/vmbus_drv.c
-> > +++ b/drivers/hv/vmbus_drv.c
-> > @@ -33,6 +33,7 @@
-> >  #include <linux/sysfb.h>
-> >  #include <linux/efi.h>
-> >  #include <linux/kernel.h>
-> > +#include <linux/kexec.h>
-> >  #include <linux/syscore_ops.h>
-> >  #include <linux/dma-map-ops.h>
-> >  #include <linux/pci.h>
-> > @@ -2904,6 +2905,12 @@ static void hv_kexec_handler(void)
-> >  	cpuhp_remove_state(hyperv_cpuhp_online);
-> >  };
-> >  
-> > +static void hv_vmbus_syscore_shutdown(void *data)
-> > +{
-> > +	if (kexec_is_in_progress())
-> > +		hv_kexec_handler();
-> > +}
-> > +
-> >  static void hv_crash_handler(struct pt_regs *regs)
-> >  {
-> >  	int cpu;
-> > @@ -2958,14 +2965,15 @@ static void hv_synic_resume(void *data)
-> >  	 */
-> >  }
-> >  
-> > -/* The callbacks run only on CPU0, with irqs_disabled. */
-> > -static const struct syscore_ops hv_synic_syscore_ops = {
-> > +/* The suspend and resume callbacks run only on CPU0, with irqs_disabled. */
-> > +static const struct syscore_ops hv_vmbus_syscore_ops = {
-> >  	.suspend = hv_synic_suspend,
-> >  	.resume = hv_synic_resume,
-> > +	.shutdown = hv_vmbus_syscore_shutdown,
-> >  };
-> >  
-> > -static struct syscore hv_synic_syscore = {
-> > -	.ops = &hv_synic_syscore_ops,
-> > +static struct syscore hv_vmbus_syscore = {
-> > +	.ops = &hv_vmbus_syscore_ops,
-> >  };
-> >  
-> >  static int __init hv_acpi_init(void)
-> > @@ -3014,10 +3022,9 @@ static int __init hv_acpi_init(void)
-> >  	if (ret)
-> >  		goto cleanup;
-> >  
-> > -	hv_setup_kexec_handler(hv_kexec_handler);
-> >  	hv_setup_crash_handler(hv_crash_handler);
-> >  
-> > -	register_syscore(&hv_synic_syscore);
-> > +	register_syscore(&hv_vmbus_syscore);
-> >  
-> >  	return 0;
-> >  
-> > @@ -3039,9 +3046,8 @@ static void __exit vmbus_exit(void)
-> >  		 */
-> >  		return;
-> >  
-> > -	unregister_syscore(&hv_synic_syscore);
-> > +	unregister_syscore(&hv_vmbus_syscore);
-> >  
-> > -	hv_remove_kexec_handler();
-> >  	hv_remove_crash_handler();
-> >  	vmbus_connection.conn_state = DISCONNECTED;
-> >  	hv_stimer_global_cleanup();
-> > diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-> > index bf601d67cecb..98fe5c0f54ea 100644
-> > --- a/include/asm-generic/mshyperv.h
-> > +++ b/include/asm-generic/mshyperv.h
-> > @@ -183,8 +183,6 @@ void hv_remove_vmbus_handler(void);
-> >  void hv_setup_stimer0_handler(void (*handler)(void));
-> >  void hv_remove_stimer0_handler(void);
-> >  
-> > -void hv_setup_kexec_handler(void (*handler)(void));
-> > -void hv_remove_kexec_handler(void);
-> >  void hv_setup_crash_handler(void (*handler)(struct pt_regs *regs));
-> >  void hv_remove_crash_handler(void);
-> >  void hv_setup_mshv_handler(void (*handler)(void));
-> > -- 
-> > 2.43.0
-> 
-> -- 
-> Sincerely yours,
-> Mike.
+
+base-commit: cee9395acd8043be0644b25c34bfa86623f2b935
+-- 
+2.39.5 (Apple Git-154)
+
