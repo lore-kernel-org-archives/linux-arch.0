@@ -1,215 +1,360 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f53.google.com (mail-wm1-f53.google.com [209.85.128.53])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2DA384F5E04;
-	Fri,  9 Oct 2026 18:17:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791569874; cv=none; b=GBOINGyVPtaqCBJNioRhILqIBwzWFH3Q7SaF24gQ5YRaP2qNrC3fDK+mbudp9TaaFRct0gLhc+AeY3Z5192jjHikshmwnyj1FpolqXahPD3FfwzEr2i/LSKfA7RShSrDFs8GKcwOZmKgHUx9dmjcFxEfCdm0DQvo7hP4XyNHrKM=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791569874; c=relaxed/simple;
-	bh=I2iSzq1wq3BUA5ngKyuzaIh6bRjYfHM3M8Ib2DX8Eao=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=sBUwFbbSQneFNeEXZzGwYVxA9iAr0dFC18j4ak9+YBg+kL2dfPK/4kXUV8AAYvwsOl5vIdEw273NtNutmPk5jC3IEzuqr2BNFXklcZN/wIlb5YnwbtnP2yO9z2zsBwouBzSRK2wmujBkhjd2qQxX6ntO7u7UJooztWhL8chz7So=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Mvzi1fiC; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81F86367B71
+	for <linux-arch@vger.kernel.org>; Sat, 10 Oct 2026 03:07:05 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.128.53
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1791601627; cv=pass; b=dVNq1Fz8LvcQrb1RBXdU83VRGpwY3giuhProWclRLLb+GybMQ88qX1Grly5lJSYd/0qmNC27pdI0JoAwA69wMkAu25rX68JEBkdz3ETHSF4xwUIf3jc1qDsI/qRHujLkwfdEYAIrGDBOmS5vfsHGpG9ZhUZMJDfbelO3/3prUjQ=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1791601627; c=relaxed/simple;
+	bh=R6kdKGPzHjoG5KZKNq2uo8LKEj9Go4FuT1d2+2J7s5E=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=LIkdy6kJOvPGo3Q0p4RaVK/xD0Sv9hl9gd2whhJTJCVvlkmdcKTWX2Mul8B3bL1iuUDfl/JcnoPyPhpDNH4ovyCR60r0JHmdZ4JIMi6b53HrDk3OIfNwGDp+uDcueFgChW1bELdCN8NJy9i1ltchB9n/TUIKOqKO2IKwwJdZolw=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=sPUNvBga; arc=pass smtp.client-ip=209.85.128.53
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Mvzi1fiC"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 799181F00898;
-	Fri,  9 Oct 2026 18:17:32 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1791569873;
-	bh=Q2aQUzTUuuuNI/ysultBnvmSy0Vxb53qrqOM+R0btIA=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=Mvzi1fiC6gX/l2jQGIwOF7O63+WE13HT+q4ZHUAMv6JVw7qL2MDphBGUkkO6YC+Gp
-	 M9+AcJDTYwgzfHItQHapQgVC77ka1excAet+KIgzyS/z5TqMW+YLy1mXKvqoIdGfIQ
-	 te9hu5V+MpJ1mRea6WG8zB0aOEb3w9//poav+TxQQl9lQvL3T9KVLtjcMcV62r0Tjk
-	 pZjj8iPIlVpbYKwaSWPGhValW8a40mzLhunv3AiK4J2UGMS3ntAEtUkKYtoLG1Dw4n
-	 KXMb7Uiz862SqCAVEegs9wOrsfyCd2UV/GPj5hsvhhw1oFdq0wBHrAtFFrS8s0a8yU
-	 ll9X4iU0jG7ig==
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Date: Fri, 09 Oct 2026 19:04:32 +0100
-Subject: [PATCH v5 38/38] mm/huge_memory: remove vma_is_special_huge()
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="sPUNvBga"
+Received: by mail-wm1-f53.google.com with SMTP id 5b1f17b1804b1-4a161d9b8c7so2217755e9.3
+        for <linux-arch@vger.kernel.org>; Fri, 09 Oct 2026 20:07:05 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1791601623; cv=none;
+        d=google.com; s=arc-20260327;
+        b=nrsNvR+zOezISHajecs4IbLxO+nzoYgXrY5PqWyShWHQfUFmx7a6KSDZHVTPzrYG3Q
+         ErYThjJEPCwPNJTmZ1ISfQgM28Ncq37f+1FzT1gl7h136XKPqus/6TBiKlYV3EmsbHsX
+         KrnDKb35OmMl25l5klO0GpGWyfan1uAYig3hceCb2SQsuYXLika+vkiIKS+41L8hraM4
+         rDPYLw32vToClIA5dz7Q2G7TTr1BZHd3YQVIdeBIaBna03+Ip79WDrO121tg/aDYtBKe
+         H+WMB5Gbv8jPDH1uSl2c1SZmrZY5It5EsJfNJimCQ9bZ2YZ3uW/HvIPhNduYYLEZ3e0H
+         mPrA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=DqBvVGuFj0GZrAgGWRG+Z1DSJ+1TnkbYLAFeT5xo12I=;
+        fh=0sot99E1evqjewYQD78auutC+Ea6lmBaw0iu3NeLkMQ=;
+        b=QpLZJy1daEeX2VTGc/rHIwN5hV1pW7vrUVnF6yxUeFiMBxWkD41HlnhyCEKGQ3BaU+
+         8tpIsvwUd9g0zKnpUvnX6kBiiQnC+wuOu1NtotroQAjNH529lH745lUmTVSIP8bG6gJI
+         QeQUZwOkHARRs6QqdtAFgIE36TWmaqdK0jaEkkUfrMVIM3fHjulLQK6Qyk4YTJ08ooLU
+         iFFpSyaVXOiyG3FTCa1ZTe87AYKrSrt1ZLn+MA3ct6zVsOoP6EJB5P0c9ElRjyTU59CZ
+         pKu9+IurNECtNbR6XattduQU3Y9LuCI6RZl9GDE+f6XTJs2KEBOWG8vhbFvne5SV0gZ+
+         oOYw==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1791601623; x=1792206423; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=DqBvVGuFj0GZrAgGWRG+Z1DSJ+1TnkbYLAFeT5xo12I=;
+        b=sPUNvBgaLCkSRBNytttrTwdYEnhRQ60ZUO3A6pleOplw9/XkWo7FWyZNWmpEAXsLje
+         nnT9jAG+grc2Oq6wAx2spJfQSYGXEhDzHQwn2ZzufM5xHmhaZZrI8BpqYb2uKreRza4e
+         bRCMO5OVUe2QsPBkdDO/7V16ATF7++ASWdc+IL8rvxw99OBhmin/OhONkHvuQ7y67okf
+         dOYc/adrro23l8tJ/CwiMoXJ628GXT+BhN12OQMGsTO48tVErBA6wHqL3zwnNAtGmd26
+         E9SBAG4AVluaIgJ6RsZjj99r3zM+9i/P9ESp3/ayJT12EfAWnfue27NP4JG/szw7tF9i
+         D/EQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1791601623; x=1792206423;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=DqBvVGuFj0GZrAgGWRG+Z1DSJ+1TnkbYLAFeT5xo12I=;
+        b=bXIN4F5PUOY5i1zT5MfHQa7JRXVsvvyEpr49c9tUgXH9vLqX3kq1z0HFh2YV3jSNxR
+         olaQwm7h7xeCVqkTt6wmSEddyl6ogof3/2inFd6UiN7sDdEiGgRr4+L5V/UEPSA7CV+o
+         q0ldky+T0LBZVlmDrhc411wVPPOaiWQj+gCdsMTG/3L0iiIPGmKVWrBZTjvV1lwwtBub
+         TOdWb49W72jqquOHuwCNGF8kzSvz91ZvPf4f6twZK3PQXpIKNhpBtKs+dBamDH7MPhBP
+         +SSgubjOESBOAEIhT59xE+2DJ2BdcdjVWNkUxM5ElxZkvyfea1Rz90QXr1udc1iFMG/F
+         f9yg==
+X-Forwarded-Encrypted: i=1; AKwUvBy2PgGxiCNtH1i5TrBrjtiKbsUjGb4cGJptN6ot6e14UF/l7XYdhwKcTXRDzYZhMOv1vhtVtI183pBS@vger.kernel.org
+X-Gm-Message-State: AFq9FYJLhFj/9JWQXOn8O6t0MNwyqYRN4Fpxl7jjJS/7lfeO0PQm7aU3
+	QoYa71v8dOldP4kZnXsUGd95GHz8PNQhHgLd5v6zTVq+34RFDEBun5Ub6Ei03rWkGckd5pJ8579
+	EaAgxJDfru8qiOurhT5oLOujjMnVmimc=
+X-Gm-Gg: AYBFou30irYC0MGTROFjd95zsP73gw1OZ4fFkCz49EYvHoL51PWSilkHIbfmcO+CGRl
+	lr8fOpBL/UC7M6RsJ7B24UiQnOrIR5a+DWkWSj3i3OBCiQ8OLAY6v+ERymWedlNYV9NnjnrcNpE
+	l8o6SzkaUdE+RFa351KRJtAy0zBaazuL60RlqadXa3Aa6FeSlKd+0+KlE2o0NdeEh+5BLyTpt2X
+	0JvwVn6F1WXuYF7IsJY+USw4AaLDvYDzXddmb1G+l13gvi+pFXIFdfMDrLQJ9ONWkZ9q/IlNCC0
+	YLMd5YwgmfAnMt4yqNUr5KAZSXi2ig2n9f4u2pOpRkKM+5tAtKqOL9nh
+X-Received: by 2002:a05:600c:548e:b0:4a0:1aa0:7cfa with SMTP id
+ 5b1f17b1804b1-4a18e4aa724mr72284475e9.12.1791601623170; Fri, 09 Oct 2026
+ 20:07:03 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20261009-b4-mmap-prepare-vma-flag-sanify-v5-38-923b70125b1e@kernel.org>
-References: <20261009-b4-mmap-prepare-vma-flag-sanify-v5-0-923b70125b1e@kernel.org>
-In-Reply-To: <20261009-b4-mmap-prepare-vma-flag-sanify-v5-0-923b70125b1e@kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, 
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
- Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
- David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
- Jonathan Corbet <corbet@lwn.net>, 
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
- Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, 
- Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
- Paul Moore <paul@paul-moore.com>, 
- Stephen Smalley <stephen.smalley.work@gmail.com>, 
- Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, 
- Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
- Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
- Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
- Baolin Wang <baolin.wang@linux.alibaba.com>, 
- Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, 
- Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
- Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
- Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, 
- "Martin K. Petersen" <mkp@kernel.org>, Simona Vetter <simona@ffwll.ch>, 
- Helge Deller <deller@gmx.de>, Sebastian Reichel <sre@kernel.org>, 
- John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
- Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, 
- Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@kernel.org>, 
- Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
- Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
- Arnaldo Carvalho de Melo <acme@kernel.org>, 
- Namhyung Kim <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
- Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
- Juri Lelli <juri.lelli@redhat.com>, 
- Vincent Guittot <vincent.guittot@linaro.org>, 
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
- Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
- David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
- Nick Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, 
- Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
- Marc Zyngier <maz@kernel.org>, Oliver Upton <oupton@kernel.org>, 
- Catalin Marinas <catalin.marinas@arm.com>, 
- Madhavan Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, 
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
- Albert Ou <aou@eecs.berkeley.edu>, 
- Christian Borntraeger <borntraeger@linux.ibm.com>, 
- Janosch Frank <frankja@linux.ibm.com>, 
- Claudio Imbrenda <imbrenda@linux.ibm.com>, 
- Alexander Gordeev <agordeev@linux.ibm.com>, 
- Gerald Schaefer <gerald.schaefer@linux.ibm.com>, 
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
- "David S. Miller" <davem@davemloft.net>, 
- Andreas Larsson <andreas@gaisler.com>, 
- Alexander Viro <viro@zeniv.linux.org.uk>, 
- Christian Brauner <brauner@kernel.org>, 
- Matthew Brost <matthew.brost@intel.com>, 
- Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
- Byungchul Park <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, 
- Ying Huang <ying.huang@linux.alibaba.com>, 
- Alistair Popple <apopple@nvidia.com>, Chris Li <chrisl@kernel.org>, 
- Kairui Song <kasong@tencent.com>, Kemeng Shi <shikemeng@huaweicloud.com>, 
- Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
- Youngjun Park <youngjun.park@lge.com>, Johannes Weiner <hannes@cmpxchg.org>, 
- Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
- Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, 
- Wei Xu <weixugc@google.com>, Chengming Zhou <chengming.zhou@linux.dev>, 
- Michal Hocko <mhocko@kernel.org>, Miklos Szeredi <miklos@szeredi.hu>, 
- Xu Xin <xu.xin@linux.dev>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
- linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
- linux-rdma@vger.kernel.org, selinux@vger.kernel.org, 
- linux-sound@vger.kernel.org, bpf@vger.kernel.org, 
- linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
- dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
- linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
- kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org, 
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
- linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, 
- fuse-devel@lists.linux.dev, Ihor Solodrai <ihor.solodrai@linux.dev>, 
- Bert Karwatzki <spasswolf@web.de>, "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2917; i=ljs@kernel.org;
- h=from:subject:message-id; bh=I2iSzq1wq3BUA5ngKyuzaIh6bRjYfHM3M8Ib2DX8Eao=;
- b=owGbwMvMwCV2fu7ZrsZH9SKMp9WSGLJO6szfWj3ty7q/pguW7DpuZtT4jElWLtS1uyhobZze9
- OafW9z2dJSyMIhxMciKKbI8/yK+P0gkbF7nBX83mDmsTCBDGLg4BWAih4oZGY7W1nnvPG33iTuv
- sX7rVRfheG+m6w6XN7fGfTlreHDn7qkMf6Vv23es6UhS+qaT8/NXQxXPhBvTt4tozmYROcvWdel
- NIAMA
-X-Developer-Key: i=ljs@kernel.org; a=openpgp;
- fpr=E7F417BF5214569E89D04F46CF9DCD8A81E27F14
+References: <20261005171529.1378809-1-kunwu.chan@gmail.com>
+ <20261005171529.1378809-3-kunwu.chan@gmail.com> <bedc399a-151c-42e5-b33e-d78221702fa5@efficios.com>
+In-Reply-To: <bedc399a-151c-42e5-b33e-d78221702fa5@efficios.com>
+From: KunWu Chan <kunwu.chan@gmail.com>
+Date: Sat, 10 Oct 2026 11:06:52 +0800
+X-Gm-Features: AclHuK8NpqoYHGNF8qem9_9ttNaOwl-7fp6vIe9jVutVGCveZrXPQMrRKkOozbM
+Message-ID: <CAN_Opa99g5MiWp6L8d_c=eUNcfxH8eb1Am6MKRjx+zjUTYXs0w@mail.gmail.com>
+Subject: Re: [PATCH RFC v3 02/15] hazptr: use Bloom filter for shared scan waiters
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: paulmck@kernel.org, corbet@lwn.net, mingo@redhat.com, frederic@kernel.org, 
+	neeraj.upadhyay@kernel.org, josh@joshtriplett.org, urezki@gmail.com, 
+	dave@stgolabs.net, lianux.mm@gmail.com, stern@rowland.harvard.edu, 
+	parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, 
+	boqun@kernel.org, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, 
+	luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, 
+	joelagnelf@nvidia.com, skhan@linuxfoundation.org, rdunlap@infradead.org, 
+	longman@redhat.com, rostedt@goodmis.org, jiangshanlai@gmail.com, 
+	qiang.zhang@linux.dev, brads@mainlining.org, linux-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, lkmm@lists.linux.dev, linux-doc@vger.kernel.org, 
+	rcu@vger.kernel.org, linux-kselftest@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-vma_is_special_huge() tests whether either the VMA_PFNMAP_BIT or
-VMA_MIXEDMAP_BIT is set (i.e. whether the VMA is not mm-managed),
-but with a DAX carve-out.
+On Tue, Oct 6, 2026 at 1:51=E2=80=AFPM Mathieu Desnoyers
+<mathieu.desnoyers@efficios.com> wrote:
+>
+> On 2026-10-05 13:15, Kunwu Chan wrote:
+> > Replace the per-waiter exact-match scan with a shared Bloom filter
+> > built during the second drain pass: each observed non-wildcard
+> > address sets three bits, so a waiter whose address hashes to an
+> > unset bit can be completed without another slot walk.
+> >
+> > A Bloom filter has no false negatives, so an address absent from
+> > the final drain scan cannot be held by an observed slot; false
+> > positives only delay completion to a later scan cycle.
+> >
+> > The filter uses a one-page bitmap with three multiply-shift hash
+> > functions.  It lives in the hazptr_scan_state and is only touched
+> > by the scan kthread, so waiter state remains on the caller's stack
+> > and no dynamic allocation is needed.
+> >
+> > Suggested-by: Boqun Feng <boqun@kernel.org>
+>
+> I actually suggested that to Boqun in the first place. Feel
+> free to add my suggested-by tag as well. :)
+>
+> Did you run your Bloom filter in a test program on the side to
+> see how it behaves with pointers, and confirm that the false
+> positive rate is not too high due to hashing algorithm/constants
+> concerns ?
+>
 
-DAX however no longer sets VMA_MIXEDMAP_BIT, so this carve-out is no longer
-required.
+Hi Mathieu,
 
-Therefore test for !vma_is_mm_managed() instead and also drop the
-VMA_IO_BIT check, as it is now redundant since it is enforced that
-mm-managed mappings may not set VMA_IO_BIT.
+I ran a standalone test using the hash functions and constants from
+the patch, with random,
+page-aligned, cacheline-aligned, sequential, and two synthetic
+kernel-like address patterns.
 
-This also eliminates another overloaded use of 'special' within mm.
+With 768 inserted addresses, the measured false-positive rates were
+0.025%=E2=80=930.034% across
+these patterns, compared with an ideal Bloom-filter estimate of about
+0.031%. I also tested larger
+ insertion counts as stress cases. The results were consistent across
+three seeds,
+with only minor variation for the random distribution.
 
-No functional change intended.
+These are synthetic address distributions rather than measurements
+from actual kernel waiter
+ addresses, but they provide an initial check of the hash functions
+against several structured
+address patterns.
 
-Acked-by: Zi Yan <ziy@nvidia.com>
-Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
----
- mm/huge_memory.c | 18 ++++--------------
- 1 file changed, 4 insertions(+), 14 deletions(-)
+Thanks,
+Kunwu
 
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 83dd63b04568..000c4bb50f71 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -110,14 +110,6 @@ static inline bool file_thp_enabled(const struct vm_area_struct *vma)
- 	return S_ISREG(inode->i_mode);
- }
- 
--/* If returns true, we are unable to access the VMA's folios. */
--static bool vma_is_special_huge(const struct vm_area_struct *vma)
--{
--	if (vma_is_dax(vma))
--		return false;
--	return vma_test_any(vma, VMA_PFNMAP_BIT, VMA_MIXEDMAP_BIT);
--}
+> Thanks!
+>
+> Mathieu
+>
+> > Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
+> > ---
+> >   kernel/hazptr.c | 93 +++++++++++++++++++++++++++++++++++++++++++-----=
 -
- static bool vma_file_bypass_thp_tuneables(const struct vm_area_struct *vma,
- 		enum tva_type type)
- {
-@@ -192,7 +184,7 @@ unsigned long __thp_vma_allowable_orders(struct vm_area_struct *vma,
- 	/* Check the intersection of requested and supported orders. */
- 	if (vma_is_anonymous(vma))
- 		supported_orders = THP_ORDERS_ALL_ANON;
--	else if (vma_is_dax(vma) || vma_is_special_huge(vma))
-+	else if (vma_is_dax(vma) || !vma_is_mm_managed(vma))
- 		supported_orders = THP_ORDERS_ALL_SPECIAL_DAX;
- 	else
- 		supported_orders = THP_ORDERS_ALL_FILE_DEFAULT;
-@@ -3066,7 +3058,7 @@ int zap_huge_pud(struct mmu_gather *tlb, struct vm_area_struct *vma,
- 	orig_pud = pudp_huge_get_and_clear_full(vma, addr, pud, tlb->fullmm);
- 	arch_check_zapped_pud(vma, orig_pud);
- 	tlb_remove_pud_tlb_entry(tlb, pud, addr);
--	if (vma_is_special_huge(vma)) {
-+	if (!vma_is_mm_managed(vma)) {
- 		spin_unlock(ptl);
- 		/* No zero page support yet */
- 	} else {
-@@ -3222,7 +3214,7 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 		 */
- 		if (arch_needs_pgtable_deposit())
- 			zap_deposited_table(mm, pmd);
--		if (vma_is_special_huge(vma))
-+		if (!vma_is_mm_managed(vma))
- 			return;
- 		if (unlikely(pmd_is_migration_entry(old_pmd))) {
- 			const softleaf_t old_entry = softleaf_from_pmd(old_pmd);
-@@ -4765,9 +4757,7 @@ static inline bool vma_not_suitable_for_thp_split(struct vm_area_struct *vma)
- {
- 	if (vma_is_dax(vma))
- 		return true;
--	if (vma_is_special_huge(vma))
--		return true;
--	if (vma_test(vma, VMA_IO_BIT))
-+	if (!vma_is_mm_managed(vma))
- 		return true;
- 	if (vma_is_hugetlb(vma))
- 		return true;
-
--- 
-2.55.0
-
+> >   1 file changed, 83 insertions(+), 10 deletions(-)
+> >
+> > diff --git a/kernel/hazptr.c b/kernel/hazptr.c
+> > index 9e274a691af5..900ba35de2cb 100644
+> > --- a/kernel/hazptr.c
+> > +++ b/kernel/hazptr.c
+> > @@ -7,6 +7,7 @@
+> >    */
+> >
+> >   #include <linux/hazptr.h>
+> > +#include <linux/bitops.h>
+> >   #include <linux/percpu.h>
+> >   #include <linux/spinlock.h>
+> >   #include <linux/mutex.h>
+> > @@ -16,6 +17,7 @@
+> >   #include <linux/kthread.h>
+> >   #include <linux/swait.h>
+> >   #include <linux/sched.h>
+> > +#include <linux/bitmap.h>
+> >
+> >   /*
+> >    * The current hazard pointer wildcard. Flips between 1UL and 2UL to =
+guarantee
+> > @@ -213,6 +215,55 @@ void hazptr_scan_period(void *addr, void *scan_wil=
+dcard)
+> >       }
+> >   }
+> >
+> > +/* Number of hash functions for the Bloom filter. */
+> > +#define HAZPTR_BLOOM_HASHES 3
+> > +
+> > +/* Number of bits in the Bloom filter bitmap: one page. */
+> > +#define HAZPTR_BLOOM_NBITS (PAGE_SIZE * 8)
+> > +
+> > +struct hazptr_bloom {
+> > +     unsigned long map[PAGE_SIZE / sizeof(unsigned long)];
+> > +};
+> > +
+> > +/*
+> > + * Multiply @addr by a per-hash odd constant and use the high bits
+> > + * as the Bloom filter index.
+> > + */
+> > +static unsigned long hazptr_bloom_hash(void *addr, unsigned int i)
+> > +{
+> > +     static const u64 mult[HAZPTR_BLOOM_HASHES] =3D {
+> > +             0x9E3779B97F4A7C15ULL,
+> > +             0xC2B2AE3D27D4EB4FULL,
+> > +             0x165667B19E3779F9ULL,
+> > +     };
+> > +     u64 hash =3D (u64)(unsigned long)addr * mult[i];
+> > +
+> > +     return hash >> (64 - ilog2(HAZPTR_BLOOM_NBITS));
+> > +}
+> > +
+> > +static void hazptr_bloom_reset(struct hazptr_bloom *bloom)
+> > +{
+> > +     bitmap_zero(bloom->map, HAZPTR_BLOOM_NBITS);
+> > +}
+> > +
+> > +static void hazptr_bloom_add(struct hazptr_bloom *bloom, void *addr)
+> > +{
+> > +     unsigned int i;
+> > +
+> > +     for (i =3D 0; i < HAZPTR_BLOOM_HASHES; i++)
+> > +             __set_bit(hazptr_bloom_hash(addr, i), bloom->map);
+> > +}
+> > +
+> > +static bool hazptr_bloom_contains(const struct hazptr_bloom *bloom, vo=
+id *addr)
+> > +{
+> > +     unsigned int i;
+> > +
+> > +     for (i =3D 0; i < HAZPTR_BLOOM_HASHES; i++)
+> > +             if (!test_bit(hazptr_bloom_hash(addr, i), bloom->map))
+> > +                     return false;
+> > +     return true;
+> > +}
+> > +
+> >   struct hazptr_waiter {
+> >       struct list_head node;
+> >       void *addr;
+> > @@ -226,17 +277,26 @@ struct hazptr_scan_state {
+> >       struct mutex lock;
+> >       struct list_head pending;
+> >       struct list_head scanning;      /* kthread only */
+> > +     struct hazptr_bloom bloom;      /* kthread only */
+> >   };
+> >   static struct hazptr_scan_state hazptr_scan;
+> >
+> >   /*
+> > - * Check per-CPU slots before overflow-list slots to match the
+> > - * acquisition ordering of promoted slots.
+> > + * Walk all slots and return true if @watch is present.  If @bloom
+> > + * is non-NULL, record observed non-wildcard addresses in it.
+> > + *
+> > + * Per-CPU slots are examined before overflow-list slots on each CPU
+> > + * to preserve the acquisition ordering required by the promote path:
+> > + * synchronize must observe the per-CPU slot release before the
+> > + * overflow-list entry can be missed.
+> >    */
+> > -static bool hazptr_value_present(void *val)
+> > +static bool hazptr_scan_walk(void *watch, struct hazptr_bloom *bloom)
+> >   {
+> >       int cpu;
+> >
+> > +     if (bloom)
+> > +             hazptr_bloom_reset(bloom);
+> > +
+> >       for_each_possible_cpu(cpu) {
+> >               struct hazptr_percpu_slots *percpu_slots =3D per_cpu_ptr(=
+&hazptr_percpu_slots, cpu);
+> >               struct hazptr_overflow_list_flip *overflow_list_flip =3D =
+per_cpu_ptr(&percpu_overflow_list_flip, cpu);
+> > @@ -244,10 +304,14 @@ static bool hazptr_value_present(void *val)
+> >
+> >               for (idx =3D 0; idx < NR_HAZPTR_PERCPU_SLOTS; idx++) {
+> >                       struct hazptr_slot_item *item =3D &percpu_slots->=
+items[idx];
+> > +                     void *v;
+> >
+> >                       /* Pairs with smp_store_release in hazptr_release=
+(). */
+> > -                     if (smp_load_acquire(&item->slot.addr) =3D=3D val=
+)
+> > +                     v =3D smp_load_acquire(&item->slot.addr);
+> > +                     if (v =3D=3D watch)
+> >                               return true;
+> > +                     if (bloom && v && !is_wildcard(v))
+> > +                             hazptr_bloom_add(bloom, v);
+> >               }
+> >               for (int i =3D 0; i < 2; i++) {
+> >                       struct hazptr_overflow_list *list =3D &overflow_l=
+ist_flip->array[i];
+> > @@ -256,11 +320,16 @@ static bool hazptr_value_present(void *val)
+> >
+> >                       raw_spin_lock_irqsave(&list->lock, flags);
+> >                       hlist_for_each_entry(b, &list->head, overflow_nod=
+e) {
+> > +                             void *v;
+> > +
+> >                               /* Pairs with smp_store_release in hazptr=
+_release(). */
+> > -                             if (smp_load_acquire(&b->slot.addr) =3D=
+=3D val) {
+> > +                             v =3D smp_load_acquire(&b->slot.addr);
+> > +                             if (v =3D=3D watch) {
+> >                                       raw_spin_unlock_irqrestore(&list-=
+>lock, flags);
+> >                                       return true;
+> >                               }
+> > +                             if (bloom && v && !is_wildcard(v))
+> > +                                     hazptr_bloom_add(bloom, v);
+> >                       }
+> >                       raw_spin_unlock_irqrestore(&list->lock, flags);
+> >               }
+> > @@ -276,7 +345,7 @@ static bool hazptr_value_present(void *val)
+> >    */
+> >   static void hazptr_drain_wildcard(void *wc)
+> >   {
+> > -     while (hazptr_value_present(wc))
+> > +     while (hazptr_scan_walk(wc, NULL))
+> >               cond_resched();
+> >   }
+> >
+> > @@ -309,12 +378,16 @@ static void hazptr_scan_do_cycle(void)
+> >       WRITE_ONCE(hazptr_wildcard, scan_wildcard);
+> >       old_wildcard =3D flip_wildcard(scan_wildcard);
+> >
+> > -     /* Pass 2: drain the old wildcard. */
+> > -     hazptr_drain_wildcard(old_wildcard);
+> > +     /*
+> > +      * Pass 2: drain the old wildcard while collecting observed
+> > +      * addresses into the Bloom filter.
+> > +      */
+> > +     while (hazptr_scan_walk(old_wildcard, &hazptr_scan.bloom))
+> > +             cond_resched();
+> >
+> > -     /* Complete waiters whose address is no longer held by any slot. =
+*/
+> > +     /* Complete waiters whose address is not in the filter. */
+> >       list_for_each_entry_safe(w, n, &hazptr_scan.scanning, node) {
+> > -             if (!hazptr_value_present(w->addr))
+> > +             if (!hazptr_bloom_contains(&hazptr_scan.bloom, w->addr))
+> >                       list_move(&w->node, &done);
+> >       }
+> >
+>
+>
+> --
+> Mathieu Desnoyers
+> EfficiOS Inc.
+> https://www.efficios.com
