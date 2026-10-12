@@ -1,269 +1,171 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from DM1PR04CU001.outbound.protection.outlook.com (mail-centralusazon11010052.outbound.protection.outlook.com [52.101.61.52])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B5DD91A683D;
-	Sat, 10 Oct 2026 22:00:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791669627; cv=none; b=pvoSx4+58RJt/pZ3LW/aDh8aVfcXnvuIsCVf4SMHeUqU03UIF60qOlHr2fBnANy53S5xaYPwrwCaK9vVXDrbYfWO5AZ3riFu3LwKYe/ymIgpa8AJsQtPAcajJPMkUj30jqmLPhKLkSP4AthoXZGWHZoifKuhq5mOzXwjoAht/Q8=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791669627; c=relaxed/simple;
-	bh=uTIIgXvNGRKidYtT9y9d/j9O/uWBWM1pGuwQpiO4cmw=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=LxMbN4FMd8LTIFjiPea+nzZKCbl9pWue4MSjHuNEHXw8edbBTn5aa++6NGrRpEtSCEfwX13SoWeZ2wNQ3RrWp5xUIhhJ+2XPHi7ITvpMZa1z5TZgNagyttUk0wpBrTgKFuexBZfsUQWi2ziBmDZ6ZWxse3V+cxAJqVpfdWWVHLc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=ffP+TPLt; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8968338E8BF;
+	Mon, 12 Oct 2026 02:12:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.61.52
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1791771122; cv=fail; b=P6gMbHOWk+owUJFKbRduyISwlam8wrZXkalfWCglOpWi5fuJBkr/ZiCFiijb2UUJADzAz6BKNsjRvVZ5OqFxYeBGL6nDJQ6lkF62LN8AIZbynFJP2sPllLyrkaQa/i+xuthSjY8HXmBYoe6q4avFNxe++XDcIH3pEs37bZUikUw=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1791771122; c=relaxed/simple;
+	bh=bHkB7I3ddlR1weq6t8jTGHxjxbBVAS+9FkIQZodk67I=;
+	h=Message-ID:Date:MIME-Version:Subject:To:CC:References:From:
+	 In-Reply-To:Content-Type; b=L7LFjE9+Q7ueas61Ec8ZGMr7WvNXBB7Dbwc0bAkFoe/AUlvZOPLfVr2H4wYbGkk5cxbpmuRLAz4PqXuUE3JvrXNGWa8wlQh+CqkRY3ipje3Ft6QHzciPx07XydrBLNdYxKSe1CuuVpMCeDqgpD48YD6Z0g/Hi6o8l4Gsdnlbez8=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b=DWG2/aOT; arc=fail smtp.client-ip=52.101.61.52
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="ffP+TPLt"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4AADC1F000FF;
-	Sat, 10 Oct 2026 22:00:21 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1791669625;
-	bh=N2jYfqmPt2es1xuCkTol8NOahRHgRnTcTOUiwhGzkTU=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=ffP+TPLt1hBG2zdntJGpA4a6eo1Kktyl63gUdmTPWoDV5PB8j6QZDH7O5pu6DND18
-	 83jrFOWryJ2h63yrCPBw+Uh9wavAQ633twrY1q8Eu4fcsINr1B1dFygd9ev9/B+B/N
-	 PiED0VbjIV4o5yPrrgsINTWJg6/2ZfXlko4ls4sM=
-Date: Sat, 10 Oct 2026 15:00:20 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka
- <vbabka@kernel.org>, Jann Horn <jannh@google.com>, Pedro Falcato
- <pfalcato@suse.de>, David Hildenbrand <david@kernel.org>, Mike Rapoport
- <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, Michal Hocko
- <mhocko@suse.com>, Jonathan Corbet <corbet@lwn.net>, Greg Kroah-Hartman
- <gregkh@linuxfoundation.org>, Dennis Dalessandro
- <dennis.dalessandro@cornelisnetworks.com>, Jason Gunthorpe <jgg@ziepe.ca>,
- Leon Romanovsky <leon@kernel.org>, Paul Moore <paul@paul-moore.com>,
- Stephen Smalley <stephen.smalley.work@gmail.com>, Jaroslav Kysela
- <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, Alexei Starovoitov
- <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Andrii Nakryiko
- <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, Kumar Kartikeya
- Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, Baolin Wang
- <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, Ryan
- Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song
- <baohua@kernel.org>, Lance Yang <lance.yang@linux.dev>, Usama Arif
- <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert
- <dgilbert@interlog.com>, "James E.J. Bottomley"
- <James.Bottomley@HansenPartnership.com>, "Martin K. Petersen"
- <mkp@kernel.org>, Simona Vetter <simona@ffwll.ch>, Helge Deller
- <deller@gmx.de>, Sebastian Reichel <sre@kernel.org>, John Hubbard
- <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, Masami Hiramatsu
- <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra
- <peterz@infradead.org>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
- <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
- <dave.hansen@linux.intel.com>, x86@kernel.org, Arnaldo Carvalho de Melo
- <acme@kernel.org>, Namhyung Kim <namhyung@kernel.org>, Mark Rutland
- <mark.rutland@arm.com>, Rik van Riel <riel@surriel.com>, Harry Yoo
- <harry@kernel.org>, Juri Lelli <juri.lelli@redhat.com>, Vincent Guittot
- <vincent.guittot@linaro.org>, Maarten Lankhorst
- <maarten.lankhorst@linux.intel.com>, Maxime Ripard <mripard@kernel.org>,
- Thomas Zimmermann <tzimmermann@suse.de>, David Airlie <airlied@gmail.com>,
- Will Deacon <will@kernel.org>, "Aneesh Kumar K.V"
- <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, Arnd Bergmann
- <arnd@arndb.de>, Muchun Song <muchun.song@linux.dev>, Oscar Salvador
- <osalvador@suse.de>, "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan
- Kara <jack@suse.cz>, Marc Zyngier <maz@kernel.org>, Oliver Upton
- <oupton@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Madhavan
- Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, Paul
- Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
- <aou@eecs.berkeley.edu>, Christian Borntraeger <borntraeger@linux.ibm.com>,
- Janosch Frank <frankja@linux.ibm.com>, Claudio Imbrenda
- <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>,
- Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Heiko Carstens
- <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, "David S. Miller"
- <davem@davemloft.net>, Andreas Larsson <andreas@gaisler.com>, Alexander
- Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>,
- Matthew Brost <matthew.brost@intel.com>, Joshua Hahn
- <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, Byungchul Park
- <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, Ying Huang
- <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>, Chris
- Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, Kemeng Shi
- <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He
- <baoquan.he@linux.dev>, Youngjun Park <youngjun.park@lge.com>, Johannes
- Weiner <hannes@cmpxchg.org>, Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt
- <shakeel.butt@linux.dev>, Axel Rasmussen <axelrasmussen@google.com>,
- Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, Chengming
- Zhou <chengming.zhou@linux.dev>, Michal Hocko <mhocko@kernel.org>, Miklos
- Szeredi <miklos@szeredi.hu>, Xu Xin <xu.xin@linux.dev>, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org,
- linux-usb@vger.kernel.org, linux-rdma@vger.kernel.org,
- selinux@vger.kernel.org, linux-sound@vger.kernel.org, bpf@vger.kernel.org,
- linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org,
- dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org,
- linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
- kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org,
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
- linux-s390@vger.kernel.org, sparclinux@vger.kernel.org,
- fuse-devel@lists.linux.dev, Ihor Solodrai <ihor.solodrai@linux.dev>, Bert
- Karwatzki <spasswolf@web.de>, Takashi Iwai <tiwai@suse.de>, Emil Tsalapatis
- <emil@etsalapatis.com>
-Subject: Re: [PATCH v5 00/38] mm: make VMA flag semantics explicit,
- eliminate VM_SPECIAL
-Message-Id: <20261010150020.cbd6ce3038e3b6d72e2c92c9@linux-foundation.org>
-In-Reply-To: <20261009-b4-mmap-prepare-vma-flag-sanify-v5-0-923b70125b1e@kernel.org>
-References: <20261009-b4-mmap-prepare-vma-flag-sanify-v5-0-923b70125b1e@kernel.org>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b="DWG2/aOT"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=BRO0BUyOwwHVyrfVzi8IKnw1tULvYik2EXlxuZH5kH429kCd9BnYr9yZCIxj4big3p3Lnuew+fsXy4dbqOO+85AK2I3B6qHtSSx8us/i06EfIbHKMV5a9mqncqh/Iiq4mBf9d2fLWQpUgpcqFtSluwebxRI4V/4+zxwHnNpf6DfcX7oc96s8YyqVcWpxGmylOr9D5xydl3pOEmR1ahUrq9TuB5rgiB3oRJbQ42CVwORHuYH/Dw8AOZhAcOiB5fHEvcH+/vrUnQ4ju3XBA45bO78B/mPRiEfBwnLD2ULaYduZtjk43eV3EtBUibPBEWlqQE98FssVSk+bXawaC2Pilg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=YBlxl2+OFlv5puE9NS7I76ORqmDZwiZJ2i+jnKrKsuk=;
+ b=Mu7rD5QJSswQH3+QFzeKPuQcsEAhVp6wsaSAR1tN7FwR6QMKGzQIVUrZhi8jD7eUwbbAjoI4xTn8wQyp7I74M61fDivtIfICdtCKNsPbFcxo72seM1+RpA7XRt5VLQJfswFGOnt0qC9njsxRtIVtp8JgofvjTTQbNoTOwzRVSMDT5FjkhVbBPhsQOKpimnPX8sUO6sEoDhyNr7m6D176J/NZIWIR5skRiXkgjOb2/p8wLctX8QlcrbGBepvYSq69h6APgLbp0TZGH4i46Ub7/6sDmSHcKMAXN5BOyfQVNPaG0OKF6Id5EY+x9EY5DkCt5t2MldtsNy/UJThb/Q3GAQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass (sender ip is
+ 165.204.84.17) smtp.rcpttodomain=linux.ibm.com smtp.mailfrom=amd.com;
+ dmarc=pass (p=quarantine sp=quarantine pct=100) action=none
+ header.from=amd.com; dkim=none (message not signed); arc=none (0)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=YBlxl2+OFlv5puE9NS7I76ORqmDZwiZJ2i+jnKrKsuk=;
+ b=DWG2/aOTla8MCbxgEG7wLDZeIYjxaZNSUkhCY+g6KHlvYj+VHnEIOnxJ9qJ9TAeiQI8oZhD0aQV/2bfrkBrT/YMO6lHmnVRDXV2fXziWJk3CYQ+OzhO5GVdQXkKvO0+CSUfynJvAeb70eA6mNnXxm23WhyMJZdyxNh8Hj0iyb40=
+Received: from SJ0PR05CA0098.namprd05.prod.outlook.com (2603:10b6:a03:334::13)
+ by DS2PR12MB9797.namprd12.prod.outlook.com (2603:10b6:8:2ba::9) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.496.21; Mon, 12 Oct
+ 2026 02:11:57 +0000
+Received: from CO1PEPF000066ED.namprd05.prod.outlook.com
+ (2603:10b6:a03:334:cafe::95) by SJ0PR05CA0098.outlook.office365.com
+ (2603:10b6:a03:334::13) with Microsoft SMTP Server (version=TLS1_3,
+ cipher=TLS_AES_256_GCM_SHA384) id 15.21.522.4 via Frontend Transport; Mon, 12
+ Oct 2026 02:11:57 +0000
+X-MS-Exchange-Authentication-Results: mx.microsoft.com 1; spf=pass (sender IP
+ is 165.204.84.17) smtp.mailfrom=amd.com; dkim=none (message not signed)
+ header.d=none;dmarc=pass action=none header.from=amd.com;
+Received-SPF: Pass (protection.outlook.com: domain of amd.com designates
+ 165.204.84.17 as permitted sender) receiver=protection.outlook.com;
+ client-ip=165.204.84.17; helo=satlexmb08.amd.com; pr=C
+Received: from satlexmb08.amd.com (165.204.84.17) by
+ CO1PEPF000066ED.mail.protection.outlook.com (10.167.249.10) with Microsoft
+ SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.21.522.6 via Frontend Transport; Mon, 12 Oct 2026 02:11:56 +0000
+Received: from satlexmb08.amd.com (10.181.42.217) by satlexmb08.amd.com
+ (10.181.42.217) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.2562.53; Sun, 11 Oct
+ 2026 21:11:50 -0500
+Received: from [10.136.45.168] (10.180.168.240) by satlexmb08.amd.com
+ (10.181.42.217) with Microsoft SMTP Server id 15.2.2562.53 via Frontend
+ Transport; Sun, 11 Oct 2026 21:11:39 -0500
+Message-ID: <a92f172e-7a3d-4fe5-94ae-b6768581a5c0@amd.com>
+Date: Mon, 12 Oct 2026 07:41:38 +0530
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [RFC PATCH v3 01/13] lib/sbm: Introduce helpers for architectures
+ to configure LLC properties
+To: Shrikanth Hegde <sshegde@linux.ibm.com>
+CC: Dietmar Eggemann <dietmar.eggemann@arm.com>, Steven Rostedt
+	<rostedt@goodmis.org>, Ben Segall <bsegall@google.com>, Mel Gorman
+	<mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>, WANG Xuerui
+	<kernel@xen0n.name>, Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin
+	<npiggin@gmail.com>, Christophe Leroy <chleroy@kernel.org>, Christian
+ Borntraeger <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>,
+	"H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Chen
+ Yu <yu.c.chen@intel.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar
+	<mingo@redhat.com>, Juri Lelli <juri.lelli@redhat.com>, Vincent Guittot
+	<vincent.guittot@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd
+ Bergmann <arnd@arndb.de>, <linux-kernel@vger.kernel.org>,
+	<linux-arch@vger.kernel.org>, <linux-s390@vger.kernel.org>,
+	<linuxppc-dev@lists.ozlabs.org>, <linux-mips@vger.kernel.org>,
+	<loongarch@lists.linux.dev>, <driver-core@lists.linux.dev>, Sudeep Holla
+	<sudeep.holla@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	"Rafael J. Wysocki" <rafael@kernel.org>, Danilo Krummrich <dakr@kernel.org>,
+	Huacai Chen <chenhuacai@kernel.org>, Thomas Bogendoerfer
+	<tsbogend@alpha.franken.de>, Jiaxun Yang <jiaxun.yang@flygoat.com>, Madhavan
+ Srinivasan <maddy@linux.ibm.com>, Heiko Carstens <hca@linux.ibm.com>, Vasily
+ Gorbik <gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>,
+	"David S. Miller" <davem@davemloft.net>, Andreas Larsson
+	<andreas@gaisler.com>, Thomas Gleixner <tglx@kernel.org>, Borislav Petkov
+	<bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, <x86@kernel.org>
+References: <20261001192849.74788-1-kprateek.nayak@amd.com>
+ <20261001192849.74788-2-kprateek.nayak@amd.com>
+ <bebd59dc-9932-41fe-9fa6-4d2cc8d15080@linux.ibm.com>
+Content-Language: en-US
+From: K Prateek Nayak <kprateek.nayak@amd.com>
+In-Reply-To: <bebd59dc-9932-41fe-9fa6-4d2cc8d15080@linux.ibm.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-EOPAttributedMessage: 0
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CO1PEPF000066ED:EE_|DS2PR12MB9797:EE_
+X-MS-Office365-Filtering-Correlation-Id: 5b0a118a-34f1-4874-96e7-08df2806312d
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|376014|7416014|82310400026|36860700016|1800799024|23010399003|4143699003|11063799006|56012099006|18002099003|22082099003|261009223027099003|10067099003;
+X-Microsoft-Antispam-Message-Info:
+	WzSP5oJTy4QBF6mz6siizBpvABBhPvG4gO7Ju9m8YjRrC5t9RzuUFlKDFExQP7TDOD5IrnvdWGdfjtlKf2Z5yfgYS/7jx0WH5yhXXwfle6Ppi3d18Xvh8hDtGIo8uD3fcy316upgDjYRUvx0h6uoBAYjF+sRvLM63oFa6Y+Re4K+JSo7ul7e7568Iy2Hkb9C5iZU2ueWSaVblDSyqEnpuevNmZ3WeR0PU1cP3RkHU2FYWCjvMHEEP5SFQhY8T/KklOqoiE8viOs3LZWalOgB1DzUvAfa7YfGfmcohRkwQHMShb2pt36GO8R49rle6FFulTwxsQgOhPeF0JmCIq4daIuuGF0jWvhA9PO2tIkCpi9I53i9nl5oJ3DS2spLoXLvdARRD4KJbbs85umIuJIYuFsPaDl21QTTyTe50Tuu/iuRBhCAvUrrWBh3cQ7TaF7bxpOCfG83eXHlCPyxH8iB/VN5QS8JwPKvvhYnmzS38npRZ9IaUDH59KG18bQygXQswy0oKpyYv+/2zlnUKZ4F2vbCJtiC5p7CH0CTEQsmP8zj/UenHu5Oh5bIiANA+RNamxwz5B7kk+QiM0qjEPcybhvuuNH59EOa7epUI1LcaY/UyVMA4fjF09AG/V4nDv7gjvzwDeZZxW7o7UJLgt4oNBsD/jlUPLBHZrM+AY0NLdqQsmr7/09VQHJBntLOyOa3Mz3TZcweKqX5S+SU8xp2eA==
+X-Forefront-Antispam-Report:
+	CIP:165.204.84.17;CTRY:US;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:satlexmb08.amd.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(376014)(7416014)(82310400026)(36860700016)(1800799024)(23010399003)(4143699003)(11063799006)(56012099006)(18002099003)(22082099003)(261009223027099003)(10067099003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	u8cudUGIMWd1kdY446WXLGgLVLJBygI3oVZ4GGvHL2xooEZ7RpwVnK67ZiYHo16oFsrUqQUeEYqd2hgReUWwMhuSOK6Pi/pRcWofXkHZZKWTRl8/OLbMmQPzGIfKhouUZHVI0ryZe8S2XsfRW18hsplbSN8BRRngxvOUKG2VX6jIKbE5d7/+ybybmtFjXkHuvG2XmxVNKkmaLjEa+pfiXwXKcmyqPHX+Vd9PNNYtX2nTpcd4A1rz4r9wyhMSDsLaxPZ4GKF7KZ4whtAVfmTBCdUr9/ak35n8i0/hRwbKMaXBy6Qq++460It8XPFBkuBDTOddkRwxTiJuwUE9dcfb/15XaIILggWiGcTF1ovwEGG2CqsNAu6nntu+ap67zFhsJhCc5gPT999YrvGTTajGhKyP55BV60ETzacT7Jaobhs+CsBUnQ5kYNYPJISSeUa8
+X-OriginatorOrg: amd.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 12 Oct 2026 02:11:56.8563
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: 5b0a118a-34f1-4874-96e7-08df2806312d
+X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=3dd8961f-e488-4e60-8e11-a82d994e183d;Ip=[165.204.84.17];Helo=[satlexmb08.amd.com]
+X-MS-Exchange-CrossTenant-AuthSource:
+	CO1PEPF000066ED.namprd05.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DS2PR12MB9797
 
-On Fri, 09 Oct 2026 19:03:54 +0100 "Lorenzo Stoakes (ARM)" <ljs@kernel.org> wrote:
+Hello Shrikanth,
 
-> The VM_SPECIAL / VMA_SPECIAL_FLAGS mask conflates several unrelated
-> properties:
+On 10/7/2026 11:13 AM, Shrikanth Hegde wrote:
+> Hi Prateek.
 > 
-> * Is this managed by core mm, or by a driver mapping MMIO, kernel-allocated
->   pages, or even ordinary pages itself?
-> * Can it be expanded or merged?
-> * Is this a 'weird' case like mlock where migration might race and we
->   'have' to set invalid flags to notify?
-> * Is it another 'weird' case where we just want to stop GUP from touching
->   it?
+> I ran the series on 320 CPU power11 system today.
+> hackbench shows high regression across the different number of groups and
+> it is more severe at lower number of groups. I haven't run anything else yet.
 > 
-> Driver writers have often been confused about this, and who can blame them?
-> 
-> It also interacts badly with the eternal edgecase known as hugetlb - which
-> sets VMA_DONTEXPAND_BIT but doesn't also want to be treated like a
-> 'special' flag.
-> 
-> Another issue is that we cannot make sensible assumptions about flag
-> use. It's not possible to assume VMA_IO_BIT means iommu because drivers
-> abuse it and mlock abuses it.
-> 
-> Special is also an overloaded term in mm. VDSO and VVAR mappings are also
-> called 'special' but they're special in a... special way.
-> 
-> Sometimes things are called special that are a subset of
-> VMA_SPECIAL_FLAGS (VMA_PFNMAP_BIT and VMA_MIXEDMAP_BIT for instance when it
-> comes to zapping or vm_normal_folio()).
-> 
-> There's a specific kind of special for THP too, which considers
-> PFN map, mixed map 'special' but DAX not.
-> 
-> It's all rather a mess.
-> 
-> This series brings some order to things by both limiting what drivers can
-> do with VMA flags and switching to using predicates that describe
-> behaviour, not arbitrary flags.
+> I haven't taken a look at the patches yet. Post your talk today will try to
+> go through and see if i can spot something.
 
-Thanks, I've updated mm-unstable to this version.
+Thanks a ton for the testing. Now that I'm back, I'll take a look at
+few bits again, especially stuff for optimizing traversals. 
 
-For some reason, new versions of this series aren't applying when I
-drop the new series in place of the old.  I made the same old bunch of
-reject-fixups, so the below interdiff will show if I messed any of them up.
+Can you please share what does your system topology look like and what
+did:
 
-> v5:
-> * Applied tags (thanks everybody!)
-> * Updated 3/38 to fix a bug in __mmap_new_file_vma() by zapping + closing
->   the VMA before setting vma->vm_file NULL to avoid an i_mmap_writable
->   imbalance. A repro was tested before/after and confirmed fixed.
-> * Updated 7/38 to make __map_kernel_pages_prepare() use
->   mmap_assert_write_locked() rather than the weird
->   assert-on-mmap_read_trylock() pattern, as per Suren.
-> * Also update vm_insert_page(), vm_insert_pages() to fix the same pattern
->   and to use the new VMA API, and converted a BUG_ON to a
->   VM_WARN_ON_ONCE().
+  sudo dmesg | grep sbm
 
-Here's how v5 altered mm.git:
+say when you booted into your kernel?
 
- mm/memory.c                       |   20 +++++++++++---------
- mm/vma.c                          |   16 ++++++++--------
- tools/testing/vma/include/stubs.h |    4 ++++
- 3 files changed, 23 insertions(+), 17 deletions(-)
+>> +void __init sbm_set_topology(int num_instances, int max_threads_per_instance)
+>> +{
+>> +    sbm_max_threads_per_instance = max_threads_per_instance;
+>> +    sbm_num_instance = num_instances;
+>> +
+>> +    pr_info("sbm topology set to %d instance(s) with a maximum of %d thread(s) per instance\n",
+>> +        sbm_num_instance,
+>> +        sbm_max_threads_per_instance);
+>> +}
+> 
+> nit: Stray empty line at the end.
 
---- a/mm/memory.c~b
-+++ a/mm/memory.c
-@@ -2611,10 +2611,11 @@ int vm_insert_pages(struct vm_area_struc
- 
- 	if (!range_in_vma(vma, addr, end))
- 		return -EFAULT;
--	if (!(vma->vm_flags & VM_MIXEDMAP)) {
--		VM_WARN_ON_ONCE(mmap_read_trylock(vma->vm_mm));
--		VM_WARN_ON_ONCE(vma->vm_flags & VM_PFNMAP);
--		vm_flags_set(vma, VM_MIXEDMAP);
-+	if (!vma_test(vma, VMA_MIXEDMAP_BIT)) {
-+		mmap_assert_write_locked(vma->vm_mm);
-+		VM_WARN_ON_ONCE(vma_test(vma, VMA_PFNMAP_BIT));
-+		vma_start_write(vma);
-+		vma_set_flags(vma, VMA_MIXEDMAP_BIT);
- 	}
- 	/* Defer page refcount checking till we're about to map that page. */
- 	return insert_pages(vma, addr, pages, num, vma->vm_page_prot);
-@@ -2626,7 +2627,7 @@ static void __map_kernel_pages_prepare(s
- 	if (vma_desc_test(desc, VMA_MIXEDMAP_BIT))
- 		return;
- 
--	VM_WARN_ON_ONCE(mmap_read_trylock(desc->mm));
-+	mmap_assert_write_locked(desc->mm);
- 	VM_WARN_ON_ONCE(vma_desc_test(desc, VMA_PFNMAP_BIT));
- 	vma_desc_set_flags(desc, VMA_MIXEDMAP_BIT);
- }
-@@ -2785,10 +2786,11 @@ int vm_insert_page(struct vm_area_struct
- {
- 	if (addr < vma->vm_start || addr >= vma->vm_end)
- 		return -EFAULT;
--	if (!(vma->vm_flags & VM_MIXEDMAP)) {
--		BUG_ON(mmap_read_trylock(vma->vm_mm));
--		BUG_ON(vma->vm_flags & VM_PFNMAP);
--		vm_flags_set(vma, VM_MIXEDMAP);
-+	if (!vma_test(vma, VMA_MIXEDMAP_BIT)) {
-+		mmap_assert_write_locked(vma->vm_mm);
-+		VM_WARN_ON_ONCE(vma_test(vma, VMA_PFNMAP_BIT));
-+		vma_start_write(vma);
-+		vma_set_flags(vma, VMA_MIXEDMAP_BIT);
- 	}
- 	return insert_page(vma, addr, page, vma->vm_page_prot, false);
- }
---- a/mm/vma.c~b
-+++ a/mm/vma.c
-@@ -2631,21 +2631,21 @@ static int __mmap_new_file_vma(struct mm
- 	map->vm_file = vma->vm_file;
- 
- 	if (error) {
--		struct file *file = vma->vm_file;
- 		UNMAP_STATE(unmap, vmi, vma, vma->vm_start, vma->vm_end,
- 			    map->prev, map->next);
- 
-+		if (vma->vm_ops->close) {
-+			zap_vma(vma);
-+			/* Safe, because VMA zapped. */
-+			vma_close(vma);
-+		}
-+		if (map_same_file(map))
-+			fput(map->vm_file);
-+
- 		vma->vm_file = NULL;
- 		vma_iter_set(vmi, vma->vm_end);
- 		/* Undo any partial mapping done by a device driver. */
- 		unmap_region(&unmap);
--		vma->vm_file = file;
--		/* Only safe once unmapped. */
--		vma_close(vma);
--
--		if (map_same_file(map))
--			fput(map->vm_file);
--		vma->vm_file = NULL;
- 		return error;
- 	}
- 
---- a/tools/testing/vma/include/stubs.h~b
-+++ a/tools/testing/vma/include/stubs.h
-@@ -329,6 +329,10 @@ static inline void vma_close(struct vm_a
- {
- }
- 
-+static inline void zap_vma(struct vm_area_struct *vma)
-+{
-+}
-+
- static inline int mmap_file(struct file *file, struct vm_area_struct *vma)
- {
- 	return 0;
-_
+Ack! Thank you again for taking a look.
+
+> 
+>> +
+
+-- 
+Thanks and Regards,
+Prateek
 
