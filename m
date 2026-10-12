@@ -1,150 +1,81 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 49AEF4A8FC2;
-	Mon, 12 Oct 2026 15:56:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE5D94766AB;
+	Mon, 12 Oct 2026 16:43:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.133
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791820579; cv=none; b=XMlr4rjASxVMPlaek7kHdUETpFPm2InPWAGJSDWZJjoCgannqLrAUO66dVllJOFOwBaG1NpqFLWhDYIxmF1+5aYdS4dGxkrGh1mZXXG5UdgaSqt//VDblKS4+6NhFfKU930RFiGo6Q6pntQmhI/jbl3uUfN3XKk+9DOjOgMXLsA=
+	t=1791823409; cv=none; b=HhGaCnUqdwCUQvdXD/ybDjoOiL90V/dODvsCYQ410wurKR1hGW6fviPIGrm+tZL0q2p3r1XvcghaudlY2OojOnxCZhDF0Evk0JqA4WNhUMuwUXPQBCcVXEdbW0Eao5Y8W87sFF+CIT90fBcdn+hQtYLN8HRxUtM7fmn5rKLhmq4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791820579; c=relaxed/simple;
-	bh=Msp9ikSwVnULK/6DWYXJFuVVmnxjiRI6tilrQPvf9sc=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=lEyy1SVc25ByWpuaeECuUF+HlptxiXy4lCjQl/1kVxqgv4MVTom9+kMwwetFq0UblXm3GmaH64oPn1kxosHdSyEMBMW8SoF1dybx8m3ePtqFTcqtDmjnfKODC/mC77Rm9d3qFpZmHtbwmIW0yWZe6dL6FDqhgwdZ+jcb77DB3rE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=lcCuIdrm; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1791823409; c=relaxed/simple;
+	bh=3pFcRLkZVN6ELENgKajurMX3fLP9P/C1SQ9iKSWON64=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=LS69TFvoLXyCV/nberlsthb3GFxJsJgk8XdFqIBNvImTBHI6VnXNpMfJCsMxNZe7oCKng8Gysf/HkcFPGXWCbUxKvnp4FkA+dh6E1yEt72O4q+eGeMlCkaqk4Ffyz9cwJp75XUGzRdiLrHTzUhrwb6U8fHzKIb/QGzqZvT5FN94=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=VQJZpQev; arc=none smtp.client-ip=198.137.202.133
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="lcCuIdrm"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CFCE21F0089B;
-	Mon, 12 Oct 2026 15:55:46 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1791820577;
-	bh=rFbms1O2vgiDwDr5XNy7hfOQCE1GiDGN4QD7DcgiMNU=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=lcCuIdrmMQTUiPwLl5e5Z+CrC201P9TaW7VntAlAQ0wuTIeWArybWpskzP1Cw5dV6
-	 ylJBpTsnaVkD11Tx3RuJLQfK/a8MthDkbqh/N2Qo+NL+mbeJ3F+l2nHLzRgl2fwWrH
-	 B2VMH6xZ4mSRm44O1aVrnpq4KXOYj1KBkqJhj4Zhsip2ZHKhYDPIEZ9S25S3KUpDrh
-	 0/izKAMAcRM9eWvuTZfpYIL58pwYVIybump371ArBjzbMrNsvpmDwuL9EdnDMlpqUp
-	 x6n3EvLO70LPCbwLxz+x7mIQrXQvvZz8TgmnlRpMjxmuB8UzGsynS78NvOMo7KMLyg
-	 CQyvIZ4fN7eXw==
-Date: Mon, 12 Oct 2026 16:55:44 +0100
-From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
-	Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
-	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
-	Michal Hocko <mhocko@suse.com>, Jonathan Corbet <corbet@lwn.net>, 
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, 
-	Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
-	Paul Moore <paul@paul-moore.com>, Stephen Smalley <stephen.smalley.work@gmail.com>, 
-	Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, 
-	Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
-	Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
-	Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
-	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
-	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
-	Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
-	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, "Martin K. Petersen" <mkp@kernel.org>, 
-	Simona Vetter <simona@ffwll.ch>, Helge Deller <deller@gmx.de>, Sebastian Reichel <sre@kernel.org>, 
-	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@kernel.org>, 
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Arnaldo Carvalho de Melo <acme@kernel.org>, 
-	Namhyung Kim <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
-	Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, Juri Lelli <juri.lelli@redhat.com>, 
-	Vincent Guittot <vincent.guittot@linaro.org>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
-	Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
-	David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, 
-	Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Marc Zyngier <maz@kernel.org>, 
-	Oliver Upton <oupton@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, 
-	Madhavan Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, Paul Walmsley <pjw@kernel.org>, 
-	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
-	Christian Borntraeger <borntraeger@linux.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, 
-	Claudio Imbrenda <imbrenda@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
-	Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Heiko Carstens <hca@linux.ibm.com>, 
-	Vasily Gorbik <gor@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, 
-	Andreas Larsson <andreas@gaisler.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Christian Brauner <brauner@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, Byungchul Park <byungchul@sk.com>, 
-	Gregory Price <gourry@gourry.net>, Ying Huang <ying.huang@linux.alibaba.com>, 
-	Alistair Popple <apopple@nvidia.com>, Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
-	Youngjun Park <youngjun.park@lge.com>, Johannes Weiner <hannes@cmpxchg.org>, 
-	Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
-	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
-	Chengming Zhou <chengming.zhou@linux.dev>, Michal Hocko <mhocko@kernel.org>, 
-	Miklos Szeredi <miklos@szeredi.hu>, Xu Xin <xu.xin@linux.dev>, linux-mm@kvack.org, 
-	linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
-	linux-rdma@vger.kernel.org, selinux@vger.kernel.org, linux-sound@vger.kernel.org, 
-	bpf@vger.kernel.org, linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
-	dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
-	linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, 
-	kvm@vger.kernel.org, kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
-	linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, fuse-devel@lists.linux.dev, 
-	Ihor Solodrai <ihor.solodrai@linux.dev>, Bert Karwatzki <spasswolf@web.de>, 
-	Emil Tsalapatis <emil@etsalapatis.com>
-Subject: Re: [PATCH v5 13/38] bpf: arena: mark arena_map_mmap() mappings
- VM_MIXEDMAP
-Message-ID: <as0Buhi_-VCC7xLZ@gremlin>
-References: <20261009-b4-mmap-prepare-vma-flag-sanify-v5-0-923b70125b1e@kernel.org>
- <20261009-b4-mmap-prepare-vma-flag-sanify-v5-13-923b70125b1e@kernel.org>
- <5b8ef0ce-7429-4d74-b4da-a0561c59b1e2@kernel.org>
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="VQJZpQev"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+	MIME-Version:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
+	Content-ID:Content-Description:In-Reply-To:References;
+	bh=870eKMajB2DYx6K/7FSEPbIv9AYfZpTly12wWbb1oM4=; b=VQJZpQevV5g7uKJAmsBcUv9ob4
+	sgoAspNXDzInLaAiCxR6GWNsZqnN9eMrevf8yXZDYa7gryDD7D7s1dMG5pV6Rlh4MsIYeTNJxb+cy
+	IldG6TDgttjwV6AHUKfU8ATaNhVVtPY+FhJBAnNVDn01HjcZIVoJY8/wDi2uulztxNKWKBP2bJv3X
+	YGJRgvq7LWbWYPksw0I+GYFL+yjQ15+Ly9MeahjyIQBf0rZi9qICmW8lr96tkk8Of/zSjzbKWsTIc
+	Ly0Hc9J1H+P+CFPW1RgpCmqWGC7ywZ4ihLuX0QZPRLrOug3WgqSzJH7JyOQ4/KuvLPrZIo3Hw3hqr
+	S3I3Rv+Q==;
+Received: from [50.53.43.113] (helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtpsa (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1xGJ7X-0000000Azr5-0TY7;
+	Mon, 12 Oct 2026 16:43:27 +0000
+From: Randy Dunlap <rdunlap@infradead.org>
+To: linux-kernel@vger.kernel.org
+Cc: Randy Dunlap <rdunlap@infradead.org>,
+	Arnd Bergmann <arnd@arndb.de>,
+	linux-arch@vger.kernel.org,
+	Andrew Morton <akpm@linux-foundation.org>
+Subject: [PATCH v4] asm-generic/io.h: fix grammar typos
+Date: Mon, 12 Oct 2026 09:43:25 -0700
+Message-ID: <20261012164325.680091-1-rdunlap@infradead.org>
+X-Mailer: git-send-email 2.56.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5b8ef0ce-7429-4d74-b4da-a0561c59b1e2@kernel.org>
+Content-Transfer-Encoding: 8bit
 
-On Mon, Oct 12, 2026 at 05:08:09PM +0200, David Hildenbrand (Arm) wrote:
-> On 10/9/26 20:04, Lorenzo Stoakes (ARM) wrote:
+Correct grammar mistakes.
 
-> > diff --git a/kernel/bpf/arena.c b/kernel/bpf/arena.c
-> > index 7b6847200b43..b69fe5e34339 100644
-> > --- a/kernel/bpf/arena.c
-> > +++ b/kernel/bpf/arena.c
-> > @@ -620,8 +620,9 @@ static int arena_map_mmap(struct bpf_map *map, struct vm_area_struct *vma)
-> >  	 * clears VM_MAYEXEC. Set VM_DONTEXPAND to avoid potential change
-> >  	 * of user_vm_start. Set VM_DONTCOPY to prevent arena VMA from
-> >  	 * being copied into the child process on fork.
-> > +	 * This is a kernel page so set VM_MIXEDMAP.
-> >  	 */
-> > -	vm_flags_set(vma, VM_DONTEXPAND | VM_DONTCOPY);
-> > +	vm_flags_set(vma, VM_MIXEDMAP | VM_DONTEXPAND | VM_DONTCOPY);
-> >  	vma->vm_ops = &arena_vm_ops;
-> >  	return 0;
-> >  }
-> >
->
-> Historically, VM_MIXEDMAP really just means: can contain refcounted and
-> non-refcounted things. Everything with a struct page is refcounted.
->
-> I think we are now changing the semantics to mean "maps kernel pages". I think
+Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
+---
+v2: rebase & resend
+v3: rebase & resend; add Andrew to Cc: list
+v4: rebase & resend
 
-Yes.
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
 
-It was sort of implicit before given insert_page() etc. but still really meaning
-that it _might_ be both.
+ include/asm-generic/io.h |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-> this is fine, but we really have to update the documentation (and possibly
-> rename this thing to something more expressive?)
-
-Yeah I completely agree.
-
-I will rename it, but I think that's best for 7.5 obviously! :)
-
->
-> Acked-by: David Hildenbrand (Arm) <david@kernel.org>
-
-Thanks!
-
---
-Cheers, Lorenzo
+--- linext-2026-1007.orig/include/asm-generic/io.h
++++ linext-2026-1007/include/asm-generic/io.h
+@@ -1113,12 +1113,12 @@ static inline void *phys_to_virt(unsigne
+  *
+  * Architectures with an MMU are expected to provide ioremap() and iounmap()
+  * themselves or rely on GENERIC_IOREMAP.  For NOMMU architectures we provide
+- * a default nop-op implementation that expect that the physical address used
++ * a default nop-op implementation that expects that the physical addresses used
+  * for MMIO are already marked as uncached, and can be used as kernel virtual
+  * addresses.
+  *
+  * ioremap_wc() and ioremap_wt() can provide more relaxed caching attributes
+- * for specific drivers if the architecture choses to implement them.  If they
++ * for specific drivers if the architecture chooses to implement them.  If they
+  * are not implemented we fall back to plain ioremap. Conversely, ioremap_np()
+  * can provide stricter non-posted write semantics if the architecture
+  * implements them.
