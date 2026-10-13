@@ -1,38 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7835947208B;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9137E476CCB;
 	Tue, 13 Oct 2026 02:36:38 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791858998; cv=none; b=OZh/36dod5mvnb6pQLDnAtk5NdYirB8Lxd6BOLuuGbPTA73TY+LPbYjIq7V4XLCbRoVA0Iqjufdh0fyvKI0czx12EtFtn1oP72EoE/YlApco4XsMdNQJqHK4OCJ0zyHhACO+n2SoNTL894ellF+3T9L6E+vvEPA0VP7qwR2as7Q=
+	t=1791858998; cv=none; b=rCujT31lkGGWk6fLrbFaVPRd2hUtPshwY8bCxfTDY1PBFmAZOR0xB1uOxq9n8stmiJjpg9k6qyjxeE7wAjwwkycZYkAwkXt+3giT6Nqln1leQ4NUrCxULpy9rpwyClWDPNc3mwc3oIkj3VCujhJzQxfWpzT72I5IuapeJHF88c0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1791858998; c=relaxed/simple;
-	bh=Zv2dPve4Jwtgz2PMMo6A1CxZBGriBvEPz5pHh26Z+S8=;
+	bh=cPzKSf2QpjC3gXL73bqOV5ccf7Vvr8qsUMVDv1SU6CA=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=F29TqEptBZbqh83r0ih2XpNxv/4Vplz9yWH+LeQQLCqLoQNM+ouhOzIo3wsbAvJ3sIaVe+wItMeoK9fDZ70lbl/hErE0uwCzizqkPYnaQcaYCD2jIvFMSMRzzSDdhlW/KYsKQdq4U1KUAeje8etAbkLbmQd4pX0zecWW0zvy/U0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=kBKkSvDX; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=p6JPayO3isuJFDtHiDL9QDgTkqhhwwY5gjOkg1HiARvvg6+TIOEh+UHjUcHhhpIxPHNNrv+ZLhvLEp0y9PMgWx95DS370hYSXzMXhcV3bukgMgFc176XwpmNXyhqPrvymG2EPVaeOg5W9tSZvUQyVfoiLjCzNELHvZ/Xs8UVlgo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=df29I9Zp; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="kBKkSvDX"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 01E80C2BD05;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="df29I9Zp"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 1B902C2BD04;
 	Tue, 13 Oct 2026 02:36:38 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1791858998;
-	bh=Zv2dPve4Jwtgz2PMMo6A1CxZBGriBvEPz5pHh26Z+S8=;
+	bh=cPzKSf2QpjC3gXL73bqOV5ccf7Vvr8qsUMVDv1SU6CA=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=kBKkSvDXG6Og1YGuWFVHlQpsdefBNfb7QsDhLxiu4X/URmBnlmjmnpoI/GjD2wP/o
-	 301d+6HQc+iWoE2cTaut/FE9hSS8ztkDKaii2YClaVrJzrHvFhFXqzy1A8WTgA/2o7
-	 b7OMfs1e5B1S42kTYYlrlOSJYhEHcg4A4xi4z+RJyK/SOw3vfMNphKh3tMmaUQcHGo
-	 uWYpaF8hkWf7UGm7rD1o2Fwivd8FrLttvyvK9N9v3SDhTdA1GnrEW62lvaQOo7ROiZ
-	 Zcq5PQY0AETas0u3Ra2KX+upeCJrp757deINfA3lwygf7QDyNQus+yAOdd/jfPuRy6
-	 oh8ve+0V3+REg==
+	b=df29I9Zpq969sPoq8HgHnps1JsTJy9lx4R0hJJtVwMGZDSF7gBuAniQgrgi5jGYMA
+	 a/lLZI0CUzQ0R3WS9U2tyri1pFFf7vebWjGJFTi4EN9y63nui9XmmLvoU8lxWDnIaQ
+	 96bugk48Tj7ML2l+k4JuxBUEL41y8Xj2vPTj7nlGfQap3HIM6juskGlHu9XSB3wxwF
+	 OEg0eFjUwXW8HgKs2TQUv3epiezwmPK8/Dqlp5nmPw4Y09uPsl3mxxVbTazw79j5PK
+	 W3YcO7BELHMIyPBok5WaHXfJRAs5nzcCetj1EMK0BxTakRt1qQn1eNc8D8pfwFpxhy
+	 ETA7yrjBXly3A==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D6277CA9EC5;
-	Tue, 13 Oct 2026 02:36:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 06D91CA9EDC;
+	Tue, 13 Oct 2026 02:36:38 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Mon, 12 Oct 2026 20:36:34 -0600
-Subject: [PATCH v12 03/40] vmlinux.lds.h: drop unused HEADERED_SECTION*
- macros
+Date: Mon, 12 Oct 2026 20:36:36 -0600
+Subject: [PATCH v12 05/40] vmlinux.lds.h: remove redundant ALIGN(8)
+ directives
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261012-dd-cmap-part2-clean-v12-3-3c8cc5725def@gmail.com>
+Message-Id: <20261012-dd-cmap-part2-clean-v12-5-3c8cc5725def@gmail.com>
 References: <20261012-dd-cmap-part2-clean-v12-0-3c8cc5725def@gmail.com>
 In-Reply-To: <20261012-dd-cmap-part2-clean-v12-0-3c8cc5725def@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -69,11 +69,11 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
  Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1791858995; l=1428;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1791858995; l=3579;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=+Qnp7GmBGhxUf7BnWtOhBW1ycfqvD4UBWUm58PMJxJU=;
- b=5fcx9Luu0wnS8dC1ASCDKwi7vPdaBtgVqZe6JqalzmpEbzS+LGnSwQQsDTREJUfiKz1JYcxY4
- lam/j9HCuAxCNJwJUe4M3nHZxgFqpDhVMFxbWYr1xZqP2h0Ole6Cp0K
+ bh=n4fe1wSOBG2W46PqroKAGoIQamWdwgMAOSn4TJtR7Z4=;
+ b=+4VFHD7jODxhSapO6igJ8gCY0rRaeDvuO4gMVl04KC3sTZjOmwVBEuKTsikZNQdOvOtYgzQaK
+ oHxH6+oDWbfA1NQmk3QPmmB0ztXETeE2QHZZ3Ahd5CQHmblLI64LKuu
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -83,41 +83,117 @@ Reply-To: jim.cromie@gmail.com
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-These macros are unused, no point in carrying them any more.
+The BOUNDED_SECTION_PRE_LABEL and BOUNDED_SECTION_POST_LABEL macros
+were recently updated to inherently enforce an 8-byte alignment. This
+makes the explicit '. = ALIGN(8);' statements preceding 'naked' macro
+calls in vmlinux.lds.h redundant.
 
-NB: these macros were just moved to bounded_sections.lds.h, from
-vmlinux.lds.h, which is the known entity, and therefore more
-meaningful in the 1-line summary, so thats what I used as the topic.
+Remove these redundant alignment directives to clean up the file and
+clarify that the macros handle their own alignment padding.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- include/asm-generic/bounded_sections.lds.h | 15 ---------------
- 1 file changed, 15 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 13 -------------
+ 1 file changed, 13 deletions(-)
 
-diff --git a/include/asm-generic/bounded_sections.lds.h b/include/asm-generic/bounded_sections.lds.h
-index 8c29293ca7fb..268cdc34389b 100644
---- a/include/asm-generic/bounded_sections.lds.h
-+++ b/include/asm-generic/bounded_sections.lds.h
-@@ -18,19 +18,4 @@
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index b1a69f8af6d2..c3376665d027 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -228,7 +228,6 @@
  
- #define BOUNDED_SECTION(_sec)	 BOUNDED_SECTION_BY(_sec, _sec)
+ #ifdef CONFIG_KPROBES
+ #define KPROBE_BLACKLIST()				\
+-	. = ALIGN(8);					\
+ 	BOUNDED_SECTION(_kprobe_blacklist)
+ #else
+ #define KPROBE_BLACKLIST()
+@@ -244,7 +243,6 @@
  
--#define HEADERED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
--	_HDR_##_label_	= .;						\
--	KEEP(*(.gnu.linkonce.##_sec_))					\
--	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)
--
--#define HEADERED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
--	_label_##_HDR_ = .;						\
--	KEEP(*(.gnu.linkonce.##_sec_))					\
--	BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)
--
--#define HEADERED_SECTION_BY(_sec_, _label_)				\
--	HEADERED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
--
--#define HEADERED_SECTION(_sec)	 HEADERED_SECTION_BY(_sec, _sec)
--
- #endif /* _ASM_GENERIC_BOUNDED_SECTIONS_H */
+ #ifdef CONFIG_EVENT_TRACING
+ #define FTRACE_EVENTS()							\
+-	. = ALIGN(8);							\
+ 	BOUNDED_SECTION(_ftrace_events)					\
+ 	BOUNDED_SECTION_BY(_ftrace_eval_map, _ftrace_eval_maps)
+ #else
+@@ -261,7 +259,6 @@
+ 
+ #ifdef CONFIG_FTRACE_SYSCALLS
+ #define TRACE_SYSCALLS()			\
+-	. = ALIGN(8);				\
+ 	BOUNDED_SECTION_BY(__syscalls_metadata, _syscalls_metadata)
+ #else
+ #define TRACE_SYSCALLS()
+@@ -276,7 +273,6 @@
+ 
+ #ifdef CONFIG_SERIAL_EARLYCON
+ #define EARLYCON_TABLE()						\
+-	. = ALIGN(8);							\
+ 	BOUNDED_SECTION_POST_LABEL(__earlycon_table, __earlycon_table, , _end)
+ #else
+ #define EARLYCON_TABLE()
+@@ -284,11 +280,9 @@
+ 
+ #ifdef CONFIG_SECURITY
+ #define LSM_TABLE()					\
+-	. = ALIGN(8);					\
+ 	BOUNDED_SECTION_PRE_LABEL(.lsm_info.init, _lsm_info, __start, __end)
+ 
+ #define EARLY_LSM_TABLE()						\
+-	. = ALIGN(8);							\
+ 	BOUNDED_SECTION_PRE_LABEL(.early_lsm_info.init, _early_lsm_info, __start, __end)
+ #else
+ #define LSM_TABLE()
+@@ -314,7 +308,6 @@
+ 
+ #ifdef CONFIG_ACPI
+ #define ACPI_PROBE_TABLE(name)						\
+-	. = ALIGN(8);							\
+ 	BOUNDED_SECTION_POST_LABEL(__##name##_acpi_probe_table,		\
+ 				   __##name##_acpi_probe_table,, _end)
+ #else
+@@ -323,7 +316,6 @@
+ 
+ #ifdef CONFIG_THERMAL
+ #define THERMAL_TABLE(name)						\
+-	. = ALIGN(8);							\
+ 	BOUNDED_SECTION_POST_LABEL(__##name##_thermal_table,		\
+ 				   __##name##_thermal_table,, _end)
+ #else
+@@ -403,12 +395,10 @@
+ 	__end_init_stack = .;
+ 
+ #define JUMP_TABLE_DATA							\
+-	. = ALIGN(8);							\
+ 	BOUNDED_SECTION_BY(__jump_table, ___jump_table)
+ 
+ #ifdef CONFIG_HAVE_STATIC_CALL_INLINE
+ #define STATIC_CALL_DATA						\
+-	. = ALIGN(8);							\
+ 	BOUNDED_SECTION_BY(.static_call_sites, _static_call_sites)	\
+ 	BOUNDED_SECTION_BY(.static_call_tramp_key, _static_call_tramp_key)
+ #else
+@@ -453,7 +443,6 @@
+ 		*(.rodata) *(.rodata.*) *(.data.rel.ro*)		\
+ 		SCHED_DATA						\
+ 		RO_AFTER_INIT_DATA	/* Read only after init */	\
+-		. = ALIGN(8);						\
+ 		BOUNDED_SECTION_BY(__tracepoints_ptrs, ___tracepoints_ptrs) \
+ 		*(__tracepoints_strings)/* Tracepoints: strings */	\
+ 	}								\
+@@ -958,12 +947,10 @@
+ 
+ /* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
+ #define KUNIT_TABLE()							\
+-		. = ALIGN(8);						\
+ 		BOUNDED_SECTION_POST_LABEL(.kunit_test_suites, __kunit_suites, _start, _end)
+ 
+ /* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
+ #define KUNIT_INIT_TABLE()						\
+-		. = ALIGN(8);						\
+ 		BOUNDED_SECTION_POST_LABEL(.kunit_init_test_suites, \
+ 				__kunit_init_suites, _start, _end)
+ 
 
 -- 
 2.56.0
