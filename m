@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7AE9F214A9B;
-	Wed, 14 Oct 2026 09:37:16 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7DBFF4E4C4B;
+	Wed, 14 Oct 2026 09:38:34 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791970637; cv=none; b=Hgzsjci1cJOxjOvvK+Cx3RAKJD992Ttv/wr5oN17cotXYXQWHMtzZ13MBOMHIBvAmgmQlfrTecJw3qhX4ci6s34GdfUhNdRoALGBebsdbD1coL0+f50dp2X+SSGJKDhf+wVJQvHxyGLQIxEHzWW5hAAuBtX473pH7LPXQZY1Psc=
+	t=1791970715; cv=none; b=A6JxeiPsz0X9JUby/x4I2WBhHkUqKs5wAfySyGv9DB9FZGTqxCeahPUnwwEt5DVjs8HYq5NLXCS0RUXGQUB8tydOAzj4KKiv1/8DoKyb183xTknR3aaLJsj7UJthIosMtYXK4EwGzhI4PgcamrW1ZhclnM9NITlS8UtakWPZY7s=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791970637; c=relaxed/simple;
-	bh=aKZtPwqzeE96oGYnpF4kyMMCRvl++NeTCQ9OfWbteUA=;
+	s=arc-20240116; t=1791970715; c=relaxed/simple;
+	bh=AxKdmJrP0IH3YpfUlw2dNutWImngnRPxoK/25soqHT8=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=R7FhUNjNVyykOpDULJaXR7NEtmamn2xnI5YEIPRawKKEc1YZ8G7Uji5bpL4LxmrdbmIs0g23whmbVohK+KD07XRQCPKozXrJGwzn5LLl8swxzkV5uPPYtyhPEpBViASkcQ5GMp1icq9heiZ+xrCJm3MSxTas0DvLzlKFToCozmk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Md25q2/7; arc=none smtp.client-ip=100.103.45.18
+	 In-Reply-To:Content-Type; b=OS4d5KNNySyw76rkShDOD1hi+7bzRwXfNHjYZdYpid9YbcYWpXSxdVU3xpBXny3y9iFiyuvYYevfV8BLvn+6WnmG0AWK68e+JLKhUPUVQjgu9Lk6IvVuuo/gMkngIsLeGMLJEUe1d4UTaYk0xuPFrBTlYNuTQXXeWlopho6NWFQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=eG0jUYG+; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Md25q2/7"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id EDC701F000FF;
-	Wed, 14 Oct 2026 09:37:03 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="eG0jUYG+"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 92FDB1F00A08;
+	Wed, 14 Oct 2026 09:38:23 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1791970636;
-	bh=+2G0A/3OONu+QthUk+8RoUXZZVX5MxzQK4zcElH7KTo=;
+	s=k20260515; t=1791970714;
+	bh=KpXJrzBDyvJvMZGQ7sWNVin16ZGNhFmi7scpeRJwY88=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=Md25q2/7GRPy3HBELNBHL7uPX806RGT67lCZfLnSBsUeXUM6XEDfdGJ20wgmzESxB
-	 BNDrLWfenVgPPRBuyJF/xnomNAmAXkKnAN3BOHThnnzLiIxlnmAeyoneb3BRBtw7C8
-	 pSr1jnxuo6Ol0etv1XXLWTs7GvNhxUMsp+44bXeK2bEGqX6JUOQ4KnRBUZLb6Ko80R
-	 Ou/NDuR0MuGRoLb/SGPYiJTu1yLgQ13YlNnuvn/2M9B9ag0IGRwfB3RbJGp2xqM1lT
-	 iDQYcE1WOA8t9OxfkoqcAVFVITy7fAoIK3Gl12LetkJ0b+fm1xS4QZ6opCzMpPTxZh
-	 UQbqqrxEHmCMQ==
-Message-ID: <ef5b6275-d15b-4192-a278-ab23235956a0@kernel.org>
-Date: Wed, 14 Oct 2026 11:37:00 +0200
+	b=eG0jUYG+FHPC1mIGBXF1XswYvWqsvCRJ5g1WeWMqfBOTk7qeccaNz1bXKpRGDLiWt
+	 cl814MgIVDFjDkY4hxw9NYvt+1ChdY6Kn8HS9OwlJkdOiiXm1ldSZ0oSBYupNcL4Kb
+	 VMdOWNcagKOW3CvJ5kbtm5qf1Int1kDfIV+OSf1vhkEoWBalH/u2c+tsnjSPqKr3ei
+	 zggVoHfRQ2+BPJMcXv5+UwWqjabHz/WNlmQHjgaTe5OnDEDOpCGSWZmh0PbVsiG52t
+	 0w8/QCPoUnwTtiB/3rNIJKxqhnGkAnXbnQvNkO3Gdj5lCMMTd0Itd04ZifoMYQMA8v
+	 bt7T7IiHlzFOQ==
+Message-ID: <e4bbf208-41d3-480f-92c4-231d69a749cd@kernel.org>
+Date: Wed, 14 Oct 2026 11:37:48 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,8 +35,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 00/21] mm: change behavior of pXdp_get()/pXd_page() in
- compile-time folded pgtable
+Subject: Re: [PATCH 11/21] riscv: mm: use proper set_pXd() for generic
+ compile-time folded patable in vmalloc_fault()
 To: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
  Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
  Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
@@ -65,10 +65,9 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
  linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
- linux-openrisc@vger.kernel.org, Muhammad Usama Anjum <usama.anjum@arm.com>,
- Sohil Mehta <sohil.mehta@intel.com>
+ linux-openrisc@vger.kernel.org
 References: <20260921-dummy_ptxp3-v1-0-cd40cf68242e@arm.com>
- <as36bbrMVHOESsLd@e129823.arm.com>
+ <20260921-dummy_ptxp3-v1-11-cd40cf68242e@arm.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -115,27 +114,139 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <as36bbrMVHOESsLd@e129823.arm.com>
+In-Reply-To: <20260921-dummy_ptxp3-v1-11-cd40cf68242e@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 10/13/26 11:31, Yeoreum Yun wrote:
-> Hi all,
+On 9/21/26 12:55, Yeoreum Yun wrote:
+> The behaviour of pXdp_get() will change with generic compile-time folded
+> page tables, making it invalid to use set_pXd() with the result of
+> pXdp_get(). Instead, the appropriate first-level set_pXd() must be paired
+> with the corresponding pXdp_get().
 > 
-> May I ask there are any further comments on this series?
+> Therefore, call the appropriate set_pXd() for generic compile-time folded
+> page tables so that vmalloc_fault() continues to handle folded entries
+> correctly when checking pXd_present().
+> 
+> There should be no functional change.
+> 
+> Since most architectures use a similar pattern to handle vmalloc fault
+> by syncing the faulted entry, it would be worth cleaning this up by
+> introducing a common helper in the near future.
+> 
+> Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
+> ---
 
-Let's resend after -rc1.
+@ Riscv maintainers, is this good enough until we get some more generic cleanups
+in this area?
 
-I think most arch changes are reasonably simple and uncontroversial.
 
-But I'd prefer if riscv maintainers could have a look at
+>  arch/riscv/mm/fault.c | 52 ++++++++++++++++++++++++++++++++-------------------
+>  1 file changed, 33 insertions(+), 19 deletions(-)
+> 
+> diff --git a/arch/riscv/mm/fault.c b/arch/riscv/mm/fault.c
+> index 04ed6f8acae4f..b2bcaf10d13f1 100644
+> --- a/arch/riscv/mm/fault.c
+> +++ b/arch/riscv/mm/fault.c
+> @@ -167,14 +167,16 @@ bad_area(struct pt_regs *regs, struct mm_struct *mm, int code,
+>  
+>  static inline void vmalloc_fault(struct pt_regs *regs, int code, unsigned long addr)
+>  {
+> -	pgd_t *pgd, *pgd_k;
+> -	pud_t *pud_k;
+> -	p4d_t *p4d_k;
+> -	pmd_t *pmd_k;
+> -	pte_t *pte_k;
+> +	pgd_t *pgdp_k, *pgdp, pgd_k;
+> +	p4d_t *p4dp_k, *p4dp;
+> +	pud_t *pudp_k, *pudp, pud_k;
+> +	pmd_t *pmdp_k, *pmdp, pmd_k;
+> +	pte_t *ptep_k;
+>  	int index;
+>  	unsigned long pfn;
+>  
+> +	BUILD_BUG_ON(CONFIG_PGTABLE_LEVELS != 5 && CONFIG_PGTABLE_LEVELS != 2);
+> +
+>  	/* User mode accesses just cause a SIGSEGV */
+>  	if (user_mode(regs))
+>  		return do_trap(regs, SIGSEGV, code, addr);
+> @@ -189,39 +191,51 @@ static inline void vmalloc_fault(struct pt_regs *regs, int code, unsigned long a
+>  	 */
+>  	index = pgd_index(addr);
+>  	pfn = csr_read(CSR_SATP) & SATP_PPN;
+> -	pgd = (pgd_t *)pfn_to_virt(pfn) + index;
+> -	pgd_k = init_mm.pgd + index;
+>  
+> -	if (!pgd_present(pgdp_get(pgd_k))) {
+> +	pgdp = (pgd_t *)pfn_to_virt(pfn) + index;
+> +	pgdp_k = init_mm.pgd + index;
+> +
+> +	pgd_k = pgdp_get(pgdp_k);
+> +	if (!pgd_present(pgd_k)) {
+>  		no_context(regs, addr);
+>  		return;
+>  	}
+> -	set_pgd(pgd, pgdp_get(pgd_k));
+> +	if (CONFIG_PGTABLE_LEVELS == 5)
+> +		set_pgd(pgdp, pgd_k);
+>  
+> -	p4d_k = p4d_offset(pgd_k, addr);
+> -	if (!p4d_present(p4dp_get(p4d_k))) {
+> +	p4dp = p4d_offset(pgdp, addr);
+> +	p4dp_k = p4d_offset(pgdp_k, addr);
+> +	if (!p4d_present(p4dp_get(p4dp_k))) {
+>  		no_context(regs, addr);
+>  		return;
+>  	}
+>  
+> -	pud_k = pud_offset(p4d_k, addr);
+> -	if (!pud_present(pudp_get(pud_k))) {
+> +	pudp = pud_offset(p4dp, addr);
+> +	pudp_k = pud_offset(p4dp_k, addr);
+> +
+> +	pud_k = pudp_get(pudp_k);
+> +	if (!pud_present(pud_k)) {
+>  		no_context(regs, addr);
+>  		return;
+>  	}
+> -	if (pud_leaf(pudp_get(pud_k)))
+> +	if (pud_leaf(pud_k))
+>  		goto flush_tlb;
+>  
+>  	/*
+>  	 * Since the vmalloc area is global, it is unnecessary
+>  	 * to copy individual PTEs
+>  	 */
+> -	pmd_k = pmd_offset(pud_k, addr);
+> -	if (!pmd_present(pmdp_get(pmd_k))) {
+> +	pmdp = pmd_offset(pudp, addr);
+> +	pmdp_k = pmd_offset(pudp_k, addr);
+> +
+> +	pmd_k = pmdp_get(pmdp_k);
+> +	if (!pmd_present(pmd_k)) {
+>  		no_context(regs, addr);
+>  		return;
+>  	}
+> -	if (pmd_leaf(pmdp_get(pmd_k)))
+> +	if (CONFIG_PGTABLE_LEVELS == 2)
+> +		set_pmd(pmdp, pmd_k);
+> +	if (pmd_leaf(pmd_k))
+>  		goto flush_tlb;
+>  
+>  	/*
+> @@ -230,8 +244,8 @@ static inline void vmalloc_fault(struct pt_regs *regs, int code, unsigned long a
+>  	 * addresses. If we don't do this, this will just
+>  	 * silently loop forever.
+>  	 */
+> -	pte_k = pte_offset_kernel(pmd_k, addr);
+> -	if (!pte_present(ptep_get(pte_k))) {
+> +	ptep_k = pte_offset_kernel(pmdp_k, addr);
+> +	if (!pte_present(ptep_get(ptep_k))) {
+>  		no_context(regs, addr);
+>  		return;
+>  	}
+> 
 
-  [PATCH 11/21] riscv: mm: use proper set_pXd() for generic compile-time folded
-  patable in vmalloc_fault()
-
-You are working on some general vmalloc_fault() cleanups, but until we have them
-I would hope to get an ACK from riscv maintainers that this temporary solution
-is good to go in.
 
 -- 
 Cheers,
