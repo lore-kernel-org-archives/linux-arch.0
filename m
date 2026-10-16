@@ -1,248 +1,473 @@
-Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
+Received: from mail-pg1-f171.google.com (mail-pg1-f171.google.com [209.85.215.171])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6D7E64A3F03
-	for <linux-arch@vger.kernel.org>; Thu, 15 Oct 2026 15:42:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.52
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2FDD03876A9
+	for <linux-arch@vger.kernel.org>; Fri, 16 Oct 2026 02:56:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.171
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1792078981; cv=none; b=Bdm0xen5Pg3+F8h0u6tqjjblw6cRWftfv5WIJM83Jv3REmkKmLlFVegxioC9KRNnokl6DQg7xTfJtkbQIQzJnx6PixD2jeuQ9FS9HCyypW6gSnnfPoEq0mIRvtYMa1/DjsXdjSSD1QIf9t3vxHsY6iE3kZmGVTOiytLXaIkkhGE=
+	t=1792119407; cv=none; b=mHV8j7RsTMqoPbq8HpjM7TXAZgDFqZLf/9mgVdAp39Ac1otrglR08EIw6Lt9npnbZ6q0mKFzHtY2yNrpXx6f9wFtnSXRN/UDr2iXwiIZNZcHWAeLfrIXDz9Ww1Xc1bR1hl3r/dQGJYQkLKRUuRO7UM2zuopoWDYmNQfbVagX580=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1792078981; c=relaxed/simple;
-	bh=1fUOi+Usxn2LQcFzjoDicMxQvfperVSbtfIS6t3a0mM=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=FxPS0T27jlqXg7Wry6b2ITvQdA3PCTvj9kbpasg/8tmsiUPVnXv+L71uOcg7H8S6/oSUhVRPpC4pFwbIJW26sQ6uq7ilDrjl0VJWIiErzQrhZADLn7FWPoRI8/JPF/xOJ2kEs5LzR3JrEekPuM0a2WlMMWvksE+MUnrmKRtvu8Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=R0UR9SXf; arc=none smtp.client-ip=209.85.128.52
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1792119407; c=relaxed/simple;
+	bh=VLz0q3s7RsO5fzwcVDaeJtBet12srSV3Qn+XGcWeu7k=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=o4QxIiM9Kq2cFC4jkMXOiEpc+N6U1I+YvCV/ED3UgC3a1M8O2Z87msmmpN8rZQHOmF6gjDVp5d0v8E5r4BuB1f6uRu6FAMYoWp37QyJdk+iI1uATiISZ1BdI2BzK7qIYdgTulArDwLshZWbIH87lAf/wQ7WkJI2J0mSoS8ZaWj0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=CyVP/dxY; arc=none smtp.client-ip=209.85.215.171
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="R0UR9SXf"
-Received: by mail-wm1-f52.google.com with SMTP id 5b1f17b1804b1-4a0213948d3so34013545e9.2
-        for <linux-arch@vger.kernel.org>; Thu, 15 Oct 2026 08:42:49 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="CyVP/dxY"
+Received: by mail-pg1-f171.google.com with SMTP id 41be03b00d2f7-cc758830601so1934227a12.2
+        for <linux-arch@vger.kernel.org>; Thu, 15 Oct 2026 19:56:43 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1792078967; x=1792683767; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=8EVUVXTF9B/pmjVEVo0zfJaBGiZoNVg7V5lse2RyO7M=;
-        b=R0UR9SXfSdLRKN8vgsjzhyd81oaEz7tHTwslAVD4uu2yocB8iyTzeaX91HJfAF2HSZ
-         zfyNFy9tY2rveIy5HSk4kHu6cou98Mmm65Nw/ib9mtV2wnXWSnap0yORcKiRn9+bhNLb
-         /HvkgPwk8c21B4vfdeFwnATqt/tKh7V1N6JFjc1GswxG79FMaIisTlhabNQRTkYz/AAi
-         A1KK2BSF7pJOfDu8sLbpi305mh4DqIdXIenAOtLPi3roSTwyU1GWiEULVpymwqlkfLkZ
-         ApWTy1oTpVVOcfy57kt0RsQYUZoCNCDNc0yb16GC0j95gqwCT6HKnJMFBD1/29NWON5y
-         v/Mw==
+        d=gmail.com; s=20251104; t=1792119403; x=1792724203; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=LbAGLkUAj40wmIzpusJ55mCpcacDel7IyLN6V4xCHLE=;
+        b=CyVP/dxY4gUFZyCN+2d30Hv+6o36bUKBNcAQ7X1ttz8bxifCJxERm+O6ildfDDx2cF
+         vjuN74F6QQj80zSlKUPhGBuN/82iJ3TyRGl6YUen3H8HEzs+I7y92rdE42dP2JX6jHC6
+         VpujJRauc3evoYFOg2aC0eZRAcSaMSaD6i4yFJa2MuYwKgUnaeCJj0Kh847cq+ntwAa2
+         J6JqnJB22I1OkhpvllLxg5qqub7epgFs5rVgaW60UEV2MBflZjda+H8ErIdGM9uXCxT1
+         HPW8zHnTHkElw/iUqp6u9bBEb5a1FlAWTO3VkUHrBPmOuw3soWrWkTW3n6QqkLm3SBiK
+         3kdg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792078967; x=1792683767;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+        d=1e100.net; s=20260707; t=1792119403; x=1792724203;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=8EVUVXTF9B/pmjVEVo0zfJaBGiZoNVg7V5lse2RyO7M=;
-        b=0+MzHVdJucCwHA8ggGZFChHvyLSsTCMOdxvikw4l+mm9mAPPlbv7ach96Zylcoaeq7
-         H8Nf1yDflPgBs3838JWScmwNlacMfF9TCtbg0pE6Y/k9t9h4nAEbXxNz3jQzy30Mj1Sr
-         dJP+FiaXnaj46NCUqgrUhORTqIUraOfPh8UBwqmMh929VYcB6KTnGqPCZa+Bc5KkrXHf
-         Ka6zaj3utEPMVexbaXI3XBRQZQ8xH2Rdzu3rVrX0maAlIyOFL6yd0RCoccqiA2pDn2hI
-         bGpIwDS6NuCqgLWO13ZunDAsbaZ4rmhu5pEynOJxvV0b1Fr7tyhcSoSPS/rFCY9QZOYq
-         fYSw==
-X-Forwarded-Encrypted: i=1; AKwUvBybj8j5M+9Gpxpot+/a+Q+dR40l30cX8gxMCO4EY14lEjbmniHTTixF1tqPDbDjgO01+KFSbt198IxV@vger.kernel.org
-X-Gm-Message-State: AFq9FYJkY8UznqXaQT47kJSRFsj8Evq/jgH2DOj2dgOTsAt9iM4IgDcJ
-	l7/9kxG0kDtxYqJeLhRrMcNwwW/AmgVqWXhikghQxctBy9DTW3MZiNftd5RmNIdNj/8=
-X-Gm-Gg: AYBFou1r/ZE2DvSYHFJYNZzqa3bUs1nKFo8PxwwRQXWKtVwf90LgJdQG8PzPbK9xb2M
-	Y6FxFROmE9BGLJbPwHAZXn/C7B31+D5xOrLXSN8arcugy6+3k3m7z/5KD3rElgthygQMbzlEr9W
-	QeT2UcV2eyeASc3kBSzsSKsf36sD1L4sFX6XIDwWeAMfzJAUYwqnKubCAPR2zCJ7zaOi6wN+J7S
-	Jof8hH00w34enEQLZmBJ1S02cP7NFgJzComxh/FZNv18Tc9nADYgoDg3Q0+LcG/4k0b0vhAPLfW
-	dAJ0MqNWv2PnljcEyMfNQB+/xGWXbgwNEpwVPKXjEVAYrQdATOm6xJjnFH7vw7t+kdPP5TJIij8
-	Qo4MgYF3AdZ6QKd2krtNys4GlU57RJYStFehxufzooNPO5M5rk1VXO27umj7ZhmTo9dUJVo7/dH
-	gkzFsmkUqc6oSaVYrpVJwpE58kXOWapPRFyw/RYS8KgfQsKmsoaOsaCGGMmbTkx3rXnn7ykE6Bh
-	uh6OLd4kE27bU5LPpCckC7uwVb0KxQfs1yZoXc4cq3x7A==
-X-Received: by 2002:a05:600c:8b82:b0:49f:fd2d:23c7 with SMTP id 5b1f17b1804b1-4a18e4b887amr354993855e9.27.1792078967287;
-        Thu, 15 Oct 2026 08:42:47 -0700 (PDT)
-Received: from ?IPV6:2a07:de40:8100:0:89a9:fd0e:583d:4a53? ([2001:af0:8000:1409:193:86:92:181])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4a1bd66c5e6sm52172585e9.2.2026.10.15.08.42.45
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 15 Oct 2026 08:42:46 -0700 (PDT)
-Message-ID: <d17b00f9-2a6c-425f-9697-6bc8f31f7a7a@suse.com>
-Date: Thu, 15 Oct 2026 17:42:45 +0200
+        bh=LbAGLkUAj40wmIzpusJ55mCpcacDel7IyLN6V4xCHLE=;
+        b=wna+F2XxtVrrFiNekKc5eakRt2O1xQr/oM7prbtCwTMr7e1QzNZxM6GysgJhfAvGmF
+         kdqEm9h8MzHxtDcXciPKol/zAqhqetlsDwJbbEppkeS78Pj+jy67BRIMVRXiWcUUCmJa
+         sYQZCGCDGmO9+wvLSvXGJlN+TkPCsTMumPa6tym6CHgv7xgY4FLUQxPlSJg+gL3g6OBC
+         W4cldJo91i5GEVIPZdIVFfxw3mdl4dFCK3+D0oPnZY21Gu+Fa9qe7EacwdCDLGqTo43n
+         +8d8gysybC6hKm+FGy/cqyZrEn/GGAfbxjRApJ1C77GlyHU2Qknjii+o5n3MDUlzlkEd
+         qANQ==
+X-Forwarded-Encrypted: i=1; AKwUvBwL654TlGPumEIMu51nUmYnq2chsUoIMU1YyaE5VQDZLuQrVN1mmKqiF2buiL2xsqV3NIVcu8iBjnwd@vger.kernel.org
+X-Gm-Message-State: AFq9FYIxJmNflCv6bnYnctfaFMP9I4UdOWOBbi77NYTkwAy0vPDc15yf
+	IyoCZCYQmdNn+pSjxLhEWHPJMLWLwfKRhe4CVVBZ8AtgroF0g3UZ0K7ngrgZeXjITvU=
+X-Gm-Gg: AYBFou0jXHWdq/+6Rl1CR7j1JV3MXXtpfjWlkhAxoj61u/zyxJblpTjwCRo6qUzOQjf
+	Q+1wx8TWKvxtQUUPlGvVxSp0gdNVrSJdIFtrgwpkh/+6qXRWwDx0BUYr+PfIihiv0wmBb6O5hXB
+	bfHJV+Cj4ZgxIVV4iJwucPt/QJtQkCFbLe8qHr70pH5ngqlClA9gRuHtTmHkXDoFOUdu7YPESMo
+	7s6/JX2PODOudbqjOOufKOPzbCkmxiA6z8iMh6+MbqsvVMBbgQn6XD/FwzWpHjXkxIXO4LSMOJF
+	P1Oatk+p6J1pQ38VAgf0qteV8kWM3g9wCTrOBChHU913X08yJAtBc9FF8YXVGZ0eenkcY/k3lXQ
+	wBTPEimrg2/mhkWi1abuFhWCIp23MGnfFuDVNwi0FHbdy7DJLdGGwTvFSIYIIbrYnfSfEZACE5R
+	GOM92S7QbuupfKgP09X8KCbKVlvDUn/3yCuplAJZAQEhXQgHjmWLYFaY6VJGaquzN8Rbpq9xxC7
+	jg=
+X-Received: by 2002:a17:90b:4d0b:b0:3ab:1285:dfd6 with SMTP id 98e67ed59e1d1-3ac6f2952e2mr6903472a91.38.1792119403203;
+        Thu, 15 Oct 2026 19:56:43 -0700 (PDT)
+Received: from arm-a100.. ([140.112.28.118])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3acd3c8e2c9sm275821a91.2.2026.10.15.19.56.41
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 15 Oct 2026 19:56:42 -0700 (PDT)
+From: Tzu-Ching Yang <shingekinocore@gmail.com>
+To: Yury Norov <yury.norov@gmail.com>
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+	Arnd Bergmann <arnd@arndb.de>,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH] bitops: Share the generic ffs()/fls() binary search via UNROLL()
+Date: Fri, 16 Oct 2026 10:56:34 +0800
+Message-Id: <20261016025634.2690862-1-shingekinocore@gmail.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v4 13/22] modpost: cache section relocation mismatch state
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>,
- Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
- Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling
- <morbo@google.com>, Justin Stitt <justinstitt@google.com>,
- Masahiro Yamada <masahiroy@kernel.org>, Alexey Gladkov <legion@kernel.org>,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
- Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
- Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>,
- Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
- Ard Biesheuvel <ardb@kernel.org>,
- Ilias Apalodimas <ilias.apalodimas@linaro.org>,
- Josh Poimboeuf <jpoimboe@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Miguel Ojeda <ojeda@kernel.org>, Boqun Feng <boqun@kernel.org>,
- Gary Guo <gary@garyguo.net>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?=
- <bjorn3_gh@protonmail.com>, Benno Lossin <lossin@kernel.org>,
- Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>,
- Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>,
- Daniel Almeida <daniel.almeida@collabora.com>,
- Tamir Duberstein <tamird@kernel.org>, Alexandre Courbot
- <acourbot@nvidia.com>, =?UTF-8?Q?Onur_=C3=96zkan?= <work@onurozkan.dev>,
- Jonathan Corbet <corbet@lwn.net>, Randy Dunlap <rdunlap@infradead.org>,
- Kees Cook <kees@kernel.org>, "Gustavo A. R. Silva" <gustavoars@kernel.org>,
- linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
- llvm@lists.linux.dev, linux-riscv@lists.infradead.org,
- linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
- linux-efi@vger.kernel.org, rust-for-linux@vger.kernel.org,
- linux-doc@vger.kernel.org, Jens Axboe <axboe@kernel.dk>,
- linux-hardening@vger.kernel.org
-References: <20260923-build-speedup-v4-0-73128809a4a4@kernel.org>
- <20260923-build-speedup-v4-13-73128809a4a4@kernel.org>
-Content-Language: en-US
-From: Petr Pavlu <petr.pavlu@suse.com>
-In-Reply-To: <20260923-build-speedup-v4-13-73128809a4a4@kernel.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 9/23/26 7:18 PM, Lorenzo Stoakes (ARM) wrote:
-> For every relocation modpost invokes check_section_mismatch() to determine
-> whether there is any kind of mismatch between the source and destination,
-> and if so which classification applies.
-> 
-> Each time it does this it invokes section_mismatch() which iterates
-> through the sectioncheck[] array every time it's called.
-> 
-> When walked a relocation section the source is fixed and there aren't many
-> targets, so the same names are looked up over and over again.
-> 
-> Therefore cache not only mismatch categorisation but also whether a
-> mismatch even exists for a given section and look up the sections in the
-> cache.
-> 
-> Special indices (undefined, absolute, common) take the uncached path as
-> before.
-> 
-> This results in very significant speed ups for allmodconfig incremental
-> builds.
-> 
-> modpost is on the serial tail of every build that links vmlinux.
-> 
-> Whole build, 128-thread Threadripper 9980X, best of N runs:
-> 
->                                          before   after     delta
->                                          -------------------------------
->   x86 defconfig, touch mm/vma.c, gcc        8.5s     8.3s    -0.14s (-2%)
->   x86 defconfig, touch mm/vma.c, clang      7.7s     7.6s    -0.13s (-2%)
->   x86 allmodconfig, touch mm/vma.c, gcc    33.9s    29.4s     -4.5s (-13%)
->   x86 allmodconfig, touch mm/vma.c, clang  31.9s    27.9s     -4.0s (-13%)
-> 
-> Assisted-by: LLM
-> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+generic_ffs(), generic___ffs(), generic_fls() and generic___fls() each
+open-code the same binary search: if the low (or high) half of the bits
+still in play is zero, shift it out and adjust the result, then repeat
+with half the width. Each copy spells out its own masks, the two
+unsigned long versions need an #if for their 32-bit step, and the
+copies differ in the order of the two updates in a step and in how the
+test is written. They implement some or all of these operations on
+riscv (without Zbb, and as the fallback with Zbb), ARM before ARMv5,
+m68k without bitfield instructions, sh, sparc32, microblaze, nios2 and
+a few other architectures.
 
-This looks mostly ok to me. Below are some nits you might want to
-consider addressing.
+Add <asm-generic/bitops/ffs-fls-search.h> with one search step per
+direction, whose shift and mask follow from the step number and the
+type of the word, and expand the steps with UNROLL() from
+<linux/unroll.h>. The four functions keep their definitions and
+kernel-doc; only the steps are shared. UNROLL() works in the
+preprocessor, so every shift and mask is still an integer constant
+expression. Its count has to be a literal, so rather than hard-coding
+six steps for a 64-bit word, expand the 20 that UNROLL() supports: a
+step past the width of the word shifts by 0 and is optimized away,
+which also removes the #if.
 
-> ---
->  scripts/mod/modpost.c | 66 +++++++++++++++++++++++++++++++++++++++++++++++++--
->  1 file changed, 64 insertions(+), 2 deletions(-)
-> 
-> diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-> index 75374c64b8cc..0fd43c8a89ea 100644
-> --- a/scripts/mod/modpost.c
-> +++ b/scripts/mod/modpost.c
-> @@ -1155,12 +1155,67 @@ static void check_export_symbol(struct module *mod, struct elf_info *elf,
->  			 name);
->  }
->  
-> +/*
-> + * mismatch_cache[section index] ->
-> + *   0 - uncached.
-> + *  -1 - no mismatch.
-> + *  >0 - mismatch index + 1.
-> + */
-> +static int *mismatch_cache;
+The shared step tests with "!", shifts the word and then adjusts the
+result, as generic_ffs() and generic_fls() did, so those two compile to
+the same code as before. generic___ffs() and generic___fls() adjusted
+the result first; GCC now mostly emits the same instructions with the
+shift and the update swapped, and Clang 18 changes a few riscv callers
+somewhat more (sizes below). Nothing was timed on hardware that runs
+this code. For the reordered code, models of the affected cores
+(llvm-mca for riscv) predict no slowdown, except 1-2 cycles on a few
+inputs in the out-of-order SiFive P450 model, whereas adjusting the
+result first in all four functions is predicted to slow down
+generic_ffs() and generic_fls().
 
-It might be cleaner to maintain this cache per elf_info, since it
-logically belongs to the processing of an individual ELF file. This
-would also be consistent with the existing symsearch cache, which uses
-elf::symsearch.
+A plain loop with unrolled_full would not need the step macros, but the
+pragma is only a hint and leaves the code to each compiler's unroller:
+both GCC and Clang unroll the loop completely, yet Clang then generates
+different code for nearly every target, better in some cases and worse
+in others, and so does GCC in some callers once the helpers are inlined.
 
-The description could use 'to_secndx' instead of 'section index' to
-clarify whether it refers to the source or destination section of
-a relocation.
+As a side effect, every user of <linux/bitops.h> on these architectures,
+including every riscv kernel, now also sees <linux/unroll.h>. The header
+is small, but it defines the lower-case object-like macros unrolled,
+unrolled_full and unrolled_none, so a variable, struct member or
+parameter with one of these names stops building there while it still
+builds on x86 and arm64. With GCC 11 and later, a parameter named
+"unrolled" can even build, with only -Wunknown-pragmas warnings, and
+silently lose its value. No in-tree code uses these names.
 
-> +
-> +static void init_mismatch_cache(unsigned int num_sections)
-> +{
-> +	mismatch_cache = xcalloc(num_sections, sizeof(*mismatch_cache));
-> +}
-> +
-> +static void reset_mismatch_cache(unsigned int num_sections)
-> +{
-> +	memset(mismatch_cache, 0, num_sections * sizeof(*mismatch_cache));
-> +}
-> +
-> +static void free_mismatch_cache(void)
-> +{
-> +	free(mismatch_cache);
-> +	mismatch_cache = NULL;
-> +}
-> +
-> +static const struct sectioncheck
-> +*cache_mismatch(unsigned int secndx, const struct sectioncheck *mismatch)
+Results are unchanged for every 32-bit argument and every 64-bit word
+with a zero low half (QEMU user mode; riscv64, rv32, m68k, sh4,
+sparc32, ARMv4T, openrisc and parisc with GCC 16.2, riscv64 with Clang
+18). The ffs and bitops KUnit tests, test_bitmap and test_bitops pass
+on riscv64 without Zbb, and W=1 builds report no new warnings.
 
-Similarly here, s/secndx/to_secndx/.
+bloat-o-meter on vmlinux with GCC 16.2: no change for arm v4t, m68k
+ColdFire 5475, sh4, sparc32, openrisc, parisc64 and xtensa without NSA;
++4 bytes for riscv without Zbb. With Clang 18, riscv without Zbb is -38
+bytes (assoc_array_insert() -42, iio_device_add_event() +8). m68k
+ColdFire 5208 is +16 bytes, from two functions that use none of these
+helpers; GCC compiles them identically with -ftrack-macro-expansion=0.
 
-> +{
-> +	if (!mismatch) {
-> +		mismatch_cache[secndx] = -1;
-> +		return NULL;
-> +	}
-> +
-> +	mismatch_cache[secndx] = (mismatch - sectioncheck) + 1;
-> +	return mismatch;
-> +}
-> +
-> +static const struct sectioncheck *get_section_mismatch(const char *fromsec,
-> +		const struct elf_info *elf, unsigned int secndx)
+Signed-off-by: Tzu-Ching Yang <shingekinocore@gmail.com>
+---
+<linux/unroll.h> now reaches 2327 of 2513 compiled units in a riscv
+defconfig build (Zbb off), up from 44. Test modules with a local
+variable or struct member named "unrolled" fail to build with this
+patch on riscv (GCC with Zbb on and off, Clang with Zbb off), m68k
+ColdFire and ARMv4T, and still build on x86_64 and arm64.
 
-s/secndx/to_secndx/, and the fromsec and elf arguments could be swapped
-for consistency with the rest of the code.
+Generated code. generic_ffs() and generic_fls() are unchanged. In
+callers of generic___ffs() and generic___fls() the shift and the
+counter update trade places, e.g. riscv64 _find_first_bit(), GCC 16.2:
 
-> +{
-> +	int cached;
-> +
-> +	if (secndx >= elf->num_sections)
-> +		return section_mismatch(fromsec, sec_name(elf, secndx));
-> +
-> +	cached = mismatch_cache[secndx];
-> +	if (cached < 0)
-> +		return NULL;
-> +	if (cached > 0)
-> +		return &sectioncheck[cached - 1];
-> +
-> +	return cache_mismatch(secndx,
-> +			      section_mismatch(fromsec, sec_name(elf, secndx)));
-> +}
-> +
->  static void check_section_mismatch(struct module *mod, struct elf_info *elf,
->  				   Elf_Sym *sym,
->  				   unsigned int fsecndx, const char *fromsec,
->  				   Elf_Addr faddr, Elf_Addr taddr)
->  {
-> -	const char *tosec = sec_name(elf, get_secindex(elf, sym));
-> +	const unsigned int to_secndx = get_secindex(elf, sym);
+    mainline                   with this patch
+    bnez   a3,<next>           bnez   a3,<next>
+    addiw  a0,a0,16            srli   a4,a4,0x10
+    srli   a4,a4,0x10          addiw  a0,a0,16
+    zext.b a3,a4               zext.b a3,a4
 
-The const qualifier can be dropped from the to_secndx definition to
-match the usual kernel style.
+Functions that differ in vmlinux, GCC 16.2:
+  riscv, Zbb off   300; 298 reordered only, 2 with other registers
+                   (alloc_large_system_hash +6 bytes, bpf_msg_push_data
+                   one instruction fewer, same size)
+  loongarch32      144 (LA32R), reordered only
+  parisc64         114 (__fls only); 90 reordered only, 23 with another
+                   delay slot fill, 1 with two registers swapped
+  sparc32 48, openrisc 44, xtensa 12 (one also renames registers),
+  sh4 4: reordered only
+  arm v4t, m68k ColdFire 5475: vmlinux byte-identical
+  m68k ColdFire 5208: percpu_rwsem_wait +8, __wait_for_common -4; they
+                   inline no ffs/fls helper and compile identically with
+                   -ftrack-macro-expansion=0 or -g
+Except on riscv and 5208, function sizes are unchanged. Clang 18, riscv
+with Zbb off: 12 functions, none only reordered; the _find_first*_bit()
+helpers use "or" instead of "add" for idx + __ffs(),
+assoc_array_insert() is 42 bytes smaller and iio_device_add_event() 8
+bytes larger, with a 16-byte larger stack frame.
 
+bloat-o-meter, riscv defconfig with RISCV_ISA_ZBB=n:
+  GCC 16.2: add/remove: 0/0 grow/shrink: 1/1 up/down: 6/-2 (4)
+  Clang 18: add/remove: 0/0 grow/shrink: 2/3 up/down: 44/-82 (-38)
+mm_core_init -2 and dw_pcie_irq_domain_alloc -4 come from byte-identical
+objects and change at link time (relaxation). On loongarch32 with
+CONFIG_IKHEADERS only kernel_headers_data changes (-800 bytes).
+
+Performance is model-only: no affected architecture could be timed on
+hardware. llvm-mca 17/18 ran on every executed path for the SiFive
+U74/E76/P450, Rocket and SCR1 models; m68k, sh, sparc32, xtensa,
+parisc, openrisc, loongarch32 and microblaze only got simple static
+issue models (and MC68000 instruction timings). Of 648 changed
+compiler/target/flags/function combinations, none is predicted slower
+except 20 riscv64 caller cases in which the out-of-order P450 model
+needs 1-2 more cycles on some inputs (-0.4% to +0.4% averaged over the
+inputs); the in-order SiFive-7 model is up to 4 cycles faster per
+__ffs() call. llvm-mca did not predict the slowdowns that this kind of
+reordering showed on x86 hardware (up to about 10% on single paths;
+x86 does not use this code), so this is weak evidence. Adjusting the
+result first everywhere is predicted slower for ffs()/fls() on every
+affected architecture, e.g. +3 cycles per ffs() call on the U74.
+
+A loop with unrolled_full, against the current headers in userspace
+builds (GCC 9/12/13/14 and Clang 17/18, 75 compiler/target pairs, -O2,
+-Os and kernel-like -O2): out of line, GCC gives identical code in all
+324 cases and Clang different code in 567 of 576, e.g. Clang 18 rv64
+fls() 33 -> 25 instructions but __ffs() 29 -> 31 and one more branch,
+Clang 17 ARMv4 ffs() 23 -> 37. Inlined into callers, GCC differs in 60
+of 324 cases.
+
+UNROLL(20) rather than six steps: the extra steps vanish when
+optimizing, but not at -O0 or under Clang's GCOV instrumentation, where
+the four helpers out of line grow from 405 to 564 instructions and from
+280 to 728 bytes of counters (Clang 18 riscv64; measured with the same
+expansion before the step order was unified).
+
+tools/include/asm-generic/bitops/{fls,__fls}.h copy two of these
+headers, so tools/perf/check-headers.sh will report them as different.
+They cannot simply be resynced, since tools/include has no
+<linux/unroll.h> or ffs-fls-search.h; the current copies compute the
+same values, so keeping them, or dropping the two entries from
+check-headers.sh, is enough.
+
+Testing details: all 2^32 arguments in 12 configurations and every 7th
+block of 2^16 in 51 more (GCC 8.1 to 16.2, LLVM 17 to 23), with no
+mismatch against the old code or an independent reference. W=1 vmlinux
+builds: arm multi_v4t, m68k m5475evb and m5208evb, sh rts7751r2dplus,
+sparc32, openrisc without ff1/fl1, parisc64, xtensa (custom core
+without NSA), loongarch32 (LA32R) and riscv with Zbb off, GCC 16.2,
+plus riscv with Clang 18. Not covered: hardware timing, and any model
+of the Clang 18 riscv changes; run-time tests on parisc64, loongarch32,
+microblaze, nios2, xtensa and SH-2A; other compiler versions in kernel
+builds; modules; sparse, smatch, coccinelle.
+
+Against bitmap-for-next (a73b4d1fa7d3); applies as is to v7.3-rc7 and
+next-20261012, where the four headers are identical.
+
+ include/asm-generic/bitops/__ffs.h          | 26 +----------
+ include/asm-generic/bitops/__fls.h          | 26 +----------
+ include/asm-generic/bitops/ffs-fls-search.h | 51 +++++++++++++++++++++
+ include/asm-generic/bitops/ffs.h            | 23 ++--------
+ include/asm-generic/bitops/fls.h            | 23 ++--------
+ 5 files changed, 61 insertions(+), 88 deletions(-)
+ create mode 100644 include/asm-generic/bitops/ffs-fls-search.h
+
+diff --git a/include/asm-generic/bitops/__ffs.h b/include/asm-generic/bitops/__ffs.h
+index 3a899c626f..ad5c014c62 100644
+--- a/include/asm-generic/bitops/__ffs.h
++++ b/include/asm-generic/bitops/__ffs.h
+@@ -3,6 +3,7 @@
+ #define _ASM_GENERIC_BITOPS___FFS_H_
+ 
+ #include <asm/types.h>
++#include <asm-generic/bitops/ffs-fls-search.h>
+ 
+ /**
+  * generic___ffs - find first bit in word.
+@@ -14,30 +15,7 @@ static __always_inline __attribute_const__ unsigned int generic___ffs(unsigned l
+ {
+ 	unsigned int num = 0;
+ 
+-#if BITS_PER_LONG == 64
+-	if ((word & 0xffffffff) == 0) {
+-		num += 32;
+-		word >>= 32;
+-	}
+-#endif
+-	if ((word & 0xffff) == 0) {
+-		num += 16;
+-		word >>= 16;
+-	}
+-	if ((word & 0xff) == 0) {
+-		num += 8;
+-		word >>= 8;
+-	}
+-	if ((word & 0xf) == 0) {
+-		num += 4;
+-		word >>= 4;
+-	}
+-	if ((word & 0x3) == 0) {
+-		num += 2;
+-		word >>= 2;
+-	}
+-	if ((word & 0x1) == 0)
+-		num += 1;
++	__ffs_fls_unroll(__ffs_step, word, num);
+ 	return num;
+ }
+ 
+diff --git a/include/asm-generic/bitops/__fls.h b/include/asm-generic/bitops/__fls.h
+index 35f33780ca..1c439e881b 100644
+--- a/include/asm-generic/bitops/__fls.h
++++ b/include/asm-generic/bitops/__fls.h
+@@ -3,6 +3,7 @@
+ #define _ASM_GENERIC_BITOPS___FLS_H_
+ 
+ #include <asm/types.h>
++#include <asm-generic/bitops/ffs-fls-search.h>
+ 
+ /**
+  * generic___fls - find last (most-significant) set bit in a long word
+@@ -14,30 +15,7 @@ static __always_inline __attribute_const__ unsigned int generic___fls(unsigned l
+ {
+ 	unsigned int num = BITS_PER_LONG - 1;
+ 
+-#if BITS_PER_LONG == 64
+-	if (!(word & (~0ul << 32))) {
+-		num -= 32;
+-		word <<= 32;
+-	}
+-#endif
+-	if (!(word & (~0ul << (BITS_PER_LONG-16)))) {
+-		num -= 16;
+-		word <<= 16;
+-	}
+-	if (!(word & (~0ul << (BITS_PER_LONG-8)))) {
+-		num -= 8;
+-		word <<= 8;
+-	}
+-	if (!(word & (~0ul << (BITS_PER_LONG-4)))) {
+-		num -= 4;
+-		word <<= 4;
+-	}
+-	if (!(word & (~0ul << (BITS_PER_LONG-2)))) {
+-		num -= 2;
+-		word <<= 2;
+-	}
+-	if (!(word & (~0ul << (BITS_PER_LONG-1))))
+-		num -= 1;
++	__ffs_fls_unroll(__fls_step, word, num);
+ 	return num;
+ }
+ 
+diff --git a/include/asm-generic/bitops/ffs-fls-search.h b/include/asm-generic/bitops/ffs-fls-search.h
+new file mode 100644
+index 0000000000..5c64364e54
+--- /dev/null
++++ b/include/asm-generic/bitops/ffs-fls-search.h
+@@ -0,0 +1,51 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_GENERIC_BITOPS_FFS_FLS_SEARCH_H_
++#define _ASM_GENERIC_BITOPS_FFS_FLS_SEARCH_H_
++
++#include <linux/unroll.h>
++
++/*
++ * Steps of a binary search for the first or last set bit of a word
++ * @i: the step number, from 0
++ * @x: the word, a local variable that the steps shift in place
++ * @n: the result, a local variable that the steps adjust in place
++ *
++ * Step @i looks at the low (__ffs_step) or high (__fls_step)
++ * __ffs_fls_shift(@i, @x) bits of @x: half of its width, then a quarter,
++ * and so on. If they are all zero, the step shifts them out of @x and adds
++ * their number to @n (__ffs_step) or subtracts it (__fls_step). @x is
++ * shifted before @n is adjusted: the next step tests @x, while @n is only
++ * needed at the end. The masks are computed in the type of @x.
++ *
++ * UNROLL() expands the steps in the preprocessor, so every shift and mask
++ * is an integer constant expression, as in a hand-written search. It puts
++ * the steps next to each other with nothing in between, hence the braces.
++ */
++#define __ffs_fls_shift(i, x)	((int)sizeof(x) * 8 >> ((i) + 1))
++#define __ffs_mask(i, x)	(((typeof(x))1 << __ffs_fls_shift(i, x)) - 1)
++#define __fls_mask(i, x)	((typeof(x))~(~(typeof(x))0 >> __ffs_fls_shift(i, x)))
++
++#define __ffs_step(i, x, n)						\
++	{								\
++		if (!((x) & __ffs_mask(i, x))) {			\
++			(x) >>= __ffs_fls_shift(i, x);			\
++			(n) += __ffs_fls_shift(i, x);			\
++		}							\
++	}
++
++#define __fls_step(i, x, n)						\
++	{								\
++		if (!((x) & __fls_mask(i, x))) {			\
++			(x) <<= __ffs_fls_shift(i, x);			\
++			(n) -= __ffs_fls_shift(i, x);			\
++		}							\
++	}
++
++/*
++ * Six steps cover a 64-bit word. UNROLL() needs a literal count, which
++ * cannot be derived from sizeof(@x), so expand the most it supports. Steps
++ * past the width of @x shift by 0 and are optimized away.
++ */
++#define __ffs_fls_unroll(step, x, n)	UNROLL(20, step, x, n)
++
++#endif /* _ASM_GENERIC_BITOPS_FFS_FLS_SEARCH_H_ */
+diff --git a/include/asm-generic/bitops/ffs.h b/include/asm-generic/bitops/ffs.h
+index 5ff2b7fbda..53705ba8c9 100644
+--- a/include/asm-generic/bitops/ffs.h
++++ b/include/asm-generic/bitops/ffs.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_GENERIC_BITOPS_FFS_H_
+ #define _ASM_GENERIC_BITOPS_FFS_H_
+ 
++#include <asm-generic/bitops/ffs-fls-search.h>
++
+ /**
+  * generic_ffs - find first bit set
+  * @x: the word to search
+@@ -16,26 +18,7 @@ static inline __attribute_const__ int generic_ffs(int x)
+ 
+ 	if (!x)
+ 		return 0;
+-	if (!(x & 0xffff)) {
+-		x >>= 16;
+-		r += 16;
+-	}
+-	if (!(x & 0xff)) {
+-		x >>= 8;
+-		r += 8;
+-	}
+-	if (!(x & 0xf)) {
+-		x >>= 4;
+-		r += 4;
+-	}
+-	if (!(x & 3)) {
+-		x >>= 2;
+-		r += 2;
+-	}
+-	if (!(x & 1)) {
+-		x >>= 1;
+-		r += 1;
+-	}
++	__ffs_fls_unroll(__ffs_step, x, r);
+ 	return r;
+ }
+ 
+diff --git a/include/asm-generic/bitops/fls.h b/include/asm-generic/bitops/fls.h
+index 8eed3437ed..42625a0785 100644
+--- a/include/asm-generic/bitops/fls.h
++++ b/include/asm-generic/bitops/fls.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_GENERIC_BITOPS_FLS_H_
+ #define _ASM_GENERIC_BITOPS_FLS_H_
+ 
++#include <asm-generic/bitops/ffs-fls-search.h>
++
+ /**
+  * generic_fls - find last (most-significant) bit set
+  * @x: the word to search
+@@ -16,26 +18,7 @@ static __always_inline __attribute_const__ int generic_fls(unsigned int x)
+ 
+ 	if (!x)
+ 		return 0;
+-	if (!(x & 0xffff0000u)) {
+-		x <<= 16;
+-		r -= 16;
+-	}
+-	if (!(x & 0xff000000u)) {
+-		x <<= 8;
+-		r -= 8;
+-	}
+-	if (!(x & 0xf0000000u)) {
+-		x <<= 4;
+-		r -= 4;
+-	}
+-	if (!(x & 0xc0000000u)) {
+-		x <<= 2;
+-		r -= 2;
+-	}
+-	if (!(x & 0x80000000u)) {
+-		x <<= 1;
+-		r -= 1;
+-	}
++	__ffs_fls_unroll(__fls_step, x, r);
+ 	return r;
+ }
+ 
+
+base-commit: a73b4d1fa7d334a5f7de5bb0a14726530f66196e
 -- 
-Thanks,
-Petr
+2.34.1
+
