@@ -1,83 +1,78 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.219.54
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792532922;
-	b=Xz3hqKIWri9OAwcGRYri0Q1EwB9J6jZ7v5mfF2G6xS719tUgWDtk/z6Fg0jZvBWVdDFP
-	 XcuxC0MuSpdy07cBO4oL0ueuvJHtZCmnxujbs6Slqs1E+bF54yVKkvea682BQqje+a4fX
-	 6vflwSEkosJvL9UByw8VDYsxPaFTtCvOR73qPjWFUkwDoC4KWmSsYJpebOwE5gIq1SY/V
-	 LzcYpUPaaBx3co5LBxQKS9S/jbVoXUzY+T9zlG/U0GbVrCfEfhxiPQVLnd8hARQ9SLT/P
-	 eJRyEbpeK9dPcRVzCZu2r4VoSsBhteYUP77DdVP06vbEr3jDsoZQLAJr09ejk3Q7nXw==
+	t=1792536595;
+	b=zAlwCGCvl7/Dnxfzidx7M0cziOMiIHek981Y3ziasCB9Nbf//mASh4rsoGU848etM/j9
+	 x3qqDCQtUKwXwN8rk8AnFk+YyepPRkbmDq0A0I3LnsqP9ya132k+0G3riGrPExHP1/pg7
+	 T/HbvgiHzc4KZkFAdo2Fwnx4mDBbwdyvtLDrmY8pM1Rle0pJGSzQ2wmk83Tg69TJM+hmF
+	 gEEeWAZb+9KUJa+nqogXO9YuMC8mrdMFQFXxZVwM+iXgDQ//1O3s7mGJSthoKkNodn3VD
+	 tVlzrdJECsZ79oV6YoiLg7kUi9VFc+y7mt48IeIvZVKHtj/YfbxdKpKUcgT/OBaTtGg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792532922;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 MIME-Version:Content-Type:Content-Transfer-Encoding:Subject:From:To:
-	 Cc:In-Reply-To:References:Date:Message-Id:X-Mailer;
-	bh=lwH5lbGW7Jp7v2pgahH/8u5d5Q1US/ZAJYtMLpAtA4s=;
-	b=fSXsncalnu01l4JqKdFQEG8nHtbzgXlgZqIrkjT4glUurY3rdPOVZCuubIuBBCCi5X7E
-	 gg1b78UPYP3LhxWcVTa00vBkmbCWvP8q+Wrz4KZe6eRwx4Lj9RubfR8Z7Bi4OP3qGV+n7
-	 USoC6KB1vDDkw/ZEVWrhokSyguUjKdsCNb0QqkGCk5ObgZjSu4BmvcKqYLlY1oeXGRocX
-	 zb3MsflF9tNd/y7LuhsEM9lRXJttfHilkxfS7ZtKzOkRyX0QVxUMt+7OfM/nzDqSZvZRW
-	 xcRjXauRu1twTASl60/FcEECZWOPxSZ0645djyvxx7x3radq7UdZEoOIWGYeJHqY1ZQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792536595;
+	h=DMARC-Filter:Received:Received:DKIM-Signature:Date:From:To:Cc:
+	 Subject:Message-ID:References:MIME-Version:Content-Type:
+	 Content-Disposition:In-Reply-To;
+	bh=8L3dbJg7n3McKQQtwak49EcNPS+ZUeJOE3KFcCfv8HU=;
+	b=mnEw/TcJyF3l+yjzmScjwzh7ugTCwszDIbBa0FZFT4RWUtfkVpFTHJZ5Iwb8d1rtJvrh
+	 YSMVuZhPOlRJxDJjdfXyzte8FXMECI75xg23NPSA308JU7b3gCTV52Gn3ndPTYJzgX/V4
+	 UxfDBk9t8TecnxWzBpiAPuebSJ8M+1Tv3L2QlkFQCVZJqaZE/juInq769mb3QTjtlOJWF
+	 VCeJqtGlJZgHjtjRFWo6kEt032nKPxsba7uDQnnIP8a/Yb9m0ddhdrcOIVhqbp3fpHM9H
+	 DTs6UW6R/+BQ/YF4S0bs8mwdfBHCi7HAmRIXAm9b/9c3JjIxe5MtMc7LNUph8pk0GOQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=none header.from=gourry.net;
-	spf=pass smtp.mailfrom=gourry.net;
-	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=Vnm419Qa;
-	arc=none smtp.remote-ip=209.85.219.54
-Received: from mail-qv1-f54.google.com (mail-qv1-f54.google.com [209.85.219.54])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9C418606A31B
-	for <linux-arch@vger.kernel.org>; Tue, 20 Oct 2026 21:48:41 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 9C418606A31B
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
+	dmarc=pass header.from=arm.com;
+	spf=pass smtp.mailfrom=arm.com;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=Iy65iNq2;
+	arc=none smtp.remote-ip=217.140.110.172
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 41C5A606A32E;
+	Tue, 20 Oct 2026 22:49:54 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 41C5A606A32E
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=Vnm419Qa
-Received: by mail-qv1-f54.google.com with SMTP id 6a1803df08f44-91791ec1b83so1124246d6.1
-        for <linux-arch@vger.kernel.org>; Tue, 20 Oct 2026 14:48:41 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gourry.net; s=google; t=1792532920; x=1793137720; darn=vger.kernel.org;
-        h=message-id:date:references:in-reply-to:cc:to:from:subject
-         :content-transfer-encoding:content-type:mime-version:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=lwH5lbGW7Jp7v2pgahH/8u5d5Q1US/ZAJYtMLpAtA4s=;
-        b=Vnm419Qa/kjE27NqFknpFQG1AEpyq49ddgDDuGG4m4PuK8jB4BIucxesyWwSf4SEa0
-         uSz2H8eWQ3QAQVj6mvZloHz1ezWLtzmCORiSuo4nvX/Y89/2PHrTr2TW0P6Tm5o1c13y
-         kFggrh0Im+PIpGTSB7fqkFQNt8NQtpgWN8Og3tQl5MkWnwnj8MF/yt/hQt64q5Q4ESGC
-         hfbLwpJB1hqraCnMet5mFnXiToBilJJr7Z42YzL3pjg2EM6cMOlxUZWGIUnaMwpSxLeW
-         e0X1EurcmLyvexnjMFYKgO/omwKsQow1isD1OoopS7BI9x0SWOD2yG9zXJviPhqLpw95
-         dF7A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792532920; x=1793137720;
-        h=message-id:date:references:in-reply-to:cc:to:from:subject
-         :content-transfer-encoding:content-type:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=lwH5lbGW7Jp7v2pgahH/8u5d5Q1US/ZAJYtMLpAtA4s=;
-        b=AibcEx49lrxEcdO5TysrvQ+acE+/OMcr9G90C5/RT/B+mvqn67L8M8hcN15WJvfJMT
-         qRVAy5IE3bfFwx5tF5TOZjFVTxFSwxWLySly0ttkPCDLFft5MfecTRLC4UqNQbuFdT+Y
-         zbQjvKZbYSKvx9ZIH6sAyFckfJF7qof6JaKeUR2La/30ttBmaA1c5jSusWfTPpUMPcOe
-         LyUN/bpO7NZvbcd+at1DzCegHgkJ/EzlK0myfhGlcjoin1bWkqPqGXMvAkeYVtdhHcJG
-         QK8/jvB+18ou/VENeV1CtVsMuhShkzrlRSmIFORxodt0cPH5g3xZnXUdDCtL2iUI0Xtl
-         keAg==
-X-Forwarded-Encrypted: i=1; AKwUvBxS6/S710pdCSJz2IIkqozH7xIkCR9gOtirI+/qz/dW3ivacHuYttKf1g9KWH2xOZ5aoHFLD1ufbnw/@vger.kernel.org
-X-Gm-Message-State: AFq9FYIwHa7eSjj9yNeZmy7V5kuWH21o10INYuk5Yb6yhza9hr5Z/igv
-	aNfh6JQplITaL6zXMl4w1kChVpAapPn9j180w8A1exPCXbH1n/Mc86EInIf9hykjufk=
-X-Gm-Gg: AYBFou37wSKF74ZlPvFvwmDFseOfd6VvdCsM2z2n2HIFwzqKKA16zLkvm61A1WDb8/H
-	lJ3pGvIdUDDZN0IOoiR5gqiLhZP35oWWPtDgmdH5hMPKO0I3JY97eM6F8U1lJ2Z3uQKyEex82ZC
-	PDAQ3wCzHM1wYjunjTPmdL9hOt4//sfoQT4T60q4NmjIkNqhJ4ilrH4iPbh7q23OJ6dq5pS7Enp
-	2ExODGgc6NT+TztOc+0F9PoSH66dRObIrIJLqdVDT6WsE0Qfk5cytt0iTsP5Cf9Xs+N8iyQm0C+
-	z8PbO5lEHwK8cqGsty9J+5obrYXIA8aApMqp3eShVl1buQjA7OMnWALlRC8Y1AwJTzI/8ub3byi
-	+58b+B3CEcRuVMYNa8SK5qFI3chH/LOjJ4NDl+KEFKLzE9P6LPM9PAJ3C0sV3UKWHA6iWixlgZ/
-	bIZDq4jgQICrYwBGyhGwkCgH8YFcODueNiiyHXBzrt8OIMd0hToI2eRDVndiTjsg6uYu1s6qe2/
-	gEjKwBZmaS77K1cflAyg98ckxYENwXPGI9AqXmLGR1OBA==
-X-Received: by 2002:a05:6214:3c86:b0:91b:5d3a:5105 with SMTP id 6a1803df08f44-91c12f580cemr1790346d6.51.1792532920531;
-        Tue, 20 Oct 2026 14:48:40 -0700 (PDT)
-Received: from [192.168.86.58] (pool-173-79-60-52.washdc.fios.verizon.net. [173.79.60.52])
-        by smtp.gmail.com with ESMTPSA id 6a1803df08f44-91c10bc99a7sm8625276d6.22.2026.10.20.14.48.35
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 20 Oct 2026 14:48:37 -0700 (PDT)
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=Iy65iNq2
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 22FC515A1;
+	Tue, 20 Oct 2026 15:49:50 -0700 (PDT)
+Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 92E9E3F673;
+	Tue, 20 Oct 2026 15:49:48 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1792536593; bh=utolcjwaaJaPzYwJQo9ya2LOeTJaqLosq4TA9Cq4IIo=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=Iy65iNq278aR/8Qr5ADRvjS5ek17DIwYRx5fL1DcFwSqjuxUK3E/82pYbuRw8AJRv
+	 LW+A9rVlT44ugB3MLub2pWp75rqYgsVz57A99bXDD0t1WBYfyxBKd1q7eFc3vOG4BJ
+	 8mE7Bsb9YISf28302wWCSS0gQPVnGGFFsFBqp1L0=
+Date: Tue, 20 Oct 2026 23:49:45 +0100
+From: Yeoreum Yun <yeoreum.yun@arm.com>
+To: Jason Gunthorpe <jgg@nvidia.com>
+Cc: Alexandre Ghiti <alex@ghiti.fr>, Albert Ou <aou@eecs.berkeley.edu>,
+	Ard Biesheuvel <ardb@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Jonathan Corbet <corbet@lwn.net>, David Sterba <dsterba@suse.com>,
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
+	linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	linux-doc@vger.kernel.org, linux-efi@vger.kernel.org,
+	linux-riscv@lists.infradead.org,
+	Mark Rutland <mark.rutland@arm.com>,
+	Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <pjw@kernel.org>,
+	Randy Dunlap <rdunlap@infradead.org>,
+	Simon Glass <sjg@chromium.org>,
+	Shuah Khan <skhan@linuxfoundation.org>,
+	Nick Terrell <terrelln@fb.com>, Will Deacon <will@kernel.org>,
+	Alexandre Ghiti <alexghiti@rivosinc.com>,
+	Conor Dooley <conor.dooley@microchip.com>,
+	Jonathan Cameron <jonathan.cameron@oss.qualcomm.com>,
+	linux-integrity@vger.kernel.org,
+	Palmer Dabbelt <palmer@rivosinc.com>, patches@lists.linux.dev,
+	Piotr =?iso-8859-1?Q?Kr=F3l?= <piotr.krol@3mdeb.com>,
+	Ross Philipson <ross.philipson@gmail.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Song Shuai <songshuaishuai@tinylab.org>
+Subject: Re: [PATCH v2 12/15] arm64: drtm: Update the linker script for
+ EFI_STUB_DRTM
+Message-ID: <atfwCcRfC6rWFywH@e129823.arm.com>
+References: <0-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
+ <12-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -87,112 +82,193 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v6 07/39] mm: assert mmap lock held, use new flags API
- in vm_insert_page[s]
-From: "Gregory Price (Meta)" <gourry@gourry.net>
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
- Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
- David Hildenbrand <david@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
- Jonathan Corbet <corbet@lwn.net>, 
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
- Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, 
- Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
- Paul Moore <paul@paul-moore.com>, 
- Stephen Smalley <stephen.smalley.work@gmail.com>, 
- Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.com>, 
- Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
- Andrii Nakryiko <andrii@kernel.org>, Eduard Zingerman <eddyz87@gmail.com>, 
- Kumar Kartikeya Dwivedi <memxor@gmail.com>, Zi Yan <ziy@nvidia.com>, 
- Baolin Wang <baolin.wang@linux.alibaba.com>, 
- Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, 
- Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
- Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
- Kiryl Shutsemau <kas@kernel.org>, Doug Gilbert <dgilbert@interlog.com>, 
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, 
- "Martin K. Petersen" <mkp@kernel.org>, Simona Vetter <simona@ffwll.ch>, 
- Helge Deller <deller@gmx.de>, Sebastian Reichel <sre@kernel.org>, 
- John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
- Masami Hiramatsu <mhiramat@kernel.org>, Oleg Nesterov <oleg@redhat.com>, 
- Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@kernel.org>, 
- Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
- Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
- Arnaldo Carvalho de Melo <acme@kernel.org>, 
- Namhyung Kim <namhyung@kernel.org>, Mark Rutland <mark.rutland@arm.com>, 
- Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
- Juri Lelli <juri.lelli@redhat.com>, 
- Vincent Guittot <vincent.guittot@linaro.org>, 
- Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
- Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
- David Airlie <airlied@gmail.com>, Will Deacon <will@kernel.org>, 
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
- Nick Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, 
- Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
- Marc Zyngier <maz@kernel.org>, Oliver Upton <oupton@kernel.org>, 
- Catalin Marinas <catalin.marinas@arm.com>, 
- Madhavan Srinivasan <maddy@linux.ibm.com>, Anup Patel <anup@brainfault.org>, 
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
- Albert Ou <aou@eecs.berkeley.edu>, 
- Christian Borntraeger <borntraeger@linux.ibm.com>, 
- Janosch Frank <frankja@linux.ibm.com>, 
- Claudio Imbrenda <imbrenda@linux.ibm.com>, 
- Alexander Gordeev <agordeev@linux.ibm.com>, 
- Gerald Schaefer <gerald.schaefer@linux.ibm.com>, 
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
- "David S. Miller" <davem@davemloft.net>, 
- Andreas Larsson <andreas@gaisler.com>, 
- Alexander Viro <viro@zeniv.linux.org.uk>, 
- Christian Brauner <brauner@kernel.org>, 
- Matthew Brost <matthew.brost@intel.com>, 
- Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
- Byungchul Park <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, 
- Ying Huang <ying.huang@linux.alibaba.com>, 
- Alistair Popple <apopple@nvidia.com>, Chris Li <chrisl@kernel.org>, 
- Kairui Song <kasong@tencent.com>, Kemeng Shi <shikemeng@huaweicloud.com>, 
- Nhat Pham <nphamcs@gmail.com>, Baoquan He <baoquan.he@linux.dev>, 
- Youngjun Park <youngjun.park@lge.com>, Johannes Weiner <hannes@cmpxchg.org>, 
- Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
- Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, 
- Wei Xu <weixugc@google.com>, Chengming Zhou <chengming.zhou@linux.dev>, 
- Michal Hocko <mhocko@kernel.org>, Miklos Szeredi <miklos@szeredi.hu>, 
- Xu Xin <xu.xin@linux.dev>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
- linux-doc@vger.kernel.org, linux-usb@vger.kernel.org, 
- linux-rdma@vger.kernel.org, selinux@vger.kernel.org, 
- linux-sound@vger.kernel.org, bpf@vger.kernel.org, 
- linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
- dri-devel@lists.freedesktop.org, linux-trace-kernel@vger.kernel.org, 
- linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
- kvmarm@lists.linux.dev, linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org, 
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
- linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, 
- fuse-devel@lists.linux.dev, Ihor Solodrai <ihor.solodrai@linux.dev>, 
- Bert Karwatzki <spasswolf@web.de>
-In-Reply-To: <20261013-b4-mmap-prepare-vma-flag-sanify-v6-7-1aa3c9b139f9@kernel.org>
-References: <20261013-b4-mmap-prepare-vma-flag-sanify-v6-0-1aa3c9b139f9@kernel.org>
- <20261013-b4-mmap-prepare-vma-flag-sanify-v6-7-1aa3c9b139f9@kernel.org>
-Date: Tue, 20 Oct 2026 17:48:32 -0400
-Message-Id: <179253291264.1207257.80392040365771672.b4-reply@b4>
-X-Mailer: b4 0.17-dev
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <12-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
 
-On 2026-10-13 16:04 +0100, Lorenzo Stoakes (ARM) wrote:
-> The existing logic asserts that an mmap write lock is held, bizarrely, by
-> asserting that an mmap_read_trylock() fails (which is not the same thing).
-> 
-> Assert the mmap write lock here and switch to using the new VMA flags API
-> while here.
-> 
-> Note that the vma_start_write() is explicitly broken out from
-> vm_flags_set() here in order to use vma_set_flags() safely.
-> 
-> Signed-off-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+Hi,
 
-Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
+> Implement the link layout that CONFIG_EFI_STUB_DRTM requires. This maps
+> vmlinux into the Dynamic Launch Measured Environment (DLME) defined by the
+> spec.
+> 
+> Broadly, Image fits into the spec defined DLME region memory layout in
+> this order:
+>  - Program headers and padding up to _stext. EFI can write to these while
+>    loading the stub so they do not have a stable measurement.
+>  - All the boot-time immutable data, including .text, .data, .init
+>    and so on (measured)
+>  - Data written by the EFI stub
+>  - .bss, padding and other 0'd data up to _end
+>  - The "DLME Data" written by the launch process. This is a datastructure
+>    the post launch kernel will parse to get trusted information about th
+>    launch.
+> 
+> New linker symbols are added to mark these areas and their offsets are
+> placed into the efi_image_info so both stubs can get them.
+> 
+> The spec's design of the DLME was intended to fit a typical OS image like
+> this, with two areas that are unmeasured and an inner measured region.
+> 
+> Linux zeroes the unmeasured area of .bss/etc after the DRTM launch so it
+> also reaches a known value. The DLME data is written by the launch and is
+> trusted. The EFI stub data is either ignored or will have to be sanitized.
+> 
+> Add a section for the unmeasured data before the PECOFF padding. This is
+> an allocated section so it is zero'd in the image and is only 64 bytes in
+> my builds. There is a high chance it gets absorbed into the padding
+> region.
+> 
+> The post-launch kernel will have to reserve the "DLME Data" before
+> starting the allocator since it falls outside the linker map. This will
+> happen in the first series to consume this data.
+> 
+> Signed-off-by: Jason Gunthorpe <jgg@nvidia.com>
+> ---
+>  arch/arm64/include/asm/image.h  |  8 +++++
+>  arch/arm64/kernel/vmlinux.lds.S | 64 ++++++++++++++++++++++++++++++++-
+>  2 files changed, 71 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm64/include/asm/image.h b/arch/arm64/include/asm/image.h
+> index b18ce23a2cba7f..36afe95ffa7544 100644
+> --- a/arch/arm64/include/asm/image.h
+> +++ b/arch/arm64/include/asm/image.h
+> @@ -5,7 +5,11 @@
+>  
+>  #define ARM64_IMAGE_MAGIC	"ARM\x64"
+>  
+> +#ifdef CONFIG_ARM64_DRTM
+> +#define EFI_IMAGE_INFO_SIZE	40
+
+Small nit. I know according to #13, This should be 40 with drtm_entry
+and arm64_drtm_handoff. but in this patch, should EFI_IMAGE_INFO_SIZE
+be 24 and be change to 40 at #13?
+
+> +#else
+>  #define EFI_IMAGE_INFO_SIZE	8
+> +#endif
+>  
+>  #define ARM64_IMAGE_FLAG_BE_SHIFT		0
+>  #define ARM64_IMAGE_FLAG_PAGE_SIZE_SHIFT	(ARM64_IMAGE_FLAG_BE_SHIFT + 1)
+> @@ -62,6 +66,10 @@ struct arm64_image_header {
+>   */
+>  struct efi_image_info {
+>  	u64 code_size;
+> +#ifdef CONFIG_ARM64_DRTM
+> +	u64 drtm_measured_start;
+> +	u64 dlme_measured_size;
+> +#endif
+>  };
+>  static_assert(sizeof(struct efi_image_info) == EFI_IMAGE_INFO_SIZE);
+>  
+> diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+> index 8305b47995954b..5c14decf0dd4d3 100644
+> --- a/arch/arm64/kernel/vmlinux.lds.S
+> +++ b/arch/arm64/kernel/vmlinux.lds.S
+> @@ -190,10 +190,24 @@ SECTIONS
+>  
+>  	.head.text : {
+>  		_text = .;
+> +#ifdef CONFIG_ARM64_DRTM
+> +		/* DEN0113 R314010: The DLME region must start at a 4KB aligned address. */
+> +		ASSERT((_text & (SZ_4K - 1)) == 0,
+> +		       "DLME region is not 4 KiB aligned");
+> +#endif
+>  		HEAD_TEXT
+>  	}
+>  	.text : ALIGN(SEGMENT_ALIGN) {	/* Real text segment		*/
+>  		_stext = .;		/* Text and read-only data	*/
+> +#ifdef CONFIG_ARM64_DRTM
+> +		__drtm_measured_start = _stext;
+> +		/*
+> +		 * DEN0113 R314020: The DLME image must start at a 4KB aligned
+> +		 * address. This happens always because SEGMENT_ALIGN is big.
+> +		 */
+> +		ASSERT((__drtm_measured_start & (SZ_4K - 1)) == 0,
+> +		       "DLME measured start is not 4 KiB aligned");
+> +#endif
+>  			IRQENTRY_TEXT
+>  			SOFTIRQENTRY_TEXT
+>  			ENTRY_TEXT
+> @@ -285,6 +299,11 @@ SECTIONS
+>  		EFI_IMAGE_INFO(
+>  			/* code_size */
+>  			EFI_IMAGE_INFO_OFFSET(__inittext_end);
+> +#ifdef CONFIG_ARM64_DRTM
+> +			EFI_IMAGE_INFO_OFFSET(__drtm_measured_start);
+> +			/* dlme_measured_size */
+> +			EFI_IMAGE_INFO_ENTRY(__drtm_measured_end - __drtm_measured_start);
+> +#endif
+>  		)
+>  	}
+>  	.exit.data : {
+> @@ -348,6 +367,44 @@ SECTIONS
+>  		__mmuoff_data_end = .;
+>  	}
+>  
+> +	/*
+> +	 * DRTM layout for DEN0113 as it relates to the link layout, refer
+> +	 * to Figure 8 in 1.4b. In that language:
+> +	 *  "Free Space 1" is the PE header and padding between _text and
+> +	 *        __drtm_measured_start (_stext)
+> +	 *  "DLME Image" is from __drtm_measured_start to __drtm_measured_end
+> +	 *  "Free Space 2" is kernel efi data/bss/etc till __drtm_dlme_start
+> +	 *  "DLME Data" is a memory sized "Minimum Size of DLME data"
+> +	 *        and is retained after boot for use by the kernel
+> +	 *
+> +	 * Thus, the DRTM_PARAMETERS follow from that:
+> +	 *   DLME Region Address = _text's PA ie the start of Image
+> +	 *   DLME Region Size = DLME Data Offset + "Minimum Size of DLME data"
+> +	 *   DLME Image Start Offset = __drtm_measured_start - _text
+> +	 *   DLME Image Size = __drtm_measured_end - __drtm_measured_start
+> +	 *   DLME Data Offset = __drtm_dlme_start - _text
+> +	 *   Normal World DCE region address = PA of __drtm_dlme_start +
+> +	 *                                  "Minimum Size of DLME data"
+> +	 *
+> +	 * The EFI stub will place any optional "Normal World DCE" region
+> +	 * immediately after the "DLME data". It is only used internally by the
+> +	 * FW during the launch and has no effect on the link layout.
+> +	 */
+> +#ifdef CONFIG_ARM64_DRTM
+> +	__drtm_measured_end = .;
+> +
+> +	/*
+> +	 * Writable EFI stub state. When DRTM is being used the stub's mutable
+> +	 * data cannot reside in the normal .init.data because that section
+> +	 * will be measured.
+> +	 */
+> +	.unmeasured.data : {
+> +		*(.unmeasured.data)
+> +		*(.init.efidata .init.efidata.*)
+> +		*(.init.efibss .init.efibss.*)
+> +	}
+> +#endif
+> +
+>  	PECOFF_EDATA_PADDING
+>  	__pecoff_data_rawsize = ABSOLUTE(. - __initdata_begin);
+>  	_edata = .;
+> @@ -370,10 +427,15 @@ SECTIONS
+>  
+>  	. += SZ_4K;		/* stack for the early C runtime */
+>  	early_init_stack = .;
+> -
+>  	. = ALIGN(SEGMENT_ALIGN);
+>  	__pecoff_data_size = ABSOLUTE(. - __initdata_begin);
+>  	_end = .;
+> +#ifdef CONFIG_ARM64_DRTM
+> +	/* DEN0113 R314030: The DLME data must start at a 4KB aligned address. */
+> +	__drtm_dlme_start = .;
+> +	ASSERT((__drtm_dlme_start & (SZ_4K - 1)) == 0,
+> +	       "DLME data is not 4 KiB aligned")
+> +#endif
+>  	__pi__end = .;
+>  
+>  	STABS_DEBUG
+> -- 
+> 2.43.0
+> 
+> 
 
 -- 
-Gregory Price (Meta) <gourry@gourry.net>
+Sincerely,
+Yeoreum Yun
