@@ -1,99 +1,78 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.208.47
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1792592814;
-	b=Lb/HeyvmrDnHrcFe+V9PxJxPSRFWkFsbEWEjsRlmugOl5BcLZHp0zoXpUKI5TDSScdtQ
-	 WkYn9Jdce5lNC039SOrdGkDHs4UQkfMF7PymTzyXUuorKsUKHhbYLKMYyOHRdn/9J8vBW
-	 vmn8F2ovNhBDzB9CgWoGZaw+qKbNFH7QqjxueeBP1AHjptzAowmk3cAeBJ4BnctNceijB
-	 842OFm9cLeL4PSByXrQ7Bx437t8OFhbRIP008juvLcN6VZGYDXXi0wccx0hQO0zCtc1VX
-	 WPLrid/ZfbUx7AE4y6Kpx4a71ZO1TGLkaDJPbvr2rmrnnAq3zQMx/NJsSVI8kdBv/Tg==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792592814;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:
-	 MIME-Version:References:In-Reply-To:From:Date:X-Gm-Features:
-	 Message-ID:Subject:To:Cc:Content-Type;
-	bh=HZWCDTWe8myvVLhLnC3gRwnDw2Z9dfDRU9KvUScIux8=;
-	b=dHnby1KxEy/JAVcycTjHuP364DMs9vslszUmhNSDqOo1HfbsjhJWO5fxSk6hrdEt0wmM
-	 7I/OQIViU+CWpr6yuaJ1R+WpRfvvWNKMzfpE7S5N1Mw2OAAZctYVHZzb4cvOPfTiBrrwA
-	 dcnQRAzd7pCrLPA4aA7uGReNIlWSC13135ee7C2eSN0ot0ALOMrSB3ejRu2up9m4/LIVs
-	 8gcBQJ97phURKw3nUw4qy/KOGgWQqBy7aCcLK7AsGQecF/wg2Ac8xYSKWQFUO3K1IMNCh
-	 gwCUQedSRZTtqwuoMxywUqeqso1MecuMfAbJl9T8rGLCvHs+zoWVTRlRVc18vNJkjYw==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=BRqHAhOJ;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.208.47
-Received: from mail-ed1-f47.google.com (mail-ed1-f47.google.com [209.85.208.47])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=80.241.56.161
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1792594382;
+	b=V2IOakUap3+rNeRouyl5jsAaomOMs3LFda39kTG+4/wxcvSlNMJKhX4xf5FrXzaynIMQ
+	 OB8SlZdr6nFS+Jks5AavDU0srayoO6ULrY0cfiswFUGnjgMjjigsV9kJFbMgMZgOVLKDd
+	 sTCUZCofEfDYCEjvnxRiuX+jJgBaLpFYUbdNoJvsKEXhU+vtSfOyziCgiJzMglFrQH/se
+	 v6OY661C7rryI53N31YVvMOHr95lh0lCEzhiVmwDldqQ7rbprpuDuYvLgM3lVMh22Qzst
+	 gFIUKeMPdjw0eB9i3r+5HLMMssKos+S4CsWQKEjmTwJvVbsdIVgx7dASPXNRNx7I4bw==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792594382;
+	h=DMARC-Filter:Received:DKIM-Signature:Message-ID:Subject:From:
+	 Reply-To:To:Cc:Date:In-Reply-To:References:Content-Type:
+	 Content-Transfer-Encoding:User-Agent:MIME-Version:X-MBO-RS-META:
+	 X-MBO-RS-ID;
+	bh=0BRUt1iojLuEcX+vMeK5+C49tlWQeMAcHtO6iWl2Ic0=;
+	b=C7mC4tsjXUUzCQb1BQNP2EhBN5CPAH+VaDJ+QqFJk3JOBo9usbjGkP9n4FDO7gfiA78X
+	 7nH7HgTsBNy1Qv5QvopzUhEeKhVCd6GiRnTGReAGxo3z966+37N14ElsUd9+gT4J3WpHA
+	 3h0b3uhuCumw1fVBn3SugBikvVgWLe5IAbB8WZxP7OzQGYJc+a5f9uL7aenKSkALekCZp
+	 JWuUvf1BGN4XRFA6/p0POuW/Ko61LU6MrSap4EB8n4I+Zfsi8Gd1RmFbXqPWmMrBxnM2T
+	 6Wqk/+30qEUD4tETPqCC3/UXxMHWcGuAcm4MtkzqqzC0Vz8c5I2q8p8uZ0YJfI3MsQw==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=mailbox.org;
+	spf=pass smtp.mailfrom=mailbox.org;
+	dkim=pass header.d=mailbox.org header.i=@mailbox.org header.a=rsa-sha256 header.s=mail20150812 header.b=Pg2H9YEW;
+	arc=none smtp.remote-ip=80.241.56.161
+Received: from mout-p-103.mailbox.org (mout-p-103.mailbox.org [80.241.56.161])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2C42C606A322
-	for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 14:26:54 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2C42C606A322
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EDB03606A319;
+	Wed, 21 Oct 2026 14:53:01 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org EDB03606A319
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=mailbox.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mailbox.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=BRqHAhOJ
-Received: by mail-ed1-f47.google.com with SMTP id 4fb4d7f45d1cf-6b3f7763d88so1014407a12.2
-        for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 07:26:54 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1792592812; cv=none;
-        d=google.com; s=arc-20260327;
-        b=frgImxZiBrmLtUg9pCrsysOH0rVQ48/Sb2+f1Y+9nGB2FfWSlZ07vQrxoIrT5Yycd+
-         maNXC7inAk9xw6iKLJTImCR2ax1tK5oElY6JTN1//nTVDlbqNO5ClWb75bUdQr+9hzZ8
-         8T6NWaiH40LxQLGavdVlfoK2n9Pc8MLQTA+Tl+nRYIj/ZA4FKirS5/k80jDd3a5Wvx8t
-         LB+6/q/lDEdqmPZI6OS2tl5DChVYyHcDCMAhA+d/oU7p5/m2SQpjJGssg1TEkmZpQQIe
-         XCOKOG9/TTXoCc+aNPiLdk0X7ytt+GJ9gENeYYmg7i7079DuUV0gpwW92I8Qa/7Uq+BG
-         0XVw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:dkim-signature;
-        bh=HZWCDTWe8myvVLhLnC3gRwnDw2Z9dfDRU9KvUScIux8=;
-        fh=okEqebdSwSRmDc68mA+VW8mqHnYPRJene8K6Tvu7w2I=;
-        b=nVGW9rBVSkkFNYgmE/qo713kLGJ9OJ3EiWEa0+dVGO37lHXexgUd1r4E4p1PT3UPq6
-         o2cX4Yt/O8biEP6t/vYVbXBBgB6kBLEBXTRMzWkIn8yJRPvEyg+Q2CRREXNIGYVB8pMp
-         pYutEkeoWDF5Q8tIRv7VooG5COwdtEbex1M2vtSynNTe4fBUA3TznVaIr8+GK/OdQsvg
-         jZnEWwh6Z7M70OwyxwIl+b+zl919MEVP0cOCGSLq9Ft8Or0iov/s9ZngLui81TITcxc3
-         uTeTpbblGMiC0DqVhZyUpdJlarXgsLbnU14URbjQt7BrpGNO8qwhHF2yiqXSk28GYZvQ
-         kCCQ==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1792592812; x=1793197612; darn=vger.kernel.org;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=HZWCDTWe8myvVLhLnC3gRwnDw2Z9dfDRU9KvUScIux8=;
-        b=BRqHAhOJRFQGCZ0436cerbXsvDGcjOTtcEFCOpJRV+nbVKbSAKMl662tBLFTfb2Sg5
-         NFxQNyHoxxgYHQR13h13k71ankQp/N0fxgwfPZdFZZwD0LZwBvhOQiky2tnvBNcGVE92
-         vpRJ7hzp6lhKrZveGyDGkQ94JZjS5rrim4/SQCOenhyqo5st97RuKWVFwTkWZQ5bTbIw
-         iWX7FjROAHIvHplEaKREmJYGpSp7sUQFKLAPhXVjYlSpM8WQnUK4iSviJf2DCzgxJwf5
-         mmlBS+ISZT3vDsrX9Xx3+f3KYgz6TnHUVdIwJP9bY9OfNIdfJdTh5lFsIo+qwhCRzOmH
-         nAiA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792592812; x=1793197612;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=HZWCDTWe8myvVLhLnC3gRwnDw2Z9dfDRU9KvUScIux8=;
-        b=hUCN7cJU5spU74FgFrhM/Ire4iKxgms1/yl8mF8IBCGq/6sKSR/NTBRA6GrPI4kMbz
-         G9l8ZQ4I7HBPmcy125EllJ7AsgBBDRAJdvnD2+Ipgr8C9c81aFc7/h7DhBzcFQ1EcB9r
-         0dtWKDsRkRGWgNMl0x64jddQ/VizREKI/N2qTVyUK9HU9ut3B0/2x9w2IlXMsZAZEQ5R
-         h/zY6l1gQCC5OGJH8BrofuW25biOrzi1KPSRo6+xqZJeyGNmc2ZCRxpNMJ7dbH7B1ch5
-         kKUnrPhFs9MqulV9c0L+oFfyoMKab4zG03vGyvV2MrqESSaa0vvwww+trCGYvr5Fg82p
-         9i0w==
-X-Forwarded-Encrypted: i=1; AKwUvBzbiPyrpqvJVR2utXHnhQWyu+05uW6OvajSiGiN7J95A7mOdqX/jMCfgAaz4iZtf7MTyyWNnFdYLZrG@vger.kernel.org
-X-Gm-Message-State: AFq9FYLX7meIgkeDTp5JzLcMaMb/MXzFa0gZcBTAj7EPCYGSgM5gfSGF
-	xQWhzlKSSVc+4+/8DEnesCNQFm82ghFpW8t6jHeVUNHhp948pffv9LzIq8NNrYoBtp2IHwfkZXQ
-	2CpxeFcK4Pa5xtkJ/qeFvCuckfp6jCDc=
-X-Gm-Gg: AYBFou1xHcWZ0JJJnOi91egQtgDjc2/zmSIgv7Afr/NKUnes5gOr0xcN/eLPRtuZIQD
-	x4+juDMH6MQ8+fb2qB11rLCKLPxJhYKzKGPRlEu8HG3VLoOHzK1ktgqV3/YklkdK8pNKmPyB2io
-	V3LcDfhDeRKumArFT6sLDSmCiui0foWBj4dJ43/XjQtYZ/AYDW6KuDZj1RdUMMN7G8GdjZLQEJT
-	nCtSfHq4i8qQy0y9U1zFEeEZaqSZgXmmzDGiyqWWvXEC6k4IX1SdpD5/goyK02NG04UAzjctJvC
-	GKVGlBTFuW+7beQqyRDwtHIDLpMxLBIA3FUIWiwRmczgAmz6Kb+Wbj+FZLtsalXN20twsjN1xIG
-	+z2pbDuxqriRBzJOc3qQ4uvUEgJRmVWcNlqs7
-X-Received: by 2002:a17:906:c105:b0:c33:ca5e:8ddb with SMTP id
- a640c23a62f3a-c46796b58cdmr190770166b.28.1792592812271; Wed, 21 Oct 2026
- 07:26:52 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=mailbox.org header.i=@mailbox.org header.a=rsa-sha256 header.s=mail20150812 header.b=Pg2H9YEW
+Received: from smtp1.mailbox.org (smtp1.mailbox.org [IPv6:2001:67c:2050:b231:465::1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519MLKEM768 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mout-p-103.mailbox.org (Postfix) with ESMTPS id 4j8shp37xHzKm8D;
+	Wed, 21 Oct 2026 16:52:58 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mailbox.org; s=mail20150812;
+	t=1792594378; h=from:from:reply-to:reply-to:subject:subject:date:date:
+	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
+	 content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=0BRUt1iojLuEcX+vMeK5+C49tlWQeMAcHtO6iWl2Ic0=;
+	b=Pg2H9YEWrURWx9bBhwK6Of1BcZIBk0WlQra9uAWuN3F2DTAVt2nCNiBCZ0TwHXp6gI0UyY
+	ir8kTFi2UhPaxD0YYf/aMgAtwnT4QjvwQYW9Y9Ya+asnQ4MwVgVmDt4cSu6j4A+vY4psJg
+	iPlql2LwurhtuXH/d5j0EQF5EZPjXbZgRJnzNcEaEL8Vm7YmkSpukHzuMG3/JU74RfEwZm
+	izojZsvOR0hmIxEeAq9Qh+3pAQ2UXBGVDkNWiKjSpPYzSuTa9ZMp+f2FbNKPlqKy4OkuIA
+	doRFgSNhDxFAUxETKfxOQ2s5RPamsm/smboXPahqqHsrwDfszq5he9p8qZQ4DQ==
+Message-ID: <0968fe5558e744f6f1ae2bddbbc075d016372e25.camel@mailbox.org>
+Subject: Re: [PATCH 2/2] dma-buf/dma-fence: Order setting of the
+ signaled-bit properly
+From: Philipp Stanner <phasta@mailbox.org>
+Reply-To: phasta@kernel.org
+To: Christian =?ISO-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Philipp
+ Stanner <phasta@kernel.org>, Sumit Semwal <sumit.semwal@linaro.org>, Yury
+ Norov	 <yury.norov@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+ Arnd Bergmann <arnd@arndb.de>, Tvrtko Ursulin <tvrtko.ursulin@igalia.com>,
+ Danilo Krummrich	 <dakr@kernel.org>, Gary Guo <gary@garyguo.net>, "Paul E .
+ McKenney"	 <paulmck@kernel.org>
+Cc: linux-media@vger.kernel.org, dri-devel@lists.freedesktop.org, 
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Date: Wed, 21 Oct 2026 16:52:56 +0200
+In-Reply-To: <ae7ae97d-cac9-451d-a0d4-bd52d0f063d4@amd.com>
+References: <20261021095512.1345191-2-phasta@kernel.org>
+	 <20261021095512.1345191-4-phasta@kernel.org>
+	 <ae7ae97d-cac9-451d-a0d4-bd52d0f063d4@amd.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.60.2 (3.60.2-2.fc44) 
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -103,43 +82,91 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-References: <cover.1792552161.git.jan.koester@tuxist.de>
-In-Reply-To: <cover.1792552161.git.jan.koester@tuxist.de>
-From: Lionel Cons <lionelcons1972@gmail.com>
-Date: Wed, 21 Oct 2026 16:26:15 +0200
-X-Gm-Features: AclHuK9oo5ZYObAiFZur0ih7xDKEBxlKdO-BvoDx6w0mXhpoTx1_PdEXJcogV54
-Message-ID: <CAPJSo4UJPnhLFAYRXE-_M2_Nin6=Ff02AjayD10cB7946MvJDQ@mail.gmail.com>
-Subject: Adding dreaded Windows SID-style, or. Repeating history, the bad
- chapters. UUID/GUIDRe: [RFC PATCH v2 00/41] UUID and GUID user and group ids
- (*_r system calls)
-To: Jan Koester <jan.koester@tuxist.de>
-Cc: Christian Brauner <brauner@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	"Serge E. Hallyn" <serge@hallyn.com>, Jan Kara <jack@suse.cz>, "Theodore Y. Ts'o" <tytso@mit.edu>, 
-	Paul Moore <paul@paul-moore.com>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, 
-	linux-api@vger.kernel.org, linux-security-module@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-ext4@vger.kernel.org, 
-	linux-nfs <linux-nfs@vger.kernel.org>, linux-cifs@vger.kernel.org, 
-	netdev@vger.kernel.org, audit@vger.kernel.org, keyrings@vger.kernel.org, 
-	linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+X-MBO-RS-META: 3mbci7q54gc3gc16qrngwixwcrgrpqn5
+X-MBO-RS-ID: e8dc92e6f44407bcc32
 
-On Wed, 21 Oct 2026 at 13:24, Jan Koester <jan.koester@tuxist.de> wrote:
->
-> Hi,
->
-> this RFC series lets a user or group id be a UUID (RFC 9562, version 4)
-> or a Microsoft GUID as well as a classic 32-bit number. Processes can run
-> as such a user, files can be owned by one, and credentials, ACLs, keys,
-> System V IPC, sockets, signals, audit and procfs carry the whole id.
+On Wed, 2026-10-21 at 15:47 +0200, Christian K=C3=B6nig wrote:
+> On 10/21/26 11:55, Philipp Stanner wrote:
+> > dma_fence_is_signaled() can return true *while* the fence is still
+> > signaling. This is fragile and has been involved in at least two bugs:
+> >=20
+> > 	commit c8a5d5ea3ba6 ("nouveau: fix client work fence deletion race")
+> > 	commit 7c703a7d3f2b ("drm/amdgpu: Fix one use-after-free of VM")
+> >=20
+> > The signaled-bit is set under lock-protection but read without it.
+> > Adding the lock has been rejected on the grounds of the lock-acquisitio=
+n
+> > shooting down cache lines of parties that merely want to check whether
+> > the fence is already signaled.
+> >=20
+> > Make sure the bit can only become visible as 1 once the callbacks have
+> > ran. To achieve this, read the bit with test_bit_acquire() and set it
+> > with set_bit_release().
+>=20
+> That has been suggested and rejected before.
+>=20
+> Background is that the signaling bit must be visible before the
+> callbacks are run or things like dma_fence_default_wait() (as an
+> example) just break.
 
-Are you Linnux guys aware that this is just a variation of the
-*DREADED* Windows SID that this patch tries to introduce, just with a
-new name?
-Maybe, before doing this, read about Windows SIDs, and why they are so hated.
+dma_fence_default_wait(struct dma_fence *fence, bool intr, signed long time=
+out)
+{
+	struct default_wait_cb cb;
+	unsigned long flags;
+	signed long ret =3D timeout ? timeout : 1;
 
-Secondly, the whole idea of doing 128bit hashes as UUID is not new,
-IBM DFS had it, and had many iterations of security issues via hash
-collision exploits. 40 years later all this horror comes back. Does
-history really have to repeat itself?
+	dma_fence_lock_irqsave(fence, flags);
 
-Lionel
+	if (dma_fence_test_signaled_flag(fence))
+		goto out;
+
+	if (intr && signal_pending(current)) {
+		ret =3D -ERESTARTSYS;
+		goto out;
+	}
+
+	if (!timeout) {
+		ret =3D 0;
+		goto out;
+	}
+
+	cb.base.func =3D dma_fence_default_wait_cb;
+	cb.task =3D current;
+	list_add(&cb.base.node, &fence->cb_list);
+
+	while (!dma_fence_test_signaled_flag(fence) && ret > 0) {
+		if (intr)
+			__set_current_state(TASK_INTERRUPTIBLE);
+		else
+			__set_current_state(TASK_UNINTERRUPTIBLE);
+		dma_fence_unlock_irqrestore(fence, flags);
+
+
+That function evaluates the flag under lock-protection, with full
+ordering. The bit is only ever set under lock-protection, with full
+ordering.
+
+So currently, the bit is 1 before the callbacks ran. It becomes 1
+before the callbacks ran, but dma_fence_default_wait() can only see
+that after it took the lock, and it can only do that after the lock is
+released after the callback ran.
+
+So behavior for this function is unchanged, unless I miss sth.
+
+Actually, this barrier makes things more robust, since things like
+
+if (dma_fence_is_signaled(f))
+  ts =3D dma_fence_timestamp(f)
+
+could misorder the accesses to the signaled-bit.
+
+
+Do you have another example of what would break?
+
+
+You see, the bit sometimes being locked and sometimes being lockless
+causes confusion.
+
+
+P.
