@@ -1,73 +1,100 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
-ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792604143;
-	b=PLhzBhrqawwcU34AXZjIbvL7L07/s/ldxWIfMUr0tj+2otHAzYVk6p2tHyDIEuDeoQxP
-	 vqEPdcJ+NhFAT+rcdNTReLBO/FDOMp69thjx26LtcPNelN08UKgpL8Gz6FuU/5LMBd6d/
-	 xG4rbTmm9fYycm8jeW8cdDohkrAsVQ31YhxfMj5B2st0qeJsBh/2ZcgD+XK64MFczYekz
-	 HxAWhPd2/qc9nPy0HhnelnG+oFyfnbYO7PzYGUsIzyZfYX84RMC+hqxJA8tuWAQKMPlOL
-	 LCib9jp3JZxIrtmfK1WVAU96kCnFHTWzm00Ao6/fCgo+/nsqNfxZhvymVyq1ff5l5yA==
-ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792604143;
-	h=Received:DKIM-Signature:Received:Received:X-ME-Sender:
-	 X-ME-Proxy-Cause:X-ME-Proxy:Feedback-ID:Received:X-Mailer:
-	 MIME-Version:X-ThreadId:Date:From:To:Cc:Message-Id:In-Reply-To:
-	 References:Subject:Content-Type:Content-Transfer-Encoding;
-	bh=nZQZSw18SACZ1al6YiSFkYg9oVM20D+TpFhKEJVNqeo=;
-	b=F5oiohnxOdXpOrZz9cqsdexPg/Jp9zimbyj1JlG2V5newQ7WSRVpaGo5+X6xWxokQRT6
-	 H2p5xvP3mYBrxgcDGSb4op4GKGZXzv4dEz2/qF1HYD3ARIzni6Hj0gmMZTomuuzRxIe4E
-	 UmEXOJ2eplRjUFB+Y7V0nQYUOkByik+VFr/SoqSN4xk+lDdWtmiwFJ1siNx9FUAEWWX67
-	 s1t5sxtjkSBhN+9PLE7MJXqYEEgoGZcWxQFBZzQ657wpDYeLRw92xG+myVCOsDJ7lclsG
-	 Kl9FOumk7YL/S4/GWwFXnZFfdzkuMjG7P+nCQ46tW2gxYe77o+UYHsP5xiqyYcuw5qg==
-ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=gtHPyv2D;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.208.177
+ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1792604336;
+	b=V5IdaRF2ngr4QdKbgRyqMyNOKBJkMw2g+Ba5/qIhcVKqIrkp0qapHNvrRFvZntfQyiV4
+	 XF120VkR3CPONkrafNAmQkHm5MXCcfeT9x059t7vtlOX57dDZMTtcvMcpMKNiW0ppC2GN
+	 nTheiHKDI2pzTkz1CiZLjQ1JQBI+ynHWXV4Ko8IjCzgTWUfr2R0WjfxWb3stICIhTaNYw
+	 HB4vWIxZKnH/bKFRKfX3Vb6iI2vvSNrv6LEzJYf8vlSJWoSxcH35CybA9KNl/u8rTZxiL
+	 CHfF6yjFDUvyLa3eZcmbHWuBoPOp5VHGg4ugnbEIqoZV2WE5GCenHRgQHUXrYQmJoNw==
+ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792604336;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:
+	 MIME-Version:References:In-Reply-To:From:Date:X-Gm-Features:
+	 Message-ID:Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
+	bh=csULT7PmXNkTg9HaShgHK/UOyRj2pqW39WBnWQcueFE=;
+	b=DM/KHL+8q+TFP8W2KPZVA+rxnrMSDiARd+xvHVqyO2o/Vwnfobt595ikP04wIzgwntXl
+	 y/ttdtW1WkH84bX1mXf7Gq515lyUMirRAnbOuMftvgkCjH2GW8Y72jcjbIVmsEkCtnZXh
+	 0ZLRSGg5IuNQ88qtvdZ3mFNVdVoXkxzqhW3XP+PpnRkQua4ORHN3gyVOXlVw4X5t6uIiL
+	 ODkLXhhTJIQVpnCJI1F9xrHknO1v7+q5YBS9xjjXV6UaHoDdF0l97VeayiUORufTV3avB
+	 VDvplO+X3IqFqjhS0F9ohmZRqAerKLRH2jrQ7lWRD1Foh9T8RfLgv2dS0sdh1Ylvd3w==
+ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=soleen.com;
+	spf=pass smtp.mailfrom=soleen.com;
+	dkim=pass header.d=soleen.com header.i=@soleen.com header.a=rsa-sha256 header.s=google header.b="Z8zt/CD8";
+	arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.208.177
+Received: from mail-lj1-f177.google.com (mail-lj1-f177.google.com [209.85.208.177])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CBEE6606A31F;
-	Wed, 21 Oct 2026 17:35:42 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1EA54606A31D
+	for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 17:38:55 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1EA54606A31D
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=soleen.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=gtHPyv2D
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C89561F000C7;
-	Wed, 21 Oct 2026 17:35:41 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1792604142;
-	bh=nZQZSw18SACZ1al6YiSFkYg9oVM20D+TpFhKEJVNqeo=;
-	h=Date:From:To:Cc:In-Reply-To:References:Subject;
-	b=gtHPyv2DytAGwXwqP6AuPtrURaFm2Es6e2+bG+60zzEQjzkkjCH2xhWwDE3vMuH+W
-	 /njNlq5bKa1C0QFRO5yVl3CYVzjJuumbgjChgiKa5cNuoBqQPx3tzAXdWq2jpC+7y4
-	 xfZDP8ctYNyBUsoHqGnqbHyKWFyiydtg2UVaHKz1bxT0eH2yeW7iceeNsx9xDvff0D
-	 d4QWmsRgnZJm8URGCYwD8psqQME5NT4H5VD3SIk89SsgIA6HMZZEAsCYnJEPLVse/v
-	 1178n3snkCX5UTsdJTmWorxjZ/Nm5yhJmvMW7+8VBnvSRDFL7n1GBpZxztin4LJw2Z
-	 dpIDU4fmdMHjg==
-Received: from phl-compute-10.internal (phl-compute-10.internal [10.202.2.50])
-	by mailfauth.phl.internal (Postfix) with ESMTP id 05E1FF40069;
-	Wed, 21 Oct 2026 13:35:41 -0400 (EDT)
-Received: from phl-imap-15 ([10.202.2.104])
-  by phl-compute-10.internal (MEProxy); Wed, 21 Oct 2026 13:35:41 -0400
-X-ME-Sender: <xms:7PfYatFbK3SGvkv1PZ5WJiKqbnltKgPHrFocaFLc9JUp-IAv1dxn3A>
-    <xme:7PfYatKxLinDI60CCDCNz6n-Sj1DQX516hiu7qtOg8hUKZlVb4_0cJO4J4axVu7QJ
-    n1c5qECWdS6ItzXnr6A1UuwHQpES3rw0oSxFPHU6JXFRfYZownwzmuv>
-X-ME-Proxy-Cause: dmFkZTGCRjlnSR8Neg2mpGTDvJvFQ+WyF5lNldIB0q4zon/r5UxQ070SLuVQHGmuL/1IQs
-    hwZ/xhsfszkwm1t5IL5077RE9E1CmNJeGs5M0heUIqhUPsiPorYZOAoMMquElo45vQkPAL
-    5o6E0JGmgCcNf4/b7AK7NvmWD3X8w88YX8WwNKFCy2mAPFdtZUSubNdlIZYjAp45PwEKqJ
-    i3UG1z5Zs2Q6j+WxyzADnx++ZMd9/Av6U2d1l0Maysg4LiGWlPSZs2/UbKUPa/Sl9zQZru
-    JKCpo88uCIHH/dHiqwxA1Rv195n9u+MHvTsKxE7AJcpg1u+K44QfQeHXoE0mwvDOxUQdsz
-    OHmTRf4blfvfR3Bk+u0TWU/xBbokz/9rHk5FCnl/2PEY0GqpE8jafPjgMx2t9fOQOJifyb
-    OvUSDTZHBf0u1XXyfa1kBlP2Boe47OSRAIwc9jb99f+EMW67C7764RfA5PznCwLRSZ9f/o
-    OqZSXZnbCIdxRw/7VnpgCAqdpuDhD+HX6ju96Wrn7XD7EubQVkBsAIh+oYZKgKtNtPPOCs
-    t0TXsHLIYfOm/HdEysB64ZHxkNQcWRBrSFhbbsvaJxnVRZ1lGQHczXsHXxYjzTZbwDN6kx
-    XWhWdnja+2FHBWi51pwBJFQahQp7RP95auTW9R065CD/aDZKZ4I1gRWDnU2w
-X-ME-Proxy: <xmx:7PfYatVD__8wXb41zYEe29XHtozznhOzv0MZZN1eY7p2KicO12w-DA>
-    <xmx:7ffYaqyWNau02205DPQuCdlHluDhf9_AFQPdUjs5A-o56NnLQ2GlIQ>
-    <xmx:7ffYat4ndxHHVQANfVp63WjkU7APGZB5e8ZcmmUrAQOmxScV7dZNNg>
-    <xmx:7ffYash0_tdrm5M8iKwj5F7TeVZI76mm4tQp4HL6Y-vsbGuMimeBwA>
-    <xmx:7ffYaohOZRNYEwZe0HcPVW550R2avMTr5rBAQvWHh4KFch9VYCrntV3W>
-Feedback-ID: ifa6e4810:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id D6715782738; Wed, 21 Oct 2026 13:35:40 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key, unprotected) header.d=soleen.com header.i=@soleen.com header.a=rsa-sha256 header.s=google header.b=Z8zt/CD8
+Received: by mail-lj1-f177.google.com with SMTP id 38308e7fff4ca-3a772ec8389so8157761fa.3
+        for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 10:38:55 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1792604334; cv=none;
+        d=google.com; s=arc-20260327;
+        b=pN4RhKb7Q/y326qwP62Bj3A07GGoBWm8q0da4iBNPaDnN7Lumof3v4XQsc7s1cpH/v
+         8szibW4p5UI7I06nEfzVXuts49KD381Nd6dzTXidOrXd8YU3agmxO2J4MiixkxEy+kcQ
+         7d8BJQLvTrpBNQp8/kj5mS5EckG3o8rxexfNlww9XZE2cMBZNBTG1ALyFXBUTaylxLaz
+         HZC59qcW4UO84BdKooGymQCWe2QVeO32zq8KQDbQTSyRi4A5Y2TxBIDZfCCKt31Uipsj
+         nUNHAV8xemPATNm2SCMsBikdgBSgGlZe5RYIrh72vVTVWr0P1l2USxgJdC0eG2V2vgiU
+         tSnw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=csULT7PmXNkTg9HaShgHK/UOyRj2pqW39WBnWQcueFE=;
+        fh=aCQ4nAbjS/jEaDKrmmu6V0e3dNgi7HWYHM+VEI7N3CQ=;
+        b=cVX2BsJHuH6afIVL2MTefRbpizjmn1a/0ZE2qau1od7PrppLqaYFmMoD/LAkKtdyW9
+         cKgNwgC9Rdc0pyetGAZX4i6SZnRWDfAnSputeSwZGstWslS4VBB5V4o/z/SvxVv+F75t
+         rlU70nkakPC5HXOpy7WXb8+B5XEHbPCFwOeCgAWw2fVHXN7UXVShFWe2PBZd9e3AZVPe
+         YZFvC54OOPkFIIyEFMca6hZGwh2o0ZEcAw+vIKRmr0pcsWUeGVgxhasnr3qGBp5bwjoU
+         A8pm0A7fZQ7+qo0QEAWm9Xjxu+cWLMyzoOEHk0hZJsQVyqw7WBOfJ9vz2SBfYU33cTTP
+         JNEQ==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=soleen.com; s=google; t=1792604334; x=1793209134; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=csULT7PmXNkTg9HaShgHK/UOyRj2pqW39WBnWQcueFE=;
+        b=Z8zt/CD8yXkF9Q3B+tyvIqqgdbaewlF50nbjRuiJdqbc3VV+N0b4a6EuxedwdXFZ12
+         DZyhl9yzbmXnDhGtnX/NxBlQlwx3Qu8DgvK50O6Oe2UZNQY/zPyL9mvJAfwdeSSuRHlh
+         kdNEmaTpal+mxW1DPfqJDhmJRfuUJdykdUVtV0eyhwHkXOBRBPTGKEoQ2ETHg7892rDs
+         u72QIZikWh5X8YvIuCJi8vY5y8B1jsXTobW4ZNiEcJfVkLZOb9xj2M0zIS9dAVzwdems
+         klM+T2Z8G3kfzK3HADiVbgSjxI73kDbkL4QANIESI9FpMgeWuAegPgAtPQbMULjtzu7M
+         zdhw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1792604334; x=1793209134;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=csULT7PmXNkTg9HaShgHK/UOyRj2pqW39WBnWQcueFE=;
+        b=hzJjJr0cS8iVRqVg4gzZ+lXPLjVmy516LVZTOhIIRq9exnHg0wszd6sCJgUecOcep1
+         DJ1DSytS7b4yWQG+W78ZwSMTSx8CkhQGSvcm9fSWDJx2uxIdnNWF3aoEayWw/64rPuDd
+         UXH/c06XRlR+DCqHiLxAacuLwGZ6/7/1WsxgYDa3yVmkr3SxL9vMOC1YKgz9anW1ldj1
+         s7tfC/fYXxSXotwiywTeAvJvlaqXkZiZFwzYa7rzFbYW6Esmq/1gbVsLuam527UgIWp1
+         FthYhJgeKfGKu2I8WeSM4XHIAVQaX6MUsQvIHV0SVgjlDKfLT2sphaAWz5ew5KU4Kw+U
+         BPaw==
+X-Forwarded-Encrypted: i=1; AKwUvBza9cvjTWE3Clskm7Lbq3NyKv1y3xot1KBLJdWRdvUUF4kd8Ap77UaHK24kqVn2YEl5aAE2i8CdcvVX@vger.kernel.org
+X-Gm-Message-State: AFq9FYI5kjIN2fCcvYTWKJI3ayWPNhBBOOi0mFLXxliLJyeHeYxZFKKU
+	DkPGZsPVYDeGd5r9cvVIalBjCBxN40vGJsoQHKJ4j5ciuf94XdUMm4SssNmT0zNgBRPQIz0qPJO
+	eaxnuaqFczP/To+JqigX8IBIqSYNsDAXrZwo8sOuA9w==
+X-Gm-Gg: AYBFou0q4F39pmpmaKPGbqwlEBD5Pl6iFdqlEOaT8zxawZ9CENz3c2SY4I0ZdqBiiD8
+	GMGVuDwLuy7D3I18epzS7I79Ixl7ql770HE/8cSdzn5IBTBD5KFvVYjrWAp7Qu1+COI1KzP77Wa
+	C9oHve4nL0dWbn/cVLB4PbEHog9bE2bMrXLn+kIdrIsYQhzKSCxlrU/mHaVbVvMFA6B+2sGvgr0
+	P33ojsKwxbVP/O/lYRgLYlhbELLCw+ZRX0r5AR3WaWO0suSiacvtYq2lFx8QDo09tkbrpCtXRSi
+	TDVelJ/UwHzRUZkiuhAbLl/815L5EtqvP5G46XtGcRPO63vaoPGv0DJOwwQ8xr0ILnscAYwNZ+s
+	l3TcATk0jHqu5vENWxFXDV1ewUwWI71vzWFYDv2dLZ/wF10VL+m6DAeiXmizSI2yP7BQ=
+X-Received: by 2002:a05:651c:4210:b0:3ab:473f:4340 with SMTP id
+ 38308e7fff4ca-3ac44229527mr7899791fa.25.1792604334224; Wed, 21 Oct 2026
+ 10:38:54 -0700 (PDT)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,66 +104,231 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-X-ThreadId: AwLsEl3CooH3
-Date: Wed, 21 Oct 2026 13:35:20 -0400
-From: "Chuck Lever" <cel@kernel.org>
-To: "Jan Koester" <jan.koester@tuxist.de>
-Cc: "Christian Brauner" <brauner@kernel.org>,
- "Alexander Viro" <viro@zeniv.linux.org.uk>,
- "Serge E. Hallyn" <serge@hallyn.com>, "Jan Kara" <jack@suse.cz>,
- "Theodore Y. Ts'o" <tytso@mit.edu>, "Paul Moore" <paul@paul-moore.com>,
- "Arnd Bergmann" <arnd@arndb.de>, linux-fsdevel@vger.kernel.org,
- linux-api@vger.kernel.org, linux-security-module@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-ext4@vger.kernel.org,
- linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org,
- netdev@vger.kernel.org, audit@vger.kernel.org, keyrings@vger.kernel.org,
- linux-kernel@vger.kernel.org
-Message-Id: <fd20b840-350e-469c-9fd2-008fa0ded62a@slotpi15m67>
-In-Reply-To: 
- <f444dffc8e6bf98bf44c02456adc2de40e4ecd95.1792552161.git.jan.koester@tuxist.de>
-References: <cover.1792552161.git.jan.koester@tuxist.de>
- <f444dffc8e6bf98bf44c02456adc2de40e4ecd95.1792552161.git.jan.koester@tuxist.de>
-Subject: Re: [RFC PATCH v2 40/41] nfsd, nfs: carry UUID and GUID owners as their text
- form
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+References: <20261021152527.375070-1-tarunsahu@google.com> <20261021152527.375070-5-tarunsahu@google.com>
+In-Reply-To: <20261021152527.375070-5-tarunsahu@google.com>
+From: Pasha Tatashin <pasha.tatashin@soleen.com>
+Date: Wed, 21 Oct 2026 13:38:17 -0400
+X-Gm-Features: AclHuK9EmTvcDrSPqjt_gHIG_UhFcRBGzP6kEtdhbGsx9XevNkAWoOmg1utImw8
+Message-ID: <CA+CK2bCWo7ixrNLKPvqETn3JSFwSNaB2UsPgy9RHVAhWroJURQ@mail.gmail.com>
+Subject: Re: [RFC PATCH v2 4/4] mm: memfd_luo: Add the 2-bit pair feature header
+To: Tarun Sahu <tarunsahu@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org, 
+	Mike Rapoport <rppt@kernel.org>, Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de, 
+	David Matlack <dmatlack@google.com>, jgg@nvidia.com, robin.murphy@arm.com, 
+	loganodell@google.com, oupton@kernel.org, kevin.tian@intel.com, 
+	alex@shazbot.org, dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com, 
+	will@kernel.org, Alexander Graf <graf@amazon.com>, Bjorn Helgaas <bhelgaas@google.com>, 
+	baolu.lu@linux.intel.com, linux-arm-kernel@lists.infradead.org, 
+	linux-arch@vger.kernel.org, sagis@google.com, linux-mm@kvack.org, 
+	kvmarm@lists.linux.dev, iommu@lists.linux.dev, linux-pci@vger.kernel.org, 
+	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org, 
+	linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On 10/20/26 11:16 PM, Jan Koester wrote:
-> Encode such an id as its text form -- "xxxxxxxx-xxxx-xxxx-xxxx-
-> xxxxxxxxxxxx" for a UUID, the same in braces for a GUID -- in both
-> directions on the server and the client, and take such a string (it
-> has no '@', so it can't be a user@domain name) as that id again.
+On Wed, Oct 21, 2026 at 11:25=E2=80=AFAM Tarun Sahu <tarunsahu@google.com> =
+wrote:
+>
+> Embed the fixed-size 128-byte struct luo_feature_hdr at the start of
+> struct memfd_luo_ser and define enum memfd_luo_feature
+> (MEMFD_LUO_FEAT_CORE and MEMFD_LUO_FEAT_MAX) for memfd preservation.
+>
+> All current struct memfd_luo_ser fields (pos, size, seals, flags,
+> nr_folios, folios) and MEMFD_LUO_ALL_SEALS belong to
+> MEMFD_LUO_FEAT_CORE (LUO_FEAT_REQUIRED in memfd_luo_features). Future
+> changes add new entries to enum memfd_luo_feature before
+> MEMFD_LUO_FEAT_MAX and append any new fields to the end of struct
+> memfd_luo_ser so existing field offsets never shift.
+>
+> Signed-off-by: Logan Odell <loganodell@google.com>
+> Signed-off-by: Tarun Sahu <tarunsahu@google.com>
+> ---
+>  include/linux/kho/abi/memfd.h | 35 ++++++++++++++++++++++++++++++-----
+>  mm/memfd_luo.c                | 14 ++++++++++++++
+>  2 files changed, 44 insertions(+), 5 deletions(-)
+>
+> diff --git a/include/linux/kho/abi/memfd.h b/include/linux/kho/abi/memfd.=
+h
+> index 371ffd108a79..f0b5235a408d 100644
+> --- a/include/linux/kho/abi/memfd.h
+> +++ b/include/linux/kho/abi/memfd.h
+> @@ -13,6 +13,7 @@
+>
+>  #include <linux/types.h>
+>  #include <linux/kho/abi/kexec_handover.h>
+> +#include <linux/kho/abi/luo.h>
+>
+>  /**
+>   * DOC: memfd Live Update ABI
+> @@ -21,11 +22,20 @@
+>   * reboot using the LUO.
+>   *
+>   * The state is serialized into a packed structure `struct memfd_luo_ser=
+`
+> - * which is handed over to the next kernel via the KHO mechanism.
+> + * which is handed over to the target kernel via the KHO mechanism.
+>   *
+> - * This interface is a contract. Any modification to the structure layou=
+t
+> - * constitutes a breaking change. Such changes require incrementing the
+> - * version number in the MEMFD_LUO_FH_COMPATIBLE string.
+> + * This interface is a contract. `struct memfd_luo_ser` starts with a fi=
+xed
+> + * 128-byte `struct luo_feature_hdr`. The relative order and offsets of
+> + * fields must remain unchanged as features are added or retired: new fi=
+elds
+> + * are appended at the end of `struct memfd_luo_ser` under a new feature
+> + * flag in `enum memfd_luo_feature` (before `MEMFD_LUO_FEAT_MAX`), and
+> + * retired fields are kept in place so subsequent offsets never shift. I=
+n
+> + * the target kernel, fields of a `LUO_FEAT_REQUIRED` feature are guaran=
+teed
+> + * present once `luo_feature_hdr_validate()` succeeds, whereas fields of=
+ a
+> + * `LUO_FEAT_OPTIONAL` feature should be accessed only after checking
+> + * `luo_feature_is_active()`. All current fields (`pos`, `size`, `seals`=
+,
+> + * `flags`, `nr_folios`, `folios`) and `MEMFD_LUO_ALL_SEALS` belong to
+> + * `MEMFD_LUO_FEAT_CORE` (`LUO_FEAT_REQUIRED` in `memfd_luo_features`).
+>   */
+>
+>  /**
+> @@ -58,7 +68,7 @@ struct memfd_luo_folio_ser {
+>
+>  /*
+>   * The set of seals this version supports preserving. If support for any=
+ new
+> - * seals is needed, add it here and bump version.
+> + * seals is needed, gate them behind a new feature flag.
+>   */
+>  #define MEMFD_LUO_ALL_SEALS (F_SEAL_SEAL | \
+>                              F_SEAL_SHRINK | \
+> @@ -67,8 +77,22 @@ struct memfd_luo_folio_ser {
+>                              F_SEAL_FUTURE_WRITE | \
+>                              F_SEAL_EXEC)
+>
+> +/**
+> + * enum memfd_luo_feature - Feature indices for &struct memfd_luo_ser.
+> + * @MEMFD_LUO_FEAT_CORE: Core feature covering `pos`, `size`, `seals`, `=
+flags`,
+> + *                       `nr_folios`, `folios`, and %MEMFD_LUO_ALL_SEALS=
+.
+> + * @MEMFD_LUO_FEAT_MAX:  Number of defined &enum memfd_luo_feature featu=
+res.
+> + */
+> +enum memfd_luo_feature {
+> +       MEMFD_LUO_FEAT_CORE =3D 0,
+> +       MEMFD_LUO_FEAT_MAX,
+> +};
+> +
+> +static_assert((int)MEMFD_LUO_FEAT_MAX <=3D LUO_FEAT_MAX);
+> +
+>  /**
+>   * struct memfd_luo_ser - Main serialization structure for a memfd.
+> + * @features:  ABI feature and size header for memfd_luo_ser.
+>   * @pos:       The file's current position (f_pos).
+>   * @size:      The total size of the file in bytes (i_size).
+>   * @seals:     The seals present on the memfd. The seals are uABI so it =
+is safe
+> @@ -79,6 +103,7 @@ struct memfd_luo_folio_ser {
+>   *             struct memfd_luo_folio_ser.
+>   */
+>  struct memfd_luo_ser {
+> +       struct luo_feature_hdr features;
 
-A bare UUID in an owner, owner_group, or ACE 'who' string is a new
-owner-string syntax for NFSv4, one that only Linux would recognize.
-Thus it isn't interoperable with other NFSv4 stacks as proposed
-here.
+I have not looked into this yet, but I would prefer to use some kind
+of macro constructor for serialized structs. That way, they will
+automatically include the header, making it easier to search the code
+for what is actually preserved versus what exists only in this kernel.
 
-RFC 8881 Section 5.9 says a string without an '@' that is not a
-decimal number means no translation was available and the receiver
-"should not use that string as a basis for translation into its
-own internal format." RFC 8000 Section 6.1 forbids bare numeric
-ids in multi-domain deployments because they collide; the same
-applies to bare UUIDs, and more so to GUIDs.
+So, I think something like this:
+/* Base serialization header: 4 bytes total size, 4 bytes flags */
+struct luo_ser_hdr {
+    __u32 total_size;
+    __u32 flags;
+};
 
-If you are serious about pursuing this, you'll have to start by
-raising the proposed wire format on nfsv4@ietf.org before the
-Linux kernel's NFS stack commits to it.
+#define LUO_SER_INIT_HDR(obj, _flags) do {           \
+    (obj)->hdr.total_size =3D sizeof(*(obj));          \
+    (obj)->hdr.flags =3D (_flags);                     \
+} while (0)
 
-With nfs4_disable_idmapping and AUTH_SYS, numeric_name_to_id() and
-encode_ascii_id() handle decimal ids in the kernel because there is
-nothing to look up. Recognizing the text form in that branch only
-would be the natural analogue once the format is agreed. Everything
-else should go through the idmapper: extend the nametoid/idtoname
-channels and the client keyring upcall to carry a 128-bit id, and
-let rpc.idmapd and nfsidmap decide which strings map to which ids.
-As written, the UUID check runs before idmapd for every name and
-auth flavor, bypassing the cache and any site policy.
+#define DECLARE_LUO_SER(name, expected_size, members)       \
+    struct name {                                           \
+        struct luo_ser_hdr hdr;                             \
+        members                                             \
+    };                                                      \
+    static_assert(sizeof(struct name) =3D=3D (expected_size),   \
+                  "LUO struct " #name " size mismatch!")
 
-So my general preference for NFSv4 would be to pass the new format
-up to the user space idmapper instead of handling these in-kernel
-with no opportunity to apply local policy.
+Usage:
+/*
+ * Header:  8 bytes (hdr: 4 bytes total_size + 4 bytes flags)
+ * Payload: 8 (pos) + 8 (size) + 4 (seals) + 4 (_pad) =3D 24 bytes
+ * Total:   32 bytes
+ */
+DECLARE_LUO_SER(memfd_luo_ser, 32,
+    __u64 pos;
+    __u64 size;
+    __u32 seals;
+    __u32 _pad;
+);
 
+struct memfd_luo_ser *ser;
+...
+LUO_SER_INIT_HDR(ser, 0);
 
--- 
-Chuck Lever (Come to NFS bake-a-thon! https://nfsv4bat.org)
+Thanks,
+Pasha
+
+>         u64 pos;
+>         u64 size;
+>         u32 seals;
+> diff --git a/mm/memfd_luo.c b/mm/memfd_luo.c
+> index 64f8b8cb75bd..ea1f4c8cd259 100644
+> --- a/mm/memfd_luo.c
+> +++ b/mm/memfd_luo.c
+> @@ -84,6 +84,10 @@
+>
+>  #include "internal.h"
+>
+> +static const u8 memfd_luo_features[MEMFD_LUO_FEAT_MAX] =3D {
+> +       [MEMFD_LUO_FEAT_CORE] =3D LUO_FEAT_REQUIRED,
+> +};
+> +
+>  static int memfd_luo_preserve_folios(struct file *file,
+>                                      struct kho_vmalloc *kho_vmalloc,
+>                                      struct memfd_luo_folio_ser **out_fol=
+ios_ser,
+> @@ -284,6 +288,8 @@ static int memfd_luo_preserve(struct liveupdate_file_=
+op_args *args)
+>                 goto err_free_ser;
+>         }
+>
+> +       luo_feature_hdr_init(&ser->features, sizeof(*ser),
+> +                            memfd_luo_features);
+>         ser->pos =3D args->file->f_pos;
+>         inode_size =3D i_size_read(inode);
+>
+> @@ -525,6 +531,14 @@ static int memfd_luo_retrieve(struct liveupdate_file=
+_op_args *args)
+>         if (!ser)
+>                 return -EINVAL;
+>
+> +       err =3D luo_feature_hdr_validate(&ser->features, memfd_luo_featur=
+es);
+> +       if (err) {
+> +               pr_err("memfd_luo_ser feature header validation failed (s=
+ize=3D%llu, flags[0]=3D%#llx): %pe\n",
+> +                      ser->features.size, ser->features.flags[0],
+> +                      ERR_PTR(err));
+> +               goto free_ser;
+> +       }
+> +
+>         /* Make sure the file only has seals supported by this version. *=
+/
+>         if (ser->seals & ~MEMFD_LUO_ALL_SEALS) {
+>                 err =3D -EOPNOTSUPP;
+> --
+> 2.56.0.212.g129ede20d9-goog
+>
