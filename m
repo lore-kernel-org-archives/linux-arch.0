@@ -1,101 +1,72 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.43.53
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1792595089;
-	b=ty1xanr2S2EO0TEM+Nk+xc/o3rJpVSjOWrqyyIS0qJ0pcC/JswU5YU3zsSMXxHTKJ96Q
-	 whN+0Af/XTxkRQd1H8pGKMERWQm8FXLttERrk8Z1YGFrgkQnR3fEZObRbHsF5YTwkINVQ
-	 UzW3W7tvpKNVz8omxDNJwIECa9cQP9RuKXBD4xyje0QdCAX+IpAK4RRdzGqpm4GdK50AK
-	 //ZpbV7xSfyuYIqMPh9Q8oNPLJFtXyOrKVQBo1PJ6hf94Pkavw4tamBINrF3mJFyDUcU+
-	 Q7zYO6UewOsDHjjVrgldrwgz6GNnpC0cjVQONuBADdo0bNvYYhzwEDQCHMc1iqc5thQ==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792595089;
-	h=DMARC-Filter:DKIM-Signature:Received:Received:Message-ID:Date:
-	 User-Agent:Subject:To:Cc:References:Content-Language:From:In-Reply-To:
-	 Content-Type:Content-Transfer-Encoding:X-ClientProxiedBy:MIME-Version:
-	 X-MS-PublicTrafficType:X-MS-TrafficTypeDiagnostic:
-	 X-MS-Office365-Filtering-Correlation-Id:X-MS-Exchange-SenderADCheck:
-	 X-MS-Exchange-AntiSpam-Relay:X-Microsoft-Antispam:
-	 X-Microsoft-Antispam-Message-Info:X-Forefront-Antispam-Report:
-	 X-MS-Exchange-AntiSpam-MessageData-ChunkCount:
-	 X-MS-Exchange-AntiSpam-MessageData-0:X-OriginatorOrg:
-	 X-MS-Exchange-CrossTenant-Network-Message-Id:
-	 X-MS-Exchange-CrossTenant-AuthSource:X-MS-Exchange-CrossTenant-AuthAs:
-	 X-MS-Exchange-CrossTenant-OriginalArrivalTime:
-	 X-MS-Exchange-CrossTenant-FromEntityHeader:
-	 X-MS-Exchange-CrossTenant-Id:X-MS-Exchange-CrossTenant-MailboxType:
-	 X-MS-Exchange-CrossTenant-UserPrincipalName:
-	 X-MS-Exchange-Transport-CrossTenantHeadersStamped;
-	bh=dzuTLeaQKuRFlQK0YFsx1ESeTVWWU7D3TB6SunqFq2c=;
-	b=UbmHnG/cYSz3wRPLvokidIo9F2mYWSIEf3xVj/pi//vRd0pbMGacMXRn28dNZxMkUTds
-	 k0nbCLf8YVSi/tVEX2vJ1iUfSceaFe5Tz02XaPK/Go9kmeN2J5Fgssu4YjomBoNzryrb8
-	 apcwUKd0YC8JDwKbcZd/msscbRGUFlRH7Mcp+Bee3kSdeogD3qOUkidg2WZFaozriOijy
-	 iMIFXZHtIKyFkdM0ghAPpvS46xzhlKOcE9uBb1hwEnFF2Cw/qhucJhnw4dh69atLCacbb
-	 k+aGroBrc3i6v5357GzRwY5YSdZPFcz50PFdZN3yk8I9izPkCEdUr+cpv03jNmL1y1Q==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=amd.com;
-	spf=fail smtp.mailfrom=amd.com;
-	dkim=pass header.d=amd.com header.i=@amd.com header.a=rsa-sha256 header.s=selector1 header.b=fAPOGKKJ;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.43.53
-Received: from SJ2PR03CU001.outbound.protection.outlook.com (mail-westusazon11012053.outbound.protection.outlook.com [52.101.43.53])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (secp384r1) server-signature ECDSA (prime256v1) server-digest SHA256)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.218.72
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1792596332;
+	b=Ud6zCjW0IJaAYo4bYe7SkHXLDOjAZAqOl1v51FcfjAaCfeoXTN1T2rOiZ0QnpVz7khF/
+	 xwHDM9xvHd2Z9bGOWdTA+aI3h1aWyU3MOhKqMJPqhNq7jBt91glIgIMiMMH8YzXgTOf6d
+	 yaN4I/0Ucb4q2vxmeXo7AfpoyJMRyoRObzZjlFbjXXviVmcUzKaIe/pQLMUBo+K5smae6
+	 dR38i3kmyOhClqG6YZtAtijl1vSHvk2bOIdV4nQ+e4F3ZOC0w+0uwOJVI1nGWsdr1iaA1
+	 59SO7Tjwap6IptYNq0g9isE6s+QXRQjtbiSJaMXHOyzqc4M8B0b6CYRuQOPodEMz4DA==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792596332;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:Mime-Version:
+	 X-Mailer:Message-ID:Subject:From:To:Cc:Content-Type;
+	bh=W0oLRP7RmrwK+s1WyDoN9zSSlBczsPl1G7flMYO8vs0=;
+	b=lKHWyBoF55LCle1hUbBF0JHHZqrernpu0ijuf1xOjZS5h5uNwW35YuZeEDaEN9HteD3I
+	 yC7VM1HqyNqNOOWO0Kdwvapsh5az8e5oJjJqvothW3dG85j/RFME48RrmpbA4oY6cPpWB
+	 PzJK1P6iz+AKy/8QllRRQe+dnBQySQGnXbLsDeEuLDran8rvroVW/FYX72++SK2G7F79N
+	 oP3OwHZQa7fpoHKBSzzVuXnWsk4FYpogsw77dfXFvHtVHbpvNTPhwNSQeCG0f9PrmV7Cz
+	 JXsKaZKIYAxAr8R5Jy7veEWIb25SdJE9imfO3oQoifs23+EkAU50u00OGv2dG6cFVcQ==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=google.com;
+	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=KnNR8tlw;
+	arc=none smtp.remote-ip=209.85.218.72
+Received: from mail-ej1-f72.google.com (mail-ej1-f72.google.com [209.85.218.72])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 373CF606A319;
-	Wed, 21 Oct 2026 15:04:48 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 373CF606A319
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=amd.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4DC37606A325
+	for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 15:25:31 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 4DC37606A325
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=amd.com header.i=@amd.com header.a=rsa-sha256 header.s=selector1 header.b=fAPOGKKJ
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=f82rNHIgfCxTIKYyuKzXWTtP6DFrxlp++uSjOyeMgj44sJ46X2YJPz7c+pl0JwcY2vw6BOiGigsIaiIhwqU1C5bR7gTg5/96+k3xnya5uz+2gnwHfKyTUZU8m+IMLSnw0nv+i87rrXZ0srWcoaTxqnOBS+c2gRtzGYk5rg0YUGe4bb91bi5qCpRoawFij+wRBdJSBjhQPMQDD5TcuWcXYZ2R9ozecdHzu31LG1OKP9ctrcKCTRDWJH3Dp2uf9XPnJ5WhRJN6iztjQG6ZPCXNvRm1UVlEmXUGcDFtkeb0sZ6yOgOQsKak+PVFhHLZQ6dXVME1GfKMxY03uJYMLvmoLQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=dzuTLeaQKuRFlQK0YFsx1ESeTVWWU7D3TB6SunqFq2c=;
- b=HQveOluOhhRxvs6k8MtfOBm9dtdC3wN6ft77LcS02YIZseiviVIZm+hi4FRwB6joxxQSHzyNpnFyQqGqBZV3DoMQzeFQw68UyI7ofqSlV1TGKnqFTwuoTfZ/i+75kotms6m+jkokmJsSUimsdc3RsM6KJDdmz3m4v9shD+XCxyuLr7FpXVrd91HAiA/k19QPlaSJmLttkjrB5kxpAVIcTTll27S50DRqNZBsDB9BDzC5Lch87xTnTIPEDL9tz4ygJaP5UV+jAfEsuAB3e33wM1lA5E7fhm3dZWVTkBhTKsfsBF7Tp64+WE+rQCEwP8baRyJ8rpfmpKHwCx1GWNw0PQ==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=amd.com; dmarc=pass action=none header.from=amd.com; dkim=pass
- header.d=amd.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=dzuTLeaQKuRFlQK0YFsx1ESeTVWWU7D3TB6SunqFq2c=;
- b=fAPOGKKJ+5qCfxBUkIPu97toe0Kg9R5HxaJDRPjQi4s4A0moCVNztfIt7poxXJl0QHU+6SgKBnVyp/PvE+ekCKldNFKwF8dhd9R39yFnCbMj6Y7nckFFNNY75+ldgFrRyjbbn9SlBxzYHEBg0IjGrsDzMIIwS2iUxfOJbNrcC+Q=
-Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=amd.com;
-Received: from PH7PR12MB5685.namprd12.prod.outlook.com (2603:10b6:510:13c::22)
- by SA1PR12MB6728.namprd12.prod.outlook.com (2603:10b6:806:257::13) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.522.18; Wed, 21 Oct
- 2026 15:04:46 +0000
-Received: from PH7PR12MB5685.namprd12.prod.outlook.com
- ([fe80::ce69:cfae:774d:a65c]) by PH7PR12MB5685.namprd12.prod.outlook.com
- ([fe80::ce69:cfae:774d:a65c%3]) with mapi id 15.21.0546.012; Wed, 21 Oct 2026
- 15:04:46 +0000
-Message-ID: <feabcd15-0874-460e-bcc3-3c9dce29fd39@amd.com>
-Date: Wed, 21 Oct 2026 17:04:40 +0200
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 2/2] dma-buf/dma-fence: Order setting of the signaled-bit
- properly
-To: phasta@kernel.org, Sumit Semwal <sumit.semwal@linaro.org>,
- Yury Norov <yury.norov@gmail.com>,
- Rasmus Villemoes <linux@rasmusvillemoes.dk>, Arnd Bergmann <arnd@arndb.de>,
- Tvrtko Ursulin <tvrtko.ursulin@igalia.com>,
- Danilo Krummrich <dakr@kernel.org>, Gary Guo <gary@garyguo.net>,
- "Paul E . McKenney" <paulmck@kernel.org>
-Cc: linux-media@vger.kernel.org, dri-devel@lists.freedesktop.org,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20261021095512.1345191-2-phasta@kernel.org>
- <20261021095512.1345191-4-phasta@kernel.org>
- <ae7ae97d-cac9-451d-a0d4-bd52d0f063d4@amd.com>
- <0968fe5558e744f6f1ae2bddbbc075d016372e25.camel@mailbox.org>
-Content-Language: en-US
-From: =?UTF-8?Q?Christian_K=C3=B6nig?= <christian.koenig@amd.com>
-In-Reply-To: <0968fe5558e744f6f1ae2bddbbc075d016372e25.camel@mailbox.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-X-ClientProxiedBy: BL1PR13CA0125.namprd13.prod.outlook.com
- (2603:10b6:208:2bb::10) To PH7PR12MB5685.namprd12.prod.outlook.com
- (2603:10b6:510:13c::22)
+	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=KnNR8tlw
+Received: by mail-ej1-f72.google.com with SMTP id a640c23a62f3a-c293e604f0eso78283366b.3
+        for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 08:25:31 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1792596329; x=1793201129; darn=vger.kernel.org;
+        h=content-type:cc:to:from:subject:message-id:mime-version:date:from
+         :to:cc:subject:date:message-id:reply-to:content-type;
+        bh=W0oLRP7RmrwK+s1WyDoN9zSSlBczsPl1G7flMYO8vs0=;
+        b=KnNR8tlwheC0ksiXfol0xmrswUPXdERE2pUiy4ruJaJMpyEYFj0+uSjn5DSvYMi26+
+         mLuQV3DBerh7Fa4DBoR0UWT95tWppxJ0nl4N6GE7ZVpyVo+jc9BfOGSlnjr9jBUjio+0
+         8iktvpbm9H6+6ewiqoOeWQqgHAUZEwH3ppL+89gZKyA/Ep2aaszHzO4JGwtT9ZfnbdYu
+         iziEBgFuZyXk5DtzLItDBuDBm95Kb87Mhw6c98J4xA5kPDISQL+lTxmbj+fqjzNxkkU8
+         bjh9Nze1LkabYykX7f0FJ9LUE687t6Dzxgd/QoYD2HyG+rez/8ryGik4hjqcL9YOgtrX
+         J33w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1792596329; x=1793201129;
+        h=content-type:cc:to:from:subject:message-id:mime-version:date
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=W0oLRP7RmrwK+s1WyDoN9zSSlBczsPl1G7flMYO8vs0=;
+        b=rH/qPBJBCSkau8iBQ3YwDi0aAfFCrAgTRTkDnp7wFNRygxJG1TMbVP/IWG8zDihfaE
+         U2sR4oA0Fmj+j3dThA0KTEqZNvW/AKr8W7avsJMOFij2E88LGs+bdNrpoCQFa1L/T9BS
+         ePMJEWhbqSnB3Pv4a2ywJfX57PSEtKuuPlBGgS2bTnxI4C8a4/AjbJ1UQswrTBU+k6AH
+         mL1a00SzUhVyKbuG8jPCQsLlwz0S7CuwKXflW+hJS/zpaYQa0I0kXhDAWV0hgtRB3Rog
+         ApwfagSg7RwedZani29i/fVDnpBPDaucBtpRP/L7LEENzrf6/AxvdWwh6VeFlugbMvdr
+         QgJw==
+X-Forwarded-Encrypted: i=1; AKwUvBzC4oLzPp7nFA5OAjRdFcYB+Mo67Z0ErsvHmxOlHXyTiXxrWV4AaTgCt79Vgi9tnhKVL7V54xTLvYHc@vger.kernel.org
+X-Gm-Message-State: AFq9FYK+vWUp9O+JmAZm4+iYTCrVJ/ErfumrrA/SXKDgz6RiE0hzrWhe
+	LKxaop4qlRRp5Ak7GnYmJKz74vgilNm951Fv0LCdV22oHD5R3aYEHZoJJD6pExvmH6Zi8cKD5r+
+	IrzCdrxC6qsl742CxrA==
+X-Received: from edqo20.prod.google.com ([2002:aa7:c514:0:b0:6b1:dfff:2ee9])
+ (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
+ 2002:a17:906:dc8e:b0:c44:14d:d95d with SMTP id a640c23a62f3a-c46796ec9bcmr208718966b.23.1792596329153;
+ Wed, 21 Oct 2026 08:25:29 -0700 (PDT)
+Date: Wed, 21 Oct 2026 15:25:23 +0000
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -104,163 +75,145 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: PH7PR12MB5685:EE_|SA1PR12MB6728:EE_
-X-MS-Office365-Filtering-Correlation-Id: f2662f3f-ecd0-43c6-3485-08df2f84a4c9
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|23010399003|376014|7416014|1800799024|366016|18002099003|22082099003|10067099003|4143699003|261009223027099003|11063799006|56012099006;
-X-Microsoft-Antispam-Message-Info:
-	q4uvE9GK9qCkIDmQcT/BF+L8J839Fa+kKU2Pe9H1WoIBH9XCZA1wo6uW5z965PPupXAX2sBI97LLZfl/DaROhrxIkmsNXlNPEZjm9m3ucXJ3pCB2UK5Bys+DQkNuamk7/NmZpz5oWTSPdjQPzSVqj+fGmNp/PiEVhtnEEy8ZWkXaoavC+bEkxJKsrs9rtsk1k9TzdbnIv4cD8Ch+DZoBFj00gZm//0xK48dw/KsSYekoFVn6UMt+xaAXRvbw6OmR892KMMiWVT8Ra6MHiT1+VNo37ebHRbjRjmP942MDbAAxIChPyFhPGrPZBqPUuejEs85cIY14A/B/j70rqgWQuHFjp6zNv0Hn33lrtGU4mYh2/dyJC1Mw9IT7PyW3RiZ60j2CwjGUNXwIDrVJTQrdd7F22HAd90UC/otEh/alYFClU3/MKuzTpAyShBlwc87AHF7gj/Olvas2qXCWjHiQv0Ts+lpTM2ZXHr6IQvG+ne7PPGGJoE27kG9AGNudD/oen6C/PKYP08eqDUTpeq5MdE8ZK7YFk+gtK5KTLDbAObB+kJI0WVDBzfVFn1A4QWLPFq/yxp0MDvnN8fRe/zPt58lTn/waJkLQ/QgxfyCGkbTLXid7m5uvg5dh5J1WgofPLktuUINqznDBye1XXRewiWcf7WiZQLHuHnFiAr9vIsY=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:PH7PR12MB5685.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(23010399003)(376014)(7416014)(1800799024)(366016)(18002099003)(22082099003)(10067099003)(4143699003)(261009223027099003)(11063799006)(56012099006);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?OUVjdGZlYjF6bFpmenVwNnM3Zjk1dkMzY05yK2VRaUZad1RSY2J1TC9yUjRM?=
- =?utf-8?B?SWVkd0JkdDUwTnlUOGRhOVhmRjNSRmxHZjFHN2lOZkZSUHAzL3YxMENCNytq?=
- =?utf-8?B?d1N1QjlWQ09vM3NadVhzcFF3UXIyRGlwem9WSWxwSUx6OFFUVDd6MlNtWkUw?=
- =?utf-8?B?eUs0K1pXS0hYZ0plLzN4VEN1cDVrdnBzbUVGU016K2JTdnI0WTVORWM1SHJL?=
- =?utf-8?B?cFNaaDlTaHBIVFRNT3hQNnRKMXpiMmQ3RmdmL0w4UUk1bzFpOG50OFAyVjd1?=
- =?utf-8?B?WW5VdjBVNTRKZWRrK0hoY0prQVp1R29xTFJpNGsxNU5uaWxtWGQxMkxQMVVB?=
- =?utf-8?B?Z0FPODEvMGRCWmNZakFNRWhiZkd6blFKVnBLRXZrZkJMTDVkRkZxeVYyZUhZ?=
- =?utf-8?B?dlJwTzNpbVlBL0FmWVNiYTZWRjlSVzRHZm93dEN3elQ1d2ZhV3VrdGpYdTBY?=
- =?utf-8?B?NEw4bnVhODN4RFU3SncwS0dIRlp6SEJXVnA1ZVB1RVZ1K3lVazZLVEY1Tmho?=
- =?utf-8?B?QmZVaDVpaWhicFNaUkpCR0t4WWhjSk9URC9RSnpoTWd1eWVWOVFrcXBXamJp?=
- =?utf-8?B?aW9CSXE0ZVhldTJiQkZMSW0zcW9PdXVsZjZGTHZSZjdHUWFoOVFOUHMwNloz?=
- =?utf-8?B?YjE4STNnaDdiaGlZWndMdExRUkNYaGN4bDBrUzM1LzZwTmNpK1c1V2JlOHhK?=
- =?utf-8?B?TDZZMVYzWG9RUk5QdFNNYm9vdFFUNVpTZjR3WW4vdnYvTHlQelRnREZJZmF1?=
- =?utf-8?B?NWNKanpWZjBxcU5kK0FWeWhwTi9xVFVDcUxJbWhLb0Y2c3dtWTc5SlpwYXlF?=
- =?utf-8?B?eUx4eFY3KytMb001WDVRZmQ5OVFLVmF1dWUyRTV0TDRyNzdGWVptVFQ5YUZx?=
- =?utf-8?B?YlpaNUdzVXZkdDFxNWlrakFVSlMyUERoU3RlMDRDRVB0N09OTzlYQ0IxSTNo?=
- =?utf-8?B?b0dFcW1nU0NFeE1RcTdwWVhUQnp6NlFpK3NvdHVlU2kvN3dNVzlqNkNpY2tx?=
- =?utf-8?B?VDVpYlhSUVhKd0VWOHRQNG5oMXUxRTRJdUNoZjJWOU1JRHZmQTQ0eU5lYkdM?=
- =?utf-8?B?TEJUZm9tRXNlU1AvZ1hHVVRhRmN3WGV2S3RQUjB5d2dlYmlrZW1jN2dDV01X?=
- =?utf-8?B?S2xUa3I5b3BUcXBQbkk0TnRIdFp4TUFaK3pFWVBwUGsraFBPNEJIZVZ0enk3?=
- =?utf-8?B?cE5NbE53ZC9EK1MyWExIVFN6d0pUMGlneE5QUEc4dFdvckk2S3lxL0k5S1Vn?=
- =?utf-8?B?ODlCYkxlcU5heWU0Y2VCVG85ZjNFQ0N2SDJxcWlwcW1LQ2VOTklKb1dlTUZG?=
- =?utf-8?B?S0hMN0l3b0hXemE4bDhtSE9EL0hpeHZkU3RKUjhqSE1JcHorR3JHZG83dEFD?=
- =?utf-8?B?MklHc05vbGNyQlRGWmpCeWVYN0UzblFOV3dqd1RQWE9WSUdUclg0MGc1TnpX?=
- =?utf-8?B?U2p3cUdDd2pjVW5HUEdVV0Q2TGZwY3NibllzdEQxYlBNVDZ3dnFKbWJlMFdS?=
- =?utf-8?B?OWFZZEZ1SmltMTJ1bnRkOXUrdFFEZXNwaS9HU1IvaTlkQUE0bTRnR0I0WjBo?=
- =?utf-8?B?Nm5qdzhLNWhzbmkrMkNUSFN1c2p2dkZ5TkNRdXlLbG05K05LaUZ2Rm53ZG9a?=
- =?utf-8?B?S3hDUVdMSHZvN1llMGdrL2ZjaVJ0OHFOL0RJMDRlT3VHaWdpRldGVjFpMGpJ?=
- =?utf-8?B?TkJnWkF3ZE81amI3S2hOUlM3YXovNEtidGhjV0pKS1NnYWN1aitZUlJ1VDlq?=
- =?utf-8?B?ZUVwZmhwanBSckdqYXJNMy9oVS9NRmhMWmpaVDRCNEpRUEZuVHB1cytmNE83?=
- =?utf-8?B?d3pQck1NNUpmQnZSSDVVYTl0bSs4WEJpdjNYUkhSbGRKaDI0RVpMZitYUlNq?=
- =?utf-8?B?OXZXV09ERm80c0l3YzB1TUFTSXB3M3pBbG9wK0MyRE1LYXJOMzNrZ3hlcnlK?=
- =?utf-8?B?cE1YblAyNHpkRURwZ01Rdjd5cGZYWVNBR3FzNjNucE1JU2s4VG9RYXZqVEFz?=
- =?utf-8?B?eGEveTFyUjhxVE03dGQwKzY1VkJvWEhYRURPLzJtT1Z1M1IzRE1xbThVaVo5?=
- =?utf-8?B?aS8wWlZNRWVZQ01ZMGdUd25GWHlXUnl4Q3VDNmpWS1VGbVZ0SEVLanRQcDNq?=
- =?utf-8?B?cExkZ0hsSS9KZnFHNWJIM0ZLKzNjMVE1cFNibFJXZTIwWGgwMUZTV0VOekdD?=
- =?utf-8?B?N1dnTTFEUFBicDQ2ajVoa0d4aHphd3JwR3hjSjdFTWlsSG5VWCtHM09Lb0FL?=
- =?utf-8?B?T3huUkFQd3ZuYy9FcVp0THA0Q1FIaDV3MGRDeDllNUg5WCs0TkQvMHFia2s3?=
- =?utf-8?Q?S/SAFXU/EY7M0PLimk?=
-X-OriginatorOrg: amd.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: f2662f3f-ecd0-43c6-3485-08df2f84a4c9
-X-MS-Exchange-CrossTenant-AuthSource: PH7PR12MB5685.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 21 Oct 2026 15:04:45.9087
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: O9M9aas0mY5hoOPGWuwp2khD7Etj6ieEQxWubZQCCqvoDh9Y9KdLNKYOWFtuwJkB
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: SA1PR12MB6728
+Mime-Version: 1.0
+X-Mailer: git-send-email 2.56.0.212.g129ede20d9-goog
+Message-ID: <20261021152527.375070-1-tarunsahu@google.com>
+Subject: [RFC PATCH v2 0/4] liveupdate: Feature header ABI and named handler
+From: Tarun Sahu <tarunsahu@google.com>
+To: Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org, 
+	Mike Rapoport <rppt@kernel.org>, Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de, 
+	David Matlack <dmatlack@google.com>, jgg@nvidia.com, robin.murphy@arm.com, 
+	loganodell@google.com, oupton@kernel.org, kevin.tian@intel.com, 
+	alex@shazbot.org, dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com, 
+	will@kernel.org, Pasha Tatashin <pasha.tatashin@soleen.com>, 
+	Alexander Graf <graf@amazon.com>, Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, 
+	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev, 
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org, kexec@lists.infradead.org, 
+	skhawaja@google.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	Tarun Sahu <tarunsahu@google.com>
+Content-Type: text/plain; charset="UTF-8"
 
-On 10/21/26 16:52, Philipp Stanner wrote:
-> On Wed, 2026-10-21 at 15:47 +0200, Christian König wrote:
->> On 10/21/26 11:55, Philipp Stanner wrote:
->>> dma_fence_is_signaled() can return true *while* the fence is still
->>> signaling. This is fragile and has been involved in at least two bugs:
->>>
->>> 	commit c8a5d5ea3ba6 ("nouveau: fix client work fence deletion race")
->>> 	commit 7c703a7d3f2b ("drm/amdgpu: Fix one use-after-free of VM")
->>>
->>> The signaled-bit is set under lock-protection but read without it.
->>> Adding the lock has been rejected on the grounds of the lock-acquisition
->>> shooting down cache lines of parties that merely want to check whether
->>> the fence is already signaled.
->>>
->>> Make sure the bit can only become visible as 1 once the callbacks have
->>> ran. To achieve this, read the bit with test_bit_acquire() and set it
->>> with set_bit_release().
->>
->> That has been suggested and rejected before.
->>
->> Background is that the signaling bit must be visible before the
->> callbacks are run or things like dma_fence_default_wait() (as an
->> example) just break.
-> 
-> dma_fence_default_wait(struct dma_fence *fence, bool intr, signed long timeout)
-> {
-> 	struct default_wait_cb cb;
-> 	unsigned long flags;
-> 	signed long ret = timeout ? timeout : 1;
-> 
-> 	dma_fence_lock_irqsave(fence, flags);
-> 
-> 	if (dma_fence_test_signaled_flag(fence))
-> 		goto out;
-> 
-> 	if (intr && signal_pending(current)) {
-> 		ret = -ERESTARTSYS;
-> 		goto out;
-> 	}
-> 
-> 	if (!timeout) {
-> 		ret = 0;
-> 		goto out;
-> 	}
-> 
-> 	cb.base.func = dma_fence_default_wait_cb;
-> 	cb.task = current;
-> 	list_add(&cb.base.node, &fence->cb_list);
-> 
-> 	while (!dma_fence_test_signaled_flag(fence) && ret > 0) {
-> 		if (intr)
-> 			__set_current_state(TASK_INTERRUPTIBLE);
-> 		else
-> 			__set_current_state(TASK_UNINTERRUPTIBLE);
-> 		dma_fence_unlock_irqrestore(fence, flags);
-> 
-> 
-> That function evaluates the flag under lock-protection, with full
-> ordering. The bit is only ever set under lock-protection, with full
-> ordering.
-> 
-> So currently, the bit is 1 before the callbacks ran. It becomes 1
-> before the callbacks ran, but dma_fence_default_wait() can only see
-> that after it took the lock, and it can only do that after the lock is
-> released after the callback ran.
-> 
-> So behavior for this function is unchanged, unless I miss sth.
+Live Update Orchestrator (LUO) and its file handlers currently validate
+handed-over KHO state using monolithic compatibility strings ("luo-v5",
+"memfd-v2"). Any change to a serialized structure, even an optional
+additive field, requires bumping the compatibility string, breaking live
+update between adjacent kernel versions across both forward updates and
+rollbacks. This series introduces the feature flags per serialized
+struct to communicate between the kernel about their active and required
+features. Having feature flags increase the compatibility matching
+granularity.
 
-Yeah that argument came up before and no it is not correct.
+This series also renames the file-handler and FLB compatible identifier to
+name, extends LIVEUPDATE_SESSION_PRESERVE_FD so userspace can
+optionally select which registered file handler preserves a file
+descriptor by name, and replaces monolithic version strings in serialized
+payloads with a fixed-size 2-bit pair feature header
+(struct luo_feature_hdr). So in future, If a change to a subsystem
+preservation can not be handled with feature flags, we can attach a new
+handler to support the preservation.
 
-> Actually, this barrier makes things more robust, since things like
-> 
-> if (dma_fence_is_signaled(f))
->   ts = dma_fence_timestamp(f)
-> 
-> could misorder the accesses to the signaled-bit.
-> 
-> 
-> Do you have another example of what would break?
+This change is motivated by the LPC discussion.
 
-Please search the mailing list. We had the same patch like three or four times already.
+Named File Handler Selection
+============================
+With fine-grained compatibility tracked via feature headers, the
+handler and FLB compatible field is renamed to name. When a subsystem
+needs a genuinely incompatible new handler alongside an existing one for
+the same file type, struct liveupdate_session_preserve_fd now includes
+char handler[LIVEUPDATE_HNDL_NAME_LENGTH] after token (keeping
+min_size at 16 bytes for backward compatibility):
+- Empty handler (or 16-byte struct): selects the first registered
+  handler whose .can_preserve() accepts the fd, keeping default callers
+  on the original rollback-safe handler.
+- Non-empty handler: selects the registered handler with that exact
+  name and verifies .can_preserve() accepts the fd.
 
-It was even applied one IIRC, but yes it immediately breaks things.
+2-Bit Pair Feature Header (struct luo_feature_hdr)
+==================================================
+Each serialized ABI structure (struct luo_ser, struct memfd_luo_ser)
+starts with a fixed 128-byte struct luo_feature_hdr containing:
+- size: byte size of the enclosing serialized structure from the source
+  kernel.
+- flags[15]: 15 chained 64-bit feature flags entries. Each entry
+  encodes up to 31 features as 2-bit pair (req, active) states
+  (enum luo_feat_state: LUO_FEAT_DISABLED = 0b00,
+  LUO_FEAT_OPTIONAL = 0b01, LUO_FEAT_REQUIRED = 0b11) plus
+  LUO_FEAT_EXT_MASK (bits[63:62] = 0b11) chaining to the next entry
+  (up to 465 features total). Because the header is fixed at 128 bytes,
+  payload field offsets never shift when extended flags entries are used.
 
-Regards,
-Christian.
+Each subsystem defines its feature states as a static const u8 array
+indexed by its feature enum, which luo_feature_hdr_init() packs into
+the payload feature header. During deserialization,
+luo_feature_hdr_validate() checks the header from the source kernel
+against the feature array in the target kernel according to the
+per-feature (req, active) truth table:
 
-> 
-> 
-> You see, the bit sometimes being locked and sometimes being lockless
-> causes confusion.
-> 
-> 
-> P.
+  Source Target Action
+  (1,0)  (x,x)  Reject -EINVAL: invalid source kernel (req without active)
+  (x,x)  (1,0)  Reject -EINVAL + WARN_ON_ONCE: invalid target kernel
+  (0,0)  (0,0)  Accept: feature absent
+  (0,0)  (0,1)  Accept: feature absent
+  (0,0)  (1,1)  Reject -EOPNOTSUPP: target kernel requires the feature
+  (0,1)  (0,0)  Accept: ignore payload data
+  (1,1)  (0,0)  Reject -EOPNOTSUPP: source kernel requires the feature
+  (x,1)  (x,1)  Accept: use payload data
+
+Structure Evolution
+===================
+The relative order and offsets of fields in serialized structures must
+remain unchanged as features are added or retired. New fields are always
+appended at the end of the structure under a new feature flag, and
+retired fields are kept in place so that the offsets of subsequent
+fields never shift. If the type or format of a field needs to change,
+the existing field and feature are kept intact (and retired when no
+longer needed) and a new feature flag with a new appended field of the
+new type is added.
+
+In the target kernel, fields of a LUO_FEAT_REQUIRED feature are
+guaranteed to be present once luo_feature_hdr_validate() succeeds,
+whereas fields of a LUO_FEAT_OPTIONAL feature should be accessed only
+after verifying that the feature is active in the source kernel header:
+
+  if (luo_feature_is_active(&ser->features, FEAT_X))
+          val = ser->x_field;
+
+Changes since RFC v1 [1]:
+- Renamed file-handler and FLB compatible to name and added optional
+  handler selection by name in LIVEUPDATE_SESSION_PRESERVE_FD.
+- Replaced the 3-mask (supp, req, active) + variable-length FDT and
+  feature-section design with a fixed 128-byte struct luo_feature_hdr
+  embedding size and 15 chained 64-bit 2-bit pair (req, active)
+  flags entries directly in struct luo_ser and struct memfd_luo_ser.
+- Replaced compile-time bitmask macros with a static const u8 feature
+  array per subsystem packed by luo_feature_hdr_init() and validated
+  in a single pass by luo_feature_hdr_validate().
+
+[1] https://lore.kernel.org/all/20260903023452.721732-1-loganodell@google.com/
+
+Tarun Sahu (4):
+  liveupdate: Rename handler compatible to name
+  liveupdate: Select file handler by name in the preserve ioctl
+  liveupdate: Replace compatibility string with a 2-bit pair feature
+    header
+  mm: memfd_luo: Add the 2-bit pair feature header
+
+ drivers/pci/liveupdate.c         |  10 +-
+ include/linux/kho/abi/luo.h      | 367 +++++++++++++++++++++++++++----
+ include/linux/kho/abi/memfd.h    |  39 +++-
+ include/linux/kho/abi/pci.h      |   2 +-
+ include/linux/liveupdate.h       |  18 +-
+ include/uapi/linux/liveupdate.h  |  15 +-
+ kernel/liveupdate/luo_core.c     |  27 ++-
+ kernel/liveupdate/luo_file.c     |  64 ++++--
+ kernel/liveupdate/luo_flb.c      |  16 +-
+ kernel/liveupdate/luo_internal.h |   3 +-
+ kernel/liveupdate/luo_session.c  |   7 +-
+ lib/tests/liveupdate.c           |  22 +-
+ mm/memfd_luo.c                   |  16 +-
+ 13 files changed, 481 insertions(+), 125 deletions(-)
+
+-- 
+2.56.0.212.g129ede20d9-goog
 
