@@ -1,57 +1,57 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=173.212.254.19
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792552541;
-	b=dtamUW8HC8ctCWlbT+TcAa+dlo4AJvSDM/3FYgl/ZBfodR0YgmEVTdvSqxb5x9WAMW8W
-	 nI/WAu62fh3eYg4lKbr+fJAVdOls/wr8QB3eqWtKCdj1y3XGGGWg/JvKtDO6FLIjFo/v/
-	 72QLGRRbYdNZXrm0qqvNwP5vvc1Mcsoy51J9qhJYbyv6gDqd3g827HmcywosaKbh8/hMv
-	 ACaekgzRgKbQ0KKspqT2OJatZLKEn/d9HUPw4GIJcCgAg9FRjcsTpKJmu7+1KZnhZccD5
-	 F0Ob3m4lpLBEHmQ5gcbs0jD8PVJY16Ix4KoXRwQmcx5LWY6ALU2zvwaVDMpUn8YdLEw==
+	t=1792552551;
+	b=Wt7e9/VOVnwY35nTTw8QzvzWBp8uYl3/QDwAbgvCsyZMEk2i1Mzrcs3UYOxTJ7PA3fPy
+	 VO/ce5ZvQVbsm8VSUtG5c5slua+Lyrv8qA2ZWdLMDaunGO4/S7NwxWFypmt1zjiPg7mx0
+	 /GKHsqdig27O7L8nLHw9ISs+25kEo+3+KrxoRXUCNyP4jakHph2Txzq2+6VqdVXxXvXGT
+	 zZWt9flGjLT4oIZO38TQ0zy3cAmDX7bwHKp/r+j4osLjy9sU9IWHW186rwMd7rn3BvxJb
+	 fV/hML7+ZKCI9p5F61EJBsIsq9cGOVXK4YiusAuL+os/lAydL9+NF3FyxRLDCmY2Jhw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792552541;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792552551;
 	h=DMARC-Filter:DKIM-Signature:Received:Message-ID:In-Reply-To:
 	 References:From:Subject:To:Cc:Date;
-	bh=ilgWZq8lBu3cTHC4tjsY3+OD0RL/20qOT/gfO/+8/Ns=;
-	b=uLc/2UuvDCXDdpUTh5mFJ6Zt05TYI70cLuGwznTval6jBvtC+IIkZWIO8wmlK9vdJUHg
-	 w5N1IyeQFeFZqML980Vsbg7bV6xdsTissaKRAdIiHhL6YYY5KaxglJ3rbhQ1z5LV5k7e8
-	 QmVwy1u3LmHLcmq4hwALBa+orqtSdM3BfSqCk71TEH5goeVIh1hB2R9yXVb8rOfv6+MSS
-	 Nxcotqlg3gOKNplUj0l6LqiQxV5JxjSDeAF+YL3HkOfxjSfJKco9yBQ/Hx1o/1dfOWRWl
-	 QR4Imwbjd25I3ZxngpIE/55Q4ErOURboreVrgdlpK44nZUdGBJsw8pRRmMGwosADpDQ==
+	bh=PVhQJ7324CMbIfhXtNzYL5dBLF6NS0/WJG6p16uxHQw=;
+	b=eIc9dD3BbN+Um6fs5Z1arj6U+Du2g2X3LenQnf2PjDtnh8KFu+E/D1adqGk0u/ePj9uE
+	 R0UPsssXQcL2hkhKKnd7/mhz5OcOv2Mjly87jWWYFoJwt6lNlhFnsy82AaEyl41MM9iDd
+	 ipwWJz4QA+iLIfhDDbGxzWHCVlVWQCE+SwvCjz8/I+ZeZ9az3A7xAzP8IhP8y2mRo1s0O
+	 boB8dxbDTR0yba7hIOJ6LVjS3WqmAVG4OwR9oUKElZAV81j6EA2Ex7F2v0s1VQ91Jgse9
+	 Gj2FbnfBpG+LhLDcsdhmLUyuA8pUb14T+yeYYYp/kxHcBBlIWbcjgcfHEsTV2Usp3HA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=tuxist.de;
 	spf=fail smtp.mailfrom=tuxist.de;
-	dkim=pass header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=fmvA1BUI;
+	dkim=pass header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=FGXjLsBU;
 	arc=none smtp.remote-ip=173.212.254.19
 Received: from groupware.tuxist.de (groupware.tuxist.de [173.212.254.19])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 717D3606A33C;
-	Wed, 21 Oct 2026 03:15:40 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 717D3606A33C
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E3936606A329;
+	Wed, 21 Oct 2026 03:15:50 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E3936606A329
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=tuxist.de
 Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=tuxist.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=fmvA1BUI
+	dkim=pass (2048-bit key, unprotected) header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=FGXjLsBU
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=tuxist.de; s=201705;
-	t=1792552538; bh=qWM7jvTDWgnk6/SLc5fl/wvoe0XSEzsjigl1XiisGY4=;
+	t=1792552548; bh=q7T/4Y2o1qGWLISuafRJIl+4GZmfBU1aB4YS1XRxh40=;
 	h=In-Reply-To:References:From:Subject:To:Cc:Date:From;
-	b=fmvA1BUI9rAIY0k7Lbp7tPKh+8RUjmcHfFo82dzNAmLF4PCA6sf/9cetHzoNvM8m+
-	 2bTH6w1iJKcwrlHlo8epNQOBYq1PkVRYLXnXQQwfcQyOlgoaYVgz5unl37kW7RUgdo
-	 6zHZafd49DOH5I5qEPddUuCDJk9E62uoKYgw28sOjOzK6Ydl27ObEf9x2Pq5SudfN1
-	 +uJDvYoRnrkk1xadlP9i4Qlx6v+GGzurcGwezUevYgBFtJZfpqmVonqQ9glhLrmsyK
-	 tSQ+/qleC7T8wlJ+TUsM2NbVAKlA2/7OAe1XFnO/SOgzKrHEpW0xuRqk1Jm9budQAB
-	 4AMfhG0kzUuFw==
+	b=FGXjLsBUf17Ic0V9FROUlyTLuWgh0GJgISMTwITx2rAEXesSTMeL6oRrj+5kLlP90
+	 /jVvFb521dvqX+iuFI4qg80jV7ObE4G1tKPWzoI6lPOZOGSqDX9B3wKydRtRk9mi7v
+	 hFacffaEVj7o9qnOeyH19yj3dZ8EZy8L+UgaK1wUZuaR5ip/aIKAo2XF/LHOU/WDLu
+	 KWREwqRXaEaZt60RnkCXnvByCFv7WDq277xKWlYIwZfkRTvj6Xxc8PeC1kBBdO5st4
+	 Nzoz5DajwBwmR5LMXQY/9MNZGnUVD9Gz5ZU/P+kFhxB8/ML2nLR3nosptLwRQg2CrG
+	 yeQoD6hhJF/Zg==
 Received: from [10.1.1.106] (unknown [10.1.2.1])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by groupware.tuxist.de (Postfix) with ESMTPSA id E5EF78A08F6;
-	Wed, 21 Oct 2026 05:15:37 +0200 (CEST)
-Message-ID: <ec61dbb90e69bf33d17565d628ff59eaad8837f3.1792552161.git.jan.koester@tuxist.de>
+	by groupware.tuxist.de (Postfix) with ESMTPSA id EFAE88A090C;
+	Wed, 21 Oct 2026 05:15:47 +0200 (CEST)
+Message-ID: <89a8d25ee5266ebab437aed8d86cc5e41bad3965.1792552161.git.jan.koester@tuxist.de>
 In-Reply-To: <cover.1792552161.git.jan.koester@tuxist.de>
 References: <cover.1792552161.git.jan.koester@tuxist.de>
 From: Jan Koester <jan.koester@tuxist.de>
-Subject: [RFC PATCH v2 05/41] af_unix: keep sender ids in skb->cb only when
- they are classic ids
+Subject: [RFC PATCH v2 08/41] smb: client: use __kuid_val() for the unix SIDs
+ of the caller
 To: Christian Brauner <brauner@kernel.org>,
     Alexander Viro <viro@zeniv.linux.org.uk>,
     "Serge E. Hallyn" <serge@hallyn.com>
@@ -70,7 +70,7 @@ Cc: Jan Kara <jack@suse.cz>,
     audit@vger.kernel.org,
     keyrings@vger.kernel.org,
     linux-kernel@vger.kernel.org
-Date: Wed, 21 Oct 2026 05:15:25 +0200
+Date: Wed, 21 Oct 2026 05:15:28 +0200
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -80,145 +80,58 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 
-unix_skb_parms has to fit into the 48 bytes of skb->cb. With kuid_t and
-kgid_t growing to hold UUIDs and GUIDs the two of them alone would take
-40 bytes.
-
-Store classic ids as 32 bit values as before, and only for a UUID or
-GUID allocate a small struct unix_skb_ids for both, freed together with
-the pid reference in unix_destruct_scm(). AF_UNIX skbs carrying a pid
-reference are never cloned, so the pointer has a single owner.
-Senders with classic ids see no change and no allocation.
+The S-1-5-88-1-<uid> and S-1-5-88-2-<gid> SIDs sent with a create
+request take the raw kernel ids from kuid_t.val, which is gone now that
+the ids can be UUIDs and GUIDs. Use __kuid_val()/__kgid_val(), the same
+value for classic ids and -1 for the others, which have no unix SID.
 
 Assisted-by: Claude:claude-opus-5-5
 
 Signed-off-by: Jan Koester <jan.koester@tuxist.de>
 ---
- net/unix/af_unix.c | 50 +++++++++++++++++++++++++++++++++++++++-------
- net/unix/af_unix.h | 11 ++++++++--
- 2 files changed, 52 insertions(+), 9 deletions(-)
+ fs/smb/client/cifsacl.c | 2 +-
+ fs/smb/client/smb2pdu.c | 7 ++++---
+ 2 files changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/net/unix/af_unix.c b/net/unix/af_unix.c
-index 42cffeafc8..2b17310534 100644
---- a/net/unix/af_unix.c
-+++ b/net/unix/af_unix.c
-@@ -1969,11 +1969,46 @@ static void unix_peek_fds(struct scm_cookie *scm, struct sk_buff *skb)
- 	unix_peek_fpl(scm->fp);
+diff --git a/fs/smb/client/cifsacl.c b/fs/smb/client/cifsacl.c
+index c5e47a835f..78ed25b1f7 100644
+--- a/fs/smb/client/cifsacl.c
++++ b/fs/smb/client/cifsacl.c
+@@ -1086,7 +1086,7 @@ unsigned int setup_special_user_owner_ACE(struct smb_ace *pntace)
+ 
+ 	pntace->sid.sub_auth[0] = sid_unix_NFS_users.sub_auth[0];
+ 	pntace->sid.sub_auth[1] = sid_unix_NFS_users.sub_auth[1];
+-	pntace->sid.sub_auth[2] = cpu_to_le32(current_fsgid().val);
++	pntace->sid.sub_auth[2] = cpu_to_le32(__kgid_val(current_fsgid()));
+ 
+ 	/* size = 1 + 1 + 2 + 4 + 1 + 1 + 6 + (psid->num_subauth*4) */
+ 	pntace->size = cpu_to_le16(ace_size);
+diff --git a/fs/smb/client/smb2pdu.c b/fs/smb/client/smb2pdu.c
+index cfe3c4b4ab..941ca8a3d6 100644
+--- a/fs/smb/client/smb2pdu.c
++++ b/fs/smb/client/smb2pdu.c
+@@ -2731,7 +2731,7 @@ static void setup_owner_group_sids(char *buf)
+ 	sids->owner.Authority[5] = 5;
+ 	sids->owner.SubAuthorities[0] = cpu_to_le32(88);
+ 	sids->owner.SubAuthorities[1] = cpu_to_le32(1);
+-	sids->owner.SubAuthorities[2] = cpu_to_le32(current_fsuid().val);
++	sids->owner.SubAuthorities[2] = cpu_to_le32(__kuid_val(current_fsuid()));
+ 
+ 	/* Populate the group ownership fields S-1-5-88-2 */
+ 	sids->group.Revision = 1;
+@@ -2739,9 +2739,10 @@ static void setup_owner_group_sids(char *buf)
+ 	sids->group.Authority[5] = 5;
+ 	sids->group.SubAuthorities[0] = cpu_to_le32(88);
+ 	sids->group.SubAuthorities[1] = cpu_to_le32(2);
+-	sids->group.SubAuthorities[2] = cpu_to_le32(current_fsgid().val);
++	sids->group.SubAuthorities[2] = cpu_to_le32(__kgid_val(current_fsgid()));
+ 
+-	cifs_dbg(FYI, "owner S-1-5-88-1-%d, group S-1-5-88-2-%d\n", current_fsuid().val, current_fsgid().val);
++	cifs_dbg(FYI, "owner S-1-5-88-1-%d, group S-1-5-88-2-%d\n",
++		 __kuid_val(current_fsuid()), __kgid_val(current_fsgid()));
  }
  
-+/*
-+ * The sender's ids, in the skb itself for legacy ids; UUIDs and GUIDs don't
-+ * fit in skb->cb and come from an allocation, freed with the pid reference
-+ * in unix_destruct_scm().
-+ */
-+static int unix_skb_set_ids(struct sk_buff *skb, kuid_t uid, kgid_t gid)
-+{
-+	struct unix_skb_ids *ids = NULL;
-+
-+	if (!uid_is_legacy(uid) || !gid_is_legacy(gid)) {
-+		ids = kmalloc_obj(*ids, GFP_KERNEL_ACCOUNT);
-+		if (!ids)
-+			return -ENOMEM;
-+		ids->uid = uid;
-+		ids->gid = gid;
-+	}
-+	kfree(UNIXCB(skb).ids);
-+	UNIXCB(skb).ids = ids;
-+	UNIXCB(skb).uid = __kuid_val(uid);
-+	UNIXCB(skb).gid = __kgid_val(gid);
-+	return 0;
-+}
-+
-+static kuid_t unix_skb_uid(const struct sk_buff *skb)
-+{
-+	return UNIXCB(skb).ids ? UNIXCB(skb).ids->uid : KUIDT_INIT(UNIXCB(skb).uid);
-+}
-+
-+static kgid_t unix_skb_gid(const struct sk_buff *skb)
-+{
-+	return UNIXCB(skb).ids ? UNIXCB(skb).ids->gid : KGIDT_INIT(UNIXCB(skb).gid);
-+}
-+
- static void unix_destruct_scm(struct sk_buff *skb)
- {
- 	struct scm_cookie scm = {};
- 
- 	swap(scm.pid, UNIXCB(skb).pid);
-+	kfree(UNIXCB(skb).ids);
-+	UNIXCB(skb).ids = NULL;
- 
- 	if (UNIXCB(skb).fp)
- 		unix_detach_fds(&scm, skb);
-@@ -1992,20 +2027,21 @@ static int unix_scm_to_skb(struct scm_cookie *scm, struct sk_buff *skb, bool sen
- 	int err = 0;
- 
- 	UNIXCB(skb).pid = get_pid(scm->pid);
--	UNIXCB(skb).uid = scm->creds.uid;
--	UNIXCB(skb).gid = scm->creds.gid;
- 	UNIXCB(skb).fp = NULL;
-+	skb->destructor = unix_wfree;
-+	err = unix_skb_set_ids(skb, scm->creds.uid, scm->creds.gid);
-+	if (err)
-+		return err;
- 	unix_get_secdata(scm, skb);
- 	if (scm->fp && send_fds)
- 		err = unix_attach_fds(scm, skb);
- 
--	skb->destructor = unix_wfree;
- 	return err;
- }
- 
- static void unix_skb_to_scm(struct sk_buff *skb, struct scm_cookie *scm)
- {
--	scm_set_cred(scm, UNIXCB(skb).pid, UNIXCB(skb).uid, UNIXCB(skb).gid);
-+	scm_set_cred(scm, UNIXCB(skb).pid, unix_skb_uid(skb), unix_skb_gid(skb));
- 	unix_set_secdata(scm, skb);
- }
- 
-@@ -2039,7 +2075,7 @@ static int unix_maybe_add_creds(struct sk_buff *skb, const struct sock *sk,
- 			return err;
- 
- 		UNIXCB(skb).pid = get_pid(pid);
--		current_uid_gid(&UNIXCB(skb).uid, &UNIXCB(skb).gid);
-+		return unix_skb_set_ids(skb, current_uid(), current_gid());
- 	}
- 
- 	return 0;
-@@ -2049,8 +2085,8 @@ static bool unix_skb_scm_eq(struct sk_buff *skb,
- 			    struct scm_cookie *scm)
- {
- 	return UNIXCB(skb).pid == scm->pid &&
--	       uid_eq(UNIXCB(skb).uid, scm->creds.uid) &&
--	       gid_eq(UNIXCB(skb).gid, scm->creds.gid) &&
-+	       uid_eq(unix_skb_uid(skb), scm->creds.uid) &&
-+	       gid_eq(unix_skb_gid(skb), scm->creds.gid) &&
- 	       unix_secdata_eq(scm, skb);
- }
- 
-diff --git a/net/unix/af_unix.h b/net/unix/af_unix.h
-index 8119dbeef3..e861a430cf 100644
---- a/net/unix/af_unix.h
-+++ b/net/unix/af_unix.h
-@@ -10,10 +10,17 @@
- 
- struct sock *unix_peer_get(struct sock *sk);
- 
--struct unix_skb_parms {
--	struct pid		*pid;		/* skb credentials	*/
-+/* The sender's ids, when either is a UUID or GUID */
-+struct unix_skb_ids {
- 	kuid_t			uid;
- 	kgid_t			gid;
-+};
-+
-+struct unix_skb_parms {
-+	struct pid		*pid;		/* skb credentials	*/
-+	struct unix_skb_ids	*ids;		/* uid and gid, or NULL	*/
-+	uid_t			uid;		/* for ids NULL: legacy	*/
-+	gid_t			gid;		/* uid and gid		*/
- 	struct scm_fp_list	*fp;		/* Passed files		*/
- #ifdef CONFIG_SECURITY_NETWORK
- 	u32			secid;		/* Security ID		*/
+ /* See MS-SMB2 2.2.13.2.2 and MS-DTYP 2.4.6 */
 -- 
 2.56.0
 
