@@ -1,108 +1,100 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.216.47
-ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792624699;
-	b=h1n76a6ngHxCwLg3KaccbGoNFVVbdD6QFnznU6m/28xmHoFunzRiQtPiM6mTby/Bj/vF
-	 C//IlkJdlxlZ5mSNGAmMbadSCPDe7uoBmLXH4vwUfP4gIp+7mQmqRX3slcHNCy1qPQ4yV
-	 mhtCKapacCF5c+mcceGVNjNN2Wu4W79nsam4Ej/AaT7FXOE72CtpKPc/2GqhKYR3t/qiA
-	 a8/lRIiSbaGk9EorgTQjRAR29gRl195ZniFBpeyOrAUcCnIfxtKvdG7zh1xPthzJ9u3TZ
-	 BbpZ263B62BT7BG6T35v+b1hFuZE/pdrZjY3KJ3lOAdGRQo8vB+bxWG6YTjvFMNnprQ==
-ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792624699;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:Content-Transfer-Encoding:
-	 In-Reply-To;
-	bh=7nCAo4+9lz8Iyt19nkj9TmOxKkMhE+NTyi1XeRL1MPk=;
-	b=cXYYR0ayplA52lcEsmNjrt5+EEUjW/1rOsHetFed7lQkcgHqeERM2iY/yLQ92vsz5SIQ
-	 Vf6OkQVdFPOqBRXxSKg7peVGYofE4qzrwtZZE1vrEaFtZZGGx029/vy2GUHjo4YO815nH
-	 QQKDEEhzDSFrIO5qmt4WyA0yKMrGn3uavPfAjH8f4G+6+Cb4J5vhGrCI5xSjAsXnUyoJB
-	 7Y3Vx3N2BoTHuj6bmAyO6L5f96ZKPtgkstVWhi9rJBYuz7VMsm/D+4kGSwbXvijI1jgax
-	 9BNsAemqJzri4nEOr3ttdXxNZcd/8Qf3J0twk/Yi46GSN6reBASrRi/Y9QffoVt3OCw==
-ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=google.com;
-	spf=pass smtp.mailfrom=google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=XTgC5U1a;
-	arc=none smtp.remote-ip=209.85.216.47
-Received: from mail-pj1-f47.google.com (mail-pj1-f47.google.com [209.85.216.47])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.61.25
+ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1792624861;
+	b=0N2aikn/u+NSLGh+YhPe8aATZabjblfWiE2+KbHFSbwOttlK0PZmLbYwZAvnT7HTMgj5
+	 KFucoudm0B1oAdUrXKyUkxRLTFS5BtnXBzRXIdKYmdOi0GU2Zi0IPVEx90JcKI7BnxFTp
+	 xx204SI110pGZ15KbBhGSIkczbdPiZ3PjPY2VGzlvzl96azVh4MqD20knT2tYwJqJgRxw
+	 9RTTnpNLKtsHTIB49VTz+JhVeh0ACcoEwQo30cp1TluemojeOkfWeouznb/6i+SbNBGD3
+	 NCP9KLvYJkNtaoX+AXMbwHMV3oj5MwILMP5caRGtbfZxta4CFhGUQ7lKqixwm2KREVQ==
+ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792624861;
+	h=DMARC-Filter:DKIM-Signature:Received:Received:Date:From:To:Cc:
+	 Subject:Message-ID:References:Content-Type:Content-Disposition:
+	 In-Reply-To:X-ClientProxiedBy:MIME-Version:X-MS-PublicTrafficType:
+	 X-MS-TrafficTypeDiagnostic:X-MS-Office365-Filtering-Correlation-Id:
+	 X-LD-Processed:X-MS-Exchange-SenderADCheck:
+	 X-MS-Exchange-AntiSpam-Relay:X-Microsoft-Antispam:
+	 X-Microsoft-Antispam-Message-Info:X-Forefront-Antispam-Report:
+	 X-MS-Exchange-AntiSpam-MessageData-ChunkCount:
+	 X-MS-Exchange-AntiSpam-MessageData-0:X-OriginatorOrg:
+	 X-MS-Exchange-CrossTenant-Network-Message-Id:
+	 X-MS-Exchange-CrossTenant-AuthSource:X-MS-Exchange-CrossTenant-AuthAs:
+	 X-MS-Exchange-CrossTenant-OriginalArrivalTime:
+	 X-MS-Exchange-CrossTenant-FromEntityHeader:
+	 X-MS-Exchange-CrossTenant-Id:X-MS-Exchange-CrossTenant-MailboxType:
+	 X-MS-Exchange-CrossTenant-UserPrincipalName:
+	 X-MS-Exchange-Transport-CrossTenantHeadersStamped;
+	bh=tji9BpzfPpnGONOeoFM3l/SmwLFDtU7X5SHPN1igR+4=;
+	b=HXzWFkxnfkQVcx6lQnoyrVya7FQL/LgsfF5G3AIUJ5lQ/9rs9HZD3lJh+Q+6bGaRbazw
+	 wSfUkwx5PZUSQSMwZfUCB9sCZrnCEq12Y2M5yeXj7K5q9wVK9s83dP4Bz8SepHsKpMQQx
+	 IxjLoKmNQEf7Uu125mFGTOiOnxwM66vLVx/NgPE25hi11bCrwrvbcM5aaCkCPqQtw3ldb
+	 nfGmaZg0mb9cbWWXb02rcS+P6/WOEXmBNKsNumUlBTQaCfuAtEkmPNvBaNehXXJ+7w9EU
+	 NIAs4N8hu21GG1j0auMrSahpitnQ1X0PvRBjf5vm6w8IonBK/jhU89srWw41HmUBwsg==
+ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=nvidia.com;
+	spf=fail smtp.mailfrom=nvidia.com;
+	dkim=pass header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=NlIPjgJY;
+	arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.61.25
+Received: from DM1PR04CU001.outbound.protection.outlook.com (mail-centralusazon11010025.outbound.protection.outlook.com [52.101.61.25])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (secp384r1) server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 358C0606A31F
-	for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 23:18:19 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 358C0606A31F
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2F169606A319;
+	Wed, 21 Oct 2026 23:21:00 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2F169606A319
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=XTgC5U1a
-Received: by mail-pj1-f47.google.com with SMTP id 98e67ed59e1d1-3ac77270fbfso680742a91.2
-        for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 16:18:19 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1792624698; x=1793229498; darn=vger.kernel.org;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :content-type:mime-version:references:message-id:subject:cc:to:from
-         :date:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=7nCAo4+9lz8Iyt19nkj9TmOxKkMhE+NTyi1XeRL1MPk=;
-        b=XTgC5U1avhZC7kS60Wfhcu4iNJ6NZUTB15w7iAv0P+4Xk0fU3Z9lqDMg0+5uT/ZioR
-         V1pzlNVAVaG1PI44ziVmRwdXwwPNLl1i1fbe01hLsNEj75SM+9vlW/bhpCwsK76fEi41
-         m2yoJJDX2Z6BXGc/sMzdvX0/s/ciDTn2uTVTOxDwdfShxa/IGvCrC/6KhBLS/TI0AaOK
-         4FSqZaRMDg7fPIneOSeherAD3s0ms3oLr8jLx84C775gRsQ0tKCcLrtO9Ynuwjr/HLV3
-         EF5B/Fp6LB+jA5yziNZjR3V+KQJcowR4G7b1+lHp542RRnZ0iuI6AhGdOkKSyHF4sZbp
-         O56w==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792624698; x=1793229498;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :content-type:mime-version:references:message-id:subject:cc:to:from
-         :date:x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to:content-type;
-        bh=7nCAo4+9lz8Iyt19nkj9TmOxKkMhE+NTyi1XeRL1MPk=;
-        b=neV2CakQ2t1TcfyAm0Acbsp1JHDXrK6aLV/cxCE4jj8Gr3sYqniRwcSLyCRtj97Z+F
-         tBcM1wWpzCJk+90+qOZnQW3PAg3qPlw9tCH2trDICMck3Kq+m2dw+5FVWxn37QjOzLiz
-         ssOEf35WLCURZtn0zmDTnducGwocIlNASsN2RgVzprS7dWvDvH0Lyp/0GlhQ8ZahMp5O
-         QbTnelbEz2d5D9L+axAz0pUZxbZU7ooH7V9yJ/GWk+mXlYvlIbFaCTdCljLI3JFxWDVp
-         taCLYFmL86oBWlBZPMvi0h4f8RBiNMSC/Qa2O3l+q+fECKvCBR21zar1vxW8Jp8Orv/T
-         uKSQ==
-X-Forwarded-Encrypted: i=1; AKwUvBwViYp95TEydAxY3GETWLJEqc9uAPnk+XWp/2TsheYE4rptVP6NuELaY64PoqKv3JR4qjbV8mDun3v1@vger.kernel.org
-X-Gm-Message-State: AFq9FYK0mFW6kJneSW9MdXUcodfXYuRd05bawJRut9iFtVrVVnDGoWnr
-	rEc6AIts/Lo2vaOcrwGzaVFOwh/X0TVYHAGsdIe8LWfcAMECrWUlFYiCGBA2HHVrRA==
-X-Gm-Gg: AYBFou3hLxzzTZ/fEAnnBQln7k2faUSke1ELoe2J88OOCvOmGCjw4Fj6XUPKyhLnV+X
-	lTycEEGEFc3zHwrtvV+qRkFZWbcHyX3stQYiBETSQqAkoo4qpbL07GzWE5cFlvFrbbCLNUw1XT0
-	r6V0fpjR0HROWqxHVj4uhBewawj6XUC9IFviuhNIYJ8lCUSVLBmXD51V7nNfihFx0UVKqcoTUu7
-	uvAauhDhOt9hnyJPaB6thGEKjbiuhhRkbUfnrdFVyA+KACtbS3zB6BSiLMjO0u5SZy7fcjc/3Qd
-	ifvmE0m3SG5h63aVQZHc6gvm7eie11NgnKBZhcgHD8z/v/39ITSGIHdRRPZd+mitu0l+Rd0ZZXA
-	uw9yuMtMknUETIQZkbfUWlZKQ/buKNVmVHBJyH1QJ2AWSZ0UydVUe9llRCCKAX7Aqxj/4S19ihI
-	OBj6aErq/qW2X60bE5gK9j13NEn+ol/7F6wbbdV7gVnfnxLn9xKhS7L72xl/Xdl35kGaIyCcK7A
-	7UXsbliL5NtLFotsTQ2pt+EcW55NTPDcUzeevt843ytEhDT9qdI/BQ1ryZqp6bMytuEOYmW18eK
-	2IHcZR1L16DpxcNCNY6rG3Utt+us8TR0NeELDw==
-X-Received: by 2002:a17:90b:3c8d:b0:3ac:7f4c:a690 with SMTP id 98e67ed59e1d1-3ad86eeb9e6mr2442353a91.35.1792624697709;
-        Wed, 21 Oct 2026 16:18:17 -0700 (PDT)
-Received: from google.com (64.75.127.34.bc.googleusercontent.com. [34.127.75.64])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ad85f62d22sm3123694a91.4.2026.10.21.16.18.16
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 21 Oct 2026 16:18:16 -0700 (PDT)
-Date: Wed, 21 Oct 2026 23:18:13 +0000
-From: David Matlack <dmatlack@google.com>
-To: Pasha Tatashin <pasha.tatashin@soleen.com>
-Cc: Tarun Sahu <tarunsahu@google.com>,
-	Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org,
-	Mike Rapoport <rppt@kernel.org>,
-	Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de,
-	jgg@nvidia.com, robin.murphy@arm.com, loganodell@google.com,
-	oupton@kernel.org, kevin.tian@intel.com, alex@shazbot.org,
-	dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com,
-	will@kernel.org, Alexander Graf <graf@amazon.com>,
-	Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com,
-	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
-	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev,
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
-	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: Re: [RFC PATCH v2 4/4] mm: memfd_luo: Add the 2-bit pair feature
- header
-Message-ID: <atlINfvlXY4wMbpO@google.com>
-References: <20261021152527.375070-1-tarunsahu@google.com>
- <20261021152527.375070-5-tarunsahu@google.com>
- <CA+CK2bCWo7ixrNLKPvqETn3JSFwSNaB2UsPgy9RHVAhWroJURQ@mail.gmail.com>
+	dkim=pass (2048-bit key, unprotected) header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=NlIPjgJY
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=xuJBM9TvgXsIf3Ka7oJ1CMkL+Qwy/tmoOxiaIN/+KUqttZeW9phdfnUflB5P7i9BrHR4eO8scP2Hw5EhhyR21bAb85Uw4xvXsuY4uU8s9P+SK1vFLINcpoNAu7RviPOcr9KTSyOnYrreMwxMk6hSgIhqUFl5NlpjwnQl9/RLEKomPi6YpE1SZsSWVLTZuKBkeH2A0/OYAe3DN1PuMpE9Nd8p2wGvI6em6WuPgeqiIiuW2SzNApFGdjIKHzwjzWfgL3+9xXustIXEZCTX/HmAlSRvvT6ojcCx6IKKtmrgWEms/ZAI8G4cqv0RAlTZAmVu24on4P49kxt1U9kTLJd+zg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=tji9BpzfPpnGONOeoFM3l/SmwLFDtU7X5SHPN1igR+4=;
+ b=l0TKXfPPr5rKfTmo7PpV2U17EBxhJ1O4A7/9KfjtySrIaLtuJcX9J1AElnElsIkjNJxvMCkksKOGt6gk23kh+2zmPy7fqX739WTpZz4qC3s/9ZKokhyilZ/XVUmgionVGr35h/F+jY4M7uSwE5iEYymrGDXGGb0VPQNr/CfrNVkJhcQxFkxSNd8j+gv1Br3irSDM+17w9SRgbXTwwpoQRQPdBO+oKQQMSetvrKKJ/Fl0QPv9PLLAZOEvlnanrcw+pjrgTUxEeCG8PcRW9h0OTjmzMZhwn1J7XTmAUtHHIkWJGKoXTRoWFV84ATC9No7T1uS4x6JyhiurYI709FHzJA==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=tji9BpzfPpnGONOeoFM3l/SmwLFDtU7X5SHPN1igR+4=;
+ b=NlIPjgJYT6gfpjhWZ3TcLVr+3XOYkZTrC7ROQhePiVt9RhX5ZFJ3D/cEDpYH+YxIaPdVFOQzecjqi9Wfz8T+tLw/VYa+Uh+NewC+fR9Ij/7Kg/U+TpCjBYn28qbKN0ZODFXpZNCcTOn9FD/SMaE1EUPlHR3RtoqbvukFF4eYdKxPaL3BkpPf1MV/4CeBarPVahdnBkNQ+cRaECckj7xkYCN2kbW2U2mm6H4PW+1wvA1fUASyC8Sv1hiSs+1kM4AC45YAmCiyeOWX7g5RMZJo9bibBJgxjrDMvVWOdeCX9EG3+9U3q2ymAeWBo3Z4uhMapHfX9cDvi3wy9EkadYBS7Q==
+Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from CHBPR12MB731189.namprd12.prod.outlook.com
+ (2603:10b6:610:33d::12) by PH7PR12MB6696.namprd12.prod.outlook.com
+ (2603:10b6:510:1b3::10) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.522.19; Wed, 21 Oct
+ 2026 23:20:02 +0000
+Received: from CHBPR12MB731189.namprd12.prod.outlook.com
+ ([fe80::b0e5:123d:fe06:e10d]) by CHBPR12MB731189.namprd12.prod.outlook.com
+ ([fe80::b0e5:123d:fe06:e10d%6]) with mapi id 15.21.0546.012; Wed, 21 Oct 2026
+ 23:20:01 +0000
+Date: Wed, 21 Oct 2026 20:20:00 -0300
+From: Jason Gunthorpe <jgg@nvidia.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+	iommu@lists.linux.dev, linux-arch@vger.kernel.org,
+	jacob.pan@linux.microsoft.com, kys@microsoft.com,
+	haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com,
+	tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
+	dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
+	joro@8bytes.org, will@kernel.org, robin.murphy@arm.com,
+	arnd@arndb.de
+Subject: Re: [PATCH V2 4/4] x86/hyperv: Implement root partition IOMMU kernel
+ only driver
+Message-ID: <20261021232000.GW3008132@nvidia.com>
+References: <20260929223622.778617-1-mrathor@linux.microsoft.com>
+ <20260929223622.778617-5-mrathor@linux.microsoft.com>
+ <c01d422c-5277-010b-ff14-dfe5fec6a7bb@linux.microsoft.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <c01d422c-5277-010b-ff14-dfe5fec6a7bb@linux.microsoft.com>
+X-ClientProxiedBy: YT1PR01CA0099.CANPRD01.PROD.OUTLOOK.COM
+ (2603:10b6:b01:2c::8) To CHBPR12MB731189.namprd12.prod.outlook.com
+ (2603:10b6:610:33d::12)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -112,263 +104,68 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CA+CK2bCWo7ixrNLKPvqETn3JSFwSNaB2UsPgy9RHVAhWroJURQ@mail.gmail.com>
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CHBPR12MB731189:EE_|PH7PR12MB6696:EE_
+X-MS-Office365-Filtering-Correlation-Id: 00640d30-3cb5-43d9-16e3-08df2fc9d47b
+X-LD-Processed: 43083d15-7273-40c1-b7db-39efd9ccc17a,ExtAddr
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|366016|1800799024|23010399003|7416014|376014|10067099003|56012099006|18002099003|22082099003|11063799006|4143699003;
+X-Microsoft-Antispam-Message-Info:
+	kSSeT8vDX9I6F99uF7wu0ZfGz4qRSnans6JzZ6v6QZDzpxmeQ5vV9s8D01O9U1Z4SQ+oQtLFKp6E22v6AFjhsrry+3G+SELTor3AjsUHEYzgLBiK4PZosMHTYE33uEBfcu8W6lwJUvbA2VEW2ss0/M40bo1zm3HBLpAcmFl/lHV31F5gwJ4/2h+Ekpf8zjRO5ot8aM6Kwfv6LGW6QpObTlQkjg+ZRnpR4XnLX4n/iD9fIuuXzvAxL6QTbYPiEOiDmBVB2en+JXZKvh2MdIRYkN/gxalaET09tHvWrPu6/L0I4htXKlnhep2UgzS/tQvtR3e0HIng9Dtl8NIe7CXygs3Dtl27GYjRL5RJnoT2XPkdVjtqfuuNVdqZynGHdTuoCl5+nwOUFamjLcvJdfa1O39VRkvL5tVtj5pKiJmCTELZzhAQWJdKN4TLfzHSfJd0QZqjnW/KT1C4N9iA5KZYLKLQMqtcCERkJIaQf+3G5bAalEGdZHYRW3DzSXMhPy+Nsvqzywuyle2L3AWoh1Wffh5F1tRBc5Zx3yzpqZGhiY14QNh4XWXdBFqK5EWE5jL206qIhka+lr2rBbgH1sZvpo1BCzuioC29JHv3mSFT1adIdgve0FTaPm8mq7UI1sJIX6o4iF0K1wmHSe1sQGk2stZ9mjN0npULuymVjPUpYJk=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CHBPR12MB731189.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(1800799024)(23010399003)(7416014)(376014)(10067099003)(56012099006)(18002099003)(22082099003)(11063799006)(4143699003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?7HFlbFaCix7a/5aTskLdOT+0BLpUbYduRQ91YoGv57ZVFqlCkiXufVRV6C/U?=
+ =?us-ascii?Q?gdys8ws6lFH5ITz9sTd2eIWA1t2DNw9+1UVdEY3UYpxT/prZBrUEQJDBAAGO?=
+ =?us-ascii?Q?43ll+/HSprDE+DWxAYhZf6Ih9B6S0m15BZrPfBhEpWJrRFUXU92KkcypmGaN?=
+ =?us-ascii?Q?5Tt6iBJVcRFLN8SIM6Nnpil2Rqpdu4xEUEIQ9x7ZcfJEeuxNYTwhZe5Ox8ER?=
+ =?us-ascii?Q?GjSpczobtvtBrm5ukIvKkE0toEfFzz1TS2Y6A+1lj75TVMkuTZwyDOUK8Pnj?=
+ =?us-ascii?Q?R+34zWzw6NOaNTZCSOr6N9ai0CTlgRGc1oGY9OrlS5fO4O4PbciIAa61hMf7?=
+ =?us-ascii?Q?gCInn10GTwC55xUf4WtG/hzh9oBQRMYHAGeibVQB+k0Eg1vDyjPrunxjvVSl?=
+ =?us-ascii?Q?ZJOUose+v5Ujq4f6x0rbpXJrkyMnkZTqX7iqMzSOzuD+fCLF3ld83qPnnLYp?=
+ =?us-ascii?Q?eFhjdr2yiSCJmjUEeu20RI0qdZGqeGNl6C2KCBP9rKVNjWHRV/qHrC6t2Gnz?=
+ =?us-ascii?Q?0exOJ7J780LAUAkTAePu9bHJmPYG7di5WN/AuGrvoFJ0OV3K0vSVTztqFENc?=
+ =?us-ascii?Q?TN6Q4qKDYJMlvgzCt6YhxTvC8piBmIu0tUrA5qWoyN/cYJQb4C3SvtJVKiTF?=
+ =?us-ascii?Q?8ZTsQdOZQ23EmQT+T720t4fRrNRjW1ZU1MeqodeJHLXM8YNOF/XoeyOz7pSS?=
+ =?us-ascii?Q?9jWke7CteZgFJdLLHlGFV2zd/KPzUnqbX8jNVF6V1axKrbQcPPX2Il4x2b3+?=
+ =?us-ascii?Q?ZJS0J7piah4t8iH9lfQbRllFehRE5PUVa8ND6t5fERMFT4P5t0ZUfep1sdCY?=
+ =?us-ascii?Q?ELyx4c5J5L1n2hEBpfyBMefmoXiDFLbiG27RxBwcKmwhZdmh1yrveynCURxr?=
+ =?us-ascii?Q?uxu6dZz8isVPtgc2vWi1EmOyQ3xKiOvLXagbH5Rzc1ig9P/WGiDAxxgLa03g?=
+ =?us-ascii?Q?09dw1tZDXIVn6Vlg1L+qzsBUe0Yap3eMlGIlk+Y0HmAMoRSueUHzZd2PhbfU?=
+ =?us-ascii?Q?Bh4Rq9rfceMEQxclIrSzS37PV+zJHuMhU+wUni33GqLJ4IYAjJk22MUB55vZ?=
+ =?us-ascii?Q?FsOCVA0KfT9X3a1+hhMu7giru94JQPKu1dOBmSq6DBPfbIHrEoNCHazHizYJ?=
+ =?us-ascii?Q?L4Amx39e9vPE+1IumokM7o1zPiJ/34Z2Behs2V643OFkUvE4ZgZYmm6A1Wnq?=
+ =?us-ascii?Q?5Yb5GomJvT3x1Kdm9PFaa3ftvbGeS4vwn4OzN8JoKlKTf+F5Y9k9kZ0R4Qs0?=
+ =?us-ascii?Q?tRJ6uxOaHfjRxmXSSNpknmj5AgIRaxvkFut4cHJmKsJtjTsWNH0NAyOarBdc?=
+ =?us-ascii?Q?wAAcgPKffNPhKzhb+4ewAs50TOCawm46FJWNTFTHpqG2W9tHR5Yo1YMV2dnU?=
+ =?us-ascii?Q?Kbnk8VHVYfZqrrr65LIXVzewuAcxdd8kS9OjF1v4JkVP5ZGHBjeAtEhomc/S?=
+ =?us-ascii?Q?DmJD25mtBaU6kJjullGVck35M3yBvJkqUqPV6lvSBZVRbHnzYEO8Ix1UmbC4?=
+ =?us-ascii?Q?Flba9tB6ewsWD4i1s/1eORbqAARqPllwdx3/C7/Cm2NQ31gs4kvNpUQ4+y2i?=
+ =?us-ascii?Q?9qIq2Wj4vhZoE40gqGenqwD+kvkxSTEA9BPZFsw+CgCqCcVYQTyBEIcrdhbR?=
+ =?us-ascii?Q?WV0fWKoLhzIQIBXoFiFXcj9mcesz27V0nES85izijTamtkpAj4oqjKhFYu4Z?=
+ =?us-ascii?Q?jgy5XNGaikSa0eEFQ0FDpx9jE/MaeFOS8g/vw/wUfYFlviNW?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 00640d30-3cb5-43d9-16e3-08df2fc9d47b
+X-MS-Exchange-CrossTenant-AuthSource: CHBPR12MB731189.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 21 Oct 2026 23:20:01.0618
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: ax3yk9n/sXVbi5mafITIr4C9/vDVh3ZifqJqNPy21UiJJcuaz29Ye8HcsRR/Zxoi
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: PH7PR12MB6696
 
-On 2026-10-21 01:38 PM, Pasha Tatashin wrote:
-> On Wed, Oct 21, 2026 at 11:25 AM Tarun Sahu <tarunsahu@google.com> wrote:
-> >
-> > Embed the fixed-size 128-byte struct luo_feature_hdr at the start of
-> > struct memfd_luo_ser and define enum memfd_luo_feature
-> > (MEMFD_LUO_FEAT_CORE and MEMFD_LUO_FEAT_MAX) for memfd preservation.
-> >
-> > All current struct memfd_luo_ser fields (pos, size, seals, flags,
-> > nr_folios, folios) and MEMFD_LUO_ALL_SEALS belong to
-> > MEMFD_LUO_FEAT_CORE (LUO_FEAT_REQUIRED in memfd_luo_features). Future
-> > changes add new entries to enum memfd_luo_feature before
-> > MEMFD_LUO_FEAT_MAX and append any new fields to the end of struct
-> > memfd_luo_ser so existing field offsets never shift.
-> >
-> > Signed-off-by: Logan Odell <loganodell@google.com>
-> > Signed-off-by: Tarun Sahu <tarunsahu@google.com>
-> > ---
-> >  include/linux/kho/abi/memfd.h | 35 ++++++++++++++++++++++++++++++-----
-> >  mm/memfd_luo.c                | 14 ++++++++++++++
-> >  2 files changed, 44 insertions(+), 5 deletions(-)
-> >
-> > diff --git a/include/linux/kho/abi/memfd.h b/include/linux/kho/abi/memfd.h
-> > index 371ffd108a79..f0b5235a408d 100644
-> > --- a/include/linux/kho/abi/memfd.h
-> > +++ b/include/linux/kho/abi/memfd.h
-> > @@ -13,6 +13,7 @@
-> >
-> >  #include <linux/types.h>
-> >  #include <linux/kho/abi/kexec_handover.h>
-> > +#include <linux/kho/abi/luo.h>
-> >
-> >  /**
-> >   * DOC: memfd Live Update ABI
-> > @@ -21,11 +22,20 @@
-> >   * reboot using the LUO.
-> >   *
-> >   * The state is serialized into a packed structure `struct memfd_luo_ser`
-> > - * which is handed over to the next kernel via the KHO mechanism.
-> > + * which is handed over to the target kernel via the KHO mechanism.
-> >   *
-> > - * This interface is a contract. Any modification to the structure layout
-> > - * constitutes a breaking change. Such changes require incrementing the
-> > - * version number in the MEMFD_LUO_FH_COMPATIBLE string.
-> > + * This interface is a contract. `struct memfd_luo_ser` starts with a fixed
-> > + * 128-byte `struct luo_feature_hdr`. The relative order and offsets of
-> > + * fields must remain unchanged as features are added or retired: new fields
-> > + * are appended at the end of `struct memfd_luo_ser` under a new feature
-> > + * flag in `enum memfd_luo_feature` (before `MEMFD_LUO_FEAT_MAX`), and
-> > + * retired fields are kept in place so subsequent offsets never shift. In
-> > + * the target kernel, fields of a `LUO_FEAT_REQUIRED` feature are guaranteed
-> > + * present once `luo_feature_hdr_validate()` succeeds, whereas fields of a
-> > + * `LUO_FEAT_OPTIONAL` feature should be accessed only after checking
-> > + * `luo_feature_is_active()`. All current fields (`pos`, `size`, `seals`,
-> > + * `flags`, `nr_folios`, `folios`) and `MEMFD_LUO_ALL_SEALS` belong to
-> > + * `MEMFD_LUO_FEAT_CORE` (`LUO_FEAT_REQUIRED` in `memfd_luo_features`).
-> >   */
-> >
-> >  /**
-> > @@ -58,7 +68,7 @@ struct memfd_luo_folio_ser {
-> >
-> >  /*
-> >   * The set of seals this version supports preserving. If support for any new
-> > - * seals is needed, add it here and bump version.
-> > + * seals is needed, gate them behind a new feature flag.
-> >   */
-> >  #define MEMFD_LUO_ALL_SEALS (F_SEAL_SEAL | \
-> >                              F_SEAL_SHRINK | \
-> > @@ -67,8 +77,22 @@ struct memfd_luo_folio_ser {
-> >                              F_SEAL_FUTURE_WRITE | \
-> >                              F_SEAL_EXEC)
-> >
-> > +/**
-> > + * enum memfd_luo_feature - Feature indices for &struct memfd_luo_ser.
-> > + * @MEMFD_LUO_FEAT_CORE: Core feature covering `pos`, `size`, `seals`, `flags`,
-> > + *                       `nr_folios`, `folios`, and %MEMFD_LUO_ALL_SEALS.
-> > + * @MEMFD_LUO_FEAT_MAX:  Number of defined &enum memfd_luo_feature features.
-> > + */
-> > +enum memfd_luo_feature {
-> > +       MEMFD_LUO_FEAT_CORE = 0,
-> > +       MEMFD_LUO_FEAT_MAX,
-> > +};
-> > +
-> > +static_assert((int)MEMFD_LUO_FEAT_MAX <= LUO_FEAT_MAX);
-> > +
-> >  /**
-> >   * struct memfd_luo_ser - Main serialization structure for a memfd.
-> > + * @features:  ABI feature and size header for memfd_luo_ser.
-> >   * @pos:       The file's current position (f_pos).
-> >   * @size:      The total size of the file in bytes (i_size).
-> >   * @seals:     The seals present on the memfd. The seals are uABI so it is safe
-> > @@ -79,6 +103,7 @@ struct memfd_luo_folio_ser {
-> >   *             struct memfd_luo_folio_ser.
-> >   */
-> >  struct memfd_luo_ser {
-> > +       struct luo_feature_hdr features;
+On Wed, Oct 21, 2026 at 02:36:53PM -0700, Mukesh R wrote:
+> Hi Jason and Joerg,
 > 
-> I have not looked into this yet, but I would prefer to use some kind
-> of macro constructor for serialized structs. That way, they will
-> automatically include the header, making it easier to search the code
-> for what is actually preserved versus what exists only in this kernel.
+> I am going to rebase due to all the patches that went it and crank
+> out a new version. Do you have any more comments/concerns, I think I have
+> addressed all your concerns. Pl lmk.
 
-If you want to know what is preserved don't you just look at
-include/linux/kho/abi?
+You should wait two or three weeks till rc1 comes out at least
 
-> 
-> So, I think something like this:
-> /* Base serialization header: 4 bytes total size, 4 bytes flags */
-> struct luo_ser_hdr {
->     __u32 total_size;
-
-Why do we need the size? I'm not really opposed to it I just don't
-understand what problem it solves.
-
-The luo_ser_hdr is needed for top-level file handler and FLB ser
-structs. Those structs are always dynamically allocated and preserved
-with KHO.
-
-On retrieve, KHO gives you back the blob of memory. You look at the
-header to determine what features are used in the struct, and then
-access the fields associated with those features. At no point do you
-need to check the size.
-
-The only time you need the size is for a KHO block array. You want to
-store the size of the KHO block array elements so that the retrieving
-kernel can correctly initialize the iterator.
-
-e.g. from the PCI base series:
-
-/**
- * struct pci_ser - PCI Subsystem Live Update State
- *
- * This struct tracks state about all devices that are being preserved across
- * a Live Update for the next kernel. It contains only state owned by the PCI
- * core; the state a driver needs to resume its device is preserved separately
- * by that driver.
- *
- * @required_flags: Features that the next kernel must support to take over
- *                  the preserved devices. No flags are currently defined.
- * @optional_flags: Features that the next kernel may ignore if it does not
- *                  support them. No flags are currently defined.
- * @dev_ser_size: The size in bytes of each struct pci_dev_ser in @devices.
- * @nr_devices: The number of devices that were preserved.
- * @devices: Physical address of the first KHO block containing pci_dev_ser.
- */
-struct pci_ser {
-	u64 required_flags;
-	u64 optional_flags;
-	u32 dev_ser_size; <==========
-	u32 nr_devices;
-	u64 devices;
-};
-
->     __u32 flags;
-> };
-> 
-> #define LUO_SER_INIT_HDR(obj, _flags) do {           \
->     (obj)->hdr.total_size = sizeof(*(obj));          \
->     (obj)->hdr.flags = (_flags);                     \
-> } while (0)
-> 
-> #define DECLARE_LUO_SER(name, expected_size, members)       \
->     struct name {                                           \
->         struct luo_ser_hdr hdr;                             \
->         members                                             \
->     };                                                      \
->     static_assert(sizeof(struct name) == (expected_size),   \
->                   "LUO struct " #name " size mismatch!")
-
-Why?
-
-Practically every change to a serialized struct is going to involve
-appending one or more fields to the end of the struct. Asserting the
-size means we have to update the hard-coded size as well every time we
-do that.
-
-Is this to protect against embedded structs accidentally changing?
-
-> 
-> Usage:
-> /*
->  * Header:  8 bytes (hdr: 4 bytes total_size + 4 bytes flags)
->  * Payload: 8 (pos) + 8 (size) + 4 (seals) + 4 (_pad) = 24 bytes
->  * Total:   32 bytes
->  */
-> DECLARE_LUO_SER(memfd_luo_ser, 32,
->     __u64 pos;
->     __u64 size;
->     __u32 seals;
->     __u32 _pad;
-> );
-
-IMO this makes the code harder to read. I think open coding keeps things
-simpler.
-
-struct pci_ser {
-	struct luo_ser_hdr header;
-	__u32 dev_ser_size;
-	__u32 nr_devices;
-	__u64 devices;
-};
-LUO_SER_ASSSERT_SIZE(pci_ser, 32);
-
-> 
-> struct memfd_luo_ser *ser;
-> ...
-> LUO_SER_INIT_HDR(ser, 0);
-> 
-> Thanks,
-> Pasha
-> 
-> >         u64 pos;
-> >         u64 size;
-> >         u32 seals;
-> > diff --git a/mm/memfd_luo.c b/mm/memfd_luo.c
-> > index 64f8b8cb75bd..ea1f4c8cd259 100644
-> > --- a/mm/memfd_luo.c
-> > +++ b/mm/memfd_luo.c
-> > @@ -84,6 +84,10 @@
-> >
-> >  #include "internal.h"
-> >
-> > +static const u8 memfd_luo_features[MEMFD_LUO_FEAT_MAX] = {
-> > +       [MEMFD_LUO_FEAT_CORE] = LUO_FEAT_REQUIRED,
-> > +};
-> > +
-> >  static int memfd_luo_preserve_folios(struct file *file,
-> >                                      struct kho_vmalloc *kho_vmalloc,
-> >                                      struct memfd_luo_folio_ser **out_folios_ser,
-> > @@ -284,6 +288,8 @@ static int memfd_luo_preserve(struct liveupdate_file_op_args *args)
-> >                 goto err_free_ser;
-> >         }
-> >
-> > +       luo_feature_hdr_init(&ser->features, sizeof(*ser),
-> > +                            memfd_luo_features);
-> >         ser->pos = args->file->f_pos;
-> >         inode_size = i_size_read(inode);
-> >
-> > @@ -525,6 +531,14 @@ static int memfd_luo_retrieve(struct liveupdate_file_op_args *args)
-> >         if (!ser)
-> >                 return -EINVAL;
-> >
-> > +       err = luo_feature_hdr_validate(&ser->features, memfd_luo_features);
-> > +       if (err) {
-> > +               pr_err("memfd_luo_ser feature header validation failed (size=%llu, flags[0]=%#llx): %pe\n",
-> > +                      ser->features.size, ser->features.flags[0],
-> > +                      ERR_PTR(err));
-> > +               goto free_ser;
-> > +       }
-> > +
-> >         /* Make sure the file only has seals supported by this version. */
-> >         if (ser->seals & ~MEMFD_LUO_ALL_SEALS) {
-> >                 err = -EOPNOTSUPP;
-> > --
-> > 2.56.0.212.g129ede20d9-goog
-> >
+Jason
