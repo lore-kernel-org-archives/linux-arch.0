@@ -1,80 +1,63 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792563288;
-	b=LE9tIWyCLnWeWd4IOB0VNNfCcfnB8BOpc9Bovq3KHJnwFJa3w5sfG73+5w9leTLgGQgM
-	 mH+vnsHKwCe4TW/lSfWSEekSGzvE7rjcT2e90Fmoxr8evN8ckO9tCboukhMslu95SruyQ
-	 55HAy9lfByhUf9ftrb24+HIPfiTNv7/RnhiHCmlFAbhNzvvbKdEea/702T03YEDqErPal
-	 pggYllND0oIzPolQ1IwOKnBOuJ4DHx1sjRe8xabrMhbdz+z6nzTJFDG4S9vft00dNmwGd
-	 RZ/t02ZYPgq4pxkd4y9iHRZ0Mt0EdPCWdqNRncFTk1foEMgjTHJtA10z5Goz9t8W7iA==
+	t=1792567629;
+	b=dihVvKbNY7wF90QnkiyYL0SBlpvVwS+oNsd0k9zFLKAHe45Uc13osHOGr8JVxhBoBWXM
+	 rIJc35I8DJDDH5hSCPPHdWr3zIuDEvCJGyR46Iq7SqLMKk0l2SgqIndaUrX27vnahZicy
+	 kpbMYNGie/FLG4r4SVPQgRaH1XvZ6pwHaN9kDwi6XUUMcNsB8eIXMCC+w0kpFTHqJwYfL
+	 O7n+W7uhDM+s3C970hI5Ok2M2/cHXwyiM4QGdiBgYX5E/mKTA+NjinF7gg/OCmkP069+i
+	 Qoo3Qu8OwbYWF9xEZ8kXCHEich96vv59zNIJ0N/nNzniSYkMxaXTbsiaz814RfO8NQg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792563288;
-	h=DMARC-Filter:Received:Received:DKIM-Signature:Date:From:To:Cc:
-	 Subject:Message-ID:References:MIME-Version:Content-Type:
-	 Content-Disposition:In-Reply-To;
-	bh=3x3TamlaaK9V9PCuBZqg1dttpYbp4NHVNda75j19VEs=;
-	b=2EfzwPCVgBJbenG5UjSPTXtM7BeNXjTOiDr5tTyLo+VzRTzhs/hUNOX/wpPAb3QhR0IR
-	 dbamqTfTjrL4umUpZBj38lnFrQt06yNhF9nnKgSaoCK0YSTqYZPoC2hBVCaQ9zaOzQW8h
-	 DaxQknZ7BLQ03uS6Hs1PWExOUKZqABmACHhlmvK1A5HZqlJjC9JGmPvRiJPz/xC1eI8Ig
-	 Ysyihlf7SY8kx4coOC/TMBlyxB8rjs5ip0Qdlz/07A8IVEP44TPOM/uV7cs1sQpjJVuNH
-	 8wCZk3z+HbiUA24isuo4hw2w0fyK1MLiSr/VC7zt9nicZEmIgOb/6b5Xxrz3yAfR3AQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792567629;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=Yaahl2NjM7LYJ3/VUSQG13ODgqUJA5kkV/j2CsiAkwA=;
+	b=XYGu2YJSc2wbHEN2A1c96ecnSijursf/xb6KXJE+er174i/zqJP8kNF5zZThSvlkpG7f
+	 XOhKQYCDx+i8dxX32JFhODzN5pp628miDMU9zyneTe23LMUF1LG8x5MszxNZcPGbjPrbv
+	 Wi4CoByi5nGj2PbGabFdKZNGh80pRHDUMaNAzxpFsDEHF9VdRnRE6KNZzRmGMLmcmZ6pC
+	 FPZbfHjDS0mXoMzDuIGqvAfCzygIJrohjRh9T76FZqYH2C+pj2bLlwNyd+3RR04lhIhWM
+	 NWxqyGlgHuzpKsniGg83QtyB7FKmtvX9YdZC0Cn7Qt+Sj77Fp19tvu7kQ9uGgpOvXWw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=arm.com;
-	spf=pass smtp.mailfrom=arm.com;
-	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=Dz1W2m1m;
-	arc=none smtp.remote-ip=217.140.110.172
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 39F35606A32D;
-	Wed, 21 Oct 2026 06:14:42 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 39F35606A32D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bUEsZ5IW;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4206A606A319;
+	Wed, 21 Oct 2026 07:27:08 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=Dz1W2m1m
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id DF9A815A1;
-	Tue, 20 Oct 2026 23:14:37 -0700 (PDT)
-Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 7D69D3F673;
-	Tue, 20 Oct 2026 23:14:36 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1792563281; bh=bY7eaKmWXeEGJZPv0klJ3mm9fvB9sa6YQ58K0dGT+DQ=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=Dz1W2m1mtqieAvvcHZ0PElJP5ck781BRAil8keCt0J0xDmnmsvOtE2z2M/5OD8bJT
-	 x0mY2JIMQy/68/SPz8OHAETC2GSRyy6i0mXuMcfrF0pwBi7AW/wwQj2YV7ClSyJ7P8
-	 z7NHuQtFqmTF4JQhakFU6b9pfZaA/t3mKW3YduKY=
-Date: Wed, 21 Oct 2026 07:14:33 +0100
-From: Yeoreum Yun <yeoreum.yun@arm.com>
-To: Jason Gunthorpe <jgg@nvidia.com>
-Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Alexandre Ghiti <alex@ghiti.fr>,
-	Albert Ou <aou@eecs.berkeley.edu>, Ard Biesheuvel <ardb@kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Jonathan Corbet <corbet@lwn.net>, David Sterba <dsterba@suse.com>,
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
-	linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-	linux-doc@vger.kernel.org, linux-efi@vger.kernel.org,
-	linux-riscv@lists.infradead.org,
-	Mark Rutland <mark.rutland@arm.com>,
-	Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <pjw@kernel.org>,
-	Randy Dunlap <rdunlap@infradead.org>,
-	Simon Glass <sjg@chromium.org>,
-	Shuah Khan <skhan@linuxfoundation.org>,
-	Nick Terrell <terrelln@fb.com>, Will Deacon <will@kernel.org>,
-	Alexandre Ghiti <alexghiti@rivosinc.com>,
-	Conor Dooley <conor.dooley@microchip.com>,
-	Jonathan Cameron <jonathan.cameron@oss.qualcomm.com>,
-	linux-integrity@vger.kernel.org,
-	Palmer Dabbelt <palmer@rivosinc.com>, patches@lists.linux.dev,
-	Piotr =?iso-8859-1?Q?Kr=F3l?= <piotr.krol@3mdeb.com>,
-	Ross Philipson <ross.philipson@gmail.com>,
-	Sami Tolvanen <samitolvanen@google.com>,
-	Song Shuai <songshuaishuai@tinylab.org>
-Subject: Re: [PATCH v2 15/15] efi/arm64: Implement ARM64 DRTM in the stub
-Message-ID: <athYSbJXA96DZK-X@e129823.arm.com>
-References: <0-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
- <15-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
- <atf4ONRM3xbs877y@e129823.arm.com>
- <20261020233435.GJ3008132@nvidia.com>
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bUEsZ5IW
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4F48F1F000CA;
+	Wed, 21 Oct 2026 07:27:08 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1792567628;
+	bh=Yaahl2NjM7LYJ3/VUSQG13ODgqUJA5kkV/j2CsiAkwA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=bUEsZ5IW9a3Szer7bK9RTRwykZPLZWByrbcqBn+bd0n7lP4ZRRuV5OQXQGjOwoy8E
+	 BIYtLTNMkx8NTeMmbPOBJnWZRjkwca+gcJ1h0haQ7prOXdpniffU9ztJAo/CPtxhcl
+	 iAVVU1n60X+gDOtLmaGmW3wQAAiu05os2br3vplaE3SNIZ922wcZXuJMf6DQ8CAFou
+	 4JhAjGFaXE3LG+yhA2TCRhXT5gy9PB4rmZ4KRLa9JQTUL87C5Ox7r7ojsB9kcdE568
+	 EYPrtBF/A2MmJ6LvO0xUa19vYnNWp1tseqSuVUhflIGb996+bdy1xHcA3NUPK49+zR
+	 CV67lqrjbae+Q==
+Date: Wed, 21 Oct 2026 00:27:07 -0700
+From: Wei Liu <wei.liu@kernel.org>
+To: Shradha Gupta <shradhagupta@linux.microsoft.com>
+Cc: mhklinux@outlook.com, wei.liu@kernel.org, catalin.marinas@arm.com,
+	baoquan.he@linux.dev, will@kernel.org, kys@microsoft.com,
+	haiyangz@microsoft.com, decui@microsoft.com, longli@microsoft.com,
+	akpm@linux-foundation.org, rppt@kernel.org,
+	pasha.tatashin@soleen.com, pratyush@kernel.org, tglx@kernel.org,
+	mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com,
+	x86@kernel.org, arnd@arndb.de, hpa@zytor.com, maz@kernel.org,
+	mark.rutland@arm.com, linux-hyperv@vger.kernel.org,
+	kexec@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	broonie@kernel.org, kees@kernel.org, brads@mainlining.org,
+	namjain@linux.microsoft.com
+Subject: Re: [PATCH v4 0/2] hyperv: Run VMBus kexec cleanup from syscore
+ shutdown
+Message-ID: <20261021072707.GH851443@liuwe-devbox-debian-v2.local>
+References: <20261009102215.3360863-1-shradhagupta@linux.microsoft.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -86,48 +69,54 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261020233435.GJ3008132@nvidia.com>
+In-Reply-To: <20261009102215.3360863-1-shradhagupta@linux.microsoft.com>
 
-On Tue, Oct 20, 2026 at 08:34:35PM -0300, Jason Gunthorpe wrote:
-> On Wed, Oct 21, 2026 at 12:24:40AM +0100, Yeoreum Yun wrote:
-> > One small question...
-> > 
-> > [..snipped..]
-> > 
-> > > +void efi_drtm_launch(void)
-> > > +{
-> > > +	if (efi_drtm_policy == EFI_DRTM_OFF)
-> > > +		return;
-> > > +
-> > > +	/*
-> > > +	 * No cache maintenance is required before the launch. v1.4B R42130 in
-> > > +	 * Table 22 "DCE preamble requirements" requires the DRTM_PARAMETERS to
-> > > +	 * be accessible as Normal Write-Back Cacheable, Inner Shareable memory,
-> > > +	 * so the DCE reads them coherently with the writes made above.  R45220
-> > > +	 * in Table 30 "DCE requirements for the DLME" then has the DCE clean
-> > > +	 * and invalidate the whole DLME region to the Point of Coherency before
-> > > +	 * it measures the DLME image, which covers both the Image itself and
-> > > +	 * the handoff struct placed in the DLME region. Thus once we jump into
-> > > +	 * the kernel with MMU and caches off the CPU will see everything the
-> > > +	 * stub wrote.
-> > > +	 */
-> > > +	arm_drtm_dynamic_launch(drtm_cfg.params_addr);
-> > 
-> > After launching, How to get eventlogs for measurement of DLEM if
-> > tpm_read_log_efi() is used? Doesn't it need to concatenate those
-> > event logs from DRTM eventlog in returned DLEM data?
+On Fri, Oct 09, 2026 at 03:22:11AM -0700, Shradha Gupta wrote:
+> Kexec reboot fails on ARM64 Hyper-V guests because the VMBus connection
+> and SynIC CPU hotplug state are not torn down before the secondary CPUs
+> are stopped. Move this cleanup into the VMBus syscore shutdown callback,
+> which runs after device shutdown and before architecture-specific machine
+> shutdown.
 > 
-> My plan is a future series will return them as a discrete log bundle
-> through attestation subsystem. All of the logs will be available
-> consistently that way, CCGL, the EFI and ACPI ones..
+> Patch 1 adds an exported helper for checking whether a normal kexec reboot
+> is in progress. Patch 2 runs the VMBus cleanup from the common syscore
+> shutdown path on x86 and ARM64, removes the old x86 handler interface, and
+> documents the shutdown ordering.
 > 
-> And it will be logically linked to the ROT the DRTM uses in some
-> future ROT agile DRTM flow. So we can tell the difference between a
-> TPM bare metal launch into PCRs and something like a realm launch into
-> REMs.
+> On x86, VMBus teardown now precedes hv_stimer_global_cleanup(). This relies
+> on commit be0cfab740e5 ("clocksource: hyper-v: Remove support for stimer
+> interrupts in message mode"). Older kernels that retain message-mode
+> stimer interrupts need an ARM64-specific backport to preserve the existing
+> x86 ordering.
+> 
+> Changes in v4:
+>   - Document the VMBus kexec cleanup path in the Hyper-V overview.
+>   - Combine adjacent kexec_in_progress checks in the x86 shutdown path.
+> 
+> Changes in v3:
+>   - Use the existing common VMBus syscore operations on all
+>     architectures, as suggested by Michael.
+>   - Remove the x86 handler pointer and the weak setup/remove interface.
+>   - Add an exported read-only helper for modular VMBus builds.
+>   - Correct the Fixes tag to the commit that enabled Hyper-V on ARM64.
+> 
+> Changes in v2:
+>   - Use syscore shutdown instead of an ARM64 machine_shutdown() hook, as
+>     suggested by Catalin.
+> 
+> Shradha Gupta (2):
+>   kexec: Add helper to report an active kexec reboot
+>   Drivers: hv: Run VMBus kexec cleanup from syscore shutdown
+> 
+>  Documentation/virt/hyperv/overview.rst | 12 +++++++-----
+>  arch/x86/kernel/cpu/mshyperv.c         | 27 ++++++---------------------
+>  drivers/hv/hv_common.c                 | 10 ----------
+>  drivers/hv/vmbus_drv.c                 | 22 ++++++++++++++--------
+>  include/asm-generic/mshyperv.h         |  2 --
+>  include/linux/kexec.h                  |  2 ++
+>  kernel/kexec_core.c                    |  7 +++++++
+>  7 files changed, 36 insertions(+), 46 deletions(-)
 
-Make sense. Thanks!
+Applied. Thanks.
 
--- 
-Sincerely,
-Yeoreum Yun
+Wei
