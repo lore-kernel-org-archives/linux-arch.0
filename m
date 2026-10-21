@@ -1,56 +1,57 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=173.212.254.19
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792552537;
-	b=4sYwXOpn/qfImY3Mo+4bD5Z2jD4xlhHV3RmLPPRLcFhR79Qk+Ujga2Ee2HF55dPFSPDj
-	 Yf1Xr/XZGfp4ys++h1vkd4u6QAgbcGbvpcMVHeQVL3yqF+P+8FfYsdhIyN7fMcuEPZLAS
-	 tzsyRpKaAw/ENZRZebfymKo+oizXWv2eYvA//Xm7rU8QufEf3HBo8mZF+uIFT2NDI9IZ7
-	 pud6FbHz/aKJjzaKVWhRviIO3Yhr4G4bfD+t1qZM9FoK8+lvUc03GkBwav2Kek0tzyLxW
-	 IMrnnVeaWkLo3azQyFfzktyb+WftjaxZ5XckqryA5Zo2PgaewbOjlJNavC0RHOOhXMA==
+	t=1792552558;
+	b=XDqidlAGBUKmhuHeKtoeXg7ogOmVmHZVnhhRmkPYbks3TPfgKJBxvlxeAYmfDcjWys7t
+	 O+I+ZoZerAFMammHEoMHptzOhEUt5vIpxzZr2O3p+OywT+7rpKeZevN4hvQWVOspqKnzP
+	 sgpZkeFiyxUWqyaolDpPXqpfrgzUraaMY1wxecfKV2Ch6O69n1bHiR69OFc41LRazlcEW
+	 dU2jLWqAV39TxTRIWneAGjtqt/+2LEvpzFh9+eOX0QCqM23CfB9jX3qfvy/5vhICkY8WE
+	 TNL10qrPKuPvizG7gD0VSjZ6VJtT+NCvV+TPPg0+feNQWX5XES0uZGgnkltdPn6iF6A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792552537;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792552558;
 	h=DMARC-Filter:DKIM-Signature:Received:Message-ID:In-Reply-To:
 	 References:From:Subject:To:Cc:Date;
-	bh=HMd/LhFiSsFuUYgF3DoYFaxx108CwQyplewkGi6fm7o=;
-	b=TM3Nw7VhxK3uRdQTCMX/mdNdO0omuTSTYgwhQ4VlBI4wbq/P5kk8I/oXbPdeYNEPffnU
-	 GpYB9BJsqHLMmhcWpNc4zN9caWWU/0tklVgAnKQQzvZNDQ2nVlvF+K7JxihYjyrSzlkKG
-	 FLj/esZ5c1/zxYF9hQNj9YrKaYr1QHoZrYA0i2ybPAKUg23at5t9bhYGA3kZpO2xPlChE
-	 HcoH9v1zph/Z/DLJnp4HOsRJhtYExof5dkopxg+osu4ikBdIXHkRiuJQ49uhhlRynZ9Rg
-	 Vjru8MmxVW7oSC9fJeDd3mveEWHif8bd9U+lbyFHvcYUOV3Y5HeVvrbSUnuJ4HIzagA==
+	bh=+q6+EegZcpse/x9oPfvspHk2SnKoh5IxT9s6j/JTxbE=;
+	b=AHvl9lU59DR7rlO8NOwru/Dju7EuX7jgCXhqWJcIRSEHaXfHUgqLgs/MBQFFIRAWBmQl
+	 kET5Xffnx/FE+0FeZnH00+Cs2NVhgRCx1QM3NcThDC+k3m1hAR+Gn+WmqPu7ETzST9cfy
+	 tJDAkX/1RBD5vl682cVJ59TlVdNndHghSU+KU25FzMNHiiXQn94dlMHsUM9CBLgP+lJSs
+	 bqXvGr0n4qnJ9r8mh3tQDNcEvD7iHLldXfTjQJeb31rtBRQ+wCxanKIQLuJ6EGsJvuusy
+	 m4ob5ZC6PELZrQmsXlUvNfn0B8JG/d760XImxCqDfW2XNvUq0kTikN8nmvuLqQE1dJQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=tuxist.de;
 	spf=fail smtp.mailfrom=tuxist.de;
-	dkim=pass header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=IgCgCTfj;
+	dkim=pass header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=WLm6Xnsm;
 	arc=none smtp.remote-ip=173.212.254.19
 Received: from groupware.tuxist.de (groupware.tuxist.de [173.212.254.19])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0932D60A2604;
-	Wed, 21 Oct 2026 03:15:36 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0932D60A2604
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E17A760A262E;
+	Wed, 21 Oct 2026 03:15:57 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E17A760A262E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=tuxist.de
 Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=tuxist.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=IgCgCTfj
+	dkim=pass (2048-bit key, unprotected) header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=WLm6Xnsm
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=tuxist.de; s=201705;
-	t=1792552534; bh=V6GrFNZTl5tPKiExMQYs87W29bXvBqYm+WvAZXrbo2s=;
+	t=1792552555; bh=csY9X+C3GBbeXTgADFasB+JIpeOQ0IJngYqXFeoywj4=;
 	h=In-Reply-To:References:From:Subject:To:Cc:Date:From;
-	b=IgCgCTfjR9wrFqrKGOHcuNWIt+r5r0JahUnZSTNWRFLw9lXjiAnyvdkrAIxnacRuI
-	 qObQYVxkMsz19mnkP6AA/ixYKKrDQqvZqmcEQX7vkh1tJwgf59Xrjr9t8ngXbiOT9u
-	 TSiMVQOlsahlUUctR/+clTIdi/39x8OxpVuxn0dQsjCPjDEuuRTjwjc0U9RqByl9Xh
-	 MGyMLHr43T1Fxd+r5135/5ewqb8yeZ1v585ozgi5X8bQ3sGbCmbXZVS6Q3EPL581Ps
-	 PzCqn0r0/EEbGJAuthrWf6pa2PMi7lm0k6O/K7qtPK3GxXcXkbzsWx4Rp0L31+BH3p
-	 W7CzUU9NI3qLg==
+	b=WLm6Xnsme2O0zDf969fQJgTSLAcjcfnNzch5q4ou3l8q/bTjN7Jsn3kWYUhrrJFbC
+	 toaUbYiRQvErtj7KxcWq/DEIUfP7dlTqeQ7ZYchHrdTb3lzcmdJLZpYEttnkaJxKgD
+	 Uge6PuaMsirww+i74AJReawC8WWQFWAoltpon5rWGUK+cb+CzlDAwGW+j2lQlxV+ys
+	 1PQLkx/gOIxyMu1T8Y0HuagxtP6ATBAQ7uIcMXqh32UJm5rSsH5W5BO4P54TKQjIex
+	 5QubnWzjgiSu24CMQeUvQYT+o9jEtliPpCPxBPhl2H1fCKMYvR/HCSBBpWTW4BddFj
+	 EiF4wtpDCszLw==
 Received: from [10.1.1.106] (unknown [10.1.2.1])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by groupware.tuxist.de (Postfix) with ESMTPSA id 064C28A0651;
-	Wed, 21 Oct 2026 05:15:33 +0200 (CEST)
-Message-ID: <3ace21531501a80a31350f9a178828212fc7a224.1792552161.git.jan.koester@tuxist.de>
+	by groupware.tuxist.de (Postfix) with ESMTPSA id DB3FF8A0912;
+	Wed, 21 Oct 2026 05:15:54 +0200 (CEST)
+Message-ID: <42176587b0491de4d74cc6c8dde7e035ffd44661.1792552161.git.jan.koester@tuxist.de>
 In-Reply-To: <cover.1792552161.git.jan.koester@tuxist.de>
 References: <cover.1792552161.git.jan.koester@tuxist.de>
 From: Jan Koester <jan.koester@tuxist.de>
-Subject: [RFC PATCH v2 04/41] net: sock: read sk_uid through a seqcount
+Subject: [RFC PATCH v2 10/41] uidgid: convert between kernel ids and the ids
+ of the *_r system calls
 To: Christian Brauner <brauner@kernel.org>,
     Alexander Viro <viro@zeniv.linux.org.uk>,
     "Serge E. Hallyn" <serge@hallyn.com>
@@ -69,7 +70,7 @@ Cc: Jan Kara <jack@suse.cz>,
     audit@vger.kernel.org,
     keyrings@vger.kernel.org,
     linux-kernel@vger.kernel.org
-Date: Wed, 21 Oct 2026 05:15:24 +0200
+Date: Wed, 21 Oct 2026 05:15:30 +0200
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -79,144 +80,423 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 
-sk_uid is read without a lock, with READ_ONCE(), by the routing lookups
-and the reuseport checks, while sockfs_setattr() may change it. That
-only works for as long as a kuid_t is a single word, which it won't be
-once ids can be UUIDs and GUIDs.
+Add the conversions between kuid_t/kgid_t and __kernel_uid_r_t the new
+system calls need: make_kuid_r(), from_kuid_r() and the never failing
+from_kuid_r_munged() (and the gid variants), and get_kuid_r() and
+put_kuid_r() to copy them from and to userspace.
 
-Add sk_uid_seq next to it: writers bump it around the store and hold
-sk_callback_lock (sock_graft(), sockfs_setattr()) or own the socket
-alone (sock_init_data_uid()); sk_uid() retries until it sees a whole
-id. sk_clone() reads the parent's id the same way rather than relying
-on the copy made by sock_copy().
+get_kuid_r() returns INVALID_UID for "no id" -- a NULL pointer,
+UID_R_NONE, or a classic -1 -- which the set*id_r() and chown_r() calls
+take as "unchanged", like the classic calls take -1. It rejects
+malformed ids: unknown types, nonzero reserved bytes, UUIDs other than
+RFC 9562 version 4, the nil GUID, and UUIDs or GUIDs given from outside
+the initial user namespace.
+
+Also add kuid_str() and kgid_str(), the text form of an id for logs and
+procfs: a classic id in decimal, a UUID as usual, a GUID in braces.
 
 Assisted-by: Claude:claude-opus-5-5
 
 Signed-off-by: Jan Koester <jan.koester@tuxist.de>
 ---
- include/net/sock.h | 28 +++++++++++++++++++++++++---
- net/core/sock.c    |  6 +++++-
- net/socket.c       |  5 +++--
- 3 files changed, 33 insertions(+), 6 deletions(-)
+ include/linux/uidgid.h |  35 +++++
+ kernel/Makefile        |   1 +
+ kernel/uidgid_r.c      | 323 +++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 359 insertions(+)
+ create mode 100644 kernel/uidgid_r.c
 
-diff --git a/include/net/sock.h b/include/net/sock.h
-index 60ea55dc18..0986d94665 100644
---- a/include/net/sock.h
-+++ b/include/net/sock.h
-@@ -294,6 +294,8 @@ struct sk_filter;
-   *	@sk_ack_backlog: current listen backlog
-   *	@sk_max_ack_backlog: listen backlog set in listen()
-   *	@sk_uid: user id of owner
-+  *	@sk_uid_seq: makes lockless reads of @sk_uid see a whole id; writers
-+  *		     hold @sk_callback_lock
-   *	@sk_ino: inode number (zero if orphaned)
-   *	@sk_prefer_busy_poll: prefer busypolling over softirq processing
-   *	@sk_busy_poll_budget: napi processing budget when busypolling
-@@ -509,6 +511,7 @@ struct sock {
- 	u32			sk_priority;
- 	u32			sk_mark;
- 	kuid_t			sk_uid;
-+	seqcount_t		sk_uid_seq;
- 	u16			sk_protocol;
- 	u16			sk_type;
- 	struct dst_entry __rcu	*sk_dst_cache;
-@@ -2109,11 +2112,23 @@ static inline int sk_rx_queue_get(const struct sock *sk)
- 	return -1;
+diff --git a/include/linux/uidgid.h b/include/linux/uidgid.h
+index e1adb50d5d..ac7786f760 100644
+--- a/include/linux/uidgid.h
++++ b/include/linux/uidgid.h
+@@ -180,6 +180,17 @@ static inline u32 kgid_hash(kgid_t gid)
+ 	return __kid_hash(gid.type, __kgid_val(gid), gid.uuid.b);
  }
  
 +/*
-+ * sk_uid is too big for WRITE_ONCE(): writers hold sk_callback_lock (or own
-+ * the socket alone, before it is published) and bump sk_uid_seq around the
-+ * store, so sk_uid() can read it without a lock.
++ * The text form of an id, for logs and procfs: a legacy id as a decimal
++ * number, a UUID as "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" and a GUID in
++ * braces, "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}". KID_STR_LEN includes
++ * the terminating NUL.
 + */
-+static inline void __sk_set_uid(struct sock *sk, kuid_t uid)
++#define KID_STR_LEN 39
++
++char *kuid_str(kuid_t uid, char buf[KID_STR_LEN]);
++char *kgid_str(kgid_t gid, char buf[KID_STR_LEN]);
++
+ #ifdef CONFIG_USER_NS
+ 
+ extern kuid_t make_kuid(struct user_namespace *from, uid_t uid);
+@@ -277,4 +288,28 @@ static inline u32 map_id_up(struct uid_gid_map *map, u32 id)
+ }
+ #endif /* CONFIG_USER_NS */
+ 
++/*
++ * Conversion between kuid_t/kgid_t and the ids of the *_r system calls
++ * (<uapi/linux/uidgid_r.h>), in kernel/uidgid_r.c.
++ */
++struct __kernel_uid_r;
++
++kuid_t make_kuid_r(struct user_namespace *from, const struct __kernel_uid_r *id);
++kgid_t make_kgid_r(struct user_namespace *from, const struct __kernel_uid_r *id);
++bool from_kuid_r(struct user_namespace *to, kuid_t uid, struct __kernel_uid_r *id);
++bool from_kgid_r(struct user_namespace *to, kgid_t gid, struct __kernel_uid_r *id);
++void from_kuid_r_munged(struct user_namespace *to, kuid_t uid,
++			struct __kernel_uid_r *id);
++void from_kgid_r_munged(struct user_namespace *to, kgid_t gid,
++			struct __kernel_uid_r *id);
++
++int get_kuid_r(struct user_namespace *from,
++	       const struct __kernel_uid_r __user *uid, kuid_t *kuid);
++int get_kgid_r(struct user_namespace *from,
++	       const struct __kernel_uid_r __user *gid, kgid_t *kgid);
++int put_kuid_r(struct user_namespace *to, kuid_t kuid,
++	       struct __kernel_uid_r __user *uid);
++int put_kgid_r(struct user_namespace *to, kgid_t kgid,
++	       struct __kernel_uid_r __user *gid);
++
+ #endif /* _LINUX_UIDGID_H */
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 1e1a316735..813ddbf115 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -89,6 +89,7 @@ obj-$(CONFIG_BACKTRACE_SELF_TEST) += backtracetest.o
+ obj-$(CONFIG_COMPAT) += compat.o
+ obj-$(CONFIG_CGROUPS) += cgroup/
+ obj-$(CONFIG_UTS_NS) += utsname.o
++obj-y += uidgid_r.o
+ obj-$(CONFIG_USER_NS) += user_namespace.o
+ obj-$(CONFIG_PID_NS) += pid_namespace.o
+ obj-$(CONFIG_IKCONFIG) += configs.o
+diff --git a/kernel/uidgid_r.c b/kernel/uidgid_r.c
+new file mode 100644
+index 0000000000..d71aecddb2
+--- /dev/null
++++ b/kernel/uidgid_r.c
+@@ -0,0 +1,323 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Conversion between kuid_t/kgid_t and the ids of the *_r system calls
++ * (<uapi/linux/uidgid_r.h>).
++ */
++
++#include <linux/export.h>
++#include <linux/highuid.h>
++#include <linux/sprintf.h>
++#include <linux/string.h>
++#include <linux/uaccess.h>
++#include <linux/uidgid.h>
++#include <linux/uidgid_r.h>
++#include <linux/user_namespace.h>
++
++/*
++ * Whether @id is well formed: a known type, reserved bytes zero, a UUID of
++ * version 4 with the RFC 9562 variant, a GUID other than the nil GUID.
++ */
++static bool kid_r_valid(const struct __kernel_uid_r *id)
 +{
-+	write_seqcount_begin(&sk->sk_uid_seq);
-+	sk->sk_uid = uid;
-+	write_seqcount_end(&sk->sk_uid_seq);
++	switch (id->type) {
++	case UID_R_LEGACY:
++		return !memchr_inv(id->uuid + sizeof(id->legacy), 0,
++				   UID_R_SIZE - sizeof(id->legacy));
++	case UID_R_UUID:
++		return (id->uuid[6] >> 4) == 4 && (id->uuid[8] & 0xc0) == 0x80;
++	case UID_R_GUID:
++		return memchr_inv(id->guid, 0, UID_R_SIZE);
++	}
++	return false;
 +}
 +
- static inline void sk_set_socket(struct sock *sk, struct socket *sock)
- {
- 	WRITE_ONCE(sk->sk_socket, sock);
- 	if (sock) {
--		WRITE_ONCE(sk->sk_uid, SOCK_INODE(sock)->i_uid);
-+		__sk_set_uid(sk, SOCK_INODE(sock)->i_uid);
- 		WRITE_ONCE(sk->sk_ino, SOCK_INODE(sock)->i_ino);
- 	} else {
- 		/* Note: sk_uid is unchanged. */
-@@ -2161,8 +2176,15 @@ static inline u64 sock_i_ino(const struct sock *sk)
- 
- static inline kuid_t sk_uid(const struct sock *sk)
- {
--	/* Paired with WRITE_ONCE() in sockfs_setattr() */
--	return READ_ONCE(sk->sk_uid);
-+	unsigned int seq;
-+	kuid_t uid;
++/*
++ * The kind and 128 bit value of @id for a kuid_t or kgid_t; false if it is
++ * no UUID or GUID or has no mapping in @ns.
++ */
++static bool kid_r_to_128(struct user_namespace *ns,
++			 const struct __kernel_uid_r *id, u32 *type, uuid_t *b)
++{
++	if (!kid_r_valid(id) || ns != &init_user_ns)
++		return false;
++	if (id->type == UID_R_UUID)
++		*type = KID_UUID;
++	else if (id->type == UID_R_GUID)
++		*type = KID_GUID;
++	else
++		return false;
++	memcpy(b->b, id->uuid, UID_R_SIZE);
++	return true;
++}
 +
-+	/* Paired with __sk_set_uid() */
-+	do {
-+		seq = read_seqcount_begin(&sk->sk_uid_seq);
-+		uid = sk->sk_uid;
-+	} while (read_seqcount_retry(&sk->sk_uid_seq, seq));
++static bool kid_128_to_r(struct user_namespace *ns, u32 type, const uuid_t *b,
++			 struct __kernel_uid_r *id)
++{
++	if (ns != &init_user_ns)
++		return false;
++	id->type = type == KID_UUID ? UID_R_UUID : UID_R_GUID;
++	memcpy(id->uuid, b->b, UID_R_SIZE);
++	return true;
++}
++
++/**
++ * make_kuid_r - map a *_r system call uid into a kuid
++ * @from: user namespace the uid is in
++ * @id: the uid
++ *
++ * Return: the kuid, INVALID_UID if @id is malformed, UID_R_NONE or has no
++ * mapping in @from.
++ */
++kuid_t make_kuid_r(struct user_namespace *from, const struct __kernel_uid_r *id)
++{
++	kuid_t uid = INVALID_UID;
++
++	if (id->type == UID_R_LEGACY && kid_r_valid(id))
++		return make_kuid(from, id->legacy);
++	if (!kid_r_to_128(from, id, &uid.type, &uid.uuid))
++		return INVALID_UID;
 +	return uid;
- }
- 
- static inline kuid_t sock_net_uid(const struct net *net, const struct sock *sk)
-diff --git a/net/core/sock.c b/net/core/sock.c
-index e8551df833..300bc75ce1 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -2449,6 +2449,7 @@ static void sk_init_common(struct sock *sk)
- 	skb_queue_head_init(&sk->sk_error_queue);
- 
- 	rwlock_init(&sk->sk_callback_lock);
-+	seqcount_init(&sk->sk_uid_seq);
- 	lockdep_set_class_and_name(&sk->sk_receive_queue.lock,
- 			af_rlock_keys + sk->sk_family,
- 			af_family_rlock_key_strings[sk->sk_family]);
-@@ -2529,6 +2530,8 @@ struct sock *sk_clone(const struct sock *sk, const gfp_t priority,
- 
- 	atomic_set(&newsk->sk_omem_alloc, 0);
- 	sk_init_common(newsk);
-+	/* sock_copy() may have caught a half written sk_uid */
-+	newsk->sk_uid = sk_uid(sk);
- 
- 	newsk->sk_dst_cache	= NULL;
- 	newsk->sk_dst_pending_confirm = 0;
-@@ -3773,7 +3776,7 @@ void sock_init_data_uid(struct socket *sock, struct sock *sk, kuid_t uid)
- 	} else {
- 		RCU_INIT_POINTER(sk->sk_wq, NULL);
- 	}
--	sk->sk_uid	=	uid;
-+	__sk_set_uid(sk, uid);
- 
- 	sk->sk_state_change	=	sock_def_wakeup;
- 	sk->sk_data_ready	=	sock_def_readable;
-@@ -4614,6 +4617,7 @@ static int __init sock_struct_check(void)
- 	CACHELINE_ASSERT_GROUP_MEMBER(struct sock, sock_read_tx, sk_priority);
- 	CACHELINE_ASSERT_GROUP_MEMBER(struct sock, sock_read_tx, sk_mark);
- 	CACHELINE_ASSERT_GROUP_MEMBER(struct sock, sock_read_tx, sk_uid);
-+	CACHELINE_ASSERT_GROUP_MEMBER(struct sock, sock_read_tx, sk_uid_seq);
- 	CACHELINE_ASSERT_GROUP_MEMBER(struct sock, sock_read_tx, sk_protocol);
- 	CACHELINE_ASSERT_GROUP_MEMBER(struct sock, sock_read_tx, sk_dst_cache);
- 	CACHELINE_ASSERT_GROUP_MEMBER(struct sock, sock_read_tx, sk_route_caps);
-diff --git a/net/socket.c b/net/socket.c
-index c05d86e63a..09658f3958 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -679,8 +679,9 @@ static int sockfs_setattr(struct mnt_idmap *idmap,
- 		struct socket *sock = SOCKET_I(d_inode(dentry));
- 
- 		if (sock->sk) {
--			/* Paired with READ_ONCE() in sk_uid() */
--			WRITE_ONCE(sock->sk->sk_uid, iattr->ia_uid);
-+			write_lock_bh(&sock->sk->sk_callback_lock);
-+			__sk_set_uid(sock->sk, iattr->ia_uid);
-+			write_unlock_bh(&sock->sk->sk_callback_lock);
- 		} else {
- 			err = -ENOENT;
- 		}
++}
++EXPORT_SYMBOL(make_kuid_r);
++
++/**
++ * make_kgid_r - map a *_r system call gid into a kgid
++ * @from: user namespace the gid is in
++ * @id: the gid
++ *
++ * Return: the kgid, INVALID_GID if @id is malformed, UID_R_NONE or has no
++ * mapping in @from.
++ */
++kgid_t make_kgid_r(struct user_namespace *from, const struct __kernel_uid_r *id)
++{
++	kgid_t gid = INVALID_GID;
++
++	if (id->type == UID_R_LEGACY && kid_r_valid(id))
++		return make_kgid(from, id->legacy);
++	if (!kid_r_to_128(from, id, &gid.type, &gid.uuid))
++		return INVALID_GID;
++	return gid;
++}
++EXPORT_SYMBOL(make_kgid_r);
++
++/**
++ * from_kuid_r - map a kuid into a *_r system call uid
++ * @to: user namespace the uid is wanted in
++ * @uid: the kuid
++ * @id: the uid, all zero (UID_R_NONE) if there is no mapping
++ *
++ * Return: whether @uid has a mapping in @to.
++ */
++bool from_kuid_r(struct user_namespace *to, kuid_t uid, struct __kernel_uid_r *id)
++{
++	memset(id, 0, sizeof(*id));
++	if (uid_is_legacy(uid)) {
++		uid_t v = from_kuid(to, uid);
++
++		if (v == (uid_t)-1)
++			return false;
++		id->type = UID_R_LEGACY;
++		id->legacy = v;
++		return true;
++	}
++	return kid_128_to_r(to, uid.type, &uid.uuid, id);
++}
++EXPORT_SYMBOL(from_kuid_r);
++
++/**
++ * from_kgid_r - map a kgid into a *_r system call gid
++ * @to: user namespace the gid is wanted in
++ * @gid: the kgid
++ * @id: the gid, all zero (UID_R_NONE) if there is no mapping
++ *
++ * Return: whether @gid has a mapping in @to.
++ */
++bool from_kgid_r(struct user_namespace *to, kgid_t gid, struct __kernel_uid_r *id)
++{
++	memset(id, 0, sizeof(*id));
++	if (gid_is_legacy(gid)) {
++		gid_t v = from_kgid(to, gid);
++
++		if (v == (gid_t)-1)
++			return false;
++		id->type = UID_R_LEGACY;
++		id->legacy = v;
++		return true;
++	}
++	return kid_128_to_r(to, gid.type, &gid.uuid, id);
++}
++EXPORT_SYMBOL(from_kgid_r);
++
++/**
++ * from_kuid_r_munged - map a kuid into a *_r system call uid, never failing
++ * @to: user namespace the uid is wanted in
++ * @uid: the kuid
++ * @id: the uid, overflowuid if @uid has no mapping in @to
++ */
++void from_kuid_r_munged(struct user_namespace *to, kuid_t uid,
++			struct __kernel_uid_r *id)
++{
++	if (!from_kuid_r(to, uid, id)) {
++		id->type = UID_R_LEGACY;
++		id->legacy = overflowuid;
++	}
++}
++EXPORT_SYMBOL(from_kuid_r_munged);
++
++/**
++ * from_kgid_r_munged - map a kgid into a *_r system call gid, never failing
++ * @to: user namespace the gid is wanted in
++ * @gid: the kgid
++ * @id: the gid, overflowgid if @gid has no mapping in @to
++ */
++void from_kgid_r_munged(struct user_namespace *to, kgid_t gid,
++			struct __kernel_uid_r *id)
++{
++	if (!from_kgid_r(to, gid, id)) {
++		id->type = UID_R_LEGACY;
++		id->legacy = overflowgid;
++	}
++}
++EXPORT_SYMBOL(from_kgid_r_munged);
++
++/*
++ * "No id" from userspace: no pointer, UID_R_NONE, or the classic -1. The
++ * set*id_r() and chown_r() calls take it as "leave unchanged".
++ */
++static bool kid_r_is_none(const struct __kernel_uid_r *id)
++{
++	return id->type == UID_R_NONE ||
++	       (id->type == UID_R_LEGACY && id->legacy == (u32)-1);
++}
++
++/**
++ * get_kuid_r - read a uid of a *_r system call from userspace
++ * @from: user namespace the uid is in
++ * @uid: the uid, or NULL
++ * @kuid: the kuid, INVALID_UID for "no id" (NULL, UID_R_NONE or -1)
++ *
++ * Return: 0, -EFAULT, or -EINVAL if the uid is malformed or has no mapping
++ * in @from.
++ */
++int get_kuid_r(struct user_namespace *from,
++	       const struct __kernel_uid_r __user *uid, kuid_t *kuid)
++{
++	struct __kernel_uid_r id;
++
++	*kuid = INVALID_UID;
++	if (!uid)
++		return 0;
++	if (copy_from_user(&id, uid, sizeof(id)))
++		return -EFAULT;
++	if (kid_r_is_none(&id))
++		return 0;
++	*kuid = make_kuid_r(from, &id);
++	return uid_valid(*kuid) ? 0 : -EINVAL;
++}
++EXPORT_SYMBOL(get_kuid_r);
++
++/**
++ * get_kgid_r - read a gid of a *_r system call from userspace
++ * @from: user namespace the gid is in
++ * @gid: the gid, or NULL
++ * @kgid: the kgid, INVALID_GID for "no id" (NULL, UID_R_NONE or -1)
++ *
++ * Return: 0, -EFAULT, or -EINVAL if the gid is malformed or has no mapping
++ * in @from.
++ */
++int get_kgid_r(struct user_namespace *from,
++	       const struct __kernel_uid_r __user *gid, kgid_t *kgid)
++{
++	struct __kernel_uid_r id;
++
++	*kgid = INVALID_GID;
++	if (!gid)
++		return 0;
++	if (copy_from_user(&id, gid, sizeof(id)))
++		return -EFAULT;
++	if (kid_r_is_none(&id))
++		return 0;
++	*kgid = make_kgid_r(from, &id);
++	return gid_valid(*kgid) ? 0 : -EINVAL;
++}
++EXPORT_SYMBOL(get_kgid_r);
++
++/**
++ * put_kuid_r - write a kuid to userspace as a *_r system call uid
++ * @to: user namespace the uid is wanted in
++ * @kuid: the kuid
++ * @uid: where to put it, overflowuid if @kuid has no mapping in @to
++ *
++ * Return: 0 or -EFAULT.
++ */
++int put_kuid_r(struct user_namespace *to, kuid_t kuid,
++	       struct __kernel_uid_r __user *uid)
++{
++	struct __kernel_uid_r id;
++
++	from_kuid_r_munged(to, kuid, &id);
++	return copy_to_user(uid, &id, sizeof(id)) ? -EFAULT : 0;
++}
++EXPORT_SYMBOL(put_kuid_r);
++
++/**
++ * put_kgid_r - write a kgid to userspace as a *_r system call gid
++ * @to: user namespace the gid is wanted in
++ * @kgid: the kgid
++ * @gid: where to put it, overflowgid if @kgid has no mapping in @to
++ *
++ * Return: 0 or -EFAULT.
++ */
++int put_kgid_r(struct user_namespace *to, kgid_t kgid,
++	       struct __kernel_uid_r __user *gid)
++{
++	struct __kernel_uid_r id;
++
++	from_kgid_r_munged(to, kgid, &id);
++	return copy_to_user(gid, &id, sizeof(id)) ? -EFAULT : 0;
++}
++EXPORT_SYMBOL(put_kgid_r);
++
++static char *kid_str(u32 type, u32 legacy, const uuid_t *b, char *buf)
++{
++	switch (type) {
++	case KID_LEGACY:
++		snprintf(buf, KID_STR_LEN, "%u", legacy);
++		break;
++	case KID_UUID:
++		snprintf(buf, KID_STR_LEN, "%pUb", b);
++		break;
++	default:
++		snprintf(buf, KID_STR_LEN, "{%pUl}", b);
++		break;
++	}
++	return buf;
++}
++
++/**
++ * kuid_str - text form of a kuid, for logs and procfs
++ * @uid: the kuid
++ * @buf: buffer of KID_STR_LEN bytes
++ *
++ * Return: @buf, holding @uid in the initial user namespace: a decimal
++ * number, a UUID, or a GUID in braces.
++ */
++char *kuid_str(kuid_t uid, char buf[KID_STR_LEN])
++{
++	return kid_str(uid.type, __kuid_val(uid), &uid.uuid, buf);
++}
++EXPORT_SYMBOL(kuid_str);
++
++/**
++ * kgid_str - text form of a kgid, for logs and procfs
++ * @gid: the kgid
++ * @buf: buffer of KID_STR_LEN bytes
++ *
++ * Return: @buf, holding @gid in the initial user namespace: a decimal
++ * number, a UUID, or a GUID in braces.
++ */
++char *kgid_str(kgid_t gid, char buf[KID_STR_LEN])
++{
++	return kid_str(gid.type, __kgid_val(gid), &gid.uuid, buf);
++}
++EXPORT_SYMBOL(kgid_str);
 -- 
 2.56.0
 
