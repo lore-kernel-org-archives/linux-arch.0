@@ -1,76 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.208.69
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792611332;
-	b=ufCoq2R/QIRZ6S8T2D1dt2C09ozCE7ufH6Im4lAuBabOz2bnvN43Hq9k5v52ZFdzDlTe
-	 KkVZ2pn0VWBZ+PdckHImqgjNqZBJrzlARICtrZ6jXAHKKUH2q27DBngoIoh0dIXa82k+t
-	 Gk9sJB5Yt+DBQ02GXYcGl1ipONpZ48WpQV3nDeWAdHKvm+5Gf7ZS68LvaYIoX40acIPe9
-	 a59WLRD5v/sKN35LnE1TE6trqVK+yPvwjbB/dtXtEe2rN/kFoDjmmC5KnzztBz4FNw3pO
-	 C1CRnSNF9P+e4k/CrQoOVC4IBQbvfNa4UcT8Rz2u0CdGs+Mo1S+MWP4ZMzSYmf8AF7Q==
+	t=1792618623;
+	b=HuQN0RY1chrbxG0CdYkQKlFpLeV3q6kR+ckUi3J+HPlR7xm0Nb6sjCwPI9RKm4sa+P0B
+	 9/Tju7eALgxjPQsFRL4PjZJZ7FabSJkkPFG5ywwk3fFMd8SYu4IkgkRnSXoF46tab+7Lz
+	 +fywsVFFtM2D1ZnOh1ZyeEEEV5MNxuRWynVqAfUbW3iAVNVFBICdacRvu5Tr87U/zz7L6
+	 69jDKP5+dxiqJQfQnJ+yDBEHTXnZ3qDmBp5TTej2garda/8xAtjmUbIAdZUM9NomTnKgA
+	 VlCtqvnTz1AMO5jyYZfpMO72y5YsbXpAl0GMzRkiO3QaUfiJQgfbV+o6kQPY6DcRACA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792611332;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
-	 Mime-Version:References:Message-ID:Subject:From:To:Cc:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=pt5urRMT2WSF8F6D5dXj/zEgDBH8Cy6Wkm/uZuSTaoY=;
-	b=oa3MnbbTxOPztLLgnJLIPs12Ldx+7UdUL5FEb23mGUzc1hJOUDSeRCIUYdpYdjPaLfTB
-	 HWGXJ3FwSd8Xaw+KghK9PHPTQGU24iZ88/uo3FipnX20kFn9h8tiZ9sK34wLbQnMAgQBD
-	 8v/VSJTA0tg00qQGSbKg2YsdVhJDOxVfs90M8Q8J3L2XLNTkSyVbW8Gxg7sNyJYl1xxF8
-	 GeMcRbCeNX/JC+RDnUeaClaEYBmytGfzq4i1J/wsb2PGWyCt5zisnjRMYLaA+M9Cd8ndB
-	 VOJdQ5yWggYY/cB/rEarkXNENh9LbRTQjk0cvHItQeiE+N+c9ZHbg7I1k1GSIUgr4jg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792618623;
+	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
+	 MIME-Version:User-Agent:Subject:Content-Language:To:Cc:References:
+	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding:X-Spam-Status:
+	 X-Spam-Checker-Version;
+	bh=4nWjT99PVm81cq5tCJCUKK6PtMijT0ed/MV7VyHZhag=;
+	b=tprqjoDqgAjQ4hMp8VXPLuwPIwrFmb3QG6R1ClLu4GexQPEQ9YgpcNn6dTfIyBeg9aN5
+	 /bFqWcWpmbPPlBOTddW4dfopxw29AyvMxjZ7AZp9GKECxriWuZvFxg24w4Nzn4BQsUWKY
+	 lKQy40GAP7itMo+uHquLmZ6YLl7Rua+fayZmHFxLor3gkJWm/O7o5uGsTrf2YvxnK3sdt
+	 yPw9CZEbYqdD5nW1i7ANeuJ8X5G8JqGcCXwMHekS7ghrrTuoEAADtqNaX81pqEO61VbSn
+	 +XDl7ZRt9syoWr4lpyZipSn45H1m3UzAt+cJncSW+V3IwU7LShhR9xddbKPdFekGiPA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=google.com;
-	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=srsxHlyP;
-	arc=none smtp.remote-ip=209.85.208.69
-Received: from mail-ed1-f69.google.com (mail-ed1-f69.google.com [209.85.208.69])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4F92F606A31B
-	for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 19:35:31 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 4F92F606A31B
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
+	dmarc=pass header.from=linux.microsoft.com;
+	spf=pass smtp.mailfrom=linux.microsoft.com;
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=HXyQWkPx;
+	arc=none smtp.remote-ip=13.77.154.182
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 4B68B606A31A;
+	Wed, 21 Oct 2026 21:37:02 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 4B68B606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=srsxHlyP
-Received: by mail-ed1-f69.google.com with SMTP id 4fb4d7f45d1cf-6aff6a8ee69so997151a12.1
-        for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 12:35:31 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1792611330; x=1793216130; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:from:subject
-         :message-id:references:mime-version:in-reply-to:date:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=pt5urRMT2WSF8F6D5dXj/zEgDBH8Cy6Wkm/uZuSTaoY=;
-        b=srsxHlyPdeo0YtzEPSQcyIweJ8y4TlQVCgaRxqKCfZG34fIHWaWsTGT1l6iDnnMhwc
-         JMV1CZXht6ZiPYMn7j63ttL8vkJTtZcu6JlZq3+lZHI3jVM3gcVMdBnfWi05aWjRdR38
-         2B5alE9fD/FhF2dDt9LxWJIzb5b3JRKZOLfxNtxYWfR11SBBRZPU9Bu0q+4pTCVmAHPc
-         BHtVYWSonfZ7wqkWpLh74sQ/1kzcB4gYDW14wlitJ4hWIWNyjeRvSTN5YWtLDYXDiMOE
-         W+iRIngsBLdvItvn/pKuJKdthJ+bTzXUb2qI/mVnd1OcmCCNCWF+hI3pHv3QrVTwgEak
-         f39A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792611330; x=1793216130;
-        h=content-transfer-encoding:content-type:cc:to:from:subject
-         :message-id:references:mime-version:in-reply-to:date
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=pt5urRMT2WSF8F6D5dXj/zEgDBH8Cy6Wkm/uZuSTaoY=;
-        b=cEo5jUMOColsRlTCk8pjiiFqJVR6CgwcwwrGeKcRDLKmIlVSIkm5L/Wqkb35IfNBXl
-         vpISwjBMFGIvuBNbHYNnlB4osAUJlfZWfyLw7bMqxSuOcr9cPsR4Ms7VWmEMfpJeAPsn
-         GBRILNeMasJqVhXOMNs6wMMhEOYi/8BSnltK1a7EPwn05Z9rg0gojTyXwJ6J+xTKrguH
-         68G2quXqAFeHwg6NVqZzEZbOFomYjOjlaO1dVnH7UXftDDtTxws2ID7hBhZzxeh4+Kkf
-         CCHiuqulxWpXsnhLzwMcaW4m/SmkcerT+QiW+91nROs7KxB7Z/v+foSouh6DziK8qrRS
-         BI8w==
-X-Forwarded-Encrypted: i=1; AKwUvBxVeeJdYjT6TZoowTWEinjYQfd20YHVtDuFfvJba+jTv12kXks6Evkgbbm9dMQsGCkcr+3JbgulnJq4@vger.kernel.org
-X-Gm-Message-State: AFq9FYLi1DPwSsV4O7NQbRuk2KJtS1TzuoNRa95EPJNv1QdtWPKqGMzn
-	YRVolpsd/7uNHcmDK3Up3zh9mdTIUfvn5r0XdMtfFzPHI+LM72MvtwlQosLOOTk3WfvjM1k9tdf
-	Xm+G8CJTLINT7kETdiA==
-X-Received: from edrm11.prod.google.com ([2002:aa7:d34b:0:b0:6b1:f575:1672])
- (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
- 2002:a05:6402:1cc2:b0:6b1:cd52:5798 with SMTP id 4fb4d7f45d1cf-6b408ef1e43mr1941841a12.42.1792611329210;
- Wed, 21 Oct 2026 12:35:29 -0700 (PDT)
-Date: Wed, 21 Oct 2026 19:35:28 +0000
-In-Reply-To: <CA+CK2bDyk=F7W3J=q3pKCjsr2wy_PLdgqgu+ywp0F5HL=VoMpA@mail.gmail.com>
+	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=HXyQWkPx
+Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 92F8220B7166;
+	Wed, 21 Oct 2026 14:36:46 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 92F8220B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1792618607;
+	bh=4nWjT99PVm81cq5tCJCUKK6PtMijT0ed/MV7VyHZhag=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=HXyQWkPx9cB9CqsHKC8o/KXVFd1NBac0E8kb97MqGMqeA51V6acg3u4/WMhK4LFKu
+	 14HaabkeshTJnu0dnxSdlFEA82SPXq3/t2bJR4saSus9xId6FEW+xfcIPb0obRB1FD
+	 ixsqx+ZtbwHqU0cjouH26TDSBInJX3RiOhyHswUU=
+Message-ID: <c01d422c-5277-010b-ff14-dfe5fec6a7bb@linux.microsoft.com>
+Date: Wed, 21 Oct 2026 14:36:53 -0700
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -79,772 +52,762 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0
-References: <20261021152527.375070-1-tarunsahu@google.com> <20261021152527.375070-2-tarunsahu@google.com>
- <CA+CK2bC_wc4LxvHe0TREbBP7esYW3pcMNtkGK-kqvf6MyvOh2g@mail.gmail.com>
- <9huzik2u6hs5.fsf@tarunix.c.googlers.com> <CA+CK2bDyk=F7W3J=q3pKCjsr2wy_PLdgqgu+ywp0F5HL=VoMpA@mail.gmail.com>
-Message-ID: <9huzld7q4zjz.fsf@tarunix.c.googlers.com>
-Subject: Re: [RFC PATCH v2 1/4] liveupdate: Rename handler compatible to name
-From: tarunsahu@google.com
-To: Pasha Tatashin <pasha.tatashin@soleen.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org, 
-	Mike Rapoport <rppt@kernel.org>, Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de, 
-	David Matlack <dmatlack@google.com>, jgg@nvidia.com, robin.murphy@arm.com, 
-	loganodell@google.com, oupton@kernel.org, kevin.tian@intel.com, 
-	alex@shazbot.org, dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com, 
-	will@kernel.org, Alexander Graf <graf@amazon.com>, Bjorn Helgaas <bhelgaas@google.com>, 
-	baolu.lu@linux.intel.com, linux-arm-kernel@lists.infradead.org, 
-	linux-arch@vger.kernel.org, sagis@google.com, linux-mm@kvack.org, 
-	kvmarm@lists.linux.dev, iommu@lists.linux.dev, linux-pci@vger.kernel.org, 
-	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org, 
-	linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH V2 4/4] x86/hyperv: Implement root partition IOMMU kernel
+ only driver
+Content-Language: en-US
+To: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+ iommu@lists.linux.dev, linux-arch@vger.kernel.org
+Cc: jgg@nvidia.com, jacob.pan@linux.microsoft.com, kys@microsoft.com,
+ haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com,
+ tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
+ dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com, joro@8bytes.org,
+ will@kernel.org, robin.murphy@arm.com, arnd@arndb.de
+References: <20260929223622.778617-1-mrathor@linux.microsoft.com>
+ <20260929223622.778617-5-mrathor@linux.microsoft.com>
+From: Mukesh R <mrathor@linux.microsoft.com>
+In-Reply-To: <20260929223622.778617-5-mrathor@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Pasha Tatashin <pasha.tatashin@soleen.com> writes:
+Hi Jason and Joerg,
 
-> On Wed, Oct 21, 2026 at 2:16=E2=80=AFPM <tarunsahu@google.com> wrote:
->>
->> Pasha Tatashin <pasha.tatashin@soleen.com> writes:
->>
->> > On Wed, Oct 21, 2026 at 11:25=E2=80=AFAM Tarun Sahu <tarunsahu@google.=
-com> wrote:
->> >>
->> >> File handler and File-Lifecycle-Bound (FLB) identifiers name the
->> >
->> > Please use FLB directly, no need to spell it out.
->> >
->> >> registered handler or FLB rather than a monolithic compatibility vers=
-ion.
->> >> Rename compatible to name across LUO headers, structures, and consume=
-rs:
->> >> - struct liveupdate_file_handler and struct luo_file_ser name field
->> >> - LIVEUPDATE_HNDL_NAME_LENGTH (in include/uapi/linux/liveupdate.h) an=
-d
->> >>   MEMFD_LUO_FH_NAME
->> >> - struct liveupdate_flb name field, LIVEUPDATE_FLB_NAME_LENGTH,
->> >>   PCI_LUO_FLB_NAME, and LIVEUPDATE_TEST_FLB_NAME
->> >>
->> >> Signed-off-by: Tarun Sahu <tarunsahu@google.com>
->> >> ---
->> >>  drivers/pci/liveupdate.c        | 10 ++++----
->> >>  include/linux/kho/abi/luo.h     | 26 +++++++++----------
->> >>  include/linux/kho/abi/memfd.h   |  4 +--
->> >>  include/linux/kho/abi/pci.h     |  2 +-
->> >>  include/linux/liveupdate.h      | 18 +++++--------
->> >>  include/uapi/linux/liveupdate.h |  3 +++
->> >>  kernel/liveupdate/luo_file.c    | 45 +++++++++++++++++--------------=
---
->> >>  kernel/liveupdate/luo_flb.c     | 16 ++++++------
->> >>  lib/tests/liveupdate.c          | 22 ++++++++--------
->> >>  mm/memfd_luo.c                  |  2 +-
->> >>  10 files changed, 73 insertions(+), 75 deletions(-)
->> >>
->> >> diff --git a/drivers/pci/liveupdate.c b/drivers/pci/liveupdate.c
->> >> index 51695782ed42..3cf01d7d615c 100644
->> >> --- a/drivers/pci/liveupdate.c
->> >> +++ b/drivers/pci/liveupdate.c
->> >> @@ -424,7 +424,7 @@ static struct liveupdate_flb_ops pci_liveupdate_f=
-lb_ops =3D {
->> >>
->> >>  static struct liveupdate_flb pci_liveupdate_flb =3D {
->> >>         .ops =3D &pci_liveupdate_flb_ops,
->> >> -       .compatible =3D PCI_LUO_FLB_COMPATIBLE,
->> >> +       .name =3D PCI_LUO_FLB_NAME,
->> >>  };
->> >>
->> >>  static void pci_liveupdate_flb_put_outgoing(void)
->> >> @@ -667,13 +667,13 @@ static struct pci_flb_incoming *pci_liveupdate_=
-flb_get_incoming(void)
->> >>
->> >>         /*
->> >>          * Live Update is enabled and there is incoming FLB data, but=
- none of it
->> >> -        * matches pci_liveupdate_flb.compatible.
->> >> +        * matches pci_liveupdate_flb.name.
->> >>          */
->> >>         if (ret =3D=3D -ENOENT)
->> >>                 return NULL;
->> >>
->> >>         /*
->> >> -        * There is incoming FLB data that matches pci_liveupdate_flb=
-.compatible
->> >> +        * There is incoming FLB data that matches pci_liveupdate_flb=
-.name
->> >>          * but retrieve failed (pci_flb_retrieve() returned an error =
-or LUO
->> >>          * failed to acquire a reference to pci_liveupdate_flb_ops.ow=
-ner).
->> >>          */
->> >> @@ -998,7 +998,7 @@ EXPORT_SYMBOL_GPL(pci_liveupdate_is_incoming);
->> >>   */
->> >>  int pci_liveupdate_register_flb(struct liveupdate_file_handler *fh)
->> >>  {
->> >> -       pr_debug("Registering file handler \"%s\"\n", fh->compatible)=
-;
->> >> +       pr_debug("Registering file handler \"%s\"\n", fh->name);
->> >>         return liveupdate_register_flb(fh, &pci_liveupdate_flb);
->> >>  }
->> >>  EXPORT_SYMBOL_GPL(pci_liveupdate_register_flb);
->> >> @@ -1009,7 +1009,7 @@ EXPORT_SYMBOL_GPL(pci_liveupdate_register_flb);
->> >>   */
->> >>  void pci_liveupdate_unregister_flb(struct liveupdate_file_handler *f=
-h)
->> >>  {
->> >> -       pr_debug("Unregistering file handler \"%s\"\n", fh->compatibl=
-e);
->> >> +       pr_debug("Unregistering file handler \"%s\"\n", fh->name);
->> >>         liveupdate_unregister_flb(fh, &pci_liveupdate_flb);
->> >>  }
->> >>  EXPORT_SYMBOL_GPL(pci_liveupdate_unregister_flb);
->> >> diff --git a/include/linux/kho/abi/luo.h b/include/linux/kho/abi/luo.=
-h
->> >> index 288076de6d4a..5fb2f46425d7 100644
->> >> --- a/include/linux/kho/abi/luo.h
->> >> +++ b/include/linux/kho/abi/luo.h
->> >> @@ -39,9 +39,9 @@
->> >>   *     Multiple blocks are linked via the `next` field in the header=
-.
->> >>   *
->> >>   *   - struct luo_file_ser:
->> >> - *     Metadata for a single preserved file. Contains the `compatibl=
-e` string to
->> >> - *     find the correct handler in the new kernel, a user-provided `=
-token` for
->> >> - *     identification, and an opaque `data` handle for the handler t=
-o use.
->> >> + *     Metadata for a single preserved file. Contains the handler `n=
-ame` string
->> >> + *     to find the correct handler in the new kernel, a user-provide=
-d `token`
->> >> + *     for identification, and an opaque `data` handle for the handl=
-er to use.
->> >>   *
->> >>   *   - struct luo_flb_header_ser:
->> >>   *     Header for the FLB array. Contains the total page count of th=
-e
->> >> @@ -49,9 +49,9 @@
->> >>   *     that follow.
->> >>   *
->> >>   *   - struct luo_flb_ser:
->> >> - *     Metadata for a single preserved global object. Contains its `=
-name`
->> >> - *     (compatible string), an opaque `data` handle, and the `count`
->> >> - *     number of files depending on it.
->> >> + *     Metadata for a single preserved global object. Contains its F=
-LB `name`
->> >> + *     string, an opaque `data` handle, and the `count` number of fi=
-les
->> >> + *     depending on it.
->> >>   */
->> >>
->> >>  #ifndef _LINUX_KHO_ABI_LUO_H
->> >> @@ -84,18 +84,16 @@ struct luo_ser {
->> >>         u64 flbs_pa;
->> >>  } __packed;
->> >>
->> >> -#define LIVEUPDATE_HNDL_COMPAT_LENGTH  48
->> >> -
->> >>  /**
->> >>   * struct luo_file_ser - Represents the serialized preserves files.
->> >> - * @compatible:  File handler compatible string.
->> >> + * @name:        File handler name string.
->> >
->> > We are renaming from cpmaptible to name; I am not sure that is
->> > necessary. We can still use compatible for the same purpose as name.
->> > Unless it really bothers people, but for me 'compatible' works just
->> > the same.
->>
->> Yes it is necessary, For example if we have two handler for a single
->> subsystem. We should refer it by handle this or handler that, not like
->> handler with compatible string this and handler with compatible string
->> that.
->
-> I still feel like compatability makes more sense to me. Take an example:
->
-> We have two file handlers for memfd (i.e., FH_OLD and FH_NEW): one has
-> compatibility =3D "memfd", and the other has compatibility =3D
-> "memfd_next_generation". The user chooses one of them to preserve the
-> memfd data, and the compatibility string is saved alongside the FD.
-> When the next kernel scans through the registered file handlers, it
-> must find exactly one that is compatible with the preserved data.
+I am going to rebase due to all the patches that went it and crank
+out a new version. Do you have any more comments/concerns, I think I have
+addressed all your concerns. Pl lmk.
 
-I will open this for vote.
+Thanks,
+-Mukesh
 
-I can debate this in the following way:
 
- We have two file handlers for memfd (i.e., FH_OLD and FH_NEW): one has
- name =3D "memfd", and the other has name =3D "memfd_next_generation". The
- user chooses one of them to preserve the memfd data, and the name
- string is saved alongside the FD.
+On 9/29/26 15:36, Mukesh R wrote:
+> Add a new file to implement a kernel only virtual IOMMU that works
+> with Microsoft Hyper-V hypervisor (aka MSHV) on privileged VMs aka
+> root VMs. The hypervisor claims the IOMMU upon boot, and this driver
+> communicates with it for creating and deleting paging domains, attaching
+> of devices, mapping and unmapping of pages, etc. During boot, hypervisor
+> automatically creates identity and blocked domains, so there is no need
+> to do hypercalls to create them.  This is a kernel only driver and only
+> supported on baremetal root (and not L1VH root) without any guest passthru
+> support. Support for guest device passthru will be added incrementally.
+> 
+> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+> ---
+>   arch/x86/kernel/pci-dma.c            |   2 +
+>   drivers/iommu/Kconfig                |   1 +
+>   drivers/iommu/hyperv/Kconfig         |  15 +
+>   drivers/iommu/hyperv/Makefile        |   1 +
+>   drivers/iommu/hyperv/hv-iommu-root.c | 608 +++++++++++++++++++++++++++
+>   include/asm-generic/mshyperv.h       |   3 +
+>   include/linux/hyperv.h               |   6 +
+>   7 files changed, 636 insertions(+)
+>   create mode 100644 drivers/iommu/hyperv/Kconfig
+>   create mode 100644 drivers/iommu/hyperv/hv-iommu-root.c
+> 
+> diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
+> index 6267363e0189..37fed8c7a8c2 100644
+> --- a/arch/x86/kernel/pci-dma.c
+> +++ b/arch/x86/kernel/pci-dma.c
+> @@ -8,6 +8,7 @@
+>   #include <linux/gfp.h>
+>   #include <linux/pci.h>
+>   #include <linux/amd-iommu.h>
+> +#include <linux/hyperv.h>
+>   
+>   #include <asm/proto.h>
+>   #include <asm/dma.h>
+> @@ -103,6 +104,7 @@ void __init pci_iommu_alloc(void)
+>   	}
+>   	pci_swiotlb_detect();
+>   	gart_iommu_hole_init();
+> +	hv_iommu_detect();
+>   	amd_iommu_detect();
+>   	detect_intel_iommu();
+>   	swiotlb_init(x86_swiotlb_enable, x86_swiotlb_flags);
+> diff --git a/drivers/iommu/Kconfig b/drivers/iommu/Kconfig
+> index 6e07bd69467a..3e410e0f3e1d 100644
+> --- a/drivers/iommu/Kconfig
+> +++ b/drivers/iommu/Kconfig
+> @@ -197,6 +197,7 @@ source "drivers/iommu/arm/Kconfig"
+>   source "drivers/iommu/intel/Kconfig"
+>   source "drivers/iommu/iommufd/Kconfig"
+>   source "drivers/iommu/riscv/Kconfig"
+> +source "drivers/iommu/hyperv/Kconfig"
+>   
+>   config IRQ_REMAP
+>   	bool "Support for Interrupt Remapping"
+> diff --git a/drivers/iommu/hyperv/Kconfig b/drivers/iommu/hyperv/Kconfig
+> new file mode 100644
+> index 000000000000..b9be8de4d901
+> --- /dev/null
+> +++ b/drivers/iommu/hyperv/Kconfig
+> @@ -0,0 +1,15 @@
+> +# SPDX-License-Identifier: GPL-2.0-only
+> +# Hyper-V IOMMU support
+> +
+> +config HYPERV_ROOT_IOMMU
+> +	bool "Hyper-V IOMMU Device in root partition"
+> +	depends on HYPERV && X86 && PCI_MSI && MSHV_ROOT
+> +	select IOMMU_API
+> +	default HYPERV
+> +	help
+> +	  This enables Hyper-V pseudo IOMMU device. When running as privileged
+> +          VM aka root on Microsoft Hyper-V hypervisor, this must be enabled
+> +          for doing any PCI passthru of devices to guest VMs. This applies to
+> +          both PFs and VFs. When enabling this, it is best to disable amd/intel
+> +          iommus via: intel_iommu=off amd_iommu=off as the hypervisor really
+> +          owns the iommu.
+> diff --git a/drivers/iommu/hyperv/Makefile b/drivers/iommu/hyperv/Makefile
+> index 6ef0ef97f3dd..c7e7d0dac2a4 100644
+> --- a/drivers/iommu/hyperv/Makefile
+> +++ b/drivers/iommu/hyperv/Makefile
+> @@ -1,2 +1,3 @@
+>   # SPDX-License-Identifier: GPL-2.0
+>   obj-$(CONFIG_IRQ_REMAP) += hv-irq-remap-x86.o
+> +obj-$(CONFIG_HYPERV_ROOT_IOMMU) += hv-iommu-root.o
+> diff --git a/drivers/iommu/hyperv/hv-iommu-root.c b/drivers/iommu/hyperv/hv-iommu-root.c
+> new file mode 100644
+> index 000000000000..2502db5624de
+> --- /dev/null
+> +++ b/drivers/iommu/hyperv/hv-iommu-root.c
+> @@ -0,0 +1,608 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +/*
+> + * Hyper-V root vIOMMU driver.
+> + * Copyright (C) 2026, Microsoft, Inc.
+> + */
+> +#include <linux/pci.h>
+> +#include <linux/dma-map-ops.h>
+> +#include <linux/interval_tree.h>
+> +#include <linux/hyperv.h>
+> +#include <asm/iommu.h>
+> +#include <asm/mshyperv.h>
+> +#include "../dma-iommu.h"
+> +
+> +static dma_addr_t hv_iommu_max_iova;
+> +static struct iommu_domain_ops hv_paging_domain_ops;
+> +
+> +/* IOMMU device that we export to the world. MSHV supports max of one */
+> +static struct iommu_device hv_virt_iommu;
+> +
+> +struct hv_iommu_domain {
+> +	struct iommu_domain iommu_dom;
+> +	u32 domid_num;			      /* as opposed to domain_id.type */
+> +	spinlock_t mappings_lock;	      /* protects mappings_tree */
+> +	struct rb_root_cached mappings_tree;  /* iova to pa lookup tree */
+> +};
+> +
+> +#define to_hv_domain(d) container_of(d, struct hv_iommu_domain, iommu_dom)
+> +
+> +struct hv_iommu_mapping {
+> +	phys_addr_t paddr;
+> +	struct interval_tree_node iova;
+> +	u32 flags;
+> +};
+> +
+> +/*
+> + * By default, during boot the hypervisor creates one Stage 2 (S2) default
+> + * domain. It has two types:
+> + *   S2 default: access to entire root partition memory. This for the host
+> + *		 maps to IOMMU_DOMAIN_IDENTITY in the iommu subsystem, and
+> + *		 is called HV_DEVICE_DOMAIN_ID_S2_DEFAULT in the hypervisor.
+> + *   S2 NULL: Blocks everything, ie, IOMMU_DOMAIN_BLOCKED in linux.
+> + */
+> +
+> +/*
+> + * Create dummy domains to correspond to hypervisor prebuilt default identity
+> + * and null domains (dummy because we do not make hypercalls to create them).
+> + */
+> +static struct hv_iommu_domain hv_def_identity_dom;
+> +static struct hv_iommu_domain hv_def_blocked_dom;
+> +
+> +/*
+> + * The hypervisor owns the IOMMU. As such it will choose the best page size
+> + * and whenever possible use larger page sizes automatically. The map gpa
+> + * hypercall to map the iova however currently uses only 4K pfns as input.
+> + * So we specify 4K as the IOMMU PAGE_SIZE.
+> + */
+> +#define HV_IOMMU_PGSIZES SZ_4K
+> +
+> +static DEFINE_IDA(hv_iommu_domids);   /* unique numeric ids for new domains */
+> +
+> +static bool hv_iommu_capable(struct device *dev, enum iommu_cap cap)
+> +{
+> +	switch (cap) {
+> +	case IOMMU_CAP_CACHE_COHERENCY:
+> +		return true;
+> +	default:
+> +		return false;
+> +	}
+> +}
+> +
+> +static int hv_iommu_add_tree_mapping(struct hv_iommu_domain *hvdom, ulong iova,
+> +				     phys_addr_t paddr, size_t size, u32 flags)
+> +{
+> +	ulong irqflags;
+> +	struct hv_iommu_mapping *mapping;
+> +
+> +	mapping = kzalloc_obj(struct hv_iommu_mapping, GFP_ATOMIC);
+> +	if (!mapping)
+> +		return -ENOMEM;
+> +
+> +	mapping->paddr = paddr;
+> +	mapping->iova.start = iova;
+> +	mapping->iova.last = iova + size - 1;
+> +	mapping->flags = flags;
+> +
+> +	spin_lock_irqsave(&hvdom->mappings_lock, irqflags);
+> +	interval_tree_insert(&mapping->iova, &hvdom->mappings_tree);
+> +	spin_unlock_irqrestore(&hvdom->mappings_lock, irqflags);
+> +
+> +	return 0;
+> +}
+> +
+> +/* If size == 0, then last = ULONG_MAX. With iova 0, will remove everything */
+> +static size_t hv_iommu_del_tree_mappings(struct hv_iommu_domain *hvdom,
+> +					 ulong iova, size_t size)
+> +{
+> +	ulong flags;
+> +	size_t unmapped = 0;
+> +	ulong last = iova + size - 1;
+> +	struct hv_iommu_mapping *mapping = NULL;
+> +	struct interval_tree_node *node, *next;
+> +
+> +	spin_lock_irqsave(&hvdom->mappings_lock, flags);
+> +	next = interval_tree_iter_first(&hvdom->mappings_tree, iova, last);
+> +	while (next) {
+> +		node = next;
+> +		mapping = container_of(node, struct hv_iommu_mapping, iova);
+> +		next = interval_tree_iter_next(node, iova, last);
+> +
+> +		/* Splitting of a mapping is not supported at present */
+> +		if (mapping->iova.start < iova)
+> +			break;
+> +
+> +		unmapped += mapping->iova.last - mapping->iova.start + 1;
+> +
+> +		interval_tree_remove(node, &hvdom->mappings_tree);
+> +		kfree(mapping);
+> +	}
+> +	spin_unlock_irqrestore(&hvdom->mappings_lock, flags);
+> +
+> +	return unmapped;
+> +}
+> +
+> +/* Create a new device domain in the hypervisor */
+> +static int hv_iommu_create_hyp_devdom(struct hv_iommu_domain *hvdom)
+> +{
+> +	u64 status;
+> +	struct hv_input_device_domain *ddp;
+> +	struct hv_input_create_device_domain *input;
+> +	ulong flags;
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	ddp = &input->device_domain;
+> +	ddp->partition_id = HV_PARTITION_ID_SELF;
+> +	ddp->domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	ddp->domain_id.id = hvdom->domid_num;
+> +
+> +	input->create_device_domain_flags.forward_progress_required = 1;
+> +	input->create_device_domain_flags.inherit_owning_vtl = 0;
+> +
+> +	status = hv_do_hypercall(HVCALL_CREATE_DEVICE_DOMAIN, input, NULL);
+> +
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "\n");
+> +
+> +	return hv_result_to_errno(status);
+> +}
+> +
+> +static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
+> +{
+> +	struct hv_iommu_domain *hvdom;
+> +	int rc;
+> +
+> +	if (!dev_is_pci(dev))
+> +		return NULL;
+> +
+> +	hvdom = kzalloc_obj(struct hv_iommu_domain);
+> +	if (hvdom == NULL)
+> +		return ERR_PTR(-ENOMEM);
+> +
+> +	spin_lock_init(&hvdom->mappings_lock);
+> +	hvdom->mappings_tree = RB_ROOT_CACHED;
+> +
+> +	rc = ida_alloc_range(&hv_iommu_domids,
+> +			     HV_DEVICE_DOMAIN_ID_S2_DEFAULT + 1,
+> +			     HV_DEVICE_DOMAIN_ID_S2_NULL - 1, GFP_KERNEL);
+> +	if (rc < 0)
+> +		goto out_err;
+> +
+> +	hvdom->domid_num = rc;
+> +	hvdom->iommu_dom.pgsize_bitmap = HV_IOMMU_PGSIZES;
+> +	hvdom->iommu_dom.geometry.aperture_start = 0;
+> +	hvdom->iommu_dom.geometry.aperture_end = hv_iommu_max_iova;
+> +	hvdom->iommu_dom.geometry.force_aperture = true;
+> +	hvdom->iommu_dom.ops = &hv_paging_domain_ops;
+> +
+> +	rc = hv_iommu_create_hyp_devdom(hvdom);
+> +	if (rc)
+> +		goto out_err1;
+> +
+> +	return &hvdom->iommu_dom;
+> +
+> +out_err1:
+> +	ida_free(&hv_iommu_domids, hvdom->domid_num);
+> +out_err:
+> +	kfree(hvdom);
+> +	return ERR_PTR(rc);
+> +}
+> +
+> +static void hv_iommu_domain_free(struct iommu_domain *immdom)
+> +{
+> +	ulong flags;
+> +	u64 status;
+> +	struct hv_input_delete_device_domain *input;
+> +	struct hv_input_device_domain *ddp;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +
+> +	/* Cleanup any remaining. 0 for size results in ULONG_MAX as the last */
+> +	hv_iommu_del_tree_mappings(hvdom, 0, 0);
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	ddp = &input->device_domain;
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	ddp->partition_id = HV_PARTITION_ID_SELF;
+> +	ddp->domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	ddp->domain_id.id = hvdom->domid_num;
+> +
+> +	status = hv_do_hypercall(HVCALL_DELETE_DEVICE_DOMAIN, input,
+> +				 NULL);
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "\n");
+> +
+> +	ida_free(&hv_iommu_domids, hvdom->domid_num);
+> +	kfree(hvdom);
+> +}
+> +
+> +/*
+> + * Attach a device to the default domain, or the null domain, or to a domain
+> + * previously created in the hypervisor.
+> + */
+> +static int hv_iommu_att_dev2dom(struct hv_iommu_domain *hvdom,
+> +				struct pci_dev *pdev)
+> +{
+> +	ulong flags;
+> +	u64 status;
+> +	struct hv_input_attach_device_domain *input;
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	/* For null domain, hvdom->domid_num == HV_DEVICE_DOMAIN_ID_S2_NULL */
+> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
+> +	input->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	input->device_domain.domain_id.id = hvdom->domid_num;
+> +
+> +	input->device_id.as_uint64 = hv_build_devid_type_pci(pdev);
+> +
+> +	status = hv_do_hypercall(HVCALL_ATTACH_DEVICE_DOMAIN, input, NULL);
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "\n");
+> +
+> +	return hv_result_to_errno(status);
+> +}
+> +
+> +static int hv_iommu_attach_dev(struct iommu_domain *immdom, struct device *dev,
+> +			       struct iommu_domain *old)
+> +{
+> +	struct pci_dev *pdev;
+> +	int rc;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +
+> +	pdev = to_pci_dev(dev);
+> +
+> +	rc = hv_iommu_att_dev2dom(hvdom, pdev);
+> +	if (rc)
+> +		WARN(1, "Failed to attach pdev:%s\n", pci_name(pdev));
+> +
+> +	return rc;
+> +}
+> +
+> +static u64 hv_iommu_unmap_batch(u32 domid_num, ulong iova, u16 count)
+> +{
+> +	ulong flags;
+> +	struct hv_input_unmap_device_gpa_pages *input;
+> +	u64 status;
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
+> +	input->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	input->device_domain.domain_id.id = domid_num;
+> +	input->target_device_va_base = iova;
+> +
+> +	status = hv_do_rep_hypercall(HVCALL_UNMAP_DEVICE_GPA_PAGES, count,
+> +				     0, input, NULL);
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "iova:0x%lx count:0x%x\n", iova, count);
+> +
+> +	return status;
+> +}
+> +
+> +static size_t hv_iommu_hyp_unmap_pages(struct iommu_domain *immdom, ulong iova,
+> +				       size_t size)
+> +{
+> +	u64 status;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +	size_t tot_done = 0;
+> +	ulong npages = size >> HV_HYP_PAGE_SHIFT;
+> +
+> +	while (npages) {
+> +		int done, count = min(npages, HV_REP_COUNT_MAX);
+> +
+> +		status = hv_iommu_unmap_batch(hvdom->domid_num, iova, count);
+> +
+> +		done = hv_repcomp(status);
+> +		tot_done += done;
+> +		npages -= done;
+> +		iova += done << HV_HYP_PAGE_SHIFT;
+> +
+> +		if (!hv_result_success(status))
+> +			break;
+> +	}
+> +
+> +	return tot_done << HV_HYP_PAGE_SHIFT;
+> +}
+> +
+> +static size_t hv_iommu_unmap_pages(struct iommu_domain *immdom, ulong iova,
+> +				   size_t pgsize, size_t pgcount,
+> +				   struct iommu_iotlb_gather *gather)
+> +{
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +	size_t unmap_sz, size = pgsize * pgcount;
+> +
+> +	/* For valid input, the hypervisor guarantees unmap will succeed */
+> +	unmap_sz = hv_iommu_hyp_unmap_pages(immdom, iova, size);
+> +	if (unmap_sz != size)
+> +		WARN(1, "Failed to unmap device gpa(%lx/%lx)\n", unmap_sz,
+> +		     size);
+> +
+> +	size = hv_iommu_del_tree_mappings(hvdom, iova, unmap_sz);
+> +	if (size != unmap_sz)
+> +		pr_err("%s: could not delete tree mappings (%lx:%lx/%lx)\n",
+> +		       __func__, iova, unmap_sz, size);
+> +
+> +	return size;
+> +}
+> +
+> +/* Return: must return exact status from the hypercall without changes */
+> +static u64 hv_iommu_map_pgs(struct hv_iommu_domain *hvdom, ulong iova,
+> +			    phys_addr_t paddr, ulong npages, u32 map_flags)
+> +{
+> +	u64 status;
+> +	int i;
+> +	struct hv_input_map_device_gpa_pages *input;
+> +	unsigned long flags, pfn;
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
+> +	input->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	input->device_domain.domain_id.id = hvdom->domid_num;
+> +	input->map_flags = map_flags;
+> +	input->target_device_va_base = iova;
+> +
+> +	pfn = paddr >> HV_HYP_PAGE_SHIFT;
+> +	for (i = 0; i < npages; i++, pfn++)
+> +		input->gpa_page_list[i] = pfn;
+> +
+> +	status = hv_do_rep_hypercall(HVCALL_MAP_DEVICE_GPA_PAGES, npages, 0,
+> +				     input, NULL);
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "npgs:%lx paddr:%llx iova:%lx mf:0x%x\n",
+> +			      npages, paddr, iova, map_flags);
+> +	return status;
+> +}
+> +
+> +#define HV_MAP_DEVICE_GPA_BATCH_SIZE   \
+> +	((HV_HYP_PAGE_SIZE - sizeof(struct hv_input_map_device_gpa_pages)) \
+> +			/ sizeof(u64))
+> +
+> +/* NB: cond_resched() is in vfio_iommu_map() */
+> +static int hv_iommu_map_pages(struct iommu_domain *immdom, ulong iova,
+> +			      phys_addr_t paddr, size_t pgsize, size_t pgcount,
+> +			      int prot, gfp_t gfp, size_t *mapped)
+> +{
+> +	u32 map_flags;
+> +	int ret;
+> +	u64 status = 0;
+> +	ulong npages, sav_iova = iova, done = 0;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +	size_t size = pgsize * pgcount;
+> +
+> +	map_flags = HV_MAP_GPA_READABLE;	/* required */
+> +	map_flags |= prot & IOMMU_WRITE ? HV_MAP_GPA_WRITABLE : 0;
+> +
+> +	ret = hv_iommu_add_tree_mapping(hvdom, iova, paddr, size, map_flags);
+> +	if (ret)
+> +		return ret;
+> +
+> +	npages = size >> HV_HYP_PAGE_SHIFT;
+> +	while (done < npages) {
+> +		ulong completed, remain = npages - done;
+> +
+> +		remain = min(remain, HV_MAP_DEVICE_GPA_BATCH_SIZE);
+> +
+> +		status = hv_iommu_map_pgs(hvdom, iova, paddr, remain,
+> +					  map_flags);
+> +
+> +		completed = hv_repcomp(status);
+> +		done = done + completed;
+> +		iova = iova + (completed << HV_HYP_PAGE_SHIFT);
+> +		paddr = paddr + (completed << HV_HYP_PAGE_SHIFT);
+> +
+> +		if (hv_result_needs_memory(status)) {
+> +			ret = hv_call_deposit_pages(NUMA_NO_NODE,
+> +						    hv_current_partition_id,
+> +						    4, gfp);
+> +			if (ret)
+> +				break;
+> +			continue;
+> +		}
+> +		if (!hv_result_success(status))
+> +			break;
+> +	}
+> +
+> +	if (hv_result_success(status)) {
+> +		if (mapped)
+> +			*mapped = size;
+> +	} else {
+> +		size_t done_size = done << HV_HYP_PAGE_SHIFT;
+> +
+> +		hv_status_err(status, "pgs:%lx/%lx iova:%lx\n", done, npages,
+> +			      sav_iova);
+> +
+> +		hv_iommu_del_tree_mappings(hvdom, sav_iova, size);
+> +
+> +		/* Hypervisor guarantees unmap will succeed here */
+> +		hv_iommu_hyp_unmap_pages(immdom, sav_iova, done_size);
+> +
+> +		if (mapped)
+> +			*mapped = 0;
+> +	}
+> +
+> +	return hv_result_to_errno(status);
+> +}
+> +
+> +static phys_addr_t hv_iommu_iova_to_phys(struct iommu_domain *immdom,
+> +					 dma_addr_t iova)
+> +{
+> +	unsigned long flags;
+> +	struct hv_iommu_mapping *mapping;
+> +	struct interval_tree_node *node;
+> +	u64 paddr = 0;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +
+> +	spin_lock_irqsave(&hvdom->mappings_lock, flags);
+> +	node = interval_tree_iter_first(&hvdom->mappings_tree, iova, iova);
+> +	if (node) {
+> +		mapping = container_of(node, struct hv_iommu_mapping, iova);
+> +		paddr = mapping->paddr + (iova - mapping->iova.start);
+> +	}
+> +	spin_unlock_irqrestore(&hvdom->mappings_lock, flags);
+> +
+> +	return paddr;
+> +}
+> +
+> +static struct iommu_device *hv_iommu_probe_device(struct device *dev)
+> +{
+> +	if (!dev_is_pci(dev))
+> +		return ERR_PTR(-ENODEV);
+> +
+> +	return &hv_virt_iommu;
+> +}
+> +
+> +static void hv_iommu_get_resv_regions(struct device *dev,
+> +				      struct list_head *head)
+> +{
+> +	struct iommu_resv_region *reg;
+> +
+> +	/* reserve the entire LAPIC region */
+> +	reg = iommu_alloc_resv_region(0xfee00000, SZ_1M, 0, IOMMU_RESV_MSI,
+> +				      GFP_KERNEL);
+> +	if (reg)
+> +		list_add_tail(&reg->list, head);
+> +}
+> +
+> +static struct iommu_domain_ops hv_paging_domain_ops = {
+> +	.attach_dev = hv_iommu_attach_dev,
+> +	.map_pages = hv_iommu_map_pages,
+> +	.unmap_pages = hv_iommu_unmap_pages,
+> +	.iova_to_phys = hv_iommu_iova_to_phys,
+> +	.free = hv_iommu_domain_free,
+> +};
+> +
+> +static struct iommu_ops hv_iommu_ops = {
+> +	.capable	    = hv_iommu_capable,
+> +	.domain_alloc_paging	= hv_iommu_domain_alloc_paging,
+> +	.probe_device	    = hv_iommu_probe_device,
+> +	.device_group	    = pci_device_group,
+> +	.get_resv_regions   = hv_iommu_get_resv_regions,
+> +	.owner		    = THIS_MODULE,
+> +	.identity_domain    = &hv_def_identity_dom.iommu_dom,
+> +	.blocked_domain     = &hv_def_blocked_dom.iommu_dom,
+> +	.release_domain     = &hv_def_blocked_dom.iommu_dom,
+> +};
+> +
+> +static const struct iommu_domain_ops hv_special_domain_ops = {
+> +	.attach_dev = hv_iommu_attach_dev,
+> +};
+> +
+> +static void __init hv_initialize_special_domains(void)
+> +{
+> +	hv_def_identity_dom.iommu_dom.type = IOMMU_DOMAIN_IDENTITY;
+> +	hv_def_identity_dom.iommu_dom.ops = &hv_special_domain_ops;
+> +	hv_def_identity_dom.iommu_dom.owner = &hv_iommu_ops;
+> +	hv_def_identity_dom.domid_num = HV_DEVICE_DOMAIN_ID_S2_DEFAULT; /* 0 */
+> +
+> +	hv_def_blocked_dom.iommu_dom.type = IOMMU_DOMAIN_BLOCKED;
+> +	hv_def_blocked_dom.iommu_dom.ops = &hv_special_domain_ops;
+> +	hv_def_blocked_dom.iommu_dom.owner = &hv_iommu_ops;
+> +	hv_def_blocked_dom.domid_num = HV_DEVICE_DOMAIN_ID_S2_NULL; /* INTMAX */
+> +}
+> +
+> +/*
+> + * In general, the hypervisor does not support the capabilities hypercall for
+> + * root partitions, an exception was made for max_iova_width. For IOMMU cap,
+> + * hv_iommu_detect() below checks for HV_DEVICE_DOMAIN_AVAILABLE which
+> + * supersedes HV_IOMMU_CAP_PRESENT. As for the pgsize_bitmap cap, see comment
+> + * above HV_IOMMU_PGSIZES.
+> + */
+> +static int hv_iommu_get_caps(struct hv_output_get_iommu_capabilities *caps)
+> +{
+> +	u64 status;
+> +	unsigned long flags;
+> +	struct hv_input_get_iommu_capabilities *input;
+> +	struct hv_output_get_iommu_capabilities *output;
+> +
+> +	local_irq_save(flags);
+> +
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	output = *this_cpu_ptr(hyperv_pcpu_output_arg);
+> +	memset(input, 0, sizeof(*input));
+> +	input->partition_id = HV_PARTITION_ID_SELF;
+> +	status = hv_do_hypercall(HVCALL_GET_IOMMU_CAPABILITIES, input, output);
+> +	*caps = *output;
+> +
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "\n");
+> +
+> +	return hv_result_to_errno(status);
+> +}
+> +
+> +static int __init hv_iommu_init(void)
+> +{
+> +	int rc;
+> +	struct iommu_device *iommup = &hv_virt_iommu;
+> +	struct hv_output_get_iommu_capabilities caps;
+> +
+> +	if (!hv_is_hyperv_initialized())
+> +		return -ENODEV;
+> +
+> +	rc = hv_iommu_get_caps(&caps);
+> +	if (rc)
+> +		return rc;
+> +
+> +	hv_iommu_max_iova = DMA_BIT_MASK(caps.max_iova_width);
+> +
+> +	/* This must come before iommu_device_register() because the latter
+> +	 * calls into the hooks.
+> +	 */
+> +	hv_initialize_special_domains();
+> +
+> +	rc = iommu_device_sysfs_add(iommup, NULL, NULL, "%s", "hyperv-iommu");
+> +	if (rc) {
+> +		pr_err("Hyper-V: iommu_device_sysfs_add failed: %d\n", rc);
+> +		return rc;
+> +	}
+> +
+> +	rc = iommu_device_register(iommup, &hv_iommu_ops, NULL);
+> +	if (rc) {
+> +		pr_err("Hyper-V: iommu_device_register failed: %d\n", rc);
+> +		goto err_sysfs_remove;
+> +	}
+> +
+> +	pr_info("Hyper-V IOMMU initialized\n");
+> +
+> +	return 0;
+> +
+> +err_sysfs_remove:
+> +	iommu_device_sysfs_remove(iommup);
+> +	return rc;
+> +}
+> +
+> +void __init hv_iommu_detect(void)
+> +{
+> +	if (no_iommu || iommu_detected || hv_l1vh_partition())
+> +		return;
+> +
+> +	if (!(ms_hyperv.misc_features & HV_DEVICE_DOMAIN_AVAILABLE))
+> +		return;
+> +
+> +	iommu_detected = 1;
+> +	x86_init.iommu.iommu_init = hv_iommu_init;
+> +
+> +	pci_request_acs();
+> +}
+> diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+> index af65dd3e3725..a35e30b87815 100644
+> --- a/include/asm-generic/mshyperv.h
+> +++ b/include/asm-generic/mshyperv.h
+> @@ -28,6 +28,9 @@
+>   
+>   #define VTPM_BASE_ADDRESS 0xfed40000
+>   
+> +#define HV_REP_COUNT_MAX        \
+> +	(HV_HYPERCALL_REP_COMP_MASK >> HV_HYPERCALL_REP_COMP_OFFSET)
+> +
+>   enum hv_partition_type {
+>   	HV_PARTITION_TYPE_GUEST,
+>   	HV_PARTITION_TYPE_ROOT,
+> diff --git a/include/linux/hyperv.h b/include/linux/hyperv.h
+> index 9e109d91aa14..01a69f88cfa7 100644
+> --- a/include/linux/hyperv.h
+> +++ b/include/linux/hyperv.h
+> @@ -1783,4 +1783,10 @@ static inline unsigned long virt_to_hvpfn(void *addr)
+>   #define HVPFN_DOWN(x)	((x) >> HV_HYP_PAGE_SHIFT)
+>   #define page_to_hvpfn(page)	(page_to_pfn(page) * NR_HV_HYP_PAGES_IN_PAGE)
+>   
+> +#ifdef CONFIG_HYPERV_ROOT_IOMMU
+> +void __init hv_iommu_detect(void);
+> +#else
+> +static inline void hv_iommu_detect(void) { }
+> +#endif /* CONFIG_HYPERV_ROOT_IOMMU */
+> +
+>   #endif /* _HYPERV_H */
 
- When the next kernel scans through the registered file handlers, it
- must find exactly one whose name matches with the preserved data.
-
- name here is the identity of the handler which feels like "In target
- kernel, Find this handler to operate on the payload." and compatiblility
- feels like "find the handler in the target kernel for which the payload is
- compatible with."
-
- Based on LPC discussion, if current handler gives up to support
- anything new without breaking backward compatiblity. Then only, we
- should have a new handler.
-
- So New handler is new identity for a same subsystem. While compatiblity
- string sounds feasible when comparing among all different kind of
- subsystem handlers.
-
-~Tarun
-
->
-> Pasha
->
->>
->> It ease the conversation and people will understand it quickly with
->> name.
->>
->> ~Tarun
->>
->> >
->> >>   * @data:        Private data
->> >>   * @token:       User provided token for this file
->> >>   *
->> >>   * If this structure is modified, `LUO_ABI_COMPATIBLE` must be updat=
-ed.
->> >>   */
->> >>  struct luo_file_ser {
->> >> -       char compatible[LIVEUPDATE_HNDL_COMPAT_LENGTH];
->> >> +       char name[LIVEUPDATE_HNDL_NAME_LENGTH];
->> >>         u64 data;
->> >>         u64 token;
->> >>  } __packed;
->> >> @@ -134,7 +132,7 @@ struct luo_session_ser {
->> >>  } __packed;
->> >
->> > Unreleated to this patch, but should be handled by this work, let's
->> > remove all the '__packed' attributes, the are not needed, we will
->> > explicitly fill in all the holes, with reserved fields.
->> >
->> >>
->> >>  /* The max size is set so it can be reliably used during in serializ=
-ation */
->> >> -#define LIVEUPDATE_FLB_COMPAT_LENGTH   48
->> >> +#define LIVEUPDATE_FLB_NAME_LENGTH     48
->> >>
->> >>  /**
->> >>   * struct luo_flb_header_ser - Header for the serialized FLB data bl=
-ock.
->> >> @@ -156,7 +154,7 @@ struct luo_flb_header_ser {
->> >>
->> >>  /**
->> >>   * struct luo_flb_ser - Represents the serialized state of a single =
-FLB object.
->> >> - * @name:    The unique compatibility string of the FLB object, used=
- to find the
->> >> + * @name:    The unique name string of the FLB object, used to find =
-the
->> >>   *           corresponding &struct liveupdate_flb handler in the new=
- kernel.
->> >>   * @data:    The opaque u64 handle returned by the FLB's .preserve()=
- operation
->> >>   *           in the old kernel. This handle encapsulates the entire =
-state needed
->> >> @@ -172,14 +170,14 @@ struct luo_flb_header_ser {
->> >>   * If this structure is modified, `LUO_ABI_COMPATIBLE` must be updat=
-ed.
->> >>   */
->> >>  struct luo_flb_ser {
->> >> -       char name[LIVEUPDATE_FLB_COMPAT_LENGTH];
->> >> +       char name[LIVEUPDATE_FLB_NAME_LENGTH];
->> >>         u64 data;
->> >>         u64 count;
->> >>  } __packed;
->> >>
->> >>  /* Kernel Live Update Test ABI */
->> >>  #ifdef CONFIG_LIVEUPDATE_TEST
->> >> -#define LIVEUPDATE_TEST_FLB_COMPATIBLE(i)      "liveupdate-test-flb-=
-v" #i
->> >> +#define LIVEUPDATE_TEST_FLB_NAME(i)    "liveupdate-test-flb-v" #i
->> >>  #endif
->> >>
->> >>  #endif /* _LINUX_KHO_ABI_LUO_H */
->> >> diff --git a/include/linux/kho/abi/memfd.h b/include/linux/kho/abi/me=
-mfd.h
->> >> index 08b10fea2afc..371ffd108a79 100644
->> >> --- a/include/linux/kho/abi/memfd.h
->> >> +++ b/include/linux/kho/abi/memfd.h
->> >> @@ -87,7 +87,7 @@ struct memfd_luo_ser {
->> >>         struct kho_vmalloc folios;
->> >>  } __packed;
->> >>
->> >> -/* The compatibility string for memfd file handler */
->> >> -#define MEMFD_LUO_FH_COMPATIBLE        "memfd-v2"
->> >> +/* The name string for memfd file handler */
->> >> +#define MEMFD_LUO_FH_NAME      "memfd-v2"
->> >>
->> >>  #endif /* _LINUX_KHO_ABI_MEMFD_H */
->> >> diff --git a/include/linux/kho/abi/pci.h b/include/linux/kho/abi/pci.=
-h
->> >> index 9485ed73c351..973ca5b26dbd 100644
->> >> --- a/include/linux/kho/abi/pci.h
->> >> +++ b/include/linux/kho/abi/pci.h
->> >> @@ -23,7 +23,7 @@
->> >>   * incrementing the version number in the PCI_LUO_FLB_VERSION number=
-.
->> >>   */
->> >>
->> >> -#define PCI_LUO_FLB_COMPATIBLE "pci"
->> >> +#define PCI_LUO_FLB_NAME "pci"
->> >>  #define PCI_LUO_FLB_VERSION 2
->> >>
->> >>  /**
->> >> diff --git a/include/linux/liveupdate.h b/include/linux/liveupdate.h
->> >> index 6051abc0612c..475da5fc22ee 100644
->> >> --- a/include/linux/liveupdate.h
->> >> +++ b/include/linux/liveupdate.h
->> >> @@ -90,10 +90,8 @@ struct liveupdate_file_ops {
->> >>  /**
->> >>   * struct liveupdate_file_handler - Represents a handler for a live-=
-updatable file type.
->> >>   * @ops:                Callback functions
->> >> - * @compatible:         The compatibility string (e.g., "memfd-v1", =
-"vfiofd-v1")
->> >> - *                      that uniquely identifies the file type this =
-handler
->> >> - *                      supports. This is matched against the compat=
-ible string
->> >> - *                      associated with individual &struct file inst=
-ances.
->> >> + * @name:               Unique handler name string (e.g., "memfd-v2"=
-), matched
->> >> + *                      against &struct luo_file_ser.name in the tar=
-get kernel.
->> >>   *
->> >>   * Modules that want to support live update for specific file types =
-should
->> >>   * register an instance of this structure. LUO uses this registratio=
-n to
->> >> @@ -102,7 +100,7 @@ struct liveupdate_file_ops {
->> >>   */
->> >>  struct liveupdate_file_handler {
->> >>         const struct liveupdate_file_ops *ops;
->> >> -       const char compatible[LIVEUPDATE_HNDL_COMPAT_LENGTH];
->> >> +       const char name[LIVEUPDATE_HNDL_NAME_LENGTH];
->> >>
->> >>         /* private: */
->> >>
->> >> @@ -209,11 +207,9 @@ struct luo_flb_private {
->> >>  /**
->> >>   * struct liveupdate_flb - A global definition for a shared data obj=
-ect.
->> >>   * @ops:         Callback functions
->> >> - * @compatible:  The compatibility string (e.g., "iommu-core-v1"
->> >> - *               that uniquely identifies the FLB type this handler
->> >> - *               supports. This is matched against the compatible st=
-ring
->> >> - *               associated with individual &struct liveupdate_flb
->> >> - *               instances.
->> >> + * @name:        The FLB name string (e.g., "iommu-core-v1") that un=
-iquely
->> >> + *               identifies this FLB type. In the target kernel, it =
-is
->> >> + *               matched against the name stored in &struct luo_flb_=
-ser.
->> >>   *
->> >>   * This struct is the "template" that a driver registers to define a=
- shared,
->> >>   * file-lifecycle-bound object. The actual runtime state (the live o=
-bject,
->> >> @@ -221,7 +217,7 @@ struct luo_flb_private {
->> >>   */
->> >>  struct liveupdate_flb {
->> >>         const struct liveupdate_flb_ops *ops;
->> >> -       const char compatible[LIVEUPDATE_FLB_COMPAT_LENGTH];
->> >> +       const char name[LIVEUPDATE_FLB_NAME_LENGTH];
->> >>
->> >>         /* private: */
->> >>         struct luo_flb_private __private private;
->> >> diff --git a/include/uapi/linux/liveupdate.h b/include/uapi/linux/liv=
-eupdate.h
->> >> index 4043d4038712..509c6236720d 100644
->> >> --- a/include/uapi/linux/liveupdate.h
->> >> +++ b/include/uapi/linux/liveupdate.h
->> >> @@ -46,6 +46,9 @@
->> >>  /* The maximum length of session name including null termination */
->> >>  #define LIVEUPDATE_SESSION_NAME_LENGTH 64
->> >>
->> >> +/* The maximum length of file handler name including null terminatio=
-n */
->> >> +#define LIVEUPDATE_HNDL_NAME_LENGTH 48
->> >> +
->> >>  /* The /dev/liveupdate ioctl commands */
->> >>  enum {
->> >>         LIVEUPDATE_CMD_BASE =3D 0x00,
->> >> diff --git a/kernel/liveupdate/luo_file.c b/kernel/liveupdate/luo_fil=
-e.c
->> >> index a39992da504f..fb81239bedf3 100644
->> >> --- a/kernel/liveupdate/luo_file.c
->> >> +++ b/kernel/liveupdate/luo_file.c
->> >> @@ -50,7 +50,7 @@
->> >>   *
->> >>   * 2. Freeze (Pre-Reboot): Just before the kexec, luo_file_freeze() =
-is called.
->> >>   *    It iterates through all preserved files, calls their respectiv=
-e .freeze()
->> >> - *    operation, and serializes their final metadata (compatible str=
-ing, token,
->> >> + *    operation, and serializes their final metadata (handler name, =
-token,
->> >>   *    and data handle) into a contiguous memory block for KHO.
->> >>   *
->> >>   * 3. Deserialize: After kexec, luo_file_deserialize() runs when ses=
-sion gets
->> >> @@ -220,7 +220,7 @@ static bool luo_token_is_used(struct luo_file_set=
- *file_set, u64 token)
->> >>   * 1. Validates that the @token is not already in use within the fil=
-e_set.
->> >>   * 2. Ensures the file_set's memory for files serialization is alloc=
-ated
->> >>   *    (allocates if needed).
->> >> - * 3. Iterates through registered handlers, calling can_preserve() t=
-o find one
->> >> + * 3. Iterates through registered handlers, calling .can_preserve() =
-to find one
->> >>   *    compatible with the given @fd.
->> >>   * 4. Calls the handler's .preserve() operation, which saves the fil=
-e's state
->> >>   *    and returns an opaque private data handle.
->> >> @@ -238,7 +238,7 @@ static bool luo_token_is_used(struct luo_file_set=
- *file_set, u64 token)
->> >>   *         -EBUSY if the file descriptor is already preserved by ano=
-ther session.
->> >>   *         -EBADF if the file descriptor is invalid.
->> >>   *         -ENOSPC if the file_set is full.
->> >> - *         -ENOENT if no compatible handler is found.
->> >> + *         -ENOENT if no compatible handler is found for the file ty=
-pe.
->> >>   *         -ENOMEM on memory allocation failure.
->> >>   *         Other erros might be returned by .preserve().
->> >>   */
->> >> @@ -456,9 +456,10 @@ static void __luo_file_unfreeze(struct luo_file_=
-set *file_set,
->> >>   *    private data handle during this step.
->> >>   *
->> >>   * 2. Serializes Metadata: After a successful freeze, it copies the =
-final file
->> >> - *    metadata=E2=80=94the handler's compatible string, the user tok=
-en, and the final
->> >> - *    private data handle=E2=80=94into the pre-allocated contiguous =
-memory buffer
->> >> - *    (file_set->files) that will be handed over to the next kernel =
-via KHO.
->> >> + *    metadata - the handler's name string, the user token, and the =
-final
->> >> + *    private data handle - into the pre-allocated contiguous memory=
- buffer
->> >> + *    (file_set->files) that will be handed over to the target kerne=
-l via
->> >> + *    KHO.
->> >>   *
->> >>   * Error Handling (Rollback):
->> >>   * This function is atomic. If any handler's .freeze() operation fai=
-ls, the
->> >> @@ -495,13 +496,13 @@ int luo_file_freeze(struct luo_file_set *file_s=
-et,
->> >>                 err =3D luo_file_freeze_one(file_set, luo_file);
->> >>                 if (err < 0) {
->> >>                         pr_warn("Freeze failed for token[%#0llx] hand=
-ler[%s] err[%pe]\n",
->> >> -                               luo_file->token, luo_file->fh->compat=
-ible,
->> >> +                               luo_file->token, luo_file->fh->name,
->> >>                                 ERR_PTR(err));
->> >>                         goto err_unfreeze;
->> >>                 }
->> >>
->> >> -               strscpy(file_ser->compatible, luo_file->fh->compatibl=
-e,
->> >> -                       sizeof(file_ser->compatible));
->> >> +               strscpy(file_ser->name, luo_file->fh->name,
->> >> +                       sizeof(file_ser->name));
->> >>                 file_ser->data =3D luo_file->serialized_data;
->> >>                 file_ser->token =3D luo_file->token;
->> >>         }
->> >> @@ -747,7 +748,7 @@ static int luo_file_deserialize_one(struct luo_fi=
-le_set *file_set,
->> >>
->> >>         down_read(&luo_register_rwlock);
->> >>         list_private_for_each_entry(fh, &luo_file_handler_list, list)=
- {
->> >> -               if (!strcmp(fh->compatible, ser->compatible)) {
->> >> +               if (!strcmp(fh->name, ser->name)) {
->> >>                         if (try_module_get(fh->ops->owner))
->> >>                                 handler_found =3D true;
->> >>                         break;
->> >> @@ -756,9 +757,9 @@ static int luo_file_deserialize_one(struct luo_fi=
-le_set *file_set,
->> >>         up_read(&luo_register_rwlock);
->> >>
->> >>         if (!handler_found) {
->> >> -               pr_warn("No registered handler for compatible '%.*s'\=
-n",
->> >> -                       (int)sizeof(ser->compatible),
->> >> -                       ser->compatible);
->> >> +               pr_warn("No registered handler for name '%.*s'\n",
->> >> +                       (int)sizeof(ser->name),
->> >> +                       ser->name);
->> >>                 return -ENOENT;
->> >>         }
->> >>
->> >> @@ -789,9 +790,9 @@ static int luo_file_deserialize_one(struct luo_fi=
-le_set *file_set,
->> >>   * in-memory linked list of 'struct luo_file' instances.
->> >>   *
->> >>   * For each serialized entry, it performs the following steps:
->> >> - *   1. Reads the 'compatible' string.
->> >> + *   1. Reads the handler 'name' string.
->> >>   *   2. Searches the global list of registered file handlers for one=
- that
->> >> - *      matches the compatible string.
->> >> + *      matches the handler name.
->> >>   *   3. Allocates a new 'struct luo_file'.
->> >>   *   4. Populates the new structure with the deserialized data (toke=
-n, private
->> >>   *      data handle) and links it to the found handler. The 'file' p=
-ointer is
->> >> @@ -884,9 +885,9 @@ void luo_file_set_destroy(struct luo_file_set *fi=
-le_set)
->> >>  /**
->> >>   * liveupdate_register_file_handler - Register a file handler with L=
-UO.
->> >>   * @fh: Pointer to a caller-allocated &struct liveupdate_file_handle=
-r.
->> >> - * The caller must initialize this structure, including a unique
->> >> - * 'compatible' string and a valid 'fh' callbacks. This function add=
-s the
->> >> - * handler to the global list of supported file handlers.
->> >> + * The caller must initialize this structure, including a unique 'na=
-me'
->> >> + * string and valid 'fh' callbacks. This function adds the handler t=
-o the
->> >> + * global list of supported file handlers.
->> >>   *
->> >>   * Context: Typically called during module initialization for file t=
-ypes that
->> >>   * support live update preservation.
->> >> @@ -908,11 +909,11 @@ int liveupdate_register_file_handler(struct liv=
-eupdate_file_handler *fh)
->> >>         }
->> >>
->> >>         down_write(&luo_register_rwlock);
->> >> -       /* Check for duplicate compatible strings */
->> >> +       /* Check for duplicate handler names */
->> >>         list_private_for_each_entry(fh_iter, &luo_file_handler_list, =
-list) {
->> >> -               if (!strcmp(fh_iter->compatible, fh->compatible)) {
->> >> -                       pr_err("File handler registration failed: Com=
-patible string '%s' already registered.\n",
->> >> -                              fh->compatible);
->> >> +               if (!strcmp(fh_iter->name, fh->name)) {
->> >> +                       pr_err("File handler registration failed: Han=
-dler name '%s' already registered.\n",
->> >> +                              fh->name);
->> >>                         err =3D -EEXIST;
->> >>                         goto err_unlock;
->> >>                 }
->> >> diff --git a/kernel/liveupdate/luo_flb.c b/kernel/liveupdate/luo_flb.=
-c
->> >> index cd715a7c1d99..222c6d7f821e 100644
->> >> --- a/kernel/liveupdate/luo_flb.c
->> >> +++ b/kernel/liveupdate/luo_flb.c
->> >> @@ -178,7 +178,7 @@ static int luo_flb_retrieve_one(struct liveupdate=
-_flb *flb)
->> >>                 return -ENODATA;
->> >>
->> >>         for (int i =3D 0; i < fh->header_ser->count; i++) {
->> >> -               if (!strcmp(fh->ser[i].name, flb->compatible)) {
->> >> +               if (!strcmp(fh->ser[i].name, flb->name)) {
->> >>                         private->incoming.data =3D fh->ser[i].data;
->> >>                         refcount_set(&private->incoming.count, fh->se=
-r[i].count);
->> >>                         found =3D true;
->> >> @@ -337,7 +337,7 @@ static void luo_flb_unregister_one(struct liveupd=
-ate_file_handler *fh,
->> >>
->> >>         if (!found) {
->> >>                 pr_warn("Failed to unregister FLB '%s': not found in =
-file handler '%s'\n",
->> >> -                       flb->compatible, fh->compatible);
->> >> +                       flb->name, fh->name);
->> >>                 return;
->> >>         }
->> >>
->> >> @@ -442,9 +442,9 @@ int liveupdate_register_flb(struct liveupdate_fil=
-e_handler *fh,
->> >>                 if (luo_flb_global.count =3D=3D LUO_FLB_MAX)
->> >>                         return -ENOSPC;
->> >>
->> >> -               /* Check that compatible string is unique in global l=
-ist */
->> >> +               /* Check that FLB name is unique in global list */
->> >>                 list_private_for_each_entry(gflb, &luo_flb_global.lis=
-t, private.list) {
->> >> -                       if (!strcmp(gflb->compatible, flb->compatible=
-))
->> >> +                       if (!strcmp(gflb->name, flb->name))
->> >>                                 return -EEXIST;
->> >>                 }
->> >>
->> >> @@ -596,9 +596,9 @@ void __init luo_flb_setup_incoming(u64 flbs_pa)
->> >>   * preserved (i.e., its reference count is greater than zero), it wr=
-ites its
->> >>   * metadata into the memory region designated for Kexec Handover.
->> >>   *
->> >> - * The serialized data includes the FLB's compatibility string, its =
-opaque
->> >> - * data handle, and the final reference count. This allows the new k=
-ernel to
->> >> - * find the appropriate handler and reconstruct the FLB's state.
->> >> + * The serialized data includes the FLB's name string, its opaque
->> >> + * data handle, and the final reference count. This allows the targe=
-t
->> >> + * kernel to find the appropriate FLB and reconstruct its state.
->> >>   *
->> >>   * Context: Called from liveupdate_reboot() just before kho_finalize=
-().
->> >>   */
->> >> @@ -614,7 +614,7 @@ void luo_flb_serialize(void)
->> >>                 long count =3D refcount_read(&private->outgoing.count=
-);
->> >>
->> >>                 if (count > 0) {
->> >> -                       strscpy(fh->ser[i].name, gflb->compatible,
->> >> +                       strscpy(fh->ser[i].name, gflb->name,
->> >>                                 sizeof(fh->ser[i].name));
->> >>                         fh->ser[i].data =3D private->outgoing.data;
->> >>                         fh->ser[i].count =3D count;
->> >> diff --git a/lib/tests/liveupdate.c b/lib/tests/liveupdate.c
->> >> index 4c08a7c6fb78..e4df09eed1f3 100644
->> >> --- a/lib/tests/liveupdate.c
->> >> +++ b/lib/tests/liveupdate.c
->> >> @@ -17,7 +17,7 @@
->> >>  static const struct liveupdate_flb_ops test_flb_ops;
->> >>  #define DEFINE_TEST_FLB(i) {                                        =
-   \
->> >>         .ops =3D &test_flb_ops,                                      =
-     \
->> >> -       .compatible =3D LIVEUPDATE_TEST_FLB_COMPATIBLE(i),           =
-     \
->> >> +       .name =3D LIVEUPDATE_TEST_FLB_NAME(i),                       =
-     \
->> >>  }
->> >>
->> >>  /* Number of Test FLBs to register with every file handler */
->> >> @@ -34,7 +34,7 @@ static int test_flb_preserve(struct liveupdate_flb_=
-op_args *argp)
->> >>  {
->> >>         ptrdiff_t index =3D argp->flb - test_flbs;
->> >>
->> >> -       pr_info("%s: preserve was triggered\n", argp->flb->compatible=
-);
->> >> +       pr_info("%s: preserve was triggered\n", argp->flb->name);
->> >>         argp->data =3D TEST_FLB_MAGIC_BASE + index;
->> >>
->> >>         return 0;
->> >> @@ -42,7 +42,7 @@ static int test_flb_preserve(struct liveupdate_flb_=
-op_args *argp)
->> >>
->> >>  static void test_flb_unpreserve(struct liveupdate_flb_op_args *argp)
->> >>  {
->> >> -       pr_info("%s: unpreserve was triggered\n", argp->flb->compatib=
-le);
->> >> +       pr_info("%s: unpreserve was triggered\n", argp->flb->name);
->> >>  }
->> >>
->> >>  static int test_flb_retrieve(struct liveupdate_flb_op_args *argp)
->> >> @@ -52,11 +52,11 @@ static int test_flb_retrieve(struct liveupdate_fl=
-b_op_args *argp)
->> >>
->> >>         if (argp->data =3D=3D expected_data) {
->> >>                 pr_info("%s: found flb data from the previous boot\n"=
-,
->> >> -                       argp->flb->compatible);
->> >> +                       argp->flb->name);
->> >>                 argp->obj =3D (void *)argp->data;
->> >>         } else {
->> >>                 pr_err("%s: ERROR - incorrect data handle: %llx, expe=
-cted %llx\n",
->> >> -                      argp->flb->compatible, argp->data, expected_da=
-ta);
->> >> +                      argp->flb->name, argp->data, expected_data);
->> >>                 return -EINVAL;
->> >>         }
->> >>
->> >> @@ -69,10 +69,10 @@ static void test_flb_finish(struct liveupdate_flb=
-_op_args *argp)
->> >>         void *expected_obj =3D (void *)(TEST_FLB_MAGIC_BASE + index);
->> >>
->> >>         if (argp->obj =3D=3D expected_obj) {
->> >> -               pr_info("%s: finish was triggered\n", argp->flb->comp=
-atible);
->> >> +               pr_info("%s: finish was triggered\n", argp->flb->name=
-);
->> >>         } else {
->> >>                 pr_err("%s: ERROR - finish called with invalid object=
-\n",
->> >> -                      argp->flb->compatible);
->> >> +                      argp->flb->name);
->> >>         }
->> >>  }
->> >>
->> >> @@ -103,7 +103,7 @@ static void liveupdate_test_init(void)
->> >>                 err =3D liveupdate_flb_get_incoming(flb, &obj);
->> >>                 if (err && err !=3D -ENODATA && err !=3D -ENOENT) {
->> >>                         pr_err("liveupdate_flb_get_incoming for %s fa=
-iled: %pe\n",
->> >> -                              flb->compatible, ERR_PTR(err));
->> >> +                              flb->name, ERR_PTR(err));
->> >>                 }
->> >>
->> >>                 if (!err)
->> >> @@ -124,18 +124,18 @@ void liveupdate_test_register(struct liveupdate=
-_file_handler *fh)
->> >>                 err =3D liveupdate_register_flb(fh, flb);
->> >>                 if (err) {
->> >>                         pr_err("Failed to register %s %pe\n",
->> >> -                              flb->compatible, ERR_PTR(err));
->> >> +                              flb->name, ERR_PTR(err));
->> >>                 }
->> >>         }
->> >>
->> >>         err =3D liveupdate_register_flb(fh, &test_flbs[0]);
->> >>         if (!err || err !=3D -EEXIST) {
->> >>                 pr_err("Failed: %s should be already registered, but =
-got err: %pe\n",
->> >> -                      test_flbs[0].compatible, ERR_PTR(err));
->> >> +                      test_flbs[0].name, ERR_PTR(err));
->> >>         }
->> >>
->> >>         pr_info("Registered %d FLBs with file handler: [%s]\n",
->> >> -               TEST_NFLBS, fh->compatible);
->> >> +               TEST_NFLBS, fh->name);
->> >>  }
->> >>
->> >>  MODULE_LICENSE("GPL");
->> >> diff --git a/mm/memfd_luo.c b/mm/memfd_luo.c
->> >> index 6b68220275eb..64f8b8cb75bd 100644
->> >> --- a/mm/memfd_luo.c
->> >> +++ b/mm/memfd_luo.c
->> >> @@ -602,7 +602,7 @@ static const struct liveupdate_file_ops memfd_luo=
-_file_ops =3D {
->> >>
->> >>  static struct liveupdate_file_handler memfd_luo_handler =3D {
->> >>         .ops =3D &memfd_luo_file_ops,
->> >> -       .compatible =3D MEMFD_LUO_FH_COMPATIBLE,
->> >> +       .name =3D MEMFD_LUO_FH_NAME,
->> >>  };
->> >>
->> >>  static int __init memfd_luo_init(void)
->> >> --
->> >> 2.56.0.212.g129ede20d9-goog
->> >>
