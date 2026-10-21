@@ -1,57 +1,57 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=173.212.254.19
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792552639;
-	b=OUpWa4EcfJOGLnu/sqnvDgAD9HKZkvlUQ0ppK0NFUENIN4WAoQXExTEauEC8qpg4e3mf
-	 0QEIqYKuu1PXXoj6j0yLqSvdLxOIaRuJu21ngPkSr8L/7VJX/CMZLn0bqtZnFMdZ91G8J
-	 B4da2XrLnjMJV/TZnFQ+1goA2s0msYDxOZdSSnggzdCk/h0vzc3vW8XZYZOlv8Aq+RRzn
-	 KvWmO4n0MddtiwAFp3WbgDc/x/ZKBJ6FkVRnIUVYGTVn4n6JVsrcxD6HABlIBDYw+rONt
-	 Y1gQOTIr68zUpfNizuW98n9DX3YlqNmYja+wRKYC19Xvrww7YXt3wQ6rgUSrIfOutbA==
+	t=1792552657;
+	b=lTJthD8oiow+O5AFk78LsXnwJYagZfbJJmezcaKd8e/pa9VQZ8+uSn9MgcZHlo3BncPk
+	 GO2eUF0yyQtBYP3CnX5uX+KmooNfDnRZk87zl4YI0eFXO8h+wu28EIH9D2bHPlf6ObxiI
+	 BrolY5BUOhuLBpSMChYxR4fPskbeOP/Z7l9AT1qSlI8OgvIwWuNCYYp1PhKObD8vRlfuf
+	 mqbnyt2QM8N46FC603uaIHyPeqdC2K++amLYrneQwkak6GYA9hc7pEzd1Gxss7VDTJftP
+	 olafX6zWH22+cwT041Nd2HvYQwkaDzcjilLEZ+3ayXjklE0boNlZ8DHdgeUgzv8pjOQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792552639;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792552657;
 	h=DMARC-Filter:DKIM-Signature:Received:Message-ID:In-Reply-To:
 	 References:From:Subject:To:Cc:Date;
-	bh=gfFBA8LH4gfsSKNHEPmNQ/vWCOtrs7FdgWk9k3JrBHg=;
-	b=Yba0laho60HZzfL9vOFJfOjRp4UV7VKZnh75x3NSp6aAmFo7gz+GvzV0ez2c19Uwoa9a
-	 9DSyMZG3LxQGxjEDiYtYcd9KPTRI0Snzu1Rq7YlWXTgjIVA8suxKxN4A8cnq4ECKwmQI5
-	 BlsoG+YmZ98PxevXR1ypiq6bEnYSbuZnmk2Xf5FIIZIK7afGvo/y66/5L06o/QVBrcPW1
-	 L2NYzboz2Zdkhb6JK06S7g/LEJ+ugahH1ImVS/mHe6co51Y7rRI2eiPw4OBqeSRqYF6S/
-	 3j/vC3y4J4Y/1EtzLq4eRryrn4K00QrC6noZiV9X+YOekPPWunjtjeBZjdbjW6F4Y/Q==
+	bh=0oHcFGX5KxF/su2FIh5JI/fE9XKBP6YEnFlXttJ24D4=;
+	b=o4pIUd+UVp0jWQdX0a1Z2+EngvCIocKL0l8tukpSWG22bnsxCYimt3ttXCYu4M4nJZtG
+	 4i9+oy8SQOQAsntC/KjU/1vbGzsj31OZaVRwH1ZU0Za//4PTdBqKBSxRAesuymbEVwExt
+	 gRhWZYtWyF2eIZ9d8AiJOAkcx1qPqz2xI0jxhX6IG6dETZukBPFKaFcjQROEFSvv7D5P1
+	 KxSLm7SYzM66ZlEY0btmcaJ0h9bh5lxrS/qCA2uAtsvbzIbk9leb881wJSVsx5j67vKeJ
+	 iUAfeWcBfnxvJVxR4NvtGD3UrPzkoyfcAOySnFNZa3EMQF32Inf/tbWhrRD5rJWPnJA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=tuxist.de;
 	spf=fail smtp.mailfrom=tuxist.de;
-	dkim=pass header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=W4BT9TNR;
+	dkim=pass header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=MCCc3E42;
 	arc=none smtp.remote-ip=173.212.254.19
 Received: from groupware.tuxist.de (groupware.tuxist.de [173.212.254.19])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0926460A382C;
-	Wed, 21 Oct 2026 03:17:18 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0926460A382C
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 300D5607B108;
+	Wed, 21 Oct 2026 03:17:36 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 300D5607B108
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=tuxist.de
 Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=tuxist.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=W4BT9TNR
+	dkim=pass (2048-bit key, unprotected) header.d=tuxist.de header.i=@tuxist.de header.a=rsa-sha256 header.s=201705 header.b=MCCc3E42
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=tuxist.de; s=201705;
-	t=1792552637; bh=c/MatJ7zCmct39K83og7TVItx3cItrvprM66Ihgbc+M=;
+	t=1792552654; bh=5FBWIR0hdbsAGfOVhieZxfLAOMETm3oaNAEGbNiEVKM=;
 	h=In-Reply-To:References:From:Subject:To:Cc:Date:From;
-	b=W4BT9TNRFBeCPYk+tKtWArqh4Ur5DtLo0vljyceBtP8rbavEfHigwo1frJ3i62gYx
-	 z3krisNdVJ37oqMsaK2uyqmWlj6j5QRmocqzrfCSlVaqAvdn3FKeDZ06WL8JdAekBj
-	 E7aIKHC3FMOIOS6+6iOaSGE3W0UvLoa7fVNArUs6w3C4w28+pp0TpyIfGYnkbePujE
-	 16fIfgDl5Cn9Nm9qlMDXuTLW1NKDlP+Y5bs4b4R+tLarpLnDRLArLHntkMoIxtIP6z
-	 1Inqg2AngQKfLy0kxk0oelvGjx6iRqmwZ+SAdL2RVR8iQHys3D5Y0RxckrhsVDOmsM
-	 eQW3xgoajXseg==
+	b=MCCc3E42yoPklxNzLbRznCnzlcJhsyjpzzbrKLseSGApzRpcESAvUKvmzT+7ol5DP
+	 ZeOoKros8Is8s/pcWQ270h7IzM8JZmPpNFmB8G9oO8GCstb661S3KfkFFPbRIGNoI/
+	 6om3Pnbhx82f+Hi6dCCV5kH6gstfPmx0AlXGXNUv9BSfJD30xhclWBdDo9oyHCXKjl
+	 KmrzCIRgtGo9XIL+4Mag+eP3zy+9fjBR7aoemwaO2tcqSam37ocHleXCVPhQggQ4ut
+	 J/b9hYKSURHRYp3h0AFB9HLrhO8mWt3/HrTiJ9LV3JgzGT6ZLIOgpWNmdnI//YinvE
+	 7iK4B9thNaYvQ==
 Received: from [10.1.1.106] (unknown [10.1.2.1])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by groupware.tuxist.de (Postfix) with ESMTPSA id 71B0F8A091B;
-	Wed, 21 Oct 2026 05:17:16 +0200 (CEST)
-Message-ID: <98758113db07083faeb158948b6b3362c2795231.1792552161.git.jan.koester@tuxist.de>
+	by groupware.tuxist.de (Postfix) with ESMTPSA id 5F0778A092D;
+	Wed, 21 Oct 2026 05:17:33 +0200 (CEST)
+Message-ID: <73dfe9aab6c5dd8152fa494d53f470f3bea53127.1792552161.git.jan.koester@tuxist.de>
 In-Reply-To: <cover.1792552161.git.jan.koester@tuxist.de>
 References: <cover.1792552161.git.jan.koester@tuxist.de>
 From: Jan Koester <jan.koester@tuxist.de>
-Subject: [RFC PATCH v2 34/41] ext4: store ACLs with UUID and GUID entries on
- uid_r filesystems
+Subject: [RFC PATCH v2 39/41] ksmbd: log in UUID and GUID users and map them
+ to SIDs
 To: Christian Brauner <brauner@kernel.org>,
     Alexander Viro <viro@zeniv.linux.org.uk>,
     "Serge E. Hallyn" <serge@hallyn.com>
@@ -70,7 +70,7 @@ Cc: Jan Kara <jack@suse.cz>,
     audit@vger.kernel.org,
     keyrings@vger.kernel.org,
     linux-kernel@vger.kernel.org
-Date: Wed, 21 Oct 2026 05:15:54 +0200
+Date: Wed, 21 Oct 2026 05:15:59 +0200
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -80,275 +80,659 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 
-ACLs whose ACL_USER or ACL_GROUP entries are UUIDs or GUIDs are written
-in a new on-disk format, EXT4_ACL_VERSION_R: the short entries stay as
-they are, the user and group entries carry an EXT4_ID_R_* kind and 16
-bytes of id. Only such ACLs use it, and only uid_r filesystems can have
-them (set_posix_acl() refuses them elsewhere); all other ACLs keep
-EXT4_ACL_VERSION.
+A user whose ids are UUIDs or GUIDs could not use ksmbd: the login
+response carries 32 bit ids, sessions ran as make_kuid(uid), and SIDs
+were built from from_kuid_munged(), so such users and their files all
+became the overflow id.
+
+Take the ids from the login response extension: flags, formerly
+reserved and zero, has KSMBD_LOGIN_EXT_ID_R when uid_r and gid_r (also
+formerly reserved) hold the user's ids as __kernel_uid_r_t, and
+KSMBD_LOGIN_EXT_GROUPS_R when the payload holds __kernel_gid_r_t
+supplementary groups instead of gid_t. struct ksmbd_user keeps kuid,
+kgid and kgid_t groups, which the session's credentials and durable
+handle owners use.
+
+UUID and GUID users and groups have no RID; they are represented as
+S-1-22-<kind>-w0-w1-w2-w3 (kind 3/4: UUID user/group, 5/6: GUID
+user/group; w0..w3 the 16 bytes as big endian words), next to the
+existing S-1-22-1-<uid> and S-1-22-2-<gid>, in security descriptors,
+inherited ACEs, POSIX ACL entries and owner changes from clients.
+
+The SMB3 POSIX extension's fixed 16 and 28 byte SID buffers can't hold
+such a SID; they keep showing the overflow id.
 
 Assisted-by: Claude:claude-opus-5-5
 
 Signed-off-by: Jan Koester <jan.koester@tuxist.de>
 ---
- fs/ext4/acl.c | 109 +++++++++++++++++++++++++++++++++++++++-----------
- fs/ext4/acl.h |  34 +++++++++++++---
- 2 files changed, 115 insertions(+), 28 deletions(-)
+ fs/smb/server/ksmbd_netlink.h    |  15 ++-
+ fs/smb/server/mgmt/user_config.c |  35 +++++-
+ fs/smb/server/mgmt/user_config.h |   4 +-
+ fs/smb/server/smb2pdu.c          |  10 +-
+ fs/smb/server/smb_common.c       |  18 ++--
+ fs/smb/server/smbacl.c           | 178 ++++++++++++++++++++++++-------
+ fs/smb/server/smbacl.h           |  19 +++-
+ fs/smb/server/transport_ipc.c    |   4 +-
+ fs/smb/server/vfs_cache.c        |   9 +-
+ fs/smb/server/vfs_cache.h        |   4 +-
+ 10 files changed, 229 insertions(+), 67 deletions(-)
 
-diff --git a/fs/ext4/acl.c b/fs/ext4/acl.c
-index 3bffe862f9..27f8a1b503 100644
---- a/fs/ext4/acl.c
-+++ b/fs/ext4/acl.c
-@@ -6,6 +6,7 @@
-  */
+diff --git a/fs/smb/server/ksmbd_netlink.h b/fs/smb/server/ksmbd_netlink.h
+index 2673522c76..0d92d3fd4f 100644
+--- a/fs/smb/server/ksmbd_netlink.h
++++ b/fs/smb/server/ksmbd_netlink.h
+@@ -9,6 +9,7 @@
+ #define _LINUX_KSMBD_SERVER_H
  
- #include <linux/quotaops.h>
-+#include <linux/unaligned.h>
- #include "ext4_jbd2.h"
- #include "ext4.h"
- #include "xattr.h"
-@@ -14,22 +15,41 @@
+ #include <linux/types.h>
++#include <linux/uidgid_r.h>
+ 
  /*
-  * Convert from filesystem to in-memory representation.
+  * This is a userspace ABI to communicate data between ksmbd and user IPC
+@@ -153,14 +154,26 @@ struct ksmbd_login_response {
+ 
+ /*
+  * IPC user login response extension.
++ *
++ * With KSMBD_LOGIN_EXT_ID_R, uid_r and gid_r are the user's ids and may be
++ * UUIDs or GUIDs (see Documentation/userspace-api/uid_r.rst); the response's
++ * uid and gid are then ignored. With KSMBD_LOGIN_EXT_GROUPS_R the payload
++ * holds ngroups __kernel_gid_r_t instead of ngroups gid_t. A user space
++ * that knows neither leaves flags (formerly reserved) zero.
   */
-+/* The id of an ACL_USER or ACL_GROUP entry of EXT4_ACL_VERSION_R */
-+static int ext4_acl_id_from_disk(const ext4_acl_entry_r *entry, u32 *type,
-+				 u32 *legacy, uuid_t *id)
-+{
-+	*type = le32_to_cpu(entry->e_type);
-+	if (*type > EXT4_ID_R_GUID)
-+		return -EINVAL;
-+	*legacy = get_unaligned_le32(entry->e_id);
-+	memcpy(id->b, entry->e_id, sizeof(id->b));
-+	return 0;
-+}
-+
- static struct posix_acl *
- ext4_acl_from_disk(const void *value, size_t size)
- {
- 	const char *end = (char *)value + size;
- 	int n, count;
- 	struct posix_acl *acl;
-+	size_t entry_size = sizeof(ext4_acl_entry);
-+	bool r = false;
+ struct ksmbd_login_response_ext {
+ 	__u32	handle;
+ 	__s32	ngroups;			/* supplementary group count */
+-	__s8	reserved[128];			/* Reserved room */
++	__u32	flags;				/* KSMBD_LOGIN_EXT_* */
++	__kernel_uid_r_t uid_r;			/* with KSMBD_LOGIN_EXT_ID_R */
++	__kernel_gid_r_t gid_r;
++	__s8	reserved[84];			/* Reserved room */
+ 	__s8	____payload[];
+ };
  
- 	if (!value)
- 		return NULL;
- 	if (size < sizeof(ext4_acl_header))
- 		 return ERR_PTR(-EINVAL);
--	if (((ext4_acl_header *)value)->a_version !=
--	    cpu_to_le32(EXT4_ACL_VERSION))
-+	if (((ext4_acl_header *)value)->a_version ==
-+	    cpu_to_le32(EXT4_ACL_VERSION_R)) {
-+		r = true;
-+		entry_size = sizeof(ext4_acl_entry_r);
-+	} else if (((ext4_acl_header *)value)->a_version !=
-+		   cpu_to_le32(EXT4_ACL_VERSION)) {
- 		return ERR_PTR(-EINVAL);
-+	}
- 	value = (char *)value + sizeof(ext4_acl_header);
--	count = ext4_acl_count(size);
-+	count = ext4_acl_count_e(size, entry_size);
- 	if (count < 0)
- 		return ERR_PTR(-EINVAL);
- 	if (count == 0)
-@@ -55,21 +75,33 @@ ext4_acl_from_disk(const void *value, size_t size)
- 			break;
- 
- 		case ACL_USER:
--			value = (char *)value + sizeof(ext4_acl_entry);
-+		case ACL_GROUP: {
-+			u32 type = EXT4_ID_R_LEGACY, legacy;
-+			uuid_t id;
++#define KSMBD_LOGIN_EXT_ID_R		0x1
++#define KSMBD_LOGIN_EXT_GROUPS_R	0x2
 +
-+			value = (char *)value + entry_size;
- 			if ((char *)value > end)
- 				goto fail;
--			acl->a_entries[n].e_uid =
--				make_kuid(&init_user_ns,
--					  le32_to_cpu(entry->e_id));
--			break;
--		case ACL_GROUP:
--			value = (char *)value + sizeof(ext4_acl_entry);
--			if ((char *)value > end)
-+			legacy = le32_to_cpu(entry->e_id);
-+			if (r && ext4_acl_id_from_disk((void *)entry, &type,
-+						       &legacy, &id))
- 				goto fail;
--			acl->a_entries[n].e_gid =
--				make_kgid(&init_user_ns,
--					  le32_to_cpu(entry->e_id));
-+			if (acl->a_entries[n].e_tag == ACL_USER)
-+				acl->a_entries[n].e_uid =
-+					type == EXT4_ID_R_LEGACY ?
-+					make_kuid(&init_user_ns, legacy) :
-+					type == EXT4_ID_R_UUID ?
-+					KUIDT_INIT_UUID(id) :
-+					KUIDT_INIT_GUID(*(guid_t *)&id);
-+			else
-+				acl->a_entries[n].e_gid =
-+					type == EXT4_ID_R_LEGACY ?
-+					make_kgid(&init_user_ns, legacy) :
-+					type == EXT4_ID_R_UUID ?
-+					KGIDT_INIT_UUID(id) :
-+					KGIDT_INIT_GUID(*(guid_t *)&id);
- 			break;
+ /*
+  * IPC request to fetch net share config.
+  */
+diff --git a/fs/smb/server/mgmt/user_config.c b/fs/smb/server/mgmt/user_config.c
+index 5efc3d7455..cb175a4c78 100644
+--- a/fs/smb/server/mgmt/user_config.c
++++ b/fs/smb/server/mgmt/user_config.c
+@@ -56,6 +56,8 @@ struct ksmbd_user *ksmbd_alloc_user(struct ksmbd_login_response *resp,
+ 	user->flags = resp->status;
+ 	user->gid = resp->gid;
+ 	user->uid = resp->uid;
++	user->kuid = make_kuid(&init_user_ns, resp->uid);
++	user->kgid = make_kgid(&init_user_ns, resp->gid);
+ 	user->passkey_sz = resp->hash_sz;
+ 	user->passkey = kmalloc(resp->hash_sz, KSMBD_DEFAULT_GFP);
+ 	if (user->passkey)
+@@ -68,12 +70,38 @@ struct ksmbd_user *ksmbd_alloc_user(struct ksmbd_login_response *resp,
+ 		goto err_free;
+ 
+ 	if (resp_ext) {
+-		user->sgid = kmemdup(resp_ext->____payload,
+-				     resp_ext->ngroups * sizeof(gid_t),
++		int i;
++
++		if (resp_ext->flags & KSMBD_LOGIN_EXT_ID_R) {
++			/* the user's ids may be UUIDs or GUIDs */
++			user->kuid = make_kuid_r(&init_user_ns, &resp_ext->uid_r);
++			user->kgid = make_kgid_r(&init_user_ns, &resp_ext->gid_r);
++			if (!uid_valid(user->kuid) || !gid_valid(user->kgid))
++				goto err_free;
++			user->uid = from_kuid_munged(&init_user_ns, user->kuid);
++			user->gid = from_kgid_munged(&init_user_ns, user->kgid);
 +		}
++
++		user->sgid = kcalloc(resp_ext->ngroups, sizeof(kgid_t),
+ 				     KSMBD_DEFAULT_GFP);
+-		if (!user->sgid)
++		if (!user->sgid && resp_ext->ngroups)
+ 			goto err_free;
  
- 		default:
- 			goto fail;
-@@ -87,19 +119,38 @@ ext4_acl_from_disk(const void *value, size_t size)
- /*
-  * Convert from in-memory to filesystem representation.
++		for (i = 0; i < resp_ext->ngroups; i++) {
++			if (resp_ext->flags & KSMBD_LOGIN_EXT_GROUPS_R) {
++				const __kernel_gid_r_t *g = (const __kernel_gid_r_t *)
++					resp_ext->____payload + i;
++
++				user->sgid[i] = make_kgid_r(&init_user_ns, g);
++			} else {
++				const gid_t *g = (const gid_t *)resp_ext->____payload + i;
++
++				user->sgid[i] = make_kgid(&init_user_ns, *g);
++			}
++			if (!gid_valid(user->sgid[i]))
++				goto err_free;
++		}
++
+ 		user->ngroups = resp_ext->ngroups;
+ 		ksmbd_debug(SMB, "supplementary groups : %d\n", user->ngroups);
+ 	}
+@@ -81,6 +109,7 @@ struct ksmbd_user *ksmbd_alloc_user(struct ksmbd_login_response *resp,
+ 	return user;
+ 
+ err_free:
++	kfree(user->sgid);
+ 	kfree(user->name);
+ 	kfree_sensitive(user->passkey);
+ 	kfree(user);
+diff --git a/fs/smb/server/mgmt/user_config.h b/fs/smb/server/mgmt/user_config.h
+index cc460b4ff7..e55470e008 100644
+--- a/fs/smb/server/mgmt/user_config.h
++++ b/fs/smb/server/mgmt/user_config.h
+@@ -13,13 +13,15 @@ struct ksmbd_user {
+ 
+ 	unsigned int		uid;
+ 	unsigned int		gid;
++	kuid_t			kuid;	/* the user: uid, or a UUID or GUID */
++	kgid_t			kgid;
+ 
+ 	char			*name;
+ 
+ 	size_t			passkey_sz;
+ 	char			*passkey;
+ 	int			ngroups;
+-	gid_t			*sgid;
++	kgid_t			*sgid;
+ };
+ 
+ static inline bool user_guest(struct ksmbd_user *user)
+diff --git a/fs/smb/server/smb2pdu.c b/fs/smb/server/smb2pdu.c
+index 6b8809f67b..ba29f9436e 100644
+--- a/fs/smb/server/smb2pdu.c
++++ b/fs/smb/server/smb2pdu.c
+@@ -4577,14 +4577,14 @@ int smb2_open(struct ksmbd_work *work)
+ 	if (file_present && !(req->CreateOptions & FILE_DELETE_ON_CLOSE_LE)) {
+ 		rc = smb_check_perm_dacl(conn, &path, &daccess,
+ 					 req->DesiredAccess,
+-					 sess->user->uid, false);
++					 sess->user->kuid, false);
+ 		if (rc)
+ 			goto err_out;
+ 
+ 		if (maximal_access_ctxt) {
+ 			maximal_access = FILE_MAXIMAL_ACCESS_LE;
+ 			rc = smb_check_perm_dacl(conn, &path, &maximal_access,
+-						 0, sess->user->uid, false);
++						 0, sess->user->kuid, false);
+ 			if (rc)
+ 				goto err_out;
+ 
+@@ -4776,8 +4776,8 @@ int smb2_open(struct ksmbd_work *work)
+ 		if (rc == -ENOENT) {
+ 			if (test_share_config_flag(work->tcon->share_conf,
+ 						   KSMBD_SHARE_FLAG_ACL_XATTR)) {
+-				rc = smb_inherit_dacl(conn, &path, sess->user->uid,
+-						      sess->user->gid);
++				rc = smb_inherit_dacl(conn, &path, sess->user->kuid,
++						      sess->user->kgid);
+ 			}
+ 			if (rc) {
+ 				if (posix_acl_rc)
+@@ -5837,7 +5837,7 @@ static int process_query_dir_entries(struct smb2_query_dir_private *priv)
+ 			path.dentry = dent;
+ 			rc = smb_check_perm_dacl(priv->work->conn, &path,
+ 						 &daccess, daccess,
+-						 priv->work->sess->user->uid,
++						 priv->work->sess->user->kuid,
+ 						 true);
+ 			if (rc) {
+ 				dput(dent);
+diff --git a/fs/smb/server/smb_common.c b/fs/smb/server/smb_common.c
+index 4c2da65510..ace3421e57 100644
+--- a/fs/smb/server/smb_common.c
++++ b/fs/smb/server/smb_common.c
+@@ -797,23 +797,23 @@ int __ksmbd_override_fsids(struct ksmbd_work *work,
+ 	struct ksmbd_user *user = sess->user;
+ 	struct cred *cred;
+ 	struct group_info *gi;
+-	unsigned int uid;
+-	unsigned int gid;
++	kuid_t uid;
++	kgid_t gid;
+ 	int i;
+ 
+-	uid = user_uid(user);
+-	gid = user_gid(user);
++	uid = user->kuid;
++	gid = user->kgid;
+ 	if (share->force_uid != KSMBD_SHARE_INVALID_UID)
+-		uid = share->force_uid;
++		uid = make_kuid(&init_user_ns, share->force_uid);
+ 	if (share->force_gid != KSMBD_SHARE_INVALID_GID)
+-		gid = share->force_gid;
++		gid = make_kgid(&init_user_ns, share->force_gid);
+ 
+ 	cred = prepare_kernel_cred(&init_task);
+ 	if (!cred)
+ 		return -ENOMEM;
+ 
+-	cred->fsuid = make_kuid(&init_user_ns, uid);
+-	cred->fsgid = make_kgid(&init_user_ns, gid);
++	cred->fsuid = uid;
++	cred->fsgid = gid;
+ 
+ 	gi = groups_alloc(user->ngroups);
+ 	if (!gi) {
+@@ -822,7 +822,7 @@ int __ksmbd_override_fsids(struct ksmbd_work *work,
+ 	}
+ 
+ 	for (i = 0; i < user->ngroups; i++)
+-		gi->gid[i] = make_kgid(&init_user_ns, user->sgid[i]);
++		gi->gid[i] = user->sgid[i];
+ 
+ 	if (user->ngroups)
+ 		groups_sort(gi);
+diff --git a/fs/smb/server/smbacl.c b/fs/smb/server/smbacl.c
+index 1fad6ccf3a..126264cc07 100644
+--- a/fs/smb/server/smbacl.c
++++ b/fs/smb/server/smbacl.c
+@@ -7,6 +7,7 @@
   */
-+/* An ACL_USER or ACL_GROUP id into an entry of EXT4_ACL_VERSION_R */
-+static void ext4_acl_id_to_disk(ext4_acl_entry_r *entry, u32 type, u32 legacy,
-+				const uuid_t *id)
+ 
+ #include <linux/fs.h>
++#include <linux/unaligned.h>
+ #include <linux/slab.h>
+ #include <linux/string.h>
+ #include <linux/mnt_idmapping.h>
+@@ -257,6 +258,67 @@ void id_to_sid(unsigned int cid, uint sidtype, struct smb_sid *ssid)
+ 	ssid->num_subauth++;
+ }
+ 
++/*
++ * UUID and GUID users and groups (Documentation/userspace-api/uid_r.rst)
++ * have no RID: they are S-1-22-<kind>-w0-w1-w2-w3, the 16 bytes of the id
++ * as four big endian words, next to S-1-22-1-<uid> and S-1-22-2-<gid>.
++ */
++#define SID_UNIX_UUID_USER	3
++#define SID_UNIX_UUID_GROUP	4
++#define SID_UNIX_GUID_USER	5
++#define SID_UNIX_GUID_GROUP	6
++
++static void id_r_to_sid(u32 kind, const u8 *id, struct smb_sid *ssid)
 +{
-+	entry->e_type = cpu_to_le32(type);
-+	memset(entry->e_id, 0, sizeof(entry->e_id));
-+	if (type == EXT4_ID_R_LEGACY)
-+		put_unaligned_le32(legacy, entry->e_id);
++	int i;
++
++	smb_copy_sid(ssid, &sid_unix_users);
++	ssid->sub_auth[0] = cpu_to_le32(kind);
++	for (i = 0; i < 4; i++)
++		ssid->sub_auth[1 + i] = cpu_to_le32(get_unaligned_be32(id + 4 * i));
++	ssid->num_subauth = 5;
++}
++
++/* the kind (SID_UNIX_*) and 16 bytes of a UUID or GUID SID, or 0 */
++static u32 sid_to_id_r(const struct smb_sid *psid, u8 *id)
++{
++	u32 kind;
++	int i;
++
++	if (psid->num_subauth != 5 || psid->revision != sid_unix_users.revision ||
++	    memcmp(psid->authority, sid_unix_users.authority, NUM_AUTHS))
++		return 0;
++	kind = le32_to_cpu(psid->sub_auth[0]);
++	if (kind < SID_UNIX_UUID_USER || kind > SID_UNIX_GUID_GROUP)
++		return 0;
++	for (i = 0; i < 4; i++)
++		put_unaligned_be32(le32_to_cpu(psid->sub_auth[1 + i]), id + 4 * i);
++	return kind;
++}
++
++/* id_to_sid() for any kuid: a classic one gets the usual SIDs */
++void ksmbd_uid_to_sid(kuid_t uid, uint sidtype, struct smb_sid *ssid)
++{
++	if (uid_is_legacy(uid) || sidtype == SIDCREATOR_OWNER ||
++	    sidtype == SIDCREATOR_GROUP)
++		id_to_sid(from_kuid_munged(&init_user_ns, uid), sidtype, ssid);
++	else if (uid.type == KID_UUID)
++		id_r_to_sid(SID_UNIX_UUID_USER, uid.uuid.b, ssid);
 +	else
-+		memcpy(entry->e_id, id->b, sizeof(entry->e_id));
++		id_r_to_sid(SID_UNIX_GUID_USER, uid.guid.b, ssid);
 +}
 +
-+/*
-+ * ACLs with UUID or GUID entries (only on uid_r filesystems, see
-+ * set_posix_acl()) are written as EXT4_ACL_VERSION_R, others as before.
-+ */
- static void *
- ext4_acl_to_disk(const struct posix_acl *acl, size_t *size)
- {
- 	ext4_acl_header *ext_acl;
- 	char *e;
- 	size_t n;
-+	bool r = posix_acl_has_id_r(acl);
-+	size_t entry_size = r ? sizeof(ext4_acl_entry_r) : sizeof(ext4_acl_entry);
- 
--	*size = ext4_acl_size(acl->a_count);
-+	*size = ext4_acl_size_e(acl->a_count, entry_size);
- 	ext_acl = kmalloc(sizeof(ext4_acl_header) + acl->a_count *
--			sizeof(ext4_acl_entry), GFP_NOFS);
-+			entry_size, GFP_NOFS);
- 	if (!ext_acl)
- 		return ERR_PTR(-ENOMEM);
--	ext_acl->a_version = cpu_to_le32(EXT4_ACL_VERSION);
-+	ext_acl->a_version = cpu_to_le32(r ? EXT4_ACL_VERSION_R :
-+					     EXT4_ACL_VERSION);
- 	e = (char *)ext_acl + sizeof(ext4_acl_header);
- 	for (n = 0; n < acl->a_count; n++) {
- 		const struct posix_acl_entry *acl_e = &acl->a_entries[n];
-@@ -108,14 +159,26 @@ ext4_acl_to_disk(const struct posix_acl *acl, size_t *size)
- 		entry->e_perm = cpu_to_le16(acl_e->e_perm);
- 		switch (acl_e->e_tag) {
- 		case ACL_USER:
--			entry->e_id = cpu_to_le32(
--				from_kuid(&init_user_ns, acl_e->e_uid));
--			e += sizeof(ext4_acl_entry);
-+			if (r)
-+				ext4_acl_id_to_disk((void *)entry,
-+						    acl_e->e_uid.type,
-+						    from_kuid(&init_user_ns, acl_e->e_uid),
-+						    &acl_e->e_uid.uuid);
-+			else
-+				entry->e_id = cpu_to_le32(
-+					from_kuid(&init_user_ns, acl_e->e_uid));
-+			e += entry_size;
- 			break;
- 		case ACL_GROUP:
--			entry->e_id = cpu_to_le32(
--				from_kgid(&init_user_ns, acl_e->e_gid));
--			e += sizeof(ext4_acl_entry);
-+			if (r)
-+				ext4_acl_id_to_disk((void *)entry,
-+						    acl_e->e_gid.type,
-+						    from_kgid(&init_user_ns, acl_e->e_gid),
-+						    &acl_e->e_gid.uuid);
-+			else
-+				entry->e_id = cpu_to_le32(
-+					from_kgid(&init_user_ns, acl_e->e_gid));
-+			e += entry_size;
- 			break;
- 
- 		case ACL_USER_OBJ:
-diff --git a/fs/ext4/acl.h b/fs/ext4/acl.h
-index 0c5a79c3b5..48bc352ec7 100644
---- a/fs/ext4/acl.h
-+++ b/fs/ext4/acl.h
-@@ -8,6 +8,8 @@
- #include <linux/posix_acl_xattr.h>
- 
- #define EXT4_ACL_VERSION	0x0001
-+/* uid_r: ACL_USER and ACL_GROUP entries are ext4_acl_entry_r */
-+#define EXT4_ACL_VERSION_R	0x0002
- 
- typedef struct {
- 	__le16		e_tag;
-@@ -20,11 +22,23 @@ typedef struct {
- 	__le16		e_perm;
- } ext4_acl_entry_short;
- 
-+/*
-+ * EXT4_ACL_VERSION_R: e_type an EXT4_ID_R_* kind, a classic id in the
-+ * first four bytes of e_id (little endian), a UUID or GUID all of it
-+ */
-+typedef struct {
-+	__le16		e_tag;
-+	__le16		e_perm;
-+	__le32		e_type;
-+	__u8		e_id[16];
-+} ext4_acl_entry_r;
++void ksmbd_gid_to_sid(kgid_t gid, uint sidtype, struct smb_sid *ssid)
++{
++	if (gid_is_legacy(gid) || sidtype == SIDCREATOR_OWNER ||
++	    sidtype == SIDCREATOR_GROUP)
++		id_to_sid(from_kgid_munged(&init_user_ns, gid), sidtype, ssid);
++	else if (gid.type == KID_UUID)
++		id_r_to_sid(SID_UNIX_UUID_GROUP, gid.uuid.b, ssid);
++	else
++		id_r_to_sid(SID_UNIX_GUID_GROUP, gid.guid.b, ssid);
++}
 +
- typedef struct {
- 	__le32		a_version;
- } ext4_acl_header;
- 
--static inline size_t ext4_acl_size(int count)
-+/* @entry: sizeof(ext4_acl_entry) or, for EXT4_ACL_VERSION_R, of _r */
-+static inline size_t ext4_acl_size_e(int count, size_t entry)
- {
- 	if (count <= 4) {
- 		return sizeof(ext4_acl_header) +
-@@ -32,11 +46,11 @@ static inline size_t ext4_acl_size(int count)
- 	} else {
- 		return sizeof(ext4_acl_header) +
- 		       4 * sizeof(ext4_acl_entry_short) +
--		       (count - 4) * sizeof(ext4_acl_entry);
-+		       (count - 4) * entry;
+ static int sid_to_id(struct mnt_idmap *idmap,
+ 		     struct smb_sid *psid, uint sidtype,
+ 		     struct smb_fattr *fattr)
+@@ -279,6 +341,42 @@ static int sid_to_id(struct mnt_idmap *idmap,
+ 		return -EIO;
  	}
+ 
++	{
++		u8 id[16];
++		u32 kind = sid_to_id_r(psid, id);
++
++		if (kind && sidtype == SIDOWNER &&
++		    (kind == SID_UNIX_UUID_USER || kind == SID_UNIX_GUID_USER)) {
++			kuid_t uid;
++
++			if (kind == SID_UNIX_UUID_USER)
++				uid = KUIDT_INIT_UUID(*(uuid_t *)id);
++			else
++				uid = KUIDT_INIT_GUID(*(guid_t *)id);
++			uid = from_vfsuid(idmap, &init_user_ns, VFSUIDT_INIT(uid));
++			if (!uid_valid(uid))
++				return -EINVAL;
++			fattr->cf_uid = uid;
++			return 0;
++		}
++		if (kind && sidtype != SIDOWNER &&
++		    (kind == SID_UNIX_UUID_GROUP || kind == SID_UNIX_GUID_GROUP)) {
++			kgid_t gid;
++
++			if (kind == SID_UNIX_UUID_GROUP)
++				gid = KGIDT_INIT_UUID(*(uuid_t *)id);
++			else
++				gid = KGIDT_INIT_GUID(*(guid_t *)id);
++			gid = from_vfsgid(idmap, &init_user_ns, VFSGIDT_INIT(gid));
++			if (!gid_valid(gid))
++				return -EINVAL;
++			fattr->cf_gid = gid;
++			return 0;
++		}
++		if (kind)
++			return -EINVAL;
++	}
++
+ 	if (sidtype == SIDOWNER) {
+ 		kuid_t uid;
+ 		uid_t id;
+@@ -643,18 +741,18 @@ static void set_posix_acl_entries_dacl(struct mnt_idmap *idmap,
+ 			break;
+ 
+ 		if (pace->e_tag == ACL_USER) {
+-			uid_t uid;
++			kuid_t uid;
+ 			unsigned int sid_type = SIDOWNER;
+ 
+-			uid = posix_acl_uid_translate(idmap, pace);
+-			if (!uid)
++			uid = posix_acl_kuid_translate(idmap, pace);
++			if (uid_eq(uid, GLOBAL_ROOT_UID))
+ 				sid_type = SIDUNIX_USER;
+-			id_to_sid(uid, sid_type, sid);
++			ksmbd_uid_to_sid(uid, sid_type, sid);
+ 		} else if (pace->e_tag == ACL_GROUP) {
+-			gid_t gid;
++			kgid_t gid;
+ 
+-			gid = posix_acl_gid_translate(idmap, pace);
+-			id_to_sid(gid, SIDUNIX_GROUP, sid);
++			gid = posix_acl_kgid_translate(idmap, pace);
++			ksmbd_gid_to_sid(gid, SIDUNIX_GROUP, sid);
+ 		} else if (pace->e_tag == ACL_OTHER && !had_nt_aces) {
+ 			smb_copy_sid(sid, &sid_everyone);
+ 		} else {
+@@ -816,7 +914,7 @@ static void set_mode_dacl(struct mnt_idmap *idmap,
+ 	u16 num_aces = 0;
+ 	u16 size = 0, ace_size = 0;
+ 	uid_t uid;
+-	const struct smb_sid *sid;
++	struct smb_sid owner_sid, group_sid;
+ 
+ 	pace = pndace = (struct smb_ace *)((char *)pndacl + sizeof(struct smb_acl));
+ 
+@@ -826,25 +924,20 @@ static void set_mode_dacl(struct mnt_idmap *idmap,
+ 		goto out;
+ 	}
+ 
+-	/* owner RID */
++	/* owner: RID, or a UUID or GUID SID */
+ 	uid = from_kuid(&init_user_ns, fattr->cf_uid);
+-	if (uid)
+-		sid = &server_conf.domain_sid;
+-	else
+-		sid = &sid_unix_users;
+-	ace_size = fill_ace_for_sid(pace, sid, ACCESS_ALLOWED, 0,
++	ksmbd_uid_to_sid(fattr->cf_uid, uid ? SIDOWNER : SIDUNIX_USER, &owner_sid);
++	ace_size = fill_ace_for_sid(pace, &owner_sid, ACCESS_ALLOWED, 0,
+ 				    fattr->cf_mode, 0700);
+-	pace->sid.sub_auth[pace->sid.num_subauth++] = cpu_to_le32(uid);
+-	pace->size = cpu_to_le16(ace_size + 4);
++	pace->size = cpu_to_le16(ace_size);
+ 	size += le16_to_cpu(pace->size);
+ 	pace = (struct smb_ace *)((char *)pndace + size);
+ 
+-	/* Group RID */
+-	ace_size = fill_ace_for_sid(pace, &sid_unix_groups,
++	/* Group: RID, or a UUID or GUID SID */
++	ksmbd_gid_to_sid(fattr->cf_gid, SIDUNIX_GROUP, &group_sid);
++	ace_size = fill_ace_for_sid(pace, &group_sid,
+ 				    ACCESS_ALLOWED, 0, fattr->cf_mode, 0070);
+-	pace->sid.sub_auth[pace->sid.num_subauth++] =
+-		cpu_to_le32(from_kgid(&init_user_ns, fattr->cf_gid));
+-	pace->size = cpu_to_le16(ace_size + 4);
++	pace->size = cpu_to_le16(ace_size);
+ 	size += le16_to_cpu(pace->size);
+ 	pace = (struct smb_ace *)((char *)pndace + size);
+ 	num_aces = 3;
+@@ -1041,7 +1134,6 @@ int build_sec_desc(struct mnt_idmap *idmap,
+ 	struct smb_sid *nowner_sid_ptr, *ngroup_sid_ptr;
+ 	struct smb_acl *dacl_ptr = NULL; /* no need for SACL ptr */
+ 	uid_t uid;
+-	gid_t gid;
+ 	unsigned int sid_type = SIDOWNER;
+ 
+ 	nowner_sid_ptr = kmalloc_obj(struct smb_sid, KSMBD_DEFAULT_GFP);
+@@ -1051,7 +1143,7 @@ int build_sec_desc(struct mnt_idmap *idmap,
+ 	uid = from_kuid(&init_user_ns, fattr->cf_uid);
+ 	if (!uid)
+ 		sid_type = SIDUNIX_USER;
+-	id_to_sid(uid, sid_type, nowner_sid_ptr);
++	ksmbd_uid_to_sid(fattr->cf_uid, sid_type, nowner_sid_ptr);
+ 
+ 	ngroup_sid_ptr = kmalloc_obj(struct smb_sid, KSMBD_DEFAULT_GFP);
+ 	if (!ngroup_sid_ptr) {
+@@ -1059,8 +1151,7 @@ int build_sec_desc(struct mnt_idmap *idmap,
+ 		return -ENOMEM;
+ 	}
+ 
+-	gid = from_kgid(&init_user_ns, fattr->cf_gid);
+-	id_to_sid(gid, SIDUNIX_GROUP, ngroup_sid_ptr);
++	ksmbd_gid_to_sid(fattr->cf_gid, SIDUNIX_GROUP, ngroup_sid_ptr);
+ 
+ 	offset = sizeof(struct smb_ntsd);
+ 	pntsd->sacloffset = 0;
+@@ -1188,7 +1279,7 @@ static int smb_validate_ntsd_sid(struct smb_ntsd *pntsd, size_t pntsd_size,
+ 
+ int smb_inherit_dacl(struct ksmbd_conn *conn,
+ 		     const struct path *path,
+-		     unsigned int uid, unsigned int gid)
++		     kuid_t uid, kgid_t gid)
+ {
+ 	const struct smb_sid *psid, *creator = NULL;
+ 	struct smb_ace *parent_aces, *aces;
+@@ -1295,11 +1386,11 @@ int smb_inherit_dacl(struct ksmbd_conn *conn,
+ 
+ 		if (!compare_sids(&creator_owner, &parent_aces->sid)) {
+ 			creator = &creator_owner;
+-			id_to_sid(uid, SIDOWNER, &owner_sid);
++			ksmbd_uid_to_sid(uid, SIDOWNER, &owner_sid);
+ 			psid = &owner_sid;
+ 		} else if (!compare_sids(&creator_group, &parent_aces->sid)) {
+ 			creator = &creator_group;
+-			id_to_sid(gid, SIDUNIX_GROUP, &group_sid);
++			ksmbd_gid_to_sid(gid, SIDUNIX_GROUP, &group_sid);
+ 			psid = &group_sid;
+ 		} else {
+ 			creator = NULL;
+@@ -1448,7 +1539,7 @@ bool smb_inherit_flags(int flags, bool is_dir)
  }
  
--static inline int ext4_acl_count(size_t size)
-+static inline int ext4_acl_count_e(size_t size, size_t entry)
+ int smb_check_perm_dacl(struct ksmbd_conn *conn, const struct path *path,
+-			__le32 *pdaccess, __le32 raw_daccess, int uid,
++			__le32 *pdaccess, __le32 raw_daccess, kuid_t uid,
+ 			bool strict)
  {
- 	ssize_t s;
- 	size -= sizeof(ext4_acl_header);
-@@ -46,12 +60,22 @@ static inline int ext4_acl_count(size_t size)
- 			return -1;
- 		return size / sizeof(ext4_acl_entry_short);
- 	} else {
--		if (s % sizeof(ext4_acl_entry))
-+		if (s % entry)
- 			return -1;
--		return s / sizeof(ext4_acl_entry) + 4;
-+		return s / entry + 4;
+ 	struct mnt_idmap *idmap = mnt_idmap(path->mnt);
+@@ -1499,11 +1590,11 @@ int smb_check_perm_dacl(struct ksmbd_conn *conn, const struct path *path,
+ 		goto err_out;
  	}
- }
  
-+static inline size_t ext4_acl_size(int count)
+-	if (!uid)
++	if (uid_eq(uid, GLOBAL_ROOT_UID))
+ 		sid_type = SIDUNIX_USER;
+-	id_to_sid(uid, sid_type, &sid);
++	ksmbd_uid_to_sid(uid, sid_type, &sid);
+ 	vfsuid = i_uid_into_vfsuid(idmap, d_inode(path->dentry));
+-	is_owner = uid == from_kuid(&init_user_ns, vfsuid_into_kuid(vfsuid));
++	is_owner = uid_eq(uid, vfsuid_into_kuid(vfsuid));
+ 
+ 	if (*pdaccess & FILE_MAXIMAL_ACCESS_LE) {
+ 		ace = (struct smb_ace *)((char *)pdacl + sizeof(struct smb_acl));
+@@ -1596,18 +1687,27 @@ int smb_check_perm_dacl(struct ksmbd_conn *conn, const struct path *path,
+ 	if (IS_ENABLED(CONFIG_FS_POSIX_ACL)) {
+ 		posix_acls = get_inode_acl(d_inode(path->dentry), ACL_TYPE_ACCESS);
+ 		if (!IS_ERR_OR_NULL(posix_acls) && !found && !others_ace) {
+-			unsigned int id = -1;
++			kuid_t pa_uid;
++			bool match;
+ 
+ 			pa_entry = posix_acls->a_entries;
+ 			for (i = 0; i < posix_acls->a_count; i++, pa_entry++) {
+-				if (pa_entry->e_tag == ACL_USER)
+-					id = posix_acl_uid_translate(idmap, pa_entry);
+-				else if (pa_entry->e_tag == ACL_GROUP)
+-					id = posix_acl_gid_translate(idmap, pa_entry);
+-				else
++				/*
++				 * A group entry matches a gid equal to the uid,
++				 * as it always has.
++				 */
++				if (pa_entry->e_tag == ACL_USER) {
++					pa_uid = posix_acl_kuid_translate(idmap, pa_entry);
++					match = uid_eq(pa_uid, uid);
++				} else if (pa_entry->e_tag == ACL_GROUP) {
++					match = uid_is_legacy(uid) &&
++						posix_acl_gid_translate(idmap, pa_entry) ==
++						from_kuid(&init_user_ns, uid);
++				} else {
+ 					continue;
++				}
+ 
+-				if (id == uid) {
++				if (match) {
+ 					mode_to_access_flags(pa_entry->e_perm,
+ 							     0777,
+ 							     &access_bits);
+diff --git a/fs/smb/server/smbacl.h b/fs/smb/server/smbacl.h
+index 01810c16cc..b6a01f0d45 100644
+--- a/fs/smb/server/smbacl.h
++++ b/fs/smb/server/smbacl.h
+@@ -93,18 +93,33 @@ void posix_state_to_acl(struct posix_acl_state *state,
+ int compare_sids(const struct smb_sid *ctsid, const struct smb_sid *cwsid);
+ bool smb_inherit_flags(int flags, bool is_dir);
+ int smb_inherit_dacl(struct ksmbd_conn *conn, const struct path *path,
+-		     unsigned int uid, unsigned int gid);
++		     kuid_t uid, kgid_t gid);
+ int smb_check_perm_dacl(struct ksmbd_conn *conn, const struct path *path,
+-			__le32 *pdaccess, __le32 raw_daccess, int uid,
++			__le32 *pdaccess, __le32 raw_daccess, kuid_t uid,
+ 			bool strict);
+ int set_info_sec(struct ksmbd_conn *conn, struct ksmbd_tree_connect *tcon,
+ 		 const struct path *path, struct smb_ntsd *pntsd, int ntsd_len,
+ 		 bool type_check, bool get_write);
+ void id_to_sid(unsigned int cid, uint sidtype, struct smb_sid *ssid);
++void ksmbd_uid_to_sid(kuid_t uid, uint sidtype, struct smb_sid *ssid);
++void ksmbd_gid_to_sid(kgid_t gid, uint sidtype, struct smb_sid *ssid);
+ void ksmbd_init_domain(u32 *sub_auth);
+ size_t smb_acl_sec_desc_scratch_len(struct smb_fattr *fattr,
+ 		struct smb_ntsd *ppntsd, int ppntsd_size, int addition_info);
+ 
++/* the owner of an ACL entry as a kuid (also a UUID or GUID) */
++static inline kuid_t posix_acl_kuid_translate(struct mnt_idmap *idmap,
++					      struct posix_acl_entry *pace)
 +{
-+	return ext4_acl_size_e(count, sizeof(ext4_acl_entry));
++	return vfsuid_into_kuid(make_vfsuid(idmap, &init_user_ns, pace->e_uid));
 +}
 +
-+static inline int ext4_acl_count(size_t size)
++static inline kgid_t posix_acl_kgid_translate(struct mnt_idmap *idmap,
++					      struct posix_acl_entry *pace)
 +{
-+	return ext4_acl_count_e(size, sizeof(ext4_acl_entry));
++	return vfsgid_into_kgid(make_vfsgid(idmap, &init_user_ns, pace->e_gid));
 +}
 +
- #ifdef CONFIG_EXT4_FS_POSIX_ACL
+ static inline uid_t posix_acl_uid_translate(struct mnt_idmap *idmap,
+ 					    struct posix_acl_entry *pace)
+ {
+diff --git a/fs/smb/server/transport_ipc.c b/fs/smb/server/transport_ipc.c
+index e550aa41ad..71270c780d 100644
+--- a/fs/smb/server/transport_ipc.c
++++ b/fs/smb/server/transport_ipc.c
+@@ -564,7 +564,9 @@ static int ipc_validate_msg(struct ipc_msg_table_entry *entry)
+ 				return -EINVAL;
+ 			}
+ 			msg_sz = sizeof(struct ksmbd_login_response_ext) +
+-					resp->ngroups * sizeof(gid_t);
++					resp->ngroups *
++					(resp->flags & KSMBD_LOGIN_EXT_GROUPS_R ?
++					 sizeof(__kernel_gid_r_t) : sizeof(gid_t));
+ 		}
+ 	}
+ 	}
+diff --git a/fs/smb/server/vfs_cache.c b/fs/smb/server/vfs_cache.c
+index fd2c595f04..89686cfc67 100644
+--- a/fs/smb/server/vfs_cache.c
++++ b/fs/smb/server/vfs_cache.c
+@@ -1715,8 +1715,8 @@ int ksmbd_vfs_set_durable_owner(struct ksmbd_file *fp,
  
- /* acl.c */
+ 	spin_lock(&fp->f_lock);
+ 	old_name = fp->owner.name;
+-	fp->owner.uid = user->uid;
+-	fp->owner.gid = user->gid;
++	fp->owner.uid = user->kuid;
++	fp->owner.gid = user->kgid;
+ 	fp->owner.name = name;
+ 	spin_unlock(&fp->f_lock);
+ 	kfree(old_name);
+@@ -1747,7 +1747,7 @@ bool ksmbd_vfs_compare_durable_owner(struct ksmbd_file *fp,
+ 		goto out;
+ 
+ 	/* Check if the UID and GID match first (fast path) */
+-	if (fp->owner.uid != user->uid || fp->owner.gid != user->gid)
++	if (!uid_eq(fp->owner.uid, user->kuid) || !gid_eq(fp->owner.gid, user->kgid))
+ 		goto out;
+ 
+ 	/* Validate the account name to ensure the same SecurityContext */
+@@ -1953,7 +1953,8 @@ int ksmbd_reopen_durable_fd(struct ksmbd_work *work, struct ksmbd_file *fp)
+ 	up_write(&ci->m_lock);
+ 
+ 	spin_lock(&fp->f_lock);
+-	fp->owner.uid = fp->owner.gid = 0;
++	fp->owner.uid = GLOBAL_ROOT_UID;
++	fp->owner.gid = GLOBAL_ROOT_GID;
+ 	kfree(fp->owner.name);
+ 	fp->owner.name = NULL;
+ 	spin_unlock(&fp->f_lock);
+diff --git a/fs/smb/server/vfs_cache.h b/fs/smb/server/vfs_cache.h
+index 1884f6deb9..396e11f88c 100644
+--- a/fs/smb/server/vfs_cache.h
++++ b/fs/smb/server/vfs_cache.h
+@@ -77,8 +77,8 @@ enum {
+ 
+ /* Owner information for durable handle reconnect */
+ struct durable_owner {
+-	unsigned int uid;
+-	unsigned int gid;
++	kuid_t		uid;
++	kgid_t		gid;
+ 	char *name;
+ };
+ 
 -- 
 2.56.0
 
