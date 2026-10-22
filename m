@@ -1,76 +1,114 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=66.163.187.152
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.214.170
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792688431;
-	b=v16rUnCySFneShdU+Pw7DfwLZKYNhOqB+l0GjNo9DQiTfMkKiGz0EK2CeZYr4keVSUJ3
-	 O6JJEzhuyrWczLZ7vlRosGqHMz26gRIBxrRNls8IV6Jz13mPNvyMRYzoLi7tvgityEXVg
-	 kSgzCBVPKNe6sffT8LQ5ZCmS0aGcnuoogCMAfrPiw2KwDxJtRe86mTtrKx4CmcMIokJFE
-	 dy2kXDB4pz6oTn9EGpdRVn4lZe6GoQTkdUxFGypkxOHYKeISRtZYO1kYEqWPMFbmXzBcL
-	 iPucErpCU8aGj8QpqKltWwUcBI2TW/bLxcATHWvT65FSUfwIbtm8otbQCNOGJH3iEHQ==
+	t=1792691482;
+	b=BGAlhkAnHtJUGK+KsVMp7BmdjBSRqaYY7u2hbI9G28bSQxURbkV0kRej003/5kx5wXXM
+	 2gmbssEfTUTatpJxuIXMRT+7GaXWuBbg5X/bSr+EiIEEDmpuA/y7S4TAnPbQsrqd2mzwi
+	 fV1veJesoF6anPy597MLpZsXEJGZ9TkALFf0Ymj/pnxoipFSGtSwa+JX0pEdvbuLEaykN
+	 A6n++l/vHEIe8cgtNHv7AAPetrSYgLAQ3JfGZWh92bVuKIVedsLwnfaybbgee9x6Hd1/7
+	 6F/2otTZlSwC969KVbucbnhc592DBxwA8ct1BIrl77NlchHpdKus4mHd0GV2kDOoYlQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792688431;
-	h=DMARC-Filter:DKIM-Signature:X-SONIC-DKIM-SIGN:X-YMail-OSG:X-Sonic-MF:
-	 X-Sonic-ID:Received:Received:Message-ID:Date:MIME-Version:User-Agent:
-	 Subject:To:Cc:References:Content-Language:From:In-Reply-To:
-	 Content-Type:Content-Transfer-Encoding:X-Mailer;
-	bh=RLhaJlQZZNoYg6hcgIAk04w24uGo5Qnp+frkN1FOTxs=;
-	b=twHtmpVXWy76n3scja8i+Ukx4unpSRHbgxEx2B2kK5/wBrpUseEnNFmvYQzzIhTTyhgs
-	 98t4h5A4sV0aLF97IszaAyXU7iBB66D86pWXUhWfR920yTdNhgAAzCHEsx0TKe+Cq4aOZ
-	 4mjF9u3r9+XrPtRtvl0IazivdbJ49QZi3U/8jHsj4LOub5fwOg6Pvit/I3HIz2q1rnEvx
-	 wlz8g+8XJo3VjoUSmThF6yrs0xhjpZGujBjjIp3f6LpzpvAinVz9O+FVo9u9qZlspO62E
-	 H183NGnLC5HyKgYNNICM3sHKXVufQ36ER6WdXAaPCwD2f5ibGbhW+y3xnWHKy3mhzjA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792691482;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:Content-Transfer-Encoding:
+	 In-Reply-To;
+	bh=VXuE27163XQs95Y17MHXQoRtZevE9c0I3KUjJaU7M5M=;
+	b=kiHbgLd4062Kvkzvu8tzrBoLclGuDRNCcP2iPysHk7+gnsXyaXC+ACytiY3s/Z3m8vWC
+	 X/pJe4uQApkXvFSrlZ/sZJug1nCP/N7/Hfq8H0dgD5CInpIoWqn1K05v2YvKDcZmodEqq
+	 lDK9BUwoATuaspbE8pWA1UEsxCbGAuFB1+JUsjDf+dVAYLVUzjUe0wgqJwi9pvSyGR2A6
+	 edjV11RhUqodgGkQBjip01171xvguouqGaRrW9VhgXhbfUHUxlMi2bc4WAetsbQ/phl/R
+	 NiVjCbrj6DNrP62E5d3li86l+MMjLJAQRNaULrTLy1mAA/mdw3GYY2f71hlg7/BW8/A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=schaufler-ca.com;
-	spf=pass smtp.mailfrom=schaufler-ca.com;
-	arc=none smtp.remote-ip=66.163.187.152
-Received: from sonic316-26.consmr.mail.ne1.yahoo.com (sonic316-26.consmr.mail.ne1.yahoo.com [66.163.187.152])
+	dmarc=pass header.from=google.com;
+	spf=pass smtp.mailfrom=google.com;
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=p1qG8FoI;
+	arc=none smtp.remote-ip=209.85.214.170
+Received: from mail-pl1-f170.google.com (mail-pl1-f170.google.com [209.85.214.170])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8C63A606A319
-	for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 17:00:25 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8C63A606A319
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=schaufler-ca.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=schaufler-ca.com
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yahoo.com; s=s2048; t=1792688424; bh=RLhaJlQZZNoYg6hcgIAk04w24uGo5Qnp+frkN1FOTxs=; h=Date:Subject:To:Cc:References:From:In-Reply-To:From:Subject:Reply-To; b=EPxXXTv2yOAfkDeBVlGeldcmNKyITO49k9DX4W1JG3YiE2Z74mj7AwH3HL1ng4JuL4XxI3I2isrYof/PHPDdpVN996WJqCpMr0pkAFvfwFV5SZwp46MjvTMeRQ1GAR9zWWRo2FJCRnFND+/SktiTxIiWFnlf6zJXk7OnBYGNhvJQAnPIKH2weZ2rIVCG114sIM4XTNPZeFllAM6QUMRqMiXedWD6b/nwKU/1Rawon/5NquZ9uPQA/EwsDnXni/1UMKx8zZ7u+NlrBG67+RD4mNZntTeEcqw1rJ1tjqkse2NY9afIeqwb598x3ZMaZSUOdkg6HOr+ubgMCK5VFGysJw==
-X-SONIC-DKIM-SIGN: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yahoo.com; s=s2048; t=1792688424; bh=NrkW7Nzc52jx8owV4g5TQ09TCsBPGhlT5UFiu1qUhoH=; h=X-Sonic-MF:Date:Subject:To:From:From:Subject; b=J0fJxifRcTTaKtm1kfx9ZO5CcKbTJMtfN18e9pWizD1uERM7sGK7bnuACDtqKSMxG+tL6Hy+iXDn0i1QM11uB/3ZiH1zb5BWyuvJEiQF6uL57etcG/GTtwLmHKIA+ra+3JKSOYo5rJhod2/xvS/4gu84qPKamy1shn0r662FSD191d0r/Qu1oFRHYOknkPo5Ccfe4FICXhvLChyIseUzh8oIbLwWdcePDbYO5UpdZ7QZq8Y0+NhQVvkbZXPIiiYqa7eA3FNVN/+AQ1OYqhzlYBqmx1/R+Vo+oOZzbU+xmNaDpfS3LG5AZNq72SvA21YMSlBfdqfJ9BRQXY53D/eSfA==
-X-YMail-OSG: xRD30LcVM1l1oAWUFc3wSEmkOWJMjiD2Jw1_JGIU9Bdii66XxC5fX401cOGqfnB
- W4hkfMQKIcRII8bT.rM1fo.855tYR0AsXM5AG5UG6WzBitDsVK2h7Wjx0s37e1372WH_8mlt7JX6
- _6jRINfXlTnxTR_21HJwSLhWQThvcWhBT2zsXPC5LYdjE4N7Gj4br9VVpYumqpUgjIlBOj6p5krK
- aNHtytIbJ..6O2nnRC1PmkkfILLQ62ZGoPtM1uhFCc3Xjwg7am7Era7juk2bFyI9FSTboGets_zm
- AhhfffgPfIr.RiYkKOZM3sG2W0sovPZPZwgb_DHu1pvsAbsJN119nN8dlJ3XlGc7X4uZT2d4oKZK
- F0aRM0Z7zXFfG2S_5iib_3a9_s3ptZi.K0Zy35ekZh_rDQICVey1vlANnUpuIV8WibgDK06yPdno
- ap29UZlv7P.xsaYVTWU4_AGVX1fHV0cXuiqYZE.zLonqzqnQM..e38uwxx9OCyMi8A4PdyyBY.Dl
- Zs9k.G69vmbM6oJqYPnQ5AsNDS.kdW.IuhxIdW.7DrsP_PHBGZBGmxr3dCeBNHpKQBM1I5dQK.WT
- VuI3c_4lX.Vbej9sn9BNpMMPf4P2djGeKXOFjib_d9G1KXuU2VUEpCWTpnGAKWN.P72xQLPNtRso
- yYN2svrh4sPjWXhnH1g6GauSpLPf64jyzs86EtT_Wea0htZ_180xUpFJ.dOtcxv6a7BjQ6wW.USw
- enbtthrK0owLhL2HWC0.z1I.MBapxkZM7d41Djh7hiRZHyULXOp5AhqWVNk.RauEQGMYXwyOzHq3
- LRuDUZxNE_BbMfol99ddoBDvLyNk0qONeuU0qT0GGBPwJu4J6t.9Jy6ZReHksf3C5pse8IcnUWpJ
- oiVak20A8O0z82cBUMMPCq5mrJhaopEEjAtomXD8asxCgmOwbLDwMNpaTPMw_pGsi_VdIs6_28RL
- TuA8CaMXHGMSRA71Ic4aOGUXqECu0PudSoQs.uqjXnNnLHnypRxns6kbJUHBWVdoFTxFFo5hQR0N
- JCvfRnIwGfZ2hDFMNLSp2c.zRJ2HjBCGtLayGcFM3rD9.rP3uTQ6GCuKe_7pQgfCbVNbxjRzxsgS
- Obo3VPPf0GtkxoO40P.33d5dMb116c.0y2HIIzG4b_0mVAZmhr8ECM8_oL_74oDzXHgkNIcRuGMw
- ADNkAH4KfWAI1xaSFM3PUM0xA8wK24KEeOG6GbGHKg6nE2R4eSAEwKhme3rwMdP4kv3qpLnWr4GH
- eaM3ZtVYjDlXjMQHOS2JfWYHn8oNto9ZV6NCcZPc2sEOhIHp9cyudxIDTgiTpFRj1V54Bi_eai4Z
- HBxTUzS7tmHZ72ylhKjwgJrSbpJogTzD9BFKYDvFlWmLAd213iaHFTAX5Mz47ywgusMAqmLhwHV0
- jV5YJZcSSQnVap5iiecEXGI_1NigxWNhtYR7fDNHw0QZz3IEWh01sI8SHI4yibnh.YuTSR5qecoC
- 2O6q4yD0Gki77xehQHLlekwqIiOuKNZVEWvg4PqGxLW6NwnMor9q0WTpleTQhMZWBFCTxQRub9XG
- PVGsC0w4bAqIz55qdZDgRM9vwy801Bhe0nb52zQqoOBH0KX0sOmwCLSLaycKTzwWdMTOsW8u9sPI
- QCWyQJ3A5aUCDmMG6bLwmidewITkoRGE.1JH6er9_3gzJtrh02TOjUYsZQbKY_ECIs6MA8vOZ0Nb
- veczfcbR9IMqtdArlPM9Vnq4COpIpnlDjd7lNDodwAokDwCqTmzF6lKaDI4coWoaVzc84axARzS7
- lpmxdvAhDwr_unQu_3UAAD4bzArovBsOBvvjB.J5pWDQyKMPh0u0DwfoiJhO_pEPlRYGIlVHGbyW
- _DNJ.C00e4RhbKOnLWG5HjNzDpuaMXqg.YQXDb8H49fOCq0LbXwgtISGQzL0KRTsjCEmuT279hfK
- WRgWseJ3cTB.XuCCb4v54PgI6L19VIVuD1WHvDuelGQX3_j0_gFiRcUpW_Gzr35PJAsnyvD6IrAP
- xjDKCMLU611h1cfL2Y2Zp8VcB_M1tga3Fn5y1tRIcyNO0xJYATmHWwk3wNBW9SAwBTvFttcbSUH7
- _0H0_Dnx_YrIZN4whokDOFEzjGbKb5sMjH9W2wcuAsUpAlqfMboL2WcZZa2vgR_AlJSOGt1DffQm
- sxr1vQZe1ZsTq3yVIoz7hsl..S6bA2N2bLevEq7L4IM8zaRmvlQd6SuI3NGEdQde4sUeuvoQDh7d
- pa00D8_nGDTxFDWGfGA61OH6654zf.YQIVLkRaa1bB2LtWAsAipxG1Tq1pZqHpQVXqxG_eQ--
-X-Sonic-MF: <casey@schaufler-ca.com>
-X-Sonic-ID: f4d52385-1c22-46e9-a768-7fe9b7b03ed3
-Received: from sonic.gate.mail.ne1.yahoo.com by sonic316.consmr.mail.ne1.yahoo.com with HTTP; Thu, 22 Oct 2026 17:00:24 +0000
-Received: by hermes--production-gq1-fd7994565-wwgbc (Yahoo Inc. Hermes SMTP Server) with ESMTPA ID b52a058941d94202e488719cef4d9678;
-          Thu, 22 Oct 2026 17:00:19 +0000 (UTC)
-Message-ID: <018ca365-ce9b-424c-b600-bd9c8aefc9a1@schaufler-ca.com>
-Date: Thu, 22 Oct 2026 10:00:16 -0700
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BB4EC606A319
+	for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 17:51:21 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org BB4EC606A319
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=p1qG8FoI
+Received: by mail-pl1-f170.google.com with SMTP id d9443c01a7336-2ea0efd636dso155405ad.0
+        for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 10:51:21 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1792691481; x=1793296281; darn=vger.kernel.org;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :content-type:mime-version:references:message-id:subject:cc:to:from
+         :date:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=VXuE27163XQs95Y17MHXQoRtZevE9c0I3KUjJaU7M5M=;
+        b=p1qG8FoI+FjuKYeesNRnsPhbCfDhwml/usg+eoDHGMWDq5c9L7RoQnXbQ5ygdFeImB
+         Y96eZVBRy7Flrobq9DvnlMx/EAyJVDf7WJctSTtuGbVgjeFDs2m6RTwwiSPC0LmBVkCm
+         q//xVinr9gtMZoWgq1NQIFL0uzwGwE/V24ZLVIW8G1yhe/wB+Gcnn5u1YQQUqbWmIrjh
+         Uo02TstCIh822E+953yQvTfk319ia9ovb46tiV339HlH+uBjMURBgFgL/5fgKJcJtArW
+         4bmKBPvuelgC1wdGuPmxiJnVYPGFeU5HOJmaXzqnY4h30wYbHVrjjVQ7NqnCfBG7oXxH
+         1g2w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1792691481; x=1793296281;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :content-type:mime-version:references:message-id:subject:cc:to:from
+         :date:x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to:content-type;
+        bh=VXuE27163XQs95Y17MHXQoRtZevE9c0I3KUjJaU7M5M=;
+        b=H84Sxzl6QpIKfOlOgLjHaYVSI2yQg0INAQkBlORBqnoDCEze1XWbSJ+IESqq6MU1D3
+         PDODDRLwZJQyFYgmdYBHuq9V0Ca+SUe8NvFhxPisa18eDsMHCt1j4DjZwS8Or8+R8Q0F
+         h4O1KvBKgtvnoJz2pOV2j6py2vWUvRQVcjsJAzwgJFJz9BaH2XpbsG4hGs0f1sbhn5O+
+         jD4kr1aCQtwUW4Oo5wf+iUQFeg7x7dEURsSW5nI1oHF97l9qxkvWO0/qv17v/NelDqQR
+         eAfUAV+4nhianBMyVa7Sje5o5DFdDQex410FRL0/ML/8BII1cKAaSuSm/00+jgIIunGA
+         z1HA==
+X-Forwarded-Encrypted: i=1; AKwUvBxValKbK4jTUCKHLvjUqV8BQ1q1CngmcYlttL6dvIPfui3vI8X2OiZT4DOAZDT8QPZuJ1KGsg8MO7q6@vger.kernel.org
+X-Gm-Message-State: AFq9FYJdL0xT+WFgdhSeb8gFx6S39DbhebZ0h47NTGtno+SchScdq9Ii
+	CKRJcn+QZB+UYEQMIU89cWXq0McgPVwu6ahjD+NtIMn+TUBOjGbq/MUfzoXooIgxoA==
+X-Gm-Gg: AYBFou2cyP3sAerjxFUgj53MBRmK2VUbKODw4pHOhhaB7R4t7BNKtT7HcSrTbo8LDwI
+	px/WFZR4GuPpsrniG/WUuIPZQfbezu5V+2ArbFYB4pHjz+hWOfjsYllPs+XoIORpWdR6yb5PIVM
+	uTcnr10cgDn7UyBdzE3lxJRO4eb7gdBBjX+cK92fzIoOZziW77lVgd5r3g8m/EQ58F0K4dnIAUH
+	XRyG9atVVc1dutYg2Sa8EEQmbSgjZtoXGwLzc4zeObymCvAnpEPME/RfHNT0fWSA0rvq1foAU71
+	ciEfL1oRRm/8onhO/XF1xJ+7nl1dbAUmewXiXIVOZcyAQl+A9OV9Sy79qdnukZr+ZF3tlic4ZRi
+	JWBLKWXE/egMfezP3fm6nZiJn23RmW0yyPCiAqHoQLO1DWXDVA2r6j4Ofi8D3leMdTGimvu+qdl
+	kd75M0ubpG3TP81wqn629eFGTuuk33KPESC0hJn8XcKE3Ce70hL5nb/jgRZO7Sc6kiR5LutVH+s
+	uuXHtGCe2euO1Nsj6hENwEeoLrIGQivEQrbnZv1XxiCInpadKhd2kOyArGPO1eIgZM6NN9MYHzJ
+	aJfYRWrgj4aid4T8
+X-Received: by 2002:a17:902:e547:b0:2e9:502a:ddbb with SMTP id d9443c01a7336-2ea43c9f6bcmr53298445ad.45.1792691480085;
+        Thu, 22 Oct 2026 10:51:20 -0700 (PDT)
+Received: from google.com (64.75.127.34.bc.googleusercontent.com. [34.127.75.64])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2ea7b346c43sm1644745ad.13.2026.10.22.10.51.18
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 22 Oct 2026 10:51:19 -0700 (PDT)
+Date: Thu, 22 Oct 2026 17:51:16 +0000
+From: David Matlack <dmatlack@google.com>
+To: Pasha Tatashin <pasha.tatashin@soleen.com>
+Cc: tarunsahu@google.com, Andrew Morton <akpm@linux-foundation.org>,
+	joro@8bytes.org, Mike Rapoport <rppt@kernel.org>,
+	Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de,
+	jgg@nvidia.com, robin.murphy@arm.com, loganodell@google.com,
+	oupton@kernel.org, kevin.tian@intel.com, alex@shazbot.org,
+	dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com,
+	will@kernel.org, Alexander Graf <graf@amazon.com>,
+	Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com,
+	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev,
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
+	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: Re: [RFC PATCH v2 3/4] liveupdate: Replace compatibility string with
+ a 2-bit pair feature header
+Message-ID: <atpNFEFIlqAoYIwH@google.com>
+References: <CA+CK2bAQbmq3ArP3XMErF_8RC2CUwvgpLY0H83D0nCJTaVKYyA@mail.gmail.com>
+ <9huzecdi6go0.fsf@tarunix.c.googlers.com>
+ <CALzav=dLdJoVy=B1pv0FAurD9OhAzLSTjJNbtjTdJRmSqaB0yw@mail.gmail.com>
+ <CA+CK2bAQRMAEXZyHTEuUN0_Fo59Sn0hBmYbme_J9ewjx6gPyJQ@mail.gmail.com>
+ <atlKsD-aJB3mJr2j@google.com>
+ <CA+CK2bABt4OZO31TenVF2+uBUWVwViWbvfE00=0xbAw=f7K9SA@mail.gmail.com>
+ <atl7peoVHdP5hz7z@google.com>
+ <CA+CK2bBFXnJA1kddbLKGq0DAHDgjYhsTSQQay-xeX7jJC1V_UQ@mail.gmail.com>
+ <CALzav=e=ho2gVrn+7KpZ3ZyasvH2u15-pC-RSRSS7KcMfKqUJQ@mail.gmail.com>
+ <CA+CK2bAJo8dnTOyKMgnnMnk-SCXbTsv+JCLEOWkjyj-wqtEkHg@mail.gmail.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -80,46 +118,119 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH v2 00/41] UUID and GUID user and group ids (*_r system
- calls)
-To: Jan Koester <jan.koester@tuxist.de>,
- Christian Brauner <brauner@kernel.org>,
- Alexander Viro <viro@zeniv.linux.org.uk>, "Serge E. Hallyn"
- <serge@hallyn.com>
-Cc: Jan Kara <jack@suse.cz>, "Theodore Y. Ts'o" <tytso@mit.edu>,
- Paul Moore <paul@paul-moore.com>, Arnd Bergmann <arnd@arndb.de>,
- linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org,
- linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-ext4@vger.kernel.org, linux-nfs@vger.kernel.org,
- linux-cifs@vger.kernel.org, netdev@vger.kernel.org, audit@vger.kernel.org,
- keyrings@vger.kernel.org, linux-kernel@vger.kernel.org,
- Casey Schaufler <casey@schaufler-ca.com>
-References: <cover.1792552161.git.jan.koester@tuxist.de>
-Content-Language: en-US
-From: Casey Schaufler <casey@schaufler-ca.com>
-In-Reply-To: <cover.1792552161.git.jan.koester@tuxist.de>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-Mailer: WebService/1.1.26740 mail.backend.jedi.jws.acl:role.jedi.acl.token.atz.jws.hermes.yahoo
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CA+CK2bAJo8dnTOyKMgnnMnk-SCXbTsv+JCLEOWkjyj-wqtEkHg@mail.gmail.com>
 
-On 10/20/2026 8:15 PM, Jan Koester wrote:
-> Hi,
->
-> this RFC series lets a user or group id be a UUID (RFC 9562, version 4)
-> or a Microsoft GUID as well as a classic 32-bit number. Processes can run
-> as such a user, files can be owned by one, and credentials, ACLs, keys,
-> System V IPC, sockets, signals, audit and procfs carry the whole id.
+On 2026-10-22 12:11 AM, Pasha Tatashin wrote:
+> On Wed, Oct 21, 2026 at 11:53 PM David Matlack <dmatlack@google.com> wrote:
 
-I can't see this being acceptable for a variety of reasons, including
-but not limited to performance and configuration complexity. It's a
-general solution for a special case or two, and the impact is significant.
+> > > #define DECLARE_LUO_SER(name, expected_size, ext_flags_count, payload_type) \
+> > >     struct name {                                                           \
+> > >         __u32 size;                                                         \
+> > >         __u32 flags;                                                        \
+> > >         __u64 ext_flags[ext_flags_count];                                   \
+> > >         payload_type payload;                                               \
+> > >     };                                                                      \
+> > >     static_assert(sizeof(struct name) == (expected_size),                   \
+> > >                   "LUO struct " #name " size mismatch!")
+> > >
+> > > For example:
+> > >
+> > > struct luo_memfd_payload {
+> > >     __u64 pos;
+> > >     __u64 size;
+> > > };
+> > >
+> > > DECLARE_LUO_SER(luo_memfd_ser, 24, 0, struct luo_memfd_payload);
+> >
+> > This looks pretty reasonable but I would name the payload
+> > luo_memfd_ser. The combined struct that DECLARE_LUO_SER() creates
+> > should never be used directly since the offset of the payload in that
+> > struct is only valid in the current kernel. So I would give that
+> > struct a special name that makes it obvious you shouldn't be using it.
+> 
+> Lets drop the fourth macro argument and generate the combined struct name:
+> 
+> #define DECLARE_LUO_SER(name, expected_size, ext_flags_count)              \
+>     struct name##_hdr {                                                    \
+>         __u32 size;                                                        \
+>         __u32 flags;                                                       \
+>         __u64 ext_flags[ext_flags_count];                                  \
+>         struct name payload;                                               \
+>     };                                                                     \
+>     static_assert(sizeof(struct name##_hdr) == (expected_size),            \
+>                   "LUO struct " #name " size mismatch!")
+> 
+> For example:
+> 
+> struct luo_memfd_ser {
+>     __u64 pos;
+>     __u64 size;
+> };
+> 
+> DECLARE_LUO_SER_HDR(luo_memfd_ser, 24, 0);
 
-If you're willing to use a UUID and/or GUID in addition to a UID/GID
-instead of in place of it you could consider implementing this as an
-LSM. There are a number of issues you'd still run into there (e.g. UDS
-attributes) and I can't say if the resulting behavior would be what
-you're looking for. I also can't say that the security community would
-necessarily be any happier with it than the general population, but if
-you really want this it might be worth a shot.
+I think we are getting close, bu I have two remaining concerns:
 
+ * Reserving bits in each flags word for continuation leaves gaps
+   in the flag space that users have to know to skip.
+
+ * struct name##_hdr only matches structs written by the current kernel
+   (in terms of length of array and offset of payload).
+
+How about this instead:
+
+struct luo_ser_hdr {
+    __u32 size;        /* Size of header + payload in bytes */
+    __u32 nr_flags;    /* Number of features encoded in flags[] */
+    __u64 flags[];
+};
+
+Each feature occupies 2 bits of flags[], so feature N is always bits
+[2N+1:2N] of flags[N / 32], with no gaps:
+
+  00: Feature not present
+  01: Feature present, safe to ignore if not supported
+  11: Feature present, must be supported by the next kernel
+  10: Invalid
+
+The length of flags[] and the header size are computed directly rather
+than by walking continuation bits:
+
+static inline u32 luo_ser_nr_flag_words(const struct luo_ser_hdr *hdr)
+{
+    return DIV_ROUND_UP(hdr->nr_flags, 32);
+}
+
+static inline size_t luo_ser_hdr_size(const struct luo_ser_hdr *hdr)
+{
+    return struct_size(hdr, flags, luo_ser_nr_flag_words(hdr));
+}
+
+static inline void *luo_ser_payload(const struct luo_ser_hdr *hdr)
+{
+    return (void *)hdr + luo_ser_hdr_size(hdr);
+}
+
+and bounds checking is just luo_ser_hdr_size(hdr) <= hdr->size. The
+payload is always 8-byte aligned.
+
+Payload structs are then declared on their own, with no header:
+
+struct luo_memfd_ser {
+    __u64 pos;
+    __u64 size;
+};
+LUO_SER_ASSERT_SIZE(luo_memfd_ser, 16);
+
+The static_assert covers the payload to catch embedded structs changing
+size.  Asserting the header doesn't add anything since its size varies
+by kernel. And because flags[] is a flexible array, the header can't be
+embedded in front of a payload in a combined struct; it can only be
+reached through luo_ser_payload().
+
+I think the only downside is that the header increases to 16-bytes when
+there is at least 1 flag. But I don't think we need to be so concerned
+about an 8 byte difference...
