@@ -1,100 +1,112 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.remote-ip=209.85.218.53
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=fail;
-	t=1792637632;
-	b=QcY+THBMJp26d99l9qMriiNKbG8J68ZWD4B1P1tfjjuzrEizUwOLVBJ44+agphsC5wKG
-	 9U+16dLj/QEIN+eL3VFNKnXE1+AfohjG1FucxGPhwQuYgl1rw+xDCbilt6MvQJ3kBKWcI
-	 RP+5gq58fzuajJjNmjznHMIZXzH1uj9DSdvVYRTjnhjsch9xnRvOSsCc4tZp5MzRs+dVY
-	 hrFzJVis1nf64U5z7LhICo9Gq78EybkLB/2nuGrEZBT0RjuyFDXLij3pcZr8a6tQrzw1v
-	 ZOleQ4e6pL0zA/P1o3CRnUr63Db0yurzXyHmU6nafi1iI6aGJdNoD0z6jc537A9BenA==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792637632;
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.215.181
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1792637867;
+	b=upLAHMIZWM3JOGzFVLCWiFgAe8Lc2N7w0TaPAFT0CV91jqI4ORNr8PbJRBxHFsSN3O/H
+	 djyh7/CK7+tCFuLxFoHun0eoRVs1JE9SE9wEPlRCgY6ixiJMk6yjkEunrum01PqsZPvUx
+	 S+02iQIZeb8fIIBi99YiE6qnJiPOcN/BqRXuAAVhkPTRnazvoZKA8Fqf8zoRXasWt0qLL
+	 75MfWivYznbC/PPuvubZGvPKYAmstRipa8mHUT227LcmRPRYqWYPApTK7JLkqT7aZDsiH
+	 a5txRKrP38DASGs+6Zrt74HVZ7Yy/Uf8LwHm6VYG3YS12LDGRqHrvFfswJ5IU2Fmo+A==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792637867;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:
-	 MIME-Version:References:In-Reply-To:From:Date:X-Gm-Features:
-	 Message-ID:Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
-	bh=NnU6rs3hrQM9btLPDOKgfodkMRYa3+dqaWM6BzIydXs=;
-	b=zbfgt/yMFhGFcKOSfDK087QGwZarUOcEfG40wIEhB3C0zq/Y/VjuxqJOWZOUkGnkkOr7
-	 3zp5QZBrfCXzO+1Lj3DxntCo6x5F4e+kgCaXlwbeeH+hMozuHKsamgE5O2yL/isvKOm4V
-	 RnWSvC5SS1L6KxoGb7WWmuZDvBb4bbvYo9yVAm6YTMOUVu7Nnxpe2ONBsQyCLUAm7KCSl
-	 z18yCY6plnrFmkNm28ov22AQjsInJLnFzynJicqKkWfBQVcrcqzY0apQkBukpG+A2hJuU
-	 OncGdPNBhkrkecRC8j/bJs25rWVrdyuDOzBh3Vf00bVY9wvSYmtCuCWczRJIcHEgZ4g==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b="DTOI/Pek";
-	arc=fail smtp.remote-ip=209.85.218.53
-Received: from mail-ej1-f53.google.com (mail-ej1-f53.google.com [209.85.218.53])
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:Content-Transfer-Encoding:
+	 In-Reply-To;
+	bh=9EhJunI31x30V5twb29p5JvXR/ZnOh8avGc16eTeBG0=;
+	b=C2aFqiYzKlhN2Z8ugX3l93K+rQDEt6EiLx6HPf2LoJGVUuZ3Deq6TVraWrq36aCBTB+r
+	 FgNzYrHWKpDCLeekcYrYauoS0Zvt6HnVok8udHeFNsKhq9rwVvcIgrAkx/SXVad73KSfS
+	 gvsOYCaAcYwMGSD20+yybkejJecaLtT/nP60zIbTeN5EnwMxMQbPD5LEbzFfcxdkkn1mH
+	 XREMSrzz/Agke270oXuNO6oQc3gZO535568GAYlx2yHGsFg6v8VQntFUpF0/1q1Y8jwsk
+	 k9f///uKsFB4OOsy06HHd2VeFTYC3oljvdTBIUj94QH+F/E8NTBo/DHETnteUbC1BGg==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=google.com;
+	spf=pass smtp.mailfrom=google.com;
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=dRoWI2O9;
+	arc=none smtp.remote-ip=209.85.215.181
+Received: from mail-pg1-f181.google.com (mail-pg1-f181.google.com [209.85.215.181])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 77BF6606A31E
-	for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 02:53:52 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 77BF6606A31E
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 335C4606A31D
+	for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 02:57:47 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 335C4606A31D
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=DTOI/Pek
-Received: by mail-ej1-f53.google.com with SMTP id a640c23a62f3a-c4203bbb1e9so195494366b.3
-        for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 19:53:52 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1792637631; cv=none;
-        d=google.com; s=arc-20260327;
-        b=UISU1dguXGhfMOOrqT0YDTXK0AYXFv3CPwxwDvjwTVF1F1bfcytyjQ9/l6iOqxQdMX
-         6R/Rm45btuK0DGTZ4AlBpU1TY8swyVoQPwk7bCdEST8NBjTuQKzpuFoeDv45vBJuDqU9
-         hqOcmaE0dka4ubU4KX5F1i9EwNiI2kzjVKR1C/UAhwQwRIpT1BkXnW/uG87wmBZ+xRpS
-         AT6WMcsFiXihLdqZdSi9VWhyuKKL4H/2cmKXFESEco/jkuOwnEfsgCflI3UOrwh3oSI4
-         kcOtB1GvLLnJGw7xj5HVqI2zFTzL32sXPBauywvDszAbZGTgm0pIVpV7WnpafRDdB4jd
-         Pisw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=NnU6rs3hrQM9btLPDOKgfodkMRYa3+dqaWM6BzIydXs=;
-        fh=pH4ssNZNVKMBapyOFk2rfuzuDwLaq8oE8tICpNYFAB4=;
-        b=omSqawk70WpluFmD26olW8HmSvtrQy6AqsUy4hvNnAoeMa6wYRgm6NpaDAcc03YSH8
-         4/+mCodQF878ACEOS34H8lvGwncI1NV7oBwzKcl7pxc03jWuWNhrupY7T/56cVnqG6RC
-         u3RIPzwGnBzztSndZ5t/oS8MFSsJS450sFGAssVTV70MzZN+kXJFgfC+n/Z+vSdrnflC
-         u9ht/fPt+hK7c1Lgc6n570vOj1gj7h010FlRVRtoWf+DOsAp0JxjEaMCjA2jsYlBcO0V
-         8ZKhI/MvILYo9Q4TMkHYPmtU3CLChLrAB16ylfROsF7Oj6E1xUwkglkjxSruHKTHkHX9
-         LB0g==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=dRoWI2O9
+Received: by mail-pg1-f181.google.com with SMTP id 41be03b00d2f7-cc4b1f7e8f4so534383a12.1
+        for <linux-arch@vger.kernel.org>; Wed, 21 Oct 2026 19:57:47 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1792637631; x=1793242431; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=NnU6rs3hrQM9btLPDOKgfodkMRYa3+dqaWM6BzIydXs=;
-        b=DTOI/PekpHCFwbCxS6btLnjWQNCiYVc9jJXCEYwAmPekEK8t/PxBNEKZNgCm5yMo5O
-         ZHRqWqq6Sa4prnp5961iu97eKvO2fCe1P/oDhQUuXQyhe3en4gFePLH+ndAycKrOkdLY
-         ZBtVPzCtW837QZIUsvIlXqXaajHAOKuqlnaym36x90uyaZGBsQGk0lDoH47TKDdTDSv/
-         +bNghojo2jLNQuKI4CGPrg7pLnnWdQfj43K8C91aQyr5qb1zEo8L/J/KSRypGRSRs42E
-         gu3hUif099K3NIyvd05k0+GuTWcbFOAPWaSRNh9N1gfC8G9MuampVJBqQHApn7d+PZp0
-         CiAA==
+        d=google.com; s=20251104; t=1792637866; x=1793242666; darn=vger.kernel.org;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :content-type:mime-version:references:message-id:subject:cc:to:from
+         :date:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=9EhJunI31x30V5twb29p5JvXR/ZnOh8avGc16eTeBG0=;
+        b=dRoWI2O9b4O92k+WOpxwi565DGBEPYlPq0ghfq07r2y3WRvZEDPJ7i0ROgbY6wUSuS
+         AdNT2jZT04waQarxGzpsFOkuGkcLz6ztwEZzLkyCgXet2o61a5dXghq9VTZ92NNNcMrf
+         /+LGCpmWuIP1Aagyq4YfMSLq+WSt92yoZPw+QaI762w393JWkg6u8G3V17ksbFYBBVzI
+         gHiGvVlcABlRMpDhSMkjjrVx/XmdpP/fklOi0VmZNnNnWKpmuvwaR2vQUOrwKNF2oWcT
+         QYXdnfSlN1Fdfqf3CrBxt7gsbSBeCL3AcwfNBYU/Go70bECwqrn8/zbZOHnb2Tq4F2CH
+         jQzQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792637631; x=1793242431;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=NnU6rs3hrQM9btLPDOKgfodkMRYa3+dqaWM6BzIydXs=;
-        b=L9hrNcFe9+Z+tOgZ+kYwUcO9I5UFPaJ6F72xa3EE/Hk0bS3pOfwirmD4V1Z11dxDAT
-         Y6Hoh1oDDVsAcwZXxyzRY3VuA9fnq95xojPOMx/reHYDmhk0tfX4nTbWMF15FZkEpeA4
-         YO2W/xUpfFwzEZMKJnMxuTZhujTIHpHonkHG8GLpuqNWqa3gdG56wkNk18zVMvACX/1n
-         CuL5AQTkxKL/8k4+TMQ3K91ClYhCU4GdUWLHgEBz47FOonP4PwaLMVn/taGTJolt1Pi+
-         vqN520xxG2RjpR5meMKeUNPSvGcYKAd69e03jHrmjotKyEzjCc8vvIPLWR1GnezGgfMA
-         0CqA==
-X-Forwarded-Encrypted: i=1; AKwUvBwkyxJW08f68mgdIt6wTKnP7a4eEKr7Tvzfly2z+MEfITm+C6bvZuujoPalyVfEtKfwIP3tfQQkuX5S@vger.kernel.org
-X-Gm-Message-State: AFq9FYK+NO7JybgK0KagErw3Ysy5pXALdFm11wEO3NjfyuopXda3onyn
-	BlTFanMoVz/kCfeWCsOTInHYjj0lkO2DY6ROJIOQJZHuKGKTuCzmelUdxXjmJGHbb6/ASVRARX2
-	3BkMHFOWVllJ3KR7hYzQMh8sUPg4Ciio=
-X-Gm-Gg: AYBFou3O9RSzGpHmf3sngIKW8K0ascawvqYLOO5cbbEuAvjGgxr7g+3DtjWEkFWn7yP
-	fbMSjxRGzB2C5nVJeWhAp9uJZ0EZiwgn6B1gwJNNaivrEDBsPI9j6ILwMMFVRaI7/i+vDJbyJp3
-	nuFAQAjq3IS5wwNqDMvA+TtkKvh4HXEGXu/CtCQDsmK2flaHi4PxKkXvOvkvN+lyblO9AQoFO5l
-	J6AQc4/Rv6kx7oNAE80YrmbmkWZZMPi/vt0o0jufCsIxEmIXnAw8gbHv1Xp1TxfiPEyOOs+BIym
-	yaM3RBmELFO25MyV5n26zZ16l3aH/T7VS+t0xPbDv+7VvdJ0I+gt7cWwitUAndlHCfOnXpuTd1X
-	orMJzsxqQxDycDorZDnNvmFpXDnqnWImqffnMMbUuR6n8iNuZj8Fp3cAjoA==
-X-Received: by 2002:a17:906:ba84:b0:c41:8e21:4d60 with SMTP id
- a640c23a62f3a-c46791326c1mr341731966b.1.1792637630664; Wed, 21 Oct 2026
- 19:53:50 -0700 (PDT)
+        d=1e100.net; s=20260707; t=1792637866; x=1793242666;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :content-type:mime-version:references:message-id:subject:cc:to:from
+         :date:x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to:content-type;
+        bh=9EhJunI31x30V5twb29p5JvXR/ZnOh8avGc16eTeBG0=;
+        b=ZdqoUuHDBoZGjtjpneV6xIatOUJz5RX2UGuLir4V+3bLkwZIR8U34Tgr61USfDKgNw
+         tWHeaYgdceSWdJ1WoRmYNHF/t+QDgdjlqbjuhTa7LOXOb4OQfjyiccoERMmExZZSZfWK
+         SgHlxQsU/mxVU4IdN5AFcjJlF8kDJOFK8Gs2tGoVvOmV4KMr7FR2+Vk6Af82MA8UFNf4
+         j3xC4njy4oFBk+7ZtW01KJypxNJx3zmth4/UmAeoBJN1FS8XrFY/HzVTXPcjm6IC+TWR
+         fJ0W0ECgreJAR2Pjys6ww6IIdJhxP43pps8Y1XPXWu6RyT13ytMo/cCsjpjVE5D8p6f7
+         79jQ==
+X-Forwarded-Encrypted: i=1; AKwUvBxBYv7VfI/UpX9hhimIjce5aeA7FTLZp9dHvnsO/+iL93u2buGxDqLqiQyy+Pos8QhsWd8cqz/+9GW+@vger.kernel.org
+X-Gm-Message-State: AFq9FYLEbpCMIHPa7wV6OWpzA2UJiZgGT7xc7AlknhCQvosPGaP4GGsz
+	MNE62zzCYrGBbkHG+V4Veh4eSl/h67Fo5fLHxg4MPuAuaqlrAIEYJIOmo7EhIjpuMQ==
+X-Gm-Gg: AYBFou0I0aCOB2QAH9bkZYz/+9Sv9ezykU0N6WB49x/X6d4zdiAkDrbqUQP6TpWxXKe
+	upqqmLBkTx8JkyR8KnFYZTpVFRKO2z93JcVuNBMIg5o6EK8EgH4u9v30YF5P7t57WulKCH6+Vrr
+	KBR6cJP9DhMzCK3z3/cvmtNYVkn9J6dGJVd274g8J0iwspskyVFtZ4lJYlW7x9U3igznOkpePwQ
+	0hnUPZ2bqdAaQSB/OUUVJ0N/96xjzvnxTf9iW2dJZ3EPJRcKsr5Lfk9CT4wLbbaPmp04PFgaytr
+	A68JokXpXnjOfk9PhvhTJlETwFatLqacXNFrXfG8NqrJoS6ONNYUIP25Q8hySUEBZ6fvffghUax
+	fohotnQeb/0IXj9v3SHyFf0nFH27nGR3KNsIR6F8ugLM3OcXS0pwuSuv3GrttLbxLin9AXkJDR/
+	LBC6cP+KKlIPjW1kuS0R8DPWPrrJ2IfOcbfchXgFmWhB0+cm0dz7zkYjehmNpMql18rH35LCU/M
+	Df8w3WnFfarW+KU+Y95fxcMsDnSHKEjbLik7ljbLTQKe5zNfZ4kVBQ4sCfZXJ13pJDyt44YotcP
+	YiAvF8SfKIvCOh6a
+X-Received: by 2002:a17:90b:3ec8:b0:3ac:adce:60ad with SMTP id 98e67ed59e1d1-3ad86e96c9emr2886416a91.22.1792637865925;
+        Wed, 21 Oct 2026 19:57:45 -0700 (PDT)
+Received: from google.com (64.75.127.34.bc.googleusercontent.com. [34.127.75.64])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ada495315dsm2092370a91.15.2026.10.21.19.57.44
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 21 Oct 2026 19:57:45 -0700 (PDT)
+Date: Thu, 22 Oct 2026 02:57:41 +0000
+From: David Matlack <dmatlack@google.com>
+To: Pasha Tatashin <pasha.tatashin@soleen.com>
+Cc: tarunsahu@google.com, Andrew Morton <akpm@linux-foundation.org>,
+	joro@8bytes.org, Mike Rapoport <rppt@kernel.org>,
+	Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de,
+	jgg@nvidia.com, robin.murphy@arm.com, loganodell@google.com,
+	oupton@kernel.org, kevin.tian@intel.com, alex@shazbot.org,
+	dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com,
+	will@kernel.org, Alexander Graf <graf@amazon.com>,
+	Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com,
+	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev,
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
+	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: Re: [RFC PATCH v2 3/4] liveupdate: Replace compatibility string with
+ a 2-bit pair feature header
+Message-ID: <atl7peoVHdP5hz7z@google.com>
+References: <20261021152527.375070-1-tarunsahu@google.com>
+ <20261021152527.375070-4-tarunsahu@google.com>
+ <CA+CK2bAQbmq3ArP3XMErF_8RC2CUwvgpLY0H83D0nCJTaVKYyA@mail.gmail.com>
+ <9huzecdi6go0.fsf@tarunix.c.googlers.com>
+ <CALzav=dLdJoVy=B1pv0FAurD9OhAzLSTjJNbtjTdJRmSqaB0yw@mail.gmail.com>
+ <CA+CK2bAQRMAEXZyHTEuUN0_Fo59Sn0hBmYbme_J9ewjx6gPyJQ@mail.gmail.com>
+ <atlKsD-aJB3mJr2j@google.com>
+ <CA+CK2bABt4OZO31TenVF2+uBUWVwViWbvfE00=0xbAw=f7K9SA@mail.gmail.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -104,63 +116,125 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-References: <cover.1792552161.git.jan.koester@tuxist.de> <f444dffc8e6bf98bf44c02456adc2de40e4ecd95.1792552161.git.jan.koester@tuxist.de>
- <fd20b840-350e-469c-9fd2-008fa0ded62a@slotpi15m67>
-In-Reply-To: <fd20b840-350e-469c-9fd2-008fa0ded62a@slotpi15m67>
-From: Takeshi Nishimura <takeshi.nishimura.linux@gmail.com>
-Date: Thu, 22 Oct 2026 04:52:00 +0200
-X-Gm-Features: AclHuK8zMCY_XzKvgZWVeEW29rK2WIKSmZA1a7YbTdfyZ3EtSnPZJ1CNUxd7pQ8
-Message-ID: <CALWcw=FYKcDNXeArpsabHiQOAL+cWkF=L3stL6MB0OvVaHei1g@mail.gmail.com>
-Subject: Re: [RFC PATCH v2 40/41] nfsd, nfs: carry UUID and GUID owners as
- their text form
-To: Chuck Lever <cel@kernel.org>
-Cc: Jan Koester <jan.koester@tuxist.de>, Christian Brauner <brauner@kernel.org>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, "Serge E. Hallyn" <serge@hallyn.com>, Jan Kara <jack@suse.cz>, 
-	"Theodore Y. Ts'o" <tytso@mit.edu>, Paul Moore <paul@paul-moore.com>, Arnd Bergmann <arnd@arndb.de>, 
-	linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, 
-	linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, 
-	linux-ext4@vger.kernel.org, linux-nfs@vger.kernel.org, 
-	linux-cifs@vger.kernel.org, netdev@vger.kernel.org, audit@vger.kernel.org, 
-	keyrings@vger.kernel.org, linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CA+CK2bABt4OZO31TenVF2+uBUWVwViWbvfE00=0xbAw=f7K9SA@mail.gmail.com>
 
-On Wed, Oct 21, 2026 at 7:44=E2=80=AFPM Chuck Lever <cel@kernel.org> wrote:
->
-> On 10/20/26 11:16 PM, Jan Koester wrote:
-> > Encode such an id as its text form -- "xxxxxxxx-xxxx-xxxx-xxxx-
-> > xxxxxxxxxxxx" for a UUID, the same in braces for a GUID -- in both
-> > directions on the server and the client, and take such a string (it
-> > has no '@', so it can't be a user@domain name) as that id again.
->
-> A bare UUID in an owner, owner_group, or ACE 'who' string is a new
-> owner-string syntax for NFSv4, one that only Linux would recognize.
-> Thus it isn't interoperable with other NFSv4 stacks as proposed
-> here.
->
-> RFC 8881 Section 5.9 says a string without an '@' that is not a
-> decimal number means no translation was available and the receiver
-> "should not use that string as a basis for translation into its
-> own internal format." RFC 8000 Section 6.1 forbids bare numeric
-> ids in multi-domain deployments because they collide; the same
-> applies to bare UUIDs, and more so to GUIDs.
->
-> If you are serious about pursuing this, you'll have to start by
-> raising the proposed wire format on nfsv4@ietf.org before the
-> Linux kernel's NFS stack commits to it.
+On 2026-10-21 09:26 PM, Pasha Tatashin wrote:
+> On Wed, Oct 21, 2026 at 7:28 PM David Matlack <dmatlack@google.com> wrote:
+> >
+> > On 2026-10-21 02:50 PM, Pasha Tatashin wrote:
+> > > On Wed, Oct 21, 2026 at 2:47 PM David Matlack <dmatlack@google.com> wrote:
+> > > >
+> > > > On Wed, Oct 21, 2026 at 11:40 AM <tarunsahu@google.com> wrote:
+> > > > >
+> > > > > Pasha Tatashin <pasha.tatashin@soleen.com> writes:
+> > > > >
+> > > > > > On Wed, Oct 21, 2026 at 11:25 AM Tarun Sahu <tarunsahu@google.com> wrote:
+> > > > > >>
+> > > > > >> LUO and its file handlers validate handed-over state with monolithic
+> > > > > >> compatibility strings ("luo-v5", "memfd-v2"). Any change to a serialized
+> > > > > >> structure, even an optional additive one, must bump the string, which
+> > > > > >> breaks live update between adjacent kernels. Replace the string in
+> > > > > >> struct luo_ser with a feature header, so that the target kernel can
+> > > > > >> accept or reject the source kernel state per feature.
+> > > > > >>
+> > > > > >> struct luo_feature_hdr is a fixed 128-byte header: the serialized
+> > > > > >
+> > > > > > This patch is all wrong; 128 bytes is far too large. For every _ser
+> > > > > > struct, we only need 8 bytes instead.
+> > > > >
+> > > > > NOO, It is not. It is intended to avoid complex mess with unnecessary
+> > > > > over-engineering.
+> > >
+> > > 128-byte per serialized struct is not starter.
+> > >
+> > > > >
+> > > > > >
+> > > > > > The first 4 bytes are the size, and the next 4 bytes are flags (i.e.,
+> > > > > > 30 feature flags + 2 reserved bits for flags extension). The last two
+> > > > > > bits of the flags indicate whether an extended flags field is present.
+> > > > > > Each extended flags field is 8 bytes, and its last two bits indicate
+> > > > > > that yet another extended flags field follows.
+> > > > >
+> > > > > If we will have dynamic extension of flags, Think about this.
+> > > >
+> > > > To support dynamic extensions in a backward compatible way you want
+> > > > something like this:
+> > > >
+> > > > struct luo_feature_hdr {
+> > > >    size
+> > > >    flags
+> > >
+> > > __u32 size
+> > > __u32 flags
+> > >
+> > > >    extensions  // offset of first luo_feature_extensions (or 0)
+> > >
+> > > __u64 extensions[0]  --> but the size should be specificed in
+> > > declaration macro that I showed in the next patch.
+> >
+> > I think you may have misunderstood what I meant. In my proposal,
+> > extensions is an offset to the first extension, not an array of
+> > extensions that immediately follow the header.
+> >
+> > If the extensions immediately follow the header, then the number of
+> > extensions is baked into the struct layout. Every field after them sits
+> > at an offset that depends on how many extensions there are. If we ever
+> > need one more extension, all the fields shift and old and new kernels
+> > can no longer read each other's struct. That is the problem Tarun
+> 
+> We can structure it cleanly by nesting the payload: something like
+> struct { struct header {...}h; struct serialize_data { ... }p; };
+> That way, the header can expand dynamically at the front, while all
+> fields inside `serialize_data` stay at fixed offsets relative to the
+> start
+> of the payload.
+> 
+> Since the header size is self-describing via continuation bits (e.g.,
+> the last two bits indicating whether another flag word follows), LUO
+> can
+> easily compute where the payload begins in the incoming blob. This
+> keeps the implementation simple, avoids linked lists of offsets.
 
-I recall rumors of MS wanting to stick Windows SID in text form into
-the NFSv4 protocol.
+Oh interesting. I agree a dynamically sized header at the front can work
+and is simpler than a linked list.
 
-THIS proposal is even worse, in every imaginable way:
-Stuff an unreadable 128bit blob everywhere. I am sure people having to
-debug that in the kernel will LOVE the idea (compare blob a with blob
-b as human,YAY!), and admins facing the 128bit hexdump will send
-marriage proposals to the author, for making their lives even more
-heartless and miserable.
+So the header and the payload need to be separate, and the payload is
+located with pointer arithmetic on the header. For example:
 
-NAK, -1, for the whole patch series.
---=20
-Internationalization&localization dev / =E5=A4=A7=E9=98=AA=E5=A4=A7=E5=AD=
-=A6
-Takeshi Nishimura <takeshi.nishimura.linux@gmail.com>
+struct luo_ser_hdr {
+    u32 size;    /* Size of the payload in bytes */
+    u32 flags;    /* Bits [31:30] indicate an extension word follows */
+    /* u64 extension words follow while the continuation bits are set */
+};
+
+/* Size of the header, including any extension words. */
+size_t luo_ser_hdr_size(const struct luo_ser_hdr *hdr);
+
+static inline void *luo_ser_payload(const struct luo_ser_hdr *hdr)
+{
+    return (void *)hdr + luo_ser_hdr_size(hdr);
+}
+
+On preserve:
+
+    hdr = kho_alloc_preserve(luo_ser_hdr_size_for(nr_ext) + sizeof(*ser));
+    luo_ser_hdr_init(hdr, sizeof(*ser), ...);
+    ser = luo_ser_payload(hdr);
+    ...
+    args->serialized_data = virt_to_phys(hdr);
+
+On retrieve:
+
+    hdr = phys_to_virt(args->serialized_data);
+    err = luo_ser_hdr_validate(hdr, ...);
+    if (err)
+        return err;
+
+    ser = luo_ser_payload(hdr);
+
+What would size mean in luo_ser_hdr? The size of the payload or the size
+of the combined luo_ser_hdr + payload. luo_ser_hdr is self describing so
+maybe it's just the size of the payload?
