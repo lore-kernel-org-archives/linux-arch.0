@@ -1,73 +1,83 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=18.9.28.11
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792693716;
-	b=KG6zgFPjeDKFY3pUmwAA5dx7tCPmDE0UnuOeld9EEo9Uak+Y/1LguGTp8QUrNJ8S7F8J
-	 pepB4peBIAyWqmtgeqwukcX7rQG/HKtt7Vz0OjNmRmEVPOL61oM/bPtq3d7+z6hm4foA1
-	 MJhxvBwrncbq2u1FQLqiSKFappe9hR98D8ru9O0lkqHBndBKCFKbVEisUHYTWgEZnEDbi
-	 p7/K81OGjRvAAA6h8mMtw+eTlOkOdoV0EyEQ009haEEQtqRN269RI83Ad5BZZFFHAkAsg
-	 PeujRQVUHVkY5zHKLI6dsueL0s2JjH1adFf/oOmMdVBKgMWMfT1/e1oCH6cqjpzxq8A==
+	t=1792696563;
+	b=HfAyZa+alXaQN+LNDIUfFeD++cMlKDv0VoR7Y6nc7yOtsQRUB0Zt92AZ2JPUrLxebeQ4
+	 tfQxwZO8TdK3C7R3tVuyTEmdkghq/MweXyOK1kq9kwpwdTcomaOlskGMylmFpKC3Vck3h
+	 z7VtBm4AzcI3ETrdeVk45lCqc78yAgJwsKB12vpyB4oipuOetEw7UPUveuJVnp0nYwvqY
+	 pn6iflOxu9mOkNlbT8npwKzGhI7lsQ3FL6LuaYicgIC8uZdFZ2krzZ1i522d5hDkalPfs
+	 ezoxAUE7hOVhKWgLkh7SFFZt+ZRDWvpnp4YHvmoNbg7cihyg3H6JSSzgNMoCPLnmggQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792693716;
-	h=DMARC-Filter:Received:DKIM-Signature:Received:Date:From:To:Cc:
-	 Subject:Message-ID:References:MIME-Version:Content-Type:
-	 Content-Disposition:In-Reply-To;
-	bh=JYh+FSmeD5zBdSGmLXfoWsuKx9ehvUO73Rr6qnSc3X8=;
-	b=1D1iSQfCqVGzc1FIIQuoR4nYAyhlYCmKSYvfZdMyWQTQBpYTdrW4EH5c4SJ03ENe2HtX
-	 jpdjyWk4/S1+6hT8/6w00BB3pr7ydWxut3erw1XKCywr9Vj1CpvfrhyBTSP8f0+SRejGb
-	 v1RjGkBb7CXXn/FgeWEr3Omjlz/JKZjeJijJawDbc0bWDRSgzR2A3RHLYxpzAiFx9kHQc
-	 Rz00DeeUsyHEhlDotlbbaO3SSbpuqCi+YtsRF+s3zJTFHqG+1foqMdo5+buVeI2XyNYwT
-	 Yv9JwOKamF6gaFk8RQyj+gOuJVsc4PUI1UpD+F73nV0Gxf0gj1S50PxeoVyCK/XmpYA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792696563;
+	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
+	 Date:Message-ID:MIME-Version:Content-Type:Content-Transfer-Encoding;
+	bh=zfF/h5yN+JN0JXoERjM1UOmD6YL51qlegqbjQ5IjJaw=;
+	b=yisF+d1m+E7vIaljbDjCjb0bCmnmDMdBaP77FAtYOJI5F4AW59kGTAfzdgUZyttgnngP
+	 UWsXOnMn1hev1UdKAVdfYsp2V81KRKVqzJA363Aaa0jZggJynSp8bEijV3RulrzC6Gcr5
+	 MtObWINWwc2qwa83rAWXzqmjoa/BGUDrRQkqrAzaGdAjz5bfefKxm80EUOixHrWqHVakj
+	 9fwoj+5ad03k1egP2xLmuS5Hab+GF6cXb85K4fi4QBGYltjTTmkDEZboU1b7YZnMAaWjY
+	 H38MR8iPMSHWjiptHGGp3k2YRVghrQBzRPbNVqTh/rMpoB+DwBTJ4zaJjAdZ6KNMSKQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=mit.edu;
-	spf=pass smtp.mailfrom=mit.edu;
-	dkim=pass header.d=mit.edu header.i=@mit.edu header.a=rsa-sha256 header.s=outgoing header.b=FB4rIzmo;
-	arc=none smtp.remote-ip=18.9.28.11
-Received: from outgoing.mit.edu (outgoing-auth-1.mit.edu [18.9.28.11])
-	(using TLSv1.2 with cipher ECDHE-ECDSA-AES256-GCM-SHA384 (256/256 bits))
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=N5BvSZtD;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C381D606A31D
-	for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 18:28:35 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org C381D606A31D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=mit.edu
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mit.edu
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 45C86606A31A;
+	Thu, 22 Oct 2026 19:16:03 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=mit.edu header.i=@mit.edu header.a=rsa-sha256 header.s=outgoing header.b=FB4rIzmo
-Received: from macsyma.thunk.org (pool-108-26-156-23.bstnma.fios.verizon.net [108.26.156.23])
-	(authenticated bits=0)
-        (User authenticated as tytso@ATHENA.MIT.EDU)
-	by outgoing.mit.edu (8.14.7/8.12.4) with ESMTP id 69MIRtlq008340
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Thu, 22 Oct 2026 14:27:56 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mit.edu; s=outgoing;
-	t=1792693680; bh=JYh+FSmeD5zBdSGmLXfoWsuKx9ehvUO73Rr6qnSc3X8=;
-	h=Date:From:Subject:Message-ID:MIME-Version:Content-Type;
-	b=FB4rIzmodCuc/ai76PzcPn8NKTCLCBgJQn5lG4OsNurD082LpzxvtWFDvX0WpozMi
-	 G5Wxrp5EKZivFppsyR/34R27Liveb8SHZHVPaUoS8ZK0SZqi5QIowbJZ3A3OxbM4VC
-	 T6wusZBLcMx4TA37NCtnpi9VcygARe/ydMqEQL+dUU2EOTWaGTS6Vg7HOcXefp/15T
-	 d7nP4c/UgU10vdDcWJP9aCfO9onPi6Wq2o/TdsUsdoFN9dfgwzIj5Cp6zqZxHaVWNY
-	 x9vDg8JooiFE5P2IxXk6tkIe6BLRPcasmFTfgbGaiWHz4u1SVqCZ6O7DWx0DCQCJGP
-	 /VtU8vRIAggOg==
-Received: by macsyma.thunk.org (Postfix, from userid 15806)
-	id 96FCB22114B9; Thu, 22 Oct 2026 14:26:55 -0400 (EDT)
-Date: Thu, 22 Oct 2026 14:26:55 -0400
-From: "Theodore Tso" <tytso@mit.edu>
-To: Casey Schaufler <casey@schaufler-ca.com>
-Cc: Jan Koester <jan.koester@tuxist.de>,
-        Christian Brauner <brauner@kernel.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        "Serge E. Hallyn" <serge@hallyn.com>, Jan Kara <jack@suse.cz>,
-        Paul Moore <paul@paul-moore.com>, Arnd Bergmann <arnd@arndb.de>,
-        linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org,
-        linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-ext4@vger.kernel.org, linux-nfs@vger.kernel.org,
-        linux-cifs@vger.kernel.org, netdev@vger.kernel.org,
-        audit@vger.kernel.org, keyrings@vger.kernel.org,
-        linux-kernel@vger.kernel.org
-Subject: Re: [RFC PATCH v2 00/41] UUID and GUID user and group ids (*_r
- system calls)
-Message-ID: <atpNJINlFhQ0M3Y6@mit.edu>
-References: <cover.1792552161.git.jan.koester@tuxist.de>
- <018ca365-ce9b-424c-b600-bd9c8aefc9a1@schaufler-ca.com>
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=N5BvSZtD
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2CE1F1F01825;
+	Thu, 22 Oct 2026 19:16:02 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1792696563;
+	bh=zfF/h5yN+JN0JXoERjM1UOmD6YL51qlegqbjQ5IjJaw=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date;
+	b=N5BvSZtDsOnevI6N7z+hpnuDFwgb+Za20bBfcyPl1zdZ/RUM/vhVGgooCl8EukmyB
+	 v951DfxEQIGKmPlqDa47vEV9oOJpjd3jTdFHzFJ8cGbv5Ec+77S428dvBazQLk752d
+	 8oijRTx04uvdE5t0WJ3hFRzAydPhPUU1uC5jEb9/jBb3UCG/5+2vXEPMQ0qv3aaJy/
+	 fDrmEd5ydsQk2Juig/QI4K6qM7Xm060UN2bTZPYYJFIjTdDkBvnz/aEeUGpDN6dDMG
+	 QYnQUY/lk7t3H2ZOK5q9Ex67PolYwOb50JpOTpWf5Zn6NIH8OuYBLaiHmJRlGX+jMg
+	 L4eC2BtuFHQ4g==
+From: Thomas Gleixner <tglx@kernel.org>
+To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra
+ <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, Shrikanth
+ Hegde <sshegde@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org, Kees Cook
+ <kees@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+ loongarch@lists.linux.dev, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt
+ <palmer@dabbelt.com>, linux-riscv@lists.infradead.org, Sven Schnelle
+ <svens@linux.ibm.com>, linux-s390@vger.kernel.org, x86@kernel.org, Mark
+ Rutland <mark.rutland@arm.com>, Jinjie Ruan <ruanjinjie@huawei.com>, Andy
+ Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Richard
+ Henderson <richard.henderson@linaro.org>, Russell King
+ <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Guo
+ Ren <guoren@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas
+ Bogendoerfer <tsbogend@alpha.franken.de>, Helge Deller <deller@gmx.de>,
+ Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Weinberger
+ <richard@nod.at>, Chris Zankel <chris@zankel.net>,
+ linux-arm-kernel@lists.infradead.org, linux-alpha@vger.kernel.org,
+ linux-csky@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+ linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+ linux-sh@vger.kernel.org, linux-um@lists.infradead.org, Arnd Bergmann
+ <arnd@arndb.de>, Vineet Gupta <vgupta@kernel.org>, Will Deacon
+ <will@kernel.org>, Brian Cain <bcain@kernel.org>, Michal Simek
+ <monstr@monstr.eu>, Dinh Nguyen <dinguyen@kernel.org>, "David S. Miller"
+ <davem@davemloft.net>, Andreas Larsson <andreas@gaisler.com>,
+ linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org,
+ linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org,
+ linux-arch@vger.kernel.org, Michal =?utf-8?Q?Such=C3=A1nek?=
+ <msuchanek@suse.de>, Jonathan
+ Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, "H. Peter Anvin"
+ <hpa@zytor.com>
+Subject: Re: [patch 16/18] x86/entry: Get rid of the sys_ni_syscall()
+ indirection
+In-Reply-To: <20261022142425.3Wx-RrU5@linutronix.de>
+References: <20260707181957.433213175@kernel.org>
+ <20260707190254.493733289@kernel.org>
+ <20261022142425.3Wx-RrU5@linutronix.de>
+Date: Thu, 22 Oct 2026 21:15:59 +0200
+Message-ID: <87fqxx1r80.ffs@fw13>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,45 +87,68 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <018ca365-ce9b-424c-b600-bd9c8aefc9a1@schaufler-ca.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-On Thu, Oct 22, 2026 at 10:00:16AM -0500, Casey Schaufler wrote:
-> 
-> I can't see this being acceptable for a variety of reasons, including
-> but not limited to performance and configuration complexity. It's a
-> general solution for a special case or two, and the impact is significant.
+On Thu, Oct 22 2026 at 16:24, Sebastian Andrzej Siewior wrote:
+> On 2026-07-07 21:07:01 [+0200], Thomas Gleixner wrote:
+>> Invoking sys_ni_syscall() from a code path, which already knows that the
+>> syscall number is invalid just to assign -ENOSYS to regs->ax is a pointl=
+ess
+>> exercise. It's even redundant as the low level entry code already has set
+>> regs->ax to -ENOSYS on entry.
+>>=20
+>> Remove the extra conditionals and the function calls.
+>
+> Since this patch, tools/testing/selftests/x86/syscall_numbering_64
+> throws in this:
+> |[RUN]   Running tests under ptrace: modifying the default return
+> |[RUN]       Checking system calls with msb =3D 0 (0x0)
+> |[RUN]           Checking some common syscalls as 64 bit
+> |[OK]                x64 syscall 0:0 returned 0 as expected
+> |[OK]                x64 syscall 0:1 returned 0 as expected
+> |[RUN]           Checking some 64-bit only syscalls as 64 bit
+> |[OK]                x64 syscall 0:19 returned 0 as expected
+> |[OK]                x64 syscall 0:20 returned 0 as expected
+> |[RUN]           Checking out of range system calls
+> |[FAIL]                  x32 syscall 0:-64 returned -9999, but it should =
+have returned -ENOSYS
+> =E2=80=A6
+> |[FAIL]                  x32 syscall 0:-2 returned -9999, but it should h=
+ave returned -ENOSYS
+> |[FAIL]              x32 syscalls 0:-64..-2 had 63 failure
+> |[OK]                x32 syscall 0:-1 returned MODIFIED_BY_PTRACE as expe=
+cted
+> |[FAIL]                  x64 syscall 0:1073741760 returned -9999, but it =
+should have returned -ENOSYS
+> =E2=80=A6
+> |[FAIL]                  x64 syscall 0:1073741823 returned -9999, but it =
+should have returned -ENOSYS
+> |[FAIL]              x64 syscalls 0:1073741760..1073741823 had 64 failure
+> |[FAIL]                  x64 syscall 0:-64 returned -9999, but it should =
+have returned -ENOSYS
+> =E2=80=A6
+> |[FAIL]                  x64 syscall 0:547 returned -9999, but it should =
+have returned -ENOSYS
+> |[FAIL]              x64 syscalls 0:512..547 had 36 failure
+> |[RUN]           Checking some common syscalls as x32
+> |[OK]                x32 syscall 0:0 returned 0 as expected
+> =E2=80=A6
+> |[RUN]           Checking out of range system calls
+> |[FAIL]                  x32 syscall 1:-64 returned -9999, but it should =
+have returned -ENOSYS
+> |[FAIL]              x32 syscalls 1:-64..-2 had 63 failure
+> |[OK]                x32 syscall 1:-1 returned MODIFIED_BY_PTRACE as expe=
+cted
+> |[FAIL]                  x64 syscall 1:1073741760 returned -9999, but it =
+should have returned -ENOSYS
+> =E2=80=A6
+>
+> and so on=E2=80=A6 The test has
+>
+> | #define MODIFIED_BY_PTRACE      -9999
+>
+> and the ptracer modifies the return code. However not always. Not sure
+> if this was indeed a pointless exercise or not.
 
-Yeah. I agree it's a non-starter.  For one thing, it requires
-replacing every single system call which uses a 32-bit uid or gid ---
-either as an input parameter, a return value, or in a structure, such
-as, "struct stat".  It also requires making breaking changes into
-on-disk file formats that use a uid --- for example, /etc/passwd,
-/etc/group, utmp/wtmp, etc.  If it will also break compatibility with
-remote file systems that don't use a Windows SID --- e.g., nfsv3, AFS,
-etc.  And that's before we even get to breaking things like tar files, etc.
-
-I'll also note that customers that are most likely to need to use the
-abominationm of Windows SIDs are also those that are likely to be
-using proprietary third party binaries --- you know, silly things like
-SAP R/3, Oracle Enterprise Database, db2, etc.  And if you use Windows
-SIDs as user id's in your /etc/passwd, then binaries that are still
-using the traditional system calls will get the overflow 32-bit number
---- and break.
-
-I suspect it will be much more useful to simply add a supplementary
-user id and group id which is only used by those file systems that
-*care* about Windows SID's, and assume that everything else will use
-true, traditional Unix uids and gids.  I also suspect that we should
-be stashing the supplementary id's as extended attributes for the file
-systems.  That way we can much more quickly and easily add support to
-ext4, xfs, btrfs, etc., as file systems that can be used as backing
-stores for NFSv4 and CIFS for those (few) environments that care about
-Windows SID's.
-
-						- Ted
-
-P.S., From my perspective, Windows SID's are actually the legacy
-ID's. especially as more and more people flee Microslop's Windows 11
-and moving to Linux and MacOS.  :-)
+Hrmm. That's weird. Let me have a look.
