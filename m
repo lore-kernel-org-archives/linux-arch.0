@@ -1,93 +1,76 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.210.182
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.218.69
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792670376;
-	b=JEY6WIv6VVVqik7vb0xJsTUolsKY9OMUOIns9vZ5ekJQB/MgOwr06HQQ71sd18QHlNwJ
-	 GMJgQsFgJaDp2uBwkuVv58GZOSe/91NSumyQRR6YLQz0w2v2og4ZPlVRwocAYmQwT4NnM
-	 U2NQHLtaxrMcN+AxdmpMc62GK/VEZuMNC23ElkmWV/pxp6yyoxrjvljU+Zx4sja1N+4Tr
-	 4v+34DFUrOAkPHi0ughz7/QUXWnWtKdwWEdpw2q+IJK1U/8GMntTSR+Y7qL8L+GdwaiY0
-	 iPAcXuCjIP3KRv9nSlaeVURe8/qZNO46eyRucGh2unvd7gQLHtHkvkfPwhwOBxjgfQg==
+	t=1792673410;
+	b=Qmk47B2rPh0pFsCf3Q/T9Omfd4GVirlQ9ija/SjoWtT75se1wv+Pz40qzY0G0F2Gs1m6
+	 gTNNnUKovGysC99Vk1aUBfSa/hIykaizcZaSZVIhER84lfa1xfR/MzSuoAQ+4ldvRkUAM
+	 OIzWHB8vqxcESuQj8sLaq6qqgN0LNMvVYunxVf397Bq1cWz3MsT3vh1eN5c3Lb+0p5fyz
+	 Te6P1xsl0/jr2imyk2TpXo8xaCVb/JdAHV/cGUR5vVyM3GaYL28CUuKwV0TVwc8jN0esl
+	 ofWyBJrb04+uwSfpa/z+rrxmQwHdlcqCig8m6oaf3KfM/wXEdH0yoWtEk1VuYpId1DA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792670376;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792673410;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:MIME-Version:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
+	 Mime-Version:References:Message-ID:Subject:From:To:Cc:Content-Type:
 	 Content-Transfer-Encoding;
-	bh=XINGVnXS/59fmZDTv/3fLoxUfeQVR9Y3Vo1ejBBatBE=;
-	b=nVgPisg+DNbrADabDTXgUVQ+U6pz8b1DOWhLhJ8lpCfcmdddYFuzPNBrtZgi2ytvV5uf
-	 E+HbvCOQeDU7Ho0kT94rjLr1SqxwrOJiuIrguLqMDgsRwiSg1hKmrkdLUNDireuMCr4wh
-	 lLnD3KCdAb+zIpayIXBOTJeQnW4FETqceIsPB2RwJIbRaiszn8Kquxebmtf3i8I+OAp6+
-	 wbmWOdW6mrtubzzwLqN7rYvqHywiJ9ffQfNns6qxgPtcclAvjpMpat1ocfyT/yE5lzXjE
-	 7Tr40MgzMV4aYQufsz/bp4dQ0JkC7/oIheeN/iqpa17oI07vV0kfGuwZMdN1fZCo+MA==
+	bh=opPc+eRANnsL3IgwnH1KHoUHY5QiZX1lM2OixXujM5s=;
+	b=jw1x2OH1eXCAEXWuk2eLydwCz9/pKLTDVlO7GkJRbM2RWSbtORtI0nVgPHJW0tI9F5tY
+	 3aOFRxI/w9JYh/hhAW+3Tcvel6SLA9DIqkOhTYHdWxQWdBTNI8kQkGUvsn9CkYF1fIaXV
+	 FzlZUUkdvC7uXzCB4X7MHYTw1wxTahgwXygEPPEHr6rXR+rAENmoE3zlS6EjauqmBNxV+
+	 /cQEAU8BYm7FiriP195w5bRUN8LCeOzu1FxykwrkjNdTvQyLb+dxn2soFy7rccnwnq/iW
+	 JSUPdXcJg0p++sWuegnHXbEyGgwLnraEYxI4iJd/+Gb9LYA0N3so5CXQOQS5DXQeodA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=H8MV5mHe;
-	arc=none smtp.remote-ip=209.85.210.182
-Received: from mail-pf1-f182.google.com (mail-pf1-f182.google.com [209.85.210.182])
+	dmarc=pass header.from=google.com;
+	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=DMsHHchj;
+	arc=none smtp.remote-ip=209.85.218.69
+Received: from mail-ej1-f69.google.com (mail-ej1-f69.google.com [209.85.218.69])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 97425606A31A
-	for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 11:59:35 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 97425606A31A
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 90638606A31F
+	for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 12:50:09 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 90638606A31F
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=H8MV5mHe
-Received: by mail-pf1-f182.google.com with SMTP id d2e1a72fcca58-8a070781f63so799734b3a.1
-        for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 04:59:35 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=DMsHHchj
+Received: by mail-ej1-f69.google.com with SMTP id a640c23a62f3a-c42888c50c4so146135166b.0
+        for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 05:50:09 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1792670375; x=1793275175; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=XINGVnXS/59fmZDTv/3fLoxUfeQVR9Y3Vo1ejBBatBE=;
-        b=H8MV5mHePY61sZTF1PItFLG8m+SDaYKHDRqB1gr5Vk0h4SfvTU4pYNyiZPg0K1UtGX
-         sOlN/iywGbBkOgN8XVRD/VqYX2zs3GMNNE9jX7GPoIc4s3VAqly7omE37kAtT8YZMn/z
-         jRnpFa/jLmT3sHPgV/+BE0TthFw3r/rnYFCjb3NJAqfGC6Ls0HIJM6wM9pKJnMI7lS4L
-         spW10lbuM/JoZQFK7Cq3leTxmQbymKQVyg+lfXJqQmWUejs1IsMgzhfQv90o4KmQRbTp
-         DhL04C/PhxI3aS8HZZrrw4YXzhJ+G6t6vYVGV2KbRqoUNyQ1IICC5+534NwP/Gkfbpba
-         alyg==
+        d=google.com; s=20251104; t=1792673408; x=1793278208; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:from:subject
+         :message-id:references:mime-version:in-reply-to:date:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=opPc+eRANnsL3IgwnH1KHoUHY5QiZX1lM2OixXujM5s=;
+        b=DMsHHchjfhEFKBBrw4fIxgT97StwkOmkCi2mal4kRQNs2vkrkhAAcMsrSObSortg88
+         pc71Jt1p1+m1Htltp305qagrdU2wgYkcUrb0sAl28ql2baldIwNJfgdBJyYeIifTZxTh
+         fWQoq+jKwm9lnKYVo1BnPw4fUQoKd3IS0WZsZPG7Qtmeh6WZ6yfu37sNJGwt+55eYYwK
+         YSQyB0ubmm5E+JIgBjyUJPBgZ2OEDqKo1MiyYdwr4DID/7LKS6WEdO27zAZdzU7zyFRl
+         wMX3P6Wm18jN425VpWA+Wx2P2MIiQ+iTOESg6hDcC/sGRrj9QtBw2f1rJxN2oEzOIJiu
+         1O2A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792670375; x=1793275175;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=XINGVnXS/59fmZDTv/3fLoxUfeQVR9Y3Vo1ejBBatBE=;
-        b=i2wKSVIJh+g5cSOxec7ORiLs4/2buvMQRVBdHC0nmv+QxtE9zSR5FBKXqovshvii+a
-         OKeue+4dCKhQ029x0AvGTAinf4xOyKdhuFvhsyzVIxmMbT3R49+GBZLxw5SOYbEpOV8a
-         Aog3fkbGhoWgKIFkYHcB0G0HONqaoyFZ4warG4eGNsEQDqmyKjAag9eBk3HRcX1tW2S5
-         fuH34Cx9dnSoqS0XR86jKpXFiaqz8wf38JTQiAb2w0OOudb31k2XAAVmu3d6aC1O7lX1
-         a710poEW94KrpbXwNhVgmAwz5HBlxZMTUzAf9AUtsoDo60HFx+nnWOvxiI7qjV1RHvsj
-         0ziw==
-X-Forwarded-Encrypted: i=1; AKwUvBybhLvFUzR6km0JDKrN9FJLLLPnZ2nHMQz7DTzZwDiOJi+JuCiPSvG1OUo/zQjftWxDLw7V25u8tuk2@vger.kernel.org
-X-Gm-Message-State: AFq9FYLbTfQCo4LeC3LeAVHurqhLhU/pXNRooTQbYzenoCsCwWrySRY9
-	HRjeO/HpC/nhQZMRZrXmgIU1lmfjH9kE1JFlsIp8QmC7AebQ4bSxbz/W
-X-Gm-Gg: AYBFou0VZHKEwkChR0MQQ1osicLrmWl0ghXAImRKjOU9KQ0obSp+TJklLhJ1kzcTUUD
-	uHolvn8c18N5/V8cbb93KABcficrn1KXXr6J8zCyopRTCmfuHEeKmpOqjq6QK+6Ey3bXrdjnn8w
-	R8PZTHzzLDVeZZjIZbMLNb9WqCHoTOn4x6YqXW9JKgvpWU4/n/l8ujT9FFcFzPzs4JfNj5H4Enj
-	76e2i8bi9HGT/zJ8zCGs/kTV0QZF9t1xSEUGw4Q0Ilaor+Pvr6XtAVJbTKK5Mik0nudVYoA1qMj
-	yNzhjT+fi0rL2FT9cDUpzE3YLNJuRdinRoKcsxEPmNmUzpApooHMrTuhpeFpz+hEkEdubg8G4Vp
-	0+4NpdCRGviGaT2rMqpiyKR76kN+mRdSHOG00tpaBOo+v5GpORGNBkO0GSTMYhf/U+UnjbhWAiq
-	K7EfxZ6H7o4wf2v5z41Yat7hXxJn0oVB1J/jBvcYghulU8YOCYrl2ZhZPgzjPqpSFNZBOW0DJ+i
-	8YV58S+n/N/Z1wML3cQkCAMZEINeJxGRD11AWSzKF3MlABnRBFR6c8lE0Wv
-X-Received: by 2002:a05:6a21:48b:b0:3dd:a195:fa25 with SMTP id adf61e73a8af0-3e287eea3a3mr3590304637.74.1792670374907;
-        Thu, 22 Oct 2026 04:59:34 -0700 (PDT)
-Received: from arm-a100.. ([140.112.28.118])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-8a0894b49d1sm2035007b3a.12.2026.10.22.04.59.31
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 22 Oct 2026 04:59:34 -0700 (PDT)
-From: Tzu-Ching Yang <shingekinocore@gmail.com>
-To: Guo Ren <guoren@kernel.org>
-Cc: linux-csky@vger.kernel.org,
-	Yury Norov <yury.norov@gmail.com>,
-	Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH] csky: bitops: Use the compiler builtin for __fls()
-Date: Thu, 22 Oct 2026 19:59:22 +0800
-Message-Id: <20261022115922.1210342-1-shingekinocore@gmail.com>
-X-Mailer: git-send-email 2.34.1
+        d=1e100.net; s=20260707; t=1792673408; x=1793278208;
+        h=content-transfer-encoding:content-type:cc:to:from:subject
+         :message-id:references:mime-version:in-reply-to:date
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=opPc+eRANnsL3IgwnH1KHoUHY5QiZX1lM2OixXujM5s=;
+        b=bfeyBwPmg3vMPsUzIznp3tZ8a8KWEKabH+kH8fV68q5ZKEQIeg7EfvM9sTcgOBVQxS
+         O1SYuzmqEVRo0iI32Y6aL1trbQarslYiCENOFiPy/TnNQ0CkHRh5hBPP/h1+ksvH4P7o
+         qnL25wyokWtnc0erY7QX0DgCZXxClkz0OSpK8DeGEeFNYpJiJKW+NFLj0PTy8nkbzUWp
+         eOOv3DMOwbONjL82Wtjrqu83GjjcgghboiV9j2H9AVX8ejHHE0FhY9kdFRR/FIyV27c0
+         LSeKspVZ7dWiJYWlTHiXJS4KnSlaPCpCJoM81rTXhEzbImVK+H2o2JZaln0CGZL/NW+A
+         4/DQ==
+X-Forwarded-Encrypted: i=1; AKwUvBzgHB74lFZTmqyoUhsupm8SN0AaigeaFaddUfwl4LS11U58wj7xl4zc/dm6oTIB8UK0+cQg+1usAkV7@vger.kernel.org
+X-Gm-Message-State: AFq9FYJTHG1DTT5XweWzm8sUVhbajILCSJ96IUTgUbxf0RsMM0Z6qnMg
+	n13nAQ4z8SwLbo5/3SB29/N0fOM+FaU6JL4Lz+eXKiEj0TWIzFebBzQaxTyXhPZw0ye0zGzIPkF
+	NGru0zTzrlVYa+6fE7A==
+X-Received: from ejcty16.prod.google.com ([2002:a17:907:c710:b0:c29:490f:9a3d])
+ (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
+ 2002:a17:907:9406:b0:c31:73b8:39b3 with SMTP id a640c23a62f3a-c4679796deemr525575766b.30.1792673407508;
+ Thu, 22 Oct 2026 05:50:07 -0700 (PDT)
+Date: Thu, 22 Oct 2026 12:50:06 +0000
+In-Reply-To: <CA+CK2bCnS8wcVDbOymBGeJB6pDUkknOpF22EynbwSV=D5=J4ow@mail.gmail.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -96,85 +79,312 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Mime-Version: 1.0
+References: <20261021152527.375070-1-tarunsahu@google.com> <20261021152527.375070-3-tarunsahu@google.com>
+ <CA+CK2bCnS8wcVDbOymBGeJB6pDUkknOpF22EynbwSV=D5=J4ow@mail.gmail.com>
+Message-ID: <9huzik2t5281.fsf@tarunix.c.googlers.com>
+Subject: Re: [RFC PATCH v2 2/4] liveupdate: Select file handler by name in the
+ preserve ioctl
+From: tarunsahu@google.com
+To: Pasha Tatashin <pasha.tatashin@soleen.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org, 
+	Mike Rapoport <rppt@kernel.org>, Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de, 
+	David Matlack <dmatlack@google.com>, jgg@nvidia.com, robin.murphy@arm.com, 
+	loganodell@google.com, oupton@kernel.org, kevin.tian@intel.com, 
+	alex@shazbot.org, dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com, 
+	will@kernel.org, Alexander Graf <graf@amazon.com>, Bjorn Helgaas <bhelgaas@google.com>, 
+	baolu.lu@linux.intel.com, linux-arm-kernel@lists.infradead.org, 
+	linux-arch@vger.kernel.org, sagis@google.com, linux-mm@kvack.org, 
+	kvmarm@lists.linux.dev, iommu@lists.linux.dev, linux-pci@vger.kernel.org, 
+	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org, 
+	linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
 
-The csky __fls() is a C wrapper, fls(x) - 1, around the ff1 asm
-volatile in fls(), so the compiler can neither fold it for a constant
-argument nor merge repeated calls. GCC implements __builtin_clzl()
-with the same ff1 instruction for CK807, CK810 and CK860; CK610
-(abiv1) cannot be built with upstream GCC.
 
-Use the asm-generic builtin __fls() instead. ffs(), __ffs() and fls()
-keep their asm: GCC has no ctz pattern for csky, so builtin ffs() and
-__ffs() would become calls to __ffssi2() and __ctzsi2(), and a builtin
-fls() needs a test for zero that ff1 makes unnecessary by returning 32
-for 0.
+I have gone through the discussion in reply to this thread between
+@dmatlack and @pasha
 
-__fls() now returns unsigned int instead of unsigned long, like the
-asm-generic version; both are 32 bits wide on csky. __fls(0) remains
-undefined.
+I am not sure If I understood the discussion correctly.
 
-With GCC 9 to 16, the text of every defconfig-based vmlinux tested
-shrinks by 128 to 320 bytes.
+userspace IOCTL for FLB compatiblity might not necessary as each FLBs are
+registered with the file handler. So when new file handler introduced in th=
+e
+system, new flb handlers can be registered that is compatible with this
+new file handler. I have tried to explain this below.
 
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Link: https://lore.kernel.org/all/affe7da1-41aa-4710-bee0-5e3c2b8a8dfc@app.fastmail.com/
-Signed-off-by: Tzu-Ching Yang <shingekinocore@gmail.com>
----
-In a test function, __fls(x) takes 4 instructions (return included)
-before and after with each GCC and CPU tested, at -O2 and -Os; with a
-constant argument, it now folds.
+Pasha Tatashin <pasha.tatashin@soleen.com> writes:
 
-CK610 needs an abiv1 GCC; the only one I could find is the vendor's 6.3,
-older than the 8.1 minimum and without a clz pattern for abiv1. There,
-__fls() would become a call to __clzsi2(), which lib/clz_ctz.c
-implements with the fls() asm, so it would still work; a builtin fls()
-would make __clzsi2() call itself.
+> On Wed, Oct 21, 2026 at 11:25=E2=80=AFAM Tarun Sahu <tarunsahu@google.com=
+> wrote:
+>>
+>> Currently luo_preserve_file() iterates over luo_file_handler_list and
+>> picks the first registered handler whose .can_preserve() callback
+>> returns true. When a subsystem introduces a new, backwards-incompatible
+>> file handler alongside an existing one for the same file type, userspace
+>> has no way to choose which handler preserves a file descriptor, nor can
+>> the kernel keep the existing rollback-safe handler as the default while
+>> allowing callers to opt into the new handler.
+>
+> That is not how it will work.
+> If we are in the .can_preserve() call,
+> it means the user has already decided which file handlers to use.
 
-Testing: 35 defconfig-based kernels for CK807, CK810 and CK860, some
-with KUnit or SMP, built before and after with W=1 by kernel.org GCC 9.5
-to 16.2 (GCC 8 has no csky port, and GCC 9 to 11 reject -mcpu=ck860): no
-new warnings and no calls to __ctzsi2(), __clzsi2() or __ffssi2().
-allmodconfig with GCC 12 and 16 compiles the same objects with the same
-warnings, but does not reach a vmlinux because of GCC internal compiler
-errors, before and after. Under XuanTie's qemu-cskyv2 user mode, the old
-and new helpers return the same values for every defined 32-bit input,
-built with the kernel's flags by each GCC for each CPU at -O2 and -Os.
-On qemu-system-cskyv2 -M virt, the ffs and bitops KUnit tests pass
-before and after; test_bitmap passes with GCC 12 to 16 and has the same
-one failure with GCC 9 to 11 in both, from a test bug fixed in
-linux-next. No csky hardware was available.
+That is not true.
 
-Against the linux-next branch of c-sky/csky-linux.git (abb81e5ce7d9);
-also applies to next-20261021 and to bitmap-for-next. Full build and
-test data on request.
+From the documentation of the luo_preserve_file(): 3rd point.
 
- arch/csky/include/asm/bitops.h | 9 +--------
- 1 file changed, 1 insertion(+), 8 deletions(-)
+* This function orchestrates the first phase of preserving a file. It perfo=
+rms
+ * the following steps:
+ *
+ * 1. Validates that the @token is not already in use within the file_set.
+ * 2. Ensures the file_set's memory for files serialization is allocated
+ *    (allocates if needed).
+=3D>* 3. Iterates through registered handlers, calling can_preserve() to fi=
+nd one
+ *    compatible with the given @fd.
+ * 4. Calls the handler's .preserve() operation, which saves the file's sta=
+te
+ *    and returns an opaque private data handle.
+ * 5. Adds the new instance to the file_set's internal list.
+ *
 
-diff --git a/arch/csky/include/asm/bitops.h b/arch/csky/include/asm/bitops.h
-index 80d67eee6e86..118fb0df5267 100644
---- a/arch/csky/include/asm/bitops.h
-+++ b/arch/csky/include/asm/bitops.h
-@@ -49,14 +49,7 @@ static __always_inline __attribute_const__ int fls(unsigned int x)
- 	return (32 - x);
- }
- 
--/*
-- * asm-generic/bitops/__fls.h
-- */
--static __always_inline __attribute_const__ unsigned long __fls(unsigned long x)
--{
--	return fls(x) - 1;
--}
--
-+#include <asm-generic/bitops/builtin-__fls.h>
- #include <asm-generic/bitops/ffz.h>
- #include <asm-generic/bitops/fls64.h>
- 
+luo_preserve_file():
 
-base-commit: abb81e5ce7d995baa41556b8125fa59e28ba3be8
--- 
-2.34.1
+	list_private_for_each_entry(fh, &luo_file_handler_list, list) {
+		if (fh->ops->can_preserve(fh, file)) {
+			if (try_module_get(fh->ops->owner))
+				err =3D 0;
+			break;
+		}
+	}
 
+
+the first handler whose can_preserve return true will be selected as the
+FH;
+
+later in code:
+
+      	err =3D fh->ops->preserve(&args);
+
+So can_preserve() is called on every handler for a fd and once it finds
+the FH which reutrns true, it uses its preserve call to preserve the file.
+
+> We
+> need to do that before any preservation happens; otherwise, we could
+> run into conflicts on FLBs i.e. FH of different version require
+> different FLBs.
+
+My change below will select the user passed handler directly if it is
+valid otherwise it fallbacks to looping .can_preserve based selection.
+
+****For flb****:
+
+Registration of flb handlers happens with original
+subsytem fd handler, for example, for iommu
+
+ iommu_liveupdate_register_flb(&iommufd_ser_handler); ->liveupdate_register=
+_flb(fh, flb);
+
+This function takes the FH argument. So every FH has direct relation
+with their flbs.
+
+If new FH will be introduced within the system, it must register
+compatible flbs handlers with it by liveupdate_register_flb.
+
+Currently, FLB objects are preserved with the first dependent file's
+preservation. and each flb handler in fh->flb_list (was associated
+using each flb handler registration) will call its ops to preserve itself.
+
+Same on retrieval side, handler name is preserved so the flb name is
+also preserved. And they can just call their respects ops to retrieve
+themselves.
+
+What about If user try to preserve other dependent but same subsystem
+files with different handler. Kernel must reject this. I have not
+integrated this support. Which can also be added as part of this series.
+Let me know if this sounds good, Then I will add that in the V3?
+
+~Tarun
+
+>
+> Therefore, there should be a luoctl call (i.e via a new ioctl to set
+> compatability) that provides the kernel with the specs file of the
+> target kernel we are updating to, allowing the kernel to select the
+> compatible file handlers. Since .can_preserve() is called when the
+> user is already preserving files, the specification must have already
+> been supplied, or the kernel should fall back to using the default
+> (i.e., latest) file handlers.
+>
+>>
+>> Append char handler[LIVEUPDATE_HNDL_NAME_LENGTH] to struct
+>> liveupdate_session_preserve_fd immediately after token, keeping
+>> IOCTL_OP min_size at offsetofend(..., token) so callers passing the
+>> original 16-byte structure continue to work:
+>> - When handler is empty (all-zero, or zero-filled when userspace
+>>   passes the 16-byte structure), luo_preserve_file() selects the first
+>>   registered handler whose .can_preserve() callback accepts the fd.
+>> - When handler is non-empty, it must be null-terminated within
+>>   LIVEUPDATE_HNDL_NAME_LENGTH bytes (returning -EINVAL otherwise);
+>>   luo_preserve_file() looks up the registered handler with that exact
+>>   name (returning -ENOENT if unknown) and verifies that its
+>>   .can_preserve() callback accepts the fd (returning -EINVAL if not).
+>>
+>> The retrieve ioctl is unchanged because the handler is identified by the
+>> name stored in the serialized payload from the source kernel.
+>>
+>> Signed-off-by: Tarun Sahu <tarunsahu@google.com>
+>> ---
+>>  include/uapi/linux/liveupdate.h  | 12 +++++++++---
+>>  kernel/liveupdate/luo_file.c     | 21 ++++++++++++++++++---
+>>  kernel/liveupdate/luo_internal.h |  3 ++-
+>>  kernel/liveupdate/luo_session.c  |  7 ++++++-
+>>  4 files changed, 35 insertions(+), 8 deletions(-)
+>>
+>> diff --git a/include/uapi/linux/liveupdate.h b/include/uapi/linux/liveup=
+date.h
+>> index 509c6236720d..2413b19dabc1 100644
+>> --- a/include/uapi/linux/liveupdate.h
+>> +++ b/include/uapi/linux/liveupdate.h
+>> @@ -126,9 +126,14 @@ struct liveupdate_ioctl_retrieve_session {
+>>
+>>  /**
+>>   * struct liveupdate_session_preserve_fd - ioctl(LIVEUPDATE_SESSION_PRE=
+SERVE_FD)
+>> - * @size:  Input; sizeof(struct liveupdate_session_preserve_fd)
+>> - * @fd:    Input; The user-space file descriptor to be preserved.
+>> - * @token: Input; An opaque, unique token for preserved resource.
+>> + * @size:    Input; sizeof(struct liveupdate_session_preserve_fd)
+>> + * @fd:      Input; The user-space file descriptor to be preserved.
+>> + * @token:   Input; An opaque, unique token for preserved resource.
+>> + * @handler: Input; Optional null-terminated file handler name (max len=
+gth
+>> + *           %LIVEUPDATE_HNDL_NAME_LENGTH including null terminator) se=
+lecting
+>> + *           which registered handler preserves @fd. If empty (all-zero=
+, or
+>> + *           omitted when passing the 16-byte structure), the kernel se=
+lects
+>> + *           the first registered handler whose .can_preserve() accepts=
+ @fd.
+>>   *
+>>   * Holds parameters for preserving a file descriptor.
+>>   *
+>> @@ -152,6 +157,7 @@ struct liveupdate_session_preserve_fd {
+>>         __u32           size;
+>>         __s32           fd;
+>>         __aligned_u64   token;
+>> +       char            handler[LIVEUPDATE_HNDL_NAME_LENGTH];
+>>  };
+>>
+>>  #define LIVEUPDATE_SESSION_PRESERVE_FD                                 =
+\
+>> diff --git a/kernel/liveupdate/luo_file.c b/kernel/liveupdate/luo_file.c
+>> index fb81239bedf3..be20e0f1e0aa 100644
+>> --- a/kernel/liveupdate/luo_file.c
+>> +++ b/kernel/liveupdate/luo_file.c
+>> @@ -207,6 +207,8 @@ static bool luo_token_is_used(struct luo_file_set *f=
+ile_set, u64 token)
+>>   * @file_set: The file_set to which the preserved file will be added.
+>>   * @token:    A unique, user-provided identifier for the file.
+>>   * @fd:       The file descriptor to be preserved.
+>> + * @handler:  Optional NUL-terminated handler name. If NULL or empty, t=
+he first
+>> + *            registered handler whose .can_preserve() accepts @fd is s=
+elected.
+>>   *
+>>   * This function orchestrates the first phase of preserving a file. Upo=
+n entry,
+>>   * it takes a reference to the 'struct file' via fget(), effectively ma=
+king LUO
+>> @@ -238,11 +240,13 @@ static bool luo_token_is_used(struct luo_file_set =
+*file_set, u64 token)
+>>   *         -EBUSY if the file descriptor is already preserved by anothe=
+r session.
+>>   *         -EBADF if the file descriptor is invalid.
+>>   *         -ENOSPC if the file_set is full.
+>> - *         -ENOENT if no compatible handler is found for the file type.
+>> + *         -ENOENT if no matching handler is registered or accepts @fd.
+>> + *         -EINVAL if the named handler cannot preserve @fd.
+>>   *         -ENOMEM on memory allocation failure.
+>>   *         Other erros might be returned by .preserve().
+>>   */
+>> -int luo_preserve_file(struct luo_file_set *file_set, u64 token, int fd)
+>> +int luo_preserve_file(struct luo_file_set *file_set, u64 token, int fd,
+>> +                     const char *handler)
+>>  {
+>>         struct liveupdate_file_op_args args =3D {0};
+>>         struct liveupdate_file_handler *fh;
+>> @@ -266,6 +270,18 @@ int luo_preserve_file(struct luo_file_set *file_set=
+, u64 token, int fd)
+>>         err =3D -ENOENT;
+>>         down_read(&luo_register_rwlock);
+>>         list_private_for_each_entry(fh, &luo_file_handler_list, list) {
+>> +               if (handler && handler[0]) {
+>> +                       if (strcmp(fh->name, handler))
+>> +                               continue;
+>> +                       if (!fh->ops->can_preserve(fh, file)) {
+>> +                               err =3D -EINVAL;
+>> +                               break;
+>> +                       }
+>> +                       if (try_module_get(fh->ops->owner))
+>> +                               err =3D 0;
+>> +                       break;
+>> +               }
+>> +
+>>                 if (fh->ops->can_preserve(fh, file)) {
+>>                         if (try_module_get(fh->ops->owner))
+>>                                 err =3D 0;
+>> @@ -274,7 +290,6 @@ int luo_preserve_file(struct luo_file_set *file_set,=
+ u64 token, int fd)
+>>         }
+>>         up_read(&luo_register_rwlock);
+>>
+>> -       /* err is still -ENOENT if no handler was found */
+>>         if (err)
+>>                 goto err_fput;
+>>
+>> diff --git a/kernel/liveupdate/luo_internal.h b/kernel/liveupdate/luo_in=
+ternal.h
+>> index dac6644bfb18..911ffedec9f3 100644
+>> --- a/kernel/liveupdate/luo_internal.h
+>> +++ b/kernel/liveupdate/luo_internal.h
+>> @@ -101,7 +101,8 @@ int __init luo_session_setup_incoming(u64 sessions_p=
+a);
+>>  int luo_session_serialize(void);
+>>  int luo_session_deserialize(void);
+>>
+>> -int luo_preserve_file(struct luo_file_set *file_set, u64 token, int fd)=
+;
+>> +int luo_preserve_file(struct luo_file_set *file_set, u64 token, int fd,
+>> +                     const char *handler);
+>>  void luo_file_unpreserve_files(struct luo_file_set *file_set);
+>>  int luo_file_freeze(struct luo_file_set *file_set,
+>>                     struct luo_file_set_ser *file_set_ser);
+>> diff --git a/kernel/liveupdate/luo_session.c b/kernel/liveupdate/luo_ses=
+sion.c
+>> index f48e9a4185f9..194ef45907c1 100644
+>> --- a/kernel/liveupdate/luo_session.c
+>> +++ b/kernel/liveupdate/luo_session.c
+>> @@ -266,8 +266,13 @@ static int luo_session_preserve_fd(struct luo_sessi=
+on *session,
+>>         struct liveupdate_session_preserve_fd *argp =3D ucmd->cmd;
+>>         int err;
+>>
+>> +       if (strnlen(argp->handler, sizeof(argp->handler)) =3D=3D
+>> +           sizeof(argp->handler))
+>> +               return -EINVAL;
+>> +
+>>         guard(mutex)(&session->mutex);
+>> -       err =3D luo_preserve_file(&session->file_set, argp->token, argp-=
+>fd);
+>> +       err =3D luo_preserve_file(&session->file_set, argp->token, argp-=
+>fd,
+>> +                               argp->handler);
+>>         if (err)
+>>                 return err;
+>>
+>> --
+>> 2.56.0.212.g129ede20d9-goog
+>>
