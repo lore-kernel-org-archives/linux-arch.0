@@ -1,107 +1,76 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=193.142.43.55
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=66.163.187.152
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792681359;
-	b=LgPAK46ksoLcrtSzMud0aAQ/VGz60D1sZviyMMYPKe1A/dfjNQqlQAD6/8Qj9m0N3ovg
-	 DK+jc1JsWeOx5DVdF5vxDWn5G1yZ24SPVTS9Pw3KAEZY37HL8bphx4TU/6OaE5cQqZVif
-	 lB7wGs0pKThxcBjFNZbYZ94GBBreXWJw1DKnLQT2g/ih+hu8dfHJHiwTocyD4hAXYDv8v
-	 fKuUPIhu4lVMp6kbtDagazlrI38heJGwgI3kq5TywNC0TD5LpVRDkjnfHhCcSusXnWk9V
-	 sAo0KJ9sMa6vnxjNbwV/jvaoOYuJKgWedaj53sy8FDa2kYcYmxaCFRhR3t1NRTT1kmg==
+	t=1792688431;
+	b=v16rUnCySFneShdU+Pw7DfwLZKYNhOqB+l0GjNo9DQiTfMkKiGz0EK2CeZYr4keVSUJ3
+	 O6JJEzhuyrWczLZ7vlRosGqHMz26gRIBxrRNls8IV6Jz13mPNvyMRYzoLi7tvgityEXVg
+	 kSgzCBVPKNe6sffT8LQ5ZCmS0aGcnuoogCMAfrPiw2KwDxJtRe86mTtrKx4CmcMIokJFE
+	 dy2kXDB4pz6oTn9EGpdRVn4lZe6GoQTkdUxFGypkxOHYKeISRtZYO1kYEqWPMFbmXzBcL
+	 iPucErpCU8aGj8QpqKltWwUcBI2TW/bLxcATHWvT65FSUfwIbtm8otbQCNOGJH3iEHQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792681359;
-	h=DMARC-Filter:Date:DKIM-Signature:DKIM-Signature:From:To:Cc:Subject:
-	 Message-ID:References:MIME-Version:Content-Type:Content-Disposition:
-	 Content-Transfer-Encoding:In-Reply-To;
-	bh=UzBCi/OSOXBVd/hf35Hctx/8s00KKyC8gNB54GWWKuw=;
-	b=VyUPMGFTYh39LSJuSVWp+7miqc8lGfv5iMRYGGQrgjutUX+7o6RULdx8JBUybVxsQFrE
-	 nQ/wxMDdTfGBbuevrRov87KIvXMDTvNuwEfsxTJNCzSSmftW7tvXsblexCoaXM6ZC1sFR
-	 PGodVhcXgAlUOV36R9FBO7PdbEMiGhBGoowV/rLM7h5kDJIGN5pKqYG+UviRGNL3SX3FH
-	 jSzDQ7spqUoGeYIdbNPTyAr+dFl43cPXlUJ27jp1TN+YiwSsDlWjh9rTkAmG4xjYbFYgO
-	 dlHd3bGXQ31C9CP3kHvNClMiun3eQ68JIGIi9D0s2p9sx3wwgvYOabnV8e1bBAey3lA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792688431;
+	h=DMARC-Filter:DKIM-Signature:X-SONIC-DKIM-SIGN:X-YMail-OSG:X-Sonic-MF:
+	 X-Sonic-ID:Received:Received:Message-ID:Date:MIME-Version:User-Agent:
+	 Subject:To:Cc:References:Content-Language:From:In-Reply-To:
+	 Content-Type:Content-Transfer-Encoding:X-Mailer;
+	bh=RLhaJlQZZNoYg6hcgIAk04w24uGo5Qnp+frkN1FOTxs=;
+	b=twHtmpVXWy76n3scja8i+Ukx4unpSRHbgxEx2B2kK5/wBrpUseEnNFmvYQzzIhTTyhgs
+	 98t4h5A4sV0aLF97IszaAyXU7iBB66D86pWXUhWfR920yTdNhgAAzCHEsx0TKe+Cq4aOZ
+	 4mjF9u3r9+XrPtRtvl0IazivdbJ49QZi3U/8jHsj4LOub5fwOg6Pvit/I3HIz2q1rnEvx
+	 wlz8g+8XJo3VjoUSmThF6yrs0xhjpZGujBjjIp3f6LpzpvAinVz9O+FVo9u9qZlspO62E
+	 H183NGnLC5HyKgYNNICM3sHKXVufQ36ER6WdXAaPCwD2f5ibGbhW+y3xnWHKy3mhzjA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linutronix.de;
-	spf=pass smtp.mailfrom=linutronix.de;
-	dkim=pass header.d=linutronix.de header.i=@linutronix.de header.a=rsa-sha256 header.s=2020 header.b=2kUGpeTG;
-	dkim=pass header.d=linutronix.de header.i=@linutronix.de header.a=ed25519-sha256 header.s=2020e header.b=rACQg86H;
-	arc=none smtp.remote-ip=193.142.43.55
-Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	dmarc=pass header.from=schaufler-ca.com;
+	spf=pass smtp.mailfrom=schaufler-ca.com;
+	arc=none smtp.remote-ip=66.163.187.152
+Received: from sonic316-26.consmr.mail.ne1.yahoo.com (sonic316-26.consmr.mail.ne1.yahoo.com [66.163.187.152])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E2728606A31A;
-	Thu, 22 Oct 2026 15:02:38 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E2728606A31A
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=linutronix.de header.i=@linutronix.de header.a=rsa-sha256 header.s=2020 header.b=2kUGpeTG;
-	dkim=pass header.d=linutronix.de header.i=@linutronix.de header.a=ed25519-sha256 header.s=2020e header.b=rACQg86H
-Date: Thu, 22 Oct 2026 17:02:35 +0200
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1792681357;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=UzBCi/OSOXBVd/hf35Hctx/8s00KKyC8gNB54GWWKuw=;
-	b=2kUGpeTGDVBuYHmtDUk+ioLvFvif4ltj8rhWzocDuPm3HaFe4R4vTlOrnH+/NsK85KtmTp
-	BQjRWdChCYWAdK0+eKUDRrdj71IFDIxlOzl/dpE7YHJOp63rkeZsrL+lIMWPOayKDZmWQS
-	jZAmsd4OLiERAIm81xpmW1yxnaZhra+XaRdURt8feLSfDQkUZypkuicnE2Chx4WDXJq1W7
-	gDW8/bA/PN+qgiQxlc+hLTJKpE5MORxYd7/+QpWeOeTOBVrrUrdM+PZPV0PqyhtRPzLVvf
-	zZtCZj7gdLMshXYHbUIElhTwDBoSLh7+UVN4FV0jNASdMsB3S53YU8lnjUcMbw==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1792681357;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=UzBCi/OSOXBVd/hf35Hctx/8s00KKyC8gNB54GWWKuw=;
-	b=rACQg86HepNQ8r26wtL/lrV9xxe+QpJ6z/mp4SnHXzsO+wI4ld+mzpC3AGpr+fKJ/pFfac
-	AwRn+5gmUDC3CcCw==
-From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-To: Thomas Gleixner <tglx@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Michael Ellerman <mpe@ellerman.id.au>,
-	Shrikanth Hegde <sshegde@linux.ibm.com>,
-	linuxppc-dev@lists.ozlabs.org, Kees Cook <kees@kernel.org>,
-	Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev,
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
-	linux-riscv@lists.infradead.org,
-	Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
-	x86@kernel.org, Mark Rutland <mark.rutland@arm.com>,
-	Jinjie Ruan <ruanjinjie@huawei.com>,
-	Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>,
-	Richard Henderson <richard.henderson@linaro.org>,
-	Russell King <linux@armlinux.org.uk>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Guo Ren <guoren@kernel.org>,
-	Geert Uytterhoeven <geert@linux-m68k.org>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Helge Deller <deller@gmx.de>,
-	Yoshinori Sato <ysato@users.sourceforge.jp>,
-	Richard Weinberger <richard@nod.at>,
-	Chris Zankel <chris@zankel.net>,
-	linux-arm-kernel@lists.infradead.org, linux-alpha@vger.kernel.org,
-	linux-csky@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-	linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
-	Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <vgupta@kernel.org>,
-	Will Deacon <will@kernel.org>, Brian Cain <bcain@kernel.org>,
-	Michal Simek <monstr@monstr.eu>, Dinh Nguyen <dinguyen@kernel.org>,
-	"David S. Miller" <davem@davemloft.net>,
-	Andreas Larsson <andreas@gaisler.com>,
-	linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org,
-	linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	Michal =?utf-8?B?U3VjaMOhbmVr?= <msuchanek@suse.de>,
-	Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [patch 16/18] x86/entry: Get rid of the sys_ni_syscall()
- indirection
-Message-ID: <20261022150235.V2CSdtmu@linutronix.de>
-References: <20260707181957.433213175@kernel.org>
- <20260707190254.493733289@kernel.org>
- <20261022142425.3Wx-RrU5@linutronix.de>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8C63A606A319
+	for <linux-arch@vger.kernel.org>; Thu, 22 Oct 2026 17:00:25 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8C63A606A319
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=schaufler-ca.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=schaufler-ca.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yahoo.com; s=s2048; t=1792688424; bh=RLhaJlQZZNoYg6hcgIAk04w24uGo5Qnp+frkN1FOTxs=; h=Date:Subject:To:Cc:References:From:In-Reply-To:From:Subject:Reply-To; b=EPxXXTv2yOAfkDeBVlGeldcmNKyITO49k9DX4W1JG3YiE2Z74mj7AwH3HL1ng4JuL4XxI3I2isrYof/PHPDdpVN996WJqCpMr0pkAFvfwFV5SZwp46MjvTMeRQ1GAR9zWWRo2FJCRnFND+/SktiTxIiWFnlf6zJXk7OnBYGNhvJQAnPIKH2weZ2rIVCG114sIM4XTNPZeFllAM6QUMRqMiXedWD6b/nwKU/1Rawon/5NquZ9uPQA/EwsDnXni/1UMKx8zZ7u+NlrBG67+RD4mNZntTeEcqw1rJ1tjqkse2NY9afIeqwb598x3ZMaZSUOdkg6HOr+ubgMCK5VFGysJw==
+X-SONIC-DKIM-SIGN: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yahoo.com; s=s2048; t=1792688424; bh=NrkW7Nzc52jx8owV4g5TQ09TCsBPGhlT5UFiu1qUhoH=; h=X-Sonic-MF:Date:Subject:To:From:From:Subject; b=J0fJxifRcTTaKtm1kfx9ZO5CcKbTJMtfN18e9pWizD1uERM7sGK7bnuACDtqKSMxG+tL6Hy+iXDn0i1QM11uB/3ZiH1zb5BWyuvJEiQF6uL57etcG/GTtwLmHKIA+ra+3JKSOYo5rJhod2/xvS/4gu84qPKamy1shn0r662FSD191d0r/Qu1oFRHYOknkPo5Ccfe4FICXhvLChyIseUzh8oIbLwWdcePDbYO5UpdZ7QZq8Y0+NhQVvkbZXPIiiYqa7eA3FNVN/+AQ1OYqhzlYBqmx1/R+Vo+oOZzbU+xmNaDpfS3LG5AZNq72SvA21YMSlBfdqfJ9BRQXY53D/eSfA==
+X-YMail-OSG: xRD30LcVM1l1oAWUFc3wSEmkOWJMjiD2Jw1_JGIU9Bdii66XxC5fX401cOGqfnB
+ W4hkfMQKIcRII8bT.rM1fo.855tYR0AsXM5AG5UG6WzBitDsVK2h7Wjx0s37e1372WH_8mlt7JX6
+ _6jRINfXlTnxTR_21HJwSLhWQThvcWhBT2zsXPC5LYdjE4N7Gj4br9VVpYumqpUgjIlBOj6p5krK
+ aNHtytIbJ..6O2nnRC1PmkkfILLQ62ZGoPtM1uhFCc3Xjwg7am7Era7juk2bFyI9FSTboGets_zm
+ AhhfffgPfIr.RiYkKOZM3sG2W0sovPZPZwgb_DHu1pvsAbsJN119nN8dlJ3XlGc7X4uZT2d4oKZK
+ F0aRM0Z7zXFfG2S_5iib_3a9_s3ptZi.K0Zy35ekZh_rDQICVey1vlANnUpuIV8WibgDK06yPdno
+ ap29UZlv7P.xsaYVTWU4_AGVX1fHV0cXuiqYZE.zLonqzqnQM..e38uwxx9OCyMi8A4PdyyBY.Dl
+ Zs9k.G69vmbM6oJqYPnQ5AsNDS.kdW.IuhxIdW.7DrsP_PHBGZBGmxr3dCeBNHpKQBM1I5dQK.WT
+ VuI3c_4lX.Vbej9sn9BNpMMPf4P2djGeKXOFjib_d9G1KXuU2VUEpCWTpnGAKWN.P72xQLPNtRso
+ yYN2svrh4sPjWXhnH1g6GauSpLPf64jyzs86EtT_Wea0htZ_180xUpFJ.dOtcxv6a7BjQ6wW.USw
+ enbtthrK0owLhL2HWC0.z1I.MBapxkZM7d41Djh7hiRZHyULXOp5AhqWVNk.RauEQGMYXwyOzHq3
+ LRuDUZxNE_BbMfol99ddoBDvLyNk0qONeuU0qT0GGBPwJu4J6t.9Jy6ZReHksf3C5pse8IcnUWpJ
+ oiVak20A8O0z82cBUMMPCq5mrJhaopEEjAtomXD8asxCgmOwbLDwMNpaTPMw_pGsi_VdIs6_28RL
+ TuA8CaMXHGMSRA71Ic4aOGUXqECu0PudSoQs.uqjXnNnLHnypRxns6kbJUHBWVdoFTxFFo5hQR0N
+ JCvfRnIwGfZ2hDFMNLSp2c.zRJ2HjBCGtLayGcFM3rD9.rP3uTQ6GCuKe_7pQgfCbVNbxjRzxsgS
+ Obo3VPPf0GtkxoO40P.33d5dMb116c.0y2HIIzG4b_0mVAZmhr8ECM8_oL_74oDzXHgkNIcRuGMw
+ ADNkAH4KfWAI1xaSFM3PUM0xA8wK24KEeOG6GbGHKg6nE2R4eSAEwKhme3rwMdP4kv3qpLnWr4GH
+ eaM3ZtVYjDlXjMQHOS2JfWYHn8oNto9ZV6NCcZPc2sEOhIHp9cyudxIDTgiTpFRj1V54Bi_eai4Z
+ HBxTUzS7tmHZ72ylhKjwgJrSbpJogTzD9BFKYDvFlWmLAd213iaHFTAX5Mz47ywgusMAqmLhwHV0
+ jV5YJZcSSQnVap5iiecEXGI_1NigxWNhtYR7fDNHw0QZz3IEWh01sI8SHI4yibnh.YuTSR5qecoC
+ 2O6q4yD0Gki77xehQHLlekwqIiOuKNZVEWvg4PqGxLW6NwnMor9q0WTpleTQhMZWBFCTxQRub9XG
+ PVGsC0w4bAqIz55qdZDgRM9vwy801Bhe0nb52zQqoOBH0KX0sOmwCLSLaycKTzwWdMTOsW8u9sPI
+ QCWyQJ3A5aUCDmMG6bLwmidewITkoRGE.1JH6er9_3gzJtrh02TOjUYsZQbKY_ECIs6MA8vOZ0Nb
+ veczfcbR9IMqtdArlPM9Vnq4COpIpnlDjd7lNDodwAokDwCqTmzF6lKaDI4coWoaVzc84axARzS7
+ lpmxdvAhDwr_unQu_3UAAD4bzArovBsOBvvjB.J5pWDQyKMPh0u0DwfoiJhO_pEPlRYGIlVHGbyW
+ _DNJ.C00e4RhbKOnLWG5HjNzDpuaMXqg.YQXDb8H49fOCq0LbXwgtISGQzL0KRTsjCEmuT279hfK
+ WRgWseJ3cTB.XuCCb4v54PgI6L19VIVuD1WHvDuelGQX3_j0_gFiRcUpW_Gzr35PJAsnyvD6IrAP
+ xjDKCMLU611h1cfL2Y2Zp8VcB_M1tga3Fn5y1tRIcyNO0xJYATmHWwk3wNBW9SAwBTvFttcbSUH7
+ _0H0_Dnx_YrIZN4whokDOFEzjGbKb5sMjH9W2wcuAsUpAlqfMboL2WcZZa2vgR_AlJSOGt1DffQm
+ sxr1vQZe1ZsTq3yVIoz7hsl..S6bA2N2bLevEq7L4IM8zaRmvlQd6SuI3NGEdQde4sUeuvoQDh7d
+ pa00D8_nGDTxFDWGfGA61OH6654zf.YQIVLkRaa1bB2LtWAsAipxG1Tq1pZqHpQVXqxG_eQ--
+X-Sonic-MF: <casey@schaufler-ca.com>
+X-Sonic-ID: f4d52385-1c22-46e9-a768-7fe9b7b03ed3
+Received: from sonic.gate.mail.ne1.yahoo.com by sonic316.consmr.mail.ne1.yahoo.com with HTTP; Thu, 22 Oct 2026 17:00:24 +0000
+Received: by hermes--production-gq1-fd7994565-wwgbc (Yahoo Inc. Hermes SMTP Server) with ESMTPA ID b52a058941d94202e488719cef4d9678;
+          Thu, 22 Oct 2026 17:00:19 +0000 (UTC)
+Message-ID: <018ca365-ce9b-424c-b600-bd9c8aefc9a1@schaufler-ca.com>
+Date: Thu, 22 Oct 2026 10:00:16 -0700
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -111,25 +80,46 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-In-Reply-To: <20261022142425.3Wx-RrU5@linutronix.de>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [RFC PATCH v2 00/41] UUID and GUID user and group ids (*_r system
+ calls)
+To: Jan Koester <jan.koester@tuxist.de>,
+ Christian Brauner <brauner@kernel.org>,
+ Alexander Viro <viro@zeniv.linux.org.uk>, "Serge E. Hallyn"
+ <serge@hallyn.com>
+Cc: Jan Kara <jack@suse.cz>, "Theodore Y. Ts'o" <tytso@mit.edu>,
+ Paul Moore <paul@paul-moore.com>, Arnd Bergmann <arnd@arndb.de>,
+ linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org,
+ linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-ext4@vger.kernel.org, linux-nfs@vger.kernel.org,
+ linux-cifs@vger.kernel.org, netdev@vger.kernel.org, audit@vger.kernel.org,
+ keyrings@vger.kernel.org, linux-kernel@vger.kernel.org,
+ Casey Schaufler <casey@schaufler-ca.com>
+References: <cover.1792552161.git.jan.koester@tuxist.de>
+Content-Language: en-US
+From: Casey Schaufler <casey@schaufler-ca.com>
+In-Reply-To: <cover.1792552161.git.jan.koester@tuxist.de>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-Mailer: WebService/1.1.26740 mail.backend.jedi.jws.acl:role.jedi.acl.token.atz.jws.hermes.yahoo
 
-On 2026-10-22 16:24:30 [+0200], To Thomas Gleixner wrote:
-> The test could be updated via the hunk below in case the new behaviour
-> is what is expected. hpa made the extension to the test in commit
-> 795e2a023b808 ("selftests/x86/syscall: Add tests under ptrace to
-> syscall_numbering_64").
->=20
-> diff --git a/tools/testing/selftests/x86/syscall_numbering.c b/tools/test=
-ing/selftests/x86/syscall_numbering.c
-> index ca0eca7b9dced..1435394fba022 100644
-> --- a/tools/testing/selftests/x86/syscall_numbering.c
-> +++ b/tools/testing/selftests/x86/syscall_numbering.c
+On 10/20/2026 8:15 PM, Jan Koester wrote:
+> Hi,
+>
+> this RFC series lets a user or group id be a UUID (RFC 9562, version 4)
+> or a Microsoft GUID as well as a classic 32-bit number. Processes can run
+> as such a user, files can be owned by one, and credentials, ACLs, keys,
+> System V IPC, sockets, signals, audit and procfs carry the whole id.
 
-Now I notice the fix depends on CONFIG_X86_X32_ABI=3Dy (fails for =3Dn).
-But we want to get rid of it anyway so=E2=80=A6
-CONFIG_IA32_EMULATION is not affected (with the fix).
+I can't see this being acceptable for a variety of reasons, including
+but not limited to performance and configuration complexity. It's a
+general solution for a special case or two, and the impact is significant.
 
-Sebastian
+If you're willing to use a UUID and/or GUID in addition to a UID/GID
+instead of in place of it you could consider implementing this as an
+LSM. There are a number of issues you'd still run into there (e.g. UDS
+attributes) and I can't say if the resulting behavior would be what
+you're looking for. I also can't say that the security community would
+necessarily be any happier with it than the general population, but if
+you really want this it might be worth a shot.
+
