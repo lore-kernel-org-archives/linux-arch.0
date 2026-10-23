@@ -1,83 +1,70 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=170.10.129.124
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792738224;
-	b=HTL4xbOAiZzLiH8YBPPgXSZ6XJMztEVA9ae2GqZj7aTtyxkOnfKXF2ou2XlX/U3jvwOu
-	 kIaJZx7rg/hRMQ7EP3CKleAvXuaMiGptbqNGYR3aPWgIt7zLomk1bsdOVsQDXLFlGpOcq
-	 G6rQmA2PX4IKi37NXiu4gqQHIeFBEyBxpHvbGjG4n3iGyzSFCkA9hD/+Ridpobs/mlu45
-	 EhtnCgmMpUL+B0RBUwBSN0odziBwGBluEIutQNtG+10TBBi9/q24U3NypTw5bvtSR4Mcd
-	 aFd94qIN92AWxQSCvkGiTTGJOKhBeSQTyu7T57CHLaesCmb22GM6ZpWSLxpeRUz2pQg==
+	t=1792741455;
+	b=FZm+50GKq2Snzk3EKKvj6hWl2FL4XyralciMaqGP4yVMSPbLc94KdXTxYskAih+L4PxD
+	 WDDkCYD7r2u0Xk6SVIAb558Nz0nTBwZMv8B0F+sxEXZItfKcFLO8NjkYqyvJx4gSP7k3l
+	 6RofpFqBQRTN95SZdeGvmqJU0sKe7JgiMnwxsje3XqFlVEn1K5IBhnQf7P7TCwh1X1rZw
+	 sfhxvnvSn2127b+IDOwOYjA15vDHAH7iHtkOOJeGfiVN8c0CZ9nGVb69T+UJYUpbPJLvp
+	 VVA9pyYNvs0+abtFFnrRhalxQiOTvkGVZAA/ASLBZx3+9oB7mWAnqjAA77R8Eid/Lyg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792738224;
-	h=DMARC-Filter:DKIM-Signature:Received:X-MC-Unique:
-	 X-Mimecast-MFC-AGG-ID:Received:Received:From:To:Cc:Subject:Date:
-	 Message-ID:In-Reply-To:References:MIME-Version:
-	 Content-Transfer-Encoding:X-Scanned-By;
-	bh=zOPcyFbcw1UU/rJPmKSSRntH9qu/8Cc9l655f2GYy5w=;
-	b=TQQntV2cNOL8N/tmOhW96EgaRZT5Rd8kKU2A0rEKUsB10GsiSAPzBcT/Jys7AE5fxa/T
-	 gROupcyfjNn1+uHM/UcMzFu28K2gXiOSDpNyOHTFlVVvUcApiFLUOUYY7m0xvKtOj+ehF
-	 uGUtuRAlDnAApS3tD9WJ5WV65+DHnWrcFpGx0r3W/mE27KhhpC0pjmRO6j0hadaKq2X7B
-	 Zk7gbbmFsltfKm2fVNW/4uws22BpR4KBEEf50g6Wi08ihsJv7tkbfwbxfrYFV7lxWtlb1
-	 9gh+99DheQWZB65JmPObjV4UsSi4TTGHWJlO0eDCe6iI/3gL+ysEuWYjTOrcHxrYYqw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792741455;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:
+	 Content-Transfer-Encoding:In-Reply-To;
+	bh=wy/cnaPswmms/QpZfcVOeHijhXMXPHn20ADaK91xPcA=;
+	b=dTsoxeNIRIxZI1vaI3Lp6J5Wu0xUaKAOvp7jDDOt+XF8ElN/o/XvgD7DCZagn8ZyRF1r
+	 NthybCoaYGGKUJViF/YxRto8cyGYJDBsqCY+1RfwQ7FYFQ5ZJLsKRAe/xxOrsIkzSEwl7
+	 XyP7GyoZMAPhgPNA+coXjyMnQq1oJJcniXP3OW9yCEZC66/eAxx/1dB++6iP4jR0jUexH
+	 YuCg7CIP5+FU4Aam3pZUmDkSwJv4u109N6iM1Vz7Y+a2SimmVzbn5DX6bK3pD6XnBvjDq
+	 UOwo8tx5UeiBShwdpNFTsGciMwsfvgkLC20G6PqBOkG0VEmA5bryqmS1+qUOCa+OClw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=redhat.com;
-	spf=pass smtp.mailfrom=redhat.com;
-	dkim=pass header.d=redhat.com header.i=@redhat.com header.a=rsa-sha256 header.s=mimecast20190719 header.b=hkwIq7yc;
-	arc=none smtp.remote-ip=170.10.129.124
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=EaM7GVz8;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F271560A2602
-	for <linux-arch@vger.kernel.org>; Fri, 23 Oct 2026 06:50:23 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org F271560A2602
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4E82E606A31A;
+	Fri, 23 Oct 2026 07:44:15 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=redhat.com header.i=@redhat.com header.a=rsa-sha256 header.s=mimecast20190719 header.b=hkwIq7yc
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1792738223;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=zOPcyFbcw1UU/rJPmKSSRntH9qu/8Cc9l655f2GYy5w=;
-	b=hkwIq7ycHYlmM6BZV63RP8VFa2vW2RJF2kx6r7nzgKn/Yy8KyXqA/11IoFsMxWqv/NCBEJ
-	py1w66s4aV6oJrMFX4QPFCbnTuZKh3M+uq2q32eeeilNed9lCUAtr6to/p4gITydLug6wQ
-	pzBNPZql2MjfG7fLnC7D/MBjuBNtpJg=
-Received: from mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-567-EVBzjS2wMNS-cpFfn82bVA-1; Fri,
- 23 Oct 2026 02:50:18 -0400
-X-MC-Unique: EVBzjS2wMNS-cpFfn82bVA-1
-X-Mimecast-MFC-AGG-ID: EVBzjS2wMNS-cpFfn82bVA_1792738216
-Received: from mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.17])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 9BACC195609D;
-	Fri, 23 Oct 2026 06:50:16 +0000 (UTC)
-Received: from thuth-p1g4.redhat.com (unknown [10.44.48.42])
-	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id 332471956095;
-	Fri, 23 Oct 2026 06:50:12 +0000 (UTC)
-From: Thomas Huth <thuth@redhat.com>
-To: Arnd Bergmann <arnd@arndb.de>,
-	Nathan Chancellor <nathan@kernel.org>,
-	Nicolas Schier <nsc@kernel.org>
-Cc: soc@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	linux-kbuild@vger.kernel.org,
-	=?UTF-8?q?Thomas=20Wei=C3=9Fschuh?= <linux@weissschuh.net>,
-	Nick Desaulniers <ndesaulniers@google.com>,
-	Bill Wendling <morbo@google.com>,
-	Justin Stitt <justinstitt@google.com>,
-	linux-arch@vger.kernel.org,
-	llvm@lists.linux.dev
-Subject: [PATCH v5 11/13] asm-generic: Replace __ASSEMBLY__ with __ASSEMBLER__ in non-uapi headers
-Date: Fri, 23 Oct 2026 08:48:48 +0200
-Message-ID: <20261023064908.66707-12-thuth@redhat.com>
-In-Reply-To: <20261023064908.66707-1-thuth@redhat.com>
-References: <20261023064908.66707-1-thuth@redhat.com>
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=EaM7GVz8
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9170D1F01825;
+	Fri, 23 Oct 2026 07:44:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1792741455;
+	bh=wy/cnaPswmms/QpZfcVOeHijhXMXPHn20ADaK91xPcA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=EaM7GVz8N1F1WL1rJOnrhPXJUtKGkqsv14MRU42ie3CqopgX3LNFxUDnl1OPNUi/e
+	 2iQPCPAmrugokeUqdjjGnxoE/8npZif6jkFURSIYhrlahltUYFVTdLrUtWmi4bJDt4
+	 uJpg0nOqXHeMjeyusKILIH3Cl4Mf3vGvpiVoTnLCyKCJvnhkOfk8IhqWDgFcrVZDsw
+	 RQJc+E3xcDPh7iuKo7qjMm+aQPiRzX97cIhkWDsUcyao4CJSpPFEH+7iNFyZcmmnZH
+	 r3znD2zes+BCcnM/Q+slSfn7Uk5g9JQYqOi58zhfrrPLbNKPn/9s/EmGcuM+9Ol3+7
+	 YAzLqgDZtmCpA==
+Date: Fri, 23 Oct 2026 10:44:01 +0300
+From: Mike Rapoport <rppt@kernel.org>
+To: tarunsahu@google.com
+Cc: Pasha Tatashin <pasha.tatashin@soleen.com>,
+	Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org,
+	Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de,
+	David Matlack <dmatlack@google.com>, jgg@nvidia.com,
+	robin.murphy@arm.com, loganodell@google.com, oupton@kernel.org,
+	kevin.tian@intel.com, alex@shazbot.org, dwmw2@infradead.org,
+	pbonzini@redhat.com, seanjc@google.com, will@kernel.org,
+	Alexander Graf <graf@amazon.com>,
+	Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com,
+	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev,
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
+	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: Re: [RFC PATCH v2 1/4] liveupdate: Rename handler compatible to name
+Message-ID: <atsQQcUiVhb9KXWZ@kernel.org>
+References: <20261021152527.375070-1-tarunsahu@google.com>
+ <20261021152527.375070-2-tarunsahu@google.com>
+ <CA+CK2bC_wc4LxvHe0TREbBP7esYW3pcMNtkGK-kqvf6MyvOh2g@mail.gmail.com>
+ <9huzik2u6hs5.fsf@tarunix.c.googlers.com>
+ <CA+CK2bDyk=F7W3J=q3pKCjsr2wy_PLdgqgu+ywp0F5HL=VoMpA@mail.gmail.com>
+ <9huzld7q4zjz.fsf@tarunix.c.googlers.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -87,162 +74,165 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-X-Scanned-By: MIMEDefang 3.0 on 10.30.177.17
+In-Reply-To: <9huzld7q4zjz.fsf@tarunix.c.googlers.com>
 
-While the GCC and Clang compilers already define __ASSEMBLER__ auto-
-matically when compiling assembly code, __ASSEMBLY__ is a macro that
-only gets defined by the Makefiles in the kernel. This can be very
-confusing when switching between userspace and kernelspace coding, or
-when dealing with uapi headers that rather should use __ASSEMBLER__
-instead. Let's standardize now on the __ASSEMBLER__ macro to avoid
-this confusion.
+On Wed, Oct 21, 2026 at 07:35:28PM +0000, tarunsahu@google.com wrote:
+> Pasha Tatashin <pasha.tatashin@soleen.com> writes:
+> > On Wed, Oct 21, 2026 at 2:16 PM <tarunsahu@google.com> wrote:
+> >> Pasha Tatashin <pasha.tatashin@soleen.com> writes:
+> >>
+> >> > On Wed, Oct 21, 2026 at 11:25 AM Tarun Sahu <tarunsahu@google.com> wrote:
+> >> >>
+> >> >> File handler and File-Lifecycle-Bound (FLB) identifiers name the
+> >> >
+> >> > Please use FLB directly, no need to spell it out.
+> >> >
+> >> >> registered handler or FLB rather than a monolithic compatibility version.
+> >> >> Rename compatible to name across LUO headers, structures, and consumers:
+> >> >> - struct liveupdate_file_handler and struct luo_file_ser name field
+> >> >> - LIVEUPDATE_HNDL_NAME_LENGTH (in include/uapi/linux/liveupdate.h) and
+> >> >>   MEMFD_LUO_FH_NAME
+> >> >> - struct liveupdate_flb name field, LIVEUPDATE_FLB_NAME_LENGTH,
+> >> >>   PCI_LUO_FLB_NAME, and LIVEUPDATE_TEST_FLB_NAME
+> >> >>
+> >> >> Signed-off-by: Tarun Sahu <tarunsahu@google.com>
+> >> >> ---
+> >> >>  drivers/pci/liveupdate.c        | 10 ++++----
+> >> >>  include/linux/kho/abi/luo.h     | 26 +++++++++----------
+> >> >>  include/linux/kho/abi/memfd.h   |  4 +--
+> >> >>  include/linux/kho/abi/pci.h     |  2 +-
+> >> >>  include/linux/liveupdate.h      | 18 +++++--------
+> >> >>  include/uapi/linux/liveupdate.h |  3 +++
+> >> >>  kernel/liveupdate/luo_file.c    | 45 +++++++++++++++++----------------
+> >> >>  kernel/liveupdate/luo_flb.c     | 16 ++++++------
+> >> >>  lib/tests/liveupdate.c          | 22 ++++++++--------
+> >> >>  mm/memfd_luo.c                  |  2 +-
+> >> >>  10 files changed, 73 insertions(+), 75 deletions(-)
+> >> >>
+> >> >> diff --git a/drivers/pci/liveupdate.c b/drivers/pci/liveupdate.c
+> >> >> index 51695782ed42..3cf01d7d615c 100644
+> >> >> --- a/drivers/pci/liveupdate.c
+> >> >> +++ b/drivers/pci/liveupdate.c
+> >> >> @@ -424,7 +424,7 @@ static struct liveupdate_flb_ops pci_liveupdate_flb_ops = {
+> >> >>
+> >> >>  static struct liveupdate_flb pci_liveupdate_flb = {
+> >> >>         .ops = &pci_liveupdate_flb_ops,
+> >> >> -       .compatible = PCI_LUO_FLB_COMPATIBLE,
+> >> >> +       .name = PCI_LUO_FLB_NAME,
+> >> >>  };
+> >> >>
+> >> >>  static void pci_liveupdate_flb_put_outgoing(void)
+> >> >> @@ -667,13 +667,13 @@ static struct pci_flb_incoming *pci_liveupdate_flb_get_incoming(void)
+> >> >>
+> >> >>         /*
+> >> >>          * Live Update is enabled and there is incoming FLB data, but none of it
+> >> >> -        * matches pci_liveupdate_flb.compatible.
+> >> >> +        * matches pci_liveupdate_flb.name.
+> >> >>          */
+> >> >>         if (ret == -ENOENT)
+> >> >>                 return NULL;
+> >> >>
+> >> >>         /*
+> >> >> -        * There is incoming FLB data that matches pci_liveupdate_flb.compatible
+> >> >> +        * There is incoming FLB data that matches pci_liveupdate_flb.name
+> >> >>          * but retrieve failed (pci_flb_retrieve() returned an error or LUO
+> >> >>          * failed to acquire a reference to pci_liveupdate_flb_ops.owner).
+> >> >>          */
+> >> >> @@ -998,7 +998,7 @@ EXPORT_SYMBOL_GPL(pci_liveupdate_is_incoming);
+> >> >>   */
+> >> >>  int pci_liveupdate_register_flb(struct liveupdate_file_handler *fh)
+> >> >>  {
+> >> >> -       pr_debug("Registering file handler \"%s\"\n", fh->compatible);
+> >> >> +       pr_debug("Registering file handler \"%s\"\n", fh->name);
+> >> >>         return liveupdate_register_flb(fh, &pci_liveupdate_flb);
+> >> >>  }
+> >> >>  EXPORT_SYMBOL_GPL(pci_liveupdate_register_flb);
+> >> >> @@ -1009,7 +1009,7 @@ EXPORT_SYMBOL_GPL(pci_liveupdate_register_flb);
+> >> >>   */
+> >> >>  void pci_liveupdate_unregister_flb(struct liveupdate_file_handler *fh)
+> >> >>  {
+> >> >> -       pr_debug("Unregistering file handler \"%s\"\n", fh->compatible);
+> >> >> +       pr_debug("Unregistering file handler \"%s\"\n", fh->name);
+> >> >>         liveupdate_unregister_flb(fh, &pci_liveupdate_flb);
+> >> >>  }
+> >> >>  EXPORT_SYMBOL_GPL(pci_liveupdate_unregister_flb);
+> >> >> diff --git a/include/linux/kho/abi/luo.h b/include/linux/kho/abi/luo.h
+> >> >> index 288076de6d4a..5fb2f46425d7 100644
+> >> >> --- a/include/linux/kho/abi/luo.h
+> >> >> +++ b/include/linux/kho/abi/luo.h
+> >> >> @@ -39,9 +39,9 @@
+> >> >>   *     Multiple blocks are linked via the `next` field in the header.
+> >> >>   *
+> >> >>   *   - struct luo_file_ser:
+> >> >> - *     Metadata for a single preserved file. Contains the `compatible` string to
+> >> >> - *     find the correct handler in the new kernel, a user-provided `token` for
+> >> >> - *     identification, and an opaque `data` handle for the handler to use.
+> >> >> + *     Metadata for a single preserved file. Contains the handler `name` string
+> >> >> + *     to find the correct handler in the new kernel, a user-provided `token`
+> >> >> + *     for identification, and an opaque `data` handle for the handler to use.
+> >> >>   *
+> >> >>   *   - struct luo_flb_header_ser:
+> >> >>   *     Header for the FLB array. Contains the total page count of the
+> >> >> @@ -49,9 +49,9 @@
+> >> >>   *     that follow.
+> >> >>   *
+> >> >>   *   - struct luo_flb_ser:
+> >> >> - *     Metadata for a single preserved global object. Contains its `name`
+> >> >> - *     (compatible string), an opaque `data` handle, and the `count`
+> >> >> - *     number of files depending on it.
+> >> >> + *     Metadata for a single preserved global object. Contains its FLB `name`
+> >> >> + *     string, an opaque `data` handle, and the `count` number of files
+> >> >> + *     depending on it.
+> >> >>   */
+> >> >>
+> >> >>  #ifndef _LINUX_KHO_ABI_LUO_H
+> >> >> @@ -84,18 +84,16 @@ struct luo_ser {
+> >> >>         u64 flbs_pa;
+> >> >>  } __packed;
+> >> >>
+> >> >> -#define LIVEUPDATE_HNDL_COMPAT_LENGTH  48
+> >> >> -
+> >> >>  /**
+> >> >>   * struct luo_file_ser - Represents the serialized preserves files.
+> >> >> - * @compatible:  File handler compatible string.
+> >> >> + * @name:        File handler name string.
+> >> >
+> >> > We are renaming from cpmaptible to name; I am not sure that is
+> >> > necessary. We can still use compatible for the same purpose as name.
+> >> > Unless it really bothers people, but for me 'compatible' works just
+> >> > the same.
+> >>
+> >> Yes it is necessary, For example if we have two handler for a single
+> >> subsystem. We should refer it by handle this or handler that, not like
+> >> handler with compatible string this and handler with compatible string
+> >> that.
+> >
+> > I still feel like compatability makes more sense to me. Take an example:
+> >
+> > We have two file handlers for memfd (i.e., FH_OLD and FH_NEW): one has
+> > compatibility = "memfd", and the other has compatibility =
+> > "memfd_next_generation". The user chooses one of them to preserve the
+> > memfd data, and the compatibility string is saved alongside the FD.
+> > When the next kernel scans through the registered file handlers, it
+> > must find exactly one that is compatible with the preserved data.
+> 
+> I will open this for vote.
 
-Signed-off-by: Thomas Huth <thuth@redhat.com>
----
- include/asm-generic/barrier.h         | 4 ++--
- include/asm-generic/bug.h             | 4 ++--
- include/asm-generic/current.h         | 2 +-
- include/asm-generic/error-injection.h | 2 +-
- include/asm-generic/int-ll64.h        | 6 +++---
- include/asm-generic/rwonce.h          | 4 ++--
- include/asm-generic/signal.h          | 4 ++--
- 7 files changed, 13 insertions(+), 13 deletions(-)
+I'd rather won't ;-)
 
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index b99cb57dfcccc..c029b1e1854c4 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -11,7 +11,7 @@
- #ifndef __ASM_GENERIC_BARRIER_H
- #define __ASM_GENERIC_BARRIER_H
+"compatible" does not contradict more fine grained bitfields, and still has meaning.
+Just like in FDT world from where we inherited it, it means "these ops are
+somewhat compatible with that serialized format, will check the details and
+will know for sure".
+
+And IMO we should keep it.
  
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- 
- #include <linux/compiler.h>
- #include <linux/kcsan-checks.h>
-@@ -302,5 +302,5 @@ do {									\
- # define smp_mb__after_switch_mm()	smp_mb()
- #endif
- 
--#endif /* !__ASSEMBLY__ */
-+#endif /* !__ASSEMBLER__ */
- #endif /* __ASM_GENERIC_BARRIER_H */
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 09e8eccee8ed9..044ebc96f373c 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -26,7 +26,7 @@
- #endif
- #endif /* WARN_CONDITION_STR */
- 
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- #include <linux/panic.h>
- #include <linux/printk.h>
- 
-@@ -258,6 +258,6 @@ extern __printf(1, 2) void __warn_printk(const char *fmt, ...);
- # define WARN_ON_SMP(x)			({0;})
- #endif
- 
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
- 
- #endif
-diff --git a/include/asm-generic/current.h b/include/asm-generic/current.h
-index 9c2aeecbd05a6..8e7d8f019377f 100644
---- a/include/asm-generic/current.h
-+++ b/include/asm-generic/current.h
-@@ -2,7 +2,7 @@
- #ifndef __ASM_GENERIC_CURRENT_H
- #define __ASM_GENERIC_CURRENT_H
- 
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- #include <linux/thread_info.h>
- 
- #define get_current() (current_thread_info()->task)
-diff --git a/include/asm-generic/error-injection.h b/include/asm-generic/error-injection.h
-index b05253f68eaa5..0a9ec33fa8f20 100644
---- a/include/asm-generic/error-injection.h
-+++ b/include/asm-generic/error-injection.h
-@@ -2,7 +2,7 @@
- #ifndef _ASM_GENERIC_ERROR_INJECTION_H
- #define _ASM_GENERIC_ERROR_INJECTION_H
- 
--#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
-+#if defined(__KERNEL__) && !defined(__ASSEMBLER__)
- enum {
- 	EI_ETYPE_NULL,		/* Return NULL if failure */
- 	EI_ETYPE_ERRNO,		/* Return -ERRNO if failure */
-diff --git a/include/asm-generic/int-ll64.h b/include/asm-generic/int-ll64.h
-index a248545f1e18c..58974e8abbfae 100644
---- a/include/asm-generic/int-ll64.h
-+++ b/include/asm-generic/int-ll64.h
-@@ -11,7 +11,7 @@
- #include <uapi/asm-generic/int-ll64.h>
- 
- 
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- 
- typedef __s8  s8;
- typedef __u8  u8;
-@@ -31,7 +31,7 @@ typedef __u64 u64;
- #define S64_C(x) x ## LL
- #define U64_C(x) x ## ULL
- 
--#else /* __ASSEMBLY__ */
-+#else /* __ASSEMBLER__ */
- 
- #define S8_C(x)  x
- #define U8_C(x)  x
-@@ -42,6 +42,6 @@ typedef __u64 u64;
- #define S64_C(x) x
- #define U64_C(x) x
- 
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
- 
- #endif /* _ASM_GENERIC_INT_LL64_H */
-diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.h
-index 52b969c7cef93..c35b262ee4223 100644
---- a/include/asm-generic/rwonce.h
-+++ b/include/asm-generic/rwonce.h
-@@ -20,7 +20,7 @@
- #ifndef __ASM_GENERIC_RWONCE_H
- #define __ASM_GENERIC_RWONCE_H
- 
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- 
- #include <linux/compiler_types.h>
- #include <linux/kasan-checks.h>
-@@ -94,5 +94,5 @@ unsigned long read_word_at_a_time(const void *addr)
- 	return *(unsigned long *)addr;
- }
- 
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
- #endif	/* __ASM_GENERIC_RWONCE_H */
-diff --git a/include/asm-generic/signal.h b/include/asm-generic/signal.h
-index 663dd6d0795dc..392e59fd3d8b9 100644
---- a/include/asm-generic/signal.h
-+++ b/include/asm-generic/signal.h
-@@ -4,10 +4,10 @@
- 
- #include <uapi/asm-generic/signal.h>
- 
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- 
- #include <asm/sigcontext.h>
- #undef __HAVE_ARCH_SIG_BITOPS
- 
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
- #endif /* _ASM_GENERIC_SIGNAL_H */
+And please, trim your responses. I had to scroll 463 lines to see there's
+nothing there.
+
 -- 
-2.56.0
-
+Sincerely yours,
+Mike.
