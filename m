@@ -1,84 +1,114 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.215.170
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792760951;
-	b=KZfH0gx3msl/Bn7qRvB8RQW2seTqh9Bp0QLnqi787oj/4YukKaH9vS3g7ut4P7IBNdpQ
-	 EhgudNDSXZEHJA5wzPbZDGXyH9tpxx9SjPV93qk1fDFCs3oIX5iStaRADLv0jZUeLXukR
-	 zxZEb4ftIFOjGeEbDp98O/+Qf8fLqG2Mph8tkKRC1BVIhH+BSAuafvTFHJdGFtw02P970
-	 cXMSjn1CQdvF91A67TIFQUJY6wKOjeVuQyzWuza7LT++gZUWVtue5UI3gpqsW/OETOAZ0
-	 yfKn2qnzarNyQvoTcW/iITKbHKcYbrrIvBqXioTim+AMtNTGCx7ci68FUW3TH+LVV1A==
+	t=1792763419;
+	b=Rp6FI44eHlXJx1hLW1sToDUkPphzdK/5/+jlh6EHO0ac09n3KONTzL9X5nb6w06eASab
+	 knNdi6Zws8sAtPfPVmjX2yOaLSfMY++4WUwevi7njR6aw+KcKu9tWpTKcBOMUYZS3pCIy
+	 pWC5UDOv1QhSGf87nQ9e215jHu2vydknfvGhfjtqGKtPPd6YLcgXUhBCtuFqJw20d6z5r
+	 ddL40Ad2qNhrVIYjEYQubMnFgHlGzYGHqDyWQjKu6+C0V77LMDhQvBgbg59Jek/76YG6p
+	 zSUxiAtSWp839SRRcaKKyhXjGemIdVAVGXnhRjB7AS+/GBh/y5M01c7BgnRoNAiZayw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792760951;
-	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
-	 Date:Message-ID:MIME-Version:Content-Type;
-	bh=nlznPFw9V2Gc6GAfgQKy3QilQuYPxjyao4Hf2pcvcDM=;
-	b=s6KSrQF+WQc8RKQaqEzaenXXv1VNp+aIixnzryolWCvOntYBEc1JptESt3LXaid6bzct
-	 FCy745YM/+cn84xvdvdH5lHdkJIu8ENJOUqjMNIHhFSPbGAurB/kCT/+bld9rjOJWyuuZ
-	 b02aMjHAPyFKn2zhmLADYeAdPon1a7VyMf6Sw5jX4dn80fqdzt4GNNwGkcnZRh4T094Au
-	 vvkWubCv9dftr3BvCmjeNUQILsQXGbeyShElsKRZuxCTHC4PzYaQliX2JGczQxSs8e3x2
-	 QStNpcTxmip+WrFxhzvhSwRFYoE0w3/Ob/YD8p+sOB/CVzy0gtPa3e4wqTq6jtM41ew==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792763419;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:Content-Transfer-Encoding:
+	 In-Reply-To;
+	bh=8FyuJnnll3uJwbR+wT99CVBO9fzREsmjzeqnUECMRTY=;
+	b=DHmC/dvTfZu+eydbgKWVFPxYaoDDZ0zJLujlwgBdItHg6Zlmr+OAWZ3zel/H8lSVecmr
+	 wN6iQuuTPf1ZsnAI2CHPghfZmp6SQLR5tGLj2ldqkV76UPvSoOwR5FWRaz6yvAqdo4V4D
+	 cJM+011Mdm3IQ5ZTdJuqzlcYXpSe1BrGc+Ui7GswCrbG+Yc1AFvMQIpXqhuJF+Mzom7Hn
+	 pnTVoIFe8JD3/8Nl1WCIuJegfu4bbKqP0yqbLUoByq8pf31PHa4xJv0mW8NQ51mukMvfL
+	 BO8zcNyQk3xRDBVElWl+seGX1cejN+ZURdzRr9rWv3hVh975Bvv1mpucFpzy7Hksluw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="m7RG/5lG";
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=google.com;
+	spf=pass smtp.mailfrom=google.com;
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=tePYhySp;
+	arc=none smtp.remote-ip=209.85.215.170
+Received: from mail-pg1-f170.google.com (mail-pg1-f170.google.com [209.85.215.170])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 24012606A31A;
-	Fri, 23 Oct 2026 13:09:10 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 007A9606A31A
+	for <linux-arch@vger.kernel.org>; Fri, 23 Oct 2026 13:50:18 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 007A9606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=m7RG/5lG
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DEFE51F01825;
-	Fri, 23 Oct 2026 13:09:09 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1792760950;
-	bh=nlznPFw9V2Gc6GAfgQKy3QilQuYPxjyao4Hf2pcvcDM=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date;
-	b=m7RG/5lGWSbIc838b0jmvSS290uWfurhu3YNfo5bVNzSTvTPTC7ghSWC8leVP3nQ+
-	 b1I3jDHg/InxLf552w5eGHsTrs/J6pcIRU/3j2o4lXMu8kdY2pE31lXQZ6mDuOD9a9
-	 /bZSvE9+INNA1eyAemAPUHtpahZxa52CO1uiN/pTg/xq6n5EpQE55LyKwMgvscOovl
-	 vpke1gUvPTZai31N3aWvQD3q3fnksvGf8uxqyvKnNdAccPdM5DjsmOgJhH0dNQrOqX
-	 DgjQebBUKnbd01GrrL7MPL69Sel1P4/LLNB/kJOWZzm+JYUNtbLukoPTq27kTGyxJT
-	 /kgHrVGsqnwng==
-From: Thomas Gleixner <tglx@kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>, Sebastian Andrzej Siewior
- <bigeasy@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra
- <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, Shrikanth
- Hegde <sshegde@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org, Kees Cook
- <kees@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
- loongarch@lists.linux.dev, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt
- <palmer@dabbelt.com>, linux-riscv@lists.infradead.org, Sven Schnelle
- <svens@linux.ibm.com>, linux-s390@vger.kernel.org, x86@kernel.org, Mark
- Rutland <mark.rutland@arm.com>, Jinjie Ruan <ruanjinjie@huawei.com>, Andy
- Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Richard
- Henderson <richard.henderson@linaro.org>, Russell King
- <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Guo
- Ren <guoren@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas
- Bogendoerfer <tsbogend@alpha.franken.de>, Helge Deller <deller@gmx.de>,
- Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Weinberger
- <richard@nod.at>, Chris Zankel <chris@zankel.net>,
- linux-arm-kernel@lists.infradead.org, linux-alpha@vger.kernel.org,
- linux-csky@vger.kernel.org, linux-m68k@vger.kernel.org,
- linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
- linux-sh@vger.kernel.org, linux-um@lists.infradead.org, Arnd Bergmann
- <arnd@arndb.de>, Vineet Gupta <vgupta@kernel.org>, Will Deacon
- <will@kernel.org>, Brian Cain <bcain@kernel.org>, Michal Simek
- <monstr@monstr.eu>, Dinh Nguyen <dinguyen@kernel.org>, "David S. Miller"
- <davem@davemloft.net>, Andreas Larsson <andreas@gaisler.com>,
- linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org,
- linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org,
- linux-arch@vger.kernel.org, Michal =?utf-8?Q?Such=C3=A1nek?=
- <msuchanek@suse.de>, Jonathan
- Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
-Subject: Re: [patch 16/18] x86/entry: Get rid of the sys_ni_syscall()
- indirection
-In-Reply-To: <1149A39E-BEBA-46EA-94F4-4DFFC4733EF5@zytor.com>
-References: <20260707181957.433213175@kernel.org>
- <20260707190254.493733289@kernel.org>
- <20261022142425.3Wx-RrU5@linutronix.de> <87fqxx1r80.ffs@fw13>
- <87cxt11ktr.ffs@fw13> <1149A39E-BEBA-46EA-94F4-4DFFC4733EF5@zytor.com>
-Date: Fri, 23 Oct 2026 15:09:07 +0200
-Message-ID: <871p9g1s3w.ffs@fw13>
+	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=tePYhySp
+Received: by mail-pg1-f170.google.com with SMTP id 41be03b00d2f7-cd5c9e52398so361492a12.1
+        for <linux-arch@vger.kernel.org>; Fri, 23 Oct 2026 06:50:18 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1792763418; x=1793368218; darn=vger.kernel.org;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :content-type:mime-version:references:message-id:subject:cc:to:from
+         :date:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=8FyuJnnll3uJwbR+wT99CVBO9fzREsmjzeqnUECMRTY=;
+        b=tePYhySpUVOPmNC7qMFCyUKUchitL2PPRJngdPKMZb+6YMlbzUwgcreLJ2yA42AZnA
+         v8cLSMIlGA3u4RIUYVaES5a8/BGQAUiCR1RaqgsSgZkWKdBE/ZcATVE5Tll8cS9l1X0y
+         jUG+yVquGbWgcvm/8MxxycOg/mddw+0l+MplyEJOYfUmLmzlCXrzhSBgacFZkAq8wkob
+         Pj6RrEf69ya9zTjuBsqnaaINqezSaQsmRkyRLV8jGDNSGGxqoJhr6jeq4my7fpYC7dyj
+         qOmm9rddJ6UF9PtTp9Nx897N1k7lGSJXyujgP0EVLYI9Voi13+8/ttJ+pRcICMcmmMTc
+         3lJw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1792763418; x=1793368218;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :content-type:mime-version:references:message-id:subject:cc:to:from
+         :date:x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to:content-type;
+        bh=8FyuJnnll3uJwbR+wT99CVBO9fzREsmjzeqnUECMRTY=;
+        b=rRWaXAVbE2ad7rYv5j3zZvZ6TI9+pINq/rVxrIpv4/4oOsg+APUu7ltmgAI1IEuxTm
+         s2tGa/TTZXjfXpQ0cISDPMIjYJFqEJ8JQZ6EN/r6x5k8o5+6jQojsreLWYyLzGVMMJCD
+         osvgdg3n2MVzAoBGRMrOqbbeyxuSx5oEy4+J6q90JVQFqhGn9Sg3x3+ATSrCw6X1JioM
+         wXviUnK6Q3ne6cuZ23Vwu1UFUuL2PNtDDYnIch9SiWlusaPdfsf/CZYJh41fpJqeNHD9
+         nq5IWlod8t8lAun5Oncj6QzyhZB1xHkQY7Jyryg7ImpWgdM46d0a56tohs37z9rrFEmc
+         MfqQ==
+X-Forwarded-Encrypted: i=1; AKwUvByS/57qZ1HnPLWg+cCQoK2bJBzMrlLmf6X91BV9yuk7QJFwjrrb4z5WnCHC8Z/fzEl+eNg/oNJBNR3/@vger.kernel.org
+X-Gm-Message-State: AFq9FYKqGRQlAZl/THtRT+3yimJcwbV6tDY4/AKDKQjWO68ELrR+rxqq
+	b6bEZV8Bfsy56EDVa05Wwhw4u34s6IdxPtsjMx1bZnFLWIdnKJo+tMwizy3WPn/V7w==
+X-Gm-Gg: AYBFou2gBix6U4Cje59efb7v/gPWGfU1qWVW1jHjXTre/MdB6Ryxg65DQ1eCVm9EVyE
+	xWnCYRCYzyvFpUqouDH31Dh87mBgmyOVQL8E+OoSdhcIntN+DqPux0mENcXkIWvjmxWgsKlY04i
+	tQBVLkbeVI0BNB0ZJXgwxwi8UVPhSAqpM/SS0w3xJuHXmGITS6NVJH77ugpRySBzSO6A/xfUh+l
+	YM2cx97mCMKV6B3hACjCiH5JTu4YmGiOPG9cEd/LbAU/r4gERmW0FRerXffeZU6cvT75QDoHgll
+	6qk5/Ssz4G0UBRb9fZ1OBYjllQ/pKti2IAoC1cmHeCaxLbQrLBuJ0hWRCIJzsBlgWHS6EA7zrTm
+	ISUWpicglqgX2klVn9tXmuW5owYmraq2C72HtReZD3UsHqNALOJwV+EbuBz/fn5HrJZqPwZlHKQ
+	B/dBYgzcBMs6MsgV/kClqvc9nzoED3eNHep1z9LwJY03EKe0L1hOtssNxC1a7orxlYM3grvsbn2
+	y/rOd9DX9bbdyb7ZSyhKdwr65wA9VflYcFbByLnimbzLKS/0Rl3cnRVcQkl+xhm+4RUTnO5DpkE
+	zebq5bRNF9wLFdg7gm5+uUQtw9jD/Psvc55qDQ==
+X-Received: by 2002:a17:90b:5906:b0:3ab:3437:554f with SMTP id 98e67ed59e1d1-3adce0073a2mr1983207a91.29.1792763417701;
+        Fri, 23 Oct 2026 06:50:17 -0700 (PDT)
+Received: from google.com (64.75.127.34.bc.googleusercontent.com. [34.127.75.64])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2ea94677c91sm545015ad.4.2026.10.23.06.50.16
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 23 Oct 2026 06:50:16 -0700 (PDT)
+Date: Fri, 23 Oct 2026 13:50:13 +0000
+From: David Matlack <dmatlack@google.com>
+To: Pasha Tatashin <pasha.tatashin@soleen.com>
+Cc: tarunsahu@google.com, Andrew Morton <akpm@linux-foundation.org>,
+	joro@8bytes.org, Mike Rapoport <rppt@kernel.org>,
+	Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de,
+	jgg@nvidia.com, robin.murphy@arm.com, loganodell@google.com,
+	oupton@kernel.org, kevin.tian@intel.com, alex@shazbot.org,
+	dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com,
+	will@kernel.org, Alexander Graf <graf@amazon.com>,
+	Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com,
+	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev,
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
+	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: Re: [RFC PATCH v2 3/4] liveupdate: Replace compatibility string with
+ a 2-bit pair feature header
+Message-ID: <attmFVIFU_mS0Y7p@google.com>
+References: <CALzav=dLdJoVy=B1pv0FAurD9OhAzLSTjJNbtjTdJRmSqaB0yw@mail.gmail.com>
+ <CA+CK2bAQRMAEXZyHTEuUN0_Fo59Sn0hBmYbme_J9ewjx6gPyJQ@mail.gmail.com>
+ <atlKsD-aJB3mJr2j@google.com>
+ <CA+CK2bABt4OZO31TenVF2+uBUWVwViWbvfE00=0xbAw=f7K9SA@mail.gmail.com>
+ <atl7peoVHdP5hz7z@google.com>
+ <CA+CK2bBFXnJA1kddbLKGq0DAHDgjYhsTSQQay-xeX7jJC1V_UQ@mail.gmail.com>
+ <CALzav=e=ho2gVrn+7KpZ3ZyasvH2u15-pC-RSRSS7KcMfKqUJQ@mail.gmail.com>
+ <CA+CK2bAJo8dnTOyKMgnnMnk-SCXbTsv+JCLEOWkjyj-wqtEkHg@mail.gmail.com>
+ <atpNFEFIlqAoYIwH@google.com>
+ <CA+CK2bB2C3Am5ssRuzYpfiU7_vB81vxMGc19HQLq7N=_7YrbTg@mail.gmail.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -88,41 +118,154 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CA+CK2bB2C3Am5ssRuzYpfiU7_vB81vxMGc19HQLq7N=_7YrbTg@mail.gmail.com>
 
-On Thu, Oct 22 2026 at 17:22, H. Peter Anvin wrote:
-> On October 22, 2026 2:34:08 PM PDT, Thomas Gleixner <tglx@kernel.org> wrote:
->>-static __always_inline void do_syscall_x32(struct pt_regs *regs, unsigned long nr)
->>+static __always_inline bool do_syscall_x32(struct pt_regs *regs, unsigned long nr)
->> {
->>+	if (!IS_ENABLED(CONFIG_X86_X32_ABI))
->>+		return false;
->>+
->>+	/* Preserve the historic insanity of treating -1 special on x32 */
->>+	if (nr == ULONG_MAX)
->>+		return true;
->
-> It was never limited to x32...
+On 2026-10-22 04:53 PM, Pasha Tatashin wrote:
+> On Thu, Oct 22, 2026 at 1:51 PM David Matlack <dmatlack@google.com> wrote:
+> > On 2026-10-22 12:11 AM, Pasha Tatashin wrote:
 
-Tired brain misread the test output:
+> > > Lets drop the fourth macro argument and generate the combined struct name:
+> > >
+> > > #define DECLARE_LUO_SER(name, expected_size, ext_flags_count)              \
+> > >     struct name##_hdr {                                                    \
+> > >         __u32 size;                                                        \
+> > >         __u32 flags;                                                       \
+> > >         __u64 ext_flags[ext_flags_count];                                  \
+> > >         struct name payload;                                               \
+> > >     };                                                                     \
+> > >     static_assert(sizeof(struct name##_hdr) == (expected_size),            \
+> > >                   "LUO struct " #name " size mismatch!")
+> > >
+> > > For example:
+> > >
+> > > struct luo_memfd_ser {
+> > >     __u64 pos;
+> > >     __u64 size;
+> > > };
+> > >
+> > > DECLARE_LUO_SER_HDR(luo_memfd_ser, 24, 0);
+> >
+> > I think we are getting close, bu I have two remaining concerns:
+> >
+> >  * Reserving bits in each flags word for continuation leaves gaps
+> >    in the flag space that users have to know to skip.
+> 
+> Yes, but callers should never manipulate the raw flag words directly,
+> and we can provide simple accessor macros or inlines that take a
+> contiguous feature ID (0, 1, 2, ...)
+> 
+> enum luo_memfd_feats {
+>     LUO_MEMFD_FEAT_HUGETLB = 0,
+>     LUO_MEMFD_FEAT_SEALS   = 1,
+>     /* ... */
+>     LUO_MEMFD_FEAT_FOO     = 15, /* Automatically lands in
+> ext_flags[0] bits 0:1 */
+>     LUO_MEMFD_NR_FEATS
+> };
+> 
+> if (luo_ser_get_feat(hdr, LUO_MEMFD_FEAT_HUGETLB)) {
+>     /* handle hugetlb */
+> }
 
-[RUN]   Running tests under ptrace: modifying the default return
-[RUN]       Checking system calls with msb = 0 (0x0)
-[OK]                x32 syscalls 0:-64..-2 returned -ENOSYS as expected
-[OK]                x32 syscall 0:-1 returned MODIFIED_BY_PTRACE as expected
-[OK]                x64 syscalls 0:-64..-1 returned -ENOSYS as expected
+Sure but why deal with all the complexity just to save 8 bytes? All of
+these structs are allocated on folios and there are kilobytes of unused
+space to fit this header. And even if we optimize that we are talking
+about 8 bytes per FH/FLB... or 16 bytes for structs with arch-specific
+sub-structs like the KVM ones.
 
-But that's because the "-1" on x32 is actually 0xFFFFFFFF while on x64
-it's 0x7FFFFFFF.
+> >  * struct name##_hdr only matches structs written by the current kernel
+> >    (in terms of length of array and offset of payload).
+> 
+> This is not an issue on the incoming path, we never cast incoming data
+> to struct name##_hdr or access ->payload directly. Instead, we parse
+> the incoming buffer, dynamically compute the header size from the
+> continuation bits, and cast the payload offset to "struct name *"
+> based on the negotiated feature flags.
 
-The whole mess comes from using -1 as indicator for syscall abort which
-is undistinguishable from a syscall(nr=-1).
+How?
 
-Bah. Let me restore this nonsense.
+This is the only data structure that describes the header. Are you
+saying the incoming path will parse the header purely with a void *? Or
+use this header but just be careful not to access payload?
 
-Thanks,
+We should have one header structure that can be used on the incoming and
+outgoing path. We should not have one header data structure that can be
+used on the outgoing path and one that can be used on the incoming
+path.
 
-        tglx
+Also we need a standard header that can be shared across all structs,
+not a per struct header. Otherwise you will need to do weird casting and
+overlays to implement the shared helper routines that parse it.
 
+> > How about this instead:
+> >
+> > struct luo_ser_hdr {
+> >     __u32 size;        /* Size of header + payload in bytes */
+> >     __u32 nr_flags;    /* Number of features encoded in flags[] */
+> >     __u64 flags[];
+> > };
+> >
+> > Each feature occupies 2 bits of flags[], so feature N is always bits
+> > [2N+1:2N] of flags[N / 32], with no gaps:
+> >
+> >   00: Feature not present
+> >   01: Feature present, safe to ignore if not supported
+> >   11: Feature present, must be supported by the next kernel
+> >   10: Invalid
+> >
+> > The length of flags[] and the header size are computed directly rather
+> > than by walking continuation bits:
+> >
+> > static inline u32 luo_ser_nr_flag_words(const struct luo_ser_hdr *hdr)
+> > {
+> >     return DIV_ROUND_UP(hdr->nr_flags, 32);
+> > }
+> >
+> > static inline size_t luo_ser_hdr_size(const struct luo_ser_hdr *hdr)
+> > {
+> >     return struct_size(hdr, flags, luo_ser_nr_flag_words(hdr));
+> > }
+> >
+> > static inline void *luo_ser_payload(const struct luo_ser_hdr *hdr)
+> > {
+> >     return (void *)hdr + luo_ser_hdr_size(hdr);
+> > }
+> >
+> > and bounds checking is just luo_ser_hdr_size(hdr) <= hdr->size. The
+> > payload is always 8-byte aligned.
+> >
+> > Payload structs are then declared on their own, with no header:
+> >
+> > struct luo_memfd_ser {
+> >     __u64 pos;
+> >     __u64 size;
+> > };
+> > LUO_SER_ASSERT_SIZE(luo_memfd_ser, 16);
+> >
+> > The static_assert covers the payload to catch embedded structs changing
+> > size.  Asserting the header doesn't add anything since its size varies
+> > by kernel. And because flags[] is a flexible array, the header can't be
+> > embedded in front of a payload in a combined struct; it can only be
+> > reached through luo_ser_payload().
+> >
+> > I think the only downside is that the header increases to 16-bytes when
+> > there is at least 1 flag. But I don't think we need to be so concerned
+> > about an 8 byte difference...
+> 
+> I would prefer to keep the default header at 8 bytes. With 15 features
+> fitting directly inside the base __u32 flags word, adding the first 15
+> features to a struct keeps the header at 8 bytes and does not shift
+> the payload.
+> 
+> Computation-wise it is also very similar: for the 99% of structs that
+> have <= 15 features, LUO_FLAGS_CONT is 0, so computing the header size
+> is just a single bit test with no loop. Even if a struct ever needs
+> ext_flags, the loop will walk at most one or two extra words.
 
-
+Please explain why it is so important to keep the header 8 bytes that we
+have to jump through all these hoops to map a contiguous flag space
+onto a u32 + u64[] array structure where certain bits are reserved and
+have to be skipped.
