@@ -1,70 +1,84 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792741455;
-	b=FZm+50GKq2Snzk3EKKvj6hWl2FL4XyralciMaqGP4yVMSPbLc94KdXTxYskAih+L4PxD
-	 WDDkCYD7r2u0Xk6SVIAb558Nz0nTBwZMv8B0F+sxEXZItfKcFLO8NjkYqyvJx4gSP7k3l
-	 6RofpFqBQRTN95SZdeGvmqJU0sKe7JgiMnwxsje3XqFlVEn1K5IBhnQf7P7TCwh1X1rZw
-	 sfhxvnvSn2127b+IDOwOYjA15vDHAH7iHtkOOJeGfiVN8c0CZ9nGVb69T+UJYUpbPJLvp
-	 VVA9pyYNvs0+abtFFnrRhalxQiOTvkGVZAA/ASLBZx3+9oB7mWAnqjAA77R8Eid/Lyg==
+	t=1792760951;
+	b=KZfH0gx3msl/Bn7qRvB8RQW2seTqh9Bp0QLnqi787oj/4YukKaH9vS3g7ut4P7IBNdpQ
+	 EhgudNDSXZEHJA5wzPbZDGXyH9tpxx9SjPV93qk1fDFCs3oIX5iStaRADLv0jZUeLXukR
+	 zxZEb4ftIFOjGeEbDp98O/+Qf8fLqG2Mph8tkKRC1BVIhH+BSAuafvTFHJdGFtw02P970
+	 cXMSjn1CQdvF91A67TIFQUJY6wKOjeVuQyzWuza7LT++gZUWVtue5UI3gpqsW/OETOAZ0
+	 yfKn2qnzarNyQvoTcW/iITKbHKcYbrrIvBqXioTim+AMtNTGCx7ci68FUW3TH+LVV1A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792741455;
-	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
-	 References:MIME-Version:Content-Type:Content-Disposition:
-	 Content-Transfer-Encoding:In-Reply-To;
-	bh=wy/cnaPswmms/QpZfcVOeHijhXMXPHn20ADaK91xPcA=;
-	b=dTsoxeNIRIxZI1vaI3Lp6J5Wu0xUaKAOvp7jDDOt+XF8ElN/o/XvgD7DCZagn8ZyRF1r
-	 NthybCoaYGGKUJViF/YxRto8cyGYJDBsqCY+1RfwQ7FYFQ5ZJLsKRAe/xxOrsIkzSEwl7
-	 XyP7GyoZMAPhgPNA+coXjyMnQq1oJJcniXP3OW9yCEZC66/eAxx/1dB++6iP4jR0jUexH
-	 YuCg7CIP5+FU4Aam3pZUmDkSwJv4u109N6iM1Vz7Y+a2SimmVzbn5DX6bK3pD6XnBvjDq
-	 UOwo8tx5UeiBShwdpNFTsGciMwsfvgkLC20G6PqBOkG0VEmA5bryqmS1+qUOCa+OClw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792760951;
+	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
+	 Date:Message-ID:MIME-Version:Content-Type;
+	bh=nlznPFw9V2Gc6GAfgQKy3QilQuYPxjyao4Hf2pcvcDM=;
+	b=s6KSrQF+WQc8RKQaqEzaenXXv1VNp+aIixnzryolWCvOntYBEc1JptESt3LXaid6bzct
+	 FCy745YM/+cn84xvdvdH5lHdkJIu8ENJOUqjMNIHhFSPbGAurB/kCT/+bld9rjOJWyuuZ
+	 b02aMjHAPyFKn2zhmLADYeAdPon1a7VyMf6Sw5jX4dn80fqdzt4GNNwGkcnZRh4T094Au
+	 vvkWubCv9dftr3BvCmjeNUQILsQXGbeyShElsKRZuxCTHC4PzYaQliX2JGczQxSs8e3x2
+	 QStNpcTxmip+WrFxhzvhSwRFYoE0w3/Ob/YD8p+sOB/CVzy0gtPa3e4wqTq6jtM41ew==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=EaM7GVz8;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="m7RG/5lG";
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4E82E606A31A;
-	Fri, 23 Oct 2026 07:44:15 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 24012606A31A;
+	Fri, 23 Oct 2026 13:09:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=EaM7GVz8
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9170D1F01825;
-	Fri, 23 Oct 2026 07:44:05 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=m7RG/5lG
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id DEFE51F01825;
+	Fri, 23 Oct 2026 13:09:09 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1792741455;
-	bh=wy/cnaPswmms/QpZfcVOeHijhXMXPHn20ADaK91xPcA=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=EaM7GVz8N1F1WL1rJOnrhPXJUtKGkqsv14MRU42ie3CqopgX3LNFxUDnl1OPNUi/e
-	 2iQPCPAmrugokeUqdjjGnxoE/8npZif6jkFURSIYhrlahltUYFVTdLrUtWmi4bJDt4
-	 uJpg0nOqXHeMjeyusKILIH3Cl4Mf3vGvpiVoTnLCyKCJvnhkOfk8IhqWDgFcrVZDsw
-	 RQJc+E3xcDPh7iuKo7qjMm+aQPiRzX97cIhkWDsUcyao4CJSpPFEH+7iNFyZcmmnZH
-	 r3znD2zes+BCcnM/Q+slSfn7Uk5g9JQYqOi58zhfrrPLbNKPn/9s/EmGcuM+9Ol3+7
-	 YAzLqgDZtmCpA==
-Date: Fri, 23 Oct 2026 10:44:01 +0300
-From: Mike Rapoport <rppt@kernel.org>
-To: tarunsahu@google.com
-Cc: Pasha Tatashin <pasha.tatashin@soleen.com>,
-	Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org,
-	Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de,
-	David Matlack <dmatlack@google.com>, jgg@nvidia.com,
-	robin.murphy@arm.com, loganodell@google.com, oupton@kernel.org,
-	kevin.tian@intel.com, alex@shazbot.org, dwmw2@infradead.org,
-	pbonzini@redhat.com, seanjc@google.com, will@kernel.org,
-	Alexander Graf <graf@amazon.com>,
-	Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com,
-	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
-	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev,
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
-	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: Re: [RFC PATCH v2 1/4] liveupdate: Rename handler compatible to name
-Message-ID: <atsQQcUiVhb9KXWZ@kernel.org>
-References: <20261021152527.375070-1-tarunsahu@google.com>
- <20261021152527.375070-2-tarunsahu@google.com>
- <CA+CK2bC_wc4LxvHe0TREbBP7esYW3pcMNtkGK-kqvf6MyvOh2g@mail.gmail.com>
- <9huzik2u6hs5.fsf@tarunix.c.googlers.com>
- <CA+CK2bDyk=F7W3J=q3pKCjsr2wy_PLdgqgu+ywp0F5HL=VoMpA@mail.gmail.com>
- <9huzld7q4zjz.fsf@tarunix.c.googlers.com>
+	s=k20260515; t=1792760950;
+	bh=nlznPFw9V2Gc6GAfgQKy3QilQuYPxjyao4Hf2pcvcDM=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date;
+	b=m7RG/5lGWSbIc838b0jmvSS290uWfurhu3YNfo5bVNzSTvTPTC7ghSWC8leVP3nQ+
+	 b1I3jDHg/InxLf552w5eGHsTrs/J6pcIRU/3j2o4lXMu8kdY2pE31lXQZ6mDuOD9a9
+	 /bZSvE9+INNA1eyAemAPUHtpahZxa52CO1uiN/pTg/xq6n5EpQE55LyKwMgvscOovl
+	 vpke1gUvPTZai31N3aWvQD3q3fnksvGf8uxqyvKnNdAccPdM5DjsmOgJhH0dNQrOqX
+	 DgjQebBUKnbd01GrrL7MPL69Sel1P4/LLNB/kJOWZzm+JYUNtbLukoPTq27kTGyxJT
+	 /kgHrVGsqnwng==
+From: Thomas Gleixner <tglx@kernel.org>
+To: "H. Peter Anvin" <hpa@zytor.com>, Sebastian Andrzej Siewior
+ <bigeasy@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra
+ <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, Shrikanth
+ Hegde <sshegde@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org, Kees Cook
+ <kees@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+ loongarch@lists.linux.dev, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt
+ <palmer@dabbelt.com>, linux-riscv@lists.infradead.org, Sven Schnelle
+ <svens@linux.ibm.com>, linux-s390@vger.kernel.org, x86@kernel.org, Mark
+ Rutland <mark.rutland@arm.com>, Jinjie Ruan <ruanjinjie@huawei.com>, Andy
+ Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Richard
+ Henderson <richard.henderson@linaro.org>, Russell King
+ <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Guo
+ Ren <guoren@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas
+ Bogendoerfer <tsbogend@alpha.franken.de>, Helge Deller <deller@gmx.de>,
+ Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Weinberger
+ <richard@nod.at>, Chris Zankel <chris@zankel.net>,
+ linux-arm-kernel@lists.infradead.org, linux-alpha@vger.kernel.org,
+ linux-csky@vger.kernel.org, linux-m68k@vger.kernel.org,
+ linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+ linux-sh@vger.kernel.org, linux-um@lists.infradead.org, Arnd Bergmann
+ <arnd@arndb.de>, Vineet Gupta <vgupta@kernel.org>, Will Deacon
+ <will@kernel.org>, Brian Cain <bcain@kernel.org>, Michal Simek
+ <monstr@monstr.eu>, Dinh Nguyen <dinguyen@kernel.org>, "David S. Miller"
+ <davem@davemloft.net>, Andreas Larsson <andreas@gaisler.com>,
+ linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org,
+ linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org,
+ linux-arch@vger.kernel.org, Michal =?utf-8?Q?Such=C3=A1nek?=
+ <msuchanek@suse.de>, Jonathan
+ Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+Subject: Re: [patch 16/18] x86/entry: Get rid of the sys_ni_syscall()
+ indirection
+In-Reply-To: <1149A39E-BEBA-46EA-94F4-4DFFC4733EF5@zytor.com>
+References: <20260707181957.433213175@kernel.org>
+ <20260707190254.493733289@kernel.org>
+ <20261022142425.3Wx-RrU5@linutronix.de> <87fqxx1r80.ffs@fw13>
+ <87cxt11ktr.ffs@fw13> <1149A39E-BEBA-46EA-94F4-4DFFC4733EF5@zytor.com>
+Date: Fri, 23 Oct 2026 15:09:07 +0200
+Message-ID: <871p9g1s3w.ffs@fw13>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -74,165 +88,41 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <9huzld7q4zjz.fsf@tarunix.c.googlers.com>
+Content-Type: text/plain
 
-On Wed, Oct 21, 2026 at 07:35:28PM +0000, tarunsahu@google.com wrote:
-> Pasha Tatashin <pasha.tatashin@soleen.com> writes:
-> > On Wed, Oct 21, 2026 at 2:16 PM <tarunsahu@google.com> wrote:
-> >> Pasha Tatashin <pasha.tatashin@soleen.com> writes:
-> >>
-> >> > On Wed, Oct 21, 2026 at 11:25 AM Tarun Sahu <tarunsahu@google.com> wrote:
-> >> >>
-> >> >> File handler and File-Lifecycle-Bound (FLB) identifiers name the
-> >> >
-> >> > Please use FLB directly, no need to spell it out.
-> >> >
-> >> >> registered handler or FLB rather than a monolithic compatibility version.
-> >> >> Rename compatible to name across LUO headers, structures, and consumers:
-> >> >> - struct liveupdate_file_handler and struct luo_file_ser name field
-> >> >> - LIVEUPDATE_HNDL_NAME_LENGTH (in include/uapi/linux/liveupdate.h) and
-> >> >>   MEMFD_LUO_FH_NAME
-> >> >> - struct liveupdate_flb name field, LIVEUPDATE_FLB_NAME_LENGTH,
-> >> >>   PCI_LUO_FLB_NAME, and LIVEUPDATE_TEST_FLB_NAME
-> >> >>
-> >> >> Signed-off-by: Tarun Sahu <tarunsahu@google.com>
-> >> >> ---
-> >> >>  drivers/pci/liveupdate.c        | 10 ++++----
-> >> >>  include/linux/kho/abi/luo.h     | 26 +++++++++----------
-> >> >>  include/linux/kho/abi/memfd.h   |  4 +--
-> >> >>  include/linux/kho/abi/pci.h     |  2 +-
-> >> >>  include/linux/liveupdate.h      | 18 +++++--------
-> >> >>  include/uapi/linux/liveupdate.h |  3 +++
-> >> >>  kernel/liveupdate/luo_file.c    | 45 +++++++++++++++++----------------
-> >> >>  kernel/liveupdate/luo_flb.c     | 16 ++++++------
-> >> >>  lib/tests/liveupdate.c          | 22 ++++++++--------
-> >> >>  mm/memfd_luo.c                  |  2 +-
-> >> >>  10 files changed, 73 insertions(+), 75 deletions(-)
-> >> >>
-> >> >> diff --git a/drivers/pci/liveupdate.c b/drivers/pci/liveupdate.c
-> >> >> index 51695782ed42..3cf01d7d615c 100644
-> >> >> --- a/drivers/pci/liveupdate.c
-> >> >> +++ b/drivers/pci/liveupdate.c
-> >> >> @@ -424,7 +424,7 @@ static struct liveupdate_flb_ops pci_liveupdate_flb_ops = {
-> >> >>
-> >> >>  static struct liveupdate_flb pci_liveupdate_flb = {
-> >> >>         .ops = &pci_liveupdate_flb_ops,
-> >> >> -       .compatible = PCI_LUO_FLB_COMPATIBLE,
-> >> >> +       .name = PCI_LUO_FLB_NAME,
-> >> >>  };
-> >> >>
-> >> >>  static void pci_liveupdate_flb_put_outgoing(void)
-> >> >> @@ -667,13 +667,13 @@ static struct pci_flb_incoming *pci_liveupdate_flb_get_incoming(void)
-> >> >>
-> >> >>         /*
-> >> >>          * Live Update is enabled and there is incoming FLB data, but none of it
-> >> >> -        * matches pci_liveupdate_flb.compatible.
-> >> >> +        * matches pci_liveupdate_flb.name.
-> >> >>          */
-> >> >>         if (ret == -ENOENT)
-> >> >>                 return NULL;
-> >> >>
-> >> >>         /*
-> >> >> -        * There is incoming FLB data that matches pci_liveupdate_flb.compatible
-> >> >> +        * There is incoming FLB data that matches pci_liveupdate_flb.name
-> >> >>          * but retrieve failed (pci_flb_retrieve() returned an error or LUO
-> >> >>          * failed to acquire a reference to pci_liveupdate_flb_ops.owner).
-> >> >>          */
-> >> >> @@ -998,7 +998,7 @@ EXPORT_SYMBOL_GPL(pci_liveupdate_is_incoming);
-> >> >>   */
-> >> >>  int pci_liveupdate_register_flb(struct liveupdate_file_handler *fh)
-> >> >>  {
-> >> >> -       pr_debug("Registering file handler \"%s\"\n", fh->compatible);
-> >> >> +       pr_debug("Registering file handler \"%s\"\n", fh->name);
-> >> >>         return liveupdate_register_flb(fh, &pci_liveupdate_flb);
-> >> >>  }
-> >> >>  EXPORT_SYMBOL_GPL(pci_liveupdate_register_flb);
-> >> >> @@ -1009,7 +1009,7 @@ EXPORT_SYMBOL_GPL(pci_liveupdate_register_flb);
-> >> >>   */
-> >> >>  void pci_liveupdate_unregister_flb(struct liveupdate_file_handler *fh)
-> >> >>  {
-> >> >> -       pr_debug("Unregistering file handler \"%s\"\n", fh->compatible);
-> >> >> +       pr_debug("Unregistering file handler \"%s\"\n", fh->name);
-> >> >>         liveupdate_unregister_flb(fh, &pci_liveupdate_flb);
-> >> >>  }
-> >> >>  EXPORT_SYMBOL_GPL(pci_liveupdate_unregister_flb);
-> >> >> diff --git a/include/linux/kho/abi/luo.h b/include/linux/kho/abi/luo.h
-> >> >> index 288076de6d4a..5fb2f46425d7 100644
-> >> >> --- a/include/linux/kho/abi/luo.h
-> >> >> +++ b/include/linux/kho/abi/luo.h
-> >> >> @@ -39,9 +39,9 @@
-> >> >>   *     Multiple blocks are linked via the `next` field in the header.
-> >> >>   *
-> >> >>   *   - struct luo_file_ser:
-> >> >> - *     Metadata for a single preserved file. Contains the `compatible` string to
-> >> >> - *     find the correct handler in the new kernel, a user-provided `token` for
-> >> >> - *     identification, and an opaque `data` handle for the handler to use.
-> >> >> + *     Metadata for a single preserved file. Contains the handler `name` string
-> >> >> + *     to find the correct handler in the new kernel, a user-provided `token`
-> >> >> + *     for identification, and an opaque `data` handle for the handler to use.
-> >> >>   *
-> >> >>   *   - struct luo_flb_header_ser:
-> >> >>   *     Header for the FLB array. Contains the total page count of the
-> >> >> @@ -49,9 +49,9 @@
-> >> >>   *     that follow.
-> >> >>   *
-> >> >>   *   - struct luo_flb_ser:
-> >> >> - *     Metadata for a single preserved global object. Contains its `name`
-> >> >> - *     (compatible string), an opaque `data` handle, and the `count`
-> >> >> - *     number of files depending on it.
-> >> >> + *     Metadata for a single preserved global object. Contains its FLB `name`
-> >> >> + *     string, an opaque `data` handle, and the `count` number of files
-> >> >> + *     depending on it.
-> >> >>   */
-> >> >>
-> >> >>  #ifndef _LINUX_KHO_ABI_LUO_H
-> >> >> @@ -84,18 +84,16 @@ struct luo_ser {
-> >> >>         u64 flbs_pa;
-> >> >>  } __packed;
-> >> >>
-> >> >> -#define LIVEUPDATE_HNDL_COMPAT_LENGTH  48
-> >> >> -
-> >> >>  /**
-> >> >>   * struct luo_file_ser - Represents the serialized preserves files.
-> >> >> - * @compatible:  File handler compatible string.
-> >> >> + * @name:        File handler name string.
-> >> >
-> >> > We are renaming from cpmaptible to name; I am not sure that is
-> >> > necessary. We can still use compatible for the same purpose as name.
-> >> > Unless it really bothers people, but for me 'compatible' works just
-> >> > the same.
-> >>
-> >> Yes it is necessary, For example if we have two handler for a single
-> >> subsystem. We should refer it by handle this or handler that, not like
-> >> handler with compatible string this and handler with compatible string
-> >> that.
-> >
-> > I still feel like compatability makes more sense to me. Take an example:
-> >
-> > We have two file handlers for memfd (i.e., FH_OLD and FH_NEW): one has
-> > compatibility = "memfd", and the other has compatibility =
-> > "memfd_next_generation". The user chooses one of them to preserve the
-> > memfd data, and the compatibility string is saved alongside the FD.
-> > When the next kernel scans through the registered file handlers, it
-> > must find exactly one that is compatible with the preserved data.
-> 
-> I will open this for vote.
+On Thu, Oct 22 2026 at 17:22, H. Peter Anvin wrote:
+> On October 22, 2026 2:34:08 PM PDT, Thomas Gleixner <tglx@kernel.org> wrote:
+>>-static __always_inline void do_syscall_x32(struct pt_regs *regs, unsigned long nr)
+>>+static __always_inline bool do_syscall_x32(struct pt_regs *regs, unsigned long nr)
+>> {
+>>+	if (!IS_ENABLED(CONFIG_X86_X32_ABI))
+>>+		return false;
+>>+
+>>+	/* Preserve the historic insanity of treating -1 special on x32 */
+>>+	if (nr == ULONG_MAX)
+>>+		return true;
+>
+> It was never limited to x32...
 
-I'd rather won't ;-)
+Tired brain misread the test output:
 
-"compatible" does not contradict more fine grained bitfields, and still has meaning.
-Just like in FDT world from where we inherited it, it means "these ops are
-somewhat compatible with that serialized format, will check the details and
-will know for sure".
+[RUN]   Running tests under ptrace: modifying the default return
+[RUN]       Checking system calls with msb = 0 (0x0)
+[OK]                x32 syscalls 0:-64..-2 returned -ENOSYS as expected
+[OK]                x32 syscall 0:-1 returned MODIFIED_BY_PTRACE as expected
+[OK]                x64 syscalls 0:-64..-1 returned -ENOSYS as expected
 
-And IMO we should keep it.
- 
-And please, trim your responses. I had to scroll 463 lines to see there's
-nothing there.
+But that's because the "-1" on x32 is actually 0xFFFFFFFF while on x64
+it's 0x7FFFFFFF.
 
--- 
-Sincerely yours,
-Mike.
+The whole mess comes from using -1 as indicator for syscall abort which
+is undistinguishable from a syscall(nr=-1).
+
+Bah. Let me restore this nonsense.
+
+Thanks,
+
+        tglx
+
+
+
