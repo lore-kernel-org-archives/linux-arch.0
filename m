@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793011106;
-	b=uIKRB2mtsnb05OxlgGFGTP/RLtaBt6c6FVzyRVvjai/whjuZaHiLNuyYxwLXqgroZuUm
-	 eL+3nY+86++L+NefKfO9xV3o+g0AG2pwDbujF1fNkkuxaE3SYRAF7fLGTNcFNhHYsGSSe
-	 wNs+fQUrVymNjQj20RpAzhX2jQBr4kYk8nEvJFM0hm0GMPpavPDz1AboR9Ck208iijV+i
-	 7RpQgLz8D4PYUn4MLnMJ6IayNw7terFtB3NAiftpaiAPcU4zUFObBDhQw2DitHBSfBh8Z
-	 W/r+58IK5U3nqUCQcHndp45mC2zbO9gRPJSpTrIIHltM2wZNom7wAAzLqi4E/XqTEMg==
+	t=1793011130;
+	b=wqA0VjXeive9Qt+wF9cDBJWThYcl05IzV10m4LoRdB1HGnO1gU1jvxXfQgTMyLEF4BUc
+	 UHKsgzh1GUI6kZS9dlmt276cre38MiGFoY4C659w2yfQAmNvoC+vTwLQQAeZmxSvyzI7c
+	 SLh2i0KDWsEBiZnydXNEIQ1hud4Rt3ZbC1mmiPS0k5+ZlHbgut9Uc2iscWLJKfCl3UVxA
+	 3ZcwTaP3JDrXZOi4xJHHeZHjbHKb/8SlbXfhTbbI7ur7epDRfi0ELLXCuDbby8gydcZku
+	 z0+DanB5YMGP970ul9x0AjU0Y92crrMpUHHpDc5hBTinz/JlXW2lY+Q5HxR85Rt5EGA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793011106;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793011130;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=GU+AeFEAdhUpi99K1fdWPGQG0dY4SWw4OfyLJR/C7kM=;
-	b=FvhUf4KD30+rY41pMRHTlX9vhcjGDSWPgzAOpE8LHnaBBYYMyvXjsflBv0Jfd8pTV9Et
-	 6LszXDvNKXH6Si8X979XWSj8S9KuSPCWC6Z72x99roca1YkPQivAI0pNNVDhx3yIhuPru
-	 vgqWSBPsUkkSWOrEEIBl2KPuuAgwJBbvAp+yZCXs7A0pBhxhKPJl9Umd8nW3grPh7pEKG
-	 ebXhUlrNghfEdB2FxDgR7PUJygMtItmRh+jPDhaOICv6K0U1YxeeHjYhsOkNYpGldGZky
-	 oieQ9oTBL/tW5M3m7DLXmN8mZj/pKzmmMSNzPZco9y8L+IbLlsjl6Cnknz6QOLzleoQ==
+	bh=/BLhE6A843KDT8+y0mtaljR3lPY00tdB/4nQapDfY8E=;
+	b=3J7fSOQL8q+gM2Qf5MJgKx4BzOFHFAohF5ib++s2DXvHP0aJz8BJWgKrwUZciYCiK1FH
+	 QcRGfTtTLp/m6vgRtq9jLTgiCtMQUh3UaRgPhGcF5W2TPqaM9grveW0kr/ZGbLYbP5ejG
+	 pno9lN3MhghWpMjteynLGzJDbYnwC9w5OoWHxFHQcCsQQkC7hxokADOTSpKmseTjA4Fa0
+	 3XDcNPYlmjz6PE8YE0n8qEZ7IXPaiMs6nQGUc34PHPnLUYVMCUNjoshI3+vaCaOuuTX1r
+	 YAi0B8ADxyyQLylh6rWd5iauIRfHZ2EvbZT7kpktPyKDMSl4/MVP/r5osbgxL3hZ4Yg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=GjJqSRCY;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DAokXhrI;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08120606A31A;
-	Mon, 26 Oct 2026 10:38:25 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F3647606A31A;
+	Mon, 26 Oct 2026 10:38:49 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=GjJqSRCY
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 014A31F01825;
-	Mon, 26 Oct 2026 10:38:20 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DAokXhrI
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 431F41F01825;
+	Mon, 26 Oct 2026 10:38:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793011105;
-	bh=GU+AeFEAdhUpi99K1fdWPGQG0dY4SWw4OfyLJR/C7kM=;
+	s=k20260515; t=1793011129;
+	bh=/BLhE6A843KDT8+y0mtaljR3lPY00tdB/4nQapDfY8E=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=GjJqSRCYjZC1eqOEvkoQv7CyrY/C8hYbCw9lhik1jwBNpK/JU6ARH4dUDH9wDjplg
-	 7+HYKT/3ey+4DDpk+wNszxM0z0tSoUjSFxmSCzZGcqfdAP5jG7azU1HS1+RqKX0Af/
-	 PPXcjf1sjNjzmUzXaSWoYS2AuLUvTU1y1uzcfMszeb88moHX74pDNzwD1ro/AUHI5z
-	 pZFHGXHd9mkeuQxdwnU09Oez3yyzRwalR4K1lVvDRY+R/LgoWZWijfxiSMLAgfgf+d
-	 1A0iVUdrFfAUGMI1Ps6+uMMHj8Wv9aJ8S3P0FPaHfsOMTxGud6ZKuYBiPkbPGERS4b
-	 Jv2sr4SpcX8cA==
-Message-ID: <e7326e8f-a5a1-433e-9df2-6134948d129a@kernel.org>
-Date: Mon, 26 Oct 2026 11:38:17 +0100
+	b=DAokXhrI31jxzYuScbo35XEhEcxr79cZ8kAnkbToxT9/ue8/BqmP4QcZTyIgwFr4s
+	 WrQDTnU4Z7PLHHPOo7V1mQ9uEoB0nciISo4EFJJ5JwATLvAz8R+NJCvNCfvC07PDBK
+	 Row6ghd03Z7AzOD7m5dxYks0nXQoMHfyZL5kIGiP4JtbjhQMcMmgHLMAEOFv0w2VQ2
+	 pPcjKjSp7tIivkSDIrkJG8v1k3EurLoxIGf2HGUR4RdOMB2QPDN+XQ3T4jdZifymE2
+	 SKGIZPqarIgIR9sUUWwS9qu2oz3PnM/GKk3Ufmwg/dbFuX2cftxjpQh2XPrlUlhZZD
+	 oksob1U8ckOHw==
+Message-ID: <103481d2-f75a-4982-b9a1-3592cda8267a@kernel.org>
+Date: Mon, 26 Oct 2026 11:38:42 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,7 +52,7 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 2/3] mm: generalize PMD page table allocation
+Subject: Re: [PATCH 3/3] mm: generalize PUD page table allocation
 To: Muchun Song <songmuchun@bytedance.com>,
  Andrew Morton <akpm@linux-foundation.org>
 Cc: Muchun Song <muchun.song@linux.dev>, Arnd Bergmann <arnd@arndb.de>,
@@ -65,7 +65,7 @@ Cc: Muchun Song <muchun.song@linux.dev>, Arnd Bergmann <arnd@arndb.de>,
  linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
  linux-kernel@vger.kernel.org
 References: <20261014035910.687847-1-songmuchun@bytedance.com>
- <20261014035910.687847-3-songmuchun@bytedance.com>
+ <20261014035910.687847-4-songmuchun@bytedance.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -112,20 +112,23 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20261014035910.687847-3-songmuchun@bytedance.com>
+In-Reply-To: <20261014035910.687847-4-songmuchun@bytedance.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 On 10/14/26 05:59, Muchun Song wrote:
-> The generic PMD allocator assumes order-0 page tables and zero-valued
-> empty entries. MIPS and LoongArch need pmd_init() to install their invalid
-> entries, while MIPS and parisc use PMD_TABLE_ORDER to describe the
-> allocation size.
+> The generic PUD allocator assumes order-0 page tables and zero-valued empty
+> entries. MIPS and LoongArch need pud_init() to install their invalid
+> entries. MIPS also uses PUD_TABLE_ORDER to describe the allocation size.
 > 
-> Default PMD_TABLE_ORDER to zero, honor architecture overrides, and invoke
-> pmd_init() from the generic allocator. MIPS, LoongArch, and parisc can then
-> use the generic GFP selection, constructor handling, and kernel ptdesc
-> marking instead of duplicating most of the helper.
+> Default PUD_TABLE_ORDER to zero, honor architecture overrides, and invoke
+> pud_init() from the generic allocator. MIPS and LoongArch can then drop
+> their duplicate helpers and use the generic constructor handling and kernel
+> ptdesc marking.
+> 
+> This also switches their user PUD allocations from GFP_KERNEL to
+> GFP_PGTABLE_USER, so they are accounted to the active memory cgroup
+> context. Allocations for init_mm continue to use GFP_PGTABLE_KERNEL.
 > 
 > Assisted-by: LLM
 > Signed-off-by: Muchun Song <songmuchun@bytedance.com>
