@@ -1,95 +1,95 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.215.172
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.215.179
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793047748;
-	b=PLBteO+iNQKXzDoQRuWPW4srteST/FwoZ4XLsyFgcPSKBmWRmroqr1nKZVaN1GU24tVA
-	 CneZfmsSvnmnU3F0Ox5zCnKeZ0hm9rsl+QuDKmNoGf5TYGPtkGqmNbCi0pT4l0x3Otqeh
-	 9ldxsLX/nSVRDf2pIYxvoqhN6zeg651m9U8RutmujRQizvuylTW4f+F7Z5dbnRMC2S/4Y
-	 jV6757b2VMblUJXrIrGdtSo4LDb3Zk9KupFBGSDRuKUP/J64dVdBRSyVWvqBGR5WA05uS
-	 ueycOWwQ2Da9EfriGVLBz61yXP6OJ4NVCWF3BXNuw2/nKT4xLH4Y//QWuAbrBYeuMUA==
+	t=1793049253;
+	b=ThjUBszwsvGcPNK/p6iUMKga40dICiifbMNkyPuJhvQs2l5VqWHbor69ceurHHb3s5FQ
+	 ReWv3MVWTL7q4M05WB2fyEVto3hktKNOesTr4TBKS3fpC5A3Ov2+VP2iGtT3Vtn/4b+Yn
+	 Etk9m1NwResmUOQqYWS6enKjhYlsrJZlmoRNVEkt9ALXRrW20muSDSMkPwCjwTccfR006
+	 Nwmp4vkN8ei0/qpXY839se6CuCEsAjEb3lA3qC2+zWH0O/joTzKI+w3O9ON9RE6XXvfc5
+	 ihpbxEm17mSq8U+nOcKVYo+WdqdOpLVaY4U7n7uHaUo9/TcfzgKpdq/A4uM9d3VbpzQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793047748;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793049253;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:Content-Transfer-Encoding:
-	 In-Reply-To;
-	bh=PJBAWhG3vQY26e/Nvx85KnaVoYI7FZuNNNc/vdxGNMI=;
-	b=RN0I6u+NZSIYtYaM4bLWd/45hFWcYcwip98KTeeCZn9N6WRzHDg1ICSq9uc+Vi0kf0er
-	 FMFSlcpmng34yO7pIWyLV0wtK7pX92TpVbIdyJeM+3rTQrYRNMX0Ygj3CDUFMoQPxY7Kb
-	 b1x+SIXSB98FRUSFJ0Qf9Dh4YzObROnfc65EfHx50lt23vbZh6d/9eFs/5qfAbV8PtAw9
-	 YPpgZmIT+CmpXlNp3i1ozNZfDcs9pRhEGx8/Eo3SL8qgVIlnc2OsGVkLGnh/DNYc4k/ML
-	 F+ouyr8rbQ612IBqTgwEPtGIZu9tZDdh0yLrEl8VzmjjpssssMiKUvOWzNR0xeAmkMQ==
+	 Content-Type:Content-Disposition:In-Reply-To;
+	bh=gKF3hAWDK1ltcE+SHB5ZbEu9q5rcNDasVCUAn/AhQHg=;
+	b=qayWE93S8hbmIZ7tiUaJJG7BQ7IJy9/DvMVzOMRcj4gm41s2Ua89wKnlsya1Eu+UFlgk
+	 qtAB0pOUt/0UcVSzQeRfOk1CSo4WjgmOLKsI7lRgHY4NIFElSdppulBm7MG5QI5iNvObk
+	 tv5do2RjDLNYDWju9MOpaTmupgV/2t2OTBcLboRtR96Jf4DT8eMLgRHEiqgGF3nsXxI+P
+	 nx5GR4Ri73Y+k3ycjcjo1OrcmpliWvl4lxSsgy5iTI1P8YO+MoCK4LM5uF+SDrAPa6hnk
+	 4tpJ/XklNfgAPLjAhocLINEYAhd7VpbMl4acqss6Skts+B3PWn0KeoBHXVnhf2cMUSA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=google.com;
 	spf=pass smtp.mailfrom=google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=s5LU5Vs5;
-	arc=none smtp.remote-ip=209.85.215.172
-Received: from mail-pg1-f172.google.com (mail-pg1-f172.google.com [209.85.215.172])
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=K67nv9XJ;
+	arc=none smtp.remote-ip=209.85.215.179
+Received: from mail-pg1-f179.google.com (mail-pg1-f179.google.com [209.85.215.179])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A7F85606A321
-	for <linux-arch@vger.kernel.org>; Mon, 26 Oct 2026 20:49:07 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A7F85606A321
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F1510606A31E
+	for <linux-arch@vger.kernel.org>; Mon, 26 Oct 2026 21:14:12 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org F1510606A31E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=s5LU5Vs5
-Received: by mail-pg1-f172.google.com with SMTP id 41be03b00d2f7-cd5e2d696e0so1848411a12.1
-        for <linux-arch@vger.kernel.org>; Mon, 26 Oct 2026 13:49:07 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=K67nv9XJ
+Received: by mail-pg1-f179.google.com with SMTP id 41be03b00d2f7-cd5c9e52398so1223517a12.1
+        for <linux-arch@vger.kernel.org>; Mon, 26 Oct 2026 14:14:12 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1793047747; x=1793652547; darn=vger.kernel.org;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :content-type:mime-version:references:message-id:subject:cc:to:from
-         :date:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=PJBAWhG3vQY26e/Nvx85KnaVoYI7FZuNNNc/vdxGNMI=;
-        b=s5LU5Vs54/o3bJebDew/+ok9ukTsdTxy3YxxEaqaeTCk7JTg/l1sBiUXOj7U7BnuEo
-         MPb7EE+a0KLYKkgIFsRnqSITcyL12B5hSr7WTSgzCG/V70XWJpbLNiSh1+NdYsPUiW/C
-         Af2F+/bmOSlp+tUJTw6M+sn04E1tWQLWWENHjXZkw5aV5QIgDXidcmiozBoZIgvQY3/t
-         eWxcO+Ie/jFr5h5zvZETmBDYa5UMlUTImVAPbIDCBiyA2S1r9kX1g1xvW+M25/sjwC17
-         bZdBleFj6BfU4ntQ04oCQ3VyOY3iuSPkd+c0TJwZwPbI4AY0TVnE5Fz8TD3gb+lYqZRM
-         UdyA==
+        d=google.com; s=20251104; t=1793049252; x=1793654052; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=gKF3hAWDK1ltcE+SHB5ZbEu9q5rcNDasVCUAn/AhQHg=;
+        b=K67nv9XJ4TeaL34vMeEZnzHwkkjAJXvovbKt25dK0ARJPImK8eAJxasjllvcrO3Mvz
+         0GnHKSvbs2j+fu1L93vtVfYaEU7xBX2oBxVR4XSp19D8BxbS5MYCpBV1+ZjPWQ/Qou0G
+         zCzOQQs71hCXYgkSqfxoI+w4i5o+oRk28rX4pfVUgSmX2Ghz150YtewTvUM95BqcWP5W
+         +em5Y44xGXwMDj3h+mYQvTQ5PR6vT1Y1kvTbUxQmieHlgsnHuGeGqx3rs6CbGzAdcSyS
+         aIIPuVbSixMCtl5PfpYxO7dwRL+PhVrWizeSZ5Cq07AOWp7dCw6lGuB6PhYEUCIwAA9v
+         LA7A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793047747; x=1793652547;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :content-type:mime-version:references:message-id:subject:cc:to:from
-         :date:x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to:content-type;
-        bh=PJBAWhG3vQY26e/Nvx85KnaVoYI7FZuNNNc/vdxGNMI=;
-        b=QmGm7rPqy/sOaucSPL4AlapKHM4EhuhLuGGq5Wt/fHTf6yQdq5DT9aGkuG9SMlnDKj
-         SqE6lwMOyfAwlW9ABFdnCs1ZIdQ3LO1KAZ3F5Wd/9q1b29AalRbqTkrTbqP1aB4QLY6M
-         zNfDcx9MfIrt7X6Ebait1jdCfUbf7S95lir7c9XnMqWlbdSHKSpkNo637XwoFXnl1qN4
-         L0TTS3U2GAkMiXCV+wi37kGbn6o4Y9eX00L3fXxV1Ro2CI2buk42I1ef9e9o/Or1qOMG
-         fdohHa4SAw8jfhyVJ/sOH1s66Ed8ww0ZBdhJcJPQUQwaZpfVFtweraKI9cwD7pZ3Dgvr
-         8/SA==
-X-Forwarded-Encrypted: i=1; AKwUvBzfXmsVChu3Y0FJojWKXgHX3awEEP9fcw53vWiXIrN9wHCV20zfSgqlfEwhX0GG9Rb5GktKP1ZZ0tR/@vger.kernel.org
-X-Gm-Message-State: AFq9FYJ+qA/FuYjQFQtP7is0m5Qt8YkWXDnOwK4aWWXYSJJQsUktikWG
-	QYNAcQYlQbGID16vX9T//JCnZQb886r1hLDTHSXhojvgEf2kVECji3P1ljmvpyXW4w==
-X-Gm-Gg: AYBFou3icRLRw9u0UST5WNKgULvtEKBUm67+k+8y+rB1fQBcb3xmpG4HWFGwSW6aGSg
-	1oBEfqXYPTAxakh4BKVUcPnCa5N74J21RItvf8nW6zMPkFy1thZHrJJt9BQnsw862E/yjD/EQHh
-	Xhr58VAffVVXzlDHoptRWObTEYo+sE2fYFZ5D3ItYcmTIAaDq50W4xa1eV8v9b9kcCvrzxqrWdy
-	44dhyRJ1qYYQG14x7Hp4trzP3GV3uyDR9qt5mTkT9dWOxYd2uLul7e1Rg6N9n0PH0YERzalNqkW
-	Jf1dK0NbySjFJV4RbaHbKo2/JOIr4QytQk05vMDzbsTAbh6pgT62W13zAqmjnjimU/ipFahJwZx
-	CW4G4TiQ39cEHsNg32A2H14oCfq6aJ0o8S1Fn0waLyHjOsGn8n8uE6258OmHD+zACl6M3Bnq6d7
-	KPoiZKiINxyLTwK0SvPUA4UnqQqigyKxghep91+Wuyw8jCcUBXrpNtV59GdYU8NsrshRhn263PV
-	EU4UIo6/OJ9DRk4eKX2CqVBHsfV1cH+cO50ZLiNkzuqJ8XVlxUj+enHgu5QiKezObqkCZEv2IRi
-	J0LyCNJFV+dIK68x
-X-Received: by 2002:a17:90b:5105:b0:3ac:9176:e81c with SMTP id 98e67ed59e1d1-3adeae76765mr6903041a91.46.1793047746368;
-        Mon, 26 Oct 2026 13:49:06 -0700 (PDT)
-Received: from google.com (64.75.127.34.bc.googleusercontent.com. [34.127.75.64])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ae4066aec8sm743744a91.15.2026.10.26.13.49.05
+        d=1e100.net; s=20260707; t=1793049252; x=1793654052;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=gKF3hAWDK1ltcE+SHB5ZbEu9q5rcNDasVCUAn/AhQHg=;
+        b=QCi+8qwbzFdht8FDG743FTuWInKT/sMsD557Ixauzjc3mDEjouvEFZn0/cSis61SDn
+         MME57Xa4NvTyVg8VIYg2aajXD/LxtZD9rFaMn71oRsxFz/ojeBLTcPefW/td93noYSxm
+         MeGAlZvh1//SEDMCUikkD9XcUiwMkgu0zNRk/yFrIlLWD6U+EZiMxLlyv1i8DodwK2sg
+         UVpQoZx+8keVlbrht9HZrkGA4rHNl3DdqdNxgNnXOegrBZkzsnHPT7hKyMXW/qvG819W
+         5BCA252s8GXbpO6kofEzHpi71tmeIyJ6vg2XiUD8ulyA7Iqcboa9pnKJ73dgWLJkqWsP
+         3guA==
+X-Forwarded-Encrypted: i=1; AKwUvBz65xUxl7jHgPZgjAn5Eo8qMJcyRtxkiTZSs3GdUMAYUNT6+/whCNa1/LcnaC8ICRyKW9Op0zRcUtb7@vger.kernel.org
+X-Gm-Message-State: AFq9FYJhZ+BqTLZGYcxscdw22nJWCg/r0KxpunQB6s0Po0LVjukan+WY
+	IgvdwaGcTV3JuUnGgR5wdpiTXh4g5EsLavzBhn+ehDR1IqHnYqiUKq3/DeKzbMeJJA==
+X-Gm-Gg: AYBFou2m5v/PLT+G3aZSqNyF35b2jk6sso2Zqh+t7s0Nb4WPttjaf5OVSCdPNHLC9B+
+	KDXxivF0qYz5inbpMi8M5q5yw+CECFL56fDto13k1oNzc62Q17soNyGW9cd8X/2ue0c43RuF2GI
+	kEcwCO6yspOaI9Et8dSICXhBPVKsVX/Okq+NMaYiuMOZ+KV5HrFFY+wzsJhxuYeF+jZXg/FwJ7h
+	mjshwA+d5ylsnQiEi4fadMb94yYDR15r5RA7InMsZlArYHHK14CcMuNSSRgn1rwCgEVc4xDddSR
+	IkxnPZZFFQ3BLPYvo0i3MX00tvkuuNtDYmsd5F8/QpmC0hmcKT47HjCnINJbBdCeAUsf4mCjBug
+	Ji7OI9ee8joVgcqXSTkGJkbVKZW5gM1EwEqcScCVW96UtZdn0nN57AGcuD/WscKS1kNQ9fECImj
+	/a2W9QIuf7soe0U22LPdG0UnKqd7X3KO6y/0L62n8HG5R21JCLkFAyEuuPlYxEHU4lwoBd4R90U
+	znwDlQaDortwO+PPVl6Cw5EhscHdY3r01rOnR13TNH4/nNP7yfNgsKwIHZoHTGV6bbrh4f1ykxr
+	TI93XXOzEl32SKFwjxCODeDpXWjrU3ZkXsLizz5ScFQ=
+X-Received: by 2002:a05:6300:6bc9:b0:3e2:3392:53e7 with SMTP id adf61e73a8af0-3e7a1b97750mr5308652637.0.1793049251805;
+        Mon, 26 Oct 2026 14:14:11 -0700 (PDT)
+Received: from google.com (192.150.203.35.bc.googleusercontent.com. [35.203.150.192])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-8a36b372888sm1666157b3a.30.2026.10.26.14.14.08
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 26 Oct 2026 13:49:05 -0700 (PDT)
-Date: Mon, 26 Oct 2026 20:49:02 +0000
+        Mon, 26 Oct 2026 14:14:09 -0700 (PDT)
+Date: Mon, 26 Oct 2026 21:14:05 +0000
 From: David Matlack <dmatlack@google.com>
-To: Pasha Tatashin <pasha.tatashin@soleen.com>
-Cc: tarunsahu@google.com, Andrew Morton <akpm@linux-foundation.org>,
-	joro@8bytes.org, Mike Rapoport <rppt@kernel.org>,
+To: tarunsahu@google.com
+Cc: Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org,
+	Mike Rapoport <rppt@kernel.org>,
 	Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de,
 	jgg@nvidia.com, robin.murphy@arm.com, loganodell@google.com,
 	oupton@kernel.org, kevin.tian@intel.com, alex@shazbot.org,
 	dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com,
-	will@kernel.org, Alexander Graf <graf@amazon.com>,
+	will@kernel.org, Pasha Tatashin <pasha.tatashin@soleen.com>,
+	Alexander Graf <graf@amazon.com>,
 	Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com,
 	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
 	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev,
@@ -98,17 +98,12 @@ Cc: tarunsahu@google.com, Andrew Morton <akpm@linux-foundation.org>,
 	linux-kernel@vger.kernel.org
 Subject: Re: [RFC PATCH v2 3/4] liveupdate: Replace compatibility string with
  a 2-bit pair feature header
-Message-ID: <at-8vkVpN2SF3XgB@google.com>
-References: <atlKsD-aJB3mJr2j@google.com>
- <CA+CK2bABt4OZO31TenVF2+uBUWVwViWbvfE00=0xbAw=f7K9SA@mail.gmail.com>
- <atl7peoVHdP5hz7z@google.com>
- <CA+CK2bBFXnJA1kddbLKGq0DAHDgjYhsTSQQay-xeX7jJC1V_UQ@mail.gmail.com>
- <CALzav=e=ho2gVrn+7KpZ3ZyasvH2u15-pC-RSRSS7KcMfKqUJQ@mail.gmail.com>
- <CA+CK2bAJo8dnTOyKMgnnMnk-SCXbTsv+JCLEOWkjyj-wqtEkHg@mail.gmail.com>
- <atpNFEFIlqAoYIwH@google.com>
- <CA+CK2bB2C3Am5ssRuzYpfiU7_vB81vxMGc19HQLq7N=_7YrbTg@mail.gmail.com>
- <attmFVIFU_mS0Y7p@google.com>
- <CA+CK2bDXDWbww_d3sD6OZqpo37V1a3t76_ubbrXLQS=9DB3dWA@mail.gmail.com>
+Message-ID: <at_CncIPYCxOVkLo@google.com>
+References: <20261021152527.375070-1-tarunsahu@google.com>
+ <20261021152527.375070-4-tarunsahu@google.com>
+ <atlQ_Er0Ig7CCSxv@google.com>
+ <CALzav=f00C4yOAseNunW8GgQTDUGWT927Qy=TLm-3-J0TEDH8Q@mail.gmail.com>
+ <9huzzew0el59.fsf@tarunix.c.googlers.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -118,134 +113,75 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CA+CK2bDXDWbww_d3sD6OZqpo37V1a3t76_ubbrXLQS=9DB3dWA@mail.gmail.com>
+In-Reply-To: <9huzzew0el59.fsf@tarunix.c.googlers.com>
 
-On 2026-10-25 04:38 PM, Pasha Tatashin wrote:
-> On Fri, Oct 23, 2026 at 9:50 AM David Matlack <dmatlack@google.com> wrote:
-
-> > Sure but why deal with all the complexity just to save 8 bytes? All of
-> > these structs are allocated on folios and there are kilobytes of unused
-> > space to fit this header. And even if we optimize that we are talking
-> > about 8 bytes per FH/FLB... or 16 bytes for structs with arch-specific
-> > sub-structs like the KVM ones.
+On 2026-10-26 11:50 AM, tarunsahu@google.com wrote:
+> Right, Required bit should be source kernel payload property to tell
+> target kernel that the payload must be handled to correctly deserialize
+> the data. It should be source kernel (userspace) responsiblity to make
+> sure it understand the target kernel before doing liveupdate.
 > 
-> The reason I care about keeping the header compact is that we are
-> defining a foundational kernel ABI and want to use this header across
-> almost every serialized data structure so we can evolve them later
-> without breaking compatibility. While some top-level structs are on
-> sparse folios today, other serialized structs are tightly packed, and
-> we are looking to add KHO slab support in the future where tightly
-> packed allocations will be common.
-
-My intuition is we will have a small number of headers per preserved
-file and per preserved FLB. One for the top-level struct and then
-optionally a few more for sub-structs like arch-specific data. That is
-why I am less worried 8 bytes per header, even if we fix the folio
-problem.
-
-Maybe where our visions differ is when there are collections of
-serialized structs, like KHO blocks. For collections I don't think the
-elements will each have their own headers. Otherwise the elements could
-be different sizes.
-
-Instead I think the struct that owns the collection will have a header
-that includes features for fields in the elements. The header defines
-which fields in all elements are valid. The field contents then convey
-the per-element information (which might include 0 or -1 values to
-convey this specific element doesn't have this data).
-
-> That said, in your proposal, as long as nr_flags == 0 is allowed when
-> a struct has no feature flags yet, luo_ser_hdr_size(hdr) is already 8
-> bytes and only grows to 16 bytes on the first feature flag. I am OK
-> with that.
-
-Yeah the header will be 8 bytes until the first flag is defined, at
-which point it will grow to 16 bytes.
-
-Great, sounds like we are aligned on the header. s/luo/kho also sounds
-good to me.
-
-> > > This is not an issue on the incoming path, we never cast incoming data
-> > > to struct name##_hdr or access ->payload directly. Instead, we parse
-> > > the incoming buffer, dynamically compute the header size from the
-> > > continuation bits, and cast the payload offset to "struct name *"
-> > > based on the negotiated feature flags.
-> >
-> > How?
-> >
-> > This is the only data structure that describes the header. Are you
-> > saying the incoming path will parse the header purely with a void *? Or
-> > use this header but just be careful not to access payload?
-> >
-> > We should have one header structure that can be used on the incoming and
-> > outgoing path. We should not have one header data structure that can be
-> > used on the outgoing path and one that can be used on the incoming
-> > path.
-> >
-> > Also we need a standard header that can be shared across all structs,
-> > not a per struct header. Otherwise you will need to do weird casting and
-> > overlays to implement the shared helper routines that parse it.
+> Saying this, During deserialization, target kernel's required bit is not
+> necessary. So I propose the following truth table.
 > 
-> Having DECLARE_KHO_SER_WRAP() in include/linux/kho/abi/ makes it
-> immediately clear just by looking at kho/abi/ which serialized structs
-> have the versioned header and which do not, while also enforcing the
-> header when preserving and static-asserting the combined struct size a
-> compile time.
-> 
-> So with your header (and let's use KHO as we want to version KHO
-> structs as well):
-> 
-> struct kho_ser_hdr {
->         __u32 size;        /* Size of header + payload in bytes */
->         __u32 nr_flags;    /* Number of features encoded in flags[] */
->         __u64 flags[];
-> };
-> 
-> The wrapped struct will look like:
-> 
-> #define DECLARE_KHO_SER_WRAP(name, expected_size, nr_feats)                \
->         struct name##_wrap {                                               \
->                 __u32 size;                                                    \
->                 __u32 nr_flags;                                                \
->                 __u64 flags[DIV_ROUND_UP(nr_feats, 32)];                       \
->                 struct name payload;                                           \
->         };                                                                 \
->         static_assert(sizeof(struct name##_wrap) == (expected_size),       \
->                 "struct " #name " size mismatch!")
-> 
-> On the incoming kernel we don't use struct name##_wrap, but we use
-> struct kho_ser_hdr for the wrapped data, validate the flags, and
-> unwrap it via kho_ser_payload(hdr) to get back the struct name *
-> payload type.
+> Source hdr  Target supported[i]  Action
+> ----------  -------------------  ----------------------------------
+> 00          0 or 1               Accept: feature absent in payload
+> 01          0                    Accept: ignore the feature data
+> 01          1                    Accept: use the feature data
+> 11          0                    Reject: -EOPNOTSUPP
+> 11          1                    Accept: use the feature data
+> 10          0 or 1               Reject: -EINVAL (invalid encoding)
 
-I still think it's not advisable to define name##_wrap since anyone
-could accidentally start using it on the incoming path and we wouldn't
-notice at first (especially since same kernel Live Update tests would
-keep working totally fine). I also don't think asserting the combined
-size buys us anything. The header size is just a function of the
-number of features, and what we are trying to protect against is
-structs embedded in the payload changing size.
+Yes, this matches what I had in mind for the semantics.
 
-So I would just do:
+To be explicit: the source kernel should set the bits for each Live
+Update based on what is actually preserved, rather than generating the
+header from a static per-kernel array. E.g. memfd would only mark a
+feature present for memfds that actually use it. That's what allows
+rollback to an older kernel as long as nothing being preserved depends
+on the new feature.
 
-  /* Marks struct name as a KHO serialized payload with a kho_ser_hdr. */
-  #define DECLARE_KHO_SER(name, payload_size) \
-          static_assert(sizeof(struct name) == (payload_size))
+But looking at this again, I think the required bit is redundant. Whether
+a feature can be safely ignored is a property of the feature itself, not
+of any particular file. Every file that has a feature present will have
+the same required bit for it. The only thing that actually varies per
+file is whether the feature is present.
 
-  DECLARE_KHO_SER(luo_memfd_ser, 16);
+The required bit still has to be conveyed to the target somehow, since
+the kernel that needs it is the one that doesn't know about the feature.
+But it can be conveyed by the feature's number rather than an extra bit:
+split the flag space into required features and optional features, and
+assign each feature to one of them when it is defined. This is similar
+to the required_flags and optional_flags approach in struct pci_ser [1].
 
-Plus helpers that allocate and initialize the header and return the
-payload as a typed pointer. Both the outgoing and incoming paths find
-the payload the same way, by computing its offset from the header,
-rather than through a struct with a fixed payload offset:
+Keeping the same header shape as discussed with Pasha:
 
-  /* outgoing */
-  hdr = kho_ser_alloc(luo_memfd_ser, LUO_MEMFD_NR_FEATS);
-  ser = kho_ser_payload(hdr, luo_memfd_ser);
+struct kho_ser_hdr {
+    __u32 size;           /* Size of header + payload in bytes */
+    __u16 nr_required;    /* Number of required feature bits */
+    __u16 nr_optional;    /* Number of optional feature bits */
+    __u64 flags[];        /* Required bits, followed by optional bits */
+};
 
-  /* incoming */
-  hdr = phys_to_virt(args->serialized_data);
-  ser = kho_ser_payload(hdr, luo_memfd_ser);
+Required feature N is bit N of flags[], and optional feature N is bit
+nr_required + N (using nr_required from the incoming header). The length
+of flags[] is DIV_ROUND_UP(nr_required + nr_optional, 64). Both spaces
+are numbered contiguously, so there are no gaps, and up to 64 features
+still fit in a 16-byte header.
+
+Each bit just means the feature is present, so the truth table becomes:
+
+Source bit       Target supports  Action
+---------------  ---------------  ------------------------------
+Not set          -                Accept: feature absent
+Optional set     No               Accept: ignore the feature data
+Optional set     Yes              Accept: use the feature data
+Required set     No               Reject: -EOPNOTSUPP
+Required set     Yes              Accept: use the feature data
+
+There is no invalid encoding left to check.
+
+[1] https://lore.kernel.org/linux-pci/20261013162529.1928093-1-dmatlack@google.com/
