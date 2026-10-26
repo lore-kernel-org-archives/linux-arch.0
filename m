@@ -1,74 +1,48 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.208.72
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793057327;
-	b=yRhua1s7MPXsfGZFX8H+QeJs8LAWE6tr7RGig/HA0ZL7hUbhNC6iczGcoJjG3LWjMjD+
-	 Lvofo3Tupl1wq3Cz4OxCwBU8Ws3MnGoqUGlDKQdhIQGDlXKLjGtOh6BY89q0VCw9znuxS
-	 bzQ3V+rLyygMmZX9BH6goFVn8zI2GUXfGTX4c1mDhGVzYFHHJ5pJmFbZI1TRwTYuRoc1k
-	 ovIrdJxdTZj2i9XAoiCmjkT0yaxHaS19L808CEqh9F2zum6EMGjgRwHSoBoowg6MGp+K5
-	 v/H2zOgXenbJMe6mq3cM8arTwOI0HQ/jb8jcMSPgTuwPSBYEnfZj10VPa/YjV6+aVYg==
+	t=1793057332;
+	b=l084sbMn1zV9rrQJwbA/s9BKVWWST6i5pDiSj0bbeo8/WtOBOKVTGXj0KThnp4O8GKzm
+	 Z39ZwB1e95nYT63/TOImidpZ8wpbkI677me0iqEyW5wXTkFz3QO4vQzTl5044EUeICvOl
+	 gGXZUBG609bb9sUfZk9DIlegjhtvaPNZWuarugcXg9+dBCbOEBmEMMQNiKYNkAFYnZpUb
+	 DPyeWDAukiiE5VLYfs7InSvjCRm9PuC7gCMoLXzDUYgAt4dtMam7KyuFBtKJuq4OojKkf
+	 DSghWGfa0tMurWFrztKJeAW+Z9aVSpdJTCfZwC42PMr260IEcVpIgmWZv7Pny3bHn4Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793057327;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
-	 Mime-Version:References:Message-ID:Subject:From:To:Cc:Content-Type;
-	bh=RxRwD13OM0fFBvRZdfnXU3z0HVhv0MS7kXCqcjKQ5Ko=;
-	b=B1CXL2jODJAgjOkN0m6FgA3AWjb+ahDmFy/rrnC72joe2YDbwqy+zU63o7JRbkXb6Nmt
-	 5ldKJEz8KKkCuVx62VeVP6jO3gZl5vIVAADe2rFxJ1BGJZ06G7o4Mh4bYTOsb7WYNqFNC
-	 oZMcRh8dZw9NeOZ8jsVQD3TTEUtjbsjW65CaBuUFs9xGXWHIHL56AVDloC6lkzbtx/YQM
-	 4AixQxod7OSoHkKYhs4Z8WGQsmel40wmIEFfwpDPwNn399BrHsYliIx+9Mcs0Emx6YqDz
-	 Dd0Lr46J1xmVbQqiafKcoszoQG62S+9tjS6Wc8JudcTHN6fkwRpGFaMSoRC8yrFtVuA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793057332;
+	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
+	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
+	 X-Mailer:X-Developer-Signature:X-Developer-Key;
+	bh=gF7dfVW7ww5vbIAncWUWYvaJygRoZ4DG20xiWs3pPy4=;
+	b=jHqEiuW2rNCgaqZ2SFTGja0uwlmoAqRHKZk70YhUF0wUbR6rRRZONWu38PYJCRqhg8SR
+	 1joRUk4W9aGkEaw79rtdTa4lLYXuLIEU+q6SGgnPLtaM3sybZSvA22ivai7AVyt7vwWBM
+	 G+bO4TUIYOK7Z3DjJsCzCXU4j2froxhzr5MaJ7FVgcDwljjXejT4BUyIjsFhjn7ySxiih
+	 XLoMj2GgW8Lnfhz/Udb3xRdljUKU5HgQcj0RHM59uWnoNLSKJ/Cx5EOBCyWDJBZBHV9r3
+	 lOanVARqvF+mDlo7UMoEvTZ3JJvzSLV2R2eun7Q/41g1iCXMz4+6Ls1+vHZh/dFsivg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=google.com;
-	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=hK9TvNQw;
-	arc=none smtp.remote-ip=209.85.208.72
-Received: from mail-ed1-f72.google.com (mail-ed1-f72.google.com [209.85.208.72])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=oYkOuaEL;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 74006606A320
-	for <linux-arch@vger.kernel.org>; Mon, 26 Oct 2026 23:28:47 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 74006606A320
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C9F06606A320;
+	Mon, 26 Oct 2026 23:28:51 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=hK9TvNQw
-Received: by mail-ed1-f72.google.com with SMTP id 4fb4d7f45d1cf-6b1d818b501so4309266a12.0
-        for <linux-arch@vger.kernel.org>; Mon, 26 Oct 2026 16:28:47 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1793057326; x=1793662126; darn=vger.kernel.org;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=RxRwD13OM0fFBvRZdfnXU3z0HVhv0MS7kXCqcjKQ5Ko=;
-        b=hK9TvNQwKUHIZZZjxzV0a2Cbv7bIzmVQ6+G1+2ZS+4rTVIMHR7NWA80kKuwDAAcZoF
-         pLSOv89ov3CxcEG25n/cIU3vcbj43p8ZXy7YHgOAoZooXblEghty3Cp5OoXY961rTOFW
-         vluruvAUIamnZHp/w6s/IA7uOvsu/nAHiF4juHAsJeVSwD1sGDyCemEYrF5pQaIy2+dJ
-         QncJE2F0CD5HeT7HOcfVMBY502l/Fc/PZf3COQxRAYovwWZKrkVRC9iWD24UfTl8Wv1i
-         2Cb4/bNodGzK/8TOu/0nGkcK9Dm/cZFmh/qAGvSI9XFlwuGZNgDKyDxopMHwUIKLkmPa
-         2o7g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793057326; x=1793662126;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=RxRwD13OM0fFBvRZdfnXU3z0HVhv0MS7kXCqcjKQ5Ko=;
-        b=H/lvGnt11dc8gMT4sU6EAw4dmcDvNwFwq2nzBI89v/f1TvL1FYaqAeyzcd4li7nSzH
-         hQpI+1MianYH+HCawsK3MViC2vCpPLRldvLIVXG8u1QzzO1Y0zJVNzPUMdS2YN0+oSK9
-         fAyp5yvIvx14x39TsaK4OvMejQpSkZgbA8lRTxhZIuBgk3TWgNej0kC2uyYvClCOblxc
-         sut3JN0fWlkLyAvV7DWqaXGtKTQ7CN598Jny8WYqem+yZDkY8Vt0Vp0erJS0Hp/TtHwX
-         Iieyn5bLScH6l71iOWf+L4du+CMhjn1Pw1pEr9GdUQumDfZ+I4KdvhzY4YF2Sgv1L4KF
-         ilYQ==
-X-Forwarded-Encrypted: i=1; AKwUvBxJ3suwAqk03xuO5L68k1bE2J7+TvkIk3/WzelNaMHBR362ro9K4qpDhEMdPHNFwNL5YcEoN5h7zisl@vger.kernel.org
-X-Gm-Message-State: AFq9FYK4WffwPoxp36idEr1XWnmw1aOsCMEt41mbu27SKsjylubUlvFH
-	QIb/zyfYMxoFdKimKALY0+YHXY527O6JtYq/isyQU2I71Q896syjbzTmQWs+t+aRB1Hk8uRED6z
-	gwFQ9F8GVBytedA1MJQ==
-X-Received: from edxw25.prod.google.com ([2002:a05:6402:719:b0:6a7:4541:3de3])
- (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
- 2002:a05:6402:4026:b0:6b4:1037:2b87 with SMTP id 4fb4d7f45d1cf-6b44300b84fmr9392138a12.31.1793057325809;
- Mon, 26 Oct 2026 16:28:45 -0700 (PDT)
-Date: Mon, 26 Oct 2026 23:28:45 +0000
-In-Reply-To: <at_CncIPYCxOVkLo@google.com>
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=oYkOuaEL
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1BF101F01828;
+	Mon, 26 Oct 2026 23:28:32 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793057331;
+	bh=gF7dfVW7ww5vbIAncWUWYvaJygRoZ4DG20xiWs3pPy4=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc;
+	b=oYkOuaELaYMUn17YBdlpQyUseXxC4wzgiNnmDJaOQTYshvN5UKt+eOpxgTs6OFsxO
+	 irMDteaP8DmEIM3rhJcEOqcTu332c0EkcHZETz328y29O2fbdk+g0ZFbQAEefQ99Te
+	 TPiw9Y3vJv79FrLCvRwXbSvKBfgiLZijII0zrAyFBAOCbu4l1P7wowb7pkTHIntZHC
+	 Qo4FTDYJEtsdK9kUbjP6LyiotCNfu+HkqWY3VIX9YwVY0oulNyftXZdvydxGWYsJhF
+	 glBeBeUDY2xyh7jPwJD9ALhbgDfPl9Ej9TheUjtZTpWni9hCMhjzEJEpA8qTcqoQya
+	 adO2jQ9DmgIjw==
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Date: Tue, 27 Oct 2026 00:17:55 +0100
+Subject: [PATCH 35/46] mm: fix unmap_mapping_range() beyond 4 GiB on 32-bit
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,163 +51,109 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0
-References: <20261021152527.375070-1-tarunsahu@google.com> <20261021152527.375070-4-tarunsahu@google.com>
- <atlQ_Er0Ig7CCSxv@google.com> <CALzav=f00C4yOAseNunW8GgQTDUGWT927Qy=TLm-3-J0TEDH8Q@mail.gmail.com>
- <9huzzew0el59.fsf@tarunix.c.googlers.com> <at_CncIPYCxOVkLo@google.com>
-Message-ID: <9huzecdcghxu.fsf@tarunix.c.googlers.com>
-Subject: Re: [RFC PATCH v2 3/4] liveupdate: Replace compatibility string with
- a 2-bit pair feature header
-From: tarunsahu@google.com
-To: David Matlack <dmatlack@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org, 
-	Mike Rapoport <rppt@kernel.org>, Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de, 
-	jgg@nvidia.com, robin.murphy@arm.com, loganodell@google.com, 
-	oupton@kernel.org, kevin.tian@intel.com, alex@shazbot.org, 
-	dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com, will@kernel.org, 
-	Pasha Tatashin <pasha.tatashin@soleen.com>, Alexander Graf <graf@amazon.com>, 
-	Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com, 
-	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, 
-	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev, 
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org, kexec@lists.infradead.org, 
-	skhawaja@google.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Message-Id: <20261027-fixes_core-v1-35-6f74bec9a5bb@kernel.org>
+References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
+In-Reply-To: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, 
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, 
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>, 
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>, 
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
+ Baoquan He <baoquan.he@linux.dev>, 
+ Baolin Wang <baolin.wang@linux.alibaba.com>, 
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+ Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
+ Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>, 
+ Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>, 
+ Pasha Tatashin <pasha.tatashin@soleen.com>, 
+ Pratyush Yadav <pratyush@kernel.org>, 
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>, 
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
+ Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
+ Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>, 
+ Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
+ Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>, 
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>, 
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>, 
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>, 
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>, 
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>, 
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>, 
+ Jason Gunthorpe <jgg@ziepe.ca>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+ kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
+ linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, 
+ Josef Bacik <josef@toxicpanda.com>, stable@vger.kernel.org, 
+ "David Hildenbrand (Arm)" <david@kernel.org>
+X-Mailer: b4 0.16.0
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2194; i=david@kernel.org;
+ h=from:subject:message-id; bh=yohgL4i9AjCKZukx2CMHvMiMRro+7y2Mtk1tuDA6CqQ=;
+ b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLLu359uMWti+vt6tyzNqsIFL978VPj9+m3+/xAF/UNbF
+ O1m/efm6ShlYRDjYJAVU2QJCr5v8PLlutpqNz5mmDmsTCBDGLg4BWAi3wIYfjKeuiChaXFpBi9L
+ y88Ne++/nanp0+U/z/bhwwsuQVlWqpIMf6VXeGYpJt/pz/YO87x+1KhG2j3HwqvfzPD9RNXVTlL
+ SjAA=
+X-Developer-Key: i=david@kernel.org; a=openpgp;
+ fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-David Matlack <dmatlack@google.com> writes:
+From: Josef Bacik <josef@toxicpanda.com>
 
-> On 2026-10-26 11:50 AM, tarunsahu@google.com wrote:
->> Right, Required bit should be source kernel payload property to tell
->> target kernel that the payload must be handled to correctly deserialize
->> the data. It should be source kernel (userspace) responsiblity to make
->> sure it understand the target kernel before doing liveupdate.
->> 
->> Saying this, During deserialization, target kernel's required bit is not
->> necessary. So I propose the following truth table.
->> 
->> Source hdr  Target supported[i]  Action
->> ----------  -------------------  ----------------------------------
->> 00          0 or 1               Accept: feature absent in payload
->> 01          0                    Accept: ignore the feature data
->> 01          1                    Accept: use the feature data
->> 11          0                    Reject: -EOPNOTSUPP
->> 11          1                    Accept: use the feature data
->> 10          0 or 1               Reject: -EINVAL (invalid encoding)
->
-> Yes, this matches what I had in mind for the semantics.
->
-> To be explicit: the source kernel should set the bits for each Live
-> Update based on what is actually preserved, rather than generating the
-> header from a static per-kernel array. E.g. memfd would only mark a
-> feature present for memfds that actually use it. That's what allows
-> rollback to an older kernel as long as nothing being preserved depends
-> on the new feature.
->
-> But looking at this again, I think the required bit is redundant. Whether
-> a feature can be safely ignored is a property of the feature itself, not
-> of any particular file. Every file that has a feature present will have
-> the same required bit for it. The only thing that actually varies per
-> file is whether the feature is present.
+Commit 9eab0421fa94 ("mm: fix unmap_mapping_range high bits shift bug")
+made holebegin and holelen unsigned before they are shifted, by casting
+them to pgoff_t. That is an unsigned long: on a 32-bit kernel the cast
+cuts off the upper half of the two loff_t values, so a hole which begins
+at 4 GiB or beyond is taken for one in the first 4 GiB of the file.
 
-The required bit is subsystem property not the per-file. e.g. memfd_luo,
-it is set at compile time for a kernel. So every file will get that required
-bit set. It is not per file property.
+truncate_pagecache() passes the new size of the file and asks for private
+COWed pages to be unmapped as well. If a file of 6 GiB is truncated to
+5 GiB, everything from 1 GiB on is unmapped, and what a process has
+written to a private mapping of the range between 1 GiB and 5 GiB is
+lost: it reads the contents of the file again.
 
-struct u8 memfd_luo_feature_state {
-       [MEMFD_LUO_CORE_FEATURE] = LUO_FEATURE_REQUIRED
-}
+Where the range has an end, the wrong range is unmapped instead of the
+right one. The page cache copes with that, as it unmaps every folio that
+it removes. The callers which only have unmap_mapping_range() to get
+rid of user mappings do not, for example drm_vma_node_unmap(), whose fake
+offsets reach beyond 4 GiB on 32-bit, and revoke_iomem() with physical
+addresses of more than 32 bits.
 
+Cast to u64 instead. Nothing changes for 64-bit kernels.
 
->
-> The required bit still has to be conveyed to the target somehow, since
-> the kernel that needs it is the one that doesn't know about the feature.
-> But it can be conveyed by the feature's number rather than an extra bit:
-> split the flag space into required features and optional features, and
-> assign each feature to one of them when it is defined. This is similar
-> to the required_flags and optional_flags approach in struct pci_ser [1].
->
-> Keeping the same header shape as discussed with Pasha:
->
-> struct kho_ser_hdr {
->     __u32 size;           /* Size of header + payload in bytes */
->     __u16 nr_required;    /* Number of required feature bits */
->     __u16 nr_optional;    /* Number of optional feature bits */
->     __u64 flags[];        /* Required bits, followed by optional bits */
-> };
->
-> Required feature N is bit N of flags[], and optional feature N is bit
-> nr_required + N (using nr_required from the incoming header). The length
-> of flags[] is DIV_ROUND_UP(nr_required + nr_optional, 64). Both spaces
-> are numbered contiguously, so there are no gaps, and up to 64 features
-> still fit in a 16-byte header.
->
-> Each bit just means the feature is present, so the truth table becomes:
->
-> Source bit       Target supports  Action
-> ---------------  ---------------  ------------------------------
-> Not set          -                Accept: feature absent
-> Optional set     No               Accept: ignore the feature data
-> Optional set     Yes              Accept: use the feature data
-> Required set     No               Reject: -EOPNOTSUPP
-> Required set     Yes              Accept: use the feature data
->
-> There is no invalid encoding left to check.
+Fix generated by an LLM and sent by Josef Bacik in private.
 
+Fixes: 9eab0421fa94 ("mm: fix unmap_mapping_range high bits shift bug")
+Cc: stable@vger.kernel.org
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+---
+ mm/memory.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-IIUC, I believe this will not work.
+diff --git a/mm/memory.c b/mm/memory.c
+index ec7a1397ab833..5c5f326b8bcbe 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -4649,8 +4649,8 @@ EXPORT_SYMBOL_GPL(unmap_mapping_pages);
+ void unmap_mapping_range(struct address_space *mapping,
+ 		loff_t const holebegin, loff_t const holelen, int even_cows)
+ {
+-	pgoff_t hba = (pgoff_t)(holebegin) >> PAGE_SHIFT;
+-	pgoff_t hlen = ((pgoff_t)(holelen) + PAGE_SIZE - 1) >> PAGE_SHIFT;
++	pgoff_t hba = (u64)holebegin >> PAGE_SHIFT;
++	pgoff_t hlen = ((u64)holelen + PAGE_SIZE - 1) >> PAGE_SHIFT;
+ 
+ 	/* Check for overflow. */
+ 	if (sizeof(holelen) > sizeof(hlen)) {
 
-To Communicate between source and target, We are defining a protocol, A
-protocol which will be standard for all the kernel. And each bit location in
-flags must have the same meaning in both the source and target kernel.
+-- 
+2.43.0
 
-Now in you approach, If Source kernel send feature N to target kernel,
-target kernel must understand Nth bit as the same feature. Even though
-the bit position in your approach is not fixed but they are fixed
-relative to their starting point.
-
-required: reference is 0th bit: So target kernel will undersatnd the
-          bit as the same feature as source kernel.
-optional: reference is nr_required: So target kernel will understand the
-          bit as the same feature as the source kernel.
-
-To make sure there is harmony between these two kernel. Even though a
-bit is not set in required for a feature that must be 0 in required
-range. and similarly for optional bits.
-
-So flags will look like 0b 0 0 1 1 0 0 0 1 0 0 1 1 1 0
-                               o o o o o o r r r r r r
-
-                        0b 0 0 0 0 0 0 0 0 1 1 1 1 1 1
-                                           o o o r r r <= This is wrong
-                                           because target can never know
-                                           which bit mean what feature.
-                                           So as you said there will be
-                                           no gaps which will not work here.
-
-So, Based on the first, We still using same number of bits and increased
-complexity and no gain.
-
-
-For the current appraoch and V3 [2]. Think the below one as msb is
-required bit and lsb is feature present in payload bit.
-
-00  FEATURE_ABSENT / DEPRECATED
-01  FEATURE_OPTIONAL
-11  FEATURE_REQUIRED
-10  IS INVALID (analogy: required set but feature is not present) which can
-have different meaning in future if in future, a need arises to reuse this
-field.
-
-Deserialization can happen per feature from right to left. without
-jumping back and forth.
-
-Because of all these reasons, I believe current approach presented in
-V3 [2] is the better. It is close to your PCI series with two flags
-field for required and optional except I combined both field into one
-flags. In your above approach you do have two counts but not having gaps
-(which is wrong) and the way you proposed to parse with an offset is different.
-
-Let me know what you think.
-
-[2] https://lore.kernel.org/all/20261026174217.603114-1-tarunsahu@google.com/
->
-> [1] https://lore.kernel.org/linux-pci/20261013162529.1928093-1-dmatlack@google.com/
