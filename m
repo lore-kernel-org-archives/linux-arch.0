@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793011039;
-	b=1/Q0lJ+igq2hF/tFS5brnCF78Dig5QUG/tkgTyyEbkzJPGDIvaRqF4jwI3N5a7jAGuZ3
-	 tW2OQjFXfSZxR3RftC9NBz1t2erTl4gp4v6j9fqJxvWwxk2KbnCqej+13/+0H2h7tzeAf
-	 IGFIrbCPmWlDMljWC8Rlm+knabbgK4SHcipYHTBjUKlHErEmz10fvr8WK+YRX7Jnj/zgh
-	 agt2QRFtTyu/zmQNN/LoBS/9TfI2QjTqy7ISNPQAhDF7mLp4knalgWQrWcP12XWYNOX3G
-	 eNA9da7YBZqo21VXHGsEmGI6BDGyzdpXQ8dYglUVUtVwTg3eOwgryYv2FJ+qgxnfrwg==
+	t=1793011106;
+	b=uIKRB2mtsnb05OxlgGFGTP/RLtaBt6c6FVzyRVvjai/whjuZaHiLNuyYxwLXqgroZuUm
+	 eL+3nY+86++L+NefKfO9xV3o+g0AG2pwDbujF1fNkkuxaE3SYRAF7fLGTNcFNhHYsGSSe
+	 wNs+fQUrVymNjQj20RpAzhX2jQBr4kYk8nEvJFM0hm0GMPpavPDz1AboR9Ck208iijV+i
+	 7RpQgLz8D4PYUn4MLnMJ6IayNw7terFtB3NAiftpaiAPcU4zUFObBDhQw2DitHBSfBh8Z
+	 W/r+58IK5U3nqUCQcHndp45mC2zbO9gRPJSpTrIIHltM2wZNom7wAAzLqi4E/XqTEMg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793011039;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793011106;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=A3UAZP3NJahgTJzf87f0H07PAHvzme0ItsgnIJVLaoY=;
-	b=ND9oIy+bfUPtAoM1D1XWSXvILIQKUOyHgdaHJgvvZxZE9LoYog9jTdz5cTEbNEr7/kYF
-	 E8aX3sa69RYHc1HGY7u3WVGRUZuo1lMH71uAJZTzwCnzIML/GQS/XLWHl4gAWEi8KPJOJ
-	 lUepg6JAqGmd7TZ1HYrB1bpMUAk/U9rdWgNWRgytfSL/Pf1JJzPX0fzXg0fel4Eujo0JL
-	 eFW50JOip2bjh5rG8c+1HA4G06PN+ZLstMlLwS2HUkPyv/WN4X7C9k1k1Eaz86OQRG+9g
-	 68pjEPVUlbMnRYmvdj65Dtuoyag75a3Y1JozhAZsv8eywhXloz35uzoEIu4d0dI+gRA==
+	bh=GU+AeFEAdhUpi99K1fdWPGQG0dY4SWw4OfyLJR/C7kM=;
+	b=FvhUf4KD30+rY41pMRHTlX9vhcjGDSWPgzAOpE8LHnaBBYYMyvXjsflBv0Jfd8pTV9Et
+	 6LszXDvNKXH6Si8X979XWSj8S9KuSPCWC6Z72x99roca1YkPQivAI0pNNVDhx3yIhuPru
+	 vgqWSBPsUkkSWOrEEIBl2KPuuAgwJBbvAp+yZCXs7A0pBhxhKPJl9Umd8nW3grPh7pEKG
+	 ebXhUlrNghfEdB2FxDgR7PUJygMtItmRh+jPDhaOICv6K0U1YxeeHjYhsOkNYpGldGZky
+	 oieQ9oTBL/tW5M3m7DLXmN8mZj/pKzmmMSNzPZco9y8L+IbLlsjl6Cnknz6QOLzleoQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bNyAxV8M;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=GjJqSRCY;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 295DB606A31A;
-	Mon, 26 Oct 2026 10:37:19 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08120606A31A;
+	Mon, 26 Oct 2026 10:38:25 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bNyAxV8M
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 235C31F01825;
-	Mon, 26 Oct 2026 10:37:13 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=GjJqSRCY
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 014A31F01825;
+	Mon, 26 Oct 2026 10:38:20 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793011039;
-	bh=A3UAZP3NJahgTJzf87f0H07PAHvzme0ItsgnIJVLaoY=;
+	s=k20260515; t=1793011105;
+	bh=GU+AeFEAdhUpi99K1fdWPGQG0dY4SWw4OfyLJR/C7kM=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=bNyAxV8MSqGKy9vRZSzVC96561skAasy5RTkam1kR+Fn+YU8hMyPqejJ9lJcuVBCY
-	 O8ZyQgSpltM9mT8a7kELB6aKqX8eVemAIOWkr64xkB47kn8aLNFY1wndkhQVPMqefz
-	 odlZckFPGAOWVYyrlqVNqfkYMz2mQAmlaP7cBf9OnhM68Ps2NC9y3NcrAEl07xxBOu
-	 nyYK31N0mNr5nIP/CVUZ8CekaB2ghnt9pJr7QtXFicB0k6bwbVa/7OAE0gX6A+ZHwa
-	 wjzeq917Ui2HCCtpht3kORS8EnTXbytSQrHNxKeufCO/jpCrlxBG+Mwb9gPnK70+67
-	 EnYleJepahYuA==
-Message-ID: <fec58606-49d0-4b67-9f28-df54159e29a5@kernel.org>
-Date: Mon, 26 Oct 2026 11:37:11 +0100
+	b=GjJqSRCYjZC1eqOEvkoQv7CyrY/C8hYbCw9lhik1jwBNpK/JU6ARH4dUDH9wDjplg
+	 7+HYKT/3ey+4DDpk+wNszxM0z0tSoUjSFxmSCzZGcqfdAP5jG7azU1HS1+RqKX0Af/
+	 PPXcjf1sjNjzmUzXaSWoYS2AuLUvTU1y1uzcfMszeb88moHX74pDNzwD1ro/AUHI5z
+	 pZFHGXHd9mkeuQxdwnU09Oez3yyzRwalR4K1lVvDRY+R/LgoWZWijfxiSMLAgfgf+d
+	 1A0iVUdrFfAUGMI1Ps6+uMMHj8Wv9aJ8S3P0FPaHfsOMTxGud6ZKuYBiPkbPGERS4b
+	 Jv2sr4SpcX8cA==
+Message-ID: <e7326e8f-a5a1-433e-9df2-6134948d129a@kernel.org>
+Date: Mon, 26 Oct 2026 11:38:17 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,7 +52,7 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 1/3] mm: generalize kernel PTE table allocation
+Subject: Re: [PATCH 2/3] mm: generalize PMD page table allocation
 To: Muchun Song <songmuchun@bytedance.com>,
  Andrew Morton <akpm@linux-foundation.org>
 Cc: Muchun Song <muchun.song@linux.dev>, Arnd Bergmann <arnd@arndb.de>,
@@ -65,7 +65,7 @@ Cc: Muchun Song <muchun.song@linux.dev>, Arnd Bergmann <arnd@arndb.de>,
  linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
  linux-kernel@vger.kernel.org
 References: <20261014035910.687847-1-songmuchun@bytedance.com>
- <20261014035910.687847-2-songmuchun@bytedance.com>
+ <20261014035910.687847-3-songmuchun@bytedance.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -112,22 +112,25 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20261014035910.687847-2-songmuchun@bytedance.com>
+In-Reply-To: <20261014035910.687847-3-songmuchun@bytedance.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 On 10/14/26 05:59, Muchun Song wrote:
-> Architectures whose empty kernel PTE representation is not all zero must
-> initialize new kernel PTE tables. LoongArch therefore wraps
-> __pte_alloc_one_kernel() solely to call kernel_pte_init().
+> The generic PMD allocator assumes order-0 page tables and zero-valued
+> empty entries. MIPS and LoongArch need pmd_init() to install their invalid
+> entries, while MIPS and parisc use PMD_TABLE_ORDER to describe the
+> allocation size.
 > 
-> Call the architecture initialization hook from the generic allocator so
-> LoongArch can use it directly. The default hook is empty, so this does not
-> change other architectures.
+> Default PMD_TABLE_ORDER to zero, honor architecture overrides, and invoke
+> pmd_init() from the generic allocator. MIPS, LoongArch, and parisc can then
+> use the generic GFP selection, constructor handling, and kernel ptdesc
+> marking instead of duplicating most of the helper.
 > 
 > Assisted-by: LLM
 > Signed-off-by: Muchun Song <songmuchun@bytedance.com>
 > ---
+
 Acked-by: David Hildenbrand (Arm) <david@kernel.org>
 
 -- 
