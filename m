@@ -1,56 +1,57 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=96.67.55.147
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793065206;
-	b=fhaibfvNBJ3b7THbg7N0TBQcm5jYBuVlOztvPJHHRcJDg7tWyS73VKK0Bg3TvEv81z1R
-	 8+j5GHCu5TG0yjajrawBIa5V3qYZWQr/0A6V9nr0um2XSLjsrftyLsgQP4IkOHv5oewMj
-	 H12Do7KtxFgoDu8iIscMqxNanrwvcsORRvTYbkf7j1kwLfZ1elFcP5c2aVWX0kuY00wSX
-	 yEs+a24A7FBsEyr2HVLq8HPkXGy+4jB1S478rvy1W0BDuF2wnGToCgKs5qWfyPTei5WhU
-	 /rGUMNOxCixxTzxHc+uyQcZWHIKZZZaIxi1tnU8tzDez93yFDbwggTMu/LU997G4aeg==
+	t=1793066765;
+	b=sP7MWqBbLZD9flfj/BWeIkmjtSWBIoGomVOOu4uGEgUS8OP4hvG8o3YYqdUbp2h5vrLW
+	 cuAiQFdcCQFJ5C8wD5A4Bdn1oaKECsLwSFMI9eoLTX3eFMiwAa2LJSPxGtLmx+b0sP6CW
+	 SHlaD4NcF6pzi1MdrLpB6NnjVtSuHKzHypfhvP0Hw0y+/b0qtIWOk5CSJObCEr57yIZZG
+	 nVgO5ac2/2c5PZvyOIWOgVCLMA8JU+Ou5AJ5cLHZ6H4ncp47OsFZGv9RtK9k6jNnkZ8mc
+	 ZSw2QWnu5WfxTRvPR5yYlqcfjhAbpYSyd4XBk9HAkgDNroLpvENATrVmbHnNgvnwVFw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793065206;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793066765;
 	h=DMARC-Filter:DKIM-Signature:Received:Message-ID:Subject:From:To:Cc:
 	 Date:In-Reply-To:References:Autocrypt:Content-Type:
 	 Content-Transfer-Encoding:User-Agent:MIME-Version;
-	bh=lUuA7+chWIhLu+qX3DDV5gWAGrlrfczNAdJpLXe+OFs=;
-	b=5D+EFeEUCW2nIBPlxL8t19u9GN3Jf3XhtBgsL05K/uS1rajtc5HkSnsb1nTXYZ36teh4
-	 vaHWHasqI2+DX9EBvL9KS/zFgpzVPRz7MmfeezTKSzkXZLbbfU0jNPbaOLAcF0WX9iHZf
-	 M8MdntlHNOh8aIGTAbIW7hcKKpDYB54oCe9xs5zhp545U8IDmc0pjEg420Cx4NcoKkS8E
-	 ZTT3RkHebU9cohdvAZ1XEi5+xBMv395WEI35YIqEOHcyDRxmXB1EI3hQNAhm7uTSxZTr8
-	 x35gqORIQjEKZUq4qWM7brE+KW0rpNQLyWmoh4LBK9Juqc9pqWpFI3daLdDIU7M9Rpg==
+	bh=BbcsaSvYmqsc1/PGogALmAlsxQ4NtVNgPQ1FxMhmi+A=;
+	b=g7Xo27CqkCZD2MV6PoNKeM17V/4d2TceeDkNEQa0Gh0Fo64an0pGnjsfMO9zIWrqqNiT
+	 wJNvsOW9XCgNr0Pgff0WUOYdzZbMAjwkI93COVphj5qfTJsPLJA88N4Flhrph9cElWFpP
+	 qjVjEk6STz6ZXIjnd8S9ii0OTRsY2LvtE7f6GYUOcBICt6CxwSJXq0TSZ9ep9RB/SB2XU
+	 8pvQW+NyGokM9PBiJTdw6xEaRxcH7HA+ryCO2ZMmIRNIgfyPSDnAvNtPfVofVYsKNFEe2
+	 Ak55Q2fCRAgY83BZuHl8dyhGPI3iZF7OGA74bZYO0g1XDu7ugTZbKpZJ1yCy1ig5jmw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=surriel.com;
 	spf=pass smtp.mailfrom=surriel.com;
-	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=hLHADdJY;
+	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=CWZKUMOl;
 	arc=none smtp.remote-ip=96.67.55.147
 Received: from shelob.surriel.com (shelob.surriel.com [96.67.55.147])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5CF85606A320;
-	Tue, 27 Oct 2026 01:40:06 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 5CF85606A320
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 27E70606A31B;
+	Tue, 27 Oct 2026 02:06:04 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 27E70606A31B
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=surriel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=surriel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=hLHADdJY
+	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=CWZKUMOl
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=surriel.com
 	; s=mail; h=MIME-Version:Content-Transfer-Encoding:Content-Type:References:
 	In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Sender:Reply-To:Content-ID:
 	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
-	:Resent-Message-ID; bh=lUuA7+chWIhLu+qX3DDV5gWAGrlrfczNAdJpLXe+OFs=; b=hLHADd
-	JYpcXFYTdIkRnelJUktscfivm4kwDbjgCJ3oKz+6xIqeSecb3hHKgagunNCrtnoqN8IQD6/REH25s
-	oHxZyQSCr0OSEiqSi9Os1mhnjxwRqGWFbbumNQDd1oEhret8XLlNZtgONJZyTclZm5WpxtQmyWuhS
-	8hjwzAqfRD5ea3cepZRKgnVd38mXxeU0fx0Vvpx5yXaqmpkPi1NIPFAjqK1QEievZKt7FLcbA0WoV
-	A1CkwiQYO2zNKD8dQNoCPMBm3AxtWxJpcVyZPk1xkQAUCCyI93gHTEygLADW11NuQ+67ga/vRCIlp
-	DGjTDp5ID1o5evE+HPpbi2ITaPpg==;
+	:Resent-Message-ID; bh=BbcsaSvYmqsc1/PGogALmAlsxQ4NtVNgPQ1FxMhmi+A=; b=CWZKUM
+	Olnx3u/Gk5d/OR91etCdue5a5CeEvh9PUqUSqSygUk5of/q0VBUBLnXBtQ2IAvjkhbniPBjcGJ5AJ
+	zBfQQUrA0ZeKI7TGX302NhHs/ur3FPzRcq5M6b0MbQR0vP9icJJX5f5CLh/ck9GLTlhxJTH3OYQdd
+	WvMY6xVWwNwR+GZMzxMuGji7f82nyk0ZKOcdh6DgF0SppBH9V107GJT6RjHLvk6VFYHa2mO8AqRKg
+	r0D6xxl2JO9boBueLIeID4FZrS8rSfqex+cOpROWqy4bTb6t0CjFI5zmTuuIJNeHNGcWzLHLf97l7
+	vOiE2PSWsmxrt/oipmdtcnhFJauQ==;
 Received: from [2601:18c:8100:a0e0:2541:b86e:2586:d219]
 	by shelob.surriel.com with esmtpsa  (TLS1.3) tls TLS_AES_256_GCM_SHA384
 	(Exim 4.99.5)
 	(envelope-from <riel@surriel.com>)
-	id 1xLW99-0000000AyaG-17xt;
-	Tue, 27 Oct 2026 01:38:39 +0000
-Message-ID: <26a54fb0de70f23951e524dccd7c905807278deb.camel@surriel.com>
-Subject: Re: [PATCH 02/46] fork: take mmap_lock before copying mm_struct
+	id 1xLWY0-0000000B0qk-3U0e;
+	Tue, 27 Oct 2026 02:04:20 +0000
+Message-ID: <35420f2a3d5f3af10cd88fd9e3a977b4e17a0476.camel@surriel.com>
+Subject: Re: [PATCH 03/46] mm/memfd: check for real shmem inodes before
+ accessing shmem state
 From: Rik van Riel <riel@surriel.com>
 To: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton	
  <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, Michal
@@ -84,11 +85,11 @@ To: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
  kexec@lists.infradead.org, 	linux-fsdevel@vger.kernel.org,
  linux-arch@vger.kernel.org, 	linux-cxl@vger.kernel.org,
- stable@vger.kernel.org, Josef Bacik	 <josef@toxicpanda.com>
-Date: Mon, 26 Oct 2026 21:38:39 -0400
-In-Reply-To: <20261027-fixes_core-v1-2-6f74bec9a5bb@kernel.org>
+ stable@vger.kernel.org, Chris Mason <mason@kernel.org>
+Date: Mon, 26 Oct 2026 22:04:20 -0400
+In-Reply-To: <20261027-fixes_core-v1-3-6f74bec9a5bb@kernel.org>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
-	 <20261027-fixes_core-v1-2-6f74bec9a5bb@kernel.org>
+	 <20261027-fixes_core-v1-3-6f74bec9a5bb@kernel.org>
 Autocrypt: addr=riel@surriel.com; prefer-encrypt=mutual;
  keydata=mQENBFIt3aUBCADCK0LicyCYyMa0E1lodCDUBf6G+6C5UXKG1jEYwQu49cc/gUBTTk33A
  eo2hjn4JinVaPF3zfZprnKMEGGv4dHvEOCPWiNhlz5RtqH3SKJllq2dpeMS9RqbMvDA36rlJIIo47
@@ -127,13 +128,26 @@ Precedence: list
 MIME-Version: 1.0
 
 On Tue, 2026-10-27 at 00:17 +0100, David Hildenbrand (Arm) wrote:
+> shmem_file() only checks a file's backing mapping. That mapping can
+> belong
+> to another file, as with a Coda file backed by a tmpfs container
+> after
+> mmap(). It does not establish that file_inode(file) is a shmem inode.
 >=20
-> Move uprobe_start_dup_mmap() to preserve the lock ordering.
+> Seal handling and memfd preservation use this check before accessing
+> shmem inode state, so they can access an inode of the wrong type.
 >=20
-> Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
+> Add file_inode_is_shmem() to check the inode's file operations in
+> both
+> paths. This identifies regular shmem inodes, including those used by
+> memfds and ordinary tmpfs files, independently of wrapper file
+> operations.
+>=20
+> Fixes: c49fcfcda8b5 ("mm/shmem: update file sealing comments and file
+> checking")
+> Fixes: b3749f174d68 ("mm: memfd_luo: allow preserving memfd")
 > Cc: stable@vger.kernel.org
-> Reported-by: Josef Bacik <josef@toxicpanda.com>
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> Reported-by: Chris Mason <mason@kernel.org>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
 Reviewed-by: Rik van Riel <riel@surriel.com>
