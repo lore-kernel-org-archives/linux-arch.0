@@ -1,51 +1,51 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=95.215.58.33
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=91.218.175.219
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793094448;
-	b=qD0YvM90UJ9ga5GzG6XuHNCjlYnFEFz7RI951MXNX6UUJtVq6StjsIk4n+1mbtSUT5wR
-	 Z4iIrzitqmgSHHNg3wSm9JD3Oj/5pgY5nUcx7QWiWN76hqzYQvoueAizcFjw2jHq5WWHd
-	 tCGj+2JqaZAbi3Fuvd9FEy9F8M5XhGMJE0mSGBMrV/V6gf6oRPqXsxjwRVKYCMklJ/LmJ
-	 w/jRB2Hur28/lAkOk/3mRlNiDJO/R2TLl/gFiBP5W07plxtUHG4iTcEGEz6Rwn95Y3kfQ
-	 +dZaOJbsLyvuXrbrqlIMKg8/2jIPl3rbUEc0r/acV3gSZ3HfPJIQQb3ocySM0sXw5MA==
+	t=1793094532;
+	b=qy/jl6WwInxeFjV5Bgv/nQ262LL13cIgvpJGxoVGRNARaUbUnPEOSr8s9ro1aeZ8wxuR
+	 5a46YzgO719z0grG1AGJUaAbT0jKrCg62uC0bLaQgfJsAv14nslWHDyMnyJiSraNWPwH7
+	 CrtJ3FWsdC0x4JZnElcZXy9OpFGQLQ0gWxV5SBcZiEO9BXD83edlO2qqZqfCf5FM8Sjjz
+	 EKSQ/Lhh7G2Q/NL3ajaz+yfSczaa/d549FpxCMxkcmgQi8yFh8tcXGFdsTMNf5VgVUlFE
+	 f62peec+EOAZH8KqLTx89F2otEhUrdyQUvYrS6SQbIj9AzIY0XBVs/pP58AXAMlqT2A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793094448;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793094532;
 	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
 	 X-Mizu-Trace-ID:X-Migadu-Flow:Content-Type:Mime-Version:Subject:From:
 	 In-Reply-To:Date:Cc:Content-Transfer-Encoding:Message-Id:References:
 	 To:X-Mailer;
-	bh=vkRbVEYH/IpHfx5799qbaRy/Rz2dM/B52EsX44m71XA=;
-	b=QfyRPyQRzekKAK9TO81WI4kUwGeLKESWE63g/HM5fkizjrvFnF5zst7vkI6uoFKHTaqr
-	 dustYxCjeF6GfL4bpV4WtfJUsWHcnauyp8kL1vSc/rT1bXxBDOPv/M2s8fTwDqg8rQpF6
-	 WOVOhX9BbhKcUUt3OVOejoAmhD3aeuCLo0wb/LOqyIV9P67IuXPMDrjIw26L5ZuzKJoKz
-	 r+eSGUY5Gx0jIPPUFr6+KgXGwntnvXAbk5zK7kfyZi/10nkRlhzFjehn8GWalvjEij/uB
-	 s0kp7C1CXOEe8lbta4mC7MnNFPajJWJDTO/MGSH327qt0MtZBtfeWDZuL3W1o3WSFGQ==
+	bh=w+/m5TRiUEroTYi/JhU/ZMYvRJ27fL3IgAeL8IYLhOs=;
+	b=uSHKKurK93bK3NOc5lcOjhbmpRAZLiElRi5TPWjnldSAanYf+m/xr9GBhlmKcbNfz9b9
+	 AACrNpBeEc2btgPB8AFat4JS94wRjEFyhK3wfXLXGYcChWO1jT95jjs3i/ASrBfmOhNtq
+	 2IS8i7fT43z8AK6+vF1x9wjoU/N7FH6suIye+BrEAw5K+iSOqfSNB9fn6dTwOkjt0pp6+
+	 cT9xxHWc57AVhWwlbU4nHP0p+QppEKbLQf4SWyUOpHhxynq53zcZ6sIdAbBDzCDlAhWvW
+	 MXQ6+o5FROV0E+x2p24mddDWaTwORylK6uqBbqav0xmD7uk6nyEm6ox3qofrHAYSHtA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.dev;
 	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b="ayiRgza/";
-	arc=none smtp.remote-ip=95.215.58.33
-Received: from mta1.migadu.com (out-33.mta1.migadu.com [95.215.58.33])
+	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=M5HfFoAj;
+	arc=none smtp.remote-ip=91.218.175.219
+Received: from mta0.migadu.com (out-219.mta0.migadu.com [91.218.175.219])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 11B77606A31E
-	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 09:47:26 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 11B77606A31E
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2B5B7606A31D
+	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 09:48:50 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2B5B7606A31D
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=ayiRgza/
+	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=M5HfFoAj
 X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=cPhbwrLxrBeT9JsGny5RJdPlGOD/1Ehjle0H8Uiu/2w=;
+DKIM-Signature: a=rsa-sha256; bh=w+/m5TRiUEroTYi/JhU/ZMYvRJ27fL3IgAeL8IYLhOs=;
  c=simple/simple; d=linux.dev;
  h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793094445; v=1; x=1793699245;
- b=ayiRgza/GxxmiVI9rgFsykUvChZWAtRADU5um6RBV71Km8e1c4L5jy/cPURegap7ZDCx6IFM
- bX37cSFeF5CycBHA7SWLRaiZAOMH3jO6XedepEVuCZJjsKpGXjjrmoB32a0QwIDJDb6RMbWFhbi
- OUBk4/abpc9TguYGICF4Oc9k=
+ t=1793094529; v=1; x=1793699329;
+ b=M5HfFoAjUDnRgQrtlqwxlCzg/yUz3ct1gnJFOAIpEV4mZEEV3dK1BLmaugjdYXhR6Y1192oO
+ bvxwaI9qa6LHkm0LAQTLWGbPluusZ6PGzBIq6PiGDoL/kcvoOndbK+wUxRwtkmmdvKO7NuAJ/E3
+ CZvZDj4wGfkHNKwOBZvMDrNc=
 X-Envelope-To: linux-arch@vger.kernel.org
-Received: by mta12.migadu.com with ESMTPS id 4eebca5cdaffa06c;
-	Tue, 27 Oct 2026 09:47:24 +0000
-X-Mizu-Trace-ID: 4eebca5cdaffa06c
+Received: by mta11.migadu.com with ESMTPS id 74e52af488cb4c06;
+	Tue, 27 Oct 2026 09:48:48 +0000
+X-Mizu-Trace-ID: 74e52af488cb4c06
 X-Migadu-Flow: FLOW_OUT
 Content-Type: text/plain;
 	charset=us-ascii
@@ -58,10 +58,10 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3901.100.1.1.12\))
-Subject: Re: [PATCH 37/46] mm: fix deadlock of mremap() against UFFDIO_MOVE
+Subject: Re: [PATCH 44/46] mm/cma: don't release CMA pages still in use
 From: Muchun Song <muchun.song@linux.dev>
-In-Reply-To: <20261027-fixes_core-v1-37-6f74bec9a5bb@kernel.org>
-Date: Tue, 27 Oct 2026 17:46:54 +0800
+In-Reply-To: <20261027-fixes_core-v1-44-6f74bec9a5bb@kernel.org>
+Date: Tue, 27 Oct 2026 17:48:18 +0800
 Cc: Andrew Morton <akpm@linux-foundation.org>,
  Johannes Weiner <hannes@cmpxchg.org>,
  Michal Hocko <mhocko@kernel.org>,
@@ -124,51 +124,50 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  linux-fsdevel@vger.kernel.org,
  linux-arch@vger.kernel.org,
  linux-cxl@vger.kernel.org,
- Chris Mason <mason@kernel.org>,
  stable@vger.kernel.org
 Content-Transfer-Encoding: quoted-printable
-Message-Id: <EE612F16-A900-4E5C-8F9F-523F1CA690E6@linux.dev>
+Message-Id: <C94DBF32-62A3-4010-808D-DEB2E17DC552@linux.dev>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-37-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-44-6f74bec9a5bb@kernel.org>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 X-Mailer: Apple Mail (2.3901.100.1.1.12)
 
 
 
-> On Oct 27, 2026, at 07:17, David Hildenbrand (Arm) <david@kernel.org> =
+> On Oct 27, 2026, at 07:18, David Hildenbrand (Arm) <david@kernel.org> =
 wrote:
 >=20
-> From: Chris Mason <mason@kernel.org>
+> From: Rik van Riel <riel@surriel.com>
 >=20
-> With per-VMA locks, UFFDIO_MOVE can run concurrently with mremap()
-> on different VMAs in the same mm. Those VMAs can share page tables, so
-> both operations can acquire the same pair of page-table locks.
+> When a driver calls dma_free_contiguous() before quiescing DMA, the
+> page might still have a reference from the device.
+> put_page_testzero() there returns false, WARN fires, but the code =
+proceeds
+> to free_contig_frozen_range() putting a live page onto buddy and =
+clearing
+> the bitmap. A subsequent allocation can hand the same PFN to a new
+> owner while the original holder still references it.
 >=20
-> UFFDIO_MOVE orders the locks by address, while mremap() takes the =
-source
-> lock first. These conflicting orders can deadlock; mremap() holding
-> mmap_lock for writing no longer helps.
+> A concurrent put_page() that drops the last reference between the
+> testzero loop and free_contig_frozen_range() can double-queue the page
+> via page->lru, corrupting buddy lists.
 >=20
-> Move double_pt_lock() and double_pt_unlock() to mm/internal.h and use
-> them for all page-table moves in mremap(). Preserve the source entry
-> checks after acquiring both locks. Remove the comments claiming that
-> exclusive mmap_lock makes lock ordering irrelevant.
+> Avoid the corruption by not freeing a CMA region if any of the
+> pages inside are still in use.
 >=20
-> In move_ptes(), make sure to just recheck source and destination PMD
-> after taking the locks and drop the overly-long comment.
+> Make it explicit in the warning that the driver allowed a leak.
 >=20
-> Fix generated by an LLM and sent by Chris Mason in private.
+> While at it, use page_ref_freeze() to make the semantics clearer and
+> switch to pr_warn_ratelimited().
 >=20
-> Fixes: 867a43a34ff8 ("userfaultfd: use per-vma locks in userfaultfd =
-operations")
+> Fixes: 9bda131c6093 ("mm: cma: add cma_alloc_frozen{_compound}()")
 > Cc: stable@vger.kernel.org
-> Signed-off-by: Chris Mason <mason@kernel.org>
-> [ david: use new helpers consistently; simplify description and =
-comments;
->         move_ptes() fixup ]
+> Signed-off-by: Rik van Riel <riel@surriel.com>
+> Link: https://patch.msgid.link/20260811132045.5f114772@fangorn
+> [ david: use page_ref_freeze() + pr_warn_ratelimited() ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
 Acked-by: Muchun Song <muchun.song@linux.dev>
 
-Thanks.
+Thanks
 
