@@ -1,57 +1,57 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=96.67.55.147
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793067500;
-	b=LkHIbFQ1kiYgst219SAjI6EPDXE1/pmuZDOv38dOOd8cZXGPrY5PXDb8cMpJkwPPXu0R
-	 AV+OyhVBbQ3dUtdqZzcELksvzileHHzs3Io/Dgb2wyHvx4uED+ZEqBUMkK/k578C5js/0
-	 iK6qs7e3TY8sbPuhZBQaxROvzlbx2STcmR79a1lYzMx42+b2AXmEJiQCUcqo6V/8PX+mh
-	 4zg5tT0LjMhTWUMjff4FQIGjqd3VpCcPK4PsrMDr9kskSGBtlu4mNFJfFlq3bCoCAPE5r
-	 +llwRdgVLrRoDAH3bQGw7WPSVHV4W0yuaE0ck85I0ZKN5uYteCKq29M8C0e86Xzuykg==
+	t=1793069071;
+	b=yKzyj+0G/Kxs2S0KLo8qwftHN6uLMNXbAk0w24+FR4MGesDtrSU19WsTDKtpx1NmVdzW
+	 3+42hwOv1vx+zwVJ/OPU968PzsnvJa5QJhgseyy3GGg7gH0sGe/3CcnLQipchYxxHSsC+
+	 bSTIM//M0vvXPt7+3Qu4+9bQsf4Hivyrw70zpmDSi4T8MzESv8YC4Q60MX5k8RrOl8hhh
+	 ElA3g6PE9REr6wleVZmnzQEO6ooZxelzZf+Y+G7TwwO33M11NdIBV1tA1ZmI1MK1P6TC2
+	 3e+GwdJs1WUjOqB/S9IvfiJo1wV1QSrZL/uBK8G81RGHZQLr0lEcgW2FdwVt0XNGI0Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793067500;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793069071;
 	h=DMARC-Filter:DKIM-Signature:Received:Message-ID:Subject:From:To:Cc:
 	 Date:In-Reply-To:References:Autocrypt:Content-Type:
 	 Content-Transfer-Encoding:User-Agent:MIME-Version;
-	bh=qGaKz0ghX7Lbonx8PvJJJqD0p/WMYPC2YliZwFbr0fY=;
-	b=fCeqF3hY+x8PIOX2QRyDjwtENfgu/eNlfiGgw9KkftehzX5euCgwICBmE8SM/NNMArbP
-	 2DfRXQwR8JD3JQgHk/bWoUSbkHR1d2ZTZ3Oo9wyXMK3/JgolGlVdE1hqhThDiV3rMAY7b
-	 9G4glcZEPjvyZg9WSWFzCYJf0gCFQiGMHDkPQNKaiI2IDE1lS8dcHn8r94ksGV/SKiflV
-	 wlqKLZlK4X5EyI7n2rwQ2mT2E/7EtwmV2N/br00XsVwqeUbh0sSsP5W0fKl8rK8yXPW6b
-	 U1MDDl6/Tpxq2NbpGY8dJAbz7itrrUWyDNi/EbL0rpk+qVvCjqfS1rhYsE1kIyqXYfg==
+	bh=jD8NrEF10P2VtaMB8bhjtU6NtVeQsEVr6wPPMXQfP+A=;
+	b=bt0pP6/Ir90aiJXqNx9D6khfgUpD+TWKyBskyCOrrPwo1q0kuL+Kx6NkrrTRW3Qf2dL1
+	 FvHOXiFnhnjPxRw36osK3/Ql0NklsCpsno3Ulcqtr6zvSz5K61t0i3wDTqZvCFb3YYFcC
+	 FkyITDoR/wBgCohR+rmFdRCzgeenFDQIEcJCim42K8Ixr7HHLfWWrVDQ2HB8ThamDSZXK
+	 0fYXKbM4LkN1OaHUTbjV514aC8cDsBvTNbEIy6bDL1MmMp2cCMO/XukfBnf1RQTvc29jG
+	 VU0DcmTO4vK2xf3NfQsJydZbSp+ZrW9UXvVb7zzfuIhSm4sDschjCAP3RN1sY6/WmFw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=surriel.com;
 	spf=pass smtp.mailfrom=surriel.com;
-	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b="AAVc/08V";
+	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=iBq+nqKL;
 	arc=none smtp.remote-ip=96.67.55.147
 Received: from shelob.surriel.com (shelob.surriel.com [96.67.55.147])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E60F2606A31A;
-	Tue, 27 Oct 2026 02:18:19 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E60F2606A31A
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A9D9B606A31A;
+	Tue, 27 Oct 2026 02:44:30 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A9D9B606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=surriel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=surriel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=AAVc/08V
+	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=iBq+nqKL
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=surriel.com
 	; s=mail; h=MIME-Version:Content-Transfer-Encoding:Content-Type:References:
 	In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Sender:Reply-To:Content-ID:
 	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
-	:Resent-Message-ID; bh=qGaKz0ghX7Lbonx8PvJJJqD0p/WMYPC2YliZwFbr0fY=; b=AAVc/0
-	8VsTK9mY92KOp5wEbhgroVTHRCfftI50sRYAJL1JakNYXe+BTepKbKwB6Z414AlpfS+DUDqYZ+/Eh
-	nj5OxnhFMAPMtHr6a/UJArBMlo0zPGvXYzSP1AyfZimUEGGpKcN/pXFGUhEd5cPb7Dgv67jI1G4uP
-	55e644clgrRX4+HyA5EnIo6nQpVv4Na5C+pF7/iF0yMcG+jx4Pb5juMQq7eJznU+ew7NwWmld1Do7
-	JjXyIXADjvO6IyFgjI58QIOi9mZPYlrJwYQaR08EmI3Mg0q8v1woNBDGgbAYg+CVCPeVTETY9liEP
-	8I8zspCUGpVJFYfua7YslrF00KSg==;
+	:Resent-Message-ID; bh=jD8NrEF10P2VtaMB8bhjtU6NtVeQsEVr6wPPMXQfP+A=; b=iBq+nq
+	KLOEjbYYdUAPAEsZwkrsVlsMbau8sPaQUcFxapsXRqkp5x7L0HKbiz1V+JwuKcTR/GBqgaCvr71vs
+	Azl5exRlAEe+DimTQWh8fS0vwDU2CsiljZsMdUYZDAPvE5/hwXnoNhMGxlXeqfF7JYCSjK6mmcfeW
+	BfiPVgT3S4zTiGr3VU359pUEU7q0FHXgB6OThiw+NTjQPpMdcwrnSU5ZEyXwFVFYW0t+NalyqESRH
+	CfKP89P11ExVsiA3ldtFd1nVlkbgGl6/jisI5NTNJX9ju733TLXV4llbeM7Mjm7VlOJ93SU0QV4F4
+	bX5UR21h5xQnnQD/hzqAbQwGl8zw==;
 Received: from [2601:18c:8100:a0e0:2541:b86e:2586:d219]
 	by shelob.surriel.com with esmtpsa  (TLS1.3) tls TLS_AES_256_GCM_SHA384
 	(Exim 4.99.5)
 	(envelope-from <riel@surriel.com>)
-	id 1xLWkM-0000000B1GF-0On5;
-	Tue, 27 Oct 2026 02:17:06 +0000
-Message-ID: <db8ec1a4c7cb160c794888a0aa51b8f3eacb2044.camel@surriel.com>
-Subject: Re: [PATCH 05/46] mm/truncate: look again if a folio left the
- mapping
+	id 1xLX9Q-0000000B2wR-2Z6a;
+	Tue, 27 Oct 2026 02:43:00 +0000
+Message-ID: <f12ffd4cf8933452ef13adae55d6d238a3069235.camel@surriel.com>
+Subject: Re: [PATCH 06/46] mm/filemap: read mapping->a_ops->free_folio under
+ i_lock
 From: Rik van Riel <riel@surriel.com>
 To: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton	
  <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, Michal
@@ -84,12 +84,12 @@ To: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton
  <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
  kexec@lists.infradead.org, 	linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, 	linux-cxl@vger.kernel.org,
- stable@vger.kernel.org, Josef Bacik	 <josef@toxicpanda.com>
-Date: Mon, 26 Oct 2026 22:17:05 -0400
-In-Reply-To: <20261027-fixes_core-v1-5-6f74bec9a5bb@kernel.org>
+ linux-arch@vger.kernel.org, 	linux-cxl@vger.kernel.org, Josef Bacik
+ <josef@toxicpanda.com>, 	stable@vger.kernel.org
+Date: Mon, 26 Oct 2026 22:43:00 -0400
+In-Reply-To: <20261027-fixes_core-v1-6-6f74bec9a5bb@kernel.org>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
-	 <20261027-fixes_core-v1-5-6f74bec9a5bb@kernel.org>
+	 <20261027-fixes_core-v1-6-6f74bec9a5bb@kernel.org>
 Autocrypt: addr=riel@surriel.com; prefer-encrypt=mutual;
  keydata=mQENBFIt3aUBCADCK0LicyCYyMa0E1lodCDUBf6G+6C5UXKG1jEYwQu49cc/gUBTTk33A
  eo2hjn4JinVaPF3zfZprnKMEGGv4dHvEOCPWiNhlz5RtqH3SKJllq2dpeMS9RqbMvDA36rlJIIo47
@@ -128,25 +128,26 @@ Precedence: list
 MIME-Version: 1.0
 
 On Tue, 2026-10-27 at 00:17 +0100, David Hildenbrand (Arm) wrote:
+> From: Josef Bacik <josef@toxicpanda.com>
 >=20
-> In that scenario, the collapsed folio with the data from before the
-> write
-> stays in the page cache after the write has returned.
+> The bug was found by code inspection and has not been reproduced.
 >=20
-> This used to be impossible, as khugepaged only collapsed files that
-> nobody
-> had open for writing.
+I can't say I'm surprised ;)
+
+I see clues that a most bunch of these issues
+occasionally happen in our (rather large) fleet,=C2=A0
+but not this one.
+
+> Fix generated by an LLM and sent by Josef Bacik in private.
 >=20
-> Restart the lookup at that index, like shmem_undo_range() does. The
-> same
-> problem seems to exist in truncate_inode_pages_range() as well when
-> truncate_inode_folio() fails, so handle it there as well.
->=20
-> Fixes: 1b6444331beb ("mm/khugepaged: enable clean pagecache folio
-> collapse for writable files")
+> Fixes: 59c66c5f8c4f ("mm: factor out page cache page freeing into a
+> separate function")
 > Cc: stable@vger.kernel.org
-> Reported-by: Josef Bacik <josef@toxicpanda.com>
+> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+> [ david: get rid of filemap_free_folio() entirely; improve patch
+> description ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>=20
 
 Reviewed-by: Rik van Riel <riel@surriel.com>
 
