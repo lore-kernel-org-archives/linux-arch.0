@@ -1,55 +1,80 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793130501;
-	b=OCg6XA9HT9xLA4EjWc/6Q2XhiObp/WwnkHVeXRQjdxI60qaxOEJm4mgHBusfFDmkcUxV
-	 nUnvSWlOyhFS8cC4qI7n7XUDYoXv/Hd7EEfd5CjzqRQdLjmJ5rzW4U8wZ71QtQ/Rp3IlJ
-	 HngxxeNbh0wnhGQrFgxW67bA7fevO3IhNcvZJXUI/waTehkMC2s1Mv/AdHvUckE8MuGuJ
-	 oGVubnbQceh2FOoeYJXEtRDWodcKcdXuJ8l5HapA4ennFpPtJv145c0Yu+3ZTQTCb3df6
-	 er1UvCDMoSNxzTeXabzUdN2vdFe2REEmfbPATsVCBuycCYTr3P614Xg87SqTRR4acIg==
+	t=1793131673;
+	b=gFtf2p0v6OKffIVKYcauBaPYm1ZoP1RHxT8jo7EDgK4nyP0bdqGItTF0Ew6iMV9JyO4s
+	 Sbk7C10HpeWtSH1DhWEdItJVjD9yGFd2YoMUR/Voju63WLUpEC84td7Dl+zaySq6nXji6
+	 1LOAVD3IvLHg9FZuSJKfUVJ8SWcSK2TieDOqV/t/6RFYm9NW08d2YrBAANU47K4LbJ1yz
+	 xvzSDTmZG/vljSWm24+i+ZHubL/LRvtH/LFP79F7Zyc+Z52FRO7DTbGep/RyUpIYZN4oM
+	 EAxjbVkQ4kosuUpfSdUXh6LM2bWmmykJAsNGkLL8RPrDIVc7roFcQWlMs2YKK3j9C8A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793130501;
-	h=Received:DKIM-Signature:Received:X-Forwarded-Encrypted:
-	 X-Gm-Message-State:X-Received:MIME-Version:References:In-Reply-To:
-	 From:Date:X-Gmail-Original-Message-ID:X-Gm-Features:Message-ID:
-	 Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
-	bh=dBXyCpRHgO+MYx+nOUuoDTL78tUn9LIeQ2aFxfEucBY=;
-	b=FweRRoWgd2K+WV6hjCPDABVym/eE8EdcuNb0KeC9H/gMLXgBbs8HuUYLOLoK3Mf0DrDT
-	 43ACRyEQLfJMCHXv1QNQcYAAYxeXHqaL5QY62kgAY0dBRTSK+KhQ7WBO6iYdHXA9U37V4
-	 7F6jZ4McB9Owc8+/WOdr74YJiO6+Yi/2RM6L5NT9mrmTdAU2Az+5DE6hPVeDltv25eze8
-	 5M5l3uM/+e3og3pLrrLUMNZFghdqmxvqRodTxsilv1TDKLK1m+iqFzrY0ndF4ItXArrVU
-	 Xz1wx7aGPSDqEtihr+x/JlBhJeGZ9r9+L/KMwuYh97/rCj6T3mVVaZhyyBnyxNjNM4A==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793131673;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=7GmJ1pURkrI2M4cFdKYZZ2Ya/fgG59abQ7Yb/9UtrSs=;
+	b=grGIG09/DaCOnGAMbqvOnb7mJxeDeUh1WMKGDdcL+O1OLQpNRGGKk5ZIrXUj8ZvziN9A
+	 PFIqVU5tVVKxYA8XksX9cB48OTwy4bA2ZXRZBxl1dX2hA30cpElbWi5dUK4HMEpl9O8k9
+	 E4XxcXNBu7CTZuTMbFABCYAOEt3lIlWDtxmN2d9EKqFuvwkDfVpc9LdYpOcynjbYnAOaR
+	 UPXWlxCIiPgDdbi5ADQjk2DTgTf91chF/fW8dp69NvWT+0LujgmDSS54OfuMXwCSpvVRW
+	 7wBmjluefI3OQikua9P8tlFeEiWcSg78b95gizNQMxrnfvI3KtG2kc4Sbign/74PE3A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=X1ektPkr;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="f/91R5wp";
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 07F64606A31D
-	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 19:48:21 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8AA55606A31A;
+	Tue, 27 Oct 2026 20:07:53 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=X1ektPkr
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D8F291F01828
-	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 19:48:20 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=f/91R5wp
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B5CF11F01825;
+	Tue, 27 Oct 2026 20:07:52 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793130500;
-	bh=dBXyCpRHgO+MYx+nOUuoDTL78tUn9LIeQ2aFxfEucBY=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc;
-	b=X1ektPkr07/Laf4mhxGMYACp9EUSpX9DhVF1/tTXmR8R3XJLK/ig9jlr5MNsopi6V
-	 JXYaaZS4Ka/elkmjbJrVLj6hijeKuf4QN82dz5bxl8JMRYZES6pWFYL4LcNRV97ZOg
-	 30nkS6WxaeT5i9Y3h0Qx9ngL/znS/aDemcg2PGM/o4P3ucWR1i25zowTWWrQrK+FJY
-	 jOeXt+P0QWk2sWEf6svV5gj6s1S9b3wJVh8jSa6YxX1LC/nmhQeIffDpIU2q694IRl
-	 Yl9+/FsVZi0pSIShvD0DD6xRjE0byx72bsDp3J7k+jPh8yWCvohBZQShVXxaoXrYez
-	 q7nUtfNlrno2A==
-Received: by mail-qk1-f175.google.com with SMTP id af79cd13be357-93f079a63b8so14233385a.3
-        for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 12:48:20 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AKwUvBwbvCHJKddESl3tXz02qe7x/zZsURPrSW96ZmCyv6AH/0OpONmQKoBhmLrA2yLTbtJO4RnRVa5pKURa@vger.kernel.org
-X-Gm-Message-State: AFq9FYLdfxTp144dJp5HRgvh7Nq0duhuCUS1pOjWrNuoxJZRGLr2+DVk
-	Db84jdxDqgJtZSqC95tNEsqYpXunuArOM2rL4uFuJNNjFTeXRNcuWeOJkspn5s5NjATPH991vwM
-	t297tdlxAfICK/W3QoTaoCNGJA1FhjuA=
-X-Received: by 2002:a05:620a:171e:b0:93e:c12c:4409 with SMTP id
- af79cd13be357-940ef99a3dbmr1852566585a.69.1793130499936; Tue, 27 Oct 2026
- 12:48:19 -0700 (PDT)
+	s=k20260515; t=1793131673;
+	bh=7GmJ1pURkrI2M4cFdKYZZ2Ya/fgG59abQ7Yb/9UtrSs=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=f/91R5wprezD4KJkX2Jx7eMJXK4zGt7nCjRBu4zWgh8B2lozTbjxHynKIIEt9/m3f
+	 KmyPkE3l8j/1agfXZbGkBypO2fHwU0XhSfNULcLHjxjA52K9g29144aOXDupqH3gVj
+	 OT3eLlqbs0BTCVZVhirng7gxbOWPZ8yfKPk5IvDDERvJBacYahHrZc6ze7rglgM8w6
+	 imkuTFKf8yCjOjgLHdSu9sDjLJshaUz/ScopTOXRxeyoDso5ip229Mq5ygKszg6hf8
+	 HikkJKqYHXvk2V7qmSpaCnNcIPX5qKKye2psG5orwcoufcMa2jqaetc2Dy2c7kS6jc
+	 2bZ5YYFxsJP3g==
+Date: Tue, 27 Oct 2026 20:07:51 +0000
+From: Harry Yoo <harry@kernel.org>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
+	Shakeel Butt <shakeel.butt@linux.dev>, Lorenzo Stoakes <ljs@kernel.org>, 
+	Kairui Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>, 
+	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
+	Baoquan He <baoquan.he@linux.dev>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
+	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+	Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
+	Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
+	Hugh Dickins <hughd@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>, 
+	Pratyush Yadav <pratyush@kernel.org>, "Matthew Wilcox (Oracle)" <willy@infradead.org>, 
+	Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>, 
+	Rik van Riel <riel@surriel.com>, Alistair Popple <apopple@nvidia.com>, 
+	Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
+	Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
+	Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
+	Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
+	Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>, 
+	Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
+	Chengming Zhou <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, 
+	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
+	Youngjun Park <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, 
+	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
+	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>, 
+	stable@vger.kernel.org
+Subject: Re: [PATCH 01/46] mm/mglru: don't use stack pointers when walking
+ PUD and PMD tables
+Message-ID: <auEDQlAfJZZzaape@thinkstation>
+References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-1-6f74bec9a5bb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -59,99 +84,44 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-2-6f74bec9a5bb@kernel.org> <auB-3BQn_rR6IfY8@pedro-suse.tail5790ac.ts.net>
- <22b819a2-631d-468e-b724-770caf9f94e4@kernel.org>
-In-Reply-To: <22b819a2-631d-468e-b724-770caf9f94e4@kernel.org>
-From: Barry Song <baohua@kernel.org>
-Date: Wed, 28 Oct 2026 03:48:09 +0800
-X-Gmail-Original-Message-ID: <CAGsJ_4z3qgCPBpCDitVTq+xiGsS=-yEhKSbEO4Lbdn9MVAHK0g@mail.gmail.com>
-X-Gm-Features: AclHuK-TztIwEQBE6javSaaaoybdbPKwOAcVqEYuGwGbjltsm1heJMFfzyWkRwA
-Message-ID: <CAGsJ_4z3qgCPBpCDitVTq+xiGsS=-yEhKSbEO4Lbdn9MVAHK0g@mail.gmail.com>
-Subject: Re: [PATCH 02/46] fork: take mmap_lock before copying mm_struct
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Pedro Falcato <pfalcato@suse.de>, Andrew Morton <akpm@linux-foundation.org>, 
-	Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
-	Shakeel Butt <shakeel.butt@linux.dev>, Lorenzo Stoakes <ljs@kernel.org>, 
-	Kairui Song <kasong@tencent.com>, Axel Rasmussen <axelrasmussen@google.com>, 
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
-	Baoquan He <baoquan.he@linux.dev>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
-	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
-	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>, Hugh Dickins <hughd@google.com>, 
-	Pasha Tatashin <pasha.tatashin@soleen.com>, Pratyush Yadav <pratyush@kernel.org>, 
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>, 
-	Lance Yang <lance.yang@linux.dev>, Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
-	Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
-	Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
-	Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>, 
-	Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Oscar Salvador <osalvador@suse.de>, Minchan Kim <minchan@kernel.org>, 
-	Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
-	Chengming Zhou <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
-	Youngjun Park <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, 
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
-	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
-	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, 
-	linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	linux-cxl@vger.kernel.org, stable@vger.kernel.org, 
-	Josef Bacik <josef@toxicpanda.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20261027-fixes_core-v1-1-6f74bec9a5bb@kernel.org>
 
-On Wed, Oct 28, 2026 at 3:07=E2=80=AFAM David Hildenbrand (Arm)
-<david@kernel.org> wrote:
->
-> On 10/27/26 11:38, Pedro Falcato wrote:
-> > On Tue, Oct 27, 2026 at 12:17:22AM +0100, David Hildenbrand (Arm) wrote=
-:
-> >> dup_mm() copies the parent's mm_struct before dup_mmap() takes the
-> >> mmap_lock. A concurrent brk() can leave the child with a stale mm->brk
-> >> and newer heap mappings, causing later brk() requests to fail.
-> >>
-> >> Other operations (e.g., PR_SET_MM) on the parent's mm_struct can simil=
-arly
-> >> cause inconsistencies.
-> >>
-> >> As a simple and robust fix, grab the parent's mmap_lock earlier. This
-> >> way we don't need to update individual mm fields in dup_mmap() and
-> >> keep missing ones. Stop updating the 4 existing members (total_vm, dat=
-a_vm,
-> >> exec_vm, stack_vm), as that is now no longer required.
-> >>
-> >> Keep releasing the parent's mmap_lock in dup_mmap(), before
-> >> userfaultfd completion, to avoid moving the userfaultfd handling into =
-the
-> >> caller. This should get cleaned up later.
-> >>
-> >> Move uprobe_start_dup_mmap() to preserve the lock ordering.
-> >>
-> >> Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
-> >> Cc: stable@vger.kernel.org
-> >> Reported-by: Josef Bacik <josef@toxicpanda.com>
-> >> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> >> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-> >
-> > Reviewed-by: Pedro Falcato <pfalcato@suse.de>
-> >
-> > FWIW, strictly speaking malloc() isn't usable in a forked
-> > (multi-threaded) child, but glibc/musl provide this in a best-effort wa=
-y.
->
-> Yeah, I'm more concerned about other things that can race ... :)
+On Tue, Oct 27, 2026 at 12:17:21AM +0100, David Hildenbrand (Arm) wrote:
+> From: Josef Bacik <josef@toxicpanda.com>
+> 
+> MGLRU passes stack copies of page-table entries in walk_pud_range() and
+> walk_pmd_range() when walking to the next level. These copies can become
+> stale when khugepaged or MADV_DONTNEED (CONFIG_PT_RECLAIM) removes a PTE
+> table concurrently.
+> 
+> This pattern dates back to commit bd74fdaea146 ("mm: multi-gen LRU:
+> support page table walks"). Likely, earlier locking masked the latent
+> bug. Later changes exposed it: commit 1d65b771bc08 ("mm/khugepaged:
+> retract_page_tables() without mmap or vma lock") allowed concurrent
+> retraction, and commit cf4a65539c13 ("memcg-v1: no need for memcg locking
+> for MGLRU") dropped the walker's outer RCU protection.
+> 
+> The fix is simple, so just fix the original commit so we don't have to
+> speculate. To fix it, pass the actual PMD/PUD pointers. This restores the
+> RCU-protected lookup and validation against the live PMD. Note that the PUD
+> handling is required as well to handle folded page tables correctly in all
+> cases.
+> 
+> Fix generated by an LLM and sent by Josef Bacik in private.
+> 
+> Fixes: bd74fdaea146 ("mm: multi-gen LRU: support page table walks")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+> [ david: handle walk_pud_range() as well, clarify+simplify description,
+>          adjust Fixes: ]
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> ---
 
-Regarding the race with memcpy(mm, oldmm, sizeof(*mm)), we
-still have one [1] even after this patch.
+Looks good to me,
+Reviewed-by: Harry Yoo (Meta) <harry@kernel.org>
 
-That is, copying mm_struct can happen concurrently with
-lru_gen_del_mm(). However, this race doesn't seem harmful.
-I might be missing something here though.
-
-[1] https://lore.kernel.org/linux-mm/6ab08265.71f81b7d.15fa6d.001d.GAE@goog=
-le.com/
-
-Thanks
-Barry
+-- 
+Cheers,
+Harry / Hyeonggon
