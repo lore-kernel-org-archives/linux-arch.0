@@ -1,45 +1,45 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793089008;
-	b=zJXEvYE49edRoCeY+vK+7Z1UYwy000o7pT3McSnROEEYs0BjU4IpZwydEpirvGeheMbd
-	 xpfi8fgu9FqrbizWa/QgHzanigfQ0o6ZmII2SqFv+oHgfxrOdQQzQTkUchFhFRxBEXTa6
-	 kJnGtmClCDmJT9h3LmgMdIqF1UzmcesYOLxemk36U1pf47l5TMdSZ3gpL5MJ/9q7NdNQS
-	 0ui1ZkkfvaBwKQAY9HcTeGlAUvwvFy3S6Qtg6yB/rJhRBBT3v4qT71msOcyQ2245Ov4v1
-	 TeWJi5IBiqb8+VlTFWLucn8nvQL837EViQTIUC6QjUSjjXXAp2rhRMnmhzS3QHYpI9Q==
+	t=1793089084;
+	b=4R0dOycmzI3KY+wP61IjivM1NmBRs+k+3KFZxCR/BihGrtnTVsm9K3fOVtNgesFT6rhm
+	 ti1lz9ZMz0p6OtcXc4vyKyF7UFxFzTusOfFbSqlVKIvoaAAVxBg7HeV1xIySqcxWCaa6k
+	 vHyyxY3QAPGeW28O505joRGi40WjcGZUBmgcRlt1Dnp1PMpAlu40DPLPZBdbUCbqpPmEv
+	 WPIzqt0lIOMqj8TvDnEP4I4alNVEDjeY0s2NF0DAY73D40TlxhQhcKEENlVbw7NTAwdSY
+	 eIRzNTy1PD93b2YLz6LY4FlD0Gx5PFMQxxQmfwddClwbKYhk/hVOz/GWvgdrVUPtcRA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793089008;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793089084;
 	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
 	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=25JoUd0Ca4DSucyqp8VdpaHvYyD4L6ugc8HcJwXmagI=;
-	b=TsqjEmTxTtNdn9KrUJ34+Dk3iynC1OCRoK54pI/OoWcFY6UUF0MxnMsCfplIFkwzCOo3
-	 t4cLNFuRj/UAhGnBb+6CXlI+IOakgvcQierxhybUCizN4BsyZYb6siI0hCsEAVIcOxXNP
-	 A6jeOwnVYhdSbJ5zbZviZqf+3enz58VuZk6yKn7L7cYQHuBStGd71R5QxwEcGTHY6rMrc
-	 yxPJvzpwKq3AdSsAEGRX7vQ5vxuTdfk7/6/HBYc+cmBEPC56DHMqn5WKgj9Gv5JI97A+H
-	 Q4yc4ApVhflwIn6rKU7nM/Aui6GDBvw+YSJV4WoO/oomtpcsI07byCHDHao/i/o4Txg==
+	bh=D64FFgpc7INZHjHGIMuz6fOYnjN+R/6alnjku+MmCwI=;
+	b=5WYcosjOUjDp6i17GqjkRElD8kA/jnx9OgcWLJQxL9jq5yH8qP1Dk8oZEbCIer3mz2Lp
+	 kAOgZn4Uefm1iOhO6p6WIjvH4GnYNNBGM1fzpGGUC6NQvR1GrFENPIT14kJIqHV1vcvcH
+	 amT5oe3RpDBh8YRJ8frT4yjkCx5CeMicpvCDx9/vay1vbxcryYricw0X6gwuj054Z7VP1
+	 v5XASiYuqGCoRhx0k6J62Ow3+H2V/IflrGtnX3DWNNE/u+e4MakvMr+eiyfuUU6E21NIm
+	 4z5+tpuFIvepnS7Gjt135c3cghfnPnF6/1dR37NERlNfDzGJ5hM/w2k7amxhrHaawLQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DqgW1ogH;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=lrkj80Hq;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52733606A31A;
-	Tue, 27 Oct 2026 08:16:48 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 49D65606A320;
+	Tue, 27 Oct 2026 08:18:04 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DqgW1ogH
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id EB6EE1F01825;
-	Tue, 27 Oct 2026 08:16:28 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=lrkj80Hq
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 8565F1F01825;
+	Tue, 27 Oct 2026 08:17:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793089008;
-	bh=25JoUd0Ca4DSucyqp8VdpaHvYyD4L6ugc8HcJwXmagI=;
+	s=k20260515; t=1793089083;
+	bh=D64FFgpc7INZHjHGIMuz6fOYnjN+R/6alnjku+MmCwI=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=DqgW1ogHskC3KjpnvkmfF/B2DYXhDZoPDNeziDRz5NYseOTPq/Bt3d/gR2uwOi5tt
-	 l0FKm0+vSEXyriWPhPAPthXH1Up+UF+85+8a4DRAWSbZRYMnvjqZUBuxtSS9VhexcH
-	 QjEToIVl39sflEhmYe9ziXX5NCu06RELjf5E7IRB4kHtHZXSvXfgKEoP26dOW1+9IE
-	 ffVmPh+WFa/36AqcOLOz1lEuekRW0rjPES5+SXPWLU9gfjD0+35/LrvlH8duWv+GbJ
-	 RuWAou4+YDgaZUIhlBwjRnVkYYWwTrj2jlqPucPxJ4gaehaWDjNNziTUjRRUgWOZSb
-	 cgzDt4LnM1kJg==
-Date: Tue, 27 Oct 2026 10:16:25 +0200
+	b=lrkj80HqsRK7SmEUA0UlfQ9awwfrnZbTGOTFJ38sN0K5sYRFKCiWceFy/zEcA5N7K
+	 X/+Ja8dZnecwCLwqQW2Q53xYQZvfTTZvXc/UlZpQ3ww44q5sovpt7pTsmVFSsALwmW
+	 con0FeRikx0qegOPeuI08/JqIvHO7h8RUPar2Oksdd8psB92RcYHO67CJO4Oifo4bl
+	 4OdMIpYuvOM127oapLRHduPwvwZb4shBXArXcUwWQ3OGDl6t28H8bKbs77c3ilGNzD
+	 RxpfugSOkHtwZ9bqmFJhB2XCngY1YfFKNWjupoESw2HcBJREXTXw0o5pJ9DqJ4U+FM
+	 VgHlaWwITa29Q==
+Date: Tue, 27 Oct 2026 10:17:41 +0200
 From: Mike Rapoport <rppt@kernel.org>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>,
@@ -85,13 +85,12 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
 	Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
 	linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
 	linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-cxl@vger.kernel.org, stable@vger.kernel.org,
-	Josef Bacik <josef@toxicpanda.com>
-Subject: Re: [PATCH 23/46] mm/userfaultfd: write-lock the VMA before waking
- waiters when unregistering
-Message-ID: <auBd2RS7buo-Aa5I@kernel.org>
+	linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>,
+	stable@vger.kernel.org
+Subject: Re: [PATCH 24/46] mm/userfaultfd: wake all waiters on unregister
+Message-ID: <auBeJeLTUg4VlHjc@kernel.org>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-23-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-24-6f74bec9a5bb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -103,44 +102,74 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261027-fixes_core-v1-23-6f74bec9a5bb@kernel.org>
+In-Reply-To: <20261027-fixes_core-v1-24-6f74bec9a5bb@kernel.org>
 
-On Tue, Oct 27, 2026 at 12:17:43AM +0100, David Hildenbrand (Arm) wrote:
-> userfaultfd_unregister() wakes pending missing faults before clearing the
-> VMA's userfaultfd registration. With per-VMA fault locking, holding
-> mmap_lock for write does not prevent another fault from queuing after
-> the wakeup but before userfaultfd_clear_vma() write-locks the VMA. That
-> waiter can then remain asleep indefinitely.
+On Tue, Oct 27, 2026 at 12:17:44AM +0100, David Hildenbrand (Arm) wrote:
+> From: Josef Bacik <josef@toxicpanda.com>
 > 
-> Call vma_start_write() before waking waiters. Existing fault handlers
-> queue themselves before dropping the VMA read lock, and new readers are
-> excluded until mmap_write_unlock().
+> UFFDIO_UNREGISTER only wakes pending faults if VM_UFFD_MISSING is set.
+> Threads waiting on write-protect, minor or RWP faults can therefore remain
+> asleep after unregistering a range that does not track missing faults.
 > 
-> Fixes: 29a22b9e08d7 ("mm: handle userfaults under VMA lock")
+> Wake pending faults regardless of the registration mode so they can retry
+> without an explicit UFFDIO_WAKE or closing the userfaultfd. This matches
+> the existing behavior for missing faults, including removing unread fault
+> messages for the woken waiters.
+> 
+> Fix generated by an LLM and sent by Josef Bacik in private.
+> 
+> Fixes: 63b2d4174c4a ("userfaultfd: wp: add the writeprotect API to userfaultfd ioctl")
 > Cc: stable@vger.kernel.org
-> Reported-by: Josef Bacik <josef@toxicpanda.com>
+> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+> [ david: rebase; simplify description ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
 Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
 
 > ---
->  mm/userfaultfd.c | 3 +++
->  1 file changed, 3 insertions(+)
+>  mm/userfaultfd.c | 22 ++++++++++------------
+>  1 file changed, 10 insertions(+), 12 deletions(-)
 > 
 > diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
-> index 669f71d485d02..7e30b5ff17be1 100644
+> index 7e30b5ff17be1..2122676c4220f 100644
 > --- a/mm/userfaultfd.c
 > +++ b/mm/userfaultfd.c
-> @@ -3991,6 +3991,9 @@ static int userfaultfd_unregister(struct userfaultfd_ctx *ctx,
->  			start = vma->vm_start;
->  		vma_end = min(end, vma->vm_end);
+> @@ -3977,6 +3977,8 @@ static int userfaultfd_unregister(struct userfaultfd_ctx *ctx,
 >  
-> +		/* Prevent new userfaults from being queued after the wakeup. */
-> +		vma_start_write(vma);
+>  	ret = 0;
+>  	for_each_vma_range(vmi, vma, end) {
+> +		struct userfaultfd_wake_range range;
 > +
->  		if (userfaultfd_missing(vma)) {
->  			/*
->  			 * Wake any concurrent pending userfault while
+>  		cond_resched();
+>  
+>  		/* VMA not registered with userfaultfd. */
+> @@ -3994,18 +3996,14 @@ static int userfaultfd_unregister(struct userfaultfd_ctx *ctx,
+>  		/* Prevent new userfaults from being queued after the wakeup. */
+>  		vma_start_write(vma);
+>  
+> -		if (userfaultfd_missing(vma)) {
+> -			/*
+> -			 * Wake any concurrent pending userfault while
+> -			 * we unregister, so they will not hang
+> -			 * permanently and it avoids userland to call
+> -			 * UFFDIO_WAKE explicitly.
+> -			 */
+> -			struct userfaultfd_wake_range range;
+> -			range.start = start;
+> -			range.len = vma_end - start;
+> -			wake_userfault(vma->vm_userfaultfd_ctx.ctx, &range);
+> -		}
+> +		/*
+> +		 * Wake any concurrent pending userfault while we unregister,
+> +		 * so they will not hang permanently and it avoids userland to
+> +		 * call UFFDIO_WAKE explicitly.
+> +		 */
+> +		range.start = start;
+> +		range.len = vma_end - start;
+> +		wake_userfault(ctx, &range);
+>  
+>  		vma = userfaultfd_clear_vma(&vmi, prev, vma,
+>  					    start, vma_end);
 > 
 > -- 
 > 2.43.0
