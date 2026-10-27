@@ -1,49 +1,80 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793086554;
-	b=Tnyrnn62yGGVOrKxhWkp+vLmwfJyFvFpt28W+mLt7lTabjZN3CgcmoECvW6WFF1l3vgz
-	 OudJyedL6KAwmG+7MK8Xqi1acPwZqMszPPnY3dIgbYf/7jNvPYybM3IOqwmdUfXz2B1Hn
-	 Jec/HnFDkY5bg/rYh+g0KX6NWi4aFNImydgj2UoZ5YOmJmxY8Kgpogw9vKD0xjKgzfgxl
-	 zGAUrnZO43BAftfBTu6dAeK5yy9CWIQ0NfkL6ZNaL1215DoGB0neb6RPPaiznXW2xSKEh
-	 RCZoDG+weJAGIlJnaD+JHHjiKkzwuYesiI9yLoVeVrGluSBebu0klpl9+ott0RuxwGQ==
+	t=1793088408;
+	b=d3A9uZVIgzLZy4dFoXnvzi4qIk3whrLAjbkvO2+TiJwuDV7cbO9aglPyk3NYSKhfTDcn
+	 91cCEVNnt74TG9vQ7uZIEUToI8vswtOqwbCKOZHlZ/KgWWZp94gKTMtRbDfr4Rv/otEaK
+	 7KJ7K0WKkFg+yPD7POKxBq4ahT3WcI1Zg9VZUuWh8iwa9NiBeFW3PD/Jhj37XbHTBaeWz
+	 tp17LoLQvtzDBZqEWTWSLjP+qY/ZK6aO+23ZqezLSX+qcs4qqKF23nw/0X0qqrMxr3Au+
+	 mUr5C85lTHOHUMd/oZIGGq9djdRuoGQVHHLO92S/EW7/j8RiB1A76Y9967YOfeKR3xA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793086554;
-	h=DMARC-Filter:Received:Received:DKIM-Signature:Message-ID:Date:
-	 MIME-Version:User-Agent:Subject:To:Cc:References:Content-Language:
-	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=5jc2ZtnsslhTBje2qQpVD7MrTZfTUlL74O4i/llDB/M=;
-	b=HK7b0hFK9ekbCd1jwKEOIVbpTiErYlHdr3sPZp6IofAcTTj5rHqNZ3g4Mw/en6mvR+Mo
-	 kLJm1xgCa2S1f3fdXVLkFECSjjGqG9weOnyF1K9vnYlsZ0Ke4mzPHe7Q+qw9Cy/4JjfS3
-	 ZvvA4SQIFwq+gXdC1ZWDJQ7hFCAP6eYHX9Sbu9SIbDNifjPQ/O8Rv5q4c2Zm+Ua3A0k7r
-	 /qc2zcWxr9g76ZKiB1nUJUDcmliI/qqIFkBvs0IvH7Fs6Cp6JmKwUrN6UmDRGhlekZkZF
-	 C+HaiLXyk49ofZl7KIPfF16v0DTyV019fnIAjpzxRBT8FGvy7wlJj3/rOGv8ivw+/1w==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793088408;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=tGP0LjdymEX/O70OpFiXykL3tGWdkhpJkzQJ0xiHk2s=;
+	b=Rv1xr7XP7BVLfVGrq1IXLf9U6Pt5INF/u8SgNBsIDXEH/C51cxHph4qbIeReE8iHZdwO
+	 E4R/jiaGIKqTv1tCQwBHNJK+xjC5iTwbgqGSnpT/cQSFsS6+23/tocK4bpzS9HrjMI5zb
+	 klm0kbHpnSJHNWFPX0h/1Lg7qBuQRekuaPnxcd8vTqu1oir2OiJlg+f3jWRwnqPUKQTt/
+	 E4qP62WLWcB8JkLm+JsEgrfU8MPrvRAiUcDi8ridCgu5Cjo+FFt2Trm/grmWXDb2MB6b0
+	 sBh9vmAHJtGkyHT86/0OKk2nuZScGbLF1EqeXfRGh4lzYd6+rPy3NGV/WoYo12Zbt+A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=arm.com;
-	spf=pass smtp.mailfrom=arm.com;
-	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b="ShPz/LB/";
-	arc=none smtp.remote-ip=217.140.110.172
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 9F324606A323;
-	Tue, 27 Oct 2026 07:35:52 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 9F324606A323
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=BoIvLyS4;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5006B606A31A;
+	Tue, 27 Oct 2026 08:06:48 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=ShPz/LB/
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id C08721655;
-	Tue, 27 Oct 2026 00:35:48 -0700 (PDT)
-Received: from [10.163.152.160] (unknown [10.163.152.160])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 316693F673;
-	Tue, 27 Oct 2026 00:35:30 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1793086551; bh=n2WrtA8FsjLacOwP70K0qkcnkliELHh0b55ywQMgrm4=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=ShPz/LB/JTXMSaXWoN89wpg1R0MFhTQ3+OYAWgQenVr07qFiwcr+BtH2v6xKKQfRM
-	 QrYTx4Q3mPU1qcZAPdg41yN63hG8hPH4qkEAk45cxkJ8LLmOSK716gyfQv1IvIJqjZ
-	 R/89T7N51QEEo+TuFrpiXNQLA0t0iBWtwxXvK0jA=
-Message-ID: <21091d4e-0afb-4b5b-84ac-b36bac58e40f@arm.com>
-Date: Tue, 27 Oct 2026 13:05:27 +0530
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=BoIvLyS4
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7669F1F01825;
+	Tue, 27 Oct 2026 08:06:34 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793088408;
+	bh=tGP0LjdymEX/O70OpFiXykL3tGWdkhpJkzQJ0xiHk2s=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=BoIvLyS4BeMWr65hedSikSZ5vE8O9JRgtibUW/piTLatgtmus034g8LURA3R+gHJc
+	 ydIDPqS/Oq7d7JsbwgaioD3d1cV8JjOomy7xzfXW42dsVa5rjkstyyKLDXODrEKei/
+	 vB2Qwp8dvj5O3AKG6ZMVvpIywISsqf/obj5nk6KOVMT8qLApC1PN0PM0ZrjYBAf2Xu
+	 5g6N2XtIXQ3TbybogpP04e5dcBVdBVy+cHCzH1jEUnk9T+8vtYavS1rB+QxhcGQdgH
+	 FThLB2pNS03O7e0SOprSN4uGF5bozDM1GQt3OLElmNxQv6g/clWdchbL3nMOAmhEFL
+	 j+r5zdUmZqxow==
+Date: Tue, 27 Oct 2026 08:06:31 +0000
+From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
+	Shakeel Butt <shakeel.butt@linux.dev>, Kairui Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>, 
+	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
+	Baoquan He <baoquan.he@linux.dev>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
+	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+	Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
+	Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, 
+	Hugh Dickins <hughd@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>, 
+	Pratyush Yadav <pratyush@kernel.org>, "Matthew Wilcox (Oracle)" <willy@infradead.org>, 
+	Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>, 
+	Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
+	Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
+	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Usama Arif <usama.arif@linux.dev>, 
+	Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
+	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
+	Oscar Salvador <osalvador@suse.de>, Minchan Kim <minchan@kernel.org>, 
+	Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
+	Chengming Zhou <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, 
+	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
+	Youngjun Park <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, 
+	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
+	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>, 
+	stable@vger.kernel.org
+Subject: Re: [PATCH 01/46] mm/mglru: don't use stack pointers when walking
+ PUD and PMD tables
+Message-ID: <auBbKP8UNI9talDL@gremlin>
+References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-1-6f74bec9a5bb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -53,109 +84,77 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 26/46] mm/mmu_gather: fix flushing ranges with 4 GiB or
- larger
-To: "David Hildenbrand (Arm)" <david@kernel.org>,
- Andrew Morton <akpm@linux-foundation.org>,
- Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
- Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
- Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
- Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
- Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
- Baoquan He <baoquan.he@linux.dev>,
- Baolin Wang <baolin.wang@linux.alibaba.com>,
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
- Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
- Pasha Tatashin <pasha.tatashin@soleen.com>,
- Pratyush Yadav <pratyush@kernel.org>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
- Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
- Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
- Ryan Roberts <ryan.roberts@arm.com>, Usama Arif <usama.arif@linux.dev>,
- Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
- John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>,
- Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
- Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
- Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
- Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
- Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
- Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
- Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
- Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
- Jason Gunthorpe <jgg@ziepe.ca>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
- Josef Bacik <josef@toxicpanda.com>, stable@vger.kernel.org
-References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-26-6f74bec9a5bb@kernel.org>
-Content-Language: en-US
-From: Dev Jain <dev.jain@arm.com>
-In-Reply-To: <20261027-fixes_core-v1-26-6f74bec9a5bb@kernel.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20261027-fixes_core-v1-1-6f74bec9a5bb@kernel.org>
 
-
-
-On 27/10/26 4:47 am, David Hildenbrand (Arm) wrote:
+On Tue, Oct 27, 2026 at 12:17:21AM +0100, David Hildenbrand (Arm) wrote:
 > From: Josef Bacik <josef@toxicpanda.com>
-> 
-> __tlb_adjust_range() takes the size of the range which has to be flushed
-> as an unsigned int. Its callers, tlb_flush_{pte,pmd,pud,p4d}_range(), get
-> and pass an unsigned long. Consequently, a range that is 4 GiB or larger
-> gets truncated, possibly to 0.
-> 
-> On arm64 with hugetlb, a 64k kernel can flush 16 GiB hugetlb PMDs, and a
-
-Nit: this wasn't obvious to me. Better expressed as:
-"a 64K kernel can have 16 GiB hugepage mapped contiguously at the PMD level"
-
-
-> 16k kernel can flush 64 GiB PUDs through tlb_unshare_pmd_ptdesc(). So
-> at least these two scenarios are affected.
-> 
-> Fix it by flushing the proper range instead of the truncated one.
-
-Nit: after reading this I thought you are passing some other parameter now.
-But that is just a type change.
-
-
-> 
+>
+> MGLRU passes stack copies of page-table entries in walk_pud_range() and
+> walk_pmd_range() when walking to the next level. These copies can become
+> stale when khugepaged or MADV_DONTNEED (CONFIG_PT_RECLAIM) removes a PTE
+> table concurrently.
+>
+> This pattern dates back to commit bd74fdaea146 ("mm: multi-gen LRU:
+> support page table walks"). Likely, earlier locking masked the latent
+> bug. Later changes exposed it: commit 1d65b771bc08 ("mm/khugepaged:
+> retract_page_tables() without mmap or vma lock") allowed concurrent
+> retraction, and commit cf4a65539c13 ("memcg-v1: no need for memcg locking
+> for MGLRU") dropped the walker's outer RCU protection.
+>
+> The fix is simple, so just fix the original commit so we don't have to
+> speculate. To fix it, pass the actual PMD/PUD pointers. This restores the
+> RCU-protected lookup and validation against the live PMD. Note that the PUD
+> handling is required as well to handle folded page tables correctly in all
+> cases.
+>
 > Fix generated by an LLM and sent by Josef Bacik in private.
-> 
-> Fixes: b528e4b6405b ("mm/hugetlb: add tlb_remove_hugetlb_entry for handling hugetlb pages")
-> Fixes: 8ce720d5bd91 ("mm/hugetlb: fix excessive IPI broadcasts when unsharing PMD tables using mmu_gather")
+>
+> Fixes: bd74fdaea146 ("mm: multi-gen LRU: support page table walks")
 > Cc: stable@vger.kernel.org
 > Signed-off-by: Josef Bacik <josef@toxicpanda.com>
-> Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> [ david: use two-tab indent, simplify description ]
+> [ david: handle walk_pud_range() as well, clarify+simplify description,
+>          adjust Fixes: ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > ---
 
-Reviewed-by: Dev Jain <dev.jain@arm.com>
+God, terrible. And why does MGLRU feel it needs its own independent page
+walking mechanism?... the whole thing feels like NIH syndrome writ large.
 
+Anyway, rant aside:
 
->  include/asm-generic/tlb.h | 3 +--
->  1 file changed, 1 insertion(+), 2 deletions(-)
-> 
-> diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-> index fbe1114e9a443..3f4a180b48f3c 100644
-> --- a/include/asm-generic/tlb.h
-> +++ b/include/asm-generic/tlb.h
-> @@ -350,8 +350,7 @@ struct mmu_gather {
->  void tlb_flush_mmu(struct mmu_gather *tlb);
->  
->  static inline void __tlb_adjust_range(struct mmu_gather *tlb,
-> -				      unsigned long address,
-> -				      unsigned int range_size)
-> +		unsigned long address, unsigned long range_size)
->  {
->  	tlb->start = min(tlb->start, address);
->  	tlb->end = max(tlb->end, address + range_size);
-> 
+Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 
+>  mm/vmscan.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+>
+> diff --git a/mm/vmscan.c b/mm/vmscan.c
+> index 9959ca158ce83..6a1af9b92349f 100644
+> --- a/mm/vmscan.c
+> +++ b/mm/vmscan.c
+> @@ -3911,7 +3911,7 @@ static void walk_pmd_range(pud_t *pud, unsigned long start, unsigned long end,
+>
+>  		walk->mm_stats[MM_NONLEAF_FOUND]++;
+>
+> -		if (!walk_pte_range(&val, addr, next, args))
+> +		if (!walk_pte_range(pmd + i, addr, next, args))
+>  			continue;
+>
+>  		walk->mm_stats[MM_NONLEAF_ADDED]++;
+> @@ -3947,7 +3947,7 @@ static int walk_pud_range(p4d_t *p4d, unsigned long start, unsigned long end,
+>  		if (!pud_present(val) || WARN_ON_ONCE(pud_leaf(val)))
+>  			continue;
+>
+> -		walk_pmd_range(&val, addr, next, args);
+> +		walk_pmd_range(pud + i, addr, next, args);
+>
+>  		if (need_resched() || walk->batched >= MAX_LRU_BATCH) {
+>  			end = (addr | ~PUD_MASK) + 1;
+>
+> --
+> 2.43.0
+>
+
+--
+Cheers, Lorenzo
