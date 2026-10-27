@@ -1,57 +1,57 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=96.67.55.147
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793069071;
-	b=yKzyj+0G/Kxs2S0KLo8qwftHN6uLMNXbAk0w24+FR4MGesDtrSU19WsTDKtpx1NmVdzW
-	 3+42hwOv1vx+zwVJ/OPU968PzsnvJa5QJhgseyy3GGg7gH0sGe/3CcnLQipchYxxHSsC+
-	 bSTIM//M0vvXPt7+3Qu4+9bQsf4Hivyrw70zpmDSi4T8MzESv8YC4Q60MX5k8RrOl8hhh
-	 ElA3g6PE9REr6wleVZmnzQEO6ooZxelzZf+Y+G7TwwO33M11NdIBV1tA1ZmI1MK1P6TC2
-	 3e+GwdJs1WUjOqB/S9IvfiJo1wV1QSrZL/uBK8G81RGHZQLr0lEcgW2FdwVt0XNGI0Q==
+	t=1793070314;
+	b=K7rUEAlHEF3y6u3Zw9+cLl+E+pssnbluABbhde77fmcLYM1uCiak2y1PstjYtqz1fqED
+	 DfwAHlOfI/YiD11fZspKsn+8iS0wmRlXXmhSPm94bDH7EL5gZxXImYnvXRd6qHXCBvVBU
+	 /QzurQeGZyWohczzmbdPlA/WDuZdhgfwLArHSq8JKLq58KfRbrVFBRoknZDeIj6QYjEQL
+	 eNQnNUNsH1Nku/coSIr8RMFDbnP5YAxUV0axoAK5DNhYDXaALN4NYTytjq0bpL3fNV9g0
+	 +NJqF4T777wFrXfvpn2p+9lTsz8KYmKGAIVAaOk0RZZOflREiMtJsImmKqM560s/VJQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793069071;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793070314;
 	h=DMARC-Filter:DKIM-Signature:Received:Message-ID:Subject:From:To:Cc:
 	 Date:In-Reply-To:References:Autocrypt:Content-Type:
 	 Content-Transfer-Encoding:User-Agent:MIME-Version;
-	bh=jD8NrEF10P2VtaMB8bhjtU6NtVeQsEVr6wPPMXQfP+A=;
-	b=bt0pP6/Ir90aiJXqNx9D6khfgUpD+TWKyBskyCOrrPwo1q0kuL+Kx6NkrrTRW3Qf2dL1
-	 FvHOXiFnhnjPxRw36osK3/Ql0NklsCpsno3Ulcqtr6zvSz5K61t0i3wDTqZvCFb3YYFcC
-	 FkyITDoR/wBgCohR+rmFdRCzgeenFDQIEcJCim42K8Ixr7HHLfWWrVDQ2HB8ThamDSZXK
-	 0fYXKbM4LkN1OaHUTbjV514aC8cDsBvTNbEIy6bDL1MmMp2cCMO/XukfBnf1RQTvc29jG
-	 VU0DcmTO4vK2xf3NfQsJydZbSp+ZrW9UXvVb7zzfuIhSm4sDschjCAP3RN1sY6/WmFw==
+	bh=+m6MAN4UT0/EHYIpxyVZqteSVMfVdSNgFL/Qz2Lnr3Y=;
+	b=mZ3GqRYBqlfv470UxzTW8KornBmNClm743MP1ixs+DbQeeGed/I9kFXVhUepz1xs76DW
+	 zYdIM0rWGL2BnSs4SqZDcLR1ngRHNYzxRI8X82RHJfYZqYOU/lyLMlLdFD43HCynwvHn+
+	 qnkm0+YFrOFsLHxqD1Y07WiDJ3FVfN8AQce0ajJ5a0mA26WkRW1al4/tKaQ/kQo6i2AfC
+	 LmapkjFMmCczPB53k7Iqp+kdoDz47WELXZ7witilKqx+cgEOify7l9DLPQ/SfUKR7mkSR
+	 8LI2w2aavntarMLYOn77t5rcvLfE1LpUdtDKU72zqgQiX+hqvk39YvCjTRC1k4Yrulg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=surriel.com;
 	spf=pass smtp.mailfrom=surriel.com;
-	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=iBq+nqKL;
+	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=RGgw4ROk;
 	arc=none smtp.remote-ip=96.67.55.147
 Received: from shelob.surriel.com (shelob.surriel.com [96.67.55.147])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A9D9B606A31A;
-	Tue, 27 Oct 2026 02:44:30 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A9D9B606A31A
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AD6D1606A31A;
+	Tue, 27 Oct 2026 03:05:13 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org AD6D1606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=surriel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=surriel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=iBq+nqKL
+	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=RGgw4ROk
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=surriel.com
 	; s=mail; h=MIME-Version:Content-Transfer-Encoding:Content-Type:References:
 	In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Sender:Reply-To:Content-ID:
 	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
-	:Resent-Message-ID; bh=jD8NrEF10P2VtaMB8bhjtU6NtVeQsEVr6wPPMXQfP+A=; b=iBq+nq
-	KLOEjbYYdUAPAEsZwkrsVlsMbau8sPaQUcFxapsXRqkp5x7L0HKbiz1V+JwuKcTR/GBqgaCvr71vs
-	Azl5exRlAEe+DimTQWh8fS0vwDU2CsiljZsMdUYZDAPvE5/hwXnoNhMGxlXeqfF7JYCSjK6mmcfeW
-	BfiPVgT3S4zTiGr3VU359pUEU7q0FHXgB6OThiw+NTjQPpMdcwrnSU5ZEyXwFVFYW0t+NalyqESRH
-	CfKP89P11ExVsiA3ldtFd1nVlkbgGl6/jisI5NTNJX9ju733TLXV4llbeM7Mjm7VlOJ93SU0QV4F4
-	bX5UR21h5xQnnQD/hzqAbQwGl8zw==;
+	:Resent-Message-ID; bh=+m6MAN4UT0/EHYIpxyVZqteSVMfVdSNgFL/Qz2Lnr3Y=; b=RGgw4R
+	OkD3cg0cf6P6MGLfRM+m5MvS+GJTc7UdWM+UQ6RguBHrPalIxkK7wcfHFWNFj7sZKNtnLm1zdBkgs
+	N8lTiw3w08GyTbklL3MkANvd0R5Vpa/l+ULy2OKc5dDDmCb0BJtK8atoHOWEbl0wIQckJdOqYAXI0
+	0pditX8YqoUTyxfvs46eYWQm0tlaMerwC9JI7aOGv9A3zaGQonfYqGEe8qQno7ZJP78jH6v4/N2JX
+	pNCEHk4WoVbuUeWjg1nuN86duV8apM2UIYOylgwQ0mmHgNptwLsypcm1xsZq+bvglC4XcRpdoLXKz
+	zVSK2VHrwJ/eQJhc2JFuU0IjUvoA==;
 Received: from [2601:18c:8100:a0e0:2541:b86e:2586:d219]
 	by shelob.surriel.com with esmtpsa  (TLS1.3) tls TLS_AES_256_GCM_SHA384
 	(Exim 4.99.5)
 	(envelope-from <riel@surriel.com>)
-	id 1xLX9Q-0000000B2wR-2Z6a;
-	Tue, 27 Oct 2026 02:43:00 +0000
-Message-ID: <f12ffd4cf8933452ef13adae55d6d238a3069235.camel@surriel.com>
-Subject: Re: [PATCH 06/46] mm/filemap: read mapping->a_ops->free_folio under
- i_lock
+	id 1xLXTa-0000000B5QX-1toX;
+	Tue, 27 Oct 2026 03:03:50 +0000
+Message-ID: <8b09a67e95975a23d3a1eb9446030d758a1b5afe.camel@surriel.com>
+Subject: Re: [PATCH 07/46] mm/filemap: don't lose a folio lock wakeup to a
+ signal
 From: Rik van Riel <riel@surriel.com>
 To: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton	
  <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, Michal
@@ -86,10 +86,10 @@ Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
  kexec@lists.infradead.org, 	linux-fsdevel@vger.kernel.org,
  linux-arch@vger.kernel.org, 	linux-cxl@vger.kernel.org, Josef Bacik
  <josef@toxicpanda.com>, 	stable@vger.kernel.org
-Date: Mon, 26 Oct 2026 22:43:00 -0400
-In-Reply-To: <20261027-fixes_core-v1-6-6f74bec9a5bb@kernel.org>
+Date: Mon, 26 Oct 2026 23:03:50 -0400
+In-Reply-To: <20261027-fixes_core-v1-7-6f74bec9a5bb@kernel.org>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
-	 <20261027-fixes_core-v1-6-6f74bec9a5bb@kernel.org>
+	 <20261027-fixes_core-v1-7-6f74bec9a5bb@kernel.org>
 Autocrypt: addr=riel@surriel.com; prefer-encrypt=mutual;
  keydata=mQENBFIt3aUBCADCK0LicyCYyMa0E1lodCDUBf6G+6C5UXKG1jEYwQu49cc/gUBTTk33A
  eo2hjn4JinVaPF3zfZprnKMEGGv4dHvEOCPWiNhlz5RtqH3SKJllq2dpeMS9RqbMvDA36rlJIIo47
@@ -130,24 +130,35 @@ MIME-Version: 1.0
 On Tue, 2026-10-27 at 00:17 +0100, David Hildenbrand (Arm) wrote:
 > From: Josef Bacik <josef@toxicpanda.com>
 >=20
-> The bug was found by code inspection and has not been reproduced.
+> An exclusive waiter in folio_wait_bit_common() can leave the wait
+> loop
+> because of a fatal signal, then be woken by folio_unlock() before
+> finish_wait(). If the waker did not hand over the lock, the waiter
+> returns
+> -EINTR without trying to acquire it.
 >=20
-I can't say I'm surprised ;)
-
-I see clues that a most bunch of these issues
-occasionally happen in our (rather large) fleet,=C2=A0
-but not this one.
-
+> folio_wake_bit() stops after waking the first exclusive waiter, so
+> this
+> loses the wakeup and can leave other waiters asleep indefinitely on
+> an
+> unlocked folio.
+>=20
+> After finish_wait(), let a waiter woken without a lock handoff try
+> once
+> more to acquire the lock. If successful, return success so the
+> caller's
+> eventual unlock wakes the next waiter. Otherwise, the current lock
+> owner
+> will do so.
+>=20
 > Fix generated by an LLM and sent by Josef Bacik in private.
 >=20
-> Fixes: 59c66c5f8c4f ("mm: factor out page cache page freeing into a
-> separate function")
+> Fixes: 5ef64cc8987a ("mm: allow a controlled amount of unfairness in
+> the page lock")
 > Cc: stable@vger.kernel.org
 > Signed-off-by: Josef Bacik <josef@toxicpanda.com>
-> [ david: get rid of filemap_free_folio() entirely; improve patch
-> description ]
+> [ david: clarify and simplify comment + description ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->=20
 
 Reviewed-by: Rik van Riel <riel@surriel.com>
 
