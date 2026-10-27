@@ -1,45 +1,45 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793132726;
-	b=SM+z3ykm19eE7QoaUYDMatqdUKg+SNx2anwaZac/vfv6W8vjqUFhiJt/eNpYiXSwyYZX
-	 +ShkHRpjL5+L5RWcnZoXDaqO4W3Dj+t1MrlxGKKiS9MaNJyWxCGIp0mdwSZS+SDr5xfKj
-	 zI674PJMPo94p4EA+hZWJyu36RJtHJYMV5JFDmSRMOVZQOqhC6AVDl7jyaD+NdBTVta8F
-	 0BgHqMf/s4iIcfTi/7hIyH4w5NyQjpc9CumDjG7mr+uv/01kilZTTYxK1QEJGrdps2S8D
-	 5CeBbFqdrkXM2PPWwT1Lr/bJSOCldGuucIa2DkBsmnH0XXz8J8yQIAkBgdcMDPLxlJQ==
+	t=1793133150;
+	b=JJMv+meN9ASG/huP8uIHVsj/nLrB4aiwTCnHcfQlyQGQXe27wpo8J5JMTqWvhmkiiENy
+	 jeCoNzx9LuS1pQ5Vs7WBjJXYFxu8QnnldfKxLMOa7MXzA1RhtW6XRsdHlgvbIix3taGt+
+	 QveqIIw3tYtBVTe2hbwHgr+vKJ9b3Hgx+wDdbSbC52Kfgijps9RPxQIok6VOsVoRORHAW
+	 k+m0r1C0XmECIPq9ouTWPVW9iA+vQSx2yD+RACvSs2TwAxgk8dDo3QsXuIokqim3SJW1c
+	 ZPmciiT8MA/gHuDgJxLXO0qL4azbM2jjKAI82xFuQ3uNT8g2GZPgEiLPViEJBk6xYCA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793132726;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793133150;
 	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
 	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=FHMTsBnJMpXJNOaP415fipWiMQQwfvRW5x3lZ/lRcHU=;
-	b=i6TIP+4TR/Ric3vsb/nFezb2EecfKAwbczaHflbPAcaF332hBEs9N8/A9U9xxZGqaALJ
-	 NaDfypSkyQad/iuoQUxVPpuk13Ily9QLjhVRLl8lmVlIYPn+OV0VlUbC9+OklJa5hwoBq
-	 MBv8U1V846DqDRm2bvYsgTCzE4dTMz0j5Xjsz2IJ7r5LX2GydVNVkGCht7Y+8Hr/EJyQi
-	 /XrPy3eC2Q9lLjZr4ZWZdSW5mKUFhRZ1NbjEb03Laa9exuuMBkWgrH5MsGtn29OzBrxY0
-	 1oLpw0m06hzVu1Y3GR3pQdYM8IZofgXLqte2C2nTCpfRPVPDCWp2XViBOzPp+UwmQGw==
+	bh=86fhQATGDo+8MDnZqTEUILQavbmG5W/eLVJguZT8p6Y=;
+	b=xXc3tnUoUNa0+9LYCBcEGClOaxVnFwXiLy35NfGhny8ocK4xcxEqKDUqBNdm6pWjZDzy
+	 3ohB9QjSyVvRQvjifBQ7wz69PVIOGzxZ8MUuwqQ0orfLYsjwekh5gPnNPohXQJIthyhtF
+	 WpDJpcsHqdb3RlD8D7zNn99ZNKuYNDV1BbwBoxAqqqDN9Gm806vlVZjiGMFbmZ6uVaF2e
+	 xHuL+gi8GHjsR10bCbI+um5iNxb8JOCsQBKegLFY5vN9VBd8O1wWZVCtjP9kovpbkOfjd
+	 buZ9vVGBQa/mqKmLfjk3y+48KVmbgyCXjQEWVolnyva2kPrO7SXKGWysrDO6czP5ouQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Mc83FUFA;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=cUUj8rbd;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 35684606A324;
-	Tue, 27 Oct 2026 20:25:26 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 28C03606A31D;
+	Tue, 27 Oct 2026 20:32:30 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Mc83FUFA
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 758541F01340;
-	Tue, 27 Oct 2026 20:25:25 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=cUUj8rbd
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6D5A11F01825;
+	Tue, 27 Oct 2026 20:32:29 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793132726;
-	bh=FHMTsBnJMpXJNOaP415fipWiMQQwfvRW5x3lZ/lRcHU=;
+	s=k20260515; t=1793133150;
+	bh=86fhQATGDo+8MDnZqTEUILQavbmG5W/eLVJguZT8p6Y=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=Mc83FUFATMQPouVzjUJeRj3mhiIcUvrA+Erhg5Hh0lTW3qwPysmiXYCN/sY2USdpd
-	 VQEeiyXwH3fAYJ+vI5Uk4lbY0OCURgOg/lZzGCGvnESQZo62rEREpGK+Ywua1pC7/p
-	 qLtQrl57LVvD3FOguw5Ccq1ddGp/nxRV2WelM6luaRwZ2gItpGPc55R3kKd/uEtYE3
-	 F962dZ5NVZdLD83zdZJ57akrnRFkaxt1wSO3UiU8UVhqMNQKVzwdHfbh6D07tWcFW0
-	 uvnXMmSet+gq+ZP42latzKtvPeBblPMlc6bL70NhuTjijHHpcfEiVBaUcHP26dtgTY
-	 lDs1oWuY01RLQ==
-Date: Tue, 27 Oct 2026 20:25:24 +0000
+	b=cUUj8rbdB8sxeJkMuDL4RCOdrYbrRplzvevKwnxFuwaEcH7HP+ENffudf2T0mpEpv
+	 5IgYZPx4U8OILjqSgrQVM2ZVtEuU+s+iUCRqr37O0SlFEfCwYP6WH8sUr54mzsCt1s
+	 iMf6J0wk9xYuuAD3vV+C40mhUS8iHT1njIORZz73KfNOXA2HaiIMPxjzwaUpjzGq0a
+	 +HDzAe6Y83Ik9oMrM+EDzTEENc7lTwdaNWApON+amLO666KTk6vgqAwdt/I26Z5K2e
+	 tnFRDkmrRt4vDlqitIfQMOzf4AtEOnF0EKCtlUHfO8gpTP2ZD2//SXJTbcFDzwJNgN
+	 ttZ0nsquNOB0g==
+Date: Tue, 27 Oct 2026 20:32:28 +0000
 From: Harry Yoo <harry@kernel.org>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
@@ -70,11 +70,10 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
 	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
 	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, stable@vger.kernel.org, 
 	Josef Bacik <josef@toxicpanda.com>
-Subject: Re: [PATCH 09/46] mm/rmap: handle device-exclusive entries in
- folio_referenced_one()
-Message-ID: <auEHPgT8JdqT222B@thinkstation>
+Subject: Re: [PATCH 43/46] mm/vma: don't leak the charge for stack growth
+Message-ID: <auEJGq46amG5oPVQ@thinkstation>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-9-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-43-6f74bec9a5bb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -86,37 +85,30 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261027-fixes_core-v1-9-6f74bec9a5bb@kernel.org>
+In-Reply-To: <20261027-fixes_core-v1-43-6f74bec9a5bb@kernel.org>
 
-On Tue, Oct 27, 2026 at 12:17:29AM +0100, David Hildenbrand (Arm) wrote:
-> page_vma_mapped_walk() can return non-present device-exclusive entries,
-> but folio_referenced_one() passes them to PTE young-bit accessors that
-> require present PTEs.
+On Tue, Oct 27, 2026 at 12:18:03AM +0100, David Hildenbrand (Arm) wrote:
+> acct_stack_growth() charges stack expansion even without VM_ACCOUNT.
+> This can happen for read-only or MAP_NORESERVE mappings created with
+> MAP_GROWSDOWN. Unmapping these VMAs does not release the charge, leaking
+> Committed_AS.
 > 
-> We must neither call clear_flush_young_ptes_notify() nor
-> folio_pte_batch() with non-present entries. For example, clearing the
-> young bit on non-present PTEs can corrupt the entry: on arm64
-> PTE_AF overlaps the swap type, so clearing it turns a device-exclusive
-> entry into an ordinary swap entry.
+> Only check and charge growth for VM_ACCOUNT VMAs, matching mremap().
+> Unaccounted growth skips the overcommit check while remaining subject
+> to the other stack-growth limits.
 > 
-> folio_pte_batch() will VM_WARN_ON_FOLIO.
-> 
-> Apply the same approach as the previous fixes to e.g., damon_ptep_mkold():
-> treat these entries as old from the CPU's perspective and obtain their
-> young state through the MMU notifier.
-> 
-> Skip PTE batching and MGLRU look-around for non-present entries, and
-> don't modify non-present PTEs.
-> 
-> Fixes: b756a3b5e7ea ("mm: device exclusive memory access")
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
 > Cc: stable@vger.kernel.org
 > Reported-by: Josef Bacik <josef@toxicpanda.com>
+> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > ---
 
 Looks good to me,
 Reviewed-by: Harry Yoo (Meta) <harry@kernel.org>
+
+Maybe worth having a warning when it's accounting w/o VMA_ACCOUNT_BIT
+or let those helpers skip when there's no VMA_ACCOUNT_BIT set... 
 
 -- 
 Cheers,
