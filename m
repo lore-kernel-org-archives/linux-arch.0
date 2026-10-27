@@ -1,78 +1,79 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
 ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1793132544;
-	b=H+J888BDwWw7/QAqT1i2tL73JrcHREwwm510u62jyFTOXqTs3/rDKYCU9dUbbfmX2OGK
-	 GHvoEs0QfP9+aB4g+qrz0uVdFylL0LwrsloEgmzVxBNHt2joGWRToOHcwqe9gxWBHjhYs
-	 qYe2YmA7/2ooEDQ3x3rJU/I/zLpFmzDh0+38973mwu2qy8Q23LEogJcztUcDMwoldH/KL
-	 a8Krq1Sv4LATX5NO371sSKr5mnQr2u2MGuok4lnvUgMR6B6kAk06ni+ef3uSrHwtdfH96
-	 RF8/aPXNGKlK/boeYF6wYe8LX3twSEW/gf3IsWe+nY1tW99UJ5daggRy02CiLz5mQCA==
+	t=1793132545;
+	b=Fwhy0W03xutjM0yRV+SjDHroNuh6s4P8qkwJaAhDC4vnB69GuFTzo8/HcgCurXEIJJ7z
+	 t7nho0pz/KtRLjqNUhU7XUifMAy8TFlyNTJfY4qnpz6x0D6xD17lVMGye5suCodBCjXXL
+	 cozOjQ3XqnomE0qkbkp8YB4QZP57Z+bVlKi/BiiAe/SBhpMa++LcItSl4L0VzX22OI+vr
+	 R98r61Sa7STcFKISY/FKW+CCtfNGXw9T/y8zaT+K6U1Q0fCXqXpZjeR7sc8Re8RQrv4IW
+	 mwbbhDjymtMAlO77nOJXbTlg6i3zZqeqEWOphEB+JCnRbiZUxeNkLkt+102TsdeKYaw==
 ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793132544;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793132545;
 	h=Received:DKIM-Signature:Received:From:Date:Subject:MIME-Version:
 	 Content-Type:Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
 	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
 	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=lju0b2KWfYe8jwtqBBfnv01v7i7za+kzbB7y4NqZ17U=;
-	b=OxJRE6fa0lBZbYHu78cAqSrrPyhogWj+okhB4Nw91OCQpW3ie02xdKxMsKXevGIlGhtN
-	 arn8UUdOpvR76XgCwhE/mw4NLWQhZJkeviAGOB3aH5FDdQ/aFDWDe650MWxRfJSrJ9e3V
-	 d8cCjaWYd+/Yxwsu8bX2ghaUHUJz+2U0gCmrwud2icJB1Nb0qzCZ52C7mrCxARxiOumcl
-	 stn/lXjTbaT0ohJjsjn2RxxP31RByTCKoYBpL0N5C51o36fk6ZKIomZvOIbelYFPw4QAa
-	 CFLjp8zNZE6zl01QUG30vjbAdYUZB+H/auoZPKJ+3A6YnZB1YTdcdHq+DOygeGk4WVw==
+	bh=7irLKmzjDJCrQVxQYI/Jd8l60rk00tZqlZ6y0Y14hI4=;
+	b=y08AsqE1AZ4k3c0RjirMfBza9YiWUkMFEKwvLlVxn7P1tB+OjL6U0tj6ibwjHJjXiz8W
+	 DYha1t3q0ejTpM/PcMdyYxznTVqpFTDbrQjniJfN83gCdIsDrhAJ8XwdAhQQ6wH73h5js
+	 H96dOwYl0fNb8CicaWpvujK8w5UA0rmm0zHxt6Vd00P7tz62g5wKvgfpA1NCEZ2eZb5Tu
+	 nBZM0GznMW86cFKjBZ0/mQe/HF7/+GIV7lOzPrpwr6EG3xFBArkydslHsNc0zr0PbV21Q
+	 9FnBpuicj3yXD09igo15mZ2YGu7OgNfGv3Iu5806h1YU/TENlUQYt8/Np9RkwFwgEJw==
 ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=QpvTk2cX;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=kNP18L8A;
 	arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 930E660A263A;
-	Tue, 27 Oct 2026 20:22:24 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8750860A5BE5;
+	Tue, 27 Oct 2026 20:22:25 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=QpvTk2cX
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=kNP18L8A
 Authentication-Results: smtp.kernel.org; arc=none smtp.remote-ip=100.80.115.77
 ARC-Seal: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256; cv=none;
-	t=1793132544;
-	b=DuuiaqltGFqWwmU0hCBtwbAvrRzIhtaIAfWov79xv+IlAls5HALKeS8KYb04qaRUVdiu
-	 rvn84DQPI+hzTQenudyoBMQg0NNU0Yz3z8c8e4EbwC09Yvk6TIP4dRxwyj6Q9qTiQUN63
-	 TdHsahWoCni2a4m3FvDMwI9tzddO20ZYSE19Cb0tk0y620j53o7yh9lrmP9gaRLbEhZ7N
-	 t3J7mZumeltaOqhQp1DQGdBp7rWrzhzM9tTANx5DOYhQS2MJp/1kUnzMr+o4eTl3ym/ej
-	 T/VeYENlb3ZZreK5R70kD+b7wE9KtrNu+Xh7f1YQXnRqcodph7vanZ4DullRcOWOwyg==
+	t=1793132545;
+	b=o38YOFXVGFTjIost5fFVIMM4bs6pO8bUZ6ZEiQJMh6rh1+aA8k4H43NJvxUkfhECQL3A
+	 7wxUH2HzDqakBSyGksUq/WAt3QUMWQyXwZ9A+q9U2MlcgS36dSWThdI45Ps9LZSqBaqjs
+	 nAwTutAPgyAWUxlnK8BaFL9i+30URjHjI+vuWBFUQ53tG0iktg7DjRqR+Forr/G4qt7fV
+	 9WQtmaOo4d5pA65X9e1X1z4fHlDSRMye/mlDJGLPJ+e69PdUiQXCVj0/Dxr5ZACyb0DdA
+	 Q5D2ijUczTa5Fbow3dmZUQe5N+kUVXpuFIAcoeJdledjbULUmNh0rZNqKyXUNK6rnyQ==
 ARC-Message-Signature: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256;
-	c=relaxed/relaxed; t=1793132544;
+	c=relaxed/relaxed; t=1793132545;
 	h=DKIM-Signature:Received:From:Date:Subject:MIME-Version:Content-Type:
 	 Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
 	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
 	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=lju0b2KWfYe8jwtqBBfnv01v7i7za+kzbB7y4NqZ17U=;
-	b=1S9NxjdVdg/a8ed/gZUvMcTxLTjw5QD79hgwA75zInfcfToOurzA2SF0uASBNnYjMUPc
-	 11Ql2z6SJwtP9bN+w5XV3qgsdO8LLpoL6jnJ++v3yu2JdOc8dGIzV9YsJu7T8ocwDyffp
-	 VT+iPvgTILndy6N8rOTUAwbR7SoAwk9L4t4UCWp2xGI8k0iSFB202sSu8UOvbVt0gk3B0
-	 CAEA57NTET+sbyGDo6R7Cbp97Eppv7ARUn26ANmjbUp3ezhmRL17h48GAmZDCGKPUNqXs
-	 Hq3hsZrc/P3Xw1G2noRLItsTGpDUNeinSmcImz60uEgd/vE4dGV8jjXe2n5NYGyzmCw==
+	bh=7irLKmzjDJCrQVxQYI/Jd8l60rk00tZqlZ6y0Y14hI4=;
+	b=AzhUN7N7wlWOXVVnQ8byJBdE+fDaCvVA7hPfxxML4OQ7IybQMOO8EPTc5E2A4APGC0a6
+	 Mog2rk349LBaYMobLQI8kmkZtWiHUBzRu0sjz6sEAxuxglzAaFaOlDODWsWA/3x+sQe/6
+	 kCkOr+0CylRQkIn0vtevmr70YYN2A5rHz1ME5xKjh/EeYZLkn6bYLM5Nk2F443FADkBx6
+	 cC8tx1mtRh2h1v4lgOX41eABU14z5GjrdXr/lTyhTgI9VESbuIL9gvzoEVG4UDLJFVy1I
+	 ef3++rNTJ2kbQ35YOVhwOQtfOUJr2Zu+pLmvh4MlhWpy5bVO9Ph9xeGiTMtKn928JjQ==
 ARC-Authentication-Results: i=1; smtp.kernel.org; 
 	arc=none smtp.remote-ip=100.80.115.77
 Received: from lkml.kernel.org (nexus.subspace.kernel.org [100.80.115.77])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.kernel.org (Postfix) with ESMTPS id DC0AB1F01364;
-	Tue, 27 Oct 2026 20:22:19 +0000 (UTC)
+	by smtp.kernel.org (Postfix) with ESMTPS id A0C6A1F01341;
+	Tue, 27 Oct 2026 20:22:17 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793132544;
-	bh=lju0b2KWfYe8jwtqBBfnv01v7i7za+kzbB7y4NqZ17U=;
+	s=k20260515; t=1793132545;
+	bh=7irLKmzjDJCrQVxQYI/Jd8l60rk00tZqlZ6y0Y14hI4=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To;
-	b=QpvTk2cXAq4t+CV12u/f7Rij+Wu97E5pA5w72PeNmMuxgtSw+gALtUEiuC15qcpHI
-	 FKsiSQ/DwmI5IICqS7hPRVwmsAGyMQeNG6iGIuOWwIiueuiBnvTQ3gGUGhU3K02zOq
-	 cnIpw0+2XWUIz/FClM0V9FOWABjsOaG/MwpHoCfb9vwhOh1m75B8sbyALuK2lHOSui
-	 BxB9bHv5kJ8d0+/BDn+Kb1VppPxycKrzL+fY1Qg7LoRr+OqsNqJaN+adplq9hrhRmj
-	 +H81UZAn2tyC1llNPMefIo7WrndpzCdgXEjkEUj/kA1yZz/4XqDODodTj4itIyC/nd
-	 nv5v9hrRfZjQA==
+	b=kNP18L8At5mdIa0W5eTLbTlUtb+6/5Ig+mW0tWgBm0PiS2FvrTyX7fmrGhOkWWnHe
+	 mk80RnDQ/0nqoglaXLKS5g3QB1ULxYhsAO0Tbix7GvwnPTFsmSGrJsxMvG7TEmJGuU
+	 w7t3n8tf5ZEZJM6jHpO2CnI2vG69c0uSHq848G12M+EPEzZLg+Q2ePQ4M1MRtWeeI9
+	 q5ZC4/mh6+5h5E3W+W54uP9HxzzgwIC+UukCgTaw0o8Q5MeaaDqNITCKSkc0xyptaS
+	 PxU1dK9FewzqtBZ9QrbY+llBdR2t4Y+G2Boy8TauWXQ0B6mVkpD0/mqWqJmMwQo0Vs
+	 wsz5rrfCm40Zw==
 Received: from nexus.subspace.kernel.org (localhost [IPv6:::1])
-	by lkml.kernel.org (Postfix) with ESMTP id 4337045278;
-	Tue, 27 Oct 2026 20:22:11 +0000 (UTC)
+	by lkml.kernel.org (Postfix) with ESMTP id D585245255;
+	Tue, 27 Oct 2026 20:22:10 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Tue, 27 Oct 2026 14:22:34 -0600
-Subject: [PATCH v13 34/39] dyndbg: fix attempt to modify an RO string
+Date: Tue, 27 Oct 2026 14:22:25 -0600
+Subject: [PATCH v13 25/39] dyndbg: check
+ DYNAMIC_DEBUG_CLASSMAP_{DEFINE,USE_} args at compile-time
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -83,7 +84,7 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Message-Id: <20261027-dd-cmap-part2-clean-v13-34-9267923be612@gmail.com>
+Message-Id: <20261027-dd-cmap-part2-clean-v13-25-9267923be612@gmail.com>
 References: <20261027-dd-cmap-part2-clean-v13-0-9267923be612@gmail.com>
 In-Reply-To: <20261027-dd-cmap-part2-clean-v13-0-9267923be612@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -112,11 +113,11 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
  Jason Baron <jbaron@redhat.com>, Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1793132527; l=1338;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1793132527; l=3645;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=ixTGO+9E4e6ny5HSFD6LFvYUhfjCd8aiyHGBDPZdcJU=;
- b=Gzv6kwnWWAGy2/gJiCLZJaE1VmrRcDtxSRjdmhkJYU6m+NltR1sVTraWZnaT3iVxIjuSNUwFW
- lldZIcBpXjNBGfJfssoWxkmm2UNFR42Tg0kyYYIXGVioHTmr0N0V82b
+ bh=ghzwH3o3jabLz27l0hBrJ1+AjVePZJA2GuQHvcYhnZA=;
+ b=Qw8iwXHrNuklN9pySdX9NVg+OD0LBTiLUTpqUc+i4QoX2kZ0MePdE8iGpJuEV/J5dO3QVBQWi
+ ccwBWGjhzNQBSZAHFn2wT16N1cN+Qc3QnQdxO44/gqKS9bOUcg6n+iZ
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -127,41 +128,94 @@ Content-Transfer-Encoding: 7bit
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-ddebug_dyndbg_param_cb() passes an RO flags string "+p" to
-ddebug_exec_queries() when no explicit param value is given, but
-callee may attempt to modify it.  Fix by adding a local mutable var,
-init'd with that value, and passing it instead.
+Add __DYNAMIC_DEBUG_CLASSMAP_CHECK to implement the following
+arg-checks at compile-time:
 
-Fixes: b48420c1d301 ("dynamic_debug: make dynamic-debug work for module initialization")
+        0 <= _base < 63
+        class_names is not empty
+        class_names[0] is a string
+        class_names.length <= 32
+        (class_names.length + _base) < 63
+        dd-map-type is known value
+
+These compile-time checks will prevent several simple misuses, issuing
+obvious errors if violated.
+
+Several bad examples are ifdef DD_MACRO_ARGCHECK qualified in
+test_dynamic_debug_submod.c and will fail compilation if enabled.
+
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- lib/dynamic_debug.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ include/linux/dynamic_debug.h | 14 ++++++++++++++
+ lib/test_dynamic_debug.c      | 20 +++++++++++++++++---
+ 2 files changed, 31 insertions(+), 3 deletions(-)
 
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index 5c87e92bbcdb..efc7a741008e 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -1637,8 +1637,9 @@ static int ddebug_add_module(struct _ddebug_info *di)
+diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
+index 72e2efa86e33..c786b589c87e 100644
+--- a/include/linux/dynamic_debug.h
++++ b/include/linux/dynamic_debug.h
+@@ -185,6 +185,19 @@ struct ddebug_class_param {
+  * __pr_debug_cls(22, "no such class"); compiles but is not reachable
+  */
  
- /* helper for ddebug_dyndbg_(boot|module)_param_cb */
- static int ddebug_dyndbg_param_cb(char *param, char *val,
--				const char *modname, int on_err)
-+				  const char *modname, int on_err)
- {
-+	char dflt_flags[] = "+p";
- 	char *sep;
++#define __DYNAMIC_DEBUG_CLASSMAP_CHECK(_clnames, _base, _mapty)		\
++	static_assert(((_base) >= 0 && (_base) < _DPRINTK_CLASS_DFLT),	\
++		      "_base must be in 0..62");			\
++	static_assert(__DDEBUG_ARRAY_SIZE(_clnames) > 0,				\
++		      "classnames array size must be > 0");		\
++	static_assert(__DDEBUG_ARRAY_SIZE(_clnames) <= 32,			\
++		      "classnames array size must be <= 32");		\
++	static_assert((__DDEBUG_ARRAY_SIZE(_clnames) + (_base)) <= _DPRINTK_CLASS_DFLT, \
++		      "_base + classnames.length must be <= 63");	\
++	static_assert(((_mapty) >= DD_CLASS_TYPE_DISJOINT_BITS) &&	\
++		      ((_mapty) <= DD_CLASS_TYPE_LEVEL_NUM),		\
++		      "unknown class_map_type")
++
+ /**
+  * DYNAMIC_DEBUG_CLASSMAP_DEFINE - define debug classes used by a module.
+  * @_var:   name of the classmap, exported for other modules coordinated use.
+@@ -198,6 +211,7 @@ struct ddebug_class_param {
+  */
+ #define DYNAMIC_DEBUG_CLASSMAP_DEFINE(_var, _mapty, _base, ...)		\
+ 	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
++	__DYNAMIC_DEBUG_CLASSMAP_CHECK(_var##_classnames, (_base), (_mapty)); \
+ 	extern struct ddebug_class_map _var;				\
+ 	struct ddebug_class_map __aligned(8) __used			\
+ 		__section("__dyndbg_class_maps") _var = {		\
+diff --git a/lib/test_dynamic_debug.c b/lib/test_dynamic_debug.c
+index 3a69cc3cae6d..01ce07001d4c 100644
+--- a/lib/test_dynamic_debug.c
++++ b/lib/test_dynamic_debug.c
+@@ -148,12 +148,26 @@ DYNAMIC_DEBUG_CLASSMAP_USE_(map_level_num, 7);
  
- 	sep = strchr(param, '.');
-@@ -1651,7 +1652,7 @@ static int ddebug_dyndbg_param_cb(char *param, char *val,
- 	if (strcmp(param, "dyndbg"))
- 		return on_err; /* determined by caller */
+ enum cat_level_offset { Vu1 = V1 + 7, Vu2, Vu3, Vu4, Vu5, Vu6, Vu7 };
  
--	ddebug_exec_queries((val ? val : "+p"), modname);
-+	ddebug_exec_queries((val ? val : dflt_flags), modname);
+-#endif
+-
++#if defined(DD_MACRO_ARGCHECK)
+ /*
+- * now add the sysfs-params
++ * Exersize compile-time arg-checks in DYNAMIC_DEBUG_CLASSMAP_DEFINE.
++ * These will break compilation.
+  */
++DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_base_neg, 0, -1, "NEGATIVE_BASE_ARG");
++DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_base_big, 0, 100, "TOOBIG_BASE_ARG");
++DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_str_type, 0, 0, 1 /* not a string */);
++DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_emptyclass, 0, 0 /* ,empty */);
++DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_maptype, 3, 10, "no such type");
++DYNAMIC_DEBUG_CLASSMAP_DEFINE(fail_base_len, 0, 60,
++			      "base", "plus", "classes", "length", "too-big");
++DYNAMIC_DEBUG_CLASSMAP_USE_(fail_offset_big, 100);
++#endif /* DD_MACRO_ARGCHECK */
++
++#endif /* TEST_DYNAMIC_DEBUG_SUBMOD */
  
- 	return 0; /* query failure shouldn't stop module load */
- }
++/*
++ * now add the sysfs-params to both sub/super-mods
++ */
+ DYNAMIC_DEBUG_CLASSMAP_PARAM(disjoint_bits, p);
+ DYNAMIC_DEBUG_CLASSMAP_PARAM(level_num, p);
+ 
 
 -- 
 2.56.0
