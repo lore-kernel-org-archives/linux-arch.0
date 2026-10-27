@@ -1,124 +1,116 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=95.215.58.183
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.53
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793103200;
-	b=EeB+S5VvELXYCgVhV13Jd18bUnHcKrwi01iA04lcDgqwa9jGx8PUFoL5Dbbi4NMZ0vwD
-	 vWaFOQd8MSafMCWswg/VA3q7MbGO15meoLBXkvFySczWpfNIzE/NSPcSilhTwcwyXpS5x
-	 UjaJB6aQ41aybH+C3zp1cMxNQJ4z2GcGz2OOKOkRBsFc3APFWyIjBqsONBDgkSAPJP8jj
-	 BgcGZNnM51oPua55W/598NfeQyuFQsq51XlqNYElJi66AAWgWe7dzPfkYXO0eDbUm6tD9
-	 gKvx8b6tqFdyXuGc3yaYVxh5tUhAhD+Eol0VakCNr2TgD2xIWATyhUMoRCvbyyZXV6w==
+	t=1793107381;
+	b=mR+17OsjAnqfqXDraHzSD+NLFjaodU4qSf6eNY2uoASZOzo4d+dWlrrwmq/4y4YBBZDQ
+	 BnLHSlhAp4dGMTyoS0QV93Q0tVYYtf+Bu25sCYTpthYbiJbElPxdBk0wkfuG4TLsgpFve
+	 Mgh56VjX/rcRKTw3qd5pRgsUcy+tkrfbycl6zCUfKijObahnxgoDe5pQ+S95FnVaqNnC8
+	 f/WCoPIsWmmMQQHG3zdQVw80IYV+fisVrn5z2uxnPprfgHwDxDVInaFHj3TFqHB7vu5rt
+	 ddmVob4PPjfAK7V3k8uz+2+OKuEKfwwGG3lrhnbM4BdbDLZIAHluozu+7CFCiFdcU5A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793103200;
-	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
-	 X-Mizu-Trace-ID:X-Migadu-Flow:From:To:Cc:Subject:Date:Message-ID:
-	 X-Mailer:In-Reply-To:References:MIME-Version:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=31R7IkymhbZDSeMb1sPHaT1Pw064ctHxU7ykW6z0bv8=;
-	b=uCS7lOpegDBHU+PfD2C55qVt5UZy1S41Do+z7+hG6FL4PEPy4qJEUqXdi8pQi2dQx2nO
-	 mGiI5pCBqs/dfCW7k1GrYKKNtJDBex1v2IHpwMwn2DCzmF3/13sGJ9lNC3MGQbP+lZ63e
-	 Hex8tbNS4x9miWMQbTFahUcJ3Q3aDj3hepfwjWx0Gc87LAoIAfhEUlBxGT8bJti6FtxQo
-	 SBuarmBwtpesC6uUiluDD2FtMrMKV2XI5DZ9AkB+BKVc/RdqXCLvZui/O1RMuM0ja1eja
-	 lKQGs2tAKOI6QpIeWNt5/VTR+ckvW6eKFWem+FKzheZToGUVREK61SPRMbYQPE1fmsQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793107381;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:X-Mailer:
+	 MIME-Version:Content-Type:Content-Transfer-Encoding;
+	bh=bt8+RMZDmd6s3sr6pjCs6SFKWlDJZBaHmutX4rG7P/I=;
+	b=Oq3Nrn+TBfu+btbKbh/3KCeFiEPG1GLqF2geovTHD8maeb4fjJOdSuiK69ihOfjbjO/A
+	 8faAL7XPrZI9zlTUfwbCOMTh7Me/2y5O5O+C4G5sBkk23E49btwyW2KzvOx2uM/cIx9bC
+	 6MYW9OxcMwrinn+sPnJh9ZLOrRD3tiTomhajBo266vZjrxn13np8/BQhIQx0f9YkYT0zD
+	 sIjA8voiqc8k9DQ9q94EEFxGRu7vBOE9403BfrbS7jonHiYE8vUUvZXqcPXpST6xet3fA
+	 GH6F1NBvcYS98tVlkixuQc7mSyNTCKe9tnhIvJU/2KLfN1ZH7VYPojY4HL3M2zm+IuQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.dev;
-	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=iCJeniYz;
-	arc=none smtp.remote-ip=95.215.58.183
-Received: from mta1.migadu.com (out-183.mta1.migadu.com [95.215.58.183])
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=D9I2Gz1I;
+	arc=none smtp.remote-ip=209.85.221.53
+Received: from mail-wr1-f53.google.com (mail-wr1-f53.google.com [209.85.221.53])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44107606A338
-	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 12:13:19 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 44107606A338
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 614E5606A334
+	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 13:23:00 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 614E5606A334
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=iCJeniYz
-X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=HldebiX4v8c7RjwCxJgdnN1Xxuzre2SESHSjUs+s7LU=;
- c=simple/simple; d=linux.dev;
- h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793103197; v=1; x=1793707997;
- b=iCJeniYzOeQbcAQXI5BCvajlY+VMzjI76dvLPSVfX2sneLffZcubV1o9wLRVYrcjxnZws7cN
- FEK1oO5Pmqg6ZAJRDivxs0RExlDmP+L+juUuH1Ht7QFL6BSk1ePWhJPiBiK/aV4HigQKrbvy3iw
- 5t9ksfvI0x6DDXWi2CE/eTlY=
-X-Envelope-To: linux-arch@vger.kernel.org
-Received: by smtp.migadu.com with ESMTPS id 05d4f9fd0d387be9;
-	Tue, 27 Oct 2026 12:13:17 +0000
-X-Mizu-Trace-ID: 05d4f9fd0d387be9
-X-Migadu-Flow: FLOW_OUT
-From: Lance Yang <lance.yang@linux.dev>
-To: david@kernel.org
-Cc: akpm@linux-foundation.org,
-	hannes@cmpxchg.org,
-	mhocko@kernel.org,
-	qi.zheng@linux.dev,
-	shakeel.butt@linux.dev,
-	ljs@kernel.org,
-	kasong@tencent.com,
-	baohua@kernel.org,
-	axelrasmussen@google.com,
-	yuanchu@google.com,
-	weixugc@google.com,
-	baoquan.he@linux.dev,
-	baolin.wang@linux.alibaba.com,
-	liam@infradead.org,
-	vbabka@kernel.org,
-	rppt@kernel.org,
-	surenb@google.com,
-	mhocko@suse.com,
-	kees@kernel.org,
-	peterz@infradead.org,
-	jannh@google.com,
-	pfalcato@suse.de,
-	hughd@google.com,
-	pasha.tatashin@soleen.com,
-	pratyush@kernel.org,
-	willy@infradead.org,
-	jack@suse.cz,
-	ziy@nvidia.com,
-	lance.yang@linux.dev,
-	riel@surriel.com,
-	harry@kernel.org,
-	apopple@nvidia.com,
-	nico.pache@linux.dev,
-	ryan.roberts@arm.com,
-	dev.jain@arm.com,
-	usama.arif@linux.dev,
-	kas@kernel.org,
-	matthew.brost@intel.com,
-	jhubbard@nvidia.com,
-	peterx@redhat.com,
-	will@kernel.org,
-	aneesh.kumar@kernel.org,
-	npiggin@gmail.com,
-	osalvador@suse.de,
-	minchan@kernel.org,
-	muchun.song@linux.dev,
-	xu.xin@linux.dev,
-	chengming.zhou@linux.dev,
-	chrisl@kernel.org,
-	shikemeng@huaweicloud.com,
-	nphamcs@gmail.com,
-	youngjun.park@lge.com,
-	gourry@gourry.net,
-	joshua.hahnjy@gmail.com,
-	rakie.kim@sk.com,
-	ying.huang@linux.alibaba.com,
-	jgg@ziepe.ca,
-	linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org,
-	kexec@lists.infradead.org,
-	linux-fsdevel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-cxl@vger.kernel.org,
-	josef@toxicpanda.com
-Subject: Re: [PATCH 32/46] mm/memory_hotplug: avoid races in pfn_to_online_page() with dying pgmap
-Date: Tue, 27 Oct 2026 20:13:07 +0800
-Message-ID: <20261027121307.40431-1-lance.yang@linux.dev>
-X-Mailer: git-send-email 2.49.0
-In-Reply-To: <20261027-fixes_core-v1-32-6f74bec9a5bb@kernel.org>
-References: <20261027-fixes_core-v1-32-6f74bec9a5bb@kernel.org>
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=D9I2Gz1I
+Received: by mail-wr1-f53.google.com with SMTP id ffacd0b85a97d-48afcd7ba9bso2515306f8f.3
+        for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 06:23:00 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1793107379; x=1793712179; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=bt8+RMZDmd6s3sr6pjCs6SFKWlDJZBaHmutX4rG7P/I=;
+        b=D9I2Gz1I6TohXPedOvNnB4ot89+HPLVnTkGptL1nmvPR4Ebd0vQn2mx7tGT4eB0wit
+         W+dL+ixtQthAPpXmXGw+in0Ctz2kcsbC7kvOahclFSp3KfkjUGqV3ABxYzaD+KwrlTD4
+         BeGIYXqQXlyJOjpqkE4+SfEnC7QOcgIF3nBUyOkghRDfERqmQA81j0Cf9h1GY+YVjcQT
+         pmi0J//7BiN8/L+QE6jbor1n6tDO9QgrBax8oRoYgFG5p1K5OAkUDsAmLXxsJOJH/haN
+         VJR4dII5YeaaxYhDUvgLePp4t+Vaoq38Df1PdbOvbABf7w3llPt9EfabyodDQesC4ZgT
+         wM5w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793107379; x=1793712179;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=bt8+RMZDmd6s3sr6pjCs6SFKWlDJZBaHmutX4rG7P/I=;
+        b=1BI6WZs823wOt3kzE8t70ekPBSZmVCdG25KcOmInUWjnl1QBuQFli4uhCGe4/vhj7H
+         nDuDQ0lJ9yCidlN422+C8oi4bKL9ENWmaFqj3/2qHHd02rNMp9tdBOVPBvdazcpiRW+Y
+         bVJSgOeXJ1fUeLp8f92KlSSS3/gizhKRarQxaBLyPz29YZguL1GyAx0lzubPmI1fkJ7v
+         6b23IM8sI6oEQXHh5YzDhIpZh/kmaez7Zqke7XPHexeXdpx+uhCJu7qR0ccfqYNvWziQ
+         DuI5lWDdB9pMIXWK5z19AdkvTUg9c3yQT4B1tzktkoyEPV2iDfi/es2Uw0dMnMsmwzzm
+         uRUQ==
+X-Forwarded-Encrypted: i=1; AKwUvBw5YtBk310mRWRGGUvnZr7SxLH3O4m3peAXtFoj/KOJIfQXNU1Zx8fbBnccKHBGvUR3afWp5PMdNKZj@vger.kernel.org
+X-Gm-Message-State: AFq9FYJKkXtJYzD+h4l73LM20wrxRJLQvmX53VsQQuhVtqlIdxgcEagT
+	3n4CzPq2hMKXMuXJ1D0mfxDhlB2MmVJtBEVQYJYoqCD+rS1PUVoskpHX
+X-Gm-Gg: AYBFou0do+MW/ypykYuHThIjOXlpL6wAfNIVF3s7410EpnphNwaJnvjnHBSekS09FOx
+	+kFPLU7FrL8RoIXed0d0VzZ/KGyZ4Qsh2stYn8s6TKEuY3Mb3AquNxyfpZCcM2iQvN92kny1jC3
+	hiPbZJ62A5P1rdIYiaBPEHohjyRGsttznsmhLrmGxiR8dExXU5kPt7hFzjpiaoRYo4RGqQ5o1xP
+	xYX9Gg3LYNy+nKMu6aopTbgTkfBl8yn7vOayk+kEniz8xuW8eBJP0qtuW8tbmZF82gHHzPHXdY9
+	7auso9vufEbivmjPCq7In4zc680XurM3nHo+BZeqlPEFVxgli8NNkT9vIQbuKBnwPc8SEYuW0IY
+	2XD7Hs6JJ9oUX+9jTgGvPEnqQit4FyOQ8xk/2GgU23f91DN6yTiice8W5e5AKE006fHIR8gXQHU
+	7omwbGKK/fNfj6dIhNFjqMvXvur642M3OWNCZ88nIBd9HDIpjRKpVSdZadNS+Jpy2JyV9OepP2N
+	9++L+YlUsR760nvVdd9LNAhJXYsSgMLrwLJ2cK/TwXSYeRN0JYs14kHRKQsBvgkq1hOFup9Vgbf
+	i5uPzGIYBbcV8BKXq7QjVbY01nt3oyIVG4D5CA==
+X-Received: by 2002:a05:6000:2388:b0:48c:7386:af18 with SMTP id ffacd0b85a97d-48e3eb2cf0fmr19717600f8f.8.1793107378393;
+        Tue, 27 Oct 2026 06:22:58 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-48e3ebc39a8sm23819954f8f.11.2026.10.27.06.22.54
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 27 Oct 2026 06:22:56 -0700 (PDT)
+Date: Tue, 27 Oct 2026 13:22:53 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: Petr Mladek <pmladek@suse.com>
+Cc: jim.cromie@gmail.com, Jason Baron <jbaron@akamai.com>, Shuah Khan
+ <shuah@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Maarten
+ Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard
+ <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, David Airlie
+ <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, Arnd Bergmann
+ <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu
+ <petr.pavlu@suse.com>, Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen
+ <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>, Jonathan
+ Corbet <corbet@net.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
+ Shuah Khan <skhan@linuxfoundation.org>, Randy Dunlap
+ <rdunlap@infradead.org>, "Rafael J. Wysocki" <rafael@kernel.org>, Pavel
+ Machek <pavel@kernel.org>, Len Brown <lenb@kernel.org>, Jonathan Corbet
+ <corbet@lwn.net>, Steven Rostedt <rostedt@goodmis.org>, John Ogness
+ <john.ogness@linutronix.de>, Sergey Senozhatsky <senozhatsky@chromium.org>,
+ Thomas =?UTF-8?B?V2Vpw59zY2h1aA==?= <linux@weissschuh.net>,
+ linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org,
+ linux-modules@vger.kernel.org, linux-doc@vger.kernel.org,
+ linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, Philipp Hahn
+ <phahn-oss@avm.de>
+Subject: Re: [PATCH v12 33/40] dyndbg: Ignore additional arguments from
+ pr_fmt
+Message-ID: <20261027132253.5f3a461d@pumpkin>
+In-Reply-To: <as4W9hToBqAvbzJ-@pathway.suse.cz>
+References: <20261012-dd-cmap-part2-clean-v12-0-3c8cc5725def@gmail.com>
+	<20261012-dd-cmap-part2-clean-v12-33-3c8cc5725def@gmail.com>
+	<as4W9hToBqAvbzJ-@pathway.suse.cz>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -129,142 +121,123 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: quoted-printable
 
+On Tue, 13 Oct 2026 13:33:10 +0200
+Petr Mladek <pmladek@suse.com> wrote:
 
-On Tue, Oct 27, 2026 at 12:17:52AM +0100, David Hildenbrand (Arm) wrote:
->From: Josef Bacik <josef@toxicpanda.com>
->
->If ZONE_DEVICE memory shares a memory section with ordinary memory, the
->section is online and the pfns of the device are valid.
->pfn_to_online_page() tells them apart by asking get_dev_pagemap() whether
->the pfn belongs to a dev_pagemap.
->
->get_dev_pagemap() only returns a dev_pagemap whose reference is alive.
->memunmap_pages() kills the reference first, waits until all pages are
->idle, and then removes the memmap. During all that time the function
->finds nothing, and pfn_to_online_page() hands out the struct pages of the
->device as if they were online memory. A pfn walker reads them while they
->are poisoned and freed.
->
->The entry in pgmap_array is only deleted after the pages have been
->removed. Look at that instead of trying to get a reference.
->
->This is probably not worth CCing stable.
->
->Fix generated by an LLM and sent by Josef Bacik in private.
->
->Fixes: 1f90a3477df3 ("mm: teach pfn_to_online_page() about ZONE_DEVICE section collisions")
->Signed-off-by: Josef Bacik <josef@toxicpanda.com>
->Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->---
-> include/linux/memremap.h |  6 ++++++
-> mm/memory_hotplug.c      | 13 +++++--------
-> mm/memremap.c            | 13 +++++++++++++
-> 3 files changed, 24 insertions(+), 8 deletions(-)
->
->diff --git a/include/linux/memremap.h b/include/linux/memremap.h
->index e3c2ccf872a8a..b5e5e626c7a59 100644
->--- a/include/linux/memremap.h
->+++ b/include/linux/memremap.h
->@@ -231,6 +231,7 @@ void memunmap_pages(struct dev_pagemap *pgmap);
-> void *devm_memremap_pages(struct device *dev, struct dev_pagemap *pgmap);
-> void devm_memunmap_pages(struct device *dev, struct dev_pagemap *pgmap);
-> struct dev_pagemap *get_dev_pagemap(unsigned long pfn);
->+bool pfn_has_dev_pagemap(unsigned long pfn);
-> bool pgmap_pfn_valid(struct dev_pagemap *pgmap, unsigned long pfn);
-> 
-> unsigned long memremap_compat_align(void);
->@@ -284,6 +285,11 @@ static inline struct dev_pagemap *get_dev_pagemap(unsigned long pfn)
-> 	return NULL;
-> }
-> 
->+static inline bool pfn_has_dev_pagemap(unsigned long pfn)
->+{
->+	return false;
->+}
->+
-> static inline bool pgmap_pfn_valid(struct dev_pagemap *pgmap, unsigned long pfn)
-> {
-> 	return false;
->diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
->index 796af1028ee23..5a972d7a9e478 100644
->--- a/mm/memory_hotplug.c
->+++ b/mm/memory_hotplug.c
->@@ -342,7 +342,6 @@ static int check_pfn_span(unsigned long pfn, unsigned long nr_pages)
-> struct page *pfn_to_online_page(unsigned long pfn)
-> {
-> 	unsigned long nr = pfn_to_section_nr(pfn);
->-	struct dev_pagemap *pgmap;
-> 	struct mem_section *ms;
-> 
-> 	BUILD_BUG_ON(IS_ENABLED(CONFIG_HAVE_ARCH_PFN_VALID));
->@@ -363,14 +362,12 @@ struct page *pfn_to_online_page(unsigned long pfn)
-> 	/*
-> 	 * Slowpath: when ZONE_DEVICE collides with
-> 	 * ZONE_{NORMAL,MOVABLE} within the same section some pfns in
->-	 * the section may be 'offline' but 'valid'. Only
->-	 * get_dev_pagemap() can determine sub-section online status.
->+	 * the section may be 'offline' but 'valid'. Only the presence of a
->+	 * pgmap can determine sub-section online status: it indicates a
->+	 * ZONE_DEVICE offline pfn. That includes a pgmap whose reference has
->+	 * been killed, its memmap is about to go away.
-> 	 */
->-	pgmap = get_dev_pagemap(pfn);
->-	put_dev_pagemap(pgmap);
->-
->-	/* The presence of a pgmap indicates ZONE_DEVICE offline pfn */
->-	if (pgmap)
->+	if (pfn_has_dev_pagemap(pfn))
-> 		return NULL;
-> 
-> 	return pfn_to_page(pfn);
+> On Mon 2026-10-12 20:37:04, Jim Cromie via B4 Relay wrote:
+> > From: Philipp Hahn <phahn-oss@avm.de>
+> >=20
+> > pr_fmt can be used to add a common prefix to any output from a module:
+> > 	#define pr_fmt(fmt) KBUILD_MODNAME ".%s " fmt, __func__
+> >=20
+> > But adding additional arguments breaks dynamic debug: =20
+> > > error: macro "DEFINE_DYNAMIC_DEBUG_METADATA_CLS" passed 4 arguments, =
+but takes just 3
+> > > |         pr_debug_ratelimited("%s", "Hello world!");
+> > > |                                                  ^
+> > > note: macro "DEFINE_DYNAMIC_DEBUG_METADATA_CLS" defined here
+> > > | #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)       \
+> > > |
+> > > error: =E2=80=98DEFINE_DYNAMIC_DEBUG_METADATA_CLS=E2=80=99 undeclared=
+ (first use in this function)
+> > > |         DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_DFLT=
+, fmt)
+> > > |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ =20
+>=20
+> I wonder what this error about undeclared macro means.
+>=20
+> > > note: in expansion of macro =E2=80=98DEFINE_DYNAMIC_DEBUG_METADATA=E2=
+=80=99
+> > > |         DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, pr_fmt(fmt));    =
+     \
+> > > |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> > > note: in expansion of macro =E2=80=98pr_debug_ratelimited=E2=80=99
+> > > |         pr_debug_ratelimited("%s", "Hello world!");
+> > > |         ^~~~~~~~~~~~~~~~~~~~ =20
+> >=20
+> > Add an additional ', ...' to DEFINE_DYNAMIC_DEBUG_METADATA_CLS to slurp
+> > any additional argument, which `pr_fmt` might add.
+> >=20
+> > --- a/include/linux/dynamic_debug.h
+> > +++ b/include/linux/dynamic_debug.h
+> > @@ -351,7 +351,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+> >  		dump_stack();					\
+> >  }
+> > =20
+> > -#define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)	\
+> > +#define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt, ...)	\
+> >  	static struct _ddebug  __aligned(8)			\
+> >  	__section("__dyndbg_descs") name =3D {			\
+> >  		.modname =3D KBUILD_MODNAME,			\
+> > diff --git a/include/linux/printk.h b/include/linux/printk.h
+> > index f594c1266bfd..5d701952e739 100644
+> > --- a/include/linux/printk.h
+> > +++ b/include/linux/printk.h
+> > @@ -742,7 +742,7 @@ do {									\
+> >  	static DEFINE_RATELIMIT_STATE(_rs,				\
+> >  				      DEFAULT_RATELIMIT_INTERVAL,	\
+> >  				      DEFAULT_RATELIMIT_BURST);		\
+> > -	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, pr_fmt(fmt));		\
+> > +	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, fmt);		\ =20
+>=20
+> IMHO, this changes the existing behavior. The prefix added by
+> pr_fmt() will no longer be stored in DEFINE_DYNAMIC_DEBUG_METADATA().
+> Is this intentional, please?
+>=20
+> Anyway, if we do not longer pass pr_fmt(fmt) then we should not
+> need to add "..." into DEFINE_DYNAMIC_DEBUG_METADATA_CLS().
+>=20
+> By other words, we newly pass just the format "fmt" without the parametes.
+> The 4th parameter was added by pr_fmt().
+>=20
+>=20
+> IMHO, the right solution is to keep pr_fmt(fmt) here and extend both
+> BEFINE_DYNAMIC_DEBUG_METADATA() and
+> DEFINE_DYNAMIC_DEBUG_METADATA_CLS()
+> to accept var args. I would expect something like:
+>=20
+> #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt, ...)	\
+> ...
+>=20
+> #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt, ...)		\
+> 	DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_DFLT, fmt, ##__VA=
+_ARGS__)
+>=20
+>=20
+> or maybe, we could "eat" the extra parameters in
+> DEFINE_DYNAMIC_DEBUG_METADATA. It would mean to keep
+> DEFINE_DYNAMIC_DEBUG_METADATA_CLS() as is and just add the "..." into
+> DEFINE_DYNAMIC_DEBUG_METADATA(), aka
+>=20
+> #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt, ...)		\
+> 	DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_DFLT, fmt)
+>=20
+>=20
+> Or do I miss something, please?
 
+Don't think that will work.
+Won't you end up with ".%s" fmt as the string without the extra argument.
+So you need to keep the expansion of pr_fmt() together until is is finally
+substituted into a printf-like call.
+It is possible to enclose it in () so it is passed as one parameter and
+remove them on the final expansion.
 
-LLM stumbled upon a possible race in kpage_read() ... 
+David
 
-Say the reader passes pfn_section_valid() for a device PFN in a section
-shared with online RAM, gets preempted, and resumes after
-pgmap_array_delete(). We'd then find no pgmap and return pfn_to_page(pfn),
-even though the subsection is no longer valid ...
+>=20
+> It is possible that the macros work another way. Or this depends
+> on another change. I checked only this patch...
+>=20
+> Best Regards,
+> Petr
+>=20
+> PS: I was curious what Sashiko says about this change and it seems
+>     that it does not review this patchset from some reasons.
+>=20
+> >  	if (DYNAMIC_DEBUG_BRANCH(descriptor) &&				\
+> >  	    __ratelimit(&_rs))						\
+> >  		__dynamic_pr_debug(&descriptor, pr_fmt(fmt), ##__VA_ARGS__);	\ =20
+>=20
 
-Could we take the memory hotplug read lock in kpage_read(), covering both
-the lookup and the metadata reads? We can drop it before put_user(), once
-we're done with the page.
-
-Maybe along these lines?
-
----8<---
-diff --git a/fs/proc/page.c b/fs/proc/page.c
-index 6aa99e42ec22..12bed36d76dc 100644
---- a/fs/proc/page.c
-+++ b/fs/proc/page.c
-@@ -12,6 +12,7 @@
- #include <linux/hugetlb.h>
- #include <linux/memremap.h>
- #include <linux/memcontrol.h>
-+#include <linux/memory_hotplug.h>
- #include <linux/mmu_notifier.h>
- #include <linux/page_idle.h>
- #include <linux/kernel-page-flags.h>
-@@ -77,6 +78,8 @@ static ssize_t kpage_read(struct file *file, char __user *buf,
- 	count = min_t(unsigned long, count, (max_dump_pfn * KPMSIZE) - src);
-
- 	while (count > 0) {
-+		/* Prevent memory removal while inspecting the memmap. */
-+		get_online_mems();
- 		/*
- 		 * TODO: ZONE_DEVICE support requires to identify
- 		 * memmaps that were actually initialized.
-@@ -101,6 +104,8 @@ static ssize_t kpage_read(struct file *file, char __user *buf,
- 		} else
- 			info = 0;
-
-+		put_online_mems();
-+
- 		if (put_user(info, out)) {
- 			ret = -EFAULT;
- 			break;
---
-
-Cheers, Lance
