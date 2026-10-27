@@ -1,100 +1,113 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.208.42
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1793122721;
-	b=FxFWDZKgvcJeadg1+tpBWD982ZDsx+/kPU4hFEP/F9Qt9/I2BH93kRVA4EaMhZWiaC1G
-	 AkFc130JiIs/esQJGUWPaJR3iYo1KBXh+HmTH7nt/Lv1HCsNdgQfHIpQWspR/JYqoloYt
-	 WnpnAJmd0wlIVlUMNQOl39G5OBwrsUj9mz4dFgekf1XYclcFoa8dJXFkpqoeJSCmpPY5/
-	 sRCRukYR/eRLC/TUIkhZoBj/iV35agSfcvjUVlcMmD9YUcubA5oTsXDc6aljN/xToDYrM
-	 oXiq3OWZJYVxkEFL2ye649u/YdqJeP4ZyhhLWH181b9nUiZiqysNXVmtdU8hFxh9JiQ==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793122721;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:
-	 MIME-Version:References:In-Reply-To:From:Date:X-Gm-Features:
-	 Message-ID:Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
-	bh=AYi2YiR3kh+gzZk6CrM84tIidytqPHRNR76c45jsmXI=;
-	b=O4G+BGo2kK+P15SpmgJftXzmsRX+upjo++LDmiwxG0+WEv6oluP6iZlEYzw+dfFwr7+x
-	 BhEySAdcFJ4zJrtUHnQfzwiefUQJRwhV+/887VZyoyb7f/951iZwSVxPABJ++IrJOxj61
-	 tGUsTZerUBC8aYLivF9kCMUd++d/tszlepgr7h/Cw9YB2v3SPoJ+yiSsVSg8Ygo4DXvnd
-	 0FzuuCytn3PK8GfV1xek8JFgu4iY1l1FDgg3F5ofwQV+vWpgTHJHOoT/cOLBAfwv+wjhe
-	 L+aIttDG6jC5BJdyiAv9CFIf1l0M9H8cxhmFBJVaTKHH1oKjY/AoMPNGW1hDOK2npYg==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=google.com;
-	spf=pass smtp.mailfrom=google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=TMbu8PxL;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.208.42
-Received: from mail-ed1-f42.google.com (mail-ed1-f42.google.com [209.85.208.42])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=148.163.139.74
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1793124245;
+	b=veDCx8thY7n9MIomOa8SXIt0uf4n5CYAhCrEcDOF/57PIl3JGE6n3r93IxQKV5WOKIun
+	 D9ehYEME+xDSdYA98BBEh+VRutFVXRDX0rfBW59UEdVTLRkke+VkyQxW+wmHXdfi8ze74
+	 9KGUq6+dGG/fF2Xf3WaJ2z9t64q3p7CcMCbylWU4T5pwMM2Mp1bN8vJOR7ba/CgMoVnVD
+	 TJ999E8vHLUlbihhPRedCwc+ovStPnhaFnpclxwY+1+RwlrJHGzYaua0gDcAttQ/W6gQt
+	 0eMsr6alVjWylbYiYu1N4UcV+lg56emBGCTDiFrCm77T6QvFffpR0X2Ble/FldT62Hg==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793124245;
+	h=DMARC-Filter:Received:DKIM-Signature:Received:Received:
+	 DKIM-Signature:X-Google-DKIM-Signature:X-Forwarded-Encrypted:
+	 X-Gm-Message-State:X-Gm-Gg:X-Received:X-Received:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:
+	 Content-Language:From:In-Reply-To:Content-Type:
+	 Content-Transfer-Encoding:X-Proofpoint-ORIG-GUID:
+	 X-Proofpoint-Spam-Info:X-Proofpoint-Spam-Details-Enc:
+	 X-Authority-Analysis:X-Proofpoint-GUID:X-Proofpoint-Virus-Version:
+	 X-Proofpoint-Spam-Details;
+	bh=CbwQln0osS5Ody02EmE3zfTJ+96bXVyWs9ItOG40Y20=;
+	b=dutsMBf6fAAjshM+yVSe1S9ajXhKQ0Ajmm9vnaGZocs1A0ECwtQgOVws4qzGmEWl9eUY
+	 zNmadIwkvKW5yU/SVYEOlPTDGfBhIrQt3h6zOvKcrxotCADJoalRHY/LENK82IqkSlx2p
+	 AEx0aeECsTUoVYhL9EHG5mtsa67orn0sKgqLZH3NUQ5wbFHuYmnklpZu4CKCufBQHpbXb
+	 V2s4/ROVCa2ov1VXfCh2vXhpzZF+FraLHC6Lvm0AzWkK4o5HDTRQsGk3/fBIYxXQvXVEy
+	 sIWifS7Zg04i+NlUjXLCl0EElOFDBvT6OInRTDQezli/zZcKSyyNaALhoVFirfA6vOg==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=columbia.edu;
+	spf=pass smtp.mailfrom=columbia.edu;
+	dkim=pass header.d=columbia.edu header.i=@columbia.edu header.a=rsa-sha256 header.s=pps01 header.b=HWMW+LuC;
+	dkim=pass header.d=columbia.edu header.i=@columbia.edu header.a=rsa-sha256 header.s=lionmail header.b=MkOva+DP;
+	arc=none smtp.remote-ip=148.163.139.74
+Received: from mx0b-00364e01.pphosted.com (mx0b-00364e01.pphosted.com [148.163.139.74])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 77122606A31F
-	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 17:38:40 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 77122606A31F
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B86F7606A321
+	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 18:04:04 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org B86F7606A321
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=columbia.edu
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=columbia.edu
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=TMbu8PxL
-Received: by mail-ed1-f42.google.com with SMTP id 4fb4d7f45d1cf-6afac79b3a3so631a12.1
-        for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 10:38:40 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1793122719; cv=none;
-        d=google.com; s=arc-20260327;
-        b=KjCwtf5ujiwbzeahaYVNdISABRJxfZSpZOFogecPZpC6fh4pKYL+c7q5o2mC/Ja4FP
-         BNs2feHfSDtW4/VysXhcQ+4U1NpRc1oH3VxD8jmsD1tG0Cnmjd2IaABnG1KENbL5MCs0
-         ltcPh+oKca34li0lYSHhr/8Ev02QWhUEcXtWFpTeAAUL4xzwIB1kuYMhdpugiK+NY3jf
-         y3l38SsyPcKoSzlw4DJfzxLBv7Q/lnFZqMWoEaWe7XxygmabSJlgF6Zv2+CF9snNZojO
-         HMDSdNLKvkBKsFGrj5RAJaivQkI71oixwfbxeiCDyUU14EJr6MeFSACbgds3qvd/qiO8
-         P66g==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=AYi2YiR3kh+gzZk6CrM84tIidytqPHRNR76c45jsmXI=;
-        fh=KD3rnXbZ9thseBzBUkv1h2noB5qCQ8Es/jsNqR5CkbA=;
-        b=hkruAryJwHKJt3XodU3ZEX9vZ8SjgW7VB2VwOkrhvs/vIWWsGNUJwj/qTDmWBJbcQL
-         1MZuGsj+KQuGulLS9Zg0tSCKUMkESozYsH2hRnmP/XaGyKGibTPOOf1EzrQ9r5tO3ON0
-         LZWRIcv6nbMixp3PHOexYYull2inqB/1HOqWuSxQzMZ2McHX2OgWvg+IFvngtq5fE53J
-         9rj68UzY6AZN8lGL8pm0vrrtPvrObjwrfoCDYksyP1sN8sC425hmYMcGgAb4XHA2LgCh
-         lXlubY7azPiP3PzZPRrDhqLv54X/cVNjrqVxVU2+Gb48c16yULNd7d0HM4rs2NnlNTJf
-         pVcw==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key, unprotected) header.d=columbia.edu header.i=@columbia.edu header.a=rsa-sha256 header.s=pps01 header.b=HWMW+LuC;
+	dkim=pass (2048-bit key, unprotected) header.d=columbia.edu header.i=@columbia.edu header.a=rsa-sha256 header.s=lionmail header.b=MkOva+DP
+Received: from pps.filterd (m0167076.ppops.net [127.0.0.1])
+	by mx0b-00364e01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 69RHhCVQ273755
+	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 14:04:03 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=columbia.edu; h=
+	cc:content-transfer-encoding:content-type:date:from:in-reply-to
+	:message-id:mime-version:references:subject:to; s=pps01; bh=CbwQ
+	ln0osS5Ody02EmE3zfTJ+96bXVyWs9ItOG40Y20=; b=HWMW+LuCz6utW8S/VyIJ
+	rHuo4CHhRhfcBnkgT2it5oCdt4YIlLKc6jaoFTG6NBRm9OQx8/Gj8cgBC4Do0iWk
+	mAEHeGX4ZEQrgjmx5BHUqwprw2uw/fxZQF3p+JzRElcb76yXcKt4GQvOnFFzOajv
+	msygurYhvvDfEXZY1Y1OFRcS/MQ3DzxL1Zn7WjVKu/boL2iCknUIbvotLMEHVOFn
+	8z9EcTAubn7A/+OQElkqnT0CU8euYHGKsuMyJovfBE9MpfZ4akkMjYw62aGpHRD7
+	9NYu/mzCxLPH6caGTchbWrsAFJNSQvq09+77FlRkr73QTb2lnAcZCq5a3XUaooGA
+	UQ==
+Received: from mail-qv1-f71.google.com (mail-qv1-f71.google.com [209.85.219.71])
+	by mx0b-00364e01.pphosted.com (PPS) with ESMTPS id 4hjqr9ckwr-1
+	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 14:04:03 -0400 (EDT)
+Received: by mail-qv1-f71.google.com with SMTP id 6a1803df08f44-91c7bf2d734so1594006d6.3
+        for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 11:04:03 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20260707; t=1793122719; x=1793727519; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=AYi2YiR3kh+gzZk6CrM84tIidytqPHRNR76c45jsmXI=;
-        b=TMbu8PxLhpBm5Jxc+UmD3OrKaB4W+TrO+HcdLK/qemtnz4THsUOJblzPEUuFNQdsAX
-         xVppISd9HZVk1k52dXnBDZH5JY2olDDSO95++GZTKXt09LrvWQXh0bdmoGTLejAK1OLt
-         bxZAkxblGRQiGMML4G9URFa8xQWaDlL49VzCVKznumP2+MyKHmYFopFrp7Vomsp36yZT
-         yCc03PZELOyQAfukDHyz3vOgAGIADyvURsSBd2Fsfa6RJBwz/JWJp+HSEvxtvlpPmo9U
-         hDMP72JYBeOYHs8QzW38V9/J7Ub9YckAD4l0ZmHIvx0H8IlISifANZcUpwjvV3oxhTkL
-         uyiA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793122719; x=1793727519;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+        d=columbia.edu; s=lionmail; t=1793124242; x=1793729042; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=AYi2YiR3kh+gzZk6CrM84tIidytqPHRNR76c45jsmXI=;
-        b=beA64r3n/H7pf/k+QpNF7q7SDVs/mFjsIa32klBupfHo/BcI8UKpF6RvmviVxg4bRe
-         71zOiRqMlb95s36cGW580LXs2JIaQendAHqqFLkrDENzpUYWZB7Xm00UtXW0AWbA7ZBP
-         rCsWtwF9bMXu07pPcfNgsax4DfcyjYEVCXUEuzq+5kcyLwAvhNLrllHp4sBrB8HlRnAY
-         R3szOw74rlmmgtEi1iyxHdX+RRfy0qBHAbgxck3VfORUsL0RanD0BXIEphfByI5lXdCn
-         eszm8EjDa4NEjuVYKsc05sQrbWL1y66Th4s6oog92rXIN6xzXiHYeBHdT1gN6yCY42dY
-         UPjg==
-X-Forwarded-Encrypted: i=1; AKwUvBwhi75wTY4YL6fEW6vsuH3BpzLf2XXdNCkgLvkFt/XuLq6FOte+4+jDQsVLeXAi1oH4iFLxY+0PGOwu@vger.kernel.org
-X-Gm-Message-State: AFq9FYLlUUNAx+Nj3tyMsjTZZaflvG0KUD4TZK3cAZCdwmYiWc/hfO/R
-	+11XNUlrNdgS0O446FG15Rei+fgyKh4oLlNPutHtopg8i1zQjghIFEp0OVyxPrcKBa87WoyzAOG
-	iWWg9fNGWe4hnzbseTZApIMCSqqFHuQBy5mYjJdvS
-X-Gm-Gg: AYBFou1mm4m+U9p7QxtpjM7OnL0XmNaYW+yX2nkNTosnPtwNQkA4fgTBwAbeqNUN28S
-	dPJo0XwmbSyjZLc2vhYwoTuNMSJWX04de0cV2erZMXBrizLXNr1vne2sAHuDurnecRTpwmGA6RK
-	Ehdlq4SLPykMvsOjHG5YCNfJFhhgbB82+/0rmoQxB6jOBWhAuzH5Vt8L6iSNlomgO1/VfYBFY9l
-	4Z1K1eLf5Gbb5hVF+GmOb+tJJHfCVaF2Ds1nkakFF4MG4It2/h7wesXIyfnJu3q+31bW8Lnjng7
-	eidAOrYUHZovFrDchxJs5vgv5hkO5xB/7tfLhJz+xFC5cZMkO6p+jZS1vWwWlZHOTRm7Nse8jS9
-	CnK0Cn8ZfuTzidMdO9CUC9vRkNIx+awF85qsyFKEx15yhUoUvFXNygHY3sbkq2XCDrQ==
-X-Received: by 2002:a05:6402:a2cf:10b0:6b4:597f:50ed with SMTP id
- 4fb4d7f45d1cf-6b4994c5b30mr2214a12.5.1793122718174; Tue, 27 Oct 2026 10:38:38
- -0700 (PDT)
+        bh=CbwQln0osS5Ody02EmE3zfTJ+96bXVyWs9ItOG40Y20=;
+        b=MkOva+DPKFBicQaIHSSly2JfoMAicHAbd7jFFZ2jAPfMZSSAxwOfcC3CPShO84ijPq
+         ZECGGl73Kz7/09FPj4HtrAatZ8+T45RQt+M4cGZiieC2QJbgruC3B154GGVXb7OAzN+0
+         2UhtrH2K//SHtIBzgQwch7+1xSTuSdd3XBXrSOFftUuUdhA49+eAWmetIwHQ/lmQkNU1
+         eDgkpiPJIa7m+mdnAJUQCGKhtaBLbGtQoh5/+RjGZf2sev+2X2y5UVI9n1Ip2H0WcVvt
+         DLiMDqjdZzodxrWp70M2mYAtjmKnXIkOjZKPebpETepX3BO/HR7B5Mv3SiADMWH9paOp
+         KEYA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793124242; x=1793729042;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=CbwQln0osS5Ody02EmE3zfTJ+96bXVyWs9ItOG40Y20=;
+        b=epJ16DNTDOakXLWiF5l6H048nPghHa9DT+AYuo7zArw4TQWRd2xzZD0g2VZyftisiu
+         ciLYt01Pmc/cZQaQ0L57MCq5hl8GIE6V8ZtbXYH43gyTmJBrKhI5d5uiVj2rFqzC3Qi4
+         0WRfarYqh+PeplWqh2Vm5wWo/I/eDaDqOpbkOSuVGSSjVfdq+tGajHAguuEwTMks2iSb
+         Ya4VhMRIXAdefoqqO8mMWmt3JQg5TfvuN257Fp2ZkpELgHw8RyNmKVgftlLFMnHj4hZN
+         5TMC007w57OzcrxEfcW6x9ZELYF6gYtxfnaRO5CFH3WNQNzPpLI0VUG37JKz5tx3WqGY
+         ciUg==
+X-Forwarded-Encrypted: i=1; AKwUvBy0Wmwip0GwdPn6W/hBIkvIoimR5+jzh4rd/DDE0QbU8Or3sgy/5lm4L+xbjNnEx9aDBo15t6rQBnOz@vger.kernel.org
+X-Gm-Message-State: AFq9FYJou+gEarcxF/MVrebSQOVd5T6AgP0ovPjDL2YIaaPniufigVAK
+	1Q9AlJWKRmz2cULFwIn0bHeHEeUzeIsvRxePFYVkrf5y4dXF+HZ2rQeQibK+SfuznLI8oh7NV2G
+	U6xEEoASXCg2EvfrOQnhPRm1z/dbceLenFPOxMj85yTER3vK9PSykc+qrapA=
+X-Gm-Gg: AYBFou39gBNm78a68lQb/W4kGZbosL32fFOHjQoyGd/bMFkkoA1I6rl3yS0ocfcGycX
+	UFdCJIbUbPIWZB5YiAiTUm1VjmWrbyMdgt3g+FnTmnVXW/fpHrMW2cSwuhMHBXTKfo01RuHZtUB
+	uuj0pnMrTV5CXbBGhKWcCbM7rwuqBVutZptotZsJKdo6B/W8qDatxmeLRtsgPCpmnOUk5tAeixt
+	suTKc/84GZ3ISSv8zEHc/HJeRGbR3k01wk+LoO0Xs0xsFjKkiv4XdHvnVYvo7HX/JdBTB+xQm7x
+	iJ5QRG8K/etHA+B6OFCjn/WwA95f0xXXZAil93GRgSJUkoKN0eqEydrujk0UMy2S6F09slwE5d9
+	kqCr6L5O4d2+8rUjPfXNmz2kN/XvJNgc8vofuzmg/A2UCrqSEHtqDEAThdN8TZ33RJe4NNORDtD
+	3ZnXMa3Dp04sTKQFtoSRt6OC17E7SjjVBbE7dwMrrJa9zrxc3+xHy5MDqGt7dqLEbdrljhgEeXR
+	A7lUnKr1THaD0A=
+X-Received: by 2002:a05:620a:2a06:b0:93e:c12c:9dd2 with SMTP id af79cd13be357-940ef9ed966mr1547500985a.82.1793124242423;
+        Tue, 27 Oct 2026 11:04:02 -0700 (PDT)
+X-Received: by 2002:a05:620a:2a06:b0:93e:c12c:9dd2 with SMTP id af79cd13be357-940ef9ed966mr1547486985a.82.1793124241704;
+        Tue, 27 Oct 2026 11:04:01 -0700 (PDT)
+Received: from [10.206.51.58] ([129.236.225.183])
+        by smtp.gmail.com with ESMTPSA id af79cd13be357-940f0a94a5csm1037624685a.41.2026.10.27.11.03.58
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 27 Oct 2026 11:04:00 -0700 (PDT)
+Message-ID: <208738b1-35df-458c-9955-e2e5318fd2c7@columbia.edu>
+Date: Tue, 27 Oct 2026 14:03:58 -0400
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -104,113 +117,114 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 10/46] mm/huge_memory: fix list corruption when
+ deferred_split_scan() races with deferred_split_folio()
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+        Johannes Weiner <hannes@cmpxchg.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+        Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>,
+        Shakeel Butt <shakeel.butt@linux.dev>,
+        Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+        Barry Song <baohua@kernel.org>,
+        Axel Rasmussen <axelrasmussen@google.com>,
+        Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+        Baoquan He <baoquan.he@linux.dev>,
+        Baolin Wang <baolin.wang@linux.alibaba.com>,
+        "Liam R. Howlett" <liam@infradead.org>,
+        Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+        Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+        Kees Cook <kees@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+        Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>,
+        Hugh Dickins <hughd@google.com>,
+        Pasha Tatashin <pasha.tatashin@soleen.com>,
+        Pratyush Yadav <pratyush@kernel.org>,
+        "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+        Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>,
+        Lance Yang <lance.yang@linux.dev>, Rik van Riel <riel@surriel.com>,
+        Harry Yoo <harry@kernel.org>, Alistair Popple <apopple@nvidia.com>,
+        Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
+        Dev Jain <dev.jain@arm.com>, Usama Arif <usama.arif@linux.dev>,
+        Kiryl Shutsemau <kas@kernel.org>,
+        Matthew Brost <matthew.brost@intel.com>,
+        John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>,
+        Will Deacon <will@kernel.org>,
+        "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+        Nick Piggin
+ <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+        Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
+        Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
+        Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
+        Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
+        Gregory Price <gourry@gourry.net>,
+        Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>,
+        Ying Huang <ying.huang@linux.alibaba.com>,
+        Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-cxl@vger.kernel.org, stable@vger.kernel.org,
+        Josef Bacik <josef@toxicpanda.com>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-23-6f74bec9a5bb@kernel.org> <auBityGTDQjXURWg@gremlin>
-In-Reply-To: <auBityGTDQjXURWg@gremlin>
-From: Suren Baghdasaryan <surenb@google.com>
-Date: Tue, 27 Oct 2026 10:38:22 -0700
-X-Gm-Features: AclHuK8I8xcfhrxH9JH4rYz28CrMoohsxda9QortkIHbiI93aH5ozWron9iLPAM
-Message-ID: <CAJuCfpHEHPNj9DKOGbVHYCUsmLf==-XkhzBAR94gNt_ErhdnnA@mail.gmail.com>
-Subject: Re: [PATCH 23/46] mm/userfaultfd: write-lock the VMA before waking
- waiters when unregistering
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-Cc: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, 
-	Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
-	Shakeel Butt <shakeel.butt@linux.dev>, Kairui Song <kasong@tencent.com>, 
-	Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>, 
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
-	Baoquan He <baoquan.he@linux.dev>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
-	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
-	Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
-	Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>, 
-	Pasha Tatashin <pasha.tatashin@soleen.com>, Pratyush Yadav <pratyush@kernel.org>, 
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>, 
-	Lance Yang <lance.yang@linux.dev>, Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
-	Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
-	Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
-	Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>, 
-	Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Oscar Salvador <osalvador@suse.de>, Minchan Kim <minchan@kernel.org>, 
-	Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
-	Chengming Zhou <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
-	Youngjun Park <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, 
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
-	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
-	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, 
-	linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	linux-cxl@vger.kernel.org, stable@vger.kernel.org, 
-	Josef Bacik <josef@toxicpanda.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+ <20261027-fixes_core-v1-10-6f74bec9a5bb@kernel.org>
+ <auCw2-_yjh1_RjiO@cmpxchg.org>
+ <5d431bf7-8813-4e2c-a40d-b45d4ff39a5b@kernel.org>
+Content-Language: en-US
+From: Mani Tofigh <mt4022@columbia.edu>
+In-Reply-To: <5d431bf7-8813-4e2c-a40d-b45d4ff39a5b@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+X-Proofpoint-ORIG-GUID: GmQmq4Nt3g_prZ44UQtKNRWO-LNWZbGz
+X-Proofpoint-Spam-Info: AW1haW4tMjYxMDI3MDA3MSBTYWx0ZWRfXxCLG1il0RUSf
+ QiNS7vguMT1j3G4QvlBHijOZfsohwzBZh3o7VJKH942f9HHXq7dPCgiuQ0dY95TEfQ3U/glQb2e
+ 1zBnKP35xCxG/RiJWZFgHC/n44kPTPGQ77l8LlXtVLL0fi3ORk94
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYxMDI3MDA3MSBTYWx0ZWRfX4yyE0UxOs53c
+ HWkVGblEBbAnFqY9T2E1xtxNtUpGh/wXsLfmHoqNXszT9RuMgz/PAxUXFj8wPoCcSouDTo+K3i+
+ YjFkHfX+yimT8CZ4x6qD9GMx7m5uTomu/Qwex/gFOw6nkDVv2qf3tX/GbBM6Gp1bg0EVFS1goCO
+ Q7Y6his7LtXZGQ5PIAwuazjA/Sa9UODihbti/qn5Hpgq39r2YhgOz6xne8P3L4YZU+CNB/Wl820
+ iecjuXqPg0cX990dMCRcdtXbmbQ592bEBxja9PHY6smBUUYDfeGMhm7EysDf7Ov+XOpY47dtDzU
+ FMJE0nUztDoYsECYtxBKCD4NoMLVr+B62ODLU2Ml1qkcgrpQy+YDrDGdgaUBSUY7pZfPoy4kdFl
+ +m2uS3zzWmsPREfs2AQkBdAbWY3OWh/LHPEP73gZKvQUmAkJ4tUYy4r7VhRWoV89MaaeypVJ0+5
+ ybA/sCqLp14NVuOnT6Q==
+X-Authority-Analysis: v=2.4 cv=PKSaavqC c=1 sm=1 tr=0 ts=6ae0e793 cx=c_pps
+ a=UgVkIMxJMSkC9lv97toC5g==:117 a=TdXXog4ttPu8yHJGq4T0ug==:17
+ a=IkcTkHD0fZMA:10 a=660iZSQnnn4A:10 a=x7bEGLp0ZPQA:10 a=A0y_DWxS2BwA:10
+ a=VkNPw1HP01LnGYTKEx00:22 a=Da8U98TiO7q1upZEImrf:22 a=Qm0qsxP7aFY2tkT6R2MF:22
+ a=VwQbUJbxAAAA:8 a=pJWPUViXIfCbsMganCcA:9 a=QEXdDO2ut3YA:10
+ a=1HOtulTD9v-eNWfpl4qZ:22 a=zY0JdQc1-4EAyPf5TuXT:22
+X-Proofpoint-GUID: GmQmq4Nt3g_prZ44UQtKNRWO-LNWZbGz
+X-Proofpoint-Virus-Version: vendor=nai engine=6900 definitions=11948
+ signatures=596817
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
+ malwarescore=0 suspectscore=0 clxscore=1011 lowpriorityscore=10 adultscore=0
+ bulkscore=10 impostorscore=10 spamscore=0 priorityscore=1501 phishscore=0
+ classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
+ reason=mlx scancount=1 engine=8.22.0-2610190000 definitions=main-2610270071
 
-On Tue, Oct 27, 2026 at 1:43=E2=80=AFAM Lorenzo Stoakes (ARM) <ljs@kernel.o=
-rg> wrote:
->
-> On Tue, Oct 27, 2026 at 12:17:43AM +0100, David Hildenbrand (Arm) wrote:
-> > userfaultfd_unregister() wakes pending missing faults before clearing t=
-he
-> > VMA's userfaultfd registration. With per-VMA fault locking, holding
-> > mmap_lock for write does not prevent another fault from queuing after
-> > the wakeup but before userfaultfd_clear_vma() write-locks the VMA. That
-> > waiter can then remain asleep indefinitely.
->
-> Oof.
->
-> I guess userfaultfd_clear_vma() only implicitly takes the VMA write lock =
-via
-> vma_modify_flags_uffd().
->
-> >
-> > Call vma_start_write() before waking waiters. Existing fault handlers
-> > queue themselves before dropping the VMA read lock, and new readers are
-> > excluded until mmap_write_unlock().
->
-> Clearly an oversight from the VMA locks work. I guess was always a Hercul=
-ean
-> task to catch every single point at which there is an implicit assumption=
- that
-> mmap write lock ~ readers (esp. faults) excluded.
->
-> >
-> > Fixes: 29a22b9e08d7 ("mm: handle userfaults under VMA lock")
-> > Cc: stable@vger.kernel.org
-> > Reported-by: Josef Bacik <josef@toxicpanda.com>
-> > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 
-Reviewed-by: Suren Baghdasaryan <surenb@google.com>
 
-Thanks!
+On 10/27/26 11:15 AM, David Hildenbrand (Arm) wrote:
+> While I have your attention: This variant works, a different proposal used
+> 
+> list_del_init_careful()
+> 
+> instead. However, that is documented to require list_empty_careful().
+> 
+> Do you think it's worth looking into?
+> 
+> 
+> https://lore.kernel.org/all/20261026-thpsplit-careful-v1-1-d357d70fd6f4@columbia.edu/
 
->
-> > ---
-> >  mm/userfaultfd.c | 3 +++
-> >  1 file changed, 3 insertions(+)
-> >
-> > diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
-> > index 669f71d485d02..7e30b5ff17be1 100644
-> > --- a/mm/userfaultfd.c
-> > +++ b/mm/userfaultfd.c
-> > @@ -3991,6 +3991,9 @@ static int userfaultfd_unregister(struct userfaul=
-tfd_ctx *ctx,
-> >                       start =3D vma->vm_start;
-> >               vma_end =3D min(end, vma->vm_end);
-> >
-> > +             /* Prevent new userfaults from being queued after the wak=
-eup. */
-> > +             vma_start_write(vma);
-> > +
-> >               if (userfaultfd_missing(vma)) {
-> >                       /*
-> >                        * Wake any concurrent pending userfault while
-> >
-> > --
-> > 2.43.0
-> >
->
-> --
-> Cheers, Lorenzo
+In this case the careful variant is fine without
+list_empty_careful() since it writes ->prev first
+and then ->next with smp_store_release(), and
+__list_lru_add() only writes to the entry after it
+sees -> next == entry so it can't race with the ->prev
+write anymore.
+
+But your version also covers the PG_partially_mapped
+race your comment mentions, which mine doesn't, so
+it's the more complete fix anyway.
+
+Thanks,
+Mani
+
