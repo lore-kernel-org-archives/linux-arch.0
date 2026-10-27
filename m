@@ -1,56 +1,57 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=96.67.55.147
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793066885;
-	b=4XSGot1qx1GDufoafcirAs8CinD6cOLd1HNsjgmgEmaXkMqoXVoP9VZzxdbkVjKE9cDZ
-	 r/rSdXplI39zt+T3E9Z0XpcJXz7m9PJbuovGp5VsvIiwGje0t3RzcJw47ewBXvcXDUmQN
-	 Sez40m6SdiHi07ndLbtdG6ESEIUdKfQVk/NtKztvVaO7O6z0CYHvKHEI+2xGM1eScEHdu
-	 YzsFMXCZXIs/Sb9vRJL0JqNDrIj71P8GdqkrsmC/Ppe+AWeMTsUVQofIkj9mGaa1Q5EeC
-	 jOFRp5uKaByLUUjMLQuI8icmM1lkhBgoW6h+1E97oYnZCeBTK+UsjeBwUL9S5ZgYJrA==
+	t=1793067500;
+	b=LkHIbFQ1kiYgst219SAjI6EPDXE1/pmuZDOv38dOOd8cZXGPrY5PXDb8cMpJkwPPXu0R
+	 AV+OyhVBbQ3dUtdqZzcELksvzileHHzs3Io/Dgb2wyHvx4uED+ZEqBUMkK/k578C5js/0
+	 iK6qs7e3TY8sbPuhZBQaxROvzlbx2STcmR79a1lYzMx42+b2AXmEJiQCUcqo6V/8PX+mh
+	 4zg5tT0LjMhTWUMjff4FQIGjqd3VpCcPK4PsrMDr9kskSGBtlu4mNFJfFlq3bCoCAPE5r
+	 +llwRdgVLrRoDAH3bQGw7WPSVHV4W0yuaE0ck85I0ZKN5uYteCKq29M8C0e86Xzuykg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793066885;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793067500;
 	h=DMARC-Filter:DKIM-Signature:Received:Message-ID:Subject:From:To:Cc:
 	 Date:In-Reply-To:References:Autocrypt:Content-Type:
 	 Content-Transfer-Encoding:User-Agent:MIME-Version;
-	bh=oLq4wxz5oEh5R1sh+VJJCccBAQfxGPFlpx22HnajP3g=;
-	b=p/EKTGqCBJhLoYsvIOmGKNJmTk4eOOcbHYzG7dk6bZxLyGMPjzf/B1KLpEXWxyZ1HFaN
-	 JZIp+TeZlovtGMJIO7Fv95sBhHPdeR2fs15mDf77ylTpcJ+2rQX35m2luk/YMenRMHYgc
-	 HQ/DpBJZORXwuDLnV98BLt6+VnhVDnvn2yKREFBFzsb4O5+LswYvhPB4c+41qbmKEq755
-	 y/tbA21L/2H9vi+7AmKvtN2GloVMGmOpMU5IIV7GBjEkZ7UWOnnAnjAax9XjNwWIIuE2c
-	 Cv59kCJnymg3cHfD/AobtmVHCcFuUKGVVkA+usQbjcHqPa0C8VLlidjBAtU+3URlkxQ==
+	bh=qGaKz0ghX7Lbonx8PvJJJqD0p/WMYPC2YliZwFbr0fY=;
+	b=fCeqF3hY+x8PIOX2QRyDjwtENfgu/eNlfiGgw9KkftehzX5euCgwICBmE8SM/NNMArbP
+	 2DfRXQwR8JD3JQgHk/bWoUSbkHR1d2ZTZ3Oo9wyXMK3/JgolGlVdE1hqhThDiV3rMAY7b
+	 9G4glcZEPjvyZg9WSWFzCYJf0gCFQiGMHDkPQNKaiI2IDE1lS8dcHn8r94ksGV/SKiflV
+	 wlqKLZlK4X5EyI7n2rwQ2mT2E/7EtwmV2N/br00XsVwqeUbh0sSsP5W0fKl8rK8yXPW6b
+	 U1MDDl6/Tpxq2NbpGY8dJAbz7itrrUWyDNi/EbL0rpk+qVvCjqfS1rhYsE1kIyqXYfg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=surriel.com;
 	spf=pass smtp.mailfrom=surriel.com;
-	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=I4TZvnuF;
+	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b="AAVc/08V";
 	arc=none smtp.remote-ip=96.67.55.147
 Received: from shelob.surriel.com (shelob.surriel.com [96.67.55.147])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40057606A31A;
-	Tue, 27 Oct 2026 02:08:05 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 40057606A31A
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E60F2606A31A;
+	Tue, 27 Oct 2026 02:18:19 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E60F2606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=surriel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=surriel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=I4TZvnuF
+	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=AAVc/08V
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=surriel.com
 	; s=mail; h=MIME-Version:Content-Transfer-Encoding:Content-Type:References:
 	In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Sender:Reply-To:Content-ID:
 	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
-	:Resent-Message-ID; bh=oLq4wxz5oEh5R1sh+VJJCccBAQfxGPFlpx22HnajP3g=; b=I4TZvn
-	uFx5nXaNn5b4N6dTFJOZnQFvfCyMSRe1WmZf0oJ6ac5FdYlGx4P4oZcraSi6f8oHxdUKQRL2hhMv2
-	k1T8Qhk4DMEliLIEGV8Z9vwg9OjZR0LHm1fw7Q4EGvmnlyqmSPcCxJDJVd3+v/SvoT1lDE5OhhWJh
-	bB0TywZtbrrrqxcpI/RWp69SqjcAEJ93TnMT1V6Mt8msESZgTNg0CoUeCX2noFZdIztNs0cPT7B/y
-	9e9Au7mlP2j0PqR5y1+9tf4+O0p9v7VEND/Q6vD2t3xAaX7LNz89F3FQppIO6jBl/Ye+nt7mv8PxY
-	jNU/oTDZc+eq68lcC1MXDWmrSHAA==;
+	:Resent-Message-ID; bh=qGaKz0ghX7Lbonx8PvJJJqD0p/WMYPC2YliZwFbr0fY=; b=AAVc/0
+	8VsTK9mY92KOp5wEbhgroVTHRCfftI50sRYAJL1JakNYXe+BTepKbKwB6Z414AlpfS+DUDqYZ+/Eh
+	nj5OxnhFMAPMtHr6a/UJArBMlo0zPGvXYzSP1AyfZimUEGGpKcN/pXFGUhEd5cPb7Dgv67jI1G4uP
+	55e644clgrRX4+HyA5EnIo6nQpVv4Na5C+pF7/iF0yMcG+jx4Pb5juMQq7eJznU+ew7NwWmld1Do7
+	JjXyIXADjvO6IyFgjI58QIOi9mZPYlrJwYQaR08EmI3Mg0q8v1woNBDGgbAYg+CVCPeVTETY9liEP
+	8I8zspCUGpVJFYfua7YslrF00KSg==;
 Received: from [2601:18c:8100:a0e0:2541:b86e:2586:d219]
 	by shelob.surriel.com with esmtpsa  (TLS1.3) tls TLS_AES_256_GCM_SHA384
 	(Exim 4.99.5)
 	(envelope-from <riel@surriel.com>)
-	id 1xLWaN-0000000B10v-3TRT;
-	Tue, 27 Oct 2026 02:06:47 +0000
-Message-ID: <639cb6dca4ab423272e05b90562ec49c7bdb12f9.camel@surriel.com>
-Subject: Re: [PATCH 04/46] mm/memfd: make f_pos accesses atomic
+	id 1xLWkM-0000000B1GF-0On5;
+	Tue, 27 Oct 2026 02:17:06 +0000
+Message-ID: <db8ec1a4c7cb160c794888a0aa51b8f3eacb2044.camel@surriel.com>
+Subject: Re: [PATCH 05/46] mm/truncate: look again if a folio left the
+ mapping
 From: Rik van Riel <riel@surriel.com>
 To: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton	
  <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, Michal
@@ -83,12 +84,12 @@ To: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton
  <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
  kexec@lists.infradead.org, 	linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, 	linux-cxl@vger.kernel.org, Josef Bacik
- <josef@toxicpanda.com>, 	stable@vger.kernel.org
-Date: Mon, 26 Oct 2026 22:06:47 -0400
-In-Reply-To: <20261027-fixes_core-v1-4-6f74bec9a5bb@kernel.org>
+ linux-arch@vger.kernel.org, 	linux-cxl@vger.kernel.org,
+ stable@vger.kernel.org, Josef Bacik	 <josef@toxicpanda.com>
+Date: Mon, 26 Oct 2026 22:17:05 -0400
+In-Reply-To: <20261027-fixes_core-v1-5-6f74bec9a5bb@kernel.org>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
-	 <20261027-fixes_core-v1-4-6f74bec9a5bb@kernel.org>
+	 <20261027-fixes_core-v1-5-6f74bec9a5bb@kernel.org>
 Autocrypt: addr=riel@surriel.com; prefer-encrypt=mutual;
  keydata=mQENBFIt3aUBCADCK0LicyCYyMa0E1lodCDUBf6G+6C5UXKG1jEYwQu49cc/gUBTTk33A
  eo2hjn4JinVaPF3zfZprnKMEGGv4dHvEOCPWiNhlz5RtqH3SKJllq2dpeMS9RqbMvDA36rlJIIo47
@@ -127,26 +128,24 @@ Precedence: list
 MIME-Version: 1.0
 
 On Tue, 2026-10-27 at 00:17 +0100, David Hildenbrand (Arm) wrote:
-> From: Josef Bacik <josef@toxicpanda.com>
 >=20
+> In that scenario, the collapsed folio with the data from before the
+> write
+> stays in the page cache after the write has returned.
 >=20
-> Set the flag when the memfd is created.=C2=A0 As for any other regular
-> file the
-> lock is only taken if the file is reachable in more than one way, and
-> nothing a memfd does in read or write waits for another operation on
-> the
-> same file.=C2=A0 This cannot be done for all alloc_file_pseudo() files:
-> anon
-> inode files such as eventfd are S_IFREG as well, and a blocked read
-> holding
-> ->f_pos_lock would lock out the write that is supposed to wake it.
+> This used to be impossible, as khugepaged only collapsed files that
+> nobody
+> had open for writing.
 >=20
-> Fix generated by an LLM and sent by Josef Bacik in private.
+> Restart the lookup at that index, like shmem_undo_range() does. The
+> same
+> problem seems to exist in truncate_inode_pages_range() as well when
+> truncate_inode_folio() fails, so handle it there as well.
 >=20
-> Fixes: 9183df25fe7b ("shm: add memfd_create() syscall")
+> Fixes: 1b6444331beb ("mm/khugepaged: enable clean pagecache folio
+> collapse for writable files")
 > Cc: stable@vger.kernel.org
-> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
-> [ david: minor description tweaks ]
+> Reported-by: Josef Bacik <josef@toxicpanda.com>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
 Reviewed-by: Rik van Riel <riel@surriel.com>
