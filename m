@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793129528;
-	b=L4kRFWVlB9Npb0nnJMnJNOp7eiCJGApRcaxkFeyZyR3qh1fG/jnhuWysDWUoVuCXo53C
-	 hsUmxGlakNNCrik38EiQe4ZYcm4Ci/+mm/MVKParuX42RNJMv7/WzX+HfRZWZH/wA/e0J
-	 SgO661DKSG/VEhxllHeiUdxtodi3kQtYkqQCG8OhezNezwXCeCugE4WB67Gtopn6iRceL
-	 8QhDFpH+71HCpDBq8hgfqW0354vha2OnWbO4eFdTQ0/LQM9dMuusLlz4K32ID7+dLqjOt
-	 tq7sZlic9Z+Nqk+YsL45FhfS+5shVW1pTYdjqARRPVVx9wLFcLh45f9HUK/cVOFidpA==
+	t=1793130082;
+	b=XyPAVyl6vmPN82Z4hEvSFe9Bgsok68afNEBxwEwGLllhKta98xbEYCfiKOQQ+xfiwsLo
+	 yHuNtO7Tc0nGxigVTHYfqSPqojkob/OoVQ6Xof34n5WtDPNcDvcppp0cu0gixiOwiAaDz
+	 2LsyDbcNerea3+bg4DICQvwm72ZRWkyewQLkVRnJDODBGnSIhWa5uxefZH6agNnkGmEF2
+	 1RdHIJKasHwQ0K+sllfdFB4AFwiFsrKMtwqMREvR2YsrOrd0IOM0rlS+bKb7a6KTEqvjK
+	 PdR2M1zNshfR7QqCdHz9sP4ZNgOMGDtXvbALRsKyKxMqiQMjscMoAaCfBSM17bhMILw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793129528;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793130082;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=pdMKQRVfPao2Y0l/0sEvsr0YaDZON+7McqaGQOdPdzM=;
-	b=J/6cUgrvAFv16RkbYopVTyHF+jmQNYG6zot+9uf6U76MH3t78tAWO5lgjwyMHwYxuHVU
-	 LsIRSB6/yUPuTrCrdwnO90Zxr6bH7eTNpR7vjT7UIb3VIjyjbAdByTzNa9aR1E7gbybIi
-	 CtXdqujL1Utvy9oyE7BLgun7kieVCWfzApVx5/ybcI2hc1MQnkz6eWf6iDzo+JtEptZcP
-	 ifU3a74SYOiJ4VHA3uACTcWm6G3vVen/l8gSUn1EopHjRFuotuN146FoOSgGEpSsv0F4k
-	 H0PKZXwh0mQgsCBX60VVIIboupEG+F33nJIpA5juLSrZhCm30+hY4kjWV57v0xTmLQw==
+	bh=0sFGvmgrvvdqPTtpY3ePN/YlR7rZ5HGLPPKOD8BQTbo=;
+	b=3ZE9xJQQFL6uTzgEp6ERqCbU7m/O5asR7myd2CQeDGV3ZqglJoSkhPyUDsDUSsI3e2C4
+	 nwJgJMGq6Wy/ChdhNcDjTZcQasIv/rnbxZuHv9xvWRm3rjJ8LWo9gVidV7GY46g7xdPLV
+	 AHVH67GrpSPH3QUgkBaiNRv6uPAA02hQYqXmdRI7JAf4Evw345jL1ynXoTzFa4tj9qnzs
+	 tgnJ5+RmrV1r77yZDOubR9ju7+cbfSE90DBhJLS1S9QlwuLQCT1GQKL2O+5ZxxURKDvLF
+	 whQBRydEPcDBY1wkaihWLYHXVMD+Ggq8O5N/H3cC4PO5l2Ot9w0RZbpHEBuJH7D1zjQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=J2KOffh9;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=KUqg9k85;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 840E4606A31A;
-	Tue, 27 Oct 2026 19:32:08 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2F47F606A31A;
+	Tue, 27 Oct 2026 19:41:21 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=J2KOffh9
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 256D31F01825;
-	Tue, 27 Oct 2026 19:31:52 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=KUqg9k85
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4BE191F01825;
+	Tue, 27 Oct 2026 19:41:04 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793129528;
-	bh=pdMKQRVfPao2Y0l/0sEvsr0YaDZON+7McqaGQOdPdzM=;
+	s=k20260515; t=1793130081;
+	bh=0sFGvmgrvvdqPTtpY3ePN/YlR7rZ5HGLPPKOD8BQTbo=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=J2KOffh9t5THz/aVV9AXm+zRNrOFDoRwtp977EUo1PAOBknoI8V3BnNjjtRLAE4Ru
-	 GY5GDPTQ+/81Ar3+hzwrjA0JeTMSAd3xgLXkkWNIOh4w5qNGRaWbYHgigxK1BSB0q7
-	 ly8wspHWyvxYXk9F43GT7SewL7fEGQ0Hpa7OJz1VbSrP8w/Wv8rLA0NKXANgiBfMrD
-	 TTqIJu5xLE1Ab2vB6aGL8JXJt7kYBWgxH7cJ5Z/fmQvZq4f73ADggruc/guEar+TGR
-	 HrC4fv0DA8YODO90lZnMcUoWInit/GOljN2R28H+dA2gPH4zQmKtMA4c2HYGyd/lsp
-	 d3rkBUoXQHNBg==
-Message-ID: <e894d61c-9b99-4fdd-bf88-c4efd77a75ff@kernel.org>
-Date: Tue, 27 Oct 2026 20:31:50 +0100
+	b=KUqg9k85dXedpUxZlyCn3ouG4WACyQDbub3inF4OVMYoH5feG4/NNiPbptLeRhegn
+	 SKw5wGbktOA7voLurZSAAgcuGFDFKzI0FM86U2UBPnHevtJL/EuTxW2KUq2JxeRzJN
+	 5nmLyyESp6PMWhbXHarGTEtcNTKzLJNtMpjSX/IzCHpl7qWjhYf9YDX4fIHuu9q7XY
+	 mXGKpCuLXFlzWTVByl9zw3cGL7GPSTFExRV9Q1oPtXh+YFoKSgzPvy/Y9up7fXsUPY
+	 3xntQC4/GuQ64zNpykYrG0yZFoewu/pYCR6VED14ZnMVxIwO2hUi86jK1fgzMFZNXa
+	 DjwyYVSOD4Jhw==
+Message-ID: <87e3d64e-8b25-4d51-a984-7ab8a58f785d@kernel.org>
+Date: Tue, 27 Oct 2026 20:41:02 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,47 +52,32 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 25/46] mm/userfaultfd: wake waiters when registration
- modes are removed
-To: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>,
- Gregory Price <gourry@gourry.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>,
- Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
- Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
- Kairui Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>,
- Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
- Wei Xu <weixugc@google.com>, Baoquan He <baoquan.he@linux.dev>,
- Baolin Wang <baolin.wang@linux.alibaba.com>,
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
- Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
- Pasha Tatashin <pasha.tatashin@soleen.com>,
- Pratyush Yadav <pratyush@kernel.org>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
- Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
- Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
- Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
- Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
- Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
- Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
- Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
- Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
- Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
- Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>,
- Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>,
- linux-mm@kvack.org, linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
+Subject: Re: [PATCH 32/46] mm/memory_hotplug: avoid races in
+ pfn_to_online_page() with dying pgmap
+To: Lance Yang <lance.yang@linux.dev>
+Cc: akpm@linux-foundation.org, hannes@cmpxchg.org, mhocko@kernel.org,
+ qi.zheng@linux.dev, shakeel.butt@linux.dev, ljs@kernel.org,
+ kasong@tencent.com, baohua@kernel.org, axelrasmussen@google.com,
+ yuanchu@google.com, weixugc@google.com, baoquan.he@linux.dev,
+ baolin.wang@linux.alibaba.com, liam@infradead.org, vbabka@kernel.org,
+ rppt@kernel.org, surenb@google.com, mhocko@suse.com, kees@kernel.org,
+ peterz@infradead.org, jannh@google.com, pfalcato@suse.de, hughd@google.com,
+ pasha.tatashin@soleen.com, pratyush@kernel.org, willy@infradead.org,
+ jack@suse.cz, ziy@nvidia.com, riel@surriel.com, harry@kernel.org,
+ apopple@nvidia.com, nico.pache@linux.dev, ryan.roberts@arm.com,
+ dev.jain@arm.com, usama.arif@linux.dev, kas@kernel.org,
+ matthew.brost@intel.com, jhubbard@nvidia.com, peterx@redhat.com,
+ will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com,
+ osalvador@suse.de, minchan@kernel.org, muchun.song@linux.dev,
+ xu.xin@linux.dev, chengming.zhou@linux.dev, chrisl@kernel.org,
+ shikemeng@huaweicloud.com, nphamcs@gmail.com, youngjun.park@lge.com,
+ gourry@gourry.net, joshua.hahnjy@gmail.com, rakie.kim@sk.com,
+ ying.huang@linux.alibaba.com, jgg@ziepe.ca, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
  linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-cxl@vger.kernel.org, stable@vger.kernel.org
-References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-25-6f74bec9a5bb@kernel.org>
- <179307782442.2301705.17273288326330283268.b4-reply@b4>
- <auBcES74Q5M3MWCW@gremlin>
+ linux-cxl@vger.kernel.org, josef@toxicpanda.com
+References: <20261027-fixes_core-v1-32-6f74bec9a5bb@kernel.org>
+ <20261027121307.40431-1-lance.yang@linux.dev>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -139,131 +124,58 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <auBcES74Q5M3MWCW@gremlin>
+In-Reply-To: <20261027121307.40431-1-lance.yang@linux.dev>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 10/27/26 09:24, Lorenzo Stoakes (ARM) wrote:
-> On Mon, Oct 26, 2026 at 10:10:24PM -0700, Gregory Price wrote:
->> From: Gregory Price <gourry@gourry.net>
->> Subject: [PATCH] mm/userfaultfd: compare exact registration modes before skipping
->>
->> Changing registration from MISSING|WP to WP returns success but leaves
->> MISSING enabled. The no-op check sees that WP is already set and skips
->> the update, so later accesses to missing pages still wait for userspace.
->>
->> Skip the update only when the current and requested UFFD modes match
->> exactly.
->>
->> Fixes: 63b2d4174c4a ("userfaultfd: wp: add the writeprotect API to userfaultfd ioctl")
->> Cc: stable@vger.kernel.org
->> Signed-off-by: Gregory Price (Meta) <gourry@gourry.net>
->> ---
->>  mm/userfaultfd.c | 2 +-
->>  1 file changed, 1 insertion(+), 1 deletion(-)
->>
->> diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
->> index 669f71d485d02..0a28130cebc99 100644
->> --- a/mm/userfaultfd.c
->> +++ b/mm/userfaultfd.c
->> @@ -2299,7 +2299,7 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
->>  		 * userfaultfd and with the right tracking mode too.
->>  		 */
->>  		if (vma->vm_userfaultfd_ctx.ctx == ctx &&
->> -		    vma_test_all_mask(vma, vma_flags))
->> +		    (vma->vm_flags & __VM_UFFD_FLAGS) == vm_flags)
+> LLM stumbled upon a possible race in kpage_read() ... 
 > 
-> Would be better not to regress to the legacy API. I realise we don't use it for
-> backported fixes in general, but this patch obviously won't apply to older
-> versions anyway, so we should use the correct API now, and this for older
-> versions.
-> 
-> I'll add a better predicate probably to do this in one go, but for the fix,
-> I put the correct patch below.
-> 
-> 
->>  			goto skip;
->>
->>  		/*
->>
->> --
->> Gregory Price <gourry@gourry.net>
-> 
-> diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
-> index 777bf122d32a..c71cb9179913 100644
-> --- a/mm/userfaultfd.c
-> +++ b/mm/userfaultfd.c
-> @@ -2288,6 +2288,9 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
->  		prev = vma;
-> 
->  	for_each_vma_range(vmi, vma, end) {
-> +		const vma_flags_t curr_vma_flags =
-> +			vma_flags_and_mask(&vma->flags, __VMA_UFFD_FLAGS);
-> +
->  		cond_resched();
-> 
->  		VM_WARN_ON_ONCE(!vma_can_userfault(vma, vm_flags, wp_async));
-> @@ -2300,7 +2303,7 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
->  		 * userfaultfd and with the right tracking mode too.
->  		 */
->  		if (vma->vm_userfaultfd_ctx.ctx == ctx &&
-> -		    vma_test_all_mask(vma, vma_flags))
-> +		    vma_flags_same_pair(&curr_vma_flags, &vma_flags))
->  			goto skip;
-> 
->  		/*
-> 
-> --
-> Cheers, Lorenzo
+> Say the reader passes pfn_section_valid() for a device PFN in a section
+> shared with online RAM, gets preempted, and resumes after
+> pgmap_array_delete(). We'd then find no pgmap and return pfn_to_page(pfn),
+> even though the subsection is no longer valid ...
 
-I now have:
+I think that's similar to our pfn_to_online_page() vs. memory offlining races,
+just slightly different. Getting these races down to 0 is pretty hard.
 
-From e2cb5867bd46dd6c601dfa5f0415bf7c8e12600a Mon Sep 17 00:00:00 2001
-From: Gregory Price <gourry@gourry.net>
-Date: Tue, 27 Oct 2026 20:27:52 +0100
-Subject: [PATCH] mm/userfaultfd: compare exact registration modes before
- skipping
+This patch here tries to do better and arguably almost looks like a cleanup.
 
-Changing registration from MISSING|WP to WP returns success but leaves
-MISSING enabled. The no-op check sees that WP is already set and skips
-the update, so later accesses to missing pages still wait for userspace.
+I wouldn't worry about that one for now; it's extremely unlikely to hit. And it'
 
-Skip the update only when the current and requested UFFD modes match
-exactly.
+> 
+> Could we take the memory hotplug read lock in kpage_read(), covering both
+> the lookup and the metadata reads? We can drop it before put_user(), once
+> we're done with the page.
+> 
+> Maybe along these lines?
+> 
+> ---8<---
+> diff --git a/fs/proc/page.c b/fs/proc/page.c
+> index 6aa99e42ec22..12bed36d76dc 100644
+> --- a/fs/proc/page.c
+> +++ b/fs/proc/page.c
+> @@ -12,6 +12,7 @@
+>  #include <linux/hugetlb.h>
+>  #include <linux/memremap.h>
+>  #include <linux/memcontrol.h>
+> +#include <linux/memory_hotplug.h>
+>  #include <linux/mmu_notifier.h>
+>  #include <linux/page_idle.h>
+>  #include <linux/kernel-page-flags.h>
+> @@ -77,6 +78,8 @@ static ssize_t kpage_read(struct file *file, char __user *buf,
+>  	count = min_t(unsigned long, count, (max_dump_pfn * KPMSIZE) - src);
+> 
+>  	while (count > 0) {
+> +		/* Prevent memory removal while inspecting the memmap. */
+> +		get_online_mems();
+get_online_mems() is the big hammer we try to avoid (or ideally remove at some
+point). And it's most pfn_to_online_page() users that are affected.
 
-Fixes: 63b2d4174c4a ("userfaultfd: wp: add the writeprotect API to userfaultfd ioctl")
-Cc: stable@vger.kernel.org
-Signed-off-by: Gregory Price (Meta) <gourry@gourry.net>
-[ david: apply fixup from Lorenzo ]
-Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
----
- mm/userfaultfd.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+A seqcount in pfn_to_online_page() could detect concurrent pgmap removal and
+retry from the start. But I'd rather delay something like that.
 
-diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
-index 710e913c73bf..24b7a2612469 100644
---- a/mm/userfaultfd.c
-+++ b/mm/userfaultfd.c
-@@ -2291,6 +2291,7 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
- 
- 	for_each_vma_range(vmi, vma, end) {
- 		const bool any_mode_removed = vma->vm_flags & __VM_UFFD_FLAGS & ~vm_flags;
-+		const vma_flags_t curr_vma_flags = vma_flags_and_mask(&vma->flags, __VMA_UFFD_FLAGS);
- 
- 		cond_resched();
- 
-@@ -2304,7 +2305,7 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
- 		 * userfaultfd and with the right tracking mode too.
- 		 */
- 		if (vma->vm_userfaultfd_ctx.ctx == ctx &&
--		    vma_test_all_mask(vma, vma_flags))
-+		    vma_flags_same_pair(&curr_vma_flags, &vma_flags))
- 			goto skip;
- 
- 		/*
--- 
-2.43.0
-
+Thanks for taking a look! (Can I convince you to review some of the THP fixes?
+pleeeeaaasseee :) )
 
 -- 
 Cheers,
