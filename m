@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793128199;
-	b=2gleGfvdhZEkW0UWxMR7pTjSLWuqP1RwptaEbQiX83kdaYIEBldVLDaSasN0y4tM3s0k
-	 PXZR9DqfoEuhXt0q2y2tf67SoxB9XAbDNabX5ovklbw+mkuJAKkR2RjCnzEtc2QUcwDea
-	 IdEeQS9wOhKU+SZNzeZUtIxmz2KRqcu6qJmSm6wYzq1bIYIjdH7S98YbkhLKkwhvLaNdi
-	 TVK9+n66VxIHmReQtQZIS+zXIzBtbBFI4mjdOVPUqvU/C1GX2PnkJLUq0dMxXs4Ttez20
-	 vRfRGzTWQo0UO5KS4ymE/V2GF5qq5puDsjBuX3FWTUrgkooTcMszgLy3aEBTI/jJ5Bg==
+	t=1793128248;
+	b=Hukk6OrV+x5EOrSO6oBZJPbiNjH15Ra8ZvW854JDYWxNiLXKjIAP8TUJT39u5XzDT4VH
+	 RYi8Ef7D9dd3ZESu+oM2SNgYbabVAOFP9+0Dmq6OMfMncKzpk/G93L2Tj6F71sVgGygGn
+	 EAvTGyIpsodtAs3tSTgJtAfpSG7A90mEFGEsk95FEhAswja/0bwtpGtsvlnhbMkNXRVNh
+	 yDsMyPWWGZkIX9jQkYzy6FMs5Y5JZvGpL+Q56flMvNXZiwWglwdrKvbdDyx6qUNlGNIUe
+	 FJQnAqRZ9p5hZasLNGFoj4aaziQj8LJyede7RNkHwCuG9I6tWMbs2AcUqHpuswi2PPg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793128199;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793128248;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=kkvfEtwgKNH/KsYhrOsWJWMTyAP67vGHRSRe8u51NyU=;
-	b=HZNmWp1MSJZGEXOlGwd6KJKgHBz0RE9zWTRsJhWbWBRqX5F5pIIE3n7mr8WFNcCrZdI5
-	 kuoPYX0uzhBkr8HoCVqVfxF/UjBNl91RjWEogGOzQTceqTa8QBKwvIlkf1GWCNVE0Gpfp
-	 OWQnGA4Pg31hoXiOINnLzRaje2NJcirO2vPzClOvffO/qbNnoalRQF+mZOVCJyyjVf31l
-	 Gap7FNKUwltAV3GAlNc+0Nz5mxLvLE5vVBX1m/oToaUyitcOvZw6fax0WsMYJB7+y750/
-	 ZpxQ7xSbMwrhNjZoyy1OKHjIHLk4MNagjXE576OADLN+ScSuvRSBwW+iTz7U/cVCK2w==
+	bh=gxw22+dUBVHsNmkwZBBvZhpzn7DjpEcijhpCagz+H44=;
+	b=hJwShB8h8p4uVfFptFB2IiN4NKtoKwwh8RhW9ct5mlxYHlVH47Fu8vLXZ87Ek1H7wakb
+	 ppE/oR6gNeJKPdy7ftNgr5mb1Cx3S/+Ye7pZ5O6qX8LP0wZejM+XilQCkHPMegGaXVQ7C
+	 jTdddHq46ke9VLxnThiygnjigkzapubuRECsXTyF1iwegHo5XyFxn9O8wl4VxuAUW1NPB
+	 5gJQcSCZc+oNHcYt+KihUDQbtDhB9C6oxTlDL5KgKE0CaHZfVcKSDyk5YCn2MrX6UVlGG
+	 eePLFsc9id3p/UoNgfNWY9dsffB87a/X31R1NwGXfr4GwiYXjovjcoqAREuWaZBPg7A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=es2eEKk+;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JLRsA5zy;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA674606A31A;
-	Tue, 27 Oct 2026 19:09:58 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7FB65606A31E;
+	Tue, 27 Oct 2026 19:10:48 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=es2eEKk+
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 197B11F01825;
-	Tue, 27 Oct 2026 19:09:39 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JLRsA5zy
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5DF241F01829;
+	Tue, 27 Oct 2026 19:10:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793128198;
-	bh=kkvfEtwgKNH/KsYhrOsWJWMTyAP67vGHRSRe8u51NyU=;
+	s=k20260515; t=1793128248;
+	bh=gxw22+dUBVHsNmkwZBBvZhpzn7DjpEcijhpCagz+H44=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=es2eEKk+bUcpnare1MMH51MzJ56RMYhJHCJ4BbctEiBx+OTKwVt98ZYvFRoK2s802
-	 7zEK/2ivxgL2Z2lGDn9QxlCzi4S3oV1kfpOid34xAz5jxDFltH8xfEeJp9M+7/Ptz3
-	 ZE8XAUsU66F9fKYfgRjOUGIK8VrdX7t9QDm8O3gjYy/vNY6XRXPLq1oT35R7IfhNm6
-	 vfwa47AhjF15KgJ4OPPZLClvSNtHPclXBuu0DOKz/kQ3wVHCLyxglh19i1lO5umlq1
-	 7M+LKT4FNl3GB5zrB/ijPxIInk/P+8QS2D4Fk1N0Zv8kpezBwrOu3C7LY5oNXwaWnb
-	 JBUMmaM0Rvp7A==
-Message-ID: <c4be5787-c519-4fc5-8e58-743b30bb6692@kernel.org>
-Date: Tue, 27 Oct 2026 20:09:36 +0100
+	b=JLRsA5zy6lBMaJmnj1OuZDWK7USr/fw9H52uehWRrOa/1j8WudtcfkokPA36DPpQP
+	 S0rcY4Q/4pP+YF+byKiwleEgDfpZwaUDVDm4L7dPRJIfN292VDlcwOc90kWkBxY6b1
+	 Mi8DZt6gPGhhyfK5+ZRUlwvd29AYr89em87D8L5KbOI1ZjOc3pnjoO99WUhQdMSkwB
+	 Kd8v2WIYlELKJVpxwWEEssNQoRGjucCE81+gjs5//M4+n2M/ral1GW4g4bdGx/h0lV
+	 9ntzmhQGFkbsCzUTDYBHkrEOBWleeXSGrd95OomWvfwcKf7/2yVImSsxRlxqZR1HRK
+	 AiDKFUxA3cIPA==
+Message-ID: <3d5e6a17-3ca5-4e87-baab-f349073ab8e4@kernel.org>
+Date: Tue, 27 Oct 2026 20:10:27 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,15 +52,15 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 04/46] mm/memfd: make f_pos accesses atomic
-To: Gregory Price <gourry@gourry.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>,
- Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
- Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
- Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
- Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
- Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
- Baoquan He <baoquan.he@linux.dev>,
+Subject: Re: [PATCH 06/46] mm/filemap: read mapping->a_ops->free_folio under
+ i_lock
+To: Rik van Riel <riel@surriel.com>, Andrew Morton
+ <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>,
+ Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>,
+ Shakeel Butt <shakeel.butt@linux.dev>, Lorenzo Stoakes <ljs@kernel.org>,
+ Kairui Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>,
+ Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>,
+ Wei Xu <weixugc@google.com>, Baoquan He <baoquan.he@linux.dev>,
  Baolin Wang <baolin.wang@linux.alibaba.com>,
  "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
  Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
@@ -71,27 +71,27 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  Pratyush Yadav <pratyush@kernel.org>,
  "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
  Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
- Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
- Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
- Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
- Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
- Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Harry Yoo <harry@kernel.org>, Alistair Popple <apopple@nvidia.com>,
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
+ Dev Jain <dev.jain@arm.com>, Usama Arif <usama.arif@linux.dev>,
+ Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
+ John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>,
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
  Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
  Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
  Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
  Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
- Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>,
- Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>,
- linux-mm@kvack.org, linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
- linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>,
- stable@vger.kernel.org
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
+ Josef Bacik <josef@toxicpanda.com>, stable@vger.kernel.org
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-4-6f74bec9a5bb@kernel.org>
- <179307206859.1171062.6841971971647864368.b4-reply@b4>
+ <20261027-fixes_core-v1-6-6f74bec9a5bb@kernel.org>
+ <f12ffd4cf8933452ef13adae55d6d238a3069235.camel@surriel.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -138,38 +138,24 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <179307206859.1171062.6841971971647864368.b4-reply@b4>
+In-Reply-To: <f12ffd4cf8933452ef13adae55d6d238a3069235.camel@surriel.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 10/27/26 04:34, Gregory Price wrote:
-> On 2026-10-27 00:17 +0100, David Hildenbrand (Arm) wrote:
+On 10/27/26 03:43, Rik van Riel wrote:
+> On Tue, 2026-10-27 at 00:17 +0100, David Hildenbrand (Arm) wrote:
 >> From: Josef Bacik <josef@toxicpanda.com>
 >>
->> Commit 9c225f2655e3 ("vfs: atomic f_pos accesses as per POSIX") made
->> read(), write() and lseek() on a shared open file description of a regular
->> file serialize on ->f_pos_lock.  The flag that asks for it,
->> FMODE_ATOMIC_POS, is set in do_dentry_open().  A memfd is a regular file
->> too, but its struct file comes from alloc_file_pseudo() and never passes
->> through do_dentry_open(), so it does not get the flag:
+>> The bug was found by code inspection and has not been reproduced.
 >>
-> ... snip ...
->>
->> Fixes: 9183df25fe7b ("shm: add memfd_create() syscall")
->> Cc: stable@vger.kernel.org
->> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
->> [ david: minor description tweaks ]
->> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> I can't say I'm surprised ;)
 > 
-> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
-> Tested-by: Gregory Price (Meta) <gourry@gourry.net>
+> I see clues that a most bunch of these issues
+> occasionally happen in our (rather large) fleet, 
+> but not this one.
 
-Thanks!
-
-> 
-> This one arguably should have at least a trivial selftest.
-
-Yes, best to bundle some of these and send them out after the fixes landed. Thanks!
+IIRC it's mostly memory_failure() only that can trigger this today ... so not
+surprised :)
 
 -- 
 Cheers,
