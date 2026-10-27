@@ -1,113 +1,133 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.57.61
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1793115670;
-	b=DvW7H3hRmVFl8kg/Erunu+nmMWKR/oiRDHwvtiJ6QwTz17U3nYD9MxxsDIXgA5lOZgDr
-	 x4IsmMiih/GaYy2Yyq63t/YLv4HKlA9yafabHVknYOXmDBxp3QPMkoHVpapZnus0ideha
-	 vo6ge2md4UdyK3QMJND9zTOC0wGcwqSpf3fXBQdKf5M/AQOwza6sG9PcXXjsAn/ZluUiq
-	 LM2Q3jThh/60yoRsVkvOeg+3z32HaRIaM1aktJdRtPAFO96UdiJzDZEg994Ka2zTMsGIt
-	 GdlK4dN+Eh3R971Kl1Z31Kt9XrqSserbg95WkqORscXPikKy3r+lFqg0e+9cnVjJ2AQ==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793115670;
-	h=DMARC-Filter:DKIM-Signature:Received:Received:Date:From:To:Cc:
-	 Subject:Message-ID:References:Content-Type:Content-Disposition:
-	 In-Reply-To:X-ClientProxiedBy:MIME-Version:X-MS-PublicTrafficType:
-	 X-MS-TrafficTypeDiagnostic:X-MS-Office365-Filtering-Correlation-Id:
-	 X-MS-Exchange-SenderADCheck:X-MS-Exchange-AntiSpam-Relay:
-	 X-Microsoft-Antispam:X-Microsoft-Antispam-Message-Info:
-	 X-Forefront-Antispam-Report:
-	 X-MS-Exchange-AntiSpam-MessageData-ChunkCount:
-	 X-MS-Exchange-AntiSpam-MessageData-0:X-OriginatorOrg:
-	 X-MS-Exchange-CrossTenant-Network-Message-Id:
-	 X-MS-Exchange-CrossTenant-AuthSource:X-MS-Exchange-CrossTenant-AuthAs:
-	 X-MS-Exchange-CrossTenant-OriginalArrivalTime:
-	 X-MS-Exchange-CrossTenant-FromEntityHeader:
-	 X-MS-Exchange-CrossTenant-Id:X-MS-Exchange-CrossTenant-MailboxType:
-	 X-MS-Exchange-CrossTenant-UserPrincipalName:
-	 X-MS-Exchange-Transport-CrossTenantHeadersStamped;
-	bh=+p6nG3kPSl+4+8AQOLFlHL/hfyMc7R+DO34PRO5plDw=;
-	b=L9phbQSa16HbyWHPH+vDW8TEyInd1I9krPN2i+a65DXELMTzsdxvxFXDwwvlh6zl2AH3
-	 2Yt4cmqiwID1eYIAittA/96uUygfBSnnjw5gkzbfS8IEVOOcExUuH4Ax/l7u3pvuOCm6u
-	 lA+02ELZ2d1AOxTdOHePfq3DVkeDPZdIVTjePiY0rO5DjRnN/29Dlf4/jP6NN1voYcnQ2
-	 AiQNimIjJBV43KvzIJLyj/BReP4Es3rN1NAZskMmtrJiPW78SH8oooP1AlX5gPK5AOvY6
-	 toQdwG3yjg9BdUwhhF6Radu65udgTZjml9pCEtStetNfC1PXnowHNwqIjkzCugG/jSw==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=nvidia.com;
-	spf=fail smtp.mailfrom=nvidia.com;
-	dkim=pass header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=LLeSWfiO;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.57.61
-Received: from BN8PR05CU002.outbound.protection.outlook.com (mail-eastus2azon11011061.outbound.protection.outlook.com [52.101.57.61])
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=195.135.223.131
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1793115781;
+	b=XRuUZfZxb2N3b1xsSmgSSpBnrXZr5VUClFNQ7f7zyZlOY8w3k+876eybwlFtgDthhuVB
+	 lsLAOBSY+EGkwUWHJZmXRbTZmqxI5vhSCXaEJSoK1h8IGdJMOTHyyLjaevRuII4PkMOPi
+	 +ctCHgASexDVhNdp6H6m6VhG2urxB/jhNlkx3KPdG1FduQnFGVnnKxz9K2ao7lQaxJE1i
+	 bW60pZpp5qmH0XlYatkr5nbBxqNPjsIAEFqal7SoYIppc/omnmfQIGTz+ZlceNlhOUJxM
+	 F1/HrWEGsYo2MHvIlJY+wcxD86JX7juQjs07TnhETbmHw6mPzkowH7ovK2aZEggJuXQ==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793115781;
+	h=DMARC-Filter:Received:DKIM-Signature:DKIM-Signature:DKIM-Signature:
+	 DKIM-Signature:Received:Received:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To:
+	 X-Spamd-Result:X-Rspamd-Server:X-Rspamd-Action:X-Spam-Flag:
+	 X-Spam-Score:X-Spam-Level:X-Rspamd-Queue-Id;
+	bh=G4U5OOZBCiWmK00YiJ7rS5NugQwh3GpoktzIg7zSeoQ=;
+	b=BeUOCPtZA8IQvZCGFDrdhfMktXdwHxiWTOxtEq+Q3DXdLA/faO0kYSjXN5w808qHl/Hm
+	 o0ymrxoX3QCd5QVKy7H3fbjcgSu2T9g/lSTD9RDY1k1UrZMCfReds5VlQNMSC47sVPZ5e
+	 siZbfYLTooGtorbakBGnD3tG+50uVD0mEecfQAQ5S1mokZPIyEJwE9NQyviCFDhFPd+UR
+	 bmyK+0xcbgViymKcckD9A3RqO3uHxOe17p2Rm1zpR5bmE4nHPtpoy4i9oriJ9wmvQp3eg
+	 KPQlowWsd9UoPJDZNMVRE44vGkYT27hhcPIleCxACYoHzwuMFmeeFojbV6vDSeG0AUw==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=suse.de;
+	spf=pass smtp.mailfrom=suse.de;
+	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=05qekNvl;
+	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=UkMXw2Gd;
+	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=MICKFMxi;
+	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=iONvCRX6;
+	arc=none smtp.remote-ip=195.135.223.131
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (secp384r1) server-signature ECDSA (prime256v1) server-digest SHA256)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 80A22606A31D;
-	Tue, 27 Oct 2026 15:41:09 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 80A22606A31D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F07CC606A31A;
+	Tue, 27 Oct 2026 15:43:00 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org F07CC606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=LLeSWfiO
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=KIOqyPRFCkjBAXqzSjoNa+17XK/+sVx6w7pC3+7g8mN6qf8xGfSxkUJSjP4nlV3xASG9hfTdF8fHpdve1uVNg1oPbPoZ4qMSEy+1+DuhJO8fMPsBvwE1bZrpwX5n/7xtSJlzNVAHRixRzCbT0/7VtSmYKQc+wTDGXnXSWXGpZT/X4psWsPkAL0emFEsdbhInpYCIhzb9QIHYPJkU3cwAh48YVkMOw3aKYEbyaUXV4SPq0ZR7Uvnl1VS+DZEfWpSvGROAKbPdJgEoKmLP2/m6L306Hl6qvKZ3HV9SH6VL29w4HGHe5dt9iLOEiT2NA59DHXStHD/NoIySdjqtGyVY7Q==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=+p6nG3kPSl+4+8AQOLFlHL/hfyMc7R+DO34PRO5plDw=;
- b=eoZYhd437ANreRdHZg5D+C4tcRcWo1pFGCUzUj3cTEOksxyYxRAgPp2LykKPv8vmcXIZt1QSNLfE99nMDvkxaQugrDn2xFuKMfYiAqbYTHXa+OF+KJ0YlkoYgyKOu9x0rS483YDCaWaNX9Zo59otUKsHm0MWab7eHo6j1rfC/Napu8eYUZ/g3RaiWYNd/kR7QQuzZBxz2qAhNduC28lLeMyLhzQMgQP0BHwKXBwkWq4ok0mKuf2gPf+0dlqaKdQmn1s4cdxr0+iqiCXR+furq6sc7rYPf6SRrRxpdyAf89cLW7oFcpXdn3hspJEqvZC7Wd0OlLYZGdU6A6wN6Gd1Fg==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
- dkim=pass header.d=nvidia.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=+p6nG3kPSl+4+8AQOLFlHL/hfyMc7R+DO34PRO5plDw=;
- b=LLeSWfiOz2LBiJdTEhJNpvpnhFunZNVbsoixbyFiJdRHtBPKhmbZY1iqi55qESXvABrBoq974rlCkd3F07a+wfkNR8W8mpm2A+1TwvAdLYS7IUzd7O3Y2UZiaGEWXIYpNXclDKbvHFZt3pHdS38kggOpTBQ4o6bDuw+Mdz4x02q0uU+CB4RX52TozwkZhzRyp54k2+2vtcCsgAx9jTXmJGoOaI8YnzKxGw3qNI2CW62q6/udaDlzFOeJ0MgyXVpni7GwB/xnA5M2/xw4uO5gjDj02X+CcUp+BAmaoj54z34dPAo0Ow59sVZqKuB+pboYdf6znHW9O8OEQhjawVTd0w==
-Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=nvidia.com;
-Received: from CHBPR12MB731189.namprd12.prod.outlook.com
- (2603:10b6:610:33d::12) by CH3PR12MB8993.namprd12.prod.outlook.com
- (2603:10b6:610:17b::16) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.546.22; Tue, 27 Oct
- 2026 15:40:59 +0000
-Received: from CHBPR12MB731189.namprd12.prod.outlook.com
- ([fe80::b0e5:123d:fe06:e10d]) by CHBPR12MB731189.namprd12.prod.outlook.com
- ([fe80::b0e5:123d:fe06:e10d%6]) with mapi id 15.21.0546.021; Tue, 27 Oct 2026
- 15:40:59 +0000
-Date: Tue, 27 Oct 2026 12:40:58 -0300
-From: Jason Gunthorpe <jgg@nvidia.com>
-To: Jonathan Cameron <jonathan.cameron@oss.qualcomm.com>
-Cc: Alexandre Ghiti <alex@ghiti.fr>, Albert Ou <aou@eecs.berkeley.edu>,
-	Ard Biesheuvel <ardb@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Jonathan Corbet <corbet@lwn.net>, David Sterba <dsterba@suse.com>,
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
-	linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-	linux-doc@vger.kernel.org, linux-efi@vger.kernel.org,
-	linux-riscv@lists.infradead.org,
-	Mark Rutland <mark.rutland@arm.com>,
-	Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <pjw@kernel.org>,
-	Randy Dunlap <rdunlap@infradead.org>,
-	Simon Glass <sjg@chromium.org>,
-	Shuah Khan <skhan@linuxfoundation.org>,
-	Nick Terrell <terrelln@fb.com>, Will Deacon <will@kernel.org>,
-	Alexandre Ghiti <alexghiti@rivosinc.com>,
-	Conor Dooley <conor.dooley@microchip.com>,
-	linux-integrity@vger.kernel.org,
-	Palmer Dabbelt <palmer@rivosinc.com>, patches@lists.linux.dev,
-	Piotr =?utf-8?B?S3LDs2w=?= <piotr.krol@3mdeb.com>,
-	Ross Philipson <ross.philipson@gmail.com>,
-	Sami Tolvanen <samitolvanen@google.com>,
-	Song Shuai <songshuaishuai@tinylab.org>
-Subject: Re: [PATCH v2 14/15] arm64: drtm: Call UNPROTECT_MEMORY
-Message-ID: <20261027154058.GC2418472@nvidia.com>
-References: <0-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
- <14-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
- <20261021104726.00002640@oss.qualcomm.com>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261021104726.00002640@oss.qualcomm.com>
-X-ClientProxiedBy: DM6PR02CA0137.namprd02.prod.outlook.com
- (2603:10b6:5:1b4::39) To CHBPR12MB731189.namprd12.prod.outlook.com
- (2603:10b6:610:33d::12)
+	dkim=pass (1024-bit key, unprotected) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=05qekNvl;
+	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=UkMXw2Gd;
+	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=MICKFMxi;
+	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=iONvCRX6
+Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out2.suse.de (Postfix) with ESMTPS id 796B51F443;
+	Tue, 27 Oct 2026 15:42:57 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+	t=1793115778; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=G4U5OOZBCiWmK00YiJ7rS5NugQwh3GpoktzIg7zSeoQ=;
+	b=05qekNvlKxYfyyOuygu8+3pYAJao7K0mXfnE6KXfrx/hkl/80hoFbpRUtsYvyIntVj+oLv
+	vDBzBlXApw5NA8MvS2EofY/+wrChBdJQmmQN51QiMhLZbC3I3VC78D5PCvDL8m+BjSSEKn
+	oYiBO4ys/YhKuauk/eyKmOjh4EoZWNk=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+	s=susede2_ed25519; t=1793115778;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=G4U5OOZBCiWmK00YiJ7rS5NugQwh3GpoktzIg7zSeoQ=;
+	b=UkMXw2GdVLvAzlrBoviLIYMkafRvU0AbAnkeAfQewRgHdNSOWLW7fCE2JvkgTu2H96p20s
+	kyxLvfX8bKbMwsDA==
+Authentication-Results: smtp-out2.suse.de;
+	dkim=pass header.d=suse.de header.s=susede2_rsa header.b=MICKFMxi;
+	dkim=pass header.d=suse.de header.s=susede2_ed25519 header.b=iONvCRX6
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+	t=1793115777; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=G4U5OOZBCiWmK00YiJ7rS5NugQwh3GpoktzIg7zSeoQ=;
+	b=MICKFMxirw3QfXVJtsj5qm3OgphtQWfsLFbgiSg0OMS/b8arLi9n+PrV+qhxz9TU5C0bkw
+	jeaogT/ENx46NUyFExJ06OC/BXyn9+MbrpS8UpOieq6JHf4oSHNsToSOwPR9/6v3GAKTOz
+	YSp6NUt5K6epZ5B6IPGc74IaHM1PeAI=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+	s=susede2_ed25519; t=1793115777;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=G4U5OOZBCiWmK00YiJ7rS5NugQwh3GpoktzIg7zSeoQ=;
+	b=iONvCRX6Pq2+FXsSue5YihO49MeLmlXlcYbh/7SjU82ZnlEfkZN4nY9rbMX+RNwFOgT7VL
+	gTm89YVvu6kVYBBg==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 798B313319;
+	Tue, 27 Oct 2026 15:42:53 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id lULFEX3G4GoZWAAAD6G6ig
+	(envelope-from <pfalcato@suse.de>); Tue, 27 Oct 2026 15:42:53 +0000
+Date: Tue, 27 Oct 2026 15:42:51 +0000
+From: Pedro Falcato <pfalcato@suse.de>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
+	Shakeel Butt <shakeel.butt@linux.dev>, Lorenzo Stoakes <ljs@kernel.org>, 
+	Kairui Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>, 
+	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
+	Baoquan He <baoquan.he@linux.dev>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
+	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+	Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
+	Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>, Hugh Dickins <hughd@google.com>, 
+	Pasha Tatashin <pasha.tatashin@soleen.com>, Pratyush Yadav <pratyush@kernel.org>, 
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>, 
+	Lance Yang <lance.yang@linux.dev>, Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
+	Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
+	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Usama Arif <usama.arif@linux.dev>, 
+	Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
+	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
+	Oscar Salvador <osalvador@suse.de>, Minchan Kim <minchan@kernel.org>, 
+	Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
+	Chengming Zhou <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, 
+	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
+	Youngjun Park <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, 
+	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
+	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>, 
+	stable@vger.kernel.org
+Subject: Re: [PATCH 26/46] mm/mmu_gather: fix flushing ranges with 4 GiB or
+ larger
+Message-ID: <auDGY9F6EZ5dJlsa@pedro-suse.lan>
+References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-26-6f74bec9a5bb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -117,94 +137,87 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CHBPR12MB731189:EE_|CH3PR12MB8993:EE_
-X-MS-Office365-Filtering-Correlation-Id: 4dc8a41d-9990-4fa0-11aa-08df3440b2e1
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|366016|1800799024|376014|23010399003|7416014|261009223027099003|261021121427099003|10067099003|56012099006|261026121527099003|6133799003|22082099003|18002099003|4143699003|11063799006;
-X-Microsoft-Antispam-Message-Info:
-	WYfQwgWB6bwQkl9kW9H+qaXPaHSW5TBrI7lXo3o74dC6JiK8y+2qGMHQum3a7DJH/3GUy4jRpWBsrKOEGQTmATEkrowUIDhI6I/U4QvgqhG6R1qfTlbVUbjp+9ktFnOIr+i89dkrNTpojCshn41dJySpSOgyddn5Nk3bPQUMZhVXEaoXGQJE5Y5hNdk9pt0TK9B8WyD2426SPA4OD9mR+CMYXDXswzxWsuEEbmKCrWKNPDYJ5N1Hdgt9HpuPCHHrpCj2xfGTpVuipEQe7u5rfOro6UelZ0o6EAF2WyyWEpMyMheO6rcBkuAH7RN019hgo7bZzEjbfDiD29Ksp5jUJd5Deh79G+Lcrgkz+d83PvVVW9S8DVywt317hpqWEFryNlxhOu2Rqdbu6g1+22sZExzZNWdtdUr+XLbJXvdMtZdEcls1kMr3ULUMwuORtFJGSSlZDNKFoTYz665LI233f9/Nt3PWy5ITcz5X1zNDcBvGFfd6ERiiYVCjdKOifm1T602RhNVKYUKyS4DPX9ciGr1fBpOz9tZTdbXoFuS4zZHZEyc4WnsOu3A3tB2yflGhNKylxRZ3j7snrgB6IgvnRHrmS0USZIqp1Rp39+DC0N9NYMlWYEsd6U3GwpqKrBxUcVrEXurDI92723VI2F+K90AAqSr4WLCn4tam6iPlFzs=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CHBPR12MB731189.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(1800799024)(376014)(23010399003)(7416014)(261009223027099003)(261021121427099003)(10067099003)(56012099006)(261026121527099003)(6133799003)(22082099003)(18002099003)(4143699003)(11063799006);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?ieIOZouIj29AK3ETQ9CRvYw4WbvTSS76ExTfs5WsJV40phZZKdOhAvPZGIGm?=
- =?us-ascii?Q?tsIKx0voDqmKcmtHwPPC4yDaOPEwKmP15mzzqWz7X0j00NomrUKxuiTvvVJd?=
- =?us-ascii?Q?uckGZCPP8OrKSX1EVF2qFznk5BGm3GjHhhgTkBgt8bILto2rl3Ad7FU570Xy?=
- =?us-ascii?Q?jiw2HGSqsyxQ1/Ks2SO8pcG0+i6oSx0WlNigtnRt03YOM8snb6YNGOmYfqaG?=
- =?us-ascii?Q?0QYpw4nZLisGpZmjRLQ9XCfPMgs9S98+sIY4Ldzw/tmUVTrS0TvB8U4jbHv0?=
- =?us-ascii?Q?I2f+BPM7Oit4ZCvqxmDFIrh+I/bIyaEU0uLu8nnOBhWPioc6LiEtvfDnl7Md?=
- =?us-ascii?Q?5NmtgYcGsnDHSsqU+NiEYDPZUXHT6rnfYzxfTQesCwdaLXBJdCY6fn4L3fYe?=
- =?us-ascii?Q?tScZSgh8UYBbhTfpYneKaH080/fxssn6y9qOaCPyZNDllxjz+Oo0AWfSRWy9?=
- =?us-ascii?Q?yclgzUBsHRUAkiq6PZGzsfvJhkyhN1bcBZS5bb7Yr3WgpTM9r4fxdTy4pZqT?=
- =?us-ascii?Q?OuOzlRwUl+j4l0iO2F2/06eJq2XXDeeLEF5NbYpopdjWQZPjSm7OrBXxWt2h?=
- =?us-ascii?Q?t4qd68rLBfZ05M6N0kJNUy5yVLj+Mo2OhNMkUFzJ69xzaMzjbZZEncA/zlXM?=
- =?us-ascii?Q?2CA58wOP+sTuPH9zh9iGXutCaTUtqlQZdwT2aANpjM/lkMWVIVfshUynGaH/?=
- =?us-ascii?Q?KeN6N/f0Bl4b0cOv3A+3QBTVp/ITevzfaoZeiUKslSIdhTugafQVs4O5EkLn?=
- =?us-ascii?Q?mkYHJ7DoS2FPpQ1jdDJrm3Dy+/nrdefWqEioXj4AS8wDfDwwZceaILFbHA7a?=
- =?us-ascii?Q?E/iD9E6vtAQyoFQEZLLjqeIHB81mmySJn8C0H5XfTVi3wftIJ1SsMYeX43C3?=
- =?us-ascii?Q?i5NX02PQWBhUuSlww+/a7vLb1DaTyfl9Umo37zKtyizJqUK8104Xsey/6pA6?=
- =?us-ascii?Q?JriwUvDdbUZN1bKU8QQXCkPDsO8Xja7uGug8ZKYiio8tbrDJw+NcTysVZbwI?=
- =?us-ascii?Q?nYX1AqmQuJ3OWIc28lNBHmyeY6nZ/c0VjxVEDg6Y+xEgzkjQIQNihsHpkfM3?=
- =?us-ascii?Q?uAX9DN6yb1I7EmWKmoq2XPWzLdffpBuVg/tIoX0cbRuYudu+pBEUvMZzsCgY?=
- =?us-ascii?Q?vy7nsppkmQP4WyouFO3vM4oSklkoR7jkrID2KJShlz+fqCffa2o0LdOoVRIK?=
- =?us-ascii?Q?+PSSGdFFkyR3p3YV94SvwBam3AMDI4o5Rd3qFYa3UEsybDffSgyBQ/XETcra?=
- =?us-ascii?Q?FeVd8Meehdh1d5LwBoh1Wk9EV751zPSGrUhtDIIDc2+AZJBChMYj2bxsxfBF?=
- =?us-ascii?Q?7nxCwwt1taDCgtjFIPnz+z+CiuDa7lwOw2HN5vxm+apVs4edK2aRNYim+/GX?=
- =?us-ascii?Q?4BlAtn6EGEm4RysFzmrQFpJZYkeSvWaX2UCyNaD0cIxSK3XEoiUlNvraxmfV?=
- =?us-ascii?Q?0qmfvK5VTdkEV+ZIsyqnhlH/iSozDSbKXaSoUX89FCGJo7naWJauGjrpPs17?=
- =?us-ascii?Q?Hz6Awi8dJwMzAsT1Rzxqtxrnr0qb3OmMdv+J8E09jISkgdmoOIkf7uo2Wzxe?=
- =?us-ascii?Q?IrAhFsKrCEslZ2ZK3VxjPyz/x6C0EMsmZCvHLBd5yktrqZt7hw8ioOlbTGB8?=
- =?us-ascii?Q?fSsHm4ii3ELSp2XX0JIEWYV92QP28rnFwp6iH37QBpb44yoS+HlJzEuVJMoP?=
- =?us-ascii?Q?MxN6ceYei+HmNtqBpElgrhrOWpQl3tTo7XDuWQnxyEKiM0OF?=
-X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 4dc8a41d-9990-4fa0-11aa-08df3440b2e1
-X-MS-Exchange-CrossTenant-AuthSource: CHBPR12MB731189.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 27 Oct 2026 15:40:59.4300
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: P8uXy90GJwgZWWkj/9pI//nAJntZ4ud4twNrzvhtNFMT7UllTuVPRWEU+HNylLyf
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH3PR12MB8993
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20261027-fixes_core-v1-26-6f74bec9a5bb@kernel.org>
+X-Spamd-Result: default: False [-12.01 / 50.00];
+	SUSE_INTERNAL_BYPASS(-9.00)[];
+	BAYES_HAM(-3.00)[100.00%];
+	SUSPICIOUS_RECIPS(1.50)[];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	R_DKIM_ALLOW(-0.20)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
+	MIME_GOOD(-0.10)[text/plain];
+	MX_GOOD(-0.01)[];
+	MIME_TRACE(0.00)[0:+];
+	DKIM_SIGNED(0.00)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
+	FREEMAIL_CC(0.00)[linux-foundation.org,cmpxchg.org,kernel.org,linux.dev,tencent.com,google.com,linux.alibaba.com,infradead.org,suse.com,soleen.com,suse.cz,nvidia.com,surriel.com,arm.com,intel.com,redhat.com,gmail.com,suse.de,huaweicloud.com,lge.com,gourry.net,sk.com,ziepe.ca,kvack.org,vger.kernel.org,lists.infradead.org,toxicpanda.com];
+	ARC_NA(0.00)[];
+	RBL_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:104:10:150:64:97:from];
+	RCVD_TLS_ALL(0.00)[];
+	FROM_HAS_DN(0.00)[];
+	TO_DN_SOME(0.00)[];
+	TO_MATCH_ENVRCPT_SOME(0.00)[];
+	RCVD_COUNT_TWO(0.00)[2];
+	FROM_EQ_ENVFROM(0.00)[];
+	DKIM_TRACE(0.00)[suse.de:+];
+	RCPT_COUNT_GT_50(0.00)[65];
+	TAGGED_RCPT(0.00)[];
+	RECEIVED_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:106:10:150:64:167:received];
+	MISSING_XM_UA(0.00)[];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.de:email,suse.de:dkim,toxicpanda.com:email,imap1.dmz-prg2.suse.org:rdns,imap1.dmz-prg2.suse.org:helo]
+X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
+X-Rspamd-Action: no action
+X-Spam-Flag: NO
+X-Spam-Score: -12.01
+X-Spam-Level: 
+X-Rspamd-Queue-Id: 796B51F443
 
-On Wed, Oct 21, 2026 at 10:47:26AM -0700, Jonathan Cameron wrote:
-> > diff --git a/arch/arm64/kernel/drtm.c b/arch/arm64/kernel/drtm.c
-> > index 14493948a27f0d..6062980a5d9e53 100644
-> > --- a/arch/arm64/kernel/drtm.c
-> > +++ b/arch/arm64/kernel/drtm.c
-> > @@ -3,8 +3,47 @@
-> >   *
-> >   * Support functions for ARM DEN 0113 "DRTM Architecture for Arm"
-> >   */
-> > +#include <linux/bug.h>
-> >  #include <linux/efi.h>
-> > +#include <linux/init.h>
-> > +#include <linux/printk.h>
-> >  
-> >  #include <asm/drtm.h>
-> >  
-> >  struct arm64_drtm_handoff arm64_drtm_handoff __efi_data_handoff;
-> > +
-> > +static int __init arm64_drtm_unprotect_memory(void)
-> > +{
-> > +	s64 status;
-> > +
-> > +	if (!arm64_drtm_handoff.drtm_enabled)
-> > +		return 0;
-> > +
-> > +	/*
-> > +	 * Currently Linux can only fully support a DRTM implementation that
-> > +	 * relies only the SMMU.
+On Tue, Oct 27, 2026 at 12:17:46AM +0100, David Hildenbrand (Arm) wrote:
+> From: Josef Bacik <josef@toxicpanda.com>
 > 
-> That sentence doesn't parse.  relies on maybe?
+> __tlb_adjust_range() takes the size of the range which has to be flushed
+> as an unsigned int. Its callers, tlb_flush_{pte,pmd,pud,p4d}_range(), get
+> and pass an unsigned long. Consequently, a range that is 4 GiB or larger
+> gets truncated, possibly to 0.
+> 
+> On arm64 with hugetlb, a 64k kernel can flush 16 GiB hugetlb PMDs, and a
+> 16k kernel can flush 64 GiB PUDs through tlb_unshare_pmd_ptdesc(). So
+> at least these two scenarios are affected.
+> 
+> Fix it by flushing the proper range instead of the truncated one.
+> 
+> Fix generated by an LLM and sent by Josef Bacik in private.
+> 
+> Fixes: b528e4b6405b ("mm/hugetlb: add tlb_remove_hugetlb_entry for handling hugetlb pages")
+> Fixes: 8ce720d5bd91 ("mm/hugetlb: fix excessive IPI broadcasts when unsharing PMD tables using mmu_gather")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+> Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> [ david: use two-tab indent, simplify description ]
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> ---
+>  include/asm-generic/tlb.h | 3 +--
+>  1 file changed, 1 insertion(+), 2 deletions(-)
+> 
+> diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+> index fbe1114e9a443..3f4a180b48f3c 100644
+> --- a/include/asm-generic/tlb.h
+> +++ b/include/asm-generic/tlb.h
+> @@ -350,8 +350,7 @@ struct mmu_gather {
+>  void tlb_flush_mmu(struct mmu_gather *tlb);
+>  
+>  static inline void __tlb_adjust_range(struct mmu_gather *tlb,
+> -				      unsigned long address,
+> -				      unsigned int range_size)
+> +		unsigned long address, unsigned long range_size)
+>  {
+>  	tlb->start = min(tlb->start, address);
+>  	tlb->end = max(tlb->end, address + range_size);
+> 
 
-Yep
+Reviewed-by: Pedro Falcato <pfalcato@suse.de>
 
-I'm also going to move this file to drivers/firmware/drtm/arm64.c
-
-Thanks,
-Jason
+-- 
+Pedro
