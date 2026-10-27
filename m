@@ -1,45 +1,45 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793091064;
-	b=yDi1ojsMeFKHPkdBRhTsUTGjCrSwVSW1CjUBCH/EAFrMKFsmRxFDqdXuCVov/6M+rJLA
-	 avfbu8C/Nd58Ra+vu0DE+VA32mlWbPksRjnfh3m4wgRDVw/S2CthtTrq4Y7UEwqdOQ0hA
-	 8GxGDrOQ0yOkwREC8SQvfCG9ytxBSpexhdH3M9zkXKO8h5GCHVHuw8aUzRJQ4AvTMxBf1
-	 Cm9RmwHYH8HTt61FIyfnAM8RFICOvu/MygRueHxx8I2jGSPTsVsuweRJW545eGva63fb6
-	 VgCAoi/J9KovmI7tdgC358ur+GQD/R4tvms2B2Y8t/K3vPBr/Vo4fGc/F3Al9Qg6dLg==
+	t=1793091375;
+	b=q4QJT32fOK4KvIyaBK4Pnefa9apYQdMcNlqlOUE+7KE81Eoq9VgtEZfMHKt04LrGsNQ0
+	 qAXh/B0N0DJW4f6Js3pSnfnm+KjhpzexO1zaa6+3KVjTDKJ22d1Cd35iyvF1mUDWCostV
+	 Ix2BHqEyqmHj3wm57NraoxmPEDIfaZRxZNyyksKRcqhoVjLScKuhzsT31HR+N3lBgprsd
+	 s3sldvvsyjNsitE17uuHIJP2Rgmb9jM8attHLoQCzTcWAGP6t8+sFbrve6IkbrG+orPwD
+	 j4PA8WIB3T199j2W3X0Kh3pfmtUOVFk3D1iRfj/EgHIM9vszUxCzbU8fIVB1sFf+EMA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793091064;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793091375;
 	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
 	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=lc0U5Ze+hBCT9T6cAf8QTcqfqTu5UwDLhLRH+Lp9NjM=;
-	b=Wv7VLU0jsU37N1Ad0nMmAe33BnXlftjEV6ZHJMHZiaWG3cfFut2wIRXG822YFUBOhyZu
-	 t84DMwvaQPbZZ2VhjNJUzyvVfLEIcVofcOPAdPCJ96oOKrSXMDZkV+pfL4585NHkT0P/O
-	 UjYUUyhEaQziwlPYuORgcrP91qLXsXrYmEssU034zGR6p+ZcPKb2jXCeQLoFhLjX/QOCm
-	 YD2US+zOGjmI9J/jIV+nbvUtxlYG7x5EyHY4+UIokkKGF5ogGdcux5FhN7wAJ7Lw9MaHF
-	 4bEHHJaVQk4oVBPQAdV47XcMfPnL7ZECRmtRrcI6Kv+cJbQdlZKDDibDmydXga9l2fA==
+	bh=LLjeyafLWq906e/KlV7udPCtdijPfLEIi8SSit6QWfU=;
+	b=AeU9fwTpEg/wmuzjbxNHyt98vC2NSkjMlLEFn4ygx/Ls1lvhEDaztczU9sLzWCObhtnv
+	 mex6qrsXwykaflzWc9jRj1OCtI86a5hoPjCeGYpXPHaKGFCqahSDSwFGeqVpnA2uyi+kt
+	 q4jPYmzc9OH6IueE8+3Ton/bDHSfepj4s8xHJ1jH295Y9xUu0Px3NJC9FLg58rdYMGySw
+	 hUx+WcXVChWg3pZQRVk39Benp+JVP3D/mewI/TLaCS3X4Pyb/rG2aP/3sxRi4G7XwdNXI
+	 7uou41YMdzFGbjgeyYtcVZiD6rHqZbajzGfVkl4EkGLKq7yqbP0KCCS/jWvabK6a5hw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=cLX5cty9;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=EBNUrHgp;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 65FC3606A327;
-	Tue, 27 Oct 2026 08:51:04 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5B841606A31E;
+	Tue, 27 Oct 2026 08:56:15 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=cLX5cty9
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 370ED1F01825;
-	Tue, 27 Oct 2026 08:50:49 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=EBNUrHgp
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CDEAE1F01828;
+	Tue, 27 Oct 2026 08:56:00 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793091064;
-	bh=lc0U5Ze+hBCT9T6cAf8QTcqfqTu5UwDLhLRH+Lp9NjM=;
+	s=k20260515; t=1793091375;
+	bh=LLjeyafLWq906e/KlV7udPCtdijPfLEIi8SSit6QWfU=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=cLX5cty9Fes4nyGOhdTXTwUi4CjHh2d6Exjv+rOUNmJ1hOpq301ah/59VYJa3KAfa
-	 0JAFnIYv5q6uCZJiWZ7/JnzC3pOPhPL5VdEq05fzYEQAfU8x5PjoaLGCbo4oJkSshy
-	 aEyuswfa3kOJCEFW345rfcWjsyhvaijqqaHgik6uB7QOrxdB7sJV1oJ6I3Q0c1V+Ry
-	 Cf3Ekq4j3MW2BWPpctWVOXD4r4MRy4tI0wpG7A71nGLVk4q5d74j9EcT8h6eyujZ5T
-	 xnvfCFG95f/Qz4H2P0ATu2ppTZylFpdC3r3f636dunxIG7AvtZ7dC6rCzDfglAN4g9
-	 pK7u8ZerdMAkQ==
-Date: Tue, 27 Oct 2026 08:50:46 +0000
+	b=EBNUrHgpyjuV+uDWfTfjiZjrVUSiaANjjrfsc3nkFZWTw82J+OqHpWvLIciRV9TNx
+	 2ZYRqlKawGk39ZaulprNCM2tNwh2zki3TsMiowIH13vcslKJA7833dN8riI4s3kDAM
+	 Q3qfXOkNFX5VxnUmiQtmg5QWQCqFP+dYzLxz19uSTgl5bash6cqoBqqOskiaRk2/C6
+	 RL8HDc2rNHtv0XIn1ejrOpB1M3CI9bhEBJhZRP1bllfI+FRzWtybU61jzIzwI0z0Od
+	 /meOw5AGq2fgtE0iXpBuP7zSuxszxjxhbNpF90J6AdO/j7okIvx+jpqUI1F2fZM2tZ
+	 5wOIAvJFgckew==
+Date: Tue, 27 Oct 2026 08:55:58 +0000
 From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
@@ -68,12 +68,11 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
 	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
 	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
 	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, Chris Mason <mason@kernel.org>, 
-	stable@vger.kernel.org
-Subject: Re: [PATCH 28/46] mm/mmu_notifier: set ->mm only after mmgrab()
-Message-ID: <auBl3iJyp0RQ-tEA@gremlin>
+	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, stable@vger.kernel.org
+Subject: Re: [PATCH 44/46] mm/cma: don't release CMA pages still in use
+Message-ID: <auBmRQDzFPea5FeS@gremlin>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-28-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-44-6f74bec9a5bb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -85,62 +84,72 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261027-fixes_core-v1-28-6f74bec9a5bb@kernel.org>
+In-Reply-To: <20261027-fixes_core-v1-44-6f74bec9a5bb@kernel.org>
 
-On Tue, Oct 27, 2026 at 12:17:48AM +0100, David Hildenbrand (Arm) wrote:
-> From: Chris Mason <mason@kernel.org>
+On Tue, Oct 27, 2026 at 12:18:04AM +0100, David Hildenbrand (Arm) wrote:
+> From: Rik van Riel <riel@surriel.com>
 >
-> Radeon uses a non-NULL notifier->mm to decide whether to call
-> mmu_interval_notifier_remove() when freeing a buffer object.
-> __mmu_interval_notifier_insert() sets ->mm before validating the range,
-> so a wrapping userptr range can leave ->mm set after insertion fails.
-> Cleanup then tries to remove an unregistered notifier for which no mm
-> reference was acquired.
+> When a driver calls dma_free_contiguous() before quiescing DMA, the
+> page might still have a reference from the device.
+> put_page_testzero() there returns false, WARN fires, but the code proceeds
+> to free_contig_frozen_range() putting a live page onto buddy and clearing
+> the bitmap. A subsequent allocation can hand the same PFN to a new
+> owner while the original holder still references it.
 >
-> Set ->mm only after mmgrab(), once insertion can no longer fail. While
-> we could fix radeon's code instead, setting ->mm on success only makes
-> the code more robust.
+> A concurrent put_page() that drops the last reference between the
+> testzero loop and free_contig_frozen_range() can double-queue the page
+> via page->lru, corrupting buddy lists.
 >
-> Fix generated by an LLM and sent by Chris Mason in private.
+> Avoid the corruption by not freeing a CMA region if any of the
+> pages inside are still in use.
 >
-> Fixes: 3506ff69c3ec ("drm/radeon: use mmu_interval_notifier_insert")
+> Make it explicit in the warning that the driver allowed a leak.
+>
+> While at it, use page_ref_freeze() to make the semantics clearer and
+> switch to pr_warn_ratelimited().
+>
+> Fixes: 9bda131c6093 ("mm: cma: add cma_alloc_frozen{_compound}()")
 > Cc: stable@vger.kernel.org
-> Signed-off-by: Chris Mason <mason@kernel.org>
-> [ david: simplify description ]
+> Signed-off-by: Rik van Riel <riel@surriel.com>
+> Link: https://patch.msgid.link/20260811132045.5f114772@fangorn
+> [ david: use page_ref_freeze() + pr_warn_ratelimited() ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 
 > ---
->  mm/mmu_notifier.c | 7 +++++--
->  1 file changed, 5 insertions(+), 2 deletions(-)
+>  mm/cma.c | 10 +++++++---
+>  1 file changed, 7 insertions(+), 3 deletions(-)
 >
-> diff --git a/mm/mmu_notifier.c b/mm/mmu_notifier.c
-> index 2e20f88e162d7..a7bae5de5fedc 100644
-> --- a/mm/mmu_notifier.c
-> +++ b/mm/mmu_notifier.c
-> @@ -947,7 +947,6 @@ static int __mmu_interval_notifier_insert(
->  	struct mmu_notifier_subscriptions *subscriptions, unsigned long start,
->  	unsigned long length, const struct mmu_interval_notifier_ops *ops)
+> diff --git a/mm/cma.c b/mm/cma.c
+> index a10ea37a261da..871f95c9ae9f0 100644
+> --- a/mm/cma.c
+> +++ b/mm/cma.c
+> @@ -1020,7 +1020,7 @@ bool cma_release(struct cma *cma, const struct page *pages,
+>  		 unsigned long count)
 >  {
-> -	interval_sub->mm = mm;
->  	interval_sub->ops = ops;
->  	RB_CLEAR_NODE(&interval_sub->interval_tree.rb);
->  	interval_sub->interval_tree.start = start;
-> @@ -964,8 +963,12 @@ static int __mmu_interval_notifier_insert(
->  	if (WARN_ON(atomic_read(&mm->mm_users) <= 0))
->  		return -EINVAL;
+>  	struct cma_memrange *cmr;
+> -	unsigned long ret = 0;
+> +	unsigned long leaked = 0;
+>  	unsigned long i, pfn;
 >
-> -	/* pairs with mmdrop in mmu_interval_notifier_remove() */
-> +	/*
-> +	 * Pairs with mmdrop in mmu_interval_notifier_remove(). Drivers take a
-> +	 * non-NULL ->mm for "registered", so set it only with the reference.
-> +	 */
->  	mmgrab(mm);
-> +	interval_sub->mm = mm;
+>  	cmr = find_cma_memrange(cma, pages, count);
+> @@ -1029,9 +1029,13 @@ bool cma_release(struct cma *cma, const struct page *pages,
 >
->  	/*
->  	 * If some invalidate_range_start/end region is going on in parallel
+>  	pfn = page_to_pfn(pages);
+>  	for (i = 0; i < count; i++, pfn++)
+> -		ret += !put_page_testzero(pfn_to_page(pfn));
+> +		leaked += !page_ref_freeze(pfn_to_page(pfn), 1);
+>
+> -	WARN(ret, "%lu pages are still in use!\n", ret);
+> +	if (leaked) {
+> +		pr_warn_ratelimited("%lu pages are still in use, not freeing CMA region!\n",
+> +				   leaked);
+> +		return true;
+> +	}
+>
+>  	__cma_release_frozen(cma, cmr, pages, count);
+>
 >
 > --
 > 2.43.0
