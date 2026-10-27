@@ -1,57 +1,56 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=96.67.55.147
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793064835;
-	b=gWIXJSqLCryg5V7nV9nZqrvv0XZ5ncBrXnti5dMTDSyi44zljHtJp1tBOe+tnmCPsykM
-	 870dcSphcN5jQbMP4CMesnN7SoytW8fJCdTkC3dGhSIdHhIZAcnnk7wVvkqbviArig9IB
-	 j3IjoN4RXj5RTBy5dVwVqto9HQ2OqSStGBjKNRMJUhy8szwML9A5Pl/rZQ16qOv2P5+ge
-	 xDEDr/Ls+N1VHG1pxLY1kGDVlwlwJHlKUpryU1XR/tSSjLQwdzL+JmruovaqeKyncCz2h
-	 kYbREbSc+r/+ggSZa2TbkT43jwtqJUzXIzBqfOnlvvIAvUZfW8hUMSUNlOxMawya3SQ==
+	t=1793065206;
+	b=fhaibfvNBJ3b7THbg7N0TBQcm5jYBuVlOztvPJHHRcJDg7tWyS73VKK0Bg3TvEv81z1R
+	 8+j5GHCu5TG0yjajrawBIa5V3qYZWQr/0A6V9nr0um2XSLjsrftyLsgQP4IkOHv5oewMj
+	 H12Do7KtxFgoDu8iIscMqxNanrwvcsORRvTYbkf7j1kwLfZ1elFcP5c2aVWX0kuY00wSX
+	 yEs+a24A7FBsEyr2HVLq8HPkXGy+4jB1S478rvy1W0BDuF2wnGToCgKs5qWfyPTei5WhU
+	 /rGUMNOxCixxTzxHc+uyQcZWHIKZZZaIxi1tnU8tzDez93yFDbwggTMu/LU997G4aeg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793064835;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793065206;
 	h=DMARC-Filter:DKIM-Signature:Received:Message-ID:Subject:From:To:Cc:
 	 Date:In-Reply-To:References:Autocrypt:Content-Type:
 	 Content-Transfer-Encoding:User-Agent:MIME-Version;
-	bh=kdbWZsvYj0rKy4CApupNo75UEMIwmD/zLLPrgjCeTQg=;
-	b=2XEuXWFcoeo9BnwR52f8R5J9dffEGzoRMRb1Ebn1rhh3UAQkoWo4uuwDmidhE22tekB1
-	 UhK4gn/QOPhilYPnwy3yyB2Kn0WHK5D+d4RhbaW7mXm9MhrW9c7eX1U5Zz2EWWk41HNLS
-	 tyy5cLpVrB5k5O/KITmyhp25JSR8KzRref7pDhOeWOGotVjGMZpll+MNd2PCg/TlpxnqM
-	 vnhJz6oJDlwlN0DmLUOblktbfbB2M3czdd1H1+FbRK6zvF4fvQGPaYvZbiTgQIhB1gv5H
-	 0ZFUZNHPNdO/N6oQbayCKZP3OZFPRjJ1PJPXm7PzYFWoKqOtk42RQzWhFdgTeX3QoVw==
+	bh=lUuA7+chWIhLu+qX3DDV5gWAGrlrfczNAdJpLXe+OFs=;
+	b=5D+EFeEUCW2nIBPlxL8t19u9GN3Jf3XhtBgsL05K/uS1rajtc5HkSnsb1nTXYZ36teh4
+	 vaHWHasqI2+DX9EBvL9KS/zFgpzVPRz7MmfeezTKSzkXZLbbfU0jNPbaOLAcF0WX9iHZf
+	 M8MdntlHNOh8aIGTAbIW7hcKKpDYB54oCe9xs5zhp545U8IDmc0pjEg420Cx4NcoKkS8E
+	 ZTT3RkHebU9cohdvAZ1XEi5+xBMv395WEI35YIqEOHcyDRxmXB1EI3hQNAhm7uTSxZTr8
+	 x35gqORIQjEKZUq4qWM7brE+KW0rpNQLyWmoh4LBK9Juqc9pqWpFI3daLdDIU7M9Rpg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=surriel.com;
 	spf=pass smtp.mailfrom=surriel.com;
-	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=P6A7cpQQ;
+	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=hLHADdJY;
 	arc=none smtp.remote-ip=96.67.55.147
 Received: from shelob.surriel.com (shelob.surriel.com [96.67.55.147])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 93723606A323;
-	Tue, 27 Oct 2026 01:33:54 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 93723606A323
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5CF85606A320;
+	Tue, 27 Oct 2026 01:40:06 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 5CF85606A320
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=surriel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=surriel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=P6A7cpQQ
+	dkim=pass (2048-bit key, unprotected) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=hLHADdJY
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=surriel.com
 	; s=mail; h=MIME-Version:Content-Transfer-Encoding:Content-Type:References:
 	In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Sender:Reply-To:Content-ID:
 	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
-	:Resent-Message-ID; bh=kdbWZsvYj0rKy4CApupNo75UEMIwmD/zLLPrgjCeTQg=; b=P6A7cp
-	QQ/mw34219jr1ZuLpn4iamDW/lpfHuUQAejSgfd9BCQ+6dbG1jEIeTK/B5qrfXMwDQwiwYopkVf89
-	RDL48DJQKppMXWlSLowCroa4B9N8NkB9so/a/O1EdaipGzthBuOgtQ6miY+TQlLi0Gc23kaqDGhbz
-	hFAg6QHgsWRPBKIc9fgHYDIRtSnzsVLvNkBDVBSRTMzZkClyzjAiC+5YQ76L8OgzEtrHYkiog8Bon
-	SZNOnQbqg0yUwWcATv7qxtnIAKScTap8K5B6T16gJc3jQ3eRGg74sK4y2Ml94noRb+siX7pAMTbQ7
-	ytwibybZeR87iCV38mXRV3hUtenw==;
+	:Resent-Message-ID; bh=lUuA7+chWIhLu+qX3DDV5gWAGrlrfczNAdJpLXe+OFs=; b=hLHADd
+	JYpcXFYTdIkRnelJUktscfivm4kwDbjgCJ3oKz+6xIqeSecb3hHKgagunNCrtnoqN8IQD6/REH25s
+	oHxZyQSCr0OSEiqSi9Os1mhnjxwRqGWFbbumNQDd1oEhret8XLlNZtgONJZyTclZm5WpxtQmyWuhS
+	8hjwzAqfRD5ea3cepZRKgnVd38mXxeU0fx0Vvpx5yXaqmpkPi1NIPFAjqK1QEievZKt7FLcbA0WoV
+	A1CkwiQYO2zNKD8dQNoCPMBm3AxtWxJpcVyZPk1xkQAUCCyI93gHTEygLADW11NuQ+67ga/vRCIlp
+	DGjTDp5ID1o5evE+HPpbi2ITaPpg==;
 Received: from [2601:18c:8100:a0e0:2541:b86e:2586:d219]
 	by shelob.surriel.com with esmtpsa  (TLS1.3) tls TLS_AES_256_GCM_SHA384
 	(Exim 4.99.5)
 	(envelope-from <riel@surriel.com>)
-	id 1xLW2j-0000000AyHo-2cK7;
-	Tue, 27 Oct 2026 01:32:01 +0000
-Message-ID: <03495f2191fe78352042d859b6825e7231239de1.camel@surriel.com>
-Subject: Re: [PATCH 01/46] mm/mglru: don't use stack pointers when walking
- PUD and PMD tables
+	id 1xLW99-0000000AyaG-17xt;
+	Tue, 27 Oct 2026 01:38:39 +0000
+Message-ID: <26a54fb0de70f23951e524dccd7c905807278deb.camel@surriel.com>
+Subject: Re: [PATCH 02/46] fork: take mmap_lock before copying mm_struct
 From: Rik van Riel <riel@surriel.com>
 To: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton	
  <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, Michal
@@ -84,12 +83,12 @@ To: "David Hildenbrand (Arm)" <david@kernel.org>, Andrew Morton
  <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
  kexec@lists.infradead.org, 	linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, 	linux-cxl@vger.kernel.org, Josef Bacik
- <josef@toxicpanda.com>, 	stable@vger.kernel.org
-Date: Mon, 26 Oct 2026 21:32:00 -0400
-In-Reply-To: <20261027-fixes_core-v1-1-6f74bec9a5bb@kernel.org>
+ linux-arch@vger.kernel.org, 	linux-cxl@vger.kernel.org,
+ stable@vger.kernel.org, Josef Bacik	 <josef@toxicpanda.com>
+Date: Mon, 26 Oct 2026 21:38:39 -0400
+In-Reply-To: <20261027-fixes_core-v1-2-6f74bec9a5bb@kernel.org>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
-	 <20261027-fixes_core-v1-1-6f74bec9a5bb@kernel.org>
+	 <20261027-fixes_core-v1-2-6f74bec9a5bb@kernel.org>
 Autocrypt: addr=riel@surriel.com; prefer-encrypt=mutual;
  keydata=mQENBFIt3aUBCADCK0LicyCYyMa0E1lodCDUBf6G+6C5UXKG1jEYwQu49cc/gUBTTk33A
  eo2hjn4JinVaPF3zfZprnKMEGGv4dHvEOCPWiNhlz5RtqH3SKJllq2dpeMS9RqbMvDA36rlJIIo47
@@ -128,29 +127,15 @@ Precedence: list
 MIME-Version: 1.0
 
 On Tue, 2026-10-27 at 00:17 +0100, David Hildenbrand (Arm) wrote:
-> From: Josef Bacik <josef@toxicpanda.com>
 >=20
-
-> The fix is simple, so just fix the original commit so we don't have
-> to
-> speculate. To fix it, pass the actual PMD/PUD pointers. This restores
-> the
-> RCU-protected lookup and validation against the live PMD. Note that
-> the PUD
-> handling is required as well to handle folded page tables correctly
-> in all
-> cases.
+> Move uprobe_start_dup_mmap() to preserve the lock ordering.
 >=20
-> Fix generated by an LLM and sent by Josef Bacik in private.
->=20
-> Fixes: bd74fdaea146 ("mm: multi-gen LRU: support page table walks")
+> Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
 > Cc: stable@vger.kernel.org
-> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
-> [ david: handle walk_pud_range() as well, clarify+simplify
-> description,
-> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 adjust Fixes: ]
+> Reported-by: Josef Bacik <josef@toxicpanda.com>
+> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->=20
+
 Reviewed-by: Rik van Riel <riel@surriel.com>
 
 --=20
