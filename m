@@ -1,45 +1,45 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793091659;
-	b=t6bvXHndiLZSI2viTtg5I6JIYNdD81u2whNVno+aVnZAnARoRcqxdngjHOZWttNc84HB
-	 TjF3gV7x/DlRGHemLewA2bXqtp2NlWu4jTHlfBEbaEB78vnPO4EVrO1AP8MUcuRMascBR
-	 JNdBa9P05qwabohzC1+TIrKux210VEP7TzO5XLRp3o5B6nefZvCSCJ6M2gp47ZS0iSSRa
-	 NJ9RMmqohGFi/q4+lZTFfArbM5G4h5tFelw07tce2dW+1Dr2HmRgNUZd9ITSx7mbuty/l
-	 fdIa7GfN2plgkuLyWazSb+0/QzNYczECQ8vKJV7syuOJYMCEJT26hal0qy3KyVYNM6g==
+	t=1793092487;
+	b=4ZJgbl3BEXU0i3RxCI4i4PuOgEipeijv9i8j+abhemEYX9wGgqXO1BVnUCtGrRjQaBBy
+	 VBwn1ZQYgtIj3x3HkTBKjk1GXws4XjcyJD3WPWMmx57sfJ4/9lHW8ywucfgvNjit4z5ez
+	 4TZTkJjpMj265S93RO2WsPRGzljTMpHrxD+1QCUUzP7GVUD7Y+WFCx+J6G9J+GMi49tLt
+	 HoMraDMIMK1su8RqD3oNOmy4RwZlaC8VWd1WVTMLHDCeJGGO+xVRhHj6G/vT5Cy37fnRk
+	 C9d/nSGgcYVg7IOs1uhrO0+3lNlVu8T94Nmr5zAUYKS22QZ8xE7uT9VokfS2ALvADQQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793091659;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793092487;
 	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
 	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=+/MYNnK8DUYGBHVGnq4qUIdmGywNXoT3ALheU2qVv/c=;
-	b=1e4SzT8Ca6JdbD44SIyV2Uea+5k3wlEjCsPuJU1Jy3m5zZ0uJkx/BbbjgZ5Ou9i0+S+k
-	 OJnRhAiHf8QkdZHM9M1SowPi/KtsBkYLHwZq/XFn8gS0MKEtxdKSOl5XEEoD9uAtdE8gl
-	 2HRPU1QresGoH6/UFZoWBibeLlkL+76PfwbYs4zAG3pJMvp8ObnFACrVcseSFH8Xlc6Bo
-	 q49aTv1A11yObznJq+KMiljFozmdxTWBbmfeDcPSj7wB+JBSmbZWAJ1Syd3s4/Go5zKgL
-	 Wm5QbXpI53WCcJrEiR4ZyEaY2Rx9oHMx6VfDVdeOmSOYjyr4f1iG6wm25jgGWJ56EAg==
+	bh=3C9BaH0xhn5HBqYI2J//q0I0p6+i5eg81V2wjnKirFM=;
+	b=5fB8gDmJ44C3V5dzynMbGrkQ8NDdt32ZRurAv8ZidHQlJIDEIbW8KuxyB3WYTRxKRBRA
+	 cTNdeNEFEvU+nOCBLybnjVXV5/6d70zlRJ3isE56Lw8Z3zcNF61qath16DgHMJn57RXbD
+	 nJ62QH33PDviM9NNyn1kOgfs4zpDdXTUxJ9ApOBQt0bBrpfe3zQsw4svqq/KdGygCsnlE
+	 FIhoUeyGMpezjDuSe/bZeTcI+mHQZmbSjV2W/jvYcP/7Dsorl//80skdpod/X9OMEt8En
+	 DGOs1AUTi22GTecJebfBfhy6KIzcaUPrPfLak71KNeOgIqkN1qz5szKEaFexSRtGRMg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=HUTOmsFy;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Wax8ZcaD;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3AC96606A31A;
-	Tue, 27 Oct 2026 09:00:59 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EEFCB606A31A;
+	Tue, 27 Oct 2026 09:14:46 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=HUTOmsFy
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1EF751F01825;
-	Tue, 27 Oct 2026 09:00:43 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Wax8ZcaD
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id AAD0D1F01828;
+	Tue, 27 Oct 2026 09:14:32 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793091659;
-	bh=+/MYNnK8DUYGBHVGnq4qUIdmGywNXoT3ALheU2qVv/c=;
+	s=k20260515; t=1793092486;
+	bh=3C9BaH0xhn5HBqYI2J//q0I0p6+i5eg81V2wjnKirFM=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=HUTOmsFyCwPQlGk/S3zhcBsAr8cTW5+2CMv1yjmQ6bUinDyX4V2yoyFNvwh/1e4vu
-	 WWZFki+IFbYa6GHlzdddV7MD0+qRWb/ngFAwumTPrtciRUO/TvbRGR76BWTZAMzjNJ
-	 sxed1QvHde9n6j10JT+/P5Nm6k2T+ehhCipyLd8HeSRDyP2Be1vNrimizTUNLj8Xdv
-	 X9//cUF85Th1QcwuAXwXIE1H46VW0MVSngyvyxMII5vUYrOAGMVeVZ31+LhIFniCg7
-	 TfNEaoOTUBZGhMDoF8r+JAL/PH0j7gsvkfsNDpYR3FDXt5ASODJOgcrap9BS2uyPd9
-	 QgBAmExgEHVAw==
-Date: Tue, 27 Oct 2026 09:00:41 +0000
+	b=Wax8ZcaD/71DiecJRehBjH5zvLNetiaOZxFQpb1WrNjXeS7UbTJCfdPzju8GkpkR5
+	 dhrLX3VqNdfyJG8THsKAy7Zg1MlSK48H8IzHPn4+WXagMvTMTf23VfaYwqjmMxWF4J
+	 ++aVQRfE/N3qmeQ4mWlhTnPnTLk6holKtH9fysbFY3Sq0B3fzgYVi6P9bv72BUL8as
+	 jPTVF6ybNZ9tbOBT4WgNmDcRrIiEEvZtlJjuia2pyRtxp1x+2LMPFWrT8PiiQnoU70
+	 T6x25iwZeTJPgQeNnZDH/2onGJTGqPiDGfF68A322uNHd7QLFq01c+VVuq5nXdSavM
+	 /61haflQ2EIiA==
+Date: Tue, 27 Oct 2026 09:14:30 +0000
 From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
@@ -68,13 +68,12 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
 	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
 	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
 	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, Chris Mason <mason@kernel.org>, 
-	stable@vger.kernel.org
-Subject: Re: [PATCH 40/46] mm/ksm: check large swap-cache folios before
- mapping them
-Message-ID: <auBnb7gpqVIg0wzL@gremlin>
+	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, stable@vger.kernel.org, 
+	Josef Bacik <josef@toxicpanda.com>
+Subject: Re: [PATCH 38/46] mm/ksm: reset the unstable trees of all nodes
+Message-ID: <auBrQQ9Lu_261z2e@gremlin>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-40-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-38-6f74bec9a5bb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -86,161 +85,69 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261027-fixes_core-v1-40-6f74bec9a5bb@kernel.org>
+In-Reply-To: <20261027-fixes_core-v1-38-6f74bec9a5bb@kernel.org>
 
-On Tue, Oct 27, 2026 at 12:18:00AM +0100, David Hildenbrand (Arm) wrote:
-> From: Chris Mason <mason@kernel.org>
+On Tue, Oct 27, 2026 at 12:17:58AM +0100, David Hildenbrand (Arm) wrote:
+> Each full scan resets ksm_nr_node_ids unstable tree roots. Enabling
+> merge_across_nodes resets this count to 1, even if per-node roots were
+> previously allocated.
 >
-> KSM folios are always small, but their shared swap slots can be read
-> back as part of a large folio in the swap cache. ksm_might_need_to_copy()
-> skips large folios, so another process can map a page with an incompatible
-> anon_vma or page index. Reverse mapping then cannot find the new
-> mapping, preventing migration or reclaim.
+> So when toggling "merge_across_nodes" 0 -> 1 -> 0, a scan that starts
+> while the setting is 1 and continues after switching back to 0 can
+> encounter stale unstable tree roots, resulting in UAF.
 >
-> Apply the same compatibility checks to large folios as to small ones.
-> Pass the page corresponding to the swap entry and copy only that page
-> when necessary. In do_swap_page()'s copy path, decrement only that slot's
-> swap count, because the source swap-cache folio can now be large.
+> Only root is allowed to change "merge_across_nodes", and the documented
+> sequence is: "merge_across_nodes setting can be changed only when there
+> are no ksm shared pages in the system: set run 2 to unmerge pages first,
+> then to 1 after changing merge_across_nodes, to remerge according to the
+> new setting."
 >
-> Fix generated by an LLM and sent by Chris Mason in private.
+> Let's fix it by tracking in ksm_nr_node_ids the actual number of
+> allocated tree roots.
 >
-> Fixes: f1879e8a0c60 ("mm, swap: never bypass the swap cache even for SWP_SYNCHRONOUS_IO")
+> remove_all_stable_nodes() and ksm_check_stable_tree() will now scan
+> more tree roots (skipping the empty ones), which is harmless.
+>
+> Fixes: ef53d16cded7 ("ksm: allocate roots when needed")
 > Cc: stable@vger.kernel.org
-> Signed-off-by: Chris Mason <mason@kernel.org>
+> Reported-by: Josef Bacik <josef@toxicpanda.com>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-As reviewed off-list :)
-
-All very, very horrifying, but I convinced myself that swapped-in large folios
-containing previously-order-0 KSM pages _are_ real and _can_ hurt you...
-
-Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 
 > ---
->  include/linux/ksm.h |  6 +++---
->  mm/ksm.c            | 22 ++++++++++++----------
->  mm/memory.c         |  5 +++--
->  mm/swapfile.c       |  3 ++-
->  4 files changed, 20 insertions(+), 16 deletions(-)
+>  mm/ksm.c | 6 +++---
+>  1 file changed, 3 insertions(+), 3 deletions(-)
 >
-> diff --git a/include/linux/ksm.h b/include/linux/ksm.h
-> index d39d0d5483a23..a0d358a1feb63 100644
-> --- a/include/linux/ksm.h
-> +++ b/include/linux/ksm.h
-> @@ -91,8 +91,8 @@ static inline void ksm_exit(struct mm_struct *mm)
->   * We'd like to make this conditional on vma->vm_flags & VM_MERGEABLE,
->   * but what if the vma was unmerged while the page was swapped out?
->   */
-> -struct folio *ksm_might_need_to_copy(struct folio *folio,
-> -			struct vm_area_struct *vma, unsigned long addr);
-> +struct folio *ksm_might_need_to_copy(struct folio *folio, struct page *page,
-> +		struct vm_area_struct *vma, unsigned long addr);
->
->  void rmap_walk_ksm(struct folio *folio, struct rmap_walk_control *rwc);
->  void folio_migrate_ksm(struct folio *newfolio, struct folio *folio);
-> @@ -145,7 +145,7 @@ static inline int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
->  }
->
->  static inline struct folio *ksm_might_need_to_copy(struct folio *folio,
-> -			struct vm_area_struct *vma, unsigned long addr)
-> +		struct page *page, struct vm_area_struct *vma, unsigned long addr)
->  {
->  	return folio;
->  }
 > diff --git a/mm/ksm.c b/mm/ksm.c
-> index e050b1bdf810d..e95f6b6723602 100644
+> index dbfb8f98b1892..9c51925825cbf 100644
 > --- a/mm/ksm.c
 > +++ b/mm/ksm.c
-> @@ -3138,19 +3138,20 @@ void __ksm_exit(struct mm_struct *mm)
->  }
->
->  static bool folio_anon_rmap_compatible(const struct folio *folio,
-> -		struct vm_area_struct *vma, unsigned long addr)
-> +		const struct page *page, struct vm_area_struct *vma,
-> +		unsigned long addr)
->  {
->  	const struct anon_vma *anon_vma = folio_anon_vma(folio);
->  	struct anon_vma_chain *avc;
->
->  	VM_WARN_ON_ONCE_FOLIO(!folio_test_locked(folio), folio);
-> -	VM_WARN_ON_ONCE_FOLIO(folio_test_large(folio), folio);
-> +	VM_WARN_ON_ONCE_FOLIO(page_folio(page) != folio, folio);
->  	VM_WARN_ON_ONCE_FOLIO(folio_test_ksm(folio), folio);
->  	vma_assert_stabilised(vma);
->
->  	if (!anon_vma)
->  		return true;
-> -	if (folio->index != linear_anon_page_index(vma, addr))
-> +	if (page_pgoff(folio, page) != linear_anon_page_index(vma, addr))
->  		return false;
->
->  	/*
-> @@ -3167,20 +3168,21 @@ static bool folio_anon_rmap_compatible(const struct folio *folio,
->  	return false;
->  }
->
-> -struct folio *ksm_might_need_to_copy(struct folio *folio,
-> -			struct vm_area_struct *vma, unsigned long addr)
-> +struct folio *ksm_might_need_to_copy(struct folio *folio, struct page *page,
-> +		struct vm_area_struct *vma, unsigned long addr)
->  {
-> -	struct page *page = folio_page(folio, 0);
->  	struct folio *new_folio;
->
-> -	if (folio_test_large(folio))
-> -		return folio;
-> -
-> +	/*
-> +	 * A KSM folio is small, but the slot that it left behind can be swapped
-> +	 * in as a part of a large folio by one of the processes that shared it.
-> +	 * So test, and copy, the page of the slot.
-> +	 */
->  	if (folio_test_ksm(folio)) {
->  		if (folio_stable_node(folio) &&
->  		    !(ksm_run & KSM_RUN_UNMERGE))
->  			return folio;	/* no need to copy it */
-> -	} else if (folio_anon_rmap_compatible(folio, vma, addr)) {
-> +	} else if (folio_anon_rmap_compatible(folio, page, vma, addr)) {
->  		return folio;		/* still no need to copy it */
+> @@ -475,6 +475,7 @@ static void advisor_stop_scan(void)
+>  #ifdef CONFIG_NUMA
+>  /* Zeroed when merging across nodes is not allowed */
+>  static unsigned int ksm_merge_across_nodes = 1;
+> +/* Number of allocated stable and unstable tree roots. */
+>  static int ksm_nr_node_ids = 1;
+>  #else
+>  #define ksm_merge_across_nodes	1U
+> @@ -3636,14 +3637,13 @@ static ssize_t merge_across_nodes_store(struct kobject *kobj,
+>  			else {
+>  				root_stable_tree = buf;
+>  				root_unstable_tree = buf + nr_node_ids;
+> +				ksm_nr_node_ids = nr_node_ids;
+>  				/* Stable tree is empty but not the unstable */
+>  				root_unstable_tree[0] = one_unstable_tree[0];
+>  			}
+>  		}
+> -		if (!err) {
+> +		if (!err)
+>  			ksm_merge_across_nodes = knob;
+> -			ksm_nr_node_ids = knob ? 1 : nr_node_ids;
+> -		}
 >  	}
->  	if (PageHWPoison(page))
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 230a2f4dafa13..be4c05db37d33 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -5096,7 +5096,7 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
->  	 * folio->index of non-ksm folios would be nonlinear inside the
->  	 * anon VMA -- the ksm flag is lost on actual swapout.
->  	 */
-> -	folio = ksm_might_need_to_copy(folio, vma, vmf->address);
-> +	folio = ksm_might_need_to_copy(folio, page, vma, vmf->address);
->  	if (unlikely(!folio)) {
->  		ret = VM_FAULT_OOM;
->  		folio = swapcache;
-> @@ -5278,7 +5278,8 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
->  	if (unlikely(folio != swapcache)) {
->  		folio_add_new_anon_rmap(folio, vma, address, RMAP_EXCLUSIVE);
->  		folio_add_lru_vma(folio, vma);
-> -		folio_put_swap(swapcache, NULL);
-> +		folio_put_swap(swapcache,
-> +			       folio_file_page(swapcache, swp_offset(entry)));
->  	} else if (!folio_test_anon(folio)) {
->  		/*
->  		 * We currently only expect !anon folios that are fully
-> diff --git a/mm/swapfile.c b/mm/swapfile.c
-> index 254ce86fa923e..71ef9e2efb3a9 100644
-> --- a/mm/swapfile.c
-> +++ b/mm/swapfile.c
-> @@ -2514,7 +2514,8 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
->  		return 0;
+>  	mutex_unlock(&ksm_thread_mutex);
 >
->  	swapcache = folio;
-> -	folio = ksm_might_need_to_copy(folio, vma, addr);
-> +	folio = ksm_might_need_to_copy(folio,
-> +				       folio_file_page(folio, swp_offset(entry)), vma, addr);
->  	if (unlikely(!folio))
->  		return -ENOMEM;
->  	else if (unlikely(folio == ERR_PTR(-EHWPOISON))) {
 >
 > --
 > 2.43.0
