@@ -1,50 +1,49 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793089505;
-	b=0b1HXaMBriwo2LqKjYTHvGs/IycxWvMLmrehZvU8ONHPoysVqhgj/FkdO2itB7n7wNep
-	 RBZqEGy6BQpWmyg7ZR6VshLj6bsvrPxO7Fi8fQjmDaF2zzZArYOngLDUkNFS18Zuh54Qi
-	 KOZGmYN3DW/AAuJlY4VomyqfCu6qGVcR6MCjSV2oYxXfsKVsQijrxJCEVomcCLmUnM67e
-	 zpCGQBuxVvaa4tiJvjej+EChkQ2agY8Iptu8k/8Lf8IJH6jnEeX/w7fc7S8MiMhsM7vw/
-	 Z+JYoW+GDQy51HkoS+ysIYtowSRaXA5Od09W/wZp2bpK5aIpWP9iY3zAUllZbfrMfkg==
+	t=1793089917;
+	b=ov/yfq2KFf7CE9oneyt/0H593y+QZDH0Jn9JNke0HNgWfZeTNW1S0pbI8i/17+Ie3tXu
+	 BXwbY11LmNfcBT8yQtnjzRI6AeGMqZmctqoTsAlEyL57O//jh4p1urfgcHshIpdys3ksm
+	 fB6QQ7O46em6tHmpVIwlUaXYG0VtwJshV8n/ggKewFicmNoz4U3sIxQmHy3Nf6H4c4L/A
+	 bb2RhlGt+OYcPyjGQt4vXPcgmniati3tCA2VmDW0MmrfXm1R+9bs2awWEuTaAnARM1vW3
+	 rl7zvWNg/4I3FD89Vh1Q5KRViKBihI7a2eGqn50olQCsLNhEeJw/W+nosuRVaho/2wA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793089505;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793089917;
 	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
 	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=2R51g1GKhJVpEHSsNmeCyBNO0baPm+a+p1RPH1MDDNw=;
-	b=GheZHTl+MUGDBR2sZ5rORd2M34a8RYUWOViqAIVaTEAT/c0a66WzCmKGtsgE+zbtHErf
-	 EJGtjEte7Bip6d2N55xkSTyq6yCvYKava/OAk+v/wcBuwBIjoWdCpaxgJt+WrA+33k15/
-	 M29XHMWfh/gXLlCycVKPReDE9rnJM0LAn3xqLhbmijsoILlUQo2iIaVzw6bZggjlh47AK
-	 kH9DwX/9g4qxj5vr1aPpuJApAGO/4BebsU+iPfSA+4L7wA7OuTWTtWQaqZ4qKqR6E7d48
-	 B4irYuri+E2Nsdp0RuxSdM45fHXt7Apk0sZfbCK+VAx8TrlQcOB3GiWmbxNrl/mWwyA==
+	bh=JYDAxb/IKfi0ONAEetWSuyzn9W1ajE3cX6VVYTxdndk=;
+	b=5jBLRTO4Cd6oDUZj5hEGXow4hGqQVUPTPAR+RwQKQJKUA0wfR4VPNL2UfQ38Bu2BQY7a
+	 klQtx3uC10X9V6I1YyIZCyrgY3AQAXRH7FW3Wwm+PErRV8Bb5lG8DknJn184f8bOqaZ6W
+	 qJtuMzhl2Grav4PuaCNBzsqORWQFdX57oVzMeJ8H+U0+q71tHhbc5QkQXEjPnV8uzrkha
+	 J/LFdnBN6ocYveV3XbHxWZ86w/sP/aQswr85Olry/fENrSVcWUHQqqvJ3fJVCxtWG9MuU
+	 dpHgMFDpjEGWDCIgVrebreR7WsjHs6dkQxpnUVxFA3FrFblRHi6xavfomacDfQMVJaw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=oMCJcnkQ;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NSyrEmFs;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CD142606A31A;
-	Tue, 27 Oct 2026 08:25:04 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 63396606A328;
+	Tue, 27 Oct 2026 08:31:57 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=oMCJcnkQ
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4D4511F01825;
-	Tue, 27 Oct 2026 08:24:50 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NSyrEmFs
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 30FE51F01825;
+	Tue, 27 Oct 2026 08:31:42 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793089504;
-	bh=2R51g1GKhJVpEHSsNmeCyBNO0baPm+a+p1RPH1MDDNw=;
+	s=k20260515; t=1793089917;
+	bh=JYDAxb/IKfi0ONAEetWSuyzn9W1ajE3cX6VVYTxdndk=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=oMCJcnkQ2ugmQRTH47VuoA3lVoRzsl34BDT2jKNZ7RUkFZzWRMbYSzo8WR8dK47mW
-	 pqOc0eK72lDgDWD3QdHT/pBPnXi7ryj0yWTtmxBWUn+p5DRaD+1S+/Zz1qFJPw0jDt
-	 lyPXK9okKJapfC2UEO49ON8OIAwvxBsXfw7kAXbJ0jwSXdgh4Nb8U2On849jV//cVT
-	 XlO3MbW2lEPG9jGdLQoIYuXn+vfpx2LaaFHDs6IoRpEheK1ZpsFb3+BVmLglbhci3D
-	 +YInIICeV3inpT7BSAzD/puAVkPVByrS2yMaytLjeB9oAMCCDWzd0u2d/tbYp4aR5g
-	 N0rWUbD2viZ0Q==
-Date: Tue, 27 Oct 2026 08:24:47 +0000
+	b=NSyrEmFsH2/8hgo8acOSrNLr9Hp/jrECdxCZNkIUtjazyxj1KHY2Z9xTuaK1Lx/+E
+	 ZlmTVVItxriaq2TTVszlyqWoslkxBKunusBgrpEBtjqe+GL7/BhgMfvr0j6wiA++no
+	 F2KtES+mT9pC9lUi/ceR10V31SP1W8sTkLdb8RXB5buLAYoTKBuslgPDKXcQC7fYaC
+	 tmT15Bau5bPVbn3Z1pAmnKqeU5kgzDR3je5XpPQh+1wLiPoL+vicuxqnXgb7RRv82r
+	 DFUEPhtPAu/EsK33zZwLXIqaPQ96HHeqGtj52+tHWqHJBcswjRzCsbgunsrigQ97JU
+	 n0Iy4vbd890bA==
+Date: Tue, 27 Oct 2026 08:31:40 +0000
 From: "Lorenzo Stoakes (ARM)" <ljs@kernel.org>
-To: Gregory Price <gourry@gourry.net>
-Cc: "David Hildenbrand (Arm)" <david@kernel.org>, 
-	Andrew Morton <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, 
-	Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
 	Shakeel Butt <shakeel.butt@linux.dev>, Kairui Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>, 
 	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
 	Baoquan He <baoquan.he@linux.dev>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
@@ -65,17 +64,16 @@ Cc: "David Hildenbrand (Arm)" <david@kernel.org>,
 	Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
 	Chengming Zhou <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, 
 	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
-	Youngjun Park <youngjun.park@lge.com>, Joshua Hahn <joshua.hahnjy@gmail.com>, 
-	Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>, 
-	Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
-	kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	linux-cxl@vger.kernel.org, stable@vger.kernel.org
+	Youngjun Park <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, 
+	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
+	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, stable@vger.kernel.org
 Subject: Re: [PATCH 25/46] mm/userfaultfd: wake waiters when registration
  modes are removed
-Message-ID: <auBcES74Q5M3MWCW@gremlin>
+Message-ID: <auBgr8OO0UIJ5-in@gremlin>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
  <20261027-fixes_core-v1-25-6f74bec9a5bb@kernel.org>
- <179307782442.2301705.17273288326330283268.b4-reply@b4>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -87,76 +85,98 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <179307782442.2301705.17273288326330283268.b4-reply@b4>
+In-Reply-To: <20261027-fixes_core-v1-25-6f74bec9a5bb@kernel.org>
 
-On Mon, Oct 26, 2026 at 10:10:24PM -0700, Gregory Price wrote:
-> From: Gregory Price <gourry@gourry.net>
-> Subject: [PATCH] mm/userfaultfd: compare exact registration modes before skipping
+On Tue, Oct 27, 2026 at 12:17:45AM +0100, David Hildenbrand (Arm) wrote:
+> UFFDIO_REGISTER can replace MISSING or MINOR tracking without waking
+> faults that are already queued. For example, switching an anonymous
+> range from MISSING to WP leaves a missing-fault waiter asleep until
+> userspace explicitly wakes it.
+
+I assume this is something people basically never do because you'd think it'd be
+a pretty obvious bug report right?
+
 >
-> Changing registration from MISSING|WP to WP returns success but leaves
-> MISSING enabled. The no-op check sees that WP is already set and skips
-> the update, so later accesses to missing pages still wait for userspace.
+> When a registration change removes a UFFD mode, wake waiters in the
+> affected interval after updating the VMA. The VMA is write-locked at
+> this point, so no new faults can queue under the old modes and woken
+> threads cannot retry until mmap_write_unlock(). Waiters for retained
+> modes in the same interval may also wake and refault.
+
+Oh good lord.
+
 >
-> Skip the update only when the current and requested UFFD modes match
-> exactly.
+> The hang reproduces for MISSING-to-WP and MINOR-to-MISSING transitions,
+> with both read and unread fault events.
 >
 > Fixes: 63b2d4174c4a ("userfaultfd: wp: add the writeprotect API to userfaultfd ioctl")
 > Cc: stable@vger.kernel.org
-> Signed-off-by: Gregory Price (Meta) <gourry@gourry.net>
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+
+In the words of Metallica, the more I see, the less, the less I believe...
+
+Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+
 > ---
->  mm/userfaultfd.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>  mm/userfaultfd.c | 20 ++++++++++++++++++++
+>  1 file changed, 20 insertions(+)
 >
 > diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
-> index 669f71d485d02..0a28130cebc99 100644
+> index 2122676c4220f..710e913c73bfa 100644
 > --- a/mm/userfaultfd.c
 > +++ b/mm/userfaultfd.c
-> @@ -2299,7 +2299,7 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
->  		 * userfaultfd and with the right tracking mode too.
->  		 */
->  		if (vma->vm_userfaultfd_ctx.ctx == ctx &&
-> -		    vma_test_all_mask(vma, vma_flags))
-> +		    (vma->vm_flags & __VM_UFFD_FLAGS) == vm_flags)
-
-Would be better not to regress to the legacy API. I realise we don't use it for
-backported fixes in general, but this patch obviously won't apply to older
-versions anyway, so we should use the correct API now, and this for older
-versions.
-
-I'll add a better predicate probably to do this in one go, but for the fix,
-I put the correct patch below.
-
-
->  			goto skip;
+> @@ -2270,6 +2270,9 @@ static struct vm_area_struct *userfaultfd_clear_vma(struct vma_iterator *vmi,
+>  	return ret;
+>  }
 >
->  		/*
+> +static void wake_userfault_range(struct userfaultfd_ctx *ctx,
+> +		unsigned long start, unsigned long end);
+> +
+>  /* Assumes mmap write lock taken, and mm_struct pinned. */
+>  static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
+>  			       struct vm_area_struct *vma,
+> @@ -2287,6 +2290,8 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
+>  		prev = vma;
+>
+>  	for_each_vma_range(vmi, vma, end) {
+> +		const bool any_mode_removed = vma->vm_flags & __VM_UFFD_FLAGS & ~vm_flags;
+> +
+>  		cond_resched();
+>
+>  		VM_WARN_ON_ONCE(!vma_can_userfault(vma, vm_flags, wp_async));
+> @@ -2332,6 +2337,10 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
+>  		 */
+>  		userfaultfd_set_ctx(vma, ctx, vm_flags);
+>
+> +		/* Retry faults for removed modes while the VMA is write-locked. */
+> +		if (any_mode_removed)
+> +			wake_userfault_range(ctx, start, vma_end);
+> +
+>  		if (vma_is_hugetlb(vma) && uffd_disable_huge_pmd_share(vma))
+>  			hugetlb_unshare_all_pmds(vma);
+>
+> @@ -3648,6 +3657,17 @@ static __always_inline void wake_userfault(struct userfaultfd_ctx *ctx,
+>  		__wake_userfault(ctx, range);
+>  }
+>
+> +static void wake_userfault_range(struct userfaultfd_ctx *ctx,
+> +		unsigned long start, unsigned long end)
+> +{
+> +	struct userfaultfd_wake_range range = {
+> +		.start = start,
+> +		.len = end - start,
+> +	};
+> +
+> +	wake_userfault(ctx, &range);
+> +}
+> +
+>  static __always_inline int validate_unaligned_range(
+>  	struct mm_struct *mm, __u64 start, __u64 len)
+>  {
 >
 > --
-> Gregory Price <gourry@gourry.net>
-
-diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
-index 777bf122d32a..c71cb9179913 100644
---- a/mm/userfaultfd.c
-+++ b/mm/userfaultfd.c
-@@ -2288,6 +2288,9 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
- 		prev = vma;
-
- 	for_each_vma_range(vmi, vma, end) {
-+		const vma_flags_t curr_vma_flags =
-+			vma_flags_and_mask(&vma->flags, __VMA_UFFD_FLAGS);
-+
- 		cond_resched();
-
- 		VM_WARN_ON_ONCE(!vma_can_userfault(vma, vm_flags, wp_async));
-@@ -2300,7 +2303,7 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
- 		 * userfaultfd and with the right tracking mode too.
- 		 */
- 		if (vma->vm_userfaultfd_ctx.ctx == ctx &&
--		    vma_test_all_mask(vma, vma_flags))
-+		    vma_flags_same_pair(&curr_vma_flags, &vma_flags))
- 			goto skip;
-
- 		/*
+> 2.43.0
+>
 
 --
 Cheers, Lorenzo
