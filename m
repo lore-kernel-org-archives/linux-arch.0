@@ -1,44 +1,44 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793112106;
-	b=vJWuBoq4HtPuLCNZcsUIsDkIwoPsRT4/FRCB1iquB1W5iAvLJE2UZHl6LH8cbAufzfVk
-	 inwasKi2Yizy4a23/KDdGuZOZjOi/H3bmtLl89fniNJd0AIow9qEgZtPOnTYuccVKTGv7
-	 5CQP4NwmQFu2WG7ZJkOMeThig66hDrQ6B7X6Az5rySDuCXYO97DJKwiNMWk4TDS0p/LeW
-	 7A8bDkRIvpQEdIm9buSNRvwMVTipYHgqtu9u3f/VL6XO3OI3rGhgidrf6fU7DND1PiMhJ
-	 RYKqHk5p+kYvFkleol5bLl6Q7DtMDqnhQLW+B4MikOYv2OTyLDDLNVD1pRTJPVoRk9Q==
+	t=1793113219;
+	b=tibO/Y75Od/s/YJ2qD2d9SyHI8A2KWDkH9mpKaBGOdFpd1mY1vyP9KZ0CLpVKI+PaeqX
+	 X5z2k8MXU7hXCkL5uedjtCChKTQGZyOUMSs94EJrDtHrAysWwgRlna9eVxx/LxFwEi3F+
+	 +WVs76VNN/hFSADikU10iunyG6oJQjQaLSAKD810otbAFqw+UQWccXAVWLL+yUehDqynW
+	 t9dlxj0++glgzhDcTusa84ccXlVVNxn9+zdQDQY6pC7lP4i7SArs0lHrfFhcqscgvbql5
+	 IatTLeICVv8mPcctRFmNcGmdop4L3T0ooY699WrAsipWHLJ37e0r94B6czoI1RcHQBQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793112106;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793113219;
 	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
-	 Date:Message-ID:User-Agent:MIME-Version:Content-Type;
-	bh=Cxbcd97TigLbOc2nsbdYTtwGKr7cyQITuDlutqpOwp0=;
-	b=aQWoFWncYIly05m2wm8N8TcnU4qli123A04TBWdwMxkibL+tPmzuwdvgz8KkjeYCP2Fh
-	 a0/UE05pck6F7gK5k9juD8LUvV7SDMxMDLxx9+K7bYgcDZBXVeL1GEaKKpJRCKKM0A/Je
-	 eGRNpE4W2WancAtRCKLZN3YYlKXVMIwKg697vFBRVazVZNBww9QkKrTawNe8GKGNADMDw
-	 yUSyfUllzKuX88ljONv1M52IkmfYaJEXDos1JYaSQb6zSD0zU/BuQ+G7l9T0X5M5pdqGv
-	 GAMAmTLIj/vlGKVhfQNon/iHn8aPOS2cX613oE+0vcFks8HAxFkqVDEA4iNsfn6e7AA==
+	 User-Agent:Date:Message-ID:MIME-Version:Content-Type;
+	bh=qp+fSXor3rJtw8hGRhqYEuRFppHYbzFfezBhq/ClTY8=;
+	b=qV8pnwXCk7UsXFGptyUSJ+KHnCIwgpQHwScarF41oMGjJ7h4kc3TqHs7XQk/5bnhZo6T
+	 YAM4Zy//iijzrlPr+AL4xRk8Jf0Ul4ZeOIuo5V4X4oxnBjZK0YvSrWSOIJLhVnVsjRXw1
+	 VTPoxFx1NFQ2RaUb5M/EQunid36OugxqvZdigRaE090cmMFJpi1byYtC2X26jAwUF2ZY9
+	 DoD/S6Zo3XxlU46KFCbeJpoxh2JeIuTCTRrzFbweTYM2/7k2be+Gz09AhlsNK2ypsz6dy
+	 zoUEjez1UpUU+Pds+oGQOF3NgnZhZ36CInGxu1KuqlJ2Xz9ks+Ik27m3cNnxvVSymOw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="F/aE3Kg9";
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=UnXLdq3k;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 54B82606A31E;
-	Tue, 27 Oct 2026 14:41:46 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 64BA2606A32D;
+	Tue, 27 Oct 2026 15:00:19 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=F/aE3Kg9
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 61A8B1F01825;
-	Tue, 27 Oct 2026 14:41:36 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=UnXLdq3k
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7C0151F01825;
+	Tue, 27 Oct 2026 15:00:09 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793112105;
-	bh=Cxbcd97TigLbOc2nsbdYTtwGKr7cyQITuDlutqpOwp0=;
+	s=k20260515; t=1793113219;
+	bh=qp+fSXor3rJtw8hGRhqYEuRFppHYbzFfezBhq/ClTY8=;
 	h=From:To:Cc:Subject:In-Reply-To:References:Date;
-	b=F/aE3Kg94sj9fXVFeMOGEhnFPh7IPM73CFA/LmgAAZfItP5Nw7PY1j3LmhUrie3RF
-	 WWOkZE/CrqgRjQtrY5czn2Xyhnu7Jhr5cpxZIRN6ucwFL7953eyR9cc+xJIfYeqrtx
-	 x427FQ040+6sFoWm3ZQYEETyJqIrMT+OQrZXuAnXJaqqyPl1iBQjI9L2UIFGYkQFmj
-	 rXT+tzW5xd2XQNYXVDL7CnDknr0SBZMXfP2tLX56GVF5sYE25tWUnjur3LSUQsNAM/
-	 e9FZ57Wpnn2LjlHGFOu9V+hCx07zuXfQscJu7g4AtCiXI1sCKypZwCMKvsYpJoK5pk
-	 vtVZ2ljYGxZvA==
+	b=UnXLdq3klaC+tZ2+JX6PBI45P7W7nF48+f9ADm70UzXvPsh4+dY2WhOicztPbMw7F
+	 SARjt9Oczq92TzB6tsLTcFdVUo5032qKNP4oINRE/Q8ajIBJ3KPA69x6ct5ZyaPihb
+	 dzmgq7TcIx1PWaY/d5t1JPP1sQw/8RZHDucCg/R/QFCmyDP2NXPW+F6S6AUKz2W+3t
+	 Dpk7PNOGHdNngY66tF6fRyZEMJsZsML0o3pMjD/NKndJzXXBZJwiuvk6Lr6JNZpq0X
+	 Vrc6vg4zteKiAqZrKEoQENifIVt/YUhXNNs100l6gLc3ci49cX4el5JejC4ULazFv4
+	 Ph+fkkfmpEbLw==
 From: Pratyush Yadav <pratyush@kernel.org>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>,  Johannes Weiner
@@ -73,17 +73,16 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,  Johannes Weiner
  <ying.huang@linux.alibaba.com>,  Jason Gunthorpe <jgg@ziepe.ca>,
   linux-mm@kvack.org,  linux-kernel@vger.kernel.org,
   kexec@lists.infradead.org,  linux-fsdevel@vger.kernel.org,
-  linux-arch@vger.kernel.org,  linux-cxl@vger.kernel.org,
-  stable@vger.kernel.org,  Chris Mason <mason@kernel.org>
-Subject: Re: [PATCH 03/46] mm/memfd: check for real shmem inodes before
- accessing shmem state
-In-Reply-To: <20261027-fixes_core-v1-3-6f74bec9a5bb@kernel.org> (David
-	Hildenbrand's message of "Tue, 27 Oct 2026 00:17:23 +0100")
+  linux-arch@vger.kernel.org,  linux-cxl@vger.kernel.org,  Chris Mason
+ <mason@kernel.org>,  stable@vger.kernel.org
+Subject: Re: [PATCH 20/46] mm/gup: fix clearing folios in memfd_pin_folios()
+In-Reply-To: <20261027-fixes_core-v1-20-6f74bec9a5bb@kernel.org> (David
+	Hildenbrand's message of "Tue, 27 Oct 2026 00:17:40 +0100")
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
-	<20261027-fixes_core-v1-3-6f74bec9a5bb@kernel.org>
-Date: Tue, 27 Oct 2026 15:41:34 +0100
-Message-ID: <2vxzh5i7p5nl.fsf@kernel.org>
+	<20261027-fixes_core-v1-20-6f74bec9a5bb@kernel.org>
 User-Agent: Gnus/5.13 (Gnus v5.13)
+Date: Tue, 27 Oct 2026 16:00:08 +0100
+Message-ID: <2vxzbj8fp4sn.fsf@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -95,118 +94,62 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain
 
-Hi David,
-
 On Tue, Oct 27 2026, David Hildenbrand (Arm) wrote:
 
-> shmem_file() only checks a file's backing mapping. That mapping can belong
-> to another file, as with a Coda file backed by a tmpfs container after
-> mmap(). It does not establish that file_inode(file) is a shmem inode.
+> From: Chris Mason <mason@kernel.org>
 >
-> Seal handling and memfd preservation use this check before accessing
-> shmem inode state, so they can access an inode of the wrong type.
+> memfd_pin_folios() pins folios obtained directly from the page cache
+> without checking whether they are uptodate. However, shmem fallocate()
+> can leave newly allocated folios uncleared and not uptodate. Callers
+> such as udmabuf can then expose uninitialized memory to userspace.
 >
-> Add file_inode_is_shmem() to check the inode's file operations in both
-> paths. This identifies regular shmem inodes, including those used by
-> memfds and ordinary tmpfs files, independently of wrapper file operations.
-
-Why not update shmem_file() to do this check instead? Having a
-shmem_file() that might not always return the right result on a file
-seems like a landmine.
-
-For example, you missed check_memfd_seals() in udmabuf or
-memfd_pin_folios() in gup. Plus, someone later down the line might use
-shmem_file() without knowing this subtle problem, and we probably would
-miss it in review.
-
-For callers that only care about the mapping should then use
-shmem_mapping(). Perhaps that would be collapse_file() but TBH I don't
-really understand khugepaged all that much. All other callers of
-shmem_file() seem to care about the actual inode.
-
+> Clear non-uptodate folios and mark them uptodate under the folio lock
+> before returning them to the caller.
 >
-> Fixes: c49fcfcda8b5 ("mm/shmem: update file sealing comments and file checking")
-> Fixes: b3749f174d68 ("mm: memfd_luo: allow preserving memfd")
+> Fix generated by an LLM and sent by Chris Mason in private.
+>
+> Fixes: 89c1905d9c14 ("mm/gup: introduce memfd_pin_folios() for pinning memfd folios")
 > Cc: stable@vger.kernel.org
-> Reported-by: Chris Mason <mason@kernel.org>
+> Signed-off-by: Chris Mason <mason@kernel.org>
+> [ david: simplify description and comment ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > ---
->  include/linux/shmem_fs.h | 6 ++++++
->  mm/memfd.c               | 8 +++++---
->  mm/memfd_luo.c           | 2 +-
->  mm/shmem.c               | 5 +++++
->  4 files changed, 17 insertions(+), 4 deletions(-)
+>  mm/gup.c | 14 ++++++++++++++
+>  1 file changed, 14 insertions(+)
 >
-> diff --git a/include/linux/shmem_fs.h b/include/linux/shmem_fs.h
-> index a7c7a96a7cbf9..2ceca7993e4f5 100644
-> --- a/include/linux/shmem_fs.h
-> +++ b/include/linux/shmem_fs.h
-> @@ -117,8 +117,14 @@ extern unsigned long shmem_get_unmapped_area(struct file *, unsigned long addr,
->  		unsigned long len, unsigned long pgoff, unsigned long flags);
->  extern int shmem_lock(struct file *file, int lock, struct ucounts *ucounts);
->  #ifdef CONFIG_SHMEM
-> +bool file_inode_is_shmem(const struct inode *inode);
->  bool shmem_mapping(const struct address_space *mapping);
->  #else
-> +static inline bool file_inode_is_shmem(const struct inode *inode)
-> +{
-> +	return false;
-> +}
+> diff --git a/mm/gup.c b/mm/gup.c
+> index efc9aa2654625..47e7ae152cdf1 100644
+> --- a/mm/gup.c
+> +++ b/mm/gup.c
+> @@ -3516,6 +3516,20 @@ long memfd_pin_folios(struct file *memfd, loff_t start, loff_t end,
+>  					goto err;
+>  				}
+>  
+> +				/*
+> +				 * fallocate() can leave folios in the
+> +				 * page cache that were never cleared.
+> +				 */
+> +				if (!folio_test_uptodate(folio)) {
+> +					folio_lock(folio);
+> +					if (!folio_test_uptodate(folio)) {
+> +						folio_zero_range(folio, 0, folio_size(folio));
+> +						flush_dcache_folio(folio);
+> +						folio_mark_uptodate(folio);
+> +					}
+> +					folio_unlock(folio);
+> +				}
 > +
->  static inline bool shmem_mapping(const struct address_space *mapping)
->  {
->  	return false;
-> diff --git a/mm/memfd.c b/mm/memfd.c
-> index 0f6fff004f5e4..7d2da23157003 100644
-> --- a/mm/memfd.c
-> +++ b/mm/memfd.c
-> @@ -211,12 +211,14 @@ static int memfd_wait_for_pins(struct address_space *mapping)
->  
->  static unsigned int *memfd_file_seals_ptr(struct file *file)
->  {
-> -	if (shmem_file(file))
-> -		return &SHMEM_I(file_inode(file))->seals;
-> +	struct inode *inode = file_inode(file);
-> +
-> +	if (file_inode_is_shmem(inode))
-> +		return &SHMEM_I(inode)->seals;
->  
->  #ifdef CONFIG_HUGETLBFS
->  	if (is_file_hugepages(file))
-> -		return &HUGETLBFS_I(file_inode(file))->seals;
-> +		return &HUGETLBFS_I(inode)->seals;
->  #endif
->  
->  	return NULL;
-> diff --git a/mm/memfd_luo.c b/mm/memfd_luo.c
-> index 59de210bee5f9..c0811407ce397 100644
-> --- a/mm/memfd_luo.c
-> +++ b/mm/memfd_luo.c
-> @@ -582,7 +582,7 @@ static bool memfd_luo_can_preserve(struct liveupdate_file_handler *handler,
->  {
->  	struct inode *inode = file_inode(file);
->  
-> -	return shmem_file(file) && !inode->i_nlink;
-> +	return file_inode_is_shmem(inode) && !inode->i_nlink;
->  }
->  
->  static unsigned long memfd_luo_get_id(struct file *file)
-> diff --git a/mm/shmem.c b/mm/shmem.c
-> index fadf23f9e21ed..0d41aac125df9 100644
-> --- a/mm/shmem.c
-> +++ b/mm/shmem.c
-> @@ -275,6 +275,11 @@ static const struct vm_operations_struct shmem_vm_ops;
->  static const struct vm_operations_struct shmem_anon_vm_ops;
->  static struct file_system_type shmem_fs_type;
->  
-> +bool file_inode_is_shmem(const struct inode *inode)
-> +{
-> +	return inode->i_fop == &shmem_file_operations;
-> +}
-> +
->  bool shmem_mapping(const struct address_space *mapping)
->  {
->  	return mapping->a_ops == &shmem_aops;
+
+Nit: this logic is repeated in a couple places in shmem.c and in
+memfd_luo.c. Perhaps it deserves a helper?
+
+Anyway, sounds like an important fix so don't make my nitpick stop you
+from landing this if you don't want to bother.
+
+Reviewed-by: Pratyush Yadav (Google) <pratyush@kernel.org>
+
+>  				if (nr_folios == 0)
+>  					*offset = offset_in_folio(folio, start);
 
 -- 
 Regards,
