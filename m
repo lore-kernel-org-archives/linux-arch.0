@@ -1,83 +1,83 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.218.49
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.208.49
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793072706;
-	b=UC2aOD/Avt/E6iH/PB+XBh+tAuCqmJNdsX04k0pG3mcIiAhHA5hW4U1241AKpxvVSbPR
-	 2DjrdAfPHpHHxMvjIZfvMSNMJORBLmsGNGiIGu69Wu1iySpGGJIpTJqzWXiunk66IYaTV
-	 oN6cwrFedt09tcd0K2Y1zdgOgoskdxJYm4fM+YOuXv341RKH4nyLbmUDBUz+FLrYCbuDr
-	 cROoWm/mMt1TcgHLiIcG01bJfGlGvoMisX7qhR15PIySpB4uQMNKc2uhnkUOXvxpkfSGT
-	 VIQR6u7+XVDEZBVVgUDG1mRb/kFlPiQBfz9Ithp3WLKyRgU0AoDdglFeIxfFOSrbqFQ==
+	t=1793077829;
+	b=4Imjfa1+lrC/GzF2/eSBh0PtQc7yn3D0NsBj5t+5tDuTCSSVDD8ecdIkcFw54h6Vhg1f
+	 AVzm6gYt6EfoIjxuQPno6MDOmqaPcVj1gi6y/lzDmksqZiKfwaaMzEk/B0Drg8/cQ0lHX
+	 ZHYRlslJw0udYoWyF3uASBlWvm+8ZVpFyIbcBbLE0Ra/Yj90sVyfKtwiznG25owdRbl8C
+	 HXP57Nf2L+UAd1yyw+/xRjHMcBbOaH5vkWZocwTWlnBoM9VaIDo4VSwLo66xOZSTnvEJ8
+	 oBiWD6CLI1fiSJw3jKwFJQCw84YuyvjxfZ2slK+xH8NkGPXSSR8ZrlhTEuH6g0ZdaVQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793072706;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793077829;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Subject:From:To:
 	 Cc:In-Reply-To:References:Date:Message-Id:X-Mailer;
-	bh=7Mznwc8GrpzJ8tK5EL1ob+iPEtoev+BzmKX7CHPnJ74=;
-	b=kemlCW8VczB0f0weQzjAGKBVMbIb/5XzQjYgHX3ECyTK+s0jAoNb1iID1MD9TluSMrrs
-	 M5Hi+QWS2pi1LLU0JMY5wdG2DNLN4rl5Ng5Pgn1x5Q/NgrFwMNWVrb6HKE+6e8xuLmd3O
-	 SRxfaZ1knzqJqBsZhtUUiRkU79NDwiOvKkfW6n+4X/pXP60uNJoZt5hSsZePQCDTmmdmg
-	 pbMXbc+iQyExwSbCmAgVG753GLa6HfZBFBxmzw43kruHzd4vmd4sKk3pBLy1MiobUz3TV
-	 COJ4E00wFKoDYcjANKhBG8XhhGqrM/wiJ99eEUVWI4/9JuAL6ydVTyBfAuOMXpGp/uQ==
+	bh=U8c13Ig6MUdyuuVgJ6RNI7ksV9FwtObecf4rW8b7B7Y=;
+	b=VNLyqP7Fqa7/FXowpvbJeBp0Bn+g7pm2SOP2QezT78p+0tTTwnVutJDONL3cf+UfTB2r
+	 sELL8h+xpA6TF3lHlbUQRK0qgKt1QoRZFIAVqAApDVVmH9XpKegbRF++8XUzRJTf57cdx
+	 KgX1mE9n0gQn7o3MLKGxGJfLz3xlKRZGaSby0hPbvyq6k3JiHRlg1TkvEYFf6Z2kWD5gg
+	 aOd18QCE+lMDv0DWbXqtm5fIG+CWFp22qZkhkjwezxutyCMCBTbty75WEh++534C9uwrg
+	 TXmGM9R9Z5UOOmWSnmqKJKH9G9MSmlmfNk/VwzqWrdRvhEFHXDyhhcfB31ZCX7HasZg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=none header.from=gourry.net;
 	spf=pass smtp.mailfrom=gourry.net;
-	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=LpEct1xf;
-	arc=none smtp.remote-ip=209.85.218.49
-Received: from mail-ej1-f49.google.com (mail-ej1-f49.google.com [209.85.218.49])
+	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b="krSh/1sO";
+	arc=none smtp.remote-ip=209.85.208.49
+Received: from mail-ed1-f49.google.com (mail-ed1-f49.google.com [209.85.208.49])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7FA51606A32C
-	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 03:45:05 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 7FA51606A32C
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B9638606A320
+	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 05:10:28 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org B9638606A320
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=LpEct1xf
-Received: by mail-ej1-f49.google.com with SMTP id a640c23a62f3a-c3f8d72d7ceso570920966b.3
-        for <linux-arch@vger.kernel.org>; Mon, 26 Oct 2026 20:45:05 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=krSh/1sO
+Received: by mail-ed1-f49.google.com with SMTP id 4fb4d7f45d1cf-6b40fc523faso4047425a12.3
+        for <linux-arch@vger.kernel.org>; Mon, 26 Oct 2026 22:10:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gourry.net; s=google; t=1793072704; x=1793677504; darn=vger.kernel.org;
+        d=gourry.net; s=google; t=1793077827; x=1793682627; darn=vger.kernel.org;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:from:to:cc
          :subject:date:message-id:reply-to:content-type;
-        bh=7Mznwc8GrpzJ8tK5EL1ob+iPEtoev+BzmKX7CHPnJ74=;
-        b=LpEct1xfjN1thI8TbP1fFa5w4w7QpAjyNF4cILo4hjgANhwzNTKcYl0/OAf4qytQ+D
-         bTfw0B3W1YrJQBpG4CQa8BYUw8l2YA95j8Iad3IOM19h6jXJAZgZVZG4NeFqABxjmQVx
-         cqyrWzfJOtShgzKATE8MA+KO/cZ6XpKKBzqfRYPV63n+KEkSREwYLpTIdKLylOucISku
-         0b4t0cDOYZZ8VUkN5GYjeY7kLbNFUAZvUWcO7vKMGLuSX/T0QUI3kWhBk14nybsQgrpx
-         sgvekJqRyNLDD3CwyDUMJUgSY/E+TGZ5+ZTFoQY3fbSMcNnskQ516a1VLRqdlAxCgpFM
-         NMXA==
+        bh=U8c13Ig6MUdyuuVgJ6RNI7ksV9FwtObecf4rW8b7B7Y=;
+        b=krSh/1sOaB/EnuxksKvaR29m6EPzqsslcEUDvbWR6jV+oy9fnTCovkxM/rPw1u/v+T
+         lxiOLLS87aQMgtIOGwE/Qaa1isZihhaTABaqa/fw900ImJMZPi5PHxp3qJJ3zja9eZN0
+         N1PsgwchS8/1NrSdSxpXbjtCt0kPWGt7IGV7ngziZssa8t5rMKdSZi0+x2oTNqoF1xp9
+         QfCXP/QbfPSLoXvihdVk58EqWwRUWt/KOB4jO4m0uCstPLPsjAhPIMZUiuouP9bofuae
+         Bnw+Gpck4Uy2FyyO7f5GsvYewq849Un6g6AU18RJaXjeNlw7Jif4GLTrZY8PZABYLwKs
+         JfAg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793072704; x=1793677504;
+        d=1e100.net; s=20260707; t=1793077827; x=1793682627;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=7Mznwc8GrpzJ8tK5EL1ob+iPEtoev+BzmKX7CHPnJ74=;
-        b=IKsV809fIm8Hy5k6Loc0XFRj0Cj82HtVeVpeHi1eb8e4zeM8BhIhyNFdcEUZniscBq
-         CxMPkfLLeiMQ7IqW971/PR7dNDdJETI8ePvYX5GNLpoKQSEGcqZXB/wQ6TvLAK5qxZw5
-         /WsMkqKm8AITGDY9R1uh/3vjTlaZeU0thCdei//tdjT7DmA1y/ZebHHTsr9Dn023qLDz
-         Zl0FAtm5g74Ik8tW2ffZpEdD+f7nE14ZZCDZzHVq2/whUzCZftLSpXsH0ikjsbCJCvO7
-         WBHsWmsuhWd51aPR5tNwPTf3cq+YvRBylSEjPEFDGZmrIDYKy9/UfEqWL4uUA2uD0KLM
-         tnkA==
-X-Forwarded-Encrypted: i=1; AKwUvBzQF+tFVo4z/md8dllB8MiRnxvLoh4f8ThQ3Zkf4zN56u/oqsCni4T+3lOZDMMHDUX6WcaH31fNUE/+@vger.kernel.org
-X-Gm-Message-State: AFq9FYIxSJ1FfkuXSPQT4kIsBdzt6v4JrhGUKruvInJH17cbZd84OIpk
-	uMzV0ZOODeOV9fOQSEfoA6ZUnjS9xmN/WQ+0suubYGoPjhfQiDweElKrAcvvJeJr5qw=
-X-Gm-Gg: AYBFou3p+IK7/yYaK49+dOrTivPq3iwCD8OecCE7y2H07QB5ZsiV6SHmtbGk2BACrHb
-	2TB41vq5X1cAikGFesSoVKtzxXX4hQjFyi6pe/AI9aA0Xdm64dqVq2j5VUoNvNg7qiJSJ56KhKD
-	Yo47hnswzn8XlZqw/aOvQxWKw6vAJ2wRxP+f8+H6DWamwv7wMd0+VWEY8abb/KYHPNd0BlX/buT
-	o+liYzYZDhSce6tjPFEmn30mxeg5c1F+QlhNRMgB1sqI5UF/ZOVJx9pFOdUm3FjxzqxHG/aFwVz
-	XtAgdIL94kl/Qf7l2S59/mEPesmLHBZfJHVvkGTCfW+vaeynpxBZ4tOQKa6D05fxQC3fEScZFhr
-	i0EXu0zARpv/+2BpzBBURCX8ejr77733fVBkx9shqyy7xrPE08g8+ikb9+IpYnlZHMxgf3aBtZq
-	iAZVsg0Xp3MbxNp+WXhWYPbnNU0eN9//wRt7VpK/g1Fdz9WSmhAmV0E5aB0sht9EB8Yge8uuhHK
-	c8rDAeVjbqNrh0DUvu5QleWwt3BEbhk/QXlFzzWmEC5bFE=
-X-Received: by 2002:a17:906:9f85:b0:c41:5a0e:3356 with SMTP id a640c23a62f3a-c46bded5befmr907107666b.41.1793072703836;
-        Mon, 26 Oct 2026 20:45:03 -0700 (PDT)
-Received: from localhost ([2a03:2880:32ff:49::])
-        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-c46bd4e7c83sm382468666b.30.2026.10.26.20.45.02
+        bh=U8c13Ig6MUdyuuVgJ6RNI7ksV9FwtObecf4rW8b7B7Y=;
+        b=FZUmfoCjDKIKtIkm+L7Ml6S0+aheJF2XCsvw1OWo1C00Qajt+MLTKHAhjRox+iqFrb
+         oeaSOBDn9uuTQxfqV6grMcpY5bmiX63nrWfRfm+pA5+X7PQT5vTaeqN8o3jw0CCxE5d8
+         kp6oj4AN7CgercdW/Rew8wgPiPNZpJSvoMDRpIBz2axU4qV0Dgn1RTthcGpuNSnl47Ns
+         /NvDqn+5psqTub4ghWuYnay+yPy9I475XMejGVYPspnblHG6nlnjZ+sA97x1rT0GliFq
+         nHQfb+gay6yJ1P0b/0d1OeyCZgP7FxewCc/GIw9A+G2brDhxKrDTCmlG5dgnTRgshj8W
+         5Qsg==
+X-Forwarded-Encrypted: i=1; AKwUvBy5HasX+50otQ509IQHvRdP4/bV7p3QSkZR7e1y3dIX7sd+KxkhuHWxtxqLY0ZqpcuWoAH89vh0l6Uf@vger.kernel.org
+X-Gm-Message-State: AFq9FYJ3eNuwasuaqDlqL63gSmg2Vg/BipvVuowZ8/C22I3MvXTNmdz2
+	yj8DO8Ee0WBn7GH9TVieOFt7D6V7jFynkwmR1sOJamSxlnBSRM7h108vvXu+5WCgLkw=
+X-Gm-Gg: AYBFou253vjTnuEBmK9nIWWaMtOrqhz9LfGUToVPvlV+nzDbjORd0gMgoH0YVKNrxIL
+	wUdQKBtPTMAUt9+I3zUldlUmpRAKv85/d0lS3hCSpCPmX9lZTxwvridmYuVOVqHyaOv6AWso1Um
+	0tGBTewVARVaxqecetzoRkvC0sWUl7lsCbDbbY1RRPgQoVxOv/JrTHjo6z5HcPE0W5+nVDol1s+
+	gfqW91EUl3ReVz+IAtIdBCQLADGD/8qJENtUIj73OY5yVnidEVO+BpNuoD4gc6P8v5CYH85Gquc
+	SZ99TIH3H+89la4VZwVLSdatpMGQLk6WehZ7WCSXdBdl3KV/r4syOV4t6Wxu7A0F+oczTBqx9yP
+	NtyqAwS9PCl48mMiZMlkNxDxMwAsy1AQnhZAbw2x9HlHAjM7IeVs84bfnOL4GfuomdV6df4+WrL
+	/L7r0/IrL+EQZIfLtwAjaLuJje5nvpFWy3eB2FZwuVr8k8ql6Z52kBvUrI9Zxxx3AwPV7P+LlR3
+	mF2yr+dbV162h4+gvo/qplUIZYGiV8At61Ae6RMZYI=
+X-Received: by 2002:aa7:d642:0:b0:6af:80c4:8981 with SMTP id 4fb4d7f45d1cf-6b443001da4mr6849436a12.26.1793077826967;
+        Mon, 26 Oct 2026 22:10:26 -0700 (PDT)
+Received: from localhost ([2a03:2880:32ff::])
+        by smtp.gmail.com with ESMTPSA id 4fb4d7f45d1cf-6b445984d85sm4571938a12.29.2026.10.26.22.10.25
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 26 Oct 2026 20:45:02 -0700 (PDT)
+        Mon, 26 Oct 2026 22:10:25 -0700 (PDT)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -89,8 +89,8 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH 41/46] mm/vma: call ->may_split() before a partial
- merge
+Subject: Re: [PATCH 25/46] mm/userfaultfd: wake waiters when registration
+ modes are removed
 From: Gregory Price <gourry@gourry.net>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
@@ -127,153 +127,115 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
  linux-kernel@vger.kernel.org, kexec@lists.infradead.org, 
  linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-cxl@vger.kernel.org, Chris Mason <mason@kernel.org>, 
- stable@vger.kernel.org
-In-Reply-To: <20261027-fixes_core-v1-41-6f74bec9a5bb@kernel.org>
+ linux-cxl@vger.kernel.org, stable@vger.kernel.org
+In-Reply-To: <20261027-fixes_core-v1-25-6f74bec9a5bb@kernel.org>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-41-6f74bec9a5bb@kernel.org>
-Date: Mon, 26 Oct 2026 20:45:01 -0700
-Message-Id: <179307270137.1171062.14886397073081900278.b4-reply@b4>
+ <20261027-fixes_core-v1-25-6f74bec9a5bb@kernel.org>
+Date: Mon, 26 Oct 2026 22:10:24 -0700
+Message-Id: <179307782442.2301705.17273288326330283268.b4-reply@b4>
 X-Mailer: b4 0.17-dev
 
-On 2026-10-27 00:18 +0100, David Hildenbrand (Arm) wrote:
-> From: Chris Mason <mason@kernel.org>
+On 2026-10-27 00:17 +0100, David Hildenbrand (Arm) wrote:
+> UFFDIO_REGISTER can replace MISSING or MINOR tracking without waking
+> faults that are already queued. For example, switching an anonymous
+> range from MISSING to WP leaves a missing-fault waiter asleep until
+> userspace explicitly wakes it.
 > 
-> A driver can use the ->may_split() hook to forbid a VMA boundary at
-> certain addresses.
+> When a registration change removes a UFFD mode, wake waiters in the
+> affected interval after updating the VMA. The VMA is write-locked at
+> this point, so no new faults can queue under the old modes and woken
+> threads cannot retry until mmap_write_unlock(). Waiters for retained
+> modes in the same interval may also wake and refault.
 > 
-... snip ...
+> The hang reproduces for MISSING-to-WP and MINOR-to-MISSING transitions,
+> with both read and unread fault events.
 > 
-> Fixes: 38607c62b34b ("fs/dax: properly refcount fs dax pages")
+> Fixes: 63b2d4174c4a ("userfaultfd: wp: add the writeprotect API to userfaultfd ioctl")
 > Cc: stable@vger.kernel.org
-> Signed-off-by: Chris Mason <mason@kernel.org>
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> [ david: improve description; cleanup the code ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
 Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
 Tested-by: Gregory Price (Meta) <gourry@gourry.net>
 
-Attached a vma unit test I used to test this
+Two additional automated reviews independently confirmed a similar
+pre-existing issue and generated the same patch (below).
+
+Sashiko filed this as a pre-existing:
+https://sashiko.dev/#/map/217050
+
+But this seems directly related to your patch here, so it might be worth
+squashing this in:
+
+> diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
+> index 2122676c4220f..710e913c73bfa 100644
+> --- a/mm/userfaultfd.c
+> +++ b/mm/userfaultfd.c
+
+[ ... ]
+
+> @@ -2287,6 +2290,8 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
+> 		prev = vma;
+> 
+> 	for_each_vma_range(vmi, vma, end) {
+> +		const bool any_mode_removed = vma->vm_flags & __VM_UFFD_FLAGS & ~vm_flags;
+> +
+> 		cond_resched();
+> 
+> 		VM_WARN_ON_ONCE(!vma_can_userfault(vma, vm_flags, wp_async));
+
+Could the pre-existing no-op check also require an exact mode match?
+It currently does this later in userfaultfd_register_range():
+
+        if (vma->vm_userfaultfd_ctx.ctx == ctx &&
+            vma_test_all_mask(vma, vma_flags))
+                goto skip;
+
+Registering MISSING|WP, then requesting WP alone, takes this branch.
+It leaves missing tracking enabled and bypasses the new wake. A writer
+started after the replacement ioctl returns still queues a missing fault.
+A writer already waiting before replacement also stays asleep.
+
+Both cases time out on the base and on the full series. Replacing the
+predicate with
+
+        (vma->vm_flags & __VM_UFFD_FLAGS) == vm_flags
+
+makes both pass with this series. On the base that change fixes only the
+fresh-fault case; the already-pending case still needs this patch's wake.
+Would a separate fix for the mode comparison make sense alongside this
+patch? This is not introduced by the series.
 
 -- >8 --
 From: Gregory Price <gourry@gourry.net>
-Subject: [PATCH] tools/testing/vma: test may_split during partial merges
+Subject: [PATCH] mm/userfaultfd: compare exact registration modes before skipping
 
-A partial VMA merge moves a boundary just as a split does, so it must
-consult the driver's may_split callback. Removing an entire VMA during a
-merge needs no split check.
+Changing registration from MISSING|WP to WP returns success but leaves
+MISSING enabled. The no-op check sees that WP is already set and skips
+the update, so later accesses to missing pages still wait for userspace.
 
-Exercise permitted and rejected partial merges in both directions through
-vma_modify_flags(). Check the callback address and resulting boundaries,
-including unchanged boundaries on rejection. Also check that a full merge
-succeeds without calling a rejecting may_split callback.
+Skip the update only when the current and requested UFFD modes match
+exactly.
 
+Fixes: 63b2d4174c4a ("userfaultfd: wp: add the writeprotect API to userfaultfd ioctl")
+Cc: stable@vger.kernel.org
 Signed-off-by: Gregory Price (Meta) <gourry@gourry.net>
 ---
- tools/testing/vma/tests/merge.c | 87 +++++++++++++++++++++++++++++++++
- 1 file changed, 87 insertions(+)
+ mm/userfaultfd.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/tools/testing/vma/tests/merge.c b/tools/testing/vma/tests/merge.c
-index b26f1a66a1707..fcc052be15601 100644
---- a/tools/testing/vma/tests/merge.c
-+++ b/tools/testing/vma/tests/merge.c
-@@ -1488,8 +1488,95 @@ static bool test_expand_only_mode(void)
- 	return true;
- }
+diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
+index 669f71d485d02..0a28130cebc99 100644
+--- a/mm/userfaultfd.c
++++ b/mm/userfaultfd.c
+@@ -2299,7 +2299,7 @@ static int userfaultfd_register_range(struct userfaultfd_ctx *ctx,
+ 		 * userfaultfd and with the right tracking mode too.
+ 		 */
+ 		if (vma->vm_userfaultfd_ctx.ctx == ctx &&
+-		    vma_test_all_mask(vma, vma_flags))
++		    (vma->vm_flags & __VM_UFFD_FLAGS) == vm_flags)
+ 			goto skip;
  
-+static unsigned long split_checked_addr;
-+static unsigned int split_checks;
-+static bool split_allowed;
-+
-+static int merge_may_split(struct vm_area_struct *vma, unsigned long addr)
-+{
-+	split_checked_addr = addr;
-+	split_checks++;
-+	return split_allowed ? 0 : -EINVAL;
-+}
-+
-+static const struct vm_operations_struct merge_split_ops = {
-+	.may_split = merge_may_split,
-+};
-+
-+static bool check_partial_merge_split(bool left_edge, bool allow)
-+{
-+	struct mm_struct mm = {};
-+	vma_flags_t left_flags = mk_vma_flags(VMA_READ_BIT, VMA_MAYREAD_BIT,
-+					      VMA_MAYWRITE_BIT);
-+	vma_flags_t right_flags = mk_vma_flags(VMA_READ_BIT, VMA_WRITE_BIT,
-+					       VMA_MAYREAD_BIT, VMA_MAYWRITE_BIT);
-+	struct vm_area_struct *left = alloc_and_link_vma(&mm, 0x1000, 0x3000,
-+							1, left_flags);
-+	struct vm_area_struct *right = alloc_and_link_vma(&mm, 0x3000, 0x5000,
-+							 3, right_flags);
-+	struct vm_area_struct *middle = left_edge ? right : left;
-+	unsigned long start = left_edge ? 0x3000 : 0x2000;
-+	unsigned long end = left_edge ? 0x4000 : 0x3000;
-+	vma_flags_t flags = left_edge ? left_flags : right_flags;
-+	struct vm_area_struct *result;
-+	VMA_ITERATOR(vmi, &mm, start);
-+
-+	left->vm_ops = &merge_split_ops;
-+	right->vm_ops = &merge_split_ops;
-+	split_checks = 0;
-+	split_allowed = allow;
-+	result = vma_modify_flags(&vmi, left, middle, start, end, &flags);
-+	ASSERT_TRUE(split_checks > 0);
-+	ASSERT_EQ(split_checked_addr, left_edge ? end : start);
-+	if (allow) {
-+		ASSERT_EQ(result, left_edge ? left : right);
-+		ASSERT_EQ(left->vm_end, left_edge ? end : start);
-+		ASSERT_EQ(right->vm_start, left_edge ? end : start);
-+	} else {
-+		ASSERT_EQ(PTR_ERR(result), -EINVAL);
-+		ASSERT_EQ(left->vm_end, 0x3000);
-+		ASSERT_EQ(right->vm_start, 0x3000);
-+		ASSERT_EQ(mm.map_count, 2);
-+	}
-+	cleanup_mm(&mm, &vmi);
-+	return true;
-+}
-+
-+static bool test_partial_merge_may_split(void)
-+{
-+	ASSERT_TRUE(check_partial_merge_split(true, false));
-+	ASSERT_TRUE(check_partial_merge_split(false, false));
-+	ASSERT_TRUE(check_partial_merge_split(true, true));
-+	ASSERT_TRUE(check_partial_merge_split(false, true));
-+	return true;
-+}
-+
-+static bool test_full_merge_no_split(void)
-+{
-+	struct mm_struct mm = {};
-+	vma_flags_t flags = mk_vma_flags(VMA_READ_BIT, VMA_MAYREAD_BIT);
-+	struct vm_area_struct *left = alloc_and_link_vma(&mm, 0x1000, 0x3000,
-+							1, flags);
-+	struct vm_area_struct *right = alloc_and_link_vma(&mm, 0x3000, 0x5000,
-+							 3, flags);
-+	VMA_ITERATOR(vmi, &mm, 0x3000);
-+
-+	left->vm_ops = &merge_split_ops;
-+	right->vm_ops = &merge_split_ops;
-+	split_checks = 0;
-+	split_allowed = false;
-+	ASSERT_EQ(vma_modify_flags(&vmi, left, right, 0x3000, 0x5000, &flags), left);
-+	ASSERT_EQ(split_checks, 0);
-+	ASSERT_EQ(left->vm_start, 0x1000);
-+	ASSERT_EQ(left->vm_end, 0x5000);
-+	cleanup_mm(&mm, &vmi);
-+	return true;
-+}
-+
- static void run_merge_tests(int *num_tests, int *num_fail)
- {
-+	TEST(partial_merge_may_split);
-+	TEST(full_merge_no_split);
- 	/* Very simple tests to kick the tyres. */
- 	TEST(simple_merge);
- 	TEST(simple_modify);
+ 		/*
 
 -- 
 Gregory Price <gourry@gourry.net>
