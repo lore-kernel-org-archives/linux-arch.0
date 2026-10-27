@@ -1,79 +1,79 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
 ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1793132532;
-	b=2HVPnlzjwjN97AGoZre6zTIWc0gjFgeoPQn7aLmPbijbI9krHtVZ5Yn+z7HTMT1LkpXU
-	 2dc5DqQ9YA3Fi0MOsx08vU/y5Am9PqVGAg/oLRDHciQ1KfW84sFICH9UkxlQkCVNM1f+C
-	 54Imsy6ooedS4W5p3/FH0gytR+hm3FjEpAGEAFZquzLDoNMRa6iBlaGbh5YaGal4iq1RQ
-	 dXQHeeiuzcDPP3RKewPlQ0Ag8WDmQpMtBBqOrlMyqYgRNv7B1ruin1K9CRidzwe0N67ms
-	 OmOwnMyfHBZF2X5LEBOUIaxIyZX01shTh5R1GAAaD4mpYw1fCMAezz47N9k9AEVoxaQ==
+	t=1793132537;
+	b=IFizyEh0SlNj1uc6BCGJsYdfTbZENM0D8pOpNlHNF+ra6X/CXrOgdOr3kHNSZM1lY954
+	 vHCW+b1qQEnGZ8jeOOVbC05xyErI8yx9tpUpzEWJh3der9nV69JrFiJM8RYSGvVyK0WP2
+	 nVdGMC2DHHj0C6L1lxBS/eovzZ0ZtNwSm68RWoKIxbYLsabqGuhtSE8zPllgE63tV6sBJ
+	 cN7J60DHz3E77HaTzjzxP5SF+x9i5Sov0rIOos+As0ttdU8JQkrrv6o8xHF00m/8iJtmy
+	 8/zV1a5mL8x8Eyzs7eTB/U2ll3AojG+6oMRXqTmQDbT7fFF2smhbUhdWOMIBrM96TFQ==
 ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793132532;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793132537;
 	h=Received:DKIM-Signature:Received:From:Date:Subject:MIME-Version:
 	 Content-Type:Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
 	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
 	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=eNbUTGE4iSA32nWe/S568aDGz8kAgMHCOwq3b3eGgaE=;
-	b=nIyWwEWGMdKb9YJOBxPlqkFO8mJi7UJq9IcPfQekgSYcIFRwKufTTTdKVSGxa86BqkAI
-	 f1IwbJ8FcPQ2ROJ1shHJOM84dDKqwXeIvZJmu2rUUKDoON4yWNaYfTeLTbDRwSdSgNP44
-	 pdZPWbujK4V9XNjPS+zSPnrWiL5qwkZr/Ytegq2KgSg5VzC3gKi61E62pwnNPsoMuwGeE
-	 geGLK3RZy3gNewUb9QkS4XeqiXTCQ17qYMgqoR7SqBmM3y/aC/VizWaqkL29ZwjsvkhrT
-	 YjB2WB4pp/N9oRrwES0iYR/15yy/M7rX0u+gfTDggg0eKq+ogZLtKOIXq75DkYmoEAg==
+	bh=VREWUN8AJAKPAW/PnLTB+3AyrdUA3Tp3MbNPAyF7VCQ=;
+	b=c0gztnA7sQ9M+EYfCU9l0Uo/aKFOXETFL1tKBoHqhe0Cdyy/5l9a87WyrWjNkzmjKrt1
+	 38TnKJnoCUGheMc6WULKO7eYo3Ag20db9Q2STpCesebRtGvb4gcS/rDpypYRgCSxWoovq
+	 RGgFdhTUFVxH18YjDrNEIxuPYfcfqJwYBBauuXAtMlu/OOV1obODWqLJmZVYHURxn7VMn
+	 scr4zwCjGa6wB1GjJ4JSe7I981JgVrKqs7iM7F4ptiIqwmyOza7xZCoGa1ZZVDWwxmsEP
+	 ALdryJo6tGoZMslHUN59D73bgQY/QSHmwIe8/f6+QBXEKhFw/NySf/dujOHd6YfuSVg==
 ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=N3HapJ2f;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NbJ2Gdtt;
 	arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9D738606A31A;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D9246606A31D;
 	Tue, 27 Oct 2026 20:22:11 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=N3HapJ2f
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NbJ2Gdtt
 Authentication-Results: smtp.kernel.org; arc=none smtp.remote-ip=100.80.115.77
 ARC-Seal: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256; cv=none;
-	t=1793132530;
-	b=EWZC22WEaQU51J58IcLuBHUOLKlAASB9LI35uKu8D6DTXdkSxMbajdev5jAwwyCgQ8AP
-	 sU2b1djgJhksff27klYhUjpncbiz7PNG7xvz0U95sIXI5vtTSyzzL24+KJ4ur9eP9WTGM
-	 jyLpZL5ig2g9RD3KQ3fYUx9ATa/6mEjA6zy6adCg0l3qmNyt6VD7ZqZwlU97e3QXHAVxA
-	 AcRGSV3/NN2WUBquWTZcMoCDpnaW1tc33njH/k4BRymJkkHOxJzvspGSdEQDlmLKH//Qp
-	 56/5qmHQRhfuLm2E78oqJJIpuaKCBuZzNEi6Y/cthpSx4IPuueFxGVROZRSj3nrMH5A==
+	t=1793132531;
+	b=Pa4IBJawAp1KbDVw9780Y4zlob+LaiB3nIB+fUJ9zAHZ3BPjugFbGWVI/HU5p8nMmGu/
+	 KW+arMEHuQl77mE5mslf8cFl0k6Ppe8ExBFLVOWmYbQlqSY/YBiPJOrPMZ8DOjiOHPbjF
+	 17SJrYY2xre30fDhr8mCrR7lWgSn3dqpAJfu+SV1FCviCdJXjhzINainFEfO9vOdkEpAb
+	 LY9I87zKvliGLpL0K1G/Vvic816wv2sIxNJQYXUBtUlJ1SVV3OQNaf4FyMTWinniChxry
+	 pkEYbjM1Cxy/xOLRqDY1pWd5OejuFG00S860us9xAcLJ6LePwu+47/rdcS+/Ni/382A==
 ARC-Message-Signature: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256;
-	c=relaxed/relaxed; t=1793132530;
+	c=relaxed/relaxed; t=1793132531;
 	h=DKIM-Signature:Received:From:Date:Subject:MIME-Version:Content-Type:
 	 Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
 	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
 	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=eNbUTGE4iSA32nWe/S568aDGz8kAgMHCOwq3b3eGgaE=;
-	b=hsqAMtoyFY7nuDQAnWenwz5I3vqLkzr3uWYc1VeTeTYHAv++EBhvveAWAgH7i/RY9ftL
-	 IMdVTUaQF5AD5iy7DZHCQl1OEfxUCxuOfTw+4AIFEgFQS0Qgurz4LrbmufL1WXjo2vokW
-	 fNZxO+V5RtIp+g9BjqCFzwXOBs3MuxvfMMVwX3YFEgRH3NfMMvTjfX7C7j25UkTXWXYde
-	 XkrkYa0Y4a/ne9FXYC65Lc83H4FZ0kSUPnwQx8hxkVkJZcFG4BtAE845RzZ9V7Drimi5t
-	 Itf48Vogude42yaOzqBLc+WK9soHhJ+BZaXja3t8F1ZE3q1XfeQOiF7MJ+ZYbl2lrXA==
+	bh=VREWUN8AJAKPAW/PnLTB+3AyrdUA3Tp3MbNPAyF7VCQ=;
+	b=ve+9T4sywEgs6x7Zg3/vVL2iqtYyDlU+t1cpnX74vIUnMobGqoIgvC57hAXKrxbSQ22b
+	 IldyoAf/16x/RY3tk3Ke5hNZGKTI1fZQ9nB8KfBZUzW+4ORtbbFdRhEkNozXLZnITne7z
+	 g/ghLDXP2pClNRIt7pvt5F8pdCB3E5LvUpbyW76hwc7crAbRbTwLzKrcLs1PLC2kURqQc
+	 MwBla9Bkk8LgczWRAPKoYE0i1hzulUJ1CzDC3BYmZ4rhPqj8F8Wz7d7/3PdYy/PsFUAMR
+	 IoYhbR5fVARso8/oris1nn/IZE1DuaSbrqo1uSBmIPhoPFUcpVTvRBsv5MORGE+4iJg==
 ARC-Authentication-Results: i=1; smtp.kernel.org; 
 	arc=none smtp.remote-ip=100.80.115.77
 Received: from lkml.kernel.org (nexus.subspace.kernel.org [100.80.115.77])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.kernel.org (Postfix) with ESMTPS id 308451F01828;
+	by smtp.kernel.org (Postfix) with ESMTPS id 319211F031E0;
 	Tue, 27 Oct 2026 20:22:10 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793132530;
-	bh=eNbUTGE4iSA32nWe/S568aDGz8kAgMHCOwq3b3eGgaE=;
+	s=k20260515; t=1793132531;
+	bh=VREWUN8AJAKPAW/PnLTB+3AyrdUA3Tp3MbNPAyF7VCQ=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To;
-	b=N3HapJ2fbzCS85B3rok2hRCgd7zkipjLYtUW3v3UMcNM54r5/Es8HGM9jpePI1tLe
-	 fwZb/bx+37PVuJ1qoNmCUAF9TLs0pahpBvY9yfhyGUYmxNiX99LHuVwQ6FIpGdSzG9
-	 ONjofovPKKip54Lo7J28wS9ezivKiBFJGJBeldv/DHRyfHWi+gmaB/QIRKM+2Kticg
-	 HZnH8fcT5gGOtQ3y9XtWXU6mHJdQLCVj+V8o9j/vE6UyAVmApHTUcgWcvZw4FUL4jH
-	 OjYD0MjoD/ihHBp9W/kC/XQu3ZVj/q5c7aenoFRjwZjMiqOLQOmNRa1z2Kj+2VlFwC
-	 a86ioXwJDHAnA==
+	b=NbJ2Gdtt+lOeO1ifDsEbtpPS83ECI7A+LgmN9TKOTK7qhqulaa9D0RQh5TD/U15vQ
+	 9yDB9BuSIm9S/7WoSls6YiFiLkVYU5JhEjPiYUlJ+qOfxV+tUdhYAUOxMROo4ekd4P
+	 n0fb9qmnIWeJCXwAq5rDrPcRCY8vuEos5Fx/+M7SqvYjTWMg5SP+a9uE+XQb6uqkB7
+	 qWdwzw11MvgV2rknaALWlPNKvf7mEHS4wEdowklrf40IUFFnaAUlgt+1LuyAI1E4MU
+	 OS98PguGIad+NyQPJEFPna1WMSFS7Wy2EfDz3MSeIVpcN9w2SD9sHLGYGubazj6Ccr
+	 Wwd5hvMv6mjXA==
 Received: from nexus.subspace.kernel.org (localhost [IPv6:::1])
-	by lkml.kernel.org (Postfix) with ESMTP id ADB44451FD;
+	by lkml.kernel.org (Postfix) with ESMTP id 9E34A451F9;
 	Tue, 27 Oct 2026 20:22:09 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Tue, 27 Oct 2026 14:22:03 -0600
-Subject: [PATCH v13 03/39] vmlinux.lds.h: drop unused HEADERED_SECTION*
- macros
+Date: Tue, 27 Oct 2026 14:22:02 -0600
+Subject: [PATCH v13 02/39] vmlinux.lds.h: refactor BOUNDED_SECTION_* macros
+ into bounded_sections.lds.h
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -84,7 +84,7 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Message-Id: <20261027-dd-cmap-part2-clean-v13-3-9267923be612@gmail.com>
+Message-Id: <20261027-dd-cmap-part2-clean-v13-2-9267923be612@gmail.com>
 References: <20261027-dd-cmap-part2-clean-v13-0-9267923be612@gmail.com>
 In-Reply-To: <20261027-dd-cmap-part2-clean-v13-0-9267923be612@gmail.com>
 To: Jason Baron <jbaron@akamai.com>, Shuah Khan <shuah@kernel.org>, 
@@ -113,11 +113,11 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, 
  Jason Baron <jbaron@redhat.com>, Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1793132527; l=1428;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1793132527; l=4249;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=+Qnp7GmBGhxUf7BnWtOhBW1ycfqvD4UBWUm58PMJxJU=;
- b=Lkizb67hB5HUobqhhQfE3LJEkLk1XV2kLlvsK5XlQIH+h8FJzA/WsMungFxLnUmXUbIOBuQIK
- lvvI81jftZFBqtzQzuT2kd9LLcm6oZjHi6RKC82FIDDPrKLd8jwbHCU
+ bh=IfyJDb7+5IpRdexBxlsmGvn/hmtnbKQYugc2kC3D/aw=;
+ b=KHNS94dyrwfUat3rUowp1hXeRfJ9tQHVm49+4mt1JUQ+Ulw1bpwgpZJfujitxyqWgrTJ3hc8w
+ 5Efbg3SSImBCMnWdZv+nV2yl8DL4IQcndfox2Jen4LrML51uBm9g+Di
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -128,25 +128,104 @@ Content-Transfer-Encoding: 7bit
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-These macros are unused, no point in carrying them any more.
+Move BOUNDED_SECTION_* macros to a new helper file:
+include/asm-generic/bounded_sections.lds.h and include it back into
+vmlinux.lds.h.  This allows its reuse later to fix a failure to keep
+dyndbg sections in some circumstances.
 
-NB: these macros were just moved to bounded_sections.lds.h, from
-vmlinux.lds.h, which is the known entity, and therefore more
-meaningful in the 1-line summary, so thats what I used as the topic.
+NOTES:
 
+These macros are only for use in vmlinux.lds.h, where the _start &
+_end symbols are needed.  Modules keep sections separate in ELF
+sections, with their boundaries known, so the _start and _end are not
+useful, and may confuse tools not expecting them.
+
+This patch ignores a checkpatch warning, because new file is covered
+by "GENERIC INCLUDE/ASM HEADER FILES" in MAINTAINERS
+
+CC: Arnd Bergmann <arnd@arndb.de>
+CC: linux-arch@vger.kernel.org
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- include/asm-generic/bounded_sections.lds.h | 15 ---------------
- 1 file changed, 15 deletions(-)
+v3: move include to top
+---
+ include/asm-generic/bounded_sections.lds.h | 36 ++++++++++++++++++++++++++++++
+ include/asm-generic/vmlinux.lds.h          | 31 +------------------------
+ 2 files changed, 37 insertions(+), 30 deletions(-)
 
 diff --git a/include/asm-generic/bounded_sections.lds.h b/include/asm-generic/bounded_sections.lds.h
-index 8c29293ca7fb..268cdc34389b 100644
---- a/include/asm-generic/bounded_sections.lds.h
+new file mode 100644
+index 000000000000..8c29293ca7fb
+--- /dev/null
 +++ b/include/asm-generic/bounded_sections.lds.h
-@@ -18,19 +18,4 @@
+@@ -0,0 +1,36 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++
++#ifndef _ASM_GENERIC_BOUNDED_SECTIONS_H
++#define _ASM_GENERIC_BOUNDED_SECTIONS_H
++
++#define BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
++	_BEGIN_##_label_ = .;						\
++	KEEP(*(_sec_))							\
++	_END_##_label_ = .;
++
++#define BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
++	_label_##_BEGIN_ = .;						\
++	KEEP(*(_sec_))							\
++	_label_##_END_ = .;
++
++#define BOUNDED_SECTION_BY(_sec_, _label_)				\
++	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
++
++#define BOUNDED_SECTION(_sec)	 BOUNDED_SECTION_BY(_sec, _sec)
++
++#define HEADERED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
++	_HDR_##_label_	= .;						\
++	KEEP(*(.gnu.linkonce.##_sec_))					\
++	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)
++
++#define HEADERED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
++	_label_##_HDR_ = .;						\
++	KEEP(*(.gnu.linkonce.##_sec_))					\
++	BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)
++
++#define HEADERED_SECTION_BY(_sec_, _label_)				\
++	HEADERED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
++
++#define HEADERED_SECTION(_sec)	 HEADERED_SECTION_BY(_sec, _sec)
++
++#endif /* _ASM_GENERIC_BOUNDED_SECTIONS_H */
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index b2988aa12f66..b4ece391f7b1 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -50,6 +50,7 @@
+  *               [__nosave_begin, __nosave_end] for the nosave data
+  */
  
- #define BOUNDED_SECTION(_sec)	 BOUNDED_SECTION_BY(_sec, _sec)
++#include <asm-generic/bounded_sections.lds.h>
+ #include <asm-generic/codetag.lds.h>
  
+ #ifndef LOAD_OFFSET
+@@ -211,36 +212,6 @@
+ # endif
+ #endif
+ 
+-#define BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
+-	_BEGIN_##_label_ = .;						\
+-	KEEP(*(_sec_))							\
+-	_END_##_label_ = .;
+-
+-#define BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
+-	_label_##_BEGIN_ = .;						\
+-	KEEP(*(_sec_))							\
+-	_label_##_END_ = .;
+-
+-#define BOUNDED_SECTION_BY(_sec_, _label_)				\
+-	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
+-
+-#define BOUNDED_SECTION(_sec)	 BOUNDED_SECTION_BY(_sec, _sec)
+-
 -#define HEADERED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
 -	_HDR_##_label_	= .;						\
 -	KEEP(*(.gnu.linkonce.##_sec_))					\
@@ -162,7 +241,9 @@ index 8c29293ca7fb..268cdc34389b 100644
 -
 -#define HEADERED_SECTION(_sec)	 HEADERED_SECTION_BY(_sec, _sec)
 -
- #endif /* _ASM_GENERIC_BOUNDED_SECTIONS_H */
+ #ifdef CONFIG_TRACE_BRANCH_PROFILING
+ #define LIKELY_PROFILE()						\
+ 	BOUNDED_SECTION_BY(_ftrace_annotated_branch, _annotated_branch_profile)
 
 -- 
 2.56.0
