@@ -1,132 +1,111 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.222.45
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793118891;
-	b=DDqotGE1+GZ96QbFQNc0lULdJFi36Vg/Q+tB8KGcRd5h3n8R5Q/g7UIDaeo8zFqbS1Jc
-	 PgtKLZsxfOTGgGzZ2FSjSOhrT1LuzhUItZAE1HukwUC9Il7YYVN+BPzGwWBkpKuitB3Zf
-	 xkgPlXKNn/Zd+20En/NmLxEKmwXLQDQH4CxswP1muY1cJEE73TnT1tpvjeHNL5G/mQRG1
-	 kLksonZqvCMTvk6N7nZlWZqCspboyGEPpOmtBZquX7zAfgdaVrQUgZLdlFBtAhMvjO5Tj
-	 KRSeZmfH8w8Sa3aPE82XaChQHOoIv8j7K1H/O9BGjUPoP5LRl9TiGI1p151sE83sN8Q==
+	t=1793119207;
+	b=gDk1wnJU0pXVIftllv+h4QuxxgfeB5oZNrwNqEmNCe4CckBLV3td8GmEXcBQpQ47DyQi
+	 uc/dZQsAEQxO3Xtxi/ty/Cg7JKi9is8qQtdH6oUeyr22mhxihXhqnRaJwuy/gVi+QCOQ7
+	 T3Tz8JZj7nxj36kby8i8QfGQgmrMXsDxKPTNR3FynbHU/eqgwMb2fqG0dMkJkHXU9WdAv
+	 IaMJwoXfXvdY6sU381NvuCRIOd4pGlDdm8mwmeGqtu/f81Pwhy7b+NyRh5xB0R+2jNTBr
+	 Uwxvm/SI2UVjFOdoRJ4cJma+Env/j/Qqkh8rxo0Ld/SB/Ybq5xTK7irQDp2Sd4+WRZg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793118891;
-	h=DMARC-Filter:Received:DKIM-Signature:DKIM-Signature:DKIM-Signature:
-	 DKIM-Signature:Received:Received:Date:From:To:Cc:Subject:Message-ID:
-	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To:
-	 X-Spamd-Result:X-Rspamd-Server:X-Rspamd-Action:X-Spam-Flag:
-	 X-Spam-Score:X-Spam-Level:X-Rspamd-Queue-Id;
-	bh=NxOIucUiikYry+49/JZI01aFrFYOW8xThyuNV5vreJE=;
-	b=xtunsCSLwJPNgiOiMR+b7AHb7UMACvNrDvS8IpYUYfehU9C8mYdVWm1Ytjx7L21jxOEq
-	 RdudsgOO4QniDsuXFbr/brBwsfpqdAeRrIHe5nkV2t4jdgVol1igC+qioPImt2WKVfizF
-	 BkUuLMUYPuxqGS1BWp9roVWPHjMngdXPXWv+3Pko4XP8XSeTXX/dKIE2Jdwe4cx2gLL+h
-	 iTe1reM83xfJHpBKwYtjNIXZ9jo5bd61S9SfeuxW+P27ev0yKI0SNETgy9Sz8Fe6Ygtan
-	 F8bg24SMoIiEgzhIwUIwLjaVTWnMdVl/lZMXzbtnEVPwQUZfGOqMgy9XyxE9eAlr5xw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793119207;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To;
+	bh=gbXuStreYRF1M4k9Su5zd2++RJBOLVmoBCN1Uwl3TZ0=;
+	b=vsv/9ChYv/geDiLrKwM3fYSlpBKPFy4GOn5lLcj+9yfF79at4cja26p0l9ECezwV1jE2
+	 mEqWUoRxGD6lAVUpWzdw/a4oZ8k6GUsdYtJMjLFb/QjAfduuzyvPZZ+T0hN5tLxLoL/cL
+	 KGliMt0or5e/2+pBGScJejtEWsvTvklU93JgqcrRLKga0TW0y3X2ae3ycZ5/SdEwuzol2
+	 X58AS7UwjxzOPylRPGz/tV/c5QHpW4o3of1yb2P0H2WkrMv2Y05XXz14oymRC6GadbSCc
+	 IcTCSyDr0lh16dR6iHoQ+RZV39NgHgHWROvsI0G/rOy3tJpIp3dDvKgwh2XiywSRTTw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=suse.de;
-	spf=pass smtp.mailfrom=suse.de;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b="DYrZ/Jaz";
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=ASJUs0Y3;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b="DYrZ/Jaz";
-	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=ASJUs0Y3;
-	arc=none smtp.remote-ip=195.135.223.130
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	dmarc=pass header.from=soleen.com;
+	spf=pass smtp.mailfrom=soleen.com;
+	dkim=pass header.d=soleen.com header.i=@soleen.com header.a=rsa-sha256 header.s=google header.b=Zr7ScxU7;
+	arc=none smtp.remote-ip=209.85.222.45
+Received: from mail-ua1-f45.google.com (mail-ua1-f45.google.com [209.85.222.45])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7FE37606A330;
-	Tue, 27 Oct 2026 16:34:50 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 7FE37606A330
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 30E58606A31E
+	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 16:40:07 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 30E58606A31E
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=soleen.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=DYrZ/Jaz;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=ASJUs0Y3;
-	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=DYrZ/Jaz;
-	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=ASJUs0Y3
-Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 8B6EF21E2F;
-	Tue, 27 Oct 2026 16:34:48 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1793118888; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=NxOIucUiikYry+49/JZI01aFrFYOW8xThyuNV5vreJE=;
-	b=DYrZ/JazN4nYdi+afHyqz8QV5Coqg055GKzpqSPZHPK8CUtAMJPoogfHO+ZLq+JWeK+4aI
-	GbRLRg3FfRMsvhmw2GiL/SNfYDelEZ5GTXOL0Q9Cvnz2Yaj9HgGbR/w8KJJWJvi1XdsaAn
-	V3Apwr7tPm+1Y7oNf5QxrQ74gC1jdOQ=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1793118888;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=NxOIucUiikYry+49/JZI01aFrFYOW8xThyuNV5vreJE=;
-	b=ASJUs0Y3+GZw/WVpyH6+w6sCacPWKT2KRvHrSVqOuFQr9nDHznF5LtwoRppLqlRrEce+qh
-	ZjyPSP7vgHzUuWCQ==
-Authentication-Results: smtp-out1.suse.de;
-	dkim=pass header.d=suse.de header.s=susede2_rsa header.b="DYrZ/Jaz";
-	dkim=pass header.d=suse.de header.s=susede2_ed25519 header.b=ASJUs0Y3
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1793118888; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=NxOIucUiikYry+49/JZI01aFrFYOW8xThyuNV5vreJE=;
-	b=DYrZ/JazN4nYdi+afHyqz8QV5Coqg055GKzpqSPZHPK8CUtAMJPoogfHO+ZLq+JWeK+4aI
-	GbRLRg3FfRMsvhmw2GiL/SNfYDelEZ5GTXOL0Q9Cvnz2Yaj9HgGbR/w8KJJWJvi1XdsaAn
-	V3Apwr7tPm+1Y7oNf5QxrQ74gC1jdOQ=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1793118888;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=NxOIucUiikYry+49/JZI01aFrFYOW8xThyuNV5vreJE=;
-	b=ASJUs0Y3+GZw/WVpyH6+w6sCacPWKT2KRvHrSVqOuFQr9nDHznF5LtwoRppLqlRrEce+qh
-	ZjyPSP7vgHzUuWCQ==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 57B3713419;
-	Tue, 27 Oct 2026 16:34:44 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id sKFICKTS4GrQDgAAD6G6ig
-	(envelope-from <pfalcato@suse.de>); Tue, 27 Oct 2026 16:34:44 +0000
-Date: Tue, 27 Oct 2026 16:34:42 +0000
-From: Pedro Falcato <pfalcato@suse.de>
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
-	Shakeel Butt <shakeel.butt@linux.dev>, Lorenzo Stoakes <ljs@kernel.org>, 
-	Kairui Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>, 
-	Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
-	Baoquan He <baoquan.he@linux.dev>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
-	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
-	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
-	Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>, Hugh Dickins <hughd@google.com>, 
-	Pasha Tatashin <pasha.tatashin@soleen.com>, Pratyush Yadav <pratyush@kernel.org>, 
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>, 
-	Lance Yang <lance.yang@linux.dev>, Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
-	Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Usama Arif <usama.arif@linux.dev>, 
-	Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
-	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Oscar Salvador <osalvador@suse.de>, Minchan Kim <minchan@kernel.org>, 
-	Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
-	Chengming Zhou <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
-	Youngjun Park <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, 
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
-	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
-	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, Chris Mason <mason@kernel.org>, 
-	stable@vger.kernel.org
-Subject: Re: [PATCH 34/46] mm/memory: reject remote COW faults on PFN mappings
-Message-ID: <auDSecfTDBrthowP@pedro-suse.lan>
-References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-34-6f74bec9a5bb@kernel.org>
+	dkim=pass (2048-bit key, unprotected) header.d=soleen.com header.i=@soleen.com header.a=rsa-sha256 header.s=google header.b=Zr7ScxU7
+Received: by mail-ua1-f45.google.com with SMTP id a1e0cc1a2514c-9828fee1b4bso55735241.3
+        for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 09:40:07 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=soleen.com; s=google; t=1793119206; x=1793724006; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=gbXuStreYRF1M4k9Su5zd2++RJBOLVmoBCN1Uwl3TZ0=;
+        b=Zr7ScxU7LPpcpVmwcDfMzimPKelujj7KZMOtx1IyuU/S4C/UO70x0+DX+9QyLeh4a9
+         PmnVMdTOIGZWjWfC32qpJTjsEOC22/b+oVbdoj4aCBNhoaKTVm1iXV86p4vUFu1DVnFw
+         dI3uLv4u8RrIQ01IQQfwBwKfBFnN2w4rEe4Crl4lu8CTZuhY3dzGQPAeBoRy0oN74oAs
+         HLZUUQkXC2wsvk+R7B8NW2djal7BYB5QrNomAMvVxcHd/eztF+MMYs5OANCNnv+Bhofs
+         R3maM6BL/pFwDUgY2Yc4GszR7T33hmDEDaQG4LcAerPIgwmq7BHN1OF57ygqfvNBL0ZG
+         sYoA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793119206; x=1793724006;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=gbXuStreYRF1M4k9Su5zd2++RJBOLVmoBCN1Uwl3TZ0=;
+        b=sYq+B0yPKt4fSxVsTtd9i78O9XI7N649FFU9zVuwRoqp+mqTqtafDKCBD88MAAti5y
+         u37DLEjSF2cpE01swDutOjUhpYTlU8OI8uIPe/b2lqW500v+DJO4+Trf66fkFMPPOM5X
+         2Pk3Hdn6878ZFKfmCaMwzutrKWxE+T2CrHM76+hMnt/fXscl7AT4LPBN5Xmwh3ZXIqZW
+         5zP4p++tHDnlK0nIUuK6E/ivJgKnQKQdlE0ClgEFmb20Bet6UzGfoDv83O6BRbJMxrxt
+         kGCtioqzXqiHzRkXMyykAU0VRkGnvX1UOTwTKRE+E9ujbMUgcAOte45VhdtoaDiMob60
+         a3tQ==
+X-Forwarded-Encrypted: i=1; AKwUvBwmiMNW80tsYfa4HI97FccGGsh+q0iiEdFcl9d2Ogr8akwlgGNYjHKvr5JaJAiok6ddHvMiUZ8dbco5@vger.kernel.org
+X-Gm-Message-State: AFq9FYLCS0AfeL4IKY4HTDu3fDgfNa7pBlgX8Z3Y83KURB+OgFd2a/J1
+	B1E0Akl0OQ7n+WyC+x40GWIjs5sHQWGMkrDhd3BjLAc/K5q/+JJXgTpJZsyeukPR6zM=
+X-Gm-Gg: AYBFou3U+/bV4YZsl4d+LjlFHp+dEQI4zjJeCIaZ0vj4FS1PpH48z3P2KP2jbM2qQde
+	BeLnaMgTV2IbO0T46ITNi7rzA1emMKwafD6Is/61r0f8KWRb72jZYoa6+qsC0yma/lhHh7Jcyqr
+	T4NR1haUud+9xrQHIo6pZWdQ54VXBVFmYkM9xkqz9PWYhyVHPAnU47b6Ks13guKiNHOnaSG06Dx
+	7gFRwFVuQf4r4YegKJulB14sG8Wn+l1kW5cGHC0Rvxm+ZP/gvAwN19n17TJMX/ocKUaa++SO1gG
+	HY6P0QZMCb3of8Gxk+Cqf9XRTbTUx6NiTQMTDMGt2FGDyPtvJhPpMHxVwlK/7Wuqqkm7lJwcHdj
+	llAWOyw01QLRNdtnVSUniFAUfUgxzr5f7jj++Dz90w7/RTGn2Axp7V52vVVcmmHpF9N7UCXjE55
+	AENlFrCJHm+f62PkhO7+SfSadbsCMaMv7zBAwArw3oovMX1pSTqIQIGpXoVnz914c7Qrfs2ReFn
+	BkACCxYrFuNtsGAEqAMJA4/qgJL9vEoLp3PxkOZbCqi76yrcM5BKJiOtqw2xV4b7/4WrHeFDys1
+	BG1G0OhQccAkcxHOsn0aT/+sXj1RMhjWMfjxkVmDZkEb/QL8L7hwKnXLkpMmR7gczoiJJa612+A
+	AZfIDwzNuQEBhqKTLzbyhlee9b451J1Q/3l2Di/IP9H8G2nPnzjw=
+X-Received: by 2002:a05:6102:5048:b0:7bf:74c1:b606 with SMTP id ada2fe7eead31-7ce5ce4227dmr3243460137.34.1793119205875;
+        Tue, 27 Oct 2026 09:40:05 -0700 (PDT)
+Received: from google.com (16.49.199.35.bc.googleusercontent.com. [35.199.49.16])
+        by smtp.gmail.com with ESMTPSA id a1e0cc1a2514c-9912da2d9d1sm442866241.7.2026.10.27.09.40.04
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 27 Oct 2026 09:40:05 -0700 (PDT)
+Date: Tue, 27 Oct 2026 12:40:04 -0400
+From: Pasha Tatashin <pasha.tatashin@soleen.com>
+To: David Matlack <dmatlack@google.com>
+Cc: tarunsahu@google.com, Andrew Morton <akpm@linux-foundation.org>,
+	joro@8bytes.org, Mike Rapoport <rppt@kernel.org>,
+	Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de,
+	jgg@nvidia.com, robin.murphy@arm.com, loganodell@google.com,
+	oupton@kernel.org, kevin.tian@intel.com, alex@shazbot.org,
+	dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com,
+	will@kernel.org, Pasha Tatashin <pasha.tatashin@soleen.com>,
+	Alexander Graf <graf@amazon.com>,
+	Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com,
+	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev,
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
+	kexec@lists.infradead.org, skhawaja@google.com, kvm@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: Re: [RFC PATCH v2 3/4] liveupdate: Replace compatibility string with
+ a 2-bit pair feature header
+Message-ID: <auDT5MjXYq3lcQjE@google.com>
+References: <20261021152527.375070-1-tarunsahu@google.com>
+ <20261021152527.375070-4-tarunsahu@google.com>
+ <atlQ_Er0Ig7CCSxv@google.com>
+ <CALzav=f00C4yOAseNunW8GgQTDUGWT927Qy=TLm-3-J0TEDH8Q@mail.gmail.com>
+ <9huzzew0el59.fsf@tarunix.c.googlers.com>
+ <at_CncIPYCxOVkLo@google.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -138,73 +117,82 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261027-fixes_core-v1-34-6f74bec9a5bb@kernel.org>
-X-Spamd-Result: default: False [-12.01 / 50.00];
-	SUSE_INTERNAL_BYPASS(-9.00)[];
-	BAYES_HAM(-3.00)[100.00%];
-	SUSPICIOUS_RECIPS(1.50)[];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	R_DKIM_ALLOW(-0.20)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	MX_GOOD(-0.01)[];
-	RCVD_TLS_ALL(0.00)[];
-	FREEMAIL_CC(0.00)[linux-foundation.org,cmpxchg.org,kernel.org,linux.dev,tencent.com,google.com,linux.alibaba.com,infradead.org,suse.com,soleen.com,suse.cz,nvidia.com,surriel.com,arm.com,intel.com,redhat.com,gmail.com,suse.de,huaweicloud.com,lge.com,gourry.net,sk.com,ziepe.ca,kvack.org,vger.kernel.org,lists.infradead.org];
-	FROM_HAS_DN(0.00)[];
-	RBL_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:104:10:150:64:97:from];
-	DKIM_SIGNED(0.00)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
-	ARC_NA(0.00)[];
-	DKIM_TRACE(0.00)[suse.de:+];
-	MISSING_XM_UA(0.00)[];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	TO_MATCH_ENVRCPT_SOME(0.00)[];
-	RCVD_COUNT_TWO(0.00)[2];
-	FROM_EQ_ENVFROM(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	DNSWL_BLOCKED(0.00)[2a07:de40:b281:104:10:150:64:97:from,2a07:de40:b281:106:10:150:64:167:received];
-	RECEIVED_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:106:10:150:64:167:received];
-	RCPT_COUNT_GT_50(0.00)[65];
-	TAGGED_RCPT(0.00)[];
-	TO_DN_SOME(0.00)[]
-X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
-X-Rspamd-Action: no action
-X-Spam-Flag: NO
-X-Spam-Score: -12.01
-X-Spam-Level: 
-X-Rspamd-Queue-Id: 8B6EF21E2F
+In-Reply-To: <at_CncIPYCxOVkLo@google.com>
 
-On Tue, Oct 27, 2026 at 12:17:54AM +0100, David Hildenbrand (Arm) wrote:
-> From: Chris Mason <mason@kernel.org>
+On 10-26 21:14, David Matlack wrote:
+> On 2026-10-26 11:50 AM, tarunsahu@google.com wrote:
+> > Right, Required bit should be source kernel payload property to tell
+> > target kernel that the payload must be handled to correctly deserialize
+> > the data. It should be source kernel (userspace) responsiblity to make
+> > sure it understand the target kernel before doing liveupdate.
+> > 
+> > Saying this, During deserialization, target kernel's required bit is not
+> > necessary. So I propose the following truth table.
+> > 
+> > Source hdr  Target supported[i]  Action
+> > ----------  -------------------  ----------------------------------
+> > 00          0 or 1               Accept: feature absent in payload
+> > 01          0                    Accept: ignore the feature data
+> > 01          1                    Accept: use the feature data
+> > 11          0                    Reject: -EOPNOTSUPP
+> > 11          1                    Accept: use the feature data
+> > 10          0 or 1               Reject: -EINVAL (invalid encoding)
 > 
-> When handling a COW fault without a normal source page (PFN mappings),
-> __wp_page_copy_user() copies from the faulting user address. For remote
-> faults, this accesses the wrong address space, resulting in wrong data
-> getting copied.
+> Yes, this matches what I had in mind for the semantics.
 > 
-> For example, user_events updates an enable bit in the registering
-> process's memory. If that memory needs to be faulted in,
-> user_event_enabler_fault_fixup() calls fixup_user_fault() from a work
-> item. Placing the enable bit in a private PFN mapping can trigger this
-> remote COW path.
+> To be explicit: the source kernel should set the bits for each Live
+> Update based on what is actually preserved, rather than generating the
+> header from a static per-kernel array. E.g. memfd would only mark a
+> feature present for memfds that actually use it. That's what allows
+> rollback to an older kernel as long as nothing being preserved depends
+> on the new feature.
 > 
-> Reject these faults with VM_FAULT_SIGBUS when the target mm differs from
-> current->mm: remote faults. Ordinary (non-PFN) mappings are not affected.
+> But looking at this again, I think the required bit is redundant. Whether
+> a feature can be safely ignored is a property of the feature itself, not
+> of any particular file. Every file that has a feature present will have
+> the same required bit for it. The only thing that actually varies per
+> file is whether the feature is present.
 > 
-> The user-address copy dates back to commit 6aab341e0a28 ("mm: re-architect
-> the VM_UNPAGED logic"); likely, actual ways to get remote faults in
-> there on COW PFN mappings appeared afterwards. But the fix is simple and
-> straight forward.
+> The required bit still has to be conveyed to the target somehow, since
+> the kernel that needs it is the one that doesn't know about the feature.
+> But it can be conveyed by the feature's number rather than an extra bit:
+> split the flag space into required features and optional features, and
+> assign each feature to one of them when it is defined. This is similar
+> to the required_flags and optional_flags approach in struct pci_ser [1].
 > 
-> Fix generated by an LLM and sent by Chris Mason in private.
+> Keeping the same header shape as discussed with Pasha:
 > 
-> Fixes: 6aab341e0a28 ("mm: re-architect the VM_UNPAGED logic")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Chris Mason <mason@kernel.org>
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> [ david: simplify comment and description ]
-> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> struct kho_ser_hdr {
+>     __u32 size;           /* Size of header + payload in bytes */
+>     __u16 nr_required;    /* Number of required feature bits */
+>     __u16 nr_optional;    /* Number of optional feature bits */
+>     __u64 flags[];        /* Required bits, followed by optional bits */
+> };
+> 
+> Required feature N is bit N of flags[], and optional feature N is bit
+> nr_required + N (using nr_required from the incoming header). The length
+> of flags[] is DIV_ROUND_UP(nr_required + nr_optional, 64). Both spaces
+> are numbered contiguously, so there are no gaps, and up to 64 features
+> still fit in a 16-byte header.
+> 
+> Each bit just means the feature is present, so the truth table becomes:
+> 
+> Source bit       Target supports  Action
+> ---------------  ---------------  ------------------------------
+> Not set          -                Accept: feature absent
+> Optional set     No               Accept: ignore the feature data
+> Optional set     Yes              Accept: use the feature data
+> Required set     No               Reject: -EOPNOTSUPP
+> Required set     Yes              Accept: use the feature data
+> 
 
-Reviewed-by: Pedro Falcato <pfalcato@suse.de> 
+I like this proposal. I bet most features are going to be either 
+optional or required, and even if we ever have a magical 
+sometimes-optional feature, it can have its own required flag. So, no 
+need to pay double the cost on every flag.
 
--- 
-Pedro
+Just need to make sure that optional features always start from 0, in 
+their own enum, so the offset can be computed correctly in the incoming 
+kernel.
+
+Pasha
