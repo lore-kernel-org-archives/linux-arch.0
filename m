@@ -1,51 +1,51 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=91.218.175.219
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=91.218.175.39
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793094532;
-	b=qy/jl6WwInxeFjV5Bgv/nQ262LL13cIgvpJGxoVGRNARaUbUnPEOSr8s9ro1aeZ8wxuR
-	 5a46YzgO719z0grG1AGJUaAbT0jKrCg62uC0bLaQgfJsAv14nslWHDyMnyJiSraNWPwH7
-	 CrtJ3FWsdC0x4JZnElcZXy9OpFGQLQ0gWxV5SBcZiEO9BXD83edlO2qqZqfCf5FM8Sjjz
-	 EKSQ/Lhh7G2Q/NL3ajaz+yfSczaa/d549FpxCMxkcmgQi8yFh8tcXGFdsTMNf5VgVUlFE
-	 f62peec+EOAZH8KqLTx89F2otEhUrdyQUvYrS6SQbIj9AzIY0XBVs/pP58AXAMlqT2A==
+	t=1793094664;
+	b=gSZYy47FstOxNcO5qk5YSLERBVN3HGxiIwPdH4LHNZ0h3ZtzhL8QWyg4n50Z8DVuGUKl
+	 6J2hpe3QAJ0A/K/yQPxspRoLzA2Oz+leKHvEW7LQmWLj7Aicn0brefljz/54JYp4It9dm
+	 Q7J1jRsTtnqjlGSsuLXQQjAa4vxdn4yBhUEv0eFLF3EoeWKKgiVzZ8MRf9BVrxGOUDTjD
+	 3fPoMX12YbgO72eWTFVDllxUlp3LLtOxtkXXzvfPW47yJNKTGSRP6V6FUm/J+LWiDPbZp
+	 fSJ/YcK2jAunrG8GPrtt+VJB29Zhrwxtj68mXa1+NK19ulFiGDX9WQ8Bby7Rzrt3YZA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793094532;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793094664;
 	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
 	 X-Mizu-Trace-ID:X-Migadu-Flow:Content-Type:Mime-Version:Subject:From:
 	 In-Reply-To:Date:Cc:Content-Transfer-Encoding:Message-Id:References:
 	 To:X-Mailer;
-	bh=w+/m5TRiUEroTYi/JhU/ZMYvRJ27fL3IgAeL8IYLhOs=;
-	b=uSHKKurK93bK3NOc5lcOjhbmpRAZLiElRi5TPWjnldSAanYf+m/xr9GBhlmKcbNfz9b9
-	 AACrNpBeEc2btgPB8AFat4JS94wRjEFyhK3wfXLXGYcChWO1jT95jjs3i/ASrBfmOhNtq
-	 2IS8i7fT43z8AK6+vF1x9wjoU/N7FH6suIye+BrEAw5K+iSOqfSNB9fn6dTwOkjt0pp6+
-	 cT9xxHWc57AVhWwlbU4nHP0p+QppEKbLQf4SWyUOpHhxynq53zcZ6sIdAbBDzCDlAhWvW
-	 MXQ6+o5FROV0E+x2p24mddDWaTwORylK6uqBbqav0xmD7uk6nyEm6ox3qofrHAYSHtA==
+	bh=YikRuHrgcQQEQeNLoopicKeEponOUqqAXOCmGgP7bMc=;
+	b=MS5nSnsbiEspBLjLq5i3y02YUnF0rD+fYFC9yHl3inviZ49xmuaP0v4C0azHRdmMWPYu
+	 G9Y9o8SAh6Wxrk6G1DS7rXaAij81aZCX7SucfeztGTlbR9zBwRwuTPVkzBrEagSQ4s90a
+	 i9LRC4ROENn4TviM2ixmJje0txJdpA7H979A+aEsDuNZ2M4439EfImX0rrXqlJgv+dPSb
+	 0HOwuz3kIuW6GmvAQz104ISV+dOVq6/cLYG7/cejisFoG/WNWRs/QZinvQP2KD5+Zcwn2
+	 v30OZYuiwAi0tTpELuDWwqqAsr+B3Is1n6X+Iv6INXeioAAYW23Kb+umt9YDS5x3S7Q==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.dev;
 	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=M5HfFoAj;
-	arc=none smtp.remote-ip=91.218.175.219
-Received: from mta0.migadu.com (out-219.mta0.migadu.com [91.218.175.219])
+	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=IK7uwDYg;
+	arc=none smtp.remote-ip=91.218.175.39
+Received: from mta0.migadu.com (out-39.mta0.migadu.com [91.218.175.39])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2B5B7606A31D
-	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 09:48:50 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2B5B7606A31D
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 740A3606A31B
+	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 09:51:03 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 740A3606A31B
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=M5HfFoAj
+	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=IK7uwDYg
 X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=w+/m5TRiUEroTYi/JhU/ZMYvRJ27fL3IgAeL8IYLhOs=;
+DKIM-Signature: a=rsa-sha256; bh=YikRuHrgcQQEQeNLoopicKeEponOUqqAXOCmGgP7bMc=;
  c=simple/simple; d=linux.dev;
  h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793094529; v=1; x=1793699329;
- b=M5HfFoAjUDnRgQrtlqwxlCzg/yUz3ct1gnJFOAIpEV4mZEEV3dK1BLmaugjdYXhR6Y1192oO
- bvxwaI9qa6LHkm0LAQTLWGbPluusZ6PGzBIq6PiGDoL/kcvoOndbK+wUxRwtkmmdvKO7NuAJ/E3
- CZvZDj4wGfkHNKwOBZvMDrNc=
+ t=1793094661; v=1; x=1793699461;
+ b=IK7uwDYgWnddzMvKWJw3ya6jd1O95pxiSUka2B+d5LCvMVJF0eAMpUph7VCpo576csv7uSk+
+ RkWa1+WT24INtT8JnumhbrIqAEhPNriR3IJ5BOtfXhCFSYVDbHBk/S3Oe6w++M3F5lyKhOZXvxs
+ 0YEaxOC7g+vVBRZSfwe0o1YE=
 X-Envelope-To: linux-arch@vger.kernel.org
-Received: by mta11.migadu.com with ESMTPS id 74e52af488cb4c06;
-	Tue, 27 Oct 2026 09:48:48 +0000
-X-Mizu-Trace-ID: 74e52af488cb4c06
+Received: by mta12.migadu.com with ESMTPS id 7697935976e69603;
+	Tue, 27 Oct 2026 09:50:59 +0000
+X-Mizu-Trace-ID: 7697935976e69603
 X-Migadu-Flow: FLOW_OUT
 Content-Type: text/plain;
 	charset=us-ascii
@@ -58,10 +58,11 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3901.100.1.1.12\))
-Subject: Re: [PATCH 44/46] mm/cma: don't release CMA pages still in use
+Subject: Re: [PATCH 26/46] mm/mmu_gather: fix flushing ranges with 4 GiB or
+ larger
 From: Muchun Song <muchun.song@linux.dev>
-In-Reply-To: <20261027-fixes_core-v1-44-6f74bec9a5bb@kernel.org>
-Date: Tue, 27 Oct 2026 17:48:18 +0800
+In-Reply-To: <20261027-fixes_core-v1-26-6f74bec9a5bb@kernel.org>
+Date: Tue, 27 Oct 2026 17:50:32 +0800
 Cc: Andrew Morton <akpm@linux-foundation.org>,
  Johannes Weiner <hannes@cmpxchg.org>,
  Michal Hocko <mhocko@kernel.org>,
@@ -124,50 +125,50 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  linux-fsdevel@vger.kernel.org,
  linux-arch@vger.kernel.org,
  linux-cxl@vger.kernel.org,
+ Josef Bacik <josef@toxicpanda.com>,
  stable@vger.kernel.org
 Content-Transfer-Encoding: quoted-printable
-Message-Id: <C94DBF32-62A3-4010-808D-DEB2E17DC552@linux.dev>
+Message-Id: <377FB184-1E61-4BF8-AC3E-33A79EC56658@linux.dev>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-44-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-26-6f74bec9a5bb@kernel.org>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 X-Mailer: Apple Mail (2.3901.100.1.1.12)
 
 
 
-> On Oct 27, 2026, at 07:18, David Hildenbrand (Arm) <david@kernel.org> =
+> On Oct 27, 2026, at 07:17, David Hildenbrand (Arm) <david@kernel.org> =
 wrote:
 >=20
-> From: Rik van Riel <riel@surriel.com>
+> From: Josef Bacik <josef@toxicpanda.com>
 >=20
-> When a driver calls dma_free_contiguous() before quiescing DMA, the
-> page might still have a reference from the device.
-> put_page_testzero() there returns false, WARN fires, but the code =
-proceeds
-> to free_contig_frozen_range() putting a live page onto buddy and =
-clearing
-> the bitmap. A subsequent allocation can hand the same PFN to a new
-> owner while the original holder still references it.
+> __tlb_adjust_range() takes the size of the range which has to be =
+flushed
+> as an unsigned int. Its callers, tlb_flush_{pte,pmd,pud,p4d}_range(), =
+get
+> and pass an unsigned long. Consequently, a range that is 4 GiB or =
+larger
+> gets truncated, possibly to 0.
 >=20
-> A concurrent put_page() that drops the last reference between the
-> testzero loop and free_contig_frozen_range() can double-queue the page
-> via page->lru, corrupting buddy lists.
+> On arm64 with hugetlb, a 64k kernel can flush 16 GiB hugetlb PMDs, and =
+a
+> 16k kernel can flush 64 GiB PUDs through tlb_unshare_pmd_ptdesc(). So
+> at least these two scenarios are affected.
 >=20
-> Avoid the corruption by not freeing a CMA region if any of the
-> pages inside are still in use.
+> Fix it by flushing the proper range instead of the truncated one.
 >=20
-> Make it explicit in the warning that the driver allowed a leak.
+> Fix generated by an LLM and sent by Josef Bacik in private.
 >=20
-> While at it, use page_ref_freeze() to make the semantics clearer and
-> switch to pr_warn_ratelimited().
->=20
-> Fixes: 9bda131c6093 ("mm: cma: add cma_alloc_frozen{_compound}()")
+> Fixes: b528e4b6405b ("mm/hugetlb: add tlb_remove_hugetlb_entry for =
+handling hugetlb pages")
+> Fixes: 8ce720d5bd91 ("mm/hugetlb: fix excessive IPI broadcasts when =
+unsharing PMD tables using mmu_gather")
 > Cc: stable@vger.kernel.org
-> Signed-off-by: Rik van Riel <riel@surriel.com>
-> Link: https://patch.msgid.link/20260811132045.5f114772@fangorn
-> [ david: use page_ref_freeze() + pr_warn_ratelimited() ]
+> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+> Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> [ david: use two-tab indent, simplify description ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-Acked-by: Muchun Song <muchun.song@linux.dev>
+Reviewed-by: Muchun Song <muchun.song@linux.dev>
 
-Thanks
+Thanks.
 
