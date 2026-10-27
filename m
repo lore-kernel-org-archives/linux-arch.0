@@ -1,55 +1,76 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.218.69
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793136726;
-	b=1K5c/xkcLZ7B518LBbRTbVjVIhiNBGPwyq0YhknOZtbpABTGCO0iM9mZvNtLRCpZWdhL
-	 7hyOeYMC1eBA9jk0zB5VnhpDZah+HECeYQTay6OXOUD1T0O7S2ub04e9VtCseQHM9MR5r
-	 haVep7WD+/uDP0YNyle08hR2dWTKq8oAvnFX298ctqO3IP3Myz424YDlCb7Ui5K8oOU+8
-	 KDu/YdYTymZpOf+DkH85ntjSlefMONtrX1pCI7w34i7LR8BcBTzYcaUHystCF/je650do
-	 ciqDTh552ep0ltnYw5pxaSxMxigLT8BLs5klnr5isrQ7fvXwjTbMf4zBjCrFJ8nN/Lw==
+	t=1793138235;
+	b=fdycShOwsabuZBK3lueLnV+l6cMfFlNB49ZcARW9v5Zdi39zAdfxeAvM5+4fyMT5AI5W
+	 2uDPs0BwPL82aDY4+hRxcT0C6n00vI0SKC5BiTcOB/QC71ot+LYVtGkLNC24fbOOAkw1W
+	 P/NrOjd3+Kbrx/EDp7z1H+IjghfGjEWgjGLVFp6ee/hlAICJoTg+UoFQv7LrrvgF1tkdp
+	 x4XELizRRf+Ez0nagFqr163LNV6ZUbpr/7fpIYCoRA36oHfbD8vIy6H3Ddan87Voj3i0A
+	 JUu1EkWQlDyWgMPOkk0dQphTHwbrcz48Sfo05kysM+UnlRQ1B4VJHxyx9U5/GdKczqQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793136726;
-	h=Received:DKIM-Signature:Received:X-Forwarded-Encrypted:
-	 X-Gm-Message-State:X-Received:MIME-Version:References:In-Reply-To:
-	 From:Date:X-Gmail-Original-Message-ID:X-Gm-Features:Message-ID:
-	 Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
-	bh=S908WbS6sl8a+ccaT1hu8oFrTY/8mXQRTyc6SNjkEfE=;
-	b=CSkFqAGXhT3nB3gFZoNhIXMKjDLYub0TarHv6bNc3ZnzwiTltIEYY/RIZwdE7eF2obuh
-	 dHz6tvQjvPqg6eKuP0mGw7qRzfQHBhyz7caLgAOxiGCwM6/cAzcriqzEQlpLoMqkjvPJW
-	 chuigx/6qylpad3j8ucoeWbZNFAf5AM99u0EN79wcL2gPB+6XTTDak9tK4hdhb+xc9J1T
-	 /GbVx4xBPQz9RJjvH2Jp9+s10AT4ESmGNK46mf2sO1IMAT7VPLfX6DAprg5galjBql4IP
-	 NW9vvkJt3+haDnEwIellR5ixlOKzwPgRAOatIcc1LKNPVwirAAfMRrb7cbMS56PX64Q==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793138235;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
+	 Mime-Version:References:Message-ID:Subject:From:To:Cc:Content-Type:
+	 Content-Transfer-Encoding;
+	bh=INM4lTecUqg3+ORjH8the43AegIL5wVO95lrhujQQt0=;
+	b=KE25b3ZHMGngQ2DdlyBRFl5T6jf0P0zWTyYjNPiVQPkVcGyc/zZ9tfBzCj5rzzTo3+Re
+	 uCRsncuFq7DWdaelkyXYpa9ynP/odM0l6YKmA6x4KGWUyDtcqRDT/2tedJ6ryMPtofSMs
+	 a7JolR6X+RE0VxPY/1mu08UIeZHoIFPHB8GK15jhxOJLjPrRDsViiRbom4VQtu4+pBDtG
+	 BENY/CiLiqHgT0Fk6PAnVyC7Y3BTwgByBEAtsxW917ouT4ZAoKssqKoPLOz8S+QoMy4It
+	 zCwv+hRIkcTytwYeFpvYgOV9auJCG/N2awExXdvkOvEK9L5mxUGcCYF2TyuY7A8wrUA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=EGI8e3OM;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=google.com;
+	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=OPWEDSwI;
+	arc=none smtp.remote-ip=209.85.218.69
+Received: from mail-ej1-f69.google.com (mail-ej1-f69.google.com [209.85.218.69])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0A276606A31E
-	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 21:32:06 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8FFFB606A320
+	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 21:57:15 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8FFFB606A320
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=EGI8e3OM
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CDDFA1F031E6
-	for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 21:32:05 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793136725;
-	bh=S908WbS6sl8a+ccaT1hu8oFrTY/8mXQRTyc6SNjkEfE=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc;
-	b=EGI8e3OMSj8oudPsWvxnIieFF6gTtab2PYp1pWyo2hMoHwm9k9vSCCBUrRG6xC8MH
-	 0KGkcd0cCIQIKtaEwW9h9u/ChT04cEjChqjY1CDO6ZnF5ZAGMZXsI/3+Hd+Q5LXBkS
-	 tstKAH5wHNK3/OGFItDDgQcCGMMsJehCZKVi5x688GOJAnc5FMB9Yl2vm4YMrbJS8z
-	 GH6396g8Z26BXcomQK7YLP1JeyvPWoPTLaXD4wMHyikZsuZfVkFw4ACyB8DThiSEpJ
-	 8mEUpcgXD7tk/pPGlMJZHaXf0LVXktt2gvyJsjPwxg15Yv9qrjFy1MJTjCjDoHGfaX
-	 kdeNE1WPuUlqw==
-Received: by mail-qk1-f174.google.com with SMTP id af79cd13be357-9440304604aso36885385a.0
-        for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 14:32:05 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AKwUvBz1RgnYsgotrTPpKz3CudfBu9ERr5drBsy+aBkGZWGkArtR43hVkRWKyubApgoq9Pw8f++QY6nkGXdI@vger.kernel.org
-X-Gm-Message-State: AFq9FYKbaqZCse3FVG/mvAzp2JlEKUEuybapz9Ba2b07lAFsfXpOiRCE
-	K8KvwcVxETl2MxCHDmz4+fhMQyNuclLCg99Ibhzox9hbMURleAguGwbAcs8GoGP+Q7UOl/u/1rx
-	ouF8b+HEb6qs0IWvW5cIy2uYJDk6IayI=
-X-Received: by 2002:a05:620a:6013:b0:93e:7156:f814 with SMTP id
- af79cd13be357-94408a65be4mr32182585a.11.1793136724949; Tue, 27 Oct 2026
- 14:32:04 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=OPWEDSwI
+Received: by mail-ej1-f69.google.com with SMTP id a640c23a62f3a-c414c206673so28545366b.0
+        for <linux-arch@vger.kernel.org>; Tue, 27 Oct 2026 14:57:15 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20260707; t=1793138234; x=1793743034; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:from:subject
+         :message-id:references:mime-version:in-reply-to:date:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=INM4lTecUqg3+ORjH8the43AegIL5wVO95lrhujQQt0=;
+        b=OPWEDSwIo94pXLNO7GW/VvvkNuKk0SOrCfnZY0B/EfJRSZFt3yRUKQdtap3RO9t18G
+         gPXjPUOIHNRuI2FjW09NqBXtrOSt7f/4cyudF3x4bLlN2/HAwhei2OL2EcjINeYqu9gb
+         IazTAO2vXpCk7hvTKw9Y5IXKBI3iU+yr9fxuCEIVguCmjjlRNqiWQ9LFgRFj1H08bEWG
+         d6hrc6x/i91RkLClItqq/7iujjrBU3jMZrr8WnrXHi5+dbp9qMGhduV4OwhCyp0vYagU
+         x4T3Cj4M1jRIwwMnMhJpTmy0M24PI0EbSb3g6DPVJYGz3tp1JD7Ko7fjAX5KFs4tub12
+         lElQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793138234; x=1793743034;
+        h=content-transfer-encoding:content-type:cc:to:from:subject
+         :message-id:references:mime-version:in-reply-to:date
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=INM4lTecUqg3+ORjH8the43AegIL5wVO95lrhujQQt0=;
+        b=sjN7DBz487dzYRnu1WY6bKb4Lu6ArzU98ExLEvzBQThIwsyY/QjQSm5vfDukCdBS+s
+         kWWRcqpju3ElmypEjdmewoZChaGEOcrdCjOGH8C39suy0OMtvmpuXLKQz28GYP6nwqw4
+         hHWJ1jqsjhdLmcarLf4W0uMwDVYUl6hQeW1xssxTLI2Y7HHNMZ9FbIJuYJNklEs5CvIb
+         biia4mWq4A0MT4DNj8a4FdVqSC+HHKYCMBD11MFUW5iPndB7tX8Sj8K4tkcxeFYbETFo
+         7B/eZSYRF7klBI5Bv5dYGeNnfu0NbZHQbW212haOjWc1IRJBI5g70RxO5RtYLhDtmfGM
+         mFhg==
+X-Forwarded-Encrypted: i=1; AKwUvBx2gGtswMLFC4loPxgx8/wxdhFca4DHxxR6tVnqvijWHYUyHJMctpqZp2ly8/o5d7s2Zyh2P/SIxKHT@vger.kernel.org
+X-Gm-Message-State: AFq9FYLLFABb5gbDZuCdAEtuc54yE/thAUlq651jtwvENhm0t33Xjzk8
+	mzAx34hnEW31z+9TLKsPeNSZn7lqM2sMMqPQrq+QHOYBOyNaLHGqoY/LiIFBD9lexKV4Q84A89b
+	KK/vA4NKWLUzFEdE2vA==
+X-Received: from ejkh2.prod.google.com ([2002:a17:906:7182:b0:c46:743f:a4b9])
+ (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
+ 2002:a17:907:e84b:b0:c2e:3a72:ffbd with SMTP id a640c23a62f3a-c49bdf71b7bmr44517166b.41.1793138233642;
+ Tue, 27 Oct 2026 14:57:13 -0700 (PDT)
+Date: Tue, 27 Oct 2026 21:57:12 +0000
+In-Reply-To: <CALzav=dYKAP7pKfoPtz32X1cT_tH4LN0X47_jTO8_HOCT4Pi=w@mail.gmail.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -58,65 +79,130 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-MIME-Version: 1.0
-References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org> <20261027-fixes_core-v1-22-6f74bec9a5bb@kernel.org>
-In-Reply-To: <20261027-fixes_core-v1-22-6f74bec9a5bb@kernel.org>
-From: Barry Song <baohua@kernel.org>
-Date: Wed, 28 Oct 2026 05:31:53 +0800
-X-Gmail-Original-Message-ID: <CAGsJ_4wPwBz8OB5opbuKsVh-ceKqyqi4d1aB8Emx4ChqDe4qzQ@mail.gmail.com>
-X-Gm-Features: AclHuK_Qzkd3NBrrAvAlcTVmJZ8ovWd4rfeoh503KU3yWFCYVC_zuTNZmwxW4A4
-Message-ID: <CAGsJ_4wPwBz8OB5opbuKsVh-ceKqyqi4d1aB8Emx4ChqDe4qzQ@mail.gmail.com>
-Subject: Re: [PATCH 22/46] mm/gup: check for overflow when converting nr_pages
- to bytes in GUP-fast
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, 
-	Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
-	Shakeel Butt <shakeel.butt@linux.dev>, Lorenzo Stoakes <ljs@kernel.org>, 
-	Kairui Song <kasong@tencent.com>, Axel Rasmussen <axelrasmussen@google.com>, 
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
-	Baoquan He <baoquan.he@linux.dev>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
-	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
-	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>, 
-	Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>, 
-	Pasha Tatashin <pasha.tatashin@soleen.com>, Pratyush Yadav <pratyush@kernel.org>, 
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>, 
-	Lance Yang <lance.yang@linux.dev>, Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
-	Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
-	Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
-	Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>, 
-	Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Oscar Salvador <osalvador@suse.de>, Minchan Kim <minchan@kernel.org>, 
-	Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
-	Chengming Zhou <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, 
-	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
-	Youngjun Park <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, 
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, 
-	Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
-	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, 
-	linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	linux-cxl@vger.kernel.org, stable@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+References: <20261021152527.375070-1-tarunsahu@google.com> <20261021152527.375070-4-tarunsahu@google.com>
+ <atlQ_Er0Ig7CCSxv@google.com> <CALzav=f00C4yOAseNunW8GgQTDUGWT927Qy=TLm-3-J0TEDH8Q@mail.gmail.com>
+ <9huzzew0el59.fsf@tarunix.c.googlers.com> <at_CncIPYCxOVkLo@google.com>
+ <auDT5MjXYq3lcQjE@google.com> <CALzav=dYKAP7pKfoPtz32X1cT_tH4LN0X47_jTO8_HOCT4Pi=w@mail.gmail.com>
+Message-ID: <9huztsm6958n.fsf@tarunix.c.googlers.com>
+Subject: Re: [RFC PATCH v2 3/4] liveupdate: Replace compatibility string with
+ a 2-bit pair feature header
+From: tarunsahu@google.com
+To: David Matlack <dmatlack@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, joro@8bytes.org, 
+	Mike Rapoport <rppt@kernel.org>, Pratyush Yadav <pratyush@kernel.org>, maz@kernel.org, arnd@arndb.de, 
+	jgg@nvidia.com, robin.murphy@arm.com, loganodell@google.com, 
+	oupton@kernel.org, kevin.tian@intel.com, alex@shazbot.org, 
+	dwmw2@infradead.org, pbonzini@redhat.com, seanjc@google.com, will@kernel.org, 
+	Alexander Graf <graf@amazon.com>, Bjorn Helgaas <bhelgaas@google.com>, baolu.lu@linux.intel.com, 
+	linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, 
+	sagis@google.com, linux-mm@kvack.org, kvmarm@lists.linux.dev, 
+	iommu@lists.linux.dev, linux-pci@vger.kernel.org, kexec@lists.infradead.org, 
+	skhawaja@google.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
-On Tue, Oct 27, 2026 at 7:24=E2=80=AFAM David Hildenbrand (Arm)
-<david@kernel.org> wrote:
->
-> The overflow check in gup_fast_fallback() only covers the addition to
-> start. The preceding nr_pages << PAGE_SHIFT can already have truncated
-> the length on 32bit.
->
-> Users such as RapidIO's rio_dma_transfer() can derive such page counts
-> from a 64-bit userspace length.
->
-> Let's just check_shl_overflow() to reject any such overflow with
-> -EOVERFLOW early.
->
-> Fixes: c28b1fc70390 ("mm/gup: reorganize internal_get_user_pages_fast()")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-> ---
+David Matlack <dmatlack@google.com> writes:
 
-Reviewed-by: Barry Song <baohua@kernel.org>
+> On Tue, Oct 27, 2026 at 9:40=E2=80=AFAM Pasha Tatashin
+> <pasha.tatashin@soleen.com> wrote:
+>>
+>> On 10-26 21:14, David Matlack wrote:
+>> > On 2026-10-26 11:50 AM, tarunsahu@google.com wrote:
+>> > > Right, Required bit should be source kernel payload property to tell
+>> > > target kernel that the payload must be handled to correctly deserial=
+ize
+>> > > the data. It should be source kernel (userspace) responsiblity to ma=
+ke
+>> > > sure it understand the target kernel before doing liveupdate.
+>> > >
+>> > > Saying this, During deserialization, target kernel's required bit is=
+ not
+>> > > necessary. So I propose the following truth table.
+>> > >
+>> > > Source hdr  Target supported[i]  Action
+>> > > ----------  -------------------  ----------------------------------
+>> > > 00          0 or 1               Accept: feature absent in payload
+>> > > 01          0                    Accept: ignore the feature data
+>> > > 01          1                    Accept: use the feature data
+>> > > 11          0                    Reject: -EOPNOTSUPP
+>> > > 11          1                    Accept: use the feature data
+>> > > 10          0 or 1               Reject: -EINVAL (invalid encoding)
+>> >
+>> > Yes, this matches what I had in mind for the semantics.
+>> >
+>> > To be explicit: the source kernel should set the bits for each Live
+>> > Update based on what is actually preserved, rather than generating the
+>> > header from a static per-kernel array. E.g. memfd would only mark a
+>> > feature present for memfds that actually use it. That's what allows
+>> > rollback to an older kernel as long as nothing being preserved depends
+>> > on the new feature.
+>> >
+>> > But looking at this again, I think the required bit is redundant. Whet=
+her
+>> > a feature can be safely ignored is a property of the feature itself, n=
+ot
+>> > of any particular file. Every file that has a feature present will hav=
+e
+>> > the same required bit for it. The only thing that actually varies per
+>> > file is whether the feature is present.
+>> >
+>> > The required bit still has to be conveyed to the target somehow, since
+>> > the kernel that needs it is the one that doesn't know about the featur=
+e.
+>> > But it can be conveyed by the feature's number rather than an extra bi=
+t:
+>> > split the flag space into required features and optional features, and
+>> > assign each feature to one of them when it is defined. This is similar
+>> > to the required_flags and optional_flags approach in struct pci_ser [1=
+].
+>> >
+>> > Keeping the same header shape as discussed with Pasha:
+>> >
+>> > struct kho_ser_hdr {
+>> >     __u32 size;           /* Size of header + payload in bytes */
+>> >     __u16 nr_required;    /* Number of required feature bits */
+>> >     __u16 nr_optional;    /* Number of optional feature bits */
+>> >     __u64 flags[];        /* Required bits, followed by optional bits =
+*/
+>> > };
+>> >
+>> > Required feature N is bit N of flags[], and optional feature N is bit
+>> > nr_required + N (using nr_required from the incoming header). The leng=
+th
+>> > of flags[] is DIV_ROUND_UP(nr_required + nr_optional, 64). Both spaces
+>> > are numbered contiguously, so there are no gaps, and up to 64 features
+>> > still fit in a 16-byte header.
+>> >
+>> > Each bit just means the feature is present, so the truth table becomes=
+:
+>> >
+>> > Source bit       Target supports  Action
+>> > ---------------  ---------------  ------------------------------
+>> > Not set          -                Accept: feature absent
+>> > Optional set     No               Accept: ignore the feature data
+>> > Optional set     Yes              Accept: use the feature data
+>> > Required set     No               Reject: -EOPNOTSUPP
+>> > Required set     Yes              Accept: use the feature data
+>> >
+>>
+>> I like this proposal. I bet most features are going to be either
+>> optional or required, and even if we ever have a magical
+>> sometimes-optional feature, it can have its own required flag. So, no
+>> need to pay double the cost on every flag.
+>>
+>> Just need to make sure that optional features always start from 0, in
+>> their own enum, so the offset can be computed correctly in the incoming
+>> kernel.
+>
+> Right. Instead of having a single 32-bit feature space where every
+> feature can either be optional or required, we have 2 16-bit feature
+> spaces, one for required features and one for optional features. Both
+> feature spaces span from 0 to 2^16-1, and then are packed into
+> flags[].
+
+
+Okay sounds good. I will send the next version soon. Also I belive the
+design is decided, So I will drop the RFC tag also.
+
+~Tarun
