@@ -1,49 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793173941;
-	b=LeXvswjqMz/+7eYAx4tKEjncyItjiaqCMS003QtIGBhObreTRbZi2y1LWzc9iHnxWZwL
-	 Ew8GaPNHukLaFAn6A+LDG1hS1nI0Y5UJdfGNV3CqbF7CIP6X8qWSheQWs8IVS5M0mLeSh
-	 W4fOxCfnnBvwy9lekJUt1vqgQvz587kv/Qmr28h3iN4oa8mhV7O3vKgNQ+ogDDII3ztAt
-	 S6Lf0Y6o5Dcr1SkIqRnsMtc9N68pTLcYHKLHfTJ2sm6aM4SYsOmDKI+qlpP7pT3BDUiS5
-	 ttYao102JpoTWuKXhbI2eTpmYIZX1FmL9G0fu7jRUmN1EgxEbABlYYFwrxSenVGNS3A==
+	t=1793174903;
+	b=ewOeD2hcKLJuzwPQG7iQ/pwx51XuixECftK2f7GlsQpFdguE7IVpPGVavJm2CWxrx0w8
+	 H6QKlWyvyJhGo3JI08OO7hxumF2HOB86MjlboM9bdDFURbhkG134ksadwQArff8N30uOm
+	 ZVqCxGf87/yZ3appB7coYOtu5EQayKbAOR0nb9rT4CEETqH51Vp/w6lYyuV6BQYbeETdM
+	 CnIsBA8FwTg8kNU3RpmYeIinsOwx57xrhAVCBo8BHLaExAj30t8BkpW3Pk3bTYq8JYerV
+	 QwWwCECvuVzgp+gsBbfj6izO0Zmpc7PUdMu2xSt9tFC/E9LVoJXRtMZacbKlna3iGYg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793173941;
-	h=DMARC-Filter:Received:Received:DKIM-Signature:Message-ID:Date:
-	 MIME-Version:User-Agent:Subject:To:Cc:References:Content-Language:
-	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=C2MebSDm+AGzraIelTihisR4wHMyVkbMMbZmgrZJ7WY=;
-	b=LPkyzcTZcQti5CbA4YgBzLxmPv2ZQfXLXEYRu790di0RlUz5TZJcF7Y5/vWIRh7jjOkM
-	 ufbgoWocLZr6LmnwIn7dxeLFUhS1OygNC0a6MHHbwuOQfvpgASaLFhdIfA45+5ZSydUTR
-	 9rXddrwd/w5GVMZEO77diVGFdyqxFPWuBKuGM3qtOTqpZPd1B8z230IIB08iw0PweaAmd
-	 ykTOYepb1oPbDeUaLf6uUjuOnhet2aGXFDUcWt9ujz9YH28xiB7nClipJPKBiMCrh5itW
-	 Dt+JbiQgnAQ2b8zu1PSCq7Wog9/TpJQt2EzmgIa+lh7/bO5eGAqlh+9H+cIZ1aQuAHQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793174903;
+	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
+	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
+	 Content-Type:Content-Transfer-Encoding;
+	bh=YMhIQCmPp2kb7swtobccIXYat54/CLD8sSk/wH59+ic=;
+	b=O8KY8rkr3IHlUf75E+Zt+XyPozDcIVrP6UFx8Mwz/BsBYSDHCTgqymShXFEUUmRpdTfe
+	 89w6e8mgR5NdABmrpIObKApj3yHn8ODCB5r4HsTGVFS2gFEyY77HTLy/XQcPj+VQNgcx5
+	 GaqaSMwdyj1XrOuWOc4ez4BU+AwT7LitF8e8i1Xsf+D5v5IuZyOG50gfNyzTPm0oIHSib
+	 6ocUNVSvRorUex7HYHjgi9a6xC+M1IYcIUNa6JDQjsmUmJa6FxQ8+ada1vkkYrZhYM0ld
+	 nw/jG8+IaovY4jHY6TN4SSyFpCpQCn/ffSr3qpOToFHCgC4RwCL7Bc3bkxSxtLpmNbw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=arm.com;
-	spf=pass smtp.mailfrom=arm.com;
-	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=qAO7tgcE;
-	arc=none smtp.remote-ip=217.140.110.172
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1A45E606A31D;
-	Wed, 28 Oct 2026 07:52:19 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1A45E606A31D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=dZ686wUN;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3AB24606A31A;
+	Wed, 28 Oct 2026 08:08:22 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=qAO7tgcE
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 09F282ECB;
-	Wed, 28 Oct 2026 00:52:16 -0700 (PDT)
-Received: from [10.163.164.200] (unknown [10.163.164.200])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 046D23F673;
-	Wed, 28 Oct 2026 00:51:58 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1793173939; bh=wGe8fo0LsEeNmyXuE7t5RJoQX1lGKJltqCDxnR+anGM=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=qAO7tgcEvyo0Q3H3HaTM1nwzy8/QBeW1tnF4JOXa8qF71VXcIH8niSLEX8yBfM9DY
-	 y3XuPsTISI5OiWjvg0v6LudaMoMHfe0T+fQRVNRKQDaWP3kjmosTINe/S2/q5eMvvF
-	 XylgVFbGPVK2/y+rwaLieJ3EjGQdsqqHDKUNnM9o=
-Message-ID: <e32a19c4-76c4-40ba-83a4-781333af7b0a@arm.com>
-Date: Wed, 28 Oct 2026 13:21:55 +0530
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=dZ686wUN
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 34A6A1F01825;
+	Wed, 28 Oct 2026 08:08:08 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793174902;
+	bh=YMhIQCmPp2kb7swtobccIXYat54/CLD8sSk/wH59+ic=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=dZ686wUNZbeecaUUWhZqyDq+oCgkRoB4kXRKTaERp4XUiBer361hBYqWjPHFR+M1F
+	 9WmGi/Rexa0QNinbE+89muvmYBicfuIj8K6BQyKOXON1Z/yJ9rHvknTBFjZqoQajDD
+	 YtiL5Md9P+qPqzqquZO8ghitcvonnnx14OGMNUYh/49Y9Mmu37+z3GYNVoOjoy9Dcu
+	 W3Td4vVeq4N4cnYDJ51H1XGG589ESoqxem7USKOTKvn3jc4P42kCq6J1SWKfEhu6xe
+	 /NM90F0ua/vaf9NYyBwgiunmcNPylFsU43oJGbRHrjJdWitClABpXe+oQVU4j0qO6Q
+	 weAHsNtGpH+fQ==
+Message-ID: <f5b90920-5923-45a6-be2b-f558801781c5@kernel.org>
+Date: Wed, 28 Oct 2026 09:08:04 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -56,8 +54,7 @@ MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH 09/46] mm/rmap: handle device-exclusive entries in
  folio_referenced_one()
-To: "David Hildenbrand (Arm)" <david@kernel.org>,
- Andrew Morton <akpm@linux-foundation.org>,
+To: Dev Jain <dev.jain@arm.com>, Andrew Morton <akpm@linux-foundation.org>,
  Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
  Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
  Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
@@ -94,105 +91,79 @@ Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
  stable@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
  <20261027-fixes_core-v1-9-6f74bec9a5bb@kernel.org>
+ <e32a19c4-76c4-40ba-83a4-781333af7b0a@arm.com>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
-From: Dev Jain <dev.jain@arm.com>
-In-Reply-To: <20261027-fixes_core-v1-9-6f74bec9a5bb@kernel.org>
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <e32a19c4-76c4-40ba-83a4-781333af7b0a@arm.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 
-
-
-On 27/10/26 4:47 am, David Hildenbrand (Arm) wrote:
-> page_vma_mapped_walk() can return non-present device-exclusive entries,
-> but folio_referenced_one() passes them to PTE young-bit accessors that
-> require present PTEs.
+>> -		if (lru_gen_enabled() && !lru_gen_switching() && pvmw.pte) {
+>> +		if (lru_gen_enabled() && !lru_gen_switching() && pvmw.pte &&
+>> +		    pte_present(pteval)) {
+>>  			if (lru_gen_look_around(&pvmw, nr))
+>>  				referenced++;
+>>  		} else if (pvmw.pte) {
+>> -			if (clear_flush_young_ptes_notify(vma, address, pvmw.pte, nr))
+>> +			bool young = false;
+>> +
+>> +			/*
+>> +			 * PFN swap PTEs, such as device-exclusive ones, that
 > 
-> We must neither call clear_flush_young_ptes_notify() nor
-> folio_pte_batch() with non-present entries. For example, clearing the
-> young bit on non-present PTEs can corrupt the entry: on arm64
-> PTE_AF overlaps the swap type, so clearing it turns a device-exclusive
-> entry into an ordinary swap entry.
-> 
-> folio_pte_batch() will VM_WARN_ON_FOLIO.
-> 
-> Apply the same approach as the previous fixes to e.g., damon_ptep_mkold():
-> treat these entries as old from the CPU's perspective and obtain their
-> young state through the MMU notifier.
-> 
-> Skip PTE batching and MGLRU look-around for non-present entries, and
-> don't modify non-present PTEs.
-> 
-> Fixes: b756a3b5e7ea ("mm: device exclusive memory access")
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> Cc: stable@vger.kernel.org
-> Reported-by: Josef Bacik <josef@toxicpanda.com>
-> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-> ---
+> You mean "PFN softleaf PTEs"? Better expressed as "softleaf PTEs embedding a PFN" ...
 
-Reviewed-by: Dev Jain <dev.jain@arm.com>
+Lorenzo raised this off-list as well; I'm using the existing text we use
+elsewhere for consistency.
 
-But nit below.
+This needs a cleanup that adjusts all of them :)
 
+Thanks!
 
->  mm/rmap.c | 23 +++++++++++++++++++----
->  1 file changed, 19 insertions(+), 4 deletions(-)
-> 
-> diff --git a/mm/rmap.c b/mm/rmap.c
-> index 1131b76bbbc28..0faef46806e5c 100644
-> --- a/mm/rmap.c
-> +++ b/mm/rmap.c
-> @@ -924,6 +924,7 @@ static bool folio_referenced_one(struct folio *folio,
->  	DEFINE_FOLIO_VMA_WALK(pvmw, folio, vma, address, 0);
->  	int ptes = 0, referenced = 0;
->  	unsigned int nr;
-> +	pte_t pteval;
->  
->  	while (page_vma_mapped_walk(&pvmw)) {
->  		address = pvmw.address;
-> @@ -968,10 +969,12 @@ static bool folio_referenced_one(struct folio *folio,
->  			return false;
->  		}
->  
-> -		if (pvmw.pte && folio_test_large(folio)) {
-> +		if (pvmw.pte)
-> +			pteval = ptep_get(pvmw.pte);
-> +
-> +		if (pvmw.pte && pte_present(pteval) && folio_test_large(folio)) {
->  			const unsigned long end_addr = pmd_addr_end(address, vma->vm_end);
->  			const unsigned int max_nr = (end_addr - address) >> PAGE_SHIFT;
-> -			pte_t pteval = ptep_get(pvmw.pte);
->  
->  			nr = folio_pte_batch(folio, pvmw.pte, pteval, max_nr);
->  		}
-> @@ -981,11 +984,23 @@ static bool folio_referenced_one(struct folio *folio,
->  		 * are. —they could be on active/inactive lists or on MGLRU. So the
->  		 * simplest approach is to disable this look-around optimization.
->  		 */
-> -		if (lru_gen_enabled() && !lru_gen_switching() && pvmw.pte) {
-> +		if (lru_gen_enabled() && !lru_gen_switching() && pvmw.pte &&
-> +		    pte_present(pteval)) {
->  			if (lru_gen_look_around(&pvmw, nr))
->  				referenced++;
->  		} else if (pvmw.pte) {
-> -			if (clear_flush_young_ptes_notify(vma, address, pvmw.pte, nr))
-> +			bool young = false;
-> +
-> +			/*
-> +			 * PFN swap PTEs, such as device-exclusive ones, that
+-- 
+Cheers,
 
-You mean "PFN softleaf PTEs"? Better expressed as "softleaf PTEs embedding a PFN" ...
-
-
-> +			 * actually map pages are "old" from a CPU perspective.
-> +			 * The MMU notifier takes care of any device aspects.
-> +			 */
-> +			if (pte_present(pteval))
-> +				young = clear_flush_young_ptes(vma, address, pvmw.pte, nr);
-> +			young |= mmu_notifier_clear_flush_young(vma->vm_mm, address,
-> +								address + nr * PAGE_SIZE);
-> +			if (young)
->  				referenced++;
->  		} else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
->  			if (pmdp_clear_flush_young_notify(vma, address,
-> 
-
+David
