@@ -1,75 +1,87 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.222.46
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793206517;
-	b=ki9NWzcYocS+qNjb3YRyWTNVvgOCtA0Bbsgrbx82sXVMWvwKA5IrTTPr2z1go3M/kKM1
-	 +M1AFC06OvCOtW2QYmwVAhV4yivu6zwDfkXhW7dDPAHm75mUIRQC2AWjlXzRKAuG4zJs4
-	 NgyEfqVhXPutRGDEgqYa3+fyucUMfFhBZ3JdDPzCgYSlLCv7rBSqTUvuDxSdJbuPQ/aqK
-	 ac/7PycI20FOVrad9Nja5z+kHHHZEKFqPdq2KOckfV/IIRn9UDnzlrCDXpApgBKlD9Kbg
-	 56iHq1f1nDBg3vnH/Fk5j5ZMfdumOBauymN0Se1ioIdu4x7uEPvE5hpIub/P1hrs1lg==
+	t=1793206565;
+	b=B2mQmnOH7oSLuOBxnePyG6Ram20l/j8zJBypFmi6EK9v5DDfetbwWA+AKLdYGmgFbov5
+	 Kf5f1grdL0WtnG/Mgd4hl3L3ql3r6wq8biDyQVnERpcrWpreM8PaawDcm2W9fF1nAh8gM
+	 e7X7f1amdhar/6q120cV2NrKdSPEBmvmS1XVTy49I6UbIGPuh6GE33WVusX860hAXvCc1
+	 lC4ETXpIRXPr0A4WcX67+9j0TP5CK3lKQzwDNltP5TDHV5TLo6/mDwI7kwv07ZaG9Ogyk
+	 zr9jhqvWtXdqdN7tHWkiewu+yGunCZU1hwjFnZfzNgz6L+3WKAMcizoQutUT5t4WtAQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793206517;
-	h=Received:DKIM-Signature:Received:Received:X-ME-Sender:X-ME-Received:
-	 X-ME-Proxy-Cause:X-ME-Proxy:Feedback-ID:Received:Date:From:To:Cc:
-	 Subject:Message-ID:References:MIME-Version:Content-Type:
-	 Content-Disposition:In-Reply-To;
-	bh=Z0ZhwvuKB4zpYCGY+1GjLRRMsHPTa5Lvp91s/JwcgmI=;
-	b=SCpP3ifNZJiN17nWV9T+DQGVnHgOCvreLSUd/m4t6P1pjqX07LpRQXhpZV3PHHBXI5Yc
-	 PWWo3ayz45CctdyZhK7RVZ16u2ej3K8BS4agKNyVyuHMdQE4tpJIxnI/+P1kI/U5XQn8e
-	 UooPCxye7gzWmjJ7P6fo/Q0H6r/+O0EZwobQI/rM4ZkYA3TYvkz1N5nHaexIYL3qHuNwl
-	 cp1NxOLjl0cm+BBWAHFmJVnQ7X+rWjTi4KM7CytajVAVgRKrUNCBQtbyj1yc8ZSjRKtaz
-	 xFLnGS8+v0hjt3MiO6n8rALTVi064mk+A++g1IMOOLH0uol2Cik3ncK/7MH1NTjZrVg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793206565;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To;
+	bh=r3C0d19m+/iHxVzVsZqZF5QMTPBWCH1ibPkdNy3hhyQ=;
+	b=GmnNFyUf+9TpeCJEVa8UICgqvO+0tXe1sePfBk2Wo8NOs3lPubCep+pd34W2jIidCzWy
+	 TLFV9dSodqXvW6zjClJ3gtsTE186SnBbSvuKeMIlE2jUJ0YYikSqo1Dql/5RNY7IPExna
+	 yyXP+e6hytlUHXFt4TTtl0cpZndaPPgtd1rI/KrjSkzZ8RwAnZm+NTi0W47irXU7X+CbX
+	 tyt3PpBrEymNGZx2epp/CbODV4KLI1v9OhUnLOQ88A4BwRPEjHuJx8YDmKE8e94GgPo2R
+	 swvnPjBiU0ADEeq+oyoivCq91L4sJvYYk1DsCMxkT/kQ/Kc0ITl6IZI364gcW8vacKQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JlFpwLKt;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=soleen.com;
+	spf=pass smtp.mailfrom=soleen.com;
+	dkim=pass header.d=soleen.com header.i=@soleen.com header.a=rsa-sha256 header.s=google header.b=RLxEwpL1;
+	arc=none smtp.remote-ip=209.85.222.46
+Received: from mail-ua1-f46.google.com (mail-ua1-f46.google.com [209.85.222.46])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AF64F606A31C;
-	Wed, 28 Oct 2026 16:55:16 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6C7D8606A320
+	for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 16:56:05 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 6C7D8606A320
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=soleen.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JlFpwLKt
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 17B221F01383;
-	Wed, 28 Oct 2026 16:55:11 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793206516;
-	bh=Z0ZhwvuKB4zpYCGY+1GjLRRMsHPTa5Lvp91s/JwcgmI=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=JlFpwLKtSX2o0aWLZ/b3/7yIjMHRAOr+vEDpShfZy+KAUEpwP/sw3ESKIkAG8yW/h
-	 oOEG45gGP2A4Frdj40SEV1yFHzWd11p2LHszSy4mETnk8ASvOgXY2SLhjbhAee6ST/
-	 XxgWsEetfuCismwQo2ooCFRZXgJNelrESZk3Pplm9mfLTgS6JDiI2tadgjYICpwTtX
-	 NUaI3lEP+vBi4W4HMuS7/p0vFAysdqyoMbljlYLFvjTjKA/id1O7lADhvEzcESivIW
-	 gRcMJodBiNE93JgviyRdy7Sqv8JZ0fLti6a45kGshVZVGtE6RF7QWHxX7vONNVIcGQ
-	 BghLRGm4Q4Twg==
-Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
-	by mailfauth.ams.internal (Postfix) with ESMTP id 781C0198004A;
-	Wed, 28 Oct 2026 12:55:00 -0400 (EDT)
-Received: from phl-frontend-03 ([10.202.2.162])
-  by phl-compute-01.internal (MEProxy); Wed, 28 Oct 2026 12:55:10 -0400
-X-ME-Sender: <xms:4yjiajSARqw8PioWyLkupEeXct9Ss2qs5djqP4hQga51zyA5CclqhA>
-    <xme:4yjiaqF5uBuDkSDsDBVun3Nduxg_VIy8zCU5JbQmuyrxWrYRMrJ2uEtcy7Twvuij6
-    U9QyXXC7AkQ-_yXBOAoKFfx8gFyBSvVJ-PR_hzb6Szh6PHnzb9Cl-os>
-X-ME-Received: <xmr:4yjiaj-3U1reClXYJMR86x_214YB-E7NPJqkmAmytXP6g94Td4_LNsXyLGU>
-X-ME-Proxy-Cause: dmFkZTEH/JXmOVrY1taDCoPaJq3IVEd1uOJXsXXF/9Hj9n77Aoo8DF/Z2+y6VwUMjdyxL/
-    vNcNxlWPOrzJjnTTnhU/i8mG2RaecFzcvs1d/58U+81UT2rrSqZcuXVcmJPvN+85Vxmst6
-    M+xIX1By265vICLgVpWMTiDzp4SikoR94mt5KoeDHe0EMSHOdb4HjYnJ2gFn6Jl/jXpTbW
-    1cj1cjuHzE0QOe4Vj87hxPzVA7/e5WKQO7i7HlZnpcOqFBH4nZCcHIT12UXxL8WeWRxmIl
-    5Im68ywTuP3WqKspjS2QQUDWVpnJdjOhauD/wAZQybXH1dmkgbh8FRIT9xxu5hpwJaaomC
-    mvUYquwQCKDqfI6kfvDJMybmqBz7q/9PFZ6wxnj0QM2XOrQem1LihDgZxlgfmoxJzYIsWu
-    xbnrF8t8WIJ5hEFFFVA/MpFaq7kGfFEDtPj7c/5lR+6uEB6MT88r5l0hakRGsn+Sd9HUTl
-    b3RB3DDyj5tujdg60fA6EJQdbrWiA2uBzz55umormQ0ogMeP6OGN8c56LXAD6GGQ/PaZmQ
-    IQISuPc1mDylIDH5VLMmYpcJ31tdiRrFvBKWYGWu+h5ifZZ2RLfDnGQTfxhGSfZR7jcFMW
-    MFdExhcE3jnb1xzwCCOxlhc/jz01DYKk67mV4yzeBryfzQ34jWvPrzhEgeUA
-X-ME-Proxy: <xmx:4yjiaoFcaoyZWpIYKFY3v7C-Oj28kP3zeTCZgSy395wYH63piXPgLw>
-    <xmx:4yjiaphEdO-ptGAYs-gU575cuvwMxFSx7cAsAFR3lQSHx_aSFaRWEw>
-    <xmx:4yjiakFOsCpyaRjuMMuHroAjcH_Safa5KEzD4ud7UwmaX0IzR-ZYTw>
-    <xmx:4yjiat29K8iz33MgZzunPtVmpyVngsMlLqflnxkPJ89YD8mgu21FZg>
-    <xmx:5CjiavpckMmHMDqrTmPU1G6w75v7E6SF6dz-jOjzrFV-Ljvs7_smwbqv>
-Feedback-ID: i10464835:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Wed,
- 28 Oct 2026 12:54:58 -0400 (EDT)
-Date: Wed, 28 Oct 2026 16:54:57 +0000
-From: Kiryl Shutsemau <kas@kernel.org>
+	dkim=pass (2048-bit key, unprotected) header.d=soleen.com header.i=@soleen.com header.a=rsa-sha256 header.s=google header.b=RLxEwpL1
+Received: by mail-ua1-f46.google.com with SMTP id a1e0cc1a2514c-990835cec4bso746199241.1
+        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 09:56:05 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=soleen.com; s=google; t=1793206564; x=1793811364; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=r3C0d19m+/iHxVzVsZqZF5QMTPBWCH1ibPkdNy3hhyQ=;
+        b=RLxEwpL1hIyB/8de987ZDlpeLtVUV1o6ZwdAJJ5mPDG/A2ay9kTAD4XqeALAUEZc7T
+         E+rNOMrhz40DYs3ycXgV4yPyi2Usq+ABEvzGTdQ6EpE08oZlMGrXBuZn0oksHESP214x
+         HOhO5Bk+S9aZF/Fy2QjBdly76Bg3QJbA3fHIMsPq+C8FaEknA6C+IUV0EwW0bTP9/zWQ
+         OOiQwebdi3deLoTwUunNlh8mr6V4B5Us/zvAKXtM1PltIwFDSzlYp0tYCGFgZb7w9dqp
+         BlbKIJP2xgxwiBLxFNlTcmwU0vPots5dguJS0n27G0NkKxZIVloQxL0s3OxtMGYRXIkB
+         K+lw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793206564; x=1793811364;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=r3C0d19m+/iHxVzVsZqZF5QMTPBWCH1ibPkdNy3hhyQ=;
+        b=Y2Tky5vo6uNOS9NJkdaA70KacvlRjGxv4F4Le4qkweJZCAnTAiu3/pWnsfKcXJqXPP
+         JK5j65TACx5sEeGOThFG/cDm8+9ICz/i2q0kr43OEty8mMl8hBdAnKjUX8MS/l4L55Qi
+         rI4s8sJk0RgOXNc7YQ9gBvZg28pbeQWgrHgh7TocOqLiWujWvXQAXQ+SiPXLiiJo7911
+         s1nT22OoYSZFAlLo+S0Kw9SMN5zWOeazi2Jd+QX08oY8zDIMkVQPz/OSikXSIEmgresn
+         Occq2j3kulsiVMVRaKpNPDK5sIsdkvYNrp2uyG0DGsSUFUN7bdzFSKi1XtkJe6NpDg0J
+         EBtQ==
+X-Forwarded-Encrypted: i=1; AKwUvBztbR8GUMvfMe0j1e0czHvGdvyGcOYGvjqsiZAQg4pE8/aq7j3TFFUzkh0IanyOFiHBUpzy17YT0CQf@vger.kernel.org
+X-Gm-Message-State: AFq9FYJZB7J+rIuaTNPyX7HLWlfLO3PFAk+UXJ+RpxLBfx4zT16DvQtp
+	rq89i7M7Cp6FTrJWzUKUX+UglEsGd8voByTKCWqE6xWoLlAM7Z4U3s3an4aIWejyorc=
+X-Gm-Gg: AYBFou2tILetMgHZDJgjDqfBpC4hN7Vk0FbAb36VsU6RJQwg/JimKErAmglq2Ooc+XN
+	I7QR09j1uyqL8WyZBuHcmyAli7ZPJFwG+hVOaRQ5uyhc2uvNnFyozmO8EyoC3eHKgMJ94g4dFNo
+	HQ9HumBUxVNbWi7FYWfv6JlK3ar8BtpShXx4csY8LoeY80An+qrIRXhkBpo8ja9eqicDV/zVkFb
+	sv9HiWCOxu4ivRAP84WLvNfN0M9zxDpCfLpbhkFdrSjQMlmkx1FmfICUT6PG0VcX+TtzwqkLLxT
+	ka85OtwLbDh/2hOWaTkqTdrZ0HarI05wjY781wQXqNlTiCVrG8Q/Ogw0L/BpC5JiWPyTJIp9IjZ
+	BIFxbNzqaJgqpaaI8ieFhDPt7pezHqY5Evs9jSzJjwv02hh/ESstdLo5yCS7Ztv/fUCDqpFtDza
+	ROd4gvOE3dJsJuwn7qJn0sNZGKBmYiIQME5aRsCATDYEvfPB+y7ibwg/Xou1KuBgL0Dsrm85yac
+	b0JnJdqGOvdlZ70cmuB9MX9zs+YWdzFyLs7iyPDAzd7S/eV/Z9C0QNAE7ZIBVA9Aieil/jgoq+F
+	sCnYkR6oC2JE2XWSKleir30E3azLAxabEBNXWO3i6KBUvzdMlYDeFFuJQ9qbPPrwN+yfiGZHcf5
+	xCmdJ8TRLcWzT7PxMiJYHnBRohR2jpuU4M6z9t9sb+q/Rl0JJp4v2
+X-Received: by 2002:a05:6102:370e:b0:7ce:a79e:75a9 with SMTP id ada2fe7eead31-7d03a59dbf7mr1528233137.36.1793206564343;
+        Wed, 28 Oct 2026 09:56:04 -0700 (PDT)
+Received: from google.com (16.49.199.35.bc.googleusercontent.com. [35.199.49.16])
+        by smtp.gmail.com with ESMTPSA id a1e0cc1a2514c-991259fbcbfsm6525438241.10.2026.10.28.09.56.01
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 28 Oct 2026 09:56:02 -0700 (PDT)
+Date: Wed, 28 Oct 2026 12:56:01 -0400
+From: Pasha Tatashin <pasha.tatashin@soleen.com>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
 	Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, 
@@ -87,10 +99,11 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
 	Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
 	Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
 	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Usama Arif <usama.arif@linux.dev>, 
-	Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, 
-	Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
-	Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>, 
-	Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
+	Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
+	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
+	Oscar Salvador <osalvador@suse.de>, Minchan Kim <minchan@kernel.org>, 
+	Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, 
 	Chengming Zhou <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, 
 	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, 
 	Youngjun Park <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, 
@@ -99,10 +112,10 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
 	linux-kernel@vger.kernel.org, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
 	linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, stable@vger.kernel.org, 
 	Josef Bacik <josef@toxicpanda.com>
-Subject: Re: [PATCH 05/46] mm/truncate: look again if a folio left the mapping
-Message-ID: <auIniV8YSpA4_oxg@thinkstation>
+Subject: Re: [PATCH 38/46] mm/ksm: reset the unstable trees of all nodes
+Message-ID: <auIpGR1VG7lOxJ8P@google.com>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-5-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-38-6f74bec9a5bb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -114,114 +127,70 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261027-fixes_core-v1-5-6f74bec9a5bb@kernel.org>
+In-Reply-To: <20261027-fixes_core-v1-38-6f74bec9a5bb@kernel.org>
 
-On Tue, Oct 27, 2026 at 12:17:25AM +0100, David Hildenbrand (Arm) wrote:
-> invalidate_inode_pages2_range() skips a folio which no longer belongs to
-> the mapping by the time it has got the folio lock, on the assumption
-> that somebody else has removed it from the page cache. But the folio may
-> have been replaced, and then there is a new folio with the same data at
-> that index.
+On 10-27 00:17, David Hildenbrand (Arm) wrote:
+> Each full scan resets ksm_nr_node_ids unstable tree roots. Enabling
+> merge_across_nodes resets this count to 1, even if per-node roots were
+> previously allocated.
 > 
-> For most cases, like folio migration, that is impossible. However,
-> collapse_file() only checks the refcount of the old folios, under the
-> i_pages lock, and relies on their folio locks from there on. That works for
-> users which repeat the lookup when they find folio->mapping changed.
-> The following scenario is, however, possible:
+> So when toggling "merge_across_nodes" 0 -> 1 -> 0, a scan that starts
+> while the setting is 1 and continues after switching back to 0 can
+> encounter stale unstable tree roots, resulting in UAF.
 > 
->   CPU0 pwrite(O_DIRECT)               CPU1 collapse_file()
->   kiocb_invalidate_pages()
->                                       read the folio (old data), lock it
->                                       refcount check
->   the write completes                 copy to new_folio
->   kiocb_invalidate_post_direct_write()
->     find_get_entries() -> old folio
->     folio_lock() ...                  xas_store(new_folio)
->                                       folio->mapping = NULL
->                                       folio_unlock(folio)
->     folio->mapping != mapping
->       -> continue
-
-The diagram reads as if the folio lock should have closed the race. It
-might be clearer with CPU0's folio_lock() after CPU1's folio_unlock(),
-since the reference taken after the refcount check is what matters:
-
-  CPU0 pwrite(O_DIRECT)               CPU1 collapse_file()
-  kiocb_invalidate_pages()
-                                      read the folio (old data), lock it
-                                      refcount check
-  the write completes                 copy to new_folio
-  kiocb_invalidate_post_direct_write()
-    find_get_entries() -> old folio
-                                      xas_store(new_folio)
-                                      folio->mapping = NULL
-                                      folio_unlock(folio)
-    folio_lock()
-    folio->mapping != mapping
-      -> continue
-
-> In that scenario, the collapsed folio with the data from before the write
-> stays in the page cache after the write has returned.
+> Only root is allowed to change "merge_across_nodes", and the documented
+> sequence is: "merge_across_nodes setting can be changed only when there
+> are no ksm shared pages in the system: set run 2 to unmerge pages first,
+> then to 1 after changing merge_across_nodes, to remerge according to the
+> new setting."
 > 
-> This used to be impossible, as khugepaged only collapsed files that nobody
-> had open for writing.
+> Let's fix it by tracking in ksm_nr_node_ids the actual number of
+> allocated tree roots.
 > 
-> Restart the lookup at that index, like shmem_undo_range() does. The same
-> problem seems to exist in truncate_inode_pages_range() as well when
-> truncate_inode_folio() fails, so handle it there as well.
+> remove_all_stable_nodes() and ksm_check_stable_tree() will now scan
+> more tree roots (skipping the empty ones), which is harmless.
 > 
-> Fixes: 1b6444331beb ("mm/khugepaged: enable clean pagecache folio collapse for writable files")
+> Fixes: ef53d16cded7 ("ksm: allocate roots when needed")
 > Cc: stable@vger.kernel.org
 > Reported-by: Josef Bacik <josef@toxicpanda.com>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > ---
->  mm/truncate.c | 17 +++++++++++++++--
->  1 file changed, 15 insertions(+), 2 deletions(-)
+>  mm/ksm.c | 6 +++---
+>  1 file changed, 3 insertions(+), 3 deletions(-)
 > 
-> diff --git a/mm/truncate.c b/mm/truncate.c
-> index 733d2713a875a..6d8c0ec4623fe 100644
-> --- a/mm/truncate.c
-> +++ b/mm/truncate.c
-> @@ -499,7 +499,15 @@ void truncate_inode_pages_range(struct address_space *mapping,
->  			folio_lock(folio);
->  			VM_BUG_ON_FOLIO(!folio_contains(folio, indices[i]), folio);
->  			folio_wait_writeback(folio);
-> -			truncate_inode_folio(mapping, folio);
-> +			if (truncate_inode_folio(mapping, folio)) {
-> +				folio_unlock(folio);
-> +				/*
-> +				 * Folio might have been replaced: look it up
-> +				 * again.
-> +				 */
-> +				index = indices[i];
-> +				break;
-> +			}
->  			folio_unlock(folio);
->  		}
->  		truncate_folio_batch_exceptionals(mapping, &fbatch, indices);
-
-This hunk looks unneeded to me: its second loop restarts from start
-until find_get_entries() finds nothing, so the new folio gets truncated
-on a later round. Or am I missing a case?
-
-> @@ -760,7 +768,12 @@ int invalidate_inode_pages2_range(struct address_space *mapping,
->  			folio_lock(folio);
->  			if (unlikely(folio->mapping != mapping)) {
->  				folio_unlock(folio);
-> -				continue;
-> +				/*
-> +				 * Folio might have been replaced: look up
-> +				 * again.
-> +				 */
-> +				index = indices[i];
-> +				break;
+> diff --git a/mm/ksm.c b/mm/ksm.c
+> index dbfb8f98b1892..9c51925825cbf 100644
+> --- a/mm/ksm.c
+> +++ b/mm/ksm.c
+> @@ -475,6 +475,7 @@ static void advisor_stop_scan(void)
+>  #ifdef CONFIG_NUMA
+>  /* Zeroed when merging across nodes is not allowed */
+>  static unsigned int ksm_merge_across_nodes = 1;
+> +/* Number of allocated stable and unstable tree roots. */
+>  static int ksm_nr_node_ids = 1;
+>  #else
+>  #define ksm_merge_across_nodes	1U
+> @@ -3636,14 +3637,13 @@ static ssize_t merge_across_nodes_store(struct kobject *kobj,
+>  			else {
+>  				root_stable_tree = buf;
+>  				root_unstable_tree = buf + nr_node_ids;
+> +				ksm_nr_node_ids = nr_node_ids;
+>  				/* Stable tree is empty but not the unstable */
+>  				root_unstable_tree[0] = one_unstable_tree[0];
 >  			}
->  			VM_BUG_ON_FOLIO(!folio_contains(folio, indices[i]), folio);
->  			folio_wait_writeback(folio);
+>  		}
+> -		if (!err) {
+> +		if (!err)
+>  			ksm_merge_across_nodes = knob;
+> -			ksm_nr_node_ids = knob ? 1 : nr_node_ids;
+> -		}
+
+Reviewed-by: Pasha Tatashin <pasha.tatashin@soleen.com> 
+
+>  	}
+>  	mutex_unlock(&ksm_thread_mutex);
+>  
 > 
 > -- 
 > 2.43.0
 > 
-
--- 
-  Kiryl Shutsemau / Kirill A. Shutemov
