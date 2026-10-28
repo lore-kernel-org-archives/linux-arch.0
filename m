@@ -1,86 +1,84 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.222.177
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.208.45
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793224777;
-	b=JdEsgq6yrFq5gOgH8N55CVfjhBWkApsO0vCfsoNC7hw/n865d4r93Hhfy70seNyuFQWz
-	 0HoK4JLC7TjcZAkTbMZg16VKtiwd4b76lVpnSoaaFwkMSn+qlOSfzLasgxdzhwOx4Oaj8
-	 QAs78Ef2BC4JO54U04OKPn09YsvtQEPq8YkoMnqlSKFjccssbotRpcKaqFc9Rul6QGlTG
-	 axYMMV2xhQAdMT6Xw5RdtWP5nb32Od+NdPU4gv+YoJD0nLJ2l5n+fhyovvvir3ReEq0CY
-	 NyMG8jukNZbqN971sISgugDQxPNGIdEledQo9qcN0y9cJWGTMTnb/N9uK9/ZmLEZRlQ==
+	t=1793228056;
+	b=aRrcFoNhoCtsYwg1YCvH8+9tQdUjvYa8aeK2tpWCoW6C8GIL+8bFjyyqPQ+Rg7MZpaU8
+	 I5r/uOTv2AdWX8B1v/sEj1x387zmairhVr4CcoRpBJ1wRtp7f/k6k+2BMr1Zay7mO1hRH
+	 6ezchNgcQ35PdWxyMhiVKmOzVgDkSf3ozFS5E/+5HNP1+uvV9luKCpbpyF9o7v8gjEGa8
+	 fYKc3n7D0tjSXlSbEkiKnaNnphC96+c6XSapHwPLJUSrLe79oi2+VBQdt5/ZZXe1QnPDI
+	 8PJmE+5eJjUKyhepZ0pW81VsTLGkgPzKoM+G7aptFiQDjhM4Pnbl7WdiieyA8VFq3Qw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793224777;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793228056;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Subject:From:To:
 	 Cc:In-Reply-To:References:Date:Message-Id:X-Mailer;
-	bh=OhxlTVYV9TLcZ/UBe1xcuRZQWn43bPmhsFTY2WYTAiQ=;
-	b=t2tR82gobw82S8gb3PV76cHN75uH9sw4Gli8Nw4ypxaF1gPmacX7+2WI96OlJpS0psEi
-	 eC8Pjc0rJsulUDMA2LXFVtKIf+1FpMHj+EwfWqUWPsuC/jYgTAX27bIloNaSHLuz5K7Pv
-	 DGvI1MIYoq+Neh33zW246Ym41Fan53fmugK7HB0NUoIWtW/lnf3OT2suYzekK9Q6fNo9T
-	 xCfzJM7DsabUoIuMC5zK6pxl+MSRW3Swm53575GbhXZ+yjeRKK58XtUeolKCSNnjjk0P9
-	 xjIgFLN8TYGnoTRSE4d2WtmWjX1BpXVFwoaeAwmfA/I8DEOMg7/40q34xlVCHIf22/A==
+	bh=1nzL/A4OIGWxPEaAp0V3O0CBZ7XOASlD1R5vK61L67g=;
+	b=RlD5HI4nBMD+u2U1tA1N/loaFRlPjA3m0/97TckJn8phHRZPVW5T67jQlgAJ/P34HIs4
+	 mroHHiCxfKqMf6AKs932u1xeIeQBHWaRTxND31MhPgoBSh3zPqkzNhv6ab47Mw4oCc/cV
+	 ryHYZ4F+BGQ73t5Xn2FKYNE8kjiqhfBYbFXBIEwwEjzPX6kv2HwaDFBCQdHnRbjgOA925
+	 ERgZDOE7yyA2QYcdDAzEM5Jmnpj0ef5L9qDm6IybkH1zH8ajoM9pepVhhocLlT596dcJF
+	 NSY7DS1qRjXhci+fZVnXz5G+ibQeRkmix1GkvV1YAr+sVkTmJENXNSzuUX4SQl47gZQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=none header.from=gourry.net;
 	spf=pass smtp.mailfrom=gourry.net;
-	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=JJljicIu;
-	arc=none smtp.remote-ip=209.85.222.177
-Received: from mail-qk1-f177.google.com (mail-qk1-f177.google.com [209.85.222.177])
+	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=Jd09Eqyr;
+	arc=none smtp.remote-ip=209.85.208.45
+Received: from mail-ed1-f45.google.com (mail-ed1-f45.google.com [209.85.208.45])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 23660606A31D
-	for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 21:59:36 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 23660606A31D
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 270C1606A32E
+	for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 22:54:15 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 270C1606A32E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=JJljicIu
-Received: by mail-qk1-f177.google.com with SMTP id af79cd13be357-93f560af6aeso158427985a.0
-        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 14:59:35 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=Jd09Eqyr
+Received: by mail-ed1-f45.google.com with SMTP id 4fb4d7f45d1cf-6b1ec41d8e9so1855511a12.0
+        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 15:54:14 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gourry.net; s=google; t=1793224775; x=1793829575; darn=vger.kernel.org;
+        d=gourry.net; s=google; t=1793228053; x=1793832853; darn=vger.kernel.org;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:from:to:cc
          :subject:date:message-id:reply-to:content-type;
-        bh=OhxlTVYV9TLcZ/UBe1xcuRZQWn43bPmhsFTY2WYTAiQ=;
-        b=JJljicIuNc8c1hKynJqXX/VZCOPYs7Y9HJoAynJywjHK2yeTMkC3bqqzE7PEcLPD6A
-         4HUuY3A6DGxK7k1KKDC3MjMltOvH2hnz5xHVGlKqKRs2wvllOMfex65kCIfA/Ud5ZuJY
-         5CfIY42O8zl11oDwhrhAEk7nqJzdWGVX+xLfyMp3qho/XLR80ZGzg/jLaxW+lirQ+1XX
-         0ZSSG6g37QoKqss/2s/69JJbOxfL25oWhGjX4HpEVH8sq12RNIiNqdxzuwAkEH0g/dEW
-         gRXP/wSgQ2RAH+S68n6oHVT5kviIDSSPQ6GOz7LUsIw2+RU3+WY/zX965JVoT66OLw+E
-         mMJQ==
+        bh=1nzL/A4OIGWxPEaAp0V3O0CBZ7XOASlD1R5vK61L67g=;
+        b=Jd09EqyrE5Ah8cRBCETOBxDbT9b0oGnFriZ7N/vtIFnR4atxKwoVXBEkw9jWiyscaL
+         9cBv//XvhVx0QHadjkJLBobkr5XoWyssGxmav1gWZI3g+BwjlhfZWo65PjCsgnm9H3K3
+         xu5Gt8LjlHXosZzQxl27itMRU6XM03eBrNEUzaUgmLacP/vWk9QUrBawj9QiMopYPRXA
+         tFTTkouWxIpyyRzhMiRtstmfu3ZGpQ3UoEM6m+ucddIsmxmD56hyTjhxLKo4VCQBrV7A
+         s99qsxF/HxZexb7mRhlnvehngAX2PDIIfWSoapPGufqyJfpOj/CE/u6FaQ8yHPJb3EEt
+         tvmA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793224775; x=1793829575;
+        d=1e100.net; s=20260707; t=1793228053; x=1793832853;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=OhxlTVYV9TLcZ/UBe1xcuRZQWn43bPmhsFTY2WYTAiQ=;
-        b=MLs7LVj9Go4bPBuKE8S7forVJPNJFF+5EDKKaOel1KXIwAeMavxMul8bzXpUe8jriM
-         OGB7ZrwnZ8UFnBFU2EIsBFg9fBidBG92cgR2dgqD9WeSloEuiaX3kFaExh7PXOiNCuBh
-         T+iYvcMIRn2ax29KyBVQ5ZEHW6VOHRUlWfdblaIUqPMkZA+yaHokyJgZv9B+lwl5Ngpo
-         /txSvwOUcFpiF3CM/NNyQuIOQcdvEo680flMNl/cKTw+P+0wtO615BfvA2m4ChF8mP0P
-         xfMHJ1/HBNV5VfxiSgA55HCtugYUhXBdH8BolwSAcX7zCNJ/gnk//GQbSnHL2mMc4mK8
-         RxvQ==
-X-Forwarded-Encrypted: i=1; AKwUvBxn7v+9pjqgGBBvupNZfT4sZERiaowKc/X0u70dx3ySPADTN8gSo6FJks93xgDK8AQW0jw3ZMJh60z+@vger.kernel.org
-X-Gm-Message-State: AFq9FYJzP7UiJ/A6VW7S0VWj7D+bCEYJE6fzGZUrsWyJjz1uh/y1SwFf
-	N/pqWO5+vprJz8d7Q0nkOBxqVKmQI3M2zNzipUf3kxohrVVEjtym+U89Qt/kemdVixBKe+Y9rFW
-	OVRs1UNI=
-X-Gm-Gg: AYBFou1lvkmko0bsUR3Xcd+ChH8L7I2MmR65scBnCZ1kzPa/vvuO2EH5byl2HLVRw8G
-	kTaeScdxO4FbWUPomCeoty3klCrT07/TM4/21JM9UswpU7Jax2jUgkvghVRswjPprZrhY/dw394
-	aWreaQifeHnzkfmntziytK1I+iSXoWDV4/f59Sh0zBUYaHCHR8dChZzlfGRSY/dEHc6aZQm0Cha
-	mFGK0ohh9JFG41jvKGLAiZQmueJ1IBcPYZCZ3NB3fQPP8Pc/bi8H52XLRxmycrR/gKe2i6Xqvw6
-	z0glUILEeUQSRw6NHCX9S3uiBAC006JCLE6mkm5bTa31KNBTTurdtOwoW4ALy+4LMYKXkmrOd3H
-	kjJKO/iTrJoWm9mvpXRCHqzxUsocfn/WNn3lGq9GIDkinZxJQp/TE5dGhpNxKHqLf/AcU+AkC9r
-	/x7wI3DJOMaj/WgCriEJfjTqBmhpLorJAbhUUrGVoKNGDfXSb1sRaEMyzxqoFBP4p6cLg1pXx4C
-	Z6AfauyUruQxa4bnfSMdNUyKXUtHpHClLS+reJzA9LGqtKi3eV/mILi6EDMKh2TbLHl2s1E5TTu
-	vc3L+xX5ywGh71HOy8g4JiaDaA5KGxrZ7meBJV1lhYUov2+eKT8dlb3nBrYaRiQCKPJX+T7E6ja
-	F
-X-Received: by 2002:a05:620a:460f:b0:93e:ce12:aadd with SMTP id af79cd13be357-94408db358bmr587757585a.58.1793224775119;
-        Wed, 28 Oct 2026 14:59:35 -0700 (PDT)
-Received: from [192.168.86.58] (pool-173-79-60-52.washdc.fios.verizon.net. [173.79.60.52])
-        by smtp.gmail.com with ESMTPSA id af79cd13be357-940f078ba99sm1374978985a.32.2026.10.28.14.59.33
+        bh=1nzL/A4OIGWxPEaAp0V3O0CBZ7XOASlD1R5vK61L67g=;
+        b=TDaO7OK4v+7KEqfB5fOu56GMFMtbvl72NyQUtKjEo+2MnrgrgzAFVBuFwaMN3weWW+
+         9pq2S0guzkz0eSdmDqmHsfsZhLrXbc2RMIvXJUir6IAFyCss6N96j5P9Qt3H2Y73/rt7
+         yApnxN/wKXcFUq5sZLE4Cvt+boucT34nDR4/F7MKSHgNbpvZ5OluR+POFtDmLjkuBvzJ
+         6J9NAx+jRR49y0bPF6QSI1Hdd2Z1eYy4+YNeKbo9ZdvwJZSfkR6gT2uuzkQIRqhrFWDa
+         oocE+IpUISXkDA3CqdcNpR72pKva4i0o6t/1FaSdxlXnZu0jvSRI+MoqYve9sRrOQnI+
+         v/Vw==
+X-Forwarded-Encrypted: i=1; AKwUvBy+G23pqMxxzsFsOZVcHGDTqOzDOl8aN8wQRnJ5e6GJop7tLAUPkKT5AiB19vs+m/tEwOXBWA5cMHod@vger.kernel.org
+X-Gm-Message-State: AFq9FYKSphesSRqgntSdMMiqVm0JHZ3Ae06EXV6926c6Nl5intxrzDxl
+	3Z8I5Z3XcHpzOOBuVStK20uSrQHp1uMQ1rsnsRj0ByJhn0mDBLfxHrbatJWn2QsyAB8=
+X-Gm-Gg: AYBFou1JVxyhIiSh7fda/zuQxJJP/YDGS7Y4n1HfOvSDMLJI9HwItZCPwsmHIhcUtM2
+	qMtp/qaPryK/cveTBMruBq3fcYWvkt8CNKysggKkCghOu58HCEEk8mQatz6+ao0NKOlxF5zZQNc
+	yesfHoc2ZI5ExR4Xe/RnkeXykU50rccrzV+1txd6lM6cNIjhbNnAtUPZgv844SyAdpFpPFblfkF
+	Zk12cWuBvsbuY2HmaRQqznWH5waBkSVacl0DM5E1wGttk8y6sWq2uaGoWmTZlYmCmSGtsgHAKYN
+	6isMJ0e9SRgE2dIHYu2+Yz7YJFH8bwLo//74lz8rSnoCthgtNwslYiBS0XXkyTztyaeiOU9/0Om
+	HA/u9ATKcL73alZB4SkkpVTA0LBHmuT449xmmJtMR+RpwmDv0QXm+UpyLgXgWTQK1/Gz1XE8HZu
+	Nw63HjqjSQ2F/LQpkop+8UIx0lDoGfOeKt/4VLGP59+EDGS9p9HjNuFGxJ4FDeW3S29iDsV2bJ3
+	gvXT9AgHM11K6LbJWVWDpQjauYTiYkbQYhnJRXMT6ChWlMeeafrsiWCt/QGmX4KmTIEe3J7PaAq
+	cHsLP0pLeiYxQMRR4xPstfgcOpE5U2S6K34uTS1wO0Q=
+X-Received: by 2002:aa7:d0d3:0:b0:6b4:78c3:b8bf with SMTP id 4fb4d7f45d1cf-6b49cbfe65cmr2043596a12.26.1793228053385;
+        Wed, 28 Oct 2026 15:54:13 -0700 (PDT)
+Received: from localhost ([2a03:2880:32ff:49::])
+        by smtp.gmail.com with ESMTPSA id 4fb4d7f45d1cf-6b4964601f2sm1991741a12.37.2026.10.28.15.54.11
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 28 Oct 2026 14:59:34 -0700 (PDT)
+        Wed, 28 Oct 2026 15:54:12 -0700 (PDT)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -92,9 +90,9 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH 32/46] mm/memory_hotplug: avoid races in
- pfn_to_online_page() with dying pgmap
-From: "Gregory Price (Meta)" <gourry@gourry.net>
+Subject: Re: [PATCH 45/46] mm/memory-tiers: unregister empty tiers outside
+ memory_tier_lock
+From: Gregory Price <gourry@gourry.net>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
  Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, 
@@ -130,44 +128,36 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org, 
  linux-kernel@vger.kernel.org, kexec@lists.infradead.org, 
  linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>
-In-Reply-To: <20261027-fixes_core-v1-32-6f74bec9a5bb@kernel.org>
+ linux-cxl@vger.kernel.org, stable@vger.kernel.org, 
+ Josef Bacik <josef@toxicpanda.com>
+In-Reply-To: <20261027-fixes_core-v1-45-6f74bec9a5bb@kernel.org>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-32-6f74bec9a5bb@kernel.org>
-Date: Wed, 28 Oct 2026 17:59:33 -0400
-Message-Id: <179322477323.1935969.10540673116963281867.b4-reply@b4>
+ <20261027-fixes_core-v1-45-6f74bec9a5bb@kernel.org>
+Date: Wed, 28 Oct 2026 15:54:10 -0700
+Message-Id: <179322805093.453251.8441529644965692562.b4-reply@b4>
 X-Mailer: b4 0.17-dev
 
-On 2026-10-27 00:17 +0100, David Hildenbrand (Arm) wrote:
-> From: Josef Bacik <josef@toxicpanda.com>
+On 2026-10-27 00:18 +0100, David Hildenbrand (Arm) wrote:
+> When offlining a node's last memory empties its tier,
+> clear_node_memory_tier() calls device_unregister() while holding
+> memory_tier_lock. A concurrent sysfs read can hold a kernfs active
+> reference and block in nodelist_show() on that mutex. device_unregister()
+> then waits in kernfs_drain() for the read to finish and release its active
+> reference, while the reader waits for the offlining task to release the
+> mutex.
 > 
-> If ZONE_DEVICE memory shares a memory section with ordinary memory, the
-> section is online and the pfns of the device are valid.
-> pfn_to_online_page() tells them apart by asking get_dev_pagemap() whether
-> the pfn belongs to a dev_pagemap.
+> Return the node's former tier from clear_node_memory_tier(), making the
+> helper more similar to set_node_memory_tier(), which also returns a
+> memory_tier pointer. Let the caller unlink an empty tier under
+> memory_tier_lock before rebuilding demotion targets, then unregister its
+> device after dropping the lock.
 > 
-> get_dev_pagemap() only returns a dev_pagemap whose reference is alive.
-> memunmap_pages() kills the reference first, waits until all pages are
-> idle, and then removes the memmap. During all that time the function
-> finds nothing, and pfn_to_online_page() hands out the struct pages of the
-> device as if they were online memory. A pfn walker reads them while they
-> are poisoned and freed.
-> 
-> The entry in pgmap_array is only deleted after the pages have been
-> removed. Look at that instead of trying to get a reference.
-> 
-> This is probably not worth CCing stable.
-> 
-> Fix generated by an LLM and sent by Josef Bacik in private.
-> 
-> Fixes: 1f90a3477df3 ("mm: teach pfn_to_online_page() about ZONE_DEVICE section collisions")
-> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+> Fixes: 9832fb87834e ("mm/demotion: expose memory tier details via sysfs")
+> Cc: stable@vger.kernel.org
+> Reported-by: Josef Bacik <josef@toxicpanda.com>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-
-More zone device pfn-walk brittleness :\
 
 Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
 
 -- 
-~Gregory
-
+Gregory Price (Meta) <gourry@gourry.net>
