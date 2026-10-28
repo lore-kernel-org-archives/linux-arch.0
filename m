@@ -1,49 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793218572;
-	b=OHoajzblJ9GH3wgdnN4T5b49O7ilxPkpGc9GAKpbcB2+YrlUPIASpQqn1Wpu3R/UdH6+
-	 YnfYk+Y4XRqs6PugNVLIX9XO0DvvpIahpZZrCm2/qSQYALKEIHqBYdq/YhuV4xz1gCWdi
-	 lVAIDFRA4afPb1hli6/rMhB7N7ZK6pLwUi1w5xEsOrTAj8PUU5Pw5seOPDXDBdGr+urdN
-	 8eUAn6J1WLr5yGPCRxf1fBVxaGzztZtpwFg1053tbqZWbXbvSlAFYb2kgtc2I9IM34Bni
-	 RgT+Yrot0f8j8iNSg3bJzxbP1BhufLqXzV7GQ6kF++jL6hPQgrBjxgOdbWOeVZzPMUQ==
+	t=1793221029;
+	b=SvnbMzkIPVJtTcqKadTpfx9NafqYC5lYBAT6PneTIPpCAeG78fLiW+KNTCRntzmiPLav
+	 E3jUwYmwD2yE4Z5LKo+PFvbgtnayUGNxEiaktFI0Bw6QbGHVSOoY2CUUMfjWzscNCXdwI
+	 t+JGSNwD6ejnP8+Ue4lC8WACqj2Y6v40Zr0RuIp6hTGiKwbYmXqr1ek9J8CsQgtyYgj9n
+	 +uG0n6nFk8t2lC+EpyXI6+laRNYhNksk/qUeDxu4zJwdGn8HrtMFNqf2o1St3yc8x2MyC
+	 A5gkr1U+/XIV0FWWgU9C+4cnEhAf7IGZZ8w6pGHcVHzhqRgluQ76lEGYFkh3vYO0e+w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793218572;
-	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
-	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
-	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=YYFSf//7LtffTEdaInzbKHoueC9GaQed5S2F6XZ2m8Q=;
-	b=q+Je7Gd6Rjl1ZqHnZqR9Tx5nYKj0UazniFGYB286WvpD5Ntrf78mKeDLV4KRLEgVL64z
-	 E9rRiD85P0i1cbYHllFMjH4JU38c4GJHh5sZV+81d04vXLP2Edno5875AIRjF06E1Wgvn
-	 eSnze3NtPXkvB4TCfSOtDTau5vduhYVXykT3nTfo1dfjEdtgoskxXW9wM+C4OOL+/grCO
-	 zS6zG+loxzyyIKT/ENrXs+ayLOuu+DxXrRqH4bIZ+VankMBK1MBKxwNiKQALDA1RcWax3
-	 dNgVKoyMhAm0Il798mLqhx9GHC3vousRb5lPD0OeKh19vSmKdHrrlTbJLNOVYioqREA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793221029;
+	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
+	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
+	 Content-Type:Content-Transfer-Encoding;
+	bh=VBRXJGFXK0qCkmji9XuilGdSC6PWUqjPX0mT1B8+Dew=;
+	b=CQPqI6AT/BuiRazp1myyc9Ae1zAuRlqSazuzLPp/5M2e3/x6iywOHPUPTYlDViahmDi1
+	 YGDFzwb/Efwx7sbJfTqyidmyIO4Fc970ZcHmeRPG04MtIMKsH1wrwprxTdfAJ5ovXqYzR
+	 i7qS4KFJUpl3XHhL6g+2zOqquWMbcL+J50TOlxpdF/vz/td/5oZrDQHy77XMIF13vXN4S
+	 ZLUVI+DLvLFMeTYSfvzddH4enMwZZMweZmVPpRoLkKNYWRyxjuRngnRYfjWejHzhJEUhU
+	 /5SSpYSZxFVi3UedOR2L6gK/L3rhs4I2wv/k1E8ZAiZ/uPquIIYiycTmK5Q6bUN57vg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=PXDJAgPT;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=d6++6R92;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0CFC7606A325;
-	Wed, 28 Oct 2026 20:16:12 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44309606A322;
+	Wed, 28 Oct 2026 20:57:09 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=PXDJAgPT
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 993821F031E3;
-	Wed, 28 Oct 2026 20:16:02 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=d6++6R92
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C08141F01825;
+	Wed, 28 Oct 2026 20:56:53 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793218571;
-	bh=YYFSf//7LtffTEdaInzbKHoueC9GaQed5S2F6XZ2m8Q=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=PXDJAgPThItJ1aq5M+pH6y01S76Edy6t/jgE9JP0iQsIF9nXJwPANyzgeHXcnCzWF
-	 9WbU2KYGlA/tTolQyfpz20oxrC5B2r//RUN+yNwmW9Wrqafi4X8fIDUDQ1synTJy3/
-	 IetUwhBWDYLfW7m65Xnxg3Ye1uWdNnj+3VPqcyWCGVb3pabDO9YhheA+EQpxBPtydQ
-	 hpknUPoxwEvCPWikqi8AYruhvwd50gD9PjWLudMPCCN/HDdSlH41lFNNBngZUQtOBJ
-	 yAF7CwsvjPbdRP34AY9K/fOGK+s/gKBeDChuUf6HSH/Gu5rOV95F8wd/fcjkp3e23U
-	 s9nN+44+zXtHg==
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Date: Wed, 28 Oct 2026 21:13:42 +0100
-Subject: [PATCH 14/15] RFC: mm/hugetlb: account restored reservations
- before freeing folios
+	s=k20260515; t=1793221028;
+	bh=VBRXJGFXK0qCkmji9XuilGdSC6PWUqjPX0mT1B8+Dew=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=d6++6R92Y9pW/L7qdwwXGd0u/fINnIlp1NYiXwaft8WuvM2tnh59aB+MIfDwM3CYs
+	 7OBmLdZ2yf/hpA8zpc7z5GdDAf3CTGmZVsA0hpoyhtF6kc1L6FM9QY6FPQzJGgCNiM
+	 9Gle+WZku0sAgiTcOS5G2JnLcI+qrDvkcNMlVF6RCTWmoNWW7uHd+G1PGIIff8zlHa
+	 fPM56Qjn7U5XHgFTGxseW76jmouqIFti8WxpybzmVtUdGoYf7HNRmalUpxMtAY3Qao
+	 mgALZ2krEDvrdX6MlU+nCOicB8+IQASXlEKAHYsbgLpoWmWmdQnVWuDP0TEVs7UF1Z
+	 xjngcVGllnCNA==
+Message-ID: <b90cd9a6-4303-4ea6-b76a-8cece1ca0284@kernel.org>
+Date: Wed, 28 Oct 2026 21:56:42 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -53,292 +51,215 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 08/46] mm/filemap: finish fault cleanup before dropping
+ the fault lock
+To: Thadeu Lima de Souza Cascardo <cascardo@igalia.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+ Baoquan He <baoquan.he@linux.dev>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
+ Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Pratyush Yadav <pratyush@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
+ Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
+ Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
+ <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
+ linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-cxl@vger.kernel.org, stable@vger.kernel.org,
+ Chris Mason <mason@kernel.org>
+References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-8-6f74bec9a5bb@kernel.org>
+ <auJMY1xFp6EkhXbZ@quatroqueijos.cascardo.eti.br>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <auJMY1xFp6EkhXbZ@quatroqueijos.cascardo.eti.br>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261028-fixes_hugetlb-v1-14-a0a033db180f@kernel.org>
-References: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
-In-Reply-To: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
-To: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
- Naoya Horiguchi <nao.horiguchi@gmail.com>, 
- Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, 
- Andy Whitcroft <apw@canonical.com>, Miaohe Lin <linmiaohe@huawei.com>, 
- Michal Hocko <mhocko@suse.com>, Rik van Riel <riel@surriel.com>, 
- Hugh Dickins <hughd@google.com>, 
- Baolin Wang <baolin.wang@linux.alibaba.com>, 
- Vivek Kasireddy <vivek.kasireddy@intel.com>, 
- Dave Airlie <airlied@redhat.com>, Jason Gunthorpe <jgg@ziepe.ca>, 
- Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>, 
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
- Suren Baghdasaryan <surenb@google.com>, Jonathan Corbet <corbet@lwn.net>, 
- Shuah Khan <skhan@linuxfoundation.org>, 
- Randy Dunlap <rdunlap@infradead.org>, Peter Xu <peterx@redhat.com>, 
- Breno Leitao <leitao@debian.org>, Will Deacon <will@kernel.org>, 
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
- Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
- Alexander Gordeev <agordeev@linux.ibm.com>, 
- Christian Borntraeger <borntraeger@linux.ibm.com>, 
- Sven Schnelle <svens@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
- Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org, 
- linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, 
- "David Hildenbrand (Arm)" <david@kernel.org>, stable@vger.kernel.org, 
- Josef Bacik <josef@toxicpanda.com>
-X-Mailer: b4 0.16.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=9868; i=david@kernel.org;
- h=from:subject:message-id; bh=d5+zn1Hn3o3pWcjYFV3JXLw3TGIm0oEZelvRVfl19MA=;
- b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLIehZcpaTl+82X3LJQ/n8zA23Qs4OK75d4RK3M4H2Q7v
- ntwIMino5SFQYyDQVZMkSUo+L7By5fraqvd+Jhh5rAygQxh4OIUgIl0BTD8U5Bcw/npDYNsFktN
- aNSUU7uPFB5ccnL9pbUF72Y9v+G4UY2RYYfriTulSxP83qYvtar3ebdPs9+rl7fTV32qsuyXfTU
- 8fAA=
-X-Developer-Key: i=david@kernel.org; a=openpgp;
- fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-Unmapping an anonymous folio restores its private VMA reservation
-immediately, but the global reservation count is only restored when the
-folio is freed.
+On 10/28/26 20:26, Thadeu Lima de Souza Cascardo wrote:
+> On Tue, Oct 27, 2026 at 12:17:28AM +0100, David Hildenbrand (Arm) wrote:
+>> On a retried fault, a fatal signal interrupting the folio lock wait
+>> makes lock_folio_maybe_drop_mmap() drop the fault lock without pinning
+>> the file. However, filemap_fault() may still need to release
+>> mapping->invalidate_lock. A concurrent munmap() can release the last
+>> file reference and free the mapping before that unlock.
+>>
+>> Defer dropping the fault lock to filemap_fault()'s retry cleanup, after
+>> releasing invalidate_lock. If the fault lock was already dropped for
+>> I/O, release the existing file reference instead. Keep the fault lock
+>> held for FAULT_FLAG_RETRY_NOWAIT as before.
+>>
+>> Fixes: 730633f0b7f9 ("mm: Protect operations adding pages to page cache with invalidate_lock")
+>> Cc: stable@vger.kernel.org
+>> Reported-by: Chris Mason <mason@kernel.org>
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>> ---
+>>  mm/filemap.c | 37 +++++++++++++------------------------
+>>  1 file changed, 13 insertions(+), 24 deletions(-)
+>>
+>> diff --git a/mm/filemap.c b/mm/filemap.c
+>> index 6b5e1d866a9e0..b04be64a5069f 100644
+>> --- a/mm/filemap.c
+>> +++ b/mm/filemap.c
+>> @@ -3308,11 +3308,11 @@ loff_t mapping_seek_hole_data(struct address_space *mapping, loff_t start,
+>>   * @folio - the folio to lock.
+>>   * @fpin - the pointer to the file we may pin (or is already pinned).
+>>   *
+>> - * This works similar to lock_folio_or_retry in that it can drop the
+>> - * mmap_lock.  It differs in that it actually returns the folio locked
+>> - * if it returns 1 and 0 if it couldn't lock the folio.  If we did have
+>> - * to drop the mmap_lock then fpin will point to the pinned file and
+>> - * needs to be fput()'ed at a later point.
+>> + * Returns 1 with the folio locked, or 0 if locking failed.
+>> + *
+>> + * On both entry and return, a non-NULL *fpin means the fault lock has
+>> + * already been dropped and the caller must eventually fput() the file.
+>> + * Otherwise the fault lock is still held, including on failure.
+>>   */
+>>  static int lock_folio_maybe_drop_mmap(struct vm_fault *vmf, struct folio *folio,
+>>  				     struct file **fpin)
+>> @@ -3329,21 +3329,9 @@ static int lock_folio_maybe_drop_mmap(struct vm_fault *vmf, struct folio *folio,
+>>  		return 0;
+>>  
+>>  	*fpin = maybe_unlock_mmap_for_io(vmf, *fpin);
+>> -	if (vmf->flags & FAULT_FLAG_KILLABLE) {
+>> -		if (__folio_lock_killable(folio)) {
+>> -			/*
+>> -			 * We didn't have the right flags to drop the
+>> -			 * fault lock, but all fault_handlers only check
+>> -			 * for fatal signals if we return VM_FAULT_RETRY,
+>> -			 * so we need to drop the fault lock here and
+>> -			 * return 0 if we don't have a fpin.
+>> -			 */
+>> -			if (*fpin == NULL)
+>> -				release_fault_lock(vmf);
+>> -			return 0;
+>> -		}
+>> -	} else
+>> -		__folio_lock(folio);
+>> +	if (vmf->flags & FAULT_FLAG_KILLABLE)
+>> +		return !__folio_lock_killable(folio);
+>> +	__folio_lock(folio);
+>>  
+>>  	return 1;
+>>  }
+>> @@ -3572,7 +3560,7 @@ static vm_fault_t filemap_fault_recheck_pte_none(struct vm_fault *vmf)
+>>   * vma->vm_mm->mmap_lock must be held on entry.
+>>   *
+>>   * If our return value has VM_FAULT_RETRY set, it's because the mmap_lock
+>> - * may be dropped before doing I/O or by lock_folio_maybe_drop_mmap().
+>> + * may be dropped before doing I/O or when aborting an interrupted wait.
+>>   *
+>>   * If our return value does not have VM_FAULT_RETRY set, the mmap_lock
+>>   * has not been released.
+>> @@ -3728,9 +3716,8 @@ vm_fault_t filemap_fault(struct vm_fault *vmf)
+>>  
+>>  out_retry:
+>>  	/*
+>> -	 * We dropped the mmap_lock, we need to return to the fault handler to
+>> -	 * re-find the vma and come back and find our hopefully still populated
+>> -	 * page.
+>> +	 * With fpin set, the fault lock was already dropped. Otherwise it is
+>> +	 * still held. Release invalidate_lock before dropping either protection.
+>>  	 */
+>>  	if (!IS_ERR(folio))
+>>  		folio_put(folio);
+>> @@ -3738,6 +3725,8 @@ vm_fault_t filemap_fault(struct vm_fault *vmf)
+>>  		filemap_invalidate_unlock_shared(mapping);
+>>  	if (fpin)
+>>  		fput(fpin);
+>> +	else if (!(vmf->flags & FAULT_FLAG_RETRY_NOWAIT))
+>> +		release_fault_lock(vmf);
+>>  	return ret | VM_FAULT_RETRY;
+>>  }
+>>  EXPORT_SYMBOL(filemap_fault);
+>>
+>> -- 
+>> 2.43.0
+>>
+>>
+> 
+> If I understood this correctly, the invariant is that if fpin is set, then
+> the fault lock has been dropped.
+> 
+> At first, I was confused that maybe_unlock_mmap_for_io drops the fault
+> lock, but in that case, it also gets a reference to the file, so fpin is
+> set and the invariant is kept.
 
-If any folio reference delays freeing, closing the VMA or refaulting can
-decrement resv_huge_pages before it was incremented. This can underflow
-the counter or hide another mapping's reservation, allowing an unreserved
-allocation to consume its backing.
+lock_folio_maybe_drop_mmap() and the other functions here are horrible, horrible
+stuff, really :(
 
-Increment resv_huge_pages when restoring the reserve map instead. Detach
-the folio from its subpool, since the restored reservation now owns that
-charge. Leave the restore-reserve flag clear so freeing the folio does not
-repeat the accounting. The folio only becomes free after its last reference
-is dropped.
-
-Reservations can now temporarily outnumber free folios. Clamp available
-pages to zero in that case, including for demotion, and limit surplus
-releases to available pages so they cannot remove backing for remaining
-reservations.
-
-Restore reservations even when surplus pages exist. free_huge_folio()
-already retains pages needed to back them. It is unclear why that was
-really added. The comment about i_mmap_lock_write can go as well, that
-doesn't really help for anonymous folios.
-
-Two existing problems remain:
-
-1) Anonymous hugetlb migration temporarily drops the mapcount. A concurrent
-   unmap can observe zero and restore a reservation even though migration
-   will reinstall a mapping. i_mmap_lock_write() does not protect anonymous
-   folio mapcounts, so it does not prevent this race. This change fixes the
-   resulting counter underflow, but leaves premature restoration possible,
-   leading to (2). Maybe that anon_vma lock can help?
-
-2) A fault can allocate a replacement folio using the restored
-   reservation before the old folio is freed. Repeated vmsplice(),
-   MADV_DONTNEED and refaults can retain multiple folios for one
-   reservation and consume pages backing other reservations. This was
-   already possible; counter accounting is now fixed, but early reuse
-   remains. Removing the surplus check also allows it after unmaps that
-   previously skipped restoration.
-
-Deferring reservation-map restoration until the final put is tricky:
-free_huge_folio() has no VMA context to update the private reserve map, and
-that VMA may already have been destroyed.
-
-Fixes: df7a6d1f6405 ("mm/hugetlb: restore the reservation if needed")
-Cc: stable@vger.kernel.org
-Reported-by: Josef Bacik <josef@toxicpanda.com>
-Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
----
- Documentation/mm/hugetlbfs_reserv.rst |  5 +-
- mm/hugetlb.c                          | 90 ++++++++++++++++-------------------
- mm/hugetlb_internal.h                 | 11 +++++
- mm/hugetlb_sysfs.c                    |  2 +-
- 4 files changed, 57 insertions(+), 51 deletions(-)
-
-diff --git a/Documentation/mm/hugetlbfs_reserv.rst b/Documentation/mm/hugetlbfs_reserv.rst
-index fbca6625ca50..4711029bd067 100644
---- a/Documentation/mm/hugetlbfs_reserv.rst
-+++ b/Documentation/mm/hugetlbfs_reserv.rst
-@@ -34,7 +34,8 @@ resv_huge_pages
- 	This is a global (per-hstate) count of reserved huge pages.  Reserved
- 	huge pages are only available to the task which reserved them.
- 	Therefore, the number of huge pages generally available is computed
--	as (``free_huge_pages - resv_huge_pages``).
-+	as (``free_huge_pages - resv_huge_pages``), clamped to zero when
-+	reservations outnumber free huge pages.
- Reserve Map
- 	A reserve map is described by the structure::
- 
-@@ -155,7 +156,7 @@ are enough free huge pages to accommodate the reservation.  If there are,
- the global reservation count resv_huge_pages is adjusted something like the
- following::
- 
--	if (resv_needed <= (free_huge_pages - resv_huge_pages)
-+	if (resv_needed <= available_huge_pages(h))
- 		resv_huge_pages += resv_needed;
- 
- Note that the global lock hugetlb_lock is held when checking and adjusting
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index 69a5d2c73ee1..06ef8ba41df7 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -1347,11 +1347,6 @@ static struct folio *dequeue_hugetlb_folio_nodemask(struct hstate *h, gfp_t gfp_
- 	return NULL;
- }
- 
--static unsigned long available_huge_pages(struct hstate *h)
--{
--	return h->free_huge_pages - h->resv_huge_pages;
--}
--
- static unsigned long persistent_huge_pages(struct hstate *h)
- {
- 	return h->nr_huge_pages - h->surplus_huge_pages - h->temporary_huge_pages;
-@@ -2449,7 +2444,8 @@ static void return_unused_surplus_pages(struct hstate *h,
- 	 * Part (or even all) of the reservation could have been backed
- 	 * by pre-allocated pages. Only free surplus pages.
- 	 */
--	nr_pages = min(unused_resv_pages, h->surplus_huge_pages);
-+	nr_pages = min3(unused_resv_pages, h->surplus_huge_pages,
-+			available_huge_pages(h));
- 
- 	/*
- 	 * We want to release as many surplus pages as possible, spread
-@@ -5313,6 +5309,45 @@ int move_hugetlb_page_tables(struct vm_area_struct *vma,
- 	return len + old_addr - old_end;
- }
- 
-+/* Must be called after rmap removal. */
-+static void hugetlb_folio_restore_rsv_on_unmap(struct vm_area_struct *vma,
-+		struct folio *folio)
-+{
-+	struct hstate *h = hstate_vma(vma);
-+	unsigned long address;
-+	long rc;
-+
-+	/*
-+	 * Restore only on the last unmap, otherwise the owner could reuse
-+	 * the reservation while the folio is still mapped by a child.
-+	 *
-+	 * TODO: Handle migration temporarily dropping the mapcount to zero.
-+	 * TODO: Prevent reservation reuse before the folio is freed.
-+	 */
-+	if (!folio_test_anon(folio) || !__vma_private_lock(vma) ||
-+	    folio_mapped(folio))
-+		return;
-+
-+	address = vma_anon_address(vma, folio->index, 1);
-+	rc = vma_needs_reservation(h, vma, address);
-+	if (!rc)
-+		vma_end_reservation(h, vma, address);
-+	if (rc <= 0)
-+		return;
-+
-+	rc = vma_add_reservation(h, vma, address);
-+	if (rc < 0)
-+		return;
-+
-+	/* The restored reservation owns the subpool charge. */
-+	hugetlb_set_folio_subpool(folio, NULL);
-+
-+	/* Account before the VMA can close or fault again. */
-+	spin_lock_irq(&hugetlb_lock);
-+	h->resv_huge_pages++;
-+	spin_unlock_irq(&hugetlb_lock);
-+}
-+
- void __unmap_hugepage_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
- 			    unsigned long start, unsigned long end,
- 			    struct folio *folio, zap_flags_t zap_flags)
-@@ -5325,7 +5360,6 @@ void __unmap_hugepage_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
- 	spinlock_t *ptl;
- 	struct hstate *h = hstate_vma(vma);
- 	unsigned long sz = huge_page_size(h);
--	bool adjust_reservation;
- 	unsigned long last_addr_mask;
- 
- 	i_mmap_assert_write_locked(vma->vm_file->f_mapping);
-@@ -5418,47 +5452,7 @@ void __unmap_hugepage_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
- 		hugetlb_remove_rmap(folio);
- 		spin_unlock(ptl);
- 
--		/*
--		 * Restore the reservation for anonymous page, otherwise the
--		 * backing page could be stolen by someone. Restore only on the
--		 * last unmap, otherwise the owner could empty its resv map
--		 * while the folio is still mapped by a child. Note that holding
--		 * i_mmap_lock_write is needed to check the number of mappings.
--		 * If there we are freeing a surplus, do not set the restore
--		 * reservation bit.
--		 */
--		adjust_reservation = false;
--
--		spin_lock_irq(&hugetlb_lock);
--		if (!h->surplus_huge_pages && __vma_private_lock(vma) &&
--		    !folio_mapped(folio) && folio_test_anon(folio)) {
--			folio_set_hugetlb_restore_reserve(folio);
--			/* Reservation to be adjusted after the spin lock */
--			adjust_reservation = true;
--		}
--		spin_unlock_irq(&hugetlb_lock);
--
--		/*
--		 * Adjust the reservation for the region that will have the
--		 * reserve restored. Keep in mind that vma_needs_reservation() changes
--		 * resv->adds_in_progress if it succeeds. If this is not done,
--		 * do_exit() will not see it, and will keep the reservation
--		 * forever.
--		 */
--		if (adjust_reservation) {
--			int rc = vma_needs_reservation(h, vma, address);
--
--			if (rc < 0)
--				/* Presumably allocate_file_region_entries failed
--				 * to allocate a file_region struct. Clear
--				 * hugetlb_restore_reserve so that global reserve
--				 * count will not be incremented by free_huge_folio.
--				 * Act as if we consumed the reservation.
--				 */
--				folio_clear_hugetlb_restore_reserve(folio);
--			else if (rc)
--				vma_add_reservation(h, vma, address);
--		}
-+		hugetlb_folio_restore_rsv_on_unmap(vma, folio);
- 
- 		tlb_remove_page_size(tlb, folio_page(folio, 0),
- 				     folio_size(folio));
-diff --git a/mm/hugetlb_internal.h b/mm/hugetlb_internal.h
-index 1d2f870deccf..d307d472137c 100644
---- a/mm/hugetlb_internal.h
-+++ b/mm/hugetlb_internal.h
-@@ -10,6 +10,17 @@
- #include <linux/hugetlb.h>
- #include <linux/hugetlb_cgroup.h>
- 
-+static inline unsigned long available_huge_pages(struct hstate *h)
-+{
-+	/*
-+	 * Restored reservations may outnumber free folios until the folios
-+	 * return to the pool.
-+	 */
-+	if (h->resv_huge_pages > h->free_huge_pages)
-+		return 0;
-+	return h->free_huge_pages - h->resv_huge_pages;
-+}
-+
- /*
-  * Check if the hstate represents gigantic pages but gigantic page
-  * runtime support is not available. This is a common condition used to
-diff --git a/mm/hugetlb_sysfs.c b/mm/hugetlb_sysfs.c
-index c89e4c847575..9e0c5d3d0fcb 100644
---- a/mm/hugetlb_sysfs.c
-+++ b/mm/hugetlb_sysfs.c
-@@ -211,7 +211,7 @@ static ssize_t demote_store(struct kobject *kobj,
- 		 * Check for available pages to demote each time thorough the
- 		 * loop as demote_pool_huge_page will drop hugetlb_lock.
- 		 */
--		nr_available = h->free_huge_pages - h->resv_huge_pages;
-+		nr_available = available_huge_pages(h);
- 		if (nid != NUMA_NO_NODE)
- 			nr_available = min(nr_available,
- 					   h->free_huge_pages_node[nid]);
+Thanks!
 
 -- 
-2.43.0
+Cheers,
 
+David
