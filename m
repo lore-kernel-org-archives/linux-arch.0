@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793221094;
-	b=1+LOVYpArkC7rEbNc9mw3aQgWgUQQdBkvPgBkzOyZVCue/4CSAtxgMXChfBPPFZ9xwM2
-	 M2ap121CznkBw271Xq5U3uD0nSQ9xD1tsJciVMlwAaRsCyppep6/RoCX2jMMZ//4KV9lX
-	 ftsSWDXcVYo2oLiPCteTyAgTSCKIgFXU7hTQO9WRp6+r0r2M8hXAdQUUjp8i+HWGA7DVv
-	 +nkkq9AAF/aJEE1qDywAoMctAaZcxtYuqB6W+T1v4Xw44zInvIY4MmpPyPezSuq+Zt/M8
-	 AtI5RVHzE9BeZ95T2sqRz+LGEiBiAQkeRtNlV5E6HXxFS4ANdKda6BfUhfs20eLzCsg==
+	t=1793221628;
+	b=D7dOFl/l5RhP9XsDNXo+ErqvX4I/mg5sQRdppC66HAsM/YvYFkie8TXCbw3pzvA3bsoS
+	 2zddtITu2WpXO6s7qm/pLD8bHmS0FpBuIMTiLYWjKMABsw5hleUS5HCRJccJeohrfuKEG
+	 cL4ty5d/DsEIaHsD/c/Rfx8LGtlt6D6OKye7ecalp25WWVN9ePubjl/9wy88mmhl3uWw6
+	 mKuksK9kK3YlItLsKvwSCSKm+bePGSzZ9leRFPo3BUT6iewTLNbkUHKUYYMvUR5Nmsnnp
+	 wo29TOf8jySbutEHWujJVTyoC+OZEGwYyrq83iMl3SutYNU7LGI/uTsz9GS0+AeEIhQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793221094;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793221628;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=OkkxJXamG/EOg1fXbdxdVy//NPlViTUZPyzdPBS0XNI=;
-	b=YYvdg4V21mbG2lq8bgxjuDv2gYyRGUJ6D3R2IiKygwKQcVzVhoDyNhl04rVF1cswtL6N
-	 zeEzdIXcPUhf2FAZOhgHDJcloOoKJj3gEJsgz3q2YzdJxmhKkZxdKNQVxzZib9syCU4FC
-	 NSDrh/JkUJetG42mS/Y9E2qixrgbwhLsZYF79UiXDDj8twojQ4X+0CyusWyL8AF4I26g9
-	 tf7THCkLq38zKOOyrWY6F5BrDIp2rn8tQYt/zjWHMvdDqkzMVGHzPshAVVsR8eQohqA/F
-	 K9vKjoOPyoRNuG4JblkRctwYxe5Vk9WUiHRP7rUw3N2BHeTOKv1DGNQIBoaTM0fdfBA==
+	bh=xxZoPiTulvdMTGEYFvoIZ44CCQijO9eunuLg0kQXxFk=;
+	b=WAp++ILAbWJcRAcA7+lKgzLN/CAw47qhHh/E4bdS64UG5FOBS2608RjTj/15iE1ipAOT
+	 10uQQaz55XD4LdS3ure11IG03/Tr5zm41Jc8FTfOq0UKmGzwch/hZoOFAmrPApVfzVMYq
+	 DBQhHuIq9qwc8sTQYPfPpwQ36XKUW8G8/EW5sK0NIvM94fg1hT6nr+kZQYXnvLmiupPps
+	 S6dO3sC3VtczuMuJCjlbG96K/xsR56o+F2iYY3rWhAM+W5fK/eTHl4YHmp5RJfHtHVDHY
+	 I0Ty2Ki6X3pAHCOD3ZBC9iZgNy4kZzch3BZ4/p6L8r7Ph6NAvpsM9cfrC9oxWxV7bXw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=WpZXmrJh;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="LN/bo96W";
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 91833606A320;
-	Wed, 28 Oct 2026 20:58:14 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 01340606A31C;
+	Wed, 28 Oct 2026 21:07:07 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=WpZXmrJh
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 385F51F031E1;
-	Wed, 28 Oct 2026 20:57:59 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=LN/bo96W
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C600A1F01825;
+	Wed, 28 Oct 2026 21:06:52 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793221094;
-	bh=OkkxJXamG/EOg1fXbdxdVy//NPlViTUZPyzdPBS0XNI=;
+	s=k20260515; t=1793221627;
+	bh=xxZoPiTulvdMTGEYFvoIZ44CCQijO9eunuLg0kQXxFk=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=WpZXmrJhfZ4oFqEjPk/JBXWd575607dk5zGyo1rvpwVg3yy5YfXeNqH5w4vNIuQ0d
-	 ktOBD8dQNFzWnH3XPl6qzKMN2hP2/vyEl+46oFkRGa6BZf7drUChBa82kCuH/c0DUS
-	 4CdKqDnR8j5WZaqwqSM2nFlx0ftJBuLWGr4Lbh/2VrlOFq7ZhO68etuPzFcaxVfO9F
-	 ZsFMFRIJFcw/2vEWbBe/tqJrUBZIpK95m9X3L3KY24CdVU5OCiwKZO7X6MQczUDuDg
-	 AGEl/ld/sByznq2EWDJP+O/uKfdSVS5eGuApV6Jdg6Ibbm/bAgkmLKnbgUaCwCgLH9
-	 zwTicYTUGAKpQ==
-Message-ID: <da631095-bc93-4b18-b5b3-c68644f9ee0f@kernel.org>
-Date: Wed, 28 Oct 2026 21:57:56 +0100
+	b=LN/bo96WZvsiQi1qe+JR9nlcD/dtIGQ3FMfkNtmijuD8fjEQvKUZbveUSkvBFTpiT
+	 q6Edde755VLLwfbtDICVm/OW4Pm+/etk4qBGkfzt7OHtDuZ3eCdxBEwg9OirXuns+M
+	 XsvYfyUNxV7GxmUXhpEDJCqSSig5E7leSPceajxOCaywHlCdhCxFMwskHRcKuUXv06
+	 PDthkCr7ALLRll2jP+OhkIKbt46NDpsV5HResmFBVneLOSa8AjHiykgI/EVkjCB6+y
+	 im/ok434xapBK6Jzyew5LWXpxM6m7VRgE7Je11/Pjst7rZUdUqcoFHcm6G7+s6AIdF
+	 R9o+fP1ANqrsg==
+Message-ID: <d709fc9e-1940-4e73-92a1-09ab36ae16c5@kernel.org>
+Date: Wed, 28 Oct 2026 22:06:49 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,8 +52,8 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 20/46] mm/gup: fix clearing folios in memfd_pin_folios()
-To: Pratyush Yadav <pratyush@kernel.org>
+Subject: Re: [PATCH 31/46] mm/mremap: fix moving PUD leaves
+To: Pedro Falcato <pfalcato@suse.de>
 Cc: Andrew Morton <akpm@linux-foundation.org>,
  Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
  Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
@@ -66,8 +66,8 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
  Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
  Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
- Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
- Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Hugh Dickins <hughd@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Pratyush Yadav <pratyush@kernel.org>,
  "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
  Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
  Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
@@ -87,13 +87,11 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
  linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
  linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-cxl@vger.kernel.org, Chris Mason <mason@kernel.org>,
+ linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>,
  stable@vger.kernel.org
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-20-6f74bec9a5bb@kernel.org>
- <2vxzbj8fp4sn.fsf@kernel.org>
- <ec55c760-f099-48e1-900b-9f8e2e5315da@kernel.org>
- <2vxzld7injcv.fsf@kernel.org>
+ <20261027-fixes_core-v1-31-6f74bec9a5bb@kernel.org>
+ <auH0bgdchd6DyCbU@pedro-suse.tail5790ac.ts.net>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -140,38 +138,95 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <2vxzld7injcv.fsf@kernel.org>
+In-Reply-To: <auH0bgdchd6DyCbU@pedro-suse.tail5790ac.ts.net>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 10/28/26 12:40, Pratyush Yadav wrote:
-> On Tue, Oct 27 2026, David Hildenbrand (Arm) wrote:
-> 
->> On 10/27/26 16:00, Pratyush Yadav wrote:
->>>
->>>
->>> Nit: this logic is repeated in a couple places in shmem.c and in
->>> memfd_luo.c. Perhaps it deserves a helper?
->>>
->>> Anyway, sounds like an important fix so don't make my nitpick stop you
->>> from landing this if you don't want to bother.
+On 10/28/26 14:20, Pedro Falcato wrote:
+> On Tue, Oct 27, 2026 at 12:17:51AM +0100, David Hildenbrand (Arm) wrote:
+>> From: Josef Bacik <josef@toxicpanda.com>
 >>
->> Thanks! yeah, I had the same thought when trying to improve this. We should have
->> an easier way to just not hand out unzeroed folios outside of shmem core
->> functions in the first place ...
+>> pud_none_or_clear_bad() only really works on page tables. PUD leaves
+>> confuse the check and make us clear the page table entry and print a
+>> warning.
+>>
+>> Since commit aed877c2b4257 ("device/dax: properly refcount device dax pages
+>> when mapping"), this also leaks device-DAX folio references, mapcounts
+>> and RSS accounting, resulting in "Bad rss-counter state" warnings on exit.
+>>
+>> Allow PUD leaves in get_old_pud(). If a PUD leaf cannot be moved as a
+>> whole or the move fails, split it. This unmaps it with proper accounting
+>> instead of treating the leaf entry as a PMD table.
+>>
+>> Keep using pud_trans_huge() for now, in the future this code should be
+>> cleaned up to just check for PUD leaves.
+>>
+>> Fix generated by an LLM and sent by Josef Bacik in private.
+>>
+>> Fixes: a00cc7d9dd93 ("mm, x86: add support for PUD-sized transparent hugepages")
+>> Cc: stable@vger.kernel.org
+>> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+>> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+>> [ david: fallthrough after splitting ]
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > 
-> Normally this should use shmem_read_folio() to get all the folios, which
-> does zero the folios before handing them out. I guess memfd_pin_folios()
-> uses filemap_get_folios_contig() for performance reasons. 
+> Reviewed-by: Pedro Falcato <pfalcato@suse.de>
 
-That is my recollection from back then, yes.
+Thanks!
 
-> It does the
-> lookup under RCU and doesn't need to take the folio lock. Perhaps we
-> need a shmem_get_folios_contig()?
+> 
+>> ---
+>>  mm/mremap.c | 9 ++++-----
+>>  1 file changed, 4 insertions(+), 5 deletions(-)
+>>
+>> diff --git a/mm/mremap.c b/mm/mremap.c
+>> index 91f0865f6aeea..1237718848f5c 100644
+>> --- a/mm/mremap.c
+>> +++ b/mm/mremap.c
+>> @@ -87,7 +87,7 @@ static pud_t *get_old_pud(struct mm_struct *mm, unsigned long addr)
+>>  		return NULL;
+>>  
+>>  	pud = pud_offset(p4d, addr);
+>> -	if (pud_none_or_clear_bad(pud))
+>> +	if (!pud_trans_huge(*pud) && pud_none_or_clear_bad(pud))
+>>  		return NULL;
+>>  
+>>  	return pud;
+>> @@ -847,11 +847,10 @@ unsigned long move_page_tables(struct pagetable_move_control *pmc)
+>>  		if (!new_pud)
+>>  			break;
+>>  		if (pud_trans_huge(*old_pud)) {
+>> -			if (extent == HPAGE_PUD_SIZE) {
+>> -				move_pgt_entry(pmc, HPAGE_PUD, old_pud, new_pud);
+>> -				/* We ignore and continue on error? */
+>> +			if (extent == HPAGE_PUD_SIZE &&
+>> +			    move_pgt_entry(pmc, HPAGE_PUD, old_pud, new_pud))
+>>  				continue;
+>> -			}
+>> +			split_huge_pud(pmc->old, old_pud, pmc->old_addr);
+> 
+> Note that, if the HPAGE_PUD move fails, we split but miss the opportunity to
+> move at the PUD level (right below). Is this on purpose? Am I missing
+> something?
 
-That sounds like a reasonable cleanup I think, without looking into some
-of the nasty details. :)
+I was mirroring the PMD code, really. There, we also don't seem to move a PTE
+page table when moving the PMD leaf failed and we split.
+
+I think part of the puzzle is: move_huge_pmd() / move_huge_pud() only really
+fail if there was some race with concurrent splitting. So it doesn't really
+happen all that often I guess.
+
+> 
+> ... I say, realizing I am missing something, because split_huge_pmd (and
+> consequently split_huge_pud) just decide to zap if the VMA isn't anonymous,
+> and split_huge_pud() just hardcoded it to "of course it's not anonymous, lol",
+> and just zaps. So there's no point in moving what isn't there.
+
+Right, we don't support anonymous PUDs and file PUDs/PMDs are split by
+effectively zapping them (no PTE page table prealloc required).
+
+Can I hear that you are interested in cleaning up this code? :)
+
 -- 
 Cheers,
 
