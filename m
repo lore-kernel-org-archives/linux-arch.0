@@ -1,86 +1,126 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
-ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793153861;
-	b=taWfrKnV8jgc/KtNQI5ucU37d6XzTUjAkZ/Mrxzr5VxrR3mhHv4uc+0YlI+ZvWlC6bdI
-	 ukYOXbQFF+uN37Lhqq6mhp+XOZ9samZAqjRVD3Uvi+ae71cFptuReIxqpkKz/IN0E9XSH
-	 wmbOmVtsg1IoY+Ay0JgwCV54AXFlbDLcG5+uFQ/XfFIimtTWxe8imqYmPC4gbod0bbIwN
-	 xEk0fS4Jrfde+/CWbv1UDefWqPw67daqYnIZoKhK14DA+j0ZUp1IPUFjghnE7KW3V3lre
-	 SuYF9u46jfynDwZ6frEHeFIOLCStuIHsMXrEfaIs+n9I/EAeBiei+A6xci+aF6i755w==
-ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793153861;
-	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-Id:
-	 In-Reply-To:References:X-Mailer:Mime-Version:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=+mDEeq6oysWkmqzraqvWJ9f5p5gwCRkaXSwyptqb8cg=;
-	b=eE8etCGgKAv3hujiUmFJ4bElhF+wjBnB8DikVehoJ3jac5oiAey+UUbePt3mqVxqm6lr
-	 qbk2pGvDUihmemYfq2YXDH4xgwwc7Qb4g9Z7//WU6esNXYi+vKdwuZEoL+gL4JV2sDbqD
-	 8mOry6GXxnrkiUuRD4O/30Dew9Zcjy/aI4iXRNAPtWCQlCYh7vX3XNdRX5jqzMwuj9KXb
-	 RjgTVim6gTb4+VbVVc8x6FRWkWBSfdq5ejInkA0iiLE65J620XgS87NIitBQnepPGLlbi
-	 gM76f5YykEHAZUkqpAstqOvPDUNKYk61J3v+YYoQ9ptAYloWO3D1S8Fvw5XBRRAacmg==
-ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=linux-foundation.org header.i=@linux-foundation.org header.a=rsa-sha256 header.s=korg header.b=VQ84bRYD;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.53.66
+ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1793156084;
+	b=kW4EkThk+S96XhX+mPc/UIroAmJlYeY9pSPbxYF2jA1Gj2YULPTR8V6WbiTTW6HrtvNO
+	 d0hK3go775KG0nXF50batR0cQBFzqC16jH6c/BGqH9aKmum7PyEprYxZ6wrU70fXPov1q
+	 0uF3XRJDFeMau6zAy73gse8nq5EkkRWphx+SzVGMMmp8u602quHAW8P2/3afQdvRvqs2u
+	 akn4yYzEA4mfCbnucRkeLP/+Iitt0aOJuE5kWZizURzUyqVhG3FT7psDiIqBjG9I9m6So
+	 49DmF6xzN2QZApPOEP5RMCeC8/noYV7pxJJ2fHmASoAiKjd2mxAQZw8azIgAQHY8KJg==
+ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793156084;
+	h=DMARC-Filter:DKIM-Signature:Received:Received:
+	 Content-Transfer-Encoding:Content-Type:Date:Message-Id:Subject:Cc:To:
+	 From:X-Mailer:References:In-Reply-To:X-ClientProxiedBy:MIME-Version:
+	 X-MS-PublicTrafficType:X-MS-TrafficTypeDiagnostic:
+	 X-MS-Office365-Filtering-Correlation-Id:X-MS-Exchange-SenderADCheck:
+	 X-MS-Exchange-AntiSpam-Relay:X-Microsoft-Antispam:
+	 X-Microsoft-Antispam-Message-Info:X-Forefront-Antispam-Report:
+	 X-MS-Exchange-AntiSpam-MessageData-ChunkCount:
+	 X-MS-Exchange-AntiSpam-MessageData-0:X-OriginatorOrg:
+	 X-MS-Exchange-CrossTenant-Network-Message-Id:
+	 X-MS-Exchange-CrossTenant-AuthSource:X-MS-Exchange-CrossTenant-AuthAs:
+	 X-MS-Exchange-CrossTenant-OriginalArrivalTime:
+	 X-MS-Exchange-CrossTenant-FromEntityHeader:
+	 X-MS-Exchange-CrossTenant-Id:X-MS-Exchange-CrossTenant-MailboxType:
+	 X-MS-Exchange-CrossTenant-UserPrincipalName:
+	 X-MS-Exchange-Transport-CrossTenantHeadersStamped;
+	bh=CMb2oVQye3RPKvMmYxLoWlrPiQUfMmGkRTvDAZ0TYtI=;
+	b=FPKOAGXSsXJwKZ6IR227Sr3sbYJcy3IwbglTscaAJm7ikG5mubtLf3toD4kQCbQdVDPY
+	 qN5voVmNdNXXRBCoO9Ay6ZnLjehhGghik0DvoVchtZ4YD9zkl4EOQzaHfYTGJgqe7JtAc
+	 2cb8ZPJlniT6wGu3aZIlJwdOiEsKrk4WlXJPqOlX2obM64AKzK2SGTkBYNvpycMRUwGE5
+	 coXPSqGqPk3zMwUxad0KhQRiMYmneC7u+zW7wtzQ/bktyGQCdzF1bjNF1xQJ4pMUloj7K
+	 nB3WMHKb6Wh3Xz06cjdu1dknSRY61U8POMX7k/kRX7+xn39EKNlFF6x3gusX2S8/38A==
+ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=nvidia.com;
+	spf=fail smtp.mailfrom=nvidia.com;
+	dkim=pass header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=Td+mfv4p;
+	arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.53.66
+Received: from BL0PR03CU003.outbound.protection.outlook.com (mail-eastusazon11012066.outbound.protection.outlook.com [52.101.53.66])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	 key-exchange ECDHE (secp384r1) server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E2ABE606A31E;
-	Wed, 28 Oct 2026 02:17:40 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AFC7B606A31A;
+	Wed, 28 Oct 2026 02:54:43 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org AFC7B606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux-foundation.org header.i=@linux-foundation.org header.a=rsa-sha256 header.s=korg header.b=VQ84bRYD
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 732041F01825;
-	Wed, 28 Oct 2026 02:17:38 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1793153860;
-	bh=+mDEeq6oysWkmqzraqvWJ9f5p5gwCRkaXSwyptqb8cg=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=VQ84bRYDkqWVf4bJMHQvdoPX+vPniQR0i6dQDy/rgCQAHzXUXooZ4tBECqwLDJ9eB
-	 6hzb6c+KVNVXFkC+LDj/U17Uqirwfww1eNj5XhFarE1Czdug0UHAXHliZGcFRybsej
-	 B0paq9LLVOobRYl1oZB1NU/YBsya2DvKSrBt7SBI=
-Date: Tue, 27 Oct 2026 19:17:37 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Pedro Falcato <pfalcato@suse.de>, Johannes Weiner <hannes@cmpxchg.org>,
- Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>, Shakeel
- Butt <shakeel.butt@linux.dev>, Lorenzo Stoakes <ljs@kernel.org>, Kairui
- Song <kasong@tencent.com>, Barry Song <baohua@kernel.org>, Axel Rasmussen
- <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, Wei Xu
- <weixugc@google.com>, Baoquan He <baoquan.he@linux.dev>, Baolin Wang
- <baolin.wang@linux.alibaba.com>, "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, Suren
- Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Kees Cook
- <kees@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jann Horn
- <jannh@google.com>, Hugh Dickins <hughd@google.com>, Pasha Tatashin
- <pasha.tatashin@soleen.com>, Pratyush Yadav <pratyush@kernel.org>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>, Rik van Riel
- <riel@surriel.com>, Harry Yoo <harry@kernel.org>, Alistair Popple
- <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, Ryan Roberts
- <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Usama Arif
- <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, Matthew Brost
- <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>, Peter Xu
- <peterx@redhat.com>, Will Deacon <will@kernel.org>, "Aneesh Kumar K.V"
- <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, Oscar Salvador
- <osalvador@suse.de>, Minchan Kim <minchan@kernel.org>, Muchun Song
- <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>, Chengming Zhou
- <chengming.zhou@linux.dev>, Chris Li <chrisl@kernel.org>, Kemeng Shi
- <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Youngjun Park
- <youngjun.park@lge.com>, Gregory Price <gourry@gourry.net>, Joshua Hahn
- <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>, Ying Huang
- <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>,
- linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, Josef Bacik
- <josef@toxicpanda.com>, stable@vger.kernel.org
-Subject: Re: [PATCH 07/46] mm/filemap: don't lose a folio lock wakeup to a
- signal
-Message-Id: <20261027191737.c757411fbe53f98b1596eebd@linux-foundation.org>
-In-Reply-To: <11b91d57-85e6-47d0-87ab-5fa8624e8068@kernel.org>
+	dkim=pass (2048-bit key, unprotected) header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=Td+mfv4p
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=ydYLIWq6W1iwhje/hOX8xJKHEecf7oNydsIfJQhsTN33XzOFx77nBCpzUVKvw0hBGM6BcL2gMhOlWPF+JYg3q7EXHFarVOqqnZuKl9xSfr7bI8IqwMgv7pVNCfCTeayLTo7km0cnTlREQ5iHsrZkx5CD2mwIdUi2KwbjLgb2BtfrBmdfRzoaxN5ZALqBfjf1U0HyY2F2GieANzJQt+xqQR0cfX5wfCFh9sF/P4WzjDlTAjSEw9xLHmyGDxPvd0uyuJTL2sY0TKWt1dWcDKqu5jln+b3D1GlFpYwsndxSnu7e+HA23oUMnrJfDu+oZys2aQ20trpfvVV/W8RL+x5R3g==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=CMb2oVQye3RPKvMmYxLoWlrPiQUfMmGkRTvDAZ0TYtI=;
+ b=gy3yN0FLVPYLJzLnbZf0J/qjbWi+17R7WvNg7hMydy4oKtDnfWAQVpAmcRX2WK2CAtuv0dwdrqsyOYegSWkUhW1cbf8XuxVs00mAy4JdrgFtZCjerAe9ecrDvQ4gQUrV9E4Xm3C9lDExTevUBhf/nBRpGnRyT6LGVpqwdFaroN06wHZ90JxnNqqFzSAyePiYBQvMx7QVlafHQfBZSQ7618ullkWlBybQ0SnX3hnsyyCH9hgN2qD7zQ5x6KYp8AHHKcOx7RP3n++OM+LrqbVqbA7kdsiw6DH5AKLsUa35xRTkzbtScMcAu53Q93IAHhyVu882YRwKh2vVqwoVK/0Lrw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=CMb2oVQye3RPKvMmYxLoWlrPiQUfMmGkRTvDAZ0TYtI=;
+ b=Td+mfv4pRQCtrM/B5rxLLI1LuwRIMt8HRWQgzB9zAMz/NusJdSUTXDrU18a/iOd9qSlPWaxXMyxtRNa54os1D837xnpaT5TcifJlq8BursF4ytaWAwUxblb/rFE9YSTGJ3iHF7YOiqtGRC449DMNb33MA81m+cc93rX9mSi5n/3v/PgwET8aaHG2LqBb8ixQBA/SNBWhld+FxqD1OUbfXR6qbiLK+4Z9avQcp5lE8sBDR1+JQ2FLFYHnrQx/O7rb1EINRji1zdVJ89idTMp/syW7hixqsNF+I+rPsXcKFI7Ez1Us3kUvWBorGbXDtcFzaT8SOVGhAsoW8ZGz87h8sw==
+Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from IA0PR12MB8374.namprd12.prod.outlook.com (2603:10b6:208:40e::7)
+ by DM6PR12MB4155.namprd12.prod.outlook.com (2603:10b6:5:221::15) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.546.22; Wed, 28 Oct
+ 2026 02:54:31 +0000
+Received: from IA0PR12MB8374.namprd12.prod.outlook.com
+ ([fe80::d85f:4c87:ae84:3f16]) by IA0PR12MB8374.namprd12.prod.outlook.com
+ ([fe80::d85f:4c87:ae84:3f16%6]) with mapi id 15.21.0546.021; Wed, 28 Oct 2026
+ 02:54:31 +0000
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=UTF-8
+Date: Tue, 27 Oct 2026 22:54:27 -0400
+Message-Id: <DMG4RXAC0531.1TP9FSMKUMZS0@nvidia.com>
+Subject: Re: [PATCH 13/46] mm/huge_memory: fix truncate racing with PMD
+ zapping
+Cc: <linux-mm@kvack.org>, <linux-kernel@vger.kernel.org>,
+ <kexec@lists.infradead.org>, <linux-fsdevel@vger.kernel.org>,
+ <linux-arch@vger.kernel.org>, <linux-cxl@vger.kernel.org>, "Chris Mason"
+ <mason@kernel.org>, <stable@vger.kernel.org>
+To: "David Hildenbrand (Arm)" <david@kernel.org>, "Andrew Morton"
+ <akpm@linux-foundation.org>, "Johannes Weiner" <hannes@cmpxchg.org>,
+ "Michal Hocko" <mhocko@kernel.org>, "Qi Zheng" <qi.zheng@linux.dev>,
+ "Shakeel Butt" <shakeel.butt@linux.dev>, "Lorenzo Stoakes"
+ <ljs@kernel.org>, "Kairui Song" <kasong@tencent.com>, "Barry Song"
+ <baohua@kernel.org>, "Axel Rasmussen" <axelrasmussen@google.com>, "Yuanchu
+ Xie" <yuanchu@google.com>, "Wei Xu" <weixugc@google.com>, "Baoquan He"
+ <baoquan.he@linux.dev>, "Baolin Wang" <baolin.wang@linux.alibaba.com>,
+ "Liam R. Howlett" <liam@infradead.org>, "Vlastimil Babka"
+ <vbabka@kernel.org>, "Mike Rapoport" <rppt@kernel.org>, "Suren
+ Baghdasaryan" <surenb@google.com>, "Michal Hocko" <mhocko@suse.com>, "Kees
+ Cook" <kees@kernel.org>, "Peter Zijlstra" <peterz@infradead.org>, "Jann
+ Horn" <jannh@google.com>, "Pedro Falcato" <pfalcato@suse.de>, "Hugh
+ Dickins" <hughd@google.com>, "Pasha Tatashin" <pasha.tatashin@soleen.com>,
+ "Pratyush Yadav" <pratyush@kernel.org>, "Matthew Wilcox (Oracle)"
+ <willy@infradead.org>, "Jan Kara" <jack@suse.cz>, "Lance Yang"
+ <lance.yang@linux.dev>, "Rik van Riel" <riel@surriel.com>, "Harry Yoo"
+ <harry@kernel.org>, "Alistair Popple" <apopple@nvidia.com>, "Nico Pache"
+ <nico.pache@linux.dev>, "Ryan Roberts" <ryan.roberts@arm.com>, "Dev Jain"
+ <dev.jain@arm.com>, "Usama Arif" <usama.arif@linux.dev>, "Kiryl Shutsemau"
+ <kas@kernel.org>, "Matthew Brost" <matthew.brost@intel.com>, "John Hubbard"
+ <jhubbard@nvidia.com>, "Peter Xu" <peterx@redhat.com>, "Will Deacon"
+ <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, "Nick
+ Piggin" <npiggin@gmail.com>, "Oscar Salvador" <osalvador@suse.de>, "Minchan
+ Kim" <minchan@kernel.org>, "Muchun Song" <muchun.song@linux.dev>, "Xu Xin"
+ <xu.xin@linux.dev>, "Chengming Zhou" <chengming.zhou@linux.dev>, "Chris Li"
+ <chrisl@kernel.org>, "Kemeng Shi" <shikemeng@huaweicloud.com>, "Nhat Pham"
+ <nphamcs@gmail.com>, "Youngjun Park" <youngjun.park@lge.com>, "Gregory
+ Price" <gourry@gourry.net>, "Joshua Hahn" <joshua.hahnjy@gmail.com>, "Rakie
+ Kim" <rakie.kim@sk.com>, "Ying Huang" <ying.huang@linux.alibaba.com>,
+ "Jason Gunthorpe" <jgg@ziepe.ca>
+From: "Zi Yan" <ziy@nvidia.com>
+X-Mailer: aerc 0.22.0
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
-	<20261027-fixes_core-v1-7-6f74bec9a5bb@kernel.org>
-	<auDM5mvsb5ilIdsg@pedro-suse.lan>
-	<11b91d57-85e6-47d0-87ab-5fa8624e8068@kernel.org>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+ <20261027-fixes_core-v1-13-6f74bec9a5bb@kernel.org>
+In-Reply-To: <20261027-fixes_core-v1-13-6f74bec9a5bb@kernel.org>
+X-ClientProxiedBy: YQBPR0101CA0165.CANPRD01.PROD.OUTLOOK.COM
+ (2603:10b6:c01:f::8) To IA0PR12MB8374.namprd12.prod.outlook.com
+ (2603:10b6:208:40e::7)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -89,407 +129,142 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: IA0PR12MB8374:EE_|DM6PR12MB4155:EE_
+X-MS-Office365-Filtering-Correlation-Id: b30f481d-89b1-45e7-6f53-08df349eca35
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|366016|7416014|376014|1800799024|23010399003|921020|261026140227099003|4143699003|11063799006|10067099003|261026121527099003|261021123027099003|261021121427099003|56012099006|261022105027099003|22082099003|18002099003;
+X-Microsoft-Antispam-Message-Info:
+	OZTu+o0W3haK2eOig9g4KGRW9l++E2eJHbYgl7rZhIXF/aiVpg6F0Z2oxR6IAv97PBEuzZIpdj+POd8WGLkFQ74Cl4fSOB1qWj4mm6LEfrxaL3cxzevCaSwGL0EYsJ+M4Uh6c/oSzuRISDiemQmXts4mtUz0JAMa/le8ck5MFVYhSVOdJq9ka9J/fQytd2mxhBMnLzbQjy3iZ18EBx/MZb/NypSyvHJihhgYfrA+an86HP2K6PvDM39qU/mYC4VznaqeMXH5fni5OzkkvrceXNp9a4jdZRS9K+gL9lI9Ot6N5n7fPBk2lM5ipwYABzE6SZ57M0gKtbxMk1hZGca1IhiGsyVH1hP+gRaWFmPBKIu3R2OujSXBmQFKOXaLn9fQG4OMFUQ15BX3cbH+4GgShgsUCYh2GjMg81XSSZPdzyp+f0zuUgG7AY/jmmD8+mnxfwDjyy+Hf6OnBuPESgsFjvyc7kuP0cvuF31JYdHa/GcwGSVjt3I7OMHwsjKzzyOVzu5qG6k1ADVPGjNq4X1x/igXlzSuN6wBbSLcvyFGlNyRd5BjeHk5gZbQRqPewAEyaF4rVukOBQ6XKOD2MHLwqPZZ45zVaCliKF0lhiF1aG/+0bC6no/Or64LTw99mx9by0L0iMoNKNyzUEZ0PQ/GENCL0Qau3V6YDWnkLC3A8hmzGHNXR6Hk93D8jhEq2Up418iFuydH2Xi9DdpWkpPIYQ==
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:IA0PR12MB8374.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(7416014)(376014)(1800799024)(23010399003)(921020)(261026140227099003)(4143699003)(11063799006)(10067099003)(261026121527099003)(261021123027099003)(261021121427099003)(56012099006)(261022105027099003)(22082099003)(18002099003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?utf-8?B?KzVqNmRFQmZSM1RzQVpCcFdjeHN0YkVLL1duWWpSQlZZdjhTNjZsYll4TnZu?=
+ =?utf-8?B?ZlIyM2V5U3VueVl0MHRGT0I0VFpDbUc2cEhLMTBYMS9KMER1WHhYUG0xUlla?=
+ =?utf-8?B?OUVNRHJ6NHZQYTA0TVgwU1VRS1VuQ252R2dKU1JwK1dhcEJoS2tCc1hoUTh4?=
+ =?utf-8?B?eGROMnR2TGQ5eTJMU1hQc25GK2oyL3g3c2NmYm51M3JjTnhLNzZhUCtMV1Uw?=
+ =?utf-8?B?L3lKN3p0anN1eG9zTE0vcGJpUnBNamh0WHQ1Z3JuZ2ROK2FWM3F5ZlJxQ0xk?=
+ =?utf-8?B?Y1FNdjhMcjVwZUlFVFRESGp2MmtOL3ZoaFgyZGVVLytRNXNIWVEyM1E3L2JY?=
+ =?utf-8?B?N2Q2K2daQU1lczZGOHorcHhWV1lnOWNwWXl4Q2hiMGswN2ZqaTNHSEpGT1FE?=
+ =?utf-8?B?TGZycGtGSFgwem9jbzd3VFZPOWNRTjVmVGZEZmZTY282ZCtkc09XczFGb2cy?=
+ =?utf-8?B?cCtRM3dRUjA5amtKQUFxR2pXQjdJMkszb1BCYlZKcHh1RHRFQ29lVVgrT3Jx?=
+ =?utf-8?B?bmN0amptV2ZJMlVvUVFSUnFINTlneWNXNnZNZHNESEs2dEhQMnpsYU9wSDNF?=
+ =?utf-8?B?bEZSK3ZhWmI0UXVla2RUaFV5TkRnVFpvcXdLTTA3a3Zldnl3c3UrM0tMUDVQ?=
+ =?utf-8?B?bjcwN3FOTUlIYTdqcG1zQ0NLMGlhbEoxUlZDZHNDUkNxQ0VWOVFaZVVMVWFE?=
+ =?utf-8?B?UUUrWGVjc2lvQ2dnLyt4UnhyK3I3YU8zdVkwZ3dCdDZKazhLTGF6a1grUlJE?=
+ =?utf-8?B?YTJoYU1hcXhCdUhscXc1ZTVUMUlNZ0J5UDIwc21YQ3JMcm0yT1NnUWMybzA5?=
+ =?utf-8?B?NC9ZZzhQQ3dmdFRMcWt1NW03akhMMXVkbWZmdTN2WkdqM2hGQk44MUZzQTBN?=
+ =?utf-8?B?aGp2ZWgyNS85MlhTQlh6a01wcHdOSWUxOTZwRUVIaWtmeGczRytnek5MamRh?=
+ =?utf-8?B?T1dlbWluY2thelBDNm56MzRqZzlkNThkK0JSbUpMdkVsVHJrcytOVTg1T1dO?=
+ =?utf-8?B?WS9UYWI4OGlGWmlvcjhxT1k5ckhDNWM0TVZuT0VLNEpRRVpMNEM5MkRENG9p?=
+ =?utf-8?B?TThRZ2RQTU9EQWhGdHNuR1ZEbUFpdlVHamZVa0NiM0ErbDMwUUdzK2VteWpF?=
+ =?utf-8?B?dlFVK29BbFM3YkdIRW81RjRURmc4WUFoT1ZySlJsTkdUaEpUbkQ5N2lsMkZZ?=
+ =?utf-8?B?eTBpbFBJZkNhd3NhREZWZ0szUlFjQ2xtR01DQ0NyVzloek5WRlVGU1QyZ3Fz?=
+ =?utf-8?B?VXpHZC9INEZWMjhuZ21UVTc3VjBiZHBHd09lRGNPNm84VXpIV0VvWnBOblBl?=
+ =?utf-8?B?WitudU9ma0k2UmV3TGlMRkpna2x2SUZmYVBYdVlpZUprR3E4Y3hRaG8wWFVh?=
+ =?utf-8?B?bjIyN0x3d2JBd0NPdG10b3p4aW10eVo1b3RxNWRxM2RhRm5ETkYzUlBITWlE?=
+ =?utf-8?B?czVBeU0rNFREWkt3WEVxZlJ1MFZCMm8xYVdQS0dhTWJoM1IwOVFFakIyK3gw?=
+ =?utf-8?B?MG5WQ2h5Ym0zZWc4WUJGaXI4Rm1nNFFRQ0tZQXVaY0xYWHEza0F6YXpNS004?=
+ =?utf-8?B?MzE0c0dkeFBoZ2xsR3QrVnBTcTY5TGptU3NUS0ZKZld2SktrZkR6Mk1aUFlh?=
+ =?utf-8?B?c1Zwa3NjVjRDejFPOFkzakJtQnpuNUtmdGhwL3N3M0k2eVNpYlVrbjJXNU1h?=
+ =?utf-8?B?YVc0NkV1RllGOVkxdEk1Q1N3VlduYVZRY0orKzNxaXZRM3c4UFQ5OUNSeks5?=
+ =?utf-8?B?b1d2RUxBbFhMYjZuQllNMktsZ3ZuR1Nvc1VYcCtRaFk1a2FBMWpxdlVBREVW?=
+ =?utf-8?B?aFJuS2owcUNrT2F0SHVjeUxGSFZuTFdYYVlwampTekFCdWNkUDFFSXpjb2o3?=
+ =?utf-8?B?OGlGaW9FMFg1TVVMS3o4byt5S1ZuTlR1QTc5ZXI5bmpDQi80RVEyNzFXbUdy?=
+ =?utf-8?B?WHNmbjltZ0Z1cHpjNU0yM3p0WFIwT1dUTUxRUFNqVFlwS3l0R2dIcFRWL2Iz?=
+ =?utf-8?B?R25pak1iajdHUEljM1N3Und0UjhJUHVKc01xYkVtVUNmVis0RE9HdFA4aGtE?=
+ =?utf-8?B?cjZmNldva0FqUjZScXFsS1RkczdVRVJ5b2hLbzkyUkNjc2RHbzlKbTUzellT?=
+ =?utf-8?B?UG9RZW15KzBucEhaTjR0T2lqVjdlUmNpa2ppMkRKdG44Snp0OW5sMVNaWEd3?=
+ =?utf-8?B?aEQvV2VuaGUyNXdqYTVrRk1McmRYOUowRGMrY3lQNDlpTmVhRVRvcVh6NGRt?=
+ =?utf-8?B?RTF1MWNGaFVpY2JHZWc0eGtldVd1cGhEU0ZCSVV6aEc3VHBnTXh1dHFsM3dM?=
+ =?utf-8?Q?xD+nAPcjBeBYePWKBB?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: b30f481d-89b1-45e7-6f53-08df349eca35
+X-MS-Exchange-CrossTenant-AuthSource: IA0PR12MB8374.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 28 Oct 2026 02:54:31.3406
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: Pv7vMDR3pr9wb3UChXTf5DyTKBW056riedEYYsKtyJgQKJ2LCPD1OkojT61SltU9
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM6PR12MB4155
 
-On Tue, 27 Oct 2026 20:18:18 +0100 "David Hildenbrand (Arm)" <david@kernel.org> wrote:
+On Mon Oct 26, 2026 at 7:17 PM EDT, David Hildenbrand (Arm) wrote:
+> From: Chris Mason <mason@kernel.org>
+>
+> zap_huge_pmd_folio() removes the rmap before calling folio_mark_dirty().
+> If this was the last mapping, truncation can skip unmapping the folio
+> and proceed without waiting for the PMD lock, racing with dirtying.
+>
+> ifs_set_range_dirty() can oops if MADV_DONTNEED races with
+> ftruncate() on XFS, when we get the folio set dirty after it was found
+> to not be mapped anymore.
+>
+> Move folio_mark_dirty() and folio_mark_accessed() before rmap removal,
+> matching the PTE zap path. This keeps the folio mapped while updating
+> its state, so truncation must wait for the page table lock.
+>
+> Fix generated by an LLM and sent by Chris Mason in private.
+>
+> Fixes: fe6cf984939d ("mm/huge_memory: transfer the pmd dirty bit to the f=
+olio on zap")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Chris Mason <mason@kernel.org>
+> [ david: simplify comment and description ]
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> ---
+>  mm/huge_memory.c | 14 ++++++++------
+>  1 file changed, 8 insertions(+), 6 deletions(-)
+>
 
-> On 10/27/26 17:10, Pedro Falcato wrote:
-> > On Tue, Oct 27, 2026 at 12:17:27AM +0100, David Hildenbrand (Arm) wrote:
-> >> From: Josef Bacik <josef@toxicpanda.com>
-> >>
-> >> An exclusive waiter in folio_wait_bit_common() can leave the wait loop
-> >> because of a fatal signal, then be woken by folio_unlock() before
-> >> finish_wait(). If the waker did not hand over the lock, the waiter returns
-> >> -EINTR without trying to acquire it.
-> >>
-> >> folio_wake_bit() stops after waking the first exclusive waiter, so this
-> >> loses the wakeup and can leave other waiters asleep indefinitely on an
-> >> unlocked folio.
-> >>
-> >> After finish_wait(), let a waiter woken without a lock handoff try once
-> >> more to acquire the lock. If successful, return success so the caller's
-> >> eventual unlock wakes the next waiter. Otherwise, the current lock owner
-> >> will do so.
-> > 
-> > Has this been reproduced? I feel like this would've been found out by now?
-> 
-> Let me dig ... I don't find mention in the notes, but I was told that most of
-> these things have reproducers.
-> 
-> I guess it's harder to hit in practice, because you need a fatal signal and then
-> keep the other waiter alive while nobody else will take that lock in a timely
-> fashion.
-> 
-> I asked codex to try writing one but it refuses for security reasons :)
+It seems to me that moving the rmap removal code after folio_mark_*()
+matches zap_present_folio_ptes() closer. Feel free to use it or ignore
+it.
 
-Yeah, I keep hitting that.  Sometimes it can be worked around by asking
-the same thing in a different way.
+Anyway,
 
-Anyway, how's this:
-
-I tested this fix with a small, purpose-built kernel module in an
-x86-64 QEMU/KVM guest.  It reproduces the lost wakeup on the unpatched
-kernel and passes with the patch applied.
-
-The module allocates and locks a folio, then queues two exclusive
-waiters.  The first uses __folio_lock_killable(); the second uses
-folio_lock().  It sends SIGKILL to the first waiter and uses an x86-64
-kprobe on finish_wait() to hold that waiter after it leaves the wait
-loop.  The coordinator then unlocks the folio, waking the first waiter
-without handing over the lock.  Without the fix, the first waiter
-returns -EINTR and the second remains asleep on an unlocked folio. 
-With the fix, the first waiter acquires the folio lock, unlocks it and
-wakes the second waiter.
-
-This is a module rather than a userspace program because it needs
-access to the folio lock, the internal exclusive wait queue, and a
-kprobe at finish_wait() to force the specific race.  A userspace
-program cannot directly observe or synchronize these kernel states.
-
-Results:
-
-Unpatched: 7.3.0-rc5-g6ead605f7c7a-dirty
-  first=-4, first_done=1, second_done=0, locked=0
-  REPRODUCED: second waiter asleep on unlocked folio
-
-Patched:   7.3.0-rc5-g73cfeb4a61fc-dirty
-  first=0, first_done=1, second_done=1, locked=0
-  PASS: first waiter took lock; second waiter progressed
-
-Both runs recorded flags=0x1->0x3 and probe_timeout=0, confirming that
-the first waiter was woken without WQ_FLAG_DONE and that the
-instrumented synchronization did not time out.
-
-I've attached the module source and Makefile.
-
-
-// SPDX-License-Identifier: GPL-2.0
-/*
- * Deterministic-ish, VM-only regression test for the missing exclusive
- * folio lock wakeup when a killable waiter is interrupted by SIGKILL.
- *
- * Requires x86-64, CONFIG_KPROBES, CONFIG_MODULES and at least 2 vCPUs.
- * Never use on a production machine. No mm/filemap.c modifications.
- */
-#include <linux/completion.h>
-#include <linux/cpumask.h>
-#include <linux/delay.h>
-#include <linux/errno.h>
-#include <linux/gfp.h>
-#include <linux/init.h>
-#include <linux/jiffies.h>
-#include <linux/kprobes.h>
-#include <linux/kthread.h>
-#include <linux/mm.h>
-#include <linux/module.h>
-#include <linux/pagemap.h>
-#include <linux/sched.h>
-#include <linux/sched/signal.h>
-#include <linux/signal.h>
-#include <linux/smp.h>
-#include <linux/wait.h>
-
-#define PREFIX "folio-wakeup-repro: "
-#define STATE_WAIT_MS 3000
-#define PROBE_HOLD_MS 500
-#define RESULT_WAIT_MS 300
-
-#if !defined(CONFIG_X86_64)
-#error "This test's kprobe register access requires x86-64"
-#endif
-
-static struct folio *test_folio;
-static struct task_struct *first_task, *second_task;
-static DECLARE_COMPLETION(first_done);
-static DECLARE_COMPLETION(second_done);
-static atomic_t probe_hit = ATOMIC_INIT(0);
-static atomic_t release_probe = ATOMIC_INIT(0);
-static atomic_t probe_expired = ATOMIC_INIT(0);
-static unsigned int flags_before, flags_after;
-static int first_ret = -999;
-static bool initial_lock_held;
-static bool second_got_lock;
-
-static int finish_wait_probe(struct kprobe *kp, struct pt_regs *regs)
-{
-	struct wait_queue_entry *wait;
-	unsigned long deadline;
-
-	(void)kp;
-	if (current != READ_ONCE(first_task))
-		return 0;
-
-	/* SysV x86-64: finish_wait(q, wait), wait is argument #2. */
-	wait = (struct wait_queue_entry *)regs->si;
-	WRITE_ONCE(flags_before, READ_ONCE(wait->flags));
-	atomic_set(&probe_hit, 1);
-
-	/* kprobe handlers cannot sleep. Pin this waiter to another CPU. */
-	deadline = jiffies + msecs_to_jiffies(PROBE_HOLD_MS);
-	while (!atomic_read(&release_probe)) {
-		if (time_after_eq(jiffies, deadline)) {
-			atomic_set(&probe_expired, 1);
-			break;
-		}
-		cpu_relax();
-	}
-	WRITE_ONCE(flags_after, READ_ONCE(wait->flags));
-	return 0;
-}
-
-static struct kprobe finish_probe = {
-	.symbol_name = "finish_wait",
-	.pre_handler = finish_wait_probe,
-};
-
-static int first_fn(void *arg)
-{
-	int ret;
-
-	(void)arg;
-	allow_signal(SIGKILL);
-	ret = __folio_lock_killable(test_folio);
-	WRITE_ONCE(first_ret, ret);
-	if (!ret)
-		folio_unlock(test_folio);
-	complete(&first_done);
-	return 0;
-}
-
-static int second_fn(void *arg)
-{
-	(void)arg;
-	folio_lock(test_folio);
-	WRITE_ONCE(second_got_lock, true);
-	folio_unlock(test_folio);
-	complete(&second_done);
-	return 0;
-}
-
-static bool wait_for_state(struct task_struct *t, unsigned int state)
-{
-	unsigned long deadline = jiffies + msecs_to_jiffies(STATE_WAIT_MS);
-
-	while (time_before(jiffies, deadline)) {
-		if (READ_ONCE(t->__state) == state)
-			return true;
-		msleep(1);
-	}
-	return false;
-}
-
-static bool wait_for_probe(void)
-{
-	unsigned long deadline = jiffies + msecs_to_jiffies(STATE_WAIT_MS);
-
-	while (time_before(jiffies, deadline)) {
-		if (atomic_read(&probe_hit))
-			return true;
-		msleep(1);
-	}
-	return false;
-}
-
-/*
- * Never unload while a worker remains asleep. If the original wakeup was
- * lost, temporarily lock and unlock the now-unlocked folio to wake it.
- */
-static bool drain_workers(void)
-{
-	int i;
-
-	atomic_set(&release_probe, 1);
-	if (initial_lock_held) {
-		initial_lock_held = false;
-		folio_unlock(test_folio);
-	}
-	for (i = 0; i < 100; ++i) {
-		if ((!first_task || completion_done(&first_done)) &&
-		    (!second_task || completion_done(&second_done)))
-			return true;
-		if (folio_trylock(test_folio))
-			folio_unlock(test_folio);
-		msleep(10);
-	}
-	pr_err(PREFIX "cleanup failed: a worker is still blocked; "
-	       "module must remain loaded\n");
-	return false;
-}
-
-static int __init wakeup_test_init(void)
-{
-	int ret;
-	bool a_done, b_done, lost;
-	int cpu, coord_cpu;
-	cpumask_var_t original_affinity;
-	bool affinity_changed = false;
-
-	pr_info(PREFIX "start\n");
-
-	if (num_online_cpus() < 2 ||
-	    cpumask_weight(current->cpus_ptr) < 2) {
-		pr_err(PREFIX "need two available online CPUs\n");
-		return -EINVAL;
-	}
-	if (!alloc_cpumask_var(&original_affinity, GFP_KERNEL))
-		return -ENOMEM;
-	cpumask_copy(original_affinity, current->cpus_ptr);
-	coord_cpu = cpumask_first(original_affinity);
-	cpu = cpumask_next(coord_cpu, original_affinity);
-	if (cpu >= nr_cpu_ids || !cpu_online(coord_cpu) ||
-	    !cpu_online(cpu)) {
-		free_cpumask_var(original_affinity);
-		return -EINVAL;
-	}
-	ret = set_cpus_allowed_ptr(current, cpumask_of(coord_cpu));
-	if (ret) {
-		free_cpumask_var(original_affinity);
-		return ret;
-	}
-	affinity_changed = true;
-
-	test_folio = folio_alloc(GFP_KERNEL, 0);
-	if (!test_folio) {
-		set_cpus_allowed_ptr(current, original_affinity);
-		free_cpumask_var(original_affinity);
-		return -ENOMEM;
-	}
-	folio_lock(test_folio);
-	initial_lock_held = true;
-
-	ret = register_kprobe(&finish_probe);
-	if (ret) {
-		pr_err(PREFIX "register_kprobe(finish_wait): %d\n", ret);
-		goto out_no_probe;
-	}
-
-	first_task = kthread_create(first_fn, NULL, "folio-wait-a");
-	if (IS_ERR(first_task)) {
-		ret = PTR_ERR(first_task);
-		first_task = NULL;
-		goto out_probe;
-	}
-	kthread_bind(first_task, cpu);
-	wake_up_process(first_task);
-
-	if (!wait_for_state(first_task, TASK_KILLABLE)) {
-		pr_err(PREFIX "first task did not block killably\n");
-		goto inconclusive;
-	}
-
-	second_task = kthread_run(second_fn, NULL, "folio-wait-b");
-	if (IS_ERR(second_task)) {
-		ret = PTR_ERR(second_task);
-		second_task = NULL;
-		pr_err(PREFIX "second thread creation: %d\n", ret);
-		goto inconclusive;
-	}
-	if (!wait_for_state(second_task, TASK_UNINTERRUPTIBLE)) {
-		pr_err(PREFIX "second task did not block\n");
-		goto inconclusive;
-	}
-
-	/* A is the first exclusive waiter; B is behind it. */
-	ret = send_sig(SIGKILL, first_task, 1);
-	if (ret) {
-		pr_err(PREFIX "send_sig: %d\n", ret);
-		goto inconclusive;
-	}
-	if (!wait_for_probe()) {
-		pr_err(PREFIX "did not reach finish_wait probe\n");
-		goto inconclusive;
-	}
-	if (!(READ_ONCE(flags_before) & WQ_FLAG_EXCLUSIVE) ||
-	    (READ_ONCE(flags_before) &
-	     (WQ_FLAG_WOKEN | WQ_FLAG_DONE | WQ_FLAG_CUSTOM))) {
-		pr_warn(PREFIX "wrong initial wait flags: %#x\n",
-			READ_ONCE(flags_before));
-		goto inconclusive;
-	}
-
-	/* A is halted just before finish_wait. Unlock wakes A, not B. */
-	folio_unlock(test_folio);
-	initial_lock_held = false;
-	atomic_set(&release_probe, 1);
-
-	a_done = wait_for_completion_timeout(&first_done,
-		msecs_to_jiffies(RESULT_WAIT_MS));
-	b_done = wait_for_completion_timeout(&second_done,
-		msecs_to_jiffies(RESULT_WAIT_MS));
-	lost = a_done && !b_done && READ_ONCE(first_ret) == -EINTR &&
-	       !folio_test_locked(test_folio);
-
-	pr_info(PREFIX "first=%d first_done=%d second_done=%d "
-		"flags=%#x->%#x probe_timeout=%d locked=%d\n",
-		READ_ONCE(first_ret), a_done, b_done,
-		READ_ONCE(flags_before), READ_ONCE(flags_after),
-		atomic_read(&probe_expired), folio_test_locked(test_folio));
-	if (atomic_read(&probe_expired) ||
-	    !(READ_ONCE(flags_after) & WQ_FLAG_WOKEN))
-		pr_warn(PREFIX "INCONCLUSIVE: wakeup not synchronized\n");
-	else if (lost)
-		pr_err(PREFIX "REPRODUCED: second waiter asleep "
-		       "on unlocked folio\n");
-	else if (a_done && b_done && READ_ONCE(first_ret) == 0 &&
-		 READ_ONCE(second_got_lock))
-		pr_info(PREFIX "PASS: first waiter took lock; "
-			"second waiter progressed\n");
-	else
-		pr_warn(PREFIX "INCONCLUSIVE: unexpected completion state\n");
-	goto out_probe;
-
-inconclusive:
-	pr_warn(PREFIX "INCONCLUSIVE: setup or timing failed\n");
-out_probe:
-	if (!drain_workers()) {
-		/* Do not free module text or folio while workers run. */
-		pr_emerg(PREFIX "unrecoverable blocked thread: "
-			 "module pinned; reboot test VM\n");
-		__module_get(THIS_MODULE);
-		if (affinity_changed)
-			set_cpus_allowed_ptr(current, original_affinity);
-		free_cpumask_var(original_affinity);
-		return 0;
-	}
-	if (first_task)
-		kthread_stop(first_task);
-	if (second_task)
-		kthread_stop(second_task);
-	unregister_kprobe(&finish_probe);
-out_no_probe:
-	if (initial_lock_held)
-		folio_unlock(test_folio);
-	folio_put(test_folio);
-	test_folio = NULL;
-	if (affinity_changed)
-		set_cpus_allowed_ptr(current, original_affinity);
-	free_cpumask_var(original_affinity);
-	return ret < 0 && !first_task && !second_task ? ret : 0;
-}
-
-static void __exit wakeup_test_exit(void)
-{
-	if (test_folio)
-		pr_emerg(PREFIX "threads still active, unsafe unload\n");
-}
-
-module_init(wakeup_test_init);
-module_exit(wakeup_test_exit);
-MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("folio exclusive-waiter signal lost-wakeup reproducer");
+Reviewed-by: Zi Yan <ziy@nvidia.com>
 
 
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index bd44d58e86845..192f7969e3648 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -2484,10 +2484,6 @@ static void zap_huge_pmd_folio(struct mm_struct *mm,=
+ struct vm_area_struct *vma,
+ {
+ 	const bool is_device_private =3D folio_is_device_private(folio);
+=20
+-	/* Present and device private folios are rmappable. */
+-	if (is_present || is_device_private)
+-		folio_remove_rmap_pmd(folio, &folio->page, vma);
+-
+ 	if (folio_test_anon(folio)) {
+ 		add_mm_counter(mm, MM_ANONPAGES, -HPAGE_PMD_NR);
+ 	} else {
+@@ -2501,6 +2497,13 @@ static void zap_huge_pmd_folio(struct mm_struct *mm,=
+ struct vm_area_struct *vma,
+ 			folio_mark_accessed(folio);
+ 	}
+=20
++	/*
++	 * Present and device private folios are rmappable. Only remove the rmap
++	 * after transferring young+dirty to the folio.
++	 */
++	if (is_present || is_device_private)
++		folio_remove_rmap_pmd(folio, &folio->page, vma);
++
+ 	/* Device private folios are pinned. */
+ 	if (is_device_private)
+ 		folio_put(folio);
 
 
-obj-m += folio-wakeup-repro.o
-KDIR ?= /lib/modules/$(shell uname -r)/build
-
-.PHONY: all clean
-all:
-	$(MAKE) -C $(KDIR) M=$(CURDIR) modules
-clean:
-	$(MAKE) -C $(KDIR) M=$(CURDIR) clean
-
+--=20
+Best Regards,
+Yan, Zi
 
