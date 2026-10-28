@@ -1,54 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=95.215.58.212
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793162010;
-	b=2W9zQivQ+cYnf6Sk0qknWvxS5Y5WisCKicbzDvK5zlxwJVUd+Pdb53S+lfvLyehgyry9
-	 jkAypk1ytex8/1hHjv0CbB0aU6MzDuQ8+VJ7Gu0aDryXrjpf19dqd/zvJNWSBhoUotxwH
-	 r8JM7HRlNC/n93Y/2R9/2A+IcYsszne0A+KwFbHFAwvk/W0iHtqMCub5kbi88A13aJYuO
-	 2/9lmsbsrhOo/X3aMI4KKnCeyiI1bxEgOVzx03e+EQdEe12bggbfgN5EBp+zdWy+F6Tf2
-	 hfz4EVA3LyJ7crrmbnngcSGwczk4ivcpq74XjsYUy5UyXlqvUsKZCE4KjBzwodbZtMg==
+	t=1793173941;
+	b=LeXvswjqMz/+7eYAx4tKEjncyItjiaqCMS003QtIGBhObreTRbZi2y1LWzc9iHnxWZwL
+	 Ew8GaPNHukLaFAn6A+LDG1hS1nI0Y5UJdfGNV3CqbF7CIP6X8qWSheQWs8IVS5M0mLeSh
+	 W4fOxCfnnBvwy9lekJUt1vqgQvz587kv/Qmr28h3iN4oa8mhV7O3vKgNQ+ogDDII3ztAt
+	 S6Lf0Y6o5Dcr1SkIqRnsMtc9N68pTLcYHKLHfTJ2sm6aM4SYsOmDKI+qlpP7pT3BDUiS5
+	 ttYao102JpoTWuKXhbI2eTpmYIZX1FmL9G0fu7jRUmN1EgxEbABlYYFwrxSenVGNS3A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793162010;
-	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
-	 X-Mizu-Trace-ID:X-Migadu-Flow:Message-ID:Date:MIME-Version:User-Agent:
-	 Subject:To:Cc:References:Content-Language:From:In-Reply-To:
-	 Content-Type:Content-Transfer-Encoding;
-	bh=hoaYYE9clIuJ0Ig445chvZt4nolRKxe5BT9MRTh3Egg=;
-	b=orAeAPDf/Ib9fpxMq66ZdQPI2feMdCqZACLDIWA//sCkd1lbxs/6x1a+0asMQdrZ6cCR
-	 2ZcRpbs2ReKmcok1aZx+UQnBN8+xbdW2eRzvdycuZq/ufGaJtPiz53G3r348XRE333Mvy
-	 V4DO89TeBIsqM763eQj10y8QvwUjq/h1SiGUhUUkMo57UQKQz1cz+t1D08FeaSc+W3VFI
-	 L+/BIB54cKyKyO/PIYLlP1i1wMkBujYKZFHozvWpQUv305BOhT6HCMOhpgJOEUFla2OK5
-	 RCzK3Ga7v/tYC9NlKyixY1PMbylkv1wadZsg46z6Ib1waaRwRfclcfw11qh2vflaalA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793173941;
+	h=DMARC-Filter:Received:Received:DKIM-Signature:Message-ID:Date:
+	 MIME-Version:User-Agent:Subject:To:Cc:References:Content-Language:
+	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=C2MebSDm+AGzraIelTihisR4wHMyVkbMMbZmgrZJ7WY=;
+	b=LPkyzcTZcQti5CbA4YgBzLxmPv2ZQfXLXEYRu790di0RlUz5TZJcF7Y5/vWIRh7jjOkM
+	 ufbgoWocLZr6LmnwIn7dxeLFUhS1OygNC0a6MHHbwuOQfvpgASaLFhdIfA45+5ZSydUTR
+	 9rXddrwd/w5GVMZEO77diVGFdyqxFPWuBKuGM3qtOTqpZPd1B8z230IIB08iw0PweaAmd
+	 ykTOYepb1oPbDeUaLf6uUjuOnhet2aGXFDUcWt9ujz9YH28xiB7nClipJPKBiMCrh5itW
+	 Dt+JbiQgnAQ2b8zu1PSCq7Wog9/TpJQt2EzmgIa+lh7/bO5eGAqlh+9H+cIZ1aQuAHQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.dev;
-	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=WeW0dcEy;
-	arc=none smtp.remote-ip=95.215.58.212
-Received: from mta1.migadu.com (out-212.mta1.migadu.com [95.215.58.212])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8D58F606A31F
-	for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 04:33:22 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8D58F606A31F
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	dmarc=pass header.from=arm.com;
+	spf=pass smtp.mailfrom=arm.com;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=qAO7tgcE;
+	arc=none smtp.remote-ip=217.140.110.172
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1A45E606A31D;
+	Wed, 28 Oct 2026 07:52:19 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1A45E606A31D
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=WeW0dcEy
-X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=T4efCo2Hap6aPJgKK/ehUGhK0yIt+mn0LCQnSmlQd0s=;
- c=simple/simple; d=linux.dev;
- h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793162000; v=1; x=1793766800;
- b=WeW0dcEyzkw6mTIdVt2Z06iHEedOA9csfafpNxIqlvgXWGNleOMk4G5+xIqtxnfY0oJlEGQo
- 3RIOLo03odtO32V/gvt274JFHEpf0OAsY2K6WgJh+s2w2M9H9KOLel/juzZL0FcuRQ3OjvRdcI0
- 9UEAxWdkfJdjVzGrmw7+tycY=
-X-Envelope-To: linux-arch@vger.kernel.org
-Received: by smtp.migadu.com with ESMTPS id bee4a2cb7972e2c2;
-	Wed, 28 Oct 2026 04:33:20 +0000
-X-Mizu-Trace-ID: bee4a2cb7972e2c2
-X-Migadu-Flow: FLOW_OUT
-Message-ID: <fa0f07af-e8d7-44b0-b1e7-ad325d75ac34@linux.dev>
-Date: Wed, 28 Oct 2026 12:32:54 +0800
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=qAO7tgcE
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 09F282ECB;
+	Wed, 28 Oct 2026 00:52:16 -0700 (PDT)
+Received: from [10.163.164.200] (unknown [10.163.164.200])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 046D23F673;
+	Wed, 28 Oct 2026 00:51:58 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1793173939; bh=wGe8fo0LsEeNmyXuE7t5RJoQX1lGKJltqCDxnR+anGM=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=qAO7tgcEvyo0Q3H3HaTM1nwzy8/QBeW1tnF4JOXa8qF71VXcIH8niSLEX8yBfM9DY
+	 y3XuPsTISI5OiWjvg0v6LudaMoMHfe0T+fQRVNRKQDaWP3kjmosTINe/S2/q5eMvvF
+	 XylgVFbGPVK2/y+rwaLieJ3EjGQdsqqHDKUNnM9o=
+Message-ID: <e32a19c4-76c4-40ba-83a4-781333af7b0a@arm.com>
+Date: Wed, 28 Oct 2026 13:21:55 +0530
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -59,96 +54,145 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 32/46] mm/memory_hotplug: avoid races in
- pfn_to_online_page() with dying pgmap
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: akpm@linux-foundation.org, hannes@cmpxchg.org, mhocko@kernel.org,
- qi.zheng@linux.dev, shakeel.butt@linux.dev, ljs@kernel.org,
- kasong@tencent.com, baohua@kernel.org, axelrasmussen@google.com,
- yuanchu@google.com, weixugc@google.com, baoquan.he@linux.dev,
- baolin.wang@linux.alibaba.com, liam@infradead.org, vbabka@kernel.org,
- rppt@kernel.org, surenb@google.com, mhocko@suse.com, kees@kernel.org,
- peterz@infradead.org, jannh@google.com, pfalcato@suse.de, hughd@google.com,
- pasha.tatashin@soleen.com, pratyush@kernel.org, willy@infradead.org,
- jack@suse.cz, ziy@nvidia.com, riel@surriel.com, harry@kernel.org,
- apopple@nvidia.com, nico.pache@linux.dev, ryan.roberts@arm.com,
- dev.jain@arm.com, usama.arif@linux.dev, kas@kernel.org,
- matthew.brost@intel.com, jhubbard@nvidia.com, peterx@redhat.com,
- will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com,
- osalvador@suse.de, minchan@kernel.org, muchun.song@linux.dev,
- xu.xin@linux.dev, chengming.zhou@linux.dev, chrisl@kernel.org,
- shikemeng@huaweicloud.com, nphamcs@gmail.com, youngjun.park@lge.com,
- gourry@gourry.net, joshua.hahnjy@gmail.com, rakie.kim@sk.com,
- ying.huang@linux.alibaba.com, jgg@ziepe.ca, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
- linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-cxl@vger.kernel.org, josef@toxicpanda.com
-References: <20261027-fixes_core-v1-32-6f74bec9a5bb@kernel.org>
- <20261027121307.40431-1-lance.yang@linux.dev>
- <87e3d64e-8b25-4d51-a984-7ab8a58f785d@kernel.org>
+Subject: Re: [PATCH 09/46] mm/rmap: handle device-exclusive entries in
+ folio_referenced_one()
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+ Baoquan He <baoquan.he@linux.dev>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
+ Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Pratyush Yadav <pratyush@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
+ Ryan Roberts <ryan.roberts@arm.com>, Usama Arif <usama.arif@linux.dev>,
+ Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
+ John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>,
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
+ stable@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>
+References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-9-6f74bec9a5bb@kernel.org>
 Content-Language: en-US
-From: Lance Yang <lance.yang@linux.dev>
-In-Reply-To: <87e3d64e-8b25-4d51-a984-7ab8a58f785d@kernel.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Dev Jain <dev.jain@arm.com>
+In-Reply-To: <20261027-fixes_core-v1-9-6f74bec9a5bb@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
 
 
-On 2026/10/28 03:41, David Hildenbrand (Arm) wrote:
->> LLM stumbled upon a possible race in kpage_read() ...
->>
->> Say the reader passes pfn_section_valid() for a device PFN in a section
->> shared with online RAM, gets preempted, and resumes after
->> pgmap_array_delete(). We'd then find no pgmap and return pfn_to_page(pfn),
->> even though the subsection is no longer valid ...
+On 27/10/26 4:47 am, David Hildenbrand (Arm) wrote:
+> page_vma_mapped_walk() can return non-present device-exclusive entries,
+> but folio_referenced_one() passes them to PTE young-bit accessors that
+> require present PTEs.
 > 
-> I think that's similar to our pfn_to_online_page() vs. memory offlining races,
-> just slightly different. Getting these races down to 0 is pretty hard.
+> We must neither call clear_flush_young_ptes_notify() nor
+> folio_pte_batch() with non-present entries. For example, clearing the
+> young bit on non-present PTEs can corrupt the entry: on arm64
+> PTE_AF overlaps the swap type, so clearing it turns a device-exclusive
+> entry into an ordinary swap entry.
 > 
-> This patch here tries to do better and arguably almost looks like a cleanup.
+> folio_pte_batch() will VM_WARN_ON_FOLIO.
 > 
-> I wouldn't worry about that one for now; it's extremely unlikely to hit. And it'
-
-Ack.
-
->>
->> Could we take the memory hotplug read lock in kpage_read(), covering both
->> the lookup and the metadata reads? We can drop it before put_user(), once
->> we're done with the page.
->>
->> Maybe along these lines?
->>
->> ---8<---
->> diff --git a/fs/proc/page.c b/fs/proc/page.c
->> index 6aa99e42ec22..12bed36d76dc 100644
->> --- a/fs/proc/page.c
->> +++ b/fs/proc/page.c
->> @@ -12,6 +12,7 @@
->>   #include <linux/hugetlb.h>
->>   #include <linux/memremap.h>
->>   #include <linux/memcontrol.h>
->> +#include <linux/memory_hotplug.h>
->>   #include <linux/mmu_notifier.h>
->>   #include <linux/page_idle.h>
->>   #include <linux/kernel-page-flags.h>
->> @@ -77,6 +78,8 @@ static ssize_t kpage_read(struct file *file, char __user *buf,
->>   	count = min_t(unsigned long, count, (max_dump_pfn * KPMSIZE) - src);
->>
->>   	while (count > 0) {
->> +		/* Prevent memory removal while inspecting the memmap. */
->> +		get_online_mems();
-> get_online_mems() is the big hammer we try to avoid (or ideally remove at some
-> point). And it's most pfn_to_online_page() users that are affected.
+> Apply the same approach as the previous fixes to e.g., damon_ptep_mkold():
+> treat these entries as old from the CPU's perspective and obtain their
+> young state through the MMU notifier.
 > 
-> A seqcount in pfn_to_online_page() could detect concurrent pgmap removal and
-> retry from the start. But I'd rather delay something like that.
+> Skip PTE batching and MGLRU look-around for non-present entries, and
+> don't modify non-present PTEs.
+> 
+> Fixes: b756a3b5e7ea ("mm: device exclusive memory access")
+> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> Cc: stable@vger.kernel.org
+> Reported-by: Josef Bacik <josef@toxicpanda.com>
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> ---
 
-Fair enough, let's leave it alone for now given how unlikely it is to hit :)
+Reviewed-by: Dev Jain <dev.jain@arm.com>
 
-> Thanks for taking a look! (Can I convince you to review some of the THP fixes?
-> pleeeeaaasseee :) )
+But nit below.
 
-Of coursssssssse! I'm already looking through the THP fixes :D
 
-Cheers, Lance
+>  mm/rmap.c | 23 +++++++++++++++++++----
+>  1 file changed, 19 insertions(+), 4 deletions(-)
+> 
+> diff --git a/mm/rmap.c b/mm/rmap.c
+> index 1131b76bbbc28..0faef46806e5c 100644
+> --- a/mm/rmap.c
+> +++ b/mm/rmap.c
+> @@ -924,6 +924,7 @@ static bool folio_referenced_one(struct folio *folio,
+>  	DEFINE_FOLIO_VMA_WALK(pvmw, folio, vma, address, 0);
+>  	int ptes = 0, referenced = 0;
+>  	unsigned int nr;
+> +	pte_t pteval;
+>  
+>  	while (page_vma_mapped_walk(&pvmw)) {
+>  		address = pvmw.address;
+> @@ -968,10 +969,12 @@ static bool folio_referenced_one(struct folio *folio,
+>  			return false;
+>  		}
+>  
+> -		if (pvmw.pte && folio_test_large(folio)) {
+> +		if (pvmw.pte)
+> +			pteval = ptep_get(pvmw.pte);
+> +
+> +		if (pvmw.pte && pte_present(pteval) && folio_test_large(folio)) {
+>  			const unsigned long end_addr = pmd_addr_end(address, vma->vm_end);
+>  			const unsigned int max_nr = (end_addr - address) >> PAGE_SHIFT;
+> -			pte_t pteval = ptep_get(pvmw.pte);
+>  
+>  			nr = folio_pte_batch(folio, pvmw.pte, pteval, max_nr);
+>  		}
+> @@ -981,11 +984,23 @@ static bool folio_referenced_one(struct folio *folio,
+>  		 * are. —they could be on active/inactive lists or on MGLRU. So the
+>  		 * simplest approach is to disable this look-around optimization.
+>  		 */
+> -		if (lru_gen_enabled() && !lru_gen_switching() && pvmw.pte) {
+> +		if (lru_gen_enabled() && !lru_gen_switching() && pvmw.pte &&
+> +		    pte_present(pteval)) {
+>  			if (lru_gen_look_around(&pvmw, nr))
+>  				referenced++;
+>  		} else if (pvmw.pte) {
+> -			if (clear_flush_young_ptes_notify(vma, address, pvmw.pte, nr))
+> +			bool young = false;
+> +
+> +			/*
+> +			 * PFN swap PTEs, such as device-exclusive ones, that
+
+You mean "PFN softleaf PTEs"? Better expressed as "softleaf PTEs embedding a PFN" ...
+
+
+> +			 * actually map pages are "old" from a CPU perspective.
+> +			 * The MMU notifier takes care of any device aspects.
+> +			 */
+> +			if (pte_present(pteval))
+> +				young = clear_flush_young_ptes(vma, address, pvmw.pte, nr);
+> +			young |= mmu_notifier_clear_flush_young(vma->vm_mm, address,
+> +								address + nr * PAGE_SIZE);
+> +			if (young)
+>  				referenced++;
+>  		} else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
+>  			if (pmdp_clear_flush_young_notify(vma, address,
+> 
 
