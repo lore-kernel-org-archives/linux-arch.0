@@ -1,49 +1,49 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793218464;
-	b=Z1M6YP4GI196sGRIwlAjaPLeSd0ge25TOuLHvl50NC4ccFODqsczRAQlWjeX7g8udXtS
-	 cMKd1q6fE14VRJSm5ejb3NknRgzWdVW9cxghQZtC2houWXk/nixppST45DyH5xftsPVX7
-	 tanZEUUdbR3pWmBAKA9oq3t9qEm3hr85kynv5z4jJHMAWCS9fTMC/kTb9lKjaEMKHloCE
-	 El+uSUfv8YNnXYRm8A/h//KJBgpbQ7dJ9hTpQWAkqXIo9s58GULUnw2nCb2bJGue3/rJW
-	 0llPYyix3qrYfidYo2NNdtKphtCZizMz/M6vRjF4n8KtiBTNl9Gr4ixkAOhMtmOtO8g==
+	t=1793218483;
+	b=V4ewAqmVlpX6T7ILn4/2XuJ/QASEUurIJCMEaUe8XVMbMeGrS2NaU0SwBLE986GN/Od2
+	 PTdcc+CJe+kW8Le19kh/iCBe/t7+7F4uLRowtppzIl0pgQWubqM7pX1NpEMAAHOQbJMTh
+	 h1okKHW2HaxViQ7pxJTUHnY8DWVWl4Rp0AR2KtgfIMoPfDDMIM9EhAUqwHTEALuFHjW6j
+	 zyYr6c/xxBXTlO6wEilpcnCxwFkkIS1WNS3iCc5zGQMweIzmZB0diyNHW4OztF78nQvTV
+	 rRSlh5yfhluZtyGMeLV54OHeGaLYUptez31ZLkCSUpl6fsZtUFl5LWqCCvdkx0+mTjg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793218464;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793218483;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=h6GqamuA001HPemkjnOqUKBb2WcS9teBrRtjEmx99fA=;
-	b=b6h7Q6cST4ueaiIBn9ChCE6rn/FmBgXi/mRA1Vy1GxwWbo9Y8Z0lXEOKvv70KIG8YVki
-	 EpXN4JGRNjqaeFBeRIBbf9tjNWMf+7FWRdN/inpqi/8SEctz/03fzHO66gisbov7v0BXt
-	 27d0Ekt3fNSESh62Q2ECd0PgwiBOtPUykZ7/FR6cRBlAmV9fcLzOT5NXngYObpt8uL/pH
-	 VkUUZwV4CDhP7xjOl0QnwWKblXBMlA2RYHIsysvEbmCgsTFzIOc3rkXw/xVU63pyTGglA
-	 BnJKNgZw/1eEQ3yfHxIWFxNkLscYoCHeyCEf4duainRBUWWxl0lx+DpEnknUErvzv9g==
+	bh=bTRazsZdBI8g+CFMzwwOmm+CDhczykCZW+7EwaTrQQg=;
+	b=iEirLx0kbNI8IPURfTO9qJ97qf36bZ+3mcQon8BbQamW704XMQRhztomYJS9xj8DM/jc
+	 XUNWs9zOcfgBC5gPqtbcJk++Mb/I8kW+tcM1FxyeIf7dOtMAi7ZJ3yeGRcZVxM/bge9wX
+	 GLM5qaOZydrwdJTkIc89+ebKmpTBBWl8ztHz7fAEtO9fwiz1d0i5kaasC/aoe/qNI4AYr
+	 QYkcwj09g0JuRMr2zkMJRs16zfnSQCU8S4EZBJRY/VlZ2pPBLSpKlNpJML6uwRXnW5ukR
+	 TMdyw0rlBkKTfRGwswz+mm+ejesPzrQnc7yuXpa8o8+fIZrjJak9RpC0u/HZKOlGf9Q==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=VmSj8+N2;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=jmbv7PW3;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DEA06606A339;
-	Wed, 28 Oct 2026 20:14:23 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 86531606A31A;
+	Wed, 28 Oct 2026 20:14:43 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=VmSj8+N2
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 477271F031E3;
-	Wed, 28 Oct 2026 20:14:14 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=jmbv7PW3
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B64AE1F031E1;
+	Wed, 28 Oct 2026 20:14:33 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793218463;
-	bh=h6GqamuA001HPemkjnOqUKBb2WcS9teBrRtjEmx99fA=;
+	s=k20260515; t=1793218483;
+	bh=bTRazsZdBI8g+CFMzwwOmm+CDhczykCZW+7EwaTrQQg=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=VmSj8+N2GzA0MbyYqBFCd1q6TYu1wwu2CeQnYCY5NJMrnwzn9omLMG6o8jgBSmll4
-	 igFnOw111D4kzU5USzz+fQqulM7UVW2WVUrpKxUg4Dx3ZhL0i+82q053jOaO4pOhnH
-	 NQSTg94doN4gEENEUDmEkwCcjOGPwVZ443UxxiKO/e1Wj2XuHBNxmFJfp2Oee9xrHx
-	 3qNqIDpQZB7HlC7KnAACf4/1fJ4UpTvEwx9EAvHjGpkPgNp1iVLmxUrZm4jh8VtNeG
-	 D0Iwv6FZ0BaKeJxJW6UTIjr1is3S9ENjSOTRd4cIXTh43um9ft8vrt2PCM1VIjNnEM
-	 0vMa5Tdlrk2kA==
+	b=jmbv7PW3v2cjt4B/n2gTzkTl1YD8RUeM0qObl+iD4RdBCN8Ek23lk4Z8KQKt65+B3
+	 2sQVi/yY2kV0mjN8MNtMe625va5FiXAROuuWOmuqk9Xgd1cFlSOoIE3Hk/KLEzS+BC
+	 1DF4r86g2wmroWD9Cy2SPF+fYsyuA79OynxZh48vgrBtMFbWLN7avYYoUKhbKBQCZd
+	 DyXMusa4MA4j/Nr/halMKmH5c5MzfOHXbmAb5dMpbaElac3Lo+EzqiJMgse7WXPZgq
+	 iy5H9v0k/OeB89xyOJb6buLXxVYfDbpHEYuFsJkkbVuWCViPvBhTAdWzi2LeM2P9qt
+	 0/3HQH1WNGjDg==
 From: "David Hildenbrand (Arm)" <david@kernel.org>
-Date: Wed, 28 Oct 2026 21:13:31 +0100
-Subject: [PATCH 03/15] mm/hugetlb: preserve reservations when shrinking on
- HIGHMEM
+Date: Wed, 28 Oct 2026 21:13:33 +0100
+Subject: [PATCH 05/15] mm/hugetlb: keep surplus folios when the pool
+ shrinks
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -55,7 +55,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261028-fixes_hugetlb-v1-3-a0a033db180f@kernel.org>
+Message-Id: <20261028-fixes_hugetlb-v1-5-a0a033db180f@kernel.org>
 References: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
 In-Reply-To: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
 To: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
@@ -82,92 +82,95 @@ To: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
  Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, 
- "David Hildenbrand (Arm)" <david@kernel.org>
+ "David Hildenbrand (Arm)" <david@kernel.org>, 
+ Josef Bacik <josef@toxicpanda.com>, stable@kernel.org
 X-Mailer: b4 0.16.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2561; i=david@kernel.org;
- h=from:subject:message-id; bh=fOag8m9aWaD8O5/vp5VjcGR+Ra7oerb0CGoQ+KJ8h0k=;
- b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLIehZeG/by512hynePr08whB7ziv9zbXvip7y3nD7UDE
- VeUl//t6yhlYRDjYJAVU2QJCr5v8PLlutpqNz5mmDmsTCBDGLg4BWAic1oYGZ4ufiQux71z0xLZ
- pD8vZ3UwOj09OGuz0BxGRpciyXRdtacM/wtuzX9WWfrozIRFO0566Zs5qt54JsqZeXz916mzFpo
- +2s8PAA==
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2997; i=david@kernel.org;
+ h=from:subject:message-id; bh=Hat0z9s8tQAupFoGz/eDgT1MoLADnvCUPqvsqVk5s+4=;
+ b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLIehZfyXf5wdOWCO8uc/h3rfn34VaxZTElISGdKSfV5s
+ y0qcV/SOkpZGMQ4GGTFFFmCgu8bvHy5rrbajY8ZZg4rE8gQBi5OAZjIvYWMDGd3fr72m7fsa+Um
+ F5vrh+rvzz53blJp2ySzz/qTIhevj13MyLCW1Wdh9m3hND3fj4/ZV2dbqLUoyHWn/Bfl70heVHR
+ YihkA
 X-Developer-Key: i=david@kernel.org; a=openpgp;
  fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-try_to_free_low() drops the hugetlb_lock while freeing lowmem folios.
-set_max_huge_pages() then resumes freeing folios using the
-min_count computed before that unlock. Reservations created in between
-can consequently lose their backing.
+From: Josef Bacik <josef@toxicpanda.com>
 
-Collect lowmem folios on the caller's existing page_list instead. Keep
-the hugetlb_lock held through both selection passes, and free the combined
-list at the caller's existing unlock point.
+Surplus folios are accounted per node. When shrinking the pool,
+set_max_huge_pages() removes free folios through
+remove_pool_hugetlb_folio() and accounts them as persistent folios.
 
-Likely not stable-worthy.
+It can select a node whose folios are all surplus and leave its surplus
+count larger than its total count. Free surplus folios can back
+reservations created by gather_surplus_pages().
 
-Fixes: 1121828a0c21 ("hugetlb: call update_and_free_page without hugetlb_lock")
+For example, with nr_overcommit_hugepages = 8 on two nodes:
+
+  (node columns show total/free/surplus)
+
+                                      total free surp   node0   node1
+  mmap() of one page, bound to node 0     1    1    1   1 1 1   0 0 0
+  node1/nr_hugepages = 7                  8    8    1   1 1 1   7 7 0
+  nr_hugepages = 6                        7    7    1   0 0 1   7 7 0
+  munmap()                                7    7    1   0 0 1   7 7 0
+  nr_hugepages = 0                        1    1    1   0 0 1   1 1 0
+
+After shrinking to six persistent folios, node 0 has no folios but its
+surplus count is still one. Releasing the reservation cannot clear that
+count, and shrinking the pool to zero leaves one free page on node 1.
+
+A later write to node0/nr_hugepages underflows the unsigned per-node
+persistent count: 0 - 1, resulting in allocation of many folios.
+
+Use persistent_huge_pages_node() to skip nodes with no persistent folios,
+as adjust_pool_surplus() does. This also excludes temporary folios.
+
+Fixes: e4e574b767ba ("hugetlb: Try to grow hugetlb pool for MAP_SHARED mappings")
+Cc: stable@kernel.org
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+[ david: cleanup code and description ]
 Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 ---
- mm/hugetlb.c | 20 ++++++--------------
- 1 file changed, 6 insertions(+), 14 deletions(-)
+ mm/hugetlb.c | 22 +++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
 
 diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index 3a94ea1c9457..a78b2487c20c 100644
+index 110a5c2d9e50..55f7d692ed0d 100644
 --- a/mm/hugetlb.c
 +++ b/mm/hugetlb.c
-@@ -3708,39 +3708,31 @@ static void __init report_hugepages(void)
- 
- #ifdef CONFIG_HIGHMEM
- static void try_to_free_low(struct hstate *h, unsigned long count,
--						nodemask_t *nodes_allowed)
-+		nodemask_t *nodes_allowed, struct list_head *page_list)
- {
- 	int i;
--	LIST_HEAD(page_list);
+@@ -1955,17 +1955,25 @@ static struct folio *remove_pool_hugetlb_folio(struct hstate *h,
  
  	lockdep_assert_held(&hugetlb_lock);
- 	if (hstate_is_gigantic(h))
- 		return;
- 
--	/*
--	 * Collect pages to be freed on a list, and free after dropping lock
--	 */
-+	/* Collect lowmem pages to free after dropping the lock. */
- 	for_each_node_mask(i, *nodes_allowed) {
- 		struct folio *folio, *next;
- 		struct list_head *freel = &h->hugepage_freelists[i];
- 		list_for_each_entry_safe(folio, next, freel, lru) {
- 			if (count >= persistent_huge_pages(h))
--				goto out;
-+				return;
- 			if (folio_test_highmem(folio))
- 				continue;
- 			remove_hugetlb_folio(h, folio, false);
--			list_add(&folio->lru, &page_list);
-+			list_add(&folio->lru, page_list);
+ 	for_each_node_mask_to_free(h, nr_nodes, node, nodes_allowed) {
++		if (list_empty(&h->hugepage_freelists[node]))
++			continue;
++
+ 		/*
+ 		 * If we're returning unused surplus pages, only examine
+-		 * nodes with surplus pages.
++		 * nodes with surplus pages. If we're shrinking the pool, only
++		 * examine nodes with persistent folios.
+ 		 */
+-		if ((!acct_surplus || h->surplus_huge_pages_node[node]) &&
+-		    !list_empty(&h->hugepage_freelists[node])) {
+-			folio = list_entry(h->hugepage_freelists[node].next,
+-					  struct folio, lru);
+-			remove_hugetlb_folio(h, folio, acct_surplus);
+-			break;
++		if (acct_surplus) {
++			if (!h->surplus_huge_pages_node[node])
++				continue;
++		} else if (!persistent_huge_pages_node(h, node)) {
++			continue;
  		}
++
++		folio = list_first_entry(&h->hugepage_freelists[node],
++					 struct folio, lru);
++		remove_hugetlb_folio(h, folio, acct_surplus);
++		break;
  	}
--
--out:
--	spin_unlock_irq(&hugetlb_lock);
--	update_and_free_pages_bulk(h, &page_list);
--	spin_lock_irq(&hugetlb_lock);
- }
- #else
- static inline void try_to_free_low(struct hstate *h, unsigned long count,
--						nodemask_t *nodes_allowed)
-+		nodemask_t *nodes_allowed, struct list_head *page_list)
- {
- }
- #endif
-@@ -3935,7 +3927,7 @@ static int set_max_huge_pages(struct hstate *h, unsigned long count, int nid,
- 	}
- 	min_count = h->resv_huge_pages + persistent_huge_pages(h) - persistent_free_count;
- 	min_count = max(count, min_count);
--	try_to_free_low(h, min_count, nodes_allowed);
-+	try_to_free_low(h, min_count, nodes_allowed, &page_list);
  
- 	/*
- 	 * Collect pages to be removed on list without dropping lock
+ 	return folio;
 
 -- 
 2.43.0
