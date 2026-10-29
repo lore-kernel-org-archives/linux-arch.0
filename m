@@ -1,98 +1,54 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.214.179
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=91.218.175.176
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793245626;
-	b=nS6r8nd6gMm0K9d6jG2t2TEdNVMgeijdsxW6itWYmEZ2PvMPqsCGIcFpbzcjkCsIoszL
-	 EZ3pCJnnPQp56i8qCn+3ofhrEDMB/fk2Tk6pwh7JmePOhprKPp0KFF/1C0sKAqQiFWySE
-	 IEEz4Bx90bWs9eZxI8O/devR5hS5a66MC/pzWR70sp90nOXw8nQgeVhJWSHSWCDuq05xS
-	 XBjK9x7kufOW90q9TaQaQ5IwxQchvWE2yOsPK1cOwGQcree1jL0H2j7voTQQsUh9svqc1
-	 Xwrn7nQLd9zqA3Ksa86yAhHhVGgplFUaSFSQWxzHjEK7K/fC5EqWBO+J+TMii26O8VQ==
+	t=1793245904;
+	b=PyM7/auBxaSPLaKWECSGWwZ7rV0e11wnVQyFLaWLi89Ieh6FhONwxj82KW7ux97cOd4g
+	 u2TVR/MyirJfvX0LM1kBrNQCaD52kI0hV9YmAW9LObo8bqlrnDhav/co/n2+3skL/xRRv
+	 Dqc1Hr+g/G2UOP2Lb2pylmHyPB5wnzRBY8y9HdaAiu2B3N+5fbF2S5eHOMoVEUkj4lBq4
+	 mMn/GFOb1fGYuf0isEBfx8KXd4jFdzUCpsEJXwPMJ5FITIFGsz61gG0rFqrKObbEtk7pe
+	 kbc+vrgn6QlOEumxCnpSELn3hDPkIl523WO1SwJOlGiKcvEx3y1S2K0dLRUH3ixemcQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793245626;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:
-	 MIME-Version:Content-Transfer-Encoding;
-	bh=h8kq6Pl9NTWK4dw0Rh3Cdb4b4qd62zLH0TTeqwKDwHY=;
-	b=SYUaHesAfdXDf/EW3DQVtaQiHzd84kuzf+pslWOb4x11wdwBPLisHO2NCBFc5EekKXWp
-	 loTeN6WmtncwCjAXtrrgZMI+GWgKbhKErhOYhLoJduA5Ztp2/AgUaa4ei+bbTjgUku7My
-	 aHABIoCl/sM3raM/jPMi/M3GRX08vAA0yvlsriImEWT//3XuWI4GGOcrW9IejINvmYLEE
-	 JUm8sSO68J2wvGTM3x/6KDz98uak+onn71Mq0gdsF6GFJQjbtOCi+GIfyR/gCDr5OXOXf
-	 uuZ3EfIcsl06rjKp00td+IKIToYswXN5m7TXyoIWBkX5JSFy353ke+o+byQEKbbInww==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793245904;
+	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
+	 X-Mizu-Trace-ID:X-Migadu-Flow:Content-Type:Mime-Version:Subject:From:
+	 In-Reply-To:Date:Cc:Content-Transfer-Encoding:Message-Id:References:
+	 To:X-Mailer;
+	bh=YXfmsX/yQpRThvRvFibuXD3vPcTXDbmM4UJssVVOAKc=;
+	b=XdkY6ygXx9QiWSuR7wzotaIMoxpZ3zhoBj4XpeS8EQEYgXhgqr5YdxF89c3fS7KBXydx
+	 z/FKjzyMLtkAczEEnAPLFa07a+UGS93oqcPReZghyknKt4j8g+CezkQsjFcbdmGexxYHC
+	 +2HE3eqRpiFX1SRWk+NzbeLZwz7o+jXsaGdbKX3obusWSsTd+WSSpcxrxTTUZw2LADRaP
+	 0HjxTcS0lJ6beezLKXHX+0tb8F8EUwX15uMCSU3+vwAcQxPnQEoj9zgdORjQHOd0iAv42
+	 ZuUfh+nn9HBwbSqYj72aaX9dzpX4sDva4R4zcebyBmI4IwtZ/jS4ATcY/zGg6S7R6ug==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=Rdevqk10;
-	arc=none smtp.remote-ip=209.85.214.179
-Received: from mail-pl1-f179.google.com (mail-pl1-f179.google.com [209.85.214.179])
+	dmarc=pass header.from=linux.dev;
+	spf=pass smtp.mailfrom=linux.dev;
+	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=kKimkzyM;
+	arc=none smtp.remote-ip=91.218.175.176
+Received: from mta0.migadu.com (out-176.mta0.migadu.com [91.218.175.176])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1A3A6606A31A
-	for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 03:47:06 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1A3A6606A31A
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F26F6606A31C
+	for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 03:51:42 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org F26F6606A31C
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=Rdevqk10
-Received: by mail-pl1-f179.google.com with SMTP id d9443c01a7336-2e9f6a16aedso10780685ad.2
-        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 20:47:06 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793245625; x=1793850425; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=h8kq6Pl9NTWK4dw0Rh3Cdb4b4qd62zLH0TTeqwKDwHY=;
-        b=Rdevqk101cr+v9xciAZsil4BqLgOOYPJCQQU9UwUBlzdc78kr+WTAffXPya3G+p+Ra
-         +dIw97dMpGxDRnaRgGttsVtThIKggdWJFJhkU0PfGEUEBSEE7JMoXNpZoU/uGn6AAkMQ
-         RgAFeU/1qrGEav+3t+wxhuVVlRniLqpBA1Kg7nMLIpwYnZpMlYTwTqPDCshZKGmQ5LA0
-         I/S1nZLdYhgeTsDCqR5qP/gixcwfhmB86L8hG9bqty+Clp136EgDpmYfDoMqcAmPwALF
-         qmGNMpbeks1sSR+QQIyrPP18qTE3uF5X14cRzD6ZWMnkWS/WGvF6pqeughyFfalIFudR
-         lVXg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793245625; x=1793850425;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=h8kq6Pl9NTWK4dw0Rh3Cdb4b4qd62zLH0TTeqwKDwHY=;
-        b=jTbmzgpG6sFydgGicrjosKoD6jmkx8i7BZQMYdCCl5TAlXnk/WVrt5dKWDBojjDxe2
-         vE+2TnOHYKu7r1bVN3wysqvEyeYD7pR9yeyDeqEETwrFJd9lafU6F7UMSPN31xePuq9s
-         TZvg1aUpw8FYso86rjuMtRuCF9LNSPq4KIZDpEGr20etfiFB6LWaLjTKdizLj61hLhUz
-         PB2h5kffsGeNEqR7O2y59tybOou11hoo6IlDiddjA7TBerHQleYOYeQ7I2CmmOD+g2l9
-         qLxwnco/Pgl05Z68pm+f9FqSZO5WEQWtLfDjYrUFjkd++9Ptoub8efDbUwEd8bFcQ60/
-         OpfQ==
-X-Forwarded-Encrypted: i=1; AKwUvByjlo7/lph6x3WX58gMnDXxuCy8n/ona7CMDz4yyR4tgX2nOZ0FaaBzMiqsOQyRwX0sj8BwRr7G90Bl@vger.kernel.org
-X-Gm-Message-State: AFq9FYIntLNnFCQ9i+5pjHVP7+L77D8iF5eY2gnKH/Ov/nHSN3kuDW7X
-	MqxCxI//bsq5eirN9YQlwDbURejqFBV71E+lYf07ev+lJI5sfIeaBVm5
-X-Gm-Gg: AYBFou0Q61Sca27TScUXLfDSpvwMeZZeYf72Vxy3L/hkuj0ZwnCjqE2mSAPzHyAPFNK
-	SOIagDImdulKFLo0SBsV3ryH/PG27V8BvpNFKWkB3bZ5ECn9ktDQ3QI02BE3MYAi42daJsrJcwX
-	OuP9s2GowGLpI+eK253KdkvvQ1EsEqOn9ZSViz6TMc51UjEsAAqFPHgtEsHfU9jSp4QaiCua3pe
-	UHjS3IKBqdSAHSfv3thmu3kS9jlaKAuslOtXBfHd1Cz2Vsy4qlXLspnsGNFHZogjuUglBkgoEx7
-	VrjZ3i1beTgqUBtOwVY9pj6ny58G+mPYFzUdOutWy/mdbXTAuaLRvFATPOqoY0f37/XMIqb915y
-	5klYTsw2Iqx3fc7NtI5sB/+oAUnyBKIEvDlKhrQlEdXzGCki9YdZeNMNRcwzI87UqKWcoKKBfXc
-	rovChNA7QokWfE+YfskM3XaVtyjGM+XGCZU9ICcpnfR8RUdnMFAj5SyvGVJzrVG4jheOH1Lme2l
-	glmSph5pInTowO13YkcAfjTMvsyiThaaTZ7BqQD1Iuem0HExG4GXu9fFnd6sCZFMoDdhFJW9xYD
-	ElF4+muGy2R0DnS7nRiLDji5Jl2Ut9xQgB69eeMndHmBdkbh+8CdMvY=
-X-Received: by 2002:a17:903:144f:b0:2ea:4c42:573c with SMTP id d9443c01a7336-2eb0054f6aemr38499215ad.51.1793245625415;
-        Wed, 28 Oct 2026 20:47:05 -0700 (PDT)
-Received: from arm-a100.. ([140.112.28.118])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2eae6b76df7sm28619815ad.14.2026.10.28.20.47.03
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 28 Oct 2026 20:47:04 -0700 (PDT)
-From: Tzu-Ching Yang <shingekinocore@gmail.com>
-To: Yury Norov <ynorov@nvidia.com>,
-	Guo Ren <guoren@kernel.org>
-Cc: linux-csky@vger.kernel.org,
-	Yury Norov <yury.norov@gmail.com>,
-	Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] csky: bitops: Use the compiler builtin for __fls()
-Date: Thu, 29 Oct 2026 11:46:58 +0800
-Message-Id: <20261029034658.3137810-1-shingekinocore@gmail.com>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <auIQ2RI89C374je2@yury>
-References: <20261022115922.1210342-1-shingekinocore@gmail.com> <atpm00m6KYhXo6Wi@yury> <20261023140806.1367050-1-shingekinocore@gmail.com> <atuBH6-LHueXYbFy@yury> <20261027062319.1700461-1-shingekinocore@gmail.com> <auIQ2RI89C374je2@yury>
+	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=kKimkzyM
+X-Envelope-To: linux-arch@vger.kernel.org
+DKIM-Signature: a=rsa-sha256; bh=716xbJigIsWZtYo06Vb5k1w3O79is5fyZrfOLJIQCDQ=;
+ c=simple/simple; d=linux.dev;
+ h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
+ t=1793245901; v=1; x=1793850701;
+ b=kKimkzyMPeC7s5+fbgeXF8tpg/Q20CMWuvnl55Scox90nZ4dUkgyeG+w0oApM+0nWA4fRHkg
+ q/pfBgaWt9rb3eD6HUd7Wny2AINRQQZRfUAHY9eATkwakdCHmJE5s3+3NeXmKraZBCz+10zFbr1
+ 2tzeKUEeN5Os5kX7uiceRtZA=
+X-Envelope-To: linux-arch@vger.kernel.org
+Received: by mta10.migadu.com with ESMTPS id 718d34fddc079b55;
+	Thu, 29 Oct 2026 03:51:40 +0000
+X-Mizu-Trace-ID: 718d34fddc079b55
+X-Migadu-Flow: FLOW_OUT
+Content-Type: text/plain;
+	charset=us-ascii
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -101,30 +57,107 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3901.100.1.1.12\))
+Subject: Re: [PATCH 05/15] mm/hugetlb: keep surplus folios when the pool
+ shrinks
+From: Muchun Song <muchun.song@linux.dev>
+In-Reply-To: <20261028-fixes_hugetlb-v1-5-a0a033db180f@kernel.org>
+Date: Thu, 29 Oct 2026 11:51:13 +0800
+Cc: Oscar Salvador <osalvador@suse.de>,
+ Naoya Horiguchi <nao.horiguchi@gmail.com>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ Mel Gorman <mgorman@suse.de>,
+ Andy Whitcroft <apw@canonical.com>,
+ Miaohe Lin <linmiaohe@huawei.com>,
+ Michal Hocko <mhocko@suse.com>,
+ Rik van Riel <riel@surriel.com>,
+ Hugh Dickins <hughd@google.com>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ Vivek Kasireddy <vivek.kasireddy@intel.com>,
+ Dave Airlie <airlied@redhat.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>,
+ Lorenzo Stoakes <ljs@kernel.org>,
+ "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>,
+ Jonathan Corbet <corbet@lwn.net>,
+ Shuah Khan <skhan@linuxfoundation.org>,
+ Randy Dunlap <rdunlap@infradead.org>,
+ Peter Xu <peterx@redhat.com>,
+ Breno Leitao <leitao@debian.org>,
+ Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>,
+ Peter Zijlstra <peterz@infradead.org>,
+ Heiko Carstens <hca@linux.ibm.com>,
+ Vasily Gorbik <gor@linux.ibm.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>,
+ Christian Borntraeger <borntraeger@linux.ibm.com>,
+ Sven Schnelle <svens@linux.ibm.com>,
+ Arnd Bergmann <arnd@arndb.de>,
+ linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org,
+ Gerd Hoffmann <kraxel@redhat.com>,
+ linux-doc@vger.kernel.org,
+ linux-arch@vger.kernel.org,
+ linux-s390@vger.kernel.org,
+ Josef Bacik <josef@toxicpanda.com>,
+ stable@kernel.org
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <8DF234F5-8EAF-427C-928C-8DD6E53FC501@linux.dev>
+References: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
+ <20261028-fixes_hugetlb-v1-5-a0a033db180f@kernel.org>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+X-Mailer: Apple Mail (2.3901.100.1.1.12)
 
-On Wed, Oct 28, 2026 at 11:12:45AM -0400, Yury Norov wrote:
-> I wonder why the older GCC works better... Can you make sure its the
-> same kernel version and the config?
 
-Same tree and config: both tables compare csky/linux-next at
-abb81e5ce7d9 before and after the patch, with csky defconfig (CK807),
-built with kernel.org GCC 12.5 for one table and GCC 16.2 for the other.
-The .config files are identical except for the toolchain-derived symbols
-(CONFIG_CC_VERSION_TEXT, CONFIG_GCC_VERSION, CONFIG_AS_VERSION,
-CONFIG_LD_VERSION and CONFIG_CC_HAS_*).
 
-The Before totals differ because GCC 16 emits more code than GCC 12 for
-this config, with or without the patch. __fls() itself compiles to the
-same 4 instructions (8 bytes) with GCC 9 to 16, before and after.
+> On Oct 29, 2026, at 04:13, David Hildenbrand (Arm) <david@kernel.org> =
+wrote:
+>=20
+> From: Josef Bacik <josef@toxicpanda.com>
+>=20
+> Surplus folios are accounted per node. When shrinking the pool,
+> set_max_huge_pages() removes free folios through
+> remove_pool_hugetlb_folio() and accounts them as persistent folios.
+>=20
+> It can select a node whose folios are all surplus and leave its =
+surplus
+> count larger than its total count. Free surplus folios can back
+> reservations created by gather_surplus_pages().
+>=20
+> For example, with nr_overcommit_hugepages =3D 8 on two nodes:
+>=20
+>  (node columns show total/free/surplus)
+>=20
+>                                      total free surp   node0   node1
+>  mmap() of one page, bound to node 0     1    1    1   1 1 1   0 0 0
+>  node1/nr_hugepages =3D 7                  8    8    1   1 1 1   7 7 0
+>  nr_hugepages =3D 6                        7    7    1   0 0 1   7 7 0
+>  munmap()                                7    7    1   0 0 1   7 7 0
+>  nr_hugepages =3D 0                        1    1    1   0 0 1   1 1 0
+>=20
+> After shrinking to six persistent folios, node 0 has no folios but its
+> surplus count is still one. Releasing the reservation cannot clear =
+that
+> count, and shrinking the pool to zero leaves one free page on node 1.
+>=20
+> A later write to node0/nr_hugepages underflows the unsigned per-node
+> persistent count: 0 - 1, resulting in allocation of many folios.
+>=20
+> Use persistent_huge_pages_node() to skip nodes with no persistent =
+folios,
+> as adjust_pool_surplus() does. This also excludes temporary folios.
+>=20
+> Fixes: e4e574b767ba ("hugetlb: Try to grow hugetlb pool for MAP_SHARED =
+mappings")
+> Cc: stable@kernel.org
+> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+> [ david: cleanup code and description ]
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-> Anyways the numbers show that the switch to the generic implementation
-> is worth to try. I've added the numbers to the commit message and
-> pushed in bitmap-for-next for testing.
-> 
-> Conditionally on the (so far, missing) csky engineers feedback.
+Acked-by: Muchun Song <muchun.song@linux.dev>
 
-Thanks for picking it up.
+Thanks.
 
-Tzu-Ching
