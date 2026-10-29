@@ -1,125 +1,66 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=95.215.58.213
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793249628;
-	b=GD1Kx1LP6nOHMIpbQcsGWcp1rH6EA4ri4/opyPhHlxG+R78Q2OoupNqEp/wkJEGKtalm
-	 NpmMaPLkd0dLExCJJ9mc9qUoupChkj0KIuNTVxTW2ra+8NP/KDENZGTB5xCXIjARd4fp9
-	 UItikeWm8TfHewF4g39l6OHlhZFYQAX/Gqk5tbn4DSBdOqjPDqkLTK5ex3cPo63gygZZW
-	 hfPSbWyPsy+X/hz3dyamflNRWbSaclhB0fe16GV3Pu0yO+pF8bRcQueAfMjLfhzaaTwWH
-	 /BDFTb91YADFjJT1KEG+c+tghqixqUFHVtxpqHOe9uvim6CrI5YUo8XeUG94cPitI1A==
+	t=1793252465;
+	b=yAwTYJq/Uz2cLV5zk1vq2LX8t1lyBULieR4vm3JEg36BmeY0GHFf4zwulr2Bf9YFyN1i
+	 MsWrCS9NI3w0zmVVUpgbFnZnTSDmvtk2N0YOM1boIZTy2zpGaIv8/LPS3CTlMZFaAaTc0
+	 nP3ZFWtEEPawwWtCJMTaPzwkOYCbKRfycp5yAb+7z6xJfR22a1MYCmIQL9aA0omHSjUpc
+	 j0H0wbo+VTNIbgbp2lP+Bk+WNC4VFX9BPPlSgGe7+0U9V5POn0F14+n7LqkitnCvJR/UR
+	 ZLMd4VWfPbX+OFgOsW5CS4VWpJFDo+RaEaGLjY14dT3HLFIPZRjmCt+Sl0gcn68j4vQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793249628;
-	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
-	 X-Mizu-Trace-ID:X-Migadu-Flow:From:To:Cc:Subject:Date:Message-Id:
-	 X-Mailer:In-Reply-To:References:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=nSvRu+DrKpZk9fhC33/WfqayjP5HLD0PEYNxYg/H2d4=;
-	b=DYaT/Xhr9UfN+CJBaUWtChJfnTuxv0Hv9CYKcL8znJzTpDysPWI3+/Ulzg2Za4+I8EXZ
-	 jx5Mxb7+BjSmxl0u2jkK+4qUFci5ZMN91I+1KqkEH7UJhG93ZkvXGceAHLTJElrmzn4aP
-	 hE4T/x4HXK17/x4llWSZTCJhc/ooLiv3Zf7pvvwI+wKcdtMVoA105P3/KxTgPCeEPEFVR
-	 I3sMOHEi8oZi/nVmJ9Q+x2bnl7xDKxz1XUs4fkUvr7gxrZ+oN/Eq9wUBT/PhLFRQtMbFW
-	 zArXChosIXegDHFsI6qizbx8Yk/4p3YpJrodcQRQsX+ivOZZ4LzcbEWOw2Ev2dwhFGw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793252465;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:
+	 Content-Transfer-Encoding:In-Reply-To;
+	bh=rpIwuWJI4mUU+Vr37pPxQ2ayfurlJBPbC17PVqfWTR8=;
+	b=qnl6hsIl7GWnvLpfhD1zCHL8+FSQ34JzJSItevX+aAGxqVGB+Fzo5H/Lt0so7Wul5zzA
+	 lA4P4TMRov2VWrGYONfgyl357lAvQbuqYAdT3cgGoc4pa6FXCYQBZm8cgl4JtPnqXDavq
+	 ND33daBfSt41ZE59IaH+gnN8IDEFtZ0wFE1hLpDfwa8cWOUDrxGAq81GBEH7/dGouOsfm
+	 9lmWPNPFDOUEQaXFYK1QVLqIKedUGIQW716IxXSb6oTv8JoO72wK4HkEkjAEwrXpfg5ir
+	 bEyRjKzir51EjNQAYP5120SuFT0+qRbkwU0V6/OJ5xL2vfzHh+Ro8n1rJVwrhWuqW7Q==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.dev;
-	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=wzldufxr;
-	arc=none smtp.remote-ip=95.215.58.213
-Received: from mta1.migadu.com (out-213.mta1.migadu.com [95.215.58.213])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CbV3qZXR;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2F196606A320
-	for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 04:53:46 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2F196606A320
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 46778606A31A;
+	Thu, 29 Oct 2026 05:41:05 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=wzldufxr
-X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=i7u+rlmCh6Mr8ur+/yCWDheirhBIEcgUXzKbr5iYaLI=;
- c=simple/simple; d=linux.dev;
- h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793249625; v=1; x=1793854425;
- b=wzldufxrq7LeGF/UT1w/d7qBoo4cSoxFnLCvJgGiKddxIK6nGj3eWwtYfsSoRfGtBw1RSw+o
- l2EEGi9jB7oYX3VF+s085Fb8klvLZm/TtHLejbv1l7E/dPxEI1csGXXbkf56r/0e2nXCXfg2S7r
- 8BiHJX3hY4QzJUxF7RNT23/I=
-X-Envelope-To: linux-arch@vger.kernel.org
-Received: by mta10.migadu.com with ESMTPS id 06f3ecca37f8f8d0;
-	Thu, 29 Oct 2026 04:53:44 +0000
-X-Mizu-Trace-ID: 06f3ecca37f8f8d0
-X-Migadu-Flow: FLOW_OUT
-From: xu.xin@linux.dev
-To: david@kernel.org
-Cc: akpm@linux-foundation.org,
-	aneesh.kumar@kernel.org,
-	apopple@nvidia.com,
-	axelrasmussen@google.com,
-	baohua@kernel.org,
-	baolin.wang@linux.alibaba.com,
-	baoquan.he@linux.dev,
-	chengming.zhou@linux.dev,
-	chrisl@kernel.org,
-	dev.jain@arm.com,
-	gourry@gourry.net,
-	hannes@cmpxchg.org,
-	harry@kernel.org,
-	hughd@google.com,
-	jack@suse.cz,
-	jannh@google.com,
-	jgg@ziepe.ca,
-	jhubbard@nvidia.com,
-	josef@toxicpanda.com,
-	joshua.hahnjy@gmail.com,
-	kas@kernel.org,
-	kasong@tencent.com,
-	kees@kernel.org,
-	kexec@lists.infradead.org,
-	lance.yang@linux.dev,
-	liam@infradead.org,
-	linux-arch@vger.kernel.org,
-	linux-cxl@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org,
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CbV3qZXR
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9C0891F01825;
+	Thu, 29 Oct 2026 05:41:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793252464;
+	bh=rpIwuWJI4mUU+Vr37pPxQ2ayfurlJBPbC17PVqfWTR8=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=CbV3qZXRHW3XrkXfTLQp+OWG5tdJOGe8xgMJynVAToS+xNDnpzB6+H0zYgNbeP2RV
+	 etXdFuzqFhCBSPLXXaBmh2quQCJFuvTYhqIkpowRdvVdt/OTbeA1qhdC5mDBg5KcmG
+	 2cDDGQyDbG5HSlK4OcBc77lzQaGh355eyFEf9vPl/WcnE588DgdQimD8l+oMQNDzio
+	 sQu0UwdkYkggy9GOYcdPbBz6+u8rm8sJ5yg9NS06J6t0cW0+y7nt5gvyhQurR7Y0Io
+	 M4UcD8ijZtH5/8bfz1Qj3l38ux3WVYqjZAKFhURKJoxyQYW9uGuLy25MQeghW2Cha0
+	 OBBKblNLvpSJQ==
+Date: Wed, 28 Oct 2026 22:41:03 -0700
+From: Wei Liu <wei.liu@kernel.org>
+To: Thorsten Leemhuis <linux@leemhuis.info>
+Cc: Wei Liu <wei.liu@kernel.org>,
+	Magnus Kulke <magnuskulke@linux.microsoft.com>,
+	Wei Liu <liuwe@microsoft.com>, Arnd Bergmann <arnd@arndb.de>,
+	Magnus Kulke <magnuskulke@microsoft.com>,
+	Paolo Bonzini <pbonzini@redhat.com>,
+	Dexuan Cui <decui@microsoft.com>, linux-hyperv@vger.kernel.org,
+	Long Li <longli@microsoft.com>, linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org,
-	linux-mm@kvack.org,
-	ljs@kernel.org,
-	matthew.brost@intel.com,
-	mhocko@kernel.org,
-	mhocko@suse.com,
-	minchan@kernel.org,
-	muchun.song@linux.dev,
-	nico.pache@linux.dev,
-	nphamcs@gmail.com,
-	npiggin@gmail.com,
-	osalvador@suse.de,
-	pasha.tatashin@soleen.com,
-	peterx@redhat.com,
-	peterz@infradead.org,
-	pfalcato@suse.de,
-	pratyush@kernel.org,
-	qi.zheng@linux.dev,
-	rakie.kim@sk.com,
-	riel@surriel.com,
-	rppt@kernel.org,
-	ryan.roberts@arm.com,
-	shakeel.butt@linux.dev,
-	shikemeng@huaweicloud.com,
-	stable@vger.kernel.org,
-	surenb@google.com,
-	usama.arif@linux.dev,
-	vbabka@kernel.org,
-	weixugc@google.com,
-	will@kernel.org,
-	willy@infradead.org,
-	xu.xin@linux.dev,
-	ying.huang@linux.alibaba.com,
-	youngjun.park@lge.com,
-	yuanchu@google.com,
-	ziy@nvidia.com
-Subject: Re: [PATCH 33/46] mm/madvise: fix data loss from MADV_FREE on a KSM page
-Date: Thu, 29 Oct 2026 12:53:07 +0800
-Message-Id: <20261029045307.131675-1-xu.xin@linux.dev>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20261027-fixes_core-v1-33-6f74bec9a5bb@kernel.org>
-References: <20261027-fixes_core-v1-33-6f74bec9a5bb@kernel.org>
+	"K. Y. Srinivasan" <kys@microsoft.com>,
+	Souradeep Chakrabarti <schakrabarti@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Anirudh Rayabharam <Anirudh.Rayabharam@microsoft.com>
+Subject: Re: [PATCH v4] drivers/hv: remove deposited pages from direct map
+Message-ID: <20261029054103.GB3595008@liuwe-devbox-debian-v2.local>
+References: <20260930121047.19993-1-magnuskulke@linux.microsoft.com>
+ <07246cb1-1154-4b66-9a05-209f04a2b427@leemhuis.info>
+ <20261028183157.GA3595008@liuwe-devbox-debian-v2.local>
+ <879b3af5-3853-4f9d-8dea-c90c338a4369@leemhuis.info>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -129,57 +70,85 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <879b3af5-3853-4f9d-8dea-c90c338a4369@leemhuis.info>
 
-> MADV_FREE can clear the dirty flag of a singly mapped KSM folio. The
-> folio remains in the stable tree and can gain new mappings without being
-> dirtied again. Once marked lazyfree, reclaim can discard data that those
-> mappings still need.
+On Wed, Oct 28, 2026 at 07:44:14PM +0100, Thorsten Leemhuis wrote:
+> On 10/28/26 19:31, Wei Liu wrote:
+> > On Wed, Oct 28, 2026 at 07:28:15PM +0100, Thorsten Leemhuis wrote:
+> >> On 9/30/26 14:10, Magnus Kulke wrote:
+> >>> hv_call_deposit_pages() donates pages (deposit) to hypervisor for L2
+> >>> guest on L1VH systems via HVCALL_DEPOSIT_MEMORY. The hypervisor takes
+> >>> ownership of those pages and per contract revokes root partition
+> >>> access to them, raising a #GP on access from the L1VH root partition.
+> >>>
+> >>> However, the pages remain mapped in the kernel direct map, so kernel
+> >>> code may still access them even though the hypervisor has revoked
+> >>> access.
+> >>
+> >> Wei, Magnus, this patch showed up in -next today and broke my daily
+> >> Fedora builds on x86_64 and arm64 which use the rawhide config as base.
+> >> Reverting it made the build succeed.
+> > 
+> > Can you share the kconfig?
 > 
-> KSM always marks a folio dirty when converting it to a KSM folio in
-> try_to_merge_one_page(). Marking a folio lazyfree clears PG_swapbacked
-> but leaves PG_dirty unchanged. Preserving PG_dirty makes reclaim restore
-> PG_swapbacked instead of discarding the folio. This also protects folios
-> that were already lazyfree when KSM converted them.
+> Sadly can't access it directly, but it should be the attached one after
+> running it through "make olddefconfig".
 > 
-> Skip KSM folios before clearing their dirty flag, checking under the
-> folio lock to serialize with KSM conversion.
+> Ciao, Thorsten
 > 
-> Fixes: 854e9ed09ded ("mm: support madvise(MADV_FREE)")
-> Cc: stable@vger.kernel.org
-> Reported-by: Josef Bacik <josef@toxicpanda.com>
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-> ---
->  mm/madvise.c | 9 +++++++++
->  1 file changed, 9 insertions(+)
-> 
-> diff --git a/mm/madvise.c b/mm/madvise.c
-> index 75b409e97dbf2..a16e3cb256b7b 100644
-> --- a/mm/madvise.c
-> +++ b/mm/madvise.c
-> @@ -756,6 +756,15 @@ static int madvise_free_pte_range(pmd_t *pmd, unsigned long addr,
->  		if (folio_test_swapcache(folio) || folio_test_dirty(folio)) {
->  			if (!folio_trylock(folio))
->  				continue;
-> +			/*
-> +			 * KSM folios can gain new mappings at any time, so we must
-> +			 * not clear their dirty flag.
-> +			 */
-> +			if (folio_test_ksm(folio)) {
-> +				folio_unlock(folio);
-> +				continue;
-> +			}
-> +
->  			/*
->  			 * If we have a large folio at this point, we know it is
->  			 * fully mapped so if its mapcount is the same as its
-> 
-> -- 
-> 2.43.0
+> >> """
+> >>> drivers/hv/hv_proc.c: In function ‘hv_deposit_update_direct_map’:
+> >>> drivers/hv/hv_proc.c:32:23: error: implicit declaration of function ‘set_direct_map_valid_noflush’; did you mean ‘set_direct_map_invalid_noflush’? [-Wimplicit-function-declaration]
+> >>>    32 |                 err = set_direct_map_valid_noflush(pfn_to_page(pfns[i]),
+> >>>       |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> >>>       |                       set_direct_map_invalid_noflush
 
-The fix looks correct to me: checking folio_test_ksm() under the
-folio lock properly serializes with KSM conversion, and skipping
-the folio avoids clearing PG_dirty on a KSM folio.
+I didn't end up building the kernel. I see why by purely inspecting the
+linux-next tree.
 
-Reviewed-by: Xu Xin <xu.xin@linux.dev> 
+That function was removed by Mike Rapoport in 37fb25b34cd92.
+
+I will rework this in my branch -- we should follow what MM tree does.
+Hopefully it will be a straightforward change.
+
+Thanks for your report.
+
+Wei
+
+======
+
+commit 37fb25b34cd9273cb987b80a46a13a1e3f0a534f
+Author:     Mike Rapoport (Microsoft) <rppt@kernel.org>
+AuthorDate: Thu Sep 3 12:28:32 2026 +0300
+Commit:     Andrew Morton <akpm@linux-foundation.org>
+CommitDate: Thu Sep 10 20:20:09 2026 -0700
+
+    Revert "arch: introduce set_direct_map_valid_noflush()"
+
+    Commit 0c6378a71574 ("arch: introduce set_direct_map_valid_noflush()")
+    added set_direct_map_valid_noflush() to allow updating the direct map for
+    a physically contiguous range in execmem.
+
+    As Brendan recently pointed out [1], this API is confusing because on
+    arm64 it means that is sets VALID bit in ptes, while on other
+    architectures it is an analog of set_direct_map_default_noflush().
+
+    The only user of set_direct_map_valid_noflush() was execmem's ROX cache
+    freeing path and it was switched to utilize VM_FLUSH_RESET_PERMS for
+    resetting permissions of the direct map alias.
+
+    With the last user gone and with
+    set_direct_map_{invalid,default}_noflush() accepting number of pages as a
+    parameter, set_direct_map_valid_noflush() become a copy of
+    set_memory_valid() on arm64 and a duplicate of
+    set_direct_map_{invalid,default}_noflush() on other architecture, it is
+    safe to remove set_direct_map_valid_noflush().
+
+    Also drop a stale comment in arm64::__kernel_map_pages() that Linus
+    bothered to add when merging changes containing
+    set_direct_map_valid_noflush() to his tree.
+
+    This reverts commit 0c6378a71574daa6cd1534ad42a956e3262756c7.
