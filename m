@@ -1,49 +1,48 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793306015;
-	b=3wufJ27WXW1OyL8xg7/+4bD5DWM4N1ogg9B8koyl81Rrpy4AnmQ8TZiReR4/vPh2dBsi
-	 et/GzOUKDZSWQ4EplLQ8E44i0Ey7zaG2/zG9lsDo8GuWPimH0CdAirBYrviqF0BYrDBOL
-	 c29H/jQjws8SSobJLn1ftYUHA1a8lUQMDzF1EgwVA1HxGl2IAZSK4n7mQxJXjHUPVPH/f
-	 UmGswV7luedgWQ3ps0BFNBcKOD4Mu6YYBRYqoAnP+ta7CHnZ6q7kXc1qdKvsifVuDn9xA
-	 arxY29Z8sHCNs1uVHL/SvxbeTg8rSz10JRD6LHuFKMYfHC6Xv638KFHQu32P8i5iJjQ==
+	t=1793306039;
+	b=4tSIIaGar5gz4Mwj0mVXke9a4iTb8SS7ruqOLVyRlK/xhlqwDJSy7InNghr5Hj5VXNr2
+	 Lwxxkca3BqqIh0AzzShgTshw8OIHU7aImtgJj+tNjFSV86MBjovSsd3hisw1VzGUY9hbF
+	 VqCzvvDKypC+8PU2o7ZdJIFMnj7lOQ67+zRpgsf1HHtZnorNKlwJ2KYFfq+LDkBJD0zHj
+	 rpq64620Hr+MUBgPT2oHUDAdkuqN1dfIeYyQ547JlpMmUkWSsCn9EMwWsY7FmIaYpcm8L
+	 rDY2HPyPs/eMlfLXDQ3v7ZAClzMfTbtmCaS8DwXnddyVgDHduEWXT4P5LjWNZ8FHssg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793306015;
-	h=Received:DKIM-Signature:From:Subject:Date:Message-Id:MIME-Version:
-	 Content-Type:Content-Transfer-Encoding:X-B4-Tracking:X-Change-ID:To:
-	 Cc:X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=17oxeHm4MUFXx8oUnMg2RFZzsT/fdDnqLdZR64DpZFo=;
-	b=mdpw2Fo1nL/Lks+qtKiV15pyR3mA7gdxD73z7Bui7GrLg3oKV3y1HFk0FTVv7o2EDiS1
-	 6lXFuAnkH7I/pwbvcoTXYprM5WHtIMJvwEMQSsTubXzjIUrO07Bgts+q3Uy3Gmlf16OjS
-	 UwLyD1M144xxlCWj+OehrRREzw36yOuVTrOcb1TzBrHmQMwR9d7j8irwGvzA/+SAC195L
-	 u789fNii23zEiTEEMBEuWV6vuqTHIi7m9Esm2tUdBuHHzv3ZHt4JY3MIYzbGEBOSHkMJ8
-	 mscXbelQeGaNsWW7BwnWp1CfgTaKoGVvg/U3lMk3S3DIyvGqxxCxU4fKSPPWyPXLPhg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793306039;
+	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
+	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
+	 X-Mailer:X-Developer-Signature:X-Developer-Key;
+	bh=bDnFHMjA66BoQB8Vxjf4dtq2kXA91I+j2LTsXqWaqtA=;
+	b=nV5r546RYmbLBwuKb/vz5ZsOT/vNcpJ1fFQnJsI1lF8BqEm2C7CSdPpTWxgEU4fhesoe
+	 1zbR1TsXE4tmCL9zLHzWGC3BRCZC5zobpf1qzqZ7XcWEZv3sEQhVUCjNw/AWRk+ynGVtf
+	 DMYKXsoxMQxEoNB5JTNqAR6mAwWKgYM6D7j4mUfF1U0y1ifsJ3Dcm66iYHGE8jsZQ+iVc
+	 6SbhqxZog9teew73XkSQvz1Tp/ZxyIXnnlYoXy7ydLkpVF1iLQEOi4bdvZCwVSPN5JpUu
+	 b61umzo++osarb1RGnofN/9NU8TCpCPoSp6bD0vL+c2k/ImAEiCwFocKXR90Bg6fpjw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CNcaCASB;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=am3XTgpV;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81989606A33F;
-	Thu, 29 Oct 2026 20:33:30 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 82C29606A32A;
+	Thu, 29 Oct 2026 20:33:59 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CNcaCASB
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 37FAB1F01816;
-	Thu, 29 Oct 2026 20:33:15 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=am3XTgpV
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1D4651F01824;
+	Thu, 29 Oct 2026 20:33:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793306010;
-	bh=17oxeHm4MUFXx8oUnMg2RFZzsT/fdDnqLdZR64DpZFo=;
-	h=From:Subject:Date:To:Cc;
-	b=CNcaCASBkr58BkeV5FzL0HNWxoVf1d7Rlajv79gTSCyzTkE8UVWkZWDPi59dKuXSW
-	 tWfLF5byrXEIpUod1i7TmvAQrkDvnZIO8uC3fwEZiU19cxoq6PjqXRCIQUWyYVJMmR
-	 3f3VeRic4DZCtZoT2rZwcT8OKgjKALj4Va6fiVeF0s2liIDTHEUsosMuXu+ebxh9eP
-	 XKtThH4+3G61SbynruUTIxI4Y3GDMDDoOnZXAzDMFS6EXvBjLU74Enzg21lax2P+xB
-	 n3IUmfliGEAzxoPxrHihHpIEGdSLCRYA3KavBEzvEvIu9U1pjyEGX9blFs8OsTZh30
-	 VWwR7B9C577mQ==
+	s=k20260515; t=1793306039;
+	bh=bDnFHMjA66BoQB8Vxjf4dtq2kXA91I+j2LTsXqWaqtA=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc;
+	b=am3XTgpVgHU7w4T2qNJKEWMRK6et1DuqCwcBz+lFGVUX9YclSBZSowWGPpIIV7+IM
+	 tEP5omw5Vzsc76le081/xL21kHFi0mU57Zo/UxYgrjd9vjFBziVfQWssZ6DxVCwwwd
+	 a5vGIMoc9rL00pdWDUba4bp8F+ajymkeQeip9JVHBkhVDQrqaZ0q/WtsV7R6RPztmZ
+	 o3Lqrrj2Hy4L/T8SbZDJ8rfKUMyvKC0VMztk5TIhdV5tescrZ1yrfhQDpQdMB9rocm
+	 /bxf+2RUoBuGOuMzXVjiDrWORAfn+A5CwB/wYWROwZHGu9vWzhfxTvQyxEW3T2w1yW
+	 4Yac9xTxgMYlg==
 From: "David Hildenbrand (Arm)" <david@kernel.org>
-Subject: [PATCH v2 00/47] mm: various (urgent?) fixes
-Date: Thu, 29 Oct 2026 21:32:55 +0100
-Message-Id: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
+Date: Thu, 29 Oct 2026 21:32:57 +0100
+Subject: [PATCH v2 02/47] fork: take mmap_lock before copying mm_struct
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -55,11 +54,9 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-X-B4-Tracking: v=1; b=H4sIAHet42oC/02NQQ6CMBBFr0JmbU1bFNSV9zDEtGUKVdKaKRIN6
- d0tGBOXL/P+mxkiksMIp2IGwslFF3wGuSnA9Mp3yFybGSSXleBSMOteGK8mEDLd2qo8WGW5LCE
- PHoTrNfuX5svxqW9oxqWwGL2LY6D3+m0Si/cL1//hSTDOKlvvNJqj2mt9viN5HLaBOmhSSh9Rf
- FwQtwAAAA==
-X-Change-ID: 20261021-fixes_core-bdf638faf023
+Message-Id: <20261029-fixes_core-v2-2-a64ce7f83abb@kernel.org>
+References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
+In-Reply-To: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, 
  Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, 
  Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
@@ -95,150 +92,134 @@ To: Andrew Morton <akpm@linux-foundation.org>,
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
  kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, 
- Josef Bacik <josef@toxicpanda.com>, stable@vger.kernel.org, 
- Muhammad Usama Anjum <usama.anjum@arm.com>, 
- "David Hildenbrand (Arm)" <david@kernel.org>, 
- Chris Mason <mason@kernel.org>, 
- Thadeu Lima de Souza Cascardo <cascardo@igalia.com>, 
- Mani Tofigh <mt4022@columbia.edu>, Samiullah Khawaja <skhawaja@google.com>
+ stable@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>, 
+ "David Hildenbrand (Arm)" <david@kernel.org>
 X-Mailer: b4 0.16.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=5939; i=david@kernel.org;
- h=from:subject:message-id; bh=cGtcVx8+Zxqn025k2zdD4rFE67pcocOs1hUqk8Z4pYg=;
- b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLIer63lutW86ETmr4pGiRuTg2c/XsmStPHZeYP33AvDX
- z4/yBnO3lHKwiDGwSArpsgSFHzf4OXLdbXVbnzMMHNYmUCGMHBxCsBEzJsZ/nAvcHbjOWt1P8rv
- oLzhlrKSH1esZfhSEm59EAhUYb31vRyoojiz+6yxg2Nj2W/18INnPfMDTe7w3nowg929pVxpsR0
- 3AA==
+X-Developer-Signature: v=1; a=openpgp-sha256; l=3737; i=david@kernel.org;
+ h=from:subject:message-id; bh=xdagUeG+am6KY+4B7movMSkDtyS1Wqo3jrGYGcvuKUc=;
+ b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLIer225Nkv/lfLjom53y+5P53z+3H8sojjThvvT+idNq
+ jkbHhaLdJSyMIhxMMiKKbIEBd83ePlyXW21Gx8zzBxWJpAhDFycAjCRr2cZfrM53Vy4zepghm7H
+ g3RhgbUcrCeYBC7JSO3ie1J8widy9xZGhjmZn/qvLHE9ceaA4JXr89f/6bqY9Ma2s2ZalHXVw1B
+ tTi4A
 X-Developer-Key: i=david@kernel.org; a=openpgp;
  fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-See v1 on details. TL;DR various fixes :)
+dup_mm() copies the parent's mm_struct before dup_mmap() takes the
+mmap_lock. A concurrent brk() can leave the child with a stale mm->brk
+and newer heap mappings, causing later brk() requests to fail.
 
-Thanks to everyone for the review! Hoping I can get some more? :)
+Other operations (e.g., PR_SET_MM) on the parent's mm_struct can similarly
+cause inconsistencies.
 
-I am planning on picking these myself, moving them to linux-next fairly
-soon through mm/core.git.
+As a simple and robust fix, grab the parent's mmap_lock earlier. This
+way we don't need to update individual mm fields in dup_mmap() and
+keep missing ones. Stop updating the 4 existing members (total_vm, data_vm,
+exec_vm, stack_vm), as that is now no longer required.
 
+Keep releasing the parent's mmap_lock in dup_mmap(), before
+userfaultfd completion, to avoid moving the userfaultfd handling into the
+caller. This should get cleaned up later.
+
+Move uprobe_start_dup_mmap() to preserve the lock ordering.
+
+Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
+Cc: stable@vger.kernel.org
+Reported-by: Josef Bacik <josef@toxicpanda.com>
+Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+Reviewed-by: Rik van Riel <riel@surriel.com>
+Reviewed-by: Vlastimil Babka (SUSE) <vbabka@kernel.org>
+Reviewed-by: Barry Song <baohua@kernel.org>
+Reviewed-by: Pedro Falcato <pfalcato@suse.de>
+Reviewed-by: Harry Yoo (Meta) <harry@kernel.org>
+Reviewed-by: Kiryl Shutsemau (Meta) <kas@kernel.org>
+Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 ---
-Changes in v2:
-- "mm/memfd: check for real shmem inodes before accessing shmem state"
- - Call it inode_is_shmem
-- "mm/truncate: look again if a folio left the mapping"
- - Different fix for truncate_inode_pages_range
- - Adjust description
-- "mm/huge_memory: fix zapping migration entries for device-private THPs"
- - Move handling in zap_deposited_table
-- "mm/mmu_gather: fix flushing ranges with 4 GiB or larger"
- - Adjust description"
-- "mm/huge_memory: split huge PUDs when adjusting VMA boundaries"
- - Drop split_pud check
-- Link to v1: https://patch.msgid.link/20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org
+ kernel/fork.c | 20 ++++++++++++++------
+ mm/mmap.c     |  8 +-------
+ mm/nommu.c    |  2 +-
+ 3 files changed, 16 insertions(+), 14 deletions(-)
 
----
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 18b6dd851642..ee40142dab31 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1533,12 +1533,19 @@ static struct mm_struct *dup_mm(struct task_struct *tsk,
+ 	if (!mm)
+ 		goto fail_nomem;
+ 
++	uprobe_start_dup_mmap();
++	if (mmap_write_lock_killable(oldmm)) {
++		free_mm(mm);
++		goto fail_uprobe;
++	}
++
+ 	memcpy(mm, oldmm, sizeof(*mm));
+ 
+-	if (!mm_init(mm, tsk))
+-		goto fail_nomem;
++	if (!mm_init(mm, tsk)) {
++		mmap_write_unlock(oldmm);
++		goto fail_uprobe;
++	}
+ 
+-	uprobe_start_dup_mmap();
+ 	err = dup_mmap(mm, oldmm);
+ 	if (err)
+ 		goto free_pt;
+@@ -1557,9 +1564,10 @@ static struct mm_struct *dup_mm(struct task_struct *tsk,
+ 	mm->binfmt = NULL;
+ 	mm_init_owner(mm, NULL);
+ 	mmput(mm);
+-	if (err)
+-		uprobe_end_dup_mmap();
+-
++	if (!err)
++		return NULL;
++fail_uprobe:
++	uprobe_end_dup_mmap();
+ fail_nomem:
+ 	return NULL;
+ }
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 148ba01c0373..7618e72766a5 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1713,8 +1713,7 @@ __latent_entropy int dup_mmap(struct mm_struct *mm, struct mm_struct *oldmm)
+ 	LIST_HEAD(uf);
+ 	VMA_ITERATOR(vmi, mm, 0);
+ 
+-	if (mmap_write_lock_killable(oldmm))
+-		return -EINTR;
++	mmap_assert_write_locked(oldmm);
+ 	flush_cache_dup_mm(oldmm);
+ 	uprobe_dup_mmap(oldmm, mm);
+ 	/*
+@@ -1725,11 +1724,6 @@ __latent_entropy int dup_mmap(struct mm_struct *mm, struct mm_struct *oldmm)
+ 	/* No ordering required: file already has been exposed. */
+ 	dup_mm_exe_file(mm, oldmm);
+ 
+-	mm->total_vm = oldmm->total_vm;
+-	mm->data_vm = oldmm->data_vm;
+-	mm->exec_vm = oldmm->exec_vm;
+-	mm->stack_vm = oldmm->stack_vm;
+-
+ 	/* Use __mt_dup() to efficiently build an identical maple tree. */
+ 	retval = __mt_dup(&oldmm->mm_mt, &mm->mm_mt, GFP_KERNEL);
+ 	if (unlikely(retval))
+diff --git a/mm/nommu.c b/mm/nommu.c
+index 91ab65afda70..6c6f95329674 100644
+--- a/mm/nommu.c
++++ b/mm/nommu.c
+@@ -1887,7 +1887,7 @@ subsys_initcall(init_admin_reserve);
+ 
+ int dup_mmap(struct mm_struct *mm, struct mm_struct *oldmm)
+ {
+-	mmap_write_lock(oldmm);
++	mmap_assert_write_locked(oldmm);
+ 	dup_mm_exe_file(mm, oldmm);
+ 	mmap_write_unlock(oldmm);
+ 	return 0;
 
-Chris Mason (11):
-      mm/huge_memory: fix truncate racing with PMD zapping
-      mm/huge_memory: fix zapping migration entries for device-private THPs
-      mm/khugepaged: preserve dirty bits when collapsing PTE-mapped THPs
-      mm/gup: fix clearing folios in memfd_pin_folios()
-      mm/gup: fix out-of-bounds write for nr_pages == 0 in GUP-fast
-      mm/mmu_notifier: set ->mm only after mmgrab()
-      mm/memory: reject remote COW faults on PFN mappings
-      mm: fix unkillable fault loop on MAP_DROPPABLE memory
-      mm: fix deadlock of mremap() against UFFDIO_MOVE
-      mm/ksm: check large swap-cache folios before mapping them
-      mm/vma: call ->may_split() before a partial merge
-
-David Hildenbrand (Arm) (20):
-      fork: take mmap_lock before copying mm_struct
-      mm/memfd: check for real shmem inodes before accessing shmem state
-      mm/truncate: look again if a folio left the mapping
-      mm/filemap: finish fault cleanup before dropping the fault lock
-      mm/rmap: handle device-exclusive entries in folio_referenced_one()
-      mm/huge_memory: fix list corruption when deferred_split_scan() races with deferred_split_folio()
-      mm/huge_memory: properly handle refcounted PUD mappings on fork
-      mm/khugepaged: check if PTE table is empty in try_collapse_pte_mapped_thp()
-      mm/gup: recheck the PUD under PTL in follow_pud_mask()
-      mm/gup: check for overflow when converting nr_pages to bytes in GUP-fast
-      mm/userfaultfd: write-lock the VMA before waking waiters when unregistering
-      mm/userfaultfd: wake waiters when registration modes are removed
-      mm/mremap: use pudp_huge_get_and_clear() when moving huge PUDs
-      mm/mremap: recheck PUDs under the page table lock
-      mm/madvise: fix data loss from MADV_FREE on a KSM page
-      mm/ksm: reset the unstable trees of all nodes
-      mm/ksm: fix use of a freed anon_vma at swap-in
-      mm/huge_memory: split huge PUDs when adjusting VMA boundaries
-      mm/vma: don't leak the charge for stack growth
-      mm/memory-tiers: unregister empty tiers outside memory_tier_lock
-
-Gregory Price (1):
-      mm/userfaultfd: compare exact registration modes before skipping
-
-Josef Bacik (14):
-      mm/mglru: don't use stack pointers when walking PUD and PMD tables
-      mm/memfd: make f_pos accesses atomic
-      mm/filemap: read mapping->a_ops->free_folio under i_lock
-      mm/filemap: don't lose a folio lock wakeup to a signal
-      mm/huge_memory: fix livelock on device private folio
-      mm/khugepaged: always recheck the pmd in try_collapse_pte_mapped_thp()
-      mm/khugepaged: fix PMD table lock leak in try_collapse_pte_mapped_thp()
-      mm/userfaultfd: wake all waiters on unregister
-      mm/mmu_gather: fix flushing ranges with 4 GiB or larger
-      mm/mmu_notifier: finish non-blocking interval invalidation on error
-      mm/mremap: fix moving PUD leaves
-      mm/memory_hotplug: avoid races in pfn_to_online_page() with dying pgmap
-      mm: fix unmap_mapping_range() beyond 4 GiB on 32-bit
-      fs/proc/task_mmu: refuse addresses beyond 32 bits on 32bit
-
-Rik van Riel (1):
-      mm/cma: don't release CMA pages still in use
-
- fs/proc/task_mmu.c            |   6 ++
- include/asm-generic/tlb.h     |   3 +-
- include/linux/huge_mm.h       |   5 +-
- include/linux/ksm.h           |   6 +-
- include/linux/memremap.h      |   6 ++
- include/linux/mmu_notifier.h  |   3 +-
- include/linux/shmem_fs.h      |   6 ++
- include/linux/userfaultfd_k.h |   2 -
- kernel/fork.c                 |  20 ++++--
- mm/cma.c                      |  10 ++-
- mm/filemap.c                  |  88 ++++++++++++-------------
- mm/gup.c                      |  53 ++++++++++-----
- mm/huge_memory.c              | 146 +++++++++++++++++++++++++++++++-----------
- mm/hugetlb.c                  |  14 +---
- mm/internal.h                 |  28 ++++++++
- mm/khugepaged.c               |  77 +++++++++++-----------
- mm/ksm.c                      |  56 ++++++++++++----
- mm/madvise.c                  |   9 +++
- mm/memfd.c                    |  10 ++-
- mm/memfd_luo.c                |   2 +-
- mm/memory-tiers.c             |  29 ++++-----
- mm/memory.c                   |  30 ++++++---
- mm/memory_hotplug.c           |  13 ++--
- mm/memremap.c                 |  13 ++++
- mm/mmap.c                     |   8 +--
- mm/mmu_notifier.c             |  24 +++++--
- mm/mremap.c                   | 103 +++++++++++++----------------
- mm/nommu.c                    |   2 +-
- mm/rmap.c                     |  23 +++++--
- mm/shmem.c                    |   5 ++
- mm/swapfile.c                 |   3 +-
- mm/truncate.c                 |  13 +++-
- mm/userfaultfd.c              |  75 ++++++++++------------
- mm/util.c                     |  13 ++++
- mm/vma.c                      |  24 +++++--
- mm/vmscan.c                   |   4 +-
- 36 files changed, 585 insertions(+), 347 deletions(-)
-
----
-
-base-commit: 65ba8f34ec886ec72b2c07ddc8cf3d815c32869d
-
-change-id: 20261021-fixes_core-bdf638faf023
-
---
-
-Cheers,
-
-David
+-- 
+2.43.0
 
