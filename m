@@ -1,48 +1,105 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
-ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793307060;
-	b=XUUxGnC/wfvgqehvoCDU+0FKEzsLHjlyH4oKmdt7GOgKtleerAq2kNlRoi45OC7Zs/Pa
-	 rk0P1fWYnqtySNA8gbeQj5iiBggXIpHK08yXyLBApZ5ZI9hfNeboAOYGtmPzft/UPa/PO
-	 Zh3nQaVvkvoEK2uts3CinTQN2XGxBcCuY20NUwkJofZ+1sEDGONqrjP/MxS7Lvo9pxOMs
-	 hPtiYVvnXrOIC/DXZ4vE7AS8PEXeNKAK8DcfwZVROz1yvtpecpb3BvyE5vQ0BOiKu7IYw
-	 vg11+lWcP2R+IE4Jav6RO0zx5dxp5ku9nabxLc4DDDfZn/Bfowr67fbkxltpKcQYHoA==
-ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793307060;
-	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
-	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
-	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=f99FBG9cmwfw/aEnFPXgwYaEgH0mqzP7LaMxLWErvlM=;
-	b=hj6JeJuXR92R9/CgoeKmh/lECYo5Tw+Cqg2jxyveCzDCdPMZQhBXH6a2sEMCSSQh2QNt
-	 Pi2WJaOA5zCsoSfN3epJoBX7FbNjb1wzKEf4WZ6YjqFLL0YiXZEWTcT2Ymw0rXzvUOJJV
-	 hGsu4NYcjlEYgfs/Vez0J3+2ja6Ywj/L2Yyy9wiexBQ+gixqb2wguUqN9rYNfPqLP/s99
-	 a9wfxhQvqkXmYdeTjDAM7798/RFdM/UnK4IKAapqXXYJhNavKmh0DCsRU64dsxZr3+Uh1
-	 QNdwNuN6gOmGxjnIimhnOlxiMmKxcM+T1OdGFaEPnupaEYvvouRwXLdoJrHBeDUUIDg==
-ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ISvCpW1n;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=74.125.82.182
+ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1793307227;
+	b=YH8UpDcc7sqZXNaxiwn2miItDGnY0MdwO8W4ENi4BRqIObLXAZwMlURoYKxbWGaFz1nW
+	 VTBpWMwKdu2eWARW9stywKKmSygGsIBP+aHsQeVX22SJTixPYV5w1mOvqFqNJBFxedx0s
+	 zaSUmu55xaKgIn47zAH/I8hhsZFEcgnFD3BUvnC0bEtaQmimIiOcUFlzfOKr93TrftgUx
+	 wbBEzyaXscQnDkoNHc/cqHTg506did83Ez315Jx4AiubD+ub2mgsa98nyCpf38O2SG2UC
+	 Gi2fjmDXoxjP1QjubwjwVIForGXEsx5BMnE0FY8h7lDM134EOMGryK+UoP/Kbe30r9g==
+ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793307227;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 From:In-Reply-To:References:MIME-Version:Date:X-Gm-Features:
+	 Message-ID:Subject:To:Cc:Content-Type;
+	bh=+9X2/iX/Lqo173Vwu0EOcoEv3bNJRFgizimBaD4S5Pk=;
+	b=JsL4q2ydfrIL+CC/7JBYwXlYHBjHKuJUVmPa185SRaOe4aoLY1qhhhdo4j8CBoUh8JIn
+	 txxuOfTPfYitwTJFaUi9b6ciruYuQrfTuXlZKBycNb9BhbIxFoiZWlLkw9gKFeDJJPK3D
+	 U6zCduJ+Q4+T6ytPpywsWmSWIasKp19evTOxEE6eGoX2mWd37K/wWNvaf17o44lqVrkga
+	 Dlc8xWoFpqq4X2oMAZvXqoD4FfEaSf5GPuIMWU3+Aepa1Ra0axlZYb1l4ntqDZU01SbK2
+	 7Za6RXt+wDBfV5BuyoHSUDpfI1FG12SfvtrAdkKcaDoiosDzsK0ve/KQZR9mGCiwAyg==
+ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=google.com;
+	spf=pass smtp.mailfrom=google.com;
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=X4ncqWDH;
+	arc=pass header.oldest-pass=0 smtp.remote-ip=74.125.82.182
+Received: from mail-dy1-f182.google.com (mail-dy1-f182.google.com [74.125.82.182])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52920606A339;
-	Thu, 29 Oct 2026 20:51:00 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2004E606A339
+	for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 20:53:46 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2004E606A339
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ISvCpW1n
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D4EBC1F01816;
-	Thu, 29 Oct 2026 20:44:05 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793306660;
-	bh=f99FBG9cmwfw/aEnFPXgwYaEgH0mqzP7LaMxLWErvlM=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=ISvCpW1noMZ/QA9Jr4U4ciYvPBlggN3Z+6JfPPsgt7+DBM//0I+sSMG7BKDe4mOYJ
-	 0LzS18/0vo2MIyIc1gbIO4QitWdoMYUlqgluemT6WVI5mMdz1prqImIRZLHagRYJPl
-	 APjbqHJGcwwUeuXSaijEVSo7Ic8ccUPMCoJrbjRImpYt3b1GIpeOsoLwSbcKWxWMBE
-	 ImzDkrq/DeJ6vMi5OW4WJWRj+jRdW1Nm5Ct5iDGzqfdhTgeO72u6sQV4AW0hawlICs
-	 itcUaU3Clq0Apdq2pQxRfxTHxoFtftXWanHxoliGkrRBX9nEQXTMchpzwz3AWsjlCH
-	 Kcs9Gjc6eZC6w==
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Date: Thu, 29 Oct 2026 21:33:39 +0100
-Subject: [PATCH v2 44/47] mm/vma: don't leak the charge for stack growth
+	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=X4ncqWDH
+Received: by mail-dy1-f182.google.com with SMTP id 5a478bee46e88-33bf40b0c8bso23927eec.0
+        for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 13:53:46 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1793307226; cv=none;
+        d=google.com; s=arc-20260327;
+        b=p1BFVKthfm/C6UCt9kw6nkJ3M7zo5iY290HR5jdDuxZba2ihmviRL8XTgPsx2Ml2cr
+         ojLqAw2/4JEmg3seKWX0NmSc/4wQO2GgnKDLzKOPtcLXxEcuvKOH5YDWmNkVSX6mNTau
+         yhzrGkNbPLgORn24od+dAFo2Bw58NqgYRAzSIa5QSX/gg0AdZ1r+f6ykZG/BZov3Jk2n
+         MY/XJY67Nggi9wjiT2Ei7riA/DYy0wDekK94JJ6123EcFfWHy8FdEtzem7A9WW/Z0cWL
+         ZL02gonKJK1H4UOGRK8gosfsqUydJf6xcSFInv2keoqihGzohWB8onkrBZf5FUK7T/sT
+         7BBg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=cc:to:subject:message-id:date:mime-version:references:in-reply-to
+         :from:dkim-signature;
+        bh=+9X2/iX/Lqo173Vwu0EOcoEv3bNJRFgizimBaD4S5Pk=;
+        fh=iLB8bCZqsIQ9SxuWi+S+ntXUzuD303r7yr6KMQsJrIU=;
+        b=hRaNora3qitVk6L2jrwT2nb7vluddLUP9duyGx2LCetJ/Ic/slcjxA0/lEkfoMpMUJ
+         OCGGM72X7fDr8fVCwGNK12RdMuW93yigTyHTxb2/I1xS3SUW9DsGoSZmJLKeAEK1xji/
+         Hepf+D8WLhH//T75dZhgybU11lh0MyWTc0trqkMsNBd+1Vusk3pjWXse4ajk2xMx4IXz
+         UEF7DY9lSDgIZ0SXPC3LF6JtnvHjvzDiubGCQT7JdxmvYrf5pRD4PoeocncZYMY1yAbJ
+         G4LSMz16yj25nDd5+EEyviUZLmstkC7dxzTpY1gidzuO2P72o7iRCuVDCmREZowJRzpO
+         GkyQ==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20260707; t=1793307226; x=1793912026; darn=vger.kernel.org;
+        h=content-type:cc:to:subject:message-id:date:mime-version:references
+         :in-reply-to:from:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=+9X2/iX/Lqo173Vwu0EOcoEv3bNJRFgizimBaD4S5Pk=;
+        b=X4ncqWDHObARExJNzFicTAgGNShnnQyxHKRK/cw0fjeWbrVpO9dqNdFUtJLaHpfPe3
+         3pQCYs5wPDyyeDRmHh6ZqxApAZowXImXkA1IiV80Wa+vN63OrMv6zHZ38w2Artqhj0kC
+         TU5uAZwV8krucDNHMSBMsftqEv1zyLHEc4T7kkfonRf1QyhSc0K9tIEDxDosPnvHYJtU
+         xrApcK1DGEJ0jC9G46yDslykO/UkCOdwNhIENzzsS6m5+HzjfiU4CekIHstdVmcDr6+w
+         qoB3o1FiEmAOoeBr6eS4J+v8S4/RWAMAqqL+riJw8IsTfV7R0fo/ywFH88iTB5PhjqF0
+         soEw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793307226; x=1793912026;
+        h=content-type:cc:to:subject:message-id:date:mime-version:references
+         :in-reply-to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=+9X2/iX/Lqo173Vwu0EOcoEv3bNJRFgizimBaD4S5Pk=;
+        b=n01cmiX6E5lQa8Q41CGUI4Gj3PjqMoLnUkuyvdc7Flp3TW5/slpbquHU6YTKhpVeKB
+         4a/IlQeYk/n0kfxu2IEAqojWQ8Nt+575F1K53XVtyR28A9pBg4hr6eTcz1na4eJKx1tY
+         isnWaggck5EBhNRxYz1rYAgiloDOBayvYJ1Q5R6E3JP4nJp7CbHGKW+XiKsQN0Q6vMaY
+         GlfsZAFr24nO2ap2azIU0ASmDLGbZjEP9SUAjqK+mo2s2eTWB44bNnP+74+x22K2/D2+
+         oCaM9vFtl/B9Me46/xX5/Rbgf3bdyjg5+w2m2KchIynARG2C+EVFYYUGHy6upFrUaC1N
+         +LAQ==
+X-Forwarded-Encrypted: i=1; AKwUvByjjux0V+xzPpd8xPAcTXX/sPqspOvUgU8Qnhk2aqUF9T9qZm5eDt7RYsPlm+fU172CgBGLjRswq6Ej@vger.kernel.org
+X-Gm-Message-State: AFq9FYKXLb7dP0e9TvCf1ZaNYB9jdsPZ4ttZNfRs/zjCtOBTAcsZKjkK
+	znnY0PsqPH4ssYog7PxUWqP+ToxiXw2qnqs6DVO/LwuhpVdGhmas8o6odyKYiv9dn92UzGFc0Kf
+	Q8/2GjAntzUFZwt3r+6Z+DJ8FYQ+fRJoz7XHg+D/w
+X-Gm-Gg: AYBFou2rTDTM0FZ+PbDCEOPv2OlgB30vkWizaHgix362/ueGcG+M6NrEqsg5Sv/h9k2
+	KwV6tLS/lv02DzUKiHESddGvbWCcalttFA5DUQPrr50BTdPWrPTc5dKFvGhGFBjEUlV6zwUh3Jo
+	aK41K4RUYINy9BLucw8bn1szmhT7MSIi2+Z2XwZoa6H/ngOr3rNXSgyJh1KW37rv9d/YPpVVzp9
+	F7D9mWEwF5Hkp9dl9dISZVLODy02OyJake5F4yqXvrNPgqB6n+c6gcbiAh7HhJ4HjFzRJDzfPWT
+	KKL6lLrUIPaf9IR8sT0k8JpkfmHAPnZKCCosXyuvwAGUnkxEVl+orErFLC75cAUXUz68l3YhO9j
+	Zofpj7BnXG/Felm5uplOhh09yTfJhH8be+/CKSNaRqj88AuiVEh4cmJALKsrU3wwuDOjIbg8kWR
+	S6aYuloX19ZNZUbwPIulCyemE=
+X-Received: by 2002:a05:7022:2522:b0:1a9:c9fe:12c7 with SMTP id
+ a92af1059eb24-1ac5bbb4b85mr358477c88.9.1793307224406; Thu, 29 Oct 2026
+ 13:53:44 -0700 (PDT)
+Received: from 176938342045 named unknown by gmailapi.google.com with
+ HTTPREST; Thu, 29 Oct 2026 13:53:43 -0700
+From: Ackerley Tng <ackerleytng@google.com>
+In-Reply-To: <20261028-fixes_hugetlb-v1-1-a0a033db180f@kernel.org>
+References: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org> <20261028-fixes_hugetlb-v1-1-a0a033db180f@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,93 +109,88 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20261029-fixes_core-v2-44-a64ce7f83abb@kernel.org>
-References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
-In-Reply-To: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, 
- Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, 
- Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
- Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>, 
- Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>, 
- Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
- Baoquan He <baoquan.he@linux.dev>, 
- Baolin Wang <baolin.wang@linux.alibaba.com>, 
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
- Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
- Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>, 
- Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>, 
- Pasha Tatashin <pasha.tatashin@soleen.com>, 
- Pratyush Yadav <pratyush@kernel.org>, 
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
- Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>, 
- Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
- Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
- Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
- Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
- Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>, 
- Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
- Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>, 
- Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>, 
- Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>, 
- Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>, 
- Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>, 
- Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>, 
- Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>, 
- Jason Gunthorpe <jgg@ziepe.ca>
+Date: Thu, 29 Oct 2026 13:53:42 -0700
+X-Gm-Features: AclHuK_vfygndkmig7dtJT75402KjRWCrBeo-qQvow0jlIneeAJCjzWqgPCqOeQ
+Message-ID: <CAEvNRgEY1uNs7F+ZPpcbx4Tgg=9r+f6nYpPsnm7em0+2YMq6cQ@mail.gmail.com>
+Subject: Re: [PATCH 01/15] hugetlbfs: fix integer overflow in fallocate()
+To: "David Hildenbrand (Arm)" <david@kernel.org>, Muchun Song <muchun.song@linux.dev>, 
+	Oscar Salvador <osalvador@suse.de>, Naoya Horiguchi <nao.horiguchi@gmail.com>, 
+	Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, 
+	Andy Whitcroft <apw@canonical.com>, Miaohe Lin <linmiaohe@huawei.com>, Michal Hocko <mhocko@suse.com>, 
+	Rik van Riel <riel@surriel.com>, Hugh Dickins <hughd@google.com>, 
+	Baolin Wang <baolin.wang@linux.alibaba.com>, Vivek Kasireddy <vivek.kasireddy@intel.com>, 
+	Dave Airlie <airlied@redhat.com>, Jason Gunthorpe <jgg@ziepe.ca>, Lorenzo Stoakes <ljs@kernel.org>, 
+	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+	Suren Baghdasaryan <surenb@google.com>, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Randy Dunlap <rdunlap@infradead.org>, 
+	Peter Xu <peterx@redhat.com>, Breno Leitao <leitao@debian.org>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
+	Peter Zijlstra <peterz@infradead.org>, Heiko Carstens <hca@linux.ibm.com>, 
+	Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
+	Christian Borntraeger <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>, 
+	Arnd Bergmann <arnd@arndb.de>
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
- kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
- linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, 
- stable@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>, 
- "David Hildenbrand (Arm)" <david@kernel.org>
-X-Mailer: b4 0.16.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1286; i=david@kernel.org;
- h=from:subject:message-id; bh=o0mheINR978z1uD1ZHGsTx1VSvH13fE2UEr82UlnsHQ=;
- b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLIer+36aHqh4IJVheeK896X0nMzPQ/Pi5JZtIppO0NnM
- HNBz/a2jlIWBjEOBlkxRZag4PsGL1+uq61242OGmcPKBDKEgYtTACYi68XI8EL/YelpBxn2YMEy
- +RgRwdSk2d/+utfpP5UtN9XV+bL/IMP/sMpy4djuF7d6rH8c1XGs5FY9Uao3xdh947d5D4VsGSb
- xAQA=
-X-Developer-Key: i=david@kernel.org; a=openpgp;
- fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
+	Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-s390@vger.kernel.org, luojiajun <luojiajun3@huawei.com>, 
+	Josef Bacik <josef@toxicpanda.com>, stable@kernel.org
+Content-Type: text/plain; charset="UTF-8"
 
-acct_stack_growth() charges stack expansion even without VM_ACCOUNT.
-This can happen for read-only or MAP_NORESERVE mappings created with
-MAP_GROWSDOWN. Unmapping these VMAs does not release the charge, leaking
-Committed_AS.
+"David Hildenbrand (Arm)" <david@kernel.org> writes:
 
-Only check and charge growth for VM_ACCOUNT VMAs, matching mremap().
-Unaccounted growth skips the overcommit check while remaining subject
-to the other stack-growth limits.
+> hugetlbfs_fallocate() rounds the range end up by adding hpage_size - 1
+> to offset + len. vfs_fallocate()'s existing overflow check only makes
+> sure that offset + len does not overflow.
+>
+> Once we overflow for valid endpoints near LLONG_MAX, we can get a
+> negative temporary result that is then converted to a very large
+> huge page index.
+>
+> A one-byte allocation ending at LLONG_MAX can therefore consume all
+> available huge pages. Pages added beyond LLONG_MAX are skipped during
+> inode eviction, leaking them and triggering the BUG_ON() in clear_inode().
+>
+> To fix it, calculate the end index in a simpler way that cannot
+> overflow. This also fixes the signed overflow reported by luojiajun in
+> 2019.
+>
+> Backporting notes: without commit a08c7193e4f18 ("mm/filemap: remove
+> hugetlb special casing in filemap.c"), remove_inode_hugepages() must
+> include the final huge page during truncate and eviction.
+>
+> Reported-by: luojiajun <luojiajun3@huawei.com>
+> Closes: https://lore.kernel.org/all/1554775226-67213-1-git-send-email-luojiajun3@huawei.com/
+> Reported-by: Josef Bacik <josef@toxicpanda.com>
+> Fixes: 70c3547e36f5 ("hugetlbfs: add hugetlbfs_fallocate()")
+> Cc: stable@kernel.org
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> ---
+>  fs/hugetlbfs/inode.c | 8 +++++---
+>  1 file changed, 5 insertions(+), 3 deletions(-)
+>
+> diff --git a/fs/hugetlbfs/inode.c b/fs/hugetlbfs/inode.c
+> index 01c4d6f44ebe..5592cfc6cc8b 100644
+> --- a/fs/hugetlbfs/inode.c
+> +++ b/fs/hugetlbfs/inode.c
+> @@ -721,11 +721,13 @@ static long hugetlbfs_fallocate(struct file *file, int mode, loff_t offset,
+>
+>  	/*
+>  	 * Default preallocate case.
+> -	 * For this range, start is rounded down and end is rounded up
+> -	 * as well as being converted to page offsets.
+> +	 * vfs_fallocate() guarantees that offset + len is positive and does
+> +	 * not overflow. Avoid overflows when calculating the end huge page
+> +	 * index: set it to one past the index of the huge page containing the
+> +	 * last byte.
+>  	 */
+>  	start = offset >> hpage_shift;
+> -	end = (offset + len + hpage_size - 1) >> hpage_shift;
+> +	end = ((offset + len - 1) >> hpage_shift) + 1;
 
-Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
-Cc: stable@vger.kernel.org
-Reported-by: Josef Bacik <josef@toxicpanda.com>
-Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-Reviewed-by: Pedro Falcato <pfalcato@suse.de>
-Reviewed-by: Harry Yoo (Meta) <harry@kernel.org>
-Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
----
- mm/vma.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+Reviewed-by: Ackerley Tng <ackerleytng@google.com>
 
-diff --git a/mm/vma.c b/mm/vma.c
-index acdf00346cda..695d0be85ac8 100644
---- a/mm/vma.c
-+++ b/mm/vma.c
-@@ -3391,7 +3391,8 @@ static int acct_stack_growth(struct vm_area_struct *vma,
- 	 * Overcommit..  This must be the final test, as it will
- 	 * update security statistics.
- 	 */
--	if (security_vm_enough_memory_mm(mm, grow))
-+	if (vma_test(vma, VMA_ACCOUNT_BIT) &&
-+	    security_vm_enough_memory_mm(mm, grow))
- 		return -ENOMEM;
- 
- 	return 0;
-
--- 
-2.43.0
-
+>
+>  	inode_lock(inode);
+>
+>
+> --
+> 2.43.0
