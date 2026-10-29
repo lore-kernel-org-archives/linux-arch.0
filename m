@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793283524;
-	b=Y/sXPjzIA6CwaL0M1RDkjAPMlg/SGB9k0wjNmKb/qG7aQXqLpxcbryEg67spRyr6f6SJ
-	 gPncyvv8nizDQFf4QKdZl8qAYPThQUDh9ybbQEXoJpEceALOQqMMXSZk6nddC9yvl4Qdr
-	 PHoQjCR1fEB3Vw7Q/Hsj8qTgfTCFMYBT//pejfgd1eV+AOqzEEWTZRpIjAr9jd9TKLvAi
-	 7qkxrnbD8kNqhkQyXuBlFHehpj24VtpsWnNSvBx5ifn2w5O/kxE/fLkBVWAzDpixJZCjP
-	 cNg9s4UdcXovChvB/CdW+DYsSopAdEam7Ltl15UoljhvqRindnFpfbe2NIMs3695w4w==
+	t=1793283888;
+	b=wjA+66V56OVCYdpe3hMMkmo9kQass2mSS/1AXe1bX6gLi7B6iHLNL0uxXU10L1bS4y6X
+	 oso/TBvcicSX1AabDvf0Q9pScaAONpDVkFd+e3F7FCCM3qcNUE90uRdt5Hu4YDk/d2MVI
+	 Io4A/3seZWAa23SYAgZgnDE9z1G4pfkTmnWOOELJjh5CNp/RRqqCD3GR8pvYaAz1s1KsY
+	 JLs3Uk+iuuNLnJQsm2V1lKp+nBd1r2TKMZoIxw5u/EuwYvsPzwr63dk3jROPs0Tm+Xjz2
+	 aw3eWkH4wiIkm6L5Xp2qRsAJZGOkvE/zGSB83Ab5Hrl/0SL5Q+OPZA86a+QIuAWQw4w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793283524;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793283888;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=KrmJHHnmWU49kR3EjjGIqe7TD1rMMa5OKGo7QYF6nE0=;
-	b=spp9omB0i/DdeZo8seNH42ck38zuhk1gvK7M+ntk6aCvb4NI+MTimo5ikjZNI6t6o2jM
-	 xvQXv/w4I0wZTb1GaZFfhEuDZ/hFG+E74erSfeiIG7Exw+A5J9FCL1aJvDiUoE7B++RAR
-	 n0aXELP7idlnw/PemyEClGTT7LUKcSfPf6TGaECz/lvebwEsYY4fWvL8sX5CaOVm7SWx4
-	 XH+sjcbxrUvw4kMlSS6wNL5xAkdCJA1nDnZbmZeI14pN+GrneojRggf2X+BMzh+VDHwLX
-	 FjVZai6ljIj8EQRRGOsLvqct/gBPWid4JOy87G+50tRsnOeKcBo4bs6y3lfyRgHbyxw==
+	bh=SxkkcfsluS6d+NVCz2poz3Y5Si8QKMa7Ic0pVGQHkyk=;
+	b=WHtYOVUs97qa4/oDQjl9UDU+6/ardyKGwfeEqVbWCDOZaVGTmX+HOta9+0XiZxq5Gwg3
+	 19nXIL1w3OFfk8jhDxU7/fklxdaZJ10bB27qwaG03TFpIiiPT1CLY05AXD7BUmNc7sPC7
+	 nWq2EGaQEZvfOwX+4oT/LjG6XR8t2eBHcjjeh/WMClc/g1V0LS6YAKTvehyoizZn3LzH9
+	 PakOoFsE6K7/diAdCPPG5nyzF38uDhwmS6P29/FUK/fZyC3/HSyOm5u4keiQ3JHAlzdrR
+	 pFx99P14whaDsCw6SoGtWXicMq2aOuFdpLsKO4Kn7xj9Ky3OYOxPBeuzEJbaum+aytQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XUQVHCdI;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=OteUheN2;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AE38360A2606;
-	Thu, 29 Oct 2026 14:18:43 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A37E8606A31E;
+	Thu, 29 Oct 2026 14:24:47 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XUQVHCdI
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 37A8D1F01825;
-	Thu, 29 Oct 2026 14:18:27 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=OteUheN2
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0FE3F1F01825;
+	Thu, 29 Oct 2026 14:24:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793283523;
-	bh=KrmJHHnmWU49kR3EjjGIqe7TD1rMMa5OKGo7QYF6nE0=;
+	s=k20260515; t=1793283887;
+	bh=SxkkcfsluS6d+NVCz2poz3Y5Si8QKMa7Ic0pVGQHkyk=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=XUQVHCdIXfvmbaph/VA/rxWkBrBMpTWNrTAYGGhlCnhClgHcbmqfLm/eKiQyCpl+W
-	 E3eYifg9BPWiMSDXEftsG6P1erQcEU1cxEqVv7Q65NLTq6sRGvicyug8evlSykwQ1n
-	 N555FxgSSTArXb9eRt1k/+Rr7/gKg542EG3ZHgkCdrsxx5r9mVZUcQFcOovPpa8Tf+
-	 K5DX1M/2E6C5yMjxDhwgcHRNE2N173N/c0Ut2AaVXgOtOHtG0XhsZlbs8t2w98oJlg
-	 Mu1VOIE7670qxMrHyiu6QL0I/NiamJbSsCKr41PrvWSm0g6yo0ne75ilTxt7hUJyj/
-	 vpESVobE2Pi8Q==
-Message-ID: <7fab2115-6c44-43b1-b03b-8ce4a37ffe32@kernel.org>
-Date: Thu, 29 Oct 2026 15:18:23 +0100
+	b=OteUheN2B32bcN/9f5UfOzNiidLI5B9Hm8n+cfKENxQbbyPjAfgEMmAWpOox7ULf9
+	 ADd38P2P44AqXSb4hgJKIJJDlmNn2Apmwre5vkrE6g+eEXgL+CVK/idHVFGO+OtJkn
+	 t6RxcY2eYwnapJ5IuPh/5zax4sVLJj3IEFkePyURCFjWkkAQqrNgdgffbKpO9oqgb/
+	 +PQosj7oDILNllKB6L2+ZbiVwSryf1sa9VQDCaS+zZZUTej5L/1oj3MuBsIRhtR2U2
+	 00APFSv+H7Z5hunV3cf6MkVbD6jPPuCCb27PyQXie7gQ//fYDIyQmQXkEjiGBxEWVY
+	 L3K14QXYNVLzg==
+Message-ID: <9f4128a4-85fc-4f4b-ac41-b9d348f56e37@kernel.org>
+Date: Thu, 29 Oct 2026 15:24:29 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,7 +52,8 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 05/46] mm/truncate: look again if a folio left the mapping
+Subject: Re: [PATCH 42/46] mm/huge_memory: split huge PUDs when adjusting VMA
+ boundaries
 To: Kiryl Shutsemau <kas@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>,
  Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
@@ -87,13 +88,10 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
  linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
  linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-cxl@vger.kernel.org, stable@vger.kernel.org,
- Josef Bacik <josef@toxicpanda.com>
+ linux-cxl@vger.kernel.org, stable@vger.kernel.org
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-5-6f74bec9a5bb@kernel.org>
- <auIniV8YSpA4_oxg@thinkstation>
- <2f2ef336-2186-4f20-b7f5-565e60471bda@kernel.org>
- <auMvYdTd_e9O9kDj@thinkstation>
+ <20261027-fixes_core-v1-42-6f74bec9a5bb@kernel.org>
+ <auMxQPze5cOvGbCe@thinkstation>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -140,46 +138,122 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <auMvYdTd_e9O9kDj@thinkstation>
+In-Reply-To: <auMxQPze5cOvGbCe@thinkstation>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 10/29/26 12:37, Kiryl Shutsemau wrote:
-> On Wed, Oct 28, 2026 at 10:45:34PM +0100, David Hildenbrand (Arm) wrote:
->> My brain hurts, does the above make sense?
+On 10/29/26 12:45, Kiryl Shutsemau wrote:
+> On Tue, Oct 27, 2026 at 12:18:02AM +0100, David Hildenbrand (Arm) wrote:
+>> PFN mappings such as VFIO PCI BAR mappings can use PUD leaves while
+>> allowing VMA splits at page granularity. However, vma_adjust_trans_huge()
+>> only handles PMDs.
+>>
+>> After faulting a writable PUD-sized VFIO BAR mapping, changing its first
+>> page to read-only with mprotect() makes the PMD walk treat the PUD leaf
+>> as a PMD table. Applying MADV_DONTFORK to the first PMD-sized chunk leaves
+>> the PUD spanning two VMAs: the PMD-aligned boundary skips splitting.
+>>
+>> Walk the page tables once at each adjusted boundary and split a huge
+>> PUD or PMD leaf as needed. Handle PUD leaves even when the boundary is
+>> PMD-aligned.
+>>
+>> Fixes: f9e54c3a2f5b7 ("vfio/pci: implement huge_fault support")
+>> Cc: stable@vger.kernel.org
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>> ---
+>>  mm/huge_memory.c | 70 ++++++++++++++++++++++++++++++++++++++++++++++++--------
+>>  1 file changed, 60 insertions(+), 10 deletions(-)
+>>
+>> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+>> index 08e58cda7d37d..d090642ac8c2b 100644
+>> --- a/mm/huge_memory.c
+>> +++ b/mm/huge_memory.c
+>> @@ -3503,16 +3503,66 @@ void split_huge_pmd_address(struct vm_area_struct *vma, unsigned long address,
+>>  	__split_huge_pmd(vma, pmd, address, freeze);
+>>  }
+>>  
+>> -static inline void split_huge_pmd_if_needed(struct vm_area_struct *vma, unsigned long address)
+>> +static bool pud_split_required(const struct vm_area_struct *vma,
+>> +		unsigned long address)
+>>  {
+>> +	if (!IS_ENABLED(CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD))
+>> +		return false;
+>> +	if (IS_ALIGNED(address, HPAGE_PUD_SIZE))
+>> +		return false;
+>>  	/*
+>> -	 * If the new address isn't hpage aligned and it could previously
+>> -	 * contain an hugepage: check if we need to split an huge pmd.
+>> +	 * Only selected VMAs support mapping PUDs for now. Lift the
+>> +	 * restriction once this changes.
+>>  	 */
+>> -	if (!IS_ALIGNED(address, HPAGE_PMD_SIZE) &&
+>> -	    range_in_vma(vma, ALIGN_DOWN(address, HPAGE_PMD_SIZE),
+>> -			 ALIGN(address, HPAGE_PMD_SIZE)))
+>> -		split_huge_pmd_address(vma, address, false);
+>> +	if (!vma_is_dax(vma) && !vma_test_any(vma, VMA_PFNMAP_BIT, VMA_MIXEDMAP_BIT))
+>> +		return false;
+>> +	return range_in_vma(vma, ALIGN_DOWN(address, HPAGE_PUD_SIZE),
+>> +			    ALIGN(address, HPAGE_PUD_SIZE));
+>> +}
+>> +
+>> +static bool pmd_split_required(const struct vm_area_struct *vma,
+>> +		unsigned long address)
+>> +{
+>> +	if (IS_ALIGNED(address, HPAGE_PMD_SIZE))
+>> +		return false;
+>> +
+>> +	return range_in_vma(vma, ALIGN_DOWN(address, HPAGE_PMD_SIZE),
+>> +			    ALIGN(address, HPAGE_PMD_SIZE));
+>> +}
+>> +
+>> +static void split_huge_leaf(struct vm_area_struct *vma,
+>> +		unsigned long address)
+>> +{
+>> +	const bool split_pud = pud_split_required(vma, address);
+>> +	const bool split_pmd = pmd_split_required(vma, address);
+>> +	pgd_t *pgd;
+>> +	p4d_t *p4d;
+>> +	pud_t *pud;
+>> +	pmd_t *pmd;
+>> +
+>> +	/*
+>> +	 * mmap, VMA and rmap write locks protect the walk; the split helpers
+>> +	 * take the page table locks.
+>> +	 */
+>> +	if (!split_pud && !split_pmd)
+>> +		return;
+>> +
+>> +	pgd = pgd_offset(vma->vm_mm, address);
+>> +	if (!pgd_present(*pgd))
+>> +		return;
+>> +
+>> +	p4d = p4d_offset(pgd, address);
+>> +	if (!p4d_present(*p4d))
+>> +		return;
+>> +
+>> +	pud = pud_offset(p4d, address);
+>> +	if (split_pud && pud_leaf(*pud))
+>> +		__split_huge_pud(vma, pud, address);
+>> +	if (!split_pmd || !pud_present(*pud))
+>> +		return;
 > 
-> Yes, I missed that the loop only goes back to start when a lookup
-> comes back empty below end. When the last batch reaches end, it exits
-> without another look. It doesn't need the split either: any punch hole
-> whose last page is in the page cache gets there.
+> This looks wrong.
 > 
-> That exit looks unintended to me. b9a8a4195c7d ("truncate,shmem: Handle
-> truncates that split large folios") turned the "if (start >= end) goto
-> out" early exit into the loop condition. Before it, the loop went back
-> to start until a lookup from start found nothing; Hugh kept that on
-> purpose for hole punch in 792ceaefe621 ("mm/fs: fix pessimization in
-> hole-punching pagecache").
-> 
-> Restoring it is enough, and makes the "restart to make sure all gone"
-> comment true again:
-> 
-> +       if (start >= end)
-> +               return;
-> +
->         index = start;
-> -       while (index < end) {
-> +       for (;;) {
-> 
-> Then a replaced folio is found on the next round, and truncate needs no
-> special case for it.
-> 
+> We should bail out here if PUD is was a leaf and wasn't split.
 
-But that's then another lookup even if not really required?
+__split_huge_pud() must split a leave. Either by zapping it (what we do right
+now) or by populating page tables (as in Usama's PoC).
 
-Why do you thing that is that better?
+We can throw in here a
 
-I agree that the code is simpler, but at least it's consistent with the other
-handling.
+	if (WARN_ON_ONCE(!pud_leaf(pud)))
+		return;
+
+But I don't see how that would be required.
+
+If we run into an un-splittable PUD something else is completely messed up.
+
+(this is not hugetlb code :) )
 
 -- 
 Cheers,
