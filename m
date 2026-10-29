@@ -1,124 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.51
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793285817;
-	b=NFtIlm96aX9OQTxgj+43DONljsUUAzRbxBTcsaLefEHhDjFe8bO2s5a1AykcYDZA28LM
-	 LTycnCWPLcenmTViKkBazJM6HdWbDBKwyVU6c039ZctTbq0j/ToQBAQQXAl8pHEq2NV+x
-	 n1yyIAu7B6OGCnJGuNzNxPNGYMQOMIkqgN8bHTV250bDkT+MZIcjrzsCiGySRftEXzcKP
-	 tFFIyAAr8JVkvPJ/qmIbtoTZvJc7/mDIPxUqIvOW/CI2eTfin8BG9W2eOHeDg4YKSVfFj
-	 Yf2aDjSu4w0jGBcHMCqY06LG/8Dmjqoy4rJ6FTCRKAI69RlyT29zTZaY3beIp+kGu8g==
+	t=1793288164;
+	b=tOvyFntOcj5G9zpknRotD8tHV1wySGcaAIvL8gb1SBZK2L8ufxJqTAyS9BQuppHAqfD9
+	 7NV2wJxJrlt256XPWn7U5Ab9Ch0GvEkZExSCYS8ljm8VxeBReJ6mNvg+YuKlRspBAbO2w
+	 kv9oEoAfPYNo0XWUkLQbNfljt2mnPMn0tK2hVifIDL5H309nLJ8d5qyEVA/oOtaA2Wa9Q
+	 fXCT8d3ylrAEhDPI78fE1pgMSQ8kEkyvVUT7GoyNr4oKNhDhKJJtI4QVVyRYSrd2lAQ+y
+	 JeZmhgxtFWmcKZzZKug393QR3HxmhyjnMWdVQHYTJpGc3VTkmehdy5Cq02jb9U0AZUw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793285817;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:Content-Transfer-Encoding:
-	 In-Reply-To;
-	bh=PiLUJIzj7M85elEEaNM0ojSu5Qbzbb6E3aVU0YwZNoU=;
-	b=0SCoC7H1crYkr4IWyJFRbGFJ/GCRmfP+0J28Hp8ZO90v4+05aonCdSYPV8jYVwHn93ir
-	 ykFOVO38bQSdwnn54XrChJw/phcVk23LYPBCALQTm983hr23vQIQXnEwK1vq++JZBydih
-	 NcXL9TfQjh+41W89Aq1t+KSZmHOFzigs6TZWHyIEF87IQP2kIP5Lg3JA2wW8eLFm9zFVI
-	 zQWX/a9AKuAVFLuinvXVyLsk7DJ2aDU6P7ocg4niTiQM+YXLUQXw1/LLH1i6clrjgoKZj
-	 rFamQxjJdJEB3q58VG8Y64O3ouq2yaluPsnobcyMKAcFY11b7FgMqWg69J/62oc5MTQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793288164;
+	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
+	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
+	 Content-Type:Content-Transfer-Encoding;
+	bh=0MZ+Cdtu8ZetD6MQAGKoqkVifXgXtqYdnKHo/eTOhbs=;
+	b=l5lkuQZsRqk6jjl7lZnCUKcq0m67ndW+1uQwcT2CLhQi4ZkTv2ClvtaNE+7HopG3aNWB
+	 JAbrjskSw6ZeGM8zeFbYKOa8ls6xcl63qYnbWorfj+k/NOfzm59tezNxJ276sfJvgGyQ7
+	 Wnwbro37CLMjfKBMhbFUVUhawR/6MYGREc2AZAh6lSfCb09beQYrMXg+q9APqdHsQ64NG
+	 CoeMKUJeAcaxiPQ0z4Mmg0d2GsObU3nOVMVcEg5xnvsvFrvxKSEFCam20KSFtYoirbyRX
+	 oDIkrheCH9zxzMfE2IyPBpgjf4AXufJnXx08W8XBdSYCzhsDvE48k5lP+YE0ai1+U2w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=suse.com;
-	spf=pass smtp.mailfrom=suse.com;
-	dkim=pass header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b=VBBtzV54;
-	arc=none smtp.remote-ip=209.85.221.51
-Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com [209.85.221.51])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=SvnxR1RE;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1531B606A31C
-	for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 14:56:56 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1531B606A31C
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3280606A31A;
+	Thu, 29 Oct 2026 15:36:03 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b=VBBtzV54
-Received: by mail-wr1-f51.google.com with SMTP id ffacd0b85a97d-48dfdd0678dso1434780f8f.0
-        for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 07:56:55 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1793285814; x=1793890614; darn=vger.kernel.org;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :content-type:mime-version:references:message-id:subject:cc:to:from
-         :date:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=PiLUJIzj7M85elEEaNM0ojSu5Qbzbb6E3aVU0YwZNoU=;
-        b=VBBtzV543IUjp3L3nroXQrlC/QE6S+8gXo6jr4I0eHzp4Q3/fgQ96if7xtxcQ+VqLz
-         s19qARniM3o+7h8g7xtxQPTJw/6p358LWMNXRgqkJIbnJXHxlMrWB7nJPDaF+NKET7mJ
-         0JgVER0btUhOoW8vZ34IN5qvDsQpFvfF6CMOLDdw4Cr5yB+LzHLeARk1o3ukGjmCmDUt
-         kXFNpVftEBMuvndsJvgf76u6usMMe1SZa9+N1Z3DTuOK6veiNZBgg/utXmh9//asLtiU
-         DoqQFHQyI8iPg6OBshBXAjQR+NUPAsqfXG2eCbmRTIiNmqjpPisFlRbuRJxjKj3j8X9p
-         322Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793285814; x=1793890614;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :content-type:mime-version:references:message-id:subject:cc:to:from
-         :date:x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to:content-type;
-        bh=PiLUJIzj7M85elEEaNM0ojSu5Qbzbb6E3aVU0YwZNoU=;
-        b=aKy0JREvnCrBTDNRsZUzxmVd9u3RnsSAgT0PhlPiHthVANykTn8IcGc05ocXWBSfPK
-         421JETXzKc/9aZxqiauhSHbOJ+IhvqT6OgIs6e5RlhoQlwPW1mQitHdZOqgECDP3Jz01
-         oD4CNRGv2QAIwVvCl7mbnl2dtSC8iZjCZzuyIYfUTluQkI/j8k6Z7h8odhswRy46hOVz
-         M4YUrkgG83ozby1zIavkQd3ChF5zBnjmaApzGkuMMaunIRFbKPrFNI1yz9roRW6GgpbA
-         MrbUHAu3ou3QoiuW2KcOMLomjBZQOjydj9K36kwFT2pOb8QNEmqmFKxlq7Azy17toU1S
-         Chwg==
-X-Forwarded-Encrypted: i=1; AKwUvBwXQXJkV3g7tWR61fYCvjSo+tcSkTYZ78ili88/VOUgLUzZ96wq+WRuZT4neu0xjo79RhCeNuuh0nUh@vger.kernel.org
-X-Gm-Message-State: AFq9FYJahXl3vfZrYvNTx/iKoYOxjpZS6UdhNl+ds+bayislZgosvAaU
-	LVvVrBa2FnxrCJGjFnKdxCwXpTvagftXeG+wLSAaZxv4iMcVj4hYcPQ+9Tk82Pj3I1s=
-X-Gm-Gg: AYBFou3tuCAOcb6oseCY6UYDVSJ3PuMR3wII/8s4FnYotzEYDjVXMXUC7TJcfwTxQ3e
-	aIP1deBsCy7Dd/cYov/RnQtr6Xw5NknxMYr1h+BivytFyKVfC//giIy334XZOt8Sj271YoT8Nyx
-	x5anmJ9fQwEIJE/hYNy6iSiZiQrwIxMAxTEyldCR9R3PkSSSI1zACTC/dnYAk6Qd7RV2/wSWz7p
-	2/nBi2p4eWugRHNmEx02VVXATosRk2XkQU6V8A8doc/EQv6wCPqQRX4hvWvFJZbBX6TZupmdlMm
-	GRJBV7bB6CsVSfGNBcd5G3JKMj40s0vIw6NlNm2T/BzyKmYxssPANrAZj/IRx0ad7mJVC7b13UY
-	86SmFSRR7pBYpaRR4ucPGZH32Yj8FAh+eVcqdHqR4i8Vl5tX4MU84rvsnGCZcJEhDUlGKPH58z/
-	Cfpc27rfL4cBHxXbn39pJ+1Ee7GknIh9fybIrHtqddoM4Hx95yiSEypZ4o6C57zWMEtAwCZzMGh
-	QDVlfxv8xQmc61f7vQNsDazBZIKdcQignh6ybMxZy3AKxbIXPWqsxJ6WHnK1hm9nfKMtrFAYKqG
-	g7yxjEBbq/CzKuwgPop0IWCXYYjOo3DOe5Y=
-X-Received: by 2002:a05:6000:290d:b0:48e:6a23:4a09 with SMTP id ffacd0b85a97d-48e6a234a62mr3002384f8f.54.1793285814407;
-        Thu, 29 Oct 2026 07:56:54 -0700 (PDT)
-Received: from pathway (nat2.prg.suse.com. [195.250.132.146])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-48e3ebc39b3sm35816798f8f.10.2026.10.29.07.56.52
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 29 Oct 2026 07:56:53 -0700 (PDT)
-Date: Thu, 29 Oct 2026 15:56:51 +0100
-From: Petr Mladek <pmladek@suse.com>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: jim.cromie@gmail.com, Jason Baron <jbaron@akamai.com>,
-	Shuah Khan <shuah@kernel.org>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Maarten Lankhorst <maarten.lankhorst@linux.intel.com>,
-	Maxime Ripard <mripard@kernel.org>,
-	Thomas Zimmermann <tzimmermann@suse.de>,
-	David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
-	Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
-	Petr Pavlu <petr.pavlu@suse.com>,
-	Daniel Gomez <da.gomez@kernel.org>,
-	Sami Tolvanen <samitolvanen@google.com>,
-	Aaron Tomlin <atomlin@atomlin.com>,
-	Jonathan Corbet <corbet@net.net>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	Nathan Chancellor <nathan@kernel.org>,
-	Nicolas Schier <nsc@kernel.org>,
-	Shuah Khan <skhan@linuxfoundation.org>,
-	Randy Dunlap <rdunlap@infradead.org>,
-	"Rafael J. Wysocki" <rafael@kernel.org>,
-	Pavel Machek <pavel@kernel.org>, Len Brown <lenb@kernel.org>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	John Ogness <john.ogness@linutronix.de>,
-	Sergey Senozhatsky <senozhatsky@chromium.org>,
-	Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>,
-	linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-	dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org,
-	linux-modules@vger.kernel.org, linux-doc@vger.kernel.org,
-	linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org,
-	Philipp Hahn <phahn-oss@avm.de>
-Subject: Re: [PATCH v12 33/40] dyndbg: Ignore additional arguments from pr_fmt
-Message-ID: <auNes2b11NqUey3C@pathway>
-References: <20261012-dd-cmap-part2-clean-v12-0-3c8cc5725def@gmail.com>
- <20261012-dd-cmap-part2-clean-v12-33-3c8cc5725def@gmail.com>
- <as4W9hToBqAvbzJ-@pathway.suse.cz>
- <20261027132253.5f3a461d@pumpkin>
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=SvnxR1RE
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id EBEE31F01824;
+	Thu, 29 Oct 2026 15:35:49 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793288163;
+	bh=0MZ+Cdtu8ZetD6MQAGKoqkVifXgXtqYdnKHo/eTOhbs=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=SvnxR1REqXjogeGPFsmkj46v0mjpHOkSNLkbtpJLKJnBH2R57tcgmfFBLxg3pg+tc
+	 hyT1sCGbf5V9UaG9pEvhmd/4dZjpLb7ssvKXSN0V7KILMB8LcOXEFLy+Is3AkWvyyS
+	 uSMXMe7F5Ryv+os8+r6jBBYCoI2bgM3QV6MI/39SdvciA0pOCwQNuaL5x92OOIZgkI
+	 jYsv8a3nz9ca+51kEv6QxK7fMZmRnlAZUIelKhdKNS2pI48R9iE46PIH/2UXUpYFFp
+	 b7sZoOi9kvVNaM/xMhYaE69JMYiB1hlPi/NKqIFfmvSD0Fzq0an+EX7an9WJEKizxt
+	 w7qkPA0NsvJBg==
+Message-ID: <957fc9ce-1789-41d7-a4cb-66acdf7fcecb@kernel.org>
+Date: Thu, 29 Oct 2026 16:21:54 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -128,113 +51,202 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20261027132253.5f3a461d@pumpkin>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 05/46] mm/truncate: look again if a folio left the mapping
+To: Kiryl Shutsemau <kas@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+ Baoquan He <baoquan.he@linux.dev>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
+ Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Pratyush Yadav <pratyush@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
+ Usama Arif <usama.arif@linux.dev>, Matthew Brost <matthew.brost@intel.com>,
+ John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>,
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
+ linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-cxl@vger.kernel.org, stable@vger.kernel.org,
+ Josef Bacik <josef@toxicpanda.com>
+References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-5-6f74bec9a5bb@kernel.org>
+ <auIniV8YSpA4_oxg@thinkstation>
+ <2f2ef336-2186-4f20-b7f5-565e60471bda@kernel.org>
+ <auMvYdTd_e9O9kDj@thinkstation>
+ <7fab2115-6c44-43b1-b03b-8ce4a37ffe32@kernel.org>
+ <auNaOMYUUpnzCofx@thinkstation>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <auNaOMYUUpnzCofx@thinkstation>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Tue 2026-10-27 13:22:53, David Laight wrote:
-> On Tue, 13 Oct 2026 13:33:10 +0200
-> Petr Mladek <pmladek@suse.com> wrote:
+On 10/29/26 15:38, Kiryl Shutsemau wrote:
+> On Thu, Oct 29, 2026 at 03:18:23PM +0100, David Hildenbrand (Arm) wrote:
+>> On 10/29/26 12:37, Kiryl Shutsemau wrote:
+>>>
+>>> Yes, I missed that the loop only goes back to start when a lookup
+>>> comes back empty below end. When the last batch reaches end, it exits
+>>> without another look. It doesn't need the split either: any punch hole
+>>> whose last page is in the page cache gets there.
+>>>
+>>> That exit looks unintended to me. b9a8a4195c7d ("truncate,shmem: Handle
+>>> truncates that split large folios") turned the "if (start >= end) goto
+>>> out" early exit into the loop condition. Before it, the loop went back
+>>> to start until a lookup from start found nothing; Hugh kept that on
+>>> purpose for hole punch in 792ceaefe621 ("mm/fs: fix pessimization in
+>>> hole-punching pagecache").
+>>>
+>>> Restoring it is enough, and makes the "restart to make sure all gone"
+>>> comment true again:
+>>>
+>>> +       if (start >= end)
+>>> +               return;
+>>> +
+>>>         index = start;
+>>> -       while (index < end) {
+>>> +       for (;;) {
+>>>
+>>> Then a replaced folio is found on the next round, and truncate needs no
+>>> special case for it.
+>>>
+>>
+>> But that's then another lookup even if not really required?
+>>
+>> Why do you thing that is that better?
+>>
+>> I agree that the code is simpler, but at least it's consistent with the other
+>> handling.
 > 
-> > On Mon 2026-10-12 20:37:04, Jim Cromie via B4 Relay wrote:
-> > > From: Philipp Hahn <phahn-oss@avm.de>
-> > > 
-> > > pr_fmt can be used to add a common prefix to any output from a module:
-> > > 	#define pr_fmt(fmt) KBUILD_MODNAME ".%s " fmt, __func__
-> > > 
-> > > But adding additional arguments breaks dynamic debug:  
-> > > > error: macro "DEFINE_DYNAMIC_DEBUG_METADATA_CLS" passed 4 arguments, but takes just 3
-> > > > |         pr_debug_ratelimited("%s", "Hello world!");
-> > > > |                                                  ^
-> > > > note: macro "DEFINE_DYNAMIC_DEBUG_METADATA_CLS" defined here
-> > > > | #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)       \
-> > > > |
-> > > > error: ‘DEFINE_DYNAMIC_DEBUG_METADATA_CLS’ undeclared (first use in this function)
-> > > > |         DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_DFLT, fmt)
-> > > > |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
-> > 
-> > I wonder what this error about undeclared macro means.
-> > 
-> > > > note: in expansion of macro ‘DEFINE_DYNAMIC_DEBUG_METADATA’
-> > > > |         DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, pr_fmt(fmt));         \
-> > > > |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-> > > > note: in expansion of macro ‘pr_debug_ratelimited’
-> > > > |         pr_debug_ratelimited("%s", "Hello world!");
-> > > > |         ^~~~~~~~~~~~~~~~~~~~  
-> > > 
-> > > Add an additional ', ...' to DEFINE_DYNAMIC_DEBUG_METADATA_CLS to slurp
-> > > any additional argument, which `pr_fmt` might add.
-> > > 
-> > > --- a/include/linux/dynamic_debug.h
-> > > +++ b/include/linux/dynamic_debug.h
-> > > @@ -351,7 +351,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
-> > >  		dump_stack();					\
-> > >  }
-> > >  
-> > > -#define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)	\
-> > > +#define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt, ...)	\
-> > >  	static struct _ddebug  __aligned(8)			\
-> > >  	__section("__dyndbg_descs") name = {			\
-> > >  		.modname = KBUILD_MODNAME,			\
-> > > diff --git a/include/linux/printk.h b/include/linux/printk.h
-> > > index f594c1266bfd..5d701952e739 100644
-> > > --- a/include/linux/printk.h
-> > > +++ b/include/linux/printk.h
-> > > @@ -742,7 +742,7 @@ do {									\
-> > >  	static DEFINE_RATELIMIT_STATE(_rs,				\
-> > >  				      DEFAULT_RATELIMIT_INTERVAL,	\
-> > >  				      DEFAULT_RATELIMIT_BURST);		\
-> > > -	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, pr_fmt(fmt));		\
-> > > +	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, fmt);		\  
-> > 
-> > IMHO, this changes the existing behavior. The prefix added by
-> > pr_fmt() will no longer be stored in DEFINE_DYNAMIC_DEBUG_METADATA().
-> > Is this intentional, please?
-> > 
-> > Anyway, if we do not longer pass pr_fmt(fmt) then we should not
-> > need to add "..." into DEFINE_DYNAMIC_DEBUG_METADATA_CLS().
-> > 
-> > By other words, we newly pass just the format "fmt" without the parametes.
-> > The 4th parameter was added by pr_fmt().
-> > 
-> > 
-> > IMHO, the right solution is to keep pr_fmt(fmt) here and extend both
-> > BEFINE_DYNAMIC_DEBUG_METADATA() and
-> > DEFINE_DYNAMIC_DEBUG_METADATA_CLS()
-> > to accept var args. I would expect something like:
-> > 
-> > #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt, ...)	\
-> > ...
-> > 
-> > #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt, ...)		\
-> > 	DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_DFLT, fmt, ##__VA_ARGS__)
-> > 
-> > 
-> > or maybe, we could "eat" the extra parameters in
-> > DEFINE_DYNAMIC_DEBUG_METADATA. It would mean to keep
-> > DEFINE_DYNAMIC_DEBUG_METADATA_CLS() as is and just add the "..." into
-> > DEFINE_DYNAMIC_DEBUG_METADATA(), aka
-> > 
-> > #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt, ...)		\
-> > 	DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_DFLT, fmt)
-> > 
-> > 
-> > Or do I miss something, please?
+> The extra lookup only happens when the second loop had work to do.
+> Normally the first pass removes everything, the first lookup from start
+> comes back empty, and both versions stop there. When the second loop did
+> run to end, it costs one more lookup over a range that is now empty.
 > 
-> Don't think that will work.
-> Won't you end up with ".%s" fmt as the string without the extra argument.
-> So you need to keep the expansion of pr_fmt() together until is is finally
-> substituted into a printf-like call.
-> It is possible to enclose it in () so it is passed as one parameter and
-> remove them on the final expansion.
+> What I like about it is one way to look again instead of two: the loop
+> already goes back to start when the last batch ends below end, and the
+> patch adds a second way for when it ends at end. truncate is not like
+> shmem here: shmem_undo_range() stops after one sweep on hole punch on
+> purpose, so it needs the rewind; truncate was meant to sweep until
+> nothing is left.
+> 
+> Your version fixes the bug too, so I'll leave the choice to you.
+> 
 
-My understanding was that the format is stored in the metadata as is.
-I mean that the string is not formatted in this code path. So that
-the parameter values are or can be ignored. We just need to make
-the compiler happy.
+Can we just do:
 
-But I might miss something.
+diff --git a/mm/truncate.c b/mm/truncate.c
+index 733d2713a875..9e9bf029635c 100644
+--- a/mm/truncate.c
++++ b/mm/truncate.c
+@@ -475,8 +475,11 @@ void truncate_inode_pages_range(struct address_space *mapping,
+ 		}
+ 	}
+ 
++	if (start >= end)
++		return;
++
+ 	index = start;
+-	while (index < end) {
++	while (true) {
+ 		cond_resched();
+ 		if (!find_get_entries(mapping, &index, end - 1, &fbatch,
+ 				indices)) {
+@@ -499,6 +502,7 @@ void truncate_inode_pages_range(struct address_space *mapping,
+ 			folio_lock(folio);
+ 			VM_BUG_ON_FOLIO(!folio_contains(folio, indices[i]), folio);
+ 			folio_wait_writeback(folio);
++			/* Do not handle errors, we'll do another lookup */
+ 			truncate_inode_folio(mapping, folio);
+ 			folio_unlock(folio);
+ 		}
+@@ -760,7 +764,12 @@ int invalidate_inode_pages2_range(struct address_space *mapping,
+ 			folio_lock(folio);
+ 			if (unlikely(folio->mapping != mapping)) {
+ 				folio_unlock(folio);
+-				continue;
++				/*
++				 * Folio might have been replaced: look up
++				 * again.
++				 */
++				index = indices[i];
++				break;
+ 			}
+ 			VM_BUG_ON_FOLIO(!folio_contains(folio, indices[i]), folio);
+ 			folio_wait_writeback(folio);
+-- 
+2.43.0
 
-Best Regards,
-Petr
+
+That would be easier for me to digest than the index <= end thing.
+
+
+-- 
+Cheers,
+
+David
