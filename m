@@ -1,49 +1,49 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793306187;
-	b=JMJS4ePf8g3RGc5IoVijEbKUHxCGvMfxS2sj0CIZAmpbGY17Wa/DpyC/5lMMa4AszbvS
-	 qaOpAbYuOvkyDGESzBrr7VK3cz1hgTXFfuPRNwBsqlgjB2B5K3QFJLe7reXk4h7Fu19ax
-	 emJGEaTdhurJOTqATI1J4vopSOJFTsCq/pABpialN4zMg+8+nqMPnxZKVdoUvFJ6uHhw3
-	 HDxoy2+fmtpi/uzLpvf+Ei13vl8NSLZa80rbUslFuCcBfYUr+GYsk/8ARmxSXIKV4Ayxq
-	 mKh4pRJSwteN+F6S0x2UZf5uI1WQJQcU2a3l+1SMlpvsXIlijsOu2NoUxae6Lf7aylg==
+	t=1793306202;
+	b=d8/7piSsfb4TacxC7qh+zOcwkioSNWqL9z7FMe8lqqlvZdTrcsvEwBFgLxt6QP8aScQF
+	 rYuxYwNe3248RSLjUyWsOeHDZdAOw9K4wlnuceRmgu84g7+sCVS9VjP+u8OlSpKRbrluG
+	 1A34U9Gf5A7mTg8ekQTVHAmMfUZem7ObZSnhjhx0wvQMqHi69e4dCZgJCpQxdz0oh8mPs
+	 b1YmBRhUwxTel4U6gSfbPWNPvuMhnM+P3ltH6j5hA6tZcXLzTUaQYW/e6hDVLITaNNhEu
+	 SCRUauNQS8ok6msJF/riXBscgx2DnRjI6dOQcx9jOxoC2fbzgT82gYj4oXGzxtfndBg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793306187;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793306202;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=qltIiuXU+zlhML5RIS5IOe+lQ29Yj3eoAi87jDTJsc4=;
-	b=L83Hh4xP+7rmQKy4XFinosttChjrA1kecrZlOibueMpx2GwwJUulXZL8xukIu+qDH1rS
-	 QLv+F+VY+KLXcW64GpTFhvlnZLEkpbyVChRgWM5yj/J0KU/2Pfmlw58sANjpzReiFSg1j
-	 mbzI5VQOb65/6yrJ85euvFBbhKV2ZQoQlHQho82Y7JqTOY/faVKpMpakchn4Uft7TJcNj
-	 LXD8y3JY3bJR7ae7az4Hg5F4suYKgRQbHN95TRgt1MvqbK4XsnMv6YjstwBDGzFvV+ova
-	 TRAvY3reCxkyMGvjhyFZOy0Fi9fRPRfNSIiSM+TCsipXuoa3f6b3wBz+wPpVLFgXfAA==
+	bh=q5vK/qK4XuBQrL53cs9TeuLxUrSX2eJpWdLNS5EZvqY=;
+	b=SXJOSmgn6Lr6xB1cvpNJEXOMar1NyjKx2yzhqfRuh/DiBiPFGdo6Hctj+kZ2Hw9O9+ie
+	 w/lbfsLYk43oYIE/41XNIGy3LqygEU0Avx0PKr4dEy/TJlZfZ/yfWOAqZ1NMFzFtgJSS8
+	 cQoIXeiuYA0AmfSKTXiXT3ZY/Trrr6WGd3zhL3uHeQK0+4d/OZc854y+yuZgD/g96MZG4
+	 UxNzd1qNKTal7KAHrg68UBpXQ/uo4T+eC+doJidTz790hiI8BH4ZcqAmm98bQj7f44QMK
+	 tpJhutAuh+9jsvCxHWpC9QS9VchaL7oTfY0pPIE1yHEmXpRfYcf/O+D+yc+Hdz92hsA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=PbsN8DUM;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Wn33W2jS;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 88ABE606A33F;
-	Thu, 29 Oct 2026 20:36:27 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7C2E3606A323;
+	Thu, 29 Oct 2026 20:36:42 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=PbsN8DUM
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7A1151F01825;
-	Thu, 29 Oct 2026 20:36:13 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Wn33W2jS
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B39EF1F01816;
+	Thu, 29 Oct 2026 20:36:27 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793306187;
-	bh=qltIiuXU+zlhML5RIS5IOe+lQ29Yj3eoAi87jDTJsc4=;
+	s=k20260515; t=1793306202;
+	bh=q5vK/qK4XuBQrL53cs9TeuLxUrSX2eJpWdLNS5EZvqY=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=PbsN8DUMZHet0eiaz/YtPnbseBFjT1WXluzzZmPAiGCnwOVZOmGfKM9mh4Hhr8RQL
-	 7YWdZwjM5Y5r6JqhpSIgRiraov8JyP5s3tVFCEdzVv5TXOjLSA1th27MnlnYUVgFgL
-	 sTC1CQ2rinSRaPVNA6+7XHDreBot/Mj62PBOaQUurFuFoTySKorBt6xAL5tvLLjPn7
-	 mhhTElRxbidvb5VwGdMn4KiqZOXsOdHbTTmCNjbgcCnwq18newaSnJDP+nYR6R1cS6
-	 RKvmRadHrc65MZtqR3trGpVjQPff933JBn/tkhEaQ/OjVCubDuvzFbz+wtW8t1s41u
-	 n6zXIzSEWRF7w==
+	b=Wn33W2jSO7FMd6s0f6J+WahGrG50HQ170ETyv6hs47qSO1TwExsP9mS9I9/sBR3+c
+	 7wsvODaM9WxAO5Rc5MJD34QTdFNd4D08AlxQyrVme7gS4+H0uLmPkOVIJZg7RTVfdc
+	 zaLgXKXLjTgdZKdtfmg0AFBGu9Ssc9s+ntFiFxRAjCvlss1/LcmLsBYqtdrqVGlRG0
+	 9CDMyd4sYfaUFqKRB9NscT9OhnDRrKnXImU+vH5BiOtbyQW/e/5qy85Fn5d/9xx7cr
+	 Su1TurTVFKrvkJSSNlOjYBJx5bpNzRnX2gPRMqdkL8WXnfFrlviI2cmvyyjoLIzbjy
+	 7x2DRkHzJkQnw==
 From: "David Hildenbrand (Arm)" <david@kernel.org>
-Date: Thu, 29 Oct 2026 21:33:07 +0100
-Subject: [PATCH v2 12/47] mm/huge_memory: fix livelock on device private
- folio
+Date: Thu, 29 Oct 2026 21:33:08 +0100
+Subject: [PATCH v2 13/47] mm/huge_memory: fix truncate racing with PMD
+ zapping
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -55,7 +55,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261029-fixes_core-v2-12-a64ce7f83abb@kernel.org>
+Message-Id: <20261029-fixes_core-v2-13-a64ce7f83abb@kernel.org>
 References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
 In-Reply-To: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, 
@@ -93,76 +93,72 @@ To: Andrew Morton <akpm@linux-foundation.org>,
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
  kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, 
- Josef Bacik <josef@toxicpanda.com>, 
+ Chris Mason <mason@kernel.org>, stable@vger.kernel.org, 
  "David Hildenbrand (Arm)" <david@kernel.org>
 X-Mailer: b4 0.16.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2251; i=david@kernel.org;
- h=from:subject:message-id; bh=tTSXVaSqYcMlwqAolP5RSmpCZsM2rRJpm1YXsCV5Hb0=;
- b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLIer20905Lzv2PqpDmTOl4ztoqsFfh5lK3YtmudyjV+x
- SV2qq+mdJSyMIhxMMiKKbIEBd83ePlyXW21Gx8zzBxWJpAhDFycAjARzo0M/+y3cLez3TOs/a+7
- 1kfwzeSVL85PeZSotXbB1S1i9enXP1UzMhw/XBApxjFnktgLNZlCZa/Fr75NZQu/Grl5xyH1p24
- +e1gA
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2058; i=david@kernel.org;
+ h=from:subject:message-id; bh=whzXA4Qm4HXSA1pqm4tcjWrVcDozZ04CivHfstsAKVQ=;
+ b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLIer221D+SO8q1Sly3O/b/h+7nDEu/kw7iWNp/nM7Vet
+ HgP39H4jlIWBjEOBlkxRZag4PsGL1+uq61242OGmcPKBDKEgYtTAG6yEMM/UwX358mXle/zSWT1
+ C8a7zAkNVfL6do+z7XPyZJFLRnKKDL+YK/rkNSuXzGoxr93d/TuuL1y5+PQNd8e8cyxz3n6uMeQ
+ BAA==
 X-Developer-Key: i=david@kernel.org; a=openpgp;
  fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-From: Josef Bacik <josef@toxicpanda.com>
+From: Chris Mason <mason@kernel.org>
 
-If do_huge_pmd_device_private() cannot lock the folio, it simply returns
-to try again on the next fault.
+zap_huge_pmd_folio() removes the rmap before calling folio_mark_dirty().
+If this was the last mapping, truncation can skip unmapping the folio
+and proceed without waiting for the PMD lock, racing with dirtying.
 
-Just like we did in commit b570f37a2ce4 ("mm: Fix a hmm_range_fault()
-livelock / starvation problem"), let's wait for the softleaf entry,
-which will drop the PTL and wait until the folio was unlocked. This is
-precisely what we do in do_swap_page() with device-private folios. This
-avoids possibly livelocking.
+ifs_set_range_dirty() can oops if MADV_DONTNEED races with
+ftruncate() on XFS, when we get the folio set dirty after it was found
+to not be mapped anymore.
 
-Update softleaf_entry_wait_on_locked() documentation to clarify that
-device-private entries wait until the folio is unlocked.
+Move folio_mark_dirty() and folio_mark_accessed() before rmap removal,
+matching the PTE zap path. This keeps the folio mapped while updating
+its state, so truncation must wait for the page table lock.
 
-There seems to be no compelling reason to backport this to stable
-kernels unless we actually see problems there.
+Fix generated by an LLM and sent by Chris Mason in private.
 
-Fix generated by an LLM and sent by Josef Bacik in private.
-
-Fixes: 4964099163d0 ("mm/memory/fault: add THP fault handling for zone device private pages")
-Signed-off-by: Josef Bacik <josef@toxicpanda.com>
-[ david: simplify patch description, fixup softleaf_entry_wait_on_locked description]
-Reviewed-by: Zi Yan <ziy@nvidia.com>
-Reviewed-by: Lance Yang <lance.yang@linux.dev>
+Fixes: fe6cf984939d ("mm/huge_memory: transfer the pmd dirty bit to the folio on zap")
+Cc: stable@vger.kernel.org
+Signed-off-by: Chris Mason <mason@kernel.org>
+[ david: simplify comment and description ]
 Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 ---
- mm/filemap.c     | 4 ++--
- mm/huge_memory.c | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ mm/huge_memory.c | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
 
-diff --git a/mm/filemap.c b/mm/filemap.c
-index b04be64a5069..e85a4114d2ec 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -1395,8 +1395,8 @@ static inline int folio_wait_bit_common(struct folio *folio, int bit_nr,
- 
- #ifdef CONFIG_MIGRATION
- /**
-- * softleaf_entry_wait_on_locked - Wait for a migration entry or
-- * device_private entry to be removed.
-+ * softleaf_entry_wait_on_locked - Wait for a migration entry to be removed
-+ * or a device-private folio in a device-private entry to get unlocked.
-  * @entry: migration or device_private swap entry.
-  * @ptl: already locked ptl. This function will drop the lock.
-  *
 diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 283c4bc8b927..2b31a425c7a3 100644
+index 2b31a425c7a3..1d65c4f576f9 100644
 --- a/mm/huge_memory.c
 +++ b/mm/huge_memory.c
-@@ -1500,7 +1500,7 @@ vm_fault_t do_huge_pmd_device_private(struct vm_fault *vmf)
- 		folio_unlock(folio);
- 		folio_put(folio);
+@@ -2495,10 +2495,6 @@ static void zap_huge_pmd_folio(struct mm_struct *mm, struct vm_area_struct *vma,
+ {
+ 	const bool is_device_private = folio_is_device_private(folio);
+ 
+-	/* Present and device private folios are rmappable. */
+-	if (is_present || is_device_private)
+-		folio_remove_rmap_pmd(folio, &folio->page, vma);
+-
+ 	if (folio_test_anon(folio)) {
+ 		add_mm_counter(mm, MM_ANONPAGES, -HPAGE_PMD_NR);
  	} else {
--		spin_unlock(ptl);
-+		softleaf_entry_wait_on_locked(entry, ptl);
+@@ -2512,6 +2508,13 @@ static void zap_huge_pmd_folio(struct mm_struct *mm, struct vm_area_struct *vma,
+ 			folio_mark_accessed(folio);
  	}
  
- 	return ret;
++	/*
++	 * Present and device private folios are rmappable. Remove the
++	 * rmap after transferring young+dirty to the folio.
++	 */
++	if (is_present || is_device_private)
++		folio_remove_rmap_pmd(folio, &folio->page, vma);
++
+ 	/* Device private folios are pinned. */
+ 	if (is_device_private)
+ 		folio_put(folio);
 
 -- 
 2.43.0
