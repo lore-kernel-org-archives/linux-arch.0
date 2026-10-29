@@ -1,79 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=192.198.163.9
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793297407;
-	b=YXZpcfCmFiCAHLUPL8MA/T7UFr2JqK9yqfGCd7pprEDqXbzwiqYNMfKrzn3gprHGpuwS
-	 5SZ9rcaUjoZyQIZgaAN2peR88W6vOQiN9GWsaQCDKVtc5XDnwsae3ThGTZqqKRbTwRC69
-	 9D+4GQpFKIRp+P0rmTi3mN7ADAnicvj29NCvcO/RwG1JSprcBhEcp3W4JWSw4UsIOFQE7
-	 mqvQeI7O9sKI6IFp/zn76Hzt9EvuHGU9gIVxESze3kEQo22kGJm3335QU/plSLZyeJqRi
-	 j4ao2Cv0zfKdyNqUS2JthUkiIPKU3W4Nq0VwZ8x6h6E/hyG4JRkEVuuIhMhHFHvibAg==
+	t=1793306015;
+	b=3wufJ27WXW1OyL8xg7/+4bD5DWM4N1ogg9B8koyl81Rrpy4AnmQ8TZiReR4/vPh2dBsi
+	 et/GzOUKDZSWQ4EplLQ8E44i0Ey7zaG2/zG9lsDo8GuWPimH0CdAirBYrviqF0BYrDBOL
+	 c29H/jQjws8SSobJLn1ftYUHA1a8lUQMDzF1EgwVA1HxGl2IAZSK4n7mQxJXjHUPVPH/f
+	 UmGswV7luedgWQ3ps0BFNBcKOD4Mu6YYBRYqoAnP+ta7CHnZ6q7kXc1qdKvsifVuDn9xA
+	 arxY29Z8sHCNs1uVHL/SvxbeTg8rSz10JRD6LHuFKMYfHC6Xv638KFHQu32P8i5iJjQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793297407;
-	h=DMARC-Filter:DKIM-Signature:X-CSE-ConnectionGUID:X-CSE-MsgGUID:
-	 X-IronPort-AV:X-IronPort-AV:Received:X-CSE-ConnectionGUID:
-	 X-CSE-MsgGUID:X-ExtLoop1:X-IronPort-AV:Received:Received:Date:From:To:
-	 Cc:Subject:Message-ID:User-Agent;
-	bh=lDYV7LC0tPYdhNv6gG0dGxdubaa4fsUXaYUAuaRc2bg=;
-	b=vfT3FnEm24RCBmSHk22CHgUs6oRPe2BeKhsjwaMR87InI1gV3PuOdxoTcSjE6ekulqDn
-	 +DZgd9qK+yBSISAUR1wAm8yIefz9728O9no7w53U78Ljuz9NjsQdGJy6sOeen59gMCyar
-	 ckUZWAPyjEYjMZ3MNSpuGawJljOLXWDRQfnQF8QOUE3c5RPE9GlCLBcV+u28S/b3I+XW/
-	 OtCGYWH4kZ7cZWlyussHpSC5sbPwh3UA3AoCopu+tsr0aJw/IOC7NWOggcANKrHVuiRSO
-	 BguYGFx3Xf7PC0guh/OlPtEeapnLMYHC3fiYnqp05VemS7eHt2IUzrhXHBCVGc1cJxA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793306015;
+	h=Received:DKIM-Signature:From:Subject:Date:Message-Id:MIME-Version:
+	 Content-Type:Content-Transfer-Encoding:X-B4-Tracking:X-Change-ID:To:
+	 Cc:X-Mailer:X-Developer-Signature:X-Developer-Key;
+	bh=17oxeHm4MUFXx8oUnMg2RFZzsT/fdDnqLdZR64DpZFo=;
+	b=mdpw2Fo1nL/Lks+qtKiV15pyR3mA7gdxD73z7Bui7GrLg3oKV3y1HFk0FTVv7o2EDiS1
+	 6lXFuAnkH7I/pwbvcoTXYprM5WHtIMJvwEMQSsTubXzjIUrO07Bgts+q3Uy3Gmlf16OjS
+	 UwLyD1M144xxlCWj+OehrRREzw36yOuVTrOcb1TzBrHmQMwR9d7j8irwGvzA/+SAC195L
+	 u789fNii23zEiTEEMBEuWV6vuqTHIi7m9Esm2tUdBuHHzv3ZHt4JY3MIYzbGEBOSHkMJ8
+	 mscXbelQeGaNsWW7BwnWp1CfgTaKoGVvg/U3lMk3S3DIyvGqxxCxU4fKSPPWyPXLPhg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=intel.com;
-	spf=pass smtp.mailfrom=intel.com;
-	dkim=pass header.d=intel.com header.i=@intel.com header.a=rsa-sha256 header.s=Intel header.b=XxR3ZcCR;
-	arc=none smtp.remote-ip=192.198.163.9
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.9])
-	(using TLSv1.2 with cipher ECDHE-ECDSA-AES256-GCM-SHA384 (256/256 bits))
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CNcaCASB;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 54A4960A5BE9
-	for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 18:10:06 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 54A4960A5BE9
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81989606A33F;
+	Thu, 29 Oct 2026 20:33:30 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=intel.com header.i=@intel.com header.a=rsa-sha256 header.s=Intel header.b=XxR3ZcCR
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1793297406; x=1824833406;
-  h=date:from:to:cc:subject:message-id;
-  bh=Sau3PHBG4aHlid8FgOjQIUInhQe+UkWmTSWeDemng5k=;
-  b=XxR3ZcCRgUOD2xKiU77OpJx99/3VOVpXYp8iNG+FEw6qlTd7CJgR0L9R
-   8FLPt3RXwDapSpv0Mg0xliFbrtbke/ImDe0VVxY89H4MJzzXziDIZpyvY
-   7R+POTt/sh06lSmeyvhW3spnhP2KqNUpBtiYBQgJoA7e0RPqDfCb99KjK
-   hf3cw0xERKnSsjNhxQWJhq19MZXJLbGZMimmwT3LQ0UXLdu2uQUVXB+2k
-   rdmgD2UaW8KCcSLsvwFgflXCTZUKQajf+J53/bKZjasnQsEy64A1GlVpv
-   zak86nBTib+XwtM+VqnFfdgN861dfknrAw+TAXqHe5TQRBiWqm2PFnXrL
-   w==;
-X-CSE-ConnectionGUID: whPcScqwTC+NoFu7fcUIDA==
-X-CSE-MsgGUID: TEnFXGZbRFSZDd4OotWJrA==
-X-IronPort-AV: E=McAfee;i="6800,10657,11950"; a="1935827"
-X-IronPort-AV: E=Sophos;i="6.27,184,1787036400"; 
-   d="scan'208";a="1935827"
-Received: from orviesa006.jf.intel.com ([10.64.159.146])
-  by fmvoesa103.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Oct 2026 11:10:05 -0700
-X-CSE-ConnectionGUID: gRX8wnPdSAq4lxqGreJO+Q==
-X-CSE-MsgGUID: nZFgO8HmTXa20/gX7TQeVQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.27,184,1787036400"; 
-   d="scan'208";a="5311507"
-Received: from igk-lkp-server01.igk.intel.com (HELO 58ca8a381a5c) ([10.211.93.152])
-  by orviesa006.jf.intel.com with ESMTP; 29 Oct 2026 11:10:04 -0700
-Received: from kbuild by 58ca8a381a5c with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1xMUZd-000000005J5-2RO7;
-	Thu, 29 Oct 2026 18:10:01 +0000
-Date: Thu, 29 Oct 2026 19:09:58 +0100
-From: kernel test robot <lkp@intel.com>
-To: Thomas Huth <thuth@redhat.com>
-Cc: oe-kbuild-all@lists.linux.dev, linux-arch@vger.kernel.org,
- Arnd Bergmann <arnd@arndb.de>
-Subject: [arnd-asm-generic:asm-generic 15/15]
- /usr/aarch64-linux-gnu/include/linux/types.h:12: Error: unknown mnemonic
- `typedef' -- `typedef __signed__ __int128 __s128
- __attribute__((aligned(16)))'
-Message-ID: <202610291918.kHO0GTDB-lkp@intel.com>
-User-Agent: s-nail v14.9.25
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CNcaCASB
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 37FAB1F01816;
+	Thu, 29 Oct 2026 20:33:15 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793306010;
+	bh=17oxeHm4MUFXx8oUnMg2RFZzsT/fdDnqLdZR64DpZFo=;
+	h=From:Subject:Date:To:Cc;
+	b=CNcaCASBkr58BkeV5FzL0HNWxoVf1d7Rlajv79gTSCyzTkE8UVWkZWDPi59dKuXSW
+	 tWfLF5byrXEIpUod1i7TmvAQrkDvnZIO8uC3fwEZiU19cxoq6PjqXRCIQUWyYVJMmR
+	 3f3VeRic4DZCtZoT2rZwcT8OKgjKALj4Va6fiVeF0s2liIDTHEUsosMuXu+ebxh9eP
+	 XKtThH4+3G61SbynruUTIxI4Y3GDMDDoOnZXAzDMFS6EXvBjLU74Enzg21lax2P+xB
+	 n3IUmfliGEAzxoPxrHihHpIEGdSLCRYA3KavBEzvEvIu9U1pjyEGX9blFs8OsTZh30
+	 VWwR7B9C577mQ==
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Subject: [PATCH v2 00/47] mm: various (urgent?) fixes
+Date: Thu, 29 Oct 2026 21:32:55 +0100
+Message-Id: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -82,133 +52,193 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAHet42oC/02NQQ6CMBBFr0JmbU1bFNSV9zDEtGUKVdKaKRIN6
+ d0tGBOXL/P+mxkiksMIp2IGwslFF3wGuSnA9Mp3yFybGSSXleBSMOteGK8mEDLd2qo8WGW5LCE
+ PHoTrNfuX5svxqW9oxqWwGL2LY6D3+m0Si/cL1//hSTDOKlvvNJqj2mt9viN5HLaBOmhSSh9Rf
+ FwQtwAAAA==
+X-Change-ID: 20261021-fixes_core-bdf638faf023
+To: Andrew Morton <akpm@linux-foundation.org>, 
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, 
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>, 
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>, 
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>, 
+ Baoquan He <baoquan.he@linux.dev>, 
+ Baolin Wang <baolin.wang@linux.alibaba.com>, 
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+ Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
+ Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>, 
+ Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>, 
+ Pasha Tatashin <pasha.tatashin@soleen.com>, 
+ Pratyush Yadav <pratyush@kernel.org>, 
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>, 
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>, 
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>, 
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
+ Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
+ Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>, 
+ Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>, 
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
+ Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>, 
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>, 
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>, 
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>, 
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>, 
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>, 
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>, 
+ Jason Gunthorpe <jgg@ziepe.ca>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+ kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
+ linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, 
+ Josef Bacik <josef@toxicpanda.com>, stable@vger.kernel.org, 
+ Muhammad Usama Anjum <usama.anjum@arm.com>, 
+ "David Hildenbrand (Arm)" <david@kernel.org>, 
+ Chris Mason <mason@kernel.org>, 
+ Thadeu Lima de Souza Cascardo <cascardo@igalia.com>, 
+ Mani Tofigh <mt4022@columbia.edu>, Samiullah Khawaja <skhawaja@google.com>
+X-Mailer: b4 0.16.0
+X-Developer-Signature: v=1; a=openpgp-sha256; l=5939; i=david@kernel.org;
+ h=from:subject:message-id; bh=cGtcVx8+Zxqn025k2zdD4rFE67pcocOs1hUqk8Z4pYg=;
+ b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLIer63lutW86ETmr4pGiRuTg2c/XsmStPHZeYP33AvDX
+ z4/yBnO3lHKwiDGwSArpsgSFHzf4OXLdbXVbnzMMHNYmUCGMHBxCsBEzJsZ/nAvcHbjOWt1P8rv
+ oLzhlrKSH1esZfhSEm59EAhUYb31vRyoojiz+6yxg2Nj2W/18INnPfMDTe7w3nowg929pVxpsR0
+ 3AA==
+X-Developer-Key: i=david@kernel.org; a=openpgp;
+ fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git asm-generic
-head:   dd7cc8c26b6a37a54adc5ce38d286521b7201044
-commit: dd7cc8c26b6a37a54adc5ce38d286521b7201044 [15/15] treewide: Stop defining __ASSEMBLY__ for assembler files
-config: arm64-allnoconfig-bpf (https://download.01.org/0day-ci/archive/20261029/202610291918.kHO0GTDB-lkp@intel.com/config)
-compiler: aarch64-linux-gnu-gcc (Debian 14.2.0-19) 14.2.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20261029/202610291918.kHO0GTDB-lkp@intel.com/reproduce)
+See v1 on details. TL;DR various fixes :)
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202610291918.kHO0GTDB-lkp@intel.com/
+Thanks to everyone for the review! Hoping I can get some more? :)
 
-Note: the arnd-asm-generic/asm-generic HEAD dd7cc8c26b6a37a54adc5ce38d286521b7201044 builds fine.
-      It only hurts bisectability.
+I am planning on picking these myself, moving them to linux-next fairly
+soon through mm/core.git.
 
-All errors (new ones prefixed by >>):
+---
+Changes in v2:
+- "mm/memfd: check for real shmem inodes before accessing shmem state"
+ - Call it inode_is_shmem
+- "mm/truncate: look again if a folio left the mapping"
+ - Different fix for truncate_inode_pages_range
+ - Adjust description
+- "mm/huge_memory: fix zapping migration entries for device-private THPs"
+ - Move handling in zap_deposited_table
+- "mm/mmu_gather: fix flushing ranges with 4 GiB or larger"
+ - Adjust description"
+- "mm/huge_memory: split huge PUDs when adjusting VMA boundaries"
+ - Drop split_pud check
+- Link to v1: https://patch.msgid.link/20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org
 
-   /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h: Assembler messages:
->> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:20: Error: unknown mnemonic `typedef' -- `typedef __signed__ char __s8'
->> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:21: Error: unknown mnemonic `typedef' -- `typedef unsigned char __u8'
->> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:23: Error: unknown mnemonic `typedef' -- `typedef __signed__ short __s16'
->> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:24: Error: unknown mnemonic `typedef' -- `typedef unsigned short __u16'
->> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:26: Error: unknown mnemonic `typedef' -- `typedef __signed__ int __s32'
->> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:27: Error: unknown mnemonic `typedef' -- `typedef unsigned int __u32'
->> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:30: Error: unknown mnemonic `__extension__' -- `__extension__ typedef __signed__ long long __s64'
->> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:31: Error: unknown mnemonic `__extension__' -- `__extension__ typedef unsigned long long __u64'
->> /usr/aarch64-linux-gnu/include/linux/posix_types.h:25: Error: unknown mnemonic `typedef' -- `typedef struct{'
->> /usr/aarch64-linux-gnu/include/linux/posix_types.h:26: Error: unknown mnemonic `unsigned' -- `unsigned long fds_bits[1024/(8*sizeof(long))]'
->> /usr/aarch64-linux-gnu/include/linux/posix_types.h:27: Error: junk at end of line, first unrecognized character is `}'
->> /usr/aarch64-linux-gnu/include/linux/posix_types.h:30: Error: unknown mnemonic `typedef' -- `typedef void(*__kernel_sighandler_t)(int)'
->> /usr/aarch64-linux-gnu/include/linux/posix_types.h:33: Error: unknown mnemonic `typedef' -- `typedef int __kernel_key_t'
->> /usr/aarch64-linux-gnu/include/linux/posix_types.h:34: Error: unknown mnemonic `typedef' -- `typedef int __kernel_mqd_t'
->> /usr/aarch64-linux-gnu/include/asm/posix_types.h:5: Error: unknown mnemonic `typedef' -- `typedef unsigned short __kernel_old_uid_t'
->> /usr/aarch64-linux-gnu/include/asm/posix_types.h:6: Error: unknown mnemonic `typedef' -- `typedef unsigned short __kernel_old_gid_t'
->> /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:15: Error: unknown mnemonic `typedef' -- `typedef long __kernel_long_t'
->> /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:16: Error: unknown mnemonic `typedef' -- `typedef unsigned long __kernel_ulong_t'
->> /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:20: Error: unknown mnemonic `typedef' -- `typedef __kernel_ulong_t __kernel_ino_t'
->> /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:24: Error: unknown mnemonic `typedef' -- `typedef unsigned int __kernel_mode_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:28: Error: unknown mnemonic `typedef' -- `typedef int __kernel_pid_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:32: Error: unknown mnemonic `typedef' -- `typedef int __kernel_ipc_pid_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:36: Error: unknown mnemonic `typedef' -- `typedef unsigned int __kernel_uid_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:37: Error: unknown mnemonic `typedef' -- `typedef unsigned int __kernel_gid_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:41: Error: unknown mnemonic `typedef' -- `typedef __kernel_long_t __kernel_suseconds_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:45: Error: unknown mnemonic `typedef' -- `typedef int __kernel_daddr_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:49: Error: unknown mnemonic `typedef' -- `typedef unsigned int __kernel_uid32_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:50: Error: unknown mnemonic `typedef' -- `typedef unsigned int __kernel_gid32_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:59: Error: unknown mnemonic `typedef' -- `typedef unsigned int __kernel_old_dev_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:72: Error: unknown mnemonic `typedef' -- `typedef __kernel_ulong_t __kernel_size_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:73: Error: unknown mnemonic `typedef' -- `typedef __kernel_long_t __kernel_ssize_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:74: Error: unknown mnemonic `typedef' -- `typedef __kernel_long_t __kernel_ptrdiff_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:79: Error: unknown mnemonic `typedef' -- `typedef struct{'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:80: Error: unknown mnemonic `int' -- `int val[2]'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:81: Error: junk at end of line, first unrecognized character is `}'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:87: Error: unknown mnemonic `typedef' -- `typedef __kernel_long_t __kernel_off_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:88: Error: unknown mnemonic `typedef' -- `typedef long long __kernel_loff_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:89: Error: unknown mnemonic `typedef' -- `typedef __kernel_long_t __kernel_old_time_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:90: Error: unknown mnemonic `typedef' -- `typedef __kernel_long_t __kernel_time_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:91: Error: unknown mnemonic `typedef' -- `typedef long long __kernel_time64_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:92: Error: unknown mnemonic `typedef' -- `typedef __kernel_long_t __kernel_clock_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:93: Error: unknown mnemonic `typedef' -- `typedef int __kernel_timer_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:94: Error: unknown mnemonic `typedef' -- `typedef int __kernel_clockid_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:95: Error: unknown mnemonic `typedef' -- `typedef char*__kernel_caddr_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:96: Error: unknown mnemonic `typedef' -- `typedef unsigned short __kernel_uid16_t'
-   /usr/aarch64-linux-gnu/include/asm-generic/posix_types.h:97: Error: unknown mnemonic `typedef' -- `typedef unsigned short __kernel_gid16_t'
-   /usr/aarch64-linux-gnu/include/linux/types.h:12: Error: unknown mnemonic `typedef' -- `typedef __signed__ __int128 __s128 __attribute__((aligned(16)))'
-   /usr/aarch64-linux-gnu/include/linux/types.h:13: Error: unknown mnemonic `typedef' -- `typedef unsigned __int128 __u128 __attribute__((aligned(16)))'
-   /usr/aarch64-linux-gnu/include/linux/types.h:31: Error: unknown mnemonic `typedef' -- `typedef __u16 __le16'
-   /usr/aarch64-linux-gnu/include/linux/types.h:32: Error: unknown mnemonic `typedef' -- `typedef __u16 __be16'
-   /usr/aarch64-linux-gnu/include/linux/types.h:33: Error: unknown mnemonic `typedef' -- `typedef __u32 __le32'
-   /usr/aarch64-linux-gnu/include/linux/types.h:34: Error: unknown mnemonic `typedef' -- `typedef __u32 __be32'
-   /usr/aarch64-linux-gnu/include/linux/types.h:35: Error: unknown mnemonic `typedef' -- `typedef __u64 __le64'
-   /usr/aarch64-linux-gnu/include/linux/types.h:36: Error: unknown mnemonic `typedef' -- `typedef __u64 __be64'
-   /usr/aarch64-linux-gnu/include/linux/types.h:38: Error: unknown mnemonic `typedef' -- `typedef __u16 __sum16'
-   /usr/aarch64-linux-gnu/include/linux/types.h:39: Error: unknown mnemonic `typedef' -- `typedef __u32 __wsum'
-   /usr/aarch64-linux-gnu/include/linux/types.h:55: Error: unknown mnemonic `typedef' -- `typedef unsigned __poll_t'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:88: Error: unknown mnemonic `struct' -- `struct user_pt_regs{'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:89: Error: unknown mnemonic `__u64' -- `__u64 regs[31]'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:90: Error: unknown mnemonic `__u64' -- `__u64 sp'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:91: Error: unknown mnemonic `__u64' -- `__u64 pc'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:92: Error: unknown mnemonic `__u64' -- `__u64 pstate'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:93: Error: junk at end of line, first unrecognized character is `}'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:95: Error: unknown mnemonic `struct' -- `struct user_fpsimd_state{'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:96: Error: unknown mnemonic `__uint128_t' -- `__uint128_t vregs[32]'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:97: Error: unknown mnemonic `__u32' -- `__u32 fpsr'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:98: Error: unknown mnemonic `__u32' -- `__u32 fpcr'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:99: Error: unknown mnemonic `__u32' -- `__u32 __reserved[2]'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:100: Error: junk at end of line, first unrecognized character is `}'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:102: Error: unknown mnemonic `struct' -- `struct user_hwdebug_state{'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:103: Error: unknown mnemonic `__u32' -- `__u32 dbg_info'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:104: Error: unknown mnemonic `__u32' -- `__u32 pad'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:105: Error: unknown mnemonic `struct' -- `struct {'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:106: Error: unknown mnemonic `__u64' -- `__u64 addr'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:107: Error: unknown mnemonic `__u32' -- `__u32 ctrl'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:108: Error: unknown mnemonic `__u32' -- `__u32 pad'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:109: Error: junk at end of line, first unrecognized character is `}'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:110: Error: junk at end of line, first unrecognized character is `}'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:114: Error: unknown mnemonic `struct' -- `struct user_sve_header{'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:115: Error: unknown mnemonic `__u32' -- `__u32 size'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:116: Error: unknown mnemonic `__u32' -- `__u32 max_size'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:117: Error: unknown mnemonic `__u16' -- `__u16 vl'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:118: Error: unknown mnemonic `__u16' -- `__u16 max_vl'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:119: Error: unknown mnemonic `__u16' -- `__u16 flags'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:120: Error: unknown mnemonic `__u16' -- `__u16 __reserved'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:121: Error: junk at end of line, first unrecognized character is `}'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:253: Error: unknown mnemonic `struct' -- `struct user_pac_mask{'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:254: Error: unknown mnemonic `__u64' -- `__u64 data_mask'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:255: Error: unknown mnemonic `__u64' -- `__u64 insn_mask'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:256: Error: junk at end of line, first unrecognized character is `}'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:260: Error: unknown mnemonic `struct' -- `struct user_pac_address_keys{'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:261: Error: unknown mnemonic `__uint128_t' -- `__uint128_t apiakey'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:262: Error: unknown mnemonic `__uint128_t' -- `__uint128_t apibkey'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:263: Error: unknown mnemonic `__uint128_t' -- `__uint128_t apdakey'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:264: Error: unknown mnemonic `__uint128_t' -- `__uint128_t apdbkey'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:265: Error: junk at end of line, first unrecognized character is `}'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:267: Error: unknown mnemonic `struct' -- `struct user_pac_generic_keys{'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:268: Error: unknown mnemonic `__uint128_t' -- `__uint128_t apgakey'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:269: Error: junk at end of line, first unrecognized character is `}'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:273: Error: unknown mnemonic `struct' -- `struct user_za_header{'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:274: Error: unknown mnemonic `__u32' -- `__u32 size'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:275: Error: unknown mnemonic `__u32' -- `__u32 max_size'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:276: Error: unknown mnemonic `__u16' -- `__u16 vl'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:277: Error: unknown mnemonic `__u16' -- `__u16 max_vl'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:278: Error: unknown mnemonic `__u16' -- `__u16 flags'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:279: Error: unknown mnemonic `__u16' -- `__u16 __reserved'
-   /usr/aarch64-linux-gnu/include/asm/ptrace.h:280: Error: junk at end of line, first unrecognized character is `}'
+---
+
+Chris Mason (11):
+      mm/huge_memory: fix truncate racing with PMD zapping
+      mm/huge_memory: fix zapping migration entries for device-private THPs
+      mm/khugepaged: preserve dirty bits when collapsing PTE-mapped THPs
+      mm/gup: fix clearing folios in memfd_pin_folios()
+      mm/gup: fix out-of-bounds write for nr_pages == 0 in GUP-fast
+      mm/mmu_notifier: set ->mm only after mmgrab()
+      mm/memory: reject remote COW faults on PFN mappings
+      mm: fix unkillable fault loop on MAP_DROPPABLE memory
+      mm: fix deadlock of mremap() against UFFDIO_MOVE
+      mm/ksm: check large swap-cache folios before mapping them
+      mm/vma: call ->may_split() before a partial merge
+
+David Hildenbrand (Arm) (20):
+      fork: take mmap_lock before copying mm_struct
+      mm/memfd: check for real shmem inodes before accessing shmem state
+      mm/truncate: look again if a folio left the mapping
+      mm/filemap: finish fault cleanup before dropping the fault lock
+      mm/rmap: handle device-exclusive entries in folio_referenced_one()
+      mm/huge_memory: fix list corruption when deferred_split_scan() races with deferred_split_folio()
+      mm/huge_memory: properly handle refcounted PUD mappings on fork
+      mm/khugepaged: check if PTE table is empty in try_collapse_pte_mapped_thp()
+      mm/gup: recheck the PUD under PTL in follow_pud_mask()
+      mm/gup: check for overflow when converting nr_pages to bytes in GUP-fast
+      mm/userfaultfd: write-lock the VMA before waking waiters when unregistering
+      mm/userfaultfd: wake waiters when registration modes are removed
+      mm/mremap: use pudp_huge_get_and_clear() when moving huge PUDs
+      mm/mremap: recheck PUDs under the page table lock
+      mm/madvise: fix data loss from MADV_FREE on a KSM page
+      mm/ksm: reset the unstable trees of all nodes
+      mm/ksm: fix use of a freed anon_vma at swap-in
+      mm/huge_memory: split huge PUDs when adjusting VMA boundaries
+      mm/vma: don't leak the charge for stack growth
+      mm/memory-tiers: unregister empty tiers outside memory_tier_lock
+
+Gregory Price (1):
+      mm/userfaultfd: compare exact registration modes before skipping
+
+Josef Bacik (14):
+      mm/mglru: don't use stack pointers when walking PUD and PMD tables
+      mm/memfd: make f_pos accesses atomic
+      mm/filemap: read mapping->a_ops->free_folio under i_lock
+      mm/filemap: don't lose a folio lock wakeup to a signal
+      mm/huge_memory: fix livelock on device private folio
+      mm/khugepaged: always recheck the pmd in try_collapse_pte_mapped_thp()
+      mm/khugepaged: fix PMD table lock leak in try_collapse_pte_mapped_thp()
+      mm/userfaultfd: wake all waiters on unregister
+      mm/mmu_gather: fix flushing ranges with 4 GiB or larger
+      mm/mmu_notifier: finish non-blocking interval invalidation on error
+      mm/mremap: fix moving PUD leaves
+      mm/memory_hotplug: avoid races in pfn_to_online_page() with dying pgmap
+      mm: fix unmap_mapping_range() beyond 4 GiB on 32-bit
+      fs/proc/task_mmu: refuse addresses beyond 32 bits on 32bit
+
+Rik van Riel (1):
+      mm/cma: don't release CMA pages still in use
+
+ fs/proc/task_mmu.c            |   6 ++
+ include/asm-generic/tlb.h     |   3 +-
+ include/linux/huge_mm.h       |   5 +-
+ include/linux/ksm.h           |   6 +-
+ include/linux/memremap.h      |   6 ++
+ include/linux/mmu_notifier.h  |   3 +-
+ include/linux/shmem_fs.h      |   6 ++
+ include/linux/userfaultfd_k.h |   2 -
+ kernel/fork.c                 |  20 ++++--
+ mm/cma.c                      |  10 ++-
+ mm/filemap.c                  |  88 ++++++++++++-------------
+ mm/gup.c                      |  53 ++++++++++-----
+ mm/huge_memory.c              | 146 +++++++++++++++++++++++++++++++-----------
+ mm/hugetlb.c                  |  14 +---
+ mm/internal.h                 |  28 ++++++++
+ mm/khugepaged.c               |  77 +++++++++++-----------
+ mm/ksm.c                      |  56 ++++++++++++----
+ mm/madvise.c                  |   9 +++
+ mm/memfd.c                    |  10 ++-
+ mm/memfd_luo.c                |   2 +-
+ mm/memory-tiers.c             |  29 ++++-----
+ mm/memory.c                   |  30 ++++++---
+ mm/memory_hotplug.c           |  13 ++--
+ mm/memremap.c                 |  13 ++++
+ mm/mmap.c                     |   8 +--
+ mm/mmu_notifier.c             |  24 +++++--
+ mm/mremap.c                   | 103 +++++++++++++----------------
+ mm/nommu.c                    |   2 +-
+ mm/rmap.c                     |  23 +++++--
+ mm/shmem.c                    |   5 ++
+ mm/swapfile.c                 |   3 +-
+ mm/truncate.c                 |  13 +++-
+ mm/userfaultfd.c              |  75 ++++++++++------------
+ mm/util.c                     |  13 ++++
+ mm/vma.c                      |  24 +++++--
+ mm/vmscan.c                   |   4 +-
+ 36 files changed, 585 insertions(+), 347 deletions(-)
+
+---
+
+base-commit: 65ba8f34ec886ec72b2c07ddc8cf3d815c32869d
+
+change-id: 20261021-fixes_core-bdf638faf023
 
 --
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+
+Cheers,
+
+David
+
