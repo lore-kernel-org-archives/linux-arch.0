@@ -1,84 +1,84 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.208.48
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.208.52
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793236833;
-	b=XcIx7jZPa2Oan0oTvy/nwU5za72IENwKwiMwoMFLuBpAstMOhlM7QEiO3ybc5PYdDo1c
-	 qBFgpFRr9ZkSahfCZRLUIcMgOjEgiPMpXaOwyGuA2+12PY88DYE4yX+r9h9gIS7T9FwU7
-	 HSliJSQ5QxXnGrso25fpkODUGqdS5OzyU00RlwOeYviRQGsdZHB8BbGLDEqx3gPjTeQ2q
-	 Xnheeakrab4xRvyb2Hm8xsfZu6cVU9iVbvRpb5whSMf/2GAFyA1cExmvHajQy9AGkjBmQ
-	 7NyrCiqnpblepovG9T4zrlu9xqZ3ykqEtz8y5uLZ2TgWaDdcFAnHw2Yh8fzd9btxDXw==
+	t=1793237119;
+	b=0LEwdF6ODG9nameEgKzMwQFEjwPpNMv+jHOb2eTIGIFd3CStdv3UZfiupjxu7Auo/aAU
+	 0mMk9Q8OAufrDAxbx/O2h1fOBa4p9rLyiz0T+dszUOKdqzdkCGI8nghSxxYR8V0fooQBG
+	 bST2ksnAPXjR726/iiZYbtDgTZnCjjoxJyb10D2YSAu1jWFpqEWwU90PJWNLzDew3HpXn
+	 8dXsbtu2ABqmX5n6+rJ+9ifOiEs7XHXTZ7Z4I/SYagvvP7sXS1oy085NFdgdQ4HGXYR45
+	 cB725Qw1c6khPzT0jw6mwis46YBhlE4qiSNzywgoB++esjfW/ioYQJ9HRr38unRl2Sg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793236833;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793237119;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Subject:From:To:
 	 Cc:In-Reply-To:References:Date:Message-Id:X-Mailer;
-	bh=TWYN3MXkVQTFS4ykvP4ULAqrY98K2LtbRow9MYNtF9g=;
-	b=ibwvV7Pd6BYhIDQb0LcJNX0CjhXAczqlFdTumA3ILeHTCmzPXd5iv8DSRbTGtzbpvk3r
-	 JyCqE3UhphPLuN4gKjotINwzpB224jb9gZQKzx68u21hxX7L9Y7iwPhFj01PGcZdJwieO
-	 xCFX5DnNdwcIC8ZccGRdnAXt5c3rkKGvjcybQpWy0nafpg/dfjLn1c3usBog2PeAG0Qrf
-	 AKPRRoRje2DxyMnxIJZZOX3l105ozMBwFdpG5IIJqFs9fB1VMcUvcur7ogREuYAX8Z3fa
-	 d9JK1XwvAWZgZqXbUzcOD07MkssCu20nKO+RpCo4wDRotM598rwiVu2qFNm8ef0CBGg==
+	bh=M/AMFbjA9JAsBdCFWz1LANgAn0knNna+7jo0zCTOlPs=;
+	b=fKZdWgyeycayf4Z6WP98KEAKCnh58aOMHis5p9ejXzT2mDmu1+LAtPeiCwBvikMdhBQr
+	 ekNHAK5d3PxsZjLwZ0n8FR4A8+/Al8adwPSF5RHGU0z5Zs5fw8Jehfed2UdcTUZnDzrX+
+	 lEBhqZ0S6g0F1uMuoWcnovCHujt1B2wvHvudElJ+GY8RGK0L/cBtetMtICU2s5AFzbcEe
+	 lWbx4ArdCeGuUiMLq1mRjnzNSGBpEdX7oGEpigytDWh9krE1eoL3TAvhgQL6EUvnBEnke
+	 SiYWerwkbxdDF5R4wGcyu2Ai9co9mRgfSZj39cwDsB3JN2vHw/1K7vRBa1X/q3Hq2ag==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=none header.from=gourry.net;
 	spf=pass smtp.mailfrom=gourry.net;
-	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b="X0XY/GAi";
-	arc=none smtp.remote-ip=209.85.208.48
-Received: from mail-ed1-f48.google.com (mail-ed1-f48.google.com [209.85.208.48])
+	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b="dKbXebD/";
+	arc=none smtp.remote-ip=209.85.208.52
+Received: from mail-ed1-f52.google.com (mail-ed1-f52.google.com [209.85.208.52])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1DF68606A320
-	for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 01:20:31 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1DF68606A320
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 50C31606A31E
+	for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 01:25:18 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 50C31606A31E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=X0XY/GAi
-Received: by mail-ed1-f48.google.com with SMTP id 4fb4d7f45d1cf-6b1f31c63ebso421271a12.0
-        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 18:20:31 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=dKbXebD/
+Received: by mail-ed1-f52.google.com with SMTP id 4fb4d7f45d1cf-6af9a9451daso1919040a12.0
+        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2026 18:25:17 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gourry.net; s=google; t=1793236830; x=1793841630; darn=vger.kernel.org;
+        d=gourry.net; s=google; t=1793237116; x=1793841916; darn=vger.kernel.org;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:from:to:cc
          :subject:date:message-id:reply-to:content-type;
-        bh=TWYN3MXkVQTFS4ykvP4ULAqrY98K2LtbRow9MYNtF9g=;
-        b=X0XY/GAiMek/vFbkNlCS++xCJPhcJpRxEM4fx1Ljjv6aCGTfMX2iHg06Cuvz3jbJ3x
-         Q0dDwGr1BIBMf5kqCtqsb5bfcPFaFZlUqEnSi6skik2W1J4zJ5GeZ5elYQvrlDRe91e/
-         CP3Ywj3kmY6/6N/XufcgSAxLlc+irLxiHwNEWl3k5M1t7aKrd+VArviVR+LRPwX+IZPm
-         GpA3SbXg+reoCoke8l+SC4GaT3nXvce2SqP/adtt8ITzlbRj4F9bRx8OgSUJIJiobyeZ
-         u80Of7gLVfSgCHHisozRXuwKcVBjIh2eid1AKfwHBlqSo1BxKhOy27h+nd0r4z6VpL4i
-         tJBQ==
+        bh=M/AMFbjA9JAsBdCFWz1LANgAn0knNna+7jo0zCTOlPs=;
+        b=dKbXebD/Kz5RrzY9zIOX2TAzQyje12YXIX6BEU97N+70d743t4+zz64N2BY5+vNE13
+         OXwYaxTZ8oKtLdTdYLTPLMEE9F2vNcrT6kyP1tf7Dmn7p57PYo4L9nBNQi/FudpFnR5b
+         +XsB6boiBflVvOvMlOCFZPeFRZ3pFDdtuteDN4sen0mZmPK04Ov/NfQLal5Uyd6StLF8
+         cEfUIMmY6v7kY0hK+enA+FF2fuBz2L0KEZLz2nWtzyW1/w7YOEkUsRVd5gRiHIE9jeJ1
+         qP9Ufy5IhnamVXBXfMLGbEV+GTT/Rs1ck7iCVEv930CoSEkO80891Tu1LkvjM4F9UygK
+         4/lQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793236830; x=1793841630;
+        d=1e100.net; s=20260707; t=1793237116; x=1793841916;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=TWYN3MXkVQTFS4ykvP4ULAqrY98K2LtbRow9MYNtF9g=;
-        b=oXl4Hl33oRPkB3oVoXmhtN6NIDTXpYYiHMafXD08b24Ip1wusGw3Ag5p/NX0n+ydY4
-         ARQm9Xj3b03XqRXodhH1F91FqBy4KasXBZkhBRE+p6cFEQFS2tC+Xm+fNm/hoNADqu68
-         YrESJUUKRzPTzobvRceTvvORSf1NrteaEclklklDpnpd6DSGqk8Hcwzd7l0iDEG8JB6G
-         I4nuP4W2G+3dJWzjlCVCAZGR4pJYFfKVvDSisvJqMynqFfsoUkoPdIFUDlf4UNy3qJ8k
-         xxkurDWWcU08ZrdZIGBWOuUgb5Vr9EcDaRX7k5ZYuzIuoGln2p6mFVNknjmjW898mLR4
-         lb0A==
-X-Forwarded-Encrypted: i=1; AKwUvBzusyi63nRf4t8qYsI0TuJLK768FUHqkaNaj2uWTkM8T1tPXrateCxmSpd/otv0B2jAFSj6gM5HhNeE@vger.kernel.org
-X-Gm-Message-State: AFq9FYKsKN6Uo9SB44pYWdC6iaO0vQnaBB8ncaYlMnd188Imfk6L4ugD
-	JQGs9rV0HTyARq3cbS2gDA2MdJjqFCbKO7od69eI2/nbQvs8w4GyWRrYdBj3Fsm+eII=
-X-Gm-Gg: AYBFou2050Gp5cCU+pRdsxV8Kl0zFMix0lemO6EqiJ/5P2XFi8PjIzBex6FRIc5vimA
-	hVQ0R4OKtHU71OYJyy1hZhNkET0oC9Qdb2L6DlH3xIkB+eLfE6Hq/9i927HE9Op2QiStlx4qkhw
-	knilQL5W+dE8eUhL5eQNBa0Xqd7ZfDfKM+fgXO7OLMgnHA+v4slw453EaHVNISxRU8zBYqgBlCe
-	TrXmPgPNOL47/suHoEnhYZcYvJr2l7+mJvUs4V4T6Tivnj53Ze3eL2sSM4uQluyQweuyAHLHw9m
-	chcXGLrWyQaaFqvLClafl+SBN+eKEOetQ4XfFSvsItahg5iHu6XTV0rel7/H9Zu8LJre7fklWtF
-	q0w3VJZ/ysvdWGFRcuVAWlsip1Iakshbaa4oUIXXgXb8N9FMMQU0FZAgVcMFilQkvNPnqz+NuJ9
-	hl5xkbEEL7ByVmnuAptvl1qu98+gcMSxhO1cRlw9HZg/Iqq2QMWoYwoWj3ZM1oEkL9N14DsSjpt
-	7eCIH58/SyRxhNDemRQJSiXZLuNlj2omIi/CecwOQtK+I9uss+dpsDBeyRNRDVw3HbXx0f9vNt7
-	LzxdtccKe4BzV/6n4YmW
-X-Received: by 2002:a05:6402:c507:10b0:6b4:8d8e:c5c9 with SMTP id 4fb4d7f45d1cf-6b4b0b82678mr569270a12.4.1793236830233;
-        Wed, 28 Oct 2026 18:20:30 -0700 (PDT)
-Received: from localhost ([2a03:2880:32ff:72::])
-        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-c46bd649f69sm671275666b.43.2026.10.28.18.20.28
+        bh=M/AMFbjA9JAsBdCFWz1LANgAn0knNna+7jo0zCTOlPs=;
+        b=ZFAeX3k5Mz/j5FzJizB0Lk0b5IbOl+iLart4FDizLQrXdmqK3tD1xFTFKEbB7dJ4Fm
+         1q+VpRozF1oIktSdgrd3TKtbGYQE8gPP4iBogvjJ8gVvtU/k+4t4tPWg8OnVQfFyyNT3
+         tXlmfZWMiP2YuawU+AH4+2Oob6SBAP1+s9kiQTMx58WaY/f4mkXsGtVdS+Y31OwHZMaj
+         Ocp4s/S51HlHAutJ2+bPOThvyXpiunEZeKNfKq/abPB3iogxXOfjPtEO0p/Qp1ssU2Bt
+         QRI8qLrDxlfS+aJkEr039/Hd+JkExVbD9L7GKu89Zv2jR9yaMfAIYPTL654EAU9x4c0f
+         60ag==
+X-Forwarded-Encrypted: i=1; AKwUvBx2n+yUxIXLiIWfdVBZvJm9nbnZkOC2dGCv23UiIFhyVT1TTfR+kzMvl4eUxxeXxxnTTzjFRvqhAFdr@vger.kernel.org
+X-Gm-Message-State: AFq9FYIhJgTt5jA3zo6D3xrl5SnGwhv27sqWYIqjSrtLrAAE1aKRksOd
+	5nvLwdcGI4c7yXmkUe6s3QjCeGd8F6mkFhg/ESM3pPEZXq2M74mGTL/vaEox50SinmY=
+X-Gm-Gg: AYBFou0TwgiqkI658ZD05mMJ+f2u5Ucv7Y81DJSgtQw/cfT36mDwpyJeRom/cMKcd9j
+	45j4nG/EAO0B+6jB5ffeaW2QDy/GqFRGA829V2GJbWxo35zVLzjycUuAalFv0jPPVbh+UkMYZ67
+	qYVzJtDZqJPFxc1gZunufHNl2vqe081wVhgctjBqkX6TquExhe3zd5NfMOssn32EvYmwu4gDUyG
+	Fp1TPe5QW197N/rmNMv+EMcL1LS0uRJ9ywFBIclwR152qsTJYlNhhfBDB20WIOA17d9ROlN10Ej
+	p90zCEfLjuto4lyigmnM3ddpDnvXWnuESbpHQ3H35FfxJXsY3BqmawfJ4LGecrVo5o54fu5dAy0
+	aXpUYNTzNu9fq4Vjc+x9oS9gDU6ZDI7qXbiOEOhs/oJaVgXs5Ette+fdJ9FxVVrDqmhXgsWIEpV
+	f7J99c4+E8ywdJEJSP9F+ltjnAfV3FXFpC1TmWXL2EKUwIYqcmU0jqw2gwnee6nRWKyuGT2GFJ5
+	hvEDdP1mdiOoLt9R53AtGBL7FkFy+5p6dmeiqxG+cKsuvUtFJXPcR2vJkYB0RExeqdgJo3fV5ZL
+	Jr9mkSM0hbT6Ul1qACM47W0nDcMB7Lfcq2xRHQ70iw==
+X-Received: by 2002:a05:6402:234a:b0:6b4:7b28:8588 with SMTP id 4fb4d7f45d1cf-6b49cb5a33dmr2836967a12.2.1793237116591;
+        Wed, 28 Oct 2026 18:25:16 -0700 (PDT)
+Received: from localhost ([2a03:2880:32ff:7d::])
+        by smtp.gmail.com with ESMTPSA id 4fb4d7f45d1cf-6b49644bcd7sm2122970a12.33.2026.10.28.18.25.13
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 28 Oct 2026 18:20:29 -0700 (PDT)
+        Wed, 28 Oct 2026 18:25:15 -0700 (PDT)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -90,7 +90,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH 15/46] mm/khugepaged: always recheck the pmd in
+Subject: Re: [PATCH 16/46] mm/khugepaged: fix PMD table lock leak in
  try_collapse_pte_mapped_thp()
 From: Gregory Price <gourry@gourry.net>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
@@ -130,31 +130,35 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, 
  linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>, 
  stable@vger.kernel.org
-In-Reply-To: <20261027-fixes_core-v1-15-6f74bec9a5bb@kernel.org>
+In-Reply-To: <20261027-fixes_core-v1-16-6f74bec9a5bb@kernel.org>
 References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-15-6f74bec9a5bb@kernel.org>
-Date: Wed, 28 Oct 2026 18:20:27 -0700
-Message-Id: <179323682749.453251.17316394789253085295.b4-reply@b4>
+ <20261027-fixes_core-v1-16-6f74bec9a5bb@kernel.org>
+Date: Wed, 28 Oct 2026 18:25:13 -0700
+Message-Id: <179323711320.453251.11778195785979033843.b4-reply@b4>
 X-Mailer: b4 0.17-dev
 
 On 2026-10-27 00:17 +0100, David Hildenbrand (Arm) wrote:
 > From: Josef Bacik <josef@toxicpanda.com>
 > 
-> try_collapse_pte_mapped_thp() drops the PTE lock after it has cleared the
-> page table, and takes the PMD lock and the PTE lock to remove it.
+> For a private mapping with userfaultfd, try_collapse_pte_mapped_thp()
+> takes the PMD table lock before it maps the page table for the second time.
+> If that (pte_offset_map_rw_nolock) fails, because the page table vanished
+> in the meantime due to concurrent page table reclaim, it leaves through
+> the abort label, where the PMD table lock is unlocked if it differs from
+> PTE table lock.
 > 
-> In between, MADV_DONTNEED with CONFIG_PT_RECLAIM can reclaim the
-> page table. The pmd_same() check is supposed to handle this, but it is
-> only done with CONFIG_SPLIT_PTE_PTLOCKS.
+> In case the PMD table lock and the PTE table lock match, which is the
+> case without CONFIG_SPLIT_PTE_PTLOCKS after pte_offset_map_rw_nolock()
+> failed, we miss to unlock the PMD table.
 > 
-> Fix it by performing the check unconditionally.
+> To fix it, forget the PTE table lock when we unmap+unlock the PTE table.
 > 
 > Fix generated by an LLM and sent by Josef Bacik in private.
 > 
 > Fixes: 6375e95f381e ("mm: pgtable: reclaim empty PTE page in madvise(MADV_DONTNEED)")
 > Cc: stable@vger.kernel.org
 > Signed-off-by: Josef Bacik <josef@toxicpanda.com>
-> [ david: adjust description ]
+> [ david: move the ptl = NULL handling; rewrite description, drop wrong comments ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
 Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
