@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793271790;
-	b=MvD0i7Zy2c94r6uMksEFoClz5e+reMeAOnGz0uJuyPQu7EWMpAqnXPOVy2Ib7UcFMui8
-	 0J/6CogwAOPOIPWFJUTA5ha0l6lCLsUlwJemvmob1hNZV6qjS2jjPH1Pz+j3z9d9H4ucP
-	 UQ+Ukv19za2Q17b7RH6mhb0FPYutXzTNnRN4C9ssNrGIhrVrzHp1YGIESmc/5MT7SqTCq
-	 H1naNUwfI1eIr6cIS/oLQvDroU7FhboIDcPwqRweXqQPhBSLE8W3hvqwrN8wmzPFR+FH0
-	 PwAOAta/KEonjKa844PHUvNCCVYKhxTnDtK34YqAc6g7LD0GecAg5u/2vKrgeTjmLOQ==
+	t=1793271984;
+	b=yZIT+7TgahsnlY58KxOAqIdun/gFrtOlmKpZw9fz942N4HyeZCRjNVrDwl5k9ghzuwYa
+	 OI4xNFQ/MGG8O5MYOgCAvqKK/etDe2CuJALzH9iKuyb2A9x8HdKEkOqE+36/t7S8yipnA
+	 sS2J2FpiiR7GWVu0JNwF7lFNpz4zhhHd5cUBkdTY5os4YDIwjE1uK8VPyM5064uwHz2VI
+	 vLulbdk7qtF/TXNAM7NmYQUi3OZnxUOCTqarW0A0fNFBUfNxwmGWvUsbc1K5hFXRDLPL8
+	 Zu9dUdUyZlnHqa1OuM1GRpLnDdHB8Hmwzi0VkKsViybsXWPgE3QHeIQkjkiqB6xmDQw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793271790;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793271984;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=MN2H/Sd0YoWD7yOsUu+/3nrXR4+HLFAIs61hYMcDiRg=;
-	b=OJ3GqVpZbsOE1J0Neu1voLsZyGKQimhLwfDPGhMZG4Y51r+r41JyWNNhL1GyzPdehS9q
-	 kHI2vCpbQBba9sitBRWaB+n4sUjR5E+Jrs05o8gSo15/2ScNdQai5XaSNjzsngsrREO2B
-	 UxZKJiNl//LidcRerLQFPctw0ukicdkKsvAZ6ncC3S8I3FMhHq1OAZtG+PlS4i7Ko4oA1
-	 q+PIV+ZUHD2/nvpTSL5Ra4IyZz0SJU4YYdbSCXKg/OvMsXr1lX6YTn+8IarrM4RLdA2Sk
-	 aozpPkYxKBkCREShYSHihpKLcNPRRQDBZXQE67wEi2uj899QxanJ4zxp8W3aUhbDyLw==
+	bh=G4SI2MOIEpxP5HU3ERLaWsdHJtIDnixVPHVu+nHUwyQ=;
+	b=Wfa79Lz9DPXXqsj6EQ+eKjLT3T0vdM9rpfn8KYUtyohsCWhnEjX4v7PA0OUqHrI51P4i
+	 1REsFPxFCG2lG75OK7a9bs8avZhuMfPSgnH9MZCSwnttNRHLydIiFDsoAAbU2rlgcXmNC
+	 4U8P7Dpiq+API41EWmIRouTIexvF3Qix00Nm4I7a/ULoyzVCZR1nuiL6DJzAotmH6LfFy
+	 kJ7npsv2dEZ0iePpEm+FJLaX21DLdjx/SxxsrbUaYd32T8Kw6suuvBTBUvGUG5xQvOfN7
+	 1F0Rw0aE9+EOcsf7NadSvhZxZWfUaw7ZjoymuawtKhik1Nl32RwWPAcU1AOB6yT/JFQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=kraS3KWc;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DG5qlG+6;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D7F2C606A31A;
-	Thu, 29 Oct 2026 11:03:09 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D335606A31A;
+	Thu, 29 Oct 2026 11:06:23 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=kraS3KWc
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E871A1F01825;
-	Thu, 29 Oct 2026 11:02:51 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DG5qlG+6
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7D77C1F01825;
+	Thu, 29 Oct 2026 11:06:06 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793271789;
-	bh=MN2H/Sd0YoWD7yOsUu+/3nrXR4+HLFAIs61hYMcDiRg=;
+	s=k20260515; t=1793271983;
+	bh=G4SI2MOIEpxP5HU3ERLaWsdHJtIDnixVPHVu+nHUwyQ=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=kraS3KWcR1HapYe2L8S04iaBUBqNCB8CgKH3Z4hF8TMnrmxZGGmnZ2QpTqjbmPO7b
-	 mVvrwquiFMJDE9p3UwAnEs+1js4PqXm/tZQtza0S3ZtIpsLWkdtViZEFp6ZJ8SEQST
-	 v+nIgqZXH8hsCK1nprjCVjMvlhvvsz91WUv0cl4n2JQlB+wnm6BaRxa/js3GiGpLr3
-	 jizIWEtIUQzmXO+462nKgWuYKe2pZMOfnpo9WCtr1L4+fxPj7YKX4aqbouQaA2aRux
-	 vUEyglwL6d5E0toW8MCroM61RUoU3Lux0qi7OwzKJW51rs80KLz2s0rbV7ZIljKCo+
-	 K3ZqDZO9lh7XA==
-Message-ID: <cba61fbf-17a1-4e27-88db-9ba066cbceb9@kernel.org>
-Date: Thu, 29 Oct 2026 12:02:48 +0100
+	b=DG5qlG+6Sja3SZ5kFUK34tgk4SYB6mT49t9Ydiwl1UmmUSD3Z7eZTpdi9hErSp6J3
+	 rJy+pdJ4xnrv+lAE+8PJM9LuhQ91KO44IKjD6i7lRiQF5sAG6yfA42ECErt9i+4hlZ
+	 VqUZ+q8IKKTOoKoRg0gz3v3YNhG4U3iakSFkuH5T2JEkY20iTWI+uTLXikjQQRHGFM
+	 iitTQcffWyPVBKOk5dKhoqgHt5X5LmnO9yty8zuvAujX+5k++YqHcbVx84qeghojpP
+	 ONGbbquOo1zaFCKZkU54MNJA/SW+jdnu2TfP3rM7xp551okzH9jzB8lL389t/PCYJF
+	 RNML/haAtaDfA==
+Message-ID: <676e49b1-6cc0-4d0a-8492-452ffb294d2a@kernel.org>
+Date: Thu, 29 Oct 2026 12:06:02 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,32 +52,48 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 33/46] mm/madvise: fix data loss from MADV_FREE on a KSM
- page
-To: xu.xin@linux.dev
-Cc: akpm@linux-foundation.org, aneesh.kumar@kernel.org, apopple@nvidia.com,
- axelrasmussen@google.com, baohua@kernel.org, baolin.wang@linux.alibaba.com,
- baoquan.he@linux.dev, chengming.zhou@linux.dev, chrisl@kernel.org,
- dev.jain@arm.com, gourry@gourry.net, hannes@cmpxchg.org, harry@kernel.org,
- hughd@google.com, jack@suse.cz, jannh@google.com, jgg@ziepe.ca,
- jhubbard@nvidia.com, josef@toxicpanda.com, joshua.hahnjy@gmail.com,
- kas@kernel.org, kasong@tencent.com, kees@kernel.org,
- kexec@lists.infradead.org, lance.yang@linux.dev, liam@infradead.org,
+Subject: Re: [PATCH 36/46] mm: fix unkillable fault loop on MAP_DROPPABLE
+ memory
+To: Andrew Morton <akpm@linux-foundation.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+ Baoquan He <baoquan.he@linux.dev>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
+ Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Pratyush Yadav <pratyush@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
+ Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
+ Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
+ <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>, Johannes Weiner <hannes@cmpxchg.org>,
+ Shakeel Butt <shakeel.butt@linux.dev>, Michal Hocko <mhocko@kernel.org>,
+ Roman Gushchin <roman.gushchin@linux.dev>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
  linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-mm@kvack.org, ljs@kernel.org, matthew.brost@intel.com,
- mhocko@kernel.org, mhocko@suse.com, minchan@kernel.org,
- muchun.song@linux.dev, nico.pache@linux.dev, nphamcs@gmail.com,
- npiggin@gmail.com, osalvador@suse.de, pasha.tatashin@soleen.com,
- peterx@redhat.com, peterz@infradead.org, pfalcato@suse.de,
- pratyush@kernel.org, qi.zheng@linux.dev, rakie.kim@sk.com, riel@surriel.com,
- rppt@kernel.org, ryan.roberts@arm.com, shakeel.butt@linux.dev,
- shikemeng@huaweicloud.com, stable@vger.kernel.org, surenb@google.com,
- usama.arif@linux.dev, vbabka@kernel.org, weixugc@google.com,
- will@kernel.org, willy@infradead.org, ying.huang@linux.alibaba.com,
- youngjun.park@lge.com, yuanchu@google.com, ziy@nvidia.com
-References: <20261027-fixes_core-v1-33-6f74bec9a5bb@kernel.org>
- <20261029045307.131675-1-xu.xin@linux.dev>
+ Chris Mason <mason@kernel.org>, stable@vger.kernel.org
+References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
+ <20261027-fixes_core-v1-36-6f74bec9a5bb@kernel.org>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -124,65 +140,64 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20261029045307.131675-1-xu.xin@linux.dev>
+In-Reply-To: <20261027-fixes_core-v1-36-6f74bec9a5bb@kernel.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 10/29/26 05:53, xu.xin@linux.dev wrote:
->> MADV_FREE can clear the dirty flag of a singly mapped KSM folio. The
->> folio remains in the stable tree and can gain new mappings without being
->> dirtied again. Once marked lazyfree, reclaim can discard data that those
->> mappings still need.
->>
->> KSM always marks a folio dirty when converting it to a KSM folio in
->> try_to_merge_one_page(). Marking a folio lazyfree clears PG_swapbacked
->> but leaves PG_dirty unchanged. Preserving PG_dirty makes reclaim restore
->> PG_swapbacked instead of discarding the folio. This also protects folios
->> that were already lazyfree when KSM converted them.
->>
->> Skip KSM folios before clearing their dirty flag, checking under the
->> folio lock to serialize with KSM conversion.
->>
->> Fixes: 854e9ed09ded ("mm: support madvise(MADV_FREE)")
->> Cc: stable@vger.kernel.org
->> Reported-by: Josef Bacik <josef@toxicpanda.com>
->> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
->> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->> ---
->>  mm/madvise.c | 9 +++++++++
->>  1 file changed, 9 insertions(+)
->>
->> diff --git a/mm/madvise.c b/mm/madvise.c
->> index 75b409e97dbf2..a16e3cb256b7b 100644
->> --- a/mm/madvise.c
->> +++ b/mm/madvise.c
->> @@ -756,6 +756,15 @@ static int madvise_free_pte_range(pmd_t *pmd, unsigned long addr,
->>  		if (folio_test_swapcache(folio) || folio_test_dirty(folio)) {
->>  			if (!folio_trylock(folio))
->>  				continue;
->> +			/*
->> +			 * KSM folios can gain new mappings at any time, so we must
->> +			 * not clear their dirty flag.
->> +			 */
->> +			if (folio_test_ksm(folio)) {
->> +				folio_unlock(folio);
->> +				continue;
->> +			}
->> +
->>  			/*
->>  			 * If we have a large folio at this point, we know it is
->>  			 * fully mapped so if its mapcount is the same as its
->>
->> -- 
->> 2.43.0
+On 10/27/26 00:17, David Hildenbrand (Arm) wrote:
+> From: Chris Mason <mason@kernel.org>
 > 
-> The fix looks correct to me: checking folio_test_ksm() under the
-> folio lock properly serializes with KSM conversion, and skipping
-> the folio avoids clearing PG_dirty on a KSM folio.
+> handle_mm_fault() suppresses VM_FAULT_OOM for VM_DROPPABLE mappings.
+> 
+> For user-mode faults, pending signals are processed before retrying the
+> access. Kernel-mode faults on user buffers instead return directly to
+> the faulting instruction.
+> 
+> With persistent allocation failures (esp. memcg limits), a syscall,
+> such as write(), can therefore loop while not dropping locks.
+> 
+> Only suppress VM_FAULT_OOM when FAULT_FLAG_USER is set, allowing
+> kernel-mode faults and GUP to fail and signal allocation errors.
+> 
+> Fix generated by an LLM and sent by Chris Mason in private.
+> 
+> Fixes: 9651fcedf7b9 ("mm: add MAP_DROPPABLE for designating always lazily freeable mappings")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Chris Mason <mason@kernel.org>
+> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> [ david: simplify description ]
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> ---
+>  mm/memory.c | 8 ++++++--
+>  1 file changed, 6 insertions(+), 2 deletions(-)
+> 
+> diff --git a/mm/memory.c b/mm/memory.c
+> index 5c5f326b8bcbe..230a2f4dafa13 100644
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -6957,8 +6957,12 @@ vm_fault_t handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
+>  
+>  	lru_gen_exit_fault();
+>  
+> -	/* If the mapping is droppable, then errors due to OOM aren't fatal. */
+> -	if (is_droppable)
+> +	/*
+> +	 * If the mapping is droppable, then errors due to OOM aren't fatal: the
+> +	 * task returns to user mode, handles its signals and tries again. A
+> +	 * fault from kernel mode has no such return, so it must see the error.
+> +	 */
+> +	if (is_droppable && (flags & FAULT_FLAG_USER))
+>  		ret &= ~VM_FAULT_OOM;
+>  
+>  	if (flags & FAULT_FLAG_USER) {
+> 
 
-Yes. And doing it under the lock is something the original AI fix missed.
+I think this is the single patch in here where I struggle with the side-effects
+and possibly remaining issues for user faults.
 
-Thanks!
+It feels like the obviously right thing to do, but it all feels a bit shaky.
+
+Maybe the memcg/reclaim folks have a better understanding of this?
 
 -- 
 Cheers,
