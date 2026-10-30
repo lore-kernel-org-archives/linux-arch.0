@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793355731;
-	b=PB1dflIHt/toHATqL7xyt3IwOHMp4w0dEJO2ORYfDvBNBySXzSSCX/r1g1xZ/rhWFlNu
-	 ngltsh8FZB4TPDnRgVHjY7yTn4mGS67tmdS0V6Z6vcGnoUmXTJgDslh7WKiHnETgxz8Q7
-	 l585q2Oi+bNTKQsgJ/Rxzj8kMKTB0H0wBGsuUITqGJ/FxIxEg6PITnwY8qJPm7883shrK
-	 c/eoh+f/ELMZKFtpLBlB7tEF6Fx2CM4ZnSowcyr8Pv6C+BAjqmGk/jgsZcnQgv96acFol
-	 mt5KeUWr4FdFKOHLMD5lih8NbcVfFyPOCLZzp7jBn3kYzWJ4kshGRUiff/3V8crUeZg==
+	t=1793358666;
+	b=ONJBdahzKnsccXn1LOJiV1DxCu4EGe0vPUkt/lC0lXdK0kQb8KE/T6OwYruLPVTbsIWt
+	 RY1SVS/ZxkVREbJXlaAhZUwm8OAaOu2RvS+7+RDUjM/ngRwG+CqT2q2qySrFhk0/Pu6av
+	 RKO3mzhAqb9K/XCljLaSxLxdoRpblPtx247I79D9Fz2mtQZLXk8ID9kAGQ/u1o/UG9YwJ
+	 5YLPBnDMxOxJ1A9FflhMWIlnJsRbbTcpE8q1r4mZuBmb9SKdbgtvfxbk/sSQfkghZwbIK
+	 tMXsofJScYRE24l/Rg1t+zAArvWXjkvSWBURgMP2GdP8rP9D+mzsSGOdsN8f722YViw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793355731;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793358666;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=o+kaUtC8ovQj6xhHRCbmiOuasEe9YC6Zr5iT5M2eCM0=;
-	b=mAdNFgcIyd/0X5P5j8dE3eZUVT2L3U406DgAcd7wG/kIWBWu4lx6mT34xFAawBFxRcEe
-	 2J5nBaynaCC0gGN7oSRhinbvB7Oy3gWZ473R6gsChWkqHZ3IWHUc6kfZv9v0/uT45+5uC
-	 M3VIIkixaRK1x3XuU9qwWu9TQalVgfz6sPNlgrmLL67mF5xLPUFeoN9lI5yLjaj4guoFs
-	 oPSUj/VtQ/ds4QM8Eve9hfn4talkfRv6KjjC7Dp0fJdQnvzwwL/SNrg6vmhQt2hSFcWCi
-	 X0fu7navbNA+qJ0BIfByfRnbvDWHiby7Cu6/cC9pX/hq767cnGvYO8DR+j3E5TM9A0A==
+	bh=e5NnHqFGh2WLk8KpW0BJvN7IH3ve0Yj4mZZ8fp9OtsI=;
+	b=d194eKl63+1mvCBqx2nRK/XeAoeYqr56GT6BTFmR3Hdje82sVvxl6qw8qFeEBAPTwzIn
+	 G9d26eP410XP3dnzlWaV9IG8OK0c6fckVkoO7E05nXjLowheXMzMyxD3sxK5K65ovCex0
+	 3gdpTQ70QC0vd0oXRIqVeznWxLjUhvgUSVIydTw7Vvo4J9ZIciIVGvqwRJP34jr/g+Bz1
+	 Mx9nex85g5kAiZL3ydbxo60yhmIcS7N3aEC/sXY3pq3ZZoHRHWhdmddyh+mBBwvu/gLkC
+	 KB96VVwfRPnAqeF1h8nheIDm9N32jmzWtLQatKf3ormdm6yv8uAOFJQbYl+68/Ogrig==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=dwBFosyH;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ewkqjIeb;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D1BF7606A31A;
-	Fri, 30 Oct 2026 10:22:09 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DB8CD606A321;
+	Fri, 30 Oct 2026 11:11:05 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=dwBFosyH
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 00F301F000C1;
-	Fri, 30 Oct 2026 10:21:52 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ewkqjIeb
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 22FC11F000C1;
+	Fri, 30 Oct 2026 11:10:49 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793355729;
-	bh=o+kaUtC8ovQj6xhHRCbmiOuasEe9YC6Zr5iT5M2eCM0=;
+	s=k20260515; t=1793358665;
+	bh=e5NnHqFGh2WLk8KpW0BJvN7IH3ve0Yj4mZZ8fp9OtsI=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=dwBFosyHJNEN/VlP9Ae3KU8sfJ1VpcWyMYJG0hYheIRJZb8LD62PaQRkm1G0V2DOU
-	 /thDolVwbKVJ+f+WEKxynk73Tq8txa/etK+tLb/fptp+mzUo+CQq8mvhbO0P5f+/p9
-	 Nq/8/AzFmw5eWg9Jj0YW8MDMjUYo6UKlKavvcEB81ku1e5o7qQqsCBV7gvspaDsMz0
-	 Jz/HAKpj8ZfulPBeQbw9kwQpzl6Et707A+yl1grA0FZJghBafUgkNkE2fQ8DGj/ZPB
-	 gVCz8+83ggGBl0JMUrrgr16/dml/0dpNWJghy7sr9pH48z+QkBdbe20lK5K6Qhd0Y9
-	 WzTTotFpshtjQ==
-Message-ID: <6d679adb-a866-4a76-b9ea-3b8c64171fae@kernel.org>
-Date: Fri, 30 Oct 2026 11:21:50 +0100
+	b=ewkqjIebBvhym6IB3Ksl7IZW4E3WWrG+/4yOGfUUwfsfHMqgAdiGfPsLito4NMzH+
+	 3X5GTmTwRVzbBuN0IMwDqw+qwS5ZG1TkZy22Bl6SI2a2ruWcosBrFpeUBZwQ1+X86r
+	 2XsLssw2rnRioIhlsH3cexrza2qXr4bBiLO7ocs8u3A+E/DxolzLiaKG/WTEJdrZmV
+	 j3bSQu7F+PpI5upb84fHqRT4ETg6Pm/arVNg449Goy2wT41T8MsfIsurdfVxOe8Qwv
+	 dw++8VuLquwqT4MD8BXS6SL+v+RwX048NJm6rMxUecQ/wWmEsk2BQT0mxJGwf0odE4
+	 9x6mq7eusSUaw==
+Message-ID: <ef51420b-0260-454f-b08b-f4e5a3da6e20@kernel.org>
+Date: Fri, 30 Oct 2026 12:10:47 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,10 +52,11 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 01/47] mm/mglru: don't use stack pointers when walking
- PUD and PMD tables
-To: SJ Park <sj@kernel.org>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+Subject: Re: [PATCH v2 14/47] mm/huge_memory: fix zapping migration entries
+ for device-private THPs
+To: "Gregory Price (Meta)" <gourry@gourry.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
  Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
  Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
  Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
@@ -83,14 +84,15 @@ Cc: Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
  Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
  Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
  Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
- Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
- Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
- Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
+ Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>,
+ Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>,
+ linux-mm@kvack.org, linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
  linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>,
- stable@vger.kernel.org, Muhammad Usama Anjum <usama.anjum@arm.com>
-References: <20261030002004.154595-1-sj@kernel.org>
+ linux-cxl@vger.kernel.org, Chris Mason <mason@kernel.org>,
+ stable@vger.kernel.org
+References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
+ <20261029-fixes_core-v2-14-a64ce7f83abb@kernel.org>
+ <179331304801.2127828.6570375349219520262.b4-reply@b4>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -137,27 +139,47 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20261030002004.154595-1-sj@kernel.org>
+In-Reply-To: <179331304801.2127828.6570375349219520262.b4-reply@b4>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 10/30/26 01:20, SJ Park wrote:
-> 'get_maintainer.pl --nogit --nogit-fallback' suggests adding below recipients.
-> But I can show there are already quite a number of recipients, so I'm just
-> noting here.
+On 10/29/26 23:30, Gregory Price (Meta) wrote:
+> On 2026-10-29 21:33 +0100, David Hildenbrand (Arm) wrote:
+>> From: Chris Mason <mason@kernel.org>
+>>
+>> A PMD migration entry can refer to a device-private folio.
+>> zap_huge_pmd_folio() checks the folio type instead of the entry type,
+>> so it treats such a migration entry as a device-private entry.
+>>
+>> Installing the migration entry already removed the reverse mapping and
+>> dropped the mapping reference. Zapping it must not repeat those
+>> operations. Concurrent MADV_DONTNEED during migration back to system
+>> memory can trigger this.
+>>
+>> Check the PMD entry type using pmd_is_device_private_entry().
+>>
+>> Fix generated by an LLM and sent by Chris Mason in private.
+>>
+>> Fixes: 368076f52ebe ("mm/huge_memory: add device-private THP support to PMD operations")
+>> Cc: stable@vger.kernel.org
+>> Signed-off-by: Chris Mason <mason@kernel.org>
+>> [ david: simplify description ]
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > 
-> - Brian Geffon <bgeffon@google.com>
-> - Oleksandr Natalenko <oleksandr@natalenko.name>
-> - Steven Barrett <steven@liquorix.net>
-> - Yu Zhao <yuzhao@google.com>
+> One note below, but it's not a holdup.
+> 
+> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
+> 
+>> +	const bool is_device_private = !is_present && pmd_is_device_private_entry(pmdval);
+> 
+> pmd_is_device_private_entry() already returns false for a present
+> pmdval - so !is_present is redundant.  If there was a reason to open
+> code this, then keep it, but otherwise you could drop it.
 
-The CC list was so long that I limited it to people that area either a reviewer
-or a maintainer of code.
+Ah, softleaf_from_pmd() takes care of that. Yes, let me drop the is_present check.
 
-MGLRU not having any real maintainer is a big problem; because that maintainer
-would know whom to CC.
-
-Thanks!
+(I'll double check that both are guaranteed to be consistent; but otherwise we
+might have a bug already)
 
 -- 
 Cheers,
