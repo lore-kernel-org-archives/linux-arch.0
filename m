@@ -1,125 +1,65 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=91.218.175.29
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793332554;
-	b=s8UixELAHpS5PRqyQiXF5W5CxudjbNEw2lgmK2n+zCSiWhWfDqlBGj3KQAR7JdJXt+ee
-	 0Fj/HIsOvvsGkg96pFMI+bT8zdeo1VnUupBabr5DxP9TjfmjMiOsnSbQErGmJrvmqoht8
-	 9uQfFzRiHkeUC5MD84v2IpGcmhUWEOfwOhYuxTrDWTy1mATGcGease9sMHtO2MIO+tO1t
-	 xTsQdnWdf+BC1/TZMH3lrtdFyXoSuL3Qb8ld2mEL05NTC8AsuntOxLWVQTUdJt6NwiWkw
-	 gpnjwWnnPi4h/8Fr4efiKBhFb4THFlsMUPRPg5QgcZHCJcMTwK/ma9e5lqXGJG0e9IQ==
+	t=1793335088;
+	b=tEUVbLvQqYHesDFpgwijGZsGOI5/Mc6bKVXs1TrXKATF+h7VcymRCWiEb1HhQM3IPSnF
+	 LDOXbgyC1+2fDoUVkS+HnceHTPFf3D/ovu7wzJQafCbS/oeKWwNOSXd6ZZejLRpo+jaks
+	 xXK6s0KIKzAkVJcndBAHu5ympcbJ/O3q3/BOPA7AoOekowEAm+yGb5PxZ0/ZpLdwJYxaU
+	 xz6eYDRV1YDguQqevJa2YUhg8i2Jyy4wbz3N4m2TTO+1K+JD0WTdb3UbB76zLMl2pwxRv
+	 qj8gHmyw32b6FBtXQ3idral9Do4MmdUt7NdYOBQv370OKOVrqixv2tmKgYkBQhsM9xg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793332554;
-	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
-	 X-Mizu-Trace-ID:X-Migadu-Flow:From:To:Cc:Subject:Date:Message-Id:
-	 X-Mailer:In-Reply-To:References:MIME-Version:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=ey3vPsJ2dQFhz2BxI4N3mBDHBT7ectNl9BIu9ANR89g=;
-	b=OxeDaamztWGpZDzNA9nIDGi6gGlAdMal+u2YkCF+/e3QL3Ja1MvDTJTbylQrHKrzqzV4
-	 2lhrBRtkcX+myvZIHmD5chpEbyQeTL7fW1nUDKsozylIzEE/0U0rA8k0UTTPhjmL9ZBBC
-	 JCBineRj8cjbi0MjnpFLO1KnVE9OcSgjG+a472e7Ssp2BWDdYVm5wSeE3UG5WsiqQQ3W7
-	 +CBqAOFvi+qnqq0GN0yXy8CTaG4QuRpHBrb6mf47ucyvy8bNgEDn0YDKHDKZLdnepcAbF
-	 BBiXAlRqxzhr6lt7AC3TTFuVD3Fwy9X/6I7LEZ0nEyqEKBdr7AysieKTVQepcUxuL0A==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793335088;
+	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Date:From:To:Cc:
+	 Subject:Message-ID:References:MIME-Version:Content-Type:
+	 Content-Disposition:In-Reply-To:X-Spam-Status:X-Spam-Checker-Version;
+	bh=WwvcOsEObJ8qzzuuobsmrvvwKxGTjF3cc2+TTpbW1e0=;
+	b=xXia2cN3vuYKVkgWNl64MDPty6ldAebpE5dQSF2F6CLB6GKdqLjx5Nk0rFmmpQcfuKAS
+	 VSo28wBbHDA0uIFsWWwYXcO0z1X36ASkMnEqpav9mN41Kr43zpRAZzT+/1B5ss2y3QA+H
+	 AmTL2xGVq9yQ7zD1q5GpoeXYGB0rkVXEZqipRVZWawhFtBYNj/DDpOWTKELQRSyJnmfXA
+	 UoPvbQImCmxkgAtaS84s21KB6EeUd6ZUG8z6ngQGbBPzshIuUbwXxW1P70Gj56O32+4Ys
+	 jh755UUmjK75F5UUix8OkGUXj6BTCh4E09IJnzXvkSe5+E5sFE0YPaqzYY0Rawe34zg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.dev;
-	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=JZqpmtFQ;
-	arc=none smtp.remote-ip=91.218.175.29
-Received: from mta0.migadu.com (out-29.mta0.migadu.com [91.218.175.29])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 90432606A31E
-	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 03:55:47 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 90432606A31E
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	dmarc=pass header.from=linux.microsoft.com;
+	spf=pass smtp.mailfrom=linux.microsoft.com;
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=NJPsdvAy;
+	arc=none smtp.remote-ip=13.77.154.182
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id B74A0606A31C;
+	Fri, 30 Oct 2026 04:38:07 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org B74A0606A31C
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=JZqpmtFQ
-X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=U6aEVcyx4cbsQT0ReFIAsX7642J2D1rQ7p5hav7hVYg=;
- c=simple/simple; d=linux.dev;
- h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793332545; v=1; x=1793937345;
- b=JZqpmtFQ7Ohd/1LNlZcCz7DJxGmfw1W0QBIwKd81WGlQ+GCSScpslPKi5z61+nW3yuNQ2DfG
- qYpgDNHPL3GYEromeJ9ePTKmdga4oQNe9eAq94ZKZxJjP2u8k8hH0quzBvtjDNrpC+rFPoXIxuw
- UlDm22KbKQ+To97lJYUZVLqY=
-X-Envelope-To: linux-arch@vger.kernel.org
-Received: by mta10.migadu.com with ESMTPS id 29251291072b5e95;
-	Fri, 30 Oct 2026 03:55:20 +0000
-X-Mizu-Trace-ID: 29251291072b5e95
-X-Migadu-Flow: FLOW_OUT
-From: xu.xin@linux.dev
-To: david@kernel.org
-Cc: akpm@linux-foundation.org,
-	aneesh.kumar@kernel.org,
-	apopple@nvidia.com,
-	axelrasmussen@google.com,
-	baohua@kernel.org,
-	baolin.wang@linux.alibaba.com,
-	baoquan.he@linux.dev,
-	chengming.zhou@linux.dev,
-	chrisl@kernel.org,
-	dev.jain@arm.com,
-	gourry@gourry.net,
-	hannes@cmpxchg.org,
-	harry@kernel.org,
-	hughd@google.com,
-	jack@suse.cz,
-	jannh@google.com,
-	jgg@ziepe.ca,
-	jhubbard@nvidia.com,
-	joshua.hahnjy@gmail.com,
-	kas@kernel.org,
-	kasong@tencent.com,
-	kees@kernel.org,
-	kexec@lists.infradead.org,
-	lance.yang@linux.dev,
-	liam@infradead.org,
-	linux-arch@vger.kernel.org,
-	linux-cxl@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	linux-mm@kvack.org,
-	ljs@kernel.org,
-	mason@kernel.org,
-	matthew.brost@intel.com,
-	mhocko@kernel.org,
-	mhocko@suse.com,
-	minchan@kernel.org,
-	muchun.song@linux.dev,
-	nico.pache@linux.dev,
-	nphamcs@gmail.com,
-	npiggin@gmail.com,
-	osalvador@suse.de,
-	pasha.tatashin@soleen.com,
-	peterx@redhat.com,
-	peterz@infradead.org,
-	pfalcato@suse.de,
-	pratyush@kernel.org,
-	qi.zheng@linux.dev,
-	rakie.kim@sk.com,
-	riel@surriel.com,
-	rppt@kernel.org,
-	ryan.roberts@arm.com,
-	shakeel.butt@linux.dev,
-	shikemeng@huaweicloud.com,
-	stable@vger.kernel.org,
-	surenb@google.com,
-	usama.arif@linux.dev,
-	vbabka@kernel.org,
-	weixugc@google.com,
-	will@kernel.org,
-	willy@infradead.org,
-	xu.xin@linux.dev,
-	ying.huang@linux.alibaba.com,
-	youngjun.park@lge.com,
-	yuanchu@google.com,
-	ziy@nvidia.com
-Subject: Re: [PATCH 39/46] mm/ksm: fix use of a freed anon_vma at swap-in
-Date: Fri, 30 Oct 2026 11:54:47 +0800
-Message-Id: <20261030035447.140856-1-xu.xin@linux.dev>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20261027-fixes_core-v1-39-6f74bec9a5bb@kernel.org>
-References: <20261027-fixes_core-v1-39-6f74bec9a5bb@kernel.org>
+	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=NJPsdvAy
+Received: from kali (unknown [4.213.232.17])
+	by linux.microsoft.com (Postfix) with ESMTPSA id B148C20B7166;
+	Thu, 29 Oct 2026 21:37:48 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com B148C20B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1793335074;
+	bh=WwvcOsEObJ8qzzuuobsmrvvwKxGTjF3cc2+TTpbW1e0=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=NJPsdvAyMdl07uIfgdrypurLmehiQZeL4zrhUYZxR96TMW5UhWVD/k6TDPncHWr08
+	 HBDhGEi+B7G362mYoL0sIW0o2+nYfbIXv9oTWCTovARis9B9tYry7LlUyDoTTX9uPX
+	 WKbEfCrsL3+VJgHmXIOzVAcYs4vOqZdpgIkHgEhs=
+Date: Thu, 29 Oct 2026 23:37:54 -0500
+From: Sahil Chandna <sahilchandna@linux.microsoft.com>
+To: Ankur Arora <ankur.a.arora@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
+	bpf@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com,
+	will@kernel.org, peterz@infradead.org, akpm@linux-foundation.org,
+	mark.rutland@arm.com, harisokn@amazon.com, cl@gentwo.org,
+	ast@kernel.org, rafael@kernel.org, daniel.lezcano@kernel.org,
+	memxor@gmail.com, zhenglifeng1@huawei.com,
+	xueshuai@linux.alibaba.com, rdunlap@infradead.org,
+	david.laight.linux@gmail.com, broonie@kernel.org,
+	boris.ostrovsky@oracle.com, ashok.bhat@arm.com
+Subject: Re: [PATCH v16 00/16] barrier: Add
+ smp_cond_load_{relaxed,acquire}_timeout()
+Message-ID: <auQfIuQdpd2i2IrX@kali>
+References: <20261016070837.440748-1-ankur.a.arora@oracle.com>
+ <auLHZnaCIajW1kxX@kali>
+ <87v76lezeq.fsf@oracle.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -129,88 +69,67 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=y
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87v76lezeq.fsf@oracle.com>
 
-> A folio read from a swap slot previously shared by KSM can remain in the
-> swap cache after the process that first mapped it exits. Its anon_vma
-> can then be freed, so ksm_might_need_to_copy() must not dereference it
-> to compare roots.
-> 
-> Doing so can result in some false-positives, resulting in the reverse
-> mapping missing the new folio mapping, preventing migration and reclaim.
-> 
-> SLAB_TYPESAFE_BY_RCU allows individual anon_vma objects to be reused
-> immediately after freeing. A stale pointer can then refer to another
-> anon_vma whose root matches, even though the target VMA is not linked
-> to that anon_vma.
-> 
-> Move the anonymous rmap compatibility checks into
-> folio_anon_rmap_compatible(). Keep the page-index check and compare the
-> folio's anon_vma pointer against the VMA's own anon_vma and root first.
-> 
-> If neither matches, bite the bullet and walk the VMA's anon_vma_chain.
-> The VMA keeps these anon_vmas alive, and finding a match guarantees that
-> reverse mapping can find the new mapping.
-> 
-> Lorenzo Stoakes says in a private discussion:
-> 
->   "This isn't quite equivalent to the existing check.
-> 
->   Every anon_vma in an anon_vma_chain shares the same root, but if you
->   split a VMA then fork both of them like this:
-> 
->                   VMA A
->                /        \         <split>
->             VMA B      VMA C
->                \        /
->         root <- anon_vma 1
->                ----^ ^----        <fork>
->               /   parent  \
->         anon_vma 2   anon_vma 3
->              |            |
->            VMA D        VMA E
-> 
->   VMA's D and E both get their own new
->   anon_vma's such that:
-> 
->   VMA D: anon_vma 2 -> anon_vma 1 -> root
->   VMA E: anon_vma 3 -> anon_vma 1 -> root
-> 
->   And if you found a folio referencing anon_vma 2, the existing check:
-> 
-> 	anon_vma->root == vma->anon-vma->root
-> 
->   Would be true for VMA's B, C, D & E.
-> 
->   However after your change it'd be true for VMA D only, as it's the only
->   one with anon_vma 2 in its anon_vma_chain.
-> 
->   Whether or not that could actually happen in practice... 🙂 I don't
->   know.
-> 
->   [...] after your change it'd be true for VMA D only, as it's the only
->   one with anon_vma 2 in its anon_vma_chain. [...] I would [...] say that
->   you are making the test stricter but more correct.
-> "
-> 
-> If this affects performance when KSM was never even involved, we could
-> just track whether KSM ever merged anything and just skip these checks.
-> 
-> There isn't really a lot we can do otherwise: for mapped folios we might
-> be able to use folio_get_anon_vma(), but for unmapped folios there really
-> is no easy way to see if the anon_vma is still valid.
-> 
-> Document the (confusing) lifetime requirements of folio_anon_vma().
-> 
-> Fixes: ba6f0ff3981e ("ksm: fix ksm swapin time optimization")
-> Cc: stable@vger.kernel.org
-> Reported-by: Chris Mason <mason@kernel.org>
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-> ---
->  mm/ksm.c  | 36 +++++++++++++++++++++++++++++++-----
->  mm/util.c | 13 +++++++++++++
->  2 files changed, 44 insertions(+), 5 deletions(-)
+On Thu, Oct 29, 2026 at 12:31:09AM -0700, Ankur Arora wrote:
+>
+> Sahil Chandna <sahilchandna@linux.microsoft.com> writes:
+>
+> > On Fri, Oct 16, 2026 at 12:08:21AM -0700, Ankur Arora wrote:
+> >> Hi,
+> >>
+> >> Changes in this version address sashiko comments [17]. The major change
+> >> is the change in the exit path in __smp_cond_load_relaxed_timeout()
+> >> which allows us to simplify providing ACQUIRE semantics in
+> >> smp_cond_load_acquire_timeout():
+> >>
+> [ ... ]
+> >>
+> > Hi Ankur,
+> >
+> > I tested this patch series on an Azure Cobalt 100
+> > (neoverse-n2 on 64-vCPU Hyper-V guest (Standard_D64ps_v6),
+> > on v7.2.12 + this series + arm64 cpuidle-haltpoll enablement[1]
+> >
+> > cpuidle-haltpoll loaded with force=1, guest_halt_poll_ns=200000.
+> >
+> > Baseline: no cpuidle driver(only WFI).
+> >
+> > Workload: PostgreSQL 16.15/pgbench scale 100, client and server in
+> > the same VM over a unix socket, with single run:
+> >
+> >             with (-S)                         TPC-B-like r/w
+> > clients  base TPS  haltpoll lat avg   base TPS   haltpoll  lat avg
+> >    2       38658     +89%   52->27us     5299     +86%    378->203us
+> >    4       72987     +99%   55->28      10305     +87%    388->208
+> >   16      300895     +91%   53->28      42035     +83%    381->208
+> >   32      590987     +93%   55->28      78319     +85%    410->221
+> >   64      987749      +0%   65->65     130675      +3%    490->474
+> >
+> > Tested-by: Sahil Chandna <sahilchandna@linux.microsoft.com>
+>
+> Thanks Sahil. That's very helpful. Btw what's the (-S) option with
+> in your first heading?
+>
+Hi Ankur,
 
-Acked-by: Xu Xin <xu.xin@linux.dev>
+This is the -Select Only option running one statement per transaction,
+more info captured in [1] [2].
+
+TPC_B like runs small bank transfer transaction.
+> Just to double check: was the VM  created with any special option
+> such as kvm-arm.wfe_trap_policy?
+>
+No, the host in my case is Hyper-V. The cmdline does not have any idle
+related parameters.
+console=tty1 console=ttyAMA0 earlycon=pl011,0xeffec000 panic=-1
+> --
+> ankur
+>
+Regards,
+Sahil
+
+[1] https://www.postgresql.org/docs/16/pgbench.html#PGBENCH-OPTION-SELECT-ONLY
+[2] https://www.postgresql.org/docs/16/pgbench.html#TRANSACTIONS-AND-SCRIPTS
