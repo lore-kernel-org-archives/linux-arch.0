@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793360139;
-	b=ajf4yrSLEb3j84t5ro+HHYTJXJvAZmwhWomYmbhzMYe0wx0epSONGAVreuZOSQDK1Q1E
-	 7K5ApNXk2PNQSVazihYwBn3Ao2oxLjz/W1UKmYgTYc1GXYluzfUMoBQM67viBiadLVaQ5
-	 qRJ1l3ltFqb+qtOtR23Y8mYFzzAY/vbfDYzJv6+8JU9UL4OJNVa6/v5DOAsnHfQ3KR/tW
-	 nGXkbLnOZdDlh1iBVEw9NJFXKRc9qE1JmM9Wze1wAhgfMndBNTXpVzrKmBaXOIg3vDXJA
-	 Ur/B/DPYF1IuhLX8DwbuBdRTkFbqAsgMYlgW3/AWwzWhacCy7ICM/ncCuCFbMs7xNCg==
+	t=1793362023;
+	b=slP/5LkntpSl/WFBRtNQIdqVHSQ5yQtvkKsndwNN3s9btE5ER4qzUQgCPxb3U2vACwFu
+	 8qPHxuRVWk4wMMifYSfW5E8rTku9hTZZ6m6zwOSPhV+4b8PT6vU2EE6eUG4DaI+VNdzLq
+	 elJ2kOn2pDBeO6gWnNc66egeRA983NazU9gaBqdzzgfTnEPOnkeGBZ8utsoavXiQALfvg
+	 KLSir1kzcqjn/EYCAWI8fOJV8XfvGLtJ8UXPm3kkRBmZDJZoFk+obi7x7PBtnXeMHvNPz
+	 JMedK6VlmTmWqXbv5P8dWjaKelJJrogJmqdbywWsxULJXistiUNxvvUr55ZIbQgS+WQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793360139;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793362023;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=TYrpZVQ/GsvgUGgPVgovKNkkVkoYTgtTPGZXWBcYsUg=;
-	b=wRiofY4YFVAU195FJuXUuHz51RUNmNm23lyavsU+dtpPFXTow+GQWH28/a2vzWRdUaZQ
-	 OUwczku1lwuknp7m6RIbNvbxCc/feaM2sMk3e2GRzTwuu1tvCrIPnNmZyjvKIXnCubTck
-	 9/cyDRTh0AAiVrcsiCNJ2MvcLOHfi63FfvzAj6gU7t8kUMe5PUkQ4Pvb0WjWyFKSmbZOP
-	 PCvKM69Z7fzpFbEMErNPKM+di6yZ8sIbYa+GFJ1kGOV05xCTstTMLwcsGDWgv9HQR0UQ8
-	 mYhK+fYc41d1oSUhhfAxN5ouKA4DPUyc9YCAsIkmRr8oYtvzFxar6ORcwZmnHNWULdg==
+	bh=MoHT6WHyffUX/dGh5q8tXlh6lkd1ZuWufnzc0VjLK4Q=;
+	b=XM9pHPL+QkwjBm7ShV3sGH5V3nn4A+MOOEsM782rdkyHfs8LZH8cCTwxtFrGQgtbAI5K
+	 plzPYVtYWLGRvOuE6UAVXZLv/D/c2+2aOKlXg4qahGq0u74FVyXDxpmJNpiLAGVJav/rS
+	 ooBoFFBnln2Qr7ssmdyWGK24Y9LUo+F8Zonsx0hfi5quF8qVX1Cz4obAzCUZqGKSshctb
+	 REfiLLyOFnlRq7uew05kn+ZFSmmewmQgpR3myJmacmNdNAsaO6ZyEeC3vsfxCXOZVKXdQ
+	 B+auw6vUt97v0NPZYZuFW6hx19ZJTfO+87fnykbDFafT4Jc0ruYfwbHVquHHueo1tSw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DV7dP3Zs;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=gHG0SPEp;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 41A8B606A31C;
-	Fri, 30 Oct 2026 11:35:38 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DB228606A31A;
+	Fri, 30 Oct 2026 12:07:02 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DV7dP3Zs
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 22A911F00A17;
-	Fri, 30 Oct 2026 11:35:22 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=gHG0SPEp
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 64BD21F000C1;
+	Fri, 30 Oct 2026 12:06:48 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793360138;
-	bh=TYrpZVQ/GsvgUGgPVgovKNkkVkoYTgtTPGZXWBcYsUg=;
+	s=k20260515; t=1793362022;
+	bh=MoHT6WHyffUX/dGh5q8tXlh6lkd1ZuWufnzc0VjLK4Q=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=DV7dP3ZsojHaXxJribD0DKo5b4PCOC8FdkRUgYL7R+uUDI7gUjh5A7huogvcG+J6J
-	 Nd2e24ltHviS/XzS8gcUIifHgGSepFBRuv4iQmYXeeAYxK+UYFoOtK9BPjb/rX84Qr
-	 2m0GTTuKi6u9uhP3b1UQ55GaUl9OONJ2fbAax8hY8CD97plqv+q5+JNPNO220WD6qK
-	 dBbODOTfcboqVXbdiS50rxbmXmGd69ll7rciNrgicqN3QR6abLc4MeZjjSAdK5StQW
-	 z/9hzzkTYNBG8Q3t11Zmx8tUQAbm1gypQjVg8uptfgJSeyJf1lNVlen0WpnB2ukvv/
-	 1WLh2kL5FKdjA==
-Message-ID: <baeda061-e0d0-4be1-9aa5-8886182ca83f@kernel.org>
-Date: Fri, 30 Oct 2026 12:35:20 +0100
+	b=gHG0SPEprF9GqAtCjmA/2Rew1TV5CEtn7NJkzBh24jY0GRkkosdgs5df/0e2zVz1A
+	 EJkUJNifA5AYwttFZJRdEcjqqiwVtxiUq1k/1Wb3QSW697JdOK7VRU4/dIYKUyrgr2
+	 DF4wBoCpoXJ503MSXy0H0jzbZ2I13WgmxNXUQFcRn2OZxzQh2V6RGZXNvuWUHHSG2I
+	 zeMYdjdUs5wKChneiKiJYQRW0NFc3652bEbk+rSr2fIZoQ5zpnLX4z1SLL2sZOpuZJ
+	 qIea0Ja2a9YNX/iqTGFM6cX+5pWz0RGaMd3mvSDueXB2FQrRZIeEbK2WGPEtUO7SRt
+	 VdHZkY9DsKidw==
+Message-ID: <297adf4c-1792-4dff-a7c8-2694dc2b1446@kernel.org>
+Date: Fri, 30 Oct 2026 13:06:45 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,9 +52,10 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 00/47] mm: various (urgent?) fixes
-To: Muhammad Usama Anjum <usama.anjum@arm.com>,
- Andrew Morton <akpm@linux-foundation.org>,
+Subject: Re: [PATCH v2 03/47] mm/memfd: check for real shmem inodes before
+ accessing shmem state
+To: Pratyush Yadav <pratyush@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
  Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
  Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
  Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
@@ -68,7 +69,6 @@ To: Muhammad Usama Anjum <usama.anjum@arm.com>,
  Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
  Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
  Pasha Tatashin <pasha.tatashin@soleen.com>,
- Pratyush Yadav <pratyush@kernel.org>,
  "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
  Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
  Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
@@ -85,16 +85,14 @@ To: Muhammad Usama Anjum <usama.anjum@arm.com>,
  Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
  Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
  Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
- Jason Gunthorpe <jgg@ziepe.ca>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
- Josef Bacik <josef@toxicpanda.com>, stable@vger.kernel.org,
- Chris Mason <mason@kernel.org>,
- Thadeu Lima de Souza Cascardo <cascardo@igalia.com>,
- Mani Tofigh <mt4022@columbia.edu>, Samiullah Khawaja <skhawaja@google.com>
+ Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
+ linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-cxl@vger.kernel.org, stable@vger.kernel.org,
+ Chris Mason <mason@kernel.org>
 References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
- <2f23dafc-43a5-47c9-a819-e696cda6fd44@arm.com>
+ <20261029-fixes_core-v2-3-a64ce7f83abb@kernel.org>
+ <2vxzmrrvmnil.fsf@kernel.org>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -141,59 +139,182 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <2f23dafc-43a5-47c9-a819-e696cda6fd44@arm.com>
+In-Reply-To: <2vxzmrrvmnil.fsf@kernel.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 10/30/26 12:19, Muhammad Usama Anjum wrote:
-> On 29/10/2026 8:32 pm, David Hildenbrand (Arm) wrote:
->> See v1 on details. TL;DR various fixes :)
->>
->> Thanks to everyone for the review! Hoping I can get some more? :)
->>
->> I am planning on picking these myself, moving them to linux-next fairly
->> soon through mm/core.git.
->>
->> ---
->> Changes in v2:
->> - "mm/memfd: check for real shmem inodes before accessing shmem state"
->>  - Call it inode_is_shmem
->> - "mm/truncate: look again if a folio left the mapping"
->>  - Different fix for truncate_inode_pages_range
->>  - Adjust description
->> - "mm/huge_memory: fix zapping migration entries for device-private THPs"
->>  - Move handling in zap_deposited_table
->> - "mm/mmu_gather: fix flushing ranges with 4 GiB or larger"
->>  - Adjust description"
->> - "mm/huge_memory: split huge PUDs when adjusting VMA boundaries"
->>  - Drop split_pud check
->> - Link to v1: https://patch.msgid.link/20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org
-> I ran Fastpath, a Linux kernel performance benchmarking framework, on
-> this series against mm-stable on aws-m7g.metal. (I) and (R) indicate
-> statistically significant improvements and regressions, respectively.
-> The results show 10 improvements and 1 regression. Other, unmarked
-> percentage changes can be ignored as statistically insignificant. Hence:
+On 10/30/26 12:33, Pratyush Yadav wrote:
+> Hi David,
 > 
-> Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+> On Thu, Oct 29 2026, David Hildenbrand (Arm) wrote:
+> 
+>> shmem_file() only checks a file's backing mapping. That mapping can belong
+>> to another file, as with a Coda file backed by a tmpfs container after
+>> mmap(). It does not establish that file_inode(file) is a shmem inode.
+>>
+>> Seal handling and memfd preservation use this check before accessing
+>> shmem inode state, so they can access an inode of the wrong type.
+>>
+>> Add file_inode_is_shmem() to check the inode's file operations in both
+>> paths. This identifies regular shmem inodes, including those used by
+>> memfds and ordinary tmpfs files, independently of wrapper file operations.
+>>
+>> Fixes: c49fcfcda8b5 ("mm/shmem: update file sealing comments and file checking")
+>> Fixes: b3749f174d68 ("mm: memfd_luo: allow preserving memfd")
+>> Cc: stable@vger.kernel.org
+>> Reported-by: Chris Mason <mason@kernel.org>
+>> Reviewed-by: Rik van Riel <riel@surriel.com>
+>> Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> 
+> Maybe you missed my email on v1 [0], so here's another try:
+
+I did miss it! Thanks for pointing that out again.
+
+> 
+> Why not update shmem_file() to do this check instead? Having a
+> shmem_file() that might not always return the right result on a file
+> seems like a landmine.
+
+The current fix focuses on the sealing check indeed.
+
+> 
+> For example, you missed check_memfd_seals() in udmabuf or
+
+check_memfd_seals() calls memfd_fcntl() where memfd_get_seals() would now properly reject it.
+
+> memfd_pin_folios() in gup. 
+
+memfd_pin_folios() with sealing is a head-scratcher in general. I don't think it would be a problem here, though.
+
+The bigger question is if that path should just reject coda files as you point out below. I think yes.
+
+> Both want to only look at "proper" shmem
+> files, and should not do any work on a Coda file with a shmem mapping.
+> Plus, someone later down the line might use shmem_file() without knowing
+> this subtle problem, and we probably would miss it in review.
+> 
+> For callers that only care about the mapping should then use
+> shmem_mapping(). I am not sure if there are any. Perhaps that would be
+> collapse_file()? But TBH I don't really understand khugepaged all that
+> much. All other callers of shmem_file() seem to care about the actual
+> inode.
+
+Looks like collapse_file() would then use shmem_mapping() for the time being. God this is confusing.
+
+What about the following replacement:
 
 
-Thanks for the results. IIUC it's schbench that shows a possible regression.
+From 6e3c4f92a651e36ed1ae8d7659d2ca08543fa430 Mon Sep 17 00:00:00 2001
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Date: Sat, 24 Oct 2026 21:08:33 +0200
+Subject: [PATCH] mm/shmem: make shmem_file() check the file's inode
 
-I would expect that no changes here really affect performance at all (neither
-positively nor negatively).
+shmem_file() only checks if file->f_mapping is a shmem mapping. This
+mapping can belong to another file, however, as with a Coda file backed
+by a tmpfs container after mmap().
 
-"mm/huge_memory: fix list corruption when deferred_split_scan() races with
-deferred_split_folio()" fixes locking, but I wouldn't assume that this matters
-at all for this benchmark.
+So it does not guarantee that the file inode is an actual shmem inode.
 
-"fork: take mmap_lock before copying mm_struct" changes locking, but I also fail
-to see how that would affect the benchmark.
+Seal handling and memfd preservation use this check before accessing
+shmem inode state, so they can access an inode of the wrong type.
 
-Maybe some code layout changes just affect some benchmark on some machines?
-Because already seeing 10 improvements makes me wonder how that could possibly be.
+Let's make shmem_file() check the inode's file operations instead, to
+identify shmem inodes reliably. This will identify regular shmem inodes,
+including memfds and ordinary tmpfs files, independently of wrapper file
+operations.
 
-So I'll move forward with these fixes for now and see if we get more reports and
-could identify actual problematic commits.
+Use shmem_mapping() in collapse_file() instead to not change the behavior
+of collapse_file(): it operates on the page cache and uses mapping->host
+for shmem inode operations. Focusing on the file does not seem relevant.
+
+Fixes: c49fcfcda8b5 ("mm/shmem: update file sealing comments and file checking")
+Fixes: b3749f174d68 ("mm: memfd_luo: allow preserving memfd")
+Cc: stable@vger.kernel.org
+Reported-by: Chris Mason <mason@kernel.org>
+Suggested-by: Pratyush Yadav <pratyush@kernel.org>
+Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+---
+ include/linux/shmem_fs.h | 15 ++++++---------
+ mm/khugepaged.c          |  2 +-
+ mm/shmem.c               |  5 +++++
+ 3 files changed, 12 insertions(+), 10 deletions(-)
+
+diff --git a/include/linux/shmem_fs.h b/include/linux/shmem_fs.h
+index a7c7a96a7cbf..f89b4b151133 100644
+--- a/include/linux/shmem_fs.h
++++ b/include/linux/shmem_fs.h
+@@ -117,8 +117,14 @@ extern unsigned long shmem_get_unmapped_area(struct file *, unsigned long addr,
+ 		unsigned long len, unsigned long pgoff, unsigned long flags);
+ extern int shmem_lock(struct file *file, int lock, struct ucounts *ucounts);
+ #ifdef CONFIG_SHMEM
++bool shmem_file(struct file *file);
+ bool shmem_mapping(const struct address_space *mapping);
+ #else
++static inline bool shmem_file(struct file *file)
++{
++	return false;
++}
++
+ static inline bool shmem_mapping(const struct address_space *mapping)
+ {
+ 	return false;
+@@ -193,15 +199,6 @@ static inline struct page *shmem_read_mapping_page(
+ 					mapping_gfp_mask(mapping));
+ }
+ 
+-static inline bool shmem_file(struct file *file)
+-{
+-	if (!IS_ENABLED(CONFIG_SHMEM))
+-		return false;
+-	if (!file || !file->f_mapping)
+-		return false;
+-	return shmem_mapping(file->f_mapping);
+-}
+-
+ /* Must be called with inode lock taken exclusive. */
+ static inline void shmem_freeze(struct inode *inode, bool freeze)
+ {
+diff --git a/mm/khugepaged.c b/mm/khugepaged.c
+index 4b71d010b2af..3a6f4b7b2845 100644
+--- a/mm/khugepaged.c
++++ b/mm/khugepaged.c
+@@ -2230,6 +2230,7 @@ static enum scan_result collapse_file(struct mm_struct *mm, unsigned long addr,
+ 		struct file *file, pgoff_t start, struct collapse_control *cc)
+ {
+ 	struct address_space *mapping = file->f_mapping;
++	const bool is_shmem = shmem_mapping(mapping);
+ 	struct page *dst;
+ 	struct folio *folio, *tmp, *new_folio;
+ 	unsigned long new_pfn = -1;
+@@ -2238,7 +2239,6 @@ static enum scan_result collapse_file(struct mm_struct *mm, unsigned long addr,
+ 	XA_STATE_ORDER(xas, &mapping->i_pages, start, HPAGE_PMD_ORDER);
+ 	enum scan_result result = SCAN_SUCCEED;
+ 	int nr_none = 0;
+-	bool is_shmem = shmem_file(file);
+ 
+ 	/*
+ 	 * MADV_COLLAPSE ignores shmem huge config, so do not check shmem
+diff --git a/mm/shmem.c b/mm/shmem.c
+index af21a89abb0f..421ba066995c 100644
+--- a/mm/shmem.c
++++ b/mm/shmem.c
+@@ -275,6 +275,11 @@ static const struct vm_operations_struct shmem_vm_ops;
+ static const struct vm_operations_struct shmem_anon_vm_ops;
+ static struct file_system_type shmem_fs_type;
+ 
++bool shmem_file(struct file *file)
++{
++	return file && file_inode(file)->i_fop == &shmem_file_operations;
++}
++
+ bool shmem_mapping(const struct address_space *mapping)
+ {
+ 	return mapping->a_ops == &shmem_aops;
+-- 
+2.43.0
+
+
 
 -- 
 Cheers,
