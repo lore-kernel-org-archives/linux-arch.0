@@ -1,112 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.128.53
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793368087;
-	b=NykFZP5CbnyUdjX2ClQwE3VMohw/zkE31aZaKPFCfScrF6e5NVlFgsM7jc36iHVowRun
-	 fvmuWE7kNV3GnY8jahgaKadiH9GSDMgOOFd+VpI1GrwrlfZw7E8itlvSlfQ8CbVxsWi/u
-	 9tqwrEPLEsgco4ZnSzknEzEehNYNWRlZkHyA/dl9NXvnES96qakJHgnEh9H1JAmKtPHOx
-	 ovVcd79x0RPZUwZFca2tFiVcUzUn9Yd4w0ECyUUikQxxzZUmVgxCVq9vvcq2R8jlFuCSG
-	 MiXIcR9dK4nD5dEYWI1/r8urxwb+ogLROMmBVuJfoXtY8wsqUWZejore3uA/Zy0ba0Q==
+	t=1793370953;
+	b=SLrWcpMGzCxKu0CYeuAuFZe345LVgVhQOacd01nOIUhNQOkuqr9rSVlnjAZJLQMWe4cH
+	 gOvJkdlUcJrjicD3CioEyDK3SKoCF2ve45BS4sWm3Ug2Uj1EEXKOj9ZSZ7r7Z8sq/Ggu6
+	 7dYwa5aWzhO6vLyLSD0BtCAL6uhtUz7i3ESrxtVFPn+MKJX2a0F8u7I8vjh9sMUkV1vE/
+	 5yv6ESdNiU2Iz6sSWz7GXUC1cbfbtyxkJJ+643ya/XtTbNtYDF7h/gNT9XRI/oMptwC+b
+	 t/k0uhLDtKO1uazudzeZbW5X0YPbw5MjZmXk0FBcziRnvGXRzEXgC8E2EivdvLQymbw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793368087;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To;
-	bh=rmX4JEwV7qAmy43PkgvX967p02rESGhBBxr09gc4cBg=;
-	b=nDeIxJG1C2Wl7RmpFKn6ePaa62kOQDNmvLZO9KNpG9hdge9Ko4RkvK95lP9htAZdVQh7
-	 tdt72/KQ3yOe0o5OqvTV8N57P3ixiY6IFLFysmqzAAO1lwP2pXOkLgnV3OyrgiTT7KBAn
-	 CvojL064NGPwncLVtkbKhxgihUMLAthDIFRKo+jFacWZtQIqmArQzkpsW3rFuzKIshxMU
-	 MotjxD85QA7dvPa010ZRaFb+ndU9SzkOo3PFx6MVT3eWWNiY+2fiCL6u+gBePOFlAe1Iw
-	 +5hNN/Hy6tRGcCJfGJFGDwcuzUrRy2JrullU/qCi1K2FZH3mQHdBy9TVhSnGmTSeWRg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793370953;
+	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
+	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
+	 Content-Type:Content-Transfer-Encoding;
+	bh=y6XXbQ+HdgQmOTZa0aEBan+zjL/ycrb6TKGl8S7Q83w=;
+	b=vPKo/UdW/Ng7SC5a0MtE2ZjKfY2mFdJk8tFWio5kwasVHbpyiDUsC02R4Ht9yGXEEkJ1
+	 OtE/84F9xZWyLkeNezLDAT3ptdFxnbb8svs1dFTaIe2E9zNOXW6sYWQ8rIngtpDcqDGE+
+	 CHMM6s8Q9qByW39LzOBM9rTHwLLYGVFvdO7PUTBzSYkxBdrLn3HturFkj7vJVynvOCpJY
+	 j9QNiGgK4uejI5Y21bxRNnf4RT5or43k9Zn3JAycEOKjtAdHL4/iZI2K/PxSzo06UIAY9
+	 bY0FI6PzNENyOCMcwRoiW9/2x4VHlhWAt83SS0BMAj9dbtibvC5cmIxDPePGKX7mQjg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=P0o7zm7K;
-	arc=none smtp.remote-ip=209.85.128.53
-Received: from mail-wm1-f53.google.com (mail-wm1-f53.google.com [209.85.128.53])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Zc8ZNVO6;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0D3F0606A323
-	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 13:48:06 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0D3F0606A323
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B0B0E606A31A;
+	Fri, 30 Oct 2026 14:35:52 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=P0o7zm7K
-Received: by mail-wm1-f53.google.com with SMTP id 5b1f17b1804b1-4a2167bd087so5783705e9.3
-        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 06:48:06 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793368085; x=1793972885; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=rmX4JEwV7qAmy43PkgvX967p02rESGhBBxr09gc4cBg=;
-        b=P0o7zm7KEPIXltx3NlgMQzHQT99NsbdanhX5hUYiA8mqcXpAtEl9r+/7vE4Ggfb6xQ
-         AjDmKEsJCN3A9nhHSHYQq86Tx9QzgKkEoL+MNKiu90Y6d/c6qq8wEeWDbGqZ4zOp73t2
-         V+jiEVsBNp3JryoT0gq/L7+LKDEBausQ7tqgfI+sigyrm1PvM7UpDQc9g0naBiUQsKsm
-         txn6SCcpysT3ZLStg89zxyyBWbPd9BONg/H56ElBDxvktEsTFh0x/DFDQ8EoFwz5gpkM
-         +r9npc2iAjvhv6WuZ+vHLzVgZO3yPFE7oA+XMRoLdTuvTODgouxb21kNS1YSNNzhhvRI
-         MLgw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793368085; x=1793972885;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=rmX4JEwV7qAmy43PkgvX967p02rESGhBBxr09gc4cBg=;
-        b=iGGKMtYoCRikFzdCUWo9fzwa4hKL5nqrD9AzXxHUqeWI/D+JAUq5a3dyI60MdYjuRj
-         A5MoOs5fh95jXQSHPX3bxREELt1He6t1VLXtBkjNemoOkyS3oEq3+sjYI8q2ubo0AF+H
-         6FIDhKxfyo7xdYKHvzJztCNKkLPt9651rz98DbSGyyMeuXGxo3/VndVaqlnDd6MDZEza
-         APhdCXAZJEE54dzyox7oXZgJMpHT6Kh2KUwreykzeOoG0Dtml2vQDCmUvb1ZZ4mxxaGa
-         cXZ/ipjwphPZQdN0geCEaVQ376r2Dkf54XhhzMj0G39EnTrCk5USqT7OWis5D0Nyizho
-         /2kA==
-X-Forwarded-Encrypted: i=1; AKwUvBy21gdD/NrmNcYUkuiTgdzjsMwGFT3wrxLhxvoALBD1nyDKhLYYs8+/LZXjQPmMIQk658Ni6DJ87WSp@vger.kernel.org
-X-Gm-Message-State: AFq9FYLvX1iSqdjn7zD2v2ozVoI5psZHyjHEk0tFRg+wJO6g5v+JUGg1
-	0ulZKShDuE0AM+/v6njjDtRcS6jLi19ja/z2gBdMkMODVXuHJ8ATXOzv
-X-Gm-Gg: AYBFou04v1C1++vjpKG0oZ4vtEVLZTMU4lDZvniS2MX0mnbSPrdLvLUKmmGWgyIPTJ/
-	K5ncAM24XRL9PW56JXINoz1PcDxWCxfC2zRWGiup2OWSnJycr1aEuvflluX832pzcdhTDlm1Gsu
-	3rr5MwgMV4vzIxJbZuuHkpNE84K9myRu+PqCrafZn8Pjt3xIJ8j7KWueYVQaI4B8GmctKRkqE9C
-	Ypcz3yeEOmSFY/s7gIuklbcLNMFc0S/a0gglxidXvH5LcKBxPJHMTsgUQ1Ygv4SgKagFzfB1eoT
-	yBHRF0KDsVVF0WxgeA6y/2R7oRinaZilPfti9ac/8FIpV1IuO31GHrM3JUaleirv5/3RLl1i6VL
-	03CGGavbRNFk45T9o1KO+X4IiFuhxEqW7okhzMBtI11S3OeJ2yFxKDjl19QBsZuNusFQVlIOWjV
-	Y1nOBUx1Qt0Nx7AymAR/s4hKrqRWDJbUUwPZxhYnZRKALNvqoHcKQs9Zbot0b4KrVAS9Z6OTshV
-	XkchtH6Y1clKY4F+A5l/0WNpr2Kst35Jt1lZ5qBFsam/xfMe1cZoaN6uOZkvUUft40kP6royKQ0
-	keEwdYHzjiZL4XDSjl45SjFWTET64G61RgQNgCmypIOWDJwzTkPN5n6G//ErIQjzjKDqLEMnbVx
-	YaQd+NnBra+jcWQ==
-X-Received: by 2002:a05:600c:34d1:b0:4a2:526b:d3fd with SMTP id 5b1f17b1804b1-4ac1793fb5emr50752935e9.15.1793368085145;
-        Fri, 30 Oct 2026 06:48:05 -0700 (PDT)
-Received: from C422HJQPQG-Fractile ([130.43.154.100])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4ab69b54742sm172048905e9.15.2026.10.30.06.48.03
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 30 Oct 2026 06:48:04 -0700 (PDT)
-Date: Fri, 30 Oct 2026 13:48:02 +0000
-From: "Vishal Moola (Fractile)" <vishal.moola@gmail.com>
-To: Muchun Song <songmuchun@bytedance.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>,
-	David Hildenbrand <david@kernel.org>,
-	Oscar Salvador <osalvador@suse.de>,
-	Alistair Popple <apopple@nvidia.com>, Will Deacon <will@kernel.org>,
-	"Aneesh Kumar K . V" <aneesh.kumar@kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Geert Uytterhoeven <geert@linux-m68k.org>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
-	Yoshinori Sato <ysato@users.sourceforge.jp>,
-	Rich Felker <dalias@libc.org>,
-	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-	"David S . Miller" <davem@davemloft.net>,
-	Andreas Larsson <andreas@gaisler.com>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	linux-m68k@lists.linux-m68k.org, linuxppc-dev@lists.ozlabs.org,
-	linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
-	sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-mm@kvack.org, linux-kernel@vger.kernel.org,
-	Muchun Song <muchun.song@linux.dev>
-Subject: Re: [PATCH 0/2] mm: Remove pagetable_dtor_free()
-Message-ID: <auSgElFWW4n3sJLb@C422HJQPQG-Fractile>
-References: <20261030083800.599152-1-songmuchun@bytedance.com>
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Zc8ZNVO6
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 697CF1F0093A;
+	Fri, 30 Oct 2026 14:35:36 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793370952;
+	bh=y6XXbQ+HdgQmOTZa0aEBan+zjL/ycrb6TKGl8S7Q83w=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=Zc8ZNVO6uRM/ebf2tyuqkNg2F+fe5LIUT6QCAumzzPpOuGmyXnfnNO5s9RSYLm2rE
+	 jwJf7qLnqMB1Nf2QO0gP2HzziZZK6letMz6x4Z1QebhXjhx6Lp5o3hUiQQDX2zhFLu
+	 5wWBHnZAqJxpm4krMusfEm0ziwpBACmY2PLnP7EQIV+ROXKrDC2x0Z413kzf7TnVRa
+	 1IzLYX7Ri/ykqtCagS6CsHGxfJq/AfR5jwjpZPHtLQClzkqVrG8JQ9OGKa/yrF53ml
+	 FKD/f6zB3W/UEBSdx5AyFtTg6EeOre5o75pbwDLQQv3rT/OAi7RJN7FszZ+57tVf4M
+	 radtUUXIQvVSg==
+Message-ID: <43994c77-bde2-47cc-b6bd-5b479672bad2@kernel.org>
+Date: Fri, 30 Oct 2026 15:35:33 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -116,28 +51,166 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261030083800.599152-1-songmuchun@bytedance.com>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 03/47] mm/memfd: check for real shmem inodes before
+ accessing shmem state
+To: Pratyush Yadav <pratyush@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+ Baoquan He <baoquan.he@linux.dev>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
+ Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
+ Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
+ Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
+ <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
+ linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-cxl@vger.kernel.org, stable@vger.kernel.org,
+ Chris Mason <mason@kernel.org>
+References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
+ <20261029-fixes_core-v2-3-a64ce7f83abb@kernel.org>
+ <2vxzmrrvmnil.fsf@kernel.org>
+ <297adf4c-1792-4dff-a7c8-2694dc2b1446@kernel.org>
+ <2vxzik2jmkw1.fsf@kernel.org>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <2vxzik2jmkw1.fsf@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Fri, Oct 30, 2026 at 04:37:58PM +0800, Muchun Song wrote:
-> This is a follow-up cleanup to the page-table teardown fixes [1].
+On 10/30/26 13:29, Pratyush Yadav wrote:
+> On Fri, Oct 30 2026, David Hildenbrand (Arm) wrote:
 > 
-> pagetable_free() now invokes pagetable_dtor() for constructed page tables.
-> This makes pagetable_dtor_free() redundant and leaves explicit destructor
-> calls immediately before pagetable_free() duplicating lifecycle handling.
+>> On 10/30/26 12:33, Pratyush Yadav wrote:
+>>> Hi David,
+>>>
+> [...]
+>>> Both want to only look at "proper" shmem
+>>> files, and should not do any work on a Coda file with a shmem mapping.
+>>> Plus, someone later down the line might use shmem_file() without knowing
+>>> this subtle problem, and we probably would miss it in review.
+>>>
+>>> For callers that only care about the mapping should then use
+>>> shmem_mapping(). I am not sure if there are any. Perhaps that would be
+>>> collapse_file()? But TBH I don't really understand khugepaged all that
+>>> much. All other callers of shmem_file() seem to care about the actual
+>>> inode.
+>>
+>> Looks like collapse_file() would then use shmem_mapping() for the time
+>> being. God this is confusing.
 > 
-> Remove pagetable_dtor_free() and convert its callers to pagetable_free(),
-> then remove the remaining redundant pagetable_dtor() calls. This keeps the
-> destructor decision in the common free path. No functional change is
-> intended.
+> Yes...
 > 
-> [1] https://lore.kernel.org/r/20261023063428.3658761-1-songmuchun@bytedance.com
+>>
+>> What about the following replacement:
+>>
+>>
+>> From 6e3c4f92a651e36ed1ae8d7659d2ca08543fa430 Mon Sep 17 00:00:00 2001
+>> From: "David Hildenbrand (Arm)" <david@kernel.org>
+>> Date: Sat, 24 Oct 2026 21:08:33 +0200
+>> Subject: [PATCH] mm/shmem: make shmem_file() check the file's inode
+>>
+>> shmem_file() only checks if file->f_mapping is a shmem mapping. This
+>> mapping can belong to another file, however, as with a Coda file backed
+>> by a tmpfs container after mmap().
+>>
+>> So it does not guarantee that the file inode is an actual shmem inode.
+>>
+>> Seal handling and memfd preservation use this check before accessing
+>> shmem inode state, so they can access an inode of the wrong type.
+>>
+>> Let's make shmem_file() check the inode's file operations instead, to
+>> identify shmem inodes reliably. This will identify regular shmem inodes,
+>> including memfds and ordinary tmpfs files, independently of wrapper file
+>> operations.
+>>
+>> Use shmem_mapping() in collapse_file() instead to not change the behavior
+>> of collapse_file(): it operates on the page cache and uses mapping->host
+>> for shmem inode operations. Focusing on the file does not seem relevant.
+>>
+>> Fixes: c49fcfcda8b5 ("mm/shmem: update file sealing comments and file checking")
+>> Fixes: b3749f174d68 ("mm: memfd_luo: allow preserving memfd")
+>> Cc: stable@vger.kernel.org
+>> Reported-by: Chris Mason <mason@kernel.org>
+>> Suggested-by: Pratyush Yadav <pratyush@kernel.org>
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > 
-> Muchun Song (2):
->   mm: remove pagetable_dtor_free()
->   mm: remove redundant pagetable_dtor() calls
+> Looks great, thanks!
+> 
+> Reviewed-by: Pratyush Yadav (Google) <pratyush@kernel.org>
 
-For the series:
+Thanks!
 
-Acked-by: Vishal Moola (Fractile) <vishal.moola@gmail.com>
+@Mike, @Rik, Ill drop your RB, so please re-review.
+
+-- 
+Cheers,
+
+David
