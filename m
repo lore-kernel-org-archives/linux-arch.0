@@ -1,106 +1,111 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=103.168.172.146
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793389710;
-	b=zjg6YoucII5eWDqBtbtJC3lYiwmcejdudMzztlqeeTEg/kWg35L7nfa+1MNQEOfmlMeq
-	 zn23crYai28ZvSb3CjmuT7tSWHneyuNUcsxUyn459KTVJ7W82ePB8CToWLpng+BgWeKy/
-	 ibJy0fZ5ISiQBlxrUYtfaXk+yTJq1EYTWTINmFeD5HZVb5FoEIxNDQklkC3IYIXCl3n6J
-	 6SpMTKKUo6iVMUa0ZqM3ciooiyX/iXJZlUoBbZBOcymMB4jA1N7jFPDsUa/TDFJByBotX
-	 eRgUkXG1FyuGt72usFCQ4l1atGhgbQCEjzBHzZxvMD4s06B7gPXphyCA4mLDngopQlA==
+	t=1793395185;
+	b=wx1/n9Zwkhk/d3AjeqIbkX0zEYE6jnr9vaGMFc2uNAtm1FmbhygE+sZkIrtB6oJNr1SL
+	 QzdHGa+W11r8Y+oII6gWM6E70HzBZ8rYSt73MliEVB0VAYLl7N1jYGyexEqqt0PgGfin8
+	 5U7te3sAvAS3xEBEfB+aaaV8Hk38wjeEZoSJ4puymweeS57O5qwgGadAQNq8rXhcAvsfe
+	 Id7hbk4aKAqpBPt5VX+B2djn1pOQbLiyhcEcBI+MjO4i5nkodeesKEZuKYqAskK1T7HVO
+	 u6a0r14Mh88rsR3Hszwzy+iPSvu3pKx36uR0RNbct8dHOSi+onOMIBvgcxVat5dVPEQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793389710;
-	h=DMARC-Filter:DKIM-Signature:Received:Date:From:To:Cc:Subject:
-	 Message-ID:References:MIME-Version:Content-Type:Content-Disposition:
-	 In-Reply-To;
-	bh=5cAqrwEG4tJIMReOWfjqK8hyBrP8PRADznX2SjMD38Q=;
-	b=rC8/MUMWOYSLH4citx7ZNVMmb95ueOm/dk/rkac/PH06NpW/zW8QtrG7ZZZk7rRuOkuG
-	 eoZs46/wb7sosBDm6kv0y1xmZR8JWqxP5bCtz1shb8ZuFxYQVZGea08+xE6JCwnol3OST
-	 cAqlpaRTSqVgVfU+F4+rohDmLndSiQmzVz2y6uqmo3q96bpT5M3trlH6xRnx1XDxCeUpY
-	 ZkmYMRVAo3+BtGPmzRbv7pbp1EdICwgwrowk+C1A2MN4/8XCX3rhFX5c/dmP3fOw//Itg
-	 U+UVWsD0A6IDYqvJT1RkbyW8LWlKMdlnroK7atuf7MxJB0OmgimxCD6fFGM4y+je3cA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793395185;
+	h=DMARC-Filter:Received:Received:DKIM-Signature:DKIM-Signature:
+	 X-DKIM2-Info:DKIM2-Signature:X-DKIM2-Info:Message-Instance:
+	 X-ME-Sender:X-ME-Proxy-Cause:X-ME-Proxy:Feedback-ID:Received:X-Mailer:
+	 MIME-Version:X-ThreadId:Date:From:To:Cc:Message-Id:In-Reply-To:
+	 References:Subject:Content-Type:Content-Transfer-Encoding;
+	bh=Dl1LG0Y6RzLXrRfxv+91NkboHhB++1KT+VI/hXOnas8=;
+	b=3hwm7LeEo0lNjS2zd0jzj0GIJkNPodrv0Hg1CHtiR7NYpLErR4PVs2Ut9A7EBUsimrW4
+	 sd2VLWoOouwftpdLLYQXOOd1eeso6zG2LYgStlMsiDDlUIoyCylfDS5riKviqxTqzCRPl
+	 u3ZNrLx2tiprzljWhaDJa7xxvKW2djbeuxT0hE6d357KJ2aZI0bFlajNBTxuMYS/iHSVw
+	 3a0PUtXB8gmx0Hx6bRlyYWH0FcBb3w72McXVV53KbMvzwjUh+mU+ryrOdd49XZaBelF/L
+	 RXPHbEGWLfaLWmfpLwDBMjTz37hLdLgYaJFgdlSegf8nyHPGWtuRuWPemDsjLQN918A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=infradead.org;
-	spf=pass smtp.mailfrom=infradead.org;
-	dkim=pass header.d=infradead.org header.i=@infradead.org header.a=rsa-sha256 header.s=casper.20170209 header.b=fXjOzohu;
-	arc=none smtp.remote-ip=90.155.50.34
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+	dmarc=pass header.from=arndb.de;
+	spf=pass smtp.mailfrom=arndb.de;
+	dkim=pass header.d=arndb.de header.i=@arndb.de header.a=rsa-sha256 header.s=fm2 header.b=R0EhaWD0;
+	dkim=pass header.d=messagingengine.com header.i=@messagingengine.com header.a=rsa-sha256 header.s=fm2 header.b=Z5yTrlF1;
+	arc=none smtp.remote-ip=103.168.172.146
+Received: from fout-a3-smtp.messagingengine.com (fout-a3-smtp.messagingengine.com [103.168.172.146])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 57710606A31A;
-	Fri, 30 Oct 2026 19:48:30 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 57710606A31A
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 375DB60A2620
+	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 21:19:45 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 375DB60A2620
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=infradead.org header.i=@infradead.org header.a=rsa-sha256 header.s=casper.20170209 header.b=fXjOzohu
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=5cAqrwEG4tJIMReOWfjqK8hyBrP8PRADznX2SjMD38Q=; b=fXjOzohuKhVw0dSm7kurhSEjMx
-	6ncivLeUVzuEuljHndk6KFMsr0Gp5XJxpEaViT0PKxjF1DxJfKVZD6Q9Al06C0cKCR263e2//KE/9
-	BhqcqOXfNHTNAU8tqbvd360LrmpIB7/G6QybSUdbCUP+XIVqT+B4wc0s+jHx/u/oZmUGjxHOSgHuD
-	ij8KyKAVJ4xrVQoXVUEhC4MyuFwAz5abZibH9qw/n8SJv12+1cg+iQN2+0QVbJrsVhozc2r2JDydh
-	94x47YWl3uDla8PHV/FnwU3PocKKFJUVUdCMHBvxmzPrP1wVloEWX1Va5n3rsEpyB+qYG+JdCSjcj
-	2hxJXohQ==;
-Received: from willy by casper.infradead.org with local (Exim 4.100.1 #2 (Red Hat Linux))
-	id 1xMsa2-0000000Abtz-11sU;
-	Fri, 30 Oct 2026 19:48:02 +0000
-Date: Fri, 30 Oct 2026 19:48:02 +0000
-From: Matthew Wilcox <willy@infradead.org>
-To: Pedro Falcato <pfalcato@suse.de>
-Cc: "David Hildenbrand (Arm)" <david@kernel.org>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Johannes Weiner <hannes@cmpxchg.org>,
-	Michal Hocko <mhocko@kernel.org>, Qi Zheng <qi.zheng@linux.dev>,
-	Shakeel Butt <shakeel.butt@linux.dev>,
-	Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
-	Barry Song <baohua@kernel.org>,
-	Axel Rasmussen <axelrasmussen@google.com>,
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
-	Baoquan He <baoquan.he@linux.dev>,
-	Baolin Wang <baolin.wang@linux.alibaba.com>,
-	"Liam R. Howlett" <liam@infradead.org>,
-	Vlastimil Babka <vbabka@kernel.org>,
-	Mike Rapoport <rppt@kernel.org>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
-	Hugh Dickins <hughd@google.com>,
-	Pasha Tatashin <pasha.tatashin@soleen.com>,
-	Pratyush Yadav <pratyush@kernel.org>, Jan Kara <jack@suse.cz>,
-	Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
-	Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
-	Alistair Popple <apopple@nvidia.com>,
-	Nico Pache <nico.pache@linux.dev>,
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
-	Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
-	Matthew Brost <matthew.brost@intel.com>,
-	John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>,
-	Will Deacon <will@kernel.org>,
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
-	Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
-	Minchan Kim <minchan@kernel.org>,
-	Muchun Song <muchun.song@linux.dev>, Xu Xin <xu.xin@linux.dev>,
-	Chengming Zhou <chengming.zhou@linux.dev>,
-	Chris Li <chrisl@kernel.org>,
-	Kemeng Shi <shikemeng@huaweicloud.com>,
-	Nhat Pham <nphamcs@gmail.com>,
-	Youngjun Park <youngjun.park@lge.com>,
-	Gregory Price <gourry@gourry.net>,
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>,
-	Ying Huang <ying.huang@linux.alibaba.com>,
-	Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
-	linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>,
-	stable@vger.kernel.org
-Subject: Re: [PATCH 06/46] mm/filemap: read mapping->a_ops->free_folio under
- i_lock
-Message-ID: <auT0csDIJwvwfDqb@casper.infradead.org>
-References: <20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org>
- <20261027-fixes_core-v1-6-6f74bec9a5bb@kernel.org>
- <auDG-5bYh2tSQem8@pedro-suse.lan>
+	dkim=pass (2048-bit key, unprotected) header.d=arndb.de header.i=@arndb.de header.a=rsa-sha256 header.s=fm2 header.b=R0EhaWD0;
+	dkim=pass (2048-bit key, unprotected) header.d=messagingengine.com header.i=@messagingengine.com header.a=rsa-sha256 header.s=fm2 header.b=Z5yTrlF1
+Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
+	by mailfout.phl.internal (Postfix) with ESMTP id 4FFAEEC01CE
+	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 17:19:44 -0400 (EDT)
+Received: from ams-imap-03 ([10.64.2.23])
+  by ams-compute-02.internal (MEProxy); Fri, 30 Oct 2026 17:19:44 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm2; t=1793395181;
+	 x=1793481581; bh=Dl1LG0Y6RzLXrRfxv+91NkboHhB++1KT+VI/hXOnas8=; b=
+	R0EhaWD0glqlAYetqHP9Ja6C96jrEhWB3wSZI6VzNiuoTCCVXc1UHwaebnK1IyEg
+	79WvABcWEArSQxpu6b78zF255M6ugNXSMqVdDxL/SILxJ6jwe9FbgBcyY1vorJGm
+	5oRT/BVLLesLLVLgD9du0OBIrTb/kjEd3Gr5UtKkfwqabnIbtvuz9F7tR5hIoj1u
+	MHm3wY/bt/EgDwlSO28yrxPQP9dFCrbgKkwqOXcGeLGvmWzWMROzJL9dJGoFHSwZ
+	OXDhiSXj5QLS6Z5a65lqQh3aQ54erwwOdkCuvqghX0ropV3HQcy9Rg5/4UAKkSuS
+	ABtER50GX5LBpOnGEYZO1w==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1793395181; x=
+	1793481581; bh=Dl1LG0Y6RzLXrRfxv+91NkboHhB++1KT+VI/hXOnas8=; b=Z
+	5yTrlF1K8Bx+GGJh3vT+CRDs98zizzfvz2L2qpP4P4nHhsoQJ1BOfwEm35tmpYSx
+	Ci6K6fNr8CwdmPcAIJG7c4ir1XYUFTRHtznTw8NH4K6ExPS3LFEVzO8t8R+L/kvH
+	m860SMVAoEJkL3AbZmiBO1VjMKr4R6t3AoWY5LS4ZcinjMqLU0sZzrzfhIAm7wBL
+	GZk0utE15f9crwZKGGAD1B8kG5QPS7Qfo1gzIR4dlfF878jR/2dDwRKXHvRgfa21
+	LvhnjME+dWxCDgmPXggltKFVQskZ0mlF/9Ck2Ouh7uIqqCnwEKM02I5qXegA8JJF
+	uKPx/ihSS5JWMEGd6nLzw==
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-08;
+	repo=github.com/dkim2wg/interop; date=2026-10-28; sw=lmtpprox;
+	action=sign d=arndb.de a=rsa-sha256;
+DKIM2-Signature: i=1; m=1; t=1793395181; d=arndb.de;
+	mf=PGFybmRAYXJuZGIuZGU+;
+	rt=PGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnPg==;
+	s=fm2:rsa-sha256:jiwqvgsKbSg1cjRoAL2EZGfK5AeZ2OqM5q26V9z6onPZR0Z
+	YPv6V4ybRub/4VwN4FGEKt87KswTFI21V6SZFrLkw0uzDJ8pu+CL48EO0giqZeWy
+	JXZG7mVzABswcZgKTsvgeoRK4kQ+L/EaH2ngxvtmgK1ApXUyam/rVRdiP5TZJZ1B
+	Z52YWFB+M/lSB/rH4vRYvTvHcLJ3kiE/I/tUBX7H9BGRt68YHZviRJ/e7u/0xzJ4
+	yeeBeGI6hp4ZBxEkY3d30h66lp4l4NWaAde8j/+Xl/XsG7qMXjL4EdlMyccCX60f
+	slAggGp7WkYPZ9yyj5oiUrVvc2SYks/hj9T/p2Q==;
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-08;
+	repo=github.com/dkim2wg/interop; date=2026-10-28; sw=lmtpprox;
+	action=mi-m=1; hc=12;
+	hn=cc,content-transfer-encoding,content-type,date,feedback-id,
+	from,in-reply-to,message-id,mime-version,references,subject,to;
+Message-Instance: m=1; h=sha256:GhglIsL3uu6nEtiuA3MobcUZlxx1huwAF0Pf5N1Xnl8=:kTM8AS4UB0+gUZDZkMLnPfvC5c9V7l9e1Y/veHALxpU=;
+X-ME-Sender: <xms:6QnlameD8brMS30tx9lsvkhYNLC2YvuPbr6p33PgT2O-WgaomGgoIQ>
+    <xme:6QnlarBQZuWSubC8k7Fuk93X0Yb2KHi9_Ar3ffCzN0ehd_zd--xgLqbeundl5UM_O
+    lBYVMwvcG2bFRPCmP0_g_foJq7yNRMPkz-ImjxxOcwQ0NXrSyUr5Yn4>
+X-ME-Proxy-Cause: dmFkZTEHE8Apd9U84xVPbS3T5EaOX9zQ6tn1ko49jsbH1txIARGoXweFutRVrEw7AYzJ08
+    KdP+z1OcfT+37axmqkfNpq90uZK7KBIHNXyKuXnVEpI/zNRq+NdpIkFfd6ouHVC3oJybgo
+    HSsgLKAgakHTS4fQXyu4kJYYt5nJMx7B75q2L3BD4QyYDI5VUqlvTZZnXCWIR6HPg0K7tt
+    hbHy72G3HYu21HXWR3iVtVPPuzK/mL3U1MTkdN7stwm8O0vqCYepocQQ3J1qbzoVxD4iAp
+    +6FsoDjfuspqqJ6g9dmRYP7Ez+gzmlC8UzVcTfMtpAimvCIA/aKUrLQ2INAlrZWMk9xIM5
+    WqI7L07jNXSpaXvsE78C9IkoM05pGRsnTS/ULlWLQ8jHXhOA2hNkvVzQbzbH2EKDcEELXy
+    q/U7QIFb5fy1XblL0BOwkX+Xz0c2xi+SuDBbW92kx9D8RC7eoDXIe8L75JvSN3ymIGYhb0
+    GdceRtvRTgUyDOLCpBJLN4aHWRx9bzHkizPpb8UUwAHxnQDbscbSpewGvx2UHQdkGz/71f
+    GkbnoyFBtmc9KdZ1poqniQJMS4qnV8vZ1RkhJfA8xguCnrQ98bzFgdKkY2b/T7CSTvE+UJ
+    4dfCv97bEE2dAj58Teh+PyPLVN3lvjaIceYZhoyMq5kW2xEHQazLvUigf/8w
+X-ME-Proxy: <xmx:6gnlajPxCt9_R_bYbqEWis8dwI2RpBG7say7iZSKuSHVwGl8hRpS6g>
+    <xmx:6gnlaghlFJTerTIz5k4_U3gSOtn1sFHVchvK134QSnQvbsJRKbCqLQ>
+    <xmx:6gnlal4J8vknUa5xET2pCJIvMrmdUyNgkm4l2HQFi6_EIvkGKYYySw>
+    <xmx:6gnlan0mrRQK5xaWWO9Fv_C-VM5D0QrBEHdSq8ZYgLEJRae4vrOZ1A>
+    <xmx:7Qnlavni9x1lDrdOtW-fq4JXnf7anM6j79YhzEloMB_8bEim6AGel6lU>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.ams.internal (Postfix, from userid 501)
+	id 3280032A0093; Fri, 30 Oct 2026 17:19:37 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -110,37 +115,47 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <auDG-5bYh2tSQem8@pedro-suse.lan>
+X-ThreadId: AA4M8BakChSJ
+Date: Fri, 30 Oct 2026 22:16:18 +0100
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Thomas Huth" <thuth@redhat.com>, "kernel test robot" <lkp@intel.com>
+Cc: oe-kbuild-all@lists.linux.dev, Linux-Arch <linux-arch@vger.kernel.org>,
+ shuah <shuah@kernel.org>, linux-kselftest@vger.kernel.org,
+ "Jason A . Donenfeld" <Jason@zx2c4.com>,
+ =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
+Message-Id: <33492528-ecd8-444b-a42d-d084857a57cd@app.fastmail.com>
+In-Reply-To: <5f898f0f-915c-4aef-a3f9-0118f4539951@app.fastmail.com>
+References: <202610291918.kHO0GTDB-lkp@intel.com>
+ <9e294bfd-4704-42a5-a704-f301f4afe042@app.fastmail.com>
+ <cdf09fa3-e251-4d8d-9f0a-316998df036b@redhat.com>
+ <5f898f0f-915c-4aef-a3f9-0118f4539951@app.fastmail.com>
+Subject: Re: [arnd-asm-generic:asm-generic 15/15]
+ /usr/aarch64-linux-gnu/include/linux/types.h:12: Error: unknown mnemonic
+ `typedef' -- `typedef __signed__ __int128 __s128
+ __attribute__((aligned(16)))'
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-On Tue, Oct 27, 2026 at 03:47:35PM +0000, Pedro Falcato wrote:
-> On Tue, Oct 27, 2026 at 12:17:26AM +0100, David Hildenbrand (Arm) wrote:
-> > From: Josef Bacik <josef@toxicpanda.com>
-> > 
-> > memory_failure() -> ... -> filemap_remove_folio() can read mapping->a_ops
-> > after the inode has been freed. Once the folio is deleted from the
-> > pagecache it no longer pins the mapping, so after i_lock is dropped
-> > e.g., a concurrent final iput() can evict and free the inode before
-> > filemap_free_folio() looks up mapping->a_ops->free_folio.
-> 
-> Ok, but after iput() then nothing also pins the filesystem, and thus the
-> module. So we can be calling into total garbage. So what gives?
-> 
-> You can't just take the pointer, you need to make sure the filesystem
-> is also still alive.
+On Fri, Oct 30, 2026, at 19:23, Arnd Bergmann wrote:
 
-I hate the existance of ->free_folio().  It'd be lovely to get rid of
-it, but I think that's outside the scope of this patch series.
+> The idea sounds right, but it doesn't appear to do anything for me,
+> I still get the same output:
+>
+> arnd@studio:~/arm-soc/asm-generic$ make O=../build/tmp/ ARCH=arm64 -C 
+> tools/testing/selftests/vDSO/ V=1
+...
+>
+> It looks like tools/testing/selftests/ is built in the source directory,
+> while the 'make headers_install' installed the headers to the object
+> directory in '../build/tmp/usr/include/'.
+>
+> I have never been able to figure out how kselftest actually wants
+> to handle this.
 
-This patch narrows down the race (and removing modules is a CONFIG
-option anywaysoit actually fixes it for some users).  I think this
-patch is a significant enough improvement that it's worth applying and
-perhaps we can work on removing ->free_folio in the near future?  There
-are only four implementations of it today:
 
-fs/nfs/dir.c:   .free_folio = nfs_readdir_clear_array,
-fs/orangefs/inode.c:    .free_folio = orangefs_free_folio,
-mm/secretmem.c: .free_folio     = secretmem_free_folio,
-virt/kvm/guest_memfd.c: .free_folio = kvm_gmem_free_folio,
+Nevermind, I figured out that your fix works when doing
+'make -C tools/testing/selftests', since tools/testing/selftests/Makefile
+is what sets KHDR_INCLUDES. When I tried to use 'make -C tools/testing/selftests/vDSO'
+the assignment gets skipped, so I got the same error as before.
 
+      Arnd
