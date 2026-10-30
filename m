@@ -1,119 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.216.43
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793349508;
-	b=CpXNFUlzuRnIY9gB3OX683Hzpzae4zaY5duymb8JkVcgn8qplRDb4v2RwkxfoemjaKVo
-	 2Ox6G8n0D3ZhaOKk+6w+0FCv/5RFGxcon0N/1dubwCSmMwFBJPrcmeKTp2n3wBQIzt1Q+
-	 /Si3O5UDF462bZBAJuw4j+Qr+fg+uc0dnRmawwbzA469zQn+Si54iBWMjyPW+C7hYg2T3
-	 6WKAc1jf83lJ1iJAgAciOHM3gW/uQPIJI4HCdbzAdSFHFBLWLRQ2PizU6I9Ucm7BFFkaW
-	 mJl/bOoIj9aJJP5FrCGpM12o25quHZwOk0CMeHFa3LpyU6P+RpBdfwwMPHYtEy54Gxg==
+	t=1793350517;
+	b=TTo5HooBRwb6Ys4ZoWmxPkqDx9hZ9/k/e1+dQawVOE2m6XfSxNx1IyGL5XrqtI0oCcid
+	 WdmuPoYquUK+UfXXZNK8puqd8zhs69/GeraOjW6vLhILPdNs2sUOzN0bPdws9IaWy9BWf
+	 AoC6NjQoyzYkYHivqncNooCiHNfG3cgodWjfmFtldzMgNIlw6vV7U64lZ16FPNlXPooPx
+	 9R9xLEQAbsOpqmHu4uTmwvdDmSYvuz0r1CIe0SbN8mpU4+wMoGGnDUYdutz9itVaMb+G+
+	 ENWkyz7UCFcP2jLQKvI3DU7r5fuYxO+7UwntnBGKAq6I3jxkoETSKNOLHePyRjYW4gg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793349508;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:
-	 MIME-Version:Content-Transfer-Encoding;
-	bh=kNSWkSKbXy4yqbi1F/NqpsveYsUGyKJhJ7RGmrJoCBE=;
-	b=NHGQizFTHfmeDFoC1A9LodnljNwmOhBTupBZL0hmtaD/pbsMGQ4mQ4Y6afFjDvS/JDrj
-	 k3KAWIeMPe+ScVhCFr/BmPaBQGTza4+wP89J1n6lR1C8fT9o8Y2GHZ+cvJVe8WXE7+coT
-	 dctKand/UyTFCPNW53rWigyosPLF0qR0dv9ExV/wVXFqARDccynnwH8BZ/zpZ180QgcSr
-	 qlD5tbrE/Q3tHUndKCL5OFl/JmEoYeXRxQe9KXbZU8ydCjXCLaQjCltgTVo9N9zo2ogTM
-	 TUkqEYW+ZIKExbr+w98NZ9/GCQ7j80nv3pXaLrvA45kqq5gOLJAIxtY7EoSsjXeburg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793350517;
+	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
+	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
+	 Content-Type:Content-Transfer-Encoding;
+	bh=2ME/YKcQAmqEKXR0yxRYRyIXblEy16rwwZK5YWNyjhA=;
+	b=x9nN7tQX/bjGG7wV3+utKyXwX5qF2mCV+bcajESCG0Oi87udBXqdtw5EoxUK1nbR8Q7p
+	 GHLnpujMCPNxE5ZyK0am14YAHzJ0m+shr58U0Xo78u1bnN74CzBx9HzMyesypluZXSdIj
+	 FaqzwocvmCUBsuBnjS9hsF8GqwLMjCr7vsnKvDAoj9Uu3XyWiL52eUeiqCRRyfONg8kT/
+	 kwe+aeeXy+EsnD9DhkOeM2Z3FjICLnNURtNfqAK7n1zgTeSVSxoCOSC14YUmvW7rRyYfM
+	 DzemFsHAWkJ+IE+ai4BA2mK2lpLD9FUppx1p6C/BDlzaaWCfyTFjBdew9IgGwck7jVA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=bytedance.com;
-	spf=pass smtp.mailfrom=bytedance.com;
-	dkim=pass header.d=bytedance.com header.i=@bytedance.com header.a=rsa-sha256 header.s=google header.b=lHH6tm9e;
-	arc=none smtp.remote-ip=209.85.216.43
-Received: from mail-pj1-f43.google.com (mail-pj1-f43.google.com [209.85.216.43])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CXll4QP4;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A656360A262E
-	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 08:38:27 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A656360A262E
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5271A606A320;
+	Fri, 30 Oct 2026 08:55:17 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=bytedance.com header.i=@bytedance.com header.a=rsa-sha256 header.s=google header.b=lHH6tm9e
-Received: by mail-pj1-f43.google.com with SMTP id 98e67ed59e1d1-3adf5f6833cso286480a91.0
-        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 01:38:27 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=bytedance.com; s=google; t=1793349507; x=1793954307; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=kNSWkSKbXy4yqbi1F/NqpsveYsUGyKJhJ7RGmrJoCBE=;
-        b=lHH6tm9eFLhBmHpmdTsOkTK3m0JIEPEobyAy6uFj3sElhv15/krfzc86zEF2LGl09l
-         gANlXa9+ttvNpFVE8BCo/X34y5GeAZHgYcshWRwb+tLEjO9u7xUJponHyaycOlvphmA/
-         CNY/pQCj9auwT+9XNiX7L5KsJkoqEKjUVQuBq8L8t6MReuJnqehrSrKxGqsUz45vytRW
-         6s2huHzN3py+tWUMsxojPDdwmCxyIiDi6O2DbC6mzwPhvXhQMQmOnjRBbL3ZSxb+67Mf
-         IL1BSOy6qndNztXXGEyBjCrGUximKMiGuRC5myYgtlauUDaCp5YKeJOseTmSgMVE7HNz
-         Kk2g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793349507; x=1793954307;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=kNSWkSKbXy4yqbi1F/NqpsveYsUGyKJhJ7RGmrJoCBE=;
-        b=xi3PhWgLdOB6ETgXJ0Qxa6ZN6lO6ONaPw6ezGFeVh80D48NwGaMP/5mRvfaGZ5gjLb
-         Rm79V3r+C8ffHGNnYvhi2J1lYPt1n8xciRA+kki7spy3nQfuyAR6sxclgdHXst3S8LG6
-         eQVyx88/84yWkdxo+rNp5lgp+T5kOQHc/RR5lkwLRqfnJycAz7apIFwwORpJMcs0sPN6
-         kTOmBYIh8bdtYdAD7zc1fyJUewnya/4FxydI0zz6Oe7C8g5bOsQFX4rvqTlp9I6YFwDE
-         7Gb70uENwwhnb1l6LOJ59WdpvjWN+rRXOG5/yrNhL0zW/vsJ96+qAKHOG6xZrEnjo0H2
-         3pfw==
-X-Forwarded-Encrypted: i=1; AKwUvByEQ+GntPYWULuSfE1aEa1yEjI87a937Cl+sHE3CSy3HcrTktPa9x4sl4oVOulPE3T29MAO0imElF6b@vger.kernel.org
-X-Gm-Message-State: AFq9FYLFEUzdsUs2ww+suDmCFdjnddEEPO1s/iXlMKpiPVLrGOcIEjIP
-	9o5XXDgGX98zjNd2OF5o72iExeDnoWwe94Q5ctU4LhyCbMnagVPph5axRvbD3agUuAEPj1sGWWI
-	2kNegdow=
-X-Gm-Gg: AYBFou1xNKa1X1dmf1J+ODZntt2L/jw6BC6QwJsTAq4V21TSVG4CuELvp9ZIh6dIV+s
-	Grrdk4dDWY/W3GJvFWDmGpjliabA6c2FmBD+Rprc4rihYMYgv+F55iZxmIWbWxePOkrels8TqCq
-	5rGMOB+dCBDA3UyCSvZrU04sBTM0f2xiSXgXuqDZvpau2hjjM02Fw+ScKfuXtspTQolmRby2RYh
-	ZEqLJxk6C6zbnV+ggU9Y8WiLWmfJcbGE6idAuk0L4EsMbbU80AaJnLAtpz4z6RkhkhYSG+RSC0N
-	MZ2Jpsau0X4jra88xXzZeKhgWJ4MyEtjWOsRQnd4dGPCL5wUuHTOftPXa4vONWk5t+rJvZChCqu
-	wMz/3MwdOnMR9fx4v+KPtrivAJQnt7BgGTcLybiZiQpXR1Y8ZkOXaCX3IZGagM3wk0B7GzZpid3
-	2VxokeadETn61mtfCTAp8hNVzmbZBJSsX8F37onv5XmKtJEIdE4cGkEG2IaG+EJ6a8Nl12+ZAHM
-	pg5hU5dYrOc3Vq+Fyv5QlEtQv/IiDDDiGlQ8E8m5QkWnwlE17qFiiNDpkHqGrt+drsgG7M2Ytbs
-	oGsSdDOlZIfF5Md/K/UzbEAZhcnrZbC8+N6D8cj3kbaJDhcsnFA=
-X-Received: by 2002:a17:90a:e70c:b0:3ad:a232:4044 with SMTP id 98e67ed59e1d1-3ae8979969fmr1091626a91.38.1793349506870;
-        Fri, 30 Oct 2026 01:38:26 -0700 (PDT)
-Received: from n232-176-004.byted.org ([36.110.163.100])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ae6e9b1506sm7542122a91.15.2026.10.30.01.38.19
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 30 Oct 2026 01:38:26 -0700 (PDT)
-From: Muchun Song <songmuchun@bytedance.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Hildenbrand <david@kernel.org>,
-	Oscar Salvador <osalvador@suse.de>,
-	Alistair Popple <apopple@nvidia.com>,
-	Will Deacon <will@kernel.org>,
-	"Aneesh Kumar K . V" <aneesh.kumar@kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Geert Uytterhoeven <geert@linux-m68k.org>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
-	Yoshinori Sato <ysato@users.sourceforge.jp>,
-	Rich Felker <dalias@libc.org>,
-	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-	"David S . Miller" <davem@davemloft.net>,
-	Andreas Larsson <andreas@gaisler.com>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	x86@kernel.org,
-	linux-m68k@lists.linux-m68k.org,
-	linuxppc-dev@lists.ozlabs.org,
-	linux-s390@vger.kernel.org,
-	linux-sh@vger.kernel.org,
-	sparclinux@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org,
-	Muchun Song <songmuchun@bytedance.com>,
-	Muchun Song <muchun.song@linux.dev>
-Subject: [PATCH 2/2] mm: remove redundant pagetable_dtor() calls
-Date: Fri, 30 Oct 2026 16:38:00 +0800
-Message-ID: <20261030083800.599152-3-songmuchun@bytedance.com>
-X-Mailer: git-send-email 2.54.0
-In-Reply-To: <20261030083800.599152-1-songmuchun@bytedance.com>
-References: <20261030083800.599152-1-songmuchun@bytedance.com>
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CXll4QP4
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D61461F000C1;
+	Fri, 30 Oct 2026 08:55:02 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793350517;
+	bh=2ME/YKcQAmqEKXR0yxRYRyIXblEy16rwwZK5YWNyjhA=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=CXll4QP4+ROaktyPv7RAJz7f+WPuofJbzyw2m4AACejiGVIILiYZq+PxNbpYDu8vd
+	 2Dm5iuJ/12bzLkrDS1RdE10rGH6i9HYqGkE0UXGfgzXOzXXE6naiSTFXFT7mi2yMsS
+	 a5WNcQ+GTLBcmmRjtarEdx1R8caixrVhQKolICv40IegTz6IRR+SoElmpwOTHyW/q6
+	 7Df3TV3klPlzpPUtvCGhWSAq9qOAqVDLWQWzyNS7wv5Qwyy8WwoASqZBNjn4XEEStK
+	 CMKfPt8dwsnEchT7An+jO6D/nNxutbcvk8hJ6ADyAH3HF0ZZuRBHVTr7HFOcvGhjm2
+	 gDwN1kw1sLmow==
+Message-ID: <1e277f4a-87b7-4f5e-8c87-1b2bf280e859@kernel.org>
+Date: Fri, 30 Oct 2026 09:54:59 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -123,142 +51,173 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 38/46] mm/ksm: reset the unstable trees of all nodes
+To: xu.xin@linux.dev
+Cc: akpm@linux-foundation.org, aneesh.kumar@kernel.org, apopple@nvidia.com,
+ axelrasmussen@google.com, baohua@kernel.org, baolin.wang@linux.alibaba.com,
+ baoquan.he@linux.dev, chengming.zhou@linux.dev, chrisl@kernel.org,
+ dev.jain@arm.com, gourry@gourry.net, hannes@cmpxchg.org, harry@kernel.org,
+ hughd@google.com, jack@suse.cz, jannh@google.com, jgg@ziepe.ca,
+ jhubbard@nvidia.com, josef@toxicpanda.com, joshua.hahnjy@gmail.com,
+ kas@kernel.org, kasong@tencent.com, kees@kernel.org,
+ kexec@lists.infradead.org, lance.yang@linux.dev, liam@infradead.org,
+ linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
+ linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org, ljs@kernel.org, matthew.brost@intel.com,
+ mhocko@kernel.org, mhocko@suse.com, minchan@kernel.org,
+ muchun.song@linux.dev, nico.pache@linux.dev, nphamcs@gmail.com,
+ npiggin@gmail.com, osalvador@suse.de, pasha.tatashin@soleen.com,
+ peterx@redhat.com, peterz@infradead.org, pfalcato@suse.de,
+ pratyush@kernel.org, qi.zheng@linux.dev, rakie.kim@sk.com, riel@surriel.com,
+ rppt@kernel.org, ryan.roberts@arm.com, shakeel.butt@linux.dev,
+ shikemeng@huaweicloud.com, stable@vger.kernel.org, surenb@google.com,
+ usama.arif@linux.dev, vbabka@kernel.org, weixugc@google.com,
+ will@kernel.org, willy@infradead.org, ying.huang@linux.alibaba.com,
+ youngjun.park@lge.com, yuanchu@google.com, ziy@nvidia.com
+References: <20261027-fixes_core-v1-38-6f74bec9a5bb@kernel.org>
+ <20261030032409.127393-1-xu.xin@linux.dev>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <20261030032409.127393-1-xu.xin@linux.dev>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-pagetable_free() now runs pagetable_dtor() for constructed page
-tables. Calling the destructor immediately before freeing the page table
-therefore duplicates the lifecycle handling at each caller.
+On 10/30/26 04:24, xu.xin@linux.dev wrote:
+>>
+>> Let's fix it by tracking in ksm_nr_node_ids the actual number of
+>> allocated tree roots.
+>>
+>> remove_all_stable_nodes() and ksm_check_stable_tree() will now scan
+>> more tree roots (skipping the empty ones), which is harmless.
+>>
+>> Fixes: ef53d16cded7 ("ksm: allocate roots when needed")
+>> Cc: stable@vger.kernel.org
+>> Reported-by: Josef Bacik <josef@toxicpanda.com>
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>> ---
+>>  mm/ksm.c | 6 +++---
+>>  1 file changed, 3 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/mm/ksm.c b/mm/ksm.c
+>> index dbfb8f98b1892..9c51925825cbf 100644
+>> --- a/mm/ksm.c
+>> +++ b/mm/ksm.c
+>> @@ -475,6 +475,7 @@ static void advisor_stop_scan(void)
+>>  #ifdef CONFIG_NUMA
+>>  /* Zeroed when merging across nodes is not allowed */
+>>  static unsigned int ksm_merge_across_nodes = 1;
+>> +/* Number of allocated stable and unstable tree roots. */
+>>  static int ksm_nr_node_ids = 1;
+>>  #else
+>>  #define ksm_merge_across_nodes	1U
+>> @@ -3636,14 +3637,13 @@ static ssize_t merge_across_nodes_store(struct kobject *kobj,
+>>  			else {
+>>  				root_stable_tree = buf;
+>>  				root_unstable_tree = buf + nr_node_ids;
+>> +				ksm_nr_node_ids = nr_node_ids;
+>>  				/* Stable tree is empty but not the unstable */
+>>  				root_unstable_tree[0] = one_unstable_tree[0];
+>>  			}
+>>  		}
+>> -		if (!err) {
+>> +		if (!err)
+>>  			ksm_merge_across_nodes = knob;
+>> -			ksm_nr_node_ids = knob ? 1 : nr_node_ids;
+>> -		}
+>>  	}
+>>  	mutex_unlock(&ksm_thread_mutex);
+>>  
+>>
+>> -- 
+>> 2.43.0
+> 
 
-Remove the redundant calls and let pagetable_free() handle the
-destructor. No functional change is intended.
+Thanks for the review!
 
-Signed-off-by: Muchun Song <songmuchun@bytedance.com>
----
- arch/m68k/include/asm/mcf_pgalloc.h    | 1 -
- arch/powerpc/mm/book3s64/mmu_context.c | 1 -
- arch/powerpc/mm/book3s64/pgtable.c     | 1 -
- arch/powerpc/mm/pgtable-frag.c         | 2 --
- arch/s390/include/asm/pgalloc.h        | 4 ----
- arch/sparc/mm/init_64.c                | 1 -
- arch/x86/mm/pgtable.c                  | 1 -
- 7 files changed, 11 deletions(-)
+> Looks correct as far as it goes, but I think it is not quite sufficient
+> on its own.
 
-diff --git a/arch/m68k/include/asm/mcf_pgalloc.h b/arch/m68k/include/asm/mcf_pgalloc.h
-index 27c3b91ac0b8..f607d239ce16 100644
---- a/arch/m68k/include/asm/mcf_pgalloc.h
-+++ b/arch/m68k/include/asm/mcf_pgalloc.h
-@@ -62,7 +62,6 @@ static inline void pte_free(struct mm_struct *mm, pgtable_t pgtable)
- {
- 	struct ptdesc *ptdesc = virt_to_ptdesc(pgtable);
- 
--	pagetable_dtor(ptdesc);
- 	pagetable_free(ptdesc);
- }
- 
-diff --git a/arch/powerpc/mm/book3s64/mmu_context.c b/arch/powerpc/mm/book3s64/mmu_context.c
-index 2fe787e6c2dc..36ce18e625cc 100644
---- a/arch/powerpc/mm/book3s64/mmu_context.c
-+++ b/arch/powerpc/mm/book3s64/mmu_context.c
-@@ -249,7 +249,6 @@ static void pmd_frag_destroy(void *pmd_frag)
- 	count = ((unsigned long)pmd_frag & ~PAGE_MASK) >> PMD_FRAG_SIZE_SHIFT;
- 	/* We allow PTE_FRAG_NR fragments from a PTE page */
- 	if (atomic_sub_and_test(PMD_FRAG_NR - count, &ptdesc->pt_frag_refcount)) {
--		pagetable_dtor(ptdesc);
- 		pagetable_free(ptdesc);
- 	}
- }
-diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
-index 85ab6723c8f2..4ff471775f2d 100644
---- a/arch/powerpc/mm/book3s64/pgtable.c
-+++ b/arch/powerpc/mm/book3s64/pgtable.c
-@@ -450,7 +450,6 @@ void pmd_fragment_free(unsigned long *pmd)
- 
- 	BUG_ON(atomic_read(&ptdesc->pt_frag_refcount) <= 0);
- 	if (atomic_dec_and_test(&ptdesc->pt_frag_refcount)) {
--		pagetable_dtor(ptdesc);
- 		pagetable_free(ptdesc);
- 	}
- }
-diff --git a/arch/powerpc/mm/pgtable-frag.c b/arch/powerpc/mm/pgtable-frag.c
-index ae742564a3d5..2568bb514181 100644
---- a/arch/powerpc/mm/pgtable-frag.c
-+++ b/arch/powerpc/mm/pgtable-frag.c
-@@ -26,7 +26,6 @@ void pte_frag_destroy(void *pte_frag)
- 	/* We allow PTE_FRAG_NR fragments from a PTE page */
- 	if (atomic_sub_and_test(PTE_FRAG_NR - count, &ptdesc->pt_frag_refcount)) {
- 		folio_clear_active(ptdesc_folio(ptdesc));
--		pagetable_dtor(ptdesc);
- 		pagetable_free(ptdesc);
- 	}
- }
-@@ -110,7 +109,6 @@ static void pte_free_now(struct rcu_head *head)
- 	struct ptdesc *ptdesc;
- 
- 	ptdesc = container_of(head, struct ptdesc, pt_rcu_head);
--	pagetable_dtor(ptdesc);
- 	pagetable_free(ptdesc);
- }
- 
-diff --git a/arch/s390/include/asm/pgalloc.h b/arch/s390/include/asm/pgalloc.h
-index a5de9e61ea9e..d554c475c61f 100644
---- a/arch/s390/include/asm/pgalloc.h
-+++ b/arch/s390/include/asm/pgalloc.h
-@@ -66,7 +66,6 @@ static inline void p4d_free(struct mm_struct *mm, p4d_t *p4d)
- 	if (mm_p4d_folded(mm))
- 		return;
- 
--	pagetable_dtor(virt_to_ptdesc(p4d));
- 	crst_table_free(mm, (unsigned long *) p4d);
- }
- 
-@@ -88,7 +87,6 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
- 	if (mm_pud_folded(mm))
- 		return;
- 
--	pagetable_dtor(virt_to_ptdesc(pud));
- 	crst_table_free(mm, (unsigned long *) pud);
- }
- 
-@@ -111,7 +109,6 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
- {
- 	if (mm_pmd_folded(mm))
- 		return;
--	pagetable_dtor(virt_to_ptdesc(pmd));
- 	crst_table_free(mm, (unsigned long *) pmd);
- }
- 
-@@ -144,7 +141,6 @@ static inline pgd_t *pgd_alloc_noprof(struct mm_struct *mm)
- 
- static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
- {
--	pagetable_dtor(virt_to_ptdesc(pgd));
- 	crst_table_free(mm, (unsigned long *) pgd);
- }
- 
-diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
-index 9bbccb5d23a8..9f3cb7883f3f 100644
---- a/arch/sparc/mm/init_64.c
-+++ b/arch/sparc/mm/init_64.c
-@@ -2840,7 +2840,6 @@ static void __pte_free(pgtable_t pte)
- {
- 	struct ptdesc *ptdesc = virt_to_ptdesc(pte);
- 
--	pagetable_dtor(ptdesc);
- 	pagetable_free(ptdesc);
- }
- 
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index 81b3bb9a197a..9929d7d55d72 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -156,7 +156,6 @@ static void free_pmds(struct mm_struct *mm, pmd_t *pmds[], int count)
- 		if (pmds[i]) {
- 			ptdesc = virt_to_ptdesc(pmds[i]);
- 
--			pagetable_dtor(ptdesc);
- 			pagetable_free(ptdesc);
- 			mm_dec_nr_pmds(mm);
- 		}
+I think this fixes the problem described. What you describe below is a mismatch
+between documentation and the implementation, but I don't think it is
+problematic as in "responsible for BUGS". See below.
+
+> 
+> The documentation requires that merge_across_nodes can only be changed
+> when there are no KSM shared pages in the system, but
+> merge_across_nodes_store() does not enforce this at the sysfs level.
+> 
+> Should we also reject writes while ksmd is merging? At minimum:
+> 
+> +	if (ksm_run & KSM_RUN_MERGE)
+> +		return -EBUSY;
+> 
+> Ideally, we should also check that ksm_pages_shared is zero, since
+> KSM_RUN_STOP (0) does not guarantee that all pages have been unmerged.
+
+We do that already in merge_across_nodes_store() I think:
+
+if (ksm_pages_shared || remove_all_stable_nodes())
+	err = -EBUSY;
+
+Which is really required when swapping trees.
+
+> 
+> That would make the interface match the documented sequence and close
+> the remaining race window.
+
+Right, either we should adjust documentation or adjust the implementation. Not
+sure if restricting the interface is really required. Personally, I'd simply
+fixup the documentation (separately) unless there is a real problem with the
+implementation when allowing KSM_RUN_MERGE.
+
+(I think there is no problem as we are synchronized on the mutex).
+
 -- 
-2.54.0
+Cheers,
 
+David
