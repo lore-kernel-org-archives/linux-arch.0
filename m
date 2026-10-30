@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793370953;
-	b=SLrWcpMGzCxKu0CYeuAuFZe345LVgVhQOacd01nOIUhNQOkuqr9rSVlnjAZJLQMWe4cH
-	 gOvJkdlUcJrjicD3CioEyDK3SKoCF2ve45BS4sWm3Ug2Uj1EEXKOj9ZSZ7r7Z8sq/Ggu6
-	 7dYwa5aWzhO6vLyLSD0BtCAL6uhtUz7i3ESrxtVFPn+MKJX2a0F8u7I8vjh9sMUkV1vE/
-	 5yv6ESdNiU2Iz6sSWz7GXUC1cbfbtyxkJJ+643ya/XtTbNtYDF7h/gNT9XRI/oMptwC+b
-	 t/k0uhLDtKO1uazudzeZbW5X0YPbw5MjZmXk0FBcziRnvGXRzEXgC8E2EivdvLQymbw==
+	t=1793371070;
+	b=JmC3Uvt0p7OLJJlxcXqj3IdbAYFJ7VVheNR9+hLHLphAqVlUIIJ5B3O4foRSyWdDW1Pd
+	 X8D4vxQSPuEUWczA13YYm3GlGcnGqlvJSypgPgSLlQb28yV+TYPNZHTOO1dy02B4ecPMV
+	 EnNoen0p6w8U8tKlr6F5/O+R54MhgtWI6UzZB6CylZYXpwVctGu5gCPppl+ZOE1SO/fX4
+	 juMX4ZKI9uxAzRT25Dxt3nbbltG+GrBe+mOjF/3RNTLTKuz5zFQpx+6JSE+TwVQ6ptEuK
+	 /33pygE8MufqX8GhxLM+o3bjOMGnLtK1YoaJyTL0ABTQYQ4Mw1ew1qg6lQWHA7139hw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793370953;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793371070;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=y6XXbQ+HdgQmOTZa0aEBan+zjL/ycrb6TKGl8S7Q83w=;
-	b=vPKo/UdW/Ng7SC5a0MtE2ZjKfY2mFdJk8tFWio5kwasVHbpyiDUsC02R4Ht9yGXEEkJ1
-	 OtE/84F9xZWyLkeNezLDAT3ptdFxnbb8svs1dFTaIe2E9zNOXW6sYWQ8rIngtpDcqDGE+
-	 CHMM6s8Q9qByW39LzOBM9rTHwLLYGVFvdO7PUTBzSYkxBdrLn3HturFkj7vJVynvOCpJY
-	 j9QNiGgK4uejI5Y21bxRNnf4RT5or43k9Zn3JAycEOKjtAdHL4/iZI2K/PxSzo06UIAY9
-	 bY0FI6PzNENyOCMcwRoiW9/2x4VHlhWAt83SS0BMAj9dbtibvC5cmIxDPePGKX7mQjg==
+	bh=uOYO1vBz1WqzK+TimXJTNpBfLu8OouAosUkHyHS7j4s=;
+	b=GwH0+0VnbFL6CnwqXKR+KRNrLNs9/XyvkO/jl3bhHgkB8YMIJ3hqyC81NDL4yBkQtrWg
+	 8oNF7bE8Z1dpjGux7oY2jo0PkeP0ul7FE9GWOJ/mOrbDM37/YN4IJWO+qxK8Qm7jSCNky
+	 JxrKjr+98yMQUTlIfBOK17BMLN8OIMp1/gWo3Fq6k1brEqB4hFOatopxnFKiMP+MBTMPj
+	 qiU4B/x/UdMlNb65UEWnNFQQxFeUNfO1VGoWtzfZm/wRYBMIVVOA5t3bJuA4NPeW9SVAK
+	 57RZMpSKpRcKjsHLJjSR/imU4NQL/ZfUXqPktYW7vrMT5KNYWpr5GYyqmfR4v6qfZRg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Zc8ZNVO6;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bF6R9279;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B0B0E606A31A;
-	Fri, 30 Oct 2026 14:35:52 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0C177606A31C;
+	Fri, 30 Oct 2026 14:37:49 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Zc8ZNVO6
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 697CF1F0093A;
-	Fri, 30 Oct 2026 14:35:36 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bF6R9279
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3D2651F000C1;
+	Fri, 30 Oct 2026 14:37:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793370952;
-	bh=y6XXbQ+HdgQmOTZa0aEBan+zjL/ycrb6TKGl8S7Q83w=;
+	s=k20260515; t=1793371069;
+	bh=uOYO1vBz1WqzK+TimXJTNpBfLu8OouAosUkHyHS7j4s=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=Zc8ZNVO6uRM/ebf2tyuqkNg2F+fe5LIUT6QCAumzzPpOuGmyXnfnNO5s9RSYLm2rE
-	 jwJf7qLnqMB1Nf2QO0gP2HzziZZK6letMz6x4Z1QebhXjhx6Lp5o3hUiQQDX2zhFLu
-	 5wWBHnZAqJxpm4krMusfEm0ziwpBACmY2PLnP7EQIV+ROXKrDC2x0Z413kzf7TnVRa
-	 1IzLYX7Ri/ykqtCagS6CsHGxfJq/AfR5jwjpZPHtLQClzkqVrG8JQ9OGKa/yrF53ml
-	 FKD/f6zB3W/UEBSdx5AyFtTg6EeOre5o75pbwDLQQv3rT/OAi7RJN7FszZ+57tVf4M
-	 radtUUXIQvVSg==
-Message-ID: <43994c77-bde2-47cc-b6bd-5b479672bad2@kernel.org>
-Date: Fri, 30 Oct 2026 15:35:33 +0100
+	b=bF6R9279b9c55sZunVufqLbJNHVpGKBm16I1N1EhD57KVbpTTV97cgxt+5quNJxhU
+	 AcBv2r5idRTx7z1d4FGqoqjMWGKBamCpKhDD815Qf7MjJH/RyQMi6wtbUEjI+Fsxfq
+	 3UPWRaoTnrvjcppPpHLTtmK6MyDUEJGw7p1LycATDtjCtqj00PRuPJe0iUvWnJfNPO
+	 4g8WVSEbre0QpmAQvYNAoIamCH34o/q4qyIKgFfupjeNVbxFYvnpmk8SydELkXK1Ad
+	 sH7yssGm1jBtjQi2I9rF/OMf/8/uxLDf3DBU8L+pn4Pd+PaTpTSitw09zSvNi70Mtb
+	 +e+8QcJWIXVYg==
+Message-ID: <9af1202f-9fae-4cca-904a-0ba00d7e726d@kernel.org>
+Date: Fri, 30 Oct 2026 15:37:29 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,13 +52,12 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 03/47] mm/memfd: check for real shmem inodes before
- accessing shmem state
-To: Pratyush Yadav <pratyush@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>,
+Subject: Re: [PATCH v2 00/47] mm: various (urgent?) fixes
+To: Chris Mason <mason@kernel.org>, Muhammad Usama Anjum
+ <usama.anjum@arm.com>, Andrew Morton <akpm@linux-foundation.org>,
  Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
  Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
- Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+ "Lorenzo Stoakes (ARM)" <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
  Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
  Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
  Baoquan He <baoquan.he@linux.dev>,
@@ -69,32 +68,34 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
  Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
  Pasha Tatashin <pasha.tatashin@soleen.com>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
- Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
- Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
- Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
- Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
- Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Pratyush Yadav <pratyush@kernel.org>, Matthew Wilcox <willy@infradead.org>,
+ Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>,
+ Lance Yang <lance.yang@linux.dev>, Rik van Riel <riel@surriel.com>,
+ Harry Yoo <harry@kernel.org>, Alistair Popple <apopple@nvidia.com>,
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
+ Dev Jain <dev.jain@arm.com>, Usama Arif <usama.arif@linux.dev>,
+ Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
+ John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>,
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
  Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
  Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
  Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
  Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
  Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
  Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
- Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
- linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-cxl@vger.kernel.org, stable@vger.kernel.org,
- Chris Mason <mason@kernel.org>
+ Jason Gunthorpe <jgg@ziepe.ca>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
+ Josef Bacik <josef@toxicpanda.com>, stable@vger.kernel.org,
+ Thadeu Lima de Souza Cascardo <cascardo@igalia.com>,
+ Mani Tofigh <mt4022@columbia.edu>, Samiullah Khawaja <skhawaja@google.com>
 References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
- <20261029-fixes_core-v2-3-a64ce7f83abb@kernel.org>
- <2vxzmrrvmnil.fsf@kernel.org>
- <297adf4c-1792-4dff-a7c8-2694dc2b1446@kernel.org>
- <2vxzik2jmkw1.fsf@kernel.org>
+ <2f23dafc-43a5-47c9-a819-e696cda6fd44@arm.com>
+ <baeda061-e0d0-4be1-9aa5-8886182ca83f@kernel.org>
+ <bc8c1fc5-4620-4515-8520-22ebcd0d592a@arm.com>
+ <ad0d82f5-c2ad-46d0-986d-94626faac1f9@app.fastmail.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -141,74 +142,48 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <2vxzik2jmkw1.fsf@kernel.org>
+In-Reply-To: <ad0d82f5-c2ad-46d0-986d-94626faac1f9@app.fastmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 10/30/26 13:29, Pratyush Yadav wrote:
-> On Fri, Oct 30 2026, David Hildenbrand (Arm) wrote:
+On 10/30/26 14:10, Chris Mason wrote:
 > 
->> On 10/30/26 12:33, Pratyush Yadav wrote:
->>> Hi David,
+> 
+> On Fri, Oct 30, 2026, at 8:12 AM, Muhammad Usama Anjum wrote:
+>> On 30/10/2026 11:35 am, David Hildenbrand (Arm) wrote:
 >>>
-> [...]
->>> Both want to only look at "proper" shmem
->>> files, and should not do any work on a Coda file with a shmem mapping.
->>> Plus, someone later down the line might use shmem_file() without knowing
->>> this subtle problem, and we probably would miss it in review.
 >>>
->>> For callers that only care about the mapping should then use
->>> shmem_mapping(). I am not sure if there are any. Perhaps that would be
->>> collapse_file()? But TBH I don't really understand khugepaged all that
->>> much. All other callers of shmem_file() seem to care about the actual
->>> inode.
+>>> Thanks for the results. IIUC it's schbench that shows a possible regression.
+>>>
+>>> I would expect that no changes here really affect performance at all (neither
+>>> positively nor negatively).
+>>>
+>>> "mm/huge_memory: fix list corruption when deferred_split_scan() races with
+>>> deferred_split_folio()" fixes locking, but I wouldn't assume that this matters
+>>> at all for this benchmark.
+>>>
+>>> "fork: take mmap_lock before copying mm_struct" changes locking, but I also fail
+>>> to see how that would affect the benchmark.
+>>>
+>>> Maybe some code layout changes just affect some benchmark on some machines?
+>>> Because already seeing 10 improvements makes me wonder how that could possibly be.
+>>>
+>>> So I'll move forward with these fixes for now and see if we get more reports and
+>>> could identify actual problematic commits.
 >>
->> Looks like collapse_file() would then use shmem_mapping() for the time
->> being. God this is confusing.
+>> Yes, these improvements/regression might be because of code movement and how it
+>> has affected the run time performance. Most importantly, these results show that
+>> there isn't any drastic affect on performance. These fixes are good to go.
 > 
-> Yes...
-> 
->>
->> What about the following replacement:
->>
->>
->> From 6e3c4f92a651e36ed1ae8d7659d2ca08543fa430 Mon Sep 17 00:00:00 2001
->> From: "David Hildenbrand (Arm)" <david@kernel.org>
->> Date: Sat, 24 Oct 2026 21:08:33 +0200
->> Subject: [PATCH] mm/shmem: make shmem_file() check the file's inode
->>
->> shmem_file() only checks if file->f_mapping is a shmem mapping. This
->> mapping can belong to another file, however, as with a Coda file backed
->> by a tmpfs container after mmap().
->>
->> So it does not guarantee that the file inode is an actual shmem inode.
->>
->> Seal handling and memfd preservation use this check before accessing
->> shmem inode state, so they can access an inode of the wrong type.
->>
->> Let's make shmem_file() check the inode's file operations instead, to
->> identify shmem inodes reliably. This will identify regular shmem inodes,
->> including memfds and ordinary tmpfs files, independently of wrapper file
->> operations.
->>
->> Use shmem_mapping() in collapse_file() instead to not change the behavior
->> of collapse_file(): it operates on the page cache and uses mapping->host
->> for shmem inode operations. Focusing on the file does not seem relevant.
->>
->> Fixes: c49fcfcda8b5 ("mm/shmem: update file sealing comments and file checking")
->> Fixes: b3749f174d68 ("mm: memfd_luo: allow preserving memfd")
->> Cc: stable@vger.kernel.org
->> Reported-by: Chris Mason <mason@kernel.org>
->> Suggested-by: Pratyush Yadav <pratyush@kernel.org>
->> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-> 
-> Looks great, thanks!
-> 
-> Reviewed-by: Pratyush Yadav (Google) <pratyush@kernel.org>
+> This schbench configuration is going to be really sensitive to process placement, and it
+> should be doing all of its memory allocations up front.   I haven't done many schbench
+> runs on this type of hardware, but I'd agree this result shouldn't indicate a bigger lurking
+> regression anywhere.
 
-Thanks!
+Thanks Chris and Usama!
 
-@Mike, @Rik, Ill drop your RB, so please re-review.
+I'll respin a v3 shortly and get it into -next tomorrow (unless something really
+odd sticks out).
 
 -- 
 Cheers,
