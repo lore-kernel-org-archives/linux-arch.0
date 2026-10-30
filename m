@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793358666;
-	b=ONJBdahzKnsccXn1LOJiV1DxCu4EGe0vPUkt/lC0lXdK0kQb8KE/T6OwYruLPVTbsIWt
-	 RY1SVS/ZxkVREbJXlaAhZUwm8OAaOu2RvS+7+RDUjM/ngRwG+CqT2q2qySrFhk0/Pu6av
-	 RKO3mzhAqb9K/XCljLaSxLxdoRpblPtx247I79D9Fz2mtQZLXk8ID9kAGQ/u1o/UG9YwJ
-	 5YLPBnDMxOxJ1A9FflhMWIlnJsRbbTcpE8q1r4mZuBmb9SKdbgtvfxbk/sSQfkghZwbIK
-	 tMXsofJScYRE24l/Rg1t+zAArvWXjkvSWBURgMP2GdP8rP9D+mzsSGOdsN8f722YViw==
+	t=1793358937;
+	b=vdtHArWPuSeon8J1V7wPelNxm6D1oOzdmW2edcHUxhG96pTTI1pW1FirJs0rZPux1Mi/
+	 yhFTjMhkQvkX8eR8AUAgBB6feabOgbmTWzXasOjGpnZcTp9y3p1ahORrmMweV+fAzpFOJ
+	 /x2FmHF0HcBxf70BRACfyAmHM+Dq8l3Tmy2xUKZ9ahxVRwzTA6mGuutKstMw9gMYpwBPk
+	 Jl6ErYo/tS4I5CFiKs26+mA1MMQ2qO0T1xr/kxVHG6UhkZRQaoHdh+bIT0rRdGgiskFL8
+	 xG/2QG/NRQh1gWgsfX18HXP0mVg/YZCiXfgUffS1jGIlyogI3gkMZn3W9XWf0KkUHnA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793358666;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793358937;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=e5NnHqFGh2WLk8KpW0BJvN7IH3ve0Yj4mZZ8fp9OtsI=;
-	b=d194eKl63+1mvCBqx2nRK/XeAoeYqr56GT6BTFmR3Hdje82sVvxl6qw8qFeEBAPTwzIn
-	 G9d26eP410XP3dnzlWaV9IG8OK0c6fckVkoO7E05nXjLowheXMzMyxD3sxK5K65ovCex0
-	 3gdpTQ70QC0vd0oXRIqVeznWxLjUhvgUSVIydTw7Vvo4J9ZIciIVGvqwRJP34jr/g+Bz1
-	 Mx9nex85g5kAiZL3ydbxo60yhmIcS7N3aEC/sXY3pq3ZZoHRHWhdmddyh+mBBwvu/gLkC
-	 KB96VVwfRPnAqeF1h8nheIDm9N32jmzWtLQatKf3ormdm6yv8uAOFJQbYl+68/Ogrig==
+	bh=jcFVnDvIZ8heZvYaiF3eCzfDTR74GY+V/2n+TMcTvAs=;
+	b=EpWLnvWvZ74/gnYYZW/8DY+pexfcS5kJG4eFXk5cL4o7XxLUryYn9/gwKjK0y6UNWYNm
+	 2jJ62P3nmZJUFOXaj1efAS6TV9GoXnzipaSsPQuYBzZMZBcyN8978qw/snEz0pneEy5DH
+	 cu8DKMk2RKDxpwb/K6Edo0SQ3r6MNTGVFQ8MnjAEz2M5ugPeVVbLV7xgBEnaG3Djz6qqU
+	 vwsWEFMMIdYuWzzN7USAgaSHooOQE1yXKSQOSn6wrWcpPILhDwCzFnuwbXtsuq+zEMOqz
+	 RjNQW3+j7fcNWz9WY8LVcK9wG8qM+sMCk3w3kJ7zLX+OJjikNbUGOTVLAUQFANkbS0w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ewkqjIeb;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=X0Z5bJ43;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DB8CD606A321;
-	Fri, 30 Oct 2026 11:11:05 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7C983606A32C;
+	Fri, 30 Oct 2026 11:15:37 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ewkqjIeb
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 22FC11F000C1;
-	Fri, 30 Oct 2026 11:10:49 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=X0Z5bJ43
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9548D1F000C1;
+	Fri, 30 Oct 2026 11:15:22 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793358665;
-	bh=e5NnHqFGh2WLk8KpW0BJvN7IH3ve0Yj4mZZ8fp9OtsI=;
+	s=k20260515; t=1793358937;
+	bh=jcFVnDvIZ8heZvYaiF3eCzfDTR74GY+V/2n+TMcTvAs=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=ewkqjIebBvhym6IB3Ksl7IZW4E3WWrG+/4yOGfUUwfsfHMqgAdiGfPsLito4NMzH+
-	 3X5GTmTwRVzbBuN0IMwDqw+qwS5ZG1TkZy22Bl6SI2a2ruWcosBrFpeUBZwQ1+X86r
-	 2XsLssw2rnRioIhlsH3cexrza2qXr4bBiLO7ocs8u3A+E/DxolzLiaKG/WTEJdrZmV
-	 j3bSQu7F+PpI5upb84fHqRT4ETg6Pm/arVNg449Goy2wT41T8MsfIsurdfVxOe8Qwv
-	 dw++8VuLquwqT4MD8BXS6SL+v+RwX048NJm6rMxUecQ/wWmEsk2BQT0mxJGwf0odE4
-	 9x6mq7eusSUaw==
-Message-ID: <ef51420b-0260-454f-b08b-f4e5a3da6e20@kernel.org>
-Date: Fri, 30 Oct 2026 12:10:47 +0100
+	b=X0Z5bJ43M9j+dsxw0EOfb2RfVAPvTOOq7wzfRja5C/mo0S5QFye2IEgPAlORI4c3g
+	 ifImjUhJwdI8WKJ5YsmZzwNO9T/m0kviNcNKqqlF1HggGNZPwAWIf5tuKcs2oU5XVz
+	 izKsKdkgcOFL5wt8C5/w8BeHHulb+7ldzTHu+6qfcHg6P136wlJ4Zt/a0lQGMSi3hY
+	 KM0nA2fT0xAsx3g4kOpikLMdyV+GVhDasUmL3YTRLy61zlRQukgrzzF1OnpaAKinvF
+	 CdRbd2dFS6Ly6QcLF/O4Pob9/Zy+lYtZgiUY62l/mQIs9T+8HMZdWboQ0mM+HSpbiP
+	 UY5gtheZjBa1w==
+Message-ID: <48a66134-3522-4b81-adca-4e76d52dc391@kernel.org>
+Date: Fri, 30 Oct 2026 12:15:19 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,11 +52,10 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 14/47] mm/huge_memory: fix zapping migration entries
- for device-private THPs
-To: "Gregory Price (Meta)" <gourry@gourry.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>,
- Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+Subject: Re: [PATCH v2 27/47] mm/mmu_gather: fix flushing ranges with 4 GiB or
+ larger
+To: SJ Park <sj@kernel.org>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
  Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
  Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
  Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
@@ -84,15 +83,14 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
  Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
  Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
  Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
- Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>,
- Ying Huang <ying.huang@linux.alibaba.com>, Jason Gunthorpe <jgg@ziepe.ca>,
- linux-mm@kvack.org, linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
  linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-cxl@vger.kernel.org, Chris Mason <mason@kernel.org>,
+ linux-cxl@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>,
  stable@vger.kernel.org
-References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
- <20261029-fixes_core-v2-14-a64ce7f83abb@kernel.org>
- <179331304801.2127828.6570375349219520262.b4-reply@b4>
+References: <20261030005726.155279-1-sj@kernel.org>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -139,47 +137,60 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <179331304801.2127828.6570375349219520262.b4-reply@b4>
+In-Reply-To: <20261030005726.155279-1-sj@kernel.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 10/29/26 23:30, Gregory Price (Meta) wrote:
-> On 2026-10-29 21:33 +0100, David Hildenbrand (Arm) wrote:
->> From: Chris Mason <mason@kernel.org>
+On 10/30/26 01:57, SJ Park wrote:
+> On Thu, 29 Oct 2026 21:33:22 +0100 "David Hildenbrand (Arm)" <david@kernel.org> wrote:
+> 
+>> From: Josef Bacik <josef@toxicpanda.com>
 >>
->> A PMD migration entry can refer to a device-private folio.
->> zap_huge_pmd_folio() checks the folio type instead of the entry type,
->> so it treats such a migration entry as a device-private entry.
+>> __tlb_adjust_range() takes the size of the range which has to be flushed
+>> as an unsigned int. Its callers, tlb_flush_{pte,pmd,pud,p4d}_range(), get
+>> and pass an unsigned long. Consequently, a range that is 4 GiB or larger
+>> gets truncated, possibly to 0.
 >>
->> Installing the migration entry already removed the reverse mapping and
->> dropped the mapping reference. Zapping it must not repeat those
->> operations. Concurrent MADV_DONTNEED during migration back to system
->> memory can trigger this.
+>> On arm64 with hugetlb, a 64k kernel can have 16 GiB hugetlb folios
+>> mapped contiguously at the PMD level and flush them when unmapping, and a
+>> 16k kernel can flush 64 GiB PUDs through tlb_unshare_pmd_ptdesc(). So
+>> at least these two scenarios are affected.
 >>
->> Check the PMD entry type using pmd_is_device_private_entry().
+>> Fix it by flushing the proper range instead of the truncated one by
+>> properly using "unsigned long" for range_size.
+> 
+> Makes sense to me.
+> 
 >>
->> Fix generated by an LLM and sent by Chris Mason in private.
+>> Fix generated by an LLM and sent by Josef Bacik in private.
 >>
->> Fixes: 368076f52ebe ("mm/huge_memory: add device-private THP support to PMD operations")
+>> Fixes: b528e4b6405b ("mm/hugetlb: add tlb_remove_hugetlb_entry for handling hugetlb pages")
+>> Fixes: 8ce720d5bd91 ("mm/hugetlb: fix excessive IPI broadcasts when unsharing PMD tables using mmu_gather")
 >> Cc: stable@vger.kernel.org
->> Signed-off-by: Chris Mason <mason@kernel.org>
->> [ david: simplify description ]
+>> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+>> Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+>> [ david: use two-tab indent, simplify description ]
+> 
+> It seems the convention [1] is to put the above modification note right before
+> the last S-o-b: of David.  Maybe you forgot moving it after adding R-b: and
+> T-b: from great reviewers?
+
+It's "b4 trailers" that apparently messes this up. I don't think it really
+matters (some move it above all trailers), but I'll fix this up when applying.
+
+(++ on all the great people around here)
+
+> 
+>> Reviewed-by: Qi Zheng <qi.zheng@linux.dev>
+>> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
+>> Tested-by: Gregory Price (Meta) <gourry@gourry.net>
+>> Reviewed-by: Dev Jain <dev.jain@arm.com>
+>> Reviewed-by: Muchun Song <muchun.song@linux.dev>
+>> Reviewed-by: Pedro Falcato <pfalcato@suse.de>
 >> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > 
-> One note below, but it's not a holdup.
-> 
-> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
-> 
->> +	const bool is_device_private = !is_present && pmd_is_device_private_entry(pmdval);
-> 
-> pmd_is_device_private_entry() already returns false for a present
-> pmdval - so !is_present is redundant.  If there was a reason to open
-> code this, then keep it, but otherwise you could drop it.
-
-Ah, softleaf_from_pmd() takes care of that. Yes, let me drop the is_present check.
-
-(I'll double check that both are guaranteed to be consistent; but otherwise we
-might have a bug already)
+> Reviewed-by: SJ Park <sj@kernel.org>
+Thanks!
 
 -- 
 Cheers,
