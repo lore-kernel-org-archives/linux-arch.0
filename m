@@ -1,54 +1,76 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=91.218.175.85
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.180
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793352053;
-	b=d5GXL3HGA14xuDnECkYqPVoVP0P7LLykfQZSeNXy2koVJ9ZOmyIusLgheDwLtKwktuvK
-	 Dg5UTHsU+cS/CPfKAACVJaqpvhu8qcyavAV5hKJgHKQJGt5ujVcAskfxabQq9LOQ7PIl3
-	 a7pLNf6a/3zrAWkJhKLFIqC4Z8cZfDdreCIn9DOE9uFSgWgLkDgqbnVY/Dcl4JftmBvGK
-	 KMKhLphdFhuylPYpYUbNx/4XkGfnNXMCD+drHNvgukCNm3gEuuOMPsf9fQcPeSHE3LBsq
-	 mx0MMC2mhU8PzeiKgbCh0WqVczGqULQfBwZatcMjhevxJ6CWKtjZoCJ5rLnBzgmV+1Q==
+	t=1793353166;
+	b=K1WMw78tWRPahdg7MuKAiROe3MuWL9i/G2dUnn4E7uY1QpgBesAUur6+KJ+q9sKvadqO
+	 EmfX9oKGEmrw7nUSHbQOoyOzdvrFcmKcEh/ETfeWhO+3QKCGq7Zi72RMZzUUYZmiQ0K5y
+	 ViMTI3vDLDO9q0vzJX7bcMBVh+Ho8X77zD2Eh+dVwm+pAH1B1FZY5tVHBltLD7SHsdwLk
+	 zOlmN/IBAup2Trp6V057W6xoRO8ARuvxAWD8P5v81ZeLvOepgXwyYd9YY4+KN85UsrKCW
+	 lUQY48zPTmuVHiZTgBvX4DXZbhfubiCMlTyt3oRrF4qsjCq/525cYA8TPcX9IxaGFaA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793352053;
-	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
-	 X-Mizu-Trace-ID:X-Migadu-Flow:Content-Type:Mime-Version:Subject:From:
-	 In-Reply-To:Date:Cc:Content-Transfer-Encoding:Message-Id:References:
-	 To:X-Mailer;
-	bh=DwWDiQU31GhAJkKLOok0q5GmDT5UejWxDA7k4JTVj4M=;
-	b=0lk+nDd+CDbX1wrxFgO01LrQ8gbt3CNOKuWTqiXt22oz0FYe4P90L2cBndXZvO6D8NAN
-	 AFbcCpePT8wVCXtIqhuTsq/Z8jHwsolJ5iNkq7FfZKEWJyHcBQ4UDmtbU85hbHoFLLm26
-	 K01TdRIVi4koW7EKKUIw8mIZ8L6w/xU/h7iMCl7VrsoHlraLpB/6wXOzVlMKr9TwHVpFB
-	 pydsOCGgp6py7E89n2O2EQgHK/ECL92HpX/kwXe6hsNTJRP1Z0O57eYObHafGXpaMwtcX
-	 SodqMOS4bxVisBujMo0pL1DA0E1lYi0aXHQaaUevOdWsMhepgu38IoLOU9vBygOfRqQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793353166;
+	h=DMARC-Filter:Received:X-Google-DKIM-Signature:X-Forwarded-Encrypted:
+	 X-Gm-Message-State:X-Gm-Gg:X-Received:Received:Received:
+	 X-Forwarded-Encrypted:X-Received:MIME-Version:References:In-Reply-To:
+	 From:Date:X-Gmail-Original-Message-ID:X-Gm-Features:Message-ID:
+	 Subject:To:Cc:Content-Type;
+	bh=q8Bp4lvQqYUsZT0k0dArzQOZC6e3m0dIfgAJwvcDsr4=;
+	b=4gNw6pWM91ZbifqFQIFo/x45xOoLktVFDADxD6PgNdf7yXBOvb0NY8hbdggsk521HS8J
+	 RYZQstGEtHx2ZBXHTHdX9tQCLFepI5l5YooFyjJ1SRcSBJcCVuW9fVatI53wC5JbJo6V/
+	 0Y5ftjiisSMxM0NTNzeSVtTvzAZ+eBpGVCISiuhlChvTvsUWx/dQgNSsluMV7RG7I4pMQ
+	 bMoaD0vBCj147tnJ5Mdp4pMX1v63IHvkKbzSd+9hcu9/8Se6vkCTGXPTb3ELPclFHkxu0
+	 naXNruPq3hYe1RWdLHK6eDHzbZZjHVJHRQ9wWIEF8Uqr4zLCSNzsbigySl7ztxFiX4w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.dev;
-	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=d87jxZYs;
-	arc=none smtp.remote-ip=91.218.175.85
-Received: from mta0.migadu.com (out-85.mta0.migadu.com [91.218.175.85])
+	dmarc=none header.from=linux-m68k.org;
+	spf=pass smtp.mailfrom=gmail.com;
+	arc=none smtp.remote-ip=209.85.221.180
+Received: from mail-vk1-f180.google.com (mail-vk1-f180.google.com [209.85.221.180])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ED03C606A31E
-	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 09:20:51 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org ED03C606A31E
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=d87jxZYs
-X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=DwWDiQU31GhAJkKLOok0q5GmDT5UejWxDA7k4JTVj4M=;
- c=simple/simple; d=linux.dev;
- h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793352050; v=1; x=1793956850;
- b=d87jxZYsXzSYCQ/xHD6fPWdvBbmfDED2jZYdIP/wz0YMDb65qjez3nTkqQ2OiGGUSbvTbfQM
- 4fRPwHh32lyypRcBqLI618nMxfYTKzklpEZuKUGzwqzhkdwzTqJOKu5v5/QYZXXVsjgPD8Ix4e3
- f6sg9vfDv/TQg6Cbx/x5kjZ0=
-X-Envelope-To: linux-arch@vger.kernel.org
-Received: by mta12.migadu.com with ESMTPS id 222f0c8429a65a02;
-	Fri, 30 Oct 2026 09:20:38 +0000
-X-Mizu-Trace-ID: 222f0c8429a65a02
-X-Migadu-Flow: FLOW_OUT
-Content-Type: text/plain;
-	charset=us-ascii
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EC217606A31A
+	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 09:39:25 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org EC217606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Received: by mail-vk1-f180.google.com with SMTP id 71dfb90a1353d-5ead9f60e26so1637739e0c.1
+        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 02:39:25 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793353165; x=1793957965;
+        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
+         :references:mime-version:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=q8Bp4lvQqYUsZT0k0dArzQOZC6e3m0dIfgAJwvcDsr4=;
+        b=ZdEkZWM3pXl5EHKTdDtwq0306qSbPZwEiBBzhCFLnmwM4z5fLNgrGf1rbp0x0qyKX8
+         TnapYCFYSxsspyUzE/gB+ysHXmoErD8qFkmHhMGhH7EyCN+xCkI2GeC5cSKip8WmzTab
+         GNrY0RqRy/b7X9E8cU70MX4UI/ZzgmYbdkOhnojT/aQgMdrwMpBsjctnzuaqClPd6ril
+         prSnMGMH7W/f6kx3qpDOOek3I119mkYttGn2wVumHRMXbaUp8fnbK5FdwXI2m220Lld4
+         gxF6cIkpghVFEu2CZ0B/c7GguvPtUAuidoQA3R043BMQhpmLP2OiGUo94C1meNjCkbC9
+         ZRDA==
+X-Forwarded-Encrypted: i=1; AKwUvByHEFBrV/fFEcIQUmk0+94E1U7HjY/dkrs+0S7syMK9YXotCVcWlsAZ/DlTeb2afqMWdpGxYt/X/w49@vger.kernel.org
+X-Gm-Message-State: AFq9FYJEfiQ/2QqvLxj/PZ5yl61kQdxfm5ZwFTP1UVNRMVnSoEimlpo4
+	5vg9cR5Rx/skPtHX7zT6EmZJp9jkBnNlG6OVtsR/4wjPFVSG2/zbuYr0sWYIBbwj
+X-Gm-Gg: AYBFou1ixse0+z/uwG8EMWva0mlb/pvJm6WJQ3ZMqLKtpIpWyvqW5WDFYHdGdJjGOgO
+	ZwXyD7sWm/JVLNONdg5XWDz+TOgy3lu+4hNOFgIfH/CuX4sDMKB7dQZNhW46p/vYQi1vdO+sTDz
+	F2KrO2HBzR3sDa6mg2Up225VG3CDQk+2cjlK6XWIO73/nqHAnJQYpEXF2hC8yc7gvqwmvhxfOQd
+	6UHzSan8vjGdkTwDoO3Vwd3WOzHUraK+vUV1rdLLeg3y8zqekZ6eGJkpd7rZeYcl2kNgpoLrNo0
+	ib29RyGlXBQIxLfhcmw/RJqNydHDviB3TVan1cQwq1a567sWmqdA3gAoeN7qFz/ovbTjCEd2NjB
+	VV7PsokD76aBKdoGO+KlebA6ePbpAT+n9YS/LmoPXnObAyr5b+zaIfOK4AChGTsSSvxl7Q0XG5H
+	qfVVKzmb4L46O3RoZLzIVvOHEg7bkn2mpT8Xz1KJ9oHl9EKyKJO2gSu5hYf0A0r81JAZVI2SpZt
+	XG/EFy3qLGpQViRg+6ciGCl605i3uiSpErmR4pTKf+6OF1GWUhS+OZZl7CgNSCiYkR0bXuL0tbk
+	bGtYcqQASfBhgIu842a/zClvHLuG9xCOfienqU6sHi1pq1NdIgiqG40kHaaLBFDkWsA=
+X-Received: by 2002:a05:6123:5c5:10b0:5e9:54b9:40a with SMTP id 71dfb90a1353d-5ec586ba74emr1411596e0c.3.1793353164822;
+        Fri, 30 Oct 2026 02:39:24 -0700 (PDT)
+Received: from mail-ua1-f48.google.com (mail-ua1-f48.google.com. [209.85.222.48])
+        by smtp.gmail.com with ESMTPSA id 71dfb90a1353d-5ec69c5d183sm1771759e0c.13.2026.10.30.02.39.23
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 30 Oct 2026 02:39:24 -0700 (PDT)
+Received: by mail-ua1-f48.google.com with SMTP id a1e0cc1a2514c-9912c47367cso450439241.1
+        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 02:39:23 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AKwUvBzfSmiic5brVVbzVJ7c9SRQpA7xe7aTimuziLsBJktH2+7bWVXmx8UO6Htt/1vfuftwvoZmEgoQw6o3@vger.kernel.org
+X-Received: by 2002:a05:6102:605a:b0:7ca:8f2d:5c29 with SMTP id
+ ada2fe7eead31-7d0542ccab3mr1591386137.27.1793353163338; Fri, 30 Oct 2026
+ 02:39:23 -0700 (PDT)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -57,110 +79,54 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3901.100.1.1.12\))
-Subject: Re: [PATCH 06/15] mm/hugetlb: fix mremap() racing with page migration
-From: Muchun Song <muchun.song@linux.dev>
-In-Reply-To: <20261028-fixes_hugetlb-v1-6-a0a033db180f@kernel.org>
-Date: Fri, 30 Oct 2026 17:20:12 +0800
-Cc: Oscar Salvador <osalvador@suse.de>,
- Naoya Horiguchi <nao.horiguchi@gmail.com>,
- Andrew Morton <akpm@linux-foundation.org>,
- Mel Gorman <mgorman@suse.de>,
- Andy Whitcroft <apw@canonical.com>,
- Miaohe Lin <linmiaohe@huawei.com>,
- Michal Hocko <mhocko@suse.com>,
- Rik van Riel <riel@surriel.com>,
- Hugh Dickins <hughd@google.com>,
- Baolin Wang <baolin.wang@linux.alibaba.com>,
- Vivek Kasireddy <vivek.kasireddy@intel.com>,
- Dave Airlie <airlied@redhat.com>,
- Jason Gunthorpe <jgg@ziepe.ca>,
- Lorenzo Stoakes <ljs@kernel.org>,
- "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>,
- Jonathan Corbet <corbet@lwn.net>,
- Shuah Khan <skhan@linuxfoundation.org>,
- Randy Dunlap <rdunlap@infradead.org>,
- Peter Xu <peterx@redhat.com>,
- Breno Leitao <leitao@debian.org>,
- Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
- Nick Piggin <npiggin@gmail.com>,
- Peter Zijlstra <peterz@infradead.org>,
- Heiko Carstens <hca@linux.ibm.com>,
- Vasily Gorbik <gor@linux.ibm.com>,
- Alexander Gordeev <agordeev@linux.ibm.com>,
- Christian Borntraeger <borntraeger@linux.ibm.com>,
- Sven Schnelle <svens@linux.ibm.com>,
- Arnd Bergmann <arnd@arndb.de>,
- linux-mm@kvack.org,
- linux-kernel@vger.kernel.org,
- Gerd Hoffmann <kraxel@redhat.com>,
- linux-doc@vger.kernel.org,
- linux-arch@vger.kernel.org,
- linux-s390@vger.kernel.org,
- stable@kernel.org,
- Chris Mason <mason@kernel.org>
-Content-Transfer-Encoding: quoted-printable
-Message-Id: <9FFF0EF2-A99A-4448-9CA3-50E1733D6232@linux.dev>
-References: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
- <20261028-fixes_hugetlb-v1-6-a0a033db180f@kernel.org>
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-X-Mailer: Apple Mail (2.3901.100.1.1.12)
+MIME-Version: 1.0
+References: <20261030083800.599152-1-songmuchun@bytedance.com> <20261030083800.599152-2-songmuchun@bytedance.com>
+In-Reply-To: <20261030083800.599152-2-songmuchun@bytedance.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Fri, 30 Oct 2026 10:39:10 +0100
+X-Gmail-Original-Message-ID: <CAMuHMdVjr+-4GA=jBNpL3nig6QfQ0Fm8ob+c-OkLADPUJSaNqw@mail.gmail.com>
+X-Gm-Features: AclHuK-5feC2ixWlfC3xXKJ1XowEcUrdLUZ-UGAaez_2WzCy_48TVc-7hVrg-7U
+Message-ID: <CAMuHMdVjr+-4GA=jBNpL3nig6QfQ0Fm8ob+c-OkLADPUJSaNqw@mail.gmail.com>
+Subject: Re: [PATCH 1/2] mm: remove pagetable_dtor_free()
+To: Muchun Song <songmuchun@bytedance.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <david@kernel.org>, 
+	Oscar Salvador <osalvador@suse.de>, Alistair Popple <apopple@nvidia.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K . V" <aneesh.kumar@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
+	Madhavan Srinivasan <maddy@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
+	Gerald Schaefer <gerald.schaefer@linux.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, 
+	Rich Felker <dalias@libc.org>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 
+	"David S . Miller" <davem@davemloft.net>, Andreas Larsson <andreas@gaisler.com>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
+	linux-m68k@lists.linux-m68k.org, linuxppc-dev@lists.ozlabs.org, 
+	linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, 
+	sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, 
+	linux-kernel@vger.kernel.org, Muchun Song <muchun.song@linux.dev>
+Content-Type: text/plain; charset="UTF-8"
+
+On Fri, 30 Oct 2026 at 09:38, Muchun Song <songmuchun@bytedance.com> wrote:
+> pagetable_free() now runs pagetable_dtor() for pages that have gone
+> through a page-table constructor, so pagetable_dtor_free() no longer
+> provides distinct behavior.
+>
+> Use pagetable_free() directly at the remaining call sites and remove
+> the redundant helper. This keeps the decision to run the destructor in
+> the common free path.
+>
+> Signed-off-by: Muchun Song <songmuchun@bytedance.com>
+> ---
+>  arch/m68k/include/asm/mcf_pgalloc.h |  4 ++--
+>  arch/m68k/mm/motorola.c             |  2 +-
+
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org> # m68k
+
+Gr{oetje,eeting}s,
+
+                        Geert
 
 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-> On Oct 29, 2026, at 04:13, David Hildenbrand (Arm) <david@kernel.org> =
-wrote:
->=20
-> Migration of anon hugetlb folios walks the anon_vma, so the file's
-> i_mmap_rwsem does not serialize it against move_hugetlb_page_tables().
->=20
-> There are various issues with that. Most importantly, move_huge_pte()
-> releases both page table locks before the TLB is flushed. Migration =
-can
-> then find the destination entry and finish migration, reusing the old
-> folio while the TLB still has entries cached.
->=20
-> Hold the anon_vma write lock across the move and the final TLB flush.
-> This also prevents concurrent rmap walks from missing entries moved
-> during rollback.
->=20
-> When we must allocate a destination page table, flush the TLB before
-> dropping the anon_vma lock, then reacquire it after allocation.
->=20
-> Dropping the lock only works around lockdep: hugetlb folios are not
-> reclaimed or migrated by allocation compaction, but their anon_vmas
-> share the lock class used by ordinary anonymous memory. Having a
-> separate lock class for hugetlb's anon_vma (like already done for
-> i_mmap_rwsem via hugetlbfs_i_mmap_rwsem_key) requires more thought.
->=20
-> There is a concern that this can block page migration of anonymous
-> folios quite a while ... which is not really different to what happens
-> to page-cache folios today. If ever a problem, we can temporarily
-> release the lock.
->=20
-> So let's keep it simple for now.
-
-Make sense.
-
->=20
-> It is a shame that hugetlb has to implement everything core-mm =
-implements
-> in a different way that just screams for problems.
-
-Yeah, nightmare in MM.
-
->=20
-> Fixes: 550a7d60bd5e ("mm, hugepages: add mremap() support for hugepage =
-backed vma")
-> Cc: stable@kernel.org
-> Reported-by: Chris Mason <mason@kernel.org>
-> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-
-Acked-by: Muchun Song <muchun.song@linux.dev>
-
-Thanks.
-
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
