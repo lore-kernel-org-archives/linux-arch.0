@@ -1,44 +1,44 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793320483;
-	b=CFx3KKxWKkApu+wZGvzCokCcDKhWLLRzq0MeJBmwu4M1G7Z7pXn486UDcMCEBJANzR7x
-	 oOxhfoBefTleT8nj7+t5hH24p/5JV8jLpktQ56qlrNZqPKcL3BNroDtiRu8M7JQ4P5fle
-	 ss+aiAK5p09p87BbIYib+wYuGv1eh3uvt0Z3oVcXc+cMREdJA9oTX4NzYbAenA+4fJ7hR
-	 2VjfvKttJ0cIk4Sv+XmjpPexcotOm/wb54ClOvYwfVDz/a3DgOXsPOObc2/Ab6aBLOanS
-	 l/sRwXWKwKCfIGpoxX3in+FNsYjhVOyvdI+m5nle91BaPOJXoA9VfOhAfwfQkZ4T72w==
+	t=1793321856;
+	b=c3WrQvWd4iR2c/5tkAgxT/9tkncVN0z6xSW24WlhTlOHT9dspMrRI7XXCApCIHlrCUO9
+	 fYjoExFqQOtqmgSo0359wOBdqHLN+ViXBd2d2iCeanNuUZomcB7BhOtbGdGEsx1zLPAH5
+	 6nCM5zRGiukaO5Ch7jpuUIOnwTSHufIsjv8Nl1WNnqDNjbS8daxGnFe6Gfz3XRTJIxdyK
+	 JxKh43YITvcDyDurzR7XO1VF3r+vKg6hvOJk4I9Zw9mRXPOZ7Yy+d60P0L3bSbHU/X6Xn
+	 MfUqW19NJXJbvU7mfSaxii8ZJ9vfd9s7u1uZJ3GhbjbQpNgTdZ0ndI0zmDEjXLL0d0w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793320483;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793321856;
 	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-ID:X-Mailer:
 	 In-Reply-To:References:MIME-Version:Content-Transfer-Encoding;
-	bh=J6qvhedKX/gt9L39bpVgRBd7A0g16i9D1HZNiTvqkfw=;
-	b=DNxJpkOumPZvK+vLn0MMJY8TBE8E4RAO2sUhVqYzq8PUGneH6AX9YFG996RJt70tEutH
-	 03s96UhPmGwCobKI61KIpVjQjpbHsI1W+f0XB1j3Z0ODsrn7DrQCX3Wq+oKdN6MujFZ2i
-	 90J+Zek8DiVXgKp8FKRL59kmhjhfBNQ5mDYI0Kwvh1eGT0GP1ujrg/1k6mxVlL3whxUVH
-	 lylF9EJGA44yTtrCDaA3PvXjjR2oD8JVWPUmHUOaZUuq9LRWKVs/f8+3F2J4JKTV+4A7E
-	 4dpzYb+xl/8D1cpnU2Yt8p1tKfWt8e73pUtsvWb/OHg7F3hkKzsgd0pXOgVgoaHr+jw==
+	bh=M6bpDqyFL1t6pXSfv5Po8tZyxphIeTUYr2/GTeN0+Ow=;
+	b=By5COuiElj8L1m0sqckkX2lnkKV+QizJTUVQNPWPVanjeSwWQt5SxUYBg6qoDb8cQqd6
+	 yoiqfYC8osTFlYcOHOZbUTVhCIO6Kc7N/TC0BtyzBN84sDoUN5OUa8T8yJA8wmTcuD3jR
+	 HurW+dX71DGTraTKZFzJY51Gr9As2251GAL2C1jOA4a8ZZJTMoVjLmZlbf5+o7+iJMdzm
+	 O75zZkApayFFiHENllBBTRFv3RVSRhbeuvjskrvcIlvHXT60qG/Btyl1461wlzTC5TERp
+	 xeQQfXXssY9imQGqtZdQXg6hZmOC4vBbL7oKM0NPdGzBo0EaRgnlTkGriXCf+gejQ6w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DduHRuPY;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bck9LEQ0;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8543F606A31A;
-	Fri, 30 Oct 2026 00:34:43 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3E0F606A31A;
+	Fri, 30 Oct 2026 00:57:35 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DduHRuPY
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 03BF11F000C1;
-	Fri, 30 Oct 2026 00:34:40 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bck9LEQ0
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5070C1F000C1;
+	Fri, 30 Oct 2026 00:57:33 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793320483;
-	bh=J6qvhedKX/gt9L39bpVgRBd7A0g16i9D1HZNiTvqkfw=;
+	s=k20260515; t=1793321855;
+	bh=M6bpDqyFL1t6pXSfv5Po8tZyxphIeTUYr2/GTeN0+Ow=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=DduHRuPYmFLQVXIsNcNjApO97/T8X2q8UAfCyYP1FbDA55gYCiFqIxgKlBRMzDPCT
-	 Eqs2Hx8NW5JNHHOwoaWAREmZ9P3g0DpqSD6ZIAALIBan8uNdEC7bloNBM6ojVGEYVk
-	 FENFOG2Gdb/Pe7A0j+ozRR73EUaDH16qGjtXlvUo9kWAgkt1QHi+VdagnEw8C8T74j
-	 Yr8bysC4D0OxTeYJFfW5QuO9Da+Ehdf3XvdtWlh8G5C0H/tFFCwNzQnltS9dLOayxj
-	 OH44Anbtpxbx/w1SEQjMZhJc6+ynBnLLft0fXjVDgMDV3v73CICkPnVUjb7wRDMMx3
-	 S8ms98yTtaxtw==
+	b=bck9LEQ0UPt4LikhQsWdEDa6SKxVHXgeqY8QxTgswXVFtiDdPukVSUu4n9MbVtYs5
+	 9bJB0UhYlqNoSAncXFJ2j1+NWPJNqcsDIAUWHsMxFaaWRhN5euG3twTUKMEQOkhMHq
+	 kCqRFz7lMFFHp8ifCqslKWbUlluFBnrNX2Gsx1QQZJ1my3+Qiqa83Vi4wtVn+wWcXY
+	 yr12zqlMfd4YaoyLMi/eCnYBn6ROMiu9tbRatmj2MhIT5+dvt+dbydBKyR+FVLJc9O
+	 dqXK/TupCXUvbOJG5GZZZVlCKD/5zJ1rV6kAoCfn2B0Pn4nRrmkZIvQ909w4V4Nmjy
+	 P8zEJJwppvlEQ==
 From: SJ Park <sj@kernel.org>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: SJ Park <sj@kernel.org>,
@@ -104,13 +104,13 @@ Cc: SJ Park <sj@kernel.org>,
 	linux-fsdevel@vger.kernel.org,
 	linux-arch@vger.kernel.org,
 	linux-cxl@vger.kernel.org,
-	stable@vger.kernel.org,
-	Josef Bacik <josef@toxicpanda.com>
-Subject: Re: [PATCH v2 02/47] fork: take mmap_lock before copying mm_struct
-Date: Thu, 29 Oct 2026 17:34:33 -0700
-Message-ID: <20261030003434.154864-1-sj@kernel.org>
+	Josef Bacik <josef@toxicpanda.com>,
+	stable@vger.kernel.org
+Subject: Re: [PATCH v2 27/47] mm/mmu_gather: fix flushing ranges with 4 GiB or larger
+Date: Thu, 29 Oct 2026 17:57:25 -0700
+Message-ID: <20261030005726.155279-1-sj@kernel.org>
 X-Mailer: git-send-email 2.47.3
-In-Reply-To: <20261029-fixes_core-v2-2-a64ce7f83abb@kernel.org>
+In-Reply-To: <20261029-fixes_core-v2-27-a64ce7f83abb@kernel.org>
 References: 
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -123,42 +123,50 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-On Thu, 29 Oct 2026 21:32:57 +0100 "David Hildenbrand (Arm)" <david@kernel.org> wrote:
+On Thu, 29 Oct 2026 21:33:22 +0100 "David Hildenbrand (Arm)" <david@kernel.org> wrote:
 
-> dup_mm() copies the parent's mm_struct before dup_mmap() takes the
-> mmap_lock. A concurrent brk() can leave the child with a stale mm->brk
-> and newer heap mappings, causing later brk() requests to fail.
+> From: Josef Bacik <josef@toxicpanda.com>
 > 
-> Other operations (e.g., PR_SET_MM) on the parent's mm_struct can similarly
-> cause inconsistencies.
+> __tlb_adjust_range() takes the size of the range which has to be flushed
+> as an unsigned int. Its callers, tlb_flush_{pte,pmd,pud,p4d}_range(), get
+> and pass an unsigned long. Consequently, a range that is 4 GiB or larger
+> gets truncated, possibly to 0.
 > 
-> As a simple and robust fix, grab the parent's mmap_lock earlier. This
-> way we don't need to update individual mm fields in dup_mmap() and
-> keep missing ones. Stop updating the 4 existing members (total_vm, data_vm,
-> exec_vm, stack_vm), as that is now no longer required.
+> On arm64 with hugetlb, a 64k kernel can have 16 GiB hugetlb folios
+> mapped contiguously at the PMD level and flush them when unmapping, and a
+> 16k kernel can flush 64 GiB PUDs through tlb_unshare_pmd_ptdesc(). So
+> at least these two scenarios are affected.
 > 
-> Keep releasing the parent's mmap_lock in dup_mmap(), before
-> userfaultfd completion, to avoid moving the userfaultfd handling into the
-> caller. This should get cleaned up later.
-> 
-> Move uprobe_start_dup_mmap() to preserve the lock ordering.
+> Fix it by flushing the proper range instead of the truncated one by
+> properly using "unsigned long" for range_size.
 
-Looks good and makes sense to me.
+Makes sense to me.
 
 > 
-> Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
+> Fix generated by an LLM and sent by Josef Bacik in private.
+> 
+> Fixes: b528e4b6405b ("mm/hugetlb: add tlb_remove_hugetlb_entry for handling hugetlb pages")
+> Fixes: 8ce720d5bd91 ("mm/hugetlb: fix excessive IPI broadcasts when unsharing PMD tables using mmu_gather")
 > Cc: stable@vger.kernel.org
-> Reported-by: Josef Bacik <josef@toxicpanda.com>
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-> Reviewed-by: Rik van Riel <riel@surriel.com>
-> Reviewed-by: Vlastimil Babka (SUSE) <vbabka@kernel.org>
-> Reviewed-by: Barry Song <baohua@kernel.org>
+> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+> Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> [ david: use two-tab indent, simplify description ]
+
+It seems the convention [1] is to put the above modification note right before
+the last S-o-b: of David.  Maybe you forgot moving it after adding R-b: and
+T-b: from great reviewers?
+
+> Reviewed-by: Qi Zheng <qi.zheng@linux.dev>
+> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
+> Tested-by: Gregory Price (Meta) <gourry@gourry.net>
+> Reviewed-by: Dev Jain <dev.jain@arm.com>
+> Reviewed-by: Muchun Song <muchun.song@linux.dev>
 > Reviewed-by: Pedro Falcato <pfalcato@suse.de>
-> Reviewed-by: Harry Yoo (Meta) <harry@kernel.org>
-> Reviewed-by: Kiryl Shutsemau (Meta) <kas@kernel.org>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
 Reviewed-by: SJ Park <sj@kernel.org>
+
+[1] https://docs.kernel.org/maintainer/modifying-patches.html
 
 
 Thanks,
