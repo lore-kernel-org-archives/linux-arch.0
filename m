@@ -1,73 +1,112 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.128.53
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793365828;
-	b=TcyumACXDVNEg8TZCwZOCyCVFGxH+PIwDDpyaZAEDOLWKZC4OT1U5yRElOSR/Z1xSGCQ
-	 Tjx9+tHlRj4bGyhClD1mUZSmBT/m50iAyKVRKeH8P1QW4aJdQ+ODuBMi86DZfsQAJUHLZ
-	 J850EDWPsXB66N0us2/2RsK0mZd4B61JJv8QEFfoJpcEKvUXdWmmPvq4iOm7GCVDfhNep
-	 7U7vCvwowfj7KEU0uHjzWV9QNDg/erXd9/IjtuJAhn9D3XXJU3rfvb0Rq9z0W0RNg6l2b
-	 cEpjNaEYlCRbwRBY0oBQw325SIJ3b8t5nuqNbrVcJRjGYaDBhP40/YH00ICb73ykZ/Q==
+	t=1793368087;
+	b=NykFZP5CbnyUdjX2ClQwE3VMohw/zkE31aZaKPFCfScrF6e5NVlFgsM7jc36iHVowRun
+	 fvmuWE7kNV3GnY8jahgaKadiH9GSDMgOOFd+VpI1GrwrlfZw7E8itlvSlfQ8CbVxsWi/u
+	 9tqwrEPLEsgco4ZnSzknEzEehNYNWRlZkHyA/dl9NXvnES96qakJHgnEh9H1JAmKtPHOx
+	 ovVcd79x0RPZUwZFca2tFiVcUzUn9Yd4w0ECyUUikQxxzZUmVgxCVq9vvcq2R8jlFuCSG
+	 MiXIcR9dK4nD5dEYWI1/r8urxwb+ogLROMmBVuJfoXtY8wsqUWZejore3uA/Zy0ba0Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793365828;
-	h=Received:DKIM-Signature:Received:Received:X-ME-Sender:
-	 X-ME-Proxy-Cause:X-ME-Proxy:Feedback-ID:Received:X-Mailer:
-	 MIME-Version:X-ThreadId:Date:From:To:Cc:Message-Id:In-Reply-To:
-	 References:Subject:Content-Type:Content-Transfer-Encoding;
-	bh=BIsmxaqlcIiqqe+DfpItRAhgOJbkWsY0ZSYuASH2dgo=;
-	b=e1qoajg1QdBs3VRRZeLBwzmB91PWnkF8fz//FGfSehmx0766vBzfBaJKzLEm+RFguU+X
-	 2LRBrGVSr9hvV/PeIQMeZ2lgV/lxD5wpU2iXugAwqF0uZSVqOOAkT350eALstcHHkJEfI
-	 Ry8RFaO4/SvD4EsstxQSURxm9wJCqU28do8204sIVGLV0LhNh8QgEf2pFdU3HNPZfPkNX
-	 rD87Riusn+qkiaqV2jIeGw+ULs2P3z1PGffHAeBtEITK3tn4AXgzUmpElZNkumfP7wIdb
-	 lqSiNo/P0ooZejeLzGMD43p55Q1Tufl1xVBGJ6fgyNaEmSizNgguZlO2ZK/LDbJINug==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793368087;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To;
+	bh=rmX4JEwV7qAmy43PkgvX967p02rESGhBBxr09gc4cBg=;
+	b=nDeIxJG1C2Wl7RmpFKn6ePaa62kOQDNmvLZO9KNpG9hdge9Ko4RkvK95lP9htAZdVQh7
+	 tdt72/KQ3yOe0o5OqvTV8N57P3ixiY6IFLFysmqzAAO1lwP2pXOkLgnV3OyrgiTT7KBAn
+	 CvojL064NGPwncLVtkbKhxgihUMLAthDIFRKo+jFacWZtQIqmArQzkpsW3rFuzKIshxMU
+	 MotjxD85QA7dvPa010ZRaFb+ndU9SzkOo3PFx6MVT3eWWNiY+2fiCL6u+gBePOFlAe1Iw
+	 +5hNN/Hy6tRGcCJfGJFGDwcuzUrRy2JrullU/qCi1K2FZH3mQHdBy9TVhSnGmTSeWRg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=aE+UcR4O;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=P0o7zm7K;
+	arc=none smtp.remote-ip=209.85.128.53
+Received: from mail-wm1-f53.google.com (mail-wm1-f53.google.com [209.85.128.53])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DFDF8606A31D;
-	Fri, 30 Oct 2026 13:10:27 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0D3F0606A323
+	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 13:48:06 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0D3F0606A323
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=aE+UcR4O
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 501D61F00A02;
-	Fri, 30 Oct 2026 13:10:27 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793365827;
-	bh=BIsmxaqlcIiqqe+DfpItRAhgOJbkWsY0ZSYuASH2dgo=;
-	h=Date:From:To:Cc:In-Reply-To:References:Subject;
-	b=aE+UcR4OtmI1gsAuleOjFb68pLXXLXkRQbAWvngo171T2MUUuwjy+lrcz2fa900Oa
-	 4jrYfKABe2JsUQNDDMr8LHMydxA2OR4eFUP0n+okjO+fCYNkr2t0oFDX3OZbWNsHkc
-	 9FOki2qP8o1578DoVS6j4Ha2l9nKWXo/PwQLeofhbAptMNLznIZcalKf4CfY+TsEU5
-	 ko938kjuwV+SzeAc1oCkdQMWrUvfCXsLdHLlXHlbAX4d2Qvq1JA8oZU/MBsn4zu9iH
-	 /mYszUAhgaZ3QvOiktJYjo8pq2d+/cDPxcPeXZHq7P6jbizyjM3/JsXTfeJejutH0+
-	 QVqpbytwntPyg==
-Received: from stl-compute-04.internal (stl-compute-04.internal [10.204.2.64])
-	by mailfauth.stl.internal (Postfix) with ESMTP id B22B6780043;
-	Fri, 30 Oct 2026 09:10:26 -0400 (EDT)
-Received: from stl-imap-13 ([10.204.2.104])
-  by stl-compute-04.internal (MEProxy); Fri, 30 Oct 2026 09:10:26 -0400
-X-ME-Sender: <xms:QpfkaudgPlWfhG2nuX5v0oYxnFnd34OSZvAUv1UZVpB12tHv8EreXg>
-    <xme:QpfkajCgIdn2T-PjuQzu2w2WrYYDqpLVkhxKQrSCYdBa1aOg3t5bIjhv1fn84uU-X
-    gWui-BFJypI5jHtbfxKx9anlVeSzOeMnJ9FBaX8ytr50BFBoJ7ChA>
-X-ME-Proxy-Cause: dmFkZTGh/6azztQX4EjOpOWsP9cU87M/GO2aoMRhBpjxyvA9Mgxud2UfYibhs/CNwlNrxR
-    OVYhQ00dRta7xjyTz8NtYoTm7ScvixKhrCgmB14JzOz0EI/mP6fEi8NWTuMHhrcDaZeBk1
-    YaQTwyUEgXvrrCojrJE/qHFnsqVSnKBrUgjzGmjfEQsz/3lIybZUkOsNLIPE9CqfqBx7Ah
-    c24qnXX2j9fLPh5cewjKYtSEE+5zOGLldi7n9WyLyT2lALzgx/t2uBwk6YlpgQtoGaFAlv
-    yB2TdRcPZQLT6XQVgCOGmWsKCe+r6lBRqzeLlPt7JfBlWSjnTHhGNl3PrxEWFRylHy3lYf
-    kpptfFm+LkbmYdnqv7oT9qRe6teuGi7QOqfk5YudV2k5/qHerwrD5mfpc1QxohxNmdHQ67
-    yj8Rz7kBIydzzYNKrzYQKqbQXg0kSF8IHV2N8ZkxHRhLt4+XOPrRrgms7SZ9do1Qu2fOEf
-    7gKxf9P9fbZ/DgTar35vJ2bvnTZ317N7Y8UTtBnGUltw+RKrdEC4+6AQZMWYfuqSibj6JM
-    96wE3O2w5if218SI9BPq+AC04w4C8BL1PIZ2E3PLHYgJEITmt5yhSABPu0OlnexaD6/LLQ
-    jwjzjRs+epVjfmBA0tpujtP4JNG/zdq0IHpXR7m2kfDQlL4Dtjw0AhljJPGg
-X-ME-Proxy: <xmx:Qpfkat0lFMgtIn-egodGPRZg50OJO_gN8Ozpuq4JeAFHSOZDyFLdGw>
-    <xmx:QpfkakdhY6IUI_POEWnR2AytGl7qggQuuGL6GirIVsyTlrDwSSoTuA>
-    <xmx:QpfkavBC5Cv9FH0260FxTRXt_JzcSeG3bnfgZiX914OEIxY2vrWv9g>
-    <xmx:Qpfkam3RZTfgcCrKd5Jr7vSiAo8ay2X3TiHRB67g5-Wew0ciZZ1vZA>
-    <xmx:QpfkavMdLUJ1qZO3QO5a3wtqeItG9O9oeeqToDsDHFEcmk4CL7Mtt8M3>
-Feedback-ID: iccae4b50:Fastmail
-Received: by mailuser.stl.internal (Postfix, from userid 501)
-	id 59AA0F6007F; Fri, 30 Oct 2026 09:10:26 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=P0o7zm7K
+Received: by mail-wm1-f53.google.com with SMTP id 5b1f17b1804b1-4a2167bd087so5783705e9.3
+        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 06:48:06 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20260707; t=1793368085; x=1793972885; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=rmX4JEwV7qAmy43PkgvX967p02rESGhBBxr09gc4cBg=;
+        b=P0o7zm7KEPIXltx3NlgMQzHQT99NsbdanhX5hUYiA8mqcXpAtEl9r+/7vE4Ggfb6xQ
+         AjDmKEsJCN3A9nhHSHYQq86Tx9QzgKkEoL+MNKiu90Y6d/c6qq8wEeWDbGqZ4zOp73t2
+         V+jiEVsBNp3JryoT0gq/L7+LKDEBausQ7tqgfI+sigyrm1PvM7UpDQc9g0naBiUQsKsm
+         txn6SCcpysT3ZLStg89zxyyBWbPd9BONg/H56ElBDxvktEsTFh0x/DFDQ8EoFwz5gpkM
+         +r9npc2iAjvhv6WuZ+vHLzVgZO3yPFE7oA+XMRoLdTuvTODgouxb21kNS1YSNNzhhvRI
+         MLgw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793368085; x=1793972885;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=rmX4JEwV7qAmy43PkgvX967p02rESGhBBxr09gc4cBg=;
+        b=iGGKMtYoCRikFzdCUWo9fzwa4hKL5nqrD9AzXxHUqeWI/D+JAUq5a3dyI60MdYjuRj
+         A5MoOs5fh95jXQSHPX3bxREELt1He6t1VLXtBkjNemoOkyS3oEq3+sjYI8q2ubo0AF+H
+         6FIDhKxfyo7xdYKHvzJztCNKkLPt9651rz98DbSGyyMeuXGxo3/VndVaqlnDd6MDZEza
+         APhdCXAZJEE54dzyox7oXZgJMpHT6Kh2KUwreykzeOoG0Dtml2vQDCmUvb1ZZ4mxxaGa
+         cXZ/ipjwphPZQdN0geCEaVQ376r2Dkf54XhhzMj0G39EnTrCk5USqT7OWis5D0Nyizho
+         /2kA==
+X-Forwarded-Encrypted: i=1; AKwUvBy21gdD/NrmNcYUkuiTgdzjsMwGFT3wrxLhxvoALBD1nyDKhLYYs8+/LZXjQPmMIQk658Ni6DJ87WSp@vger.kernel.org
+X-Gm-Message-State: AFq9FYLvX1iSqdjn7zD2v2ozVoI5psZHyjHEk0tFRg+wJO6g5v+JUGg1
+	0ulZKShDuE0AM+/v6njjDtRcS6jLi19ja/z2gBdMkMODVXuHJ8ATXOzv
+X-Gm-Gg: AYBFou04v1C1++vjpKG0oZ4vtEVLZTMU4lDZvniS2MX0mnbSPrdLvLUKmmGWgyIPTJ/
+	K5ncAM24XRL9PW56JXINoz1PcDxWCxfC2zRWGiup2OWSnJycr1aEuvflluX832pzcdhTDlm1Gsu
+	3rr5MwgMV4vzIxJbZuuHkpNE84K9myRu+PqCrafZn8Pjt3xIJ8j7KWueYVQaI4B8GmctKRkqE9C
+	Ypcz3yeEOmSFY/s7gIuklbcLNMFc0S/a0gglxidXvH5LcKBxPJHMTsgUQ1Ygv4SgKagFzfB1eoT
+	yBHRF0KDsVVF0WxgeA6y/2R7oRinaZilPfti9ac/8FIpV1IuO31GHrM3JUaleirv5/3RLl1i6VL
+	03CGGavbRNFk45T9o1KO+X4IiFuhxEqW7okhzMBtI11S3OeJ2yFxKDjl19QBsZuNusFQVlIOWjV
+	Y1nOBUx1Qt0Nx7AymAR/s4hKrqRWDJbUUwPZxhYnZRKALNvqoHcKQs9Zbot0b4KrVAS9Z6OTshV
+	XkchtH6Y1clKY4F+A5l/0WNpr2Kst35Jt1lZ5qBFsam/xfMe1cZoaN6uOZkvUUft40kP6royKQ0
+	keEwdYHzjiZL4XDSjl45SjFWTET64G61RgQNgCmypIOWDJwzTkPN5n6G//ErIQjzjKDqLEMnbVx
+	YaQd+NnBra+jcWQ==
+X-Received: by 2002:a05:600c:34d1:b0:4a2:526b:d3fd with SMTP id 5b1f17b1804b1-4ac1793fb5emr50752935e9.15.1793368085145;
+        Fri, 30 Oct 2026 06:48:05 -0700 (PDT)
+Received: from C422HJQPQG-Fractile ([130.43.154.100])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4ab69b54742sm172048905e9.15.2026.10.30.06.48.03
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 30 Oct 2026 06:48:04 -0700 (PDT)
+Date: Fri, 30 Oct 2026 13:48:02 +0000
+From: "Vishal Moola (Fractile)" <vishal.moola@gmail.com>
+To: Muchun Song <songmuchun@bytedance.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+	David Hildenbrand <david@kernel.org>,
+	Oscar Salvador <osalvador@suse.de>,
+	Alistair Popple <apopple@nvidia.com>, Will Deacon <will@kernel.org>,
+	"Aneesh Kumar K . V" <aneesh.kumar@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Geert Uytterhoeven <geert@linux-m68k.org>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
+	Yoshinori Sato <ysato@users.sourceforge.jp>,
+	Rich Felker <dalias@libc.org>,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+	"David S . Miller" <davem@davemloft.net>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	linux-m68k@lists.linux-m68k.org, linuxppc-dev@lists.ozlabs.org,
+	linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
+	sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+	Muchun Song <muchun.song@linux.dev>
+Subject: Re: [PATCH 0/2] mm: Remove pagetable_dtor_free()
+Message-ID: <auSgElFWW4n3sJLb@C422HJQPQG-Fractile>
+References: <20261030083800.599152-1-songmuchun@bytedance.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,124 +116,28 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-X-ThreadId: Aey4jMk1dEgs
-Date: Fri, 30 Oct 2026 09:10:05 -0400
-From: "Chris Mason" <mason@kernel.org>
-To: "Muhammad Usama Anjum" <usama.anjum@arm.com>,
- "David Hildenbrand (Arm)" <david@kernel.org>,
- "Andrew Morton" <akpm@linux-foundation.org>,
- "Johannes Weiner" <hannes@cmpxchg.org>, "Michal Hocko" <mhocko@kernel.org>,
- "Qi Zheng" <qi.zheng@linux.dev>, "Shakeel Butt" <shakeel.butt@linux.dev>,
- "Lorenzo Stoakes (ARM)" <ljs@kernel.org>, "Kairui Song" <kasong@tencent.com>,
- "Barry Song" <baohua@kernel.org>,
- "Axel Rasmussen" <axelrasmussen@google.com>,
- "Yuanchu Xie" <yuanchu@google.com>, "Wei Xu" <weixugc@google.com>,
- "Baoquan He" <baoquan.he@linux.dev>,
- "Baolin Wang" <baolin.wang@linux.alibaba.com>,
- "Liam R. Howlett" <liam@infradead.org>,
- "Vlastimil Babka" <vbabka@kernel.org>, "Mike Rapoport" <rppt@kernel.org>,
- "Suren Baghdasaryan" <surenb@google.com>, "Michal Hocko" <mhocko@suse.com>,
- "Kees Cook" <kees@kernel.org>, "Peter Zijlstra" <peterz@infradead.org>,
- "Jann Horn" <jannh@google.com>, "Pedro Falcato" <pfalcato@suse.de>,
- "Hugh Dickins" <hughd@google.com>,
- "Pasha Tatashin" <pasha.tatashin@soleen.com>,
- "Pratyush Yadav" <pratyush@kernel.org>,
- "Matthew Wilcox" <willy@infradead.org>, "Jan Kara" <jack@suse.cz>,
- "Zi Yan" <ziy@nvidia.com>, "Lance Yang" <lance.yang@linux.dev>,
- "Rik van Riel" <riel@surriel.com>, "Harry Yoo" <harry@kernel.org>,
- "Alistair Popple" <apopple@nvidia.com>, "Nico Pache" <nico.pache@linux.dev>,
- "Ryan Roberts" <ryan.roberts@arm.com>, "Dev Jain" <dev.jain@arm.com>,
- "Usama Arif" <usama.arif@linux.dev>, "Kiryl Shutsemau" <kas@kernel.org>,
- "Matthew Brost" <matthew.brost@intel.com>,
- "John Hubbard" <jhubbard@nvidia.com>, "Peter Xu" <peterx@redhat.com>,
- "Will Deacon" <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
- "Nick Piggin" <npiggin@gmail.com>, "Oscar Salvador" <osalvador@suse.de>,
- "Minchan Kim" <minchan@kernel.org>, "Muchun Song" <muchun.song@linux.dev>,
- "Xu Xin" <xu.xin@linux.dev>, "Chengming Zhou" <chengming.zhou@linux.dev>,
- "Chris Li" <chrisl@kernel.org>, "Kemeng Shi" <shikemeng@huaweicloud.com>,
- "Nhat Pham" <nphamcs@gmail.com>, "Youngjun Park" <youngjun.park@lge.com>,
- "Gregory Price" <gourry@gourry.net>, "Joshua Hahn" <joshua.hahnjy@gmail.com>,
- "Rakie Kim" <rakie.kim@sk.com>, "Ying Huang" <ying.huang@linux.alibaba.com>,
- "Jason Gunthorpe" <jgg@ziepe.ca>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
- "Josef Bacik" <josef@toxicpanda.com>, stable@vger.kernel.org,
- "Thadeu Lima de Souza Cascardo" <cascardo@igalia.com>,
- "Mani Tofigh" <mt4022@columbia.edu>,
- "Samiullah Khawaja" <skhawaja@google.com>
-Message-Id: <ad0d82f5-c2ad-46d0-986d-94626faac1f9@app.fastmail.com>
-In-Reply-To: <bc8c1fc5-4620-4515-8520-22ebcd0d592a@arm.com>
-References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
- <2f23dafc-43a5-47c9-a819-e696cda6fd44@arm.com>
- <baeda061-e0d0-4be1-9aa5-8886182ca83f@kernel.org>
- <bc8c1fc5-4620-4515-8520-22ebcd0d592a@arm.com>
-Subject: Re: [PATCH v2 00/47] mm: various (urgent?) fixes
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20261030083800.599152-1-songmuchun@bytedance.com>
 
+On Fri, Oct 30, 2026 at 04:37:58PM +0800, Muchun Song wrote:
+> This is a follow-up cleanup to the page-table teardown fixes [1].
+> 
+> pagetable_free() now invokes pagetable_dtor() for constructed page tables.
+> This makes pagetable_dtor_free() redundant and leaves explicit destructor
+> calls immediately before pagetable_free() duplicating lifecycle handling.
+> 
+> Remove pagetable_dtor_free() and convert its callers to pagetable_free(),
+> then remove the remaining redundant pagetable_dtor() calls. This keeps the
+> destructor decision in the common free path. No functional change is
+> intended.
+> 
+> [1] https://lore.kernel.org/r/20261023063428.3658761-1-songmuchun@bytedance.com
+> 
+> Muchun Song (2):
+>   mm: remove pagetable_dtor_free()
+>   mm: remove redundant pagetable_dtor() calls
 
+For the series:
 
-On Fri, Oct 30, 2026, at 8:12 AM, Muhammad Usama Anjum wrote:
-> On 30/10/2026 11:35 am, David Hildenbrand (Arm) wrote:
->> On 10/30/26 12:19, Muhammad Usama Anjum wrote:
->>> On 29/10/2026 8:32 pm, David Hildenbrand (Arm) wrote:
->>>> See v1 on details. TL;DR various fixes :)
->>>>
->>>> Thanks to everyone for the review! Hoping I can get some more? :)
->>>>
->>>> I am planning on picking these myself, moving them to linux-next fairly
->>>> soon through mm/core.git.
->>>>
->>>> ---
->>>> Changes in v2:
->>>> - "mm/memfd: check for real shmem inodes before accessing shmem state"
->>>>  - Call it inode_is_shmem
->>>> - "mm/truncate: look again if a folio left the mapping"
->>>>  - Different fix for truncate_inode_pages_range
->>>>  - Adjust description
->>>> - "mm/huge_memory: fix zapping migration entries for device-private THPs"
->>>>  - Move handling in zap_deposited_table
->>>> - "mm/mmu_gather: fix flushing ranges with 4 GiB or larger"
->>>>  - Adjust description"
->>>> - "mm/huge_memory: split huge PUDs when adjusting VMA boundaries"
->>>>  - Drop split_pud check
->>>> - Link to v1: https://patch.msgid.link/20261027-fixes_core-v1-0-6f74bec9a5bb@kernel.org
->>> I ran Fastpath, a Linux kernel performance benchmarking framework, on
->>> this series against mm-stable on aws-m7g.metal. (I) and (R) indicate
->>> statistically significant improvements and regressions, respectively.
->>> The results show 10 improvements and 1 regression. Other, unmarked
->>> percentage changes can be ignored as statistically insignificant. Hence:
->>>
->>> Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
->> 
->> 
->> Thanks for the results. IIUC it's schbench that shows a possible regression.
->> 
->> I would expect that no changes here really affect performance at all (neither
->> positively nor negatively).
->> 
->> "mm/huge_memory: fix list corruption when deferred_split_scan() races with
->> deferred_split_folio()" fixes locking, but I wouldn't assume that this matters
->> at all for this benchmark.
->> 
->> "fork: take mmap_lock before copying mm_struct" changes locking, but I also fail
->> to see how that would affect the benchmark.
->> 
->> Maybe some code layout changes just affect some benchmark on some machines?
->> Because already seeing 10 improvements makes me wonder how that could possibly be.
->> 
->> So I'll move forward with these fixes for now and see if we get more reports and
->> could identify actual problematic commits.
->
-> Yes, these improvements/regression might be because of code movement and how it
-> has affected the run time performance. Most importantly, these results show that
-> there isn't any drastic affect on performance. These fixes are good to go.
-
-This schbench configuration is going to be really sensitive to process placement, and it
-should be doing all of its memory allocations up front.   I haven't done many schbench
-runs on this type of hardware, but I'd agree this result shouldn't indicate a bigger lurking
-regression anywhere.
-
--chris
+Acked-by: Vishal Moola (Fractile) <vishal.moola@gmail.com>
