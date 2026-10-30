@@ -1,47 +1,118 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.128.46
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793371070;
-	b=JmC3Uvt0p7OLJJlxcXqj3IdbAYFJ7VVheNR9+hLHLphAqVlUIIJ5B3O4foRSyWdDW1Pd
-	 X8D4vxQSPuEUWczA13YYm3GlGcnGqlvJSypgPgSLlQb28yV+TYPNZHTOO1dy02B4ecPMV
-	 EnNoen0p6w8U8tKlr6F5/O+R54MhgtWI6UzZB6CylZYXpwVctGu5gCPppl+ZOE1SO/fX4
-	 juMX4ZKI9uxAzRT25Dxt3nbbltG+GrBe+mOjF/3RNTLTKuz5zFQpx+6JSE+TwVQ6ptEuK
-	 /33pygE8MufqX8GhxLM+o3bjOMGnLtK1YoaJyTL0ABTQYQ4Mw1ew1qg6lQWHA7139hw==
+	t=1793372842;
+	b=FoGQZxdVZdngPz2XWhjvzylktP3WeOQCothktTh0h1pEMmgqnF1qVPxrCOknuScjsr47
+	 XFI7c3vJ4bCQMJbkqWYlnEkRoup6evtbdbUWybq+MqgUYPYhbS7b92Usb4FEbp0NL671w
+	 /r1vhASL5kQ990CtZqt5IjD5Ac8BPukVNyYU/z/BFbcdcBAWCRp+L+yQnCReWtV19FdOr
+	 VaOBtQzTEIdl0oxsfPCT1n9JZdKaxsTMhzvQHM5HCgbztmeW/NTrJR+aeQu5abmOBqt29
+	 +gWbt/3TdLy0kuxWpoqhRbP1NzbYN3i3jkWH+SFGU9a15VaNI3+YfXSz2P3hdeB3KxQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793371070;
-	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
-	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
-	 Content-Type:Content-Transfer-Encoding;
-	bh=uOYO1vBz1WqzK+TimXJTNpBfLu8OouAosUkHyHS7j4s=;
-	b=GwH0+0VnbFL6CnwqXKR+KRNrLNs9/XyvkO/jl3bhHgkB8YMIJ3hqyC81NDL4yBkQtrWg
-	 8oNF7bE8Z1dpjGux7oY2jo0PkeP0ul7FE9GWOJ/mOrbDM37/YN4IJWO+qxK8Qm7jSCNky
-	 JxrKjr+98yMQUTlIfBOK17BMLN8OIMp1/gWo3Fq6k1brEqB4hFOatopxnFKiMP+MBTMPj
-	 qiU4B/x/UdMlNb65UEWnNFQQxFeUNfO1VGoWtzfZm/wRYBMIVVOA5t3bJuA4NPeW9SVAK
-	 57RZMpSKpRcKjsHLJjSR/imU4NQL/ZfUXqPktYW7vrMT5KNYWpr5GYyqmfR4v6qfZRg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793372842;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:X-Mailer:
+	 MIME-Version:Content-Type:Content-Transfer-Encoding;
+	bh=YNL5gTzoS0SNcKXI362OG6Cyagd0/f8y/Be+hIpJbPg=;
+	b=dviuJSCCfGaRllv02LWXDo+aAD4RFXFkAdtvCAAvMslZrvQirFuusM8pC1LIrdgp9sLK
+	 pt3e1h3dBjSWmkJVU0MT2ODjm5T6Qy6qCtn4CRGAq9CgC+KN+yVG5/YB1raqjXHdtAZHY
+	 kM2YmTNq2hcuzj56hLFHzlLHaGirhYF1S0+DJhVi5Pur6SUWh0jGSjeAeLR8DOzZtzAld
+	 DW3en/t1zKlvACbad8k4tC7cLGxtFBln1EwFQJef3zETPp+f2T7SdWSzfk+KHqs4ri8G/
+	 cmVtMjA+5coVIGvTYZGW273HZYQmI967E8vKo/lBf5O2Ulag+VBK5hr5/ILNrNWVGOQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bF6R9279;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=uWnnIDaF;
+	arc=none smtp.remote-ip=209.85.128.46
+Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0C177606A31C;
-	Fri, 30 Oct 2026 14:37:49 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 930F2606A325
+	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 15:07:22 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 930F2606A325
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bF6R9279
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3D2651F000C1;
-	Fri, 30 Oct 2026 14:37:31 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793371069;
-	bh=uOYO1vBz1WqzK+TimXJTNpBfLu8OouAosUkHyHS7j4s=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=bF6R9279b9c55sZunVufqLbJNHVpGKBm16I1N1EhD57KVbpTTV97cgxt+5quNJxhU
-	 AcBv2r5idRTx7z1d4FGqoqjMWGKBamCpKhDD815Qf7MjJH/RyQMi6wtbUEjI+Fsxfq
-	 3UPWRaoTnrvjcppPpHLTtmK6MyDUEJGw7p1LycATDtjCtqj00PRuPJe0iUvWnJfNPO
-	 4g8WVSEbre0QpmAQvYNAoIamCH34o/q4qyIKgFfupjeNVbxFYvnpmk8SydELkXK1Ad
-	 sH7yssGm1jBtjQi2I9rF/OMf/8/uxLDf3DBU8L+pn4Pd+PaTpTSitw09zSvNi70Mtb
-	 +e+8QcJWIXVYg==
-Message-ID: <9af1202f-9fae-4cca-904a-0ba00d7e726d@kernel.org>
-Date: Fri, 30 Oct 2026 15:37:29 +0100
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=uWnnIDaF
+Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-4a35d5d4a20so8639305e9.2
+        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 08:07:22 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20260707; t=1793372841; x=1793977641; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=YNL5gTzoS0SNcKXI362OG6Cyagd0/f8y/Be+hIpJbPg=;
+        b=uWnnIDaFZDr4pqzEYcHVHDAqr85/92Q2My9fXNCJD+rkJgIdgpI1tq1Nsu/ad8rMv1
+         +RWezfm2jh3eMuFkIfsmUhO1gyAqms4M0rNFpMVk2SIZgx66VY2GDIayj0MDbNPZoCQj
+         P0CxcqVstEmDxE8O16N5QIJkpPdcPsFJ/MGp6i3sqw15OksJS9Ox2+geN8KZJuvA53ed
+         NhD+8PloOM+6WV43JiFyt+cdUB8pC1HWVKszqyu7EQ+Dw+hClQ9Jtnh8sho7HITeY2Mv
+         GPTARz0x64NBro0lE7klgoIWeExmR78Ni5nKXKZLufumNznEsjPgq9U1YNuLr5BhMcDv
+         gHbw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793372841; x=1793977641;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=YNL5gTzoS0SNcKXI362OG6Cyagd0/f8y/Be+hIpJbPg=;
+        b=yEI4YjOwZRjbigJheGLusrMaFbWqSCYApavWXD28bifGa8SW1t5goaNyS55GtEsWb2
+         auFQWu9BjyBkPimvMme/HgX9bHgiidSUMe+/m4piK4dX9angJfaQjGIxNuUUx2iqJhMO
+         2xWYOq9ugHI0iTX2Z7oSHYG5r8kdNyueKY3wbAFi91jQGqkATR1p7iTzOD1Kj4kJ6uCB
+         QX8s14Zz2d2fubUuYQ/rgxhzHFP7Kf2pV9ROlPqT5vA5hMPUuVoBnWFvBbitdZ5AvRm/
+         +J8iGAR9/0WShdnR9LVB66R31CGoQh7VrPHVI7K3Mx1olsEKqNoIqElz9Z5I+tTlOiZC
+         /D1A==
+X-Forwarded-Encrypted: i=1; AKwUvBxHq8Q8NIe7FpMAjeTwSJw9o2tCxcgnfg2Qr63skxzojT7Tq1gxo72qOUBV5mp6quhNB71LjjdYKrgB@vger.kernel.org
+X-Gm-Message-State: AFq9FYK3Fjo+VVhWxO4oZeupK/nVUE/+nRcK2BKmqgac3BS5RzYRXnhD
+	ETTOMrOQObLYShU70aHaJK46gfvjsJAOl+SmlWqmfA8GvtroBC8PpV7U
+X-Gm-Gg: AYBFou0pBZySFD3IBFx/SNhIAl3D8ag/6GDn5VTH3syuzDogWaP3hbb9/pWq2AMkFLP
+	YrdKb+vTd5wyysF85tFTlNvrwP+zTthmBz4jnAmR4U3gWC8HXbI4QS2FvlkoSfzd/NNnwqZ6PI7
+	oenud37x2e3HqjlNB/tmuJIXjIV39r6EEKLxAVqrQ457nAL+c3znO0vqlfLFGzxAu6XBjqXc5kU
+	x2QawioYZDqEHRX1r/JfESVBbseKAFzJC8LtIXobrqueInR8UUZrrOqXQHAnobhfjN5DZQCjnZ9
+	DQi9Ahkfvx1u8Usq/g+3v8n+CqkThoazpjjGbkTGRniLeDqUluNXASrlAvWngJHy4Zpgu9Sy/om
+	6Thh1ezK1ZQxYL2neGR9WqRtlIqX8XCfCMOsXZK7M8KKQQ2j8NU9m3HOF0u5pVMnVnSmDg9uMiE
+	HhLwC+PbHNWfmyaFIBqRDtCPuEuDLUQ4/MF7GmuW2T1D6fcV7gqKbk7IN5Ljl8LOmjdWg6wy0xv
+	4JsxrNMsBHWGe9zc0r1K7y6MAOuELv58RTz5C/eBaSgT94zmMPGR3YBmKs6XVcb20f8awVNzDmO
+	54LkGr6B2j3CfuimzpJYBHY7yP1COStP4iy+52p0d6M1OQ8jMjwxV8yZJH/ZABAfFQ==
+X-Received: by 2002:a05:600c:4e8c:b0:4a1:dade:f049 with SMTP id 5b1f17b1804b1-4ac1793ff26mr57275105e9.15.1793372840727;
+        Fri, 30 Oct 2026 08:07:20 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4abf67aab10sm64599465e9.9.2026.10.30.08.07.18
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 30 Oct 2026 08:07:18 -0700 (PDT)
+Date: Fri, 30 Oct 2026 15:07:17 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: Petr Mladek <pmladek@suse.com>
+Cc: jim.cromie@gmail.com, Jason Baron <jbaron@akamai.com>, Shuah Khan
+ <shuah@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Maarten
+ Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard
+ <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, David Airlie
+ <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, Arnd Bergmann
+ <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu
+ <petr.pavlu@suse.com>, Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen
+ <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>, Jonathan
+ Corbet <corbet@net.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>,
+ Shuah Khan <skhan@linuxfoundation.org>, Randy Dunlap
+ <rdunlap@infradead.org>, "Rafael J. Wysocki" <rafael@kernel.org>, Pavel
+ Machek <pavel@kernel.org>, Len Brown <lenb@kernel.org>, Jonathan Corbet
+ <corbet@lwn.net>, Steven Rostedt <rostedt@goodmis.org>, John Ogness
+ <john.ogness@linutronix.de>, Sergey Senozhatsky <senozhatsky@chromium.org>,
+ Thomas =?UTF-8?B?V2Vpw59zY2h1aA==?= <linux@weissschuh.net>,
+ linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org,
+ linux-modules@vger.kernel.org, linux-doc@vger.kernel.org,
+ linux-kbuild@vger.kernel.org, linux-pm@vger.kernel.org, Philipp Hahn
+ <phahn-oss@avm.de>
+Subject: Re: [PATCH v12 33/40] dyndbg: Ignore additional arguments from
+ pr_fmt
+Message-ID: <20261030150717.094d8a35@pumpkin>
+In-Reply-To: <auNes2b11NqUey3C@pathway>
+References: <20261012-dd-cmap-part2-clean-v12-0-3c8cc5725def@gmail.com>
+	<20261012-dd-cmap-part2-clean-v12-33-3c8cc5725def@gmail.com>
+	<as4W9hToBqAvbzJ-@pathway.suse.cz>
+	<20261027132253.5f3a461d@pumpkin>
+	<auNes2b11NqUey3C@pathway>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -51,141 +122,145 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 00/47] mm: various (urgent?) fixes
-To: Chris Mason <mason@kernel.org>, Muhammad Usama Anjum
- <usama.anjum@arm.com>, Andrew Morton <akpm@linux-foundation.org>,
- Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
- Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
- "Lorenzo Stoakes (ARM)" <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
- Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
- Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
- Baoquan He <baoquan.he@linux.dev>,
- Baolin Wang <baolin.wang@linux.alibaba.com>,
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
- Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
- Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
- Pasha Tatashin <pasha.tatashin@soleen.com>,
- Pratyush Yadav <pratyush@kernel.org>, Matthew Wilcox <willy@infradead.org>,
- Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>,
- Lance Yang <lance.yang@linux.dev>, Rik van Riel <riel@surriel.com>,
- Harry Yoo <harry@kernel.org>, Alistair Popple <apopple@nvidia.com>,
- Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
- Dev Jain <dev.jain@arm.com>, Usama Arif <usama.arif@linux.dev>,
- Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
- John Hubbard <jhubbard@nvidia.com>, Peter Xu <peterx@redhat.com>,
- Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
- Nick Piggin <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
- Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
- Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
- Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
- Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
- Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
- Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
- Jason Gunthorpe <jgg@ziepe.ca>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
- Josef Bacik <josef@toxicpanda.com>, stable@vger.kernel.org,
- Thadeu Lima de Souza Cascardo <cascardo@igalia.com>,
- Mani Tofigh <mt4022@columbia.edu>, Samiullah Khawaja <skhawaja@google.com>
-References: <20261029-fixes_core-v2-0-a64ce7f83abb@kernel.org>
- <2f23dafc-43a5-47c9-a819-e696cda6fd44@arm.com>
- <baeda061-e0d0-4be1-9aa5-8886182ca83f@kernel.org>
- <bc8c1fc5-4620-4515-8520-22ebcd0d592a@arm.com>
- <ad0d82f5-c2ad-46d0-986d-94626faac1f9@app.fastmail.com>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- xsFNBFXLn5EBEAC+zYvAFJxCBY9Tr1xZgcESmxVNI/0ffzE/ZQOiHJl6mGkmA1R7/uUpiCjJ
- dBrn+lhhOYjjNefFQou6478faXE6o2AhmebqT4KiQoUQFV4R7y1KMEKoSyy8hQaK1umALTdL
- QZLQMzNE74ap+GDK0wnacPQFpcG1AE9RMq3aeErY5tujekBS32jfC/7AnH7I0v1v1TbbK3Gp
- XNeiN4QroO+5qaSr0ID2sz5jtBLRb15RMre27E1ImpaIv2Jw8NJgW0k/D1RyKCwaTsgRdwuK
- Kx/Y91XuSBdz0uOyU/S8kM1+ag0wvsGlpBVxRR/xw/E8M7TEwuCZQArqqTCmkG6HGcXFT0V9
- PXFNNgV5jXMQRwU0O/ztJIQqsE5LsUomE//bLwzj9IVsaQpKDqW6TAPjcdBDPLHvriq7kGjt
- WhVhdl0qEYB8lkBEU7V2Yb+SYhmhpDrti9Fq1EsmhiHSkxJcGREoMK/63r9WLZYI3+4W2rAc
- UucZa4OT27U5ZISjNg3Ev0rxU5UH2/pT4wJCfxwocmqaRr6UYmrtZmND89X0KigoFD/XSeVv
- jwBRNjPAubK9/k5NoRrYqztM9W6sJqrH8+UWZ1Idd/DdmogJh0gNC0+N42Za9yBRURfIdKSb
- B3JfpUqcWwE7vUaYrHG1nw54pLUoPG6sAA7Mehl3nd4pZUALHwARAQABzS5EYXZpZCBIaWxk
- ZW5icmFuZCAoQ3VycmVudCkgPGRhdmlkQGtlcm5lbC5vcmc+wsGQBBMBCAA6AhsDBQkmWAik
- AgsJBBUKCQgCFgICHgUCF4AWIQQb2cqtc1xMOkYN/MpN3hD3AP+DWgUCaYJt/AIZAQAKCRBN
- 3hD3AP+DWriiD/9BLGEKG+N8L2AXhikJg6YmXom9ytRwPqDgpHpVg2xdhopoWdMRXjzOrIKD
- g4LSnFaKneQD0hZhoArEeamG5tyo32xoRsPwkbpIzL0OKSZ8G6mVbFGpjmyDLQCAxteXCLXz
- ZI0VbsuJKelYnKcXWOIndOrNRvE5eoOfTt2XfBnAapxMYY2IsV+qaUXlO63GgfIOg8RBaj7x
- 3NxkI3rV0SHhI4GU9K6jCvGghxeS1QX6L/XI9mfAYaIwGy5B68kF26piAVYv/QZDEVIpo3t7
- /fjSpxKT8plJH6rhhR0epy8dWRHk3qT5tk2P85twasdloWtkMZ7FsCJRKWscm1BLpsDn6EQ4
- jeMHECiY9kGKKi8dQpv3FRyo2QApZ49NNDbwcR0ZndK0XFo15iH708H5Qja/8TuXCwnPWAcJ
- DQoNIDFyaxe26Rx3ZwUkRALa3iPcVjE0//TrQ4KnFf+lMBSrS33xDDBfevW9+Dk6IISmDH1R
- HFq2jpkN+FX/PE8eVhV68B2DsAPZ5rUwyCKUXPTJ/irrCCmAAb5Jpv11S7hUSpqtM/6oVESC
- 3z/7CzrVtRODzLtNgV4r5EI+wAv/3PgJLlMwgJM90Fb3CB2IgbxhjvmB1WNdvXACVydx55V7
- LPPKodSTF29rlnQAf9HLgCphuuSrrPn5VQDaYZl4N/7zc2wcWM7BTQRVy5+RARAA59fefSDR
- 9nMGCb9LbMX+TFAoIQo/wgP5XPyzLYakO+94GrgfZjfhdaxPXMsl2+o8jhp/hlIzG56taNdt
- VZtPp3ih1AgbR8rHgXw1xwOpuAd5lE1qNd54ndHuADO9a9A0vPimIes78Hi1/yy+ZEEvRkHk
- /kDa6F3AtTc1m4rbbOk2fiKzzsE9YXweFjQvl9p+AMw6qd/iC4lUk9g0+FQXNdRs+o4o6Qvy
- iOQJfGQ4UcBuOy1IrkJrd8qq5jet1fcM2j4QvsW8CLDWZS1L7kZ5gT5EycMKxUWb8LuRjxzZ
- 3QY1aQH2kkzn6acigU3HLtgFyV1gBNV44ehjgvJpRY2cC8VhanTx0dZ9mj1YKIky5N+C0f21
- zvntBqcxV0+3p8MrxRRcgEtDZNav+xAoT3G0W4SahAaUTWXpsZoOecwtxi74CyneQNPTDjNg
- azHmvpdBVEfj7k3p4dmJp5i0U66Onmf6mMFpArvBRSMOKU9DlAzMi4IvhiNWjKVaIE2Se9BY
- FdKVAJaZq85P2y20ZBd08ILnKcj7XKZkLU5FkoA0udEBvQ0f9QLNyyy3DZMCQWcwRuj1m73D
- sq8DEFBdZ5eEkj1dCyx+t/ga6x2rHyc8Sl86oK1tvAkwBNsfKou3v+jP/l14a7DGBvrmlYjO
- 59o3t6inu6H7pt7OL6u6BQj7DoMAEQEAAcLBfAQYAQgAJgIbDBYhBBvZyq1zXEw6Rg38yk3e
- EPcA/4NaBQJonNqrBQkmWAihAAoJEE3eEPcA/4NaKtMQALAJ8PzprBEXbXcEXwDKQu+P/vts
- IfUb1UNMfMV76BicGa5NCZnJNQASDP/+bFg6O3gx5NbhHHPeaWz/VxlOmYHokHodOvtL0WCC
- 8A5PEP8tOk6029Z+J+xUcMrJClNVFpzVvOpb1lCbhjwAV465Hy+NUSbbUiRxdzNQtLtgZzOV
- Zw7jxUCs4UUZLQTCuBpFgb15bBxYZ/BL9MbzxPxvfUQIPbnzQMcqtpUs21CMK2PdfCh5c4gS
- sDci6D5/ZIBw94UQWmGpM/O1ilGXde2ZzzGYl64glmccD8e87OnEgKnH3FbnJnT4iJchtSvx
- yJNi1+t0+qDti4m88+/9IuPqCKb6Stl+s2dnLtJNrjXBGJtsQG/sRpqsJz5x1/2nPJSRMsx9
- 5YfqbdrJSOFXDzZ8/r82HgQEtUvlSXNaXCa95ez0UkOG7+bDm2b3s0XahBQeLVCH0mw3RAQg
- r7xDAYKIrAwfHHmMTnBQDPJwVqxJjVNr7yBic4yfzVWGCGNE4DnOW0vcIeoyhy9vnIa3w1uZ
- 3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
- CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
- qIws/H2t
-In-Reply-To: <ad0d82f5-c2ad-46d0-986d-94626faac1f9@app.fastmail.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: quoted-printable
 
-On 10/30/26 14:10, Chris Mason wrote:
-> 
-> 
-> On Fri, Oct 30, 2026, at 8:12 AM, Muhammad Usama Anjum wrote:
->> On 30/10/2026 11:35 am, David Hildenbrand (Arm) wrote:
->>>
->>>
->>> Thanks for the results. IIUC it's schbench that shows a possible regression.
->>>
->>> I would expect that no changes here really affect performance at all (neither
->>> positively nor negatively).
->>>
->>> "mm/huge_memory: fix list corruption when deferred_split_scan() races with
->>> deferred_split_folio()" fixes locking, but I wouldn't assume that this matters
->>> at all for this benchmark.
->>>
->>> "fork: take mmap_lock before copying mm_struct" changes locking, but I also fail
->>> to see how that would affect the benchmark.
->>>
->>> Maybe some code layout changes just affect some benchmark on some machines?
->>> Because already seeing 10 improvements makes me wonder how that could possibly be.
->>>
->>> So I'll move forward with these fixes for now and see if we get more reports and
->>> could identify actual problematic commits.
->>
->> Yes, these improvements/regression might be because of code movement and how it
->> has affected the run time performance. Most importantly, these results show that
->> there isn't any drastic affect on performance. These fixes are good to go.
-> 
-> This schbench configuration is going to be really sensitive to process placement, and it
-> should be doing all of its memory allocations up front.   I haven't done many schbench
-> runs on this type of hardware, but I'd agree this result shouldn't indicate a bigger lurking
-> regression anywhere.
+On Thu, 29 Oct 2026 15:56:51 +0100
+Petr Mladek <pmladek@suse.com> wrote:
 
-Thanks Chris and Usama!
+> On Tue 2026-10-27 13:22:53, David Laight wrote:
+> > On Tue, 13 Oct 2026 13:33:10 +0200
+> > Petr Mladek <pmladek@suse.com> wrote:
+> >  =20
+> > > On Mon 2026-10-12 20:37:04, Jim Cromie via B4 Relay wrote: =20
+> > > > From: Philipp Hahn <phahn-oss@avm.de>
+> > > >=20
+> > > > pr_fmt can be used to add a common prefix to any output from a modu=
+le:
+> > > > 	#define pr_fmt(fmt) KBUILD_MODNAME ".%s " fmt, __func__
+> > > >=20
+> > > > But adding additional arguments breaks dynamic debug:   =20
+> > > > > error: macro "DEFINE_DYNAMIC_DEBUG_METADATA_CLS" passed 4 argumen=
+ts, but takes just 3
+> > > > > |         pr_debug_ratelimited("%s", "Hello world!");
+> > > > > |                                                  ^
+> > > > > note: macro "DEFINE_DYNAMIC_DEBUG_METADATA_CLS" defined here
+> > > > > | #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)      =
+ \
+> > > > > |
+> > > > > error: =E2=80=98DEFINE_DYNAMIC_DEBUG_METADATA_CLS=E2=80=99 undecl=
+ared (first use in this function)
+> > > > > |         DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_=
+DFLT, fmt)
+> > > > > |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   =20
+> > >=20
+> > > I wonder what this error about undeclared macro means.
+> > >  =20
+> > > > > note: in expansion of macro =E2=80=98DEFINE_DYNAMIC_DEBUG_METADAT=
+A=E2=80=99
+> > > > > |         DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, pr_fmt(fmt));=
+         \
+> > > > > |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> > > > > note: in expansion of macro =E2=80=98pr_debug_ratelimited=E2=80=99
+> > > > > |         pr_debug_ratelimited("%s", "Hello world!");
+> > > > > |         ^~~~~~~~~~~~~~~~~~~~   =20
+> > > >=20
+> > > > Add an additional ', ...' to DEFINE_DYNAMIC_DEBUG_METADATA_CLS to s=
+lurp
+> > > > any additional argument, which `pr_fmt` might add.
+> > > >=20
+> > > > --- a/include/linux/dynamic_debug.h
+> > > > +++ b/include/linux/dynamic_debug.h
+> > > > @@ -351,7 +351,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descri=
+ptor,
+> > > >  		dump_stack();					\
+> > > >  }
+> > > > =20
+> > > > -#define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt)	\
+> > > > +#define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt, ...)	\
+> > > >  	static struct _ddebug  __aligned(8)			\
+> > > >  	__section("__dyndbg_descs") name =3D {			\
+> > > >  		.modname =3D KBUILD_MODNAME,			\
+> > > > diff --git a/include/linux/printk.h b/include/linux/printk.h
+> > > > index f594c1266bfd..5d701952e739 100644
+> > > > --- a/include/linux/printk.h
+> > > > +++ b/include/linux/printk.h
+> > > > @@ -742,7 +742,7 @@ do {									\
+> > > >  	static DEFINE_RATELIMIT_STATE(_rs,				\
+> > > >  				      DEFAULT_RATELIMIT_INTERVAL,	\
+> > > >  				      DEFAULT_RATELIMIT_BURST);		\
+> > > > -	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, pr_fmt(fmt));		\
+> > > > +	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, fmt);		\   =20
+> > >=20
+> > > IMHO, this changes the existing behavior. The prefix added by
+> > > pr_fmt() will no longer be stored in DEFINE_DYNAMIC_DEBUG_METADATA().
+> > > Is this intentional, please?
+> > >=20
+> > > Anyway, if we do not longer pass pr_fmt(fmt) then we should not
+> > > need to add "..." into DEFINE_DYNAMIC_DEBUG_METADATA_CLS().
+> > >=20
+> > > By other words, we newly pass just the format "fmt" without the param=
+etes.
+> > > The 4th parameter was added by pr_fmt().
+> > >=20
+> > >=20
+> > > IMHO, the right solution is to keep pr_fmt(fmt) here and extend both
+> > > BEFINE_DYNAMIC_DEBUG_METADATA() and
+> > > DEFINE_DYNAMIC_DEBUG_METADATA_CLS()
+> > > to accept var args. I would expect something like:
+> > >=20
+> > > #define DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, cls, fmt, ...)	\
+> > > ...
+> > >=20
+> > > #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt, ...)		\
+> > > 	DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_DFLT, fmt, ##=
+__VA_ARGS__)
+> > >=20
+> > >=20
+> > > or maybe, we could "eat" the extra parameters in
+> > > DEFINE_DYNAMIC_DEBUG_METADATA. It would mean to keep
+> > > DEFINE_DYNAMIC_DEBUG_METADATA_CLS() as is and just add the "..." into
+> > > DEFINE_DYNAMIC_DEBUG_METADATA(), aka
+> > >=20
+> > > #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt, ...)		\
+> > > 	DEFINE_DYNAMIC_DEBUG_METADATA_CLS(name, _DPRINTK_CLASS_DFLT, fmt)
+> > >=20
+> > >=20
+> > > Or do I miss something, please? =20
+> >=20
+> > Don't think that will work.
+> > Won't you end up with ".%s" fmt as the string without the extra argumen=
+t.
+> > So you need to keep the expansion of pr_fmt() together until is is fina=
+lly
+> > substituted into a printf-like call.
+> > It is possible to enclose it in () so it is passed as one parameter and
+> > remove them on the final expansion. =20
+>=20
+> My understanding was that the format is stored in the metadata as is.
+> I mean that the string is not formatted in this code path. So that
+> the parameter values are or can be ignored. We just need to make
+> the compiler happy.
+>=20
+> But I might miss something.
 
-I'll respin a v3 shortly and get it into -next tomorrow (unless something really
-odd sticks out).
+If it is formatted in any code path you need any argument added by pr_fmt()
+otherwise the values printed wont match the format.
+Indeed, in some cases, the format has to be formatted in the same code path
+(or at least scanned for anything passed by reference) to avoid accessing
+stale data.
 
--- 
-Cheers,
+I've definitely used:
+#define pt_fmt(fmt) "driver serial %s:" fmt, foo->serial
+which relies on all call sites having a local variable foo of the correct
+type. There may be some in the main kernel tree.
+
+Maybe I'm missing something.
 
 David
+
+>=20
+> Best Regards,
+> Petr
+>=20
+
