@@ -1,51 +1,51 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=91.218.175.19
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=91.218.175.29
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793330678;
-	b=d43SIFFo3d362La573hbNr5EUduLuZKGgcOHM7ueljzM0WkDkoNvknpa8EBAzEL3loqJ
-	 X7LJdHsAfJKnFQIc9NZzEt2cZyx+0AEtPNdig9UF649fiBMlwLSk142X0EevvpZcYy9Rb
-	 Wv+7BUQl6haKosPt+JgzqBLTDpO5j9wq4CLRjRW2tt5VNb6qwCohZ1uqZScf6CnyBMede
-	 2AXChlW+RZOfi61Sy68HSc3zpv7EUjijwbrjyspqEc7F7q+jKm5k1rY+UVWI1ti9ei5gh
-	 XwZI+K1dTrws4198ezx61Kd6os/FV2t/uhy63CVEXZ72cWWaVU3YBYq6QFAFvZrQDrQ==
+	t=1793332554;
+	b=s8UixELAHpS5PRqyQiXF5W5CxudjbNEw2lgmK2n+zCSiWhWfDqlBGj3KQAR7JdJXt+ee
+	 0Fj/HIsOvvsGkg96pFMI+bT8zdeo1VnUupBabr5DxP9TjfmjMiOsnSbQErGmJrvmqoht8
+	 9uQfFzRiHkeUC5MD84v2IpGcmhUWEOfwOhYuxTrDWTy1mATGcGease9sMHtO2MIO+tO1t
+	 xTsQdnWdf+BC1/TZMH3lrtdFyXoSuL3Qb8ld2mEL05NTC8AsuntOxLWVQTUdJt6NwiWkw
+	 gpnjwWnnPi4h/8Fr4efiKBhFb4THFlsMUPRPg5QgcZHCJcMTwK/ma9e5lqXGJG0e9IQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793330678;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793332554;
 	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
 	 X-Mizu-Trace-ID:X-Migadu-Flow:From:To:Cc:Subject:Date:Message-Id:
-	 X-Mailer:In-Reply-To:References:MIME-Version:
+	 X-Mailer:In-Reply-To:References:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding;
-	bh=YxF7dRKdKAp6T/NOw/hryWAVYb3GZKlSovGXpa5oCY8=;
-	b=uwXKI0fvcPiwH7p3E5uOAkMYQb59qbM/e2bvHuxPtWDKV1+iiUROCdNr3s9GtJ02bbeO
-	 j739Sok5ANURn/DDGEs2z7ueI1KS51dSM6Ag28EI85MO2Pt7N44DTToJ+V4mPpBHlcBFn
-	 ZmMuCzUboZnLg/sL6lK9nJyl3PVwpcuLwGlkPYum84p+y4HlHPI5spBJsaCoz/m+/JmGa
-	 VFyjNmMus8VtFxtJVYhDYa1uO6bYIgGDHmTIzzauFGV9BURdVLK6+CKp7KsirLdSfz74M
-	 A9pAPjMI12v2bzi+EVg/cW1nGF6kTzFiqghrvYZR2dtmWTvt12TVov1WU6a/M/2XI0w==
+	bh=ey3vPsJ2dQFhz2BxI4N3mBDHBT7ectNl9BIu9ANR89g=;
+	b=OxeDaamztWGpZDzNA9nIDGi6gGlAdMal+u2YkCF+/e3QL3Ja1MvDTJTbylQrHKrzqzV4
+	 2lhrBRtkcX+myvZIHmD5chpEbyQeTL7fW1nUDKsozylIzEE/0U0rA8k0UTTPhjmL9ZBBC
+	 JCBineRj8cjbi0MjnpFLO1KnVE9OcSgjG+a472e7Ssp2BWDdYVm5wSeE3UG5WsiqQQ3W7
+	 +CBqAOFvi+qnqq0GN0yXy8CTaG4QuRpHBrb6mf47ucyvy8bNgEDn0YDKHDKZLdnepcAbF
+	 BBiXAlRqxzhr6lt7AC3TTFuVD3Fwy9X/6I7LEZ0nEyqEKBdr7AysieKTVQepcUxuL0A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.dev;
 	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=sFWn6Osd;
-	arc=none smtp.remote-ip=91.218.175.19
-Received: from mta0.migadu.com (out-19.mta0.migadu.com [91.218.175.19])
+	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=JZqpmtFQ;
+	arc=none smtp.remote-ip=91.218.175.29
+Received: from mta0.migadu.com (out-29.mta0.migadu.com [91.218.175.29])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E56A9606A31F
-	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 03:24:36 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E56A9606A31F
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 90432606A31E
+	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 03:55:47 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 90432606A31E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=sFWn6Osd
+	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=JZqpmtFQ
 X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=K9e2xpCltZ0luCSKJ76+rRB5TbBjqG8Rs7tkxWAziAc=;
+DKIM-Signature: a=rsa-sha256; bh=U6aEVcyx4cbsQT0ReFIAsX7642J2D1rQ7p5hav7hVYg=;
  c=simple/simple; d=linux.dev;
  h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793330674; v=1; x=1793935474;
- b=sFWn6Osd3p26eREcmcIASru+spScdxjMfW23b0Y2POx0A7cPjdRAZnOrHq+XGzSQm8O8znSL
- GcPW+KYbC/rayHgTcZsEHJo0uyjZtTCnQEGFm/LVMX+PMJM2sOtnbK4b1ngvJXY84rWZ79OpEq2
- myhFIaTzDDfiCZo6MKBT4eIY=
+ t=1793332545; v=1; x=1793937345;
+ b=JZqpmtFQ7Ohd/1LNlZcCz7DJxGmfw1W0QBIwKd81WGlQ+GCSScpslPKi5z61+nW3yuNQ2DfG
+ qYpgDNHPL3GYEromeJ9ePTKmdga4oQNe9eAq94ZKZxJjP2u8k8hH0quzBvtjDNrpC+rFPoXIxuw
+ UlDm22KbKQ+To97lJYUZVLqY=
 X-Envelope-To: linux-arch@vger.kernel.org
-Received: by mta10.migadu.com with ESMTPS id 13ff5ce3ac3bfaeb;
-	Fri, 30 Oct 2026 03:24:34 +0000
-X-Mizu-Trace-ID: 13ff5ce3ac3bfaeb
+Received: by mta10.migadu.com with ESMTPS id 29251291072b5e95;
+	Fri, 30 Oct 2026 03:55:20 +0000
+X-Mizu-Trace-ID: 29251291072b5e95
 X-Migadu-Flow: FLOW_OUT
 From: xu.xin@linux.dev
 To: david@kernel.org
@@ -67,7 +67,6 @@ Cc: akpm@linux-foundation.org,
 	jannh@google.com,
 	jgg@ziepe.ca,
 	jhubbard@nvidia.com,
-	josef@toxicpanda.com,
 	joshua.hahnjy@gmail.com,
 	kas@kernel.org,
 	kasong@tencent.com,
@@ -81,6 +80,7 @@ Cc: akpm@linux-foundation.org,
 	linux-kernel@vger.kernel.org,
 	linux-mm@kvack.org,
 	ljs@kernel.org,
+	mason@kernel.org,
 	matthew.brost@intel.com,
 	mhocko@kernel.org,
 	mhocko@suse.com,
@@ -114,12 +114,12 @@ Cc: akpm@linux-foundation.org,
 	youngjun.park@lge.com,
 	yuanchu@google.com,
 	ziy@nvidia.com
-Subject: [PATCH 38/46] mm/ksm: reset the unstable trees of all nodes
-Date: Fri, 30 Oct 2026 11:24:09 +0800
-Message-Id: <20261030032409.127393-1-xu.xin@linux.dev>
+Subject: Re: [PATCH 39/46] mm/ksm: fix use of a freed anon_vma at swap-in
+Date: Fri, 30 Oct 2026 11:54:47 +0800
+Message-Id: <20261030035447.140856-1-xu.xin@linux.dev>
 X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20261027-fixes_core-v1-38-6f74bec9a5bb@kernel.org>
-References: <20261027-fixes_core-v1-38-6f74bec9a5bb@kernel.org>
+In-Reply-To: <20261027-fixes_core-v1-39-6f74bec9a5bb@kernel.org>
+References: <20261027-fixes_core-v1-39-6f74bec9a5bb@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -129,70 +129,88 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
+Content-Type: text/plain; charset=y
 Content-Transfer-Encoding: 8bit
 
+> A folio read from a swap slot previously shared by KSM can remain in the
+> swap cache after the process that first mapped it exits. Its anon_vma
+> can then be freed, so ksm_might_need_to_copy() must not dereference it
+> to compare roots.
 > 
-> Let's fix it by tracking in ksm_nr_node_ids the actual number of
-> allocated tree roots.
+> Doing so can result in some false-positives, resulting in the reverse
+> mapping missing the new folio mapping, preventing migration and reclaim.
 > 
-> remove_all_stable_nodes() and ksm_check_stable_tree() will now scan
-> more tree roots (skipping the empty ones), which is harmless.
+> SLAB_TYPESAFE_BY_RCU allows individual anon_vma objects to be reused
+> immediately after freeing. A stale pointer can then refer to another
+> anon_vma whose root matches, even though the target VMA is not linked
+> to that anon_vma.
 > 
-> Fixes: ef53d16cded7 ("ksm: allocate roots when needed")
+> Move the anonymous rmap compatibility checks into
+> folio_anon_rmap_compatible(). Keep the page-index check and compare the
+> folio's anon_vma pointer against the VMA's own anon_vma and root first.
+> 
+> If neither matches, bite the bullet and walk the VMA's anon_vma_chain.
+> The VMA keeps these anon_vmas alive, and finding a match guarantees that
+> reverse mapping can find the new mapping.
+> 
+> Lorenzo Stoakes says in a private discussion:
+> 
+>   "This isn't quite equivalent to the existing check.
+> 
+>   Every anon_vma in an anon_vma_chain shares the same root, but if you
+>   split a VMA then fork both of them like this:
+> 
+>                   VMA A
+>                /        \         <split>
+>             VMA B      VMA C
+>                \        /
+>         root <- anon_vma 1
+>                ----^ ^----        <fork>
+>               /   parent  \
+>         anon_vma 2   anon_vma 3
+>              |            |
+>            VMA D        VMA E
+> 
+>   VMA's D and E both get their own new
+>   anon_vma's such that:
+> 
+>   VMA D: anon_vma 2 -> anon_vma 1 -> root
+>   VMA E: anon_vma 3 -> anon_vma 1 -> root
+> 
+>   And if you found a folio referencing anon_vma 2, the existing check:
+> 
+> 	anon_vma->root == vma->anon-vma->root
+> 
+>   Would be true for VMA's B, C, D & E.
+> 
+>   However after your change it'd be true for VMA D only, as it's the only
+>   one with anon_vma 2 in its anon_vma_chain.
+> 
+>   Whether or not that could actually happen in practice... 🙂 I don't
+>   know.
+> 
+>   [...] after your change it'd be true for VMA D only, as it's the only
+>   one with anon_vma 2 in its anon_vma_chain. [...] I would [...] say that
+>   you are making the test stricter but more correct.
+> "
+> 
+> If this affects performance when KSM was never even involved, we could
+> just track whether KSM ever merged anything and just skip these checks.
+> 
+> There isn't really a lot we can do otherwise: for mapped folios we might
+> be able to use folio_get_anon_vma(), but for unmapped folios there really
+> is no easy way to see if the anon_vma is still valid.
+> 
+> Document the (confusing) lifetime requirements of folio_anon_vma().
+> 
+> Fixes: ba6f0ff3981e ("ksm: fix ksm swapin time optimization")
 > Cc: stable@vger.kernel.org
-> Reported-by: Josef Bacik <josef@toxicpanda.com>
+> Reported-by: Chris Mason <mason@kernel.org>
+> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > ---
->  mm/ksm.c | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/mm/ksm.c b/mm/ksm.c
-> index dbfb8f98b1892..9c51925825cbf 100644
-> --- a/mm/ksm.c
-> +++ b/mm/ksm.c
-> @@ -475,6 +475,7 @@ static void advisor_stop_scan(void)
->  #ifdef CONFIG_NUMA
->  /* Zeroed when merging across nodes is not allowed */
->  static unsigned int ksm_merge_across_nodes = 1;
-> +/* Number of allocated stable and unstable tree roots. */
->  static int ksm_nr_node_ids = 1;
->  #else
->  #define ksm_merge_across_nodes	1U
-> @@ -3636,14 +3637,13 @@ static ssize_t merge_across_nodes_store(struct kobject *kobj,
->  			else {
->  				root_stable_tree = buf;
->  				root_unstable_tree = buf + nr_node_ids;
-> +				ksm_nr_node_ids = nr_node_ids;
->  				/* Stable tree is empty but not the unstable */
->  				root_unstable_tree[0] = one_unstable_tree[0];
->  			}
->  		}
-> -		if (!err) {
-> +		if (!err)
->  			ksm_merge_across_nodes = knob;
-> -			ksm_nr_node_ids = knob ? 1 : nr_node_ids;
-> -		}
->  	}
->  	mutex_unlock(&ksm_thread_mutex);
->  
-> 
-> -- 
-> 2.43.0
+>  mm/ksm.c  | 36 +++++++++++++++++++++++++++++++-----
+>  mm/util.c | 13 +++++++++++++
+>  2 files changed, 44 insertions(+), 5 deletions(-)
 
-Looks correct as far as it goes, but I think it is not quite sufficient
-on its own.
-
-The documentation requires that merge_across_nodes can only be changed
-when there are no KSM shared pages in the system, but
-merge_across_nodes_store() does not enforce this at the sysfs level.
-
-Should we also reject writes while ksmd is merging? At minimum:
-
-+	if (ksm_run & KSM_RUN_MERGE)
-+		return -EBUSY;
-
-Ideally, we should also check that ksm_pages_shared is zero, since
-KSM_RUN_STOP (0) does not guarantee that all pages have been unmerged.
-
-That would make the interface match the documented sequence and close
-the remaining race window.
+Acked-by: Xu Xin <xu.xin@linux.dev>
