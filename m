@@ -1,65 +1,107 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=170.10.133.124
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793335088;
-	b=tEUVbLvQqYHesDFpgwijGZsGOI5/Mc6bKVXs1TrXKATF+h7VcymRCWiEb1HhQM3IPSnF
-	 LDOXbgyC1+2fDoUVkS+HnceHTPFf3D/ovu7wzJQafCbS/oeKWwNOSXd6ZZejLRpo+jaks
-	 xXK6s0KIKzAkVJcndBAHu5ympcbJ/O3q3/BOPA7AoOekowEAm+yGb5PxZ0/ZpLdwJYxaU
-	 xz6eYDRV1YDguQqevJa2YUhg8i2Jyy4wbz3N4m2TTO+1K+JD0WTdb3UbB76zLMl2pwxRv
-	 qj8gHmyw32b6FBtXQ3idral9Do4MmdUt7NdYOBQv370OKOVrqixv2tmKgYkBQhsM9xg==
+	t=1793339306;
+	b=huk7gp7KRNJP3NEj/Ipx6FHXCYHC2mvy8EKeDraD9JX53U1lfpUjmahels3P/pTbMQD8
+	 HzL9hkIQMpwhhzBEUkKEtf1MUkNwJq2V5g7ishdZZrx1w94XJhGOmxKMMHEGrDBokYkzz
+	 4b7BES4vPmjp9jaVC8amgSiovPKhY2T9VghF7k8TB0/JUN9kRVFsQ3YhyVHDNhl5F/Vgr
+	 8jLKeWt+EEUVuKNwi1x71jqFF3f3Dm55KdJvt7BpwnZ3ooJcnrrATTuJZ+5Szg4+sdrDn
+	 7IgIDNp/nQLcj+wDSE4otP7Z0jB96CmkqsqHLpocfBqIxMUZBQpJNAk8U8BPe4vWhuA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793335088;
-	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Date:From:To:Cc:
-	 Subject:Message-ID:References:MIME-Version:Content-Type:
-	 Content-Disposition:In-Reply-To:X-Spam-Status:X-Spam-Checker-Version;
-	bh=WwvcOsEObJ8qzzuuobsmrvvwKxGTjF3cc2+TTpbW1e0=;
-	b=xXia2cN3vuYKVkgWNl64MDPty6ldAebpE5dQSF2F6CLB6GKdqLjx5Nk0rFmmpQcfuKAS
-	 VSo28wBbHDA0uIFsWWwYXcO0z1X36ASkMnEqpav9mN41Kr43zpRAZzT+/1B5ss2y3QA+H
-	 AmTL2xGVq9yQ7zD1q5GpoeXYGB0rkVXEZqipRVZWawhFtBYNj/DDpOWTKELQRSyJnmfXA
-	 UoPvbQImCmxkgAtaS84s21KB6EeUd6ZUG8z6ngQGbBPzshIuUbwXxW1P70Gj56O32+4Ys
-	 jh755UUmjK75F5UUix8OkGUXj6BTCh4E09IJnzXvkSe5+E5sFE0YPaqzYY0Rawe34zg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793339306;
+	h=DMARC-Filter:DKIM-Signature:Received:X-MC-Unique:
+	 X-Mimecast-MFC-AGG-ID:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:
+	 X-Received:Received:Message-ID:Date:MIME-Version:User-Agent:Subject:
+	 To:Cc:References:Content-Language:From:Autocrypt:In-Reply-To:
+	 Content-Type:Content-Transfer-Encoding;
+	bh=jk0rm4jvaiDVGk2youcQLM21ekVKsq8blgclz8ObRLc=;
+	b=grYkPS3jOe6Qgjqh4xIMw0NLp0DiolAg9w/Xs8hAOfl2p9RS8Qj4uuwElc/Dfe9KXsYs
+	 FZ/350DWNuVhTYcCEoVSeNgQQsIYnsbAGMuR7RD4dCy9dpG0skzZV6iHJu3WthzyP2drg
+	 /nzjWh2uNtdpAkvAfTjgo4qCfFllALA385RuiLQm+BOPGeTvbfr0RwUGYrRs52/7BPxP8
+	 7be36yK19pykiu17QJx51UYE1Mt68lQ76McgHj9SIP+Q24tzGvCYzenV+hlMz4hQ4ewAb
+	 aHExov01Y+HzCviXtDrfqId4hxoMft1FyYR+jbAQH8oEFDzegvcHOnyUoxcaUwaygdA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.microsoft.com;
-	spf=pass smtp.mailfrom=linux.microsoft.com;
-	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=NJPsdvAy;
-	arc=none smtp.remote-ip=13.77.154.182
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id B74A0606A31C;
-	Fri, 30 Oct 2026 04:38:07 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org B74A0606A31C
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	dmarc=pass header.from=redhat.com;
+	spf=pass smtp.mailfrom=redhat.com;
+	dkim=pass header.d=redhat.com header.i=@redhat.com header.a=rsa-sha256 header.s=mimecast20190719 header.b=cBbaoETn;
+	dkim=pass header.d=redhat.com header.i=@redhat.com header.a=rsa-sha256 header.s=google header.b=KADzmYZ7;
+	arc=none smtp.remote-ip=170.10.133.124
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C5BEB606A31A
+	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 05:48:25 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org C5BEB606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=NJPsdvAy
-Received: from kali (unknown [4.213.232.17])
-	by linux.microsoft.com (Postfix) with ESMTPSA id B148C20B7166;
-	Thu, 29 Oct 2026 21:37:48 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com B148C20B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1793335074;
-	bh=WwvcOsEObJ8qzzuuobsmrvvwKxGTjF3cc2+TTpbW1e0=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=NJPsdvAyMdl07uIfgdrypurLmehiQZeL4zrhUYZxR96TMW5UhWVD/k6TDPncHWr08
-	 HBDhGEi+B7G362mYoL0sIW0o2+nYfbIXv9oTWCTovARis9B9tYry7LlUyDoTTX9uPX
-	 WKbEfCrsL3+VJgHmXIOzVAcYs4vOqZdpgIkHgEhs=
-Date: Thu, 29 Oct 2026 23:37:54 -0500
-From: Sahil Chandna <sahilchandna@linux.microsoft.com>
-To: Ankur Arora <ankur.a.arora@oracle.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
-	bpf@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com,
-	will@kernel.org, peterz@infradead.org, akpm@linux-foundation.org,
-	mark.rutland@arm.com, harisokn@amazon.com, cl@gentwo.org,
-	ast@kernel.org, rafael@kernel.org, daniel.lezcano@kernel.org,
-	memxor@gmail.com, zhenglifeng1@huawei.com,
-	xueshuai@linux.alibaba.com, rdunlap@infradead.org,
-	david.laight.linux@gmail.com, broonie@kernel.org,
-	boris.ostrovsky@oracle.com, ashok.bhat@arm.com
-Subject: Re: [PATCH v16 00/16] barrier: Add
- smp_cond_load_{relaxed,acquire}_timeout()
-Message-ID: <auQfIuQdpd2i2IrX@kali>
-References: <20261016070837.440748-1-ankur.a.arora@oracle.com>
- <auLHZnaCIajW1kxX@kali>
- <87v76lezeq.fsf@oracle.com>
+	dkim=pass (1024-bit key, unprotected) header.d=redhat.com header.i=@redhat.com header.a=rsa-sha256 header.s=mimecast20190719 header.b=cBbaoETn;
+	dkim=pass (2048-bit key, unprotected) header.d=redhat.com header.i=@redhat.com header.a=rsa-sha256 header.s=google header.b=KADzmYZ7
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1793339304;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references:autocrypt:autocrypt;
+	bh=jk0rm4jvaiDVGk2youcQLM21ekVKsq8blgclz8ObRLc=;
+	b=cBbaoETnikffoS1s4YDHPAXlYAu+xbNz0yi3LIeq9Y1gOaEEcewJmoZXV+GFOtTztj+dR0
+	dG8/1nXuvAkoui3GxLVOpR2Nue58KWUCupn+EEtACdjv2kqz75nJl73FokrZvNpKkMStKy
+	vTw5h+J9/ub6tZHcJgQPix2vHcH9Trs=
+Received: from mail-wm1-f69.google.com (mail-wm1-f69.google.com
+ [209.85.128.69]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-284-y6IpZTA-PSeT0dqwFp-lcg-1; Fri, 30 Oct 2026 01:48:21 -0400
+X-MC-Unique: y6IpZTA-PSeT0dqwFp-lcg-1
+X-Mimecast-MFC-AGG-ID: y6IpZTA-PSeT0dqwFp-lcg_1793339301
+Received: by mail-wm1-f69.google.com with SMTP id 5b1f17b1804b1-4a1f03f2e8aso2284525e9.1
+        for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2026 22:48:21 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=redhat.com; s=google; t=1793339300; x=1793944100; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:autocrypt:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=jk0rm4jvaiDVGk2youcQLM21ekVKsq8blgclz8ObRLc=;
+        b=KADzmYZ7ktK7ZmjSi303THK5Lh8efgG04iQ/f0kPVW5kJINAYeVlP4TZmQcpYNtgZu
+         ATkT2q4dzg7SACaTFRKNQSV063REPQWM+tk6PkjUSe4rz+O3iPgRLWI0qkxVwu9hhZ7+
+         MNaij1QyajYHmjoD9+ef/gDVYTf9YyUQp0+w+i059qvDiK61HwKPBRz2F5xBBpX9Jl25
+         KRfr7cMM72aRRUNZpLHa+BGwV61ITu4dEJQuLdkyPfX/OxT/A8HSNO7Jx+beJvacfDe4
+         asCXbx5SLUB1Wb5ddVz4sf1C0q61c7YoZLUMGYesZSFBOLVx61JqueJe01OVRDQFUWKW
+         YA7A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793339300; x=1793944100;
+        h=content-transfer-encoding:content-type:in-reply-to:autocrypt:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=jk0rm4jvaiDVGk2youcQLM21ekVKsq8blgclz8ObRLc=;
+        b=HGvm9aR7pKrV5FoFEydybcMtVNCIZ37zIMI70UmwPQqOnltjFRZ7JSV05XeukHPt3D
+         DHEWQsM/9NvPGGJgy3qWXGcs8YzHfdOparAA/lWNaHAWrOtMflda0Z7Pwraxf9H7Z+eC
+         NSZWa8x2t/+3d03IesQpHAV4FwbNjw9sIY8D+2d17+fxwNgMYMXpKlSCQfuOgJgiYbBl
+         zMZt4g5NULbLR2zjYbQ6ZCw4mWk2pi1ACLEH03xu1cPNMwY3GOrClueWYgKnhhIu8sHH
+         GHK6cqj/e0g6+HdX5wr+zZGkgfq7mPgTIQIp8Uwb55J8ohCFgQAdC8tTjlBXJ7a1RoJd
+         mbCw==
+X-Forwarded-Encrypted: i=1; AKwUvBySIhIRV39+n8T+tmQhkgokrc6qc3qogBsNWJqBHzfxMol01Dn4jx7STz091Pt9h+luFXeeXjJqyC9I@vger.kernel.org
+X-Gm-Message-State: AFq9FYKOHf1zMjW2+Qvt8mqhNqyD01tKmjE+NHRmBpTboXw8dcXCH7Qe
+	NFSFg1GsG5DlVLq/80NURVZU2u8vsPhKC0+RjtB4YSv//W4JQ2NKXutJO93BzFOdV93DYLlxn1x
+	2wNQsghYlRRgbiZG+7a55kisq+tkLIxM2DSzzEJ1HeelkTaUIWLilO0GgcvBKVVc=
+X-Gm-Gg: AYBFou3fob/zeiz6NntKTV5FQRNCvOW33l1bDKiLCfMWQ+QZCAYVhkwPY76WBDJUv6J
+	u6EellXxeuzlpJ76Iz0dto472ATT9tcIsJ1z2nSvQEwHE0u5IXY2irQ3ho9oURzdztJXA6M4pCZ
+	er/8Lgyyk68yFTCu2XicTELMHoRBIDMD79e7fS89vs+pmK9MeWIo2h9+nYF5ykwVH5M7lnf9/Mm
+	vUVTZm8e3hVOmJYLJpdDI6+04pUoZDwNT0cAPTp5N6NZt+KA41RR9lZ5oaDOy6km4Ifw2WXq5Gp
+	rEZ0hCSuiCHcsUd7lp3yU/OLgbcKl9rZz6qpG0LR5H+rOmWj6SJKZZqULv5CJciIHlW9VXIbdft
+	4qSa0zGdetO/XSLbfeY7UMzv+tNPM8r1oDDlrFA1CU4tMbMY=
+X-Received: by 2002:a05:600c:354a:b0:4a3:5aee:2c25 with SMTP id 5b1f17b1804b1-4ac181e759dmr23905745e9.31.1793339300587;
+        Thu, 29 Oct 2026 22:48:20 -0700 (PDT)
+X-Received: by 2002:a05:600c:354a:b0:4a3:5aee:2c25 with SMTP id 5b1f17b1804b1-4ac181e759dmr23905515e9.31.1793339300195;
+        Thu, 29 Oct 2026 22:48:20 -0700 (PDT)
+Received: from [192.168.0.9] ([47.64.112.102])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-48e71a4d5dfsm1501346f8f.3.2026.10.29.22.48.18
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 29 Oct 2026 22:48:19 -0700 (PDT)
+Message-ID: <0a5de4d5-8b02-40f3-8067-f75b9f1020eb@redhat.com>
+Date: Fri, 30 Oct 2026 06:48:17 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -69,67 +111,107 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87v76lezeq.fsf@oracle.com>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [arnd-asm-generic:asm-generic 15/15]
+ /usr/aarch64-linux-gnu/include/linux/types.h:12: Error: unknown mnemonic
+ `typedef' -- `typedef __signed__ __int128 __s128
+ __attribute__((aligned(16)))'
+To: Arnd Bergmann <arnd@arndb.de>, kernel test robot <lkp@intel.com>
+Cc: oe-kbuild-all@lists.linux.dev, Linux-Arch <linux-arch@vger.kernel.org>,
+ Shuah Khan <shuah@kernel.org>, linux-kselftest@vger.kernel.org,
+ "Jason A. Donenfeld" <Jason@zx2c4.com>,
+ =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
+References: <202610291918.kHO0GTDB-lkp@intel.com>
+ <9e294bfd-4704-42a5-a704-f301f4afe042@app.fastmail.com>
+Content-Language: en-US
+From: Thomas Huth <thuth@redhat.com>
+Autocrypt: addr=thuth@redhat.com; keydata=
+ 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
+In-Reply-To: <9e294bfd-4704-42a5-a704-f301f4afe042@app.fastmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-On Thu, Oct 29, 2026 at 12:31:09AM -0700, Ankur Arora wrote:
->
-> Sahil Chandna <sahilchandna@linux.microsoft.com> writes:
->
-> > On Fri, Oct 16, 2026 at 12:08:21AM -0700, Ankur Arora wrote:
-> >> Hi,
-> >>
-> >> Changes in this version address sashiko comments [17]. The major change
-> >> is the change in the exit path in __smp_cond_load_relaxed_timeout()
-> >> which allows us to simplify providing ACQUIRE semantics in
-> >> smp_cond_load_acquire_timeout():
-> >>
-> [ ... ]
-> >>
-> > Hi Ankur,
-> >
-> > I tested this patch series on an Azure Cobalt 100
-> > (neoverse-n2 on 64-vCPU Hyper-V guest (Standard_D64ps_v6),
-> > on v7.2.12 + this series + arm64 cpuidle-haltpoll enablement[1]
-> >
-> > cpuidle-haltpoll loaded with force=1, guest_halt_poll_ns=200000.
-> >
-> > Baseline: no cpuidle driver(only WFI).
-> >
-> > Workload: PostgreSQL 16.15/pgbench scale 100, client and server in
-> > the same VM over a unix socket, with single run:
-> >
-> >             with (-S)                         TPC-B-like r/w
-> > clients  base TPS  haltpoll lat avg   base TPS   haltpoll  lat avg
-> >    2       38658     +89%   52->27us     5299     +86%    378->203us
-> >    4       72987     +99%   55->28      10305     +87%    388->208
-> >   16      300895     +91%   53->28      42035     +83%    381->208
-> >   32      590987     +93%   55->28      78319     +85%    410->221
-> >   64      987749      +0%   65->65     130675      +3%    490->474
-> >
-> > Tested-by: Sahil Chandna <sahilchandna@linux.microsoft.com>
->
-> Thanks Sahil. That's very helpful. Btw what's the (-S) option with
-> in your first heading?
->
-Hi Ankur,
+On 29/10/2026 23.13, Arnd Bergmann wrote:
+> On Thu, Oct 29, 2026, at 19:09, kernel test robot wrote:
+>> tree:
+>> https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+>> asm-generic
+>> head:   dd7cc8c26b6a37a54adc5ce38d286521b7201044
+>> commit: dd7cc8c26b6a37a54adc5ce38d286521b7201044 [15/15] treewide: Stop
+>> defining __ASSEMBLY__ for assembler files
+> 
+> Hi Thomas,
+> 
+>> config: arm64-allnoconfig-bpf
+>> (https://download.01.org/0day-ci/archive/20261029/202610291918.kHO0GTDB-lkp@intel.com/config)
+>> compiler: aarch64-linux-gnu-gcc (Debian 14.2.0-19) 14.2.0
+>> reproduce (this is a W=1 build):
+>> (https://download.01.org/0day-ci/archive/20261029/202610291918.kHO0GTDB-lkp@intel.com/reproduce)
+>>
+>> If you fix the issue in a separate patch/commit (i.e. not just a new
+>> version of
+>> the same patch/commit), kindly add following tags
+>> | Reported-by: kernel test robot <lkp@intel.com>
+>> | Closes:
+>> https://lore.kernel.org/oe-kbuild-all/202610291918.kHO0GTDB-lkp@intel.com/
+>>
+>> Note: the arnd-asm-generic/asm-generic HEAD
+>> dd7cc8c26b6a37a54adc5ce38d286521b7201044 builds fine.
+>>        It only hurts bisectability.
+>>
+>> All errors (new ones prefixed by >>):
+>>
+>>     /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h: Assembler messages:
+>>>> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:20: Error: unknown mnemonic `typedef' -- `typedef __signed__ char __s8'
+>>>> /usr/aarch64-linux-gnu/include/asm-generic/int-ll64.h:21: Error: unknown mnemonic `typedef' -- `typedef unsigned char __u8'
+> 
+> 
+>  From what I can tell, this happens after your last patch when cross-compiling
+> kselftest against system headers that still check for __ASSEMBLY__ instead of
+> __ASSEMBLER__.
+D'oh! Could you please drop that last patch for now 'til I figured out a 
+solution for that mess...?
 
-This is the -Select Only option running one statement per transaction,
-more info captured in [1] [2].
+  Thanks,
+   Thomas
 
-TPC_B like runs small bank transfer transaction.
-> Just to double check: was the VM  created with any special option
-> such as kvm-arm.wfe_trap_policy?
->
-No, the host in my case is Hyper-V. The cmdline does not have any idle
-related parameters.
-console=tty1 console=ttyAMA0 earlycon=pl011,0xeffec000 panic=-1
-> --
-> ankur
->
-Regards,
-Sahil
-
-[1] https://www.postgresql.org/docs/16/pgbench.html#PGBENCH-OPTION-SELECT-ONLY
-[2] https://www.postgresql.org/docs/16/pgbench.html#TRANSACTIONS-AND-SCRIPTS
