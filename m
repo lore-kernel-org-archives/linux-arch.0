@@ -1,62 +1,111 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=103.168.172.157
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793384306;
-	b=RKkQIXHJ1L6noecZFupK3Zjm3CYviALLEwLELaAkTtb9hDryQgz4A38XVEMxq+he/MP7
-	 5i5HmKnkGphO+WgV8pafRr/qr3pj4zj5d8r5qvCBOOp9HBdXMibvqTWGKHt0kiB/QGEZb
-	 yCChdk1oUwncQ36kIPu9abPl9yqrFcTW9IpN7iO1QuxJlkhyQ1wFwzIjJFrKUjG7v0dbl
-	 88Jtq/+rFFOHV2NCCYc1nLLoJrJ5pg7W7mwhWyboDGPmy853GIppDDj+fX9qkOPrfkisw
-	 S+oo/95ap4SCo+MX7fqlpgUveKmPs0oqGQoHuEB7Fyz3inWXkJH7uvDQgCnTkgq+JgQ==
+	t=1793384639;
+	b=DosHTtuBDY8Drj5YyFo4Cn9LQ7+NNDlMKdyMxfl1ByjdizaLneu7Ld5IggCjuKRzGduF
+	 eTS2xFuf68i/2/nHzXigpnYGNm+RPyShAgf3zyGiE3wz7ALs+Gm8efsumv8oviuzsVjLW
+	 3NGyK0yDUXWaJ69ELgGuTLv0MHhcTCis2ExxdyOr0fdgPcQi5D/EXDq3NEloYq6qu2mGd
+	 MOGO8vIpTanC9dWWBAF+PJJ9EpUGSY0ZDwcHNDAX6MTXKwbchciQe/+YYQ21QEoM2tSLY
+	 6A+AlWE4pQ+ysaY+Z3yCU72RpIVW4h/msWIqlyGdHGTprOcRVFeRP+A/HMOS4NZ0wBg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793384306;
-	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
-	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=8d1kof1zznXy7nm6rro4noakwVC/Inb4KYV1cw83zlo=;
-	b=YsF9JJFD7yUTiTVVN0+iedTRyswKUNzQlZd42F20x/MKObsjH963w0lF18dUaxQSSAGY
-	 bC30Yc+RcqFJWW4oNuPHHkcxAQl+Po2kKgqMya4w69KuMtjKtoEZEI4odEUf/No55PEso
-	 cIQHY9tUZu+EInR0k1AHZhn1q/iPqDV2eskMJdct4VNsVBmKLetTcZLwTsoHLbAjalIwo
-	 llbjWQ582ubC7Mn4bRKMxULc5EM58m2+G+ZxH3CMW/QIHYZv8m3ot19kXpsy+futuQ2Hy
-	 aYjAo5Q26tO8DhK2LYASOZYxov3F6BagyI5WMxwhU7sBgnkUGsRDQi163CSEN7RtkDA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793384639;
+	h=DMARC-Filter:Received:Received:DKIM-Signature:DKIM-Signature:
+	 X-DKIM2-Info:DKIM2-Signature:X-DKIM2-Info:Message-Instance:
+	 X-ME-Sender:X-ME-Proxy-Cause:X-ME-Proxy:Feedback-ID:Received:X-Mailer:
+	 MIME-Version:X-ThreadId:Date:From:To:Cc:Message-Id:In-Reply-To:
+	 References:Subject:Content-Type:Content-Transfer-Encoding;
+	bh=st/TkA6CBLvuYEqwa+4bf7yeukWH3Bzp53kbH1Y4OCQ=;
+	b=bviXb5/eGrMM5AHK4mgq3AkHj+jgT/vPlh4/YN+ye4gucUrwbFuQ9iWA9WwveVMURXjg
+	 4kj8pk8S9SPWMvAH9wTf7B5+1fiMEi9qlZ0hQk1f4eLg/E7BdylbOOByx/3uU13WBvR93
+	 7PUYHZr8Mwzdo/7alGP610H55QUyOi/W+zyl0rgcsg22PiEBr/nQ8j1FBf5AiOttQhEPc
+	 M8fxgDqZIebTfPvLrfRSkiq0qhnysu4qGZVppmLfk9SxlgxsQZ8iIKf4JioP5TDt32dKb
+	 +ubTzgaNGj/bhQtLwec3FD6dGGAKSPUjjLhosE+wWt3c/DGQVE2wFlM1+da9FgMw1cw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=KmGAAVIM;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	dmarc=pass header.from=arndb.de;
+	spf=pass smtp.mailfrom=arndb.de;
+	dkim=pass header.d=arndb.de header.i=@arndb.de header.a=rsa-sha256 header.s=fm2 header.b=jm0TEPUQ;
+	dkim=pass header.d=messagingengine.com header.i=@messagingengine.com header.a=rsa-sha256 header.s=fm2 header.b=YcZlobTd;
+	arc=none smtp.remote-ip=103.168.172.157
+Received: from fhigh-a6-smtp.messagingengine.com (fhigh-a6-smtp.messagingengine.com [103.168.172.157])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A1DEF606A31A;
-	Fri, 30 Oct 2026 18:18:25 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 82D1C606A31D
+	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 18:23:58 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 82D1C606A31D
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=KmGAAVIM
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0432A1F0093A;
-	Fri, 30 Oct 2026 18:18:25 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793384305;
-	bh=8d1kof1zznXy7nm6rro4noakwVC/Inb4KYV1cw83zlo=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=KmGAAVIMGJXSXx/3b3QNzONz5+wuJo1adqcBUHn5OoVfETlskqSdntIljapoHGe8Z
-	 6WOyzjatNMZb/PIIqs0UzOFSmRudqEAgmz3ftczMpjPJNgPwmBzXbbWFxRnR/xAi/a
-	 NvaIzVxpTihCf9XCCs7cegxI+Mq8OYgxeWrY3swaq+kJXLy4mSCmHiHxui8WHa85B6
-	 xzblXzZFINQd1rBk0RXz+XuMmYVTdnd17e5x0ZtfK9aNQe8GXwp/krWjdDnYAhWhK2
-	 7NDujZY0Z4fB27it6WvoXNKVdBQ16gNtN3gyEJaPSqGYQ+bu9Gk0Z/RlXFQw5T6HmL
-	 peMzfwRGvVeTg==
-Date: Fri, 30 Oct 2026 11:18:23 -0700
-From: Wei Liu <wei.liu@kernel.org>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: Magnus Kulke <magnuskulke@linux.microsoft.com>,
-	linux-hyperv@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
-	Magnus Kulke <magnuskulke@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>,
-	Dexuan Cui <decui@microsoft.com>, Long Li <longli@microsoft.com>,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	"K. Y. Srinivasan" <kys@microsoft.com>,
-	Souradeep Chakrabarti <schakrabarti@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <liuwe@microsoft.com>,
-	Anirudh Rayabharam <Anirudh.Rayabharam@microsoft.com>
-Subject: Re: [PATCH v4] drivers/hv: remove deposited pages from direct map
-Message-ID: <20261030181823.GA581409@liuwe-devbox-debian-v2.local>
-References: <20260930121047.19993-1-magnuskulke@linux.microsoft.com>
- <49a7b3b0-5314-c028-d0e6-a46e65ed880d@linux.microsoft.com>
+	dkim=pass (2048-bit key, unprotected) header.d=arndb.de header.i=@arndb.de header.a=rsa-sha256 header.s=fm2 header.b=jm0TEPUQ;
+	dkim=pass (2048-bit key, unprotected) header.d=messagingengine.com header.i=@messagingengine.com header.a=rsa-sha256 header.s=fm2 header.b=YcZlobTd
+Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
+	by mailfhigh.phl.internal (Postfix) with ESMTP id 8A4B714001CB
+	for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2026 14:23:57 -0400 (EDT)
+Received: from ams-imap-03 ([10.64.2.23])
+  by ams-compute-02.internal (MEProxy); Fri, 30 Oct 2026 14:23:57 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm2; t=1793384634;
+	 x=1793471034; bh=st/TkA6CBLvuYEqwa+4bf7yeukWH3Bzp53kbH1Y4OCQ=; b=
+	jm0TEPUQIa3Is3BgMXlrBATE52PsQRU58rWlFIzdzO63kLG3qDoJ+OtDHCltsabb
+	pJt/+qXt28Vk+hUNWYtUcfZ5tR6npQwJAKWcYIOk+CcD1H5k2URXrJ7kehR/QsEX
+	etnNm71UY5KRhYOki5V1Yk2H5JgDsImUqkcO6WxPCYmrkjGTsUeyYhSyysG1ktom
+	R+EKgmncReTBsDX8XJCURkEECNNbPxtzYh8tjNvh0pGqCLAv33EDeXq03A+JtoEr
+	poGGPySKBvBGHo5YRb3qhrD4vgXDHIsKenBWWoifZI0jQOFrcjmEBTTocoBEQoFd
+	iYo1d4CBCvXB94WQ/fKMrw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1793384634; x=
+	1793471034; bh=st/TkA6CBLvuYEqwa+4bf7yeukWH3Bzp53kbH1Y4OCQ=; b=Y
+	cZlobTdKjuNElX0tkSAggn098DsNOfBfR+8bi5YyVYFg6wBxkrTAs2725dqx0dhJ
+	CdI4P12n1xXNGQqzpAwJozzp51zq3/S5cAqZk2IJHKCbpJnJ17K/3l8l0uan4Mdf
+	j6fOuDJmV7sCbcSAiZObjIavAi5YABidWMzAyoii+YXl7Pttb2jvybccUYG0I2xz
+	VDYgDXQLTQw8/IET1moAJsXAh4F8H91AxdLIwmkJJAfZS4CYqnUArF6DLXVbBZtp
+	9WwKjQPs/1rdqSq/KnAhbBV+yPs7Yg6zymU/pJiIBy8nR52Y0kW0WVPjkK8EvOj2
+	q5rRqa7M1eFsNmf6KpK3g==
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-08;
+	repo=github.com/dkim2wg/interop; date=2026-10-28; sw=lmtpprox;
+	action=sign d=arndb.de a=rsa-sha256;
+DKIM2-Signature: i=1; m=1; t=1793384634; d=arndb.de;
+	mf=PGFybmRAYXJuZGIuZGU+;
+	rt=PGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnPg==;
+	s=fm2:rsa-sha256:AuKHTkjFHXlSEaPAZe2ouxrMH9Q9SplKTkhpK4wHc4SjaKJ
+	WO1r6rHUgsaihsikoWTUjjmo99W905pY9NUNXg7/RqL0A8ZKdsQ8sEJV70xb+33Y
+	9H9OgsEnZazdjup0o9rBa6lTuM5Q0UiThxQn2Z/rKa1AzcURAjM1kVgI6dq8qvW7
+	KiwVFOVlXr7ClOZohCr8WiMB/2xNlEXlKYWMnohjgvbs5+vF0U1l8fNYRkQnJIXU
+	ZgZkGQtFS6L5CaEYv7aNYOJ2UVb4mbRMnfqplSRCk2sB+OlWV5SqSxMLirKYhQTz
+	xc6JAbNL0NWTP1c55KT3P2MIbW9JLrtjWZPRwDA==;
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-08;
+	repo=github.com/dkim2wg/interop; date=2026-10-28; sw=lmtpprox;
+	action=mi-m=1; hc=12;
+	hn=cc,content-transfer-encoding,content-type,date,feedback-id,
+	from,in-reply-to,message-id,mime-version,references,subject,to;
+Message-Instance: m=1; h=sha256:wSTNAuUov5ELYxK0Ezwh6wKOfN1DQCJ+buHooUAknuc=:CJjo0U4Q4WipuJBG6WDA4qv8EpzWNDrOCQwbutjeOgQ=;
+X-ME-Sender: <xms:tuDkalg5ZRqDYu6TWRpgvkK9dTxe188VEl0lyRyOzuugVATS07YKVw>
+    <xme:tuDkak1OTTe-thO_El-oboLsYAufoeCICCOA4tRRc8jJ4DqMdINbNKjF0bSxqrIS6
+    nUibdeNxGRYMWK96raI8lyL9Iu2Pem4R_x8pVIlz0vNheSdby_x1qNz9Q>
+X-ME-Proxy-Cause: dmFkZTFHz7yaXqSibdqx0TXzdAIv9WG31ARUUtQAsNvw3trTKkJqvMEcJ72/EEKZAETlDx
+    B8XezTsJEEgkSNUEH6sTEwEUQY29QcGCn6EqKcwtbz7Hccm9w/NKrSnV6hk2ZAhFVqnYPQ
+    8SWdIEFk1RqHQ9W1BzlC2nlkkQHrvZk0S8w/lGu5hyRZwAiQxkGfkWY330qwlJT0lTsdG3
+    FJqJvp7ipBAyeadxFYwqHPjZjWRAB9Xc06qu7irEKi0Q3Q6LNvSo09cTbl8lEgTLNy4ThB
+    mm/UyDCay8VFVAD5XvcCGfV698AjsSv8MRF8+0tU8JR14nMcum6I2G6Bn10615A7V2nua8
+    WZ/YCnl2ayBV2cYjs0wdXacltDpXtAcmdmd/UA97Ht+nVV4z7Jhp3Q9DzHEbMxOkorcDyG
+    1qY59pVi9/HruJvrqaFrcdtBWkcZS1r0GePa+W1uk2G4A1kiO4nmcEXz1bjw2tvQiHPiit
+    MWKgMpx0jpelg01eC8+JgsSAmS2+9aHMamWmCpbvVxyJNOcBGlZAJ9JNJob1DsOt4egY61
+    1KnPCelHqk7eIxNRz19yqqh0kTY7t1P/l3eKyAnWEQhFOKbJhImP4vQW5b7f7VCchH7I6R
+    JgUWN/xJud6iPJRxqvef92bseDiQ/MbVW7Rvg+Ckc8vXPzat6x7U+G3W2lPA
+X-ME-Proxy: <xmx:uODkagT3CaKHEJxKHGQjco2NhaWl30vt-vC337p6DzsZIKJ6lCu5OA>
+    <xmx:uODkagWlj1Q6rC2PWZCKeysISPjZmXwvR-ymcbYMhORmofh_fYC-IQ>
+    <xmx:uODkaheWJQ31OQoK5BQ_WqsEr2yU3-2o2WAkBPkYSmRCyGrxW-gsHg>
+    <xmx:uODkakJHmrpijvuzft31wRhLIVws9KWJYsSpF_3x7vNCauvlcSmK0A>
+    <xmx:uuDkapaq4uwX8LmqERqamOWFCuD6L9Ogr5tQyB6y2jycqot7bnShvde9>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.ams.internal (Postfix, from userid 501)
+	id 60F7E32A0093; Fri, 30 Oct 2026 14:23:50 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -66,115 +115,60 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <49a7b3b0-5314-c028-d0e6-a46e65ed880d@linux.microsoft.com>
+X-ThreadId: AA4M8BakChSJ
+Date: Fri, 30 Oct 2026 19:23:30 +0100
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Thomas Huth" <thuth@redhat.com>, "kernel test robot" <lkp@intel.com>
+Cc: oe-kbuild-all@lists.linux.dev, Linux-Arch <linux-arch@vger.kernel.org>,
+ shuah <shuah@kernel.org>, linux-kselftest@vger.kernel.org,
+ "Jason A . Donenfeld" <Jason@zx2c4.com>,
+ =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
+Message-Id: <5f898f0f-915c-4aef-a3f9-0118f4539951@app.fastmail.com>
+In-Reply-To: <cdf09fa3-e251-4d8d-9f0a-316998df036b@redhat.com>
+References: <202610291918.kHO0GTDB-lkp@intel.com>
+ <9e294bfd-4704-42a5-a704-f301f4afe042@app.fastmail.com>
+ <cdf09fa3-e251-4d8d-9f0a-316998df036b@redhat.com>
+Subject: Re: [arnd-asm-generic:asm-generic 15/15]
+ /usr/aarch64-linux-gnu/include/linux/types.h:12: Error: unknown mnemonic
+ `typedef' -- `typedef __signed__ __int128 __s128
+ __attribute__((aligned(16)))'
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-On Wed, Oct 28, 2026 at 03:54:30PM -0700, Mukesh R wrote:
-> On 9/30/26 05:10, Magnus Kulke wrote:
-> > hv_call_deposit_pages() donates pages (deposit) to hypervisor for L2
-> > guest on L1VH systems via HVCALL_DEPOSIT_MEMORY. The hypervisor takes
-> > ownership of those pages and per contract revokes root partition
-> > access to them, raising a #GP on access from the L1VH root partition.
-> > 
-> > However, the pages remain mapped in the kernel direct map, so kernel
-> > code may still access them even though the hypervisor has revoked
-> > access.
-> > 
-> > Helpers such as "load_unaligned_zeropad()" deliberately read past the
-> > end of a buffer and across page boundaries. A read into an unmapped
-> > page is tolerated and triggers a #PF, for which the kernel executes
-> > a fixup in the exception table.
-> > 
-> > If such a call steps into a page that has been deposited, the access
-> > raises a #GP by the hypervisor from which the above handler cannot
-> > recover and the kernel panics:
-> > 
-> >    Oops: general protection fault, maybe for address 0xff1100941a3dfffc
-> >    RIP: 0010:csum_partial+0xe5/0x110
-> > 
-> > This condition will appear on L1VH system that have created L2
-> > partitions (and hence deposited pages) and exercise networking code
-> > paths such as csum_partial() can trigger this condition when a buffer
-> > ends close to a page boundary (e.g fffc in the above example).
-> > 
-> > The fix is to remove the deposited pages from the direct map before
-> > they are passed to the hypervisor, and restore them when the hypervisor
-> > returns them again.
-> > 
-> > We want to avoid flushing the TLB in the loop, so we use the _noflush()
-> > variant of set_direct_map_valid() when marking a deposited page invalid
-> > and flush the affected page ranges in one go ourselves. In the opposite
-> > direction this is not required:
-> > 
-> >    > If a paging-structure entry is modified to change the P flag from
-> >    > 0 to 1, no invalidation is necessary. This is because no TLB entry
-> >    > or paging-structure cache entry is created with information from a
-> >    > paging-structure entry in which the P flag is 0.
-> > 
-> > (Intel SDM Vol. 3, 4.10.4.3)
-> > 
-> > Signed-off-by: Magnus Kulke <magnuskulke@linux.microsoft.com>
-> > ---
-> > Changes since v3:
-> > - Batch contiguous pages in the restore path
-> > - Adjusted comment about failure modes
-> > 
-> > Changes since v2:
-> > - Checkpatch format fix
-> > 
-> > Changes since RFC:
-> > - Handle direct-map restoration failures without returning unmapped
-> >    pages to the allocator.
-> > - Move freeing of withdrawn pages into the restoration helper.
-> > ---
-> >   drivers/hv/hv_proc.c           | 83 +++++++++++++++++++++++++++++++++-
-> >   drivers/hv/mshv_root_hv_call.c |  4 +-
-> >   include/asm-generic/mshyperv.h |  4 ++
-> >   3 files changed, 87 insertions(+), 4 deletions(-)
-> > 
-> > diff --git a/drivers/hv/hv_proc.c b/drivers/hv/hv_proc.c
-> > index 57b2c64197cb..b056051a5ac5 100644
-> > --- a/drivers/hv/hv_proc.c
-> > +++ b/drivers/hv/hv_proc.c
-> > @@ -7,7 +7,9 @@
-> >   #include <linux/cpuhotplug.h>
-> >   #include <linux/minmax.h>
-> >   #include <linux/export.h>
-> > +#include <linux/set_memory.h>
-> >   #include <asm/mshyperv.h>
-> > +#include <asm/tlbflush.h>
-> >   /*
-> >    * See struct hv_deposit_memory. The first u64 is partition ID, the rest
-> > @@ -15,6 +17,35 @@
-> >    */
-> >   #define HV_DEPOSIT_MAX (HV_HYP_PAGE_SIZE / sizeof(u64) - 1)
-> > +/*
-> > + * Add or remove a set of physically contiguous page runs from the kernel
-> > + * direct map. Once a page has been deposited the hypervisor owns it and
-> > + * revokes root partition access to it.
-> > + */
-> > +static int hv_deposit_update_direct_map(struct page **pages, int *counts,
-> > +					int num_allocations, bool valid)
-> > +{
-> > +	int i, err, ret = 0;
-> > +
-> > +	for (i = 0; i < num_allocations; ++i) {
-> > +		err = set_direct_map_valid_noflush(pages[i], counts[i], valid);
-> > +		if (err && !ret)
-> > +			ret = err;
-> > +	}
-> 
-> I realize I am late to the review, so if too late, please ignore.
-> If the caller is going to not continue on error but will revert,
-> what is the reason to keep going on error then?
-> 
-> And this function should undo it itself if there is error instead
-> of forcing the caller to do it imo. It could just undo the part which
-> is done.
-> 
+On Fri, Oct 30, 2026, at 18:46, Thomas Huth wrote:
+> On 29/10/2026 23.13, Arnd Bergmann wrote:
+>> On Thu, Oct 29, 2026, at 19:09, kernel test robot wrote:
 
-Magnus, while you work on rebasing the patch, perhaps you can also
-address this.
+>> and looking at the preprocessed file, I see a wild mix of tools/include,
+>> ${srctree}/arch/arm64/include/ and /usr/include. I also see that at least
+>> part of the problem is that arch/arm64/kernel/vdso/vgetrandom-chacha.S
+>> includes arch/arm64/include/asm/assembler.h, which then goes on to include
+>> the world.
+> After getting access to an aarch64 host, I was finally able to reproduce the 
+> problem. I think it's likely best if we force the selftest to use the 
+> headers from the current kernel sources instead of using the headers from
+> /usr/include ... i.e. this patch fixes the issue for me:
+>
+>   https://lore.kernel.org/lkml/20261030174323.370687-1-thuth@redhat.com/
+>
+> WDYT?
 
-Wei
+The idea sounds right, but it doesn't appear to do anything for me,
+I still get the same output:
+
+arnd@studio:~/arm-soc/asm-generic$ make O=../build/tmp/ ARCH=arm64 -C tools/testing/selftests/vDSO/ V=1
+make: Entering directory '/home/arnd/arm-soc/asm-generic/tools/testing/selftests/vDSO'
+gcc -std=gnu99 -O2 -Wall -Wstrict-prototypes -D_GNU_SOURCE= -I/home/arnd/arm-soc/asm-generic/tools/testing/selftests/../../../tools/testing/selftests -isystem /home/arnd/arm-soc/asm-generic/tools/testing/selftests/../../../usr/include -idirafter /home/arnd/arm-soc/asm-generic/tools/testing/selftests/../../../tools/include -idirafter /home/arnd/arm-soc/asm-generic/tools/testing/selftests/../../../tools/include/generated -idirafter /home/arnd/arm-soc/asm-generic/tools/testing/selftests/../../../arch/arm64/include -idirafter /home/arnd/arm-soc/asm-generic/tools/testing/selftests/../../../include -Wa,--noexecstack    vdso_test_chacha.c vgetrandom-chacha.S  -o /home/arnd/arm-soc/asm-generic/tools/testing/selftests/vDSO/vdso_test_chacha
+/tmp/ccKJRkeX.s: Assembler messages:
+/usr/include/asm-generic/int-ll64.h:20: Error: unknown mnemonic `typedef' -- `typedef __signed__ char __s8'
+/usr/include/asm-generic/int-ll64.h:21: Error: unknown mnemonic `typedef' -- `typedef unsigned char __u8'
+/usr/include/asm-generic/int-ll64.h:23: Error: unknown mnemonic `typedef' -- `typedef __signed__ short __s16'
+
+It looks like tools/testing/selftests/ is built in the source directory,
+while the 'make headers_install' installed the headers to the object
+directory in '../build/tmp/usr/include/'.
+
+I have never been able to figure out how kselftest actually wants
+to handle this.
+
+      Arnd
