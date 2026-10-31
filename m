@@ -1,45 +1,127 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.178
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793454941;
-	b=rw1oJkEffFPRuj63tnl4CiZJVWvc6EchVuXpsp7oOBTnROToWVTk8470nuuqKejB4wXu
-	 0rcfJZ1haXT8XWPVOthBqL9AdnZIyQ3WVTeTXGMiPHL+TBsvQQUfEQDpJ32gKCIIdKBji
-	 2Pb787kc0whn/Z2mfNXjNha2bfLjdRs4MiJR5dvwZGx514MeEeQ3t9/r2siKBwHrCY8Rq
-	 YX9m2cwlrIIBkIG+6m+qTmpYamIluzPF0IeQ2dIfi77i839g62YlcCu3GRTgQopnAQ739
-	 yLdirb4+GaFuybIt0wPwJdn+YWIjTlrPFUHsruU/Dojqj4l4/f9h3pvLmf9+rFxRVpw==
+	t=1793459706;
+	b=CdXJU61LShfHBhBtH1ocnox5LeNgxewAfzLnQ2GfgVru3CeFDjhCYoBT8hEEvmXpYNWt
+	 fKxMOU6WbBgXcuiboas6vmN86JPltBWZ2XF1lM3RKna+mFYRe0HTdZoAfamDQp9qvG0om
+	 /XPjw+eIS8MXPNJBXxWSeutNOhRrKlLsH4w8MKwRYH2msS7t0oJSTjzWUw0RzQrd9xIV6
+	 2qHkIVolJh9+jWyrv2caRnDZ4/Dmvb9X180Do9DpfLifX+3pfNAkRJo+eiNWyoTs73QrO
+	 EW5KZpYBvNKI+Wwm7pwOKOyqb9ZNcxR0Nm8y6ajKibEDJu8aODL7/YronYuMa5tFuRQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793454941;
-	h=Received:DKIM-Signature:Content-Type:MIME-Version:Message-Id:
-	 In-Reply-To:References:Subject:From:To:Cc:Date;
-	bh=SfRIxaGJLK/TxQe7BtY57YPRwVwg1sw1o69yhwgKRCA=;
-	b=yeFWWqEiw1QRKEb2EpfdYCkPBJEU4bIBQhIo0UG6R1NTP0u4orNesV0B2wMVg6bivtGb
-	 K/iBvDPw+des4nsI9j9dH94ZtzCeuluDFEdXHUhRMtStF9GCWPTkLRoGqsyeglXmtBaKa
-	 2A1jYA/BPyFG+WbkFKpeWpKu1pvrrkJXKK97nBcoRzSRFu3YSokUoD1ZgwlYsDDi8G/Wc
-	 a5XY+W464oYlZqRUBXynxjq9eAC9kT5e6jlvBNfXla7XY3Vm8flByBoRUYblUOdEHfg96
-	 l4arOukP4AdOxldz5JC6xkRHrATtXhR59dmQJjq/sHkjt5Avwz3rcTMOUEJgBegLrvg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793459706;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
+	 MIME-Version:Content-Type:Content-Transfer-Encoding;
+	bh=u4AoREHEWHwqK+9vsy9N5I/xo3mEZgUmU5DSaNM6uCY=;
+	b=jr9cKhoT8yUHoc8p9Yeh9PGXsI017p8FyGehJojqb71RhfISmyAnH7oH7RNRYOR908U1
+	 zUDtm7rTGvidnbjO9UwccbJ0iK5+MJnZPqFzYlFI36vqr1mLdNMC8SA0nK6Dg6P006AyG
+	 H80a8B1vZePff/YIVA4iu+MXUpJMTNpQ6sT5fU4XC0Fq8IqMgvjK/9DeefOVtVfpIcgGY
+	 5MiEbHA/xUogDDu9eGanP9XDWqlbmIftMqs7voU6vlqNtW/Qb13Rw0WVtpIOxUEK98aL+
+	 9l7+uVL3BNl15X6NymhII8URMerxBQJY3ywJMe5ECZ9QjhzRxf0ora/U5NZKI7zlFHw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XkwJy1a6;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b="PhqPg/E2";
+	arc=none smtp.remote-ip=209.85.221.178
+Received: from mail-vk1-f178.google.com (mail-vk1-f178.google.com [209.85.221.178])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 525A2606A330;
-	Sat, 31 Oct 2026 13:55:41 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81C97606A322
+	for <linux-arch@vger.kernel.org>; Sat, 31 Oct 2026 15:15:05 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 81C97606A322
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XkwJy1a6
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 71A9C1F00A17;
-	Sat, 31 Oct 2026 13:55:40 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793454941;
-	bh=SfRIxaGJLK/TxQe7BtY57YPRwVwg1sw1o69yhwgKRCA=;
-	h=In-Reply-To:References:Subject:From:To:Cc:Date;
-	b=XkwJy1a6/qqwFqlBPSbPei8mZIpqCfX3vtFkvS1gBvDkRVULFU13DWtjWdO9gmmXA
-	 TfYLqVnair3D5UZh93fe+sRjslYzbJvFew9Cpbzay2PXq29BtgPzBpDOZzxAuyDKJF
-	 CI1gY7BFAzYw8p6B/eUU7pcRMlWPKx6RrVdMm2qiv2Oz/Evjm12nWLOJADFt8VrsNL
-	 cOM3h7q11LY8p4SHJtZC3DizwiY38lZW0aIV4LNaXc/1zpUOAwTzWeIPuqK1YKOlfc
-	 BAqSGuOboHDGmvLFfO3WYqr65C6GA/7e9w8v9OYFm0pOUqRg7cFlcDXHId9L+7FoO1
-	 lnGmGcR9AHOlg==
-Content-Type: multipart/mixed; boundary="===============1389222973622085419=="
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=PhqPg/E2
+Received: by mail-vk1-f178.google.com with SMTP id 71dfb90a1353d-5eafaeb8684so504410e0c.3
+        for <linux-arch@vger.kernel.org>; Sat, 31 Oct 2026 08:15:05 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20260707; t=1793459704; x=1794064504; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:mime-version:subject
+         :references:in-reply-to:message-id:cc:to:from:date:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=u4AoREHEWHwqK+9vsy9N5I/xo3mEZgUmU5DSaNM6uCY=;
+        b=PhqPg/E24VOKRLpfl1ae1ubh4CKpCn29JqhLZjBp/MR26TAAiPCusNfbhZKqTqe7Xj
+         KcQq5Lydqkv/yxQqi5C7ZY3ZDqurJIdEnXH0ucUJaLRRdFFYKlc9/hSNt/FBOqLJJqI7
+         p6jj64s7228VWY/vk1afOCOip01plUgqwJps6dk4WwMDU5fMSszkrzQk+rwDSKDYE+HI
+         68LbUdDAtL6NWwfUTf5zsmuxjMBjVb0I019RVHKueoF64p2AswdpFejX62Xr+afWIrOW
+         DgPY165zFFs16BXhBuygZX7vyRNjKllQEoev9+VtxIjjr17scodCqljZafdWsq6sK09A
+         Fhwg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793459704; x=1794064504;
+        h=content-transfer-encoding:content-type:mime-version:subject
+         :references:in-reply-to:message-id:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=u4AoREHEWHwqK+9vsy9N5I/xo3mEZgUmU5DSaNM6uCY=;
+        b=xLjPgF/3Q1TTnGTn/IRLiEbPSpvDKC/UUia98OmCdGDN7d9hjaxhn01pTLv09fuAUL
+         WMHuqzPXTUw/seARJrg61YwZthClndKOgMdC9QFJeEQq+oQ8lMUGLe7PWkusnptpJrAi
+         tDwuXdF7yRd5SX9dZaiWZmMhdbgeoGLnQ0iRn1L0L5abqdaWza9X4q9mRZmyRZJxeVfP
+         8NwJzkmUSbFb6KKNHbhT5mjnmN8p82JKN6oiU38IlyGBj4EzaSmuuqQGxGSr7KgUa56V
+         /hKtNa7CRSEnfTaqt3Y7oOy8tCOl6lRmXpLKCyiq52H2z0ayQe4bKXhVxIUQa0u3iAG0
+         cuwA==
+X-Forwarded-Encrypted: i=1; AKwUvBxw20rvHs3QfRTqGM8K8WA5PYeHSHoO4IWWyhezZnd6IhZ60QIZ/kuNEYpEjlSNpEUvnejuK04/r/sd@vger.kernel.org
+X-Gm-Message-State: AFq9FYKYoMOG29v/tID3vqzJcdJUy3rNdQ0oqMOxp8fxrIbJiWY96skZ
+	BFreB9jPlj2yhldy9lxI3JOdaGVPy6330aUQI1d+Hm0l+XRNeeJIAQLF
+X-Gm-Gg: AYBFou1j95jqbRdvSRUyFbkZ5aGgriTFQ46XFqjzN+cgi5y8Tvx7fVieu7aNVTOqONz
+	GsvHV1Uj+D3WSvz3lRGPLYJIcK1xu7P3P+MfPGBg7LtwmQBMok8LE/0QRNSm7p/Xc1gBzrU3KH7
+	DiFxP+qqwYBJwK3B2DBrAAE3YU+5Bto+5M3XJ5ldJ1p4jWD+g2oMRyrdYT9U8JpR8Tr5K+Haj6M
+	oeLISs/rubQmnF3j0B8L+Eu5Bs1V12iqhKqYaAWgsfSxZ/+RV0YHBAja8DudxRYm9KH7SZGlA4D
+	mUmRLccolGvnzQWhRG+Viwb222piunfRFaWqdAs5ye4Ik5UosFt5Z0LrYmxrP761OvbsCgb1h+r
+	Z4X04Thg86tkecfokL3F51qc71cNg4btoQle8pgtD2xvgvLmKY0xA8au48Mn/0HXw81FQWQiW8y
+	c4tWGNqUTX0q1bhNg6+zdFlv3HjHYn6Ss34XVVsXVlNbkr8VQYkyCwTwD17b4sAggzDae9i6oAk
+	nu1Wlu/JvcMFhQZQEkF3WfOBPMvyNolAYzYIbkd5GQEcF1+065OysA2qptMdZmpXJxpM14MZv4y
+	ejNVFovqYHhZdp9L95w88MJngMbPCydUF7rk+5QWhhT1g9RblnGwdwlSN8+aqvndEPm3Xa83h1d
+	eZQda0OappekaFw5xABue4egse9J04mz928PwObgMLHVi91C/uLVvh0QchYTZc0IZaYFb
+X-Received: by 2002:a67:e116:0:b0:7a1:fa0f:1106 with SMTP id ada2fe7eead31-7d072d759a9mr2050864137.36.1793459704527;
+        Sat, 31 Oct 2026 08:15:04 -0700 (PDT)
+Received: from gmail.com (111.46.245.35.bc.googleusercontent.com. [35.245.46.111])
+        by smtp.gmail.com with ESMTPSA id 71dfb90a1353d-5ec69c5d183sm6032016e0c.13.2026.10.31.08.15.03
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 31 Oct 2026 08:15:03 -0700 (PDT)
+Date: Sat, 31 Oct 2026 11:15:03 -0400
+From: Willem de Bruijn <willemdebruijn.kernel@gmail.com>
+To: Vitaly Zuevsky <vitaly.zuevsky@gcore.com>, 
+ netdev@vger.kernel.org
+Cc: "David S. Miller" <davem@davemloft.net>, 
+ Eric Dumazet <edumazet@kernel.org>, 
+ Jakub Kicinski <kuba@kernel.org>, 
+ Paolo Abeni <pabeni@redhat.com>, 
+ Simon Horman <horms@kernel.org>, 
+ Jonathan Corbet <corbet@lwn.net>, 
+ Shuah Khan <skhan@linuxfoundation.org>, 
+ Randy Dunlap <rdunlap@infradead.org>, 
+ Richard Henderson <richard.henderson@linaro.org>, 
+ Matt Turner <mattst88@gmail.com>, 
+ Magnus Lindholm <linmag7@gmail.com>, 
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, 
+ Helge Deller <deller@gmx.de>, 
+ Andreas Larsson <andreas@gaisler.com>, 
+ Kuniyuki Iwashima <kuniyu@google.com>, 
+ Willem de Bruijn <willemb@google.com>, 
+ Arnd Bergmann <arnd@arndb.de>, 
+ Christian Brauner <brauner@kernel.org>, 
+ Andrew Halaney <andrew@amutable.com>, 
+ Jori Koolstra <jkoolstra@xs4all.nl>, 
+ Alexander Mikhalitsyn <alexander@mihalicyn.com>, 
+ Tariq Toukan <tariqt@nvidia.com>, 
+ Saeed Mahameed <saeedm@nvidia.com>, 
+ Chuang Wang <nashuiliang@gmail.com>, 
+ linux-doc@vger.kernel.org, 
+ linux-kernel@vger.kernel.org, 
+ linux-alpha@vger.kernel.org, 
+ linux-mips@vger.kernel.org, 
+ linux-parisc@vger.kernel.org, 
+ sparclinux@vger.kernel.org, 
+ linux-arch@vger.kernel.org
+Message-ID: <willemdebruijn.kernel.e08dc63db124@gmail.com>
+In-Reply-To: <20261031113330.45704-2-vitaly.zuevsky@gcore.com>
+References: <20261031113330.45704-1-vitaly.zuevsky@gcore.com>
+ <20261031113330.45704-2-vitaly.zuevsky@gcore.com>
+Subject: Re: [RFC PATCH net-next v1 1/2] net: add SO_NO_RFS to exclude a
+ socket from RFS and aRFS
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -49,191 +131,97 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Message-Id: <5b30c8da1e5fa12691926f41a2a845d2a6f47ce33611c249c79350e67f4e636e@mail.kernel.org>
-In-Reply-To: <20261031130959.23472-3-wanjay@amazon.com>
-References: <20261031130959.23472-3-wanjay@amazon.com>
-Subject: Re: [PATCH bpf-next 02/13] bpf: fetch the vmlinux BTF where kernel types enter a program
-From: bot+bpf-ci@kernel.org
-To: wanjay@amazon.com,bpf@vger.kernel.org,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,eddyz87@gmail.com,memxor@gmail.com
-Cc: ihor.solodrai@linux.dev,almagui@kernel.org,martin.lau@linux.dev,yonghong.song@linux.dev,jolsa@kernel.org,rostedt@goodmis.org,mhiramat@kernel.org,mathieu.desnoyers@efficios.com,linux-trace-kernel@vger.kernel.org,nathan@kernel.org,nsc@kernel.org,linux-kbuild@vger.kernel.org,arnd@arndb.de,linux-arch@vger.kernel.org,x86@kernel.org,linux-doc@vger.kernel.org,linux-kernel@vger.kernel.org,abuehaze@amazon.com,doebel@amazon.de,mpohlack@amazon.de,jay.wang.upstream@gmail.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,mason@kernel.org,ihor.solodrai@linux.dev
-Date: Sat, 31 Oct 2026 13:55:40 +0000 (UTC)
-
---===============1389222973622085419==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
+Content-Type: text/plain;
+ charset=utf-8
 Content-Transfer-Encoding: 7bit
 
-> bpf: fetch the vmlinux BTF where kernel types enter a program
+Vitaly Zuevsky wrote:
+> RFS and accelerated RFS are enabled per host and per rx queue, but
+> whether steering helps is a property of the flow. A host that carries
+> a few long-lived flows which benefit from steering alongside a large
+> churn of short-lived flows has no way to express that today.
+> 
+> Add a boolean socket option, SO_NO_RFS. When set, sock_rps_record_flow()
+> does not record the socket in rps_sock_flow_table, so get_rps_cpu()
+> finds no match and neither software RFS nor ndo_rx_flow_steer() acts
+> on the flow; it stays on the CPU chosen by RSS or RPS.
+> 
+> The option is kept in sk_flags so that sk_clone_lock() copies it to
+> accepted children: setting it on a listening socket excludes every
+> connection accepted from it, while sockets the same process connects
+> itself remain eligible.
+> 
+> sock_rps_delete_flow() is skipped as well, because a socket that never
+> recorded itself must not clear a table slot that may belong to another
+> flow.
+> 
+> The test sits after the TCP_ESTABLISHED check and inside the
+> rfs_needed static branch, so hosts without RFS pay nothing and hosts
+> with RFS pay one test_bit() on a cache line tcp_recvmsg() already
+> touches.
+> 
+> Signed-off-by: Vitaly Zuevsky <vitaly.zuevsky@gcore.com>
 
-TL;DR:
-- check_ptr_to_map_access(): without BTF, the map_ptr error now names the map
-  type, not the missing BTF, and the new !btf branch looks unreachable
-- Co-developed-by is followed by a placeholder, not a Signed-off-by (commit
-  message)
+The Documentation change can/should be included in the main patch.
 
-> bpf: fetch the vmlinux BTF where kernel types enter a program
->
-> bpf_check() fetches the vmlinux BTF up front for every program, whether
-> the program uses kernel types or not.  That is free today because the
-> BTF is parsed at boot anyway.  Once it can be parsed on first use
-> (CONFIG_DEBUG_INFO_BTF_LAZY, later in this series), it would make every
-> program load pay for parsing 5-7 MB of BTF, including the socket filters
-> systemd loads at boot.
-> Drop the up-front fetch and fetch where kernel types enter the verifier
-> state instead:
->  - bpf_add_kfunc_call(), for the first kfunc call of a program;
->  - check_ptr_to_map_access(), for map_ptr field access;
->  - check_pseudo_btf_id(), for ldimm64 of a kernel variable (ksym);
->  - check_helper_call(), for helpers whose prototype takes
->    ARG_PTR_TO_BTF_ID or returns RET_PTR_TO_BTF_ID, and for
->    bpf_snprintf_btf() and bpf_seq_printf_btf(), which take a kernel
->    type id inside struct btf_ptr (helper_uses_vmlinux_btf()).
-> The other ways in already fetch the BTF themselves: attach_btf in
-> bpf_prog_load(), struct_ops map creation, CO-RE candidate lookup,
-> bpf_find_btf_id(), btf_prepare_func_args() for kernel-typed arguments
-> and the kernel context type lookups.  The remaining reads of the
-> btf_vmlinux global in the verifier are on paths dominated by one of
-> these fetches.  A program that uses none of them, such as a socket
-> filter, does not need the vmlinux BTF any more, and verifies the same
-> whether or not it has been parsed.
-> Four related changes keep it that way:
->  - The "in-kernel BTF is malformed" check in bpf_check() read the
->    global right after the up-front fetch.  Without the fetch it would
->    pass or fail depending on whether something else had parsed the BTF
->    before, so drop it; every fetch point reports a missing BTF itself
->    and passes on an error of the parse, as that check did.
->  - check_ptr_to_map_access() checks allow_ptr_leaks before it fetches
->    the BTF, and bpf_prog_load() falls back to the vmlinux BTF for an
->    attach_btf_id only with CAP_BPF, which all program types that take
->    one need, so that an unprivileged load cannot make the kernel parse
->    it only to be refused.  The map_ptr permission error can then not
->    name the map's struct any more and says "map_ptr access is allowed
->    only to CAP_PERFMON and CAP_SYS_ADMIN".  A ksym, which unprivileged
->    programs may use, still parses it.
->  - Add bpf_peek_btf_vmlinux(), which returns the vmlinux BTF only if it
->    is parsed already, and use it in bpf_btf_printf_prepare().  The BTF
->    printf helpers run in program context, which may be atomic, and the
->    verifier has fetched the BTF for every program that calls them.
->  - is_kfunc_dynptr_write(), reached from the argument checks that
->    helpers and kfuncs share, compared meta->btf with the global, which
->    a helper's NULL matches while the global is NULL.  Check that the
->    call is a kfunc first, as the other kfunc predicates there do.
-> Helpers taking ARG_PTR_TO_BTF_ID_SOCK_COMMON are left out on purpose:
-> they take sockets without BTF types too, the shared argument check reads
-> the global only for a PTR_TO_BTF_ID register, and every source of such
-> a register fetched the BTF.
-> No functional change with CONFIG_DEBUG_INFO_BTF=y, where kfunc
-> registrations at boot parse the BTF, other than that error message and
-> that, if the vmlinux BTF fails to parse (a broken toolchain), programs
-> that use no kernel types now load instead of failing.  Without BTF the
-> new helper check is compiled out and the existing error paths are
-> unchanged.
-> Co-developed-by: Ihor Solodrai <ihor.solodrai@linux.dev>
-> TODO-NEEDS-IHOR: Signed-off-by: Ihor Solodrai <ihor.solodrai@linux.dev>
-> Signed-off-by: Jay Wang <wanjay@amazon.com>
+> ---
+>  arch/alpha/include/uapi/asm/socket.h  |  2 ++
+>  arch/mips/include/uapi/asm/socket.h   |  2 ++
+>  arch/parisc/include/uapi/asm/socket.h |  2 ++
+>  arch/sparc/include/uapi/asm/socket.h  |  2 ++
+>  include/net/rps.h                     | 13 +++++++++++++
+>  include/net/sock.h                    |  1 +
+>  include/uapi/asm-generic/socket.h     |  2 ++
+>  net/core/sock.c                       |  8 ++++++++
+>  8 files changed, 32 insertions(+)
+> 
 
-This isn't a bug, but the Co-developed-by: tag is followed by a placeholder
-line, "TODO-NEEDS-IHOR: Signed-off-by: Ihor Solodrai
-<ihor.solodrai@linux.dev>", rather than a real Signed-off-by: line.
+> diff --git a/include/net/rps.h b/include/net/rps.h
+> index e33c6a2fa8bb..5afa48868236 100644
+> --- a/include/net/rps.h
+> +++ b/include/net/rps.h
+> @@ -98,6 +98,13 @@ static inline void _sock_rps_record_flow(const struct sock *sk)
+>  	 * [1] : sk_state and sk_prot are in the same cache line.
+>  	 */
+>  	if (sk->sk_state == TCP_ESTABLISHED) {
+> +		/* SO_NO_RFS: application asked us to never steer this flow.
+> +		 * Tested after sk_state so the common case stays on one
+> +		 * cache line.
+> +		 */
 
-Documentation/process/submitting-patches.rst asks for a Co-developed-by: to
-be immediately followed by that co-author's Signed-off-by:.  Should the
-placeholder be replaced with the real tag before this is applied?
+Avoid verbose comments. Bots comment a lot more than kernel style.
 
-> diff --git a/kernel/bpf/verifier.c b/kernel/bpf/verifier.c
-> index 1b6c0674ff6a..18b2bd009d58 100644
-> --- a/kernel/bpf/verifier.c
-> +++ b/kernel/bpf/verifier.c
+Also arguably incorrect as TCP_ESTABLISHED is the common case.
 
-[ ... ]
-
-> @@ -6867,30 +6883,33 @@ static int check_ptr_to_map_access(struct bpf_verifier_env *env,
->  	enum bpf_type_flag flag = 0;
->  	const struct btf_type *t;
->  	const char *tname;
-> +	struct btf *btf;
->  	u32 btf_id;
->  	int ret;
->
-> -	if (!btf_vmlinux) {
-> -		verbose(env, "map_ptr access not supported without CONFIG_DEBUG_INFO_BTF\n");
-> -		return -ENOTSUPP;
-> -	}
-> -
->  	if (!map->ops->map_btf_id || !*map->ops->map_btf_id) {
->  		verbose(env, "map_ptr access not supported for map type %d\n",
->  			map->map_type);
->  		return -ENOTSUPP;
->  	}
->
-> -	t = btf_type_by_id(btf_vmlinux, *map->ops->map_btf_id);
-> -	tname = btf_name_by_offset(btf_vmlinux, t->name_off);
-> -
-> +	/* before the BTF fetch: unprivileged loads must not parse it */
->  	if (!env->allow_ptr_leaks) {
-> -		verbose(env,
-> -			"'struct %s' access is allowed only to CAP_PERFMON and CAP_SYS_ADMIN\n",
-> -			tname);
-> +		verbose(env, "map_ptr access is allowed only to CAP_PERFMON and CAP_SYS_ADMIN\n");
->  		return -EPERM;
->  	}
->
-> +	btf = bpf_get_btf_vmlinux();
-> +	if (IS_ERR(btf))
-> +		return vmlinux_btf_err(env, btf);
-> +	if (!btf) {
-> +		verbose(env, "map_ptr access not supported without CONFIG_DEBUG_INFO_BTF\n");
-> +		return -ENOTSUPP;
-> +	}
+> +		if (unlikely(sock_flag(sk, SOCK_NO_RFS)))
+> +			return;
 > +
-> +	t = btf_type_by_id(btf, *map->ops->map_btf_id);
-> +	tname = btf_name_by_offset(btf, t->name_off);
+>  		/* This READ_ONCE() is paired with the WRITE_ONCE()
+>  		 * from sock_rps_save_rxhash() and sock_rps_reset_rxhash().
+>  		 */
+> @@ -111,6 +118,12 @@ static inline void _sock_rps_delete_flow(const struct sock *sk)
+>  	rps_tag_ptr tag_ptr;
+>  	u32 hash, index;
+>  
+> +	/* Never recorded, so never clear a slot that may belong to
+> +	 * another flow.
+
+Never is too strong here: can be set during socket lifetime.
+
+Even if it had been correct, still another example of unnecessary
+verbosity.
+
+> +	 */
+> +	if (sock_flag(sk, SOCK_NO_RFS))
+> +		return;
 > +
->  	if (off < 0) {
 
-Can the new "if (!btf)" branch ever be reached?
+Both here and _sock_rfs_record_flow: probably should be in their
+callers, like the other precondition check rfs_is_needed.
 
-Without CONFIG_DEBUG_INFO_BTF, every map type's .map_btf_id points at a
-zero-filled array:
+>  	hash = READ_ONCE(sk->sk_rxhash);
 
-include/linux/btf_ids.h:
-    #define BTF_ID_LIST_SINGLE(name, prefix, typename) static u32 __maybe_unused name[1];
+Optionally maybe also skip writing sk_rxhash if this is the only user.
 
-so "!*map->ops->map_btf_id" is true for every map, and the function returns
-at the first check with "map_ptr access not supported for map type %d".
-
-With CONFIG_DEBUG_INFO_BTF=y, bpf_get_btf_vmlinux() returns either a BTF or
-an ERR_PTR, never NULL, so the branch is unreachable in that configuration
-too.
-
-Before this patch, "if (!btf_vmlinux)" was the first test.  On a kernel
-without BTF, a privileged program doing "r0 = *(u32 *)(map_ptr + off)" was
-told:
-
-    map_ptr access not supported without CONFIG_DEBUG_INFO_BTF
-
-It is now told, for example:
-
-    map_ptr access not supported for map type 1
-
-That message points at the map type rather than at the missing BTF.  The
-errno (-ENOTSUPP) is unchanged.
-
-This also looks at odds with the commit message statement "Without BTF the
-new helper check is compiled out and the existing error paths are
-unchanged."
-
-Would an early IS_ENABLED(CONFIG_DEBUG_INFO_BTF) test with the old message,
-placed before the map_btf_id check, be a way to keep the old diagnostic?  It
-would not fetch or parse anything, so the allow_ptr_leaks-before-fetch
-ordering would stay as is.
-
-No later commit in the series changes check_ptr_to_map_access().
-
-
----
-AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
-See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
-
-CI run summary: https://github.com/kernel-patches/bpf/actions/runs/41205212136
---===============1389222973622085419==--
+>  	if (!hash)
+>  		return;
