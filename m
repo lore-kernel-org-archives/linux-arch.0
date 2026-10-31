@@ -1,49 +1,49 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793440333;
-	b=qP9SkzxqgQI3kszqIpuBSmIyEN3ESk2iHk0Fsk8cJIUl8EowAsK7Zllj6FS1ons+w1Ku
-	 wZsv392MKEyvjO/Mg9d36yB7fUOTQiRGT7442whKelDUiGME52m/knOM91Hyg09aIeHfV
-	 HvkYOGNnodSMrU5icMETRSo/DgpqOLekfhW6VHNzUPFAXoQSXaX1CYY3fATFmosPuw75/
-	 3An7EHqnXxHJRqYOA5mlxngdL0znULlZvTh8XVsj3fpus3IoCx2qny/dMutK71FX1TeiO
-	 dLyDGuCxp/CcEQxNAMyWlrI0MkCUF08M0yY07tcAi/oUwlRQ593LBg9MHi8iY2zA7uA==
+	t=1793440348;
+	b=VClG1e+qq8jU2/+GU5dbOAMye4HN8KO92s+YewTuSfzpDCvvDg0OoevYUJeorMjISd2h
+	 2jbtIfb//TXvQTBBUiCYGmsHzR7LqgNWI5o3sMUv+I8JJko8JW4rgqJnSTbYx51Dzer/N
+	 NJaodtXPm7jhS6cJNawUE401fXqGYa7X27xHzgaBNyIWkP2witQQDBGCrC5f76r7Hb9dq
+	 6096dybfqRtVJJti3KMIPBq8SIAbNhZVkE4G70+YsrbkNaj7AdgCJzkDiqBugRCO1oup1
+	 eOF9MY/H1aSrMiqHdCfRek7zLX7Ij/Gxr4nVDpO0lNSG9eYEJO+krWeI07enPnqm8lA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793440333;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793440348;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=LXWsGGAuGYMpNthZzj7j0qIEhHCnCLdw4tDv3Dde7tU=;
-	b=pGfNY/QbPia0FakNl1uRPS13fpbEyTru7GFXcT8shxYQRgPTmjJ48D0xOcYasrje2V+F
-	 n1bDHZnkwGK0lIf54VRHF3XaFjldUi5bYK826d3UmIRzi/QHoAJIzHZVqjCy2FW1ytgpa
-	 w+jsRIeMXLZ+oWbl9pJAwLZTXB3WRdgd93lpbRdOChKggeNVUPNixIc0sW9HH0nCvJjiS
-	 yXPlffp31mDh43lHert6n2i9l309dihDFElvDwy5FBkc8GVUuZpAE3K3ymtTx1zWMzJ+r
-	 ALSmCNHbCH0z56aC2MROpe/fNinsSrlbnIIoJi3b0cMfPeCrRigL/bXmguwS2kqaimg==
+	bh=P+XDhasxBREAHMJWaTnaRrbmO35vpS7TJxAQhlwiqYY=;
+	b=IShThGVaL7BJOV9YINdl6r2KRBQtbYaTIyXc2gTnbKIpGgzGeUXbrAUfNssmTaVktnk5
+	 z8V/N/P2F8FgZIBeSKfZxlIaGN+XwKz2eB1Kv21Kh1wyLVbvjtKDpc1kmyXtXmP/sR3FM
+	 rDfSrv6pFxtl0pXNvTtqwJKNhO5l24sGND2JNXlPqhlXmKiYFH7dL7germ+A+AwOULzfh
+	 gCDVU1gihUojgr3olcA0sZjwwDCcFP/plvYEqVXb/SFTKTJdZ38yihL/hzPcD3qayyek3
+	 2EoNh4XhdYxIVWFiHDK6igha0+SCqgjS7aRX4NX06R4tVPQov/dT0c86HHw9qynBYxw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=WDaRfZV8;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="mm/XhP7H";
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CACD5606A31E;
-	Sat, 31 Oct 2026 09:52:12 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 090E7606A31A;
+	Sat, 31 Oct 2026 09:52:27 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=WDaRfZV8
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 99D3F1F00919;
-	Sat, 31 Oct 2026 09:51:57 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=mm/XhP7H
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id ECB401F000C1;
+	Sat, 31 Oct 2026 09:52:12 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793440332;
-	bh=LXWsGGAuGYMpNthZzj7j0qIEhHCnCLdw4tDv3Dde7tU=;
+	s=k20260515; t=1793440347;
+	bh=P+XDhasxBREAHMJWaTnaRrbmO35vpS7TJxAQhlwiqYY=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=WDaRfZV8lrdSHWo2bJPjhRAvbOAWGSBSNWe8J3upHnl+8qcyY3Ce8G7dfUa1DjNu8
-	 H8f+FSaHVuGPPNLccj7ytAj3BCbt3FdYbeSSKQF/QvfRjblvOsaNaGnbw9hLcvhcsJ
-	 dDRBr8BfUwDlVj32RVLLIYvP7S3lEAMUk4hAgnS3bHgLHai9rCoFXH1JhD19+t2mMl
-	 n7zx2EBIckhQ3seuwiWQtQn9Jl0jqIz4d6PcM9b+vRYVjFs35sap3cB26D91h0RaDe
-	 MOMYNkE9tGqvEbueSr3By16YiV7Ok4fX4v3f6g5/bvzabRudn/+qA5QxL3Z0bM3mj6
-	 nFye94PFipthw==
+	b=mm/XhP7HPzo+iFoVllgXYlAnByRSGdmEmQ/9WKMRbKjP9gf3uokjKC5NnR5B3Ub/0
+	 df3PiunpjyE567NZ1zBV+tZM/rAOyYte79fMgzRX8xb1Jw5+RRsKg9cba6L4fDpu4J
+	 dbeRuNMuFh8XWCB3F2fTvLcoauM/ZmvDce60MDqxjOp4hjk75ZMWebupjRfd1ssHP3
+	 RF1SriyTNMONJLj1srRxbt9Lj/xl7DWYcaVNvpp2N+phftZoU8/tH9J9wXRfuk02EY
+	 OjKf5XK7hX1//dPKa46gIrs8/UpIGMlYMN5XKpuUgrJihaeRboayI8kWy1HZdnQrGU
+	 oJnIAqua6PDFg==
 From: "David Hildenbrand (Arm)" <david@kernel.org>
-Date: Sat, 31 Oct 2026 10:40:15 +0100
-Subject: [PATCH v3 46/47] mm/memory-tiers: unregister empty tiers outside
- memory_tier_lock
+Date: Sat, 31 Oct 2026 10:40:16 +0100
+Subject: [PATCH v3 47/47] fs/proc/task_mmu: refuse addresses beyond 32 bits
+ on 32bit
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -55,7 +55,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261031-fixes_core-v3-46-d6437171ecc3@kernel.org>
+Message-Id: <20261031-fixes_core-v3-47-d6437171ecc3@kernel.org>
 References: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
 In-Reply-To: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, 
@@ -93,111 +93,61 @@ To: Andrew Morton <akpm@linux-foundation.org>,
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
  kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, 
- stable@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>, 
+ Josef Bacik <josef@toxicpanda.com>, 
  Muhammad Usama Anjum <usama.anjum@arm.com>, 
  "David Hildenbrand (Arm)" <david@kernel.org>
 X-Mailer: b4 0.16.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3122; i=david@kernel.org;
- h=from:subject:message-id; bh=4kChVYvvx74BRlmNy9r2/KDpSY0XvvEjaE2NRYfL7Rw=;
- b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLKebs9+99iyuX3mtNxzRav077QJloZ+YyoR6Cgy2vp4d
- YX/5CM6HaUsDGIcDLJiiixBwfcNXr5cV1vtxscMM4eVCWQIAxenAEzk4SaGf/ZLKmUk1xgsDAxl
- Pc3A+6Vf/4kPc5PbSzOWCXdu2uiXVTAyrOyZI/RJ5uh8YRfxXwU8K8t/sD5yzZZddPjK5FOzcxM
- mMQAA
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1750; i=david@kernel.org;
+ h=from:subject:message-id; bh=d8AVCy95kfas+cJ7pSeAW9fI96TKmix6WWb4ARgBYj0=;
+ b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLKebs+uWlm2vM6eedFfrsPlmn5VRldO9lvIXFeflLt4m
+ UjDL9sJHaUsDGIcDLJiiixBwfcNXr5cV1vtxscMM4eVCWQIAxenAEykXYWR4eH/x/2/vSJVbgRt
+ 27d0zhqZ4nL5itJpMbbKUsv1G6dMymb4X93EcfrTp/qNqTE90isL4+W72IwZ/7uandbptO5xmr2
+ PAQA=
 X-Developer-Key: i=david@kernel.org; a=openpgp;
  fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-When offlining a node's last memory empties its tier,
-clear_node_memory_tier() calls device_unregister() while holding
-memory_tier_lock. A concurrent sysfs read can hold a kernfs active
-reference and block in nodelist_show() on that mutex. device_unregister()
-then waits in kernfs_drain() for the read to finish and release its active
-reference, while the reader waits for the offlining task to release the
-mutex.
+From: Josef Bacik <josef@toxicpanda.com>
 
-Return the node's former tier from clear_node_memory_tier(), making the
-helper more similar to set_node_memory_tier(), which also returns a
-memory_tier pointer. Let the caller unlink an empty tier under
-memory_tier_lock before rebuilding demotion targets, then unregister its
-device after dropping the lock.
+The addresses in struct pm_scan_arg are 64 bits wide.  The first thing
+pagemap_scan_get_args() does with them is to cast them to unsigned
+long.  On a 32-bit kernel the upper half is dropped without a word:
+PAGEMAP_SCAN of 0x100001000-0x100002000 scans, and with
+PM_SCAN_WP_MATCHING write-protects, 0x1000-0x2000, stores the result
+at the lower half of vec, and reports success.
 
-Fixes: 9832fb87834e ("mm/demotion: expose memory tier details via sysfs")
-Cc: stable@vger.kernel.org
-Reported-by: Josef Bacik <josef@toxicpanda.com>
-Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
+Return -EFAULT, as for other addresses outside of the address space.
+
+This is probably not worth CCing stable.
+
+Fix generated by an LLM and sent by Josef Bacik in private.
+
+Fixes: 52526ca7fdb9 ("fs/proc/task_mmu: implement IOCTL to get and optionally clear info about PTEs")
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+Acked-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+Reviewed-by: Pedro Falcato <pfalcato@suse.de>
 Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
 Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 ---
- mm/memory-tiers.c | 29 +++++++++++++----------------
- 1 file changed, 13 insertions(+), 16 deletions(-)
+ fs/proc/task_mmu.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/mm/memory-tiers.c b/mm/memory-tiers.c
-index 25e121851b586..8eda313cf6192 100644
---- a/mm/memory-tiers.c
-+++ b/mm/memory-tiers.c
-@@ -572,21 +572,14 @@ static struct memory_tier *set_node_memory_tier(int node)
- 	return memtier;
- }
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 7452b695fdaec..762b6dbb81e4a 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -3032,6 +3032,12 @@ static int pagemap_scan_get_args(struct pm_scan_arg *arg,
+ 	     arg->category_anyof_mask | arg->return_mask) & ~PM_SCAN_CATEGORIES)
+ 		return -EINVAL;
  
--static void destroy_memory_tier(struct memory_tier *memtier)
-+static struct memory_tier *clear_node_memory_tier(int node)
- {
--	list_del(&memtier->list);
--	device_unregister(&memtier->dev);
--}
--
--static bool clear_node_memory_tier(int node)
--{
--	bool cleared = false;
- 	pg_data_t *pgdat;
- 	struct memory_tier *memtier;
- 
- 	pgdat = NODE_DATA(node);
- 	if (!pgdat)
--		return false;
-+		return NULL;
- 
- 	/*
- 	 * Make sure that anybody looking at NODE_DATA who finds
-@@ -604,14 +597,10 @@ static bool clear_node_memory_tier(int node)
- 		synchronize_rcu();
- 		memtype = node_memory_types[node].memtype;
- 		node_clear(node, memtype->nodes);
--		if (nodes_empty(memtype->nodes)) {
-+		if (nodes_empty(memtype->nodes))
- 			list_del_init(&memtype->tier_sibling);
--			if (list_empty(&memtier->memory_types))
--				destroy_memory_tier(memtier);
--		}
--		cleared = true;
- 	}
--	return cleared;
-+	return memtier;
- }
- 
- static void release_memtype(struct kref *kref)
-@@ -884,13 +873,21 @@ static int __meminit memtier_hotplug_callback(struct notifier_block *self,
- {
- 	struct memory_tier *memtier;
- 	struct node_notify *nn = _arg;
-+	bool empty = false;
- 
- 	switch (action) {
- 	case NODE_REMOVED_LAST_MEMORY:
- 		mutex_lock(&memory_tier_lock);
--		if (clear_node_memory_tier(nn->nid))
-+		memtier = clear_node_memory_tier(nn->nid);
-+		if (memtier) {
-+			empty = list_empty(&memtier->memory_types);
-+			if (empty)
-+				list_del(&memtier->list);
- 			establish_demotion_targets();
-+		}
- 		mutex_unlock(&memory_tier_lock);
-+		if (empty)
-+			device_unregister(&memtier->dev);
- 		break;
- 	case NODE_ADDED_FIRST_MEMORY:
- 		mutex_lock(&memory_tier_lock);
++	/* Don't cut 64-bit numbers down to addresses that happen to work. */
++	if (arg->start != (unsigned long)arg->start ||
++	    arg->end != (unsigned long)arg->end ||
++	    arg->vec != (unsigned long)arg->vec)
++		return -EFAULT;
++
+ 	arg->start = untagged_addr((unsigned long)arg->start);
+ 	arg->end = untagged_addr((unsigned long)arg->end);
+ 	arg->vec = untagged_addr((unsigned long)arg->vec);
 
 -- 
 2.43.0
