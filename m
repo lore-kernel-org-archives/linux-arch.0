@@ -1,48 +1,48 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793440240;
-	b=pjDDgW4VPx5F9mvPEYbFbWhwvbDvmOYniO0La/OBkLjDTNxWlq5xQ61MzccAwaoQkDMl
-	 lMhBNJ3sj5+e5Vp3pUhovDRW0p2EdemyzIewNZaSI0wcbxntgbHbE4mIt/3MREFdsbbED
-	 n9HoPXvfRnZpm5GUvvTyMbxrHDdJFkHf5QsYBTErmGLPO9hF3rgJXMNu5m2mnwlqNPowd
-	 A7Z92r5b9vecMQ54Onfl0jTty6+uloGBNKOoUMjEqZmZa/i4/bQcUYV5V4U+ZU4eFuupz
-	 YmbU2LGoMzOuGsFjB5LYO0hg6Rr34WVBIyjaLsaHZqLd7VzoghL6gB0RPaq8l3tNV0A==
+	t=1793440272;
+	b=FBSz+UTbRbOcDM29smC0BvYZC5eGD56KpdDBgaXH0qL6Cj0sbgRynabwzPyCZm1o65Ms
+	 POf6A+gdjABmDgG3LXeYzofQauIj4Jl4a5ImbDBfLNgCXQinFi4BbcS8hS6JYk0RtpLpo
+	 hqY1OjcLy+esdVQOoiZznomNCDdSr0XoLWO+ix9gYwX/5nrYqv57p8ch0jbIeZllfswP0
+	 L6C1X4Nsqu/LB2eSluO0pvHnuAsgEMEavahjeUQjhXlYbyifzc+UECKKcNRR4ejt4o3HJ
+	 v9OhepHrkwdM1STO+SZKCpnNDjeWR1D1E27YPl76zh1Vp2Jf4xb5Aa1rEhiK2ckXdGw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793440240;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793440272;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=VYlMeH+q4hS08pWQrgQz/Zl4BVbNdljyBojnlqTTFgI=;
-	b=iWuVC4MK/fsfg+oNuCs2hQ6GhhJGMo5QXe3wxnDYy5G3+Uu1MsVP2HXg26ZAj/UrZAcr
-	 qIKkyOm/BnUBEJel4oiRGsIiX07XWvo1n0AwxVMy8bFzkaaxkMMmesn5bbmzdO1r2qYxV
-	 NiXNflg2CwVA/KVcfY92gRzh493LzdAtr1H9CrZgomxSUs2RKvfAlEHF28SzkffT2MBZY
-	 BKGQY1vGpcOK/by3JUBB1jZW5oKl08p6vDn0iEcolWoBlkGcxfbyE3hnUQkyE8WXBoPyc
-	 Y1x5PGPlL3zhRGikWLqt+ZCqSTA7XpRNFba38KmVhDa+t6HcXHTqJjmln2LJ2PR+d+A==
+	bh=+mdqIzAsIIX0hDPtIGlkqTrJ6UqGsvnIxPYb47Tkxp8=;
+	b=DfEAL0OyMt4uuBYZe+5xkRoMcdgO9dJsxRwJKwb89GKfxs772deGAdAAUl6Zz4gkq2ij
+	 fFYr0goRSI58O2x7h31Pemz8FmVBuZ/ZNj8vRlBczy5WU/i3GYwA0rh4Dfsqat7XDTUPt
+	 +nvzihcuyvPHKkQ8vm8XfKPSfT5M6cDCvoBGG0zsySx1ORQ3ZFMwPeDUkzdMHVqnnWnYJ
+	 fhYcd7UmOcnV8u1f3HTXuEBdin3mnRPbpw9guqhLtsvFjX9dL9eySIYfOpz9SzaD3ZaBB
+	 rJgzOb7/hVzNBY9yocQ6iLA5Nk75VgaD4Q2N9pdCt3gGnXUZZo+Qo2WHtVrcdkc2lwQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Yr9l+Fh+;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Q1L2IJBk;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F3A35606A31A;
-	Sat, 31 Oct 2026 09:50:39 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E018606A31D;
+	Sat, 31 Oct 2026 09:51:11 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Yr9l+Fh+
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6A2871F00919;
-	Sat, 31 Oct 2026 09:50:24 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Q1L2IJBk
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 29A031F00919;
+	Sat, 31 Oct 2026 09:50:55 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793440239;
-	bh=VYlMeH+q4hS08pWQrgQz/Zl4BVbNdljyBojnlqTTFgI=;
+	s=k20260515; t=1793440271;
+	bh=+mdqIzAsIIX0hDPtIGlkqTrJ6UqGsvnIxPYb47Tkxp8=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=Yr9l+Fh+pf6zFn9EkhXVHrqHodWFP/3jvyRpjpmBWcx8JjtCbiIuRHptcMrztZgp3
-	 xz5ypGp89btb7Lor8BgzY7X0/CKKkdTUFMGeidSnO/gyReZTIInyi5ARFKjHj86Pes
-	 ze2A85JCyUVEQ4GOM0lwt68V41FnOJ93sDpvP6mFyGnk3XmHptyk0lvXUYSaZiFjHJ
-	 FlQy63tZOgqGXB0UpG/RhwdO5RSDdOXQhV8W3HuH9kozLXUjiXDamnKUb9VYrLFENM
-	 sEoydXOLV8Kh5t01uIGtMTcZFGXBtZkCQf9yZSiJk0Y8cuSUJAc27B0uRp1qrMh7nJ
-	 ZMUkvrp9l3rEQ==
+	b=Q1L2IJBk1UYzBtfKDnuKjvt1Eh6Q3bIUktoLikNCZ6Jw1+TriQW0C268VSGaBMAbz
+	 Q0/hPGOR2DcTFYb29h7kiLQgDFE8ucwFgC8XWTOeOGwlqU1cE9Ile2Fk+xM0w5kPib
+	 MF1ETc10nv04XMQE9BLy1BlHaloqBmLbha5DvRvoDpGHew1Zi+23UZXfCl/d2YyyV9
+	 xXNN/HkAtDr8f3FK9D2m6zzJc8oL9rnn6jaj95I0vAeQlobd1HXipH+uBLNAqJScol
+	 FlMkXqUKBKa2NlqXz+PbC/xrGvz50oAYOx1dJY+lv6gkq+VJAeWOXdMROyLBJv0bL8
+	 +m58m6DyHiUmw==
 From: "David Hildenbrand (Arm)" <david@kernel.org>
-Date: Sat, 31 Oct 2026 10:40:09 +0100
-Subject: [PATCH v3 40/47] mm/ksm: fix use of a freed anon_vma at swap-in
+Date: Sat, 31 Oct 2026 10:40:11 +0100
+Subject: [PATCH v3 42/47] mm/vma: call ->may_split() before a partial merge
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -53,8 +53,8 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
-Message-Id: <20261031-fixes_core-v3-40-d6437171ecc3@kernel.org>
+Content-Transfer-Encoding: 7bit
+Message-Id: <20261031-fixes_core-v3-42-d6437171ecc3@kernel.org>
 References: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
 In-Reply-To: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, 
@@ -92,184 +92,128 @@ To: Andrew Morton <akpm@linux-foundation.org>,
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
  kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org, 
- stable@vger.kernel.org, Chris Mason <mason@kernel.org>, 
+ Chris Mason <mason@kernel.org>, stable@vger.kernel.org, 
  Muhammad Usama Anjum <usama.anjum@arm.com>, 
  "David Hildenbrand (Arm)" <david@kernel.org>
 X-Mailer: b4 0.16.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=6048; i=david@kernel.org;
- h=from:subject:message-id; bh=Z78lq+MMz7mlQo8hJjX2bkGO/ohrcRkdBZioXy6jyEo=;
- b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLKebs+y5Z7KpLF2su5SK0n5dKOmGweTS3+WyVX4fTz4K
- n7Snl/dHaUsDGIcDLJiiixBwfcNXr5cV1vtxscMM4eVCWQIAxenAExkRzEjw8su08kyTcXuZuZL
- v25fMWvt1cTpz7Yv92QrS9hw+uB75XhGhicP3fxORy6MWq39vPG867acZWvKv/kVh1zQfajM0R7
- PwQcA
+X-Developer-Signature: v=1; a=openpgp-sha256; l=4117; i=david@kernel.org;
+ h=from:subject:message-id; bh=y6ysHZk3en/dCY/5r795mBFI+9cSzDUZixTlFNwSLV8=;
+ b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLKebs9K7DF/vFo4xHC2muohn02c+joai/n2Hc+Q3JT0i
+ +Xr3z+lHaUsDGIcDLJiiixBwfcNXr5cV1vtxscMM4eVCWQIAxenAEzE1oDhf07D1E29Gun3Dpw6
+ YaW8IOiXeYx63skrTyQsWVvqv+pWTGD4X3Ih54il9dXzVWEn84+KiPhvYe3zqr4qYFZk+u/bk0u
+ /GAE=
 X-Developer-Key: i=david@kernel.org; a=openpgp;
  fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-A folio read from a swap slot previously shared by KSM can remain in the
-swap cache after the process that first mapped it exits. Its anon_vma
-can then be freed, so ksm_might_need_to_copy() must not dereference it
-to compare roots.
+From: Chris Mason <mason@kernel.org>
 
-Doing so can result in some false-positives, resulting in the reverse
-mapping missing the new folio mapping, preventing migration and reclaim.
+A driver can use the ->may_split() hook to forbid a VMA boundary at
+certain addresses.
 
-SLAB_TYPESAFE_BY_RCU allows individual anon_vma objects to be reused
-immediately after freeing. A stale pointer can then refer to another
-anon_vma whose root matches, even though the target VMA is not linked
-to that anon_vma.
+A device-dax device is a character device that gives raw access to a
+range of memory through mmap(). device-dax refuses any address that is not
+a multiple of the device's alignment through vm_ops->may_split.
 
-Move the anonymous rmap compatibility checks into
-folio_anon_rmap_compatible(). Keep the page-index check and compare the
-folio's anon_vma pointer against the VMA's own anon_vma and root first.
+vma_merge_existing_range() can move boundaries, but does not call
+vm_ops->may_split.
 
-If neither matches, bite the bullet and walk the VMA's anon_vma_chain.
-The VMA keeps these anon_vmas alive, and finding a match guarantees that
-reverse mapping can find the new mapping.
+If a range at the edge of a VMA gets the attributes of the adjacent VMA,
+the function moves only that range over to the neighbour: one VMA shrinks
+and the other grows. This is a partial merge, and vma_modify() tries it
+before any split.
 
-Lorenzo Stoakes says in a private discussion:
+Take a device-dax VMA that lies next to another VMA of the same file.
+The user calls mprotect() on the one page of the first VMA that touches
+the second VMA, and asks for the protection that the second VMA already
+has. The result is a partial merge. It puts the boundary inside a 1 GiB
+mapping, which is a single leaf entry at the PUD level.
 
-  "This isn't quite equivalent to the existing check.
+As part of the merge, the kernel looks for a huge PMD to split at the
+new boundary. That code does not expect a PUD leaf:
 
-  Every anon_vma in an anon_vma_chain shares the same root, but if you
-  split a VMA then fork both of them like this:
+    vma_merge_existing_range()
+      commit_merge()
+        vma_adjust_trans_huge()
+          split_huge_pmd_address()
+            mm_find_pmd()
+              treats the PUD leaf as a pointer to a PMD table,
+              so the "table" is the device memory that the leaf maps
+            __split_huge_pmd()
+              reads a PMD that the user wrote to the device memory
+              folio_put() on the folio that this PMD names
 
-                  VMA A
-               /        \         <split>
-            VMA B      VMA C
-               \        /
-        root <- anon_vma 1
-               ----^ ^----        <fork>
-              /   parent  \
-        anon_vma 2   anon_vma 3
-             |            |
-           VMA D        VMA E
+Bad. While the code must at some point be taught to split PUD entries as
+well, the issue here is that we move VMA boundaries such that they are
+incompatible with the driver.
 
-  VMA's D and E both get their own new
-  anon_vma's such that:
+Fix this by calling ->may_split() on the address that a partial merge
+would move the boundary to, and by abandoning the merge if the driver
+refuses. vma_modify() then tries the split, which fails with -EINVAL.
 
-  VMA D: anon_vma 2 -> anon_vma 1 -> root
-  VMA E: anon_vma 3 -> anon_vma 1 -> root
+Factor out existing split handling into check_split() and reuse it.
 
-  And if you found a folio referencing anon_vma 2, the existing check:
+Fix generated by an LLM and sent by Chris Mason in private.
 
-	anon_vma->root == vma->anon-vma->root
-
-  Would be true for VMA's B, C, D & E.
-
-  However after your change it'd be true for VMA D only, as it's the only
-  one with anon_vma 2 in its anon_vma_chain.
-
-  Whether or not that could actually happen in practice... 🙂 I don't
-  know.
-
-  [...] after your change it'd be true for VMA D only, as it's the only
-  one with anon_vma 2 in its anon_vma_chain. [...] I would [...] say that
-  you are making the test stricter but more correct.
-"
-
-If this affects performance when KSM was never even involved, we could
-just track whether KSM ever merged anything and just skip these checks.
-
-There isn't really a lot we can do otherwise: for mapped folios we might
-be able to use folio_get_anon_vma(), but for unmapped folios there really
-is no easy way to see if the anon_vma is still valid.
-
-Document the (confusing) lifetime requirements of folio_anon_vma().
-
-Fixes: ba6f0ff3981e ("ksm: fix ksm swapin time optimization")
+Fixes: 38607c62b34b ("fs/dax: properly refcount fs dax pages")
 Cc: stable@vger.kernel.org
-Reported-by: Chris Mason <mason@kernel.org>
+Signed-off-by: Chris Mason <mason@kernel.org>
 Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
-Acked-by: Xu Xin <xu.xin@linux.dev>
+[ david: improve description; cleanup the code ]
+Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
+Tested-by: Gregory Price (Meta) <gourry@gourry.net>
+Signed-off-by: Gregory Price (Meta) <gourry@gourry.net>
 Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
 Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 ---
- mm/ksm.c  | 36 +++++++++++++++++++++++++++++++-----
- mm/util.c | 13 +++++++++++++
- 2 files changed, 44 insertions(+), 5 deletions(-)
+ mm/vma.c | 21 ++++++++++++++++-----
+ 1 file changed, 16 insertions(+), 5 deletions(-)
 
-diff --git a/mm/ksm.c b/mm/ksm.c
-index 9c51925825cbf..e050b1bdf810d 100644
---- a/mm/ksm.c
-+++ b/mm/ksm.c
-@@ -3137,11 +3137,40 @@ void __ksm_exit(struct mm_struct *mm)
- 	trace_ksm_exit(mm);
+diff --git a/mm/vma.c b/mm/vma.c
+index 1be613044b4a5..acdf00346cda5 100644
+--- a/mm/vma.c
++++ b/mm/vma.c
+@@ -516,6 +516,15 @@ void unmap_region(struct unmap_desc *unmap)
+ 	tlb_finish_mmu(&tlb);
  }
  
-+static bool folio_anon_rmap_compatible(const struct folio *folio,
-+		struct vm_area_struct *vma, unsigned long addr)
++static int check_split(struct vm_area_struct *vma, unsigned long addr)
 +{
-+	const struct anon_vma *anon_vma = folio_anon_vma(folio);
-+	struct anon_vma_chain *avc;
-+
-+	VM_WARN_ON_ONCE_FOLIO(!folio_test_locked(folio), folio);
-+	VM_WARN_ON_ONCE_FOLIO(folio_test_large(folio), folio);
-+	VM_WARN_ON_ONCE_FOLIO(folio_test_ksm(folio), folio);
-+	vma_assert_stabilised(vma);
-+
-+	if (!anon_vma)
-+		return true;
-+	if (folio->index != linear_anon_page_index(vma, addr))
-+		return false;
-+
-+	/*
-+	 * Careful: anon_vma might have been freed, so we cannot safely
-+	 * dereference it. Add a fast path before we walk the anon_vma chain.
-+	 */
-+	if (anon_vma == vma->anon_vma || anon_vma == vma->anon_vma->root)
-+		return true;
-+
-+	list_for_each_entry(avc, &vma->anon_vma_chain, same_vma) {
-+		if (avc->anon_vma == anon_vma)
-+			return true;
-+	}
-+	return false;
++	if (!vma->vm_ops)
++		return 0;
++	if (!vma->vm_ops->may_split)
++		return 0;
++	return vma->vm_ops->may_split(vma, addr);
 +}
 +
- struct folio *ksm_might_need_to_copy(struct folio *folio,
- 			struct vm_area_struct *vma, unsigned long addr)
- {
- 	struct page *page = folio_page(folio, 0);
--	struct anon_vma *anon_vma = folio_anon_vma(folio);
- 	struct folio *new_folio;
+ /*
+  * __split_vma() bypasses sysctl_max_map_count checking.  We use this where it
+  * has already been checked or doesn't make sense to fail.
+@@ -532,11 +541,9 @@ __split_vma(struct vma_iterator *vmi, struct vm_area_struct *vma,
+ 	WARN_ON(vma->vm_start >= addr);
+ 	WARN_ON(vma->vm_end <= addr);
  
- 	if (folio_test_large(folio))
-@@ -3151,10 +3180,7 @@ struct folio *ksm_might_need_to_copy(struct folio *folio,
- 		if (folio_stable_node(folio) &&
- 		    !(ksm_run & KSM_RUN_UNMERGE))
- 			return folio;	/* no need to copy it */
--	} else if (!anon_vma) {
--		return folio;		/* no need to copy it */
--	} else if (folio->index == linear_anon_page_index(vma, addr) &&
--			anon_vma->root == vma->anon_vma->root) {
-+	} else if (folio_anon_rmap_compatible(folio, vma, addr)) {
- 		return folio;		/* still no need to copy it */
- 	}
- 	if (PageHWPoison(page))
-diff --git a/mm/util.c b/mm/util.c
-index 8acfe2148ba52..80f6c714844f2 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -697,6 +697,19 @@ void *vcalloc_noprof(size_t n, size_t size)
- }
- EXPORT_SYMBOL(vcalloc_noprof);
+-	if (vma->vm_ops && vma->vm_ops->may_split) {
+-		err = vma->vm_ops->may_split(vma, addr);
+-		if (err)
+-			return err;
+-	}
++	err = check_split(vma, addr);
++	if (err)
++		return err;
  
-+/**
-+ * folio_anon_vma - Get a folio's raw anon_vma pointer.
-+ * @folio: The folio.
-+ *
-+ * The returned pointer may be stale for an unmapped folio. The caller
-+ * must ensure the anon_vma stays alive before dereferencing it. A folio
-+ * reference or lock alone is insufficient; use folio_get_anon_vma() when
-+ * the anon_vma's lifetime is not otherwise protected. Note that
-+ * folio_get_anon_vma() is only useful for folios that are still mapped.
-+ *
-+ * Return: The raw anon_vma pointer for an anonymous, non-KSM folio, or
-+ * %NULL otherwise.
-+ */
- struct anon_vma *folio_anon_vma(const struct folio *folio)
- {
- 	unsigned long mapping = (unsigned long)folio->mapping;
+ 	new = vm_area_dup(vma);
+ 	if (!new)
+@@ -948,6 +955,10 @@ static __must_check struct vm_area_struct *vma_merge_existing_range(
+ 	if (vmg->__remove_middle && !can_merge_remove_vma(middle))
+ 		return NULL;
+ 
++	/* If middle isn't removed then it's resized, i.e. splits. */
++	if (!vmg->__remove_middle && check_split(middle, left_side ? end : start))
++		return NULL;
++
+ 	/*
+ 	 * If we merge both VMAs, then next is also deleted. This implies
+ 	 * merge_will_delete_vma also.
 
 -- 
 2.43.0
