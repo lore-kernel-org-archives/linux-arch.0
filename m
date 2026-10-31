@@ -1,124 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=91.218.175.64
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793426349;
-	b=5U5uyUoZz6mBMIl/g3lhy8V3HeKaeQJzRh/UMDYATrJ0IFEjSr3E3C5COu1FbcZ5rBdC
-	 rGEcJTWTG98r+T+96s828flzNdVhGBf16qrAZbVb5fI/JEYUkJa17G9I3Lrr8jvTj/u7q
-	 V8nO6S5KON/Z+49SWI0zdp9cMxfrjYp19OTB++HgBaNy2VIM15suYqUmyGo3EhrBjpyV8
-	 PUqk6GI6qW2yl6RkB0Pf4lrCGE6X9PDuPmq3ZEw3r/6TTLhVZ19nF3QAOU2jvZVmcAcAB
-	 fZzzQ72+8KjTPpu9orNqDgthvFl1OydW4+FGnh2mBrq+dO2Io3tS1I2XBXvnYfoR/XQ==
+	t=1793436174;
+	b=HApfUtFunoWyCnGu8+Iq4WLaFAuVZjUU54vZu7MI7A8Fu5oyxpxvaf/4TnqkxR2FCVu/
+	 6PBwjUY6pXMtZZJJVUF2xwvTjkBQPnUf2RZGRX9sVulE3czywoLKmXWL482GFrxQlVmJM
+	 xw5O70ogf46xrtoKv+UrDhitzpNfio6FYivJUJMT4teksEyZdPiJUzmXUjIEPNPsku691
+	 6MkLNLr5CY7dO1ufoljCBZ4Z/acVMi7w3DSP34hpXUwiO9puHxDNcIENzljoLqAgwf7LB
+	 OjRjYY9GkwxLauYoFwsBukS9cpUZKETMJ140bjtcqn5UyKlZcgjVhJPI/h3h3xI2U4Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793426349;
-	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
-	 X-Mizu-Trace-ID:X-Migadu-Flow:From:To:Cc:Subject:Date:Message-ID:
-	 X-Mailer:In-Reply-To:References:MIME-Version:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=wHHnuTTmSOXbH6E8lHg0GEvp+GQz96PM/IlXLU1wjgs=;
-	b=kQRHprRCD9FrfWExSwAOtaSHpm6dMJKmVIdJ0OhV3l4QtOuv7x2XoDwzYburJEXdsGic
-	 rA1ZfqjtQdNREGzT/yi5Xp0IbxCQkoFdmnNX2pbYQo8lFjzan1qfzOjKeNEDASA3AezZX
-	 Cv9Hb/Wxa9eJHkcjwjvoUK5rzySqumwCVnbxZ7VnGrY7Ngj9k8Sk4tdayORUf7S9ZdU2F
-	 m2JW8IaSVh2pPGMugHD0/MwedeMiD6TgM9TmJs72VN+q/veMhtwBeuK8UOgrnnsXMWlN1
-	 lj9Hnh4Svq5HVsqACPV/jvTlNsm8jfxj2EU0hLssu2AEqgVBdBmLBzRRtZHtTQYsRiQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793436174;
+	h=DMARC-Filter:Received:Received:DKIM-Signature:Message-ID:Date:
+	 MIME-Version:User-Agent:Subject:Content-Language:To:Cc:References:
+	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=zyM541AR7ZZE38ApRIgXfw9vU7L1IaJEwloMzTLw3Ig=;
+	b=3sp4Z6ekbn2LcGzMrls9H4x37gI7DvYp892X72S15GaqmiIMx0Fsc1DdyKixWPIWWBkJ
+	 HhPqlbBAn1if8XKgMKQJxEgrekBvSDw/g3ezYmknxPhzd3D/fJBkL5XxRGDmNEYW9+vUR
+	 6INr8kwujrv30u+jCDjrk90fYbOnSRyc9SAEZXi5o4lKBZGsFd5DIV3Z+mi5FY4NaPvuU
+	 2C0OQ7SsJQ9rVd7qiXp4SMlqXBXWOt7Jxxt/2xaEhO2mnKOVlEOxzpnDN/b71PoLE568z
+	 uYH7Olhc4Lw6wkb/T55O+/lWQjrkoBvD0kGT3OXuqUOHktJvygFmujFOQS4fRsuAwHQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.dev;
-	spf=pass smtp.mailfrom=linux.dev;
-	arc=none smtp.remote-ip=91.218.175.64
-Received: from mta0.migadu.com (out-64.mta0.migadu.com [91.218.175.64])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2E174606A31D
-	for <linux-arch@vger.kernel.org>; Sat, 31 Oct 2026 05:59:05 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2E174606A31D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
-X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=r3xzYw939vN9vzH8UsK6AomPfxJthDwVeWo/3xRQ2Fo=;
- c=simple/simple; d=linux.dev;
- h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793426343; v=1; x=1794031143;
- b=WvaC4FsDcAHQ2NQ2JuiHYy56AQRK9rpDlaBUPZSd+xgQihu0+x11PWIm4iqwRFyZyy1U2XAd
- No3BIBUDoNW7w/V5YVqDdoRSxK0L8ZNvB0OPSou2EJq8Y5jatu2VQdepv+5F4j7PiwSI/BjV5Zc
- 4e5m+WqcgzPmPI8SJmGlTm5c=
-X-Envelope-To: linux-arch@vger.kernel.org
-Received: by smtp.migadu.com with ESMTPS id 14fc0ff97d323868;
-	Sat, 31 Oct 2026 05:59:02 +0000
-X-Mizu-Trace-ID: 14fc0ff97d323868
-X-Migadu-Flow: FLOW_OUT
-From: Lance Yang <lance.yang@linux.dev>
-To: muchun.song@linux.dev,
-	david@kernel.org,
-	kasong@tencent.com,
-	ridong.chen@linux.dev,
-	baohua@kernel.org,
-	sj@kernel.org
-Cc: hannes@cmpxchg.org,
-	mhocko@kernel.org,
-	qi.zheng@linux.dev,
-	shakeel.butt@linux.dev,
-	ljs@kernel.org,
-	axelrasmussen@google.com,
-	yuanchu@google.com,
-	weixugc@google.com,
-	baoquan.he@linux.dev,
-	baolin.wang@linux.alibaba.com,
-	liam@infradead.org,
-	vbabka@kernel.org,
-	rppt@kernel.org,
-	surenb@google.com,
-	mhocko@suse.com,
-	kees@kernel.org,
-	peterz@infradead.org,
-	jannh@google.com,
-	pfalcato@suse.de,
-	hughd@google.com,
-	pasha.tatashin@soleen.com,
-	pratyush@kernel.org,
-	willy@infradead.org,
-	jack@suse.cz,
-	ziy@nvidia.com,
-	lance.yang@linux.dev,
-	riel@surriel.com,
-	harry@kernel.org,
-	apopple@nvidia.com,
-	nico.pache@linux.dev,
-	ryan.roberts@arm.com,
-	dev.jain@arm.com,
-	usama.arif@linux.dev,
-	kas@kernel.org,
-	matthew.brost@intel.com,
-	jhubbard@nvidia.com,
-	peterx@redhat.com,
-	will@kernel.org,
-	aneesh.kumar@kernel.org,
-	npiggin@gmail.com,
-	osalvador@suse.de,
-	minchan@kernel.org,
-	xu.xin@linux.dev,
-	chengming.zhou@linux.dev,
-	chrisl@kernel.org,
-	shikemeng@huaweicloud.com,
-	nphamcs@gmail.com,
-	youngjun.park@lge.com,
-	gourry@gourry.net,
-	joshua.hahnjy@gmail.com,
-	rakie.kim@sk.com,
-	ying.huang@linux.alibaba.com,
-	jgg@ziepe.ca,
-	linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org,
-	kexec@lists.infradead.org,
-	linux-fsdevel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-cxl@vger.kernel.org,
-	josef@toxicpanda.com,
-	stable@vger.kernel.org,
-	usama.anjum@arm.com
-Subject: Re: [PATCH v2 01/47] mm/mglru: don't use stack pointers when walking PUD and PMD tables
-Date: Sat, 31 Oct 2026 13:58:38 +0800
-Message-ID: <20261031055838.60138-1-lance.yang@linux.dev>
-X-Mailer: git-send-email 2.49.0
-In-Reply-To: <6FACF8FF-F943-45C8-BDFD-3AFB5C060E0A@linux.dev>
-References: <6FACF8FF-F943-45C8-BDFD-3AFB5C060E0A@linux.dev>
+	dmarc=pass header.from=arm.com;
+	spf=pass smtp.mailfrom=arm.com;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=fencjVNn;
+	arc=none smtp.remote-ip=217.140.110.172
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 369DB606A31A;
+	Sat, 31 Oct 2026 08:42:51 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 369DB606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=fencjVNn
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 1D2171595;
+	Sat, 31 Oct 2026 01:42:48 -0700 (PDT)
+Received: from [10.57.13.152] (unknown [10.57.13.152])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 7B38B3F59E;
+	Sat, 31 Oct 2026 01:42:48 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1793436171; bh=avExJZ8pIb5Ca/dscv5M6k88MfirFVDBlv6ja+R8bbw=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=fencjVNnt00wM0wda3KJv3WoRmZ8GoSQNWWxyQRTkf7seFOhLkY2VnuWG+597t0Ez
+	 +itFgbGaU/suCHgpoFnAbgN+AQ4E3wUGbwU9OaVV8jDvTTym1FhRUmtTgNedvKgBUS
+	 uz1DkVoVayYJVDZ+51JRhGrKSIrbf6I74AdaRYLo=
+Message-ID: <a1d9608c-8169-49c5-b843-ed9d304136ed@arm.com>
+Date: Sat, 31 Oct 2026 08:42:46 +0000
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -128,62 +53,170 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [EXTERNAL] Re: [PATCH v5 2/6] firmware: smccc: Detect hypervisor
+ via RSI host call in CCA Realms
+Content-Language: en-GB
+To: Dexuan Cui <DECUI@microsoft.com>,
+ Catalin Marinas <catalin.marinas@arm.com>,
+ Kameron Carr <kameroncarr@linux.microsoft.com>
+Cc: Haiyang Zhang <haiyangz@microsoft.com>,
+ "wei.liu@kernel.org" <wei.liu@kernel.org>,
+ "mhklinux@outlook.com" <mhklinux@outlook.com>,
+ "will@kernel.org" <will@kernel.org>, "Mark.Rutland" <Mark.Rutland@arm.com>,
+ "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
+ "sudeep.holla@kernel.org" <sudeep.holla@kernel.org>,
+ "arnd@arndb.de" <arnd@arndb.de>, "thuth@redhat.com" <thuth@redhat.com>,
+ "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+ "linux-arm-kernel@lists.infradead.org"
+ <linux-arm-kernel@lists.infradead.org>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+References: <20261002215725.2015959-1-kameroncarr@linux.microsoft.com>
+ <20261002215725.2015959-3-kameroncarr@linux.microsoft.com>
+ <auPOnb_9Jfzh-oQE@arm.com>
+ <CH4PPF0966F22FCAF3D8C6535743902930DBF6C2@CH4PPF0966F22FC.namprd21.prod.outlook.com>
+From: Suzuki K Poulose <suzuki.poulose@arm.com>
+In-Reply-To: <CH4PPF0966F22FCAF3D8C6535743902930DBF6C2@CH4PPF0966F22FC.namprd21.prod.outlook.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+
+Hi
+
+On 31/10/2026 04:47, Dexuan Cui wrote:
+>> From: Catalin Marinas <catalin.marinas@arm.com>
+>> Sent: Thursday, October 29, 2026 3:54 PM
+>>   ...
+>> + Suzuki
+>>   ...
+>>> +static void arm_smccc_realm_get_hypervisor_uuid(struct arm_smccc_res
+>> *res)
+>>> +{
+>>> +	guard(spinlock_irqsave)(&uuid_hc_lock);
+>>> +
+>>> +	memset(&uuid_hc, 0, sizeof(uuid_hc));
+>>> +	uuid_hc.gprs[0] = ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID;
+>>> +
+>>> +	if (rsi_host_call(__pa_symbol(&uuid_hc)) != RSI_SUCCESS) {
+>>> +		res->a0 = SMCCC_RET_NOT_SUPPORTED;
+>>> +		return;
+>>> +	}
+>>> +
+>>> +	res->a0 = uuid_hc.gprs[0];
+>>> +	res->a1 = uuid_hc.gprs[1];
+>>> +	res->a2 = uuid_hc.gprs[2];
+>>> +	res->a3 = uuid_hc.gprs[3];
+>>> +}
+>>> +#endif
+>>> +
+>>>   bool arm_smccc_hypervisor_has_uuid(const uuid_t *hyp_uuid)
+>>>   {
+>>>   	struct arm_smccc_res res = {};
+>>>   	uuid_t uuid;
+>>>
+>>> -
+>> 	arm_smccc_1_1_invoke(ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC
+>> _ID, &res);
+>>> +#ifdef CONFIG_ARM64
+>>> +	if (is_realm_world())
+>>> +		arm_smccc_realm_get_hypervisor_uuid(&res);
+>>> +	else
+>>> +#endif
+>>> +
+>> 	arm_smccc_1_1_invoke(ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC
+>> _ID,
+>>> +				     &res);
+>>
+>> Is this meant to be generic? I'm not sure the trick to pass
+>> ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID in gprs[0] and forward it to
+>> the host is a documented ABI. I think it even confuses other realm guests
+>> that don't expect this (e.g. kvm_init_hyp_services()).
+
+Yes, this is how a Realm can talk to the Host hypervisor, i.e, 
+RSI_HOST_CALL. In simpler terms, HVC is routed to Realm world for
+Realms (e.g., a Paravisor running in Realm world Plane-0).
+A Realm must always use RSI_HOST_CALL to reach the non-secure
+hypervisor. RSI_HOST_CALL expects the arguments to be passed
+in a "memory" area to preserve forward compatibility with
+the SMCCC standards to allow for using the full argument/result
+list.
+
+The RMM does the job of copying the arguments from the Realm memory
+to the rec_exit.gprs for consumption by the Host. The host can then
+return the results in rec_entr.gprs, which then gets copied over
+to the Realm memory area.
+
+> 
+> Hi Catalin,
+> Regarding the concern about passing ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID
+> In gprs and forwarding it to the host via an RSI Host Call: if I read the code correctly,
+> this pattern actually aligns seamlessly with the current KVM host-side
+> implementation for ARM CCA (e.g., in the v16 patchset [1]).
+> 
+> In arch/arm64/kvm/rmi-exit.c, when a Realm guest triggers an
+> RMI_EXIT_HOST_CALL, KVM intercepts it and invokes rec_exit_hvc():
+> 
+> case RMI_EXIT_HOST_CALL:
+> 	rec_exit_hvc(vcpu);
+> 	kvm_make_request(KVM_REQ_RMI, vcpu);
+> 	return ARM_EXCEPTION_TRAP;
+> 
+> Inside rec_exit_hvc(), KVM copies the GPRs from the rec run structure
+> into the vCPU registers and explicitly emulates a standard HVC
+> exception by populating esr_el2:
+> 
+> static void rec_exit_hvc(struct kvm_vcpu *vcpu)
+> {
+>          struct realm_rec *rec = &vcpu->arch.rec;
+>          int i;
+> 
+>          for (i = 0; i < REC_RUN_GPRS; i++)
+>                  vcpu_set_reg(vcpu, i, rec->run->exit.gprs[i]);
+> 
+>          vcpu->arch.fault.esr_el2 = (ESR_ELx_EC_HVC64 << ESR_ELx_EC_SHIFT) |
+>                                       ESR_ELx_IL;
+> }
+> 
+> After doing so, it returns ARM_EXCEPTION_TRAP, causing KVM's generic
+> exception handling loop (kvm_arch_vcpu_ioctl_run() -> handle_exit()) to
+> route it straight into the standard handle_hvc() ->
+> kvm_smccc_call_handler() path.
+> 
+> Because KVM deliberately unpacks the RSI Host Call structure and pushes
+> it down the traditional non-CVM HVC servicing pipeline, the guest passing
+> standard SMCCC Function IDs inside the gprs array of an RSI Host Call is
+> exactly how the host expects to handle hypervisor services. It shouldn't
+> break or confuse other standard realm implementations since this exact
+> emulation block translates the RSI exception back into a generic HVC
+> abstraction for the hypervisor layer.
+>   
+>> I thought realms should stick to the RSI interface and not try to guess
+>> the host hypervisor. But if you do need this, a better fit would be in
+>> hyperv_detect_via_smccc() (if realms don't boot with ACPI).
+>>
+>> I'll leave it to Sudeep or Suzuki to comment further.
+>>
+>> --
+>> Catalin
+> 
+> As I described above, this patch from Kameron should work fine.
+> 
+> BTW, as Kameron mentioned in another reply, he better organized the
+> code by moving the code in this patch into
+> arch/arm64/hyperv/mshyperv.c: hyperv_detect_via_smccc().
+
+Any Realm specific stuff must be handled accordingly in the 
+"enlightened" path, not in the common code like this patch.
+
+Cheers
+Suzuki
 
 
-On Sat, Oct 31, 2026 at 09:46:37AM +0800, Muchun Song wrote:
->
->
->> On Oct 31, 2026, at 09:41, Ridong Chen <ridong.chen@linux.dev> wrote:
->> 
->> 
->> 
->> On 10/30/2026 6:21 PM, David Hildenbrand (Arm) wrote:
->>> On 10/30/26 01:20, SJ Park wrote:
->>>> 'get_maintainer.pl --nogit --nogit-fallback' suggests adding below recipients.
->>>> But I can show there are already quite a number of recipients, so I'm just
->>>> noting here.
->>>> 
->>>> - Brian Geffon <bgeffon@google.com>
->>>> - Oleksandr Natalenko <oleksandr@natalenko.name>
->>>> - Steven Barrett <steven@liquorix.net>
->>>> - Yu Zhao <yuzhao@google.com>
->>> The CC list was so long that I limited it to people that area either a reviewer
->>> or a maintainer of code.
->>> MGLRU not having any real maintainer is a big problem; because that maintainer
->>> would know whom to CC.
->> Agreed. FWIW, I think Barry Song and Kairui Song would be good candidates
->> for the maintainer role.
->
->+1
->
->It would be great if they could take this over.
+> (technically, IMO this change is unnecessary)
+> 
+> Thanks,
+> Dexuan
+> 
+> [1] https://gitlab.arm.com/linux-arm/linux-cca/-/tree/cca-host/v16
+> [2] https://lore.kernel.org/all/20261031001412.4150488-3-kameroncarr@linux.microsoft.com/
 
-+1 from me too ;)
-
-They both have been really active on MGLRU and doing great work for quite
-a while. No doubt they'll continue to do so :D
-
-Cheers, Lance
-
->Thanks,
->Muchun
->
->> 
->> Both of them have been contributing to MGLRU consistently and
->> substantially. Barry is currently working on improving aging and fixing
->> the swappiness-related issues, and Kairui is driving the MGLRU-FG
->> optimization work.
->> 
->> They have also been active in reviewing MGLRU patches, and their review
->> comments are usually to the point and helpful. They have been looking
->> after this code well, so I think they would be a good fit as
->> maintainers.
->> 
->> -- 
->> Best regards
->> Ridong
->> 
->
->
