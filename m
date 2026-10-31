@@ -1,70 +1,70 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=52.42.203.116
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=50.112.246.219
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793452201;
-	b=wMqgQtHMFCgmR9z8bistCTymPuBsd5+i1KcFuLJWEqe3yRnf/SfS99g0fE1mpzzjLkDD
-	 4oWygsgBwS5uUDUBkFxLFrzyFpVy36YkHsrrDc7+qQPHNAA0fhPrTf8HmFQc3l1JAjeNh
-	 xLAfv6VoLeRrf/zBW4EDFWL5F1nve+mWRDw5OobImWkODVcrk7mzp7TEPswgdfzCPbhTW
-	 qDxpmcaYwSm2DplPyeFmA6ettIH91+2TRMC374eHS+rYUbtq/lhN8GYqVUbgdpTdha7nR
-	 BYbdO146nduj7apkyWOea+tKFf0U8W78IdHDdKUWgX8tN2uNXmgqxuXF5TAg4We7y3A==
+	t=1793452217;
+	b=LnIiHM9JKQhgx1c5vogITEZDjD8iAllwEumtg862v6QloIhjejqAiI3n4ccUod4pRYNp
+	 4JtN5tmz8ql9DLGfzI+zq43gLa6qsFr6LZ0n4M//cZzdOWfRBMPMJAcus4PsXFTIDz9I+
+	 7/ya0c6CDGXHTBo2+ulW3Lf7qKs2vOGa/zalkzWoQ7y/wq3aafrzolCN4VDeqFMsWnLoC
+	 hfFBeIu8XazTDR+v9HLdk6ahhKseQAXZ9+IilFjRvCAzvO1O/AIW70aNmPekISO9zOLIy
+	 IfP8oMzC0MFNd+14ihFLNsvJuJxJRlb35qW8/zshqaX32hpwPZVQ6nASSfzQMnJ5gEw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793452201;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793452217;
 	h=DMARC-Filter:DKIM-Signature:X-CSE-ConnectionGUID:X-CSE-MsgGUID:
 	 X-IronPort-AV:Received:Received:X-Farcaster-Flow-ID:Received:Received:
-	 From:To:CC:Subject:Date:Message-ID:X-Mailer:MIME-Version:
-	 Content-Transfer-Encoding:Content-Type:X-Originating-IP:
+	 From:To:CC:Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:
+	 MIME-Version:Content-Transfer-Encoding:Content-Type:X-Originating-IP:
 	 X-ClientProxiedBy;
-	bh=qpRQyl+F0iyCWogSrvS1H906Iwx+X1/j+/wJASJUclQ=;
-	b=u9uwzvQGYD/D733R/GZ06y5lDFciGq50YqiW87qmR8KUPaFxpkI+5BgxN/A5iseW+65c
-	 pjWAhRwpIAOBFvs9DFRJZ4JZ3alIze4963AT94D973bED/KfP/LeGRjFL+duEb8Ls4OJH
-	 C4AOFTMZ7BsfFG5eQoa/Q8csmYkbR6DZrP6yENyIyjTswNBsHScUlfvOFZPhVn06rl0+2
-	 UrHSAF1MmHNyP50APVrAAMhzKIX9SFSD+j3cJs6hcdwF3PNLaKKeIu9rUAoXdKW8dUNKR
-	 WaYaBLMASMXgadlNi2Yzx4Sesi6lkebgOG/FHw+uYfw1/OeeWwsfv4Np+uWcSK78FZg==
+	bh=WLwSPKJZysmtmpa3FI6ONURJasLxd8GwEWG5mergj7I=;
+	b=zIo/YQ1brM5y6n/dM+mPfuv25Bvz8NljwAKLGIii9cDqPWqK/W7fbcBURuef2tQyyj/D
+	 R8APh4OUPm9EVQJ6z7ArsM8wrT9SdDgfe3smmqu7yvy0YlleS7C1mKAIy4lb8DtethQaY
+	 40MHTUkxcHlVyPyfoboxXhmpR8jZ9dZo1tAUlsLEmTZSCc5I8+WF7K+sy0M9cJBZNZvAQ
+	 /U8xk9kL/+wF/caVIUZejhlFdb/uK1dXUSKuGL7+wtxTmpUd6D+sGuGjuY+5OXb38rtQh
+	 Pd+ykomguB/BpGbs82Jsv9fH/OzZ4SsF3QJdXaTvkWpVsR+xry11jp0sleMSwKjUWKg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=amazon.com;
 	spf=pass smtp.mailfrom=amazon.com;
-	dkim=pass header.d=amazon.com header.i=@amazon.com header.a=rsa-sha256 header.s=amazoncorp2 header.b=njInuDVE;
-	arc=none smtp.remote-ip=52.42.203.116
-Received: from pdx-out-008.esa.us-west-2.outbound.mail-perimeter.amazon.com (pdx-out-008.esa.us-west-2.outbound.mail-perimeter.amazon.com [52.42.203.116])
+	dkim=pass header.d=amazon.com header.i=@amazon.com header.a=rsa-sha256 header.s=amazoncorp2 header.b=qfMjLRls;
+	arc=none smtp.remote-ip=50.112.246.219
+Received: from pdx-out-015.esa.us-west-2.outbound.mail-perimeter.amazon.com (pdx-out-015.esa.us-west-2.outbound.mail-perimeter.amazon.com [50.112.246.219])
 	(using TLSv1.2 with cipher ECDHE-ECDSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 10CF8606A31A;
-	Sat, 31 Oct 2026 13:10:00 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 10CF8606A31A
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9F1D6606A31A;
+	Sat, 31 Oct 2026 13:10:16 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 9F1D6606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amazon.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=amazon.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=amazon.com header.i=@amazon.com header.a=rsa-sha256 header.s=amazoncorp2 header.b=njInuDVE
+	dkim=pass (2048-bit key, unprotected) header.d=amazon.com header.i=@amazon.com header.a=rsa-sha256 header.s=amazoncorp2 header.b=qfMjLRls
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
   d=amazon.com; i=@amazon.com; q=dns/txt; s=amazoncorp2;
-  t=1793452201; x=1824988201;
-  h=from:to:cc:subject:date:message-id:mime-version:
-   content-transfer-encoding;
-  bh=qpRQyl+F0iyCWogSrvS1H906Iwx+X1/j+/wJASJUclQ=;
-  b=njInuDVEda+lcVa35YS8nSSsra2aAQm8GRxZ8F9+Rv99/EAg8nMQ5aBC
-   T2LRDbw///U/kIJwyGD95M2dmOiR03O7BpBGkrTWU/ZOaPXMYLjXJVQ/s
-   3jzqEKZoTZ1iXBzDnqJfuqSYw3YGtfZGDmk0U+LAeOeOzE+V5/VDZf25W
-   Sw64NESf8kCsJk4N67sCYDDCf3YIayMWXmWhDR3XHNr41IMwjFU7lkVnL
-   a7tEivaJ2jRds8imizf+PT2y8WikW9J6zmiezR5zUC+PCs5ZB8b5+9BNL
-   97vzPFBdgXYfQBBR5EqLeh7TGN0coZUrQKcvA3Bj9rBsNjAOXDu8iOsBT
-   g==;
-X-CSE-ConnectionGUID: yl+j7SMISFCmSqa074HKsQ==
-X-CSE-MsgGUID: EkYm3CWrQUC8iV6hmcVX0Q==
+  t=1793452216; x=1824988216;
+  h=from:to:cc:subject:date:message-id:in-reply-to:
+   references:mime-version:content-transfer-encoding;
+  bh=WLwSPKJZysmtmpa3FI6ONURJasLxd8GwEWG5mergj7I=;
+  b=qfMjLRlsL/K6iNtbax0YspXpjr++drya+goOKhbzZ0TW8QP8PFvzPnbi
+   62XLLkW93tROcNqM72gMOw7v9olp2Unu8qa7CiHQZiJURfud/3pfzBirZ
+   mbB4a0p4TOdRPQ4YCT2PtQWojZxLFusb96YkQKoTU3PpiIOterF5sXouu
+   Brx7CY4QwN1vGvFp57iLcVGRGrKZ09ixO/U1B0DAjVa5wQg9aFs5L28Ng
+   7uruFQcCgVYRb3S/hklSlxph04XmqWlD6/XeS/vpnsBUbXoC2gNAxmOxc
+   pAuY7EY9Xb9jzRpSOGKCGydzcDqm5wy3m2WmSz6Hh4ZUEG6pALUAq2r2f
+   A==;
+X-CSE-ConnectionGUID: 3MCF7pz5TNW5oobuJGNqoA==
+X-CSE-MsgGUID: dOK403tWQIae1ri+dpcJDQ==
 X-IronPort-AV: E=Sophos;i="6.27,188,1787011200"; 
-   d="scan'208";a="32781343"
+   d="scan'208";a="32523547"
 Received: from ip-10-5-9-48.us-west-2.compute.internal (HELO smtpout.naws.us-west-2.prod.farcaster.email.amazon.dev) ([10.5.9.48])
-  by internal-pdx-out-008.esa.us-west-2.outbound.mail-perimeter.amazon.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 31 Oct 2026 13:10:00 +0000
-Received: from EX19MTAUWA002.ant.amazon.com [205.251.233.178:18493]
- by smtpin.naws.us-west-2.prod.farcaster.email.amazon.dev [10.0.22.238:2525] with esmtp (Farcaster)
- id f6314dd5-b68f-40bd-afa9-ac54f6d9e237; Sat, 31 Oct 2026 13:10:00 +0000 (UTC)
-X-Farcaster-Flow-ID: f6314dd5-b68f-40bd-afa9-ac54f6d9e237
+  by internal-pdx-out-015.esa.us-west-2.outbound.mail-perimeter.amazon.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 31 Oct 2026 13:10:16 +0000
+Received: from EX19MTAUWB001.ant.amazon.com [205.251.233.104:12597]
+ by smtpin.naws.us-west-2.prod.farcaster.email.amazon.dev [10.0.44.80:2525] with esmtp (Farcaster)
+ id 28ed7a52-4df6-4b39-b04f-61f66360095c; Sat, 31 Oct 2026 13:10:15 +0000 (UTC)
+X-Farcaster-Flow-ID: 28ed7a52-4df6-4b39-b04f-61f66360095c
 Received: from EX19D001UWA001.ant.amazon.com (10.13.138.214) by
- EX19MTAUWA002.ant.amazon.com (10.250.64.202) with Microsoft SMTP Server
+ EX19MTAUWB001.ant.amazon.com (10.250.64.248) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA) id 15.2.2562.56;
- Sat, 31 Oct 2026 13:10:00 +0000
+ Sat, 31 Oct 2026 13:10:15 +0000
 Received: from dev-dsk-wanjay-2c-d25651b4.us-west-2.amazon.com (172.19.198.4)
  by EX19D001UWA001.ant.amazon.com (10.13.138.214) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA) id 15.2.2562.56;
- Sat, 31 Oct 2026 13:09:59 +0000
+ Sat, 31 Oct 2026 13:10:15 +0000
 From: Jay Wang <wanjay@amazon.com>
 To: <bpf@vger.kernel.org>, Alexei Starovoitov <ast@kernel.org>, "Daniel
  Borkmann" <daniel@iogearbox.net>, Andrii Nakryiko <andrii@kernel.org>,
@@ -81,10 +81,12 @@ CC: Ihor Solodrai <ihor.solodrai@linux.dev>, Alan Maguire
 	<linux-doc@vger.kernel.org>, <linux-kernel@vger.kernel.org>, "Hazem Mohamed
  Abuelfotoh" <abuehaze@amazon.com>, Bjoern Doebel <doebel@amazon.de>, "Martin
  Pohlack" <mpohlack@amazon.de>, <jay.wang.upstream@gmail.com>
-Subject: [PATCH bpf-next 00/13] bpf: keep the vmlinux BTF compressed until first use (CONFIG_DEBUG_INFO_BTF_LAZY) to save ~6 MB memory
-Date: Sat, 31 Oct 2026 13:09:46 +0000
-Message-ID: <20261031130959.23472-1-wanjay@amazon.com>
+Subject: [PATCH bpf-next 01/13] bpf: match program context types by name without vmlinux BTF
+Date: Sat, 31 Oct 2026 13:09:47 +0000
+Message-ID: <20261031130959.23472-2-wanjay@amazon.com>
 X-Mailer: git-send-email 2.47.3
+In-Reply-To: <20261031130959.23472-1-wanjay@amazon.com>
+References: <20261031130959.23472-1-wanjay@amazon.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -96,214 +98,257 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain
-X-ClientProxiedBy: EX19D031UWA004.ant.amazon.com (10.13.139.19) To
+X-ClientProxiedBy: EX19D031UWC003.ant.amazon.com (10.13.139.252) To
  EX19D001UWA001.ant.amazon.com (10.13.138.214)
 
-This series follows the feedback on the previous posting, "[PATCH
-bpf-next v4 00/12] bpf: make the vmlinux BTF an on-demand loadable
-module (CONFIG_DEBUG_INFO_BTF=m) to save ~5.4 MB memory":
-https://lore.kernel.org/bpf/20261001225214.12351-1-wanjay@amazon.com/
+From: Ihor Solodrai <ihor.solodrai@linux.dev>
 
-Based on and tested against bpf-next commit 7101b10cf281 ("Merge branch
-'bpf-add-syscall-common-attrs-support-for-xdp-link_create'"), plus
-commit fb2b27d214c3 ("bpf: Propagate btf_add_type() errors in
-btf_check_all_metas()") from the bpf tree, which a first use that runs
-out of memory relies on.
+btf_is_prog_ctx_type() and btf_validate_prog_ctx_type() decide whether
+a BTF function argument is the program's context.  They look up the
+canonical context type of the program type in bpf_ctx_convert, a type
+that only exists in the vmlinux BTF, but then use nothing but its name:
+the argument's type name is compared with it, with the __sk_buff ->
+sk_buff and xdp_md -> xdp_buff projections, and with one typedef
+resolution step for bpf_user_pt_regs_t.
 
-This series adds CONFIG_DEBUG_INFO_BTF_LAZY.  With it, the kernel image
-keeps the vmlinux BTF zstd-compressed, and the kernel decompresses and
-parses it the first time something needs it, instead of at boot.  On a
-system that never uses BTF this saves ~6 MB of memory with a
-distribution config; the first user waits ~15 ms once, and from then
-on everything is as without the option.  The option is off by default.
+btf_prepare_func_args() runs this check for the main program of every
+load that carries func_info (e.g. the socket filter and cgroup programs
+systemd loads at boot) and for subprograms.  Once the vmlinux BTF is
+parsed on first use (CONFIG_DEBUG_INFO_BTF_LAZY, later in this series),
+fetching the BTF here would make all of them pay for parsing it, and
+skipping the check when the BTF is not there yet would make the
+verification result (e.g. func_info "unreliable") depend on whether
+something else parsed the BTF first.
 
-The option is currently available on x86 and arm64 only.  On several
-other architectures the boot image is a stripped ELF copy of vmlinux,
-which would carry the 5-7 MB of uncompressed BTF that the kernel never
-uses; they can follow once their boot images drop it.
+Take the names from include/linux/bpf_types.h instead: a table indexed
+by program type is built from the prog_ctx_type argument of
+BPF_PROG_TYPE(), and prog_ctx_tname() returns the struct tag, or the
+typedef name.  For bpf_user_pt_regs_t it also returns the name of the
+underlying struct, found with __builtin_types_compatible_p() the same
+way btf_validate_prog_ctx_type() already does for perf_event programs.
+The other forms are equivalent to what the BTF lookup produced:
 
-It replaces the CONFIG_DEBUG_INFO_BTF=m series [1]: compression is the
-approach Ihor proposed there and prototyped [2], Alexei preferred it
-[3], and Ihor agreed to this series taking it to submission [4].
+ - typedefs of integers (__u64, __u32): the old code compared the
+   typedef name and then the integer type name, which never equals a
+   struct tag; only the typedef name is compared now;
+ - "void *" (tracing, struct_ops, ext, lsm, syscall): no named context
+   type, as before;
+ - s390 typedefs bpf_user_pt_regs_t to an anonymous struct: nothing
+   matches, as before; only the __arg_ctx error message changes from
+   "should be `struct  *`" to "should be void pointer";
+ - program types that are not configured in used to index
+   bpf_ctx_convert_map[] with 0 (socket filter); they now get no name.
+   Such programs cannot be loaded anyway.
 
-Problem
--------
+find_kern_ctx_type_id() and get_kern_ctx_btf_id() still need the kernel
+context type (tracing/EXT access to a BPF program's context argument,
+bpf_cast_to_kern_ctx()).  Kernel types enter the program there, so they
+now fetch the vmlinux BTF with bpf_get_btf_vmlinux() instead of relying
+on bpf_check() having done it.
 
-The vmlinux BTF is 5-7 MB of read-only data in every kernel built with
-CONFIG_DEBUG_INFO_BTF=y, and the kernel parses it at boot whether or
-not anything on the system uses it.  A distribution ships one kernel
-build to all its users, so it cannot turn BTF off for the ones who do
-not need it without taking it away from the ones who do: CO-RE,
-fentry/fexit, kfuncs, struct_ops, sched_ext and BPF LSM all depend on
-it.
+No change with CONFIG_DEBUG_INFO_BTF=y.  With CONFIG_DEBUG_INFO_BTF=n,
+global subprograms taking e.g. a struct __sk_buff *ctx now verify
+instead of failing with "btf_vmlinux is malformed", as they do with =y.
 
-Approach
---------
+TODO-NEEDS-IHOR: Signed-off-by: Ihor Solodrai <ihor.solodrai@linux.dev>
+[split the BPF_PROG_TYPE() definition over two lines]
+Signed-off-by: Jay Wang <wanjay@amazon.com>
+---
+ kernel/bpf/btf.c | 116 ++++++++++++++++++++++-------------------------
+ 1 file changed, 53 insertions(+), 63 deletions(-)
 
-Nothing is removed, only deferred, and nothing waits for user space:
-whoever needs the BTF first decompresses and parses it synchronously,
-so every caller of bpf_get_btf_vmlinux() still gets the BTF or an
-error.  The work is in finding the first users and in what has to wait
-for them:
-
- - Who needs it (patches 1-3).  bpf_check() fetched the BTF for every
-   program; now it is fetched where kernel types enter a program, and
-   program context types are matched by name, so the socket filters
-   and cgroup programs systemd loads at boot do not parse it.  Neither
-   can an unprivileged bpffs mount with delegate options.
-
- - Where it must not be parsed (patches 7, 8).  The CO-RE candidate
-   lookup and the tracefs btf_ids file fetch it before taking their
-   mutex.  The trace readers print BTF-typed arguments under the trace
-   locks while the tracer records; tracing now parses the BTF when such
-   output is enabled, and the printers never parse it.
-
- - Boot-time registrations (patches 4, 6, 10).  kfunc sets and
-   struct_ops registered by initcalls are queued and replayed by the
-   task that parses the BTF, before it publishes it.  A first use that
-   runs out of memory, e.g. because its task is being killed, is undone
-   and left to the next one.
-
- - Module BTF (patches 5, 11).  Module BTF is split BTF on top of the
-   vmlinux BTF.  Modules that load before the first use keep their BTF
-   unparsed and serve it in sysfs; it is parsed together with the
-   vmlinux BTF.
-
-Systems that use BTF end up with the same memory as today: the
-compressed copy is freed once it is decompressed.  What still parses
-the BTF at boot: BPF LSM programs (systemd loads one when "bpf" is in
-the LSM list), the iterators of CONFIG_BPF_PRELOAD (at the first bpffs
-mount, which systemd does at boot), and modules with distilled base
-BTF.
-
-Patches 1-8 prepare and are small changes on their own; their
-changelogs say what, if anything, changes without the option.  Patch 9
-adds the option and keeps the BTF compressed; 10 and 11 defer the
-registrations and module BTF; 12 keeps two selftests working without
-__start_BTF; 13 documents the option.
-
-Patches 1, 3, 4, 7 and 8 are Ihor's, adapted to the current tree.
-Patches 2, 5, 9, 10 and 11 are co-developed with him: 9 reworks his
-compression patch, and 2, 5, 10 and 11 combine his rework with parts
-of the =m series.
-
-Testing
--------
-
-Tested with a distribution config, the option on against off, with
-module BTF.  A kprobe event on btf_parse_vmlinux() shows when the BTF
-gets parsed, without needing BTF itself:
-
-  # cd /sys/kernel/tracing
-  # echo 'p:parse btf_parse_vmlinux' >> kprobe_events
-  # echo 1 > events/kprobes/parse/enable
-  # grep btf_vmlinux /proc/vmallocinfo
-      -> only btf_vmlinux_keep_zst: the compressed copy, ~1.4 MB.
-  # ls -la /sys/kernel/btf/vmlinux
-      -> the full size, ~5.5 MB, although nothing is decompressed yet.
-  # modprobe ext4; ls /sys/kernel/btf
-      -> ext4 and its dependencies are there right away, although
-         their BTF is only kept, not parsed.
-  # cat /sys/kernel/btf/vmlinux > /dev/null
-  # grep btf_vmlinux /proc/vmallocinfo
-      -> btf_vmlinux_data: the decompressed copy, ~5.5 MB; the
-         compressed copy is freed.
-  # grep parse kprobe_profile
-      -> parse 0: reading the file did not parse the BTF.
-  # bpftool btf list
-      -> vmlinux, ext4 and its dependencies get BTF ids, and
-         kprobe_profile counts one parse.
-
-Results:
-
- - Without a BTF user, MemTotal is 5.4-6.7 MB higher with the option,
-   slab ~2 MB lower, and the compressed copy takes ~1.4 MB of vmalloc:
-   ~6-7 MB more free memory.  After the first use the decompressed copy
-   takes ~5.5 MB of vmalloc, and slab is as with the option off.
-   The ~5.4 MB quoted for the =m series [1] counted MemTotal alone,
-   i.e. the size of .BTF.  The figure here also counts the ~2 MB that
-   parsing the BTF at boot allocates (=m saved that too), minus the
-   ~1.4 MB compressed copy.
- - The first use takes ~15 ms: ~7 ms to decompress, ~6 ms to parse,
-   ~1 ms for the kept module BTF and the queued registrations.
- - Each of these, as the first user on a fresh boot, parses the BTF
-   and works: kfunc calls, a struct_ops map, a kptr to task_struct,
-   ksyms and map_ptr access, bpf_snprintf_btf(), BPF_BTF_GET_NEXT_ID,
-   kprobe events with BTF arguments, func-args, funcgraph-args and
-   funcgraph-retval, a tracepoint's btf_ids file, a bpffs mount with
-   delegate option names, loading a module with distilled base BTF,
-   and four program loads at once.  Modules loaded before have their
-   BTF, and the kfuncs they registered from init, in place after it;
-   modules removed before leave nothing behind.
- - These do not parse it: socket filters (also failing ones, and ones
-   with func_info and an extension of them), a light skeleton loader,
-   CO-RE relocations done by libbpf, the programs systemd loads at
-   boot, stat(), read() and mmap() of /sys/kernel/btf/vmlinux, reading
-   a module's BTF file, BPF_BTF_GET_NEXT_ID without CAP_SYS_ADMIN, and
-   an unprivileged map_ptr access or attach_btf_id.
- - A module with broken BTF loads, loses its BTF at the first use and
-   stays loaded.
- - Lockdep, kmemleak and KASAN kernels run the same cases cleanly.  A
-   fault injection sweep fails each of the 750 allocations of a first
-   use in turn, one per boot; each failure leaves nothing published,
-   and the next use completes.
- - With systemd as init, its BPF LSM program parses the BTF at boot
-   when "bpf" is in the LSM list; without it, and without
-   CONFIG_BPF_PRELOAD, nothing does.
- - Every patch builds with and without BTF.  Neither the x86
-   compressed image nor the arm64 Image carries the uncompressed BTF.
-
-[1] https://lore.kernel.org/bpf/20261001225214.12351-1-wanjay@amazon.com/
-[2] https://lore.kernel.org/bpf/44315425-c505-46fe-8379-f19d78ff3abb@linux.dev/
-[3] https://lore.kernel.org/bpf/DLUZVHOLSN1B.115EUX4KJBEA3@gmail.com/
-[4] https://lore.kernel.org/bpf/7844ef03-d9b2-4a10-8f14-1b498ada9043@linux.dev/
-
-Ihor Solodrai (5):
-  bpf: match program context types by name without vmlinux BTF
-  bpf: check CAP_SYS_ADMIN before looking up bpffs delegation names
-  bpf: move bpf_get_btf_vmlinux() to btf.c
-  bpf: parse the vmlinux BTF before taking cand_cache_mutex
-  tracing: parse the vmlinux BTF when BTF-typed output is enabled
-
-Jay Wang (8):
-  bpf: fetch the vmlinux BTF where kernel types enter a program
-  bpf: let btf_parse_module() adopt the caller's copy of the module BTF
-  bpf: look up the struct_ops common value type in the given BTF
-  bpf: keep the vmlinux BTF zstd-compressed in the kernel image
-  bpf: defer kfunc and struct_ops registrations until first BTF use
-  bpf: keep module BTF until the vmlinux BTF is parsed
-  selftests/bpf: keep ksyms and linked_vars working without __start_BTF
-  Documentation/bpf: describe CONFIG_DEBUG_INFO_BTF_LAZY
-
- Documentation/bpf/btf.rst                     |  30 +
- arch/x86/boot/compressed/Makefile             |   2 +-
- include/asm-generic/vmlinux.lds.h             |  24 +-
- include/linux/bpf.h                           |   1 +
- include/linux/btf.h                           |   5 +
- kernel/bpf/Makefile                           |   2 +-
- kernel/bpf/bpf_struct_ops.c                   |   4 +-
- kernel/bpf/btf.c                              | 636 +++++++++++++++---
- kernel/bpf/inode.c                            |  11 +-
- kernel/bpf/syscall.c                          |  12 +-
- kernel/bpf/sysfs_btf.c                        | 167 ++++-
- kernel/bpf/verifier.c                         | 115 ++--
- kernel/trace/bpf_trace.c                      |   3 +-
- kernel/trace/trace_btf.c                      |  32 +
- kernel/trace/trace_btf.h                      |   3 +
- kernel/trace/trace_events.c                   |   4 +
- kernel/trace/trace_functions.c                |   4 +
- kernel/trace/trace_functions_graph.c          |  15 +-
- kernel/trace/trace_output.c                   |   3 +
- lib/Kconfig.debug                             |  24 +
- scripts/gen-btf.sh                            |  25 +-
- .../testing/selftests/bpf/prog_tests/ksyms.c  |   8 +-
- .../selftests/bpf/progs/linked_vars2.c        |   4 +-
- .../testing/selftests/bpf/progs/test_ksyms.c  |   5 +-
- 24 files changed, 951 insertions(+), 188 deletions(-)
-
-
-base-commit: 7101b10cf281f629ac58c99697ca6f6d082b99a7
-prerequisite-patch-id: 7f71e8747677477d27e903f08839dcecfd176ade
+diff --git a/kernel/bpf/btf.c b/kernel/bpf/btf.c
+index 94d43612d211..1c7536a22a63 100644
+--- a/kernel/bpf/btf.c
++++ b/kernel/bpf/btf.c
+@@ -6557,20 +6557,46 @@ static u8 bpf_ctx_convert_map[] = {
+ #undef BPF_MAP_TYPE
+ #undef BPF_LINK_TYPE
+ 
+-static const struct btf_type *find_canonical_prog_ctx_type(enum bpf_prog_type prog_type)
++#define BPF_MAP_TYPE(_id, _ops)
++#define BPF_LINK_TYPE(_id, _name)
++#define BPF_PROG_TYPE(_id, _name, prog_ctx_type, kern_ctx_type) \
++	[_id] = #prog_ctx_type,
++static const char * const bpf_prog_ctx_tname[] = {
++#include <linux/bpf_types.h>
++};
++#undef BPF_PROG_TYPE
++#undef BPF_MAP_TYPE
++#undef BPF_LINK_TYPE
++
++struct user_regs_struct;
++struct user_pt_regs;
++
++/*
++ * Name of the context struct of @prog_type, as written in bpf_types.h, or NULL
++ * if it has none ("void *").  Only names are compared against the program's
++ * BTF, so the vmlinux BTF is not needed.  *@alt is set to the struct behind
++ * the bpf_user_pt_regs_t typedef.  Typedefs of integers (__u64, __u32) never
++ * match a struct name.
++ */
++static const char *prog_ctx_tname(enum bpf_prog_type prog_type, const char **alt)
+ {
+-	const struct btf_type *conv_struct;
+-	const struct btf_member *ctx_type;
++	const char *name = prog_type < ARRAY_SIZE(bpf_prog_ctx_tname) ?
++			   bpf_prog_ctx_tname[prog_type] : NULL;
+ 
+-	conv_struct = bpf_ctx_convert.t;
+-	if (!conv_struct)
++	*alt = NULL;
++	if (!name || strchr(name, '*'))
+ 		return NULL;
+-	/* prog_type is valid bpf program type. No need for bounds check. */
+-	ctx_type = btf_type_member(conv_struct) + bpf_ctx_convert_map[prog_type] * 2;
+-	/* ctx_type is a pointer to prog_ctx_type in vmlinux.
+-	 * Like 'struct __sk_buff'
+-	 */
+-	return btf_type_by_id(btf_vmlinux, ctx_type->type);
++	if (str_has_prefix(name, "struct "))
++		return name + strlen("struct ");
++	if (!strcmp(name, "bpf_user_pt_regs_t")) {
++		if (__builtin_types_compatible_p(bpf_user_pt_regs_t, struct pt_regs))
++			*alt = "pt_regs";
++		else if (__builtin_types_compatible_p(bpf_user_pt_regs_t, struct user_pt_regs))
++			*alt = "user_pt_regs";
++		else if (__builtin_types_compatible_p(bpf_user_pt_regs_t, struct user_regs_struct))
++			*alt = "user_regs_struct";
++	}
++	return name;
+ }
+ 
+ static int find_kern_ctx_type_id(enum bpf_prog_type prog_type)
+@@ -6578,9 +6604,10 @@ static int find_kern_ctx_type_id(enum bpf_prog_type prog_type)
+ 	const struct btf_type *conv_struct;
+ 	const struct btf_member *ctx_type;
+ 
+-	conv_struct = bpf_ctx_convert.t;
+-	if (!conv_struct)
++	/* bpf_ctx_convert.t is set when the vmlinux BTF is parsed */
++	if (IS_ERR_OR_NULL(bpf_get_btf_vmlinux()))
+ 		return -EFAULT;
++	conv_struct = bpf_ctx_convert.t;
+ 	/* prog_type is valid bpf program type. No need for bounds check. */
+ 	ctx_type = btf_type_member(conv_struct) + bpf_ctx_convert_map[prog_type] * 2 + 1;
+ 	/* ctx_type is a pointer to prog_ctx_type in vmlinux.
+@@ -6602,8 +6629,7 @@ bool btf_is_prog_ctx_type(struct bpf_verifier_log *log, const struct btf *btf,
+ 			  const struct btf_type *t, enum bpf_prog_type prog_type,
+ 			  int arg)
+ {
+-	const struct btf_type *ctx_type;
+-	const char *tname, *ctx_tname;
++	const char *tname, *ctx_tname, *alt;
+ 
+ 	t = btf_type_by_id(btf, t->type);
+ 
+@@ -6637,21 +6663,9 @@ bool btf_is_prog_ctx_type(struct bpf_verifier_log *log, const struct btf *btf,
+ 		return false;
+ 	}
+ 
+-	ctx_type = find_canonical_prog_ctx_type(prog_type);
+-	if (!ctx_type) {
+-		bpf_log(log, "btf_vmlinux is malformed\n");
+-		/* should not happen */
+-		return false;
+-	}
+-again:
+-	ctx_tname = btf_name_by_offset(btf_vmlinux, ctx_type->name_off);
+-	if (!ctx_tname) {
+-		/* should not happen */
+-		bpf_log(log, "Please fix kernel include/linux/bpf_types.h\n");
+-		return false;
+-	}
+ 	/* program types without named context types work only with arg:ctx tag */
+-	if (ctx_tname[0] == '\0')
++	ctx_tname = prog_ctx_tname(prog_type, &alt);
++	if (!ctx_tname)
+ 		return false;
+ 	/* only compare that prog's ctx type name is the same as
+ 	 * kernel expects. No need to compare field by field.
+@@ -6660,37 +6674,18 @@ bool btf_is_prog_ctx_type(struct bpf_verifier_log *log, const struct btf *btf,
+ 	 * int socket_filter_bpf_prog(struct __sk_buff *skb)
+ 	 * { // no fields of skb are ever used }
+ 	 */
+-	if (btf_is_projection_of(ctx_tname, tname))
++	if (btf_is_projection_of(ctx_tname, tname) || !strcmp(ctx_tname, tname))
+ 		return true;
+-	if (strcmp(ctx_tname, tname)) {
+-		/* bpf_user_pt_regs_t is a typedef, so resolve it to
+-		 * underlying struct and check name again
+-		 */
+-		if (!btf_type_is_modifier(ctx_type))
+-			return false;
+-		while (btf_type_is_modifier(ctx_type))
+-			ctx_type = btf_type_by_id(btf_vmlinux, ctx_type->type);
+-		goto again;
+-	}
+-	return true;
++	/* bpf_user_pt_regs_t is a typedef, check the underlying struct too */
++	return alt && !strcmp(alt, tname);
+ }
+ 
+-/* forward declarations for arch-specific underlying types of
+- * bpf_user_pt_regs_t; this avoids the need for arch-specific #ifdef
+- * compilation guards below for BPF_PROG_TYPE_PERF_EVENT checks, but still
+- * works correctly with __builtin_types_compatible_p() on respective
+- * architectures
+- */
+-struct user_regs_struct;
+-struct user_pt_regs;
+-
+ static int btf_validate_prog_ctx_type(struct bpf_verifier_log *log, const struct btf *btf,
+ 				      const struct btf_type *t, int arg,
+ 				      enum bpf_prog_type prog_type,
+ 				      enum bpf_attach_type attach_type)
+ {
+-	const struct btf_type *ctx_type;
+-	const char *tname, *ctx_tname;
++	const char *tname, *ctx_tname, *alt;
+ 
+ 	if (!btf_is_ptr(t)) {
+ 		bpf_log(log, "arg#%d type isn't a pointer\n", arg);
+@@ -6790,27 +6785,20 @@ static int btf_validate_prog_ctx_type(struct bpf_verifier_log *log, const struct
+ 		break;
+ 	}
+ 
+-	ctx_type = find_canonical_prog_ctx_type(prog_type);
+-	if (!ctx_type) {
+-		/* should not happen */
+-		bpf_log(log, "btf_vmlinux is malformed\n");
+-		return -EINVAL;
+-	}
+-
+ 	/* resolve typedefs and check that underlying structs are matching as well */
+-	while (btf_type_is_modifier(ctx_type))
+-		ctx_type = btf_type_by_id(btf_vmlinux, ctx_type->type);
++	ctx_tname = prog_ctx_tname(prog_type, &alt);
++	if (ctx_tname && !str_has_prefix(bpf_prog_ctx_tname[prog_type], "struct "))
++		ctx_tname = alt;
+ 
+ 	/* if program type doesn't have distinctly named struct type for
+ 	 * context, then __arg_ctx argument can only be `void *`, which we
+ 	 * already checked above
+ 	 */
+-	if (!__btf_type_is_struct(ctx_type)) {
++	if (!ctx_tname) {
+ 		bpf_log(log, "arg#%d should be void pointer\n", arg);
+ 		return -EINVAL;
+ 	}
+ 
+-	ctx_tname = btf_name_by_offset(btf_vmlinux, ctx_type->name_off);
+ 	if (!__btf_type_is_struct(t) || strcmp(ctx_tname, tname) != 0) {
+ 		bpf_log(log, "arg#%d should be `struct %s *`\n", arg, ctx_tname);
+ 		return -EINVAL;
+@@ -6837,6 +6825,8 @@ int get_kern_ctx_btf_id(struct bpf_verifier_log *log, enum bpf_prog_type prog_ty
+ 	const struct btf_type *kctx_type;
+ 	u32 kctx_type_id;
+ 
++	if (IS_ERR_OR_NULL(bpf_get_btf_vmlinux()))
++		return -EINVAL;
+ 	conv_struct = bpf_ctx_convert.t;
+ 	/* get member for kernel ctx type */
+ 	kctx_member = btf_type_member(conv_struct) + bpf_ctx_convert_map[prog_type] * 2 + 1;
 -- 
 2.47.3
 
