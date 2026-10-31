@@ -1,127 +1,110 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.178
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.210.170
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793459706;
-	b=CdXJU61LShfHBhBtH1ocnox5LeNgxewAfzLnQ2GfgVru3CeFDjhCYoBT8hEEvmXpYNWt
-	 fKxMOU6WbBgXcuiboas6vmN86JPltBWZ2XF1lM3RKna+mFYRe0HTdZoAfamDQp9qvG0om
-	 /XPjw+eIS8MXPNJBXxWSeutNOhRrKlLsH4w8MKwRYH2msS7t0oJSTjzWUw0RzQrd9xIV6
-	 2qHkIVolJh9+jWyrv2caRnDZ4/Dmvb9X180Do9DpfLifX+3pfNAkRJo+eiNWyoTs73QrO
-	 EW5KZpYBvNKI+Wwm7pwOKOyqb9ZNcxR0Nm8y6ajKibEDJu8aODL7/YronYuMa5tFuRQ==
+	t=1793466188;
+	b=WQu4rJ5lhmrIDHRxLefdvTSy9MV/eF9Q+n7wb/21lItAVjiowRxUAVK30l5cQh2dAJKB
+	 nS4D7XEKAwPzMZ0I8d8yV3Ntm0QTJ6AnaYnEt/IhnaZABSuQqXFG7R/r1CeIEesE5pD0F
+	 IdZN7lKL9kRMGM2r384GR6uDViBXunrFkV83a5yYqYtllfKVt58lfzPSIxtmFinHF/eyS
+	 8hv8GXJF1QtMjn5eE5vuoQ2cqUHuoM2LYftMVfYqiu4l+4fCJXjEAIHxjKlSbl9xHsXFi
+	 7aUIVh2iSUIJj17jmHnh28Z/rDKilH0R7ccNqXWRXhsGRfokUFjbV7OPJ1p8jea4QlA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793459706;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793466188;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
-	 MIME-Version:Content-Type:Content-Transfer-Encoding;
-	bh=u4AoREHEWHwqK+9vsy9N5I/xo3mEZgUmU5DSaNM6uCY=;
-	b=jr9cKhoT8yUHoc8p9Yeh9PGXsI017p8FyGehJojqb71RhfISmyAnH7oH7RNRYOR908U1
-	 zUDtm7rTGvidnbjO9UwccbJ0iK5+MJnZPqFzYlFI36vqr1mLdNMC8SA0nK6Dg6P006AyG
-	 H80a8B1vZePff/YIVA4iu+MXUpJMTNpQ6sT5fU4XC0Fq8IqMgvjK/9DeefOVtVfpIcgGY
-	 5MiEbHA/xUogDDu9eGanP9XDWqlbmIftMqs7voU6vlqNtW/Qb13Rw0WVtpIOxUEK98aL+
-	 9l7+uVL3BNl15X6NymhII8URMerxBQJY3ywJMe5ECZ9QjhzRxf0ora/U5NZKI7zlFHw==
+	 Content-Type:Date:Message-Id:Cc:Subject:From:To:In-Reply-To:
+	 References:Content-Transfer-Encoding:MIME-Version;
+	bh=gba0XFZ/wiG7mOW6sD/3lIcnTLkNzkhvuJnY/kVtgnw=;
+	b=oTvYP8XA1wQxYXzCMi2m3GZjJbxXNk9MRdn6rehQL1MxdI30P4gVy4VQForJ9X+z9g5u
+	 n0Id7YTxfsVyw26rmZPUvW2OSwwDBoF054n9SxOUnpKsiLpk7I8NJToPi9PwMstvyp6GG
+	 yAc7lLW8nHEdPXzJDhDICvyIuSZBK87WCimvjfFGznQU9v6VeYDwsk4BCwwYcXhKauF5n
+	 gQcpNmrYSIYdMbIehImJVAzEeHJulAnAqp8vFED6DqIFC0rzxVkKF/9QxYvfQDOGlzpmu
+	 +g+73ZXcseRljoZ0Fdl8Loo9v+IwHp5oRcujcYlVFTzOmB4LEZq6xuzsYUSEDI6QpVA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=gmail.com;
 	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b="PhqPg/E2";
-	arc=none smtp.remote-ip=209.85.221.178
-Received: from mail-vk1-f178.google.com (mail-vk1-f178.google.com [209.85.221.178])
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=i8E3v5cp;
+	arc=none smtp.remote-ip=209.85.210.170
+Received: from mail-pf1-f170.google.com (mail-pf1-f170.google.com [209.85.210.170])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81C97606A322
-	for <linux-arch@vger.kernel.org>; Sat, 31 Oct 2026 15:15:05 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 81C97606A322
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A0C1C606A31A
+	for <linux-arch@vger.kernel.org>; Sat, 31 Oct 2026 17:03:07 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A0C1C606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=PhqPg/E2
-Received: by mail-vk1-f178.google.com with SMTP id 71dfb90a1353d-5eafaeb8684so504410e0c.3
-        for <linux-arch@vger.kernel.org>; Sat, 31 Oct 2026 08:15:05 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=i8E3v5cp
+Received: by mail-pf1-f170.google.com with SMTP id d2e1a72fcca58-8a06b436dffso418128b3a.3
+        for <linux-arch@vger.kernel.org>; Sat, 31 Oct 2026 10:03:07 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793459704; x=1794064504; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:mime-version:subject
-         :references:in-reply-to:message-id:cc:to:from:date:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=u4AoREHEWHwqK+9vsy9N5I/xo3mEZgUmU5DSaNM6uCY=;
-        b=PhqPg/E24VOKRLpfl1ae1ubh4CKpCn29JqhLZjBp/MR26TAAiPCusNfbhZKqTqe7Xj
-         KcQq5Lydqkv/yxQqi5C7ZY3ZDqurJIdEnXH0ucUJaLRRdFFYKlc9/hSNt/FBOqLJJqI7
-         p6jj64s7228VWY/vk1afOCOip01plUgqwJps6dk4WwMDU5fMSszkrzQk+rwDSKDYE+HI
-         68LbUdDAtL6NWwfUTf5zsmuxjMBjVb0I019RVHKueoF64p2AswdpFejX62Xr+afWIrOW
-         DgPY165zFFs16BXhBuygZX7vyRNjKllQEoev9+VtxIjjr17scodCqljZafdWsq6sK09A
-         Fhwg==
+        d=gmail.com; s=20260707; t=1793466187; x=1794070987; darn=vger.kernel.org;
+        h=mime-version:content-transfer-encoding:references:in-reply-to:to
+         :from:subject:cc:message-id:date:content-type:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=gba0XFZ/wiG7mOW6sD/3lIcnTLkNzkhvuJnY/kVtgnw=;
+        b=i8E3v5cpMSfAi1mqqro21Q/8Raqh769HEWZJL46CwnM2v9wK2OLVzJsAuCSE9qf3zq
+         tQY50fNwQDpf+SJSRQlAgqkCXH0WUUKhP57b7/iP77Uf3WNogA/laZGasAKdFWEz783R
+         toarBNdQRNtB75h9qwyX3N4XLDJa/7DPVsqKt+7a6In8nxnIlpSFdU2WiAXEmjKaF5ks
+         XnZGp+AauqkTqlVVZmUVXtl4Ag0HgI6GlxH75NYUPYnvp305gsOHdLStmb2NDkg/ihGG
+         sRkldpqZ/xsViTVAvbYKqxtnovFp7bSCwKkO/qhbTEhCAOOAoI1dYAM/lSLdEuekL6SG
+         SZDQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793459704; x=1794064504;
-        h=content-transfer-encoding:content-type:mime-version:subject
-         :references:in-reply-to:message-id:cc:to:from:date:x-gm-gg
+        d=1e100.net; s=20260707; t=1793466187; x=1794070987;
+        h=mime-version:content-transfer-encoding:references:in-reply-to:to
+         :from:subject:cc:message-id:date:content-type:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=u4AoREHEWHwqK+9vsy9N5I/xo3mEZgUmU5DSaNM6uCY=;
-        b=xLjPgF/3Q1TTnGTn/IRLiEbPSpvDKC/UUia98OmCdGDN7d9hjaxhn01pTLv09fuAUL
-         WMHuqzPXTUw/seARJrg61YwZthClndKOgMdC9QFJeEQq+oQ8lMUGLe7PWkusnptpJrAi
-         tDwuXdF7yRd5SX9dZaiWZmMhdbgeoGLnQ0iRn1L0L5abqdaWza9X4q9mRZmyRZJxeVfP
-         8NwJzkmUSbFb6KKNHbhT5mjnmN8p82JKN6oiU38IlyGBj4EzaSmuuqQGxGSr7KgUa56V
-         /hKtNa7CRSEnfTaqt3Y7oOy8tCOl6lRmXpLKCyiq52H2z0ayQe4bKXhVxIUQa0u3iAG0
-         cuwA==
-X-Forwarded-Encrypted: i=1; AKwUvBxw20rvHs3QfRTqGM8K8WA5PYeHSHoO4IWWyhezZnd6IhZ60QIZ/kuNEYpEjlSNpEUvnejuK04/r/sd@vger.kernel.org
-X-Gm-Message-State: AFq9FYKYoMOG29v/tID3vqzJcdJUy3rNdQ0oqMOxp8fxrIbJiWY96skZ
-	BFreB9jPlj2yhldy9lxI3JOdaGVPy6330aUQI1d+Hm0l+XRNeeJIAQLF
-X-Gm-Gg: AYBFou1j95jqbRdvSRUyFbkZ5aGgriTFQ46XFqjzN+cgi5y8Tvx7fVieu7aNVTOqONz
-	GsvHV1Uj+D3WSvz3lRGPLYJIcK1xu7P3P+MfPGBg7LtwmQBMok8LE/0QRNSm7p/Xc1gBzrU3KH7
-	DiFxP+qqwYBJwK3B2DBrAAE3YU+5Bto+5M3XJ5ldJ1p4jWD+g2oMRyrdYT9U8JpR8Tr5K+Haj6M
-	oeLISs/rubQmnF3j0B8L+Eu5Bs1V12iqhKqYaAWgsfSxZ/+RV0YHBAja8DudxRYm9KH7SZGlA4D
-	mUmRLccolGvnzQWhRG+Viwb222piunfRFaWqdAs5ye4Ik5UosFt5Z0LrYmxrP761OvbsCgb1h+r
-	Z4X04Thg86tkecfokL3F51qc71cNg4btoQle8pgtD2xvgvLmKY0xA8au48Mn/0HXw81FQWQiW8y
-	c4tWGNqUTX0q1bhNg6+zdFlv3HjHYn6Ss34XVVsXVlNbkr8VQYkyCwTwD17b4sAggzDae9i6oAk
-	nu1Wlu/JvcMFhQZQEkF3WfOBPMvyNolAYzYIbkd5GQEcF1+065OysA2qptMdZmpXJxpM14MZv4y
-	ejNVFovqYHhZdp9L95w88MJngMbPCydUF7rk+5QWhhT1g9RblnGwdwlSN8+aqvndEPm3Xa83h1d
-	eZQda0OappekaFw5xABue4egse9J04mz928PwObgMLHVi91C/uLVvh0QchYTZc0IZaYFb
-X-Received: by 2002:a67:e116:0:b0:7a1:fa0f:1106 with SMTP id ada2fe7eead31-7d072d759a9mr2050864137.36.1793459704527;
-        Sat, 31 Oct 2026 08:15:04 -0700 (PDT)
-Received: from gmail.com (111.46.245.35.bc.googleusercontent.com. [35.245.46.111])
-        by smtp.gmail.com with ESMTPSA id 71dfb90a1353d-5ec69c5d183sm6032016e0c.13.2026.10.31.08.15.03
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 31 Oct 2026 08:15:03 -0700 (PDT)
-Date: Sat, 31 Oct 2026 11:15:03 -0400
-From: Willem de Bruijn <willemdebruijn.kernel@gmail.com>
-To: Vitaly Zuevsky <vitaly.zuevsky@gcore.com>, 
- netdev@vger.kernel.org
-Cc: "David S. Miller" <davem@davemloft.net>, 
- Eric Dumazet <edumazet@kernel.org>, 
- Jakub Kicinski <kuba@kernel.org>, 
- Paolo Abeni <pabeni@redhat.com>, 
- Simon Horman <horms@kernel.org>, 
- Jonathan Corbet <corbet@lwn.net>, 
- Shuah Khan <skhan@linuxfoundation.org>, 
- Randy Dunlap <rdunlap@infradead.org>, 
- Richard Henderson <richard.henderson@linaro.org>, 
- Matt Turner <mattst88@gmail.com>, 
- Magnus Lindholm <linmag7@gmail.com>, 
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, 
- Helge Deller <deller@gmx.de>, 
- Andreas Larsson <andreas@gaisler.com>, 
- Kuniyuki Iwashima <kuniyu@google.com>, 
- Willem de Bruijn <willemb@google.com>, 
- Arnd Bergmann <arnd@arndb.de>, 
- Christian Brauner <brauner@kernel.org>, 
- Andrew Halaney <andrew@amutable.com>, 
- Jori Koolstra <jkoolstra@xs4all.nl>, 
- Alexander Mikhalitsyn <alexander@mihalicyn.com>, 
- Tariq Toukan <tariqt@nvidia.com>, 
- Saeed Mahameed <saeedm@nvidia.com>, 
- Chuang Wang <nashuiliang@gmail.com>, 
- linux-doc@vger.kernel.org, 
- linux-kernel@vger.kernel.org, 
- linux-alpha@vger.kernel.org, 
- linux-mips@vger.kernel.org, 
- linux-parisc@vger.kernel.org, 
- sparclinux@vger.kernel.org, 
- linux-arch@vger.kernel.org
-Message-ID: <willemdebruijn.kernel.e08dc63db124@gmail.com>
-In-Reply-To: <20261031113330.45704-2-vitaly.zuevsky@gcore.com>
-References: <20261031113330.45704-1-vitaly.zuevsky@gcore.com>
- <20261031113330.45704-2-vitaly.zuevsky@gcore.com>
-Subject: Re: [RFC PATCH net-next v1 1/2] net: add SO_NO_RFS to exclude a
- socket from RFS and aRFS
+        bh=gba0XFZ/wiG7mOW6sD/3lIcnTLkNzkhvuJnY/kVtgnw=;
+        b=TBeovdMMA0s/gxjDDzDJCxB3xTOr/CxRiAMYOoyhJ9H8Hv+COkYPM1TJ2oqlNiQlSJ
+         nGwj4mbc8X0OL909f5KzBF9KRajE+T9bPpivlCN9PyFoTZZZUka+xyXFLrHROmIhFrt2
+         ZH5ldq+6au51L/Ju2CeGJUqBJz+pGV5RRlui6ZxoGgiNFYdOOCTzLxY3cxecOVB5H7zH
+         uQWKnjBYFcxTtJcnT2309v1efzABQ2HZGHP7VdxQo/ztrlb1XiEexdEK+yKLoyHcOHn5
+         QurxtvYHVSd3HQm45yFjX/Uwq/bAj8A2VwiHsnkNbj9Ln8tVNCJ6a1XLplgS++OqpLUD
+         egIw==
+X-Forwarded-Encrypted: i=1; AKwUvByoK5M8uA/OnYnfSMvILtftpqFIC5Ggoe6g3Ajxo6JMZcvPh0olaHxVF8/PUX0R+WtAmo6rZjGC8JWi@vger.kernel.org
+X-Gm-Message-State: AFq9FYKDeR1BSNzRA8hYDOnZO2l/Z/jHbFTioz5teKBThLVI/XJOG+sH
+	qNrf8Kc/jhCkbwR7nu8sAxR+MJYsPL0Y/EyDuMtghw9UpjYG6/Goeqcc
+X-Gm-Gg: AYBFou3wjpogrUw0cNyMyC7fB5u7bO1MQFp8ok6o+nzIzeHDbuY0Fs/GCyiBhEmJ2SH
+	5k1fEEM8ovxMpSznIETwnrSO46kik9dsUUBV7ziPQaHCT4k5kmdq+MkHMNfqVk5zZrCMowM0LNB
+	UzjRMjatzwgCdOeb62HCHWFgETuLX0RM1g4aVDL5kevkbuLkfNQ22G/WL5+/s6mCdmHI8PwAVCD
+	HHEVGOYv5cDyZMaXdXGVt6VnMKjm+B476Yfup6WGDY6/DuxJlSrl68gTFDH2mO1qRy10RIqk3Ah
+	WCU1Y6xo4Tuq3N4USyiDZvJzwdNS+CuLS/ndx5EeHjBF0M62IuPbp6MChO2FsrUd51/GLMi3gQs
+	JYwTvFTeeueiDkfFSEsSp5C6dWJUq38bydDBpuGbzN1msBAlUTTF4iDCBWrvSmJrjG8vcq8NYe1
+	mGbtm2uGnlYxEVZgzlmF+3bXyfb7EmHakxepmBFeRHQVmzCMLiyVs+FrHNKNTDpL9MOfZNlGwW8
+	9HkWXPgZnSWR3cF8Cob7nnu5x6cnkGOlzbBiPxBCCvXxfuV3z3P4ImZDI2AxkGk45Kq8UNRmk+4
+	o/fXErwWLyYgFdahAmpvi81n0ODl/bk/Ly3Ak2xRwT/VSVFhT0e2WmcvaeYzxrSPnCYfbCNkz7G
+	sTy5CrDgnHqE37aQemqkZ0yoZTQrCGkTjL3EQ8Ol4mxuDRJMwIJ85af0=
+X-Received: by 2002:a05:6a21:b91:b0:3e8:e974:e45a with SMTP id adf61e73a8af0-3e928e26581mr4547143637.63.1793466186813;
+        Sat, 31 Oct 2026 10:03:06 -0700 (PDT)
+Received: from localhost ([153.61.198.246])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-8aadad94a8esm817264b3a.55.2026.10.31.10.03.04
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sat, 31 Oct 2026 10:03:05 -0700 (PDT)
+Content-Type: text/plain; charset=UTF-8
+Date: Sat, 31 Oct 2026 17:03:04 +0000
+Message-Id: <DMJ6PAVGV9ND.29T5161F064JL@gmail.com>
+Cc: "Ihor Solodrai" <ihor.solodrai@linux.dev>, "Alan Maguire"
+ <almagui@kernel.org>, "Martin KaFai Lau" <martin.lau@linux.dev>, "Yonghong
+ Song" <yonghong.song@linux.dev>, "Jiri Olsa" <jolsa@kernel.org>, "Steven
+ Rostedt" <rostedt@goodmis.org>, "Masami Hiramatsu" <mhiramat@kernel.org>,
+ "Mathieu Desnoyers" <mathieu.desnoyers@efficios.com>,
+ <linux-trace-kernel@vger.kernel.org>, "Nathan Chancellor"
+ <nathan@kernel.org>, "Nicolas Schier" <nsc@kernel.org>,
+ <linux-kbuild@vger.kernel.org>, "Arnd Bergmann" <arnd@arndb.de>,
+ <linux-arch@vger.kernel.org>, <x86@kernel.org>,
+ <linux-doc@vger.kernel.org>, <linux-kernel@vger.kernel.org>, "Hazem Mohamed
+ Abuelfotoh" <abuehaze@amazon.com>, "Bjoern Doebel" <doebel@amazon.de>,
+ "Martin Pohlack" <mpohlack@amazon.de>, <jay.wang.upstream@gmail.com>
+Subject: Re: [PATCH bpf-next 03/13] bpf: check CAP_SYS_ADMIN before looking
+ up bpffs delegation names
+From: "Alexei Starovoitov" <alexei.starovoitov@gmail.com>
+To: "Jay Wang" <wanjay@amazon.com>, <bpf@vger.kernel.org>, "Daniel Borkmann"
+ <daniel@iogearbox.net>, "Andrii Nakryiko" <andrii@kernel.org>, "Eduard
+ Zingerman" <eddyz87@gmail.com>, "Kumar Kartikeya Dwivedi"
+ <memxor@gmail.com>
+In-Reply-To: <20261031130959.23472-4-wanjay@amazon.com>
+References: <20261031130959.23472-1-wanjay@amazon.com> <20261031130959.23472-4-wanjay@amazon.com>
+Content-Transfer-Encoding: 8bit
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -131,97 +114,25 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain;
- charset=utf-8
-Content-Transfer-Encoding: 7bit
 
-Vitaly Zuevsky wrote:
-> RFS and accelerated RFS are enabled per host and per rx queue, but
-> whether steering helps is a property of the flow. A host that carries
-> a few long-lived flows which benefit from steering alongside a large
-> churn of short-lived flows has no way to express that today.
-> 
-> Add a boolean socket option, SO_NO_RFS. When set, sock_rps_record_flow()
-> does not record the socket in rps_sock_flow_table, so get_rps_cpu()
-> finds no match and neither software RFS nor ndo_rx_flow_steer() acts
-> on the flow; it stays on the CPU chosen by RSS or RPS.
-> 
-> The option is kept in sk_flags so that sk_clone_lock() copies it to
-> accepted children: setting it on a listening socket excludes every
-> connection accepted from it, while sockets the same process connects
-> itself remain eligible.
-> 
-> sock_rps_delete_flow() is skipped as well, because a socket that never
-> recorded itself must not clear a table slot that may belong to another
-> flow.
-> 
-> The test sits after the TCP_ESTABLISHED check and inside the
-> rfs_needed static branch, so hosts without RFS pay nothing and hosts
-> with RFS pay one test_bit() on a cache line tcp_recvmsg() already
-> touches.
-> 
-> Signed-off-by: Vitaly Zuevsky <vitaly.zuevsky@gcore.com>
+On Sat, Oct 31, 2026 at 06:09 AM Jay Wang <wanjay@amazon.com> wrote:
+> That is free today because the vmlinux BTF is parsed at boot.  Once it
+> is parsed on first use (CONFIG_DEBUG_INFO_BTF_LAZY, later in this
+> series), it would let any user make the kernel parse it and keep it
+> parsed until reboot, which is what the option is meant to avoid on
+> systems that do not use BTF.
 
-The Documentation change can/should be included in the main patch.
+Any user can do that without this mount.
+/sys/kernel/btf/vmlinux is 0444. With patch 9 one read() decompresses
+5.5 MB into vmalloc_user() memory that is never freed.
+The parse is the other 2 MB.
+After the first use the kernel has what every BTF=y kernel has today.
+There is nothing to guard.
 
-> ---
->  arch/alpha/include/uapi/asm/socket.h  |  2 ++
->  arch/mips/include/uapi/asm/socket.h   |  2 ++
->  arch/parisc/include/uapi/asm/socket.h |  2 ++
->  arch/sparc/include/uapi/asm/socket.h  |  2 ++
->  include/net/rps.h                     | 13 +++++++++++++
->  include/net/sock.h                    |  1 +
->  include/uapi/asm-generic/socket.h     |  2 ++
->  net/core/sock.c                       |  8 ++++++++
->  8 files changed, 32 insertions(+)
-> 
+> Check the capability first.  An unprivileged caller could only ever set
+> an empty mask; such a no-op delegate option, and a malformed value,
+> now fail with EPERM as well instead of being accepted or failing with
+> EINVAL.  Privileged callers are not affected.
 
-> diff --git a/include/net/rps.h b/include/net/rps.h
-> index e33c6a2fa8bb..5afa48868236 100644
-> --- a/include/net/rps.h
-> +++ b/include/net/rps.h
-> @@ -98,6 +98,13 @@ static inline void _sock_rps_record_flow(const struct sock *sk)
->  	 * [1] : sk_state and sk_prot are in the same cache line.
->  	 */
->  	if (sk->sk_state == TCP_ESTABLISHED) {
-> +		/* SO_NO_RFS: application asked us to never steer this flow.
-> +		 * Tested after sk_state so the common case stays on one
-> +		 * cache line.
-> +		 */
-
-Avoid verbose comments. Bots comment a lot more than kernel style.
-
-Also arguably incorrect as TCP_ESTABLISHED is the common case.
-
-> +		if (unlikely(sock_flag(sk, SOCK_NO_RFS)))
-> +			return;
-> +
->  		/* This READ_ONCE() is paired with the WRITE_ONCE()
->  		 * from sock_rps_save_rxhash() and sock_rps_reset_rxhash().
->  		 */
-> @@ -111,6 +118,12 @@ static inline void _sock_rps_delete_flow(const struct sock *sk)
->  	rps_tag_ptr tag_ptr;
->  	u32 hash, index;
->  
-> +	/* Never recorded, so never clear a slot that may belong to
-> +	 * another flow.
-
-Never is too strong here: can be set during socket lifetime.
-
-Even if it had been correct, still another example of unnecessary
-verbosity.
-
-> +	 */
-> +	if (sock_flag(sk, SOCK_NO_RFS))
-> +		return;
-> +
-
-Both here and _sock_rfs_record_flow: probably should be in their
-callers, like the other precondition check rfs_is_needed.
-
->  	hash = READ_ONCE(sk->sk_rxhash);
-
-Optionally maybe also skip writing sk_rxhash if this is the only user.
-
->  	if (!hash)
->  		return;
+That changes what user space sees, with or without the option.
+Drop this patch.
