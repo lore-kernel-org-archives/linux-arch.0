@@ -1,45 +1,45 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793454203;
-	b=ZHVLPpPz9qjCDAx14zX0UhEd4DCKc2HsQ4UMaxi2ouPR6Hw+rmrzEkzLFEVkl8RJOFx1
-	 tSHhyOX44fYws/vIgsvw1TGEiM8LQCj6ZoBJ3K6LZiqIcyRl15Zc7Tp9WxXtBjTy4Wjrl
-	 UhKpus5klY93cnok1R82OsgUt2fMfMIGzo/u/m2XWueDYZkfHcIeQKYf2WbJyuFCO6Y0F
-	 bFZM/UpR1Ull7hG6DCVp5ADdaoBGYdGFi7N79j3m239z0oPthWP8eTXJ+k7Z65LMRvQYn
-	 F9LclYphOtOjJ3DpZDd4AE6wnPtH1Z721aEdU7bGk+5dosnhheYE6M7QRWWTeupGJ7g==
+	t=1793454204;
+	b=S8ooHThtpMRgLMRV2knCK0oiZTungDifRRPsNvSzTGeViqtI+YSKcBA1Dv24mNb6j/hD
+	 3+mgPmPgYvUgfJ72ueI+7ZguSLfREkoi6cndJDAlJf2ACH1Ah5trcuPaIckkdKzFIPeYV
+	 gOrqs/Sq9XSBPohO1M9wpqAzOms56zSu7rmM3VhvrXZIWUOkeM3DVwEFA/3pkU7vv3bON
+	 TMCPgdF6vTuadTTq128MOcg/ClQWXc0CfGJi44PUIRN4Zf0PBBAf9e+elkAGyX2qi/46q
+	 +nWtovXfI3Ib/YJvq1acObivShywPkD0TvklyTycRTrvRBNbAhRaMJfzQWgktvXNVdg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793454203;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793454204;
 	h=Received:DKIM-Signature:Content-Type:MIME-Version:Message-Id:
 	 In-Reply-To:References:Subject:From:To:Cc:Date;
-	bh=66bgSKb0DOWL4SFUCIicrUlT3Lz+gWTcaaEHqOFnbvs=;
-	b=tmXyMmN07nI19qFjSkZRPkFtJ21mvQpItN9+6EGpzaoDnbOZ3+n24A8K7LqkLJvlFuvL
-	 xORUDDX41U1aoH6UyJd/xrEvv/6syd0JXRfeVQnBcNFbyt0Av8tf7cv0FuhoOnRHquy0Y
-	 U1Hy2704/noaZxZnQSO9g0XbO20ySdzsrrVhWQBKs5EyDgu3yN603cIHq0Pd88GJ0zOnc
-	 uYU82QhuNYTOfrVDjhHGJQujEHg1dWZXRaoqcy+9tO2tJogbv/i5N0M42DbTw+pl7PwsK
-	 002r3xN6LPuGUOD6K/FyFI9UwVpOmd1JgHE/H4EYb2R8V2VYoSeB4pBkTaSgscbj21g==
+	bh=2YWEy3yXzkSyGvhSGBePYgtC/cO54L+S1nxwTyzECTw=;
+	b=ArKshfrwU0+6AfuCDDwxxhY91CZZTul+qP3ixVZ1gWFusV+9ji2X6Jf0y2d6P7LrU27a
+	 rEvLG8PO53ls8ZwmqkrgkoOhhxPP1iJX54zgvfpHVQnqY+7Viq5qlI4TJUkPRbuYXMrbw
+	 /J3T4HGc4sBMKOYdxrrqg2FCQPwaVFaSUfzz5JjlK0VIHxkOtnw5aSGqtmB61/uwcoYF5
+	 NA671P5M/48SbYvnluBD+eIpaaOmz+Mqc5lVnXKvqxdIQ2qGklTWNvyZ1IKnXuumOOYyP
+	 pUK2oJDlsdXuVoueNY+ISknpLuC98TBYcVblLyoG6Zez9u+Bhy9um1SkF1WzM7yjDYw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=eA0mAa2z;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ifh1Wo2v;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AB4D9606A324;
-	Sat, 31 Oct 2026 13:43:22 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 671A5606A31E;
+	Sat, 31 Oct 2026 13:43:24 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=eA0mAa2z
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 02A481F00919;
-	Sat, 31 Oct 2026 13:43:21 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ifh1Wo2v
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id AB1A71F00A02;
+	Sat, 31 Oct 2026 13:43:23 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793454202;
-	bh=66bgSKb0DOWL4SFUCIicrUlT3Lz+gWTcaaEHqOFnbvs=;
+	s=k20260515; t=1793454204;
+	bh=2YWEy3yXzkSyGvhSGBePYgtC/cO54L+S1nxwTyzECTw=;
 	h=In-Reply-To:References:Subject:From:To:Cc:Date;
-	b=eA0mAa2zpNV970IeSP3nCf8NZ/Lo5128hSuJJkq9RoO5z+Wxup+loZ9BC1MYkevi5
-	 mv+BPh6ZStV+K1XWrSt3U5UbsWDj2vxoGeo52REvpZSywVkspdyMIm+/LMCkHD6qWH
-	 1DQKqgFSRoY1nRQHIJ3AfRZ+FnwETJ+lU1EJDzEUNpKlqF8QjbqzGdtO0Ku7Weqj7P
-	 A2jEbxQgVmXr8hGkohLjyaOMA61/7sa+6ZV/gQxx1XDKAAgJmNN8Fv8DFV383P87ss
-	 mhtKSXYiCSbKdLvvPVkmkpQvGQX5oN/Zbcd6yo9LN6jkAEAGJCunJuG2B+mnE3gUTa
-	 qbtTcU4EqEFZw==
-Content-Type: multipart/mixed; boundary="===============8608813931786842918=="
+	b=ifh1Wo2vgegfwcCRUi9n7tRKq9cWvZmNJ40dsUf1JmIWQK4+7HiU0YLXj0TcGl+BW
+	 AfzOKs4GXljGKSxVBJCcNdeP3sm7H3f47aoUXqeD+kiy7aeSYrKBUQ61EL05dljD08
+	 vdn8vhJAeKr+hp3E2sknCtBQHBFkzG+2c63lXwgroWtVF2G4YZzWxUEZ8FWukcPS9M
+	 cSgJBIlWW+swCWW5adwWXxNRI+AqGX7b3QcSxntKqJxMyT3V7H4CSKZr49aFj+Ghqe
+	 YvyTaLnchrsCB910nAE9mj6Ek097N6s707WGEflthZW5jgFXlj6k1vAKiE3PGUokla
+	 nup74QDnnqh0A==
+Content-Type: multipart/mixed; boundary="===============4446748332422042200=="
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -49,55 +49,92 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Message-Id: <77f8506fd544603f9852ce2dc5b520d69a471ae727537cf4fe3896df90b8e804@mail.kernel.org>
-In-Reply-To: <20261031130959.23472-5-wanjay@amazon.com>
-References: <20261031130959.23472-5-wanjay@amazon.com>
-Subject: Re: [PATCH bpf-next 04/13] bpf: move bpf_get_btf_vmlinux() to btf.c
+Message-Id: <6d1e44ca667bb306e38c0662e42b17d46aff989efd749624fb17d79aab6ac416@mail.kernel.org>
+In-Reply-To: <20261031130959.23472-2-wanjay@amazon.com>
+References: <20261031130959.23472-2-wanjay@amazon.com>
+Subject: Re: [PATCH bpf-next 01/13] bpf: match program context types by name without vmlinux BTF
 From: bot+bpf-ci@kernel.org
 To: wanjay@amazon.com,bpf@vger.kernel.org,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,eddyz87@gmail.com,memxor@gmail.com
 Cc: ihor.solodrai@linux.dev,almagui@kernel.org,martin.lau@linux.dev,yonghong.song@linux.dev,jolsa@kernel.org,rostedt@goodmis.org,mhiramat@kernel.org,mathieu.desnoyers@efficios.com,linux-trace-kernel@vger.kernel.org,nathan@kernel.org,nsc@kernel.org,linux-kbuild@vger.kernel.org,arnd@arndb.de,linux-arch@vger.kernel.org,x86@kernel.org,linux-doc@vger.kernel.org,linux-kernel@vger.kernel.org,abuehaze@amazon.com,doebel@amazon.de,mpohlack@amazon.de,jay.wang.upstream@gmail.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,mason@kernel.org,ihor.solodrai@linux.dev
-Date: Sat, 31 Oct 2026 13:43:21 +0000 (UTC)
+Date: Sat, 31 Oct 2026 13:43:23 +0000 (UTC)
 
---===============8608813931786842918==
+--===============4446748332422042200==
 Content-Type: text/plain; charset="us-ascii"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 
-> bpf: move bpf_get_btf_vmlinux() to btf.c
+> bpf: match program context types by name without vmlinux BTF
 
-TL;DR: Commit message only: the author's Signed-off-by is behind a
-TODO-NEEDS-IHOR placeholder, so it won't parse as a trailer; most other
-patches in the series have the same placeholder.
+TL;DR: Commit message only: a "TODO-NEEDS-IHOR: Signed-off-by:" placeholder
+isn't a real trailer, so the author's Signed-off-by is missing (checkpatch
+would flag it). It should be fixed or removed; other series commits may have
+it too.
 
-> bpf: move bpf_get_btf_vmlinux() to btf.c
+> bpf: match program context types by name without vmlinux BTF
 >
-> Move bpf_get_btf_vmlinux(), bpf_peek_btf_vmlinux() and btf_vmlinux_lock
-> from verifier.c to btf.c, next to btf_parse_vmlinux().
+> btf_is_prog_ctx_type() and btf_validate_prog_ctx_type() decide whether
+> a BTF function argument is the program's context.  They look up the
+> canonical context type of the program type in bpf_ctx_convert, a type
+> that only exists in the vmlinux BTF, but then use nothing but its name:
+> the argument's type name is compared with it, with the __sk_buff ->
+> sk_buff and xdp_md -> xdp_buff projections, and with one typedef
+> resolution step for bpf_user_pt_regs_t.
 >
-> Parsing the vmlinux BTF on first use (later in this series) makes the
-> accessor apply deferred kfunc, dtor kfunc and struct_ops registrations
-> and kept module BTF under btf_vmlinux_lock.  That state lives in btf.c;
-> with the accessor and its lock there, it can stay static.
+> btf_prepare_func_args() runs this check for the main program of every
+> load that carries func_info (e.g. the socket filter and cgroup programs
+> systemd loads at boot) and for subprograms.  Once the vmlinux BTF is
+> parsed on first use (CONFIG_DEBUG_INFO_BTF_LAZY, later in this series),
+> fetching the BTF here would make all of them pay for parsing it, and
+> skipping the check when the BTF is not there yet would make the
+> verification result (e.g. func_info "unreliable") depend on whether
+> something else parsed the BTF first.
 >
-> No functional change.
+> Take the names from include/linux/bpf_types.h instead: a table indexed
+> by program type is built from the prog_ctx_type argument of
+> BPF_PROG_TYPE(), and prog_ctx_tname() returns the struct tag, or the
+> typedef name.  For bpf_user_pt_regs_t it also returns the name of the
+> underlying struct, found with __builtin_types_compatible_p() the same
+> way btf_validate_prog_ctx_type() already does for perf_event programs.
+> The other forms are equivalent to what the BTF lookup produced:
+>
+>  - typedefs of integers (__u64, __u32): the old code compared the
+>    typedef name and then the integer type name, which never equals a
+>    struct tag; only the typedef name is compared now;
+>  - "void *" (tracing, struct_ops, ext, lsm, syscall): no named context
+>    type, as before;
+>  - s390 typedefs bpf_user_pt_regs_t to an anonymous struct: nothing
+>    matches, as before; only the __arg_ctx error message changes from
+>    "should be `struct  *`" to "should be void pointer";
+>  - program types that are not configured in used to index
+>    bpf_ctx_convert_map[] with 0 (socket filter); they now get no name.
+>    Such programs cannot be loaded anyway.
+>
+> find_kern_ctx_type_id() and get_kern_ctx_btf_id() still need the kernel
+> context type (tracing/EXT access to a BPF program's context argument,
+> bpf_cast_to_kern_ctx()).  Kernel types enter the program there, so they
+> now fetch the vmlinux BTF with bpf_get_btf_vmlinux() instead of relying
+> on bpf_check() having done it.
+>
+> No change with CONFIG_DEBUG_INFO_BTF=y.  With CONFIG_DEBUG_INFO_BTF=n,
+> global subprograms taking e.g. a struct __sk_buff *ctx now verify
+> instead of failing with "btf_vmlinux is malformed", as they do with =y.
 >
 > TODO-NEEDS-IHOR: Signed-off-by: Ihor Solodrai <ihor.solodrai@linux.dev>
+> [split the BPF_PROG_TYPE() definition over two lines]
 > Signed-off-by: Jay Wang <wanjay@amazon.com>
 
-The author's sign-off is behind a placeholder prefix, so git
-interpret-trailers will read that line as a TODO-NEEDS-IHOR trailer and not
-as a Signed-off-by.  That leaves only the Signed-off-by from Jay Wang in the
-trailer block.
+Is the "TODO-NEEDS-IHOR: Signed-off-by:" line at the end of the commit
+message meant to stay in the submitted patch?
 
-Documentation/process/submitting-patches.rst asks for the author's
-Signed-off-by ahead of the sender's.  Should the placeholder line be
-replaced with a real "Signed-off-by: Ihor Solodrai
-<ihor.solodrai@linux.dev>" once the author provides it?
+Because of the prefix, git and checkpatch do not parse that line as a
+trailer, so the only real Signed-off-by is Jay Wang's, while the patch is
+authored by Ihor Solodrai.  checkpatch would report "Missing Signed-off-by:
+line by nominal patch author".
 
-The same placeholder shows up in most of the other commits in this series
-(2a58754b9ead, 32ad8adbb1a8, cc9b43c0e23c, 699a8e9536e8, c97dea7ddbb0,
-38e2751cdb40, 66c4a6a9293d, e46b5971bc91, cae96a9f7395), so those would need
-the same fix.
+Should this become a real Signed-off-by line from the author (or be removed),
+as required by the Developer's Certificate of Origin in
+Documentation/process/submitting-patches.rst?  The same placeholder appears in
+other commits of this series (for example 32ad8adbb1a8).
 
 
 ---
@@ -105,4 +142,4 @@ AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
 See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
 
 CI run summary: https://github.com/kernel-patches/bpf/actions/runs/41205212136
---===============8608813931786842918==--
+--===============4446748332422042200==--
