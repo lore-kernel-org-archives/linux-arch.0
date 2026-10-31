@@ -1,45 +1,45 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793454204;
-	b=S8ooHThtpMRgLMRV2knCK0oiZTungDifRRPsNvSzTGeViqtI+YSKcBA1Dv24mNb6j/hD
-	 3+mgPmPgYvUgfJ72ueI+7ZguSLfREkoi6cndJDAlJf2ACH1Ah5trcuPaIckkdKzFIPeYV
-	 gOrqs/Sq9XSBPohO1M9wpqAzOms56zSu7rmM3VhvrXZIWUOkeM3DVwEFA/3pkU7vv3bON
-	 TMCPgdF6vTuadTTq128MOcg/ClQWXc0CfGJi44PUIRN4Zf0PBBAf9e+elkAGyX2qi/46q
-	 +nWtovXfI3Ib/YJvq1acObivShywPkD0TvklyTycRTrvRBNbAhRaMJfzQWgktvXNVdg==
+	t=1793454206;
+	b=aKChXKb3MZp2l7gb1rdYI0/dkjXr2ZPLwEE0BZBBJyYvpLULVqf7b0b47lxbcCgaKOoi
+	 Z3PrrO+Hga9ULLx+FpnECMTJyt2U9tjccmdGcasxjrRGoH0Q/y0Lre+r1O1uOfFJ+OVuX
+	 4wnG1/xtiLd8DMpjg39nZ7rv+KrkGMpBBevMXESZoplHloC90X10QUnOxESKu/Ae8OWp3
+	 arj/NXRh7ljyKwXKrMSpKJK/drFoq3lZo1r+2lERn6zgKtrLO1BKI6K4L/7aN5tGawlkK
+	 UK80UfnC79OGbxdM0kKcc666CAgPOGLXZ9Ihuty1tLpgvspf3Pi7v7R9RcKv7IhAl5g==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793454204;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793454206;
 	h=Received:DKIM-Signature:Content-Type:MIME-Version:Message-Id:
 	 In-Reply-To:References:Subject:From:To:Cc:Date;
-	bh=2YWEy3yXzkSyGvhSGBePYgtC/cO54L+S1nxwTyzECTw=;
-	b=ArKshfrwU0+6AfuCDDwxxhY91CZZTul+qP3ixVZ1gWFusV+9ji2X6Jf0y2d6P7LrU27a
-	 rEvLG8PO53ls8ZwmqkrgkoOhhxPP1iJX54zgvfpHVQnqY+7Viq5qlI4TJUkPRbuYXMrbw
-	 /J3T4HGc4sBMKOYdxrrqg2FCQPwaVFaSUfzz5JjlK0VIHxkOtnw5aSGqtmB61/uwcoYF5
-	 NA671P5M/48SbYvnluBD+eIpaaOmz+Mqc5lVnXKvqxdIQ2qGklTWNvyZ1IKnXuumOOYyP
-	 pUK2oJDlsdXuVoueNY+ISknpLuC98TBYcVblLyoG6Zez9u+Bhy9um1SkF1WzM7yjDYw==
+	bh=K/3NpGaOdOCqKy0a8BAsT2YmdkWElJhbX3+c/KHAt7M=;
+	b=ED4DFQDxoHZioTdBAya9OAPvONWTNZmdLR1ARlNDeM4mx4l61+VSY2GkEV23sYulaBDu
+	 QZy8V996K3WkthmJ5oVqnfceisHzWjb6qxygqUXhAi5yr4zBK6+c4z2fWQOmTjUDswWMI
+	 MBmfd9hrFsNi9EokfLxkrc4tdNQfrKuUaQYj0AWp32UMHDIFhq8QTF6k1RL5EdGNIj5nM
+	 s8A/FGSKbGjMQIWAxQlfiK477DNvJPQVo1i5g2zPRdHplvWCpzHbshBudQQpwBhIcxuSV
+	 +jcRmYXjC8VTdvCJ15idVIy20o38nZGW0B4MGDiR3x1pCDJAxIVTTHu4+8bKuDo0Rww==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ifh1Wo2v;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CGLHA7QH;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 671A5606A31E;
-	Sat, 31 Oct 2026 13:43:24 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1D915606A322;
+	Sat, 31 Oct 2026 13:43:26 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ifh1Wo2v
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AB1A71F00A02;
-	Sat, 31 Oct 2026 13:43:23 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CGLHA7QH
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 71C9A1F00A02;
+	Sat, 31 Oct 2026 13:43:25 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793454204;
-	bh=2YWEy3yXzkSyGvhSGBePYgtC/cO54L+S1nxwTyzECTw=;
+	s=k20260515; t=1793454206;
+	bh=K/3NpGaOdOCqKy0a8BAsT2YmdkWElJhbX3+c/KHAt7M=;
 	h=In-Reply-To:References:Subject:From:To:Cc:Date;
-	b=ifh1Wo2vgegfwcCRUi9n7tRKq9cWvZmNJ40dsUf1JmIWQK4+7HiU0YLXj0TcGl+BW
-	 AfzOKs4GXljGKSxVBJCcNdeP3sm7H3f47aoUXqeD+kiy7aeSYrKBUQ61EL05dljD08
-	 vdn8vhJAeKr+hp3E2sknCtBQHBFkzG+2c63lXwgroWtVF2G4YZzWxUEZ8FWukcPS9M
-	 cSgJBIlWW+swCWW5adwWXxNRI+AqGX7b3QcSxntKqJxMyT3V7H4CSKZr49aFj+Ghqe
-	 YvyTaLnchrsCB910nAE9mj6Ek097N6s707WGEflthZW5jgFXlj6k1vAKiE3PGUokla
-	 nup74QDnnqh0A==
-Content-Type: multipart/mixed; boundary="===============4446748332422042200=="
+	b=CGLHA7QHL35PGdIJ2e9gXahPunJnzTXMbOqojkffoN8nTSZMKVEtzZdydz3VlSepV
+	 qm0xkdgXRor96yV2WJRAyBPV3/oeModYxXopFfzZSZbIvKw2b3mHCC0Y8Xh/aKYTWg
+	 tb+snBpAF/dDUhp45oqlQ8XWV9wPy2t7iGmj1oQArmEVudrNdS9kCyqdepv+11WOuA
+	 XA+nT5H7eokTadpc2aEjlm8bgMVK5RT3eGX5MqbNd2s6nX05ojdu7OcHeSsQdpIi7M
+	 SgjGgMIOy5Z+ZzhjjsLgs9LepIQqVPYaToed5TKmqMSYXGR++ETdvaaNoNDVVKUbqf
+	 YpvNm1fEcQugg==
+Content-Type: multipart/mixed; boundary="===============5978086059840683749=="
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -49,92 +49,142 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Message-Id: <6d1e44ca667bb306e38c0662e42b17d46aff989efd749624fb17d79aab6ac416@mail.kernel.org>
-In-Reply-To: <20261031130959.23472-2-wanjay@amazon.com>
-References: <20261031130959.23472-2-wanjay@amazon.com>
-Subject: Re: [PATCH bpf-next 01/13] bpf: match program context types by name without vmlinux BTF
+Message-Id: <83ccd128fbdbace58c73028a40bd77eafadd86168bebf213801692bb97fb216d@mail.kernel.org>
+In-Reply-To: <20261031130959.23472-8-wanjay@amazon.com>
+References: <20261031130959.23472-8-wanjay@amazon.com>
+Subject: Re: [PATCH bpf-next 07/13] bpf: parse the vmlinux BTF before taking cand_cache_mutex
 From: bot+bpf-ci@kernel.org
 To: wanjay@amazon.com,bpf@vger.kernel.org,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,eddyz87@gmail.com,memxor@gmail.com
 Cc: ihor.solodrai@linux.dev,almagui@kernel.org,martin.lau@linux.dev,yonghong.song@linux.dev,jolsa@kernel.org,rostedt@goodmis.org,mhiramat@kernel.org,mathieu.desnoyers@efficios.com,linux-trace-kernel@vger.kernel.org,nathan@kernel.org,nsc@kernel.org,linux-kbuild@vger.kernel.org,arnd@arndb.de,linux-arch@vger.kernel.org,x86@kernel.org,linux-doc@vger.kernel.org,linux-kernel@vger.kernel.org,abuehaze@amazon.com,doebel@amazon.de,mpohlack@amazon.de,jay.wang.upstream@gmail.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,mason@kernel.org,ihor.solodrai@linux.dev
-Date: Sat, 31 Oct 2026 13:43:23 +0000 (UTC)
+Date: Sat, 31 Oct 2026 13:43:25 +0000 (UTC)
 
---===============4446748332422042200==
+--===============5978086059840683749==
 Content-Type: text/plain; charset="us-ascii"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 
-> bpf: match program context types by name without vmlinux BTF
+> bpf: parse the vmlinux BTF before taking cand_cache_mutex
 
-TL;DR: Commit message only: a "TODO-NEEDS-IHOR: Signed-off-by:" placeholder
-isn't a real trailer, so the author's Signed-off-by is missing (checkpatch
-would flag it). It should be fixed or removed; other series commits may have
-it too.
+TL;DR:
+- New early returns on vmlinux BTF fetch failure may skip verifier log
+  messages in btf.c, contradicting "No functional change"
+- Author's Signed-off-by is a TODO placeholder
 
-> bpf: match program context types by name without vmlinux BTF
+>     bpf: parse the vmlinux BTF before taking cand_cache_mutex
 >
-> btf_is_prog_ctx_type() and btf_validate_prog_ctx_type() decide whether
-> a BTF function argument is the program's context.  They look up the
-> canonical context type of the program type in bpf_ctx_convert, a type
-> that only exists in the vmlinux BTF, but then use nothing but its name:
-> the argument's type name is compared with it, with the __sk_buff ->
-> sk_buff and xdp_md -> xdp_buff projections, and with one typedef
-> resolution step for bpf_user_pt_regs_t.
+>     bpf_core_find_cands() calls bpf_get_btf_vmlinux() with cand_cache_mutex
+>     held, from btf_get_ptr_to_btf_id() and bpf_core_apply().  Once the
+>     vmlinux BTF is parsed on first use (later in this series), parsing also
+>     parses the module BTFs kept until then, under btf_module_mutex, while a
+>     module going away takes btf_module_mutex and then cand_cache_mutex
+>     (purge_cand_cache()).  That would be an ABBA deadlock:
 >
-> btf_prepare_func_args() runs this check for the main program of every
-> load that carries func_info (e.g. the socket filter and cgroup programs
-> systemd loads at boot) and for subprograms.  Once the vmlinux BTF is
-> parsed on first use (CONFIG_DEBUG_INFO_BTF_LAZY, later in this series),
-> fetching the BTF here would make all of them pay for parsing it, and
-> skipping the check when the BTF is not there yet would make the
-> verification result (e.g. func_info "unreliable") depend on whether
-> something else parsed the BTF first.
+>       cand_cache_mutex -> btf_vmlinux_lock -> btf_module_mutex
+>       btf_module_mutex -> cand_cache_mutex
 >
-> Take the names from include/linux/bpf_types.h instead: a table indexed
-> by program type is built from the prog_ctx_type argument of
-> BPF_PROG_TYPE(), and prog_ctx_tname() returns the struct tag, or the
-> typedef name.  For bpf_user_pt_regs_t it also returns the name of the
-> underlying struct, found with __builtin_types_compatible_p() the same
-> way btf_validate_prog_ctx_type() already does for perf_event programs.
-> The other forms are equivalent to what the BTF lookup produced:
+>     Have both callers fetch the BTF before they take cand_cache_mutex, and
+>     make bpf_core_find_cands() only peek with bpf_peek_btf_vmlinux().  The
+>     ordering was found by design review.  With the whole series applied
+>     and the fetch moved back under the mutex, PROVE_LOCKING reports this
+>     cycle at the first rmmod of a BTF module after a kernel CO-RE load
+>     parsed the BTF; with this patch the same sequence is clean.
 >
->  - typedefs of integers (__u64, __u32): the old code compared the
->    typedef name and then the integer type name, which never equals a
->    struct tag; only the typedef name is compared now;
->  - "void *" (tracing, struct_ops, ext, lsm, syscall): no named context
->    type, as before;
->  - s390 typedefs bpf_user_pt_regs_t to an anonymous struct: nothing
->    matches, as before; only the __arg_ctx error message changes from
->    "should be `struct  *`" to "should be void pointer";
->  - program types that are not configured in used to index
->    bpf_ctx_convert_map[] with 0 (socket filter); they now get no name.
->    Such programs cannot be loaded anyway.
+>     No functional change: the BTF is parsed at the same points, just
+>     before the mutex is taken; a broken BTF fails the load with the error
+>     of its parse, and bpf_core_find_cands() handles a missing BTF as before.
 >
-> find_kern_ctx_type_id() and get_kern_ctx_btf_id() still need the kernel
-> context type (tracing/EXT access to a BPF program's context argument,
-> bpf_cast_to_kern_ctx()).  Kernel types enter the program there, so they
-> now fetch the vmlinux BTF with bpf_get_btf_vmlinux() instead of relying
-> on bpf_check() having done it.
->
-> No change with CONFIG_DEBUG_INFO_BTF=y.  With CONFIG_DEBUG_INFO_BTF=n,
-> global subprograms taking e.g. a struct __sk_buff *ctx now verify
-> instead of failing with "btf_vmlinux is malformed", as they do with =y.
->
-> TODO-NEEDS-IHOR: Signed-off-by: Ihor Solodrai <ihor.solodrai@linux.dev>
-> [split the BPF_PROG_TYPE() definition over two lines]
-> Signed-off-by: Jay Wang <wanjay@amazon.com>
+>     TODO-NEEDS-IHOR: Signed-off-by: Ihor Solodrai <ihor.solodrai@linux.dev>
+>     [pass the error of the fetch on instead of -EINVAL from the peek]
+>     Signed-off-by: Jay Wang <wanjay@amazon.com>
 
-Is the "TODO-NEEDS-IHOR: Signed-off-by:" line at the end of the commit
-message meant to stay in the submitted patch?
+The author's sign-off is the placeholder line "TODO-NEEDS-IHOR:
+Signed-off-by: Ihor Solodrai <ihor.solodrai@linux.dev>", and the only real
+Signed-off-by tag is the one from Jay Wang.
 
-Because of the prefix, git and checkpatch do not parse that line as a
-trailer, so the only real Signed-off-by is Jay Wang's, while the patch is
-authored by Ihor Solodrai.  checkpatch would report "Missing Signed-off-by:
-line by nominal patch author".
+Can this be applied with that placeholder in place?  The submitting-patches
+document (Documentation/process/submitting-patches.rst) expects a
+Signed-off-by from the author, and checkpatch will flag both the unknown tag
+and the missing sign-off.
 
-Should this become a real Signed-off-by line from the author (or be removed),
-as required by the Developer's Certificate of Origin in
-Documentation/process/submitting-patches.rst?  The same placeholder appears in
-other commits of this series (for example 32ad8adbb1a8).
+Separately, the commit message says "No functional change", but the verifier
+log differs when the vmlinux BTF fetch fails.  Before this patch the fetch
+ran inside bpf_core_find_cands() and both callers logged the failure.  After
+it, the new early returns skip that logging (see the comments on the diff
+below).  Could that sentence be reworded to match?
+
+> diff --git a/kernel/bpf/btf.c b/kernel/bpf/btf.c
+> index 3e947bdb224c..095362c0a1cd 100644
+> --- a/kernel/bpf/btf.c
+> +++ b/kernel/bpf/btf.c
+
+[ ... ]
+
+> @@ -8608,6 +8609,10 @@ static int btf_get_ptr_to_btf_id(struct bpf_verifier_log *log, int arg_idx,
+>  		t = btf_type_by_id(btf, t->type);
+>  	}
+>
+> +	/* parse it, if this is its first use, before taking cand_cache_mutex */
+> +	vmlinux_btf = bpf_get_btf_vmlinux();
+> +	if (IS_ERR(vmlinux_btf))
+> +		return PTR_ERR(vmlinux_btf);
+>  	mutex_lock(&cand_cache_mutex);
+>  	cc = bpf_core_find_cands(&ctx, type_id);
+>  	if (IS_ERR(cc)) {
+
+Previously a failed fetch came back through bpf_core_find_cands() and ended
+up in the bpf_log() just below:
+
+    bpf_log(log, "arg#%d reference type('%s %s') candidate matching error: %d\n",
+            arg_idx, btf_type_str(t), __btf_name_by_offset(btf, t->name_off),
+            err);
+
+Doesn't this early return skip that message, so a load that fails because
+btf_vmlinux is an ERR_PTR (btf_parse_vmlinux() failing with -ENOMEM or on
+malformed BTF) now returns a bare errno with nothing in the verifier log?
+
+Earlier in this series, commit 32ad8adbb1a8 ("bpf: fetch the vmlinux BTF
+where kernel types enter a program") added vmlinux_btf_err() in verifier.c so
+that every fetch point reports a failed parse:
+
+    verbose(env, "in-kernel BTF could not be parsed: %ld\n", PTR_ERR(btf));
+
+Would a bpf_log() before this return, along the lines of that message, keep
+the diagnostic?  None of the later patches in this series appears to add one
+at this site.
+
+[ ... ]
+
+> @@ -10725,8 +10731,18 @@ int bpf_core_apply(struct bpf_core_ctx *ctx, const struct bpf_core_relo *relo,
+>
+>  	if (need_cands) {
+>  		struct bpf_cand_cache *cc;
+> +		struct btf *main_btf;
+>  		int i;
+>
+> +		/*
+> +		 * Parsing the vmlinux BTF takes btf_module_mutex, which is
+> +		 * taken before cand_cache_mutex when a module goes away.
+> +		 */
+> +		main_btf = bpf_get_btf_vmlinux();
+> +		if (IS_ERR(main_btf)) {
+> +			kfree(specs);
+> +			return PTR_ERR(main_btf);
+> +		}
+>  		mutex_lock(&cand_cache_mutex);
+>  		cc = bpf_core_find_cands(ctx, relo->type_id);
+>  		if (IS_ERR(cc)) {
+
+The same applies here.  A failed fetch used to reach the bpf_log() in this
+branch:
+
+    bpf_log(ctx->log, "target candidate search failed for %d\n",
+            relo->type_id);
+
+and, at BPF_LOG_LEVEL2, the candidate cache dump that follows it.
+
+Can this return PTR_ERR(main_btf) leave the CO-RE relocation failing with no
+log output at all?  Would a bpf_log() here, matching the other fetch points
+in the series, make sense?
 
 
 ---
@@ -142,4 +192,4 @@ AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
 See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
 
 CI run summary: https://github.com/kernel-patches/bpf/actions/runs/41205212136
---===============4446748332422042200==--
+--===============5978086059840683749==--
