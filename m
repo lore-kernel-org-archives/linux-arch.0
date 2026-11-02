@@ -1,49 +1,54 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.118
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=95.215.58.131
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793606272;
-	b=Hgj0Owdh8UmxL7H2S9Oem2zUQ5n802hVCIoF6wqEYPDdwZxpQm5reIdG3yKFYZb6Sb2j
-	 9ce8B4QAQBnQ7KPdepi5hriTCpQMg8OTF8uppfzAmg3ELSLhw95+9/tbfsnRYtIjT/O7K
-	 wjuMnvT7LQi7gARKAeUe2gAnhAMxiWF1rmExRrwS6Z4gzSV/iMvlMTs5rGy480KtKyuTA
-	 j1Gb2WnzNvSrPR6TfK+CSSlMtOkHmPq+S6/svQCnoVPMiWNCnR5oTwmpeIJnS3ggRwpXj
-	 7A6cuVzkI/48hK9QL+g36JEI1LzcnpIi3sbQiBpVSKgdEANUWm87f7LqBdy8EoIioYw==
+	t=1793606954;
+	b=wvVJqfPg9vtCZv85TpxowtBhG1Kr6jP9WRX2bDrD/EKxqABpJBiE71OXgCr/lsTvErRg
+	 JV++fSvLu/Eg28dgGjLH3eEIBc1Z47iDtts7e7195JHZILEYe8n0mM4CDouoNfOPiSmZg
+	 D89I9wX5qxaFN9UYE/wuCqDhnorQ3oP5kl93Wva+iPXHcjOagie7Sz+NemU1ZpLDClR/R
+	 kZB3ANgMKP2ebV4JZUML6ZO5/3YtFsTA/WbGPCi3RY5VSq6+roEueSeFzeysZ6LwOVr8J
+	 nu2Yxv0z8kA6AiiB95WD+wvvGvNK0CPMJr3H6PWCqhoIijZVHjdqCWEnL+QfWA9eufA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793606272;
-	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
-	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=urqOGiWM43pGOIAX+SQ1xyGmHp8O9dptxy/AFX4SmjE=;
-	b=flA+8bOhMPic+HDQ0sxyYkRj99aa7eaQ9KdP0EelVoiQnW9/kLJQBMZ0SvZygjOhT+Rj
-	 jpO4gL2FBybnj1DNio6VESlppaa50frdl/6IMep3noaRJRBv6mQclmW/wh3uJhORHfRzs
-	 CKE23ckUrlwVrdbCGmPYB4tnl3ME1bko47kY76DQ630pE3/fMU9RStH+fxSZ9B042ve7C
-	 loaPPFgt8Y04W5YMNqcSBsbyuUeqER+kYuJ5xJ0BzU2LugpXOeNZUNqLdO3JlYogKFrso
-	 a1MBxpbrobOTUYTWJFDsC9tynSqt4hTH5senx+aGVdOFqOlFnMeLA288sjs+uX2/UpA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793606954;
+	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
+	 X-Mizu-Trace-ID:X-Migadu-Flow:Content-Type:Mime-Version:Subject:From:
+	 In-Reply-To:Date:Cc:Content-Transfer-Encoding:Message-Id:References:
+	 To:X-Mailer;
+	bh=Ua9j3chuGLeYY0btIyoz40p0xgL7yj+uIcM50lwlwKs=;
+	b=lzfp/aQHrxYNWPhF8xKqVqH2gI801UsSYMDsWB6oYFcfLQNfY9xi2Fnrk/kIWKSW0FHh
+	 r2KGUEAacq+fcSgbsMdTEHci0z3mmhfKrrNMSJnRHdDXkr7ASGsJ3bHUH34D76JXpgE1K
+	 kFWvsZOHPN8C9Oefk3UyNBfbZR8FJkKrqiJacs5XQ8ToaVtrRVZ6uILUcyIKjUSsFuVhC
+	 +/ItwKZMqbE0P3YJ2W3mQwBBOPwBPghQIuJwKBsklko8z8lakWc/rt7SEqebEKP8pEw0P
+	 X94KexTIDPy3woOtjrHw0Pp7sYJnE0rTEMBG5Pcj16SmzBSAgoVJE99xfR941tFzxew==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.alibaba.com;
-	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=QNmcN+WB;
-	arc=none smtp.remote-ip=115.124.30.118
-Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	dmarc=pass header.from=linux.dev;
+	spf=pass smtp.mailfrom=linux.dev;
+	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=cIJ4yp6j;
+	arc=none smtp.remote-ip=95.215.58.131
+Received: from mta1.migadu.com (out-131.mta1.migadu.com [95.215.58.131])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5AD12606A324;
-	Mon,  2 Nov 2026 07:57:47 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 5AD12606A324
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6250B606A330
+	for <linux-arch@vger.kernel.org>; Mon,  2 Nov 2026 08:09:12 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 6250B606A330
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=QNmcN+WB
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1793606258; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=urqOGiWM43pGOIAX+SQ1xyGmHp8O9dptxy/AFX4SmjE=;
-	b=QNmcN+WBRZO7d5z8MvNlnvhmVN7NqAxSk2D2D4Y3jNYOq+EIfCvmBjT4kgXikK7Vxs1nNmtg07oso4sGjzg3+NUtjwQ9I60DPgA+15+lJ/I52Uw+UuLrxvzMs+wdVMJlcgpyUjVA+26G5CnsmCeN1cBpZHlMtIzVubs60o14UOI=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R291e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=baolin.wang@linux.alibaba.com;NM=1;PH=DS;RN=66;SR=0;TI=SMTPD_---0XDwJ4wk_1793606252;
-Received: from 30.74.144.167(mailfrom:baolin.wang@linux.alibaba.com fp:SMTPD_---0XDwJ4wk_1793606252 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Mon, 02 Nov 2026 15:57:34 +0800
-Message-ID: <902b1dd5-f002-4ba8-b6d7-6bf59d07f1d7@linux.alibaba.com>
-Date: Mon, 2 Nov 2026 15:57:32 +0800
+	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=cIJ4yp6j
+X-Envelope-To: linux-arch@vger.kernel.org
+DKIM-Signature: a=rsa-sha256; bh=AJzTmqiEw66QyrrtTwvf2v4Wxl2wkr7mScJNfEWS5L4=;
+ c=simple/simple; d=linux.dev;
+ h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
+ t=1793606950; v=1; x=1794211750;
+ b=cIJ4yp6jqlCdvrSUq2VaZy81PExLJQFVCARfpW/sm+mngvSlBxYVEeeBJsCDuDaJws2bR23C
+ +7sDp5b/B8Z4f2yEyJ3EA2ou32jIUeMJQW0Y5GbvxE1qsJjcBMzxlqbaBjLh7e7tqT3NC86CZin
+ w3EFMfDB8l3wFmL1Nu6sDTDg=
+X-Envelope-To: linux-arch@vger.kernel.org
+Received: by mta12.migadu.com with ESMTPS id 54617e5f3eb6591b;
+	Mon, 02 Nov 2026 08:09:09 +0000
+X-Mizu-Trace-ID: 54617e5f3eb6591b
+X-Migadu-Flow: FLOW_OUT
+Content-Type: text/plain;
+	charset=us-ascii
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,82 +57,98 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 13/47] mm/huge_memory: fix truncate racing with PMD
- zapping
-To: "David Hildenbrand (Arm)" <david@kernel.org>,
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3901.200.71.1.16\))
+Subject: Re: [PATCH 12/15] mm/hugetlb: keep surplus folios that are reserved
+From: Muchun Song <muchun.song@linux.dev>
+In-Reply-To: <20261028-fixes_hugetlb-v1-12-a0a033db180f@kernel.org>
+Date: Mon, 2 Nov 2026 16:08:46 +0800
+Cc: Oscar Salvador <osalvador@suse.de>,
+ Naoya Horiguchi <nao.horiguchi@gmail.com>,
  Andrew Morton <akpm@linux-foundation.org>,
- Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
- Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
- Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
- Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
- Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
- Baoquan He <baoquan.he@linux.dev>, "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- Kees Cook <kees@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>,
- Hugh Dickins <hughd@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
- Pratyush Yadav <pratyush@kernel.org>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
- Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
- Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
- Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
- Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
- Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
- Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
- Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
- Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
- Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
- Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
- Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
- Jason Gunthorpe <jgg@ziepe.ca>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
- Chris Mason <mason@kernel.org>, stable@vger.kernel.org,
- Muhammad Usama Anjum <usama.anjum@arm.com>
-References: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
- <20261031-fixes_core-v3-13-d6437171ecc3@kernel.org>
-From: Baolin Wang <baolin.wang@linux.alibaba.com>
-In-Reply-To: <20261031-fixes_core-v3-13-d6437171ecc3@kernel.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+ Mel Gorman <mgorman@suse.de>,
+ Andy Whitcroft <apw@canonical.com>,
+ Miaohe Lin <linmiaohe@huawei.com>,
+ Michal Hocko <mhocko@suse.com>,
+ Rik van Riel <riel@surriel.com>,
+ Hugh Dickins <hughd@google.com>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ Vivek Kasireddy <vivek.kasireddy@intel.com>,
+ Dave Airlie <airlied@redhat.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>,
+ Lorenzo Stoakes <ljs@kernel.org>,
+ "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>,
+ Jonathan Corbet <corbet@lwn.net>,
+ Shuah Khan <skhan@linuxfoundation.org>,
+ Randy Dunlap <rdunlap@infradead.org>,
+ Peter Xu <peterx@redhat.com>,
+ Breno Leitao <leitao@debian.org>,
+ Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Nick Piggin <npiggin@gmail.com>,
+ Peter Zijlstra <peterz@infradead.org>,
+ Heiko Carstens <hca@linux.ibm.com>,
+ Vasily Gorbik <gor@linux.ibm.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>,
+ Christian Borntraeger <borntraeger@linux.ibm.com>,
+ Sven Schnelle <svens@linux.ibm.com>,
+ Arnd Bergmann <arnd@arndb.de>,
+ linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org,
+ Gerd Hoffmann <kraxel@redhat.com>,
+ linux-doc@vger.kernel.org,
+ linux-arch@vger.kernel.org,
+ linux-s390@vger.kernel.org,
+ Chris Mason <mason@kernel.org>,
+ stable@kernel.org
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <C4D9D9B7-F875-4A05-B3A4-DBD0BD496EA5@linux.dev>
+References: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
+ <20261028-fixes_hugetlb-v1-12-a0a033db180f@kernel.org>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+X-Mailer: Apple Mail (2.3901.200.71.1.16)
 
 
 
-On 10/31/26 5:39 PM, David Hildenbrand (Arm) wrote:
+> On Oct 29, 2026, at 04:13, David Hildenbrand (Arm) <david@kernel.org> =
+wrote:
+>=20
 > From: Chris Mason <mason@kernel.org>
-> 
-> zap_huge_pmd_folio() removes the rmap before calling folio_mark_dirty().
-> If this was the last mapping, truncation can skip unmapping the folio
-> and proceed without waiting for the PMD lock, racing with dirtying.
-> 
-> ifs_set_range_dirty() can oops if MADV_DONTNEED races with
-> ftruncate() on XFS, when we get the folio set dirty after it was found
-> to not be mapped anymore.
-> 
-> Move folio_mark_dirty() and folio_mark_accessed() before rmap removal,
-> matching the PTE zap path. This keeps the folio mapped while updating
-> its state, so truncation must wait for the page table lock.
-> 
+>=20
+> free_huge_folio() may restore a reservation, but still returns the =
+folio
+> to the page allocator if its node has surplus huge pages.
+>=20
+> For example, start with no hugetlb folios and allow one surplus 2 MiB
+> folio:
+>=20
+>  1. Mount hugetlbfs with pagesize=3D2M,min_size=3D2M. This allocates =
+and
+>     reserves one surplus folio: free=3D1, reserved=3D1.
+>  2. Create a 2 MiB file and write to a shared mapping of it. The fault
+>     consumes the folio and its reservation: free=3D0, reserved=3D0.
+>  3. Unmap the file and truncate it to zero. The mount's reservation is
+>     restored, but the surplus folio is freed: free=3D0, reserved=3D1.
+>=20
+> Besides losing a hugetlb folio that is required for a reservation, =
+this
+> can also make available_huge_pages() underflow and cause other issues.
+>=20
+> Keep the folio in the pool if it is needed to cover reservations,
+> including any reservation we just restored.
+>=20
 > Fix generated by an LLM and sent by Chris Mason in private.
-> 
-> Fixes: fe6cf984939d ("mm/huge_memory: transfer the pmd dirty bit to the folio on zap")
-> Cc: stable@vger.kernel.org
+>=20
+> Fixes: 07443a85ad90 ("mm, hugetlb: return a reserved page to a =
+reserved pool if failed")
+> Cc: stable@kernel.org
 > Signed-off-by: Chris Mason <mason@kernel.org>
 > [ david: simplify comment and description ]
-> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
-> Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-> ---
 
-I checked the memory ordering issues, and it looks like the implicit 
-barriers provided by the fully ordered atomic operations already ensure 
-the required ordering. So LGTM.
-Reviewed-by: Baolin Wang <baolin.wang@linux.alibaba.com>
+Acked-by: Muchun Song <muchun.song@linux.dev>
+
+Thanks.
+
