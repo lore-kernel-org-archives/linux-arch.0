@@ -1,51 +1,52 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793618516;
-	b=Hyam+qKLE8pub24NOiGg2QiQLk3cjxF1xKyhrl5YECJ7gGN71faHEK+tAS4bDeERx4iu
-	 9Ocg+UWr1cXH2Gly1m2jlxgZ16qjXgk3ahH1uKqtd9VxwxS0Q5kf8aq/kp1oxAotkIY7y
-	 xKvX1xWF7kF3Deme+YEeXuLiGvNlFr7NoMYRpWtbg2CXQtxkslXB7OKWTrIkaiS+8b4fi
-	 czaC+aUeMcXUNTzlGPylu+MYwfD2wKuwL1z5sIItEpLu24C4iJe8TU/PhxQ5ybQvv93QT
-	 8r/sM4gc7eC43zmTHAkaPhSbj18K0lYyMCYqEkWJP3y3Zu3gtGLK495Wjh+1cImePWw==
+	t=1793618522;
+	b=L9EJk9Lr8hCSPUUbTPz/7Wx8DbkyLUlFuBV5JJxbaCWCKxwX3Bl8RrEGzNnujDrXPF6E
+	 M1jkHgOfym5nXoh5IhF1Zv+FIbKntFKU95JgjWztIJflyL0qvUs7Ah9TzPu5+1V5cuYy2
+	 /AAgJkqPoa2PpWoU65vCY+WmPKJUMtozCec0DdFBG8dJ1dFEMZcjLxx4Ya7yySvogFfqh
+	 3KmBnhqvi19NwMZfANh1NRISfocthhKUQlS+5A4jhTX/277Pj4/VSht+ZoBPYUObJ//c8
+	 5SNw+c2GATBgG/SgudRY/cQiSzKBIb47oIJWSs61YY5CmWyKS/fOl+DUEXiTQofe6PQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793618516;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793618522;
 	h=DMARC-Filter:Received:Received:DKIM-Signature:From:Date:Subject:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Message-Id:
 	 References:In-Reply-To:To:Cc:X-Mailer:X-Developer-Signature:
 	 X-Developer-Key;
-	bh=JJr4pyTBUPDwtFxqouKNlkLHudO0sOE1ps0QHQE9jbo=;
-	b=cNRrocKy6ON7os/502BP+Ud49Js0/3l73RrU4ZJS/EZJtKDoTm6Tkku7UwSMoNpT2LGO
-	 2xoidV3q1f/LOdpxfYW514ce/jjR3KIxM3Dh8a3HPaijuBbxchoV1Xno+jHQeDZzlUrq5
-	 YYRrQYb8aiyk0ErJ6T6VuN9vd1CkrA+VQH3bDFkruN/1SC4RtrbqmYzD26NDp6ElMfnWO
-	 N+aB0rMhuOajUQUWlg98B+e9i7GUkPHP0d49K8mvc/zsJEytjHJFnV23QOGKXkgySZBDH
-	 XSSYm7RN03vZOrYxX4Waz/oNVFQTcRHap4SK3BnL2v8mQWDgIIQ4qRg2xvvTDA+cPHQ==
+	bh=OIY1t0oPGMjY8wdeN25SmhCvTiQ+irrDhx4HcT07Fl8=;
+	b=nsjhmg+4pW8/9Zpv9m99raa7lnzQM8q8BYIVaPAuZjGnGYGyPFw9BYspgdS4M8X3gUJL
+	 nh0Sdbgs0M5Rc3fGmY8Nsmq5MeSikIrHnlAkg1hT6bIAVMdwosoZ/+waw65+xD0KAv91Z
+	 xb/CWc/MkaJwI0ITUsWW1+zqklm1PJ5++IF5qtubDtSg9fEI6s2uVxZNTjhxGSys2/zZm
+	 BFuQwHk73NmC2UcMsMCXhh90Ubv1VLuqSDascX7krYH7o7lQvLENGf9dwl7z58cJ8zRL9
+	 1qX++kKLxOOQ6MY6J83F2j27jemPUY2AoCcbxhcONNP85ShMF7gsXgPEFgi5uo3lfWw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=arm.com;
 	spf=pass smtp.mailfrom=arm.com;
-	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b="Tf5YISm/";
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=P7pPmEP1;
 	arc=none smtp.remote-ip=217.140.110.172
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 80D7360A2600;
-	Mon,  2 Nov 2026 11:21:55 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 80D7360A2600
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id CB5E960A2608;
+	Mon,  2 Nov 2026 11:22:01 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org CB5E960A2608
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=Tf5YISm/
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=P7pPmEP1
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id E13402A68;
-	Mon,  2 Nov 2026 03:21:51 -0800 (PST)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 368B01691;
+	Mon,  2 Nov 2026 03:21:58 -0800 (PST)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 000EB3F632;
-	Mon,  2 Nov 2026 03:21:48 -0800 (PST)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 4818B3F632;
+	Mon,  2 Nov 2026 03:21:55 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1793618515; bh=pfH49/wekZWH0tUlmAGPYfXLPMYhwWIki53rOu3JrVc=;
+	t=1793618521; bh=kV7fmntEBngzWjlRtt0fXgbabk4vgoYlOIhmmgX++kY=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=Tf5YISm/NbZvwkPEnUHnWMU4HZk+CDcrkirL9z+8KS5qYFwMCSdPLDcxtwNkqYbla
-	 mFdwJmtXdDZOweXSP/PDkgFSpVfkODm5NlcHFi+CoNzkIVmyQp1290rt9pBK2JiC9o
-	 kYPxrWkSuMDqiTHtpyDsilHlX/0l2sFdrwt6OtRE=
+	b=P7pPmEP1+y7xcVY0D4K6XD0jQizTpCe9MveMakhuwNTgU2/rc02un0pmGMjXbJF0R
+	 aYrAH5ZcOrnP+iq/bNtZh3I9kNmBsSIpcL/OxZxQcPA/T9dh0psHgdWo77wSDR8Jtr
+	 w16o3AMZnYr0X/mED3RmiUDXSnMXprAQfKtqzhZg=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Mon, 02 Nov 2026 11:21:16 +0000
-Subject: [PATCH RESEND v2 03/21] ARM: mm: remove custom pgdp_get()
+Date: Mon, 02 Nov 2026 11:21:17 +0000
+Subject: [PATCH RESEND v2 04/21] LoongArch: mm: define pud_leaf() only when
+ PUD exists
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -57,7 +58,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261102-dummy_ptxp3-v2-3-78840b2ec73c@arm.com>
+Message-Id: <20261102-dummy_ptxp3-v2-4-78840b2ec73c@arm.com>
 References: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
 In-Reply-To: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
 To: Russell King <linux@armlinux.org.uk>, 
@@ -90,43 +91,48 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
  linux-openrisc@vger.kernel.org
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=794; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=yi3BzhiHjasTHpKXh1MmDEBzfM1jM8lRPSh1W8s2lTo=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBq6HIwc/GAt+z5/OOvI3XR8a7QDzLX+Kmmbr+jA
- ZF852tvsq2JAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCauhyMAAKCRBt1cPRWsUx
- Myg5C/wNk/i75t104WkQdgspkcwkRtCjKwHmV8D+fUK6nYb7ji1MHoEsVIe1sHMK0ADIk7OhxRS
- S3rpo2/d6+5qv/LmYF55JqittempBiiZZ+UFylH0lRHBfdXkOQNDbYCPopeHy3uEZbCUONl2ATe
- 9mMlptrkZULQOx0oikCg1Pz3pLbent5TKJ9XwhSE7M7utu5izrQrquojB54trKaQfNCZQ8qS3GG
- tv3+PZd7ghv+bTvhDvi9AvjoCnZREX6rWFwVv/mxSR3zoOuloBrW+44ASZJpqJAWzwvREAM4N//
- UAbJCBV2ykb6MBSmZEEKQKIEDhhQRAY489gVgAMjOa/Un448WLURsjNETK4mMK064AuH8uQ5gyT
- krvRSxNzJeqsDewqn8e638zfsd7jtGSAsu6S5FT1p3KZGa6B6217eOXhOvTHJkAkrjOCNk/J/RB
- AXmrtPiCPS1sZsFy11YkhRK35X9QswfJPdmpKES7oBqQdrPfh4pA3GXP9KNqQLUay7cv8=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=993; i=yeoreum.yun@arm.com;
+ h=from:subject:message-id; bh=u7CkBygp3t9kTReuMDaCmZH0s2byLy+RqHAVuQrH24I=;
+ b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBq6HIwlxi0fq0NvoRR6wAM7dkyWS9oxQBI40Cgc
+ DKUESF9vgqJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCauhyMAAKCRBt1cPRWsUx
+ M0akC/9EGZkuiEkdTxl3CwYCFtvx1xhNG+FjrVxbus6mPWauJ8F5+J5sg5Np9DCF7VcqrJ7ge/+
+ bth6MHuatRPh7bNm2qmt1JrSUpNXrDlMed/ARE35YCapddiVFrA/hyghxyvDrMd5RXiBZ1M4RTK
+ PBpos5isVI6lqHRQNvFpm93ZH2dO+LOClaTapIUlIZCo5Lg/rNxgcJrdFYAMGgANqyeKI3gKPd6
+ lQtVhU1ZcDtV2xOKlhJegzKtK8N2O6FCC0F/mzVAlow4BD/Owt2Y9Pla/PUoribW/NWNTCSJ5mV
+ yQmIkHn4eDIrvIg4JJi4YgB0AVvnHsv9ctgHp71nNecFNaljvmmvh40iYvrgkfBuuxpwT2Hsyzi
+ PDwD5+lh1C/9TTrOCsmc4rjeHahxJv3TCJ1ggX4w1/T9VRTBKxgZEgoQWtprkyPP6vK+BHLuFtd
+ Y+v4psuuQM6VJV21P5UYO8NVMmjA0VothRLarZ8QJmarCmc3Eu856bpeW5BNJO+iTCRXs=
 X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
  fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
 
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 
-Now that pgd_t is no longer an array and rely on the common
-code pgdp_get(), which is a static inline function that returns pgd_t.
+In include/asm-generic/pgtable-nopmd.h, pud_leaf() is hardcoded
+to return false as inline function, but it misses the "define pud_leaf
+pud_leaf" part.
+
+To prepare for fixing that, define pud_leaf() only when
+__PAGETABLE_PMD_FOLDED isn't defined.
 
 Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 ---
- arch/arm/include/asm/pgtable.h | 2 --
- 1 file changed, 2 deletions(-)
+ arch/loongarch/include/asm/pgtable.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
-index 8dd17d20faa33..ff3868acea945 100644
---- a/arch/arm/include/asm/pgtable.h
-+++ b/arch/arm/include/asm/pgtable.h
-@@ -134,8 +134,6 @@ extern pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
+diff --git a/arch/loongarch/include/asm/pgtable.h b/arch/loongarch/include/asm/pgtable.h
+index f876031351319..9a62b87c246de 100644
+--- a/arch/loongarch/include/asm/pgtable.h
++++ b/arch/loongarch/include/asm/pgtable.h
+@@ -631,7 +631,9 @@ static inline long pmd_protnone(pmd_t pmd)
+ #endif /* CONFIG_ARCH_HAS_PTE_PROTNONE */
  
- extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
+ #define pmd_leaf(pmd)		((pmd_val(pmd) & _PAGE_HUGE) != 0)
++#ifndef __PAGETABLE_PMD_FOLDED
+ #define pud_leaf(pud)		((pud_val(pud) & _PAGE_HUGE) != 0)
++#endif
  
--#define pgdp_get(pgpd)		READ_ONCE(*pgdp)
--
- #define pud_page(pud)		pmd_page(__pmd(pud_val(pud)))
- #define pud_write(pud)		pmd_write(__pmd(pud_val(pud)))
- 
+ /*
+  * We provide our own get_unmapped area to cope with the virtual aliasing
 
 -- 
 2.43.0
