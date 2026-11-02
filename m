@@ -1,52 +1,52 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793618624;
-	b=auUr+w0zJsAY3BkE6jz9Pf0aSakG60Pup1jTg/kGaIkXA88EcA3PFQ9jrrZJALyTpLAj
-	 ppm/UBaWpDl8wSDdQXlEeE9Ub2InS9gLI0uK+zEVabRLDKVM15khw9m5sI/0qY3zXnbHi
-	 QVAW/mPi257HJ13lWVWmYChh3r+bGYlmHi1HfdCn1IpQuAbiHha8EoQNppeQHp4fG+ADx
-	 2zSsYKJZMVBUYUeADv1PQQzKOICJRz4LqHHLStEOrcDxX0jCJKIXqEDukS3OJjC2lysUj
-	 mmvG/ajbrvQmlfSliYdW+R7av2T0jaDM6oN/KBIA7Ff7OGwVnkmfHwDvcwzQI2de8ew==
+	t=1793618631;
+	b=VtY4b1ZsM7fuWiiGD6jUUXx9cqH9+t2sLOjZPfxj1mP6Boe0yOyMK6UOVd+TuVwNDsvD
+	 e+3us8huX9cAK0yrhmdvO32nSB2OIql4ZW4pgn8uN8wtpKW3OGEJcLUfKOvz2XmTpMY73
+	 1jx70+3kud6psunHnLL0RaViOh0qkiY7fW3839LETMJS072vsU3pxLRZuDFUOiuM5ABC3
+	 +bUYVMvxMYDgBAoeQ32vpeMm2VtyVYZyA3av7GkaCP1hY9Bi7ShhHAC0MqLz+bPVS7vwr
+	 MFKVpjoBmfqrtBdflK2m5Uz1/9iuD3eMtUkRK9XihG+FDv8Jt0uA1oSUkE+mryWVTFA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793618624;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793618631;
 	h=DMARC-Filter:Received:Received:DKIM-Signature:From:Date:Subject:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Message-Id:
 	 References:In-Reply-To:To:Cc:X-Mailer:X-Developer-Signature:
 	 X-Developer-Key;
-	bh=5o7BRqvZemOy4I3F9webe1p/ouSg2QH1C9yt6t24z0o=;
-	b=zHVhLCPUPQVT3tqFXNMI2a2n+zJ3AiI6viZ/eXxDvWmT+Zuk9jVLkIRjWpacSbwzA5Yu
-	 gkJaShLKrXlIvVhmT0R9Jp48tiWO35v3oxRRX7dDklkdOGsGqqyv0sCGuNL6KXjFTUp4i
-	 2rvAk1oCv0QUFxm28SNV7f5ZW4gATfqlz5/SqsWWOtnb1CydVTnBFaIvqxltIADd3zPCl
-	 7T/Zp8etkjFfpvYNYSTvbdxDespCBVurNFPkRNVGXvHjDLdN1h/ErIyoMYGWlBd7CBnJz
-	 pB3xE9PV/cIaJG/7Ztm1nS5ODA/GYABQttNR8ccAFlFpBDbmZxAa9R5dY5t8KJ3Ps0w==
+	bh=9Ysg6MEwVS7VKLwJjiHL7ib19j0E2bn6/f5G51dOAL0=;
+	b=Ukyt7ODUvcpQxi+C61od70irIaxKrzqeSxp7jJMbgdrjtxL64X0HoNIrqQLc88/c86/l
+	 d9NfKyc+EsDzHovx/1V24NJgrxzgo8eDoLgvESUN/3mj6t+58vs0lz1n9moGjmQQMt852
+	 HheOK/mBDdK8YwJ7bGJR7LCP8pHvZSMHC+C0g9xH2cPhzTRpWJOtkxPPa/PbzkDzvLNcr
+	 bK2xrVYqD5mXpIjVYcymeVpMcdu3A3F92y+Fa39zmd/osqgVmE5VhDRwauvlielWgT+eM
+	 kCVFhqXpcxVYbanHG/4WOPg2M69SVLH4h7AV7NrrCMhuZXWlf70qHJiRFRzbG0tnPIA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=arm.com;
 	spf=pass smtp.mailfrom=arm.com;
-	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=bDcPyALH;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=BrPb0hXu;
 	arc=none smtp.remote-ip=217.140.110.172
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id DB00B60A5BC7;
-	Mon,  2 Nov 2026 11:23:43 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org DB00B60A5BC7
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1FC4C606C42D;
+	Mon,  2 Nov 2026 11:23:50 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1FC4C606C42D
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=bDcPyALH
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=BrPb0hXu
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 4D0C8293B;
-	Mon,  2 Nov 2026 03:23:40 -0800 (PST)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 91B02293B;
+	Mon,  2 Nov 2026 03:23:46 -0800 (PST)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 416693F632;
-	Mon,  2 Nov 2026 03:23:37 -0800 (PST)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id A4ED03F632;
+	Mon,  2 Nov 2026 03:23:43 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1793618623; bh=Q9JupG6Ga9Yd5poWoXsf1ojyKybY/JhVHRMS9+yuENk=;
+	t=1793618629; bh=iiExwLtobXiDRkDzhCd4KbgedHi6eyqTW5J2A3p/GoY=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=bDcPyALHdw5Zl0D9VGE+COP0dcVYHFDY2m/TeiDjc0+A/crtNk6K62TNrxMawJglR
-	 HuCzRFMzqJY4ZnK2C33oRnpK5HA2DV8dNNYXhI0MkQR1+TfDVeXdgdR+7I8KKSura8
-	 tZryB4Pg0pjWfsU/XJyJ2Yyb7THMgfg7MzKeUjL4=
+	b=BrPb0hXuYg5FDqnQoxAoQEPqwy35W9QWkiKSZbg3KsrD0XEabz16DkjubK7JqGSV0
+	 OPWT8B5k/j69iFU4lw32ZN1FbqKVhYkgINnZSpuVpHWynTxUVdsXn3n2gXh0w8vpHx
+	 C1xoy3anV4D+fDsKAX6O+jB+JolHrc1sf7sWdpz8=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Mon, 02 Nov 2026 11:21:33 +0000
-Subject: [PATCH RESEND v2 20/21] mm/pgtable: disallow calling folded
- set_pgd/set_p4d/set_pud with dummy
+Date: Mon, 02 Nov 2026 11:21:34 +0000
+Subject: [PATCH RESEND v2 21/21] Documentation: mm: clarify behaviour of
+ compile-time folded page tables
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -58,7 +58,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261102-dummy_ptxp3-v2-20-78840b2ec73c@arm.com>
+Message-Id: <20261102-dummy_ptxp3-v2-21-78840b2ec73c@arm.com>
 References: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
 In-Reply-To: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
 To: Russell King <linux@armlinux.org.uk>, 
@@ -89,112 +89,131 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, 
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
- linux-openrisc@vger.kernel.org, Yeoreum Yun <yeoreum.yun@arm.com>
+ linux-openrisc@vger.kernel.org
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3423; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=wn+xbNqkdezctD1uOfR77s9+bFTC1HhX6zz+en43LNA=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBq6HI41HYqR/DY60asrivvc260RG+DlN2TcOsBc
- 2SoszCYpCyJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCauhyOAAKCRBt1cPRWsUx
- M9KeDADPFy2VaPWEZBujNb0vh7LKkIz7kEE4LevE/m07H9r7Pw9DXwNx3SYKLS8IC154sHLt7rf
- YgyNrbwDUdEpJob+IGYoqz/5K3DHBrZLHS/3qsWBl1KXeR/Dv8K3FWIQ5Ys+rf0g5d/FvdXApJs
- Pii/zng3OoTnqcPyWZZX72ce3RGzjrAoyq5+wljz3V7Ci0FAfKTvreFJtDbCbOWYIZWDV+zOHRs
- v5dDyQFCkAaYDieYiHCztilTWH3UVEa42+JNdhGNV355CTuH0tI408DW6YRmFoV5WNpB63Sydsz
- wYGjMGPqbMriOGW/oWyYBWkDKuO6zxjmC2XJDP8XYYy0BJ+JLQfrf7w5VWYbujb062ucuwx0S+6
- gvVUxMm0oWu7GbkWcJd8uZDyi5+OLF+PWF0CrSfaWEmNttOz782RwBi8oGpmDpCr4jJoGyBxUcC
- zVyZOVxtFTUtOUH6Huj5xtItNrX8U1FTI7uYkQ73fxPepT+046JpjWvUSeJNm1nPmqego=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=5250; i=yeoreum.yun@arm.com;
+ h=from:subject:message-id; bh=we33pLaWTEXUzxN2eli55cmCuITu+4r4z0c6wIrOlvY=;
+ b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBq6HI5puhw5lGPEsqL2+0oxYQ14ZUvSogy1dQY7
+ mbhixVweFqJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCauhyOQAKCRBt1cPRWsUx
+ M0LeC/9Cq0L+HoSCeEcxKHvRuuTb6eN/i826KAV+hkrcMfVFIULPPvwRKY9kYk3gsbK8opHg/qM
+ eDSlKtSYplqrFvRLwGt/ddDHCU47Hi1VZGw8A2j1HDaCHffEGl6C5FzzdErrZCIBrMIUlrZZARQ
+ u4fy1wwWXQu9IYjXnyF3BI07Y05Is6jHXzw5ApmalBxBp85sr1oFlR45kHuQxi8Ma67ye23pU+i
+ 0ZfEc1HgiqWjEanyJvQQFiIUwn7+lmt+sYCHqncaafdCYo3KHgQaHetYAneCx7X14vidrudgq+u
+ C2LEDT0pu3GVJlMya52voqvBocPv07v+yrOMkc2yrVlibFvy72hf8cXhXucoMOtYi9Ac6p0nTbH
+ UBsr8OB8/MJYoiHCzkYACf6uE2qyNGCqCwApVpfGBocJ8Tm4THZDDTv79sd4Sr7B2Fo2BrLYn9V
+ xgmHiHS71tqPIlx4VRSha2GekLQlQUXLnzYAP7xJLSeoiFrOZwyfxUMXye+TMGvJSDGiQ=
 X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
  fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
 
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 
-pXdp_get() could return a dummy value for a page-table level folded at
-compile time. Passing this value to set_pXd() could cause unexpected
-behavior.
+Compile-time folded page tables are not necessarily easy to understand, and even
+people the were once familiar with the concept might need to refresh their memory.
 
-Prevent this at compile time by ensuring that all calls to
-set_pgd()/set_p4d()/set_pud() are compiled out for folded page-table
-levels. Make the compiler complain if these helpers are called with
-dummy values.
-
-Since there are places where set_pXd() is called even when
-the corresponding page-table level is folded at compile time,
-drop the incorrect comments for set_pXd().
+Add proper documentation, including a nice diagram, for the current design.
+Mention details about dummy functions, including the recently changed pXdp_get()
+helpers.
 
 Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-Co-developed-by: Yeoreum Yun <yeoreum.yun@arm.com>
-Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
 ---
- include/asm-generic/pgtable-nop4d.h | 11 ++++++-----
- include/asm-generic/pgtable-nopmd.h | 10 +++++-----
- include/asm-generic/pgtable-nopud.h | 12 +++++++-----
- 3 files changed, 18 insertions(+), 15 deletions(-)
+ Documentation/mm/page_tables.rst | 84 +++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 75 insertions(+), 9 deletions(-)
 
-diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
-index d2dccf7542da5..12b01768134b5 100644
---- a/include/asm-generic/pgtable-nop4d.h
-+++ b/include/asm-generic/pgtable-nop4d.h
-@@ -28,11 +28,12 @@ static inline bool pgd_leaf(pgd_t pgd)		{ return false; }
+diff --git a/Documentation/mm/page_tables.rst b/Documentation/mm/page_tables.rst
+index 126c876282509..d4f3e2e343ca2 100644
+--- a/Documentation/mm/page_tables.rst
++++ b/Documentation/mm/page_tables.rst
+@@ -143,15 +143,81 @@ pointers on each level is architecture-defined.::
+ Page Table Folding
+ ==================
  
- #define pgd_populate(mm, pgd, p4d)		do { } while (0)
- #define pgd_populate_safe(mm, pgd, p4d)		do { } while (0)
--/*
-- * (p4ds are folded into pgds so this doesn't get actually called,
-- * but the define is needed for a generic inline function.)
-- */
--#define set_pgd(pgdptr, pgdval)	set_p4d((p4d_t *)(pgdptr), (p4d_t) { pgdval })
+-If the architecture does not use all the page table levels, they can be *folded*
+-which means skipped, and all operations performed on page tables will be
+-compile-time augmented to just skip a level when accessing the next lower
+-level.
+-
+-Page table handling code that wishes to be architecture-neutral, such as the
+-virtual memory manager, will need to be written so that it traverses all of the
+-currently five levels. This style should also be preferred for
+-architecture-specific code, so as to be robust to future changes.
++Not all architectures support 5-level page tables; while for some of them
++the exact number of supported page table levels is known at compile time,
++others can determine the number of page table levels at runtime based on
++hardware support and address space sizes.
 +
-+#define set_pgd(pgdptr, pgdval)						\
-+({									\
-+	pgd_check_dummy(pgdval);					\
-+	set_p4d((p4d_t *)(pgdptr), (p4d_t) { pgdval });			\
-+})
- 
- static __always_inline pgd_t pgdp_get(pgd_t *pgdp)
- {
-diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
-index 2afbf2d8659dc..11b04c1071295 100644
---- a/include/asm-generic/pgtable-nopmd.h
-+++ b/include/asm-generic/pgtable-nopmd.h
-@@ -37,11 +37,11 @@ static inline void pud_clear(pud_t *pud)	{ }
- 
- #define pud_populate(mm, pmd, pte)		do { } while (0)
- 
--/*
-- * (pmds are folded into puds so this doesn't get actually called,
-- * but the define is needed for a generic inline function.)
-- */
--#define set_pud(pudptr, pudval)			set_pmd((pmd_t *)(pudptr), (pmd_t) { pudval })
-+#define set_pud(pudptr, pudval)						\
-+({									\
-+	pud_check_dummy(pudval);					\
-+	set_pmd((pmd_t *)(pudptr), (pmd_t) { pudval });			\
-+})
- 
- static __always_inline pud_t pudp_get(pud_t *pudp)
- {
-diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
-index 3264673c0c386..5ee8f1852cd8c 100644
---- a/include/asm-generic/pgtable-nopud.h
-+++ b/include/asm-generic/pgtable-nopud.h
-@@ -35,11 +35,13 @@ static inline bool p4d_leaf(p4d_t p4d)		{ return false; }
- 
- #define p4d_populate(mm, p4d, pud)		do { } while (0)
- #define p4d_populate_safe(mm, p4d, pud)		do { } while (0)
--/*
-- * (puds are folded into p4ds so this doesn't get actually called,
-- * but the define is needed for a generic inline function.)
-- */
--#define set_p4d(p4dptr, p4dval)	set_pud((pud_t *)(p4dptr), (pud_t) { p4dval })
++Generic page table walking code always assumes that 5 levels of page table
++exist. To make page table walking code not have to worry about that,
++`compile-time folding` and `runtime folding` of page tables are used.
++Compile-time folding is mostly handled in common code, whereas runtime folding
++is exclusively handled in architecture code.
 +
-+#define set_p4d(p4dptr, p4dval)						\
-+({									\
-+	p4d_check_dummy(p4dval);					\
-+	set_pud((pud_t *)(p4dptr), (pud_t) { p4dval });			\
-+})
++This description focuses on generic compile-time folded page tables; for
++architecture-specific variants, some details can vary, however, without
++affecting common page table walkers.
 +
++When walking folded page tables, all upper page table levels up to the supported
++level are skipped in page table walkers: this is achieved by (a) treating
++entries in upper page table levels as present and pointing at a page table; and
++(b) having page table walkers cast the entry pointer to the next-level entry
++instead of dereferencing that table. From the perspective of a page table
++walker, the entry points at itself.
++
++Assuming compile-time folded 4-level page tables, to achieve (a), pgd_present()
++and pgd_leaf() are hard-coded to indicate a present page table entry that
++points at a page table, and to achieve (b) p4d_offset() and
++p4d_offset_lockless() simply cast the page table entry pointer to the next
++lower level.
++
++In the current design, this is further modeled by having the P4D have a
++single page table entry::
++
++        PGD
++  --> +------+          NOP4D
++      | ptr0 |-------> +------+           PUD
++      | ptr1 |-        | ptr0 |-------> +-----+
++      | ptr2 | \       +------+         | ptr |-------> ...
++      | ptr3 |  \                       | ptr |
++        ...      \                        ..
++                  \        NOP4D
++                   +----> +------+           PUD
++                          | ptr1 |-------> +-----+
++                          +------+         | ptr |-------> ...
++                                           | ptr |
++                                             ...
++
++Note that the arrows from PGD to NOP4D represent page-table-walker
++transitions, not pointers stored in the pgd entries.
++
++Using p4d as an example, `nop4d`/`p4d folded` translates to the following:
++
++- p4d is considered folded into pgd; both are operating on the same page
++  table.
++
++- Most pgd_* helpers are hard-coded dummy functions that ignore the passed
++  pgd_t values entirely. Exceptions are pgd_val() and low-level helpers
++  set_pgd() + pgd_page_vaddr(), which effectively translate to set_p4d()/
++  p4d_pgtable() to keep existing arch code working.
++
++  Architectures must provide p4d_* helpers (unless further common
++  compile-time folding applies).
++
++- PTRS_PER_P4D is hard-coded to 1. Architectures must define PTRS_PER_PGD.
++
++To avoid reading a value that will never be used but cannot be entirely
++optimized out, compile-time folded page table code also makes pXdp_get()
++return a constant dummy value.
++
++In common code, this only affects pXd_val() when used for printing page
++table entries for debugging purposes. As we don't want architecture code
++that uses set_pXd(), pgd_page_vaddr() or pXd_pgtable() to accidentally
++operate on dummy values, the compiler will error out if it detects that the
++helpers are used with dummy values. For a folded level, pXd_page() must not
++be used and unconditionally triggers a compiler error. Architecture code must
++instead call the helpers on the proper first page table level: e.g., set_p4d()
++instead of set_pgd().
  
- static __always_inline p4d_t p4dp_get(p4d_t *p4dp)
- {
+ 
+ MMU, TLB, and Page Faults
 
 -- 
 2.43.0
