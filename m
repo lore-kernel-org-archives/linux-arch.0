@@ -1,110 +1,61 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=193.142.43.55
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=198.137.202.133
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793636479;
-	b=l6ZGJcJj8o7YWTS+Ehxlrwfn+wpYr1ZPoVFjN9MVpDn0eehgJBZY/wEn36oDjCBf+msY
-	 U9n4GZTgAR+eQ+GtPL9Nw4BJLs/YU15r2vwTmGcz1Az4pkol7VgnjaFoNUf5kFfdAkxr4
-	 ldJ2Ku2I/E0EwTXqL2IYL/VSn14YRkHqg7qqw87Vpm3yVA6yeuNwSoClmpjCDsNzo0XfC
-	 yJ7UgLROT2k4AT/SEg6lSYTaYC8erHjsDOIJUI9xhNn9gxt02jY6Cv8ruvajh04OJjeXM
-	 myFlJ1MfCku3pu/Jx6b/TBTVOe6aCyscefIak1LJRgOb9S2Pz0v6L4ETMAi6aKTVIeA==
+	t=1793641133;
+	b=0dcW0hYWcn7kJG1qsCM7kCoRoFYBacCdJzRfUneqWm4Ga5XZylQklbxvafsSo92zbrjM
+	 besQiPr9w+ue9hFEhezj5L8NlgK7IIjLYraNdINslz/IIfHZz3LmYiu+4Fbgxgqj3bAi9
+	 I+e+2TPpuh4ke/yHSTmwlqdb7MutWg8BuOAEd/0OLQSKwAY8CnEoA0H9TM1DUPUZDetZ2
+	 jtcu1xW5yUQylkgcW5jyYN1ptNvCpSGTTIAqx1Uyn7SPSmLqFeT/ZXrNfaz3gO3sI3J8U
+	 AyBj577AnyVT6QS/D/8LAN+coKhKXsl+VXC/96x61hcCwd4rZBbr8ab3yfhpMYMbL4Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793636479;
-	h=DMARC-Filter:Date:DKIM-Signature:DKIM-Signature:From:To:Cc:Subject:
-	 Message-ID:References:MIME-Version:Content-Type:Content-Disposition:
-	 In-Reply-To;
-	bh=CAbnxO0/qUW9BHgq0s5afN/fwZolzjrBJaRnSuaEmAo=;
-	b=0Cusf0XnW+shSFcHbBPfz4IzSUYm7AQSVQFq7lZ39KIOlrDeT/t84flHjrnrSnE5HW/B
-	 IPH6XsSR5ENwdMAfvrOgwQ6OW1OX37PW4OV6IAv7DLAaSUaitPFrscFgcdVJJDJg8FP3l
-	 EMBiiUMvPZt4UqzC2eYznkTtDkJvc8afIoOVqu7O4O4aZtlPiOCV35NXrZvra3JfOZpsI
-	 KvVOgJFJGYXSCcLRuWnQePW6xG8O8K9ESLCEBtcv9VWjunrxcB39RfBzjP6F5JiR82Zr1
-	 2avQymkMBsp8vihNum3JPWMxAzaMuCC/7fRv1deTbV1Z75HaFuo1HI/6zQPARy/cQEw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793641133;
+	h=DMARC-Filter:DKIM-Signature:Received:From:To:Cc:Subject:Date:
+	 Message-ID:X-Mailer:MIME-Version:Content-Transfer-Encoding;
+	bh=870eKMajB2DYx6K/7FSEPbIv9AYfZpTly12wWbb1oM4=;
+	b=ML0g+nKNE+xT9Vrn0Rkxez3qFh9xm/H4HOAhJ1N7tsNfwyjmlCJH0MWEVRPPIabnPId8
+	 J+8ZTJOj6ku+LAuU0OCSnQydjxN3bTi1eK35neoPh2LHW0vF26fIv2pI1zi1bWKFvPje3
+	 tDokhzNx50Ybm31X+WyVK2lY1dMGB+BSNVLaqKW8bYZm5fhKRAPu92bmgGJQHombnJcWv
+	 db51hFEdp8vXuI39f9EQD8Iscs+ACKhTgULPnYo6hrQnzObFt3iHb1jiW9QK1CHTbAkcz
+	 eQ20ZPVyAbLzZOS+7uGF+W7NcZUixKj/qNuJbYyE/2bithoJF1HuyyT/9AlrWbyJqaQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linutronix.de;
-	spf=pass smtp.mailfrom=linutronix.de;
-	dkim=pass header.d=linutronix.de header.i=@linutronix.de header.a=rsa-sha256 header.s=2020 header.b=Bkvlc9Uh;
-	dkim=pass header.d=linutronix.de header.i=@linutronix.de header.a=ed25519-sha256 header.s=2020e header.b=no3DkXB1;
-	arc=none smtp.remote-ip=193.142.43.55
-Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
+	dmarc=pass header.from=infradead.org;
+	spf=pass smtp.mailfrom=infradead.org;
+	dkim=pass header.d=infradead.org header.i=@infradead.org header.a=rsa-sha256 header.s=bombadil.20210309 header.b=S0ADRpOH;
+	arc=none smtp.remote-ip=198.137.202.133
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7FBBF606ABA6;
-	Mon,  2 Nov 2026 16:21:18 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 7FBBF606ABA6
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D575E606A90B;
+	Mon,  2 Nov 2026 17:38:52 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org D575E606A90B
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=linutronix.de header.i=@linutronix.de header.a=rsa-sha256 header.s=2020 header.b=Bkvlc9Uh;
-	dkim=pass header.d=linutronix.de header.i=@linutronix.de header.a=ed25519-sha256 header.s=2020e header.b=no3DkXB1
-Date: Mon, 2 Nov 2026 17:21:13 +0100
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1793636476;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=CAbnxO0/qUW9BHgq0s5afN/fwZolzjrBJaRnSuaEmAo=;
-	b=Bkvlc9UhhyCv5ZdWUMU6G9Li+R2BVAADYWwZuoqUAyqvUjCoGYGxXIn4ALH8UCKwa4wXF8
-	oraU/gZ8eujvwMvYkEcPGl9LoaQ4y8L5gTwgvEqTaLIOKyYpw0Vt21vSoLNR9nGu5XUZGy
-	Ei+jDbIPpRtvYxUN3n40OXfMZKwhjOcptRjzclaFhqfaMjZ4DnPJp2kIUEARXrDA2lfCj7
-	Xc9td9/O5azqjpJ09IA+6VHzOt3kgO7Q3tW3z+AQm8NXUA0NJY3SKFbPnSH3MoCGBJlCpq
-	9SKkxdgYMHfQI6T9cHJ58WWsIb3edmk7YJmf4hhOdiwEorZM3Pu5QhcHBVRk7Q==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1793636476;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=CAbnxO0/qUW9BHgq0s5afN/fwZolzjrBJaRnSuaEmAo=;
-	b=no3DkXB1ZRbLOBdX8Sfg5H+HK/netv5lLDsnHm2NNe1d6SMQE1Lawcr4U1D9QbHBAGIkXh
-	QAa36tqetUjJ21Dw==
-From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-To: Thomas Gleixner <tglx@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, LKML <linux-kernel@vger.kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Michael Ellerman <mpe@ellerman.id.au>,
-	Shrikanth Hegde <sshegde@linux.ibm.com>,
-	linuxppc-dev@lists.ozlabs.org, Kees Cook <kees@kernel.org>,
-	Huacai Chen <chenhuacai@kernel.org>, loongarch@lists.linux.dev,
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
-	linux-riscv@lists.infradead.org,
-	Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org,
-	x86@kernel.org, Mark Rutland <mark.rutland@arm.com>,
-	Jinjie Ruan <ruanjinjie@huawei.com>,
-	Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>,
-	Richard Henderson <richard.henderson@linaro.org>,
-	Russell King <linux@armlinux.org.uk>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Guo Ren <guoren@kernel.org>,
-	Geert Uytterhoeven <geert@linux-m68k.org>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Helge Deller <deller@gmx.de>,
-	Yoshinori Sato <ysato@users.sourceforge.jp>,
-	Richard Weinberger <richard@nod.at>,
-	Chris Zankel <chris@zankel.net>,
-	linux-arm-kernel@lists.infradead.org, linux-alpha@vger.kernel.org,
-	linux-csky@vger.kernel.org, linux-m68k@vger.kernel.org,
-	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-	linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
-	Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <vgupta@kernel.org>,
-	Will Deacon <will@kernel.org>, Brian Cain <bcain@kernel.org>,
-	Michal Simek <monstr@monstr.eu>, Dinh Nguyen <dinguyen@kernel.org>,
-	"David S. Miller" <davem@davemloft.net>,
-	Andreas Larsson <andreas@gaisler.com>,
-	linux-snps-arc@lists.infradead.org, linux-hexagon@vger.kernel.org,
-	linux-openrisc@vger.kernel.org, sparclinux@vger.kernel.org,
+	dkim=pass (2048-bit key, unprotected) header.d=infradead.org header.i=@infradead.org header.a=rsa-sha256 header.s=bombadil.20210309 header.b=S0ADRpOH
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+	MIME-Version:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
+	Content-ID:Content-Description:In-Reply-To:References;
+	bh=870eKMajB2DYx6K/7FSEPbIv9AYfZpTly12wWbb1oM4=; b=S0ADRpOHweom0GvuJE4YabJH8D
+	9G6hlvYYPRmBZuM3yDl2p4Q215EabzEhUkcw0IRmKxQp6vH+1p3mTKsLc8fivHX8o3bN4NQ4Ukrrv
+	VFlwDQmzxT6DAFh7LQnQcxSQX07tMbNK3fVtJSrLzVZIF7DeBxN2Osky829fPz5izt1upo9CUuqUm
+	5zcif4eqEeu3Wgj1MC9SRsjabmqfR9Q84rMY83Jkeminnw4PX1NOlBHy49McUBm5HtRXDMwU5pKh0
+	tqpJVnwZWZK/5RvJXTdQHhmDprMDbSJ34RciBgts+sAgjbHj+1OnTFScGek6kfQpTZWXDnH2XKMIL
+	XCAf8PpA==;
+Received: from [50.53.43.113] (helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtpsa (Exim 4.100.1 #2 (Red Hat Linux))
+	id 1xNvzg-0000000HUL3-1178;
+	Mon, 02 Nov 2026 17:38:52 +0000
+From: Randy Dunlap <rdunlap@infradead.org>
+To: linux-kernel@vger.kernel.org
+Cc: Randy Dunlap <rdunlap@infradead.org>,
+	Arnd Bergmann <arnd@arndb.de>,
 	linux-arch@vger.kernel.org,
-	Michal =?utf-8?B?U3VjaMOhbmVr?= <msuchanek@suse.de>,
-	Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
-Subject: Re: [PATCH V2] x86/entry: Fix ptrace regression
-Message-ID: <20261102162113.LEAhpzer@linutronix.de>
-References: <20261022142425.3Wx-RrU5@linutronix.de>
- <87fqxx1r80.ffs@fw13>
- <87cxt11ktr.ffs@fw13>
- <1149A39E-BEBA-46EA-94F4-4DFFC4733EF5@zytor.com>
- <871p9g1s3w.ffs@fw13>
- <87y0boze95.ffs@fw13>
- <C6D7BF04-4CF7-48D1-93B5-E80D52C2617D@zytor.com>
- <87se1wyvs8.ffs@fw13>
- <87mrrvxaty.ffs@fw13>
- <87ecd4xwlr.ffs@fw13>
+	Andrew Morton <akpm@linux-foundation.org>
+Subject: [PATCH v4] asm-generic/io.h: fix grammar typos
+Date: Mon,  2 Nov 2026 09:38:51 -0800
+Message-ID: <20261102173851.2232734-1-rdunlap@infradead.org>
+X-Mailer: git-send-email 2.56.0
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -114,29 +65,37 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <87ecd4xwlr.ffs@fw13>
+Content-Transfer-Encoding: 8bit
 
-On 2026-11-01 18:58:08 [+0100], Thomas Gleixner wrote:
-> --- a/arch/x86/entry/syscall_32.c
-> +++ b/arch/x86/entry/syscall_32.c
-> @@ -77,6 +77,10 @@ static __always_inline void do_syscall_3
->  	if (likely(nr < IA32_NR_syscalls)) {
->  		nr = array_index_nospec(nr, IA32_NR_syscalls);
->  		regs->ax = ia32_sys_call(regs, (unsigned int)nr);
-> +	} else {
-> +		/* See comment in do_syscall_64() */
-> +		if (nr != -1UL) {
-> +			regs->ax = -ENOSYS;
+Correct grammar mistakes.
 
-A curly closing bracket here and then it compiles for me. Or remove the
-one in the "if" line.
+Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
+---
+v2: rebase & resend
+v3: rebase & resend; add Andrew to Cc: list
+v4: rebase & resend
 
->  	}
->  }
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
 
-With either of the suggested changes:
-Tested-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+ include/asm-generic/io.h |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Sebastian
+--- linext-2026-1007.orig/include/asm-generic/io.h
++++ linext-2026-1007/include/asm-generic/io.h
+@@ -1113,12 +1113,12 @@ static inline void *phys_to_virt(unsigne
+  *
+  * Architectures with an MMU are expected to provide ioremap() and iounmap()
+  * themselves or rely on GENERIC_IOREMAP.  For NOMMU architectures we provide
+- * a default nop-op implementation that expect that the physical address used
++ * a default nop-op implementation that expects that the physical addresses used
+  * for MMIO are already marked as uncached, and can be used as kernel virtual
+  * addresses.
+  *
+  * ioremap_wc() and ioremap_wt() can provide more relaxed caching attributes
+- * for specific drivers if the architecture choses to implement them.  If they
++ * for specific drivers if the architecture chooses to implement them.  If they
+  * are not implemented we fall back to plain ioremap. Conversely, ioremap_np()
+  * can provide stricter non-posted write semantics if the architecture
+  * implements them.
