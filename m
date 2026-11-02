@@ -1,52 +1,52 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793618548;
-	b=wrDAgnTAmC46cpF5hUO3OGUeFbTdzSQKbb/0AKkwMw/vLzISHwkKZ78SAFpMQmAysOzK
-	 NrqtjAyay/EuebqYLmKmjcGZke7xD+UNzU5nyKL+8ZdodATwa7FgkbmlSEkKuj7zgjHun
-	 1FKcKqrQwMQ1YdGDLvXlmSQijHsl8GpBW3jiAfhJSjtqgvwOeITvAiecnn3h2ttYm7Gd+
-	 Ey6smzZFvDgCApjyl0whBTZm5lz2bY0PEFEaG/gPlhO1wEFw/vuaawTD7d80bX2er7ZeA
-	 fCTIBoG2POXtwPKrUCZAfOa3BvxuitC2FdhmhEkSQHPjODifXhb+bB6scG6sK4mQEcQ==
+	t=1793618554;
+	b=O8QOedE0iMA1SsJRvAhSItn3PA2TlsWFzOtzHemRAl6CyIHgVTnkXupMGkh/Kkzn1lT7
+	 gdvZKk4K3NFZebrbv1f9jLR2wwUSw2o38kzxqqKsUY85LDjydyXC6pQkYlxycMBzcB7mn
+	 5aeHMJgYnhhfXXcSTlvRGKGMFiQ/ZSD2JZqLvdCfiZckLxGgt8+4DHbBaglasWL0eRAK5
+	 UnuRFIXIKJj/Ly7tdcRAY9xMPpIe71FVwODi6/gik4ijOgRdkbGqTJZloGV47Ld3CKaPY
+	 DBE467B/V2CVPcohTbSBEzbDAhILQGfKXQLOOtKMgpgKMwDVS14xIRng3KWgHg8iq8w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793618548;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793618554;
 	h=DMARC-Filter:Received:Received:DKIM-Signature:From:Date:Subject:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Message-Id:
 	 References:In-Reply-To:To:Cc:X-Mailer:X-Developer-Signature:
 	 X-Developer-Key;
-	bh=8hJ1iPHVTbYTDAq/C1HnaYE5+XA4A6mgYVB8Pyb4aLM=;
-	b=x4uJDOKy6/3AQv7xos2v7HPAjZGd1Lb/mGKT+zGbbONnM/Hm213gP2fZUS5+uRObioe+
-	 vCDPM7BrthOAeUZp+zE10B73qj3mk4tIOlrcylOH8HdeiXtgyydGcxw+LLpNQNqo0DAyn
-	 p3z54M1YKAzYBlGK2ZGj3G9+iMdALv149fHwBYM1n/228ULiYPU8PxnX5nBLfI2xJwzeF
-	 nCSbTiTXEBAJiZLrrLPppb+XTCsKiorJdV91Bpij0YbEsskxJTl+iKlkQR3hoatWaPJhX
-	 4BEPXEvq3GYkxAgzYC4YjXW33o8SgFAGCS6HmKFUt6dfdUCZ+8cDDQcisn+wD7sKC4w==
+	bh=HLNvHrR0Fpj6ftr47GYXDwUrEMv6CUTbezLhLSAnnFs=;
+	b=r0sDtbAdzjh2aBSY524l9XBWzrgXSVKQTqDzHDLkNVr8vzOXbqHmPtWhrx9BRfo+NnFt
+	 hCfnXWGXi49i5+IUOh49YUqrWSetOT0r56zf0LcBW6pdzvtKTIL4n/KXRAqyL4s6aZNF/
+	 PVDjWHJsnb7i5FFoICxr48xJ3+XDhvVWC4q9vqlKCKlS0SNeN93rMzgDVbzFp0nxNmEW7
+	 lPeduFxXiTgfXXXr/Am6ha8x71V8GZggPGnkalGwXMi2K8rTXU8uRf+9NIolSuCCrsjtf
+	 fpiUT0mGuXGCnJjpIYiHjkc3TwidoY3cOkpKt/OtVRNcuDdqa+YDMl54q+Xx54TKFwA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=arm.com;
 	spf=pass smtp.mailfrom=arm.com;
-	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=YdZ50qos;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=NGzAi2YU;
 	arc=none smtp.remote-ip=217.140.110.172
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 668BE60A380B;
-	Mon,  2 Nov 2026 11:22:27 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 668BE60A380B
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8B4CF60A380D;
+	Mon,  2 Nov 2026 11:22:33 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8B4CF60A380D
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=YdZ50qos
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=NGzAi2YU
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 9987E1691;
-	Mon,  2 Nov 2026 03:22:23 -0800 (PST)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 092802A68;
+	Mon,  2 Nov 2026 03:22:30 -0800 (PST)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 7612A3F632;
-	Mon,  2 Nov 2026 03:22:20 -0800 (PST)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 00DBA3F632;
+	Mon,  2 Nov 2026 03:22:26 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1793618546; bh=/Ssd4kAdbyYc2WVWtdpRP5Vxi5IuwO7Iv1puKU0SNto=;
+	t=1793618553; bh=QYmfwdLe215hLGuFdCj5safJ8gxdq3zlW1ht1LiurFo=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=YdZ50qos+A3w9ZaM+D9UJ7oLQBvwyhsBU/ruoPIHunkF9HB8/GvUZPOFwIhq0hj+b
-	 XMmZmMiyF5M+zRGKttEOthHofyTIfdOb6kRAKiJfrH27FTrj7aQ3tXK4ZJ1L2PFzo+
-	 h5y+NPPSkIndHx1iv7x0/IC7DPBuyoL72xdV5wCE=
+	b=NGzAi2YUuhqkVXhnAdJL2xqwg1sWWuNnmUOJc6WYMvcZsOaHYodWzzAQDylogAHGF
+	 sAlnvTGEoaWaY/k2K8WvP84MmxrLyH3UL6M62DxDMZKwAFnAf1wnmUlSt9sVt9I0mu
+	 Q2N9zAaDmNiAxl2O123nlIpmLVp78QCa6wl12pEo=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Mon, 02 Nov 2026 11:21:21 +0000
-Subject: [PATCH RESEND v2 08/21] mm: vmscan: remove stack copy address of
- pud/pmd pass in walk_pud/pmd_range()
+Date: Mon, 02 Nov 2026 11:21:22 +0000
+Subject: [PATCH RESEND v2 09/21] loongarch: kvm: remove stack copy address
+ of pXd in pXd_offset()
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -58,7 +58,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261102-dummy_ptxp3-v2-8-78840b2ec73c@arm.com>
+Message-Id: <20261102-dummy_ptxp3-v2-9-78840b2ec73c@arm.com>
 References: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
 In-Reply-To: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
 To: Russell King <linux@armlinux.org.uk>, 
@@ -89,58 +89,83 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, 
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
- linux-openrisc@vger.kernel.org, Muhammad Usama Anjum <usama.anjum@arm.com>, 
- Yeoreum Yun <yeoreum.yun@arm.com>
+ linux-openrisc@vger.kernel.org, Yeoreum Yun <yeoreum.yun@arm.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1374; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=/Ssd4kAdbyYc2WVWtdpRP5Vxi5IuwO7Iv1puKU0SNto=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBq6HIyfn2gL02dSTH4U1Digx7JtPpPj8Bgyn8x9
- UoFtdHycjSJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCauhyMgAKCRBt1cPRWsUx
- Mz/2C/42LrIml4kwQBW+YjAT4YcNn/U4Nb8+hQWZ9x0kXwPAdxvb9J43k+UVxO9ahHOIk6g6HIT
- XtZL/MTOK7/jgTNkxXqFVeYK8VyzWEiqpibgZjNpiX9XLh6Z8cmnp8G47IUvXkJP0wA+Hmakv3A
- 9myK1wyAcp0SHF/i/sVsHm7iyIbMyGfGc6Z5CBiWiTjnDvafMkvBazMphB0j5dU46MUuWd+W7qy
- GwEdURQVvkAFrul/krfqIl8qyLzn4vPYYBCRYUd4SCIlcw5QjS3Qthc6ED7WMnukAn35Yx6W0oL
- oPVAV5N01l94+aU9yml7y7eXDNrR6dgu0Ocio3vbsU2eTqNw/dYDJL0PD+h2rPLcEwUkPmIQlTt
- o0ewlFkj/UUYwiFIUbO3PGph11XhYzVDb++4zdSLnOfSYG/ZBB9EGVS2GVUt55QTEBEc3tRmB+f
- YQCEfFaDjsnzZBrd0gL/KZqDv8WqDSWqrGeR2W82At20bHA5Qs1wSXjJiIn3cDFFKuyPg=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2052; i=yeoreum.yun@arm.com;
+ h=from:subject:message-id; bh=QYmfwdLe215hLGuFdCj5safJ8gxdq3zlW1ht1LiurFo=;
+ b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBq6HIzqxNaFzhvjoxpWT/tFvwVycvQLXxje++RP
+ KuCMEyxm3SJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCauhyMwAKCRBt1cPRWsUx
+ MwUIDACW8rDfN4PXoaycRrecOSJ5P2sV/Skn8cOJ9F/ArQxVMCOkJHu/jozzrN/5ZWRoyfVV6qI
+ hDxzX47bfW4GqsHO5E1uaj6xJ9OnTVdhFE4l/Z+UE2LIN2XI1Bin4FtP4AUH6tjSrIcQmyrNuOY
+ XpIxrn+T3hDCqyoo51zdCIbgMvWpEbTre5IJV1a6Mqp1c9cAMKvBQOnCovyb5XsRcbIXCK8GBUL
+ 2aP3pPNFUvXRH3QTlxhUPhWul1wCFo4bQXDbwm3jT1xU3N3aXNrX3vH+jBPPeM7le+WT+nLhcpw
+ JPwBBCr35AoUF9s0nSKAF8CEAIqpWUI4RFhNipztYZBEkGzzdx93KCdMunXOhPaOscVKbSwRRW1
+ mKOv00ylFBZKNhssbxn6+dLKmk1it/0MZ4POP9C9XuNAa2KUbJdt9fNpzJ29FeV5L8d5guM5A+f
+ InDzrZ916vWbbdE91pO/GFYPPVhW3wBYZ+/6ONFGYaYRLD9E0AY3bJ6iH3q3dxINcdz1c=
 X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
  fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
 
 The behaviour of pXdp_get() will change with generic compile-time folded
-page tables. To prepare for that, replace passing the address of a stack
-copy of a pud/pmd to walk_pmd/pte_range() with passing the pud/pmd pointer
-directly so that makes allowing folded entries to be ignored and
-check the concurrent access proeprly otherwise pXd_same() would return
-always true.
+page tables. To prepare for that,  rework host_pfn_mapping_level() to avoid
+use of a stack copy of a pXd and pass it as argument to pXd_offset() so that
+the folded entries value is ignored.
 
-Reviewed-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+Replace direct uses of stack-based pXd values with pXd_offset_lockless().
+And there should be no functional change.
+
+Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
 Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
 ---
- mm/vmscan.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/loongarch/kvm/mmu.c | 20 ++++++++++++--------
+ 1 file changed, 12 insertions(+), 8 deletions(-)
 
-diff --git a/mm/vmscan.c b/mm/vmscan.c
-index 9959ca158ce83..6a1af9b92349f 100644
---- a/mm/vmscan.c
-+++ b/mm/vmscan.c
-@@ -3911,7 +3911,7 @@ static void walk_pmd_range(pud_t *pud, unsigned long start, unsigned long end,
+diff --git a/arch/loongarch/kvm/mmu.c b/arch/loongarch/kvm/mmu.c
+index 64fddd9f0ada1..ab0a06b73e8d3 100644
+--- a/arch/loongarch/kvm/mmu.c
++++ b/arch/loongarch/kvm/mmu.c
+@@ -679,10 +679,10 @@ static int host_pfn_mapping_level(struct kvm *kvm, gfn_t gfn,
+ 	int level = 0;
+ 	unsigned long hva;
+ 	unsigned long flags;
+-	pgd_t pgd;
+-	p4d_t p4d;
+-	pud_t pud;
+-	pmd_t pmd;
++	pgd_t *pgdp, pgd;
++	p4d_t *p4dp, p4d;
++	pud_t *pudp, pud;
++	pmd_t *pmdp, pmd;
  
- 		walk->mm_stats[MM_NONLEAF_FOUND]++;
+ 	/*
+ 	 * Note, using the already-retrieved memslot and __gfn_to_hva_memslot()
+@@ -708,19 +708,23 @@ static int host_pfn_mapping_level(struct kvm *kvm, gfn_t gfn,
+ 	 * value) and then p*d_offset() walks into the target huge page instead
+ 	 * of the old page table (sees the new value).
+ 	 */
+-	pgd = pgdp_get(pgd_offset(kvm->mm, hva));
++	pgdp = pgd_offset(kvm->mm, hva);
++	pgd = pgdp_get(pgdp);
+ 	if (pgd_none(pgd))
+ 		goto out;
  
--		if (!walk_pte_range(&val, addr, next, args))
-+		if (!walk_pte_range(pmd + i, addr, next, args))
- 			continue;
+-	p4d = p4dp_get(p4d_offset(&pgd, hva));
++	p4dp = p4d_offset_lockless(pgdp, pgd, hva);
++	p4d = p4dp_get(p4dp);
+ 	if (p4d_none(p4d) || !p4d_present(p4d))
+ 		goto out;
  
- 		walk->mm_stats[MM_NONLEAF_ADDED]++;
-@@ -3947,7 +3947,7 @@ static int walk_pud_range(p4d_t *p4d, unsigned long start, unsigned long end,
- 		if (!pud_present(val) || WARN_ON_ONCE(pud_leaf(val)))
- 			continue;
+-	pud = pudp_get(pud_offset(&p4d, hva));
++	pudp = pud_offset_lockless(p4dp, p4d, hva);
++	pud = pudp_get(pudp);
+ 	if (pud_none(pud) || !pud_present(pud))
+ 		goto out;
  
--		walk_pmd_range(&val, addr, next, args);
-+		walk_pmd_range(pud + i, addr, next, args);
+-	pmd = pmdp_get(pmd_offset(&pud, hva));
++	pmdp = pmd_offset_lockless(pudp, pud, hva);
++	pmd = pmdp_get(pmdp);
+ 	if (pmd_none(pmd) || !pmd_present(pmd))
+ 		goto out;
  
- 		if (need_resched() || walk->batched >= MAX_LRU_BATCH) {
- 			end = (addr | ~PUD_MASK) + 1;
 
 -- 
 2.43.0
