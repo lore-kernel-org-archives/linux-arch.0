@@ -1,52 +1,125 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=95.215.58.44
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793618631;
-	b=VtY4b1ZsM7fuWiiGD6jUUXx9cqH9+t2sLOjZPfxj1mP6Boe0yOyMK6UOVd+TuVwNDsvD
-	 e+3us8huX9cAK0yrhmdvO32nSB2OIql4ZW4pgn8uN8wtpKW3OGEJcLUfKOvz2XmTpMY73
-	 1jx70+3kud6psunHnLL0RaViOh0qkiY7fW3839LETMJS072vsU3pxLRZuDFUOiuM5ABC3
-	 +bUYVMvxMYDgBAoeQ32vpeMm2VtyVYZyA3av7GkaCP1hY9Bi7ShhHAC0MqLz+bPVS7vwr
-	 MFKVpjoBmfqrtBdflK2m5Uz1/9iuD3eMtUkRK9XihG+FDv8Jt0uA1oSUkE+mryWVTFA==
+	t=1793619893;
+	b=YMTMLjw1a2jWkxKsZsq86wQW3ZSMCsUDYOXpcMX2+TZQp0bS5czidGOd/83b/jeo26k0
+	 H5q5qAbO67mifdog/2t/woY/+R8emg5JgfqWNm7iJUaUo5QUU92lPgnLX2n2XlrSKHcqs
+	 /j9T8kaJjpXcio6MZ+8z6oXZvoXVy7qx4nlJIb34+RJj657HC+C2av80q9LIZ9iWMD6GW
+	 lnk7t8i8e8+uVxl9L7TjViAanf8Fh1ZBGjvRkUM6GTbLzod3hd4UrSxirp5m1oCy1cJIS
+	 zmWH7HQzxSGDIqpSvUDwMeProufAIjTiZVTMdSPqQXtH56AI07EOilTPDkMfEPSlNSg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793618631;
-	h=DMARC-Filter:Received:Received:DKIM-Signature:From:Date:Subject:
-	 MIME-Version:Content-Type:Content-Transfer-Encoding:Message-Id:
-	 References:In-Reply-To:To:Cc:X-Mailer:X-Developer-Signature:
-	 X-Developer-Key;
-	bh=9Ysg6MEwVS7VKLwJjiHL7ib19j0E2bn6/f5G51dOAL0=;
-	b=Ukyt7ODUvcpQxi+C61od70irIaxKrzqeSxp7jJMbgdrjtxL64X0HoNIrqQLc88/c86/l
-	 d9NfKyc+EsDzHovx/1V24NJgrxzgo8eDoLgvESUN/3mj6t+58vs0lz1n9moGjmQQMt852
-	 HheOK/mBDdK8YwJ7bGJR7LCP8pHvZSMHC+C0g9xH2cPhzTRpWJOtkxPPa/PbzkDzvLNcr
-	 bK2xrVYqD5mXpIjVYcymeVpMcdu3A3F92y+Fa39zmd/osqgVmE5VhDRwauvlielWgT+eM
-	 kCVFhqXpcxVYbanHG/4WOPg2M69SVLH4h7AV7NrrCMhuZXWlf70qHJiRFRzbG0tnPIA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793619893;
+	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
+	 X-Mizu-Trace-ID:X-Migadu-Flow:From:To:Cc:Subject:Date:Message-ID:
+	 X-Mailer:In-Reply-To:References:MIME-Version:Content-Type:
+	 Content-Transfer-Encoding;
+	bh=who8ZKKpx/jTygdDf46XygrUGTNQ5Ti9QGrea7MK2kQ=;
+	b=rp4NM7YCQ9CMwfs35fTcDh7CWn4f42Jq47/PCqnhUBV+wXy6+bCwxxyQqldch9RUMEwS
+	 PjN3t+CFYZStTZY+pqB3cu2NIZkjAEkykNd+hqGLomoZQ67IMJLDUi/yLb7jKYl/3rgCM
+	 Qp7BlQP6/vbSonBNZBlg7WPxUTe/LQMv9aU+8tc1gkuCEBEuvfOaVkunq3IPGD0fyt7Fs
+	 /1C1mxUXfO2YtqNZXyuPK/Qx2O7Ucvf+ETmc6/SSGTQ/gvclpkdVir/rfM3hrDSJKK1Gi
+	 jH6QWQ6kUKjBggkEt1nP3os3Stq0rmRM2xKoPqteIV+qyS+igW5sKf5piumj0Nj+29g==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=arm.com;
-	spf=pass smtp.mailfrom=arm.com;
-	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=BrPb0hXu;
-	arc=none smtp.remote-ip=217.140.110.172
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1FC4C606C42D;
-	Mon,  2 Nov 2026 11:23:50 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1FC4C606C42D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	dmarc=pass header.from=linux.dev;
+	spf=pass smtp.mailfrom=linux.dev;
+	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=Zb1GeGbo;
+	arc=none smtp.remote-ip=95.215.58.44
+Received: from mta1.migadu.com (out-44.mta1.migadu.com [95.215.58.44])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9C91960A2602
+	for <linux-arch@vger.kernel.org>; Mon,  2 Nov 2026 11:44:52 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 9C91960A2602
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=BrPb0hXu
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 91B02293B;
-	Mon,  2 Nov 2026 03:23:46 -0800 (PST)
-Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id A4ED03F632;
-	Mon,  2 Nov 2026 03:23:43 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1793618629; bh=iiExwLtobXiDRkDzhCd4KbgedHi6eyqTW5J2A3p/GoY=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=BrPb0hXuYg5FDqnQoxAoQEPqwy35W9QWkiKSZbg3KsrD0XEabz16DkjubK7JqGSV0
-	 OPWT8B5k/j69iFU4lw32ZN1FbqKVhYkgINnZSpuVpHWynTxUVdsXn3n2gXh0w8vpHx
-	 C1xoy3anV4D+fDsKAX6O+jB+JolHrc1sf7sWdpz8=
-From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Mon, 02 Nov 2026 11:21:34 +0000
-Subject: [PATCH RESEND v2 21/21] Documentation: mm: clarify behaviour of
- compile-time folded page tables
+	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=Zb1GeGbo
+X-Envelope-To: linux-arch@vger.kernel.org
+DKIM-Signature: a=rsa-sha256; bh=fgRhZQDSEmJFZyIgGkSRYKnhjZ4Z1l5m8LV8w/ZXnHw=;
+ c=simple/simple; d=linux.dev;
+ h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
+ t=1793619890; v=1; x=1794224690;
+ b=Zb1GeGbojxXveT3cZxDPn//4R8A7h+RMO72HLl435m67FVvM9SHf44yaVVp55n3SAPWWoirq
+ Hz8XE56QJlzs5IpeJmF7MvIRESwEWtyXzDq/oA5mLYy34SDIJOr+HdZ4EG3OGTtz9aHGD3cJfWY
+ yqj/TBZodxsUUHX+M5Y8plAE=
+X-Envelope-To: linux-arch@vger.kernel.org
+Received: by smtp.migadu.com with ESMTPS id 6ed161f8dd0a3c59;
+	Mon, 02 Nov 2026 11:44:49 +0000
+X-Mizu-Trace-ID: 6ed161f8dd0a3c59
+X-Migadu-Flow: FLOW_OUT
+From: Lance Yang <lance.yang@linux.dev>
+To: david@kernel.org
+Cc: akpm@linux-foundation.org,
+	hannes@cmpxchg.org,
+	mhocko@kernel.org,
+	qi.zheng@linux.dev,
+	shakeel.butt@linux.dev,
+	ljs@kernel.org,
+	kasong@tencent.com,
+	baohua@kernel.org,
+	axelrasmussen@google.com,
+	yuanchu@google.com,
+	weixugc@google.com,
+	baoquan.he@linux.dev,
+	baolin.wang@linux.alibaba.com,
+	liam@infradead.org,
+	vbabka@kernel.org,
+	rppt@kernel.org,
+	surenb@google.com,
+	mhocko@suse.com,
+	kees@kernel.org,
+	peterz@infradead.org,
+	jannh@google.com,
+	pfalcato@suse.de,
+	hughd@google.com,
+	pasha.tatashin@soleen.com,
+	pratyush@kernel.org,
+	willy@infradead.org,
+	jack@suse.cz,
+	ziy@nvidia.com,
+	lance.yang@linux.dev,
+	riel@surriel.com,
+	harry@kernel.org,
+	apopple@nvidia.com,
+	nico.pache@linux.dev,
+	ryan.roberts@arm.com,
+	dev.jain@arm.com,
+	usama.arif@linux.dev,
+	kas@kernel.org,
+	matthew.brost@intel.com,
+	jhubbard@nvidia.com,
+	peterx@redhat.com,
+	will@kernel.org,
+	aneesh.kumar@kernel.org,
+	npiggin@gmail.com,
+	osalvador@suse.de,
+	minchan@kernel.org,
+	muchun.song@linux.dev,
+	xu.xin@linux.dev,
+	chengming.zhou@linux.dev,
+	chrisl@kernel.org,
+	shikemeng@huaweicloud.com,
+	nphamcs@gmail.com,
+	youngjun.park@lge.com,
+	gourry@gourry.net,
+	joshua.hahnjy@gmail.com,
+	rakie.kim@sk.com,
+	ying.huang@linux.alibaba.com,
+	jgg@ziepe.ca,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	kexec@lists.infradead.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-cxl@vger.kernel.org,
+	stable@vger.kernel.org,
+	usama.anjum@arm.com
+Subject: Re: [PATCH v3 30/47] mm/mremap: use pudp_huge_get_and_clear() when moving huge PUDs
+Date: Mon,  2 Nov 2026 19:44:42 +0800
+Message-ID: <20261102114442.65682-1-lance.yang@linux.dev>
+X-Mailer: git-send-email 2.49.0
+In-Reply-To: <20261031-fixes_core-v3-30-d6437171ecc3@kernel.org>
+References: <20261031-fixes_core-v3-30-d6437171ecc3@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -56,165 +129,53 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20261102-dummy_ptxp3-v2-21-78840b2ec73c@arm.com>
-References: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
-In-Reply-To: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
-To: Russell King <linux@armlinux.org.uk>, 
- Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, 
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
- Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, 
- Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>, 
- Shakeel Butt <shakeel.butt@linux.dev>, Barry Song <baohua@kernel.org>, 
- Axel Rasmussen <axelrasmussen@google.com>, Yuanchu Xie <yuanchu@google.com>, 
- Wei Xu <weixugc@google.com>, Johannes Weiner <hannes@cmpxchg.org>, 
- David Hildenbrand <david@kernel.org>, Michal Hocko <mhocko@kernel.org>, 
- Lorenzo Stoakes <ljs@kernel.org>, Tianrui Zhao <zhaotianrui@loongson.cn>, 
- Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>, 
- Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>, 
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
- Alexandre Ghiti <alex@ghiti.fr>, Dave Hansen <dave.hansen@linux.intel.com>, 
- Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
- Borislav Petkov <bp@alien8.de>, x86@kernel.org, 
- "H. Peter Anvin" <hpa@zytor.com>, "Liam R. Howlett" <liam@infradead.org>, 
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
- Jonas Bonn <jonas@southpole.se>, 
- Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, 
- Stafford Horne <shorne@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, 
- loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
- linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, 
- kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
- linux-openrisc@vger.kernel.org
-X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=5250; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=we33pLaWTEXUzxN2eli55cmCuITu+4r4z0c6wIrOlvY=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBq6HI5puhw5lGPEsqL2+0oxYQ14ZUvSogy1dQY7
- mbhixVweFqJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCauhyOQAKCRBt1cPRWsUx
- M0LeC/9Cq0L+HoSCeEcxKHvRuuTb6eN/i826KAV+hkrcMfVFIULPPvwRKY9kYk3gsbK8opHg/qM
- eDSlKtSYplqrFvRLwGt/ddDHCU47Hi1VZGw8A2j1HDaCHffEGl6C5FzzdErrZCIBrMIUlrZZARQ
- u4fy1wwWXQu9IYjXnyF3BI07Y05Is6jHXzw5ApmalBxBp85sr1oFlR45kHuQxi8Ma67ye23pU+i
- 0ZfEc1HgiqWjEanyJvQQFiIUwn7+lmt+sYCHqncaafdCYo3KHgQaHetYAneCx7X14vidrudgq+u
- C2LEDT0pu3GVJlMya52voqvBocPv07v+yrOMkc2yrVlibFvy72hf8cXhXucoMOtYi9Ac6p0nTbH
- UBsr8OB8/MJYoiHCzkYACf6uE2qyNGCqCwApVpfGBocJ8Tm4THZDDTv79sd4Sr7B2Fo2BrLYn9V
- xgmHiHS71tqPIlx4VRSha2GekLQlQUXLnzYAP7xJLSeoiFrOZwyfxUMXye+TMGvJSDGiQ=
-X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
- fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-From: "David Hildenbrand (Arm)" <david@kernel.org>
 
-Compile-time folded page tables are not necessarily easy to understand, and even
-people the were once familiar with the concept might need to refresh their memory.
+On Sat, Oct 31, 2026 at 10:39:59AM +0100, David Hildenbrand (Arm) wrote:
+>move_huge_pud() reads the old PUD and clears it in separate operations.
+>Hardware accessed or dirty updates between those operations can be lost
+>when the saved entry is installed at the new address.
 
-Add proper documentation, including a nice diagram, for the current design.
-Mention details about dummy functions, including the recently changed pXdp_get()
-helpers.
+Yep. HW can still update the A/D bits while the PUD lock is held :)
 
-Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
----
- Documentation/mm/page_tables.rst | 84 +++++++++++++++++++++++++++++++++++-----
- 1 file changed, 75 insertions(+), 9 deletions(-)
+>The raw pud_clear() also bypasses page_table_check_pud_clear(), while
+>set_pud_at() accounts for the destination mapping. This leaves the
+>checker counts unbalanced for mappings tracked by page table checking.
+>
+>To fix it, simply use pudp_huge_get_and_clear().
+>
+>Fixes: 7d846db7d0e2 ("mm/mremap: convert huge PUD move to separate helper")
+>Cc: stable@vger.kernel.org
+>Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+>Reviewed-by: Pedro Falcato <pfalcato@suse.de>
+>Reviewed-by: Dev Jain <dev.jain@arm.com>
+>Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+>Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>---
+> mm/mremap.c | 3 +--
+> 1 file changed, 1 insertion(+), 2 deletions(-)
+>
+>diff --git a/mm/mremap.c b/mm/mremap.c
+>index 0d06d7f37f19a..16e736c72d9cb 100644
+>--- a/mm/mremap.c
+>+++ b/mm/mremap.c
+>@@ -509,8 +509,7 @@ static bool move_huge_pud(struct pagetable_move_control *pmc,
+> 		spin_lock_nested(new_ptl, SINGLE_DEPTH_NESTING);
+> 
+> 	/* Clear the pud */
+>-	pud = *old_pud;
+>-	pud_clear(old_pud);
+>+	pud = pudp_huge_get_and_clear(mm, pmc->old_addr, old_pud);
 
-diff --git a/Documentation/mm/page_tables.rst b/Documentation/mm/page_tables.rst
-index 126c876282509..d4f3e2e343ca2 100644
---- a/Documentation/mm/page_tables.rst
-+++ b/Documentation/mm/page_tables.rst
-@@ -143,15 +143,81 @@ pointers on each level is architecture-defined.::
- Page Table Folding
- ==================
- 
--If the architecture does not use all the page table levels, they can be *folded*
--which means skipped, and all operations performed on page tables will be
--compile-time augmented to just skip a level when accessing the next lower
--level.
--
--Page table handling code that wishes to be architecture-neutral, such as the
--virtual memory manager, will need to be written so that it traverses all of the
--currently five levels. This style should also be preferred for
--architecture-specific code, so as to be robust to future changes.
-+Not all architectures support 5-level page tables; while for some of them
-+the exact number of supported page table levels is known at compile time,
-+others can determine the number of page table levels at runtime based on
-+hardware support and address space sizes.
-+
-+Generic page table walking code always assumes that 5 levels of page table
-+exist. To make page table walking code not have to worry about that,
-+`compile-time folding` and `runtime folding` of page tables are used.
-+Compile-time folding is mostly handled in common code, whereas runtime folding
-+is exclusively handled in architecture code.
-+
-+This description focuses on generic compile-time folded page tables; for
-+architecture-specific variants, some details can vary, however, without
-+affecting common page table walkers.
-+
-+When walking folded page tables, all upper page table levels up to the supported
-+level are skipped in page table walkers: this is achieved by (a) treating
-+entries in upper page table levels as present and pointing at a page table; and
-+(b) having page table walkers cast the entry pointer to the next-level entry
-+instead of dereferencing that table. From the perspective of a page table
-+walker, the entry points at itself.
-+
-+Assuming compile-time folded 4-level page tables, to achieve (a), pgd_present()
-+and pgd_leaf() are hard-coded to indicate a present page table entry that
-+points at a page table, and to achieve (b) p4d_offset() and
-+p4d_offset_lockless() simply cast the page table entry pointer to the next
-+lower level.
-+
-+In the current design, this is further modeled by having the P4D have a
-+single page table entry::
-+
-+        PGD
-+  --> +------+          NOP4D
-+      | ptr0 |-------> +------+           PUD
-+      | ptr1 |-        | ptr0 |-------> +-----+
-+      | ptr2 | \       +------+         | ptr |-------> ...
-+      | ptr3 |  \                       | ptr |
-+        ...      \                        ..
-+                  \        NOP4D
-+                   +----> +------+           PUD
-+                          | ptr1 |-------> +-----+
-+                          +------+         | ptr |-------> ...
-+                                           | ptr |
-+                                             ...
-+
-+Note that the arrows from PGD to NOP4D represent page-table-walker
-+transitions, not pointers stored in the pgd entries.
-+
-+Using p4d as an example, `nop4d`/`p4d folded` translates to the following:
-+
-+- p4d is considered folded into pgd; both are operating on the same page
-+  table.
-+
-+- Most pgd_* helpers are hard-coded dummy functions that ignore the passed
-+  pgd_t values entirely. Exceptions are pgd_val() and low-level helpers
-+  set_pgd() + pgd_page_vaddr(), which effectively translate to set_p4d()/
-+  p4d_pgtable() to keep existing arch code working.
-+
-+  Architectures must provide p4d_* helpers (unless further common
-+  compile-time folding applies).
-+
-+- PTRS_PER_P4D is hard-coded to 1. Architectures must define PTRS_PER_PGD.
-+
-+To avoid reading a value that will never be used but cannot be entirely
-+optimized out, compile-time folded page table code also makes pXdp_get()
-+return a constant dummy value.
-+
-+In common code, this only affects pXd_val() when used for printing page
-+table entries for debugging purposes. As we don't want architecture code
-+that uses set_pXd(), pgd_page_vaddr() or pXd_pgtable() to accidentally
-+operate on dummy values, the compiler will error out if it detects that the
-+helpers are used with dummy values. For a folded level, pXd_page() must not
-+be used and unconditionally triggers a compiler error. Architecture code must
-+instead call the helpers on the proper first page table level: e.g., set_p4d()
-+instead of set_pgd().
- 
- 
- MMU, TLB, and Page Faults
+Reviewed-by: Lance Yang <lance.yang@linux.dev>
 
--- 
-2.43.0
-
+> 
+> 	VM_BUG_ON(!pud_none(*new_pud));
+> 
+>
+>-- 
+>2.43.0
+>
+>
