@@ -1,49 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.132
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.111
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793599700;
-	b=Q4SbtZCXFC4qpQcEkeu+RC76lAYDgjBvFXKa41BhIdyVEO3lkmfySeGWhyPr1KnB+ofr
-	 jswcOPqgPu359QuSqK6ofLVVp+KSwPfcmDq3mZioFQTM0p81yPhL9a6UWlTI+n+IO94wF
-	 4eNOiiA7o1EQwi//nBmJzknY5BxHTYjDU7IZ5pmXzgEnjHF2iQBVU8zkBUGUksCLz4YSb
-	 tZQZTSfYhFQaRawR1ub1Cgq8EmmZmfizdUH3fgFoeNBGLUOiWB5+5vhBkh/EFyHzsP1lU
-	 35Gzc9K/Rd7ckgOfHW3pNF2JfYwjqiA7UNUbzcjP/8QHWdpy41E4nJZ1oa/kFrkuImQ==
+	t=1793600420;
+	b=AJYfjY3wPlXpdnmwDNtToCa8EgiK7M1yePuIPAZqqDehajioR08Alnt7bQr1grtzEXu2
+	 +ImenWtq9n6kDoDHx4HNq/XlhyrLczlGQangOTNf2WvKhUOX0J/SsWnoqkJ7YwpDt76Aj
+	 h4UMP5DMhaFOwbubHN87YnLfpybZpSc5GQTcpU46a9K7yiZIS+mRTkjGQbtityi0XchUa
+	 k951JCFqx+JhQm2xGD64N/t7f2It/mxTJ9Ekmn8FTaQN+SyULeSPPdbCbR6/ke9neFHi9
+	 dv77yGP3g5tOpvlbULaL3XNTVhqwL0DxEbUZ7YJD/1w0vbnknyvwqU/aMVQDrhpJv6g==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793599700;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793600420;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
 	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
 	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=hBHoVDgYosEEjwFENvnqm8RfVk+ydgr5qWMoLpA4mck=;
-	b=WcYG+bUPqhw2fSTdo0n9q3g4Jp9JmrKaeYEufKl/D6ASzCzPFq2VPEsly+e2CvP5Qy6C
-	 zRkIUKgbrmoezIiP+/Hs0TwbNnRynv1gnx+h64BFADZs+1Qg5MxgGfIdVxEv+ubeTtcc/
-	 yPUi2eO5Yei2LogcDSRfpvOwo7bH5Hvy5TdCEeYUC0hq095icRN3uO8Lbi5qIezgS1mpA
-	 CKrdcmrpx77J6/krizEVyCBpqUCaR0c1VPVylr90VR6v5eCAhhtNZOS81DW1twbPD9+Hi
-	 8BAVrlVZP0uV2kxfMxtdm4n9WKHbAiDAyMIiO1Re2zA0+y8XbdSOv7whR1RjFWaffGg==
+	bh=k85vwGun/ME58WuhAJ471wGe1ShuWGkpnjyDxU6NW6s=;
+	b=DXp9q+jImK1yH4Rp1Qx3dDqRF0smzJBcMxdeYD+Ubn4yEfu0IGY6jJWRoZONvHz4aDRY
+	 iyJbwGt8OguMOcqISbI7cQnqeFFvjVrgKJLJoJRGiA8MahLr3aOL2FjRr3xnBQSizb+Yo
+	 QubRFBnArAqWf2Y7d6zJiqrpXGsSCzbWrEcb/oabbaFBmC0dXldlX2/06VojjS5MPi9ty
+	 CDDHy6PzrUcoeXD7WQSZjJz84C6Lbtaz8rqxEQNZNZT0clAbpMWly1CsmVg7ApuGejdCq
+	 +gCrmxhyljB8TUrT5l+aW72DMGXxeRwgpZ+GDrZ1lxjUMreLq++BKjcItXDDu7wuzJA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=QpBWZ7hS;
-	arc=none smtp.remote-ip=115.124.30.132
-Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=YYcFwmTi;
+	arc=none smtp.remote-ip=115.124.30.111
+Received: from out30-111.freemail.mail.aliyun.com (out30-111.freemail.mail.aliyun.com [115.124.30.111])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BDA6F606A324;
-	Mon,  2 Nov 2026 06:08:18 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org BDA6F606A324
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2E4EA606A32F;
+	Mon,  2 Nov 2026 06:20:16 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2E4EA606A32F
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=QpBWZ7hS
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=YYcFwmTi
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1793599696; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=hBHoVDgYosEEjwFENvnqm8RfVk+ydgr5qWMoLpA4mck=;
-	b=QpBWZ7hSm+I+U2aCg6L8NDwYV69Hycgk0zL26kk+Qt5J7hlY1w1z82HfB76j5rheOSm5gXgQvydEiA7xgUDL8tfBxYMTnURXdWuKiFc2o0nwkPclSX0ALfOmyTe534rQ7VzsZcwnhGfz5yn0O1htSl3s4+5rbcuBWHVyVFYJV7c=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R801e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=baolin.wang@linux.alibaba.com;NM=1;PH=DS;RN=66;SR=0;TI=SMTPD_---0XDuTEnB_1793599690;
-Received: from 30.74.144.167(mailfrom:baolin.wang@linux.alibaba.com fp:SMTPD_---0XDuTEnB_1793599690 cluster:ay36)
+	t=1793600413; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=k85vwGun/ME58WuhAJ471wGe1ShuWGkpnjyDxU6NW6s=;
+	b=YYcFwmTif2MUle3G2fE4vTBfFxymZ/6Wm/kSqmMfYd4zpHXpazL0oP+iFcGBEjDmOtH0s8ExDjnOTWNQtw1bgB/HSZfRWpsf/vmvfmoWxZgTq8Txx2CVtdKBSj5GXuAcRgUyVtEgjZQnyedY+A4vUqnWsCa8mrCCfNehGjuYvAA=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R601e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=baolin.wang@linux.alibaba.com;NM=1;PH=DS;RN=67;SR=0;TI=SMTPD_---0XDunP4-_1793600408;
+Received: from 30.74.144.167(mailfrom:baolin.wang@linux.alibaba.com fp:SMTPD_---0XDunP4-_1793600408 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 02 Nov 2026 14:08:12 +0800
-Message-ID: <dda009fe-abda-4745-810c-da02d8440b3c@linux.alibaba.com>
-Date: Mon, 2 Nov 2026 14:08:10 +0800
+          Mon, 02 Nov 2026 14:20:09 +0800
+Message-ID: <2fd4f929-d7e1-4deb-b3c7-4bdc611e789b@linux.alibaba.com>
+Date: Mon, 2 Nov 2026 14:20:07 +0800
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -54,8 +54,8 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 09/47] mm/rmap: handle device-exclusive entries in
- folio_referenced_one()
+Subject: Re: [PATCH v3 10/47] mm/huge_memory: fix list corruption when
+ deferred_split_scan() races with deferred_split_folio()
 To: "David Hildenbrand (Arm)" <david@kernel.org>,
  Andrew Morton <akpm@linux-foundation.org>,
  Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
@@ -91,43 +91,59 @@ Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
  kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
  linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
  stable@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>,
- Muhammad Usama Anjum <usama.anjum@arm.com>
+ Mani Tofigh <mt4022@columbia.edu>, Muhammad Usama Anjum <usama.anjum@arm.com>
 References: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
- <20261031-fixes_core-v3-9-d6437171ecc3@kernel.org>
+ <20261031-fixes_core-v3-10-d6437171ecc3@kernel.org>
 From: Baolin Wang <baolin.wang@linux.alibaba.com>
-In-Reply-To: <20261031-fixes_core-v3-9-d6437171ecc3@kernel.org>
+In-Reply-To: <20261031-fixes_core-v3-10-d6437171ecc3@kernel.org>
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 
 
 
 On 10/31/26 5:39 PM, David Hildenbrand (Arm) wrote:
-> page_vma_mapped_walk() can return non-present device-exclusive entries,
-> but folio_referenced_one() passes them to PTE young-bit accessors that
-> require present PTEs.
+> Since the deferred split queue became a list_lru, the isolate callback
+> moves the folios it took a reference on to an on-stack list, linked
+> through folio->_deferred_list, and deferred_split_scan() takes them off
+> that list with list_del_init() without holding the list_lru lock.
 > 
-> We must neither call clear_flush_young_ptes_notify() nor
-> folio_pte_batch() with non-present entries. For example, clearing the
-> young bit on non-present PTEs can corrupt the entry: on arm64
-> PTE_AF overlaps the swap type, so clearing it turns a device-exclusive
-> entry into an ordinary swap entry.
+> deferred_split_folio() does not know about the on-stack list. It only
+> holds the list_lru lock when it looks at the same list_head, and it can
+> run for such a folio: a THP is queued when it is mapped, as a candidate
+> for the underused check, and is queued "again" when a part of it gets
+> unmapped:
 > 
-> folio_pte_batch() will VM_WARN_ON_FOLIO.
+>    CPU0 deferred_split_scan()          CPU1 deferred_split_folio()
+>    list_del_init(&folio->_deferred_list)
+>      next->prev = prev
+>      prev->next = next
+>      entry->next = entry
+>                                        list_lru_lock_irqsave()
+>                                        folio_set_partially_mapped()
+>                                        __list_lru_add()
+>                                          list_empty(item)  -> true
+>                                          list_add_tail(item, &l->list)
+>                                            item->next = &l->list
+>                                            item->prev = tail
+>      entry->prev = entry
 > 
-> Apply the same approach as the previous fixes to e.g., damon_ptep_mkold():
-> treat these entries as old from the CPU's perspective and obtain their
-> young state through the MMU notifier.
+> The folio now sits on the list_lru with ->prev pointing to itself. The
+> next removal leaves the neighbours pointing to it, and they still do so
+> after the folio has been freed. With CONFIG_DEBUG_LIST:
 > 
-> Skip PTE batching and MGLRU look-around for non-present entries, and
-> don't modify non-present PTEs.
+>    list_del corruption. prev->next should be ffd4000000270090, but was
+>    ffd4000000278090. (prev=ffd4000000270090)
 > 
-> Fixes: b756a3b5e7ea ("mm: device exclusive memory access")
-> Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
+> Fix it by grabbing the lock around list_del_init() so
+> deferred_split_folio() cannot race with it.
+> 
+> Fixes: fafaeceb89a5 ("mm: switch deferred split shrinker to list_lru")
 > Cc: stable@vger.kernel.org
 > Reported-by: Josef Bacik <josef@toxicpanda.com>
-> Reviewed-by: Harry Yoo (Meta) <harry@kernel.org>
-> Reviewed-by: Barry Song <baohua@kernel.org>
-> Reviewed-by: Dev Jain <dev.jain@arm.com>
+> Reviewed-by: Johannes Weiner <hannes@cmpxchg.org>
+> Reviewed-by: Mani Tofigh <mt4022@columbia.edu>
+> Tested-by: Mani Tofigh <mt4022@columbia.edu>
+> Reviewed-by: Lance Yang <lance.yang@linux.dev>
 > Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > ---
