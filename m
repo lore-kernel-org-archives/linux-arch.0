@@ -1,125 +1,72 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=95.215.58.44
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793619893;
-	b=YMTMLjw1a2jWkxKsZsq86wQW3ZSMCsUDYOXpcMX2+TZQp0bS5czidGOd/83b/jeo26k0
-	 H5q5qAbO67mifdog/2t/woY/+R8emg5JgfqWNm7iJUaUo5QUU92lPgnLX2n2XlrSKHcqs
-	 /j9T8kaJjpXcio6MZ+8z6oXZvoXVy7qx4nlJIb34+RJj657HC+C2av80q9LIZ9iWMD6GW
-	 lnk7t8i8e8+uVxl9L7TjViAanf8Fh1ZBGjvRkUM6GTbLzod3hd4UrSxirp5m1oCy1cJIS
-	 zmWH7HQzxSGDIqpSvUDwMeProufAIjTiZVTMdSPqQXtH56AI07EOilTPDkMfEPSlNSg==
+	t=1793620666;
+	b=qOk6xEP2NHTBmxRjINmGJHtPCRGmNylJvR2Gb+DZ0hH0d0leDF4Mh1zFNk9w77tPUXy2
+	 +k3sT8rthTRPhBwkR+bKatBbQnK3EDQuHqDu1Srw/ARAWkgAU8SG4AhXL06OPF5uDu7PE
+	 j7K9MJIBUk9KH3rlXQUkGlCsmxgH2qWco6qSnqivf1lB8wSfQlSfVpfj+JnjQVvMHX3KT
+	 rvenKHUlxO/9i4XRkF7nnDPsSRg+BNBWgJxvc5ouBqHoysLiH/JtjIeRtPxZiEuxT0MZk
+	 Byf3Fa9iIChO3Sz54O9txj58kHYJGmzM5ACyeJmlVwjzO2fDnovNrB8/eCUCUAnlg1A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793619893;
-	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
-	 X-Mizu-Trace-ID:X-Migadu-Flow:From:To:Cc:Subject:Date:Message-ID:
-	 X-Mailer:In-Reply-To:References:MIME-Version:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=who8ZKKpx/jTygdDf46XygrUGTNQ5Ti9QGrea7MK2kQ=;
-	b=rp4NM7YCQ9CMwfs35fTcDh7CWn4f42Jq47/PCqnhUBV+wXy6+bCwxxyQqldch9RUMEwS
-	 PjN3t+CFYZStTZY+pqB3cu2NIZkjAEkykNd+hqGLomoZQ67IMJLDUi/yLb7jKYl/3rgCM
-	 Qp7BlQP6/vbSonBNZBlg7WPxUTe/LQMv9aU+8tc1gkuCEBEuvfOaVkunq3IPGD0fyt7Fs
-	 /1C1mxUXfO2YtqNZXyuPK/Qx2O7Ucvf+ETmc6/SSGTQ/gvclpkdVir/rfM3hrDSJKK1Gi
-	 jH6QWQ6kUKjBggkEt1nP3os3Stq0rmRM2xKoPqteIV+qyS+igW5sKf5piumj0Nj+29g==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793620666;
+	h=DMARC-Filter:Received:Received:DKIM-Signature:Date:From:To:Cc:
+	 Subject:Message-ID:References:MIME-Version:Content-Type:
+	 Content-Disposition:In-Reply-To;
+	bh=a+lxVdcflxyH59Md6E2MblMjFZPkYamJmvZNqoXT46o=;
+	b=TNtDb8Tf8yE0jDS3nRbzQW3oSHj33bvN9OXtkywxLp1r8sEb901D0w8UMa0DzNEg77Lu
+	 uqtG3Yc/VPtyNFpmtOCJUkvldtfKyM9rqDt6UcOUUVtnWEz/9cqzdRpgBslZ9SRmYUngA
+	 +bLoqVWkb7iHI58LlN46ETYHAlWhxyLr7KvoCf43kg/hIFZNHp6Dem7YpOT81/5sK31Ui
+	 yq6IWDEg1XeBrGyYAi9p+z7/cBu2l4QJjkfrgyrQisb1RfhVRu3YrcOMAJRe2CI402pdX
+	 IL6Ib2AYFeNJC+ODz0GeJS6kto7JPOgQNyEXxRXLQtOurX3RvKNcTNBWhdcXpG3F/0Q==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.dev;
-	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=Zb1GeGbo;
-	arc=none smtp.remote-ip=95.215.58.44
-Received: from mta1.migadu.com (out-44.mta1.migadu.com [95.215.58.44])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9C91960A2602
-	for <linux-arch@vger.kernel.org>; Mon,  2 Nov 2026 11:44:52 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 9C91960A2602
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	dmarc=pass header.from=arm.com;
+	spf=pass smtp.mailfrom=arm.com;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=a45A7YzR;
+	arc=none smtp.remote-ip=217.140.110.172
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 505D7606A332;
+	Mon,  2 Nov 2026 11:57:46 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 505D7606A332
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=Zb1GeGbo
-X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=fgRhZQDSEmJFZyIgGkSRYKnhjZ4Z1l5m8LV8w/ZXnHw=;
- c=simple/simple; d=linux.dev;
- h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1793619890; v=1; x=1794224690;
- b=Zb1GeGbojxXveT3cZxDPn//4R8A7h+RMO72HLl435m67FVvM9SHf44yaVVp55n3SAPWWoirq
- Hz8XE56QJlzs5IpeJmF7MvIRESwEWtyXzDq/oA5mLYy34SDIJOr+HdZ4EG3OGTtz9aHGD3cJfWY
- yqj/TBZodxsUUHX+M5Y8plAE=
-X-Envelope-To: linux-arch@vger.kernel.org
-Received: by smtp.migadu.com with ESMTPS id 6ed161f8dd0a3c59;
-	Mon, 02 Nov 2026 11:44:49 +0000
-X-Mizu-Trace-ID: 6ed161f8dd0a3c59
-X-Migadu-Flow: FLOW_OUT
-From: Lance Yang <lance.yang@linux.dev>
-To: david@kernel.org
-Cc: akpm@linux-foundation.org,
-	hannes@cmpxchg.org,
-	mhocko@kernel.org,
-	qi.zheng@linux.dev,
-	shakeel.butt@linux.dev,
-	ljs@kernel.org,
-	kasong@tencent.com,
-	baohua@kernel.org,
-	axelrasmussen@google.com,
-	yuanchu@google.com,
-	weixugc@google.com,
-	baoquan.he@linux.dev,
-	baolin.wang@linux.alibaba.com,
-	liam@infradead.org,
-	vbabka@kernel.org,
-	rppt@kernel.org,
-	surenb@google.com,
-	mhocko@suse.com,
-	kees@kernel.org,
-	peterz@infradead.org,
-	jannh@google.com,
-	pfalcato@suse.de,
-	hughd@google.com,
-	pasha.tatashin@soleen.com,
-	pratyush@kernel.org,
-	willy@infradead.org,
-	jack@suse.cz,
-	ziy@nvidia.com,
-	lance.yang@linux.dev,
-	riel@surriel.com,
-	harry@kernel.org,
-	apopple@nvidia.com,
-	nico.pache@linux.dev,
-	ryan.roberts@arm.com,
-	dev.jain@arm.com,
-	usama.arif@linux.dev,
-	kas@kernel.org,
-	matthew.brost@intel.com,
-	jhubbard@nvidia.com,
-	peterx@redhat.com,
-	will@kernel.org,
-	aneesh.kumar@kernel.org,
-	npiggin@gmail.com,
-	osalvador@suse.de,
-	minchan@kernel.org,
-	muchun.song@linux.dev,
-	xu.xin@linux.dev,
-	chengming.zhou@linux.dev,
-	chrisl@kernel.org,
-	shikemeng@huaweicloud.com,
-	nphamcs@gmail.com,
-	youngjun.park@lge.com,
-	gourry@gourry.net,
-	joshua.hahnjy@gmail.com,
-	rakie.kim@sk.com,
-	ying.huang@linux.alibaba.com,
-	jgg@ziepe.ca,
-	linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org,
-	kexec@lists.infradead.org,
-	linux-fsdevel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-cxl@vger.kernel.org,
-	stable@vger.kernel.org,
-	usama.anjum@arm.com
-Subject: Re: [PATCH v3 30/47] mm/mremap: use pudp_huge_get_and_clear() when moving huge PUDs
-Date: Mon,  2 Nov 2026 19:44:42 +0800
-Message-ID: <20261102114442.65682-1-lance.yang@linux.dev>
-X-Mailer: git-send-email 2.49.0
-In-Reply-To: <20261031-fixes_core-v3-30-d6437171ecc3@kernel.org>
-References: <20261031-fixes_core-v3-30-d6437171ecc3@kernel.org>
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=a45A7YzR
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 7ACC11FC4;
+	Mon,  2 Nov 2026 03:57:42 -0800 (PST)
+Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 9D6C93F632;
+	Mon,  2 Nov 2026 03:57:43 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1793620665; bh=YqQ0EI1oDh/HUj0/mvZSV2WfYlpip86rcsjzSKEAyQo=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=a45A7YzRxXii7hkUN4U13CFuVd5h+Xv32KParPswsRdTy/3XNv4Mo5BbONhCRZsLV
+	 3pjKnI8wTLHf1EMVmfa9yvsFbTLbVtY/WusJlGGmwshkQkkh/qCiaFmxs15vf9XElP
+	 2hzbFxeijAot2yJ6elFOUEkpRxLMpGtrYIBfMV8s=
+Date: Mon, 2 Nov 2026 11:57:41 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+To: Dexuan Cui <DECUI@microsoft.com>
+Cc: Kameron Carr <kameroncarr@linux.microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	"wei.liu@kernel.org" <wei.liu@kernel.org>,
+	"mhklinux@outlook.com" <mhklinux@outlook.com>,
+	"will@kernel.org" <will@kernel.org>,
+	"Mark.Rutland" <Mark.Rutland@arm.com>,
+	"lpieralisi@kernel.org" <lpieralisi@kernel.org>,
+	"sudeep.holla@kernel.org" <sudeep.holla@kernel.org>,
+	"arnd@arndb.de" <arnd@arndb.de>,
+	"thuth@redhat.com" <thuth@redhat.com>,
+	"linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+	"linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>,
+	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+	Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Subject: Re: [EXTERNAL] Re: [PATCH v5 2/6] firmware: smccc: Detect hypervisor
+ via RSI host call in CCA Realms
+Message-ID: <auh6tWHyMU15QbRC@arm.com>
+References: <20261002215725.2015959-1-kameroncarr@linux.microsoft.com>
+ <20261002215725.2015959-3-kameroncarr@linux.microsoft.com>
+ <auPOnb_9Jfzh-oQE@arm.com>
+ <CH4PPF0966F22FCAF3D8C6535743902930DBF6C2@CH4PPF0966F22FC.namprd21.prod.outlook.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -129,53 +76,56 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CH4PPF0966F22FCAF3D8C6535743902930DBF6C2@CH4PPF0966F22FC.namprd21.prod.outlook.com>
 
+Hi Dexuan,
 
-On Sat, Oct 31, 2026 at 10:39:59AM +0100, David Hildenbrand (Arm) wrote:
->move_huge_pud() reads the old PUD and clears it in separate operations.
->Hardware accessed or dirty updates between those operations can be lost
->when the saved entry is installed at the new address.
-
-Yep. HW can still update the A/D bits while the PUD lock is held :)
-
->The raw pud_clear() also bypasses page_table_check_pud_clear(), while
->set_pud_at() accounts for the destination mapping. This leaves the
->checker counts unbalanced for mappings tracked by page table checking.
->
->To fix it, simply use pudp_huge_get_and_clear().
->
->Fixes: 7d846db7d0e2 ("mm/mremap: convert huge PUD move to separate helper")
->Cc: stable@vger.kernel.org
->Reviewed-by: Lorenzo Stoakes (ARM) <ljs@kernel.org>
->Reviewed-by: Pedro Falcato <pfalcato@suse.de>
->Reviewed-by: Dev Jain <dev.jain@arm.com>
->Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
->Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->---
-> mm/mremap.c | 3 +--
-> 1 file changed, 1 insertion(+), 2 deletions(-)
->
->diff --git a/mm/mremap.c b/mm/mremap.c
->index 0d06d7f37f19a..16e736c72d9cb 100644
->--- a/mm/mremap.c
->+++ b/mm/mremap.c
->@@ -509,8 +509,7 @@ static bool move_huge_pud(struct pagetable_move_control *pmc,
-> 		spin_lock_nested(new_ptl, SINGLE_DEPTH_NESTING);
+On Sat, Oct 31, 2026 at 04:47:32AM +0000, Dexuan Cui wrote:
+> > From: Catalin Marinas <catalin.marinas@arm.com>
+> > Sent: Thursday, October 29, 2026 3:54 PM
+> > > +#ifdef CONFIG_ARM64
+> > > +	if (is_realm_world())
+> > > +		arm_smccc_realm_get_hypervisor_uuid(&res);
+> > > +	else
+> > > +#endif
+> > > + 	arm_smccc_1_1_invoke(ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID,
+> > > +				     &res);
+> > 
+> > Is this meant to be generic? I'm not sure the trick to pass
+> > ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID in gprs[0] and forward it to
+> > the host is a documented ABI. I think it even confuses other realm guests
+> > that don't expect this (e.g. kvm_init_hyp_services()).
 > 
-> 	/* Clear the pud */
->-	pud = *old_pud;
->-	pud_clear(old_pud);
->+	pud = pudp_huge_get_and_clear(mm, pmc->old_addr, old_pud);
+> Regarding the concern about passing ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID
+> In gprs and forwarding it to the host via an RSI Host Call: if I read the code correctly,
+> this pattern actually aligns seamlessly with the current KVM host-side
+> implementation for ARM CCA (e.g., in the v16 patchset [1]).
 
-Reviewed-by: Lance Yang <lance.yang@linux.dev>
+[...]
 
-> 
-> 	VM_BUG_ON(!pud_none(*new_pud));
-> 
->
->-- 
->2.43.0
->
->
+> Because KVM deliberately unpacks the RSI Host Call structure and pushes
+> it down the traditional non-CVM HVC servicing pipeline, the guest passing
+> standard SMCCC Function IDs inside the gprs array of an RSI Host Call is
+> exactly how the host expects to handle hypervisor services. It shouldn't
+> break or confuse other standard realm implementations since this exact
+> emulation block translates the RSI exception back into a generic HVC
+> abstraction for the hypervisor layer.
+
+My point is not the RSI host call itself to query the UUID but what the
+Realm does afterwards. kvm_init_hyp_services() gets a positive answer
+for the KVM UUID and continues with an SMCCC 1.1 invocation to query the
+supported KVM features. The latter is not an RSI host call but an
+ordinary SMC call, to which the RMM responds with -1 in res.a0 (all
+lower 32 bits set). So we end up treating KVM hyp services as available
+in a Realm but their calls still use the SMC conduit and are rejected by
+the RMM.
+
+Supporting such hyp services (e.g. KVM PTP) in a Realm would need a
+separate hypervisor-service conduit using RSI_HOST_CALL. Both discovery
+and subsequent calls would use the same transport without adding
+Realm-specific checks to each caller. Not sure how feasible this is.
+
+-- 
+Catalin
