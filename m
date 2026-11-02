@@ -1,52 +1,52 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793618535;
-	b=o/HP0G+Ju91Ayqa8kgx8t/WYZ9xvZzzW2N5XKy8FcUoYU4bASYaohEXLBxvnjbI6S6E2
-	 XxE6I7XjfgXEXtDNtNBJEbJ3hHhiU6pJdtQ6Xz/hLQjAEiQe9iueti4+t9kSqYHUAAQka
-	 +bH55Ihv+av1lBWpz8bZG8+dAhd/IUdyvtQ52SRXnCss8wCuaOlYkw90fBRch9N42sJX1
-	 8hwMui/qS3JpQBuqY991Pq1QGX3Nbqb7YL4/F70Z1H8eQr2YDNktcfeWDCQZuIKiNYkkl
-	 3h0n22DsgZvIAf3ERpCqk8xnDoCnhLtKY4EnSCUbUI+Y01LTEvK3qQ/+ndkhE1whHzg==
+	t=1793618548;
+	b=wrDAgnTAmC46cpF5hUO3OGUeFbTdzSQKbb/0AKkwMw/vLzISHwkKZ78SAFpMQmAysOzK
+	 NrqtjAyay/EuebqYLmKmjcGZke7xD+UNzU5nyKL+8ZdodATwa7FgkbmlSEkKuj7zgjHun
+	 1FKcKqrQwMQ1YdGDLvXlmSQijHsl8GpBW3jiAfhJSjtqgvwOeITvAiecnn3h2ttYm7Gd+
+	 Ey6smzZFvDgCApjyl0whBTZm5lz2bY0PEFEaG/gPlhO1wEFw/vuaawTD7d80bX2er7ZeA
+	 fCTIBoG2POXtwPKrUCZAfOa3BvxuitC2FdhmhEkSQHPjODifXhb+bB6scG6sK4mQEcQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793618535;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793618548;
 	h=DMARC-Filter:Received:Received:DKIM-Signature:From:Date:Subject:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Message-Id:
 	 References:In-Reply-To:To:Cc:X-Mailer:X-Developer-Signature:
 	 X-Developer-Key;
-	bh=1XXfVIkNP4nITGpfyLSUIpM9B8UBbVvkEA7ohODjLRw=;
-	b=N4+PealmYTRAikZANnMHtU83w+xRJSUW+BIuJzFBIKCym9T+zDhKzh5lgCPJWZ6u5qE4
-	 aofWNClTx0lnWHf5B2Payc4AlP90EhOyoPVWddTnENP72K9blKY9eA+q7KmCsp3Bya0aH
-	 hVqtPoNLl+wW369sSYTQtCAR+AKJc7xFLY2UrYOry740eILP9YLZODtcIKGt+RIlY/GUv
-	 J3igYmud0GOz9lmeYvTLX+J5eTmE+CPokN3pdP57E803n+Lwo43+grtyFp9ebf2LUQlTF
-	 GX/fpfqL0b19BARALIR4BP+ZWi0EgX98HVkT7CZyZx9Wuqeq5gWB+/WeAzYW05zElFQ==
+	bh=8hJ1iPHVTbYTDAq/C1HnaYE5+XA4A6mgYVB8Pyb4aLM=;
+	b=x4uJDOKy6/3AQv7xos2v7HPAjZGd1Lb/mGKT+zGbbONnM/Hm213gP2fZUS5+uRObioe+
+	 vCDPM7BrthOAeUZp+zE10B73qj3mk4tIOlrcylOH8HdeiXtgyydGcxw+LLpNQNqo0DAyn
+	 p3z54M1YKAzYBlGK2ZGj3G9+iMdALv149fHwBYM1n/228ULiYPU8PxnX5nBLfI2xJwzeF
+	 nCSbTiTXEBAJiZLrrLPppb+XTCsKiorJdV91Bpij0YbEsskxJTl+iKlkQR3hoatWaPJhX
+	 4BEPXEvq3GYkxAgzYC4YjXW33o8SgFAGCS6HmKFUt6dfdUCZ+8cDDQcisn+wD7sKC4w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=arm.com;
 	spf=pass smtp.mailfrom=arm.com;
-	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=A7rQE586;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=YdZ50qos;
 	arc=none smtp.remote-ip=217.140.110.172
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8829560A262A;
-	Mon,  2 Nov 2026 11:22:14 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8829560A262A
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 668BE60A380B;
+	Mon,  2 Nov 2026 11:22:27 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 668BE60A380B
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=A7rQE586
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=YdZ50qos
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id C90D9293B;
-	Mon,  2 Nov 2026 03:22:10 -0800 (PST)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 9987E1691;
+	Mon,  2 Nov 2026 03:22:23 -0800 (PST)
 Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id D99E73F632;
-	Mon,  2 Nov 2026 03:22:07 -0800 (PST)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 7612A3F632;
+	Mon,  2 Nov 2026 03:22:20 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1793618533; bh=evfeL7lk1yM+NSCKYrKsUpK8FtfFqKH2c2v1uANMiZA=;
+	t=1793618546; bh=/Ssd4kAdbyYc2WVWtdpRP5Vxi5IuwO7Iv1puKU0SNto=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=A7rQE586SxmeYhdbuDjgGojrf+yFdXKkVJvIWE3/CkvAh47B/hi7pieq8pgJx6OPd
-	 7+IdQ9YxhSeIZpcu39Tq98FmLu1Q3ge8+e61N66fuaQUSiCZLJB7SxbfiAp/g9FEqC
-	 pD/C97hYRDBX9CkJO435UP1+7vyxZpzRkF237Vvg=
+	b=YdZ50qos+A3w9ZaM+D9UJ7oLQBvwyhsBU/ruoPIHunkF9HB8/GvUZPOFwIhq0hj+b
+	 XMmZmMiyF5M+zRGKttEOthHofyTIfdOb6kRAKiJfrH27FTrj7aQ3tXK4ZJ1L2PFzo+
+	 h5y+NPPSkIndHx1iv7x0/IC7DPBuyoL72xdV5wCE=
 From: Yeoreum Yun <yeoreum.yun@arm.com>
-Date: Mon, 02 Nov 2026 11:21:19 +0000
-Subject: [PATCH RESEND v2 06/21] mm/pgtable: define (pgd|p4d|pud)_leaf()
- for folded page tables
+Date: Mon, 02 Nov 2026 11:21:21 +0000
+Subject: [PATCH RESEND v2 08/21] mm: vmscan: remove stack copy address of
+ pud/pmd pass in walk_pud/pmd_range()
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -58,7 +58,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261102-dummy_ptxp3-v2-6-78840b2ec73c@arm.com>
+Message-Id: <20261102-dummy_ptxp3-v2-8-78840b2ec73c@arm.com>
 References: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
 In-Reply-To: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
 To: Russell King <linux@armlinux.org.uk>, 
@@ -89,80 +89,58 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
  loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, 
  kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org, 
- linux-openrisc@vger.kernel.org
+ linux-openrisc@vger.kernel.org, Muhammad Usama Anjum <usama.anjum@arm.com>, 
+ Yeoreum Yun <yeoreum.yun@arm.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2651; i=yeoreum.yun@arm.com;
- h=from:subject:message-id; bh=MsUi6fKiy4C8DH1qxUfB7PhJ8/xMmbWjYscC+NJ7HZ8=;
- b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBq6HIxIVd8yfHE+3CA9LTpZi1gUI+XMCzgs5U2Q
- BHJBi3iXj+JAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCauhyMQAKCRBt1cPRWsUx
- M/V2C/9ItyCxgxlMh10fHR69tVgw9EuphM40QYD/mSrn4nLbxqXwGeoRCXJD/CQZjbzhVqNLqD8
- 4pI+P8VaiZD1ROaf98yDqlm38MdDfJo/nXweMu2XCSuy8bvJOZ5akdNLIqOCNL/Kky/4vAvfA7y
- g/DN2CQi8iHcZmgFZENpatEkLXDT+irkdH/T8momUPL2iU/gMe9+PBe83/sjStUInekkPY+48fS
- tQ4YbgN0JI0jsnh5HfL7yHY0zHyLhvoIlmUPykZRIofr+KodLXQYFHAKOkD2khVIs/r2bFJxKJM
- 7EZ9zMN52ptWFsHpkIIDhVoEnRhnj2vRlH6U7Y8kV9ZSGk2CzFCTZuWrT3cGyiZ4sRJ2z/gLRS+
- DXMtq/JtOP08ZaADSQRymmkYRKA9PLkrAtBZXZKwEO/gg81uxE4KT+wj8pXddgbXPnOWNxmpGA0
- MxTCMq+1KtHR5HFt8aTkW7OiLozCLtwsA62FVhYXV48+piX5IjzAgVxuzgBp34DGCh8VI=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1374; i=yeoreum.yun@arm.com;
+ h=from:subject:message-id; bh=/Ssd4kAdbyYc2WVWtdpRP5Vxi5IuwO7Iv1puKU0SNto=;
+ b=owEB7QES/pANAwAKAW3Vw9FaxTEzAcsmYgBq6HIyfn2gL02dSTH4U1Digx7JtPpPj8Bgyn8x9
+ UoFtdHycjSJAbMEAAEKAB0WIQQtg+CS3QUzuFh1pJ1t1cPRWsUxMwUCauhyMgAKCRBt1cPRWsUx
+ Mz/2C/42LrIml4kwQBW+YjAT4YcNn/U4Nb8+hQWZ9x0kXwPAdxvb9J43k+UVxO9ahHOIk6g6HIT
+ XtZL/MTOK7/jgTNkxXqFVeYK8VyzWEiqpibgZjNpiX9XLh6Z8cmnp8G47IUvXkJP0wA+Hmakv3A
+ 9myK1wyAcp0SHF/i/sVsHm7iyIbMyGfGc6Z5CBiWiTjnDvafMkvBazMphB0j5dU46MUuWd+W7qy
+ GwEdURQVvkAFrul/krfqIl8qyLzn4vPYYBCRYUd4SCIlcw5QjS3Qthc6ED7WMnukAn35Yx6W0oL
+ oPVAV5N01l94+aU9yml7y7eXDNrR6dgu0Ocio3vbsU2eTqNw/dYDJL0PD+h2rPLcEwUkPmIQlTt
+ o0ewlFkj/UUYwiFIUbO3PGph11XhYzVDb++4zdSLnOfSYG/ZBB9EGVS2GVUt55QTEBEc3tRmB+f
+ YQCEfFaDjsnzZBrd0gL/KZqDv8WqDSWqrGeR2W82At20bHA5Qs1wSXjJiIn3cDFFKuyPg=
 X-Developer-Key: i=yeoreum.yun@arm.com; a=openpgp;
  fpr=2D83E092DD0533B85875A49D6DD5C3D15AC53133
 
-From: "David Hildenbrand (Arm)" <david@kernel.org>
+The behaviour of pXdp_get() will change with generic compile-time folded
+page tables. To prepare for that, replace passing the address of a stack
+copy of a pud/pmd to walk_pmd/pte_range() with passing the pud/pmd pointer
+directly so that makes allowing folded entries to be ignored and
+check the concurrent access proeprly otherwise pXd_same() would return
+always true.
 
-Define (pgd|p4d|pud)_leaf(), hard-coding it to "false". Note
-that it's missed to define pud_leaf() before, allowing architectures to
-unknowingly overwrite it.
-
-Still use static inline functions (type checking), and while at it, just
-use "bool" as a return value.
-
-Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+Reviewed-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
 ---
- include/asm-generic/pgtable-nop4d.h | 3 +++
- include/asm-generic/pgtable-nopmd.h | 3 ++-
- include/asm-generic/pgtable-nopud.h | 3 +++
- 3 files changed, 8 insertions(+), 1 deletion(-)
+ mm/vmscan.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
-index 1cf739ee38aa1..c6a5a43899b50 100644
---- a/include/asm-generic/pgtable-nop4d.h
-+++ b/include/asm-generic/pgtable-nop4d.h
-@@ -22,6 +22,9 @@ static inline int pgd_none(pgd_t pgd)		{ return 0; }
- static inline int pgd_bad(pgd_t pgd)		{ return 0; }
- static inline int pgd_present(pgd_t pgd)	{ return 1; }
- static inline void pgd_clear(pgd_t *pgd)	{ }
-+static inline bool pgd_leaf(pgd_t pgd)		{ return false; }
-+#define pgd_leaf pgd_leaf
-+#define p4d_ERROR(p4d)				(pgd_ERROR((p4d).pgd))
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 9959ca158ce83..6a1af9b92349f 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -3911,7 +3911,7 @@ static void walk_pmd_range(pud_t *pud, unsigned long start, unsigned long end,
  
- #define pgd_populate(mm, pgd, p4d)		do { } while (0)
- #define pgd_populate_safe(mm, pgd, p4d)		do { } while (0)
-diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
-index ff4235cf84d77..4e5aaf253b6a5 100644
---- a/include/asm-generic/pgtable-nopmd.h
-+++ b/include/asm-generic/pgtable-nopmd.h
-@@ -31,7 +31,8 @@ static inline int pud_none(pud_t pud)		{ return 0; }
- static inline int pud_bad(pud_t pud)		{ return 0; }
- static inline int pud_present(pud_t pud)	{ return 1; }
- static inline int pud_user(pud_t pud)		{ return 0; }
--static inline int pud_leaf(pud_t pud)		{ return 0; }
-+static inline bool pud_leaf(pud_t pud)		{ return false; }
-+#define pud_leaf pud_leaf
- static inline void pud_clear(pud_t *pud)	{ }
+ 		walk->mm_stats[MM_NONLEAF_FOUND]++;
  
- #define pud_populate(mm, pmd, pte)		do { } while (0)
-diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
-index eedee8e3ad68f..6c9bca78047c4 100644
---- a/include/asm-generic/pgtable-nopud.h
-+++ b/include/asm-generic/pgtable-nopud.h
-@@ -29,6 +29,9 @@ static inline int p4d_none(p4d_t p4d)		{ return 0; }
- static inline int p4d_bad(p4d_t p4d)		{ return 0; }
- static inline int p4d_present(p4d_t p4d)	{ return 1; }
- static inline void p4d_clear(p4d_t *p4d)	{ }
-+static inline bool p4d_leaf(p4d_t p4d)		{ return false; }
-+#define p4d_leaf p4d_leaf
-+#define pud_ERROR(pud)				(p4d_ERROR((pud).p4d))
+-		if (!walk_pte_range(&val, addr, next, args))
++		if (!walk_pte_range(pmd + i, addr, next, args))
+ 			continue;
  
- #define p4d_populate(mm, p4d, pud)		do { } while (0)
- #define p4d_populate_safe(mm, p4d, pud)		do { } while (0)
+ 		walk->mm_stats[MM_NONLEAF_ADDED]++;
+@@ -3947,7 +3947,7 @@ static int walk_pud_range(p4d_t *p4d, unsigned long start, unsigned long end,
+ 		if (!pud_present(val) || WARN_ON_ONCE(pud_leaf(val)))
+ 			continue;
+ 
+-		walk_pmd_range(&val, addr, next, args);
++		walk_pmd_range(pud + i, addr, next, args);
+ 
+ 		if (need_resched() || walk->batched >= MAX_LRU_BATCH) {
+ 			end = (addr | ~PUD_MASK) + 1;
 
 -- 
 2.43.0
