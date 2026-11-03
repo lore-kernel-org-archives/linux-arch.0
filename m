@@ -1,46 +1,46 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793674329;
-	b=drFDRqwm3HNeos/q/GU//8yufqNBFMH+YCT7ek8pcgDBF23j9FSu3iEoJcGPHgjEx1Dp
-	 dJ2F92zjkzUW98Rzin4WH+/sKBU6uWzmgAav85cVxSibX1pJ/ajkcNDyAVXZs6MpTgrFv
-	 ZSvLFG5LpoFOOfPiOaIKxorVrA8V2CugChcnYZvG+gfdkdRzhHjQBEmKtyis5ikp4TijH
-	 yB7VMz/OkqoZzr/jrYHL1RQCbwPeEpjqoqgR/+gjaU0XKl0r471R/JfZfywxYakQ1/2wq
-	 Eou3xbgepbdRtZr21LpYQa3cBCmU4jSZ5lWMHRFC05MZFwHZxbOkHHKGOg1jmcCEHYA==
+	t=1793674326;
+	b=GGf7t2Gh0Lr+JPlk0JZpDp43vxTUDQaqXb+/zeUOUlocxng/2H9ndH4FNqb6QUXak56E
+	 bi0zoAXsEQwDLmDsAJJKqOqsitJAdiJz32tA1vQwh47s/sVEKKLeVckDRnf7Hqq40tM6B
+	 HGFgldsJhJSJGMp+ulNhDCH4j3AOzLEwEmodAMeqYBuV+BWKSaZaK8lqKLrLyV2Q1yGtq
+	 4KDaYSDbqg0ggYC84kHAqhlYmHCy4Jiaix/+rdIPjR6VUDAKxjVw0xmQzzZ5SS+ugZrtQ
+	 Bck6EU/s8/xiMpz3OawGCafpLNyw37Zy4MYUl9dNoKhidaGaaCQi4lcXwjYXYv39Z2Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793674329;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793674326;
 	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:From:To:Cc:Subject:
-	 Date:Message-ID:X-Mailer:In-Reply-To:References:MIME-Version:
-	 Content-Transfer-Encoding:X-Spam-Status:X-Spam-Checker-Version;
-	bh=SWWDsMBPFu7NzGa9vSZGenZG5wW09NarRgi13Er8dao=;
-	b=am1qcwzxvV7QvzRGKx0Sxz7HxHI7f/DPXtZ+ATZh0zlpA3y8el9P5sUKxiERUI4BTX+U
-	 MmARnpo8qkQlCf0tKEywiiejOP0Evj8AMvmi4Z4aL6Ho3vbJ69+f/10xLUWoIpYiPDFOr
-	 Vb8GiVCrKdc3RcktdA6OciKcDN8BUcG8KDVbLTaZnimH1N4U1IgIuCq+cY8tPe2Hduivp
-	 5l/aFg/KWdPzbApEqaDc2n1vgJMznNfKW/uFHZqf5vdzwQoClfG7QqxOktAnBIJssS8XO
-	 kSwd+2h+xBrpZiRaQUk7tqruaBEQ4Vf75HrlzFHMF+6jw0iPtmFqq54qZCqZwbgbdSA==
+	 Date:Message-ID:X-Mailer:MIME-Version:Content-Transfer-Encoding:
+	 X-Spam-Status:X-Spam-Checker-Version;
+	bh=LB7T7mSGj7gb2NVvd8ZxKJtsbTjQrh+GSEJ00NJnkNE=;
+	b=vugMXe2zhVfYSMpdER8mnjHOfup0LmB5emWKq+47AXOKJ8rsMpUQ8r1ps1JM/OvQfBlf
+	 cxebCbZIr5Pk/yfkf6fpRgoWfbIfIBa61e/tFnt+mqMWDFYYgAu06S3XbLWSMaK5rpdqZ
+	 rQaCWjskg0Vh9clcEOKAkIOK6TixGtukDEXYtVM46P35hRrIduX12LPI/5WnciDgUQmH/
+	 BwDxmmN6ON/GFHYbzaZ7zforKkhzemt/5NL5p0lYWuNuubVPUs/qI19cuew4wxOjdDcCP
+	 6/nBSCX5Qeq4XKlqCzxEukah2ZYQylSBxjiMn1y8QtrIJqgzo/ySJ3ADXq/utcWXo+Q==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.microsoft.com;
 	spf=pass smtp.mailfrom=linux.microsoft.com;
-	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=SNHAgkas;
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b="MKO4cDK/";
 	arc=none smtp.remote-ip=13.77.154.182
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 448F4606D80B;
-	Tue,  3 Nov 2026 02:52:09 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 448F4606D80B
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 2FED9606A326;
+	Tue,  3 Nov 2026 02:52:05 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2FED9606A326
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=SNHAgkas
+	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=MKO4cDK/
 Received: from mrdev.corp.microsoft.com (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id E8DA120B716A;
-	Mon,  2 Nov 2026 18:51:53 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com E8DA120B716A
+	by linux.microsoft.com (Postfix) with ESMTPSA id 408FD20B7166;
+	Mon,  2 Nov 2026 18:51:49 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 408FD20B7166
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1793674314;
-	bh=SWWDsMBPFu7NzGa9vSZGenZG5wW09NarRgi13Er8dao=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=SNHAgkassp5XUXmEuNywiIaGaVf+KP6G4oTN4yQCFeuqjLmAL7TQjcqmercHvsHRH
-	 vsldQz/+DjmUTdTz5riT6hN3FZkXgvghYK0AF8oEhefDh79VtDl5GhNTfRezxbi+rp
-	 wmN06ID0dI7h6jfSWesQcfAcGomZm8j2vbY47Al4=
+	s=default; t=1793674309;
+	bh=LB7T7mSGj7gb2NVvd8ZxKJtsbTjQrh+GSEJ00NJnkNE=;
+	h=From:To:Cc:Subject:Date:From;
+	b=MKO4cDK/yIH2vLLKmfvTwAGoD4Xfny4JkVP+YYiLrV0OxxxpYIzwrgDFi9ETrWFiA
+	 AISttQrJCgVFazCcxLjzTFYRFbR4fNWDRCN3+W4/vmZghaDELE8lGy3JiafI6M6wUN
+	 nAgGLdslM9vuCB8hT+GYZ6woJomni6vIQSeI1hbw=
 From: Mukesh R <mrathor@linux.microsoft.com>
 To: linux-hyperv@vger.kernel.org,
 	linux-kernel@vger.kernel.org,
@@ -62,12 +62,10 @@ Cc: jgg@nvidia.com,
 	robin.murphy@arm.com,
 	arnd@arndb.de,
 	mrathor@linux.microsoft.com
-Subject: [PATCH V3 4/5] iommu/hyperv: Only call pviommu init on non-root VMs
-Date: Mon,  2 Nov 2026 18:51:49 -0800
-Message-ID: <20261103025150.3192119-5-mrathor@linux.microsoft.com>
+Subject: [PATCH V3 0/5] Hyper-V: root VM iommu kernel only driver
+Date: Mon,  2 Nov 2026 18:51:45 -0800
+Message-ID: <20261103025150.3192119-1-mrathor@linux.microsoft.com>
 X-Mailer: git-send-email 2.51.2.vfs.0.1
-In-Reply-To: <20261103025150.3192119-1-mrathor@linux.microsoft.com>
-References: <20261103025150.3192119-1-mrathor@linux.microsoft.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -79,58 +77,63 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Next patch introduces root iommu init. Since both can co-exist, set
-x86 iommu_init to pviommu init only on non-root VMs. Also, rename
-hv_iommu_init() to hv_pviommu_init(). Lastly, check for null iommu_init
-before assignement as suggested by one of the pviommu authors.
+This short series introduces hyperv root VM iommu kernel only driver. This
+driver acts as liason between the hypervisor and iommu layer. Details are
+both in the actual commits and in the comments in the file implementing it.
 
-Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
----
- arch/x86/hyperv/hv_init.c             | 3 ++-
- arch/x86/include/asm/mshyperv.h       | 2 +-
- drivers/iommu/hyperv/hv-iommu-guest.c | 2 +-
- 3 files changed, 4 insertions(+), 3 deletions(-)
+Thanks,
+-Mukesh
 
-diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index b90e6f487533..18651c38dba3 100644
---- a/arch/x86/hyperv/hv_init.c
-+++ b/arch/x86/hyperv/hv_init.c
-@@ -580,7 +580,8 @@ void __init hyperv_init(void)
- 	x86_init.timers.setup_percpu_clockev = hv_stimer_setup_percpu_clockev;
- 
- #ifdef CONFIG_HYPERV_PVIOMMU
--	x86_init.iommu.iommu_init = hv_iommu_init;
-+	if (!hv_root_partition() && x86_init.iommu.iommu_init == NULL)
-+		x86_init.iommu.iommu_init = hv_pviommu_init;
- #endif
- 
- 	hv_apic_init();
-diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index 24b19cd28a05..c95d75ae645e 100644
---- a/arch/x86/include/asm/mshyperv.h
-+++ b/arch/x86/include/asm/mshyperv.h
-@@ -320,7 +320,7 @@ static inline void __mshv_vtl_return_call(struct mshv_vtl_cpu_context *vtl0) {}
- #endif
- 
- #ifdef CONFIG_HYPERV_PVIOMMU
--int __init hv_iommu_init(void);
-+int __init hv_pviommu_init(void);
- #endif
- 
- #include <asm-generic/mshyperv.h>
-diff --git a/drivers/iommu/hyperv/hv-iommu-guest.c b/drivers/iommu/hyperv/hv-iommu-guest.c
-index 876a22f21f1e..a40a8ceb3261 100644
---- a/drivers/iommu/hyperv/hv-iommu-guest.c
-+++ b/drivers/iommu/hyperv/hv-iommu-guest.c
-@@ -601,7 +601,7 @@ hv_init_iommu_device(struct hv_iommu_dev *hv_iommu,
- 	hv_iommu_device = hv_iommu;
- }
- 
--int __init hv_iommu_init(void)
-+int __init hv_pviommu_init(void)
- {
- 	u64 status;
- 	int ret = 0;
+V0: based on upstream hyperv-next commit be0cfab740e5
+
+V1:
+ - change order of lookup tree deletions to appease all AI agents,
+   carving out hv_iommu_hyp_unmap_pages() from hv_iommu_unmap_pages().
+ - change unique_id to ida subsystem management so we never ever run
+   out of domain ids.
+ - change hv_max_iova_width to hv_iommu_max_iova and generate proper
+   mask.
+ - some other minor changes.
+
+V2:
+ - Add patch (0001) to allow gfp_flags to be passed to deposit pages
+   function.
+ - In last main patch:
+     o remove hv_iommu_setup_skip to skip devices being managed
+     o remove hv_special_domain()
+     o Add comments around pgsize_bitmap and IOMMU capabilities.
+     o Add to lookup tree before mapping iova in the map callback
+     o Unmap iova before removing from the tree in the unmap callback
+
+V3:
+ - Rebase to rc1 tag 6628e7d4c6b2 which contains both pviommu and the
+   deposit memory redesign patches.
+ - Add a tiny patch to rename hv_iommu_init() to hv_pviommu_init(), and
+   only call it for non-root.
+
+Mukesh R (5):
+  mshv: Add gfp flags to deposit memory logic
+  PCI: hv: Export hv_build_devid_type_pci() and change return type
+  mshv: Import data structs around device domains from hyperv headers
+  iommu/hyperv: Only call pviommu init on non-root VMs
+  x86/hyperv: Implement root partition IOMMU kernel only driver
+
+ arch/x86/hyperv/hv_init.c             |   3 +-
+ arch/x86/hyperv/irqdomain.c           |   9 +-
+ arch/x86/include/asm/mshyperv.h       |   8 +-
+ arch/x86/kernel/pci-dma.c             |   2 +
+ drivers/hv/hv_proc.c                  |  20 +-
+ drivers/iommu/hyperv/Kconfig          |  13 +
+ drivers/iommu/hyperv/Makefile         |   1 +
+ drivers/iommu/hyperv/hv-iommu-guest.c |   2 +-
+ drivers/iommu/hyperv/hv-iommu-root.c  | 602 ++++++++++++++++++++++++++
+ include/asm-generic/mshyperv.h        |  17 +-
+ include/hyperv/hvgdk_mini.h           |   4 +
+ include/hyperv/hvhdk_mini.h           |  15 +
+ include/linux/hyperv.h                |   6 +
+ 13 files changed, 683 insertions(+), 19 deletions(-)
+ create mode 100644 drivers/iommu/hyperv/hv-iommu-root.c
+
 -- 
 2.51.2.vfs.0.1
 
