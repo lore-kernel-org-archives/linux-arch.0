@@ -1,46 +1,46 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793674326;
-	b=GGf7t2Gh0Lr+JPlk0JZpDp43vxTUDQaqXb+/zeUOUlocxng/2H9ndH4FNqb6QUXak56E
-	 bi0zoAXsEQwDLmDsAJJKqOqsitJAdiJz32tA1vQwh47s/sVEKKLeVckDRnf7Hqq40tM6B
-	 HGFgldsJhJSJGMp+ulNhDCH4j3AOzLEwEmodAMeqYBuV+BWKSaZaK8lqKLrLyV2Q1yGtq
-	 4KDaYSDbqg0ggYC84kHAqhlYmHCy4Jiaix/+rdIPjR6VUDAKxjVw0xmQzzZ5SS+ugZrtQ
-	 Bck6EU/s8/xiMpz3OawGCafpLNyw37Zy4MYUl9dNoKhidaGaaCQi4lcXwjYXYv39Z2Q==
+	t=1793674327;
+	b=1H2RUt+7h08Gv54Mvq/xVzAVxQMQYCJAYX6CEiPwiUsGSUhY5h3YahyF0yiDVhjfUVFn
+	 H2XBTmtVOFp4e7Q09ykW88g+xohnEfx39C28IgItAh4VEZ0agmMQJYrJoy+BbeC/U+3xJ
+	 firiKXVGn3xhCnV6Y2OLxA4KFYfPOA4nyh2mxK5CJvNeXdQ69+uuw89YmgM0nyj11/jKK
+	 PoOUYtCDkpyIqvFOj/WaZCi1SYmkzR+qH2T6PPBdNydKSx2coFRUViXoYEyjWh5UKALEB
+	 RwS5P4Nm6X7raFuXqN23P0OtT9zlSmrg/MtUuuBr9NoysQJBUCbKvZO8J6hdB6woXaw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793674326;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793674327;
 	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:From:To:Cc:Subject:
-	 Date:Message-ID:X-Mailer:MIME-Version:Content-Transfer-Encoding:
-	 X-Spam-Status:X-Spam-Checker-Version;
-	bh=LB7T7mSGj7gb2NVvd8ZxKJtsbTjQrh+GSEJ00NJnkNE=;
-	b=vugMXe2zhVfYSMpdER8mnjHOfup0LmB5emWKq+47AXOKJ8rsMpUQ8r1ps1JM/OvQfBlf
-	 cxebCbZIr5Pk/yfkf6fpRgoWfbIfIBa61e/tFnt+mqMWDFYYgAu06S3XbLWSMaK5rpdqZ
-	 rQaCWjskg0Vh9clcEOKAkIOK6TixGtukDEXYtVM46P35hRrIduX12LPI/5WnciDgUQmH/
-	 BwDxmmN6ON/GFHYbzaZ7zforKkhzemt/5NL5p0lYWuNuubVPUs/qI19cuew4wxOjdDcCP
-	 6/nBSCX5Qeq4XKlqCzxEukah2ZYQylSBxjiMn1y8QtrIJqgzo/ySJ3ADXq/utcWXo+Q==
+	 Date:Message-ID:X-Mailer:In-Reply-To:References:MIME-Version:
+	 Content-Transfer-Encoding:X-Spam-Status:X-Spam-Checker-Version;
+	bh=0EHmjzbFR/yNJP1Nxx0dUmYDywoFEpvvyJwEhuOQ678=;
+	b=4tlpabW0r4F5+7R+k4AcQX/O7ZnC6Hn0QoDQWjBq4KhMazoMQxouCz78B8dQ1g3VJNUo
+	 I4U04uJhhZT2HuMdqXCn/Yt9clUm1orCrXDsPrRjvi1QBIOvyvx06TLdFCkOGbGjrYdB9
+	 KsjLLM6QDHjmyDBLJWYZsjTGpsVm3HM/LyGQkbxphSBdoE9YnvojeNHHwkxg+Fubi2mZk
+	 AQD5xFCnnHC1ZWuANM3RUxKhzvBbqNrUwBQHNXQU4ja9GkFWtuuyQLvsup3xeufFnwbdm
+	 /Pkl6m5fN+qUi3fdagw6z3cPiQVM3egJMjtgK9dveFMwNCJ/OXYUSSIyjMFEhCNiQyg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.microsoft.com;
 	spf=pass smtp.mailfrom=linux.microsoft.com;
-	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b="MKO4cDK/";
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=qPEsfdqc;
 	arc=none smtp.remote-ip=13.77.154.182
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 2FED9606A326;
-	Tue,  3 Nov 2026 02:52:05 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2FED9606A326
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 5C06B606A33B;
+	Tue,  3 Nov 2026 02:52:07 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 5C06B606A33B
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=MKO4cDK/
+	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=qPEsfdqc
 Received: from mrdev.corp.microsoft.com (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 408FD20B7166;
-	Mon,  2 Nov 2026 18:51:49 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 408FD20B7166
+	by linux.microsoft.com (Postfix) with ESMTPSA id DFD7120B7168;
+	Mon,  2 Nov 2026 18:51:51 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com DFD7120B7168
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1793674309;
-	bh=LB7T7mSGj7gb2NVvd8ZxKJtsbTjQrh+GSEJ00NJnkNE=;
-	h=From:To:Cc:Subject:Date:From;
-	b=MKO4cDK/yIH2vLLKmfvTwAGoD4Xfny4JkVP+YYiLrV0OxxxpYIzwrgDFi9ETrWFiA
-	 AISttQrJCgVFazCcxLjzTFYRFbR4fNWDRCN3+W4/vmZghaDELE8lGy3JiafI6M6wUN
-	 nAgGLdslM9vuCB8hT+GYZ6woJomni6vIQSeI1hbw=
+	s=default; t=1793674312;
+	bh=0EHmjzbFR/yNJP1Nxx0dUmYDywoFEpvvyJwEhuOQ678=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=qPEsfdqc89khoKnPa9lS4y5OOH+qjchVDl0Dof07bgI4bQNLgME2dKNkAavWTl0UG
+	 5cAzJJK8Uw0hYo7QmcEgWWXDxq5b0FntXKfHlMoX2vl7oNkgqQLl2SscD3WIy++k0G
+	 a7WS/TGeu8ljnOSLdMFGa8cZYCMvKWilt5AeY4gY=
 From: Mukesh R <mrathor@linux.microsoft.com>
 To: linux-hyperv@vger.kernel.org,
 	linux-kernel@vger.kernel.org,
@@ -62,10 +62,12 @@ Cc: jgg@nvidia.com,
 	robin.murphy@arm.com,
 	arnd@arndb.de,
 	mrathor@linux.microsoft.com
-Subject: [PATCH V3 0/5] Hyper-V: root VM iommu kernel only driver
-Date: Mon,  2 Nov 2026 18:51:45 -0800
-Message-ID: <20261103025150.3192119-1-mrathor@linux.microsoft.com>
+Subject: [PATCH V3 2/5] PCI: hv: Export hv_build_devid_type_pci() and change return type
+Date: Mon,  2 Nov 2026 18:51:47 -0800
+Message-ID: <20261103025150.3192119-3-mrathor@linux.microsoft.com>
 X-Mailer: git-send-email 2.51.2.vfs.0.1
+In-Reply-To: <20261103025150.3192119-1-mrathor@linux.microsoft.com>
+References: <20261103025150.3192119-1-mrathor@linux.microsoft.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,63 +79,77 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-This short series introduces hyperv root VM iommu kernel only driver. This
-driver acts as liason between the hypervisor and iommu layer. Details are
-both in the actual commits and in the comments in the file implementing it.
+On Hyper-V, most hypercalls related to device domain management like
+attach device to a device domain, or to map/unmap regions, interrupts,
+etc need a device ID as a parameter. So, make hv_build_devid_type_pci()
+public and change return type to u64 to enforce its size.
 
-Thanks,
--Mukesh
+Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+Reviewed-by: Souradeep Chakrabarti <schakrabarti@linux.microsoft.com>
+---
+ arch/x86/hyperv/irqdomain.c     | 9 +++++----
+ arch/x86/include/asm/mshyperv.h | 6 ++++++
+ 2 files changed, 11 insertions(+), 4 deletions(-)
 
-V0: based on upstream hyperv-next commit be0cfab740e5
-
-V1:
- - change order of lookup tree deletions to appease all AI agents,
-   carving out hv_iommu_hyp_unmap_pages() from hv_iommu_unmap_pages().
- - change unique_id to ida subsystem management so we never ever run
-   out of domain ids.
- - change hv_max_iova_width to hv_iommu_max_iova and generate proper
-   mask.
- - some other minor changes.
-
-V2:
- - Add patch (0001) to allow gfp_flags to be passed to deposit pages
-   function.
- - In last main patch:
-     o remove hv_iommu_setup_skip to skip devices being managed
-     o remove hv_special_domain()
-     o Add comments around pgsize_bitmap and IOMMU capabilities.
-     o Add to lookup tree before mapping iova in the map callback
-     o Unmap iova before removing from the tree in the unmap callback
-
-V3:
- - Rebase to rc1 tag 6628e7d4c6b2 which contains both pviommu and the
-   deposit memory redesign patches.
- - Add a tiny patch to rename hv_iommu_init() to hv_pviommu_init(), and
-   only call it for non-root.
-
-Mukesh R (5):
-  mshv: Add gfp flags to deposit memory logic
-  PCI: hv: Export hv_build_devid_type_pci() and change return type
-  mshv: Import data structs around device domains from hyperv headers
-  iommu/hyperv: Only call pviommu init on non-root VMs
-  x86/hyperv: Implement root partition IOMMU kernel only driver
-
- arch/x86/hyperv/hv_init.c             |   3 +-
- arch/x86/hyperv/irqdomain.c           |   9 +-
- arch/x86/include/asm/mshyperv.h       |   8 +-
- arch/x86/kernel/pci-dma.c             |   2 +
- drivers/hv/hv_proc.c                  |  20 +-
- drivers/iommu/hyperv/Kconfig          |  13 +
- drivers/iommu/hyperv/Makefile         |   1 +
- drivers/iommu/hyperv/hv-iommu-guest.c |   2 +-
- drivers/iommu/hyperv/hv-iommu-root.c  | 602 ++++++++++++++++++++++++++
- include/asm-generic/mshyperv.h        |  17 +-
- include/hyperv/hvgdk_mini.h           |   4 +
- include/hyperv/hvhdk_mini.h           |  15 +
- include/linux/hyperv.h                |   6 +
- 13 files changed, 683 insertions(+), 19 deletions(-)
- create mode 100644 drivers/iommu/hyperv/hv-iommu-root.c
-
+diff --git a/arch/x86/hyperv/irqdomain.c b/arch/x86/hyperv/irqdomain.c
+index b3ad50a874dc..8780573a4332 100644
+--- a/arch/x86/hyperv/irqdomain.c
++++ b/arch/x86/hyperv/irqdomain.c
+@@ -112,7 +112,7 @@ static int get_rid_cb(struct pci_dev *pdev, u16 alias, void *data)
+ 	return 0;
+ }
+ 
+-static union hv_device_id hv_build_devid_type_pci(struct pci_dev *pdev)
++u64 hv_build_devid_type_pci(struct pci_dev *pdev)
+ {
+ 	int pos;
+ 	union hv_device_id hv_devid;
+@@ -172,8 +172,9 @@ static union hv_device_id hv_build_devid_type_pci(struct pci_dev *pdev)
+ 	}
+ 
+ out:
+-	return hv_devid;
++	return hv_devid.as_uint64;
+ }
++EXPORT_SYMBOL_GPL(hv_build_devid_type_pci);
+ 
+ /*
+  * hv_map_msi_interrupt() - Map the MSI IRQ in the hypervisor.
+@@ -196,7 +197,7 @@ int hv_map_msi_interrupt(struct irq_data *data,
+ 
+ 	msidesc = irq_data_get_msi_desc(data);
+ 	pdev = msi_desc_to_pci_dev(msidesc);
+-	hv_devid = hv_build_devid_type_pci(pdev);
++	hv_devid.as_uint64 = hv_build_devid_type_pci(pdev);
+ 	cpu = cpumask_first(irq_data_get_effective_affinity_mask(data));
+ 
+ 	return hv_map_interrupt(hv_devid, false, cpu, cfg->vector,
+@@ -271,7 +272,7 @@ static int hv_unmap_msi_interrupt(struct pci_dev *pdev,
+ {
+ 	union hv_device_id hv_devid;
+ 
+-	hv_devid = hv_build_devid_type_pci(pdev);
++	hv_devid.as_uint64 = hv_build_devid_type_pci(pdev);
+ 	return hv_unmap_interrupt(hv_devid.as_uint64, irq_entry);
+ }
+ 
+diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+index 20d947c2c758..24b19cd28a05 100644
+--- a/arch/x86/include/asm/mshyperv.h
++++ b/arch/x86/include/asm/mshyperv.h
+@@ -248,6 +248,12 @@ void hv_crash_asm_end(void);
+ static inline void hv_root_crash_init(void) {}
+ #endif  /* CONFIG_MSHV_ROOT && CONFIG_CRASH_DUMP */
+ 
++#ifdef CONFIG_PCI_MSI
++u64 hv_build_devid_type_pci(struct pci_dev *pdev);
++#else
++static inline u64 hv_build_devid_type_pci(struct pci_dev *pdev) { return 0; }
++#endif
++
+ #else /* CONFIG_HYPERV */
+ static inline void hyperv_init(void) {}
+ static inline void hyperv_setup_mmu_ops(void) {}
 -- 
 2.51.2.vfs.0.1
 
