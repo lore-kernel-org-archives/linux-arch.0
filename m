@@ -1,65 +1,63 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793706649;
-	b=xzuqv33+GyumyKitanh4rYCDzGkzluryGbc7Uwyv+TFYgKTkcuJtrJbXpRPSj7qI39Cu
-	 55ye/eCp89OaGYR+wx+sFccXsTG7tm1cgFYcdKsJO041wfsxrEnkVXt+QO5ehS2A8TEne
-	 X+qE1UCJ4YGK5k2I99rA/s/3ajJOmkNxUrsIyyer4Uj54uxM/jpWXA4jncHF2b+SCueTo
-	 AXdPTPc42Cyd7zZs6KzwImpbUDknw166gptBGzJaHzYz3QR11+LGMdla89fo1yM3ZF8rV
-	 A0Koj1YSBhxn1EvmbqV5o4COHRSO/jx6ySlS3jmaxSioIfpxfdyqr/MFOu7fEpKr9jQ==
+	t=1793714506;
+	b=OE1fhaXUEW1MiQiy+fQOeuvFh8PSDvOcdGsveWGP5O7rGC4E+eVcVN92YBjjA9mchr9f
+	 AO7xyRyRL5E4NdiGtaHNeKxxy5SuMoV9EwSct0Bzlrhp7WEUa1qX54INU3AixHpyUWxhi
+	 gYXCi9Ge+D+QZN/8jrOQz8mEvSNww8DyIAF/4XbbETIw07Fk2o5cTHvziWr7mWqMhUUiC
+	 DTMfPh7JmjotmWpjSStwlZcN1g2yE3RnRRVeDHleYJ4sFvc81B/PpTO6iNPSXA99/5QIC
+	 0l1cYy/ESegEVXWv4sclBDVsHmk9TCnn4HF78Wa/mPYh8pAQS3f49qzPU9OFPbTxhCQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793706649;
-	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Date:From:To:Cc:
+	a=rsa-sha256; c=relaxed/relaxed; t=1793714506;
+	h=DMARC-Filter:Received:Received:DKIM-Signature:Date:From:To:Cc:
 	 Subject:Message-ID:References:MIME-Version:Content-Type:
-	 Content-Disposition:In-Reply-To:X-Spam-Status:X-Spam-Checker-Version;
-	bh=90Z/2VrWJwwdnNrqjaSepq6lJZp1VP+jwqjBKDqToQE=;
-	b=sLg/P7lN9hi47iDNKm7gtinqhe/bSqMufvdlJsjpU+b5QZEy43EAlTpBucvnhrZHuh/E
-	 Thxxsf9Ob5eto2WXK/03c/MiLN0DyWphF8IgREgDeRv3sgwV1R1uE+OdMfG1CiMvx+WiV
-	 8ml3pt0YdpzENoMRqLf8nhEFKp66PNrlU8cf51t4IyzOGRKCC5qRnIRbg+YNZg3ptvSMd
-	 PHS1ia/jYaq5fT1MHDOxA8nHJYxeCI/chnPVOqxDNzHhh+kSeSN0Rm2JPwTBC4J9lExRY
-	 Mt2M1xTLMdcpTSpDaElrBuoHNrxE2YBXdAM+7OJErC4QC4TaMOBtYO00knXo9x45wzQ==
+	 Content-Disposition:In-Reply-To;
+	bh=aoEz3XDvNbQleGg7AGotOLvdqQR5gJ3dWjYehkJVEAg=;
+	b=TjP+2PkKyGLutHrl2VC9AUNLNziDcMhaz4hG69Uh9IDrScxkewkUF/VIxxKX8J1bBQrx
+	 iuf/TkD9nI9dLNVU7sU7HSTg/bQR8UMqHBJlsIPKVt+KilBQyfOku176XQ8JpbW3DE5MA
+	 gcJItq/Md5/Qw+GDebBp2+zbktzsx+gzGJ7m5qStaseNPcM51deVeiN4n44+DQRvbQ6fa
+	 3jrFH+KxZ79t3it1NTUjnO3VXUGD+DTYeC2XFu0x3yZCEyVUZO/M7VD/+JQssbh1BO6tG
+	 mZxnZMuw/YnWAEkz4QY00z0FvQdUKXDiTTx6B4jeXNfLrH7272mjf4OEHuN/GE6zd9w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.microsoft.com;
-	spf=pass smtp.mailfrom=linux.microsoft.com;
-	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=NLcHTDk0;
-	arc=none smtp.remote-ip=13.77.154.182
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 67C34606EE99;
-	Tue,  3 Nov 2026 11:50:49 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 67C34606EE99
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	dmarc=pass header.from=arm.com;
+	spf=pass smtp.mailfrom=arm.com;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=YwBrmiMc;
+	arc=none smtp.remote-ip=217.140.110.172
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 854756082BE5;
+	Tue,  3 Nov 2026 14:01:44 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 854756082BE5
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=NLcHTDk0
-Received: from example.com (unknown [167.220.208.51])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 72A6920B7166;
-	Tue,  3 Nov 2026 03:50:31 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 72A6920B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1793706634;
-	bh=90Z/2VrWJwwdnNrqjaSepq6lJZp1VP+jwqjBKDqToQE=;
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=YwBrmiMc
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 4989C1595;
+	Tue,  3 Nov 2026 06:01:40 -0800 (PST)
+Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 32A593F673;
+	Tue,  3 Nov 2026 06:01:41 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1793714503; bh=wIZLjMr9MrBhBElX8/30eyxmo0F41I4lrfTa+wBa7tQ=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=NLcHTDk043xLLWIZDwZi5RG7bz0nectmofp5i/xXmHpxvv1fcM7sUpd1Z89QqCXsa
-	 zI9sAmvhmsCMgsGzhMjkLb2wU5HxFgNDrQoYEqgMS2hXtYo84iOpzblytVHdWsgV/i
-	 je9Yk7ERJkcy7fiuXlBZCI7qd9irAbZq6K/wvsR0=
-Date: Tue, 3 Nov 2026 12:50:44 +0100
-From: Magnus Kulke <magnuskulke@linux.microsoft.com>
-To: Wei Liu <wei.liu@kernel.org>
-Cc: Mukesh R <mrathor@linux.microsoft.com>, linux-hyperv@vger.kernel.org,
-	Arnd Bergmann <arnd@arndb.de>,
-	Magnus Kulke <magnuskulke@microsoft.com>,
-	Paolo Bonzini <pbonzini@redhat.com>,
-	Dexuan Cui <decui@microsoft.com>, Long Li <longli@microsoft.com>,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	"K. Y. Srinivasan" <kys@microsoft.com>,
-	Souradeep Chakrabarti <schakrabarti@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <liuwe@microsoft.com>,
-	Anirudh Rayabharam <Anirudh.Rayabharam@microsoft.com>
-Subject: Re: [PATCH v4] drivers/hv: remove deposited pages from direct map
-Message-ID: <aunKlPRx/bhDScrx@example.com>
-References: <20260930121047.19993-1-magnuskulke@linux.microsoft.com>
- <49a7b3b0-5314-c028-d0e6-a46e65ed880d@linux.microsoft.com>
- <20261030181823.GA581409@liuwe-devbox-debian-v2.local>
+	b=YwBrmiMcxgxgc/oqB40Ht/y8m8LlWct0YtdnpHGGvzDuec16EtV7NY+oHv/hCetja
+	 2f6zsYjxlTcIoz6eOMhAtSEfc75BbV73NZgTZSmw9FZPhcLeJhcnrlIilEq0T1jk4E
+	 8CZPmtRTgv3jpFSsvkXhvGT+Q5XvXx7Avzo3Mwb8=
+Date: Tue, 3 Nov 2026 14:01:38 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+To: Kameron Carr <kameroncarr@linux.microsoft.com>
+Cc: decui@microsoft.com, haiyangz@microsoft.com, mhklinux@outlook.com,
+	wei.liu@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, linux-hyperv@vger.kernel.org,
+	linux-kernel@vger.kernel.org, lpieralisi@kernel.org,
+	mark.rutland@arm.com, sudeep.holla@kernel.org, thuth@redhat.com,
+	will@kernel.org
+Subject: Re: [PATCH v6 2/6] arm64: hyperv: Detect Hyper-V via RSI host call
+ in CCA Realms
+Message-ID: <aunpQixDBFz9VBj8@arm.com>
+References: <20261031001412.4150488-1-kameroncarr@linux.microsoft.com>
+ <20261031001412.4150488-3-kameroncarr@linux.microsoft.com>
+ <auh-KP-4gFxHtO1z@arm.com>
+ <c87dc2c3-9211-46d2-9301-46a03d4b0ad7@linux.microsoft.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -71,118 +69,44 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261030181823.GA581409@liuwe-devbox-debian-v2.local>
+In-Reply-To: <c87dc2c3-9211-46d2-9301-46a03d4b0ad7@linux.microsoft.com>
 
-On Fri, Oct 30, 2026 at 11:18:23AM -0700, Wei Liu wrote:
-> On Wed, Oct 28, 2026 at 03:54:30PM -0700, Mukesh R wrote:
-> > On 9/30/26 05:10, Magnus Kulke wrote:
-> > > hv_call_deposit_pages() donates pages (deposit) to hypervisor for L2
-> > > guest on L1VH systems via HVCALL_DEPOSIT_MEMORY. The hypervisor takes
-> > > ownership of those pages and per contract revokes root partition
-> > > access to them, raising a #GP on access from the L1VH root partition.
-> > > 
-> > > However, the pages remain mapped in the kernel direct map, so kernel
-> > > code may still access them even though the hypervisor has revoked
-> > > access.
-> > > 
-> > > Helpers such as "load_unaligned_zeropad()" deliberately read past the
-> > > end of a buffer and across page boundaries. A read into an unmapped
-> > > page is tolerated and triggers a #PF, for which the kernel executes
-> > > a fixup in the exception table.
-> > > 
-> > > If such a call steps into a page that has been deposited, the access
-> > > raises a #GP by the hypervisor from which the above handler cannot
-> > > recover and the kernel panics:
-> > > 
-> > >    Oops: general protection fault, maybe for address 0xff1100941a3dfffc
-> > >    RIP: 0010:csum_partial+0xe5/0x110
-> > > 
-> > > This condition will appear on L1VH system that have created L2
-> > > partitions (and hence deposited pages) and exercise networking code
-> > > paths such as csum_partial() can trigger this condition when a buffer
-> > > ends close to a page boundary (e.g fffc in the above example).
-> > > 
-> > > The fix is to remove the deposited pages from the direct map before
-> > > they are passed to the hypervisor, and restore them when the hypervisor
-> > > returns them again.
-> > > 
-> > > We want to avoid flushing the TLB in the loop, so we use the _noflush()
-> > > variant of set_direct_map_valid() when marking a deposited page invalid
-> > > and flush the affected page ranges in one go ourselves. In the opposite
-> > > direction this is not required:
-> > > 
-> > >    > If a paging-structure entry is modified to change the P flag from
-> > >    > 0 to 1, no invalidation is necessary. This is because no TLB entry
-> > >    > or paging-structure cache entry is created with information from a
-> > >    > paging-structure entry in which the P flag is 0.
-> > > 
-> > > (Intel SDM Vol. 3, 4.10.4.3)
-> > > 
-> > > Signed-off-by: Magnus Kulke <magnuskulke@linux.microsoft.com>
-> > > ---
-> > > Changes since v3:
-> > > - Batch contiguous pages in the restore path
-> > > - Adjusted comment about failure modes
-> > > 
-> > > Changes since v2:
-> > > - Checkpatch format fix
-> > > 
-> > > Changes since RFC:
-> > > - Handle direct-map restoration failures without returning unmapped
-> > >    pages to the allocator.
-> > > - Move freeing of withdrawn pages into the restoration helper.
-> > > ---
-> > >   drivers/hv/hv_proc.c           | 83 +++++++++++++++++++++++++++++++++-
-> > >   drivers/hv/mshv_root_hv_call.c |  4 +-
-> > >   include/asm-generic/mshyperv.h |  4 ++
-> > >   3 files changed, 87 insertions(+), 4 deletions(-)
-> > > 
-> > > diff --git a/drivers/hv/hv_proc.c b/drivers/hv/hv_proc.c
-> > > index 57b2c64197cb..b056051a5ac5 100644
-> > > --- a/drivers/hv/hv_proc.c
-> > > +++ b/drivers/hv/hv_proc.c
-> > > @@ -7,7 +7,9 @@
-> > >   #include <linux/cpuhotplug.h>
-> > >   #include <linux/minmax.h>
-> > >   #include <linux/export.h>
-> > > +#include <linux/set_memory.h>
-> > >   #include <asm/mshyperv.h>
-> > > +#include <asm/tlbflush.h>
-> > >   /*
-> > >    * See struct hv_deposit_memory. The first u64 is partition ID, the rest
-> > > @@ -15,6 +17,35 @@
-> > >    */
-> > >   #define HV_DEPOSIT_MAX (HV_HYP_PAGE_SIZE / sizeof(u64) - 1)
-> > > +/*
-> > > + * Add or remove a set of physically contiguous page runs from the kernel
-> > > + * direct map. Once a page has been deposited the hypervisor owns it and
-> > > + * revokes root partition access to it.
-> > > + */
-> > > +static int hv_deposit_update_direct_map(struct page **pages, int *counts,
-> > > +					int num_allocations, bool valid)
-> > > +{
-> > > +	int i, err, ret = 0;
-> > > +
-> > > +	for (i = 0; i < num_allocations; ++i) {
-> > > +		err = set_direct_map_valid_noflush(pages[i], counts[i], valid);
-> > > +		if (err && !ret)
-> > > +			ret = err;
-> > > +	}
+On Mon, Nov 02, 2026 at 11:27:37AM -0800, Kameron Carr wrote:
+> On 11/2/2026 4:12 AM, Catalin Marinas wrote:
+> > On Fri, Oct 30, 2026 at 05:14:08PM -0700, Kameron Carr wrote:
+> >> When booting without ACPI, hyperv_detect_via_smccc() detects Hyper-V by
+> >> querying the SMCCC vendor hypervisor UID. In an Arm CCA Realm the SMCCC
+> >> call is handled by the RMM rather than by the hypervisor, so the
+> >> query never reaches Hyper-V and detection fails.
+> >>
+> >> When running in a Realm, forward ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID
+> >> to the host with RSI_HOST_CALL instead, which is how Hyper-V hypercalls
+> >> are issued from a Realm.
+> >>
+> >> This is done in the Hyper-V code rather than in the generic
+> >> arm_smccc_hypervisor_has_uuid() because the other users expect different
+> >> behavior.
+> >>
+> >> hyperv_init() is an early_initcall and runs before the secondary CPUs
+> >> are brought up, so a single __initdata host call structure is used
+> >> without locking.
+> >>
+> >> ACPI-based detection and non-Realm guests are unaffected.
+> >>
+> >> Signed-off-by: Kameron Carr <kameroncarr@linux.microsoft.com>
 > > 
-> > I realize I am late to the review, so if too late, please ignore.
-> > If the caller is going to not continue on error but will revert,
-> > what is the reason to keep going on error then?
-> > 
-> > And this function should undo it itself if there is error instead
-> > of forcing the caller to do it imo. It could just undo the part which
-> > is done.
-> > 
+> > This works for me, thanks. I replied to Dexuan clarifying my objection
+> > to v5 do the UUID check generically.
 > 
-> Magnus, while you work on rebasing the patch, perhaps you can also
-> address this.
+> Thank you for your review and suggestions.
+> Your clarification makes sense.
 > 
-> Wei
+> Is this a "Reviewed-by" or an "Acked-by"?
 
-ack,
+I don't usually ack the hyperv patches as I don't know enough about it
+but given that I commented on this particular patch in v5:
 
-magnus
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+
+-- 
+Catalin
