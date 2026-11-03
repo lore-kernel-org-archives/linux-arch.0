@@ -1,66 +1,114 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
-ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793719463;
-	b=yGyVM4wLLMtahT1duLela8oGlA3qsyFvZQrYHQ0CKo9yFz9S9C7WMgmnmbg6S3RJCayG
-	 YBdKS3k5TOoM/9QUfOBAYCep9QBPSVPe8sZyA7dBDUig7+YL6EpnluA/3SKhYPR6VLreN
-	 RVH2TSWyJoRZePRHHv84NwAX8L0IveadJ+Wscv+O+eF0cp64to5GdoEs1FRhrjNJ+GCs9
-	 GdtdZ/tU6VSsLGsDnINr4Sebr9M8ctojR1OAozXExBHRz3NTzsg/1nsd1XOHVGR7S9wDp
-	 uiIjc9bEYFTfpC7+GFizuLhLQZYBu8zmm38KFU4eim3xiV0fH9l+juRnFhl6VRFGqKQ==
-ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793719463;
-	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:From:To:Cc:Subject:
-	 Date:Message-Id:X-Mailer:MIME-Version:Content-Transfer-Encoding:
-	 X-Spam-Status:X-Spam-Checker-Version;
-	bh=l+02KwoSSXlWZVcs84FeV0oKegrze6AbX9iD/mlqVd4=;
-	b=TjXIgDP7dyQWW2p8sn8YM2RBMiJjuJPLLHqUI9xARj+3EPvr84yuth1b9YBguDQGggjB
-	 pxluVEXvSSp186qUic7gQPjzccCcLU/K6sMbKrT5Aw89SNr586mwUsjQU143IAgU7KvWI
-	 sOPao/IhUCRtbj/Zv3DLaULcwKssI+kE5vUj/nx8ZJ/eUX3RVTw8AURho6f/jfT5k7Z7A
-	 xxcDWoC0SS9fAv08LvqBpuqNIdOJTEXWNxCrlezbE27NEVNOZevVm12eCRO4IKW2RBDpH
-	 4L+WcDvGaZlfQLx8oiARrIaH5cBjXAMDmRBoRT7t7hEW2w13ocsaR53x1Wfp6e4HBkg==
-ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.microsoft.com;
-	spf=pass smtp.mailfrom=linux.microsoft.com;
-	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=o5LstHbq;
-	arc=none smtp.remote-ip=13.77.154.182
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id D4196606A324;
-	Tue,  3 Nov 2026 15:24:22 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org D4196606A324
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.61.34
+ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1793721731;
+	b=kkLzPwIgKx75mytIBq8+db8dlOCnmHn5sx4mMZbBoN+z650+W6qd8NqzKzBYUrpNJitL
+	 t2BTDA/IRkRalJ7R+YBCabf4YURhZzuYVjob2qWXqEmHKvsbrKmKnFESiYCdHvgp4tdVn
+	 Eh30Nu9z60PlYbIfS/jVdbIQe0iOpAbKqJtc3Cy0jSXS+XML8FBGtaKRzzad9yIq/P7ei
+	 ebfUuospE/mTm1VGph8L0CoK3RmYjqUTOOT52vnats7IWMxRefzEFXchHYEjmXhsGz5/u
+	 cg17a43r5ZDd2X2pOi24YtNgQQAUPeZz8I8BZ/nJYoRNNeSqO1bIuRKreI4hg5fsQQA==
+ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793721731;
+	h=DMARC-Filter:DKIM-Signature:Received:Received:Date:From:To:Cc:
+	 Subject:Message-ID:References:Content-Type:Content-Disposition:
+	 In-Reply-To:X-ClientProxiedBy:MIME-Version:X-MS-PublicTrafficType:
+	 X-MS-TrafficTypeDiagnostic:X-MS-Office365-Filtering-Correlation-Id:
+	 X-MS-Exchange-SenderADCheck:X-MS-Exchange-AntiSpam-Relay:
+	 X-Microsoft-Antispam:X-Microsoft-Antispam-Message-Info:
+	 X-Forefront-Antispam-Report:
+	 X-MS-Exchange-AntiSpam-MessageData-ChunkCount:
+	 X-MS-Exchange-AntiSpam-MessageData-0:X-OriginatorOrg:
+	 X-MS-Exchange-CrossTenant-Network-Message-Id:
+	 X-MS-Exchange-CrossTenant-AuthSource:X-MS-Exchange-CrossTenant-AuthAs:
+	 X-MS-Exchange-CrossTenant-OriginalArrivalTime:
+	 X-MS-Exchange-CrossTenant-FromEntityHeader:
+	 X-MS-Exchange-CrossTenant-Id:X-MS-Exchange-CrossTenant-MailboxType:
+	 X-MS-Exchange-CrossTenant-UserPrincipalName:
+	 X-MS-Exchange-Transport-CrossTenantHeadersStamped;
+	bh=NxRFJnP0vCfVm5KhlOIIHh2uAAiRiqctWk96g7tOrUs=;
+	b=HsJVcZtahhhDMNUYz1QZ94HJLYPnpol6zRQPEz2wYFZ1i3F6BK7Jz3h/JwfMUXgoANiG
+	 jFBuomb/ZrjslxK9LFWskeGO2G2oZ7ebVwpSBPDJEJnSDz4NS2h170N8uHCBdH+HHEdYi
+	 IdbqT+ym0mopDhsUKi8eKqhUPFzfFljzBdC1EGfS7oGrpfsTAgTY0X25Iie1gP0bUbWJl
+	 iqnjSQ4fxr92us1ip6yWJRNnQGUNGQK18MSMq1czR2GbnxlpVJhwLDqZexP6hY4mYabPM
+	 iLMgKNtBTXtiDMIOt1RPh3rdcXUKT/RHgUeO+IUdzq5IG5V++fFUamljuVCiwlLKHsg==
+ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=nvidia.com;
+	spf=fail smtp.mailfrom=nvidia.com;
+	dkim=pass header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=rLQlUCJO;
+	arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.61.34
+Received: from DM1PR04CU001.outbound.protection.outlook.com (mail-centralusazon11010034.outbound.protection.outlook.com [52.101.61.34])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (secp384r1) server-signature ECDSA (prime256v1) server-digest SHA256)
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BCA4D606A32C;
+	Tue,  3 Nov 2026 16:02:10 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org BCA4D606A32C
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=o5LstHbq
-Received: from DESKTOP-TUU1E5L.localdomain (unknown [167.220.208.51])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 6DE7B20B7166;
-	Tue,  3 Nov 2026 07:24:04 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 6DE7B20B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1793719447;
-	bh=l+02KwoSSXlWZVcs84FeV0oKegrze6AbX9iD/mlqVd4=;
-	h=From:To:Cc:Subject:Date:From;
-	b=o5LstHbq9g0Fbbs4Zu//WA+Sw0Jag8Fg0dmGOtyrdjfT9altZawohqrCho6qLITjJ
-	 jJ9dhptq4P0iGdYy2VzIqWR7+AwaPuKX9c3ehQ9Z9pa/6xTdbY9hww00w6ZexwrBxd
-	 sS3YHGHL1GAgZEMSxfWs2WGj3ruDdVZpQjn5gR28=
-From: Magnus Kulke <magnuskulke@linux.microsoft.com>
-To: linux-hyperv@vger.kernel.org
-Cc: Wei Liu <liuwe@microsoft.com>,
-	"K. Y. Srinivasan" <kys@microsoft.com>,
-	Paolo Bonzini <pbonzini@redhat.com>,
-	Mukesh R <mrathor@linux.microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>,
-	Magnus Kulke <magnuskulke@microsoft.com>,
-	Anirudh Rayabharam <Anirudh.Rayabharam@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	linux-kernel@vger.kernel.org,
-	Souradeep Chakrabarti <schakrabarti@microsoft.com>,
-	Long Li <longli@microsoft.com>,
-	Dexuan Cui <decui@microsoft.com>,
+	dkim=pass (2048-bit key, unprotected) header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=rLQlUCJO
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=mR75k6cpFMLwvaYJm4aInbg9uPFkjAp8TRqL9tl/o0lAaOyIQRVSTB8ypKKJtvLCr9h/GuQsdjD3CGfWWrJvN4rkgiTfmFzeqgJtmlnJVsTWGzNy8PAdtpfv9IGIwwJ3EsxugiK5+vodySPIKp4RWx4N7X/yCTgZ2ZmKyPpz1vmyudCC9DrZnk9qPWb+zc4F1obevCFSDVEDZ78KkkkXLiAZbj1JgJxkCMbCmR8bwRDwCm6oQT4eoQOXFtZG8/+aPrhn5D+TojucC72MosFFpbXW/MD/UtSNGD0Qrp90TlP28AH1MP4juBDm+Ac+eFSq3zbDEfM4EipK+gR+OP4utg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=NxRFJnP0vCfVm5KhlOIIHh2uAAiRiqctWk96g7tOrUs=;
+ b=Ho/5yjF9c668r32HEkRnmt77MBlpNkz8/3l5ohIx/9JtNYvTEEH0gRgG8fv0xMfmlL+8l/Z2YO1iz1NXfVcW8uQLy621eot8bEBMTtLjtG1R1Ui79aNKoYxpXkSIllzt4N6MtHk9lxb0fteNEtEPJ3jXImxhnY0/qVPIWgfulXd+kxHJw94cfYIBFVd9DWrb3QUiPJFP6FC7OMDoCbHNOqf41nmRjkSHBiRoRVHQqOARBVRxG/0he/XT620d1/WhA0hcQu40okGaxqC9vnYO3boC9QxekpDO0PFdZzvse/lcXiVxLcSPLKJQ0auNCFNi3P+e4RnJpIvWeOb6uHcSUA==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=NxRFJnP0vCfVm5KhlOIIHh2uAAiRiqctWk96g7tOrUs=;
+ b=rLQlUCJOTjylveRzkwMb1EAto8v2Hqi+zRG1dr+X3BZ1gjpwh3mZfkVcFCagBIbu/Jnd6v+4rygpHNX+X70uRdINv3roH36eqMLFasbR5q/whzC60h8uIf7Q2G41KxpgWOlgid3HJ3QDSiWMRfEQ4KMxO28mWGzZR9p5BsazGmDlWhTyo+qqco7iG3WamnHqWefcI2q20Ugp7Fxl/jG+8GvBbFAJcGz8aBK1SB2rYYwKAkkUSefm7pRckT5fX9dlGztjjNFuB28Kw4JRzawQB1Hmrgr17FAc/BzFuy18DlZCA4jeXBQ34jAo4eoy36pG5P/mAkThVzSfadPOvZlvZg==
+Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from CHBPR12MB731189.namprd12.prod.outlook.com
+ (2603:10b6:610:33d::12) by IA0PR12MB8375.namprd12.prod.outlook.com
+ (2603:10b6:208:3dd::16) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.569.12; Tue, 3 Nov
+ 2026 16:01:41 +0000
+Received: from CHBPR12MB731189.namprd12.prod.outlook.com
+ ([fe80::b0e5:123d:fe06:e10d]) by CHBPR12MB731189.namprd12.prod.outlook.com
+ ([fe80::b0e5:123d:fe06:e10d%6]) with mapi id 15.21.0592.007; Tue, 3 Nov 2026
+ 16:01:41 +0000
+Date: Tue, 3 Nov 2026 12:01:38 -0400
+From: Jason Gunthorpe <jgg@nvidia.com>
+To: Ard Biesheuvel <ardb@kernel.org>
+Cc: Alexandre Ghiti <alex@ghiti.fr>, Albert Ou <aou@eecs.berkeley.edu>,
 	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org
-Subject: [PATCH v5] mshv: remove deposited pages from direct map
-Date: Tue,  3 Nov 2026 16:24:16 +0100
-Message-Id: <20261103152416.404545-1-magnuskulke@linux.microsoft.com>
-X-Mailer: git-send-email 2.34.1
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Jonathan Corbet <corbet@lwn.net>, David Sterba <dsterba@suse.com>,
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
+	linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	linux-doc@vger.kernel.org, linux-efi@vger.kernel.org,
+	linux-riscv@lists.infradead.org,
+	Mark Rutland <mark.rutland@arm.com>,
+	Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <pjw@kernel.org>,
+	Randy Dunlap <rdunlap@infradead.org>,
+	Simon Glass <sjg@chromium.org>,
+	Shuah Khan <skhan@linuxfoundation.org>,
+	Nick Terrell <terrelln@fb.com>, Will Deacon <will@kernel.org>,
+	Alexandre Ghiti <alexghiti@rivosinc.com>,
+	Conor Dooley <conor.dooley@microchip.com>,
+	Jonathan Cameron <jonathan.cameron@oss.qualcomm.com>,
+	linux-integrity@vger.kernel.org,
+	Palmer Dabbelt <palmer@rivosinc.com>, patches@lists.linux.dev,
+	Piotr =?utf-8?B?S3LDs2w=?= <piotr.krol@3mdeb.com>,
+	Ross Philipson <ross.philipson@gmail.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Song Shuai <songshuaishuai@tinylab.org>
+Subject: Re: [PATCH v2 04/15] efi/libstub: Add a general way to get symbols
+ from the vmlinux into zboot
+Message-ID: <20261103160138.GA3165945@nvidia.com>
+References: <0-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
+ <4-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
+X-ClientProxiedBy: YT4PR01CA0318.CANPRD01.PROD.OUTLOOK.COM
+ (2603:10b6:b01:10a::9) To CHBPR12MB731189.namprd12.prod.outlook.com
+ (2603:10b6:610:33d::12)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -70,288 +118,83 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CHBPR12MB731189:EE_|IA0PR12MB8375:EE_
+X-MS-Office365-Filtering-Correlation-Id: 2b409bb8-c304-4df2-37e4-08df39c3bf0f
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|7416014|376014|366016|1800799024|23010399003|10067099003|22082099003|261102123227099003|18002099003|261021135927099003|56012099006|11063799006|4143699003|261021121427099003|261022075727099003|261022115727099003;
+X-Microsoft-Antispam-Message-Info:
+	WTbVxq4H8WiM2LXuASztVVzLIU7xAC78p6y17VXQi/75pxtZSIkBgauQBRQc/YJvQasEpwDgQBHSQU3PDsMogQO/E8mhtB3xLlm9ZodMMyIJWjA82Vh9pAnQ86uV0cLZCq87SYZhQ6hy3d/FdLn+6zo3XYEdU+ntlbDOD81n/aHeinGBxeeq9jwOe+GSNbWSUUUhnrPFeteACCQfjza7ryeE0QYWq9HLZFcGyHWtu7Ol1Ho/YzFjFVGqvZHpr2FSiZ6D3zc0ExyMLwuAZaJ6QAJ/PYPQebzr8xXCze3X68aZe9OSRXPdb9CPwj5SP+4Z6f+owCs/GHVEjXAZQn1kSvKQROQo5JRROq1KQQFDjMLdOX/scNd8TmZHgfluk1a74u/gNKcdrEuv2AxArehKrjk1EKchKJ7i1U/wUS5iDGRcQPV5zQjAmUSnEwDrpgfFMKfIDyGg6BmA3THaT3LxgDuAbUGRGcwSNaO2dRDEUAOvxNk3u4Ui/Akvz4HXH13ggA2F36GfgoQLwPsbZWiobnfTJnHNdozPThE+5qcSmEP4X05YyocxNRY4GO7qbTMtZ0WZApCmigURFsTvyHsuTLCqIHHFcApJ9rKubHy3AfD6TRoT8FIj/XWG+qxZ9Jch6CH3QDj/Lm2o4xhxCqihvi9m81XP5SmxyMj5LwCScaM=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CHBPR12MB731189.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(7416014)(376014)(366016)(1800799024)(23010399003)(10067099003)(22082099003)(261102123227099003)(18002099003)(261021135927099003)(56012099006)(11063799006)(4143699003)(261021121427099003)(261022075727099003)(261022115727099003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?v77AKHZwBL46MFGmwAsRPMZWrqHkaiynTP4GPl0EMrln8qTi0owllx80PUgQ?=
+ =?us-ascii?Q?IBHswilCMYAexjNwjc41nfcENVKm6dDvKBTkul5maWucZEMNx8YSLUG09Zf2?=
+ =?us-ascii?Q?NbW0BWkRJoHT0UeXj35JrXqRbJaVW1YaJ8a63mY7EN12ti4TdPq+tjv4Ixio?=
+ =?us-ascii?Q?z9HZNaANHHp2nKxKdjYnN+rhgHap+Z/ho31JxicMPg337WtHNiav33HbJB7K?=
+ =?us-ascii?Q?Z4Kg+XivAhDL17UDejyLQM8C0CyTpG58z25nQezVy3FVPlyNMsSyyT2VOwMz?=
+ =?us-ascii?Q?PEKYh9wrtOZdSXoqqHr8oTtg2Doqc466PfQZkE4Pagw2BFvwdcffpepz2zj4?=
+ =?us-ascii?Q?QOfEQPbUW+n9HSKCzSPHQpY/6ut1ZMaRAg37aavwKaFaiYZjK1hKoPdv/UOS?=
+ =?us-ascii?Q?kQ88gbCyJbtNXtlauVEed8vz8PBI1QETKYoT42KrebkhWac4dVDKL9P1l65E?=
+ =?us-ascii?Q?d7TxwqJbOu3vq/f+FnRHqdbti/AnU0r2uSwRp8wtSiYx17Fzl2pLIvdyDgEn?=
+ =?us-ascii?Q?AFRwy+eX7zlXqv9/SZyPpOP8cTwhHYkKVpkElJ75D4ZoWEnfqJXH4wnUotOK?=
+ =?us-ascii?Q?J4ljmKnbOd+vXJHDpRpUkht0rS26NksoPbXGgmgk7/FbdHzo7Mt5Eadg5Fp8?=
+ =?us-ascii?Q?bc19h1FJEWS7FC+OLUMJVrABmALIAW5LwXXZjCeelUpQYcTgNeIQjc1tIKbu?=
+ =?us-ascii?Q?epbfR+5koQvyxUfQgBNgnsPZaZrnxEC1ObXGkPhyubbkXa9qlr6EOKsyKPAJ?=
+ =?us-ascii?Q?SsYiB27xA1EKpTwruaymoks0ww3jfVfDV1+0+wQEJHAe3IN6LpsA3cDa/1uz?=
+ =?us-ascii?Q?QQRcrFOyLVbqDhYVdWU7GeidJLaZ2fw9XTP5EsHTMzCFebYMSKuAMsD25pFY?=
+ =?us-ascii?Q?72y354zQHs9a8LVJJL56QOBYIBDtvYH5+PSjf/ISO+U/SZWyyoESaW+FoHuE?=
+ =?us-ascii?Q?5YY8ZepAoIda3JdUFL1sjq/nrw6tt+8RccF8TYNFCFqwB5AUCeqjY2lo3b/f?=
+ =?us-ascii?Q?/2a+ZCq4s6AVAj9v66LbGKFrDJzLUfWEuuLqmsZYVZrqW1DFKllhuTZvp98F?=
+ =?us-ascii?Q?D+hSr3rp+H7EnaIfzshKWoqVz389XA22tCBEEkwxDi845uAKUPIQ4s0vOPms?=
+ =?us-ascii?Q?U0USQRqyuTS50jvoDSSmGXD1O5olThDH+hIPiuSCg7l3yaODI4bv3DIEHLzX?=
+ =?us-ascii?Q?0WhVNwMOg2DbThDEjKqrbRGQ7MM7iQ8iaP68AchCVfs1i4+RMeF9Ea0SXJ4P?=
+ =?us-ascii?Q?8dJrEwAIjrdITqV7I07dknGiLWosQCL+r5sKhoF4BQ+QCJCwsrOwH15Quz1A?=
+ =?us-ascii?Q?+PIxcXnPVzfaLpfal1n8GwV3GPZC1XT/kBvNFWYST+M0N9uojs0fv4XLW+v7?=
+ =?us-ascii?Q?tf0jzYCJU8mSDIZdmD/uKMa5BYimrN95MQd3Enl6UzdrPLTxxL7qtY2eN9ZZ?=
+ =?us-ascii?Q?4t6yzPiA2QIwn1KahqbmVonBnffdaMhiudE6P1/SJxCJUkbQFa1oDCeJDJ8D?=
+ =?us-ascii?Q?uTIQ7kLTID42fcK4HdVI4vaKAqaT3zMznfRK8x/+iVz+gTq54RrMreYwTovk?=
+ =?us-ascii?Q?O9H39FjTI3FAS/J0Z+YrG4g1BU31SNdAafqB948T2axCK/xwA4UCMQNJ9fHF?=
+ =?us-ascii?Q?9n6G2UGNN8NlJme1Mbe9WeSwGC15nPtFjxO+dT4r00BnvHk8ZfA8DypP/0wE?=
+ =?us-ascii?Q?KcdkXi2zRjN14esufG9ykUsuJF3xoYNm8D4KGicjnv3Ic+Rd?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 2b409bb8-c304-4df2-37e4-08df39c3bf0f
+X-MS-Exchange-CrossTenant-AuthSource: CHBPR12MB731189.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 03 Nov 2026 16:01:40.7413
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: 7iV7et6HbGRij22+uJGcgmJwUxXSV51jcnTkKHZgS6HdJG9Ct0nWTx5a/f13IbkI
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: IA0PR12MB8375
 
-hv_call_deposit_pages() donates pages (deposit) to hypervisor for L2
-guest on L1VH systems via HVCALL_DEPOSIT_MEMORY. The hypervisor takes
-ownership of those pages and per contract revokes root partition
-access to them, raising a #GP on access from the L1VH root partition.
+On Fri, Oct 02, 2026 at 08:31:41PM -0300, Jason Gunthorpe wrote:
+> Currently the zboot stub has no access to symbols in the vmlinux. In
+> contrast x86 has a voffsets.h header that allows the stub to know whatever
+> symbols it wants for the decompressed image. ARM DRTM needs another 4
+> symbol locations to work, and it also wants to compile the DRTM libstub
+> code once and have it work in both zboot and embedded.
+> 
+> The current solution in arm is "code_size" from commit 45dd403da851
+> ("efi/zboot: arm64: Inject kernel code size symbol into the zboot
+> payload"). This is neat, but it makes the zboot and embedded cases
+> work differently.
+> 
+> The x86 voffsets.h approach is also nice, but it can only work in zboot
+> since it relies on 'nm vmlinux' to extract the locations. That's a
+> circular dependency for the embedded stub.
 
-However, the pages remain mapped in the kernel direct map, so kernel
-code may still access them even though the hypervisor has revoked
-access.
+Ard,
 
-Helpers such as "load_unaligned_zeropad()" deliberately read past the
-end of a buffer and across page boundaries. A read into an unmapped
-page is tolerated and triggers a #PF, for which the kernel executes
-a fixup in the exception table.
+Did you have any further thoughts on this patch? Did the sketch you
+showed me at LPC turn into anything?
 
-If such a call steps into a page that has been deposited, the access
-raises a #GP by the hypervisor from which the above handler cannot
-recover and the kernel panics:
+It is rc1 and another month has gone by so I'd like to repost this
+with all the feedback
 
-  Oops: general protection fault, maybe for address 0xff1100941a3dfffc
-  RIP: 0010:csum_partial+0xe5/0x110
-
-This condition will appear on L1VH system that have created L2
-partitions (and hence deposited pages) and exercise networking code
-paths such as csum_partial() can trigger this condition when a buffer
-ends close to a page boundary (e.g fffc in the above example).
-
-The fix is to remove the deposited pages from the direct map before
-they are passed to the hypervisor, and restore them when the hypervisor
-returns them again.
-
-We want to avoid flushing the TLB in the loop, so we use
-set_direct_map_invalid_noflush() when marking a deposited page invalid
-and flush the affected page ranges in one go ourselves. In the opposite
-direction this is not required:
-
-  > If a paging-structure entry is modified to change the P flag from
-  > 0 to 1, no invalidation is necessary. This is because no TLB entry
-  > or paging-structure cache entry is created with information from a
-  > paging-structure entry in which the P flag is 0.
-
-(Intel SDM Vol. 3, 4.10.4.3)
-
-Signed-off-by: Magnus Kulke <magnuskulke@linux.microsoft.com>
-
-Changes since v4:
-
-- Adjusted for set_direct_map_{default,invalid}_noflush() signature
-  changes
-- Stop direct-map removal at first failure, restore/free supplied
-  pages within the helper
-- Leak only pages that cannot be restored
-- Extract contiguous pfn-run detection into helper
-
-Changes since v3:
-
-- Batch contiguous pages in the restore path
-- Adjusted comment about failure modes
-
-Changes since v2:
-- Checkpatch format fix
-
-Changes since RFC:
-- Handle direct-map restoration failures without returning unmapped
-  pages to the allocator.
-- Move freeing of withdrawn pages into the restoration helper.
----
- drivers/hv/hv_proc.c           | 112 +++++++++++++++++++++++++++++++--
- drivers/hv/mshv_root_hv_call.c |   4 +-
- include/asm-generic/mshyperv.h |   4 ++
- 3 files changed, 112 insertions(+), 8 deletions(-)
-
-diff --git a/drivers/hv/hv_proc.c b/drivers/hv/hv_proc.c
-index f811bb5c42a1..b63f8da1ecc1 100644
---- a/drivers/hv/hv_proc.c
-+++ b/drivers/hv/hv_proc.c
-@@ -7,12 +7,65 @@
- #include <linux/cpuhotplug.h>
- #include <linux/minmax.h>
- #include <linux/export.h>
-+#include <linux/set_memory.h>
- #include <asm/mshyperv.h>
-+#include <asm/tlbflush.h>
- 
- #define HV_DEPOSIT_MAX 512
- #define HV_DEPOSIT_INP_MAX ((HV_HYP_PAGE_SIZE -  \
- 	offsetof(struct hv_deposit_memory, gpa_page_list)) / sizeof(u64))
- 
-+static inline int find_consecutive_pfns(const u64 *pfns, int count, int start)
-+{
-+	int end;
-+
-+	if (start >= count)
-+		return count;
-+
-+	for (end = start + 1; end < count; ++end) {
-+		if (pfns[end] != pfns[end - 1] + 1)
-+			break;
-+	}
-+
-+	return end;
-+}
-+
-+/*
-+ * Remove pages from the direct map before depositing them. On failure,
-+ * restore the mapping and free all supplied pages, leaking pages whose
-+ * mappings cannot be restored.
-+ */
-+static int hv_remove_deposit_mapping(const u64 *pfns, int count)
-+{
-+	int i, end, ret;
-+	unsigned long addr, size;
-+
-+	for (i = 0; i < count; i = end) {
-+		end = find_consecutive_pfns(pfns, count, i);
-+
-+		ret = set_direct_map_invalid_noflush(pfn_to_page(pfns[i]),
-+						   end - i);
-+		if (ret)
-+			goto restore;
-+	}
-+
-+	for (i = 0; i < count; i = end) {
-+		addr = (unsigned long)page_address(pfn_to_page(pfns[i]));
-+
-+		end = find_consecutive_pfns(pfns, count, i);
-+
-+		size = (unsigned long)(end - i) << PAGE_SHIFT;
-+		flush_tlb_kernel_range(addr, addr + size);
-+	}
-+
-+	return 0;
-+
-+restore:
-+	/* The failing run may have been partially modified too. */
-+	hv_restore_withdrawn_pages(pfns, count);
-+	return ret;
-+}
-+
- /*
-  * Allocate free pages for deposit to hypervisor. pfna[] must be large enough
-  * to hold HV_DEPOSIT_INP_MAX (511) pages. If num_pages is 512, return last
-@@ -84,7 +137,7 @@ static int hv_alloc_dep_pages(int node, u64 *pfna, u64 *lastpfnp, int num_pages,
- static int hv_call_deposit_pages(int node, u64 partition_id, bool contiguous)
- {
- 	struct hv_deposit_memory *hc_input;
--	int i, rc, num_pages;
-+	int i, rc, num_pages, completed;
- 	u64 status, *pfna, lastpfn = 0;
- 	bool trunc_extra = false;
- 
-@@ -125,6 +178,21 @@ static int hv_call_deposit_pages(int node, u64 partition_id, bool contiguous)
- 		num_pages = HV_MAX_CONTIGUOUS_ALLOCATION_PAGES;
- 	}
- 
-+	rc = hv_remove_deposit_mapping(pfna, num_pages);
-+	if (rc) {
-+		if (lastpfn)
-+			__free_page(pfn_to_page(lastpfn));
-+		goto out_free;
-+	}
-+
-+	if (lastpfn) {
-+		rc = hv_remove_deposit_mapping(&lastpfn, 1);
-+		if (rc) {
-+			hv_restore_withdrawn_pages(pfna, num_pages);
-+			goto out_free;
-+		}
-+	}
-+
- 	/* Not using hyperv_pcpu_input_arg, so no need to disable interrupts */
- 
- 	status = hv_do_rep_hypercall(HVCALL_DEPOSIT_MEMORY, num_pages, 0,
-@@ -139,7 +207,7 @@ static int hv_call_deposit_pages(int node, u64 partition_id, bool contiguous)
- 
- 		if (!hv_result_success(status) && hv_repcomp(status) == 0)
- 			/* We deposited lot earlier, so give it a go */
--			__free_page(pfn_to_page(lastpfn));
-+			hv_restore_withdrawn_pages(&lastpfn, 1);
- 	}
- 
- 	free_page((unsigned long)hc_input);
-@@ -148,17 +216,51 @@ static int hv_call_deposit_pages(int node, u64 partition_id, bool contiguous)
- err_free_dep_pages:
- 	hv_status_err(status, "\n");
- 	rc = hv_result_to_errno(status);
-+	completed = hv_repcomp(status);
- 
--	for (i = hv_repcomp(status); i < num_pages; i++)
--		__free_page(pfn_to_page(pfna[i]));
-+	hv_restore_withdrawn_pages(pfna + completed, num_pages - completed);
- 	if (lastpfn)
--		__free_page(pfn_to_page(lastpfn));
-+		hv_restore_withdrawn_pages(&lastpfn, 1);
- 
- out_free:
- 	free_page((unsigned long)hc_input);
- 	return rc;
- }
- 
-+/*
-+ * Put withdrawn pages back in the direct map and free them. Counterpart to
-+ * the direct map removal done by hv_call_deposit_pages(). Leak the pages
-+ * that failed to be restored.
-+ */
-+void hv_restore_withdrawn_pages(const u64 *pfns, int count)
-+{
-+	int i, j, end, n, ret;
-+	struct page *page;
-+
-+	for (i = 0; i < count; i = end) {
-+		page = pfn_to_page(pfns[i]);
-+
-+		end = find_consecutive_pfns(pfns, count, i);
-+
-+		n = end - i;
-+		ret = set_direct_map_default_noflush(page, n);
-+
-+		for (j = i; j < end; ++j) {
-+			page = pfn_to_page(pfns[j]);
-+			/*
-+			 * Retry individually on failed batch. We don't want
-+			 * to return pages to the allocator that we couldn't mark
-+			 * valid in the direct map.
-+			 */
-+			if (ret &&
-+			    WARN_ON_ONCE(set_direct_map_default_noflush(page, 1)))
-+				continue;
-+			__free_page(page);
-+		}
-+	}
-+}
-+EXPORT_SYMBOL_GPL(hv_restore_withdrawn_pages);
-+
- int hv_deposit_memory_node(int node, u64 pt_id, u64 hv_status)
- {
- 	int result = hv_result(hv_status);
-diff --git a/drivers/hv/mshv_root_hv_call.c b/drivers/hv/mshv_root_hv_call.c
-index b8d199f95299..80256ddaa768 100644
---- a/drivers/hv/mshv_root_hv_call.c
-+++ b/drivers/hv/mshv_root_hv_call.c
-@@ -44,7 +44,6 @@ int hv_call_withdraw_memory(u64 count, int node, u64 partition_id)
- 	struct page *page;
- 	u16 completed;
- 	u64 status, withdrawn = 0;
--	int i;
- 	unsigned long flags;
- 
- 	page = alloc_page(GFP_KERNEL);
-@@ -67,8 +66,7 @@ int hv_call_withdraw_memory(u64 count, int node, u64 partition_id)
- 
- 		completed = hv_repcomp(status);
- 
--		for (i = 0; i < completed; i++)
--			__free_page(pfn_to_page(output_page->gpa_page_list[i]));
-+		hv_restore_withdrawn_pages(output_page->gpa_page_list, completed);
- 
- 		if (!hv_result_success(status)) {
- 			if (hv_result(status) == HV_STATUS_NO_RESOURCES)
-diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index 4c9f3353074a..b4dc9cbf0fa6 100644
---- a/include/asm-generic/mshyperv.h
-+++ b/include/asm-generic/mshyperv.h
-@@ -347,6 +347,7 @@ static inline bool hv_parent_partition(void)
- 
- bool hv_result_needs_memory(u64 status);
- int hv_deposit_memory_node(int node, u64 partition_id, u64 status);
-+void hv_restore_withdrawn_pages(const u64 *pfns, int count);
- int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id);
- int hv_call_notify_all_processors_started(void);
- bool hv_lp_exists(u32 lp_index);
-@@ -361,6 +362,9 @@ static inline int hv_deposit_memory_node(int node, u64 partition_id, u64 status)
- {
- 	return -EOPNOTSUPP;
- }
-+
-+static inline void hv_restore_withdrawn_pages(const u64 *pfns, int count) { }
-+
- static inline int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id)
- {
- 	return -EOPNOTSUPP;
--- 
-2.34.1
-
+Thanks,
+Jason
