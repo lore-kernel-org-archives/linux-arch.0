@@ -1,114 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.61.34
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1793721731;
-	b=kkLzPwIgKx75mytIBq8+db8dlOCnmHn5sx4mMZbBoN+z650+W6qd8NqzKzBYUrpNJitL
-	 t2BTDA/IRkRalJ7R+YBCabf4YURhZzuYVjob2qWXqEmHKvsbrKmKnFESiYCdHvgp4tdVn
-	 Eh30Nu9z60PlYbIfS/jVdbIQe0iOpAbKqJtc3Cy0jSXS+XML8FBGtaKRzzad9yIq/P7ei
-	 ebfUuospE/mTm1VGph8L0CoK3RmYjqUTOOT52vnats7IWMxRefzEFXchHYEjmXhsGz5/u
-	 cg17a43r5ZDd2X2pOi24YtNgQQAUPeZz8I8BZ/nJYoRNNeSqO1bIuRKreI4hg5fsQQA==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793721731;
-	h=DMARC-Filter:DKIM-Signature:Received:Received:Date:From:To:Cc:
-	 Subject:Message-ID:References:Content-Type:Content-Disposition:
-	 In-Reply-To:X-ClientProxiedBy:MIME-Version:X-MS-PublicTrafficType:
-	 X-MS-TrafficTypeDiagnostic:X-MS-Office365-Filtering-Correlation-Id:
-	 X-MS-Exchange-SenderADCheck:X-MS-Exchange-AntiSpam-Relay:
-	 X-Microsoft-Antispam:X-Microsoft-Antispam-Message-Info:
-	 X-Forefront-Antispam-Report:
-	 X-MS-Exchange-AntiSpam-MessageData-ChunkCount:
-	 X-MS-Exchange-AntiSpam-MessageData-0:X-OriginatorOrg:
-	 X-MS-Exchange-CrossTenant-Network-Message-Id:
-	 X-MS-Exchange-CrossTenant-AuthSource:X-MS-Exchange-CrossTenant-AuthAs:
-	 X-MS-Exchange-CrossTenant-OriginalArrivalTime:
-	 X-MS-Exchange-CrossTenant-FromEntityHeader:
-	 X-MS-Exchange-CrossTenant-Id:X-MS-Exchange-CrossTenant-MailboxType:
-	 X-MS-Exchange-CrossTenant-UserPrincipalName:
-	 X-MS-Exchange-Transport-CrossTenantHeadersStamped;
-	bh=NxRFJnP0vCfVm5KhlOIIHh2uAAiRiqctWk96g7tOrUs=;
-	b=HsJVcZtahhhDMNUYz1QZ94HJLYPnpol6zRQPEz2wYFZ1i3F6BK7Jz3h/JwfMUXgoANiG
-	 jFBuomb/ZrjslxK9LFWskeGO2G2oZ7ebVwpSBPDJEJnSDz4NS2h170N8uHCBdH+HHEdYi
-	 IdbqT+ym0mopDhsUKi8eKqhUPFzfFljzBdC1EGfS7oGrpfsTAgTY0X25Iie1gP0bUbWJl
-	 iqnjSQ4fxr92us1ip6yWJRNnQGUNGQK18MSMq1czR2GbnxlpVJhwLDqZexP6hY4mYabPM
-	 iLMgKNtBTXtiDMIOt1RPh3rdcXUKT/RHgUeO+IUdzq5IG5V++fFUamljuVCiwlLKHsg==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=nvidia.com;
-	spf=fail smtp.mailfrom=nvidia.com;
-	dkim=pass header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=rLQlUCJO;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.61.34
-Received: from DM1PR04CU001.outbound.protection.outlook.com (mail-centralusazon11010034.outbound.protection.outlook.com [52.101.61.34])
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1793733077;
+	b=p3HLiWGutDYD89j4FGLjxbhH3jLbTZpiNYzw9nHHLCTJ5fux0ow4xIdPfZcurrn3Xj4r
+	 sdvECo0CbA2xKAL6FQVWlbWb2zofRb0NibH/ntFgyVwW8pIgMltxloKsc7/Fpii3jyKMJ
+	 jbifqZDSn6d1Kt/d+1Xfzdn4P0jaHMINYyUCkD8eIfgsRuGz4wdFxDd3ub0hSSiHteglD
+	 DMteqDZrQdepsDmsyv8fz92vm0XwnacpH+KP6bBA9xV8xIx0VMeyAQOZ4w44ND/WU+GdT
+	 if26kzPqDYGyxe0aKueFAU/nqmLJFkzTALut6YidP0yjK+DaLf26gemi5RHuNcYaEPQ==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793733077;
+	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
+	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
+	 Content-Type:Content-Transfer-Encoding;
+	bh=a3QjwzbsFdeoVp3LN7SxevLjZAFhj9l1rD4OT4wwkMU=;
+	b=HI/6WpuYoMl2wI7d9yc6cF2kBUvuqUwU0FBDoEvvlRAK2suDng2LL977T7NDu6zpCFZ8
+	 FO/aySWHjTMTqmzjEAiGbXVz8TvCRZNDXXmQTXyhPhJK9AGapdjn+IGVO+JcgXZ++XGir
+	 tvNnpZF+vkMHHuqSL6DyUIFucw3WLZTmBIwgWtKdc/Jvit69cBqMZB+XvdAZzomAMIO3a
+	 ojxWYlm1/ZvdcMVCmo38ttn4MAUsMKe8XhSIWTm1T9p1zxipedkf04LtwsAab4O1B8bx4
+	 knVY6mlgo0lUndWXlf3VjeSYQhpfyD08DFC1+fddBA0WsQzSu0FCnP4uuVsxpuX+4jQ==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=kUJDQHxx;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (secp384r1) server-signature ECDSA (prime256v1) server-digest SHA256)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BCA4D606A32C;
-	Tue,  3 Nov 2026 16:02:10 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org BCA4D606A32C
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4C439606A324;
+	Tue,  3 Nov 2026 19:11:17 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=rLQlUCJO
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=mR75k6cpFMLwvaYJm4aInbg9uPFkjAp8TRqL9tl/o0lAaOyIQRVSTB8ypKKJtvLCr9h/GuQsdjD3CGfWWrJvN4rkgiTfmFzeqgJtmlnJVsTWGzNy8PAdtpfv9IGIwwJ3EsxugiK5+vodySPIKp4RWx4N7X/yCTgZ2ZmKyPpz1vmyudCC9DrZnk9qPWb+zc4F1obevCFSDVEDZ78KkkkXLiAZbj1JgJxkCMbCmR8bwRDwCm6oQT4eoQOXFtZG8/+aPrhn5D+TojucC72MosFFpbXW/MD/UtSNGD0Qrp90TlP28AH1MP4juBDm+Ac+eFSq3zbDEfM4EipK+gR+OP4utg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=NxRFJnP0vCfVm5KhlOIIHh2uAAiRiqctWk96g7tOrUs=;
- b=Ho/5yjF9c668r32HEkRnmt77MBlpNkz8/3l5ohIx/9JtNYvTEEH0gRgG8fv0xMfmlL+8l/Z2YO1iz1NXfVcW8uQLy621eot8bEBMTtLjtG1R1Ui79aNKoYxpXkSIllzt4N6MtHk9lxb0fteNEtEPJ3jXImxhnY0/qVPIWgfulXd+kxHJw94cfYIBFVd9DWrb3QUiPJFP6FC7OMDoCbHNOqf41nmRjkSHBiRoRVHQqOARBVRxG/0he/XT620d1/WhA0hcQu40okGaxqC9vnYO3boC9QxekpDO0PFdZzvse/lcXiVxLcSPLKJQ0auNCFNi3P+e4RnJpIvWeOb6uHcSUA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
- dkim=pass header.d=nvidia.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=NxRFJnP0vCfVm5KhlOIIHh2uAAiRiqctWk96g7tOrUs=;
- b=rLQlUCJOTjylveRzkwMb1EAto8v2Hqi+zRG1dr+X3BZ1gjpwh3mZfkVcFCagBIbu/Jnd6v+4rygpHNX+X70uRdINv3roH36eqMLFasbR5q/whzC60h8uIf7Q2G41KxpgWOlgid3HJ3QDSiWMRfEQ4KMxO28mWGzZR9p5BsazGmDlWhTyo+qqco7iG3WamnHqWefcI2q20Ugp7Fxl/jG+8GvBbFAJcGz8aBK1SB2rYYwKAkkUSefm7pRckT5fX9dlGztjjNFuB28Kw4JRzawQB1Hmrgr17FAc/BzFuy18DlZCA4jeXBQ34jAo4eoy36pG5P/mAkThVzSfadPOvZlvZg==
-Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=nvidia.com;
-Received: from CHBPR12MB731189.namprd12.prod.outlook.com
- (2603:10b6:610:33d::12) by IA0PR12MB8375.namprd12.prod.outlook.com
- (2603:10b6:208:3dd::16) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.569.12; Tue, 3 Nov
- 2026 16:01:41 +0000
-Received: from CHBPR12MB731189.namprd12.prod.outlook.com
- ([fe80::b0e5:123d:fe06:e10d]) by CHBPR12MB731189.namprd12.prod.outlook.com
- ([fe80::b0e5:123d:fe06:e10d%6]) with mapi id 15.21.0592.007; Tue, 3 Nov 2026
- 16:01:41 +0000
-Date: Tue, 3 Nov 2026 12:01:38 -0400
-From: Jason Gunthorpe <jgg@nvidia.com>
-To: Ard Biesheuvel <ardb@kernel.org>
-Cc: Alexandre Ghiti <alex@ghiti.fr>, Albert Ou <aou@eecs.berkeley.edu>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Jonathan Corbet <corbet@lwn.net>, David Sterba <dsterba@suse.com>,
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>,
-	linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-	linux-doc@vger.kernel.org, linux-efi@vger.kernel.org,
-	linux-riscv@lists.infradead.org,
-	Mark Rutland <mark.rutland@arm.com>,
-	Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <pjw@kernel.org>,
-	Randy Dunlap <rdunlap@infradead.org>,
-	Simon Glass <sjg@chromium.org>,
-	Shuah Khan <skhan@linuxfoundation.org>,
-	Nick Terrell <terrelln@fb.com>, Will Deacon <will@kernel.org>,
-	Alexandre Ghiti <alexghiti@rivosinc.com>,
-	Conor Dooley <conor.dooley@microchip.com>,
-	Jonathan Cameron <jonathan.cameron@oss.qualcomm.com>,
-	linux-integrity@vger.kernel.org,
-	Palmer Dabbelt <palmer@rivosinc.com>, patches@lists.linux.dev,
-	Piotr =?utf-8?B?S3LDs2w=?= <piotr.krol@3mdeb.com>,
-	Ross Philipson <ross.philipson@gmail.com>,
-	Sami Tolvanen <samitolvanen@google.com>,
-	Song Shuai <songshuaishuai@tinylab.org>
-Subject: Re: [PATCH v2 04/15] efi/libstub: Add a general way to get symbols
- from the vmlinux into zboot
-Message-ID: <20261103160138.GA3165945@nvidia.com>
-References: <0-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
- <4-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4-v2-989a18390eb1+486-arm64_drtm_jgg@nvidia.com>
-X-ClientProxiedBy: YT4PR01CA0318.CANPRD01.PROD.OUTLOOK.COM
- (2603:10b6:b01:10a::9) To CHBPR12MB731189.namprd12.prod.outlook.com
- (2603:10b6:610:33d::12)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=kUJDQHxx
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E6CDC1F000C1;
+	Tue,  3 Nov 2026 19:11:01 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793733077;
+	bh=a3QjwzbsFdeoVp3LN7SxevLjZAFhj9l1rD4OT4wwkMU=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=kUJDQHxxQQf22ArBAZlAgbYiWfzYwIaC9MUZ260cmvU4xOvdTWva0gqQ6Fsc+ktgd
+	 k3Ii8ClCfqPQZZNFkVQydDwe6bcL74X0FCdbyRfZbMUK96ji8sykhKLnBGeSmIrcTi
+	 boXazygc4MDT4uukUCL4B6EOSSYN5iBrxey+jNGn5xcCNwMAsKufmomoqWoyAgMTVq
+	 trudv+vwV139xtXJ3uhCWlDI+dJQlzkQb5gGfaeGN7WMCH66PqY3HDi2DqkfONGteC
+	 BNXGTKqbQwkYBrJxfT9UZxnOERxAfxPBcVZOZh4zt/csUx/66O2HfQb5YbFRAaRWqU
+	 WSy66sUTCkT9A==
+Message-ID: <7c783937-f169-4b6f-92ff-17f8ef98ca95@kernel.org>
+Date: Tue, 3 Nov 2026 20:10:58 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -118,83 +51,238 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CHBPR12MB731189:EE_|IA0PR12MB8375:EE_
-X-MS-Office365-Filtering-Correlation-Id: 2b409bb8-c304-4df2-37e4-08df39c3bf0f
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|7416014|376014|366016|1800799024|23010399003|10067099003|22082099003|261102123227099003|18002099003|261021135927099003|56012099006|11063799006|4143699003|261021121427099003|261022075727099003|261022115727099003;
-X-Microsoft-Antispam-Message-Info:
-	WTbVxq4H8WiM2LXuASztVVzLIU7xAC78p6y17VXQi/75pxtZSIkBgauQBRQc/YJvQasEpwDgQBHSQU3PDsMogQO/E8mhtB3xLlm9ZodMMyIJWjA82Vh9pAnQ86uV0cLZCq87SYZhQ6hy3d/FdLn+6zo3XYEdU+ntlbDOD81n/aHeinGBxeeq9jwOe+GSNbWSUUUhnrPFeteACCQfjza7ryeE0QYWq9HLZFcGyHWtu7Ol1Ho/YzFjFVGqvZHpr2FSiZ6D3zc0ExyMLwuAZaJ6QAJ/PYPQebzr8xXCze3X68aZe9OSRXPdb9CPwj5SP+4Z6f+owCs/GHVEjXAZQn1kSvKQROQo5JRROq1KQQFDjMLdOX/scNd8TmZHgfluk1a74u/gNKcdrEuv2AxArehKrjk1EKchKJ7i1U/wUS5iDGRcQPV5zQjAmUSnEwDrpgfFMKfIDyGg6BmA3THaT3LxgDuAbUGRGcwSNaO2dRDEUAOvxNk3u4Ui/Akvz4HXH13ggA2F36GfgoQLwPsbZWiobnfTJnHNdozPThE+5qcSmEP4X05YyocxNRY4GO7qbTMtZ0WZApCmigURFsTvyHsuTLCqIHHFcApJ9rKubHy3AfD6TRoT8FIj/XWG+qxZ9Jch6CH3QDj/Lm2o4xhxCqihvi9m81XP5SmxyMj5LwCScaM=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CHBPR12MB731189.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(7416014)(376014)(366016)(1800799024)(23010399003)(10067099003)(22082099003)(261102123227099003)(18002099003)(261021135927099003)(56012099006)(11063799006)(4143699003)(261021121427099003)(261022075727099003)(261022115727099003);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?v77AKHZwBL46MFGmwAsRPMZWrqHkaiynTP4GPl0EMrln8qTi0owllx80PUgQ?=
- =?us-ascii?Q?IBHswilCMYAexjNwjc41nfcENVKm6dDvKBTkul5maWucZEMNx8YSLUG09Zf2?=
- =?us-ascii?Q?NbW0BWkRJoHT0UeXj35JrXqRbJaVW1YaJ8a63mY7EN12ti4TdPq+tjv4Ixio?=
- =?us-ascii?Q?z9HZNaANHHp2nKxKdjYnN+rhgHap+Z/ho31JxicMPg337WtHNiav33HbJB7K?=
- =?us-ascii?Q?Z4Kg+XivAhDL17UDejyLQM8C0CyTpG58z25nQezVy3FVPlyNMsSyyT2VOwMz?=
- =?us-ascii?Q?PEKYh9wrtOZdSXoqqHr8oTtg2Doqc466PfQZkE4Pagw2BFvwdcffpepz2zj4?=
- =?us-ascii?Q?QOfEQPbUW+n9HSKCzSPHQpY/6ut1ZMaRAg37aavwKaFaiYZjK1hKoPdv/UOS?=
- =?us-ascii?Q?kQ88gbCyJbtNXtlauVEed8vz8PBI1QETKYoT42KrebkhWac4dVDKL9P1l65E?=
- =?us-ascii?Q?d7TxwqJbOu3vq/f+FnRHqdbti/AnU0r2uSwRp8wtSiYx17Fzl2pLIvdyDgEn?=
- =?us-ascii?Q?AFRwy+eX7zlXqv9/SZyPpOP8cTwhHYkKVpkElJ75D4ZoWEnfqJXH4wnUotOK?=
- =?us-ascii?Q?J4ljmKnbOd+vXJHDpRpUkht0rS26NksoPbXGgmgk7/FbdHzo7Mt5Eadg5Fp8?=
- =?us-ascii?Q?bc19h1FJEWS7FC+OLUMJVrABmALIAW5LwXXZjCeelUpQYcTgNeIQjc1tIKbu?=
- =?us-ascii?Q?epbfR+5koQvyxUfQgBNgnsPZaZrnxEC1ObXGkPhyubbkXa9qlr6EOKsyKPAJ?=
- =?us-ascii?Q?SsYiB27xA1EKpTwruaymoks0ww3jfVfDV1+0+wQEJHAe3IN6LpsA3cDa/1uz?=
- =?us-ascii?Q?QQRcrFOyLVbqDhYVdWU7GeidJLaZ2fw9XTP5EsHTMzCFebYMSKuAMsD25pFY?=
- =?us-ascii?Q?72y354zQHs9a8LVJJL56QOBYIBDtvYH5+PSjf/ISO+U/SZWyyoESaW+FoHuE?=
- =?us-ascii?Q?5YY8ZepAoIda3JdUFL1sjq/nrw6tt+8RccF8TYNFCFqwB5AUCeqjY2lo3b/f?=
- =?us-ascii?Q?/2a+ZCq4s6AVAj9v66LbGKFrDJzLUfWEuuLqmsZYVZrqW1DFKllhuTZvp98F?=
- =?us-ascii?Q?D+hSr3rp+H7EnaIfzshKWoqVz389XA22tCBEEkwxDi845uAKUPIQ4s0vOPms?=
- =?us-ascii?Q?U0USQRqyuTS50jvoDSSmGXD1O5olThDH+hIPiuSCg7l3yaODI4bv3DIEHLzX?=
- =?us-ascii?Q?0WhVNwMOg2DbThDEjKqrbRGQ7MM7iQ8iaP68AchCVfs1i4+RMeF9Ea0SXJ4P?=
- =?us-ascii?Q?8dJrEwAIjrdITqV7I07dknGiLWosQCL+r5sKhoF4BQ+QCJCwsrOwH15Quz1A?=
- =?us-ascii?Q?+PIxcXnPVzfaLpfal1n8GwV3GPZC1XT/kBvNFWYST+M0N9uojs0fv4XLW+v7?=
- =?us-ascii?Q?tf0jzYCJU8mSDIZdmD/uKMa5BYimrN95MQd3Enl6UzdrPLTxxL7qtY2eN9ZZ?=
- =?us-ascii?Q?4t6yzPiA2QIwn1KahqbmVonBnffdaMhiudE6P1/SJxCJUkbQFa1oDCeJDJ8D?=
- =?us-ascii?Q?uTIQ7kLTID42fcK4HdVI4vaKAqaT3zMznfRK8x/+iVz+gTq54RrMreYwTovk?=
- =?us-ascii?Q?O9H39FjTI3FAS/J0Z+YrG4g1BU31SNdAafqB948T2axCK/xwA4UCMQNJ9fHF?=
- =?us-ascii?Q?9n6G2UGNN8NlJme1Mbe9WeSwGC15nPtFjxO+dT4r00BnvHk8ZfA8DypP/0wE?=
- =?us-ascii?Q?KcdkXi2zRjN14esufG9ykUsuJF3xoYNm8D4KGicjnv3Ic+Rd?=
-X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 2b409bb8-c304-4df2-37e4-08df39c3bf0f
-X-MS-Exchange-CrossTenant-AuthSource: CHBPR12MB731189.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 03 Nov 2026 16:01:40.7413
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: 7iV7et6HbGRij22+uJGcgmJwUxXSV51jcnTkKHZgS6HdJG9Ct0nWTx5a/f13IbkI
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: IA0PR12MB8375
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3 00/47] mm: various (urgent?) fixes
+To: Andrew Morton <akpm@linux-foundation.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+ Baoquan He <baoquan.he@linux.dev>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>,
+ Pedro Falcato <pfalcato@suse.de>, Hugh Dickins <hughd@google.com>,
+ Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Pratyush Yadav <pratyush@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
+ Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
+ Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
+ <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
+ Josef Bacik <josef@toxicpanda.com>, stable@vger.kernel.org,
+ Muhammad Usama Anjum <usama.anjum@arm.com>, SJ Park <sj@kernel.org>,
+ Chris Mason <mason@kernel.org>,
+ Thadeu Lima de Souza Cascardo <cascardo@igalia.com>,
+ Mani Tofigh <mt4022@columbia.edu>, Samiullah Khawaja <skhawaja@google.com>
+References: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
+ <179344411888.15514.3120155844849052881.b4-ty@b4>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <179344411888.15514.3120155844849052881.b4-ty@b4>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Fri, Oct 02, 2026 at 08:31:41PM -0300, Jason Gunthorpe wrote:
-> Currently the zboot stub has no access to symbols in the vmlinux. In
-> contrast x86 has a voffsets.h header that allows the stub to know whatever
-> symbols it wants for the decompressed image. ARM DRTM needs another 4
-> symbol locations to work, and it also wants to compile the DRTM libstub
-> code once and have it work in both zboot and embedded.
+On 10/31/26 11:55, David Hildenbrand wrote:
+> On Sat, 31 Oct 2026 10:39:29 +0100, David Hildenbrand (Arm) wrote:
+>> Thanks to everyone for the review! Hoping I can get some more? :)
+>>
+>> A quick resend, I'll queue these immediately after sending to get them
+>> into -next asap. Don't let that discourage you from reviewing ;)
 > 
-> The current solution in arm is "code_size" from commit 45dd403da851
-> ("efi/zboot: arm64: Inject kernel code size symbol into the zboot
-> payload"). This is neat, but it makes the zboot and embedded cases
-> work differently.
+> Applied, thanks!
 > 
-> The x86 voffsets.h approach is also nice, but it can only work in zboot
-> since it relies on 'nm vmlinux' to extract the locations. That's a
-> circular dependency for the embedded stub.
+> tree: mm/core.git
+> branch: for-next-fixes
+> 
+> Applied patches will appear soon in mm-next, followed by linux-next.
+> 
+> Please report any outstanding bugs that were missed during review, so we
+> can either drop the patch series or decide how to fix it up.
+> 
+> It is encouraged to provide Acked-bys, Reviewed-bys, and Tested-bys even
+> though the patches have already been applied. If possible, patch trailers
+> will be updated.
+> 
+> Note that commit hashes shown below are subject to change due to rebase,
+> trailer updates or similar. Further, this is not a guarantee that the
+> patches will go upstream. If in doubt, please check the listed branch.
+> 
 
-Ard,
+Small correction, I'll drop all that don't have CC:stable from the
+for-next-fixes branch and queue them ordinarily for the next merge window. Which
+is relevant for ...
 
-Did you have any further thoughts on this patch? Did the sketch you
-showed me at LPC turn into anything?
 
-It is rc1 and another month has gone by so I'd like to repost this
-with all the feedback
+> [01/47] mm/mglru: don't use stack pointers when walking PUD and PMD tables
+>         https://git.kernel.org/mm/core/c/3922fe76
+> [02/47] fork: take mmap_lock before copying mm_struct
+>         https://git.kernel.org/mm/core/c/6cf33ce8
+> [03/47] mm/shmem: make shmem_file() check the file's inode
+>         https://git.kernel.org/mm/core/c/d6003145
+> [04/47] mm/memfd: make f_pos accesses atomic
+>         https://git.kernel.org/mm/core/c/b6638250
+> [05/47] mm/truncate: look again if a folio left the mapping
+>         https://git.kernel.org/mm/core/c/e7086d79
+> [06/47] mm/filemap: read mapping->a_ops->free_folio under i_lock
+>         https://git.kernel.org/mm/core/c/c9073948
+> [07/47] mm/filemap: don't lose a folio lock wakeup to a signal
+>         https://git.kernel.org/mm/core/c/c39c22f2
+> [08/47] mm/filemap: finish fault cleanup before dropping the fault lock
+>         https://git.kernel.org/mm/core/c/335429f6
+> [09/47] mm/rmap: handle device-exclusive entries in folio_referenced_one()
+>         https://git.kernel.org/mm/core/c/6324d435
+> [10/47] mm/huge_memory: fix list corruption when deferred_split_scan() races with deferred_split_folio()
+>         https://git.kernel.org/mm/core/c/be9ec969
+> [11/47] mm/huge_memory: properly handle refcounted PUD mappings on fork
+>         https://git.kernel.org/mm/core/c/1ef69272
+> [12/47] mm/huge_memory: fix livelock on device private folio
+>         https://git.kernel.org/mm/core/c/88ee4890
 
-Thanks,
-Jason
+This one
+
+> [13/47] mm/huge_memory: fix truncate racing with PMD zapping
+>         https://git.kernel.org/mm/core/c/a63ff7ba
+> [14/47] mm/huge_memory: fix zapping migration entries for device-private THPs
+>         https://git.kernel.org/mm/core/c/2814cce8
+> [15/47] mm/khugepaged: always recheck the pmd in try_collapse_pte_mapped_thp()
+>         https://git.kernel.org/mm/core/c/17382ca5
+> [16/47] mm/khugepaged: fix PMD table lock leak in try_collapse_pte_mapped_thp()
+>         https://git.kernel.org/mm/core/c/bf852461
+> [17/47] mm/khugepaged: preserve dirty bits when collapsing PTE-mapped THPs
+>         https://git.kernel.org/mm/core/c/299b8524
+> [18/47] mm/khugepaged: check if PTE table is empty in try_collapse_pte_mapped_thp()
+>         https://git.kernel.org/mm/core/c/22b08cd1
+
+This one
+
+> [19/47] mm/gup: recheck the PUD under PTL in follow_pud_mask()
+>         https://git.kernel.org/mm/core/c/e04a9b5e
+> [20/47] mm/gup: fix clearing folios in memfd_pin_folios()
+>         https://git.kernel.org/mm/core/c/c6791388
+> [21/47] mm/gup: fix out-of-bounds write for nr_pages == 0 in GUP-fast
+>         https://git.kernel.org/mm/core/c/5b1b815c
+> [22/47] mm/gup: check for overflow when converting nr_pages to bytes in GUP-fast
+>         https://git.kernel.org/mm/core/c/8791ac0a
+> [23/47] mm/userfaultfd: write-lock the VMA before waking waiters when unregistering
+>         https://git.kernel.org/mm/core/c/35f48d65
+> [24/47] mm/userfaultfd: wake all waiters on unregister
+>         https://git.kernel.org/mm/core/c/9e4d60fe
+> [25/47] mm/userfaultfd: wake waiters when registration modes are removed
+>         https://git.kernel.org/mm/core/c/a9cba229
+> [26/47] mm/userfaultfd: compare exact registration modes before skipping
+>         https://git.kernel.org/mm/core/c/86de3945
+> [27/47] mm/mmu_gather: fix flushing ranges with 4 GiB or larger
+>         https://git.kernel.org/mm/core/c/61437375
+> [28/47] mm/mmu_notifier: finish non-blocking interval invalidation on error
+>         https://git.kernel.org/mm/core/c/ec3feff7
+> [29/47] mm/mmu_notifier: set ->mm only after mmgrab()
+>         https://git.kernel.org/mm/core/c/10ad9b99
+> [30/47] mm/mremap: use pudp_huge_get_and_clear() when moving huge PUDs
+>         https://git.kernel.org/mm/core/c/f16f7e7c
+> [31/47] mm/mremap: recheck PUDs under the page table lock
+>         https://git.kernel.org/mm/core/c/ae414aed
+> [32/47] mm/mremap: fix moving PUD leaves
+>         https://git.kernel.org/mm/core/c/262a6a25
+> [33/47] mm/memory_hotplug: avoid races in pfn_to_online_page() with dying pgmap
+>         https://git.kernel.org/mm/core/c/67782b68
+
+This one
+
+> [34/47] mm/madvise: fix data loss from MADV_FREE on a KSM page
+>         https://git.kernel.org/mm/core/c/4fc80184
+> [35/47] mm/memory: reject remote COW faults on PFN mappings
+>         https://git.kernel.org/mm/core/c/99e96e4d
+> [36/47] mm: fix unmap_mapping_range() beyond 4 GiB on 32-bit
+>         https://git.kernel.org/mm/core/c/1ca84b58
+> [37/47] mm: fix unkillable fault loop on MAP_DROPPABLE memory
+>         https://git.kernel.org/mm/core/c/a4c8fb4f
+> [38/47] mm: fix deadlock of mremap() against UFFDIO_MOVE
+>         https://git.kernel.org/mm/core/c/55f62b5f
+> [39/47] mm/ksm: reset the unstable trees of all nodes
+>         https://git.kernel.org/mm/core/c/9c1d2a06
+> [40/47] mm/ksm: fix use of a freed anon_vma at swap-in
+>         https://git.kernel.org/mm/core/c/9c20c73c
+> [41/47] mm/ksm: check large swap-cache folios before mapping them
+>         https://git.kernel.org/mm/core/c/7fa9d8cb
+> [42/47] mm/vma: call ->may_split() before a partial merge
+>         https://git.kernel.org/mm/core/c/e0b967df
+> [43/47] mm/huge_memory: split huge PUDs when adjusting VMA boundaries
+>         https://git.kernel.org/mm/core/c/0653a27f
+> [44/47] mm/vma: don't leak the charge for stack growth
+>         https://git.kernel.org/mm/core/c/a8ebd75d
+> [45/47] mm/cma: don't release CMA pages still in use
+>         https://git.kernel.org/mm/core/c/d7950ad4
+> [46/47] mm/memory-tiers: unregister empty tiers outside memory_tier_lock
+>         https://git.kernel.org/mm/core/c/b6d7ad49
+> [47/47] fs/proc/task_mmu: refuse addresses beyond 32 bits on 32bit
+>         https://git.kernel.org/mm/core/c/021ea6d2
+
+This one
+
+-- 
+Cheers,
+
+David
