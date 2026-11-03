@@ -1,90 +1,72 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.224.53
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793661172;
-	b=IU4n8ZhaVSVMPWB8IywtmcJNsK0QGivafXwYKessWxxFbsoS8FOjvHrQAZlCEB4A4aaY
-	 FnspSGRVFnhYyoNbZ9H49b5ZfNZQDMlCsVaTUDB5z/wotGnnowjuQSY3MVdOVyXt5k27b
-	 d1s3MCjqCNarATSMzzAzVxNWrUIAqN2mTQL+8oupFbaO+GR9PbjNj41JB3k+DS0E6zqFn
-	 /hRL8J4eZmtUg4BFy9tEUsJ5x3556FsA+yCQWygQy+8Fd70YtuyQa0+6RtXgznnYwS95S
-	 chZE+7XAJUJxRL3ni5IoUYgvIc3SqpRTsy/zwRwnx1r8s9rMHygqu75pRCKPcXac10g==
+	t=1793670800;
+	b=1vksOM7wzf2FJA5dGE+S4K5ryAfKBIddOn+ILiKqwXDcAVzPSQMeXOkfXenu1vpNIZQI
+	 YqStS1lw4gw9nUIQiRXTatyghFcSK/gU+u7xXPTXnKXNfyBQWncKS1sSBO4spZPK6xwNv
+	 qEZ2So0WZEVwTsOYh2LCAmR1eh+DH978pq3OS7eSmcpZgrvRhb5O7dtY2+GhDWiMkR5Bg
+	 NBRMgWPJ2QTQ+bcPECrrGNY4jsBVzdjQijPaaRLT5AejfKd0Wz4A8C3WeWmoPbcARHXut
+	 7IurO+UUATjgrYv5W9RfWK4IqBIl7D57ojVZlwev2N+7VGbuVTEtYbBkeeV3nIp19Ew==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793661172;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:Date:Subject:MIME-Version:Content-Type:Content-Transfer-Encoding:
-	 Message-Id:References:In-Reply-To:To:Cc:X-Mailer;
-	bh=IXbWJMQGtd+uEtpM2HfUyLm0yd6US+pC9H9lL0RbBRA=;
-	b=h5/2d0r+xhNN2XYjkpoCOesBzF5vKwqzM7C1xljNOXAHX1SD3uA51HMuque852OMYB+V
-	 CfpQH/m2XLS4aBQxn4BESxCb3PvPqCzgLsw6EZvrSiuhzrA0F93sDUdjQFi6ojyhgm0lF
-	 o17KvsBAJdDzo6xhwb9xw1NwobzGX5aUwm7tNgXXxGEUx9K5bANyBfqX56mei09CDyW9c
-	 qJNOn9IWta+BPy1J+u5h/3cltzmmao8ymDmh0ldV9WzgxASTcIkT21Z8cCZ22HA6EjAJA
-	 pyQ4/DjS93n7vo6e4jEWIpoa6nq+LhtGVbjU3qtrKrYbyxo5mAqv2YPgRn/V3JoD/1w==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793670800;
+	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-ID:X-Mailer:
+	 In-Reply-To:References:MIME-Version:Content-Transfer-Encoding;
+	bh=jCXanio8nA0/rA9gpYAvFTr9NmM6QaIeQxeW1gey53o=;
+	b=cIvESMJ8VnA6Sn7JqCw6BeZP1efA5c9BxpkkNKqK3JHhJJ+4Gb1qEEYq5iJG7g5qLnwu
+	 uyTpfetYrR6I1xtBg4vomIt41J65zf9LPiUIdPUO3n6ilID0cLaxTl9jNvi9Jzo9+p9Yx
+	 nzcCHP02yPKtcmVtDVkJDa2K2YWNrEjPmBBrxxay8yVZ+diQesN2SQ2EfJ1skXJWF7nh6
+	 juOMsSNw+Q2pXv4p4+mX69yuNgKKFSsF+QnPpSBr+G/lE36G71oSipixDdvwiJ+UW3BDw
+	 JnieN+aNqNPKntAReHWktK4IaCn+HCsQWXbQOIN4DF40rv+fKcZ6QSVKUQocD1dhL/w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=none header.from=amutable.com;
-	spf=pass smtp.mailfrom=amutable.com;
-	dkim=pass header.d=amutable-com.20260707.gappssmtp.com header.i=@amutable-com.20260707.gappssmtp.com header.a=rsa-sha256 header.s=20260707 header.b=N3eGPNUd;
-	arc=none smtp.remote-ip=74.125.224.53
-Received: from mail-yx1-f53.google.com (mail-yx1-f53.google.com [74.125.224.53])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JfTicgGU;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5C308606A338
-	for <linux-arch@vger.kernel.org>; Mon,  2 Nov 2026 23:12:52 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 5C308606A338
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=amutable.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=amutable.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8D919606EE92;
+	Tue,  3 Nov 2026 01:53:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=amutable-com.20260707.gappssmtp.com header.i=@amutable-com.20260707.gappssmtp.com header.a=rsa-sha256 header.s=20260707 header.b=N3eGPNUd
-Received: by mail-yx1-f53.google.com with SMTP id 956f58d0204a3-67a6b2a2259so2593131d50.1
-        for <linux-arch@vger.kernel.org>; Mon, 02 Nov 2026 15:12:52 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=amutable-com.20260707.gappssmtp.com; s=20260707; t=1793661171; x=1794265971; darn=vger.kernel.org;
-        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :content-type:mime-version:subject:date:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=IXbWJMQGtd+uEtpM2HfUyLm0yd6US+pC9H9lL0RbBRA=;
-        b=N3eGPNUdkta531jF+hIrN9rZQYMNpXgSqaoiSxtbqTqp1M8vaipwuj54onFs0KU+bG
-         zEgvBSlyw7DBEKLmGNK27GvgC2fPfwCPeFV3tnyrdVCUsWZlSseiWa6EAMD2Pg1acT25
-         lcAI4rQoB6uFnuPNhfE7NC+lucIN0Ltd/deV1IHl93RuJ2xPCoNms09+FK8sjqD5mRhP
-         Q14Me68IGXOvFD4FJOPwpMVGyiTD+ETr5MzK+Ms/VmjPXRwJfMHrWBjd8lsfH53dFk8p
-         r063sYv9hqlaewKwXCNK8j1eoM/N7yGe7X14DvDjkyebhomyZ6TokkTjbjYau+69TAhC
-         6OWA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793661171; x=1794265971;
-        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :content-type:mime-version:subject:date:from:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=IXbWJMQGtd+uEtpM2HfUyLm0yd6US+pC9H9lL0RbBRA=;
-        b=lpeXXxkhEqiSMCrOU4FO+P5ZGf55NvQ/FML5KtHlaTFuMOiGVZjUjduVdqn6HfUWCu
-         OUOEIyDCdKGG7z9xRfrvgNG2blj7xv9aNmU/5SiIMEap6QXGB4A9R1eBUgDuCLb59RF3
-         LmwOG8jwu11gfLxJefv3xzPtPhh2rjGft+QyUz6E5hxr7vRpaMiyaDay1cqFDrnMapLx
-         6NHOmFuk79OFeU/4IFNkrclCPmWk84JLJE2hu5iheBI6q7A6clE+dgAMJ1PFYRnE7eKJ
-         /V6coVVl5mofrl9z4wtikVyiIn4lR6IKceZgvspcyrJ7yVInDnA47BpUzDQlYFtW3OFF
-         Yg3A==
-X-Forwarded-Encrypted: i=1; AKwUvBwriY3pNyhDK5f7RtHvViy9rFss+PRFI4c+wqNVZSYvOVBUnAvFt8HAG3YM9Rwo3tGjCxYZWd3at+Jz@vger.kernel.org
-X-Gm-Message-State: APuU4Z8hvlV2sIuD33PSXiaLzceI9p5us6+syFnmRny9tKjJlgxNl4jc
-	k4Yv1JCOpArqW+3ZKAb1T8g+8V1PC6ayiRTJecPr6D5oZ5YL6i3Uv8g80Gr2Ro5vvKbchI3jh4z
-	1globUA==
-X-Gm-Gg: AYBFou3j/1zae1fqrxpK8NKFRha7qmE66iI7VMz3HM6QIkzm0UX0IjhnadaqnyaNIdU
-	XyMVenlqDSlguwrPHUlgvsQxYXb+mPm4+/KrmvMqQ54GOZ0QvWUjc2jQRQfui9gV3ctB7NQjlXL
-	jv1KKsEP5TPZK2Yhdp8PDbPsJgQcfj5jO73bQ53jmV9lgyl8spryVHMAgvby6U0RuQ5/+C5GBer
-	/azLGyLNGGGyacXMHSSFkUSCet0JQR19sYW208kiSFQ1NA6xhIsDiD1/yd90H+msf1W0SjNUPPC
-	ZLsyPSX787f4DpoaEtHakxbx2tajsstVDnMh3voB/Tcj8FBsWP3rp4b4252vOkYnfS7HZr/ksV/
-	IEyZu9J0hie+5QqAmrUoMVngWmvLnVtCG3ATVQkpNpw2CeM53RtiUceDdXj7sTyBCUiBPRRiven
-	Ds8KfFlhMQDpuSI5Rcwa3oT2g9qc2t9X6aMhJqkyKgjnmIBwY27ZmEnAXiD5K9ABwzEZWv8U5pc
-	hGIx1uVHGlK0WehBwnQJw3oesnCcFqI6O91hPd52Ta2yqIQ8VBNr1EqX2WmJZ2S9C541YHI4Eb2
-	6K4RjbVctjqPYNhf+fYkr+X6+mj6s1AbC5oq0Aeam//jmTPWqHsJlHtsP9k2Wi6fn1hk6Kev89x
-	JBYztKWfBl+5D2vuKt4rr//HGzQwmizM=
-X-Received: by 2002:a05:690e:b8a:b0:679:a0b7:2407 with SMTP id 956f58d0204a3-67ba4ee9d50mr6406540d50.40.1793661171164;
-        Mon, 02 Nov 2026 15:12:51 -0800 (PST)
-Received: from [192.168.1.110] (104-53-165-62.lightspeed.stlsmo.sbcglobal.net. [104.53.165.62])
-        by smtp.gmail.com with ESMTPSA id 956f58d0204a3-67baf3303ebsm5946481d50.18.2026.11.02.15.12.49
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 02 Nov 2026 15:12:50 -0800 (PST)
-From: Andrew Halaney <andrew@amutable.com>
-Date: Mon, 02 Nov 2026 17:12:34 -0600
-Subject: [PATCH net-next 1/3] selftests/net: pass socket options to the
- scm_pidfd test flows
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JfTicgGU
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 585751F00A15;
+	Tue,  3 Nov 2026 01:53:07 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1793670790;
+	bh=jCXanio8nA0/rA9gpYAvFTr9NmM6QaIeQxeW1gey53o=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References;
+	b=JfTicgGUTgfen5pg6YVpSeTJPD5nnJczeapNcFf6PCg9HimjDU89VPBfkX05IaEXW
+	 J8aNB0Yz+Pq1xoA7v7r2vE/z1XeE/WuiFafUHCoHmnzO7AYckLCdey2S38FvenWlPn
+	 Yysn1s0qXzUbI+8O8tRzQoa4kSjRaoJRsYXjERpmnXTkWqAhTifkZCkThhN4alhiS5
+	 u4ZaeUwo6mcan5ge5wKAVve+P/mRco185RS1qUlETzRkQU6WE4LwNQyxQNGKVqoBKv
+	 ie2L3QS3mGld7kRRqh9kSS8/WILIFixSu5zRovzDRoxMzcQZs/EhpwKvmJaJyqs78z
+	 BzECZFYlziVxA==
+From: Sasha Levin <sashal@kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Wentao Zhang <wentaoz5@illinois.edu>,
+	Alexander Potapenko <glider@google.com>,
+	Andrey Konovalov <andreyknvl@gmail.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Bill Wendling <morbo@google.com>,
+	Chuck Wolber <chuck@wolber.net>,
+	Dmitry Vyukov <dvyukov@google.com>,
+	Justin Stitt <justinstitt@google.com>,
+	kasan-dev@googlegroups.com,
+	linux-arch@vger.kernel.org,
+	linux-kbuild@vger.kernel.org,
+	llvm@lists.linux.dev,
+	Marco Elver <elver@google.com>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Nick Desaulniers <ndesaulniers@google.com>,
+	Nicolas Schier <nsc@kernel.org>,
+	Peter Oberparleiter <oberpar@linux.ibm.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Thomas Gleixner <tglx@kernel.org>
+Subject: [PATCH v2 14/20] coverage: add Clang's source-based code coverage
+Date: Mon,  2 Nov 2026 20:52:32 -0500
+Message-ID: <20261103015238.3780910-15-sashal@kernel.org>
+X-Mailer: git-send-email 2.53.0
+In-Reply-To: <20261103015238.3780910-1-sashal@kernel.org>
+References: <20261103015238.3780910-1-sashal@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -94,212 +76,614 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20261102-halaney-scm-creds-thread-v1-1-0b4d75dbf35f@amutable.com>
-References: <20261102-halaney-scm-creds-thread-v1-0-0b4d75dbf35f@amutable.com>
-In-Reply-To: <20261102-halaney-scm-creds-thread-v1-0-0b4d75dbf35f@amutable.com>
-To: Kuniyuki Iwashima <kuniyu@google.com>, 
- "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@kernel.org>, 
- Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, 
- Simon Horman <horms@kernel.org>, Shuah Khan <shuah@kernel.org>, 
- Christian Brauner <brauner@kernel.org>, 
- Richard Henderson <richard.henderson@linaro.org>, 
- Matt Turner <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>, 
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, 
- Helge Deller <deller@gmx.de>, Andreas Larsson <andreas@gaisler.com>, 
- Willem de Bruijn <willemb@google.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: netdev@vger.kernel.org, linux-kselftest@vger.kernel.org, 
- linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, 
- linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, 
- sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, 
- Andrew Halaney <andrew@amutable.com>
-X-Mailer: b4 0.14.3
+Content-Transfer-Encoding: 8bit
 
-pidfd_flow() and leader_flow() take booleans that pick between
-SO_PASSPIDFD and SO_PASSPIDFD_THREAD. Make them take a zero-terminated
-list of socket options for the receiver to enable instead, so tests for
-further SO_PASS* options can reuse the same flows rather than copying
-them just to muck with options.
+Add Clang's Source-based Code Coverage [1] as a second code coverage
+measurement implementation, next to gcov.
 
-Signed-off-by: Andrew Halaney <andrew@amutable.com>
+gcov works at the object code level, which may better reflect actual
+execution, but its measurements can lose source level precision when
+compiler optimizations are enabled, as they always are for the kernel.
+In the following example from drivers/firmware/dmi_scan.c, measured on
+v6.11, gcov reports six branch outcomes for an expression with four
+conditions:
+
+        5: 1068:	if (s == e || *e != '/' || !month || month > 12) {
+branch  0 taken 5 (fallthrough)
+branch  1 taken 0
+branch  2 taken 5 (fallthrough)
+branch  3 taken 0
+branch  4 taken 0 (fallthrough)
+branch  5 taken 5
+
+Clang's Source-based Code Coverage instruments the code in the compiler
+front end, so the coverage data maps back to the source code exactly,
+regardless of optimizations, and reports each condition:
+
+ 1068|      5|	if (s == e || *e != '/' || !month || month > 12) {
+  ------------------
+  |  Branch (1068:6): [True: 0, False: 5]
+  |  Branch (1068:16): [True: 0, False: 5]
+  |  Branch (1068:29): [True: 0, False: 5]
+  |  Branch (1068:39): [True: 0, False: 5]
+  ------------------
+
+It is selected with CONFIG_LLVM_COV_KERNEL in the "Code coverage
+measurement" choice, uses the common COVERAGE_PROFILE annotations,
+noinstr handling and reset, and exports the raw profile of the kernel
+image in /sys/kernel/debug/coverage/llvm/profraw. The raw profile
+formats of Clang 19 to 22 (version 10) and of Clang 23 and later
+(version 11) are supported. Counters are updated atomically, like gcov
+does when the compiler allows it.
+
+The data is exported from sections that the architecture's linker script
+places with LLVM_COV_DATA, so only code built into the kernel image is
+instrumented; modules are left alone.
+
+This reuses the debugfs interface and raw profile serialization of
+earlier work by Sami Tolvanen et al. [2], without the parts specific to
+profile guided optimization.
+
+Link: https://clang.llvm.org/docs/SourceBasedCodeCoverage.html [1]
+Link: https://lore.kernel.org/lkml/20210407211704.367039-1-morbo@google.com/ [2]
+Originally-by: Wentao Zhang <wentaoz5@illinois.edu>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
 ---
- tools/testing/selftests/net/af_unix/scm_pidfd.c | 69 ++++++++++++-------------
- 1 file changed, 34 insertions(+), 35 deletions(-)
+ MAINTAINERS                       |   2 +
+ Makefile                          |   1 +
+ include/asm-generic/vmlinux.lds.h |  36 ++++++
+ kernel/coverage/Kconfig           |  33 ++++-
+ kernel/coverage/Makefile          |   1 +
+ kernel/coverage/llvm/Makefile     |   4 +
+ kernel/coverage/llvm/fs.c         | 201 ++++++++++++++++++++++++++++++
+ kernel/coverage/llvm/llvm-cov.h   | 139 +++++++++++++++++++++
+ scripts/Makefile.lib              |   7 +-
+ scripts/Makefile.llvm-cov         |   6 +
+ 10 files changed, 427 insertions(+), 3 deletions(-)
+ create mode 100644 kernel/coverage/llvm/Makefile
+ create mode 100644 kernel/coverage/llvm/fs.c
+ create mode 100644 kernel/coverage/llvm/llvm-cov.h
+ create mode 100644 scripts/Makefile.llvm-cov
 
-diff --git a/tools/testing/selftests/net/af_unix/scm_pidfd.c b/tools/testing/selftests/net/af_unix/scm_pidfd.c
-index cbe53fab44fc..7524f3f6a8aa 100644
---- a/tools/testing/selftests/net/af_unix/scm_pidfd.c
-+++ b/tools/testing/selftests/net/af_unix/scm_pidfd.c
-@@ -765,20 +765,37 @@ static int read_pidfd_msg(int fd, struct pidfd_msg *out)
- 	return 0;
- }
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 01bdf404bfde8..d4523a5fef33e 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -6639,6 +6639,8 @@ F:	kernel/coverage/Kconfig
+ F:	kernel/coverage/Makefile
+ F:	kernel/coverage/core.c
+ F:	kernel/coverage/coverage.h
++F:	kernel/coverage/llvm/
++F:	scripts/Makefile.llvm-cov
  
-+/* Zero-terminated lists of SOL_SOCKET options for the receiver to enable */
-+static const int pass_tgid[] = { SO_PASSPIDFD, 0 };
-+static const int pass_thread[] = { SO_PASSPIDFD_THREAD, 0 };
-+static const int pass_both[] = { SO_PASSPIDFD, SO_PASSPIDFD_THREAD, 0 };
-+
-+static int set_opts(int fd, const int *opts)
-+{
-+	int on = 1;
-+
-+	for (; *opts; opts++) {
-+		if (setsockopt(fd, SOL_SOCKET, *opts, &on, sizeof(on))) {
-+			log_err("Failed to set socket option %d", *opts);
-+			return -1;
-+		}
+ CODE OF CONDUCT
+ M:	Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+diff --git a/Makefile b/Makefile
+index f895752d4b05f..5b2da7e8ab22d 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1205,6 +1205,7 @@ include-$(CONFIG_KMSAN)		+= scripts/Makefile.kmsan
+ include-$(CONFIG_UBSAN)		+= scripts/Makefile.ubsan
+ include-$(CONFIG_KCOV)		+= scripts/Makefile.kcov
+ include-$(CONFIG_GCOV_KERNEL)	+= scripts/Makefile.gcov
++include-$(CONFIG_LLVM_COV_KERNEL) += scripts/Makefile.llvm-cov
+ include-$(CONFIG_RANDSTRUCT)	+= scripts/Makefile.randstruct
+ include-$(CONFIG_KSTACK_ERASE)	+= scripts/Makefile.kstack_erase
+ include-$(CONFIG_AUTOFDO_CLANG)	+= scripts/Makefile.autofdo
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 3eb732942d699..840899b604336 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -359,6 +359,42 @@
+ #define THERMAL_TABLE(name)
+ #endif
+ 
++#ifdef CONFIG_LLVM_COV_KERNEL
++#define LLVM_COV_DATA							\
++	__llvm_prf_data : AT(ADDR(__llvm_prf_data) - LOAD_OFFSET) {	\
++		BOUNDED_SECTION_POST_LABEL(__llvm_prf_data,		\
++					   __llvm_prf_data,		\
++					   _start, _end)		\
++	}								\
++	__llvm_prf_cnts : AT(ADDR(__llvm_prf_cnts) - LOAD_OFFSET) {	\
++		BOUNDED_SECTION_POST_LABEL(__llvm_prf_cnts,		\
++					   __llvm_prf_cnts,		\
++					   _start, _end)		\
++	}								\
++	__llvm_prf_names : AT(ADDR(__llvm_prf_names) - LOAD_OFFSET) {	\
++		BOUNDED_SECTION_POST_LABEL(__llvm_prf_names,		\
++					   __llvm_prf_names,		\
++					   _start, _end)		\
++	}								\
++	__llvm_prf_bits : AT(ADDR(__llvm_prf_bits) - LOAD_OFFSET) {	\
++		BOUNDED_SECTION_POST_LABEL(__llvm_prf_bits,		\
++					   __llvm_prf_bits,		\
++					   _start, _end)		\
++	}								\
++	__llvm_covfun : AT(ADDR(__llvm_covfun) - LOAD_OFFSET) {		\
++		BOUNDED_SECTION_POST_LABEL(__llvm_covfun,		\
++					   __llvm_covfun,		\
++					   _start, _end)		\
++	}								\
++	__llvm_covmap : AT(ADDR(__llvm_covmap) - LOAD_OFFSET) {		\
++		BOUNDED_SECTION_POST_LABEL(__llvm_covmap,		\
++					   __llvm_covmap,		\
++					   _start, _end)		\
 +	}
++#else
++#define LLVM_COV_DATA
++#endif
++
+ #define KERNEL_DTB()							\
+ 	STRUCT_ALIGN();							\
+ 	__dtb_start = .;						\
+diff --git a/kernel/coverage/Kconfig b/kernel/coverage/Kconfig
+index 62a6fa94bd308..acfcce23e4c97 100644
+--- a/kernel/coverage/Kconfig
++++ b/kernel/coverage/Kconfig
+@@ -4,6 +4,15 @@ menu "Code coverage"
+ config ARCH_HAS_GCOV_PROFILE_ALL
+ 	def_bool n
+ 
++config ARCH_HAS_LLVM_COV
++	bool
++	help
++	  An architecture should select this when its linker script places
++	  the sections of Clang's source-based code coverage (LLVM_COV_DATA).
++
++config ARCH_HAS_LLVM_COV_PROFILE_ALL
++	bool
++
+ choice
+ 	prompt "Code coverage measurement"
+ 	default GCOV_KERNEL if COMPILE_TEST
+@@ -49,9 +58,30 @@ config GCOV_KERNEL
+ 	  and its modules is exported in gcov's format in /sys/kernel/debug/gcov,
+ 	  see Documentation/dev-tools/gcov.rst.
+ 
++config LLVM_COV_KERNEL
++	bool "Clang's source-based code coverage"
++	depends on CC_IS_CLANG && CLANG_VERSION >= 190000
++	depends on DEBUG_FS
++	depends on ARCH_HAS_LLVM_COV
++	depends on !ARCH_WANTS_NO_INSTR || CC_HAS_NO_PROFILE_FN_ATTR
++	help
++	  This option enables Clang's Source-based Code Coverage. It
++	  instruments the code in the compiler's front end, so that coverage
++	  data maps back to the source code exactly, regardless of the
++	  optimizations applied.
++
++	  The raw profile is exported in /sys/kernel/debug/coverage/llvm/profraw.
++	  Convert it with "llvm-profdata merge" and analyze it with "llvm-cov"
++	  against vmlinux, using the LLVM version that built the kernel.
++
++	  Only code built into the kernel image is instrumented.
++
+ endchoice
+ 
+ config COVERAGE_KERNEL
++	def_bool GCOV_KERNEL || LLVM_COV_KERNEL
++
++config COVERAGE_MODULES
+ 	def_bool GCOV_KERNEL
+ 
+ config GCOV_PROFILE_ALL
+@@ -64,7 +94,8 @@ config GCOV_PROFILE_ALL
+ config COVERAGE_PROFILE_ALL
+ 	bool "Profile entire kernel"
+ 	depends on !COMPILE_TEST
+-	depends on GCOV_KERNEL && ARCH_HAS_GCOV_PROFILE_ALL
++	depends on (GCOV_KERNEL && ARCH_HAS_GCOV_PROFILE_ALL) || \
++		   (LLVM_COV_KERNEL && ARCH_HAS_LLVM_COV_PROFILE_ALL)
+ 	default GCOV_PROFILE_ALL
+ 	help
+ 	  This option activates coverage instrumentation for the entire kernel.
+diff --git a/kernel/coverage/Makefile b/kernel/coverage/Makefile
+index 881fada442bd1..d783272d9974d 100644
+--- a/kernel/coverage/Makefile
++++ b/kernel/coverage/Makefile
+@@ -2,6 +2,7 @@
+ 
+ obj-$(or $(CONFIG_COVERAGE_KERNEL),$(CONFIG_KCOV)) += core.o
+ obj-$(CONFIG_GCOV_KERNEL) += gcov/
++obj-$(CONFIG_LLVM_COV_KERNEL) += llvm/
+ obj-$(CONFIG_KCOV) += kcov.o
+ 
+ # Don't self-instrument.
+diff --git a/kernel/coverage/llvm/Makefile b/kernel/coverage/llvm/Makefile
+new file mode 100644
+index 0000000000000..7090171b070eb
+--- /dev/null
++++ b/kernel/coverage/llvm/Makefile
+@@ -0,0 +1,4 @@
++# SPDX-License-Identifier: GPL-2.0
++COVERAGE_PROFILE := n
++
++obj-y := fs.o
+diff --git a/kernel/coverage/llvm/fs.c b/kernel/coverage/llvm/fs.c
+new file mode 100644
+index 0000000000000..e90c325daeba3
+--- /dev/null
++++ b/kernel/coverage/llvm/fs.c
+@@ -0,0 +1,201 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2019	Sami Tolvanen <samitolvanen@google.com>, Google, Inc.
++ * Copyright (C) 2024	Jinghao Jia   <jinghao7@illinois.edu>,   UIUC
++ * Copyright (C) 2024	Wentao Zhang  <wentaoz5@illinois.edu>,   UIUC
++ */
++
++#define pr_fmt(fmt)	"llvm-cov: " fmt
++
++#include <linux/debugfs.h>
++#include <linux/fs.h>
++#include <linux/init.h>
++#include <linux/mutex.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++#include <linux/vmalloc.h>
++
++#include "../coverage.h"
++#include "llvm-cov.h"
++
++/*
++ * Serializes taking a snapshot of the profile data against resetting it. The
++ * instrumented code updates the counters and bitmaps without taking it, so a
++ * snapshot is not atomic with respect to code running on other CPUs.
++ */
++static DEFINE_MUTEX(llvm_cov_mutex);
++
++struct llvm_cov_private_data {
++	char *buffer;
++	unsigned long size;
++};
++
++/*
++ * Raw profile data format:
++ * https://llvm.org/docs/InstrProfileFormat.html#raw-profile-format. Only the
++ * information relevant to Source-based Code Coverage is populated. Binary IDs,
++ * continuous mode, single-byte mode, value profiling, type profiling and
++ * uniform counters are not implemented.
++ */
++
++static void llvm_cov_fill_raw_profile_header(void **buffer)
++{
++	struct __llvm_profile_header *header = *buffer;
++
++	header->magic = INSTR_PROF_RAW_MAGIC_64;
++	header->version = INSTR_PROF_RAW_VERSION;
++	header->binary_ids_size = 0;
++	header->num_data = __llvm_prf_data_count();
++	header->padding_bytes_before_counters = 0;
++	header->num_counters = __llvm_prf_cnts_count();
++	header->padding_bytes_after_counters =
++		__llvm_prf_get_padding(__llvm_prf_cnts_size());
++	header->num_bitmap_bytes = __llvm_prf_bits_size();
++	header->padding_bytes_after_bitmap_bytes =
++		__llvm_prf_get_padding(__llvm_prf_bits_size());
++#if CONFIG_CLANG_VERSION >= 230000
++	header->num_uniform_counters = 0;
++	header->padding_bytes_after_uniform_counters = 0;
++	header->uniform_counters_delta = 0;
++#endif
++	header->names_size = __llvm_prf_names_size();
++	header->counters_delta = (u64)__llvm_prf_cnts_start -
++				 (u64)__llvm_prf_data_start;
++	header->bitmap_delta   = (u64)__llvm_prf_bits_start -
++				 (u64)__llvm_prf_data_start;
++	header->names_delta    = (u64)__llvm_prf_names_start;
++	header->num_v_tables = 0;
++	header->v_names_size = 0;
++	header->value_kind_last = IPVK_LAST;
++
++	*buffer += sizeof(*header);
++}
++
++/*
++ * Copy the source into the buffer, incrementing the pointer into buffer in the
++ * process.
++ */
++static void llvm_cov_copy_section_to_buffer(void **buffer, void *src,
++					    unsigned long size)
++{
++	memcpy(*buffer, src, size);
++	*buffer += size;
++}
++
++static unsigned long llvm_cov_get_raw_profile_size(void)
++{
++	return sizeof(struct __llvm_profile_header) +
++	       __llvm_prf_data_size() +
++	       __llvm_prf_cnts_size() +
++	       __llvm_prf_get_padding(__llvm_prf_cnts_size()) +
++	       __llvm_prf_bits_size() +
++	       __llvm_prf_get_padding(__llvm_prf_bits_size()) +
++	       __llvm_prf_names_size() +
++	       __llvm_prf_get_padding(__llvm_prf_names_size());
++}
++
++/*
++ * Serialize in-memory data into a format LLVM tools can understand
++ * (https://llvm.org/docs/InstrProfileFormat.html#raw-profile-format)
++ */
++static int llvm_cov_serialize_raw_profile(struct llvm_cov_private_data *p)
++{
++	void *buffer;
++
++	p->size = llvm_cov_get_raw_profile_size();
++	p->buffer = vzalloc(p->size);
++	if (!p->buffer)
++		return -ENOMEM;
++
++	buffer = p->buffer;
++
++	llvm_cov_fill_raw_profile_header(&buffer);
++	llvm_cov_copy_section_to_buffer(&buffer, __llvm_prf_data_start,
++					__llvm_prf_data_size());
++	llvm_cov_copy_section_to_buffer(&buffer, __llvm_prf_cnts_start,
++					__llvm_prf_cnts_size());
++	buffer += __llvm_prf_get_padding(__llvm_prf_cnts_size());
++	llvm_cov_copy_section_to_buffer(&buffer, __llvm_prf_bits_start,
++					__llvm_prf_bits_size());
++	buffer += __llvm_prf_get_padding(__llvm_prf_bits_size());
++	llvm_cov_copy_section_to_buffer(&buffer, __llvm_prf_names_start,
++					__llvm_prf_names_size());
 +
 +	return 0;
 +}
 +
- /*
-  * Runs @nwriters threads of one child process against a SOCK_STREAM pair,
-- * all of them queued before the parent reads. SO_PASSPIDFD is set when
-- * @want_tgid is given, SO_PASSPIDFD_THREAD when @want_thread is. @nread
-- * reads are returned in @out.
-+ * all of them queued before the parent reads. The receiver enables @opts
-+ * first. @nread reads are returned in @out.
-  */
--static int pidfd_flow(void *(*sender)(void *), int nwriters, bool want_tgid,
--		      bool want_thread, struct pidfd_msg *out, int nread)
-+static int pidfd_flow(void *(*sender)(void *), int nwriters, const int *opts,
-+		      struct pidfd_msg *out, int nread)
- {
- 	int child_status = 0;
- 	int syncpipe[2];
- 	int ackpipe[2];
- 	int sk[2];
--	int on = 1;
- 	char sync;
- 	pid_t child;
- 	int i;
-@@ -807,17 +824,8 @@ static int pidfd_flow(void *(*sender)(void *), int nwriters, bool want_tgid,
- 	close(seq_pipe[0]);
- 	close(seq_pipe[1]);
++/* open() implementation for llvm-cov data file. */
++static int llvm_cov_open(struct inode *inode, struct file *file)
++{
++	struct llvm_cov_private_data *data;
++	int err;
++
++	data = kzalloc_obj(*data);
++	if (!data)
++		return -ENOMEM;
++
++	mutex_lock(&llvm_cov_mutex);
++	err = llvm_cov_serialize_raw_profile(data);
++	mutex_unlock(&llvm_cov_mutex);
++
++	if (err) {
++		kfree(data);
++		return err;
++	}
++
++	file->private_data = data;
++	return 0;
++}
++
++/* read() implementation for llvm-cov data file. */
++static ssize_t llvm_cov_read(struct file *file, char __user *buf, size_t count,
++			     loff_t *ppos)
++{
++	struct llvm_cov_private_data *data = file->private_data;
++
++	return simple_read_from_buffer(buf, count, ppos, data->buffer,
++				       data->size);
++}
++
++/* release() implementation for llvm-cov data file. */
++static int llvm_cov_release(struct inode *inode, struct file *file)
++{
++	struct llvm_cov_private_data *data = file->private_data;
++
++	vfree(data->buffer);
++	kfree(data);
++	return 0;
++}
++
++static const struct file_operations llvm_cov_data_fops = {
++	.owner		= THIS_MODULE,
++	.open		= llvm_cov_open,
++	.read		= llvm_cov_read,
++	.llseek		= default_llseek,
++	.release	= llvm_cov_release,
++};
++
++static void llvm_cov_reset(void)
++{
++	mutex_lock(&llvm_cov_mutex);
++	memset(__llvm_prf_cnts_start, 0, __llvm_prf_cnts_size());
++	memset(__llvm_prf_bits_start, 0, __llvm_prf_bits_size());
++	mutex_unlock(&llvm_cov_mutex);
++}
++
++static const struct coverage_backend llvm_cov_backend = {
++	.name	= "llvm",
++	.reset	= llvm_cov_reset,
++};
++
++static int __init llvm_cov_init(void)
++{
++	struct dentry *dir;
++
++	dir = debugfs_create_dir("llvm", coverage_debugfs_root());
++	debugfs_create_file("profraw", 0400, dir, NULL, &llvm_cov_data_fops);
++	coverage_register_backend(&llvm_cov_backend);
++
++	return 0;
++}
++device_initcall(llvm_cov_init);
+diff --git a/kernel/coverage/llvm/llvm-cov.h b/kernel/coverage/llvm/llvm-cov.h
+new file mode 100644
+index 0000000000000..61c76e803f88b
+--- /dev/null
++++ b/kernel/coverage/llvm/llvm-cov.h
+@@ -0,0 +1,139 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2019	Sami Tolvanen <samitolvanen@google.com>, Google, Inc.
++ * Copyright (C) 2024	Jinghao Jia   <jinghao7@illinois.edu>,   UIUC
++ * Copyright (C) 2024	Wentao Zhang  <wentaoz5@illinois.edu>,   UIUC
++ */
++
++#ifndef _LLVM_COV_H
++#define _LLVM_COV_H
++
++#include <linux/types.h>
++
++/*
++ * These internal LLVM definitions must match the compiler version. See
++ * llvm/include/llvm/ProfileData/InstrProfData.inc in LLVM's source code.
++ */
++
++#define INSTR_PROF_RAW_MAGIC_64		\
++		((u64)255 << 56 |	\
++		 (u64)'l' << 48 |	\
++		 (u64)'p' << 40 |	\
++		 (u64)'r' << 32 |	\
++		 (u64)'o' << 24 |	\
++		 (u64)'f' << 16 |	\
++		 (u64)'r' << 8  |	\
++		 (u64)129)
++
++#if CONFIG_CLANG_VERSION >= 230000
++#define INSTR_PROF_RAW_VERSION		11
++#else
++#define INSTR_PROF_RAW_VERSION		10
++#endif
++#define INSTR_PROF_DATA_ALIGNMENT	8
++#define IPVK_LAST			2
++
++/**
++ * struct __llvm_profile_header - represents the raw profile header data
++ * structure. Description of each member can be found here:
++ * https://llvm.org/docs/InstrProfileFormat.html#header.
++ */
++struct __llvm_profile_header {
++	u64 magic;
++	u64 version;
++	u64 binary_ids_size;
++	u64 num_data;
++	u64 padding_bytes_before_counters;
++	u64 num_counters;
++	u64 padding_bytes_after_counters;
++	u64 num_bitmap_bytes;
++	u64 padding_bytes_after_bitmap_bytes;
++#if CONFIG_CLANG_VERSION >= 230000
++	u64 num_uniform_counters;
++	u64 padding_bytes_after_uniform_counters;
++	u64 uniform_counters_delta;
++#endif
++	u64 names_size;
++	u64 counters_delta;
++	u64 bitmap_delta;
++	u64 names_delta;
++	u64 num_v_tables;
++	u64 v_names_size;
++	u64 value_kind_last;
++};
++
++/**
++ * struct __llvm_profile_data - represents the per-function control structure.
++ * Description of each member can be found here:
++ * https://llvm.org/docs/InstrProfileFormat.html#profile-metadata. To measure
++ * Source-based Code Coverage, the internals of this struct don't matter at run
++ * time. The only purpose of the definition below is to run sizeof() against it
++ * so that we can calculate the "num_data" field in header.
++ */
++struct __llvm_profile_data {
++	const u64 name_ref;
++	const u64 func_hash;
++	const void *counter_ptr;
++#if CONFIG_CLANG_VERSION >= 230000
++	const void *uniform_counter_ptr;
++#endif
++	const void *bitmap_ptr;
++	const void *function_pointer;
++	void *values;
++	const u32 num_counters;
++	const u16 num_value_sites[IPVK_LAST + 1];
++#if CONFIG_CLANG_VERSION >= 230000
++	const u16 offload_device_wave_size;
++#endif
++	const u32 num_bitmap_bytes;
++} __aligned(INSTR_PROF_DATA_ALIGNMENT);
++
++/* Payload sections */
++
++extern struct __llvm_profile_data __llvm_prf_data_start[];
++extern struct __llvm_profile_data __llvm_prf_data_end[];
++
++extern u64 __llvm_prf_cnts_start[];
++extern u64 __llvm_prf_cnts_end[];
++
++extern char __llvm_prf_names_start[];
++extern char __llvm_prf_names_end[];
++
++extern char __llvm_prf_bits_start[];
++extern char __llvm_prf_bits_end[];
++
++#define __DEFINE_SECTION_SIZE(s)					\
++	static inline unsigned long __llvm_prf_ ## s ## _size(void)	\
++	{								\
++		unsigned long start =					\
++			(unsigned long)__llvm_prf_ ## s ## _start;	\
++		unsigned long end =					\
++			(unsigned long)__llvm_prf_ ## s ## _end;	\
++		return end - start;					\
++	}
++#define __DEFINE_SECTION_COUNT(s)					\
++	static inline unsigned long __llvm_prf_ ## s ## _count(void)	\
++	{								\
++		return __llvm_prf_ ## s ## _size() /			\
++			sizeof(__llvm_prf_ ## s ## _start[0]);		\
++	}
++
++__DEFINE_SECTION_SIZE(data)
++__DEFINE_SECTION_SIZE(cnts)
++__DEFINE_SECTION_SIZE(names)
++__DEFINE_SECTION_SIZE(bits)
++
++__DEFINE_SECTION_COUNT(data)
++__DEFINE_SECTION_COUNT(cnts)
++__DEFINE_SECTION_COUNT(names)
++__DEFINE_SECTION_COUNT(bits)
++
++#undef __DEFINE_SECTION_SIZE
++#undef __DEFINE_SECTION_COUNT
++
++static inline unsigned long __llvm_prf_get_padding(unsigned long size)
++{
++	return 7 & (sizeof(u64) - size % sizeof(u64));
++}
++
++#endif /* _LLVM_COV_H */
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index e0dc21e009522..77d1ab47125be 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -42,10 +42,13 @@ _cpp_flags     = $(KBUILD_CPPFLAGS) $(cppflags-y) $(CPPFLAGS_$(target-stem).lds)
+ # depending on variables COVERAGE_PROFILE_obj.o, COVERAGE_PROFILE and
+ # CONFIG_COVERAGE_PROFILE_ALL (in this order)
+ #
++# Modules are only instrumented if the coverage implementation supports them.
++#
+ ifeq ($(CONFIG_COVERAGE_KERNEL),y)
+-_c_flags += $(if $(patsubst n%,, \
++_c_flags += $(if $(if $(part-of-module),$(CONFIG_COVERAGE_MODULES),y), \
++		$(if $(patsubst n%,, \
+ 		$(COVERAGE_PROFILE_$(target-stem).o)$(COVERAGE_PROFILE)$(if $(is-kernel-object),$(CONFIG_COVERAGE_PROFILE_ALL))), \
+-		$(CFLAGS_COVERAGE))
++		$(CFLAGS_COVERAGE)))
+ endif
  
--	if (want_tgid &&
--	    setsockopt(sk[0], SOL_SOCKET, SO_PASSPIDFD, &on, sizeof(on))) {
--		log_err("Failed to set SO_PASSPIDFD");
-+	if (set_opts(sk[0], opts))
- 		return -1;
--	}
--
--	if (want_thread &&
--	    setsockopt(sk[0], SOL_SOCKET, SO_PASSPIDFD_THREAD, &on, sizeof(on))) {
--		log_err("Failed to set SO_PASSPIDFD_THREAD");
--		return -1;
--	}
- 
- 	/* let the child know the options are set, it can write now */
- 	if (write(syncpipe[1], "1", 1) != 1)
-@@ -897,7 +905,7 @@ TEST(scm_pidfd_stream_glues_threads)
- {
- 	struct pidfd_msg msg[1] = { 0 };
- 
--	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 2, true, false, msg, 1));
-+	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 2, pass_tgid, msg, 1));
- 	EXPECT_EQ(sizeof(struct thread_ids) * 2, msg[0].len);
- 
- 	EXPECT_TRUE(msg[0].have_tgid);
-@@ -914,7 +922,7 @@ TEST(scm_pidfd_thread_stream_splits_on_threads)
- 	struct pidfd_msg msg[2] = { 0 };
- 	int i;
- 
--	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 2, true, true, msg, 2));
-+	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 2, pass_both, msg, 2));
- 
- 	for (i = 0; i < 2; i++) {
- 		EXPECT_EQ(sizeof(struct thread_ids), msg[i].len);
-@@ -937,29 +945,20 @@ TEST(scm_pidfd_thread_stream_splits_on_threads)
- }
- 
- /* Sends from the thread-group leader */
--static int leader_flow(bool want_thread, struct pidfd_msg *out)
-+static int leader_flow(const int *opts, struct pidfd_msg *out)
- {
- 	struct thread_ids ids = {
- 		.pid = getpid(),
- 		.tid = gettid(),
- 	};
- 	int sk[2];
--	int on = 1;
- 	int ret;
- 
- 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sk))
- 		return -1;
- 
--	if (setsockopt(sk[0], SOL_SOCKET, SO_PASSPIDFD, &on, sizeof(on))) {
--		log_err("Failed to set SO_PASSPIDFD");
-+	if (set_opts(sk[0], opts))
- 		return -1;
--	}
--
--	if (want_thread &&
--	    setsockopt(sk[0], SOL_SOCKET, SO_PASSPIDFD_THREAD, &on, sizeof(on))) {
--		log_err("Failed to set SO_PASSPIDFD_THREAD");
--		return -1;
--	}
- 
- 	if (send(sk[1], &ids, sizeof(ids), 0) != sizeof(ids)) {
- 		log_err("send");
-@@ -980,7 +979,7 @@ TEST(scm_pidfd_leader_sender)
- 
- 	ASSERT_EQ(getpid(), gettid());
- 
--	ASSERT_EQ(0, leader_flow(false, &msg));
-+	ASSERT_EQ(0, leader_flow(pass_tgid, &msg));
- 	ASSERT_TRUE(msg.have_tgid);
- 	EXPECT_FALSE(msg.have_thread);
- 
-@@ -995,7 +994,7 @@ TEST(scm_pidfd_thread_leader_sender)
- 
- 	ASSERT_EQ(getpid(), gettid());
- 
--	ASSERT_EQ(0, leader_flow(true, &msg));
-+	ASSERT_EQ(0, leader_flow(pass_both, &msg));
- 	ASSERT_TRUE(msg.have_tgid);
- 	ASSERT_TRUE(msg.have_thread);
- 
-@@ -1012,7 +1011,7 @@ TEST(scm_pidfd_thread_and_group)
- {
- 	struct pidfd_msg msg = { 0 };
- 
--	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 1, true, true, &msg, 1));
-+	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 1, pass_both, &msg, 1));
- 	ASSERT_NE(msg.ids.pid, msg.ids.tid);
- 	ASSERT_TRUE(msg.have_tgid);
- 	ASSERT_TRUE(msg.have_thread);
-@@ -1028,7 +1027,7 @@ TEST(scm_pidfd_thread)
- {
- 	struct pidfd_msg msg = { 0 };
- 
--	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 1, false, true, &msg, 1));
-+	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 1, pass_thread, &msg, 1));
- 	ASSERT_NE(msg.ids.pid, msg.ids.tid);
- 	ASSERT_TRUE(msg.have_thread);
- 	EXPECT_FALSE(msg.have_tgid);
-@@ -1040,7 +1039,7 @@ TEST(scm_pidfd_thread_group)
- {
- 	struct pidfd_msg msg = { 0 };
- 
--	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 1, true, false, &msg, 1));
-+	ASSERT_EQ(0, pidfd_flow(send_ids_thread, 1, pass_tgid, &msg, 1));
- 	ASSERT_NE(msg.ids.pid, msg.ids.tid);
- 	ASSERT_TRUE(msg.have_tgid);
- 	EXPECT_FALSE(msg.have_thread);
-@@ -1052,7 +1051,7 @@ TEST(scm_pidfd_thread_creds)
- {
- 	struct pidfd_msg msg = { 0 };
- 
--	ASSERT_EQ(0, pidfd_flow(send_ids_creds_thread, 1, true, true, &msg, 1));
-+	ASSERT_EQ(0, pidfd_flow(send_ids_creds_thread, 1, pass_both, &msg, 1));
- 	ASSERT_NE(msg.ids.pid, msg.ids.tid);
- 	ASSERT_TRUE(msg.have_tgid);
- 	ASSERT_TRUE(msg.have_thread);
-
+ #
+diff --git a/scripts/Makefile.llvm-cov b/scripts/Makefile.llvm-cov
+new file mode 100644
+index 0000000000000..5babb09b6d3e6
+--- /dev/null
++++ b/scripts/Makefile.llvm-cov
+@@ -0,0 +1,6 @@
++# SPDX-License-Identifier: GPL-2.0
++
++CFLAGS_COVERAGE	:= -fprofile-instr-generate -fcoverage-mapping \
++		   -fprofile-update=atomic
++
++export CFLAGS_COVERAGE
 -- 
-2.56.0
+2.53.0
 
