@@ -1,83 +1,83 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.174
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.171
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793811359;
-	b=VLQqbUpWyAEsTcP70mWb/wPSC16sWAuMh6cnIlrA53h7VehonMmBZAG2bx4lSYCYWF8L
-	 4vKTdw/GQ7A+miV3SUjtm/8jumzyrf6eqv9Fsua62IgQhjSrEEZCEYxI2Fr1Anpn80yOe
-	 oEw7cZt/rEpAWcnGZYJVxJIJGZHscp0PQ0w1iE5Y+nI+EHaXG7J1zK543Odz9JR6OH/YU
-	 W/yaJa2tDiLj65jv42xFGJnqdhWwivhYIAg/8/4wr9D/56odldNsRooEjTHWIh8VfPXD9
-	 braUWt5y4maEuqP+M3bhpNvl+CPOsQTJiUiPHjnAQuHZQG4HZ6oolPkxMZ56U8g3FAQ==
+	t=1793811367;
+	b=4lbVQPCgklvrrBkGmn6xc40LSxXp5T7N6fR0RfXbG59bJFIIeSzDWITkKRHnRCUsFkAz
+	 jKLtSp22NsVa/m/+FIp5fw7ntRgIwobF3FAJ8ao9CrwR90w19FTj6o4EnyM9qWH23nKIz
+	 auLgAMiNaTJf9tGnB742tOmJtfSdDXP85fyCDobfzdDPrPNBtLUndGaG23drlCjPNkmw4
+	 K6d23vDfYUpyxwL6XMkTCaUO2UvJ4Y9ycRaf4Txn8YXkvZdFcGl5Ek0f1ebz/9uNg5hnw
+	 8VLgSLUclA5+nxIQPpfCDy+F4YseEpFktINr2mKb3XFQmkyUjrD1jnfMCZKFUOy29Zg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793811359;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793811367;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:
 	 MIME-Version:Content-Transfer-Encoding;
-	bh=+8KQWyBKBxvk/GyclF/OXvG/qT94C95aX0wcu8sQa/8=;
-	b=CKAfOK5Ls+pC/5/wzJqmMaF3ks4gab8Tm7CRGlodoQG8zZvNU6axkLvm742sRISGBpv0
-	 GcvZXD//MVPoPjyMYUtP6/WaicA18Nkj2ZllXrbrfdzrW4L0yrEeM97oh/9d4fV6lghVD
-	 6rE63Ke/PD9vaeawT79VlZ/Yv1b0hiKuJr9ZFlR+40XWzIaqRN5xdN4ID2FqYGShXzWbv
-	 Snn/J+YTfo8yYSh0XAyCISCFSk+HuhgzM8DoOcUFcOFDpkLvQjeo7qwgp6z01rxb2iiGa
-	 ct9KFJ4kgwYbcjibOl6BfDuji5DD165DFkwr9FFTIGZRovPZRrwTJcmJ3u/KXxzBQCA==
+	bh=K4ahvqtjxwDZW1z/zIOwgCxGi6bAPzcPods0jeXHn0Q=;
+	b=yzOO3LJ+lsWGSfhhHA+FIfqo48k4w1CPycBNI4QPxgYAenqZtzYZuIOCTUyVTJyCzEiL
+	 Y5S7KU8UsfNdQcy0UdvUjE7LNedr0APTk9xq/la7jSGGYqUgYW0YmxOw/MpsfShoxCrxw
+	 brHOsvnSy2LRNNlZBK2nZGGlp8colxzwXIb9RFPE3s24I1901v4JpzTZffivLgsMmtq70
+	 QPqqMnPxeQwlceXuEMupca9HALtNmYa4MOoYxzFKy8rrJKZU6Gvs3lqAsC9+N8hvSr/Ty
+	 97VLQKe1aDeb9y3iqmZfGOOD78xwNzyxqTjinVGkfVRZemYvqvxu6gPW4lDpDSD5u9w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=gmail.com;
 	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=EycCfHSE;
-	arc=none smtp.remote-ip=74.125.82.174
-Received: from mail-dy1-f174.google.com (mail-dy1-f174.google.com [74.125.82.174])
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=UGUkONor;
+	arc=none smtp.remote-ip=74.125.82.171
+Received: from mail-dy1-f171.google.com (mail-dy1-f171.google.com [74.125.82.171])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 02EA3606A32C
-	for <linux-arch@vger.kernel.org>; Wed,  4 Nov 2026 16:55:57 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 02EA3606A32C
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 73D76606A338
+	for <linux-arch@vger.kernel.org>; Wed,  4 Nov 2026 16:56:07 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 73D76606A338
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=EycCfHSE
-Received: by mail-dy1-f174.google.com with SMTP id 5a478bee46e88-35b2c599f43so1894596eec.0
-        for <linux-arch@vger.kernel.org>; Wed, 04 Nov 2026 08:55:57 -0800 (PST)
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=UGUkONor
+Received: by mail-dy1-f171.google.com with SMTP id 5a478bee46e88-35b2c599f43so1895010eec.0
+        for <linux-arch@vger.kernel.org>; Wed, 04 Nov 2026 08:56:07 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793811357; x=1794416157; darn=vger.kernel.org;
+        d=gmail.com; s=20260707; t=1793811366; x=1794416166; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=+8KQWyBKBxvk/GyclF/OXvG/qT94C95aX0wcu8sQa/8=;
-        b=EycCfHSEmnC3CFQscfhGc9K6l+n6dnpWstzvFxbY/sgIPYFykCn8zDBIa+oXgrvcMa
-         lATgPV090nSh34SBkcJD2o5P/IAiOOUJZ9T6EqjWYQwtHFYs3+jJlnP0aSl5YJKnBvsb
-         D3HZepsIez9R0xsqvqmbIkK14qdC8qmo1F+tt9+MY4Mgn2c1pNCmzYLqFkK7IcLSP3Ez
-         nMiNU6HJ72wXlRUFfjTnzD+XvBK+8GXYnpb8gQh44yzEnH5gO2xIhUy2Ajro6+0/H3a6
-         LV4ZNH2ZAQ2mJ/pmbz/77D2ocF1i4FHzguQLCPdF4LogdcdszkoGbHdgKYSUFDWuTs9G
-         pCww==
+        bh=K4ahvqtjxwDZW1z/zIOwgCxGi6bAPzcPods0jeXHn0Q=;
+        b=UGUkONorfwM+zbVj6eSQLZ/CtHpB5o6WUk5r6DRCTGw9BsZ3jYHEXXgAeUMXpdkKHw
+         rOZh0cr3KpIP5HIpA47NNa2SvdgBzVZO9ouBTKR1uZ7I/v8x7qERHplfE42RZ9WkV9rA
+         WhTMYE7yMWjkIdRnqeFALhk6GGbkABiCkQLU/LhORN/exgEintJBo2+52BvPekR5iiCg
+         JaiaFNJVcOrSF5SWDQcIfnWQzeik44hR0n1dwFRYF1zMjcPvRGBJLcLTj5Qezw261wSm
+         VRmyrgJiAM2eYvZ3x5IdrrkO1UP6/IpCBNjSbQFnbFoLKEC4WWZ2HEP12RSgYhlCsYXq
+         akpg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793811357; x=1794416157;
+        d=1e100.net; s=20260707; t=1793811366; x=1794416166;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=+8KQWyBKBxvk/GyclF/OXvG/qT94C95aX0wcu8sQa/8=;
-        b=CPDnKNn0P+AeK1GV/QsnbkgJcITjAPrbNNU49CgpRZ+sXdJFHJU4blYL3tNHFDWp9w
-         xv5/EmC9h1EpLT81bOQk67I2J+6ab0tHhqaevyGY4HxZZlBFEV9ciEofQZkbY8P6nwdp
-         xN3JUhJ7cpDVyd2K36N8aTUjTRNImPh9Uvk06o/gXIdJXUI5X+McEM6nmVSmW987Rpj9
-         4+iAd9ArwOS5HLInNcmUD6psUPk+XiFF3NwI6qoGjfKmyq+w/a0HXJB/d5nDrusJJGFi
-         pY8PYdnjEMU10c9SQj23CXU4AToBZbL0KTntJ6QoOh8lnI4NQa3mdDpX2htu4uVqegTZ
-         U7pg==
-X-Forwarded-Encrypted: i=1; AKwUvBxbqL4w1yRzovc72aNTwd0oeTqY1MzTXNepGDlanprdZg3t1QJH/uWCrXBolKiDhOROQK/7k4XBoMBv@vger.kernel.org
-X-Gm-Message-State: APuU4Z9OoZylPXLy4mp9zstNeB7hJF+DcTpOhVQulvKjDt+MJV9pLcWY
-	IexOucoDDhrU9Bz6ojRj3Odcina3ws4lxbCnST2TB+iRGa3NeZRwI1DP
-X-Gm-Gg: AYBFou3LYSoRiIkPmjVGfdTtQhbKc2dStFHcmv9fQOsFeiHEFaFGXBb2dqTSmweb7LA
-	R7dimvWDitBbdBPcaXN9zuej9WjfUiQBG4H8IdLvwvazN0WUCLVRCPtFP9hNkpnl+qiWC0YyZ5+
-	DDodlSANzileBVmAQXARXvCv8TEdP1B+8Reuu6oPj7YT6fZegxWt5FzYRHQOb5j8zHyNnaaol99
-	Oi+LQ5Pi06GVMpdutJsMQIuM25Xc/YToCIsMNgxRTzd2gcQv6YLZ58TC2owSrHRJpBurLgf7QHc
-	vwtnLR7VrrKjnl4mVlicYGe4dS5kLNA60qaMgGWRXTXvDkwAbVx8nlO/foKSMT7dXdYwTCNVHC3
-	n4vQXYiKqChmH1ZmhutwU64EOtrk45a2XTqW80q33xuhMXsR/FvhfAtro8pgjTzSXYSz/DArYjn
-	tf6BV5xWzBtrQacpEaWYbGcb++CvkR1ngZFWNoRlHR6eO6lUVZrJXTXxK3MAf+PwKe6uIEH0+ZS
-	OT2EVQfUO0OoLxoj3kajqOB6M5AalXyjzcGhPAAbRpetu3csMxhSZovzpvWH1YWm5mluYMnhq1L
-	rjolFXH6EcAqGXQrcOsnq7bs6auqQOaZIexwRy0=
-X-Received: by 2002:a05:7301:2a95:b0:36c:9afe:fcd8 with SMTP id 5a478bee46e88-36c9afefe8dmr5108211eec.30.1793811356604;
-        Wed, 04 Nov 2026 08:55:56 -0800 (PST)
+        bh=K4ahvqtjxwDZW1z/zIOwgCxGi6bAPzcPods0jeXHn0Q=;
+        b=cpN2QaA6bfuLjBbQYUvwlm2WaX3xQW3wYkvBZGk98wyjLQehgx3NAdzvIQvBG+LBce
+         b/4xuS1SCGXdCJqH3ECMKrFcWBxvRdGp1VGt4BdPTv5lzQsv87WEN3mEA7Mp//DKlUr6
+         Zx/wr7tOSsuDXEg+1m9YHp2FLWPBgaTz5vKVwjVid4fohvkeHYyjMcNcz854trieUo0N
+         qZswnaxiGFXxPWst4oc5yYjYvPfe9OAP4v/1Y7tVENlwxoR3fsaAwst4HbXJelrs/CDi
+         ph94YZMpuc5psE6WEsoJkRW97ZFhDPWSnQEnxigvXCXrEsEYNfdAgtqkEOQ1wtl/NvXL
+         L5Xw==
+X-Forwarded-Encrypted: i=1; AKwUvBzzLnX1XjyIxhL6uYzKquWgfX2Aw33pzheUU5ctoPYp91MMSVHAFVxLQE8tDrX2iYn3SDKepXRs+0jh@vger.kernel.org
+X-Gm-Message-State: APuU4Z8hEzfex3LShngvxs/0FpDOC3TLUbJaf+We38s/HIl6wSpGHH83
+	vpx3WrSODT1FnMx9gK16rkMRalcgsNDjdkBcYBTmPRAi/VSrLUtU7tSW
+X-Gm-Gg: AYBFou0zInXMhnjMkTqiLQeeC9dwo9i6N9s/f3N6MIrt7YfJ69o+i6OfpD5QGvMOVFH
+	wDpS1++3JcYIsvPZjkRfs6qoVH3yX25a9kJ7sB2tM8+iFLRL2ifR0PvbUTHGadAhH3NCy3b+ven
+	b7/36HxNaJYPsAmp5SXovHhRDqyi1Akeqe6THnWDjo1hHwSTrDwU4wtRhaen3aWrV4YCgRjw1jk
+	QVgsK1BBfLTT5pXJCPTTJ2V6PPmL61WEVFRV5d5A9iNc7wsRrmejVoYJSYneYFD4yg2SUQW2RCI
+	qXJypguctbDXZdSoHeglwzWzUTLTWUW7QpzbLRpDJ6zvDiZ07VHmDhTMwqgw3dzw7keKBlAfhSm
+	/CguqP1d79N9YAJsGwvODcj5NG482b7OFFnfd2A2f9iA6ytKOv4KmjFvmpX9lm6e29BcFzeMXQs
+	vXlROdV6ewD5WQ7RLPspOBZa2dql7gL1i3BsVb+qRxFWRWJ3rosYehuKBJ0iH6IZlchTOhh956n
+	PU3GolHD03QeRpvlPGTucDGsQvfZtqRWPj6HrMRhXR32UJ4SsZXfsWFSpibIoQwl4kAkngsQqJp
+	OVYYLW3KYje4yf27NGDAvHPvpaWNhqhzIRP3UXM=
+X-Received: by 2002:a05:693c:895c:10b0:369:f05d:6c5c with SMTP id 5a478bee46e88-36a4240f66emr26391236eec.28.1793811366010;
+        Wed, 04 Nov 2026 08:56:06 -0800 (PST)
 Received: from kernel.. ([216.195.201.23])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-36ca38d46fcsm9019567eec.13.2026.11.04.08.55.47
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-36ca38d46fcsm9019567eec.13.2026.11.04.08.55.56
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 04 Nov 2026 08:55:56 -0800 (PST)
+        Wed, 04 Nov 2026 08:56:05 -0800 (PST)
 From: Kunwu Chan <kunwu.chan@gmail.com>
 To: paulmck@kernel.org,
 	boqun@kernel.org,
@@ -112,9 +112,9 @@ Cc: stern@rowland.harvard.edu,
 	linux-doc@vger.kernel.org,
 	rcu@vger.kernel.org,
 	linux-kselftest@vger.kernel.org
-Subject: [PATCH 04/28] hazptr: Add debug option to force the acquire slow path
-Date: Thu,  5 Nov 2026 00:54:22 +0800
-Message-ID: <20261104165504.2430480-5-kunwu.chan@gmail.com>
+Subject: [PATCH 05/28] Documentation/litmus-tests: Add hazptr wildcard-flip escape test
+Date: Thu,  5 Nov 2026 00:54:23 +0800
+Message-ID: <20261104165504.2430480-6-kunwu.chan@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20261104165504.2430480-1-kunwu.chan@gmail.com>
 References: <20261104165504.2430480-1-kunwu.chan@gmail.com>
@@ -129,59 +129,72 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Add CONFIG_HAZPTR_ACQUIRE_FORCE_SLOWPATH: makes hazptr_acquire()
-skip the per-CPU fast path entirely and enter __hazptr_acquire(),
-even when a per-CPU slot is available.  This is useful for testing
-slow-path locking, especially with lockdep.  It also lets
-hazptrtorture exercise the slow path without requiring the per-CPU
-slots to be exhausted.
+Add a three-process litmus test for the in-flight wildcard window
+of the single-pass scan: a straggling acquire which published the
+old wildcard after the final walk cannot still load the
+unpublished object.
 
-Note that the forced path skips __hazptr_try_acquire() rather than
-running it and discarding its result: a successful try_acquire
-publishes the address to the per-CPU slot, and abandoning that
-publication would leave a slot pointing at a stale ctx, which
-hazptr_note_context_switch() then dereferences (use-after-free).
+Verified with herd7 (linux-kernel.cfg): Never 0 13.
 
-Suggested-by: Boqun Feng <boqun@kernel.org>
 Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
 Acked-by: Bradley Morgan <brads@mainlining.org>
 ---
- include/linux/hazptr.h   |  2 ++
- kernel/rcu/Kconfig.debug | 10 ++++++++++
- 2 files changed, 12 insertions(+)
+ .../hazptr/hazptr-wildcard-flip-escape.litmus | 46 +++++++++++++++++++
+ 1 file changed, 46 insertions(+)
+ create mode 100644 Documentation/litmus-tests/hazptr/hazptr-wildcard-flip-escape.litmus
 
-diff --git a/include/linux/hazptr.h b/include/linux/hazptr.h
-index 3372b1cdbee6..299ad8a07156 100644
---- a/include/linux/hazptr.h
-+++ b/include/linux/hazptr.h
-@@ -271,6 +271,8 @@ void *hazptr_acquire(struct hazptr_ctx *ctx, void * const *addr_p)
- 	ctx->acquire_cpu = smp_processor_id();
- 	ctx->acquire_caller = _THIS_IP_;
- #endif
-+	if (IS_ENABLED(CONFIG_HAZPTR_ACQUIRE_FORCE_SLOWPATH))
-+		return __hazptr_acquire(ctx, addr_p);
- 	addr = __hazptr_try_acquire(ctx, addr_p, slot);
- 	if (unlikely(!addr))
- 		return __hazptr_acquire(ctx, addr_p);
-diff --git a/kernel/rcu/Kconfig.debug b/kernel/rcu/Kconfig.debug
-index 7c3c6017b266..3a2e9d7f58f8 100644
---- a/kernel/rcu/Kconfig.debug
-+++ b/kernel/rcu/Kconfig.debug
-@@ -265,4 +265,14 @@ config HAZPTR_DEBUG
- 
- 	  Say Y here if you want to enable those assert, N otherwise.
- 
-+config HAZPTR_ACQUIRE_FORCE_SLOWPATH
-+	bool "Force hazard-pointer acquire into the slow path"
-+	depends on DEBUG_KERNEL
-+	default n
-+	help
-+	  Make hazptr_acquire() always enter __hazptr_acquire().
-+	  This is useful for testing slow-path locking, especially
-+	  with lockdep.  It also lets hazptrtorture exercise the slow
-+	  path without filling the per-CPU slots.
+diff --git a/Documentation/litmus-tests/hazptr/hazptr-wildcard-flip-escape.litmus b/Documentation/litmus-tests/hazptr/hazptr-wildcard-flip-escape.litmus
+new file mode 100644
+index 000000000000..de467bb82d20
+--- /dev/null
++++ b/Documentation/litmus-tests/hazptr/hazptr-wildcard-flip-escape.litmus
+@@ -0,0 +1,46 @@
++C hazptr-wildcard-flip-escape
 +
- endmenu # "RCU Debugging"
++(*
++ * Result: Never
++ *
++ * Check that a straggling acquire which published the old
++ * wildcard after the final walk cannot still load the
++ * unpublished object.
++ *)
++
++{
++	int ptr = 3;
++	int hp = 0;
++	int wildcard = 1;
++	int enq = 0;
++}
++
++P0(int *ptr, int *enq)
++{
++	WRITE_ONCE(*ptr, 0);
++	smp_mb();
++	smp_store_release(enq, 1);
++}
++
++P1(int *enq, int *wildcard, int *hp)
++{
++	int r1;
++	int r2;
++
++	r1 = smp_load_acquire(enq);
++	WRITE_ONCE(*wildcard, 2);
++	r2 = READ_ONCE(*hp);
++}
++
++P2(int *wildcard, int *hp, int *ptr)
++{
++	int r0;
++	int r3;
++
++	r0 = READ_ONCE(*wildcard);
++	WRITE_ONCE(*hp, r0);
++	smp_mb();
++	r3 = READ_ONCE(*ptr);
++}
++
++exists (1:r1=1 /\ 1:r2=0 /\ 2:r3=3)
 -- 
 2.43.0
 
