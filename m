@@ -1,83 +1,83 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.182
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793811497;
-	b=ppAduTxtKp0JqzmlztFnLc5n0ssrL0J6BG4skzVYMh6jGgvQdXGsIDh+4JIa/rcbdlfX
-	 IYsu6rCualG3tJPIXTdJChGgD+hsRCJ+LBisUSFXhfVvu9UnsIjFH+t2FmQpaTvlp/NWG
-	 QI/uluTOkGRzZ7E2B8pbZynrAqMZM6ZZ8MSUTMqoN6iyNlopmYLB13N/EoLRram9eWSKX
-	 mPdSIL8VmucQZkJPIutpHdZ4qTyU1KLI2YH1cj0Iq9f4Av3q2ZbZHS9CbHASI8MvyWdNs
-	 fOBjHhGYWFCGwMpuE/yBqQylfGnNXXHkWI+IAwh6EFFhHzuItDcInU5ml6MM7tq6BAA==
+	t=1793811506;
+	b=jaj/TbQkgSjUTv0TLWoyvh+QWxeay2yCyIQZmZCVsTptqahLdpiL0gUnFq0ugVqWl5Y8
+	 ir6E9is5KVUf4Cftnb+VPIpXnA6NoZmCy6zKRnSCoB5XwaYjYsMW3BZXo91ZTjmkdsYB+
+	 erCwYxPd9OhvnqcWWRXnFkvZK5oWJ8oJYgn+y9GGK/dVvopgzx19sBCeYVAfNjA551M53
+	 5VT8b5AVVNO0yKx3+jb087UHv5JywIxRgwdvGfHc6k387J0uYppmXKPEHmgnZmH+G1atq
+	 tTRkllrLt9wVVpzyEA3FXNWIRru84ubkU4a6ZPZvoOqNO7wACaTurxYGfoF1+8SP3VQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793811497;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793811506;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:
 	 MIME-Version:Content-Transfer-Encoding;
-	bh=Y7w9zIZGwFreJVwPOaTuHd6p4ZAf4hMC78IhCBOO/FI=;
-	b=WZawlCQggQ8wgiArHcX2n2K1D5JnmN/Fb38vqiFS5zO2jlwiryN9LlTUDsDoqRfc5oDB
-	 s34r8zjVWmkmfE8SkvVJ97mcUgTQdjy5s/j3i7YPRDnlyes6EMDw225//XSUe7ID9Lfsu
-	 ZFeQWRQfTJphnCPUs/gXdWdKM2AFUF06cQxkqRPGJTjUNxzgc58hHemJyXm1aLR91jDTW
-	 fGG2Q4shLGwGEhCVX6NBXY/ECY9P2c0qTk1IVdYScrGGwr8yDHt5ZcJZF6oS9qF2QXCfu
-	 fH7cdH7TOLYsQmwnI9A0bkPryaNxZiMjqZsrV6bLb0l8Qsffe0eB4Cp9paXjqJHrHQQ==
+	bh=E3exnuIEn75Mzl8OzBk9yKBvPuDEfR29myhkVg7oSY4=;
+	b=QY3pGUB70U/ypjVm3v94uEI9jrZHANdHApVk55Le8Sa8yLBtRoHnvIDzen+AxRgmwz+q
+	 UMH3RPZZCH9DJ1Og/qUkraxIGdhjrHOyAYHbq8E8bfNaqZcc7MDbBc19aSgyO8uh0u6uR
+	 AW1FXC3wmJK+thzfjLPB17HTXihlUuzo+lQg/YJ0Q4V046Cw/WLYADnayRt6Matn2zrtK
+	 LpvYQM8SyOED14FUO3T8I6/JWm3CBOLJNCIa7cB3K0lfjb5B7JrfNpaUiyLT5NemKM1fG
+	 ho4dLG6hCl9ZVVmO8LeYxZ9kLINGt4Yyu6VATOaKdf9nkHgPTNpddOGIg25Dwmqmjbg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=gmail.com;
 	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=hNr3tUus;
-	arc=none smtp.remote-ip=74.125.82.182
-Received: from mail-dy1-f182.google.com (mail-dy1-f182.google.com [74.125.82.182])
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=d4EEF2kO;
+	arc=none smtp.remote-ip=74.125.82.172
+Received: from mail-dy1-f172.google.com (mail-dy1-f172.google.com [74.125.82.172])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1852A606D817
-	for <linux-arch@vger.kernel.org>; Wed,  4 Nov 2026 16:58:16 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1852A606D817
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3ECDE606A33E
+	for <linux-arch@vger.kernel.org>; Wed,  4 Nov 2026 16:58:25 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3ECDE606A33E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=hNr3tUus
-Received: by mail-dy1-f182.google.com with SMTP id 5a478bee46e88-36cad25b8b0so1364246eec.1
-        for <linux-arch@vger.kernel.org>; Wed, 04 Nov 2026 08:58:16 -0800 (PST)
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=d4EEF2kO
+Received: by mail-dy1-f172.google.com with SMTP id 5a478bee46e88-33bf40b0c8bso2055607eec.0
+        for <linux-arch@vger.kernel.org>; Wed, 04 Nov 2026 08:58:25 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793811495; x=1794416295; darn=vger.kernel.org;
+        d=gmail.com; s=20260707; t=1793811504; x=1794416304; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=Y7w9zIZGwFreJVwPOaTuHd6p4ZAf4hMC78IhCBOO/FI=;
-        b=hNr3tUusaaErjUitu2I6XbppO/tHcSXKdcNOfa5cTRenOkzbAShzlYf+Vh6lhhHcnU
-         tV0j2CjmKzhKKOb88naSBWlsm7UMSz+rFmaMbHHVVo52UBAQUQqzpBCnbhekDTbeMHdu
-         m2HGm/OC5cbaC5EsFBwb01g0ztwO9qcrVtWW/Gy5r5WiqyNKkT4Fnrid+ZtOZGerKzfs
-         i5yhjeAtyPa/dnKRefMUtTmhyXApUGDjfd1Rt/xYYyIFeKFYslG1vZ7fTtcF5bzZh99e
-         yUQCBLmrELZusND1vAwkU7lxXMR4LlihbNcRhxjtalepwnGQ6X6xc8qKK1tJvFak4VpN
-         STow==
+        bh=E3exnuIEn75Mzl8OzBk9yKBvPuDEfR29myhkVg7oSY4=;
+        b=d4EEF2kOlJ9ZwT7ZAqTk4BEQB6KcUy0uA9+FyL4MbNN7Zu4rDZNZ0rp/SjEM1SHJ4i
+         +t/vAUuu9SCQC3AYeOMIngo6oTmzHstQm5PfvbTiZo4E0zTT9V6oh0nnxsdi583LVoP9
+         a7tSdg9pv18ePLJgUJJGIePmp4/HtLBlGIL4B4XqWh6wFW0yt6vcN7QL4y2SPKtHKdOU
+         bs9e6FLPI+Lm9iDleUFUew9o5bRM5WOk+/D20EOyGWfHt0Q6311/IX/Ow+PfL0FIwOAS
+         sJp03RdEH8YojNlrwn4RUuHSxdKSA/A8BAe5x43K6gSXTYuYOLC0EeO1Cb5cyDhrtx52
+         4QUQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793811495; x=1794416295;
+        d=1e100.net; s=20260707; t=1793811504; x=1794416304;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=Y7w9zIZGwFreJVwPOaTuHd6p4ZAf4hMC78IhCBOO/FI=;
-        b=gAU2NjbGfDtjlu3D3niGbz3zVmRPgu413lVudCUc9ltffwC5bsbdQUkhe/Q0xdHHam
-         Cgjbyija9fuNdmmnuxEMkPI6jDaKk+EClRylAl3fxZyECxrbY9K7dKP/MseILLv7EoGl
-         UFiYLQO+qZcbmDkKj9MYPtCmlRpwZQdDx0cjToMbF6HRz3To+nr4AhDOQW9RQd6/VCF1
-         p0GRjeuGht5eQlu0lm3z07uomESQX69G0MxJaFdx7/BITNRmcrSezXcjnIbzBg6IrVAf
-         Uh1iyoifbCIAxUssl0zIofQAKQZGjKITJmkZoKPcFdRdwc5sHt7c/NjEEFLWI3vuStwf
-         mhiw==
-X-Forwarded-Encrypted: i=1; AKwUvBz/94abbqAtQRnXXb57Gws6+7ZbCZqkfVaBOP84iLM9t44x7UXlFr8EpfX0/mQAu6c2mfsNBYyXJDul@vger.kernel.org
-X-Gm-Message-State: APuU4Z/0y1nCcQlQG8AF1ZAcI0YtJjkvEx+7DCtGPTKFndqKG0qLzcXq
-	VOu+x3gbsUMarZD3HeozVIeFC/1Jky9HFHm6eyclORVs1dP5Sd/McHr2
-X-Gm-Gg: AYBFou3ECoEal3OKBWc0naDrS9LsHzZGxicGNGFMECW6Q4byhmjhQLlctqnfLXfqkYX
-	ecw859z1Ciuj3iZaiB6qCT7FGxrZ/4A0hu1X6/X3dUF1h6US5/ZTZZs/FwCb9wvSiASyrWFoFmQ
-	kkw1ZyFcDzzKiX5SCBfnB23bLUCUBruimjTC/AEWv18aY+lHbbFiO5R+HaoZiv/JLvLgPGMjEbA
-	WcxRMIKgSLYmFO16ErHsH72DDJe7DeTWyFuvJd1VTwI2dcio7w3+ku5e6K6sgJwibKIng9V918t
-	Eyil1hkuhnYuBQJ3x9CeUR+ffHVXMqCamjJSbEmwUBbmgPLmT2ga6UkBaQaT0uCIZhsUnkNv6kL
-	BAxwtYVEqr83I5FAAJwwvzLXo+unEsYUeMut83RUixsEndgC9zYnF94M0zhgJnphubH+8xZ+qs+
-	jDcwIuWJn0zjwhuPj2QvwCmS82mgFNwIM8+oMpoC1VU7SU4LQeI/9q6cAbt6NmIjmVE22obqCRB
-	TSeXghu/vcFQaY6oao7HyA26knSjJAZyK8wNGUpJnNS/yRV5w6BTxqqniblytdG3ICTUJnHcWjK
-	fLtwXT91q6b7Al7I52YgLUfnqXdJ8XbmqZv+53U=
-X-Received: by 2002:a05:7301:fc81:b0:36c:d29e:668f with SMTP id 5a478bee46e88-36cd29e694cmr3306314eec.6.1793811494826;
-        Wed, 04 Nov 2026 08:58:14 -0800 (PST)
+        bh=E3exnuIEn75Mzl8OzBk9yKBvPuDEfR29myhkVg7oSY4=;
+        b=g+Of2HTNk9FA2fty3rJD4FNLZvWfBffhj+9zh8d6Q3XLvEQZ9cFw/crnO7dT6zOhaw
+         uFJ7/0LjsYoTT86cXRHWvf8BIaFpGqo5dbQ/MgUJlZZDky7HIvaAz9vNfCgPYfa5SPEt
+         drZSt/FND/jYEpgLD9sBVUOqIcUs2GpfRB8AVePBDDPkVi0ZVvZcRB34gqmNKWSy46wW
+         SqGeZNVviQ4ASAvTEBTStQ6e0jq4VZZhUDPKGlvTxti3TPGJNerVMiPKEGws/jJ2gmfa
+         ZHd422KC9L7sYbtNr6v2lxXSJOuegIPrdgvV2SdgQ9VqjYQy/YFVVw3FvgSJHMaSXfsI
+         odbA==
+X-Forwarded-Encrypted: i=1; AKwUvBxxJ/YEL/Mj2p7verg/jxiKgFnoMxb1lWSvCsUSqaGfahhCZOMjJNmukJtfShj3yhnq/wXhEbMRusp5@vger.kernel.org
+X-Gm-Message-State: APuU4Z9FT4zPcAOUggUZvITT1//GdIl9UThRuAET97+jkGLcfaNU88sm
+	Axahsn8QuTQukQ1dgUTdvRF4SSZQuPAyVfxG6A35IlFzinm2H48MkPfM
+X-Gm-Gg: AYBFou1oX8ickJgpF1fBObyFON6ERLUc401w8j8MaM9cIpqjzYm6OEZblZ7kINWgIJq
+	gURZS41HcV2tJdWHSLea3u7Ms+rZ4CSIc5KurJ0DxI1KgL8s17XSr/r8DuTjxHhS8s8UcLsjNXs
+	S866SG5SqHtCXz3sSfUFLT2uKVdQEA/pVX+UyH6vhrQsMOjP3LdexAP+N6xgf+yEj4UhMsGRD6K
+	MG/EWEzbhYcGtwkspcIQwajPqCB1OK1IWcU5SDW0qV9sEeleQGm+6zvJPH4RgZE/kOPV38cyrbR
+	79rovfJviDI3fia7IvpYoCPSn2LqUVTaScKfWdt1ZmigxIWBCB1M4790gx8C9I2dxw0Mz7MCphY
+	x9iKGiSbcV4PzfnmJmfjyBEt5tcU+1lLbrg48ooVf6Jm1B6NQ9YgemWf7cWBgt2AEtrtTdFiZac
+	btVNMlF2JLZZMWVFKJEUpU/1XGkTQFUHRIp0De3gTNXWcre0V7MlZXo4HZ0PY1BWvGmyI1B+9OT
+	LOAR7qZyy8OIJOpKPJiBY6fvn/uIMkTLHzgbm8Mq0hHiwch4VE/c/EGkj8org/eiFi+n1L1p9TE
+	fAvszc7E1RU09e6q3r1HNhg5tcdSAmZYpXzf5KA=
+X-Received: by 2002:a05:693c:87c2:20b0:36a:6ae5:23e2 with SMTP id 5a478bee46e88-36a6ae52e67mr14054524eec.17.1793811503835;
+        Wed, 04 Nov 2026 08:58:23 -0800 (PST)
 Received: from kernel.. ([216.195.201.23])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-36ca38d46fcsm9019567eec.13.2026.11.04.08.58.06
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-36ca38d46fcsm9019567eec.13.2026.11.04.08.58.15
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 04 Nov 2026 08:58:14 -0800 (PST)
+        Wed, 04 Nov 2026 08:58:23 -0800 (PST)
 From: Kunwu Chan <kunwu.chan@gmail.com>
 To: paulmck@kernel.org,
 	boqun@kernel.org,
@@ -112,9 +112,9 @@ Cc: stern@rowland.harvard.edu,
 	linux-doc@vger.kernel.org,
 	rcu@vger.kernel.org,
 	linux-kselftest@vger.kernel.org
-Subject: [PATCH 19/28] Documentation/litmus-tests: Add hazptr drain generation-visibility test
-Date: Thu,  5 Nov 2026 00:54:37 +0800
-Message-ID: <20261104165504.2430480-20-kunwu.chan@gmail.com>
+Subject: [PATCH 20/28] locking/lockdep: Use hazptr to wait for dynamic key lookups
+Date: Thu,  5 Nov 2026 00:54:38 +0800
+Message-ID: <20261104165504.2430480-21-kunwu.chan@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20261104165504.2430480-1-kunwu.chan@gmail.com>
 References: <20261104165504.2430480-1-kunwu.chan@gmail.com>
@@ -129,77 +129,69 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Prove that the drain engage's smp_mb() publication ordering is
-correct: a release hook that observes the new drain address also
-observes the new generation counter (herd7: Never).
+Replace the system-wide synchronize_rcu_expedited() in
+lockdep_unregister_key() with a hazptr_synchronize() scoped to
+the per-key hash bucket.
 
+Suggested-by: Boqun Feng <boqun@kernel.org>
 Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
 ---
- Documentation/litmus-tests/README             |  4 ++
- .../hazptr-drain-generation-visibility.litmus | 41 +++++++++++++++++++
- 2 files changed, 45 insertions(+)
- create mode 100644 Documentation/litmus-tests/hazptr/hazptr-drain-generation-visibility.litmus
+ kernel/locking/lockdep.c | 25 +++++++++++++++----------
+ 1 file changed, 15 insertions(+), 10 deletions(-)
 
-diff --git a/Documentation/litmus-tests/README b/Documentation/litmus-tests/README
-index 604c2c0025d9..79b0634ddb13 100644
---- a/Documentation/litmus-tests/README
-+++ b/Documentation/litmus-tests/README
-@@ -123,3 +123,7 @@ hazptr-drain-resnapshot-slot-race.litmus
- hazptr-drain-safety.litmus
-     Test the engage snapshot race: the engage can miss an in-flight
-     slow-path acquire, so completion must defer on wildcards.
+diff --git a/kernel/locking/lockdep.c b/kernel/locking/lockdep.c
+index c3dc84a7cef2..256f23a9041d 100644
+--- a/kernel/locking/lockdep.c
++++ b/kernel/locking/lockdep.c
+@@ -58,6 +58,7 @@
+ #include <linux/context_tracking.h>
+ #include <linux/console.h>
+ #include <linux/kasan.h>
++#include <linux/hazptr.h>
+ 
+ #include <asm/sections.h>
+ 
+@@ -1308,14 +1309,19 @@ static bool is_dynamic_key(const struct lock_class_key *key)
+ 
+ 	hash_head = keyhashentry(key);
+ 
+-	rcu_read_lock();
+-	hlist_for_each_entry_rcu(k, hash_head, hash_entry) {
+-		if (k == key) {
+-			found = true;
+-			break;
++	{
++		struct hazptr_ctx ctx;
++		void *bucket = hash_head;
 +
-+hazptr-drain-generation-visibility.litmus
-+    Test the drain generation ordering: a release hook that observes
-+    the new drain address also observes the new generation.
-diff --git a/Documentation/litmus-tests/hazptr/hazptr-drain-generation-visibility.litmus b/Documentation/litmus-tests/hazptr/hazptr-drain-generation-visibility.litmus
-new file mode 100644
-index 000000000000..d5c1ca247d71
---- /dev/null
-+++ b/Documentation/litmus-tests/hazptr/hazptr-drain-generation-visibility.litmus
-@@ -0,0 +1,41 @@
-+C hazptr-drain-generation-visibility
-+
-+(*
-+ * Result: Never
-+ *
-+ * Drain generation visibility: the engage publishes the
-+ * generation counter before the drain address (separated by
-+ * smp_mb()).  The release hook reads the address with
-+ * smp_load_acquire().  If it observes the new address, the
-+ * subsequent generation read must also observe the new value,
-+ * so the cmpxchg compares against the correct round.
-+ *
-+ * If this were not the case, a release could read a stale
-+ * generation (from the previous drain round) while the address
-+ * already belongs to the new round, causing the cmpxchg to
-+ * succeed against the wrong round's marker and falsely
-+ * decrement the new round's backup_outstanding.
-+ *)
-+
-+{
-+	gen = 5;
-+	addr = 0;
-+}
-+
-+P0(int *gen, int *addr)
-+{
-+	WRITE_ONCE(*gen, 6);
-+	smp_mb();
-+	WRITE_ONCE(*addr, 1);
-+}
-+
-+P1(int *addr, int *gen)
-+{
-+	int r0;
-+	int r1;
-+
-+	r0 = smp_load_acquire(addr);
-+	r1 = READ_ONCE(*gen);
-+}
-+
-+exists (1:r0=1 /\ 1:r1=5)
-\ No newline at end of file
++		scoped_guard(hazptr, &ctx, &bucket) {
++			hlist_for_each_entry_rcu(k, hash_head, hash_entry, 1) {
++				if (k == key) {
++					found = true;
++					break;
++				}
++			}
+ 		}
+ 	}
+-	rcu_read_unlock();
+ 
+ 	return found;
+ }
+@@ -6717,11 +6723,10 @@ void lockdep_unregister_key(struct lock_class_key *key)
+ 	 *
+ 	 * Some operations like __qdisc_destroy() will call this in a debug
+ 	 * kernel, and the network traffic is disabled while waiting, hence
+-	 * the delay of the wait matters in debugging cases. Currently use a
+-	 * synchronize_rcu_expedited() to speed up the wait at the cost of
+-	 * system IPIs. TODO: Replace RCU with hazptr for this.
++	 * the delay of the wait matters in debugging cases. Replace the
++	 * expedited RCU wait with hazptr_synchronize().
+ 	 */
+-	synchronize_rcu_expedited();
++	hazptr_synchronize(keyhashentry(key));
+ }
+ EXPORT_SYMBOL_GPL(lockdep_unregister_key);
+ 
 -- 
 2.43.0
 
