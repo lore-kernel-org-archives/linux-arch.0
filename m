@@ -1,83 +1,83 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.177
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.179
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793811423;
-	b=Gk1Cj8ZLwvpW36nkynFXml0VPh1paU6eSlfYMRi9ZUEO6nKnQw75lMOfXjtxRVirDLO6
-	 x9Cg46UcyI0FfWS5As4MuP5uaPFYKS/3NzAJOyLOrQ7RKvywrD9BfaQg6oLTLtoA5XI20
-	 MYjJyg+d0VFW7ixeI0yRAtB5pem8QK8HnCFX+CN/WXZ89Vb0bMucjVU1MuEyw31OnxiZ2
-	 +Zph5/rpqN4EGF1Y4YMD3U1F6/rHZWgXaMi++Uxdp/kb5jomVmVFHRums2I1N3GicdzUA
-	 kB5yD5RIxEOucXKN5r8Y3ZnOrTGFqd/R9EgbWsZSTIl313mHSJ5IFyJI7mP5ceYac7Q==
+	t=1793811432;
+	b=4QnOH0AEAWmtFZfZ+zWbBYTSoYBhDpVcZREMIwyB1TRSQat66NxdLlY/oL6+BY36S1dw
+	 EdAruV27m/OGh9X7x9jg+LnAPdSW4mcP/PWUQ8J8BnZc872Yt4fm2Ktx0jMLY2nnBDKpZ
+	 bA6p1kGZy+vpITgoCBBjhfHqKkw01nnycXlbMnxhnFxIvHi7rLNazCH0upWpD+3h90Rrf
+	 zg8lOyIQV2mT2usHO+np5bGszkicqGfyMZ2qGkp1cQEWehQFMxJtw18v9mpZFXhDb7clN
+	 EO254gacs+xrfFpDKZfcZexESrhTK3eYb76aYZJibBRkBr7YES20QYDDDtoIqOG1Fxg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793811423;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793811432;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:
 	 MIME-Version:Content-Transfer-Encoding;
-	bh=cE1gnx2YHPf4MvV+vgkgPbrUeIAsuqrxUSvbmG436mE=;
-	b=C8nMQnFBm0zTA4SSltN9+24f5Dl16EO1+J/MOulbPK9Np1deXZMhbQHfoA3MqNqRpVrD
-	 SSzRrPQhXv9UJMPu4vkLmhDnh6pyBcXaqySfq7G+ozLW6JYSMwm56kyM1RWlKup5u+Ezp
-	 qooXnQfhV4hE534M3cjzxaFb2at0BceqGT4vegnM1CsejDTWbsgukzBeCgMDPF5O1ZQYm
-	 G6IibkqamxWv9vuDBDN85KTkGVnX2FlzHUs01uJ9A+qVi1qLtpSRlQrIdJPRFSN/9W/XN
-	 zSNvfgwmWzuSXbMxUVFuZja+kSo0akev089UX1TotxkdmSJ+CIAB9sf5ri3uwbdevfQ==
+	bh=tXppOOg9gP9zhrC6rnkPUZoXeQTDUJQYOVYW2OTPzPI=;
+	b=mmB8+y9CW4jDvVWojDQFISwZUaDZtI+qS3ArNVa07d7BQQhW3lrwRlyIGjxWGqwN9oLt
+	 npWvZQfNiMTKa3SnqHu53znR38/GoUBA0yytvAC3431bXlw8OwFPC2ebIfSxc1N/Lfnkj
+	 BWDbmuRK1mZ4Q13x/O0RFGhOr43rNKyNGOoHuetqoI7fsQXlsQ4JgvHHwURaUBHidQQuJ
+	 wacn7EK9bKUxIRaJmJ+KPijNIqNwn19YBm3zJhesMwaBJYOo8/hu+6ui4JGMDCE1E5NMv
+	 bUcEN+J4s4ej9YN/G0dPmyD9ztnVETRnirgPngheuL4QLkRALENGXDFMIsF5cBpjx/A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=gmail.com;
 	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=JJ0pj60V;
-	arc=none smtp.remote-ip=74.125.82.177
-Received: from mail-dy1-f177.google.com (mail-dy1-f177.google.com [74.125.82.177])
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=h4S2qj3Z;
+	arc=none smtp.remote-ip=74.125.82.179
+Received: from mail-dy1-f179.google.com (mail-dy1-f179.google.com [74.125.82.179])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D651606D804
-	for <linux-arch@vger.kernel.org>; Wed,  4 Nov 2026 16:57:02 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2D651606D804
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A2F2A606D817
+	for <linux-arch@vger.kernel.org>; Wed,  4 Nov 2026 16:57:11 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A2F2A606D817
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=JJ0pj60V
-Received: by mail-dy1-f177.google.com with SMTP id 5a478bee46e88-36a1947498bso2155169eec.1
-        for <linux-arch@vger.kernel.org>; Wed, 04 Nov 2026 08:57:02 -0800 (PST)
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=h4S2qj3Z
+Received: by mail-dy1-f179.google.com with SMTP id 5a478bee46e88-36c9a93a1abso855606eec.1
+        for <linux-arch@vger.kernel.org>; Wed, 04 Nov 2026 08:57:11 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793811421; x=1794416221; darn=vger.kernel.org;
+        d=gmail.com; s=20260707; t=1793811431; x=1794416231; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=cE1gnx2YHPf4MvV+vgkgPbrUeIAsuqrxUSvbmG436mE=;
-        b=JJ0pj60VK1r7DoFZaHKwHqiBxc1oRaBXPVkFjQBkvoDrIiYoJ93psBc1EhUEmMdHFh
-         8BI46Bo83L0XzfmoZ8pDu6RL6+vyqeatroxMvytNullkBD2YUxGSW0fEi4rD4f+d1zMK
-         u3V06xvZ5Y2estRMDBxz8JA8SeFdoY6gexd/4dfQl0R34kdrJA7L4QMt1F4SFe/hloIp
-         rA0CbnywzmhYCuJZk30wNSDjDeMlytnFn28OyGkWDyU8ro30Q2eDzi9gRbTbu4VFY6Lc
-         Zym+lYjbDGvwVYcuUGQpbATpqP26mahOG35rjXfSScsoh7OJHX2HUquyp72j+DkznzV1
-         dBwQ==
+        bh=tXppOOg9gP9zhrC6rnkPUZoXeQTDUJQYOVYW2OTPzPI=;
+        b=h4S2qj3Zw5mQsW0vUwapAB+pXGLcN8QJxvJq2jtKV39mp1Un3Bt/uQnthNho6H6T8L
+         jVe25KmCUbTodqm3XKYbmR9sDEPANyP8yYf0bXQIIlRliFQ6QuSi/aqA0vM+htGngKio
+         YlOFXqUGkMy/9ufjU7sonb51VeJRcZgWc9Sp8h8qaOvt3PcjRsWIHqgUwIJKZMllb96b
+         QiIp1Dh0FkwAeuylqmsEwRMvnH37XX0B0G5mIv+Z91y4aD6WE4MiVEiXINhkPGnMjDbQ
+         hWKsKfBmN5TOyVIlGQgSKearP35ODPiCHcvVC9fCcN4SFtryJX446kPf0shs9VayZYek
+         uJ8w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793811421; x=1794416221;
+        d=1e100.net; s=20260707; t=1793811431; x=1794416231;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=cE1gnx2YHPf4MvV+vgkgPbrUeIAsuqrxUSvbmG436mE=;
-        b=ilYLNbDAM4FXMBlFAh2p2+UUhn6t//zM9wX4ZOUh1yaoI//QQKbZINYrshFSsIcstM
-         LhkOs3xtFGBgPLQERmLEwHIGQ/5rIi6TkJvCHiapmCN4dsn6UnLApXxlrw3+E7LvxdqM
-         9nzmf78f2bT+naWtrIQXdNVkCx0hYDnNjAK/cBe590Fh3cMC1zLzXPjgifxPdAx0EQ8P
-         t1cdpQKy65l89zvo1kLQEgPGOZw0xxE2CEmpt19ETQqLKqNgzdJZSReF3ztVcbPoupok
-         jQUFk6ggcV+VekHGhjtWjfqO3HaKjmlA73ZozREkt33mwvrNX8ReESaoB+/3SoLAfo16
-         8ddg==
-X-Forwarded-Encrypted: i=1; AKwUvBy8TbFuqSaK6OPcZ0xsUtoJw8H8m65LE/xvNRQo8Btkt2vNSCNr8ZB0Q3XHUTreIRcVJgMJ10CN8KXh@vger.kernel.org
-X-Gm-Message-State: APuU4Z90gABoI1tuFAzrijQW2sZFAt137CKexwdDWx8JRj0HrYePYbLo
-	3bwUyZA0sqGlXoDF9G1ebw+kx/Rw3QHoBiKGqZGkhnHVylktWzM9uDh3
-X-Gm-Gg: AYBFou2kP+emNQTHkIYizMc8AuvSaThZHhkamJplB0oZxogM9gY0oMLSiPct1YaqHyy
-	H6SxvzpsMsE7eSVqn1JIx7SiBk3MWUJphnR0PM21KgWq/WyYmpMUWPzgzJcex/6iWSSjtocXCB+
-	9+cWbQazCu01GZKjB3hLLvWztJQe6iBnlA0SKN/9JfEr4IYgdY/bT7znHwzGf30OuUW1mPt+nyF
-	8z2fTuCfWRSU6cy8Gh4OvLEXsv5r9qqLPaLmhk9iZZmxqU7SKhj2Eg02yu3mjlfzdVDxnA46SfQ
-	na6dspBQU73PWJNR0OFB/yFRqiEZmDqkm05nrnoSKrd0uK8ovcOuKfLjj/SZqpQRJ6ReoqTqbrX
-	1jLQls/od4uuBJAjpNZ/7H6MGQA8NYe1Hw17Ikx2ViYIk4lGz5XQEFSmSzUJCF6ITGxWathlUHa
-	NtNlEjSqMldJ+96gCCUYPorBT2W9kwL1eNUx+AG+Ln9Lw6BSAircDwv0wNXt3538HfZpjMurhsA
-	OMHTRNFNWJoP5HGCXEj2KyygCN5XcVgS4zgQLfkWBa4E0lYBnq/RFJL6h/+hOZUu0FBGg42xEaM
-	vkHSYv84ZnaCcZVBVTbzO0slyuvVf1SHqOoDizs=
-X-Received: by 2002:a05:7300:cb0b:b0:36a:1c97:26e5 with SMTP id 5a478bee46e88-36a4232f2bdmr33018593eec.12.1793811420514;
-        Wed, 04 Nov 2026 08:57:00 -0800 (PST)
+        bh=tXppOOg9gP9zhrC6rnkPUZoXeQTDUJQYOVYW2OTPzPI=;
+        b=tex9U91/L/vTmsSA0Y2VgApxUpY79Xql2nVw5vlH3aT5VyfxOi1i5jo4Gjy5QviOcS
+         CtwaifSGGzTq36nxz/XM5M2xhmRn4ts2Zbl6VN3wIvrq7CrP6lujbskX8I90WluJy0vG
+         MrlzGA65VyGPcjl773+ZFzdghBQS3NwBdD7isB/On7iuibVhEPXN59BlXyrpmDBww3rs
+         pc3XhXHakol4MCnQ9i8elNADsXjOblWgdLU/qOzkcxjKCn3ejyllizDDPijrmSqzgFLy
+         TpzIRjRNoOtu2vZk6BoWDsJ5IPe92BgbBGfbt+gfIsXxchia5mE5FuWQ0/5XN1TKi4of
+         R90w==
+X-Forwarded-Encrypted: i=1; AKwUvBxWzTlYl++1y4Y3JCJejem5j99b223sQDuWLArgy4IhzV680qT/hGEJ1GRlbadUN1YSrrg70/Rk59Jo@vger.kernel.org
+X-Gm-Message-State: APuU4Z8s16K1N7+tNoY3403+uZnJ6foU45PSYPoCJz09PFgk1KbjHfPU
+	ixTWY+kVP7eki77eoJlTq3Y0xynLibzmm3b1/CtFs4LJGQlylS3/KpoZ
+X-Gm-Gg: AYBFou3WRQFxBjkR7xat8X+wDjS/epBr5umKIdL/GrKY1NXxwYOavHkr4WJ06Yr2JbS
+	u8sLeburPqmqXQl0x5DdrXdf89nMkjzujv/KoUefdACP+76V5E2Ofw8MaEMjEYWiy4rLjAeeq7T
+	zivABAF8kSjKPUXQ+7HfGBmoeU6RbjGTIEt/R74p7mfc5qfUmOwoydqkf91v3V4PtsUpwV0FP2e
+	noOCUhyol6jVM0U/O4fKBwAhXHSmpLy7UE1G/esyNZBAsKV1BJ6nKTt8CJxPEWDeAUDPRTRed0L
+	IxgXnuFQ/BGrhbf3drkV83HkPV94+f64bwcvBG1bukNgkCJoGWv1SrkJjnGUGDbfmGemmUOsGln
+	6oODiDhMo9b8FRFoqYlKZ083Zox6sdix7593baEdr2MzKq/8bEG8OtlrtsRHpROLGc/2mde/U7U
+	KJmK2Ch+669Ccun+37ch1H2AMXuw69dRf0T/GRmx7scJPL+de/A1j/HawEJLRbNfM1IhSlT5yJq
+	KPvHWwVVt00rtNB1ewK2EcLqHB1KipGBPLOzUo5lZkWKqJYsGzVSlDKyeNWVUwelkjeuKbwWRSL
+	s2/ipfOPJFnvvlIai5hnMPgnnkyWrIlsNLFOwRo=
+X-Received: by 2002:a05:7301:b82:b0:36a:2f6c:490e with SMTP id 5a478bee46e88-36de5f700bbmr85786eec.6.1793811430093;
+        Wed, 04 Nov 2026 08:57:10 -0800 (PST)
 Received: from kernel.. ([216.195.201.23])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-36ca38d46fcsm9019567eec.13.2026.11.04.08.56.51
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-36ca38d46fcsm9019567eec.13.2026.11.04.08.57.01
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 04 Nov 2026 08:57:00 -0800 (PST)
+        Wed, 04 Nov 2026 08:57:09 -0800 (PST)
 From: Kunwu Chan <kunwu.chan@gmail.com>
 To: paulmck@kernel.org,
 	boqun@kernel.org,
@@ -112,9 +112,9 @@ Cc: stern@rowland.harvard.edu,
 	linux-doc@vger.kernel.org,
 	rcu@vger.kernel.org,
 	linux-kselftest@vger.kernel.org
-Subject: [PATCH 11/28] selftests/rcutorture: Add hazptr torture test script
-Date: Thu,  5 Nov 2026 00:54:29 +0800
-Message-ID: <20261104165504.2430480-12-kunwu.chan@gmail.com>
+Subject: [PATCH 12/28] hazptr: Remove per-waiter scan fallback, simplify synchronize
+Date: Thu,  5 Nov 2026 00:54:30 +0800
+Message-ID: <20261104165504.2430480-13-kunwu.chan@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20261104165504.2430480-1-kunwu.chan@gmail.com>
 References: <20261104165504.2430480-1-kunwu.chan@gmail.com>
@@ -129,359 +129,214 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Add hazptr.sh: runs the NOPREEMPT/PREEMPT/READERS0/READERS4 basic
-scenarios, the LOCKDEP (PROVE_LOCKING + wq_churn) and SLOWPATH
-(forced slow path) combinations, the CPU-scaling sweep, and the
-HOTADDR/LONGHOLD staged scenarios, checking each console log for
-the module verdict (End of test: FAILURE), lockdep splats, and
-unexpected stall-detector reports.  Also adds the torture configs
-to CFLIST.
+With try_acquire, per-CPU slots publish their target address
+directly (no wildcard transient), so a single Bloom-walk pass
+suffices.  Drop the per-waiter exact-match fallback that
+busy-waited on remote slots; waiters whose address is in the
+Bloom filter wait for the next scan cycle.
+
+Extend hazptr_scan_walk() with an optional @watch parameter for
+exact-match lookups (used by the upcoming stall detector).
 
 Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
 ---
- .../selftests/rcutorture/bin/hazptr.sh        | 319 ++++++++++++++++++
- .../rcutorture/configs/hazptr/CFLIST          |   6 +
- 2 files changed, 325 insertions(+)
- create mode 100755 tools/testing/selftests/rcutorture/bin/hazptr.sh
+ kernel/hazptr.c | 104 +++++++++++++++++++++++++++---------------------
+ 1 file changed, 58 insertions(+), 46 deletions(-)
 
-diff --git a/tools/testing/selftests/rcutorture/bin/hazptr.sh b/tools/testing/selftests/rcutorture/bin/hazptr.sh
-new file mode 100755
-index 000000000000..4e30ea51d9fc
---- /dev/null
-+++ b/tools/testing/selftests/rcutorture/bin/hazptr.sh
-@@ -0,0 +1,319 @@
-+#!/bin/bash
-+# SPDX-License-Identifier: GPL-2.0+
-+#
-+# Run hazptr torture tests and report any that fail.
-+#
-+# Usage: hazptr.sh [ --cpus N ] [ --allcpus ] [ --datestamp string ]
-+#
-+# Copyright (C) 2026 Kunwu Chan
-+#
-+# Authors: Kunwu Chan <kunwu.chan@gmail.com>
+diff --git a/kernel/hazptr.c b/kernel/hazptr.c
+index 059c356ceaa7..4784df78be4e 100644
+--- a/kernel/hazptr.c
++++ b/kernel/hazptr.c
+@@ -39,10 +39,6 @@ struct hazptr_overflow_list {
+  * successively iterates on both lists. Therefore, only list removals
+  * can cause the iteration to retry, and the number of removals is
+  * limited to the number of list elements.
+- *
+- * Due to the overflow list raw spin lock, the hazard pointer readers are
+- * blocking, starvation-free with bounded waiting, assuming bounded critical
+- * sections and no NMI or virtualization-induced holder preemption.
+  */
+ struct hazptr_overflow_list_flip {
+ 	struct hazptr_overflow_list array[2];
+@@ -153,12 +149,12 @@ void *__hazptr_acquire(struct hazptr_ctx *ctx, void * const *addr_p)
+ EXPORT_SYMBOL_GPL(__hazptr_acquire);
+ 
+ /*
+- * Perform piecewise iteration on overflow list waiting until "addr" and
+- * wildcard are not present. Raw spinlock is released and taken between each
+- * list item and busy loop iteration. The overflow list generation is checked
+- * each time the lock is taken to validate that the list has not changed before
+- * resuming iteration or busy wait. If the generation has changed, retry the
+- * entire list traversal.
++ * Perform piecewise iteration on overflow list waiting until "addr" is
++ * not present. Raw spinlock is released and taken between each list
++ * item and busy loop iteration. The overflow list generation is checked
++ * each time the lock is taken to validate that the list has not changed
++ * before resuming iteration or busy wait. If the generation has
++ * changed, retry the entire list traversal.
+  */
+ static
+ void hazptr_synchronize_overflow_list(struct hazptr_overflow_list *overflow_list, void *addr)
+@@ -228,8 +224,8 @@ void hazptr_scan_cpu_slots(void *addr)
+ 	}
+ }
+ 
+-static
+-void hazptr_scan_overflow_list_period(void *addr, unsigned int scan_idx)
++static void __maybe_unused
++hazptr_scan_overflow_list_period(void *addr, unsigned int scan_idx)
+ {
+ 	int cpu;
+ 
+@@ -310,15 +306,28 @@ static bool hazptr_bloom_contains(const struct hazptr_bloom *bloom, void *addr)
+ }
+ 
+ /*
+- * Walk all slots and record observed non-wildcard addresses into
+- * the Bloom filter.  A single pass suffices on the try_acquire
+- * fast path (readers publish their target directly).
++ * Walk all slots and return true if @watch (non-NULL) is present.
++ * If @bloom is non-NULL, record observed non-wildcard addresses in it.
++ * A NULL @watch means pure collection mode: never early-returns on a
++ * match.
++ *
++ * A wildcard in an overflow-list slot means a slow-path acquire is in
++ * flight: that slot may resolve to any address (including @watch or a
++ * Bloom-collected one) after the walk.  To keep the single-pass
++ * completion decision safe, the caller must observe wildcards and
++ * defer completion decisions for one cycle; @wildcard (if non-NULL)
++ * is set to true in that case.  In watch mode, a wildcard also counts
++ * as "present" so exact-match callers do not complete.
+  */
+-static void hazptr_scan_walk(struct hazptr_bloom *bloom)
++static bool hazptr_scan_walk(void *watch, struct hazptr_bloom *bloom,
++			     bool *wildcard)
+ {
+ 	int cpu;
+ 
+-	hazptr_bloom_reset(bloom);
++	if (bloom)
++		hazptr_bloom_reset(bloom);
++	if (wildcard)
++		*wildcard = false;
+ 
+ 	for_each_possible_cpu(cpu) {
+ 		struct hazptr_percpu_slots *percpu_slots = per_cpu_ptr(&hazptr_percpu_slots, cpu);
+@@ -329,8 +338,11 @@ static void hazptr_scan_walk(struct hazptr_bloom *bloom)
+ 			struct hazptr_slot_item *item = &percpu_slots->items[idx];
+ 			void *v;
+ 
++			/* Pairs with smp_store_release in hazptr_release(). */
+ 			v = smp_load_acquire(&item->slot.addr);
+-			if (v && !is_wildcard(v))
++			if (watch && (v == watch || is_wildcard(v)))
++				return true;
++			if (bloom && v && !is_wildcard(v))
+ 				hazptr_bloom_add(bloom, v);
+ 		}
+ 		for (int i = 0; i < 2; i++) {
+@@ -342,16 +354,24 @@ static void hazptr_scan_walk(struct hazptr_bloom *bloom)
+ 			hlist_for_each_entry(b, &list->head, overflow_node) {
+ 				void *v;
+ 
++				/* Pairs with smp_store_release in hazptr_release(). */
+ 				v = smp_load_acquire(&b->slot.addr);
+-				if (v && !is_wildcard(v))
++				if (watch && (v == watch || is_wildcard(v))) {
++					raw_spin_unlock_irqrestore(&list->lock, flags);
++					return true;
++				}
++				if (bloom && v && !is_wildcard(v))
+ 					hazptr_bloom_add(bloom, v);
++				else if (v && is_wildcard(v) && wildcard)
++					*wildcard = true;
+ 			}
+ 			raw_spin_unlock_irqrestore(&list->lock, flags);
+ 		}
+ 	}
 +
-+usage () {
-+	echo "Usage: $scriptname optional arguments:"
-+	echo "       --cpus N       override CPU count (default: auto-detect)"
-+	echo "       --allcpus      test at CPU counts 8,16,32,...,256"
-+	echo "       --datestamp string"
-+	exit 1
-+}
-+
-+ds=`date +%Y.%m.%d-%H.%M.%S`-hazptr
-+scriptname="$0"
-+
-+RCUTORTURE="`pwd`/tools/testing/selftests/rcutorture"; export RCUTORTURE
-+PATH=${RCUTORTURE}/bin:$PATH; export PATH
-+. functions.sh
-+
-+cpus=""		# empty = let kvm.sh auto-detect
-+allcpus=0
-+
-+while test $# -gt 0
-+do
-+	case "$1" in
-+	--datestamp)
-+		checkarg --datestamp "(relative pathname)" "$#" "$2" '^[a-zA-Z0-9._/-]*$' '^--'
-+		ds=$2
-+		shift
-+		;;
-+	--cpus)
-+		checkarg --cpus "(number)" "$#" "$2" '^[0-9]\+$' '^--'
-+		cpus="$2"
-+		shift
-+		;;
-+	--allcpus)
-+		allcpus=1
-+		;;
-+	*)
-+		echo Unknown argument $1
-+		usage
-+		;;
-+	esac
-+	shift
-+done
-+
-+nerrs=0
-+
-+run_kvm () {
-+	local ds_suffix="$1"
-+	local configs="$2"
-+	local cpu_arg="$3"
-+	local kconfig="$4"
-+	local duration="${5:-5s}"
-+	local resdir="$RCUTORTURE/res/$ds/$ds_suffix"
-+
-+	mkdir -p "$resdir"
-+
-+	tools/testing/selftests/rcutorture/bin/kvm.sh \
-+		--torture hazptr \
-+		--duration "$duration" \
-+		--configs "$configs" \
-+		${cpu_arg:+--cpus "$cpu_arg"} \
-+		${kconfig:+--kconfig "$kconfig"} \
-+		--trust-make \
-+		--datestamp "$ds/$ds_suffix" > "$resdir/kvm.sh.out" 2>&1
-+	return $?
-+}
-+
-+check_lockdep () {
-+	local ds_suffix="$1" config_dir="$2" label="$3"
-+	local resdir="$RCUTORTURE/res/$ds/$ds_suffix"
-+	local console="$resdir/$config_dir/console.log"
-+
-+	if ! test -f "$console"
-+	then
-+		echo "Missing console.log for $label ($ds_suffix)" > "$resdir/kvm.sh.err"
-+		return 1
-+	fi
-+	if grep -qE "WARNING: possible (recursive locking|circular locking dependency)" "$console"
-+	then
-+		echo "Lockdep warning in $label" > "$resdir/kvm.sh.err"
-+		return 1
-+	fi
-+	return 0
-+}
-+
-+# The stall detector must not fire in normal scenarios: a splat here is
-+# either a detector false positive (deadline arithmetic, too-aggressive
-+# timeout) or a genuine kernel bug making legitimate waits exceed the
-+# timeout.  Either way, fail the test.  (HOTADDR is the positive case
-+# and is checked separately.)
-+check_stall () {
-+	local ds_suffix="$1" config_dir="$2" label="$3"
-+	local resdir="$RCUTORTURE/res/$ds/$ds_suffix"
-+	local console="$resdir/$config_dir/console.log"
-+
-+	if ! test -f "$console"
-+	then
-+		echo "Missing console.log for $label ($ds_suffix)" > "$resdir/kvm.sh.err"
-+		return 1
-+	fi
-+	if grep -q "hazptr: waiter stall" "$console"
-+	then
-+		echo "Unexpected hazptr stall splat in $label" > "$resdir/kvm.sh.err"
-+		return 1
-+	fi
-+	return 0
-+}
-+
-+# Classify the in-kernel torture verdict from the console log:
-+#   FAILURE    -- the module explicitly reported failure
-+#   INCOMPLETE -- no module verdict reached (e.g. external limit hit)
-+#   SUCCESS    -- the module explicitly reported success
-+# Only SUCCESS passes.  kvm.sh does not propagate the per-run exit
-+# status of its background kvm-test-1-run.sh jobs, so grep the
-+# console directly.
-+check_verdict () {
-+	local ds_suffix="$1" config_dir="$2" label="$3"
-+	local resdir="$RCUTORTURE/res/$ds/$ds_suffix"
-+	local console="$resdir/$config_dir/console.log"
-+
-+	if ! test -f "$console"
-+	then
-+		echo "Missing console.log for $label ($ds_suffix)" > "$resdir/kvm.sh.err"
-+		return 1
-+	fi
-+	if grep -q "End of test: FAILURE" "$console"
-+	then
-+		echo "Module verdict FAILURE in $label: $(grep -m1 "End of test: FAILURE" "$console" | cut -c1-160)" > "$resdir/kvm.sh.err"
-+		return 1
-+	fi
-+	if ! grep -q "End of test: SUCCESS" "$console"
-+	then
-+		echo "No module verdict in $label (INCOMPLETE): $(grep -m1 "MAX_LOCKDEP_KEYS\|BUG:\|hung\|Killed" "$console" 2>/dev/null | cut -c1-120)" > "$resdir/kvm.sh.err"
-+		return 1
-+	fi
-+	return 0
-+}
-+
-+# Basic torture: all hazptr configs, CPU count auto-detected
-+echo "--- hazptr basic torture${cpus:+ ($cpus CPUs)} ---"
-+if run_kvm basic "NOPREEMPT PREEMPT READERS0 READERS4" "$cpus"
-+then
-+	for cfg in NOPREEMPT PREEMPT READERS0 READERS4
-+	do
-+		check_verdict basic "$cfg" "basic/$cfg" ||
-+			nerrs=$((nerrs+1))
-+		check_stall basic "$cfg" "basic/$cfg" ||
-+			nerrs=$((nerrs+1))
-+	done
-+else
-+	nerrs=$((nerrs+1))
-+fi
-+
-+# LOCKDEP: verify no lockdep splats with PROVE_LOCKING + wq_churn
-+
-+echo "--- hazptr lockdep + wq_churn ---"
-+if run_kvm lockdep-wq LOCKDEP "$cpus"
-+then
-+	check_verdict lockdep-wq LOCKDEP "LOCKDEP wq_churn" ||
-+		nerrs=$((nerrs+1))
-+	check_lockdep lockdep-wq LOCKDEP "LOCKDEP wq_churn" ||
-+		nerrs=$((nerrs+1))
-+	check_stall lockdep-wq LOCKDEP "LOCKDEP wq_churn" ||
-+		nerrs=$((nerrs+1))
-+else
-+	nerrs=$((nerrs+1))
-+fi
-+
-+# SLOWPATH + PROVE_LOCKING: verify forced-slowpath does not deadlock
-+
-+echo "--- hazptr SLOWPATH + lockdep ---"
-+if run_kvm slowpath-lockdep SLOWPATH "$cpus" \
-+	"CONFIG_PROVE_LOCKING=y"
-+then
-+		check_verdict slowpath-lockdep SLOWPATH \
-+			"SLOWPATH+PROVE_LOCKING" ||
-+			nerrs=$((nerrs+1))
-+		check_lockdep slowpath-lockdep SLOWPATH \
-+			"SLOWPATH+PROVE_LOCKING" ||
-+			nerrs=$((nerrs+1))
-+		check_stall slowpath-lockdep SLOWPATH \
-+			"SLOWPATH+PROVE_LOCKING" ||
-+			nerrs=$((nerrs+1))
-+else
-+	nerrs=$((nerrs+1))
-+fi
-+
-+# HOTADDR: Lai-scenario documenting mode.  Starvation episodes and
-+# stall-detector splats are EXPECTED here (baseline behavior); the
-+# check verifies the scenario ran and the machinery stayed sane.
-+
-+echo "--- hazptr HOTADDR (Lai-scenario documenting) ---"
-+if run_kvm hotaddr HOTADDR "$cpus" "" "30s"
-+then
-+	resdir="$RCUTORTURE/res/$ds/hotaddr/HOTADDR"
-+	console="$resdir/console.log"
-+	hotaddr_err=""
-+	if ! test -f "$console"
-+	then
-+		echo "Missing console.log for HOTADDR" > "$RCUTORTURE/res/$ds/hotaddr/kvm.sh.err"
-+		hotaddr_err=1
-+	elif ! grep -q "End of test: SUCCESS" "$console"
-+	then
-+		echo "HOTADDR: module verdict not SUCCESS" > "$resdir/kvm.sh.err"
-+		hotaddr_err=1
-+	elif ! grep -q "hot r" "$console"
-+	then
-+		echo "HOTADDR: staged rounds not found" > "$resdir/kvm.sh.err"
-+		hotaddr_err=1
-+	fi
-+	# Independent checks: a failure must not be masked by an earlier
-+	# elif taking the note branch.
-+	if grep -q "positive control timed out" "$console" 2>/dev/null
-+	then
-+		echo "HOTADDR: positive control failure (machinery fault)" >> "$resdir/kvm.sh.err"
-+		hotaddr_err=1
-+	fi
-+	if [ -z "$hotaddr_err" ]
-+	then
-+		if ! grep -q "hazptr: waiter stall" "$console"
-+		then
-+			echo "HOTADDR note: no stall splats observed (record as not-reproduced, investigate interleaving)" > "$resdir/kvm.sh.note"
-+		else
-+			echo "HOTADDR: starvation reproduced, stall detector confirmed, drain verified"
-+		fi
-+	else
-+		nerrs=$((nerrs+1))
-+	fi
-+else
-+	nerrs=$((nerrs+1))
-+fi
-+
-+# LONGHOLD: legitimate long-lived references.  The stall detector must
-+# fire (observation), the holder must release, and the waiter must drain
-+# normally afterwards: diagnostics without interruption, module verdict
-+# stays SUCCESS.
-+
-+echo "--- hazptr LONGHOLD (legitimate long-held reference) ---"
-+if run_kvm longhold LONGHOLD "$cpus" "" "60s"
-+then
-+	resdir="$RCUTORTURE/res/$ds/longhold/LONGHOLD"
-+	console="$resdir/console.log"
-+	longhold_err=""
-+	if ! test -f "$console"
-+	then
-+		echo "Missing console.log for LONGHOLD" > "$RCUTORTURE/res/$ds/longhold/kvm.sh.err"
-+		longhold_err=1
-+	elif ! grep -q "End of test: SUCCESS" "$console"
-+	then
-+		echo "LONGHOLD: module verdict not SUCCESS" > "$resdir/kvm.sh.err"
-+		longhold_err=1
-+	elif ! grep -q "longhold drain=1" "$console"
-+	then
-+		echo "LONGHOLD: drain after release not observed" > "$resdir/kvm.sh.err"
-+		longhold_err=1
-+	fi
-+	# Independent check: the sync must drain after release; this
-+	# must not be masked by the stall-report note branch.
-+	if grep -q "longhold: sync did not drain" "$console" 2>/dev/null
-+	then
-+		echo "LONGHOLD: sync failed to drain after release" >> "$resdir/kvm.sh.err"
-+		longhold_err=1
-+	fi
-+	if [ -z "$longhold_err" ]
-+	then
-+		if ! grep -q "hazptr: waiter stall" "$console"
-+		then
-+			echo "LONGHOLD note: stall detector did not fire on a legitimate long hold" > "$resdir/kvm.sh.note"
-+		else
-+			echo "LONGHOLD: detector fired on legitimate hold, drain verified, no interruption"
-+		fi
-+	else
-+		nerrs=$((nerrs+1))
-+	fi
-+else
-+	nerrs=$((nerrs+1))
-+fi
-+
-+# CPU scaling: optionally test at multiple CPU counts
-+
-+if test "$allcpus" -ne 0
-+then
-+	max_cpus=`grep '^processor' /proc/cpuinfo 2>/dev/null | wc -l`
-+	for n in 8 16 32 64 128 256
-+	do
-+		if test "$n" -le "$max_cpus"
-+		then
-+		echo "--- hazptr CPU=$n ---"
-+		if run_kvm "cpu$n" "PREEMPT" "$n" "CONFIG_NR_CPUS=$n"
-+		then
-+			check_verdict "cpu$n" PREEMPT "cpu$n/PREEMPT" ||
-+				nerrs=$((nerrs+1))
-+			check_stall "cpu$n" PREEMPT "cpu$n/PREEMPT" ||
-+				nerrs=$((nerrs+1))
-+		else
-+			nerrs=$((nerrs+1))
-+		fi
-+		fi
-+	done
-+fi
-+
-+# Report
-+
-+if test "$nerrs" -ne 0
-+then
-+	echo "hazptr.sh: $nerrs test(s) failed"
-+	exit 1
-+fi
-+echo "hazptr.sh: all tests passed"
-+exit 0
-diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST b/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST
-index 4d62eb4a39f9..90ef09b0e654 100644
---- a/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST
-+++ b/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST
-@@ -1,2 +1,8 @@
- NOPREEMPT
- PREEMPT
-+READERS0
-+READERS4
-+SLOWPATH
-+LOCKDEP
-+CPU128
-+CPU256
++	return false;
+ }
+ 
+-/* Need is_wildcard for the Bloom filter */
+ /*
+  * Shared scan: batch concurrent hazptr_synchronize() callers into a
+  * single kthread-driven scan, avoiding redundant per-CPU and
+@@ -416,28 +436,32 @@ static void hazptr_scan_do_cycle(void)
+ 	}
+ 
+ 	/*
+-	 * Walk all slots and record observed addresses into the
++	 * Scan all slots: record observed addresses into the
+ 	 * Bloom filter, then complete waiters whose address is
+ 	 * not present.  On the try_acquire fast path, readers
+ 	 * publish their target directly (no wildcard transient),
+-	 * so a single pass suffices.
++	 * so a single pass suffices for per-CPU slots.
+ 	 */
+-	hazptr_scan_walk(&hazptr_scan.bloom);
++	{
++		bool wildcard;
+ 
+-	list_for_each_entry_safe(w, n, &hazptr_scan.scanning, node) {
+-		if (!hazptr_bloom_contains(&hazptr_scan.bloom, w->addr))
+-			list_move(&w->node, &done);
++		hazptr_scan_walk(NULL, &hazptr_scan.bloom, &wildcard);
++		/*
++		 * A wildcard in an overflow-list slot is a slow-path
++		 * acquire in flight: that slot can resolve to any
++		 * address after the walk, so defer completion
++		 * decisions to the next cycle.
++		 */
++		if (!wildcard)
++			/* Complete waiters whose address is not in the filter. */
++			list_for_each_entry_safe(w, n, &hazptr_scan.scanning, node) {
++				if (!hazptr_bloom_contains(&hazptr_scan.bloom, w->addr))
++					list_move(&w->node, &done);
++			}
+ 	}
+ 
+ 	mutex_unlock(&hazptr_phase_lock);
+ 
+-	/* Waiters still blocked: their address was observed present. */
+-	list_for_each_entry_safe(w, n, &hazptr_scan.scanning, node) {
+-		hazptr_scan_cpu_slots(w->addr);
+-		hazptr_scan_overflow_list_all(w->addr);
+-		list_move(&w->node, &done);
+-	}
+-
+ 	list_for_each_entry_safe(w, n, &done, node) {
+ 		list_del_init(&w->node);
+ 		complete(&w->done);
+@@ -496,8 +520,6 @@ core_initcall(hazptr_scan_init);
+  */
+ void hazptr_synchronize(void *addr)
+ {
+-	unsigned int scan_list_phase;
+-
+ 	/*
+ 	 * Busy-wait should only be done from preemptible context.
+ 	 */
+@@ -521,18 +543,8 @@ void hazptr_synchronize(void *addr)
+ 	}
+ 
+ 	guard(mutex)(&hazptr_phase_lock);
+-
+-	/* Scan per-CPU slots. */
+ 	hazptr_scan_cpu_slots(addr);
+-
+-	/*
+-	 * Scan overflow lists *after* scanning per-CPU slots. See
+-	 * hazptr_promote_to_backup_slot() for scan ordering requirement.
+-	 */
+-	scan_list_phase = flip_list_phase(hazptr_overflow_list_phase);
+-	hazptr_scan_overflow_list_period(addr, scan_list_phase);
+-	WRITE_ONCE(hazptr_overflow_list_phase, scan_list_phase);	/* Flip the current list phase. */
+-	hazptr_scan_overflow_list_period(addr, flip_list_phase(scan_list_phase));
++	hazptr_scan_overflow_list_all(addr);
+ }
+ EXPORT_SYMBOL_GPL(hazptr_synchronize);
+ 
 -- 
 2.43.0
 
