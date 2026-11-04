@@ -1,13 +1,13 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.96.143
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.196.85
 ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1793806823;
-	b=n7dCh0DXDoClnvAFqfmw+aj0nbma7h5CRPOh8hVDNZZXqaYq/xZY1w+rqESu+QoO5lKf
-	 KqPw4XgoUl1lsab/iNSJkiaXmHJLVGtSAHSOWMNscMtwLC1OmmeYDP1dfcp44Imatou9/
-	 dvaw3boGKxXmpsuFn2tZw44XTeWVyEgD+Rbq8l+3imzoeVtBXjAiCiij1Jzegnpxnyr11
-	 7M3s63p2WUdjbVIK4SSaAHhKZ6NoKPfpDRhnIEIsCtFLNdwcPJ3M1BlM13tCKzKehTeEw
-	 jaPAyF62fESVqVnx7O0q34azaG06sJqKsgKi70Ch+ca4TNG/Rp6OXv4pJEmSmODtK+A==
+	t=1793806818;
+	b=EYUDcdQcYkOn8yqNuL3fHIgF7BJcYE2h/nKQMnozKvA6zHK+sgo21ZufCiuy0n7p9DTp
+	 Rxo5+fLeZpEvV88MavkCQF0sx6IpBoG260Nhiszd08ule6wWuE+HET9juGMZTmVoOLZX8
+	 WG8cHDcAGw/Kx1KtQPfGA++OaVPbH6aoVg27Qvy5/4EeF+uZuZhE1vEiW8DXbU9P3pbio
+	 FaRQZE7txKmCN39ucsIXJt879vFrdORaRlgMzGy7rlSP35GbKD5YNsne7uAlg4lCQCcN8
+	 1+L9sF4qUncTOrSyWXtb5ZJciClAFlfdfAmya1GCeuSM/xFZM2WmcjT3UxZT3DgvkvA==
 ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793806823;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793806818;
 	h=DMARC-Filter:Received:Received:From:To:Cc:Subject:Date:Message-ID:
 	 X-Mailer:In-Reply-To:References:Content-Transfer-Encoding:
 	 Content-Type:X-ClientProxiedBy:MIME-Version:X-MS-PublicTrafficType:
@@ -24,45 +24,45 @@ ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
 	 X-MS-Exchange-CrossTenant-Id:X-MS-Exchange-CrossTenant-MailboxType:
 	 X-MS-Exchange-CrossTenant-UserPrincipalName:
 	 X-MS-Exchange-Transport-CrossTenantHeadersStamped;
-	bh=KO8hVHOg9q6lIBg4rQ32Kg5HWBxJeGKIG8BQZ5IBLmE=;
-	b=qyBQE0vndUQuLyQLbIqjl6lbD8hClw/hecjGi8nOfoffXEU5hA3Z8vg9i6ybDD0V8Bsw
-	 zvsjZGqlMV9O2F110NlbIfz1/wpdIxJ2vIZ9rG9bFtMvzmB3kZ0pIo5XUsvvos4P1B8Bo
-	 qQ6ShyTxFrLxlRSchfgLHk+ljdDvMQQZakfFyv9QLQo2/jHOL+TvT9w6Th1T7HGPuaU59
-	 jhc7W13P9lcCwbQJ9q4XpMv2fQt7iTkF8+I3RCRCZaMENu/SRcFowH8JGzT3VY91qOLEY
-	 nHLe3s75vIneFSZDuzXzEr8fLd+E/PkEk/lwZ4Xd+ECgMn/0on3a5Xlr8u3KfaYY1jQ==
+	bh=DkM2xNE35ry+VTqW+cDwGhBWIKN7emN3agc4i0H58/g=;
+	b=bdLIGwdyNCQtzztx1NBmVO10nOIFDGT245yhNp0SQMTC6x+HmddsXwy0jTVI/EqiWWEq
+	 DVK1/Os32U/8AKRFjipfY8MvxXQYIqfG/SBDYwIsJ1FBC+M3Yh+lp/ue56tfEi7TrU2p0
+	 o2VNdNU9EShA0l4lJZiMRuKaFKEov0C2r8nmVjlPg9Fa7cYM6IX5q0yMaUqZuNCER+TXn
+	 2Mf7IRK6rzM3yVokoI9Zfcs7+r9YkENZ2PB0+3RYNjuIo9Id+tp2ffzM1keVpYZ3IgaU8
+	 zmtq/Q4d/DFQRIN6FUba46V2+of/lMvNS+Gb2CAiNpf+rQVjinUD5FN7c5pccCJHs4Q==
 ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
 	dmarc=none header.from=atomlin.com;
 	spf=pass smtp.mailfrom=atomlin.com;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.96.143
-Received: from LO0P265CU003.outbound.protection.outlook.com (mail-uksouthazon11022143.outbound.protection.outlook.com [52.101.96.143])
+	arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.196.85
+Received: from LO3P265CU004.outbound.protection.outlook.com (mail-uksouthazon11020085.outbound.protection.outlook.com [52.101.196.85])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange ECDHE (secp384r1) server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7A181606D81D;
-	Wed,  4 Nov 2026 15:40:22 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 7A181606D81D
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1D906606A335;
+	Wed,  4 Nov 2026 15:40:17 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1D906606A335
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=atomlin.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=atomlin.com
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=HtFPUHyvudnNza/S0RlCU1OklQ1U/uVFv2XhkoHa9HXdWl3SVUENbIm+0Wf4VYE/NEw92fwjcqd80A4+Ryih6K3Zf6h7Iqar4tRvVpcDhalZfH+2I2Hy8QIelr7NM2SLy2yJPiY87xpLCSORPVT5wCN6zDY/tNjKpl1jOpWg+jq2p9Zn4czbls/tsnheHBL5000fTnAVcEqL2ZpKXwV2f4jKB2eNcohLo6Pf5KYsGdAeqx6LJCEBuRzs6/1XOFKGoIC4/2S0fT4IOHxH0PhVXv8MXx/EYI+IBYlf1Je/MdyOyP6BM7YE0Mt0k5A6J1gYdiUeGbz2HHU82Q9ViNmkIQ==
+ b=kGaPz/5U3l1i53hVeoV8GA3n2BMSZRFLdA/TI0vY//HD8cZqx+y8FRp8KP5QG8i2yMNxJYyUcsiJJJkYjCfZVHPJEnNjy6LwMrXA5HRGmxG9VyBwD+QuWJlMnPos1Bb5xq9ZWVjhTXzJijaCFq/f5xgxFxNr5S2b+RjZrCpoA231ZPPQ0+5D9LOXDkF9sTJ4Hl7o6xjPqVuAlUop5FRAeq5NUuYaDcGALRwEU3yOrZ1u7HS2X/v4oAqMFF91dySW/haGVcr/3/RfzEkvKDxHxDwMioyfSCf3a6BtC7GpjgKVZijFWLFXB0eEhcKLAV4CEJ6E03GjuPa8AIMlgyO7Lg==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001; h=From:Date:Subject:Message-ID:MIME-Version;
- bh=KO8hVHOg9q6lIBg4rQ32Kg5HWBxJeGKIG8BQZ5IBLmE=;
- b=aWheEuWwLWbZmGfUuV+QTbUGFhcwAjsctpZ2DkmYiDErQZ9QZGoTQ4M/wK/dcirJx0/KJVCNCwsxdCKkJyOsLQTwiUb03PxsWc4+nFAPO3RDQMmsUbx4LyGv40tqKdEBRfoKU4gGpJnb9nbO1UxLwqfbVr6A6azxz08ANCMVBEPlULuj2Pz8omJvCJl64Fj6xudzxELDDkTrL/scTU/ZlBCgbZTNmggYU2W1eSf8A070mGAdL2gpCAn8lbMPKWseuQwjWqzmJjENVT/FXgG6bWD7pRytlOFnX/jcWUPAYfFXqWaCzZHYJ6hsyIa6hSqKoZir3+LfznqQJtY+RcF6yQ==
+ bh=DkM2xNE35ry+VTqW+cDwGhBWIKN7emN3agc4i0H58/g=;
+ b=Su290ZZxVlzqt4GTomuYuKAgSNYs5bjlfEkK8/n8xMgCGJl5a0h+8i+KcD5h2fmISDk2I8z+vfn7T1uH8+tmUogCFLTzjylLZmo+Ei7KQJxv/jGnjsO4V3RS0qCExEYkY4nAiqDd6TgFJGgII3FxCnGi/0+sFVfaP8gyHsgHat4k9yL72BNHDnmEai9OQL5j0VR3Mvfm1SSn/FcydCDeTawp/NbBht2INw5enxGA35GVpCuydwSqtlELrzZDieU0x0ilgq2hjDdkzuZLEYp8Q3GXQ1h25GUPWGVJesSQ6p9RpVQL4Rc1/DPsGSig2+CdwjSCZOTdHfz2Jymeq6Nx0w==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=atomlin.com; dmarc=pass action=none header.from=atomlin.com;
  dkim=pass header.d=atomlin.com; arc=none
 Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
  header.d=none;dmarc=none action=none header.from=atomlin.com;
 Received: from LO2P123MB4190.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:163::8)
- by LOFP123MB303791.GBRP123.PROD.OUTLOOK.COM (2603:10a6:600:703::6) with
+ by CWLP123MB6624.GBRP123.PROD.OUTLOOK.COM (2603:10a6:400:182::14) with
  Microsoft SMTP Server (version=TLS1_2,
  cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.592.10; Wed, 4 Nov
- 2026 15:40:19 +0000
+ 2026 15:40:11 +0000
 Received: from LO2P123MB4190.GBRP123.PROD.OUTLOOK.COM
  ([fe80::f71f:a9f:c4de:687a]) by LO2P123MB4190.GBRP123.PROD.OUTLOOK.COM
  ([fe80::f71f:a9f:c4de:687a%5]) with mapi id 15.21.0592.009; Wed, 4 Nov 2026
- 15:40:19 +0000
+ 15:40:11 +0000
 From: Aaron Tomlin <atomlin@atomlin.com>
 To: arnd@arndb.de,
 	mcgrof@kernel.org,
@@ -86,16 +86,16 @@ Cc: akpm@linux-foundation.org,
 	linux-modules@vger.kernel.org,
 	rust-for-linux@vger.kernel.org,
 	linux-kernel@vger.kernel.org
-Subject: [PATCH v13 3/3] module: Rename module_blacklist to module_denylist
-Date: Wed,  4 Nov 2026 10:40:03 -0500
-Message-ID: <20261104154003.43313-4-atomlin@atomlin.com>
+Subject: [PATCH v13 1/3] module: Treat dashes and underscores interchangeably in module_blacklist
+Date: Wed,  4 Nov 2026 10:40:01 -0500
+Message-ID: <20261104154003.43313-2-atomlin@atomlin.com>
 X-Mailer: git-send-email 2.55.0
 In-Reply-To: <20261104154003.43313-1-atomlin@atomlin.com>
 References: <20261104154003.43313-1-atomlin@atomlin.com>
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain
-X-ClientProxiedBy: YQBPR0101CA0317.CANPRD01.PROD.OUTLOOK.COM
- (2603:10b6:c01:6c::11) To LO2P123MB4190.GBRP123.PROD.OUTLOOK.COM
+X-ClientProxiedBy: YQBPR01CA0167.CANPRD01.PROD.OUTLOOK.COM
+ (2603:10b6:c01:7e::23) To LO2P123MB4190.GBRP123.PROD.OUTLOOK.COM
  (2603:10a6:600:163::8)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -107,173 +107,101 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: LO2P123MB4190:EE_|LOFP123MB303791:EE_
-X-MS-Office365-Filtering-Correlation-Id: 48fd24f0-960b-4ecd-631e-08df3a89ee40
+X-MS-TrafficTypeDiagnostic: LO2P123MB4190:EE_|CWLP123MB6624:EE_
+X-MS-Office365-Filtering-Correlation-Id: c19f54e4-cf42-4e78-120a-08df3a89e9ac
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|23010399003|376014|7416014|366016|1800799024|10067099003|18002099003|22082099003|3023799007|56012099006|5023799004|261022105027099003|261022075727099003|261102123227099003|261028144727099003|261026121527099003|261026140227099003|261021123027099003|261021121427099003|261009223027099003|261009221227099003;
+	BCL:0;ARA:13230040|1800799024|366016|23010399003|7416014|376014|56012099006|261021123027099003|261021121427099003|261102123227099003|261022075727099003|261022105027099003|261028144727099003|261026140227099003|10067099003|22082099003|18002099003;
 X-Microsoft-Antispam-Message-Info:
-	1WsNH5wneLVf+/B7E/eREX9BqHknRf7G4yxsJvljfL73wYf5Op2HG7zE915etuEHSaHRLUIw8cOa3lv+mhuqq2nTRb49fmZ4uTFp9MXRENJCelL7mgYkXOs2h6WolXwF7tYIdGoIWPfqNoRYv55KiaQVb2VEAtsaN9mlIJGIjmvJdyYL+lrmXxCwuBkMnPLqr65km978lRaRXuRu0IhIDeOcP7qxSuqq1k9jt9ZtSfU5AmHI7vHUGAeyE7z6TQAJKroIiayP/gBwl7uoJDXNNROPEKBLOktsy0XTsbB1jMyGdIzvR3FdUWalCDd2pIiP+PenUY8jccPYxL7AjzSJjlghrivxQPhvllIHjI0MTpPAyc2glYqoL25zgLp9UibbbBU6MAjiDymXM8TgmHfm2expw769qHnIISoxwVBlQOBhoD8UnNGMCsf46yhlrETqVoaNI9lUU2TaQEur0g9QBADwsqqh9lYV3pqIH/EI+s/BrSpsppkMtToIJEJeaGsCqdgQyLw/xFvQ9GtNbm/E+MFMy4J+afOe7fC+s+rT5QEegxSAzfZY14jwQ42MhOKd8aIETc/QT1S5mpMpY2AGwniAHh3UYIlhczHsteKY7pL1nW+vrqc6e1efWQwWUpTLKfskydzHZzKK8VZKk2C1ZJKOW0dJQOLR+f0cAD5DG+E=
+	EFb81qNzruCxFGHv0JbYsj236A01B82SP86+w9m76dDiMyc9/enDlmIJlLNhl1HbZRZQakidy7r22QkkEJDJOus5wpTGORVCqmSj8OGGymAy7Fuwb2J9T4878jfX/5mvnU7imOPoOIgV7DwPgHOcwy+aN5NlsDXwfe5hfTjhGN90PUfPS1vVhVsAWrVGTUHrKpekyjvUPgrEC+CzrQoHrqKOpOQ3WtVemShilH3XDK2yL8IyrEZN1SZ9ARgkQCSAR8VEy7Le3nfzp2En7O1roQyYKrO70epTwkeS3gtxqm6TnZ+49dprofVdBn2Qkmw4jZoZlIP99SpM1z75B/1aZz9IlaliKwROMRmUst4aeIdv0AyiFXB1R5BZAa1wMZnsvws3iJDBpoJG1aP8kjLYO1p45jrkRcdKcIXAcDCsu93TdE63u5t6PpERehOQABjW2UAuQ4RWCgKKWWHxU099tgP73kJSHmzym69LKaXaZzZMa7EiAxXBp1CGDRTa+31dFAn4qayeP4+8Mna1fVOpyF7Zf1QUuXsESX8scJIj+GrXQ+xonSCDSaFnEJN8ip1mrmuUqhIlULicT/3o3/11TRtBGNlxtKp01Q6cd55b2GjAJ74t6mBin/SBnhdT8cc2oQGNr4X2oXCruzIyU441JMpmNlp2AL5eKu2L+yrsWAI=
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:LO2P123MB4190.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(23010399003)(376014)(7416014)(366016)(1800799024)(10067099003)(18002099003)(22082099003)(3023799007)(56012099006)(5023799004)(261022105027099003)(261022075727099003)(261102123227099003)(261028144727099003)(261026121527099003)(261026140227099003)(261021123027099003)(261021121427099003)(261009223027099003)(261009221227099003);DIR:OUT;SFP:1102;
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:LO2P123MB4190.GBRP123.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(366016)(23010399003)(7416014)(376014)(56012099006)(261021123027099003)(261021121427099003)(261102123227099003)(261022075727099003)(261022105027099003)(261028144727099003)(261026140227099003)(10067099003)(22082099003)(18002099003);DIR:OUT;SFP:1102;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?fPUpmOfkTdoLhmXcb8MY24qnwftVbN2FLl1X7p3mCkk1i3oFmd6AH0rS6qt6?=
- =?us-ascii?Q?PQebUTBhvU8v1dUpPSuWIOMq9bu/SGZOpOUYI9ImabyNiU6aqFZYKs+I9m5N?=
- =?us-ascii?Q?WWL0jFS7aQWd+dTkCw6HQ4iAkLiSuGys8PaknGIvET/IZoq2xIffqSpuyu9x?=
- =?us-ascii?Q?v+b7nURCX0kEPbgCjv1b8d1YghGWfkc0CASVS5SO6fKV9NX53EWNQhTRjYpy?=
- =?us-ascii?Q?upMhNwDMwE0sdm9TUaN/HCrkrVw4FS7M0CdpFzaB0Ulm9P7PzG9ZVscGiXyM?=
- =?us-ascii?Q?dkZvJ8nKC/kLzkiqbuGnH6YfjBzgrN5AmsEGyuDqdE6TRCOQR/cifPI2kCcA?=
- =?us-ascii?Q?uKQhIKr9HkCar8vKB/DrF7kEl4eacrhpjTCjN2mm9WgaNDfKZTzc/sS/9hwm?=
- =?us-ascii?Q?VmzdMC1jkxPjbUuCMc4l41+mVGe4LxPwEKyADjwtM4UbQCsjOSZzkdP51mtJ?=
- =?us-ascii?Q?vlSBJfYMkSfrrwGmNlbJpVDGe8A9oLVAbZS7cYd0A4XyPmW0n6GVCBApjnbh?=
- =?us-ascii?Q?faUTrOqKs1Dp+qAbNvUn2zdfgh+BNX2UYZgmrY37SqFUadXcxaVvBoZPeFS/?=
- =?us-ascii?Q?knCXmMffP9snH4i2NyQbst4GtaVhQue7TH4vL/UWSsZgjtDA+oFdsM2sEn6L?=
- =?us-ascii?Q?05sTm8SO++p/N+cqoFHQxoDxlzMvMybEPhxqrtbh3IkhL7OCCBYey+CpYI5S?=
- =?us-ascii?Q?IEm+tcnPd9PSAXjryjDHQPzZKpN75CdtKbLpWoRR8MUsXzSSDSDFngFAo7c8?=
- =?us-ascii?Q?9Plqc9SpJYznZ6m1lhIo/4+c2alSKdkLUm1bU6TsRSN0fEgZ6OwjnuufUxj4?=
- =?us-ascii?Q?z/r+5Rz6/FHpp+80cC443rWIvh5mbog8TPrLWnuO0A/2lXJzX1Bmhn146PKg?=
- =?us-ascii?Q?MsfFBExoYHPoI0bteOEqEuwY6MbKPNC50zpX0mdR7VbVNtvvHTIRWAPrBhrR?=
- =?us-ascii?Q?Fdj9VIJpx4SKy/shQhx3CNdOUQDyl+mHSi4yqpYpU58FykRFfuTB9aRpVs9S?=
- =?us-ascii?Q?sF+932nO7Pt+ddi1ruPwQ1Xd3WyX09KGb1+pgyjQU2rpabVcW8kwzGNwniu8?=
- =?us-ascii?Q?l7G6uskBiagghG8zhY515tc9k1a/6Y8DZiFVTcqTY/7i9e4ru2fCg9RxOex+?=
- =?us-ascii?Q?U2Uy/Ele8K3TL4zfvLv6XeR+inrd/Vv/ST592ziZfKzf+NKK8VOee7vIzOvU?=
- =?us-ascii?Q?a1dilq/6w7dPW4suLpm/txZeBR7qxh6/F3CDfOrbq+0naM3rA32aBMPJqzr3?=
- =?us-ascii?Q?GOrCgCmKp6PHc4wSIURj3PYVe1e5pR/856jjU4VsEsYBzr3Veq0BXsMSdfT/?=
- =?us-ascii?Q?Fh7IOHDgpZhObwS4NPHE/xK/Nz9iE9FIFHb6YPNz2PWX6DAx/XyTU6sRF8l7?=
- =?us-ascii?Q?H7wDsKt1+rLQ+9b3Hr1orXQ/ZoNtVgWVz1ObPdS4H54YaWdypAejGnuE6e3m?=
- =?us-ascii?Q?8t+OXA960qiboTF4CYqgDukhUk21HLevwUXUrhpNHMyYbczXbe4RZw4z70D1?=
- =?us-ascii?Q?XpNDlDPvMcoP2LMFTphVo0oFbCnNR1og2Dwzb0Aq0JPaMOTJxAi0cRoY9H95?=
- =?us-ascii?Q?3i8B2XMbC1LBB+Xq2KBcA5vyRXv2ET0LCU0nUidKhhf9O1XtRVswt7OQCwlm?=
- =?us-ascii?Q?UTSxdsfkHb2sacVFHR9HljBNMlKiG51Odeh9cUmc8gR3GGeDfqFMxRiPtu55?=
- =?us-ascii?Q?0xWgc44ovxevbcNRaC8GlSPvIwSk6QKmTNILu12d3Dzz6RViI5OiR46wI7EZ?=
- =?us-ascii?Q?TVX1HNNkww=3D=3D?=
+	=?us-ascii?Q?TT8Uni03nBGSM1ORxhyY2c0t0WXVGONPep1HzwR4SbArA6ekuN1qOtodPEt+?=
+ =?us-ascii?Q?YvaVOEygUNI5Q3GhazcQazwSOm+lv0MxdGTyVP9qubAvoO+hG+wSX1DzzzBw?=
+ =?us-ascii?Q?BsulkhwvSrpiUtl9yhE26F4X6QXIiHvZqy3UKKODxTL061VIvGaQjczBQu38?=
+ =?us-ascii?Q?T5Pq2QlLfHbsrH8AlUefFQtOMZfHBB+qu5gFcvdrWV2y9T2nrH7VPZorQSSf?=
+ =?us-ascii?Q?YTPY7VQFyZPx4IYc8JvfDsJ4aVVTjhiJBX+ttIsEW0T/VRBqQle76GkXsPL5?=
+ =?us-ascii?Q?jocb4OkhsPZ24VLyW/l8iKAk3+QFr5SbTU5DUtMN5P20QuUf9ZQn2RZC96TX?=
+ =?us-ascii?Q?BfDoTpkZ6C0ljzsLk7JppZ6GbFrr11oPVNFQZc7dFnpXinffvwyuEeAP3UvL?=
+ =?us-ascii?Q?EfW3oeE7qeZBPPmVkUYY5crfhqgyNtDYyaI4XjLDz0IWTScaoB/hRJ0dpQ5P?=
+ =?us-ascii?Q?W4S9efdD+kTzNT9BJ8Vd4UpK8HEz0DegpYT5nk7ruyvEwm6Zca/19dwHHXLz?=
+ =?us-ascii?Q?TQMcKVonTLMxNtOqE5NjZ6rowcuLI5+/HpmYg14dT8BJRBZNT4GEpobkKa6Y?=
+ =?us-ascii?Q?N5hFnZMUVKz0HtoA3ZKKKRfzndYH3h5UNs8ogh0Z0ZQE74dtzOcZzXRzbJJz?=
+ =?us-ascii?Q?TimjtTzaSiYepiXIVWLlLW08iFiaRnQiQUZ2O//gUwNMvu+E0Jdvr38APQUR?=
+ =?us-ascii?Q?lEey7WVXrg6O7quaDUpDzM5+7wDd+Z49qgdtpwUGQJeBNpF0HbyGFxtqlCNW?=
+ =?us-ascii?Q?9Y7YwI9JzKn5TifDFvcVOIlG+xgaBHYmRYl/uj4C7lM7Aj738c2HkIjKBntE?=
+ =?us-ascii?Q?h+V9noVWp1VGwHIhOMkrUlrDVOnRdkTrLWwRa5ey4fHfsd+rd226CVot39cQ?=
+ =?us-ascii?Q?huR+Ls3H5MRTLtCkcpmREVEW8ltS7RKH8n8q/skqoEdQpb6U/bN7TkNS/54s?=
+ =?us-ascii?Q?pMrwYqvC538109/7mkagG5f9PEc8oFBZDjd+mhS9OxJTkyV8eEu1sJ7GAYku?=
+ =?us-ascii?Q?2MeR50bJy6UYewwyb4UrUrbjpxAHkeQ9v1su3LQEgG4M1pKSnN5yvg5xeKbt?=
+ =?us-ascii?Q?2qnedI59QNaHJ77s2lxKEeIOokrN5syBdTvA/ViK8iQA5IX0L6PsyfP+TS3M?=
+ =?us-ascii?Q?m9X+B+ZNClCvtFbmA68dcjsb8Gv3gUQxYqSHxVuFjbuCy45+VW4PZAVdC8eD?=
+ =?us-ascii?Q?RQRwWdvQDAeHAKCBDikmD1E92sO5dz2exbikhi/+mY97hMgW9KZJW8/8a7eF?=
+ =?us-ascii?Q?TRs2uSyiq1sHM/iaIWAP/J2i3HNTm4knQCqXUAm7UZZDEAe//lBGo7Ko1So/?=
+ =?us-ascii?Q?yn/FyL7ZR4oWHlv6MKrU8TD2l3XyxJTEgk1tQvF07SDOueQIpVEQsnBgYQhj?=
+ =?us-ascii?Q?/W3iq93IEj3snegB581ouSHsA4utXyT4i8LBMkpU+oyzdfjfkjWENPBKbjuQ?=
+ =?us-ascii?Q?9Pf30DiZ+/f8kQWBU/zhv0Th2/yoYQbJ9Jb6TV2CU1vEFKR8fO7CQp2B3iqk?=
+ =?us-ascii?Q?gUJ0I1AgNk4vLYjuUAHPPESK0nQ1Y1+ePTx1TI8Fm4fmWjK2WScw8dn0ym7K?=
+ =?us-ascii?Q?LRiOy+nR8U+5Pk2+8GLRUgrsO02MBzzXm/lcdBTOsa8DnOjC7JYLjm0N8xbv?=
+ =?us-ascii?Q?0Bkk9K4rr3zDFc+a/djTX8C/gzIwyPYrLHfoQpD8Z4fr0UIdkfeMm4mWZZu+?=
+ =?us-ascii?Q?3FOstwvpOvGMX+sFXRF45KjtBkzb3VRxI4PAYI+TtFdHloVLOemW1HapNpvs?=
+ =?us-ascii?Q?+/8sFJHvJg=3D=3D?=
 X-OriginatorOrg: atomlin.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 48fd24f0-960b-4ecd-631e-08df3a89ee40
+X-MS-Exchange-CrossTenant-Network-Message-Id: c19f54e4-cf42-4e78-120a-08df3a89e9ac
 X-MS-Exchange-CrossTenant-AuthSource: LO2P123MB4190.GBRP123.PROD.OUTLOOK.COM
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Nov 2026 15:40:19.3988
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Nov 2026 15:40:11.7628
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: e6a32402-7d7b-4830-9a2b-76945bbbcb57
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: tBo5GACVgXk8ZglN/j+4TXygluVp1T9VtI0vjQhxNhzLGXvSio1Uz3eJrtFxUxxA9qLq+Uh4kNp+jIAJUL5w2w==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: LOFP123MB303791
+X-MS-Exchange-CrossTenant-UserPrincipalName: kUoHo8oEPLovaLklunrzqhEhbw1t3Hp1/nff/dUEV7hXAbymodpGk2aFnxRsJXSZMFDO8YfOAK74KRKcSlh56A==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CWLP123MB6624
 
-To preserve the existing user-space ABI, "module_blacklist=" is kept
-as a legacy alias pointing to the same module_denylist variable.
+The "module_blacklist=" command-line parameter allows administrators to
+prevent specific modules from loading by specifying a comma-separated
+list of module names. The blacklisted() helper checks candidate modules
+against this list using a strict byte-for-byte comparison via memcmp().
 
-This patch addresses the documentation by marking "module_blacklist="
-as deprecated in admin-guide/kernel-parameters.txt, and documents
-the new "module_denylist=" parameter. All internal symbols, such as
-module_is_blacklisted(), have been renamed to use "denylist" and all
-log messages now use "denylisted".
+However, the kernel build system normalises module names to use
+underscores (e.g., "my_module"), whereas administrators and user-space
+utilities may use hyphens (e.g., "my-module") interchangeably.
 
+Because of the strict memcmp(), specifying a module name with a hyphen
+on the kernel command line (e.g., "module_blacklist=my-module") fails
+to match the internal module name ("my_module"). Consequently, the
+module is loaded despite having been explicitly blacklisted, defeating
+the intended administrative mitigation.
+
+Replace memcmp() with parameqn(), which treats dashes and underscores as
+equivalent. This ensures that module names match correctly regardless of
+whether hyphens or underscores are supplied, matching standard kernel
+parameter and modprobe behaviour.
+
+Fixes: be7de5f91fdc ("modules: Add kernel parameter to blacklist modules")
+Reported-by: sashiko-bot <sashiko-bot@kernel.org>
+Cc: stable@vger.kernel.org
 Signed-off-by: Aaron Tomlin <atomlin@atomlin.com>
 ---
- .../admin-guide/kernel-parameters.txt         |  6 +++++-
- include/linux/module.h                        |  2 +-
- init/main.c                                   | 19 ++++++++++---------
- kernel/module/main.c                          |  4 ++--
- 4 files changed, 18 insertions(+), 13 deletions(-)
+ kernel/module/main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 6cdee2dc4193..441d50c9be13 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -4226,7 +4226,11 @@ Kernel parameters
- 			Note that if CONFIG_MODULE_SIG_FORCE is set, that
- 			is always true, so this option does nothing.
- 
--	module_blacklist=  [KNL] Do not load or initialize a comma-separated
-+	module_blacklist=  [KNL] (deprecated)
-+			This parameter has been renamed to module_denylist=.
-+			Please use module_denylist= instead.
-+
-+	module_denylist=  [KNL] Do not load or initialize a comma-separated
- 			list of loadable or built-in modules.  Useful for
- 			debugging problem modules.
- 
-diff --git a/include/linux/module.h b/include/linux/module.h
-index 98196204fe27..0fa43723429f 100644
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -892,7 +892,7 @@ static inline void add_taint_module(struct module *mod, unsigned flag,
- }
- #endif /* CONFIG_MODULES */
- 
--bool module_is_blacklisted(const char *module_name);
-+bool module_is_denylisted(const char *module_name);
- 
- #ifdef CONFIG_SYSFS
- extern struct kset *module_kset;
-diff --git a/init/main.c b/init/main.c
-index 1302fa71a733..70b5642da3d8 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -1409,17 +1409,17 @@ static inline void do_trace_initcall_level(const char *level)
- extern struct initcall_modname __start_initcall_modnames[];
- extern struct initcall_modname __stop_initcall_modnames[];
- 
--/* module_blacklist is a comma-separated list of module names */
--static char *module_blacklist;
--bool __init_or_module module_is_blacklisted(const char *module_name)
-+/* module_denylist is a comma-separated list of module names */
-+static char *module_denylist;
-+bool __init_or_module module_is_denylisted(const char *module_name)
- {
- 	const char *p;
- 	size_t len;
- 
--	if (!module_blacklist)
-+	if (!module_denylist)
- 		return false;
- 
--	for (p = module_blacklist; *p; p += len) {
-+	for (p = module_denylist; *p; p += len) {
- 		len = strcspn(p, ",");
- 		if (strlen(module_name) == len && parameqn(module_name, p, len))
- 			return true;
-@@ -1428,7 +1428,8 @@ bool __init_or_module module_is_blacklisted(const char *module_name)
- 	}
- 	return false;
- }
--core_param(module_blacklist, module_blacklist, charp, 0400);
-+core_param(module_denylist, module_denylist, charp, 0400);
-+core_param(module_blacklist, module_denylist, charp, 0400);
- 
- static const char *__init get_builtin_modname(initcall_t fn)
- {
-@@ -1445,10 +1446,10 @@ static void __init do_one_initcall_builtin(initcall_t fn)
- {
- 	const char *modname;
- 
--	if (module_blacklist) {
-+	if (module_denylist) {
- 		modname = get_builtin_modname(fn);
--		if (modname && module_is_blacklisted(modname)) {
--			pr_info("Skipping initcall for blacklisted built-in module %s\n",
-+		if (modname && module_is_denylisted(modname)) {
-+			pr_info("Skipping initcall for denylisted built-in module %s\n",
- 				modname);
- 			return;
- 		}
 diff --git a/kernel/module/main.c b/kernel/module/main.c
-index 1787c8784aa3..f52af42f5337 100644
+index 34e0204ea37c..6b1604018cc9 100644
 --- a/kernel/module/main.c
 +++ b/kernel/module/main.c
-@@ -3401,8 +3401,8 @@ static int early_mod_check(struct load_info *info, int flags)
- 	 * Now that we know we have the correct module name, check
- 	 * if it's blacklisted.
- 	 */
--	if (module_is_blacklisted(info->name)) {
--		pr_err("Module %s is blacklisted\n", info->name);
-+	if (module_is_denylisted(info->name)) {
-+		pr_err("Module %s is denylisted\n", info->name);
- 		return -EPERM;
- 	}
+@@ -2958,7 +2958,7 @@ static bool blacklisted(const char *module_name)
  
+ 	for (p = module_blacklist; *p; p += len) {
+ 		len = strcspn(p, ",");
+-		if (strlen(module_name) == len && !memcmp(module_name, p, len))
++		if (strlen(module_name) == len && parameqn(module_name, p, len))
+ 			return true;
+ 		if (p[len] == ',')
+ 			len++;
 -- 
 2.55.0
 
