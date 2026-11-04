@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793783492;
-	b=fRZXoheOCRvhYj9b/t/d7vQOWskxL87xJ4z7PgZCrOeXpDYGnFFPEzUEDuf/HsOOFc5M
-	 jCVAysWsF4zcZA8Aw1+cj8m3S4HRkbB5KIeA1lV4bRONPUnurfl9t4gVKiQ+QEz+5UCwm
-	 Ny/5CXI3JbvU18NJjN2WHJ8q2D9R+5BK2klRsSslZhgPpA8mzxv54LfMxyCNliVo9njbh
-	 TUmhKWECVMEoGdWOfZ+WEi142ANIqfgtbE1BWG1t+LU4qPYymu/GuSuu8M2uio1tY/npv
-	 nt/yQhUS3m53VnkaBBC7m+ewkba6g72xnuqNOwqgZ4t+T13xNoZjGxyoBt+q7MPq8Gw==
+	t=1793783616;
+	b=W92pZAKuig0L2syLEjrTz53SZPyR21Wod/3s8LPlCsPHWUgBhf0+a3N2E9ndRz9lRkdz
+	 WzbdrGVmg41dJKV09a5uq95Bl6c2NKuxQcnEOQVXQ9dcsOySWBPPEhTAkFRekvEzsyY/W
+	 +yTqXyTcQEwix6tXg1vmtl9tpAWynuszQC27EMiOidOPkjtbmKZx/L3RyDTy9cAXGzDfU
+	 BA3B6GiZBUGnQM9NSqPUbOwXT12SnHzpvbkmJ7KkpJVEyyKjzq3n4Ev5QlBrXetRGgiWR
+	 GGBtIkLN6GuLLyJTExuBfP7GRE8ji+dus4ha69W5LT8T+lO7Tprg3yYceRH1XL9Rm+Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793783492;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793783616;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=+BWGMpp+CGdBx3er7fkKiPSgFKGZi9UN3j89ZX4ZK/I=;
-	b=Joq1/chdARA1ty3rD8etgIYg6mYecRUhWn1aPZZxhAKiOkVuasJpM7CGZPkZUaKK01br
-	 giD+tW2aCy85xf4Z8R3fXE584NifvFgZ6WJr31uMILCaW0WVjCrIBvIv+7sORyI/1qW39
-	 5Afm9yffyLIH33Dd5DNUxS7QMEdOuEh6kx6LUOuMlJYwJ1ivxXnU623fpjeMShORDSYLq
-	 yQe+mlcEIkMK7CfoKE1MUeayaN549OnF3zQIGXuX7CykaezNWLx/du1Gj3ZFGo9n+IjPg
-	 hGov1DZuahEyz/6SJvxJeiYmyFqNogyAkcIaGL75izERgGcslgnBD1TRI1rdnVbV7sQ==
+	bh=LoVFgUlolmEAFzVK6w+JrxJ56f3iy7qOBFWwy6NZkbw=;
+	b=nkKdIpWXqlbMXOdAlLomuyyxJL2pufqJIjxOxXRRMp0KCpG4Dzs4co5lCdOHmJyFrlfQ
+	 cB/pflAvpdQLsKb/2Dn+pLLz25AxkTiHpiaR8htzalcoUDCjrgOAeZmRQKYAudhcDMgzY
+	 mD3q82YiYckbAA0d7yUtRJUC4dcweMgDVwhNCIeDcXbrP1Pe4bJYeXrTZf8EUz87hyTsh
+	 kz4s8AvwJhtUySN0VbsUPxSmPIIQxXSmjf/uzEcOIJX2QsdH4aLdRo1jITRbP8bgF+4qM
+	 jv9kyDr1NrclEMgZvms2hP0SDnmRZf3JiMqM31JFCvlg0IMbO9meAXyRG6RtBA2N8Tg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bPUGyJe8;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=dRpMfbpZ;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6FFFC606A33D;
-	Wed,  4 Nov 2026 09:11:32 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08749606A31B;
+	Wed,  4 Nov 2026 09:13:35 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bPUGyJe8
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BD4141F00A16;
-	Wed,  4 Nov 2026 09:11:16 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=dRpMfbpZ
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 943551F000C1;
+	Wed,  4 Nov 2026 09:13:18 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793783492;
-	bh=+BWGMpp+CGdBx3er7fkKiPSgFKGZi9UN3j89ZX4ZK/I=;
+	s=k20260515; t=1793783615;
+	bh=LoVFgUlolmEAFzVK6w+JrxJ56f3iy7qOBFWwy6NZkbw=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=bPUGyJe8jTsIlbF1xVTN5nX4l/yeQqqr6KUSLqOk5CwA8zaane6up/uXHy/A6ETFN
-	 8GMdYQkC/9pvmhBP2zcSqtRvRTHOksDMwvx7gtNR3V/dSa5XbcrFjusMb5bbHlPAqY
-	 FtbHm8MMjkmKP//Sey/LKddohMLPyRf4C7s+5IntPmGQ+G5m0rp18ZxLjCBmoTbsqX
-	 6+sBf9cofe3crMJ9E65oq/xyI3vlQ9WK8JdqiYXb7nE+wHWgrx4QfKgjh+C53e4xEw
-	 hQtZGro3VXx5kNioH4KUnh6d9IwsWjAmh0kD1m7YN8VI3LyBQcu4wnCHz5d6QOS+Jm
-	 8qsGDtkKaCKQw==
-Message-ID: <45508a75-7549-40e2-a71a-807a824ea026@kernel.org>
-Date: Wed, 4 Nov 2026 10:11:14 +0100
+	b=dRpMfbpZeYPKVhajyjXkLtGaqpGPvrZkk4yFqG2ypBe4K+tDcX4rTCHEt04jW5/KG
+	 2F+gxMEZuG9fPh97FKiWfCEdg8Jkd9hbf+LLNrRXCcKFvn8ZuFpn4P+uJKcQMwTJ09
+	 rh79VO2vtKtrO/B+TP5cbe5rQcohMc86qrFv09zuy8OQLIMUXYdZHWE6CAu6WuPmYE
+	 xfKiLlcRwOeZxwMqBPFoAG31ac8gFp6BGwX8n+2lfkFQTHQixGQd2zGd4yCTJ0vdqK
+	 iCa7zTYm1z7zGE+0f4dAUL13T6KfHHlugQYFxBLi62Qg3c5Sl/7BCdxw3EpxOPHEG6
+	 HvH2dL3dmOm7w==
+Message-ID: <979fb046-32dc-4af8-b6a3-177c78f1e557@kernel.org>
+Date: Wed, 4 Nov 2026 10:13:15 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,32 +52,46 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 43/47] mm/huge_memory: split huge PUDs when adjusting
- VMA boundaries
-To: Lance Yang <lance.yang@linux.dev>
-Cc: akpm@linux-foundation.org, hannes@cmpxchg.org, mhocko@kernel.org,
- qi.zheng@linux.dev, shakeel.butt@linux.dev, ljs@kernel.org,
- kasong@tencent.com, baohua@kernel.org, axelrasmussen@google.com,
- yuanchu@google.com, weixugc@google.com, baoquan.he@linux.dev,
- baolin.wang@linux.alibaba.com, liam@infradead.org, vbabka@kernel.org,
- rppt@kernel.org, surenb@google.com, mhocko@suse.com, kees@kernel.org,
- peterz@infradead.org, jannh@google.com, pfalcato@suse.de, hughd@google.com,
- pasha.tatashin@soleen.com, pratyush@kernel.org, willy@infradead.org,
- jack@suse.cz, ziy@nvidia.com, riel@surriel.com, harry@kernel.org,
- apopple@nvidia.com, nico.pache@linux.dev, ryan.roberts@arm.com,
- dev.jain@arm.com, usama.arif@linux.dev, kas@kernel.org,
- matthew.brost@intel.com, jhubbard@nvidia.com, peterx@redhat.com,
- will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com,
- osalvador@suse.de, minchan@kernel.org, muchun.song@linux.dev,
- xu.xin@linux.dev, chengming.zhou@linux.dev, chrisl@kernel.org,
- shikemeng@huaweicloud.com, nphamcs@gmail.com, youngjun.park@lge.com,
- gourry@gourry.net, joshua.hahnjy@gmail.com, rakie.kim@sk.com,
- ying.huang@linux.alibaba.com, jgg@ziepe.ca, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, kexec@lists.infradead.org,
- linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-cxl@vger.kernel.org, stable@vger.kernel.org, usama.anjum@arm.com
-References: <20261031-fixes_core-v3-43-d6437171ecc3@kernel.org>
- <20261104031245.9524-1-lance.yang@linux.dev>
+Subject: Re: [PATCH v3 18/47] mm/khugepaged: check if PTE table is empty in
+ try_collapse_pte_mapped_thp()
+To: Baolin Wang <baolin.wang@linux.alibaba.com>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+ Baoquan He <baoquan.he@linux.dev>, "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Kees Cook <kees@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>,
+ Hugh Dickins <hughd@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Pratyush Yadav <pratyush@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
+ Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
+ Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
+ <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
+ Muhammad Usama Anjum <usama.anjum@arm.com>
+References: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
+ <20261031-fixes_core-v3-18-d6437171ecc3@kernel.org>
+ <62268831-f6f3-4666-a32f-a77546b95432@linux.alibaba.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -124,40 +138,74 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20261104031245.9524-1-lance.yang@linux.dev>
+In-Reply-To: <62268831-f6f3-4666-a32f-a77546b95432@linux.alibaba.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 11/4/26 04:12, Lance Yang wrote:
+On 11/2/26 09:20, Baolin Wang wrote:
 > 
-> On Sat, Oct 31, 2026 at 10:40:12AM +0100, David Hildenbrand (Arm) wrote:
->> PFN mappings such as VFIO PCI BAR mappings can use PUD leaves while
->> allowing VMA splits at page granularity. However, vma_adjust_trans_huge()
->> only handles PMDs.
+> 
+> On 10/31/26 5:39 PM, David Hildenbrand (Arm) wrote:
+>> The existing code is rather horrible and already resulted in bugs in the
+>> past: we special-case UFFD inserting anonymous folios by grabbing the PMD
+>> lock early, but ignore any other markers (guard, poison through uffd) that
+>> could have been inserted into the page table in the meantime, effectively
+>> dropping them.
 >>
->> After faulting a writable PUD-sized VFIO BAR mapping, changing its first
->> page to read-only with mprotect() makes the PMD walk treat the PUD leaf
->> as a PMD table. Applying MADV_DONTFORK to the first PMD-sized chunk leaves
->> the PUD spanning two VMAs: the PMD-aligned boundary skips splitting.
+>> Let's just unify and simplify the locking: try to grab the PMD table
+>> lock and if that fails, flush the TLB, drop the PTE lock, take PT locks in
+>> the right order and check if the page table is still empty.
 >>
->> Walk the page tables once at each adjusted boundary and split a huge
->> PUD or PMD leaf as needed. Handle PUD leaves even when the boundary is
->> PMD-aligned.
+>> We still perform the heavy lifting (zapping the folio ptes) under PTE table
+>> lock only.
 >>
->> Fixes: f9e54c3a2f5b7 ("vfio/pci: implement huge_fault support")
->> Cc: stable@vger.kernel.org
+>> Include <linux/hugetlb.h> for now, as x86's flush_tlb_range() macro
+>> depends on hugetlb helpers. This dependency needs a separate cleanup.
+>>
+>> Both issues this fixes are rather corner cases. Let's not CC stable for
+>> now.
+>>
+>> Fixes: f807123d578d ("mm: allow guard regions in file-backed and read-only
+>> mappings")
+>> Fixes: 1043173eb5eb ("mm/khugepaged: collapse_pte_mapped_thp() with
+>> mmap_read_lock()")
+>> Tested-by: Gregory Price (Meta) <gourry@gourry.net>
+>> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
 >> Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
->> Reviewed-by: Kiryl Shutsemau (Meta) <kas@kernel.org>
 >> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 >> ---
+>>   mm/khugepaged.c | 64 ++++++++++++++++++++++++++++-----------------------------
+>>   1 file changed, 31 insertions(+), 33 deletions(-)
+>>
+>> diff --git a/mm/khugepaged.c b/mm/khugepaged.c
+>> index ce794d9760a87..ad07c8caa3bd9 100644
+>> --- a/mm/khugepaged.c
+>> +++ b/mm/khugepaged.c
+>> @@ -10,6 +10,7 @@
+>>   #include <linux/mm_inline.h>
+>>   #include <linux/kthread.h>
+>>   #include <linux/khugepaged.h>
+>> +#include <linux/hugetlb.h>
+>>   #include <linux/freezer.h>
+>>   #include <linux/mman.h>
+>>   #include <linux/hashtable.h>
+>> @@ -1832,6 +1833,17 @@ static enum scan_result set_huge_pmd(struct
+>> vm_area_struct *vma, unsigned long a
+>>       return SCAN_SUCCEED;
+>>   }
+>>   +static bool pte_table_empty(pte_t *pte)
+>> +{
+>> +    int i;
+>> +
+>> +    for (i = 0; i < HPAGE_PMD_NR; i++, pte++) {
 > 
-> Nice work!
-> 
-> Reviewed-by: Lance Yang <lance.yang@linux.dev>
+> Using PTRS_PER_PTE to iterate PTEs seems more straightforward? Otherwise LGTM.
 
-Thanks for the review! Please do keep reviewing, but note that more trailers
-(including this one) will likely not make it upstream as I am about to prepare
-the PR to get most of these things here upstream.
+As I pulled this patch out from the stable fixes, I fixed it up.
+
+I realized that this helper should likely move to some header later and be
+reused elsewehere (zap_pte_table_if_empty), but that's something for a later
+cleanup.
 
 -- 
 Cheers,
