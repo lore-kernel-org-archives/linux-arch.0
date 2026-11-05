@@ -1,46 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.119
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793850225;
-	b=MofcxFJQ8ofUSNIWc93rKZ8VuoB8rQs8zsruLTVvwt2p7H5eyeR4UAPr+WV6p/ssqVUA
-	 CA6AW22WgW9S9kZ3dKI6QFeUsWxT2+/0Ja12XapjhmE6uQhZsmdLBmwuHdwT4bPOKkQZf
-	 EVCXlsYrWE8844s86t97U1LqiIgyEl6ryv43C0rcIsVwomowJ1MYyZdMHGOLpu3V164bT
-	 qInQN/1gYV/KJRkhxwg+eaB8ajSjqr2oY6rjy5o/IJj8kwERTqGtUMbfZmlzsArAyeTfx
-	 a43rNd4htudeOX5gr1LaY66ejKeGBeulhS4ZGtA2ls4TyKk1tfaSJ9Y3UVpjLfzZ/vA==
+	t=1793853274;
+	b=lmN5CJB6k7z/xmXgw2sqK7Lnbf36d8+8I1kMcfKQ6UL/xPk6m4ywsKecE0i9QCdTXyt7
+	 fCfiYD823FqE2gEApMblYZ2xUtncGTuDp62hAFyo7V4fWnbx6aYbgu0MY4OgHP+r1e/ho
+	 OakcYjlhCfzCMBF8cof7SALIeHPj4HJtKvljpOaTj6Tt3hw7Y4isWcjzQXQnE9FggLcIN
+	 t2RFV/RAZse5+mXNtc41bqdMiS5nwKc+2IFAyBMVzf5Anri8S7pnI55IdYzf8X4gU2aJ4
+	 SbelkzgYfVdgebr6H6+aQGccIw8CzCSlR2VlL8WEe4DGYV6hz5W+Mi09mcEkAedxrww==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793850225;
-	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
-	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=VPL6FGJI6mYbfWVdagRDwQTQgREcZN8JpaFK/cgIs8Y=;
-	b=1aReeW8dRjkVkXcrwDwSKpNwR4MweNc4pIVWUXKZMyT7Ilet13V2Z55H4UoEG4t9fmjU
-	 saDn4H3QLJelql5wJ+QwcxL47uSBSyOGZs7rUpcY/+0i3ojfnPSYSXNXr53ljpMUilp3S
-	 H1u0eYItTi/Fbao/9hcEtKVBdxeb6/HkHmbYkk2/aQC1eAtQiNPvs+AwoO9/ef3Zb0mZ4
-	 6zF9+V3OdbiSJlU670fokiBr3VTWBrUn8kGU1u/0P+38jW7gJWAI82I6/spPAsXu1Y6wq
-	 2hTzidyOu6d3Vu+pFK8BPRjABudwyHLqVKVt0SXC99zl4N7zE+PQjpW4cqNm2QlknCA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793853274;
+	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
+	 MIME-Version:User-Agent:Cc:Subject:To:References:From:
+	 Content-Language:In-Reply-To:Content-Type:Content-Transfer-Encoding:
+	 X-Spam-Status:X-Spam-Checker-Version;
+	bh=uybwsAJQuB7JYpjUDH4A7OxDLSrNrGRSbd7CyU7FLoA=;
+	b=DiJ9Ia5o0rbYgVnMe9iSCqMvmYB+aiROGJ6s63PtcENorza1evDjJXOF2WFaQZqLFIHA
+	 VR6eLt92+fI3PnqkkB3aSVESTgw9l9Ob7pl7hCPyAhgXUl218gzdoMi4J7dREf/A9OLXX
+	 sOQplzmcMAQywstz4Ylio7zRBwOQZEFZQnP4RfNt/G+PVfJcz9vxvI89Rv1Q+fH5u6iD4
+	 teb2wbDJsx7hONcWnw3zkslu3mOYG1dvb3YDJ0pb1anw7rmUCrGH3CbTj/e1ftQiG6S41
+	 +BzUgPn1YnV+uOi45wwGeA15aOKj4RadvIVebRNNlay5WYDsyFxizrPsTW5CQb5IMSg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.alibaba.com;
-	spf=pass smtp.mailfrom=linux.alibaba.com;
-	arc=none smtp.remote-ip=115.124.30.119
-Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F923606A31B;
-	Thu,  5 Nov 2026 03:43:36 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3F923606A31B
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1793850209; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=VPL6FGJI6mYbfWVdagRDwQTQgREcZN8JpaFK/cgIs8Y=;
-	b=df7ctmeMETF2xxJwENMAiPw5tB/yyYrAVCP9Ji9c/Agd9scTxdOcVj2cILeacTPjQ68gD4yEHtiCiDxFR/C1UjO9Nj6uhsYO8P3rnc+2SkTZn8BBKH8Qy8wKs5FijRqp9tpIy377D2X9GWps7SuCH0Chdn4NTV4kCewHhVkv5Xc=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R771e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=baolin.wang@linux.alibaba.com;NM=1;PH=DS;RN=64;SR=0;TI=SMTPD_---0XE7Nmrn_1793850203;
-Received: from 30.74.144.136(mailfrom:baolin.wang@linux.alibaba.com fp:SMTPD_---0XE7Nmrn_1793850203 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 05 Nov 2026 11:43:26 +0800
-Message-ID: <d0f78f0f-c883-4919-a416-fe738eb7323a@linux.alibaba.com>
-Date: Thu, 5 Nov 2026 11:43:22 +0800
+	dmarc=pass header.from=linux.microsoft.com;
+	spf=pass smtp.mailfrom=linux.microsoft.com;
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=IBI1fbuT;
+	arc=none smtp.remote-ip=13.77.154.182
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 0420E606A335;
+	Thu,  5 Nov 2026 04:34:33 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0420E606A335
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=IBI1fbuT
+Received: from [192.168.166.159] (unknown [67.168.101.66])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 26DFC20B7168;
+	Wed,  4 Nov 2026 20:34:17 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 26DFC20B7168
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1793853257;
+	bh=uybwsAJQuB7JYpjUDH4A7OxDLSrNrGRSbd7CyU7FLoA=;
+	h=Date:Cc:Subject:To:References:From:In-Reply-To:From;
+	b=IBI1fbuTwD+Mh2OnOY0JrkHzfSgXQNIRc7sEUtfZifblMLrC5P0ImROdvMimnb8/s
+	 r2jdnbTxTYBTdXcVgT4dWaIYMd6ZJ90dyFGZ2pfZkk+CKtaXbSyHV+aJvfL5HOBW0G
+	 MTD+MmvCwofQHLzmOMtERvlFNs55y3S0+4P2RqwE=
+Message-ID: <9558730f-42d5-4d90-8fe8-f6d1c150164f@linux.microsoft.com>
+Date: Wed, 4 Nov 2026 20:34:32 -0800
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -51,120 +54,85 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 18/47] mm/khugepaged: check if PTE table is empty in
- try_collapse_pte_mapped_thp()
-To: "David Hildenbrand (Arm)" <david@kernel.org>,
- Andrew Morton <akpm@linux-foundation.org>,
- Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
- Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
- Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
- Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
- Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
- Baoquan He <baoquan.he@linux.dev>, "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- Kees Cook <kees@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>,
- Hugh Dickins <hughd@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
- Pratyush Yadav <pratyush@kernel.org>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
- Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
- Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
- Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
- Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
- Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
- Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
- Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
- Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
- Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
- Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
- Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
- Jason Gunthorpe <jgg@ziepe.ca>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
- Muhammad Usama Anjum <usama.anjum@arm.com>
-References: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
- <20261031-fixes_core-v3-18-d6437171ecc3@kernel.org>
- <62268831-f6f3-4666-a32f-a77546b95432@linux.alibaba.com>
- <979fb046-32dc-4af8-b6a3-177c78f1e557@kernel.org>
-From: Baolin Wang <baolin.wang@linux.alibaba.com>
-In-Reply-To: <979fb046-32dc-4af8-b6a3-177c78f1e557@kernel.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Cc: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+ iommu@lists.linux.dev, linux-arch@vger.kernel.org,
+ easwar.hariharan@linux.microsoft.com, jgg@nvidia.com,
+ jacob.pan@linux.microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
+ decui@microsoft.com, tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
+ dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com, joro@8bytes.org,
+ will@kernel.org, robin.murphy@arm.com, arnd@arndb.de
+Subject: Re: [PATCH V4 4/5] iommu/hyperv: Only call pviommu init on non-root
+ VMs
+To: Mukesh R <mrathor@linux.microsoft.com>
+References: <20261105020106.3496339-1-mrathor@linux.microsoft.com>
+ <20261105020106.3496339-5-mrathor@linux.microsoft.com>
+From: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+Content-Language: en-US
+In-Reply-To: <20261105020106.3496339-5-mrathor@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
+On 11/4/2026 18:01, Mukesh R wrote:
+> Next patch introduces root iommu init. Since both can co-exist, set
+> x86 iommu_init to pviommu init only on non-root VMs. Also, rename
+> hv_iommu_init() to hv_pviommu_init().
 
+[...]Lastly, check for null iommu_init
+> before assignement as suggested by one of the pviommu authors.
 
-On 11/4/26 5:13 PM, David Hildenbrand (Arm) wrote:
-> On 11/2/26 09:20, Baolin Wang wrote:
->>
->>
->> On 10/31/26 5:39 PM, David Hildenbrand (Arm) wrote:
->>> The existing code is rather horrible and already resulted in bugs in the
->>> past: we special-case UFFD inserting anonymous folios by grabbing the PMD
->>> lock early, but ignore any other markers (guard, poison through uffd) that
->>> could have been inserted into the page table in the meantime, effectively
->>> dropping them.
->>>
->>> Let's just unify and simplify the locking: try to grab the PMD table
->>> lock and if that fails, flush the TLB, drop the PTE lock, take PT locks in
->>> the right order and check if the page table is still empty.
->>>
->>> We still perform the heavy lifting (zapping the folio ptes) under PTE table
->>> lock only.
->>>
->>> Include <linux/hugetlb.h> for now, as x86's flush_tlb_range() macro
->>> depends on hugetlb helpers. This dependency needs a separate cleanup.
->>>
->>> Both issues this fixes are rather corner cases. Let's not CC stable for
->>> now.
->>>
->>> Fixes: f807123d578d ("mm: allow guard regions in file-backed and read-only
->>> mappings")
->>> Fixes: 1043173eb5eb ("mm/khugepaged: collapse_pte_mapped_thp() with
->>> mmap_read_lock()")
->>> Tested-by: Gregory Price (Meta) <gourry@gourry.net>
->>> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
->>> Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
->>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->>> ---
->>>    mm/khugepaged.c | 64 ++++++++++++++++++++++++++++-----------------------------
->>>    1 file changed, 31 insertions(+), 33 deletions(-)
->>>
->>> diff --git a/mm/khugepaged.c b/mm/khugepaged.c
->>> index ce794d9760a87..ad07c8caa3bd9 100644
->>> --- a/mm/khugepaged.c
->>> +++ b/mm/khugepaged.c
->>> @@ -10,6 +10,7 @@
->>>    #include <linux/mm_inline.h>
->>>    #include <linux/kthread.h>
->>>    #include <linux/khugepaged.h>
->>> +#include <linux/hugetlb.h>
->>>    #include <linux/freezer.h>
->>>    #include <linux/mman.h>
->>>    #include <linux/hashtable.h>
->>> @@ -1832,6 +1833,17 @@ static enum scan_result set_huge_pmd(struct
->>> vm_area_struct *vma, unsigned long a
->>>        return SCAN_SUCCEED;
->>>    }
->>>    +static bool pte_table_empty(pte_t *pte)
->>> +{
->>> +    int i;
->>> +
->>> +    for (i = 0; i < HPAGE_PMD_NR; i++, pte++) {
->>
->> Using PTRS_PER_PTE to iterate PTEs seems more straightforward? Otherwise LGTM.
+You no longer do this below. Also, please wait a week or so before spinning
+a new revision to collect additional comments.
+
+With that fixed,
+
+Reviewed-by: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+
 > 
-> As I pulled this patch out from the stable fixes, I fixed it up.
+> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+> ---
+>  arch/x86/hyperv/hv_init.c             | 3 ++-
+>  arch/x86/include/asm/mshyperv.h       | 2 +-
+>  drivers/iommu/hyperv/hv-iommu-guest.c | 2 +-
+>  3 files changed, 4 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+> index b90e6f487533..ea50708c3ae6 100644
+> --- a/arch/x86/hyperv/hv_init.c
+> +++ b/arch/x86/hyperv/hv_init.c
+> @@ -580,7 +580,8 @@ void __init hyperv_init(void)
+>  	x86_init.timers.setup_percpu_clockev = hv_stimer_setup_percpu_clockev;
+>  
+>  #ifdef CONFIG_HYPERV_PVIOMMU
+> -	x86_init.iommu.iommu_init = hv_iommu_init;
+> +	if (!hv_root_partition())
+> +		x86_init.iommu.iommu_init = hv_pviommu_init;
+>  #endif
+>  
+>  	hv_apic_init();
+> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+> index 24b19cd28a05..c95d75ae645e 100644
+> --- a/arch/x86/include/asm/mshyperv.h
+> +++ b/arch/x86/include/asm/mshyperv.h
+> @@ -320,7 +320,7 @@ static inline void __mshv_vtl_return_call(struct mshv_vtl_cpu_context *vtl0) {}
+>  #endif
+>  
+>  #ifdef CONFIG_HYPERV_PVIOMMU
+> -int __init hv_iommu_init(void);
+> +int __init hv_pviommu_init(void);
+>  #endif
+>  
+>  #include <asm-generic/mshyperv.h>
+> diff --git a/drivers/iommu/hyperv/hv-iommu-guest.c b/drivers/iommu/hyperv/hv-iommu-guest.c
+> index 876a22f21f1e..a40a8ceb3261 100644
+> --- a/drivers/iommu/hyperv/hv-iommu-guest.c
+> +++ b/drivers/iommu/hyperv/hv-iommu-guest.c
+> @@ -601,7 +601,7 @@ hv_init_iommu_device(struct hv_iommu_dev *hv_iommu,
+>  	hv_iommu_device = hv_iommu;
+>  }
+>  
+> -int __init hv_iommu_init(void)
+> +int __init hv_pviommu_init(void)
+>  {
+>  	u64 status;
+>  	int ret = 0;
 
-Thanks.
-
-> I realized that this helper should likely move to some header later and be
-> reused elsewehere (zap_pte_table_if_empty), but that's something for a later
-> cleanup.
-
-Indeed.
