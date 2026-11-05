@@ -1,49 +1,49 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793884249;
-	b=P783EMoPMmJgt/TmWoBw49I/lGg8GFYOXy7SZS9S66qrBbem7MiZQSOAJvEvoLpnAYRj
-	 ycrD+orH7FukZn9WBiIoNhuWOhbQHnpDHCgFw23Bp5VvqPoCRGwiAJ4KqxIeT7N6ZxtoA
-	 WW3jFqY1GV9Fa7UO9W5oYxhkBa5Q7MqjFG189UzL7hhXg4Erwxwb9AScvWoYsKqSArSMg
-	 P1aHWurNRYtP1qXtWIGJpnQRzmyMQsNhxxzjddoKs+6kOfKr3e116wjsLHgXY7yNEZ1Ky
-	 EFJ5nLAAzZXyEsSvix6/zXEPp4P21WYLyQIQevutys22rpb9tZr+NYmpPz6YYJyh0cQ==
+	t=1793884268;
+	b=UncyaDcvmOwK/wCM1MHE9ds0HlKtvaRv7hLll2UCNdQOHYuIWgSsspgWOygCnEdm4ZUR
+	 L9brXs5XH9PkQAfW3OSFI1a6uo0kcS1Vwd+28J9b1g34vLlDuhU5Z6wTsW7VxsY75udJc
+	 PtFt6Bfn14MGYQKlVKxT4iUV/4w0naXVlBchJ3K/LSKCdkBQj+m00eUPB7OVaPgjYOR97
+	 L7lDPHLqRawfRaLCodyqRNwJwPAsr2KvsC0av8CpbK6KFWVvEXq+wlFMd8YwMkTnIiNSl
+	 4kQIPvuJxdPOWYQhUJ21kkAMckmiGdxo4jdzgD0CNNNF45DvKHVi1oGSajsD2pKJiXA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793884249;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793884268;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=R1iaS7pxTq1YBHZDyspJs0dpXEY7StT0kkQshxwr2aA=;
-	b=cz2A2/6M5iE1VYumtReU0c5dzjAYbSynrp0Y2nnRKSN+Jv5HQJLmqchy4zb8f0zJWkoe
-	 kXX+8e8MAA6XgiF4f4R1sHh1l1tQ2bweV7rOHMn4vAM66GnoUxGOlo2fVXYIQGAcmE7Ma
-	 BUO2vvyALc3gXTdNx8kBUTka4Idztz6RCR5PNKCx+D7YdyMhR7gTDnjk0HZigDaRDrdhZ
-	 DXrIAvgsBi3nSzM+Q78fLFn2tjIwSeES1Oatb54d3QNnnRPgs9WT8lTyuV1mZm+o5DVTT
-	 eEES7HcBGCLsUisR7sEm+mSfQriuIVxez7mXoecm8g6L9BT7w5zPBjtB+CQrK2nR1mQ==
+	bh=KCJIKkyLRcnhroO1aaONY++L92KXRYW5XDFDK8Wryfs=;
+	b=Uo16S2Qkb8h1EfrxVT9gyNnbteQ7Rr0Fze41KJUILE7qm1mzyzkFGcehspGmKYLtWPnC
+	 gOLZU+JjCC6LSOeR43YBg16K/4D7dHdwp/rUuWhIF70SulmoWE4hgpVNvERBytRm9UI22
+	 PZORlXAyXw9JgoosDvHTwtkbl+pN+zRaKSNFISMptYL1A5xkUDpH5ASjU9XXA6oLWKwu7
+	 UZSSJA1RNs0t2UOoCAwvu4OcNcZQrE3p5xMN4tRicrauqBEhmmTP5AZnxZymYuzIQVr2N
+	 tjAZnQBF0Fhd/AXbAFuRTRUAwsjX0WcWMWW3V1/bd8Ft3QAAtgg6drOGDyvyHvA8kVA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="F3f/VwnP";
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=mVrw6HHV;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 38B4B606A32D;
-	Thu,  5 Nov 2026 13:10:48 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 51DC0606A32D;
+	Thu,  5 Nov 2026 13:11:08 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=F3f/VwnP
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 456FC1F00A15;
-	Thu,  5 Nov 2026 13:10:39 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=mVrw6HHV
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 390651F000C1;
+	Thu,  5 Nov 2026 13:10:57 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793884248;
-	bh=R1iaS7pxTq1YBHZDyspJs0dpXEY7StT0kkQshxwr2aA=;
+	s=k20260515; t=1793884268;
+	bh=KCJIKkyLRcnhroO1aaONY++L92KXRYW5XDFDK8Wryfs=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=F3f/VwnPu04LnZzWyr4Ia4UOIe5utTPhGLEtSJh1SqeElGu1gCesnH5rre9xAB+bp
-	 QwDwK8WstTrGd28xcMJHGxZKaNcY03hk3IeONTxDsD5dG0cN4w2kTnUAkJztduLBK4
-	 PnEDs8EXg4JBG1aBM5oWyLk2ocDTbBQm8/EHMloh6SSkWpwZi+Yv0RKSR89EbFlwY3
-	 vWHydrYSXA6VlTp5u3NsVnkOwouQr/+Z86PZt6pQLyyrWs69OgL/8xpke7mKYvAad1
-	 sZI2CNXm7TbzH07tw1FlPJ1SoUgV2Mqy9PqGqoOZgSiDDb08Dsx3ne392X4jwr0gIL
-	 bNZoy8UNYlGwA==
+	b=mVrw6HHV+bupF80pNKlnzcHxZw7ocqJUw/vupnR9C6ML8QwB2ebc8FIKYBQGXMg03
+	 AmLAafGsgoET5s5J7aC2Uhm9bA1+jRFQXsPZbz0ViqK426+QPJab6y/dIiuiPtzkBW
+	 qwU5R30Xe6wdVFOjA3awVfFYZZg040ThA3bZhNUI+yzPM07XXLKG7a+6eJEiqaUEe5
+	 HlpkZHYAeQwU9q7oMs0L0FbS5ekVtDfvcU32wh2CP20ffvo0b9SSJXzbsefbmSrWKX
+	 7Kxb8btNKdCjJozD1GqxSDedQ4ioKKWr05D5rzTQfPKB6PnB/ILLTuIhZyBnOicXuz
+	 hF0wsoc9x7VuA==
 From: "David Hildenbrand (Arm)" <david@kernel.org>
-Date: Thu, 05 Nov 2026 14:10:11 +0100
-Subject: [PATCH 2/5] mm: limit pagecache folio refcount when splicing into
- pipes
+Date: Thu, 05 Nov 2026 14:10:13 +0100
+Subject: [PATCH 4/5] iommufd: fix cleanup when adding memfd folio pins
+ fails
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -55,7 +55,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261105-refcount_overflow_stable-v1-2-70b9c655da3e@kernel.org>
+Message-Id: <20261105-refcount_overflow_stable-v1-4-70b9c655da3e@kernel.org>
 References: <20261105-refcount_overflow_stable-v1-0-70b9c655da3e@kernel.org>
 In-Reply-To: <20261105-refcount_overflow_stable-v1-0-70b9c655da3e@kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, 
@@ -85,90 +85,110 @@ Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
  iommu@lists.linux.dev, "David Hildenbrand (Arm)" <david@kernel.org>, 
  stable@vger.kernel.org
 X-Mailer: b4 0.16.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2550; i=david@kernel.org;
- h=from:subject:message-id; bh=HeWasX6+2Sb8yH40ZbaSQQX7qw4+HNYtLsd9jtSfniY=;
- b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLLeNFiqbmVpubH3yal3z2PnOTmfnbnlyMRdb9R0tUXj4
- 593nWIq7ihlYRDjYJAVU2QJCr5v8PLlutpqNz5mmDmsTCBDGLg4BWAi1W0Mf3iTuydduqH4dBPr
- 4WKrx/1TbI/s+SRkcjUnuGRC55Hjy/4w/A+7c0c98ctFqUM1IVq+DGc8N0ZvDNctjJji62Yk84T
- tODMA
+X-Developer-Signature: v=1; a=openpgp-sha256; l=3513; i=david@kernel.org;
+ h=from:subject:message-id; bh=xhwhJlBPehyF74AdW/XvbNaMmG2B0qFeGlvJE2A5afE=;
+ b=owGbwMvMwCF2/OVpCdfQ3ZWMp9WSGLLeNFiGOoi/Tqjd2rLuo3LI1uLV80+ylDX63QtS+rj86
+ OueK6VRHaUsDGIcDLJiiixBwfcNXr5cV1vtxscMM4eVCWQIAxenAExE6DbDfz/rnLXTG9YuvdW2
+ v51td9KxD6+qG2787ev49NvQfrud2EmG//4fPNv0dn6R3P9i937u91PqfXfvuqq7qbV7yhZB1rP
+ durwA
 X-Developer-Key: i=david@kernel.org; a=openpgp;
  fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-Similar to mapping pagecache folios into page tables, let's reject splicing
-folios into a pipe if the refcount is at it's limit, similar to how we
-handle it during GUP.
+folio_add_pins() can fail after memfd_pin_folios() succeeded pinning a
+folio. Upcoming folio refcount limit checks will make this easier to
+trigger.
 
-This will prevent more cases of possible folio refcount overflows with
-large pagecache folios.
+Let's fix three problems in the error handling:
 
-Let's keep it simple and check in the two callers of
-splice_folio_into_pipe().
+1. pfn_reader_release_pins() uses the allocated array size instead of the
+   number of folios returned by memfd_pin_folios(). With large folios,
+   cleanup can unpin uninitialized entries. Remember the number of returned
+   folios and use that during cleanup.
 
-Also check in try_get_page() to cover pipe-buffer duplication by tee()
-and partial pipe-to-pipe splicing.
+2. pin_memfd_pages() returns on failure without releasing the pins acquired
+   by the current call. Release the per-page pins for folios already
+   expanded into the page array, and the single pins for the remaining
+   folios.
 
-Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
-Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
-Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
+3. pfn_reader_next() returns on failure before updating batch_end_index,
+   even if the batch already contains successfully expanded folios. Update
+   it before propagating the error so cleanup releases those pins as well.
+
+Fixes: 92687c793644 ("iommufd: pfn_reader for file mappings")
 Cc: stable@vger.kernel.org
 Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 ---
- include/linux/mm.h | 9 ++++++---
- mm/filemap.c       | 4 ++++
- mm/shmem.c         | 4 ++++
- 3 files changed, 14 insertions(+), 3 deletions(-)
+ drivers/iommu/iommufd/pages.c | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 79ae8fc0d6bb4..a82cfbce18215 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2287,10 +2287,13 @@ static inline void get_page(struct page *page)
- 
- static inline __must_check bool try_get_page(struct page *page)
- {
--	page = compound_head(page);
--	if (WARN_ON_ONCE(page_ref_count(page) <= 0))
-+	struct folio *folio = page_folio(page);
-+
-+	if (WARN_ON_ONCE(folio_ref_count(folio) <= 0))
- 		return false;
--	page_ref_inc(page);
-+	if (unlikely(folio_ref_count_over_limit(folio)))
-+		return false;
-+	folio_ref_inc(folio);
- 	return true;
+diff --git a/drivers/iommu/iommufd/pages.c b/drivers/iommu/iommufd/pages.c
+index 2f6153108add7..fcdbde007a9ab 100644
+--- a/drivers/iommu/iommufd/pages.c
++++ b/drivers/iommu/iommufd/pages.c
+@@ -781,6 +781,7 @@ struct pfn_reader_user {
+ 	struct file *file;
+ 	struct folio **ufolios;
+ 	size_t ufolios_len;
++	unsigned long ufolios_count;
+ 	unsigned long ufolios_offset;
+ 	struct folio **ufolios_next;
+ };
+@@ -800,6 +801,7 @@ static void pfn_reader_user_init(struct pfn_reader_user *user,
+ 	user->file = (pages->type == IOPT_ADDRESS_FILE) ? pages->file : NULL;
+ 	user->ufolios = NULL;
+ 	user->ufolios_len = 0;
++	user->ufolios_count = 0;
+ 	user->ufolios_next = NULL;
+ 	user->ufolios_offset = 0;
  }
+@@ -843,6 +845,7 @@ static long pin_memfd_pages(struct pfn_reader_user *user, unsigned long start,
  
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 920bbf86dfdff..0f2ec790a5b65 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -3168,6 +3168,10 @@ ssize_t filemap_splice_read(struct file *in, loff_t *ppos,
- 			if (writably_mapped)
- 				flush_dcache_folio(folio);
+ 	offset >>= PAGE_SHIFT;
+ 	user->ufolios_next = user->ufolios;
++	user->ufolios_count = nfolios;
+ 	user->ufolios_offset = offset;
  
-+			if (unlikely(folio_ref_count_over_limit(folio))) {
-+				error = -ENOMEM;
-+				goto out;
-+			}
- 			n = min_t(loff_t, len, isize - *ppos);
- 			n = splice_folio_into_pipe(pipe, folio, *ppos, n);
- 			if (!n)
-diff --git a/mm/shmem.c b/mm/shmem.c
-index cda1a0f7db99d..1c0f6bceac486 100644
---- a/mm/shmem.c
-+++ b/mm/shmem.c
-@@ -3819,6 +3819,10 @@ static ssize_t shmem_file_splice_read(struct file *in, loff_t *ppos,
- 			 * Ok, we have the page, and it's up-to-date, so we can
- 			 * now splice it into the pipe.
- 			 */
-+			if (unlikely(folio_ref_count_over_limit(folio))) {
-+				error = -ENOMEM;
-+				break;
-+			}
- 			n = splice_folio_into_pipe(pipe, folio, *ppos, part);
- 			folio_put(folio);
- 			folio = NULL;
+ 	for (i = 0; i < nfolios; i++) {
+@@ -859,8 +862,12 @@ static long pin_memfd_pages(struct pfn_reader_user *user, unsigned long start,
+ 			} else {
+ 				int rc = folio_add_pins(folio, npin - 1);
+ 
+-				if (rc)
++				if (rc) {
++					unpin_user_pages(user->upages,
++							 upages - user->upages);
++					unpin_folios(user->ufolios + i, nfolios - i);
+ 					return rc;
++				}
+ 
+ 				while (npin--)
+ 					*upages++ = folio_page(folio, offset++);
+@@ -1251,14 +1258,14 @@ static int pfn_reader_next(struct pfn_reader *pfns)
+ 			return -EINVAL;
+ 
+ 		rc = pfn_reader_fill_span(pfns);
++		pfns->batch_end_index = pfns->batch_start_index +
++					pfns->batch.total_pfns;
+ 		if (rc)
+ 			return rc;
+ 
+ 		if (WARN_ON(!pfns->batch.total_pfns))
+ 			return -EINVAL;
+ 
+-		pfns->batch_end_index =
+-			pfns->batch_start_index + pfns->batch.total_pfns;
+ 		if (pfns->batch_end_index == pfns->span.last_used + 1)
+ 			interval_tree_double_span_iter_next(&pfns->span);
+ 
+@@ -1320,7 +1327,7 @@ static void pfn_reader_release_pins(struct pfn_reader *pfns)
+ 		if (!user->file) {
+ 			unpin_user_pages(user->upages + start_index, npages);
+ 		} else {
+-			long n = user->ufolios_len / sizeof(*user->ufolios);
++			const unsigned long n = user->ufolios_count;
+ 
+ 			unpin_folios(user->ufolios_next,
+ 				     user->ufolios + n - user->ufolios_next);
 
 -- 
 2.43.0
