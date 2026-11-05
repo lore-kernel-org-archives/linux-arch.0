@@ -1,73 +1,46 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.119
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793844082;
-	b=sxcukLW6Tkm5G5smZXhQpVsw+MiYIjseSxCj6Dtd/tjhB8GB3UwAZPZxovrIO4l2DV+u
-	 dVfPJEHgTKoKSVR+IFNoyFtjLYcG76b2uA2aSSNFZMQKqMHRgD69NBdPJPGy8bPgcY37+
-	 zf1N/iG0U+21WL8Gir/O1zA4bPcd2X0ePEVleCLuLvKFISlkBszFvD1+QchRoNkay8RUb
-	 VThansLNlEBKAtcAG7WRptsUaVKzpTZmhxeNtNaZ5VPCp3JaPfoAXdJwVWlViuQs+7etf
-	 JC5hMnO7Xpm4SyQxjB0Cal1sVxgl5BXN3KoqzXNxSSTWlyhMI2q/BxwBVX2+oJlRTTg==
+	t=1793850225;
+	b=MofcxFJQ8ofUSNIWc93rKZ8VuoB8rQs8zsruLTVvwt2p7H5eyeR4UAPr+WV6p/ssqVUA
+	 CA6AW22WgW9S9kZ3dKI6QFeUsWxT2+/0Ja12XapjhmE6uQhZsmdLBmwuHdwT4bPOKkQZf
+	 EVCXlsYrWE8844s86t97U1LqiIgyEl6ryv43C0rcIsVwomowJ1MYyZdMHGOLpu3V164bT
+	 qInQN/1gYV/KJRkhxwg+eaB8ajSjqr2oY6rjy5o/IJj8kwERTqGtUMbfZmlzsArAyeTfx
+	 a43rNd4htudeOX5gr1LaY66ejKeGBeulhS4ZGtA2ls4TyKk1tfaSJ9Y3UVpjLfzZ/vA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793844082;
-	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:From:To:Cc:Subject:
-	 Date:Message-ID:X-Mailer:In-Reply-To:References:MIME-Version:
-	 Content-Transfer-Encoding:X-Spam-Status:X-Spam-Checker-Version;
-	bh=4Y6oHXTvDP3D/r6bj3sFJrcNWxTqMhnFq48JU9X+5bk=;
-	b=1nf6yBT9Tl74gOLV0xIPKXO8Sn38AcBJ8fQXepd6rSmM7exp1FKyasaWTXjDusUSigS2
-	 XMgRrarXEN4HD2rIew3ZUXL0XmkJuzzJHtXVJKSbuqU2dkCwDk9fMEjEnnoOgdo9dERJL
-	 En5iCzsRHlVXfE2zpDQCg8pz9gq6MAbclz5MNRkOWB2zhLJTJCplxnbIgfHb2HwLFU5Sm
-	 K6HLs+FRSY7RrmU95A2PEsWaDbLwnclwsJvELXC/+o7dNzheDhf+5blhLIw8qh9bvdUqQ
-	 7/LS9W/ZfK1/FfF9JcqNIyZdL3ggnDCQItjwY5caAA8XVHwF2vu4a5b1eAjCFgDvHpw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793850225;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=VPL6FGJI6mYbfWVdagRDwQTQgREcZN8JpaFK/cgIs8Y=;
+	b=1aReeW8dRjkVkXcrwDwSKpNwR4MweNc4pIVWUXKZMyT7Ilet13V2Z55H4UoEG4t9fmjU
+	 saDn4H3QLJelql5wJ+QwcxL47uSBSyOGZs7rUpcY/+0i3ojfnPSYSXNXr53ljpMUilp3S
+	 H1u0eYItTi/Fbao/9hcEtKVBdxeb6/HkHmbYkk2/aQC1eAtQiNPvs+AwoO9/ef3Zb0mZ4
+	 6zF9+V3OdbiSJlU670fokiBr3VTWBrUn8kGU1u/0P+38jW7gJWAI82I6/spPAsXu1Y6wq
+	 2hTzidyOu6d3Vu+pFK8BPRjABudwyHLqVKVt0SXC99zl4N7zE+PQjpW4cqNm2QlknCA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.microsoft.com;
-	spf=pass smtp.mailfrom=linux.microsoft.com;
-	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=J4gTxX0+;
-	arc=none smtp.remote-ip=13.77.154.182
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 4B915606D825;
-	Thu,  5 Nov 2026 02:01:21 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 4B915606D825
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=J4gTxX0+
-Received: from mrdev.corp.microsoft.com (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id A18E220B7167;
-	Wed,  4 Nov 2026 18:01:04 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com A18E220B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1793844065;
-	bh=4Y6oHXTvDP3D/r6bj3sFJrcNWxTqMhnFq48JU9X+5bk=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=J4gTxX0+ZbXK5cEVNQtpaKI3EU+BNGmawIBDDLeG5Gq8G8lKD15gMPCNV2+hKi1r/
-	 KJdbXgEtgNCQzdRWP1rUOlTJVX0/wQ/mZ7FiBN++0I6IbjYF5ES/6mDk+0iCCVC06G
-	 zFbzE+I7wOULKPC5MZJR02Hn4zm/2ZaiEYFyLBrA=
-From: Mukesh R <mrathor@linux.microsoft.com>
-To: linux-hyperv@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	iommu@lists.linux.dev,
-	linux-arch@vger.kernel.org
-Cc: jgg@nvidia.com,
-	jacob.pan@linux.microsoft.com,
-	haiyangz@microsoft.com,
-	wei.liu@kernel.org,
-	decui@microsoft.com,
-	tglx@kernel.org,
-	mingo@redhat.com,
-	bp@alien8.de,
-	dave.hansen@linux.intel.com,
-	x86@kernel.org,
-	hpa@zytor.com,
-	joro@8bytes.org,
-	will@kernel.org,
-	robin.murphy@arm.com,
-	arnd@arndb.de,
-	mrathor@linux.microsoft.com
-Subject: [PATCH V4 1/5] mshv: Add gfp flags to deposit memory logic
-Date: Wed,  4 Nov 2026 18:01:02 -0800
-Message-ID: <20261105020106.3496339-2-mrathor@linux.microsoft.com>
-X-Mailer: git-send-email 2.51.2.vfs.0.1
-In-Reply-To: <20261105020106.3496339-1-mrathor@linux.microsoft.com>
-References: <20261105020106.3496339-1-mrathor@linux.microsoft.com>
+	dmarc=pass header.from=linux.alibaba.com;
+	spf=pass smtp.mailfrom=linux.alibaba.com;
+	arc=none smtp.remote-ip=115.124.30.119
+Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F923606A31B;
+	Thu,  5 Nov 2026 03:43:36 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3F923606A31B
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1793850209; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=VPL6FGJI6mYbfWVdagRDwQTQgREcZN8JpaFK/cgIs8Y=;
+	b=df7ctmeMETF2xxJwENMAiPw5tB/yyYrAVCP9Ji9c/Agd9scTxdOcVj2cILeacTPjQ68gD4yEHtiCiDxFR/C1UjO9Nj6uhsYO8P3rnc+2SkTZn8BBKH8Qy8wKs5FijRqp9tpIy377D2X9GWps7SuCH0Chdn4NTV4kCewHhVkv5Xc=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R771e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=baolin.wang@linux.alibaba.com;NM=1;PH=DS;RN=64;SR=0;TI=SMTPD_---0XE7Nmrn_1793850203;
+Received: from 30.74.144.136(mailfrom:baolin.wang@linux.alibaba.com fp:SMTPD_---0XE7Nmrn_1793850203 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Thu, 05 Nov 2026 11:43:26 +0800
+Message-ID: <d0f78f0f-c883-4919-a416-fe738eb7323a@linux.alibaba.com>
+Date: Thu, 5 Nov 2026 11:43:22 +0800
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,147 +50,121 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3 18/47] mm/khugepaged: check if PTE table is empty in
+ try_collapse_pte_mapped_thp()
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>,
+ Qi Zheng <qi.zheng@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
+ Lorenzo Stoakes <ljs@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Barry Song <baohua@kernel.org>, Axel Rasmussen <axelrasmussen@google.com>,
+ Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+ Baoquan He <baoquan.he@linux.dev>, "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Kees Cook <kees@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Jann Horn <jannh@google.com>, Pedro Falcato <pfalcato@suse.de>,
+ Hugh Dickins <hughd@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>,
+ Pratyush Yadav <pratyush@kernel.org>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Zi Yan <ziy@nvidia.com>, Lance Yang <lance.yang@linux.dev>,
+ Rik van Riel <riel@surriel.com>, Harry Yoo <harry@kernel.org>,
+ Alistair Popple <apopple@nvidia.com>, Nico Pache <nico.pache@linux.dev>,
+ Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>,
+ Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>,
+ Matthew Brost <matthew.brost@intel.com>, John Hubbard <jhubbard@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
+ <npiggin@gmail.com>, Oscar Salvador <osalvador@suse.de>,
+ Minchan Kim <minchan@kernel.org>, Muchun Song <muchun.song@linux.dev>,
+ Xu Xin <xu.xin@linux.dev>, Chengming Zhou <chengming.zhou@linux.dev>,
+ Chris Li <chrisl@kernel.org>, Kemeng Shi <shikemeng@huaweicloud.com>,
+ Nhat Pham <nphamcs@gmail.com>, Youngjun Park <youngjun.park@lge.com>,
+ Gregory Price <gourry@gourry.net>, Joshua Hahn <joshua.hahnjy@gmail.com>,
+ Rakie Kim <rakie.kim@sk.com>, Ying Huang <ying.huang@linux.alibaba.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-cxl@vger.kernel.org,
+ Muhammad Usama Anjum <usama.anjum@arm.com>
+References: <20261031-fixes_core-v3-0-d6437171ecc3@kernel.org>
+ <20261031-fixes_core-v3-18-d6437171ecc3@kernel.org>
+ <62268831-f6f3-4666-a32f-a77546b95432@linux.alibaba.com>
+ <979fb046-32dc-4af8-b6a3-177c78f1e557@kernel.org>
+From: Baolin Wang <baolin.wang@linux.alibaba.com>
+In-Reply-To: <979fb046-32dc-4af8-b6a3-177c78f1e557@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 
-Currently GFP_KERNEL is hard coded in hv_alloc_dep_pages(). Add gfp_flags
-parameter so it can be called in atomic context from map_pages callback in
-struct iommu_domain_ops and other places in future. A new function
-hv_deposit_memory_gfp() is added to facilitate this, so hv_deposit_memory()
-can continue to function as is.
 
-Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
----
- drivers/hv/hv_proc.c           | 20 +++++++++++---------
- include/asm-generic/mshyperv.h | 14 +++++++++++---
- 2 files changed, 22 insertions(+), 12 deletions(-)
 
-diff --git a/drivers/hv/hv_proc.c b/drivers/hv/hv_proc.c
-index f811bb5c42a1..8380e9050f46 100644
---- a/drivers/hv/hv_proc.c
-+++ b/drivers/hv/hv_proc.c
-@@ -22,7 +22,7 @@
-  * Returns: number of pages allocated or -ENOMEM
-  */
- static int hv_alloc_dep_pages(int node, u64 *pfna, u64 *lastpfnp, int num_pages,
--			      bool single)
-+			      bool single, gfp_t gfp_flags)
- {
- 	struct page *page;
- 	int num_allocd, count = 0;
-@@ -37,7 +37,6 @@ static int hv_alloc_dep_pages(int node, u64 *pfna, u64 *lastpfnp, int num_pages,
- 	while (num_pages) {
- 		/* Find highest order we can actually allocate */
- 		int order = 31 - __builtin_clz(num_pages);
--		gfp_t gfp_flags = GFP_KERNEL;
- 
- 		if (!single)
- 			gfp_flags |= __GFP_NOWARN;
-@@ -81,7 +80,8 @@ static int hv_alloc_dep_pages(int node, u64 *pfna, u64 *lastpfnp, int num_pages,
-  * so we must split that also. Lastly, HV_MAX_CONTIGUOUS_ALLOCATION_PAGES is
-  * not guaranteed to always be power of 2.
-  */
--static int hv_call_deposit_pages(int node, u64 partition_id, bool contiguous)
-+static int hv_call_deposit_pages(int node, u64 partition_id, bool contiguous,
-+				 gfp_t gfp_flags)
- {
- 	struct hv_deposit_memory *hc_input;
- 	int i, rc, num_pages;
-@@ -98,14 +98,15 @@ static int hv_call_deposit_pages(int node, u64 partition_id, bool contiguous)
- 		num_pages = HV_DEPOSIT_MAX;
- 	}
- 
--	hc_input = (struct hv_deposit_memory *)get_zeroed_page(GFP_KERNEL);
-+	hc_input = (struct hv_deposit_memory *)get_zeroed_page(gfp_flags);
- 	if (hc_input == NULL)
- 		return -ENOMEM;
- 
- 	hc_input->partition_id = partition_id;
- 	pfna = hc_input->gpa_page_list;
- 
--	rc = hv_alloc_dep_pages(node, pfna, &lastpfn, num_pages, contiguous);
-+	rc = hv_alloc_dep_pages(node, pfna, &lastpfn, num_pages, contiguous,
-+				gfp_flags);
- 	if (rc < 0)
- 		goto out_free;
- 
-@@ -159,7 +160,7 @@ static int hv_call_deposit_pages(int node, u64 partition_id, bool contiguous)
- 	return rc;
- }
- 
--int hv_deposit_memory_node(int node, u64 pt_id, u64 hv_status)
-+int hv_deposit_memory_node(int node, u64 pt_id, u64 hv_status, gfp_t gfp_flags)
- {
- 	int result = hv_result(hv_status);
- 	bool contiguous = false;
-@@ -179,7 +180,7 @@ int hv_deposit_memory_node(int node, u64 pt_id, u64 hv_status)
- 	    result == HV_STATUS_INSUFFICIENT_CONTIGUOUS_ROOT_MEMORY)
- 		contiguous = true;
- 
--	return hv_call_deposit_pages(node, pt_id, contiguous);
-+	return hv_call_deposit_pages(node, pt_id, contiguous, gfp_flags);
- }
- EXPORT_SYMBOL_GPL(hv_deposit_memory_node);
- 
-@@ -232,7 +233,7 @@ int hv_call_add_logical_proc(int node, u32 lp_index, u32 apic_id)
- 			break;
- 		}
- 		ret = hv_deposit_memory_node(node, hv_current_partition_id,
--					     status);
-+					     status, GFP_KERNEL);
- 	} while (!ret);
- 
- 	return ret;
-@@ -266,7 +267,8 @@ int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u32 flags)
- 			}
- 			break;
- 		}
--		ret = hv_deposit_memory_node(node, partition_id, status);
-+		ret = hv_deposit_memory_node(node, partition_id, status,
-+					     GFP_KERNEL);
- 
- 	} while (!ret);
- 
-diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index 4c9f3353074a..2584e693d7b3 100644
---- a/include/asm-generic/mshyperv.h
-+++ b/include/asm-generic/mshyperv.h
-@@ -346,7 +346,7 @@ static inline bool hv_parent_partition(void)
- }
- 
- bool hv_result_needs_memory(u64 status);
--int hv_deposit_memory_node(int node, u64 partition_id, u64 status);
-+int hv_deposit_memory_node(int node, u64 partition_id, u64 status, gfp_t gfp);
- int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id);
- int hv_call_notify_all_processors_started(void);
- bool hv_lp_exists(u32 lp_index);
-@@ -357,7 +357,8 @@ static inline bool hv_root_partition(void) { return false; }
- static inline bool hv_l1vh_partition(void) { return false; }
- static inline bool hv_parent_partition(void) { return false; }
- static inline bool hv_result_needs_memory(u64 status) { return false; }
--static inline int hv_deposit_memory_node(int node, u64 partition_id, u64 status)
-+static inline int hv_deposit_memory_node(int node, u64 partition_id, u64 status,
-+					 gfp_t gfp)
- {
- 	return -EOPNOTSUPP;
- }
-@@ -379,9 +380,16 @@ static inline int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u3
- }
- #endif /* CONFIG_MSHV_ROOT */
- 
-+/* Generic deposit function with no default numa node and GFP_KERNEL */
- static inline int hv_deposit_memory(u64 partition_id, u64 status)
- {
--	return hv_deposit_memory_node(NUMA_NO_NODE, partition_id, status);
-+	return hv_deposit_memory_node(NUMA_NO_NODE, partition_id, status,
-+				      GFP_KERNEL);
-+}
-+
-+static inline int hv_deposit_memory_gfp(u64 partition_id, u64 status, gfp_t gfp)
-+{
-+	return hv_deposit_memory_node(NUMA_NO_NODE, partition_id, status, gfp);
- }
- 
- #if IS_ENABLED(CONFIG_HYPERV_VTL_MODE)
--- 
-2.51.2.vfs.0.1
+On 11/4/26 5:13 PM, David Hildenbrand (Arm) wrote:
+> On 11/2/26 09:20, Baolin Wang wrote:
+>>
+>>
+>> On 10/31/26 5:39 PM, David Hildenbrand (Arm) wrote:
+>>> The existing code is rather horrible and already resulted in bugs in the
+>>> past: we special-case UFFD inserting anonymous folios by grabbing the PMD
+>>> lock early, but ignore any other markers (guard, poison through uffd) that
+>>> could have been inserted into the page table in the meantime, effectively
+>>> dropping them.
+>>>
+>>> Let's just unify and simplify the locking: try to grab the PMD table
+>>> lock and if that fails, flush the TLB, drop the PTE lock, take PT locks in
+>>> the right order and check if the page table is still empty.
+>>>
+>>> We still perform the heavy lifting (zapping the folio ptes) under PTE table
+>>> lock only.
+>>>
+>>> Include <linux/hugetlb.h> for now, as x86's flush_tlb_range() macro
+>>> depends on hugetlb helpers. This dependency needs a separate cleanup.
+>>>
+>>> Both issues this fixes are rather corner cases. Let's not CC stable for
+>>> now.
+>>>
+>>> Fixes: f807123d578d ("mm: allow guard regions in file-backed and read-only
+>>> mappings")
+>>> Fixes: 1043173eb5eb ("mm/khugepaged: collapse_pte_mapped_thp() with
+>>> mmap_read_lock()")
+>>> Tested-by: Gregory Price (Meta) <gourry@gourry.net>
+>>> Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
+>>> Tested-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+>>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>>> ---
+>>>    mm/khugepaged.c | 64 ++++++++++++++++++++++++++++-----------------------------
+>>>    1 file changed, 31 insertions(+), 33 deletions(-)
+>>>
+>>> diff --git a/mm/khugepaged.c b/mm/khugepaged.c
+>>> index ce794d9760a87..ad07c8caa3bd9 100644
+>>> --- a/mm/khugepaged.c
+>>> +++ b/mm/khugepaged.c
+>>> @@ -10,6 +10,7 @@
+>>>    #include <linux/mm_inline.h>
+>>>    #include <linux/kthread.h>
+>>>    #include <linux/khugepaged.h>
+>>> +#include <linux/hugetlb.h>
+>>>    #include <linux/freezer.h>
+>>>    #include <linux/mman.h>
+>>>    #include <linux/hashtable.h>
+>>> @@ -1832,6 +1833,17 @@ static enum scan_result set_huge_pmd(struct
+>>> vm_area_struct *vma, unsigned long a
+>>>        return SCAN_SUCCEED;
+>>>    }
+>>>    +static bool pte_table_empty(pte_t *pte)
+>>> +{
+>>> +    int i;
+>>> +
+>>> +    for (i = 0; i < HPAGE_PMD_NR; i++, pte++) {
+>>
+>> Using PTRS_PER_PTE to iterate PTEs seems more straightforward? Otherwise LGTM.
+> 
+> As I pulled this patch out from the stable fixes, I fixed it up.
 
+Thanks.
+
+> I realized that this helper should likely move to some header later and be
+> reused elsewehere (zap_pte_table_if_empty), but that's something for a later
+> cleanup.
+
+Indeed.
