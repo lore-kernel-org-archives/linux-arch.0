@@ -1,88 +1,105 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.44
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=95.215.58.10
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793958977;
-	b=4ObTB7r+BLvUnS8zGd9xc1SNXvLJVybR5+QrbL41JZVc7Oc4rWC6zjSt3hdC3Wj5F4HH
-	 JBjHkzUFnOYx5NlMF/2NE3hILuSEeH7p8R1cED9Mox8xr+kLo5Gi/BBkg6aIiYgXkw+2D
-	 G9AUK6vc+p6jmjOOB+vsGqXtUqYygVRk7M9RmLT4J3OGpTZgAONJQCvIG5VER0gHv6UDj
-	 DmYXa/pgpeNO9ocRVmv5BdnlEwFJQDrozqFPMEB6rI6WorGudQxuUoGE90x9RUrhXyPU3
-	 4eMfuLWaNu1PUQmTEHAz46oTnYPQzmvWOCQ2xhPtdh5sQLFfsqtxemqxJxcogSlXw9Q==
+	t=1793959412;
+	b=fwmJLzrJA/eJeU+QvePu3AXXwqMDhLAmE/y/wUbmS4zSBKTwFX1RltD3xkf+A5ZCjrjP
+	 /qWk+lMRFVTEei90IfskyhHNDTENh6CDKn5HAk0K+XQPJx6R73Vvsvg/LzbVdAkbNAuul
+	 Te2Vd9fjHeFPQ87EIsWAm4pwxoJ+XJAXeiEIfuhoiQz5SHbR0Y8+EQQZ/lMbKx0Thggbd
+	 tnCNIhRI6Wb5pZn8HDEWJxHFKfhfGBjeiULOd0wMwdmt/Vt7bwJDU4QTgi1dV5Hc64L4B
+	 dTFJqVteZWrIfBLEUP4RBz/3vEEf6Yq3CUiCPuW+ax57Ky9MDE+MKOLr7Ob9iLnCEQg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793958977;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Message-ID:Date:MIME-Version:User-Agent:Subject:To:Cc:References:
-	 Content-Language:From:In-Reply-To:Content-Type:
+	a=rsa-sha256; c=relaxed/relaxed; t=1793959412;
+	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
+	 X-Mizu-Trace-ID:X-Migadu-Flow:From:To:Cc:Subject:Date:Message-ID:
+	 X-Mailer:In-Reply-To:References:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding;
-	bh=PVNqNcKixHGsvQRk+aF9Z3pXurarEsFSJxJzB1XGyf0=;
-	b=PiDqNp+s7tx3gFqHXxpdxgmd69mcl7Nyw0fBYmjylk3oKQrAdpfoK8wrnXG58/gBioAh
-	 vVI/1gJXDCLL1LqVS7pFXB7N4VSKFKAkNhBQekMCSD5jeMapUx0FO1H37nfA6evWsEPKt
-	 /fGqcbYjLVK2XqRJNA/otJU071CCAF9QYliNabJ/P3CnfqtKOERXvd7rpxw6NHBwabHrI
-	 sA8eX18Qx+JtKQ9218WHDPgdEXtsVHnaHc0fxyrVzEnm8mQvtpOGG2XAqdQagCtmaivIe
-	 gbRjjbWPo6yZgfCiW7Ih8rV+AePg+UdlspmdHqHbMTb2Juj3d8eoks8v1qL7eEU5dfw==
+	bh=rMheU+EhCPcWnJV6yby7BQW3sus9xoZHDLVucVGtR10=;
+	b=DFhg0xdkdm9Xt1q/dRgqJICXGQcNBs2fpPdsYEOnt/ZO6REFO3cKxXllerQsylDlQKOo
+	 SxeFyob4uZbAMvrp2OFOPL8LhA9Tkc5bQjF2R8UXUI9TN+VXB1qFTBCD0I3ZmKpLJKbxT
+	 OPcsyZNU3bjUboTlGcJkMLlPs0cR6izFd1G0WouDvFlixiHgC17tKd+lq9YWh7YcUvkwK
+	 JfrPr/qQC8rOSTKVw0cll19qUsjpsDlSRGkBDXPpXYoChoySTxmfos0hSqtgJUv3MhKGL
+	 UOgiiFsLvSS5vvBlq7mngqzWRptXnjiUoBeLyfziOUhQBukj32jItmBEpdt5/DVIgGg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=H1Xmkiwr;
-	arc=none smtp.remote-ip=209.85.221.44
-Received: from mail-wr1-f44.google.com (mail-wr1-f44.google.com [209.85.221.44])
+	dmarc=pass header.from=linux.dev;
+	spf=pass smtp.mailfrom=linux.dev;
+	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=K70IeZK4;
+	arc=none smtp.remote-ip=95.215.58.10
+Received: from mta1.migadu.com (out-10.mta1.migadu.com [95.215.58.10])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 69F75606A32D
-	for <linux-arch@vger.kernel.org>; Fri,  6 Nov 2026 09:56:17 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 69F75606A32D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6AD60606A32D
+	for <linux-arch@vger.kernel.org>; Fri,  6 Nov 2026 10:03:30 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 6AD60606A32D
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=H1Xmkiwr
-Received: by mail-wr1-f44.google.com with SMTP id ffacd0b85a97d-48fd2e38825so290497f8f.2
-        for <linux-arch@vger.kernel.org>; Fri, 06 Nov 2026 01:56:17 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793958976; x=1794563776; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=PVNqNcKixHGsvQRk+aF9Z3pXurarEsFSJxJzB1XGyf0=;
-        b=H1XmkiwrX3YLzUoz8v63tW0K3f8HeQQMrYHC6NguBq0Yc1lHgV5BxOaPiQVM/nx5Kr
-         Nv4Nkr/P+0smDYStmA0vxUWIevexJO6W3YeVFzXWxjpUb82YtyB7exO1WkMPRlrqshbw
-         7gdELKEwKXzXZnlrkpHr1yD7exsMl5g9kqsHjwkVOrYoszaDhxn1MLxcOJF4sb/6L3MY
-         sIdWD7L/keA+kAzxJc8rrEhKaeUKb4K3OJKzQ0cL4yoRHek+Sk1AtTQV2X8+u59Vj8dP
-         k4wPQ0+F+f6g4v8Op0nmFGDXNrToQHYaCL+7LHoyjFE/RK0fmcwPf6Waptypct15sbUF
-         jOcw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793958976; x=1794563776;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=PVNqNcKixHGsvQRk+aF9Z3pXurarEsFSJxJzB1XGyf0=;
-        b=PH/x1u4/kPX8l8PFblxoeyJy2ksVgvSQfz4ipnnRayyZIHPRS52FvGFlGdh8EBX6cJ
-         Avi3HoZCSUweFyojEV31iSmYWgfoFS755AfV+XTmvxMsb7Ie8tCG35BmXEk4mBHeFyhv
-         JXCxkmrrI08ucs6Am/SLNLmMEJYafZDd76PGpPXVM4Oex11L19idthbMKrgtYOQlZEX0
-         73BlGNlLJK6C5m8MHIHKpptXpi1J5VFt43X67XQlJZBcuQjnH6aczHofcnyBpV8n6QWx
-         bmuUTIPRLmgtZUi1xmiadDg6ULbw5N3rEucBof9m0eNW/VRsYioAi7VeSh+QLBNChNJ7
-         lzgw==
-X-Forwarded-Encrypted: i=1; AL+hErGWkSd7G0Ur3HQu4t8seqaUrKxv22VoIJGogW/+Trj1vuByh4gQ8TkAQXw9w7n+M/lQKzfmQhMoJFtQ@vger.kernel.org
-X-Gm-Message-State: APuU4Z9ZvXZavBW9lPvdj0EmNIFXJR6g5vBLsmvfOgTlPkoLOegN9uvw
-	Uzlux03u9AiNyEQ8U5gHduec7xHUZmM2YroVQ8ggM0JrM2DeguamLq1X
-X-Gm-Gg: AYBFou1RMqyjN8C1aMlGMZEaO5gMxEtAXeraeLYOkNB2zUpPSn3ogzggkO7GBZmceMA
-	Ghptmw6/GTnV4993DjBwvNqVPb5JNHcsonu1i0o5TUuAp/RcSNZAfFvPMxOyXVJ17JsgHppGwDl
-	xwHy1Ak22aVPoEtFnaVTharln6MaswKeNoNVNpwsYBb8U1P+hbVS4VTTn7f9IlkymkqmXWI5gzE
-	XiOKQm3+M+D35fLM356mJ3gXFjDYrIelp2d316rT+1KUK6IWM1l2c+/VjyXDMx0cvPCovqXAVvi
-	IgjC9QdhFNYhmOlKKdRRsbjYBsaCrHeGrFOPPXAcUrWJ7wdCjz2qp8dI0yXU4/Vc3jIZ24xx0t3
-	Bet2QuveLW6b4pgSF5BIukckgH/Go8nWufGKkl4CgGEh3j7rSgDUcnDSufAZxRfMOmROqZMZozB
-	ccmgixNq2Gkb3YkybMjXNMJnsO3jfnBmMeS5036MOhtPBmJxmhpwYD6+pBOoufAaotwBxU6Ah4N
-	mC+nFJQ8C/Ad1CadBEega5HSVn9ICGghqQVwklc4z74MEU7q/8ufhR9uMEvI2fog/ihvQRt+Qkb
-	R7k3Ek4SCjWg0GdvvCFk/BQ=
-X-Received: by 2002:a05:6000:26d3:b0:48e:6159:8274 with SMTP id ffacd0b85a97d-492765a3e9emr3874962f8f.27.1793958975594;
-        Fri, 06 Nov 2026 01:56:15 -0800 (PST)
-Received: from [192.168.1.22] ([83.231.69.9])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-492d7dbb0d4sm2752385f8f.50.2026.11.06.01.56.12
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 06 Nov 2026 01:56:15 -0800 (PST)
-Message-ID: <e3e15340-d6c0-479b-867f-e5eeac1e0e2c@gmail.com>
-Date: Fri, 6 Nov 2026 10:56:11 +0100
+	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=K70IeZK4
+X-Envelope-To: linux-arch@vger.kernel.org
+DKIM-Signature: a=rsa-sha256; bh=HebWn3oEvn+Xp5ULYEc4RbMXXdDqctn1MVk/JQNM9Qc=;
+ c=simple/simple; d=linux.dev;
+ h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
+ t=1793959408; v=1; x=1794564208;
+ b=K70IeZK4ChyvsIjWjnf+4PyYUZUZL+M7DAGxBjGVRAmkn4E59xs9gXe+dS1tEo52DLU3NhHk
+ wXzvG7P/tU2y7zNLQsSQnRMcfXQ4yMM+F2CZjQk+ARRmJKVphNGgrmSLhAxkOKraKZmY/dMWglf
+ 06tBoeDwOxOfZFLyydTEs3CE=
+X-Envelope-To: linux-arch@vger.kernel.org
+Received: by smtp.migadu.com with ESMTPS id cd637f8f166aebf7;
+	Fri, 06 Nov 2026 10:03:28 +0000
+X-Mizu-Trace-ID: cd637f8f166aebf7
+X-Migadu-Flow: FLOW_OUT
+From: Lance Yang <lance.yang@linux.dev>
+To: david@kernel.org
+Cc: akpm@linux-foundation.org,
+	ljs@kernel.org,
+	liam@infradead.org,
+	vbabka@kernel.org,
+	rppt@kernel.org,
+	surenb@google.com,
+	mhocko@suse.com,
+	willy@infradead.org,
+	jack@suse.cz,
+	ziy@nvidia.com,
+	baolin.wang@linux.alibaba.com,
+	nico.pache@linux.dev,
+	ryan.roberts@arm.com,
+	dev.jain@arm.com,
+	baohua@kernel.org,
+	lance.yang@linux.dev,
+	usama.arif@linux.dev,
+	kas@kernel.org,
+	matthew.brost@intel.com,
+	joshua.hahnjy@gmail.com,
+	byungchul@sk.com,
+	gourry@gourry.net,
+	ying.huang@linux.alibaba.com,
+	apopple@nvidia.com,
+	peterx@redhat.com,
+	hannes@cmpxchg.org,
+	songliubraving@fb.com,
+	riel@surriel.com,
+	hughd@google.com,
+	will@kernel.org,
+	aneesh.kumar@kernel.org,
+	npiggin@gmail.com,
+	peterz@infradead.org,
+	jgg@ziepe.ca,
+	kevin.tian@intel.com,
+	joro@8bytes.org,
+	robin.murphy@arm.com,
+	steven.sistare@oracle.com,
+	jhubbard@nvidia.com,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	iommu@lists.linux.dev,
+	stable@vger.kernel.org
+Subject: Re: [PATCH 2/5] mm: limit pagecache folio refcount when splicing into pipes
+Date: Fri,  6 Nov 2026 18:03:20 +0800
+Message-ID: <20261106100320.77084-1-lance.yang@linux.dev>
+X-Mailer: git-send-email 2.49.0
+In-Reply-To: <20261105-refcount_overflow_stable-v1-2-70b9c655da3e@kernel.org>
+References: <20261105-refcount_overflow_stable-v1-2-70b9c655da3e@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -92,63 +109,94 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 3/5] mm/mmu_gather: flush pending references early before
- the folio limit
-To: "David Hildenbrand (Arm)" <david@kernel.org>,
- Andrew Morton <akpm@linux-foundation.org>, Lorenzo Stoakes <ljs@kernel.org>,
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, "Matthew Wilcox (Oracle)"
- <willy@infradead.org>, Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>,
- Baolin Wang <baolin.wang@linux.alibaba.com>,
- Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
- Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
- Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>,
- Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
- Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>,
- Gregory Price <gourry@gourry.net>, Ying Huang
- <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Johannes Weiner <hannes@cmpxchg.org>,
- Song Liu <songliubraving@fb.com>, Rik van Riel <riel@surriel.com>,
- Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Jason Gunthorpe <jgg@ziepe.ca>, Kevin Tian <kevin.tian@intel.com>,
- "Joerg Roedel (AMD)" <joro@8bytes.org>, Robin Murphy <robin.murphy@arm.com>,
- Steve Sistare <steven.sistare@oracle.com>, John Hubbard <jhubbard@nvidia.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- iommu@lists.linux.dev, Chris Mason <mason@kernel.org>, stable@vger.kernel.org
-References: <20261105-refcount_overflow_stable-v1-0-70b9c655da3e@kernel.org>
- <20261105-refcount_overflow_stable-v1-3-70b9c655da3e@kernel.org>
-Content-Language: en-US
-From: "Jose A. Perez de Azpillaga" <azpijr@gmail.com>
-In-Reply-To: <20261105-refcount_overflow_stable-v1-3-70b9c655da3e@kernel.org>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 11/5/26 2:10 PM, David Hildenbrand (Arm) wrote:
-> When a task zaps mappings (e.g., MADV_DONTNEED), it can drop the PT lock
-> and defer dropping the folio references. In the meantime, page faults
-> can refault pagecache folios, creating more references for the same
-> folios.
+
+On Thu, Nov 05, 2026 at 02:10:11PM +0100, David Hildenbrand (Arm) wrote:
+>Similar to mapping pagecache folios into page tables, let's reject splicing
+>folios into a pipe if the refcount is at it's limit, similar to how we
+>handle it during GUP.
+>
+>This will prevent more cases of possible folio refcount overflows with
+>large pagecache folios.
+>
+>Let's keep it simple and check in the two callers of
+>splice_folio_into_pipe().
+>
+>Also check in try_get_page() to cover pipe-buffer duplication by tee()
+>and partial pipe-to-pipe splicing.
+
+What about fuse_ref_folio()? Buffered FUSE_WRITE requests can carry
+pagecache folios into a pipe through /dev/fuse without going through
+splice_folio_into_pipe() or try_get_page() ...
+
+Cheers, Lance
+
+>Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
+>Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
+>Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
+>Cc: stable@vger.kernel.org
+>Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>---
+> include/linux/mm.h | 9 ++++++---
+> mm/filemap.c       | 4 ++++
+> mm/shmem.c         | 4 ++++
+> 3 files changed, 14 insertions(+), 3 deletions(-)
+>
+>diff --git a/include/linux/mm.h b/include/linux/mm.h
+>index 79ae8fc0d6bb4..a82cfbce18215 100644
+>--- a/include/linux/mm.h
+>+++ b/include/linux/mm.h
+>@@ -2287,10 +2287,13 @@ static inline void get_page(struct page *page)
 > 
-> Let's just request a flush after enqueueing a pagecache folio whose
-> refcount reached a certain threshold. Start flushing well before new
-> references are refused, regardless of the caller's privileges.
+> static inline __must_check bool try_get_page(struct page *page)
+> {
+>-	page = compound_head(page);
+>-	if (WARN_ON_ONCE(page_ref_count(page) <= 0))
+>+	struct folio *folio = page_folio(page);
+>+
+>+	if (WARN_ON_ONCE(folio_ref_count(folio) <= 0))
+> 		return false;
+>-	page_ref_inc(page);
+>+	if (unlikely(folio_ref_count_over_limit(folio)))
+>+		return false;
+>+	folio_ref_inc(folio);
+> 	return true;
+> }
 > 
-> This is a temporary measure until we have something better.
+>diff --git a/mm/filemap.c b/mm/filemap.c
+>index 920bbf86dfdff..0f2ec790a5b65 100644
+>--- a/mm/filemap.c
+>+++ b/mm/filemap.c
+>@@ -3168,6 +3168,10 @@ ssize_t filemap_splice_read(struct file *in, loff_t *ppos,
+> 			if (writably_mapped)
+> 				flush_dcache_folio(folio);
 > 
-> Reported-by: Chris Mason <mason@kernel.org>
-> Fixes: 10ebac4f95e7 ("mm/memory: optimize unmap/zap with PTE-mapped THP")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
-
-LGTM:
-
-Reviewed-by: Jose A. Perez de Azpillaga <azpijr@gmail.com>
-
--- 
-cheers,
-jose a. p-a
+>+			if (unlikely(folio_ref_count_over_limit(folio))) {
+>+				error = -ENOMEM;
+>+				goto out;
+>+			}
+> 			n = min_t(loff_t, len, isize - *ppos);
+> 			n = splice_folio_into_pipe(pipe, folio, *ppos, n);
+> 			if (!n)
+>diff --git a/mm/shmem.c b/mm/shmem.c
+>index cda1a0f7db99d..1c0f6bceac486 100644
+>--- a/mm/shmem.c
+>+++ b/mm/shmem.c
+>@@ -3819,6 +3819,10 @@ static ssize_t shmem_file_splice_read(struct file *in, loff_t *ppos,
+> 			 * Ok, we have the page, and it's up-to-date, so we can
+> 			 * now splice it into the pipe.
+> 			 */
+>+			if (unlikely(folio_ref_count_over_limit(folio))) {
+>+				error = -ENOMEM;
+>+				break;
+>+			}
+> 			n = splice_folio_into_pipe(pipe, folio, *ppos, part);
+> 			folio_put(folio);
+> 			folio = NULL;
+>
+>-- 
+>2.43.0
+>
+>
