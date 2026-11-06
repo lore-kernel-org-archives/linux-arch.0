@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794004951;
-	b=AJndQ1AVg2+rQuHphZd3o6EN9i70ZXNV1Oh7gN6003gODNVlVhpcji8hMNXl6np0LgKI
-	 lXbYP0b+mr9QqUr7WcUDCEykxg5ou0gZw90sev8nQQxxGcHEhcuUrzK1OP7ED4yLgwcWw
-	 qh+C+Z1s+BSmhMUYwQbOD8wLhZMBM6Y1H0orEPP6IB1DxOZCxflw4CW/EMrD3ur6wS0Nh
-	 Hk2idKvRyDvFD2IaSYPp3h54ZfMJJ6AKMLoc8+IWBL5eks6K2fCz75V4KDiwr973xLr/6
-	 8k5Cec1Bra7kagW2s+YUwIANMWl7VRN4HVJeM/tgETMAMthrLngAnI9a/bGBxcZ8z5g==
+	t=1794004960;
+	b=3uj7UP086XS/gAeKTDRf1OFk619w/amIZe4iFs0uw8ksOfVxIrWAtxufLFDIddjWiOIn
+	 nvj2aw2YkgcI92MwUu2ujz1BZcTVedmrFWeFMLomIn3OFgAe3QhnCw3NR1fCkgoiGc99A
+	 Cv9lv1MOxCw/7IHAC3qyYHYVBia1gZTeMLI3I6DZPL4h8U6U9Kp5M2NfvJqqVdjUSd0VJ
+	 AMasj0Oyb2fXP6v55PHAGfl3ctsGa3y0Xr7YeisNoaefjkYW3Ef7fC6my1BjnfMkETDER
+	 TUJorj6PDSQmqMPunuj7HfvRelDivF9rInic36K9wSz37wDlu4+3Fd6Zzzxls/s85Jw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794004951;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794004960;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=r9kJmn9kMaUsIxseYi41rabItJ7bLsBpd/nnhZbIok0=;
-	b=wl+naWoc/ZGoVulWdQX5fNPE3GMrIrP++lekwLltWKsbpISdt8+TST68jM5KEDW34y35
-	 kEwj35rVcvMoAVuv86AdCc50p4qw0oLh6nA/ZW83BhhGbXbzn4GmL7pP//bau/4UnTNVx
-	 VYfYfQ+L2xiD35IXKh94fYQstdqvhm3zC+zCkx4hDgkfpo+yoaH170/TMVV3vLXbtgTO/
-	 sDpO3A6TiyOhodyb7EVqf3Px5N85qn9CZWxNiVqcBqEGY68yG5Zc9jQGlZ0UyJ11V47ST
-	 cqgFvdDvqjtx8f8ziqzChSYbAlSnqnIV8eCgntWSZfNnROowXcTV0PO0fnK3nr7UecA==
+	bh=JlbEJ/mAQ5AEryfKs406khz/jZEGvS7oBKVbDoRy+Xo=;
+	b=sGjEYnOhO1EREB1utgy76JU6gizV54Ydj1gmCnwhr4dj+Zlz2c41UcBS+hGYMH/DMSem
+	 cIba98D2RxwzmdNGm7Zl8CGrb2pPhsAXmyrmxE9VsFocMcf9BGCTVp0j+MMbz76kyeMN1
+	 CnzyisqHveryuDk1dNqgundX/gaf/y1irgjMWv72pB2Lb205picM7IVvsjRdOvORUMr3/
+	 D3tQStnW3j4FsQEzITKWTTZ/cSTKeEd/xZ1NuEeonxe2TfB32iUxpHSg5sJ1ZgNZixa2A
+	 Z0RO9MPDptWXXN/p5TwSg+qIb0u5GWiOCHVBQG9lf5j5kuDKeR6S9QDdTdstaRl+yQA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CcQjhvE3;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JGMdQPeY;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D8B42606A326;
-	Fri,  6 Nov 2026 22:42:30 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A5611606A33E;
+	Fri,  6 Nov 2026 22:42:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=CcQjhvE3
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 461341F0089F;
-	Fri,  6 Nov 2026 22:42:20 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JGMdQPeY
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id DFFDB1F008A1;
+	Fri,  6 Nov 2026 22:42:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794004950;
-	bh=r9kJmn9kMaUsIxseYi41rabItJ7bLsBpd/nnhZbIok0=;
+	s=k20260515; t=1794004960;
+	bh=JlbEJ/mAQ5AEryfKs406khz/jZEGvS7oBKVbDoRy+Xo=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=CcQjhvE3LihkZTfRpe4GaGxaNniXCyBTPnv6vcJX3sBVZApH/MsbvbydsSZ81zFxR
-	 NSKD4z99+2BdoVaotgWuzYmPU8/Er/qPZuRp+cR9arHo9nWwaJZsFTQfzKjEiuudWe
-	 GfkE+8H9wzKx47fQqMgmGvK5vqVukLysoqIE04NdjiWlapD5RSVtbBjw220dY6v/XR
-	 2S0LJ0WX1+Re7Cb9Gp4E1HSpQnf+y3V6McY5i1ZNbYXDBfYl2js6+Ip5zOiSar4N8O
-	 X7W9UXU9bMPkJA1+c2nsq9IZoYHe8ZCDYLfGNeNFjembLaMhHYk4LCktt1+0S25TrV
-	 d13VE0RJJZy0Q==
-Message-ID: <20e54cbc-dd5b-4094-856f-2e63f8e19001@kernel.org>
-Date: Fri, 6 Nov 2026 22:23:26 +0100
+	b=JGMdQPeYWvZkx75geWZtgyTHasxq12eL2mvw130fUowkgQt5u/0QMWgjSwtPkrv9x
+	 nAmjmlLC7P72HaNBsSW594Z2aGntB2xZRIbb1q2R8ZtMH3EYlK1ql87XNKKuF6C8g9
+	 YgeHFDQ0cWMuaQUVjBvcVGKQAJpu6mwtlDJ0sGswiWtLGmASIR6/6q4X0dEpOAE2eF
+	 iNsdg9qv5vVMyNNORv0rIQQxNkFL+m6shCr1VUsNJuYFfxAv45qwMOjzvRCmv+QD+r
+	 SbMFCEmReiNw5AyNldI87KX38Qhwj6dZrU+wBDI8Sqtq/2STIRj0mAqTnzOzfGK3Zx
+	 OkxQrVY8oZSWw==
+Message-ID: <6b8d6030-efe7-47d2-8aa2-3f8fd77ce95c@kernel.org>
+Date: Fri, 6 Nov 2026 22:57:19 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,8 +52,9 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 1/5] mm: limit pagecache folio refcount when mapping pages
-To: Lance Yang <lance.yang@linux.dev>, azpijr@gmail.com
+Subject: Re: [PATCH 2/5] mm: limit pagecache folio refcount when splicing into
+ pipes
+To: Lance Yang <lance.yang@linux.dev>
 Cc: akpm@linux-foundation.org, ljs@kernel.org, liam@infradead.org,
  vbabka@kernel.org, rppt@kernel.org, surenb@google.com, mhocko@suse.com,
  willy@infradead.org, jack@suse.cz, ziy@nvidia.com,
@@ -67,10 +68,9 @@ Cc: akpm@linux-foundation.org, ljs@kernel.org, liam@infradead.org,
  jgg@ziepe.ca, kevin.tian@intel.com, joro@8bytes.org, robin.murphy@arm.com,
  steven.sistare@oracle.com, jhubbard@nvidia.com, linux-mm@kvack.org,
  linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, iommu@lists.linux.dev, mason@kernel.org,
- stable@vger.kernel.org
-References: <528e3a0e-04fb-427f-88c7-63a7f4bbc505@gmail.com>
- <20261106100645.77296-1-lance.yang@linux.dev>
+ linux-arch@vger.kernel.org, iommu@lists.linux.dev, stable@vger.kernel.org
+References: <20261105-refcount_overflow_stable-v1-2-70b9c655da3e@kernel.org>
+ <20261106100320.77084-1-lance.yang@linux.dev>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -117,54 +117,35 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20261106100645.77296-1-lance.yang@linux.dev>
+In-Reply-To: <20261106100320.77084-1-lance.yang@linux.dev>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 11/6/26 11:06, Lance Yang wrote:
+On 11/6/26 11:03, Lance Yang wrote:
 > 
-> On Fri, Nov 06, 2026 at 10:42:17AM +0100, Jose A. Perez de Azpillaga wrote:
->> On 11/5/26 2:10 PM, David Hildenbrand (Arm) wrote:
->>> With large file folios, overflowing the folio mapcount and refcount
->>> became possible. For anon folios it is currently not really an issue:
->>> each large anon folio can only be mapped once into a process.
->>>
->>> That's not really big news, but it's about time that we do something
->>> about it because some modern technology might find ways to abuse it :)
->>>
->>> One of the enablers for that was commit ddc58f27f9ee ("mm: drop tail page
->>> refcounting"), however, file thp support was added later.
->>>
->>> File folios can be mapped multiple times into the same process, allowing
->>> for processes to hold many references to the same folio.
->>>
->>> As a short-term solution, let's introduce two folio refcount limits:
->>> one for ordinary consumers and one for admins. Leave some headroom
->>> before the refcount goes negative, which we really don't want (having
->>> the mapcount go negative is also not expected).
->>>
->>> Start reporting SIGBUS if we run into limits. When restoring mappings
->>> from migration entries, instead zap the pte/pmd entry. We allow for
->>> slightly exceeding the limit to keep things simpler.
->>>
->>> This is far from ideal, but better than all easy alternatives we can
->>> backport comfortably. For now it fixes the big problem: letting
->>> the refcount (+mapcount) go negative and cause trouble.
->>>
->>> This is only a temporary fix, we'll follow up with something better.
->>>
->>> While the refcount checks are not required for order 0 folios, let's
->>> just add them for consistency: each folio_add_file_rmap*() and
->>> folio_dup_file_rmap*() needs a prior check.
->> in mm-new copy_huge_pmd() now does a folio_dup_file_rmap_pmd() at fork,
->> since Konstantin's "mm/huge_memory: copy file THPs at fork like
->> copy_present_ptes() does". doesn't that one need the check too?
+> On Thu, Nov 05, 2026 at 02:10:11PM +0100, David Hildenbrand (Arm) wrote:
+>> Similar to mapping pagecache folios into page tables, let's reject splicing
+>> folios into a pipe if the refcount is at it's limit, similar to how we
+>> handle it during GUP.
+>>
+>> This will prevent more cases of possible folio refcount overflows with
+>> large pagecache folios.
+>>
+>> Let's keep it simple and check in the two callers of
+>> splice_folio_into_pipe().
+>>
+>> Also check in try_get_page() to cover pipe-buffer duplication by tee()
+>> and partial pipe-to-pipe splicing.
 > 
-> Ah, good catch! My local tree didn't have Konstantin's series [1] yet. And
-> right, that path needs a check too I guess :)
+> What about fuse_ref_folio()? Buffered FUSE_WRITE requests can carry
+> pagecache folios into a pipe through /dev/fuse without going through
+> splice_folio_into_pipe() or try_get_page() ...
 
-So, likely my series will go in first, it fixes a way older problem. I'll tell
-Andrew to hold that one off and let me handle it.
+Of course it has its own handling ... :)
+
+Thanks! I was hoping the number of folio references would be bounded ... I guess
+one reference per pipe buffer is not the end of the world, but, let's just add
+it, and fallback to copying.
 
 -- 
 Cheers,
