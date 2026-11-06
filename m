@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794004960;
-	b=3uj7UP086XS/gAeKTDRf1OFk619w/amIZe4iFs0uw8ksOfVxIrWAtxufLFDIddjWiOIn
-	 nvj2aw2YkgcI92MwUu2ujz1BZcTVedmrFWeFMLomIn3OFgAe3QhnCw3NR1fCkgoiGc99A
-	 Cv9lv1MOxCw/7IHAC3qyYHYVBia1gZTeMLI3I6DZPL4h8U6U9Kp5M2NfvJqqVdjUSd0VJ
-	 AMasj0Oyb2fXP6v55PHAGfl3ctsGa3y0Xr7YeisNoaefjkYW3Ef7fC6my1BjnfMkETDER
-	 TUJorj6PDSQmqMPunuj7HfvRelDivF9rInic36K9wSz37wDlu4+3Fd6Zzzxls/s85Jw==
+	t=1794004972;
+	b=JXG1PBX5RP0RCe5wt7Br4pwh4Gpy39HiJ7uI/WdwePoHLRshk1qCu7erRiiT4W0tfvFM
+	 1NqHuc9JrkOB0C78+xN74Z0shHZ/agYDgUMbLy0cf+J19QdQF/BRPDbd/8Qa4uy4sSRuO
+	 MAogBlNcfdQytUOgainsj6PvJTSB0UVNlUmvtaCr2Xq+66keRYxqWTstjTUhUoOiUt294
+	 N2hAPhWI2tnpX0BN3w7+WHRI6uwMZn8KD58AM/9myu3yrg/u5e4cZ1fM+oj9IV8AXF1rl
+	 oj/D2X80WkLvrt46IJ0VIKiXmNg5pDPtdpOkp2D+GdFI5DYE1OdeqVfJ00KGK84TIcA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794004960;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794004972;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=JlbEJ/mAQ5AEryfKs406khz/jZEGvS7oBKVbDoRy+Xo=;
-	b=sGjEYnOhO1EREB1utgy76JU6gizV54Ydj1gmCnwhr4dj+Zlz2c41UcBS+hGYMH/DMSem
-	 cIba98D2RxwzmdNGm7Zl8CGrb2pPhsAXmyrmxE9VsFocMcf9BGCTVp0j+MMbz76kyeMN1
-	 CnzyisqHveryuDk1dNqgundX/gaf/y1irgjMWv72pB2Lb205picM7IVvsjRdOvORUMr3/
-	 D3tQStnW3j4FsQEzITKWTTZ/cSTKeEd/xZ1NuEeonxe2TfB32iUxpHSg5sJ1ZgNZixa2A
-	 Z0RO9MPDptWXXN/p5TwSg+qIb0u5GWiOCHVBQG9lf5j5kuDKeR6S9QDdTdstaRl+yQA==
+	bh=xrGWYrqGixJhZjc6cA3u15ineEoMPVTqbCNBS3vO/E8=;
+	b=1mIslP96p1kLHlqhA3763SVe9k1E0Nxjp4PLV1S4ICSUa/TT9KM4+L9cIF/YXhHoyuSA
+	 oIDkh0mkqEJPT64SMM+2VZMLbnCCOKzseejPjc7mV2VFkouCPVQe7N8q6YRj5h0CnOsnK
+	 45AYZxbf+vaYqhuIiZ0k0TL6BbeS0nEzYwwpeqHlUKa0BAXbexxACHU0QwFP5NT4t7EpB
+	 NR5bJR0SEb1t/6jBmGhKxAVct4T+dPAG8Exp4+1Oi/7vP78fN5Oo74CHCY7VRavgpOlE4
+	 09RKMHp3w4ZbA5MHzVX2V0a60xi15Nf2MA92g5Xi9ayYLw8tzzWC3HnjbF1321mn5Lg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JGMdQPeY;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=L63UwzrP;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A5611606A33E;
-	Fri,  6 Nov 2026 22:42:40 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA998606A326;
+	Fri,  6 Nov 2026 22:42:51 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JGMdQPeY
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DFFDB1F008A1;
-	Fri,  6 Nov 2026 22:42:30 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=L63UwzrP
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 019D31F0089F;
+	Fri,  6 Nov 2026 22:42:40 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794004960;
-	bh=JlbEJ/mAQ5AEryfKs406khz/jZEGvS7oBKVbDoRy+Xo=;
+	s=k20260515; t=1794004971;
+	bh=xrGWYrqGixJhZjc6cA3u15ineEoMPVTqbCNBS3vO/E8=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=JGMdQPeYWvZkx75geWZtgyTHasxq12eL2mvw130fUowkgQt5u/0QMWgjSwtPkrv9x
-	 nAmjmlLC7P72HaNBsSW594Z2aGntB2xZRIbb1q2R8ZtMH3EYlK1ql87XNKKuF6C8g9
-	 YgeHFDQ0cWMuaQUVjBvcVGKQAJpu6mwtlDJ0sGswiWtLGmASIR6/6q4X0dEpOAE2eF
-	 iNsdg9qv5vVMyNNORv0rIQQxNkFL+m6shCr1VUsNJuYFfxAv45qwMOjzvRCmv+QD+r
-	 SbMFCEmReiNw5AyNldI87KX38Qhwj6dZrU+wBDI8Sqtq/2STIRj0mAqTnzOzfGK3Zx
-	 OkxQrVY8oZSWw==
-Message-ID: <6b8d6030-efe7-47d2-8aa2-3f8fd77ce95c@kernel.org>
-Date: Fri, 6 Nov 2026 22:57:19 +0100
+	b=L63UwzrPS2ataztpBxby6ngbB/ads9+t+yjRipL316Dhw0VSCOCocujlpDrXQuR92
+	 8cHpI5LF473Ryale/9WffhFi44DKGSYK/ZKvCx/DE/l3c1ItJmN6w0NuBhoDgnTVim
+	 R0DJ5yQCaHR1w6HEmo9gpud9qnI/d42WwKGteXUoEtngqrw8LxtvSBXHqCXAOCRQK8
+	 DCWqGNxp8pGnD9fk5PGtMcnSu4BYj3TXiWyH31as3EUW4+fGpL7NWJmAsPyq4O1QVu
+	 UWgmOZlW8cQq63VBB2npIDRUKf9QYGivudLkoE0YWyW/Nw19B2w3UDUxxAcWiNZ6/d
+	 Zm3KgmdtNVSrQ==
+Message-ID: <9c86902c-b942-4641-aee0-672adcc84823@kernel.org>
+Date: Fri, 6 Nov 2026 23:42:17 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,25 +52,36 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 2/5] mm: limit pagecache folio refcount when splicing into
- pipes
-To: Lance Yang <lance.yang@linux.dev>
-Cc: akpm@linux-foundation.org, ljs@kernel.org, liam@infradead.org,
- vbabka@kernel.org, rppt@kernel.org, surenb@google.com, mhocko@suse.com,
- willy@infradead.org, jack@suse.cz, ziy@nvidia.com,
- baolin.wang@linux.alibaba.com, nico.pache@linux.dev, ryan.roberts@arm.com,
- dev.jain@arm.com, baohua@kernel.org, usama.arif@linux.dev, kas@kernel.org,
- matthew.brost@intel.com, joshua.hahnjy@gmail.com, byungchul@sk.com,
- gourry@gourry.net, ying.huang@linux.alibaba.com, apopple@nvidia.com,
- peterx@redhat.com, hannes@cmpxchg.org, songliubraving@fb.com,
- riel@surriel.com, hughd@google.com, will@kernel.org,
- aneesh.kumar@kernel.org, npiggin@gmail.com, peterz@infradead.org,
- jgg@ziepe.ca, kevin.tian@intel.com, joro@8bytes.org, robin.murphy@arm.com,
- steven.sistare@oracle.com, jhubbard@nvidia.com, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
- linux-arch@vger.kernel.org, iommu@lists.linux.dev, stable@vger.kernel.org
-References: <20261105-refcount_overflow_stable-v1-2-70b9c655da3e@kernel.org>
- <20261106100320.77084-1-lance.yang@linux.dev>
+Subject: Re: [PATCH 5/5] mm/gup: limit pagecache folio refcount when grabbing
+ references
+To: "Jose A. Perez de Azpillaga" <azpijr@gmail.com>,
+ Andrew Morton <akpm@linux-foundation.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>, "Matthew Wilcox (Oracle)"
+ <willy@infradead.org>, Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
+ Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
+ Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>,
+ Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
+ Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>,
+ Gregory Price <gourry@gourry.net>, Ying Huang
+ <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, Johannes Weiner <hannes@cmpxchg.org>,
+ Song Liu <songliubraving@fb.com>, Rik van Riel <riel@surriel.com>,
+ Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
+ <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
+ Jason Gunthorpe <jgg@ziepe.ca>, Kevin Tian <kevin.tian@intel.com>,
+ "Joerg Roedel (AMD)" <joro@8bytes.org>, Robin Murphy <robin.murphy@arm.com>,
+ Steve Sistare <steven.sistare@oracle.com>, John Hubbard <jhubbard@nvidia.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
+ iommu@lists.linux.dev, stable@vger.kernel.org
+References: <20261105-refcount_overflow_stable-v1-0-70b9c655da3e@kernel.org>
+ <20261105-refcount_overflow_stable-v1-5-70b9c655da3e@kernel.org>
+ <4763a039-60f8-4263-8124-beb0f9ab3366@gmail.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -117,35 +128,101 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20261106100320.77084-1-lance.yang@linux.dev>
+In-Reply-To: <4763a039-60f8-4263-8124-beb0f9ab3366@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 11/6/26 11:03, Lance Yang wrote:
+On 11/6/26 11:13, Jose A. Perez de Azpillaga wrote:
+> On 11/5/26 2:10 PM, David Hildenbrand (Arm) wrote:
+>> Let's replace our existing safety check by the new
+>> folio_ref_count_over_limit() check in fast and slow GUP before acquiring
+>> additional references or pins.
+>>
+>> Keep it simple and use the check for all folio types.
+>>
+>> Drop the WARN_ON_ONCE(), because apparently these things can currently
+>> happen with large pagecache folios.
+>>
+>> Keep the zero-refcount rejection if the refcount is 0.
+>>
+>> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
+>> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
+>> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
+>> Cc: stable@vger.kernel.org
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>> ---
+>>  mm/gup.c | 12 ++++++++----
+>>  1 file changed, 8 insertions(+), 4 deletions(-)
+>>
+>> diff --git a/mm/gup.c b/mm/gup.c
+>> index 2ab42fc6834e5..db9db6b2a4662 100644
+>> --- a/mm/gup.c
+>> +++ b/mm/gup.c
+>> @@ -77,7 +77,7 @@ static inline struct folio *try_get_folio(struct page *page, int refs)
+>>  
+>>  retry:
+>>  	folio = page_folio(page);
+>> -	if (WARN_ON_ONCE(folio_ref_count(folio) < 0))
+>> +	if (unlikely(folio_ref_count_over_limit(folio)))
+>>  		return NULL;
+>>  	if (unlikely(!folio_ref_try_add(folio, refs)))
+>>  		return NULL;
+>> @@ -140,7 +140,11 @@ static void gup_put_folio(struct folio *folio, int refs, unsigned int flags)
+>>  int __must_check try_grab_folio(struct folio *folio, int refs,
+>>  				unsigned int flags)
+>>  {
+>> -	if (WARN_ON_ONCE(folio_ref_count(folio) <= 0))
+>> +	if ((flags & (FOLL_GET | FOLL_PIN)) &&
+>> +	    unlikely(folio_ref_count_over_limit(folio)))
+>> +		return -ENOMEM;
+>> +
+>> +	if (WARN_ON_ONCE(!folio_ref_count(folio)))
+>>  		return -ENOMEM;
+>>  
+>>  	if (unlikely(!(flags & FOLL_PCI_P2PDMA) && folio_is_pci_p2pdma(folio)))
+>> @@ -1482,8 +1486,8 @@ static long __get_user_pages(struct mm_struct *mm,
+>>  				struct folio *folio = page_folio(page);
+>>  
+>>  				/*
+>> -				 * Since we already hold refcount on the
+>> -				 * large folio, this should never fail.
+>> +				 * Grabbing more references can fail once we
+>> +				 * hit folio refcount limits.
+>>  				 */
+>>  				if (try_grab_folio(folio, page_increm - 1,
+>>  						   gup_flags)) {
 > 
-> On Thu, Nov 05, 2026 at 02:10:11PM +0100, David Hildenbrand (Arm) wrote:
->> Similar to mapping pagecache folios into page tables, let's reject splicing
->> folios into a pipe if the refcount is at it's limit, similar to how we
->> handle it during GUP.
->>
->> This will prevent more cases of possible folio refcount overflows with
->> large pagecache folios.
->>
->> Let's keep it simple and check in the two callers of
->> splice_folio_into_pipe().
->>
->> Also check in try_get_page() to cover pipe-buffer duplication by tee()
->> and partial pipe-to-pipe splicing.
-> 
-> What about fuse_ref_folio()? Buffered FUSE_WRITE requests can carry
-> pagecache folios into a pipe through /dev/fuse without going through
-> splice_folio_into_pipe() or try_get_page() ...
+> this can fail now, so shouldn't the error path below return -ENOMEM like
+> the first page does, instead of -EFAULT?
 
-Of course it has its own handling ... :)
+Hm, indeed, that's inconsistent. The issue is that we have this -EREMOTEIO check
+mangled in there. But the ordinary path would already have checked that and
+failed with he same error.
 
-Thanks! I was hoping the number of folio references would be bounded ... I guess
-one reference per pipe buffer is not the end of the world, but, let's just add
-it, and fallback to copying.
+So this hunk would become:
+
+                                /*
+-                                * Since we already hold refcount on the
+-                                * large folio, this should never fail.
++                                * Grabbing more references can fail once we
++                                * hit folio refcount limits.
+                                 */
+-                               if (try_grab_folio(folio, page_increm - 1,
+-                                                  gup_flags)) {
++                               ret = try_grab_folio(folio, page_increm - 1,
++                                                    gup_flags);
++                               if (ret) {
+                                        /*
+-                                        * Release the 1st page ref if the
+-                                        * folio is problematic, fail hard.
++                                        * Release the folio reference we
++                                        * already took.
+                                         */
+                                        gup_put_folio(folio, 1, gup_flags);
+-                                       ret = -EFAULT;
+                                        goto out;
+                                }
+                        }
 
 -- 
 Cheers,
