@@ -1,56 +1,113 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.160.176
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793986044;
-	b=LPV1KLrU0mlW9dc07XKh2Z0oSf3w92ewKpgNVhD+UdHRpKcUb+8lZ7yIKyxx0d41SQA7
-	 aJnNEmuH9PheT/XYUgCUDqr4jKJ67i4E3GjK9cWVxMFVD5/noSfiXSc4ziJj9LZ3NlIsy
-	 xu7OBvbBBLfzXI1Xw0n35EV3GSsPYADoJOX3V1I5ZP1KTjr+B3S3NHrUM2Ci3dIfHH9zK
-	 NpnkkHpxGyJ9HAcwmNfXNxPmjatwd2o3MKqkfWy+NwIFDOyD6pO+OImk0luyzPB2YnTDe
-	 3bmLLcUdqXWrW6DkuM9OoyL/1+xKmgYjakPyKFNxMRJwYnNwekA6mfwqZqbsOVv98yA==
+	t=1793987931;
+	b=nELiU8e3unBoSft6D1V6LGrnh2z83a42EWGR8xpriBJSKBIVWRigywvfeneMHnogaHwe
+	 Y6oXxSwjYxv1DfIzHELFThc/mr1mBiW9GfcmxI7p7tRfVltuuL++sVFntzy55TK+p54qx
+	 MIaipPvXOOOqJmeZvlEcvU18b5/1oiFejLHDXZZMMNCJ3Oo/Pj2ycgncZpYxThXnTosGC
+	 Yp8+RWhLXKzcCwDn8mZSXUDcQggMzun5EjFnw8oNq54oByLg9rHVmfzCP6AU7/0/zjjjn
+	 zboLxHaAjNcC8x5PfvgjQjBCjyc8do8vtDB3Ru+aGX+MNElim4TfyMdlugZV2yQl3Ow==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793986044;
-	h=DMARC-Filter:Received:Received:DKIM-Signature:Date:From:To:Cc:
-	 Subject:Message-ID:MIME-Version:Content-Type:Content-Disposition:
-	 Content-Transfer-Encoding;
-	bh=D1OP9qC177zA3aBfRfenxMIit8o8G0GoKrdtUwc1iHk=;
-	b=bpOZBhU156WAqegPnFjqvuEX6/toD0tjGtmtAxMTRvJidjPph6+u4P212gDZ8ahEhjk+
-	 tggqjoEvp5BYnEnx6P4ErG/jwxc4WSdt11C+YflPRCVT5Dg6qGJTbrVvn5Fhly3Gh25gw
-	 wfbrO13Y4sfefQPxqVcsxCHD0qHn5mwASk549MoHUjt28WVk6zth3rQgNcz+SZG8Ztj/h
-	 Kfy5y4QWlftbkprc4pOGoOWRgjOYZahBXcTnVDqoJVsKKHr/gMvMuSSN1nJzbQmGydPFR
-	 d3hXNPr2AOyiKRY3FxzalunDyWv8kZotGyJ2PXC3xaZZLPe0/EaNwz9FL+XIDL/brNg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793987931;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To;
+	bh=KoOh0KgSmAnOjKaKpi/0YYF58G7PTa1KHqz+Z6PRDOg=;
+	b=pdydc+K65VayQK+w6ngp+ACtY6Lc5EgDH/7QtciYXK+AS3E9HMBfARSKgv7WxNXNa/KH
+	 CaGSJTpuS/IehMheaKH9rlHL0AURUUFDGqEdWXWrgqi23PgCckRyPaOIWvBH95IzhgZyR
+	 /A88q9UgMvcjnLTUAQ34fG/GWKcQmZbOynZQAQKKenvviGQRdaBlR4VgaUsPAEJhAWHom
+	 erIDgB00uLPSD81EHNP6vesfajrHflMebApn6GcTIhou4jNOwbDrOvfVZKKKuiQW9aeKh
+	 QeeMXZee/tJvAG/Rv6af94dnLIxE80dLD1CJZYSQNQHA2l5Z+1EcJjK030DZzqpwW2Q==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=arm.com;
-	spf=pass smtp.mailfrom=arm.com;
-	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=Ob6o03Xe;
-	arc=none smtp.remote-ip=217.140.110.172
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8853B606A329;
-	Fri,  6 Nov 2026 17:27:23 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8853B606A329
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	dmarc=none header.from=toxicpanda.com;
+	spf=pass smtp.mailfrom=toxicpanda.com;
+	dkim=pass header.d=toxicpanda.com header.i=@toxicpanda.com header.a=rsa-sha256 header.s=google header.b=ckldtfAp;
+	arc=none smtp.remote-ip=209.85.160.176
+Received: from mail-qt1-f176.google.com (mail-qt1-f176.google.com [209.85.160.176])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B025F606A326
+	for <linux-arch@vger.kernel.org>; Fri,  6 Nov 2026 17:58:50 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org B025F606A326
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=toxicpanda.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=toxicpanda.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=Ob6o03Xe
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id CBB311477;
-	Fri,  6 Nov 2026 09:27:19 -0800 (PST)
-Received: from localhost (a079125.arm.com [10.164.21.43])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 282A43F632;
-	Fri,  6 Nov 2026 09:27:21 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1793986042; bh=6bzuAkIaDZvpb/WEZZmaV1YDCZ13Mh9rHG1iq3jJ37w=;
-	h=Date:From:To:Cc:Subject:From;
-	b=Ob6o03Xec1fUWggLPZ/Zu5jDYGGVgmIPtWdBk1KGltVeDja5el7//AVqGpMJtWish
-	 l7EuGPFP34NXFapK/r591dA5Uok+vifaW/hB3jYQZ50pImwfLBqcssjSMwuk9B3+6Z
-	 5gEQm0qrcKFXYkCxACwhnpuLvakHukn0Klu44rvQ=
-Date: Fri, 6 Nov 2026 22:57:19 +0530
-From: Linu Cherian <linu.cherian@arm.com>
-To: Will Deacon <will@kernel.org>, 
-	Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, 
-	Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, Ryan Roberts <ryan.roberts@arm.com>
-Subject: [RFC] ARM64 ESR ownership issue for signal delivery
-Message-ID: <fp2tsl5lkj4rzvwfkkgogeka7uhd2bwkci37zvikjjtg7wkckd@qc2lyhdpdocx>
+	dkim=pass (2048-bit key, unprotected) header.d=toxicpanda.com header.i=@toxicpanda.com header.a=rsa-sha256 header.s=google header.b=ckldtfAp
+Received: by mail-qt1-f176.google.com with SMTP id d75a77b69052e-53c4b82919fso1124181cf.0
+        for <linux-arch@vger.kernel.org>; Fri, 06 Nov 2026 09:58:50 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toxicpanda.com; s=google; t=1793987929; x=1794592729; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=KoOh0KgSmAnOjKaKpi/0YYF58G7PTa1KHqz+Z6PRDOg=;
+        b=ckldtfApc2a+8xtbx8tMkucEhxUCvF+Cw+JJDVJ6f2f8qLw6otsyHydoCal9Y8PQVE
+         wSqegXOmaHckcVudPQ6CSb2Ruksh9t0YwF/s+5BHasjKno/b/Le3QZHOw9O0Wc9bTYas
+         64ujbEgDlUftzzRM+Sn0H/9m6rO6xhL4b6YUYLPi6ml4aKmlxBzTkTsjvjBY/T4aOWRE
+         Tt8FwlEUCSShEOsz+aE75gU78VQ7uHBKnzZICLAFdSlDCyXdndFhhzq7QHroTgLCaOhy
+         ZDPDzp6HoM1U3pQJpMpalCQZ3F3o6QTXHe2VyZogcz6GpPK/vb29LOX3GA5Sf3zaycH6
+         LJRQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793987929; x=1794592729;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=KoOh0KgSmAnOjKaKpi/0YYF58G7PTa1KHqz+Z6PRDOg=;
+        b=tddqENVUYKieZ9OXnJk1eNF8kZ1HuowZW3y6fMNn1A01GEhjYqnQUDEPb0/xQxIEHE
+         YJMoXiS+AFRj+tHGFi8+VAgiJEywxRRorxLR+N9WyE8WJNXfNaopvSm8cqeIxCupRncp
+         c6nXhu88GM0GDTiJ8sYfmjc8aOXXwSw/zSUDE0U5WRjuaB/tX6FYPLjiHclqS23AZERb
+         E8tO7m8GBtR8eB5NsTgImRK8D2J1CP+y72S5L/B8jc28zHAqHqhYt4JU3Q7mLdA8P+XL
+         Dd1Ul8i1P77wGc2zV8G3MHwJpMgnnNEpJWYhTj3BkyX8SFovhwshBs9sWFG/wRCV3rPJ
+         T/cQ==
+X-Forwarded-Encrypted: i=1; AKwUvBwBPQnQb5fnos7w/2zAXxyzdYUfic7g/sHJIuzPKJgxFSja82L2ww5TcPkfVDhDBua0KE3IlVKYhTum@vger.kernel.org
+X-Gm-Message-State: APuU4Z8qFD1E0/85R3/gBa3KneIzkaWE7t8mFDuJalRPsEbWy6I7rZ6U
+	nv4IPlP9rwjK1lbCVu+BY0lIdpK9l7V/HmHIrkWqx3WKHS828tVtLfMfToRU4dJR63g=
+X-Gm-Gg: AYBFou055Oo/ivP4ZgR2uvWVR4OaRHksm5eG6Sc1MmT1toGbYjBPkZEVRgNEsRz7x0T
+	FwZE36NhuW3CUyvl0I/Do0tWBxSnx2rjtbL3AOD+GobQXvhwwhYM4KtWHwuau5RZuiB9Hxhr+g/
+	SPui6ncbUGjdXTCsYpL6GKHr7LLwbTWlaxax3fLbrKaqHQDKq/CPbVEzM/oE9bRKDhh36ZXzAgZ
+	SCtSUCJVK+gBWESnhK5Iwem40BFD3TbIKoKe8YUGkX6fYpFCEMIamQCEyFYgkNOIfLCg2m34J+A
+	5o9guuFHNe28lr5Fm/6vYa9WMAsijfttUaUl3M/QVv/SbmSJKu1CPVukWw2HUopqHvjqgSNoOfk
+	jytVBxDSnJOe/NknjfzPbqsrWjJnVdFPro+RqBeflu8MA89zXpiOpTGD0NiEXg5kM03CvWC93YG
+	3aCxny0sCzT3/pZkGZGMWi+dSc4tghSO/YFsmcJOuFY51pBYXiSztvkr9CGBuaLXH79HgdtAv5m
+	I7uy1YaDOfyGjCLkZTepgJwna9JTCsTiLKeOUmcXWEHKFKWxVqSZwNM2lo768Ogue8TGtnQG0F8
+	eqPDGM+dOum+jb6G4OCLTYxRZWHqczUFXrgpUk8pz1yH
+X-Received: by 2002:ac8:5d08:0:b0:536:699d:9a22 with SMTP id d75a77b69052e-54e157646f3mr53331201cf.57.1793987929323;
+        Fri, 06 Nov 2026 09:58:49 -0800 (PST)
+Received: from toxicpanda.com ([153.61.196.254])
+        by smtp.gmail.com with ESMTPSA id d75a77b69052e-54e27013e83sm25509581cf.24.2026.11.06.09.58.47
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 06 Nov 2026 09:58:48 -0800 (PST)
+Date: Fri, 6 Nov 2026 17:58:36 +0000
+From: Josef Bacik <josef@toxicpanda.com>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>, 
+	Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, Zi Yan <ziy@nvidia.com>, 
+	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
+	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
+	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
+	Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
+	Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>, 
+	Gregory Price <gourry@gourry.net>, Ying Huang <ying.huang@linux.alibaba.com>, 
+	Alistair Popple <apopple@nvidia.com>, Peter Xu <peterx@redhat.com>, 
+	Johannes Weiner <hannes@cmpxchg.org>, Song Liu <songliubraving@fb.com>, 
+	Rik van Riel <riel@surriel.com>, Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>, 
+	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
+	Peter Zijlstra <peterz@infradead.org>, Jason Gunthorpe <jgg@ziepe.ca>, 
+	Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>, 
+	Robin Murphy <robin.murphy@arm.com>, Steve Sistare <steven.sistare@oracle.com>, 
+	John Hubbard <jhubbard@nvidia.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, iommu@lists.linux.dev, 
+	stable@vger.kernel.org
+Subject: Re: [PATCH 2/5] mm: limit pagecache folio refcount when splicing
+ into pipes
+Message-ID: <n3l2cnx6d25jovloqyoxiz566mh62janclmiewjvumtmqfezo7@zmsmco5vvssn>
+References: <20261105-refcount_overflow_stable-v1-0-70b9c655da3e@kernel.org>
+ <20261105-refcount_overflow_stable-v1-2-70b9c655da3e@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -60,161 +117,51 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20261105-refcount_overflow_stable-v1-2-70b9c655da3e@kernel.org>
 
-Hi,
+On Thu, Nov 05, 2026 at 02:10:11PM +0100, David Hildenbrand (Arm) wrote:
+> Similar to mapping pagecache folios into page tables, let's reject splicing
+> folios into a pipe if the refcount is at it's limit, similar to how we
+> handle it during GUP.
+> 
+> This will prevent more cases of possible folio refcount overflows with
+> large pagecache folios.
+> 
+> Let's keep it simple and check in the two callers of
+> splice_folio_into_pipe().
+> 
+> Also check in try_get_page() to cover pipe-buffer duplication by tee()
+> and partial pipe-to-pipe splicing.
+> 
+> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
+> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
+> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> ---
+>  include/linux/mm.h | 9 ++++++---
+>  mm/filemap.c       | 4 ++++
+>  mm/shmem.c         | 4 ++++
+>  3 files changed, 14 insertions(+), 3 deletions(-)
+> 
+> diff --git a/include/linux/mm.h b/include/linux/mm.h
+> index 79ae8fc0d6bb4..a82cfbce18215 100644
+> --- a/include/linux/mm.h
+> +++ b/include/linux/mm.h
+> @@ -2287,10 +2287,13 @@ static inline void get_page(struct page *page)
+>  
+>  static inline __must_check bool try_get_page(struct page *page)
+>  {
+> -	page = compound_head(page);
+> -	if (WARN_ON_ONCE(page_ref_count(page) <= 0))
+> +	struct folio *folio = page_folio(page);
+> +
+> +	if (WARN_ON_ONCE(folio_ref_count(folio) <= 0))
 
-I am sharing some details on the ARM64 ESR ownership issue during
-signal delivery, along with a few possible solutions.
-I would appriciate feedback on the scenarios and proposed approaches.
-
-Introduction to ESR
-~~~~~~~~~~~~~~~~~~~
-
-ESR refers to an AArch64 system register, Exception syndrome register
-which holds the information about why an exception occurred.
-
-For relevant hardware faults, Linux exposes this value to user space, by
-including ESR context in the signal frame. This was originally introduced [1]
-for user space instruction emulators to identify whether a fault is read/write
-and its access size without decoding the instruction itself.
-
-Problem statement
-~~~~~~~~~~~~~~~~~
-
-ARM64 uses a task level field, current->thread.fault_code to retain the
-ESR state captured during faults. This is later used to generate the ESR
-context during signal frame generation. Essentially the ESR state stored
-in fault_code has no ownership relation with the signals queued.
-
-From Linux arm64 point of view, there are two categories,
-* Signals with relevant ESR context - triggered by hardware faults only
-* Signals without ESR context - triggered by hardware faults and software as well.
-
-Because fault_code has no signal ownership, an ESR captured for one signal can be
-included in the frame of an unrelated signal.
-
-Some possible error scenarios are given below that show the ESR ownership issue.
-
-Assumption:
-1. Signals described as being delivered to user space are assumed to have handlers
-installed that allow the task to continue.
-2. Cases 2 and 3 assume that the task is traced by ptrace
-
-Case 1: Hardware fault followed by an unrelated asynchronous signal
-
-* An EL0 exception generates and delivers a fault signal with ESR A.
-* current->thread.fault_code remains set after the signal is delivered.
-* A subsequent asynchronous SIGUSR1 is delivered
-* Since ESR context is added to signal frame based on non zero fault_code,
-  a stale ESR context can get attached to this non fault signal.
-
-Case 2: Two EL0 faults, each with distinct ESR values
-
-* An EL0 store to a read-only page triggers hardware fault with ESR A
-  and SIGSEGV gets queued.
-* At the SIGSEGV ptrace stop, ptrace tracer
-  - masks SIGSEGV
-  - queues SIGUSR1 to the tracee
-  - continues the tracee task with SIGSEGV and hence SIGSEGV gets requeued.
-    ie. PTRACE_CONT(..., SIGSEGV)
-  So essentially SIGSEGV gets deferred and SIGUSR1 gets processed first.
-* Task continues with SIGUSR1 user space handler which in turn triggers another
-  hardware fault with ESR B resulting in a SIGBUS. This overwrites ESR A in
-  the task level storage.
-* When the initially deferred SIGSEGV is later delivered,
-  its ESR context is generated from ESR B instead of ESR A.
-
-Case 3: One EL0 fault with valid ESR + software-originated fault signal without ESR
-
-* A task masks SIGBUS signal and then self-queues the same SIGBUS/BUS_ADRERR signal
-  This is software generated but uses the same encoding (signo, si_code)
-  of hardware fault signal.
-* The task then encounters a hardware fault with ESR A and SIGSEGV
-  gets queued.
-* At the SIGSEGV ptrace stop, ptrace tracer
-  - masks SIGSEGV,
-  - unmasks SIGBUS,
-  - continues the tracee with SIGSEGV and hence SIGSEGV gets requeued
-* Task continues with SIGBUS handling and the signal can get wrongly framed with ESR A.
-
-Open questions
-~~~~~~~~~~~~~~
-
-Are there any known users for ESR context in arm64 signal frames currently?
-If not, should we really continue exposing ESR context through signal frames ?
-
-Possible solutions
-~~~~~~~~~~~~~~~~~~
-
-If we wish to expose ESR context in signal frames, below are few options.
-
-Option 1: Task-level ESR with filtering (no changes to generic kernel)
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-Category A: Non-synchronous signals
-Prevent signals such as SIGUSR1 from receiving an ESR context.
-Fix: Allow ESR framing only for sigmask(ksig->sig) & SYNCHRONOUS_MASK
-
-Category B: Synchronous signal codes that cannot carry ESR
-Exclude codes such as TRAP_PERF, BUS_MCEERR_AO, and SEGV_MTEAERR.
-Fix: Allow ESR framing only for ARM64 ESR-capable (signo, si_code) pair.
-
-Category C: ESR-capable pairs without a captured ESR
-Some software-generated signals use the same ESR-capable (signo, si_code)
-pair as hardware exceptions.
-Fix: Add current->thread.esr_valid, set only by ESR-capturing exception paths
-and cleared after consumption or invalidation.
-
-Required assumption: Multiple ESR-less ESR-capable(Cat C) signals may be outstanding
-while esr_valid is clear. While esr_valid is set, the signal owning the ESR must
-be the only outstanding ESR-capable signal until its ESR is framed or invalidated.
-
-Atleast cases 2 and 3 violate this assumption.
-
-Option 2: Per-signal ESR ownership flag
-+++++++++++++++++++++++++++++++++++++++
-
-Add a per signal ESR ownership flag, potentially using unused bits in the fields of
-_sigfault (part of struct kernel_siginfo) to mark which queued signal owns
-current->thread.fault_code.
-
-By default, the field should stay cleared.
-
-  - Set thread.esr_valid when an exception captures ESR.
-  - Set the signal’s ESR_VALID flag when queueing it.
-  - Generate an ESR context only when both are set.
-  - Clear thread.esr_valid after the owning signal has framed the ESR,
-     or when the owning signal is discarded
-  - Detect an ownership conflict if ESR is captured while thread.esr_valid
-    is already set.
-  - Detect stale ownership if a flagged signal is dequeued while thread.esr_valid
-     is clear.
-
-This approach resolves ambiguity between any number of ESR-less Category C signals
-and one ESR-owning signal. It detects, but does not solve, the case where multiple
-ESR-owning signals coexist.
-
-This may be involve fewer changes than Option 3, but then this option needs further
-validiation of layout compatibility and sanitization of siginfo passed from/to userspace.
-Also implications of reusing siginfo storage for kernel internal metada need to be
-looked further.
-
-Option 3: Add per-signal arch context
-+++++++++++++++++++++++++++++++++++++
-
-Probably a cleaner but more invasive solution is to add arch context
-(ESR value and valid bit) to each struct sigqueue (ie. outside struct kernel_siginfo)
-and propagate it into struct ksignal.
-Context aware APIs can be used to specify ESR value and its validity while existing
-APIs would leave the context invalid.
-
-This option could open a way for ptrace to get the precise ESR value and that can be really
-benefecial for POE2 use case.
-
-[1] https://github.com/torvalds/linux/commit/15af1942dd61ee236a48b3de14d6f31c0b9e8116
-
+Since you're here anyway can you change this to something other than
+WARN_ON_ONCE, since that results in an OOPS with panic_on_warn set?
 Thanks,
-Linu Cherian.
+
+Josef
