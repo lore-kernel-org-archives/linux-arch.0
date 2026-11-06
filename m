@@ -1,47 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794007518;
-	b=MbI63vkcmtIG1HYk052BmlbMvCsJykVyX2/EYRlF3eOG2EbA2TtvMIiYLqFq0mLbzwQU
-	 h3/Daxdb8/FYF9bbujd5vRS7Q22NSHtZLSRMqSpPeGLPE7xC/CUR88sLTLGkEQPKocKMq
-	 QJVgep0aDsLHgtoobt92iWRXQT+CPJv6StmTunJkCGiRi3mUJuUQHlsbkFvGMoxqm/1Fs
-	 BVaT1x7oAmybyng60cSdpPQ4KlMuUOcs1BygF10KnWy6IQFV2jCoEGuysy5r/dvEFXRJA
-	 dyWq0vbm+0lwUkfqHwryUUamCWzVXz5v5Dh5+mFy4oONm8BMyGC23YRWK25bVePLR8Q==
+	t=1794008353;
+	b=SRWjp4FDASC4VYCqe3ABfZr674CYfit/Rp5jzSTIDI1816w3EtVYJDsbyWJjMPJ5fovg
+	 t34e4wTNY/C50OSDuy67FrFMyapScr9ImyrFUqVT6PPPa45eJDHizFmssPzt72gFpUkY+
+	 /gaON85PLTYpCGYt3U/TKoXwU9+Ecqv6vp8steNCDHFS+q7dR4gjEidqXzNh8kuTKcmk5
+	 wc8lqcfWNKzmzr7kuhumA5niLAv3mSkqHI3ZHF5MyX3b+AanEoRva6YYZhwYTn9Bcd/xY
+	 msAI74kdZrGkglmQtwfiOqqDJUYVF/w1Y2ancCrZqpgMWyh6BKXYueWnbeKwn2CtNNw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794007518;
-	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
-	 Subject:From:To:Cc:References:Content-Language:Autocrypt:In-Reply-To:
-	 Content-Type:Content-Transfer-Encoding;
-	bh=OS/+VLIvLCclNI397My8q3LjXY/Yk5vw3CEic1mr37c=;
-	b=bRGGRj+9J5Tq1YWUfOfv1c+zSjRjWocfzLAaJF16xpGiuLjWjlT8ppNaN+BRYPzcCC+v
-	 0S1luN6qyb/1ofYZSR7RIdH0f0hO1Tgj67pCezYbGOoUT1C44druiiJdgBBx2WMsI/agn
-	 eoDSAwd/kQYv75HqV+2zfwBnNYlLSdR02PEAGxQhip2RI39ffJGc8Z5WGncK/kLWPWLl0
-	 cEBvbFMvVdYeRnYHMPeFiJ0uEp4epT6UDjJzzOwutGK6BkFuXBFjaP7HAm7qFkdLQt4cQ
-	 /+Hevo2yZ1KSHto7IovtNOZchwoVymtanaFg0Ty3iMU4xO+YQ4wH46330ptrNl3JOFw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794008353;
+	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
+	 MIME-Version:User-Agent:Subject:Content-Language:To:Cc:References:
+	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding:X-Spam-Status:
+	 X-Spam-Checker-Version;
+	bh=dSVjWjVS37eJkJx4AfljuSAWmmeX+B1EZDTjXdnakOc=;
+	b=qJ6QikJpdZFWY4xvNJWXRXxJBzlnqVVQPs8XW2oXr0QuhVUw4nMUnzvpvQ0/dRdZHSEv
+	 KQ3KeYe34lI7Njhr4BSmUFOPQN0AEqz57BkcpN+tpxehSmh70QxUlesvvVeC/UUR+gFwx
+	 ygsStsYiLo5HvmhBcVC95n1qMcMif1tQUynZTEUO8az0ZIQUayMxQQFUnN8tOW2ZBqij7
+	 3DlP4BhLkmBx5Qotg8jK7GeuvyOjAaPxt+oEFUJaFR3JUohw4Q5mOR9D/r8i5wTwfLvpH
+	 Mtja5DhONjDfVybnppuuaSxnVVnD1Izn4jEgoojZbvERRu2aGA4WwtgH5EC919OyQdQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NceyAkCQ;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 12B47606A326;
-	Fri,  6 Nov 2026 23:25:17 +0000 (UTC)
+	dmarc=pass header.from=linux.microsoft.com;
+	spf=pass smtp.mailfrom=linux.microsoft.com;
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=ND4TOGV+;
+	arc=none smtp.remote-ip=13.77.154.182
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8B914606A326;
+	Fri,  6 Nov 2026 23:39:12 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8B914606A326
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NceyAkCQ
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DFF931F0089F;
-	Fri,  6 Nov 2026 23:25:05 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794007517;
-	bh=OS/+VLIvLCclNI397My8q3LjXY/Yk5vw3CEic1mr37c=;
-	h=Date:Subject:From:To:Cc:References:In-Reply-To;
-	b=NceyAkCQmMG4b/DAanRIqf+RGeQZ275A6btG9R6Jeyvow7he/aODMZmg+NZa03Z1N
-	 xwdHlCdI8opWflHq/tbeeJQKWfeF9FydRg8c+gDukJ1up2XXQ2K5Gb1m/pCeQawlLr
-	 CP+jgbKTf0kv4gunItcSesSP4mw7Z3WWvBgP+a/OA3XLqEoRibzLSa9ZiMgkzR1vaQ
-	 2YBcXelmsslr431xNQx19YBll30Rfeb/rTKd7mqhwFt6da6naDqjofspumCgK2OoIh
-	 A055sIERzPUYeoOEFVkiYb81xdiAOhbc2eo5cdzcCmmtmPrzKwCVa11NafBmZzyP1E
-	 BxxHvrFsUj+lQ==
-Message-ID: <7948ffce-9062-4362-b191-984368bfbaca@kernel.org>
-Date: Sat, 7 Nov 2026 00:25:03 +0100
+	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=ND4TOGV+
+Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 5796E20B7167;
+	Fri,  6 Nov 2026 15:39:10 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 5796E20B7167
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1794008351;
+	bh=dSVjWjVS37eJkJx4AfljuSAWmmeX+B1EZDTjXdnakOc=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=ND4TOGV+aGqUZOIj4OZuLSw3/mcPp20ktiiySs5dmViHZrnrkFLlndkSgmvQZEnx5
+	 C2qv4cxIsY0feeBoqqIDewz9wKTObvwNYTaQLJRIVNIL0H9yDiVCeDUUDFdPR0C5Is
+	 vRGSTEFfhUwgvzlVybkZUvTL/GAyNtmS3T43/T8U=
+Message-ID: <9d010202-39e4-c424-3a40-0d37b62b17fd@linux.microsoft.com>
+Date: Fri, 6 Nov 2026 15:39:10 -0800
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -51,244 +53,303 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 1/5] mm: limit pagecache folio refcount when mapping pages
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-To: Kiryl Shutsemau <kas@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>,
- Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Zi Yan <ziy@nvidia.com>, Baolin Wang <baolin.wang@linux.alibaba.com>,
- Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
- Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
- Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>,
- Matthew Brost <matthew.brost@intel.com>,
- Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>,
- Gregory Price <gourry@gourry.net>, Ying Huang
- <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Johannes Weiner <hannes@cmpxchg.org>,
- Song Liu <songliubraving@fb.com>, Rik van Riel <riel@surriel.com>,
- Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Jason Gunthorpe <jgg@ziepe.ca>, Kevin Tian <kevin.tian@intel.com>,
- "Joerg Roedel (AMD)" <joro@8bytes.org>, Robin Murphy <robin.murphy@arm.com>,
- Steve Sistare <steven.sistare@oracle.com>, John Hubbard
- <jhubbard@nvidia.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
- iommu@lists.linux.dev, Chris Mason <mason@kernel.org>, stable@vger.kernel.org
-References: <20261105-refcount_overflow_stable-v1-0-70b9c655da3e@kernel.org>
- <20261105-refcount_overflow_stable-v1-1-70b9c655da3e@kernel.org>
- <au3JT5QXbcOFXCp0@thinkstation>
- <323500a7-ffca-4285-929e-f667415589a3@kernel.org>
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH V4 5/5] x86/hyperv: Implement root partition IOMMU kernel
+ only driver
 Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- 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
- qIws/H2t
-In-Reply-To: <323500a7-ffca-4285-929e-f667415589a3@kernel.org>
-Content-Type: text/plain; charset=UTF-8
+To: Easwar Hariharan <easwar.hariharan@linux.microsoft.com>
+Cc: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+ iommu@lists.linux.dev, linux-arch@vger.kernel.org, jgg@nvidia.com,
+ jacob.pan@linux.microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
+ decui@microsoft.com, tglx@kernel.org, mingo@redhat.com, bp@alien8.de,
+ dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com, joro@8bytes.org,
+ will@kernel.org, robin.murphy@arm.com, arnd@arndb.de
+References: <20261105020106.3496339-1-mrathor@linux.microsoft.com>
+ <20261105020106.3496339-6-mrathor@linux.microsoft.com>
+ <f2579646-7f77-4dd2-b7ce-ccf702828610@linux.microsoft.com>
+From: Mukesh R <mrathor@linux.microsoft.com>
+In-Reply-To: <f2579646-7f77-4dd2-b7ce-ccf702828610@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 
-On 11/6/26 21:54, David Hildenbrand (Arm) wrote:
-> On 11/6/26 13:38, Kiryl Shutsemau wrote:
->> On Thu, Nov 05, 2026 at 02:10:10PM +0100, David Hildenbrand (Arm) wrote:
->>> With large file folios, overflowing the folio mapcount and refcount
->>> became possible. For anon folios it is currently not really an issue:
->>> each large anon folio can only be mapped once into a process.
->>>
->>> That's not really big news, but it's about time that we do something
->>> about it because some modern technology might find ways to abuse it :)
->>>
->>> One of the enablers for that was commit ddc58f27f9ee ("mm: drop tail page
->>> refcounting"), however, file thp support was added later.
->>>
->>> File folios can be mapped multiple times into the same process, allowing
->>> for processes to hold many references to the same folio.
->>>
->>> As a short-term solution, let's introduce two folio refcount limits:
->>> one for ordinary consumers and one for admins. Leave some headroom
->>> before the refcount goes negative, which we really don't want (having
->>> the mapcount go negative is also not expected).
->>>
->>> Start reporting SIGBUS if we run into limits. When restoring mappings
->>> from migration entries, instead zap the pte/pmd entry. We allow for
->>> slightly exceeding the limit to keep things simpler.
->>>
->>> This is far from ideal, but better than all easy alternatives we can
->>> backport comfortably. For now it fixes the big problem: letting
->>> the refcount (+mapcount) go negative and cause trouble.
->>>
->>> This is only a temporary fix, we'll follow up with something better.
->>>
->>> While the refcount checks are not required for order 0 folios, let's
->>> just add them for consistency: each folio_add_file_rmap*() and
->>> folio_dup_file_rmap*() needs a prior check.
->>>
->>> Also, just document -EHWPOISON for copy_present_ptes() while at it.
->>>
->>> Reported-by: Chris Mason <mason@kernel.org>
->>> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
->>> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
->>> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
->>> Cc: stable@vger.kernel.org
->>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->>> ---
->>>  include/linux/mm.h | 33 +++++++++++++++++++++++++++++++++
->>>  mm/filemap.c       |  6 ++++++
->>>  mm/huge_memory.c   | 24 ++++++++++++++++++++++--
->>>  mm/memory.c        | 23 ++++++++++++++++++++---
->>>  mm/migrate.c       | 11 +++++++++++
->>>  mm/userfaultfd.c   |  4 ++++
->>>  6 files changed, 96 insertions(+), 5 deletions(-)
->>>
->>> diff --git a/include/linux/mm.h b/include/linux/mm.h
->>> index a2dd76cc5bbfe..79ae8fc0d6bb4 100644
->>> --- a/include/linux/mm.h
->>> +++ b/include/linux/mm.h
->>> @@ -8,6 +8,7 @@
->>>  #include <linux/gfp.h>
->>>  #include <linux/pgalloc_tag.h>
->>>  #include <linux/bug.h>
->>> +#include <linux/capability.h>
->>>  #include <linux/list.h>
->>>  #include <linux/mmzone.h>
->>>  #include <linux/rbtree.h>
->>> @@ -2228,6 +2229,38 @@ vm_fault_t finish_fault(struct vm_fault *vmf);
->>>  #define folio_ref_zero_or_close_to_overflow(folio) \
->>>  	((unsigned int) folio_ref_count(folio) + 127u <= 127u)
->>>  
->>> +/* Leave separate reserves for administrators and concurrent reference gains. */
->>> +#define FOLIO_REF_COUNT_LIMIT		(INT_MAX - (1U << 26))
->>> +#define FOLIO_REF_COUNT_ADMIN_LIMIT	(INT_MAX - (1U << 25))
->>> +
->>> +/**
->>> + * folio_ref_count_over_limit - Check whether to refuse more folio references.
->>> + * @folio: The folio.
->>> + *
->>> + * Relevant for large pagecache folios (!hugetlb). For these, we have to check
->>> + * before adding page table mappings or other significant refcount users whether
->>> + * we are close to our folio ref count limit, to avoid overflows.
->>> + *
->>> + * Checking this for other folios does no harm but is mostly unnecessary.
->>> + *
->>> + * This check is an approximation; we leave some headroom such that concurrent
->>> + * increments, batches and temporary references are not a problem.
->>> + *
->>> + * Return: True if the caller should refuse additional references, false
->>> + * otherwise.
->>> + */
->>> +static inline bool folio_ref_count_over_limit(const struct folio *folio)
->>> +{
->>> +	const unsigned int ref_count = folio_ref_count(folio);
->>> +
->>> +	if (likely(ref_count < FOLIO_REF_COUNT_LIMIT))
->>> +		return false;
->>> +	if (ref_count >= FOLIO_REF_COUNT_ADMIN_LIMIT)
->>> +		return true;
->>> +	/* Background threads must not consume admin reserves. */
->>> +	return (current->flags & PF_KTHREAD) || !capable(CAP_SYS_RESOURCE);
->>> +}
->>> +
->>>  /**
->>>   * folio_get - Increment the reference count on a folio.
->>>   * @folio: The folio.
+On 11/6/26 13:54, Easwar Hariharan wrote:
+> On 11/4/2026 18:01, Mukesh R wrote:
+>> Add a new file to implement a kernel only virtual IOMMU that works
+>> on Microsoft Hyper-V hypervisor (aka MSHV) in privileged VMs aka
+>> root VMs. The hypervisor claims the IOMMU upon boot, and this driver
+>> communicates with it for creating and deleting paging domains, attaching
+>> of devices, mapping and unmapping of pages, etc. During boot, hypervisor
+>> automatically creates identity and blocked domains, so there is no need
+>> to do hypercalls to create them. This is a kernel only driver and only
+>> supported on baremetal root (and not L1VH root) without any guest passthru
+>> support. Support for guest device passthru will be added incrementally.
 >>
->> Does the slow path need to be inline at all 15 call sites, GUP-fast
->> among them?
-> 
-> It's not a lot of code. Do we really care?
-> 
-> E.g., in gup.c, the compiler is free to not inline into each of the two callsites.
-> 
-
-Okay, I ended up splitting it up. A bit nsaty now that fuse will require an
-exported symbol.
-
->>
->> Maybe only leave the likely() check in inline and move the rest into a
->> function call?
->>
->> Something like:
->>
->> static inline bool folio_ref_count_over_limit(const struct folio *folio)
->> {
->>         const unsigned int ref_count = folio_ref_count(folio);
->>
->>         if (likely(ref_count < FOLIO_REF_COUNT_LIMIT))
->>                 return false;
->>         return __folio_ref_count_over_limit(ref_count);
->> }
->>
->> bool __folio_ref_count_over_limit(unsigned int ref_count)
->> {
->>         if (ref_count >= FOLIO_REF_COUNT_ADMIN_LIMIT)
->>                 return true;
->>         /* Background threads must not consume admin reserves */
->>         if (current->flags & PF_KTHREAD)
->>                 return true;
->>         return !capable(CAP_SYS_RESOURCE);
->> }
->>
->> Also, should this be capable_noaudit()? I am not sure a refused
->> reference should leave an audit record. cap_vm_enough_memory() checks
->> the admin reserve with CAP_OPT_NOAUDIT.
+>> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
+>> ---
+>>   arch/x86/kernel/pci-dma.c            |   2 +
+>>   drivers/iommu/hyperv/Kconfig         |  13 +
+>>   drivers/iommu/hyperv/Makefile        |   1 +
+>>   drivers/iommu/hyperv/hv-iommu-root.c | 613 +++++++++++++++++++++++++++
+>>   include/asm-generic/mshyperv.h       |   3 +
+>>   include/linux/hyperv.h               |   6 +
+>>   6 files changed, 638 insertions(+)
+>>   create mode 100644 drivers/iommu/hyperv/hv-iommu-root.c
 >>
 > 
-> Not an expert, but capable_noaudit() sounds good.
+> <snip>
 > 
-> Not sure if that fully resolves sashiko's complaint in the last commit.
+>>   obj-$(CONFIG_HYPERV_PVIOMMU) += hv-iommu-guest.o
+>> +obj-$(CONFIG_HYPERV_ROOT_IOMMU) += hv-iommu-root.o
+>> diff --git a/drivers/iommu/hyperv/hv-iommu-root.c b/drivers/iommu/hyperv/hv-iommu-root.c
+>> new file mode 100644
+>> index 000000000000..e0e3e9d4385e
+>> --- /dev/null
+>> +++ b/drivers/iommu/hyperv/hv-iommu-root.c
+>> @@ -0,0 +1,613 @@
+>> +// SPDX-License-Identifier: GPL-2.0
+>> +/*
+>> + * Hyper-V root vIOMMU driver.
+>> + * Copyright (C) 2026, Microsoft, Inc.
+>> + */
+>> +#include <linux/pci.h>
+>> +#include <linux/dma-map-ops.h>
+>> +#include <linux/interval_tree.h>
+>> +#include <linux/hyperv.h>
+>> +#include <asm/iommu.h>
+>> +#include <asm/mshyperv.h>
+>> +#include "../dma-iommu.h"
+>> +
+>> +static dma_addr_t hv_iommu_max_iova;
+>> +static struct iommu_domain_ops hv_paging_domain_ops;
+>> +
+>> +/* IOMMU device that we export to the world. MSHV supports max of one */
+>> +static struct iommu_device hv_virt_iommu;
+>> +
+>> +struct hv_iommu_domain {
+>> +	struct iommu_domain iommu_dom;
+>> +	u32 domid_num;			      /* as opposed to domain_id.type */
+>> +	spinlock_t mappings_lock;	      /* protects mappings_tree */
+>> +	struct rb_root_cached mappings_tree;  /* iova to pa lookup tree */
+>> +};
+>> +
+>> +#define to_hv_domain(d) container_of(d, struct hv_iommu_domain, iommu_dom)
+>> +
+>> +struct hv_iommu_mapping {
+>> +	phys_addr_t paddr;
+>> +	struct interval_tree_node iova;
+>> +	u32 flags;
+>> +};
+>> +
+>> +/*
+>> + * By default, during boot the hypervisor creates one Stage 2 (S2) default
+>> + * domain. It has two types:
+>> + *   S2 default: access to entire root partition memory. This for the host
+>> + *		 maps to IOMMU_DOMAIN_IDENTITY in the iommu subsystem, and
+>> + *		 is called HV_DEVICE_DOMAIN_ID_S2_DEFAULT in the hypervisor.
+>> + *		 (Linux renamed to : HV_DEVICE_DOMAIN_ID_DEFAULT)
+>> + *   S2 NULL: Blocks everything, ie, IOMMU_DOMAIN_BLOCKED in linux.
+>> + */
+>> +
+>> +/*
+>> + * Create dummy domains to correspond to hypervisor prebuilt default identity
+>> + * and null domains (dummy because we do not make hypercalls to create them).
+>> + */
+>> +static struct hv_iommu_domain hv_def_identity_dom;
+>> +static struct hv_iommu_domain hv_def_blocked_dom;
+>> +
+>> +/*
+>> + * The hypervisor owns the IOMMU. As such it will choose the best page size
+>> + * and whenever possible use larger page sizes automatically. The map gpa
+>> + * hypercall to map the iova however currently uses only 4K pfns as input.
+>> + * So we specify 4K as the IOMMU PAGE_SIZE.
+>> + */
+>> +#define HV_IOMMU_PGSIZES SZ_4K
+>> +
+>> +static DEFINE_IDA(hv_iommu_domids);   /* unique numeric ids for new domains */
+>> +
+>> +static bool hv_iommu_capable(struct device *dev, enum iommu_cap cap)
+>> +{
+>> +	switch (cap) {
+>> +	case IOMMU_CAP_CACHE_COHERENCY:
+>> +		return true;
+>> +	default:
+>> +		return false;
+>> +	}
+>> +}
+> 
+> Seems like this could match the guest driver and just be: return cap == IOMMU_CAP_CACHE_COHERENCY.
+> 
+> <snip>
+> 
+>> +
+>> +static struct iommu_domain_ops hv_paging_domain_ops = {
+>> +	.attach_dev = hv_iommu_attach_dev,
+>> +	.map_pages = hv_iommu_map_pages,
+>> +	.unmap_pages = hv_iommu_unmap_pages,
+>> +	.iova_to_phys = hv_iommu_iova_to_phys,
+>> +	.free = hv_iommu_domain_free,
+>> +};
+>> +
+>> +static struct iommu_ops hv_iommu_ops = {
+>> +	.capable	    = hv_iommu_capable,
+>> +	.domain_alloc_paging	= hv_iommu_domain_alloc_paging,
+>> +	.probe_device	    = hv_iommu_probe_device,
+>> +	.device_group	    = pci_device_group,
+>> +	.get_resv_regions   = hv_iommu_get_resv_regions,
+>> +	.owner		    = THIS_MODULE,
+>> +	.identity_domain    = &hv_def_identity_dom.iommu_dom,
+>> +	.blocked_domain     = &hv_def_blocked_dom.iommu_dom,
+>> +	.release_domain     = &hv_def_blocked_dom.iommu_dom,
+>> +};
+>> +
+>> +static const struct iommu_domain_ops hv_special_domain_ops = {
+>> +	.attach_dev = hv_iommu_attach_dev,
+>> +};
+>> +
+>> +static void __init hv_initialize_special_domains(void)
+>> +{
+>> +	hv_def_identity_dom.iommu_dom.type = IOMMU_DOMAIN_IDENTITY;
+>> +	hv_def_identity_dom.iommu_dom.ops = &hv_special_domain_ops;
+>> +	hv_def_identity_dom.iommu_dom.owner = &hv_iommu_ops;
+>> +	hv_def_identity_dom.domid_num = HV_DEVICE_DOMAIN_ID_DEFAULT; /* 0 */
+>> +
+>> +	hv_def_blocked_dom.iommu_dom.type = IOMMU_DOMAIN_BLOCKED;
+>> +	hv_def_blocked_dom.iommu_dom.ops = &hv_special_domain_ops;
+>> +	hv_def_blocked_dom.iommu_dom.owner = &hv_iommu_ops;
+>> +	hv_def_blocked_dom.domid_num = HV_DEVICE_DOMAIN_ID_NULL;    /* INTMAX */
+>> +}
+>> +
+> 
+> A net negative 9 lines to initialize these with .field notation, as suggested in v0: https://lore.kernel.org/all/4f7cadc5-817c-4163-bac8-1c02a7c6a862@linux.microsoft.com/
 
-Ok, the noaudit definitely seems to be the right thing. But getting overlayfs +
-fuse oddities done "better", I am using has_capability_noaudit(current,
-CAP_SYS_RESOURCE) now.
+Huh! which are the 9 lines you are claiming to have removed? are you saying
+the definition part is not a "line"?
 
-Hoping that is the right thing to use now ... review appreciated.
+> Wasn't super hard to do the 1 forward declaration needed...
 
--- 
-Cheers,
+Not a question of hard or not. Having that upfront in the module provides
+good introduction to a reader, specially since hyperv is all new around
+here and internals are not readily available. Moreover, imo, generally
+just embedding definitions in code abrupts the flow often, and historically
+hasn't been a common practice.
 
-David
+Thanks,
+-Mukesh
+
+
+> diff --git a/drivers/iommu/hyperv/hv-iommu-root.c b/drivers/iommu/hyperv/hv-iommu-root.c
+> index e0e3e9d4385e2..4e6bf94413458 100644
+> --- a/drivers/iommu/hyperv/hv-iommu-root.c
+> +++ b/drivers/iommu/hyperv/hv-iommu-root.c
+> @@ -12,6 +12,7 @@
+>   #include "../dma-iommu.h"
+>   
+>   static dma_addr_t hv_iommu_max_iova;
+> +static struct iommu_ops hv_iommu_ops;
+>   static struct iommu_domain_ops hv_paging_domain_ops;
+>   
+>   /* IOMMU device that we export to the world. MSHV supports max of one */
+> @@ -32,23 +33,6 @@ struct hv_iommu_mapping {
+>   	u32 flags;
+>   };
+>   
+> -/*
+> - * By default, during boot the hypervisor creates one Stage 2 (S2) default
+> - * domain. It has two types:
+> - *   S2 default: access to entire root partition memory. This for the host
+> - *		 maps to IOMMU_DOMAIN_IDENTITY in the iommu subsystem, and
+> - *		 is called HV_DEVICE_DOMAIN_ID_S2_DEFAULT in the hypervisor.
+> - *		 (Linux renamed to : HV_DEVICE_DOMAIN_ID_DEFAULT)
+> - *   S2 NULL: Blocks everything, ie, IOMMU_DOMAIN_BLOCKED in linux.
+> - */
+> -
+> -/*
+> - * Create dummy domains to correspond to hypervisor prebuilt default identity
+> - * and null domains (dummy because we do not make hypercalls to create them).
+> - */
+> -static struct hv_iommu_domain hv_def_identity_dom;
+> -static struct hv_iommu_domain hv_def_blocked_dom;
+> -
+>   /*
+>    * The hypervisor owns the IOMMU. As such it will choose the best page size
+>    * and whenever possible use larger page sizes automatically. The map gpa
+> @@ -488,6 +472,35 @@ static void hv_iommu_get_resv_regions(struct device *dev,
+>   	iommu_add_resv_x86_msi_region(head);
+>   }
+>   
+> +static const struct iommu_domain_ops hv_special_domain_ops = {
+> +	.attach_dev = hv_iommu_attach_dev,
+> +};
+> +
+> +/*
+> + * By default, during boot the hypervisor creates one Stage 2 (S2) default
+> + * domain. It has two types:
+> + *   S2 default: access to entire root partition memory. This for the host
+> + *		 maps to IOMMU_DOMAIN_IDENTITY in the iommu subsystem, and
+> + *		 is called HV_DEVICE_DOMAIN_ID_S2_DEFAULT in the hypervisor.
+> + *		 (Linux renamed to : HV_DEVICE_DOMAIN_ID_DEFAULT)
+> + *   S2 NULL: Blocks everything, ie, IOMMU_DOMAIN_BLOCKED in linux.
+> + * Create dummy domains to correspond to hypervisor prebuilt default identity
+> + * and null domains (dummy because we do not make hypercalls to create them).
+> + */
+> +static struct hv_iommu_domain hv_def_identity_dom = {
+> +	.iommu_dom.type = IOMMU_DOMAIN_IDENTITY,
+> +	.iommu_dom.ops = &hv_special_domain_ops,
+> +	.iommu_dom.owner = &hv_iommu_ops,
+> +	.domid_num = HV_DEVICE_DOMAIN_ID_DEFAULT, /* 0 */
+> +};
+> +
+> +static struct hv_iommu_domain hv_def_blocked_dom = {
+> +	.iommu_dom.type = IOMMU_DOMAIN_BLOCKED,
+> +	.iommu_dom.ops = &hv_special_domain_ops,
+> +	.iommu_dom.owner = &hv_iommu_ops,
+> +	.domid_num = HV_DEVICE_DOMAIN_ID_NULL,    /* INTMAX */
+> +};
+> +
+>   static struct iommu_domain_ops hv_paging_domain_ops = {
+>   	.attach_dev = hv_iommu_attach_dev,
+>   	.map_pages = hv_iommu_map_pages,
+> @@ -508,23 +521,6 @@ static struct iommu_ops hv_iommu_ops = {
+>   	.release_domain     = &hv_def_blocked_dom.iommu_dom,
+>   };
+>   
+> -static const struct iommu_domain_ops hv_special_domain_ops = {
+> -	.attach_dev = hv_iommu_attach_dev,
+> -};
+> -
+> -static void __init hv_initialize_special_domains(void)
+> -{
+> -	hv_def_identity_dom.iommu_dom.type = IOMMU_DOMAIN_IDENTITY;
+> -	hv_def_identity_dom.iommu_dom.ops = &hv_special_domain_ops;
+> -	hv_def_identity_dom.iommu_dom.owner = &hv_iommu_ops;
+> -	hv_def_identity_dom.domid_num = HV_DEVICE_DOMAIN_ID_DEFAULT; /* 0 */
+> -
+> -	hv_def_blocked_dom.iommu_dom.type = IOMMU_DOMAIN_BLOCKED;
+> -	hv_def_blocked_dom.iommu_dom.ops = &hv_special_domain_ops;
+> -	hv_def_blocked_dom.iommu_dom.owner = &hv_iommu_ops;
+> -	hv_def_blocked_dom.domid_num = HV_DEVICE_DOMAIN_ID_NULL;    /* INTMAX */
+> -}
+> -
+>   /*
+>    * In general, the hypervisor does not support the capabilities hypercall for
+>    * root partitions, an exception was made for max_iova_width. For IOMMU cap,
+> @@ -571,11 +567,6 @@ static int __init hv_root_iommu_init(void)
+>   
+>   	hv_iommu_max_iova = DMA_BIT_MASK(caps.max_iova_width);
+>   
+> -	/* This must come before iommu_device_register() because the latter
+> -	 * calls into the hooks.
+> -	 */
+> -	hv_initialize_special_domains();
+> -
+>   	rc = iommu_device_sysfs_add(iommup, NULL, NULL, "%s", "hyperv-iommu");
+>   	if (rc) {
+>   		pr_err("Hyper-V: iommu_device_sysfs_add failed: %d\n", rc);
+> 
+> 
+> <snip>
+> 
+> Thanks,
+> Easwar (he/him)
 
