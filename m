@@ -1,74 +1,54 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.210.198
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=213.97.179.56
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793911778;
-	b=W5HgSc7bdm+9y/hLYkaa1Fqx03r8FAPGkZ75PTLC7ggPWZYm2jM5jtTfpluEvEytQI84
-	 uX/ZiFsUexqs2EMy2bVAzbpJo42G2E4J1GF36n5gjqzVsDA42ZgTlsK+jSRhZEgx8Hmj2
-	 2cgFECiefrZopFXj3MGabA6OIsodZ5gOlApSajktWmjZzrry2SbWsjgFjSs3V7GK6cW7p
-	 teexooJhOqX3o8zepxK6mgsOZPZ4FJEMMvMfLOSCuGU/0mfmKMAZCMsoTSKM4f/7HGCsn
-	 NgYAmT5y2AIwjf9348HLJjcvs0uZfc+D/xaJ92VwPceiGnGUXJc+3iCycSqA3xKrekw==
+	t=1793931834;
+	b=OqqxFJEan33WH8hBBWc2SNZu7gUrY3cuFgKj54awM7JkOXz/6o6BWcSbo7niu6DHWpHe
+	 kXxmbj7V7W3ehVY397OH7tMUd0nSqa2772Mtv1Y2cu0exjC/eW3wR/NUQfFYJ/aUvRtbn
+	 PExCoGDhtSV65aLsiFqfXJjE4aaYf3frrCBmmAlzrBYYYSWpX/zYKPyIYSRv63DMjiXbT
+	 5HXUS3uF3BxpJo5DcONAdGZQRCw2Vw62vFQJRDrERkzqReIESYXR9MDswWeq8QAwiujw5
+	 gRq8mjjSGU7flt7sHo4G7ddV7xMmdH2l4xtC5zDlqmfx/vT4m7sJe0eiJNRQw9ZQ7kQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793911778;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
-	 Mime-Version:References:Message-ID:Subject:From:To:Cc:Content-Type;
-	bh=tAx7/usNPVJ7CoJVtZ280YQTJvtxvHPmbZ0zROmpUTY=;
-	b=og4CvpMRnhczqfNegzPHGKGCr/RNUpcZUWog4Ip2fpa+QarzViGNqQDzmf7DnfqTWQBo
-	 x2kcpWnGodAvGEhwFSSjZ4GRfsBkW8sgRiVCZ5IvF7USxkwh3xrSSSiSWHwr1iQvc7/IF
-	 DbhOWIDi6LfFBkZ6GGmjqEfdKocxMCdiQbde8K27THBq3CtCLMDPzHiHIBEXtRxSQ1Fze
-	 BMNCF3fVXoMu2/W72HIrnuypSceCSzzSNyIpEX68fsk54OYsj8QuW2fBROF8MpyM6shio
-	 49RUKdCuv+lRC+SGR7Z+t8WVc+J4rooCQnB0Fx32Rd6qjyOeE5aFnGK7He9Gp13usog==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793931834;
+	h=DMARC-Filter:DKIM-Signature:Received:From:Date:Subject:MIME-Version:
+	 Content-Type:Content-Transfer-Encoding:Message-Id:References:
+	 In-Reply-To:To:Cc:X-Mailer;
+	bh=EqPr/ub5T0mzU8emv4xapSnt/P45Vwy++DCDHCbXLNg=;
+	b=pddVxSnyMoiLDMMiFpKMWMvkzdFiTFLGPXbl4IGDuDIG6TQ3lg9aXw8cOn1rR5mrzEiH
+	 +OYreHC7wmYunkxmgd/UeV6mFRwHfDDSeAE6sSkuw+v3dv6IA61IEmXLJYG4cHzew9Qy3
+	 +2NEzbstIYjWcAttqllG2J2WLq5l/T5PMEt0HzacwK1mxJ31ngDnnEHDQ6bmrd0NWmGo8
+	 ClycsDWfxk2l+vvOUUeCkQhgO0pc5gMFBjmzkO1wR9eAzXegUb4JfFpUrUqxNp5pPAYVh
+	 fYWazA14IhFqPri2nZvnAWxzlHbGInWtxeLU4RU3q0SKuhjpf4Um+hP6Ul7oNEad+NA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=google.com;
-	spf=pass smtp.mailfrom=flex--kuniyu.bounces.google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=dxBFD7eg;
-	arc=none smtp.remote-ip=209.85.210.198
-Received: from mail-pf1-f198.google.com (mail-pf1-f198.google.com [209.85.210.198])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dmarc=pass header.from=igalia.com;
+	spf=pass smtp.mailfrom=igalia.com;
+	dkim=pass header.d=igalia.com header.i=@igalia.com header.a=rsa-sha256 header.s=20170329 header.b=CrtDVoNl;
+	arc=none smtp.remote-ip=213.97.179.56
+Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (prime256v1) server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 093AC606A330
-	for <linux-arch@vger.kernel.org>; Thu,  5 Nov 2026 20:49:37 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 093AC606A330
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--kuniyu.bounces.google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2920B606A329;
+	Fri,  6 Nov 2026 02:23:52 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2920B606A329
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=dxBFD7eg
-Received: by mail-pf1-f198.google.com with SMTP id d2e1a72fcca58-8b32efd7ec4so288608b3a.3
-        for <linux-arch@vger.kernel.org>; Thu, 05 Nov 2026 12:49:37 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20260707; t=1793911777; x=1794516577; darn=vger.kernel.org;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=tAx7/usNPVJ7CoJVtZ280YQTJvtxvHPmbZ0zROmpUTY=;
-        b=dxBFD7egkald1diEtbXOBXzH+9cQFK2KeCaFgwFJNeVqQ39GNskIoMvqgylgnntMH9
-         o6cgkIhz7VeqRWc76fFeuaZBrUrsO0KbXGQDOo8UnmsNxd5DuGBZMTkVsx2LFZXyCFih
-         xLmHM8Mx07KTStSbatLB7JBcE69i+TN4sfwyGum4R7QrkX6GMQsP7QDdZp7bkXe4WTSN
-         kjH+OioEJh4aowCsawhV76CFmgsNb84NAEAQfXPTtwRjk+/N+4OfpAi+RPh6ypf7I9Ji
-         LwRr227XUyaN5rK5df3trhjeaIYVx8XGIDVL5DDAgaeqxIBb9EXYuq3EuqROZW7d5HLq
-         L0wQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793911777; x=1794516577;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=tAx7/usNPVJ7CoJVtZ280YQTJvtxvHPmbZ0zROmpUTY=;
-        b=Tr5QLxoq2jt5M2UosbT7cjhBd5YLlR6GvZSvjkKBOUA86o8Pf/BTA0uL5CTbMcfH9z
-         5Ye5ELKJ2KIV2VCOgKXOmRA9RZoxOtfbknrtIlv8EyjubkthzdkJkAQNWSOfdEBliV7D
-         rWol/F3kKUVewRC0FXXqK9PfXluIh31zA7A3i/U7ydo5084URpSq/dTh+5vYUY9VRY7L
-         uBXfp1RAU0biI+EYPe9/MCA1dJPLDyGJhGWKrHyKAfM+SsyYnbWIAJQn6axeltSqIYc4
-         1yGpPk3YheGJQVbrv878wO0VFkqplTjT1l3GDQcgQkRTYHBsvdAO4SuSIPFgHxrE+WJo
-         GWTw==
-X-Forwarded-Encrypted: i=1; AKwUvBxKr2/D19QY7cCzfd3J75WETVNfmBfDFqRYZtIbLA7gHqD69C5HJWeVCRMZVuIQUaIpYtGgLJi7TTXC@vger.kernel.org
-X-Gm-Message-State: APuU4Z8A+pA9cOuUvhnLQFkEqGDyiHGvN3mEe09NGKIaLUnEROq/K7wK
-	aod90mRjrxhQcxnNsm+mSZu1PwFnOsXXz/s91sn9PbVFe+WGl8cajx0+NbeRzOwids0Bi5AkPWu
-	GDrP/Tg==
-X-Received: from pfbkr9.prod.google.com ([2002:a05:6a00:4b49:b0:8a0:70d8:a2ef])
- (user=kuniyu job=prod-delivery.src-stubby-dispatcher) by 2002:a05:6a00:4f95:b0:89e:89f5:18eb
- with SMTP id d2e1a72fcca58-8b37aaa87f1mr220362b3a.15.1793911776710; Thu, 05
- Nov 2026 12:49:36 -0800 (PST)
-Date: Thu, 5 Nov 2026 20:49:36 +0000
-In-Reply-To: <20261102-halaney-scm-creds-thread-v1-1-0b4d75dbf35f@amutable.com>
+	dkim=pass (2048-bit key, unprotected) header.d=igalia.com header.i=@igalia.com header.a=rsa-sha256 header.s=20170329 header.b=CrtDVoNl
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
+	s=20170329; h=Cc:To:Message-Id:Content-Transfer-Encoding:Content-Type:
+	MIME-Version:Subject:Date:From:From:Reply-To;
+	bh=EqPr/ub5T0mzU8emv4xapSnt/P45Vwy++DCDHCbXLNg=; t=1793931832; x=2109291832; 
+	b=CrtDVoNlomRhP2GUzVkbihlu2XlFjZr+DNscjx/xCVa5eU0GkKDE7tLQgvJabLMxcB7HMZlDQKz
+	BfYKo+iEXkghvLdcH331WdLiEPyp7y4XISDxYgPClK4bP20G1s8SQFHhvftfZHcvbNTiOTQz03xVb
+	UNe+yJtMBTzY+fLCtkm5O2hO7kazFARaIULNUbijZ3fLBek5RTPWog1JzQ16Fb+k7/ZX9dbw8cvVF
+	ouuqjyri2/R7oA7k3VZzPc0leg7DH4fUInBGos0OESB+1u5uvRxsIxH3WvNFN5F0IH1KtFzyY9/ly
+	ldI4Qn8e2agl+i9XpkomODU+vbYuSwSeYYMA==;
+Received: from [177.172.122.137] (helo=[192.168.15.100])
+	by fanzine2.igalia.com with esmtpsa 
+	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_256_GCM:256) (Exim)
+	id 1xP9cF-003xm9-4Z; Fri, 06 Nov 2026 03:23:43 +0100
+From: =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
+Date: Thu, 05 Nov 2026 23:23:42 -0300
+Subject: [PATCH v10 1/3] arm64: vdso: Split native/compat mremap callbacks
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,33 +57,87 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0
-References: <20261102-halaney-scm-creds-thread-v1-0-0b4d75dbf35f@amutable.com> <20261102-halaney-scm-creds-thread-v1-1-0b4d75dbf35f@amutable.com>
-Message-ID: <auzr1F0HNh1mazaS@google.com>
-Subject: Re: [PATCH net-next 1/3] selftests/net: pass socket options to the
- scm_pidfd test flows
-From: Kuniyuki Iwashima <kuniyu@google.com>
-To: Andrew Halaney <andrew@amutable.com>
-Cc: "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@kernel.org>, 
-	Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>, 
-	Shuah Khan <shuah@kernel.org>, Christian Brauner <brauner@kernel.org>, 
-	Richard Henderson <richard.henderson@linaro.org>, Matt Turner <mattst88@gmail.com>, 
-	Magnus Lindholm <linmag7@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
-	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, 
-	Andreas Larsson <andreas@gaisler.com>, Willem de Bruijn <willemb@google.com>, Arnd Bergmann <arnd@arndb.de>, 
-	netdev@vger.kernel.org, linux-kselftest@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, 
-	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, 
-	sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Message-Id: <20261105-tonyk-robust_arm-v10-1-366ed4a3435b@igalia.com>
+References: <20261105-tonyk-robust_arm-v10-0-366ed4a3435b@igalia.com>
+In-Reply-To: <20261105-tonyk-robust_arm-v10-0-366ed4a3435b@igalia.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, 
+ Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
+ Mark Rutland <mark.rutland@arm.com>, 
+ Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+ Sebastian Andrzej Siewior <bigeasy@linutronix.de>, 
+ Peter Zijlstra <peterz@infradead.org>, Florian Weimer <fweimer@redhat.com>, 
+ Darren Hart <dvhart@infradead.org>, Ingo Molnar <mingo@kernel.org>, 
+ Davidlohr Bueso <dave@stgolabs.net>, Arnd Bergmann <arnd@arndb.de>, 
+ Uros Bizjak <ubizjak@gmail.com>, 
+ =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, 
+ linux-arch@vger.kernel.org, kernel-dev@igalia.com, 
+ LKML <linux-kernel@vger.kernel.org>, 
+ =?utf-8?q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
+X-Mailer: b4 0.15.2
 
-On Mon, 02 Nov 2026 17:12:34 -0600, Andrew Halaney wrote:
-> pidfd_flow() and leader_flow() take booleans that pick between
-> SO_PASSPIDFD and SO_PASSPIDFD_THREAD. Make them take a zero-terminated
-> list of socket options for the receiver to enable instead, so tests for
-> further SO_PASS* options can reuse the same flows rather than copying
-> them just to muck with options.
-> 
-> Signed-off-by: Andrew Halaney <andrew@amutable.com>
+From: Mark Rutland <mark.rutland@arm.com>
 
-Reviewed-by: Kuniyuki Iwashima <kuniyu@google.com>
+Currently the native and compat VDSOs share a common vdso_mremap()
+function which is used as their vm_special_mapping::mremap callback.
+
+In subsequent patches the native and compat VDSOs will need distinct
+mremap logic, which will be easier to manage with separate functions.
+
+Give the compat VDSO its own aarch32_vdso_mremap() function. For now
+this is identical to vdso_mremap().
+
+At the same time, fix the odd whitespace in the vdso_mremap() prototype.
+
+There should be no functional change as a result of this patch.
+
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: André Almeida <andrealmeid@igalia.com>
+---
+ arch/arm64/kernel/vdso.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 50596dab23f9..7cafa8208ef1 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -57,7 +57,7 @@ static struct vdso_abi_info vdso_info[] __ro_after_init = {
+ };
+ 
+ static int vdso_mremap(const struct vm_special_mapping *sm,
+-		struct vm_area_struct *new_vma)
++		       struct vm_area_struct *new_vma)
+ {
+ 	current->mm->context.vdso = (void *)new_vma->vm_start;
+ 
+@@ -161,6 +161,14 @@ static int aarch32_sigpage_mremap(const struct vm_special_mapping *sm,
+ 	return 0;
+ }
+ 
++static int aarch32_vdso_mremap(const struct vm_special_mapping *sm,
++			       struct vm_area_struct *new_vma)
++{
++	current->mm->context.vdso = (void *)new_vma->vm_start;
++
++	return 0;
++}
++
+ static struct vm_special_mapping aarch32_vdso_maps[] = {
+ 	[AA32_MAP_VECTORS] = {
+ 		.name	= "[vectors]", /* ABI */
+@@ -173,7 +181,7 @@ static struct vm_special_mapping aarch32_vdso_maps[] = {
+ 	},
+ 	[AA32_MAP_VDSO] = {
+ 		.name = "[vdso]",
+-		.mremap = vdso_mremap,
++		.mremap = aarch32_vdso_mremap,
+ 	},
+ };
+ 
+
+-- 
+2.56.0
+
