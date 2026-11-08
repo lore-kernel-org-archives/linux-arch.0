@@ -1,45 +1,110 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.43
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794139127;
-	b=UFjij2Y58TU+6giFqEdrp++0S2T8Vrn8hPGaLUQKFbbq5Tu+BDlkgHAFRdPsABGYmIxP
-	 prZcIsaYDzJ4MKpBa7gSQrIE89N437R8gxWb4cxdaQWBFuGvvBvIss4OO3k3t2ncFs2/N
-	 iKnHLful9yqG+B1//U0mF3/nIZBmd05V5rfuYy65KWCiX+cVQhmBAJysCUGL/6uv3Rdbw
-	 Lwa531dUuRI5uEbVBObBCPxNhWtMo06idpCvcjgzfpdOqu4nQ1NhfcxXRsFj6Dk1ub6xw
-	 6TJDMLQtl5ZO1rpkH4ygZRi3cNzepEuePKWp+iJOQMbdIDWqbU0rKZ7Gnu8UHb6poUw==
+	t=1794173578;
+	b=aHWb6flxufMA4BNgPmBYeJ6h1Wxhb0Lud4XX3dcZEYXVdPszKQn2CljpjWyrl3EiG7Mz
+	 IM0k9qreiIm47w1G8CBXh6+UIVvy1BVMknSiBsv5c83GXIVye9Vx0UJNzYId3oM42LUFo
+	 9crAPVl1T0MyDfSYTjofrNElwHLxtq/WMEkTkiycpwHxrBMZkRaWc4lBMg7EItdudii+b
+	 PmKYmv8X/5cgnceaE0rOto5eMGFrFAClm2YLDauoqiqMmavGKsH2J+UsIhfHwaseVfDaE
+	 0sJdOt0mUz+e/996jq/VrPqKiNhcmKAmswRSSEx2aKwghUvp7IZIxMEQEH3j4I0pd3w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794139127;
-	h=Received:DKIM-Signature:Content-Type:MIME-Version:Message-Id:
-	 In-Reply-To:References:Subject:From:To:Cc:Date;
-	bh=frdSBuiNZsaClAfWL1rszk93uoKIYFoT/2az2pnoHt4=;
-	b=tWuqIF4Idhl3X9bmIWOWz1V5RqvWsBBoppemHxZTcSYWxo2+ISWmaovd47fCwdTKFzQL
-	 6OpC7LqD8LbHx6urhwiaNJeWgx5Ko4rp2qO0j7W5qGC+dbTqT2NNR8/3CgfI4VjTlyR+3
-	 8wnMcA/U9V9dQGs+EDp9zLVwBwdQc8o3ykekuIl5cm8vF5LDOYbdDoLgPLPMqDQsEaeim
-	 9LPNxZMV9/VCT72CRAb5VLrXn7uvXqfIiKjQ8yveWQeogtOrX594sghaVAsup6ancTGnH
-	 Yk4/0XTig7+i61xMwKJAuS4LBQWyggsPC3MtEOBlgEUKACArZBl0cUGRVcUoTaZFvbQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794173578;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:X-Mailer:
+	 MIME-Version:Content-Type:Content-Transfer-Encoding;
+	bh=2zV+j1o90j03z3/bSKQRAMr2OAwRnzRNXDWN23pKxKc=;
+	b=DppY5tw8WEvzq48YojwZ16Rolh6qT+14WFPnxkUOGEdIHiPsLHiRsdPhZcoYGTQpV54t
+	 DU6Ib2LOSGLBz+CGkMnD+UVc7PwUna263+VQqvo2EhJc1uo6M4k3RxpvQOCjUtShIft3N
+	 ety50Ftz4R7GgU/AwNbIHG8tWAMTXa+Phk3YgN4a5bhvxCZJg7wzUVmRPcd33WtxXLObX
+	 DVREK8XS5GxAYz/Bx/CALGSh4fzXkiyPCvVSIj3n15TjAo7vJr5EpyndEH+/JoyEle6EL
+	 FSI/rbZrDpmrC5t5UWUEehQH9GwDZismu2MFbw892Ol2jEJ1rBgoh70F8rWlXFH+lnA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=fail reason="signature verification failed" header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ItgUl6Pz;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=g1thKR+m;
+	arc=none smtp.remote-ip=209.85.221.43
+Received: from mail-wr1-f43.google.com (mail-wr1-f43.google.com [209.85.221.43])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1C146606A321;
-	Sun,  8 Nov 2026 11:58:46 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16F4F606A323
+	for <linux-arch@vger.kernel.org>; Sun,  8 Nov 2026 21:32:57 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 16F4F606A323
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ItgUl6Pz
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A932C1F0089F;
-	Sun,  8 Nov 2026 11:58:45 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794139126;
-	bh=frdSBuiNZsaClAfWL1rszk93uoKIYFoT/2az2pnoHt4=;
-	h=In-Reply-To:References:Subject:From:To:Cc:Date;
-	b=ItgUl6PztSGNn2uQTaSE+c6elZ9dMsyQ66yn/YThcn1L1YS4hJFN5IQlHvj/kF/z1
-	 2d/R7zA2en/UUgYrH/8IyMFqGeJtvBopjb584BWfSR2dG/uCQvL8WWgq7iczslSCHW
-	 g9jh31BAYYxunw1f8Ybd70aYzBl7tUwxFyf83fm2gqAAuXqBEIzgRMhXPK+sWrknzs
-	 yMomCSE/ysWqphi5xPPltDnJvmfe7v1TaeNySdKNo6HydM3ejnHBPeHMRBnoylZmCQ
-	 ut7bXtq2vbcTEu6vTCD0q452CzUGVIplVMci32BvaekxFaPtw37zCLVdnVlEtEhCt/
-	 qcPGw/hRNSamQ==
-Content-Type: multipart/mixed; boundary="===============7105721968340737727=="
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=g1thKR+m
+Received: by mail-wr1-f43.google.com with SMTP id ffacd0b85a97d-490d59c3edaso182162f8f.1
+        for <linux-arch@vger.kernel.org>; Sun, 08 Nov 2026 13:32:57 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20260707; t=1794173576; x=1794778376; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=2zV+j1o90j03z3/bSKQRAMr2OAwRnzRNXDWN23pKxKc=;
+        b=g1thKR+m3D3E2+c4hjI7QL3t50zazlEow2f3cU3NWSOcbViKGU+bFhuwrFyNJLKhd2
+         zHYXQnPFcPXe+OTWCNJAX5Doukw0IgV0+hx6/2omnjkeERyku7Qd1BPmTfG2Ec2vQYCj
+         jBrOKkbpvQg6C2Qm/j7T6X8EjF/sd57iirCc6AnfscRPrdsjvNwASYBi0OE8oqXwYdCi
+         zJl7umWLxRBDsqPH+gl3WB/UhcHVkpQHMEdZEB7hHpJ+Hv7UTPn8Nlv6LyoVls54rMcg
+         mIo87yVqR5TSb6XzD5jEPo2n6Qli47aCR0sHQax0ubMztuUql/507jGMoGih3Wy2gIqR
+         MqCQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1794173576; x=1794778376;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=2zV+j1o90j03z3/bSKQRAMr2OAwRnzRNXDWN23pKxKc=;
+        b=VXKFHoYwZ/8quPad7HXE2RSvf4sPTZY0c9h89/xgtorQeDLF4QHiqV0a90wPMIsohs
+         ZVVG39Q2NwviqiZmzcRb7E80bbzlbiPN6z5RgVNdu10QMd0YmGFajBcXQf7eY+RzVjfj
+         9c/caaKDwx4HLp1XzCmcE9hJVMSwy+jA/ARZGvuL25+JGAtAPlO3WrUsk++s/AiX+CsJ
+         MsvtnA9pRgc/7GQAdDw2EqKq1G6Pvg7S0hNzCPoFUaHXgx4nP9qT9j2mKCTj6T35ZenR
+         2fDjsbAnls7OI7ZgnSpKMWxEuwzlmOvqNEPPglv7Fzh8/b8eZHwvttiE+eQdAohQfHv5
+         USuw==
+X-Forwarded-Encrypted: i=1; AL+hErFxaCzKpio8MDYL6C3ARsaKNmbTvXbIXjaqa5fX3YM3YYlV/v8eMhaB7cJZxVuPfdQu21zQiKithOH0@vger.kernel.org
+X-Gm-Message-State: APuU4Z8ZjgBx8z+Jhkv/RqSYByPSxyqUCdtCleHzMVQlavnomUdbdWYj
+	Yz/iIoEAFybmTmJc/PfFfi3q88iCwc83qX9Cs/JltsoKQgA6DN2XvO3L
+X-Gm-Gg: AYBFou02LNENwfGo9xu/DN+4sbcQIbAFf5hj8ml6PxQA+6hG+/6SjGro3RNku7oYkNR
+	ZVihZ0KP2hlSCfj2oM7tR+X1kV2E9Es+fdCzF10Xm8oKGXA/rBOnf/BitLCLjngVEwgS3F+AbSy
+	j0HQsH0TCOIqG2FgmkX5el8A4MKBC4AqzwiT9qMsDOVySBsaeKkJLkhNHdtGyfGqcl56vdnBgyJ
+	lL4cRziOP2SeXUP+6JfaeS4QN2UT0EXjqr5erkaXRVttlJg6qf4lwBNQ+pedzNWH9fhpv41C6O3
+	9kavQ04HLh5VbwJDQmkrMkHNfbdrfhQotCjIlAEVX6mlCXmcx6ShYnTst3PAyCMaFJ7r/Fw8Ygy
+	ssR/fcX5haoqRooJOCwRfWK/jnHhpEshS1djGJllHZVsahIDpRSZn2qiyaIP1EWEAfsxALPd8Ar
+	0vrJjvgtW3wb/VMaKDbxoAKzCKZe58XnU2ze6o1dUN+KZfVYHl+ySk61nJH96Kg88GxsJhFi0Qy
+	G8S9MnIUSgwltg0oRI483HVVyzg2mw3s1sok29G3UUDCQfVmjFGXACXbRWKHEnaQN+Zs8yQ5/Bw
+	wK2tkTgUxQdlWD4LsjB7NBVUHtfOiKX2zOmQg4aWRlacbyc9jJFrUfqtfaoWPiMg
+X-Received: by 2002:a05:6000:26c8:b0:48f:bbb5:61c2 with SMTP id ffacd0b85a97d-4958852d3b8mr5479500f8f.4.1794173576292;
+        Sun, 08 Nov 2026 13:32:56 -0800 (PST)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-49597371cc4sm5861840f8f.36.2026.11.08.13.32.55
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sun, 08 Nov 2026 13:32:56 -0800 (PST)
+Date: Sun, 8 Nov 2026 21:32:54 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: Yunhui Cui <cuiyunhui@bytedance.com>
+Cc: pjw@kernel.org, palmer@dabbelt.com, aou@eecs.berkeley.edu,
+ alex@ghiti.fr, dennis@kernel.org, tj@kernel.org, cl@gentwo.org,
+ ast@kernel.org, daniel@iogearbox.net, andrii@kernel.org,
+ martin.lau@linux.dev, eddyz87@gmail.com, memxor@gmail.com, song@kernel.org,
+ yonghong.song@linux.dev, jolsa@kernel.org, bjorn@kernel.org,
+ pulehui@huawei.com, puranjay@kernel.org, thuth@redhat.com,
+ ajones@ventanamicro.com, ben.dooks@codethink.co.uk,
+ rkrcmar@ventanamicro.com, samuel.holland@sifive.com, zong.li@sifive.com,
+ conor.dooley@microchip.com, tglx@kernel.org, debug@rivosinc.com,
+ seanwascoding@gmail.com, andybnac@gmail.com, menglong8.dong@gmail.com,
+ cyrilbur@tenstorrent.com, wangruikang@iscas.ac.cn, atishp@rivosinc.com,
+ apatel@ventanamicro.com, linux-riscv@lists.infradead.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org, bpf@vger.kernel.org,
+ arnd@arndb.de, nathan@kernel.org, nick.desaulniers+lkml@gmail.com,
+ morbo@google.com, justinstitt@google.com, qingfang.deng@siflower.com.cn,
+ linux-arch@vger.kernel.org, llvm@lists.linux.dev, dave@stgolabs.net,
+ emil@etsalapatis.com, ihor.solodrai@linux.dev, broonie@kernel.org
+Subject: Re: [PATCH v9 1/3] riscv: implement this_cpu operations
+Message-ID: <20261108213254.67805ef0@pumpkin>
+In-Reply-To: <20261108110406.97495-2-cuiyunhui@bytedance.com>
+References: <20261108110406.97495-1-cuiyunhui@bytedance.com>
+	<20261108110406.97495-2-cuiyunhui@bytedance.com>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -49,66 +114,25 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Message-Id: <61dfc5e627706ca6bd1b23fbc8e9e4af7196ac827d3089fcc038079536f848eb@mail.kernel.org>
-In-Reply-To: <20261108110406.97495-2-cuiyunhui@bytedance.com>
-References: <20261108110406.97495-2-cuiyunhui@bytedance.com>
-Subject: Re: [PATCH v9 1/3] riscv: implement this_cpu operations
-From: bot+bpf-ci@kernel.org
-To: cuiyunhui@bytedance.com,pjw@kernel.org,palmer@dabbelt.com,aou@eecs.berkeley.edu,alex@ghiti.fr,dennis@kernel.org,tj@kernel.org,cl@gentwo.org,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,martin.lau@linux.dev,eddyz87@gmail.com,memxor@gmail.com,song@kernel.org,yonghong.song@linux.dev,jolsa@kernel.org,bjorn@kernel.org,pulehui@huawei.com,puranjay@kernel.org,thuth@redhat.com,ajones@ventanamicro.com,ben.dooks@codethink.co.uk,rkrcmar@ventanamicro.com,samuel.holland@sifive.com,zong.li@sifive.com,conor.dooley@microchip.com,tglx@kernel.org,debug@rivosinc.com,seanwascoding@gmail.com,andybnac@gmail.com,menglong8.dong@gmail.com,cyrilbur@tenstorrent.com,wangruikang@iscas.ac.cn,atishp@rivosinc.com,apatel@ventanamicro.com,linux-riscv@lists.infradead.org,linux-kernel@vger.kernel.org,linux-mm@kvack.org,bpf@vger.kernel.org,arnd@arndb.de,nathan@kernel.org,nick.desaulniers+lkml@gmail.com,morbo@google.com,justinstitt@google.com,qingfang.deng@siflower.com.cn,linux-arch@vger.kernel.org,llvm@lists
- .linux.dev,dave@stgolabs.net,emil@etsalapatis.com,ihor.solodrai@linux.dev,broonie@kernel.org,cuiyunhui@bytedance.com
-Cc: ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,mason@kernel.org,ihor.solodrai@linux.dev
-Date: Sun,  8 Nov 2026 11:58:45 +0000 (UTC)
-
---===============7105721968340737727==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-> riscv: implement this_cpu operations
+On Sun,  8 Nov 2026 19:04:04 +0800
+Yunhui Cui <cuiyunhui@bytedance.com> wrote:
 
-TL;DR: this_cpu_write_N casts val without parentheses, so expressions like
-"zero - 1" or "a < 0" may store different values than the generic code on
-RISC-V; no in-tree caller found that triggers it.
+> RISC-V has no asm/percpu.h, so this_cpu_*() read-modify-write
+> operations use generic implementations that disable local interrupts.
+> 
+> Implement RISC-V-specific this_cpu operations with preemption disabled
+> to keep accesses on the current CPU. 
 
-> diff --git a/arch/riscv/include/asm/percpu.h b/arch/riscv/include/asm/percpu.h
-> new file mode 100644
-> --- /dev/null
-> +++ b/arch/riscv/include/asm/percpu.h
+Have you looked at some of the schemes (I think arm64 has the latest,
+but also s390) that do most per-cpu ops without disabling preemption.
+In particular they save the pre-emption check when pre-emption
+is enabled.
 
-[ ... ]
+Basically the code tells the scheduler which register contains the
+per-cpu data so that it can be 'magically' flipped during a context
+switch.
 
-> +#define this_cpu_write_1(pcp, val)	_pcp_protect(__percpu_write_8, pcp, (unsigned long)val)
-> +#define this_cpu_write_2(pcp, val)	_pcp_protect(__percpu_write_16, pcp, (unsigned long)val)
-> +#define this_cpu_write_4(pcp, val)	_pcp_protect(__percpu_write_32, pcp, (unsigned long)val)
-> +
-> +#ifdef CONFIG_64BIT
-> +#define this_cpu_write_8(pcp, val)	_pcp_protect(__percpu_write_64, pcp, (unsigned long)val)
-> +#endif
-
-Should these casts be (unsigned long)(val)?  this_cpu_write() passes val
-through unparenthesized, so the cast binds only to the first operand of an
-expression, which changes the stored value compared to the generic
-implementation:
-
-  u64 pcp; u32 zero = 0;
-  this_cpu_write(pcp, zero - 1);
-    generic:  0x00000000ffffffff
-    here:     (unsigned long)zero - 1 = 0xffffffffffffffff
-
-  int a = -1;
-  this_cpu_write(int_pcp, a < 0);
-    generic:  1
-    here:     (unsigned long)a < 0, which is always 0
-
-This is the same problem arm64 fixed in 885bff055a0f ("arm64: percpu: Fix
-this_cpu_write() casting").  I did not find an in-tree caller that
-currently triggers it, but a future caller passing a binary expression
-would get a different value on RISC-V only.
-
-
----
-AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
-See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
-
-CI run summary: https://github.com/kernel-patches/bpf/actions/runs/42475504268
---===============7105721968340737727==--
+David
