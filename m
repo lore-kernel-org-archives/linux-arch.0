@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794216650;
-	b=0xslEbmdHRZDfGdvT1wKW0JmuUeBppB/tMIhiaIwbIrDzBXqsmbCvDR0BaUZkwlEs2ad
-	 ney8RHozwj8uG35lZdeSMmzRuoaCvT0OHplppOAWh4o8cz90Ikr8lCC0LMV0ENttzmXyY
-	 AlVlrC/9cGruioRuQniLsJJKm2WItnHaNAsTgGUYz4VpqPOSITa5mNC/n4CMH+gbMy3zQ
-	 2H/XLa5gd2iGi2/peGhLUkfK6hyLzM46OUiphAWOsKadYxm/srl+AdKXffU0fsJ4eXMNL
-	 gMpa/+G1zrFgAFYh7nQlStXXj6SZdk+DjYa5GPg03iMryv5oxc+rRBAdTjUd6BTFZ/A==
+	t=1794217830;
+	b=cCs4xqBGdO21vzg1k06vLOIBQpMLMeIbIHF8JGTIwJ+Z//M0W4Ee1x05z56/tnclEtos
+	 J1uNApD/XIlbo+jD3bm0bef85zIDD+iZ9MXYmFxFQi5kDAlU2C7wTyKcFxsQUvt6MoIXi
+	 E0r1WuEsRXz+rI/Iyxqm7Ni4DrvlxN+6jZjH8Nof/c4hsIrUk8TMAl5yfh0QCvxBZBK2A
+	 E4x4RVf5r8jNjo4mmtb8u5ozg2xxcuFi3Qdwi/82dCg/0E/OUMMEIZUmJdxqXEZXBznYC
+	 cxOeuCX9HKlhY8HA2BqJzyRR7ek29ADOYGIxT/BN+8CUrQ3WDPuAcyQtChAP7S7evuw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794216650;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794217830;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
-	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
+	 Subject:From:To:Cc:References:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=CnLuB1koimLEfQ+FWHiIsUD83n76RtlgKdSdoCMVJq8=;
-	b=JFYliI4wk1NqTJu9D3wMiA99FLq5Xh68Ju0I0LeujVPdlGUCyO6cYBXgfSsZdfuw+DIr
-	 d0MT0yHEzYIYldhrerIwHdBRuynOLvXrNs+VuR0laMmVTv5vxydMRkYyjO0u0XWpX12/m
-	 jfwj/w69UDWoj7vQ8oc41hhHo+PbmxrPrEc7tEfrCJRR2G6EGO0R5pFYlvHDdNjrFBb1S
-	 8gmspTly6C0zLxYqAIJUv19ESeB5omYSJy48s0q+lVvlZv6AMuPCZ/2CgAby4Q82YrJ9T
-	 dctXMc4VTewCzL98Gs8VCZdrQVwXEw97yvkHoel1i8u132b28D5NyU6ukuvbLs5j/5w==
+	bh=8jQST5+SfU/stcEn1VOV+s+O2grX/AjdmKJu3mY8h/o=;
+	b=Ej2fWZtB83gg5ecnot9hL7fjusmQvVPH4qbdBnpk+mTanNg/BT+xg+btl9BgAsHcfKqb
+	 DhXdrqkbU23WSnlQlXTyA0tg/RB1TBN8yTwoQkONBA1wr4rKKpYus9txgbcSdkcoPOOVP
+	 1zhp5NiyqTw84T4AhLnI1KSsRhPXkrb6TjIA8UF+o698Cf9M9nM5hxo2v9cfqLvWTKWNh
+	 HfJnpSnjV3e/ZreZoUSKAxQCXtmQXfkW60jZ8HDvj4nWmCHWaGZQiMS0JukonmJuMsA/Q
+	 5z+XfOGLkwVCh6KMnX1Q7GjGdkOvwNbkao1kukVfBoWc0aDVjdlNI+MkgnQ9l3a//0w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=gQEWG2IB;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=OvHIGFuz;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 618E6606A325;
-	Mon,  9 Nov 2026 09:30:50 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 60E19606A321;
+	Mon,  9 Nov 2026 09:50:30 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=gQEWG2IB
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CFFC81F0089F;
-	Mon,  9 Nov 2026 09:30:38 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=OvHIGFuz
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9AB921F0089F;
+	Mon,  9 Nov 2026 09:50:17 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794216650;
-	bh=CnLuB1koimLEfQ+FWHiIsUD83n76RtlgKdSdoCMVJq8=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=gQEWG2IBcfNstZNIv1Xnc+lP4lR+pAahDXpU3RGCGBOMinSgmiwz75vj8fKpk38lN
-	 kH5xmhCQZgrfUViEmJt0bM3/0Hor4tjeJmlNYBbO/RvJR7wCGR3z5orTe1/+Q344wH
-	 Xurgc6ggije9UGeZylAM9cpTVpGpRrlb8fi6hWTxUmoLE+Jgrp4MdWUQqJMwaeXhBO
-	 js93YjM1f/w5NEd4CwqPVdYJB27S2BTrkOSR9Covkf3vxI93K8oMWcdtXGKhFihX/4
-	 CZjLSINByS89lCwi+7uv1mzc3Ky5AcyS5UbzVMnwcZNOqjwb9Y0UPtG9D8qW3T1D3i
-	 eYTeMcCM3QqBQ==
-Message-ID: <8d23b1eb-72aa-479d-9486-dbfd86d8414c@kernel.org>
-Date: Mon, 9 Nov 2026 10:30:34 +0100
+	s=k20260515; t=1794217829;
+	bh=8jQST5+SfU/stcEn1VOV+s+O2grX/AjdmKJu3mY8h/o=;
+	h=Date:Subject:From:To:Cc:References:In-Reply-To;
+	b=OvHIGFuzeTrht0qsWVugipKYTrQLZcnvB6H9AoSgt/BfQa9OPyUvWqvJ8MOIsDadM
+	 GanFXxKFurEMX1AJqRVtXq3aRWMU3f5+WrFTpo5wgIB//RmeuK1DCmhhBP23ms4Q1h
+	 OxpyKGhtol4qDQfjdGC5xXV4KMT4/NcBlPfpG7uNWKEuNcRlrmaMThNfOOIhb6iqsV
+	 6bvrPZ4Od2X8Yz8iIIBCfsyQcB4XJmpr+4JPhTB/o49dc/swkETYACw1k9TwnUEdPS
+	 i/WrVh9yir+LZOUj1ItLVGLUb1Oim+AfBYVUIRuwBzAMFlgA47kPNAltSH3lzQo+Vl
+	 sFPz+2VdU0FGg==
+Message-ID: <43fc45ff-8636-4961-a80a-29844c15d7a1@kernel.org>
+Date: Mon, 9 Nov 2026 10:49:08 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -54,6 +54,7 @@ MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH v2 2/5] mm: limit pagecache folio refcount when splicing
  into pipes
+From: "David Hildenbrand (Arm)" <david@kernel.org>
 To: "Jose A. Perez de Azpillaga" <azpijr@gmail.com>,
  Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
  Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
@@ -86,7 +87,7 @@ Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
 References: <20261107-refcount_overflow_stable-v2-0-c38f6809b106@kernel.org>
  <20261107-refcount_overflow_stable-v2-2-c38f6809b106@kernel.org>
  <a9fb2d3c-d518-49d3-9479-a25fa2cfc5b3@gmail.com>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
+ <8d23b1eb-72aa-479d-9486-dbfd86d8414c@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
  xsFNBFXLn5EBEAC+zYvAFJxCBY9Tr1xZgcESmxVNI/0ffzE/ZQOiHJl6mGkmA1R7/uUpiCjJ
@@ -132,102 +133,107 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <a9fb2d3c-d518-49d3-9479-a25fa2cfc5b3@gmail.com>
+In-Reply-To: <8d23b1eb-72aa-479d-9486-dbfd86d8414c@kernel.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 11/9/26 09:57, Jose A. Perez de Azpillaga wrote:
-> On 11/7/26 11:23 PM, David Hildenbrand (Arm) wrote:
->> Similar to mapping pagecache folios into page tables, let's reject
->> additional references when splicing folios into a pipe if the refcount
->> is at its limit, similar to how we handle it during GUP.
+On 11/9/26 10:30, David Hildenbrand (Arm) wrote:
+> On 11/9/26 09:57, Jose A. Perez de Azpillaga wrote:
+>> On 11/7/26 11:23 PM, David Hildenbrand (Arm) wrote:
+>>> Similar to mapping pagecache folios into page tables, let's reject
+>>> additional references when splicing folios into a pipe if the refcount
+>>> is at its limit, similar to how we handle it during GUP.
+>>>
+>>> This will prevent more cases of possible folio refcount overflows with
+>>> large pagecache folios.
+>>>
+>>> Let's keep it simple and check in the two callers of
+>>> splice_folio_into_pipe(). Return -EOVERFLOW if the limit prevents any
+>>> progress, so do_splice_read() can fall back to copy_splice_read() when
+>>> read_iter is available. This keeps sendfile() and other splice users
+>>> working when ordinary reads would still succeed.
+>>>
+>>> Also fall back to copying in FUSE when taking another reference through
+>>> fuse_ref_folio() would exceed the limit.
+>>>
+>>> Also check in try_get_page() to cover pipe-buffer duplication by tee()
+>>> and partial pipe-to-pipe splicing.
+>>>
+>>> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
+>>> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
+>>> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
+>>> Cc: stable@vger.kernel.org
+>>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>>> ---
+>>>  fs/fuse/dev.c      |  5 +++--
+>>>  fs/splice.c        |  8 +++++++-
+>>>  include/linux/mm.h |  9 ++++++---
+>>>  mm/filemap.c       | 11 ++++++++---
+>>>  mm/shmem.c         |  4 ++++
+>>>  5 files changed, 28 insertions(+), 9 deletions(-)
+>>>
+>>> diff --git a/fs/fuse/dev.c b/fs/fuse/dev.c
+>>> index 3641abb90d6bb..4f6b7b42bfd3e 100644
+>>> --- a/fs/fuse/dev.c
+>>> +++ b/fs/fuse/dev.c
+>>> @@ -1265,9 +1265,10 @@ int fuse_copy_folio(struct fuse_copy_state *cs, struct folio **foliop,
+>>>  		if (cs->write && cs->pipebufs && folio) {
+>>>  			/*
+>>>  			 * Can't control lifetime of pipe buffers, so always
+>>> -			 * copy user pages.
+>>> +			 * copy user pages. Also copy folios at their refcount limit.
+>>>  			 */
+>>> -			if (cs->req->args->user_pages) {
+>>> +			if (cs->req->args->user_pages ||
+>>> +			    unlikely(folio_ref_count_over_limit(folio))) {
+>>>  				err = fuse_copy_fill(cs);
+>>>  				if (err)
+>>>  					return err;
+>>> diff --git a/fs/splice.c b/fs/splice.c
+>>> index e6d43329ed3f0..df73a4e65118b 100644
+>>> --- a/fs/splice.c
+>>> +++ b/fs/splice.c
+>>> @@ -956,6 +956,7 @@ static ssize_t do_splice_read(struct file *in, loff_t *ppos,
+>>>  			      unsigned int flags)
+>>>  {
+>>>  	unsigned int p_space;
+>>> +	ssize_t ret;
+>>>  
+>>>  	if (unlikely(!(in->f_mode & FMODE_READ)))
+>>>  		return -EBADF;
+>>> @@ -977,7 +978,12 @@ static ssize_t do_splice_read(struct file *in, loff_t *ppos,
+>>>  	 */
+>>>  	if ((in->f_flags & O_DIRECT) || IS_DAX(in->f_mapping->host))
+>>>  		return copy_splice_read(in, ppos, pipe, len, flags);
+>>> -	return in->f_op->splice_read(in, ppos, pipe, len, flags);
+>>> +	ret = in->f_op->splice_read(in, ppos, pipe, len, flags);
+>>> +
+>>> +	/* Fallback to copying when hitting folio refcount limits. */
+>>> +	if (unlikely(ret == -EOVERFLOW) && in->f_op->read_iter)
+>>> +		ret = copy_splice_read(in, ppos, pipe, len, flags);
 >>
->> This will prevent more cases of possible folio refcount overflows with
->> large pagecache folios.
->>
->> Let's keep it simple and check in the two callers of
->> splice_folio_into_pipe(). Return -EOVERFLOW if the limit prevents any
->> progress, so do_splice_read() can fall back to copy_splice_read() when
->> read_iter is available. This keeps sendfile() and other splice users
->> working when ordinary reads would still succeed.
->>
->> Also fall back to copying in FUSE when taking another reference through
->> fuse_ref_folio() would exceed the limit.
->>
->> Also check in try_get_page() to cover pipe-buffer duplication by tee()
->> and partial pipe-to-pipe splicing.
->>
->> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
->> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
->> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
->> Cc: stable@vger.kernel.org
->> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->> ---
->>  fs/fuse/dev.c      |  5 +++--
->>  fs/splice.c        |  8 +++++++-
->>  include/linux/mm.h |  9 ++++++---
->>  mm/filemap.c       | 11 ++++++++---
->>  mm/shmem.c         |  4 ++++
->>  5 files changed, 28 insertions(+), 9 deletions(-)
->>
->> diff --git a/fs/fuse/dev.c b/fs/fuse/dev.c
->> index 3641abb90d6bb..4f6b7b42bfd3e 100644
->> --- a/fs/fuse/dev.c
->> +++ b/fs/fuse/dev.c
->> @@ -1265,9 +1265,10 @@ int fuse_copy_folio(struct fuse_copy_state *cs, struct folio **foliop,
->>  		if (cs->write && cs->pipebufs && folio) {
->>  			/*
->>  			 * Can't control lifetime of pipe buffers, so always
->> -			 * copy user pages.
->> +			 * copy user pages. Also copy folios at their refcount limit.
->>  			 */
->> -			if (cs->req->args->user_pages) {
->> +			if (cs->req->args->user_pages ||
->> +			    unlikely(folio_ref_count_over_limit(folio))) {
->>  				err = fuse_copy_fill(cs);
->>  				if (err)
->>  					return err;
->> diff --git a/fs/splice.c b/fs/splice.c
->> index e6d43329ed3f0..df73a4e65118b 100644
->> --- a/fs/splice.c
->> +++ b/fs/splice.c
->> @@ -956,6 +956,7 @@ static ssize_t do_splice_read(struct file *in, loff_t *ppos,
->>  			      unsigned int flags)
->>  {
->>  	unsigned int p_space;
->> +	ssize_t ret;
->>  
->>  	if (unlikely(!(in->f_mode & FMODE_READ)))
->>  		return -EBADF;
->> @@ -977,7 +978,12 @@ static ssize_t do_splice_read(struct file *in, loff_t *ppos,
->>  	 */
->>  	if ((in->f_flags & O_DIRECT) || IS_DAX(in->f_mapping->host))
->>  		return copy_splice_read(in, ppos, pipe, len, flags);
->> -	return in->f_op->splice_read(in, ppos, pipe, len, flags);
->> +	ret = in->f_op->splice_read(in, ppos, pipe, len, flags);
->> +
->> +	/* Fallback to copying when hitting folio refcount limits. */
->> +	if (unlikely(ret == -EOVERFLOW) && in->f_op->read_iter)
->> +		ret = copy_splice_read(in, ppos, pipe, len, flags);
+>> here it can't tell where the -EOVERFLOW came from, if another file
+>> returns -EOVERFLOW (i.e. tty_fops uses copy_splice_read, and
+>> n_hdlc_tty_read() returns -EOVERFLOW after dropping the frame), it now
+>> gets a second read.
 > 
-> here it can't tell where the -EOVERFLOW came from, if another file
-> returns -EOVERFLOW (i.e. tty_fops uses copy_splice_read, and
-> n_hdlc_tty_read() returns -EOVERFLOW after dropping the frame), it now
-> gets a second read.
+> 
+> That's what claude told me during review, and when asked whether that actually
+> happened in practice it said no ;)
+> 
+> So is that actually a problem?
 
+Double checked, claude managed to confuse itself.
 
-That's what claude told me during review, and when asked whether that actually
-happened in practice it said no ;)
+n_hdlc_tty_read() can indeed return -EOVERFLOW.
 
-So is that actually a problem?
+I should just have let splice keep failing, dealing with copy fallback starts to
+get annoying.
 
-> also, the first read already lost data. so the data
-> read returns different data, the dropped frame is never reported and
-> returns the next frame instead.
-
-I don't follow. Can you give an example?
+I guess switching to -ETOOMANYREFS should work (and might be a better fitting error)
 
 -- 
 Cheers,
 
 David
+
