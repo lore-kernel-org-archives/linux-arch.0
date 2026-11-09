@@ -1,100 +1,88 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.161.50
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1794203358;
-	b=gXunGvApiMLeC+iOhicWipjCPsMSw8X6Fo/0u4ZBm6TkWSBHNbe3bR6t8JRrnYEkHIfH
-	 9SU/5c9d+FhOUWcJslMOSy+egbov+6G/ESIP0Fuq0YZXlVA7ufeUj/skBOJan/v/KHk9R
-	 Ic6EGftDkGsTQSGKHXnJv3+ushNZWAdrQeTCOVusqbw5gsdiXByoB25ssUCXFmFaHTyv/
-	 QSpQfoWQaVMYwExkH3iVcVg6vuvBMjYAwiv5IDv4udexnMT53no1aLSOLSsPDnI0/3QJ/
-	 7M66AM4fWvJsplj9WM/kmThQ431cOD2F3POuSpfE5O/uduXc9tJTwV2cxBr9Z7NU5Xw==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794203358;
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.128.47
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1794213331;
+	b=vOnDcpPyl5uozkgMe6HasWi8YwEcvUpSGQZFicVUhBNfF8Utv11fouMOSlvOuqg1TII9
+	 oAR4izA38ytCruZLH7r5NL8NL0KveSqWPxPzEuRQlY7VFGzROsdYJ+8tJygH25Cyzjk6v
+	 o6qsEP+6Bexmwlxpa0yM+LgxKIwp/c+KwZE4PH2D2MY3SVjPYG+njr/LXWdn/h7DwB8OW
+	 9qqDcZQb50DKQjfusDklblFCPHFNAG7gabPJWWKoMPzO22zH30sEGItmrEbLapvuQg/3j
+	 49AR/AWOloKSqoHDmAc3GY2p4zW7BDN0e9dEmTri+MW/PtsfC3BPaYAC5Nkr+SCED3Q==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794213331;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:
-	 MIME-Version:References:In-Reply-To:From:Date:X-Gm-Features:
-	 Message-ID:Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
-	bh=KffYBetHs8Ajm29Uu5eM47VHa8AaiRvO1sJNqwagpnE=;
-	b=Mfw19mp5FYtdi7aG7XLT3jvbdqS/U58IOto7ssxz7cgfEiQATiyg656MEhk5CheqcGaW
-	 bvrX4FEFxNDl6F4mlsI22AqTZG6XNHKCizUw0dgOE9ace3Y/zy8J5ln/Kyg7G2kjuM3ZP
-	 lE9cE32cLNCv4sUhFL+n7YgduwbmYntI2lWDTdhNzBTewk12dDu98VQid5lJmjUOVxAMH
-	 GAARfz/jPtlC2guC3Hr7QgvhAzsNlAIO/1dINyCIcMSfUCa8zy8yic+YPS+7lxI3xGfOv
-	 asX526dQccKDv+aVktYX9NetKlcCv2PqBL+FgvGhQvdSUCgVZW9ltawcxHuzyfy8mDQ==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=bytedance.com;
-	spf=pass smtp.mailfrom=bytedance.com;
-	dkim=pass header.d=bytedance.com header.i=@bytedance.com header.a=rsa-sha256 header.s=google header.b=Rjb06pN7;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.161.50
-Received: from mail-oo1-f50.google.com (mail-oo1-f50.google.com [209.85.161.50])
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Message-ID:Date:MIME-Version:User-Agent:Subject:To:Cc:References:
+	 Content-Language:From:In-Reply-To:Content-Type:
+	 Content-Transfer-Encoding;
+	bh=6v/EUAzIuUZtunuZ0TzsEXeSSrt8us4QeYlPDnXiIyE=;
+	b=qVsNYO1aNrc2x+6O3JP6b+HHKkESvKTyR3+NV/JAk/zNhEFC5M0/vQ7FZIDNV1GGX7wh
+	 4GylhjfLRp25y9ieNsLGUgoFXz4QXIedZO/tyz8nF3x7goUWkmbufW+inC/Y26rOX0e+z
+	 Bny3X6n2iTMQNdr8q4vvEyDFu5NOgGDCdrnFLaGP2ff+nJ5+3fq7ugn9PRlrdafeyWHg9
+	 wYBUEAcajUdMJYqpIJAV+nMMBMux/FjFDK84Pb+GTeQOZt+XOjZxijGS8S2+BVWoDxhOQ
+	 QIG6Ys5yFGyjhMVedf4/rbtsplUW7Dz7xpKiEf6PO7fpoeB6NE42wHEF048ZkEAfd9Q==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=kmd1vfA7;
+	arc=none smtp.remote-ip=209.85.128.47
+Received: from mail-wm1-f47.google.com (mail-wm1-f47.google.com [209.85.128.47])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 01FDF606A333
-	for <linux-arch@vger.kernel.org>; Mon,  9 Nov 2026 05:49:17 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 01FDF606A333
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0B49A606A322
+	for <linux-arch@vger.kernel.org>; Mon,  9 Nov 2026 08:35:29 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0B49A606A322
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.a=rsa-sha256 header.s=google header.b=Rjb06pN7
-Received: by mail-oo1-f50.google.com with SMTP id 006d021491bc7-6dd7070699eso288451eaf.3
-        for <linux-arch@vger.kernel.org>; Sun, 08 Nov 2026 21:49:17 -0800 (PST)
-ARC-Seal: i=1; a=rsa-sha256; t=1794203357; cv=none;
-        d=google.com; s=arc-20260327;
-        b=G3Wlh3IVyrUDQ9Z64MWdK4D2nQxZlA54UctATkLGYl9CNYiMh8leg7qqnO1BZ+Rkop
-         xBZ4M1O0JOIjkR7UZGU1G5/un8K9ckVK+oPyS3CIGeuI2MfQzLKCzM2m8W2j9jMjTl/f
-         Zj6xyZF8oW+p1HE7xM4STeD6OqQdzpwu0BAv5mKd00XpGdmB7jhJRcRG2sM/xpRt6cj9
-         47GosQ0D7hRD5EMa9WSGOtil7hX2hkVIuSlKgjo8zbCj2sRe/C4iAXP86rs4tCm/LN6a
-         AGhv1p1iCRKJ4MA0KXM/LNCmwuz9d8PaoGMKrd8gpRI7SgUX1+7BvNfiqo2aXvYc2wgb
-         UpTA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=KffYBetHs8Ajm29Uu5eM47VHa8AaiRvO1sJNqwagpnE=;
-        fh=17HWo3skSIvmpBihKJpKG/xt7s1NZfwIZSwndKbrvpw=;
-        b=IUedo8oO7up3wSI3fuGTn7XZMfv0HJSByPqljm6FL33POgzK0cAnI4/HCH9GU47aIt
-         KwSeUhQsfXWc32xti8GJbrzFZBTDV3jG1G2WfD0NGChbHiUsQUS4EGFRO0Rx11h89UEL
-         f6Ahqg0uE7ZRr5YYtFe//RK9uI4c4iOBhZ2Sfc3ikOaSn6Q9a/MyTMoSH+ZvJrvH1TxY
-         GLlsTZ8e8Wt6hkKCuOpfkwn/D1Qpl8LHGbwpPF5GezRjteV8cDtRKNteB4Q5nPw9cU4o
-         BgWORrXYnApjAvHYv2gqClul468oyecfKHWZ0sFsFIHJ7YOXucx9fCAp8nFFAAoZNdcF
-         Cc/g==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=kmd1vfA7
+Received: by mail-wm1-f47.google.com with SMTP id 5b1f17b1804b1-4b7252a32c8so5469815e9.0
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2026 00:35:29 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=bytedance.com; s=google; t=1794203357; x=1794808157; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=KffYBetHs8Ajm29Uu5eM47VHa8AaiRvO1sJNqwagpnE=;
-        b=Rjb06pN7tkLtuxfanMFZD9AD+eeWrYx6u0gYZZKGAt+gHGjpHDzqqY9Hk5f/gUyvhG
-         iFMbGnLWPE8t51PF7zKyhy5E6SD4YPngK/qrL9lo7bYUDivK0RaqD2HFsmEDhXLNvPyu
-         FC4HcZftjwlG8NyRos8CyoCZG3h27tk6DSnJC8XH/bfL4O1ceJqAYT94EL4wAU3SL68o
-         bKpHDFXNdhx4CiWxKm2UbDfM8N8Zr3GT36VkzZuFHTi+kR5eiMFCC65Vr+Cb2NwmJYtC
-         MOo1skP4gTONR174efquuLLRTp/cXyE94lHEh15qzFyO5JarLkNNsBBgeFSnGiy6GW87
-         JJjg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794203357; x=1794808157;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+        d=gmail.com; s=20260707; t=1794213328; x=1794818128; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=KffYBetHs8Ajm29Uu5eM47VHa8AaiRvO1sJNqwagpnE=;
-        b=w++YYwQgBzwTSbcw9ACzogBq1Rzum02ux8/P0ZYD8L73BN/YadGMTMJcCka10vmjXN
-         38xxlzGydxZp6M47TgzHyxdOH2GxwiQKIN6jUybCO8S6Ziw69F5u0FidDCalwFzup+5q
-         E0KcG0cR9cggGbZBpCNnMKeeLbM/njy5DxHVQOpzJsXSMPmq268dZrsX6VoN8l4Bhjor
-         1FKZWwg4+vcg1saWFfp1Dk1BzDOvQV39fBMNr6Vr3NecY2prYxkbc5d3gVrYr1RcOpt1
-         NLLJVSPM4gX1VCXuZ36uU//OXx5Zdl7bNMLk3CZyXSV2w7SIpwN3lFX+SzX1YMSlb0Bg
-         hMIg==
-X-Forwarded-Encrypted: i=1; AL+hErG/qWZWgOpLdv0ZCtoAD+GY+baGU0BUxJqlDE5U++EBXD3yKT5+0lnrRgwysg9jsRSp9CzWiW80YpbE@vger.kernel.org
-X-Gm-Message-State: APuU4Z9sMri1B1KHDCmnFUxti8Gyz4gnV5/CCGS6pGebYZQQCBbP56oc
-	v35DYXPhT3yuF2IYOue3JrtqW41BSq5XeNM7ZXR51/GO3wehFMBU0cYduY4VT5ybk0UQDH1gajm
-	XNDWADC4FxRnmKfub28LN/yMdGaoPn3CrzQb7Sh90Mg==
-X-Gm-Gg: AYBFou0EHdvQ9I0NIA578LMJtkdMEWm6pwMgN/MTjMYwrBnrjMqhVd61E2K70akp5z0
-	3nZ6Tnt8d+bYhT32DVMpRYhQBbdVUh1dB+fuCtiukp9FnPPX4osdXxjsdZNUQhdShV0uqqYMTnN
-	/oup4K0LvDRfAcZIWDs20OMeDXR8oJWNILnaueiud+GMho90bJ6uuywtyD5HTzyMiaFIUe0QsKO
-	dCIdw/1PJy8JcuKnXnQKPrdr3AREdGhYVYiDjYyepSzZjqI4tWalUg7wSgap9Oj2pfPi9L9P8ci
-	v5oWdhQQTlQvaSr+iYDuDyHUQWn36bDyNWkhKP7jNK/71LZqXRkhJeg21rTs39fGTktyxibcNae
-	yuV5NvTC3OP35UaZkVwRkVXKdtpR4CMz5JARIRjm919U=
-X-Received: by 2002:a05:6820:160b:b0:6d8:bba5:6589 with SMTP id
- 006d021491bc7-7170f303df1mr1702563eaf.48.1794203356632; Sun, 08 Nov 2026
- 21:49:16 -0800 (PST)
+        bh=6v/EUAzIuUZtunuZ0TzsEXeSSrt8us4QeYlPDnXiIyE=;
+        b=kmd1vfA7HwVdKlIlNMcEdgSvfMccQHxtsBaQ5wrlPJ2pETJCu/dB5avuxdOeVXJbBi
+         KOyzf4oZ3H5dRwTfXxv5zF2iW+FgAxXtoL6vUAonyK9hiz4/gOsvk3QAg1rxIyH4OaDU
+         5lVlTkXusCDeJ+5UZeQ0nSIlh7ca0tSHggdztmbjQYOlZ3cyydUW29Af4wLsYFNoSj7l
+         Uxe49m7b5cT9hGql+cIpNRaBHqcFlYVq5WdXa1NK+FbgspW6vo3pbYAJRtHgpDx8Tp0K
+         4xviTwp0YHAbFBBwYfvbPfMiKK5Pj8dPPA6arIrC4UUfVfMyjMGyOJiMz6TDbfz4O4pa
+         AqnA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1794213328; x=1794818128;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=6v/EUAzIuUZtunuZ0TzsEXeSSrt8us4QeYlPDnXiIyE=;
+        b=E8i39bZ3nMhGw9wJQs1hEKUIvCO7uUYLQsGQ/t15I/njuLiDgsU5GP6URW1olypAum
+         ZzQFPz0yOAZSRheZ4u0OGpHcI/Aug0XMMjaIuhQBZ1PGlpindELrdl2hjgrmLy8GWdsa
+         6Dq6G+upiS5r+IylwQpkil0bR4UVq/H3Y4/DWQcwOvUNost+P0U2UTRqbVoVQ+oYIIaS
+         UaWN+LnpP1K4Ts+5cRW0oDTvSPiBHbNHzedluetSEruoXtL6JZhHBtb61GnTDo/VfXG5
+         cyE1rw2TX4zvywD+WvTuoqdlW0ss2QskLecQN+x5rNuB2Nr+N2w7EJ6tHsKj0U9HJfni
+         hkdA==
+X-Forwarded-Encrypted: i=1; AL+hErGtMJIM8mzQFWHuiZw2MxUFcENGGEleyoh7m7vre55z5kqDsXqdcW0KRNGTOZ9YALJAsVj46Dk/n9lZ@vger.kernel.org
+X-Gm-Message-State: APuU4Z+8+LqNkRK6ClyBseA/17YhLAkQ++5nxbaFWOSF4M+IuRhK3IPQ
+	lJODqDPQceXxpwYsQEeET0bGll/SB5qM2UAguLzKM5LyhezNieaDKVSG
+X-Gm-Gg: AYBFou2c/ZhBBdA5UeJjD2+e3YA5HXBmoY2bjToL+Np+wYwNMmNqE0bET7Vi/gUvukZ
+	19Nxa+I9gPIV/eOAH7b4adaKuxYKKeVPK78q8g8eMlOGEuu3jDhetjlyXbpm++nhqF5dXM/VU8D
+	U5GO6iot63gLs7+TfIHII3+VTRbfID/JA4TCJd9ETB5RimG8ML+7OUFrXLBhFVd6zDu1E1dEwgM
+	ORFeeXiCmJxP/ObLvfPWn1Wxi1Zfzc0bkKnRb8nUegM9GVbeC7xO51FD7/G8iY4H1VeTJGVf3Y8
+	j5yJDB9xfZ55Oh7ErB4ot4WWdBm3oEjqvNhwsRjfzhAk9yDlXq1F1Kgy+uS0udIYLGzEHOOv8Hp
+	zDYaIidIzQG6/KhxNLXj914xot+rBgAWVLF5ShY4/xUWo3JhqVKqTrdvWtW1fm23gKO1lAdaACK
+	Ii1cCQ+zW1/Txkg7wW72cyO9dTUFMQex8PHsMJZDbDv60CaF3j5JCrygjPbiyui1ZY91zHbf0M6
+	YuMD2Q/u7wF38c1RcCW+ocoLIEnqREWOSzsDuH7FQ5HxAl+hlxyPIAcu6blt/G1/oEiUrWv+EdK
+	sc45ipNOZg1VlGHGmMI6wDxLOyxShcvi7WCV62h4jNAV
+X-Received: by 2002:a05:600c:37c3:b0:4a3:5991:718 with SMTP id 5b1f17b1804b1-4b963c87b5cmr58185485e9.16.1794213328165;
+        Mon, 09 Nov 2026 00:35:28 -0800 (PST)
+Received: from [192.168.1.22] ([83.231.69.9])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4b90ee1ddc7sm170118285e9.4.2026.11.09.00.35.25
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 09 Nov 2026 00:35:27 -0800 (PST)
+Message-ID: <4bae9936-02ca-480f-b754-c7048702c667@gmail.com>
+Date: Mon, 9 Nov 2026 09:35:24 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -104,117 +92,112 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-References: <20261108110406.97495-1-cuiyunhui@bytedance.com>
- <20261108110406.97495-2-cuiyunhui@bytedance.com> <20261108213254.67805ef0@pumpkin>
- <CAEEQ3w=5QwwvMJFJkpS51APoBjhed6oriCkvcieRdUFWrKtmSg@mail.gmail.com> <avFN7LbSK0q1gsB6@xhacker>
-In-Reply-To: <avFN7LbSK0q1gsB6@xhacker>
-From: yunhui cui <cuiyunhui@bytedance.com>
-Date: Mon, 9 Nov 2026 13:49:05 +0800
-X-Gm-Features: AclHuK-yA93Gg5bVt8kCNssew6sQnM_Z05Rmq56zAts1z3WwIhtyQX6D4YptSkY
-Message-ID: <CAEEQ3wmViZNwxXr8q477yHjtABStEJecCHS8=5s_UAk1hYgyfw@mail.gmail.com>
-Subject: Re: [External] Re: [PATCH v9 1/3] riscv: implement this_cpu operations
-To: Jisheng Zhang <jszhang@kernel.org>
-Cc: David Laight <david.laight.linux@gmail.com>, pjw@kernel.org, palmer@dabbelt.com, 
-	aou@eecs.berkeley.edu, alex@ghiti.fr, dennis@kernel.org, tj@kernel.org, 
-	cl@gentwo.org, ast@kernel.org, daniel@iogearbox.net, andrii@kernel.org, 
-	martin.lau@linux.dev, eddyz87@gmail.com, memxor@gmail.com, song@kernel.org, 
-	yonghong.song@linux.dev, jolsa@kernel.org, bjorn@kernel.org, 
-	pulehui@huawei.com, puranjay@kernel.org, thuth@redhat.com, 
-	ajones@ventanamicro.com, ben.dooks@codethink.co.uk, rkrcmar@ventanamicro.com, 
-	samuel.holland@sifive.com, zong.li@sifive.com, conor.dooley@microchip.com, 
-	tglx@kernel.org, debug@rivosinc.com, seanwascoding@gmail.com, 
-	andybnac@gmail.com, menglong8.dong@gmail.com, cyrilbur@tenstorrent.com, 
-	wangruikang@iscas.ac.cn, atishp@rivosinc.com, apatel@ventanamicro.com, 
-	linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, 
-	linux-mm@kvack.org, bpf@vger.kernel.org, arnd@arndb.de, nathan@kernel.org, 
-	nick.desaulniers+lkml@gmail.com, morbo@google.com, justinstitt@google.com, 
-	qingfang.deng@siflower.com.cn, linux-arch@vger.kernel.org, 
-	llvm@lists.linux.dev, dave@stgolabs.net, emil@etsalapatis.com, 
-	ihor.solodrai@linux.dev, broonie@kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 1/5] mm: limit pagecache folio refcount when mapping
+ pages
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+ Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Andrew Morton <akpm@linux-foundation.org>, Zi Yan <ziy@nvidia.com>,
+ Baolin Wang <baolin.wang@linux.alibaba.com>,
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
+ Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
+ Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>,
+ Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
+ Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>,
+ Gregory Price <gourry@gourry.net>, Ying Huang
+ <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>,
+ Peter Xu <peterx@redhat.com>, Johannes Weiner <hannes@cmpxchg.org>,
+ Song Liu <songliubraving@fb.com>, Rik van Riel <riel@surriel.com>,
+ Miklos Szeredi <miklos@szeredi.hu>, Alexander Viro
+ <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>,
+ Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
+ <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
+ Arnd Bergmann <arnd@arndb.de>, Jason Gunthorpe <jgg@ziepe.ca>,
+ Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>,
+ Robin Murphy <robin.murphy@arm.com>,
+ Steve Sistare <steven.sistare@oracle.com>, John Hubbard
+ <jhubbard@nvidia.com>, Josef Bacik <josef@toxicpanda.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ linux-fsdevel@vger.kernel.org, fuse-devel@lists.linux.dev,
+ linux-arch@vger.kernel.org, iommu@lists.linux.dev,
+ Chris Mason <mason@kernel.org>, stable@vger.kernel.org
+References: <20261107-refcount_overflow_stable-v2-0-c38f6809b106@kernel.org>
+ <20261107-refcount_overflow_stable-v2-1-c38f6809b106@kernel.org>
+Content-Language: en-US
+From: "Jose A. Perez de Azpillaga" <azpijr@gmail.com>
+In-Reply-To: <20261107-refcount_overflow_stable-v2-1-c38f6809b106@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-Hi Jisheng,
+On 11/7/26 11:23 PM, David Hildenbrand (Arm) wrote:
+> With large file folios, overflowing the folio mapcount and refcount
+> became possible. For anon folios it is currently not really an issue:
+> each large anon folio can only be mapped once into a process; on 4k
+> kernels it would be more processes than usually allowed on a system, and
+> on 16k or 64k kernels the processes alone would consume hundreds of GiB.
+> Something to be sorted out at some point, but it's not as urgent.
+> 
+> Being able to overflow the refcount is not really big news, but it's about
+> time that we do something about it because some modern technology might
+> find ways to abuse it :)
+> 
+> One of the enablers for that was commit ddc58f27f9ee ("mm: drop tail page
+> refcounting"), however, file thp support was added later.
+> 
+> File folios can be mapped multiple times into the same process, allowing
+> for processes to hold many references to the same folio.
+> 
+> As a short-term solution, let's introduce two folio refcount limits:
+> one for ordinary consumers and one for admins. Leave some headroom
+> before the refcount goes negative, which we really don't want (having
+> the mapcount go negative is also not expected).
+> 
+> Start reporting SIGBUS if we run into limits. When restoring mappings
+> from migration entries, instead zap the pte/pmd entry. We allow for
+> slightly exceeding the limit to keep things simpler.
+> 
+> During fork(), prefer not copying page table entries over failing fork.
+> Export __folio_ref_count_over_limit() right away as that will be needed
+> from fuse code next. Use has_capability_noaudit(current, CAP_SYS_RESOURCE),
+> so filesystem credential overrides do not affect access to the admin
+> reserve, and to not generate auditing messages simply because we access
+> optional reserves.
+> 
+> This is far from ideal, but better than all easy alternatives we can
+> backport comfortably. For now it fixes the big problem: letting
+> the refcount (+mapcount) go negative and cause trouble.
+> 
+> This is only a temporary fix, we'll follow up with something better.
+> 
+> Check order 0 folios as well for consistency: each
+> folio_add_file_rmap*() and folio_dup_file_rmap*() needs a prior check.
+> 
+> Also, just document -EHWPOISON for copy_present_ptes() while at it.
+> 
+> Note: When zapping file migration entries, uffd-wp is preserved using PTE
+> markers, but uffd-rwp protection is lost because there is no corresponding
+> marker. try_to_unmap() already has the same problem when unmapping file
+> folios, so we'll happily ignore it.
+> 
+> Note2: For now we don't let migration or PTE table collapse exceed any
+> limits. Admins can always refault, and if we are already operating in
+> admin reserves, something is already off.
+> 
+> Reported-by: Chris Mason <mason@kernel.org>
+> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
+> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
+> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-On Mon, Nov 9, 2026 at 12:57=E2=80=AFPM Jisheng Zhang <jszhang@kernel.org> =
-wrote:
->
-> On Mon, Nov 09, 2026 at 11:47:43AM +0800, yunhui cui wrote:
-> > Hi David,
-> >
-> > On Mon, Nov 9, 2026 at 5:33=E2=80=AFAM David Laight
-> > <david.laight.linux@gmail.com> wrote:
-> > >
-> > > On Sun,  8 Nov 2026 19:04:04 +0800
-> > > Yunhui Cui <cuiyunhui@bytedance.com> wrote:
-> > >
-> > > > RISC-V has no asm/percpu.h, so this_cpu_*() read-modify-write
-> > > > operations use generic implementations that disable local interrupt=
-s.
-> > > >
-> > > > Implement RISC-V-specific this_cpu operations with preemption disab=
-led
-> > > > to keep accesses on the current CPU.
-> > >
-> > > Have you looked at some of the schemes (I think arm64 has the latest,
-> > > but also s390) that do most per-cpu ops without disabling preemption.
-> > > In particular they save the pre-emption check when pre-emption
-> > > is enabled.
-> > >
-> > > Basically the code tells the scheduler which register contains the
-> > > per-cpu data so that it can be 'magically' flipped during a context
-> > > switch.
-> >
-> > Many thanks for pointing this out and suggesting this optimization. Thi=
-s
-> > is a very useful suggestion. In the common case no preemption or migrat=
-ion
-> > occurs, so the preemption bookkeeping and reschedule check are unnecess=
-ary
-> > overhead.
-> >
-> > Implementing this scheme for RISC-V will require additional changes bey=
-ond
-> > the current series. If this series is otherwise acceptable, I would lik=
-e
-> > to land the current this_cpu_* support first and then prepare a follow-=
-up
-> > series using this approach.
->
-> Hi Yunhui and David,
->
-> During the merge window but before rc1, I implemented a riscv POC
-> following arm64's preemptible this cpu scheme. Each operation records
-> its per-cpu pointer, offset and address registers. Exception entry saves
-> and clears this state, and a noinstr c helper repairs the saved offset
-> and address registers on exception return after any migration.
->
-> However, my PoC is based on current percpu offset.
->
-> I planed to sent it out last Sunday, but then I found Yunhui sent
-> his percpu series(which is up to v9, I didn't know this before) on Sat.
-> So I hold on the sending.
->
-> Now would it make sense to rebase the PoC on Yunhui's series patch2 and
-> patch3, especially the percpu offset optimization? I can post an RFC
-> with this rebased implementation.
->
+LGTM.
 
-Given the substantial effort already invested in bringing this series
-to v9, my original plan was to land the current implementation first
-and add the preemptible scheme as a follow-up.
+Reviewed-by: Jose A. Perez de Azpillaga <azpijr@gmail.com>
 
-However, if the consensus is to move directly to the preemptible scheme,
-I will implement this scheme in the next revision, building on the
-cached percpu offset introduced in patch 2.
-
-Thanks,
-Yunhui
-
-> Thanks
-> >
-> >
-> > _______________________________________________
-> > linux-riscv mailing list
-> > linux-riscv@lists.infradead.org
-> > http://lists.infradead.org/mailman/listinfo/linux-riscv
+-- 
+cheers,
+jose a. p-a
