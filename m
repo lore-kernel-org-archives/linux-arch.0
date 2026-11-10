@@ -1,88 +1,85 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.128.46
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.169
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794312022;
-	b=VK3i7i9vlSoLUbyfgEszRwrHbsnR/qLy9bwG1KplpE5Rez4PbPJmdPBbJlTdQ1LxQy8g
-	 sQWG3Bh2Bo9M9HQDEGgwLc4gvfBoojnruHVqJRPxROv1VwpvbxU6z3KQseapd0yVZIe6v
-	 +RBi3CuYSLqcZzgY/cMyMpWjP1/d2B9QIVOqRM9WUuaNPAPA232OQbo+pbQ4VMuhyJXv6
-	 zUb9hLo+OTP+X/Ke4WN+65ovNJCZSgBBItq8zfpsRL3LgovOVOuyhCkXiOnX9pnJDO5tE
-	 vYw5DGqxVo/6Cuv9OlwyPtstAQyl5ZESfTnWve4BKqMGtw4yK2kHfadkjirznDfG3vg==
+	t=1794314920;
+	b=pWmk5UXhXQMS2qGOtTfCFeqBRSyWAmOwbW4UtBpqQ/92a067cFXrNkUfWCbHuCz2A3e1
+	 BucPTvvFONvkf1w5Usy+sdQLEL74yyqyjEFS0RLkk6iEWGUVUGxPIr2YO1LyfSoF98Vyk
+	 VJeeKTMkyp1h68iWke+PYrazMKfdlndqkGyC022QRwRtCbW29wSu1cQy4ctgMV+Emxc8v
+	 /d+uW78ouBjIjoOBIL256Ks/Ly8/dKUCN9KpsJIY0xsIvE3WJOdoNyfYaysMq7FldAq9s
+	 kOdpnx5B7xxf1XoawxIbZc+zAEcWpFXdQnxs//V+xnSTfh1BB16mQfshg7Jy8dFB4CA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794312022;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794314920;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Message-ID:Date:MIME-Version:User-Agent:Subject:To:Cc:References:
-	 Content-Language:From:In-Reply-To:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=5X3zb3VH4w0Ie2RKn7QlDBjKtcvMvn58SYuQeOEmpyc=;
-	b=Dfk8XlA05mKmoSHZwiezoYF9uLk5eG/GKhsH+vIgcbeR6rK+Y4j8SIL2Hl13g3Qro4DE
-	 hFNLIFIFWPJ/W+nzJ5hnz7sS+2VSktJPStnPuNyH31tfnTd9z/6a1U5xgvPEzaIKcp5dT
-	 VJnQbxraULPaFtQW8F1wR8+FvX6v2p8Mynl2gUOnb5rXNznNqCruSmvcftNUNuSOK8c4I
-	 sx0ddcI7vXd95ylxE1ay5K35bPF8LN874FOfp2jdgW7Vr+VND+AZrA8GrT9hXYQ1u3Wvt
-	 RfrwH5S0ccKUyzVzfEQshDbiovoK3P/97j6e8ONASyH977TTdwYb3ai1ijdas+FHdPw==
+	 Mime-Version:Content-Transfer-Encoding:Content-Type:Date:Message-Id:
+	 Subject:From:To:Cc:X-Mailer:References:In-Reply-To;
+	bh=ZGhJU+UzWHjWLO2uCHz/PaJEOnJdiVDGFcBGvFMPQDM=;
+	b=twF5stE9h1uarqglDoR2MS92/aRn4pZM6gTCGahNzpf60v3kM9s/Q6OGvwqpIF44OLJV
+	 EHeTRRjiWSa3qduIUs/AnQF7hMbkxw6rZdvukYD4Pzv1CBHRLCcNqLqzjObqTs+4E6Ifi
+	 8p6jtj0+5NAxnOOjU6tOFE8qChd1+/aoyIA31tKHajAgpZKgQyhVN601CR1Ad+x01bLsE
+	 Q/0aLB8On/nGDfezesZudNf6kEpL6LpVDzUtCMNJsKUYMJQtBZtKe7hyFtiZ2sqioE8ei
+	 8JMZg6k/1j7tLexLLu9X/cInrS0gKl/aqf5zzg0YSR+8B4iQR5fTmkN2fCs1CXXZpaQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=RygyfnWn;
-	arc=none smtp.remote-ip=209.85.128.46
-Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+	dmarc=pass header.from=soleen.com;
+	spf=pass smtp.mailfrom=soleen.com;
+	dkim=pass header.d=soleen.com header.i=@soleen.com header.a=rsa-sha256 header.s=google header.b=dsBbq5KO;
+	arc=none smtp.remote-ip=209.85.221.169
+Received: from mail-vk1-f169.google.com (mail-vk1-f169.google.com [209.85.221.169])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 32BC2606A331
-	for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 12:00:22 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 32BC2606A331
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 69B3D606A33C
+	for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 12:48:39 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 69B3D606A33C
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=soleen.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=soleen.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=RygyfnWn
-Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-4a208d93758so20114335e9.3
-        for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 04:00:21 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=soleen.com header.i=@soleen.com header.a=rsa-sha256 header.s=google header.b=dsBbq5KO
+Received: by mail-vk1-f169.google.com with SMTP id 71dfb90a1353d-5c9e7731b34so1394623e0c.2
+        for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 04:48:39 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1794312020; x=1794916820; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=5X3zb3VH4w0Ie2RKn7QlDBjKtcvMvn58SYuQeOEmpyc=;
-        b=RygyfnWnL4Yk98O5t8EfRhHJ09wgqoKDc50vcLztTT6VXIdGWIzxp8gp/oS32JisXO
-         kLYRYeznXrsblttCwXF35i/TiPDW3jopVuEIWql4OVWvjiutcXKU/UhCKEYZ4UR66O+e
-         kULSXyMPCUX82fsckuZ3E8/kna98lIel4VII+ANkE31SFugl57e0klPU61lHfgCvDtTP
-         MtFuBcaDmc0Sm6fZGoIl3GD+SdzoAAyrnDFRUROyQH/KkkH9EDfZSB4dt1fPJiCh/NsV
-         ut2IqQIh8tubjGervp8DrB5/N+bX1ezKOwAYOMPw+my8dmAF1D4nC3K5R5n4n3eGr4qG
-         fgaQ==
+        d=soleen.com; s=google; t=1794314918; x=1794919718; darn=vger.kernel.org;
+        h=in-reply-to:references:cc:to:from:subject:message-id:date
+         :content-type:content-transfer-encoding:mime-version:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=ZGhJU+UzWHjWLO2uCHz/PaJEOnJdiVDGFcBGvFMPQDM=;
+        b=dsBbq5KOnMazC5mXTdmBJUmpnmxAJ9stpdG1ZK4VhrJSVsiUqApOhgOZP5UQsc9fPC
+         bylnE8u5JvqmMPVDCOLJRGMGVmsY/uuhglwOP0Up3Y/FYDzu7ww/clI0XK63cih1jz0z
+         cRBEmk14Bxs7np5BoBCvTSEZZwNs1IhNWcUU2kpBXHszqUUfjWdvx7p5Z6oWFEKT7nDT
+         0nfRnkW2EH7Uhn9zo5tS94scUsMNfs7pypANJg9jRm9+H1VC8E/FoTH0vZ6swv2eUj/q
+         clEhV7+ZwbICuHdSd4YmTpeJnqcBIKxe+HHNl+yAkB7VlEMOQLwhZnaYNrqImJiz3Iu8
+         AMxw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794312020; x=1794916820;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=5X3zb3VH4w0Ie2RKn7QlDBjKtcvMvn58SYuQeOEmpyc=;
-        b=aKrBX6/JXy1HimH/z+1+JtzbaxDw56nqHufq07lI5poLUJ+4l217563iZGrdwyIwiA
-         /Wd4W4J8X6Oa3msjBeuHakrfwXHID25vKnJ46lSa1ofEa8LUDtXgKCaIlcHpL5y1shH3
-         Cmwa8ph2aPaxYt5vFcWT28sASuRsnCBzNcn4P1PwdLT7we0rAqWA2D8r80OsPaPnJy9p
-         oBFLFsj7fkluaaKPpTayx0f/k0kIRx/Lk2tSPYyZ5sELCmpGbIyBRzYklzfNvACYJ3Lb
-         BsVMzdQMgKT5pZsCYPejrY8Py4F7TXh0gRZVqy5TdXUkqS/jH+Kv6L8LV1g62uxmGF69
-         yc2g==
-X-Forwarded-Encrypted: i=1; AL+hErHZe7tdNoMc4AUe7sLIRV7+mtu0npiNTZS+MbMFN4OW4vE0825tQT/MrWabGcWPWNF62/AJXccoC7Xs@vger.kernel.org
-X-Gm-Message-State: APuU4Z/heiIoMeHu4d7IfChin6WXaNrfOq29GXxCrAO1xBk4dUvrG+Un
-	jUTK33fg3HpfrmwShzkEXQkUyyZlKqxBXto4SYZ1yrKdNB2YqJhdrN1h
-X-Gm-Gg: AYBFou1PReH0XOCvmKgl8lsyUJ0qBl44MYE5Ldg870y8JYKZnuq5TlhQg5I6yfwDUoa
-	h+h8jMzQsF3cP72U3/ebVghgaigTWVj4zqbRUnAM6sQEch0EFrTwDVTbDchycmSNf+yAk2uIVb0
-	IHCmXyiX1uo2XKT7ExSqguQOXpuOZmkZbjRUxA2MPR7q2lhULtAVuz67moC5sqNRJ0Gy3KrR4D2
-	r/G3Dl9ZyToe8htMZfnq4+Yr1jIyl84BC4nVR+R69PE+21A+kxi+453FtrvOQXjbsb60yMwlSq9
-	hkC+Svg42UAjLo9zY0J28ERt7IrDFg+8zEK6caqaM6jWwzhXb9140xVdzd5739OxanwIWHGNURp
-	jIWwNo4hsCCj9Vd4snBZJtOtPFp+u7T24Sr9lWGnKfL7Ze4oO5stUEzHz7zYibIKZ7P7g3cfE1K
-	bcJsyJwrbKGIqULXk4WOpzMXLVEaRKZdclHE00UXdYqFrJQFaz5abISgV46d0q0dyp2RJ7vKRc9
-	YTGQS4S8BZymmsq71FE6iSfncWA287lWig9wfaIE5gyhAj9EpWffFdrv66ffeMh800s0HWOdCTr
-	9Gwh5bb66FNh7wNe9Ctxm39K
-X-Received: by 2002:a05:600c:3e07:b0:4a1:e69d:90e8 with SMTP id 5b1f17b1804b1-4ba0234a8f3mr43245435e9.22.1794312020086;
-        Tue, 10 Nov 2026 04:00:20 -0800 (PST)
-Received: from [192.168.1.22] ([83.231.69.9])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4ba01fea9eesm97526925e9.11.2026.11.10.04.00.16
+        d=1e100.net; s=20260707; t=1794314918; x=1794919718;
+        h=in-reply-to:references:cc:to:from:subject:message-id:date
+         :content-type:content-transfer-encoding:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=ZGhJU+UzWHjWLO2uCHz/PaJEOnJdiVDGFcBGvFMPQDM=;
+        b=SlefAQUpvwSgculXytXHmxOfOLj/FCQlj9P86hvtcneylMPcyY6zLRtzEDHT9LnZmN
+         0Sb+A5Z9flMWRnO0jONPck9RwLOV+NjJ6cp84hD/qIk5XAOfyFqPBjFBcwsEGRq2PkLP
+         H3fcI3+YP3HgCjo8Gv4yXobdqgsSZlKEEDorbNiYSkqM83PzfIHhA7ZuELz76g74MqUl
+         xsWK+/NU/xytJ3zkfj0jO2gJ+Ek1GnSQVwtDPJWzAqde62VI5ZodOghlKp40Jg91rC9p
+         LlfsXN45I/pHtmsjrHL1cODgArd4vqODIBQGrCKrnHA9xCr6WYe0Xv+xO6+T6tHkcOPb
+         yvYw==
+X-Forwarded-Encrypted: i=1; AL+hErG1Gyydj9EY8vtRwvJuQyApvcxF3VSGqXjp4pqmeEihRBEePgiD7dqZncDWkQSbKWb7FmhwvvNTo3r4@vger.kernel.org
+X-Gm-Message-State: APuU4Z+P3Zqt8uQWixtYOrKG8Awy1k3+kEc74t9GuDpj8fq1PjXVgXWW
+	vfInw6bd7gLZ5iRlHc7keElM/qKscNu2EQckuF9ONfRQr4PKr/1ragttA/lydmySfy8=
+X-Gm-Gg: AYBFou3GXtmr0lkzO2JlN0SlbNHIOqyfQfZ10YKdvIKxTdm8ZGWZXFkpn/QCg5mVe2L
+	+oCiUbkBnaqClXA/rTV//5GsRBtjFAW62De6hLUKaEGp3AMio9yl0eFi/YIvFk8qtxKHlsk6k22
+	O+0EI8y6ixrj6cLM1cj9U8cvyxXjmSaOLc/DTfmgmYgGbKtQVl43D7TQgokyHm8gBJYVLOm8TnU
+	NrJUgHKqMCsfo/zd0M2xjiNhzIFetF2a+qJ8bZqhiKujdoh0tpg3g4JuhHeYz0nZfEWVfzTDCGk
+	n959Bf8A6Qa+N8BcBxxsSGjySdRPO1neueTI/4OAgWTDCMz7eaYphYQm/6wTADR3+KQrMDxCH3r
+	+lMpDPoukORgMieB8lSh6FeLVw2mmbJKUIk93vZcCLG2H7GT20170B6d8Y6S1UchgXGVNOZH+Uk
+	BS6LOG+6kB91r4PlBeebTRAMLSkg2UFs0g0aN2u5ICDELf5S5fUfuumXCpeUWD8TOAC5ZrShxiO
+	8B6BOisT8DYLfb+9mruFyY++Jj25KFPL3qVUer2gGiLGA6RRh5Flz1SJ7CEMAQ60BMM+ur5Egve
+	tCPJtVwLCN8DDFGma1ngplq8S7DNPGCqITBBjEdbzwAWzn77+qFxBgVaeHNe+MAM43boRwrR3gA
+	pt4MOkzmRkxK6M2kNhKP6N2W2OT+ItwJTH3s45xaHud3ChOAbW1T+
+X-Received: by 2002:a05:6122:32ce:b0:5ea:b972:1403 with SMTP id 71dfb90a1353d-5ee0cf152b1mr755444e0c.3.1794314918133;
+        Tue, 10 Nov 2026 04:48:38 -0800 (PST)
+Received: from localhost (64.167.245.35.bc.googleusercontent.com. [35.245.167.64])
+        by smtp.gmail.com with ESMTPSA id 71dfb90a1353d-5ee0c5fd00esm1555554e0c.16.2026.11.10.04.48.36
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 10 Nov 2026 04:00:19 -0800 (PST)
-Message-ID: <d4bb71af-cd1f-4d42-b724-916064f4cf0f@gmail.com>
-Date: Tue, 10 Nov 2026 13:00:16 +0100
+        Tue, 10 Nov 2026 04:48:37 -0800 (PST)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -91,125 +88,225 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 2/5] mm: limit pagecache folio refcount when splicing
- into pipes
-To: "David Hildenbrand (Arm)" <david@kernel.org>,
- Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Andrew Morton <akpm@linux-foundation.org>, Zi Yan <ziy@nvidia.com>,
- Baolin Wang <baolin.wang@linux.alibaba.com>,
- Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
- Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
- Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>,
- Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
- Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>,
- Gregory Price <gourry@gourry.net>, Ying Huang
- <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Johannes Weiner <hannes@cmpxchg.org>,
- Song Liu <songliubraving@fb.com>, Rik van Riel <riel@surriel.com>,
- Miklos Szeredi <miklos@szeredi.hu>, Alexander Viro
- <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>,
- Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Arnd Bergmann <arnd@arndb.de>, Jason Gunthorpe <jgg@ziepe.ca>,
- Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>,
- Robin Murphy <robin.murphy@arm.com>,
- Steve Sistare <steven.sistare@oracle.com>, John Hubbard
- <jhubbard@nvidia.com>, Josef Bacik <josef@toxicpanda.com>,
- Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, fuse-devel@lists.linux.dev,
- linux-arch@vger.kernel.org, iommu@lists.linux.dev, stable@vger.kernel.org
-References: <20261107-refcount_overflow_stable-v2-0-c38f6809b106@kernel.org>
- <20261107-refcount_overflow_stable-v2-2-c38f6809b106@kernel.org>
- <c8dd3102-38f8-4972-ad2d-97545fd8c8d4@kernel.org>
-Content-Language: en-US
-From: "Jose A. Perez de Azpillaga" <azpijr@gmail.com>
-In-Reply-To: <c8dd3102-38f8-4972-ad2d-97545fd8c8d4@kernel.org>
+Mime-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Date: Tue, 10 Nov 2026 07:48:36 -0500
+Message-Id: <DMRJJX2ZSYQT.2U1TTBGE7R4RA@soleen.com>
+Subject: Re: [PATCH v4 00/19] kho, liveupdate: Add feature header for
+ fine-grained ABI compatibility
+From: "Pasha Tatashin" <pasha.tatashin@soleen.com>
+To: "Tarun Sahu" <tarunsahu@google.com>, "Pasha Tatashin"
+ <pasha.tatashin@soleen.com>, "Mike Rapoport" <rppt@kernel.org>,
+ <robin.murphy@arm.com>, <maz@kernel.org>, <will@kernel.org>, "David
+ Matlack" <dmatlack@google.com>, "Alexander Graf" <graf@amazon.com>,
+ <seanjc@google.com>, <jgg@nvidia.com>, <loganodell@google.com>,
+ <arnd@arndb.de>, <dwmw2@infradead.org>, <baolu.lu@linux.intel.com>, "Bjorn
+ Helgaas" <bhelgaas@google.com>, <oupton@kernel.org>, <alex@shazbot.org>,
+ <gle.com@google.com>, <pbonzini@redhat.com>, "Andrew Morton"
+ <akpm@linux-foundation.org>, <kevin.tian@intel.com>, <joro@8bytes.org>
+Cc: <kvmarm@lists.linux.dev>, <linux-pci@vger.kernel.org>, "Pratyush Yadav"
+ <pratyush@kernel.org>, <kexec@lists.infradead.org>, <kvm@vger.kernel.org>,
+ <iommu@lists.linux.dev>, <linux-arm-kernel@lists.infradead.org>,
+ <skhawaja@google.com>, <sagis@google.com>, <linux-arch@vger.kernel.org>,
+ <linux-mm@kvack.org>, <linux-kernel@vger.kernel.org>
+X-Mailer: aerc 0.22.0-39-g5d7784875be2
+References: <20261110050202.529473-1-tarunsahu@google.com>
+In-Reply-To: <20261110050202.529473-1-tarunsahu@google.com>
 
-On 11/10/26 11:38 AM, David Hildenbrand (Arm) wrote:
-> On 11/7/26 23:23, David Hildenbrand (Arm) wrote:
->> Similar to mapping pagecache folios into page tables, let's reject
->> additional references when splicing folios into a pipe if the refcount
->> is at its limit, similar to how we handle it during GUP.
->>
->> This will prevent more cases of possible folio refcount overflows with
->> large pagecache folios.
->>
->> Let's keep it simple and check in the two callers of
->> splice_folio_into_pipe(). Return -EOVERFLOW if the limit prevents any
->> progress, so do_splice_read() can fall back to copy_splice_read() when
->> read_iter is available. This keeps sendfile() and other splice users
->> working when ordinary reads would still succeed.
->>
->> Also fall back to copying in FUSE when taking another reference through
->> fuse_ref_folio() would exceed the limit.
->>
->> Also check in try_get_page() to cover pipe-buffer duplication by tee()
->> and partial pipe-to-pipe splicing.
->>
->> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
->> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
->> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
->> Cc: stable@vger.kernel.org
->> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->> ---
->>  fs/fuse/dev.c      |  5 +++--
->>  fs/splice.c        |  8 +++++++-
->>  include/linux/mm.h |  9 ++++++---
->>  mm/filemap.c       | 11 ++++++++---
->>  mm/shmem.c         |  4 ++++
->>  5 files changed, 28 insertions(+), 9 deletions(-)
->>
->> diff --git a/fs/fuse/dev.c b/fs/fuse/dev.c
->> index 3641abb90d6bb..4f6b7b42bfd3e 100644
->> --- a/fs/fuse/dev.c
->> +++ b/fs/fuse/dev.c
->> @@ -1265,9 +1265,10 @@ int fuse_copy_folio(struct fuse_copy_state *cs, struct folio **foliop,
->>  		if (cs->write && cs->pipebufs && folio) {
->>  			/*
->>  			 * Can't control lifetime of pipe buffers, so always
->> -			 * copy user pages.
->> +			 * copy user pages. Also copy folios at their refcount limit.
->>  			 */
->> -			if (cs->req->args->user_pages) {
->> +			if (cs->req->args->user_pages ||
->> +			    unlikely(folio_ref_count_over_limit(folio))) {
-> 
-> Linus points out off-list (thanks!), that fuse_ref_folio() should have
-> really used try_get_page() right from the start.
-> 
-> And that we should just not fallback to a copy, in particular,
-> if the refcount is invalid (<= 0).
+On Tue Nov 10, 2026 at 12:01 AM EST, Tarun Sahu wrote:
+> This v4 of feature flags support for LUO and KHO is no longer an RFC.
+> This has gone through multiple design changes over the past few months,
+> and I thank everyone for providing their suggestions and reviewing it
+> promptly. Below I talk briefly about the evolution of this series to set
+> context and try to make it easy for everyone to review.
+>
+> Initially, Logan proposed the feature flags in RFC v1 [1], which tried
+> to solve the problem of dependency on the compatible string. Feature
+> flags introduced finer-grained compatibility. This series had three
+> fields: active, supported, and required. The number of flags was limited
+> and didn't have flexibility, which reduced the complexity of the patch,
+> but put a limitation on the extensibility of the features.
+>
+> After LPC and a few design discussions, I proposed RFC v2 [2], which
+> changed the flags to optional and required and converted the encoding to
+> 2 bits per feature instead of having two separate variables. But This sti=
+ll
+> has the number of flags limited and fixed the feature header size to
+> 128 bytes. Though each serialized structure is being allocated in
+> multiples of PAGE_SIZE (folio order =3D 0, 1, 2...), where 128 bytes is
+> not a problem, it still carries two fundamental issues: limited feature
+> flags, and a fixed 128-byte memory overhead for each preserved file. In
+> the future, as there are plans for moving to KHO slab, the allocation
+> for serialized structures can be significantly reduced and this 128-byte
+> size will be a problem again.
+>
+> Based on the RFC v2 discussion, this v4 (v3 [3] was intentionally ignored=
+)
+> moves to extensible feature flags with a variable-length flags[] array,
+> avoiding the fixed 128-byte overhead and feature-count limit.
+>
+> Along with this, as discussed on RFC v2, v4 uses separate bit ranges for
+> required and optional flags (1 bit per feature). It builds on the
+> consideration that a feature in its lifetime will either be required or
+> optional; it can't be toggled into the other. In the future, if such a
+> need arises, a new feature flag can be introduced to replicate the
+> feature as optional or required, opposite to its ancestor flag.
+>
+> This new layout and encoding in memory is as follows:
+>
+> struct kho_ser_hdr {
+> 	u32 size;
+> 	u16 nr_required;
+> 	u16 nr_optional;
+> 	u64 flags[];
+> }
+>
+> where,
+> 	flags[i] =3D (BIT_MAP(optional_features) << nr_required) |
+> 		   BIT_MAP(required_features)
+>
+> This series introduces the feature header in the KHO subsystem, and it
+> is used by serialized structures across KHO and LUO. A few of the
+> serialized structures embed other serialized structures directly. To
+> keep the relative offsets of fields to be same across kernels, we cannot
+> have an embedded serialized structure's size changed; otherwise, direct
+> casting will not be possible. To solve this, this series converts those
+> embedded structures to KHOSER_PTR, which points to the memory just after
+> the parent serialized structure, and allocation and preservation happen
+> for the total memory (parent_ser_size + embedded_ser_size).
+>
+> <Iamparent>_ser {
+> 	u64 a;
+> 	u64 b;
+> 	struct <Iamembedded>_ser e_ser;
+> 	u64 d;
+> }
+> 	CONVERTS TO =3D=3D=3D>
+>
+> <Iamparent>_ser {
+> 	u64 a;
+> 	u64 b;
+> 	DECLARE_KHOSER_PTR(e_ser, <Iamembedded>_ser);
+> 	u64 d;
+> }
+>
+> There are only two such instances: kho_vmalloc and luo_file_set_ser.
+>
+> This series introduces kho_ser_hdr for the following structures:
+>
+>   - struct kho_kexec_metadata
+>   - struct kho_vmalloc
+>   - struct kho_block_header_ser
+>   - struct luo_ser
+>   - struct luo_session_ser
+>   - struct luo_file_set_ser
+>   - struct luo_file_ser
+>   - struct luo_flb_header_ser
+>   - struct luo_flb_ser
+>   - struct pci_ser
+>   - struct pci_dev_ser
+>   - struct memfd_luo_ser
+>   - struct memfd_luo_folio_ser
+>
+> If you notice, this also includes the PCI ser structures. PCI LUO
+> support is merged in liveupdate/next, and this series is developed on
+> top of it.
+>
+> Each serialized structure is preceded in memory by struct kho_ser_hdr
+> and registered via DECLARE_KHO_SER(name, payload_size, nr_required,
+> nr_optional). Both struct kho_kexec_metadata and struct pci_dev_ser are
+> explicitly marked with __aligned(8) because their largest member is a
+> 32-bit integer, and 8-byte alignment is required by DECLARE_KHO_SER() so
 
-now that is said out loud, makes sense.
+I do not believe we need __aligned(8), because the struct immediately=20
+follows the newly introduced kho_ser_hdr, which is 8-byte aligned.=20
+However, we should verify that the combined size (header + payload)=20
+is 8-byte aligned.
 
-> So the following is what I have for now. Once we remove the limit
-> handling again, that code won't change, which is good.
-> 
-> I went back and forth with folio_get_checked() naming, but decided to
-> not mix in the "try" as that just reminds of our speculative refcount
-> handling. (folio_try_get_checked / folio_try_get_referenced)
+> trailing feature payloads remain 8-byte aligned across 32-bit and 64-bit
+> kernels.
+>
+> Also, Introduce DECLARE_KHO_SER_HDR(ser_name, fhdr) which is just the
+> wrapper for struct kho_ser_hdr fhdr, This makes it clear
+> To which ser_name, this fhdr belongs to.
+>
+>
+> Series structure:
+>   - Patch 1 removes __packed from KHO, LUO, and memfd ABI structures and
+>     asserts their natural size and 8-byte alignment under CONFIG_64BIT.
+>   - Patch 2 records entry_size in struct kho_block_header_ser so the
+>     incoming kernel derives the entry stride from the block header.
+>   - Patch 3 converts callers that embedded struct kho_vmalloc by value
+>     (memfd_luo and test_kho) to reference it via DECLARE_KHOSER_PTR so
+>     struct kho_vmalloc can grow independently.
+>   - Patch 4 converts struct luo_session_ser to reference
+>     struct luo_file_set_ser via DECLARE_KHOSER_PTR instead of embedding
+>     it by value so both structures can grow independently.
+>   - Patch 5 introduces struct kho_ser_hdr, DECLARE_KHO_SER(),
+>     DECLARE_KHO_SER_HDR(), and the serialization/validation helpers in
+>     include/linux/kho/abi/feature.h.
+>   - Patches 6-18 add the feature header to each of the 13 KHO, LUO, PCI,
+>     and memfd serialized structures in independent patches.
+>   - Patch 19 adds a KUnit test suite (kho_feature) covering the feature
+>     header helpers.
+>
+> [1] https://lore.kernel.org/all/20260903023452.721732-1-loganodell@google=
+.com/
+> [2] https://lore.kernel.org/all/20261021152527.375070-1-tarunsahu@google.=
+com/
+> [3] https://lore.kernel.org/all/20261026174217.603114-1-tarunsahu@google.=
+com/
+>
+> Tarun Sahu (19):
+>   liveupdate, kho: Remove __packed from KHO, LUO and memfd ABI
+>     structures
+>   kho: block: Record the entry size in the block header
+>   kho, memfd_luo: Reference struct kho_vmalloc via serialized pointer
+>   liveupdate: Reference struct luo_file_set_ser via serialized pointer
+>   kho: Add feature header for fine-grained ABI compatibility
+>   kho: kexec_metadata: Add the feature header
+>   kho: vmalloc: Add the feature header
+>   kho: block: Add the feature header to blocks
+>   liveupdate: Add feature header to struct luo_ser
+>   liveupdate: Add feature header to struct luo_session_ser
+>   liveupdate: Add feature header to struct luo_file_set_ser
+>   liveupdate: Add feature header to struct luo_file_ser
+>   liveupdate: Add feature header to struct luo_flb_header_ser
+>   liveupdate: Add feature header to struct luo_flb_ser
+>   PCI: liveupdate: Add feature header to struct pci_ser
+>   PCI: liveupdate: Add feature header to struct pci_dev_ser
+>   mm: memfd_luo: Add feature header to struct memfd_luo_ser
+>   mm: memfd_luo: Add feature header to struct memfd_luo_folio_ser
+>   kho: Add KUnit test for the feature header helpers
+>
+>  MAINTAINERS                            |   1 +
+>  drivers/pci/liveupdate.c               |  99 +++----
+>  include/linux/kexec_handover.h         |  15 +-
+>  include/linux/kho/abi/block.h          |  21 +-
+>  include/linux/kho/abi/feature.h        | 372 +++++++++++++++++++++++++
+>  include/linux/kho/abi/kexec_handover.h |  11 +-
+>  include/linux/kho/abi/kexec_metadata.h |  17 +-
+>  include/linux/kho/abi/luo.h            | 102 ++++---
+>  include/linux/kho/abi/memfd.h          |  27 +-
+>  include/linux/kho/abi/pci.h            |  66 ++---
+>  include/linux/kho_block.h              |   8 +-
+>  kernel/liveupdate/kexec_handover.c     |  98 ++++---
+>  kernel/liveupdate/kho_block.c          | 172 +++++++++---
+>  kernel/liveupdate/luo_core.c           |  43 +--
+>  kernel/liveupdate/luo_file.c           |  58 ++--
+>  kernel/liveupdate/luo_flb.c            |  69 +++--
+>  kernel/liveupdate/luo_internal.h       |   9 +-
+>  kernel/liveupdate/luo_session.c        |  55 +++-
+>  lib/Kconfig.debug                      |  13 +
+>  lib/test_kho.c                         |  38 ++-
+>  lib/tests/Makefile                     |   1 +
+>  lib/tests/kho_feature_kunit.c          | 184 ++++++++++++
+>  mm/memfd_luo.c                         | 183 ++++++++----
+>  23 files changed, 1271 insertions(+), 391 deletions(-)
+>  create mode 100644 include/linux/kho/abi/feature.h
+>  create mode 100644 lib/tests/kho_feature_kunit.c
 
-agreed with that.
+--=20
+Pasha
 
-[snip]
-
-> -			if (pipe_is_full(pipe))
-> +			if (pipe_is_full(pipe) || *ppos < folio_next_pos(folio))
->  				goto out;
-
-nice!
-
-Reviewed-by: Jose A. Perez de Azpillaga <azpijr@gmail.com>
-
--- 
-cheers,
-jose a. p-a
