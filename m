@@ -1,74 +1,74 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.218.71
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.208.69
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794286930;
-	b=D/PJrHy7ZHZMjHnDqCbEey6STLiFPRF5fi8luG+NnsAFhw8H+K+mgWIAXBmu59nOHGeF
-	 bPIGjUGaEO6m/4tAPAZnvWHdjOWwW8gC+0R3VXffAQQHURrEs/ELBsvYvebvW7BVJEK8a
-	 DwNu0TtEpm/niJBSe+bQi0X/OBCxamH96nh2CCmzBBZy7ij8y7HyCLoU71uxYxLu5d0Nv
-	 ey0EDD3zvVkH9BYUAnBp3q0+jmQcQOOQhp1yvbw8q2BVaUCoZZ9UFhFboByxdM/fKHk6S
-	 JDUEhWZZFqAz5Ytf6teZZA9JjSOJEoOeMbtid598FCxx5hiYIixfDnqbz9NFilx4YnQ==
+	t=1794286935;
+	b=5n/9w3PST8nrl8ymZcrTAkM4pyIgbrYkEAzH6waQt28WACB5JKmCKp6Vfzajg9OszANs
+	 LsduhfPoxwXdz6b2zeVJnpy0Xzs0UvYkJ03iZJvEih1QSaZa4xqVddVRiQYLesQswX5Ln
+	 wQJuxXBYPQxvOMWTN/Un16YQIqUHCcb1Pdqlux0/kl9Y+ghukPQC9ImitIUgWTI06RPFT
+	 8dsWyyjEcaMcIMKBWTVlpwba3q2445RrqsCfO7UlASJACwz/StSODKq5yZNwPGkUrwk3W
+	 hfFhgispy+Zeh4Y/YLC6PwZ3o3Y/iBodMjWe+0BkIM4iCjKnQH+ZDl42mw6DQlIMJQA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794286930;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794286935;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
 	 Mime-Version:References:X-Mailer:Message-ID:Subject:From:To:Cc:
 	 Content-Type;
-	bh=gCVasoLTZkfDLPIf3+UIMM+CIyIOn5HRothnXhPkfvs=;
-	b=Wj0sFkm1cIih36l6Djc+jCTsBAo+uEE9iZjkJW7J63/VTWoB6VFuGqBfk3if4+v5akMl
-	 kOWE/7MTOa66OItPEfZ3e/1wmGwoYzUIS4UbkuT/oHIG4u5q4+Ov4Ybe3g6GV250tjTA4
-	 crjURn5YpbprODiyHq6uO7sxcrV2ESfwtS7Ej6dqy6A9n4ad499vrtKpZ35tikokOt07M
-	 g1eRBK19QhUg12xdtQ5FgcU+aXIny1Y0mygRDNLATW+uH2wkfkMcfQpz8O5S4re0llemh
-	 W5SyyPRfBabOZca/4jqz5QPUefNmKLL9J301KIDSDSeK/C+nAb3TP+e6EH1EmYc+HVg==
+	bh=Ebeh5Rs4TXuXQtxviE5PkM1eDaH/25gqcmQnH1h2ass=;
+	b=XuQDS4jeriFLxQ42p5NXZxYfmHHm21bA4YD6TyZniL/9LR8+f/IuIh5eyTaVh3qruuwi
+	 D+ssuEH7vhrqDE/cIcdavndf20csh3Zgs3STu96Qjhq511sgMhk0bJESvdZQNZXXQl1/9
+	 iawWi5XLXkW3oW9RheJo40gVyRIw8DUrnFKH9qYa0KbBM7d0ZVCniQKt3JROsaKq2WNzm
+	 FHan7XJeqd61Yo0A1T1WDVE0qQ3PTxduBn6Ys0m+rWvePsBa9zu/AzcTLNu27M/hQPAWT
+	 DA9Lddey/WI59yjPIsb17tO6CvQPcDJ7q408SLTh4Vjo2oF90+rCb9T2MlY58uB3Fvw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=google.com;
 	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=EXwLh3ez;
-	arc=none smtp.remote-ip=209.85.218.71
-Received: from mail-ej1-f71.google.com (mail-ej1-f71.google.com [209.85.218.71])
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=IcbFzfkI;
+	arc=none smtp.remote-ip=209.85.208.69
+Received: from mail-ed1-f69.google.com (mail-ed1-f69.google.com [209.85.208.69])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3CA2460A261C
-	for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 05:02:09 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3CA2460A261C
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CB69D60A6F64
+	for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 05:02:14 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org CB69D60A6F64
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=EXwLh3ez
-Received: by mail-ej1-f71.google.com with SMTP id a640c23a62f3a-c40aa03ded8so181917266b.2
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2026 21:02:09 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=IcbFzfkI
+Received: by mail-ed1-f69.google.com with SMTP id 4fb4d7f45d1cf-6b706aec65bso1580396a12.3
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2026 21:02:14 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20260707; t=1794286928; x=1794891728; darn=vger.kernel.org;
+        d=google.com; s=20260707; t=1794286933; x=1794891733; darn=vger.kernel.org;
         h=content-type:cc:to:from:subject:message-id:references:mime-version
          :in-reply-to:date:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=gCVasoLTZkfDLPIf3+UIMM+CIyIOn5HRothnXhPkfvs=;
-        b=EXwLh3ezqfMkQ6mojfc+RgPxDdt0dmNLfe8xrUDksBBQnOL7y83Bgvc9Nv+0p5B0Cv
-         ZTs6yxOIBlzoKERN2xrDmGvt4wi7OUDfNHYReSXBM47f1W/AJiMbU4z+iCE13LCi/rZj
-         ZGdy1UKXR/FWqvWyXR23KltX7bVJghj/Rw4ycFefFmisBHwm9hVqfHn0hjR5+aKA3Odv
-         5AC4ABFe4LHv5x1uY4LcQl1MsQzN8lyob3KbZz1QLCOsKee85xPgwflXC6EuIOPuh1lz
-         AVpQ2xSLYJQiifgSpv3GSpxlI01kZW6q5gthgE+WaGhwxiTtqRYhtAfxd4IwgqfqxIcZ
-         MVZQ==
+        bh=Ebeh5Rs4TXuXQtxviE5PkM1eDaH/25gqcmQnH1h2ass=;
+        b=IcbFzfkIKOkiLLAWR+0fDMZZLuPlqNDwIueVIN2BJPKczISY1eixPOh4kFx2/U1uPk
+         V6X1NdMXm70UTmtKEHjQ0ALW8YjmnjIm/N+gplzBkCJz1MhlT1AjchQglREfiIZwQkgy
+         /rL+KS1i6/L5UoORZtOvJClZtrBUJZA4Rv3ApIpHKiElhXD11aNMR1OIWS27dMXOqsvL
+         dVVmhuwrmYH4iXF52JgVyXDgAiWy+ALOJu+ZPPbkPuhh8Fffwz6pOOMBK0x30u7WHduC
+         pUu1k3mOdqqJxF8KcTWk+W5qAn19uPjP2i11cfepDsuiP2suN4BV1coS3FMBKIINZNOf
+         9JCw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794286928; x=1794891728;
+        d=1e100.net; s=20260707; t=1794286933; x=1794891733;
         h=content-type:cc:to:from:subject:message-id:references:mime-version
          :in-reply-to:date:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=gCVasoLTZkfDLPIf3+UIMM+CIyIOn5HRothnXhPkfvs=;
-        b=WOWWj2MYTxyyA+00/+q9tAZm1eNzzSRkgMgOSo46uKtPb2CA3I2tnHHHntYMZWJAyW
-         loKeHQ+gcepbDLWHwJ21laI7nu0nhC5Q20mOHtNUsiZhKO0/HFHN6mtslc0nkQijP59i
-         8zddHpWQ28MKNLNJsekceUIcUSWKfAMT77CBYDpwe7KZGHfqdIM4r3KbDztL3vjK11J6
-         PadPNKnpU5omvbk/3O4Yq07n+XqMJN32s7wnaNEP8WqfrpTBLSf+uqiU7IUjq1pj2EJs
-         1Y4dtDfX4tBEzWQjZqqlIWaxytK/5njwt0x6U6eIGzF11pBJTBLvz8Zeqh1DdfUcgYx3
-         8vuA==
-X-Forwarded-Encrypted: i=1; AL+hErHkOwl+YrFROB8xMtkqBKL15atg9SfJMVOW+V7UM5glh29TMnE5DfhmRVTINX/a75NC9NRyZwn+WuZe@vger.kernel.org
-X-Gm-Message-State: APuU4Z89kwZetEb891mw12YKS48PblUBOr3rzRrSiln0DLp3DreBZv7I
-	WCc6BJDXmSm03GaUvaR3f0diit36/g4EqC4GPote99lZfDBOUUOtCCYMsQbX6hzaG2kLVnrz/qp
-	rZ8ywmm5jgVRwCj2GwA==
-X-Received: from ejzl18.prod.google.com ([2002:a17:906:a412:b0:c4d:1fbc:e718])
+        bh=Ebeh5Rs4TXuXQtxviE5PkM1eDaH/25gqcmQnH1h2ass=;
+        b=UbXkq6xTTjZQSY3kFBEstLn+Xy8H+9e5YZWClivLHLW5SWEmEo36AsbziV5ABi37Kc
+         5YuO079hm7YUgyYCile3DU/vg2+F9p3RSZwoCN/Z9fOjRDlFYso6Qc4dSG1r/0wCg0e2
+         dwe5I7OH1d69CV2kwRhr5WLDejOHANFpALkWOnQj48SHwguOznLx4qtPFqJo28a8GYv3
+         +oOtNZ+V4Tpe7niqIfsfUQ2Pm0IiNBcIBpnH3+RjT4ZfXYZzBgoBTh+SV9JPSsU0TcQh
+         6y7fKAOFHGN8MPtk2c1BQ3g6Ij8LCLD3O58G9Bc1QVswsyn2gQHv6jgqApA81O8Fecyp
+         rKhQ==
+X-Forwarded-Encrypted: i=1; AL+hErG15wwWV0PCpJ+bUd7lKXL1VaIWRuF3ret7y0mtiHUyHv8ixctlfFmrC2BZqQcC/m1DJ/3s7pzm6U7H@vger.kernel.org
+X-Gm-Message-State: APuU4Z8dmLM11hVVKcZE2uvYOmCgGpMCAJa3KDIk1Esu1yqxx4Xw39u6
+	nBMr22aXhrmhOublWq1rtgr1sMe87TbNXSyLLjhJK8Tpg6qGhYnq6HYmyS503ACUpbPYntFXaM6
+	cBuj6SF2sbo6+DKj42Q==
+X-Received: from edsa5.prod.google.com ([2002:aa7:d745:0:b0:6af:ab34:1a21])
  (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
- 2002:a17:907:3dac:b0:c31:5bb8:4b3b with SMTP id a640c23a62f3a-c5048f79e02mr108053466b.2.1794286927522;
- Mon, 09 Nov 2026 21:02:07 -0800 (PST)
-Date: Tue, 10 Nov 2026 05:01:45 +0000
+ 2002:a05:6402:43cb:b0:6b7:1bb8:5a5 with SMTP id 4fb4d7f45d1cf-6b756ad506dmr1143844a12.19.1794286933123;
+ Mon, 09 Nov 2026 21:02:13 -0800 (PST)
+Date: Tue, 10 Nov 2026 05:01:50 +0000
 In-Reply-To: <20261110050202.529473-1-tarunsahu@google.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -81,8 +81,8 @@ Precedence: list
 Mime-Version: 1.0
 References: <20261110050202.529473-1-tarunsahu@google.com>
 X-Mailer: git-send-email 2.56.0.506.g506a7eabc5-goog
-Message-ID: <20261110050202.529473-3-tarunsahu@google.com>
-Subject: [PATCH v4 02/19] kho: block: Record the entry size in the block header
+Message-ID: <20261110050202.529473-8-tarunsahu@google.com>
+Subject: [PATCH v4 07/19] kho: vmalloc: Add the feature header
 From: Tarun Sahu <tarunsahu@google.com>
 To: Pasha Tatashin <pasha.tatashin@soleen.com>, Mike Rapoport <rppt@kernel.org>, robin.murphy@arm.com, 
 	maz@kernel.org, will@kernel.org, David Matlack <dmatlack@google.com>, 
@@ -99,175 +99,482 @@ Cc: kvmarm@lists.linux.dev, linux-pci@vger.kernel.org,
 	Tarun Sahu <tarunsahu@google.com>
 Content-Type: text/plain; charset="UTF-8"
 
-Subsystems using the KHO Serialization Blocks framework currently do
-not record the serialized entry size in the block header. The entry size
-is only known to individual callers, which must track and store it in an
-owning serialized data structure. If a newer source kernel adds fields
-to an entry, the changed entry size breaks the stride when an older
-target kernel iterates over blocks.
+Register struct kho_vmalloc with the KHO serialization feature header
+mechanism to allow future additive fields or feature extensions without
+breaking live update ABI compatibility.
 
-Add an entry_size field to struct kho_block_header_ser. On the outgoing
-side, record bs->entry_size into every block header during allocation.
-During restoration, derive the entry stride directly from the block
-header instead of relying on caller-supplied dimensions. The
-kho_block_set_init() interface remains unchanged. A zero entry size,
-or one that differs between blocks of a set, is rejected during
-restoration.
+Add DECLARE_KHO_SER(kho_vmalloc, 16, 0, 0) to register the 16-byte
+structure with 0 required and 0 optional features. Update function
+prototypes in include/linux/kexec_handover.h to take
+DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr) parameters, documenting which
+registered structure the feature header belongs to while enforcing
+compile-time type verification.
 
-This change modifies the serialized layout of struct kho_block_header_ser
-and shifts the offset of serialized entries within preserved blocks.
-Bump KHO_FDT_COMPATIBLE from kho-v4 to kho-v5 so that pre-v5 and post-v5
-kernels cleanly reject mismatched handover state during boot. Also
-update the stale compatible string example in the documentation.
+In kho_preserve_vmalloc(), initialize the feature header with
+kho_ser_init() and access the payload fields via kho_ser_payload().
+In kho_restore_vmalloc(), validate incoming required features with
+kho_ser_validate() and access payload fields via kho_ser_payload().
+In kho_unpreserve_vmalloc(), access payload fields via kho_ser_payload().
+The chunk page format and traversal remain unchanged.
 
-Suggested-by: Pratyush Yadav <pratyush@kernel.org>
+Update memfd_luo and test_kho to pass typed feature header pointers
+and use kho_ser_size() for allocation sizing.
+
 Signed-off-by: Tarun Sahu <tarunsahu@google.com>
 ---
- include/linux/kho/abi/block.h          | 10 ++++----
- include/linux/kho/abi/kexec_handover.h |  6 ++---
- kernel/liveupdate/kho_block.c          | 32 +++++++++++++++++++++++---
- 3 files changed, 38 insertions(+), 10 deletions(-)
+ include/linux/kexec_handover.h         | 15 +++----
+ include/linux/kho/abi/kexec_handover.h |  5 +--
+ include/linux/kho/abi/memfd.h          |  8 ++--
+ kernel/liveupdate/kexec_handover.c     | 60 ++++++++++++++++++--------
+ lib/test_kho.c                         | 35 +++++++--------
+ mm/memfd_luo.c                         | 21 ++++-----
+ 6 files changed, 83 insertions(+), 61 deletions(-)
 
-diff --git a/include/linux/kho/abi/block.h b/include/linux/kho/abi/block.h
-index 36bdbaf9b3b8..a40b0906c821 100644
---- a/include/linux/kho/abi/block.h
-+++ b/include/linux/kho/abi/block.h
-@@ -40,9 +40,10 @@
+diff --git a/include/linux/kexec_handover.h b/include/linux/kexec_handover.h
+index ef2b188c8ed0..b52e7a5173f8 100644
+--- a/include/linux/kexec_handover.h
++++ b/include/linux/kexec_handover.h
+@@ -6,10 +6,9 @@
+ #include <linux/errno.h>
+ #include <linux/types.h>
+ #include <linux/mm.h>
++#include <linux/kho/abi/kexec_handover.h>
+ #include <asm-generic/kexec_handover.h>
  
- /**
-  * struct kho_block_header_ser - Header for the serialized data block.
-- * @next:  Physical address of the next struct kho_block_header_ser.
-- * @count: The number of entries that immediately follow this header in the
-- *         memory block.
-+ * @next:       Physical address of the next struct kho_block_header_ser.
-+ * @count:      The number of entries that immediately follow this header in the
-+ *              memory block.
-+ * @entry_size: The size in bytes of each serialized entry in the block.
-  *
-  * This structure is located at the beginning of a block of physical memory
-  * preserved across a kexec. It provides the necessary metadata to interpret
-@@ -51,9 +52,10 @@
- struct kho_block_header_ser {
- 	u64 next;
- 	u64 count;
-+	u64 entry_size;
- };
+-struct kho_vmalloc;
+-
+ struct folio;
+ struct page;
  
--static_assert(sizeof(struct kho_block_header_ser) == 16);
-+static_assert(sizeof(struct kho_block_header_ser) == 24);
- static_assert(!IS_ENABLED(CONFIG_64BIT) ||
- 	      __alignof__(struct kho_block_header_ser) == 8);
+@@ -21,14 +20,14 @@ int kho_preserve_folio(struct folio *folio);
+ void kho_unpreserve_folio(struct folio *folio);
+ int kho_preserve_pages(struct page *page, unsigned long nr_pages);
+ void kho_unpreserve_pages(struct page *page, unsigned long nr_pages);
+-int kho_preserve_vmalloc(void *ptr, struct kho_vmalloc *preservation);
+-void kho_unpreserve_vmalloc(struct kho_vmalloc *preservation);
++int kho_preserve_vmalloc(void *ptr, DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr));
++void kho_unpreserve_vmalloc(DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr));
+ void *kho_alloc_preserve(size_t size);
+ void kho_unpreserve_free(void *mem);
+ void kho_restore_free(void *mem);
+ struct folio *kho_restore_folio(phys_addr_t phys);
+ struct page *kho_restore_pages(phys_addr_t phys, unsigned long nr_pages);
+-void *kho_restore_vmalloc(const struct kho_vmalloc *preservation);
++void *kho_restore_vmalloc(const DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr));
+ int kho_add_subtree(const char *name, void *blob, size_t size);
+ void kho_remove_subtree(void *blob);
+ int kho_retrieve_subtree(const char *name, phys_addr_t *phys, size_t *size);
+@@ -74,12 +73,12 @@ static inline int kho_preserve_pages(struct page *page, unsigned int nr_pages)
+ static inline void kho_unpreserve_pages(struct page *page, unsigned int nr_pages) { }
  
+ static inline int kho_preserve_vmalloc(void *ptr,
+-				       struct kho_vmalloc *preservation)
++				       DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr))
+ {
+ 	return -EOPNOTSUPP;
+ }
+ 
+-static inline void kho_unpreserve_vmalloc(struct kho_vmalloc *preservation) { }
++static inline void kho_unpreserve_vmalloc(DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr)) { }
+ 
+ static inline void *kho_alloc_preserve(size_t size)
+ {
+@@ -100,7 +99,7 @@ static inline struct page *kho_restore_pages(phys_addr_t phys,
+ 	return NULL;
+ }
+ 
+-static inline void *kho_restore_vmalloc(const struct kho_vmalloc *preservation)
++static inline void *kho_restore_vmalloc(const DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr))
+ {
+ 	return NULL;
+ }
 diff --git a/include/linux/kho/abi/kexec_handover.h b/include/linux/kho/abi/kexec_handover.h
-index 2f4fb9c63942..6f12f5037ea5 100644
+index bee75a7006e8..f9b9b18f5820 100644
 --- a/include/linux/kho/abi/kexec_handover.h
 +++ b/include/linux/kho/abi/kexec_handover.h
-@@ -41,7 +41,7 @@
-  *   restore the preserved data.::
-  *
-  *     / {
-- *         compatible = "kho-v3";
-+ *         compatible = "kho-v5";
-  *
-  *         preserved-memory-map = <0x...>;
-  *
-@@ -62,7 +62,7 @@
-  *     };
-  *
-  *   Root KHO Node (/):
-- *     - compatible: "kho-v3"
-+ *     - compatible: "kho-v5"
-  *
-  *       Identifies the overall KHO ABI version.
-  *
-@@ -90,7 +90,7 @@
+@@ -13,6 +13,7 @@
+ #include <linux/bits.h>
+ #include <linux/build_bug.h>
+ #include <linux/kconfig.h>
++#include <linux/kho/abi/feature.h>
+ #include <linux/log2.h>
+ #include <linux/math.h>
+ #include <linux/types.h>
+@@ -179,9 +180,7 @@ struct kho_vmalloc {
+ 	unsigned short order;
+ };
+ 
+-static_assert(sizeof(struct kho_vmalloc) == 16);
+-static_assert(!IS_ENABLED(CONFIG_64BIT) ||
+-	      __alignof__(struct kho_vmalloc) == 8);
++DECLARE_KHO_SER(kho_vmalloc, 16, 0, 0);
+ 
+ /**
+  * DOC: KHO persistent memory tracker
+diff --git a/include/linux/kho/abi/memfd.h b/include/linux/kho/abi/memfd.h
+index 7b49dd6d7e2a..b0597c438973 100644
+--- a/include/linux/kho/abi/memfd.h
++++ b/include/linux/kho/abi/memfd.h
+@@ -80,9 +80,9 @@ static_assert(!IS_ENABLED(CONFIG_64BIT) ||
+  * @seals:     The seals present on the memfd. The seals are uABI so it is safe
+  *             to directly use them in the ABI.
+  * @flags:     Flags for the file. Unused flag bits must be set to 0.
+- * @nr_folios: Number of folios in the folios array.
+- * @folios:    Pointer to KHO vmalloc descriptor for the array of
+- *             struct memfd_luo_folio_ser.
++ * @nr_folios:   Number of folios in the folios array.
++ * @folios_fhdr: Pointer to KHO vmalloc descriptor for the array of
++ *               struct memfd_luo_folio_ser.
   */
+ struct memfd_luo_ser {
+ 	u64 pos;
+@@ -90,7 +90,7 @@ struct memfd_luo_ser {
+ 	u32 seals;
+ 	u32 flags;
+ 	u64 nr_folios;
+-	DECLARE_KHOSER_PTR(folios, struct kho_vmalloc *);
++	DECLARE_KHOSER_PTR(folios_fhdr, DECLARE_KHO_SER_HDR(kho_vmalloc, *));
+ };
  
- /* The compatible string for the KHO FDT root node. */
--#define KHO_FDT_COMPATIBLE "kho-v4"
-+#define KHO_FDT_COMPATIBLE "kho-v5"
- 
- /* The FDT property for the preserved memory map. */
- #define KHO_FDT_MEMORY_MAP_PROP_NAME "preserved-memory-map"
-diff --git a/kernel/liveupdate/kho_block.c b/kernel/liveupdate/kho_block.c
-index 0d2a342ef422..9b148009085e 100644
---- a/kernel/liveupdate/kho_block.c
-+++ b/kernel/liveupdate/kho_block.c
-@@ -16,6 +16,12 @@
-  * array of serialized entries. Multiple blocks are linked together via a
-  * physical pointer in the header, forming a linked list that can be easily
-  * traversed in both the current and the next kernel.
-+ *
-+ * Each block header also records the size of its entries. A newer kernel may
-+ * append fields to an entry, so the kernel that writes a block and the kernel
-+ * that reads it can use different entry sizes. The reader steps through the
-+ * entries with the recorded size, so every entry is found, and it does not read
-+ * beyond the recorded size of an entry.
-  */
- 
- #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-@@ -110,6 +116,8 @@ static int kho_block_set_grow_one(struct kho_block_set *bs)
- 	if (IS_ERR(ser))
- 		return PTR_ERR(ser);
- 
-+	ser->entry_size = bs->entry_size;
-+
- 	err = kho_block_add(bs, ser);
- 	if (err) {
- 		kho_block_free_ser(bs, ser);
-@@ -242,7 +250,8 @@ static bool kho_block_set_is_cyclic(struct kho_block_set *bs)
+ static_assert(sizeof(struct memfd_luo_ser) == 40);
+diff --git a/kernel/liveupdate/kexec_handover.c b/kernel/liveupdate/kexec_handover.c
+index 641a3b4c88fb..6e428df717cc 100644
+--- a/kernel/liveupdate/kexec_handover.c
++++ b/kernel/liveupdate/kexec_handover.c
+@@ -1378,20 +1378,20 @@ static void kho_vmalloc_unpreserve_chunk(struct kho_vmalloc_chunk *chunk,
+ /**
+  * kho_preserve_vmalloc - preserve memory allocated with vmalloc() across kexec
+  * @ptr: pointer to the area in vmalloc address space
+- * @preservation: placeholder for preservation metadata
++ * @fhdr:         placeholder for preservation metadata
   *
-  * Restores a serialized block set from a given physical address. The caller is
-  * responsible for ensuring that the block set @bs has been allocated and
-- * initialized prior to calling this function.
-+ * initialized prior to calling this function. The entry size and the number
-+ * of entries per block are taken from the restored block headers.
+  * Instructs KHO to preserve the area in vmalloc address space at @ptr. The
+  * physical pages mapped at @ptr will be preserved and on successful return
+- * @preservation will hold the physical address of a structure that describes
+- * the preservation.
++ * @fhdr will hold the preservation metadata.
   *
-  * Return: 0 on success, or a negative errno on failure.
+  * NOTE: The memory allocated with vmalloc_node() variants cannot be reliably
+  * restored on the same node
+  *
+  * Return: 0 on success, error code on failure
   */
-@@ -250,6 +259,7 @@ int kho_block_set_restore(struct kho_block_set *bs, u64 head_pa)
+-int kho_preserve_vmalloc(void *ptr, struct kho_vmalloc *preservation)
++int kho_preserve_vmalloc(void *ptr, DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr))
  {
- 	struct kho_block_header_ser *ser;
- 	u64 next_pa = head_pa;
-+	u64 entry_size = 0;
- 	int err;
++	struct kho_vmalloc *vmalloc_ser;
+ 	struct kho_vmalloc_chunk *chunk;
+ 	struct vm_struct *vm = find_vm_area(ptr);
+ 	unsigned int order, flags, nr_contig_pages;
+@@ -1404,13 +1404,18 @@ int kho_preserve_vmalloc(void *ptr, struct kho_vmalloc *preservation)
+ 	if (vm->flags & ~KHO_VMALLOC_SUPPORTED_FLAGS)
+ 		return -EOPNOTSUPP;
  
- 	/* Restored block sets use size from the previous kernel */
-@@ -264,8 +274,21 @@ int kho_block_set_restore(struct kho_block_set *bs, u64 head_pa)
++	kho_ser_init(fhdr, kho_vmalloc);
++
++	vmalloc_ser = kho_ser_payload(fhdr, kho_vmalloc);
++
+ 	flags = vmalloc_flags_to_kho(vm->flags);
+ 	order = get_vm_area_page_order(vm);
++	vmalloc_ser->order = order;
+ 
+ 	chunk = new_vmalloc_chunk(NULL);
+ 	if (!chunk)
+ 		return -ENOMEM;
+-	KHOSER_STORE_PTR(preservation->first, chunk);
++	KHOSER_STORE_PTR(vmalloc_ser->first, chunk);
+ 
+ 	nr_contig_pages = (1 << order);
+ 	for (int i = 0; i < vm->nr_pages; i += nr_contig_pages) {
+@@ -1431,33 +1436,39 @@ int kho_preserve_vmalloc(void *ptr, struct kho_vmalloc *preservation)
+ 		}
  	}
  
- 	while (next_pa) {
-+		u64 capacity;
+-	preservation->total_pages = vm->nr_pages;
+-	preservation->flags = flags;
+-	preservation->order = order;
++	vmalloc_ser->total_pages = vm->nr_pages;
++	vmalloc_ser->flags = flags;
+ 
+ 	return 0;
+ 
+ err_free:
+-	kho_unpreserve_vmalloc(preservation);
++	kho_unpreserve_vmalloc(fhdr);
+ 	return err;
+ }
+ EXPORT_SYMBOL_GPL(kho_preserve_vmalloc);
+ 
+ /**
+  * kho_unpreserve_vmalloc - unpreserve memory allocated with vmalloc()
+- * @preservation: preservation metadata returned by kho_preserve_vmalloc()
++ * @fhdr:         preservation metadata returned by kho_preserve_vmalloc()
+  *
+  * Instructs KHO to unpreserve the area in vmalloc address space that was
+  * previously preserved with kho_preserve_vmalloc().
+  */
+-void kho_unpreserve_vmalloc(struct kho_vmalloc *preservation)
++void kho_unpreserve_vmalloc(DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr))
+ {
+-	struct kho_vmalloc_chunk *chunk = KHOSER_LOAD_PTR(preservation->first);
++	struct kho_vmalloc *vmalloc_ser;
++	struct kho_vmalloc_chunk *chunk;
 +
- 		ser = phys_to_virt(next_pa);
--		if (!ser->count || ser->count > bs->count_per_block) {
-+		if (!ser->entry_size || (entry_size && ser->entry_size != entry_size)) {
-+			pr_warn("Block contains invalid entry size: %llu\n",
-+				ser->entry_size);
-+			err = -EINVAL;
-+			goto err_destroy;
-+		}
-+		entry_size = ser->entry_size;
-+		bs->entry_size = entry_size;
-+		capacity = (KHO_BLOCK_SIZE - sizeof(*ser)) / bs->entry_size;
-+		bs->count_per_block = capacity;
++	if (!fhdr)
++		return;
 +
-+		if (!ser->count || ser->count > capacity) {
- 			pr_warn("Block contains invalid entry count: %llu\n",
- 				ser->count);
++	vmalloc_ser = kho_ser_payload(fhdr, kho_vmalloc);
++	chunk = KHOSER_LOAD_PTR(vmalloc_ser->first);
+ 
+ 	while (chunk) {
+ 		struct kho_vmalloc_chunk *tmp = chunk;
+ 
+-		kho_vmalloc_unpreserve_chunk(chunk, preservation->order);
++		kho_vmalloc_unpreserve_chunk(chunk, vmalloc_ser->order);
+ 
+ 		chunk = KHOSER_LOAD_PTR(chunk->hdr.next);
+ 		free_page((unsigned long)tmp);
+@@ -1468,16 +1479,17 @@ EXPORT_SYMBOL_GPL(kho_unpreserve_vmalloc);
+ /**
+  * kho_restore_vmalloc - recreates and populates an area in vmalloc address
+  * space from the preserved memory.
+- * @preservation: preservation metadata.
++ * @fhdr:         preservation metadata.
+  *
+  * Recreates an area in vmalloc address space and populates it with memory that
+  * was preserved using kho_preserve_vmalloc().
+  *
+  * Return: pointer to the area in the vmalloc address space, NULL on failure.
+  */
+-void *kho_restore_vmalloc(const struct kho_vmalloc *preservation)
++void *kho_restore_vmalloc(const DECLARE_KHO_SER_HDR(kho_vmalloc, *fhdr))
+ {
+-	struct kho_vmalloc_chunk *chunk = KHOSER_LOAD_PTR(preservation->first);
++	const struct kho_vmalloc *vmalloc_ser;
++	struct kho_vmalloc_chunk *chunk;
+ 	kasan_vmalloc_flags_t kasan_flags = KASAN_VMALLOC_PROT_NORMAL;
+ 	unsigned int align, order, shift, vm_flags;
+ 	unsigned long total_pages, contig_pages;
+@@ -1487,19 +1499,29 @@ void *kho_restore_vmalloc(const struct kho_vmalloc *preservation)
+ 	unsigned int idx = 0;
+ 	int err;
+ 
+-	vm_flags = kho_flags_to_vmalloc(preservation->flags);
++	if (!fhdr)
++		return NULL;
++
++	err = kho_ser_validate(fhdr, kho_vmalloc);
++	if (err)
++		return NULL;
++
++	vmalloc_ser = kho_ser_payload(fhdr, kho_vmalloc);
++
++	vm_flags = kho_flags_to_vmalloc(vmalloc_ser->flags);
+ 	if (vm_flags & ~KHO_VMALLOC_SUPPORTED_FLAGS)
+ 		return NULL;
+ 
+-	total_pages = preservation->total_pages;
++	total_pages = vmalloc_ser->total_pages;
+ 	pages = kvmalloc_objs(*pages, total_pages);
+ 	if (!pages)
+ 		return NULL;
+-	order = preservation->order;
++	order = vmalloc_ser->order;
+ 	contig_pages = (1 << order);
+ 	shift = PAGE_SHIFT + order;
+ 	align = 1 << shift;
+ 
++	chunk = KHOSER_LOAD_PTR(vmalloc_ser->first);
+ 	while (chunk) {
+ 		struct page *page;
+ 
+diff --git a/lib/test_kho.c b/lib/test_kho.c
+index cd0f183ff68e..cfd80b8b3c6d 100644
+--- a/lib/test_kho.c
++++ b/lib/test_kho.c
+@@ -34,7 +34,7 @@ struct kho_test_state {
+ 	unsigned int nr_folios;
+ 	struct folio **folios;
+ 	phys_addr_t *folios_info;
+-	DECLARE_KHOSER_PTR(folios_info_phys, struct kho_vmalloc *);
++	DECLARE_KHOSER_PTR(folios_info_fhdr, DECLARE_KHO_SER_HDR(kho_vmalloc, *));
+ 	int nr_folios_preserved;
+ 	struct folio *fdt;
+ 	__wsum csum;
+@@ -47,8 +47,8 @@ static void kho_test_unpreserve_data(struct kho_test_state *state)
+ 	for (int i = 0; i < state->nr_folios_preserved; i++)
+ 		kho_unpreserve_folio(state->folios[i]);
+ 
+-	if (KHOSER_LOAD_PTR(state->folios_info_phys))
+-		kho_unpreserve_vmalloc(KHOSER_LOAD_PTR(state->folios_info_phys));
++	if (KHOSER_LOAD_PTR(state->folios_info_fhdr))
++		kho_unpreserve_vmalloc(KHOSER_LOAD_PTR(state->folios_info_fhdr));
+ 	vfree(state->folios_info);
+ }
+ 
+@@ -61,7 +61,7 @@ static int kho_test_preserve_data(struct kho_test_state *state)
+ 	if (!folios_info)
+ 		return -ENOMEM;
+ 
+-	err = kho_preserve_vmalloc(folios_info, KHOSER_LOAD_PTR(state->folios_info_phys));
++	err = kho_preserve_vmalloc(folios_info, KHOSER_LOAD_PTR(state->folios_info_fhdr));
+ 	if (err)
+ 		goto err_free_info;
+ 
+@@ -109,8 +109,8 @@ static int kho_test_prepare_fdt(struct kho_test_state *state, ssize_t fdt_size)
+ 	err |= fdt_begin_node(fdt, "data");
+ 	err |= fdt_property(fdt, "nr_folios", &state->nr_folios,
+ 			    sizeof(state->nr_folios));
+-	err |= fdt_property(fdt, "folios_info", &state->folios_info_phys,
+-			    sizeof(state->folios_info_phys));
++	err |= fdt_property(fdt, "folios_info", &state->folios_info_fhdr,
++			    sizeof(state->folios_info_fhdr));
+ 	err |= fdt_property(fdt, "csum", &state->csum, sizeof(state->csum));
+ 	err |= fdt_end_node(fdt);
+ 
+@@ -122,18 +122,18 @@ static int kho_test_prepare_fdt(struct kho_test_state *state, ssize_t fdt_size)
+ 
+ static int kho_test_preserve(struct kho_test_state *state)
+ {
+-	struct kho_vmalloc *folios_vmalloc;
++	DECLARE_KHO_SER_HDR(kho_vmalloc, *folios_fhdr);
+ 	ssize_t fdt_size, alloc_size;
+ 	int err;
+ 
+ 	fdt_size = state->nr_folios * sizeof(phys_addr_t) + PAGE_SIZE;
+-	alloc_size = fdt_size + sizeof(struct kho_vmalloc);
++	alloc_size = fdt_size + kho_ser_size(kho_vmalloc);
+ 	state->fdt = folio_alloc(GFP_KERNEL, get_order(alloc_size));
+ 	if (!state->fdt)
+ 		return -ENOMEM;
+ 
+-	folios_vmalloc = folio_address(state->fdt) + fdt_size;
+-	KHOSER_STORE_PTR(state->folios_info_phys, folios_vmalloc);
++	folios_fhdr = folio_address(state->fdt) + fdt_size;
++	KHOSER_STORE_PTR(state->folios_info_fhdr, folios_fhdr);
+ 
+ 	err = kho_preserve_folio(state->fdt);
+ 	if (err)
+@@ -238,8 +238,9 @@ static int kho_test_save(void)
+ 
+ static int kho_test_restore_data(const void *fdt, int node)
+ {
+-	const DECLARE_KHOSER_PTR(*folios_info_phys, struct kho_vmalloc *);
+-	const struct kho_vmalloc *folios_vmalloc;
++	const DECLARE_KHOSER_PTR(*folios_fhdr_phys,
++				 DECLARE_KHO_SER_HDR(kho_vmalloc, *));
++	const DECLARE_KHO_SER_HDR(kho_vmalloc, *folios_fhdr);
+ 	const unsigned int *nr_folios;
+ 	phys_addr_t *folios_info;
+ 	const __wsum *old_csum;
+@@ -256,15 +257,15 @@ static int kho_test_restore_data(const void *fdt, int node)
+ 	if (!old_csum || len != sizeof(*old_csum))
+ 		return -EINVAL;
+ 
+-	folios_info_phys = fdt_getprop(fdt, node, "folios_info", &len);
+-	if (!folios_info_phys || len != sizeof(*folios_info_phys))
++	folios_fhdr_phys = fdt_getprop(fdt, node, "folios_info", &len);
++	if (!folios_fhdr_phys || len != sizeof(*folios_fhdr_phys))
+ 		return -EINVAL;
+ 
+-	folios_vmalloc = KHOSER_LOAD_PTR(*folios_info_phys);
+-	if (!folios_vmalloc)
++	folios_fhdr = KHOSER_LOAD_PTR(*folios_fhdr_phys);
++	if (!folios_fhdr)
+ 		return -EINVAL;
+ 
+-	folios_info = kho_restore_vmalloc(folios_vmalloc);
++	folios_info = kho_restore_vmalloc(folios_fhdr);
+ 	if (!folios_info)
+ 		return -EINVAL;
+ 
+diff --git a/mm/memfd_luo.c b/mm/memfd_luo.c
+index 4471cced57db..74c1ff5877c3 100644
+--- a/mm/memfd_luo.c
++++ b/mm/memfd_luo.c
+@@ -103,7 +103,7 @@ static int memfd_luo_preserve_folios(struct file *file,
+ 	 * are not set.
+ 	 */
+ 	if (!size) {
+-		ser->folios.phys = 0;
++		ser->folios_fhdr.phys = 0;
+ 		ser->nr_folios = 0;
+ 		*out_folios_ser = NULL;
+ 		return 0;
+@@ -200,7 +200,7 @@ static int memfd_luo_preserve_folios(struct file *file,
+ 		pfolio->index = folio->index;
+ 	}
+ 
+-	err = kho_preserve_vmalloc(folios_ser, KHOSER_LOAD_PTR(ser->folios));
++	err = kho_preserve_vmalloc(folios_ser, KHOSER_LOAD_PTR(ser->folios_fhdr));
+ 	if (err)
+ 		goto err_unpreserve;
+ 
+@@ -227,7 +227,7 @@ static int memfd_luo_preserve_folios(struct file *file,
+ 	return err;
+ }
+ 
+-static void memfd_luo_unpreserve_folios(struct kho_vmalloc *kho_vmalloc,
++static void memfd_luo_unpreserve_folios(DECLARE_KHO_SER_HDR(kho_vmalloc, *folios_fhdr),
+ 					struct memfd_luo_folio_ser *folios_ser,
+ 					u64 nr_folios)
+ {
+@@ -236,7 +236,7 @@ static void memfd_luo_unpreserve_folios(struct kho_vmalloc *kho_vmalloc,
+ 	if (!nr_folios)
+ 		return;
+ 
+-	kho_unpreserve_vmalloc(kho_vmalloc);
++	kho_unpreserve_vmalloc(folios_fhdr);
+ 
+ 	for (i = 0; i < nr_folios; i++) {
+ 		const struct memfd_luo_folio_ser *pfolio = &folios_ser[i];
+@@ -256,15 +256,16 @@ static void memfd_luo_unpreserve_folios(struct kho_vmalloc *kho_vmalloc,
+ 
+ static size_t memfd_luo_ser_size(void)
+ {
+-	return sizeof(struct memfd_luo_ser) + sizeof(struct kho_vmalloc);
++	return sizeof(struct memfd_luo_ser) + kho_ser_size(kho_vmalloc);
+ }
+ 
+ static struct memfd_luo_ser *memfd_luo_ser_init(void *mem)
+ {
+-	struct kho_vmalloc *kho_vmalloc = mem + sizeof(struct memfd_luo_ser);
++	DECLARE_KHO_SER_HDR(kho_vmalloc, *folios_fhdr);
+ 	struct memfd_luo_ser *ser = mem;
+ 
+-	KHOSER_STORE_PTR(ser->folios, kho_vmalloc);
++	folios_fhdr = mem + sizeof(struct memfd_luo_ser);
++	KHOSER_STORE_PTR(ser->folios_fhdr, folios_fhdr);
+ 	return ser;
+ }
+ 
+@@ -365,7 +366,7 @@ static void memfd_luo_unpreserve(struct liveupdate_file_op_args *args)
+ 
+ 	ser = phys_to_virt(args->serialized_data);
+ 
+-	memfd_luo_unpreserve_folios(KHOSER_LOAD_PTR(ser->folios),
++	memfd_luo_unpreserve_folios(KHOSER_LOAD_PTR(ser->folios_fhdr),
+ 				    args->private_data,
+ 				    ser->nr_folios);
+ 
+@@ -416,7 +417,7 @@ static void memfd_luo_finish(struct liveupdate_file_op_args *args)
+ 		return;
+ 
+ 	if (ser->nr_folios) {
+-		folios_ser = kho_restore_vmalloc(KHOSER_LOAD_PTR(ser->folios));
++		folios_ser = kho_restore_vmalloc(KHOSER_LOAD_PTR(ser->folios_fhdr));
+ 		if (!folios_ser)
+ 			goto out;
+ 
+@@ -567,7 +568,7 @@ static int memfd_luo_retrieve(struct liveupdate_file_op_args *args)
+ 	i_size_write(file_inode(file), ser->size);
+ 
+ 	if (ser->nr_folios) {
+-		folios_ser = kho_restore_vmalloc(KHOSER_LOAD_PTR(ser->folios));
++		folios_ser = kho_restore_vmalloc(KHOSER_LOAD_PTR(ser->folios_fhdr));
+ 		if (!folios_ser) {
  			err = -EINVAL;
-@@ -370,7 +393,10 @@ void *kho_block_set_it_reserve_entry(struct kho_block_set_it *it)
-  * @it: The block iterator.
-  *
-  * Iterates through previously written entries during state deserialization,
-- * respecting the actual count stored in each block's header.
-+ * respecting the actual count stored in each block's header. Entries are
-+ * spaced by the entry size recorded by the kernel that wrote them, which can
-+ * be smaller or larger than the caller's structure. Fields beyond that size
-+ * are not present in the entry.
-  *
-  * Return: A pointer to the next serialized entry, or NULL if all serialized
-  * entries have been read.
+ 			goto put_file;
 -- 
 2.56.0.506.g506a7eabc5-goog
 
