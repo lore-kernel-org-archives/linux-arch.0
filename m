@@ -1,47 +1,88 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.128.46
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794307313;
-	b=Z8zwIPKG5k4uR2MiGafbYPi7uX4f2GUz8X+cXwbgKQv9YL/j2c5AYHBRh4kuDR4U02LK
-	 yUCPzo0kAWyqhvJpxnjDwozicbV/KkErIICNkHVYzJilTRNoR45/LtNs5ISUhYci4OdU8
-	 Wy054gZbHh0ShrwfviHEEZ6fP86kRcuSvcGn2cg3My3p5cCC53YSuztd/mGQRt0z84v+D
-	 eQjwZIJVOBlUDp752iZ8yAdaXpCOpSvqARr3Y76wWAkAZ/kI82achYPfgwGTNNMjm7gVf
-	 OqVkxu3qDUHuAyUx9EF6wOegHhq7Od7MchP3RosVC9k/tuc7AGLPJLkZZnUv2sMCj4Q==
+	t=1794312022;
+	b=VK3i7i9vlSoLUbyfgEszRwrHbsnR/qLy9bwG1KplpE5Rez4PbPJmdPBbJlTdQ1LxQy8g
+	 sQWG3Bh2Bo9M9HQDEGgwLc4gvfBoojnruHVqJRPxROv1VwpvbxU6z3KQseapd0yVZIe6v
+	 +RBi3CuYSLqcZzgY/cMyMpWjP1/d2B9QIVOqRM9WUuaNPAPA232OQbo+pbQ4VMuhyJXv6
+	 zUb9hLo+OTP+X/Ke4WN+65ovNJCZSgBBItq8zfpsRL3LgovOVOuyhCkXiOnX9pnJDO5tE
+	 vYw5DGqxVo/6Cuv9OlwyPtstAQyl5ZESfTnWve4BKqMGtw4yK2kHfadkjirznDfG3vg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794307313;
-	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
-	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
-	 Content-Type:Content-Transfer-Encoding;
-	bh=Sf5RKSAxCyExCYozothLzGZn1lg1pz7pfFjhL0ZFBV8=;
-	b=HXZrQj8Lk8dF+/Rcac4uVcPeCPLJ9pmZql9JLO9bFEkCo7shZ3Ul+24spy9ZnUiAooPW
-	 tHXWMdI2hACTP2ueFEbu3BlKqo/cyvfyImzzc0C3ZoSIJrWYcX2Uau9TwiwuLvjb3UBBi
-	 FB8lIqDY2nwGst3GA+Jw2L7onkxd77Tc9fnULw47mO9cTdYt+UCkiHo0HYUaBAY2qZsnM
-	 lH6OpPJFCqptwekoib2nH90L11Qku+gzMeU3yjjrS1TAbYBY8HyTR/PX/SOfYkwXH0xEe
-	 VGlWixOYbwA/OZR/VAUxntKZX5gMdg83gfy8RZFhafn41zLfi6IRBeBIL5h2LJ6fACQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794312022;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Message-ID:Date:MIME-Version:User-Agent:Subject:To:Cc:References:
+	 Content-Language:From:In-Reply-To:Content-Type:
+	 Content-Transfer-Encoding;
+	bh=5X3zb3VH4w0Ie2RKn7QlDBjKtcvMvn58SYuQeOEmpyc=;
+	b=Dfk8XlA05mKmoSHZwiezoYF9uLk5eG/GKhsH+vIgcbeR6rK+Y4j8SIL2Hl13g3Qro4DE
+	 hFNLIFIFWPJ/W+nzJ5hnz7sS+2VSktJPStnPuNyH31tfnTd9z/6a1U5xgvPEzaIKcp5dT
+	 VJnQbxraULPaFtQW8F1wR8+FvX6v2p8Mynl2gUOnb5rXNznNqCruSmvcftNUNuSOK8c4I
+	 sx0ddcI7vXd95ylxE1ay5K35bPF8LN874FOfp2jdgW7Vr+VND+AZrA8GrT9hXYQ1u3Wvt
+	 RfrwH5S0ccKUyzVzfEQshDbiovoK3P/97j6e8ONASyH977TTdwYb3ai1ijdas+FHdPw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JarSwNEh;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=RygyfnWn;
+	arc=none smtp.remote-ip=209.85.128.46
+Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3654660A2621;
-	Tue, 10 Nov 2026 10:41:53 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 32BC2606A331
+	for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 12:00:22 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 32BC2606A331
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JarSwNEh
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 65D081F008BF;
-	Tue, 10 Nov 2026 10:41:40 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794307313;
-	bh=Sf5RKSAxCyExCYozothLzGZn1lg1pz7pfFjhL0ZFBV8=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=JarSwNEhuqQeqZKuGdrIJZ2QFEC9r1Q+GuCL05G5EOXpRL4aApaecjxjECfVuG2L4
-	 9gIQ33mSV+no5kBy06WsvfHPuas3aEQ+SZC+0QswMKoP9mCluBu6ifOwaRgr+cFonf
-	 Zp2NNlfg1QvVn0TJx7d4SGEwObtJ0ZGdz9d09+UH96uoQfLBNslFnxJDYagNAWORfB
-	 548ACuIGBLIJ7lBGXG9QriuKXYvgRz7Yv9Nl2hI9IFpqELYUD+b/bOUUEnuw3nrHTk
-	 /XYtJqdOdiCGF4WtttMf1Fe9OT6U0jfmsuL59//QckCo8EuWJKAeaQD3IT5KeJc+42
-	 Gxeot/Kvu5IqQ==
-Message-ID: <322e1cec-1435-480c-9d49-d16b366e1173@kernel.org>
-Date: Tue, 10 Nov 2026 11:41:37 +0100
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=RygyfnWn
+Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-4a208d93758so20114335e9.3
+        for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 04:00:21 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20260707; t=1794312020; x=1794916820; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=5X3zb3VH4w0Ie2RKn7QlDBjKtcvMvn58SYuQeOEmpyc=;
+        b=RygyfnWnL4Yk98O5t8EfRhHJ09wgqoKDc50vcLztTT6VXIdGWIzxp8gp/oS32JisXO
+         kLYRYeznXrsblttCwXF35i/TiPDW3jopVuEIWql4OVWvjiutcXKU/UhCKEYZ4UR66O+e
+         kULSXyMPCUX82fsckuZ3E8/kna98lIel4VII+ANkE31SFugl57e0klPU61lHfgCvDtTP
+         MtFuBcaDmc0Sm6fZGoIl3GD+SdzoAAyrnDFRUROyQH/KkkH9EDfZSB4dt1fPJiCh/NsV
+         ut2IqQIh8tubjGervp8DrB5/N+bX1ezKOwAYOMPw+my8dmAF1D4nC3K5R5n4n3eGr4qG
+         fgaQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1794312020; x=1794916820;
+        h=content-transfer-encoding:content-type:in-reply-to:from
+         :content-language:references:cc:to:subject:user-agent:mime-version
+         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=5X3zb3VH4w0Ie2RKn7QlDBjKtcvMvn58SYuQeOEmpyc=;
+        b=aKrBX6/JXy1HimH/z+1+JtzbaxDw56nqHufq07lI5poLUJ+4l217563iZGrdwyIwiA
+         /Wd4W4J8X6Oa3msjBeuHakrfwXHID25vKnJ46lSa1ofEa8LUDtXgKCaIlcHpL5y1shH3
+         Cmwa8ph2aPaxYt5vFcWT28sASuRsnCBzNcn4P1PwdLT7we0rAqWA2D8r80OsPaPnJy9p
+         oBFLFsj7fkluaaKPpTayx0f/k0kIRx/Lk2tSPYyZ5sELCmpGbIyBRzYklzfNvACYJ3Lb
+         BsVMzdQMgKT5pZsCYPejrY8Py4F7TXh0gRZVqy5TdXUkqS/jH+Kv6L8LV1g62uxmGF69
+         yc2g==
+X-Forwarded-Encrypted: i=1; AL+hErHZe7tdNoMc4AUe7sLIRV7+mtu0npiNTZS+MbMFN4OW4vE0825tQT/MrWabGcWPWNF62/AJXccoC7Xs@vger.kernel.org
+X-Gm-Message-State: APuU4Z/heiIoMeHu4d7IfChin6WXaNrfOq29GXxCrAO1xBk4dUvrG+Un
+	jUTK33fg3HpfrmwShzkEXQkUyyZlKqxBXto4SYZ1yrKdNB2YqJhdrN1h
+X-Gm-Gg: AYBFou1PReH0XOCvmKgl8lsyUJ0qBl44MYE5Ldg870y8JYKZnuq5TlhQg5I6yfwDUoa
+	h+h8jMzQsF3cP72U3/ebVghgaigTWVj4zqbRUnAM6sQEch0EFrTwDVTbDchycmSNf+yAk2uIVb0
+	IHCmXyiX1uo2XKT7ExSqguQOXpuOZmkZbjRUxA2MPR7q2lhULtAVuz67moC5sqNRJ0Gy3KrR4D2
+	r/G3Dl9ZyToe8htMZfnq4+Yr1jIyl84BC4nVR+R69PE+21A+kxi+453FtrvOQXjbsb60yMwlSq9
+	hkC+Svg42UAjLo9zY0J28ERt7IrDFg+8zEK6caqaM6jWwzhXb9140xVdzd5739OxanwIWHGNURp
+	jIWwNo4hsCCj9Vd4snBZJtOtPFp+u7T24Sr9lWGnKfL7Ze4oO5stUEzHz7zYibIKZ7P7g3cfE1K
+	bcJsyJwrbKGIqULXk4WOpzMXLVEaRKZdclHE00UXdYqFrJQFaz5abISgV46d0q0dyp2RJ7vKRc9
+	YTGQS4S8BZymmsq71FE6iSfncWA287lWig9wfaIE5gyhAj9EpWffFdrv66ffeMh800s0HWOdCTr
+	9Gwh5bb66FNh7wNe9Ctxm39K
+X-Received: by 2002:a05:600c:3e07:b0:4a1:e69d:90e8 with SMTP id 5b1f17b1804b1-4ba0234a8f3mr43245435e9.22.1794312020086;
+        Tue, 10 Nov 2026 04:00:20 -0800 (PST)
+Received: from [192.168.1.22] ([83.231.69.9])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4ba01fea9eesm97526925e9.11.2026.11.10.04.00.16
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 10 Nov 2026 04:00:19 -0800 (PST)
+Message-ID: <d4bb71af-cd1f-4d42-b724-916064f4cf0f@gmail.com>
+Date: Tue, 10 Nov 2026 13:00:16 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,14 +93,14 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 1/5] mm: limit pagecache folio refcount when mapping
- pages
-To: Zi Yan <ziy@nvidia.com>, Lorenzo Stoakes <ljs@kernel.org>,
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, "Matthew Wilcox (Oracle)"
- <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Andrew Morton <akpm@linux-foundation.org>,
+Subject: Re: [PATCH v2 2/5] mm: limit pagecache folio refcount when splicing
+ into pipes
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+ Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
+ Andrew Morton <akpm@linux-foundation.org>, Zi Yan <ziy@nvidia.com>,
  Baolin Wang <baolin.wang@linux.alibaba.com>,
  Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
  Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
@@ -79,155 +120,96 @@ To: Zi Yan <ziy@nvidia.com>, Lorenzo Stoakes <ljs@kernel.org>,
  Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>,
  Robin Murphy <robin.murphy@arm.com>,
  Steve Sistare <steven.sistare@oracle.com>, John Hubbard
- <jhubbard@nvidia.com>, "Jose A. Perez de Azpillaga" <azpijr@gmail.com>,
- Josef Bacik <josef@toxicpanda.com>
+ <jhubbard@nvidia.com>, Josef Bacik <josef@toxicpanda.com>,
+ Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
  linux-fsdevel@vger.kernel.org, fuse-devel@lists.linux.dev,
- linux-arch@vger.kernel.org, iommu@lists.linux.dev,
- Chris Mason <mason@kernel.org>, stable@vger.kernel.org
+ linux-arch@vger.kernel.org, iommu@lists.linux.dev, stable@vger.kernel.org
 References: <20261107-refcount_overflow_stable-v2-0-c38f6809b106@kernel.org>
- <20261107-refcount_overflow_stable-v2-1-c38f6809b106@kernel.org>
- <DMR6VVEKW3XN.23D8JAIT65YIU@nvidia.com>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
+ <20261107-refcount_overflow_stable-v2-2-c38f6809b106@kernel.org>
+ <c8dd3102-38f8-4972-ad2d-97545fd8c8d4@kernel.org>
 Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- xsFNBFXLn5EBEAC+zYvAFJxCBY9Tr1xZgcESmxVNI/0ffzE/ZQOiHJl6mGkmA1R7/uUpiCjJ
- dBrn+lhhOYjjNefFQou6478faXE6o2AhmebqT4KiQoUQFV4R7y1KMEKoSyy8hQaK1umALTdL
- QZLQMzNE74ap+GDK0wnacPQFpcG1AE9RMq3aeErY5tujekBS32jfC/7AnH7I0v1v1TbbK3Gp
- XNeiN4QroO+5qaSr0ID2sz5jtBLRb15RMre27E1ImpaIv2Jw8NJgW0k/D1RyKCwaTsgRdwuK
- Kx/Y91XuSBdz0uOyU/S8kM1+ag0wvsGlpBVxRR/xw/E8M7TEwuCZQArqqTCmkG6HGcXFT0V9
- PXFNNgV5jXMQRwU0O/ztJIQqsE5LsUomE//bLwzj9IVsaQpKDqW6TAPjcdBDPLHvriq7kGjt
- WhVhdl0qEYB8lkBEU7V2Yb+SYhmhpDrti9Fq1EsmhiHSkxJcGREoMK/63r9WLZYI3+4W2rAc
- UucZa4OT27U5ZISjNg3Ev0rxU5UH2/pT4wJCfxwocmqaRr6UYmrtZmND89X0KigoFD/XSeVv
- jwBRNjPAubK9/k5NoRrYqztM9W6sJqrH8+UWZ1Idd/DdmogJh0gNC0+N42Za9yBRURfIdKSb
- B3JfpUqcWwE7vUaYrHG1nw54pLUoPG6sAA7Mehl3nd4pZUALHwARAQABzS5EYXZpZCBIaWxk
- ZW5icmFuZCAoQ3VycmVudCkgPGRhdmlkQGtlcm5lbC5vcmc+wsGQBBMBCAA6AhsDBQkmWAik
- AgsJBBUKCQgCFgICHgUCF4AWIQQb2cqtc1xMOkYN/MpN3hD3AP+DWgUCaYJt/AIZAQAKCRBN
- 3hD3AP+DWriiD/9BLGEKG+N8L2AXhikJg6YmXom9ytRwPqDgpHpVg2xdhopoWdMRXjzOrIKD
- g4LSnFaKneQD0hZhoArEeamG5tyo32xoRsPwkbpIzL0OKSZ8G6mVbFGpjmyDLQCAxteXCLXz
- ZI0VbsuJKelYnKcXWOIndOrNRvE5eoOfTt2XfBnAapxMYY2IsV+qaUXlO63GgfIOg8RBaj7x
- 3NxkI3rV0SHhI4GU9K6jCvGghxeS1QX6L/XI9mfAYaIwGy5B68kF26piAVYv/QZDEVIpo3t7
- /fjSpxKT8plJH6rhhR0epy8dWRHk3qT5tk2P85twasdloWtkMZ7FsCJRKWscm1BLpsDn6EQ4
- jeMHECiY9kGKKi8dQpv3FRyo2QApZ49NNDbwcR0ZndK0XFo15iH708H5Qja/8TuXCwnPWAcJ
- DQoNIDFyaxe26Rx3ZwUkRALa3iPcVjE0//TrQ4KnFf+lMBSrS33xDDBfevW9+Dk6IISmDH1R
- HFq2jpkN+FX/PE8eVhV68B2DsAPZ5rUwyCKUXPTJ/irrCCmAAb5Jpv11S7hUSpqtM/6oVESC
- 3z/7CzrVtRODzLtNgV4r5EI+wAv/3PgJLlMwgJM90Fb3CB2IgbxhjvmB1WNdvXACVydx55V7
- LPPKodSTF29rlnQAf9HLgCphuuSrrPn5VQDaYZl4N/7zc2wcWM7BTQRVy5+RARAA59fefSDR
- 9nMGCb9LbMX+TFAoIQo/wgP5XPyzLYakO+94GrgfZjfhdaxPXMsl2+o8jhp/hlIzG56taNdt
- VZtPp3ih1AgbR8rHgXw1xwOpuAd5lE1qNd54ndHuADO9a9A0vPimIes78Hi1/yy+ZEEvRkHk
- /kDa6F3AtTc1m4rbbOk2fiKzzsE9YXweFjQvl9p+AMw6qd/iC4lUk9g0+FQXNdRs+o4o6Qvy
- iOQJfGQ4UcBuOy1IrkJrd8qq5jet1fcM2j4QvsW8CLDWZS1L7kZ5gT5EycMKxUWb8LuRjxzZ
- 3QY1aQH2kkzn6acigU3HLtgFyV1gBNV44ehjgvJpRY2cC8VhanTx0dZ9mj1YKIky5N+C0f21
- zvntBqcxV0+3p8MrxRRcgEtDZNav+xAoT3G0W4SahAaUTWXpsZoOecwtxi74CyneQNPTDjNg
- azHmvpdBVEfj7k3p4dmJp5i0U66Onmf6mMFpArvBRSMOKU9DlAzMi4IvhiNWjKVaIE2Se9BY
- FdKVAJaZq85P2y20ZBd08ILnKcj7XKZkLU5FkoA0udEBvQ0f9QLNyyy3DZMCQWcwRuj1m73D
- sq8DEFBdZ5eEkj1dCyx+t/ga6x2rHyc8Sl86oK1tvAkwBNsfKou3v+jP/l14a7DGBvrmlYjO
- 59o3t6inu6H7pt7OL6u6BQj7DoMAEQEAAcLBfAQYAQgAJgIbDBYhBBvZyq1zXEw6Rg38yk3e
- EPcA/4NaBQJonNqrBQkmWAihAAoJEE3eEPcA/4NaKtMQALAJ8PzprBEXbXcEXwDKQu+P/vts
- IfUb1UNMfMV76BicGa5NCZnJNQASDP/+bFg6O3gx5NbhHHPeaWz/VxlOmYHokHodOvtL0WCC
- 8A5PEP8tOk6029Z+J+xUcMrJClNVFpzVvOpb1lCbhjwAV465Hy+NUSbbUiRxdzNQtLtgZzOV
- Zw7jxUCs4UUZLQTCuBpFgb15bBxYZ/BL9MbzxPxvfUQIPbnzQMcqtpUs21CMK2PdfCh5c4gS
- sDci6D5/ZIBw94UQWmGpM/O1ilGXde2ZzzGYl64glmccD8e87OnEgKnH3FbnJnT4iJchtSvx
- yJNi1+t0+qDti4m88+/9IuPqCKb6Stl+s2dnLtJNrjXBGJtsQG/sRpqsJz5x1/2nPJSRMsx9
- 5YfqbdrJSOFXDzZ8/r82HgQEtUvlSXNaXCa95ez0UkOG7+bDm2b3s0XahBQeLVCH0mw3RAQg
- r7xDAYKIrAwfHHmMTnBQDPJwVqxJjVNr7yBic4yfzVWGCGNE4DnOW0vcIeoyhy9vnIa3w1uZ
- 3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
- CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
- qIws/H2t
-In-Reply-To: <DMR6VVEKW3XN.23D8JAIT65YIU@nvidia.com>
+From: "Jose A. Perez de Azpillaga" <azpijr@gmail.com>
+In-Reply-To: <c8dd3102-38f8-4972-ad2d-97545fd8c8d4@kernel.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 11/10/26 03:52, Zi Yan wrote:
-> On Sat Nov 7, 2026 at 5:23 PM EST, David Hildenbrand (Arm) wrote:
->> With large file folios, overflowing the folio mapcount and refcount
->> became possible. For anon folios it is currently not really an issue:
->> each large anon folio can only be mapped once into a process; on 4k
->> kernels it would be more processes than usually allowed on a system, and
->> on 16k or 64k kernels the processes alone would consume hundreds of GiB.
->> Something to be sorted out at some point, but it's not as urgent.
+On 11/10/26 11:38 AM, David Hildenbrand (Arm) wrote:
+> On 11/7/26 23:23, David Hildenbrand (Arm) wrote:
+>> Similar to mapping pagecache folios into page tables, let's reject
+>> additional references when splicing folios into a pipe if the refcount
+>> is at its limit, similar to how we handle it during GUP.
 >>
->> Being able to overflow the refcount is not really big news, but it's about
->> time that we do something about it because some modern technology might
->> find ways to abuse it :)
+>> This will prevent more cases of possible folio refcount overflows with
+>> large pagecache folios.
 >>
->> One of the enablers for that was commit ddc58f27f9ee ("mm: drop tail page
->> refcounting"), however, file thp support was added later.
+>> Let's keep it simple and check in the two callers of
+>> splice_folio_into_pipe(). Return -EOVERFLOW if the limit prevents any
+>> progress, so do_splice_read() can fall back to copy_splice_read() when
+>> read_iter is available. This keeps sendfile() and other splice users
+>> working when ordinary reads would still succeed.
 >>
->> File folios can be mapped multiple times into the same process, allowing
->> for processes to hold many references to the same folio.
+>> Also fall back to copying in FUSE when taking another reference through
+>> fuse_ref_folio() would exceed the limit.
 >>
->> As a short-term solution, let's introduce two folio refcount limits:
->> one for ordinary consumers and one for admins. Leave some headroom
->> before the refcount goes negative, which we really don't want (having
->> the mapcount go negative is also not expected).
+>> Also check in try_get_page() to cover pipe-buffer duplication by tee()
+>> and partial pipe-to-pipe splicing.
 >>
->> Start reporting SIGBUS if we run into limits. When restoring mappings
->> from migration entries, instead zap the pte/pmd entry. We allow for
->> slightly exceeding the limit to keep things simpler.
->>
->> During fork(), prefer not copying page table entries over failing fork.
->> Export __folio_ref_count_over_limit() right away as that will be needed
->> from fuse code next. Use has_capability_noaudit(current, CAP_SYS_RESOURCE),
->> so filesystem credential overrides do not affect access to the admin
->> reserve, and to not generate auditing messages simply because we access
->> optional reserves.
->>
->> This is far from ideal, but better than all easy alternatives we can
->> backport comfortably. For now it fixes the big problem: letting
->> the refcount (+mapcount) go negative and cause trouble.
->>
->> This is only a temporary fix, we'll follow up with something better.
->>
->> Check order 0 folios as well for consistency: each
->> folio_add_file_rmap*() and folio_dup_file_rmap*() needs a prior check.
->>
->> Also, just document -EHWPOISON for copy_present_ptes() while at it.
->>
->> Note: When zapping file migration entries, uffd-wp is preserved using PTE
->> markers, but uffd-rwp protection is lost because there is no corresponding
->> marker. try_to_unmap() already has the same problem when unmapping file
->> folios, so we'll happily ignore it.
->>
->> Note2: For now we don't let migration or PTE table collapse exceed any
->> limits. Admins can always refault, and if we are already operating in
->> admin reserves, something is already off.
->>
->> Reported-by: Chris Mason <mason@kernel.org>
 >> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
 >> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
 >> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
 >> Cc: stable@vger.kernel.org
 >> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 >> ---
->>  include/linux/mm.h | 30 ++++++++++++++++++++++++++++++
->>  mm/filemap.c       |  6 ++++++
->>  mm/huge_memory.c   | 29 +++++++++++++++++++++++++++--
->>  mm/memory.c        | 35 +++++++++++++++++++++++++++++++----
->>  mm/migrate.c       | 11 +++++++++++
->>  mm/userfaultfd.c   |  4 ++++
->>  mm/util.c          | 12 ++++++++++++
->>  7 files changed, 121 insertions(+), 6 deletions(-)
+>>  fs/fuse/dev.c      |  5 +++--
+>>  fs/splice.c        |  8 +++++++-
+>>  include/linux/mm.h |  9 ++++++---
+>>  mm/filemap.c       | 11 ++++++++---
+>>  mm/shmem.c         |  4 ++++
+>>  5 files changed, 28 insertions(+), 9 deletions(-)
 >>
+>> diff --git a/fs/fuse/dev.c b/fs/fuse/dev.c
+>> index 3641abb90d6bb..4f6b7b42bfd3e 100644
+>> --- a/fs/fuse/dev.c
+>> +++ b/fs/fuse/dev.c
+>> @@ -1265,9 +1265,10 @@ int fuse_copy_folio(struct fuse_copy_state *cs, struct folio **foliop,
+>>  		if (cs->write && cs->pipebufs && folio) {
+>>  			/*
+>>  			 * Can't control lifetime of pipe buffers, so always
+>> -			 * copy user pages.
+>> +			 * copy user pages. Also copy folios at their refcount limit.
+>>  			 */
+>> -			if (cs->req->args->user_pages) {
+>> +			if (cs->req->args->user_pages ||
+>> +			    unlikely(folio_ref_count_over_limit(folio))) {
 > 
-> LGTM. I wonder if we want to add a VM_WARN_ON_ONCE() refcount check in
-> __folio_add_file_rmap() and __folio_dup_file_rmap(), so that no new
-> caller will not miss the refcount limit handling. That also requires a
-> reproducer for verification, but it might be hard to trigger all
-> possible code path. Anyway,
+> Linus points out off-list (thanks!), that fuse_ref_folio() should have
+> really used try_get_page() right from the start.
 > 
+> And that we should just not fallback to a copy, in particular,
+> if the refcount is invalid (<= 0).
 
-As it is valid to expand into the headroom above the limit, we could really only
-check for invalid refcounts (<= 0) there.
+now that is said out loud, makes sense.
 
-We do have a folio_ref_zero_or_close_to_overflow() check in folio_get(). Likely
-I should just replace that by a check for <= 0, as that's really what we want to
-avoid.
+> So the following is what I have for now. Once we remove the limit
+> handling again, that code won't change, which is good.
+> 
+> I went back and forth with folio_get_checked() naming, but decided to
+> not mix in the "try" as that just reminds of our speculative refcount
+> handling. (folio_try_get_checked / folio_try_get_referenced)
 
-> Acked-by: Zi Yan <ziy@nvidia.com>
+agreed with that.
 
-Thanks!
+[snip]
+
+> -			if (pipe_is_full(pipe))
+> +			if (pipe_is_full(pipe) || *ppos < folio_next_pos(folio))
+>  				goto out;
+
+nice!
+
+Reviewed-by: Jose A. Perez de Azpillaga <azpijr@gmail.com>
+
 -- 
-Cheers,
-
-David
+cheers,
+jose a. p-a
