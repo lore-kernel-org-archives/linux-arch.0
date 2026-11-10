@@ -1,74 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.208.72
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794335150;
-	b=AYaNaNW0K0TOSuC22s2RnwsnUoRJtS3wu09zJdVwYBh8/Knsslv5QeeCYNJKiGrogAdp
-	 lzkTBRf4FJCqDf+vDjefOaz7rWd6hI4KrUsQqlkOWgOUQqnkhx9zKXFCBRHuF4zUFWQbK
-	 NHkXGGTNV3RjYKCExD7O3E0qVvQE+AonQRQAzx6kETbVst8AHZ3aTL650zJsXbb+tLRj6
-	 6hKk882p0BhEgnXHrsi45xUjwji4guRMbcplBUsBoXtm40Qy4Kr0Lvo/5aS1VSFDrE6et
-	 firIYXIw3L2ep1gAj/2rdeSg1W7vAR+uM3YGUo3AutEjsrTcWqR/FsvAo+lwqcSsobg==
+	t=1794343018;
+	b=I8S1ivELphEzNkP6ByYibx3nQewI1h+zTqzf3FQLha1FO9ekPEN3XbzL/VMbjrY0lQu3
+	 0TxuVbBAJopRN0vQjRQDl42gl6J/LvwlgMmi26YIxrh12YBtNDDWY0BCEkcGxokqnwvOo
+	 ZHtsrvwujI1pIw8ddyPBRa3O5x/D8tOUaxIV1UIsDpnUJjIqJ2ummZwwYREzbw3z2E6I4
+	 g2UnJ6QMKG1bdSOKTXRGlm3bY1s9FF78JV3cyh8qvtKYL4B0kbe2nK6xWjNTIL73/hHm7
+	 h8JXQilUfMoxphtZze6/CfY6WPPXHIa95ynr3cqxYozaRme9HN1Lezx1+nvmY+sr8MQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794335150;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
-	 Mime-Version:References:Message-ID:Subject:From:To:Cc:Content-Type;
-	bh=pg8+OEnjDNmIa2RbISOLY8VoGEN6y0ux1Fnyr8R7io4=;
-	b=Ei+o0I1EONXDedPT+hVTEIMYAKNxqxomFWpFs5N9WB/JodXrvMxgdDSnbje4W1H4pzdB
-	 F7HOEfPRChOqUkhTZ+IiRskitMv3+v6xVFDjktel1XMGpmNlhuzSYZy+mg8i+EitNh/Vw
-	 M+MoqXfBjABajamOMwHZovYEdbEIw4s94ASC6CFaPC3RvRxaGNOmQV1MdznQ181DanKD5
-	 JbI402sft0uO7suh6TanYaT8/f/U7iVLBUx3U3qnElrwu9waaoZJ67EFGrxp/5ZdN+0i5
-	 GA3KZ5wNFbxjiznsUTHRQr8CWVxcLpLQLP+TdauoGfyOwOWcrc7B17MbdI9tMr08D7Q==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794343018;
+	h=Received:DKIM-Signature:From:Subject:Date:Message-Id:MIME-Version:
+	 Content-Type:Content-Transfer-Encoding:X-B4-Tracking:X-Change-ID:To:
+	 Cc:X-Mailer:X-Developer-Signature:X-Developer-Key;
+	bh=NsXNV0XyuBkLuHvw0vNui+ESXIede1+4IrRZpzv3Eac=;
+	b=khHMOBDObpLAb04F4fulxRov1NQzkCAZjrpM7CuJr2d5tCOs3Aaos3LyBHpqb/8lTewT
+	 SC5kx+nuOtXeaLaJBCgMPWKkOp1dwynIw22fGbfmVJaNXW/S7s4U3CTPqtj+J7vf6upDN
+	 ApspKZPsYLeZaSgTdEU81TPA9gNiHtN9MHB9/1dILwRPBKiZ0n4sPiWkZqakoncPuwgkT
+	 RQHpgVL3U3HF7fDvYoxm1HaCpyb5qLIwbxw93Rq34dXTCNUjes7E26n/UsyaBU5IfFiM+
+	 W+NI+LfXABgevD3jzhR/icNsM1uXvlz7FYC0PcWz9iS4g3UnrxuDLgPB21aCTGgGATA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=google.com;
-	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=Ss2sAv1Z;
-	arc=none smtp.remote-ip=209.85.208.72
-Received: from mail-ed1-f72.google.com (mail-ed1-f72.google.com [209.85.208.72])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Q9eO2xvS;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BABBD606A332
-	for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 18:25:49 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org BABBD606A332
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 97559606A31C;
+	Tue, 10 Nov 2026 20:36:57 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=Ss2sAv1Z
-Received: by mail-ed1-f72.google.com with SMTP id 4fb4d7f45d1cf-6b706aec674so2388617a12.2
-        for <linux-arch@vger.kernel.org>; Tue, 10 Nov 2026 10:25:49 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20260707; t=1794335148; x=1794939948; darn=vger.kernel.org;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=pg8+OEnjDNmIa2RbISOLY8VoGEN6y0ux1Fnyr8R7io4=;
-        b=Ss2sAv1Z44xGCzrouTTSNStulPTKhVCnUO+g4V7Ttgr82dioG8oDl/aa9BFjmSvCYi
-         euurrMXPzpvjVfF2ZfKzD82qUQBBtXAN9f+MJkGikK45Tj4cAehpSd8POZHmWpeSUTNa
-         ee90SX5pk+PyA8l2gVtwImvYurJFi/PPJudDUyeLNd3LrsGsvH6KnVfocewpXHvIiLKq
-         VjnnbVpNS7FQdGG2Lc5//B4NgFsI+lF/Az+FjkxpMpXT6wrqHKPZtvcjAcfxV7sSEMxX
-         WSc7JvmUyi5mGyRJmJ514aI1wQP2Xz8QRVxCIv+4tiJbD3usEEvyGPpAG5S96WBYg/hM
-         99Kg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794335148; x=1794939948;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=pg8+OEnjDNmIa2RbISOLY8VoGEN6y0ux1Fnyr8R7io4=;
-        b=jpTIL/tMBCkDCKN80zYrV5PywBHo3vz3+oeGs9wx9yskYAudtoS2AdHJo09ZEf2eTa
-         i9UcyLCg9+UOncHbVYY8w3TGe6wm+X4pb3EduERr9aMjAgmkSEO4bvax7hD8FGVTPAj8
-         cpOW2wbvCBGLd5JjYjB7nsrK2qwtIGrR/fwP52nIytTJ87jrkXXWBSOE5cVdc3+urgVN
-         J8owvn3fxzrpkP+3nA1+DSLOxY6V6uaydSM0X7HtcFFo1Utd3u92LdvbQQsNp3+X6aAH
-         xWjZGrNGFRQamyvmC8Cf/sLPTj37qqK+lCiozYh3MHJchFTdgvpox2aRM1mA8NMl1Qks
-         Mvyw==
-X-Forwarded-Encrypted: i=1; AL+hErFLdl0DBMf+a1edRhhN5+vvorNvMJBtRFFEi05hgnQvufKpqFm+XM11c5eVC9uIQ+nDQh5CcmZ+kA0X@vger.kernel.org
-X-Gm-Message-State: APuU4Z+3/K+iBdcrPhI1KwbcfIZAb9TiiJNo30Wr43KwLeoKtEpZjquI
-	rDA171/KZ+ug26vQu6462I9vqG0y7cCAbdyyd9U34Qm9i6b6HOXS6EhSU3ckXrxKW1h5u09K0Ar
-	N4Z9pMoP66sev+nh0yA==
-X-Received: from edfg4-n2.prod.google.com ([2002:a05:6402:a244:20b0:6b5:813f:c569])
- (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
- 2002:a05:6402:13c5:b0:6b5:76be:be54 with SMTP id 4fb4d7f45d1cf-6b777829b2fmr85425a12.35.1794335147866;
- Tue, 10 Nov 2026 10:25:47 -0800 (PST)
-Date: Tue, 10 Nov 2026 18:25:47 +0000
-In-Reply-To: <DMRMLZSZ0LAZ.D4P70QWX0IHB@soleen.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Q9eO2xvS
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id DF8FB1F0089F;
+	Tue, 10 Nov 2026 20:36:40 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1794343017;
+	bh=NsXNV0XyuBkLuHvw0vNui+ESXIede1+4IrRZpzv3Eac=;
+	h=From:Subject:Date:To:Cc;
+	b=Q9eO2xvSaqvUM1Ca6p37Eh3aXZqCRGpEydxMdPFyqtdmcJtzRSr8v1Da4pw8fDWCb
+	 Jw59cJMUCzU4LL0P09FoewDxjCap75JL46oWVFfeBwPel88l+hFgjWtGmV+0jUMwLC
+	 LbnS6wrl7TQOm3U2hht5l2nlf28lAqs3KEPNww3G7uvFFXHenM32nHs/XKBYCzmEdj
+	 d4JL/t5+aalIYa9ifCPPmRjSF6fdk6QVcW9NQ/v8j0y0Nb6IYrabPDEPMaycv/AdSz
+	 XKcVIysE6pD3gE6/RpXo+LUz5MBFMK9k7Nf9NaQZQUyntdzV35Tocw65eH1gyBXBrK
+	 y/gXzME7Ww18Q==
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Subject: [PATCH v3 0/9] mm: limit pagecache folio refcount
+Date: Tue, 10 Nov 2026 21:35:40 +0100
+Message-Id: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,89 +52,303 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0
-References: <20261110050202.529473-1-tarunsahu@google.com> <20261110050202.529473-6-tarunsahu@google.com>
- <DMRMLZSZ0LAZ.D4P70QWX0IHB@soleen.com>
-Message-ID: <9huz5wy4tufo.fsf@tarunix.c.googlers.com>
-Subject: Re: [PATCH v4 05/19] kho: Add feature header for fine-grained ABI compatibility
-From: tarunsahu@google.com
-To: Pasha Tatashin <pasha.tatashin@soleen.com>, Mike Rapoport <rppt@kernel.org>, robin.murphy@arm.com, 
-	maz@kernel.org, will@kernel.org, David Matlack <dmatlack@google.com>, 
-	Alexander Graf <graf@amazon.com>, seanjc@google.com, jgg@nvidia.com, loganodell@google.com, 
-	arnd@arndb.de, dwmw2@infradead.org, baolu.lu@linux.intel.com, 
-	Bjorn Helgaas <bhelgaas@google.com>, oupton@kernel.org, alex@shazbot.org, 
-	gle.com@google.com, pbonzini@redhat.com, 
-	Andrew Morton <akpm@linux-foundation.org>, kevin.tian@intel.com, joro@8bytes.org
-Cc: kvmarm@lists.linux.dev, linux-pci@vger.kernel.org, 
-	Pratyush Yadav <pratyush@kernel.org>, kexec@lists.infradead.org, kvm@vger.kernel.org, 
-	iommu@lists.linux.dev, linux-arm-kernel@lists.infradead.org, 
-	skhawaja@google.com, sagis@google.com, linux-arch@vger.kernel.org, 
-	linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/42NTQ6CMBgFr0K6tqY/tIAr72EMoeUDqoSaFqqGc
+ HcLbnRjXE4yb96MPDgDHh2SGTkIxhs7ROC7BOmuGlrApo6MGGGSUiKwg0bbaRhLG8A1vb2Xfqx
+ UD1ikDAhLKScNoDi/RdM8tvTp/GY/qQvoce2tRmf8aN1z+w509f64CRQTnBFVaClEXXE4XsEN0
+ O+ta9H6E9hnKftRYrGked7InBSKEvlVWpblBeS3KU4dAQAA
+X-Change-ID: 20261105-refcount_overflow_stable-542e024130fe
+To: Lorenzo Stoakes <ljs@kernel.org>, 
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+ Michal Hocko <mhocko@suse.com>, 
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
+ Andrew Morton <akpm@linux-foundation.org>, Zi Yan <ziy@nvidia.com>, 
+ Baolin Wang <baolin.wang@linux.alibaba.com>, 
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, 
+ Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
+ Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
+ Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
+ Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>, 
+ Gregory Price <gourry@gourry.net>, 
+ Ying Huang <ying.huang@linux.alibaba.com>, 
+ Alistair Popple <apopple@nvidia.com>, Peter Xu <peterx@redhat.com>, 
+ Johannes Weiner <hannes@cmpxchg.org>, Song Liu <songliubraving@fb.com>, 
+ Rik van Riel <riel@surriel.com>, Miklos Szeredi <miklos@szeredi.hu>, 
+ Alexander Viro <viro@zeniv.linux.org.uk>, 
+ Christian Brauner <brauner@kernel.org>, Hugh Dickins <hughd@google.com>, 
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
+ Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
+ Arnd Bergmann <arnd@arndb.de>, Jason Gunthorpe <jgg@ziepe.ca>, 
+ Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>, 
+ Robin Murphy <robin.murphy@arm.com>, 
+ Steve Sistare <steven.sistare@oracle.com>, 
+ John Hubbard <jhubbard@nvidia.com>, 
+ "Jose A. Perez de Azpillaga" <azpijr@gmail.com>, 
+ Josef Bacik <josef@toxicpanda.com>, "David S. Miller" <davem@davemloft.net>, 
+ Eric Dumazet <edumazet@kernel.org>, Jakub Kicinski <kuba@kernel.org>, 
+ Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>, 
+ Neal Cardwell <ncardwell@google.com>, Kuniyuki Iwashima <kuniyu@google.com>, 
+ Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "David Hildenbrand (Arm)" <david@kernel.org>, linux-mm@kvack.org, 
+ linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+ fuse-devel@lists.linux.dev, linux-arch@vger.kernel.org, 
+ iommu@lists.linux.dev, netdev@vger.kernel.org, 
+ Chris Mason <mason@kernel.org>, stable@vger.kernel.org, 
+ Jason Gunthorpe <jgg@ziepe.ca>
+X-Mailer: b4 0.16.0
+X-Developer-Signature: v=1; a=openpgp-sha256; l=11091; i=david@kernel.org;
+ h=from:subject:message-id; bh=C6GCig3Dre4xDS+Hdl8CtipE1iBsILWdDMHO/rV5xmk=;
+ b=owGbwMvMwCF2QOXvyb15Z08znlZLYsj63OD0O61NQvhn8Xeziyqz0q9mVD7cq6wVe4Bnln/rB
+ 8VVfVonOkpZGMQ4GGTFFFmurctJDV7T6lgWZegGM4eVCWQIAxenAEzEspvhf8S2xSe2X4jz39++
+ r6fmZMqP88JLPijpG/2XSvG3s4qZvIWRYe7Jz73HE0N6wxsKYkrLnabfip82obQ2i9H7WJHufqE
+ nvAA=
+X-Developer-Key: i=david@kernel.org; a=openpgp;
+ fpr=1BD9CAAD735C4C3A460DFCCA4DDE10F700FF835A
 
-"Pasha Tatashin" <pasha.tatashin@soleen.com> writes:
+Note: I really would prefer doing something else right now, but this is
+rather urgent.
 
-> On Tue Nov 10, 2026 at 12:01 AM EST, Tarun Sahu wrote:
->
->> +/**
->> + * DECLARE_KHO_SER - Register a serialized payload structure with KHO.
->> + * @name:         Structure tag name (e.g. luo_ser).
->> + * @payload_size: Compile-time expected size of struct @name in bytes.
->> + * @nr_required:  Total number of defined required features.
->> + * @nr_optional:  Total number of defined optional features.
->> + *
->> + * Size and 8-byte alignment are asserted under CONFIG_64BIT: KHO and LUO are
->> + * 64-bit only, while !CONFIG_KEXEC_HANDOVER stubs pull ABI headers into
->> + * 32-bit builds where u64 has 4-byte or 2-byte alignment.
->> + */
->> +#define DECLARE_KHO_SER(name, payload_size, nr_required, nr_optional)	\
->> +	static_assert(!IS_ENABLED(CONFIG_64BIT) ||			\
->> +		      sizeof(struct name) == (payload_size),		\
->> +		      "struct " #name " size mismatch");		\
->> +	static_assert(!IS_ENABLED(CONFIG_64BIT) ||			\
->> +		      __alignof__(struct name) == 8,			\
->> +		      "struct " #name " must be 8-byte aligned");	\
->> +	extern struct kho_ser_hdr __kho_ser_hdr_##name;			\
->
-> Remove this extern.
->
->> +	enum {								\
->> +		__KHO_SER_SIZE_##name = (payload_size),			\
->> +		__KHO_SER_NR_REQUIRED_##name = (nr_required),		\
->> +		__KHO_SER_NR_OPTIONAL_##name = (nr_optional),		\
->> +	}
->> +
->> +/**
->> + * DECLARE_KHO_SER_HDR - Declare a feature header variable, field, or parameter.
->> + * @name: Structure tag name registered with DECLARE_KHO_SER().
->> + * @decl: Declarator (e.g. *fhdr, **out_fhdr, or * inside DECLARE_KHOSER_PTR).
->> + *
->> + * Declares @decl with type struct kho_ser_hdr while checking at compile time
->> + * that @name was registered with DECLARE_KHO_SER(), documenting which
->> + * serialized payload structure a feature header pointer belongs to.
->> + */
->> +#define DECLARE_KHO_SER_HDR(name, decl)	typeof(__kho_ser_hdr_##name) decl
->
-> Remove DECLARE_KHO_SER_HDR, use kho_ser_hdr directly.
+Users can create a lot of folio references to pagecache folios, making
+it possible to overflow the refcount of large folios.
 
+While we knew that one could in theory overflow a folio's refcount, we
+mostly assumed that bad things would happen and it wouldn't go
+unnoticed.
 
-I added this, because wherever in the kernel a serialized struture is
-preceded with kho_ser_hdr, it will only be called `struct kho_ser_hdr
-fhdr` which does not display (to readers) that this declaration of
-header variable is not alone, it also holds the serialized structure
-after this variable.
+Not so sure if that is really always the case, and leaving that problem
+unsolved is irresponsible, so let's limit pagecache folio refcounts.
 
-Using this macro, it clearly explain, that "Hey, I am header to this
-serialized struct and I am compiled time initalized using
-DECLARE_KHO_SER for this serialized structure and my pointer holds
-location to both feature header followed by serialized structure."
+This is mostly relevant for large folios / thps in the page cache, where
+a single VMA can hold multiple folio references, allowing for many folio
+references. But with sufficient (memory+process) resources, it is also
+possible with small pagecache folios, just not that relevant in
+practice.
 
-Techinically this is just for readability.
+With anon folios (including THPs), we should not be able to trigger folio
+refcount overflows, as one would need so many processes that it
+becomes impossible in practice. It was likely a problem for anon folios as
+well before we had a dedicated pincount.
 
-WDYT?
+Let's limit the refcount before it turns negative, giving admin processes
+some extra reserves (to recover a problematic system). We still leave some
+headroom to allow for some slight limit overshooting, to make the
+implementation easier.
 
-~Tarun
+But to make that work reliably, we have to make anybody that can take
+an unbounded number of folio references obey these limits.
 
->
-> -- 
-> Pasha
+Patch #1 handles mapping references from page tables. We also have to take
+care of mmu_gather, to not hold too many references when zapping (whereby
+new page faults could remap pages concurrently), which we do in patch #3.
+Patch #4 fixes iommufd cleanup when adding folio pins fails, which these
+limits make easier to trigger.
+
+Splicing pagecache folios to a pipe (patch #2) also needs care. After
+feedback from Linus, these users really should be using try_get_page(),
+where we now also implement the new limit check. We also teach GUP in
+patch #5 to stay below the limit, to avoid negative refcounts that cause
+trouble.
+
+Doing some digging after getting a hint from Andrew, there are various
+paths in net that can also take an unbounded number of page refs and are
+problematic. I'm attaching RFC patches as I am not really a net expert.
+These patches similarly now use try_get_page(). These patches can go
+in separately.
+
+Net paths that take page refs that I don't touch because the references
+are either bounded or the paths are not relevant in practice:
+
+ - skb_split(): can add one reference per split, but each split
+   allocates a new skb that is charged to the socket, and the references
+   go away once the data was acked. Reworking that to be able to fail
+   requires more plumbing.
+ - IP-TFS reassembly: needs one new inner skb per additional reference.
+ - io_uring zerocopy send (managed frag references): each zerocopy piece
+   is charged at least 4 KiB of TCP memory, so not relevant in practice.
+ - kTLS software splicing: only transfers references from the pipe, so
+   not a problem.
+ - AF_XDP zerocopy TX, nfsd splice reads, sockmap / sk_msg, espintcp:
+   bounded, or require privileges / special setups, so not a problem in
+   practice.
+ - Driver-specific paths (e.g., kTLS device offload): require special
+   hardware, didn't look into these.
+ - page_pool and net_iov frags: not pagecache pages, so not a problem.
+
+AI tells me that with the current changes, we should cover all relevant
+unbounded page references. Needs more investigation.
+
+For page table mappings, this is only a temporary solution for
+upstream+stable, until we have something better, which will be harder to
+backport. I have patches to:
+
+ - Letting the mapcount of large folios be a long
+ - Holding a single refcount if the folio is mapped, across all mappings
+ - Reverting the limits introduced in this series
+
+After that, most of patch #1 will be reverted, everything else will
+stay.
+
+Tested on x86-64 by lowering the folio refcount limits such that limits
+can easily be exceeded, to then test fault (SIGBUS), fork(), splice and GUP
+behavior briefly when we run into refcount limits on a shmem THP.
+The net patches were tested similarly briefly tested, but more
+excessive testing is required.
+
+Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+---
+Changes in v3:
+- "mm: limit pagecache folio refcount when mapping pages"
+ - Move IRQ disabled check over from GUP patch.
+ - Add in_task() check to prepare for networking patches.
+ - Only check for invalid refcounts in folio_get() and drop
+   folio_ref_zero_or_close_to_overflow().
+ - Improve documentation and patch description.
+- "mm: limit pagecache folio refcount when splicing into pipes"
+ - Introduce folio_get_checked() and use it in splice_folio_into_pipe(),
+   fuse_ref_folio() and try_get_page().
+ - Return -EFAULT and don't fall back to copying anymore.
+ - Stop filemap_splice_read() after a partially spliced folio.
+ - Update patch description.
+- "mm/gup: limit pagecache folio refcount when grabbing references"
+ - Moved the IRQs-disabled check to patch #1.
+ - Update documentation.
+- New RFC patches handling networking paths that copy or add frag
+  references:
+ - "net: limit folio refcount when copying skb frag references"
+ - "net: limit folio refcount when rearranging skb frags"
+ - "net: limit folio refcount when splicing pages into skbs"
+ - "net: limit folio refcount when splicing from sockets"
+- Link to v2: https://lore.kernel.org/20261107-refcount_overflow_stable-v2-0-c38f6809b106@kernel.org
+
+Changes in v2:
+- "mm: limit pagecache folio refcount when mapping pages"
+ - Try not to fail fork() by skipping the PTE/PUD instead. We still have
+   to fail in two scenarios.
+ - Split helper into fast and slow path. Slow path in mm/util.c,
+   exported for Fuse usage in patch #2.
+ - Check has_capability_noaudit(current, CAP_SYS_RESOURCE) instead of
+   capable(CAP_SYS_RESOURCE)
+ - Extended patch description and improved function documentation.
+ - Dropped RBs due to changes.
+- "mm: limit pagecache folio refcount when splicing into pipes"
+ - Return -EOVERFLOW; from filemap_splice_read() and
+   shmem_file_splice_read(), and handle it in do_splice_read() by falling
+   back to a copy.
+ - Check in fuse_copy_folio() as well
+ - Updated patch description and updated+improved comments/doc
+ - Dropped RB due to changes
+- "mm/mmu_gather: flush pending references early before the folio limit"
+ - Adjust some comments
+ - Update Fixes:
+ - Extend patch description
+- "mm/gup: limit pagecache folio refcount when grabbing references"
+ - Keep all WARN_ON_ONCE() checks for negative/null refcounts
+ - Skip has_capability_noaudit(current, CAP_SYS_RESOURCE) with disabled
+   interrupts, skipping it for GUP-fast.
+ - Properly forward try_grab_folio() errors
+ - Adjust some comments
+- Link to v1: https://patch.msgid.link/20261105-refcount_overflow_stable-v1-0-70b9c655da3e@kernel.org
+
+To: David Hildenbrand <david@kernel.org>
+To: Lorenzo Stoakes <ljs@kernel.org>
+To: "Liam R. Howlett" <liam@infradead.org>
+To: Vlastimil Babka <vbabka@kernel.org>
+To: Mike Rapoport <rppt@kernel.org>
+To: Suren Baghdasaryan <surenb@google.com>
+To: Michal Hocko <mhocko@suse.com>
+To: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+To: Jan Kara <jack@suse.cz>
+To: Andrew Morton <akpm@linux-foundation.org>
+To: Zi Yan <ziy@nvidia.com>
+To: Baolin Wang <baolin.wang@linux.alibaba.com>
+To: Nico Pache <nico.pache@linux.dev>
+To: Ryan Roberts <ryan.roberts@arm.com>
+To: Dev Jain <dev.jain@arm.com>
+To: Barry Song <baohua@kernel.org>
+To: Lance Yang <lance.yang@linux.dev>
+To: Usama Arif <usama.arif@linux.dev>
+To: Kiryl Shutsemau <kas@kernel.org>
+To: Matthew Brost <matthew.brost@intel.com>
+To: Joshua Hahn <joshua.hahnjy@gmail.com>
+To: Byungchul Park <byungchul@sk.com>
+To: Gregory Price <gourry@gourry.net>
+To: Ying Huang <ying.huang@linux.alibaba.com>
+To: Alistair Popple <apopple@nvidia.com>
+To: Peter Xu <peterx@redhat.com>
+To: Johannes Weiner <hannes@cmpxchg.org>
+To: Song Liu <songliubraving@fb.com>
+To: Rik van Riel <riel@surriel.com>
+To: Miklos Szeredi <miklos@szeredi.hu>
+To: Alexander Viro <viro@zeniv.linux.org.uk>
+To: Christian Brauner <brauner@kernel.org>
+To: Hugh Dickins <hughd@google.com>
+To: Will Deacon <will@kernel.org>
+To: "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>
+To: Nick Piggin <npiggin@gmail.com>
+To: Peter Zijlstra <peterz@infradead.org>
+To: Arnd Bergmann <arnd@arndb.de>
+To: Jason Gunthorpe <jgg@ziepe.ca>
+To: Kevin Tian <kevin.tian@intel.com>
+To: "Joerg Roedel (AMD)" <joro@8bytes.org>
+To: Robin Murphy <robin.murphy@arm.com>
+To: Steve Sistare <steven.sistare@oracle.com>
+To: John Hubbard <jhubbard@nvidia.com>
+To: Jose A. Perez de Azpillaga <azpijr@gmail.com>
+To: Josef Bacik <josef@toxicpanda.com>
+To: "David S. Miller" <davem@davemloft.net>
+To: Eric Dumazet <edumazet@kernel.org>
+To: Jakub Kicinski <kuba@kernel.org>
+To: Paolo Abeni <pabeni@redhat.com>
+To: Simon Horman <horms@kernel.org>
+To: Neal Cardwell <ncardwell@google.com>
+To: Kuniyuki Iwashima <kuniyu@google.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-fsdevel@vger.kernel.org
+Cc: fuse-devel@lists.linux.dev
+Cc: linux-arch@vger.kernel.org
+Cc: iommu@lists.linux.dev
+Cc: netdev@vger.kernel.org
+
+---
+David Hildenbrand (Arm) (9):
+      mm: limit pagecache folio refcount when mapping pages
+      mm: limit pagecache folio refcount when splicing into pipes
+      mm/mmu_gather: flush pending references early before the folio limit
+      iommufd: fix cleanup when adding memfd folio pins fails
+      mm/gup: limit pagecache folio refcount when grabbing references
+      RFC: net: limit folio refcount when copying skb frag references
+      RFC: net: limit folio refcount when rearranging skb frags
+      RFC: net: limit folio refcount when splicing pages into skbs
+      RFC: net: limit folio refcount when splicing from sockets
+
+ drivers/iommu/iommufd/pages.c |  15 +++-
+ fs/fuse/dev.c                 |   4 +-
+ include/asm-generic/tlb.h     |   4 +-
+ include/linux/mm.h            |  73 ++++++++++++++----
+ include/linux/skbuff_ref.h    |  53 +++++++++++++
+ mm/filemap.c                  |  32 +++++---
+ mm/gup.c                      |  24 +++---
+ mm/huge_memory.c              |  29 +++++++-
+ mm/internal.h                 |   4 +-
+ mm/memory.c                   |  37 +++++++--
+ mm/migrate.c                  |  11 +++
+ mm/mmu_gather.c               |  10 ++-
+ mm/shmem.c                    |   7 +-
+ mm/userfaultfd.c              |   4 +
+ mm/util.c                     |  18 +++++
+ net/core/skbuff.c             | 169 ++++++++++++++++++++++++++----------------
+ net/ipv4/tcp_output.c         |   8 +-
+ 17 files changed, 378 insertions(+), 124 deletions(-)
+---
+base-commit: 2683df3b7eac1d91380194955ad0c9751454610c
+change-id: 20261105-refcount_overflow_stable-542e024130fe
+
+Best regards,
+--  
+David Hildenbrand (Arm) <david@kernel.org>
+
