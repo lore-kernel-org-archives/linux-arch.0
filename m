@@ -1,47 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794433049;
-	b=XmIF9YiJ28RJyJmDmtbSYedk7KD5BFYAts3R6Oz+0MD+dm+gfr/k+LTIdoiw8IH9BcIw
-	 kSInIFmlZp9V2dcGqLXFLqkqao3j9UIZDNyaIDL061XXYqXX7nCwO6HUxSgoF3CDJgenD
-	 HzSlVOGUjn6y8c6YBonUN80GS0TdMH54BRj2xESH2I4yLHUPFqCuhY5vnYO7Zq3TZ0lOx
-	 pp+41LKO+kGI8Ysh/Xlor3V/TavjPRrQe6WdRxOvG9by4GpGIVBHb4h1O2quIT2iGI7Qf
-	 HsW7CNgngPz9Q2DVFbnn/7Y6WS02EKcJoqznRpLGsEA1NIW73zwM5FbfOfq5LYi+nZw==
+	t=1794436653;
+	b=VPWekMVhcLPtIYB9cuYBC0WYxiKKJiTfzaf4eNxxWIUBZrtR9njCVNZS6Imhmb+ln0Zb
+	 UV2go754jU3dHvHJ7Vb7AFI4olE7qRZR918GU6uNfuT5BkrEpZ6Cr1zebJI+WH8d958Cb
+	 o2XMKlcQsx825TPBWM1iUGm/Z7sxJKj9ZTs42lHwE+zRcV9zRso693yXX47YP6Lqq2ztQ
+	 qNslgOK2fUCAUFhF4JQ/kcPtj0ehHuD5u15bvLDeIbKolSl+fMMM3IO+HhKickkP5docZ
+	 i+RSmv//6sszwcgA7C59OJHtrwUt+t/5ia6yok/9zm66xMQhKrRO5BKiABN4fv7ODgA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794433049;
-	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
-	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
-	 Content-Type:Content-Transfer-Encoding;
-	bh=6gjeT2Gi8cfGTOGWEBofK3N5lri6Fh+ybZzjWjQ+1WM=;
-	b=LZAA6Oi2WIOPsWHsfBuaE21sy9YaEw/+4wGYJqeSUu0fcEAqkHg7DICA/bdnR7dijYOv
-	 06n497XA1bzBNtOBQVSHJskihQnsOecuBeiT8UiC2/i9rUy1leQYKVOmA2OHwQWMvhKFJ
-	 R+vvq1W5kkjFa5PpO8JZez0MT40+9WloMrNOBNZk2GRGiT57bUsKD1tFRnEv57mttYFa5
-	 OYfmouyplLEg0QqBJhnH2bJnM9OLMptOSb+2T4yPy3/QAtzsRcG7dcB4GSi/AA1dKYPmo
-	 aM6yTRExbk94fY/zd/NEsD9yS+da7p6GkA6wxqoh3+smOYkheGacu/rNwzn8RhJU++Q==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794436653;
+	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
+	 MIME-Version:User-Agent:Subject:To:Cc:References:Content-Language:
+	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding:X-Spam-Status:
+	 X-Spam-Checker-Version;
+	bh=iJrORkTKZetlPYnGNZA/pkmKUZubavEmrWi57SbUmv4=;
+	b=CIKfTR/4+ZxsucHp6et7ZqU/1EV4jX0uXfSPIGdBXAmc2sDV/lTf1h6K8LQZdS+UJJwV
+	 F2vP1xl6kcbJdK7sZCTR7MpRLk3ON+NgS/lRAeXCxjwCzlgxOpa6r+mBi/6ibQ/nCymKy
+	 KGMpuCp6VY961fqZaBzyihgUXASrTbmUMGzxOqo/9z3F1hAtMcy7vITNtBPHrlEEriDQH
+	 V6EZQ+KxBP+TaJfouu9xNI1AJQjGPnyVfwdQKZpU/E9hBTYXDArq/7JgeOHxBkldeXYoB
+	 aDnJAAH7NnDyzmvB0orrzuwehzKuRn1PBIYDZuv0gjB+85sYCb6aqzx24ajNaLF6V2g==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=gsyTtvK+;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 21E79606A336;
-	Wed, 11 Nov 2026 21:37:28 +0000 (UTC)
+	dmarc=pass header.from=linux.microsoft.com;
+	spf=pass smtp.mailfrom=linux.microsoft.com;
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=dPZKH9zM;
+	arc=none smtp.remote-ip=13.77.154.182
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id E7C2A606A324;
+	Wed, 11 Nov 2026 22:37:32 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E7C2A606A324
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=gsyTtvK+
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B196E1F00A05;
-	Wed, 11 Nov 2026 21:37:11 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794433048;
-	bh=6gjeT2Gi8cfGTOGWEBofK3N5lri6Fh+ybZzjWjQ+1WM=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=gsyTtvK+N/jxHzvvUXlTEFxdTkdhvoykYl9xN87NYL8eVELuq8W8SStuQLRw7oQ7O
-	 2OPf8vbm1Kab7muSu2s33Ey0gIdi9255YlG86QrQfeH9+Tkhr+6HWKtO0LjgJ6dp+l
-	 IsjTaylleg7ITxEvkmldijQogtzXT6VXOh9HB0GlC9r7t4M7qf/h4bKIV5lfex+CQD
-	 zrjT1pbqj+zX88miIuufgBljeXw61znVZBzjfqKwhaSbfqjItfnphes4bw9hDKaNP0
-	 PM1I5gsQlCPXVu30g7PF47AY8jkfFbVGEX7k21e8gVQeXzxWhb9FzDghYrYYgKoDdv
-	 Db1kTJ7cop2jw==
-Message-ID: <d652a02e-a637-4b8b-b9ab-13167b30e926@kernel.org>
-Date: Wed, 11 Nov 2026 22:37:04 +0100
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=dPZKH9zM
+Received: from [10.4.158.9] (unknown [4.194.122.136])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 53D8220B7166;
+	Wed, 11 Nov 2026 14:37:05 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 53D8220B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1794436648;
+	bh=iJrORkTKZetlPYnGNZA/pkmKUZubavEmrWi57SbUmv4=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=dPZKH9zMDVcGATZlXDqvy/tVc2lf0uR4VyrTZtKpNH5QXkZiZQLnP/VcBimx5FE3T
+	 uImY8EV0e5m9I7fZIdCYLSIXQM4O815KVDGahs5UYll1dCfNWKY1zQIbJjL/uWjHQl
+	 mGkTB7JbsR3zeb+Wah0rI/ZBmKHIEKUd84s8Hqpg=
+Message-ID: <5d9dccba-61b0-4fac-8dc2-f09ce630157e@linux.microsoft.com>
+Date: Wed, 11 Nov 2026 14:36:57 -0800
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,104 +54,176 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 0/9] mm: limit pagecache folio refcount
-To: Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>,
- Andrew Morton <akpm@linux-foundation.org>, Zi Yan <ziy@nvidia.com>,
- Baolin Wang <baolin.wang@linux.alibaba.com>,
- Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
- Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
- Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>,
- Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
- Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>,
- Gregory Price <gourry@gourry.net>, Ying Huang
- <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Johannes Weiner <hannes@cmpxchg.org>,
- Song Liu <songliubraving@fb.com>, Rik van Riel <riel@surriel.com>,
- Miklos Szeredi <miklos@szeredi.hu>, Alexander Viro
- <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>,
- Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Arnd Bergmann <arnd@arndb.de>, Jason Gunthorpe <jgg@ziepe.ca>,
- Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>,
- Robin Murphy <robin.murphy@arm.com>,
- Steve Sistare <steven.sistare@oracle.com>, John Hubbard
- <jhubbard@nvidia.com>, "Jose A. Perez de Azpillaga" <azpijr@gmail.com>,
- Josef Bacik <josef@toxicpanda.com>, "David S. Miller" <davem@davemloft.net>,
- Eric Dumazet <edumazet@kernel.org>, Jakub Kicinski <kuba@kernel.org>,
- Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>,
- Neal Cardwell <ncardwell@google.com>, Kuniyuki Iwashima <kuniyu@google.com>,
- Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, fuse-devel@lists.linux.dev,
- linux-arch@vger.kernel.org, iommu@lists.linux.dev, netdev@vger.kernel.org,
- Chris Mason <mason@kernel.org>, stable@vger.kernel.org
-References: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
+Subject: Re: [PATCH v6 4/6] Drivers: hv: Mark shared memory as decrypted for
+ CCA Realms
+To: Michael Kelley <mhklinux@outlook.com>,
+ "decui@microsoft.com" <decui@microsoft.com>,
+ "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
+ "wei.liu@kernel.org" <wei.liu@kernel.org>,
+ Mukesh R <mrathor@linux.microsoft.com>
+Cc: "arnd@arndb.de" <arnd@arndb.de>,
+ "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
+ "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+ "linux-arm-kernel@lists.infradead.org"
+ <linux-arm-kernel@lists.infradead.org>,
+ "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
+ "mark.rutland@arm.com" <mark.rutland@arm.com>,
+ "sudeep.holla@kernel.org" <sudeep.holla@kernel.org>,
+ "thuth@redhat.com" <thuth@redhat.com>, "will@kernel.org" <will@kernel.org>
+References: <20261031001412.4150488-1-kameroncarr@linux.microsoft.com>
+ <20261031001412.4150488-5-kameroncarr@linux.microsoft.com>
+ <MN2PR02MB6863AA6357C8E0D4881F5FEAD4712@MN2PR02MB6863.namprd02.prod.outlook.com>
 Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- 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
- qIws/H2t
-In-Reply-To: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
+From: Kameron Carr <kameroncarr@linux.microsoft.com>
+In-Reply-To: <MN2PR02MB6863AA6357C8E0D4881F5FEAD4712@MN2PR02MB6863.namprd02.prod.outlook.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 11/10/26 21:35, David Hildenbrand (Arm) wrote:
-> Note: I really would prefer doing something else right now, but this is
-> rather urgent.
+On 11/11/2026 10:01 AM, Michael Kelley wrote:
+> From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Friday, October 30, 2026 5:14 PM
+>>
+>> In hv_common_cpu_init(), the per-CPU hypercall input/output pages need
+>> to be marked as decrypted (shared) for confidential VM isolation types.
+>> This is already done for SNP and TDX isolation; extend the same handling
+>> to Arm CCA Realm guests so that the host hypervisor can access the
+>> shared hypercall buffers.
+>>
+>> is_realm_world() is declared in include/linux/arm-rsi-cmds.h which only
+>> builds on arm64 (it includes <asm/memory.h>), so using it directly in
+>> the arch-neutral drivers/hv/hv_common.c would break the x86 build.
+>> Introduce a Hyper-V-specific helper following the established
+>> hv_isolation_type_snp() / hv_isolation_type_tdx() pattern.
+>>
+>> On architectures other than arm64 the weak default keeps the existing
+>> behaviour.
+>>
+>> Reviewed-by: Michael Kelley <mhklinux@outlook.com>
+>> Signed-off-by: Kameron Carr <kameroncarr@linux.microsoft.com>
+>> ---
+>>  arch/arm64/hyperv/mshyperv.c   |  5 +++++
+>>  drivers/hv/hv_common.c         | 17 +++++++++++++----
+>>  include/asm-generic/mshyperv.h |  1 +
+>>  3 files changed, 19 insertions(+), 4 deletions(-)
+>>
+>> diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
+>> index 46ab2da..da6c3aa0 100644
+>> --- a/arch/arm64/hyperv/mshyperv.c
+>> +++ b/arch/arm64/hyperv/mshyperv.c
+>> @@ -182,3 +182,8 @@ bool hv_is_hyperv_initialized(void)
+>>  	return hyperv_initialized;
+>>  }
+>>  EXPORT_SYMBOL_GPL(hv_is_hyperv_initialized);
+>> +
+>> +bool hv_isolation_type_cca(void)
+>> +{
+>> +	return is_realm_world();
+>> +}
+>> diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+>> index 31256cb..a60c92c 100644
+>> --- a/drivers/hv/hv_common.c
+>> +++ b/drivers/hv/hv_common.c
+>> @@ -476,6 +476,7 @@ int hv_common_cpu_init(unsigned int cpu)
+>>  	u64 msr_vp_index;
+>>  	gfp_t flags;
+>>  	const int pgcount = hv_output_page_exists() ? 2 : 1;
+>> +	const size_t alloc_size = ALIGN((size_t)pgcount * HV_HYP_PAGE_SIZE, PAGE_SIZE);
+>>  	void *mem;
+>>  	int ret = 0;
+>>
+>> @@ -489,7 +490,7 @@ int hv_common_cpu_init(unsigned int cpu)
+>>  	 * online and then taken offline
+>>  	 */
+>>  	if (!*inputarg) {
+>> -		mem = kmalloc_array(pgcount, HV_HYP_PAGE_SIZE, flags);
+>> +		mem = kmalloc(alloc_size, flags);
+>>  		if (!mem)
+>>  			return -ENOMEM;
+>>
+>> @@ -499,14 +500,16 @@ int hv_common_cpu_init(unsigned int cpu)
+>>  		}
+>>
+>>  		if (!ms_hyperv.paravisor_present &&
+>> -		    (hv_isolation_type_snp() || hv_isolation_type_tdx())) {
+>> -			ret = set_memory_decrypted((unsigned long)mem, pgcount);
+>> +		    (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
+>> +		     hv_isolation_type_cca())) {
 > 
+> Could this big "if" statement use "hv_is_isolation_supported()" instead
+> of explicitly testing for each CoCo VM type? I ask partly because
+> Mukesh Rathor has just submitted a patch [1] that introduces a new
+> function that does something almost exactly the same as
+> hv_is_isolation_supported() and uses it here.
+> 
+> You don't provide the non-stub hv_is_isolation_supported() until
+> Patch 6 of this series, but the weak stub should allow everything to
+> build if a bisection splits this patch series.
 
-As this is really something I want to have fixed rather sooner than later, I'll
-throw the first 5 patches into -next tomorrow.
+Including your response to Mukesh for context:
+> Any reason not to use hv_is_isolation_supported()? Your
+> new function seems conceptually equivalent, though at a
+> detailed level it handles VBS isolation differently from
+> hv_is_isolation_supported(). But I don't think including
+> VBS isolation here is a problem since set_memory_decrypted()
+> is a no-op with VBS isolation.
 
-In the meantime, I'd appreciate some feedback from -net folks, as that must be
-sorted out as well.
+I'm not fully convinced that calling set_memory_decrypted() is always a
+no-op for VBS.
+
+I see that on VBS VMs, ms_hyperv_init_platform() calls hv_vtom_init().
+If set_memory_decrypted() calls hv_mark_gpa_visibility(), you will try
+to use the inputarg before it has been initialized.
+
+Please let me know if my understanding is incorrect.
 
 -- 
-Cheers,
+Regards,
+Kameron
 
-David
+> Michael
+> 
+> [1] https://lore.kernel.org/linux-hyperv/20261111022036.351231-2-mrathor@linux.microsoft.com/
+> 
+>> +			ret = set_memory_decrypted((unsigned long)mem,
+>> +						   alloc_size >> PAGE_SHIFT);
+>>  			if (ret) {
+>>  				/* It may be unsafe to free 'mem' */
+>>  				return ret;
+>>  			}
+>>
+>> -			memset(mem, 0x00, pgcount * HV_HYP_PAGE_SIZE);
+>> +			memset(mem, 0x00, alloc_size);
+>>  		}
+>>
+>>  		/*
+>> @@ -666,6 +669,12 @@ bool __weak hv_isolation_type_tdx(void)
+>>  }
+>>  EXPORT_SYMBOL_GPL(hv_isolation_type_tdx);
+>>
+>> +bool __weak hv_isolation_type_cca(void)
+>> +{
+>> +	return false;
+>> +}
+>> +EXPORT_SYMBOL_GPL(hv_isolation_type_cca);
+>> +
+>>  void __weak hv_setup_vmbus_handler(void (*handler)(void))
+>>  {
+>>  }
+>> diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+>> index bf601d6..1fa79ab 100644
+>> --- a/include/asm-generic/mshyperv.h
+>> +++ b/include/asm-generic/mshyperv.h
+>> @@ -79,6 +79,7 @@ u64 hv_do_fast_hypercall16(u16 control, u64 input1, u64
+>> input2);
+>>
+>>  bool hv_isolation_type_snp(void);
+>>  bool hv_isolation_type_tdx(void);
+>> +bool hv_isolation_type_cca(void);
+>>
+>>  /*
+>>   * On architectures where Hyper-V doesn't support AEOI (e.g., ARM64),
+>> --
+>> 2.45.4
+>>
+
