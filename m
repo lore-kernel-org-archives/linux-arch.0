@@ -1,68 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794347598;
-	b=ON5yWVE/tr3yrfuK2h/XLVcPO9HvCBbYVNwQuyOSMSKOyYfoL7M9pAP1wIE0JQooa5dM
-	 9XM2OaBh32frp6oPQPq/NVzWYr3JkIDtat1Kfv+pgrwTjnqbNY9NcN/KHYj1oHcWlv157
-	 pcuWA24yLIssZzrD71m5IWbeiGVrcN76b3GyQt0J+XfPoOE+momfZW7JK7zLVG2gKTsQW
-	 bCDHHSSp9oOijhJFn7rzVaPMfcQtOlOSXw8QuFmMhgm3+71TBHnf2AvM9jFzTgZ2UBffc
-	 beN2mpN8BdHlPjvv+ZdhiygC/9sODyk3jpE8XM5ouGf8L3IErVpQHZ6IxK4u9LGP4PA==
+	t=1794364079;
+	b=DFCZeotZMsmztws4wfsQJG3J7ixDjBfgGB7RQ5aU69kzL9Euf4ikaAL6/G6i4IljG/O5
+	 H0ys15olh5D6TG1ZgrlPryp+OvlYlqvF/U+0xs+rVcMEQtI0umqxXEbqnq5n5GArETdxT
+	 pdRca/6GspocWLx2iRhorapY1iO/eO0x85YW+hxG4x1clrIKk+MXQyyUCggzCyvExIKEa
+	 wG4M7V8ApzRgeNDlJ8eF3yVxVG9NI23CNI9DTWVWGiH7pP0vSpmhQb9rl+DYjkBe0yXbB
+	 5xcuYj8Q4892llMMr9wsIm3ooU2ti47Wu3MlEzj8LPTMEBIHATXs5t7f0343lZSs6Lw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794347598;
-	h=Received:DKIM-Signature:Received:Date:From:To:Cc:Subject:Message-ID:
-	 Reply-To:References:MIME-Version:Content-Type:Content-Disposition:
-	 In-Reply-To;
-	bh=J3Tm3LfocnilDHyhWuC7rkIy8QOYHrv2ikEgku1d61s=;
-	b=PJyFcJVhpAtIaEJZdyfnmsR785lW+zA+pHnAzxu52BhDwQd7IS8VJjZotrvd29WSSfjC
-	 aSUqLnL5EziuMYxAwYHpwS28HDE/4xtQvpoGW0H+32fzlsIFvPvXe3p5TRlbwwPXuqoq3
-	 o1Hnsy/qTfNrZO8fleLE8ldbgUjniK3o0pV2gcdd6k3fYNkVK4pR1ARmLpAv90liznTSx
-	 ctdPbnJelZ0Bv3P4l88mRmY1Lk7yK8GglGBR83QnV+tro3FTnGaCattRmMhQ80BaL3MHX
-	 JxJf8E8yZ79GqXMvwxtHnqrNn8FsYupfdvCevSX8g24oO/jUQMv3YMljCT3FUKyUlug==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794364079;
+	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
+	 MIME-Version:User-Agent:Subject:Content-Language:To:Cc:References:
+	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding:X-Spam-Status:
+	 X-Spam-Checker-Version;
+	bh=CMd5fmOUS+HIwE21jxjxN+JXKFZXzOGkV1MffqEjFZ8=;
+	b=WJZSVtybCFZv+MwzKe4fqjtRpZU7eYwjF9mPrAsIBJTyR2C2Qy5FWp5Pu9HdeemQ+fNn
+	 bTaPklhKGdORcssX2cxxvjXWQSLV4bvhGh1i0r8hKBtrZ9rwKzGq5CsD0Rmf/dgviYbnF
+	 51txp2By96Qg3HJLZ+zTzU1JXMvxRYX1PX3KaWD2KGlV1RvzeNLHdoP24L9ueNvwjvU+J
+	 8W4NyyylkFm7HT4AHXjZmTkJ3USbiXaEu9BYXSRzmiZNDbnyT9WIIUG+1imwTO+hlyV+I
+	 kCxdV8JJ9jt8DDCUVAask/lkOyJt6z8PY4bjWhY8RW+ICtN7D19MZQgb7MlrSv4+6yg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=isEOLsUL;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D19E4606A321;
-	Tue, 10 Nov 2026 21:53:17 +0000 (UTC)
+	dmarc=pass header.from=linux.microsoft.com;
+	spf=pass smtp.mailfrom=linux.microsoft.com;
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b="l/BrbHcS";
+	arc=none smtp.remote-ip=13.77.154.182
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 604CA606A331;
+	Wed, 11 Nov 2026 02:27:58 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 604CA606A331
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=isEOLsUL
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AA2F51F0089F;
-	Tue, 10 Nov 2026 21:53:17 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794347597;
-	bh=J3Tm3LfocnilDHyhWuC7rkIy8QOYHrv2ikEgku1d61s=;
-	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To;
-	b=isEOLsUL2XzmjViGWI8oo5zrxqHPb2U826zuow3M6oaeEgyxoCJ7p1ug0+HtJQu4L
-	 69Dzjv9vx91IVXFT23h6s7S0zLXn9V/YG3Sh+TeVIfohJySWVyXoxjI4KdTQPcnEzG
-	 gJv5Hp4Ozuvajs5mRCsnTWRLoI05Fa0AS/hH74Fq7CwuXHjDbdzMuvpYnmzNDtdbwL
-	 DRwO4t8Fv470GAq251YGMW2vZ+4xzfsgs/KARNuWz3ZTar6wzovCFzhd2DouX3XTF/
-	 QSomk7EFNaGcH/fx7U7cxJiikqAIvcD3QqmOjemJuyaMcC6Z35ehnQgy77FhLOon0D
-	 IpF1A6gBIbQ8g==
-Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 6BB19CE0AD8; Tue, 10 Nov 2026 13:53:17 -0800 (PST)
-Date: Tue, 10 Nov 2026 13:53:17 -0800
-From: "Paul E. McKenney" <paulmck@kernel.org>
-To: Kunwu Chan <kunwu.chan@gmail.com>
-Cc: boqun@kernel.org, mathieu.desnoyers@efficios.com,
-	jiangshanlai@gmail.com, corbet@lwn.net, mingo@redhat.com,
-	frederic@kernel.org, neeraj.upadhyay@kernel.org,
-	josh@joshtriplett.org, urezki@gmail.com, dave@stgolabs.net,
-	stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
-	dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-	akiyks@gmail.com, dlustig@nvidia.com, joelagnelf@nvidia.com,
-	skhan@linuxfoundation.org, rdunlap@infradead.org,
-	longman@redhat.com, rostedt@goodmis.org, qiang.zhang@linux.dev,
-	brads@mainlining.org, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org, lkmm@lists.linux.dev,
-	linux-doc@vger.kernel.org, rcu@vger.kernel.org,
-	linux-kselftest@vger.kernel.org
-Subject: Re: [PATCH 21/28] hazptrtorture: Add HOTADDR and LONGHOLD scenarios
-Message-ID: <7b19da25-076a-439d-b365-5e881f0f7d84@paulmck-laptop>
-Reply-To: paulmck@kernel.org
-References: <20261104165504.2430480-1-kunwu.chan@gmail.com>
- <20261104165504.2430480-22-kunwu.chan@gmail.com>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=l/BrbHcS
+Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 6874220B7168;
+	Tue, 10 Nov 2026 18:27:53 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 6874220B7168
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1794364074;
+	bh=CMd5fmOUS+HIwE21jxjxN+JXKFZXzOGkV1MffqEjFZ8=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=l/BrbHcSU9V6hUTg3V6rkwl6PnQu06cM0MmSX4WrUW6LUzYxTHsxaQ8Ew26jNypkF
+	 RW13RzEx5wPofTpAIQrwbpWvPGnsUA2g9irTllZQNDslNRnBXxFhC6kjomnHYotoZr
+	 PJwxTGRP+IPrw/CpN5lW0k2QRKeaiN/eHYO1oOW4=
+Message-ID: <e33a3d54-2b86-cb99-4dba-8b478e11b786@linux.microsoft.com>
+Date: Tue, 10 Nov 2026 18:27:55 -0800
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -72,602 +53,754 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261104165504.2430480-22-kunwu.chan@gmail.com>
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH V4 5/5] x86/hyperv: Implement root partition IOMMU kernel
+ only driver
+Content-Language: en-US
+To: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+ iommu@lists.linux.dev, linux-arch@vger.kernel.org,
+ "joro@8bytes.org" <joro@8bytes.org>, Jason Gunthorpe <jgg@nvidia.com>
+Cc: jacob.pan@linux.microsoft.com, haiyangz@microsoft.com,
+ wei.liu@kernel.org, decui@microsoft.com, tglx@kernel.org, mingo@redhat.com,
+ bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
+ will@kernel.org, robin.murphy@arm.com, arnd@arndb.de
+References: <20261105020106.3496339-1-mrathor@linux.microsoft.com>
+ <20261105020106.3496339-6-mrathor@linux.microsoft.com>
+From: Mukesh R <mrathor@linux.microsoft.com>
+In-Reply-To: <20261105020106.3496339-6-mrathor@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-On Thu, Nov 05, 2026 at 12:54:39AM +0800, Kunwu Chan wrote:
-> HOTADDR: stages the sticky-address forward-progress scenario.
-> LONGHOLD: validates legitimate long-held references.
+On 11/4/26 18:01, Mukesh R wrote:
+> Add a new file to implement a kernel only virtual IOMMU that works
+> on Microsoft Hyper-V hypervisor (aka MSHV) in privileged VMs aka
+> root VMs. The hypervisor claims the IOMMU upon boot, and this driver
+> communicates with it for creating and deleting paging domains, attaching
+> of devices, mapping and unmapping of pages, etc. During boot, hypervisor
+> automatically creates identity and blocked domains, so there is no need
+> to do hypercalls to create them. This is a kernel only driver and only
+> supported on baremetal root (and not L1VH root) without any guest passthru
+> support. Support for guest device passthru will be added incrementally.
 > 
-> Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
-
-Continuing on the register_trace_*() point, one approach would be to make
-the module parameters needing this to be under "#ifdef CONFIG_TRACING"
-and provide no-op functions as needed.
-
-							Thanx, Paul
-
+> Signed-off-by: Mukesh R <mrathor@linux.microsoft.com>
 > ---
->  kernel/rcu/hazptrtorture.c                    | 384 +++++++++++++++++-
->  .../rcutorture/configs/hazptr/CFLIST          |   2 +
->  .../rcutorture/configs/hazptr/HOTADDR         |  18 +
->  .../rcutorture/configs/hazptr/HOTADDR.boot    |   1 +
->  .../rcutorture/configs/hazptr/LONGHOLD        |  18 +
->  .../rcutorture/configs/hazptr/LONGHOLD.boot   |   1 +
->  6 files changed, 419 insertions(+), 5 deletions(-)
->  create mode 100644 tools/testing/selftests/rcutorture/configs/hazptr/HOTADDR
->  create mode 100644 tools/testing/selftests/rcutorture/configs/hazptr/HOTADDR.boot
->  create mode 100644 tools/testing/selftests/rcutorture/configs/hazptr/LONGHOLD
->  create mode 100644 tools/testing/selftests/rcutorture/configs/hazptr/LONGHOLD.boot
+
+
+Hi Joerg and Jason,
+
+I've addressed all your comments and suggestions. Wondering if there's
+anything else to get your approval/ack. Please let me know.
+
+Thanks,
+-Mukesh
+
+
+arch/x86/kernel/pci-dma.c            |   2 +
+>   drivers/iommu/hyperv/Kconfig         |  13 +
+>   drivers/iommu/hyperv/Makefile        |   1 +
+>   drivers/iommu/hyperv/hv-iommu-root.c | 613 +++++++++++++++++++++++++++
+>   include/asm-generic/mshyperv.h       |   3 +
+>   include/linux/hyperv.h               |   6 +
+>   6 files changed, 638 insertions(+)
+>   create mode 100644 drivers/iommu/hyperv/hv-iommu-root.c
 > 
-> diff --git a/kernel/rcu/hazptrtorture.c b/kernel/rcu/hazptrtorture.c
-> index fe09280d063c..5dbe04af7515 100644
-> --- a/kernel/rcu/hazptrtorture.c
-> +++ b/kernel/rcu/hazptrtorture.c
-> @@ -24,6 +24,7 @@
->  #include <linux/hazptr.h>
->  #include <linux/rcupdate.h>
->  #include <linux/workqueue.h>
-> +#include <trace/events/hazptr.h>
->  
->  #include "rcu.h"
->  
-> @@ -54,6 +55,15 @@ torture_param(int, stutter, 5, "Number of seconds to run/halt test");
->  torture_param(int, verbose, 1, "Enable verbose debugging printk()s");
->  torture_param(bool, wq_churn, false,
->  	      "Churn workqueues to exercise lockdep dynamic keys");
-> +torture_param(int, nhotreaders, 0,
-> +	      "Hot-addr hammer readers, 0 disables Lai-scenario");
-> +torture_param(int, hot_hold_us, 20000,
-> +	      "Hammer reader hold (us)");
-> +torture_param(int, hot_hammer_ms, 3000, "Hammer window (ms)");
-> +torture_param(int, hot_longhold_ms, 0,
-> +	      "Long-hold round duration (ms), 0 disables; R0 holds past the stall timeout, no hammer");
-> +torture_param(bool, starve_expected, false,
-> +	      "Starvation episodes are expected (documenting mode)");
->  
->  static char *torture_type = "hazptr";
->  module_param(torture_type, charp, 0444);
-> @@ -66,6 +76,22 @@ static struct task_struct **reader_tasks;
->  static struct task_struct *do_pending_task;
->  static struct task_struct *stats_task;
->  static struct task_struct *wq_churn_task;
-> +static struct task_struct *hot_stage_task;
-> +static struct task_struct *hot_r0_task;
-> +static struct task_struct **hot_reader_tasks;
-> +static int hot_target_storage;
-> +static void *hot_addr = &hot_target_storage;
-> +static atomic_t n_hot_syncs;
-> +static atomic_t n_hot_starves;
-> +static atomic_t n_hot_in_seq;
-> +static atomic_t hot_live_syncs;		/* transient sync kthreads alive */
-> +static atomic_t hot_hammer_holding;	/* hammer readers currently holding */
-> +static atomic_t hot_r0_gate;		/* 1: R0 may acquire for this round */
-> +static DECLARE_COMPLETION(hot_enqueued);
-> +static DECLARE_COMPLETION(hot_sync_done);
-> +static DECLARE_COMPLETION(r0_held);
-> +static DECLARE_COMPLETION(r0_release);
-> +static bool hot_hammer_active;
->  
->  #define HAZPTR_TORTURE_PIPE_LEN 10
->  
-> @@ -87,13 +113,13 @@ static atomic_t n_hazptr_torture_alloc;
->  static atomic_t n_hazptr_torture_alloc_fail;
->  static atomic_t n_hazptr_torture_free;
->  static atomic_t n_hazptr_torture_error;
-> -static atomic_t n_hazptr_torture_wq_churn;
->  static DEFINE_PER_CPU(atomic_long_t, hazptr_torture_acquires);
->  static DEFINE_PER_CPU(atomic_long_t, hazptr_torture_releases);
->  static DEFINE_PER_CPU(atomic_long_t, hazptr_torture_acquires_irq);
->  static DEFINE_PER_CPU(atomic_long_t, hazptr_torture_releases_irq);
->  static DEFINE_PER_CPU(atomic_long_t, hazptr_torture_releases_defer);
->  static DEFINE_PER_CPU(atomic_long_t, hazptr_torture_releases_undefer);
-> +static atomic_t n_hazptr_torture_wq_churn;
->  static struct list_head hazptr_torture_removed;
->  
->  // State for a deferred (AKA pending) hazard pointer
-> @@ -681,6 +707,10 @@ hazptr_torture_stats_print(void)
->  		torture_sum_pcpu_atomic_long(&hazptr_torture_releases_defer),
->  		torture_sum_pcpu_atomic_long(&hazptr_torture_releases_undefer),
->  		atomic_read(&n_hazptr_torture_wq_churn));
-> +	pr_cont(" hotsync: %d hotstarve: %d hotseq: %d",
-> +		atomic_read(&n_hot_syncs),
-> +		atomic_read(&n_hot_starves),
-> +		atomic_read(&n_hot_in_seq));
->  
->  	pr_alert("%s%s ", torture_type, TORTURE_FLAG);
->  	if (i > 1) {
-> @@ -752,7 +782,8 @@ hazptr_torture_print_module_parms(struct hazptr_torture_ops *cur_ops, const char
->  		 "nest_acquire=%d "
->  		 "onoff_interval=%d onoff_holdoff=%d "
->  		 "preempt_duration=%d preempt_interval=%d "
-> -		 "reader_sleep_us=%d "
-> +		 "reader_sleep_us=%d wq_churn=%d "
-> +		 "nhotreaders=%d hot_hold_us=%d hot_hammer_ms=%d "
->  		 "shuffle_interval=%d shutdown_secs=%d stat_interval=%d stutter=%d "
->  		 "verbose=%d\n",
->  		 torture_type, tag, nrealreaders, nwriters,
-> @@ -760,7 +791,8 @@ hazptr_torture_print_module_parms(struct hazptr_torture_ops *cur_ops, const char
->  		 nest_acquire,
->  		 onoff_interval, onoff_holdoff,
->  		 preempt_duration, preempt_interval,
-> -		 reader_sleep_us,
-> +		 reader_sleep_us, wq_churn,
-> +		 nhotreaders, hot_hold_us, hot_hammer_ms,
->  		 shuffle_interval, shutdown_secs, stat_interval, stutter,
->  		 verbose);
->  }
-> @@ -801,10 +833,14 @@ static void hazptr_torture_wq_churn_fn(struct work_struct *work)
->  /*
->   * Repeatedly create and destroy workqueues.  Each workqueue creation
->   * registers a lockdep dynamic key and each destruction unregisters it,
-> - * which exercises both is_dynamic_key() and lockdep_unregister_key().
-> + * which exercises both is_dynamic_key() and lockdep_unregister_key(),
-> + * the two lockdep paths that use hazptr.  Most useful in kernels with
-> + * CONFIG_PROVE_LOCKING=y and CONFIG_HAZPTR_ACQUIRE_FORCE_SLOWPATH=y.
->   */
->  static int hazptr_torture_wq_churn(void *unused)
->  {
-> +	DEFINE_TORTURE_RANDOM(rand);
+> diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
+> index 75cf8f6ae8cd..560d8a4f6e1d 100644
+> --- a/arch/x86/kernel/pci-dma.c
+> +++ b/arch/x86/kernel/pci-dma.c
+> @@ -8,6 +8,7 @@
+>   #include <linux/gfp.h>
+>   #include <linux/pci.h>
+>   #include <linux/amd-iommu.h>
+> +#include <linux/hyperv.h>
+>   
+>   #include <asm/proto.h>
+>   #include <asm/dma.h>
+> @@ -103,6 +104,7 @@ void __init pci_iommu_alloc(void)
+>   	gart_iommu_hole_init();
+>   	amd_iommu_detect();
+>   	detect_intel_iommu();
+> +	hv_root_iommu_detect();
+>   	swiotlb_init(x86_swiotlb_enable, x86_swiotlb_flags);
+>   }
+>   
+> diff --git a/drivers/iommu/hyperv/Kconfig b/drivers/iommu/hyperv/Kconfig
+> index f2f993f647c3..6ba5125ed501 100644
+> --- a/drivers/iommu/hyperv/Kconfig
+> +++ b/drivers/iommu/hyperv/Kconfig
+> @@ -13,3 +13,16 @@ config HYPERV_PVIOMMU
+>   	  Microsoft Hyper-V. Provides DMA remapping and IOTLB
+>   	  flush support to enable DMA isolation for PCI devices
+>   	  assigned to the guest.
 > +
->  	VERBOSE_TOROUT_STRING("hazptr_torture_wq_churn task started");
->  	do {
->  		struct workqueue_struct *wq;
-> @@ -812,7 +848,7 @@ static int hazptr_torture_wq_churn(void *unused)
->  
->  		wq = alloc_workqueue("hazptr-torture-churn", WQ_PERCPU, 1);
->  		if (!wq) {
-> -			torture_hrtimeout_ms(10, 10, NULL);
-> +			torture_hrtimeout_ms(10, 10, &rand);
->  			continue;
->  		}
->  		INIT_WORK(&churn_work, hazptr_torture_wq_churn_fn);
-> @@ -826,6 +862,271 @@ static int hazptr_torture_wq_churn(void *unused)
->  	return 0;
->  }
->  
+> +config HYPERV_ROOT_IOMMU
+> +	bool "Hyper-V IOMMU Device in root partition"
+> +	depends on HYPERV && X86 && PCI_MSI && MSHV_ROOT
+> +	select IOMMU_API
+> +	default HYPERV
+> +	help
+> +	  This enables Hyper-V pseudo IOMMU device. When running as privileged
+> +	  VM aka root on Microsoft Hyper-V hypervisor, this must be enabled
+> +	  for doing any PCI passthru of devices to guest VMs. This applies to
+> +	  both PFs and VFs. When enabling this, it is best to disable amd/intel
+> +	  iommus via: intel_iommu=off amd_iommu=off as the hypervisor really
+> +	  owns the iommu.
+> diff --git a/drivers/iommu/hyperv/Makefile b/drivers/iommu/hyperv/Makefile
+> index d3b2a259439c..04c66b4409a3 100644
+> --- a/drivers/iommu/hyperv/Makefile
+> +++ b/drivers/iommu/hyperv/Makefile
+> @@ -1,3 +1,4 @@
+>   # SPDX-License-Identifier: GPL-2.0
+>   obj-$(CONFIG_IRQ_REMAP) += hv-irq-remap-x86.o
+>   obj-$(CONFIG_HYPERV_PVIOMMU) += hv-iommu-guest.o
+> +obj-$(CONFIG_HYPERV_ROOT_IOMMU) += hv-iommu-root.o
+> diff --git a/drivers/iommu/hyperv/hv-iommu-root.c b/drivers/iommu/hyperv/hv-iommu-root.c
+> new file mode 100644
+> index 000000000000..e0e3e9d4385e
+> --- /dev/null
+> +++ b/drivers/iommu/hyperv/hv-iommu-root.c
+> @@ -0,0 +1,613 @@
+> +// SPDX-License-Identifier: GPL-2.0
 > +/*
-> + * Hot-addr staged scenario --- Lai's forward-progress test.
-> + *
-> + * Three persistent kthreads plus a per-round transient sync kthread:
-> + *   hot_r0_task      old reader: acquires hot_addr, signals, waits
-> + *                    for release command, then releases.
-> + *   hot_reader_tasks hammer readers: tight acquire/release loops on
-> + *                    hot_addr, long hold, near-zero gap, no stutter,
-> + *                    kthread_bind'd to distinct CPUs.
-> + *   hot_stage_task   orchestrator: drives the staged sequence round
-> + *                    by round, recording starvation episodes.
-> + *   hot_do_sync      transient per-round: hazptr_synchronize(hot_addr).
-> + *
-> + * A tracepoint on waiter-enqueue confirms the waiter is on
-> + * hazptr_scan.pending before the orchestrator verifies the negative
-> + * control (sync must NOT have completed while R0 holds).
+> + * Hyper-V root vIOMMU driver.
+> + * Copyright (C) 2026, Microsoft, Inc.
 > + */
+> +#include <linux/pci.h>
+> +#include <linux/dma-map-ops.h>
+> +#include <linux/interval_tree.h>
+> +#include <linux/hyperv.h>
+> +#include <asm/iommu.h>
+> +#include <asm/mshyperv.h>
+> +#include "../dma-iommu.h"
 > +
-> +static void hot_probe_enqueue(void *__data, void *addr)
-> +{
-> +	if (addr == hot_addr)
-> +		complete(&hot_enqueued);
-> +}
+> +static dma_addr_t hv_iommu_max_iova;
+> +static struct iommu_domain_ops hv_paging_domain_ops;
 > +
-> +/* Per-round transient sync kthread.  hot_live_syncs lets the
-> + * orchestrator and cleanup wait for exit, so no completion event
-> + * from one round can leak into the next.
-> + */
-> +static int hazptr_torture_hot_do_sync(void *unused)
-> +{
-> +	hazptr_synchronize(hot_addr);
-> +	complete(&hot_sync_done);
-> +	atomic_dec(&hot_live_syncs);
-> +	return 0;
-> +}
+> +/* IOMMU device that we export to the world. MSHV supports max of one */
+> +static struct iommu_device hv_virt_iommu;
 > +
-> +/* R0: acquires hot_addr, signals orchestrator, waits for release cmd.
-> + * The release wait is timeout-bounded so kthread_stop() at cleanup can
-> + * always join; the hazard pointer is always released before exit.
-> + * The one-shot gate ensures R0 does not re-acquire immediately after
-> + * releasing: re-acquisition is reserved for a new round, so a draining
-> + * waiter is never blocked by R0 itself.
-> + */
-> +static int hazptr_torture_hot_r0(void *unused)
-> +{
-> +	struct hazptr_ctx ctx;
-> +	void *p;
+> +struct hv_iommu_domain {
+> +	struct iommu_domain iommu_dom;
+> +	u32 domid_num;			      /* as opposed to domain_id.type */
+> +	spinlock_t mappings_lock;	      /* protects mappings_tree */
+> +	struct rb_root_cached mappings_tree;  /* iova to pa lookup tree */
+> +};
 > +
-> +	VERBOSE_TOROUT_STRING("hot_r0 task started");
-> +	do {
-> +		while (!atomic_read(&hot_r0_gate) && !torture_must_stop())
-> +			schedule_timeout_interruptible(1);
-> +		if (torture_must_stop())
-> +			break;
-> +		atomic_set(&hot_r0_gate, 0);
-> +		p = hot_addr;
-> +		(void)hazptr_acquire(&ctx, &p);
-> +		complete(&r0_held);
-> +		while (!wait_for_completion_timeout(&r0_release, HZ)) {
-> +			if (torture_must_stop())
-> +				break;
-> +		}
-> +		hazptr_release(&ctx, p);
-> +	} while (!torture_must_stop());
-> +	torture_kthread_stopping("hot_r0");
-> +	return 0;
-> +}
+> +#define to_hv_domain(d) container_of(d, struct hv_iommu_domain, iommu_dom)
 > +
-> +/* Hammer reader: parks while not hammering (hot_hammer_active false),
-> + * so it persists across rounds.  hot_hammer_holding counts live holds
-> + * and lets the orchestrator hand off R0 only once a hammer reader
-> + * actually holds the address -- no coverage gap at the seam.
-> + */
-> +static int hazptr_torture_hot_reader(void *arg)
-> +{
-> +	int cpu = (long)arg;
-> +	struct hazptr_ctx ctx;
-> +	void *p;
-> +	DEFINE_TORTURE_RANDOM(rand);
-> +
-> +	set_cpus_allowed_ptr(current, cpumask_of(cpu));
-> +	for (;;) {
-> +		while (!READ_ONCE(hot_hammer_active) && !torture_must_stop())
-> +			schedule_timeout_interruptible(1);
-> +		if (torture_must_stop())
-> +			break;
-> +		p = hot_addr;
-> +		p = hazptr_acquire(&ctx, &p);
-> +		atomic_inc(&hot_hammer_holding);
-> +		torture_hrtimeout_us(hot_hold_us, 100, &rand);
-> +		hazptr_release(&ctx, p);
-> +		atomic_dec(&hot_hammer_holding);
-> +		torture_hrtimeout_us(1, 1, &rand);
-> +	}
-> +	torture_kthread_stopping("hot_reader");
-> +	return 0;
-> +}
+> +struct hv_iommu_mapping {
+> +	phys_addr_t paddr;
+> +	struct interval_tree_node iova;
+> +	u32 flags;
+> +};
 > +
 > +/*
-> + * Orchestrator: one round per loop iteration.  All waits are
-> + * timeout-bounded so cleanup can always join this task.
-> + *
-> + * Phase   Action
-> + *  boot   Wait for R0's initial hold.
-> + *   P2    Launch transient sync kthread; wait for tracepoint
-> + *         confirmation (hot_enqueued).
-> + *   P3    Negative control (non-consuming completion_done()): sync
-> + *         must NOT be done while R0 still holds.
-> + *   P4    Handoff: start hammer, wait until a hammer reader holds
-> + *         (hot_hammer_holding > 0), then release R0 -- no gap.
-> + *   P5    Hammer window: poll sync for hot_hammer_ms.
-> + *         -> completes in window: n_hot_in_seq++.
-> + *         -> still pending:       n_hot_starves++ (episode; counts
-> + *            as test error only when !starve_expected).
-> + *   P6    Positive control: stop hammer, sync must drain within 5 s
-> + *         (skipped when P5 already observed completion).
-> + *  bottom  Drain this round's sync kthread (hot_live_syncs), wait for
-> + *          R0's next hold; jitter; loop unless must_stop.
+> + * By default, during boot the hypervisor creates one Stage 2 (S2) default
+> + * domain. It has two types:
+> + *   S2 default: access to entire root partition memory. This for the host
+> + *		 maps to IOMMU_DOMAIN_IDENTITY in the iommu subsystem, and
+> + *		 is called HV_DEVICE_DOMAIN_ID_S2_DEFAULT in the hypervisor.
+> + *		 (Linux renamed to : HV_DEVICE_DOMAIN_ID_DEFAULT)
+> + *   S2 NULL: Blocks everything, ie, IOMMU_DOMAIN_BLOCKED in linux.
 > + */
-> +static int hazptr_torture_hot_stage(void *unused)
+> +
+> +/*
+> + * Create dummy domains to correspond to hypervisor prebuilt default identity
+> + * and null domains (dummy because we do not make hypercalls to create them).
+> + */
+> +static struct hv_iommu_domain hv_def_identity_dom;
+> +static struct hv_iommu_domain hv_def_blocked_dom;
+> +
+> +/*
+> + * The hypervisor owns the IOMMU. As such it will choose the best page size
+> + * and whenever possible use larger page sizes automatically. The map gpa
+> + * hypercall to map the iova however currently uses only 4K pfns as input.
+> + * So we specify 4K as the IOMMU PAGE_SIZE.
+> + */
+> +#define HV_IOMMU_PGSIZES SZ_4K
+> +
+> +static DEFINE_IDA(hv_iommu_domids);   /* unique numeric ids for new domains */
+> +
+> +static bool hv_iommu_capable(struct device *dev, enum iommu_cap cap)
 > +{
-> +	unsigned long round = 0;
-> +	DEFINE_TORTURE_RANDOM(rand);
+> +	switch (cap) {
+> +	case IOMMU_CAP_CACHE_COHERENCY:
+> +		return true;
+> +	default:
+> +		return false;
+> +	}
+> +}
 > +
-> +	VERBOSE_TOROUT_STRING("hot_stage task started");
+> +static int hv_iommu_add_tree_mapping(struct hv_iommu_domain *hvdom, ulong iova,
+> +				     phys_addr_t paddr, size_t size, u32 flags,
+> +				     gfp_t gfp)
+> +{
+> +	ulong irqflags;
+> +	struct hv_iommu_mapping *mapping;
 > +
-> +	/* If the system is still booting, let it finish (same as the
-> +	 * classic writer): a busy boot would make staged rounds record
-> +	 * false starvation episodes and false stall splats. */
-> +	while (!torture_must_stop() && !rcu_inkernel_boot_has_ended())
-> +		schedule_timeout_interruptible(HZ);
+> +	mapping = kzalloc_obj(struct hv_iommu_mapping, gfp);
+> +	if (!mapping)
+> +		return -ENOMEM;
 > +
-> +	do {
-> +		u64 t_sync_start;
-> +		int done_in_window = 0, positive_done;
-> +		struct task_struct *sync_task;
+> +	mapping->paddr = paddr;
+> +	mapping->iova.start = iova;
+> +	mapping->iova.last = iova + size - 1;
+> +	mapping->flags = flags;
 > +
-> +		reinit_completion(&r0_held);
-> +		reinit_completion(&r0_release);
-> +		reinit_completion(&hot_sync_done);
-> +		reinit_completion(&hot_enqueued);
-> +		WRITE_ONCE(hot_hammer_active, false);
+> +	spin_lock_irqsave(&hvdom->mappings_lock, irqflags);
+> +	interval_tree_insert(&mapping->iova, &hvdom->mappings_tree);
+> +	spin_unlock_irqrestore(&hvdom->mappings_lock, irqflags);
 > +
-> +		/* Gate R0 into a fresh hold and wait for it. */
-> +		atomic_set(&hot_r0_gate, 1);
-> +		while (!wait_for_completion_timeout(&r0_held, HZ)) {
-> +			if (torture_must_stop())
-> +				goto out;
-> +		}
-> +
-> +		/* P2: launch sync; confirm waiter enqueued. */
-> +		t_sync_start = ktime_get_ns();
-> +		atomic_inc(&hot_live_syncs);
-> +		sync_task = kthread_run(hazptr_torture_hot_do_sync, NULL,
-> +					"hot_do_sync");
-> +		if (IS_ERR(sync_task)) {
-> +			atomic_dec(&hot_live_syncs);
-> +			pr_alert("%shot: sync kthread alloc failed r%lu\n",
-> +				 TORTURE_FLAG, round);
-> +			goto skip_round;
-> +		}
-> +		if (!wait_for_completion_timeout(&hot_enqueued, HZ)) {
-> +			pr_alert("%shot: enqueue not confirmed r%lu\n",
-> +				 TORTURE_FLAG, round);
-> +			goto skip_round;
-> +		}
-> +
-> +		/* P3 NEGATIVE CONTROL: sync must still be pending. */
-> +		if (completion_done(&hot_sync_done)) {
-> +			pr_alert("%shot: completed before R0 released r%lu\n",
-> +				 TORTURE_FLAG, round);
-> +			atomic_inc(&n_hazptr_torture_error);
-> +		}
-> +
-> +		/*
-> +		 * LONGHOLD variant: no hammer.  R0 legitimately holds
-> +		 * past the stall timeout; the detector should report
-> +		 * (observation, not interruption), and after release the
-> +		 * sync must drain normally.  Validates that long-lived
-> +		 * references -- an hazptr feature -- do not break the
-> +		 * machinery and are not treated as errors.
-> +		 */
-> +		if (hot_longhold_ms) {
-> +			torture_hrtimeout_ms(hot_longhold_ms, 100, &rand);
-> +			complete(&r0_release);
-> +			done_in_window = wait_for_completion_timeout(
-> +				&hot_sync_done, 5 * HZ);
-> +			if (!done_in_window) {
-> +				pr_alert("%shot: longhold: sync did not drain after release r%lu\n",
-> +					 TORTURE_FLAG, round);
-> +				atomic_inc(&n_hazptr_torture_error);
-> +			}
-> +			atomic_inc(done_in_window ? &n_hot_in_seq
-> +						  : &n_hot_starves);
-> +			positive_done = done_in_window;
-> +			{
-> +				u64 dt = ktime_get_ns() - t_sync_start;
-> +
-> +				atomic_inc(&n_hot_syncs);
-> +				pr_alert("%shot r%lu: longhold drain=%d dt_ns=%llu\n",
-> +					 TORTURE_FLAG, round,
-> +					 !!done_in_window, dt);
-> +			}
-> +			goto skip_round;
-> +		}
-> +
-> +		/* P4: handoff -- hammer holds before R0 releases. */
-> +		WRITE_ONCE(hot_hammer_active, true);
-> +		while (!atomic_read(&hot_hammer_holding) &&
-> +		       !torture_must_stop())
-> +			schedule_timeout_interruptible(1);
-> +		complete(&r0_release);
-> +
-> +		/* P5 HAMMER WINDOW. */
-> +		done_in_window = wait_for_completion_timeout(
-> +			&hot_sync_done, msecs_to_jiffies(hot_hammer_ms));
-> +		if (done_in_window) {
-> +			atomic_inc(&n_hot_in_seq);
-> +		} else {
-> +			atomic_inc(&n_hot_starves);
-> +			if (!starve_expected)
-> +				atomic_inc(&n_hazptr_torture_error);
-> +		}
-> +
-> +		/* P6 POSITIVE CONTROL. */
-> +		WRITE_ONCE(hot_hammer_active, false);
-> +		if (done_in_window) {
-> +			positive_done = 1;
-> +		} else {
-> +			positive_done = wait_for_completion_timeout(
-> +				&hot_sync_done, 5 * HZ);
-> +			if (!positive_done) {
-> +				pr_alert("%shot: positive control timed out r%lu (machinery fault?)\n",
-> +					 TORTURE_FLAG, round);
-> +				atomic_inc(&n_hazptr_torture_error);
-> +			}
-> +		}
-> +
-> +		{
-> +			u64 dt = ktime_get_ns() - t_sync_start;
-> +
-> +			atomic_inc(&n_hot_syncs);
-> +			pr_alert("%shot r%lu: starve=%d in_seq=%d pos=%d dt_ns=%llu\n",
-> +				 TORTURE_FLAG, round, !done_in_window,
-> +				 !!done_in_window, positive_done, dt);
-> +		}
-> +
-> +	skip_round:
-> +		/* Release R0 (harmless if already released) so an
-> +		 * orphan sync from a skipped round can drain. */
-> +		complete(&r0_release);
-> +		/* Drain this round's sync kthread: no completion event
-> +		 * may cross the round boundary. */
-> +		while (atomic_read(&hot_live_syncs) && !torture_must_stop())
-> +			schedule_timeout_interruptible(1);
-> +		/* R0 parks on the gate after its release; the next round
-> +		 * opens the gate and waits for its fresh hold above. */
-> +		round++;
-> +		torture_hrtimeout_ms(500, 200, &rand);
-> +	} while (!torture_must_stop());
-> +out:
-> +	torture_kthread_stopping("hot_stage");
 > +	return 0;
 > +}
 > +
->  static void
->  hazptr_torture_cleanup(void)
->  {
-> @@ -840,6 +1141,34 @@ hazptr_torture_cleanup(void)
->  
->  	torture_stop_kthread(hazptr_torture_do_pending, do_pending_task);
->  	torture_stop_kthread(hazptr_torture_preempt, preempt_task);
-> +	torture_stop_kthread(hazptr_torture_wq_churn, wq_churn_task);
+> +/* If both size and iova are 0, then last = ULONG_MAX will remove everything */
+> +static size_t hv_iommu_del_tree_mappings(struct hv_iommu_domain *hvdom,
+> +					 ulong iova, size_t size)
+> +{
+> +	ulong flags;
+> +	size_t unmapped = 0;
+> +	ulong last = iova + size - 1;
+> +	struct hv_iommu_mapping *mapping = NULL;
+> +	struct interval_tree_node *node, *next;
 > +
-> +	/* Hot scenario: stop hammer readers first so pending syncs drain. */
-> +	if (nhotreaders > 0 || hot_longhold_ms > 0) {
-> +		int wait_ms = 5000;
+> +	spin_lock_irqsave(&hvdom->mappings_lock, flags);
+> +	next = interval_tree_iter_first(&hvdom->mappings_tree, iova, last);
+> +	while (next) {
+> +		node = next;
+> +		mapping = container_of(node, struct hv_iommu_mapping, iova);
+> +		next = interval_tree_iter_next(node, iova, last);
 > +
-> +		WRITE_ONCE(hot_hammer_active, false);
-> +		if (hot_reader_tasks) {
-> +			for (i = 0; i < nhotreaders; i++)
-> +				torture_stop_kthread(hazptr_torture_hot_reader,
-> +						     hot_reader_tasks[i]);
-> +			kfree(hot_reader_tasks);
-> +			hot_reader_tasks = NULL;
-> +		}
-> +		torture_stop_kthread(hazptr_torture_hot_r0, hot_r0_task);
-> +		torture_stop_kthread(hazptr_torture_hot_stage, hot_stage_task);
-> +		/* Wait for any transient sync kthreads to exit so no
-> +		 * module code is executing at unload. */
-> +		while (atomic_read(&hot_live_syncs) && wait_ms > 0) {
-> +			schedule_timeout_uninterruptible(msecs_to_jiffies(50));
-> +			wait_ms -= 50;
-> +		}
-> +		if (atomic_read(&hot_live_syncs))
-> +			pr_alert("%shot: %d sync kthread(s) still alive at exit\n",
-> +				 TORTURE_FLAG, atomic_read(&hot_live_syncs));
-> +		unregister_trace_hazptr_waiter_enqueue(hot_probe_enqueue, NULL);
+> +		/* Splitting of a mapping is not supported at present */
+> +		if (mapping->iova.start < iova)
+> +			break;
+> +
+> +		unmapped += mapping->iova.last - mapping->iova.start + 1;
+> +
+> +		interval_tree_remove(node, &hvdom->mappings_tree);
+> +		kfree(mapping);
 > +	}
+> +	spin_unlock_irqrestore(&hvdom->mappings_lock, flags);
 > +
->  	torture_stop_kthread(hazptr_torture_writer, writer_task);
->  
->  	if (reader_tasks) {
-> @@ -873,6 +1202,8 @@ static int __init hazptr_torture_init(void)
->  	int firsterr = 0;
->  	static struct hazptr_torture_ops *torture_ops[] = { &hazptr_ops, &hazptr_stack_ops, };
->  
-> +	if (!strcmp(torture_type, "none"))
+> +	return unmapped;
+> +}
+> +
+> +/* Create a new device domain in the hypervisor */
+> +static int hv_iommu_create_hyp_devdom(struct hv_iommu_domain *hvdom)
+> +{
+> +	u64 status;
+> +	struct hv_input_device_domain *ddp;
+> +	struct hv_input_create_device_domain *input;
+> +	ulong flags;
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	ddp = &input->device_domain;
+> +	ddp->partition_id = HV_PARTITION_ID_SELF;
+> +	ddp->domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	ddp->domain_id.id = hvdom->domid_num;
+> +
+> +	input->create_device_domain_flags.forward_progress_required = 1;
+> +	input->create_device_domain_flags.inherit_owning_vtl = 0;
+> +
+> +	status = hv_do_hypercall(HVCALL_CREATE_DEVICE_DOMAIN, input, NULL);
+> +
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "\n");
+> +
+> +	return hv_result_to_errno(status);
+> +}
+> +
+> +static struct iommu_domain *hv_iommu_domain_alloc_paging(struct device *dev)
+> +{
+> +	struct hv_iommu_domain *hvdom;
+> +	int rc;
+> +
+> +	if (!dev_is_pci(dev))
+> +		return NULL;
+> +
+> +	hvdom = kzalloc_obj(struct hv_iommu_domain);
+> +	if (hvdom == NULL)
+> +		return ERR_PTR(-ENOMEM);
+> +
+> +	spin_lock_init(&hvdom->mappings_lock);
+> +	hvdom->mappings_tree = RB_ROOT_CACHED;
+> +
+> +	rc = ida_alloc_range(&hv_iommu_domids,
+> +			     HV_DEVICE_DOMAIN_ID_DEFAULT + 1,
+> +			     HV_DEVICE_DOMAIN_ID_NULL - 1, GFP_KERNEL);
+> +	if (rc < 0)
+> +		goto out_err;
+> +
+> +	hvdom->domid_num = rc;
+> +	hvdom->iommu_dom.pgsize_bitmap = HV_IOMMU_PGSIZES;
+> +	hvdom->iommu_dom.geometry.aperture_start = 0;
+> +	hvdom->iommu_dom.geometry.aperture_end = hv_iommu_max_iova;
+> +	hvdom->iommu_dom.geometry.force_aperture = true;
+> +	hvdom->iommu_dom.ops = &hv_paging_domain_ops;
+> +
+> +	rc = hv_iommu_create_hyp_devdom(hvdom);
+> +	if (rc)
+> +		goto out_err1;
+> +
+> +	return &hvdom->iommu_dom;
+> +
+> +out_err1:
+> +	ida_free(&hv_iommu_domids, hvdom->domid_num);
+> +out_err:
+> +	kfree(hvdom);
+> +	return ERR_PTR(rc);
+> +}
+> +
+> +static void hv_iommu_domain_free(struct iommu_domain *immdom)
+> +{
+> +	ulong flags;
+> +	u64 status;
+> +	struct hv_input_delete_device_domain *input;
+> +	struct hv_input_device_domain *ddp;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +
+> +	/* Cleanup any remaining. 0 for size results in ULONG_MAX as the last */
+> +	hv_iommu_del_tree_mappings(hvdom, 0, 0);
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	ddp = &input->device_domain;
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	ddp->partition_id = HV_PARTITION_ID_SELF;
+> +	ddp->domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	ddp->domain_id.id = hvdom->domid_num;
+> +
+> +	status = hv_do_hypercall(HVCALL_DELETE_DEVICE_DOMAIN, input,
+> +				 NULL);
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "\n");
+> +
+> +	ida_free(&hv_iommu_domids, hvdom->domid_num);
+> +	kfree(hvdom);
+> +}
+> +
+> +/*
+> + * Attach a device to the default domain, or the null domain, or to a domain
+> + * previously created in the hypervisor.
+> + */
+> +static int hv_iommu_att_dev2dom(struct hv_iommu_domain *hvdom,
+> +				struct pci_dev *pdev)
+> +{
+> +	ulong flags;
+> +	u64 status;
+> +	struct hv_input_attach_device_domain *input;
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	/* For null domain, hvdom->domid_num == HV_DEVICE_DOMAIN_ID_NULL */
+> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
+> +	input->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	input->device_domain.domain_id.id = hvdom->domid_num;
+> +
+> +	input->device_id.as_uint64 = hv_build_devid_type_pci(pdev);
+> +
+> +	status = hv_do_hypercall(HVCALL_ATTACH_DEVICE_DOMAIN, input, NULL);
+> +	local_irq_restore(flags);
+> +
+> +	if (hv_result_success(status) ||
+> +	    hv_result(status) == HV_STATUS_DEVICE_ALREADY_IN_DOMAIN)
 > +		return 0;
->  	if (!torture_init_begin(torture_type, verbose))
->  		return -EBUSY;
->  
-> @@ -919,6 +1250,10 @@ static int __init hazptr_torture_init(void)
->  	atomic_set(&n_hazptr_torture_free, 0);
->  	atomic_set(&n_hazptr_torture_error, 0);
->  	atomic_set(&n_hazptr_torture_wq_churn, 0);
-> +	atomic_set(&n_hot_syncs, 0);
-> +	atomic_set(&n_hot_starves, 0);
-> +	atomic_set(&n_hot_in_seq, 0);
-> +	atomic_set(&hot_r0_gate, 0);
->  	for (i = 0; i < HAZPTR_TORTURE_PIPE_LEN + 1; i++)
->  		atomic_set(&hazptr_torture_wcount[i], 0);
->  	for_each_possible_cpu(cpu) {
-> @@ -1004,6 +1339,45 @@ static int __init hazptr_torture_init(void)
->  		if (torture_init_error(firsterr))
->  			goto unwind;
->  	}
-> +	if (nhotreaders > 0 || hot_longhold_ms > 0) {
-> +		int cpu = 0, j;
 > +
-> +		firsterr = register_trace_hazptr_waiter_enqueue(hot_probe_enqueue, NULL);
-> +		if (firsterr) {
-> +			pr_alert("%shot: tracepoint registration failed: %d\n",
-> +				 TORTURE_FLAG, firsterr);
-> +			goto unwind;
-> +		}
+> +	hv_status_err(status, "\n");
+> +	return hv_result_to_errno(status);
+> +}
 > +
-> +		if (nhotreaders > 0) {
-> +			hot_reader_tasks = kcalloc(nhotreaders,
-> +						  sizeof(hot_reader_tasks[0]),
-> +						  GFP_KERNEL);
-> +			if (!hot_reader_tasks) {
-> +				firsterr = -ENOMEM;
-> +				goto unwind;
-> +			}
-> +			for (j = 0; j < nhotreaders; j++) {
-> +				cpu = cpumask_next(cpu % num_online_cpus(),
-> +						   cpu_online_mask);
-> +				if (cpu >= nr_cpu_ids)
-> +					cpu = cpumask_first(cpu_online_mask);
-> +				firsterr = torture_create_kthread(
-> +					hazptr_torture_hot_reader,
-> +					(void *)(long)cpu, hot_reader_tasks[j]);
-> +				if (torture_init_error(firsterr))
-> +					goto unwind;
-> +			}
-> +		}
-> +		firsterr = torture_create_kthread(hazptr_torture_hot_r0, NULL,
-> +						  hot_r0_task);
-> +		if (torture_init_error(firsterr))
-> +			goto unwind;
-> +		firsterr = torture_create_kthread(hazptr_torture_hot_stage,
-> +						  NULL, hot_stage_task);
-> +		if (torture_init_error(firsterr))
-> +			goto unwind;
+> +static int hv_iommu_attach_dev(struct iommu_domain *immdom, struct device *dev,
+> +			       struct iommu_domain *old)
+> +{
+> +	struct pci_dev *pdev;
+> +	int rc;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +
+> +	pdev = to_pci_dev(dev);
+> +
+> +	rc = hv_iommu_att_dev2dom(hvdom, pdev);
+> +	if (rc)
+> +		WARN(1, "Failed to attach pdev:%s\n", pci_name(pdev));
+> +
+> +	return rc;
+> +}
+> +
+> +static u64 hv_iommu_unmap_batch(u32 domid_num, ulong iova, u16 count)
+> +{
+> +	ulong flags;
+> +	struct hv_input_unmap_device_gpa_pages *input;
+> +	u64 status;
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
+> +	input->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	input->device_domain.domain_id.id = domid_num;
+> +	input->target_device_va_base = iova;
+> +
+> +	status = hv_do_rep_hypercall(HVCALL_UNMAP_DEVICE_GPA_PAGES, count,
+> +				     0, input, NULL);
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "iova:0x%lx count:0x%x\n", iova, count);
+> +
+> +	return status;
+> +}
+> +
+> +static size_t hv_iommu_hyp_unmap_pages(struct iommu_domain *immdom, ulong iova,
+> +				       size_t size)
+> +{
+> +	u64 status;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +	size_t tot_done = 0;
+> +	ulong npages = size >> HV_HYP_PAGE_SHIFT;
+> +
+> +	while (npages) {
+> +		int done, count = min(npages, HV_REP_COUNT_MAX);
+> +
+> +		status = hv_iommu_unmap_batch(hvdom->domid_num, iova, count);
+> +
+> +		done = hv_repcomp(status);
+> +		tot_done += done;
+> +		npages -= done;
+> +		iova += done << HV_HYP_PAGE_SHIFT;
+> +
+> +		if (!hv_result_success(status))
+> +			break;
 > +	}
->  
->  	torture_init_end();
->  	return 0;
-> diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST b/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST
-> index 90ef09b0e654..b3f6137ce8ab 100644
-> --- a/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST
-> +++ b/tools/testing/selftests/rcutorture/configs/hazptr/CFLIST
-> @@ -6,3 +6,5 @@ SLOWPATH
->  LOCKDEP
->  CPU128
->  CPU256
-> +HOTADDR
-> +LONGHOLD
-> diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/HOTADDR b/tools/testing/selftests/rcutorture/configs/hazptr/HOTADDR
-> new file mode 100644
-> index 000000000000..6f4d6746b63c
-> --- /dev/null
-> +++ b/tools/testing/selftests/rcutorture/configs/hazptr/HOTADDR
-> @@ -0,0 +1,18 @@
-> +CONFIG_SMP=y
-> +CONFIG_NR_CPUS=16
-> +CONFIG_PREEMPT_NONE=n
-> +CONFIG_PREEMPT_VOLUNTARY=n
-> +CONFIG_PREEMPT=y
-> +CONFIG_HZ_PERIODIC=n
-> +CONFIG_NO_HZ_IDLE=y
-> +CONFIG_NO_HZ_FULL=n
-> +CONFIG_HOTPLUG_CPU=y
-> +CONFIG_SUSPEND=n
-> +CONFIG_HIBERNATION=n
-> +CONFIG_PROVE_LOCKING=n
-> +CONFIG_DEBUG_LOCK_ALLOC=n
-> +CONFIG_DEBUG_OBJECTS_RCU_HEAD=n
-> +CONFIG_DEBUG_KERNEL=y
-> +CONFIG_HAZPTR_DEBUG=y
-> +CONFIG_HAZPTR_STALL_DETECTOR=y
-> +CONFIG_HAZPTR_STALL_TIMEOUT=1000
-> diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/HOTADDR.boot b/tools/testing/selftests/rcutorture/configs/hazptr/HOTADDR.boot
-> new file mode 100644
-> index 000000000000..878b588e2e39
-> --- /dev/null
-> +++ b/tools/testing/selftests/rcutorture/configs/hazptr/HOTADDR.boot
-> @@ -0,0 +1 @@
-> +hazptrtorture.nreaders=0 hazptrtorture.nwriters=0 hazptrtorture.nhotreaders=4 hazptrtorture.hot_hold_us=20000 hazptrtorture.starve_expected=1 hazptrtorture.shutdown_secs=20
-> diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/LONGHOLD b/tools/testing/selftests/rcutorture/configs/hazptr/LONGHOLD
-> new file mode 100644
-> index 000000000000..fe293638bbe2
-> --- /dev/null
-> +++ b/tools/testing/selftests/rcutorture/configs/hazptr/LONGHOLD
-> @@ -0,0 +1,18 @@
-> +CONFIG_SMP=y
-> +CONFIG_NR_CPUS=16
-> +CONFIG_PREEMPT_NONE=n
-> +CONFIG_PREEMPT_VOLUNTARY=n
-> +CONFIG_PREEMPT=y
-> +CONFIG_HZ_PERIODIC=n
-> +CONFIG_NO_HZ_IDLE=y
-> +CONFIG_NO_HZ_FULL=n
-> +CONFIG_HOTPLUG_CPU=y
-> +CONFIG_SUSPEND=n
-> +CONFIG_HIBERNATION=n
-> +CONFIG_PROVE_LOCKING=n
-> +CONFIG_DEBUG_LOCK_ALLOC=n
-> +CONFIG_DEBUG_OBJECTS_RCU_HEAD=n
-> +CONFIG_DEBUG_KERNEL=y
-> +CONFIG_HAZPTR_DEBUG=y
-> +CONFIG_HAZPTR_STALL_DETECTOR=y
-> +CONFIG_HAZPTR_STALL_TIMEOUT=2000
-> diff --git a/tools/testing/selftests/rcutorture/configs/hazptr/LONGHOLD.boot b/tools/testing/selftests/rcutorture/configs/hazptr/LONGHOLD.boot
-> new file mode 100644
-> index 000000000000..cbe30b6a09cc
-> --- /dev/null
-> +++ b/tools/testing/selftests/rcutorture/configs/hazptr/LONGHOLD.boot
-> @@ -0,0 +1 @@
-> +hazptrtorture.nreaders=0 hazptrtorture.nwriters=0 hazptrtorture.hot_longhold_ms=8000 hazptrtorture.shutdown_secs=40
-> -- 
-> 2.43.0
-> 
+> +
+> +	return tot_done << HV_HYP_PAGE_SHIFT;
+> +}
+> +
+> +static size_t hv_iommu_unmap_pages(struct iommu_domain *immdom, ulong iova,
+> +				   size_t pgsize, size_t pgcount,
+> +				   struct iommu_iotlb_gather *gather)
+> +{
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +	size_t unmap_sz, size = pgsize * pgcount;
+> +
+> +	/* For valid input, the hypervisor guarantees unmap will succeed */
+> +	unmap_sz = hv_iommu_hyp_unmap_pages(immdom, iova, size);
+> +	if (unmap_sz != size)
+> +		WARN(1, "Failed to unmap device gpa(%lx/%lx)\n", unmap_sz,
+> +		     size);
+> +
+> +	if (unmap_sz == 0)
+> +		return 0;
+> +
+> +	size = hv_iommu_del_tree_mappings(hvdom, iova, unmap_sz);
+> +	if (size != unmap_sz)
+> +		pr_err("%s: could not delete tree mappings (%lx:%lx/%lx)\n",
+> +		       __func__, iova, unmap_sz, size);
+> +
+> +	return size;
+> +}
+> +
+> +/* Return: must return exact status from the hypercall without changes */
+> +static u64 hv_iommu_map_pgs(struct hv_iommu_domain *hvdom, ulong iova,
+> +			    phys_addr_t paddr, ulong npages, u32 map_flags)
+> +{
+> +	u64 status;
+> +	int i;
+> +	struct hv_input_map_device_gpa_pages *input;
+> +	unsigned long flags, pfn;
+> +
+> +	local_irq_save(flags);
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	memset(input, 0, sizeof(*input));
+> +
+> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
+> +	input->device_domain.domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
+> +	input->device_domain.domain_id.id = hvdom->domid_num;
+> +	input->map_flags = map_flags;
+> +	input->target_device_va_base = iova;
+> +
+> +	pfn = paddr >> HV_HYP_PAGE_SHIFT;
+> +	for (i = 0; i < npages; i++, pfn++)
+> +		input->gpa_page_list[i] = pfn;
+> +
+> +	status = hv_do_rep_hypercall(HVCALL_MAP_DEVICE_GPA_PAGES, npages, 0,
+> +				     input, NULL);
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status) && !hv_result_needs_memory(status))
+> +		hv_status_err(status, "npgs:%lx paddr:%llx iova:%lx mf:0x%x\n",
+> +			      npages, paddr, iova, map_flags);
+> +	return status;
+> +}
+> +
+> +#define HV_MAP_DEVICE_GPA_BATCH_SIZE   \
+> +	((HV_HYP_PAGE_SIZE - sizeof(struct hv_input_map_device_gpa_pages)) \
+> +			/ sizeof(u64))
+> +
+> +/* NB: cond_resched() is in vfio_iommu_map() */
+> +static int hv_iommu_map_pages(struct iommu_domain *immdom, ulong iova,
+> +			      phys_addr_t paddr, size_t pgsize, size_t pgcount,
+> +			      int prot, gfp_t gfp, size_t *mapped)
+> +{
+> +	u32 map_flags;
+> +	int ret;
+> +	u64 status = 0;
+> +	ulong npages, sav_iova = iova, done = 0;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +	size_t size = pgsize * pgcount;
+> +
+> +	map_flags = HV_MAP_GPA_READABLE;	/* required */
+> +	map_flags |= prot & IOMMU_WRITE ? HV_MAP_GPA_WRITABLE : 0;
+> +
+> +	ret = hv_iommu_add_tree_mapping(hvdom, iova, paddr, size, map_flags,
+> +					gfp);
+> +	if (ret)
+> +		return ret;
+> +
+> +	npages = size >> HV_HYP_PAGE_SHIFT;
+> +	while (done < npages) {
+> +		ulong completed, remain = npages - done;
+> +
+> +		remain = min(remain, HV_MAP_DEVICE_GPA_BATCH_SIZE);
+> +
+> +		status = hv_iommu_map_pgs(hvdom, iova, paddr, remain,
+> +					  map_flags);
+> +
+> +		completed = hv_repcomp(status);
+> +		done = done + completed;
+> +		iova = iova + (completed << HV_HYP_PAGE_SHIFT);
+> +		paddr = paddr + (completed << HV_HYP_PAGE_SHIFT);
+> +
+> +		if (hv_result_needs_memory(status)) {
+> +			ret = hv_deposit_memory_gfp(hv_current_partition_id,
+> +						    status, gfp);
+> +			if (ret)
+> +				break;
+> +			continue;
+> +		}
+> +		if (!hv_result_success(status))
+> +			break;
+> +	}
+> +
+> +	if (ret == 0)
+> +		ret = hv_result_to_errno(status);
+> +
+> +	if (hv_result_success(status)) {
+> +		if (mapped)
+> +			*mapped = size;
+> +	} else {
+> +		size_t done_size = done << HV_HYP_PAGE_SHIFT;
+> +
+> +		hv_status_err(status, "pgs:%lx/%lx iova:%lx\n", done, npages,
+> +			      sav_iova);
+> +
+> +		hv_iommu_del_tree_mappings(hvdom, sav_iova, size);
+> +
+> +		/* Hypervisor guarantees unmap will succeed here */
+> +		hv_iommu_hyp_unmap_pages(immdom, sav_iova, done_size);
+> +
+> +		if (mapped)
+> +			*mapped = 0;
+> +	}
+> +
+> +	return ret;
+> +}
+> +
+> +static phys_addr_t hv_iommu_iova_to_phys(struct iommu_domain *immdom,
+> +					 dma_addr_t iova)
+> +{
+> +	unsigned long flags;
+> +	struct hv_iommu_mapping *mapping;
+> +	struct interval_tree_node *node;
+> +	u64 paddr = 0;
+> +	struct hv_iommu_domain *hvdom = to_hv_domain(immdom);
+> +
+> +	spin_lock_irqsave(&hvdom->mappings_lock, flags);
+> +	node = interval_tree_iter_first(&hvdom->mappings_tree, iova, iova);
+> +	if (node) {
+> +		mapping = container_of(node, struct hv_iommu_mapping, iova);
+> +		paddr = mapping->paddr + (iova - mapping->iova.start);
+> +	}
+> +	spin_unlock_irqrestore(&hvdom->mappings_lock, flags);
+> +
+> +	return paddr;
+> +}
+> +
+> +static struct iommu_device *hv_iommu_probe_device(struct device *dev)
+> +{
+> +	if (!dev_is_pci(dev))
+> +		return ERR_PTR(-ENODEV);
+> +
+> +	return &hv_virt_iommu;
+> +}
+> +
+> +static void hv_iommu_get_resv_regions(struct device *dev,
+> +				      struct list_head *head)
+> +{
+> +	iommu_add_resv_x86_msi_region(head);
+> +}
+> +
+> +static struct iommu_domain_ops hv_paging_domain_ops = {
+> +	.attach_dev = hv_iommu_attach_dev,
+> +	.map_pages = hv_iommu_map_pages,
+> +	.unmap_pages = hv_iommu_unmap_pages,
+> +	.iova_to_phys = hv_iommu_iova_to_phys,
+> +	.free = hv_iommu_domain_free,
+> +};
+> +
+> +static struct iommu_ops hv_iommu_ops = {
+> +	.capable	    = hv_iommu_capable,
+> +	.domain_alloc_paging	= hv_iommu_domain_alloc_paging,
+> +	.probe_device	    = hv_iommu_probe_device,
+> +	.device_group	    = pci_device_group,
+> +	.get_resv_regions   = hv_iommu_get_resv_regions,
+> +	.owner		    = THIS_MODULE,
+> +	.identity_domain    = &hv_def_identity_dom.iommu_dom,
+> +	.blocked_domain     = &hv_def_blocked_dom.iommu_dom,
+> +	.release_domain     = &hv_def_blocked_dom.iommu_dom,
+> +};
+> +
+> +static const struct iommu_domain_ops hv_special_domain_ops = {
+> +	.attach_dev = hv_iommu_attach_dev,
+> +};
+> +
+> +static void __init hv_initialize_special_domains(void)
+> +{
+> +	hv_def_identity_dom.iommu_dom.type = IOMMU_DOMAIN_IDENTITY;
+> +	hv_def_identity_dom.iommu_dom.ops = &hv_special_domain_ops;
+> +	hv_def_identity_dom.iommu_dom.owner = &hv_iommu_ops;
+> +	hv_def_identity_dom.domid_num = HV_DEVICE_DOMAIN_ID_DEFAULT; /* 0 */
+> +
+> +	hv_def_blocked_dom.iommu_dom.type = IOMMU_DOMAIN_BLOCKED;
+> +	hv_def_blocked_dom.iommu_dom.ops = &hv_special_domain_ops;
+> +	hv_def_blocked_dom.iommu_dom.owner = &hv_iommu_ops;
+> +	hv_def_blocked_dom.domid_num = HV_DEVICE_DOMAIN_ID_NULL;    /* INTMAX */
+> +}
+> +
+> +/*
+> + * In general, the hypervisor does not support the capabilities hypercall for
+> + * root partitions, an exception was made for max_iova_width. For IOMMU cap,
+> + * hv_root_iommu_detect() below checks for HV_DEVICE_DOMAIN_AVAILABLE which
+> + * supersedes HV_IOMMU_CAP_PRESENT. As for the pgsize_bitmap cap, see comment
+> + * above HV_IOMMU_PGSIZES.
+> + */
+> +static int hv_iommu_get_caps(struct hv_output_get_iommu_capabilities *caps)
+> +{
+> +	u64 status;
+> +	unsigned long flags;
+> +	struct hv_input_get_iommu_capabilities *input;
+> +	struct hv_output_get_iommu_capabilities *output;
+> +
+> +	local_irq_save(flags);
+> +
+> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	output = *this_cpu_ptr(hyperv_pcpu_output_arg);
+> +	memset(input, 0, sizeof(*input));
+> +	input->partition_id = HV_PARTITION_ID_SELF;
+> +	status = hv_do_hypercall(HVCALL_GET_IOMMU_CAPABILITIES, input, output);
+> +	*caps = *output;
+> +
+> +	local_irq_restore(flags);
+> +
+> +	if (!hv_result_success(status))
+> +		hv_status_err(status, "\n");
+> +
+> +	return hv_result_to_errno(status);
+> +}
+> +
+> +static int __init hv_root_iommu_init(void)
+> +{
+> +	int rc;
+> +	struct iommu_device *iommup = &hv_virt_iommu;
+> +	struct hv_output_get_iommu_capabilities caps;
+> +
+> +	if (!hv_is_hyperv_initialized())
+> +		return -ENODEV;
+> +
+> +	rc = hv_iommu_get_caps(&caps);
+> +	if (rc)
+> +		return rc;
+> +
+> +	hv_iommu_max_iova = DMA_BIT_MASK(caps.max_iova_width);
+> +
+> +	/* This must come before iommu_device_register() because the latter
+> +	 * calls into the hooks.
+> +	 */
+> +	hv_initialize_special_domains();
+> +
+> +	rc = iommu_device_sysfs_add(iommup, NULL, NULL, "%s", "hyperv-iommu");
+> +	if (rc) {
+> +		pr_err("Hyper-V: iommu_device_sysfs_add failed: %d\n", rc);
+> +		return rc;
+> +	}
+> +
+> +	rc = iommu_device_register(iommup, &hv_iommu_ops, NULL);
+> +	if (rc) {
+> +		pr_err("Hyper-V: iommu_device_register failed: %d\n", rc);
+> +		goto err_sysfs_remove;
+> +	}
+> +
+> +	pr_info("Hyper-V IOMMU initialized\n");
+> +
+> +	return 0;
+> +
+> +err_sysfs_remove:
+> +	iommu_device_sysfs_remove(iommup);
+> +	return rc;
+> +}
+> +
+> +void __init hv_root_iommu_detect(void)
+> +{
+> +	if (no_iommu || iommu_detected || hv_l1vh_partition())
+> +		return;
+> +
+> +	/* This is set for root partitions only, it is never set for non-root */
+> +	if (!(ms_hyperv.misc_features & HV_DEVICE_DOMAIN_AVAILABLE))
+> +		return;
+> +
+> +	iommu_detected = 1;
+> +	x86_init.iommu.iommu_init = hv_root_iommu_init;
+> +
+> +	pci_request_acs();
+> +}
+> diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+> index 2584e693d7b3..ad02d6956ae3 100644
+> --- a/include/asm-generic/mshyperv.h
+> +++ b/include/asm-generic/mshyperv.h
+> @@ -28,6 +28,9 @@
+>   
+>   #define VTPM_BASE_ADDRESS 0xfed40000
+>   
+> +#define HV_REP_COUNT_MAX        \
+> +	(HV_HYPERCALL_REP_COMP_MASK >> HV_HYPERCALL_REP_COMP_OFFSET)
+> +
+>   enum hv_partition_type {
+>   	HV_PARTITION_TYPE_GUEST,
+>   	HV_PARTITION_TYPE_ROOT,
+> diff --git a/include/linux/hyperv.h b/include/linux/hyperv.h
+> index e85a1a043eac..8aa752e8c4e1 100644
+> --- a/include/linux/hyperv.h
+> +++ b/include/linux/hyperv.h
+> @@ -1823,4 +1823,10 @@ static inline unsigned long virt_to_hvpfn(void *addr)
+>   #define HVPFN_DOWN(x)	((x) >> HV_HYP_PAGE_SHIFT)
+>   #define page_to_hvpfn(page)	(page_to_pfn(page) * NR_HV_HYP_PAGES_IN_PAGE)
+>   
+> +#ifdef CONFIG_HYPERV_ROOT_IOMMU
+> +void __init hv_root_iommu_detect(void);
+> +#else
+> +static inline void hv_root_iommu_detect(void) { }
+> +#endif /* CONFIG_HYPERV_ROOT_IOMMU */
+> +
+>   #endif /* _HYPERV_H */
+
