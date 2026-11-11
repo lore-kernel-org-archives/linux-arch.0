@@ -1,61 +1,59 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=51.178.41.114
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794410672;
-	b=BXVdGWLd2ukwSO80ZewBQLZfanGMV2WAGyJAQh5hXGBX3Wpk1m59PkOmrEUmOEMEl91V
-	 AQedTS3Up6bx9KH1Cy250vcrRLEr3V25FSZ4lZTSRO+CM5NbKbr6wGTsxi/xuGMpvuP9c
-	 gsUsmE9/5hNo11UWYJv01utm4/1VPr7wZ9Xz9RjWGyM/p3aFBXGZWKgyz9IE2FpC+FS27
-	 Or5TOWEXi4r8n4zew++ubWfHIJrsAgLjArtpxWy3qrk6azBUY7gBmttU2JO9wUWHjpya6
-	 izlXohBRuhbOKEWo25Lgpo5JXocr/IuzyA3T51MfZjj1EzLOsF8LRyY/jWBr/rN0PwQ==
+	t=1794411271;
+	b=lToBvruOVxrRa/a+fLdae+d0TmsQD98YEcHbsMX6lxY2E3ooLpoDR58gjxSoeJ4uPILk
+	 Ah5TG8clQr5D28cbqKOALknFKa6UP02/FJmrRz5UPKcqRY8gEtuDo3UW472UrBgASh0TJ
+	 uQTlmxqzhns26gBxTZsgt+BnbsYUZ8lEiSn5x/3l8QcrN2+h8yKJMd8MzMMLBjFjqN+70
+	 +ov2+AUEqWou7Csr1EJ9A7I1PqWwLcTFx63BcYqnrZWrmxouTcPIN2QwaUkz7AhC+x5JV
+	 O8wyqJK3cixgx+GuZGQoVwuoer2yvYgC5Me/PLsLBk4K4/XrlWGrWr3LrxoUD/NR/qw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794410672;
-	h=DMARC-Filter:DKIM-Signature:Received:Date:From:To:Cc:Subject:
-	 Message-ID:References:MIME-Version:Content-Type:Content-Disposition:
-	 Content-Transfer-Encoding:In-Reply-To;
-	bh=joqpnfazpg45b8CAOPhTIGRk8ga+vSwh/VQww6gpLz8=;
-	b=NWn0gvKyUJ5JVJFK5/2ZyoqicLGU/beQ6ai+1keHxZGiGhMaMae+FXLZLjCNfU3YJdTS
-	 0bajIPxb6NvhOczbSt7kTpxKRllC8Jpva5/QNEsz4A+tKQs1bhlpycwCZtAUtKrinagAM
-	 MuE7qrEJd/PPLJtlwdeiIe/1FmoGch+K/mr8bCYTb9Mz9unJpvfjaF3dSI0tfYSF+iuWx
-	 dQCWsXonFzk6Bm6aGciOqkPdPlllAnpPzCnLi1VDJVf6/48e0MAwAHSUb+TilDOaKqZiE
-	 31UcKni+eLf5dAAm4KJOJm6rewDon9nst7VvhBanlcM3+1uJDgOTTRnb6o5kB4nQJDQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794411271;
+	h=DMARC-Filter:DKIM-Signature:Received:From:To:Cc:Subject:Date:
+	 Message-ID:X-Mailer:MIME-Version:Content-Transfer-Encoding;
+	bh=MC35NwvYHbQmTMFdIYuy0TI1TVZGM/Iyjc/cBErfQM4=;
+	b=IeO24YXFpv1TpVTNP5G26ubEX76qYW6TkuYf6M13QzVBXW5HQleMEHBS6FubilwN8RUZ
+	 QbI7wDAP+Y7rz/34LgU8rWCcVTliXui0g+Obi8odoDBmrgNPCdJclINas9oGHzej2A3LH
+	 +dfwRkLWiFX31HA+1RRIXbnuxE+AtneA5nyQneNg7sK3TbnJlOlH86TcwxY3KjIlNuK8i
+	 YAn6NcarPbugKgjUrptC9c5cKpjVWf29diOLQw4fxgXitxOLeWtYtLJ/FMRCekDYF1iCq
+	 K/KeOBXAE70/2tcdDC5Xo6ji8vs3JMb2zAx6wQc+8ULWb9WzV0o07qpphDLfsrGvZXg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=bencteux.fr;
 	spf=pass smtp.mailfrom=bencteux.fr;
-	dkim=pass header.d=bencteux.fr header.i=@bencteux.fr header.a=rsa-sha256 header.s=mail header.b="MCT2UNH/";
+	dkim=pass header.d=bencteux.fr header.i=@bencteux.fr header.a=rsa-sha256 header.s=mail header.b=uI0l03g5;
 	arc=none smtp.remote-ip=51.178.41.114
 Received: from beta.bencteux.fr (114.ip-51-178-41.eu [51.178.41.114])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F206A606A321;
-	Wed, 11 Nov 2026 15:24:30 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org F206A606A321
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16C3E606A321;
+	Wed, 11 Nov 2026 15:34:29 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 16C3E606A321
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=bencteux.fr
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bencteux.fr
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=bencteux.fr header.i=@bencteux.fr header.a=rsa-sha256 header.s=mail header.b=MCT2UNH/
+	dkim=pass (1024-bit key) header.d=bencteux.fr header.i=@bencteux.fr header.a=rsa-sha256 header.s=mail header.b=uI0l03g5
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=bencteux.fr; s=mail;
-	t=1794410489; bh=DQZ/K8C5Xuvonbckgw4rX87bpSwrJG+odV2IIvPcb0I=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=MCT2UNH/sg5PVMBKhGCRYKzj0DbK8bi9cxaj+UiCJk5T7ZWUQL6l1Yu3I+MFALkOq
-	 vtCoOshcPucn5uqwleBzXDCMBqmJRIS2vW6h2449+5xxwGYuP6c9+QEU+t9DxlKwZx
-	 0SVUNx7YDorK5WQULnj6h+AVLc1xIf0cjsEFciOY=
+	t=1794411088; bh=gXW8SyVARUoohB2SsNyiHx3TvB4I/8N9VeiFAUqba0w=;
+	h=From:To:Cc:Subject:Date:From;
+	b=uI0l03g5k++BJxlUcQmhttMm2ydWQ/DRfvZB0v8KvXsKf6jX3Jesx6NkQw0ehPiME
+	 7lPZPBBaaU+ACrAmw04wR64q5e4Xgceh1tfxvc16OBSSqM6vOwl7OYSY4hSoiKa10M
+	 Zur8SkpovVpvPitlnNfVBQYnxgKPWnFdG83KrJ+Y=
 Received: from localhost (unknown [146.70.188.209])
-	by beta.bencteux.fr (Postfix) with ESMTPSA id 33BBF4029F;
-	Wed, 11 Nov 2026 16:21:29 +0100 (CET)
-Date: Wed, 11 Nov 2026 16:12:05 +0100
+	by beta.bencteux.fr (Postfix) with ESMTPSA id B654C4029F;
+	Wed, 11 Nov 2026 16:31:28 +0100 (CET)
 From: Jeffrey Bencteux <jeff@bencteux.fr>
-To: Ricardo Robaina <rrobaina@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Paul Moore <paul@paul-moore.com>,
-	Eric Paris <eparis@redhat.com>, audit@vger.kernel.org,
-	Linux-Arch <linux-arch@vger.kernel.org>,
-	linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] audit: add missing syscalls to signal class
-Message-ID: <avSFxQDmHlxNhrJ7@ultrabook.localdomain>
-References: <20261111110200.30415-1-jeff@bencteux.fr>
- <e817126f-83b7-4450-a893-ac4e59460ae1@app.fastmail.com>
- <avRzKRB2f_dP-xEv@ultrabook.localdomain>
- <6f26e8fd-6198-4c2c-9702-3b7b8dc73f7c@app.fastmail.com>
- <CAABTaaCAhp7n-yNLMPoyJ6=uYaLjkA82KT0CTG4MGfKHdjMvDQ@mail.gmail.com>
+To: paul@paul-moore.com,
+	eparis@redhat.com,
+	arnd@arndb.de,
+	audit@vger.kernel.org
+Cc: linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	jeff@bencteux.fr,
+	rrobaina@redhat.com
+Subject: [PATCH v2] audit: add missing syscalls to signal class
+Date: Wed, 11 Nov 2026 16:20:51 +0100
+Message-ID: <20261111152057.59798-2-jeff@bencteux.fr>
+X-Mailer: git-send-email 2.56.0
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -65,39 +63,42 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAABTaaCAhp7n-yNLMPoyJ6=uYaLjkA82KT0CTG4MGfKHdjMvDQ@mail.gmail.com>
 
-On Wed, Nov 11, 2026 at 11:50:48AM -0300, Ricardo Robaina wrote:
-> On Wed, Nov 11, 2026 at 11:31 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> >
-> > On Wed, Nov 11, 2026, at 14:52, Jeffrey Bencteux wrote:
-> > > On Wed, Nov 11, 2026 at 12:18:01PM +0100, Arnd Bergmann wrote:
-> > >> Why the #ifdef checks? These should be available on all architectures.
-> > >
-> > > I included them as convention, should they be removed?
-> >
-> > Not sure where the convention comes from, it just seemed
-> > odd that you have the #ifdef checks for the newly added
-> > entries but not the ones that are already in this file.
-> >
-> > I had not checked the other files that have similar ones.
-> >
-> >      Arnd
-> >
-> 
-> Hello everyone!
-> 
-> It's not a convention. Arnd is right, ifdef checks should only be used
-> for the ones that are not available on all architectures.
-> 
-> Jeffrey, please take a look in this commit c0d73c09381e ("audit: add
-> missing syscalls to PERM class tables"). Note that '__NR_statx' is not
-> guarded by a ifdef.
-> 
+The pidfd_send_signal(), rt_sigqueueinfo() and rt_tgsigqueueinfo()
+system calls are missing from the AUDIT_CLASS_SIGNAL* class. It seems
+to be used only in kernel/auditfilter.c to increment the audit_signals
+counter.
 
-Arnd, Ricardo,
+This counter is used to determine if information related to a target
+process of a syscall audit rule using signals, such as its pid,
+should be logged (e54dc2431d740a79a6bd013babade99d71b1714f).
 
-Thanks, it is now clear to me these are always available.
+Information related to signals sent via these system calls are
+currently not correctly logged. The current patch adds it to the
+AUDIT_CLASS_SIGNAL* class.
+
+Signed-off-by: Jeffrey Bencteux <jeff@bencteux.fr>
+---
+Changes in v2:
+- Removal of unneeded #ifdef guards
+
+ include/asm-generic/audit_signal.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/include/asm-generic/audit_signal.h b/include/asm-generic/audit_signal.h
+index 6feab7f18a53..c02edbee3311 100644
+--- a/include/asm-generic/audit_signal.h
++++ b/include/asm-generic/audit_signal.h
+@@ -1,3 +1,6 @@
+ __NR_kill,
+ __NR_tgkill,
+ __NR_tkill,
++__NR_rt_sigqueueinfo,
++__NR_rt_tgsigqueueinfo,
++__NR_pidfd_send_signal,
+
+base-commit: 6614d4c05c7a661a925b3d8dbf9c70faac3bd2da
+-- 
+2.56.0
+
