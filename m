@@ -1,45 +1,112 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.49
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794483049;
-	b=1KKe6ZY9xrzUPhsVSjUePqJt6c8LGBRy8nbculK9w5LosF62rghUIkgy0ZuSnFGwNQnq
-	 HTfbP6IqxY2GSNAh+T8lMy4kHxaIPBrQm8wjN11h2AugHz8lVFeyjW3648ofOMhX+8KzC
-	 +8nsaFcITEkSrybvvCh7vWh+xxDrWfsIiphq3xrOSf6bfFl1uj+gHq5HL7FBfs4Gr/nUj
-	 PWYXAofdH4eh/c3j0At4G7j2gfjtjqq9H913y8FXJ4Ddq4wzSClL22aPefztn9evrEsI5
-	 9xfdRbpC8cpZoHL2i3T4DR0am/6XKsPHWhhd39KOMbiFhHsDl2SFMysnnk3wynbfX/w==
+	t=1794484974;
+	b=XMW/ZD0gZDP7UWOl4L2U1jNUN1gVjDsDLJQ5n1AWe0VOQjrZCFsPc8Yqbvc+PC7Xdd+O
+	 Q08aaDgIMKqfuxJifEF9+Q4FX0H+8ADnJUMhItWcPpgPeJNy/2skTrUUoO6yBT0b6iciz
+	 oD/tM/2NaqxRBCOjSmiELZoXYz09Yt+YMR9p6T5Oo3YValW5Uru5/a5JO26EGwQ+VTs4z
+	 24Hi5VOWpJWYtn14HganXDrk7Yo+PJIAV4x7WcwHGbAdg48yKS1LL4cS6Eid0IDuETE+d
+	 n69mrfFsIhpcbAebM6QnI1k60bZ5wUoJFjQ2mmq2GYu4FNUd34GDoKpg+rjYfkWiyeA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794483049;
-	h=Received:DKIM-Signature:Content-Type:MIME-Version:Message-Id:
-	 In-Reply-To:References:Subject:From:To:Cc:Date;
-	bh=4VQE+wCw+63cnThzXfE5m3Wkr677M0OSU+v7x8jQn64=;
-	b=mE+MlHmWYMuzi9o6bZLL9tMUjz8JnHp3tU0MSTsvKPk4QH78deVI6HhqCvam9KYBivi3
-	 QxrGwrQq1sAuh5OLzy2qYNRMRRXzhvsXp5dXXflPbt4QfcXb6R9mgV4G3swl2opEel58W
-	 6SjJIkwwFPgga3H1yxGDEivnyFIVsTil9APUhg1I0G4n9wrPFJZWQmrRZkGkFfRlaFwM9
-	 6JrA/fipTd1HkfIboxSWztZ1RZWZ2PKOiUxxj6uFhp+DLzl8AY7fnmyimqlhfCUQNv9i8
-	 lT0nHn3OhCqxkxZbnulWlnQEC2FW0QHeg4lk2tUyBAYc42YJmkHSB1bEFdM2M+rTjKQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794484974;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:X-Mailer:
+	 MIME-Version:Content-Type:Content-Transfer-Encoding;
+	bh=f4QOZ/ziloNp1YzjgE4+Apo8LJ81vNJIp5Lxxwu3DGk=;
+	b=geQmX0PXIugoYJ+2nc5VGditcapCap7y2qhBjnTMOxGCSH20eRw7IXz6GMOShOS8nYFH
+	 6kGfUzAostWr3SWAVOIwhbjYXiCkGLY70DT67kAcz4nNFfq5TiJ81DHOXSTwc/x6iIBxB
+	 m3hQ8qaiaTiSAw7Lfk04UAniYmpaPwUoi8LDfLktJfasbVHXsZnE8wHQtyQ6UtF6Nv1FM
+	 ycyCyIYzvjByzAOMAmz6bHE6yrnX0GdWjp82mxuz5RcqwGliNvBtcMhrXygYoiUZzjGAV
+	 BwWLAXBvZzZIDDKap4kkeqdsZLY4PbJhtFJXPOTQvQFvEuOoM+NQ1tH15tpyuxeX7xA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=fail reason="signature verification failed" header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Lv0uE8rD;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b="OCaT3bl/";
+	arc=none smtp.remote-ip=209.85.221.49
+Received: from mail-wr1-f49.google.com (mail-wr1-f49.google.com [209.85.221.49])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BD817606A8BF;
-	Thu, 12 Nov 2026 11:30:49 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0DBC9606A31C
+	for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 12:02:53 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0DBC9606A31C
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Lv0uE8rD
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 758841F00A09;
-	Thu, 12 Nov 2026 11:30:44 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794483049;
-	bh=4VQE+wCw+63cnThzXfE5m3Wkr677M0OSU+v7x8jQn64=;
-	h=In-Reply-To:References:Subject:From:To:Cc:Date;
-	b=Lv0uE8rD32wyRfV5sPXfxmly+/H4WSct6DgNgB+borGLOHQHrPLIX+nDFWq8WIR5a
-	 6AtC7CnbNeLwvde/cSjhKEvSpenf4t0Wu4NTtXot75V8BVGl2rFunUOcGyNsN4UI68
-	 wNERe8a2KaEWMchf+DBb8Bs1DvhulbUFaoAuvnrKGZEac6tb6LCixMCO2ciI45WqCn
-	 5rzApcOojjQxqR7Be5XjATEt71gD58xH7QXIWmI8trxikOKPyX7zLM0t/f/t7TwpTp
-	 molNGWnrHSHxcdMFd0azahw83gPRaA1oGx6MU/a7XQjmmEtHkAo1P+T8dMYcy21pbm
-	 BNy/IJvPTGAsw==
-Content-Type: multipart/mixed; boundary="===============8011434571142281874=="
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=OCaT3bl/
+Received: by mail-wr1-f49.google.com with SMTP id ffacd0b85a97d-492fcbfaa88so2810824f8f.3
+        for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 04:02:53 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20260707; t=1794484972; x=1795089772; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=f4QOZ/ziloNp1YzjgE4+Apo8LJ81vNJIp5Lxxwu3DGk=;
+        b=OCaT3bl/FsF4u2GHgdA2lN1oedkz2/UEv8Oos3RDlLlU8ET813dd9aI1TVGoqLuZI0
+         Cf3c6fY+8VCQcTHGfpyQJzRvmg4AjXLNyDipH4B+F8cQh0G092DJHFljEb4yd7nb1Mjn
+         droxBfrL7V7QF8R72rr74a36DJ1cJRvw1EveftmQL3or0Zyu2flnwWc760kjJdADR9CO
+         KSyBh2h8pY7CqQZCjmg25rtuUuMdf5lIbwhSjgV5kIMkoC9JUSmgEOV4A9Doap3qfC4z
+         FmVB1+f+id7Ei1/YlTCj3XFJrUzCsnYTJB7tF7JVilKonM5SQA9p7pJbSHaP/duFOBWm
+         zeog==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1794484972; x=1795089772;
+        h=content-transfer-encoding:content-type:mime-version:references
+         :in-reply-to:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=f4QOZ/ziloNp1YzjgE4+Apo8LJ81vNJIp5Lxxwu3DGk=;
+        b=CfKRBGtBekmrvgAHU71wFCO1w1ui7a4PRwDxJ35gFyoqgcWc5wYSkgF9xZLJTLqdoI
+         HF0x+TBsLEHZfi5j1ol+bJUze3Xzw2gnxqVEgNFNPB8FfIp1C8XK8j1vK6s6Titu69lE
+         DWlsGC+NObCekHoWFUXmDo4SpVJgjb3t/ggWawzeSvip8n/EsbxQ9kKIwTT9ar1Nd+Ak
+         1+0qebkk9ZQWcTvOijhNOIfMqUkoH8XpBoHRQapKA6yvEyCJfyzW8s54N3qlCBFlKcoz
+         T1HAhG/nq9j8H/JgKQSCozWpt7+ftQ3ZS/7L9+DZpjrWTaBnI983Q693V/1kdLS7hZSt
+         56sw==
+X-Forwarded-Encrypted: i=1; AL+hErGsAxg6yIthvKgRuU0m3oBboH/8/X/d63gUuVFiE8/FF5jTMSwP/O411ZIpIzX9CVIoAK35ZROi5ILV@vger.kernel.org
+X-Gm-Message-State: APuU4Z+NxD8EjrWI5h1tYCcVtYhNisEB+WD7SQRxXCnBs6YDDyzeq0eW
+	LsBP2V2YbD39njFL+uJcp/Czn8jAre4pBtYhyiHeHgcJsWyHwFIWPKeJ
+X-Gm-Gg: AYBFou1b+10UVv6+gIskIuzZVvyPJtxBB6cjkctZ7NKkRd/AGq3YRistchIOPebkZa7
+	06ME2+X4yzeVriw0IbgTMZLs3vedRZ9I3fSuSr7WiesrnUWvLuhZoa0MDD0XMznJtnjQa0UmR1a
+	axpPhOCL0CtKD0mXnZOQHuOn3IVtIy2/OxXM5qmJryxgIy9MlHWPFgGVNoAxm5AInmuwpVJMmCF
+	1gp5mFUJhwOoVhwYCrv2YfVlKX16+cWCgynDPssYza7EIoQ70uOhyICYg2En14DkeIG24Z1uEaz
+	CIaOuq5dpoYtJ83yfBJ8qRqYzfUJu1LV79qIpAxv+Qscs09xFWtgUThj6EDNbZFsyT2gNULVP5H
+	4EyfelvYpa1XpkTMC8/XWhg9UBeeDKCTAVcKtuWXxkc62xJAw3c4eIBMIY+O6Myw97Kmi78Kbe2
+	Fpq9HUqSHCyvPVcq6SXF7B2Gi6m1AOOHtInH1GvcN65YmpCYBaXJfG11hs8u98ybgMkq+0S2jt+
+	vgkm7s75CYVallQ5uX9JkZY7wVB4va7oss0+OpBXfYnGYxGj4mlsdYqDmmDurajAELiMD1hETZi
+	kDzuHREoi0j4UrqvMT8iV+9dU17DwPfNTwDFupnKBgNA8mp8qIUBUwZ2g7+HCBidag==
+X-Received: by 2002:a05:6000:460b:b0:491:1e3f:a427 with SMTP id ffacd0b85a97d-499c898168fmr8711941f8f.42.1794484971757;
+        Thu, 12 Nov 2026 04:02:51 -0800 (PST)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-498367ba82csm16541261f8f.50.2026.11.12.04.02.50
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 12 Nov 2026 04:02:51 -0800 (PST)
+Date: Thu, 12 Nov 2026 12:02:48 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: Yunhui Cui <cuiyunhui@bytedance.com>
+Cc: pjw@kernel.org, palmer@dabbelt.com, aou@eecs.berkeley.edu,
+ alex@ghiti.fr, dennis@kernel.org, tj@kernel.org, cl@gentwo.org,
+ oleg@redhat.com, ast@kernel.org, daniel@iogearbox.net, andrii@kernel.org,
+ eddyz87@gmail.com, memxor@gmail.com, martin.lau@linux.dev, song@kernel.org,
+ yonghong.song@linux.dev, jolsa@kernel.org, emil@etsalapatis.com,
+ ihor.solodrai@linux.dev, bjorn@kernel.org, pulehui@huawei.com,
+ puranjay@kernel.org, broonie@kernel.org, dave@stgolabs.net,
+ jszhang@kernel.org, tglx@kernel.org, conor.dooley@microchip.com,
+ thuth@redhat.com, ajones@ventanamicro.com, ben.dooks@codethink.co.uk,
+ rkrcmar@ventanamicro.com, samuel.holland@sifive.com, zong.li@sifive.com,
+ debug@rivosinc.com, seanwascoding@gmail.com, andybnac@gmail.com,
+ menglong8.dong@gmail.com, cyrilbur@tenstorrent.com,
+ wangruikang@iscas.ac.cn, atishp@rivosinc.com, apatel@ventanamicro.com,
+ arnd@arndb.de, nathan@kernel.org, nick.desaulniers+lkml@gmail.com,
+ morbo@google.com, justinstitt@google.com, qingfang.deng@siflower.com.cn,
+ linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org, bpf@vger.kernel.org, linux-arch@vger.kernel.org,
+ llvm@lists.linux.dev
+Subject: Re: [PATCH v10 2/9] riscv: add infrastructure for preemptible
+ this_cpu operations
+Message-ID: <20261112120248.5c8265e2@pumpkin>
+In-Reply-To: <20261112104149.38589-3-cuiyunhui@bytedance.com>
+References: <20261112104149.38589-1-cuiyunhui@bytedance.com>
+	<20261112104149.38589-3-cuiyunhui@bytedance.com>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -49,57 +116,29 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Message-Id: <9c88485e232da5a503d56c83b14b7765e672fd0c4ccc92686c342cec03c8e350@mail.kernel.org>
-In-Reply-To: <20261112104149.38589-10-cuiyunhui@bytedance.com>
-References: <20261112104149.38589-10-cuiyunhui@bytedance.com>
-Subject: Re: [PATCH v10 9/9] riscv: select HAVE_CMPXCHG_LOCAL
-From: bot+bpf-ci@kernel.org
-To: cuiyunhui@bytedance.com,pjw@kernel.org,palmer@dabbelt.com,aou@eecs.berkeley.edu,alex@ghiti.fr,dennis@kernel.org,tj@kernel.org,cl@gentwo.org,oleg@redhat.com,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,eddyz87@gmail.com,memxor@gmail.com,martin.lau@linux.dev,song@kernel.org,yonghong.song@linux.dev,jolsa@kernel.org,emil@etsalapatis.com,ihor.solodrai@linux.dev,bjorn@kernel.org,pulehui@huawei.com,puranjay@kernel.org,broonie@kernel.org,cuiyunhui@bytedance.com,dave@stgolabs.net,david.laight.linux@gmail.com,jszhang@kernel.org,tglx@kernel.org,conor.dooley@microchip.com,thuth@redhat.com,ajones@ventanamicro.com,ben.dooks@codethink.co.uk,rkrcmar@ventanamicro.com,samuel.holland@sifive.com,zong.li@sifive.com,debug@rivosinc.com,seanwascoding@gmail.com,andybnac@gmail.com,menglong8.dong@gmail.com,cyrilbur@tenstorrent.com,wangruikang@iscas.ac.cn,atishp@rivosinc.com,apatel@ventanamicro.com,arnd@arndb.de,nathan@kernel.org,nick.desaulniers+lkml@gmail.com,morbo@google.com,justinstitt@google.c
- om,qingfang.deng@siflower.com.cn,linux-riscv@lists.infradead.org,linux-kernel@vger.kernel.org,linux-mm@kvack.org,bpf@vger.kernel.org,linux-arch@vger.kernel.org,llvm@lists.linux.dev
-Cc: ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,mason@kernel.org,ihor.solodrai@linux.dev
-Date: Thu, 12 Nov 2026 11:30:44 +0000 (UTC)
-
---===============8011434571142281874==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-> riscv: select HAVE_CMPXCHG_LOCAL
+On Thu, 12 Nov 2026 18:41:42 +0800
+Yunhui Cui <cuiyunhui@bytedance.com> wrote:
 
-TL;DR: Nit only, no runtime problem: selecting HAVE_CMPXCHG_LOCAL on riscv may
-need the cmpxchg-local arch-support.txt feature table updated from TODO to ok
-in the same patch.
+> +/*
+> + * Mark a region where the per-CPU offset and address registers may need to
+> + * be rewritten by exception return after migration.  The three registers
+> + * must remain distinct for the whole region.
+> + */
+> +#define __PCPU_GPRS_BEGIN						\
+> +	__DEFINE_ASM_GPR_NUMS						\
+> +	__PCPU_GPRS_ASSERT_DISTINCT					\
+> +	"li %[off], " __PCPU_GPRS_VALUE "\n"				\
+> +	"sh %[off], %[gprs]\n"						\
+> +	REG_L " %[off], %[pcpu_offset]\n"				\
+> +	"add %[addr], %[pcp], %[off]\n"
+> +
+> +#define __PCPU_GPRS_END							\
+> +	"sh zero, %[gprs]\n"
 
-> diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-> --- a/arch/riscv/Kconfig
-> +++ b/arch/riscv/Kconfig
-> @@ -155,6 +155,7 @@ config RISCV
->  	select HAVE_ARCH_VMAP_STACK if MMU && 64BIT
->  	select HAVE_ASM_MODVERSIONS
->  	select HAVE_BUILDTIME_MCOUNT_SORT
-> +	select HAVE_CMPXCHG_LOCAL
->  	select HAVE_CONTEXT_TRACKING_USER
+Those are quite nasty with all the hidden variable names.
+It wouldn't do any harm to pass the names though.
 
-This isn't a runtime problem, but should the feature table be updated in
-this patch as well?
-
-Documentation/features/locking/cmpxchg-local/arch-support.txt is keyed on
-this Kconfig symbol and still lists riscv as TODO:
-
-    |       riscv: | TODO |
-
-Nothing later in the series changes it.  Other riscv patches that select a
-feature symbol update the matching arch-support.txt in the same commit, for
-example d1f014012571 ("riscv: enable HAVE_IOREMAP_PROT").  LoongArch
-selected the same symbol without updating the table, and it needed a
-follow-up in 0c4c9abbf68b ("Documentation/features: Mark cmpxchg-local as
-supported on loongarch").  Would changing the riscv row to "ok" here keep
-the table accurate?
-
-
----
-AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
-See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
-
-CI run summary: https://github.com/kernel-patches/bpf/actions/runs/43205409812
---===============8011434571142281874==--
+David
