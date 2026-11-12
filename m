@@ -1,83 +1,83 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.170
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.177
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794480169;
-	b=dadsocZExyRYD89JgDEieZEtPn1V5KSzwag6BxMM13XFtPQ50nFfDvGGPA+h0s5moKlI
-	 Bbf8DgL3/txiXyvoh4k2i6qJUcGB0PTOBG0eB7rCc67E7r+yJayH35Sryzyo0j62g4VaL
-	 2BPobNGdgNYp61gdtkY8UL+VRzUNizJ0bbyisgFL+jWAk6/ovsZ0Vr+vIaqG0D3DV5brG
-	 UWrGTj75mi2osm77DbMWq+G4bEinLwZeGCnjck94fBycuaQf/DSRNV0I1U1Aj9t1bM7OS
-	 TFXpPeLazzpJI4omtIpqOdg28UC0sAMgLPWJ8WbiuU5lD0OiWwNLt9uXhT1lIoiINAQ==
+	t=1794480189;
+	b=4qVKQJWYMunJwySi6OzGEqGu0m4hpol6WaPFz0Os+GsajekyHIPNeaVsxOTmIFV5gz84
+	 0xioaS0eCvzLcGe4qFdQFbMQj+x+kcmbVQck//qqGYHrygxWIGjjUbdIm6Nx+ckw37Oku
+	 E/JxZCmHEXKWax/BX5jh3AvqZBAGd3JBKbiMRsGLZJawYKJvEWz54cusZbcSK+l5ZVDKT
+	 Ey5wCv5HZdwLS3yvlLNlKkgU8klFHmvoJDIiy1Iynw5xspp/ZiIixLRsR/1a1IkKy9iYR
+	 ps7YnfOXb+jtiamNozRngaTMeyDKttc5omTNJKNjVXn5iW0X728bkhcCec7l9rx106w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794480169;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794480189;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 From:To:Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:
 	 MIME-Version:Content-Transfer-Encoding;
-	bh=bY5d4/TMcy//z+w9FDGxWLfQayj8V8d4N5emA0503YQ=;
-	b=4QYf6H5pxH/IOmde4hpGB0qvYNdT06Sgsuzyvl1LXWhDgUWH0XOAbwFFXBc4YkVfk/CT
-	 PPwTZpxFDFr4AjWpZCeInrmXUFPotIZsIpxEq2mt1DHFS1/T1EiDVjV1Gl6LjhQxfccok
-	 6qVa/w9JVPF137FAzACbt4HTKHlAkmAHRKo7NShhCrH5L3OTvmkewz1cNexiVcI/NwHet
-	 0A7ZzbHmTiWeEbMhzXXeh/bK+oRxbTu8G5bpIezpZfHMknPAKgT85+1AKXpXY2MGtcxp6
-	 pAsXb2Dn/e+hrZ8qU/ovGbiphcuGPI96lHlHA+Yj/x/uyY7ma3A5uOokaTZhO29shQw==
+	bh=FW2hvTJ6oKMdB56KMNh0AgfhMqiRWnu0NMMSe8aH5CM=;
+	b=wAp7vZutwyBjXc81CCxRlv0vclUi3D83hgU+Hormg5v8YvJaeETPXUqi6piggsKkz2su
+	 0/xmyls9xD8T8Kfi88g3U7iu4fIjU3qUwhD1RSjHyM5mCfPyodAPht1osS1LBObIBnc/T
+	 H2WDSKiKlAjw7YNXr+J7LCF4Dp2+zr9+aRKS/b6BMJI9ugHWfdtlMYJKL/fOqV3vq0na8
+	 TJPjGI2rBbUmfsqyEkd2YXZYnW0mnSBByolig4fuZsH/1/Ofg/P0fA2eMWqehhECVxCZi
+	 lY4Hw6He2PPbSD22ZM7Ivq+62M48ik08llATvfC691Y5cNjJnsOO8xAJ+/sA2BL51ew==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=bytedance.com;
 	spf=pass smtp.mailfrom=bytedance.com;
-	dkim=pass header.d=bytedance.com header.i=@bytedance.com header.a=rsa-sha256 header.s=google header.b=BeDBI5vp;
-	arc=none smtp.remote-ip=74.125.82.170
-Received: from mail-dy1-f170.google.com (mail-dy1-f170.google.com [74.125.82.170])
+	dkim=pass header.d=bytedance.com header.i=@bytedance.com header.a=rsa-sha256 header.s=google header.b=QlSjRHaG;
+	arc=none smtp.remote-ip=74.125.82.177
+Received: from mail-dy1-f177.google.com (mail-dy1-f177.google.com [74.125.82.177])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 68966606A321
-	for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 10:42:48 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 68966606A321
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ACEA5606A31C
+	for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 10:43:08 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org ACEA5606A31C
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.a=rsa-sha256 header.s=google header.b=BeDBI5vp
-Received: by mail-dy1-f170.google.com with SMTP id 5a478bee46e88-3645f0f3fcdso8780151eec.0
-        for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 02:42:48 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.a=rsa-sha256 header.s=google header.b=QlSjRHaG
+Received: by mail-dy1-f177.google.com with SMTP id 5a478bee46e88-36a315ed211so776760eec.0
+        for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 02:43:08 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=bytedance.com; s=google; t=1794480167; x=1795084967; darn=vger.kernel.org;
+        d=bytedance.com; s=google; t=1794480188; x=1795084988; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:from:to:cc:subject:date:message-id
          :reply-to:content-type;
-        bh=bY5d4/TMcy//z+w9FDGxWLfQayj8V8d4N5emA0503YQ=;
-        b=BeDBI5vpqHqe2tBE4hT54OXSafTObxVFlyNgk4WwG9SpCR/kwrJIEV7rZY3sxA4bUs
-         z+VOImfUJJXjIMBz9wrfXrl3TnDf7nSNKeCua2zkuteFyKz1/PMMCk/YGt3Xi9BXd8p7
-         kPpp2XWNeJ8KaoJ12bIEpm5kvUyAkdPudh6i16aoZiZJP2f8M/JzcAS10KLpv+Rlk2Hd
-         JCHTBaWsQ8/cnwFkVmEbAvqnqmxv92i0v5L7Q6rwkGFQl281Z7yMe3vI2y+yp2d/o3o9
-         Az95IAk5T8SReg+hmjjA70rsqUtiYd9n1EU6oUhxeiePaxoPVIGQUwjwUh6cPwAG9Lu8
-         4IIw==
+        bh=FW2hvTJ6oKMdB56KMNh0AgfhMqiRWnu0NMMSe8aH5CM=;
+        b=QlSjRHaGJD5o0xpEIHIB6BSmcYi/SgDD8ozsmOI0SFKhq3ix03F6c3IhMpn+0X6ClR
+         vKin2u5WgHRdkup+hBKDVwSsrETFC+ZCiMdZrLNpcZDnbs5BfNuPElYknIyWACwvm179
+         R2dBDA1lYZiDnHEEzWFuTBiCxIwTKIENCKikLndzxymGoNwwdYvV31xhaFutNkNqR9gE
+         2GFbwdso2DEjDvQp6kkHFUkFTZVWsTSwsub+j9Wl7kVlDV+/Vb/DNnRZ3qQtgqj2MHBF
+         ZstRmJerQCXH7Atnroe+XtbwfXX0csn0yiYZ1xCU0Ge+HUtrJjTDb15/rJsNZ0guVeav
+         aSnw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794480167; x=1795084967;
+        d=1e100.net; s=20260707; t=1794480188; x=1795084988;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:x-gm-gg:x-gm-message-state:from:to
          :cc:subject:date:message-id:reply-to:content-type;
-        bh=bY5d4/TMcy//z+w9FDGxWLfQayj8V8d4N5emA0503YQ=;
-        b=YytEkpc1y+3Ga7TpTW8o/qmMojIlL0t9806yWN0H5Xnjmkzdy+u62w+Ta/FAew1xKQ
-         g9BYiedQR6iqMTkMpK8enKqBRU2/T/bZPeC3YqD0skCo0RalXZJFDz3Z8EOdt+hpmRwG
-         9rNvtjb+mquKCrp6ZHdJES92CI7HEL6zvSZMJa+n/5ZpXotCQc3wRDoFd69/BT2KQMVz
-         hRXQlgHVfFWBalm8Ntm5Oab5OJ3Sv+8ljdrzc8GHYtNAQiUg0E2RRV27+QhmgRO1db56
-         y0TX/ar5eVX7wzL1ISdPwtsJBLIJJbW+3U89g7d9VxhbgopXtyikq8oPN79hNd5gx8Ip
-         CGJg==
-X-Forwarded-Encrypted: i=1; AL+hErFyp4hQw8tq1NuSNNMvqEs8MO4d+/G1RNk/aEBHwiNpLPmgwy/Mi8qLMl6oZmNPVfa0mVuoXpDoNM2j@vger.kernel.org
-X-Gm-Message-State: APuU4Z8eUOYY2pUIFdjVwD8E0Vu8+PKbtvvNplJAzvzbCFmVAZHyQQkA
-	kol2KmabClra5WQ2dYhwnTFu4yMpQmdb97VGc9x8RIdT78/KwlVqHJZLDZ/hhXzZYYY=
-X-Gm-Gg: AYBFou1VTycFbDQ5D9Ezzv/6LpqRrL2yX1a1u1d6Yfiyv6ZdLQzr8l7QauUN8zanD3P
-	n9I6ROJKaoFR5mrzxGe+tVoT/l+3CNu09tB1B6yF+Z8g4p1X1mtlwZfJe1tCew5/LPRwk1kH5uN
-	dL4HMeemsSnpC0WJ+PlWT9MQn2BwLW8+sZrmU7CEYjuF77ifDIt+0zFiAw2hLO1PD77oUIM8zvy
-	FtMmBKB2kytAjUFqeNSCSMkitUQJUQrkkLIbs1W8cb3Vtjuy31zMREpAFbf0SDMPgc6oAT9M8/n
-	vIAQD4gh5+zF27hx7uiFN/BQDonYNfAUIPwTgdX4WU0E7AhFQwPWTVtMZXb6cD2SQUiSYBzpJfR
-	GzKNFl9Za9xrNFxJh6SrAJV8pi4qWP9vx6mu8+ONr0H3ADiFjqoYoQSPP7iDN3z4J6t4FZOAFGu
-	FaCSmG+7RDWGMYcPHR0jKjy9hcXtebB3866gQKU17qt7c5JnWud0xXlIMcmg+CtL1ZXBh9mQjOU
-	dsWyN4acJVotQfAxNMPJIlmpprPnbx3z5pAj0TnVOKJrLZzsZDMz+lhQdyGu0guzUwAq8h/akfL
-	4qbkl+ZsC3R6c4V42DKXPzAEfCGyLICzRKGIIjfL+KVDMTART1/I73Kw9IGx7l5KZL8=
-X-Received: by 2002:a05:7300:2324:b0:36f:350b:3838 with SMTP id 5a478bee46e88-37686278c55mr7595712eec.31.1794480167105;
-        Thu, 12 Nov 2026 02:42:47 -0800 (PST)
+        bh=FW2hvTJ6oKMdB56KMNh0AgfhMqiRWnu0NMMSe8aH5CM=;
+        b=ZbG0sPjEEfI0hDGcfHd1Ub/hLJ1OUkTRK4zkr2+xYhBgfCYWL6uPHSpNQdCAhcCyNn
+         wmS1mBc/Gsny9bsAFsB5yXvbs0RcKYJIupOC+0RJSQqBNrn8r9eQRdapTVa4z+RI/k/8
+         6s6dZI6yjVU261/V+hmohyC8uE0p6zrxALkp9lS7CpaCHnB1+wl2b5FS3DUPvdWGa8yE
+         Cp3pzD+LEI8i1ULjyR100EL/xaL4iRKy5qyyHYj9b/trf7ZsrN61h54bSWvIHtK/sbGA
+         UDeYTmYx57ItJWytjivr+6y/PI0Kkxa6ZYlEwzdT1WZuXBOpss4hvJGNF+h7C2EEXW75
+         S2lQ==
+X-Forwarded-Encrypted: i=1; AL+hErHnjoqehRFqEKEbQeovQ+75NA6DYHiNPynlljYYekL81Vl5A8TMHTag38HeM/zTwgXEz/D8bppuayJ0@vger.kernel.org
+X-Gm-Message-State: APuU4Z+r7eQL3b2cUatpZaWKHg6+M6SLEgWxgoUFSuVE0OxnsOTOylLa
+	HNbH0yTShha49mrQ164bNqQ9pexTe8VyLdPhDubBfjLJBXbYy1uivZx5xcMKPbOb/EU=
+X-Gm-Gg: AYBFou3RyySwTY+V0zDWgjvQRL7DBdiw2dDDkWyDz27/SpJuvvvLCv07UQzlhCH6oxe
+	HDhHALKS76Ve0DC5Q54iYHJsF/QpHglFRY+BJC7RxKtcz91K0xq4VyXhsHDnIcGva/Dvh8bOAOM
+	tTPKkVcxMiqQyb497w6q3hiBZxQGR4iM5XyEsm4zmu7tnQSfKbal/uyuvRzAKoiZv3TlhZDJEBc
+	jjTJ7aQulJNURT0KLglKAywDowcDTIA664khR19TUlYakGVavS6V9gkpy14OMWQvpxyNcHG7ZOs
+	vKKcPLaqsOAYdiKJPbqAZ2cqQYQDhO83O1m/6BdZ1zwwmea2HVrhSeAG4gkifshiU/82uqCxrSP
+	tqO3KEqsxIGT33haXEwt2wt6pToFiNx5444eXi/BpirMyzlR27vpN6Js8RvRCfyOy8OwnQgT9NL
+	fin39S5XK+LA9w7uPzxbEk/1vtKr0V3kJXZf8eBW9615VsJTDxa+tkaLDPiDgLru5jeJVDD+CkT
+	IqPoReYN+CRqCpdoKo9TmDIHoaxkCO6BCm6XP/QXpKAuAJijHoI40fFON1hZ9Z0LhXQEDETsyAV
+	XIXbGbO85yuRSZS6P2+3oKpNV4w/UUv1kvuLcKZU+dVmmjB2hPu7N9T9SbXFkxtHLM8=
+X-Received: by 2002:a05:693c:639a:20b0:358:c5c9:2661 with SMTP id 5a478bee46e88-377dfd840aamr1856019eec.10.1794480187470;
+        Thu, 12 Nov 2026 02:43:07 -0800 (PST)
 Received: from FR9WL0RHKY.bytedance.net ([139.177.225.242])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-3772121e654sm13228694eec.2.2026.11.12.02.42.28
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-3772121e654sm13228694eec.2.2026.11.12.02.42.47
         (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
-        Thu, 12 Nov 2026 02:42:46 -0800 (PST)
+        Thu, 12 Nov 2026 02:43:07 -0800 (PST)
 From: Yunhui Cui <cuiyunhui@bytedance.com>
 To: pjw@kernel.org,
 	palmer@dabbelt.com,
@@ -134,9 +134,9 @@ To: pjw@kernel.org,
 	bpf@vger.kernel.org,
 	linux-arch@vger.kernel.org,
 	llvm@lists.linux.dev
-Subject: [PATCH v10 1/9] riscv: store percpu offset into thread_info
-Date: Thu, 12 Nov 2026 18:41:41 +0800
-Message-Id: <20261112104149.38589-2-cuiyunhui@bytedance.com>
+Subject: [PATCH v10 2/9] riscv: add infrastructure for preemptible this_cpu operations
+Date: Thu, 12 Nov 2026 18:41:42 +0800
+Message-Id: <20261112104149.38589-3-cuiyunhui@bytedance.com>
 X-Mailer: git-send-email 2.39.2 (Apple Git-143)
 In-Reply-To: <20261112104149.38589-1-cuiyunhui@bytedance.com>
 References: <20261112104149.38589-1-cuiyunhui@bytedance.com>
@@ -151,190 +151,274 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-RISC-V currently derives the current per-CPU offset from the CPU number
-and __per_cpu_offset[]. Cache it in thread_info so per-CPU accesses can
-load the offset directly.
+RISC-V does not provide architecture-specific this_cpu operations, so
+read-modify-write operations use generic fallbacks that disable local
+interrupts. Disabling preemption around each architecture-specific
+operation would avoid the interrupt-off region, but would still add
+preemption-count bookkeeping and a reschedule check to the common path.
 
-Initialize the cached offset for the boot and secondary CPUs, and
-propagate it across context switches. Set it before each secondary CPU
-startup, including parallel bringup and CPU hotplug.
+Use the recoverable-GPR scheme employed by arm64 so the operations can
+remain preemptible. Record the registers used for per-CPU address
+generation and repair them on exception return if the task migrated.
 
-Link: https://lists.riscv.org/g/tech-privileged/topic/risc_v_tech_arch_review/113437553?page=2
-Link: https://lore.kernel.org/r/20260826012457.ig3rfmji7vywf6kc@offworld
+Exception entry saves and clears the active state so handlers can use
+per-CPU operations independently. Keep this protocol in common assembly
+macros so NMI-like entry paths which bypass handle_exception, such as SBI
+Supervisor Software Events, can preserve an interrupted operation.
+
+The existing exception return path clears LR/SC reservations, so an
+interrupted LR/SC sequence retries after its saved address is repaired.
+
+Suggested-by: David Laight <david.laight.linux@gmail.com>
+Link: https://lore.kernel.org/r/20261108213254.67805ef0@pumpkin
+Suggested-by: Jisheng Zhang <jszhang@kernel.org>
+Link: https://lore.kernel.org/r/avG07pmpcLGkq5i-@xhacker
 Signed-off-by: Yunhui Cui <cuiyunhui@bytedance.com>
 ---
- arch/riscv/include/asm/asm.h         |  6 +-----
- arch/riscv/include/asm/percpu.h      | 14 ++++++++++++++
- arch/riscv/include/asm/switch_to.h   |  9 +++++++++
- arch/riscv/include/asm/thread_info.h |  3 ++-
- arch/riscv/kernel/asm-offsets.c      |  2 +-
- arch/riscv/kernel/smpboot.c          | 10 +++++++++-
- arch/riscv/net/bpf_jit_comp64.c      |  9 +--------
- 7 files changed, 37 insertions(+), 16 deletions(-)
- create mode 100644 arch/riscv/include/asm/percpu.h
+ arch/riscv/include/asm/asm.h         | 19 ++++++++++++
+ arch/riscv/include/asm/percpu.h      | 43 ++++++++++++++++++++++++++++
+ arch/riscv/include/asm/ptrace.h      | 15 ++++++++++
+ arch/riscv/include/asm/thread_info.h |  1 +
+ arch/riscv/kernel/Makefile           |  1 +
+ arch/riscv/kernel/asm-offsets.c      |  2 ++
+ arch/riscv/kernel/entry-common.c     | 32 +++++++++++++++++++++
+ arch/riscv/kernel/entry.S            | 10 +++++++
+ 8 files changed, 123 insertions(+)
+ create mode 100644 arch/riscv/kernel/entry-common.c
 
 diff --git a/arch/riscv/include/asm/asm.h b/arch/riscv/include/asm/asm.h
-index b8bf842d4c136..06ac38f733b0a 100644
+index 06ac38f733b0a..57af10a936d9b 100644
 --- a/arch/riscv/include/asm/asm.h
 +++ b/arch/riscv/include/asm/asm.h
-@@ -92,11 +92,7 @@
+@@ -81,6 +81,25 @@
  
- #ifdef CONFIG_SMP
- .macro asm_per_cpu dst sym tmp
--	lw    \tmp, TASK_TI_CPU_NUM(tp)
--	slli  \tmp, \tmp, RISCV_LGPTR
--	la    \dst, __per_cpu_offset
--	add   \dst, \dst, \tmp
--	REG_L \tmp, 0(\dst)
-+	REG_L \tmp, TASK_TI_PCPU_OFFSET(tp)
- 	la    \dst, \sym
- 	add   \dst, \dst, \tmp
- .endm
+ /* Common assembly source macros */
+ 
++/*
++ * Save and clear the active per-CPU GPR state on exception entry. Entry
++ * paths which bypass handle_exception, such as SBI Supervisor Software
++ * Events (SSE), must pair this with pcpu_gprs_exit around their handlers.
++ */
++.macro pcpu_gprs_entry tsk regs tmp
++	lhu \tmp, TASK_TI_PCPU_GPRS(\tsk)
++	REG_S \tmp, PT_PCPU_GPRS(\regs)
++	sh zero, TASK_TI_PCPU_GPRS(\tsk)
++.endm
++
++/*
++ * Restore the saved state before resuming the interrupted context. tmp must
++ * contain PT_PCPU_GPRS from the interrupted frame.
++ */
++.macro pcpu_gprs_exit tsk tmp
++	sh \tmp, TASK_TI_PCPU_GPRS(\tsk)
++.endm
++
+ /*
+  * NOP sequence
+  */
 diff --git a/arch/riscv/include/asm/percpu.h b/arch/riscv/include/asm/percpu.h
-new file mode 100644
-index 0000000000000..faf9a75ec66d7
---- /dev/null
+index faf9a75ec66d7..59f7d44f7d3fe 100644
+--- a/arch/riscv/include/asm/percpu.h
 +++ b/arch/riscv/include/asm/percpu.h
-@@ -0,0 +1,14 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
+@@ -3,12 +3,55 @@
+ #ifndef __ASM_PERCPU_H
+ #define __ASM_PERCPU_H
+ 
++#include <linux/bits.h>
++#include <linux/stringify.h>
+ #include <linux/thread_info.h>
+ 
++#include <asm/asm.h>
+ #include <asm/current.h>
++#include <asm/gpr-num.h>
+ 
+ #define __my_cpu_offset (((struct thread_info *)current)->pcpu_offset)
+ 
++#define PCPU_GPR_PCP_SHIFT	0
++#define PCPU_GPR_PCP		GENMASK(4, 0)
++#define PCPU_GPR_OFF_SHIFT	5
++#define PCPU_GPR_OFF		GENMASK(9, 5)
++#define PCPU_GPR_ADDR_SHIFT	10
++#define PCPU_GPR_ADDR		GENMASK(14, 10)
 +
-+#ifndef __ASM_PERCPU_H
-+#define __ASM_PERCPU_H
++#define __PCPU_GPR_NUM(gpr)	".L__gpr_num_" gpr
 +
-+#include <linux/thread_info.h>
++#define __PCPU_GPRS_VALUE						\
++	"("								\
++		"(" __PCPU_GPR_NUM("%[pcp]")  " << " __stringify(PCPU_GPR_PCP_SHIFT) ") | "	\
++		"(" __PCPU_GPR_NUM("%[off]")  " << " __stringify(PCPU_GPR_OFF_SHIFT) ") | "	\
++		"(" __PCPU_GPR_NUM("%[addr]") " << " __stringify(PCPU_GPR_ADDR_SHIFT) ")"	\
++	")"
 +
-+#include <asm/current.h>
++#define __PCPU_GPRS_ASSERT_DISTINCT					\
++	".if ((" __PCPU_GPR_NUM("%[pcp]") " == " __PCPU_GPR_NUM("%[off]") ") || "	\
++	      "(" __PCPU_GPR_NUM("%[pcp]") " == " __PCPU_GPR_NUM("%[addr]") ") || "	\
++	      "(" __PCPU_GPR_NUM("%[off]") " == " __PCPU_GPR_NUM("%[addr]") "))\n"	\
++	".error \"PCPU GPRs overlap\"\n"				\
++	".endif\n"
 +
-+#define __my_cpu_offset (((struct thread_info *)current)->pcpu_offset)
++/*
++ * Mark a region where the per-CPU offset and address registers may need to
++ * be rewritten by exception return after migration.  The three registers
++ * must remain distinct for the whole region.
++ */
++#define __PCPU_GPRS_BEGIN						\
++	__DEFINE_ASM_GPR_NUMS						\
++	__PCPU_GPRS_ASSERT_DISTINCT					\
++	"li %[off], " __PCPU_GPRS_VALUE "\n"				\
++	"sh %[off], %[gprs]\n"						\
++	REG_L " %[off], %[pcpu_offset]\n"				\
++	"add %[addr], %[pcp], %[off]\n"
 +
-+#include <asm-generic/percpu.h>
++#define __PCPU_GPRS_END							\
++	"sh zero, %[gprs]\n"
 +
-+#endif /* __ASM_PERCPU_H */
-diff --git a/arch/riscv/include/asm/switch_to.h b/arch/riscv/include/asm/switch_to.h
-index 123c89b694e87..b4a4d4a44f25d 100644
---- a/arch/riscv/include/asm/switch_to.h
-+++ b/arch/riscv/include/asm/switch_to.h
-@@ -89,6 +89,14 @@ static inline void __switch_to_envcfg(struct task_struct *next)
- 			:: "r" (next->thread.envcfg) : "memory");
+ #include <asm-generic/percpu.h>
+ 
+ #endif /* __ASM_PERCPU_H */
+diff --git a/arch/riscv/include/asm/ptrace.h b/arch/riscv/include/asm/ptrace.h
+index addc8188152f7..ceff8f63bc866 100644
+--- a/arch/riscv/include/asm/ptrace.h
++++ b/arch/riscv/include/asm/ptrace.h
+@@ -53,6 +53,8 @@ struct pt_regs {
+ 	unsigned long cause;
+ 	/* a0 value before the syscall */
+ 	unsigned long orig_a0;
++	/* Active preemptible per-CPU operation, if any. */
++	unsigned long pcpu_gprs;
+ };
+ 
+ #define PTRACE_SYSEMU			0x1f
+@@ -145,6 +147,19 @@ static inline unsigned long regs_get_register(struct pt_regs *regs,
+ 	return *(unsigned long *)((unsigned long)regs + offset);
  }
  
-+static inline void __switch_to_pcpu_offset(struct task_struct *prev,
-+					   struct task_struct *next)
++static inline void regs_set_register(struct pt_regs *regs,
++				     unsigned int offset, unsigned long val)
 +{
-+#ifdef CONFIG_SMP
-+	next->thread_info.pcpu_offset = prev->thread_info.pcpu_offset;
-+#endif
++	if (unlikely(offset > MAX_REG_OFFSET))
++		return;
++
++	/* Register x0 is represented by the first, read-only slot. */
++	if (offset)
++		*(unsigned long *)((unsigned long)regs + offset) = val;
 +}
 +
- extern struct task_struct *__switch_to(struct task_struct *,
- 				       struct task_struct *);
- 
-@@ -125,6 +133,7 @@ do {							\
- 	if (switch_to_should_flush_icache(__next))	\
- 		local_flush_icache_all();		\
- 	__switch_to_envcfg(__next);			\
-+	__switch_to_pcpu_offset(__prev, __next);		\
- 	((last) = __switch_to(__prev, __next));		\
- } while (0)
- 
++void noinstr riscv_pcpu_regs_fixup(struct pt_regs *regs);
++
+ /**
+  * regs_get_kernel_argument() - get Nth function argument in kernel
+  * @regs:       pt_regs of that context
 diff --git a/arch/riscv/include/asm/thread_info.h b/arch/riscv/include/asm/thread_info.h
-index 55019fdfa9eca..f10ba62b61016 100644
+index f10ba62b61016..51c4076763c1b 100644
 --- a/arch/riscv/include/asm/thread_info.h
 +++ b/arch/riscv/include/asm/thread_info.h
-@@ -53,6 +53,7 @@
- struct thread_info {
- 	unsigned long		flags;		/* low level flags */
- 	int                     preempt_count;  /* 0=>preemptible, <0=>BUG */
-+	int			cpu;
- 	/*
- 	 * These stack pointers are overwritten on every system call or
- 	 * exception.  SP is also saved to the stack it can be recovered when
-@@ -60,8 +61,8 @@ struct thread_info {
- 	 */
- 	long			kernel_sp;	/* Kernel stack pointer */
+@@ -63,6 +63,7 @@ struct thread_info {
  	long			user_sp;	/* User stack pointer */
--	int			cpu;
  	unsigned long		syscall_work;	/* SYSCALL_WORK_ flags */
-+	unsigned long		pcpu_offset;
+ 	unsigned long		pcpu_offset;
++	unsigned short		pcpu_gprs;
  #ifdef CONFIG_SHADOW_CALL_STACK
  	void			*scs_base;
  	void			*scs_sp;
+diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
+index f54c336bf547c..bf786d5dd4de3 100644
+--- a/arch/riscv/kernel/Makefile
++++ b/arch/riscv/kernel/Makefile
+@@ -52,6 +52,7 @@ obj-y	+= alternative.o
+ obj-y	+= cpu.o
+ obj-y	+= cpufeature.o
+ obj-y	+= entry.o
++obj-y	+= entry-common.o
+ obj-y	+= irq.o
+ obj-y	+= process.o
+ obj-y	+= ptrace.o
 diff --git a/arch/riscv/kernel/asm-offsets.c b/arch/riscv/kernel/asm-offsets.c
-index a75f0cfea1e9f..f4f7ee976cd94 100644
+index f4f7ee976cd94..38f246a691c60 100644
 --- a/arch/riscv/kernel/asm-offsets.c
 +++ b/arch/riscv/kernel/asm-offsets.c
-@@ -38,6 +38,7 @@ void asm_offsets(void)
- 	OFFSET(TASK_THREAD_SUM, task_struct, thread.sum);
+@@ -39,6 +39,7 @@ void asm_offsets(void)
  
  	OFFSET(TASK_TI_CPU, task_struct, thread_info.cpu);
-+	OFFSET(TASK_TI_PCPU_OFFSET, task_struct, thread_info.pcpu_offset);
+ 	OFFSET(TASK_TI_PCPU_OFFSET, task_struct, thread_info.pcpu_offset);
++	OFFSET(TASK_TI_PCPU_GPRS, task_struct, thread_info.pcpu_gprs);
  	OFFSET(TASK_TI_PREEMPT_COUNT, task_struct, thread_info.preempt_count);
  	OFFSET(TASK_TI_KERNEL_SP, task_struct, thread_info.kernel_sp);
  	OFFSET(TASK_TI_USER_SP, task_struct, thread_info.user_sp);
-@@ -50,7 +51,6 @@ void asm_offsets(void)
- 	OFFSET(TASK_TI_A2, task_struct, thread_info.a2);
- #endif
+@@ -130,6 +131,7 @@ void asm_offsets(void)
+ 	OFFSET(PT_STATUS, pt_regs, status);
+ 	OFFSET(PT_BADADDR, pt_regs, badaddr);
+ 	OFFSET(PT_CAUSE, pt_regs, cause);
++	OFFSET(PT_PCPU_GPRS, pt_regs, pcpu_gprs);
  
--	OFFSET(TASK_TI_CPU_NUM, task_struct, thread_info.cpu);
- #ifdef CONFIG_RISCV_USER_CFI
- 	OFFSET(TASK_TI_CFI_STATE, task_struct, thread_info.user_cfi_state);
- 	OFFSET(TASK_TI_USER_SSP, task_struct, thread_info.user_cfi_state.user_shdw_stk);
-diff --git a/arch/riscv/kernel/smpboot.c b/arch/riscv/kernel/smpboot.c
-index a9de2dae804c6..6431914d21165 100644
---- a/arch/riscv/kernel/smpboot.c
-+++ b/arch/riscv/kernel/smpboot.c
-@@ -175,6 +175,10 @@ void __init setup_smp(void)
+ 	OFFSET(SUSPEND_CONTEXT_REGS, suspend_context, regs);
  
- static int start_secondary_cpu(int cpu, struct task_struct *tidle)
- {
-+	/* The idle task is reused across CPU hotplug. */
-+	tidle->thread_info.cpu = cpu;
-+	tidle->thread_info.pcpu_offset = per_cpu_offset(cpu);
+diff --git a/arch/riscv/kernel/entry-common.c b/arch/riscv/kernel/entry-common.c
+new file mode 100644
+index 0000000000000..023d856b1679b
+--- /dev/null
++++ b/arch/riscv/kernel/entry-common.c
+@@ -0,0 +1,32 @@
++// SPDX-License-Identifier: GPL-2.0-only
 +
- 	if (cpu_ops->cpu_start)
- 		return cpu_ops->cpu_start(cpu, tidle);
- 
-@@ -190,7 +194,6 @@ int arch_cpuhp_kick_ap_alive(unsigned int cpu, struct task_struct *tidle)
- int __cpu_up(unsigned int cpu, struct task_struct *tidle)
- {
- 	int ret;
--	tidle->thread_info.cpu = cpu;
- 
- 	ret = start_secondary_cpu(cpu, tidle);
- 	if (!ret) {
-@@ -208,6 +211,11 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
- }
- #endif
- 
-+void __init smp_prepare_boot_cpu(void)
++#include <linux/bitfield.h>
++#include <linux/compiler.h>
++#include <linux/percpu.h>
++
++#include <asm/current.h>
++#include <asm/ptrace.h>
++
++/*
++ * If the interrupted context had an active per-CPU operation, rewrite its
++ * saved offset and address registers for the CPU on which it will resume.
++ */
++void noinstr riscv_pcpu_regs_fixup(struct pt_regs *regs)
 +{
-+	__my_cpu_offset = per_cpu_offset(smp_processor_id());
-+}
++	unsigned long pcpu_offset = __my_cpu_offset;
++	unsigned long gprs = regs->pcpu_gprs;
++	unsigned long pcp;
++	unsigned int reg_pcp;
++	unsigned int reg_off;
++	unsigned int reg_addr;
 +
- void __init smp_cpus_done(unsigned int max_cpus)
- {
- }
-diff --git a/arch/riscv/net/bpf_jit_comp64.c b/arch/riscv/net/bpf_jit_comp64.c
-index 371405598faa7..fa6ce5613c4d6 100644
---- a/arch/riscv/net/bpf_jit_comp64.c
-+++ b/arch/riscv/net/bpf_jit_comp64.c
-@@ -1466,15 +1466,8 @@ int bpf_jit_emit_insn(const struct bpf_insn *insn, struct rv_jit_context *ctx,
- 			if (rd != rs)
- 				emit_mv(rd, rs, ctx);
- #ifdef CONFIG_SMP
--			/* Load current CPU number in T1 */
--			emit_lw(RV_REG_T1, offsetof(struct thread_info, cpu),
-+			emit_ld(RV_REG_T1, offsetof(struct thread_info, pcpu_offset),
- 				RV_REG_TP, ctx);
--			/* Load address of __per_cpu_offset array in T2 */
--			emit_addr(RV_REG_T2, (u64)&__per_cpu_offset, extra_pass, ctx);
--			/* Get address of __per_cpu_offset[cpu] in T1 */
--			emit_sh3add(RV_REG_T1, RV_REG_T1, RV_REG_T2, ctx);
--			/* Load __per_cpu_offset[cpu] in T1 */
--			emit_ld(RV_REG_T1, 0, RV_REG_T1, ctx);
- 			/* Add the offset to Rd */
- 			emit_add(rd, rd, RV_REG_T1, ctx);
++	reg_pcp = FIELD_GET(PCPU_GPR_PCP, gprs);
++	reg_off = FIELD_GET(PCPU_GPR_OFF, gprs);
++	reg_addr = FIELD_GET(PCPU_GPR_ADDR, gprs);
++
++	/* pt_regs offset zero represents x0, followed by x1 through x31. */
++	pcp = regs_get_register(regs, reg_pcp * sizeof(unsigned long));
++	regs_set_register(regs, reg_off * sizeof(unsigned long), pcpu_offset);
++	regs_set_register(regs, reg_addr * sizeof(unsigned long),
++			  pcp + pcpu_offset);
++}
+diff --git a/arch/riscv/kernel/entry.S b/arch/riscv/kernel/entry.S
+index 628b85e3915a7..65298ac828959 100644
+--- a/arch/riscv/kernel/entry.S
++++ b/arch/riscv/kernel/entry.S
+@@ -198,6 +198,8 @@ SYM_CODE_START(handle_exception)
+ 	REG_S s4, PT_CAUSE(sp)
+ 	REG_S s5, PT_TP(sp)
+ 
++	pcpu_gprs_entry tp sp s0
++
+ 	/*
+ 	 * Set the scratch register to 0, so that if a recursive exception
+ 	 * occurs, the exception vector knows it came from the kernel
+@@ -281,6 +283,14 @@ SYM_CODE_START_NOALIGN(ret_from_exception)
+ 	move a0, sp
+ 	call riscv_v_context_nesting_end
  #endif
++	REG_L t0, PT_PCPU_GPRS(sp)
++	beqz t0, .Lpcpu_regs_restored
++	move a0, sp
++	call riscv_pcpu_regs_fixup
++	REG_L t0, PT_PCPU_GPRS(sp)
++.Lpcpu_regs_restored:
++	pcpu_gprs_exit tp t0
++
+ 	REG_L a0, PT_STATUS(sp)
+ 	restore_userssp s3, a0
+ 	/*
 -- 
 2.39.5
 
