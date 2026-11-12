@@ -1,103 +1,89 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=198.175.65.12
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794458519;
-	b=P62j516bphTA8mffFw6xT+BqdQeqY1knMy274BbZvQAA9IcV/3huXNp+97bCzkBUOdyY
-	 hhq+zaeg0gr3zGL2sdGHSslPpvJMl/GKeRfJc/CsuerVZwyG9A/OaQ6VjNvTzZH7kR+oi
-	 ucT04c0FuMQR0+9z+DWXbJMJZ7LADVXnAhb7TypB/9J7955TRorcS/3gmtcpimcSkmRxo
-	 zD1RFYsdz0rMriBeubwGpfd4rxIZN8oKfRVRvm0uQs6COxkZTR55srj7RuxiGjsgeAnpn
-	 1XY0wfjlvrdk5/+C0DAN7m/RKqNg3zbmmfvkJtugfTDcpDb0SjRZZ1j+k1uOUpnfeVg==
+	t=1794476405;
+	b=38O1/0JD0y/b3cGrhD/w0ixgXHL54ddVlYq3SLiJ8b0zQsbuxL5/sXH0pRsO9f0Y/AWO
+	 nffuFDauq1c4S/0sVKhOrrHjFKd8TVFDSS6opB4pNMqGmlvaa6C30NiKn2iscdQkf2LH5
+	 7uSL0GDHhn1bxjSPLUwf9ea3otKI4Y3I5FR8W8KZLBxlajjRUAeq5xkMrW/H0rsdFN2qv
+	 VU4wZe7gODDcj2I2TjaBI9NKqSfBrZqvCfSAbJI/z1azB6Wo9qiFRvntU3W5eC3YW5wF7
+	 DHWy2U8XiZRXfVaCbizU4WDyCMxPSEcH4QbGuH+dZUIVtvP0aFZMjkCJXcjvuI6ts+g==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794458519;
-	h=DMARC-Filter:DKIM-Signature:X-CSE-ConnectionGUID:X-CSE-MsgGUID:
-	 X-IronPort-AV:X-IronPort-AV:Received:X-CSE-ConnectionGUID:
-	 X-CSE-MsgGUID:X-ExtLoop1:X-IronPort-AV:Received:Date:From:To:Cc:
-	 Subject:Message-ID:References:MIME-Version:Content-Type:
-	 Content-Disposition:In-Reply-To;
-	bh=WBFaXiQf/AiU+Oy/oOiJP2JtXZtaF5fsy5mmLC1bpDA=;
-	b=yPsdt7zcz16YdhwaF/KTXesncmVFRtPrX7gg6HFtoOQj/1Wbjvc3ZV4CiHVKFiCZp3JD
-	 xBER7sz2twa+af2z9tZF67X2nb42MY96tRCqJWxGx7+8PAaNMTVRQZVUvz293gexjonsE
-	 yPM5iQOVY7dzCecVr9K5oCqnA9PnRaKOAQB0qSmvsKucWt1kbH6CRy7qYqQ3Lxx/nwDM5
-	 Hkfti6Fe7aiI8YSgxleJeab3ud8MgcLg/1LiT4Irbj7Kfalv/3SXTW5fk/KeRBiMcLnMF
-	 HdxXK3wR9z6d6Qs/93GjABQji50fU39/Vwzs05gVcm8kjgK5X2MKsQ0WRdmte1x869A==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794476405;
+	h=Received:DKIM-Signature:From:To:Cc:In-Reply-To:References:Subject:
+	 Message-Id:Date:MIME-Version:Content-Type:Content-Transfer-Encoding:
+	 X-Mailer;
+	bh=IfhBgU9bzNjyzCbMLI08qHDpGZfOfIhIVxpnfJz9+gQ=;
+	b=vnvf7V4yKLpYkAJ8AV1sglG+jC4jQ9lRpO0nXIKEGUxyhKnOdzh58/o8jDhdBVtb4ZdX
+	 ghwg3/WpzPi9uLH+0xhqF1t/3xvcSyAfzF8SIlcWGQ/VrmUaRjKjbL6Pd3dtHCH1ioyBU
+	 8behmcXMcujxtQFqxpqTcDbYDd1dTc5LWLsu//UfmzSi4ACiI7Bm6lId/7VTm3SHMEe9O
+	 ZbUiwTvwZIjdu9ADxGrQOnscXd2aQa9vKalNvWu3G/zJcq1A+sKmg81nlbfxQutL7nFW/
+	 QhpiTVYcUtML5007Mc3hxZelTvtRDSyLiDj33HiFSQwolAeLCBlCRBX29luTbWygXYw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=intel.com;
-	spf=pass smtp.mailfrom=intel.com;
-	dkim=pass header.d=intel.com header.i=@intel.com header.a=rsa-sha256 header.s=Intel header.b=j0HYexEU;
-	arc=none smtp.remote-ip=198.175.65.12
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.12])
-	(using TLSv1.2 with cipher ECDHE-ECDSA-AES256-GCM-SHA384 (256/256 bits))
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=VoMrAWhy;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D7D67606A321;
-	Thu, 12 Nov 2026 04:41:58 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org D7D67606A321
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0076B606A321;
+	Thu, 12 Nov 2026 09:40:04 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.a=rsa-sha256 header.s=Intel header.b=j0HYexEU
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1794458519; x=1825994519;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=to9WP0yYAsg2FwMUJoPAJl9KXn//Llym/25xqUG9m3o=;
-  b=j0HYexEUv97gtHZ64HDRAPDkdXQSrCwRqokDMo4PofFUgp0aGVabSlR5
-   FpHoBadUy7O2D3nY9+lMQo1ZDdydZjKs0BcTj5lB1Roe5Xgs1F64/3YDS
-   yLosYWMo7SUad6SxxMCgoq9INuA1fWfIxkEjDt1sfNYlIsgOU2l+BrHMY
-   fc1Z1qFPhRWld1yFH/oYJjmXk9ab+jqrB+Ysb2AExkPWZvhwsMaDKq9qJ
-   rX0aPbqRaHFC9CYZDh8LADPMQArxF3PeRPvDrr7XKtUXG+BZq33cy30Uo
-   XVFzHsBjPstV2oRL82QurujZsRR61qLMuXfm8enXEA//KFeQGj5uip2QA
-   g==;
-X-CSE-ConnectionGUID: b3+iCPGYTza/wsQiD6L7hQ==
-X-CSE-MsgGUID: TZRE5MKMQ0SKpXvuv2osRw==
-X-IronPort-AV: E=McAfee;i="6800,10657,11963"; a="3112117"
-X-IronPort-AV: E=Sophos;i="6.27,209,1787036400"; 
-   d="scan'208";a="3112117"
-Received: from fmviesa013.fm.intel.com ([10.60.135.153])
-  by orvoesa104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 11 Nov 2026 20:41:58 -0800
-X-CSE-ConnectionGUID: +omkRXtHQhGqp8nFWjl2Wg==
-X-CSE-MsgGUID: PkOyTieZTVC7Yy4/j9hDKQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.27,209,1787036400"; 
-   d="scan'208";a="10451688"
-Received: from black.igk.intel.com ([10.91.253.5])
-  by fmviesa013.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 11 Nov 2026 20:41:51 -0800
-Date: Thu, 12 Nov 2026 05:41:48 +0100
-From: Raag Jadav <raag.jadav@intel.com>
-To: Pavel Popov <pavel.e.popov@intel.com>
-Cc: "Rafael J. Wysocki" <rafael@kernel.org>,
-	Viresh Kumar <viresh.kumar@linaro.org>,
-	Jani Nikula <jani.nikula@linux.intel.com>,
-	Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
-	Rodrigo Vivi <rodrigo.vivi@intel.com>,
-	Tvrtko Ursulin <tursulin@ursulin.net>,
-	Alex Deucher <alexander.deucher@amd.com>,
-	Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>,
-	Hans de Goede <hansg@kernel.org>,
-	Ilpo =?iso-8859-1?Q?J=E4rvinen?= <ilpo.jarvinen@linux.intel.com>,
-	Peter Huewe <peterhuewe@gmx.de>,
-	Jarkko Sakkinen <jarkko@kernel.org>,
-	Tom Lendacky <thomas.lendacky@amd.com>,
-	Herbert Xu <herbert@gondor.apana.org.au>,
-	Leon Romanovsky <leon@kernel.org>,
-	Bjorn Helgaas <bhelgaas@google.com>,
-	Logan Gunthorpe <logang@deltatee.com>,
-	Arnd Bergmann <arnd@arndb.de>, Len Brown <lenb@kernel.org>,
-	Sakari Ailus <sakari.ailus@linux.intel.com>,
-	Jason Gunthorpe <jgg@ziepe.ca>, David Airlie <airlied@gmail.com>,
-	Simona Vetter <simona@ffwll.ch>,
-	"David S . Miller" <davem@davemloft.net>, x86@kernel.org,
-	linux-acpi@vger.kernel.org, linux-pm@vger.kernel.org,
-	intel-gfx@lists.freedesktop.org, amd-gfx@lists.freedesktop.org,
-	dri-devel@lists.freedesktop.org,
-	platform-driver-x86@vger.kernel.org,
-	linux-integrity@vger.kernel.org, linux-crypto@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-pci@vger.kernel.org,
-	linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com
-Subject: Re: [PATCH 2/7] drm/i915: Include <asm/cpu_device_id.h>
- unconditionally
-Message-ID: <avVDjIW5jd4rHw11@black.igk.intel.com>
-References: <20261111234821.4814-1-pavel.e.popov@intel.com>
- <20261111234821.4814-3-pavel.e.popov@intel.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=VoMrAWhy
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C635B1F00A05;
+	Thu, 12 Nov 2026 09:39:49 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1794476404;
+	bh=IfhBgU9bzNjyzCbMLI08qHDpGZfOfIhIVxpnfJz9+gQ=;
+	h=From:To:Cc:In-Reply-To:References:Subject:Date;
+	b=VoMrAWhyX9Mu8dmXuJL0tzpqovAGH67dTxFbjd4TxmhmE1/c0FPVOzA9Ic0I2dr8O
+	 R1LEPqRDp5AZW1NtPA3Ct7Mk7SEKbgWIVeFl1BNL5iEUe1bTvUvtWIzoKx+CYUZmQy
+	 GE8NIXtSJJ7ZrGaRM5fNNGKitBWEN5/Q6Tq+JK0378GDgv0YZwNQ5bsIqcTjglpUxq
+	 +rRcWDYtIVXhXlC40Ldkc9s2FE3hdEDpugkRygfnLxQixI1iNmJpEI1jDUtJdy6Kj8
+	 Vw/b/Oo7ZPcLQ5a4p4SUexF7KHm5VqcENXFZHkOCDlVpUBNHuwr/mELTYjRHRonOtj
+	 9U2s9/qqKtsKQ==
+From: David Hildenbrand <david@kernel.org>
+To: Lorenzo Stoakes <ljs@kernel.org>, 
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+ Michal Hocko <mhocko@suse.com>, 
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
+ Andrew Morton <akpm@linux-foundation.org>, Zi Yan <ziy@nvidia.com>, 
+ Baolin Wang <baolin.wang@linux.alibaba.com>, 
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, 
+ Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
+ Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
+ Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
+ Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>, 
+ Gregory Price <gourry@gourry.net>, 
+ Ying Huang <ying.huang@linux.alibaba.com>, 
+ Alistair Popple <apopple@nvidia.com>, Peter Xu <peterx@redhat.com>, 
+ Johannes Weiner <hannes@cmpxchg.org>, Song Liu <songliubraving@fb.com>, 
+ Rik van Riel <riel@surriel.com>, Miklos Szeredi <miklos@szeredi.hu>, 
+ Alexander Viro <viro@zeniv.linux.org.uk>, 
+ Christian Brauner <brauner@kernel.org>, Hugh Dickins <hughd@google.com>, 
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
+ Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
+ Arnd Bergmann <arnd@arndb.de>, Jason Gunthorpe <jgg@ziepe.ca>, 
+ Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>, 
+ Robin Murphy <robin.murphy@arm.com>, 
+ Steve Sistare <steven.sistare@oracle.com>, 
+ John Hubbard <jhubbard@nvidia.com>, 
+ "Jose A. Perez de Azpillaga" <azpijr@gmail.com>, 
+ Josef Bacik <josef@toxicpanda.com>, "David S. Miller" <davem@davemloft.net>, 
+ Eric Dumazet <edumazet@kernel.org>, Jakub Kicinski <kuba@kernel.org>, 
+ Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>, 
+ Neal Cardwell <ncardwell@google.com>, Kuniyuki Iwashima <kuniyu@google.com>, 
+ Linus Torvalds <torvalds@linux-foundation.org>, 
+ "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+ linux-fsdevel@vger.kernel.org, fuse-devel@lists.linux.dev, 
+ linux-arch@vger.kernel.org, iommu@lists.linux.dev, netdev@vger.kernel.org, 
+ Chris Mason <mason@kernel.org>, stable@vger.kernel.org, 
+ Jason Gunthorpe <jgg@ziepe.ca>
+In-Reply-To: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
+References: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
+Subject: Re: (subset) [PATCH v3 0/9] mm: limit pagecache folio refcount
+Message-Id: <179447638951.7244.5228149003624496001.b4-ty@b4>
+Date: Thu, 12 Nov 2026 10:39:49 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -107,51 +93,54 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261111234821.4814-3-pavel.e.popov@intel.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-Mailer: b4 0.16.0
 
-Cc: Andy
+On Tue, 10 Nov 2026 21:35:40 +0100, David Hildenbrand (Arm) wrote:
+> Note: I really would prefer doing something else right now, but this is
+> rather urgent.
+> 
+> Users can create a lot of folio references to pagecache folios, making
+> it possible to overflow the refcount of large folios.
+> 
+> While we knew that one could in theory overflow a folio's refcount, we
+> mostly assumed that bad things would happen and it wouldn't go
+> unnoticed.
+> 
+> [...]
 
-On Wed, Nov 11, 2026 at 04:48:15PM -0700, Pavel Popov wrote:
-> <asm/cpu_device_id.h> now has a generic version, so the #ifdef
-> CONFIG_X86 around the include is no longer needed.
-> 
-> <asm/intel-family.h> is included by <asm/cpu_device_id.h>. The CPU
-> match table still needs CONFIG_X86 for the INTEL_* model defines.
-> 
-> Signed-off-by: Pavel Popov <pavel.e.popov@intel.com>
+Applied, thanks!
 
-Reviewed-by: Raag Jadav <raag.jadav@intel.com>
+tree: mm/core.git
+branch: for-next-fixes
 
-> ---
-> Depends on <asm-generic/cpu_device_id.h> from [1]; please apply after
-> it is in mainline.
-> 
-> [1] https://lore.kernel.org/r/20261111234439.4098-1-pavel.e.popov@intel.com
-> 
->  drivers/gpu/drm/i915/intel_cpu_info.c | 5 ++---
->  1 file changed, 2 insertions(+), 3 deletions(-)
-> 
-> diff --git a/drivers/gpu/drm/i915/intel_cpu_info.c b/drivers/gpu/drm/i915/intel_cpu_info.c
-> index e52d0ac713a..a6b46cc841a 100644
-> --- a/drivers/gpu/drm/i915/intel_cpu_info.c
-> +++ b/drivers/gpu/drm/i915/intel_cpu_info.c
-> @@ -6,12 +6,11 @@
->   * intel_device_info.h by having a separate file.
->   */
->  
-> +#include <asm/cpu_device_id.h>
-> +
->  #include "intel_cpu_info.h"
->  
->  #ifdef CONFIG_X86
-> -#include <asm/cpu_device_id.h>
-> -#include <asm/intel-family.h>
-> -
->  static const struct x86_cpu_id g8_cpu_ids[] = {
->  	X86_MATCH_VFM(INTEL_ALDERLAKE,		NULL),
->  	X86_MATCH_VFM(INTEL_ALDERLAKE_L,	NULL),
-> -- 
-> 2.54.0
-> 
+Applied patches will appear soon in mm-next, followed by linux-next.
+
+Please report any outstanding bugs that were missed during review, so we
+can either drop the patch series or decide how to fix it up.
+
+It is encouraged to provide Acked-bys, Reviewed-bys, and Tested-bys even
+though the patches have already been applied. If possible, patch trailers
+will be updated.
+
+Note that commit hashes shown below are subject to change due to rebase,
+trailer updates or similar. Further, this is not a guarantee that the
+patches will go upstream. If in doubt, please check the listed branch.
+
+[1/9] mm: limit pagecache folio refcount when mapping pages
+      https://git.kernel.org/mm/core/c/61351dc9
+[2/9] mm: limit pagecache folio refcount when splicing into pipes
+      https://git.kernel.org/mm/core/c/0ff9a420
+[3/9] mm/mmu_gather: flush pending references early before the folio limit
+      https://git.kernel.org/mm/core/c/bfbf74ba
+[4/9] iommufd: fix cleanup when adding memfd folio pins fails
+      https://git.kernel.org/mm/core/c/6d0d782f
+[5/9] mm/gup: limit pagecache folio refcount when grabbing references
+      https://git.kernel.org/mm/core/c/6d3ff38d
+
+-- 
+Cheers,
+
+David
+
