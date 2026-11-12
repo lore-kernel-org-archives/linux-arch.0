@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794493914;
-	b=nk6XsJv0RQXl6vKy3B2CBueG3HscdiK3OApOvkAGkTKfwXxWCg0Y+LjaX9AVKlXTC6NU
-	 DN4MSC3whYh63y+L7Dn7D0+n6381tYufVTTRJOEbOh/u/7Q4QRfrEI7M2T8StXOhlmOWE
-	 ihQSTdiIthMfg+9HAU0s7ViqHg2gcefBW2LCrip8UV+nOZrssGECAxJQ4rwOgLu4ZRDSo
-	 stxsljNumN0nrjFht8Eb3luO9a8msFyMWBShEnr0Xw1ANh1tSB90aTVPLmyP8vYJx/WcK
-	 1HuOH7HCOJoYhDlaGJC676uwKYe2Y/UqiyHQo74ELY4l0kR4ua4NI5nBjYYiinLxGnQ==
+	t=1794494062;
+	b=Mq7sltWt1FVbuHMwcVG9I45cs7LJEwvZib/VeIqMu4CR0bCxCE6GLEMFnXnVLmyrs4rU
+	 +Sg9JWlDzWaSPF/T5IlpHGMdld2j4lsrQOTHpCpQfItxC4BlYEhxtf6EX7yNcxbiq6nvt
+	 cTuHJq06O3sQLcV4q+/gT1lUFuJhOzMbUzIuTnUv7/VF6s5JbmsX1IahRlaKVvTrUbdbw
+	 F9PN00MuHN33GwSNYpGsWtZsrQG4LLLZnyYVTqKyoGqaS2PEFWoMbD7dogG1Kd2YjdmnS
+	 aKZGZU2ZEMgrbBOFj5y8rpSCtoKJxoZLUwOenVrE4+3O1PI26+/r8hVM2cdAqb6AIUg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794493914;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794494062;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=qL8uHuX3QnsZ5VDS6Dz7mGSNJ+Qw6vdd/slrMNoAIKA=;
-	b=YJDJihalYIvWXQNLDQn4s3xl5ln/6xMB4DzLQAIA8V8GBKV1CstbqLFWBWtNYEa0Ph2p
-	 TE/n1uNSYmPkAHX//7W/Ea/Pp7ggnbpcJdb5XUIwV9wGcKXiPr37hB3LQ7SCbQL1RRp3V
-	 bvi7ji4QeGpsYY3BCwgMxpRP9wSePbGSl35fbM9fa0R3fwcuJlMWMa7CuiCbcBt16LkPu
-	 eUodpytMD0+cLOs2k6EuhVKF0k3/0uh8uNNMyjCQJX1BCal3wvJt2uM5Wy+gvGVvoREf9
-	 PrIaPiBq8VEz5k+R3joJGjoFA6lfE8HfvRZ21rvoDXnuVWsRmBrqzZlDA9GHhO5LNsA==
+	bh=PLmrGBLIWl1ASvJcUvds5+aGJW/ZT+3+4c5mJcBaLgo=;
+	b=y08iXQbjAb1vIVS4rqGVZI26DS64lIX1kJQvqYyypkGD41uZd7jNgZPWe+MR5oUnaqtd
+	 Bvex0hHztJuaux2gw9S7RXNGNU35lxp8pRA/ZQi/rbWeEBgIwqx5P8PH59p5UZ/Iuvepu
+	 16s+4jS1E3ArumWBuIY3yRiiPQ54Z1bUkHei8lowzYB+K9mCp96MebaHAsENIe6fSyteh
+	 ns46kAWrBW9mloWUCWnHiyR4gdaP0aicrBiOfWPYbJo+ZAnrLKBiQ3nS48xRNS2ybo+kZ
+	 VtmayaqVryKqm+ikD5D2Rm8vDK6WPPJvY4MGXog3ue+mAOBfsCw7roumhNj8wnxG7SA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=GPJGh0mQ;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=SYw+Y5g5;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9F572606A76B;
-	Thu, 12 Nov 2026 14:31:54 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C033E606A323;
+	Thu, 12 Nov 2026 14:34:22 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=GPJGh0mQ
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6ED0B1F00A07;
-	Thu, 12 Nov 2026 14:31:35 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=SYw+Y5g5
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0041F1F00A05;
+	Thu, 12 Nov 2026 14:34:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794493914;
-	bh=qL8uHuX3QnsZ5VDS6Dz7mGSNJ+Qw6vdd/slrMNoAIKA=;
+	s=k20260515; t=1794494062;
+	bh=PLmrGBLIWl1ASvJcUvds5+aGJW/ZT+3+4c5mJcBaLgo=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=GPJGh0mQr0iIywi1xK6YGtM++LzH5gKmiwWRk/EnY73REob9IoY6kKD2kjRit5NuQ
-	 qpCKoyGF5evmVOqDiFdO/iBXzFsGJNLGlbHO3xqyGfKWmUja0mkc+JARlV67F/VS3m
-	 ED8MuOYLsOkzOwLBf6PijVRAwyXOxIrEDHRTccN8Sx/5xthxqNLDxaI+qVDumcKzXu
-	 HH1oLUtanfgtu8dIToH107vmYlhQRsztMYYGF4hLaV0DBLVBZCWZjkRgq/I+0Ad/k0
-	 vZo0ZM0g2a9yHKmcZVucd0nDe9FvVQBR8Be5TI13/KkoP9N6fNDEN3H7l1nZd5V0p4
-	 7FchAVT3ZPcjQ==
-Message-ID: <42373222-8e37-4658-bebd-dd27230a1dfa@kernel.org>
-Date: Thu, 12 Nov 2026 15:31:30 +0100
+	b=SYw+Y5g55tXcxGIospu8+1z27xVvAMZw2tjzdoMxe47TIMe5HetQl4QWdF133IPoA
+	 BqM8lDlHsw+Ml8XhmLUHSapr6iHdcLhIjTdUJnAsn0orTun1eVoTzA3PQtz0ukEGlM
+	 gkpiO6jR4DZ11dTsFVugUmSDuPCALrNu6vTXAHxcJfWtTMEPKDuUqjoS6X1bpUVWmB
+	 UjESldenidkLlsBrJiHX9zhr8BieGqomu7fS6eaZIYy1C+X8Vn/O9JOTTx+pWKPN4I
+	 eUkXXyZ5vaGujt+tbNOF3GL3aNTH7uvj/aDwXpA5WSXEwarSme664SeruGsnDjWeyE
+	 iwKfkLmMrDZDQ==
+Message-ID: <58ea8025-f8ba-4e48-83c1-b17998b80484@kernel.org>
+Date: Thu, 12 Nov 2026 15:33:57 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,8 +52,8 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 2/9] mm: limit pagecache folio refcount when splicing
- into pipes
+Subject: Re: [PATCH v3 5/9] mm/gup: limit pagecache folio refcount when
+ grabbing references
 To: Pedro Falcato <pfalcato@suse.de>
 Cc: Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
  Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
@@ -89,10 +89,8 @@ Cc: Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
  fuse-devel@lists.linux.dev, linux-arch@vger.kernel.org,
  iommu@lists.linux.dev, netdev@vger.kernel.org, stable@vger.kernel.org
 References: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
- <20261110-refcount_overflow_stable-v3-2-318625d63a98@kernel.org>
- <avW3v-oLxcHXXNQD@pedro-suse.tail5790ac.ts.net>
- <4ae22b7a-c160-4003-a029-8a20381d196f@kernel.org>
- <avXFlI_5fhUvFyct@pedro-suse.tail5790ac.ts.net>
+ <20261110-refcount_overflow_stable-v3-5-318625d63a98@kernel.org>
+ <avW7MFzYJJZ0B85d@pedro-suse.tail5790ac.ts.net>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -139,80 +137,34 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <avXFlI_5fhUvFyct@pedro-suse.tail5790ac.ts.net>
+In-Reply-To: <avW7MFzYJJZ0B85d@pedro-suse.tail5790ac.ts.net>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 11/12/26 15:00, Pedro Falcato wrote:
-> On Thu, Nov 12, 2026 at 02:24:09PM +0100, David Hildenbrand (Arm) wrote:
->> On 11/12/26 14:09, Pedro Falcato wrote:
+On 11/12/26 14:12, Pedro Falcato wrote:
+> On Tue, Nov 10, 2026 at 09:35:45PM +0100, David Hildenbrand (Arm) wrote:
+>> Let's add a folio_ref_count_over_limit() check in fast and slow GUP
+>> before acquiring additional references or pins.
 >>
->> [...]
->>>
->>> -EFAULT is a weird error code to return from splice, et al.
+>> Keep it simple and use the check for all folio types.
 >>
->> We might be able to use ETOOMANYREFS (have to check if that could confuse
->> callers), but IMHO EFAULT is good enough.
+>> Also propagate try_grab_folio() errors when grabbing additional
+>> references in __get_user_pages() and in memfd_pin_folios(), so hitting
+>> the limit returns -ENOMEM instead of -EFAULT and -EINVAL, respectively.
 >>
->> What would be your suggestion?
+>> Keep the existing invalid-refcount warnings.
+>>
+>> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
+>> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
+>> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
+>> Cc: stable@vger.kernel.org
+>> Reviewed-by: Jose A. Perez de Azpillaga <azpijr@gmail.com>
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 > 
-> ETOOMANYREFS I think is good, also EBUSY, EMLINK (though this would be weird)
-> or even a generic -EIO.
+> Same points about funny weird inefficiency applies, in any case:
 
-So I used EFAULT because that's also what we currently return when
-generic_pipe_buf_get() fails through pipe_buf_get() in splice_pipe_to_pipe() and
-link_pipe().
-
-If we want to return ETOOMANYREFS we'd likely have to special-case "<= 0" ref
-count and things get more complicated, as we'd have to return two different
-error cases.
-
-And then we'd still have the inconsistency with the above cases.
-
-I'll mention that I do not expect that we can trigger overflows in any
-reasonable setup once we changed the way page table mappings are refcounted.
-
-So for consistency with the existing checks I'd leave it at -EFAULT for now.
-
-> 
->>
->>>
->>> 			return spliced ?: -EFAULT;
->>>
->>> I don't know if there's much kernel code out there doing this, but I like
->>> the trick :)
->>
->> There are a couple of thousands, but yes, one doesn't encounter it that often.
->>
->>>
->>>
->>> I'm confused. Why does this need to be done here?
->>>  
->>
->> I have above:
->>
->> "stop filemap_splice_read() if we only spliced part of a folio, so we don't
->> skip ahead to the next folio"
-> 
-> Yes, but is this a separate fix? A folio could be partially spliced previously
-> as well, no?
-
-I think that wasn't possible because splice_folio_to_pipe() never returned
-early. So it's only possible now once we fail to splice halfway through.
-
-> 
->>
->> Thanks a lot for the review!
-> 
-> You're welcome! :)
-> 
-> FWIW, you can add my
-> 
-> Reviewed-by: Pedro Falcato <pfalcato@suse.de>
-> 
-> to whatever comes out of these nits :)
-
-Thanks! :)
+Yes, thanks. Adding a second function that consumes folio+refcount was easy, so
+I did that in patch #2.
 
 -- 
 Cheers,
