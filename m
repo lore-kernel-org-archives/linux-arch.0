@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794494062;
-	b=Mq7sltWt1FVbuHMwcVG9I45cs7LJEwvZib/VeIqMu4CR0bCxCE6GLEMFnXnVLmyrs4rU
-	 +Sg9JWlDzWaSPF/T5IlpHGMdld2j4lsrQOTHpCpQfItxC4BlYEhxtf6EX7yNcxbiq6nvt
-	 cTuHJq06O3sQLcV4q+/gT1lUFuJhOzMbUzIuTnUv7/VF6s5JbmsX1IahRlaKVvTrUbdbw
-	 F9PN00MuHN33GwSNYpGsWtZsrQG4LLLZnyYVTqKyoGqaS2PEFWoMbD7dogG1Kd2YjdmnS
-	 aKZGZU2ZEMgrbBOFj5y8rpSCtoKJxoZLUwOenVrE4+3O1PI26+/r8hVM2cdAqb6AIUg==
+	t=1794494350;
+	b=syuK/tQ7+IlFIBnLz62ktARKGAJ1Sl39AJxIFVFoh3j2ieW7MCKslLD+WisITRZP/C+x
+	 Gty6aB+6qZDuEfjGdWp678YzKREZtIE04YzdRjOe+QNgixUqTgZPb6Dje78fc9VZjF5BF
+	 g1BkjTekDuOPK3SE4VxEvv1W+JTpwWxLZDxiFlETWeAHebY+9b4X2BHLEimpTsa7F0IZ1
+	 iu/n/cxgIRkZad0IPywu5P6LeRDtYHETaN/gbVcanERojdgZFbLHOL8UH9vvEFT40xtT/
+	 rZir2aaxmKHFJOatCHO3JbRYWvqGhZcmfbVl3l+6YWIjbKWTHRRIeeCpfOqBIc9jc5w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794494062;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794494350;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=PLmrGBLIWl1ASvJcUvds5+aGJW/ZT+3+4c5mJcBaLgo=;
-	b=y08iXQbjAb1vIVS4rqGVZI26DS64lIX1kJQvqYyypkGD41uZd7jNgZPWe+MR5oUnaqtd
-	 Bvex0hHztJuaux2gw9S7RXNGNU35lxp8pRA/ZQi/rbWeEBgIwqx5P8PH59p5UZ/Iuvepu
-	 16s+4jS1E3ArumWBuIY3yRiiPQ54Z1bUkHei8lowzYB+K9mCp96MebaHAsENIe6fSyteh
-	 ns46kAWrBW9mloWUCWnHiyR4gdaP0aicrBiOfWPYbJo+ZAnrLKBiQ3nS48xRNS2ybo+kZ
-	 VtmayaqVryKqm+ikD5D2Rm8vDK6WPPJvY4MGXog3ue+mAOBfsCw7roumhNj8wnxG7SA==
+	bh=JPCGNF/jEMU9xJrqkGIaHxvjMBqA0bWCrPxQL0nBrZo=;
+	b=TCerqJjsusRR8ZdB6binPJzKLS0OOi5839sbGJ9UQIl72/dhcgeIlvkFX9nEAKKJWqyA
+	 OAYHJlS/L9x+arT4ld6xAh7sWyuVkM5xWQUDm/c4nexQFLbJWNub/2BTA9Si8RLGL+Sly
+	 qhnFfHzDWYEVs3gp6x/FSTEqJMtvj+Izl1PkSnSibTBCjDY1x6P7CSQjGAZCEw8pJy9gi
+	 zMvSmdmI4Ps6gyhqRAbIWDjorO68AMuKR3tYday4jSRt2rk26HE6JnqtulUXIEYYdBwtX
+	 LK6uOT2cGJLTmVdwFtGw5hciA/GpmfDnaWfZCpcRuXxIyXpsrWNe1uRlSzmgP1YfDtA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=SYw+Y5g5;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="f8mnD/IJ";
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C033E606A323;
-	Thu, 12 Nov 2026 14:34:22 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EDBE5606A321;
+	Thu, 12 Nov 2026 14:39:09 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=SYw+Y5g5
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0041F1F00A05;
-	Thu, 12 Nov 2026 14:34:02 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=f8mnD/IJ
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 38F651F00A0A;
+	Thu, 12 Nov 2026 14:38:49 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794494062;
-	bh=PLmrGBLIWl1ASvJcUvds5+aGJW/ZT+3+4c5mJcBaLgo=;
+	s=k20260515; t=1794494349;
+	bh=JPCGNF/jEMU9xJrqkGIaHxvjMBqA0bWCrPxQL0nBrZo=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=SYw+Y5g55tXcxGIospu8+1z27xVvAMZw2tjzdoMxe47TIMe5HetQl4QWdF133IPoA
-	 BqM8lDlHsw+Ml8XhmLUHSapr6iHdcLhIjTdUJnAsn0orTun1eVoTzA3PQtz0ukEGlM
-	 gkpiO6jR4DZ11dTsFVugUmSDuPCALrNu6vTXAHxcJfWtTMEPKDuUqjoS6X1bpUVWmB
-	 UjESldenidkLlsBrJiHX9zhr8BieGqomu7fS6eaZIYy1C+X8Vn/O9JOTTx+pWKPN4I
-	 eUkXXyZ5vaGujt+tbNOF3GL3aNTH7uvj/aDwXpA5WSXEwarSme664SeruGsnDjWeyE
-	 iwKfkLmMrDZDQ==
-Message-ID: <58ea8025-f8ba-4e48-83c1-b17998b80484@kernel.org>
-Date: Thu, 12 Nov 2026 15:33:57 +0100
+	b=f8mnD/IJDys4pA4TeVplHqPuVUfXqGCBlqTLjIenB7gApydQVzgQ7FKsApOjymKoG
+	 uoxlhVqbleJeLcQbHt5sG3/YCao8omJde+LI+Zry9Zf+D7eJQ43/cy9LfzDcI/BP6n
+	 59jf7Yk0E6oQ4ndx2WarOOMIOHOscf4lgBvg30XKqlVusvQHhnKQ56hfSOLHFXtqsO
+	 EvolT6DBDg4yO5pVhjYeYQQWWjGT7i8guvwpRcR7e7ysv6z3Wdrle0pzptbwklFN6w
+	 +hGHxd06iIp13iFBvUdxsoi8NV3KZFViRrZXNgUMAuxDnN60aj3/GIZ6wIZUduAG+I
+	 LxvkBDtRNAxDw==
+Message-ID: <1aa2d6a0-0104-4f94-821f-3a8a74636028@kernel.org>
+Date: Thu, 12 Nov 2026 15:38:45 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,8 +52,8 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 5/9] mm/gup: limit pagecache folio refcount when
- grabbing references
+Subject: Re: [PATCH v3 1/9] mm: limit pagecache folio refcount when mapping
+ pages
 To: Pedro Falcato <pfalcato@suse.de>
 Cc: Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
  Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
@@ -87,10 +87,15 @@ Cc: Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
  Linus Torvalds <torvalds@linux-foundation.org>, linux-mm@kvack.org,
  linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
  fuse-devel@lists.linux.dev, linux-arch@vger.kernel.org,
- iommu@lists.linux.dev, netdev@vger.kernel.org, stable@vger.kernel.org
+ iommu@lists.linux.dev, netdev@vger.kernel.org, Chris Mason
+ <mason@kernel.org>, stable@vger.kernel.org
 References: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
- <20261110-refcount_overflow_stable-v3-5-318625d63a98@kernel.org>
- <avW7MFzYJJZ0B85d@pedro-suse.tail5790ac.ts.net>
+ <20261110-refcount_overflow_stable-v3-1-318625d63a98@kernel.org>
+ <avW0HGjF6wuqn12T@pedro-suse.tail5790ac.ts.net>
+ <86206f64-fefa-4a13-95bc-eddf756eecc8@kernel.org>
+ <avXGtysfRk3uQpNu@pedro-suse.tail5790ac.ts.net>
+ <2f9b90fd-fe50-4afa-ab59-0c4a00e5e276@kernel.org>
+ <avXMKH__gwi6BwVy@pedro-suse.tail5790ac.ts.net>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -137,34 +142,38 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <avW7MFzYJJZ0B85d@pedro-suse.tail5790ac.ts.net>
+In-Reply-To: <avXMKH__gwi6BwVy@pedro-suse.tail5790ac.ts.net>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 11/12/26 14:12, Pedro Falcato wrote:
-> On Tue, Nov 10, 2026 at 09:35:45PM +0100, David Hildenbrand (Arm) wrote:
->> Let's add a folio_ref_count_over_limit() check in fast and slow GUP
->> before acquiring additional references or pins.
+On 11/12/26 15:26, Pedro Falcato wrote:
+> On Thu, Nov 12, 2026 at 03:16:00PM +0100, David Hildenbrand (Arm) wrote:
+>> On 11/12/26 15:06, Pedro Falcato wrote:
+>>>
+>>> Alright.
+>>>
+>>>
+>>> Yes. As far as I know, it's always fine, even under NMI. But definitely fine
+>>> with IRQs disabled.
+>>>
+>>>
+>>> I had the impression we had some stuff in-tree that isn't marked as GPL. But a quick
+>>> grep shows that everything is either GPL or dual-licensed.
+>>>
+>>> In any case, yes, this will quite possibly break debug builds for people OOT.
+>>> I think folio_get() might be a bit too ubiquitous to do this to.
 >>
->> Keep it simple and use the check for all folio types.
->>
->> Also propagate try_grab_folio() errors when grabbing additional
->> references in __get_user_pages() and in memfd_pin_folios(), so hitting
->> the limit returns -ENOMEM instead of -EFAULT and -EINVAL, respectively.
->>
->> Keep the existing invalid-refcount warnings.
->>
->> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
->> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
->> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
->> Cc: stable@vger.kernel.org
->> Reviewed-by: Jose A. Perez de Azpillaga <azpijr@gmail.com>
->> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>> Thinking again, folio_get() should not be affected, it rightfully only checks
+>> for a refcount underflow (when we exceed the limit + headroom). So only
+>> try_get_page() is affected, which OOT very likely doesn't use.
 > 
-> Same points about funny weird inefficiency applies, in any case:
+> Aha, yes, you're right. I mixed up your folio_get() change. Would it make sense
+> to VM_WARN_ON() on this as well, or does the <= 0 check cover us already?
 
-Yes, thanks. Adding a second function that consumes folio+refcount was easy, so
-I did that in patch #2.
+<=0 is sufficient for folio_get(). There are valid cases where we can exceed the
+limit into the rather large headroom (e.g., reaching the limit through page
+table mappings, then performing harmless read/write that take bounded references
+for a short time).
 
 -- 
 Cheers,
