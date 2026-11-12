@@ -1,131 +1,100 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=195.135.223.130
-ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794499856;
-	b=bhgmSt9BcIpW+9c1uikiZoul+oRc3Rfv7FgueNCOEXJKx5NMF8bt597x3Ml8LorJNJmA
-	 RNHArY4OEzTXaJFqRRm2UfGT7R16DJmuIrpV/akZ1oz6GwanvpIvIwVIvBP60p2Xf2fwq
-	 9W0IbwBlxU4hKmN3vQkyoq9f8j0NaPw8nDF374/zJYxn03rwjgY46lQvFFaI9tv7lkHbZ
-	 7KOdplYEvtYO5Bxx++TJScotEUaf3+SXy8LyjOy5z8woSBIHhEeEwDVzackphMleprV1q
-	 CrlDpFHdV5MI0s3ZZNGT2ZYyomj1+EkOlP0hfTCftGS1BMl+fjjdSW6TrzR7uE6hJ5g==
-ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794499856;
-	h=DMARC-Filter:Received:DKIM-Signature:DKIM-Signature:DKIM-Signature:
-	 DKIM-Signature:Received:Received:Date:From:To:Cc:Subject:Message-ID:
-	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To:
-	 X-Spamd-Result:X-Spam-Score:X-Spam-Level:X-Spam-Flag;
-	bh=TY1S6pONlaEy8PXrW1EyxT+5Cb+KB7r0xzu7FeRkMVI=;
-	b=IKbdb4Umfcp1PSEVLVdeQNG2qBmle8G2TXWcX4S9UUCyaqbSuZpkx4xCmk6lSY2MN3o2
-	 qXi7tWQt1F5XeraxEQ8QCj0bmj7YE8bkpUWyoRuTuG8Ff/a7wj1RetHf4PFp5/+TCF0hY
-	 EWfZr5LWeHNov1TkkS4XeB4F5S7FiwNcEsuPSICKbHrWfGuCQa0vXL8k4q32yzTxyBwxH
-	 Rlh1Dteej2wDh7xdPZWgzygBdpPDV72vn7e4zv1fcaj3+STy3xhC1EHI0XUBT0sNPJdwN
-	 XLiVw7s117zFl4XrTDBE89aHjt2lH+1+c9Wx4LYDWe9udk2FTOjAeB6BETlhF1CFAjw==
-ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=suse.de;
-	spf=pass smtp.mailfrom=suse.de;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=VmTXplA6;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=nCSh6HC5;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=VmTXplA6;
-	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=nCSh6HC5;
-	arc=none smtp.remote-ip=195.135.223.130
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.128.46
+ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1794501640;
+	b=3+QMoFvlxNpulVxghBV3QRdwQO8UHOOGvLIODpJobYVGtfDBpJz3g7WecHCmJCTyAtSt
+	 cHWz70vQFrFxfUWJU88sBlE0V1UPhuAlAYLQ64/pWZO5lsQ2uh4Qv/L7F08qS4uc0wfJU
+	 Ul8i1YH5u45QqZ/pT3YtBsECHkd8MsKssuFzUCVqMhOJFRwSaiGWFgpjaScrA2kC1qY/x
+	 mgpjaPxVe0KFJVQ5yD7NU+Tuk+odPonNC3B39zy+/O69jcti95rSG3WSdCLyXE3N//N3T
+	 4fayJgtkTAw/q8HG4EyzKMPm3TZzoI3FD7YI0tk7IIG9ROtgSja8J5i8wQrL/ZSp70Q==
+ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794501640;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:
+	 MIME-Version:References:In-Reply-To:From:Date:X-Gm-Features:
+	 Message-ID:Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
+	bh=yDFWnnkId3dZbfuzfoQ+57D2DdgEpJLTTPrFOrVSKi8=;
+	b=tsV5BtCpA4lfq6AZO5ylP6QpPDvjeAxClsppg/fjRFcCGgHosCZtiK7mwskmlHej7Jrx
+	 VbrLbW+ATpfHsGMIDvQHQTY1j/WdbzDVxx4mZT0UheNS7mPf8SUnOBGinVbfE3wZhxkRd
+	 gp1ViVcGBh7863KRl22k4fEOS+0as4y/LjnQ66F+8UnPwn7VmaCxmWW2BBVLZ8ym1IKhC
+	 Go3mqsPy/4RG2QtoJRIc4kx/AI+KYPM9qThEm/olBTAneZH0q+8hdLpMkdPDPk7PrpRbU
+	 CjOoerUdScjsHqmgllWL7CzlZAp1TfEEtR8AKKv0r4TwN3v68IFl/aqv/Qm8d1mZjCA==
+ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=zSTRe6bc;
+	arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.128.46
+Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ADA41606A323;
-	Thu, 12 Nov 2026 16:10:55 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org ADA41606A323
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 613B3606A337
+	for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 16:40:39 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 613B3606A337
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=VmTXplA6;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=nCSh6HC5;
-	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=VmTXplA6;
-	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=nCSh6HC5
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id E595B21F94;
-	Thu, 12 Nov 2026 16:10:53 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1794499853; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=TY1S6pONlaEy8PXrW1EyxT+5Cb+KB7r0xzu7FeRkMVI=;
-	b=VmTXplA6oiq409l1Q8u7Qgt4p69886cSyQzzPQ+YtJM0kaW9AbMPBie11VAtJTRFumr7xa
-	ccBHcDBXf4Dw5mf+p9Ns8XyI80zNFbN8mHlEjK8X+7BOleqSXDENKhhsj++cONKNtCKOO/
-	UKE8Mt4aLjyZ/8g4gE/ytLGkegf6710=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1794499853;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=TY1S6pONlaEy8PXrW1EyxT+5Cb+KB7r0xzu7FeRkMVI=;
-	b=nCSh6HC5G9PTcri4c07C8tEqlSP++XFq6z49AbkySWcUnri5AmuUdcJpMRiT8NlWzG3i7l
-	skLZ8ZekpBADvLBw==
-Authentication-Results: smtp-out1.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1794499853; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=TY1S6pONlaEy8PXrW1EyxT+5Cb+KB7r0xzu7FeRkMVI=;
-	b=VmTXplA6oiq409l1Q8u7Qgt4p69886cSyQzzPQ+YtJM0kaW9AbMPBie11VAtJTRFumr7xa
-	ccBHcDBXf4Dw5mf+p9Ns8XyI80zNFbN8mHlEjK8X+7BOleqSXDENKhhsj++cONKNtCKOO/
-	UKE8Mt4aLjyZ/8g4gE/ytLGkegf6710=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1794499853;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=TY1S6pONlaEy8PXrW1EyxT+5Cb+KB7r0xzu7FeRkMVI=;
-	b=nCSh6HC5G9PTcri4c07C8tEqlSP++XFq6z49AbkySWcUnri5AmuUdcJpMRiT8NlWzG3i7l
-	skLZ8ZekpBADvLBw==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 36FD913432;
-	Thu, 12 Nov 2026 16:10:48 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id 4wFHAQjl9WrTLgAAD6G6ig
-	(envelope-from <pfalcato@suse.de>); Thu, 12 Nov 2026 16:10:48 +0000
-Date: Thu, 12 Nov 2026 16:10:46 +0000
-From: Pedro Falcato <pfalcato@suse.de>
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Lorenzo Stoakes <ljs@kernel.org>, 
-	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, 
-	Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
-	Michal Hocko <mhocko@suse.com>, "Matthew Wilcox (Oracle)" <willy@infradead.org>, 
-	Jan Kara <jack@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, 
-	Zi Yan <ziy@nvidia.com>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
-	Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, 
-	Barry Song <baohua@kernel.org>, Lance Yang <lance.yang@linux.dev>, 
-	Usama Arif <usama.arif@linux.dev>, Kiryl Shutsemau <kas@kernel.org>, 
-	Matthew Brost <matthew.brost@intel.com>, Joshua Hahn <joshua.hahnjy@gmail.com>, 
-	Byungchul Park <byungchul@sk.com>, Gregory Price <gourry@gourry.net>, 
-	Ying Huang <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>, 
-	Peter Xu <peterx@redhat.com>, Johannes Weiner <hannes@cmpxchg.org>, 
-	Song Liu <songliubraving@fb.com>, Rik van Riel <riel@surriel.com>, 
-	Miklos Szeredi <miklos@szeredi.hu>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Christian Brauner <brauner@kernel.org>, Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Jason Gunthorpe <jgg@ziepe.ca>, 
-	Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>, 
-	Robin Murphy <robin.murphy@arm.com>, Steve Sistare <steven.sistare@oracle.com>, 
-	John Hubbard <jhubbard@nvidia.com>, "Jose A. Perez de Azpillaga" <azpijr@gmail.com>, 
-	Josef Bacik <josef@toxicpanda.com>, "David S. Miller" <davem@davemloft.net>, 
-	Eric Dumazet <edumazet@kernel.org>, Jakub Kicinski <kuba@kernel.org>, 
-	Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>, 
-	Neal Cardwell <ncardwell@google.com>, Kuniyuki Iwashima <kuniyu@google.com>, 
-	Linus Torvalds <torvalds@linux-foundation.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
-	linux-fsdevel@vger.kernel.org, fuse-devel@lists.linux.dev, linux-arch@vger.kernel.org, 
-	iommu@lists.linux.dev, netdev@vger.kernel.org, stable@vger.kernel.org
-Subject: Re: [PATCH v3 9/9] RFC: net: limit folio refcount when splicing from
- sockets
-Message-ID: <avXk3dPpE8dNEOi2@pedro-suse.tail5790ac.ts.net>
-References: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
- <20261110-refcount_overflow_stable-v3-9-318625d63a98@kernel.org>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=zSTRe6bc
+Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-4a20bdaf39cso48426845e9.1
+        for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 08:40:39 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1794501638; cv=none;
+        d=google.com; s=arc-20260327;
+        b=fnU05qchVkx39MvcRRC5ubIFXHEDcqL4LP1xCD07bdHx37esQVJfvENQ46COeqGeDX
+         /cE3Osd2qk1dfjn99UmBm7Ug2HCjyl5picjZwtMG3XflhATyCkILq2hQiIHBgz5TmxmH
+         PPf5b/ARNSG3BYqDQ7SiiBzEzrOLPUSK0YFoqdH48xiOqU76rlmng7BMEuytpHXeosaF
+         fU9hv1W8fte7YX50O2pajhTJ8ZyABvN1Wjbu6j/j8C3MJ7zHe94gMLlNU8TTNhNPp+oQ
+         yxn2R97kRZm9VUxD95D9EdvY+tHkkldC+30hjl1D2ZNx4khGVaEW7LC/j5E03m+ehbOH
+         qbgQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=yDFWnnkId3dZbfuzfoQ+57D2DdgEpJLTTPrFOrVSKi8=;
+        fh=pBphBT1MwSfyJFCDJVMD9b92g+n1j0SS7+2lOGhEf5Y=;
+        b=AjGP/dofYSSPmjJvL10VillYrqxbMLnberUaRnB/jhNuZCex1qwfi4FsvENs3/UYy8
+         DJLXxifIpqU4nUuD/VN7ZagEON2rNUc9cDsknWNOy8b8aY0ZGZtfQyRB1IwIQ7br++xb
+         WvGcMFJLh4FMd3EK9vu5iqXyxscPdMXiGdDRam+x3kUH26CMvx7v+Nqg1YEFhA+EkkUO
+         96lSf0V0LAerCBw6fq8VNQoKZ+RsY2Wzpg6ZsQgg28Q7Z8E38DeKb+WipdbN8jGQTzgQ
+         hf5qsupZ0uqTVD93WccwbI3a9FW6gi23bQlk/6fS/A/JqwhR6fZ/zI3LAus3RhEoKtjy
+         cfpg==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20260707; t=1794501638; x=1795106438; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=yDFWnnkId3dZbfuzfoQ+57D2DdgEpJLTTPrFOrVSKi8=;
+        b=zSTRe6bcpEP0F6lRzme7StvyYeoHX4QkB0ipadH2vg/pjnjMLNyV84pDO0l2RsL4H3
+         NiX5YYkTTQo/IbG4eKCM7ptmaQ7zGd87omyitWEWk9Uc22tWQeokvwrzEQNpPng/1/q7
+         6dCDIJplhjRVyLU1DCWjS7MRw508izhA0NS80M8HAyxabXNSFR8WN7lUgm3kFRC8+KaD
+         1XhAMA9Ko6pvCIAMy3pI/Up75av8t8te2PBEBGEp81c2fFIvgWYmvp0hmfWL1IjpwGdM
+         B9+VZv/tm6Qk1JOFPsr5Ff1pp1Irdji+Tv8WvUcoiFhNurMwnW+zyuHax8WBwILRnr8K
+         jDxA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1794501638; x=1795106438;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=yDFWnnkId3dZbfuzfoQ+57D2DdgEpJLTTPrFOrVSKi8=;
+        b=ME1HaVxtvBqJ6hi7T1mq9EJg069SJ4sxGXwOziE9+COOK/zzTwLuFrTcWiZx7Bcoaf
+         9iSr6dQDcfbx+nSHdfq+sRC9HpIB0MlbIxhnuH9hPT27GxwTzcVpSh0AUWzs8Iz6domz
+         yU57tbd7hu8JBa8ScO3Qa5UHLLzGLP1QCaMFSno8nkMYtBqlCGVHBdMsquRcJjP0Kzst
+         uxeHEtt/nie3Og2p8ZvQGbfShRDXQu343mEPIpTm/p/otUq5GFZenhKbogKeCcdcrEL+
+         MUp1Q1ofqnLrXDt6oaZoSc72l/qjlnpV6z03/92Srj5jO97DkF6tmK8X832RfPegHGmy
+         MgTQ==
+X-Forwarded-Encrypted: i=1; AL+hErEXCYMDCVm1VCEDbup3Irz4FOIUtQoLLa50YnX6tw/HSe5KGULoIBD4tMTKnv5UlC7L7NEkLTFiHYj5@vger.kernel.org
+X-Gm-Message-State: APuU4Z9hauIJbFT3kWozixsGozDcgnbqOEABVJS1JLttQ+7qgR6SNCo1
+	6MOAaGZAnQ/nIABGb7oVbAmysBYVmDgFyvCJI40J7NW58omBP1cU0zOQLYdlwOiFRje4ZLKdaO9
+	lu4LtWOiksrcJq2ig7DtCb1K9sguuRqw=
+X-Gm-Gg: AYBFou1t0comXqXhSQKQORiR/tE3lh8LTtCb25q6OxjbNnzXyAQbcq203RW1PTSRMRf
+	FC6h6oQrNfF1AlTN55a4BRImbQS/2fXDhb0ip2a7eJhTvgp4QlrY4kFVZY5DBl4VJJETzbsp+wd
+	dDOxx6kqAoFIpvqxyGY/WC+iE2y294E2l/FjJwVLN7nu3xAaGfDP7CSbcTrh4sAmA3UWjONF80r
+	jUsELXM99HIEJ1JsIwjBd1ZC3+qvRI3GY0nyBMDYloz+/MyT7pyosE10KSdypyvJxbdPRuuFzum
+	pCpMFrVB2V7S0O5T4vSon5i5hfz+ad+SfGY65l47Grq7rCvNlZJ7fyYrd9YiPqn88/aoBDeD6kB
+	si1SONR9NNUvUimS6ItOs8cnIpRUgYDOB4HwG/p4t2UDMg4dtNkk8pu0r2WOV65MP8l6bEQ==
+X-Received: by 2002:a05:600c:354a:b0:4a2:1050:aff with SMTP id
+ 5b1f17b1804b1-4ba0939cc9cmr116023935e9.6.1794501637516; Thu, 12 Nov 2026
+ 08:40:37 -0800 (PST)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -135,63 +104,166 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261110-refcount_overflow_stable-v3-9-318625d63a98@kernel.org>
-X-Spamd-Result: default: False [-11.80 / 50.00];
-	SUSE_INTERNAL_BYPASS(-9.00)[];
-	BAYES_HAM(-3.00)[100.00%];
-	SUSPICIOUS_RECIPS(1.50)[];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	MISSING_XM_UA(0.00)[];
-	TAGGED_RCPT(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	ARC_NA(0.00)[];
-	RCVD_TLS_ALL(0.00)[];
-	DKIM_SIGNED(0.00)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
-	FROM_HAS_DN(0.00)[];
-	FREEMAIL_CC(0.00)[kernel.org,infradead.org,google.com,suse.com,suse.cz,linux-foundation.org,nvidia.com,linux.alibaba.com,linux.dev,arm.com,intel.com,gmail.com,sk.com,gourry.net,redhat.com,cmpxchg.org,fb.com,surriel.com,szeredi.hu,zeniv.linux.org.uk,arndb.de,ziepe.ca,8bytes.org,oracle.com,toxicpanda.com,davemloft.net,kvack.org,vger.kernel.org,lists.linux.dev];
-	TO_DN_SOME(0.00)[];
-	FROM_EQ_ENVFROM(0.00)[];
-	RCVD_COUNT_TWO(0.00)[2];
-	TO_MATCH_ENVRCPT_SOME(0.00)[];
-	RCPT_COUNT_GT_50(0.00)[62];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo]
-X-Spam-Score: -11.80
-X-Spam-Level: 
-X-Spam-Flag: NO
+References: <20261104165504.2430480-1-kunwu.chan@gmail.com>
+ <20261104165504.2430480-24-kunwu.chan@gmail.com> <c4f84631-5805-4750-a7bb-3fd5a24bbb62@paulmck-laptop>
+In-Reply-To: <c4f84631-5805-4750-a7bb-3fd5a24bbb62@paulmck-laptop>
+From: KunWu Chan <kunwu.chan@gmail.com>
+Date: Fri, 13 Nov 2026 00:40:24 +0800
+X-Gm-Features: AclHuK9v_Y77arVgZcVVGwgCPDnh2ZgjQdSu0zI-cG-aALJ_JZ_d5zP_ayWkNKk
+Message-ID: <CAN_Opa-z5mmmw-OB7bU3xuKJAHp0L4Tp8a9A7tjqiaY4s9V5+A@mail.gmail.com>
+Subject: Re: [PATCH 23/28] rcuscale: Add hazptr scale type
+To: paulmck@kernel.org
+Cc: boqun@kernel.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, 
+	corbet@lwn.net, mingo@redhat.com, frederic@kernel.org, 
+	neeraj.upadhyay@kernel.org, josh@joshtriplett.org, urezki@gmail.com, 
+	dave@stgolabs.net, stern@rowland.harvard.edu, parri.andrea@gmail.com, 
+	will@kernel.org, dhowells@redhat.com, j.alglave@ucl.ac.uk, 
+	luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, 
+	joelagnelf@nvidia.com, skhan@linuxfoundation.org, rdunlap@infradead.org, 
+	longman@redhat.com, rostedt@goodmis.org, qiang.zhang@linux.dev, 
+	brads@mainlining.org, linux-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, lkmm@lists.linux.dev, linux-doc@vger.kernel.org, 
+	rcu@vger.kernel.org, linux-kselftest@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Tue, Nov 10, 2026 at 09:35:49PM +0100, David Hildenbrand (Arm) wrote:
-> Various networking features support splicing data from sockets into
-> pipes (TCP, AF_UNIX, KCM, kTLS), whereby spd_fill_page() takes an
-> additional page reference for each fragment, while the skb keeps its own
-> reference until it was fully consumed. This allows for exceeding folio
-> refcount limits.
-> 
-> This is not specific to large pagecache folios, but with them it is a
-> lot easier to reach the refcount limit, as page table mappings can cheaply
-> create many references.
-> 
-> Let's use try_get_page() in spd_fill_page() and stop splicing with
-> -EFAULT if that fails. To propagate the error, let spd_fill_page(),
-> __splice_segment() and __skb_splice_bits() return an int instead of a
-> bool. If we could not splice anything, return the error from
-> skb_splice_bits(): returning 0 would make the callers (TCP, AF_UNIX, KCM,
-> kTLS) report EOF, although data is still queued. The callers already
-> handle errors.
-> 
-> Use -EFAULT, consistent with splice_folio_into_pipe().
-> 
-> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
-> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
-> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+On Wed, Nov 11, 2026 at 5:45=E2=80=AFAM Paul E. McKenney <paulmck@kernel.or=
+g> wrote:
+>
+> On Thu, Nov 05, 2026 at 12:54:41AM +0800, Kunwu Chan wrote:
+> > Add a hazptr scale type for per-writer hazptr_synchronize()
+> > cost and per-reader hazptr_acquire()/hazptr_release() overhead.
+> >
+> > Signed-off-by: Kunwu Chan <kunwu.chan@gmail.com>
+> > ---
+> >  kernel/rcu/rcuscale.c | 67 +++++++++++++++++++++++++++++++++++++++++++
+> >  1 file changed, 67 insertions(+)
+> >
+> > diff --git a/kernel/rcu/rcuscale.c b/kernel/rcu/rcuscale.c
+> > index 5659eaebc5c0..6e3e3f296f85 100644
+> > --- a/kernel/rcu/rcuscale.c
+> > +++ b/kernel/rcu/rcuscale.c
+> > @@ -40,6 +40,7 @@
+> >  #include <linux/vmalloc.h>
+> >  #include <linux/rcupdate_trace.h>
+> >  #include <linux/sched/debug.h>
+> > +#include <linux/hazptr.h>
+> >
+> >  #include "rcu.h"
+> >
+> > @@ -460,6 +461,71 @@ static struct rcu_scale_ops tasks_tracing_ops =3D =
+{
+> >
+> >  #endif // #else // #ifdef CONFIG_TASKS_TRACE_RCU
+> >
+> > +#if IS_ENABLED(CONFIG_HAZPTR_TORTURE_TEST)
+>
+> Ah, maybe this is why you want hazptrtorture and rcuscale to be built
+> into the same kernel.
+>
+> But what you really want is hazard pointers to be built in, right?
+> As opposed to the torture test?  But this patch will be on top of the
+> patches providing unconditional hazard-pointer support in the kernel,
+> so you can just omit the above #ifdef.
+>
+> The reason for the CONFIG_HAZPTR_TORTURE_TEST #ifdef is that it is
+> possible to build kernels that do not support Tasks Trace RCU.
+>
 
-Acked-by: Pedro Falcato <pfalcato@suse.de> 
+Hi Paul,
 
--- 
-Pedro
+Yes, that guard is what led me to enable hazptrtorture for the
+rcuscale runs in patch 26. rcuscale only needs the hazptr core,
+which is available unconditionally at this point in the series.
+
+I'll remove the guard and add &hazptr_scale_ops directly to
+scale_ops[]. This also removes the need for the torture_type=3Dnone
+workaround.
+
+Thanks,
+Kunwu
+
+>                                                         Thanx, Paul
+>
+> > +#define HAZPTR_SCALE_NR_OBJS 8
+> > +static int hazptr_scale_obj[HAZPTR_SCALE_NR_OBJS];
+> > +static atomic_t hazptr_scale_sync_idx =3D ATOMIC_INIT(0);
+> > +
+> > +struct hazptr_scale_state {
+> > +     struct hazptr_ctx ctx;
+> > +     void *addr;
+> > +};
+> > +static DEFINE_PER_CPU(struct hazptr_scale_state, hazptr_scale_state);
+> > +
+> > +static int hazptr_scale_read_lock(void)
+> > +{
+> > +     struct hazptr_scale_state *state =3D this_cpu_ptr(&hazptr_scale_s=
+tate);
+> > +     int idx =3D smp_processor_id() % HAZPTR_SCALE_NR_OBJS;
+> > +     void *ptr =3D &hazptr_scale_obj[idx];
+> > +
+> > +     state->addr =3D hazptr_acquire(&state->ctx, &ptr);
+> > +     return 0;
+> > +}
+> > +
+> > +static void hazptr_scale_read_unlock(int idx)
+> > +{
+> > +     struct hazptr_scale_state *state =3D this_cpu_ptr(&hazptr_scale_s=
+tate);
+> > +
+> > +     hazptr_release(&state->ctx, state->addr);
+> > +}
+> > +
+> > +static unsigned long hazptr_scale_completed(void)
+> > +{
+> > +     return 0;
+> > +}
+> > +
+> > +static void hazptr_scale_sync(void)
+> > +{
+> > +     int idx =3D atomic_fetch_inc(&hazptr_scale_sync_idx) % HAZPTR_SCA=
+LE_NR_OBJS;
+> > +
+> > +     hazptr_synchronize(&hazptr_scale_obj[idx]);
+> > +}
+> > +
+> > +static void hazptr_scale_sync_exp(void)
+> > +{
+> > +     int idx =3D atomic_fetch_inc(&hazptr_scale_sync_idx) % HAZPTR_SCA=
+LE_NR_OBJS;
+> > +
+> > +     hazptr_synchronize(&hazptr_scale_obj[idx]);
+> > +}
+> > +
+> > +static struct rcu_scale_ops hazptr_scale_ops =3D {
+> > +     .ptype          =3D 0,
+> > +     .readlock       =3D hazptr_scale_read_lock,
+> > +     .readunlock     =3D hazptr_scale_read_unlock,
+> > +     .get_gp_seq     =3D hazptr_scale_completed,
+> > +     .gp_diff        =3D NULL,
+> > +     .exp_completed  =3D hazptr_scale_completed,
+> > +     .sync           =3D hazptr_scale_sync,
+> > +     .exp_sync       =3D hazptr_scale_sync_exp,
+> > +     .name           =3D "hazptr",
+> > +};
+> > +
+> > +#define HAZPTR_SCALE_OPS &hazptr_scale_ops,
+> > +#else
+> > +#define HAZPTR_SCALE_OPS
+> > +#endif
+> > +
+> >  static unsigned long rcuscale_seq_diff(unsigned long new, unsigned lon=
+g old)
+> >  {
+> >       if (!cur_ops->gp_diff)
+> > @@ -1140,6 +1206,7 @@ rcu_scale_init(void)
+> >       static struct rcu_scale_ops *scale_ops[] =3D {
+> >               &rcu_ops, &srcu_ops, &srcua_ops, &srcud_ops,
+> >               TASKS_OPS TASKS_RUDE_OPS TASKS_TRACING_OPS
+> > +             HAZPTR_SCALE_OPS
+> >       };
+> >
+> >       if (!torture_init_begin(scale_type, verbose))
+> > --
+> > 2.43.0
+> >
