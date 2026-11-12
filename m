@@ -1,96 +1,96 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=195.135.223.131
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794492068;
-	b=3v5QZ3cKZlAbjQ2sF+pNBrNp0iQqa+E9Qe+7s0lia6IfYmHEh1NAHUKPW5NvanpHGnjr
-	 NSc/MaBb3fNs+7j9pfgDc32/D2DWOVxgu6VGcVl1a/QXbZtQqscC56obN32avhh8GQxv7
-	 r5infZ9oTbwg7XfXfXfATVMTdIXXpXmVHRyrLCArC1z0PICOTpvzLKN0pMxbflEohaO8C
-	 6pYHZAqg0StQp2AMB49UjrI7Znu80b6OrmpLy0lkC3K7dhNMk4P0NXPCjSiFrtzE9bxFs
-	 YqwYXJgkD/93BPoErwk47qV8g8GxThiiwGwfL5HFhMWjbLbLfT51kRMyQIXtlLAC7gA==
+	t=1794492369;
+	b=H2WczsOkDEAUBiIEBboTEQDnOV3iQyoGmcAd+HbMwcilufhek5dqKLNqzmueRm/zqvVG
+	 TMr6pmpP1p8vR28slZ6OA5EQvIC2bKnYQhOlRgkFQbdtbyJ84tyD5vGCGdibQZVvTQY4d
+	 p5FXgbvX3JZAlog0QR/SFWNDLysT8dkatjzPspYs+oKRtEZaeYnPT0IBYIfv63EnI17cd
+	 uCkMHoFpGdJzZYQaKsddczJoEclXyoDHkEXcip0jrBTq12gG6mMrWMgYCnY0KKmLXeb4R
+	 5fZNKVfEMjaBOOMnVEotoL/2oZ+p0hlPuP07lyXaIhg4tvI/BflABL3hqqq4KtZ0BEA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794492068;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794492369;
 	h=DMARC-Filter:Received:DKIM-Signature:DKIM-Signature:DKIM-Signature:
 	 DKIM-Signature:Received:Received:Date:From:To:Cc:Subject:Message-ID:
 	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To:
 	 X-Spamd-Result:X-Spam-Score:X-Spam-Level:X-Spam-Flag;
-	bh=WTNMIFQg7vEsr/bVsx6max9Hp2mlrFDIwp0Z0arBhBY=;
-	b=yWMWibeJlnSaQE2XRNJxPo6/VNBPzKArSOEuqpACewRmP0lb8I8QKd4g5cpve1EiGO/p
-	 awJoX/2HzitPhpeuLDUTwCRxpejVXWfXMvqVyeFgh/eJqwrLvxOY3Mp4hPhVszZBkP6lD
-	 ZBF0vKIaoZt4bfqjatH7tfXK/KqbXF80x84feJtyuHagIZCLXsUQurbtBKSfx8yXyxDFR
-	 SyrJynZ16gjABqu+Bacbkik7od61SLNplePF8Xn8P5mlu8HTXBbTlO80jNVdblIQ1iTL7
-	 J4IWoP1Fv+7xjniVXbY7nNYjKGcmiM59JSmvGzwXH+oGpCM0qOj7mwWi9V4jKmCYVlA==
+	bh=d26nC76YLz1Hx0CSfgosaWHEU4xoea2lRNFaxDZwsTA=;
+	b=awCkj8on/q+N1HyChJQVl9B+7+sr/zwHfLoe6Rm8Ma7/UzV4HeBHdIPo0b5TWx/cfC9P
+	 1K7Y8jotQ/83D6jP0gqRGk46W/f3OVKN3l9dAISTkauE0WxPXnNRaWYsd7pGRIvYXf/oS
+	 6zM7vutqbFDAit1gy+9uT/1gEAC4mVRGv4HoabEhPK7YdfJcRn7EXrk0FCwl7Bp7JnpNB
+	 +jhxddlD7sh27Ncy76GVz1qOsJMVKPushPyONxlgDCm4oSWn2LKgDnnFcXDGzX117pBwY
+	 4d67JNqfySds5aPFEZmUA5hzENjCSy+SpcvZ9ocMUvp54deF4FdB0QxgHN5s69XwCHw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=suse.de;
 	spf=pass smtp.mailfrom=suse.de;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=gJlFM33D;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b="LisWq/Fp";
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=gJlFM33D;
-	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b="LisWq/Fp";
-	arc=none smtp.remote-ip=195.135.223.130
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=MePUV0PJ;
+	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=tYPab8lG;
+	dkim=pass header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=MePUV0PJ;
+	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=tYPab8lG;
+	arc=none smtp.remote-ip=195.135.223.131
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 876E8606C73C;
-	Thu, 12 Nov 2026 14:01:07 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 876E8606C73C
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5BCDC606A8AB;
+	Thu, 12 Nov 2026 14:06:08 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 5BCDC606A8AB
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=gJlFM33D;
-	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=LisWq/Fp;
-	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=gJlFM33D;
-	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=LisWq/Fp
+	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=MePUV0PJ;
+	dkim=pass header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=tYPab8lG;
+	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.a=rsa-sha256 header.s=susede2_rsa header.b=MePUV0PJ;
+	dkim=neutral header.d=suse.de header.i=@suse.de header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=tYPab8lG
 Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
 	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 0FF2C21E41;
-	Thu, 12 Nov 2026 14:01:05 +0000 (UTC)
+	by smtp-out2.suse.de (Postfix) with ESMTPS id 5912F1F890;
+	Thu, 12 Nov 2026 14:06:06 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1794492065; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	t=1794492366; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=WTNMIFQg7vEsr/bVsx6max9Hp2mlrFDIwp0Z0arBhBY=;
-	b=gJlFM33DOlLsXo/fMz8rj/qpJNd1/LAfw06dbMqIfLoc4IuQh9/RzMXaHgeNvRN5r4o0B4
-	DgqDCnXzADpLagRmMbfxO/HW+Bg9xItuDkWUO82GFfItmNejFrXZhBUW2oHpytiyUlvPP+
-	TNvMTYoYQXGAiLUv3uBgb7s2eQv/WNU=
+	bh=d26nC76YLz1Hx0CSfgosaWHEU4xoea2lRNFaxDZwsTA=;
+	b=MePUV0PJPVg6e87V3rI/oBHU/WVNpeN9fAmgxCGLxENx35oKrb0iEmR3T18rtLtVz1Vf+O
+	1G6UmmBLJXvaA1WYhfqBFsQOBOJ7IA2iBvpEpvVmXn/Cmsa4Thr80o0Lq+TtDYhKs5Kyab
+	qpmF+O8fmKXKFCYmnkRlnrBsSmTsSBg=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1794492065;
+	s=susede2_ed25519; t=1794492366;
 	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=WTNMIFQg7vEsr/bVsx6max9Hp2mlrFDIwp0Z0arBhBY=;
-	b=LisWq/Fpj8SqT6u2xIBros+39GjGe1Tr75xCt4eKCv/fmjYu3CJDOJW1YNVOTyGrVDIuJq
-	vZrJ+kiUtvHXFUCg==
-Authentication-Results: smtp-out1.suse.de;
+	bh=d26nC76YLz1Hx0CSfgosaWHEU4xoea2lRNFaxDZwsTA=;
+	b=tYPab8lGc7bR6d9kEE9FN38yDhbA+TLnfbS8qBFT3Rs/vxGIU/l099dpGQkmH3U6mcvPbG
+	SX8CzvRsGMGv8qBw==
+Authentication-Results: smtp-out2.suse.de;
 	none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1794492065; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	t=1794492366; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=WTNMIFQg7vEsr/bVsx6max9Hp2mlrFDIwp0Z0arBhBY=;
-	b=gJlFM33DOlLsXo/fMz8rj/qpJNd1/LAfw06dbMqIfLoc4IuQh9/RzMXaHgeNvRN5r4o0B4
-	DgqDCnXzADpLagRmMbfxO/HW+Bg9xItuDkWUO82GFfItmNejFrXZhBUW2oHpytiyUlvPP+
-	TNvMTYoYQXGAiLUv3uBgb7s2eQv/WNU=
+	bh=d26nC76YLz1Hx0CSfgosaWHEU4xoea2lRNFaxDZwsTA=;
+	b=MePUV0PJPVg6e87V3rI/oBHU/WVNpeN9fAmgxCGLxENx35oKrb0iEmR3T18rtLtVz1Vf+O
+	1G6UmmBLJXvaA1WYhfqBFsQOBOJ7IA2iBvpEpvVmXn/Cmsa4Thr80o0Lq+TtDYhKs5Kyab
+	qpmF+O8fmKXKFCYmnkRlnrBsSmTsSBg=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1794492065;
+	s=susede2_ed25519; t=1794492366;
 	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=WTNMIFQg7vEsr/bVsx6max9Hp2mlrFDIwp0Z0arBhBY=;
-	b=LisWq/Fpj8SqT6u2xIBros+39GjGe1Tr75xCt4eKCv/fmjYu3CJDOJW1YNVOTyGrVDIuJq
-	vZrJ+kiUtvHXFUCg==
+	bh=d26nC76YLz1Hx0CSfgosaWHEU4xoea2lRNFaxDZwsTA=;
+	b=tYPab8lGc7bR6d9kEE9FN38yDhbA+TLnfbS8qBFT3Rs/vxGIU/l099dpGQkmH3U6mcvPbG
+	SX8CzvRsGMGv8qBw==
 Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
 	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 5F9A4134A0;
-	Thu, 12 Nov 2026 14:01:01 +0000 (UTC)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 8DBA813432;
+	Thu, 12 Nov 2026 14:06:02 +0000 (UTC)
 Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
 	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id M0T5C53G9WrPJQAAD6G6ig
-	(envelope-from <pfalcato@suse.de>); Thu, 12 Nov 2026 14:01:01 +0000
-Date: Thu, 12 Nov 2026 14:00:59 +0000
+	id RScNEcrH9WqvKgAAD6G6ig
+	(envelope-from <pfalcato@suse.de>); Thu, 12 Nov 2026 14:06:02 +0000
+Date: Thu, 12 Nov 2026 14:06:00 +0000
 From: Pedro Falcato <pfalcato@suse.de>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Lorenzo Stoakes <ljs@kernel.org>, 
@@ -120,14 +120,15 @@ Cc: Lorenzo Stoakes <ljs@kernel.org>,
 	Neal Cardwell <ncardwell@google.com>, Kuniyuki Iwashima <kuniyu@google.com>, 
 	Linus Torvalds <torvalds@linux-foundation.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
 	linux-fsdevel@vger.kernel.org, fuse-devel@lists.linux.dev, linux-arch@vger.kernel.org, 
-	iommu@lists.linux.dev, netdev@vger.kernel.org, stable@vger.kernel.org
-Subject: Re: [PATCH v3 2/9] mm: limit pagecache folio refcount when splicing
- into pipes
-Message-ID: <avXFlI_5fhUvFyct@pedro-suse.tail5790ac.ts.net>
+	iommu@lists.linux.dev, netdev@vger.kernel.org, Chris Mason <mason@kernel.org>, 
+	stable@vger.kernel.org
+Subject: Re: [PATCH v3 1/9] mm: limit pagecache folio refcount when mapping
+ pages
+Message-ID: <avXGtysfRk3uQpNu@pedro-suse.tail5790ac.ts.net>
 References: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
- <20261110-refcount_overflow_stable-v3-2-318625d63a98@kernel.org>
- <avW3v-oLxcHXXNQD@pedro-suse.tail5790ac.ts.net>
- <4ae22b7a-c160-4003-a029-8a20381d196f@kernel.org>
+ <20261110-refcount_overflow_stable-v3-1-318625d63a98@kernel.org>
+ <avW0HGjF6wuqn12T@pedro-suse.tail5790ac.ts.net>
+ <86206f64-fefa-4a13-95bc-eddf756eecc8@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -139,7 +140,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <4ae22b7a-c160-4003-a029-8a20381d196f@kernel.org>
+In-Reply-To: <86206f64-fefa-4a13-95bc-eddf756eecc8@kernel.org>
 X-Spamd-Result: default: False [-11.80 / 50.00];
 	SUSE_INTERNAL_BYPASS(-9.00)[];
 	BAYES_HAM(-3.00)[100.00%];
@@ -160,169 +161,129 @@ X-Spamd-Result: default: False [-11.80 / 50.00];
 	FROM_EQ_ENVFROM(0.00)[];
 	RCVD_COUNT_TWO(0.00)[2];
 	TO_MATCH_ENVRCPT_SOME(0.00)[];
-	RCPT_COUNT_GT_50(0.00)[62];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo,suse.de:email]
+	RCPT_COUNT_GT_50(0.00)[63];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.de:email,imap1.dmz-prg2.suse.org:helo]
 X-Spam-Score: -11.80
 X-Spam-Level: 
 X-Spam-Flag: NO
 
-On Thu, Nov 12, 2026 at 02:24:09PM +0100, David Hildenbrand (Arm) wrote:
-> On 11/12/26 14:09, Pedro Falcato wrote:
-> > On Tue, Nov 10, 2026 at 09:35:42PM +0100, David Hildenbrand (Arm) wrote:
-> >> Similar to mapping pagecache folios into page tables, let's reject
-> >> additional references when splicing folios into a pipe if the refcount
-> >> is at its limit, similar to how we handle it during GUP.
-> >>
-> >> This will prevent more cases of possible folio refcount overflows with
-> >> large pagecache folios.
-> >>
-> >> Introduce folio_get_checked() for checked reference acquisition when
-> >> the caller already holds a reference. It warns and fails on a non-positive
-> >> refcount and rejects additional references at the limit.
-> >>
-> >> Use folio_get_checked() in splice_folio_into_pipe() and
-> >> fuse_ref_folio(), returning -EFAULT on failure, like we already do for
-> >> pipe-buffer duplication. Similarly, make try_get_page() use it instead.
-> >>
-> >> Likely try_get_page() should be renamed (or removed) later, as it doesn't
-> >> match the folio_try_get() semantics and is confusing.
-> >>
-> >> If we hit the limit after splicing some data, return the number of bytes
-> >> already spliced. Teach the callers to handle errors, and stop
-> >> filemap_splice_read() if we only spliced part of a folio, so we don't
-> >> skip ahead to the next folio.
-> >>
-> >> The check in try_get_page() also covers pipe-buffer duplication by tee()
-> >> and partial pipe-to-pipe splicing.
-> >>
-> >> Note that we deliberately will not fall back to the slow path of copying
-> >> the folio, particularly as the folio might have an invalid refcount. If
-> >> it is ever really required, we can revisit.
-> >>
-> >> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
-> >> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
-> >> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
-> >> Cc: stable@vger.kernel.org
-> >> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+On Thu, Nov 12, 2026 at 02:16:33PM +0100, David Hildenbrand (Arm) wrote:
+> > Mostly LGTM, with some comments:
+> > 
+> > Reviewed-by: Pedro Falcato <pfalcato@suse.de>
+> 
+> Thanks for the review, Pedro!
+> 
+> > 
 > >> ---
+> >>  include/linux/mm.h | 35 +++++++++++++++++++++++++++++++----
+> >>  mm/filemap.c       |  6 ++++++
+> >>  mm/huge_memory.c   | 29 +++++++++++++++++++++++++++--
+> >>  mm/memory.c        | 33 +++++++++++++++++++++++++++++----
+> >>  mm/migrate.c       | 11 +++++++++++
+> >>  mm/userfaultfd.c   |  4 ++++
+> >>  mm/util.c          | 18 ++++++++++++++++++
+> >>  7 files changed, 126 insertions(+), 10 deletions(-)
+> >>
+> >> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+> >> index 4608540e40d46..439cfe446cea4 100644
+> >> --- a/mm/huge_memory.c
+> >> +++ b/mm/huge_memory.c
+> >> @@ -1626,6 +1626,7 @@ static vm_fault_t insert_pmd(struct vm_area_struct *vma, unsigned long addr,
+> >>  {
+> >>  	struct mm_struct *mm = vma->vm_mm;
+> >>  	pgtable_t pgtable = NULL;
+> >> +	vm_fault_t ret = VM_FAULT_NOPAGE;
+> >>  	spinlock_t *ptl;
+> >>  	pmd_t entry;
+> >>  
+> >> @@ -1662,6 +1663,10 @@ static vm_fault_t insert_pmd(struct vm_area_struct *vma, unsigned long addr,
+> >>  		if (is_huge_zero_folio(fop.folio)) {
+> >>  			entry = pmd_mkspecial(entry);
+> >>  		} else {
+> >> +			if (unlikely(folio_ref_count_over_limit(fop.folio))) {
+> >> +				ret = VM_FAULT_SIGBUS;
+> >> +				goto out_unlock;
+> >> +			}
+> >>  			folio_get(fop.folio);
+> > 
+> > I see you use this pattern often. Would it make sense to have a
+> > bool folio_get_unless_overflow()?
+> 
+> I commented somewhere (in v2 I think) that I played with using
+> folio_get_checked() from #2, but didn't quite like it so I discarded it as
+> 
+> (a) it cannot be used everywhere here, as I'd need more functions to add
+> multiple references. next_uptodate_folio() also could use it as I would need yet
+> another temporary helper for a try_get().
+> 
+> (b) these changes here are going to get reverted fairly soon once I change the
+> way how mappings are refcounted (which is, unfortunately, not suitable for
+> stable, otherwise I wouldn't be throwing in this temporary change in the first
+> place)
+> 
+> So everything that is expected to stay in later patches uses the proper helper.
+
+Alright.
+
 > 
 > [...]
-> >> index 0f6d57432a7e5..e6e73e37f3ea4 100644
-> >> --- a/mm/filemap.c
-> >> +++ b/mm/filemap.c
-> >> @@ -3047,10 +3047,11 @@ generic_file_read_iter(struct kiocb *iocb, struct iov_iter *iter)
-> >>  EXPORT_SYMBOL(generic_file_read_iter);
+> 
 > >>  
-> >>  /*
-> >> - * Splice subpages from a folio into a pipe.
-> >> + * Splice subpages from a folio into a pipe. Return the number of bytes spliced,
-> >> + * or -EFAULT if we cannot splice from the folio.
+> >> +		if (unlikely(folio_ref_count_over_limit(folio))) {
+> >> +			/* Skip this PUD; it can be faulted in later. */
+> >> +			ret = (dst_vma->vm_flags & VM_MIXEDMAP) ? -ENOMEM : 0;
 > > 
-> > -EFAULT is a weird error code to return from splice, et al.
+> > A comment as to what's going on here with VM_MIXEDMAP would be useful. I guess
+> > the idea is that faulting on a mixedmap later will not necessarily hand you the
+> > exact same page fault result?
 > 
-> We might be able to use ETOOMANYREFS (have to check if that could confuse
-> callers), but IMHO EFAULT is good enough.
+> I can throw in a comment, yes.
 > 
-> What would be your suggestion?
+> [...]
+> 
+> >> +bool __folio_ref_count_over_limit(unsigned int ref_count)
+> >> +{
+> >> +	if (ref_count >= FOLIO_REF_COUNT_ADMIN_LIMIT)
+> >> +		return true;
+> >> +	/* Background threads must not consume admin reserves. */
+> >> +	if (current->flags & PF_KTHREAD)
+> >> +		return true;
+> >> +	/* Neither must interrupt contexts on behalf of the interrupted task. */
+> >> +	if (!in_task())
+> >> +		return true;
+> >> +	/* Capability checks are not safe with IRQs disabled. */
+> >> +	if (irqs_disabled())
+> >> +		return true;
+> >> +	/* Use the task's credentials, which filesystem overrides cannot change. */
+> >> +	return !has_capability_noaudit(current, CAP_SYS_RESOURCE);
+> >> +}
+> > 
+> > In case this function ever returns over limit, we probably want to log this
+> > in the kernel log. If this function gets the folio you could even print
+> > the problematic file offset/inode/filesystem/etc. Ratelimited of course.
+> 
+> You mean, if this function returns "true", right? Is printing always fine?
+> (e.g., irqs disabled?)
 
-ETOOMANYREFS I think is good, also EBUSY, EMLINK (though this would be weird)
-or even a generic -EIO.
+Yes. As far as I know, it's always fine, even under NMI. But definitely fine
+with IRQs disabled.
 
-> 
-> > 
-> >>   */
-> >> -size_t splice_folio_into_pipe(struct pipe_inode_info *pipe,
-> >> -			      struct folio *folio, loff_t fpos, size_t size)
-> >> +ssize_t splice_folio_into_pipe(struct pipe_inode_info *pipe,
-> >> +			       struct folio *folio, loff_t fpos, size_t size)
-> >>  {
-> >>  	struct page *page;
-> >>  	size_t spliced = 0, offset = offset_in_folio(folio, fpos);
-> >> @@ -3063,13 +3064,15 @@ size_t splice_folio_into_pipe(struct pipe_inode_info *pipe,
-> >>  		struct pipe_buffer *buf = pipe_head_buf(pipe);
-> >>  		size_t part = min_t(size_t, PAGE_SIZE - offset, size - spliced);
-> >>  
-> >> +		if (!folio_get_checked(folio))
-> >> +			return spliced ? spliced : -EFAULT;
-> > 			return spliced ?: -EFAULT;
-> > 
-> > I don't know if there's much kernel code out there doing this, but I like
-> > the trick :)
-> 
-> There are a couple of thousands, but yes, one doesn't encounter it that often.
 > 
 > > 
-> >> +
-> >>  		*buf = (struct pipe_buffer) {
-> >>  			.ops	= &page_cache_pipe_buf_ops,
-> >>  			.page	= page,
-> >>  			.offset	= offset,
-> >>  			.len	= part,
-> >>  		};
-> >> -		folio_get(folio);
-> >>  		pipe->head++;
-> >>  		page++;
-> >>  		spliced += part;
-> >> @@ -3094,9 +3097,10 @@ size_t splice_folio_into_pipe(struct pipe_inode_info *pipe,
-> >>   * Return: On success, the number of bytes read will be returned and *@ppos
-> >>   * will be updated if appropriate; 0 will be returned if there is no more data
-> >>   * to be read; -EAGAIN will be returned if the pipe had no space, and some
-> >> - * other negative error code will be returned on error.  A short read may occur
-> >> - * if the pipe has insufficient space, we reach the end of the data or we hit a
-> >> - * hole.
-> >> + * other negative error code will be returned on error; -EFAULT will be returned
-> >> + * if acquiring a folio reference fails and no data has been spliced.
-> >> + * A short read may occur if the pipe has insufficient space, we reach the
-> >> + * end of the data, hit a hole or hit a folio refcount limit.
-> >>   */
-> >>  ssize_t filemap_splice_read(struct file *in, loff_t *ppos,
-> >>  			    struct pipe_inode_info *pipe,
-> >> @@ -3154,7 +3158,7 @@ ssize_t filemap_splice_read(struct file *in, loff_t *ppos,
-> >>  
-> >>  		for (i = 0; i < folio_batch_count(&fbatch); i++) {
-> >>  			struct folio *folio = fbatch.folios[i];
-> >> -			size_t n;
-> >> +			ssize_t n;
-> >>  
-> >>  			if (folio_pos(folio) >= end_offset)
-> >>  				goto out;
-> >> @@ -3170,13 +3174,15 @@ ssize_t filemap_splice_read(struct file *in, loff_t *ppos,
-> >>  
-> >>  			n = min_t(loff_t, len, isize - *ppos);
-> >>  			n = splice_folio_into_pipe(pipe, folio, *ppos, n);
-> >> -			if (!n)
-> >> +			if (n <= 0) {
-> >> +				error = n;
-> >>  				goto out;
-> >> +			}
-> >>  			len -= n;
-> >>  			total_spliced += n;
-> >>  			*ppos += n;
-> >>  			in->f_ra.prev_pos = *ppos;
-> >> -			if (pipe_is_full(pipe))
-> >> +			if (pipe_is_full(pipe) || *ppos < folio_next_pos(folio))
+> >> +EXPORT_SYMBOL_GPL(__folio_ref_count_over_limit);
 > > 
-> > I'm confused. Why does this need to be done here?
-> >  
+> > I'm fairly sure this will break the build for a number of non-GPL drivers
+> > when calling folio_get() with CONFIG_DEBUG_VM=y.
 > 
-> I have above:
-> 
-> "stop filemap_splice_read() if we only spliced part of a folio, so we don't
-> skip ahead to the next folio"
+> You mean, breaking OOT drivers, right? I can switch to EXPORT_SYMBOL if that's a
+> concern.
 
-Yes, but is this a separate fix? A folio could be partially spliced previously
-as well, no?
+I had the impression we had some stuff in-tree that isn't marked as GPL. But a quick
+grep shows that everything is either GPL or dual-licensed.
 
-> 
-> Thanks a lot for the review!
-
-You're welcome! :)
-
-FWIW, you can add my
-
-Reviewed-by: Pedro Falcato <pfalcato@suse.de>
-
-to whatever comes out of these nits :)
+In any case, yes, this will quite possibly break debug builds for people OOT.
+I think folio_get() might be a bit too ubiquitous to do this to.
 
 -- 
 Pedro
