@@ -1,90 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.167.41
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794504882;
-	b=wu4lte8OD8KQE9rD2HH+KWQ2A4fJ3GdaoV/mmqq7b/RF9CnmlrSk3EJY46RsVecLI49a
-	 gwZ9pfE8VbU+XfkeQ35AdT6CeKfQh6qABi1YSs+8axnQk6hDQtE8AZfP/CF79d/Crzgrp
-	 Lho4nea1XTFrQ598RZQH7syLudmMoEV6Jg8IdVOU/ezH+E21/nNOoeUr6DeHaVYpDLPS8
-	 ZrG2MEPRnq9YLVH/84jyeMSrsCnckux6NkcSaokfZPS9TyXkdIj6h+lHe5iPu1f6C2dSO
-	 72hSl33Lyz5RuhbQ7pRZcnZZ+uWW+W/2uV8gHwXJPSPvWvMoiQQZANbJ3vaUcWxpufw==
+	t=1794505815;
+	b=YogsgIcud5FYSOHUBOo4Yoh7+u/Q6uyldPodSaXLW2OjPWn9hXGkiuv+xMcEPWQEBmMR
+	 WifwbQY+lK7WNPgqK6knQbS6EtxYoLkFBcDQkZtExu9ljBgVBYIAdXvTb0BNkGuhmCtdb
+	 Z1zHgPNzmnYTDqQfI+ZGUqkzkOsceGdx7gHsYtY2L0CfX2ZGoj7M/BKVODFKWNEZrcTeg
+	 XX4UHLqepRf0M8Km4HwOnNw3/JGa4ojZkvS4BhsCZdVksIWUxrYBjRzQASnOk7VJG5XSz
+	 zeTBP5t1LrHlsCT/Lfz4Xn9kFj4TgO71N+5X5vZxKul8KR0blEhB+/ML4sooDN+Jy2w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794504882;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Received:X-Forwarded-Encrypted:X-Received:MIME-Version:References:
-	 In-Reply-To:From:Date:X-Gmail-Original-Message-ID:X-Gm-Features:
-	 Message-ID:Subject:To:Cc:Content-Type;
-	bh=AVq19U8dsLUULl5Arm+uFElP0L4F8s4K16OEcmVJkjM=;
-	b=2hkQi3XQzyd+u2pLU6Bzx8tRtWlkSi07ON5cRN2cdIVEsT6uMs8rJtGujX4hIpmgL6Xm
-	 E9N1kir1/i3VvqEIZb2nsRApy6A+655WzlSMz6Q03e+Cm/aiqSmVq6VsxOPWIo5yMkBD0
-	 EAB20rKr/9K2siJ6xzEEP00MDVsBFh5XA5AtrAjtqkZK+X4rhTI5malA9QaIbi8cAAU71
-	 hejEnlBWcmOiZZQ/K+32cfD7JEaDdoxrhNJcl922gtnSHfKrgeboIQ623OO0zUXmB5Ga9
-	 m+JZhQQJOHnKZAzTO+Fi+x2QvTGGQjW/nsosMkwl6/dIqduydagvxK+TZyN7+T29cDQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794505815;
+	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
+	 MIME-Version:User-Agent:Subject:To:Cc:References:Content-Language:
+	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding:X-Spam-Status:
+	 X-Spam-Checker-Version;
+	bh=FOHX458T5nlJ4b9+AlmECqof587GCWew+NK4zoiJyAE=;
+	b=UuFM14i+QKHcqgZjD19ada3dUs3Ce9Yqn9pPm0ncz70vvXUZ1Zg8UVpqxnuknhY0rukH
+	 ml1xUtqRTxx5Y8SAt/jpygvj8PRZQcwbu/uL6wt3S93WZevE03YSpw4nOyusybJ0H8qZW
+	 9jkTleLQzpd9JR0qRbZEKpRZh/9kpKFhoR0D8BiSqgb1ESaHIBQ0JU1jPc1mU7KtATz68
+	 WpZKLtn1ItRy/rMvjFDj4pAVZQYdVefFDyDKhVL8+71o6wPMKpwkt9iFBXxmlQN5vVnjG
+	 K9TuT/qfyrwc/yZpshuq+mYdNR+QU81R4ICzg08KctdGU1LsBP8knvitnyjnqWBqydQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=none header.from=linux-foundation.org;
-	spf=pass smtp.mailfrom=linuxfoundation.org;
-	dkim=pass header.d=linux-foundation.org header.i=@linux-foundation.org header.a=rsa-sha256 header.s=google header.b=JMboLaLv;
-	arc=none smtp.remote-ip=209.85.167.41
-Received: from mail-lf1-f41.google.com (mail-lf1-f41.google.com [209.85.167.41])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F422F606F2B4
-	for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 17:34:41 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org F422F606F2B4
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linuxfoundation.org
+	dmarc=pass header.from=linux.microsoft.com;
+	spf=pass smtp.mailfrom=linux.microsoft.com;
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=paozY693;
+	arc=none smtp.remote-ip=13.77.154.182
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 3F4EB606A339;
+	Thu, 12 Nov 2026 17:50:15 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3F4EB606A339
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.a=rsa-sha256 header.s=google header.b=JMboLaLv
-Received: by mail-lf1-f41.google.com with SMTP id 2adb3069b0e04-5be3cff0f6cso64759e87.0
-        for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 09:34:41 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google; t=1794504880; x=1795109680; darn=vger.kernel.org;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=AVq19U8dsLUULl5Arm+uFElP0L4F8s4K16OEcmVJkjM=;
-        b=JMboLaLvhLiI+ZcskxHURh40gTO6G06MLDBbciiY5FOspydzZL+mhsK/WBWsWzTthq
-         D+CB6n7OjhfoVG66ypiP53VHzuXKr3/OdUYBxYzytIthdmlqmsJTZJhb00qCvoI5Thb+
-         WCm3a3LklLjDDe5T0wXDKRob+qHQbC7wlVt30=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794504880; x=1795109680;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=AVq19U8dsLUULl5Arm+uFElP0L4F8s4K16OEcmVJkjM=;
-        b=GSU7a/8HAl92Oloe30/m5Nr2gFgBoGhawUGaln1YSEaIFUvVTf4QKPDK4uSvf3dfQH
-         GddxYlleNaI6+DRoCVd+Es/28JbxDf4RDY0S3PAn4UEGZBEZwR2CrIR+oS7qGrXP0tbg
-         0/FhwEQffpnqN0PAbmlF5YaKPM73AlcQTPijq2unS76p55AYbxcfcUDtdR4ZvDhQuJ6y
-         U9lUsPeIdOM106ii0L+aS01xzMHRg4PA87QR2mL95MYUp089oEYHqOn22zeVwF32LSfw
-         oxi0QSNupC/yNhnz4OPW7C54moPq8TiYJie9nRKBrcjJoV82/C0icAWfMq4cIi1pq7L2
-         h7kQ==
-X-Forwarded-Encrypted: i=1; AL+hErFq2mE7S2Av0gOi5FlfuOQ4OlvkRIEKSDK3+hcBpiRDF5EF9Nw58pghg/55sr54j+nj/OFX5JULl9SI@vger.kernel.org
-X-Gm-Message-State: APuU4Z+iD+tPerEppeMM/4yiK+4qZ4GkjNNfs84potV2yrYQxtUNJ1Mt
-	D3Rm2DZNBD9j15M2iz7j4ea7ZDJbwd9fbuQIKxdbghpxe+e6fPTPFFJGFzACoRyxjSCa+m79syE
-	38yU44QTISQ==
-X-Gm-Gg: AYBFou2NrtR5PwDg9riN9Gtu7Ywkvoxxaz5TeKQWgS9KPJtdnd1ki2c6CmKnAmxmy5N
-	yJ3NjfzeXJU0LfKYRVObZ2M3uAvCmtuYNxmgWjnm/78qkuFhWn5H3eu0QpdANPhOCnT3kVD03t/
-	U+dJZc58DaMqqTu+npLPVMXzeiVaFm42CYD+ANC13xGYKE1f/f7IkVHtUwJAHnuuZ3poC5kkmjs
-	dIw9XI4mSgXXyo/rMMiA11FhhnoajafxIo1iWYtnVA/fp7NgztfL/ziYa2aDoedYt4+mqDF7rIc
-	LcX3+/XM0iydmnSXWwbBgFi8qymyMTrRVSFNyZzfOUmKO+KQzBf7qTxrTYUpb8sPAg6y0eoCaWA
-	8DAHAo8y86KnplRtiqZrE+x9p5t1fFoM+yS2x0tEoz295UKNl4Nc4XVIL3XWe+KFwAMueGdu1pF
-	S0jtqUfYPoCdAssnULtw8467v4ppjkX5bkdkuST7Z3W9JeHvszc6dizVUibiYxGNjDv/BhxG77T
-	KDT+iiXWQqHmcTnNvyySBze8LKg4YhktawpyEk5rctroyKUE00Kzftxi8OnUm2C3ducOHZdhUxL
-	jHLXgD84R9xrbtnxdZEjqUnEutWdxPFihnhZsYcvj/1GEmEd6/Arb9ueiRkOntJRTZ9kKtBxr0Q
-	qoYk=
-X-Received: by 2002:a05:6512:3e24:b0:5c0:471:e462 with SMTP id 2adb3069b0e04-5c1705d8374mr56554e87.4.1794504880097;
-        Thu, 12 Nov 2026 09:34:40 -0800 (PST)
-Received: from mail-lf1-f51.google.com (mail-lf1-f51.google.com. [209.85.167.51])
-        by smtp.gmail.com with ESMTPSA id 2adb3069b0e04-5c160d60de3sm1137831e87.49.2026.11.12.09.34.39
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 12 Nov 2026 09:34:39 -0800 (PST)
-Received: by mail-lf1-f51.google.com with SMTP id 2adb3069b0e04-5c15ccd7fb5so62013e87.2
-        for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 09:34:39 -0800 (PST)
-X-Forwarded-Encrypted: i=1; AL+hErGOPvQTq0837TLgMEKsA2p9DUI0idzymLCALhOgtH8pRnctKxQxRsIlo4d3v02XrEyU2Trx00yWTa+f@vger.kernel.org
-X-Received: by 2002:a17:907:3ea7:b0:c4c:e344:ece7 with SMTP id
- a640c23a62f3a-c5066afe5dbmr615605366b.10.1794504534261; Thu, 12 Nov 2026
- 09:28:54 -0800 (PST)
+	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=paozY693
+Received: from [10.4.158.9] (unknown [4.194.122.162])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 5BBD520B7166;
+	Thu, 12 Nov 2026 09:49:54 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 5BBD520B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1794505805;
+	bh=FOHX458T5nlJ4b9+AlmECqof587GCWew+NK4zoiJyAE=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=paozY693cvLDuf4U/crDEhukiZGU+ENNK3akzY0Z75lnrf/hk6O4Biq9Pjs6VA36O
+	 VvLZLX2Q5xAFWYNNkEEf80GOPTs8m23Qnbp1U10U+ZMk0anGkAotQVek9ACBl8Qr7/
+	 4ViVDBAcFE+Bz8si1aupeZORaBNIHjnWF9wigGQo=
+Message-ID: <af057438-a684-4840-815c-581b866678c1@linux.microsoft.com>
+Date: Thu, 12 Nov 2026 09:49:54 -0800
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -94,71 +53,178 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-References: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
- <20261110-refcount_overflow_stable-v3-2-318625d63a98@kernel.org>
- <avW3v-oLxcHXXNQD@pedro-suse.tail5790ac.ts.net> <4ae22b7a-c160-4003-a029-8a20381d196f@kernel.org>
- <avXFlI_5fhUvFyct@pedro-suse.tail5790ac.ts.net> <42373222-8e37-4658-bebd-dd27230a1dfa@kernel.org>
-In-Reply-To: <42373222-8e37-4658-bebd-dd27230a1dfa@kernel.org>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 12 Nov 2026 09:28:37 -0800
-X-Gmail-Original-Message-ID: <CAHk-=wh995y1B461rPAcgLagg26vsyXPoe=7JKgHowB+uHJJXA@mail.gmail.com>
-X-Gm-Features: AclHuK90rViBZMbITCUjh4KTAKhE7_4EYJcdTbdgYzXWPc1JsLWFSAsYMdn-r7I
-Message-ID: <CAHk-=wh995y1B461rPAcgLagg26vsyXPoe=7JKgHowB+uHJJXA@mail.gmail.com>
-Subject: Re: [PATCH v3 2/9] mm: limit pagecache folio refcount when splicing
- into pipes
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Pedro Falcato <pfalcato@suse.de>, Lorenzo Stoakes <ljs@kernel.org>, 
-	"Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
-	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, 
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Jan Kara <jack@suse.cz>, 
-	Andrew Morton <akpm@linux-foundation.org>, Zi Yan <ziy@nvidia.com>, 
-	Baolin Wang <baolin.wang@linux.alibaba.com>, Nico Pache <nico.pache@linux.dev>, 
-	Ryan Roberts <ryan.roberts@arm.com>, Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>, 
-	Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>, 
-	Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>, 
-	Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>, 
-	Gregory Price <gourry@gourry.net>, Ying Huang <ying.huang@linux.alibaba.com>, 
-	Alistair Popple <apopple@nvidia.com>, Peter Xu <peterx@redhat.com>, 
-	Johannes Weiner <hannes@cmpxchg.org>, Song Liu <songliubraving@fb.com>, 
-	Rik van Riel <riel@surriel.com>, Miklos Szeredi <miklos@szeredi.hu>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>, 
-	Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>, 
-	"Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin <npiggin@gmail.com>, 
-	Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Jason Gunthorpe <jgg@ziepe.ca>, 
-	Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>, 
-	Robin Murphy <robin.murphy@arm.com>, Steve Sistare <steven.sistare@oracle.com>, 
-	John Hubbard <jhubbard@nvidia.com>, "Jose A. Perez de Azpillaga" <azpijr@gmail.com>, 
-	Josef Bacik <josef@toxicpanda.com>, "David S. Miller" <davem@davemloft.net>, 
-	Eric Dumazet <edumazet@kernel.org>, Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, 
-	Simon Horman <horms@kernel.org>, Neal Cardwell <ncardwell@google.com>, 
-	Kuniyuki Iwashima <kuniyu@google.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
-	linux-fsdevel@vger.kernel.org, fuse-devel@lists.linux.dev, 
-	linux-arch@vger.kernel.org, iommu@lists.linux.dev, netdev@vger.kernel.org, 
-	stable@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v6 4/6] Drivers: hv: Mark shared memory as decrypted for
+ CCA Realms
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: Michael Kelley <mhklinux@outlook.com>,
+ "decui@microsoft.com" <decui@microsoft.com>,
+ "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
+ "wei.liu@kernel.org" <wei.liu@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>,
+ "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
+ "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+ "linux-arm-kernel@lists.infradead.org"
+ <linux-arm-kernel@lists.infradead.org>,
+ "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
+ "mark.rutland@arm.com" <mark.rutland@arm.com>,
+ "sudeep.holla@kernel.org" <sudeep.holla@kernel.org>,
+ "thuth@redhat.com" <thuth@redhat.com>, "will@kernel.org" <will@kernel.org>
+References: <20261031001412.4150488-1-kameroncarr@linux.microsoft.com>
+ <20261031001412.4150488-5-kameroncarr@linux.microsoft.com>
+ <MN2PR02MB6863AA6357C8E0D4881F5FEAD4712@MN2PR02MB6863.namprd02.prod.outlook.com>
+ <c6b7f583-878d-1f1e-60cc-e602e277d075@linux.microsoft.com>
+Content-Language: en-US
+From: Kameron Carr <kameroncarr@linux.microsoft.com>
+In-Reply-To: <c6b7f583-878d-1f1e-60cc-e602e277d075@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On Thu, 12 Nov 2026 at 06:31, David Hildenbrand (Arm) <david@kernel.org> wrote:
->
-> On 11/12/26 15:00, Pedro Falcato wrote:
-> >
-> > ETOOMANYREFS I think is good, also EBUSY, EMLINK (though this would be weird)
-> > or even a generic -EIO.
->
-> So I used EFAULT because that's also what we currently return when
-> generic_pipe_buf_get() fails through pipe_buf_get() in splice_pipe_to_pipe() and
-> link_pipe().
+On 11/11/2026 6:43 PM, Mukesh R wrote:
+> On 11/11/26 10:01, Michael Kelley wrote:
+>> From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Friday, October 30, 2026 5:14 PM
+>>>
+>>> In hv_common_cpu_init(), the per-CPU hypercall input/output pages need
+>>> to be marked as decrypted (shared) for confidential VM isolation types.
+>>> This is already done for SNP and TDX isolation; extend the same handling
+>>> to Arm CCA Realm guests so that the host hypervisor can access the
+>>> shared hypercall buffers.
+>>>
+>>> is_realm_world() is declared in include/linux/arm-rsi-cmds.h which only
+>>> builds on arm64 (it includes <asm/memory.h>), so using it directly in
+>>> the arch-neutral drivers/hv/hv_common.c would break the x86 build.
+>>> Introduce a Hyper-V-specific helper following the established
+>>> hv_isolation_type_snp() / hv_isolation_type_tdx() pattern.
+>>>
+>>> On architectures other than arm64 the weak default keeps the existing
+>>> behaviour.
+>>>
+>>> Reviewed-by: Michael Kelley <mhklinux@outlook.com>
+>>> Signed-off-by: Kameron Carr <kameroncarr@linux.microsoft.com>
+>>> ---
+>>>   arch/arm64/hyperv/mshyperv.c   |  5 +++++
+>>>   drivers/hv/hv_common.c         | 17 +++++++++++++----
+>>>   include/asm-generic/mshyperv.h |  1 +
+>>>   3 files changed, 19 insertions(+), 4 deletions(-)
+>>>
+>>> diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
+>>> index 46ab2da..da6c3aa0 100644
+>>> --- a/arch/arm64/hyperv/mshyperv.c
+>>> +++ b/arch/arm64/hyperv/mshyperv.c
+>>> @@ -182,3 +182,8 @@ bool hv_is_hyperv_initialized(void)
+>>>       return hyperv_initialized;
+>>>   }
+>>>   EXPORT_SYMBOL_GPL(hv_is_hyperv_initialized);
+>>> +
+>>> +bool hv_isolation_type_cca(void)
+>>> +{
+>>> +    return is_realm_world();
+>>> +}
+>>> diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+>>> index 31256cb..a60c92c 100644
+>>> --- a/drivers/hv/hv_common.c
+>>> +++ b/drivers/hv/hv_common.c
+>>> @@ -476,6 +476,7 @@ int hv_common_cpu_init(unsigned int cpu)
+>>>       u64 msr_vp_index;
+>>>       gfp_t flags;
+>>>       const int pgcount = hv_output_page_exists() ? 2 : 1;
+>>> +    const size_t alloc_size = ALIGN((size_t)pgcount * HV_HYP_PAGE_SIZE, PAGE_SIZE);
+>>>       void *mem;
+>>>       int ret = 0;
+>>>
+>>> @@ -489,7 +490,7 @@ int hv_common_cpu_init(unsigned int cpu)
+>>>        * online and then taken offline
+>>>        */
+>>>       if (!*inputarg) {
+>>> -        mem = kmalloc_array(pgcount, HV_HYP_PAGE_SIZE, flags);
+>>> +        mem = kmalloc(alloc_size, flags);
+>>>           if (!mem)
+>>>               return -ENOMEM;
+>>>
+>>> @@ -499,14 +500,16 @@ int hv_common_cpu_init(unsigned int cpu)
+>>>           }
+>>>
+>>>           if (!ms_hyperv.paravisor_present &&
+>>> -            (hv_isolation_type_snp() || hv_isolation_type_tdx())) {
+>>> -            ret = set_memory_decrypted((unsigned long)mem, pgcount);
+>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
+>>> +             hv_isolation_type_cca())) {
+>>
+>> Could this big "if" statement use "hv_is_isolation_supported()" instead
+>> of explicitly testing for each CoCo VM type? I ask partly because
+>> Mukesh Rathor has just submitted a patch [1] that introduces a new
+>> function that does something almost exactly the same as
+>> hv_is_isolation_supported() and uses it here.
+> 
+>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
+>>> +             hv_isolation_type_cca())) {
+> 
+> With my change, this will become:
+> 
+>         (hv_isolation_hw_cvm() || hv_isolation_type_cca())) {
 
-Yes. It's not a very intuitive error code, I admit, but:
+Any reason you wouldn't change hv_isolation_hw_cvm() to
 
- (a) it *is* the error code we already use
+  return hv_isolation_type_snp() || hv_isolation_type_tdx() ||
+    hv_isolation_type_cca()
 
- (b) it is a fairly unique error code that isn't normal (ie EINVAL etc
-that can happen for multiple reasons)
+That would seem more logical to me.
 
- (c) this is  something that nobody should EVER EVER test for anyway
-
-IOW, the actual error code doesn't matter. Nobody sane will ever care.
-Some of them may be entirely unreachable due to resource allocation
-issues. And we already use EFAULT for random historical reasons.
-
-                Linus
+-- 
+Regards,
+Kameron
+> 
+> Thanks,
+> -Mukesh
+> 
+> 
+>> You don't provide the non-stub hv_is_isolation_supported() until
+>> Patch 6 of this series, but the weak stub should allow everything to
+>> build if a bisection splits this patch series.
+>>
+>> Michael
+>>
+>> [1] https://lore.kernel.org/linux-hyperv/20261111022036.351231-2-mrathor@linux.microsoft.com/
+>>
+>>> +            ret = set_memory_decrypted((unsigned long)mem,
+>>> +                           alloc_size >> PAGE_SHIFT);
+>>>               if (ret) {
+>>>                   /* It may be unsafe to free 'mem' */
+>>>                   return ret;
+>>>               }
+>>>
+>>> -            memset(mem, 0x00, pgcount * HV_HYP_PAGE_SIZE);
+>>> +            memset(mem, 0x00, alloc_size);
+>>>           }
+>>>
+>>>           /*
+>>> @@ -666,6 +669,12 @@ bool __weak hv_isolation_type_tdx(void)
+>>>   }
+>>>   EXPORT_SYMBOL_GPL(hv_isolation_type_tdx);
+>>>
+>>> +bool __weak hv_isolation_type_cca(void)
+>>> +{
+>>> +    return false;
+>>> +}
+>>> +EXPORT_SYMBOL_GPL(hv_isolation_type_cca);
+>>> +
+>>>   void __weak hv_setup_vmbus_handler(void (*handler)(void))
+>>>   {
+>>>   }
+>>> diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+>>> index bf601d6..1fa79ab 100644
+>>> --- a/include/asm-generic/mshyperv.h
+>>> +++ b/include/asm-generic/mshyperv.h
+>>> @@ -79,6 +79,7 @@ u64 hv_do_fast_hypercall16(u16 control, u64 input1, u64
+>>> input2);
+>>>
+>>>   bool hv_isolation_type_snp(void);
+>>>   bool hv_isolation_type_tdx(void);
+>>> +bool hv_isolation_type_cca(void);
+>>>
+>>>   /*
+>>>    * On architectures where Hyper-V doesn't support AEOI (e.g., ARM64),
+>>> -- 
+>>> 2.45.4
+>>>
