@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794489413;
-	b=MjQ3jYCSBaOUN1mFLBWnJnrHUm3oxzeGvcvHmmQZbnL/Ey1wZYsSgFbgc6SPZOU92P3G
-	 oGoRlcXzpiyYs2Q9yom1/uxOMTGbxEdta8zC0zOOGHHvA9EJiZ0fLO40HPtx61RDEUhXL
-	 FwZbRnJL5jnkztnxSBhLimgqC7hWr+oFumzL6zdokF3Kac4uGxpoMkEvsqdiWqDz2yMfX
-	 Lv5mCH2e4GhGVAb/QrPOPNZkqWXqEmkWX6CPOvOIGo5XmOqSudVcfWXO5FXjeaEdCK3zz
-	 iKrvhpd9Rl4yxMh6GW0dbCNb2eqDf5lLHfbipSRE5lSm9EyFdlJdRyyA52QkyznhF+A==
+	t=1794489869;
+	b=dAcoXEwdwGY2yZWZ/BD2pGfe0V9vJOQNivRNidiqA5+MSBmjUYhYe7wnPbMXjxvBWFLZ
+	 AYH3iJVeXr7xtLV4cxOtNC+/h9rr18iduQTfwBkSyZcIi/6Z9xGB5UWt14b05oTtMRPox
+	 7OWm5H38FT4SNQRxVRZ2HdP8vt4o7oRYD585Bqmb8KgCkqtnmD/pFREAwZOy22k2Dv3nQ
+	 lZ2gvYG/78xZFBLpMGdgefYgt/lDHa9CI9ZDTRf5EYx8UWR0WFWFw+ho+JlIG/4/oo/Us
+	 tG+EFxnw0tUzsqqazA/Pneb4HPaisxwxSTX3Z5GKkL5vrRnWe/PNgPeEDSQD7phdq1w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794489413;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794489869;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=i2Oes8RZDkSEXFI8H+2vd0Da2cFliXVxwNXn1JhwifA=;
-	b=R6CpjBXbo9UkPQwauKY841zadvBR08T6flCTcsHMJnIuDrGCX8TJ68dYJISl1CRYRiF3
-	 rlHKnZEYJbEMy/C6I1D+NP2M8vkzTnpw0gUxnj2ulyrBCDEAguw7IAUqtNVqZhRmH/lvn
-	 JILmt45F5oZZmsJWgnZ9pj5cveADbENyimM+C1ScjwX0eUqUHjZYafGt6mVRAiG87DCaj
-	 JYHMFbRSLGeWYyeb9RngjgHgU3qPnZqyk5Q9HYk9L42BEy4ZmzpD1o4DyTA4L1S6GuwXU
-	 EeRMVqq+qyi/Q+e7BXgLkjFDgHk1XZRi8iLbt5/r/0KgPbdHp4HtqGDFwjOkUNec5HA==
+	bh=7xmjRmraj6hajKCrG/rMZBddCcIUHPD2VWLoAxsDBOs=;
+	b=fsEeFM/y58K8clIvX4WioB/WtweZMe/JF8dq9nqn/xm6Jrvl7AO8qCCo04LGzSVULoeh
+	 JI58ldctRvlVqhdqAxYD2n0ZmA+GNRdYSP+tr6WcFBHg4EEtH9lcnFP0L2H+kzPA0njYE
+	 otOhUuWrC348u5FbbjnRa3gwwv+toRkUMUdS2GNc/O5ezRu1SQtIsrV3XkenYmXv14U74
+	 irJsYjfwPUQ0D/sEIBa4YUh+NuGBrD5WmZf9zoxqM/1CbR/Uq1z7CGW+FR/iEC7EfetyM
+	 1agAQPThcGQjmt+y9Y2IaFZu+rdjzv10snMU3h72eR2KfKBuuFxrYEUkqDQVW3j58og==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="OWHHd/ls";
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=lKMrbqce;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 72201606A323;
-	Thu, 12 Nov 2026 13:16:53 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7C056606A31C;
+	Thu, 12 Nov 2026 13:24:29 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=OWHHd/ls
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BA5611F00A05;
-	Thu, 12 Nov 2026 13:16:36 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=lKMrbqce
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4522E1F00A05;
+	Thu, 12 Nov 2026 13:24:11 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794489413;
-	bh=i2Oes8RZDkSEXFI8H+2vd0Da2cFliXVxwNXn1JhwifA=;
+	s=k20260515; t=1794489869;
+	bh=7xmjRmraj6hajKCrG/rMZBddCcIUHPD2VWLoAxsDBOs=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=OWHHd/lsZYkX+Jq2T55F046KvGJkwVb6ZNJHRXrnIltU3y9ehCady9llvQYz7eT6C
-	 b6gwiEygyCndpaJIRyg+GavO8iI+YCfZ2Uwp35NT0l9voskGAjqZjcNzrW7ElwS9vq
-	 xA2xR8/J9T5ZBK4HMLhcLMY5URFYgvGfGjWh0b1z5FjYipbPVvuLhazpnlXmjoISp0
-	 28UuXxrC6BUTP/lTG8Y9aJkxGNLyQrFX3s04RL5B3nRopwvnht2pma59Ed4xyBMoWC
-	 GkpVbhIoxBJV+NY5ZH8W+H4wvUY/uz5MDTIPd+UxtdLDO+3fcrB0mm6Vh6AdesMpbH
-	 e/KSk7ObVX1PA==
-Message-ID: <86206f64-fefa-4a13-95bc-eddf756eecc8@kernel.org>
-Date: Thu, 12 Nov 2026 14:16:33 +0100
+	b=lKMrbqcelcaBTBGaUr87HDTzI186L8p7uxe/R71dZb5jnFEWOt2ZzD+umyEqWRurC
+	 JT0tVrTFJvZ2ZWIjLFu9OHHqm3J9lqfi6fJk5xJdAarAHcppGuLg2Wov53d2v/n98j
+	 EyrlI+Au+8f4CMeYPUR6+pOyTfsWkNMtXIX/sVRTcpT/txuHalkPKrCX0a6Pttvq7f
+	 B1YhwwMB+oqZa1vAa/s67LjWAKW3YR+CjtLXB0YtFwBnF2u+vyg40wLqnuDPKWU6R2
+	 84mtk/sQzGKh76nBjk/kgwfOhINXcdtQzO3rZ2tN8H8HMi2IhHb0KNkgTawloAbWvW
+	 HCyhuk1jMYGDQ==
+Message-ID: <4ae22b7a-c160-4003-a029-8a20381d196f@kernel.org>
+Date: Thu, 12 Nov 2026 14:24:09 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,8 +52,8 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 1/9] mm: limit pagecache folio refcount when mapping
- pages
+Subject: Re: [PATCH v3 2/9] mm: limit pagecache folio refcount when splicing
+ into pipes
 To: Pedro Falcato <pfalcato@suse.de>
 Cc: Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
  Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
@@ -87,11 +87,10 @@ Cc: Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
  Linus Torvalds <torvalds@linux-foundation.org>, linux-mm@kvack.org,
  linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
  fuse-devel@lists.linux.dev, linux-arch@vger.kernel.org,
- iommu@lists.linux.dev, netdev@vger.kernel.org, Chris Mason
- <mason@kernel.org>, stable@vger.kernel.org
+ iommu@lists.linux.dev, netdev@vger.kernel.org, stable@vger.kernel.org
 References: <20261110-refcount_overflow_stable-v3-0-318625d63a98@kernel.org>
- <20261110-refcount_overflow_stable-v3-1-318625d63a98@kernel.org>
- <avW0HGjF6wuqn12T@pedro-suse.tail5790ac.ts.net>
+ <20261110-refcount_overflow_stable-v3-2-318625d63a98@kernel.org>
+ <avW3v-oLxcHXXNQD@pedro-suse.tail5790ac.ts.net>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -138,198 +137,192 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <avW0HGjF6wuqn12T@pedro-suse.tail5790ac.ts.net>
+In-Reply-To: <avW3v-oLxcHXXNQD@pedro-suse.tail5790ac.ts.net>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-> Mostly LGTM, with some comments:
-> 
-> Reviewed-by: Pedro Falcato <pfalcato@suse.de>
-
-Thanks for the review, Pedro!
-
-> 
->> ---
->>  include/linux/mm.h | 35 +++++++++++++++++++++++++++++++----
->>  mm/filemap.c       |  6 ++++++
->>  mm/huge_memory.c   | 29 +++++++++++++++++++++++++++--
->>  mm/memory.c        | 33 +++++++++++++++++++++++++++++----
->>  mm/migrate.c       | 11 +++++++++++
->>  mm/userfaultfd.c   |  4 ++++
->>  mm/util.c          | 18 ++++++++++++++++++
->>  7 files changed, 126 insertions(+), 10 deletions(-)
+On 11/12/26 14:09, Pedro Falcato wrote:
+> On Tue, Nov 10, 2026 at 09:35:42PM +0100, David Hildenbrand (Arm) wrote:
+>> Similar to mapping pagecache folios into page tables, let's reject
+>> additional references when splicing folios into a pipe if the refcount
+>> is at its limit, similar to how we handle it during GUP.
 >>
->> diff --git a/include/linux/mm.h b/include/linux/mm.h
->> index e6da76fbe8e83..6c7c29a086bd1 100644
->> --- a/include/linux/mm.h
->> +++ b/include/linux/mm.h
->> @@ -2229,9 +2229,36 @@ vm_fault_t finish_fault(struct vm_fault *vmf);
->>   *   back into memory.
->>   */
->>  
->> -/* 127: arbitrary random number, small enough to assemble well */
->> -#define folio_ref_zero_or_close_to_overflow(folio) \
->> -	((unsigned int) folio_ref_count(folio) + 127u <= 127u)
->> +/* Leave separate reserves for administrators and concurrent reference gains. */
->> +#define FOLIO_REF_COUNT_LIMIT		(INT_MAX - (1U << 26))
->> +#define FOLIO_REF_COUNT_ADMIN_LIMIT	(INT_MAX - (1U << 25))
->> +
->> +bool __folio_ref_count_over_limit(unsigned int ref_count);
->> +
->> +/**
->> + * folio_ref_count_over_limit - Check whether to refuse more folio references.
->> + * @folio: The folio.
->> + *
->> + * Check before adding page table mappings or other significant refcount users
->> + * to pagecache folios (!hugetlb), either before acquiring references or
->> + * afterwards with rollback if the operation is refused.
->> + *
->> + * Checking other folios does no harm.
->> + *
->> + * This check is an approximation; we leave some headroom such that concurrent
->> + * increments, batches, temporary references, or other bounded refcount
->> + * consumers are not a problem.
->> + *
->> + * Return: True if the caller should refuse the operation, false otherwise.
->> + */
->> +static inline bool folio_ref_count_over_limit(const struct folio *folio)
->> +{
->> +	const unsigned int ref_count = folio_ref_count(folio);
->> +
->> +	if (likely(ref_count < FOLIO_REF_COUNT_LIMIT))
->> +		return false;
->> +	return __folio_ref_count_over_limit(ref_count);
->> +}
->>  
->>  /**
->>   * folio_get - Increment the reference count on a folio.
->> @@ -2243,7 +2270,7 @@ vm_fault_t finish_fault(struct vm_fault *vmf);
->>   */
->>  static inline void folio_get(struct folio *folio)
+>> This will prevent more cases of possible folio refcount overflows with
+>> large pagecache folios.
+>>
+>> Introduce folio_get_checked() for checked reference acquisition when
+>> the caller already holds a reference. It warns and fails on a non-positive
+>> refcount and rejects additional references at the limit.
+>>
+>> Use folio_get_checked() in splice_folio_into_pipe() and
+>> fuse_ref_folio(), returning -EFAULT on failure, like we already do for
+>> pipe-buffer duplication. Similarly, make try_get_page() use it instead.
+>>
+>> Likely try_get_page() should be renamed (or removed) later, as it doesn't
+>> match the folio_try_get() semantics and is confusing.
+>>
+>> If we hit the limit after splicing some data, return the number of bytes
+>> already spliced. Teach the callers to handle errors, and stop
+>> filemap_splice_read() if we only spliced part of a folio, so we don't
+>> skip ahead to the next folio.
+>>
+>> The check in try_get_page() also covers pipe-buffer duplication by tee()
+>> and partial pipe-to-pipe splicing.
+>>
+>> Note that we deliberately will not fall back to the slow path of copying
+>> the folio, particularly as the folio might have an invalid refcount. If
+>> it is ever really required, we can revisit.
+>>
+>> Fixes: 800d8c63b2e9 ("shmem: add huge pages support")
+>> Fixes: 99cb0dbd47a1 ("mm,thp: add read-only THP support for (non-shmem) FS")
+>> Fixes: 793917d997df ("mm/readahead: Add large folio readahead")
+>> Cc: stable@vger.kernel.org
+>> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>> ---
+
+[...]
+
+>> +static inline __must_check bool folio_get_checked(struct folio *folio)
 >>  {
->> -	VM_BUG_ON_FOLIO(folio_ref_zero_or_close_to_overflow(folio), folio);
->> +	VM_WARN_ON_FOLIO(folio_ref_count(folio) <= 0, folio);
->>  	folio_ref_inc(folio);
+>> -	page = compound_head(page);
+>> -	if (WARN_ON_ONCE(page_ref_count(page) <= 0))
+>> +	if (WARN_ON_ONCE(folio_ref_count(folio) <= 0))
+>>  		return false;
+>> -	page_ref_inc(page);
+>> +	if (unlikely(folio_ref_count_over_limit(folio)))
+>> +		return false;
+> 
+> Ah nice, the helper I wanted :)
+> 
+> Nit: Having these two functions called back-to-back will result in two
+> separate loads on the refcount (folio_ref_count() distills into a READ_ONCE).
+
+Ack, something to optimize. I'd likely leave that for future work, as we'd need
+yet another helper.
+
+Unless I can convince myself that it is easy to do.
+
+> 
+>> +	folio_ref_inc(folio);
+>>  	return true;
 >>  }
 >>  
->> diff --git a/mm/filemap.c b/mm/filemap.c
->> index 9871b4f32a916..0f6d57432a7e5 100644
->> --- a/mm/filemap.c
->> +++ b/mm/filemap.c
->> @@ -3968,6 +3968,11 @@ vm_fault_t filemap_map_pages(struct vm_fault *vmf,
->>  		unsigned long end;
->>  		vm_fault_t map_ret;
->>  
->> +		if (unlikely(folio_ref_count_over_limit(folio))) {
->> +			folio_ref_dec(folio);
->> +			goto next;
->> +		}
+>> +static inline __must_check bool try_get_page(struct page *page)
+>> +{
+>> +	return folio_get_checked(page_folio(page));
 >> +
 > 
-> It's a bit odd that you take a ref, only to check later if we're over the
-> limit, and ditch the folio. Could you move this to next_uptodate_folio()?
+> God I hate this. I never realized try_get_page() isn't atomic, but
+> folio_try_get() is.
 
-That might be even better (and avoids one conflict with Andrew's tree). Let me
-take a look.
+Yeah, but that's for another purpose and more expensive.
 
 > 
->>  		addr += (xas.xa_index - last_pgoff) << PAGE_SHIFT;
->>  		vmf->pte += xas.xa_index - last_pgoff;
->>  		last_pgoff = xas.xa_index;
->> @@ -4009,6 +4014,7 @@ vm_fault_t filemap_map_pages(struct vm_fault *vmf,
->>  					   mmap_miss - 1);
->>  		}
+>> +
+>>  /**
+>>   * folio_put - Decrement the reference count on a folio.
+>>   * @folio: The folio.
+>> diff --git a/mm/filemap.c b/mm/filemap.c
+>> index 0f6d57432a7e5..e6e73e37f3ea4 100644
+>> --- a/mm/filemap.c
+>> +++ b/mm/filemap.c
+>> @@ -3047,10 +3047,11 @@ generic_file_read_iter(struct kiocb *iocb, struct iov_iter *iter)
+>>  EXPORT_SYMBOL(generic_file_read_iter);
 >>  
->> +next:
->>  		folio_unlock(folio);
->>  	} while ((folio = next_uptodate_folio(&xas, mapping, end_pgoff)) != NULL);
->>  	add_mm_counter(vma->vm_mm, folio_type, rss);
->> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
->> index 4608540e40d46..439cfe446cea4 100644
->> --- a/mm/huge_memory.c
->> +++ b/mm/huge_memory.c
->> @@ -1626,6 +1626,7 @@ static vm_fault_t insert_pmd(struct vm_area_struct *vma, unsigned long addr,
+>>  /*
+>> - * Splice subpages from a folio into a pipe.
+>> + * Splice subpages from a folio into a pipe. Return the number of bytes spliced,
+>> + * or -EFAULT if we cannot splice from the folio.
+> 
+> -EFAULT is a weird error code to return from splice, et al.
+
+We might be able to use ETOOMANYREFS (have to check if that could confuse
+callers), but IMHO EFAULT is good enough.
+
+What would be your suggestion?
+
+> 
+>>   */
+>> -size_t splice_folio_into_pipe(struct pipe_inode_info *pipe,
+>> -			      struct folio *folio, loff_t fpos, size_t size)
+>> +ssize_t splice_folio_into_pipe(struct pipe_inode_info *pipe,
+>> +			       struct folio *folio, loff_t fpos, size_t size)
 >>  {
->>  	struct mm_struct *mm = vma->vm_mm;
->>  	pgtable_t pgtable = NULL;
->> +	vm_fault_t ret = VM_FAULT_NOPAGE;
->>  	spinlock_t *ptl;
->>  	pmd_t entry;
+>>  	struct page *page;
+>>  	size_t spliced = 0, offset = offset_in_folio(folio, fpos);
+>> @@ -3063,13 +3064,15 @@ size_t splice_folio_into_pipe(struct pipe_inode_info *pipe,
+>>  		struct pipe_buffer *buf = pipe_head_buf(pipe);
+>>  		size_t part = min_t(size_t, PAGE_SIZE - offset, size - spliced);
 >>  
->> @@ -1662,6 +1663,10 @@ static vm_fault_t insert_pmd(struct vm_area_struct *vma, unsigned long addr,
->>  		if (is_huge_zero_folio(fop.folio)) {
->>  			entry = pmd_mkspecial(entry);
->>  		} else {
->> +			if (unlikely(folio_ref_count_over_limit(fop.folio))) {
->> +				ret = VM_FAULT_SIGBUS;
->> +				goto out_unlock;
+>> +		if (!folio_get_checked(folio))
+>> +			return spliced ? spliced : -EFAULT;
+> 			return spliced ?: -EFAULT;
+> 
+> I don't know if there's much kernel code out there doing this, but I like
+> the trick :)
+
+There are a couple of thousands, but yes, one doesn't encounter it that often.
+
+> 
+>> +
+>>  		*buf = (struct pipe_buffer) {
+>>  			.ops	= &page_cache_pipe_buf_ops,
+>>  			.page	= page,
+>>  			.offset	= offset,
+>>  			.len	= part,
+>>  		};
+>> -		folio_get(folio);
+>>  		pipe->head++;
+>>  		page++;
+>>  		spliced += part;
+>> @@ -3094,9 +3097,10 @@ size_t splice_folio_into_pipe(struct pipe_inode_info *pipe,
+>>   * Return: On success, the number of bytes read will be returned and *@ppos
+>>   * will be updated if appropriate; 0 will be returned if there is no more data
+>>   * to be read; -EAGAIN will be returned if the pipe had no space, and some
+>> - * other negative error code will be returned on error.  A short read may occur
+>> - * if the pipe has insufficient space, we reach the end of the data or we hit a
+>> - * hole.
+>> + * other negative error code will be returned on error; -EFAULT will be returned
+>> + * if acquiring a folio reference fails and no data has been spliced.
+>> + * A short read may occur if the pipe has insufficient space, we reach the
+>> + * end of the data, hit a hole or hit a folio refcount limit.
+>>   */
+>>  ssize_t filemap_splice_read(struct file *in, loff_t *ppos,
+>>  			    struct pipe_inode_info *pipe,
+>> @@ -3154,7 +3158,7 @@ ssize_t filemap_splice_read(struct file *in, loff_t *ppos,
+>>  
+>>  		for (i = 0; i < folio_batch_count(&fbatch); i++) {
+>>  			struct folio *folio = fbatch.folios[i];
+>> -			size_t n;
+>> +			ssize_t n;
+>>  
+>>  			if (folio_pos(folio) >= end_offset)
+>>  				goto out;
+>> @@ -3170,13 +3174,15 @@ ssize_t filemap_splice_read(struct file *in, loff_t *ppos,
+>>  
+>>  			n = min_t(loff_t, len, isize - *ppos);
+>>  			n = splice_folio_into_pipe(pipe, folio, *ppos, n);
+>> -			if (!n)
+>> +			if (n <= 0) {
+>> +				error = n;
+>>  				goto out;
 >> +			}
->>  			folio_get(fop.folio);
+>>  			len -= n;
+>>  			total_spliced += n;
+>>  			*ppos += n;
+>>  			in->f_ra.prev_pos = *ppos;
+>> -			if (pipe_is_full(pipe))
+>> +			if (pipe_is_full(pipe) || *ppos < folio_next_pos(folio))
 > 
-> I see you use this pattern often. Would it make sense to have a
-> bool folio_get_unless_overflow()?
+> I'm confused. Why does this need to be done here?
+>  
 
-I commented somewhere (in v2 I think) that I played with using
-folio_get_checked() from #2, but didn't quite like it so I discarded it as
+I have above:
 
-(a) it cannot be used everywhere here, as I'd need more functions to add
-multiple references. next_uptodate_folio() also could use it as I would need yet
-another temporary helper for a try_get().
+"stop filemap_splice_read() if we only spliced part of a folio, so we don't
+skip ahead to the next folio"
 
-(b) these changes here are going to get reverted fairly soon once I change the
-way how mappings are refcounted (which is, unfortunately, not suitable for
-stable, otherwise I wouldn't be throwing in this temporary change in the first
-place)
-
-So everything that is expected to stay in later patches uses the proper helper.
-
-[...]
-
->>  
->> +		if (unlikely(folio_ref_count_over_limit(folio))) {
->> +			/* Skip this PUD; it can be faulted in later. */
->> +			ret = (dst_vma->vm_flags & VM_MIXEDMAP) ? -ENOMEM : 0;
-> 
-> A comment as to what's going on here with VM_MIXEDMAP would be useful. I guess
-> the idea is that faulting on a mixedmap later will not necessarily hand you the
-> exact same page fault result?
-
-I can throw in a comment, yes.
-
-[...]
-
->> +bool __folio_ref_count_over_limit(unsigned int ref_count)
->> +{
->> +	if (ref_count >= FOLIO_REF_COUNT_ADMIN_LIMIT)
->> +		return true;
->> +	/* Background threads must not consume admin reserves. */
->> +	if (current->flags & PF_KTHREAD)
->> +		return true;
->> +	/* Neither must interrupt contexts on behalf of the interrupted task. */
->> +	if (!in_task())
->> +		return true;
->> +	/* Capability checks are not safe with IRQs disabled. */
->> +	if (irqs_disabled())
->> +		return true;
->> +	/* Use the task's credentials, which filesystem overrides cannot change. */
->> +	return !has_capability_noaudit(current, CAP_SYS_RESOURCE);
->> +}
-> 
-> In case this function ever returns over limit, we probably want to log this
-> in the kernel log. If this function gets the folio you could even print
-> the problematic file offset/inode/filesystem/etc. Ratelimited of course.
-
-You mean, if this function returns "true", right? Is printing always fine?
-(e.g., irqs disabled?)
-
-> 
->> +EXPORT_SYMBOL_GPL(__folio_ref_count_over_limit);
-> 
-> I'm fairly sure this will break the build for a number of non-GPL drivers
-> when calling folio_get() with CONFIG_DEBUG_VM=y.
-
-You mean, breaking OOT drivers, right? I can switch to EXPORT_SYMBOL if that's a
-concern.
+Thanks a lot for the review!
 
 -- 
 Cheers,
