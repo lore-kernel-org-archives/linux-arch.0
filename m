@@ -1,95 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.167.48
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794528933;
-	b=Jz0x7aArZq7H32V/TB6upxjuVMU7AuwfY7djNl3WCJlYZNYYTNpO1DK51w4z0T+rS/gZ
-	 YZcLtenRWEmIOhIsVeJhHQoTaE6MUGxXWgfblYMwbUsgUGU49iplBhB1eNPXKL8rBNoFD
-	 ce1KsodLuIf99MP0X+LdlWoIJL4EX3UqTF7MBkoXbEiAJ6vjwu2v6o3EXerIGir9CRaR4
-	 d2jNKeK7PWOYCR716Ywzorl8z86Vrq7fC/xC8WOKhlefNFHsXYJj1OCENTtRV5Kw6Hm9t
-	 GxftzyOHb+f3sERccYbayZx7WM8/2aTZhDanChE5boWDnTrYFlOJM8xBFcUYFsp33Fg==
+	t=1794530783;
+	b=1zWF+LGGuviBR5LZKOcRmmUIh+L+mR5I4Bip2SYwHOOQh9aKYsAOGmXOe3hrvHMx7Tj6
+	 YzywAnIeee0J7Sl2Fn1ReUWabcq66ZC5ZvajQOnUlCGn4nil7Wcu7yrCpMbtWBzyNnUv4
+	 Ap0ju1z09BU9f5FwDsrWWxSmiGS4ack4wL8/wGe1UGpQ0xPCXS9CkDrw5Ic0RCnm7vrtV
+	 VnqjnHStvSUmbtfmZC+wZ8BAu1PXy+RNUeulipn9uH4lcDWwQn4NCo2DTBOFejTOiXqjL
+	 oM0vkfxeJSpYjlsJCf8V0OzwI+gFIuNmzBlkw3tA5GyYYXfXa+Q30mEG0H8Sny9C4tw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794528933;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:
-	 MIME-Version:Content-Type:Content-Transfer-Encoding;
-	bh=61O++FJNcC4m027jbcMQkO8tdX8vxtYJyx2loV0XGJM=;
-	b=LAhmVMX/uhyLTFzNnf+Qv0ZNq0ViCcW7xNMVBWDWj4y0E74qZs8GeOSngL/R0kzJ8iBI
-	 vLnVxw26iQOFqV8xjSOzdVYOIfpt7ZrOv9p5/uaOGEI2Va4tk0q6ULDusqWdlA/9jdWKA
-	 oeIPYfvGi8SuPDuyFCBrKCQIu16Rmk621GCV/GoRh1K6GKhy53CtjWxBi1BUu65dgR9Zm
-	 DQyMo+CcEY28druF8Zy7PXIO/XvhHFVfJaqS+g6P6hgGrGxld3gv7D1nPQb9nKe+AvY2N
-	 eyy/igFr4NieYkqmXH4kt7B2QDzyuzIzTwmuEBPALlAJKsOKqW9Rqe3UWuFA34nOarw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794530783;
+	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
+	 MIME-Version:User-Agent:Subject:Content-Language:To:Cc:References:
+	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding:X-Spam-Status:
+	 X-Spam-Checker-Version;
+	bh=1vBgOZighXGOllRdyE42732n3hMUT8k/mfbvblMTQQA=;
+	b=ca+FuSWGHEfFOEW1OT0M7fiMPEPOi5mkWJ9WCY/CXL/MVEKI8NH6i6sHnheDeYkCC9t7
+	 p7vnqZ8tPHDtalhF4pvbFVu784gN8y/Ou5gMCOXdR0hkYAOOCDmRVb/qddJ8Z8K4EVqK6
+	 cUYuihL5NzdDDY4HVE+UUInGBCx7oBCAdVFMszVPChxTJdha0nDiJ00e/3EGZHY9At/la
+	 /io6V0cFijzMEDM5ZiHXzX/q8kp50PFwIrZ08t2RYv9f3p8B3PLnjLSL1mh2yAexye8NX
+	 W3V6KTF5JokINB/VY5piuiGd3BWQqhfhmUD5+aT/Tp9jZZtllymu0jTkzzZEiAxdswA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=P3gGVght;
-	arc=none smtp.remote-ip=209.85.167.48
-Received: from mail-lf1-f48.google.com (mail-lf1-f48.google.com [209.85.167.48])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6CC7960A261D
-	for <linux-arch@vger.kernel.org>; Fri, 13 Nov 2026 00:15:33 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 6CC7960A261D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	dmarc=pass header.from=linux.microsoft.com;
+	spf=pass smtp.mailfrom=linux.microsoft.com;
+	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b="Dt/E76kI";
+	arc=none smtp.remote-ip=13.77.154.182
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 2F61E606A330;
+	Fri, 13 Nov 2026 00:46:23 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2F61E606A330
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=P3gGVght
-Received: by mail-lf1-f48.google.com with SMTP id 2adb3069b0e04-5c148d4dbfbso513381e87.3
-        for <linux-arch@vger.kernel.org>; Thu, 12 Nov 2026 16:15:33 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1794528932; x=1795133732; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:mime-version:references
-         :in-reply-to:message-id:date:subject:cc:to:from:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=61O++FJNcC4m027jbcMQkO8tdX8vxtYJyx2loV0XGJM=;
-        b=P3gGVghtYNus1pwVAyzu75ZbePKoUj8l9ghrMz+6TXk00mR/PAfXnDhNBmSmHH1PKH
-         EiIeXV65p9W0D7UA5mfmcHf7fs2phRv+t/Dl86n3Fq1UVzRDyiDPYjVN+3Sgzy+FTkjS
-         GOMrlfikZsqhyo55AF/5g0BXluMlqY0GSbEQV549acI6H5tdfF/4la9ioLDz8BaCylLU
-         wmRUBXEay5OJkUMosZWYyxoLSJHy0mzIAwFkUiz6uFlIZXg0HlRQPGPEjnNCmWgE1Nqn
-         Ws+qiU1iY33gPJ+fYyfdf1aGa1kMwNoYlgWeFEcYoL5qCuHhPUYIf4hhRf8uDDZj23fu
-         cSsg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794528932; x=1795133732;
-        h=content-transfer-encoding:content-type:mime-version:references
-         :in-reply-to:message-id:date:subject:cc:to:from:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=61O++FJNcC4m027jbcMQkO8tdX8vxtYJyx2loV0XGJM=;
-        b=XO0EkWb5fEUpamYEj+ZGWLmBLpgUz5jsQEnOSLyaR5dK4q232DWKFIxkwiN50Rhz4+
-         0EbhwIkYBCCrbeDmFUmD+rWYjNjGynzxM2Oj619CjBFJJrr7vX2M9PYa+G+/4zK2gl5d
-         /80wemjSKZhDJdurItkeae7I59kZzYeFw8n1ALx/910OZGSlNZ5SyR8fTp8wkCEC83vc
-         f6xXe5zj0NFjGMbbJdCdYTJCtkpj+YkP7D5iilisYl6S+enxy3uX5hUAIMF616OU3LAc
-         Iwy87UDSOwvPktOYA+PJMy/bM8brjvtih7aWSZTLlvILgNh0HEBfWtj5oDkZKAiN0RQn
-         D05A==
-X-Forwarded-Encrypted: i=1; AL+hErFehUy5QMDEijw9DvsSCWbWafvobZ1I8nYiYvAPuGZUlG+1dbBDINsVs4n4OXmh3De8QGFt5sD/1h4y@vger.kernel.org
-X-Gm-Message-State: APuU4Z+fj7/vagxK23tQ4AMz5S0CzYQvWEyZPhdImEffJFh1Ju95cD4D
-	mjVg3TB1nZPsLa8j8ohjbiRcM+Jl4E7ghSmpKd7Qe+VquHr1zjGgXkXt/shRnG+heds=
-X-Gm-Gg: AYBFou1nqcd/5707rZW4GIqevHnCcPvPqFBnJTe+Q3eqKpdvwAhk7FB6wXbdLrCra02
-	2Qcl9ZEW+z90TOasXxC3w7+TsVlzLIa72qoUX4jIGb4xTLewR/1XDSCANhHiHd+TPJqM1VKsNWV
-	uQMDva/FUk3TIsg/RlIixlaZVhIXBufFHWBej21odukbgHZ3+gsOeeomkiV51kESDASi3RC8VOF
-	pIp1cfnIzDSudRkG+ISAZ1EIxkai6OoY+1KOkJVcZ/8l70AYIFxqypDyZvYILUQiDdy/WyjuJ/L
-	rUaV+hULZ054JCFU6ngkT6LxsU4Iwqj3ySFknAy3sJZ+v/dnTVjcqe+udLJl/IrB1PUpUPj4cTE
-	1w8+rBV3Kex1yYogzfcKeeooRdgiuaL4O29smx5m172uquIgG3LHm1xVrsd9Dj/vgxSkhdi0IXo
-	5gioIbTDWOj0gd6gK5UBL2m5rgx3zjR8Ipf+EWCEMIiWNQMIT7Uky1FyKbuc+V2hUXCCKnuDK7O
-	YZxiJ1ZrnvNOu0SxD6nDOFAbL6FWkYrXry5K82MFfcZq+xFkXWKT0L48gkGnirE4pchbs5vdLJf
-	1ISxLLsAvRSdH2G5lektO819w9abjIwhP/fHssRWF0+yYTDcErbruoKx1H6dfsv5ZI09++C2q8S
-	NYp1M40+4wuaRURlM91N+W/zIUF0kBEs=
-X-Received: by 2002:a05:6512:12c3:b0:5c1:517d:fb91 with SMTP id 2adb3069b0e04-5c1705d83eamr373085e87.2.1794528931539;
-        Thu, 12 Nov 2026 16:15:31 -0800 (PST)
-Received: from SafoStation ([31.40.65.49])
-        by smtp.gmail.com with ESMTPSA id 2adb3069b0e04-5c17133ca01sm200968e87.36.2026.11.12.16.15.30
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 12 Nov 2026 16:15:31 -0800 (PST)
-From: Safocl Stollmannovic <safocl88@gmail.com>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: [PATCH 09/10] sched/preempt: fix duplicate extern declarations
-Date: Fri, 13 Nov 2026 04:14:15 +0400
-Message-ID: <20261113001432.128201-10-safocl88@gmail.com>
-X-Mailer: git-send-email 2.56.1
-In-Reply-To: <20261113001432.128201-1-safocl88@gmail.com>
-References: <20261113001432.128201-1-safocl88@gmail.com>
+	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=Dt/E76kI
+Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 040C620B7166;
+	Thu, 12 Nov 2026 16:46:17 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 040C620B7166
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1794530778;
+	bh=1vBgOZighXGOllRdyE42732n3hMUT8k/mfbvblMTQQA=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=Dt/E76kI/3MFpUYYHZOURgy6EkuaTi8S8z5ncW2I/9sTmvxARptIu+vmDL6Tjc4IN
+	 5gSmEOJ0Q1EPS7g1x//7jcGiliU1FVjk8KiQarz3eBVAdpjIXlT/6b+rBBy3Gmi2m7
+	 yhwafN52I0kemUkmW8gkwXEyUvkufDSSAKcNQa9U=
+Message-ID: <f74db23c-ee1d-e0b1-c463-55dad00f9c61@linux.microsoft.com>
+Date: Thu, 12 Nov 2026 16:46:21 -0800
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -99,36 +53,131 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH v6 4/6] Drivers: hv: Mark shared memory as decrypted for
+ CCA Realms
+Content-Language: en-US
+To: Kameron Carr <kameroncarr@linux.microsoft.com>
+Cc: Michael Kelley <mhklinux@outlook.com>,
+ "decui@microsoft.com" <decui@microsoft.com>,
+ "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
+ "wei.liu@kernel.org" <wei.liu@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>,
+ "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
+ "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+ "linux-arm-kernel@lists.infradead.org"
+ <linux-arm-kernel@lists.infradead.org>,
+ "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
+ "mark.rutland@arm.com" <mark.rutland@arm.com>,
+ "sudeep.holla@kernel.org" <sudeep.holla@kernel.org>,
+ "thuth@redhat.com" <thuth@redhat.com>, "will@kernel.org" <will@kernel.org>
+References: <20261031001412.4150488-1-kameroncarr@linux.microsoft.com>
+ <20261031001412.4150488-5-kameroncarr@linux.microsoft.com>
+ <MN2PR02MB6863AA6357C8E0D4881F5FEAD4712@MN2PR02MB6863.namprd02.prod.outlook.com>
+ <c6b7f583-878d-1f1e-60cc-e602e277d075@linux.microsoft.com>
+ <af057438-a684-4840-815c-581b866678c1@linux.microsoft.com>
+From: Mukesh R <mrathor@linux.microsoft.com>
+In-Reply-To: <af057438-a684-4840-815c-581b866678c1@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Compiling a kernel module with a C++ compiler results in a duplicate
-echo ‘extern’ specifier error.
-This occurs because the code contains , and
-expands to  when processed by a C++ compiler.
-The  specifier must be removed.
-https://bugzilla.kernel.org/show_bug.cgi?id=222257
+On 11/12/26 09:49, Kameron Carr wrote:
+> On 11/11/2026 6:43 PM, Mukesh R wrote:
+>> On 11/11/26 10:01, Michael Kelley wrote:
+>>> From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Friday, October 30, 2026 5:14 PM
+>>>>
+>>>> In hv_common_cpu_init(), the per-CPU hypercall input/output pages need
+>>>> to be marked as decrypted (shared) for confidential VM isolation types.
+>>>> This is already done for SNP and TDX isolation; extend the same handling
+>>>> to Arm CCA Realm guests so that the host hypervisor can access the
+>>>> shared hypercall buffers.
+>>>>
+>>>> is_realm_world() is declared in include/linux/arm-rsi-cmds.h which only
+>>>> builds on arm64 (it includes <asm/memory.h>), so using it directly in
+>>>> the arch-neutral drivers/hv/hv_common.c would break the x86 build.
+>>>> Introduce a Hyper-V-specific helper following the established
+>>>> hv_isolation_type_snp() / hv_isolation_type_tdx() pattern.
+>>>>
+>>>> On architectures other than arm64 the weak default keeps the existing
+>>>> behaviour.
+>>>>
+>>>> Reviewed-by: Michael Kelley <mhklinux@outlook.com>
+>>>> Signed-off-by: Kameron Carr <kameroncarr@linux.microsoft.com>
+>>>> ---
+>>>>    arch/arm64/hyperv/mshyperv.c   |  5 +++++
+>>>>    drivers/hv/hv_common.c         | 17 +++++++++++++----
+>>>>    include/asm-generic/mshyperv.h |  1 +
+>>>>    3 files changed, 19 insertions(+), 4 deletions(-)
+>>>>
+>>>> diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
+>>>> index 46ab2da..da6c3aa0 100644
+>>>> --- a/arch/arm64/hyperv/mshyperv.c
+>>>> +++ b/arch/arm64/hyperv/mshyperv.c
+>>>> @@ -182,3 +182,8 @@ bool hv_is_hyperv_initialized(void)
+>>>>        return hyperv_initialized;
+>>>>    }
+>>>>    EXPORT_SYMBOL_GPL(hv_is_hyperv_initialized);
+>>>> +
+>>>> +bool hv_isolation_type_cca(void)
+>>>> +{
+>>>> +    return is_realm_world();
+>>>> +}
+>>>> diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+>>>> index 31256cb..a60c92c 100644
+>>>> --- a/drivers/hv/hv_common.c
+>>>> +++ b/drivers/hv/hv_common.c
+>>>> @@ -476,6 +476,7 @@ int hv_common_cpu_init(unsigned int cpu)
+>>>>        u64 msr_vp_index;
+>>>>        gfp_t flags;
+>>>>        const int pgcount = hv_output_page_exists() ? 2 : 1;
+>>>> +    const size_t alloc_size = ALIGN((size_t)pgcount * HV_HYP_PAGE_SIZE, PAGE_SIZE);
+>>>>        void *mem;
+>>>>        int ret = 0;
+>>>>
+>>>> @@ -489,7 +490,7 @@ int hv_common_cpu_init(unsigned int cpu)
+>>>>         * online and then taken offline
+>>>>         */
+>>>>        if (!*inputarg) {
+>>>> -        mem = kmalloc_array(pgcount, HV_HYP_PAGE_SIZE, flags);
+>>>> +        mem = kmalloc(alloc_size, flags);
+>>>>            if (!mem)
+>>>>                return -ENOMEM;
+>>>>
+>>>> @@ -499,14 +500,16 @@ int hv_common_cpu_init(unsigned int cpu)
+>>>>            }
+>>>>
+>>>>            if (!ms_hyperv.paravisor_present &&
+>>>> -            (hv_isolation_type_snp() || hv_isolation_type_tdx())) {
+>>>> -            ret = set_memory_decrypted((unsigned long)mem, pgcount);
+>>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
+>>>> +             hv_isolation_type_cca())) {
+>>>
+>>> Could this big "if" statement use "hv_is_isolation_supported()" instead
+>>> of explicitly testing for each CoCo VM type? I ask partly because
+>>> Mukesh Rathor has just submitted a patch [1] that introduces a new
+>>> function that does something almost exactly the same as
+>>> hv_is_isolation_supported() and uses it here.
+>>
+>>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
+>>>> +             hv_isolation_type_cca())) {
+>>
+>> With my change, this will become:
+>>
+>>          (hv_isolation_hw_cvm() || hv_isolation_type_cca())) {
+> 
+> Any reason you wouldn't change hv_isolation_hw_cvm() to
+> 
+>    return hv_isolation_type_snp() || hv_isolation_type_tdx() ||
+>      hv_isolation_type_cca()
+> 
+> That would seem more logical to me.
+> 
 
-Signed-off-by: Safocl Stollmannovic <safocl88@gmail.com>
----
- include/asm-generic/preempt.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+We could, I just don't know if on cca, the repeat hypercall has same
+behavior. I was leaving that for the arm team. Anyways, I sent question
+to the hyp team, if they say yes, i can update my patch to include that.
 
-diff --git a/include/asm-generic/preempt.h b/include/asm-generic/preempt.h
-index 1adddeab8..fc0da591d 100644
---- a/include/asm-generic/preempt.h
-+++ b/include/asm-generic/preempt.h
-@@ -93,8 +93,8 @@ static __always_inline bool should_resched(int preempt_offset)
- }
- 
- #ifdef CONFIG_PREEMPTION
--extern asmlinkage void preempt_schedule(void);
--extern asmlinkage void preempt_schedule_notrace(void);
-+asmlinkage void preempt_schedule(void);
-+asmlinkage void preempt_schedule_notrace(void);
- 
- #define __preempt_schedule() preempt_schedule()
- #define __preempt_schedule_notrace() preempt_schedule_notrace()
--- 
-2.56.1
-
+Thanks,
+-Mukesh
