@@ -1,85 +1,85 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.222.179
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.219.52
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794606433;
-	b=mvZNq/+fviq0ZFxhy9a85q2oHX27zjKRaHok5j3Lw/05gZrBtzPqcn+DLRNbws6lRAGY
-	 DeIdS0ipjN31rttmiLnRo9sLcnexrXnqvQW1Pyx8HIMJzQh7tGT0teafrBCqsIgnGMO9H
-	 TT2OkXBV+XwYZ3sUAtX3wjWTZx5fr/lxC30QUqTnOQjoAkJfwdx6N7CVGgNNzdIAQqR4Y
-	 mR5ixxo+8+BYKiCEM7PcRKDhaXbwf4NCLLCh1cLqFdjxOCOm5dYCW83tmF2sCYMt6zHKG
-	 ZXPji6Z/r0NmNVssTIwvTHijX/KyIu2i/5/tjsT53VIiLXX0DmxnqDfMbdT/ZpTEC5w==
+	t=1794606576;
+	b=LN/9FvLjNpOAJkniGNsp+MJpWUZayrdtX0BpMr9SKlJAuxyzYv6Trid9Av4Q+9AQu1uG
+	 GWX2j8pXWQKYf2qmYRXAEuLEPuVPCx/veEWwYwoaIWZ19yNl2uKa2MX81/FXpz306TRlf
+	 ZGpXx0zZPwr7pwbJy6li5f6T3v/tpsbhDUcgxuq3y0lfuKVzlVSOCSPoPwzdXz+EWBsTu
+	 8ZNlYW8NtApuAFDSEpDrcDMP8QVMEi5HgMnXp49ZvioTEsSIQ0M3OdD+TP7u7oxL6mrd2
+	 TWSnPNwVlhchdML7a83zecEW4xaP2GwZ2x0ZAes5s4DJO9jPP+pkpi01se2MieZ+Wmg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794606433;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794606576;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Subject:From:To:
 	 Cc:In-Reply-To:References:Date:Message-Id:X-Mailer;
-	bh=kmWJl7xpM9EiZrdM4st9QmllTAXM7O1m5Iu9qvicGyw=;
-	b=rrSj0fKdUYDSxzMpSYjX1xlIm2iQlKJOi/dGY3BRAHi3yPN6z8DQ0qDh7lu6zg9yaEhv
-	 l6OdiPgFfPapYKQUHlT5IGNAS1egAASaXOEkT9HKgrPrSHrN7Kp9nUCadkODab6CyOuwZ
-	 dusE/+2BBiA1L5kNMvEnR4vDJPhwnfveedtrQiw0EKvImE34fKceJVSGM7tpSL3zD5qbL
-	 K67PdugcfskMMNqxsFTNEZ7AJMcQduKmbnMysviZxe2bt1ngdkQjMnL2srR2U35R5Qrr+
-	 M69H4qeQKXup8l/Mhjyz9YWbHw7+f/ynoBMGf4ZfSXtpl4cBB42Q+uWWnPZALF9dCLA==
+	bh=/qcsr62uFOhvdCv1Z4CFJXXaONdJiHRFO6Btz2367L0=;
+	b=H9DwCcNGBwwbcFYiTqG3HBmdqpBu47v/gnjtkhs/zDo495j6kIa+lLFVOVpyGaH0km65
+	 4OrkcJJjXhg0hpJmI/1SPH1wV+LX903ej/2q40LlRDmNKbYPOrVB9hhGRnLgTHAmk2M7Y
+	 M6kwXqJt+SXqL7TVJ4W0b0aoMnvdBqazyHyyPx9xr1UQT7NhJgjnIELLSXX3yElWr4m56
+	 ci8yswCwSEk6LTatQOQrFEjJ1E0LS38Tb443B0//BqpOvNvb+x6bcKIBFZYyfnvzQKuxs
+	 IUYOHrkAQvzypnJDLOaLJwJcUzsse4F8L7ZYXmAdIV6Me7mGeS0hsHvkkQdA38zbhRA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=none header.from=gourry.net;
 	spf=pass smtp.mailfrom=gourry.net;
-	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=eaa0H2aL;
-	arc=none smtp.remote-ip=209.85.222.179
-Received: from mail-qk1-f179.google.com (mail-qk1-f179.google.com [209.85.222.179])
+	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=ghqIEHNU;
+	arc=none smtp.remote-ip=209.85.219.52
+Received: from mail-qv1-f52.google.com (mail-qv1-f52.google.com [209.85.219.52])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3810E606A334
-	for <linux-arch@vger.kernel.org>; Fri, 13 Nov 2026 21:47:13 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3810E606A334
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B6B0E60A263A
+	for <linux-arch@vger.kernel.org>; Fri, 13 Nov 2026 21:49:35 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org B6B0E60A263A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=eaa0H2aL
-Received: by mail-qk1-f179.google.com with SMTP id af79cd13be357-93f20c3aaa5so309270585a.2
-        for <linux-arch@vger.kernel.org>; Fri, 13 Nov 2026 13:47:13 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=ghqIEHNU
+Received: by mail-qv1-f52.google.com with SMTP id 6a1803df08f44-91f30ff609eso7595156d6.1
+        for <linux-arch@vger.kernel.org>; Fri, 13 Nov 2026 13:49:35 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gourry.net; s=google; t=1794606432; x=1795211232; darn=vger.kernel.org;
+        d=gourry.net; s=google; t=1794606575; x=1795211375; darn=vger.kernel.org;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:from:to:cc
          :subject:date:message-id:reply-to:content-type;
-        bh=kmWJl7xpM9EiZrdM4st9QmllTAXM7O1m5Iu9qvicGyw=;
-        b=eaa0H2aLTwIv1fF9DlES7zpndhp3z4IRgePEZs2NN4KH8l196BoqVtJMOQoreLCYNB
-         pOsyMZrWiiWWEYh99FWQcRzLwUkmUQG0Z6hXXczle32dIaNGY3hVRAwAZF4u+LqQGeDl
-         HW/Qi7lP/gayyA5HyH4yHz9T2KcK3IAp4jj2dA1Q8qWqf67B8DNQa36x3Wf1p+BqoYeV
-         09E1Oth2PXXi3zYvT0jz0Q46Ub14UsGzxUIXD4+zxf0zDuIBi9HdIfF7bPAV5OJw1wez
-         IQ1H4vTfGvCU94LsWlmfOA1MvRSD4iIueptYlFuflsyzxqnZzZl++fo1JvUP6RClXRoD
-         h3pw==
+        bh=/qcsr62uFOhvdCv1Z4CFJXXaONdJiHRFO6Btz2367L0=;
+        b=ghqIEHNUTk/Egmeku5ypK1Wz5tcQukr5e5ExNt3NiqCSADJ0H6FB6nWIAfBthKyuz7
+         4Xqameh7l18qWPZ3TNz1BUzTHaARTohdL3Zd7gjqrhsDglIKqLef65F8kUYnxrTHB4Zl
+         bo90KaR3amttm01kClcxvL8wxycMxohW0EzetFpZWf0eNdqqGIY93nDUjCPEnaGY27q9
+         4xOOCpH14vnboktINgLxJ3nanxglA8VyNnVQlMIBaWnV4hH39CJiaU9+ZSZ7HQqRjie5
+         Fkc9v66buLfQpspMAvkyrwDNPEy3EEqInyN3YC/kybPSgnrLKdkX7kyCs/WKaMEkqq8k
+         2TTg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794606432; x=1795211232;
+        d=1e100.net; s=20260707; t=1794606575; x=1795211375;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=kmWJl7xpM9EiZrdM4st9QmllTAXM7O1m5Iu9qvicGyw=;
-        b=ipJLRg+ff3rHdtM6p09UntuVQVGojEmRqSxbRfYromCoBuvApu8rSD0oMxHmMTCYHn
-         qOqtQ6hJYl1JtDhMzjiOc8wxlrI4x5gOU4EYKRReiGENVAHzpT16n93hH/XjD3aMAl55
-         L3vOgNJLWquoaCUMVgGCdY1wTK8GF9EK8QGpz9H5yIldVekZN0h7R2g2NDd5TJI+BIcO
-         T7dGcKE9LFIkJ01SI7N2geLxTJwGMvTDZvkJvqSlpTNvU9BfzOlIMOPHamPzAW2bFIxY
-         T3vioU73M5iXN67MpSykbMAdnhA/NE/7ae0ayBs+j4Ht3GEekDQwtXbZBEGTtw95Rtc1
-         KMfw==
-X-Forwarded-Encrypted: i=1; AL+hErEDo2sj8CxHXvr7wrldjYZ0x1nl3eWQ7me5BlNb3ot3b7AkpNJHTk50egKfdeneZNLufdcllSFcKlRO@vger.kernel.org
-X-Gm-Message-State: APuU4Z/YE24a2KZ1sXcKZtDdKLhPPEWbAFxXx15nLeq5Bcu+9EYa4nb+
-	xFvELqW4IYJtKaa6YzXw+mXYj2hY7TdcXHt3/+Ilp2NFBPdJPGemSUxJr6DEnXtbRVs=
-X-Gm-Gg: AYBFou0aY4VqCnnaMyrgDD0y6a8UHhkO/smXX/N2XGPai7WI68EU1JxdkQlQoxAFoNd
-	NdzdjkzqjpDh9qJGPkHSri+DjKqJt/hfnkmx241aUZ+YReRRbXe5cqj5o52xDy+14hOMv/nJp2z
-	zJKm74MixHaTJNcPwD1mAYX64yWdtnETZMQ4fvZ/VNorQ6JJxkydVigcchLOT5DQquMxEUghKoe
-	zqfanAAgh1Dnu0mi+Zop9S6aBoHkMAQ23l7t396l0VdZP01N4hlILaHwAoN4T9m28zFIB6EyUMn
-	xz5DoCeGLQQp0VfKpwUasCVOpTiA6fC7iMv2XwjjiENzL/pYORm0BDdIto1nZHnEM8CZPQQLL+A
-	sqmpaV4bQJSi1hnAKC0NxJpzG4uu6t2/o+fT2aiuH7tZsnJXepnEjk0Rgd3+yr6Q1ScFkAFX511
-	PsKsHboq9XY3KXizd54L1I4tmgkt2pyQM0kDiT8aFZRfaCwJDzHYcRcfG9i608SVi1c/aTwXO0m
-	Nh7NGsfCy7B7u26tQDuxGMI+7wKOxa+nviEymRF4LieYJdChA8r03ik2TQe0dg/ffGjzXIufpjK
-	g6RgTpd7GqoLxcuD2mHwmk+dWHje6baMGztqpxnLc6yEL+Bo3Q/Al9N3HiaXqQ4LaE6OXpJkq/h
-	9BLzuhlM=
-X-Received: by 2002:a05:620a:4042:b0:93f:3120:6c6d with SMTP id af79cd13be357-9494bb56dfbmr651566785a.35.1794606432092;
-        Fri, 13 Nov 2026 13:47:12 -0800 (PST)
+        bh=/qcsr62uFOhvdCv1Z4CFJXXaONdJiHRFO6Btz2367L0=;
+        b=Y5wxmKRKQwep/Dcncnq0IqErqFZJgf+3Wr92LkxYNc03vgaPXtXiXEgDZuigycAG3K
+         v86E7gW9WuT74PesppEou/TwbyFhtXWp+4xc57CPF/tLLiRYXcAjUfWELl1RSx9QZNJ2
+         Mo4TVQ/2w438hrICRY7x3PIPxA2EgWgS1IadUhqwMVaLEWdD6r3k8JQeR2ODpVyKSSPA
+         9OLOTBR7hQjqXDFmZkv8W6fT2r7UiW+fjROJhYb2Aq2WEWARzs7p3kF67I77/ZmIbfLr
+         vk6sxJRsOOtos8RqpPadY6+dwTHH75vwvr5UAbPgX20sZbgKDIkhOluFmP/pE/hFcTUW
+         NIUQ==
+X-Forwarded-Encrypted: i=1; AL+hErHVBt5QeYUCkPSKO3wJk9n+l7AfoLZR4It9CSf+1K4B12H8zKfj7aTVLlPtqwZwoeJqeAeDe4Dx/Qtt@vger.kernel.org
+X-Gm-Message-State: APuU4Z+xONVCb28+XJYWnn0DJwyHMh2YS/CUeeZ+Y7DP9HG6drPA7v8u
+	TZWp6USHQg0t+uifAFMMKwxLM6072gv+TQ/RKuF8/Dv7jpj1kuCy8jS6YJVr91J8Jrc=
+X-Gm-Gg: AYBFou3DemBIV8emngTCYlYRqJeHcPU9jyFDIqRhyNdKiQbXMOULlL7+3I0uBKduv9B
+	04jl2ezmLVGNPprKV8i+LFXa2UrPVX/vQoLgkE5fpqaQhiFok3l/d98+QmRKdSSJembSvaxGecv
+	O0yZvdSzenyygpFMXSosdIWXXSQk6bybSZjPLgTtG8Gv1zcUlG9RSD3OKYyPEC2j6vqTEXQ0Suz
+	PF1jdVUwV1KtCgA5RnT/j8bY+fmlplQ5/rLvYqVAk4opSOMYYqomUnR3je65y1gQE9OUDN+gZZo
+	j8+Nuxc8T60ZnEiC1iBRtnHAFqGedr5F1vFAJRmzBomkNdIq2BvIDRaz76IDfIseXzmz18EOscs
+	lqBMyKgmTQqBiOxe6ZGAEBzFLhpZZjf48khOLkmzG0PLcXD5fY2wEj28XnFu589KopI8bT/hsuK
+	SffTtGVVAAqEq28jOIDevlcPTQ1vHeMnLtZsoJq++ic4rWZIpA6XHlp1RL5Ume9wQ285nNoKSXE
+	9m8ZCYbnmAwCOV1/8ZdC2fyBT1g44lt6f+5MS6SR3ko1jFb3hahF6nGOkR3dka5ZXqcEBG9yH9Z
+	UbXA5NKXfOiiKHHOhCHt5chWWDwWgwTdA5IBku7K7eDHZkAtZjxykCrpBx3ryciEoAXTmZ7Mo7T
+	gPRIfpjM=
+X-Received: by 2002:a05:6214:5784:b0:91e:9437:95a6 with SMTP id 6a1803df08f44-91f24222b57mr56835466d6.47.1794606574483;
+        Fri, 13 Nov 2026 13:49:34 -0800 (PST)
 Received: from [192.168.50.231] (pool-71-191-145-202.washdc.fios.verizon.net. [71.191.145.202])
-        by smtp.gmail.com with ESMTPSA id af79cd13be357-9494c8b5c1dsm279333985a.33.2026.11.13.13.47.11
+        by smtp.gmail.com with ESMTPSA id 6a1803df08f44-91f23d459c6sm29868656d6.14.2026.11.13.13.49.33
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 13 Nov 2026 13:47:11 -0800 (PST)
+        Fri, 13 Nov 2026 13:49:34 -0800 (PST)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -91,8 +91,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH 05/15] mm/hugetlb: keep surplus folios when the pool
- shrinks
+Subject: Re: [PATCH 11/15] hugetlbfs: do not grow a sealed file in mmap()
 From: "Gregory Price (Meta)" <gourry@gourry.net>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
@@ -119,54 +118,43 @@ Cc: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
  linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
  Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, 
- Josef Bacik <josef@toxicpanda.com>, stable@kernel.org
-In-Reply-To: <20261028-fixes_hugetlb-v1-5-a0a033db180f@kernel.org>
+ Chris Mason <mason@kernel.org>, stable@kernel.org
+In-Reply-To: <20261028-fixes_hugetlb-v1-11-a0a033db180f@kernel.org>
 References: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
- <20261028-fixes_hugetlb-v1-5-a0a033db180f@kernel.org>
-Date: Fri, 13 Nov 2026 16:47:10 -0500
-Message-Id: <179460643069.482102.17806419339613384754.b4-reply@b4>
+ <20261028-fixes_hugetlb-v1-11-a0a033db180f@kernel.org>
+Date: Fri, 13 Nov 2026 16:49:32 -0500
+Message-Id: <179460657279.482102.3328777708780344971.b4-reply@b4>
 X-Mailer: b4 0.17-dev
 
 On 2026-10-28 21:13 +0100, David Hildenbrand (Arm) wrote:
-> From: Josef Bacik <josef@toxicpanda.com>
+> From: Chris Mason <mason@kernel.org>
 > 
-> Surplus folios are accounted per node. When shrinking the pool,
-> set_max_huge_pages() removes free folios through
-> remove_pool_hugetlb_folio() and accounts them as persistent folios.
+> hugetlbfs_file_mmap() grows a file when a writable mapping extends beyond
+> EOF. We are missing seal checks similar to hugetlbfs_setattr() and
+> hugetlbfs_fallocate(), allowing a user to grow a file that has F_SEAL_GROW
+> set.
 > 
-> It can select a node whose folios are all surplus and leave its surplus
-> count larger than its total count. Free surplus folios can back
-> reservations created by gather_surplus_pages().
+> To fix it, skip the resize when F_SEAL_GROW is set; mmap() still succeeds
+> without growing the file.
 > 
-> For example, with nr_overcommit_hugepages = 8 on two nodes:
+> We currently also allow CoW mappings to grow a file. Disallowing this,
+> maybe even only for read-only file descriptors, could break existing
+> userspace, so we have to be more careful. QEMU's file backend is an
+> example user that might rely on such things, and would suddenly start
+> getting SIGBUS when faulting in memory outside EOF.
 > 
->   (node columns show total/free/surplus)
+> So be careful and focus on F_SEAL_GROW for now.
 > 
->                                       total free surp   node0   node1
->   mmap() of one page, bound to node 0     1    1    1   1 1 1   0 0 0
->   node1/nr_hugepages = 7                  8    8    1   1 1 1   7 7 0
->   nr_hugepages = 6                        7    7    1   0 0 1   7 7 0
->   munmap()                                7    7    1   0 0 1   7 7 0
->   nr_hugepages = 0                        1    1    1   0 0 1   1 1 0
+> Fix generated by an LLM and sent by Chris Mason in private.
 > 
-> After shrinking to six persistent folios, node 0 has no folios but its
-> surplus count is still one. Releasing the reservation cannot clear that
-> count, and shrinking the pool to zero leaves one free page on node 1.
-> 
-> A later write to node0/nr_hugepages underflows the unsigned per-node
-> persistent count: 0 - 1, resulting in allocation of many folios.
-> 
-> Use persistent_huge_pages_node() to skip nodes with no persistent folios,
-> as adjust_pool_surplus() does. This also excludes temporary folios.
-> 
-> Fixes: e4e574b767ba ("hugetlb: Try to grow hugetlb pool for MAP_SHARED mappings")
+> Fixes: ff62a3421044 ("hugetlb: implement memfd sealing")
 > Cc: stable@kernel.org
-> Signed-off-by: Josef Bacik <josef@toxicpanda.com>
-> [ david: cleanup code and description ]
+> Signed-off-by: Chris Mason <mason@kernel.org>
+> [ david: drop comment; simplify+extend description ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-Reproduced the total=0, surplus=1 issue and subsequent underflow, and
-verified this patch fixes the issue.
+Reproduced by growing a sealed memfd length from 0 to 2MB.
+With the patch, we stay at length 0.
 
 Tested-by: Gregory Price (Meta) <gourry@gourry.net>
 
